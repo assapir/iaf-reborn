@@ -22,7 +22,7 @@ func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	var he := Settings.language == "he"
-	var s := Settings.load_json("res://menu/strings_%s.json" % ("he" if he else "en"))
+	var s := Settings.strings("res://menu/strings")
 	var back := ColorRect.new()
 	back.color = Look.BG
 	back.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)

@@ -543,7 +543,7 @@ func _load_menu_data() -> void:
 	strings = Settings.load_json(dir.path_join("strings.json"))
 	if menus.is_empty():
 		push_error("front end: run tools/setup-cli.sh (menus not converted)")
-	hebrew = Settings.load_json("res://menu/strings_he.json")
+	hebrew = Settings.strings("res://menu/strings", "he")
 	var scale_file := dir.path_join("image_scale.txt")
 	art_scale = (
 		float(FileAccess.get_file_as_string(scale_file).strip_edges()) if FileAccess.file_exists(scale_file) else 1.0

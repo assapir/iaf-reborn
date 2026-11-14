@@ -125,8 +125,8 @@ func run() -> void:
 	check(w.rows["sim-terrain"].state.text == "ירוץ", "an empty root: the terrain will run (the preview)")
 	await _include(w, assets)
 	# Two checks at once: the first is abandoned, and both answers are fetched (IafSetup keeps no stale job).
-	w._preview()
-	w._preview()
+	w._preview_sim()
+	w._preview_sim()
 	t = Time.get_ticks_msec()
 	while not w.jobs.is_empty() and Time.get_ticks_msec() - t < 30000:
 		await process_frame
@@ -172,9 +172,9 @@ func run() -> void:
 	var part := "built, incomplete: 3 sources missing (a, b, c); Retry fetches them"
 	check(w.reason(part) == w.s("why_incomplete") % 3, "an incomplete scenery: its reason in the page's language")
 	check("1 skipped" in w.install_note.text and w.next_button.text == "Next", "the note counts the skipped step")
-	sc.tick.button_pressed = true
+	sc.redo.button_pressed = true
 	check(not w.finished and w.next_button.text == "Install", "a ticked Run again brings Install back")
-	sc.tick.button_pressed = false
+	sc.redo.button_pressed = false
 	w.finished = true
 	w._show_result()
 	w._on_back()

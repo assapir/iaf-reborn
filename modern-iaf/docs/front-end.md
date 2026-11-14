@@ -185,8 +185,11 @@ centreline in the roll.
   The photos and the Hangar's jet never flip (their tail numbers would read backwards). Latin
   codes (F-16I, 25R, 08:00) run left to right inside the Hebrew lines; "MSAA 4×" carries a left-to-right mark.
 - **Strings:** `modern-iaf/menu/strings_en.json` and `strings_he.json`, formal and gender-neutral (infinitives: לטוס,
-  להתניע, לבקש). The Language row switches every string at once. The briefing's objectives and steps are the
-  rules' (§10). A training mission's title is its
+  להתניע, לבקש), loaded by `Settings.strings("res://menu/strings")` (shared/settings.gd), the loader both games use.
+  Godot's `tr()` is no drop-in: the tables hold lists as well as texts, reborn's Hebrew is keyed by its English
+  labels in groups, and auto-translated controls would also translate the texts kept in English. The Language row
+  switches every string at once. The briefing's objectives and steps are the rules' (§10).
+  A training mission's title is its
   kind ("Take-off", "המראה"; the missions' `title`, the user, 2026-11-09): the base is its own field everywhere it
   shows (the briefing, the loading screen's second line, the debrief's From).
 - **The jet's name** is its code and name, "F-16I Sufa" / "F-16I סופה", wherever it shows (the user, A25), from one

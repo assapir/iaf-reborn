@@ -76,13 +76,11 @@ func _ready() -> void:
 	# The mission handed to the flight (fly.gd, the tests): the sim starts its missions that way.
 	var files: Array = Settings.mission_files_override
 	var sim: Dictionary = files[0].data.get("sim", {}) if not files.is_empty() else {}
-	var strings := Settings.load_json(_dir().path_join("../menu/strings_%s.json" % ("he" if he else "en")))
+	var strings := Settings.strings(_dir().path_join("../menu/strings"))
 	_strings = strings
 	var base := String(sim.get("base", ""))
 	# Without a mission: the sim's name (the setup wizard's strings, "name").
-	var sim_name: String = (
-		Settings.load_json(_dir().path_join("../setup/strings_%s.json" % ("he" if he else "en"))).get("name", "")
-	)
+	var sim_name: String = Settings.strings(_dir().path_join("../setup/strings")).get("name", "")
 	_label(box, "H1", String(sim.get("title", {}).get(Settings.language, sim_name)))
 	if base != "":
 		_label(box, "Sub", String(strings.get("base_" + base.to_lower().replace(" ", "_"), base)))

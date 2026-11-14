@@ -128,7 +128,8 @@ The pages say only what the user decides or must know ([plan.md](plan.md) Rules)
 The look is one file, `modern-iaf/setup/wizard_theme.gd`: Godot's default dark theme with Heebo
 (`modern-iaf/data/fonts/`, SIL OFL 1.1) and the text kinds the pages ask for by name ("Heading", "Muted", "Note",
 "Readout", "Card", "Primary": Done's Start the game, a white button with dark bold text). A new look replaces that file only. The strings are `modern-iaf/setup/strings_en.json` and
-`strings_he.json` (formal, gender-neutral Hebrew).
+`strings_he.json` (formal, gender-neutral Hebrew). The page frame and the run are the one both games' wizards use,
+`shared/util/setup_wizard.gd` (docs/setup.md "The wizard").
 
 ## 3. The steps
 

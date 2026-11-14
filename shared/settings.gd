@@ -1360,7 +1360,7 @@ func msgs() -> PackedStringArray:
 	var dir := converted("menu_he" if he else "menu")
 	var lines: PackedStringArray = String(load_json(dir.path_join("strings.json")).get("msgs", "")).split("\n")
 	if he:
-		var tr: Dictionary = load_json("res://menu/strings_he.json").get("msgs", {})
+		var tr: Dictionary = strings("res://menu/strings", "he").get("msgs", {})
 		for i in lines.size():
 			lines[i] = tr.get(lines[i].strip_edges(), lines[i])
 	return lines
@@ -1372,6 +1372,15 @@ func load_json(path: String) -> Dictionary:
 		return {}
 	var d = JSON.parse_string(FileAccess.get_file_as_string(path))
 	return d if d is Dictionary else {}
+
+
+## The strings table `<stem>_<lang>.json` in the game's language (`lang`: "he" Hebrew, else "en"), e.g.
+## strings("res://menu/strings"): both games' texts load here (reborn's Hebrew labels, the sim's tables); {} when
+## missing. Not Godot's tr(): the tables hold lists as well as texts, reborn's Hebrew is keyed by its English label in
+## groups ("labels", "msgs") and has no English table, and auto-translated controls would also translate the texts
+## kept in English (licences, paths, the 1998 wizard); the right-to-left layout is the screens' own either way.
+func strings(stem: String, lang := language) -> Dictionary:
+	return load_json("%s_%s.json" % [stem, "he" if lang == "he" else "en"])
 
 
 ## An original .ibx (INI) file: {section: {key: value}}, the values unquoted strings, ';' starting a

@@ -205,7 +205,10 @@ start-up when `assets/converted` is missing. The desktop launcher "Jane's IAF (r
 Windows: `.\setup.ps1`, `.\iafjets.ps1` and `.\mission-editor.ps1` (`tools/windows/launch.ps1`) do the same; a
 missing tool opens a message box. `tools\windows\setup-cli.ps1` runs the steps from a terminal through `iaf-setup`.
 
-The wizard uses the original menus' colours. Pages:
+Both games' wizards are built on one frame, `shared/util/setup_wizard.gd`: Back / Next / Cancel, the pages scrolling
+in the body, the run through IafSetup (start, poll, cancel, the log, the up-to-date preview, Redo), a step's time
+left and the Attributions dialog. Each wizard adds its own pages, look and texts. The wizard uses the original
+menus' colours. Pages:
 
 1. **Welcome**: the game's name, what is needed and what is optional, the next pages, where the data goes, the
    repository link and the licence. An **Attributions…** button opens the third-party credits in a window (the

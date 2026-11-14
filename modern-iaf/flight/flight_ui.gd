@@ -79,7 +79,7 @@ func _ready() -> void:
 ## switch it (_process), then `language_changed` for the add-on's own text.
 func _apply_language() -> void:
 	_lang = Settings.language
-	strings = Settings.load_json("res://menu/strings_%s.json" % ("he" if he() else "en"))
+	strings = Settings.strings("res://menu/strings")
 	var old := get_node_or_null("Hint")
 	if old != null:
 		remove_child(old)

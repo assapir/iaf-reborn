@@ -264,9 +264,8 @@ func show_page(p: String) -> void:
 	# stays only while the screen does (another mission picked).
 	if p == "mission" and page_was != "mission":
 		brief_tab = 0
-	var lang := "he" if he() else "en"
-	strings = Settings.load_json("res://menu/strings_%s.json" % lang)
-	setup_strings = Settings.load_json("res://setup/strings_%s.json" % lang)
+	strings = Settings.strings("res://menu/strings")
+	setup_strings = Settings.strings("res://setup/strings")
 	if _theme == null:
 		_theme = Look.make()
 	theme = _theme

@@ -4,9 +4,7 @@
 # greens, the credits' orange). Running it again adds or redoes things: the last inputs
 # (assets/setup.json) fill the pages, and the steps whose inputs did not change are "up to date".
 # Opened by ./setup, by ./iafjets without game data, and by startup.gd when assets/converted is missing.
-extends Control
-
-const WizardUtil := preload("res://shared/util/wizard_util.gd")
+extends "res://shared/util/setup_wizard.gd"
 
 const TITLE := "Jane's IAF (reborn) — Setup"
 const PAGES := ["Welcome", "Requirements", "Your CD", "Optional", "Extras", "Summary", "Install", "Done"]
@@ -66,26 +64,27 @@ const STATE_TEXT := {
 	"blocked": "not run",
 	"cancelled": "cancelled",
 }
+## The texts the shared frame asks for (setup_wizard.gd s()); this wizard is in English.
+const FRAME_TEXT := {
+	"next": "Next",
+	"back": "Back",
+	"cancel": "Cancel",
+	"cancelling": "Cancelling: the running steps stop at their next item…",
+	"not_started": "Setup did not start: %s",
+	"installing": "Installing…",
+	"log_file": "Log file: %s",
+	"show_log": "Show the log",
+	"hide_log": "Hide the log",
+	"state_checking": "checking…",
+	"credits": "Attributions",
+}
 
 ## Tests: only these steps (and what they wait for) run.
 var only_steps := PackedStringArray()
 
-var setup := IafSetup.new()
-var assets := ""
-var repo := ""
-var tools := {}
-var page := 0
-var running := false
-var finished := false
-var failed := ""
-
-var title_label: Label
 var margin: MarginContainer
 var body: Control
-var back_button: Button
-var next_button: Button
 var again_button: Button
-var pages: Array[Control] = []
 
 # Requirements
 var req_box: VBoxContainer
@@ -112,46 +111,30 @@ var sentinel_check: CheckBox
 var refresh_check: CheckBox
 var refresh_note: Label
 var guides_check: CheckBox
-## The background jobs running in IafSetup (begin / result): name → what handles the result.
-var jobs := {}
-var previews := 0
 # Summary / Install
 var summary_label: RichTextLabel
-var redo_check: CheckBox
 var rows_box: VBoxContainer
-var rows := {}
-var install_note: Label
 ## Copies the link a failed step names (the Survey's expired pass).
 var fail_link: LinkButton
-var log_view: TextEdit
-## This run's log file (assets/logs/setup-<date>-<time>.log).
-var log_file := ""
-var log_button: Button
 var done_label: Label
 
 
 func _ready() -> void:
-	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	# The window: 1200×820 times the UI scale, centred (./setup starts it at 1200×820); the game it starts at the end
+	# applies its own Window setting again.
+	_start_wizard(PAGES, Vector2i(1200, 820))
 	get_window().title = TITLE
 	# Our own icon (icon.svg), not the CD's: the wizard runs before the CD is read.
 	var icon := Image.load_from_file(ProjectSettings.globalize_path("res://setup/icon.png"))
 	if icon != null:
 		DisplayServer.set_icon(icon)
-	# The window: 1200×820 times the UI scale, centred (./setup starts it at 1200×820); the game it starts at the end
-	# applies its own Window setting again.
-	(func(): WizardUtil.resize_window(self, Vector2i(1200, 820))).call_deferred()
-	assets = Settings.assets_dir()
-	repo = ProjectSettings.globalize_path("res://").path_join("..").simplify_path()
-	tools = IafSetup.tools()
 	_build()
 	_prefill()
 	show_page(0)
 
 
-func _exit_tree() -> void:
-	if running:
-		setup.cancel()
-	# Jobs still running end on their own (their threads only read).
+func s(key: String) -> String:
+	return FRAME_TEXT.get(key, key)
 
 
 # --- layout ---
@@ -211,46 +194,25 @@ func _build() -> void:
 	foot.add_child(again_button)
 	log_button = Button.new()
 	log_button.text = "Show the log"
-	log_button.pressed.connect(
-		func():
-			log_view.visible = not log_view.visible
-			log_button.text = "Hide the log" if log_view.visible else "Show the log"
-			_log_to_end.call_deferred()
-	)
+	log_button.pressed.connect(func(): _show_log(not log_view.visible))
 	foot.add_child(log_button)
 	next_button = Button.new()
 	next_button.custom_minimum_size.x = 160
 	next_button.pressed.connect(_on_next)
 	foot.add_child(next_button)
-	for f in [
-		_page_welcome,
-		_page_requirements,
-		_page_cd,
-		_page_optional,
-		_page_extras,
-		_page_summary,
-		_page_install,
-		_page_done
-	]:
-		var p: Control = f.call()
-		# A page taller than the window (Extras on a small screen) scrolls, so the footer's Next stays reachable; it
-		# fills the body when shorter (Welcome's text scrolls on its own). Install scrolls its own step list.
-		if p.find_children("*", "ScrollContainer", true, false).is_empty():
-			var scroll := ScrollContainer.new()
-			scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-			p.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			p.size_flags_vertical = Control.SIZE_EXPAND_FILL
-			scroll.add_child(p)
-			p = scroll
-		p.visible = false
-		body.add_child(p)
-		pages.append(p)
-
-
-func _vbox() -> VBoxContainer:
-	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", 12)
-	return v
+	_add_pages(
+		body,
+		[
+			_page_welcome,
+			_page_requirements,
+			_page_cd,
+			_page_optional,
+			_page_extras,
+			_page_summary,
+			_page_install,
+			_page_done
+		]
+	)
 
 
 func _text(parent: Control, t: String, dim := false) -> Label:
@@ -267,8 +229,7 @@ func _text(parent: Control, t: String, dim := false) -> Label:
 ## A file picker row: label (and where to get the file: `link` [text, url]), path field, Browse, Clear and a status
 ## line; `check(path) -> [ok, text]`, or [false, text, true] for a note (not an error).
 func _file_row(parent: Control, label: String, filters: PackedStringArray, check: Callable, link := []) -> Dictionary:
-	var box := _vbox()
-	box.add_theme_constant_override("separation", 4)
+	var box := _vbox(4)
 	parent.add_child(box)
 	var head := HBoxContainer.new()
 	head.add_theme_constant_override("separation", 16)
@@ -437,16 +398,6 @@ func _page_requirements() -> Control:
 	return v
 
 
-## How to get a missing part on this system: Arch Linux (pacman), macOS (Homebrew) or Windows (winget).
-func _hint(arch: String, mac: String, windows: String) -> String:
-	match OS.get_name():
-		"macOS":
-			return mac
-		"Windows":
-			return windows
-	return arch
-
-
 func _fill_requirements() -> void:
 	for c in req_box.get_children():
 		c.queue_free()
@@ -456,8 +407,8 @@ func _fill_requirements() -> void:
 		RenderingServer.get_current_rendering_driver_name(), RenderingServer.get_current_rendering_driver_name()
 	)
 	var headless := DisplayServer.get_name() == "headless"
-	var free_gb := WizardUtil.free_gb(assets)
-	var free_text := ("%.1f GB free" % free_gb) if free_gb >= 0 else "free space unknown"
+	var free := free_gb(assets)
+	var free_text := ("%.1f GB free" % free) if free >= 0 else "free space unknown"
 	var imagery_gb: float = SURVEY_GB[0] + SURVEY_GB[1] + SENTINEL_GB
 	# [required, here, component, why it is needed, status when here, how to get it when missing]
 	var items := [
@@ -467,11 +418,11 @@ func _fill_requirements() -> void:
 			"Graphics (%s)" % api,
 			"draws the game",
 			(gpu + " — " + RenderingServer.get_video_adapter_vendor()) if gpu != "" else "",
-			_hint("install your GPU's Vulkan driver", "update macOS", "update your GPU's driver")
+			by_os("install your GPU's Vulkan driver", "update macOS", "update your GPU's driver")
 		],
 		[
 			true,
-			free_gb < 0 or free_gb >= BASE_GB,
+			free < 0 or free >= BASE_GB,
 			"Disk space: the game",
 			"the install and the converted data, about %.1f GB" % BASE_GB,
 			free_text,
@@ -479,7 +430,7 @@ func _fill_requirements() -> void:
 		],
 		[
 			false,
-			free_gb < 0 or free_gb >= BASE_GB + imagery_gb,
+			free < 0 or free >= BASE_GB + imagery_gb,
 			"Disk space: imagery",
 			(
 				(
@@ -489,7 +440,7 @@ func _fill_requirements() -> void:
 				% [SURVEY_GB[0], SURVEY_GB[1], SURVEY_BASES_GB[0], SURVEY_BASES_GB[1], SENTINEL_GB]
 			),
 			"room for all of it",
-			"%.1f GB left after the game: room for part of it" % maxf(0.0, free_gb - BASE_GB)
+			"%.1f GB left after the game: room for part of it" % maxf(0.0, free - BASE_GB)
 		],
 		[
 			false,
@@ -497,7 +448,7 @@ func _fill_requirements() -> void:
 			"GDAL",
 			"converts the terrain imagery",
 			"found",
-			_hint(
+			by_os(
 				"sudo pacman -S gdal", "brew install gdal", "winget install GISInternals.GDAL, then start setup again"
 			)
 		],
@@ -507,7 +458,7 @@ func _fill_requirements() -> void:
 			"curl",
 			"downloads the Survey of Israel sheets",
 			"found",
-			_hint("sudo pacman -S curl", "brew install curl", "winget install cURL.cURL")
+			by_os("sudo pacman -S curl", "brew install curl", "winget install cURL.cURL")
 		],
 		[
 			false,
@@ -515,7 +466,7 @@ func _fill_requirements() -> void:
 			"python3",
 			"builds the pilot guide PDFs",
 			"found",
-			_hint(
+			by_os(
 				"sudo pacman -S python",
 				"brew install python",
 				"winget install Python.Python.3.14 (the guides: not on Windows yet)"
@@ -527,7 +478,7 @@ func _fill_requirements() -> void:
 			"Firefox",
 			"holds the Survey's download token; prints the pilot guide PDFs",
 			"found",
-			_hint(
+			by_os(
 				"sudo pacman -S firefox",
 				"brew install --cask firefox",
 				"winget install Mozilla.Firefox (the guides: not on Windows yet)"
@@ -639,16 +590,13 @@ func _page_welcome() -> Control:
 	attr_btn.text = "Attributions…"
 	attr_btn.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	box.add_child(attr_btn)
-	var dlg := AcceptDialog.new()
-	dlg.title = "Attributions"
-	dlg.min_size = Vector2i(640, 420)
 	var holder := MarginContainer.new()
-	dlg.add_child(holder)
 	# The bullets are shared/credits.json "attributions" (both games' credits, docs/credits.md).
 	var bullets := PackedStringArray(Settings.load_json("res://shared/credits.json").get("attributions", []))
 	var attr := _rich(holder, "[ul]%s[/ul]" % "\n".join(bullets))
 	attr.add_theme_font_size_override("normal_font_size", 14)
-	add_child(dlg)
+	var dlg := _attributions(holder)
+	dlg.min_size = Vector2i(640, 420)
 	attr_btn.pressed.connect(func(): dlg.popup_centered())
 	return h
 
@@ -941,7 +889,7 @@ func _expected() -> Dictionary:
 		# The sizes are estimates: a part with most of it on disk is done, not a sliver short.
 		new += 0.0 if p[2] >= DONE_SHARE * p[0] else p[0] - p[2]
 		downloads += p[1]
-	return {"total": _here("") + new, "downloads": downloads, "new": new, "free": WizardUtil.free_gb(assets)}
+	return {"total": _here("") + new, "downloads": downloads, "new": new, "free": free_gb(assets)}
 
 
 ## "about 24 GB" / "about 1.2 GB".
@@ -973,8 +921,7 @@ func _size_text() -> Array:
 
 ## An extra's checkbox with its warning; disabled with `missing` (the reason) when its tools are not here.
 func _extra(parent: Control, label: String, warning: String, missing: String) -> CheckBox:
-	var box := _vbox()
-	box.add_theme_constant_override("separation", 2)
+	var box := _vbox(2)
 	parent.add_child(box)
 	var c := CheckBox.new()
 	c.text = label
@@ -1022,12 +969,6 @@ func _count_stale() -> void:
 	)
 
 
-## Starts IafSetup job `job` (its threads: the window stays live); `done` gets its result.
-func _begin(job: String, args: Array, done: Callable) -> void:
-	jobs[job] = done
-	setup.begin(job, PackedStringArray(args))
-
-
 func _page_summary() -> Control:
 	var v := _vbox()
 	summary_label = RichTextLabel.new()
@@ -1057,8 +998,7 @@ func _page_install() -> Control:
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	v.add_child(scroll)
-	rows_box = _vbox()
-	rows_box.add_theme_constant_override("separation", 4)
+	rows_box = _vbox(4)
 	rows_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.add_child(rows_box)
 	log_view = TextEdit.new()
@@ -1096,62 +1036,59 @@ func _page_done() -> Control:
 # --- flow ---
 
 
-func show_page(n: int) -> void:
-	page = clampi(n, 0, PAGES.size() - 1)
-	for i in pages.size():
-		pages[i].visible = i == page
+func _on_page(id: String) -> void:
 	title_label.text = PAGES[page]
 	(find_child("Steps", true, false) as Label).text = "  ›  ".join(
 		PAGES.map(func(p): return p if p != PAGES[page] else "[%s]" % p)
 	)
-	match PAGES[page]:
-		"Extras":
+	match id:
+		"extras":
 			on_disk.clear()
 			_count_stale()
-		"Summary":
+		"summary":
 			_fill_summary()
-		"Install":
+		"install":
 			if not running:
 				_fill_rows(IafSetup.plan(JSON.stringify(inputs())), false)
-				install_note.text = (
-					"Ready. Install runs the steps below; the ones whose inputs did not change are "
-					+ '"up to date" and are skipped.'
+				_note(
+					(
+						"Ready. Install runs the steps below; the ones whose inputs did not change are "
+						+ '"up to date" and are skipped.'
+					)
 				)
-				_preview()
-	_update()
+				_preview(
+					"preview",
+					[assets, repo, JSON.stringify(inputs())],
+					func(up: Dictionary):
+						for rid in rows:
+							var u: bool = up.get(rid, false)
+							rows[rid].state.text = "up to date" if u else "will run"
+							rows[rid].state.add_theme_color_override("font_color", DIM_GREEN if u else TEXT)
+				)
 
 
 func _update() -> void:
+	super()
 	if back_button == null:
 		return
-	var pg: String = PAGES[page]
-	back_button.visible = page > 0 and pg != "Done"
-	back_button.text = "Cancel" if running else "Back"
+	var pg := at()
 	back_button.disabled = false
 	next_button.visible = true
-	next_button.disabled = false
-	again_button.visible = pg == "Requirements"
-	log_button.visible = pg == "Install"
+	again_button.visible = pg == "requirements"
 	match pg:
-		"Requirements":
-			next_button.text = "Next"
+		"requirements":
 			next_button.disabled = not req_ok
-		"Your CD":
-			next_button.text = "Next"
+		"your cd":
 			next_button.disabled = not cd_row.ok or cd_row.edit.text == ""
-		"Optional":
-			next_button.text = "Next"
+		"optional":
 			packs_box.visible = hebrew_row.edit.text == "" or not hebrew_row.ok
 			next_button.disabled = not (patch_row.ok and hebrew_row.ok and brief_row.ok and menu_row.ok)
-		"Install":
+		"install":
 			next_button.text = "Finish" if finished else "Install"
 			next_button.disabled = running or (finished and failed != "")
-			redo_check.disabled = running
-		"Done":
+		"done":
 			next_button.text = "Close"
-		_:
-			next_button.text = "Next"
-	if pg == "Extras" and mapi_scope != null:
+	if pg == "extras" and mapi_scope != null:
 		mapi_scope.disabled = mapi_check.disabled or not mapi_check.button_pressed
 		scenery_check.disabled = not _scenery_ok()
 		scenery_kinds.disabled = scenery_check.disabled or not scenery_check.button_pressed
@@ -1160,27 +1097,8 @@ func _update() -> void:
 		size_label.add_theme_color_override("font_color", TEXT if st[1] else ORANGE)
 
 
-func _on_back() -> void:
-	if running:
-		setup.cancel()
-		install_note.text = "Cancelling: the running steps stop at their next item…"
-		return
-	if PAGES[page] == "Install":
-		finished = false
-	show_page(page - 1)
-
-
-func _on_next() -> void:
-	match PAGES[page]:
-		"Install":
-			if finished:
-				show_page(page + 1)
-			else:
-				start_install()
-		"Done":
-			get_tree().quit()
-		_:
-			show_page(page + 1)
+func _finish() -> void:
+	get_tree().quit()
 
 
 ## The inputs as setup.json's JSON (iaf_setup::to_json).
@@ -1284,13 +1202,13 @@ func _fill_rows(steps: Array, keep: bool) -> void:
 		for c in rows_box.get_children():
 			c.queue_free()
 		rows.clear()
-	for s in steps:
-		var r: Dictionary = rows.get(s.id, {})
+	for step in steps:
+		var r: Dictionary = rows.get(step.id, {})
 		if r.is_empty():
 			var h := HBoxContainer.new()
 			h.add_theme_constant_override("separation", 12)
 			var title := Label.new()
-			title.text = s.title
+			title.text = step.title
 			title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			title.clip_text = true
 			h.add_child(title)
@@ -1313,95 +1231,37 @@ func _fill_rows(steps: Array, keep: bool) -> void:
 			h.add_child(gap)
 			rows_box.add_child(h)
 			r = {"bar": bar, "state": state, "redo": redo}
-			rows[s.id] = r
-		var st: String = s.get("state", "waiting")
+			rows[step.id] = r
+		var st: String = step.get("state", "waiting")
 		r.state.text = STATE_TEXT.get(st, st)
 		# Long steps: the time left at the pace so far, once there is a pace (30 s in and 2 % done).
-		var f: float = s.get("fraction", 0.0)
-		if st == "running":
-			r.started = r.get("started", Time.get_ticks_msec())
-			var t: float = (Time.get_ticks_msec() - int(r.started)) / 1000.0
-			if t > 30.0 and f > 0.02:
-				r.state.text = "%s, %s left" % [r.state.text, WizardUtil.duration(t * (1.0 - f) / f)]
-		r.state.tooltip_text = s.get("detail", "")
+		var f: float = step.get("fraction", 0.0)
+		if st == "running" and time_left(r, f) >= 0.0:
+			r.state.text = "%s, %s left" % [r.state.text, duration(time_left(r, f))]
+		r.state.tooltip_text = step.get("detail", "")
 		r.state.add_theme_color_override(
 			"font_color",
 			{"done": GREEN, "up_to_date": DIM_GREEN, "failed": RED, "running": YELLOW, "skipped": DIM}.get(st, TEXT)
 		)
-		r.bar.value = s.get("fraction", 0.0)
+		r.bar.value = step.get("fraction", 0.0)
 		r.bar.modulate.a = 1.0 if st == "running" else 0.0
 		r.redo.disabled = running
 
 
-## The steps to run although they are up to date: "*" for all, else the ticked rows.
-func redo_ids() -> PackedStringArray:
-	if redo_check.button_pressed:
-		return PackedStringArray(["*"])
-	return PackedStringArray(rows.keys().filter(func(id): return rows[id].redo.button_pressed))
-
-
-func start_install() -> void:
-	log_view.text = ""
-	var redo := redo_ids()
+func _run(redo: PackedStringArray) -> String:
 	_fill_rows([], false)
-	failed = ""
 	fail_link.visible = false
-	finished = false
-	# The whole run, with full paths, also goes to assets/logs (kept; named in the log and when a step fails).
-	var stamp := Time.get_datetime_string_from_system().replace(":", "").replace("T", "-")
-	log_file = assets.path_join("logs/setup-%s.log" % stamp)
-	var err: String = setup.start(assets, repo, JSON.stringify(inputs()), redo, only_steps, log_file)
-	if err != "":
-		install_note.text = "Setup did not start: " + err
-		return
-	running = true
-	log_view.text = "Log file: %s\n" % log_file
-	install_note.text = "Installing…"
-	_update()
+	return setup.start(assets, repo, JSON.stringify(inputs()), redo, only_steps, log_file)
 
 
-## Which steps are up to date already, checked in the background (it reads the CD images); the rows show it until
-## Install.
-func _preview() -> void:
-	for id in rows:
-		rows[id].state.text = "checking…"
-	# A new name per check: an older check still running (other inputs) answers to nobody.
-	for j in jobs.keys().filter(func(j): return j.begins_with("preview#")):
-		jobs.erase(j)
-	previews += 1
-	_begin(
-		"preview#%d" % previews,
-		[assets, repo, JSON.stringify(inputs())],
-		func(up: Dictionary):
-			if running or finished:
-				return
-			for id in rows:
-				var u: bool = up.get(id, false)
-				rows[id].state.text = "up to date" if u else "will run"
-				rows[id].state.add_theme_color_override("font_color", DIM_GREEN if u else TEXT)
-	)
-
-
-func _process(_delta: float) -> void:
-	for job in jobs.keys():
-		var r: String = setup.result(job)
-		if r != "":
-			var done: Callable = jobs[job]
-			jobs.erase(job)
-			done.call(JSON.parse_string(r))
-	if not running:
-		return
-	var p: Dictionary = setup.poll()
+func _polled(p: Dictionary) -> void:
 	_fill_rows(p.steps, true)
-	if p.log.size() > 0:
-		log_view.text += "\n".join(p.log) + "\n"
-		_log_to_end.call_deferred()
-	if p.done:
-		running = false
-		finished = true
-		failed = p.error
-		var up: int = p.steps.filter(func(s): return s.state == "up_to_date").size()
-		install_note.text = (
+
+
+func _finished(p: Dictionary) -> void:
+	var up: int = p.steps.filter(func(x): return x.state == "up_to_date").size()
+	_note(
+		(
 			(
 				(
 					"Setup stopped: %s. The log has the details (%s). Do what it says, then press Back and Install "
@@ -1412,21 +1272,13 @@ func _process(_delta: float) -> void:
 			if failed != ""
 			else "Done: %d steps ran, %d were up to date." % [p.steps.size() - up, up]
 		)
-		done_label.text = "Jane's IAF is set up." if failed == "" else "Setup did not finish: " + failed
-		var url := RegEx.create_from_string("https://data\\.gov\\.il/\\S+").search(failed)
-		if url:
-			fail_link.text = "Copy the data.gov.il link above"
-			fail_link.visible = true
-			_copy_on_press(fail_link, url.get_string(), "Copied: paste it into Firefox's address bar")
-		if failed != "":
-			log_view.visible = true
-			log_button.text = "Hide the log"
-	_update()
-
-
-## Shows the log's last lines.
-func _log_to_end() -> void:
-	log_view.scroll_vertical = log_view.get_v_scroll_bar().max_value
+	)
+	done_label.text = "Jane's IAF is set up." if failed == "" else "Setup did not finish: " + failed
+	var url := RegEx.create_from_string("https://data\\.gov\\.il/\\S+").search(failed)
+	if url:
+		fail_link.text = "Copy the data.gov.il link above"
+		fail_link.visible = true
+		_copy_on_press(fail_link, url.get_string(), "Copied: paste it into Firefox's address bar")
 
 
 ## Starts the game in a new process and closes the wizard.

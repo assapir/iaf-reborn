@@ -85,6 +85,7 @@
 	"removed": "הנתונים של \"%s\" הוסרו: התפנו %s.",
 	"not_removed": "לא הוסר: %s",
 	"not_started": "ההתקנה לא התחילה: %s",
+	"log_file": "%s",
 	"left": "%s · שלב זה: נותרו כ־%s",
 	"state_waiting": "ממתין",
 	"state_running": "פועל",

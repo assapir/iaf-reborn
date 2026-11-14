@@ -4,7 +4,7 @@ extends "res://../tests/godot/base.gd"
 
 
 func run() -> void:
-	var he: Dictionary = settings().load_json("res://menu/strings_he.json").get("labels", {})
+	var he: Dictionary = settings().strings("res://menu/strings", "he").get("labels", {})
 	var fe: Script = load("res://menu/front_end.gd")
 	var missing := []
 	for row in fe.EXTRAS:

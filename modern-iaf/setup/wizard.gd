@@ -4,10 +4,9 @@
 # as a modal dialog over the page. English and Hebrew (strings_<lang>.json, Settings.language); in Hebrew every
 # control is mirrored (layout_direction RTL). The look is wizard_theme.gd alone (Godot's default dark theme with
 # Heebo). Opened by ./modern-iaf-setup and by ./start-modern-iaf without the sim's data.
-extends Control
+extends "res://shared/util/setup_wizard.gd"
 
 const WizardTheme := preload("res://setup/wizard_theme.gd")
-const WizardUtil := preload("res://shared/util/wizard_util.gd")
 
 const TITLE := "Modern IAF"
 const PAGES := ["welcome", "imagery", "install", "done"]
@@ -24,20 +23,11 @@ const THEATRE_SURVEY_GB := 3.57
 const OTHER_GB := 0.47
 const TIME_S2_MIN := 17
 const TIME_SURVEY_MIN := 102
-var setup := IafSetup.new()
-var assets := ""
-var repo := ""
-var tools := {}
 var strings := {}
-var page := 0
 var survey := false
 var sheets := 0
 ## The GB of the sim's Sentinel-2 tiles already in the cache (IafSetup.sim_s2_cached).
 var s2_cached := 0.0
-var running := false
-var finished := false
-var failed := ""
-var log_file := ""
 ## The optional steps the player left out (unticked Include; remembered by IafSetup.sim_save_excluded).
 var excluded: Array = []
 ## The optional steps' sizes by id (IafSetup.sim_optional: built, download, disk, sources, shared).
@@ -49,42 +39,26 @@ var remove_downloads: CheckBox
 var remove_id := ""
 ## The last run's steps as IafSetup.poll gave them at its end.
 var last_steps := []
-## The background preview (which steps are up to date), by job name.
-var jobs := {}
-var previews := 0
-
-var title_label: Label
 var page_label: Label
-var back_button: Button
-var next_button: Button
 ## The Done page's second button (Start the game is next_button).
 var close_button: Button
-var log_button: Button
-var pages: Array[Control] = []
 var lang_pick: OptionButton
 var req_ok := false
 var s2_check: CheckBox
 var survey_check: CheckBox
-var install_note: Label
 ## The whole run's time left, under the status line while it runs ("all steps", or the step count unmeasured).
 var total_label: Label
 ## The Attributions, a modal dialog opened from Welcome (Esc or Close closes it).
 var credits_dialog: AcceptDialog
-var redo_check: CheckBox
 var rows_box: VBoxContainer
-var rows := {}
-var log_view: TextEdit
 var done_label: Label
 
 
 func _ready() -> void:
-	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	get_window().title = "%s — %s" % [TITLE, "Setup"]
 	# The window: 1100×720 times the UI scale, centred (./modern-iaf-setup starts it at 1100×720).
-	(func(): WizardUtil.resize_window(self, Vector2i(1100, 720))).call_deferred()
-	assets = Settings.assets_dir()
-	repo = ProjectSettings.globalize_path("res://").path_join("..").simplify_path()
-	tools = IafSetup.tools()
+	_start_wizard(PAGES, Vector2i(1100, 720))
+	get_window().title = "%s — %s" % [TITLE, "Setup"]
+	log_name = "modern-iaf-setup"
 	sheets = IafSetup.survey_sheets(assets)
 	s2_cached = IafSetup.sim_s2_cached(assets) / 1e9
 	survey = sheets > 0
@@ -94,19 +68,9 @@ func _ready() -> void:
 	show_page(0)
 
 
-func _exit_tree() -> void:
-	if running:
-		setup.cancel()
-
-
 ## The current language's string `key` (English when the Hebrew table lacks it).
 func s(key: String) -> String:
 	return strings.get(key, key)
-
-
-func _load_strings() -> void:
-	var f := "res://setup/strings_%s.json" % ("he" if Settings.language == "he" else "en")
-	strings = JSON.parse_string(FileAccess.get_file_as_string(f))
 
 
 # --- layout ---
@@ -114,7 +78,7 @@ func _load_strings() -> void:
 
 ## Builds every page in the current language; called again when the language changes.
 func _build() -> void:
-	_load_strings()
+	strings = Settings.strings("res://setup/strings")
 	for c in get_children():
 		remove_child(c)
 		c.queue_free()
@@ -163,18 +127,7 @@ func _build() -> void:
 	var body := MarginContainer.new()
 	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	v.add_child(body)
-	for f in [_page_welcome, _page_imagery, _page_install, _page_done]:
-		var p: Control = f.call()
-		# Every page scrolls in the body, so the footer stays in the window; Install scrolls its own step list.
-		if p.name != "Install":
-			var scroll := ScrollContainer.new()
-			scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-			p.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			scroll.add_child(p)
-			p = scroll
-		p.visible = false
-		body.add_child(p)
-		pages.append(p)
+	_add_pages(body, [_page_welcome, _page_imagery, _page_install, _page_done])
 	v.add_child(HSeparator.new())
 	var foot := HBoxContainer.new()
 	foot.add_theme_constant_override("separation", 12)
@@ -185,19 +138,12 @@ func _build() -> void:
 	var fill := Control.new()
 	fill.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	foot.add_child(fill)
-	log_button = _button(
-		foot,
-		s("show_log"),
-		func():
-			log_view.visible = not log_view.visible
-			log_button.text = s("hide_log") if log_view.visible else s("show_log")
-	)
+	log_button = _button(foot, s("show_log"), func(): _show_log(not log_view.visible))
 	close_button = _button(foot, s("close"), func(): get_tree().quit())
 	close_button.name = "Close"
 	next_button = _button(foot, "", _on_next)
 	next_button.name = "Next"
 	credits_dialog = _credits_dialog()
-	add_child(credits_dialog)
 	remove_dialog = _remove_dialog()
 	add_child(remove_dialog)
 
@@ -238,12 +184,6 @@ func _card(parent: Control, inner: Control) -> PanelContainer:
 	return p
 
 
-func _vbox(sep := 10) -> VBoxContainer:
-	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", sep)
-	return v
-
-
 # --- pages ---
 
 
@@ -271,7 +211,7 @@ func _page_welcome() -> Control:
 	req.name = "Requirements"
 	_label(req, s("needs"), "Muted")
 	_card(row, req).size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var hint := s({"macOS": "hint_mac", "Windows": "hint_windows"}.get(OS.get_name(), "hint_linux"))
+	var hint := s(by_os("hint_linux", "hint_mac", "hint_windows"))
 	req_ok = true
 	for t in [["gdal", "GDAL"], ["curl", "curl"]]:
 		var here: bool = tools.get(t[0], false)
@@ -279,7 +219,7 @@ func _page_welcome() -> Control:
 		_text(req, "%s: %s" % [t[1], s("found") if here else s("missing")], "Note")
 	if not req_ok:
 		_text(req, hint, "Note")
-	var free := WizardUtil.free_gb(assets)
+	var free := free_gb(assets)
 	# The space the imagery choice needs (the Survey is chosen at the start when its sheets are there), and the
 	# Sentinel-2 tiles still to download; tiles with no room are read online (docs/imagery.md §2).
 	var need := DEM_GB + (THEATRE_SURVEY_GB if survey else THEATRE_S2_GB) + OTHER_GB
@@ -343,15 +283,10 @@ static func credits() -> Array:
 
 ## The Attributions dialog: every source and its licence lines, scrolling; mirrored in Hebrew.
 func _credits_dialog() -> AcceptDialog:
-	var d := AcceptDialog.new()
-	d.name = "Attributions"
-	d.title = s("credits")
-	d.ok_button_text = s("close")
-	d.exclusive = true
-	d.set_layout_direction(Window.LAYOUT_DIRECTION_RTL if Settings.language == "he" else Window.LAYOUT_DIRECTION_LTR)
 	var scroll := ScrollContainer.new()
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	d.add_child(scroll)
+	var d := _attributions(scroll)
+	d.ok_button_text = s("close")
 	var v := _vbox(8)
 	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.add_child(v)
@@ -413,50 +348,41 @@ func set_language(lang: String) -> void:
 		return
 	Settings.language = lang
 	Settings.save()
-	var at := page
+	var was := page
 	_build()
 	# Every step's row, the left-out ones too (a run's steps hold only the included ones).
 	if running or finished:
 		_fill_rows(IafSetup.sim_plan(survey))
 	if finished:
 		_show_result()
-	show_page(at)
+	show_page(was)
 
 
-func show_page(n: int) -> void:
-	page = clampi(n, 0, PAGES.size() - 1)
-	for i in pages.size():
-		pages[i].visible = i == page
-	title_label.text = s("page_" + PAGES[page])
+func _on_page(id: String) -> void:
+	title_label.text = s("page_" + id)
 	page_label.text = "%d / %d" % [page + 1, PAGES.size()]
 	lang_pick.get_parent().visible = page == 0
-	if PAGES[page] == "imagery":
+	if id == "imagery":
 		_on_choice()
-	if PAGES[page] == "install" and not running and not finished:
+	if id == "install" and not running and not finished:
 		_fill_rows(IafSetup.sim_plan(survey))
 		_note("")
-		_preview()
-	_update()
+		_preview_sim()
 
 
 func _update() -> void:
-	var pg: String = PAGES[page]
-	back_button.visible = page > 0 and pg != "done"
-	back_button.text = s("cancel") if running else s("back")
-	log_button.visible = pg == "install"
+	super()
+	var pg := at()
 	close_button.visible = pg == "done"
 	total_label.visible = running
-	next_button.disabled = false
-	next_button.text = s("next")
 	match pg:
 		"welcome":
 			next_button.disabled = not req_ok
 		"install":
 			next_button.text = s("next") if finished and failed == "" else s("install")
 			next_button.disabled = running
-			redo_check.disabled = running
 			for id in rows:
-				rows[id].tick.disabled = running or id in excluded
+				rows[id].redo.disabled = running or id in excluded
 				rows[id].retry.disabled = running
 				if rows[id].include:
 					rows[id].include.disabled = running
@@ -465,29 +391,8 @@ func _update() -> void:
 	next_button.theme_type_variation = "Primary" if pg == "done" else ""
 
 
-func _on_back() -> void:
-	if running:
-		setup.cancel()
-		_note(s("cancelling"))
-		return
-	# Leaving Install forgets the last run: changed choices can be installed.
-	if PAGES[page] == "install":
-		finished = false
-		failed = ""
-	show_page(page - 1)
-
-
-func _on_next() -> void:
-	match PAGES[page]:
-		"install":
-			if finished and failed == "":
-				show_page(page + 1)
-			else:
-				start_install()
-		"done":
-			start_game()
-		_:
-			show_page(page + 1)
+func _finish() -> void:
+	start_game()
 
 
 ## Opens the sim's front end in this process, as ./start-modern-iaf starts it: the project's own window (not the
@@ -511,12 +416,6 @@ func total_text(p: Dictionary) -> String:
 	for id in rows:
 		left = maxf(left, rows[id].get("left", -1.0))
 	return s("all_left") % _duration(left) if left >= 1.0 else ""
-
-
-## The Install page's status line, hidden while it is empty.
-func _note(t: String) -> void:
-	install_note.text = t
-	install_note.visible = t != ""
 
 
 ## The step rows: the name, its own "Run again" tick (that step only, though it is up to date), the bar, the state;
@@ -558,11 +457,11 @@ func _fill_rows(steps: Array) -> void:
 			names.add_child(title)
 			var sizes := _label(names, "", "Note")
 			sizes.name = "Sizes"
-			var tick := CheckBox.new()
-			tick.name = "RunAgain"
-			tick.text = s("row_redo")
-			tick.toggled.connect(func(_on): _forget_run())
-			h.add_child(tick)
+			var redo := CheckBox.new()
+			redo.name = "RunAgain"
+			redo.text = s("row_redo")
+			redo.toggled.connect(func(_on): _forget_run())
+			h.add_child(redo)
 			var bar := ProgressBar.new()
 			bar.custom_minimum_size = Vector2(220, 10)
 			bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
@@ -586,7 +485,7 @@ func _fill_rows(steps: Array) -> void:
 			r = {
 				"bar": bar,
 				"state": state,
-				"tick": tick,
+				"redo": redo,
 				"why": why_row,
 				"reason": why,
 				"retry": retry,
@@ -609,10 +508,8 @@ func _fill_rows(steps: Array) -> void:
 		var f: float = st.get("fraction", 0.0)
 		r.left = -1.0
 		if name == "running":
-			r.started = r.get("started", Time.get_ticks_msec())
-			var t: float = (Time.get_ticks_msec() - int(r.started)) / 1000.0
-			if t > 30.0 and f > 0.02:
-				r.left = t * (1.0 - f) / f
+			r.left = time_left(r, f)
+			if r.left >= 0.0:
 				r.state.text = s("left") % [r.state.text, _duration(r.left)]
 		r.state.tooltip_text = st.get("detail", "")
 		r.bar.value = f
@@ -620,24 +517,17 @@ func _fill_rows(steps: Array) -> void:
 
 
 ## Which steps are up to date already, checked in the background; the rows show it until Install.
-func _preview() -> void:
-	for id in rows:
-		rows[id].state.text = s("state_checking")
-	# An older check still running (other choices) answers to nobody: its result is fetched and dropped, so IafSetup
-	# forgets it.
-	for j in jobs:
-		jobs[j] = func(_r): pass
-	previews += 1
-	var job := "sim_preview#%d" % previews
-	jobs[job] = func(up: Dictionary):
-		if running or finished:
-			return
-		for id in rows:
-			var u: bool = up.get(id, false)
-			rows[id].state.text = s("state_up_to_date") if u else s("state_will_run")
-			if id in excluded:
-				rows[id].state.text = s("state_excluded")
-	setup.begin(job, PackedStringArray([assets, repo, "1" if survey else "0"] + excluded))
+func _preview_sim() -> void:
+	_preview(
+		"sim_preview",
+		[assets, repo, "1" if survey else "0"] + excluded,
+		func(up: Dictionary):
+			for id in rows:
+				var u: bool = up.get(id, false)
+				rows[id].state.text = s("state_up_to_date") if u else s("state_will_run")
+				if id in excluded:
+					rows[id].state.text = s("state_excluded")
+	)
 
 
 ## The optional steps' sizes, read again (after a run or a removal).
@@ -744,55 +634,26 @@ func _forget_run() -> void:
 
 ## Retry under a skipped or failed step: that step (and what is not up to date) runs again.
 func retry_step(id: String) -> void:
-	rows[id].tick.set_pressed_no_signal(true)
+	rows[id].redo.set_pressed_no_signal(true)
 	start_install()
 
 
-func start_install() -> void:
-	log_view.text = ""
-	failed = ""
-	finished = false
-	var stamp := Time.get_datetime_string_from_system().replace(":", "").replace("T", "-")
-	log_file = assets.path_join("logs/modern-iaf-setup-%s.log" % stamp)
-	var redo := PackedStringArray(
-		["*"] if redo_check.button_pressed else rows.keys().filter(func(id): return rows[id].tick.button_pressed)
-	)
-	var err: String = setup.sim_start(assets, repo, survey, redo, PackedStringArray(excluded), log_file)
-	if err != "":
-		_note(s("not_started") % err)
-		return
-	running = true
-	log_view.text = "%s\n" % log_file
-	_note(s("installing"))
-	_update()
+func _run(redo: PackedStringArray) -> String:
+	return setup.sim_start(assets, repo, survey, redo, PackedStringArray(excluded), log_file)
 
 
-func _process(_delta: float) -> void:
-	for job in jobs.keys():
-		var r: String = setup.result(job)
-		if r != "":
-			var done: Callable = jobs[job]
-			jobs.erase(job)
-			done.call(JSON.parse_string(r))
-	if not running:
-		return
-	var p: Dictionary = setup.poll()
+func _polled(p: Dictionary) -> void:
 	_fill_rows(p.steps)
 	total_label.text = total_text(p)
-	if p.log.size() > 0:
-		log_view.text += "\n".join(p.log) + "\n"
-		log_view.scroll_vertical = log_view.get_line_count()
-	if p.done:
-		running = false
-		finished = true
-		failed = p.error
-		last_steps = p.steps
-		_load_optional()
-		for id in optional:
-			if rows.has(id):
-				_show_sizes(id)
-		_show_result()
-	_update()
+
+
+func _finished(p: Dictionary) -> void:
+	last_steps = p.steps
+	_load_optional()
+	for id in optional:
+		if rows.has(id):
+			_show_sizes(id)
+	_show_result()
 
 
 ## The finished run on the Install and Done pages (again after the pages are built anew in another language).
@@ -807,11 +668,10 @@ func _show_result() -> void:
 	)
 	_note((s("stopped") % [failed, log_file]) if failed != "" else done)
 	for id in rows:
-		rows[id].tick.set_pressed_no_signal(false)
+		rows[id].redo.set_pressed_no_signal(false)
 	done_label.text = s("set_up") if failed == "" else s("not_set_up") % failed
 	if failed != "":
-		log_view.visible = true
-		log_button.text = s("hide_log")
+		_show_log(true)
 
 
 ## "1.1 GB" / "620 MB": one left-to-right piece (a Unicode isolate, a no-break space), so a Hebrew line keeps the number
@@ -823,4 +683,4 @@ static func _gb(x: float) -> String:
 
 ## A duration in the wizard's language.
 func _duration(sec: float) -> String:
-	return WizardUtil.duration(sec, Settings.language == "he")
+	return duration(sec, Settings.language == "he")

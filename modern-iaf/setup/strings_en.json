@@ -85,6 +85,7 @@
 	"removed": "Removed the data of \"%s\": %s freed.",
 	"not_removed": "Not removed: %s",
 	"not_started": "Setup did not start: %s",
+	"log_file": "%s",
 	"left": "%s · this step: about %s left",
 	"state_waiting": "waiting",
 	"state_running": "running",
