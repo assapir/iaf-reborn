@@ -103,10 +103,29 @@ impl IafPilotLog {
         with(&db, |c| pilot_log::delete_pilot(c, Path::new(&db.to_string()), pilot)).is_some()
     }
 
-    /// The pilots with a name as a JSON array of {id, name, nickname, picture}.
+    /// The pilots with a name or a nickname as a JSON array of {id, name, nickname, picture, photo, selected}.
     #[func]
     fn pilots(db: GString) -> GString {
         text(with(&db, |c| pilot_log::pilots(c, Path::new(&db.to_string()))))
+    }
+
+    /// Stores the pilot's place in the 1998 game's list and its photo index; false when it could not.
+    #[func]
+    fn set_place(db: GString, pilot: i64, place: i64, photo: i64) -> bool {
+        with(&db, |c| pilot_log::set_place(c, pilot, place, photo)).is_some()
+    }
+
+    /// Makes `pilot` the selected one of the 1998 game's pilot list; false when it could not.
+    #[func]
+    fn select_pilot(db: GString, pilot: i64) -> bool {
+        with(&db, |c| pilot_log::select_pilot(c, pilot)).is_some()
+    }
+
+    /// The 1998 game's mission history of the pilot as a JSON array: [{id, attempts: [{result, mult, bonus, kills,
+    /// losses, date}]}], newest mission first.
+    #[func]
+    fn history(db: GString, pilot: i64) -> GString {
+        text(with(&db, |c| pilot_log::history(c, pilot)))
     }
 
     /// Makes a new pilot: its id, 0 when it could not.

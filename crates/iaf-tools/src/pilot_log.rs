@@ -5,6 +5,10 @@
 //! version 0 (a new file) also imports the JSON records the sim wrote before the database, from the folders beside it:
 //! `pilots/<pilot id>.json` (the original game's pilot record shape) and the debrief files it names, looked up by file
 //! name in `debriefs/`. The import runs once because it is part of that step; the JSON files stay where they are.
+//!
+//! The 1998 game (iaf-reborn's Pilot Records) keeps its pilots here too, in its own database file: the pilot list with
+//! the original's photo index and selection, and each attempt as a sortie whose record is the attempt (`history`). Its
+//! JSON records from before (`pilots/pilots.json`, `pilots/<id>.json`, `pilots/<id>.png`) come in by the same import.
 
 use anyhow::{Context, Result, bail};
 pub use rusqlite::Connection;
@@ -46,6 +50,12 @@ const MIGRATIONS: &[&str] = &[
        stations TEXT NOT NULL,
        PRIMARY KEY (pilot, plane)
      );",
+    // 4 → 5: the 1998 game's pilot list (iaf-reborn's Pilot Records): the pilot's place in the list, the original's
+    // photo index (0..13 its own pictures, the pilot's id for the pilot's picture) and the selected pilot (1 on one
+    // row).
+    "ALTER TABLE pilots ADD COLUMN place INTEGER NOT NULL DEFAULT 0;
+     ALTER TABLE pilots ADD COLUMN photo INTEGER NOT NULL DEFAULT 0;
+     ALTER TABLE pilots ADD COLUMN selected INTEGER NOT NULL DEFAULT 0;",
 ];
 
 /// The schema version this build writes.
@@ -97,7 +107,7 @@ pub fn open(db: &Path) -> Result<Connection> {
         tx.execute_batch(m)?;
     }
     if v == 0 {
-        import_json(&tx, dir)?;
+        import_json(&tx, db)?;
     }
     tx.pragma_update(None, "user_version", SCHEMA_VERSION)?;
     tx.commit()?;
@@ -109,19 +119,48 @@ fn read_json(p: &Path) -> Option<Value> {
 }
 
 /// The JSON records in `dir/pilots` and `dir/debriefs` into the new tables, oldest first (a sortie's id is its place).
-/// An unreadable pilot file is skipped; an attempt whose debrief file is gone keeps its result and date.
-fn import_json(tx: &Transaction, dir: &Path) -> Result<()> {
+/// An unreadable pilot file is skipped; an attempt whose debrief file is gone keeps its result and date. A 1998-game
+/// attempt (one naming no debrief file) is its own record. A file's missions are newest first: the sorties of
+/// one date go in from its last mission, so `history` gives the file's order back. The 1998 game's pilot list
+/// (`pilots.json`) comes in with each pilot's own picture (`<id>.png`, copied to `pictures/`).
+fn import_json(tx: &Transaction, db: &Path) -> Result<()> {
+    let dir = folder(db);
     let Ok(files) = fs::read_dir(dir.join("pilots")) else { return Ok(()) };
+    if let Some(list) = read_json(&dir.join("pilots/pilots.json")) {
+        let selected = list["selected"].as_i64().unwrap_or(0);
+        for (i, p) in list["pilots"].as_array().into_iter().flatten().enumerate() {
+            let Some(id) = p["id"].as_i64() else { continue };
+            tx.execute(
+                "INSERT OR REPLACE INTO pilots (id, place, name, nickname, photo, selected) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+                params![
+                    id,
+                    i as i64,
+                    p["name"].as_str().unwrap_or(""),
+                    p["callsign"].as_str().unwrap_or(""),
+                    p["photo"].as_i64().unwrap_or(0),
+                    i as i64 == selected
+                ],
+            )?;
+            let own = dir.join(format!("pilots/{id}.png"));
+            if own.exists() {
+                set_picture(tx, db, id, &own)?;
+            }
+        }
+    }
     let mut rows = Vec::new();
     for f in files.flatten() {
         let p = f.path();
         let pilot = p.file_stem().and_then(|s| s.to_str()).and_then(|s| s.parse::<i64>().ok());
+        if p.extension().is_none_or(|e| e != "json") {
+            continue;
+        }
         let (Some(pilot), Some(log)) = (pilot, read_json(&p)) else { continue };
-        for m in log["missions"].as_array().into_iter().flatten() {
+        for m in log["missions"].as_array().into_iter().flatten().rev() {
             let Some(mission_id) = m["id"].as_i64() else { continue };
             for a in m["attempts"].as_array().into_iter().flatten() {
                 let name = a["debrief"].as_str().and_then(|s| s.rsplit('/').next()).unwrap_or("");
                 let d = (!name.is_empty()).then(|| read_json(&dir.join("debriefs").join(name))).flatten();
+                let d = d.or_else(|| a.get("debrief").is_none().then(|| a.clone()));
                 let date = a["date"].as_str().or(d.as_ref().and_then(|d| d["date"].as_str())).unwrap_or("");
                 rows.push((date.to_string(), pilot, mission_id, a["result"].as_i64().unwrap_or(0), d));
             }
@@ -148,10 +187,10 @@ fn insert(c: &Connection, pilot: i64, mission_id: i64, date: &str, result: i64, 
 }
 
 /// Stores a flown sortie of mission `mission_id` (its menu id) with its debrief record (training.md §4 plus `date`,
-/// `elapsed_s` and `plane`, the jet's unit id; `pass` gives the result). Its id.
+/// `elapsed_s` and `plane`, the jet's unit id; `pass` gives the result, or a 1998-game attempt's `result`). Its id.
 pub fn log_sortie(c: &Connection, pilot: i64, mission_id: i64, debrief: &Value) -> Result<i64> {
     let date = debrief["date"].as_str().unwrap_or("");
-    let result = i64::from(debrief["pass"].as_bool().unwrap_or(false));
+    let result = debrief["result"].as_i64().unwrap_or(i64::from(debrief["pass"].as_bool().unwrap_or(false)));
     insert(c, pilot, mission_id, date, result, Some(debrief))
 }
 
@@ -181,6 +220,28 @@ pub fn debrief(c: &Connection, id: i64) -> Result<Option<Value>> {
     let t: Option<Option<String>> =
         c.query_row("SELECT debrief FROM sorties WHERE id = ?1", [id], |r| r.get(0)).optional()?;
     Ok(t.flatten().and_then(|t| serde_json::from_str(&t).ok()))
+}
+
+/// The 1998 game's mission history of the pilot (iaf-reborn's pilots.gd): `[{id: <menu id>, attempts: [<each
+/// sortie's record with its `result`>]}]`, the missions newest first by their first sortie, each mission's attempts
+/// oldest first. By the sorties' ids, the order they were stored in (a local date can step back).
+pub fn history(c: &Connection, pilot: i64) -> Result<Value> {
+    let mut q = c.prepare("SELECT mission_id, result, debrief FROM sorties WHERE pilot = ?1 ORDER BY id")?;
+    let rows =
+        q.query_map([pilot], |r| Ok((r.get::<_, i64>(0)?, r.get::<_, i64>(1)?, r.get::<_, Option<String>>(2)?)))?;
+    let mut missions: Vec<Value> = Vec::new();
+    for row in rows {
+        let (mission_id, result, d) = row?;
+        let mut a = d.and_then(|d| serde_json::from_str::<Value>(&d).ok()).filter(Value::is_object);
+        let a = a.get_or_insert_with(|| json!({}));
+        a["result"] = json!(result);
+        match missions.iter_mut().find(|m| m["id"] == mission_id) {
+            Some(m) => m["attempts"].as_array_mut().expect("attempts").push(a.take()),
+            None => missions.push(json!({"id": mission_id, "attempts": [a.take()]})),
+        }
+    }
+    missions.reverse();
+    Ok(Value::Array(missions))
 }
 
 /// Home's and Training's view of the pilot's log: `flights`, `flight_time_s`, `last` ({mission_id, result} of the
@@ -288,24 +349,44 @@ pub fn set_loadout(c: &Connection, pilot: i64, plane: &str, stations: Option<&Va
     Ok(())
 }
 
-/// The pilots with a profile (a name), by id: each as `pilot` answers it plus `id`.
+/// The pilots with a profile (a name or a nickname), by their place in the 1998 game's list, then by id: each as
+/// `pilot` answers it plus `id`, `photo` and `selected` (the 1998 game's photo index and selection).
 pub fn pilots(c: &Connection, db: &Path) -> Result<Value> {
-    let ids: Vec<i64> = c
-        .prepare("SELECT id FROM pilots WHERE name != '' ORDER BY id")?
-        .query_map([], |r| r.get(0))?
+    let rows: Vec<(i64, i64, bool)> = c
+        .prepare("SELECT id, photo, selected FROM pilots WHERE name != '' OR nickname != '' ORDER BY place, id")?
+        .query_map([], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)))?
         .collect::<rusqlite::Result<_>>()?;
     let mut out = Vec::new();
-    for id in ids {
+    for (id, photo, selected) in rows {
         let mut p = pilot(c, db, id)?;
         p["id"] = json!(id);
+        p["photo"] = json!(photo);
+        p["selected"] = json!(selected);
         out.push(p);
     }
     Ok(Value::Array(out))
 }
 
+/// Stores the pilot's place in the 1998 game's list and its photo index (0..13 the original's pictures, the pilot's
+/// id for its own).
+pub fn set_place(c: &Connection, pilot: i64, place: i64, photo: i64) -> Result<()> {
+    c.execute(
+        "INSERT INTO pilots (id, place, photo) VALUES (?1, ?2, ?3)
+         ON CONFLICT (id) DO UPDATE SET place = excluded.place, photo = excluded.photo",
+        params![pilot, place, photo],
+    )?;
+    Ok(())
+}
+
+/// Makes `pilot` the selected one of the 1998 game's pilot list.
+pub fn select_pilot(c: &Connection, pilot: i64) -> Result<()> {
+    c.execute("UPDATE pilots SET selected = (id = ?1)", [pilot])?;
+    Ok(())
+}
+
 /// Makes a new pilot with `name` and `nickname`: its id (the next free one).
 pub fn add_pilot(c: &Connection, name: &str, nickname: &str) -> Result<i64> {
-    c.execute("INSERT INTO pilots (name, nickname) VALUES (?1, ?2)", params![name.trim(), nickname.trim()])?;
+    c.execute("INSERT INTO pilots (name, nickname) VALUES (?1, ?2)", params![name, nickname])?;
     Ok(c.last_insert_rowid())
 }
 
@@ -330,7 +411,7 @@ pub fn set_pilot(c: &Connection, pilot: i64, name: &str, nickname: &str) -> Resu
     c.execute(
         "INSERT INTO pilots (id, name, nickname) VALUES (?1, ?2, ?3)
          ON CONFLICT (id) DO UPDATE SET name = excluded.name, nickname = excluded.nickname",
-        params![pilot, name.trim(), nickname.trim()],
+        params![pilot, name, nickname],
     )?;
     Ok(())
 }
@@ -443,7 +524,7 @@ mod tests {
         let db = d.join("modern-iaf.sqlite");
         let c = open(&db).unwrap();
         assert_eq!(pilot(&c, &db, DEFAULT_PILOT).unwrap(), json!({"name": "", "nickname": "", "picture": ""}));
-        set_pilot(&c, DEFAULT_PILOT, " Noa Golan ", "Viper").unwrap();
+        set_pilot(&c, DEFAULT_PILOT, "Noa Golan", "Viper").unwrap();
         let src = d.join("me.JPG");
         fs::write(&src, b"jpeg").unwrap();
         let to = set_picture(&c, &db, DEFAULT_PILOT, &src).unwrap();
@@ -548,12 +629,12 @@ mod tests {
         log_sortie(&c, DEFAULT_PILOT, 2011, &rec("ramon_startup", true, "2026-11-02T07:00:00", 50.0)).unwrap();
         assert_eq!(pilots(&c, &db).unwrap(), json!([]));
         set_pilot(&c, DEFAULT_PILOT, "Noa", "Viper").unwrap();
-        let id = add_pilot(&c, " Dana ", "").unwrap();
+        let id = add_pilot(&c, "Dana", "").unwrap();
         assert_eq!(id, DEFAULT_PILOT + 1);
         assert_eq!(
             pilots(&c, &db).unwrap(),
-            json!([{"id": DEFAULT_PILOT, "name": "Noa", "nickname": "Viper", "picture": ""},
-                   {"id": id, "name": "Dana", "nickname": "", "picture": ""}])
+            json!([{"id": DEFAULT_PILOT, "name": "Noa", "nickname": "Viper", "picture": "", "photo": 0, "selected": false},
+                   {"id": id, "name": "Dana", "nickname": "", "picture": "", "photo": 0, "selected": false}])
         );
     }
 
@@ -631,6 +712,100 @@ mod tests {
         let c = open(&db).unwrap();
         assert_eq!(sorties(&c, DEFAULT_PILOT).unwrap().len(), 2);
         assert!(file.exists() && d.join("pilots/14.json").exists());
+    }
+
+    /// The 1998 game's attempt: its kill / loss counts, multiplier and bonus as the sortie's record.
+    fn attempt(result: i64, bonus: i64, date: &str) -> Value {
+        let mut kills = vec![0; 37];
+        kills[5] = 1;
+        json!({"result": result, "mult": 1.0, "bonus": bonus, "kills": kills, "losses": vec![0; 37], "date": date})
+    }
+
+    /// iaf-reborn's JSON records (a sample of its pilots.json, a history file and a pilot's own picture) come in once,
+    /// nothing lost: the list's order, names, callsigns, photo indexes and selection, every attempt with its counts,
+    /// the history in the file's order; the files stay.
+    #[test]
+    fn reborn_json_records_import_once() {
+        let d = temp("reborn");
+        fs::create_dir_all(d.join("pilots")).unwrap();
+        // Not in id order: the original gives a new pilot the lowest unused id.
+        let list = json!({"selected": 2, "pilots": [
+            {"name": "Gal", "callsign": "default", "id": 14, "photo": 3},
+            {"name": "", "callsign": "ghost", "id": 16, "photo": 0},
+            {"name": " Dana", "callsign": "viper", "id": 15, "photo": 15},
+        ]});
+        fs::write(d.join("pilots/pilots.json"), list.to_string()).unwrap();
+        let mut old = attempt(1, 500, "");
+        old.as_object_mut().unwrap().remove("date");
+        // Newest mission first, as the 1998 game writes it; 212 was flown before its war's 211 was passed.
+        let log = json!({"missions": [
+            {"id": 212, "attempts": [attempt(-1, 1000, "")]},
+            {"id": 311, "attempts": [old.clone(), attempt(0, -250, "")]},
+        ]});
+        fs::write(d.join("pilots/15.json"), log.to_string()).unwrap();
+        fs::write(d.join("pilots/15.png"), b"png").unwrap();
+        let db = d.join("iaf-reborn.sqlite");
+        let c = open(&db).unwrap();
+        let ps = pilots(&c, &db).unwrap();
+        let rows: Vec<_> = ps
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|p| {
+                (
+                    p["id"].as_i64().unwrap(),
+                    p["name"].clone(),
+                    p["nickname"].clone(),
+                    p["photo"].clone(),
+                    p["selected"].clone(),
+                )
+            })
+            .collect();
+        assert_eq!(
+            rows,
+            [
+                (14, json!("Gal"), json!("default"), json!(3), json!(false)),
+                (16, json!(""), json!("ghost"), json!(0), json!(false)),
+                (15, json!(" Dana"), json!("viper"), json!(15), json!(true)),
+            ]
+        );
+        let pic = ps[2]["picture"].as_str().unwrap();
+        assert!(pic.ends_with("pilot-15.png") && fs::read(pic).unwrap() == b"png");
+        assert_eq!(history(&c, 15).unwrap(), log["missions"]);
+        // A new attempt goes after them; a new mission comes first.
+        log_sortie(&c, 15, 111, &attempt(1, 0, "2026-11-14T10:00:00")).unwrap();
+        log_sortie(&c, 15, 311, &attempt(1, 0, "2026-11-14T10:05:00")).unwrap();
+        let h = history(&c, 15).unwrap();
+        let ids: Vec<i64> = h.as_array().unwrap().iter().map(|m| m["id"].as_i64().unwrap()).collect();
+        assert_eq!(ids, [111, 212, 311]);
+        assert_eq!(h[2]["attempts"].as_array().unwrap().len(), 3);
+        assert_eq!(h[1]["attempts"][0]["result"], -1);
+        drop(c);
+        // Opened again: nothing imported twice; the JSON files stay.
+        let c = open(&db).unwrap();
+        assert_eq!(sorties(&c, 15).unwrap().len(), 5);
+        assert!(d.join("pilots/pilots.json").exists() && d.join("pilots/15.json").exists());
+        assert!(d.join("pilots/15.png").exists());
+    }
+
+    /// The 1998 game's list order, photo index and selection round trip; one pilot is selected at a time.
+    #[test]
+    fn photo_and_selection() {
+        let d = temp("select");
+        let db = d.join("iaf-reborn.sqlite");
+        let c = open(&db).unwrap();
+        set_pilot(&c, 14, "Gal", "default").unwrap();
+        set_pilot(&c, 15, "Dana", "viper").unwrap();
+        set_place(&c, 15, 0, 7).unwrap();
+        set_place(&c, 14, 1, 0).unwrap();
+        select_pilot(&c, 15).unwrap();
+        select_pilot(&c, 14).unwrap();
+        let ps = pilots(&c, &db).unwrap();
+        assert_eq!(
+            (ps[0]["id"].clone(), ps[0]["photo"].clone(), ps[0]["selected"].clone(), ps[1]["selected"].clone()),
+            (json!(15), json!(7), json!(false), json!(true))
+        );
+        assert_eq!(history(&c, 14).unwrap(), json!([]));
     }
 
     #[test]

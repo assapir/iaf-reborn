@@ -1918,12 +1918,12 @@ func save_pilot() -> void:
 		return
 	var db := Settings.records_db()
 	if creating:
-		var id: int = IafPilotLog.add_pilot(db, draft.name, draft.nickname)
+		var id: int = IafPilotLog.add_pilot(db, str(draft.name).strip_edges(), str(draft.nickname).strip_edges())
 		if id <= 0:
 			return
 		use_pilot(id)
 	else:
-		IafPilotLog.set_pilot(db, Settings.pilot(), draft.name, draft.nickname)
+		IafPilotLog.set_pilot(db, Settings.pilot(), str(draft.name).strip_edges(), str(draft.nickname).strip_edges())
 	if draft.picture != "":
 		_pictures.erase(IafPilotLog.set_picture(db, Settings.pilot(), draft.picture))
 	show_page("hangar")

@@ -199,8 +199,9 @@ Checked against the code on 2026-10-21 (each doc's own "not built" notes have th
 - Modern-imagery work may use GDAL as a setup dependency. Modern imagery defaults to the 1998 colours; "modern
   colours" is its own choice.
 - Keys: when an original command gets built, the original key wins; our own functions move to Ctrl+F-keys.
-- Pilot records: our own JSON format with the same data as the original (Pilots.dat + Pilots\<id>.mis); no import of
-  original files (maybe a converter later if easy).
+- Pilot records: the same data as the original (Pilots.dat + Pilots\<id>.mis) in Modern IAF's SQLite store
+  (`IafPilotLog`, `user://iaf-reborn.sqlite`, 2026-11-14; our JSON of before imported once); no import of original
+  files (maybe a converter later if easy).
 - Screenshots (SysRQ): PNG, timestamped, in the user data folder (original: IafJets000.bmp in the game folder).
 - Multiplayer (incl. the original's TCP/IP lobby mode) is not approved; if it goes ahead, it comes after the
   single-player game is finished, with the Mission Creator's multiplayer screen (multiplayer.md §3.5).

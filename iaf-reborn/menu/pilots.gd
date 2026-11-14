@@ -1,9 +1,10 @@
 # Pilot records (docs/front-end.md §13): the pilot list (the original's Pilots.dat), each pilot's mission
 # history (Pilots\<id>.mis), recording an attempt (§13.7) and the score / rank (§13.8).
-# Stored as our own JSON in the user data dir (docs/deviations.md): pilots.json = {selected, pilots: [{name,
-# callsign, id, photo}]} and <id>.json = {missions: [{id, attempts: [{result, mult, bonus, kills[37],
-# losses[37]}]}]}, newest mission first as in the original's list; a custom photo is <id>.png.
-# Tests (IAF_DEFAULT_SETTINGS=1) use a temporary directory instead.
+# Stored through IafPilotLog (crates/iaf-tools/src/pilot_log.rs, the store Modern IAF uses; docs/deviations.md) in
+# user://iaf-reborn.sqlite: the list with each pilot's photo index and the selection, each attempt {result, mult,
+# bonus, kills[37], losses[37]} as a sortie; a custom photo is copied to pictures/ beside it. The JSON records of
+# before (user://pilots) are imported on the first open and left in place. Tests (IAF_DEFAULT_SETTINGS=1) use a
+# temporary directory instead.
 extends RefCounted
 
 ## Categories per attempt (nCat, FUN_004f7a40).
@@ -162,14 +163,14 @@ const FIRST_OF_WAR := [111, 121, 131, 211, 221, 231, 311, 321, 331, 401, 511]
 static var _temp: DirAccess
 
 
-## Where the records live: user://pilots, or a temporary directory for tests.
-static func dir() -> String:
+## The records database's absolute path: user://iaf-reborn.sqlite, or in a temporary directory for tests.
+static func db() -> String:
+	var root := "user://"
 	if OS.get_environment("IAF_DEFAULT_SETTINGS") == "1":
 		if _temp == null:
 			_temp = DirAccess.create_temp("iaf_pilots", false)
-		return _temp.get_current_dir()
-	DirAccess.make_dir_recursive_absolute("user://pilots")
-	return "user://pilots"
+		root = _temp.get_current_dir()
+	return ProjectSettings.globalize_path(root.path_join("iaf-reborn.sqlite"))
 
 
 # --- the pilot list (Pilots.dat) ----------------------------------------------------------------
@@ -178,36 +179,45 @@ var pilots: Array = []
 var selected := 0
 
 
-## Reads the list; a missing file gives one default pilot "Gal" / "default", id 14, photo 0 (FUN_0051c750).
+## Reads the list; none stored gives one default pilot "Gal" / "default", id 14, photo 0 (FUN_0051c750).
 func load_list() -> void:
-	var d = Settings.load_json(dir().path_join("pilots.json"))
+	var list = JSON.parse_string(IafPilotLog.pilots(db()))
 	pilots = []
-	for p in d.get("pilots", []):
+	selected = 0
+	for p in list if list is Array else []:
+		if p.selected:
+			selected = pilots.size()
 		pilots.append(
 			{
 				"name": String(p.name).left(10),
-				"callsign": String(p.callsign).left(12),
+				"callsign": String(p.nickname).left(12),
 				"id": int(p.id),
-				"photo": int(p.photo)
+				"photo": int(p.photo),
+				"picture": String(p.picture)
 			}
 		)
 	if pilots.is_empty():
 		pilots.append(blank(14))
 		pilots[0].name = "Gal"
 		pilots[0].callsign = "default"
-	selected = clampi(int(d.get("selected", 0)), 0, pilots.size() - 1)
 
 
 ## Rewrites the list (FUN_0051ce30): a selected pilot with both name and callsign empty is deleted first.
 func save_list() -> void:
 	if pilots.size() > 1 and _empty(pilots[selected]):
 		remove(selected)
-	_write(dir().path_join("pilots.json"), {"selected": selected, "pilots": pilots})
+	var d := db()
+	for i in pilots.size():
+		var p: Dictionary = pilots[i]
+		IafPilotLog.set_pilot(d, p.id, p.name, p.callsign)
+		IafPilotLog.set_place(d, p.id, i, p.photo)
+	if not current().is_empty():
+		IafPilotLog.select_pilot(d, current().id)
 
 
 ## A blank record (FUN_0050b2c0).
 static func blank(id: int) -> Dictionary:
-	return {"name": "", "callsign": "", "id": id, "photo": 0}
+	return {"name": "", "callsign": "", "id": id, "photo": 0, "picture": ""}
 
 
 func current() -> Dictionary:
@@ -227,13 +237,10 @@ func add() -> Dictionary:
 	return p
 
 
-## Remove_Pilot (FUN_0051d690): its files and record; the selection stays, or moves to the new last pilot.
+## Remove_Pilot (FUN_0051d690): its history, picture and record; the selection stays, or moves to the new last
+## pilot.
 func remove(i: int) -> void:
-	var id: int = pilots[i].id
-	for ext in ["json", "png"]:
-		var f := dir().path_join("%d.%s" % [id, ext])
-		if FileAccess.file_exists(f):
-			DirAccess.remove_absolute(f)
+	IafPilotLog.delete_pilot(db(), pilots[i].id)
 	pilots.remove_at(i)
 	selected = mini(selected, pilots.size() - 1)
 
@@ -242,21 +249,31 @@ static func _empty(p: Dictionary) -> bool:
 	return p.name == "" and p.callsign == ""
 
 
-## A custom photo (photo index >= 14 = the pilot's own picture, <id>.png); "" when there is none.
-static func photo_path(id: int) -> String:
-	var f := dir().path_join("%d.png" % id)
-	return f if FileAccess.file_exists(f) else ""
+## The selected pilot's own picture (photo index >= 14); "" when there is none.
+func photo_path() -> String:
+	var f: String = current().get("picture", "")
+	return f if f != "" and FileAccess.file_exists(f) else ""
+
+
+## Right-click on the photo: the picture file `src` copied as the selected pilot's own (the photo index becomes its
+## id); false when it could not.
+func set_own_photo(src: String) -> bool:
+	var p := current()
+	var to := IafPilotLog.set_picture(db(), p.id, src)
+	if to == "":
+		return false
+	p.picture = to
+	p.photo = p.id
+	return true
 
 
 # --- mission history (Pilots\<id>.mis) ------------------------------------------------------------
 
 
+## [{id, attempts: [{result, mult, bonus, kills, losses}]}], newest mission first (IafPilotLog.history).
 static func history(id: int) -> Array:
-	return Settings.load_json(dir().path_join("%d.json" % id)).get("missions", [])
-
-
-static func save_history(id: int, missions: Array) -> void:
-	_write(dir().path_join("%d.json" % id), {"missions": missions})
+	var h = JSON.parse_string(IafPilotLog.history(db(), id))
+	return h if h is Array else []
 
 
 static func attempts(missions: Array, id: int) -> Array:
@@ -306,7 +323,9 @@ static func record(pilot_id: int, id: int, results: Dictionary, mult: float) -> 
 		a[side] = counts
 	list.append(a)
 	if pilot_id >= 0 and not (id in MP_IDS or (id >= 0x1ff and id <= 0x207)):
-		save_history(pilot_id, missions)
+		var row := a.duplicate()
+		row["date"] = Time.get_datetime_string_from_system()
+		IafPilotLog.log_sortie(db(), pilot_id, id, JSON.stringify(row))
 	return {"attempt": a, "pilot_score": totals(missions).score}
 
 
@@ -369,9 +388,3 @@ static func rank(score: int) -> String:
 ## The "make sim" / "not war" cheat (FUN_004f1610): every mission open.
 static func cheat(name: String, callsign: String) -> bool:
 	return name == "make sim" and callsign == "not war"
-
-
-static func _write(path: String, d: Dictionary) -> void:
-	var f := FileAccess.open(path, FileAccess.WRITE)
-	if f != null:
-		f.store_string(JSON.stringify(d, " "))

@@ -309,7 +309,7 @@ func _focus(b: int) -> void:
 ## has none) → 0.
 func _next_photo() -> void:
 	photo = photo + 1 if photo < 14 else 0
-	if photo == 14 and Pilots.photo_path(data.current().id) == "":
+	if photo == 14 and data.photo_path() == "":
 		photo = 0
 	data.current().photo = photo
 
@@ -330,10 +330,9 @@ func _pick_photo() -> void:
 		func(ok: bool, paths: PackedStringArray, _filter: int):
 			if not ok or paths.is_empty():
 				return
-			var img := Image.load_from_file(paths[0])
-			if img != null and img.save_png(Pilots.dir().path_join("%d.png" % id)) == OK and data.current().id == id:
+			if data.current().id == id and Image.load_from_file(paths[0]) != null and data.set_own_photo(paths[0]):
 				photo = id
-				data.current().photo = id
+				_own_photo.erase(data.photo_path())
 	)
 
 
@@ -430,7 +429,7 @@ func _draw_dossier(at: Vector2) -> void:
 		if t != null:
 			draw_texture_rect(t, fe._rect(Rect2(at + PHOTO.position, PHOTO.size)), false)
 	else:
-		var own := Pilots.photo_path(data.current().id)
+		var own: String = data.photo_path()
 		if own != "":
 			if not _own_photo.has(own):
 				_own_photo[own] = Img.load_texture(own)

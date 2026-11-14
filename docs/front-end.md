@@ -1873,8 +1873,15 @@ node's +4); "passed" is any attempt with a result > 0 (`FUN_004f6d40`). "Current
 ### 13.13 Ours (iaf-reborn/menu/pilots.gd, pilot_records.gd)
 * `pilots.gd`: the list, the histories, `record()` = `FUN_004f68b0`, `attempt_score()` = `FUN_004f7b30`,
   `totals()` = `FUN_004f66d0`, `rank()`, the categories / groups / points tables, the MissBonus read from the
-  install's `scores.ibx`. Storage is our own JSON in `user://pilots` (docs/deviations.md): `pilots.json` = the
-  selected index and the records, `<id>.json` = the history, `<id>.png` = a custom photo. Tests use a temp dir.
+  install's `scores.ibx`. Storage is the store Modern IAF uses, `IafPilotLog` over
+  `crates/iaf-tools/src/pilot_log.rs` (SQLite, modern-iaf/docs/storage.md §5), in its own file
+  `user://iaf-reborn.sqlite` (docs/deviations.md): the list (name, callsign as the nickname, photo index, the
+  selection), each attempt as a sortie whose record is the attempt (`history()` gives the original's mission list
+  back, newest mission first), a custom photo copied to `pictures/pilot-<id>.<ext>`. The list keeps its order (each
+  pilot's place) and the names as typed, spaces included. The JSON
+  records of before (`user://pilots`: `pilots.json`, `<id>.json`, `<id>.png`) are imported by the database's first
+  open and left in place. Scoring (`attempt_score()`, `totals()`, `rank()`) stays in `pilots.gd`: it is the 1998
+  game's alone. Tests use a temp dir.
 * `pilot_records.gd`: the list box, scrollbar, tabs, the four pages, the edit boxes (character rules, max
   length / width, caret, Enter / Tab, the checks and messages), the photo (click cycles, right button up opens
   the system's file dialog for a .bmp), New_Pilot / Remove_Pilot / Login, double-click. The list is written when

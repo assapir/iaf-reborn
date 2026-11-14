@@ -24,7 +24,10 @@ func ok_box() -> bool:
 
 func run() -> void:
 	var Pilots = load("res://menu/pilots.gd")
-	check(not Pilots.dir().begins_with("user://"), "tests keep the records in a temporary directory")
+	check(
+		not Pilots.db().begins_with(ProjectSettings.globalize_path("user://")),
+		"tests keep the records in a temporary directory"
+	)
 	var front_end: PackedScene = load("res://menu/front_end.tscn")
 	fe = front_end.instantiate()
 	root.add_child(fe)

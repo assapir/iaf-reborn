@@ -66,7 +66,8 @@ is not a measurable part of a start (inferred: the seven compiled mission files 
   [data-formats.md](data-formats.md) §13. The flight recording (`user://flights/*.jsonl`) stays a file: it is
   streamed while flying and read by `tools/flight_timeline.py`.
 - **Keep the original game's pilot files as they are.** reborn's `iaf-reborn/menu/pilots.gd` reads the original's
-  shape; the sim's records are its own and need not match it.
+  shape; the sim's records are its own and need not match it. (Superseded 2026-11-14: reborn keeps its pilots in the
+  same store, its own file; §5 "The 1998 game".)
 - **`devices.json` stays JSON.** It is one small file of overrides, read once.
 
 ## 5. What is built (2026-11-09)
@@ -116,10 +117,24 @@ crate of its own: it is one file, and `iaf-tools` already links `rusqlite`.
   stations)` stores it, `set_loadout(…, none)` (`""` from GDScript) deletes it (Reset). Loading checks it against the
   unit record (`loadout::parse` keeps only what a station takes), so a record that changes its rules never flies a
   store a station no longer takes.
+- **Version 5** (2026-11-14) adds `pilots.place`, `pilots.photo` and `pilots.selected` for the 1998 game (below).
+- **The 1998 game** (iaf-reborn's Pilot Records, [front-end.md](../../docs/front-end.md) §13.13) uses this store
+  in its own file, `user://iaf-reborn.sqlite`: its pilot list is `pilots` (the callsign is the `nickname`, `place` its place in the list, `photo`
+  the original's photo index: 0..13 its pictures, the pilot's id for the pilot's own; `selected` 1 on the selected
+  pilot), and each attempt is a sortie whose `debrief` is the attempt (`result`, `mult`, `bonus`, `kills[37]`,
+  `losses[37]`, `date`; `result` -1 for a prerequisite not met). `pilots(db)` lists pilots with a name or a
+  nickname, by `place` then id, plus `photo` and `selected`; `set_place(db, pilot, place, photo)`,
+  `select_pilot(db, pilot)`; `history(db, pilot)` answers the original's mission list (`[{id, attempts}]`, newest
+  mission first, by sortie id); `set_pilot` and `add_pilot` store the names as given (the sim's front end trims
+  them, reborn keeps the original's spaces); `log_sortie` takes an
+  attempt's `result` where the record has one. The import at version 0 also reads reborn's JSON of before:
+  `pilots/pilots.json` (the list in its order and the selection) with each pilot's `pilots/<id>.png`, and the attempts of
+  `pilots/<id>.json` that name no debrief file as their own records; the files stay.
 - **Reading a record outside the game.** `sqlite3 modern-iaf.sqlite "SELECT debrief FROM sorties WHERE id = 3" >
   debrief.json` gives the file `tools/flight_timeline.py --debrief` takes.
 - **Check.** `cargo test -p iaf-tools --lib pilot_log` (the schema at its version, a newer one refused, a sortie round
   trip with the summary, the JSON import run twice, the profile and its picture round trip, a version-1 file migrated, the logbook per plane and Reset, the pilot list and
-  a new pilot, a version-2 file migrated, the loadouts per pilot per jet and a version-3 file migrated); `modern-iaf/tests/test_front_end.gd` (imported records on the
+  a new pilot, a version-2 file migrated, the loadouts per pilot per jet and a version-3 file migrated, reborn's JSON
+  records imported once from a sample, the photo index and selection); `modern-iaf/tests/test_front_end.gd` (imported records on the
   Debrief, Home, Training and Pilot log screens, then a flown sortie's debrief) and `test_mvp.gd` (each flight's
   sortie and its pass in the summary).
