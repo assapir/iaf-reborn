@@ -1,7 +1,18 @@
-# iaf-reborn
+# Jane's IAF reborn and Modern IAF
 
-A native (Linux, macOS and Windows) re-implementation of the engine for **Jane's IAF: Israeli Air Force** (1998). It loads the
-game data from **your own copy** of the original game and renders it with modern graphics.
+Two flight sims on one open-source engine (Godot 4 and Rust), for Linux, macOS and Windows:
+
+- **iaf-reborn** is a re-implementation of **Jane's IAF: Israeli Air Force** (1998). It runs on your own copy of the
+  original game's data.
+- **Modern IAF** (in Hebrew: הזרוע הארוכה) is a present-day Israeli Air Force sim. It reads only our own and openly
+  licensed data.
+
+Both games share the engine in `shared/` and `crates/`.
+
+## Jane's IAF reborn (the 1998 game)
+
+A native re-implementation of the engine for Jane's IAF (1998). It loads the game data from **your own copy** of the
+original game and renders it with modern graphics.
 
 **You need your own copy of the original game (the CD / ISO).** This repository holds no original game assets or
 data. Setup extracts and converts everything the engine uses on your machine, from your ISO.
@@ -9,15 +20,45 @@ data. Setup extracts and converts everything the engine uses on your machine, fr
 The game plays as the original v1.1 by default; every improvement is an opt-in switch
 ([docs/deviations.md](docs/deviations.md)). What works and what is open: [docs/status.md](docs/status.md).
 
+```sh
+./setup        # the setup wizard: pick your CD, it does the rest
+./iafjets      # builds what changed and starts the game
+```
+
+Details: [Quick start](#quick-start) below.
+
+## Modern IAF (the present-day sim)
+
+A flight sim of today's Israeli Air Force with three jets (F-16I Sufa, F-16D Barak, F-35I Adir), 3D cockpits, Israel
+at full scale, training missions, in Hebrew and English. What works today and what is open:
+[modern-iaf/docs/status.md](modern-iaf/docs/status.md).
+
+**It needs no data from the original game.** Setup downloads open data once (the Copernicus GLO-30 heights, 0.6 GB,
+and ESA WorldCover's Sentinel-2 colour tiles, 11.4 GB) and builds the sim's data into `assets/`.
+
+```sh
+./modern-iaf-setup     # the setup wizard: downloads the open data and builds the sim's data
+./start-modern-iaf     # builds what changed and starts the sim
+```
+
+On Windows: `.\modern-iaf-setup.ps1` and `.\start-modern-iaf.ps1`. Details, and Modern IAF on a Mac:
+[modern-iaf/README.md](modern-iaf/README.md); setup: [modern-iaf/docs/setup.md](modern-iaf/docs/setup.md).
+
 ## Layout
 
 - `crates/` – Rust workspace: file-format parsers, extraction / conversion tools, setup, flight model, avionics,
-  Godot extension
-- `iaf-reborn/` – Godot 4.7 project
-- `docs/` – reverse-engineering notes per system; `docs/formats/` – file formats
-- `assets/` – generated from your ISO (git-ignored)
+  Godot extension (both games)
+- `shared/` – the engine's GDScript, scenes and shaders (both games)
+- `iaf-reborn/` – the Godot 4.7 project of the 1998 game
+- `modern-iaf/` – the Godot project and data of Modern IAF
+- `docs/` – reverse-engineering notes per system for the 1998 game and the shared engine; `docs/formats/` – file
+  formats
+- `modern-iaf/docs/` – Modern IAF's plan, status and design notes
+- `assets/` – generated on your machine (git-ignored): from your ISO for the 1998 game, from open data for Modern IAF
 
-## Requirements
+The sections below describe the 1998 game (`iaf-reborn`) unless a heading says Modern IAF.
+
+## Requirements (the 1998 game)
 
 ### From the original game
 
@@ -177,7 +218,7 @@ the wrong control moves, edit `[devices] joy_axes` in the settings file. Details
 ## License and trademarks
 
 The code in this repository is licensed under the GNU General Public License v3.0 or later — see [LICENSE](LICENSE).
-It contains no data from the original game; you must supply your own copy. Third-party models, pictures and sounds
+It contains no data from the original game; the 1998 game needs your own copy. Third-party models, pictures and sounds
 in `shared/extra/` keep their own licences; each has its credits beside it (`SOURCES.md`, `CREDITS.md`, `README.md`).
 The CC0 textures from ambientCG (Ground textures, Model detail) are downloaded by setup into the git-ignored `assets/thirdparty/`
 ([docs/credits.md](docs/credits.md)).

@@ -4,9 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-A native re-implementation of the engine for Jane's IAF (1998): Rust crates (format parsers, converters, flight
-model) plus a Godot 4.7 project that renders and runs the game. All game data comes from the user's own ISO and is
-generated into the git-ignored `assets/`; the repo must never contain original game data.
+Two flight sims on one engine: a native re-implementation of Jane's IAF (1998) (`iaf-reborn/`) and Modern IAF
+(`modern-iaf/`, a present-day Israeli Air Force sim on our own and openly licensed data). Rust crates (format
+parsers, converters, flight model) plus Godot 4.7 projects that render and run the games, sharing `shared/` and
+`crates/`. The 1998 game's data comes from the user's own ISO and is generated into the git-ignored `assets/`; the
+repo must never contain original game data.
 
 ## Commands
 
