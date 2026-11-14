@@ -843,8 +843,9 @@ void fragment() {
 			float lum = dot(base, vec3(0.2126, 0.7152, 0.0722));
 			// Asphalt: near-neutral grey of the art's brightness; concrete (aprons, the runways' first 300 m): lighter, warmer.
 			// Toward real asphalt's brightness (the art's runways run from near black to light grey), so the paint stands
-			// out on every base.
-			vec3 asph = vec3(mix(lum, 0.1, 0.6)) * vec3(1.02, 1.0, 0.96);
+			// out on every base. 80 % toward 0.08 (60 % toward 0.1 until 2026-11-14: on the bases' ground toned to the
+			// photo around, the runways went as grey as the ground and faded out from about 10 km).
+			vec3 asph = vec3(mix(lum, 0.08, 0.8)) * vec3(1.02, 1.0, 0.96);
 			// Variation: patches (≈ 40 m), aggregate grain (≈ 1.5 m), repairs and slabs.
 			mat2 rot1 = mat2(vec2(0.8, 0.6), vec2(-0.6, 0.8));
 			float n1 = texture(terrain_detail_tex, rot1 * p / 260.0).r - 0.5;

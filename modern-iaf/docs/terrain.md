@@ -155,23 +155,36 @@ left" over the tiles still to fetch, a DEM tile's MB so far.
      That Sentinel-2 is toned to the levelled photo around the base (2026-11-14, `BaseTone`; before, its own
      colours: a tan block in the photo's grey at every base). On a 40 m grid over the base and 3 km around it, the
      photo (warped at 40 m, its sheets' levels) and Sentinel-2 (the 8 m node's mean) are compared on the ground the
-     photo shows outside the mask:
-     - **Colour**: per band the ratio of their local means (`imagery::local_sums`, the match the original game's
-       modern layers use, blurred over ± 0.5 km, twice), so the edge meets the photo beside it; deeper in, the
-       base's mean ratio (with ± 1.2 km a darker Survey sheet beside Ramon shaded the base's middle). The base's
-       toned mean then moves half way to the photo's balance of the bands around it, its brightness kept
-       (Sentinel-2's lighter ground on a base went a cold grey at Ramon without it; the whole way turned Ramat
-       David's dry grass an icy grey against the cooler fields around).
-     - **Detail**: Sentinel-2's local mean (± 120 m) takes those ratios; the detail about it is raised by the
-       photo's spread over Sentinel-2's on the same cells (one factor per base, from 1 to at most 1.3: measured Ramon
-       1.70, Nevatim 1.65, Hatzerim 1.53, Tel Nof 1.33, Ramat David 1.00, the step logs it; 1.7 made Sentinel-2's
-       wide, soft wadis black smears on final approach), its own colour cut to 35 % (the bands' ratios turned white
-       roofs blue), and no pixel's bands more than 40 levels apart (an irrigated lawn went a lime disc at Nevatim).
+     photo shows outside the mask. One colour map per base, the same at every pixel of it:
+     - **Brightness**: the base's median brightness (Sentinel-2's inside the outline) becomes the photo's median
+       around it, over the cells whose brightness ratio (photo over Sentinel-2) is within × 1.25 of the median one.
+       So one odd Survey sheet beside a base (a darker one at Ramon's south-west) neither enters the match nor shades
+       part of the base, and Sentinel-2's brighter dry grass on a base takes the brightness of the ground around
+       (with the photo's ratio alone it stayed a light grey at Ramat David).
+     - **Contrast**: about that median Sentinel-2's values spread as the photo's over all the cells (between the
+       quartiles of the bands' mean), times the ratio of the two images' median brightness; the factor between 0.5
+       and 1 (below 1 at Ramat David only, where Sentinel-2 spreads more). Around the four southern bases the photo
+       spreads more, and a factor above 1 raised the base's own difference from the ground around (Ramon cyan,
+       Hatzerim blue-grey).
+     - **Tint**: Sentinel-2's tint (each band's offset from the bands' mean) scaled onto the photo's, at least × 0.3
+       (the scaled factor is 0.08 to 0.36: the photo is far less saturated; × 0.08 left Ramat David's dry grass grey),
+       the rest of the photo's tint added. So grey roofs and gravel stay near grey: one ratio per band turned them
+       pale blue at Hatzerim and Ramon's base cyan (the desert's band ratios on a colour other than the desert's).
+     - **Bright ground**: above the photo's 90th percentile around the base, the brightness rises at 0.3 (the hue
+       kept), so Sentinel-2's bright tracks in the dry grass are no white streaks from the cockpit.
+     - **Detail**: Sentinel-2's own, through the same map, and no pixel's bands more than 40 levels apart (an
+       irrigated lawn went a lime disc at Nevatim).
+     Tried the same day and dropped: the ratio of local means blurred over ± 0.5 km, with a half pull to the photo's
+     tint and Sentinel-2's detail raised up to × 1.3 and cut to 35 % of its colour. A darker sheet beside Ramon shaded
+     its south-west; at Ramat David the ratio of the darker fields around made the base's brighter dry grass an icy
+     white, with Sentinel-2's bright tracks white streaks from the cockpit; Tel Nof's ground went the grey of its
+     runways. A histogram match per band turned Ramon's base pink with black blots (its values past the ring's on
+     both ends); a gain and offset per band, black-red.
      Every 2 m node on a base's mask is written, so the toned colour reaches every level. The units on a base (the
      Survey's level-4 units with the mask, the 8 m Sentinel-2 level-5 units within 3.6 km of an outline) have their
-     own done marks (`survey_2m_tone`, `s2_8m_tone`) and run again when the fill changes (`stamp`'s `base_fill`),
+     own done marks (`survey_2m_median`, `s2_8m_median`) and run again when the fill changes (`stamp`'s `base_fill`),
      Sentinel-2's from the local tiles first, as its level-3 nodes hold the photo after a run. A theatre built before
-     redoes those units only: 8 Sentinel-2 units and 12 Survey units, then the coarser levels, 3 min 12 s on the Mac
+     redoes those units only: 8 Sentinel-2 units and 12 Survey units, then the coarser levels, 2 min 30 s on the Mac
      (M4 Pro), nothing downloaded (run with the network blocked; `would_fetch` lists nothing while the cache holds
      the 10 m tiles whole).
 5. **Coarser levels**: levels 2 and 4–11 from their four children (Triangle filter); level 3 too over the photo (§3).

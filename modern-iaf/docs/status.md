@@ -164,10 +164,12 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   hills warmed as that layer's: the ground reads as the original game's photo. A rebuild of the theatre's photo
   (setup's terrain step "will run", nothing to download). Pictures in [terrain.md](terrain.md) §15.
 - **The airbases from the air (2026-11-14, built, awaiting the user's yes on the pictures):** the bases' Sentinel-2
-  fill toned to the photo around (no tan block); the painted runways, taxiways and aprons out to 28 km, kept at their
-  paved share far away. A rebuild of the theatre's base units (setup's terrain step, then the scenery: nothing to
+  fill toned to the photo around (no tan block; one colour map per base from the medians of the ground around, an odd
+  Survey sheet left out, Sentinel-2's brighter dry grass brought down to the earth tones around); the painted
+  runways, taxiways and aprons out to 28 km, kept at their paved share far away, their asphalt darker so they read
+  on that ground. A rebuild of the theatre's base units (setup's terrain step, then the scenery: nothing to
   download) ([terrain.md](terrain.md) §4, [airbases.md](airbases.md) §9). Open: the bases stay softer than the 2 m
-  photo (10 m pixels); a darker Survey sheet beside Ramon shades its south-west.
+  photo (10 m pixels).
   `test_sim_look.gd`, the original's `test_terrain.gd`.
 - **Towns in the air photo's colours, the roads to the buildings' range (2026-11-13, look study A20):** each roof in
   its own colour from the air photo with solar heaters, the walls in the palette's colours chosen by the photo around

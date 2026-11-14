@@ -423,33 +423,40 @@ struct Survey<'a> {
 }
 
 /// Sentinel-2 on an airbase toned to the levelled photo around it (2026-11-14; before, its own colours: a tan block in
-/// the photo's grey at every base). Per band the ratio of the two images' local means over the ground the photo shows
-/// (off the bases' cover, BaseMask), from `imagery::local_sums` as the original game's modern layers take theirs,
-/// on a TONE_CELL_M grid over the base and TONE_REACH_M around it. Normalised by the photo's weight, so a base wider
-/// than the blur's reach keeps the base's mean ratio in its middle.
+/// the photo's grey at every base). Both images on TONE_CELL_M cells over the ground the photo shows within
+/// TONE_REACH_M of the outline (off the bases' cover, BaseMask), over the cells whose brightness ratio is within
+/// TONE_KEEP of the median one: the base's median brightness (Sentinel-2's inside the outline) to the photo's, the
+/// spread about it brought to the photo's (TONE_SPREAD), and Sentinel-2's tint scaled onto the photo's. Tried the
+/// same day and dropped: the ratio of local means (one darker Survey sheet beside Ramon shaded its south-west; carried
+/// to the base's brighter dry grass from the darker fields around Ramat David it made an icy white); a histogram match
+/// per band (Ramon pink with black blots, its values past the ring's on both ends); gain and offset per band (Ramon
+/// black-red); a ratio per band (Ramon cyan, Hatzerim's grey roofs and gravel pale blue).
 struct BaseTone {
-    e0: f64,
-    n1: f64,
-    w: usize,
-    h: usize,
-    ratio: Vec<[f32; 3]>,
-    /// Sentinel-2's local mean (over ± TONE_DETAIL_M) and the contrast its detail takes about it: the photo's spread
-    /// over Sentinel-2's around the base (Sentinel-2's 10 m pixels flatten the ground: about a third of the photo's
-    /// spread at 40 m at Ramon).
-    local: Vec<[f32; 3]>,
-    contrast: f32,
+    /// The UTM rect it serves: the outline's box and TONE_REACH_M around it.
+    rect: [f64; 4],
+    /// The gain and offset from Sentinel-2's brightness (the bands' mean) to the photo's.
+    grey: [f32; 2],
+    /// The factor on Sentinel-2's tint (a band's value over the bands' mean), and the tint added.
+    chroma: f32,
+    tint: [f32; 3],
+    /// The photo's bright ground around (TONE_KNEE_AT of its cells darker): brighter toned values come down toward it.
+    knee: f32,
 }
 
 const TONE_CELL_M: f64 = 40.0;
 const TONE_REACH_M: f64 = 3000.0;
-/// The blur's radius (a box, twice: the ratio blends over twice this; deeper in a base the base's mean ratio, so a
-/// darker Survey sheet beside a base does not shade its middle, as at Ramon with 1.2 km).
-const TONE_RADIUS_M: f64 = 500.0;
-const TONE_DETAIL_M: f64 = 120.0;
-const TONE_DETAIL_CHROMA: f32 = 0.35;
-/// At most this: Sentinel-2's wide, soft wadis raised by 1.7 (Ramon's measure) went black smears on final approach.
-const TONE_CONTRAST_MAX: f32 = 1.3;
 const TONE_CHROMA_MAX: f32 = 40.0;
+/// The spread's factor's bounds: above 1 a base's own difference from the ground around grew with it (cyan at Ramon,
+/// blue-grey at Hatzerim, where the photo spreads more than Sentinel-2).
+const TONE_SPREAD: [f32; 2] = [0.5, 1.0];
+/// The knee: the photo's cells darker than it around a base, and the brightness's slope above it.
+const TONE_KNEE_AT: f32 = 0.9;
+const TONE_KNEE_SLOPE: f32 = 0.3;
+/// The least factor on Sentinel-2's tint: the photo's tint scaled onto it (0.08 around Ramat David, whose fields
+/// Sentinel-2 sees green and brown where the photo is mauve-grey) left the base's dry grass grey.
+const TONE_CHROMA_MIN: f32 = 0.3;
+/// The brightness ratios kept: within this factor of their median.
+const TONE_KEEP: f32 = 1.25;
 
 impl BaseTone {
     /// The tone of base `outline` from the level-3 Sentinel-2 nodes (written by the 8 m units, before the photo) and
@@ -465,25 +472,6 @@ impl BaseTone {
         let e = warp(sv.vrt, r, [w, h], &extra, &bin)?;
         if e.bands != 4 || e.raw.len() != w * h * 4 {
             bail!("base tone: want RGBA bytes, got {} bands", e.bands);
-        }
-        let mask = BaseMask::new(sv.bases, r);
-        let centre = |i: usize| [r[0] + ((i % w) as f64 + 0.5) * c, r[3] - ((i / w) as f64 + 0.5) * c];
-        let mut photo = vec![[0f32; 3]; w * h];
-        let mut m = vec![false; w * h];
-        for (i, (p, ok)) in photo.iter_mut().zip(&mut m).enumerate() {
-            let px = &e.raw[i * 4..i * 4 + 4];
-            let q = centre(i);
-            if px[3] < 250
-                || px[..3].iter().all(|&v| v >= NEAR_WHITE)
-                || mask.as_ref().is_some_and(|k| k.at(q[0], q[1]) > 0.0)
-            {
-                continue;
-            }
-            let g = utm36n_geo(q[0], q[1]);
-            let itm = crate::itm::from_wgs84(g[0], g[1]);
-            let rgb = [0, 1, 2].map(|k| f32::from(px[k]));
-            *p = imagery::levels_at(&sv.levels, itm[0], itm[1]).map_or(rgb, |lv| imagery::photo_levels(rgb, lv));
-            *ok = true;
         }
         // Sentinel-2's mean over each cell.
         let mut s2 = vec![[0f32; 3]; w * h];
@@ -505,93 +493,80 @@ impl BaseTone {
                 count[i] += 1.0;
             }
         }
-        for (s, n) in s2.iter_mut().zip(&count) {
-            *s = s.map(|v| v / n.max(1.0));
+        // Both images on the cells where the photo shows (levelled) and Sentinel-2 has data, off the bases' cover.
+        let mask = BaseMask::new(sv.bases, r);
+        let (mut sat, mut photo, mut inner) = (Vec::new(), Vec::new(), Vec::new());
+        for i in (0..w * h).filter(|&i| count[i] > 0.0) {
+            let q = [r[0] + ((i % w) as f64 + 0.5) * c, r[3] - ((i / w) as f64 + 0.5) * c];
+            let px = &e.raw[i * 4..i * 4 + 4];
+            let cover = mask.as_ref().map_or(0.0, |k| k.at(q[0], q[1]));
+            if cover >= 1.0 {
+                inner.push(s2[i].map(|v| v / count[i]));
+            }
+            if px[3] < 250 || px[..3].iter().all(|&v| v >= NEAR_WHITE) || cover > 0.0 {
+                continue;
+            }
+            let g = utm36n_geo(q[0], q[1]);
+            let itm = crate::itm::from_wgs84(g[0], g[1]);
+            let rgb = [0, 1, 2].map(|k| f32::from(px[k]));
+            photo.push(imagery::levels_at(&sv.levels, itm[0], itm[1]).map_or(rgb, |lv| imagery::photo_levels(rgb, lv)));
+            sat.push(s2[i].map(|v| v / count[i]));
         }
-        for (ok, n) in m.iter_mut().zip(&count) {
-            *ok &= *n > 0.0;
-        }
-        let total = m.iter().filter(|&&k| k).count() as f32;
-        if total == 0.0 {
+        if sat.is_empty() || inner.is_empty() {
             return Ok(None);
         }
-        // The base's mean ratio: where the blur reaches no photo, and a prior that fades in as it does.
-        let mean = |img: &[[f32; 3]], k: usize| (0..w * h).filter(|&i| m[i]).map(|i| img[i][k]).sum::<f32>() / total;
-        let global = [0, 1, 2].map(|k| (mean(&photo, k) + 4.0) / (mean(&s2, k) + 4.0));
-        let (mw, sp, ss) = imagery::local_sums(&photo, &s2, &m, w, h, (TONE_RADIUS_M / c).round() as i32);
-        const PRIOR: f32 = 1e-3;
-        let mut ratio: Vec<[f32; 3]> = (0..w * h)
-            .map(|i| {
-                [0, 1, 2].map(|k| {
-                    let local = (sp[k][i] / mw[i].max(1e-9) + 4.0) / (ss[k][i] / mw[i].max(1e-9) + 4.0);
-                    let t = mw[i] / (mw[i] + PRIOR);
-                    (global[k] + (local - global[k]) * t).clamp(0.33, 3.0)
-                })
-            })
-            .collect();
-        // The base's ground toward the photo's hue: the toned mean inside the outline moves half way to the photo's
-        // balance of the bands around it, its brightness kept (Sentinel-2's lighter ground on a base took the desert's ratios to a
-        // cold grey at Ramon).
-        let inner: Vec<usize> =
-            (0..w * h).filter(|&i| mask.as_ref().is_some_and(|k| k.at(centre(i)[0], centre(i)[1]) >= 1.0)).collect();
-        if !inner.is_empty() {
-            let toned = [0, 1, 2].map(|k| inner.iter().map(|&i| s2[i][k] * ratio[i][k]).sum::<f32>());
-            let ring = [0, 1, 2].map(|k| mean(&photo, k));
-            let (ts, rs) = (toned.iter().sum::<f32>(), ring.iter().sum::<f32>());
-            // Half way (the square root): at Ramat David the fields around are cooler than the base's dry grass, and
-            // the whole pull turned it an icy grey.
-            let hue = [0, 1, 2].map(|k| ((ring[k] / rs) / (toned[k] / ts).max(1e-6)).clamp(0.8, 1.25).sqrt());
-            ratio.iter_mut().for_each(|r| *r = [0, 1, 2].map(|k| r[k] * hue[k]));
-        }
-        // The detail's spread about the local means (± TONE_DETAIL_M), both images on the same cells, all bands.
-        let rd = (TONE_DETAIL_M / c).round() as i32;
-        let (dw, dp, ds) = imagery::local_sums(&photo, &s2, &m, w, h, rd);
-        let mut var = [0f32; 2];
-        for i in (0..w * h).filter(|&i| m[i] && dw[i] > 0.5) {
-            for k in 0..3 {
-                var[0] += (photo[i][k] - dp[k][i] / dw[i]).powi(2);
-                var[1] += (s2[i][k] - ds[k][i] / dw[i]).powi(2);
-            }
-        }
-        let contrast = (var[0] / var[1].max(1e-3)).sqrt().clamp(1.0, TONE_CONTRAST_MAX);
-        let all = vec![true; w * h];
-        let (lw, ls, _) = imagery::local_sums(&s2, &s2, &all, w, h, rd);
-        let local = (0..w * h).map(|i| [0, 1, 2].map(|k| ls[k][i] / lw[i].max(1e-9))).collect();
-        Ok(Some(Self { e0: r[0], n1: r[3], w, h, ratio, local, contrast }))
+        let q = |v: &[[f32; 3]], f: f32, band: Option<usize>| {
+            let mut v: Vec<f32> = v.iter().map(|p| band.map_or((p[0] + p[1] + p[2]) / 3.0, |k| p[k])).collect();
+            let i = ((v.len() - 1) as f32 * f).round() as usize;
+            *v.select_nth_unstable_by(i, f32::total_cmp).1
+        };
+        // The cells whose brightness ratio is within TONE_KEEP of the median's: a darker Survey sheet beside Ramon is
+        // out.
+        let grey = |p: &[f32; 3]| (p[0] + p[1] + p[2]) / 3.0 + 4.0;
+        let ratios: Vec<[f32; 3]> = photo.iter().zip(&sat).map(|(p, s)| [grey(p) / grey(s); 3]).collect();
+        let m = q(&ratios, 0.5, Some(0));
+        let keep = |i: &usize| (m / TONE_KEEP..=m * TONE_KEEP).contains(&ratios[*i][0]);
+        let kp: Vec<[f32; 3]> = (0..photo.len()).filter(keep).map(|i| photo[i]).collect();
+        let ks: Vec<[f32; 3]> = (0..sat.len()).filter(keep).map(|i| sat[i]).collect();
+        // The ratio of those cells' median brightness (one ratio per band turned Hatzerim's grey roofs and gravel pale
+        // blue, the desert's ratios applied to a colour other than the desert's). Sentinel-2's values spread as the
+        // photo's over every cell (one factor, at most 1: over the kept cells alone the deserts' spread halved, their
+        // wadis flat).
+        let med = [0, 1, 2].map(|k| (q(&kp, 0.5, Some(k)), q(&ks, 0.5, Some(k))));
+        let (mp, ms) = med.iter().fold((0.0, 0.0), |(a, b), m| (a + m.0 / 3.0, b + m.1 / 3.0));
+        let mr = ((mp + 4.0) / (ms + 4.0)).clamp(0.33, 3.0);
+        let spread = |v: &[[f32; 3]]| q(v, 0.75, None) - q(v, 0.25, None);
+        let g = (spread(&photo) / (mr * spread(&sat)).max(1.0)).clamp(TONE_SPREAD[0], TONE_SPREAD[1]);
+        // The tint: Sentinel-2's (a band's median over the bands' mean) scaled onto the photo's, and the rest of the
+        // photo's added, so grey stays near grey.
+        let (tp, ts) = (med.map(|m| m.0 - mp), med.map(|m| m.1 - ms));
+        let dot = |a: [f32; 3], b: [f32; 3]| a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+        let chroma = (dot(tp, ts) / dot(ts, ts).max(1.0)).clamp(TONE_CHROMA_MIN, 1.5);
+        // The base's median brightness (Sentinel-2's inside the outline) to the photo's around: Sentinel-2 sees the
+        // dry grass on a base brighter than the fields around, where the photo's ratio left it a light grey at Ramat
+        // David.
+        let grey = [mr * g, mp - mr * g * q(&inner, 0.5, None)];
+        let tint = [0, 1, 2].map(|k| tp[k] - chroma * ts[k]);
+        Ok(Some(Self { rect: r, grey, chroma, tint, knee: q(&photo, TONE_KNEE_AT, None) }))
     }
 
-    /// Sentinel-2's colour `v` at UTM (e, n) toned; None outside the grid. The local mean takes the ratios; the detail
-    /// about it the contrast and the mean ratio, its own colour cut to TONE_DETAIL_CHROMA (the bands' ratios on a white
-    /// roof turned it blue).
+    /// Sentinel-2's colour `v` at UTM (e, n) toned; None outside the rect.
     fn tone(&self, e: f64, n: f64, v: [f32; 3]) -> Option<[f32; 3]> {
-        let ratio = self.at(&self.ratio, e, n)?;
-        let local = self.at(&self.local, e, n)?;
-        let d = [0, 1, 2].map(|k| v[k] - local[k]);
-        let (dl, lr) = ((d[0] + d[1] + d[2]) / 3.0, (ratio[0] + ratio[1] + ratio[2]) / 3.0);
-        let c = [0, 1, 2].map(|k| local[k] * ratio[k] + self.contrast * lr * (dl + TONE_DETAIL_CHROMA * (d[k] - dl)));
+        let r = self.rect;
+        if e < r[0] || e > r[2] || n < r[1] || n > r[3] {
+            return None;
+        }
+        let m = (v[0] + v[1] + v[2]) / 3.0;
+        let c = [0, 1, 2].map(|k| m * self.grey[0] + self.grey[1] + self.chroma * (v[k] - m) + self.tint[k]);
+        // Above the knee the brightness rises at TONE_KNEE_SLOPE, the hue kept: Sentinel-2's bright tracks in a base's
+        // dry grass were white streaks from the cockpit (the runways, taxiways and aprons are painted over).
+        let m = (c[0] + c[1] + c[2]) / 3.0;
+        let c = if m > self.knee { c.map(|v| v * (self.knee + (m - self.knee) * TONE_KNEE_SLOPE) / m) } else { c };
         // The bands at most TONE_CHROMA_MAX apart: an irrigated lawn's green went a lime disc on Nevatim.
         let m = (c[0] + c[1] + c[2]) / 3.0;
         let spread = c.iter().fold(f32::MIN, |a, &v| a.max(v)) - c.iter().fold(f32::MAX, |a, &v| a.min(v));
         let k = (TONE_CHROMA_MAX / spread.max(1e-3)).min(1.0);
         Some(c.map(|v| (m + (v - m) * k).clamp(0.0, 255.0)))
-    }
-
-    /// A field of the grid at UTM (e, n), bilinear between the cell centres; None outside the grid.
-    fn at(&self, field: &[[f32; 3]], e: f64, n: f64) -> Option<[f32; 3]> {
-        let x = (e - self.e0) / TONE_CELL_M - 0.5;
-        let y = (self.n1 - n) / TONE_CELL_M - 0.5;
-        if x < -0.5 || y < -0.5 || x > self.w as f64 - 0.5 || y > self.h as f64 - 0.5 {
-            return None;
-        }
-        let (x, y) = (x.clamp(0.0, (self.w - 1) as f64), y.clamp(0.0, (self.h - 1) as f64));
-        let (x0, y0) = (x as usize, y as usize);
-        let (x1, y1) = ((x0 + 1).min(self.w - 1), (y0 + 1).min(self.h - 1));
-        let (fx, fy) = ((x - x0 as f64) as f32, (y - y0 as f64) as f32);
-        let v = |x: usize, y: usize| field[y * self.w + x];
-        Some([0, 1, 2].map(|k| {
-            let top = v(x0, y0)[k] + (v(x1, y0)[k] - v(x0, y0)[k]) * fx;
-            top + (v(x0, y1)[k] + (v(x1, y1)[k] - v(x0, y1)[k]) * fx - top) * fy
-        }))
     }
 }
 
@@ -1176,9 +1151,10 @@ fn s2_units(f: &Frame, detail: [f64; 4], bases: &[Vec<[f64; 2]>]) -> [(&'static 
 }
 
 /// The bases' fill (the done marks of the units on them, `stamp`'s "base_fill"): Sentinel-2 toned to the photo around
-/// (BaseTone, 2026-11-14).
-const BASE_FILL: &str = "tone";
-const S2_8M_BASE: &str = "s2_8m_tone";
+/// (BaseTone; "tone" on 2026-11-14 morning: local means, then "median"). S2_8M_BASE changes with it: those units put
+/// Sentinel-2 back into the level-3 nodes the tone reads.
+const BASE_FILL: &str = "median";
+const S2_8M_BASE: &str = "s2_8m_median";
 
 /// Whether `dir` holds a Survey sheet ZIP: only then does the colour branch make the 2 m nodes (and read the shore).
 fn has_zips(dir: &Path) -> bool {
@@ -1381,7 +1357,18 @@ fn colour(r: &Run, f: &Frame, geo: [f64; 4], work: &Path, pr: &dyn Progress, can
             for b in &bases {
                 if let Some(t) = BaseTone::new(&sv, &f, b, out, &work)? {
                     let c = crate::bbox(b.iter());
-                    log!(pr, "survey: the base at {:.0} E {:.0} N, contrast × {:.2}", c[0], c[1], t.contrast);
+                    log!(
+                        pr,
+                        "survey: the base at {:.0} E {:.0} N, grey × {:.2} + {:.0}, tint × {:.2} + {:.0} {:.0} {:.0}",
+                        c[0],
+                        c[1],
+                        t.grey[0],
+                        t.grey[1],
+                        t.chroma,
+                        t.tint[0],
+                        t.tint[1],
+                        t.tint[2]
+                    );
                     sv.tones.push(t);
                 }
             }

@@ -2035,8 +2035,10 @@ Only the nearest base is drawn, so two bases nearer than about 30 km to each oth
   pavement's share, so a texel holding a taxiway or a runway with sand beside it keeps that share. Before
   2026-11-14 afternoon the edge at 0.5 held at every distance: the taxiways vanished from about 3 km and the runways
   from about 10 km, where their texels hold less than half, and popped back in on the way in.
-- **Surface**: the imagery blurred to ≈ 16 m gives the tone (so it fades into the imagery far away), pulled 60 %
-  toward real asphalt's brightness (albedo 0.1) so the paint stands out on light and dark art alike. Variation:
+- **Surface**: the imagery blurred to ≈ 16 m gives the tone (so it fades into the imagery far away), pulled 80 %
+  toward real asphalt's brightness (albedo 0.08) so the paint stands out on light and dark art alike (60 % toward
+  0.1 until 2026-11-14: on the bases' ground toned to the photo around, Modern IAF's runways went as grey as the
+  ground and faded out from about 10 km). Variation:
   patches (≈ 40 m), grain (≈ 2 m), 7.5 m paving lanes with dark seams, repaired patches (1 in 8 of 40 × 7.5 m cells).
   Aprons: 5 m concrete slabs along the base's first runway, each its own shade, dark joints. Roughness 0.88 (paint
   0.7), a faint aggregate relief within 300 m. The terrain close up's relief is the ground's, so the pavement drops it.
