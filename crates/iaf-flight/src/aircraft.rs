@@ -389,6 +389,45 @@ impl Crash {
     }
 }
 
+/// The landing check's limits (`5bb7d0`, §15.6.1), shared by the original model and the 6-DoF: `pitch` / `roll`
+/// (rad) the attitude at touchdown, `vz` the vertical speed (m/s, up positive), `normal_z` the ground normal's
+/// vertical share, `gear_moving` the gear not fully down, `easy` the Preferences' Easy landing, `real` the real
+/// limits (Better physics `landing_limits`; the 6-DoF always): a 4 m/s sink limit and a 15° tail strike on top of
+/// the original's 5° nose-down, 10° roll and 10° slope (the original's sink limit is 40 m/s). None = a landing.
+pub fn landing_limits(
+    pitch: f32,
+    roll: f32,
+    vz: f32,
+    normal_z: f32,
+    gear_moving: bool,
+    easy: bool,
+    real: bool,
+) -> Option<Crash> {
+    let (mut lp, mut lr, mut lv) = (5f32.to_radians(), 10f32.to_radians(), -40.0f32);
+    // Real: a real gear's sink limit (~13 ft/s) and a tail-strike limit.
+    let mut lt = 15f32.to_radians();
+    if real {
+        lv = -4.0;
+    }
+    if easy {
+        lp *= 2.0;
+        lr *= 2.0;
+        lv *= 2.0;
+        lt *= 2.0;
+    }
+    if gear_moving {
+        lp *= 0.2;
+        lr *= 0.2;
+        lv *= 0.25;
+    }
+    let slope_ok = normal_z.abs() >= 0.984_807_7;
+    let attitude_ok = pitch >= -lp && roll.abs() <= lr && slope_ok;
+    if attitude_ok && vz >= lv {
+        return (real && pitch > lt).then_some(Crash::TailStrike);
+    }
+    Some(if real && attitude_ok { Crash::SinkRate } else { Crash::Landing })
+}
+
 /// Mission start (`FUN_005a5820`, §15.6.4).
 #[derive(Debug, Clone, Copy)]
 pub struct Start {
@@ -2273,35 +2312,8 @@ impl Aircraft {
         let bp = self.better.landing_limits && !self.ap_landing;
         // The original uses the Euler angles saved at the last update; better physics the current ones.
         let att = if bp { self.attitude(t) } else { self.saved };
-        let (mut lp, mut lr, mut lv) = (5f32.to_radians(), 10f32.to_radians(), -40.0f32);
-        // BP: a real gear's sink limit (~13 ft/s) and a tail-strike limit.
-        let mut lt = 15f32.to_radians();
-        if bp {
-            lv = -4.0;
-        }
-        if self.easy_landing {
-            lp *= 2.0;
-            lr *= 2.0;
-            lv *= 2.0;
-            lt *= 2.0;
-        }
-        if self.gear.sample(t).abs() >= 1e-5 {
-            lp *= 0.2;
-            lr *= 0.2;
-            lv *= 0.25;
-        }
-        let slope_ok = self.ground_normal_z.abs() >= 0.984_807_7;
-        if att.pitch >= -lp && att.roll.abs() <= lr && vz >= lv && slope_ok {
-            if bp && att.pitch > lt {
-                return Some(Crash::TailStrike);
-            }
-            return None;
-        }
-        Some(if bp && vz < lv && att.pitch >= -lp && att.roll.abs() <= lr && slope_ok {
-            Crash::SinkRate
-        } else {
-            Crash::Landing
-        })
+        let gear_moving = self.gear.sample(t).abs() >= 1e-5;
+        landing_limits(att.pitch, att.roll, vz, self.ground_normal_z, gear_moving, self.easy_landing, bp)
     }
 
     /// Touchdown / lift-off / rolling checks (FUN_005bb9f0, §14.6, §15.6.2), at the start of every

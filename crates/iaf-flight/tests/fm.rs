@@ -184,3 +184,104 @@ fn autopilot_flies_the_sixdof() {
     println!("autopilot stick for 2 g: {g:.2} g");
     assert!((g - 2.0).abs() < 0.15, "{g}");
 }
+
+#[test]
+fn player_autopilot_flies_the_sims_three_jets() {
+    // The player's autopilot (docs/autopilot.md) on the Barak, the Sufa and the Adir, their own data on the 6-DoF:
+    // level holds the height, NAV flies to a waypoint 90° off the nose and 1,000 m higher, and NAV to a landing
+    // waypoint (GoHomeCL) lands at Ramat David (the own iaf.ibx) with the flare the sim turns on, under the game's
+    // rule that the autopilot's landing keeps the original's limits (terrain_view.gd `set_ap_landing`).
+    use iaf_flight::airbase::Airbase;
+    use iaf_flight::autopilot::{Autopilot, Config, Waypoint};
+    let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../assets/converted/own");
+    if !dir.join("resource/md/bd.ibx").is_file() || !dir.join("iaf.ibx").is_file() {
+        return println!("skipped: no assets/converted/own");
+    }
+    let bases = Airbase::load_all(&std::fs::read(dir.join("iaf.ibx")).unwrap());
+    let rd = bases.iter().find(|b| b.name == "David").unwrap().clone();
+    let cfg = || Config::from_section(iaf_formats::ini::Ini::parse(b"[Autopilot]\n").section("Autopilot").unwrap());
+    for name in ["F-16", "F-16I", "F-35I"] {
+        let (p, e) = iaf_flight::load_with(&dir, name, DataSet::Original).unwrap();
+        let ground = |_: f64, _: f64| 0.0f32;
+        // Level.
+        let mut fm = Fm::start(name, p.clone(), e.clone(), start());
+        let mut ap = Autopilot::new(cfg());
+        ap.player_mode(&mut fm, 1, 0);
+        let h0 = fm.state().position.z;
+        let mut worst: f64 = 0.0;
+        for _ in 0..60 * 60 {
+            ap.step(&mut fm, &ground);
+            fm.step(1.0 / 60.0);
+            worst = worst.max((fm.state().position.z - h0).abs());
+        }
+        // NAV: 20 km east (the start heads north), 1,000 m up.
+        let mut fm = Fm::start(name, p.clone(), e.clone(), start());
+        let mut ap = Autopilot::new(cfg());
+        ap.route = vec![Waypoint { x: 20000.0, y: 5000.0, z: 4000.0, t: 0.0, action: 3 }];
+        ap.player_mode(&mut fm, 2, 0);
+        let mut closest = f64::MAX;
+        let mut alt_err = f64::MAX;
+        for _ in 0..240 * 60 {
+            ap.step(&mut fm, &ground);
+            fm.step(1.0 / 60.0);
+            let s = fm.state();
+            let d = (s.position.x - 20000.0).hypot(s.position.y - 5000.0);
+            if d < closest {
+                closest = d;
+                alt_err = (s.position.z - 4000.0).abs();
+            }
+        }
+        // NAV to a landing waypoint 15 km west of Ramat David's lineup, from 40 km further west.
+        let z = rd.lineup[2] as f64;
+        let home = Waypoint { x: rd.lineup[0] as f64 - 15000.0, y: rd.lineup[1] as f64, z: 1500.0, t: 0.0, action: 7 };
+        let st = Start {
+            position: Vec3::new(home.x - 40000.0, home.y + 5000.0, 2000.0),
+            heading: 90f32.to_radians(),
+            velocity: Vec3::new(180.0, 0.0, 0.0),
+            ..start()
+        };
+        let mut fm = Fm::start(name, p.clone(), e.clone(), st);
+        let mut ap = Autopilot::new(cfg());
+        ap.bases = bases.clone();
+        ap.route = vec![home];
+        ap.player_flare = true;
+        ap.player_mode(&mut fm, 2, 0);
+        let mut touchdown = None;
+        let mut sink: f32 = 0.0;
+        let mut stopped = false;
+        for _ in 0..1500 * 60 {
+            let landing = ap.stage().starts_with("landing");
+            if let Fm::SixDof(s) = &mut fm {
+                s.set_ground_height(z as f32);
+                s.ap_landing = landing;
+            }
+            ap.step(&mut fm, &|_: f64, _: f64| z as f32);
+            fm.step(1.0 / 60.0);
+            let s = fm.state();
+            assert!(s.crashed.is_none(), "{name}: crashed ({:?}) at {:?} in {}", s.crashed, s.position, ap.stage());
+            if touchdown.is_none() {
+                if s.on_ground {
+                    touchdown = Some(s.position);
+                } else {
+                    sink = -s.velocity[2];
+                }
+            } else if s.speed < 2.0 {
+                stopped = true;
+                break;
+            }
+        }
+        println!(
+            "{name}: level worst {worst:.1} m; NAV closest {closest:.0} m, alt error {alt_err:.0} m; touchdown {touchdown:?} \
+             sink {sink:.2} m/s, stopped {stopped}"
+        );
+        assert!(worst < 10.0, "{name}: level {worst}");
+        assert!(closest < 1852.0 && alt_err < 200.0, "{name}: NAV {closest} {alt_err}");
+        let p = touchdown.unwrap_or_else(|| panic!("{name}: touched down"));
+        assert!((p.y - rd.lineup[1] as f64).abs() < 30.0, "{name}: centreline ({:.0} m)", p.y - rd.lineup[1] as f64);
+        assert!(stopped, "{name}: stopped on the runway");
+        // The flare starts (step 14) but the 6-DoF's g onset at approach speed is too slow to arrest the 6° glide's
+        // ~11 m/s in the flare's 20 m (finish list F3, the production FLCS's g onset): the touchdown passes the
+        // original's limits that autopilot landings keep on both models, not the real 4 m/s.
+        assert!(sink < 13.0, "{name}: touchdown sink {sink}");
+    }
+}

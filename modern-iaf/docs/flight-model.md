@@ -494,9 +494,15 @@ budget, a real flight. Open:
 * **The flaps' aerodynamics**: TP-1538 has no trailing-edge flap data; the flaps' increments are inferred (§9.16).
 * **The speed brake's 43° limit with the gear down**: the control system opens the speed brake to 60° in every
   configuration (§9.17).
-* **The autopilot's taxi pivot**: the 6-DoF turns on the spot (`SixDof::set_pivot`, inferred). The autopilot's level
-  hold and its g commands are tested on the 6-DoF (`crates/iaf-flight/tests/fm.rs`); its landing and taxi laws are
-  untried there.
+* **The autopilot's taxi pivot**: the 6-DoF turns on the spot (`SixDof::set_pivot`, inferred).
+* **The player's autopilot on the 6-DoF** (2026-11-14, test `player_autopilot_flies_the_sims_three_jets`, the own
+  data and the own airbases): on the Barak, the Sufa and the Adir, level holds the height within 1.3 m for 60 s, NAV
+  passes a waypoint 90° off the nose 1,000 m higher within 1.1–1.3 km (its pass radius is 1,852 m) at 8–10 m of its
+  height, and NAV to a landing waypoint lands on Ramat David's centreline and stops. The touchdown sinks 9–11 m/s:
+  the flare starts at its height, but the 6-DoF's g onset at approach speed is too slow to stop the 6° glide path's
+  sink in time (F3 in the finish list, the production FLCS's g onset). That touchdown passes because the game keeps
+  the original's landing limits while the autopilot lands, on both models (`set_ap_landing`). "No stalls" and "No
+  spins" reach only reborn's model: the 6-DoF has no scripted stall or spin to block, and the sim fixes both off.
 * **Not modelled, one plain log line per run when the game asks** (`IafFlight`, no warning): the drag chute. No F-16
   or F-35 has a drag chute: their definitions say `"drag_chute": false`, so the flight never asks for one
   (`terrain_view.gd`). Also not
@@ -662,7 +668,10 @@ before. The autopilot drives either through the `autopilot::Host` trait (the `Ai
   thrust above Mach 1.0 the line through Table VI's Mach 0.8 and 1.0 carried to Mach 2.0, held beyond.
 * **The control system's limits**: each jet's g limits (the F-16s and the Adir +9 / −3, the Ra'am +8.1 / −2). The
   autopilot reads the stick as linear in g (its `ApView`: 1 g at the centre, MaxG / MinG at the ends); while an
-  autopilot loop flies, the 6-DoF takes the stick as that g command instead of figure 62(e)'s gradient.
+  autopilot loop flies, the 6-DoF takes the stick as that g command instead of figure 62(e)'s gradient, and the
+  lateral stick as a roll-rate command (full stick the flight data's MaxRollRate, as the original's roll channel)
+  instead of figure 64's gradient: through the gradient the autopilot's small bank corrections rolled at a few deg/s
+  and NAV circled its waypoints 4–5 km out.
 * **Wind**: the mission's wind (`set_wind`, the original's vector) moves the air: the aerodynamics see the velocity
   through the air. In the air its light turbulence is added each substep (`near_ground::gust`, the function reborn's
   Better physics `wind` uses, docs/flight-model.md: vertical rms 0.1 × the wind speed below 300 m, 30 % of that from
@@ -691,9 +700,14 @@ before. The autopilot drives either through the `autopilot::Host` trait (the `Ai
   index difference (the input reborn's original model turns into a sideslip bias) yaws the jet toward the draggier
   side at a quarter span out (inferred: the F-16's stations 3 / 7). Tests `one_heavy_wing_rolls_and_the_trim_holds_it`,
   `a_tank_rolls_while_it_holds_fuel_and_its_drag_yaws`.
-* **The ground.** A gear-down touchdown sinking slower than 3 m/s with the wings within 15° and the nose between −5°
-  and 20° counts as a landing; faster is a sink-rate crash, banked or nose-down a landing crash, nose-up a tail strike;
-  the c.g. within 0.5 m of the runway, or the belly with the gear up, a crash (all inferred). As the original's: water
+* **The ground.** The touchdown check is reborn's (`aircraft::landing_limits`, reborn's Better physics "landing
+  limits", docs/flight-model.md §10): a gear-down touchdown sinking slower than 4 m/s (≈ 13 ft/s, inferred: the
+  F-16 manual gives no figure) with the wings within 10°, the nose above −5° and below 15° counts as a landing. The
+  15° is the F-16's: "Nozzle, speedbrakes, and ventral fins may contact runway if 15-degree pitch angle is
+  exceeded"[^to-f16a]. Faster is a sink-rate crash, banked or nose-down a landing crash, nose-up a tail strike; Easy
+  landing doubles the limits, the gear in transit cuts them (×0.2, sink ×0.25), and the autopilot's landing keeps the
+  original's 40 m/s as on reborn's model (test `touchdowns_meet_the_shared_landing_limits`). The c.g. within 0.5 m of
+  the runway, or the belly with the gear up, is a crash. As the original's: water
   under the wheels and rough ground above 25.7 m/s are crashes, a touchdown on more than 10° of slope a landing crash,
   scenery under the jet (a roof, a tree top) a crash at any speed; "no crashes" and "invulnerable" pass everything.
 
@@ -969,3 +983,5 @@ jets at 400 kt and 10,000 ft (within 3 %), cut the Sufa's sea-level top speed an
 [^f16net-di]: F-16.net forum, "Drag index calculation", posts by johnwill, 8 and 10 January 2011 ("A drag index for a
     clean F-16 is the drag coefficient at 0.8 mach using the reference area of the F-16"; "a store drag index is also
     referenced to wing area"): https://www.f-16.net/forum/viewtopic.php?p=188297
+[^to-f16a]: T.O. 1F-16A-1, *Flight Manual, F-16A/B Block 10 and 15*, August 2003, p. 2-25 (landing), p. 1-120 /
+  1-125 / 1-127 (flight controls), https://archive.org/details/to-1-f-16-a-1-flight-manual-f-16-a-b-block-10-15-august-2003

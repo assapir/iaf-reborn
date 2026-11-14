@@ -108,6 +108,10 @@ pub struct SixDof {
     ground_flags: Option<u32>,
     /// The Preferences' "no crashes" / "invulnerable": the ground checks pass everything.
     pub no_crashes: bool,
+    /// The Preferences' "Easy landing": the landing limits ×2 (the original's rule, [`crate::aircraft::landing_limits`]).
+    pub easy_landing: bool,
+    /// The player's autopilot flies the landing: the original's limits, as on the original model.
+    pub ap_landing: bool,
     /// An autopilot loop flies: its stick is a linear g command ([`SixDof::ap_view`]).
     ap_flying: bool,
     /// The AoA the probe gives the gauge, the indexer and the HUD, deg ([`probe_aoa`]).
@@ -179,6 +183,8 @@ impl SixDof {
             ground_normal_z: 1.0,
             ground_flags: None,
             no_crashes: false,
+            easy_landing: false,
+            ap_landing: false,
             ap_flying: false,
             aoa_ind: 0.0,
             tef: if st.airborne { 0.0 } else { jet.tef_deg },
@@ -459,13 +465,14 @@ impl SixDof {
         // keeps its authority), the engines and afterburners, the fuel leak.
         let stick_k = crate::aircraft::stick_authority(self.damage) as f64;
         let bits = crate::aircraft::damage_bits(self.damage, self.twin);
-        let stick_y = c.stick_y as f64 * stick_k;
+        let (stick_x, stick_y) = (c.stick_x as f64 * stick_k, c.stick_y as f64 * stick_k);
         let pilot = Pilot {
-            stick_x: c.stick_x as f64 * stick_k,
+            stick_x,
             stick_y,
             pedal: c.rudder as f64,
             speed_brake: c.brakes && !self.on_ground,
-            // The autopilot's stick is linear in g (its ApView: centre 1 g, full stick MaxG / MinG).
+            // The autopilot's stick is linear in g (its ApView: centre 1 g, full stick MaxG / MinG) and in roll rate
+            // (full stick the flight data's MaxRollRate, the original's roll channel `p_cmd`).
             // The trim left out while an autopilot loop flies, as the original's (`Aircraft::roll_stick`).
             roll_trim: if self.ap_flying { 0.0 } else { self.roll_trim * stick_k },
             g_command: self.ap_flying.then_some(if stick_y >= 0.0 {
@@ -473,6 +480,9 @@ impl SixDof {
             } else {
                 1.0 - stick_y * (min_g - 1.0)
             }),
+            // None on the wheels, as the original's roll channel (`p_cmd` 0 on the ground).
+            roll_rate_command: (self.ap_flying && !self.on_ground)
+                .then_some(stick_x * (self.params.max_roll_rate as f64).to_degrees()),
         };
         let sensors = Sensors {
             alpha: flow.alpha,
@@ -558,9 +568,10 @@ impl SixDof {
         self.check_ground(was_on_ground, gear_down, ground_z);
     }
 
-    /// Touchdowns and crashes (inferred limits, modern-iaf/docs/flight-model.md §9.12): a gear-down touchdown sinking
-    /// slower than 3 m/s (about 10 ft/s, the F-16's design sink rate is open) with the wings within 15° counts as a
-    /// landing; faster, banked further or with the gear up, or the c.g. reaching the runway, is a crash.
+    /// Touchdowns and crashes: a gear-down touchdown inside the landing limits counts as a landing; outside them,
+    /// with the gear up, or the c.g. reaching the runway, it is a crash. The limits are the original model's real set
+    /// ([`crate::aircraft::landing_limits`], Better physics `landing_limits`: sink 4 m/s, tail strike 15°, nose-down 5°,
+    /// roll 10°, slope 10°; modern-iaf/docs/flight-model.md §9.12).
     fn check_ground(&mut self, was_on_ground: bool, gear_down: bool, ground_z: f64) {
         let b = &self.body;
         let height = ground_z - b.pos.z;
@@ -580,19 +591,21 @@ impl SixDof {
             // Rough ground above 25.7 m/s (the original's limit).
             Some(Crash::RoughGround)
         } else if self.on_ground && !was_on_ground {
-            if sink > 3.0 {
-                Some(Crash::SinkRate)
-            } else if roll.abs() > 15f64.to_radians() || pitch < -5f64.to_radians() || self.ground_normal_z < 0.985 {
-                // Banked, nose down, or on more than 10° of slope (the original's landing check).
-                Some(Crash::Landing)
-            } else if pitch > 20f64.to_radians() {
-                Some(Crash::TailStrike)
-            } else {
-                if self.t > 1.0 {
-                    self.landings += 1;
-                }
-                None
+            let gear_moving = self.gear.abs() >= 1e-5;
+            let real = !self.ap_landing;
+            let crash = crate::aircraft::landing_limits(
+                pitch as f32,
+                roll as f32,
+                -sink as f32,
+                self.ground_normal_z,
+                gear_moving,
+                self.easy_landing,
+                real,
+            );
+            if crash.is_none() && self.t > 1.0 {
+                self.landings += 1;
             }
+            crash
         } else {
             None
         };
@@ -705,7 +718,7 @@ impl SixDof {
     }
 
     /// An autopilot loop starts or stops flying the jet (the autopilot's `stores_trim` hook): while it flies, the
-    /// stick is a linear g command, as the autopilot reads [`SixDof::ap_view`].
+    /// stick is a linear g and roll-rate command, as the autopilot reads [`SixDof::ap_view`].
     pub fn set_ap_flying(&mut self, on: bool) {
         self.ap_flying = on;
     }
@@ -801,7 +814,54 @@ fn travel_to_lever(travel: f64) -> f32 {
 
 #[cfg(test)]
 mod tests {
-    use super::probe_aoa;
+    use super::{SixDof, probe_aoa};
+    use crate::aircraft::Crash;
+    use crate::sixdof::{Quat, jets};
+    use crate::{Envelope, Params, Start, Vec3};
+
+    /// A touchdown on the 6-DoF meets the original model's real landing limits (`aircraft::landing_limits`): just
+    /// inside and just outside each one, Easy landing ×2, the autopilot's landing the original's 40 m/s.
+    #[test]
+    fn touchdowns_meet_the_shared_landing_limits() {
+        let ini = iaf_formats::ini::Ini::parse(b"[X]\nMaxRollRate=308\n");
+        let params = Params::from_section(ini.section("X").unwrap());
+        let st = Start {
+            position: Vec3::new(0.0, 0.0, 100.0),
+            pitch: 0.0,
+            roll: 0.0,
+            heading: 0.0,
+            velocity: Vec3::new(0.0, 80.0, 0.0),
+            airborne: true,
+            engine_on: true,
+        };
+        let touch = |pitch: f64, roll: f64, sink: f64, tweak: &dyn Fn(&mut SixDof)| {
+            let mut f = SixDof::start(params.clone(), Envelope::parse(b""), jets::all()[0], st);
+            f.gear = 0.0;
+            f.on_ground = true;
+            f.body.pos = Vec3::new(0.0, 0.0, -(f.jet.gear.struts[0].pos.z - 0.1).max(0.6));
+            f.body.att = Quat::from_euler(roll.to_radians(), pitch.to_radians(), 0.0);
+            // Body velocity straight down the body z axis: at zero attitude that is the sink rate.
+            f.body.vel = Vec3::new(0.0, 0.0, sink);
+            tweak(&mut f);
+            f.check_ground(false, true, 0.0);
+            f.crashed
+        };
+        let none = &|_: &mut SixDof| {};
+        assert_eq!(touch(5.0, 0.0, 3.9, none), None);
+        assert_eq!(touch(0.0, 0.0, 4.1, none), Some(Crash::SinkRate));
+        assert_eq!(touch(14.9, 0.0, 0.0, none), None);
+        assert_eq!(touch(15.1, 0.0, 0.0, none), Some(Crash::TailStrike));
+        assert_eq!(touch(-4.9, 0.0, 0.0, none), None);
+        assert_eq!(touch(-5.1, 0.0, 0.0, none), Some(Crash::Landing));
+        assert_eq!(touch(0.0, 9.9, 0.0, none), None);
+        assert_eq!(touch(0.0, -10.1, 0.0, none), Some(Crash::Landing));
+        assert_eq!(touch(0.0, 0.0, 0.0, &|f| f.ground_normal_z = 11f32.to_radians().cos()), Some(Crash::Landing));
+        let easy = &|f: &mut SixDof| f.easy_landing = true;
+        assert_eq!(touch(0.0, 19.9, 7.9, easy), None);
+        assert_eq!(touch(0.0, 0.0, 8.1, easy), Some(Crash::SinkRate));
+        assert_eq!(touch(0.0, 0.0, 10.0, &|f| f.ap_landing = true), None, "the autopilot: the original's limits");
+        assert_eq!(touch(0.0, 0.0, 30.0, &|f| f.no_crashes = true), None);
+    }
 
     #[test]
     fn probe_rests_at_taxi_speed_and_follows_in_flight() {

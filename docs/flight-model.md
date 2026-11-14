@@ -502,7 +502,9 @@ Where our port differs from the original. Everything else follows §15 (status i
       α at its trim value.
   * **Landing check** [`landing_limits`] (§15.6.1). BP:
     * sink limit 4 m/s (≈ 13 ft/s, real gear); original: 40 m/s;
-    * a tail-strike limit of 15° nose-up;
+    * a tail-strike limit of 15° nose-up (the F-16's: "Nozzle, speedbrakes, and ventral fins may contact runway if
+      15-degree pitch angle is exceeded"[^to-f16a]); the same function is Modern IAF's 6-DoF
+      landing check (`aircraft::landing_limits`);
     * both limits ×2 with Easy landing; the sink limit ×0.25 with the gear not down;
     * the check uses the current attitude; original: the attitude saved at the last update;
     * crash reasons "sink rate" / "tail strike".
@@ -2146,3 +2148,5 @@ and spin β apply underneath in both modes (§10).
     PDF refuses direct download), <https://apps.dtic.mil/sti/pdfs/ADA320042.pdf>.
 [^saaf-m3]: SA Air Force Association, "Mirage III in SAAF Service", part 6 (cockpit detail photos),
     <https://www.saairforce.co.za/pdf/Mirage%20III%20in%20SAAF%20Service%20-%20Part%206.pdf>.
+[^to-f16a]: T.O. 1F-16A-1, *Flight Manual, F-16A/B Block 10 and 15*, August 2003, p. 2-25 (landing),
+    https://archive.org/details/to-1-f-16-a-1-flight-manual-f-16-a-b-block-10-15-august-2003
