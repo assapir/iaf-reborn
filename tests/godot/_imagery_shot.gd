@@ -8,6 +8,7 @@
 # ground_roads=detailed,night_lights=detailed; show_info=false for the docs).
 # SHOT_HIDE_JET=1: the player's jet hidden (pictures for the docs).
 # SHOT_HOUR=h: the clock of a free flight (no mission; e.g. 22 for the city lights).
+# SHOT_AGL=m: the jet m above the ground under it (a parked cockpit view; --at's altitude only starts the streaming).
 # IAF 2026's theatre (modern-iaf/docs/scenery.md): --path modern-iaf, SHOT_LAYERS=sim (its ground is its own), UTM
 # metres.
 extends "res://../tests/godot/base.gd"
@@ -55,6 +56,14 @@ func run() -> void:
 			tv.views.dist = float(orbit[2])
 			tv._apply_view()
 		await ground_streamed(tv, 30000, 20)
+		var hint := root.find_child("Hint", true, false)  # Modern IAF's key hint (fades out after 8 s)
+		if hint is CanvasItem:
+			hint.visible = false
+		if OS.get_environment("SHOT_AGL") != "":
+			var h = tv.terrain.height_at(tv.rig.position)
+			if h != null:
+				tv.rig.position.y = float(h) + float(OS.get_environment("SHOT_AGL"))
+				await ground_streamed(tv, 30000, 5)
 		await frames(30)
 		var f0 := Engine.get_frames_drawn()
 		var m0 := Time.get_ticks_usec()

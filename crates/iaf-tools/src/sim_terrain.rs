@@ -418,6 +418,173 @@ struct Survey<'a> {
     coast: &'a crate::sim_coast::Coast,
     levels: Vec<([f64; 4], [f32; 4])>,
     bases: &'a [Vec<[f64; 2]>],
+    /// Each base's Sentinel-2 toned to the photo around it.
+    tones: Vec<BaseTone>,
+}
+
+/// Sentinel-2 on an airbase toned to the levelled photo around it (2026-11-14; before, its own colours: a tan block in
+/// the photo's grey at every base). Per band the ratio of the two images' local means over the ground the photo shows
+/// (off the bases' cover, BaseMask), from `imagery::local_sums` as the original game's modern layers take theirs,
+/// on a TONE_CELL_M grid over the base and TONE_REACH_M around it. Normalised by the photo's weight, so a base wider
+/// than the blur's reach keeps the base's mean ratio in its middle.
+struct BaseTone {
+    e0: f64,
+    n1: f64,
+    w: usize,
+    h: usize,
+    ratio: Vec<[f32; 3]>,
+    /// Sentinel-2's local mean (over ± TONE_DETAIL_M) and the contrast its detail takes about it: the photo's spread
+    /// over Sentinel-2's around the base (Sentinel-2's 10 m pixels flatten the ground: about a third of the photo's
+    /// spread at 40 m at Ramon).
+    local: Vec<[f32; 3]>,
+    contrast: f32,
+}
+
+const TONE_CELL_M: f64 = 40.0;
+const TONE_REACH_M: f64 = 3000.0;
+/// The blur's radius (a box, twice: the ratio blends over twice this; deeper in a base the base's mean ratio, so a
+/// darker Survey sheet beside a base does not shade its middle, as at Ramon with 1.2 km).
+const TONE_RADIUS_M: f64 = 500.0;
+const TONE_DETAIL_M: f64 = 120.0;
+const TONE_DETAIL_CHROMA: f32 = 0.35;
+
+impl BaseTone {
+    /// The tone of base `outline` from the level-3 Sentinel-2 nodes (written by the 8 m units, before the photo) and
+    /// the photo warped to TONE_CELL_M; None when the photo shows nowhere around it.
+    fn new(sv: &Survey, f: &Frame, outline: &[[f64; 2]], out: &Path, work: &Path) -> Result<Option<Self>> {
+        let b = crate::bbox(outline.iter());
+        let c = TONE_CELL_M;
+        let r = [b[0] - TONE_REACH_M, b[1] - TONE_REACH_M, b[2] + TONE_REACH_M, b[3] + TONE_REACH_M];
+        let (w, h) = (((r[2] - r[0]) / c).ceil() as usize, ((r[3] - r[1]) / c).ceil() as usize);
+        let r = [r[0], r[3] - h as f64 * c, r[0] + w as f64 * c, r[3]];
+        let bin = work.join(format!("tone_{:.0}_{:.0}.bin", r[0], r[1]));
+        let extra = ["-r", "average", "-srcnodata", "255 255 255", "-wo", "UNIFIED_SRC_NODATA=YES", "-dstalpha"];
+        let e = warp(sv.vrt, r, [w, h], &extra, &bin)?;
+        if e.bands != 4 || e.raw.len() != w * h * 4 {
+            bail!("base tone: want RGBA bytes, got {} bands", e.bands);
+        }
+        let mask = BaseMask::new(sv.bases, r);
+        let centre = |i: usize| [r[0] + ((i % w) as f64 + 0.5) * c, r[3] - ((i / w) as f64 + 0.5) * c];
+        let mut photo = vec![[0f32; 3]; w * h];
+        let mut m = vec![false; w * h];
+        for (i, (p, ok)) in photo.iter_mut().zip(&mut m).enumerate() {
+            let px = &e.raw[i * 4..i * 4 + 4];
+            let q = centre(i);
+            if px[3] < 250
+                || px[..3].iter().all(|&v| v >= NEAR_WHITE)
+                || mask.as_ref().is_some_and(|k| k.at(q[0], q[1]) > 0.0)
+            {
+                continue;
+            }
+            let g = utm36n_geo(q[0], q[1]);
+            let itm = crate::itm::from_wgs84(g[0], g[1]);
+            let rgb = [0, 1, 2].map(|k| f32::from(px[k]));
+            *p = imagery::levels_at(&sv.levels, itm[0], itm[1]).map_or(rgb, |lv| imagery::photo_levels(rgb, lv));
+            *ok = true;
+        }
+        // Sentinel-2's mean over each cell.
+        let mut s2 = vec![[0f32; 3]; w * h];
+        let mut count = vec![0f32; w * h];
+        for k in f.nodes_in(3, r) {
+            let Ok(img) = image::open(colour_path(out, k)) else { continue };
+            let (img, nr) = (img.to_rgb8(), f.utm(k));
+            let px = (nr[2] - nr[0]) / f64::from(img.width());
+            for (x, y, p) in img.enumerate_pixels() {
+                let (e, n) = (nr[0] + (f64::from(x) + 0.5) * px, nr[3] - (f64::from(y) + 0.5) * px);
+                let (cx, cy) = (((e - r[0]) / c).floor(), ((r[3] - n) / c).floor());
+                if cx < 0.0 || cy < 0.0 || cx >= w as f64 || cy >= h as f64 {
+                    continue;
+                }
+                let i = cy as usize * w + cx as usize;
+                for k in 0..3 {
+                    s2[i][k] += f32::from(p[k]);
+                }
+                count[i] += 1.0;
+            }
+        }
+        for (s, n) in s2.iter_mut().zip(&count) {
+            *s = s.map(|v| v / n.max(1.0));
+        }
+        for (ok, n) in m.iter_mut().zip(&count) {
+            *ok &= *n > 0.0;
+        }
+        let total = m.iter().filter(|&&k| k).count() as f32;
+        if total == 0.0 {
+            return Ok(None);
+        }
+        // The base's mean ratio: where the blur reaches no photo, and a prior that fades in as it does.
+        let mean = |img: &[[f32; 3]], k: usize| (0..w * h).filter(|&i| m[i]).map(|i| img[i][k]).sum::<f32>() / total;
+        let global = [0, 1, 2].map(|k| (mean(&photo, k) + 4.0) / (mean(&s2, k) + 4.0));
+        let (mw, sp, ss) = imagery::local_sums(&photo, &s2, &m, w, h, (TONE_RADIUS_M / c).round() as i32);
+        const PRIOR: f32 = 1e-3;
+        let mut ratio: Vec<[f32; 3]> = (0..w * h)
+            .map(|i| {
+                [0, 1, 2].map(|k| {
+                    let local = (sp[k][i] / mw[i].max(1e-9) + 4.0) / (ss[k][i] / mw[i].max(1e-9) + 4.0);
+                    let t = mw[i] / (mw[i] + PRIOR);
+                    (global[k] + (local - global[k]) * t).clamp(0.33, 3.0)
+                })
+            })
+            .collect();
+        // The base's ground in the photo's hue: the toned mean inside the outline takes the photo's balance of the
+        // bands around it, its brightness kept (Sentinel-2's lighter ground on a base took the desert's ratios to a
+        // cold grey at Ramon).
+        let inner: Vec<usize> =
+            (0..w * h).filter(|&i| mask.as_ref().is_some_and(|k| k.at(centre(i)[0], centre(i)[1]) >= 1.0)).collect();
+        if !inner.is_empty() {
+            let toned = [0, 1, 2].map(|k| inner.iter().map(|&i| s2[i][k] * ratio[i][k]).sum::<f32>());
+            let ring = [0, 1, 2].map(|k| mean(&photo, k));
+            let (ts, rs) = (toned.iter().sum::<f32>(), ring.iter().sum::<f32>());
+            let hue = [0, 1, 2].map(|k| ((ring[k] / rs) / (toned[k] / ts).max(1e-6)).clamp(0.8, 1.25));
+            ratio.iter_mut().for_each(|r| *r = [0, 1, 2].map(|k| r[k] * hue[k]));
+        }
+        // The detail's spread about the local means (± TONE_DETAIL_M), both images on the same cells, all bands.
+        let rd = (TONE_DETAIL_M / c).round() as i32;
+        let (dw, dp, ds) = imagery::local_sums(&photo, &s2, &m, w, h, rd);
+        let mut var = [0f32; 2];
+        for i in (0..w * h).filter(|&i| m[i] && dw[i] > 0.5) {
+            for k in 0..3 {
+                var[0] += (photo[i][k] - dp[k][i] / dw[i]).powi(2);
+                var[1] += (s2[i][k] - ds[k][i] / dw[i]).powi(2);
+            }
+        }
+        let contrast = (var[0] / var[1].max(1e-3)).sqrt().clamp(1.0, 2.0);
+        let all = vec![true; w * h];
+        let (lw, ls, _) = imagery::local_sums(&s2, &s2, &all, w, h, rd);
+        let local = (0..w * h).map(|i| [0, 1, 2].map(|k| ls[k][i] / lw[i].max(1e-9))).collect();
+        Ok(Some(Self { e0: r[0], n1: r[3], w, h, ratio, local, contrast }))
+    }
+
+    /// Sentinel-2's colour `v` at UTM (e, n) toned; None outside the grid. The local mean takes the ratios; the detail
+    /// about it the contrast and the mean ratio, its own colour cut to TONE_DETAIL_CHROMA (the bands' ratios on a white
+    /// roof turned it blue).
+    fn tone(&self, e: f64, n: f64, v: [f32; 3]) -> Option<[f32; 3]> {
+        let ratio = self.at(&self.ratio, e, n)?;
+        let local = self.at(&self.local, e, n)?;
+        let d = [0, 1, 2].map(|k| v[k] - local[k]);
+        let (dl, lr) = ((d[0] + d[1] + d[2]) / 3.0, (ratio[0] + ratio[1] + ratio[2]) / 3.0);
+        Some([0, 1, 2].map(|k| {
+            (local[k] * ratio[k] + self.contrast * lr * (dl + TONE_DETAIL_CHROMA * (d[k] - dl))).clamp(0.0, 255.0)
+        }))
+    }
+
+    /// A field of the grid at UTM (e, n), bilinear between the cell centres; None outside the grid.
+    fn at(&self, field: &[[f32; 3]], e: f64, n: f64) -> Option<[f32; 3]> {
+        let x = (e - self.e0) / TONE_CELL_M - 0.5;
+        let y = (self.n1 - n) / TONE_CELL_M - 0.5;
+        if x < -0.5 || y < -0.5 || x > self.w as f64 - 0.5 || y > self.h as f64 - 0.5 {
+            return None;
+        }
+        let (x, y) = (x.clamp(0.0, (self.w - 1) as f64), y.clamp(0.0, (self.h - 1) as f64));
+        let (x0, y0) = (x as usize, y as usize);
+        let (x1, y1) = ((x0 + 1).min(self.w - 1), (y0 + 1).min(self.h - 1));
+        let (fx, fy) = ((x - x0 as f64) as f32, (y - y0 as f64) as f32);
+        let v = |x: usize, y: usize| field[y * self.w + x];
+        Some([0, 1, 2].map(|k| {
+            let top = v(x0, y0)[k] + (v(x1, y0)[k] - v(x0, y0)[k]) * fx;
+            top + (v(x0, y1)[k] + (v(x1, y1)[k] - v(x0, y1)[k]) * fx - top) * fy
+        }))
+    }
 }
 
 /// The published Survey photo paints the military bases over with made-up ground: Sentinel-2 shows instead inside
@@ -590,31 +757,36 @@ fn survey_unit(sv: &Survey, f: &Frame, unit: Key, itm: [[f64; 2]; 4], work: &Pat
         [l(0) + (r(0) - l(0)) * v, l(1) + (r(1) - l(1)) * v]
     };
     let shore = if sv.coast.touches(rect) { Some(ShoreSea::new(sv.coast, f, unit, out)?) } else { None };
+    let centre = |i: usize| [rect[0] + ((i % n) as f64 + 0.5) * px, rect[3] - ((i / n) as f64 + 0.5) * px];
+    // The photo's weight and the base cover's (BaseMask) at unit pixel i.
     let weight = |i: usize| {
-        let p = [rect[0] + ((i % n) as f64 + 0.5) * px, rect[3] - ((i / n) as f64 + 0.5) * px];
+        let p = centre(i);
         let base = bases.as_ref().map_or(0.0, |b| b.at(p[0], p[1]));
         let a = f32::from(e.raw[i * 4 + 3]) / 255.0 * (1.0 - base);
         // At the shore: none of the photo on the sea (the coastline's water side, beyond its reach Sentinel-2's water
         // joined to it), nor its near-white (the sheets' no-data with JPEG noise) beyond the coastline's reach.
         if let Some(sea) = shore.as_ref().filter(|_| a > 0.0) {
             match sv.coast.sea(p) {
-                Some(true) => return 0.0,
-                None if sea.at(p[0], p[1]) || e.raw[i * 4..i * 4 + 3].iter().all(|&c| c >= NEAR_WHITE) => return 0.0,
+                Some(true) => return (0.0, base),
+                None if sea.at(p[0], p[1]) || e.raw[i * 4..i * 4 + 3].iter().all(|&c| c >= NEAR_WHITE) => {
+                    return (0.0, base);
+                }
                 _ => {}
             }
         }
-        a
+        (a, base)
     };
     let m = NODE_PIXELS as usize;
     for sj in 0..1u32 << d {
         for si in 0..1u32 << d {
             let k = (1, (unit.1 << d) + si, (unit.2 << d) + sj);
             let (ox, oy) = (si as usize * m, sj as usize * m);
-            // A node written before with the photo is written again (as Sentinel-2 when none of the photo is left).
+            // A node written before with the photo is written again (as Sentinel-2 when none of the photo is left);
+            // one on a base's cover is written with its toned Sentinel-2.
             if k.1 * 2048 >= f.w
                 || k.2 * 2048 >= f.h
                 || (!colour_path(out, k).exists()
-                    && (0..m).all(|y| (0..m).all(|x| weight((oy + y) * n + ox + x) == 0.0)))
+                    && (0..m).all(|y| (0..m).all(|x| weight((oy + y) * n + ox + x) == (0.0, 0.0))))
             {
                 continue;
             }
@@ -622,7 +794,14 @@ fn survey_unit(sv: &Survey, f: &Frame, unit: Key, itm: [[f64; 2]; 4], work: &Pat
             for y in 0..m {
                 for x in 0..m {
                     let i = (oy + y) * n + ox + x;
-                    let a = weight(i);
+                    let (a, base) = weight(i);
+                    if base > 0.0 {
+                        let p = centre(i);
+                        let q = img.get_pixel_mut(x as u32, y as u32);
+                        if let Some(t) = sv.tones.iter().find_map(|t| t.tone(p[0], p[1], q.0.map(f32::from))) {
+                            q.0 = t.map(|v| v.round() as u8);
+                        }
+                    }
                     if a == 0.0 {
                         continue;
                     }
@@ -708,8 +887,10 @@ pub fn stamp(r: &Run) -> serde_json::Value {
     // (2026-11-13; before: matched to Sentinel-2, no key).
     let shore = if zips.is_empty() { 0 } else { 2 };
     let survey = if zips.is_empty() { "" } else { "levels" };
+    // "base_fill": the bases' Sentinel-2 toned to the photo around them (BASE_FILL, 2026-11-14; before: no key).
+    let base_fill = if zips.is_empty() { "" } else { BASE_FILL };
     serde_json::json!({ "box": r.area, "detail": r.detail, "survey_zips": zips, "airbases": bases, "osm": osm,
-        "shore": shore, "sea": SEA, "survey": survey })
+        "shore": shore, "sea": SEA, "survey": survey, "base_fill": base_fill })
 }
 
 /// `meta.json` (the shape `terrain::theatre` writes) with the georeference, the sources and the run's stamp.
@@ -964,15 +1145,32 @@ fn heights(r: &Run, f: &Frame, geo: [f64; 4], work: &Path, pr: &dyn Progress, ca
 }
 
 /// The Sentinel-2 units (the 32 m nodes' level-7 units, the 8 m nodes' level-5 units) and their done marks' names.
-fn s2_units(f: &Frame, detail: [f64; 4]) -> [(&'static str, Vec<Key>); 2] {
+fn s2_units(f: &Frame, detail: [f64; 4], bases: &[Vec<[f64; 2]>]) -> [(&'static str, Vec<Key>); 3] {
     let detail5: BTreeSet<Key> = f.nodes_in(5, detail).into_iter().collect();
     let inside = |k: Key| (k.1 << k.0) * NODE_PIXELS < f.w && (k.2 << k.0) * NODE_PIXELS < f.h;
     let coarse = |k: Key| inside(k) && !detail5.contains(&k);
     let u7: Vec<Key> = f.nodes(7).into_iter().filter(|u| f.nodes_in(5, f.utm(*u)).into_iter().any(coarse)).collect();
     // "_rim": the 32 m nodes without the overviews' rim (RIM): a theatre rebuilt for a change in its inputs makes them
     // again, though their old marks say done (Setup's redo clears the marks anyway).
-    [("s2_32m_rim", u7), ("s2_8m", detail5.into_iter().collect())]
+    // The 8 m units around an airbase (its outline and TONE_REACH_M beyond) are marked with BASE_FILL: the bases' toned
+    // Sentinel-2 is read from their level-3 nodes before the photo goes into them.
+    let near: Vec<[f64; 4]> = bases
+        .iter()
+        .map(|p| {
+            let b = crate::bbox(p.iter());
+            let m = TONE_REACH_M + BASE_COVER_M + BASE_FEATHER_M;
+            [b[0] - m, b[1] - m, b[2] + m, b[3] + m]
+        })
+        .collect();
+    let (on_base, rest): (Vec<Key>, Vec<Key>) =
+        detail5.into_iter().partition(|&k| near.iter().any(|b| f.nodes_in(5, *b).contains(&k)));
+    [("s2_32m_rim", u7), ("s2_8m", rest), (S2_8M_BASE, on_base)]
 }
+
+/// The bases' fill (the done marks of the units on them, `stamp`'s "base_fill"): Sentinel-2 toned to the photo around
+/// (BaseTone, 2026-11-14).
+const BASE_FILL: &str = "tone";
+const S2_8M_BASE: &str = "s2_8m_tone";
 
 /// Whether `dir` holds a Survey sheet ZIP: only then does the colour branch make the 2 m nodes (and read the shore).
 fn has_zips(dir: &Path) -> bool {
@@ -982,8 +1180,27 @@ fn has_zips(dir: &Path) -> bool {
 }
 
 /// Whether a Sentinel-2 unit is still to do (its mark missing in `work`): only then are the tiles listed and read.
-fn s2_left(f: &Frame, detail: [f64; 4], work: &Path) -> bool {
-    s2_units(f, detail).iter().any(|(what, list)| list.iter().any(|&u| !done(work, what, u).exists()))
+fn s2_left(f: &Frame, detail: [f64; 4], bases: &[Vec<[f64; 2]>], work: &Path) -> bool {
+    s2_units(f, detail, bases).iter().any(|(what, list)| list.iter().any(|&u| !done(work, what, u).exists()))
+}
+
+/// Whether the Sentinel-2 units still to do read only the cache: every 32 m unit done (the edge tiles' extracts read
+/// then), and every 10 m tile under the 8 m nodes listed and whole there. So a theatre made again for its bases' fill
+/// (BASE_FILL) fetches nothing.
+fn s2_cached(r: &Run, f: &Frame, bases: &[Vec<[f64; 2]>]) -> bool {
+    let work = r.out.join(".work");
+    let [(m32, u7), ..] = s2_units(f, r.detail, bases);
+    if u7.iter().any(|&u| !done(&work, m32, u).exists()) {
+        return false;
+    }
+    let Ok(geo) = geo_bbox(fine_area(f, r.detail)) else { return false };
+    let mut tiles = BTreeMap::new();
+    for lat in geo[1].floor() as i32..=geo[3].floor() as i32 {
+        let Ok(t) = std::fs::read_to_string(r.s2_cache.join(format!("listing_N{lat:02}.tsv"))) else { return false };
+        tiles
+            .extend(t.lines().filter_map(|l| l.split_once('\t')).map(|(n, b)| (n.to_string(), b.parse().unwrap_or(0))));
+    }
+    tiles_in(&tiles, geo).iter().all(|n| tile_whole(&r.s2_cache, &tiles, n))
 }
 
 /// What a run of `r` would fetch over the network, by name: the DEM tiles missing from the cache (neither `.tif` nor
@@ -1006,7 +1223,8 @@ pub fn would_fetch(r: &Run) -> Result<Vec<String>> {
             v.push(d.file.to_string());
         }
     }
-    if s2_left(&Frame::new(r.area)?, r.detail, &r.out.join(".work")) {
+    let (f, bases) = (Frame::new(r.area)?, base_outlines(&r.airbases)?);
+    if s2_left(&f, r.detail, &bases, &r.out.join(".work")) && !s2_cached(r, &f, &bases) {
         v.push("sentinel-2".into());
     }
     Ok(v)
@@ -1075,9 +1293,10 @@ fn sentinel(
     let inside = |k: Key| (k.1 << k.0) * NODE_PIXELS < f.w && (k.2 << k.0) * NODE_PIXELS < f.h;
     let coarse = |k: Key| inside(k) && !detail5.contains(&k);
     let fine = |k: Key| inside(k) && detail5.contains(&(5, k.1 >> (5 - k.0), k.2 >> (5 - k.0)));
-    let [(m32, u7), (m8, u5)] = s2_units(&f, r.detail);
+    let [(m32, u7), (m8, u5), (m8b, u5b)] = s2_units(&f, r.detail, &base_outlines(&r.airbases)?);
     units(m32, &u7, work, r.threads, &part(1), cancel, |u| sentinel_unit(s2_20, &f, u, 5, &coarse, work, out))?;
     units(m8, &u5, work, r.threads, &part(2), cancel, |u| sentinel_unit(s2, &f, u, 3, &fine, work, out))?;
+    units(m8b, &u5b, work, r.threads, &part(2), cancel, |u| sentinel_unit(s2, &f, u, 3, &fine, work, out))?;
     Ok((ends, s2_line))
 }
 
@@ -1093,7 +1312,7 @@ fn colour(r: &Run, f: &Frame, geo: [f64; 4], work: &Path, pr: &dyn Progress, can
     let fine = |k: Key| inside(k) && detail5.contains(&(5, k.1 >> (5 - k.0), k.2 >> (5 - k.0)));
     // Sentinel-2 only while one of its units is still to do: a theatre rebuilt for its photo (or any later change)
     // reads no tile and fetches nothing (the user, 2026-11-13: a code change never makes the player download again).
-    let (ends, s2_line) = if s2_left(&f, r.detail, &work) {
+    let (ends, s2_line) = if s2_left(&f, r.detail, &base_outlines(&r.airbases)?, &work) {
         sentinel(r, &f, geo, &work, has_zips, pr, cancel)?
     } else {
         log!(pr, "sentinel-2: every node built, no tile read");
@@ -1139,12 +1358,32 @@ fn colour(r: &Run, f: &Frame, geo: [f64; 4], work: &Path, pr: &dyn Progress, can
         let pbfs = crate::sim_coast::fetch_extracts(&r.osm, geo, pr, cancel)?;
         log!(pr, "survey: the coastline from {} OpenStreetMap extracts", pbfs.len());
         let coast = crate::sim_coast::Coast::load(&pbfs, geo, &work)?;
-        let sv = Survey {
+        let mut sv = Survey {
             vrt: utf8(&vrt)?,
             coast: &coast,
             levels: sheets.iter().map(|s| (s.bbox, s.levels)).collect(),
             bases: &bases,
+            tones: Vec::new(),
         };
+        // The units on a base's cover have their own marks (BASE_FILL), as their 8 m Sentinel-2 units (s2_units): they
+        // run again when the bases' fill changes, over Sentinel-2's own level-3 nodes.
+        let (on_base, keys): (Vec<Key>, Vec<Key>) =
+            keys.iter().partition(|&&k| BaseMask::new(&bases, f.utm(k)).is_some());
+        if on_base.iter().any(|&k| !done(&work, &format!("survey_2m_{BASE_FILL}"), k).exists()) {
+            for b in &bases {
+                if let Some(t) = BaseTone::new(&sv, &f, b, out, &work)? {
+                    let c = crate::bbox(b.iter());
+                    log!(pr, "survey: the base at {:.0} E {:.0} N, contrast × {:.2}", c[0], c[1], t.contrast);
+                    sv.tones.push(t);
+                }
+            }
+            log!(pr, "survey: {} bases' Sentinel-2 toned to the photo", sv.tones.len());
+        }
+        let sv = sv;
+        units(&format!("survey_2m_{BASE_FILL}"), &on_base, &work, r.threads, &part(3), cancel, |k: Key| {
+            let (_, c, _) = list.iter().find(|u| u.0 == k).context("unit")?;
+            survey_unit(&sv, &f, k, *c, &work, out)
+        })?;
         // The units the coastline comes near have their own marks: they run again once when the photo's sea rule
         // changes (cut to the coastline, then the sea beyond its reach Sentinel-2's; 2026-11-08).
         let (shore, inland): (Vec<Key>, Vec<Key>) = keys.iter().partition(|&&k| coast.touches(f.utm(k)));
@@ -1510,9 +1749,17 @@ mod tests {
             airbases: out.join("airbases"),
             osm: out.clone(),
             area: [600_000.0, 3_400_000.0, 600_000.0 + 65536.0, 3_400_000.0 + 65536.0],
-            detail: [600_000.0, 3_400_000.0, 600_000.0 + 32768.0, 3_400_000.0 + 32768.0],
+            detail: [600_000.0, 3_400_000.0, 600_000.0 + 65536.0, 3_400_000.0 + 32768.0],
             threads: 1,
         };
+        // A base in the western 8 m unit (its units are marked apart, BASE_FILL).
+        std::fs::create_dir_all(&run.airbases).unwrap();
+        let ring: Vec<[f64; 2]> = [[610_000.0, 3_410_000.0], [612_000.0, 3_410_000.0], [612_000.0, 3_411_000.0]]
+            .iter()
+            .map(|p| utm36n_geo(p[0], p[1]))
+            .map(|g| [g[1], g[0]])
+            .collect();
+        std::fs::write(run.airbases.join("x.json"), serde_json::json!({ "boundary": ring }).to_string()).unwrap();
         let geo = crate::sim_bases::theatre_geo(run.area);
         std::fs::create_dir_all(&run.dem_cache).unwrap();
         for lat in geo[1].floor() as i32..=geo[3].floor() as i32 {
@@ -1532,8 +1779,8 @@ mod tests {
         std::fs::write(run.sheets.join("a.zip"), "").unwrap();
         let work = run.out.join(".work");
         std::fs::create_dir_all(&work).unwrap();
-        let units = s2_units(&Frame::new(run.area).unwrap(), run.detail);
-        assert!(units.iter().all(|(_, l)| !l.is_empty()), "the box has units of both kinds");
+        let units = s2_units(&Frame::new(run.area).unwrap(), run.detail, &base_outlines(&run.airbases).unwrap());
+        assert!(units.iter().all(|(_, l)| !l.is_empty()), "the box has units of every kind");
         assert_eq!(would_fetch(&run).unwrap(), ["sentinel-2"], "a new theatre reads Sentinel-2");
         for (what, list) in &units {
             for &u in list {
@@ -1547,9 +1794,22 @@ mod tests {
         let f = Frame::new(run.area).unwrap();
         colour(&run, &f, geo, &work, &crate::progress::Stdout, &AtomicBool::new(false)).unwrap();
         assert!(!run.s2_cache.exists(), "colour read no Sentinel-2 tile");
+        // The base's 8 m unit left (a theatre made again for its bases' fill): local while the cache holds the 10 m
+        // tiles whole.
+        let (what, list) = &units[2];
+        std::fs::remove_file(done(&work, what, list[0])).unwrap();
+        assert_eq!(would_fetch(&run).unwrap(), ["sentinel-2"], "the base's unit left, no listing");
+        std::fs::create_dir_all(&run.s2_cache).unwrap();
+        for lat in [30, 31] {
+            std::fs::write(run.s2_cache.join(format!("listing_N{lat}.tsv")), format!("N{lat}E034\t5\n")).unwrap();
+            let tile = format!("ESA_WorldCover_10m_2021_v200_N{lat}E034_S2RGBNIR.tif");
+            std::fs::write(run.s2_cache.join(tile), "12345").unwrap();
+        }
+        assert!(would_fetch(&run).unwrap().is_empty(), "the base's unit left, every tile whole: nothing to fetch");
         let (what, list) = &units[1];
         std::fs::remove_file(done(&work, what, list[0])).unwrap();
-        assert_eq!(would_fetch(&run).unwrap(), ["sentinel-2"], "one unit left");
+        std::fs::remove_file(run.s2_cache.join("ESA_WorldCover_10m_2021_v200_N30E034_S2RGBNIR.tif")).unwrap();
+        assert_eq!(would_fetch(&run).unwrap(), ["sentinel-2"], "one unit left, a tile missing");
         std::fs::remove_dir_all(&out).unwrap();
     }
 

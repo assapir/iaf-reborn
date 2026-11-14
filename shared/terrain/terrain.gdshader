@@ -744,25 +744,30 @@ void fragment() {
 		}
 	}
 	float paved_k = 0.0;  // Detailed airbases' paved surface (rain puddles)
-	// Airbases (Preferences "Airbases"): within 16 km, on the nearest base's paved surface.
-	// The paint fades out from 12 to 16 km (2.5 to 6 km before 2026-11-14: beyond that only the 10 m imagery showed, where
-	// pale concrete barely differs from the sand, so every base's runways read faint from the air).
-	float kab = terrain_airbases * (1.0 - smoothstep(12000.0, 16000.0, length(VERTEX))) * (1.0 - sea);
+	// Airbases (Preferences "Airbases"): within 28 km, on the nearest base's paved surface.
+	// The paint fades out from 20 to 28 km (12 to 16 km from 2026-11-14 morning, 2.5 to 6 km before: beyond that only the
+	// 10 m imagery showed, where pale concrete barely differs from the sand, so the runways read faint from the air).
+	float kab = terrain_airbases * (1.0 - smoothstep(20000.0, 28000.0, length(VERTEX))) * (1.0 - sea);
 	vec2 muv = mat2(airbase_mask_xf.xy, airbase_mask_xf.zw) * world_xz + airbase_mask_rect.xy;
 	if (kab > 0.0 && muv.x > 0.0 && muv.y > 0.0 && muv.x < 1.0 && muv.y < 1.0) {
 		// R / G: paved coverage (straight anti-aliased edges) / concrete coverage (blurred over ≈ 5 m), so the bilinear
-		// lookup has a smooth edge at 0.5, drawn one pixel wide (fwidth); mipmapped, the edges soften far away.
+		// lookup has a smooth edge at 0.5, drawn one pixel wide (fwidth) while a mask texel spans more than a pixel. From a
+		// texel per pixel on, the (mipmapped) coverage itself: a texel holding a taxiway or a runway with sand beside it
+		// keeps that share of pavement (2026-11-14: the edge at 0.5 dropped the taxiways from ≈ 3 km and the runways
+		// from ≈ 10 km, where their texels hold less than half, and they popped back in on the way in).
 		vec2 pm = texture(airbase_mask, muv).rg;
 		vec2 p = world_xz;
 		vec2 pw = clamp(fwidth(pm) * 0.75, vec2(0.02), vec2(0.5));
-		float paved = smoothstep(0.5 - pw.x, 0.5 + pw.x, pm.r);
+		vec2 msz = vec2(textureSize(airbase_mask, 0));
+		float mfar = clamp(max(length(dFdx(muv * msz)), length(dFdy(muv * msz))), 0.0, 1.0);
+		float paved = mix(smoothstep(0.5 - pw.x, 0.5 + pw.x, pm.r), pm.r, mfar);
 		float runway = 0.0;
 		float paint = 0.0;
 		float rubber = 0.0;
 		float yellow = 0.0;
 		float seam = 0.0;
 		float patchy = 0.0;
-		float concrete_mask = smoothstep(0.5 - pw.y, 0.5 + pw.y, pm.g);
+		float concrete_mask = mix(smoothstep(0.5 - pw.y, 0.5 + pw.y, pm.g), pm.g, mfar);
 		for (int i = 0; i < int(airbase_info.x); i++) {
 			vec4 a0 = texelFetch(airbase_data, ivec2(3 * i, 0), 0);
 			vec4 a1 = texelFetch(airbase_data, ivec2(3 * i + 1, 0), 0);

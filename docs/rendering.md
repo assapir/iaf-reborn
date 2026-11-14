@@ -2022,16 +2022,19 @@ runway edges: the edge lights lie a median 2.3 m outside the derived edges (quar
 `test_airbases.gd`).
 
 **The drawing** (`terrain.gdshader`, the globals `terrain_airbases`, `airbase_mask`, `airbase_mask_rect`, `airbase_data`,
-`airbase_info`). `airbases.gd` picks the base whose runways' middle is nearest the camera (within 20 km; 15 km before 2026-11-14, when the
-paint faded out by 6 km) and hands the
+`airbase_info`). `airbases.gd` picks the base whose runways' middle is nearest the camera (within 32 km; 20 km from
+2026-11-14 morning, 15 km before, when the paint faded out by 6 km) and hands the
 shader its mask and a small float texture: per runway its centre, direction, half length and width, numbers and
-thresholds. In the terrain's fragment, inside the mask's rectangle and within 16 km (faded from 12 km; from 2.5 to
-6 km before 2026-11-14, when the runways read faint from farther out). Only the nearest base is drawn, so two bases
-nearer than about 30 km to each other swap at the midpoint (open):
+thresholds. In the terrain's fragment, inside the mask's rectangle and within 28 km (faded from 20 km since
+2026-11-14 afternoon; 12 to 16 km that morning; 2.5 to 6 km before, when the runways read faint from farther out).
+Only the nearest base is drawn, so two bases nearer than about 30 km to each other swap at the midpoint (open):
 
-- **Edge**: the mask is read with bilinear filtering, and the pavement starts where the paved coverage crosses 0.5,
-  over one screen pixel (from `fwidth`). So the edge is smooth instead of following the mask's 2.5 m pixels; far
-  away the mipmaps soften it.
+- **Edge**: the mask is read with bilinear filtering, and while a mask texel spans more than a screen pixel the
+  pavement starts where the paved coverage crosses 0.5, over one screen pixel (from `fwidth`). So the edge is smooth
+  instead of following the mask's 2.5 m pixels. From a texel per pixel on, the (mipmapped) coverage itself is the
+  pavement's share, so a texel holding a taxiway or a runway with sand beside it keeps that share. Before
+  2026-11-14 afternoon the edge at 0.5 held at every distance: the taxiways vanished from about 3 km and the runways
+  from about 10 km, where their texels hold less than half, and popped back in on the way in.
 - **Surface**: the imagery blurred to ≈ 16 m gives the tone (so it fades into the imagery far away), pulled 60 %
   toward real asphalt's brightness (albedo 0.1) so the paint stands out on light and dark art alike. Variation:
   patches (≈ 40 m), grain (≈ 2 m), 7.5 m paving lanes with dark seams, repaired patches (1 in 8 of 40 × 7.5 m cells).
@@ -2058,8 +2061,16 @@ window, median of 12 pairs; 1920 × 1080 at render scale 2.0 = 8.3 Mpx, Terrain 
 | 30 m over the threshold, looking down the runway (the most marking on screen) | +1.87 ms |
 
 That is at most ≈ 0.22 ms per Mpx: ≈ 0.45 ms at 1920 × 1080. From 1500 m and above the base the cost is below the
-noise (the surface fades out by 16 km and only the mask's rectangle runs the code; measured with the 6 km fade before
-2026-11-14).
+noise (only the mask's rectangle runs the code; measured with the 6 km fade before 2026-11-14).
+
+On the Linux laptop's Intel Iris Xe (1600 × 900, Modern IAF at Ramon, the same on − off bench, median of 12 pairs,
+2026-11-14), the 28 km fade and the far coverage against the 16 km fade:
+
+| View at Ramon | 16 km fade | 28 km fade, far coverage |
+|---|---|---|
+| 8 km out, 1,000 m up | +0.45 ms | +0.59 ms |
+| 15 km out, 10,000 ft | +0.11 ms | +0.27 ms |
+| Parked, in the cockpit | +1.76 ms | +1.77 ms |
 
 **Shots** (local, `assets/converted/research/airbases/b_detailed/`, Original | Detailed side by side in `cmp_*.png`):
 Ramat David, Tel Nof, Ramon and Damascus; take-off, roll (800 m), 300 m on final, 1500 m overhead, an external low pass;

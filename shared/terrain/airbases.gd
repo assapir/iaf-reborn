@@ -10,7 +10,7 @@ extends RefCounted
 const SignBoards := preload("res://shared/terrain/sign_boards.gd")
 
 ## The nearest base within this distance of the camera (m, to its runways' middle) is drawn.
-const RANGE := 20000.0  # the shader's paint fades out by 16 km; a base's paint reaches ≈ 4 km from its middle
+const RANGE := 32000.0  # the shader's paint fades out by 28 km; a base's paint reaches ≈ 4 km from its middle
 ## The taxi lines' half width (m): the original 0.3 m line; World scale Real 1 m, to be seen from the cockpit over the
 ## real-size base (docs/world-scale.md §4.3; inferred).
 const TAXI_HALF_WIDTH := 0.15

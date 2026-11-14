@@ -614,7 +614,8 @@ Each entry names the switch and where it lives, then the difference: "Original: 
     RenderingDevice (the Compatibility renderer).
 - **Airbases** (ours, docs/rendering.md §7). Rendering only; the default is Original (the 1998 imagery's painted
   runways).
-  - Detailed: within 16 km of the camera (faded from 12 km; 2.5 to 6 km before 2026-11-14), the nearest base's
+  - Detailed: within 28 km of the camera (faded from 20 km; 12 to 16 km on 2026-11-14 morning, 2.5 to 6 km before),
+    the nearest base's
     runways, taxiways and aprons get a procedural asphalt / concrete surface with ICAO markings sized to each runway:
     threshold stripes, designation numbers, centreline, touchdown zone and aiming point marks, edge lines, yellow
     chevrons before a displaced threshold, yellow taxi lines on the AI's taxi paths, tyre rubber, paving lanes and

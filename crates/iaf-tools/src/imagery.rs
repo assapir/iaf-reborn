@@ -596,6 +596,29 @@ pub fn blur(img: &mut [f32], w: usize, h: usize, r: i32) {
     }
 }
 
+/// The local means of two images over the pixels `m`, for matching one's colours to the other's: `m`'s weight and
+/// each band of `a` and `b` on `m`, blurred over `r` (`blur`). The original game's modern layers (`compose_node`) and
+/// the sim's airbases (sim_terrain's BaseTone) take their colour ratios from them.
+pub fn local_sums(
+    a: &[[f32; 3]],
+    b: &[[f32; 3]],
+    m: &[bool],
+    w: usize,
+    h: usize,
+    r: i32,
+) -> (Vec<f32>, [Vec<f32>; 3], [Vec<f32>; 3]) {
+    let mut mw: Vec<f32> = m.iter().map(|&k| k as u8 as f32).collect();
+    blur(&mut mw, w, h, r);
+    let sums = |img: &[[f32; 3]]| {
+        [0, 1, 2].map(|c| {
+            let mut s: Vec<f32> = (0..w * h).map(|i| if m[i] { img[i][c] } else { 0.0 }).collect();
+            blur(&mut s, w, h, r);
+            s
+        })
+    };
+    (mw, sums(a), sums(b))
+}
+
 /// Hard mask → weight with the feather on the inside only: 0 at and beyond the border, 1 deep inside.
 fn feather(mask: &[bool], w: usize, h: usize, r: i32) -> Vec<f32> {
     let mut f: Vec<f32> = mask.iter().map(|&m| m as u8 as f32).collect();
@@ -693,17 +716,12 @@ pub fn compose_node(
     // 1998 colours: the modern pixel times the ratio of the local (dry land with data, off the airbases) means of
     // the original and the modern image, per channel.
     let m: Vec<bool> = (0..size * size).map(|i| dry[i] && !water[i] && !nodata[i] && has[i] && off_base[i]).collect();
-    let mut mw: Vec<f32> = m.iter().map(|&b| b as u8 as f32).collect();
-    blur(&mut mw, size, size, match_radius);
+    let (mw, so, sm) = local_sums(&orig, &modern, &m, size, size, match_radius);
     let mut ratio = vec![[1f32; 3]; size * size];
     for c in 0..3 {
-        let mut so: Vec<f32> = (0..size * size).map(|i| if m[i] { orig[i][c] } else { 0.0 }).collect();
-        let mut sm: Vec<f32> = (0..size * size).map(|i| if m[i] { modern[i][c] } else { 0.0 }).collect();
-        blur(&mut so, size, size, match_radius);
-        blur(&mut sm, size, size, match_radius);
         for i in 0..size * size {
-            if mw[i] > 1e-3 && sm[i] > 1e-3 {
-                ratio[i][c] = ((so[i] + 4.0) / (sm[i] + 4.0)).clamp(0.33, 3.0);
+            if mw[i] > 1e-3 && sm[c][i] > 1e-3 {
+                ratio[i][c] = ((so[c][i] + 4.0) / (sm[c][i] + 4.0)).clamp(0.33, 3.0);
             }
         }
     }

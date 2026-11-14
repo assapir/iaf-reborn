@@ -211,12 +211,17 @@ code reads ([data-formats.md](data-formats.md) §12):
   ![Ramon: a hold sign from the taxiway](pictures/scenery/ramon_signs.webp)
 
 - the painted surface (runways, taxiways, aprons and their markings, [rendering.md](../../docs/rendering.md) §7)
-  out to 16 km from the camera, faded from 12 km (2026-11-14, the user's yes). Before, it faded from 2.5 to 6 km, and
-  beyond that only the 10 m imagery showed, where pale concrete barely differs from the sand: every base's runways
-  read faint from 8 km (reported at Hatzerim and Tel Nof, Ramon the same; the original game's Tel Nof showed). The
-  cost, on the Linux laptop's Intel Iris Xe at 1600 × 900, 8 km out and 1,000 m up, median of 8 pairs: Ramon +0.49 ms GPU
-  on a 24.8 ms frame, Tel Nof +0.18 ms, Hatzerim +1.42 ms (noisy: quartiles −0.56 / +2.12 ms). On the Mac (M4 Pro,
-  Metal) Godot reports no GPU time, so it is not measured there; the shader compiles and runs (0 shader errors).
+  out to 28 km from the camera, faded from 20 km, and far away each mask texel's paved share instead of an edge at
+  half cover (2026-11-14 afternoon, for the user's look pass; awaiting his yes). From 12 to 16 km that morning
+  (his yes), from 2.5 to 6 km before: beyond that only the 10 m imagery showed, where pale concrete barely differs
+  from the sand, so every base's runways read faint from 8 km (reported at Hatzerim and Tel Nof, Ramon the same;
+  the original game's Tel Nof showed). The edge at half cover dropped the taxiways from about 3 km and the runways
+  from about 10 km. The cost on the Linux laptop's Intel Iris Xe at 1600 × 900 (median of 12 on / off pairs, Ramon):
+  8 km out and 1,000 m up +0.59 ms GPU (+0.45 with the 16 km fade), 15 km out at 10,000 ft +0.27 ms (+0.11),
+  parked in the cockpit +1.77 ms (+1.76). On the Mac (M4 Pro, Metal) Godot reports no GPU time, so it is not
+  measured there; the shader compiles and runs (0 shader errors).
+- the ground under each base: the published 2 m photo paints the bases over, so the 10 m Sentinel-2 picture shows
+  there, toned to the photo around it since 2026-11-14 ([terrain.md](terrain.md) §4; before, a tan block).
 
 | base | section | take-off | lineup (UTM 36N) | taxi points out / in | tower |
 |---|---|---|---|---|---|
