@@ -8,7 +8,7 @@
   "kg": 129,
   "power": 800,
   "blast_m": 20,
-  "drag": 0,
+  "drag": 2.5,
   "motion": {},
   "sim": 1007,
   "length_m": 1.8,
@@ -16,14 +16,14 @@
   "sources": {
     "power": "inferred",
     "blast_m": "open",
-    "drag": "open",
+    "drag": "w-gbu39, inferred",
     "kg": "w-gbu39",
     "length_m": "w-gbu39",
     "diameter_m": "w-gbu39"
   },
   "notes": {
     "number": "ours",
-    "drag": "carriage drag: none until a source gives one",
+    "drag": "carriage drag index (10^4 x the drag coefficient on the F-16's 300 sq ft wing, flight-model.md §9.18): 0.25 x its 0.190 m across (w-gbu39) frontal area, 0.25 the drag of a body with a guidance kit (strakes, folded wings) on its pylon on that area (inferred); the F-16 manual's published indices were not at hand; none in the F-35I's bays (loadout::sim_load)",
     "motion": "the reader's defaults",
     "sim": "the sim flies modern_weapons.gd's record 1007, built on its base record, in its place (loadout::sim_load)",
     "power": "16 kg of AFX-757 at 50 points a kilogram (our damage scale)",

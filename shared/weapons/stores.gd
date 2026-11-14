@@ -96,7 +96,8 @@ static func category(type: int) -> int:
 ## Creates the stations (FUN_004b7ea3 -> FUN_0053b580 -> FUN_0053c1f0): a count of 0 or an unknown weapon means
 ## no station. `descriptor` = the aircraft descriptor (stations in glTF metres), `pilon_of(model_path)` -> the
 ## store model's Pilon helper (glTF) or null. `jet_type` = the aircraft's bdb type code (Weapon data Real: its
-## real gun rounds). A load entry's third and fourth values (Modern IAF, loadout::sim_load) are its rack's kg and drag.
+## real gun rounds). A load entry's third and fourth values (Modern IAF, loadout::sim_load) are its rack's kg and drag;
+## a fifth of 1 puts the station inside a weapons bay, where its stores add no drag.
 func setup(load: Array, db: RefCounted, descriptor: Dictionary, pilon_of: Callable, jet_type := -1) -> void:
 	stations.clear()
 	var frames: Dictionary = descriptor.get("stations", {})
@@ -144,7 +145,7 @@ func setup(load: Array, db: RefCounted, descriptor: Dictionary, pilon_of: Callab
 			"type": w.type,
 			"name": w.name,
 			"weight_lb": w.get("weight_lb", 0.0),
-			"drag": w.get("drag", 0.0),
+			"drag": 0.0 if load[i].size() > 4 and int(load[i][4]) == 1 else w.get("drag", 0.0),
 			"count": n,
 			"arm": attach.x,
 			"rack_kg": float(load[i][2]) if load[i].size() > 2 else 0.0,

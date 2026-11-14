@@ -8,13 +8,13 @@
   "kg": 1120,
   "power": 0,
   "blast_m": 0,
-  "drag": 0,
+  "drag": 19.1,
   "motion": {},
   "sources": {
     "kg": "f16net-tanks, inferred",
     "power": "inferred",
     "blast_m": "inferred",
-    "drag": "open"
+    "drag": "f16net-tanks, inferred"
   },
   "notes": {
     "name": "the fuel it holds in pounds, as the original's tanks are named (2700LB): a name with LB is a tank, its weight the fuel (stores.rs is_tank)",
@@ -23,7 +23,7 @@
     "size": "18 1/4 ft (5.56 m) long, 26 1/2 in (0.673 m) across (f16net-tanks); our model's size is the original's 2700LB tank's (aircraft-models.md §5)",
     "power": "a tank does no damage",
     "blast_m": "a tank does no damage",
-    "drag": "carriage drag: none until a source gives one",
+    "drag": "carriage drag index (10^4 x the drag coefficient on the F-16's 300 sq ft wing, flight-model.md §9.18): 0.15 x its 0.673 m across (f16net-tanks) frontal area, 0.15 the drag of a streamlined tank on its pylon on that area (inferred); the F-16 manual's published indices were not at hand",
     "motion": "the reader's defaults (a jettisoned tank falls ballistic)"
   },
   "footnotes": {

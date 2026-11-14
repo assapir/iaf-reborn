@@ -8,7 +8,7 @@
   "kg": 253,
   "power": 4350,
   "blast_m": 50,
-  "drag": 0,
+  "drag": 5.3,
   "motion": {},
   "sim": 1006,
   "length_m": 2.353,
@@ -16,14 +16,14 @@
   "sources": {
     "power": "inferred",
     "blast_m": "open",
-    "drag": "open",
+    "drag": "f16net-jdam, inferred",
     "kg": "f16net-jdam",
     "length_m": "f16net-jdam",
     "diameter_m": "f16net-jdam"
   },
   "notes": {
     "number": "ours",
-    "drag": "carriage drag: none until a source gives one",
+    "drag": "carriage drag index (10^4 x the drag coefficient on the F-16's 300 sq ft wing, flight-model.md §9.18): 0.25 x its 0.273 m across (f16net-jdam) frontal area, 0.25 the drag of a body with a guidance kit (strakes, folded wings) on its pylon on that area (inferred); the F-16 manual's published indices were not at hand",
     "motion": "the reader's defaults",
     "sim": "the sim flies modern_weapons.gd's record 1006, built on its base record, in its place (loadout::sim_load)",
     "power": "the MK-82's 87 kg of tritonal (our damage scale)",

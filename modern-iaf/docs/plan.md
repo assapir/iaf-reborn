@@ -115,6 +115,13 @@ Rules that hold:
 |---|---|
 | folder | The folder `iaf-2026/` is `modern-iaf/`, so the code's name matches the name Modern IAF (the user). A file cannot share a folder's name, so the game launcher `./modern-iaf` (+ `.ps1`) is `./start-modern-iaf` (+ `.ps1`), with no forwarding shim; `./modern-iaf-setup` keeps its name. The built data moves from `assets/converted/iaf-2026` to `assets/converted/modern-iaf` once, with no rebuild and no download: `iaf-sim`, the setup wizard and the launchers rename it on their first run ([setup.md](setup.md)). `tools/iaf-2026/`, `iaf-sim`, the test file names and the `user://` folder "Modern IAF" stay. |
 
+## Decisions of 14 November 2026
+
+| topic | decision |
+|---|---|
+| F-35I aerodynamics | "Infer the f35 (in both games)" (the user): an inferred F-35 aerodynamic set built from public figures, each number footnoted or labelled "inferred" with its reasoning, replaces TP-1538's F-16 tables on the Adir's wing in the 6-DoF. One source of truth feeds both the sim's 6-DoF and reborn's F-35I flight data (reborn: an opt-in extra, recorded in docs/deviations.md), so the two games agree on its performance. |
+| Delilah | Dropped for now (the user): off the loadouts until a powered cruise-missile class exists. |
+
 ## Rules (the user, 3 November 2026)
 
 - Every enhancement is shared by both games, never sim-only.

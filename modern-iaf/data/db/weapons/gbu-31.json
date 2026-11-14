@@ -8,7 +8,7 @@
   "kg": 946,
   "power": 21450,
   "blast_m": 100,
-  "drag": 0,
+  "drag": 14.9,
   "motion": {},
   "sim": 1003,
   "length_m": 3.879,
@@ -16,14 +16,14 @@
   "sources": {
     "power": "inferred",
     "blast_m": "open",
-    "drag": "open",
+    "drag": "f16net-jdam, inferred",
     "kg": "f16net-jdam",
     "length_m": "f16net-jdam",
     "diameter_m": "f16net-jdam"
   },
   "notes": {
     "number": "ours",
-    "drag": "carriage drag: none until a source gives one",
+    "drag": "carriage drag index (10^4 x the drag coefficient on the F-16's 300 sq ft wing, flight-model.md §9.18): 0.25 x its 0.460 m across (f16net-jdam) frontal area, 0.25 the drag of a body with a guidance kit (strakes, folded wings) on its pylon on that area (inferred); the F-16 manual's published indices were not at hand; none in the F-35I's bays (loadout::sim_load)",
     "motion": "the reader's defaults",
     "sim": "the sim flies modern_weapons.gd's record 1003, built on its base record, in its place (loadout::sim_load)",
     "power": "the MK-84's 429 kg of tritonal (our damage scale)",

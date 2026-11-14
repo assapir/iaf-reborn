@@ -303,10 +303,10 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   and the take-off weight follow, over the maximum it reads red and Fly is off; the loadout is the pilot's per jet in
   the records database and flies with the mission (mass, drag, tanks' fuel, the stores' models), Reset brings back
   the record's ([front-end.md](front-end.md) §10). Since 2026-11-11 the racks' weight rides in flight too (the
-  BRU-57/A's 120.2 kg sourced; every rack's drag open), the bombs, guided bombs and tanks hang by their lugs under the
+  BRU-57/A's 120.2 kg sourced), and since 2026-11-14 every store's and rack's drag index (inferred from its size, none in the F-35I's bays; [flight-model.md](flight-model.md) §9.18), the bombs, guided bombs and tanks hang by their lugs under the
   F-16's pylons, and the Python 5, SPICE 2000 and Delilah fly as `modern_weapons.gd` records with their public figures
   (the Delilah as the GPS class, its cruise a long glide). Open: models of the Delilah and the 600 gal tank, a Sufa /
-  Barak station chart, the racks' drag.
+  Barak station chart.
 - **Inventory counts:** no public source gives the IAF's store counts; the records list none, so the inventory is
   unlimited. `cargo test -p iaf-tools --lib loadout`, `test_front_end.gd`,
   `test_mvp.gd --only loadout`.

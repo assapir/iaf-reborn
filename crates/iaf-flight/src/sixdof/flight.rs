@@ -2,7 +2,7 @@
 //! and read back as the original model's [`State`] and [`ApView`] in the game's ENU frame (modern-iaf/docs/
 //! flight-model.md §9.12). The original game never builds one ([`crate::fm::Fm`]).
 
-use super::aero::{Flow, Surfaces, coefficients, compressibility, lef_schedule};
+use super::aero::{Flow, Surfaces, add_drag, coefficients, compressibility, lef_schedule};
 use super::body::{Body, MAX_FRAME, MAX_STEP, Quat};
 use super::engine::Engine;
 use super::fcs::{Fcs, Pilot, Sensors};
@@ -197,7 +197,7 @@ impl SixDof {
         let alt = -self.body.pos.z;
         let (_, ps, sound) = atmosphere(alt);
         let af = self.airframe();
-        let t = level_trim(&self.jet, &af, alt, v);
+        let t = level_trim(&self.jet, &af, alt, v, self.stores_cd);
         let ar = t.alpha.to_radians();
         self.body.att = Quat::from_euler(roll, ar, heading);
         self.body.vel = Vec3::new(v * ar.cos(), 0.0, v * ar.sin());
@@ -668,9 +668,10 @@ pub struct LevelTrim {
     pub qbar: f64,
 }
 
-/// `jet` (as `af`) in level flight at `alt_m`, true speed `v`: α and the stabilator from the 1 g force and
-/// moment balance (Newton steps), the thrust from the x force; the flap on its schedule.
-pub fn level_trim(jet: &Jet, af: &super::body::Airframe, alt_m: f64, v: f64) -> LevelTrim {
+/// `jet` (as `af`) in level flight at `alt_m`, true speed `v`, with stores of drag index × 10⁻⁴ `stores_cd`: α and
+/// the stabilator from the 1 g force and moment balance (Newton steps), the thrust from the x force; the flap on its
+/// schedule.
+pub fn level_trim(jet: &Jet, af: &super::body::Airframe, alt_m: f64, v: f64, stores_cd: f64) -> LevelTrim {
     let (rho, ps, sound) = atmosphere(alt_m);
     let qbar = 0.5 * rho * v * v;
     let w = af.mass * G;
@@ -679,6 +680,7 @@ pub fn level_trim(jet: &Jet, af: &super::body::Airframe, alt_m: f64, v: f64) -> 
         let s = Surfaces { dh, dlef: lef_schedule(a, qbar, ps), ..Surfaces::default() };
         let mut c = coefficients(&Flow { alpha: a, v, ..Flow::default() }, &s, af);
         compressibility(&mut c, mach, a, jet.aspect_ratio(), jet.wave_drag);
+        add_drag(&mut c, jet.stores_dcd(stores_cd), a);
         c
     };
     let (mut a, mut dh) = (2.0, 0.0);
@@ -702,13 +704,14 @@ pub fn level_trim(jet: &Jet, af: &super::body::Airframe, alt_m: f64, v: f64) -> 
     LevelTrim { alpha: a, dh, thrust_needed, qbar }
 }
 
-/// The top level speed (m/s) of `jet` at its reference weight at `alt_m`, full afterburner: from 150 m/s up, the
-/// first speed where the maximum thrust no longer meets the level drag (1 m/s steps).
-pub fn top_speed(jet: &Jet, alt_m: f64) -> f64 {
+/// The top level speed (m/s) of `jet` at its reference weight at `alt_m` with stores of drag index × 10⁻⁴
+/// `stores_cd`, full afterburner: from 150 m/s up, the first speed where the maximum thrust no longer meets the level
+/// drag (1 m/s steps).
+pub fn top_speed(jet: &Jet, alt_m: f64, stores_cd: f64) -> f64 {
     let sound = atmosphere(alt_m).2;
     let max = |v: f64| Engine { power: 100.0 }.thrust(&jet.engine, v / sound, alt_m) * jet.engines as f64;
     let mut v = 150.0;
-    while v < 900.0 && max(v) >= level_trim(jet, &jet.airframe, alt_m, v).thrust_needed {
+    while v < 900.0 && max(v) >= level_trim(jet, &jet.airframe, alt_m, v, stores_cd).thrust_needed {
         v += 1.0;
     }
     v

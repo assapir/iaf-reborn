@@ -8,7 +8,7 @@
   "kg": 907,
   "power": 21450,
   "blast_m": 100,
-  "drag": 0,
+  "drag": 14.8,
   "motion": {},
   "sim": 1011,
   "range_km": 60,
@@ -17,7 +17,7 @@
   "sources": {
     "power": "inferred",
     "blast_m": "open",
-    "drag": "open",
+    "drag": "inferred",
     "kg": "w-spice, inferred",
     "length_m": "open",
     "diameter_m": "open",
@@ -25,7 +25,7 @@
   },
   "notes": {
     "number": "ours",
-    "drag": "carriage drag: none until a source gives one",
+    "drag": "carriage drag index (10^4 x the drag coefficient on the F-16's 300 sq ft wing, flight-model.md §9.18): 0.25 x its 0.458 m across (inferred: its bomb body's) frontal area, 0.25 the drag of a body with a guidance kit (strakes, folded wings) on its pylon on that area (inferred); the F-16 manual's published indices were not at hand",
     "motion": "the reader's defaults",
     "kg": "the 2,000 lb class (907 kg); its own weight is not published",
     "power": "the MK-84's (its body; our damage scale)",

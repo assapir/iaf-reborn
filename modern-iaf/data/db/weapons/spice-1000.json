@@ -8,7 +8,7 @@
   "kg": 453,
   "power": 10100,
   "blast_m": 70,
-  "drag": 0,
+  "drag": 8.6,
   "motion": {},
   "sim": 1009,
   "range_km": 100,
@@ -17,7 +17,7 @@
   "sources": {
     "power": "inferred",
     "blast_m": "open",
-    "drag": "open",
+    "drag": "inferred",
     "kg": "w-spice, inferred",
     "length_m": "open",
     "diameter_m": "open",
@@ -25,7 +25,7 @@
   },
   "notes": {
     "number": "ours",
-    "drag": "carriage drag: none until a source gives one",
+    "drag": "carriage drag index (10^4 x the drag coefficient on the F-16's 300 sq ft wing, flight-model.md §9.18): 0.25 x its 0.350 m across (inferred: its bomb body's) frontal area, 0.25 the drag of a body with a guidance kit (strakes, folded wings) on its pylon on that area (inferred); the F-16 manual's published indices were not at hand",
     "motion": "the reader's defaults",
     "sim": "the sim flies modern_weapons.gd's record 1009, built on its base record, in its place (loadout::sim_load)",
     "kg": "the 1,000 lb class (453 kg); its own weight is not published",

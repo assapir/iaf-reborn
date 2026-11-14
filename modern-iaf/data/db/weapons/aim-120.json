@@ -8,7 +8,7 @@
   "kg": 161.5,
   "power": 400,
   "blast_m": 15,
-  "drag": 0,
+  "drag": 3.6,
   "length_m": 3.65,
   "range_km": 90,
   "mach": 4,
@@ -26,7 +26,7 @@
   "sources": {
     "kg": "w-aim120",
     "length_m": "w-aim120",
-    "drag": "open",
+    "drag": "w-aim120, inferred",
     "power": "inferred",
     "blast_m": "inferred, ds-aim9, w-aim120",
     "range_km": "w-aim120",
@@ -52,7 +52,7 @@
     "blast_m": "the lethal radius is open; blast scaling (inferred): the AIM-9A / B's 9 m (ds-aim9) for its 4.5 kg warhead times the cube root of this warhead's mass ratio (20 kg)",
     "range_km": "the AIM-120C's 49 nmi (90 km)",
     "mach": "Mach 4",
-    "drag": "carriage drag: none until a source gives one (in the F-35I's bays: none)",
+    "drag": "carriage drag index (10^4 x the drag coefficient on the F-16's 300 sq ft wing, flight-model.md §9.18): 0.4 x its 0.178 m across (w-aim120) frontal area, 0.4 the drag of a finned missile on its launcher rail on that area (inferred); the F-16 manual's published indices were not at hand; none in the F-35I's bays (loadout::sim_load)",
     "motion._chaseType": "2 = proportional navigation",
     "motion._absAcceleration": "120 m/s², the AIM-9M record's (inferred: no burn time published)",
     "motion._spiralAccelBeta": "top speed a / beta: 120 / 1372 m/s (Mach 4)",
@@ -61,7 +61,7 @@
     "motion._timeConstOrientation": "flies straight 0.5 s after launch (the AIM-9M record's)"
   },
   "footnotes": {
-    "w-aim120": "Wikipedia, \"AIM-120 AMRAAM\" (AIM-120C-5/6/7: 356 lb, 161.5 kg; 12 ft, 3.65 m; warhead 44 lb, 20 kg; Mach 4; AIM-120C 49 nmi, 90 km) (read 2026-11-10), https://en.wikipedia.org/wiki/AIM-120_AMRAAM",
+    "w-aim120": "Wikipedia, \"AIM-120 AMRAAM\" (AIM-120C-5/6/7: 356 lb, 161.5 kg; 12 ft, 3.65 m; 7 in, 0.178 m across; warhead 44 lb, 20 kg; Mach 4; AIM-120C 49 nmi, 90 km) (read 2026-11-10), https://en.wikipedia.org/wiki/AIM-120_AMRAAM",
     "ds-aim9": "designation-systems.net, \"Raytheon AIM-9 Sidewinder\" (AIM-9A / B effective kill radius about 9 m), https://www.designation-systems.net/dusrm/m-9.html"
   }
 }

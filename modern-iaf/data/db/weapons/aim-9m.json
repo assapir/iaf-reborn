@@ -8,7 +8,7 @@
   "kg": 86,
   "power": 400,
   "blast_m": 9,
-  "drag": 0,
+  "drag": 1.8,
   "motion": {
     "_chaseType": 2.0,
     "_absAcceleration": 120.0,
@@ -22,7 +22,7 @@
     "kg": "ds-aim9",
     "power": "inferred",
     "blast_m": "ds-aim9",
-    "drag": "open",
+    "drag": "w-aim9, inferred",
     "motion._chaseType": "inferred",
     "motion._absAcceleration": "inferred",
     "motion._spiralAccelBeta": "inferred, ds-aim9",
@@ -38,7 +38,7 @@
     "generation": "the third generation (weapons.ibx's generations: 1983-1995)",
     "power": "one hit destroys a fighter of strength 300 (our damage scale)",
     "blast_m": "the AIM-9A / B's effective kill radius, about 9 m (the AIM-9M's is not published)",
-    "drag": "carriage drag: none until a source gives one",
+    "drag": "carriage drag index (10^4 x the drag coefficient on the F-16's 300 sq ft wing, flight-model.md §9.18): 0.4 x its 0.127 m across (w-aim9) frontal area, 0.4 the drag of a finned missile on its launcher rail on that area (inferred); the F-16 manual's published indices were not at hand",
     "motion._chaseType": "2 = proportional navigation",
     "motion._absAcceleration": "Mach 0.7 to Mach 2.5 in about 5 s of motor burn (the burn time is open)",
     "motion._spiralAccelBeta": "top speed a / beta = Mach 2.5 (851 m/s): 120 / 851",
@@ -47,6 +47,7 @@
   },
   "footnotes": {
     "ds-aim9": "designation-systems.net, \"Raytheon AIM-9 Sidewinder\" (AIM-9L / M 86 kg, Mach 2.5+; AIM-9A / B effective kill radius about 9 m), https://www.designation-systems.net/dusrm/m-9.html",
-    "f16net": "F-16.net, \"AIM-9 Sidewinder\" (AIM-9L / M / P 17.7 km), https://www.f-16.net/f-16_armament_article1.html"
+    "f16net": "F-16.net, \"AIM-9 Sidewinder\" (AIM-9L / M / P 17.7 km), https://www.f-16.net/f-16_armament_article1.html",
+    "w-aim9": "Wikipedia, \"AIM-9 Sidewinder\" (0.127 m body diameter), https://en.wikipedia.org/wiki/AIM-9_Sidewinder"
   }
 }

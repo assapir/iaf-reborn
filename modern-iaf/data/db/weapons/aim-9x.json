@@ -8,7 +8,7 @@
   "kg": 85,
   "power": 400,
   "blast_m": 9,
-  "drag": 0,
+  "drag": 1.8,
   "motion": {},
   "sim": 1001,
   "range_km": 17.7,
@@ -20,7 +20,7 @@
   "sources": {
     "power": "inferred",
     "blast_m": "open",
-    "drag": "open",
+    "drag": "w-aim9, inferred",
     "kg": "f16net-aim9",
     "length_m": "f16net-aim9",
     "diameter_m": "w-aim9",
@@ -31,7 +31,7 @@
   },
   "notes": {
     "number": "ours",
-    "drag": "carriage drag: none until a source gives one",
+    "drag": "carriage drag index (10^4 x the drag coefficient on the F-16's 300 sq ft wing, flight-model.md §9.18): 0.4 x its 0.127 m across (w-aim9) frontal area, 0.4 the drag of a finned missile on its launcher rail on that area (inferred); the F-16 manual's published indices were not at hand",
     "motion": "the reader's defaults",
     "sim": "the sim flies modern_weapons.gd's record 1001, built on its base record, in its place (loadout::sim_load)",
     "power": "as the AIM-9M (our damage scale)",

@@ -603,7 +603,7 @@ fn fuel_tanks_and_a_dead_engine() {
 fn top_speeds_meet_the_published_figures() {
     // The wave-drag fit's pin (§9.15): each jet's level top speed at its reference weight within 5 % of the figure it
     // was fit to. Sea level: the F-16s' Mach 1.2. 40,000 ft: the F-16s' 2.0, the Adir's 1.6, the Ra'am's 2.0.
-    let mach = |j: &Jet, alt: f64| iaf_flight::sixdof::flight::top_speed(j, alt) / air(alt as f32).sound as f64;
+    let mach = |j: &Jet, alt: f64| iaf_flight::sixdof::flight::top_speed(j, alt, 0.0) / air(alt as f32).sound as f64;
     let hi = 40_000.0 * iaf_flight::sixdof::FT;
     let [barak, sufa, adir, raam] = jets::all();
     for (j, sl, high) in [(barak, Some(1.2), 2.0), (sufa, Some(1.2), 2.0), (adir, None, 1.6), (raam, None, 2.0)] {
@@ -624,7 +624,7 @@ fn fit_wave_drag() {
     // sea-level figure, and the Adir's 700 kt is the F-35A's placard (its 40,000 ft Mach 1.6 is the
     // thrust-limited figure, inferred): both take the Barak's k, w from 40,000 ft.
     let sound = |alt: f64| air(alt as f32).sound as f64;
-    let mach = |j: &Jet, alt: f64| iaf_flight::sixdof::flight::top_speed(j, alt) / sound(alt);
+    let mach = |j: &Jet, alt: f64| iaf_flight::sixdof::flight::top_speed(j, alt, 0.0) / sound(alt);
     let bisect = |lo: f64, hi: f64, f: &dyn Fn(f64) -> f64| {
         // f decreasing in x; the root of f(x) = 0.
         let (mut lo, mut hi) = (lo, hi);
@@ -761,4 +761,39 @@ fn approach_speed_against_the_manual() {
         assert!((v13 - m).abs() <= 5.0, "{weight} lb, 13°: {v13} against {m}");
         assert!((v11 - m - 8.0).abs() <= 5.0, "{weight} lb, 11°: {v11} against {}", m + 8.0);
     }
+}
+
+#[test]
+fn stores_drag_follows_the_drag_index() {
+    // Two 370 gal tanks (modern-iaf/data/db/weapons/tank-370.json's drag index, §9.18) cost each jet the same drag
+    // force at the same speed: q̄ × the F-16's 300 ft² × the index × 10⁻⁴, whatever its own wing. The Sufa's top speed
+    // and its cruise fuel flow follow.
+    use iaf_flight::sixdof::flight::{level_trim, top_speed};
+    let path = concat!(env!("CARGO_MANIFEST_DIR"), "/../../modern-iaf/data/db/weapons/tank-370.json");
+    let tank: serde_json::Value = serde_json::from_slice(&std::fs::read(path).unwrap()).unwrap();
+    let di = tank["drag"].as_f64().unwrap();
+    assert!(di > 10.0, "a 370 gal tank's index: {di}");
+    let cd = 2.0 * di * 1e-4;
+    let (alt, v) = (10_000.0 * FT, 400.0 * KT);
+    let qbar = 0.5 * rho(alt) * v * v;
+    let want = qbar * jets::DI_AREA * cd;
+    let [barak, sufa, adir, _] = jets::all();
+    for j in [barak, sufa, adir] {
+        let clean = level_trim(&j, &j.airframe, alt, v, 0.0);
+        let tanks = level_trim(&j, &j.airframe, alt, v, cd);
+        let d = tanks.thrust_needed - clean.thrust_needed;
+        println!("{}: +{d:.0} N (want {want:.0}) at 400 kt, 10,000 ft", j.name);
+        assert!((d / want - 1.0).abs() < 0.03, "{}: {d} against {want}", j.name);
+    }
+    let sound = air(0.0).sound as f64;
+    let (m0, m1) = (top_speed(&sufa, 0.0, 0.0) / sound, top_speed(&sufa, 0.0, cd) / sound);
+    println!("Sufa at sea level: Mach {m0:.3} clean, {m1:.3} with two 370 gal tanks");
+    assert!(m1 < m0 - 0.01, "{m0} {m1}");
+    let ff = |t: f64| Engine { power: 0.0 }.fuel_flow(&sufa.engine, t, alt);
+    let (f0, f1) = (
+        ff(level_trim(&sufa, &sufa.airframe, alt, v, 0.0).thrust_needed),
+        ff(level_trim(&sufa, &sufa.airframe, alt, v, cd).thrust_needed),
+    );
+    println!("Sufa cruise fuel flow: {f0:.3} → {f1:.3} kg/s");
+    assert!(f1 > f0 * 1.05, "{f0} {f1}");
 }

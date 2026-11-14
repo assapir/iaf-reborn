@@ -8,7 +8,7 @@
   "kg": 105,
   "power": 400,
   "blast_m": 9,
-  "drag": 0,
+  "drag": 2.9,
   "motion": {},
   "sim": 1002,
   "range_km": 20,
@@ -19,7 +19,7 @@
   "sources": {
     "power": "inferred",
     "blast_m": "open",
-    "drag": "open",
+    "drag": "w-python, inferred",
     "kg": "w-python",
     "length_m": "w-python",
     "diameter_m": "w-python",
@@ -29,7 +29,7 @@
   },
   "notes": {
     "number": "ours",
-    "drag": "carriage drag: none until a source gives one",
+    "drag": "carriage drag index (10^4 x the drag coefficient on the F-16's 300 sq ft wing, flight-model.md §9.18): 0.4 x its 0.160 m across (w-python) frontal area, 0.4 the drag of a finned missile on its launcher rail on that area (inferred); the F-16 manual's published indices were not at hand",
     "motion": "the reader's defaults",
     "power": "one hit destroys a fighter of strength 300, as the AIM-9M (our damage scale)",
     "blast_m": "the AIM-9M's 9 m until a source gives the Python 5's",

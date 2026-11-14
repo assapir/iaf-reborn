@@ -11,6 +11,11 @@ use crate::Vec3;
 use crate::atmosphere::air;
 use crate::units::{FT, G, LB};
 
+/// The area a drag index is referenced to, m²: the F-16's 300 ft² wing ("a store drag index is also referenced to
+/// wing area", F-16.net, modern-iaf/docs/flight-model.md §9.18). On a jet with another wing the same store's ΔCD is
+/// the index × 10⁻⁴ × this / its own area.
+pub const DI_AREA: f64 = 300.0 * FT * FT;
+
 /// One jet.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Jet {
@@ -199,7 +204,8 @@ pub struct Controls {
     pub wheels: Wheels,
     /// The gear is down (retracted: no struts).
     pub gear_down: bool,
-    /// The external stores' ΔCD (the game's stores drag index, ×1e-4 applied, as the original adds it).
+    /// The external stores' drag index × 10⁻⁴ (the game's, as the original adds it): ΔCD on the F-16's wing
+    /// ([`DI_AREA`]).
     pub stores_cd: f64,
     /// The engines give thrust (off: none, at any Mach).
     pub engine_on: bool,
@@ -215,6 +221,11 @@ impl Jet {
         let a = &mut self.airframe;
         (a.mass, a.ix, a.iy, a.iz, a.ixz) = (a.mass * k, a.ix * k, a.iy * k, a.iz * k, a.ixz * k);
         self
+    }
+
+    /// The stores' ΔCD on this jet's wing from their drag index × 10⁻⁴ ([`DI_AREA`]).
+    pub fn stores_dcd(&self, di_cd: f64) -> f64 {
+        di_cd * DI_AREA / self.airframe.s
     }
 
     pub fn aspect_ratio(&self) -> f64 {
@@ -261,7 +272,7 @@ impl Jet {
         let mut coeffs = coefficients(&flow, &c.surfaces, &self.airframe);
         compressibility(&mut coeffs, mach, flow.alpha, self.aspect_ratio(), self.wave_drag);
         // The gear's drag, ΔCD 0.02 (FM-0's LandingGearDragIndex, inferred), and the stores'.
-        add_drag(&mut coeffs, if c.gear_down { 0.02 } else { 0.0 } + c.stores_cd, flow.alpha);
+        add_drag(&mut coeffs, if c.gear_down { 0.02 } else { 0.0 } + self.stores_dcd(c.stores_cd), flow.alpha);
         let (fa, ma) = force_moment(&coeffs, qbar, &self.airframe);
         let thrust = if c.engine_on { engine.thrust(&self.engine, mach, alt) * self.engines as f64 } else { 0.0 };
         let (fg, mg, loads) = if c.gear_down {

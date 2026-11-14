@@ -8,7 +8,7 @@
   "kg": 187,
   "power": 1500,
   "blast_m": 30,
-  "drag": 0,
+  "drag": 7.7,
   "motion": {},
   "sim": 1012,
   "range_km": 250,
@@ -21,7 +21,7 @@
   "sources": {
     "power": "inferred",
     "blast_m": "open",
-    "drag": "open",
+    "drag": "w-delilah, inferred",
     "kg": "w-delilah",
     "length_m": "w-delilah",
     "diameter_m": "w-delilah",
@@ -32,7 +32,7 @@
   },
   "notes": {
     "number": "ours",
-    "drag": "carriage drag: none until a source gives one",
+    "drag": "carriage drag index (10^4 x the drag coefficient on the F-16's 300 sq ft wing, flight-model.md §9.18): 0.25 x its 0.330 m across (w-delilah) frontal area, 0.25 the drag of a body with a guidance kit (strakes, folded wings) on its pylon on that area (inferred); the F-16 manual's published indices were not at hand",
     "motion": "the reader's defaults",
     "kind": "a turbojet cruise missile, compiled as a bomb (the engine has no air-to-ground missile kind); the sim flies it as a GPS-guided weapon (sim)",
     "power": "30 kg warhead at 50 points a kilogram (our damage scale)",

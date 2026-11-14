@@ -230,6 +230,8 @@ static func add_to(db: RefCounted) -> void:
 			var k := float(spec.fill_kg) / MK84_FILL_KG
 			w.power = float(base.power) * k
 			w.radius = float(base.radius) * pow(k, 1.0 / 3.0)
+		# A record of the same name in the database (Modern IAF's own, data/db/weapons) gives its carriage drag index.
+		w.drag = float(by_name.get(spec.name, base).get("drag", w.get("drag", 0.0)))
 		if spec.has("gps"):
 			w.gps = spec.gps
 		elif spec.has("mach"):

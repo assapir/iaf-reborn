@@ -651,7 +651,7 @@ before. The autopilot drives either through the `autopilot::Host` trait (the `Ai
   F100-PW-229 0.76 / 1.94, F110-GE-100 0.64 / 2.05, F135 0.79 / 2.0 lb/lbf/h, the REAL rows' fuel flows over the
   ratings), never below the idle flow (military's TSFC × the static idle thrust × the density ratio, inferred); the
   mass and the inertia fall with the fuel (fuel and stores at the c.g., inferred). The game's stores add their mass,
-  and their drag index as ΔCD (as the original adds it). Drop tanks fill at the start and the jettison sets the fuel
+  and their drag index × 10⁻⁴ as ΔCD on the F-16's 300 ft² wing (§9.18). Drop tanks fill at the start and the jettison sets the fuel
   and its maximum, as `Aircraft::set_fuel_capacity` / `set_fuel`. A dead engine gives no thrust.
 * **Mach** (inferred: TP-1538 is low-speed data and no public F-16 table covers high Mach): the normal force × the
   lift-curve slope's Mach factor of a wing of the jet's aspect ratio (DATCOM's subsonic 2πA / (2 + √(4 + A²(1 − M²)))
@@ -855,6 +855,36 @@ about 20 kt faster than before, and opening the speed brake no longer adds lift:
 Open: FM-0 (§3) still takes TP-1538's ΔCX,sb at α 5° (0.036) as the speed brake's drag index; the speed brake's 43°
 limit with the gear down (§9.6).
 
+### 9.18 Stores drag (2026-11-14)
+
+Every store, rack and tank carries a drag index (`drag` in `modern-iaf/data/db/weapons/*.json`, `rack_drag` in the
+units' `allowed` racks). A drag index is 10⁴ × the drag coefficient referenced to the F-16's wing area, and a store's
+index is referenced to that area too[^f16net-di]. The game sums them per side (`stores.rs` `init_weight_drag`) and the
+6-DoF adds the sum × 10⁻⁴ × 300 ft² / the jet's own wing area as ΔCD along the flow (`Jet::stores_dcd`): a store
+costs every jet the same drag force at the same speed. Stores inside the F-35I's bays add none (the unit's
+`internal` stations, `loadout::sim_load`'s fifth value).
+
+The F-16 manual's published indices were not at hand, so each index is inferred from the store's sourced diameter:
+10⁴ × C × its frontal area / 300 ft², C the installed drag of its shape on that area (inferred): 0.15 a streamlined
+tank on its pylon, 0.20 a finned low-drag bomb on its pylon, 0.25 a body with a guidance kit, 0.40 a finned missile on
+its rail. A rack counts as one of its stores. The index holds at every Mach (as the original's); a store's own wave
+drag above Mach 1 is not modelled. The same `drag` field also feeds the HUD's bomb impact prediction (`bombs.rs`
+`predict_impact`, as m/s off the nose, the original's rule), and the falling bomb is solved to meet that point, so
+the pipper and the impact stay together.
+
+| store | index | store | index |
+|---|---|---|---|
+| AIM-9M / AIM-9X | 1.8 | GBU-38 | 5.3 |
+| AIM-120 | 3.6 | GBU-39 | 2.5 |
+| Python 5 | 2.9 | SPICE 1000 | 8.6 |
+| Mk 82 | 4.2 | SPICE 2000 | 14.8 |
+| Mk 83 | 6.9 | Delilah | 7.7 |
+| Mk 84 | 11.8 | 370 gal tank | 19.1 |
+| GBU-31 | 14.9 | 600 gal tank | 26.4 |
+
+Result (`stores_drag_follows_the_drag_index`, tests/sixdof.rs): two 370 gal tanks add the same drag force to all three
+jets at 400 kt and 10,000 ft (within 3 %), cut the Sufa's sea-level top speed and raise its cruise fuel flow.
+
 [^tp1538]: L. T. Nguyen, M. E. Ogburn, W. P. Gilbert, K. S. Kibler, P. W. Brown, P. L. Deal, "Simulator Study of
     Stall/Post-Stall Characteristics of a Fighter Airplane With Relaxed Longitudinal Static Stability", NASA
     TP-1538, December 1979 (public domain, a work of the U.S. Government): https://ntrs.nasa.gov/citations/19800005879
@@ -908,3 +938,6 @@ limit with the gear down (§9.6).
     two figures taken): https://github.com/NikolaiVChr/f16
 [^aim120]: designation-systems.net, "Raytheon AIM-120 AMRAAM" (AIM-120A/B 157 kg), as cited in docs/real-weapons.md:
     https://www.designation-systems.net/dusrm/m-120.html
+[^f16net-di]: F-16.net forum, "Drag index calculation", posts by johnwill, 8 and 10 January 2011 ("A drag index for a
+    clean F-16 is the drag coefficient at 0.8 mach using the reference area of the F-16"; "a store drag index is also
+    referenced to wing area"): https://www.f-16.net/forum/viewtopic.php?p=188297

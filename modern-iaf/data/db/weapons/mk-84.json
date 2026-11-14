@@ -8,13 +8,13 @@
   "kg": 925,
   "power": 21450,
   "blast_m": 100,
-  "drag": 0,
+  "drag": 11.8,
   "motion": {},
   "sources": {
     "kg": "w-mk84",
     "power": "inferred, w-mk84",
     "blast_m": "open",
-    "drag": "open"
+    "drag": "w-mk84, inferred"
   },
   "notes": {
     "number": "ours; modern_weapons.gd finds its base by the name",
@@ -22,10 +22,10 @@
     "name": "the base of the GBU-31, BLU109, GBU-39 and GBU-28 (modern_weapons.gd RECORDS)",
     "power": "429 kg of tritonal at 50 points a kilogram (our damage scale)",
     "blast_m": "no public lethal radius found: 100 m held until one is",
-    "drag": "carriage drag: none until a source gives one",
+    "drag": "carriage drag index (10^4 x the drag coefficient on the F-16's 300 sq ft wing, flight-model.md §9.18): 0.2 x its 0.458 m across (w-mk84) frontal area, 0.2 the drag of a finned low-drag bomb on its pylon on that area (inferred); the F-16 manual's published indices were not at hand",
     "motion": "the reader's defaults (a bomb falls ballistic)"
   },
   "footnotes": {
-    "w-mk84": "Wikipedia, \"Mark 84 bomb\" (2,039 lb, 925 kg; 945 lb, 429 kg of tritonal), https://en.wikipedia.org/wiki/Mark_84_bomb"
+    "w-mk84": "Wikipedia, \"Mark 84 bomb\" (2,039 lb, 925 kg; 18 in, 0.458 m across; 945 lb, 429 kg of tritonal), https://en.wikipedia.org/wiki/Mark_84_bomb"
   }
 }
