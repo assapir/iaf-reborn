@@ -27,6 +27,12 @@ MiGs' guns use; [../../docs/f35i.md](../../docs/f35i.md) §3): 11 rounds a tick,
 `iaf-sim db` refuses a unit that has an `airframe` (a flyable jet) and no gun count, so no jet flies with an empty or
 endless gun.
 
+The rounds fly the shared Weapon data Real ballistics (the sim fixes `weapon_data` "real"): the jet's velocity plus
+the muzzle velocity, the M56's drag (sea-level 3,450 → 1,677 ft/s over 1,000 m, fitted to the GD-OTS chart) scaled
+by the air density, and gravity. The HUD's EEGS funnel reads the same time of flight, so a round passes through the
+funnel's centre at its range. The GAU-22/A's 25 mm round flies the M56's drag (inferred: no public drag figure for
+the PGU-47 / PGU-48). Figures, sources and tests: [../../docs/real-weapons.md](../../docs/real-weapons.md) §1.4.
+
 ## 2. The gun's and the effects' art
 `iaf-sim own` draws the gun's art and the effects' sprites from formulas (no source image; ours: the gun's in
 `crates/iaf-tools/src/sim.rs`, the effects' in `sim_effects.rs`) into the original's resource layout,

@@ -6,6 +6,7 @@
 //! World frame X east, Y north, Z up, metres, sim seconds.
 
 use crate::vec3::Vec3;
+use iaf_flight::units::G;
 use std::f64::consts::PI;
 
 /// v1.1 (`FUN_00456ff0`): the player's shot line is the nose pitched 1° up (v1.0: the nose).
@@ -32,6 +33,27 @@ const NO_TERRAIN_Z: f64 = 0.1;
 const REAL_DISPERSION: f64 = 0.004;
 /// Weapon data Real with Easy aiming: the real hit volume doubled (ours).
 const REAL_EASY_FACTOR: f64 = 2.0;
+/// Weapon data Real: the round's drag per metre of path at sea level, k = ρ·Cd·A / 2m in v = v₀·e^(−k·x). Fitted to
+/// the M50-series (M56 HEI) velocity-vs-range chart: 3,450 ft/s at the muzzle, 1,677 ft/s at 1,000 m (GD-OTS data
+/// sheet, read off the chart; docs/real-weapons.md §1.4). Constant Cd (≈ 0.39 for the 100 g, 20 mm projectile) is
+/// inferred; every gun's round flies it (inferred: no drag source for the other calibres).
+pub const REAL_DRAG_K_SL: f64 = 7.43e-4;
+
+/// Weapon data Real: the round's drag per metre at height `z` (m), scaled by the ISA density.
+pub fn real_drag_k(z: f64) -> f64 {
+    REAL_DRAG_K_SL * f64::from(iaf_flight::atmosphere::air(z as f32).rho) / 1.225
+}
+
+/// Weapon data Real: the time a round launched at `s` (m/s) with drag `k` (per metre) takes to fly `dist` metres of
+/// path (`k` 0: no drag).
+pub fn real_time_of_flight(s: f64, dist: f64, k: f64) -> f64 {
+    if k > 0.0 { (k * dist).exp_m1() / (k * s.max(1.0)) } else { dist / s.max(1.0) }
+}
+
+/// Weapon data Real: the path a round launched at `s` with drag `k` has flown after `t` seconds.
+fn real_path(s: f64, t: f64, k: f64) -> f64 {
+    if k > 0.0 { (k * s * t).ln_1p() / k } else { s * t }
+}
 
 /// The first terrain point on the segment `p0` → `a` (`FUN_004020d0`; ours: steps of 2 % of the distance, at least
 /// 25 m, then 8 halvings), None when it is clear.
@@ -110,7 +132,8 @@ impl Default for Motion {
     }
 }
 
-/// A round's flight: from `p0` along `u` at speed `s` (from `t0`), at `a` from `t_end`.
+/// A round's flight: from `p0` along `u` at speed `s` (from `t0`), at `a` from `t_end`. `k` > 0: Weapon data Real's
+/// ballistic round (drag `k` per metre along `u`, and gravity) in place of the 1998 straight line.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Flight {
     pub p0: Vec3,
@@ -119,14 +142,20 @@ pub struct Flight {
     pub t0: f64,
     pub t_end: f64,
     pub a: Vec3,
+    pub k: f64,
 }
 
 impl Motion {
     /// The aim point A: HUD mode 4 (AG gun) leads with the round's flight time _limitDist / _limitVel and gravity;
-    /// any other mode aims 2781 m down the shot line.
+    /// any other mode aims 2781 m down the shot line. Weapon data Real: the AG point is where the real round is at
+    /// the same lead time (the AG pipper; the shot itself aims down the shot line, `player_weapons.gd`).
     pub fn aim_point(&self, p: Vec3, vel: Vec3, d: Vec3, ag_mode: bool) -> Vec3 {
         if !ag_mode {
             return p + d * AIM_DISTANCE;
+        }
+        if self.real_hits {
+            let f = self.real_flight(0.0, p, vel, p + d * self.limit_dist);
+            return self.position(&Flight { t_end: f64::INFINITY, ..f }, self.limit_dist / self.limit_vel);
         }
         let t = self.limit_dist / self.limit_vel;
         (p + (vel + d * self.velocity_jump) * t).raised(-HALF_G * t * t)
@@ -159,7 +188,19 @@ impl Motion {
     pub fn flight(&self, t0: f64, p0: Vec3, s: f64, a: Vec3) -> Flight {
         let d = a - p0;
         let u = d.try_normalize().unwrap_or(Vec3::NORTH);
-        Flight { p0, u, s, t0, t_end: t0 + self.flight_time(s, d.length()), a }
+        Flight { p0, u, s, t0, t_end: t0 + self.flight_time(s, d.length()), a, k: 0.0 }
+    }
+
+    /// Weapon data Real (the gun): the round leaves `p0` with the jet's velocity `vel` plus the muzzle velocity along
+    /// the line to `aim`, slows by its drag and falls under gravity, and ends when it has flown the path to `aim`.
+    pub fn real_flight(&self, t0: f64, p0: Vec3, vel: Vec3, aim: Vec3) -> Flight {
+        let line = (aim - p0).try_normalize().unwrap_or(Vec3::NORTH);
+        let v0 = vel + line * self.velocity_jump;
+        let s = v0.length();
+        let k = real_drag_k(p0.z);
+        let mut f = Flight { p0, u: v0 / s, s, t0, t_end: t0 + real_time_of_flight(s, p0.distance(aim), k), a: aim, k };
+        f.a = self.position(&Flight { t_end: f64::INFINITY, ..f.clone() }, f.t_end);
+        f
     }
 
     /// Position on a flight at `t` (`FUN_00466fc0`): p0 + v0·dt + ½a·dt² along u until t_end, then A.
@@ -168,6 +209,9 @@ impl Motion {
             return f.a;
         }
         let dt = t - f.t0;
+        if f.k > 0.0 {
+            return (f.p0 + f.u * real_path(f.s, dt, f.k)).raised(-0.5 * G * dt * dt);
+        }
         let a = self.abs_accel;
         let along = match self.time_to_limit(f.s) {
             None => f.s * dt,
@@ -246,8 +290,11 @@ pub struct Rounds {
 }
 
 impl Rounds {
+    /// Weapon data Real: a pool of at least 64, as the ballistic rounds fly ~5 s to the end of their path and the
+    /// original's 20 would stop a 6,000 rpm gun (20 rounds a 0.2 s tick share a slot; ours).
     pub fn new(motion: Motion) -> Self {
-        Rounds { motion, pool: vec![None; motion.pool_size], next: 0, last_list: None }
+        let n = if motion.real_hits { motion.pool_size.max(64) } else { motion.pool_size };
+        Rounds { motion, pool: vec![None; n], next: 0, last_list: None }
     }
 
     /// The pool's slots; None = free.
@@ -285,7 +332,11 @@ impl Rounds {
             _ => shot.aim,
         };
         let aim = launch_aim(&self.motion, shot.muzzle, aim, candidates.is_empty(), terrain);
-        let flight = self.motion.flight(now, shot.muzzle, shot.velocity.length() + self.motion.velocity_jump, aim);
+        let flight = if self.motion.real_hits {
+            self.motion.real_flight(now, shot.muzzle, shot.velocity, aim)
+        } else {
+            self.motion.flight(now, shot.muzzle, shot.velocity.length() + self.motion.velocity_jump, aim)
+        };
         self.pool[slot] = Some(Round {
             flight,
             candidates,
@@ -504,11 +555,16 @@ mod tests {
         // A fighter (half-span 5 m) 1000 m out, 5 m / 10 m off the line, between two 0.1 s checks (~140 m apart).
         let real = Motion { real_hits: true, ..gun() };
         let aim = Vec3::new(0.0, 2781.0, 100.0);
+        // The round's height where it passes y = 1070 m (it falls under gravity).
+        let f = real.real_flight(0.0, Vec3::new(0.0, 0.0, 100.0), Vec3::new(0.0, 200.0, 0.0), aim);
+        let t = real_time_of_flight(f.s, 1070.0, f.k);
+        let z = real.position(&f, t).z;
+        assert!((90.0..99.0).contains(&z), "{z}: below the line");
         let fly = |off: f64, easy: bool| {
             let mut g = Rounds::new(real);
-            let bodies = [body("u", off, 1070.0, 100.0)];
+            let bodies = [body("u", off, 1070.0, z)];
             g.fire(0.0, &shot(aim, easy), &bodies, &|_| None);
-            g.step(3.0, &bodies, &|_| Some(0.0)).map(|d| d.hit)
+            g.step(8.0, &bodies, &|_| Some(-1e4)).map(|d| d.hit)
         };
         // 1000 m: 5 m + 4 m of dispersion = 9 m.
         assert!(matches!(fly(5.0, false), Some(Hit::Unit { ref key, .. }) if key == "u"), "5 m off: a hit");
@@ -519,6 +575,33 @@ mod tests {
         let bodies = [body("u", 0.0, 1070.0, 100.0)];
         g.fire(0.0, &shot(aim, false), &bodies, &|_| None);
         assert_eq!(g.step(3.0, &bodies, &|_| Some(0.0)).map(|d| d.hit), Some(Hit::End));
+    }
+
+    #[test]
+    fn real_rounds_slow_and_fall_as_the_m56() {
+        // GD-OTS M50 series chart: 3,450 ft/s at the muzzle, 1,677 ft/s at 1,000 m (sea level). Tolerance 5 %.
+        let real = Motion { real_hits: true, velocity_jump: 3450.0 * 0.3048, ..gun() };
+        let p0 = Vec3::new(0.0, 0.0, 0.0);
+        let f = real.real_flight(0.0, p0, Vec3::ZERO, Vec3::new(0.0, 2781.0, 0.0));
+        let t = real_time_of_flight(f.s, 1000.0, f.k);
+        let v = f.s / (1.0 + f.k * f.s * t);
+        assert!((v / (1677.0 * 0.3048) - 1.0).abs() < 0.05, "{v} m/s at 1,000 m");
+        let p = real.position(&f, t);
+        assert!((p.y - 1000.0).abs() < 1e-6 && (p.z + 0.5 * G * t * t).abs() < 1e-9, "{p:?}: gravity, t {t}");
+        assert!((1.3..1.5).contains(&t), "{t} s to 1,000 m, not the 1998 0.97 s");
+        // Thinner air at 30,000 ft: less drag, an earlier arrival.
+        let high = real.real_flight(0.0, Vec3::new(0.0, 0.0, 9144.0), Vec3::ZERO, Vec3::new(0.0, 2781.0, 9144.0));
+        assert!(real_time_of_flight(high.s, 1000.0, high.k) < t - 0.2);
+        // The end of flight is the round's own point, gravity included; the 1998 gun stays a straight line.
+        assert!(f.a.z < -50.0, "{:?}", f.a);
+        let old = gun().flight(0.0, p0, 1400.0, Vec3::new(0.0, 2781.0, 0.0));
+        assert_eq!(old.k, 0.0);
+        assert_eq!(gun().position(&old, 1.0).z, 0.0);
+        // The AG pipper of a real gun: the round's point at the lead time 4500 / 800 = 5.6 s, its drop ½·g·t² below
+        // the shot line, short of the drag-free 4500 m.
+        let pip = real.aim_point(p0, Vec3::new(0.0, 200.0, 0.0), Vec3::NORTH, true);
+        let t = 4500.0 / 800.0;
+        assert!((pip.z + 0.5 * G * t * t).abs() < 1e-6 && (1500.0..4500.0).contains(&pip.y), "{pip:?}");
     }
 
     #[test]

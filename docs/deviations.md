@@ -175,7 +175,10 @@ Each entry names the switch and where it lives, then the difference: "Original: 
   comes from the distance the missile really flies, not the original's formula (real-weapons.md §2). The gun hits
   when the round's path passes within the target's drawn half-span + 0.004 · range (×2 with Easy aiming), not the
   original's 25 m sphere at each 0.1 s check; the missiles and SAMs with a published lethal radius get a blast
-  radius from it (real-weapons.md §1.4).
+  radius from it (real-weapons.md §1.4). The gun's rounds fly a ballistic path (the jet's velocity plus the muzzle
+  velocity, the M56's drag, gravity) in place of the original's straight line, and the A-G gun pipper shows where the
+  round is after `_limitDist` (real-weapons.md §1.4). The Real HUD's EEGS funnel takes the same round's time of
+  flight with either Weapon data (2026-11-14).
 - **RWR (Original / Real).** Original: the RWR shows a ground site only once it locks the jet or launches at it.
   Ours, with Real (`rwr_search`): it also shows the hostile SAM / AAA radars searching the jet, within their radar's
   range and in terrain line of sight, as steady symbols with WRN_NEW_GUY when a new one appears; terrain masking

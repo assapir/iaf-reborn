@@ -16,7 +16,7 @@ fn bodies(keys: &PackedStringArray, positions: &PackedVector3Array, spans: &Pack
 }
 
 fn flight(f: &Flight) -> VarDictionary {
-    vdict! { "p0" => vector3(f.p0), "u" => vector3(f.u), "s" => f.s, "t0" => f.t0, "t_end" => f.t_end, "A" => vector3(f.a) }
+    vdict! { "p0" => vector3(f.p0), "u" => vector3(f.u), "s" => f.s, "t0" => f.t0, "t_end" => f.t_end, "A" => vector3(f.a), "k" => f.k }
 }
 
 #[derive(GodotClass)]
@@ -59,6 +59,12 @@ impl IafRounds {
         self.motion().velocity_jump
     }
 
+    /// Weapon data Real: the time (s) a round launched at `s` m/s from height `z` m takes to fly `dist` m of path.
+    #[func]
+    fn real_time_of_flight(s: f64, dist: f64, z: f64) -> f64 {
+        gun::real_time_of_flight(s, dist, gun::real_drag_k(z))
+    }
+
     /// The shot line: the nose 1° up for the player (`FUN_00456ff0`).
     #[func]
     fn shot_dir(nose: Vector3, up: Vector3) -> Vector3 {
@@ -79,12 +85,13 @@ impl IafRounds {
         flight(&m.flight(t0, vec3(p0), s, a))
     }
 
-    /// A flight's position at `t` ({p0, u, s, t0, t_end, A}, as `slots()` gives them).
+    /// A flight's position at `t` ({p0, u, s, t0, t_end, A, k}, as `slots()` gives them; k > 0: Weapon data Real's
+    /// ballistic round).
     #[func]
     fn position(&self, f: VarDictionary, t: f64) -> Vector3 {
         let v = |k: &str| vec3(get(&f, k).unwrap_or_default());
         let s = |k: &str| get(&f, k).unwrap_or_default();
-        let fl = Flight { p0: v("p0"), u: v("u"), s: s("s"), t0: s("t0"), t_end: s("t_end"), a: v("A") };
+        let fl = Flight { p0: v("p0"), u: v("u"), s: s("s"), t0: s("t0"), t_end: s("t_end"), a: v("A"), k: s("k") };
         vector3(self.motion().position(&fl, t))
     }
 

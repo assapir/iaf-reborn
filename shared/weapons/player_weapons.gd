@@ -959,7 +959,8 @@ func _gun_shot() -> bool:
 		return false
 	var o := own()
 	var d: Vector3 = GunRounds.shot_dir(o.fwd, o.up)
-	var a: Vector3 = gun.aim_point(o.pos, o.vel, d, hud_mode == 4)
+	# Weapon data Real: the round flies the shot line and falls by its own ballistics (no AG lead in the aim).
+	var a: Vector3 = gun.aim_point(o.pos, o.vel, d, hud_mode == 4 and not db.real)
 	var me := _me()
 	gun.fire(
 		now,

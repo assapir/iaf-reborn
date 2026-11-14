@@ -898,7 +898,12 @@ func _fire_tick(u: Unit, now: float) -> void:
 		if dist > u.range_m:
 			return
 		var ft: float = dist / u.limit_vel
+		var real: bool = u.rounds != null and u.rounds.real
+		if real:  # Weapon data Real: the round slows by its drag (docs/real-weapons.md §1.4)
+			ft = u.rounds.real_time_of_flight(u.rounds.velocity_jump, dist, p.z)
 		aim = tp + tv * ft + 0.5 * acc * ft * ft
+		if real:  # and falls: aim above by its drop
+			aim.z += 0.5 * 9.80665 * ft * ft
 	elif int(u.w.type) in HOMING and host.weapons != null:
 		var env: Array = Missile.dlz(
 			host.weapons._motion(u.w), {"pos": p, "fwd": nose, "vel": Vector3.ZERO}, {"pos": tp, "vel": tv}

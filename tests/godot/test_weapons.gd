@@ -208,14 +208,24 @@ func run() -> void:
 	gr.detonate = func(_r, p, _c, h): det_r.append([p, h])
 	var shoot := func(t: float):
 		gr.fire(t, Vector3(0, 0, 100), Vector3(0, 0, 100), Vector3(0, 200, 0), Vector3(0, 2781, 100), "", "me", false)
+	# The real round falls under gravity and drag (§1.4): the target sits at the round's height where it passes 1070 m.
+	var at_1070 := func(t0: float) -> void:
+		var rec: Dictionary = gr.pool[gr.pool.find_custom(func(x): return x.flying and x.t0 == t0)]
+		var t := t0
+		while gr.position(rec, t).y < 1070.0:
+			t += 0.001
+		side.pos.z = gr.position(rec, t).z
 	shoot.call(0.0)
+	at_1070.call(0.0)
+	var fell: bool = side.pos.z < 95.0
 	gr.update(3.0)
 	var real_hit: bool = det_r.size() == 1 and det_r[0][1].get("key", "") == "u"
 	side.half_span = 2.0
 	shoot.call(4.0)
-	gr.update(7.0)
+	at_1070.call(4.0)
+	gr.update(12.0)
 	check(
-		real_hit and det_r.size() == 2 and det_r[1][1].is_empty(),
+		fell and real_hit and det_r.size() == 2 and not det_r[1][1].has("key"),
 		"Real gun: a 5 m half-span 8 m off the line is hit, a 2 m one missed"
 	)
 

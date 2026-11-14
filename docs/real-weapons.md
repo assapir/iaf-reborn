@@ -93,6 +93,25 @@ of the candidate's origin. The blast then goes off at that origin (a contact hit
 The original tests the round's point against a 25 m sphere (50 m with Easy aiming) at each check (docs/weapons.md
 §3.4).
 
+**The round's flight** (`Motion::real_flight`, gun.rs; since 2026-11-14). The round leaves the muzzle with the jet's
+velocity plus the muzzle velocity along the shot line, slows by quadratic drag and falls under gravity:
+
+  p(t) = muzzle + u · ln(1 + k·s·t) / k − ½·g·t² · up,  k = 7.43 × 10⁻⁴ /m × ρ(h) / ρ₀
+
+k is fitted to the M50-series chart (M56 HEI): 3,450 ft/s at the muzzle, 1,677 ft/s at 1,000 m at sea level (read off
+the velocity-vs-range chart; test: 5 %)[^m50]. The same k gives 2,145 ft/s at 662 m (chart 2,359) and 1,158 ft/s at
+1,493 m (chart 841): the round slows more than constant drag says below Mach 1 (inferred: the transonic drag rise), so
+the model is closest out to about 1,000 m, the gun's working range. Constant Cd (≈ 0.39 for the 100 g, 20 mm
+projectile), the density scaling with height (ISA) and every other calibre flying the M56's k are inferred. The round
+ends where it has flown the path to its aim point (2,781 m), at its own ballistic point. The A-G gun's pipper becomes
+the real round's point at the original's lead time `_limitDist` / `_limitVel`, and the shot aims down the shot line.
+The AAA and the AI's fixed guns lead their target by the real time of flight and aim above it by the drop
+(`combat.gd`); the AI jets' guns fire down their shot line as the player's. The EEGS
+funnel (real_hud `funnel_at`) takes its time of flight from the same function, so the funnel and the rounds agree:
+test `the_funnel_and_the_real_rounds_agree` (within 4 mrad at 1,000 m); `real_rounds_slow_and_fall_as_the_m56`
+(1,000 m in 1.41 s at sea level from a still jet, against 0.97 s for the 1998 round). Before: the round flew a straight
+line with no gravity (docs/weapons.md §3.4) while the funnel predicted a drop, about 5 m low-side at 1,000 m.
+
 - **0.004 · range:** the M61A1 puts 80 % of its rounds inside an 8 mrad circle (diameter)[^gdots], a 4 mrad radius:
   2 m at 500 m, 4 m at 1000 m. The DEFA's dispersion is open; it uses the same value (inferred).
 - **Half-span:** US 20 mm HEI uses the M505 point-detonating fuze, which fires on impact[^m505], so a round damages
@@ -580,3 +599,5 @@ Each real value lands in one field or rule of the original model:
     https://www.twz.com/israeli-f-35-shoots-down-cruise-missile
 [^fr1536]: US Federal Register 80 FR 31582, 3 June 2015, Transmittal No. 15-36 (Israel: JDAM kits "4,000 for Mk–82";
     "4,100 GBU–39"; "50 BLU–113 bombs"), https://www.govinfo.gov/content/pkg/FR-2015-06-03/pdf/2015-13478.pdf
+[^m50]: General Dynamics OTS, "20mm M50 Series (M53 API, M55 TP, M56 HEI)" data sheet, velocity vs. range chart and
+    muzzle velocity 3,450 ft/s at 78 ft: https://www.gd-ots.com/wp-content/uploads/2024/04/400002555-20mm-M50-Series-MED-CAL.pdf

@@ -16,6 +16,8 @@ var detonate: Callable
 var pool: Array = []
 ## The motion's _velocityJump (the decoys' launch speed over the jet's).
 var velocity_jump := 1200.0
+## Weapon data Real's gun: the rounds fall and slow (docs/real-weapons.md §1.4).
+var real := false
 
 var _r = ClassDB.instantiate("IafRounds")
 var _by_key := {}
@@ -26,10 +28,17 @@ var _by_key := {}
 func configure(m: Dictionary, type: int, real := false) -> void:
 	var mm := m.duplicate()
 	mm["real_hits"] = real
+	self.real = real and type == 565
 	_r.configure(mm, type)
 	velocity_jump = _r.velocity_jump()
 	pool.clear()
 	_sync()
+
+
+## Weapon data Real: the time a round fired at `s` m/s from height `z` takes to fly `dist` m (drag, docs/real-weapons.md
+## §1.4).
+static func real_time_of_flight(s: float, dist: float, z: float) -> float:
+	return ClassDB.class_call_static("IafRounds", "real_time_of_flight", s, dist, z)
 
 
 ## The shot line (FUN_00456ff0): the nose 1° up for the player.

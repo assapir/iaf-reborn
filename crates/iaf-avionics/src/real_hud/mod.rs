@@ -628,7 +628,8 @@ const MUZZLE: f64 = 1036.0;
 
 /// The EEGS funnel's centre at range `r_ft` for a load factor `g` (HUD px): where the rounds fired one time of flight
 /// ago are now — the gun line moved by the jet's pitch rate (n − cos φ)·g / V, and gravity — and the funnel's half
-/// width there (the wingspan at that range).
+/// width there (the wingspan at that range). The time of flight is Weapon data Real's round (`gun::real_time_of_flight`,
+/// drag at the jet's height), so the funnel and the real rounds agree.
 fn funnel_at(i: &Input, r_ft: f64, g: f64) -> (P, f64) {
     funnel_at_v(i, r_ft, g, MUZZLE)
 }
@@ -639,7 +640,7 @@ fn funnel_at_v(i: &Input, r_ft: f64, g: f64, muzzle: f64) -> (P, f64) {
     let roll = i.roll_deg.to_radians();
     let omega = (g - roll.cos()) * G / v;
     let r = r_ft * FT;
-    let t = r / (muzzle + v);
+    let t = crate::gun::real_time_of_flight(muzzle + v, r, crate::gun::real_drag_k(i.alt_ft * FT));
     let drop = gravity_drop(t, r);
     let down = (omega * t + drop * roll.cos()).to_degrees();
     let side = (drop * roll.sin()).to_degrees();
@@ -977,7 +978,7 @@ mod tests {
 
     #[test]
     fn the_f16_display_is_unchanged() {
-        assert_eq!(f16_fingerprint(), 3_469_542_054_221_360_665, "the F-16 Real HUD changed");
+        assert_eq!(f16_fingerprint(), 2_674_529_352_427_517_432, "the F-16 Real HUD changed");
     }
 
     #[test]
@@ -1005,6 +1006,24 @@ mod tests {
         let (near, far) = (lines[0].0, lines[lines.len() / 2 - 1].1);
         assert!(far.1 > near.1, "pulling 4 g: the far end of the funnel lower");
         assert!(far.0 > near.0, "the left line narrows toward the centre");
+    }
+
+    #[test]
+    fn the_funnel_and_the_real_rounds_agree() {
+        // Level 1 g at 250 m/s, 10,000 ft, wings level: at 1,000 m the funnel's centre sits where a Weapon data Real
+        // round fired along the gun line passes, within the M61A1's 4 mrad dispersion (GD-OTS).
+        use crate::gun::{Motion, real_time_of_flight};
+        let i = Input { g: 1.0, tas_ms: 250.0, alt_ft: 10_000.0, roll_deg: 0.0, ..input(Jet::F16) };
+        let r = 1000.0;
+        let (c, _) = funnel_at(&i, r / FT, 1.0);
+        let down_deg = (c.1 - i.gun_cross.1) / i.px_per_deg;
+        let m = Motion { real_hits: true, velocity_jump: MUZZLE, ..Motion::default() };
+        let p0 = crate::vec3::Vec3::new(0.0, 0.0, 10_000.0 * FT);
+        let f = m.real_flight(0.0, p0, crate::vec3::Vec3::new(0.0, 250.0, 0.0), p0 + crate::vec3::Vec3::NORTH * 2781.0);
+        let pos = m.position(&f, real_time_of_flight(f.s, r, f.k));
+        let round_down_deg = ((p0.z - pos.z) / r).atan().to_degrees();
+        assert!(round_down_deg > 0.3, "{round_down_deg}: the round falls");
+        assert!((down_deg - round_down_deg).abs().to_radians() < 0.004, "funnel {down_deg} vs round {round_down_deg}");
     }
 
     #[test]
@@ -1094,6 +1113,6 @@ mod f16_snapshot {
 
     #[test]
     fn the_f16_display_is_unchanged() {
-        assert_eq!(f16_frames_hash(), 6_752_931_299_143_333_302, "F-16 frames hash");
+        assert_eq!(f16_frames_hash(), 7_930_074_813_753_618_820, "F-16 frames hash");
     }
 }

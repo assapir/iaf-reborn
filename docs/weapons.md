@@ -312,7 +312,8 @@ The round flies at speed s = |V| + `_velocityJump` along u = (A − muzzle)/|A �
 at 10 m/s²:
 p(t) = muzzle + u·(s·dt − 5·dt²) until t_end = (s − √(s² − 20·dist))/10, then A.
 
-The path is a straight line: gravity and dispersion play no part. The hit radius is `_spiralAccel` 50 × **0.5** =
+The path is a straight line: gravity and dispersion play no part (Weapon data Real: a ballistic round with drag and
+gravity, docs/real-weapons.md §1.4). The hit radius is `_spiralAccel` 50 × **0.5** =
 **25 m**, and **50 m with Easy aiming** (v1.1; this is the only Easy-aiming effect on the gun).
 
 Every 0.1 s (`FUN_00560710`) the round detonates:
