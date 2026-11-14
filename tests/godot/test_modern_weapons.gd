@@ -33,7 +33,6 @@ const JETS := [
 	[4, 4, "barak", 1000, ["AIM-9X", "GBU-31", "GBU-32", "GBU-39"]],
 ]
 
-
 ## Weapon data Real moves each GPS bomb's aim by a random miss of its CEP (JDAM 5 m, docs/real-weapons.md §1.6): an
 ## aim within 5 CEPs (25 m; odds of a miss beyond it 3e-8) is the target it took.
 const CEP_TOL := 25.0
