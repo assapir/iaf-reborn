@@ -1456,7 +1456,8 @@ So the Hebrew pages use the same rects as §12.3–§12.6.
     (Original / Better, §19.4), RWR (Original / Real, docs/rwr.md §7), Briefing map (Original (1998) / Modern, §8), Bomb release (Original / Real, docs/weapons.md §9.10), MFDs (F-16) (Original (1998) / Real: the Barak's real MFD formats; the Sufa has them always, docs/mfd.md §9), Cockpit (Original 2D / 3D: the F-16's 3D front cockpit, docs/cockpit.md "3D cockpit"), Extra sounds (Off / Modern IAF set, docs/sound.md §7), Real Betty (Off / Modern IAF voices, docs/real-betty.md §7; both "Not built" without Modern IAF's sound set), World scale (docs/world-scale.md), Settings file. 8 rows show, with the Keyboard
     page's scrollbar beyond. DEFAULT resets every row except Language and Settings file.
   * **Settings file:** Export / Import through a native file dialog. Export writes the working copy as a
-    settings.cfg; Import stores and saves the file's settings at once.
+    settings.cfg; Import stores and saves the file's settings at once. The dialog, the export and the import are
+    `shared/util/file_export.gd`, which Modern IAF's Settings and debrief use too.
   * **Blackbox:** each flight is recorded to `user://flights/flight-<date>_<time>-m<mission>.jsonl`, the newest 10
     kept: a header (mission, jet, loadout, route, armed units, terrain origin, every setting), rows 10 per second, and
     events (flight, mission, weapon and engagement events; the full list in docs/blackbox.schema.json). The debrief

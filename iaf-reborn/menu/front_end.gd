@@ -164,6 +164,7 @@ const ImageryLayers := preload("res://shared/terrain/imagery_layers.gd")
 const ModelDetail := preload("res://shared/util/model_detail.gd")
 const Scenery := preload("res://shared/terrain/scenery.gd")
 const PrefChoices := preload("res://shared/util/pref_choices.gd")
+const FileExport := preload("res://shared/util/file_export.gd")
 
 ## Our own "Extras" tab (not in the original): directly below Gameplay at the panel's spacing
 ## (44 px). Drawn from the pPref art: the band holding the Gameplay button (panel coordinates, inside
@@ -2129,48 +2130,16 @@ func _pref_changed() -> bool:
 	return false
 
 
-## Extras SETTINGS FILE (ours): Export writes the working copy as a settings.cfg wherever the player picks; Import
-## reads one, stores and saves it at once (any unsaved changes are replaced).
+## Extras SETTINGS FILE (ours, FileExport): Export writes the working copy as a settings.cfg wherever the player
+## picks; Import reads one, stores and saves it at once (any unsaved changes are replaced).
 func _settings_file(saving: bool) -> void:
-	_file_dialog(
-		saving,
-		"*.cfg ; IAF settings",
-		"iaf-settings.cfg",
-		func(path: String) -> void:
-			if saving:
-				Settings.write_config(pref_work).save(path)
-			else:
-				_import_settings(path)
-	)
-
-
-## A native file dialog (ours): save or open one file of `filter`, `done(path)` on a pick.
-func _file_dialog(saving: bool, filter: String, file: String, done: Callable) -> void:
-	var dlg := FileDialog.new()
-	dlg.use_native_dialog = true
-	dlg.access = FileDialog.ACCESS_FILESYSTEM
-	dlg.file_mode = FileDialog.FILE_MODE_SAVE_FILE if saving else FileDialog.FILE_MODE_OPEN_FILE
-	dlg.filters = PackedStringArray([filter])
-	dlg.current_file = file
-	dlg.file_selected.connect(
-		func(path: String) -> void:
-			dlg.queue_free()
-			done.call(path)
-	)
-	dlg.canceled.connect(dlg.queue_free)
-	add_child(dlg)
-	dlg.popup_centered()
+	FileExport.settings_file(self, saving, "iaf-settings.cfg", pref_work, _import_settings)
 
 
 func _import_settings(path: String) -> void:
-	var cfg := ConfigFile.new()
-	if cfg.load(path) != OK:
-		return
 	var language := Settings.language
-	Settings.read_config(cfg)
-	if Settings.language == "he" and not Settings.hebrew_available():
-		Settings.language = "en"
-	Settings.save()
+	if not FileExport.import_settings(path):
+		return
 	_pref_load_work()
 	_apply_music_volume()
 	if Settings.language != language:
@@ -2614,13 +2583,7 @@ func _deb_press(q: Vector2) -> bool:
 		return true
 	if not DEB_EXPORT.has_point(q) or not FileAccess.file_exists(Settings.blackbox_file):
 		return false
-	_file_dialog(
-		true,
-		"*.jsonl ; Flight data",
-		"iaf-" + Settings.blackbox_file.get_file(),
-		func(path: String) -> void:
-			DirAccess.copy_absolute(ProjectSettings.globalize_path(Settings.blackbox_file), path)
-	)
+	FileExport.export_flight(self, Settings.blackbox_file)
 	return true
 
 

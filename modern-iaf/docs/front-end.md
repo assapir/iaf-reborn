@@ -22,8 +22,8 @@ The window opens plain in the front end's background colour (#00163C, no Godot s
 |---|---|---|---|
 | Hangar | the first screen (§12): the jets at the inline start, the picked one turning in 3D in the middle with its full name faint behind it, its card at the inline end (squadron and base, facts, the training's progress, Missions and campaign greyed, Fly); Settings and the pilot in the top bar, Attributions at the foot | ![Hangar](pictures/front-end/hangar_en.webp) | ![Hangar, Hebrew](pictures/front-end/hangar_he.webp) |
 | Pick a mission | the missions beside the picked one's briefing (§10) on three pages: Briefing (base, runway and heading, time, wind, time allowed, objectives, how), Map (one zoomable map) and Arming (the jet's front view with its stores, its weights); Fly | ![Pick a mission](pictures/front-end/mission_en.webp) | ![Pick a mission, Hebrew](pictures/front-end/mission_he.webp) |
-| Settings | the sections Graphics, Language, Sound and Devices listed at the inline start; the picked one's settings open beside them as controls: dropdown, switch, slider, radio list; Devices has the afterburner detent (§9.2) | ![Settings](pictures/front-end/prefs_graphics_en.webp) | ![Settings, Hebrew](pictures/front-end/prefs_graphics_he.webp) |
-| Debrief | the record as a sheet: Plane flown, From, Time, Mission, Result, the mission's goals (a take-off: runway, lift-off and reference speed, centreline offset, tower calls; a start-up: none), Remarks (the fail reason first, or that it passed; the lift-off against the reference); Back to missions, Fly again | ![Debrief](pictures/front-end/debrief_en.webp) | ![Debrief, Hebrew](pictures/front-end/debrief_he.webp) |
+| Settings | the sections Graphics, Language, Sound and Devices listed at the inline start; the picked one's settings open beside them as controls: dropdown, switch, slider, radio list; Devices has the afterburner detent (§9.2); the footer's Export settings file / Import settings file (below) | ![Settings](pictures/front-end/prefs_graphics_en.webp) | ![Settings, Hebrew](pictures/front-end/prefs_graphics_he.webp) |
+| Debrief | the record as a sheet: Plane flown, From, Time, Mission, Result, the mission's goals (a take-off: runway, lift-off and reference speed, centreline offset, tower calls; a start-up: none), Remarks (the fail reason first, or that it passed; the lift-off against the reference); Export flight data (below), Back to missions, Fly again | ![Debrief](pictures/front-end/debrief_en.webp) | ![Debrief, Hebrew](pictures/front-end/debrief_he.webp) |
 | Pilot | the Hangar → the pilot: the picture in a service ID photo's fixed 3:4 frame (a click on it, or Choose a picture…, opens the system's file dialog; without a picture the initials, or a head and shoulders before there is a name), the name and the nickname, and the logbook panel down to the bottom bar (§3) with its Pilot log button; the footer's Reset the log, Delete profile, Change pilot, Back and Save (§3) | ![Pilot](pictures/front-end/pilot_en.webp) | ![Pilot, Hebrew](pictures/front-end/pilot_he.webp) |
 | Create your pilot | the first start, before the Hangar: the Pilot screen with Save only and no pilot in the top bar yet; the logbook panel says "No flights yet." (§3) | ![Create your pilot](pictures/front-end/pilot_first_en.webp) | ![Create your pilot, Hebrew](pictures/front-end/pilot_first_he.webp) |
 | Reset the log | the Pilot screen's Reset: a warning modal, then a second confirm (§3) | ![Reset the log](pictures/front-end/pilot_reset_en.webp) | ![Reset the log, Hebrew](pictures/front-end/pilot_reset_he.webp) |
@@ -88,6 +88,16 @@ Tel Nof base files, airbases.md §3). Making one flyable moves its row from `SOO
   has `training` rules, in menu-id order.
 - **Fly:** `flight/fly.gd` `start(menu id)` loads the compiled mission, picks the mission's jet (a `--mission` run)
   and changes to the flight scene.
+- **Export flight data** on a debrief copies the flight's recording (the record's `flight`, JSON lines) where the
+  player picks in the system's file dialog, named `iaf-<the recording's name>`. Without that file (a record from
+  before the recorder, or the file deleted) the button is greyed and out of the focus.
+- **Export settings file / Import settings file** in the Settings footer (the front end's; the pause menu's Settings
+  shows none) write the settings as they are to a `.cfg` file, or read one, store and save it at once by the sim's
+  own rules (`sim_settings.gd`: the forced settings stay forced, the player's own values kept). Hebrew without its
+  font falls back to English. The pilot flying and the jet picked stay this computer's.
+  Both games share the file dialog and these rules: `shared/util/file_export.gd` (reborn's Extras Settings file, its
+  debrief Export flight data and its Mission Creator LOAD, [../../docs/front-end.md](../../docs/front-end.md); the
+  Pilot screen's Choose a picture… here).
 - **Back to missions** on a debrief opens that mission's jet with the flown mission picked.
 - **Fly again** on a debrief opens the same screen on the flown mission's briefing (its Briefing page first, the
   loadout as left) with Fly focused: Enter or a click on Fly starts the flight.

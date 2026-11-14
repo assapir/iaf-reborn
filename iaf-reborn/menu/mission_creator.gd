@@ -6,6 +6,7 @@
 extends Control
 
 const Img := preload("res://shared/util/img.gd")
+const FileExport := preload("res://shared/util/file_export.gd")
 const CONTENT := Vector2(155, 42)
 const CONTENT_H := 357.0
 ## The edit boxes (FUN_004f1890; .data 0x6076a8 / 0x607698): their lines as [text bottom-left, width].
@@ -257,20 +258,7 @@ func write(path: String) -> bool:
 
 ## LOAD (FUN_004facb0): the open-file dialog "Open Mission" on the folder, any file (ours: the system's dialog).
 func load_dialog() -> void:
-	var dlg := FileDialog.new()
-	dlg.use_native_dialog = true
-	dlg.access = FileDialog.ACCESS_FILESYSTEM
-	dlg.file_mode = FileDialog.FILE_MODE_OPEN_FILE
-	dlg.title = "Open Mission"
-	dlg.current_dir = folder()
-	dlg.file_selected.connect(
-		func(path: String) -> void:
-			dlg.queue_free()
-			read(path)
-	)
-	dlg.canceled.connect(dlg.queue_free)
-	add_child(dlg)
-	dlg.popup_centered()
+	FileExport.dialog(self, false, "", "", read, "Open Mission", folder())
 
 
 ## A file into the state, then the name box gets the keyboard. A file shorter than 0x5ac bytes shows "Bad misison

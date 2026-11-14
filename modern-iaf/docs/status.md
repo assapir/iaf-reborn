@@ -3,6 +3,11 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **Flight data and settings files (2026-11-14, the front-end finish list's D1, [front-end.md](front-end.md) §2):**
+  the debrief's Export flight data copies the flight's recording (greyed and out of the focus without it); the
+  Settings footer's Export / Import settings file write or read a `.cfg` by the sim's rules (Hebrew without its font
+  in English, the pilot and the jet kept). The file dialog and these rules are reborn's, moved to
+  `shared/util/file_export.gd`, which both games call.
 - **First run, Hangar, missing data (2026-11-14, the front-end finish list's F1, [front-end.md](front-end.md) §1, §3,
   §12):** "Preferences" is "Settings" on every screen (the Hangar's button, the title, the crumbs, the pause menu);
   Attributions in Hebrew "קרדיטים ורישיונות" (the front end and the setup wizard). Create your pilot shows a head and

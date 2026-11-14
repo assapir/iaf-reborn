@@ -14,6 +14,7 @@ const SoundTable := preload("res://shared/audio/sound_table.gd")
 const KeysScreen := preload("res://menu/keys_screen.gd")
 const JoystickScreen := preload("res://menu/joystick_screen.gd")
 const PrefChoices := preload("res://shared/util/pref_choices.gd")
+const FileExport := preload("res://shared/util/file_export.gd")
 const TerrainPreload := preload("res://shared/terrain/terrain_preload.gd")
 const ModelDetail := preload("res://shared/util/model_detail.gd")
 const MissionRuntime := preload("res://shared/mission/mission_runtime.gd")
@@ -24,6 +25,8 @@ const Turntable := preload("res://shared/aircraft/turntable.gd")
 const AircraftModel := preload("res://shared/aircraft/aircraft_model.gd")
 
 const PHOTOS := "res://data/photos"
+## The settings file Export offers to write (Settings → footer, FileExport).
+const SETTINGS_FILE := "modern-iaf-settings.cfg"
 ## The start-up steps' switches cropped from each jet's 3D cockpit: <unit>/<step>.webp (tests/_switch_crops.gd).
 const SWITCHES := "res://data/switches"
 ## The canvas the screens lay out on: the window shows it scaled to its height (Look's sizes are its pixels).
@@ -402,9 +405,9 @@ func _header(crumbs: Array) -> void:
 
 
 ## The bottom bar: the photo credit and the screen's buttons (none when it has neither); `at_end`: the credit at the
-## bar's inline end (right in English, left in Hebrew), smaller.
-func _footer(credit := "", actions: Array = [], at_end := false) -> void:
-	if credit == "" and actions.is_empty():
+## bar's inline end (right in English, left in Hebrew), smaller; `start`: buttons at the bar's inline start.
+func _footer(credit := "", actions: Array = [], at_end := false, start: Array = []) -> void:
+	if credit == "" and actions.is_empty() and start.is_empty():
 		return
 	var shade := _shade(false)
 	shade.offset_top = -130
@@ -413,6 +416,9 @@ func _footer(credit := "", actions: Array = [], at_end := false) -> void:
 	bar.offset_top = -97
 	var h := _hbox(bar, 40)
 	h.name = "Footer"
+	for a in start:
+		h.add_child(a)
+		a.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_spacer(h)
 	if credit != "":
 		var c := _label(h, credit, "Small")
@@ -1498,6 +1504,34 @@ func _page_prefs() -> void:
 		if g[0] == pref_group:
 			for row in g[1]:
 				_pref_row(body, row)
+	# The settings to / from a file (FileExport, reborn's Extras Settings file); over the flight the pause menu's own.
+	if flight == null:
+		var exp := _action(
+			s("export_settings"), "Secondary", FileExport.settings_file.bind(self, true, SETTINGS_FILE, {}, Callable())
+		)
+		exp.name = "ExportSettings"
+		var imp := _action(
+			s("import_settings"),
+			"Secondary",
+			FileExport.settings_file.bind(self, false, SETTINGS_FILE, {}, import_settings)
+		)
+		imp.name = "ImportSettings"
+		_footer("", [], false, [exp, imp])
+
+
+## Reads the settings file at `path` (FileExport.import_settings: the sim's own rules, Hebrew without its font in
+## English), then the sound levels and the screen again (its language too). The pilot flying and the jet picked stay
+## this computer's (the pilot is a row of its records database).
+func import_settings(path: String) -> void:
+	var who := [Settings.pilot_id, Settings.sim_jet]
+	if not FileExport.import_settings(path):
+		return
+	if who != [Settings.pilot_id, Settings.sim_jet]:
+		Settings.pilot_id = who[0]
+		Settings.sim_jet = who[1]
+		Settings.save()
+	SoundBuses.apply()
+	show_page(page)
 
 
 func _open_section(group: String) -> void:
@@ -2013,18 +2047,10 @@ func new_pilot() -> void:
 	show_page("pilot")
 
 
-## Choose a picture: the system's file dialog where there is one.
+## Choose a picture: the system's file dialog where there is one (FileExport.dialog).
 func choose_picture() -> void:
-	var d := FileDialog.new()
+	var d := FileExport.dialog(self, false, "*.png, *.jpg, *.jpeg, *.webp ; " + s("pictures"), "", set_picture)
 	d.name = "PictureDialog"
-	d.file_mode = FileDialog.FILE_MODE_OPEN_FILE
-	d.access = FileDialog.ACCESS_FILESYSTEM
-	d.filters = PackedStringArray(["*.png, *.jpg, *.jpeg, *.webp ; " + s("pictures")])
-	d.use_native_dialog = true
-	d.file_selected.connect(set_picture)
-	d.canceled.connect(d.queue_free)
-	add_child(d)
-	d.popup_centered_ratio(0.6)
 
 
 ## The file at `path` as the draft's picture (copied beside the records on Save), then the screen again. False when
@@ -2262,7 +2288,18 @@ func _page_debrief() -> void:
 	again.name = "FlyAgain"
 	again.disabled = m.is_empty()
 	_focus = again
-	_footer("", [back, again])
+	# The flight's recording (the record's `flight`, sim_flight.gd _finish) saved where the player picks (FileExport,
+	# reborn's debrief Export flight data); greyed and skipped by the focus when the file is gone.
+	var flight_file := str(record.get("flight", ""))
+	var export := _action(s("export_flight"), "Secondary", FileExport.export_flight.bind(self, flight_file))
+	export.name = "ExportFlight"
+	if not FileAccess.file_exists(flight_file):
+		export.disabled = true
+		export.focus_mode = Control.FOCUS_NONE
+		export.mouse_default_cursor_shape = Control.CURSOR_FORBIDDEN
+		# Its kind's plain box, the text greyed (as _soon: the theme gives the disabled state no box).
+		export.add_theme_stylebox_override("disabled", _theme.get_stylebox("normal", "Secondary"))
+	_footer("", [back, again], false, [export])
 
 
 ## The remark the goals give: the lift-off speed against the reference.

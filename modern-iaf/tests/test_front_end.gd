@@ -428,6 +428,11 @@ func fly_once(fe: Control) -> void:
 	)
 	check(not _has(back, "Time to idle"), "fly: the start-up's debrief shows no numbers (no goals)")
 	check(_has(back, "The engine at idle with the avionics up. Nothing failed."), "fly: the start-up's pass remark")
+	var exp: Button = back.find_child("ExportFlight", true, false)
+	check(
+		exp != null and not exp.disabled and FileAccess.file_exists(str(back.record.get("flight", ""))),
+		"fly: the debrief's Export flight data offers the flight's recording"
+	)
 	if shot != "":
 		await _shots(back, shot, "flown_debrief")
 	key(back, KEY_ESCAPE)
@@ -561,6 +566,16 @@ func walk(fe: Control, ids: Dictionary, lang: String) -> void:
 	# Only the goals: the other numbers stay in the record.
 	for t in ["1,140 מ׳", "5:12 דק׳", "13,420 ק״ג"] if he else ["1,140 m", "5:12 min", "13,420 kg"]:
 		check(not _has(fe, t), "%s: debrief: no %s (not a goal)" % [lang, t])
+	var exp: Button = fe.find_child("ExportFlight", true, false)
+	check(
+		(
+			exp != null
+			and exp.disabled
+			and exp.focus_mode == Control.FOCUS_NONE
+			and exp.text == ("ייצוא נתוני טיסה" if he else "Export flight data")
+		),
+		"%s: debrief: Export flight data greyed and unfocusable without the recording" % lang
+	)
 	fe.find_child("BackMissions", true, false).pressed.emit()
 	await frames(2)
 	check(fe.page == "mission" and fe.mission_i == 1, "%s: Back to missions picks the flown take-off" % lang)
@@ -692,6 +707,26 @@ func prefs(fe: Control) -> void:
 	lang.item_selected.emit(0)
 	await frames(2)
 	check(s.language == "en" and not fe.is_layout_rtl() and _has(fe, "Language"), "prefs: and back to English")
+	# The settings file (FileExport): Export / Import in the footer; an import restores the file's values and keeps
+	# the pilot flying.
+	check(
+		(
+			fe.find_child("ExportSettings", true, false) is Button
+			and fe.find_child("ImportSettings", true, false) is Button
+		),
+		"prefs: Export and Import settings file in the footer"
+	)
+	var cfg_path := OS.get_temp_dir().path_join("modern_iaf_settings_test_%d.cfg" % OS.get_process_id())
+	var shadows0: bool = s.shadows
+	var pilot0: int = s.pilot_id
+	s.write_config().save(cfg_path)
+	s.shadows = not shadows0
+	s.pilot_id = pilot0 + 7
+	fe.import_settings(cfg_path)
+	await frames(2)
+	check(s.shadows == shadows0 and s.pilot_id == pilot0 + 7, "prefs: a settings file imported, the pilot kept")
+	s.pilot_id = pilot0
+	DirAccess.remove_absolute(cfg_path)
 	key(fe, KEY_ESCAPE)
 	await frames(2)
 
