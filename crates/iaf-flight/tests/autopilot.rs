@@ -252,24 +252,22 @@ fn lands_at_ramat_david_real_size() {
     land_at_ramat_david(F16_CLEARANCE_REAL, false, 0.0);
 }
 
-/// Better physics' ground effect: the jet still lands on the runway at the Present scale's clearance (×2) and at true
-/// size; the wing's height uses the true-size clearance in both. The autopilot flies its 6° glide path into the ground
-/// without a flare and crosses the ground-effect band in about one 1 Hz lift update, so the float depends on where that
-/// update falls, and the platform's libm moves it (the flight differs by tens of metres with ground effect off): Linux
-/// floats 17 m at 3.38 m and 25 m at 1.69 m, macOS arm64 0 m and −15 m. The check is the bound of one lift update: the
-/// touchdown moves by less than one second at landing speed (73 m). The lift and drag factors themselves are checked in
-/// aircraft.rs (`better_physics_minor_fixes`).
+/// Better physics' ground effect: the autopilot still lands on the runway (centreline, stopped, parked:
+/// `land_at_ramat_david`'s checks) at the Present scale's clearance (×2) and at true size; the wing's height uses the
+/// true-size clearance in both. How far ground effect moves the touchdown is not a property of the physics here: the
+/// original's final-approach law (`5d4c50`) switches its glide-path gain tenfold where the jet crosses the path
+/// (0.3 above, 0.03 below), so the jet bobs across it, and a last-bit difference between the platforms' libm (sin,
+/// atan2…) flips one of those crossings (first at 412.9 s of this flight, 0.11 g for one second). The paths then
+/// differ by a metre and the original's 1 Hz lift update decides whether one ground-effect sample falls before the
+/// wheels: at 3.38 m the two land 2.8 m apart with ground effect off, and float +17 m (Linux) and +85 m (macOS arm64)
+/// with it on (14 Nov). The float itself is asserted
+/// on a descent without the autopilot (aircraft.rs `ground_effect_floats_a_gliding_jet`), the same on every platform.
 #[test]
 fn lands_at_ramat_david_in_ground_effect() {
     for clearance in [2.0 * F16_CLEARANCE_REAL, F16_CLEARANCE_REAL] {
-        let (Some(off), Some(on)) =
-            (land_at_ramat_david(clearance, false, 0.0), land_at_ramat_david(clearance, true, 0.0))
-        else {
-            return;
-        };
-        let (off, on) = (off[0], on[0]);
-        println!("clearance {clearance} m: touchdown x {off:.2} -> {on:.2} ({:.2} m float)", off - on);
-        assert!((off - on).abs() < 73.0, "the touchdown moves by less than one lift update");
+        if let Some([x, off]) = land_at_ramat_david(clearance, true, 0.0) {
+            println!("clearance {clearance} m: touchdown x {x:.2}, {off:.2} m off the centreline");
+        }
     }
 }
 

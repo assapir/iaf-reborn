@@ -3191,6 +3191,32 @@ mod tests {
         assert!((a.lift.target() / (a.mass * G) - 0.4).abs() < 1e-3, "code 2 → g = 0.4");
     }
 
+    /// Better physics' ground effect on the same descent onto the runway from 8 m, idle, gear down, ground effect off
+    /// and on (no autopilot: its glide-path law would mask it, see tests/autopilot.rs): with neutral stick (the 1 g
+    /// hold) the jet floats instead of settling; with the stick forward it touches down softer.
+    #[test]
+    fn ground_effect_floats_a_gliding_jet() {
+        let glide = |ge: bool, stick: f32| {
+            let mut a = airborne(0, 8.0, 75.0);
+            a.ground_height = 0.0;
+            a.better.ground_effect = ge;
+            a.set_controls(Controls { stick_y: stick, throttle: 0.0, gear_down: true, ..Default::default() });
+            let mut sink = 0.0;
+            while !a.state().on_ground && a.t < 30.0 {
+                sink = -a.state().velocity[2];
+                a.step(1.0 / 60.0);
+            }
+            (sink, a.t)
+        };
+        let ((_, t_off), (_, t_on)) = (glide(false, 0.0), glide(true, 0.0));
+        assert!(t_off < 10.0 && t_on > t_off + 5.0, "neutral stick: settles after {t_off} s, floats {t_on} s");
+        for stick in [-0.02, -0.05] {
+            let ((off, t_off), (on, t_on)) = (glide(false, stick), glide(true, stick));
+            println!("stick {stick}: touchdown sink {off:.3} -> {on:.3} m/s at {t_off:.3} / {t_on:.3} s");
+            assert!(t_on >= t_off && on < 0.99 * off && on > 0.9 * off, "stick {stick}: {off} {on}");
+        }
+    }
+
     #[test]
     fn landing_limits() {
         let mut a = airborne(0, 1000.0, 80.0);
