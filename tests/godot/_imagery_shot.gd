@@ -56,9 +56,9 @@ func run() -> void:
 			tv.views.dist = float(orbit[2])
 			tv._apply_view()
 		await ground_streamed(tv, 30000, 20)
-		var hint := root.find_child("Hint", true, false)  # Modern IAF's key hint (fades out after 8 s)
-		if hint is CanvasItem:
-			hint.visible = false
+		var hint := root.find_child("Hint", true, false)  # Modern IAF's key hint: its time over (flight_ui.gd)
+		if hint != null and "_hint_until" in hint.get_parent():
+			hint.get_parent()._hint_until = 0
 		if OS.get_environment("SHOT_AGL") != "":
 			var h = tv.terrain.height_at(tv.rig.position)
 			if h != null:

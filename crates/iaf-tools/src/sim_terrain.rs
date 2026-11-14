@@ -447,6 +447,9 @@ const TONE_REACH_M: f64 = 3000.0;
 const TONE_RADIUS_M: f64 = 500.0;
 const TONE_DETAIL_M: f64 = 120.0;
 const TONE_DETAIL_CHROMA: f32 = 0.35;
+/// At most this: Sentinel-2's wide, soft wadis raised by 1.7 (Ramon's measure) went black smears on final approach.
+const TONE_CONTRAST_MAX: f32 = 1.3;
+const TONE_CHROMA_MAX: f32 = 40.0;
 
 impl BaseTone {
     /// The tone of base `outline` from the level-3 Sentinel-2 nodes (written by the 8 m units, before the photo) and
@@ -526,8 +529,8 @@ impl BaseTone {
                 })
             })
             .collect();
-        // The base's ground in the photo's hue: the toned mean inside the outline takes the photo's balance of the
-        // bands around it, its brightness kept (Sentinel-2's lighter ground on a base took the desert's ratios to a
+        // The base's ground toward the photo's hue: the toned mean inside the outline moves half way to the photo's
+        // balance of the bands around it, its brightness kept (Sentinel-2's lighter ground on a base took the desert's ratios to a
         // cold grey at Ramon).
         let inner: Vec<usize> =
             (0..w * h).filter(|&i| mask.as_ref().is_some_and(|k| k.at(centre(i)[0], centre(i)[1]) >= 1.0)).collect();
@@ -535,7 +538,9 @@ impl BaseTone {
             let toned = [0, 1, 2].map(|k| inner.iter().map(|&i| s2[i][k] * ratio[i][k]).sum::<f32>());
             let ring = [0, 1, 2].map(|k| mean(&photo, k));
             let (ts, rs) = (toned.iter().sum::<f32>(), ring.iter().sum::<f32>());
-            let hue = [0, 1, 2].map(|k| ((ring[k] / rs) / (toned[k] / ts).max(1e-6)).clamp(0.8, 1.25));
+            // Half way (the square root): at Ramat David the fields around are cooler than the base's dry grass, and
+            // the whole pull turned it an icy grey.
+            let hue = [0, 1, 2].map(|k| ((ring[k] / rs) / (toned[k] / ts).max(1e-6)).clamp(0.8, 1.25).sqrt());
             ratio.iter_mut().for_each(|r| *r = [0, 1, 2].map(|k| r[k] * hue[k]));
         }
         // The detail's spread about the local means (± TONE_DETAIL_M), both images on the same cells, all bands.
@@ -548,7 +553,7 @@ impl BaseTone {
                 var[1] += (s2[i][k] - ds[k][i] / dw[i]).powi(2);
             }
         }
-        let contrast = (var[0] / var[1].max(1e-3)).sqrt().clamp(1.0, 2.0);
+        let contrast = (var[0] / var[1].max(1e-3)).sqrt().clamp(1.0, TONE_CONTRAST_MAX);
         let all = vec![true; w * h];
         let (lw, ls, _) = imagery::local_sums(&s2, &s2, &all, w, h, rd);
         let local = (0..w * h).map(|i| [0, 1, 2].map(|k| ls[k][i] / lw[i].max(1e-9))).collect();
@@ -563,9 +568,12 @@ impl BaseTone {
         let local = self.at(&self.local, e, n)?;
         let d = [0, 1, 2].map(|k| v[k] - local[k]);
         let (dl, lr) = ((d[0] + d[1] + d[2]) / 3.0, (ratio[0] + ratio[1] + ratio[2]) / 3.0);
-        Some([0, 1, 2].map(|k| {
-            (local[k] * ratio[k] + self.contrast * lr * (dl + TONE_DETAIL_CHROMA * (d[k] - dl))).clamp(0.0, 255.0)
-        }))
+        let c = [0, 1, 2].map(|k| local[k] * ratio[k] + self.contrast * lr * (dl + TONE_DETAIL_CHROMA * (d[k] - dl)));
+        // The bands at most TONE_CHROMA_MAX apart: an irrigated lawn's green went a lime disc on Nevatim.
+        let m = (c[0] + c[1] + c[2]) / 3.0;
+        let spread = c.iter().fold(f32::MIN, |a, &v| a.max(v)) - c.iter().fold(f32::MAX, |a, &v| a.min(v));
+        let k = (TONE_CHROMA_MAX / spread.max(1e-3)).min(1.0);
+        Some(c.map(|v| (m + (v - m) * k).clamp(0.0, 255.0)))
     }
 
     /// A field of the grid at UTM (e, n), bilinear between the cell centres; None outside the grid.

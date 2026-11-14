@@ -159,12 +159,14 @@ left" over the tiles still to fetch, a DEM tile's MB so far.
      - **Colour**: per band the ratio of their local means (`imagery::local_sums`, the match the original game's
        modern layers use, blurred over ± 0.5 km, twice), so the edge meets the photo beside it; deeper in, the
        base's mean ratio (with ± 1.2 km a darker Survey sheet beside Ramon shaded the base's middle). The base's
-       toned mean then takes the photo's balance of the bands around it, its brightness kept (Sentinel-2's lighter
-       ground on a base went a cold grey at Ramon).
+       toned mean then moves half way to the photo's balance of the bands around it, its brightness kept
+       (Sentinel-2's lighter ground on a base went a cold grey at Ramon without it; the whole way turned Ramat
+       David's dry grass an icy grey against the cooler fields around).
      - **Detail**: Sentinel-2's local mean (± 120 m) takes those ratios; the detail about it is raised by the
-       photo's spread over Sentinel-2's on the same cells (one factor per base, 1 to 2: Ramon 1.70, Nevatim 1.65,
-       Hatzerim 1.53, Tel Nof 1.33, Ramat David 1.00; the step logs it), its own colour cut to 35 % (the bands'
-       ratios turned white roofs blue).
+       photo's spread over Sentinel-2's on the same cells (one factor per base, from 1 to at most 1.3: measured Ramon
+       1.70, Nevatim 1.65, Hatzerim 1.53, Tel Nof 1.33, Ramat David 1.00, the step logs it; 1.7 made Sentinel-2's
+       wide, soft wadis black smears on final approach), its own colour cut to 35 % (the bands' ratios turned white
+       roofs blue), and no pixel's bands more than 40 levels apart (an irrigated lawn went a lime disc at Nevatim).
      Every 2 m node on a base's mask is written, so the toned colour reaches every level. The units on a base (the
      Survey's level-4 units with the mask, the 8 m Sentinel-2 level-5 units within 3.6 km of an outline) have their
      own done marks (`survey_2m_tone`, `s2_8m_tone`) and run again when the fill changes (`stamp`'s `base_fill`),
