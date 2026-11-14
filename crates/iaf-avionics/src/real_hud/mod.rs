@@ -640,7 +640,10 @@ fn funnel_at_v(i: &Input, r_ft: f64, g: f64, muzzle: f64) -> (P, f64) {
     let roll = i.roll_deg.to_radians();
     let omega = (g - roll.cos()) * G / v;
     let r = r_ft * FT;
-    let t = crate::gun::real_time_of_flight(muzzle + v, r, crate::gun::real_drag_k(i.alt_ft * FT));
+    // Rounded to the microsecond: libm's exp / powf differ in the last bit between platforms, and the HUD snapshot
+    // tests hash the drawn floats.
+    let t =
+        (crate::gun::real_time_of_flight(muzzle + v, r, crate::gun::real_drag_k(i.alt_ft * FT)) * 1e6).round() / 1e6;
     let drop = gravity_drop(t, r);
     let down = (omega * t + drop * roll.cos()).to_degrees();
     let side = (drop * roll.sin()).to_degrees();
@@ -978,7 +981,7 @@ mod tests {
 
     #[test]
     fn the_f16_display_is_unchanged() {
-        assert_eq!(f16_fingerprint(), 2_674_529_352_427_517_432, "the F-16 Real HUD changed");
+        assert_eq!(f16_fingerprint(), 17_852_158_275_609_010_620, "the F-16 Real HUD changed");
     }
 
     #[test]
@@ -1113,6 +1116,6 @@ mod f16_snapshot {
 
     #[test]
     fn the_f16_display_is_unchanged() {
-        assert_eq!(f16_frames_hash(), 7_930_074_813_753_618_820, "F-16 frames hash");
+        assert_eq!(f16_frames_hash(), 14_087_280_463_823_746_070, "F-16 frames hash");
     }
 }
