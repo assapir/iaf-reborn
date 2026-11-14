@@ -507,44 +507,47 @@ trigger fires the gun, the buttons next to it release and pick targets).
 
 ### 9.4 The device store
 
-The store is `user://devices.json`, written compact and only with what differs from the defaults:
+The keys and buttons are the store both games use: `Settings.key_bindings`, saved in the settings file (`[keys]`,
+`r<record> = [key, button]`), with the rules of `shared/controls/key_table.gd`, the same ones reborn's Controls page
+uses (`find_key` / `find_joystick` for the conflict, `key_of` / `joystick_of`). A key is DIK | modifiers << 16 (0 = no
+key), a button the joystick's 0-based button (−1 = none). The sim binds one column at a time (`set_column`): the
+other column stays null, its default, so a button follows the connected joystick's device map. An entry goes when
+both columns are the default again.
+
+The axes are in `user://devices.json`, written compact and only with what differs from the defaults:
 
 ```json
-{"keys":{"24":37},"buttons":{"64":5},"axes":{"pitch":{"axis":3,"invert":true,"dead":0.1},"rudder":{"axis":-1}}}
+{"axes":{"pitch":{"axis":3,"invert":true,"dead":0.1},"rudder":{"axis":-1}}}
 ```
 
-- `keys`: record → key, DIK | modifiers << 16 as `key_table.gd` stores it (0 = no key).
-- `buttons`: record → the joystick's 0-based button, −1 = none.
 - `axes`: role (`roll`, `pitch`, `throttle`, `rudder`, `trim`) → `axis` (−1 = none), `invert`, `dead` (0–0.9). An
   absent field is the default: the device map's axis (else 0–4 in role order), no invert, and the dead zone of
   `joystick.gd` (25 % on the stick and the rudder, 5 % with Stick response Soft centre, 10 % on the rocker). A dead
   zone outside 0–0.9 in a hand-edited file reads as its nearest end.
 
-A missing or corrupt file reads as an empty store: every default.
+A missing or corrupt file reads as an empty store: every default. A `devices.json` from before 2026-11-14 also held
+`keys` (record → key) and `buttons` (record → button); at its start the sim moves them into `Settings.key_bindings`
+once (`sim_settings.gd _take_old_bindings`) and drops them from the file.
 
 Tests and pictures use a temporary file (`Settings.devices_path`, or in isolated runs a file of the process in the
 temporary folder, so no run reads another's).
 
-The logic is Rust's: `iaf_tools::devices` (unit tests in the same file) behind `IafDevices`
+The axes' logic is Rust's: `iaf_tools::devices` (unit tests in the same file) behind `IafDevices`
 (`crates/iaf-godot/src/devices.rs`):
 
 | function | does |
 |---|---|
 | `find_map(dir, name)` | the device map for a joystick's name, "" = none |
-| `keys(table, store, map)` | the key table with the map's buttons and the store's keys and buttons in it, each record with `default_key` and `default_joystick` |
-| `conflict(table, store, map, record, column, value)` | the other record bound to `value` in `column` ("key" / "button"), −1 = none |
-| `bind(table, store, map, record, column, value)` | binds and writes; the entry goes when it is the default again |
-| `reset(store, record, column)` | one record (−1: every record) back to its default |
-| `reset_joystick(store)` | every button and axis back |
 | `axes(store, map, soft)` | every role's axis, invert and dead zone |
 | `set_axis(store, map, role, axis, invert, dead, soft)` | sets a role; a role on that axis gives it up |
+| `reset_axes(store)` | every axis back |
+| `drop_bindings(store)` | drops the keys and buttons of a store from before 2026-11-14 |
 
 How the flight reads it:
 
-- **Keys and buttons:** the flight's key table is `KeyTable.load_table()`, whose contents come from
-  `Settings.key_table_data()`. The original game returns the file as it is; the sim returns `IafDevices.keys` over
-  its own table, the connected joystick's map and the store. The flight loads it at its start and again when the
-  Preferences close over it (`terrain_view.gd _apply_preferences`).
+- **Keys and buttons:** the flight's key table is `KeyTable.load_table()` (the sim's own table) with
+  `Settings.key_bindings`, as in the original game. When a joystick connects, the sim hands its device map's button
+  column to `Joystick.default_buttons` (`sim_settings.gd _map_buttons`), where reborn's `.joy` files put theirs.
 - **Axes:** `Settings.apply_devices()` (at start, on every Preferences save, when a joystick connects) sets
   `Settings.joy_axes` to the roles' axes, `Joystick.tune` to their invert and dead zone, Roll trim on while the trim
   role has an axis. The hat is the original's POV snap views in both games.
@@ -564,7 +567,9 @@ How the flight reads it:
   positions, every bar has its event's sign and size, the lever forward is a full throttle bar); the hat through the
   1998 game's poller (up then up-right sends the front-right view, centred releases it) and binds nothing; 98 commands listed, no free look;
   the Hotas X's map; with `Settings.laptop_keys` on, the laptop map: the rudder on Z / X, no key on two records, no
-  numpad key, a stored key wins over it. `iaf-sim own`'s unit test checks the laptop table compiles the same way.
+  numpad key, a stored key wins over it; a `devices.json` from before 2026-11-14 and a settings file with reborn's
+  `[keys]` entries both load into `Settings.key_bindings`. `iaf-sim own`'s unit test checks the laptop table compiles
+  the same way.
 - `modern-iaf/tests/test_m0_boot.gd` connects a fake joystick: the probe's gate line stays at 0 refused paths.
 - `modern-iaf/tests/_devices_shot.gd` takes §9's pictures (its header).
 

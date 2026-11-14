@@ -2,8 +2,9 @@
 # input events and a fake joystick (Joystick.fake_devices): a key bound on the Keys screen is in the key table the
 # flight reads; a key another command has shows the conflict, Swap trades them; Default and Reset all; an axis given
 # the pitch role, inverted with a dead zone, drives the poller's stick y; a button bound by pressing it; the axes and
-# the hat against the 1998 game's poller; the Hotas X's device map. The store is a temporary file
-# (Settings.devices_path).
+# the hat against the 1998 game's poller; the Hotas X's device map. The keys and buttons are Settings.key_bindings
+# (both games' store; a devices.json from before 2026-11-14 and a reborn settings.cfg both load into it), the axes'
+# store a temporary file (Settings.devices_path).
 #   IAF_DEFAULT_SETTINGS=1 godot --headless --audio-driver Dummy --path modern-iaf \
 #     -s ../modern-iaf/tests/test_devices.gd --log-file <temp>
 extends "res://../tests/godot/base.gd"
@@ -80,6 +81,7 @@ func run() -> void:
 	await keys(fe)
 	await joystick(fe)
 	laptop()
+	old_files()
 	DirAccess.remove_absolute(s.devices_path)
 	s.devices_path = ""
 	s.apply_devices()
@@ -118,10 +120,11 @@ func keys(fe: Control) -> void:
 	check(ks.waiting == PITCH_UP and ks._rows[PITCH_UP].chip.text == "Press a key…", "the row waits for its key")
 	root.push_input(key_event(KEY_K))
 	await frames(1)
-	check(int(store().get("keys", {}).get(str(PITCH_UP), 0)) == DIK_K, "the store has Pitch up on K: %s" % store())
+	var b: Dictionary = s.key_bindings
+	check(b.get(PITCH_UP, []) == [DIK_K, null], "the store has Pitch up on K, its button the default: %s" % b)
 	var flight_keys: RefCounted = kt.load_table()
-	check(flight_keys.find_key(DIK_K, {}) == PITCH_UP, "the flight's key table has Pitch up on K")
-	check(flight_keys.find_key(0xc8, {}) == -1, "and Up runs nothing now")
+	check(flight_keys.find_key(DIK_K, b) == PITCH_UP, "the flight's key table has Pitch up on K")
+	check(flight_keys.find_key(0xc8, b) == -1, "and Up runs nothing now")
 	check(ks._rows[PITCH_UP].chip.text == "K" and not ks._rows[PITCH_UP].reset.disabled, "the row shows K and Default")
 	# Esc cancels.
 	ks._rows[PITCH_DOWN].row.pressed.emit()
@@ -140,15 +143,15 @@ func keys(fe: Control) -> void:
 	await frames(1)
 	flight_keys = kt.load_table()
 	check(
-		flight_keys.find_key(DIK_K, {}) == PITCH_DOWN and flight_keys.find_key(0xd0, {}) == PITCH_UP,
+		flight_keys.find_key(DIK_K, b) == PITCH_DOWN and flight_keys.find_key(0xd0, b) == PITCH_UP,
 		"Swap: Pitch down on K, Pitch up on Down"
 	)
 	# Default for one, Reset all.
 	ks._rows[PITCH_UP].reset.pressed.emit()
-	check(kt.load_table().find_key(0xc8, {}) == PITCH_UP, "Default: Pitch up on Up again")
+	check(kt.load_table().find_key(0xc8, b) == PITCH_UP, "Default: Pitch up on Up again")
 	fe.find_child("ResetAll", true, false).pressed.emit()
-	check(store().get("keys", {}).is_empty(), "Reset all: no key stored (%s)" % store())
-	check(kt.load_table().find_key(0xd0, {}) == PITCH_DOWN, "Reset all: Pitch down on Down")
+	check(b.is_empty(), "Reset all: no key stored (%s)" % b)
+	check(kt.load_table().find_key(0xd0, b) == PITCH_DOWN, "Reset all: Pitch down on Down")
 
 
 func joystick(fe: Control) -> void:
@@ -201,22 +204,27 @@ func joystick(fe: Control) -> void:
 	bs._rows[GUN].row.pressed.emit()
 	root.push_input(joy_button(5))
 	await frames(1)
-	check(kt.load_table().find_joystick(5, {}) == GUN, "Gun trigger on button 6")
+	check(kt.load_table().find_joystick(5, s.key_bindings) == GUN, "Gun trigger on button 6")
 	bs._rows[GEAR].row.pressed.emit()
 	root.push_input(joy_button(JOY_BUTTON_DPAD_UP))
 	await frames(1)
 	check(bs.waiting == GEAR and bs.pending.is_empty(), "the hat binds nothing: it is the look (the 1998 game's POV)")
 	bs.cancel()
 	fe.find_child("ResetAll", true, false).pressed.emit()
-	check(store().get("buttons", {}).is_empty() and store().get("axes", {}).is_empty(), "Reset all: %s" % store())
+	check(
+		s.key_bindings.is_empty() and store().get("axes", {}).is_empty(), "Reset all: %s %s" % [s.key_bindings, store()]
+	)
 	check(s.joy_axes == [0, 1, 2, 3, 4] and js.tune[1] == [false, 0.25], "Reset all: default axes")
 	await mapping(scr, js)
 	await hat(js)
 	# The Hotas X's map.
 	var map: String = IafDevices.find_map(s.joy_maps_dir(), "Thrustmaster T.Flight Hotas X")
 	check(map.ends_with("hotas_x.json"), "the Hotas X has its map (%s)" % map)
-	var d = JSON.parse_string(IafDevices.keys(ProjectSettings.globalize_path(s.keys_file()), s.devices_file(), map))
-	check(int(d.records[GUN].joystick) == 0 and int(d.records[GEAR].joystick) == 8, "its buttons: gun 1, gear 9")
+	s._map_buttons(map)
+	var t: RefCounted = kt.load_table()
+	check(t.default_joystick(GUN) == 0 and t.default_joystick(GEAR) == 8, "its buttons: gun 1, gear 9")
+	check(t.default_joystick(PITCH_UP) == -1, "a record the map leaves out: no button")
+	js.default_buttons = null
 	js.fake_devices = []
 	await frames(2)
 
@@ -290,28 +298,49 @@ func laptop() -> void:
 	s.laptop_keys = true
 	var path := ProjectSettings.globalize_path(s.keys_file())
 	check(path.ends_with("keys_laptop.json"), "laptop: the laptop table (%s)" % path)
-	var d = JSON.parse_string(IafDevices.keys(path, s.devices_file(), ""))
-	var key := func(r: int) -> int: return int(d.records[r].dik) | int(d.records[r].modifiers) << 16
-	check(key.call(RUDDER_LEFT) == DIK_Z and key.call(RUDDER_RIGHT) == DIK_X, "laptop: rudder on Z / X")
+	var t: RefCounted = kt.load_table()
+	check(t.default_key(RUDDER_LEFT) == DIK_Z and t.default_key(RUDDER_RIGHT) == DIK_X, "laptop: rudder on Z / X")
 	var seen := {}
 	var twice := []
 	var numpad := []
-	for r in d.records:
-		var k: int = int(r.dik) | int(r.modifiers) << 16
-		if int(r.dik) in NUMPAD:
-			numpad.append(r.index)
+	for r in t.size():
+		var k: int = t.default_key(r)
+		if int(t.records[r].dik) in NUMPAD:
+			numpad.append(r)
 		if k != 0 and seen.has(k):
-			twice.append([seen[k], r.index])
-		seen[k] = r.index
+			twice.append([seen[k], r])
+		seen[k] = r
 	check(twice.is_empty(), "laptop: no key on two records %s" % [twice])
 	check(numpad.is_empty(), "laptop: no numpad key %s" % [numpad])
-	IafDevices.bind(path, s.devices_file(), "", RUDDER_LEFT, "key", DIK_K)
-	d = JSON.parse_string(IafDevices.keys(path, s.devices_file(), ""))
-	check(
-		int(d.records[RUDDER_LEFT].dik) == DIK_K and int(d.records[RUDDER_LEFT].default_key) == DIK_Z, "laptop: K wins"
-	)
-	IafDevices.reset(s.devices_file(), -1, "key")
+	t.set_column(s.key_bindings, RUDDER_LEFT, "key", DIK_K)
+	check(t.key_of(RUDDER_LEFT, s.key_bindings) == DIK_K and t.default_key(RUDDER_LEFT) == DIK_Z, "laptop: K wins")
+	s.key_bindings = {}
 	s.laptop_keys = OS.get_name() == "macOS"
+
+
+## Saved bindings of both kinds load into the one store: a devices.json from before 2026-11-14 (keys and buttons
+## apart, moved once, its axes kept) and the original game's settings.cfg (r<record> = [key, button]).
+func old_files() -> void:
+	var s := settings()
+	var f := FileAccess.open(s.devices_file(), FileAccess.WRITE)
+	f.store_string('{"keys":{"24":37},"buttons":{"64":5,"20":7},"axes":{"pitch":{"axis":3}}}')
+	f.close()
+	s.key_bindings = {20: [0x22, 2]}
+	s._take_old_bindings()
+	check(
+		s.key_bindings == {24: [37, null], 64: [null, 5], 20: [0x22, 7]},
+		"devices.json from before: keys and buttons in key_bindings %s" % s.key_bindings
+	)
+	check(store() == {"axes": {"pitch": {"axis": 3.0}}}, "and out of the file, the axes kept: %s" % store())
+	var t: RefCounted = kt.load_table()
+	check(t.key_of(24, s.key_bindings) == 37 and t.joystick_of(24, s.key_bindings) == t.default_joystick(24), "K")
+	var cfg := ConfigFile.new()
+	cfg.set_value("keys", "r19", [t.key_of(19, {}), 5])
+	cfg.set_value("keys", "r24", [37, null])
+	s.read_config(cfg)
+	check(s.key_bindings == {19: [t.key_of(19, {}), 5], 24: [37, null]}, "settings.cfg: %s" % s.key_bindings)
+	check(s.write_config().get_value("keys", "r24") == [37, null], "a default column saves as null")
+	s.key_bindings = {}
 
 
 func _has(n: Node, text: String) -> bool:

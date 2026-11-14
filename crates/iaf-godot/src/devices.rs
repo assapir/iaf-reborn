@@ -1,9 +1,9 @@
-//! `IafDevices`: Modern IAF's keys, joystick buttons and axes store (`iaf_tools::devices`, modern-iaf/docs/front-end.md
-//! §8). Every function takes absolute paths: `table` the compiled key table, `store` the player's file, `map` the
-//! joystick's device map ("" = none, `find_map`); the ones that change the store write it back at once.
+//! `IafDevices`: Modern IAF's joystick axes store (`iaf_tools::devices`, modern-iaf/docs/front-end.md §9). Every
+//! function takes absolute paths: `store` the player's file, `map` the joystick's device map ("" = none, `find_map`);
+//! the ones that change the store write it back at once. The keys and buttons are `Settings.key_bindings`.
 
 use godot::prelude::*;
-use iaf_tools::devices::{self, Column};
+use iaf_tools::devices;
 use serde_json::Value;
 
 use crate::world::text;
@@ -27,10 +27,6 @@ fn write(path: &GString, store: &Value) -> bool {
     }
 }
 
-fn defaults(table: &GString, map: &GString) -> Value {
-    devices::with_map(&read(table), &read(map))
-}
-
 #[godot_api]
 impl IafDevices {
     /// The device map in folder `dir` for the joystick named `name`, "" = none.
@@ -40,43 +36,18 @@ impl IafDevices {
         GString::from(p.map(|p| p.display().to_string()).unwrap_or_default().as_str())
     }
 
-    /// The key table with the store's keys and buttons in it, as JSON text (the table `key_table.gd` reads in the
-    /// sim); each record also has `default_key` and `default_joystick`.
+    /// Drops the keys and buttons a store from before 2026-11-14 held, once the sim has them in
+    /// `Settings.key_bindings`.
     #[func]
-    fn keys(table: GString, store: GString, map: GString) -> GString {
-        text(&devices::merge_keys(&defaults(&table, &map), &read(&store)))
-    }
-
-    /// The record other than `record` bound to `value` in `column` ("key" / "button"), −1 = none.
-    #[func]
-    fn conflict(table: GString, store: GString, map: GString, record: i64, column: GString, value: i64) -> i64 {
-        let Some(col) = Column::parse(&column.to_string()) else { return -1 };
-        devices::conflict(&defaults(&table, &map), &read(&store), record as usize, col, value).map_or(-1, |j| j as i64)
-    }
-
-    /// Binds `record` to `value` in `column` ("key": DIK | modifiers << 16, 0 none; "button": 0-based, −1 none).
-    #[func]
-    fn bind(table: GString, store: GString, map: GString, record: i64, column: GString, value: i64) -> bool {
-        let Some(col) = Column::parse(&column.to_string()) else { return false };
+    fn drop_bindings(store: GString) -> bool {
         let mut s = read(&store);
-        devices::set(&defaults(&table, &map), &mut s, record as usize, col, value);
-        write(&store, &s)
+        !devices::drop_bindings(&mut s) || write(&store, &s)
     }
 
-    /// `record` back to its default in `column`; `record` −1: every record in that column.
+    /// Every axis back to the defaults.
     #[func]
-    fn reset(store: GString, record: i64, column: GString) -> bool {
-        let Some(col) = Column::parse(&column.to_string()) else { return false };
+    fn reset_axes(store: GString) -> bool {
         let mut s = read(&store);
-        devices::reset(&mut s, (record >= 0).then_some(record as usize), col);
-        write(&store, &s)
-    }
-
-    /// Every button and axis back to the defaults.
-    #[func]
-    fn reset_joystick(store: GString) -> bool {
-        let mut s = read(&store);
-        devices::reset(&mut s, None, Column::Button);
         devices::reset_axes(&mut s);
         write(&store, &s)
     }

@@ -7,6 +7,8 @@
 # Mac). The store is a temporary file.
 extends "res://../tests/godot/base.gd"
 
+const KeyTable := preload("res://shared/controls/key_table.gd")
+
 
 func axis(a: int, v: float) -> void:
 	var e := InputEventJoypadMotion.new()
@@ -38,8 +40,8 @@ func run() -> void:
 	for lang in ["en", "he"]:
 		s.language = lang
 		s.pilot_name = "נועה גולן" if lang == "he" else "Noa Golan"
-		IafDevices.reset(s.devices_file(), -1, "key")
-		IafDevices.bind(ProjectSettings.globalize_path(s.keys_file()), s.devices_file(), "", 24, "key", k)
+		s.key_bindings = {}
+		KeyTable.load_table().set_column(s.key_bindings, 24, "key", k)
 		fe.show_page("keys")
 		await frames(5)
 		var ks: Node = fe.get_node("Keys")
@@ -74,7 +76,7 @@ func run() -> void:
 		s.throttle_detent = -1
 	s.language = "en"
 	# keys_mac: the Views group as a Mac shows it (the laptop map, Option and ⌘).
-	var kt: GDScript = load("res://shared/controls/key_table.gd")
+	var kt: GDScript = KeyTable
 	var was: bool = kt.cmd_is_ctrl
 	kt.cmd_is_ctrl = true
 	s.laptop_keys = true

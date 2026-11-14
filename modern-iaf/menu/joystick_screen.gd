@@ -2,7 +2,8 @@
 # its axes with a live bar, a role (roll, pitch, throttle, rudder, roll trim or none), an invert switch and a dead zone,
 # then the commands with their buttons (keys_screen.gd in its "button" column: press a button or a hat direction).
 # Reset all puts the buttons and axes back to the defaults: the device map's (data/devices) or the key table's. The
-# store is Rust's (IafDevices); Settings.apply_devices hands the axes to the Joystick autoload the flight reads.
+# axes' store is Rust's (IafDevices), the buttons are Settings.key_bindings (keys_screen.gd); Settings.apply_devices
+# hands the axes to the Joystick autoload the flight reads.
 extends Control
 
 const KeysScreen := preload("res://menu/keys_screen.gd")
@@ -224,10 +225,10 @@ func _store(r: String, axis: int, invert: bool, dead: float) -> void:
 
 
 func reset_all() -> void:
-	IafDevices.reset_joystick(Settings.devices_file())
+	IafDevices.reset_axes(Settings.devices_file())
+	buttons.reset_all()
 	Settings.apply_devices()
 	refresh()
-	buttons.cancel()
 
 
 ## The live bars: an axis with a role as the flight reads it (Joystick.role_value: the role's invert, dead zone and

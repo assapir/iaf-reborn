@@ -2,8 +2,8 @@
 # buttons (column "button"). Every command of the sim's key table that has a group, by group, each with its key or
 # button. Click a row, then press the new key (or the joystick button or hat): Esc cancels. A key another command
 # already uses opens a choice in place: swap the two, use it here (the other loses it) or cancel. Each changed row has
-# Default; the footer has Reset all. The store, the conflicts and the merge are Rust's (IafDevices, Settings.
-# devices_file); this script displays and asks.
+# Default; the footer has Reset all. The store and its rules are both games' (Settings.key_bindings, key_table.gd
+# find_key / set_column, reborn's Controls page's); this script displays and asks.
 extends Control
 
 const KeyTable := preload("res://shared/controls/key_table.gd")
@@ -14,7 +14,7 @@ const GROUPS := ["flight", "weapons", "sensors", "views", "sim"]
 var fe: Control
 ## "key" or "button".
 var column := "key"
-## The merged key table (Settings.key_table_data).
+## The key table (its defaults; the joystick's device map gives the buttons', Settings._map_buttons).
 var table: RefCounted
 ## The record waiting for its key / button, −1 = none.
 var waiting := -1
@@ -149,12 +149,12 @@ func _row(parent: Control, i: int) -> void:
 
 ## Record i's binding in this column.
 func value(i: int) -> int:
-	return table.default_key(i) if column == "key" else int(table.records[i].joystick)
+	var b: Dictionary = Settings.key_bindings
+	return table.key_of(i, b) if column == "key" else table.joystick_of(i, b)
 
 
 func default_value(i: int) -> int:
-	var r: Dictionary = table.records[i]
-	return int(r.get("default_key" if column == "key" else "default_joystick", value(i)))
+	return table.default_key(i) if column == "key" else table.default_joystick(i)
 
 
 ## A binding as the row shows it: the key's name (⌘ and Option on macOS), "Button n"; "—" for none.
@@ -219,7 +219,8 @@ func _input(event: InputEvent) -> void:
 ## Binds record i to v, or shows the conflict when another command has v.
 func choose(i: int, v: int) -> void:
 	waiting = -1
-	var other: int = IafDevices.conflict(_table_path(), Settings.devices_file(), Settings.devices_map(), i, column, v)
+	var b: Dictionary = Settings.key_bindings
+	var other: int = table.find_key(v, b, i) if column == "key" else table.find_joystick(v, b, i)
 	if other >= 0:
 		pending = [i, v, other]
 		_show_conflict()
@@ -246,22 +247,20 @@ func resolve(how: String) -> void:
 
 
 func reset_one(i: int) -> void:
-	IafDevices.reset(Settings.devices_file(), i, column)
+	_bind(i, default_value(i))
 	cancel()
 
 
 func reset_all() -> void:
-	IafDevices.reset(Settings.devices_file(), -1, column)
+	for i in table.size():
+		table.set_column(Settings.key_bindings, i, column, default_value(i))
+	Settings.save()
 	cancel()
 
 
 func _bind(i: int, v: int) -> void:
-	IafDevices.bind(_table_path(), Settings.devices_file(), Settings.devices_map(), i, column, v)
-	table = KeyTable.load_table()
-
-
-func _table_path() -> String:
-	return ProjectSettings.globalize_path(Settings.keys_file())
+	table.set_column(Settings.key_bindings, i, column, v)
+	Settings.save()
 
 
 func _show_conflict() -> void:

@@ -183,9 +183,9 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 - **Keys and Joystick (P1, 2026-11-08, the Mac run's "keys / joystick mapping"):** Preferences → Devices opens a
   Keys screen (every command the sim has, by group; click and press to rebind, Cmd on macOS, conflicts with Swap /
   Use it here, Default, Reset all) and a Joystick screen (the devices, each axis' role with a live bar, Invert and a
-  dead zone, the buttons and hat bound by pressing them, Reset all), in English and Hebrew. One compact store,
-  `user://devices.json`, read, written and merged by Rust (`IafDevices`); the flight reads the merged key table and
-  the axes. The Thrustmaster Hotas X has its own default map (`modern-iaf/data/devices/`), and a joystick connecting no
+  dead zone, the buttons and hat bound by pressing them, Reset all), in English and Hebrew. The keys and
+  buttons are `Settings.key_bindings`, the store reborn uses too (2026-11-14; an older `devices.json`'s move there once);
+  the axes are in `user://devices.json`, read and written by Rust (`IafDevices`). The Thrustmaster Hotas X has its own default map (`modern-iaf/data/devices/`), and a joystick connecting no
   longer asks for the install's `menu/joy` ([front-end.md](front-end.md) §9). On macOS the keys start from the
   laptop map, no numpad: the rudder on Z / X, the snap views on Alt + 1–9 (§9.1). `test_devices.gd`, the M0 probe
   with a fake joystick.

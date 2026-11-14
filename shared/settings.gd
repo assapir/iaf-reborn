@@ -733,7 +733,9 @@ func read_config(cfg: ConfigFile) -> void:
 		for k in cfg.get_section_keys("keys"):
 			var v = cfg.get_value("keys", k)
 			if k.begins_with("r") and k.substr(1).is_valid_int() and v is Array and v.size() == 2:
-				key_bindings[int(k.substr(1))] = [int(v[0]), int(v[1])]
+				key_bindings[int(k.substr(1))] = [
+					null if v[0] == null else int(v[0]), null if v[1] == null else int(v[1])
+				]
 	# Ground textures and Model detail only with setup's download (docs/rendering.md §1.4, §9): a saved "ambientcg"
 	# without it is Original.
 	if ground_textures == "ambientcg" and not load("res://shared/terrain/ground_textures.gd").available():
@@ -1330,12 +1332,6 @@ func airbases_file() -> String:
 ## The key table (key_table.gd): assets/converted/keys.json, converted from the exe by `iaf-convert keys`.
 func keys_file() -> String:
 	return converted("keys.json")
-
-
-## The key table's contents (key_table.gd _load): the file at `path` as it is. Modern IAF merges the player's keys and
-## buttons into it.
-func key_table_data(path: String) -> Dictionary:
-	return load_json(path)
 
 
 ## The folder of the joystick maps (joystick.gd _load_joy_map, the original's menu/joy/*.joy).

@@ -119,7 +119,7 @@ var flown_sortie := 0
 var notebook_help_seen := false
 var _fonts := {}  # display_font's, by style
 var _keys: Array = []  # has_setting's
-## The player's keys, buttons and axes (devices_file); a test sets its own.
+## The player's joystick axes (devices_file); a test sets its own.
 var devices_path := ""
 ## The laptop key map (front-end.md §9.1: no numpad keys), picked on a platform without a numpad: macOS. A Mac with a
 ## full keyboard gets it too; its player can put any command on the numpad on the Keys screen. A test sets it.
@@ -138,6 +138,7 @@ func _ready() -> void:
 		return
 	load("res://shared/controls/key_table.gd").mac_symbols = true  # "Option" and "⌘" on a Mac (front-end.md §9.1)
 	_apply_profile()
+	_take_old_bindings()
 	apply_devices.call_deferred()  # after the Joystick autoload is in the tree
 	ThemeDB.get_default_theme().default_font = display_font("ui")  # every Control's text unless it sets its own
 
@@ -577,21 +578,48 @@ func devices_map() -> String:
 	return IafDevices.find_map(joy_maps_dir(), Input.get_joy_name(js.device()))
 
 
-## The key table the flight reads: the sim's own with the device map's buttons and the player's keys and buttons.
-func key_table_data(path: String) -> Dictionary:
-	if not ClassDB.class_exists("IafDevices"):
-		return super(path)
-	var d = JSON.parse_string(IafDevices.keys(ProjectSettings.globalize_path(path), devices_file(), devices_map()))
-	return d if d is Dictionary else {}
-
-
 ## The sim's own maps (JSON, DEVICE_MAPS): the shared reader finds no .joy there, so it reads no install.
 func joy_maps_dir() -> String:
 	return _sim_file(DEVICE_MAPS)
 
 
 func joystick_connected(_name: String) -> void:
+	_map_buttons(devices_map())
 	apply_devices()
+
+
+## The device map's button column as the joystick's default buttons (KeyTable.default_joystick), as reborn's .joy
+## files set them: a record the map leaves out has none.
+func _map_buttons(map: String) -> void:
+	var js := _joystick()
+	if js == null or map == "":
+		return
+	var b := {}
+	var col: Dictionary = load_json(map).get("buttons", {})
+	for k in col:
+		b[int(k)] = int(col[k])
+	js.default_buttons = b
+
+
+## The keys and buttons a devices.json from before 2026-11-14 held (keys {record: key}, buttons {record: button}, each
+## column apart): into key_bindings, the store both games use (key_table.gd), then out of the file.
+func _take_old_bindings() -> void:
+	var old := load_json(devices_file())
+	if not old.has("keys") and not old.has("buttons"):
+		return
+	for c in 2:
+		var col = old.get(["keys", "buttons"][c], {})
+		if not col is Dictionary:
+			continue
+		for k in col:
+			if str(k).is_valid_int():
+				var e: Array = key_bindings.get(int(k), [null, null])
+				e[c] = int(col[k])
+				key_bindings[int(k)] = e
+	if not isolated():
+		write_config().save(PATH)
+	if ClassDB.class_exists("IafDevices"):
+		IafDevices.drop_bindings(devices_file())
 
 
 ## The store's axes to the joystick: joy_axes, the invert and dead zone of each (Joystick.tune), the trim rocker on

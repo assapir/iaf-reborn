@@ -23,7 +23,7 @@ Measured 2026-11-09 on the development machine's `assets/` after `iaf-sim db` an
 | cockpit data | `converted/own/cockpits/` | 479 KB (JSON and pictures) | `iaf-sim own` | the cockpit code |
 | debriefs | `user://debriefs/debrief-<date>-<mission>.json` (before §5) | one file per flight | `flight/sim_flight.gd` | the front end's Debrief sheet |
 | pilot log | `user://pilots/<id>.json` (before §5) | one file, grows by one attempt per flight | `flight/sim_flight.gd` | the front end's Home and Pilot log |
-| devices | `user://devices.json` | one small file, the user's overrides only | `iaf_tools::devices` (`IafDevices`) | the key table and the joystick reader |
+| devices | `user://devices.json` | one small file, the user's axis overrides only (the keys and buttons are `Settings.key_bindings`, both games' store) | `iaf_tools::devices` (`IafDevices`) | the joystick reader |
 
 Every one of these is read whole, once, when its screen or the flight starts (`Settings.load_json`: open, parse,
 done). None is queried by a key or a range. The compiled data is rewritten only by a setup step. The records grow

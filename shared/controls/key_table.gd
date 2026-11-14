@@ -2,7 +2,8 @@
 # iafjets.exe (converted by `iaf-convert keys` into assets/converted/keys.json), each with a press
 # and a release command (id, p1, p2), a key (DirectInput scancode | modifier << 16), a joystick
 # button and a "shown in the Controls list" flag. The player's rebinds are overrides kept in
-# Settings.key_bindings ({record index: [key, joystick button]}); everything else is the default.
+# Settings.key_bindings ({record index: [key, joystick button]}), both games' one store; everything else is the
+# default. A null in an entry is that column's default (Modern IAF binds one column at a time).
 extends RefCounted
 
 ## Modifier bits of a key (FUN_004e08c0 / 511dc0): one modifier per key, tested in this order.
@@ -138,7 +139,7 @@ func _load(path: String) -> void:
 	if not FileAccess.file_exists(path):
 		push_error("key table missing (%s): run tools/setup-cli.sh" % path)
 		return
-	var d := Settings.key_table_data(path)
+	var d := Settings.load_json(path)
 	if d.is_empty():
 		return
 	records = d.records
@@ -165,11 +166,13 @@ func default_joystick(i: int) -> int:
 
 ## The key / joystick button of record i with the player's overrides.
 func key_of(i: int, overrides: Dictionary) -> int:
-	return int(overrides[i][0]) if overrides.has(i) else default_key(i)
+	var v = overrides[i][0] if overrides.has(i) else null
+	return default_key(i) if v == null else int(v)
 
 
 func joystick_of(i: int, overrides: Dictionary) -> int:
-	return int(overrides[i][1]) if overrides.has(i) else default_joystick(i)
+	var v = overrides[i][1] if overrides.has(i) else null
+	return default_joystick(i) if v == null else int(v)
 
 
 ## Sets record i's key (or button) in `overrides`, dropping the entry when it is the default again.
@@ -178,6 +181,18 @@ func set_binding(overrides: Dictionary, i: int, key: int, joystick: int) -> void
 		overrides.erase(i)
 	else:
 		overrides[i] = [key, joystick]
+
+
+## Sets one column of record i ("key" or "button") and keeps the other's; a column at its default is null, so it
+## follows a changed default (another joystick's buttons). The entry goes when both are the default.
+func set_column(overrides: Dictionary, i: int, column: String, v: int) -> void:
+	var e: Array = overrides.get(i, [null, null]).duplicate()
+	var c := 0 if column == "key" else 1
+	e[c] = null if v == (default_key(i) if c == 0 else default_joystick(i)) else v
+	if e[0] == null and e[1] == null:
+		overrides.erase(i)
+	else:
+		overrides[i] = e
 
 
 ## The label of record i (keys.trx line i; the Hebrew pack's line when present and asked for).

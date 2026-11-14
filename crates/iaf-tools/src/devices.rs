@@ -1,15 +1,15 @@
-//! Modern IAF's device settings (modern-iaf/docs/front-end.md §9): the player's keys, joystick buttons and axes over the
-//! sim's key table, kept in one compact JSON file, the store (`user://devices.json`):
+//! Modern IAF's joystick axes (modern-iaf/docs/front-end.md §9), kept in one compact JSON file, the store
+//! (`user://devices.json`):
 //!
-//! `{"keys": {"<record>": key}, "buttons": {"<record>": button}, "axes": {"<role>": {"axis": n, "invert": b, "dead": x}}}`
+//! `{"axes": {"<role>": {"axis": n, "invert": b, "dead": x}}}`
 //!
-//! A key is DIK | modifiers << 16 as `key_table.gd` stores it (0 = no key); a button is the joystick's 0-based button,
-//! `HAT`..`HAT + 3` the hat (up, right, down, left), −1 = none. The store keeps only what differs from the defaults:
-//! the key table's own key and button, and for the axes `joystick.gd`'s axis numbers and dead zones.
+//! The store keeps only what differs from the defaults: `joystick.gd`'s axis numbers and dead zones, or a device map's.
+//! The keys and buttons are both games' one store, `Settings.key_bindings` (`key_table.gd`); a store from before
+//! 2026-11-14 also held them (`"keys"`, `"buttons"`), which the sim moves there once (`drop_bindings`).
 //!
 //! A device map (`modern-iaf/data/devices/<device>.json`: `match`, `axes` {role: axis}, `buttons` {record: button}) holds
-//! a known joystick's defaults: its axes, and its whole button column (records it does not list: none). The defaults
-//! are the key table with the map over it (`with_map`); the store goes over those.
+//! a known joystick's defaults: its axes here, and its whole button column, which the sim hands to
+//! `Joystick.default_buttons` as reborn's `.joy` files do (records it does not list: none).
 
 use anyhow::{Context, Result};
 use serde_json::{Map, Value, json};
@@ -17,40 +17,6 @@ use std::path::Path;
 
 /// The axis roles, in the order of `Settings.joy_axes` (x, y, throttle, rudder, the rocker).
 pub const ROLES: [&str; 5] = ["roll", "pitch", "throttle", "rudder", "trim"];
-/// The first hat button (`joystick.gd` HAT_BUTTON).
-pub const HAT: i64 = 32;
-
-/// A binding column of the key table: the key or the joystick button.
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub enum Column {
-    Key,
-    Button,
-}
-
-impl Column {
-    pub fn parse(s: &str) -> Option<Column> {
-        match s {
-            "key" => Some(Column::Key),
-            "button" => Some(Column::Button),
-            _ => None,
-        }
-    }
-
-    fn section(self) -> &'static str {
-        match self {
-            Column::Key => "keys",
-            Column::Button => "buttons",
-        }
-    }
-
-    /// The value meaning "nothing bound".
-    pub fn none(self) -> i64 {
-        match self {
-            Column::Key => 0,
-            Column::Button => -1,
-        }
-    }
-}
 
 /// The store at `path`; an empty one when the file is missing or unreadable.
 pub fn load(path: &Path) -> Value {
@@ -85,17 +51,6 @@ pub fn find_map(dir: &Path, name: &str) -> Option<std::path::PathBuf> {
     })
 }
 
-/// The key table with a device map's button column (`map` {} = the table's own).
-pub fn with_map(table: &Value, map: &Value) -> Value {
-    let mut out = table.clone();
-    if let (Some(b), Some(recs)) = (map["buttons"].as_object(), out["records"].as_array_mut()) {
-        for (i, r) in recs.iter_mut().enumerate() {
-            r["joystick"] = b.get(&i.to_string()).and_then(Value::as_i64).unwrap_or(-1).into();
-        }
-    }
-    out
-}
-
 fn section<'a>(store: &'a mut Value, name: &str) -> &'a mut Map<String, Value> {
     if !store.is_object() {
         *store = json!({});
@@ -107,71 +62,11 @@ fn section<'a>(store: &'a mut Value, name: &str) -> &'a mut Map<String, Value> {
     m.get_mut(name).and_then(Value::as_object_mut).expect("object")
 }
 
-fn records(table: &Value) -> &[Value] {
-    table["records"].as_array().map(Vec::as_slice).unwrap_or(&[])
-}
-
-/// Record `rec`'s default in `col`: the table's key (dik | modifiers << 16) or button.
-pub fn default_of(rec: &Value, col: Column) -> i64 {
-    match col {
-        Column::Key => rec["dik"].as_i64().unwrap_or(0) | (rec["modifiers"].as_i64().unwrap_or(0) << 16),
-        Column::Button => rec["joystick"].as_i64().unwrap_or(-1),
-    }
-}
-
-/// Record `i`'s binding in `col` with the store's override.
-pub fn value_of(table: &Value, store: &Value, i: usize, col: Column) -> i64 {
-    let over = store[col.section()][i.to_string()].as_i64();
-    over.unwrap_or_else(|| records(table).get(i).map_or(col.none(), |r| default_of(r, col)))
-}
-
-/// The key table with the store's keys and buttons in it (the table the flight reads), each record also carrying its
-/// defaults (`default_key`, `default_joystick`).
-pub fn merge_keys(table: &Value, store: &Value) -> Value {
-    let mut out = table.clone();
-    if let Some(recs) = out["records"].as_array_mut() {
-        for (i, r) in recs.iter_mut().enumerate() {
-            let (dk, db) = (default_of(r, Column::Key), default_of(r, Column::Button));
-            let k = store["keys"][i.to_string()].as_i64().unwrap_or(dk);
-            let b = store["buttons"][i.to_string()].as_i64().unwrap_or(db);
-            r["dik"] = (k & 0xffff).into();
-            r["modifiers"] = (k >> 16).into();
-            r["joystick"] = b.into();
-            r["default_key"] = dk.into();
-            r["default_joystick"] = db.into();
-        }
-    }
-    out
-}
-
-/// The first record other than `i` already bound to `v` in `col` (the flight takes the first match), None for none.
-pub fn conflict(table: &Value, store: &Value, i: usize, col: Column, v: i64) -> Option<usize> {
-    if v == col.none() || (col == Column::Button && v < 0) {
-        return None;
-    }
-    (0..records(table).len()).find(|&j| j != i && value_of(table, store, j, col) == v)
-}
-
-/// Binds record `i` to `v` in `col`; the override goes when `v` is the default again.
-pub fn set(table: &Value, store: &mut Value, i: usize, col: Column, v: i64) {
-    let default = records(table).get(i).map_or(col.none(), |r| default_of(r, col));
-    let m = section(store, col.section());
-    if v == default {
-        m.remove(&i.to_string());
-    } else {
-        m.insert(i.to_string(), v.into());
-    }
-}
-
-/// Record `i` back to its default in `col`; None: every record in `col`.
-pub fn reset(store: &mut Value, i: Option<usize>, col: Column) {
-    let m = section(store, col.section());
-    match i {
-        Some(i) => {
-            m.remove(&i.to_string());
-        }
-        None => m.clear(),
-    }
+/// Drops the keys and buttons a store from before 2026-11-14 held (the sim moved them into `Settings.key_bindings`);
+/// true when it had any.
+pub fn drop_bindings(store: &mut Value) -> bool {
+    let Some(m) = store.as_object_mut() else { return false };
+    m.remove("keys").is_some() | m.remove("buttons").is_some()
 }
 
 /// Every axis back to the defaults.
@@ -254,45 +149,6 @@ pub fn set_axis(store: &mut Value, map: &Value, role: &str, axis: i64, invert: b
 mod tests {
     use super::*;
 
-    /// Three records in the compiled table's shape: Pitch up (Up, no button), Gun (Tab, button 0), Next target
-    /// (Return, button 2).
-    fn table() -> Value {
-        json!({"records": [
-            {"index": 0, "label": "Pitch up", "dik": 0xc8, "modifiers": 0, "joystick": -1},
-            {"index": 1, "label": "Gun trigger", "dik": 0x0f, "modifiers": 0, "joystick": 0},
-            {"index": 2, "label": "Next target", "dik": 0x1c, "modifiers": 0x11, "joystick": 2},
-        ]})
-    }
-
-    #[test]
-    fn bound_key_reaches_the_merged_table() {
-        let (t, mut s) = (table(), json!({}));
-        set(&t, &mut s, 0, Column::Key, 0x11 | (0x22 << 16)); // Shift + W
-        let m = merge_keys(&t, &s);
-        assert_eq!(m["records"][0]["dik"], 0x11);
-        assert_eq!(m["records"][0]["modifiers"], 0x22);
-        assert_eq!(m["records"][0]["default_key"], 0xc8);
-        assert_eq!(m["records"][1]["dik"], 0x0f, "others keep their default");
-        set(&t, &mut s, 1, Column::Button, HAT + 2);
-        assert_eq!(merge_keys(&t, &s)["records"][1]["joystick"], HAT + 2);
-    }
-
-    #[test]
-    fn conflicts_name_the_other_record() {
-        let (t, mut s) = (table(), json!({}));
-        let ctrl_return = 0x1c | (0x11 << 16);
-        assert_eq!(conflict(&t, &s, 0, Column::Key, ctrl_return), Some(2));
-        assert_eq!(conflict(&t, &s, 2, Column::Key, ctrl_return), None, "its own key is no conflict");
-        assert_eq!(conflict(&t, &s, 0, Column::Button, 0), Some(1));
-        assert_eq!(conflict(&t, &s, 0, Column::Button, -1), None, "no button is no conflict");
-        assert_eq!(conflict(&t, &s, 0, Column::Key, 0), None, "no key is no conflict");
-        // Swap: the other record takes the old key, then the new one is free.
-        set(&t, &mut s, 2, Column::Key, 0xc8);
-        set(&t, &mut s, 0, Column::Key, ctrl_return);
-        assert_eq!(conflict(&t, &s, 0, Column::Key, ctrl_return), None);
-        assert_eq!(value_of(&t, &s, 2, Column::Key), 0xc8);
-    }
-
     #[test]
     fn axis_inverted_with_a_dead_zone() {
         let mut s = json!({});
@@ -309,11 +165,8 @@ mod tests {
     }
 
     #[test]
-    fn device_map_sets_the_defaults() {
+    fn device_map_sets_the_axes() {
         let map = json!({"match": "Hotas X", "axes": {"rudder": 5}, "buttons": {"2": 7}});
-        let t = with_map(&table(), &map);
-        assert_eq!(value_of(&t, &json!({}), 2, Column::Button), 7);
-        assert_eq!(value_of(&t, &json!({}), 1, Column::Button), -1, "a record the map leaves out has no button");
         assert_eq!(axes(&json!({}), &map, false)["rudder"]["axis"], 5);
         let mut s = json!({});
         assert!(set_axis(&mut s, &map, "rudder", 5, false, 0.25, false));
@@ -328,9 +181,7 @@ mod tests {
 
     #[test]
     fn store_round_trips_compact() {
-        let (t, mut s) = (table(), json!({}));
-        set(&t, &mut s, 0, Column::Key, 0x11);
-        set(&t, &mut s, 2, Column::Button, 5);
+        let mut s = json!({});
         set_axis(&mut s, &json!({}), "throttle", 4, true, 0.0, false);
         let dir = std::env::temp_dir().join(format!("iaf-devices-{}", std::process::id()));
         let path = dir.join("devices.json");
@@ -344,7 +195,6 @@ mod tests {
         save(&path, &json!({"keys": [1], "axes": {"roll": {"dead": 7.0, "axis": "x"}}})).unwrap();
         let a = axes(&load(&path), &json!({}), false);
         assert_eq!(a["roll"], json!({"axis": 0, "invert": false, "dead": 0.9}), "a hand-edited store stays in range");
-        assert_eq!(value_of(&table(), &load(&path), 0, Column::Key), 0xc8);
         std::fs::write(&path, "{not json").unwrap();
         assert_eq!(load(&path), json!({}), "a corrupt file is an empty store");
         std::fs::remove_dir_all(&dir).unwrap();
@@ -360,24 +210,13 @@ mod tests {
     }
 
     #[test]
-    fn reset_one_and_all() {
-        let (t, mut s) = (table(), json!({}));
-        set(&t, &mut s, 0, Column::Key, 0x11);
-        set(&t, &mut s, 1, Column::Key, 0x12);
-        set(&t, &mut s, 1, Column::Button, 7);
+    fn reset_axes_and_drop_old_bindings() {
+        let mut s = json!({"keys": {"24": 0x25}, "buttons": {"64": 5}});
         set_axis(&mut s, &json!({}), "roll", 2, false, 0.25, false);
-        reset(&mut s, Some(0), Column::Key);
-        assert_eq!(value_of(&t, &s, 0, Column::Key), 0xc8);
-        assert_eq!(value_of(&t, &s, 1, Column::Key), 0x12);
-        reset(&mut s, None, Column::Key);
-        assert_eq!(value_of(&t, &s, 1, Column::Key), 0x0f);
-        assert_eq!(value_of(&t, &s, 1, Column::Button), 7, "the buttons keep theirs");
-        reset(&mut s, None, Column::Button);
+        assert!(drop_bindings(&mut s), "a store from before 2026-11-14 had keys and buttons");
+        assert_eq!(s, json!({"axes": {"roll": {"axis": 2}, "throttle": {"axis": -1}}}), "the axes stay");
+        assert!(!drop_bindings(&mut s), "none left");
         reset_axes(&mut s);
-        assert_eq!(merge_keys(&t, &s), merge_keys(&t, &json!({})));
         assert_eq!(axes(&s, &json!({}), false), axes(&json!({}), &json!({}), false));
-        // Binding the default again stores nothing.
-        set(&t, &mut s, 0, Column::Key, 0xc8);
-        assert_eq!(s["keys"], json!({}));
     }
 }
