@@ -2,7 +2,7 @@
 //! Pick a mission screen (`menu/briefing_map.gd` draws it).
 
 use godot::prelude::*;
-use iaf_tools::{briefing, loadout};
+use iaf_tools::{briefing, loadout, sim_bases};
 use serde_json::{Value, json};
 
 use crate::world::text;
@@ -32,6 +32,16 @@ impl IafBriefing {
             Err(e) => serde_json::json!({ "error": format!("{e:#}") }),
         };
         text(&out)
+    }
+
+    /// The grid heading (deg, 0..360) of runway end `designator` at base `base` (a mission's `start.base`) from the
+    /// airbase files in `airbases` (`sim_bases::Runway::heading`, the briefing map's `heading`; the kneeboard's runway
+    /// row asks it too); -1 without the base or the end.
+    #[func]
+    fn runway_heading(airbases: GString, base: GString, designator: GString) -> f64 {
+        let Ok(bases) = sim_bases::load(Path::new(&airbases.to_string())) else { return -1.0 };
+        let Some(b) = sim_bases::by_name(&bases, &base.to_string()) else { return -1.0 };
+        b.end(&designator.to_string()).map_or(-1.0, |(ri, k)| b.runways[ri].heading(k).rem_euclid(360.0))
     }
 
     /// The theatre's ground colour (`briefing::ground`) over `extent` [x0, y0, x1, y1] (UTM metres), `width` px

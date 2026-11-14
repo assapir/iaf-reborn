@@ -16,8 +16,7 @@ const JoystickScreen := preload("res://menu/joystick_screen.gd")
 const PrefChoices := preload("res://shared/util/pref_choices.gd")
 const FileExport := preload("res://shared/util/file_export.gd")
 const TerrainPreload := preload("res://shared/terrain/terrain_preload.gd")
-const ModelDetail := preload("res://shared/util/model_detail.gd")
-const MissionRuntime := preload("res://shared/mission/mission_runtime.gd")
+const Img := preload("res://shared/util/img.gd")
 const KeyTable := preload("res://shared/controls/key_table.gd")
 const BriefingMap := preload("res://menu/briefing_map.gd")
 const ArmingDrawing := preload("res://menu/arming_drawing.gd")
@@ -208,11 +207,8 @@ func _exit_tree() -> void:
 
 ## The overlay lays out on the same 1080-high canvas, scaled to the window.
 func _fit_overlay() -> void:
-	var vp := get_viewport_rect().size
-	var k := vp.y / CANVAS.y
-	scale = Vector2(k, k)
+	Look.fit(self, get_viewport_rect().size)
 	position = Vector2.ZERO
-	size = vp / k
 
 
 func s(key: String) -> String:
@@ -633,8 +629,7 @@ func _jet_view(j: Dictionary) -> void:
 		tt.queue_free()
 	var still := TextureRect.new()
 	still.name = "Still"
-	var img := Image.load_from_file(ProjectSettings.globalize_path("res://data/hangar/%s.webp" % j.unit))
-	still.texture = ImageTexture.create_from_image(img) if img != null else null
+	still.texture = Img.load_texture(ProjectSettings.globalize_path("res://data/hangar/%s.webp" % j.unit))
 	still.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	still.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	still.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -1247,12 +1242,7 @@ func _arm_choose(id: String) -> void:
 
 ## "16,069": kilograms with a thousands separator.
 static func kg_text(v) -> String:
-	var t := str(int(v))
-	var out := ""
-	while t.length() > 3:
-		out = "," + t.right(3) + out
-		t = t.left(t.length() - 3)
-	return t + out
+	return Look.group(int(v))
 
 
 ## The briefing's page: 0 Briefing, 1 Map, 2 Arming (kept for the next mission picked); the footer's credit is the
@@ -1278,7 +1268,7 @@ static func military_time(hhmm: String) -> String:
 ## "250° / 8": the wind as pilots read it, direction and speed (its unit beside it, `kt`), from the mission's
 ## wind_from and wind_kt ("000° / 0" when calm).
 func wind_text(m: Dictionary) -> String:
-	return "%03d° / %d" % [int(m.get("wind_from", 0)), int(m.get("wind_kt", 0))]
+	return Look.wind(m)
 
 
 ## A fact's value: its figures left to right (a label of their own, so "16,069 / 23,582" keeps its order inside a
@@ -1439,24 +1429,14 @@ func _process(_delta: float) -> void:
 ## While the mission page is open, the ground around the picked mission's start and its models load in the background
 ## (reborn's preload, shared/terrain/terrain_preload.gd) so Fly starts at once; another mission re-aims it, leaving the
 ## page stops it and drops what it loaded.
-var _preload_id := -1
+var _preload := Vector2i(-1, -1)
 
 
 func _preload_ground() -> void:
 	var id := -1
 	if page == "mission" and flight == null and mission_i < missions.size():
 		id = int(missions[mission_i].menu_id)
-	if id != _preload_id:
-		_preload_id = id
-		if id < 0 or not Fly.prepare(id):
-			TerrainPreload.stop()
-			return
-		var w = MissionRuntime.player_start(id, Settings.player_flight)
-		if w != null:
-			TerrainPreload.target(get_tree(), w, Settings.player_flight)
-		ModelDetail.preload_packs()  # Model detail's textures, off the main thread
-	if _preload_id >= 0:
-		TerrainPreload.poll()  # the flight's first-frame art and models, once its scene has loaded
+	_preload = TerrainPreload.follow(get_tree(), _preload, Vector2i(id, Settings.player_flight), Fly.prepare)
 
 
 # --- Preferences ------------------------------------------------------------------------------------------------------
@@ -2131,8 +2111,7 @@ func _texture(path: String) -> Texture2D:
 	if path == "":
 		return null
 	if not _pictures.has(path):
-		var img := Image.load_from_file(path) if FileAccess.file_exists(path) else null
-		_pictures[path] = ImageTexture.create_from_image(img) if img != null else null
+		_pictures[path] = Img.load_texture(path)
 	return _pictures[path]
 
 
@@ -2368,7 +2347,7 @@ func value_text(it: Dictionary) -> String:
 	var unit := str(it.unit)
 	if unit == "s" and v >= 60.0:
 		return "%s %s" % [clock(v), s("u_min")]
-	var num := _group(v)
+	var num := Look.group(v)
 	match unit:
 		"":
 			return num
@@ -2376,20 +2355,6 @@ func value_text(it: Dictionary) -> String:
 			return num + "°"
 		_:
 			return "%s %s" % [num, s("u_" + unit) if strings.has("u_" + unit) else unit]
-
-
-static func _group(v: float) -> String:
-	var whole := v == roundf(v)
-	var t := str(int(absf(v))) if whole else "%.1f" % absf(v)
-	var ip := t.get_slice(".", 0)
-	var out := ""
-	while ip.length() > 3:
-		out = "," + ip.right(3) + out
-		ip = ip.left(ip.length() - 3)
-	out = ip + out
-	if not whole:
-		out += "." + t.get_slice(".", 1)
-	return ("-" if v < 0 else "") + out
 
 
 # --- Pilot log --------------------------------------------------------------------------------------------------------
@@ -2772,8 +2737,7 @@ func _chip(parent: Node, t: String, ok: bool) -> Label:
 
 func _photo(parent: Node, file: String) -> TextureRect:
 	if not _textures.has(file):
-		var img := Image.load_from_file(ProjectSettings.globalize_path(PHOTOS.path_join(file)))
-		_textures[file] = ImageTexture.create_from_image(img) if img != null else null
+		_textures[file] = Img.load_texture(ProjectSettings.globalize_path(PHOTOS.path_join(file)))
 	var r := TextureRect.new()
 	r.texture = _textures[file]
 	r.expand_mode = TextureRect.EXPAND_IGNORE_SIZE

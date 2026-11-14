@@ -2293,7 +2293,8 @@ dragging, the arrow otherwise (`SETCURSOR 506720`).
 * The original **blocks** an overweight load: `FUN_00507480` returns 0 when MAX T.O.W. (`+0x68`) < current
   (`+0x6c`), and every way out (Fly, TacticalDisplay, BACK, a flight button) is cancelled, so the original already
   enforces the max take-off weight. The wing balance check (5 % of the current load, stations 1–4
-  against 6–9, the centreline not counted) blocks the same way.
+  against 6–9, the centreline not counted) blocks the same way. The sum and the two sides come from
+  `iaf_tools::loadout::weigh` (`IafStores.weigh`), the one weight rule Modern IAF's Arming page uses too.
 * Station compatibility = the allowed counts: a weapon drops only on a station with `max[i] ≠ 0`, always with
   `max[i]` stores. The balance check is the only symmetry rule.
 * The loads go on the aircraft (`FUN_004f0140`) of **both** members of the flight (`FUN_004f0330` leader,

@@ -221,41 +221,36 @@ func load_of(n: int) -> Array:
 	return current.get(n, [])
 
 
-## FUN_00507bd0: base weight + Σ count × weight (lb).
-func current_weight(n: int, base: float) -> float:
-	var total := base
-	for s in load_of(n):
-		var w := weapon(int(s[0]))
+## FUN_00507bd0 / FUN_00507480's sums (IafStores.weigh, the rule the sim's arming shares): base weight + Σ count ×
+## weight (lb) as `total`; stations 1–4 (the right wing, drawn on the left) as `right`, 6–9 as `left`.
+func weight(n: int, base: float) -> Dictionary:
+	var arms := PackedFloat64Array()
+	var masses := PackedFloat64Array()
+	var load := load_of(n)
+	for i in load.size():
+		var w := weapon(int(load[i][0]))
 		if not w.is_empty():
-			total += float(int(s[1])) * float(w.weight)
-	return total
+			arms.append(1.0 if i < 4 else (-1.0 if i > 4 else 0.0))
+			masses.append(float(int(load[i][1])) * float(w.weight))
+	return IafStores.weigh(base, arms, masses)
+
+
+func current_weight(n: int, base: float) -> float:
+	return weight(n, base).total
 
 
 ## FUN_00507480: 0 when the load may fly, else the message: current > max take-off weight
-## (overweight); stations 1–4 (the right wing, drawn on the left) heavier than 6–9 by more than 5 %
-## of the current load (right wing heavy), or the other way (left wing heavy).
+## (overweight); the right wing heavier than the left by more than 5 % of the current load (right wing heavy), or
+## the other way (left wing heavy).
 func check(n: int, base: float, max_tow: float) -> int:
-	var cur := current_weight(n, base)
-	if max_tow < cur:
+	var w := weight(n, base)
+	if max_tow < w.total:
 		return MSG_OVERWEIGHT
-	var right := _side(n, [0, 1, 2, 3])
-	var left := _side(n, [5, 6, 7, 8])
-	if left + cur * BALANCE < right:
+	if w.left + w.total * BALANCE < w.right:
 		return MSG_RIGHT_HEAVY
-	if right + cur * BALANCE < left:
+	if w.right + w.total * BALANCE < w.left:
 		return MSG_LEFT_HEAVY
 	return 0
-
-
-func _side(n: int, stations: Array) -> float:
-	var t := 0.0
-	var load := load_of(n)
-	for i in stations:
-		if i < load.size():
-			var w := weapon(int(load[i][0]))
-			if not w.is_empty():
-				t += float(int(load[i][1])) * float(w.weight)
-	return t
 
 
 ## FUN_00507aa0 for one station: a weapon goes on with the station's maximum count, only where it is

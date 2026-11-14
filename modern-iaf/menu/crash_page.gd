@@ -5,7 +5,6 @@
 extends Control
 
 const Look := preload("look.gd")
-const CANVAS_H := 1080.0
 const ISSUES := "https://github.com/assapir/iaf-reborn/issues/new"
 ## The longest issue link the browsers and GitHub take: the log's oldest lines go first to fit.
 const URL_MAX := 8000
@@ -92,10 +91,7 @@ static func issue_link(failed: String, at_step: String, lines: Array[String]) ->
 
 
 func _fit() -> void:
-	var vp := get_viewport_rect().size
-	var k := vp.y / CANVAS_H
-	_page.scale = Vector2(k, k)
-	_page.size = vp / k
+	Look.fit(_page, get_viewport_rect().size)
 
 
 func _label(box: Control, variation: String, text: String) -> Label:

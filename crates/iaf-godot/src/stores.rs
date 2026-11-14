@@ -32,6 +32,15 @@ impl IafStores {
         stores::loadout(&pairs(&entity), &pairs(&object)).iter().map(|&(id, n)| varray![id, n].to_variant()).collect()
     }
 
+    /// The stores' weight (`iaf_tools::loadout::weigh`, both games' arming rule): `base` plus each store's mass
+    /// `masses[i]` at its arm `arms[i]` (+ toward the right wing, 0 the middle): {total, left, right, moment}.
+    #[func]
+    fn weigh(base: f64, arms: PackedFloat64Array, masses: PackedFloat64Array) -> VarDictionary {
+        let s: Vec<(f64, f64)> = arms.as_slice().iter().copied().zip(masses.as_slice().iter().copied()).collect();
+        let w = iaf_tools::loadout::weigh(base, &s);
+        vdict! { "total" => w.total, "left" => w.left, "right" => w.right, "moment" => w.moment }
+    }
+
     /// Weapon category (`FUN_004d72a0`): 0 gun, 1 AA, 2 AG, 3 other.
     #[func]
     fn category(type_code: i64) -> i64 {

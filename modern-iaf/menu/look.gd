@@ -275,3 +275,32 @@ static func _button(t: Theme, kind: String, normal: StyleBox, hover: StyleBox, f
 	t.set_stylebox("hover", kind, hover)
 	t.set_stylebox("pressed", kind, hover)
 	t.set_stylebox("focus", kind, focus)
+
+
+## "16,069" / "-1,234.5": a figure with a thousands separator, one decimal where it has a fraction (the front end's
+## figures, the kneeboard's runway row).
+static func group(v: float) -> String:
+	var whole := v == roundf(v)
+	var t := str(int(absf(v))) if whole else "%.1f" % absf(v)
+	var ip := t.get_slice(".", 0)
+	var out := ""
+	while ip.length() > 3:
+		out = "," + ip.right(3) + out
+		ip = ip.left(ip.length() - 3)
+	out = ip + out
+	if not whole:
+		out += "." + t.get_slice(".", 1)
+	return ("-" if v < 0 else "") + out
+
+
+## "250° / 8": the wind as pilots read it, direction and speed (its unit beside it, `kt`), from the mission's
+## wind_from and wind_kt ("000° / 0" when calm).
+static func wind(m: Dictionary) -> String:
+	return "%03d° / %d" % [int(m.get("wind_from", 0)), int(m.get("wind_kt", 0))]
+
+
+## Scales `page` so the 1080-high canvas fills the height of a viewport `vp` px large (its width follows the aspect).
+static func fit(page: Control, vp: Vector2) -> void:
+	var k := vp.y / 1080.0
+	page.scale = Vector2(k, k)
+	page.size = vp / k

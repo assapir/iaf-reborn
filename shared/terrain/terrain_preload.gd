@@ -71,6 +71,26 @@ static func _enter_tree() -> void:
 static var _flight := 0
 
 
+## Both front ends' driver, called each frame while their menus draw: `key` = (mission, flight) the mission screens
+## show, mission -1 when none is open; `last` = the key of the caller's previous call (its own, (-1, -1) at first). A
+## new key re-aims the preload at that flight's start and preloads the models' packs (`ready`, optional, runs first
+## with the mission id and false stops it); -1 stops it. Returns the key to pass back as `last`.
+static func follow(tree: SceneTree, last: Vector2i, key: Vector2i, ready := Callable()) -> Vector2i:
+	if key.x < 0:
+		key = Vector2i(-1, -1)
+	if key != last:
+		if key.x < 0 or (ready.is_valid() and not ready.call(key.x)):
+			stop()
+			return key
+		var w = _script("res://shared/mission/mission_runtime.gd").player_start(key.x, key.y)
+		if w != null:
+			target(tree, w, key.y)
+		_script("res://shared/util/model_detail.gd").preload_packs()  # Model detail's textures, off the main thread
+	if key.x >= 0:
+		poll()  # the flight's first-frame art and models, once its scene has loaded
+	return key
+
+
 static func poll() -> void:
 	if _prepare_task >= 0 and WorkerThreadPool.is_task_completed(_prepare_task):
 		_enter_tree()

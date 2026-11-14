@@ -288,7 +288,8 @@ which showed them whole with their credits, are gone.
 **The preload (2026-11-14):** while the mission page is open, the ground around the picked mission's start and the
 flight's models load in the background with reborn's preload (`shared/terrain/terrain_preload.gd`, which reborn runs
 on its TSD): the mission page sets the mission up (`flight/fly.gd prepare`), aims the preload at the start
-(`MissionRuntime.player_start`) and polls it each frame (`front_end.gd _preload_ground`); another mission re-aims it,
+(`MissionRuntime.player_start`) and polls it each frame (`front_end.gd _preload_ground` through
+`TerrainPreload.follow`, the driver reborn's TSD calls too); another mission re-aims it,
 leaving the page drops it. Fly waits for the flight scene's load on menu frames (`TerrainPreload.fly`, reborn's Fly
 too) and the flight's terrain takes the loaded nodes. A `--mission` start loads cold, as before.
 `modern-iaf/tests/test_terrain_preload.gd` checks it on the 1:1 theatre (388 nodes at Ramon). Measured on the Mac
@@ -750,6 +751,8 @@ own, the jet's maximum weight (the record's `max_takeoff_kg`; the Sufa: 6,254 kg
   middle in the drawing) against the record's `lateral_limit_kgm` (the F-16s: 25,020 ft-lb, 3,459 kg·m,
   [data-formats.md](data-formats.md) §3); past it the figures row adds "Imbalance" / "חוסר איזון" in amber with the
   left and right wings' difference in kg. A warning: Fly stays on unless the record's `lateral_limit_hard` is true.
+  The sum, the wings' shares and the moment come from `loadout::weigh`, the weight rule reborn's Arming screen uses
+  too; each game keeps its own limit (reborn the original's 5 % of the load, the sim the jet's moment).
   The Adir's limit is open, so it shows none.
 - **The figures** follow each change: the fuel, the take-off weight against the maximum. Over the maximum the
   take-off weight reads in the warning colour and Fly is off (no sourced loadout reaches a jet's maximum:

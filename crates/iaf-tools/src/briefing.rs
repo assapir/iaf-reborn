@@ -284,9 +284,18 @@ pub fn arming(unit: &Value, weapons: &Path, lo: &loadout::Loadout) -> Value {
     for (w, n) in unit["loadout"].as_object().into_iter().flatten() {
         stores.push(json!({"weapon": w, "count": n.as_i64().unwrap_or(0), "stations": []}));
     }
-    // The pylon stores only (the gun's rounds, chaff and flares are in the empty weight, inferred).
-    let stores_kg: Option<f64> =
-        lo.iter().map(|(&st, (id, n))| Some(kg(id)? * f64::from(*n) + loadout::rack_kg(unit, st, id))).sum();
+    // The pylon stores only (the gun's rounds, chaff and flares are in the empty weight, inferred), racks too, each at
+    // its arm (`arms`; 0 off the drawing): their sum, the wings' difference and the rolling moment (`loadout::weigh`).
+    let arm = arms(unit, weapons);
+    let stores_w: Option<Vec<(f64, f64)>> = lo
+        .iter()
+        .map(|(&st, (id, n))| {
+            let a = arm.iter().find(|x| x.0 == st).map_or(0.0, |x| x.1);
+            Some((a, kg(id)? * f64::from(*n) + loadout::rack_kg(unit, st, id)))
+        })
+        .collect();
+    let weight = stores_w.map(|s| loadout::weigh(0.0, &s));
+    let stores_kg = weight.map(|w| w.total);
     let tank_kg: Option<f64> = lo
         .values()
         .filter(|(id, _)| kind(id).as_deref() == Some("tank"))
@@ -297,7 +306,7 @@ pub fn arming(unit: &Value, weapons: &Path, lo: &loadout::Loadout) -> Value {
     let empty = jet.as_ref().zip(fuel).map(|(j, f)| j.airframe.mass - f);
     let takeoff = empty.zip(fuel).zip(stores_kg).map(|((e, f), s)| e + f + s);
     let max = unit["max_takeoff_kg"].as_f64();
-    let (imbalance_kg, moment) = lateral(unit, weapons, lo, &kg).unwrap_or((0.0, 0.0));
+    let (imbalance_kg, moment) = weight.map_or((0.0, 0.0), |w| (w.left - w.right, w.moment));
     let limit = unit["lateral_limit_kgm"].as_f64();
     let imbalanced = limit.is_some_and(|l| moment.abs() > l);
     let over = takeoff.zip(max).is_some_and(|(t, m)| t.round() > m);
@@ -341,38 +350,21 @@ pub fn arming(unit: &Value, weapons: &Path, lo: &loadout::Loadout) -> Value {
     })
 }
 
-/// The wings' store masses against each other: the difference (kg, the left wing's less the right's) and the rolling
-/// moment (kg·m, + the right wing heavier), each station's stores (racks too) at its distance from the jet's middle
-/// in the drawing (`data/drawings/<unit id>_front.json` beside `weapons`' folder, its `px_per_m`; station 1, the left
-/// wing tip, at the drawing's right). None without the drawing.
-fn lateral(
-    unit: &Value,
-    weapons: &Path,
-    lo: &loadout::Loadout,
-    kg: &dyn Fn(&str) -> Option<f64>,
-) -> Option<(f64, f64)> {
-    let path = weapons.join("../../drawings").join(format!("{}_front.json", unit["id"].as_str()?));
-    let d: Value = serde_json::from_slice(&std::fs::read(path).ok()?).ok()?;
-    let px = d["px_per_m"].as_f64()?;
-    let xs: Vec<(u32, f64)> =
-        d["stations"].as_object()?.iter().filter_map(|(k, v)| Some((k.parse().ok()?, v[0].as_f64()?))).collect();
-    let mid = xs.iter().map(|x| x.1).sum::<f64>() / xs.len().max(1) as f64;
-    let (mut diff, mut moment) = (0.0, 0.0);
-    for (&st, (id, n)) in lo {
-        let Some(&(_, x)) = xs.iter().find(|x| x.0 == st) else { continue };
-        let m = kg(id)? * f64::from(*n) + loadout::rack_kg(unit, st, id);
+/// Each station's distance from the jet's middle (m, + toward the right wing) in the drawing
+/// (`data/drawings/<unit id>_front.json` beside `weapons`' folder, its `px_per_m`; station 1, the left wing tip, at the
+/// drawing's right). Empty without the drawing.
+fn arms(unit: &Value, weapons: &Path) -> Vec<(u32, f64)> {
+    let read = || -> Option<Vec<(u32, f64)>> {
+        let path = weapons.join("../../drawings").join(format!("{}_front.json", unit["id"].as_str()?));
+        let d: Value = serde_json::from_slice(&std::fs::read(path).ok()?).ok()?;
+        let px = d["px_per_m"].as_f64()?;
+        let xs: Vec<(u32, f64)> =
+            d["stations"].as_object()?.iter().filter_map(|(k, v)| Some((k.parse().ok()?, v[0].as_f64()?))).collect();
+        let mid = xs.iter().map(|x| x.1).sum::<f64>() / xs.len().max(1) as f64;
         // The drawing faces the reader: the left wing (station 1) on its right, x above the middle.
-        let arm = (mid - x) / px;
-        moment += m * arm;
-        diff += if arm < 0.0 {
-            m
-        } else if arm > 0.0 {
-            -m
-        } else {
-            0.0
-        };
-    }
-    Some((diff, moment))
+        Some(xs.into_iter().map(|(st, x)| (st, (mid - x) / px)).collect())
+    };
+    read().unwrap_or_default()
 }
 
 /// [`briefing`] from files: the readable mission, the airbases folder, the compiled map.json and the theatre's folder

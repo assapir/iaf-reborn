@@ -161,7 +161,6 @@ const TerrainPreload := preload("res://shared/terrain/terrain_preload.gd")
 const Tsd := preload("res://menu/tsd.gd")
 const Pilots := preload("res://menu/pilots.gd")
 const ImageryLayers := preload("res://shared/terrain/imagery_layers.gd")
-const ModelDetail := preload("res://shared/util/model_detail.gd")
 const Scenery := preload("res://shared/terrain/scenery.gd")
 const PrefChoices := preload("res://shared/util/pref_choices.gd")
 const FileExport := preload("res://shared/util/file_export.gd")
@@ -955,18 +954,8 @@ var _preload_flight := Vector2i(-1, -1)  # (mission, flight)
 func _preload_ground() -> void:
 	if flight != null:
 		return
-	if tsd != null:
-		var n := Vector2i(Settings.mission_id, tsd.default_flight())
-		if n != _preload_flight:
-			_preload_flight = n
-			var w = preload("res://shared/mission/mission_runtime.gd").player_start(n.x, n.y)
-			if w != null:
-				TerrainPreload.target(get_tree(), w, n.y)
-			ModelDetail.preload_packs()  # Model detail's textures, off the main thread
-		TerrainPreload.poll()  # the flight's first-frame art and models, once its scene has loaded
-	elif _preload_flight.x != -1:
-		_preload_flight = Vector2i(-1, -1)
-		TerrainPreload.stop()
+	var n := Vector2i(Settings.mission_id, tsd.default_flight()) if tsd != null else Vector2i(-1, -1)
+	_preload_flight = TerrainPreload.follow(get_tree(), _preload_flight, n)
 
 
 func _draw() -> void:

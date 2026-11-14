@@ -13,7 +13,6 @@ extends Control
 signal language_changed
 
 const Look := preload("../menu/look.gd")
-const CANVAS_H := 1080.0
 ## A subtitle shows this long (s, real time) and at most BAND_LINES at once.
 const LINE_S := 8.0
 const BAND_LINES := 3
@@ -114,11 +113,8 @@ func _in_language(text: String) -> String:
 
 ## The front end's canvas, scaled to the window's height (the original's sizes stay the flight's).
 func _fit() -> void:
-	var vp := get_viewport_rect().size
-	var k := vp.y / CANVAS_H
-	scale = Vector2(k, k)
+	Look.fit(self, get_viewport_rect().size)
 	position = Vector2.ZERO
-	size = vp / k
 
 
 # --- the hint line ----------------------------------------------------------------------------------------------------

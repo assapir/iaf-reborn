@@ -192,6 +192,33 @@ pub fn shift(unit: &Value, lo: &mut Loadout, from: u32, to: u32, pair: bool) -> 
     true
 }
 
+/// The stores' weight on a jet, the one rule of both games' arming checks (reborn's `mission_weapons.gd` `check`,
+/// FUN_00507bd0 / FUN_00507480, in lb; the sim's `briefing::arming`, in kg): `base` plus every store's mass, each
+/// wing's share and the rolling moment. A store is (arm, mass): its distance from the jet's middle, + toward the
+/// right wing (any unit; the 1998 rule counts sides only, ±1), 0 on the middle.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Weight {
+    pub total: f64,
+    pub left: f64,
+    pub right: f64,
+    /// Σ mass × arm: + the right wing heavier.
+    pub moment: f64,
+}
+
+pub fn weigh(base: f64, stores: &[(f64, f64)]) -> Weight {
+    let mut w = Weight { total: base, left: 0.0, right: 0.0, moment: 0.0 };
+    for &(arm, m) in stores {
+        w.total += m;
+        w.moment += m * arm;
+        if arm > 0.0 {
+            w.right += m;
+        } else if arm < 0.0 {
+            w.left += m;
+        }
+    }
+    w
+}
+
 /// The stores on pylons A..I as the engine's armament holds them, [weapon number, count, rack kg, rack drag,
 /// internal] × 9 (`Settings.arm_loadouts`, player_weapons.gd `_armed`, stores.gd `setup`): each store's weapon
 /// record's `sim` (a `modern_weapons.gd` record built on it, the GBU-31's 1003), else its `number`, its rack's
@@ -327,6 +354,14 @@ mod tests {
                 assert!(w["sources"][f].as_str().is_some_and(|s| !s.is_empty()), "{id}: {f} unsourced");
             }
         }
+    }
+
+    #[test]
+    fn weigh_sums_sides_and_moment() {
+        // Reborn's sides (±1): 2 × 500 lb on the right wing, 300 on the middle, 400 on the left.
+        let w = weigh(20000.0, &[(1.0, 1000.0), (0.0, 300.0), (-1.0, 400.0)]);
+        assert_eq!(w, Weight { total: 21700.0, left: 400.0, right: 1000.0, moment: 600.0 });
+        assert_eq!(weigh(5.0, &[]), Weight { total: 5.0, left: 0.0, right: 0.0, moment: 0.0 });
     }
 
     #[test]

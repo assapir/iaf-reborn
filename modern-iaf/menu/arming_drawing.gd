@@ -18,6 +18,7 @@
 extends Control
 
 const Look := preload("look.gd")
+const Img := preload("res://shared/util/img.gd")
 const MUTED := Color("8a919b")
 ## The F-16's wet inboard stations: their slots (the drop tanks') in the second row.
 const LOWER := ["4", "5", "6"]
@@ -201,10 +202,10 @@ func load_drawing(dir: String, name: String) -> bool:
 	var meta := Settings.load_json(dir.path_join(name + ".json"))
 	if meta.is_empty():
 		return false
-	var img := Image.load_from_file(ProjectSettings.globalize_path(dir.path_join(str(meta.get("image", "")))))
-	if img == null or img.is_empty():
+	var tex := Img.load_texture(ProjectSettings.globalize_path(dir.path_join(str(meta.get("image", "")))))
+	if tex == null:
 		return false
-	picture = ImageTexture.create_from_image(img)
+	picture = tex
 	stations = meta.get("stations", {})
 	return true
 
@@ -264,8 +265,7 @@ func show_drag(id: String, at: Vector2) -> void:
 ## The store's picture (data/stores/<id>.png), null without one.
 func store_picture(id: String) -> Texture2D:
 	if not _pictures.has(id):
-		var img := Image.load_from_file(ProjectSettings.globalize_path("res://data/stores/%s.png" % id))
-		_pictures[id] = ImageTexture.create_from_image(img) if img != null and not img.is_empty() else null
+		_pictures[id] = Img.load_texture(ProjectSettings.globalize_path("res://data/stores/%s.png" % id))
 	return _pictures[id]
 
 

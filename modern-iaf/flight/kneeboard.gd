@@ -293,7 +293,7 @@ func _sections() -> Array:
 	rows.append([s("nb_base"), "%s (%s)" % [_base_name(), _ltr(String(rwy.get("icao", "")))]])
 	rows.append([s("nb_time"), _ltr(String(m.get("time", "")))])
 	var wind := int(m.get("wind_kt", 0))
-	rows.append([s("nb_wind"), s("nb_calm") if wind == 0 else _ltr("%03d° / %d kt" % [int(m.wind_from), wind])])
+	rows.append([s("nb_wind"), s("nb_calm") if wind == 0 else _ltr(Look.wind(m) + " kt")])
 	rows.append([s("nb_jet"), _ltr(_jet())])
 	if not rwy.is_empty():
 		rows.append([s("nb_runway"), rwy.text])
@@ -315,7 +315,7 @@ func _base_name() -> String:
 
 
 ## The runway end `designator` of the flight's base: {text: "25R · 246° · 2,700 m · 2,080 ft", icao}; {} without. The
-## heading is the grid one the HUD and the compass read (the compiled bases', _grid_heading), not the data's true one.
+## heading is the grid one the HUD and the compass read (_grid_heading, the briefing's), not the data's true one.
 func _runway(designator: String) -> Dictionary:
 	if _base() == "":
 		return {}
@@ -331,9 +331,9 @@ func _runway(designator: String) -> Dictionary:
 						"%s · %03d° · %s m · %s ft"
 						% [
 							designator,
-							roundi(_grid_heading(String(b.get("icao", "")), designator, float(e.heading))),
-							_thousands(length),
-							_thousands(roundi(float(e.elevation_m) / 0.3048))
+							roundi(_grid_heading(designator, float(e.heading))),
+							Look.group(length),
+							Look.group(roundi(float(e.elevation_m) / 0.3048))
 						]
 					)
 					return {"text": _ltr(t), "icao": String(b.get("icao", ""))}
@@ -341,22 +341,11 @@ func _runway(designator: String) -> Dictionary:
 	return {}
 
 
-## The grid heading of base `icao`'s runway end `designator` from the compiled bases (airbases.gd: the sim's world is
-## grid north); `fallback` (the data's true heading) without them.
-static func _grid_heading(icao: String, designator: String, fallback: float) -> float:
-	for b: Dictionary in load("res://shared/terrain/airbases.gd").bases():
-		if String(b.get("icao", "")) != icao:
-			continue
-		for r: Dictionary in b.get("runways", []):
-			var k: int = Array(r.get("designators", [])).find(designator)
-			if k >= 0:
-				return fposmod(float(r.heading) + 180.0 * k, 360.0)
-	return fallback
-
-
-static func _thousands(n: int) -> String:
-	var t := str(n)
-	return t if t.length() <= 3 else t.left(t.length() - 3) + "," + t.right(3)
+## The grid heading of the flight's base's runway end `designator` (IafBriefing.runway_heading, the briefing's: the
+## sim's world is grid north); `fallback` (the data's true heading) without it.
+func _grid_heading(designator: String, fallback: float) -> float:
+	var h := IafBriefing.runway_heading(ProjectSettings.globalize_path("res://data/airbases"), _base(), designator)
+	return h if h >= 0.0 else fallback
 
 
 static func _latlon(lat: float, lon: float) -> String:

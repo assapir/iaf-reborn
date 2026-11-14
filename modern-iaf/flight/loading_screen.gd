@@ -6,8 +6,6 @@
 extends Control
 
 const Look := preload("../menu/look.gd")
-## The front end's canvas height (front_end.gd CANVAS).
-const CANVAS_H := 1080.0
 ## Smoothing of the shown progress (per second, exponential), as the original's.
 const SMOOTH := 8.0
 ## The flight's loading phases in order (terrain_view.gd _loading_step), each with its share of the bar [from, to]:
@@ -107,10 +105,7 @@ func _ready() -> void:
 
 ## The page on the front end's canvas, scaled to the window's height (front_end.gd _fit_overlay).
 func _fit() -> void:
-	var vp := get_viewport_rect().size
-	var k := vp.y / CANVAS_H
-	_page.scale = Vector2(k, k)
-	_page.size = vp / k
+	Look.fit(_page, get_viewport_rect().size)
 
 
 ## This script's folder (res://flight in the sim's project; a test of the original's project loads it from there too).

@@ -84,7 +84,7 @@ func set_text(bbcode: String, links: Array) -> void:
 	# Hebrew briefings are right-to-left paragraphs; one without a Hebrew version (English text) stays left-aligned.
 	link_names = links
 	var text := _linkify(bbcode, links)
-	var hebrew: bool = fe._he() and RegEx.create_from_string("[\\x{05D0}-\\x{05EA}]").search(text) != null
+	var hebrew: bool = fe._he() and fe._has_hebrew(text)
 	rich.text = "[right]%s[/right]" % text if hebrew else text
 	image = null
 	scroll = 0.0

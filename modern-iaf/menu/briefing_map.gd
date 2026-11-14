@@ -13,8 +13,8 @@ const ROUTE := Look.NAVY
 ## The base's pavement over the ground and the parking spots.
 const PAVEMENT := Color("8f8b82")
 const SPOT := Color("2a2e35")
-## The roads by class (iaf_avionics::roads CLASS_*: motorway, trunk, primary, secondary): colour, width (px).
-const ROAD_STYLE := [[Color("f2b84b"), 3.0], [Color("f2b84b"), 2.6], [Color("fff6e0"), 2.2], [Color("f4efe4"), 1.6]]
+## The roads by class: colour and width (`brief`, `width`).
+const RoadClasses := preload("res://shared/terrain/road_classes.gd")
 ## The scale bar's lengths to pick from (m): the longest within a quarter of the map's width.
 const SCALES := [100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000]
 ## The zoom's range and its step (a wheel notch, a key press).
@@ -248,11 +248,11 @@ func _draw_roads(xf: Transform2D) -> void:
 				var pts := _points(r.pts, xf)
 				if pts.size() < 2:
 					continue
-				var st: Array = ROAD_STYLE[c]
+				var st: Dictionary = RoadClasses.CLASSES[c]
 				if pass_i == 0:
-					draw_polyline(pts, Color(0, 0, 0, 0.45), st[1] + 2.0, true)
+					draw_polyline(pts, Color(0, 0, 0, 0.45), st.width + 2.0, true)
 				else:
-					draw_polyline(pts, st[0], st[1], true)
+					draw_polyline(pts, st.brief, st.width, true)
 
 
 ## The towns: a dot and the name in the game's language, a label that would cover an earlier one left out.
