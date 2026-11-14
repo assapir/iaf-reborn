@@ -227,6 +227,13 @@ func _apply_profile() -> void:
 		set(key, NO_AIDS[key])
 	# The stores in kg (data-formats.md §3): without it a tank-370's 2470 lb would load as 2470 kg of fuel.
 	better["fix_stores_weight"] = true
+	# Real behaviour (modern-iaf/docs/flight-model.md §9.12, weapons.md): the mission's wind moves the AI jets and the
+	# falling stores and turns the runways into it (the 6-DoF feels it and its gusts always), and the original's bugs
+	# fixed. The flight-model options of the set belong to the original model, which the player never flies here.
+	for id in [
+		"wind", "fix_fall_heading", "fix_skill_damage", "fix_lock_threat", "fix_bomb_burst", "fix_ghost_collision"
+	]:
+		better[id] = true
 	# The CC0 textures setup downloads (assets/thirdparty/ambientcg): ours whenever they are there.
 	var ground: GDScript = load("res://shared/terrain/ground_textures.gd")
 	ground_textures = "ambientcg" if ground.available() else "original"

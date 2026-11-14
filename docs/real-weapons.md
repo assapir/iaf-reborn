@@ -138,7 +138,7 @@ This rule is ours (inferred). Only the weapons with a published lethal radius ch
 |---|---|---|---|---|
 | "20 MM" (M61A1) | 6000 rpm | 1030 m/s (M56 HEI) | F-16 511, F-15 940, F-4E / Kurnass 2000 639 | [^5], [^6], [^7], [^8] |
 | "DEFA" (552 / 553, 2 guns) | 2 × 1300 rpm | 815 m/s | Kfir C7 2 × 140, Mirage IIICJ 2 × 125 | [^9], [^10] |
-| "20 MM" standing in for the GAU-22/A 25 mm | the 20 MM record | the 20 MM record | F-35I 180 (ours) | docs/f35i.md |
+| "20 MM" standing in for the GAU-22/A 25 mm (the F-35I's definition `gun`) | 3300 rpm | 1040 m/s | F-35I 180 (ours) | docs/f35i.md |
 | GSh-30-1 (the MiG-29 fires the "20 MM" record) | 1650 rpm (1500–1800; the middle, inferred) | 860 m/s | MiG-29 150 | [^gsh30], [^mig29] |
 | GSh-23L (the MiG-23 fires the "20 MM" record) | 3400 rpm (3400–3600) | 715 m/s | MiG-23 200 | [^gsh23], [^mig23] |
 

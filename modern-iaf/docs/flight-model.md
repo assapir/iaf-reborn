@@ -497,10 +497,12 @@ budget, a real flight. Open:
 * **The autopilot's taxi pivot**: the 6-DoF turns on the spot (`SixDof::set_pivot`, inferred). The autopilot's level
   hold and its g commands are tested on the 6-DoF (`crates/iaf-flight/tests/fm.rs`); its landing and taxi laws are
   untried there.
-* **Not modelled, one plain log line per run when the game asks** (`IafFlight`, no warning): the drag chute and the
-  systems damage. No F-16 or F-35 has a drag chute: their definitions say `"drag_chute": false`, so the flight never
-  asks for one (`terrain_view.gd`). Also not
-  modelled: Better physics' options other than ground effect, the gusts, the stores' moment and the roll trim (§9.12);
+* **Not modelled, one plain log line per run when the game asks** (`IafFlight`, no warning): the drag chute. No F-16
+  or F-35 has a drag chute: their definitions say `"drag_chute": false`, so the flight never asks for one
+  (`terrain_view.gd`). Also not
+  modelled: Better physics' flight-model options other than ground effect, the gusts, the stores' moment and the roll
+  trim (§9.12): they change the original model, which the sim's player never flies (the sim sets `wind` and the
+  original's bug fixes on, [weapons.md](weapons.md) §4);
   Stevens & Lewis's turn trims (the book's tables were not available).
 
 ### 9.7 The engines (stage (b))
@@ -671,6 +673,14 @@ before. The autopilot drives either through the `autopilot::Host` trait (the `Ai
   inferred) of the free-air lift replaced by McCormick's φ × that of the new lift. The wing's height is taken as the
   c.g.'s above the terrain (inferred: reborn's takes the wheels' height plus the gear clearance). The Barak at 1.7 m:
   lift ×1.06 (`ground_effect_and_gusts_from_the_shared_functions`).
+* **Systems damage** (2026-11-14): the pilot's damage flags (docs/damage.md §5.2) read as the original reads them,
+  through its functions (`aircraft::damage_bits`, `aircraft::stick_authority`): the engine (2, 16, 22; a twin's right
+  engine 3, 17, 23) stops it, one engine of a twin halves the thrust; both afterburners (8, 9) stop the throttle at
+  military; the fuel leak (10) burns a quarter of the type's FuelFlowAtMaxThrust on top, engine running or not;
+  hydraulics (18) leave a quarter of the stick (the rudder keeps its authority); with total flight-control damage (24)
+  the control system stops moving the surfaces and they stay where they were (inferred: the original forces a spin). Gear
+  damage (7) freezes the gear lever in the shared `terrain_view.gd`, so the 6-DoF's gear stays where it is. Test
+  `systems_damage_as_the_original_reads_it`.
 * **Asymmetric stores and roll trim** (2026-11-14): the game's stores moment (`stores.rs` `roll_moment`, kg·m, the
   same call reborn's Better physics "Asymmetric stores" takes; a fuel tank × the external fuel left,
   `aircraft::tank_share`, as reborn's) rolls the jet with its weight × the load factor; the

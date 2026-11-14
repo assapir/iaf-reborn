@@ -160,11 +160,12 @@ static func gun_rounds(type_code: int) -> int:
 	return int(Settings.airframe(type_code).get("gun_rounds", GUN_ROUNDS.get(type_code, -1)))
 
 
-## The gun record `w` (already real, apply) as jet `type_code` fires it: a MiG's own gun (JET_GUNS), else `w`.
+## The gun record `w` (already real, apply) as jet `type_code` fires it: a MiG's own gun (JET_GUNS), a modern jet's
+## (its definition's `gun`, the F-35I's GAU-22/A), else `w`.
 static func jet_gun(w: Dictionary, type_code: int) -> Dictionary:
-	if not JET_GUNS.has(type_code):
+	var g: Dictionary = JET_GUNS.get(type_code, Settings.airframe(type_code).get("gun", {}))
+	if g.is_empty():
 		return w
-	var g: Dictionary = JET_GUNS[type_code]
 	var out := w.duplicate()
 	out["motion"] = {"_velocityJump": g.muzzle, "_limitVel": g.muzzle}
 	out["rounds_per_tick"] = g.rpm / 60.0 * 0.2 * g.guns

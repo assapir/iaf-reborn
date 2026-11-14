@@ -17,9 +17,11 @@ table (`real_weapons.gd` `GUN_ROUNDS`) is the original game's; the sim keeps the
 |---|---|---|---|
 | Sufa (`f16i`) | M61A1 20 mm | 511 | the F-16's[^gdots]; the two-seat Sufa's count is not published (inferred the same) |
 | Barak (`f16d`) | M61A1 20 mm | 511 | as the Sufa |
-| F-35I (`f35i`) | GAU-22/A 25 mm (the 20 mm record stands in) | 180 | the F-35A's[^w-f35] |
+| F-35I (`f35i`) | GAU-22/A 25 mm (the 20 mm record's damage stands in) | 180 | the F-35A's[^w-f35] |
 
-The M61A1 fires 6,000 rounds a minute[^w-m61]: 20 rounds a tick, so 511 rounds last 5.1 s.
+The M61A1 fires 6,000 rounds a minute[^w-m61]: 20 rounds a tick, so 511 rounds last 5.1 s. The F-35I fires its
+GAU-22/A's 3,300 rounds a minute at 1,040 m/s (its definition's `gun`, the shared `real_weapons.gd` `jet_gun` the
+MiGs' guns use; [../../docs/f35i.md](../../docs/f35i.md) §3): 11 rounds a tick, so 180 rounds last 3.3 s.
 
 `iaf-sim db` refuses a unit that has an `airframe` (a flyable jet) and no gun count, so no jet flies with an empty or
 endless gun.
@@ -71,11 +73,26 @@ command 202, so its weapons stay armed.
 The original's gear-down rule still holds when armed: with the gear handle down the gun fires only with Safety off
 ([../../docs/weapons.md](../../docs/weapons.md) §3).
 
-## 4. Tests
+## 4. The original's fixes the sim keeps on
+The sim turns on the shared fixes of the original game's weapon and damage bugs (`sim_settings.gd` `_apply_profile`;
+each one's original and fixed behaviour in [../../docs/deviations.md](../../docs/deviations.md) §2):
+
+| switch | what the sim gets |
+|---|---|
+| `wind` | the mission's wind drifts the falling stores (CCIP follows), moves the AI jets and turns the runways into it |
+| `fix_bomb_burst` | a bomb bursts at the ground, not up to about 70 m under it |
+| `fix_ghost_collision` | no collisions with hidden units or wrecks |
+| `fix_lock_threat` | a radar lock makes the player the locked enemy's threat |
+| `fix_fall_heading` | a falling jet keeps its heading |
+| `fix_skill_damage` | enemies take the same damage at every AI level |
+
+## 5. Tests
 - `cargo test -p iaf-tools --lib sim::`: the bdb holds 511 / 511 / 180 rounds; a flyable jet without a gun count is
   refused; `iaf-sim own` writes both images (the flash opaque at the muzzle, clear at the corners).
 - `modern-iaf/tests/test_sim_gun.gd`: the Sufa's take-off mission starts with 511 rounds and the master arm safe; the
-  trigger fires nothing while safe; Shift+A arms; the tracers fly; the gun empties in 5.1 s and then fires nothing.
+  trigger fires nothing while safe; Shift+A arms; the tracers fly; the gun empties in 5.1 s and then fires nothing;
+  the F-35I's gun record fires 11 rounds a tick at 1,040 m/s; the bomb fixes are on and a 20 kt wind reaches the
+  falling stores.
 
 [^gdots]: General Dynamics OTS, "F-16 20mm Gatling gun system" (511 rounds), https://www.gd-ots.com/wp-content/uploads/2017/11/F-16.pdf
 [^w-f35]: Wikipedia, "Lockheed Martin F-35 Lightning II" (GAU-22/A, 180 rounds in the F-35A), https://en.wikipedia.org/wiki/Lockheed_Martin_F-35_Lightning_II

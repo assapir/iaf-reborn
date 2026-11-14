@@ -74,6 +74,10 @@ pub struct SixDof {
     stores_cd_asym: f64,
     /// The roll trim, stick units (`aircraft::step_roll_trim`).
     roll_trim: f64,
+    /// The pilot's systems damage flags (bit n = flag n) and whether the jet has two engines, as the original's
+    /// (`aircraft::damage_bits`, `aircraft::stick_authority`).
+    damage: u32,
+    twin: bool,
     /// The empty jet, kg (the reference weight less its fuel).
     empty_kg: f64,
     /// Terrain height under the jet (ENU z, m); the gear's height above its contact (for the instruments).
@@ -153,6 +157,8 @@ impl SixDof {
             tank_moment: 0.0,
             stores_cd_asym: 0.0,
             roll_trim: 0.0,
+            damage: 0,
+            twin: false,
             empty_kg,
             ground_height: 0.0,
             gear_clearance: jet.gear.struts[0].pos.z as f32,
@@ -367,6 +373,12 @@ impl SixDof {
         self.roll_trim = crate::aircraft::step_roll_trim(self.roll_trim as f32, rocker, dt, 100) as f64;
     }
 
+    /// The pilot's systems damage (docs/damage.md §5.2), read as the original reads it (`Aircraft::set_damage`): the
+    /// engines and afterburners (`damage_bits`), the fuel leak, the hydraulics and the flight controls (the stick).
+    pub fn set_damage(&mut self, flags: u32, twin: bool) {
+        (self.damage, self.twin) = (flags, twin);
+    }
+
     /// The roll trim, stick units.
     pub fn roll_trim(&self) -> f32 {
         self.roll_trim as f32
@@ -443,15 +455,19 @@ impl SixDof {
         let flow = Flow::from_body(&Body { vel: b.vel - b.att.rotate_inv(air), ..b });
         let qbar = 0.5 * rho * flow.v * flow.v;
         let (max_g, min_g) = self.jet.g_limits;
-        let stick_y = c.stick_y as f64;
+        // The systems damage as the original reads it: the stick's share (hydraulics, flight controls; the rudder
+        // keeps its authority), the engines and afterburners, the fuel leak.
+        let stick_k = crate::aircraft::stick_authority(self.damage) as f64;
+        let bits = crate::aircraft::damage_bits(self.damage, self.twin);
+        let stick_y = c.stick_y as f64 * stick_k;
         let pilot = Pilot {
-            stick_x: c.stick_x as f64,
+            stick_x: c.stick_x as f64 * stick_k,
             stick_y,
             pedal: c.rudder as f64,
             speed_brake: c.brakes && !self.on_ground,
             // The autopilot's stick is linear in g (its ApView: centre 1 g, full stick MaxG / MinG).
             // The trim left out while an autopilot loop flies, as the original's (`Aircraft::roll_stick`).
-            roll_trim: if self.ap_flying { 0.0 } else { self.roll_trim },
+            roll_trim: if self.ap_flying { 0.0 } else { self.roll_trim * stick_k },
             g_command: self.ap_flying.then_some(if stick_y >= 0.0 {
                 1.0 + stick_y * (max_g - 1.0)
             } else {
@@ -469,12 +485,19 @@ impl SixDof {
             ps,
             on_ground: self.on_ground,
         };
-        self.surfaces = self.fcs.step(&pilot, &sensors, dt);
+        // Total flight-control damage (24): the control system no longer moves the surfaces; they stay where they were
+        // (inferred; the original forces a spin, which a 6-DoF has to fly into).
+        if self.damage & (1 << 24) == 0 {
+            self.surfaces = self.fcs.step(&pilot, &sensors, dt);
+        }
         let tef_cmd = jets::tef_schedule(c.gear_down, (2.0 * qbar / 1.225).sqrt() * 1.943844, self.jet.tef_deg);
         self.tef += (tef_cmd - self.tef).clamp(-TEF_RATE * dt, TEF_RATE * dt);
         self.surfaces.dtef = self.tef;
-        let fuel_left = self.fuel_kg > 0.0 || self.unlimited_fuel;
-        let travel = if self.engine_on && fuel_left { lever_to_travel(c.throttle) } else { 0.0 };
+        // Both engines dead (a single-engine jet: its one) stop it like an empty tank; both afterburners dead stop the
+        // throttle at military (as `Aircraft::thrust_at`).
+        let fuel_left = (self.fuel_kg > 0.0 || self.unlimited_fuel) && bits & 0xc != 0xc;
+        let throttle = if bits & 0x180 == 0x180 { c.throttle.min(MILITARY) } else { c.throttle };
+        let travel = if self.engine_on && fuel_left { lever_to_travel(throttle) } else { 0.0 };
         if self.engine_on && fuel_left {
             self.engine.step(&self.jet.engine, travel, dt);
         } else {
@@ -501,6 +524,8 @@ impl SixDof {
                 * -self.accel_g.z,
             stores_cd_asym: self.stores_cd_asym,
             engine_on: self.engine_on && fuel_left,
+            // One engine of a twin dead: half the thrust.
+            thrust_k: if bits & 0xc != 0 { 0.5 } else { 1.0 },
             wind: air,
         };
         let running = jc.engine_on;
@@ -521,8 +546,11 @@ impl SixDof {
         self.on_ground = loads.iter().any(|&l| l > 0.0);
         // Fuel.
         let thrust = if running { engine.thrust(&self.jet.engine, flow.v / sound, alt) } else { 0.0 };
-        self.thrust_n = thrust * self.jet.engines as f64;
+        self.thrust_n = thrust * self.jet.engines as f64 * jc.thrust_k;
         let ff = if running { engine.fuel_flow(&self.jet.engine, thrust, alt) * self.jet.engines as f64 } else { 0.0 };
+        // The fuel leak (damage 10): a quarter of the full-throttle flow on top, engine running or not (the
+        // original's rule on the type's FuelFlowAtMaxThrust).
+        let ff = ff * jc.thrust_k + if bits & 0x40 != 0 { 0.25 * self.params.fuel_flow_max as f64 } else { 0.0 };
         self.fuel_flow = ff as f32;
         if !self.unlimited_fuel {
             self.fuel_kg = (self.fuel_kg - ff * dt).max(0.0);

@@ -209,6 +209,8 @@ pub struct Controls {
     pub stores_cd: f64,
     /// The engines give thrust (off: none, at any Mach).
     pub engine_on: bool,
+    /// The share of the engines' thrust (one engine of a twin dead: 0.5).
+    pub thrust_k: f64,
     /// The stores' rolling moment, N·m (+ right wing down): their lateral moment × the load factor.
     pub stores_roll: f64,
     /// The stores' right less left drag index ×10⁻⁴: the drag difference yaws the nose to the draggier side.
@@ -281,7 +283,8 @@ impl Jet {
         // c.g.; reborn's uses the wheels' height plus the gear clearance, about the same).
         ground_effect(&mut coeffs, flow.alpha, ground_z - b.pos.z, self.airframe.b, self.aspect_ratio());
         let (fa, ma) = force_moment(&coeffs, qbar, &self.airframe);
-        let thrust = if c.engine_on { engine.thrust(&self.engine, mach, alt) * self.engines as f64 } else { 0.0 };
+        let thrust =
+            if c.engine_on { engine.thrust(&self.engine, mach, alt) * self.engines as f64 * c.thrust_k } else { 0.0 };
         let (fg, mg, loads) = if c.gear_down {
             self.gear.forces(b, ground_z, &self.wheels(c), &TYRES, anchors)
         } else {

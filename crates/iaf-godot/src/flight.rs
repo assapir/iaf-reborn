@@ -170,14 +170,13 @@ impl IafFlight {
     /// (stick, spin).
     #[func]
     fn set_damage(&mut self, flags: VarArray, twin: bool) {
-        if matches!(self.aircraft, Some(Fm::SixDof(_))) {
-            sixdof_lacks("the systems damage");
-        }
-        if let Some(ac) = self.aircraft.as_mut().and_then(Fm::original) {
-            let mask = (0..flags.len().min(25))
-                .filter(|&i| flags.get(i).is_some_and(|v| v.booleanize()))
-                .fold(0u32, |m, i| m | 1 << i);
-            ac.set_damage(mask, twin);
+        let mask = (0..flags.len().min(25))
+            .filter(|&i| flags.get(i).is_some_and(|v| v.booleanize()))
+            .fold(0u32, |m, i| m | 1 << i);
+        match self.aircraft.as_mut() {
+            Some(Fm::Original(ac)) => ac.set_damage(mask, twin),
+            Some(Fm::SixDof(s)) => s.set_damage(mask, twin),
+            None => {}
         }
     }
 

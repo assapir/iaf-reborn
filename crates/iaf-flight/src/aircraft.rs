@@ -246,6 +246,18 @@ pub fn damage_bits(sys: u32, twin: bool) -> u32 {
     b
 }
 
+/// Motion 1 (`59f3d0`): the stick's share left by the systems damage `sys` (bit n = flag n): hydraulics (18) a
+/// quarter, total flight control (24) none. Both flight models' stick.
+pub fn stick_authority(sys: u32) -> f32 {
+    if sys & (1 << 24) != 0 {
+        0.0
+    } else if sys & (1 << 18) != 0 {
+        0.25
+    } else {
+        1.0
+    }
+}
+
 /// The α law of the second-order channels (α `5aa3a0`/`5ae4c0`, β `5aa700`/`5ae4c0`, §15.2.5): a target rate
 /// `clamp(err/π·K/Rmax − damp, ±1)·Rmax` with `damp = B·rate·Rmax` (halved while |rate| > π), then the
 /// channel re-based at its sampled angle.
@@ -1088,15 +1100,8 @@ impl Aircraft {
         (self.stick[0], self.stick[1])
     }
 
-    /// Motion 1 (`59f3d0`): hydraulics damage (18) leaves a quarter of the stick, total flight control (24) none.
     fn stick_k(&self) -> f32 {
-        if self.damage & (1 << 24) != 0 {
-            0.0
-        } else if self.damage & (1 << 18) != 0 {
-            0.25
-        } else {
-            1.0
-        }
+        stick_authority(self.damage)
     }
 
     pub fn roll_trim(&self) -> f32 {

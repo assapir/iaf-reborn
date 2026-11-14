@@ -88,6 +88,7 @@ the §1 type-code tables stay for the 1998 jets.
 | `voice` {`betty` (bool), `real`, `real_betty`} | `flight_sounds.gd` `has_betty`, `real_voice`, `betty_set` | the voice warnings, the Real HUD's calls, Extras "Real Betty"'s voice set (`vms`, `f15`, `tones`) |
 | `radar` {`row` (int), `km`, `ai_nm` (numbers)} | `radar.gd`, `real_weapons.gd` `radar_nm`, `combat.gd` `sensor_nm` | the radar table row, the Real range, the AI's sensor range |
 | `gun_rounds` (int) | `real_weapons.gd` `gun_rounds` | the Real gun rounds |
+| `gun` ({rpm, muzzle, guns}) | `real_weapons.gd` `jet_gun` | the jet's own gun's rate and muzzle velocity, where the record it fires stands in |
 | `flir` (bool) | `player_weapons.gd` | a built-in FLIR |
 | `weapons` {`arm_art`, `modern`, `loads`} | `mission_weapons.gd` `jet`, `modern_weapons.gd` `loads` | Arming art (`x_<id>`: `shared/extra/planes/<id>/arm`), the modern weapons `"always"`, and their stations (`{"<record id>": [count, "stations"]}`, the id a whole number) |
 | `cockpit_3d` (string) | `cockpit3d.gd` `model_for` | the 3D cockpit's model (Extras "Cockpit": 3D; cockpit.md "3D cockpit") |

@@ -3,6 +3,7 @@
 # - The flight starts with the master arm safe: the trigger fires nothing (even with the gear-down safety off) until
 #   the Master arm key (Shift+A, command 202) arms it.
 # - The own art: the muzzle flash's gunfire.tga and a tracer streak per round slot (converted/own).
+# - The F-35I's gun record at the GAU-22/A's rate; the bomb fixes and the wind on falling stores on.
 #   IAF_DEFAULT_SETTINGS=1 godot --headless --audio-driver Dummy --path modern-iaf \
 #     -s ../modern-iaf/tests/test_sim_gun.gd --log-file <temp>
 extends "res://../tests/godot/base.gd"
@@ -30,6 +31,18 @@ func run() -> void:
 	var gun: Dictionary = w.stores.station(9)
 	check(float(gun.get("initial", 0)) == 511.0, "Sufa gun: %s rounds (the unit record's)" % gun.get("initial"))
 	check(not w.master_arm, "the flight starts with the master arm safe")
+	# The F-35I (type 1000) fires the same record at its GAU-22/A's rate and speed (definition `gun`, jet_gun).
+	var adir: Dictionary = load("res://shared/weapons/real_weapons.gd").jet_gun(gun.w, 1000)
+	check(
+		is_equal_approx(float(adir.rounds_per_tick), 11.0) and float(adir.motion._velocityJump) == 1040.0,
+		"F-35I gun: %s rounds a tick (3,300 rpm: 180 rounds in 3.3 s)" % adir.rounds_per_tick
+	)
+	# Real behaviour on (sim_settings.gd): the bomb fixes, and the mission's wind on the falling stores.
+	check(w.bomb_burst_fix and w.lock_threat_fix, "the sim fixes the bomb burst and the lock threat")
+	tv.radio.wind = 20
+	tv.apply_wind()
+	var bw: float = tv.Bombs.wind.length() * 3600.0 / 1852.0
+	check(is_equal_approx(bw, 0.0 if s.no_wind else 20.0), "a 20 kt wind drifts the bombs (%.1f kt)" % bw)
 	w.safety_off = true  # past the gear-down rule: only the master arm holds the gun
 	_press(tv, KEY_TAB)
 	await frames(10)

@@ -32,6 +32,8 @@ pub struct Airframe {
     pub voice: Option<Voice>,
     pub radar: Option<Radar>,
     pub gun_rounds: Option<u32>,
+    /// The jet's own gun where the record it fires stands in for it (`real_weapons.gd` `jet_gun`, Weapon data Real).
+    pub gun: Option<Gun>,
     pub flir: Option<bool>,
     pub weapons: Option<Weapons>,
     pub hud_3d: Option<String>,
@@ -84,6 +86,15 @@ pub struct Radar {
     pub row: Option<u32>,
     pub km: Option<f64>,
     pub ai_nm: Option<f64>,
+}
+
+/// `gun`: rounds a minute (all barrels), muzzle velocity m/s, guns per jet.
+#[derive(Clone, Debug, PartialEq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct Gun {
+    pub rpm: f64,
+    pub muzzle: f64,
+    pub guns: u32,
 }
 
 /// `weapons`: the Arming art, the modern weapons ("always"), and their stations: record id -> (count, stations A..I).

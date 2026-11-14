@@ -279,6 +279,7 @@ const BRAKES: Controls = Controls {
     gear_down: true,
     stores_cd: 0.0,
     engine_on: true,
+    thrust_k: 1.0,
     stores_roll: 0.0,
     stores_cd_asym: 0.0,
     wind: Vec3::ZERO,
@@ -897,4 +898,40 @@ fn a_tank_rolls_while_it_holds_fuel_and_its_drag_yaws() {
     let (_, beta) = run(false, 19.1e-4);
     println!("one right tank, 3 s hands-off: full {full:+.1}°, empty {empty:+.1}°; its drag: β {beta:+.2}°");
     assert!(full > 3.0 && empty.abs() < 0.3 && beta < -0.05, "{full} {empty} {beta}");
+}
+
+#[test]
+fn systems_damage_as_the_original_reads_it() {
+    // The original's flags (docs/damage.md §5.2) through aircraft::damage_bits / stick_authority on the Sufa at
+    // 350 kt, 3,000 m: engine (2) no thrust, afterburner (8) the throttle at military, the fuel leak (10) a quarter of
+    // FuelFlowAtMaxThrust on top, hydraulics (18) a quarter of the stick's roll, flight controls (24) none.
+    let sufa = jets::all()[1];
+    // 4 s: the engine past its afterburner's light-off. The roll command's gradient is not linear in the stick
+    // (`ROLL_GRADIENT`), so a quarter stick rolls less than a quarter as far.
+    let fly = |flag: Option<u32>, throttle: f32, stick_x: f32, twin: bool| {
+        let mut f = flight(sufa, 3000.0, 350.0 * KT, true);
+        f.set_damage(flag.map_or(0, |n| 1 << n), twin);
+        let fuel0 = f.state().fuel_kg;
+        let secs = if stick_x == 0.0 { 4.0 } else { 1.0 };
+        fly_for(&mut f, secs, |f| iaf_flight::Controls { throttle, stick_x, ..f.controls() });
+        let p = f.state().roll.to_degrees();
+        (f.state().thrust_n, fuel0 - f.state().fuel_kg, p, f.params.fuel_flow_max)
+    };
+    let (max, burn, _, ff_max) = fly(None, 1.0, 0.0, false);
+    let (dead, _, _, _) = fly(Some(2), 1.0, 0.0, false);
+    let (no_ab, _, _, _) = fly(Some(8), 1.0, 0.0, false);
+    let (mil, _, _, _) = fly(None, 0.74, 0.0, false);
+    let (_, leak, _, _) = fly(Some(10), 1.0, 0.0, false);
+    let ((_, _, roll, _), (_, _, hyd, _), (_, _, fc, _)) =
+        (fly(None, 0.74, 0.5, false), fly(Some(18), 0.74, 0.5, false), fly(Some(24), 0.74, 0.5, false));
+    println!(
+        "thrust {max:.0} / dead {dead:.0} / no AB {no_ab:.0} (mil {mil:.0}); leak {:.2} kg in 4 s; roll 1 s {roll:.1}° / hyd {hyd:.1}° / FC {fc:.1}°",
+        leak - burn
+    );
+    assert!(dead < 1.0 && (no_ab - mil).abs() < 0.02 * mil && no_ab < 0.8 * max, "{dead} {no_ab} {mil} {max}");
+    // A twin's left engine dead (flag 2, twin): half the thrust.
+    let (half, _, _, _) = fly(Some(2), 1.0, 0.0, true);
+    assert!((half - 0.5 * max).abs() < 0.02 * max, "{half} {max}");
+    assert!((leak - burn - 4.0 * 0.25 * ff_max).abs() < 0.1 * ff_max, "{leak} {burn} {ff_max}");
+    assert!(roll > 10.0 && hyd > 0.5 && hyd < roll / 3.0 && fc.abs() < 1.0, "{roll} {hyd} {fc}");
 }
