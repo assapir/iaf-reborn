@@ -171,6 +171,25 @@ impl Blocks {
     }
 }
 
+/// The F-16's roll (finish list F2; sources: docs/real-aircraft.md §8.2): one figure that both flight models read.
+/// Reborn's Real F-16 and F-16I rows take `rate` and `accel` as MaxRollRate and RollAccel / StopAccel; Modern IAF's
+/// 6-DoF Barak and Sufa command `rate` at full stick and move the flaperons at `flaperon_rate` within `flaperon`
+/// (`sixdof::fcs`).
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Roll {
+    /// Steady full-stick roll rate, clean, deg/s.
+    pub rate: f64,
+    /// Roll acceleration at a full-stick step, deg/s².
+    pub accel: f64,
+    /// Flaperon actuator rate, deg/s.
+    pub flaperon_rate: f64,
+    /// Flaperon travel, deg (down, up).
+    pub flaperon: (f64, f64),
+}
+
+/// 240 deg/s clean; 12 rad/s² (the clean end of 8–12 rad/s², inferred); flaperons at 62 deg/s, 20° down / 23° up.
+pub const F16_ROLL: Roll = Roll { rate: 240.0, accel: 688.0, flaperon_rate: 62.0, flaperon: (20.0, 23.0) };
+
 fn real(t: &Type) -> Option<&'static Real> {
     REAL.iter().find(|r| r.aircraft == t.name)
 }
@@ -264,10 +283,10 @@ const REAL: &[Real] = &[
         thrust: Thrust::StaticAb(28_995.6),
         // No transonic drag rise in the original: tuned to Mach 1.2 at SL / ~1.9 at 40k ft.
         wave_drag: 0.02,
-        // FLCS roll response: time constant ~0.3 s → ~900 deg/s² to start and stop the roll
+        // The F-16's roll, shared with Modern IAF's 6-DoF (F16_ROLL): 240 deg/s, 688 deg/s² to start and stop the roll
         // (the original stops at 170 deg/s², overshooting ~1 s after the stick is centred).
-        roll_deg_s: Some(280.0),
-        roll_accel: Some((900.0, 900.0)),
+        roll_deg_s: Some(F16_ROLL.rate as f32),
+        roll_accel: Some((F16_ROLL.accel as f32, F16_ROLL.accel as f32)),
         // ~60,000 lb/h at full AB; the original's ×0.25 below AB then gives ~11,000 lb/h at military.
         ff_ab_lb_s: Some(16.5),
         // 1 g stall ~118 kt instead of 86 kt: with Vmin ∝ √g this puts 9 g at ~355 kt,
@@ -447,9 +466,9 @@ const REAL: &[Real] = &[
         // As the F-16D row: Mach 1.87 at 40k ft against the Block 50/52's clean "Mach 1.89 sustained" (f-16.net), so
         // no refit; the CFTs' drag above Mach 0.9 is open (docs/real-aircraft.md §8.1).
         wave_drag: 0.02,
-        // Block 50/52 FLCS as the Block 40's (digital): the F-16D row's (no Block 52 figure: open).
-        roll_deg_s: Some(280.0),
-        roll_accel: Some((900.0, 900.0)),
+        // Block 50/52 FLCS as the Block 40's (digital): the F-16D row's (inferred, same FLCS; no Block 52 figure: open).
+        roll_deg_s: Some(F16_ROLL.rate as f32),
+        roll_accel: Some((F16_ROLL.accel as f32, F16_ROLL.accel as f32)),
         // TSFC 1.94 with AB, 0.76 military → ~56,600 lb/h and ~13,500 lb/h (inferred).
         ff_ab_lb_s: Some(56_600.0 / 3600.0),
         ff_mil_lb_h: Some(13_500.0),

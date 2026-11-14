@@ -150,6 +150,11 @@ Each entry names the switch and where it lives, then the difference: "Original: 
   and logs "Flight model 6-DoF: Modern IAF's data is not built". Each flight logs "Flight model: original|6dof".
 
 **Flight data = Real**
+- **F-16 roll** (finish list F2). Original: the 1998 F-16 rolls at MaxRollRate 200 deg/s, RollAccel 270 deg/s².
+  Ours, with the switch: the F-16 (and the F-16I Sufa, which takes its row always) rolls at the real jet's 240 deg/s
+  clean, starting and stopping at 688 deg/s² (12 rad/s²), the figure Modern IAF's 6-DoF Barak and Sufa also fly
+  (`data_set::F16_ROLL`; sources and results: real-aircraft.md §8.2). Until 2026-11-14 the Real row gave 280 deg/s at
+  900 deg/s² (no source).
 - **RWR display.** Original: the display copies the first `count` slots without compacting, so an entry can vanish
   after a removal. Ours, with the switch: it lists every used slot — rwr.md §1.
 - **Autopilot landing gear.** Original: the NAV landing lowers the gear once, at step 7, and the lever refuses it

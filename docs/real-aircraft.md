@@ -100,8 +100,8 @@ The original thrust and fuel model limits what a row can match:
   It is set for the AI types. A heavy transport or bomber on a lighter section's value makes less than 1 g of lift.
 * **Jets without afterburner** (row field `afterburner`): full throttle gives the table's k = 1 (the rated dry
   thrust), and the fuel flow at full throttle is the row's `ff_ab`.
-* **Roll acceleration** changes only for the F-16 (FLCS) and the F-35I (which uses the F-16's values). The other
-  jets keep the original start / stop values, so their 0 → 90° roll takes ~1 s.
+* **Roll acceleration** changes only for the F-16 and the F-16I (688 deg/s², §8.2) and the F-35I (900 deg/s², the
+  F-16's earlier value). The other jets keep the original start / stop values, so their 0 → 90° roll takes ~1 s.
 * **One stall floor** (`stall_kt`) sets both the slow end (landing, 1 g) and the g available below corner speed
   (g ≤ (V / floor)²). A jet whose FLCS limits AoA lower in a hard turn than near the landing AoA cannot match both;
   the rows set the floor from the landing side.
@@ -335,8 +335,8 @@ Fit (fitted, inferred): CD0 0.015, wave drag 0.010, 20 km thrust × 2.0. The ori
 ## 8. F-16D
 
 The game's F-16 is the two-seat F-16D (its model; the Reference text: "F-16D Brakeet"). The row (Block 30/40,
-F110-GE-100): thrust × 1.5 (≈ 29,000 lbf), wave drag 0.02 (Mach 1.2 SL, ~1.9 at 40k ft), roll 280 deg/s at
-900 deg/s² (FLCS), fuel flow 16.5 lb/s at full AB, stall floor 118 kt, NWS ±32° / 13.2 ft, ceiling 50,000 ft (§2.1).
+F110-GE-100): thrust × 1.5 (≈ 29,000 lbf), wave drag 0.02 (Mach 1.2 SL, ~1.9 at 40k ft), roll 240 deg/s at
+688 deg/s² (§8.2), fuel flow 16.5 lb/s at full AB, stall floor 118 kt, NWS ±32° / 13.2 ft, ceiling 50,000 ft (§2.1).
 Sources for these: the comments in `data_set.rs` and docs/flight-model.md §11. The D's own values:
 * **Internal fuel**: 870.4 US gal (the C 1,053.1, the smaller aft cell)[^f16net-fuel] ≈ 5,800 lb of JP-8 (inferred;
   the original 7,000 lb).
@@ -358,7 +358,7 @@ values and their sources are in [f16i.md](f16i.md) §1:
 | CD0 | 0.0555 (the original's 0.055 + 1 % for the CFTs) |
 | fuel flow | 56,600 lb/h full AB, 13,500 lb/h military |
 | stall floor | 128 kt |
-| as the F-16D row | wave drag 0.02, roll 280 deg/s at 900 deg/s², NWS ±32° / 13.2 ft, ceiling 50,000 ft |
+| as the F-16D row | wave drag 0.02, roll 240 deg/s at 688 deg/s² (inferred: the same FLCS, §8.2), NWS ±32° / 13.2 ft, ceiling 50,000 ft |
 
 The validation run (`IAF_JET=F-16I`) gives Mach 1.18 at sea level and Mach 1.87 at 40,000 ft, as the F-16D row.
 Heavier by about 4,400 lb at full fuel, it climbs at 36,000 ft/min at sea level (the F-16D row 43,000).
@@ -381,8 +381,8 @@ where one exists:
 Still repeated from the F-16D row or the original, and why:
 * **Thrust over Mach / altitude**: no public F100-PW-229 lapse data, installed or uninstalled (open). The row keeps
   the original's table shape (§2 "Thrust vs Mach / altitude").
-* **Roll** 280 deg/s at 900 deg/s²: the Block 50/52 keeps the Block 40's digital FLCS; no Block 52 roll rate, clean
-  or with stores, is public (open).
+* **Roll** 240 deg/s at 688 deg/s² (§8.2): the Block 50/52 keeps the Block 40's digital FLCS (inferred, same FLCS);
+  no Block 52 roll rate, clean or with stores, is public (open; f16i.md §10).
 * **Stall floor** 128 kt (inferred, f16i.md §1). The forum turn figure, if right, puts the 1 g AoA-limited speed of a
   22,000 lb Block 50 at ~127 kt at sea level, ~147 kt at the Sufa's 29,350 lb (inferred). That does not fit the
   landing side (the F-16D row's 118 kt): one floor cannot serve both (§2 "One stall floor"). At its weight the real
@@ -391,6 +391,28 @@ Still repeated from the F-16D row or the original, and why:
 * **Spool**: the F100's times (§2 "Engine spool"), right for the F100-PW-229's family. Tried and dropped
   (2026-10-29): "idle to full afterburner in 2 s"[^flightglobal-229a] is for the F100-PW-229A test engine (37,150 lbf),
   not the Sufa's -229.
+
+### 8.2 The F-16's roll (finish list F2)
+
+The user's decision of 2026-11-14: "Use the real data in both". One figure, `data_set::F16_ROLL`, serves reborn's Real
+F-16 and F-16I rows (MaxRollRate, RollAccel, StopAccel on the original model's roll channel) and Modern IAF's 6-DoF
+Barak and Sufa (their roll command, flaperon rate and travel: modern-iaf/docs/flight-model.md §9.11). Reborn's
+Original set keeps the 1998 data (MaxRollRate 200, RollAccel 270).
+
+| value | figure | source |
+|---|---|---|
+| steady roll rate, clean | 240 deg/s | the highest a former GD flight-test engineer saw; 180–220 deg/s for the basic jet with two AIM-9[^johnwill-roll] |
+| roll acceleration at a full-stick step | 688 deg/s² (12 rad/s²) | 8–12 rad/s²[^johnwill-roll]; the clean end, paired with the clean rate (inferred) |
+| flaperon actuator rate | 62 deg/s | the VISTA F-16 (an F-16D Block 30, the Barak's block)[^stepaniak]; 52 deg/s in a Wright Laboratory model[^wl-tv] |
+| flaperon travel | 20° down, 23° up | T.O. 1F-16A-1 p. 1-120[^to-f16a-roll]; the same in the Wright Laboratory model[^wl-tv] |
+
+The aileron is half the flaperons' difference: (20° + 23°) / 2 = 21.5°, the travel TP-1538 uses. The forum figures
+are unverified (a forum, not a manual); no manual or test report with an F-16 roll rate was found.
+
+Results (test `real_f16_rolls_at_the_shared_figure` in `crates/iaf-flight/tests/validation.rs`, full stick at 480 kt,
+10,000 ft): Real F-16 and F-16I 240 deg/s, 90° in 0.55 s (before: 280 deg/s at 900 deg/s², 0.48 s).
+At 350 kt the original's roll channel scales the rate by 0.76 (docs/flight-model.md §4 step 5): 183 deg/s,
+90° in 0.63 s (before 0.55 s). Pitch and yaw do not change (the validation's turn and rudder rows are the same).
 
 ## 9. AI types
 
@@ -749,3 +771,14 @@ Fit: CD0 0.0834, no wave drag.
 [^jenkinson]: Jenkinson, *Civil Jet Aircraft Design*, data (707).
 [^tcds]: FAA Type Certificate Data Sheet 4A26 (707 VMO / MMO, from a search excerpt).
 [^doughnut]: Have Doughnut (Lowery, Air Force Magazine): the MiG-21's low-altitude buffet.
+[^johnwill-roll]: f-16.net forum, posts by johnwill (a former General Dynamics F-16 flight-test engineer; unverified):
+    26 January 2009 (https://www.f-16.net/forum/viewtopic.php?f=21&t=11691&start=45), 18 January 2012
+    (https://www.f-16.net/forum/viewtopic.php?f=2&t=16735), 26 March 2017
+    (https://www.f-16.net/forum/viewtopic.php?f=23&t=52929)
+[^stepaniak]: J. Stepaniak, "Multiple Model Adaptive Control of the VISTA F-16", AFIT thesis, 1995 (DTIC ADA309938),
+    table 3.8 p. 3-23 (flaperon ±21.5° at 62 deg/s, stabilator 60 deg/s): https://archive.org/details/DTIC_ADA309938
+[^wl-tv]: W. C. Reigelsperger, K. D. Hammett, S. S. Banda, "Lateral-Directional, Full Envelope Control Law Design for
+    F-16 with Thrust Vectoring", Wright Laboratory (WL/FIGC), DTIC ADA320319, table I (flaperons ±52 deg/s, +20 / −23°;
+    horizontal tails ±50 deg/s): https://apps.dtic.mil/sti/citations/ADA320319
+[^to-f16a-roll]: T.O. 1F-16A-1, *Flight Manual, F-16A/B Block 10 and 15*, August 2003, p. 1-120 (flaperons "20 degrees
+    down and 23 degrees up"): https://archive.org/details/to-1-f-16-a-1-flight-manual-f-16-a-b-block-10-15-august-2003

@@ -935,3 +935,42 @@ fn systems_damage_as_the_original_reads_it() {
     assert!((leak - burn - 4.0 * 0.25 * ff_max).abs() < 0.1 * ff_max, "{leak} {burn} {ff_max}");
     assert!(roll > 10.0 && hyd > 0.5 && hyd < roll / 3.0 && fc.abs() < 1.0, "{roll} {hyd} {fc}");
 }
+
+#[test]
+fn f16s_roll_at_the_shared_figure() {
+    // Finish list F2: the Barak and the Sufa command the production F-16's roll (`data_set::F16_ROLL`, the figure
+    // reborn's Real F-16 rows read): 240 deg/s clean at 688 deg/s² onset, the flaperons at 62 deg/s within 20° down /
+    // 23° up. Full right stick from wings level at 10,000 ft, military, 2 s: the steady rate (1.5–2 s) and the peak
+    // within 5 % of the figure; the time to 90° (0.87 s at 350 kt, 0.80 s at 480 kt, 2026-11-14: the flaperons' rate
+    // and TP-1538's roll power keep the jet's onset at 390–500 deg/s², against ~0.55 s for an instant 688 deg/s²).
+    let fig = iaf_flight::data_set::F16_ROLL;
+    for (jet, kt, t90_max) in [(0, 350.0, 0.90), (0, 480.0, 0.83), (1, 350.0, 0.90), (1, 480.0, 0.85)] {
+        let j = jets::all()[jet];
+        let mut f = flight(j, 3048.0, kt * KT, true);
+        let (mut t90, mut peak, mut onset, mut last, mut p0, mut at_1_5) = (f64::NAN, 0.0f64, 0.0f64, 0.0, 0.0, 0.0);
+        for i in 1..=120 {
+            fly_for(&mut f, 1.0 / 60.0, |f| iaf_flight::Controls { throttle: 0.74, stick_x: 1.0, ..f.controls() });
+            let roll = f.state().roll.to_degrees() as f64;
+            let p = (roll - last).rem_euclid(360.0) * 60.0;
+            peak = peak.max(p);
+            if i <= 30 {
+                onset = onset.max((p - p0) * 60.0);
+            }
+            if i == 90 {
+                at_1_5 = roll;
+            }
+            (last, p0) = (roll, p);
+            if t90.is_nan() && roll >= 90.0 {
+                t90 = i as f64 / 60.0;
+            }
+        }
+        let steady = (last - at_1_5).rem_euclid(360.0) * 2.0;
+        println!(
+            "{} {kt} kt: steady {steady:.0} deg/s, peak {peak:.0} deg/s, onset {onset:.0} deg/s², 90° in {t90:.2} s",
+            j.name
+        );
+        assert!((steady - fig.rate).abs() < 0.05 * fig.rate, "{} {kt} kt: {steady}", j.name);
+        assert!((peak - fig.rate).abs() < 0.05 * fig.rate, "{} {kt} kt: {peak}", j.name);
+        assert!(t90 <= t90_max, "{} {kt} kt: {t90}", j.name);
+    }
+}

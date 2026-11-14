@@ -142,13 +142,19 @@ fn fly_by_wire(type_code: u32) -> bool {
     matches!(type_code, 100 | 140) || airframe::of_fm_type(type_code).and_then(|a| a.fly_by_wire) == Some(true)
 }
 
+/// The F-16's roll damping Clp (per p·b/2V) at α 5–10° and its full roll control's ΔCl per degree of aileron (20°
+/// aileron + 5° differential tail: 0.050, so 0.0025/°; Nguyen et al., NASA TP-1538). Reborn's "Asymmetric stores"
+/// reads Clp; Modern IAF's 6-DoF roll command (`sixdof::fcs`) both.
+pub const F16_CLP: f64 = 0.40;
+pub const F16_CL_DA: f64 = 0.0025;
+
 fn roll_control(type_code: u32) -> RollControl {
     match type_code {
         // F-16 (Nguyen et al., NASA TP-1538): Clp −0.40 at α 5–10°; full roll control (20° aileron + 5° differential
         // tail) ΔCl 0.050, i.e. 0.0025/°; the FLCS's roll loop K = 0.12°/(°/s), proportional: 0.0025·0.12·57.3.
         // The F-16I (type 100 with the Sufa's data), the Lavi and a `fly_by_wire` definition (the F-35I): the F-16's
         // (inferred).
-        c if fly_by_wire(c) => RollControl::RateCommand { clp: 0.40, fb: 0.0172 },
+        c if fly_by_wire(c) => RollControl::RateCommand { clp: F16_CLP as f32, fb: 0.0172 },
         // F-4E, Kurnass 2000: the F-4C in power approach (Heffley & Jewell, NASA CR-2144, table IV-1) Cl_δa 0.057/rad
         // with the spoilers; δa at most 24° (the spoilers' 45° over their 1.87 gearing, inferred).
         120 | 200 => RollControl::Surface { cl_full: 0.024 },

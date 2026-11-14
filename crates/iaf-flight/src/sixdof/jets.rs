@@ -36,6 +36,9 @@ pub struct Jet {
     pub wave_drag: (f64, f64),
     /// Maximum and minimum load factor, g (the REAL rows: the F-16's +9 / −3, the F-15E's +8.1 / −2).
     pub g_limits: (f64, f64),
+    /// The roll the control system commands: the production F-16's (`data_set::F16_ROLL`, reborn's Real F-16 rows
+    /// read it too); None: TP-1538's control system A (figure 64).
+    pub roll: Option<crate::data_set::Roll>,
     /// The trailing-edge flaps' droop with the gear handle down, deg ([`tef_schedule`]): the F-16's 20° (T.O.
     /// GR1F-16CJ-1); the F-35I's the same (inferred); 0 on the Ra'am (no public F-15E flap schedule was read: its model keeps the flap key).
     pub tef_deg: f64,
@@ -101,6 +104,7 @@ pub fn tp1538() -> Jet {
         // The Barak's fit (inferred: the same airframe).
         wave_drag: (0.0509, 0.195),
         g_limits: (9.0, -3.0),
+        roll: None,
         tef_deg: 20.0,
         start: JFS,
     }
@@ -121,6 +125,7 @@ pub fn all() -> [Jet; 4] {
             // Fit: Mach 1.2 at sea level, 2.0 at 40,000 ft (the F-16's public figures, tests/validation.rs REFS).
             wave_drag: (0.0509, 0.195),
             g_limits: (9.0, -3.0),
+            roll: Some(crate::data_set::F16_ROLL),
             tef_deg: 20.0,
             start: JFS,
         },
@@ -136,6 +141,8 @@ pub fn all() -> [Jet; 4] {
             // Fit: Mach 1.2 at sea level, 2.0 at 40,000 ft (the F-16's; Block 50/52 1.89 sustained to 2.05).
             wave_drag: (0.0513, 0.212),
             g_limits: (9.0, -3.0),
+            // The Barak's (inferred: the same FLCS; no Block 52 figure, docs/f16i.md §10).
+            roll: Some(crate::data_set::F16_ROLL),
             tef_deg: 20.0,
             start: JFS,
         },
@@ -153,6 +160,7 @@ pub fn all() -> [Jet; 4] {
             // placard (inferred), not fitted: Mach 1.14 there.
             wave_drag: (0.0682, 0.195),
             g_limits: (9.0, -3.0),
+            roll: None,
             tef_deg: 20.0,
             start: IPP,
         },
@@ -169,6 +177,7 @@ pub fn all() -> [Jet; 4] {
             // Fit: about Mach 2.0 at 40,000 ft with CFTs (F-15E, secondary), with the Barak's k (no sea-level figure).
             wave_drag: (0.0509, 0.195),
             g_limits: (8.1, -2.0),
+            roll: None,
             tef_deg: 0.0,
             start: JFS,
         },

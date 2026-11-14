@@ -215,9 +215,9 @@ OFF there. Picture: the same tables as an HTML page (the C1 section of the "IAF 
 | thrust SL static, military / full AB | 17,943 / 29,000 lbf | ~17,000 / 28,900 lbf (F110-GE-100) | close / ok |
 | 1 g stall speed, SL | 125 kt | ~120–130 kt | ok |
 | 1 g ceiling (envelope) | 60,800 ft | above 50,000 ft | OFF |
-| max roll rate | 308 deg/s | ~240–308 deg/s | close |
+| max roll rate | 308 deg/s | 180–240 deg/s (docs/real-aircraft.md §8.2) | OFF |
 | max level speed, SL / 40,000 ft | Mach 2.34 / Mach 3.41 | Mach 1.2 / Mach 2.0 | OFF / OFF |
-| roll 0→90° | 0.52 s | ~0.5 s | ok |
+| roll 0→90° | 0.52 s | ~0.55 s (inferred) | ok |
 | instantaneous turn, 420 kt, 10,000 ft | 24.6 deg/s at 9.0 g | ~20–26 deg/s at 9 g | ok |
 | climb (Ps), SL, 350 kt, full AB | 49,408 ft/min | ~50,000 ft/min | ok |
 | fuel flow military / full AB | 10,989 / 59,399 lb/h | 9,000–12,000 / 50,000–65,000 lb/h | ok / ok |
@@ -228,7 +228,7 @@ OFF there. Picture: the same tables as an HTML page (the C1 section of the "IAF 
 |---|---|---|---|
 | thrust SL static, military / full AB | 17,941 / 28,996 lbf | ~17,000 / 28,900 lbf | close / ok |
 | 1 g stall speed / ceiling | 125 kt / 50,000 ft | ~120–130 kt / above 50,000 ft | ok / ok |
-| max roll rate, roll 0→90° | 280 deg/s, 0.55 s | ~240–308 deg/s, ~0.5 s | ok / ok |
+| max roll rate, roll 0→90° | 240 deg/s, 0.63 s (280, 0.55 s before 2026-11-14) | 180–240 deg/s, ~0.55 s (§8.2 of docs/real-aircraft.md) | close / ok |
 | max level speed, SL / 40,000 ft | Mach 1.63 / Mach 2.36 | Mach 1.2 / Mach 2.0 | OFF / OFF |
 | instantaneous turn | 24.3 deg/s at 8.0 g | ~20–26 deg/s | ok |
 | climb (Ps), SL | 49,397 ft/min | ~50,000 ft/min | ok |
@@ -241,7 +241,7 @@ OFF there. Picture: the same tables as an HTML page (the C1 section of the "IAF 
 | empty weight / internal fuel | 20,500 / 8,850 lb | 19,420–19,840 + 900 / 5,800 + 3,050 lb | ok / ok |
 | thrust SL static, military / full AB | 18,332 / 29,160 lbf | 17,800 / 29,160 lbf (F100-PW-229) | close / ok |
 | 1 g stall speed / ceiling | 128 kt / 50,000 ft | ~128 kt (inferred) / above 50,000 ft | ok / ok |
-| max roll rate, roll 0→90° | 280 deg/s, 0.55 s | ~240–308 deg/s, ~0.5 s | ok / ok |
+| max roll rate, roll 0→90° | 240 deg/s, 0.63 s (280, 0.55 s before 2026-11-14) | 180–240 deg/s, ~0.55 s (§8.2 of docs/real-aircraft.md) | close / ok |
 | max level speed, SL | Mach 1.17 | ~Mach 1.2 | ok |
 | max level speed, 40,000 ft | Mach 1.69 | Mach 1.89 sustained .. 2.05 | OFF |
 | instantaneous turn | 20.4 deg/s at 6.7 g | ~20.9 deg/s at 7.8 g (uncertain) | ok |
@@ -623,7 +623,17 @@ printed pp. 210–217), stepped with the rigid body (at most 1/120 s):
   ±25°. Figure 63's maximum commandable g by α follows from the limiter.
 * **Roll** (figure 64): figure 64(b)'s gradient (up to 308 deg/s), 10/(s + 10), against the filtered roll rate,
   × 0.12 to the ailerons (±21.5°, 80 deg/s, 20.2/(s + 20.2)); above α 29° the spin prevention drives them against the
-  yaw rate (8.34).
+  yaw rate (8.34). The Barak and the Sufa fly the production F-16's roll instead (2026-11-14, finish list F2; the
+  user's decision "Use the real data in both"): the figure reborn's Real F-16 rows read, `data_set::F16_ROLL`
+  (sources: docs/real-aircraft.md §8.2). Figure 64(b)'s stick shape scaled to 240 deg/s at full stick, followed as a
+  first-order command that starts at 688 deg/s² (time constant 240 / 688 = 0.35 s); the flaperons at 62 deg/s within
+  20° down / 23° up, so the aileron's ±21.5° is TP-1538's. The command also goes forward as the aileron that rolls the
+  jet steadily at that rate, |Clp|·(p·b/2V) / Cl_δa with TP-1538's Clp −0.40 and 0.0025/° (`aircraft::F16_CLP`, the
+  constants reborn's "Asymmetric stores" uses; inferred: figure 64(a)'s proportional loop alone settles at 218 deg/s
+  against its 308 deg/s command); the 0.12 loop corrects the rest, so unbalanced stores still roll the jet. The
+  autopilot's rate command keeps the 10/(s + 10) path without the feedforward (with it the Sufa's autopilot landing
+  crashed, `player_autopilot_flies_the_sims_three_jets`). The Adir, the Ra'am and TP-1538's jet keep control
+  system A's roll (308 deg/s, 80 deg/s): the Adir's own roll comes with finish list F23.
 * **Yaw** (figure 65): figure 65(b)'s pedal gradient (±30°), faded out between α 20° and 30°; the stability-axis yaw
   damper (r − p α, (3s + 15)/(s + 15), 1.5 s/(s + 1), × 0.5) and lateral acceleration (19.32); the aileron-rudder
   interconnect 0.075 α minus figure 65(a)'s q̄/ps term; above α 29° 0.75 × yaw rate; 120 deg/s, ±30°.
@@ -744,7 +754,7 @@ the same public figures as §5; "ok" inside, "close" within 10 %, "OFF" further;
 | neutral stick, 60 s, 10,000 ft, military | +818 ft, to 643 kt **OFF** | +1,066 ft **OFF** | +1,164 ft **OFF** | +1,063 ft **OFF** |
 | max level speed, SL | 785 kt, Mach 1.19 ok (1.2) | Mach 1.19 ok | 750 kt, Mach 1.14 close (700 kt) | Mach 1.19 (-) |
 | max level speed, 40,000 ft | Mach 1.99 ok (2.0) | Mach 1.99 ok (1.89–2.05) | Mach 1.60 ok (1.6) | Mach 1.99 ok (2.0) |
-| max roll rate, roll 0 → 90° at 350 kt | 218 deg/s close, 0.80 s **OFF** (0.5) | 218 close, 0.83 s **OFF** | 200 (-), 0.92 s (-) | 181 (-), 0.98 s (-) |
+| max roll rate, roll 0 → 90° at 350 kt | 267 deg/s **OFF**, 0.87 s **OFF** (0.55) | 265 **OFF**, 0.88 s **OFF** | 200 (-), 0.92 s (-) | 181 (-), 0.98 s (-) |
 | instantaneous turn, 420 kt, 10,000 ft | 21.4 deg/s at 7.7 g ok | 20.3 at 7.0 g ok | 20.0 at 6.7 g (-) | 19.2 at 6.8 g (-) |
 | climb (Ps), SL, full AB | 57,456 ft/min close | 47,572 (-) | 40,149 (-) | 46,583 (-) |
 | fuel flow military / full AB, SL | 10,911 / 63,618 lb/h ok / ok | 13,484 / 59,947 ok / ok | 22,066 / 89,458 ok / ok | 26,968 / 119,775 ok / ok |
@@ -752,8 +762,33 @@ the same public figures as §5; "ok" inside, "close" within 10 %, "OFF" further;
 Why the OFF rows are OFF: the "neutral stick" row holds 1 g (the control system's design), so the height follows
 the speed: at military the jets accelerate from 350 kt to 630–640 kt (the wave drag starts at Mach 0.9; no public
 figure for the military top speed at 10,000 ft). The Adir's stall: TP-1538's lift curve on the F-35's wing area
-(inferred) at 47,550 lb. The roll: TP-1538's roll command reaches 308 deg/s only at full stick force and its filters
-slow the onset; the Block 40's FLCS is faster (open).
+(inferred) at 47,550 lb. The roll: see "The F-16's roll" below.
+
+**The F-16's roll** (2026-11-14, finish list F2; `f16s_roll_at_the_shared_figure` in
+`crates/iaf-flight/tests/sixdof.rs`: full right stick from wings level at 10,000 ft, military, 2 s; the figure
+240 deg/s at 688 deg/s², docs/real-aircraft.md §8.2):
+
+| jet, speed | steady rate (1.5–2 s) | peak | largest roll acceleration, first 0.5 s | 0 → 90° |
+|---|---|---|---|---|
+| Barak, 350 kt | 247 deg/s | 248 | 421 deg/s² | 0.87 s |
+| Barak, 480 kt | 244 | 245 | 515 | 0.78 s |
+| Sufa, 350 kt | 246 | 247 | 392 | 0.88 s |
+| Sufa, 480 kt | 244 | 245 | 486 | 0.80 s |
+
+The test asserts the steady rate and the peak within 5 % of 240 deg/s and 90° within 0.90 s at 350 kt, 0.83 s
+(Barak) and 0.85 s (Sufa) at 480 kt. Before F2 the Barak rolled at 218 deg/s and banked 90° in 0.80 s at 350 kt (the
+Sufa 218, 0.83 s). The table above it reads 265–267 deg/s: its "max roll rate" is the largest frame-to-frame change
+of the bank angle over 3 s, which the Euler angles inflate once the jet is past inverted. The steady rate is 2–3 %
+above the figure: the loop leaves the moments the feedforward does not model (the rudder interconnect's roll, the
+sideslip). The 90° times are open: an instant 688 deg/s² gives 0.55 s (reborn's Real F-16 flies that), but the
+flaperons' 62 deg/s (slower than TP-1538's 80 deg/s) and TP-1538's roll power hold the jet's onset to
+390–520 deg/s². Tested and dropped (2026-11-14): the feedforward on TP-1538's 10/(s + 10) command (0.80 s at 350 kt,
+0.68 s at 450 kt) made the validation's bank-holding pilot oscillate ±50° about 80° (the flaperons hit their rate
+limit at each reversal), so its turn row fell from 21.4 to 16.7 deg/s, and with the autopilot's command it crashed
+the Sufa's landing; the tables' own Clp and Cl_δa at α instead of the two constants gave 254 deg/s steady, no
+closer. Pitch and yaw are unchanged: full pull 8.44 g at 550 kt, α 26.6° at 200 kt, the turn rows 21.5 deg/s at
+7.7 g (Barak, before 21.4) and 20.3 at 7.0 g (Sufa, the same), TP-1538's Table V roll 2.32 / 3.63 s, the stores'
+roll and trim tests as before.
 
 **The frame cost**: a budget, not parity (the orchestrator's decision of 2026-11-03): at most 20 µs per jet per 1/60 s
 frame on this laptop (i7-1185G7), release build, enforced by `frame_cost_within_budget` in

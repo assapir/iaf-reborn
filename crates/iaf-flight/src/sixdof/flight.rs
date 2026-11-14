@@ -189,7 +189,7 @@ impl SixDof {
             aoa_ind: 0.0,
             tef: if st.airborne { 0.0 } else { jet.tef_deg },
         };
-        s.fcs = Fcs::new(jet.g_limits);
+        s.fcs = Fcs::new(jet.g_limits, jet.roll.map(|r| (r, jet.airframe.b)));
         if st.airborne {
             s.controls = Controls { throttle: MILITARY, gear_down: false, ..Controls::default() };
             s.gear = GEAR_UP;
@@ -494,6 +494,7 @@ impl SixDof {
             qbar,
             ps,
             on_ground: self.on_ground,
+            tas: flow.v,
         };
         // Total flight-control damage (24): the control system no longer moves the surfaces; they stay where they were
         // (inferred; the original forces a spin, which a 6-DoF has to fly into).

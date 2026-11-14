@@ -621,13 +621,14 @@ Where our port differs from the original. Everything else follows §15 (status i
     * Effect: one 2000 lb bomb 3 m out (2,721 kg·m), 1 g: the stick to hold it, the hands-off roll rate, and the trim
       time at full rocker (0.1 stick/s); where the stick passes the trim limit, the time to the limit and the stick the
       pilot still holds. Approach is each guide's final speed at 100 m. Original and Real differ only where shown (the
-      F-16I and the F-35I always fly Real).
+      F-16I and the F-35I always fly Real). The F-16 rows' Real stick shares follow MaxRollRate 240 deg/s (since
+      2026-11-14, real-aircraft.md §8.2; 280 before, 10 % and 32 %): the stick share is pₛ / (k·MaxRollRate).
 
       | jet | data | 150 m/s, 3000 m: stick / rate / trim | approach: stick / rate / trim |
       |---|---|---|---|
       | F-16 | Original | 14 % / 18°/s / 1.4 s | 165 kt: 45 % / 31°/s / 2.2 s + 23 % stick |
-      | F-16 | Real | 10 % / 18°/s / 1.0 s | 165 kt: 32 % / 31°/s / 2.2 s + 10 % stick |
-      | F-16I | Real | 10 % / 18°/s / 1.0 s | 165 kt: 32 % / 31°/s / 2.2 s + 10 % stick |
+      | F-16 | Real | 12 % / 18°/s / 1.2 s | 165 kt: 37 % / 31°/s / 2.2 s + 15 % stick |
+      | F-16I | Real | 12 % / 18°/s / 1.2 s | 165 kt: 37 % / 31°/s / 2.2 s + 15 % stick |
       | F-15 | both | 9 % / 10°/s / 0.9 s | 150 kt: 25 % / 14°/s / 2.5 s (the trim limit) |
       | F-4E, Kurnass 2000 | Original | 19 % / 9.5°/s / 1.9 s | 165 kt: 44 % / 12°/s / 4.4 s |
       | F-4E, Kurnass 2000 | Real | 19 % / 18°/s / 1.9 s | 165 kt: 44 % / 23°/s / 4.4 s |

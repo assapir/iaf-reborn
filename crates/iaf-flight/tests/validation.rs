@@ -86,10 +86,10 @@ const REFS: &[Ref] = &[
         thrust_ab: Some((23800.0, 29000.0, "23,800 (F100-220) .. 28,900 (F110-100) lbf")),
         stall: Some((115.0, 135.0, "~120-130 kt (FLCS AoA limit, landing weight)")),
         ceiling: Some((48500.0, 51500.0, "above 50,000 ft (USAF)")),
-        roll_rate: Some((240.0, 308.0, "~240-308 deg/s (FLCS limit 308)")),
+        roll_rate: Some((180.0, 240.0, "180-240 deg/s, 240 clean (F16_ROLL)")),
         vmax_sl: Some((780.0, 800.0, "~795 kt (Mach 1.2)")),
         vmax_hi: Some((1100.0, 1180.0, "~1,150 kt (Mach 2.0)")),
-        roll90: Some((0.35, 0.6, "~0.5 s (240-300 deg/s)")),
+        roll90: Some((0.5, 0.65, "~0.55 s (240 deg/s at 688 deg/s², inferred)")),
         turn: Some((18.0, 26.0, "~20-26 deg/s at 9 g")),
         climb: Some((45000.0, 55000.0, "~50,000 ft/min")),
         ff_mil: Some((9000.0, 12000.0, "~9,000-12,000 lb/h")),
@@ -105,10 +105,10 @@ const REFS: &[Ref] = &[
         thrust_ab: Some((28500.0, 29500.0, "29,160 lbf (F100-PW-229)")),
         stall: Some((120.0, 135.0, "~128 kt (inferred from the F-16D at the heavier weight)")),
         ceiling: Some((48500.0, 51500.0, "above 50,000 ft (USAF F-16)")),
-        roll_rate: Some((240.0, 308.0, "~240-308 deg/s (FLCS limit 308)")),
+        roll_rate: Some((180.0, 240.0, "180-240 deg/s, 240 clean (F16_ROLL)")),
         vmax_sl: Some((760.0, 800.0, "~Mach 1.2 (as the F-16D, inferred)")),
         vmax_hi: Some((1084.0, 1176.0, "Mach 1.89 sustained .. 2.05 (Block 50/52 clean)")),
-        roll90: Some((0.35, 0.6, "~0.5 s (240-300 deg/s)")),
+        roll90: Some((0.5, 0.65, "~0.55 s (240 deg/s at 688 deg/s², inferred)")),
         turn: Some((19.0, 23.0, "~20.9 deg/s at 7.8 g (Block 50, 22,000 lb; uncertain)")),
         ff_mil: Some((12500.0, 14500.0, "~13,500 lb/h (TSFC 0.76, inferred)")),
         ff_ab: Some((52000.0, 61000.0, "~56,600 lb/h (TSFC 1.94, inferred)")),
@@ -728,6 +728,51 @@ fn report(dir: &std::path::Path, r: &Ref, set: DataSet) {
     println!(" {:<36} {:<44} {:<46}", "test", "IAF model", "real aircraft (approx., public sources)");
     for r in &rows {
         println!(" {:<36} {:<44} {:<46} {}", r.item, r.iaf, r.real, r.verdict);
+    }
+}
+
+#[test]
+fn real_f16_rolls_at_the_shared_figure() {
+    // Finish list F2: reborn's Real F-16 and F-16I rows read the F-16's roll (`data_set::F16_ROLL`, 240 deg/s, 688
+    // deg/s²) on the original model's roll channel; the Original set keeps the 1998 data's figures. Full right stick,
+    // 480 kt at 10,000 ft, military (above the channel's speed scaling, which rolls at 0.76 of the figure at 350 kt,
+    // docs/flight-model.md §4 step 5): the rate ramps at RollAccel to MaxRollRate, so 90° in about
+    // 240/688/2 + 90/240 = 0.55 s; within one 1/60 s frame.
+    let Some(dir) = install() else {
+        eprintln!("skipped: no extracted game data (assets/install)");
+        return;
+    };
+    let fig = iaf_flight::data_set::F16_ROLL;
+    let want = fig.rate / fig.accel / 2.0 + 90.0 / fig.rate;
+    for (name, set) in [("F-16", DataSet::Original), ("F-16", DataSet::Real), ("F-16I", DataSet::Real)] {
+        let (params, envelope) = iaf_flight::load_with(&dir, name, set).unwrap();
+        let (rate, accel) = (params.max_roll_rate.to_degrees(), params.roll_accel.to_degrees());
+        let mut ac = Aircraft::new(params, envelope, Vec3::new(0.0, 0.0, (10000.0 / FT) as f64), 0.0, 480.0 / KT);
+        ac.set_controls(Controls { throttle: 0.74, stick_x: 1.0, ..Default::default() });
+        // The steady rate: the bank gained from 0.40 to 0.50 s (past the ramp's 0.35 s, short of 90°).
+        let (mut t90, mut at) = (f32::NAN, [0.0f32; 2]);
+        for i in 1..=60 {
+            ac.step(1.0 / 60.0);
+            let r = ac.state().roll.to_degrees();
+            match i {
+                24 => at[0] = r,
+                30 => at[1] = r,
+                _ => {}
+            }
+            if t90.is_nan() && r >= 90.0 {
+                t90 = i as f32 / 60.0;
+            }
+        }
+        let steady = (at[1] - at[0]) * 10.0;
+        println!("{name} {set:?}: MaxRollRate {rate:.1}, RollAccel {accel:.1}; {steady:.0} deg/s, 90° in {t90:.2} s");
+        if set == DataSet::Real {
+            assert!((rate - fig.rate as f32).abs() < 1e-3 && (accel - fig.accel as f32).abs() < 1e-3, "{rate} {accel}");
+            assert!((steady - rate).abs() < 0.02 * rate, "{name}: {steady}");
+            assert!((t90 as f64 - want).abs() <= 1.0 / 60.0 + 1e-6, "{name}: {t90} (want {want:.3})");
+        } else {
+            // The 1998 data's [F-16]: MaxRollRate 200, RollAccel 270.
+            assert!((rate - 200.0).abs() < 1e-3 && (accel - 270.0).abs() < 1e-3, "{rate} {accel}");
+        }
     }
 }
 
