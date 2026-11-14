@@ -1,8 +1,8 @@
 # The pilot's checklist notebook in the flight (modern-iaf/docs/training.md §11), a child of sim_flight.gd:
 # - the notebook (notebook.gd) with START-UP (the mission's start-up checklist, or the jet's from its start-up
 #   mission: done steps ticked, the current one marked, its fault in red), TAXI / T-O (the base's take-off mission's
-#   steps), RADIO (the base's frequencies, the calls and the tower's answers), LANDING, EMERGENCY (data/notebook.json)
-#   and DATA (the mission's figures);
+#   steps), RADIO (the base's frequencies, the calls and the tower's answers), LANDING, WEAPONS (with each step's key),
+#   EMERGENCY (data/notebook.json) and DATA (the mission's figures);
 # - stowed: a board on the pilot's right thigh in the 3D cockpit (the notebook drawn into a texture when it changes);
 #   raised by the Checklist notebook key (H, keys.json record 118): a panel at the screen's lower right (in
 #   Hebrew too: the thigh's side), never its centre; a start-up mission starts with it raised;
@@ -262,6 +262,22 @@ func _sections() -> Array:
 				lines.append(("[i]%s[/i]" if k == "wait" else "%s") % _esc(String(st[k][l])))
 		blocks.append(step(i, String(st[l]), lines, "", ""))
 	secs.append(_sec("landing", "nb_landing", s("nb_landing"), blocks))
+	# WEAPONS: arming, air-to-ground, air-to-air; each step its switch and place, and its key as bound (the weapons'
+	# controls have no switch to click in the cockpit).
+	blocks = []
+	for part in pages.get("weapons", []):
+		blocks.append("[font_size=16][b]%s[/b][/font_size]" % _esc(String(part.title[l])))
+		for i in part.steps.size():
+			var st: Dictionary = part.steps[i]
+			var lines := []
+			if st.has("where"):
+				lines.append(_esc(String(st.where[l])))
+			if st.has("key"):
+				var k: String = flight.host.keys.record_key_name(int(st.key), Settings.key_bindings)
+				# Left to right by an override, not an isolate: inside a Hebrew line an isolated "[" still shows mirrored.
+				lines.append("%s: [b]%s[/b]" % [s("nb_key"), _esc("\u202d%s\u202c" % k if he() else k)])
+			blocks.append(step(i, String(st[l]), lines, "", ""))
+	secs.append(_sec("weapons", "nb_weapons", "%s · %s" % [s("nb_weapons"), _jet()], blocks))
 	blocks = []
 	for e in pages.get("emergency", []):
 		blocks.append("[font_size=16][color=#a31515][b]%s[/b][/color][/font_size]" % _esc(String(e.title[l])))

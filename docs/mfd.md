@@ -887,7 +887,9 @@ with a targeting pod, as the original's MENU "FLIR"), WPN (18), SMS (6), HSD (7)
   flare counts; AAM: the weapon, RDY / MAL and the stations holding it (`M` row, the selected boxed); A-G: CCIP or
   the GPS bomb's PRE / VIS, the weapon, SGL / PAIR, the interval, the release pulses, RDY. A GPS bomb adds its
   target (`STPT n` when it is a steerpoint, else `TGT PRE` / `TGT VIS`), its range and bearing, `TMR m:ss` or
-  `IN RNG`, and `TTI m:ss` while the last released bomb flies (weapons.md §13; inferred layout).
+  `IN RNG`, and `TTI m:ss` while the last released bomb flies (weapons.md §13; inferred layout). In Modern IAF
+  (which has a master arm and the ST STA switch) RDY shows only with the master arm on ARM and ST STA powered, as the
+  release needs both (inferred); the original game has neither switch, so its RDY is as before.
 - WPN: HAS (the boresight lines, each emitter's code where the HARM sensor sees it, the selected boxed, the codes in
   a box at the top, RDY in range, NO SOURCE without a round); the Maverick (the video, the fixed cross, the track
   gate's corners at the seeker's point, the status and time); a GPS bomb (inferred: the real JDAM has no WPN page):

@@ -481,6 +481,17 @@ func sms(r: Rect2) -> void:
 		HORIZONTAL_ALIGNMENT_CENTER,
 		lw
 	)
+	# Ours: the master arm over the weapon (Modern IAF's, SAFE until Shift+A; inferred), only where the game has one.
+	if Settings.starts_safe():
+		var arm: bool = wp.get("armed", false)
+		text(
+			Vector2(lb.position.x, lb.position.y - 1.5),
+			"ARM" if arm else "SAFE",
+			4.6,
+			GREEN if arm else YELLOW,
+			HORIZONTAL_ALIGNMENT_CENTER,
+			lw
+		)
 	var cm := Rect2(Vector2(r.get_center().x - 16.0, y + 11.0), Vector2(32.0, 15.0))
 	box(cm, GREY, THIN)
 	text(Vector2(cm.position.x + 2.0, cm.position.y + 6.0), "CHAFF", 4.6, WHITE)

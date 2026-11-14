@@ -1,5 +1,5 @@
 {
-  "about": "The pilot's checklist notebook's own pages and places (modern-iaf/docs/training.md §11): the radio frequencies by base, the calls, the landing and emergency pages by jet family (f16: the Sufa and the Barak; f35i), the stowed board's place on the right thigh in each 3D cockpit's frame, and the gauge each start-up step watches. The start-up and taxi / take-off pages come from the missions' training data. Read by modern-iaf/flight/kneeboard.gd.",
+  "about": "The pilot's checklist notebook's own pages and places (modern-iaf/docs/training.md §11): the radio frequencies by base, the calls, the landing, weapons (each step's key record of data/keys.json) and emergency pages by jet family (f16: the Sufa and the Barak; f35i), the stowed board's place on the right thigh in each 3D cockpit's frame, and the gauge each start-up step watches. The start-up and taxi / take-off pages come from the missions' training data. Read by modern-iaf/flight/kneeboard.gd.",
   "radio": {
     "Ramon": [["GND", 275.8], ["TWR", 251.15], ["APP", 120.9]],
     "Ramat David": [["GND", 285.25], ["TWR", 118.6], ["APP", 125.8]],
@@ -20,6 +20,25 @@
         {"en": "Final: on-speed AOA 13°", "he": "גמר: זווית התקפה 13°", "where": {"en": "AOA indexer, left of the HUD", "he": "מחוון זווית ההתקפה, משמאל ל־HUD"}},
         {"en": "Touchdown: throttle IDLE, wheel brakes", "he": "נגיעה: מצערת לסרק, בלמי גלגלים", "where": {"en": "throttle grip, left console; brakes on the rudder pedals", "he": "ידית המצערת, הקונסולה השמאלית; בלמים בדוושות"}},
         {"en": "On the parking spot: throttle OFF", "he": "בחנייה: מצערת OFF", "where": {"en": "throttle grip, over the idle detent", "he": "ידית המצערת, מעבר לעצירת הסרק"}}
+      ],
+      "weapons": [
+        {"title": {"en": "ARMING", "he": "דריכה"}, "steps": [
+          {"en": "ST STA power ON (with the avionics)", "he": "מתח ST STA מופעל (עם האוויוניקה)", "where": {"en": "AVIONIC POWER panel, right console", "he": "לוח AVIONIC POWER, הקונסולה הימנית"}, "key": 122},
+          {"en": "MASTER ARM: ARM (every flight starts SAFE)", "he": "MASTER ARM: ARM (כל טיסה מתחילה ב־SAFE)", "where": {"en": "MISC panel, left of the front panel", "he": "לוח MISC, משמאל ללוח הקדמי"}, "key": 125},
+          {"en": "Gear UP: nothing releases with the gear handle down", "he": "כן הנסע למעלה: אין שחרור כשידית כן הנסע למטה", "where": {"en": "gear handle, left of the front panel", "he": "ידית כן הנסע, משמאל ללוח הקדמי"}, "key": 20}
+        ]},
+        {"title": {"en": "AIR-TO-GROUND", "he": "אוויר-קרקע"}, "steps": [
+          {"en": "The bombs: hung on the briefing's Arming page before Fly", "he": "הפצצות: נתלות בדף החימוש בתדריך לפני הטיסה", "where": {"en": "the mission's briefing, Arming tab", "he": "תדריך המשימה, לשונית החימוש"}},
+          {"en": "Bombs: A-G, the HUD shows the CCIP pipper", "he": "פצצות: A-G, ב־HUD מוצג סמן ה־CCIP", "where": {"en": "ICP, under the HUD", "he": "לוח ICP, מתחת ל־HUD"}, "key": 65},
+          {"en": "Pickle held: the bomb leaves when the pipper reaches the aim point", "he": "כפתור השחרור לחוץ: הפצצה משתחררת כשהסמן מגיע לנקודת הכיוון", "where": {"en": "stick grip, under the thumb", "he": "ידית ההיגוי, מתחת לאגודל"}, "key": 69},
+          {"en": "Jettison: the tanks, then the bombs", "he": "השלכה: המיכלים, ואז הפצצות", "where": {"en": "front panel, the jettison button", "he": "הלוח הקדמי, כפתור ההשלכה"}, "key": 72}
+        ]},
+        {"title": {"en": "AIR-TO-AIR", "he": "אוויר-אוויר"}, "steps": [
+          {"en": "Missiles: A-A, the HUD shows the seeker circle", "he": "טילים: A-A, ב־HUD מוצג מעגל המחפש", "where": {"en": "ICP, under the HUD", "he": "לוח ICP, מתחת ל־HUD"}, "key": 66},
+          {"en": "Next target: the radar locks it", "he": "המטרה הבאה: המכ\"ם ננעל עליה", "where": {"en": "stick grip, target designate", "he": "ידית ההיגוי, מתג סימון המטרה"}, "key": 58},
+          {"en": "Fire: the pickle button", "he": "שיגור: כפתור השחרור", "where": {"en": "stick grip, under the thumb", "he": "ידית ההיגוי, מתחת לאגודל"}, "key": 69},
+          {"en": "Gun: the trigger, held", "he": "תותח: ההדק, לחוץ", "where": {"en": "stick grip, under the index finger", "he": "ידית ההיגוי, מתחת לאצבע"}, "key": 64}
+        ]}
       ],
       "emergency": [
         {"title": {"en": "HOT START", "he": "התנעה חמה"}, "steps": [
@@ -45,6 +64,24 @@
         {"en": "Final: on-speed AOA", "he": "גמר: זווית התקפה לנחיתה", "where": {"en": "the helmet display", "he": "תצוגת הקסדה"}},
         {"en": "Touchdown: throttle IDLE, wheel brakes", "he": "נגיעה: מצערת לסרק, בלמי גלגלים", "where": {"en": "throttle, left console; brakes on the rudder pedals", "he": "המצערת, הקונסולה השמאלית; בלמים בדוושות"}},
         {"en": "On the parking spot: throttle OFF", "he": "בחנייה: מצערת OFF", "where": {"en": "throttle, over the idle detent", "he": "המצערת, מעבר לעצירת הסרק"}}
+      ],
+      "weapons": [
+        {"title": {"en": "ARMING", "he": "דריכה"}, "steps": [
+          {"en": "MASTER ARM: ARM (every flight starts SAFE)", "he": "MASTER ARM: ARM (כל טיסה מתחילה ב־SAFE)", "where": {"en": "left of the panoramic display", "he": "משמאל לתצוגה הפנורמית"}, "key": 125},
+          {"en": "Gear UP: nothing releases with the gear handle down", "he": "כן הנסע למעלה: אין שחרור כשידית כן הנסע למטה", "where": {"en": "gear handle, left of the panoramic display", "he": "ידית כן הנסע, משמאל לתצוגה הפנורמית"}, "key": 20}
+        ]},
+        {"title": {"en": "AIR-TO-GROUND", "he": "אוויר-קרקע"}, "steps": [
+          {"en": "The bombs: hung on the briefing's Arming page before Fly", "he": "הפצצות: נתלות בדף החימוש בתדריך לפני הטיסה", "where": {"en": "the mission's briefing, Arming tab", "he": "תדריך המשימה, לשונית החימוש"}},
+          {"en": "Bombs: A-G, the CCIP cue on the helmet display", "he": "פצצות: A-G, סמן ה־CCIP בתצוגת הקסדה", "where": {"en": "the panoramic display", "he": "התצוגה הפנורמית"}, "key": 65},
+          {"en": "Weapon release held: the bay doors open, the bomb leaves, the doors close", "he": "שחרור חימוש לחוץ: דלתות התא נפתחות, הפצצה משתחררת, הדלתות נסגרות", "where": {"en": "stick grip, under the thumb", "he": "ידית ההיגוי, מתחת לאגודל"}, "key": 69},
+          {"en": "Jettison: the bombs", "he": "השלכה: הפצצות", "where": {"en": "the panoramic display", "he": "התצוגה הפנורמית"}, "key": 72}
+        ]},
+        {"title": {"en": "AIR-TO-AIR", "he": "אוויר-אוויר"}, "steps": [
+          {"en": "Missiles: A-A (the AIM-120 in the bays)", "he": "טילים: A-A (ה־AIM-120 בתאים)", "where": {"en": "the panoramic display", "he": "התצוגה הפנורמית"}, "key": 66},
+          {"en": "Next target: the radar locks it", "he": "המטרה הבאה: המכ\"ם ננעל עליה", "where": {"en": "stick grip, target designate", "he": "ידית ההיגוי, מתג סימון המטרה"}, "key": 58},
+          {"en": "Fire: weapon release", "he": "שיגור: שחרור חימוש", "where": {"en": "stick grip, under the thumb", "he": "ידית ההיגוי, מתחת לאגודל"}, "key": 69},
+          {"en": "Gun: the trigger, held", "he": "תותח: ההדק, לחוץ", "where": {"en": "stick grip, under the index finger", "he": "ידית ההיגוי, מתחת לאצבע"}, "key": 64}
+        ]}
       ],
       "emergency": [
         {"title": {"en": "ENGINE FIRE ON THE GROUND", "he": "שריפת מנוע על הקרקע"}, "steps": [
@@ -73,6 +110,7 @@
     "radio": "invented: every other frequency (no published military frequency found)",
     "calls": "the tower's answers (modern-iaf/docs/training.md §8)",
     "pages.f16.landing": "inferred, the on-speed AOA 13° open",
+    "pages.f16.weapons": "the F-16 cockpit's switch places as the 3D cockpit draws them (ST STA on the AVIONIC POWER panel, MASTER ARM on the MISC panel); the keys are the sim's key table (data/keys.json); the steps are the shared weapons code's (docs/weapons.md)",
     "pages.f16.emergency": "the hot start after the T.O. checklist (training.md [^ep], weak); the fire on the ground and the ejection inferred",
     "pages.f35i": "inferred",
     "stowed": "inferred: on the right thigh, as the mock-up of 2026-11-13",

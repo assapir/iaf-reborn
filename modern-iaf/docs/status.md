@@ -3,6 +3,12 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **Bombs, missiles and the gun in every flight (2026-11-14, the user: "the fact that you can drop weapons"):** on
+  the Sufa, the Barak and the F-35I the stores hung on the briefing's Arming page fly with the mission; after the
+  take-off's pass the flight goes on, and Shift+A, `[` and Space release the bombs (the HUD's CCIP cue; the F-35I's
+  bay doors open by themselves), which fall and burst on the terrain; `]` and Space launch a missile, Tab fires the
+  gun ([weapons.md](weapons.md) §5). The notebook's WEAPONS tab (key H) lists the steps per jet with their switches
+  and keys; the SMS pages show the stores, the counts and the master arm. Tests: `test_weapons_flight.gd`; pictures: `_weapons_shot.gd`, flown from the front end.
 - **Flight data and settings files (2026-11-14, the front-end finish list's D1, [front-end.md](front-end.md) §2):**
   the debrief's Export flight data copies the flight's recording (greyed and out of the focus without it); the
   Settings footer's Export / Import settings file write or read a `.cfg` by the sim's rules (Hebrew without its font
@@ -318,8 +324,9 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   the records database and flies with the mission (mass, drag, tanks' fuel, the stores' models), Reset brings back
   the record's ([front-end.md](front-end.md) §10). Since 2026-11-11 the racks' weight rides in flight too (the
   BRU-57/A's 120.2 kg sourced), and since 2026-11-14 every store's and rack's drag index (inferred from its size, none in the F-35I's bays; [flight-model.md](flight-model.md) §9.18), the bombs, guided bombs and tanks hang by their lugs under the
-  F-16's pylons, and the Python 5, SPICE 2000 and Delilah fly as `modern_weapons.gd` records with their public figures
-  (the Delilah as the GPS class, its cruise a long glide). Open: models of the Delilah and the 600 gal tank, a Sufa /
+  F-16's pylons, and the Python 5 and SPICE 2000 fly as `modern_weapons.gd` records with their public figures. The
+  Delilah is dropped for now (the user, 2026-11-14): no store list offers or carries it, as it needs a powered
+  cruise-missile flight class the engine does not have; its record stays. Open: a model of the 600 gal tank, a Sufa /
   Barak station chart.
 - **Inventory counts:** no public source gives the IAF's store counts; the records list none, so the inventory is
   unlimited. `cargo test -p iaf-tools --lib loadout`, `test_front_end.gd`,

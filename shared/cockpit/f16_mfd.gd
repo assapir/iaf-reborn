@@ -525,10 +525,13 @@ func _weapon_name(wp: Dictionary) -> String:
 	return "%d %s" % [int(wp.get("total", 0)), String(wp.get("name", ""))]
 
 
-## RDY / MAL / blank (fig. 1-66).
+## RDY / MAL / blank (fig. 1-66). Ours (Modern IAF): RDY only with the master arm on ARM and ST STA powered, as
+## the release needs both (player_weapons.gd fire_selected; inferred for the real SMS); the original game has neither.
 func _status(wp: Dictionary) -> String:
 	if not wp.get("ready", true):
 		return "MAL"
+	if not wp.get("armed", true) or not wp.get("stores_power", true):
+		return ""
 	return "RDY" if int(wp.get("total", 0)) > 0 else ""
 
 

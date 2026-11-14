@@ -535,18 +535,16 @@ mod tests {
         assert_eq!(c["tank_fuel_kg"], json!(2240.0));
         assert_eq!(c["stores_kg"], json!((4.0f64 * 86.0 + 6.0 * 241.0 + 2.0 * 47.6 + 2.0 * 1120.0).round()));
         assert_eq!(c["slots"]["3"], json!({"id": "mk-82", "count": 3, "max": 3, "pylon": 2}));
-        // The stores without a model of ours (the Delilah, the 600 gal tank) are not ready to fly.
+        // The store without a model of ours (the 600 gal tank) is not ready to fly; the Delilah is neither listed nor
+        // allowed anywhere (dropped for now, the user 2026-11-14: no cruise-missile flight class).
         let not_ready: Vec<_> = c["inventory"].as_array().unwrap().iter().filter(|e| e["ready"] == false).collect();
-        assert_eq!(
-            not_ready.iter().map(|e| e["id"].clone()).collect::<Vec<_>>(),
-            [json!("delilah"), json!("tank-600")]
-        );
+        assert_eq!(not_ready.iter().map(|e| e["id"].clone()).collect::<Vec<_>>(), [json!("tank-600")]);
+        assert!(!c.to_string().contains("delilah"), "the Delilah is not offered");
         assert_eq!(c["allowed"]["3"][2], json!({"id": "mk-82", "count": 3}));
         let groups: Vec<_> = a["inventory"].as_array().unwrap().iter().map(|e| e["group"].clone()).collect();
-        let want =
-            ["air", "air", "air", "ground", "ground", "ground", "ground", "ground", "ground", "ground", "ground"];
-        assert_eq!(groups[..11], want.map(|g| json!(g)));
-        assert_eq!(groups.len(), 13);
+        let want = ["air", "air", "air", "ground", "ground", "ground", "ground", "ground", "ground", "ground"];
+        assert_eq!(groups[..10], want.map(|g| json!(g)));
+        assert_eq!(groups.len(), 12);
     }
 
     #[test]

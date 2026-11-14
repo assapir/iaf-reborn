@@ -2560,6 +2560,8 @@ func _publish() -> void:
 	c.indicators[Rwr.LAMP_SAM] = rwr.lamps[Rwr.LAMP_SAM]
 	c.weapons = {
 		"hud_mode": hud_mode,
+		# Ours: the master arm (Modern IAF's, weapons.md §3) for the SMS; true where the game has none.
+		"armed": master_arm,
 		"master": master,
 		"stations": list,
 		"selected": stores.cur,
@@ -2567,6 +2569,8 @@ func _publish() -> void:
 		"type": t,
 		"total": stores.total(t, stores.current_name()),
 		"ready": not mal,
+		# Ours (Modern IAF, cockpit.md §5.2): the stores' power (the F-16's ST STA) for the SMS's RDY.
+		"stores_power": _up("st_sta"),
 		"srm": srm,
 		"mrm": mrm,
 		"gun": stores.displayed(9),

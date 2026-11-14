@@ -269,6 +269,8 @@
 	"nb_taxi": "TAXI / T-O",
 	"nb_radio": "RADIO",
 	"nb_landing": "LANDING",
+	"nb_weapons": "WEAPONS",
+	"nb_key": "Key",
 	"nb_emergency": "EMERGENCY",
 	"nb_data": "DATA",
 	"nb_callsign": "Callsign",

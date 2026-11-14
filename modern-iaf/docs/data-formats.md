@@ -122,7 +122,7 @@ rules are the generic F-16's, the same for both jets (no source shows them diffe
 | GBU-38 | two on a BRU-57/A (120.2 kg[^l3h-bru57]) on 3 / 7[^f16net-jdam] | — |
 | GBU-39 | — | four on a BRU-61/A on 4 / 8[^w-f35] (the rack's 147 kg unofficial[^rk-bru61]) |
 | SPICE 1000, SPICE 2000 | 3 / 7, 4 / 6 (inferred: no source gives their stations) | — |
-| Delilah | 3 / 7 (inferred: no source gives its stations) | — |
+| Delilah | none since 2026-11-14 (dropped for now: no cruise-missile flight class; its record stays) | — |
 | 370 US gal tank | 4 / 6[^f16net-tanks] | — |
 | 600 US gal tank | 4 / 6[^usaf-600] | — |
 
@@ -131,7 +131,7 @@ GBU-38 (racked), SPICE 1000 / 2000, Delilah and the 600 US gal tank; the MK-84 g
 4 / 6. The Adir gains the AIM-9X on 1 / 11, the GBU-39 on 4 / 8, the GBU-31 and the AIM-120 on 3 / 9; its 2 / 10 still
 take none (no pylon in the engine). The Python 4 is left out: the Python 5 replaced it on the Sufa (inferred; no
 source says it retired). Each store is a weapon record of its own with its sourced weight and size (§4); a store with
-no model of ours (the Delilah, the 600 US gal tank) shows a flat silhouette in the briefing and nothing on the jet in
+no model of ours (the 600 US gal tank) shows a flat silhouette in the briefing and nothing on the jet in
 flight. The MK-84's `model` is the original's file name, `weapons/mk84/mk84_m.gltf`, which Models: Detailed draws as
 ours (`shared/extra/models/stores/mk84.glb`), as the AIM-9M's; the Mk 82 and Mk 83 likewise.
 

@@ -886,7 +886,7 @@ func _loadout_checks(fe: Control, lang: String) -> void:
 	var count: Label = fe.find_child("Itemmk-84", true, false).find_child("Count", false, false)
 	check(count == null, "%s: loadout: no count without the record's (the slots show what is on)" % lang)
 	check(
-		fe.find_child("Group_ground", true, false).get_child_count() >= 8,
+		fe.find_child("Group_ground", true, false).get_child_count() >= 7,
 		"%s: loadout: the long inventory, the air-to-ground group two to a row" % lang
 	)
 	var facts: Control = fe.find_child("ArmingFacts", true, false)
@@ -935,17 +935,8 @@ func _loadout_checks(fe: Control, lang: String) -> void:
 		drawing.stores[4][2] == 2 and drawing.stores[6][2] == 2 and drawing.slots["4"].badge_rect.has_area(),
 		"%s: loadout: the badge cycles the rack 3 to 2, the pair along" % lang
 	)
-	# A store with no model of ours yet: greyed, not dragged, not focused.
-	var dl: Control = fe.find_child("Itemdelilah", true, false)
-	check(
-		(
-			dl != null
-			and not dl.flyable
-			and dl.focus_mode == Control.FOCUS_NONE
-			and dl._get_drag_data(Vector2.ZERO) == null
-		),
-		"%s: loadout: the Delilah disabled for now" % lang
-	)
+	# The Delilah is dropped for now (the user, 2026-11-14): not in the inventory, no station takes it.
+	check(fe.find_child("Itemdelilah", true, false) == null, "%s: loadout: the Delilah is not offered" % lang)
 	# One-sided: a tank on 4 and an MK-84 on 3 alone, past the limit: the imbalance amber, Fly still on.
 	var one_sided := {"3": {"id": "mk-84", "count": 1}, "4": {"id": "tank-370", "count": 1}}
 	IafPilotLog.set_loadout(db, s.pilot(), "f16i", JSON.stringify(one_sided))

@@ -741,8 +741,7 @@ own, the jet's maximum weight (the record's `max_takeoff_kg`; the Sufa: 6,254 kg
   station takes; the arrows move through the inventory, Enter hangs the store (both of the pair unless Shift is
   held). An "Empty" / "ריק" entry heads the inventory while a picked slot holds a store: Enter there takes it off.
   Esc leaves the slot as it was.
-- **Not yet flyable.** A store whose record has no model of ours (the Delilah, the 600 US gal tank: the inventory's
-  silhouettes) is greyed in the inventory: it neither drags nor takes the focus, and nothing says why (the user, A15
+- **Not yet flyable.** A store whose record has no model of ours (the 600 US gal tank: the inventory's silhouette) is greyed in the inventory: it neither drags nor takes the focus, and nothing says why (the user, A15
   round 3: "disabled for now"). Its record stays.
 - **The rack's count.** The "×n" badge on a rack's slot is a control: a click takes one store off, from one back to the
   full rack (a TER 3 → 2 → 1 → 3, a BRU-57/A 2 → 1 → 2), the pair along unless Shift is held, the weight and the
@@ -773,7 +772,7 @@ own, the jet's maximum weight (the record's `max_takeoff_kg`; the Sufa: 6,254 kg
 - **Checks:** `cargo test -p iaf-tools --lib loadout` (the Sufa's rules, pairs, racks, moves and pylons; the Adir's
   bays, the AIM-9X on the wingtips only, the GBU-39 rack; the badge's cycle; a one-sided load past the Sufa's limit; the heaviest loadouts under the maximum; the store round trip
   and the version-3 file migrated); `modern-iaf/tests/test_front_end.gd` (a refused drop, a pair, the figures, the
-  long inventory, a tank pair back, the keyboard path, a TER on 4 / 6, its badge 3 → 2, the Delilah disabled, a
+  long inventory, a tank pair back, the keyboard path, a TER on 4 / 6, its badge 3 → 2, the Delilah not offered, a
   one-sided load's imbalance warning, the flight's pylons, a lowered maximum, Reset;
   both languages); `test_mvp.gd --only loadout` (a take-off with MK-84s on 3 / 7 and three Mk 82 on 4 / 6: the pylons
   and counts, the stores' mass, no tanks' fuel, the bomb's model, the gun's rounds). `modern-iaf/tests/_loadout_shot.gd` takes the pictures; `modern-iaf/tests/_store_pictures.gd` renders the stores'.

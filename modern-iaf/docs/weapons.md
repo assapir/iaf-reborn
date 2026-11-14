@@ -5,7 +5,8 @@ gun shot of the shared code, every 0.2 s ([../../docs/weapons.md](../../docs/wea
 that lets a weapon fire.
 
 The sim flies the shared weapons code of the original game ([../../docs/weapons.md](../../docs/weapons.md)) with its
-own data. Today its jets carry the gun, chaff and flares.
+own data: the gun, chaff and flares, and the stores the briefing's Arming page hangs (bombs, guided bombs, missiles,
+tanks), which drop and fire in every flight (§4).
 
 ## 1. The gun's rounds
 Each flyable jet's rounds are its unit record's `loadout` entry for the gun (`data/db/units/<id>.json`). `iaf-sim db`
@@ -86,9 +87,55 @@ each one's original and fixed behaviour in [../../docs/deviations.md](../../docs
 | `fix_fall_heading` | a falling jet keeps its heading |
 | `fix_skill_damage` | enemies take the same damage at every AI level |
 
-## 5. Tests
+## 5. Dropping and firing in flight
+Every sim flight carries the pilot's loadout from the briefing's Arming page (`fly.gd` `arm`, [front-end.md](front-end.md)
+§10); a training mission goes on after its pass, so after the take-off the player can use them. The shared weapons code
+runs them unchanged: the release, the bomb's fall, its burst on the terrain with the shared explosion, the missiles and
+the gun.
+
+| step | the Sufa / the Barak | the F-35I | key (default) | key record |
+|---|---|---|---|---|
+| the stores | hung on the Arming page before Fly (the record's default carries no bombs) | the same | — | — |
+| power | ST STA on (with the avionics: Ctrl+A, or the start-up's four AVIONIC POWER switches) | — | Ctrl+A | 122 |
+| master arm | MASTER ARM to ARM: every flight starts SAFE (§3) | the same | Shift+A | 125 |
+| gear | up: nothing releases with the gear handle down | the same | G | 20 |
+| bombs | A-G: the HUD's CCIP pipper (HUD mode 5) | A-G: the CCIP cue (a GPS bomb, HUD mode 6) | `[` | 65 |
+| release | the pickle held: the bombs leave as a pair once the pipper reaches the aim point | held: the bay doors open, the bombs leave, the doors close | Space | 69 |
+| jettison | the tanks, then the bombs | the bombs | Shift+C | 72 |
+| missiles | A-A: the AIM-9M's seeker circle | A-A: the AIM-120 (it waits for the bay doors) | `]` | 66 |
+| next target | the radar locks the next target | the same | Enter | 58 |
+| gun | the trigger held | the same | Tab | 64 |
+
+**The stores page.** The F-16s' SMS (the right MFD's format; [../../docs/mfd.md](../../docs/mfd.md) §9) and the
+F-35I's SMS portal ([../../docs/f35i.md](../../docs/f35i.md)) are the original game's real formats on the shared
+stores state: every station's store and count as hung on the Arming page, the selected weapon and its page (A-G with
+CCIP, AAM, GUN) following `[`, `]` and the page's own OSBs, the counts going down with each release and the stations
+emptying on a jettison. The sim adds its two switches: the F-16 SMS shows RDY only with the master arm on ARM and ST
+STA powered, the F-35I's shows ARM or SAFE over the weapon (inferred).
+
+A training mission's live check (training.md §3.0) runs only until its pass, so a release after the take-off fails
+nothing; before the pass the release is blocked on the ground anyway (the gear handle down).
+
+The checklist notebook's WEAPONS tab (key H; [training.md](training.md) §11) lists these steps per jet family, each
+with its switch, its place and its key as bound (the weapons' controls have no switch to click in the cockpit).
+
+**The Delilah (2026-11-14).** Dropped for now (the user): no station lists it and no default carries it. It needs a
+powered cruise-missile flight class the engine does not have, and flew as a glide bomb. Its weapon record
+(`data/db/weapons/delilah.json`) and the shared record (`modern_weapons.gd` 1012) stay; the original game never
+offered it.
+
+## 6. Tests
 - `cargo test -p iaf-tools --lib sim::`: the bdb holds 511 / 511 / 180 rounds; a flyable jet without a gun count is
   refused; `iaf-sim own` writes both images (the flash opaque at the muzzle, clear at the corners).
+- `modern-iaf/tests/test_weapons_flight.gd`: each jet's take-off mission set up as the front end's Fly with bombs from
+  the Arming page (six Mk 82 on the F-16s, two GBU-31 in the F-35I's bays), put in the air after its pass: the master
+  arm starts safe, Shift+A arms, ST STA is up, `[` selects the bombs (CCIP), Space releases, the bomb is drawn, falls
+  over a kilometre and is gone at the terrain (its burst); Shift+C empties the rest; `]` and Space launch a missile
+  (the F-35I's from its bay) that flies away from the jet; Tab fires the
+  gun. The stores page agrees at each step: the bombs on their stations before arming, the selected weapon the HUD's,
+  no RDY while safe and RDY once armed, the counts after the release, the stations empty after the jettison.
+- `modern-iaf/tests/_weapons_shot.gd` (real render): the same flown from the front end, the start-up, the tower and the
+  take-off included; the pictures of the bombs leaving, the burst, the missile, the gun and the notebook tab.
 - `modern-iaf/tests/test_sim_gun.gd`: the Sufa's take-off mission starts with 511 rounds and the master arm safe; the
   trigger fires nothing while safe; Shift+A arms; the tracers fly; the gun empties in 5.1 s and then fires nothing;
   the F-35I's gun record fires 11 rounds a tick at 1,040 m/s; the bomb fixes are on and a 20 kt wind reaches the

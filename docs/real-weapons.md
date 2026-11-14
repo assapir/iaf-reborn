@@ -232,8 +232,9 @@ Python 5: docs/f16i.md §5; the F-16I has carried the SDB since August 2015 (107
 Not added (docs/f16i.md §5):
 - **SPICE 1000 on the Sufa**: integrated on the F-16I[^twzspice] (planned for the Ramon squadrons in 2017[^spice1000]),
   but no source shows its stations on the F-16I: open, not loaded (§1.7).
-- **SPICE 2000** and **Delilah** on the Sufa: no source shows their stations on the F-16I; Modern IAF's loadout
-  editor offers them on inferred stations (modern-iaf/docs/data-formats.md §3).
+- **SPICE 2000** on the Sufa: no source shows its stations on the F-16I; Modern IAF's loadout editor offers it on
+  inferred stations (modern-iaf/docs/data-formats.md §3). The **Delilah**: dropped from Modern IAF's loadouts
+  2026-11-14 (no cruise-missile flight class; modern-iaf/docs/weapons.md §5).
 - **GBU-28**: no source puts it on the F-16I; Israel bought it for its F-15s (§1.7, the F-15I).
 - **Laser JDAM (GBU-54)**: Israel co-developed the laser seeker with Elbit[^jdam]; its use on the F-16I: open.
 

@@ -29,7 +29,7 @@ func run() -> void:
 	var text: String = nb.page_text()
 	check("MAIN PWR" in text and not "Ctrl" in text, "START-UP names the switch, no key: %s" % text.left(80))
 	var ids: Array = nb.sections.map(func(x): return String(x.id))
-	check(ids == ["startup", "taxi", "radio", "landing", "emergency", "data"], "the sections %s" % [ids])
+	check(ids == ["startup", "taxi", "radio", "landing", "weapons", "emergency", "data"], "the sections %s" % [ids])
 	for i in nb.sections.size():
 		check(nb._pages[i].size() >= 1 and not nb.sections[i].blocks.is_empty(), "%s has a page" % ids[i])
 	# H stows it (into the thigh's texture) and raises it again; K (the GPS bomb's PRE / VIS) leaves it.
