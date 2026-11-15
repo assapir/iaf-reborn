@@ -64,6 +64,20 @@ var head := Vector2.ZERO
 ## so the pilot can look down at the panel the 3D cockpit draws at its true size.
 var pitch_min := HEAD_PITCH_MIN
 const HEAD_PITCH_MIN_3D := -1.0471976  # −60°
+## Ours, the 3D cockpit: the head moved off the seat's eye by the lean keys (Modern IAF's keys.json, command 204: Shift
+## + arrows lean left / right / forward / back, Shift + Page Up / Page Down raise / lower the head), m in the jet's
+## frame (x right, y up, z aft), held within LEAN_MIN..LEAN_MAX (a strapped-in pilot's reach of the head, inferred: 0.2
+## m aside took the eye out over the open canopy's sill, the console seen through the fuselage's side) and short of the
+## cockpit's surfaces (terrain_view.gd _lean_off: the canopy, the sill, the seat, the panel). The user, 2026-11-15:
+## "can't zoom in to see things under the throttle": leaning over the left console shows its panels past the throttle
+## and the glove. Back to the seat's eye with the head (set_cockpit: Look forward, the right button's double click).
+var lean := Vector3.ZERO
+const LEAN_MIN := Vector3(-0.15, -0.15, -0.3)
+const LEAN_MAX := Vector3(0.15, 0.1, 0.1)
+## The lean's speed while a lean key is held, and back to the seat's eye (m/s; inferred: about a second across).
+const LEAN_SPEED := 0.3
+var _lean_keys := Vector3.ZERO  # −1, 0 or 1 per axis while its key is held
+var _lean_home := false  # easing back to the seat's eye
 ## Slot 2: the snap view's head while its key is held (null = slot 0).
 var snap = null
 var _ret: Dictionary = {}  # head return to (0, 0) (FUN_0057fa10): from, t0, dur
@@ -121,6 +135,31 @@ func set_cockpit(t: int) -> void:
 	type = t
 	pos_mode = Pos.JET
 	target = null
+	_lean_home = true
+	_lean_keys = Vector3.ZERO
+
+
+## Command 204 (ours, the 3D cockpit): a lean key's press (`way` −1 / 1 along `axis`: 0 x, 1 y, 2 z) or release (0).
+func lean_key(axis: int, way: int) -> void:
+	if axis < 0 or axis > 2:
+		return
+	_lean_keys[axis] = clampi(way, -1, 1)
+	if way != 0:
+		_lean_home = false
+
+
+## True while a lean key moves the head along `axis`.
+func lean_moving(axis: int) -> bool:
+	return _lean_keys[axis] != 0
+
+
+## The lean after `dt` s: along the held keys within the limits, or eased back to the seat's eye.
+func _update_lean(dt: float) -> void:
+	if _lean_home:
+		lean = lean.move_toward(Vector3.ZERO, LEAN_SPEED * dt)
+		_lean_home = lean != Vector3.ZERO
+	else:
+		lean = (lean + _lean_keys * LEAN_SPEED * dt).clamp(LEAN_MIN, LEAN_MAX)
 
 
 ## FUN_005808c0: the orbit / path-follow camera on `ent`: offs = {x, y, z, pitch, ·, heading}, `scale` for
@@ -288,6 +327,7 @@ func _free_look_head() -> Vector2:
 ## Advances the cameras by `dt` of sim time; the trail takes one sample per frame (FUN_00582880 step 2).
 func update(dt: float) -> void:
 	now += dt
+	_update_lean(dt / Engine.time_scale if Engine.time_scale > 0.0 else 0.0)  # the head moves in real time
 	if type == PADLOCK and is_instance_valid(target) and is_instance_valid(player):
 		_padlock_step(dt)
 	elif type in [COCKPIT, HUD_ONLY, FREE_LOOK]:

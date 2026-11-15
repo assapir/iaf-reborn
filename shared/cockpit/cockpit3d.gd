@@ -100,6 +100,14 @@ var _ded_mat: StandardMaterial3D  # the F-16's DED screen (_attach_display): dar
 var _split := -1.0  # the scene's first shadow split (_sun_split)
 ## The pilot's body whose left glove follows the throttle's grip (_pilot_throttle); null without one.
 var _pilot: MeshInstance3D
+## The pilot's body (its glTF's root), hidden while the head leans off the seat (show_body).
+var pilot_body: Node3D
+## Ours, the lean (terrain_view.gd, views.gd lean): the cockpit's surfaces round the eye, [MeshInstance3D, TriangleMesh]
+## of every mesh of the cockpit-view model and this cockpit but the body, made at the first lean.
+var _room := []
+## The lean keeps the eye this far (m) from any surface: the canopy, the sill, the seat, the panel (past the camera's
+## 0.1 m near plane).
+const LEAN_MARGIN := 0.13
 ## The grip's turn either way that the body's shape keys throttle_idle / throttle_full hold (tools/f16d/pilot.py).
 const PILOT_THROTTLE_DEG := 40.0
 
@@ -141,6 +149,7 @@ func setup(c: Control, cam: Camera3D, type_code: int) -> bool:
 		if pm != null:
 			var pilot := Gltf.instance(pm)
 			n.add_child(pilot)
+			pilot_body = pilot
 			# Casting, its rounded cloth shadowed itself in blotches (shadow acne at the sun's grazing angles).
 			for mi: MeshInstance3D in pilot.find_children("*", "MeshInstance3D", true, false):
 				mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
@@ -617,6 +626,92 @@ func _process(_delta: float) -> void:
 		cockpit.position = cockpit.view_shift  # this frame's (cockpit.gd may have run before the camera moved)
 	cockpit.hud_clip = _glass_outline()
 	_lighting()
+
+
+## The share (0..1) of the eye's move from `from` to `to` (points in the cockpit-view model's frame, this node's
+## parent's) that keeps it clear of the cockpit's surfaces (the cockpit-view model's and this cockpit's meshes within
+## ROOM_M of the seat's eye, but the pilot's body): no surface within LEAN_MARGIN of the eye in LEAN_DIRS, and none
+## across the way there; the largest such share, halved down to LEAN_STEPS times. The margin is past the camera's near
+## plane (0.1 m), which cut into a sill the eye came close to (the first try tested the way only: the eye stopped short
+## of nothing beside it and saw the console's sill cut).
+func lean_clear(from_l: Vector3, to_l: Vector3) -> float:
+	if (to_l - from_l).length() < 0.0001:
+		return 1.0
+	if from_l.is_equal_approx(_clear_for[0]) and to_l.is_equal_approx(_clear_for[1]):
+		return _clear_for[2]  # the head held still: last frame's answer
+	var top: Node3D = get_parent() if get_parent() is Node3D else self
+	var from := top.global_transform * from_l
+	var to := top.global_transform * to_l
+	if _room.is_empty():
+		for mi: MeshInstance3D in top.find_children("*", "MeshInstance3D", true, false):
+			var near_eye := mi.global_transform * mi.get_aabb()
+			if mi.mesh != null and near_eye.grow(ROOM_M).has_point(from):
+				if pilot_body == null or not pilot_body.is_ancestor_of(mi):
+					_room.append([mi, mi.mesh.generate_triangle_mesh()])
+	# Surfaces already within the margin of the start (the neck's bend looking down) do not hold the lean back: only
+	# crossing them does.
+	var near_start := _room.filter(func(e): return not _clear_at(from, from, [e]))
+	var lo := 1.0 if _clear_at(from, to, [], near_start) else 0.0
+	var hi := 1.0
+	for i in LEAN_STEPS if lo < 1.0 else 0:
+		var t := (lo + hi) / 2.0
+		if _clear_at(from, from.lerp(to, t), [], near_start):
+			lo = t
+		else:
+			hi = t
+	_clear_for = [from_l, to_l, lo]
+	return lo
+
+
+var _clear_for := [Vector3.INF, Vector3.INF, 1.0]  # lean_clear's last question and answer
+
+## The cockpit's surfaces within this far (m) of the seat's eye are the lean's room.
+const ROOM_M := 0.6
+const LEAN_STEPS := 6
+## The directions the eye keeps LEAN_MARGIN clear in, in the cockpit's frame: the axes and the cube's corners.
+const LEAN_DIRS: Array[Vector3] = [
+	Vector3.LEFT,
+	Vector3.RIGHT,
+	Vector3.UP,
+	Vector3.DOWN,
+	Vector3.FORWARD,
+	Vector3.BACK,
+	Vector3(1, 1, 1),
+	Vector3(1, 1, -1),
+	Vector3(1, -1, 1),
+	Vector3(1, -1, -1),
+	Vector3(-1, 1, 1),
+	Vector3(-1, 1, -1),
+	Vector3(-1, -1, 1),
+	Vector3(-1, -1, -1),
+]
+
+
+## True when the eye at `at` has no surface within LEAN_MARGIN in LEAN_DIRS nor between `from` and it, of `room`
+## ([] : the whole room); the meshes of `crossing_only` count only between `from` and `at`.
+func _clear_at(from: Vector3, at: Vector3, room := [], crossing_only := []) -> bool:
+	var around := []
+	for d in LEAN_DIRS:
+		around.append([at, at + (global_basis * d).normalized() * LEAN_MARGIN])
+	for e in room if not room.is_empty() else _room:
+		var mi: MeshInstance3D = e[0]
+		if e[1] == null or not mi.is_visible_in_tree():
+			continue
+		var inv := mi.global_transform.affine_inverse()
+		var segs := [[from, at]] if from != at else []
+		if not e in crossing_only:
+			segs.append_array(around)
+		for sg in segs:
+			if not e[1].intersect_segment(inv * sg[0], inv * sg[1]).is_empty():
+				return false
+	return true
+
+
+## The pilot's body shown (`on`) or hidden: hidden while the head leans off the seat, as the body does not move with it
+## and the eye would see from inside it (and so the glove no longer covers the panel under the throttle).
+func show_body(on: bool) -> void:
+	if pilot_body != null and pilot_body.visible != on:
+		pilot_body.visible = on
 
 
 ## The left glove turned with the throttle's grip: the body's shape keys by the grip's angle (f16.json's THROTTLE).

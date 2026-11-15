@@ -121,6 +121,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		hit = _lit()  # the lit part: a lever turned by the wheel slides out from under a still pointer
 	if hit == null:
 		return
+	if event.button_index in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN] and not hit[1].has("turn"):
+		return  # a switch takes no wheel: the view's zoom has it
 	var r: Dictionary = hit[1]
 	match event.button_index:
 		MOUSE_BUTTON_LEFT:

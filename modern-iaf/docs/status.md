@@ -311,6 +311,12 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   picture. The 14 Nov switch to the monitor's own pixels (hiDPI off) was reverted on 15 Nov at the user's word: with
   Upscaling Quality the cockpit came out soft there. Open again: the HUD's thin stroke on that monitor, two half-lit
   pixels (real-hud.md "A 1× monitor beside a Retina screen").
+- **Zoom toward the pointer and the lean (2026-11-15, the user's Mac play: "can't zoom in to see things under the
+  throttle"):** the wheel zooms the 3D cockpit toward the point under the pointer; Shift + arrows / Page Up / Page Down
+  lean the head (records 126–131, command 204) within a strapped-in pilot's reach and short of the cockpit's surfaces,
+  the pilot's body hidden while leaning, so the ELEC panel under the left glove, the consoles and the lower pedestal
+  show close up; a switch under the pointer leaves the wheel to the zoom ([cockpit.md](cockpit.md) §2).
+  `test_cockpit_view.gd`.
 - **Click areas and the training outline by shape (2026-11-15, the user's Mac play):** a 3D cockpit control's hit area
   is its mesh's own surface (the nearest along the pointer's ray: never bigger than the part, never a neighbour's), the
   canopy handle's its rod; the training highlight outlines the switch's own shape and the RPM dial as the ellipse it

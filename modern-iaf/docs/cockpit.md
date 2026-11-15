@@ -30,8 +30,23 @@ lights and the lit labels at night); the panel's night art is not used.
   kept between the wide and the narrow view. The trackpad zooms as the wheel, in the system's scroll direction. One
   scroll zooms one way: a step against the last one taken under 250 ms before is dropped (`Settings.zoom_steps`; macOS
   sends events of the other sign at a scroll's end and in its momentum), and a knob that comes under the pointer during the scroll leaves
-  the wheel to the zoom. Every jet opens at the wide view with the head straight ahead
+  the wheel to the zoom; a switch under the pointer leaves it too (only a knob or lever with a turn takes the wheel).
+  The wheel zooms toward the pointer (2026-11-15, the user: "can't zoom in to see things under the throttle"): the
+  point under the pointer stays under it while the view narrows, the head turning toward it (`terrain_view.gd`
+  `_zoom_cockpit`: the head's bearing and elevation solved so the pointer's ray at the new focal length looks where the
+  old one did); + / − zoom about the view's centre. Every jet opens at the wide view with the head straight ahead
   (`modern-iaf/tests/test_cockpit_view.gd`).
+- **Lean (2026-11-15):** Shift + Left / Right lean the head left / right, Shift + Up / Down forward / back, Shift +
+  Page Up / Page Down raise / lower it, at 0.3 m/s while held (records 126–131 of `data/keys.json`, command 204; the
+  Keys screen's Views group rebinds them). The head moves within 15 cm aside (a strapped-in pilot's; at 20 cm the eye
+  went out over the open canopy's sill and saw the console through the fuselage's side), 30 cm forward, 10 cm back,
+  10 cm up and 15 cm down, and keeps 13 cm (past the camera's 10 cm near plane) from every surface of the cockpit in
+  14 directions, nor passes through one (`cockpit3d.gd` `lean_clear`: the move tested against the cockpit's meshes
+  within 60 cm of the eye, the answer kept while the head holds still), so leaning over a console or toward a panel
+  shows it close up, with the zoom toward the pointer. The pilot's body hides while the head is off the seat: it does
+  not move with the head, and from the seat the left glove covers the ELEC panel's MAIN PWR and the legs the lower
+  pedestal. Look forward (Numpad 5, Alt + 5) and the double right-click bring the head back to the seat (`views.gd`
+  `lean`). Pictures: `modern-iaf/tests/_lean_shot.gd`.
 - **Mouse look (2026-11-11, the Mac play test's finding 9):** hold the right mouse button and move the mouse to turn
   the head; it stays where the mouse leaves it. A double right-click turns the head back to straight ahead at 45°/s.
   The pointer turns the head twice its angle on the screen (`terrain_view.gd` `MOUSE_LOOK_GAIN`): one screen's width

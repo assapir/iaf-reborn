@@ -79,6 +79,9 @@ var town_labels: Control
 var cockpit_origin: CockpitOrigin
 ## Ours: the detailed cockpit model's eye (its front seat's, AircraftModel.detailed_cockpit), null with the original's.
 var _own_eye = null
+## Ours: the cockpit-view model's place with the eye at the seat (_spawn_cockpit), the lean's start where the model
+## has no detailed cut (_own_eye null: the F-35I's).
+var _bc_rest := Vector3.ZERO
 ## Ours, detailed cockpit model: looking back the head rises and leans forward by up to this (m: +y up, −z forward),
 ## as a pilot checking six looks over the headrest, not into it; blended in from 90° to 150° of head yaw.
 const LOOK_BACK_LEAN := Vector3(0, 0.1, -0.1)
@@ -2191,6 +2194,7 @@ func _spawn_cockpit() -> void:
 			own_bc.position = -Vector3(e[0], e[1], e[2]) * aircraft.scale
 	if own_bc != null:
 		own_bc.visible = false
+		_bc_rest = own_bc.position
 		# Modern IAF: the cockpit drawn in its own world about the origin (cockpit_origin.gd), steady far from the start.
 		if Settings.cockpit_at_origin() and cockpit_origin == null:
 			cockpit_origin = CockpitOrigin.new()
@@ -2288,7 +2292,10 @@ func _apply_view() -> void:
 				var hd: Vector2 = views.head_angles()
 				bend = LOOK_DOWN_LEAN.rotated(Vector3.UP, -hd.x) * smoothstep(deg_to_rad(25.0), deg_to_rad(60.0), -hd.y)
 				bend.z = minf(bend.z, 0.0)  # forward and aside only: looking back and down it undid LOOK_BACK_LEAN
-			own_bc.position = -(_own_eye + LOOK_BACK_LEAN * lean + bend) * aircraft.scale
+			var at: Vector3 = _own_eye + LOOK_BACK_LEAN * lean + bend
+			own_bc.position = -(at + _lean_off(at)) * aircraft.scale
+		elif cockpit_3d != null:
+			own_bc.position = _bc_rest - _lean_off(-_bc_rest / aircraft.scale.x) * aircraft.scale
 	camera.current = inside
 	chase.current = not inside
 	# The original cockpit projection (docs/cockpit.md "3D view"): its focal length and projection
@@ -2608,8 +2615,70 @@ func _toggle_gear() -> void:
 			leg_timers[i] = GEAR_LEG_TIME
 
 
-func _zoom_cockpit(step: float) -> void:
+## Ours, the 3D cockpit: the lean (views.gd lean, m in the jet's frame) from the eye at `eye` (the cockpit-view model's
+## frame), cut short of the cockpit's surfaces (cockpit3d.gd lean_clear; what is cut is dropped from the lean, so a key
+## held against the canopy stops there); the pilot's body hidden while leaning.
+func _lean_off(eye: Vector3) -> Vector3:
+	if cockpit_3d == null:
+		return Vector3.ZERO
+	# A lean key let go after its Shift reads as another key's release (or none): an axis whose keys are all up stops.
+	for axis in 3 if not _lean_keys.is_empty() else 0:  # no lean records: the command alone moves it (a test)
+		if views.lean_moving(axis) and not _lean_keys.any(func(i): return _lean_axis(i) == axis and _held_key(i)):
+			views.lean_key(axis, 0)
+	if views.lean != Vector3.ZERO:
+		views.lean *= cockpit_3d.lean_clear(eye, eye + views.lean)
+	cockpit_3d.show_body(views.lean.length() < 0.01)
+	return views.lean
+
+
+## The key table's lean records (command 204), found once.
+var _lean_keys: Array:
+	get:
+		if _lean_rec.is_empty() and keys != null:
+			_lean_rec = range(keys.size()).filter(func(i): return int(keys.records[i].press[0]) == 204)
+		return _lean_rec
+var _lean_rec := []
+
+
+func _lean_axis(i: int) -> int:
+	return int(keys.records[i].press[1])
+
+
+func _held_key(i: int) -> bool:
+	return keys.held(i, Settings.key_bindings)
+
+
+## The cockpit's zoom by `step`; ours, the 3D cockpit with the mouse look: the wheel's zoom keeps the point under the
+## pointer `at` (viewport px) under it, the head turning toward it as the view narrows (the user, 2026-11-15: "can't
+## zoom in to see things under the throttle"), as an image viewer zooms; the keys zoom about the view's centre.
+func _zoom_cockpit(step: float, at = null) -> void:
+	var ray := Vector3.ZERO
+	if (
+		at != null
+		and cockpit.three_d()
+		and Settings.cockpit_mouse_look()
+		and views.cockpit_drawn()
+		and views.snap == null
+	):
+		ray = camera.project_local_ray_normal(at)
+	var f0: float = cockpit.focal_length()
 	cockpit.zoom = clamp(cockpit.zoom + step, cockpit.ZOOM_MIN, cockpit.zoom_limit())
+	if ray.z >= 0.0:
+		return
+	# The pointer's offset from the projection centre is f · tan(angle): at the new focal length the same offset is the
+	# camera's ray `after`. The head turns until that ray looks where the old one did (bearing and elevation in the jet's
+	# frame, a few rounds: the head's pitch turns an off-centre ray's bearing too; the camera's turn as _apply_view's).
+	var k: float = f0 / cockpit.focal_length()
+	var want: Vector3 = camera.transform.basis * ray
+	var after := Vector3(ray.x * k, ray.y * k, ray.z).normalized()
+	var bearing := func(v: Vector3) -> float: return atan2(v.x, -v.z)
+	var elevation := func(v: Vector3) -> float: return atan2(v.y, Vector2(v.x, v.z).length())
+	var h0: Vector2 = views.head_angles()
+	var h := h0
+	for i in 4:
+		var now: Vector3 = Basis.from_euler(Vector3(h.y - deg_to_rad(cockpit.VIEW_3D_LOOK_DOWN_DEG), -h.x, 0)) * after
+		h += Vector2(wrapf(bearing.call(want) - bearing.call(now), -PI, PI), elevation.call(want) - elevation.call(now))
+	views.look_by(h - h0)
 
 
 ## Ours (Settings.cockpit_mouse_look, Modern IAF): the right drag turns the head in the cockpit, twice the pointer's
@@ -2649,7 +2718,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		# Ours: the wheel or the trackpad, one way per scroll (Settings.zoom_steps).
 		var n := Settings.zoom_steps(event)
 		if n != 0 and in_cockpit:
-			_zoom_cockpit(0.05 * n)
+			_zoom_cockpit(0.05 * n, event.position)
 		elif n != 0 and views.pos_mode == Views.Pos.ORBIT:
 			# Ours: the wheel steps the orbit distance within the original's limits.
 			views.dist = clampf(views.dist * pow(0.9 if n > 0 else 1.1, absi(n)), views.dmin, views.dmax)
@@ -2671,7 +2740,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event is InputEventKey and event.pressed:
 		if event.echo:
 			# Held PgUp / PgDn keep sliding the panel (our keys); other repeats do nothing.
-			if event.keycode in [KEY_PAGEUP, KEY_PAGEDOWN]:
+			if event.keycode in [KEY_PAGEUP, KEY_PAGEDOWN] and not event.shift_pressed:  # Shift: the head's lean
 				_own_key(event)
 			return
 		# The original key table first (docs/controls.md, with the player's rebinds); our own keys
@@ -2891,6 +2960,10 @@ func _command(cmd: Array) -> bool:
 			# passes them to the flight model and ticks its card.
 			if addon != null and addon.has_method("start_step"):
 				addon.start_step(int(cmd[0]) - 210, int(cmd[1]))  # p1: 1 on, -1 off, 0 the other way
+		204:
+			# Ours, the 3D cockpit's lean (Modern IAF's keys.json, Shift + arrows / Page Up / Page Down): p1 the axis
+			# (0 right, 1 up, 2 aft), p2 the way (views.gd lean_key); the release stops it (_release_command).
+			views.lean_key(p1, int(cmd[2]))
 		219:
 			# Ours, Modern IAF: one F-16 power switch (the 3D cockpit's AVIONIC POWER and SNSR PWR switches; no key sends
 			# it): p2 its index in sim_flight.gd SYSTEMS, p1 as 210-215's (modern-iaf/docs/cockpit.md §5.2).
@@ -3508,6 +3581,8 @@ func _release_command(cmd: Array) -> void:
 				weapons.radar_event(0x2e)  # boresight up
 		22:
 			_snap_command(int(cmd[1]), int(cmd[2]))
+		204:
+			views.lean_key(int(cmd[1]), 0)
 		20, 21, 23, 24, 26, 27:
 			views.pan(int(cmd[0]), false)
 			# The zoom keys' release (p1 0) zooms the EO camera (FUN_004cd630 cases 0x14 / 0x15, slot 1 type 0xb).
