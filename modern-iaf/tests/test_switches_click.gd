@@ -84,6 +84,8 @@ func run() -> void:
 		for sw in JETS[id][1]:
 			await _switch(tv, rec, id, sw[0], sw[1])
 		await _throttle(tv, rec, id, "throttle" if id == "f35i" else "THROTTLE")
+		if id != "f35i":
+			await _knob(tv, rec, id, "INS", 214)
 		tv.views.snap = null
 
 
@@ -154,6 +156,25 @@ func _throttle(tv: Node, rec: Rec, id: String, node: String) -> void:
 	check(not [218, 0, 0] in rec.sent.slice(n), "%s: a drag down begun above idle stops at idle" % id)
 	vp.push_input(_wheel(at, MOUSE_BUTTON_WHEEL_UP))
 	check(rec.sent.back() == [5, 0, 0], "%s: the wheel up adds 5 %%" % id)
+
+
+## A knob by the mouse (the INS knob, cockpit.md §5.2): the wheel up a position on ([cmd, 1, 0]), the wheel down a
+## position back ([cmd, -1, 0]), a drag up and down each a position per step, a click a position on ([cmd, 0, 0]).
+func _knob(tv: Node, rec: Rec, id: String, node: String, cmd: int) -> void:
+	var mi: MeshInstance3D = tv.cockpit_3d.find_child(node, true, false)
+	var at := await _aim(tv, mi)
+	var vp: Viewport = tv.get_viewport()
+	var n: int = rec.sent.size()
+	vp.push_input(_wheel(at, MOUSE_BUTTON_WHEEL_UP))
+	vp.push_input(_wheel(at, MOUSE_BUTTON_WHEEL_DOWN))
+	check(rec.sent.slice(n) == [[cmd, 1, 0], [cmd, -1, 0]], "%s: %s: the wheel a position on and back" % [id, node])
+	n = rec.sent.size()
+	var px := float(tv.cockpit_3d.clickable._controls.filter(func(c): return c[0] == mi)[0][1].drag_px)
+	await _drag(vp, at, int(ceil(2.0 * px / 20.0)), -1.0)
+	check(rec.sent.slice(n).count([cmd, 1, 0]) >= 2, "%s: %s: a drag up turns it on %s" % [id, node, rec.sent.slice(n)])
+	n = rec.sent.size()
+	await _drag(vp, at, int(ceil(2.0 * px / 20.0)), 1.0)
+	check(rec.sent.slice(n).count([cmd, -1, 0]) >= 2, "%s: %s: a drag down turns it back" % [id, node])
 
 
 ## A left drag of `steps` × 20 px from `at`, down (way 1) or up (−1).

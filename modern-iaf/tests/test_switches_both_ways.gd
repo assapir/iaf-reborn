@@ -109,13 +109,32 @@ func _avionics(tv: Node, id: String) -> void:
 		"%s: avionics on: the four systems up after the warm-up" % id
 	)
 	await _systems(tv, id)
-	await _cmd(tv, 214)
+	await _ins(tv, id)
+
+
+## The INS knob through its six positions both ways (cockpit.md §5.2; the user, 2026-11-15: "Ins prod can't move to
+## all places"): from the hot jet's NAV a position on at a time to ATT (attitude only: the alignment lost) and back to
+## OFF (the checklist's step undone), each position in the flight model and on the 3D cockpit's knob; then the key
+## from OFF to STOR HDG, aligning again in 90 s.
+func _ins(tv: Node, id: String) -> void:
+	var f = tv.flight
+	var sw: Dictionary = tv.cockpit_3d.switches
+	var at := func(i: int) -> bool: return f.ins_knob() == i and float(sw.get("f16/avionics/ins-knob")) == float(i)
+	check(at.call(3) and bool(f.state().avionics), "%s: the INS knob at NAV, aligned (%s)" % [id, f.ins_knob()])
+	for i in [4, 5]:
+		await _cmd(tv, 214, 1)
+		check(at.call(i), "%s: the INS knob turned on to %d (%s)" % [id, i, f.ins_knob()])
 	check(
-		not bool(f.state().avionics) and float(sw.get("f16/avionics/ins-knob")) == 0.0 and not "ins" in tv.addon.done,
-		"%s: the INS knob off: the alignment lost" % id
+		not bool(f.state().avionics) and not "ins" in tv.addon.done,
+		"%s: the INS knob at ATT: the alignment lost, the step undone" % id
 	)
+	for i in [4, 3, 2, 1, 0]:
+		await _cmd(tv, 214, -1)
+		check(at.call(i), "%s: the INS knob turned back to %d (%s)" % [id, i, f.ins_knob()])
+	check(not f.start_on("ins") and not "ins" in tv.addon.done, "%s: the INS knob at OFF: the step undone" % id)
 	await _cmd(tv, 214)
-	check(f.start_on("ins") and "ins" in tv.addon.done, "%s: the INS knob on: aligning" % id)
+	check(at.call(1) and "ins" in tv.addon.done, "%s: the key from OFF: STOR HDG, aligning" % id)
+	check(await _until(tv, func(): return bool(f.state().avionics), 100.0), "%s: aligned at STOR HDG" % id)
 
 
 ## Each F-16 power switch alone by its click's command ([219, -1, i]): its system down with its consequence
@@ -174,7 +193,8 @@ func _dark(tv: Node, n: String) -> bool:
 	return false
 
 
-## Command `cmd` (210–215 as its key, p1 0: the other way; 219 with `p1`, `p2`); two frames for the cockpit.
+## Command `cmd` (210–215 as its key, p1 0: the other way; 214 with p1 ±1 a knob position; 219 with `p1`, `p2`); two
+## frames for the cockpit.
 func _cmd(tv: Node, cmd: int, p1 := 0, p2 := 0) -> void:
 	tv._command([cmd, p1, p2])
 	await frames(2)

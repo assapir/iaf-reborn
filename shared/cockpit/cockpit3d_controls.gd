@@ -16,7 +16,8 @@
 #   - "guard": a guarded switch's guard property (its cover's animation): while it is 0 a click only lifts the cover
 #     (sets it to 1); the next click sends the switch's command, as the real guarded switch;
 #   - "turn": sent on the wheel (up as it is, down with p1 negated) and once per drag_px of a left drag (up: as it is);
-#     a control with "click" too takes a left press as a drag, and its release with no turn as the click;
+#     a control with "click" too takes a left press as a drag, and its release with no turn as the click (the INS
+#     knob: a click and the wheel up turn it a position on, the wheel down a position back);
 #   - "turn_down": sent for a turn down in place of "turn" with p1 negated (the throttle: up 5 %, down 5 %);
 #   - "detent": sent for a turn down by a drag begun with the throttle at its bottom (terrain_view.gd `throttle`), the
 #     deliberate second pull over the idle-cutoff detent (the throttle: Throttle OFF, command 218; inferred UX);
@@ -181,14 +182,14 @@ func at(pos: Vector2):
 	return best
 
 
-## The switches sending command `id` on a click put to their "on" (else "off") position; a guarded one put on has its
-## guard lifted.
-func set_switch(id: int, on: bool, p2 := -1) -> void:
+## The switches sending command `id` on a click put to their "on" (else "off") position, or to `value` (a knob's
+## position, FlightGear's value: the INS knob's 0..5) when given; a guarded one put on has its guard lifted.
+func set_switch(id: int, on: bool, p2 := -1, value := NAN) -> void:
 	for e in _controls:
 		var r: Dictionary = e[1]
 		var click: Array = r.get("click", [-1, 0, 0])
 		if r.has("prop") and int(click[0]) == id and (p2 < 0 or int(click[2]) == p2):
-			get_parent().switches[r.prop] = float(r.on if on else r.off)
+			get_parent().switches[r.prop] = value if not is_nan(value) else float(r.on if on else r.off)
 			if on and r.has("guard"):  # thrown by its key or the throttle: its guard up too, not shut over the bat
 				get_parent().switches[r.guard] = 1.0
 

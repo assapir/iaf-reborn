@@ -57,10 +57,11 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 - **The start-up switches both ways (2026-11-13, the switches audit's M2, first part):** on all three jets every
   start-up switch goes back off by its key or a click and on again, with its consequence: main power off darkens
   everything, the starter off stops a crank, the avionics off darken the displays and lose the INS alignment (a
-  warm-up and a new alignment when back on), the INS knob off loses it, the canopy opens; the JFS switch springs
-  back to OFF at 52 %. The flight model holds the positions (`start.rs` `Start::on`); the checklist, the card and the
-  debrief read them, so a switch back off undoes its step ([cockpit.md](cockpit.md) §5.2 "Both ways";
-  `test_switches_both_ways.gd`). Open: the in-between positions (MAIN PWR BATT, JFS START 1, INS NORM / NAV), the
+  warm-up and a new alignment when back on), the INS knob off loses it (since 2026-11-15 the knob turns through all
+  six positions both ways, by the mouse and its key: STOR HDG 90 s, NORM 8 min, NAV keeps the alignment, ATT loses
+  it; cockpit.md §5.2), the canopy opens; the JFS switch springs back to OFF at 52 %. The flight model holds the
+  positions (`start.rs` `Start::on`); the checklist, the card and the debrief read them, so a switch back off undoes its step ([cockpit.md](cockpit.md) §5.2 "Both ways";
+  `test_switches_both_ways.gd`). Open: the in-between positions (MAIN PWR BATT, JFS START 1, RDR ALT STBY), the
   lamps and cues (M3).
 - **Each power switch its own system (2026-11-13, the switches audit's M2b):** on the Sufa and the Barak the
   generators give the displays' power, and each AVIONIC POWER and SNSR PWR switch powers its own system after a 3 s

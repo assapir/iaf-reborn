@@ -15,6 +15,9 @@
 //! a crank, the avionics off darken the displays (a warm-up again when back on) and lose the INS alignment, the INS
 //! knob off loses it too. `Start::on` is the switch's position, the one source the checklist and the 3D cockpit read.
 //!
+//! The F-16's INS knob has six positions (`INS_KNOB`, `Start::turn_ins`, cockpit.md §5.2): OFF, STOR HDG (the 90 s
+//! stored-heading alignment), NORM (the gyrocompass alignment, `NORM_ALIGN_S`), NAV, IN FLT ALIGN and ATT.
+//!
 //! The F-16's power switches one by one (the switches audit's M2b, cockpit.md §5.2): the generators give the displays'
 //! power (`Start::power` 2); each AVIONIC POWER switch (MMC, ST STA, MFD, UFC) and SNSR PWR switch (FCR, RDR ALT) then
 //! powers its own system after the warm-up (`Start::system`). The checklist's avionics step is the four on.
@@ -33,6 +36,18 @@ pub const STOP_RPM: f64 = 1.0;
 pub const SYSTEMS: [&str; 6] = ["mmc", "st_sta", "mfd", "ufc", "fcr", "rdr_alt"];
 /// The first `AVIONICS` of `SYSTEMS` make the avionics step.
 const AVIONICS: usize = 4;
+
+/// The F-16's INS knob's positions, in FlightGear's values 0–5 (`f16/avionics/ins-knob`: its HUD shows ALIGN at 2 and
+/// 4, NAV at 3; modern-iaf/docs/cockpit.md §5.2). OFF: no INS; STOR HDG and NORM align; NAV and IN FLT ALIGN go on
+/// with the alignment (aligned once it is done); ATT: attitude only, the alignment lost (inferred).
+pub const INS_KNOB: [&str; 6] = ["OFF", "STOR HDG", "NORM", "NAV", "IN FLT ALIGN", "ATT"];
+const INS_OFF: u8 = 0;
+const INS_STOR_HDG: u8 = 1;
+const INS_NORM: u8 = 2;
+const INS_NAV: u8 = 3;
+const INS_ATT: u8 = 5;
+/// The NORM (gyrocompass) alignment, s: about 8 minutes (the user's training decisions, 2026-11-12; inferred figure).
+pub const NORM_ALIGN_S: f64 = 480.0;
 
 /// One jet's start sequence.
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -144,14 +159,17 @@ pub struct Start {
     manual: bool,
     /// By keys: the fuel on (the F-16's throttle to idle; the F-35's engine start).
     fuel_on: bool,
-    /// The INS alignment's start (s since the command).
+    /// The INS alignment's start (s since the command), its length (s: the mode it started in), and the alignment
+    /// done (held until the INS loses it).
     ins_at: Option<f64>,
+    ins_need: f64,
+    ins_aligned: bool,
     /// The F-16's `SYSTEMS` switches: when each went on (s since the command), None off.
     systems: [Option<f64>; SYSTEMS.len()],
     /// The switches without a timing of their own: the starter (the JFS switch, the IPP; springs back to OFF once the
-    /// engine sustains itself), the INS knob, the canopy closed.
+    /// engine sustains itself), the INS knob's position (`INS_KNOB`), the canopy closed.
     starter_on: bool,
-    ins_on: bool,
+    ins_knob: u8,
     canopy_closed: bool,
 }
 
@@ -162,14 +180,15 @@ impl Start {
         Start { phase: Phase::Running, t: 1.0e6, rpm: IDLE_RPM, displays_at: Some(0.0), ..Start::switched_on() }
     }
 
-    /// Every switch on, the INS aligned (the "start engine" command flies the whole checklist).
+    /// Every switch on, the INS aligned and at NAV (the "start engine" command flies the whole checklist).
     fn switched_on() -> Start {
         Start {
             commanded: true,
             fuel_on: true,
             ins_at: Some(-1.0e6),
+            ins_aligned: true,
             systems: [Some(0.0); SYSTEMS.len()],
-            ins_on: true,
+            ins_knob: INS_NAV,
             canopy_closed: true,
             ..Start::default()
         }
@@ -274,9 +293,10 @@ impl Start {
             self.displays_at = Some(self.t);
         }
         // The INS knob left on through a main power loss aligns again once main power is back (inferred).
-        if self.ins_on && self.ins_at.is_none() && self.commanded {
-            self.ins_at = Some(self.t);
+        if self.ins_aligning() && self.ins_at.is_none() && self.commanded {
+            self.ins_start(s);
         }
+        self.ins_aligned = self.ins_aligned || self.ins_done(s);
         was != Phase::Running && self.phase == Phase::Running
     }
 
@@ -305,7 +325,7 @@ impl Start {
     /// The avionics up: the four AVIONIC POWER systems up, the INS aligned, and, for a jet with a self test, its time
     /// passed.
     pub fn avionics(&self, s: &StartSpec) -> bool {
-        let aligned = s.ins_align_s <= 0.0 || self.ins_at.is_some_and(|a| self.t >= a + s.ins_align_s);
+        let aligned = s.ins_align_s <= 0.0 || self.ins_aligned || self.ins_done(s);
         SYSTEMS[..AVIONICS].iter().all(|n| self.system(s, n)) && self.t >= s.ready_s && aligned
     }
 
@@ -353,11 +373,8 @@ impl Start {
                     *at = at.or(Some(self.t));
                 }
             }
-            "ins" if !self.commanded => return Err("ins_no_power"),
-            "ins" => {
-                self.ins_at = self.ins_at.or(Some(self.t));
-                self.ins_on = true;
-            }
+            "ins" if self.ins_knob == INS_OFF => return self.turn_ins(s, 1),
+            "ins" => {}
             "canopy" => self.canopy_closed = true,
             _ => {
                 if let Some(i) = SYSTEMS.iter().position(|n| *n == step) {
@@ -378,7 +395,7 @@ impl Start {
             "main_power" => {
                 self.commanded = false;
                 self.displays_at = None;
-                self.ins_at = None;
+                self.ins_lost();
                 self.starter_on = false; // held on by its power only (inferred), as the JFS switch's spring-back
                 self.stop_crank();
             }
@@ -388,8 +405,8 @@ impl Start {
             }
             "avionics" => self.systems[..AVIONICS].fill(None),
             "ins" => {
-                self.ins_on = false;
-                self.ins_at = None;
+                self.ins_knob = INS_OFF;
+                self.ins_lost();
             }
             "canopy" => self.canopy_closed = false,
             _ => {
@@ -398,6 +415,59 @@ impl Start {
                 }
             }
         }
+    }
+
+    /// The INS knob turned (commands 214's p1, cockpit.md §5.2): `way` 1 one position on (to ATT at most), -1 one back
+    /// (to OFF at most), 0 one on with ATT going round to OFF (the key, a click). Out of OFF it needs main power (the
+    /// fault `ins_no_power`: the knob stays at OFF). Into STOR HDG or NORM before the alignment is done it starts again
+    /// with that mode's length; NAV and IN FLT ALIGN go on with it; OFF and ATT lose it.
+    pub fn turn_ins(&mut self, s: &StartSpec, way: i8) -> Result<(), &'static str> {
+        let last = INS_KNOB.len() as u8 - 1;
+        let to = match way {
+            0 if self.ins_knob == last => INS_OFF,
+            0 => self.ins_knob + 1,
+            w if w > 0 => (self.ins_knob + 1).min(last),
+            _ => self.ins_knob.saturating_sub(1),
+        };
+        if self.ins_knob == INS_OFF && to != INS_OFF && !self.commanded {
+            return Err("ins_no_power");
+        }
+        self.ins_aligned = self.ins_aligned || self.ins_done(s);
+        let mode_changed = to != self.ins_knob && (to == INS_STOR_HDG || to == INS_NORM);
+        self.ins_knob = to;
+        if !self.ins_aligning() {
+            self.ins_lost();
+        } else if self.commanded && (self.ins_at.is_none() || (mode_changed && !self.ins_aligned)) {
+            self.ins_start(s);
+        }
+        Ok(())
+    }
+
+    /// The INS knob's position (`INS_KNOB`'s index, FlightGear's value).
+    pub fn ins_knob(&self) -> u8 {
+        self.ins_knob
+    }
+
+    /// The knob at a position where the INS runs its alignment on (STOR HDG, NORM, NAV, IN FLT ALIGN).
+    fn ins_aligning(&self) -> bool {
+        self.ins_knob != INS_OFF && self.ins_knob != INS_ATT
+    }
+
+    /// The alignment starts now, its length the knob's mode: NORM's gyrocompass `NORM_ALIGN_S`, any other aligning
+    /// position the stored-heading `ins_align_s`.
+    fn ins_start(&mut self, s: &StartSpec) {
+        self.ins_at = Some(self.t);
+        self.ins_need = if self.ins_knob == INS_NORM { NORM_ALIGN_S } else { s.ins_align_s };
+    }
+
+    /// The alignment's time done (its length as it started).
+    fn ins_done(&self, s: &StartSpec) -> bool {
+        self.ins_aligning() && s.ins_align_s > 0.0 && self.ins_at.is_some_and(|a| self.t >= a + self.ins_need)
+    }
+
+    fn ins_lost(&mut self) {
+        self.ins_at = None;
+        self.ins_aligned = false;
     }
 
     /// The starter stops: an engine it was turning (unlit) winds down.
@@ -417,7 +487,7 @@ impl Start {
             "starter" => self.starter_on || lit,
             "engine" => self.fuel_on || lit,
             "avionics" => self.systems[..AVIONICS].iter().all(Option::is_some),
-            "ins" => self.ins_on,
+            "ins" => self.ins_aligning(),
             "canopy" => self.canopy_closed,
             _ => SYSTEMS.iter().position(|n| *n == step).is_some_and(|i| self.systems[i].is_some()),
         }
@@ -598,7 +668,7 @@ mod tests {
         // The INS aligns on main power, the engine stopped.
         st.press(&JFS, "ins").unwrap();
         tick(&mut st, 91.0);
-        assert!(st.ins_at.is_some_and(|a| st.t >= a + JFS.ins_align_s));
+        assert!(st.ins_done(&JFS));
         // The JFS off during the crank stops it; main power off stops it too.
         let mut st = Start::default();
         st.press(&JFS, "main_power").unwrap();
@@ -625,6 +695,76 @@ mod tests {
         st.press(&IPP, "starter").unwrap();
         st.release("starter");
         assert_eq!((st.phase, st.on("starter")), (Phase::Off, false));
+    }
+
+    /// The INS knob through its six positions both ways (cockpit.md §5.2): each position reached by a turn on and a
+    /// turn back, the key's turn going round from ATT to OFF; STOR HDG aligns in 90 s, NORM in 8 min, NAV goes on
+    /// with the alignment and keeps it, ATT and OFF lose it; off main power the knob stays at OFF.
+    #[test]
+    fn the_ins_knob_reaches_every_position_both_ways() {
+        let tick = |st: &mut Start, s: f64| {
+            for _ in 0..(s * 30.0) as usize {
+                st.step(&JFS, 1.0 / 30.0);
+            }
+        };
+        let aligned = |st: &Start| st.ins_aligned || st.ins_done(&JFS);
+        let mut st = Start::default();
+        assert_eq!((st.turn_ins(&JFS, 1), st.ins_knob()), (Err("ins_no_power"), 0));
+        st.press(&JFS, "main_power").unwrap();
+        for (i, _) in INS_KNOB.iter().enumerate().skip(1) {
+            st.turn_ins(&JFS, 1).unwrap();
+            assert_eq!(st.ins_knob() as usize, i);
+            assert_eq!(st.on("ins"), i != 5, "the checklist's step done at an aligning position, not at ATT");
+        }
+        st.turn_ins(&JFS, 1).unwrap();
+        assert_eq!(st.ins_knob(), 5, "no turn on past ATT");
+        for i in (0..5).rev() {
+            st.turn_ins(&JFS, -1).unwrap();
+            assert_eq!(st.ins_knob(), i);
+        }
+        st.turn_ins(&JFS, -1).unwrap();
+        assert_eq!((st.ins_knob(), st.on("ins")), (0, false), "no turn back past OFF");
+        for i in [1, 2, 3, 4, 5, 0] {
+            st.turn_ins(&JFS, 0).unwrap();
+            assert_eq!(st.ins_knob(), i, "the key turns on, ATT round to OFF");
+        }
+        // STOR HDG: 90 s; through NORM to NAV once aligned: aligned at NAV.
+        st.turn_ins(&JFS, 1).unwrap();
+        tick(&mut st, 89.0);
+        assert!(!aligned(&st));
+        tick(&mut st, 1.5);
+        assert!(aligned(&st));
+        st.turn_ins(&JFS, 1).unwrap();
+        st.turn_ins(&JFS, 1).unwrap();
+        assert_eq!((st.ins_knob(), aligned(&st)), (3, true));
+        // ATT: attitude only, the alignment lost; back to NAV: aligning again.
+        st.turn_ins(&JFS, 1).unwrap();
+        st.turn_ins(&JFS, 1).unwrap();
+        assert!(!aligned(&st));
+        st.turn_ins(&JFS, -1).unwrap();
+        assert!(!aligned(&st));
+        // NORM from OFF: the gyrocompass alignment, 8 min.
+        st.release("ins");
+        st.turn_ins(&JFS, 1).unwrap();
+        st.turn_ins(&JFS, 1).unwrap();
+        tick(&mut st, 470.0);
+        assert!(!aligned(&st));
+        tick(&mut st, 11.0);
+        assert!(aligned(&st));
+        // Through NORM to NAV before the alignment is done: NORM's 8 min go on at NAV (no 90 s short cut).
+        st.release("ins");
+        for _ in 0..3 {
+            st.turn_ins(&JFS, 1).unwrap();
+        }
+        tick(&mut st, 100.0);
+        assert!(st.ins_knob() == 3 && !aligned(&st), "NORM's alignment, not STOR HDG's, at NAV");
+        tick(&mut st, 381.0);
+        assert!(aligned(&st));
+        // The checklist's key from OFF goes to STOR HDG; the hot jet's knob stands at NAV.
+        st.release("ins");
+        st.press(&JFS, "ins").unwrap();
+        assert_eq!(st.ins_knob(), 1);
+        assert_eq!(Start::running().ins_knob(), 3);
     }
 
     /// The throttle to OFF at idle: the run-down's timings, the displays dark at the generators, the starter again

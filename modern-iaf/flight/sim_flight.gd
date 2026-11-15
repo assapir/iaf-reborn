@@ -535,16 +535,20 @@ func _set_switch(sw: String, want: int, id: String) -> void:
 	if host.flight == null or not result.is_empty():
 		return
 	var was: bool = host.flight.start_on(id)
+	var knob: int = host.flight.ins_knob()
 	var fault: String = host.flight.start_switch(sw, want)
 	var on: bool = host.flight.start_on(id)
 	var e := {"event": "checklist", "step": id}
+	var turned: bool = sw == "ins" and host.flight.ins_knob() != knob
+	if turned:
+		e["position"] = host.flight.ins_knob()  # the INS knob's (0 OFF .. 5 ATT)
 	if fault != "":
 		e["fault"] = fault
 		_fault = fault
 		_fault_shown = fault
 	elif not on:
 		e["on"] = false
-	if fault != "" or on != was:
+	if fault != "" or on != was or turned:
 		host._log_event(host._log_st, e)
 	if on != was and id == "canopy" and host.sounds != null:
 		# The canopy runs down and locks, or opens (modern-iaf/docs/sound.md §1.7).
@@ -572,6 +576,11 @@ func _sync_switches() -> void:
 				var i: int = STEP_IDS.find(id)
 				c3d.clickable.set_switch(210 + i if i >= 0 else 219, on, SYSTEMS.find(id))
 			_shown[id] = on
+		# The INS knob at its position (OFF .. ATT; IafFlight.ins_knob), not only on / off.
+		var knob: int = host.flight.ins_knob()
+		if _shown.get("ins_knob") != knob:
+			c3d.clickable.set_switch(214, knob != 0, -1, knob)
+			_shown["ins_knob"] = knob
 	if now != done:
 		done = now
 		if kneeboard != null:

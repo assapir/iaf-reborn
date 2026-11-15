@@ -276,7 +276,7 @@ switches as FlightGear models them.
 | 2 | JFS switch (`JFS`) | ENG & JET START panel, left console, aft[^bms-ramp][^fg-left] | `[211, 0, 0]` | Ctrl+J | START 2 (1) / OFF (0) |
 | 3 | throttle grip (`THROTTLE`) | the throttle, left console | `[5, 0, 0]`, the wheel and a drag (below) | Throttle up | the throttle's own animation: out of OFF |
 | 4 | MMC, ST STA, MFD, UFC switches (`AVIONICS_MMC`, `AVIONICS_ST_STA`, `AVIONICS_MFD`, `AVIONICS_UFC`) | AVIONIC POWER panel, right console[^bms-ramp][^fg-right] | a click `[219, ±1, 0..3]`, each its own; Ctrl+A `[213, 0, 0]` all four | Ctrl+A | ON (1) / OFF (0): the key all four, a click its own switch |
-| 5 | INS knob (`INS`) | AVIONIC POWER panel, right console[^bms-ramp][^fg-right] | `[214, 0, 0]` | Ctrl+N | STOR HDG (1) / OFF (0) |
+| 5 | INS knob (`INS`) | AVIONIC POWER panel, right console[^bms-ramp][^fg-right] | `[214, 0, 0]`; the wheel and a drag `[214, ±1, 0]` | Ctrl+N | six positions: OFF (0), STOR HDG (1), NORM (2), NAV (3), IN FLT ALIGN (4), ATT (5); the step done at STOR HDG to IN FLT ALIGN |
 | 6 | canopy handle (`CANOPY_HANDLE`, a hit area) | left side, aft of the left console, by the canopy switch[^dcs-canopy] | `[215, 0, 0]` | Ctrl+K | none |
 | take-off, landing | landing gear handle (`anim023`) | left auxiliary console (FlightGear's `LeftAuxConsole` `gear_lever`) | `[14, 0, 0]` | G | the handle's own animation (`controls/gear/gear-down`) |
 | (sensors) | FCR, RDR ALT switches (`FCR`, `RDR_ALT`) | SNSR PWR panel, right console[^fg-right] | `[219, ±1, 4]`, `[219, ±1, 5]` | none | ON (1) / OFF (0); RDR ALT ON (2) / OFF (0) |
@@ -296,8 +296,15 @@ switches as FlightGear models them.
   inferred: the sources put the handle on the left side, not where on it. Looked for again on 2026-11-13 with the
   canopy's hinge: no flight-manual text could be read (the Falcon BMS Dash-1 is too large to fetch, the DCS forum
   refuses automated reading), so its place stays the forum's (open).
-- **INS: STOR HDG** is position 1, after OFF (FlightGear's knob: OFF 0, NORM 2, NAV 3; STOR HDG between them is
-  inferred).
+- **The INS knob** (since 2026-11-15, the user: "Ins prod can't move to all places") turns through FlightGear's six
+  positions, 0–5 (its knob animation's range; its HUD shows ALIGN at 2 and 4, NAV at 3)[^fg-right]: OFF, STOR HDG,
+  NORM, NAV, IN FLT ALIGN, ATT. The names of 1, 4 and 5 are inferred from the real knob's order (FlightGear names
+  only 2 and 3; the real knob's CNTL position has no place in its six). The wheel up and a drag up turn it a position
+  on, the wheel down and a drag down a position back, stopping at OFF and ATT; a click and its key (Ctrl+N) turn it
+  a position on, ATT going round to OFF. Each turn is command 214 with p1 1 (on), −1 (back) or 0 (the key's round);
+  the flight model holds the position (`start.rs` `Start::turn_ins`, `IafFlight.ins_knob`) and the 3D knob shows it.
+  The checklist's INS step is done with the knob at an aligning position (not OFF or ATT); a hot jet's stands at
+  NAV. Turning into STOR HDG or NORM before the alignment is done starts it again with that mode's length.
 - **The JFS switch** springs back to OFF when the engine sustains itself (52 %), as the real JFS cuts out at 50–54
   %[^jfs50]; the starter step stays done.
 
@@ -344,7 +351,7 @@ on (`iaf-tools` `training.rs`).
 | JFS, IPP | a crank stops and the engine winds down; once lit, nothing (the engine sustains itself, inferred) | the starter turns the engine again below 20 % |
 | throttle (F-16), ENG (F-35I) | the fuel cut: the engine winds down ([training.md](training.md) §7.2) | the start again from the starter |
 | AVIONIC POWER (the step) | the four switches off: each one's system down ("One by one" below) | each system after its 3 s warm-up |
-| INS knob | the alignment lost | the alignment from the start (90 s), on main power |
+| INS knob | OFF: the alignment lost; ATT (attitude only): lost too | STOR HDG: the stored-heading alignment, 90 s; NORM: the gyrocompass alignment, 8 min; NAV and IN FLT ALIGN go on with the alignment and keep it once done; on main power (inferred) |
 | canopy | open (the door sound, `SFX_DOOR_OPEN`) | closed and locked (`SFX_DOOR_CLOSE`) |
 
 - **The INS** needs main power only (the INS knob refused before it, `ins_no_power`): it aligns on the battery with
@@ -354,8 +361,8 @@ on (`iaf-tools` `training.rs`).
   generator); the F-35I's BATT and IPP likewise. The INS kept on the aircraft battery through a short power loss.
 - **Next (the audit's M3):** the indicator lamps on battery, the JFS RUN light, the INS's ALIGN / RDY and the IPP's
   ready cue read these positions.
-- The positions the switches show between OFF and ON (MAIN PWR's BATT, the JFS's START 1, the INS knob's NORM and
-  NAV) come with their own steps.
+- The positions the switches show between OFF and ON (MAIN PWR's BATT, the JFS's START 1, RDR ALT's STBY) come with
+  their own steps.
 
 #### One by one (2026-11-13, the switches audit's M2b)
 

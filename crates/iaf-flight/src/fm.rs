@@ -190,6 +190,14 @@ impl Fm {
         }
     }
 
+    /// The INS knob's position (the 6-DoF's, 0 OFF .. 5 ATT): NAV (3) in the original model.
+    pub fn ins_knob(&self) -> u8 {
+        match self {
+            Fm::SixDof(s) => s.ins_knob(),
+            Fm::Original(_) => 3,
+        }
+    }
+
     /// The electrical power (0 none, 1 the battery, 2 the displays up): the original model's is always up.
     pub fn power(&self) -> u8 {
         match self {

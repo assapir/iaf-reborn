@@ -396,7 +396,8 @@ impl IafFlight {
     }
 
     /// A start-up checklist switch (commands 210–215, modern-iaf/docs/cockpit.md §5.2) set: `want` 1 on, -1 off, 0
-    /// the other way from its position. The fault id of a step out of order, "" else.
+    /// the other way from its position; the INS knob (214) a position on, back, or on round to OFF. The fault id of a
+    /// step out of order, "" else.
     #[func]
     fn start_switch(&mut self, step: GString, want: i64) -> GString {
         let want = want.signum() as i8;
@@ -408,6 +409,13 @@ impl IafFlight {
     #[func]
     fn start_on(&self, step: GString) -> bool {
         self.aircraft.as_ref().is_none_or(|ac| ac.start_on(&step.to_string()))
+    }
+
+    /// The INS knob's position, FlightGear's `f16/avionics/ins-knob` value (0 OFF, 1 STOR HDG, 2 NORM, 3 NAV, 4 IN FLT
+    /// ALIGN, 5 ATT; modern-iaf/docs/cockpit.md §5.2).
+    #[func]
+    fn ins_knob(&self) -> i64 {
+        self.aircraft.as_ref().map_or(3, |ac| i64::from(ac.ins_knob()))
     }
 
     // --- AI (docs/ai.md) ------------------------------------------------------------------------------
