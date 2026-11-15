@@ -3532,9 +3532,10 @@ func menu_choice(action: String) -> void:
 			_on_mission_box(7, ["yes", "no"], func(): Settings.quit())
 
 
-## The front end over the frozen flight: the FlyTSD (Esc) or the in-flight Preferences (menu item).
+## The front end over the frozen flight: the FlyTSD (Esc), the in-flight Preferences (menu item, already frozen) or
+## a screen of the game's own (Modern IAF's "done": a training mission accomplished, flight/sim_flight.gd).
 func _open_front_end(to: String) -> void:
-	if to == "flytsd":
+	if to != "pref":
 		_release_held_keys()
 		_freeze(true, false)
 	var layer := CanvasLayer.new()

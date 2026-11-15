@@ -192,6 +192,33 @@ func startup(id: String) -> void:
 	st = tv.flight.state()
 	check(tv.cockpit.power == 2 and float(st.rpm) >= 0.6, "%s: idle with the displays up" % jet)
 	_check_files(tv, jet)
+	# The pass's panel (training.md §9): Debrief ends the flight into the sortie's debrief.
+	var done: Node = await _accomplished(tv, jet)
+	if done == null:
+		return
+	done.find_child("Debrief", true, false).pressed.emit()
+	var t0 := Time.get_ticks_msec()
+	while current_scene == tv or current_scene == null or current_scene.get("page") == null:
+		if Time.get_ticks_msec() - t0 > 20000:
+			break
+		await process_frame
+	await frames(3)
+	# The front end opens the sortie's debrief from Settings.flown_sortie (test_front_end.gd's "fly", End the flight's
+	# same path); this test's records stay in its own folder, so the front end finds none here.
+	var fe: Node = current_scene
+	check(fe != tv and fe.get("page") != null and not paused, "%s: Debrief ends the flight into the front end" % jet)
+
+
+## The pass's panel over the paused flight (sim_flight.gd _accomplished), waited for in real time (the radio's speech
+## first); null when it does not come.
+func _accomplished(tv: Node, what: String) -> Node:
+	var t0 := Time.get_ticks_msec()
+	while tv.fe_overlay == null and Time.get_ticks_msec() - t0 < 30000:
+		await process_frame
+	var done: Node = tv.fe_overlay
+	var ok: bool = done != null and done.page == "accomplished" and paused
+	check(ok and done.find_child("Continue", true, false) != null, "%s: the pass pauses under its panel" % what)
+	return done if ok else null
 
 
 ## A crash during the start-up: the run time ends the mission at once (IafTraining's live check).
@@ -962,7 +989,18 @@ func _roll(tv: Node, id: String, lineup: Vector2, hdg: float) -> void:
 	# A pass holds and the flight goes on: the climb continues until the AoA probe has its samples.
 	var going := func():
 		return tv.addon.result.is_empty() or tv.addon.result.get("pass", false) and fast_aoa.size() < 60
-	while going.call() and tv._sim_time - t0 < 120.0 and not tv.crashed:
+	var continued := false
+	while (going.call() or not continued and tv.addon.result.get("pass", false)) and tv._sim_time - t0 < 120.0:
+		if tv.crashed:
+			break
+		var done: Node = tv.fe_overlay
+		if not continued and done != null and done.page == "accomplished":
+			# The pass's panel (after the radio's speech, the jet flown meanwhile): Continue, and the flight goes on.
+			check(paused, "%s: the pass pauses under its panel" % id)
+			continued = true
+			done.find_child("Continue", true, false).pressed.emit()
+			await process_frame
+			check(tv.fe_overlay == null and not paused, "%s: Continue resumes the flight" % id)
 		var st: Dictionary = tv.flight.state()
 		if float(st.speed_kt) < 30.0:
 			slow_aoa = maxf(slow_aoa, absf(float(st.aoa)))
@@ -987,6 +1025,7 @@ func _roll(tv: Node, id: String, lineup: Vector2, hdg: float) -> void:
 	# The AoA probe (modern-iaf/docs/cockpit.md §5.4): at rest from a standstill, following the flow from 150 kt.
 	if not tv.addon.result.get("pass", false):
 		return  # a failed take-off (the clearance runs): no climb to probe
+	check(continued and tv.fe_overlay == null, "%s: the panel does not come back after Continue" % id)
 	var shown := fast_aoa.map(func(e): return e[0])
 	check(slow_aoa == 0.0, "%s: the AoA rests at 0° below 30 kt (most %.2f°)" % [id, slow_aoa])
 	check(

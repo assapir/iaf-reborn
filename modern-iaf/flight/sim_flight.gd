@@ -7,8 +7,8 @@
 #   recording; each line's subtitle shows as its voice starts (radio.gd cue_subtitle).
 # - A training mission (the compiled mission's `sim.training`): IafTraining (crates/iaf-tools training.rs) checks each
 #   frame for a fail (a crash, damage, the wheels off the pavement, a phase without the tower's clearance or the roll
-#   on another runway: the tower says so) and ends the mission at once on one; a pass is kept and the flight goes on
-#   until the player ends it. At its end the recording is scored by
+#   on another runway: the tower says so) and ends the mission at once on one; a pass pauses the flight under a panel
+#   (Continue the flight, or Debrief), the pass kept either way. At its end the recording is scored by
 #   IafTraining, the sortie and its debrief record stored in the records database (IafPilotLog).
 extends Node
 
@@ -17,9 +17,8 @@ const Kneeboard := preload("kneeboard.gd")
 const FlightUi := preload("flight_ui.gd")
 const WizardTheme := preload("../setup/wizard_theme.gd")  # relative: a test of the original's project loads it too
 const Look := preload("../menu/look.gd")
-## The banner at the goal (training.md §9: strings fl_complete, under it fl_fly_on) stays BANNER_S s; a fail shows
-## the record's "Fail" and its reason.
-const BANNER_S := 10.0
+## A pass pauses the flight under the front end's "accomplished" panel (training.md §9) once the radio's queued speech
+## is said; a fail shows the record's "Fail" and its reason in a banner, then the debrief.
 ## The menu's lines: [request id, English, Hebrew] (radio.gd request; "landing": its Ctrl+T contact_tower).
 const ITEMS := [
 	["startup", "Request start-up", "בקשת התנעה"],
@@ -498,11 +497,15 @@ func _finish(d: Dictionary) -> void:
 	print("training %s: %s %s" % [mission_name, "PASS" if d["pass"] else "FAIL", d.get("reasons", [])])
 	host._log_event(host._log_st, {"event": "mission", "name": "training " + ("pass" if d["pass"] else "fail")})
 	var s: Dictionary = d.get("strings", {}).get("he" if _he() else "en", en)
-	# A pass: the banner with how to end, the flight going on (the user, 2026-11-13: "on mission complete - allow to
-	# keep flying"); a fail shows its reason end_hold_s, then the flight ends into the debrief.
+	# A pass: the flight pauses under the "accomplished" panel, Continue or Debrief (the user, 2026-11-15: "it pause and
+	# show 'continue/debrief' buttons"), once the radio has said what it queued (the pause would cut its voice); a fail
+	# shows its reason end_hold_s, then the flight ends into the debrief.
 	if d["pass"]:
-		_show_banner(ui.s("fl_complete"), ui.s("fl_fly_on"))
-		get_tree().create_timer(BANNER_S, false).timeout.connect(_hide_banner)
+		var snd = host.get("sounds")
+		if snd is Object and snd.has_method("phrase_cue") and snd.get("silenced") != true:
+			snd.phrase_cue(_accomplished)
+		else:
+			_accomplished()
 	else:
 		_end_ms = Time.get_ticks_msec() + trainer.end_hold_s() * 1000.0
 		var why: Array = d.get("reasons", [])
@@ -689,13 +692,20 @@ func _steps() -> Array:
 	return checklist.map(func(c): return String(c.step))
 
 
-func _hide_banner() -> void:
-	if is_instance_valid(_banner):
-		_banner.queue_free()
+## The pass's pause: the notebook and the radio menu put away, the front end's "accomplished" panel over the frozen
+## flight (terrain_view.gd _open_front_end; Continue closes it, Debrief ends the flight into the debrief).
+func _accomplished() -> void:
+	if not is_inside_tree() or host.ejected or host.crashed:
+		return
+	if open:
+		set_open(false)
+	kneeboard.set_raised(false)
+	host.close_front_end()  # the pause menu, should it be open
+	host._open_front_end("done")
 
 
-## The banner over the view in the front end's look (navy, Heebo) until the flight ends into the debrief: "Mission
-## complete", or "Fail" with the reason that ended it.
+## The banner over the view in the front end's look (navy, Heebo) until the flight ends into the debrief: "Fail" with
+## the reason that ended it.
 func _show_banner(title: String, reason: String) -> void:
 	if _banner != null:
 		_banner.queue_free()

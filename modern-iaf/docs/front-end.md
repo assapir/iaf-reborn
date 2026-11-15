@@ -36,9 +36,16 @@ The window opens plain in the front end's background colour (#00163C, no Godot s
 | Loadout | Edit on the briefing's Arming summary (§10.1): the jet from beneath with a callout per station, the loadouts (the mission's, the pilot's saved ones), the take-off weight and the stores; Reset to the mission's, Briefing, Fly | ![Loadout](pictures/front-end/loadout_f16i_en.webp) | ![Loadout, Hebrew](pictures/front-end/loadout_f16i_he.webp) |
 | Missions without data | the same note under the title, every section greyed; the Hangar crumb focused | ![Missions without data](pictures/front-end/nodata_missions_en.webp) | ![Missions without data, Hebrew](pictures/front-end/nodata_missions_he.webp) |
 
-At a training mission's goal a banner over the view says "Mission complete" and "Fly on, or Esc → End the flight for
-the debrief" for 10 s; the flight goes on until the player ends it (the user, 2026-11-13: "on mission complete - allow
-to keep flying"), the pass kept. A fail shows "Fail" and the reason; about 5 s later the flight ends into its debrief
+At a training mission's goal the flight pauses under a panel in the pause menu's look: "Mission accomplished" /
+"המשימה הושלמה בהצלחה", a line saying the pass is kept, and two buttons (the user, 2026-11-15: "it pause and show
+'continue/debrief' buttons"):
+- **Continue the flight** (focused; Enter, a click or the gamepad's accept) resumes the flight. The panel does not come
+  back in that flight, and the pass stays stored. Esc also continues, so Esc never ends the flight by accident.
+- **Debrief** ends the flight into its debrief, as the pause menu's End the flight does.
+
+The panel waits until the radio has said every line already queued (the tower's last answer), so the pause never cuts
+a voice; the flight runs on meanwhile. The pilot's notebook (H) and the radio menu are put away when the panel opens.
+A fail shows a banner with "Fail" and the reason; about 5 s later the flight ends into its debrief
 ([training.md](training.md) §9).
 
 Over a flight, Esc opens the pause menu: Continue the flight, Settings, End the flight. It is laid out on the
@@ -55,6 +62,7 @@ the record's `goals` ([training.md](training.md) §4); every other number stays 
 | screen | English | Hebrew |
 |---|---|---|
 | the pause menu over the flight | ![Pause menu](pictures/front-end/pause_en.webp) | ![Pause menu, Hebrew](pictures/front-end/pause_he.webp) |
+| a training mission accomplished: the flight paused | ![Mission accomplished](pictures/front-end/accomplished_en.webp) | ![Mission accomplished, Hebrew](pictures/front-end/accomplished_he.webp) |
 | a failed debrief (a take-off with the gear never raised) | ![Failed debrief](pictures/front-end/debrief_fail_en.webp) | ![Failed debrief, Hebrew](pictures/front-end/debrief_fail_he.webp) |
 | the debrief of that flight | ![Debrief after a flight](pictures/front-end/flown_debrief_en.webp) | ![Debrief after a flight, Hebrew](pictures/front-end/flown_debrief_he.webp) |
 
@@ -272,8 +280,9 @@ which showed them whole with their credits, are gone.
   jets (one list for each jet; Ramon's take-off in the Barak with the Barak in the player's slot and its own rules and
   texts, Ramon's start-up in the Adir with the Adir's checklist);
   the plane pick; the Ra'am's and the Baz's rows greyed and not pickable; the Settings' controls and the live language switch; the Pilot log
-  and Attributions. With `-- --fly` it also flies Ramon's start-up from the mission screen to a pass, opens the pause
-  menu, ends the flight and finds that flight's debrief. Run in a real render through `tools/godot_window.sh` it is
+  and Attributions. With `-- --fly` it also flies Ramon's start-up from the mission screen to a pass, finds the flight
+  paused under Mission accomplished, continues it with Esc (the panel not coming back), opens the pause menu, ends the
+  flight and finds that flight's debrief. Run in a real render through `tools/godot_window.sh` it is
   the real run (`SHOT_DIR=<dir>` saves the two pictures of §1's second table).
   It also checks the first start (the Pilot screen before the Hangar, no pilot in its top bar, the empty picture's head
   and shoulders turning into the typed name's initials, Save only with a name typed through real input events, Down and

@@ -44,7 +44,7 @@ Each figure has a source in the mission's `sources` (`"training.time_budget_s"` 
 |---|---|---|---|---|
 | `kind` | `"startup"` | `"takeoff"` | — | — |
 | `time_budget_s` | idle with avionics up by then | airborne, gear up, on heading by then | 120 s / 900 s | inferred |
-| `end_hold_s` | a fail shows its reason this long before the debrief (a pass: the flight goes on, §9) | the same | 5 s | inferred: time to see the result before the debrief |
+| `end_hold_s` | a fail shows its reason this long before the debrief (a pass: the flight pauses for Continue or Debrief, §9) | the same | 5 s | inferred: time to see the result before the debrief |
 | `goals` | the debrief items the sheet shows, in order (§4) | the same | `[]` / `["runway", "liftoff_speed", "reference_speed", "max_centreline_offset", "tower_calls"]` | — (not a figure) |
 | `heading_tolerance_deg` | — | ± from the runway heading | 10° | inferred |
 | `empty_kg` | — | gross weight = this + the recorded fuel | F-16: 8,573 kg; F-35I: 13,290 kg | F-16C Block 50 / 52[^w-f16]; F-35A[^w-f35]; the IAF jets' own weights inferred the same |
@@ -359,11 +359,16 @@ mission `modern-iaf/data/missions/<id>.json` and the airbase files:
   passes; since 2026-11-13 also with the gear down, the user: "why I didn't get completed mission … after I
   airborned?"). A goal still missing shows in the panel ("To complete: raise the gear." / "To complete: climb out on
   the runway heading with the gear up."); a take-off that cannot pass any more (`wrong_runway`, `excursion`,
-  `over_time`) ends at once as a Fail; a pass is stored at once and kept, the flight going on until the player ends
-  it (since 2026-11-13); 5 s past its time budget it ends as scored;
+  `over_time`) ends at once as a Fail; a pass is stored at once and kept (since 2026-11-13); 5 s past its time
+  budget it ends as scored;
 - the player ending the flight first (Esc → End the flight, Ctrl+Q) ends the mission there, scored as it stands;
-- at the goal a banner in the front end's look (navy, Heebo) says "Mission complete" / "המשימה הושלמה" and "Fly on,
-  or Esc → End the flight for the debrief" for 10 s; a fail shows "Fail" with the reason that ended it and 5 s later
+- at the goal (since 2026-11-15, the user: "it pause and show 'continue/debrief' buttons") the flight pauses under
+  the front end's panel "Mission accomplished" / "המשימה הושלמה בהצלחה" (`front_end.gd _page_accomplished`, opened
+  by `sim_flight.gd _accomplished` through `terrain_view.gd _open_front_end("done")`): Continue the flight (also Esc)
+  resumes it and the panel does not come back; Debrief ends the flight into the debrief. The panel opens once the
+  radio's phrase channel has said what it had queued (`flight_sounds.gd phrase_cue`), so the pause never cuts a
+  voice. No radio line announces the pass;
+- a fail shows a banner in the front end's look (navy, Heebo) with "Fail" and the reason that ended it, and 5 s later
   (real time, `end_hold_s`) the flight ends into the debrief;
 - an ejection ends the sortie (`Settings.eject_ends_sortie`, the sim only): every sound and the radio stop at once
   (`flight_sounds.gd silence`, no radio menu), the view stays outside on the seat and the jet at any height (no

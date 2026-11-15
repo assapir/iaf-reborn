@@ -2,8 +2,8 @@
 # English and Hebrew, in Ramon's take-off:
 #   tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 SHOT_DIR=/tmp/fui -- --log-file /tmp/fui.log --path modern-iaf \
 #     --resolution 1920x1080 -s ../modern-iaf/tests/_flight_ui_shot.gd
-# Writes SHOT_DIR/band_<lang>.png (after the start-up call), pause_<lang>.png and flight10_<lang>.png
-# (10 s into the flight: the key hint faded out).
+# Writes SHOT_DIR/band_<lang>.png (after the start-up call), pause_<lang>.png, accomplished_<lang>.png (a training
+# mission's pass: sim_flight.gd _accomplished) and flight10_<lang>.png (10 s into the flight: the key hint faded out).
 extends "res://../tests/godot/base.gd"
 
 
@@ -28,6 +28,10 @@ func run() -> void:
 		tv._esc_key()
 		await frames(10)
 		_save(dir.path_join("pause_%s.png" % lang))
+		tv.close_front_end()
+		tv.addon._accomplished()
+		await frames(10)
+		_save(dir.path_join("accomplished_%s.png" % lang))
 		tv.close_front_end()
 		await create_timer(10.0, true, false, true).timeout
 		_save(dir.path_join("flight10_%s.png" % lang))

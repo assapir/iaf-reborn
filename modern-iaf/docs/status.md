@@ -410,8 +410,8 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   `modern-iaf/tests/test_mvp.gd` flies both missions for the Sufa, the Barak and the F-35I to a Pass. Since 2026-11-08
   a crash, any damage or the wheels off the pavement fail a mission at once with that reason first; a pass is kept
   and the flight goes on until the player ends it (since 2026-11-13); the debrief sheet shows only the mission's goals
-  ([training.md](training.md) §3.0, §4). A banner says "Mission complete" (fly on, or Esc → End the flight), or the Fail and its
-  reason, then the flight ends into the debrief; an ejection ends the sortie: silent, outside view, Fail "ejected" (§9). Since 2026-11-13 (the
+  ([training.md](training.md) §3.0, §4). A pass pauses the flight under "Mission accomplished" with Continue the flight and
+  Debrief (since 2026-11-15); a fail shows a banner with its reason, then the flight ends into the debrief; an ejection ends the sortie: silent, outside view, Fail "ejected" (§9). Since 2026-11-13 (the
   user: "missions should fail if I start without tower permissions") a take-off mission fails at once on a phase
   without the tower's clearance (the engine start, leaving the spot, entering the runway, the roll), the tower saying
   so; lined up on another runway end the tower names it and the roll there fails; airborne, the goal still missing

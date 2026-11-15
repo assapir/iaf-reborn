@@ -459,6 +459,28 @@ func fly_once(fe: Control) -> void:
 		await process_frame
 	Engine.time_scale = 1.0
 	check(bool(tv.addon.result.get("pass", false)), "fly: the start-up scored a pass")
+	var shot := OS.get_environment("SHOT_DIR")
+	# The pass pauses the flight under the accomplished panel (training.md §9), once the radio's speech is said.
+	t0 = Time.get_ticks_msec()
+	while tv.fe_overlay == null and Time.get_ticks_msec() - t0 < 30000:
+		await process_frame
+	var done: Node = tv.fe_overlay
+	check(
+		done != null and done.page == "accomplished" and paused and _has(done, "Mission accomplished"),
+		"fly: the pass pauses the flight under Mission accomplished"
+	)
+	check(
+		done != null and done.get_viewport().gui_get_focus_owner() == done.find_child("Continue", true, false),
+		"fly: Continue focused"
+	)
+	if shot != "" and done != null:
+		await _shots(done, shot, "accomplished")
+	key(done, KEY_ESCAPE)  # Esc = Continue: never the flight's end by accident
+	await frames(2)
+	check(tv.fe_overlay == null and not paused, "fly: Esc on the panel continues the flight")
+	var sim_t: float = tv._sim_time
+	await frames(30)
+	check(tv.fe_overlay == null and tv._sim_time > sim_t, "fly: the flight goes on, the panel not back")
 	tv._esc_key()
 	await frames(3)
 	var pause: Node = tv.fe_overlay
@@ -474,7 +496,6 @@ func fly_once(fe: Control) -> void:
 	key(pause, KEY_ESCAPE)
 	await frames(2)
 	check(pause.page == "pause" and tv.fe_overlay == pause, "fly: Esc from Preferences back to the pause menu")
-	var shot := OS.get_environment("SHOT_DIR")
 	if shot != "":
 		await _shots(pause, shot, "pause")
 	pause.find_child("EndFlight", true, false).pressed.emit()

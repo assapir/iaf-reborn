@@ -128,7 +128,8 @@ const BACK := {
 	"joystick": "prefs",
 }
 
-## Over a flight: terrain_view.gd sets these before adding the overlay ("flytsd": the pause menu, "pref").
+## Over a flight: terrain_view.gd sets these before adding the overlay ("flytsd": the pause menu, "pref"; "done": a
+## training mission accomplished, flight/sim_flight.gd).
 var flight: Node = null
 var screen := ""
 var page := ""
@@ -173,7 +174,7 @@ func _ready() -> void:
 		process_mode = Node.PROCESS_MODE_ALWAYS
 		_fit_overlay()
 		get_viewport().size_changed.connect(_fit_overlay)
-		show_page("prefs" if screen == "pref" else "pause")
+		show_page({"pref": "prefs", "done": "accomplished"}.get(screen, "pause"))
 		return
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var win := get_window()
@@ -2185,6 +2186,26 @@ func _page_pause() -> void:
 	_button(v, s("preferences"), "Secondary", func(): show_page("prefs")).name = "PausePrefs"
 	var end := _button(v, s("end_flight"), "Secondary", func(): flight._end_flight(true))
 	end.name = "EndFlight"
+
+
+## A training mission accomplished (training.md §9): the flight paused under the pause menu's panel, Continue the
+## flight (Esc too: back()) or Debrief (the flight ends into its debrief, as End the flight does).
+func _page_accomplished() -> void:
+	var center := CenterContainer.new()
+	add_child(center)
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var panel := PanelContainer.new()
+	panel.name = "Accomplished"
+	center.add_child(panel)
+	panel.custom_minimum_size = Vector2(560, 0)
+	var v := _vbox(_margin(panel, 48, 40), 22)
+	_label(v, str(setup_strings.get("name", "")), "Mark")
+	_label(v, s("fl_complete"), "H2")
+	_text(v, s("fl_kept"), "Muted").custom_minimum_size.x = 464
+	var go := _button(v, s("resume"), "Primary", func(): flight.close_front_end())
+	go.name = "Continue"
+	_focus = go
+	_button(v, s("debrief"), "Secondary", func(): flight._end_flight(true)).name = "Debrief"
 
 
 # --- keys -------------------------------------------------------------------------------------------------------------
