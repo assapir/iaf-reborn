@@ -683,7 +683,8 @@ pilot's notebook, H):
 - The explanation scrolls: the wheel (a touchscreen's drag), and with the focus (the card's frame then in the accent)
   the arrows, the gamepad's pad and Page Up / Down; at its top or bottom an arrow moves the focus on.
 - The texts are mission data, written for every mission in English and Hebrew ([data-formats.md](data-formats.md)
-  §5): a start-up's in the checklist's order with each switch's place and the state to wait for; a take-off's from
+  §5): a start-up's from the tower's start-up call (since 2026-11-15: the engine start needs it) through the checklist's
+  order with each switch's place and the state to wait for; a take-off's from
   the cold start through the four tower calls, the taxi, the line-up and the take-off to the climb-out, with what
   fails the mission at each place ([training.md](training.md) §3, §7, §8).
 

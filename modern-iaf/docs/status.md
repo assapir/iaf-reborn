@@ -415,7 +415,8 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   Debrief (since 2026-11-15); a fail shows a banner with its reason, then the flight ends into the debrief; an ejection ends the sortie: silent, outside view, Fail "ejected" (§9). Since 2026-11-13 (the
   user: "missions should fail if I start without tower permissions") a take-off mission fails at once on a phase
   without the tower's clearance (the engine start, leaving the spot, entering the runway, the roll), the tower saying
-  so; lined up on another runway end the tower names it and the roll there fails; airborne, the goal still missing
+  so (the start-up missions since 2026-11-15 too: the engine start and leaving the spot, after the start-up call as
+  their first step); lined up on another runway end the tower names it and the roll there fails; airborne, the goal still missing
   shows live ("To complete: raise the gear.") ([training.md](training.md) §3.3, §9). The start-up
   mission is the real start by keys: the F-16's six-step checklist and the F-35I's battery, IPP, engine, canopy, on
   a card in both languages; a step out of order has its consequence (a hot start, no power) and fails (§7.1).

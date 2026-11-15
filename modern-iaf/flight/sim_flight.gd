@@ -352,6 +352,8 @@ func pick(id: String) -> String:
 	else:
 		p = r.request(id)
 	answers.append(String(p.template))
+	if kneeboard != null:
+		kneeboard.refresh()  # the start-up lesson's call ticked on the START-UP page
 	host._log_event(host._log_st, {"event": "radio", "call": id, "answer": p.template, "text": p.text})
 	return String(p.template)
 

@@ -174,6 +174,8 @@ func startup(id: String) -> void:
 	await fly(tv, 2.0)
 	check(not tv.flight.state().engine_on, "%s: the throttle starts nothing" % jet)
 	tv.throttle = 0.0
+	var a := await _call(tv, "startup")  # the start-up needs the tower's clearance (training.md §3.3)
+	check(a == "ACFT_CLEAR_TO_START", "%s start-up: start-up request -> %s" % [jet, a])
 	await _checklist(tv, id == "f35i", id in ["f16i", "f35i"])
 	var ok := await _until(tv, func(): return not tv.addon.result.is_empty(), 150.0)
 	var d: Dictionary = tv.addon.result
@@ -705,8 +707,8 @@ func takeoff(id: String) -> void:
 
 ## Each phase done without the tower's clearance fails the Sufa's take-off at once (training.md §3.3): the reason
 ## first in the debrief, the tower's line said once and shown in the band. `upto`: the calls made first.
-func _violation(calls: Array, why: String, act: Callable) -> void:
-	var tv := await _start("ramon_takeoff")
+func _violation(calls: Array, why: String, act: Callable, mission := "ramon_takeoff") -> void:
+	var tv := await _start(mission)
 	for c in calls:
 		if c == "start":
 			_press(tv, KEY_E, true)
@@ -717,13 +719,16 @@ func _violation(calls: Array, why: String, act: Callable) -> void:
 	var ok := await _until(tv, func(): return not tv.addon.result.is_empty(), 60.0)
 	var d: Dictionary = tv.addon.result
 	var r: Array = d.get("reasons", [])
-	check(ok and not d.pass and not r.is_empty() and r[0] == why, "%s: the mission fails first with it: %s" % [why, r])
+	check(
+		ok and not d.pass and not r.is_empty() and r[0] == why,
+		"%s (%s): the mission fails first with it: %s" % [why, mission, r]
+	)
 	var tower: Array = tv.radio.said.filter(func(p): return p.template == "ACFT_" + why.to_upper())
 	check(tower.size() == 1 and "without clearance" in String(tower[0].text), "%s: the tower says it once" % why)
 	var said := func(): return tv.addon.ui.band_texts().any(func(t): return "without clearance" in t)
 	check(await _until(tv, said, 20.0), "%s: in the band as the tower speaks" % why)
-	check(String(d.strings.he.get(why, "")) != "", "%s: the reason in Hebrew" % why)
-	var e := FileAccess.get_file_as_string(String(d.flight))
+	check(String(d.get("strings", {}).get("he", {}).get(why, "")) != "", "%s: the reason in Hebrew" % why)
+	var e := FileAccess.get_file_as_string(String(d.get("flight", "")))
 	check('"event":"clearance"' in e and why in e, "%s: the recording's clearance event" % why)
 
 
@@ -734,6 +739,17 @@ func clearance() -> void:
 		path.append(Vector2(float(s["FromTaxiPtX%d" % i]), float(s["FromTaxiPtY%d" % i])))
 	var hdg := float(s.RunwayNumber)
 	await _violation([], "no_start_clearance", func(tv): _press(tv, KEY_E, true))
+	# The start-up lessons too (the user, 2026-11-15: "I started without tower permissions and the mission didn't
+	# failed"): the checklist's main power and JFS without the call.
+	for m in ["ramon_startup", "ramat_david_startup", "nevatim_startup"]:
+		var by_switches := func(tv: Node) -> void:
+			for c in [210, 211]:
+				tv._command([c, 0, 0])
+				await frames(3)
+			if m == "nevatim_startup":  # the F-35I's engine start after the IPP's 10 s
+				await fly(tv, 11.0)
+				tv._command([212, 0, 0])
+		await _violation([], "no_start_clearance", by_switches, m)
 	var go := func(tv: Node) -> void:
 		tv.brakes = false
 		tv.scripted_stick = Vector2.ZERO

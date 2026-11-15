@@ -112,9 +112,10 @@ engine never at idle with the avionics up), `over_time` (start-up); `no_liftoff`
 
 ### 3.3 The tower's clearances and the runway
 Since 2026-11-13 (the user: "missions should fail if I start without tower permissions"; "I need to be able to call
-tower to align and for take off") a mission's `training.clearances` (mission data, the three take-off missions:
-`["startup", "taxi", "takeoff"]`; the start-up missions have no tower call in their design and name none) makes each
-phase wait for its clearance. Doing it first fails the mission at once (§3.0's pattern: the banner with the reason,
+tower to align and for take off") a mission's `training.clearances` (mission data: the three take-off missions
+`["startup", "taxi", "takeoff"]`; since 2026-11-15 the three start-up missions `["startup", "taxi"]`, with the tower's
+start-up call as the briefing's first step, the user: "I started without tower permissions and the mission didn't
+failed") makes each phase wait for its clearance. Doing it first fails the mission at once (§3.0's pattern: the banner with the reason,
 the debrief 5 s later), the tower says so once (sound.md §3) and the recording gets `{"event": "clearance",
 "reason": …}`. `Watch::check` in `crates/iaf-tools/src/training.rs` decides; the clearances come from the tower's
 answers so far (`Cleared::of`, the same state the radio menu lists its calls from):

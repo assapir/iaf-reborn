@@ -44,6 +44,7 @@ func run() -> void:
 		await _shot("first_training")
 		kb._help.queue_free()
 		kb._help = null
+	tv.addon.pick("startup")  # the tower's clearance first (training.md §3.3)
 	tv._command([210, 0, 0])
 	tv._command([211, 0, 0])
 	await fly(tv, 0.5)

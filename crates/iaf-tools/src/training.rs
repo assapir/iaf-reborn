@@ -1464,13 +1464,13 @@ mod tests {
         let mut w = open();
         assert_eq!(w.check(&Now { rpm: 60.0, ..at(spot, all) }), None);
         assert_eq!(w.check(&Now { rpm: 100.0, speed_kt: 120.0, ..at(lineup, all) }), None, "the clean roll");
-        // A hot start holds the start, taxi and line-up; a start-up mission names no clearance.
+        // A hot start holds the start, taxi and line-up; a start-up mission needs the start-up and taxi clearances.
         let mut w = open();
         let hot = Cleared::of(&[], true);
         assert_eq!(w.check(&Now { rpm: 60.0, ..at(lineup, hot) }), None);
         assert_eq!(w.check(&Now { rpm: 100.0, speed_kt: 40.0, ..at(lineup, hot) }), Some("no_takeoff_clearance"));
         let s = Watch::open(&data.join("missions/ramon_startup.json"), &data.join("airbases")).unwrap();
-        assert!(s.rules.clearances.is_empty());
+        assert_eq!(s.rules.clearances, ["startup", "taxi"]);
         // The recording carries the live check's reason: the CLI's score fails with it first.
         let text = with(&takeoff(CLEAN).0, &[json!({"t": 5.0, "event": "clearance", "reason": "no_taxi_clearance"})]);
         let d = scored(&text, "ramon_takeoff");

@@ -448,7 +448,8 @@ func fly_once(fe: Control) -> void:
 	tv._unhandled_input(_key_event(KEY_F1))
 	check(tv.in_cockpit, "fly: F1 is the cockpit")
 	Engine.time_scale = 6.0
-	# The start-up checklist by its keys (training.md §7.1), each at its moment.
+	# The tower's start-up clearance first (training.md §3.3), then the checklist by its keys (§7.1), each at its moment.
+	check(tv.addon.pick("startup") == "ACFT_CLEAR_TO_START", "fly: the tower clears the start-up")
 	var t0 := Time.get_ticks_msec()
 	for step in [1, 2, 3, 4, 5, 6]:
 		var rpm := {3: 0.2, 4: 0.55}.get(step, 0.0) as float
@@ -1540,20 +1541,22 @@ func _briefing_checks(fe: Control, lang: String) -> void:
 	await frames(3)
 	map = fe.find_child("PageMap", true, false)
 	check(fe.mission_i == mi and map.zoom > 4.0, "%s: entering again: the mission kept, the map on the base" % lang)
-	# The start-up: its checklist, one pin for all of it, each step's switch pictured.
+	# The start-up: the tower's call, then its checklist, one pin for all of it, each step's switch pictured.
 	fe.open_mission(0)
 	await frames(3)
 	how = fe.find_child("HowScroll", true, false)
 	paras = how.get_child(0).get_children()
-	check(paras.size() == 5, "%s: briefing: the start-up's five paragraphs (%d)" % [lang, paras.size()])
+	check(paras.size() == 6, "%s: briefing: the start-up's six paragraphs (%d)" % [lang, paras.size()])
 	words = (
 		"\n"
 		. join(paras.map(func(r): return r.find_children("*", "RichTextLabel", true, false)[0].get_parsed_text()))
 		. replace("\u00a0", " ")
 	)
-	for rec in [119, 120, 7, 122, 123, 124]:
+	for rec in [47, 119, 120, 7, 122, 123, 124]:
 		var k: String = fe.key_name(rec)
-		check(k != "" and words.contains(k), "%s: briefing: the checklist key %d as bound (%s)" % [lang, rec, k])
+		check(k != "" and words.contains(k), "%s: briefing: the key %d as bound (%s)" % [lang, rec, k])
+	var first: String = paras[0].find_children("*", "RichTextLabel", true, false)[0].get_parsed_text()
+	check(first.contains("tower") or first.contains("מגדל"), "%s: briefing: the tower's start-up call first" % lang)
 	var pics: Array = how.find_children("Switch_*", "TextureRect", true, false)
 	check(
 		pics.size() == 6 and pics.all(func(p): return p.texture != null),
@@ -1565,7 +1568,7 @@ func _briefing_checks(fe: Control, lang: String) -> void:
 	check(words.contains("20") and words.contains("90"), "%s: briefing: the waits" % lang)
 	var m: Control = fe.find_child("PageMap", true, false)
 	check(m.runway_label == "", "%s: map: a start-up has no runway" % lang)
-	check(m.data.pins.size() == 1 and int(m.data.pins[0].last) == 4, "%s: map: one pin, the whole text" % lang)
+	check(m.data.pins.size() == 1 and int(m.data.pins[0].last) == 5, "%s: map: one pin, the whole text" % lang)
 	check(fe.find_child("Fly", true, false) != null, "%s: briefing: Fly" % lang)
 	fe.open_mission(1)
 	await frames(2)

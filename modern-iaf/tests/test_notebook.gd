@@ -28,6 +28,9 @@ func run() -> void:
 	check(settings().notebook_help_seen, "the help line is marked seen")
 	var text: String = nb.page_text()
 	check("MAIN PWR" in text and not "Ctrl" in text, "START-UP names the switch, no key: %s" % text.left(80))
+	# The tower's start-up call first (training.md §3.3): current, no switch ringed until the tower clears the start.
+	check(kb.call_pending() and "Call the tower" in text, "START-UP: the tower's start-up call first")
+	check(kb._marks().is_empty(), "START-UP: no switch ringed before the clearance")
 	var ids: Array = nb.sections.map(func(x): return String(x.id))
 	check(ids == ["startup", "taxi", "radio", "landing", "weapons", "emergency", "data"], "the sections %s" % [ids])
 	for i in nb.sections.size():
@@ -52,6 +55,9 @@ func run() -> void:
 	tv._command([210, 1, 0])
 	await frames(2)
 	check(kb._current() == 1, "main power on again: the JFS current")
+	tv.addon.pick("startup")
+	await frames(2)
+	check(not kb.call_pending() and nb.page_text().count("✓") == 2, "the tower's clearance: the call ticked")
 	# Turning: a tab click, the wheel, PgDn / PgUp and the footer's ›.
 	var radio := ids.find("radio")
 	_tap(nb, nb.tab_rect(radio).get_center())

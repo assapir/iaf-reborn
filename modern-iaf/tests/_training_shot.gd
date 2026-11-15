@@ -43,6 +43,7 @@ func run() -> void:
 	_cockpit(tv, Vector2(0, deg_to_rad(-22)))
 	await fly(tv, 3.0)
 	await _shot("cold_cockpit")
+	tv.addon.pick("startup")  # the tower's clearance first (training.md §3.3)
 	_press(tv, KEY_E, true)
 	Engine.time_scale = 4.0
 	await _until(tv, func(): return bool(tv.flight.state().avionics), 120.0)

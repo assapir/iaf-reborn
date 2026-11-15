@@ -38,6 +38,7 @@ func run() -> void:
 	if pilot != null:  # the pilot's hand over the ELEC panel hides MAIN PWR
 		(pilot.owner if pilot.owner is Node3D else pilot).visible = false
 	var nodes := OS.get_environment("SHOT_SWITCHES")
+	tv.addon.pick("startup")  # the tower's clearance first (training.md §3.3): the start-up mission goes on
 	for node in (nodes if nodes != "" else "MAIN_PWR,JFS").split(","):
 		for cmd in BEFORE.get(node, []):
 			tv._command(cmd)

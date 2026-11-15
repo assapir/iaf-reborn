@@ -46,6 +46,10 @@
     "how": [
       {
         "at": "start",
+        "en": "Call the tower first: {key:47:1} requests start-up; wait for \"cleared to start\". An engine turned before that clearance, or a move off the spot before taxi clearance, fails the mission.",
+        "he": "קודם לקרוא למגדל: {key:47:1} מבקש התנעה; להמתין ל\"אישור התנעה\". סיבוב המנוע לפני האישור, או תזוזה מהחניה לפני אישור הסעה, מכשילים את המשימה."
+      },
+      {
         "switches": [
           "main_power"
         ],
@@ -85,6 +89,16 @@
   },
   "training": {
     "kind": "startup",
+    "clearances": ["startup", "taxi"],
+    "steps": [
+      {
+        "key": 47,
+        "pick": 1,
+        "en": "Call the tower: request start-up",
+        "he": "קריאה למגדל: בקשת התנעה",
+        "wait": {"en": "wait for \"cleared to start\"", "he": "המתנה ל\"אישור התנעה\""}
+      }
+    ],
     "time_budget_s": 300,
     "end_hold_s": 5,
     "goals": [],

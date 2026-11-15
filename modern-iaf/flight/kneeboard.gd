@@ -120,7 +120,8 @@ func set_raised(on: bool) -> void:
 func refresh() -> void:
 	board.set_sections(_sections(), he())
 	if is_startup() and board.current_id() == "startup":
-		board.open("startup", _current())  # the page holding the step to take now
+		# The page holding the step to take now (its block: the tower call first).
+		board.open("startup", 0 if call_pending() else _current() + calls().size())
 	if _help != null:
 		_help.queue_free()
 		_help = null
@@ -198,6 +199,17 @@ func checklist() -> Array:
 	return m.get("training", {}).get("checklist", [])
 
 
+## A start-up lesson's tower call before its checklist (the rules' `steps`, training.md §3.3): first on the START-UP
+## page; [] in any other flight.
+func calls() -> Array:
+	return flight.rules.get("steps", []) if is_startup() else []
+
+
+## The start-up call still to make: the tower has not cleared the start (its answer ACFT_CLEAR_TO_START).
+func call_pending() -> bool:
+	return not calls().is_empty() and not "ACFT_CLEAR_TO_START" in flight.answers
+
+
 ## The first checklist step not taken (its index; the list's size when all are).
 func _current() -> int:
 	var list := checklist()
@@ -217,7 +229,12 @@ func _sections() -> Array:
 	# START-UP
 	var blocks := []
 	var list := checklist()
-	var cur := _current()
+	var cur := _current() if not call_pending() else -1
+	var n := 0  # the tower call first, the checklist numbered after it
+	for c in calls():
+		var lines := ["[i]%s[/i]" % _esc(String(c.wait[l]))] if c.has("wait") else []
+		blocks.append(step(n, String(c[l]), lines, "cur" if call_pending() else "done", ""))
+		n += 1
 	for i in list.size():
 		var c: Dictionary = list[i]
 		var state := "done" if String(c.step) in flight.done else ("cur" if i == cur else "")
@@ -229,7 +246,7 @@ func _sections() -> Array:
 		var fault := ""
 		if state == "cur" and flight._fault_shown != "" and flight.trainer != null:
 			fault = String(flight.trainer.text(flight._fault_shown, l))
-		blocks.append(step(i, String(c[l]), lines, state, fault))
+		blocks.append(step(n + i, String(c[l]), lines, state, fault))
 	secs.append(_sec("startup", "nb_startup", "%s · %s" % [s("nb_startup"), _jet()], blocks))
 	# TAXI / T-O
 	blocks = []
@@ -496,8 +513,8 @@ func _marks() -> Array:
 	var c3d = flight.host.get("cockpit_3d")
 	var list := checklist()
 	var i := _current()
-	if not is_startup() or flight.rules.is_empty() or i >= list.size() or not is_instance_valid(c3d):
-		return out
+	if not is_startup() or flight.rules.is_empty() or i >= list.size() or not is_instance_valid(c3d) or call_pending():
+		return out  # no switch ringed before the tower's clearance
 	if c3d.camera == null or not c3d.camera.current or c3d.clickable == null:
 		return out
 	var id := String(list[i].step)
