@@ -19,6 +19,7 @@
   },
   "stations": { "1": "A", "2": "", "3": "B", "4": "C", "5": "D", "7": "F", "8": "G", "9": "H", "10": "", "11": "I" },
   "internal": [4, 5, 7, 8],
+  "positions": { "1": "outboard", "3": "inboard", "4": "bay_outboard", "5": "bay_inboard", "7": "bay_inboard", "8": "bay_outboard", "9": "inboard", "11": "outboard" },
   "allowed": {
     "1": ["aim-9x"],
     "2": [],
@@ -54,10 +55,12 @@
     "loadout.flare": "open",
     "stations": "w1-f35, lm-f35a-pdf, inferred",
     "internal": "w-f35-bays",
+    "positions": "w1-f35, inferred",
     "pylons": "w-f35-bays",
     "inventory": "w-f35-bays, inferred"
   },
   "notes": {
+    "positions": "each station's place as the Loadout screen names it: 1 / 11 outboard and 3 / 9 inboard on the wings, 4 / 8 the bays' outboard and 5 / 7 their inboard stations (w1-f35; the words inferred); 2 / 10 carry nothing in the sim and are left out",
     "lateral_limit_kgm": "open: no public figure for the F-35's asymmetric moment limit was found, so the briefing shows no imbalance warning for the Adir",
     "allowed": "the stores each station takes, by its real number. Sourced: the AIM-120 on the bays' inboard stations 5 / 7, the GBU-31 on their outboard ones 4 / 8 (up to 2,500 lb) and four GBU-39 there on a BRU-61/A (w-f35-arm), the AIM-9X on the wingtip stations 1 / 11 only, not in the bays (w-f35-arm). Inferred: the GBU-31 on the inboard wing stations 3 / 9 (5,000 lb; w-f35-arm's six 2,000 lb bombs) and the AIM-120 there (afm-f35's eight AIM-120); the BRU-61/A's 147 kg (rk-bru61, unofficial); 2 / 10 take none (no pylon in the engine, stations); no Python on the Adir (not integrated on the F-35I as far as public sources show); each rack's rack_drag (drag index, flight-model.md §9.18) inferred as one of its stores' (a beam of about their cross-section)",
     "tail": "the number painted on the Adir's model (shared/extra/planes/f35i: tail number 937 with 116 Squadron's badge; docs/f35i.md), so every screen shows the jet the player sees (the user, 2026-11-13, A31). Until then 921 of 140 Squadron (isradecal-921); the squadron since then the model's, 116 (the base file's `squadrons`; the user, 2026-11-13)",

@@ -153,4 +153,25 @@ impl IafPilotLog {
         let v = serde_json::from_str::<Value>(&stations.to_string()).ok();
         with(&db, |c| pilot_log::set_loadout(c, pilot, &plane.to_string(), v.as_ref())).is_some()
     }
+
+    /// The pilot's named loadouts for `plane` as JSON text ([{id, name, stations}], oldest first; `pilot_log::
+    /// saved_loadouts`), "" when the records cannot be read.
+    #[func]
+    fn saved_loadouts(db: GString, pilot: i64, plane: GString) -> GString {
+        text(with(&db, |c| pilot_log::saved_loadouts(c, pilot, &plane.to_string())))
+    }
+
+    /// Saves `stations` (JSON text) as the pilot's loadout `name` for `plane` (the same name replaces it): its id, −1
+    /// when it could not (an empty name).
+    #[func]
+    fn save_loadout(db: GString, pilot: i64, plane: GString, name: GString, stations: GString) -> i64 {
+        let v = serde_json::from_str::<Value>(&stations.to_string()).unwrap_or(Value::Object(Default::default()));
+        with(&db, |c| pilot_log::save_loadout(c, pilot, &plane.to_string(), &name.to_string(), &v)).unwrap_or(-1)
+    }
+
+    /// Deletes the pilot's saved loadout `id`; false when there was none.
+    #[func]
+    fn delete_saved_loadout(db: GString, pilot: i64, id: i64) -> bool {
+        with(&db, |c| pilot_log::delete_saved_loadout(c, pilot, id)).unwrap_or(false)
+    }
 }

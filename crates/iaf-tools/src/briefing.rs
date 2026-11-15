@@ -388,13 +388,22 @@ pub fn arming(unit: &Value, weapons: &Path, lo: &loadout::Loadout) -> Value {
             (s.to_string(), Value::Array(a))
         })
         .collect();
-    // Each station's store, how many, the rack's capacity there and its pylon (0..8 for A..I, the frame the model
-    // hangs it on; null for a station the engine's nine pylons leave out).
+    // Where the wings' stores lean, −1 (the left wing at its limit or alone) .. 1: the moment over the record's limit,
+    // else (no limit published) the wings' difference over their stores.
+    let balance = match (limit, weight) {
+        (Some(l), _) if l > 0.0 => (moment / l).clamp(-1.0, 1.0),
+        (_, Some(w)) if w.left + w.right > 0.0 => (w.right - w.left) / (w.left + w.right),
+        _ => 0.0,
+    };
+    // Each station: its store, how many, their weight with the rack's (kg), the rack's capacity there and its pylon
+    // (0..8 for A..I, the frame the model hangs it on; null for a station the engine's nine pylons leave out).
     let slots: Map<String, Value> = lo
         .iter()
         .map(|(st, (id, n))| {
             let max = loadout::allowed(unit, *st).iter().find(|a| &a.0 == id).map_or(1, |a| a.1);
-            (st.to_string(), json!({"id": id, "count": n, "max": max, "pylon": loadout::letter(unit, *st)}))
+            let shell = record(id).and_then(|r| r["empty_kg"].as_f64()).unwrap_or(0.0); // a tank's own weight
+            let kg = kg(id).map(|k| ((k + shell) * f64::from(*n) + loadout::rack_kg(unit, *st, id)).round());
+            (st.to_string(), json!({"id": id, "count": n, "max": max, "pylon": loadout::letter(unit, *st), "kg": kg}))
         })
         .collect();
     let r = |v: Option<f64>| v.map(f64::round);
@@ -413,6 +422,8 @@ pub fn arming(unit: &Value, weapons: &Path, lo: &loadout::Loadout) -> Value {
         "moment_kgm": moment.round(),
         "lateral_limit_kgm": limit,
         "imbalanced": imbalanced,
+        "balance": (balance * 1000.0).round() / 1000.0,
+        "positions": unit["positions"],
         "blocked": over || (imbalanced && unit["lateral_limit_hard"].as_bool().unwrap_or(false)),
         "tail": unit["tail"],
         "internal": unit["internal"],
@@ -607,7 +618,11 @@ mod tests {
         let c = arming(&unit, &data().join("db/weapons"), &lo);
         assert_eq!(c["tank_fuel_kg"], json!(2240.0));
         assert_eq!(c["stores_kg"], json!((4.0f64 * 86.0 + 6.0 * 241.0 + 2.0 * 47.6 + 2.0 * (1120.0 + 201.0)).round()));
-        assert_eq!(c["slots"]["3"], json!({"id": "mk-82", "count": 3, "max": 3, "pylon": 2}));
+        // Each station's weight: the three bombs and their rack.
+        assert_eq!(
+            c["slots"]["3"],
+            json!({"id": "mk-82", "count": 3, "max": 3, "pylon": 2, "kg": (3.0f64 * 241.0 + 47.6).round()})
+        );
         // The store without a model of ours (the 600 gal tank) is not ready to fly; the Delilah is neither listed nor
         // allowed anywhere (dropped for now, the user 2026-11-14: no cruise-missile flight class).
         let not_ready: Vec<_> = c["inventory"].as_array().unwrap().iter().filter(|e| e["ready"] == false).collect();

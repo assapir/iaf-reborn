@@ -863,98 +863,151 @@ func _labels(root: Node) -> Array:
 	)
 
 
-## The loadout editor (front-end.md §10) on the Sufa's take-off: a refused drop changes nothing, a drop fills the
-## mirror station too, a store dragged back to the inventory takes its pair off, the keyboard path (Enter on a slot,
-## Enter on an inventory entry), the figures with it, the loadout stored per pilot per jet and handed to the flight
-## (fly.gd arm), the maximum (a lowered one: the take-off weight red, Fly off), Reset.
+## The Loadout screen (front-end.md §10) of the Sufa's take-off: the crumb, the jet from beneath with a callout per
+## station and its line, the take-off weight panel, the stores; the editor: a refused drop changes nothing, a drop
+## fills the mirror station too, a store dragged back to the stores takes its pair off, the keyboard path (Enter on a
+## callout, Enter on a store, Esc), racks, the balance, the loadout stored per pilot per jet and handed to the flight
+## (fly.gd arm) and to the Hangar's jet, the maximum (a lowered one: the weight red, Fly off), saved loadouts (save,
+## pick, delete), Reset.
 func _loadout_checks(fe: Control, lang: String) -> void:
+	var he := lang == "he"
 	var s := settings()
 	var db: String = s.records_db()
 	var stored := func() -> String: return IafPilotLog.loadout(db, s.pilot(), "f16i")
+	var scr := func() -> Control: return fe.find_child("Loadout", true, false)
+	var slot := func(st: String) -> Control: return scr.call().callouts.get(st)
+	var held := func(st: String) -> String:
+		return str(slot.call(st).store[0]) if not slot.call(st).store.is_empty() else ""
+	for e in JSON.parse_string(IafPilotLog.saved_loadouts(db, s.pilot(), "f16i")):
+		IafPilotLog.delete_saved_loadout(db, s.pilot(), int(e.id))
 	IafPilotLog.set_loadout(db, s.pilot(), "f16i", "")
-	var drawing: Control = fe.find_child("Drawing", true, false)
-	drawing.dropped({"store": "tank-370", "from": ""}, "2")
+	fe.show_page("arming")
+	await frames(3)
+	check(fe.page == "arming" and scr.call() != null, "%s: loadout: the Arming tab opens the Loadout screen" % lang)
+	check(
+		_has(fe, "חימוש" if he else "Arming") and fe.find_child("Crumb_mission", true, false) != null,
+		"%s: loadout: the crumb ends at the mission, then Arming" % lang
+	)
+	check(
+		fe.find_child("ToBriefing", true, false).text == ("תדריך" if he else "Briefing"),
+		"%s: loadout: the footer's Briefing named" % lang
+	)
+	var c: Dictionary = scr.call().callouts
+	check(
+		c.size() == 8 and not c.has("5"),
+		"%s: loadout: a callout per station that takes a store (%s)" % [lang, c.keys()]
+	)
+	check(
+		c["4"].head == ("4 · פנימית" if he else "4 · INBOARD") and c["4"].sub == "1,321 " + ("ק״ג" if he else "kg"),
+		"%s: loadout: the callout's number, place and weight (%s, %s)" % [lang, c["4"].head, c["4"].sub]
+	)
+	check(c["1"].store[1] == "AIM-9M" and c["1"].tooltip_text == "AIM-9M", "%s: loadout: 1 an AIM-9M" % lang)
+	var stage: Control = fe.find_child("Stage", true, false)
+	check(stage.layout_direction == Control.LAYOUT_DIRECTION_LTR, "%s: loadout: the jet never mirrors" % lang)
+	if scr.call().tt != null:
+		var pts: Dictionary = scr.call().points()
+		check(pts.size() == 8, "%s: loadout: each station's place on the model (%d)" % [lang, pts.size()])
+		check(
+			pts["1"].x > pts["9"].x and c["1"].position.x > c["9"].position.x,
+			"%s: loadout: from beneath the left wing (1) on the right" % lang
+		)
+		check(
+			scr.call().tt.below and scr.call().tt.focus_mode == Control.FOCUS_NONE,
+			"%s: loadout: the jet from beneath, still" % lang
+		)
+	var mission_row: Button = fe.find_child("LoadoutMission", true, false)
+	check(mission_row.button_pressed and _has_part(mission_row, "AIM-9M"), "%s: loadout: the mission's own, on" % lang)
+	check(_has(mission_row, "המשימה" if he else "Mission"), "%s: loadout: the Mission badge" % lang)
+	check(
+		mission_row.get_theme_stylebox("pressed").border_width_left <= 1, "%s: loadout: no bold bar at the side" % lang
+	)
+	var weight: Control = fe.find_child("Weight", true, false)
+	var rows: Control = fe.find_child("Loadouts", true, false)
+	check((rows.global_position.x > weight.global_position.x) == he, "%s: loadout: the columns mirror" % lang)
+	check(_has(weight, "16,471") and _has_part(weight, "23,582"), "%s: loadout: the take-off weight and maximum" % lang)
+	check(_has_part(weight, "70 %") or _has_part(weight, "70%"), "%s: loadout: the share of the maximum" % lang)
+	check(_has(weight, "הכנפיים מאוזנות" if he else "Wings balanced"), "%s: loadout: the wings balanced" % lang)
+	check(
+		_has_part(weight, "6,254") and _has(weight, "511") and _has(weight, "60 / 60"),
+		"%s: loadout: fuel, rounds, chaff / flares" % lang
+	)
+	check(fe.find_child("Itemdelilah", true, false) == null, "%s: loadout: the Delilah is not offered" % lang)
+	check(
+		fe.find_child("Itemmk-84", true, false).find_child("Count", false, false) == null,
+		"%s: loadout: no count without the record's" % lang
+	)
+	stage.dropped({"store": "tank-370", "from": ""}, "2")
 	await frames(3)
 	check(stored.call() == "", "%s: loadout: a tank on station 2 is refused" % lang)
-	drawing.dropped({"store": "mk-84", "from": ""}, "3")
+	stage.dropped({"store": "mk-84", "from": ""}, "3")
 	await frames(3)
-	drawing = fe.find_child("Drawing", true, false)
+	stage = fe.find_child("Stage", true, false)
 	check(
-		drawing.stores[3][0] == "mk-84" and drawing.stores[7][0] == "mk-84" and drawing.stores[2][0] == "aim-9m",
+		held.call("3") == "mk-84" and held.call("7") == "mk-84" and held.call("2") == "aim-9m",
 		"%s: loadout: an MK-84 on 3 fills 7 too" % lang
 	)
-	var count: Label = fe.find_child("Itemmk-84", true, false).find_child("Count", false, false)
-	check(count == null, "%s: loadout: no count without the record's (the slots show what is on)" % lang)
-	check(
-		fe.find_child("Group_ground", true, false).get_child_count() >= 7,
-		"%s: loadout: the long inventory, the air-to-ground group two to a row" % lang
-	)
-	var facts: Control = fe.find_child("ArmingFacts", true, false)
-	# The two tanks count 201 kg empty each beside their fuel (F27).
-	check(_has(facts, "18,149"), "%s: loadout: the take-off weight with two MK-84s for two AIM-9Ms" % lang)
-	# A slot's store dropped on an inventory entry (in its group's grid) goes back through the column.
+	check(_has(fe.find_child("Weight", true, false), "18,149"), "%s: loadout: the weight with two MK-84s" % lang)
+	check(not fe.find_child("LoadoutMission", true, false).button_pressed, "%s: loadout: edited, Mission off" % lang)
+	check(fe.jet_stores(fe.jet()).get(2, {}).get("path", "") != "", "%s: loadout: the Hangar's jet carries it" % lang)
+	# A callout's store dropped on a store in the grid goes back through the column.
 	var on_item: Control = fe.find_child("Itemmk-84", true, false)
 	check(
-		on_item._can_drop_data(Vector2.ZERO, {"store": "tank-370", "from": "4"}), "%s: loadout: drop on an entry" % lang
+		on_item._can_drop_data(Vector2.ZERO, {"store": "tank-370", "from": "4"}), "%s: loadout: drop on a store" % lang
 	)
 	on_item._drop_data(Vector2.ZERO, {"store": "tank-370", "from": "4"})
 	await frames(3)
-	drawing = fe.find_child("Drawing", true, false)
-	facts = fe.find_child("ArmingFacts", true, false)
 	check(
-		not drawing.stores.has(4) and not drawing.stores.has(6) and _has(facts, "4,014"),
-		"%s: loadout: the tanks back to the inventory, their fuel off" % lang
+		held.call("4") == "" and held.call("6") == "" and _has_part(fe.find_child("Weight", true, false), "4,014"),
+		"%s: loadout: the tanks back, their fuel off" % lang
 	)
-	# The keyboard: Enter on slot 4 picks it, the focus on the tank; Enter there hangs both tanks.
-	fe._arm_pick("4")
+	check(
+		slot.call("4").store.is_empty() and slot.call("4").empty_text == ("ריק" if he else "Empty"),
+		"%s: loadout: an empty station's callout" % lang
+	)
+	# The keyboard: Enter on 4 picks it, the focus on what it takes; Enter on the tank hangs both; Esc leaves a pick.
+	scr.call().pick_station("4")
 	await frames(2)
 	var fo := fe.get_viewport().gui_get_focus_owner()
-	check(fo != null and fo.name == "Itemmk-82", "%s: loadout: Enter on a slot, the focus on what it takes" % lang)
-	fe._arm_choose("tank-370")
+	check(
+		fo != null and fo.name == "Itemmk-82", "%s: loadout: Enter on a callout, the focus on a store (%s)" % [lang, fo]
+	)
+	scr.call().choose_store("tank-370")
 	await frames(4)
-	drawing = fe.find_child("Drawing", true, false)
 	fo = fe.get_viewport().gui_get_focus_owner()
-	check(
-		drawing.stores.get(4, [""])[0] == "tank-370" and drawing.stores.get(6, [""])[0] == "tank-370",
-		"%s: loadout: Enter on the tank hangs both" % lang
-	)
-	check(fo != null and fo.name == "Slot4", "%s: loadout: the focus back on the slot" % lang)
+	check(held.call("4") == "tank-370" and held.call("6") == "tank-370", "%s: loadout: Enter hangs both tanks" % lang)
+	check(fo != null and fo.name == "Slot4", "%s: loadout: the focus back on the callout" % lang)
+	scr.call().pick_station("2")
+	await frames(1)
+	fe._unhandled_input(_key_event(KEY_ESCAPE))
+	await frames(1)
+	check(fe.page == "arming" and scr.call().pick == "", "%s: loadout: Esc leaves the pick, the screen stays" % lang)
 	var lo_keep: String = stored.call()
-	# A TER: three Mk 82 on 4 and on 6, the slot's count.
-	drawing.dropped({"store": "mk-82", "from": ""}, "4")
+	# A TER: three Mk 82 on 4 and 6; the badge cycles the pair to two each.
+	fe.find_child("Stage", true, false).dropped({"store": "mk-82", "from": ""}, "4")
 	await frames(3)
-	drawing = fe.find_child("Drawing", true, false)
+	check(slot.call("4").store[2] == 3 and slot.call("6").store[2] == 3, "%s: loadout: three Mk 82 on 4 and 6" % lang)
+	scr.call().cycle("4")
+	await frames(3)
 	check(
-		drawing.stores.get(4, [])[2] == 3 and drawing.stores.get(6, [])[2] == 3,
-		"%s: loadout: three Mk 82 on a rack on 4 and 6" % lang
+		slot.call("4").store[2] == 2 and slot.call("6").store[2] == 2 and slot.call("4").badge_rect.has_area(),
+		"%s: loadout: the badge cycles the rack, the pair along" % lang
 	)
-	# The "×3" badge: a click cycles the pair to two each.
-	fe._arm_cycle(fe.missions[fe.mission_i], "4")
-	await frames(3)
-	drawing = fe.find_child("Drawing", true, false)
-	check(
-		drawing.stores[4][2] == 2 and drawing.stores[6][2] == 2 and drawing.slots["4"].badge_rect.has_area(),
-		"%s: loadout: the badge cycles the rack 3 to 2, the pair along" % lang
+	# One-sided past the limit: the balance amber, Fly still on.
+	IafPilotLog.set_loadout(
+		db, s.pilot(), "f16i", JSON.stringify({"3": {"id": "mk-84", "count": 1}, "4": {"id": "tank-370", "count": 1}})
 	)
-	# The Delilah is dropped for now (the user, 2026-11-14): not in the inventory, no station takes it.
-	check(fe.find_child("Itemdelilah", true, false) == null, "%s: loadout: the Delilah is not offered" % lang)
-	# One-sided: a tank on 4 and an MK-84 on 3 alone, past the limit: the imbalance amber, Fly still on.
-	var one_sided := {"3": {"id": "mk-84", "count": 1}, "4": {"id": "tank-370", "count": 1}}
-	IafPilotLog.set_loadout(db, s.pilot(), "f16i", JSON.stringify(one_sided))
-	fe._arm_redraw(fe.missions[fe.mission_i])
+	fe.show_page("arming")
 	await frames(3)
-	var imb: Control = fe.find_child("Fact_imbalance", true, false)
+	var bal: Label = fe.find_child("BalanceText", true, false)
 	check(
-		imb != null and not fe.find_child("Fly", true, false).disabled,
-		"%s: loadout: the wings out of balance, a warning, Fly on" % lang
+		bal.get_theme_color("font_color") == Color("ffb547") and not fe.find_child("Fly", true, false).disabled,
+		"%s: loadout: the wings out of balance, a warning, Fly on (%s)" % [lang, bal.text]
 	)
 	IafPilotLog.set_loadout(db, s.pilot(), "f16i", lo_keep)
-	fe._arm_redraw(fe.missions[fe.mission_i])
+	fe.show_page("arming")
 	await frames(3)
-	drawing = fe.find_child("Drawing", true, false)
-	drawing.dropped({"store": "tank-370", "from": ""}, "4")
+	fe.find_child("Stage", true, false).dropped({"store": "tank-370", "from": ""}, "4")
 	await frames(3)
-	drawing = fe.find_child("Drawing", true, false)
 	# Handed to the flight: the MK-84 (record number 2) on pylons C and G, the AIM-9M (1) on A.
 	var mission := "ramon_takeoff"
 	var m: Dictionary = s.load_json(s.converted(s.missions_folder()).path_join(mission + ".json"))
@@ -971,6 +1024,40 @@ func _loadout_checks(fe: Control, lang: String) -> void:
 			"%s: loadout: the flight's pylons (%s)" % [lang, pylons]
 		)
 		s.arm_loadouts = {}
+	# Saved loadouts: named, on the list with its badge and on; the mission's picked back; the saved one again; delete.
+	scr.call().open_name()
+	await frames(1)
+	var field: LineEdit = fe.find_child("LoadoutName", true, false)
+	check(
+		field.visible and field.text != "" and field.has_focus(),
+		"%s: loadout: Save offers a name (%s)" % [lang, field.text]
+	)
+	field.text = "Strike"
+	scr.call().save_named()
+	await frames(3)
+	var saved: Array = JSON.parse_string(IafPilotLog.saved_loadouts(db, s.pilot(), "f16i"))
+	var row: Button = fe.find_child("LoadoutSaved%d" % int(saved[0].id), true, false) if saved.size() == 1 else null
+	check(
+		row != null and row.button_pressed and _has(row, "Strike") and _has(row, "שמורה" if he else "Saved"),
+		"%s: loadout: saved, listed, on" % lang
+	)
+	fe.find_child("LoadoutMission", true, false).pressed.emit()
+	await frames(3)
+	check(stored.call() == "" and held.call("3") == "aim-9m", "%s: loadout: the mission's own picked back" % lang)
+	fe.find_child("LoadoutSaved%d" % int(saved[0].id), true, false).pressed.emit()
+	await frames(3)
+	check(
+		held.call("3") == "mk-84" and fe.find_child("LoadoutSaved%d" % int(saved[0].id), true, false).button_pressed,
+		"%s: loadout: the saved one picked" % lang
+	)
+	scr.call().ask_delete(int(saved[0].id), "Strike")
+	await frames(1)
+	fe.find_child("ModalOk", true, false).pressed.emit()
+	await frames(3)
+	check(
+		JSON.parse_string(IafPilotLog.saved_loadouts(db, s.pilot(), "f16i")).is_empty() and held.call("3") == "mk-84",
+		"%s: loadout: deleted; the jet keeps its stores" % lang
+	)
 	# Over a (lowered) maximum: the take-off weight red, Fly off.
 	var dir := OS.get_temp_dir().path_join("modern-iaf-units-%d" % OS.get_process_id())
 	DirAccess.make_dir_recursive_absolute(dir)
@@ -978,37 +1065,33 @@ func _loadout_checks(fe: Control, lang: String) -> void:
 	u["max_takeoff_kg"] = 17000
 	FileAccess.open(dir.path_join("f16i.json"), FileAccess.WRITE).store_string(JSON.stringify(u))
 	fe.units_dir = dir
-	fe._arm_redraw(fe.missions[fe.mission_i])
-	await frames(3)
-	var fly: Button = fe.find_child("Fly", true, false)
-	var tw: Control = fe.find_child("Fact_takeoff_weight", true, false)
-	check(
-		(
-			fly.disabled
-			and tw.find_children("*", "Label", true, false)[1].get_theme_color("font_color") == Color("ff6b6b")
-		),
-		"%s: loadout: over the maximum, the weight red and Fly off" % lang
-	)
-	# The briefing's card the same: the weight red, Fly off and out of the focus ring.
-	fe.show_page("mission")
-	await frames(3)
-	var card_fly: Button = fe.find_child("Fly", true, false)
-	var back: Button = fe.find_child("Back", true, false)
-	check(
-		card_fly.disabled and back.get_node(back.focus_next) != card_fly,
-		"%s: briefing: over the maximum, Fly off and out of the focus" % lang
-	)
 	fe.show_page("arming")
 	await frames(3)
+	var fly: Button = fe.find_child("Fly", true, false)
+	var tw: Control = fe.find_child("TakeoffWeight", true, false)
+	check(
+		fly.disabled and tw.get_child(0).get_theme_color("font_color") == Color("ff6b6b"),
+		"%s: loadout: over the maximum, the weight red and Fly off" % lang
+	)
 	fe.units_dir = "res://data/db/units"
 	DirAccess.remove_absolute(dir.path_join("f16i.json"))
 	DirAccess.remove_absolute(dir)
 	fe.find_child("ArmReset", true, false).pressed.emit()
 	await frames(3)
-	drawing = fe.find_child("Drawing", true, false)
 	check(
-		stored.call() == "" and drawing.stores[3][0] == "aim-9m" and not fe.find_child("Fly", true, false).disabled,
-		"%s: loadout: Reset, the default again" % lang
+		stored.call() == "" and held.call("3") == "aim-9m" and not fe.find_child("Fly", true, false).disabled,
+		"%s: loadout: Reset, the mission's again" % lang
+	)
+	check(fe.find_child("ArmReset", true, false).disabled, "%s: loadout: Reset off on the mission's own" % lang)
+	# The Adir: its bays' callouts, two AIM-120 inside.
+	var adir: Dictionary = fe.arming({"start": {"unit": "f35i"}})
+	check(
+		(
+			float(adir.stores_kg) == 2.0 * 161.5
+			and adir.internal == [4.0, 5.0, 7.0, 8.0]
+			and adir.positions["5"] == "bay_inboard"
+		),
+		"%s: loadout: the Adir's bays, two AIM-120 inside" % lang
 	)
 
 
@@ -1232,7 +1315,6 @@ func _briefing_checks(fe: Control, lang: String) -> void:
 	await frames(3)
 	check(fe.page == "arming", "%s: Edit opens the loadout screen" % lang)
 	check(fe.find_child("Crumb_mission", true, false) != null, "%s: arming: the mission's crumb" % lang)
-	await _arming_checks(fe, lang)
 	await _loadout_checks(fe, lang)
 	key(fe, KEY_ESCAPE)
 	await frames(2)
@@ -1274,72 +1356,6 @@ func _briefing_checks(fe: Control, lang: String) -> void:
 	await frames(2)
 
 
-## The loadout screen's Arming page (front-end.md §10): the jet's front view, a slot per station with its store, the
-## figures, the inventory column.
-func _arming_checks(fe: Control, lang: String) -> void:
-	var he := lang == "he"
-	var pane: Control = fe.find_child("Briefing", true, false)
-	var drawing: Control = pane.find_child("Drawing", true, false)
-	check(drawing != null and drawing.picture != null, "%s: arming: our own Sufa's front view" % lang)
-	check(drawing.stations.size() == 8 and drawing.stores.size() == 8, "%s: arming: eight stations loaded" % lang)
-	var title: Label = pane.find_child("ArmingJet", true, false)
-	check(
-		title.text == "%s · \u2066F-16I\u2069 · \u2066846\u2069" % ("סופה" if he else "Sufa"),
-		"%s: arming: the jet's own name, the Latin and digits isolated (%s)" % [lang, title.text]
-	)
-	check(not _has_part(fe, "F-16C"), "%s: arming: no F-16C" % lang)
-	check(
-		(
-			drawing.stores[1].slice(0, 3) == ["aim-9m", "AIM-9M", 1]
-			and drawing.stores[4].slice(0, 3) == ["tank-370", "בידון 370" if he else "370 gal tank", 1]
-		),
-		"%s: arming: 1 an AIM-9M, 4 a drop tank" % lang
-	)
-	check(pane.find_child("Stores", true, false) == null, "%s: arming: the drawing, not the list" % lang)
-	var facts: Control = pane.find_child("ArmingFacts", true, false)
-	check(_has(facts, "511") and _has(facts, "60"), "%s: arming: the rounds, chaff and flares" % lang)
-	check(
-		_has(facts, "6,254") and _has(facts, "16,471") and _has(facts, "23,582"),
-		"%s: arming: fuel, the take-off weight and the maximum, each its own field" % lang
-	)
-	check(facts.alignment == BoxContainer.ALIGNMENT_CENTER, "%s: arming: the figures centred" % lang)
-	check(not _has_part(fe, "FlightGear"), "%s: arming: no credit for our own drawing" % lang)
-	check(drawing.store_picture("tank-370") != null, "%s: arming: the drop tank's picture" % lang)
-	await frames(2)
-	# A slot per station, the wing row in station order 9 to 1 left to right, the tanks straight under 4 and 6.
-	var sl: Dictionary = drawing.slots
-	check(sl.size() == 8 and sl["1"].tooltip_text == "AIM-9M", "%s: arming: a slot per station, the tooltip" % lang)
-	var xs: Array = ["9", "8", "7", "3", "2", "1"].map(func(n): return sl[n].position.x)
-	var ordered := true
-	for i in range(1, xs.size()):
-		ordered = ordered and xs[i] >= xs[i - 1] + sl["1"].size.x
-	check(ordered, "%s: arming: the wing slots in station order, apart (%s)" % [lang, xs])
-	for n in ["4", "6"]:
-		var lead: Array = drawing._leaders[n]
-		check(
-			absf(lead[0].x - lead[1].x) < 1.0 and sl[n].position.y > sl["1"].position.y,
-			"%s: arming: station %s's tank in the second row, straight under it" % [lang, n]
-		)
-	check(not _has_part(fe, "OpenStreetMap"), "%s: arming: no map credit" % lang)
-	var adir: Dictionary = fe.arming({"start": {"unit": "f35i"}})
-	check(
-		float(adir.stores_kg) == 2.0 * 161.5 and adir.internal == [4.0, 5.0, 7.0, 8.0] and fe.DRAWINGS.has("f35i"),
-		"%s: arming: the Adir's own drawing, two AIM-120 in its bays" % lang
-	)
-	var inv: Control = pane.find_child("Inventory", true, false)
-	check(
-		inv != null and inv.find_child("Itemaim-120", true, false) != null and inv.find_child("Itemmk-84", true, false),
-		"%s: arming: the Sufa's inventory column, each store one Control" % lang
-	)
-	var row: Control = pane.find_child("ArmingRow", true, false)
-	check(
-		(inv.global_position.x > drawing.global_position.x) == (lang == "en"),
-		"%s: arming: the inventory on the block-end side" % lang
-	)
-	check(row != null and inv.size.x >= 150, "%s: arming: the column its width" % lang)
-
-
-## The texts without the right-to-left mark that leads a Hebrew jet name (front_end.gd full_name).
 func _has(root: Node, t: String) -> bool:
 	return t in _labels(root).map(func(x): return x.replace("\u200f", ""))
 

@@ -3,13 +3,21 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **The Loadout screen (2026-11-14, the front-end finish list's F3, [front-end.md](front-end.md) §10.1):** Arming on
+  the briefing opens a screen of its own: the jet seen from beneath (the Hangar's live model, the camera under it, the
+  F-35I's bays open) with a callout per station (number, place on the wing, store, weight; an empty one dashed) and
+  its line to the station on the model; LOADOUTS (the mission's own and the pilot's saved ones, named per jet, saved,
+  picked and deleted on the screen; the one on the jet tinted, no side bar); TAKE-OFF WEIGHT (figure, share of the
+  maximum, the wings' balance, fuel, gun rounds, chaff / flares) and STORES; Reset to the mission's, Briefing, Fly.
+  The editor's rules stay (racks, pairs, refusal, drag and drop, keyboard). Open: named type loadouts wait for a
+  sourced real loadout. `test_front_end.gd`, `cargo test -p iaf-tools --lib loadout pilot_log`.
 - **Weapon physics (2026-11-14, the physics finish list W rows):** the gun's rounds fly a ballistic path (muzzle
   velocity plus the jet's, the M56's drag by air density, gravity) and the EEGS funnel predicts it (W2,
   [weapons.md](weapons.md) §1); the unguided bombs fall by gravity and their own drag through the wind, nothing
   steering them, and CCIP predicts that fall (W5, W6); the GPS bombs miss by their published CEP (W11); a drop tank's own empty weight loads the jet until it is
   jettisoned (370 gal 443 lb sourced, 600 gal 611 lb inferred; F27). Shared with the original game's Weapon data Real.
 - **Bombs, missiles and the gun in every flight (2026-11-14, the user: "the fact that you can drop weapons"):** on
-  the Sufa, the Barak and the F-35I the stores hung on the loadout screen fly with the mission; after the
+  the Sufa, the Barak and the F-35I the stores hung on the Loadout screen fly with the mission; after the
   take-off's pass the flight goes on, and Shift+A, `[` and Space release the bombs (the HUD's CCIP cue; the F-35I's
   bay doors open by themselves), which fall and burst on the terrain; `]` and Space launch a missile, Tab fires the
   gun ([weapons.md](weapons.md) §5). The notebook's WEAPONS tab (key H) lists the steps per jet with their switches
@@ -323,18 +331,17 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   missions as tabs with their pass chips, the facts, the objectives, the Arming summary with Edit, Back and Fly; the
   map's chips turn the taxi route, the labels and the photo off and zoom. The whole map's rectangles of other tones are
   the Survey of Israel sheets' own levels (terrain.md §10, Open). From 2026-11-09: one zoomable map (the theatre's
-  ground colour, roads, towns, the route, the whole airbase); the loadout screen (Edit) shows each jet's
-  front view with its stores (the Adir's two AIM-120 in its bays, 2026-11-10), an inventory column of the stores it may
-  carry and the take-off weight; the subtitles name the tail number and squadron, no wing; the missions' titles are their kinds ([front-end.md](front-end.md) §10, `IafBriefing`). `test_front_end.gd`, `cargo test -p iaf-tools --lib briefing`.
+  ground colour, roads, towns, the route, the whole airbase); Edit on the Arming summary opens the Loadout screen (until 2026-11-14 an Arming page with
+  each jet's front view); the subtitles name the tail number and squadron, no wing; the missions' titles are their kinds ([front-end.md](front-end.md) §10, `IafBriefing`). `test_front_end.gd`, `cargo test -p iaf-tools --lib briefing`.
 - **The briefing's switch pictures (2026-11-11, awaiting the user's approval):** a start-up's step opened in the
   order of actions shows its switch cut from the jet's 3D cockpit with a ring round it and the state to wait for
   (`modern-iaf/data/switches`, `modern-iaf/tests/_switch_crops.gd`; [front-end.md](front-end.md) §10). `test_front_end.gd`.
-- **The loadout editor (2026-11-10, awaiting the user's approval):** on the loadout screen a store drags from
-  the inventory onto a slot, between slots and back; each station takes only what the unit record's `allowed` lists
+- **The loadout editor (2026-11-10, awaiting the user's approval; on the Loadout screen since 2026-11-14):** a store
+  drags from the stores onto a station, between stations and back; each station takes only what the unit record's `allowed` lists
   (re-sourced per jet, data-formats.md §3; each store its own record with its weight and size), racks (a TER of three
   Mk 82, two GBU-38, four GBU-39) with a "×n" badge that cycles the count, the stores without a model greyed, an
-  amber imbalance warning past the F-16's asymmetric moment limit, the front views traced without pylons, a refused drop shakes its slot; a drop
-  fills the mirror station too unless Shift is held; the keyboard path (Enter on a slot, Enter on a store); the fuel
+  amber imbalance warning past the F-16's asymmetric moment limit, a refused drop shakes its station; a drop
+  fills the mirror station too unless Shift is held; the keyboard path (Enter on a station, Enter on a store); the fuel
   and the take-off weight follow, over the maximum it reads red and Fly is off; the loadout is the pilot's per jet in
   the records database and flies with the mission (mass, drag, tanks' fuel, the stores' models), Reset brings back
   the record's ([front-end.md](front-end.md) §10). Since 2026-11-11 the racks' weight rides in flight too (the

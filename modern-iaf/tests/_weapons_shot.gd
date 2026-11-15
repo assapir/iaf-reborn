@@ -59,7 +59,7 @@ func _key(tv: Node, k: Key, down := true) -> void:
 	tv._unhandled_input(e)
 
 
-## The front end as a player: the jet, its take-off mission's Arming page with the bombs, Fly; the flight scene.
+## The front end as a player: the jet, its take-off mission's Loadout screen with the bombs, Fly; the flight scene.
 func _from_front_end(id: String) -> Node:
 	var s := settings()
 	var unit: String = ARM[id][0]

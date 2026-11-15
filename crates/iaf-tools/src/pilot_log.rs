@@ -56,6 +56,15 @@ const MIGRATIONS: &[&str] = &[
     "ALTER TABLE pilots ADD COLUMN place INTEGER NOT NULL DEFAULT 0;
      ALTER TABLE pilots ADD COLUMN photo INTEGER NOT NULL DEFAULT 0;
      ALTER TABLE pilots ADD COLUMN selected INTEGER NOT NULL DEFAULT 0;",
+    // 5 → 6: the pilot's named loadouts per jet (the Loadout screen's Saved list): station → store id as JSON text.
+    "CREATE TABLE saved_loadouts (
+       id INTEGER PRIMARY KEY AUTOINCREMENT,
+       pilot INTEGER NOT NULL,
+       plane TEXT NOT NULL,
+       name TEXT NOT NULL,
+       stations TEXT NOT NULL
+     );
+     CREATE INDEX saved_loadouts_pilot ON saved_loadouts (pilot, plane);",
 ];
 
 /// The schema version this build writes.
@@ -319,6 +328,7 @@ pub fn delete_pilot(c: &Connection, db: &Path, pilot: i64) -> Result<()> {
     let tx = c.unchecked_transaction()?;
     tx.execute("DELETE FROM sorties WHERE pilot = ?1", [pilot])?;
     tx.execute("DELETE FROM loadouts WHERE pilot = ?1", [pilot])?;
+    tx.execute("DELETE FROM saved_loadouts WHERE pilot = ?1", [pilot])?;
     tx.execute("DELETE FROM pilots WHERE id = ?1", [pilot])?;
     tx.commit()?;
     if let Some(p) = picture.filter(|p| !p.is_empty()) {
@@ -347,6 +357,49 @@ pub fn set_loadout(c: &Connection, pilot: i64, plane: &str, stations: Option<&Va
         None => c.execute("DELETE FROM loadouts WHERE pilot = ?1 AND plane = ?2", params![pilot, plane])?,
     };
     Ok(())
+}
+
+/// The pilot's named loadouts for `plane` (the Loadout screen's Saved list), oldest first: [{id, name, stations}].
+pub fn saved_loadouts(c: &Connection, pilot: i64, plane: &str) -> Result<Value> {
+    let rows: Vec<(i64, String, String)> = c
+        .prepare("SELECT id, name, stations FROM saved_loadouts WHERE pilot = ?1 AND plane = ?2 ORDER BY id")?
+        .query_map(params![pilot, plane], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)))?
+        .collect::<rusqlite::Result<_>>()?;
+    Ok(Value::Array(
+        rows.into_iter()
+            .map(|(id, name, st)| json!({"id": id, "name": name, "stations": serde_json::from_str::<Value>(&st).unwrap_or(json!({}))}))
+            .collect(),
+    ))
+}
+
+/// Saves `stations` as the pilot's loadout `name` for `plane` (trimmed; a name the pilot already gave this jet is
+/// replaced): its id. An empty name is refused.
+pub fn save_loadout(c: &Connection, pilot: i64, plane: &str, name: &str, stations: &Value) -> Result<i64> {
+    let name = name.trim();
+    if name.is_empty() {
+        bail!("a saved loadout needs a name");
+    }
+    let old: Option<i64> = c
+        .query_row(
+            "SELECT id FROM saved_loadouts WHERE pilot = ?1 AND plane = ?2 AND name = ?3",
+            params![pilot, plane, name],
+            |r| r.get(0),
+        )
+        .optional()?;
+    if let Some(id) = old {
+        c.execute("UPDATE saved_loadouts SET stations = ?1 WHERE id = ?2", params![stations.to_string(), id])?;
+        return Ok(id);
+    }
+    c.execute(
+        "INSERT INTO saved_loadouts (pilot, plane, name, stations) VALUES (?1, ?2, ?3, ?4)",
+        params![pilot, plane, name, stations.to_string()],
+    )?;
+    Ok(c.last_insert_rowid())
+}
+
+/// Deletes the pilot's saved loadout `id`; false when the pilot has none by that id.
+pub fn delete_saved_loadout(c: &Connection, pilot: i64, id: i64) -> Result<bool> {
+    Ok(c.execute("DELETE FROM saved_loadouts WHERE id = ?1 AND pilot = ?2", params![id, pilot])? > 0)
 }
 
 /// The pilots with a profile (a name or a nickname), by their place in the 1998 game's list, then by id: each as
@@ -684,6 +737,30 @@ mod tests {
         set_loadout(&c, 14, "f16i", None).unwrap();
         assert_eq!(loadout(&c, 14, "f16i").unwrap(), None);
         assert_eq!(loadout(&c, 14, "f35i").unwrap(), Some(json!({"4": "gbu-31"})));
+    }
+
+    #[test]
+    fn saved_loadouts_named_per_pilot_per_jet() {
+        let d = temp("saved");
+        let c = open(&d.join("modern-iaf.sqlite")).unwrap();
+        assert_eq!(saved_loadouts(&c, 14, "f16i").unwrap(), json!([]));
+        let a = save_loadout(&c, 14, "f16i", " Strike ", &json!({"3": "mk-84"})).unwrap();
+        let b = save_loadout(&c, 14, "f16i", "Air", &json!({"1": "aim-120"})).unwrap();
+        save_loadout(&c, 15, "f16i", "Strike", &json!({})).unwrap();
+        save_loadout(&c, 14, "f35i", "Strike", &json!({})).unwrap();
+        assert!(save_loadout(&c, 14, "f16i", "  ", &json!({})).is_err());
+        // The same name again replaces it, in its place.
+        assert_eq!(save_loadout(&c, 14, "f16i", "Strike", &json!({"3": "mk-82"})).unwrap(), a);
+        assert_eq!(
+            saved_loadouts(&c, 14, "f16i").unwrap(),
+            json!([{"id": a, "name": "Strike", "stations": {"3": "mk-82"}}, {"id": b, "name": "Air", "stations": {"1": "aim-120"}}])
+        );
+        assert!(!delete_saved_loadout(&c, 15, a).unwrap(), "another pilot's");
+        assert!(delete_saved_loadout(&c, 14, a).unwrap());
+        assert_eq!(saved_loadouts(&c, 14, "f16i").unwrap().as_array().unwrap().len(), 1);
+        delete_pilot(&c, &d.join("modern-iaf.sqlite"), 14).unwrap();
+        assert_eq!(saved_loadouts(&c, 14, "f16i").unwrap(), json!([]));
+        assert_eq!(saved_loadouts(&c, 15, "f16i").unwrap().as_array().unwrap().len(), 1);
     }
 
     #[test]

@@ -11,6 +11,10 @@
 # scaled to the window, so a SubViewportContainer would render at the canvas size and blur on a large screen), and only
 # while this control is visible in the tree and the window is not minimised: hidden, freed or minimised, it draws
 # nothing. `failed` after show_jet() when the model would not load: the caller shows a still picture instead.
+#
+# `below` (Modern IAF's Loadout screen, front-end.md §10.1): the jet seen straight from beneath, the nose up the
+# screen, fixed (no orbit, no focus), lit from below, its weapon bays open with their stores in view; `points()` gives
+# each station's place on the control.
 extends TextureRect
 
 const AircraftModel := preload("res://shared/aircraft/aircraft_model.gd")
@@ -53,6 +57,8 @@ static var zoom := 1.0
 static var _yaw_rtl := false
 
 var failed := false
+## Seen from beneath, fixed, the bays open (set before show_jet).
+var below := false
 ## Renders in a minimised window too (tests).
 var ignore_minimised := false
 var vp: SubViewport
@@ -60,6 +66,10 @@ var _pivot: Node3D
 var _cam: Camera3D
 ## The jet's half-diagonal with its stores, metres (the camera's distance unit).
 var _radius := 1.0
+## The model shown, the sun and the stations' attach points (pylon 0..8 → model metres).
+var _model: Node3D
+var _sun: DirectionalLight3D
+var _stations := {}
 
 
 func _init() -> void:
@@ -82,7 +92,8 @@ func _init() -> void:
 	env.environment.ambient_light_energy = 0.9
 	env.environment.tonemap_mode = Environment.TONE_MAPPER_FILMIC
 	vp.add_child(env)
-	var sun := DirectionalLight3D.new()
+	_sun = DirectionalLight3D.new()
+	var sun := _sun
 	sun.rotation_degrees = Vector3(-55, 35, 0)
 	sun.light_energy = 1.6
 	sun.shadow_enabled = true
@@ -93,7 +104,7 @@ func _init() -> void:
 	_cam.fov = FOV
 	vp.add_child(_cam)
 	texture = vp.get_texture()
-	resized.connect(_fit)
+	resized.connect(fit)
 	visibility_changed.connect(_update_mode)
 	focus_entered.connect(queue_redraw)
 	focus_exited.connect(queue_redraw)
@@ -101,9 +112,9 @@ func _init() -> void:
 
 func _ready() -> void:
 	# The window's size (a resize keeps the canvas size under its scaling, so `resized` stays quiet) and minimising.
-	get_viewport().size_changed.connect(_fit)
+	get_viewport().size_changed.connect(fit)
 	get_viewport().size_changed.connect(_update_mode)
-	_fit()
+	fit()
 	_update_mode()
 
 
@@ -121,7 +132,17 @@ func show_jet(plane: String, stores: Dictionary) -> bool:
 		return false
 	_pivot.add_child(m)
 	var desc: Dictionary = m.desc
-	var internal := str(desc.get("internal_stations", ""))
+	var internal := "" if below else str(desc.get("internal_stations", ""))
+	_model = m
+	_stations.clear()
+	for i in 9:
+		var at = desc.get("stations", {}).get(Stores.FRAMES[i])
+		if at is Array:
+			_stations[i] = Vector3(at[0], at[1], at[2])
+	if below and m.has_method("update"):
+		# The weapon bays open (their doors' ramp at its end), as the flight opens them to release.
+		m.update({"bay_open": true, "on_ground": true}, 0.0)
+		m.settle()
 	for i in stores:
 		if "ABCDEFGHI"[i] in internal:
 			continue
@@ -156,12 +177,36 @@ func show_jet(plane: String, stores: Dictionary) -> bool:
 	var box := Gltf.model_aabb(m)
 	m.position = -Vector3(box.get_center().x, box.get_center().y, box.get_center().z)
 	_radius = box.size.length() * 0.5
+	if below:
+		# Straight up from beneath, the nose (−Z) up the screen, the jet filling the frame: the left wing shows on the
+		# right, as seen from under it. The shared view (yaw, pitch, zoom) stays the Hangar's.
+		focus_mode = Control.FOCUS_NONE
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_pivot.rotation_degrees.y = 0.0
+		_sun.rotation_degrees = Vector3(60, 25, 0)  # the light from beneath, on the side seen
+		var span := maxf(box.size.x, box.size.z)
+		_cam.position = Vector3(0, -span * 0.5 / tan(deg_to_rad(FOV) * 0.5) - box.size.y * 0.5, 0)
+		_cam.look_at(Vector3.ZERO, Vector3.FORWARD)
+		_update_mode()
+		return true
 	if is_nan(yaw) or _yaw_rtl != is_layout_rtl():
 		yaw = START_RTL if is_layout_rtl() else START  # a caller's pitch and zoom kept
 	_yaw_rtl = is_layout_rtl()
 	_apply()
 	_update_mode()
 	return true
+
+
+## Each station's place on this control (pylon 0..8 → px), from the camera; {} before a model shows.
+func points() -> Dictionary:
+	var out := {}
+	if _model == null or not _cam.is_inside_tree():
+		return out
+	var k := size / Vector2(vp.size)
+	for i in _stations:
+		var w: Vector3 = _pivot.transform * (_model.transform * _stations[i])
+		out[i] = _cam.unproject_position(w) * k
+	return out
 
 
 ## Back to the start view: the nose toward the inline start (START, START_RTL), PITCH_START, the jet's own distance.
@@ -195,6 +240,8 @@ func _apply() -> void:
 ## A gamepad (the first known one: a flight stick's axes 2 / 3 are often a throttle or rudder resting off centre,
 ## f331da69): its right stick orbits, its triggers zoom (right in, left out). Tests (Settings.isolated()) read none.
 func _process(delta: float) -> void:
+	if below:
+		return
 	var pads := [] if Settings.isolated() else Input.get_connected_joypads().filter(Input.is_joy_known)
 	if pads.is_empty():
 		return
@@ -210,6 +257,8 @@ func _process(delta: float) -> void:
 
 
 func _gui_input(event: InputEvent) -> void:
+	if below:
+		return
 	if event is InputEventMouseMotion and event.button_mask & MOUSE_BUTTON_MASK_LEFT:
 		# Dragging down raises the camera: the jet's top turns toward the viewer, as if held and tilted.
 		orbit(event.relative.x * DRAG, event.relative.y * DRAG)
@@ -249,7 +298,7 @@ func _draw() -> void:
 
 
 ## The SubViewport at this control's size in window pixels.
-func _fit() -> void:
+func fit() -> void:
 	if not is_inside_tree():
 		return
 	var k := get_viewport().get_final_transform().get_scale().y if get_viewport() != null else 1.0

@@ -377,6 +377,9 @@ mod tests {
         let a = crate::briefing::arming(&u, &weapons(), &lo);
         assert_eq!((a["imbalanced"].as_bool(), a["blocked"].as_bool()), (Some(true), Some(false)));
         assert!(a["moment_kgm"].as_f64().unwrap() < -3459.0, "{}", a["moment_kgm"]);
+        assert_eq!(a["balance"].as_f64(), Some(-1.0), "the left wing heavier, past the limit");
+        assert_eq!(a["slots"]["3"]["kg"].as_f64(), Some(925.0), "the Mk 84's weight on its station");
+        assert_eq!(a["positions"]["3"], "mid");
     }
 
     #[test]

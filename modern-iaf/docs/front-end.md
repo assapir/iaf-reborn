@@ -21,7 +21,7 @@ The window opens plain in the front end's background colour (#00163C, no Godot s
 | screen | what it does | English | Hebrew |
 |---|---|---|---|
 | Hangar | the first screen (§12): the jets at the inline start, the picked one in 3D in the middle (the player looks at it from any side) with its full name faint behind it, its card at the inline end (squadron and base, facts, the training's progress, Missions and campaign greyed, Fly); Settings and the pilot in the top bar, Attributions at the foot | ![Hangar](pictures/front-end/hangar_en.webp) | ![Hangar, Hebrew](pictures/front-end/hangar_he.webp) |
-| Pick a mission | the briefing, map first (§10): the map over the screen, opened on the base and the route with the steps' pins; the mission card (the missions as tabs, the facts, the objectives, the Arming summary with Edit, Back, Fly); the order of actions with the keys; the map's chips | ![Pick a mission](pictures/front-end/mission_en.webp) | ![Pick a mission, Hebrew](pictures/front-end/mission_he.webp) |
+| Pick a mission | the briefing, map first (§10): the map over the screen, opened on the base and the route with the steps' pins; the mission card (the missions as tabs, the facts, the objectives, the Arming summary with Edit, which opens the Loadout screen §10.1, Back, Fly); the order of actions with the keys; the map's chips | ![Pick a mission](pictures/front-end/mission_en.webp) | ![Pick a mission, Hebrew](pictures/front-end/mission_he.webp) |
 | Settings | the sections Graphics, Language, Sound and Devices listed at the inline start; the picked one's settings open beside them as controls: dropdown, switch, slider, radio list; Devices has the afterburner detent (§9.2); the footer's Export settings file / Import settings file (below) | ![Settings](pictures/front-end/prefs_graphics_en.webp) | ![Settings, Hebrew](pictures/front-end/prefs_graphics_he.webp) |
 | Debrief | the record as a sheet: Plane flown, From, Time, Mission, Result, the mission's goals (a take-off: runway, lift-off and reference speed, centreline offset, tower calls; a start-up: none), Remarks (the fail reason first, or that it passed; the lift-off against the reference); Export flight data (below), Back to missions, Fly again | ![Debrief](pictures/front-end/debrief_en.webp) | ![Debrief, Hebrew](pictures/front-end/debrief_he.webp) |
 | Pilot | the Hangar → the pilot: the picture in a service ID photo's fixed 3:4 frame (a click on it, or Choose a picture…, opens the system's file dialog; without a picture the initials, or a head and shoulders before there is a name), the name and the nickname, and the logbook panel down to the bottom bar (§3) with its Pilot log button; the footer's Reset the log, Delete profile, Change pilot, Back and Save (§3) | ![Pilot](pictures/front-end/pilot_en.webp) | ![Pilot, Hebrew](pictures/front-end/pilot_he.webp) |
@@ -31,7 +31,7 @@ The window opens plain in the front end's background colour (#00163C, no Godot s
 | Pilot log | the Pilot screen → Pilot log: every attempt, newest first; a row opens its debrief; Back to the Pilot screen | ![Pilot log](pictures/front-end/log_en.webp) | ![Pilot log, Hebrew](pictures/front-end/log_he.webp) |
 | Attributions | the setup wizard's list of sources and licences, the jet models and photos with them; the Hangar's foot opens it ("קרדיטים ורישיונות" in Hebrew) | ![Attributions](pictures/front-end/credits_en.webp) | ![Attributions, Hebrew](pictures/front-end/credits_he.webp) |
 | Hangar without data | a fresh install before `./modern-iaf-setup` (no training missions): the card says what is missing and the command (`./modern-iaf-setup`; Windows `.\modern-iaf-setup.ps1`), in place of the training's progress; Fly greyed and out of the focus, the picked jet focused; the F-16s' still pictures (§12) | ![Hangar without data](pictures/front-end/nodata_hangar_en.webp) | ![Hangar without data, Hebrew](pictures/front-end/nodata_hangar_he.webp) |
-| Loadout | Edit on the briefing's Arming summary: the jet's front view with its stores, the inventory, its weights (§10); Back, Fly | ![Loadout](pictures/front-end/stores_2012_en.webp) | ![Loadout, Hebrew](pictures/front-end/stores_2012_he.webp) |
+| Loadout | Edit on the briefing's Arming summary (§10.1): the jet from beneath with a callout per station, the loadouts (the mission's, the pilot's saved ones), the take-off weight and the stores; Reset to the mission's, Briefing, Fly | ![Loadout](pictures/front-end/loadout_f16i_en.webp) | ![Loadout, Hebrew](pictures/front-end/loadout_f16i_he.webp) |
 | Pick a mission without data | the same note under the title, no briefing; the Hangar crumb focused | ![Pick a mission without data](pictures/front-end/nodata_mission_en.webp) | ![Pick a mission without data, Hebrew](pictures/front-end/nodata_mission_he.webp) |
 
 At a training mission's goal a banner over the view says "Mission complete" and "Fly on, or Esc → End the flight for
@@ -260,13 +260,11 @@ which showed them whole with their credits, are gone.
   its sortie kept through Reset's first modal and deleted by the second (the other pilot's log kept), and the list
   picking the first pilot back.
 - The briefing (§10): the title as the kind, the time as "0800", the wind as "000° / 0 kt" ("קשר"), the take-off's
-  four objectives, its runway with the heading, its four steps in a four-column table, the three tabs mirrored and
+  four objectives, its runway with the heading, its four steps in a four-column table, the tabs mirrored and
   the arrow keys between them; the six take-off steps (each tower call its own, with its pick and the answer to wait
-  for); the wind's figures left to right; the subtitle with the tail number and no wing; the Arming
-  page's own Sufa drawing with a slot per station (the wing slots in station order 9 to 1, apart; the tanks in the
-  second row straight under 4 and 6), each store's name as its tooltip, the title "Sufa · F-16I · 846" with the Latin
-  and digits isolated, no F-16C, the rounds, chaff, flares, fuel, take-off weight and maximum weight each a field,
-  centred, no credit on Briefing or Arming, the Map's credit at the footer's inline end, the Adir's own drawing; the start-up's steps with their switches and waits;
+  for); the wind's figures left to right; the subtitle with the tail number and no wing; Arming opening the Loadout
+  screen (§10.1, its own checks there) and its Briefing coming back; no credit on Briefing, the Map's credit at the
+  footer's inline end; the start-up's steps with their switches and waits;
   the map over the page with the screen's aspect, the ground colour, roads, Mitzpe Ramon, the airbase, taxi and
   route, the credit; the wheel zooms around the pointer and the scale bar follows, a drag scrolls, a double click
   resets, + zooms, an arrow scrolls the focused map (not the tabs), 0 resets; the page kept for the next mission; the
@@ -710,96 +708,102 @@ That is the theatre's colour as built, the same in flight, not the map's drawing
 assets; inferred from the edges' places: not on the colour nodes' 32.8 km grid). Zoomed in on a base, the ground is
 the base's toned Sentinel-2 (terrain.md §4).
 
-**The loadout screen** (Edit on the Arming summary; the crumb "Hangar · F-16I Sufa · Training · Take-off · Arming",
-the mission's crumb back to the briefing; Back and Fly in its footer; Esc back to the briefing): the jet's name, type
-and tail number ("Sufa · F-16I · 846"; the Latin and the digits in isolates, so
-Hebrew reads "סופה · F-16I · 846" in order), its front view in light lines traced from our own
-model (`modern-iaf/data/drawings/<jet>_front.png`: the Sufa from `f16i.glb` with its two seats, conformal tanks and
-spine, the Barak from `f16d.glb`, the Adir from `f35i.gltf`; `modern-iaf/tests/_jet_fronts.gd` renders each from the
-front with its surfaces coloured by their normals and traces the edges 2–3 px wide, the clean airframe only (the user's
-A15 round 3: the F-35I's `Pylon*` nodes hidden, the F-16's pylons and wingtip rails, part of its one mesh, cut out by
-boxes from under each station to just below the wing; the slots' leaders stand for the stations); `<jet>_front.json` places the
-stations, the model's hardpoints `F16_SIM_STATIONS` and the Adir's descriptor stations projected, its bay stations
-where the bays open under the fuselage), centred, as wide as the room left by the slots (at most 62 % of its width). Under the jet, one
-slot per station (after the original's Arming screen, [the original's front end](../../docs/front-end.md) §15: a box per station in station order,
-joined to its station by a line): a thin rounded frame, 88 × 80 px for every station of every jet, with the
-station's number on its top edge, the store's side view fitted by its longest side into one 76 × 24 px picture box
-(the same box for every store, so a drop tank and a missile take the same room; the user, 2026-11-10;
-`modern-iaf/data/stores/<weapon id>.png`, our store models rendered by `modern-iaf/tests/_store_pictures.gd`) and its
-short name under it on up to two lines ("AIM-9M", "370 gal drop tank", "בידון 370 גלון"; also the tooltip). An empty station shows its
-empty slot. The wing stations' slots form one row in station order, 9 to 1 left to right as the front view shows them;
-the inboard stations' (4, 5, 6: the drop tanks) a second row, each straight under its station. Each slot's leader runs
-straight up to its station, or up to the station's height and across to it, none crossing another
-(`menu/arming_drawing.gd`; each slot is a Control of its own, a drop target). The
-drawing never mirrors: station 1, the left wing tip, is on the viewer's right. The stores are the pilot's loadout for
-the jet (the loadout editor below), by default the unit record's (`pylons`,
-[data-formats.md](data-formats.md) §3; the Sufa and the Barak: an AIM-9M on 1, 2, 3, 7, 8 and 9, a 370 gal drop tank
-on 4 and 6; the Adir: an AIM-120 on 5 and 7). A slot and an inventory entry name the store by its short name where
-the full one runs long ("GBU-31" for "GBU-31 JDAM", "370 gal tank"); the full name is the tooltip. The Adir's eleven stations but 6, laid out as the F-16's (the user's
-A15 round 2): the wing stations' slots one row in station order (11, 10, 9 on the left, 3, 2, 1 on the right), their
-leaders as the F-16's; its bays' four (the record's `internal`) a second row in order (8, 7, 5, 4), centred under the
-fuselage, each marked "internal" / "פנימי" on its bottom edge. The two bays are outlined on the fuselage in the
-drawing's line style; each bay slot's leader runs up from its middle, across in the gap over the bay row (the outer
-pair higher than the inner, so none crosses) and straight up under its station to its bay's outline. Every slot is
-the Sufa's size and spacing.
+**The loadout screen:** Edit on the Arming summary opens the Loadout screen (§10.1).
 
-**The inventory:** a column on the drawing's block-end side (the right in English, the left in Hebrew), 150 px wide,
-headed "Available" / "זמין": the stores the jet may carry (the record's `inventory`), grouped under small headings
-air-to-air, air-to-ground (by the weapon's kind; a record's `role` "ground" puts an air-to-ground missile there) and
-drop tanks, two to a row, each its picture in the slots' picture box, its caption and, where the record gives a count,
-the ones left (`count` less those on the jet, per bomb: "× 4"; no record gives one yet). The slots show what is on the
-jet, so the inventory shows no "on the jet" line (the user's A15 round 2). The column scrolls when its entries outgrow
-the page (the Sufa's thirteen fit). Each entry is one Control (`arming_drawing.gd` `Item`). A store without a model of
-ours shows a flat silhouette (`data/stores/SOURCES.md`). Under the drawing, centred: the gun's rounds, the chaff, the flares (`loadout`),
-the fuel (the 6-DoF jet's internal fuel, `iaf_flight::sixdof::jets`, and the drop tanks' on the jet), the take-off
-weight (the 6-DoF's empty weight + internal fuel + the stores' `kg`, the tanks' fuel among them) and, a field of its
-own, the jet's maximum weight (the record's `max_takeoff_kg`; the Sufa: 6,254 kg of fuel, 16,471 kg and 23,582 kg).
-`IafBriefing.arming(unit, weapons, loadout)` answers the figures (`briefing::arming`).
+### 10.1 The Loadout screen
+
+The picked mission's arming on a screen of its own (the user's round-3 design `r3_loadout`, 2026-11-13: "a look from
+beneath the plane, where things really mount to"; saved loadouts "amazing idea"), opened by Edit on the briefing's Arming summary.
+The crumb reads "Hangar · F-16I Sufa · Training · Take-off · Arming"; the mission's title opens its briefing, as do
+Esc and the footer's Briefing. `modern-iaf/menu/loadout_screen.gd` builds it; `menu/arming_drawing.gd` holds its
+editing pieces (the callout, the store, the stores' column).
+
+- **The jet from beneath**, in the middle under "Seen from below, where the stores hang": the Hangar's live model
+  (`shared/aircraft/turntable.gd`, the flight's own model with the stores hung as the flight hangs them) with its
+  camera straight under the jet, the nose up the screen, still, lit from below, the F-35I's bay doors open with the
+  bays' stores in view (`below`). The jet never mirrors: seen from beneath, its left wing (station 1) is on the right.
+  Without the converted model (before setup) the callouts stand alone, with no lines.
+- **The callouts:** one per station that takes a store (the record's `allowed`; the F-16s' centreline and the Adir's
+  2 / 10 take none, so they have none), 170 × 84 px, in a column on each side of the jet, in the order of their
+  stations' height on the screen, so the lines do not cross (a station on the middle line would sit under the jet): "6 · INBOARD" (the number and the station's place, the record's `positions`:
+  WINGTIP, OUTBOARD, MID, INBOARD, CENTRELINE, BAY OUTBOARD, BAY INBOARD), the store's short name and its weight with
+  the rack's ("1,321 kg" for a full 370 gal tank, its fuel and its own empty weight, `briefing::arming`'s slot `kg`); an empty station's frame is dashed
+  with "Empty" / "ריק". A line runs from each callout's inner edge to a dot on its station: the station's attach point
+  on the model, projected by the turntable's camera (`turntable.gd` `points`). A rack shows its "×3" badge at the
+  callout's bottom corner. In Hebrew the callouts' text stands at their right.
+- **LOADOUTS** at the inline start: the mission's own (its title, the badge "Mission" / "המשימה") and the pilot's
+  saved loadouts for this jet (their names, the badge "Saved" / "שמורה", "×" to delete after a prompt), each with
+  its stores in short ("4 × AIM-9M · 2 × AIM-120 · 2 × 370 gal tank"). The one on the jet is filled in the accent's
+  tint; no bar at its side (the user, 2026-11-13: "remove the left bold border on loadouts"). A changed loadout that
+  matches none leaves every row plain. A click puts that loadout on the jet. "+ Save this loadout" opens a name field
+  in its place with a name offered ("My loadout, 14 Nov 2026"), selected; Enter or Save stores it (the same name
+  again replaces that one; an empty name keeps the field open), Esc closes it. Named type loadouts ("Air-to-air, long
+  range", the mock's) come only where a sourced real loadout exists; none does yet, so the list holds Mission and the
+  pilot's own.
+- **TAKE-OFF WEIGHT** at the inline end: the figure, a bar with its share of the maximum ("70 % of the maximum, 23,582
+  kg"), the wings' balance (a track from Left to Right as the pilot sits, in both languages, its middle marked, the
+  marker where the stores lean: `balance`, the moment over the record's `lateral_limit_kgm`, else the wings'
+  difference over their stores) with "Wings balanced" or "Left wing heavier by 1,321 kg", then Fuel (internal and the
+  tanks'), Gun rounds and Chaff / flares. Over the maximum the figure, the bar and the share read in the warning
+  colour and Fly is off; past the balance limit the marker and its line read amber (a warning: Fly stays on unless the
+  record's `lateral_limit_hard`).
+- **STORES** under it: the stores the jet may carry (the record's `inventory`), two to a row, each its short name in a
+  thin frame (the full name the tooltip), the ones left where the record gives a count (none does yet).
+- **The footer:** "Reset to the mission's" at the inline start (off while the mission's own is on the jet), Briefing
+  and Fly at the inline end.
+- **The keyboard, the joystick:** Tab runs the loadouts, Save, the callouts, the stores, Reset, Briefing and Fly; the
+  arrows move by place; the focus is the loadout on the jet when the screen opens.
+
+The Sufa's take-off, its own loadout beside a saved one, and the Adir's with its bays open:
+
+| | English | Hebrew |
+|---|---|---|
+| the Sufa | ![The Sufa from beneath with its callouts, the loadouts and the take-off weight](pictures/front-end/loadout_f16i_en.webp) | ![The same in Hebrew, the columns mirrored, the jet not](pictures/front-end/loadout_f16i_he.webp) |
+| a bomb dragged over station 3 | ![The callouts that take an MK-84 framed, the others dimmed](pictures/front-end/loadout_f16i_drag_en.webp) | ![The same in Hebrew](pictures/front-end/loadout_f16i_drag_he.webp) |
+| the Adir | ![The Adir from beneath, its bays open with two AIM-120](pictures/front-end/loadout_f35i_en.webp) | ![The Adir in Hebrew](pictures/front-end/loadout_f35i_he.webp) |
 
 **The loadout editor** (the user, 2026-11-10: "can we already select ammunition?"):
-- **Drag and drop.** A store drags from the inventory onto a slot, from a slot onto another slot, or from a slot back
-  onto the inventory column. While it is dragged, its picture rides on the pointer at the slots' picture box size,
-  lifted a little over its shadow, and every slot whose station takes it, an empty one too, is framed in the accent
-  colour and tinted, the others dimmed, so the player sees where it can go before the drop. An empty station keeps
-  its empty slot (the frame and the number). A store on a slot that holds another sends that one back to the
-  inventory.
+- **Drag and drop.** A store drags from STORES onto a callout, from a callout onto another, or from a callout back
+  onto STORES. While it is dragged, its picture (`modern-iaf/data/stores/<weapon id>.png`, our store models rendered by
+  `modern-iaf/tests/_store_pictures.gd`) rides on the pointer, lifted a little over its shadow, and every callout whose
+  station takes it, an empty one too, is framed in the accent colour and tinted, the others dimmed, so the player sees
+  where it can go before the drop. A store on a station that holds another sends that one back.
 - **Racks.** Where the record's `allowed` gives a station a rack (three Mk 82 on a TER-9/A on the F-16s' 3 / 7 and
   4 / 6, two GBU-38 on a BRU-57/A on 3 / 7, four GBU-39 on a BRU-61/A in the Adir's bays 4 / 8), a drop hangs the full
-  rack (as many as are left); the slot shows the rack's bar with the stores two to a row under it and a "×3" badge
-  on its frame's corner; the inventory counts per store; the weight adds each store and the rack's `rack_kg` (the TER-9/A 47.6 kg, the BRU-57/A 120.2 kg, the BRU-61/A
+  rack (as many as are left); the callout shows a "×3" badge at its bottom corner; the stores count per store; the weight adds each store and the rack's `rack_kg` (the TER-9/A 47.6 kg, the BRU-57/A 120.2 kg, the BRU-61/A
   147 kg). In flight the station carries that many (`Settings.arm_loadouts`' count) and the rack's weight and drag
   (`sim_load`'s third and fourth values, `stores.rs` `rack_kg` / `rack_drag`); the rack stays on the jet when its
   stores go.
 - **What a station takes.** The unit record's `allowed`, station by station ([data-formats.md](data-formats.md) §3:
   the table with its sources and what is inferred). A refused drop
-  leaves the loadout as it was; its slot shakes for a quarter of a second with its frame in the warning colour, no
+  leaves the loadout as it was; its callout shakes for a quarter of a second with its frame in the warning colour, no
   text.
 - **Pairs.** A drop also fills the mirror station (3 with 7, 4 with 6, the Adir's 4 with 8; the stations numbered
   from the left wing tip, so station n's mirror is the highest + 1 − n) where that takes the store, as real loadouts
-  are symmetric; with Shift held, the one station only. Back to the inventory, the mirror's store goes too when it is
+  are symmetric; with Shift held, the one station only. Back to STORES, the mirror's store goes too when it is
   the same store. A move takes the pair along.
-- **The keyboard and the joystick.** The arrow keys reach the slots; Enter on a slot picks it and puts the focus on the first inventory entry its
-  station takes; the arrows move through the inventory, Enter hangs the store (both of the pair unless Shift is
-  held). An "Empty" / "ריק" entry heads the inventory while a picked slot holds a store: Enter there takes it off.
-  Esc leaves the slot as it was.
-- **Not yet flyable.** A store whose record has no model of ours (the 600 US gal tank: the inventory's silhouette) is greyed in the inventory: it neither drags nor takes the focus, and nothing says why (the user, A15
+- **The keyboard and the joystick.** Enter on a callout picks it and puts the focus on the first store its station
+  takes; the arrows move through the stores, Enter hangs the store (both of the pair unless Shift is held). An
+  "Empty" / "ריק" entry heads the stores while a picked callout holds a store: Enter there takes it off. Esc leaves
+  the callout as it was (a second Esc goes back to the briefing).
+- **Not yet flyable.** A store whose record has no model of ours (the 600 US gal tank) is greyed in STORES: it neither drags nor takes the focus, and nothing says why (the user, A15
   round 3: "disabled for now"). Its record stays.
-- **The rack's count.** The "×n" badge on a rack's slot is a control: a click takes one store off, from one back to the
+- **The rack's count.** The "×n" badge on a rack's callout is a control: a click takes one store off, from one back to the
   full rack (a TER 3 → 2 → 1 → 3, a BRU-57/A 2 → 1 → 2), the pair along unless Shift is held, the weight and the
-  inventory following (`loadout::cycle`). The keyboard: Enter on the slot, then Enter on the store it holds.
+  stores following (`loadout::cycle`). The keyboard: Enter on the callout, then Enter on the store it holds.
 - **The wings' balance.** The stores' rolling moment (each station's stores and rack at its distance from the jet's
   middle in the drawing) against the record's `lateral_limit_kgm` (the F-16s: 25,020 ft-lb, 3,459 kg·m,
-  [data-formats.md](data-formats.md) §3); past it the figures row adds "Imbalance" / "חוסר איזון" in amber with the
-  left and right wings' difference in kg. A warning: Fly stays on unless the record's `lateral_limit_hard` is true.
+  [data-formats.md](data-formats.md) §3); past it the balance's marker and line read amber with the heavier wing and
+  the difference in kg. A warning: Fly stays on unless the record's `lateral_limit_hard` is true.
   The sum, the wings' shares and the moment come from `loadout::weigh`, the weight rule reborn's Arming screen uses
   too; each game keeps its own limit (reborn the original's 5 % of the load, the sim the jet's moment).
-  The Adir's limit is open, so it shows none.
+  The Adir's limit is open, so it never warns; its gauge shows the wings' difference over their stores.
 - **The figures** follow each change: the fuel, the take-off weight against the maximum. Over the maximum the
   take-off weight reads in the warning colour and Fly is off (no sourced loadout reaches a jet's maximum:
   `loadout::tests` hangs the heaviest store on every station of the Sufa and the Adir and stays under it).
-- **Kept per pilot per jet** in the records database (`loadouts`, [storage.md](storage.md) §5), stored at each change.
-  Reset ("Reset" / "לאפס", beside the jet's name, off while the loadout is the record's) brings back the record's
-  default.
+- **Kept per pilot per jet** in the records database (`loadouts`, [storage.md](storage.md) §5), stored at each change;
+  the Hangar's jet carries it too (§12). Reset to the mission's brings back the record's default. The saved
+  loadouts are the pilot's per jet (`saved_loadouts`, the same database).
 - **In flight.** Fly hands the stored loadout to the mission start (`flight/fly.gd` `arm`): pylons A..I as the engine
   holds them (`IafBriefing.sim_load`: each store's weapon record number and count, or the record's `sim`, the
   `modern_weapons.gd` record flown in its place: the GBU-31's 1003; and its rack's kg and drag) in
@@ -807,20 +811,22 @@ own, the jet's maximum weight (the record's `max_takeoff_kg`; the Sufa: 6,254 kg
   (`player_weapons.gd` `_armed`): their mass and drag through the stores weight path, the tanks' fuel, their models
   on the jet. The gun rounds, chaff and flares stay the record's.
 - **A mission that fixes the loadout** (`fixed_loadout: true` in its readable file, [data-formats.md](data-formats.md)
-  §5) shows the record's default read-only: no drag, no Reset, nothing said about it. No training mission fixes it.
+  §5) shows the record's default read-only: no drag, no Reset, no saved loadouts, nothing said about it. No training mission fixes it.
 - **The rules are Rust's:** `iaf_tools::loadout` (`crates/iaf-tools/src/loadout.rs`: `allowed`, `mirror`, `put`,
   `take`, `shift`, `sim_load`) behind `IafBriefing.put / take / shift / sim_load`; the weights `briefing::arming`;
-  the store `pilot_log::loadout / set_loadout` behind `IafPilotLog`. `menu/front_end.gd` and `menu/arming_drawing.gd`
-  only drag, drop and display.
+  the store `pilot_log::loadout / set_loadout / saved_loadouts / save_loadout / delete_saved_loadout` behind
+  `IafPilotLog`. `menu/loadout_screen.gd` and `menu/arming_drawing.gd` only drag, drop and display.
 - **Checks:** `cargo test -p iaf-tools --lib loadout` (the Sufa's rules, pairs, racks, moves and pylons; the Adir's
   bays, the AIM-9X on the wingtips only, the GBU-39 rack; the badge's cycle; a one-sided load past the Sufa's limit; the heaviest loadouts under the maximum; the store round trip
-  and the version-3 file migrated); `modern-iaf/tests/test_front_end.gd` (a refused drop, a pair, the figures, the
-  long inventory, a tank pair back, the keyboard path, a TER on 4 / 6, its badge 3 → 2, the Delilah not offered, a
-  one-sided load's imbalance warning, the flight's pylons, a lowered maximum, Reset;
-  both languages); `test_mvp.gd --only loadout` (a take-off with MK-84s on 3 / 7 and three Mk 82 on 4 / 6: the pylons
+  and the version-3 file migrated; `pilot_log` the saved loadouts per pilot per jet);
+  `modern-iaf/tests/test_front_end.gd` (the screen from Edit, its crumb, a callout per station with its
+  place and weight, the stations' places on the model with the left wing on the right, the mission's row on without a
+  side bar, the columns mirrored, the weight panel's figures, a refused drop, a pair, a tank pair back, the keyboard
+  path and Esc, a TER on 4 / 6, its badge 3 → 2, the Delilah not offered, a one-sided load's amber balance, the
+  flight's pylons, the Hangar's jet, save / pick / delete a saved loadout, a lowered maximum, Reset; both languages); `test_mvp.gd --only loadout` (a take-off with MK-84s on 3 / 7 and three Mk 82 on 4 / 6: the pylons
   and counts, the stores' mass, no tanks' fuel, the bomb's model, the gun's rounds). `modern-iaf/tests/_loadout_shot.gd` takes the pictures; `modern-iaf/tests/_store_pictures.gd` renders the stores'.
 
-The loadout drawing is our own render of our own models; the attribution those models need
+The Loadout screen's jet is our own model; the attribution those models need
 (the FlightGear F-16, GPL; andertan's F-35, CC BY 4.0) is in docs/credits.md, the setup wizard's Attributions and the
 credits roll.
 
@@ -843,7 +849,7 @@ corner):
 | `focus` | the view the map opens on `[x0, y0, x1, y1]`: the start, the taxi and the lineup, 400 m around them, at least 2.5 km across |
 
 `IafBriefing.ground(theatre, extent, width)` answers the area's ground colour as {w, h, rgb} (`briefing::ground`).
-`IafBriefing.arming(unit, weapons)` answers the Arming page's figures (`briefing::arming`).
+`IafBriefing.arming(unit, weapons, loadout)` answers the Loadout screen's figures (`briefing::arming`).
 `modern-iaf/menu/briefing_map.gd` draws the map, `modern-iaf/menu/briefing_page.gd` lays out the screen. `modern-iaf/tests/_briefing_shot.gd` takes the pictures (its header).
 
 | | English | Hebrew |
@@ -852,9 +858,6 @@ corner):
 | take-off from Ramon (2012) | ![The take-off's briefing](pictures/front-end/briefing_2012_en.webp) | ![The take-off's briefing in Hebrew](pictures/front-end/briefing_2012_he.webp) |
 | the take-off, its first step opened | ![The take-off with its first step opened](pictures/front-end/briefing_2012_step_en.webp) | ![The same in Hebrew](pictures/front-end/briefing_2012_step_he.webp) |
 | the take-off, labels and photo off | ![The take-off's map without labels or photo](pictures/front-end/briefing_2012_plain_en.webp) | ![The same in Hebrew](pictures/front-end/briefing_2012_plain_he.webp) |
-| the take-off's loadout screen | ![The Sufa's front view with its stores](pictures/front-end/stores_2012_en.webp) | ![The Sufa's arming in Hebrew](pictures/front-end/stores_2012_he.webp) |
-| the Barak's loadout screen (take-off from Ramat David) | ![The Barak's front view with its stores](pictures/front-end/stores_f16d_en.webp) | ![The Barak's arming in Hebrew](pictures/front-end/stores_f16d_he.webp) |
-| the Adir's loadout screen (take-off from Nevatim) | ![The Adir's front view](pictures/front-end/stores_f35i_en.webp) | ![The Adir's arming in Hebrew](pictures/front-end/stores_f35i_he.webp) |
 
 ## 11. The crash page
 
@@ -943,9 +946,10 @@ round 3 of the menu ideas (`r3_hangar_en.png`, `r3_hangar_he.png`, outside the r
 **The jet's view** is `shared/aircraft/turntable.gd`: the flight's own model through `AircraftModel.create` (the same
 file, descriptor and gear-down ground pose as the flight; the plane folder is the aircraft definition's base, else its
 id), with the stores hung as the flight hangs them (`PlayerWeapons` store models, `IafStores` slots, bombs and tanks by
-their top from the station's lugs). The stores are the loadout the loadout screen shows: the pilot's for the
+their top from the station's lugs). The stores are the loadout the Loadout screen shows (§10.1): the pilot's for the
 jet, else the unit record's (the missions' own), each on the pylon its real station maps to (`IafBriefing.arming`'s
-slot `pylon`: the F-35I's station 5 is D); the F-35I's bay stores stay inside its shut bays, as in flight. It renders in a SubViewport of its own world at the window's pixel size
+slot `pylon`: the F-35I's station 5 is D); the F-35I's bay stores stay inside its shut bays, as in flight. The Loadout
+screen shows the same turntable from beneath (`below`: the camera straight under the jet, still, the bays open). It renders in a SubViewport of its own world at the window's pixel size
 of its area (the canvas is scaled to the window, so a SubViewportContainer would render at the canvas size and blur),
 with MSAA 4× and one shadowed sun, and only while it is shown: a hidden or freed turntable, or a minimised window,
 renders nothing. When the model's converted descriptor is missing (no `assets/converted/own/planes/f16` before setup)

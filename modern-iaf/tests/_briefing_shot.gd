@@ -3,9 +3,8 @@
 #     --path modern-iaf -s ../modern-iaf/tests/_briefing_shot.gd
 # Writes SHOT_DIR/briefing_<menu id>_<lang>.png (Ramon's start-up 2011 and take-off 2012 as the screen opens),
 # briefing_<menu id>_step_<lang>.png (a step opened: its state to wait for, a start-up's switch picture),
-# briefing_2012_plain_<lang>.png (the take-off with its labels and photo off), stores_2012_<lang>.png (the loadout
-# screen Edit opens) and, per jet, startup_<jet>_<lang>.png (its start-up, its second step opened) and
-# stores_<jet>_<lang>.png (the loadout screen of its take-off), at SHOT_SIZE (1920x1080 by default; the front end in a
+# briefing_2012_plain_<lang>.png (the take-off with its labels and photo off) and, per jet, startup_<jet>_<lang>.png
+# (its start-up, its second step opened), at SHOT_SIZE (1920x1080 by default; the front end in a
 # viewport of that size, its 1920 × 1080 canvas stretched to it as the window's is).
 extends "res://../tests/godot/base.gd"
 
@@ -57,10 +56,5 @@ func run() -> void:
 					fe.find_child("MapPhoto", true, false).button_pressed = false
 					await frames(4)
 					save.call("briefing_%d_plain_%s" % [id, lang])
-				fe.show_page("arming")
-				await frames(10)
-				save.call("stores_%s_%s" % [jet, lang])
-				if jet == "f16i":
-					save.call("stores_%d_%s" % [id, lang])
 	s.language = "en"
 	s.pilot_name = ""

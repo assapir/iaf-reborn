@@ -1,8 +1,10 @@
 # The briefing's drawings
 
-The Arming page's front views of the jets (modern-iaf/docs/front-end.md §10), each traced from our own model by
+The jets' front views (until 2026-11-14 the briefing's Arming page; the Loadout screen shows the jet from beneath,
+modern-iaf/docs/front-end.md §10.1, so no screen shows the pictures now), each traced from our own model by
 `modern-iaf/tests/_jet_fronts.gd` (an orthographic front render coloured by the surfaces' normals, its edges as light
-lines); `<jet>_front.json` places the F-16 stations on it (the model's hardpoints, sim.rs `F16_SIM_STATIONS`).
+lines); `<jet>_front.json` places the F-16 stations on it (the model's hardpoints, sim.rs `F16_SIM_STATIONS`). The
+JSON is in use: `briefing::arming` reads each station's distance from the jet's middle from it (the wings' balance).
 
 | file | model | licence |
 |---|---|---|

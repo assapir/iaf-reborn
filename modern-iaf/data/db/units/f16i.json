@@ -25,6 +25,7 @@
   },
   "lateral_limit_kgm": 3459,
   "lateral_limit_hard": false,
+  "positions": { "1": "wingtip", "2": "outboard", "3": "mid", "4": "inboard", "5": "centreline", "6": "inboard", "7": "mid", "8": "outboard", "9": "wingtip" },
   "allowed": {
     "1": ["aim-9m", "python-5", "aim-120"],
     "2": ["aim-9m", "python-5", "aim-120"],
@@ -50,6 +51,7 @@
     { "weapon": "tank-600" }
   ],
   "sources": {
+    "positions": "inferred",
     "lateral_limit_kgm": "bms-asym, inferred",
     "allowed": "f16net-aim9, f16net-aim120, f16net-jdam, f16net-mk82, f16net-tanks, usaf-600, ter-9a, l3h-bru57, inferred",
     "tail": "model-846",
@@ -65,6 +67,7 @@
     "inventory": "f16net-aim9, f16net-aim120, f16net-tanks, w-f16-arm, inferred"
   },
   "notes": {
+    "positions": "each station's place on the wing as the Loadout screen names it: 1 / 9 the wingtip rails, 2 / 8 outboard, 3 / 7 mid, 4 / 6 inboard (the wet stations), 5 the centreline (inferred from the F-16's station numbering)",
     "lateral_limit_kgm": "the F-16's maximum allowable asymmetric (rolling) moment, 25,020 ft-lb (3,459 kg·m), as a forum quotes the flight manual's stores limitations (bms-asym; the manual itself not seen, so inferred); the Sufa's and the Barak's taken the same (inferred)",
     "lateral_limit_hard": "false: the briefing warns and lets the jet fly (the manual forbids the take-off only when the roll trim cannot hold the moment, which the briefing does not know)",
     "allowed": "the stores each station takes, by its real number. Sourced: the AIM-9 and the AIM-120 on 1 / 9, 2 / 8 and 3 / 7 (f16net-aim9, f16net-aim120); the GBU-31 on 3 / 7, one each, and the GBU-38 there two to a BRU-57/A (120.2 kg, l3h-bru57; f16net-jdam); three Mk 82 on a TER-9/A (47.6 kg, ter-9a) on 3 / 7, and on 4 / 6 (f16net-mk82, a forum: inferred; with tanks on 4 / 6 the real jet takes two on 3 / 7, not modelled); the 370 US gal tank on 4 / 6 (f16net-tanks) and the 600 US gal tank there (usaf-600). Inferred: the Python 5 on the AIM-9 rails 1 / 9 and 2 / 8 (a modified LAU-129; no station chart found); the Mk 83 and the Mk 84 one each on 3 / 7 and 4 / 6 (f16net-mk82 tells of four Mk 84); the SPICE 1000 / 2000 on 3 / 7 and 4 / 6 (no source gives their stations); the Delilah on none (dropped 2026-11-14: no cruise-missile flight class); the Sufa and the Barak the same (no source shows a difference). Station 5, the centreline, takes none of the inventory; each rack's rack_drag (drag index, flight-model.md §9.18) inferred as one of its stores' (a beam of about their cross-section)",
