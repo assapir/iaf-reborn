@@ -928,16 +928,18 @@ games draw over the scene with the same pen. The study behind it: the look study
   window at the largest screen scale (`display_server_macos.mm` `screen_get_max_scale`, fixed at start-up). On the
   user's 2,560 x 1,440 Dell U2719DC beside his MacBook the game rendered 5,120 x 2,880 and the system halved the
   picture (his play test's clicks reach x 4,354): four times the pixels, and every thin line, the HUD's halo and least
-  widths among them, halved on the monitor (found 2026-11-13). Since then `settings.gd` `_check_hidpi` turns hiDPI off
-  (`display/window/dpi/allow_hidpi=false` in the project's `override.cfg`, which Godot reads at start-up) while the
-  window opens on a 1× screen beside a Retina one, and back on when it opens on the Retina screen, and the game restarts
-  once when that changes. With hiDPI off Godot gives every screen scale 1, so the screens' scales then come from AppKit
-  (`osascript`, about 0.3 s at each start while hiDPI is off); when that fails the setting stays as it is. The check runs only on macOS, in a windowed run that is
-  not a script (`-s`) and not `IAF_DEFAULT_SETTINGS=1`; the restart passes `--hidpi-restart`, and a start with it never
-  restarts again. Undo: delete the line from `override.cfg` ([macos.md](macos.md)). Measured on the Mac (M4 Pro, hidden window, the Sufa over volumetric cloud, vsync off): 5,120 x 2,576
-  at 75 ms a frame before, 2,560 x 1,288 at 26 ms with hiDPI off; the HUD's stroke is then one full monitor pixel of
-  P43 instead of two half-lit ones. Open: a window dragged to the other screen during a session keeps its start-up scale until the next
-  start. `test_hud.gd` checks the widths in mrad at 1,920, 2,560 and 5,120 px and the hiDPI choice.
+  widths among them, halved on the monitor (found 2026-11-13). Tried 2026-11-14 (eec79eaf) and dropped 2026-11-15:
+  `settings.gd` turned hiDPI off (`display/window/dpi/allow_hidpi=false` in the project's `override.cfg`) while the
+  window opened on a 1× screen beside a Retina one, with one restart. Measured on the Mac (M4 Pro, hidden window, the
+  Sufa over volumetric cloud, vsync off): 5,120 x 2,576 at 75 ms a frame before, 2,560 x 1,288 at 26 ms with hiDPI
+  off, the HUD's stroke one full monitor pixel of P43 instead of two half-lit ones. But with his Upscaling Quality the
+  3D view, the cockpit in it (cockpit_origin.gd composites the cockpit inside the 3D pass), then rendered at 0.77 of
+  2,560 px across (about 1,970) where it had been 0.77 of 5,120 (about 3,940, then halved): the cockpit soft and
+  pixelated (the user: "it looked better when we aimed for fhd I think it all look pixalted now"). He chose the earlier
+  look ("I think just revert this change"): hiDPI stays on, and a start-up that finds the line removes it once (the
+  rest of the file kept) and restarts (`settings.gd` `drop_hidpi_line`, a clean-up dated for removal). Open again: the
+  HUD's thin stroke on a 1× monitor beside a Retina screen (two half-lit monitor pixels). `test_hud.gd` checks the
+  widths in mrad at 1,920, 2,560 and 5,120 px and the clean-up.
 - **Combiner glass.** Untinted on both F-16s since 2026-11-13 (`SIM_TINT` 0, the plate's rim and back face too;
   the user: "realistic model ftw, no tint"); a jet's definition can set its own fraction (`hud_tint`) of the full
   tint, 14 % opaque in a faint cool magenta (0.62 / 0.56 / 0.72) with specular 0.8. Tried and dropped: the full 14 %

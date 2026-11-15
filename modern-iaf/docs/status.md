@@ -294,10 +294,10 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   HUD are removed (2026-11-12). The AoA indexer and AR / NWS bodies beside the posts' feet take the glareshield's
   paint (they drew flat black) and stand 2.5 cm outboard of them, clear of the posts as in the F-16C photo
   (2026-11-13). The combiner plate is fitted inside the curved posts.
-  A 1× monitor beside a Retina screen (the user's Dell, 2026-11-13): Godot rendered it at twice its pixels and the
-  system halved the picture; the game now turns hiDPI off there and renders the monitor's own 2,560 x 1,440, full
-  Retina on the MacBook's screen (real-hud.md "A 1× monitor beside a Retina screen"). Open: a window dragged to the
-  other screen keeps its start-up scale until the next start.
+  A 1× monitor beside a Retina screen (the user's Dell): Godot renders it at twice its pixels and the system halves the
+  picture. The 14 Nov switch to the monitor's own pixels (hiDPI off) was reverted on 15 Nov at the user's word: with
+  Upscaling Quality the cockpit came out soft there. Open again: the HUD's thin stroke on that monitor, two half-lit
+  pixels (real-hud.md "A 1× monitor beside a Retina screen").
 - **Click areas and the training outline by shape (2026-11-15, the user's Mac play):** a 3D cockpit control's hit area
   is its mesh's own surface (the nearest along the pointer's ray: never bigger than the part, never a neighbour's), the
   canopy handle's its rod; the training highlight outlines the switch's own shape and the RPM dial as the ellipse it

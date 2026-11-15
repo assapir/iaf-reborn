@@ -7,9 +7,8 @@
 # The hidden window renders at the size it is given (--resolution); --fullscreen does not resize it. On a Mac with a
 # Retina screen attached, Godot counts every screen in the Retina scale's pixels: a 2,560 x 1,440 monitor beside it
 # reads 5,120 x 2,880 (DisplayServer.screen_get_size; the user's Dell U2719DC, 2026-11-13). A 5,120 x 2,880 picture
-# made there is what that monitor showed fullscreen before the game turned hiDPI off there (docs/real-hud.md "A 1×
-# monitor beside a Retina screen"), not a 5K screen. A project's override.cfg with display/window/dpi/allow_hidpi=false
-# makes the hidden window render as the game does on that monitor.
+# made there is what that monitor shows fullscreen, halved by macOS (docs/real-hud.md "A 1× monitor beside a Retina
+# screen"), not a 5K screen.
 #   tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 GUIDE_SHOTS=hud_nav -- --log-file /tmp/g.log --path iaf-reborn -s ../tests/godot/_guide_shots.gd
 set -euo pipefail
 envs=()

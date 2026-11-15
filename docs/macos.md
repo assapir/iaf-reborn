@@ -29,13 +29,13 @@ git clone https://github.com/assapir/iaf-reborn && cd iaf-reborn
 
 Godot 4.7 on macOS renders every window at the largest screen scale. With a MacBook's Retina screen attached, a
 game window on a plain (1×) monitor beside it rendered at twice the monitor's pixels across, and macOS halved the
-picture: four times the work, and every thin line halved. When the game's window opens on such a monitor, the game
-turns Godot's hiDPI off, writing `display/window/dpi/allow_hidpi=false` into the project's `override.cfg`
-(`iaf-reborn/override.cfg`, `modern-iaf/override.cfg`; not in git), and restarts once. From then on it renders the
-monitor's own pixels (2,560 x 1,440 on a Dell U2719DC). When the window opens on the Retina screen, the game removes
-that line and restarts once, so the Retina screen gets its full resolution. To undo it, delete that line (or the
-whole file, if it holds nothing else) while the game is closed. Details: [real-hud.md](real-hud.md) "A 1× monitor
-beside a Retina screen".
+picture: four times the work, and every thin line halved. The game leaves it so: the halving acts as 2×
+supersampling, and the user preferred that cockpit (2026-11-15: "I think just revert this change"). From 14 to 15 Nov
+2026 the game turned hiDPI off on such a monitor, writing `display/window/dpi/allow_hidpi=false` into the project's
+`override.cfg` (`iaf-reborn/override.cfg`, `modern-iaf/override.cfg`; not in git) and restarting once; the 3D view
+then rendered at the upscaler's 0.77 of the monitor's 2,560 pixels across, and the cockpit came out soft. A start-up
+that finds that line removes it (the rest of the file kept) and restarts once. Details: [real-hud.md](real-hud.md) "A
+1× monitor beside a Retina screen".
 
 ## Tests
 

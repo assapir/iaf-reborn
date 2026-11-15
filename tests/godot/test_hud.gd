@@ -382,16 +382,28 @@ func _traced(tv) -> void:
 		),
 		"the pen and the halo the same mrad at 2,560 and 5,120 px, one px at 1,920 ([px, halo px, mrad, mrad]: %s)" % mr
 	)
+	# The clean-up of the 14 Nov hiDPI switch (settings.gd drop_hidpi_line): the line goes, the rest of the file stays.
 	var sets := settings()
+	var ovr := OS.get_temp_dir().path_join("iaf-override-%d.cfg" % OS.get_process_id())
+	var fa := FileAccess.open(ovr, FileAccess.WRITE)
+	fa.store_string('[display]\n\nwindow/dpi/allow_hidpi=false\n\n[application]\n\nboot_splash/image="x.png"\n')
+	fa.close()
+	var dropped: bool = sets.drop_hidpi_line(ovr)
+	var left := ConfigFile.new()
+	left.load(ovr)
 	check(
 		(
-			not sets.hidpi_wanted([2.0, 1.0, 1.0], 1, true)
-			and sets.hidpi_wanted([2.0, 1.0, 1.0], 0, false)
-			and not sets.hidpi_wanted([1.0, 1.0], 0, false)
-			and sets.hidpi_wanted([1.0, 1.0], 0, true)
+			dropped
+			and not left.has_section("display")
+			and left.get_value("application", "boot_splash/image", "") == "x.png"
+			and not sets.drop_hidpi_line(ovr)
 		),
-		"macOS hiDPI: off on a 1× screen beside a Retina one, on for the Retina one, unchanged with no Retina screen"
+		"the hiDPI-off line removed from override.cfg once, the splash line kept"
 	)
+	fa = FileAccess.open(ovr, FileAccess.WRITE)
+	fa.store_string("[display]\n\nwindow/dpi/allow_hidpi=false\n")
+	fa.close()
+	check(sets.drop_hidpi_line(ovr) and not FileAccess.file_exists(ovr), "an override.cfg with only that line: removed")
 
 	# Gun pipper (FUN_00530040): held inside the field (bottom − 2 px); the range arc r NM · π, under 1.95 NM, over 3°.
 	var hf := Rect2(0, 0, 139, 135)

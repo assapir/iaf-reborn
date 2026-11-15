@@ -481,7 +481,7 @@ func _ready() -> void:
 		read_config(cfg)
 	if language == "he" and not hebrew_available():
 		language = "en"
-	if _check_hidpi():
+	if _drop_hidpi_override():
 		return
 	_log_startup()
 	apply_display()
@@ -601,29 +601,22 @@ func _set_override(section: String, key: String, value: Variant) -> void:
 		DirAccess.remove_absolute(path)
 
 
-## macOS: with a Retina screen attached, Godot 4.7 renders every window at the largest screen scale
-## (display_server_macos.mm screen_get_max_scale), so on a 1× monitor beside it (the user's 2,560 x 1,440 Dell beside
-## his MacBook) the game rendered 5,120 x 2,880 and the system halved the picture: four times the work, every thin line
-## halved. The game turns hiDPI off (display/window/dpi/allow_hidpi in res://override.cfg, read at start-up) while its
-## window opens on a 1× screen and back on on a Retina one, and restarts once when that changes. True: restarting.
-func _check_hidpi() -> bool:
-	# Not off macOS, headless, or in a script run (a test, a tool: -s); isolated() runs never get here.
+## Clean-up, 2026-11-15 (delete after 2026-12-31, once every Mac that ran the 14 Nov build has started once): from
+## 14 to 15 Nov (eec79eaf) the game turned hiDPI off on a Mac's 1× monitor beside a Retina screen, writing
+## display/window/dpi/allow_hidpi=false into res://override.cfg; the cockpit came out soft there (the 3D view at the
+## upscaler's 0.77 of the monitor's pixels, no longer of twice them), and the user chose the earlier look (hiDPI on: the
+## game renders at the Retina scale and macOS halves it). A start-up that finds that line removes it, the rest of the
+## file kept, and restarts once (Godot read the file before the window opened). True: restarting.
+func _drop_hidpi_override() -> bool:
 	var args := OS.get_cmdline_args()
-	if OS.get_name() != "macOS" or DisplayServer.get_name() == "headless" or "-s" in args or "--script" in args:
+	if DisplayServer.get_name() == "headless" or "-s" in args or "--script" in args:
 		return false
-	var on: bool = ProjectSettings.get_setting("display/window/dpi/allow_hidpi", true)
-	var scales := _mac_screen_scales(on)
-	var screen := get_window().current_screen
-	if screen < 0 or screen >= scales.size():  # the scales unknown (osascript failed): left as it is
+	if not drop_hidpi_line(ProjectSettings.globalize_path("res://override.cfg")):
 		return false
-	var want := hidpi_wanted(scales, screen, on)
-	if want == on:
-		return false
-	_set_override("display", "window/dpi/allow_hidpi", null if want else false)
 	var user := OS.get_cmdline_user_args()
-	if "--hidpi-restart" in user:  # once: the next start-up takes it
+	if "--hidpi-restart" in user:  # once
 		return false
-	print("display: hiDPI %s for screen scales %s, restarting" % ["on" if want else "off", scales])
+	print("display: the hiDPI-off line removed from override.cfg, restarting")
 	# Godot keeps --path out of get_cmdline_args (it changes to that folder), so it is given again.
 	var again := PackedStringArray(["--path", ProjectSettings.globalize_path("res://")]) + args
 	OS.set_restart_on_exit(true, again + PackedStringArray(["--"]) + user + PackedStringArray(["--hidpi-restart"]))
@@ -632,31 +625,25 @@ func _check_hidpi() -> bool:
 	return true
 
 
-## True while the game quits to restart with the other hiDPI setting (_check_hidpi): the rest of the start-up is
-## skipped.
+## True while the game quits to restart without the hiDPI-off line (_drop_hidpi_override): the rest of the start-up
+## is skipped.
 var restarting := false
 
 
-## hiDPI for a window on `screen` of screens at `scales` (backing scale factors): on a Retina screen, off on a 1×
-## screen beside one; with no Retina screen at all `on` as it is (either renders the same: no restart for nothing).
-static func hidpi_wanted(scales: Array, screen: int, on: bool) -> bool:
-	return on if scales.max() <= 1.0 else scales[screen] > 1.0
-
-
-## The screens' backing scale factors: Godot's own with hiDPI on; with it off Godot gives 1 for every screen, so they
-## come from AppKit (osascript).
-static func _mac_screen_scales(hidpi_on: bool) -> Array:
-	var out := []
-	if hidpi_on:
-		for i in DisplayServer.get_screen_count():
-			out.append(DisplayServer.screen_get_scale(i))
-		return out
-	var text := []
-	var js := "ObjC.import('AppKit'); $.NSScreen.screens.js.map(s => s.backingScaleFactor).join(',')"
-	if OS.execute("osascript", ["-l", "JavaScript", "-e", js], text) == 0 and not text.is_empty():
-		for v in String(text[0]).strip_edges().split(","):
-			out.append(float(v))
-	return out
+## Removes the line display/window/dpi/allow_hidpi=false from the override file at `path` (no key left: no file); true
+## when it was there.
+static func drop_hidpi_line(path: String) -> bool:
+	var cfg := ConfigFile.new()
+	if cfg.load(path) != OK or cfg.get_value("display", "window/dpi/allow_hidpi", true) != false:
+		return false
+	cfg.erase_section_key("display", "window/dpi/allow_hidpi")
+	if cfg.get_section_keys("display").is_empty():
+		cfg.erase_section("display")
+	if cfg.get_sections().is_empty():
+		DirAccess.remove_absolute(path)
+	else:
+		cfg.save(path)
+	return true
 
 
 ## The command that starts the setup wizard: ./setup, on Windows .\setup.ps1 (tools/windows/launch.ps1).
