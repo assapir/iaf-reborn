@@ -69,7 +69,7 @@ func build() -> void:
 	fixed = bool(m.get("fixed_loadout", false))
 	now = "" if fixed else fe._arm_now(m)
 	a = fe.arming(m, now)
-	fe._header(["hangar", fe.full_name(j), "training", [fe.title_of(m), "mission"], "tab_arming"])
+	fe._header(fe.section_crumbs() + [[fe.title_of(m), "mission"], "tab_arming"])
 	_stage(j)
 	_loadouts()
 	_weight()

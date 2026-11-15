@@ -20,6 +20,7 @@ const Img := preload("res://shared/util/img.gd")
 const KeyTable := preload("res://shared/controls/key_table.gd")
 const BriefingPage := preload("res://menu/briefing_page.gd")
 const LoadoutScreen := preload("res://menu/loadout_screen.gd")
+const MissionList := preload("res://shared/mission/mission_list.gd")
 const Turntable := preload("res://shared/aircraft/turntable.gd")
 const AircraftModel := preload("res://shared/aircraft/aircraft_model.gd")
 
@@ -95,10 +96,13 @@ const PREFS := [
 		]
 	],
 ]
+## The Missions screen's sections (front-end.md §2, the user's menu flow of 15 Nov): [id, the missions' `category`]; a
+## section without missions is greyed, Fly now (no category: random missions and dogfights later) always.
+const SECTIONS := [["training", "training"], ["campaign", "campaign"], ["single", "single"], ["fly_now", ""]]
 ## The screen each breadcrumb opens (_header).
 const CRUMB_PAGES := {
 	"hangar": "hangar",
-	"training": "mission",
+	"missions": "missions",
 	"preferences": "prefs",
 	"devices": "prefs",  # the Keys and Joystick screens' crumb: the Preferences on their section
 	"pilot_log": "log",
@@ -107,13 +111,15 @@ const CRUMB_PAGES := {
 	"credits": "credits"
 }
 ## The screens that show the picked jet: the Hangar opens in their place before the first pick.
-const NEEDS_JET := ["mission", "arming"]
+const NEEDS_JET := ["missions", "section", "mission", "arming"]
 ## Esc on each screen goes here (the Hangar's: the Quit prompt).
 const BACK := {
-	"mission": "hangar",
+	"missions": "hangar",
+	"section": "missions",
+	"mission": "section",
 	"arming": "mission",
 	"prefs": "hangar",
-	"debrief": "hangar",
+	"debrief": "section",
 	"log": "pilot",
 	"credits": "hangar",
 	"pilot": "hangar",
@@ -128,7 +134,9 @@ var screen := ""
 var page := ""
 var strings := {}
 var setup_strings := {}
-## The jet's training missions (readable mission files), the one picked, and the debrief record shown.
+## The Missions screen's section open (SECTIONS), its missions as the Hangar's jet flies them (section_missions), the
+## one picked, and the debrief record shown.
+var section := "training"
 var missions: Array = []
 var mission_i := 0
 var record := {}
@@ -291,7 +299,7 @@ func show_page(p: String) -> void:
 		var was := {} if creating else profile()
 		draft = {"name": str(was.get("name", "")), "nickname": str(was.get("nickname", "")), "picture": ""}
 	if not jet().is_empty():
-		missions = jet_missions(jet().unit)
+		missions = section_missions(section)
 		mission_i = clampi(mission_i, 0, maxi(missions.size() - 1, 0))
 	call("_page_" + p)
 	if flight != null:
@@ -454,12 +462,12 @@ func _body(inline := 96, top := 112, bottom := 112) -> MarginContainer:
 
 ## The Hangar (front-end.md §1, the user's A25, 2026-11-13): the sim's first screen, in place of Home, Pick a plane and
 ## the jet's Training page. The jets at the inline start, the picked one turning in 3D in the middle with its full
-## name faint behind it, its card at the inline end: the squadron and base, facts, the training's progress, Missions
-## and campaign (greyed) and Fly. The jet picked is the one flown or picked last, else the first (no jet unpicked).
+## name faint behind it, its card at the inline end: the squadron and base, facts, the training's progress and Fly,
+## which opens the Missions screen. The jet picked is the one flown or picked last, else the first (no jet unpicked).
 func _page_hangar() -> void:
 	if jet().is_empty():
 		_pick_jet_quiet(JETS[0])
-		missions = jet_missions(JETS[0].unit)
+		missions = section_missions(section)
 	var j := jet()
 	# The floor: the roundel blue lit under the jet, fading into the page.
 	var floor_g := Gradient.new()
@@ -647,9 +655,10 @@ func jet_stores(j: Dictionary, lo = null) -> Dictionary:
 	return out
 
 
-## The picked jet's card: its name, squadron and base, its facts, the training's progress, Missions and campaign
-## (greyed until the sim has them, no text on why) and Fly, which opens the training's missions and briefing.
+## The picked jet's card: its name, squadron and base, its facts, the training's progress and Fly, which opens the
+## Missions screen.
 func _jet_card(j: Dictionary) -> void:
+	var training := section_missions("training")
 	var card := PanelContainer.new()
 	card.name = "JetCard"
 	add_child(card)
@@ -680,38 +689,31 @@ func _jet_card(j: Dictionary) -> void:
 	tbox.add_theme_stylebox_override("panel", Look.box(Color(0, 0, 0, 0), Look.LINE, 1, 6, Vector2(16, 14)))
 	v.add_child(tbox)
 	var tv := _vbox(tbox, 8)
-	if missions.is_empty():
+	if training.is_empty():
 		# No missions (the sim's data not built): what is missing and the setup command, in place of the progress.
 		_setup_note(tv)
 	var th := _hbox(tv, 10)
-	th.visible = not missions.is_empty()
-	_label(th, s("training"), "Strong")
+	th.visible = not training.is_empty()
+	_label(th, s("sec_training"), "Strong")
 	_spacer(th)
-	var passed := 0
-	for m in missions:
-		passed += 1 if status(m) == 1 else 0
-	_label(th, s("passed_of") % [passed, missions.size()], "Small").size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var passed := passed_count(training)
+	_label(th, s("passed_of") % [passed, training.size()], "Small").size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	var bar := ProgressBar.new()
 	bar.show_percentage = false
 	bar.custom_minimum_size.y = 8
-	bar.max_value = maxi(missions.size(), 1)
+	bar.max_value = maxi(training.size(), 1)
 	bar.value = passed
 	tv.add_child(bar)
 	bar.visible = th.visible
-	var last := _label(tv, last_flight(), "Small")
+	var last := _label(tv, last_flight(j), "Small")
 	last.name = "LastFlight"
 	last.visible = th.visible
-	var camp := _soon(v, s("campaign"), "Secondary")
-	camp.name = "Campaign"
-	camp.tooltip_text = ""
-	camp.custom_minimum_size.y = 56
-	camp.modulate = Color(1, 1, 1, 0.45)
-	var go := _button(v, s("fly"), "Fly", func(): show_page("mission"))
+	var go := _button(v, s("fly"), "Fly", func(): show_page("missions"))
 	go.name = "Fly"
 	go.custom_minimum_size.y = 76
 	_focus = go
-	if missions.is_empty():
-		# Disabled, drawn dim (its plain box, as Missions and campaign) and out of the focus: the picked jet takes it.
+	if training.is_empty():
+		# Disabled, drawn dim (its plain box) and out of the focus: the picked jet takes it.
 		go.disabled = true
 		go.focus_mode = Control.FOCUS_NONE
 		go.add_theme_stylebox_override("disabled", go.get_theme_stylebox("normal"))
@@ -734,12 +736,16 @@ func jet_facts(j: Dictionary) -> Array:
 	]
 
 
-## The last flight on the picked jet (its `missions`): "Last: Take-off · Pass · 13 Nov 2026", or that none was flown.
-func last_flight() -> String:
-	var ids := missions.map(func(m): return int(m.menu_id))
+## The last flight on jet `j` (a sortie's `plane`; one stored without it: its mission's own jet): "Last: Take-off ·
+## Pass · 13 Nov 2026", or that none was flown.
+func last_flight(j: Dictionary) -> String:
 	for i in range(sorties().size() - 1, -1, -1):
 		var a: Dictionary = sorties()[i]
-		if int(a.mission_id) in ids:
+		var plane := str(a.get("plane", ""))
+		if plane != "" and plane != j.unit:
+			continue
+		var m := mission_by_id(int(a.mission_id))
+		if not m.is_empty() and (plane != "" or str(jet_of(m).get("unit", "")) == j.unit):
 			var r := s("pass" if int(a.result) == 1 else "fail")
 			return s("last_flight") % [mission_title(int(a.mission_id)), r, day_text(str(a.date))]
 	return s("not_flown")
@@ -767,20 +773,172 @@ func full_name(j: Dictionary) -> String:
 	return "%s%s %s" % [RLM if he() else "", j.code, s(j.name)]
 
 
-# --- Pick a mission ---------------------------------------------------------------------------------------------------
+# --- Missions --------------------------------------------------------------------------------------------------------
 
 
-func _page_mission() -> void:
+## The crumbs to a section's screens: Hangar · the jet (the Missions screen) · the section (its list).
+func section_crumbs() -> Array:
+	return ["hangar", [full_name(jet()), "missions"], [s("sec_" + section), "section"]]
+
+
+## The Missions screen (front-end.md §2, the user's menu flow of 15 Nov): a card per section (SECTIONS) with what it
+## holds and the pilot's progress in it; a section without missions greyed, out of the focus and without a click.
+## Enter or a click opens the section's list.
+func _page_missions() -> void:
 	var j := jet()
-	if missions.is_empty():
-		_header(["hangar", full_name(j), "training"])
-		var left := _vbox(_body(96, 112, 120), 30)
-		_title(left, s("training"), subtitle(j))
-		_setup_note(left).custom_minimum_size.x = 900
+	_header(["hangar", full_name(j), "missions"])
+	var v := _vbox(_body(96, 130, 120), 34)
+	_title(v, s("missions"), s("flown_in") % full_name(j))
+	var row := _hbox(v, 28)
+	row.name = "Sections"
+	row.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	var cards := []
+	for sec in SECTIONS:
+		var list := section_missions(sec[1]) if sec[1] != "" else []
+		var b := Button.new()
+		b.name = "Section_" + sec[0]
+		b.theme_type_variation = "Card"
+		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		b.custom_minimum_size.y = 420
+		b.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+		row.add_child(b)
+		var cv := _vbox(_margin(b, 32, 30), 14)
+		cv.get_parent().set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		var h3 := _label(cv, "%02d" % (SECTIONS.find(sec) + 1), "Num")
+		h3.add_theme_font_size_override("font_size", 36)
+		_label(cv, s("sec_" + sec[0]), "H2")
+		var d := _text(cv, s("sec_%s_d" % sec[0]), "Muted")
+		d.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		if not list.is_empty():
+			var passed := passed_count(list)
+			_label(cv, s("passed_of") % [passed, list.size()], "Small")
+			var bar := ProgressBar.new()
+			bar.show_percentage = false
+			bar.custom_minimum_size.y = 8
+			bar.max_value = list.size()
+			bar.value = passed
+			cv.add_child(bar)
+		for c in b.find_children("*", "Control", true, false):
+			c.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		if list.is_empty():
+			# Not built yet: greyed, no click, no focus and no word on why (as the Hangar's coming jets).
+			b.disabled = true
+			b.focus_mode = Control.FOCUS_NONE
+			b.add_theme_stylebox_override("disabled", b.get_theme_stylebox("normal"))
+			b.modulate = Color(1, 1, 1, 0.42)
+		else:
+			b.pressed.connect(open_section.bind(sec[0]))
+			cards.append(b)
+			if sec[0] == section or _focus == null:
+				_focus = b
+	if cards.is_empty():
+		# The sim's data not built: what is missing and the setup command.
+		_setup_note(v).custom_minimum_size.x = 900
 		_focus = find_child("Crumb_hangar", true, false)
 		return
+	_chain(cards)
+
+
+## Opens section `id`'s list.
+func open_section(id: String) -> void:
+	section = id
+	show_page("section")
+
+
+## A section's list (front-end.md §2): its missions in order as the Hangar's jet flies them, each with its number,
+## title, base and what it trains, and the pilot's last result (passed with the best time, failed, not flown). The
+## next one to fly (MissionList.after_last_flown; all flown: the first not passed) is marked and takes the focus;
+## Enter or a click opens its briefing.
+func _page_section() -> void:
+	if missions.is_empty():
+		show_page("missions")
+		return
+	var j := jet()
+	_header(section_crumbs().slice(0, 2) + ["sec_" + section])
+	var body := _body(96, 130, 120)
+	var v := _vbox(body, 26)
+	v.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	v.custom_minimum_size.x = 1180
+	_title(
+		v,
+		s("sec_" + section),
+		"%s · %s" % [s("passed_of") % [passed_count(missions), missions.size()], s("flown_in") % full_name(j)]
+	)
+	var scroll := ScrollContainer.new()
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	v.add_child(scroll)
+	var list := _vbox(scroll, 10)
+	list.name = "List"
+	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var next := next_index()
+	var rows := []
+	for i in missions.size():
+		var m: Dictionary = missions[i]
+		var b := Button.new()
+		b.name = "Mission%d" % (i + 1)
+		b.theme_type_variation = "JetRow"
+		b.custom_minimum_size.y = 96
+		b.toggle_mode = true
+		b.button_pressed = i == next  # the next one tinted as a picked jet
+		b.pressed.connect(open_mission.bind(i))
+		list.add_child(b)
+		var h := _hbox(_margin(b, 24, 12), 22)
+		h.get_parent().set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		var n := _label(h, str(i + 1), "Num")
+		n.custom_minimum_size.x = 56
+		n.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		var tv := _vbox(h, 0)
+		tv.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		tv.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		_label(tv, title_of(m), "JetName")
+		var base := str(m.get("start", {}).get("base", "")).to_lower().replace(" ", "_")
+		_label(tv, "%s · %s" % [s("base_" + base), s("desc_" + kind(m))], "Small")
+		if i == next:
+			_chip(h, s("next_up"), true).name = "NextUp"
+		var st := status(m)
+		var chip := _hbox(h, 0)
+		chip.custom_minimum_size.x = 190
+		chip.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		if st < 0:
+			_label(chip, s("not_flown"), "Small").name = "Status"
+		else:
+			var t := s("pass" if st == 1 else "fail")
+			if st == 1 and best_time(m) > 0:
+				t += " · " + clock(best_time(m))
+			_chip(chip, t, st == 1).name = "Status"
+		for c in b.find_children("*", "Control", true, false):
+			c.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		rows.append(b)
+	_chain(rows)
+	for i in rows.size():
+		_nb(rows[i], {"left": rows[i], "right": rows[i]})
+	_focus = rows[next]
+
+
+## The section's mission to fly next: the one after the last one flown (MissionList.after_last_flown); when the last
+## one was flown, the first one not passed, else the first.
+func next_index() -> int:
+	var ids := missions.map(func(m): return int(m.menu_id))
+	var id := MissionList.after_last_flown(ids, func(i): return status(missions[ids.find(i)]) >= 0)
+	if id != 0:
+		return ids.find(id)
+	return maxi(missions.map(func(m): return status(m) == 1).find(false), 0)
+
+
+## Mission `i` of the section: its briefing.
+func open_mission(i: int) -> void:
+	mission_i = i
+	show_page("mission")
+
+
+## The briefing of the mission picked (briefing_page.gd): its map, what it is for and how to fly it; Arming and Fly.
+func _page_mission() -> void:
+	if missions.is_empty():
+		show_page("missions")
+		return
 	var m: Dictionary = missions[mission_i]
-	_header(["hangar", full_name(j), "training", title_of(m)])
+	_header(section_crumbs() + [title_of(m)])
 	BriefingPage.build(self, m)
 
 
@@ -923,20 +1081,14 @@ func _keycap(parent: Control, key: String) -> Control:
 	return cap
 
 
-func _pick_mission(i: int) -> void:
-	mission_i = i
-	show_page("mission")
-	_focus = find_child("Mission%d" % (i + 1), true, false)
-	if _focus != null:
-		_grab.call_deferred(_focus)
-
-
-## Fly: the mission's flight scene (flight/fly.gd), with the ground preloaded on this page (_preload_ground).
+## Fly: the mission's flight scene (flight/fly.gd) in the Hangar's jet (`m` is the mission as it flies it), with the
+## ground preloaded on this page (_preload_ground).
 func fly_mission(m: Dictionary) -> void:
-	if Fly.prepare(int(m.menu_id)):
+	var unit := str(m.get("start", {}).get("unit", ""))
+	if Fly.prepare(int(m.menu_id), unit):
 		TerrainPreload.fly(get_tree())
 	else:
-		Fly.start(int(m.menu_id))  # the crash page says what is missing
+		Fly.start(int(m.menu_id), unit)  # the crash page says what is missing
 
 
 func _process(_delta: float) -> void:
@@ -953,7 +1105,8 @@ func _preload_ground() -> void:
 	var id := -1
 	if page in ["mission", "arming"] and flight == null and mission_i < missions.size():
 		id = int(missions[mission_i].menu_id)
-	_preload = TerrainPreload.follow(get_tree(), _preload, Vector2i(id, Settings.player_flight), Fly.prepare)
+	var ready := func(i: int) -> bool: return Fly.prepare(i, Settings.sim_jet)
+	_preload = TerrainPreload.follow(get_tree(), _preload, Vector2i(id, Settings.player_flight), ready)
 
 
 # --- Preferences ------------------------------------------------------------------------------------------------------
@@ -1666,12 +1819,17 @@ func open_debrief(id: int) -> bool:
 
 
 func _page_debrief() -> void:
-	var m := mission_by_name(str(record.get("mission", "")))
+	# The mission as flown: in the record's jet (its `plane`; a record from before it: the mission's own).
+	var m := Fly.for_jet(mission_by_name(str(record.get("mission", ""))), str(record.get("plane", "")))
 	var j := jet_of(m)
 	var bg := _photo(self, str(JET_PHOTOS[j.get("name", "sufa")]).replace(".jpg", "_blur.jpg"))
 	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	bg.modulate = Color(0.55, 0.57, 0.6)
-	_header(["hangar", full_name(j), "training", "debrief"])
+	var cat := str(m.get("category", ""))
+	var sec: Array = SECTIONS.filter(func(x): return x[1] != "" and x[1] == cat)
+	if not sec.is_empty():
+		section = sec[0][0]
+	_header(["hangar", [full_name(j), "missions"], [s("sec_" + section), "section"], "debrief"])
 	var sheet := PanelContainer.new()
 	sheet.name = "Sheet"
 	sheet.add_theme_stylebox_override("panel", Look.box(Look.PAPER, Look.PAPER, 0, 5, Vector2.ZERO))
@@ -1780,10 +1938,17 @@ func _page_debrief() -> void:
 		_rule(rem, Look.RULE)
 	var back := _action(s("back_missions"), "Secondary", func(): back_to_missions(m))
 	back.name = "BackMissions"
-	var again := _action(s("fly_again"), "Primary", func(): fly_again(m))
+	var again := _action(s("fly_again"), "Secondary" if next_of(m) != 0 else "Primary", func(): fly_again(m))
 	again.name = "FlyAgain"
 	again.disabled = m.is_empty()
 	_focus = again
+	var acts := [back, again]
+	# Next mission: the next one of the section (MissionList.next_in), none after its last one.
+	if next_of(m) != 0:
+		var nx := _action(s("next_mission"), "Primary", func(): next_mission(m))
+		nx.name = "NextMission"
+		acts.append(nx)
+		_focus = nx
 	# The flight's recording (the record's `flight`, sim_flight.gd _finish) saved where the player picks (FileExport,
 	# reborn's debrief Export flight data); greyed and skipped by the focus when the file is gone.
 	var flight_file := str(record.get("flight", ""))
@@ -1795,7 +1960,7 @@ func _page_debrief() -> void:
 		export.mouse_default_cursor_shape = Control.CURSOR_FORBIDDEN
 		# Its kind's plain box, the text greyed (as _soon: the theme gives the disabled state no box).
 		export.add_theme_stylebox_override("disabled", _theme.get_stylebox("normal", "Secondary"))
-	_footer("", [back, again], false, [export])
+	_footer("", acts, false, [export])
 
 
 ## The remark the goals give: the lift-off speed against the reference.
@@ -1810,22 +1975,50 @@ func remarks() -> Array:
 	return [s("remark_above" if d >= 0 else "remark_below") % value_text({"value": absf(d), "unit": "kt"})]
 
 
-## Back to missions: the flown mission's jet and the mission itself picked.
+## Back to missions: the list of the flown mission's section (its category) with the jet flown picked.
 func back_to_missions(m: Dictionary) -> void:
-	var j := jet_of(m)
-	if not j.is_empty() and j.unit != Settings.sim_jet:
-		_pick_jet_quiet(j)
-	var list := jet_missions(Settings.sim_jet)
-	mission_i = maxi(list.map(func(x): return x.get("id", "")).find(m.get("id", "")), 0)
-	show_page("mission")
+	_to_section(m)
+	show_page("section")
 
 
-## Fly again: the flown mission's briefing as picked from the list (its jet, the Briefing page), Fly focused.
+## Fly again: the flown mission's briefing in the jet flown, Fly focused.
 func fly_again(m: Dictionary) -> void:
-	back_to_missions(m)
+	_to_section(m)
+	open_mission(maxi(_index_of(int(m.get("menu_id", 0))), 0))
 	_focus = find_child("Fly", true, false)
 	if _focus != null:
 		_grab.call_deferred(_focus)
+
+
+## Next mission: the briefing of the mission after `m` in its section (next_of).
+func next_mission(m: Dictionary) -> void:
+	var id := next_of(m)
+	_to_section(m)
+	open_mission(maxi(_index_of(id), 0))
+
+
+## The menu id of the mission after `m` in its section's order (MissionList.next_in), 0 after the last one.
+func next_of(m: Dictionary) -> int:
+	if m.is_empty():
+		return 0
+	var ids := section_missions(str(m.get("category", ""))).map(func(x): return int(x.menu_id))
+	return MissionList.next_in(ids, int(m.get("menu_id", 0)))
+
+
+## The jet `m` was flown in picked (the Hangar's) and its section open, the list loaded.
+func _to_section(m: Dictionary) -> void:
+	var j := jet_of(m)
+	if not j.is_empty() and j.unit != Settings.sim_jet:
+		_pick_jet_quiet(j)
+	for sec in SECTIONS:
+		if sec[1] != "" and sec[1] == str(m.get("category", "")):
+			section = sec[0]
+	missions = section_missions(section)
+
+
+## The index of menu id `id` in the section's list, -1 without it.
+func _index_of(id: int) -> int:
+	return missions.map(func(x): return int(x.menu_id)).find(id)
 
 
 func _pick_jet_quiet(j: Dictionary) -> void:
@@ -2027,6 +2220,11 @@ func back() -> void:
 	if page == "hangar":
 		modal(s("quit_q"), "", s("quit"), func(): Settings.quit())
 		return
+	if page == "debrief":
+		var bm := find_child("BackMissions", true, false)
+		if bm != null:
+			bm.pressed.emit()  # the section's list in the jet flown, as the button
+			return
 	var to: String = BACK.get(page, "")
 	if to != "":
 		show_page(to)
@@ -2035,17 +2233,26 @@ func back() -> void:
 # --- data -------------------------------------------------------------------------------------------------------------
 
 
-## The jet's training missions: the compiled list (iaf-sim missions) read from their readable files
-## (res://data/missions), the player's unit `unit`, by menu id.
-func jet_missions(unit: String) -> Array:
+## A section's missions (their `category`; "" none): the compiled list (iaf-sim missions) read from their readable
+## files (res://data/missions), by menu id, each as the Hangar's jet flies it (Fly.for_jet: the missions are shared by
+## the jets).
+func section_missions(category: String) -> Array:
+	if category == "":
+		return []
 	var list := Settings.load_json(Settings.converted(Settings.missions_folder().path_join("missionlist.json")))
+	var all := Fly.readable_missions()
 	var out := []
 	for id in list:
 		var m := Settings.load_json("res://data/missions/%s.json" % str(list[id][0]))
-		if str(m.get("start", {}).get("unit", "")) == unit and m.has("training"):
-			out.append(m)
+		if str(m.get("category", "")) == category:
+			out.append(Fly.for_jet(m, Settings.sim_jet, all))
 	out.sort_custom(func(a, b): return int(a.menu_id) < int(b.menu_id))
 	return out
+
+
+## How many of `list` the pilot passed (their last result).
+func passed_count(list: Array) -> int:
+	return list.filter(func(m): return status(m) == 1).size()
 
 
 func mission_by_name(name: String) -> Dictionary:
@@ -2193,21 +2400,6 @@ func spy(scroll: ScrollContainer, tabs: Array, heads: Array) -> void:
 			if tabs.has(scroll.get_viewport().gui_get_focus_owner()):
 				tabs[on].grab_focus()  # the focus box on the lit tab, not on another
 	)
-
-
-## A button for what the sim does not have yet (the campaign): greyed, "coming" as its tooltip, no focus.
-func _soon(parent: Node, t: String, kind_name: String) -> Button:
-	var b := Button.new()
-	b.text = t
-	b.theme_type_variation = kind_name
-	b.disabled = true
-	b.focus_mode = Control.FOCUS_NONE
-	b.tooltip_text = s("coming")
-	b.mouse_default_cursor_shape = Control.CURSOR_FORBIDDEN
-	parent.add_child(b)
-	# Its kind's plain box (the themes give the disabled state none, or a lit one), the text greyed.
-	b.add_theme_stylebox_override("disabled", b.get_theme_stylebox("normal"))
-	return b
 
 
 func _button(parent: Node, t: String, kind_name: String, on: Callable) -> Button:

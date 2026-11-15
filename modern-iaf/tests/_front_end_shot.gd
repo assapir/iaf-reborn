@@ -4,11 +4,12 @@
 # Writes SHOT_DIR/<screen>_<lang>.png (the Preferences: prefs_<section>_*; the Pilot screens: _pilot) at 1920×1080 (the
 # front end in a viewport of that size, whatever the window's) with the sample pilot log and debrief of
 # test_front_end.gd (debrief_fail: its take-off with the gear never raised; fly_again: the debrief's Fly again).
-# SHOT_ONLY=<screen> takes that screen alone (e.g. SHOT_ONLY=hangar). nodata_hangar / nodata_mission: a fresh install
+# SHOT_ONLY=<screens> takes those alone (comma-separated, e.g. SHOT_ONLY=missions,section); SHOT_SIZE=1280x720
+# renders at that size (the 1920 × 1080 canvas scaled to it). nodata_hangar / nodata_missions: a fresh install
 # (IAF_ASSETS_DIR an empty folder for those two).
 extends "res://../tests/godot/base.gd"
 
-const SCREENS := ["hangar", "mission", "debrief", "debrief_fail", "fly_again", "log", "credits"]
+const SCREENS := ["hangar", "missions", "section", "mission", "debrief", "debrief_fail", "fly_again", "log", "credits"]
 
 
 func run() -> void:
@@ -20,7 +21,11 @@ func run() -> void:
 	var ids: Dictionary = load("res://tests/test_front_end.gd").fixture(s)
 	s.sim_jet = "f16i"
 	var vp := SubViewport.new()
-	vp.size = Vector2i(1920, 1080)
+	var size := OS.get_environment("SHOT_SIZE").split("x")
+	vp.size = Vector2i(int(size[0]), int(size[1])) if size.size() == 2 else Vector2i(1920, 1080)
+	vp.size_2d_override = Vector2i(1920, 1080)
+	vp.size_2d_override_stretch = true
+	vp.oversampling_override = vp.size.y / 1080.0
 	vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	root.add_child(vp)
 	var fe: Control = load("res://main.tscn").instantiate()
@@ -36,7 +41,7 @@ func run() -> void:
 			await frames(10)
 			var gp: String = dir.path_join("prefs_%s_%s.png" % [g, lang])
 			check(vp.get_texture().get_image().save_png(gp) == OK, "saved " + gp)
-		for p in [only] if only != "" else SCREENS:
+		for p in Array(only.split(",")) if only != "" else SCREENS:
 			if p == "debrief":
 				fe.open_debrief(ids.pass)
 			elif p == "debrief_fail":
@@ -46,6 +51,7 @@ func run() -> void:
 				await frames(2)
 				fe.find_child("FlyAgain", true, false).pressed.emit()
 			else:
+				fe.section = "training"
 				fe.mission_i = 1
 				fe.show_page(p)
 			await frames(10)
@@ -98,7 +104,7 @@ func _no_data(fe: Control, vp: SubViewport, dir: String, lang: String) -> void:
 	OS.set_environment("IAF_ASSETS_DIR", empty)
 	settings().sim_jet = "f16i"
 	settings().pilot_name = "נועה גולן" if lang == "he" else "Noa Golan"  # _pilot left no profile
-	for p in ["hangar", "mission"]:
+	for p in ["hangar", "missions"]:
 		fe.show_page(p)
 		await _shot(vp, dir, "nodata_%s_%s" % [p, lang])
 	if was != "":

@@ -3,6 +3,17 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **The menu flow (2026-11-15, the front-end finish list's M, [front-end.md](front-end.md) §1, §2):** the Hangar's Fly
+  opens a Missions screen with the sections Training, Campaign, Single missions and Fly now (a section without
+  missions greyed, no click, no focus; Fly now greyed until random missions and dogfights come); a section opens its
+  list with each mission's last result (Pass with the best time, Fail, Not flown yet) and the next one to fly marked
+  and focused; a row opens its briefing (no mission tabs on it any more), whose Back returns to the list; Arming
+  returns to the briefing; the debrief has Next mission, Fly again and Back to missions. The missions are one list for
+  every jet: each is flown in the Hangar's jet (the player's slot takes its unit; a training mission takes the jet's
+  own checklist, weights and texts from that jet's own start-up or take-off, at the mission's place). The list's
+  progression logic is shared with reborn (`shared/mission/mission_list.gd`). Today Training holds the six missions;
+  Campaign and Single missions wait for their missions. Open: the jet's lesson merge (`fly.gd` `for_jet`) is
+  GDScript, written while no Rust build was possible; by the Rust-first rule it moves into `iaf-sim` / `IafBriefing`.
 - **The Loadout screen (2026-11-14, the front-end finish list's F3, [front-end.md](front-end.md) §10.1):** Arming on
   the briefing opens a screen of its own: the jet seen from beneath (the Hangar's live model, the camera under it, the
   F-35I's bays open) with a callout per station (number, place on the wing, store, weight; an empty one dashed) and

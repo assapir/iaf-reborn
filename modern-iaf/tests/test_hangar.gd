@@ -1,8 +1,8 @@
 # Modern IAF's Hangar (modern-iaf/docs/front-end.md §12), headless, in English and Hebrew: the first screen; the jets'
 # full names, the F-15s greyed and out of reach, the jet flown last picked (else the first), a click picking another
-# (Settings.sim_jet, the F-16 switch) with its card and its model; the card's facts and training; Missions and campaign
-# greyed; the Settings in the top bar; the focus order by Tab and the arrows; the mirrored layout in Hebrew; Fly
-# opening the jet's missions with the Hangar crumb back; Esc on the Hangar asking to quit; the jet's view standing still
+# (Settings.sim_jet, the F-16 switch) with its card and its model; the card's facts and training; the Settings in the
+# top bar; the focus order by Tab and the arrows; the mirrored layout in Hebrew; Fly opening the Missions screen with
+# the Hangar crumb back; Esc on the Hangar asking to quit; the jet's view standing still
 # when left alone, a drag orbiting it within the limits, the wheel and keys zooming within theirs, the arrows orbiting
 # with the focus, a double click resetting it; the turntable rendering only while shown; a fresh install (an empty
 # assets folder): what is missing and the setup command, Fly dim and out of the focus, the still picture with no model
@@ -93,11 +93,10 @@ func walk(fe: Control, lang: String) -> void:
 		check(not _has_part(card, t), "%s: no %s on the card" % [lang, t])
 	if he:
 		await _code_first(fe, "the Hangar")
-	check(_has_part(card, "2 מתוך 2" if he else "2 of 2 passed"), "%s: the training's progress" % lang)
+	check(_has_part(card, "2 מתוך 6" if he else "2 of 6 passed"), "%s: the training's progress" % lang)
 	var last: Label = fe.find_child("LastFlight", true, false)
 	check(last.text.contains("המראה" if he else "Take-off"), "%s: the last flight: %s" % [lang, last.text])
-	var camp: Button = fe.find_child("Campaign", true, false)
-	check(camp.disabled and camp.focus_mode == Control.FOCUS_NONE and camp.tooltip_text == "", lang + ": campaign")
+	check(fe.find_child("Campaign", true, false) == null, lang + ": no campaign button (the Missions screen has it)")
 	var gear: Button = fe.find_child("Settings", true, false)
 	check(gear != null and gear.text == ("הגדרות" if he else "Settings"), "%s: the Settings in the top bar" % lang)
 	check(_has(fe, "קרדיטים ורישיונות" if he else "Attributions"), "%s: Attributions at the foot" % lang)
@@ -131,23 +130,23 @@ func walk(fe: Control, lang: String) -> void:
 	check(_facts(fe.find_child("JetCard", true, false)) == fact_labels, "%s: the Adir's facts the same" % lang)
 	if he:
 		await _code_first(fe, "the Adir")
-	# Fly: the jet's missions and briefing; its Hangar crumb back.
+	# Fly: the Missions screen; its Hangar crumb back.
 	s.sim_jet = "f16i"
 	fe.show_page("hangar")
 	await frames(1)
 	(fe.find_child("Fly", true, false) as Button).pressed.emit()
 	await frames(2)
-	check(fe.page == "mission" and fe.find_child("Mission1", true, false) != null, "%s: Fly opens the missions" % lang)
+	check(fe.page == "missions" and fe.find_child("Section_training", true, false) != null, "%s: Fly: Missions" % lang)
 	check(_has(fe, names[0]), "%s: the crumbs name the jet" % lang)
 	if he:
 		await _code_first(fe, "the missions")
 	(fe.find_child("Crumb_hangar", true, false) as Button).pressed.emit()
 	await frames(2)
 	check(fe.page == "hangar", "%s: the Hangar crumb goes back" % lang)
-	fe.show_page("mission")
+	fe.show_page("missions")
 	key(fe, KEY_ESCAPE)
 	await frames(2)
-	check(fe.page == "hangar", "%s: Esc on the missions: the Hangar" % lang)
+	check(fe.page == "hangar", "%s: Esc on the Missions screen: the Hangar" % lang)
 
 
 ## The focus order (F1): Tab from Fly through Attributions, Settings, the pilot, the three jets and back to Fly; Down

@@ -68,6 +68,10 @@ var mission_name := ""
 var rules := {}
 ## The jet the mission flies (its readable file's start.unit: f16i, f16d, f35i), stored with the sortie.
 var plane := ""
+## The readable mission as flown (fly.gd for_jet: the compiled data's `readable` when another jet flies it, else its
+## file) and the file IafTraining reads it from (the flight's own copy then, beside the records).
+var readable := {}
+var _readable_file := ""
 ## The debrief record once scored ({} before), and its sortie in the records database (0 before).
 var result := {}
 var sortie := 0
@@ -135,7 +139,16 @@ func _ready() -> void:
 		var rwy = sim.get("runway")
 		host.radio.runway = rwy if rwy is String else ""
 		# The runway is the mission's base's (its readable file's start.base, an English base name).
-		var readable := Settings.load_json("res://data/missions/%s.json" % files[0].name)
+		readable = files[0].data.get("readable", {})
+		_readable_file = ProjectSettings.globalize_path("res://data/missions/%s.json" % files[0].name)
+		if readable.is_empty():
+			readable = Settings.load_json(_readable_file)
+		else:
+			_readable_file = ProjectSettings.globalize_path(_dir().path_join("flown-mission.json"))
+			var f := FileAccess.open(_readable_file, FileAccess.WRITE)
+			if f != null:
+				f.store_string(JSON.stringify(readable))
+				f.close()
 		var base_en := String(readable.get("start", {}).get("base", ""))
 		plane = String(readable.get("start", {}).get("unit", ""))
 		for sec in BASE_NAMES:
@@ -460,7 +473,7 @@ func _exit_tree() -> void:
 
 
 func _readable() -> String:
-	return ProjectSettings.globalize_path("res://data/missions/%s.json" % mission_name)
+	return _readable_file
 
 
 ## The recording so far against the mission's rules (IafTraining, the readable mission and the airbases of

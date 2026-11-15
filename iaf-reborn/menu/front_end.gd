@@ -160,6 +160,7 @@ const Img := preload("res://shared/util/img.gd")
 const TerrainPreload := preload("res://shared/terrain/terrain_preload.gd")
 const Tsd := preload("res://menu/tsd.gd")
 const Pilots := preload("res://menu/pilots.gd")
+const MissionList := preload("res://shared/mission/mission_list.gd")
 const ImageryLayers := preload("res://shared/terrain/imagery_layers.gd")
 const Scenery := preload("res://shared/terrain/scenery.gd")
 const PrefChoices := preload("res://shared/util/pref_choices.gd")
@@ -2349,16 +2350,10 @@ static func next_mission(id: int, passed: bool, history: Array = [], r := 0) -> 
 			return 321
 		511, 512, 513, 514, 515:
 			return 1
-	if (
-		(id >= 111 and id <= 116)
-		or (id >= 121 and id <= 126)
-		or (id >= 131 and id <= 136)
-		or (id >= 311 and id <= 314)
-		or (id >= 321 and id <= 325)
-	):
-		return id + 1
-	if (id >= 211 and id <= 216) or (id >= 221 and id <= 226) or (id >= 231 and id <= 236):
-		return id + 1 if passed else 0
+	# The wars' and courses' lists in order (shared/mission/mission_list.gd); a Future front gated by the pass.
+	for l in [[111, 116], [121, 126], [131, 136], [311, 314], [321, 325], [211, 216], [221, 226], [231, 236]]:
+		if id >= l[0] and id <= l[1]:
+			return MissionList.next_in(range(l[0], l[1] + 2), id, passed, l[0] > 200 and l[0] < 300)
 	return 0
 
 
@@ -2371,10 +2366,9 @@ static func next_mission(id: int, passed: bool, history: Array = [], r := 0) -> 
 ##   scramble mission there are 7 of them and 407 is never picked (as in the exe).
 static func scramble_mission(history: Array, current: int, r: int) -> int:
 	if Pilots.attempts(history, 407).is_empty():
-		for id in range(406, 400, -1):
-			if not Pilots.attempts(history, id).is_empty():
-				return id + 1
-		return 401
+		return MissionList.after_last_flown(
+			range(401, 408), func(id): return not Pilots.attempts(history, id).is_empty()
+		)
 	var open := range(401, 408).filter(func(id): return id != current and Pilots.passes(history, id) == 0)
 	if not open.is_empty():
 		return open[r % open.size()]

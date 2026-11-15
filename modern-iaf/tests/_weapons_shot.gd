@@ -70,10 +70,9 @@ func _from_front_end(id: String) -> Node:
 	change_scene_to_file("res://main.tscn")
 	await frames(5)
 	var fe: Control = current_scene
-	fe.show_page("mission")
+	fe.show_page("section")
 	await frames(3)
-	var list: Array = fe.jet_missions(unit)
-	fe._pick_mission(list.map(func(m): return str(m.id)).find(JETS[id][1] + "_takeoff"))
+	fe.open_mission(fe.missions.map(func(m): return str(m.id)).find(JETS[id][1] + "_takeoff"))
 	fe.show_page("arming")
 	await frames(10)
 	await _shot("arming_%s" % unit)
