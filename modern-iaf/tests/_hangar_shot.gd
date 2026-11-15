@@ -7,6 +7,7 @@
 # sample pilot log of test_front_end.gd. STILLS=1 also writes SHOT_DIR/still_<unit>.png, the jet alone on a clear
 # ground at 1920 × 1080 (the Hangar's still when a model does not load: data/hangar/<unit>.webp). Prints the
 # turntable's measured render time ("turntable ms"); COST_ONLY=1 stops after the first measurement (1920 × 1080).
+# YAW / YAW_HE, PITCH and ZOOM set the jet's view (turntable.gd's yaw, pitch, zoom; default its start view).
 extends "res://../tests/godot/base.gd"
 
 ## The turntable script, loaded once the autoloads exist (its model loader reads Settings).
@@ -40,10 +41,14 @@ func run() -> void:
 				s.sim_jet = unit
 				# Its nose toward the list, the inline start (the mock-ups').
 				turntable.yaw = _yaw(lang)
+				turntable._yaw_rtl = lang == "he"  # the turn given is this layout's (no reset to its start)
+				turntable.pitch = (
+					float(OS.get_environment("PITCH")) if OS.has_environment("PITCH") else turntable.PITCH_START
+				)
+				turntable.zoom = float(OS.get_environment("ZOOM")) if OS.has_environment("ZOOM") else 1.0
 				fe.show_page("hangar")
 				var tt: TextureRect = fe.find_child("Turntable", true, false)
 				check(tt != null and not tt.failed, "%s: the model loaded" % unit)
-				tt.turning = false
 				# A hidden app's window may report itself minimised: the pictures render the turntable anyway.
 				tt.vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 				tt.set_process(true)
@@ -77,21 +82,20 @@ func _cost(tt: TextureRect, vp: SubViewport, sz: Vector2i) -> void:
 	RenderingServer.viewport_set_measure_render_time(rid, true)
 	var ms := []
 	for on in [true, false, true, false, true, false]:
-		tt.turning = on
 		tt.vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS if on else SubViewport.UPDATE_DISABLED
 		await frames(10)
 		var cpu := 0.0
 		var t0 := Time.get_ticks_usec()
 		for i in 120:
-			tt._process(1.0 / 60.0)
+			if on:
+				tt.orbit(0.5, 0.0)  # the view moving, as under a drag
 			RenderingServer.force_draw(false)
 			vp.get_texture().get_image()
 			cpu += RenderingServer.viewport_get_measured_render_time_cpu(rid)
 		ms.append([(Time.get_ticks_usec() - t0) / 120000.0, cpu / 120])
-	tt.turning = false
 	tt.vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	turntable.yaw = _yaw("en")
-	tt._process(0.0)
+	tt.orbit(0.0, 0.0)
 	await frames(3)
 	var px: Vector2i = tt.vp.size
 	var with := [ms[0][0], ms[2][0], ms[4][0]]

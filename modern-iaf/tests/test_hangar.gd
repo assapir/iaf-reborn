@@ -2,9 +2,11 @@
 # full names, the F-15s greyed and out of reach, the jet flown last picked (else the first), a click picking another
 # (Settings.sim_jet, the F-16 switch) with its card and its model; the card's facts and training; Missions and campaign
 # greyed; the Settings in the top bar; the focus order by Tab and the arrows; the mirrored layout in Hebrew; Fly
-# opening the jet's missions with the Hangar crumb back; Esc on the Hangar asking to quit; the turntable rendering only
-# while shown; a fresh install (an empty assets folder): what is missing and the setup command, Fly dim and out of the
-# focus, the still picture with no model load tried.
+# opening the jet's missions with the Hangar crumb back; Esc on the Hangar asking to quit; the jet's view standing still
+# when left alone, a drag orbiting it within the limits, the wheel and keys zooming within theirs, the arrows orbiting
+# with the focus, a double click resetting it; the turntable rendering only while shown; a fresh install (an empty
+# assets folder): what is missing and the setup command, Fly dim and out of the focus, the still picture with no model
+# load tried.
 #   IAF_DEFAULT_SETTINGS=1 godot --headless --audio-driver Dummy --path modern-iaf \
 #     -s ../modern-iaf/tests/test_hangar.gd --log-file <temp>
 extends "res://../tests/godot/base.gd"
@@ -44,8 +46,9 @@ func run() -> void:
 	tt._update_mode()
 	check(
 		tt.vp.render_target_update_mode == SubViewport.UPDATE_ALWAYS and tt.is_processing(),
-		"the turntable renders and turns while it can be seen"
+		"the turntable renders while it can be seen"
 	)
+	await orbit(fe, tt)
 	tt.ignore_minimised = false
 	tt._update_mode()
 	check(tt.vp.render_target_update_mode == SubViewport.UPDATE_DISABLED, "minimised, the turntable renders nothing")
@@ -151,7 +154,7 @@ func walk(fe: Control, lang: String) -> void:
 ## from Fly stays; Up from Fly to Settings, Down from there to the picked jet; toward the inline end from a jet: Fly;
 ## Down from the last jet: Attributions.
 func _focus_order(fe: Control, lang: String) -> void:
-	var order := ["credits", "Settings", "PilotBlock", "sufa", "barak", "adir", "Fly"]
+	var order := ["credits", "Settings", "PilotBlock", "sufa", "barak", "adir", "Turntable", "Fly"]
 	var walked := []
 	for n in order:
 		walked.append(await _press(fe, KEY_TAB))
@@ -164,6 +167,69 @@ func _focus_order(fe: Control, lang: String) -> void:
 	(fe.find_child("adir", true, false) as Control).grab_focus()
 	check(await _press(fe, KEY_DOWN) == "credits", "%s: Down from the last jet: Attributions" % lang)
 	(fe.find_child("Fly", true, false) as Control).grab_focus()
+
+
+## The jet's view (shared/aircraft/turntable.gd): still when left alone; a drag orbits it (yaw all round, pitch within
+## its limits: the camera above, then below the jet), the wheel and + / − zoom within the limits, the arrows orbit with
+## the focus (which stays on it), a double click goes back to the start view.
+func orbit(fe: Control, tt: TextureRect) -> void:
+	var tts: GDScript = tt.get_script()
+	tt.reset_view()
+	check(is_equal_approx(tts.yaw, tts.START) and tts.pitch == tts.PITCH_START and tts.zoom == 1.0, "the start view")
+	await frames(20)
+	check(is_equal_approx(tts.yaw, tts.START) and tts.pitch == tts.PITCH_START, "left alone, the jet does not turn")
+	tt._gui_input(_drag(Vector2(100, 40)))
+	check(
+		(
+			is_equal_approx(tts.yaw, tts.START + 100 * tts.DRAG)
+			and is_equal_approx(tts.pitch, tts.PITCH_START + 40 * tts.DRAG)
+		),
+		"a drag turns the jet and raises the camera (%.1f, %.1f)" % [tts.yaw, tts.pitch]
+	)
+	tt._gui_input(_drag(Vector2(2000, 0)))
+	check(tts.yaw > -360.0 and tts.yaw < 360.0, "the turn goes all the way round (%.1f)" % tts.yaw)
+	tt._gui_input(_drag(Vector2(0, 5000)))
+	check(tts.pitch == tts.PITCH_MAX and tt._cam.position.y > 0.0, "dragged far down: the camera at its top limit")
+	tt._gui_input(_drag(Vector2(0, -5000)))
+	check(
+		tts.pitch == tts.PITCH_MIN and tt._cam.position.y < 0.0,
+		"dragged far up: the camera under the jet, at its limit"
+	)
+	var far: float = tt._cam.position.length()
+	for i in 30:
+		var w := InputEventMouseButton.new()
+		w.button_index = MOUSE_BUTTON_WHEEL_UP
+		w.pressed = true
+		tt._gui_input(w)
+	check(tts.zoom == tts.ZOOM_MIN and tt._cam.position.length() < far, "the wheel zooms in, to its limit")
+	tt.grab_focus()
+	for i in 30:
+		await _press(fe, KEY_MINUS)
+	check(tts.zoom == tts.ZOOM_MAX, "− zooms out, to its limit")
+	var y0: float = tts.yaw
+	check(await _press(fe, KEY_LEFT) == "Turntable" and not is_equal_approx(tts.yaw, y0), "with the focus, Left orbits")
+	var p0: float = tts.pitch
+	check(await _press(fe, KEY_UP) == "Turntable" and tts.pitch > p0, "with the focus, Up raises the camera")
+	var dbl := InputEventMouseButton.new()
+	dbl.button_index = MOUSE_BUTTON_LEFT
+	dbl.pressed = true
+	dbl.double_click = true
+	tt._gui_input(dbl)
+	check(
+		is_equal_approx(tts.yaw, tts.START) and tts.pitch == tts.PITCH_START and tts.zoom == 1.0,
+		"a double click: the start view"
+	)
+	tt._gui_input(_drag(Vector2(50, 20)))
+	await _press(fe, KEY_HOME)
+	check(is_equal_approx(tts.yaw, tts.START) and tts.pitch == tts.PITCH_START, "Home: the start view")
+
+
+## A mouse drag by `rel` with the left button held.
+func _drag(rel: Vector2) -> InputEventMouseMotion:
+	var e := InputEventMouseMotion.new()
+	e.button_mask = MOUSE_BUTTON_MASK_LEFT
+	e.relative = rel
+	return e
 
 
 ## Key `k` through the viewport, as a player presses it: the focus owner's name after it.

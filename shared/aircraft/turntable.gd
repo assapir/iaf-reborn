@@ -1,7 +1,11 @@
-# A jet turning slowly on a turntable, for the menus (Modern IAF's Hangar, modern-iaf/docs/front-end.md §12): the
-# flight's own model (AircraftModel.create: the same file, descriptor and gear-down ground pose) with its stores hung
-# as the flight hangs them (PlayerWeapons' store models, IafStores' slots, the lugged stores by their top), lit in a
-# world of its own. A mouse drag turns it by hand; the stick never does (the menus read no joypad axis, f331da69).
+# A jet on show in the menus (Modern IAF's Hangar, modern-iaf/docs/front-end.md §12): the flight's own model
+# (AircraftModel.create: the same file, descriptor and gear-down ground pose) with its stores hung as the flight hangs
+# them (PlayerWeapons' store models, IafStores' slots, the lugged stores by their top), lit in a world of its own. It
+# stands still; the player looks at it from any side: a mouse drag orbits the camera (all the way round, and from above
+# and below within PITCH_MIN..PITCH_MAX), the wheel, a trackpad's scroll or pinch zoom (ZOOM_MIN..ZOOM_MAX), a gamepad's
+# right stick orbits and its triggers zoom; with the focus the arrows (and the D-pad) orbit, + / − zoom; a double click,
+# 0, Home or the right stick's click go back to the start view. A caller sets the start view through the static `yaw`,
+# `pitch` and `zoom` before show_jet() (they carry over between pages, so the next jet is seen as the last one was).
 #
 # The SubViewport renders at the window's pixel size of this control (the front end lays out on a 1080-high canvas
 # scaled to the window, so a SubViewportContainer would render at the canvas size and blur on a large screen), and only
@@ -14,37 +18,55 @@ const PlayerWeapons := preload("res://shared/weapons/player_weapons.gd")
 const Stores := preload("res://shared/weapons/stores.gd")
 const Gltf := preload("res://shared/util/gltf.gd")
 
-## The slow turn, degrees a second, and the turn by hand, degrees per pixel dragged.
-const SPEED := 8.0
+## The orbit by hand: degrees per pixel dragged, per arrow key press, and a second at the gamepad stick's full push.
 const DRAG := 0.35
+const KEY_STEP := 6.0
+const STICK_SPEED := 120.0
+const STICK_DEAD := 0.2
 ## The camera: its field of view and its direction from the jet's centre (a three-quarter view from the front, a
 ## little above), the distance in the jet's half-diagonals.
 const FOV := 28.0
 const VIEW := Vector3(-1.0, 0.42, -1.05)
 const DISTANCE := 3.0
+## The camera's height over the jet's level, degrees: the start view's (VIEW's), and the limits (from beneath the
+## belly to almost straight down on the jet; the camera's up never flips).
+const PITCH_START := 16.15
+const PITCH_MIN := -45.0
+const PITCH_MAX := 80.0
+## The distance's factor: the limits (the jet filling the view to well inside the frame; at ZOOM_MIN the camera stays
+## out of the jet's bounding sphere), a wheel step's factor, and a second's at a full trigger.
+const ZOOM_MIN := 0.6
+const ZOOM_MAX := 1.6
+const ZOOM_STEP := 1.1
+const ZOOM_SPEED := 1.5
 ## The turn a first showing starts at: the nose toward the screen's left and a little toward the viewer (the menus'
 ## mock-ups: toward the jets' list), and in a right-to-left layout toward the right.
 const START := -20.0
 const START_RTL := 107.0
 
-## The turn now, degrees: kept between pages, so a jet picked next picks up where the last one stood (NAN: not shown
-## yet).
+## The view now: the jet's turn and the camera's height (degrees), the distance's factor. Kept between pages, so a jet
+## picked next is seen as the last one was (yaw NAN: not shown yet, the start view on the first showing).
 static var yaw := NAN
+static var pitch := PITCH_START
+static var zoom := 1.0
+## The layout `yaw` was set in: a switch of language turns the jet to the new layout's start (its nose toward the list).
+static var _yaw_rtl := false
 
 var failed := false
-## Turns by itself (off: a still angle, the pictures' tests).
-var turning := true
 ## Renders in a minimised window too (tests).
 var ignore_minimised := false
 var vp: SubViewport
 var _pivot: Node3D
 var _cam: Camera3D
+## The jet's half-diagonal with its stores, metres (the camera's distance unit).
+var _radius := 1.0
 
 
 func _init() -> void:
 	expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	stretch_mode = TextureRect.STRETCH_SCALE
 	mouse_filter = Control.MOUSE_FILTER_STOP
+	focus_mode = Control.FOCUS_ALL
 	mouse_default_cursor_shape = Control.CURSOR_DRAG
 	vp = SubViewport.new()
 	vp.transparent_bg = true
@@ -73,6 +95,8 @@ func _init() -> void:
 	texture = vp.get_texture()
 	resized.connect(_fit)
 	visibility_changed.connect(_update_mode)
+	focus_entered.connect(queue_redraw)
+	focus_exited.connect(queue_redraw)
 
 
 func _ready() -> void:
@@ -131,26 +155,97 @@ func show_jet(plane: String, stores: Dictionary) -> bool:
 	# The camera frames the jet with its stores, centred on the turn's axis.
 	var box := Gltf.model_aabb(m)
 	m.position = -Vector3(box.get_center().x, box.get_center().y, box.get_center().z)
-	var r := box.size.length() * 0.5
-	_cam.position = VIEW.normalized() * r * DISTANCE
-	_cam.look_at(Vector3.ZERO)
-	if is_nan(yaw):
-		yaw = START_RTL if is_layout_rtl() else START
-	_pivot.rotation_degrees.y = yaw
+	_radius = box.size.length() * 0.5
+	if is_nan(yaw) or _yaw_rtl != is_layout_rtl():
+		yaw = START_RTL if is_layout_rtl() else START  # a caller's pitch and zoom kept
+	_yaw_rtl = is_layout_rtl()
+	_apply()
 	_update_mode()
 	return true
 
 
+## Back to the start view: the nose toward the inline start (START, START_RTL), PITCH_START, the jet's own distance.
+func reset_view() -> void:
+	yaw = START_RTL if is_layout_rtl() else START
+	pitch = PITCH_START
+	zoom = 1.0
+	_apply()
+
+
+## Orbits by `d_yaw` / `d_pitch` degrees and zooms by `factor` (above 1 farther), within the limits.
+func orbit(d_yaw: float, d_pitch: float, factor := 1.0) -> void:
+	yaw = fmod((0.0 if is_nan(yaw) else yaw) + d_yaw, 360.0)
+	pitch += d_pitch
+	zoom *= factor
+	_apply()
+
+
+## The view's statics on the scene: the jet turned by `yaw`, the camera at `pitch` over its level in VIEW's direction.
+func _apply() -> void:
+	pitch = clampf(pitch, PITCH_MIN, PITCH_MAX)
+	zoom = clampf(zoom, ZOOM_MIN, ZOOM_MAX)
+	if not is_nan(yaw):
+		_pivot.rotation_degrees.y = yaw
+	var flat := Vector3(VIEW.x, 0.0, VIEW.z).normalized()
+	var p := deg_to_rad(pitch)
+	_cam.position = (flat * cos(p) + Vector3.UP * sin(p)) * _radius * DISTANCE * zoom
+	_cam.look_at_from_position(_cam.position, Vector3.ZERO)
+
+
+## A gamepad (the first known one: a flight stick's axes 2 / 3 are often a throttle or rudder resting off centre,
+## f331da69): its right stick orbits, its triggers zoom (right in, left out). Tests (Settings.isolated()) read none.
 func _process(delta: float) -> void:
-	if turning:
-		yaw = fmod(yaw + SPEED * delta, 360.0)
-	_pivot.rotation_degrees.y = yaw
+	var pads := [] if Settings.isolated() else Input.get_connected_joypads().filter(Input.is_joy_known)
+	if pads.is_empty():
+		return
+	var d: int = pads[0]
+	var sx := Input.get_joy_axis(d, JOY_AXIS_RIGHT_X)
+	var sy := Input.get_joy_axis(d, JOY_AXIS_RIGHT_Y)
+	var tz := Input.get_joy_axis(d, JOY_AXIS_TRIGGER_LEFT) - Input.get_joy_axis(d, JOY_AXIS_TRIGGER_RIGHT)
+	sx = sx if absf(sx) > STICK_DEAD else 0.0
+	sy = sy if absf(sy) > STICK_DEAD else 0.0
+	tz = tz if absf(tz) > STICK_DEAD else 0.0
+	if sx != 0.0 or sy != 0.0 or tz != 0.0:
+		orbit(sx * STICK_SPEED * delta, sy * STICK_SPEED * delta, pow(ZOOM_SPEED, tz * delta))
 
 
 func _gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion and event.button_mask & MOUSE_BUTTON_MASK_LEFT:
-		yaw = fmod(yaw + event.relative.x * DRAG, 360.0)
-		accept_event()
+		# Dragging down raises the camera: the jet's top turns toward the viewer, as if held and tilted.
+		orbit(event.relative.x * DRAG, event.relative.y * DRAG)
+	elif event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		grab_focus()
+		if event.double_click:
+			reset_view()
+	elif event is InputEventMouseButton or event is InputEventPanGesture:
+		# The wheel and a trackpad's two-finger scroll, one way per scroll (Settings.zoom_steps: a Mac's bounce dropped).
+		var n: int = Settings.zoom_steps(event)
+		if n == 0 and not (event is InputEventPanGesture):
+			return
+		orbit(0.0, 0.0, pow(ZOOM_STEP, -n))
+	elif event is InputEventMagnifyGesture:
+		orbit(0.0, 0.0, 1.0 / event.factor)
+	elif event is InputEventJoypadButton and event.pressed and event.button_index == JOY_BUTTON_RIGHT_STICK:
+		reset_view()
+	elif event is InputEventKey and event.pressed and event.keycode in [KEY_0, KEY_KP_0, KEY_HOME]:
+		reset_view()
+	elif event is InputEventKey and event.pressed and event.keycode in [KEY_EQUAL, KEY_PLUS, KEY_KP_ADD]:
+		orbit(0.0, 0.0, 1.0 / ZOOM_STEP)
+	elif event is InputEventKey and event.pressed and event.keycode in [KEY_MINUS, KEY_KP_SUBTRACT]:
+		orbit(0.0, 0.0, ZOOM_STEP)
+	elif event.is_action_pressed("ui_left", true) or event.is_action_pressed("ui_right", true):
+		orbit(KEY_STEP * (1.0 if event.is_action("ui_left") else -1.0), 0.0)
+	elif event.is_action_pressed("ui_up", true) or event.is_action_pressed("ui_down", true):
+		orbit(0.0, KEY_STEP * (1.0 if event.is_action("ui_up") else -1.0))
+	else:
+		return
+	accept_event()
+
+
+## The focus ring (the theme's button focus) round the view while it holds the focus.
+func _draw() -> void:
+	if has_focus():
+		draw_style_box(get_theme_stylebox("focus", "Button"), Rect2(Vector2.ZERO, size))
 
 
 ## The SubViewport at this control's size in window pixels.

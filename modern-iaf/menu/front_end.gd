@@ -503,9 +503,10 @@ func _page_hangar() -> void:
 	_hangar_focus()
 
 
-## The Hangar's focus order (F1), by Tab and by the arrows: the top bar (Settings, the pilot), the jets, Fly,
-## Attributions. Down from the top bar goes to the picked jet, Down from the last jet to Attributions; Down from Fly
-## stays (the foot is the list's, not the card's). Without missions Fly takes no focus.
+## The Hangar's focus order (F1), by Tab and by the arrows: the top bar (Settings, the pilot), the jets, the jet's view
+## (Tab only: with the focus its arrows orbit the jet), Fly, Attributions. Down from the top bar goes to the picked
+## jet, Down from the last jet to Attributions; Down from Fly stays (the foot is the list's, not the card's). Without
+## missions Fly takes no focus.
 func _hangar_focus() -> void:
 	var gear: Control = find_child("Settings", true, false)
 	var block: Control = find_child("PilotBlock", true, false)
@@ -516,7 +517,9 @@ func _hangar_focus() -> void:
 	var fly: Button = find_child("Fly", true, false)
 	var cr: Control = find_child("credits", true, false)
 	var card: Control = fly if fly.focus_mode != Control.FOCUS_NONE else null
-	_chain([gear, block] + jets + ([card] if card != null else []) + [cr])
+	var view: Control = find_child("Turntable", true, false)
+	var views := [view] if view != null and not view.is_queued_for_deletion() else []
+	_chain([gear, block] + jets + views + ([card] if card != null else []) + [cr])
 	# The sides on the screen: the inline start is the right in Hebrew.
 	var start := "right" if he() else "left"
 	var end := "left" if he() else "right"

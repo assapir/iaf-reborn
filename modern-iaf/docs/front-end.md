@@ -20,7 +20,7 @@ The window opens plain in the front end's background colour (#00163C, no Godot s
 
 | screen | what it does | English | Hebrew |
 |---|---|---|---|
-| Hangar | the first screen (§12): the jets at the inline start, the picked one turning in 3D in the middle with its full name faint behind it, its card at the inline end (squadron and base, facts, the training's progress, Missions and campaign greyed, Fly); Settings and the pilot in the top bar, Attributions at the foot | ![Hangar](pictures/front-end/hangar_en.webp) | ![Hangar, Hebrew](pictures/front-end/hangar_he.webp) |
+| Hangar | the first screen (§12): the jets at the inline start, the picked one in 3D in the middle (the player looks at it from any side) with its full name faint behind it, its card at the inline end (squadron and base, facts, the training's progress, Missions and campaign greyed, Fly); Settings and the pilot in the top bar, Attributions at the foot | ![Hangar](pictures/front-end/hangar_en.webp) | ![Hangar, Hebrew](pictures/front-end/hangar_he.webp) |
 | Pick a mission | the briefing, map first (§10): the map over the screen, opened on the base and the route with the steps' pins; the mission card (the missions as tabs, the facts, the objectives, the Arming summary with Edit, Back, Fly); the order of actions with the keys; the map's chips | ![Pick a mission](pictures/front-end/mission_en.webp) | ![Pick a mission, Hebrew](pictures/front-end/mission_he.webp) |
 | Settings | the sections Graphics, Language, Sound and Devices listed at the inline start; the picked one's settings open beside them as controls: dropdown, switch, slider, radio list; Devices has the afterburner detent (§9.2); the footer's Export settings file / Import settings file (below) | ![Settings](pictures/front-end/prefs_graphics_en.webp) | ![Settings, Hebrew](pictures/front-end/prefs_graphics_he.webp) |
 | Debrief | the record as a sheet: Plane flown, From, Time, Mission, Result, the mission's goals (a take-off: runway, lift-off and reference speed, centreline offset, tower calls; a start-up: none), Remarks (the fail reason first, or that it passed; the lift-off against the reference); Export flight data (below), Back to missions, Fly again | ![Debrief](pictures/front-end/debrief_en.webp) | ![Debrief, Hebrew](pictures/front-end/debrief_he.webp) |
@@ -278,12 +278,14 @@ which showed them whole with their credits, are gone.
   last (else the first) picked, the five rows with the full names, the F-15s greyed with no focus and no text, a click
   picking the Barak (the F-16 switch) and the Adir with their cards and models, the card's facts and training,
   Missions and campaign greyed with no tooltip, Settings and the pilot in the top bar, the focus order by Tab and the
-  arrows, the mirrored sides, Fly to Pick a mission and the Hangar crumb back, Esc's quit prompt, the turntable
-  rendering nothing once hidden; then a fresh install (`IAF_ASSETS_DIR` an empty folder): the note and the command on
+  arrows, the mirrored sides, Fly to Pick a mission and the Hangar crumb back, Esc's quit prompt, the jet's view (still
+  when left alone; a drag orbiting it, the camera above and below the jet within the limits; the wheel and − zooming to
+  the limits; the arrows orbiting with the focus; a double click and Home resetting it), the turntable rendering
+  nothing once hidden; then a fresh install (`IAF_ASSETS_DIR` an empty folder): the note and the command on
   the Hangar and Pick a mission, Fly dim and out of the focus, the still picture with no model load tried.
 - `modern-iaf/tests/_hangar_shot.gd` takes the Hangar's pictures with each jet, Pick a mission and the Settings at
-  1920 × 1080 and 2560 × 1440 in both languages, prints the turntable's measured render time and, with `STILLS=1`,
-  writes the stills of `data/hangar/` (its header).
+  1920 × 1080 and 2560 × 1440 in both languages (`PITCH`, `ZOOM`, `YAW` set the jet's view), prints the turntable's
+  measured render time and, with `STILLS=1`, writes the stills of `data/hangar/` (its header).
 - `modern-iaf/tests/_front_end_shot.gd` takes §1's pictures at 1920 × 1080 (its header), the failed debrief and the
   two screens without data.
 - `modern-iaf/tests/test_flight_ui.gd` checks §8 in both languages.
@@ -934,11 +936,11 @@ round 3 of the menu ideas (`r3_hangar_en.png`, `r3_hangar_he.png`, outside the r
 |---|---|
 | the top bar | the sim's name and the Hangar crumb; Settings (a gear and the word; "הגדרות") and the pilot (the nickname, the name under it, the picture or initials: one button to the Pilot screen) at the inline end |
 | the jets | at the inline start under "Aircraft" / "מטוסים": the full name ("F-16I Sufa"), the squadron's number and the base; the Ra'am and the Baz greyed (§2). A click, or Enter on the focused row, picks the jet; the arrows move between the rows and on to the card |
-| the jet | in the middle, turning slowly (8° a second), a mouse drag turns it by hand; its full name in large faint letters behind it; no help line (the user: "it should be obvious you can use the mouse") |
+| the jet | in the middle, standing still in its start view; the player looks at it from any side (below); its full name in large faint letters behind it; no help line (the user: "it should be obvious you can use the mouse") |
 | the card | at the inline end: the full name, then this jet's own data, the same three for every jet (the user, A31: "Just the specific plane data"): Squadron (its number and name, the airbase file's), Base and Tail number (the unit record's, the number painted on the model); no type figures (weight, gun rounds, radar range: tried 13 November and dropped by the user). Then the training (passed of all, the bar, the last flight on the jet), Missions and campaign (greyed, no tooltip), Fly (focused on entry; opens Pick a mission). Without missions (the sim's data not built) the training's box says so with the command `./modern-iaf-setup` on a line of its own (Windows: `.\modern-iaf-setup.ps1`) and Fly is greyed, out of the focus |
 | the foot | Attributions at the inline start: the models' and photos' credits live there (`docs/credits.md`; the FlightGear F-16 is GPL, the F-35I CC BY 4.0, neither asks for a line on the screen) |
 
-**The turning jet** is `shared/aircraft/turntable.gd`: the flight's own model through `AircraftModel.create` (the same
+**The jet's view** is `shared/aircraft/turntable.gd`: the flight's own model through `AircraftModel.create` (the same
 file, descriptor and gear-down ground pose as the flight; the plane folder is the aircraft definition's base, else its
 id), with the stores hung as the flight hangs them (`PlayerWeapons` store models, `IafStores` slots, bombs and tanks by
 their top from the station's lugs). The stores are the loadout the loadout screen shows: the pilot's for the
@@ -949,14 +951,31 @@ with MSAA 4× and one shadowed sun, and only while it is shown: a hidden or free
 renders nothing. When the model's converted descriptor is missing (no `assets/converted/own/planes/f16` before setup)
 no model load is tried, and when the model does not load, a still picture of the jet takes its place, `modern-iaf/data/hangar/<unit>.webp` (rendered by `_hangar_shot.gd` `STILLS=1`).
 
-**Frame cost** (`_hangar_shot.gd`, the user's Mac, 13 November 2026): the turntable adds about 1.3 ms of GPU time a
+The jet stands still; the player orbits the camera round it (the user, 15 November 2026: "the planes in the hangar
+should be able to look from all directions, not only move right to left and not move by default"):
+
+| input | what it does |
+|---|---|
+| mouse drag | sideways turns the jet all the way round (0.35° a pixel); down raises the camera, up lowers it, from 45° under the jet's level to 80° over it (the camera's up never flips, and it never goes inside the jet) |
+| mouse wheel, a trackpad's two-finger scroll or pinch | zoom, from 0.6 to 1.6 times the start distance (1.1 times a step); one way per scroll (`Settings.zoom_steps`, as the cockpit's zoom) |
+| gamepad right stick, triggers | the stick orbits (120° a second at full push), the right trigger zooms in, the left out; the first known gamepad (`Input.is_joy_known`: a flight stick's axes 2 and 3 are often a throttle or rudder resting off centre) |
+| with the focus: the arrows (and the D-pad), + / − | orbit 6° a press, zoom a step |
+| double click; with the focus 0, Home or the right stick's click | back to the start view: the nose toward the inline start (−20°, in Hebrew 107°), the camera 16° over the jet's level, the start distance |
+
+The view carries over between pages and jets (the next jet picked is seen from where the last one was); a switch of
+language turns the jet to the new layout's start. A caller sets a start view through the script's static `yaw`, `pitch`
+and `zoom` before `show_jet()` (`yaw` NAN: the layout's start turn). The view takes the focus by Tab (between the jets
+and Fly) or a click, and shows the theme's focus ring then.
+
+**Frame cost** (`_hangar_shot.gd`, the user's Mac, 13 November 2026; measured with the jet turning, the same work as the view standing still or moving): the turntable adds about 1.3 ms of GPU time a
 frame at both 1920 × 1080 (its area 1070 × 800 px) and 2560 × 1440 (1426 × 1066 px), and 0.1 ms of the renderer's
 CPU time. On the Iris Xe laptop (`COST_ONLY=1`, 1920 × 1080): the turntable 7.1 ms of the GPU's time, the whole
 Hangar frame 14.2 ms with it (7.1 ms without), about 70 frames a second, so it draws every frame at full quality. The
 in-flight graphics budget (about 1 ms for an extra) does not apply: nothing else is drawn on the menu. A 30 Hz cap
 would come in only if the whole frame passed 16 ms.
 
-**The focus** (F1, 2026-11-14): Tab goes Settings → the pilot → the jets → Fly → Attributions and round. Down from
+**The focus** (F1, 2026-11-14): Tab goes Settings → the pilot → the jets → the jet's view → Fly → Attributions and
+round (the view by Tab only: with the focus, its arrows orbit the jet). Down from
 the top bar goes to the picked jet, Down from the last flyable jet to Attributions, toward the inline end from a jet to
 Fly, Up from Fly to Settings; Down from Fly stays (it went to the foot first, the inventory of 14 November).
 
