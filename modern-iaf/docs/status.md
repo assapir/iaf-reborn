@@ -488,11 +488,9 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   string key had left every weight at the regular).
 
 ## Open
-- **The process staying alive after Quit on macOS** (the user's Mac, 2026-11-15): not reproduced on Linux, headless
-  or in a hidden real render. Three faults on the exit path were fixed (a gdext panic on the flight scene's loader
-  thread, six instances leaked by shader preloads compiled there, an orphan Back button; docs/rendering.md §1.5) and
-  `modern-iaf/tests/test_exit.gd` guards the quit from the Hangar, the mission page and the flight. The macOS confirmation is
-  still owed: the user's next play, or `test_exit.gd` run on the Mac.
+- **The process staying alive after Quit on macOS**: reported once, on the user's Mac on 2026-11-15; it did not
+  reproduce on Linux (headless or in a hidden real render) and is not being pursued unless it is seen again. The leak
+  reported with it is fixed (docs/rendering.md §1.5; `modern-iaf/tests/test_exit.gd`).
 - **The canopy, after round 3** (2026-11-14): from the F-35I's seat the frame's sides look wide with the lid open;
   the F-16s' lid opens less far than in photos (30°, FlightGear's value); the frames' colours and sizes are
   estimated from photos. The briefing still shows the F-35I's canopy lever as text, no picture

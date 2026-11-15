@@ -528,7 +528,8 @@ They parse on low-priority pool tasks, which leave the decode tasks and the menu
   `Settings.wait_for_loads` waits for that load `LOAD_WAIT_S` at most. Guard: `modern-iaf/tests/test_exit.gd` runs the
   player's path in a child Godot (`_exit_run.gd`: the front end, the mission page, the flight) and wants each quit to
   end the process within 5 s with nothing leaked. The process staying alive was not reproduced on Linux, headless or
-  in a hidden real render (0.4–0.6 s from the quit to the end); on macOS it is open until the test runs there.
+  in a hidden real render (0.4–0.6 s from the quit to the end); it was seen once on macOS and is not pursued unless
+  seen again.
 - **Wayland at exit.** A real-render run on Linux could hang for good after its last line, in Godot's own Wayland
   shutdown (Godot 4.7.2, unchanged on master 2026-10-29). `WaylandThread::destroy`
   (platform/linuxbsd/wayland/wayland_thread.cpp) sets `thread_done`, sends a `wl_display_roundtrip` to wake the

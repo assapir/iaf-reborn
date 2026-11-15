@@ -48,6 +48,9 @@ const BASE_NAMES := {
 ## A take-off is scored once airborne (every SCORE_EVERY s until it passes), a start-up once the
 ## engine idles with the avionics up; either this long past its time budget. A pass is kept and the flight goes on.
 # ponytail: each score re-reads the whole recording (O(length)); a scorer fed sample by sample if it shows.
+## The radio menu closes by itself this long after it opened or after its last key, s (the user, 2026-11-15: "the
+## radio menu should disappear after few seconds if not in use"; the original game has no such menu: inferred).
+const MENU_S := 6.0
 const SCORE_EVERY := 3.0
 const PAST_BUDGET := 5.0
 ## A take-off's fail reasons no later flying can mend: the mission ends on them once airborne.
@@ -55,6 +58,7 @@ const FINAL := ["wrong_runway", "excursion", "over_time"]
 
 var host: Node
 var open := false
+var _menu_at := 0  # the radio menu's opening or last key (ms): MENU_S later it closes
 ## The menu's calls as shown (ids), and the tower's answers so far (templates; approvals for IafTraining.radio_calls).
 var shown: Array = []
 var answers := PackedStringArray()
@@ -275,6 +279,7 @@ func _language_changed() -> void:
 
 func set_open(on: bool) -> void:
 	open = on
+	_menu_at = Time.get_ticks_msec()
 	shown = calls() if on else []
 	ui.show_panel(menu_text() if on else "")
 	_wrong_shown = ""  # the wrong-runway line (if any) back once the menu closes
@@ -293,6 +298,7 @@ func key(event: InputEventKey) -> bool:
 	if host.ejected:
 		return false  # the sortie ended: no radio
 	if event.echo or event.keycode in [KEY_CTRL, KEY_SHIFT, KEY_ALT, KEY_META]:
+		_menu_at = Time.get_ticks_msec()  # a key held in the menu keeps it open
 		return open and event.echo  # a lone modifier is part of the next key (Ctrl+T closes the menu)
 	var rec: int = host.keys.find_key(host.keys.key_of_event(event), Settings.key_bindings)
 	if rec >= 0 and int(host.keys.records[rec].press[0]) == 203:
@@ -365,6 +371,8 @@ func _process(delta: float) -> void:
 	if not result.is_empty() and Time.get_ticks_msec() >= _end_ms:
 		_end_ms = INF
 		host._end_flight(true)  # into the debrief (Settings.flown_sortie)
+	if open and Time.get_ticks_msec() - _menu_at > MENU_S * 1000.0:
+		set_open(false)  # not in use
 	_throttle_step()
 	_sync_switches()
 	_canopy(delta)

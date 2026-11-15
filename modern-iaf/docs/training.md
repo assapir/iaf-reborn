@@ -298,7 +298,9 @@ The notebook's pictures are in §11.
 
 ## 8. The radio menu and the tower
 The **Call the tower** key (Ctrl+T) opens a numbered list over the view; a call's number picks it, any other key
-closes the list. Since 2026-11-13 (the user: "all radio calls should always be available. on ground show only starting
+closes the list, and since 2026-11-15 it closes by itself 6 s after it opened (or after a held key) when no call was picked
+(`sim_flight.gd` `MENU_S`; the user: "the radio menu should disappear after few seconds if not in use"; the original
+game has no such menu, so the time is inferred). Opened again it lists the calls of that moment. Since 2026-11-13 (the user: "all radio calls should always be available. on ground show only starting
 calls, in the air show landing") the list holds every ground call on the ground (start-up, taxi, line-up, take-off,
 always 1–4) and the landing call in the air (`training::radio_calls`). In a training mission the call the moment
 expects is marked "(next)" / "(הבאה)" (`training::next_call`, the "marked when" column). A ground call made before
