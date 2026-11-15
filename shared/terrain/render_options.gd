@@ -211,7 +211,7 @@ static func _apply_sky(env: Environment, sky_mode: String, attrs: CameraAttribut
 			env.set(k, orig[k])
 		return
 	var mat := ShaderMaterial.new()
-	mat.shader = preload("res://shared/terrain/atmosphere.gdshader")
+	mat.shader = load("res://shared/terrain/atmosphere.gdshader")
 	var sky := Sky.new()
 	# The radiance (ambient light) is re-rendered over several frames when the sky changes, not in one.
 	sky.process_mode = Sky.PROCESS_MODE_INCREMENTAL

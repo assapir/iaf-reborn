@@ -57,7 +57,7 @@ func attach(cams: Array[Camera3D]) -> void:
 	v.color = Texture2DRD.new()
 	v.dist = Texture2DRD.new()
 	v.mat = ShaderMaterial.new()
-	v.mat.shader = preload("res://shared/terrain/clouds_composite.gdshader")
+	v.mat.shader = load("res://shared/terrain/clouds_composite.gdshader")
 	# The first transparent thing drawn: the smoke, the rain and the effects over it.
 	v.mat.render_priority = Material.RENDER_PRIORITY_MIN
 	v.mat.set_shader_parameter("clouds", v.color)

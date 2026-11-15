@@ -75,7 +75,7 @@ func setup(world_camera: Camera3D, world_rig: Node3D, sun: DirectionalLight3D, e
 	camera.current = true
 	add_child(viewport)
 	var mat := ShaderMaterial.new()
-	mat.shader = preload("res://shared/cockpit/cockpit_composite.gdshader")
+	mat.shader = load("res://shared/cockpit/cockpit_composite.gdshader")
 	mat.set_shader_parameter("cockpit", viewport.get_texture())
 	mat.render_priority = Material.RENDER_PRIORITY_MAX  # the last transparent thing drawn
 	_quad.mesh = QuadMesh.new()

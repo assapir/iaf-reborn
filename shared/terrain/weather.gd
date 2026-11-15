@@ -196,7 +196,7 @@ func _ready() -> void:
 	mm.mesh = QuadMesh.new()
 	mm.instance_count = LEVELS.heavy.drops
 	_mat = ShaderMaterial.new()
-	_mat.shader = preload("res://shared/terrain/rain.gdshader")
+	_mat.shader = load("res://shared/terrain/rain.gdshader")
 	_mat.set_shader_parameter("box", BOX)
 	streaks = MultiMeshInstance3D.new()
 	streaks.multimesh = mm
@@ -206,7 +206,7 @@ func _ready() -> void:
 	streaks.custom_aabb = AABB(Vector3.ONE * -1e6, Vector3.ONE * 2e6)
 	add_child(streaks)
 	_drops = ShaderMaterial.new()
-	_drops.shader = preload("res://shared/terrain/canopy_drops.gdshader")
+	_drops.shader = load("res://shared/terrain/canopy_drops.gdshader")
 	canopy = ColorRect.new()
 	canopy.material = _drops
 	canopy.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -218,7 +218,7 @@ func _ready() -> void:
 	var plane := PlaneMesh.new()
 	plane.size = Vector2.ONE * FLOOR_SIZE
 	var fm := ShaderMaterial.new()
-	fm.shader = preload("res://shared/terrain/deck_floor.gdshader")
+	fm.shader = load("res://shared/terrain/deck_floor.gdshader")
 	var tex := Img.load_texture(CloudLayer.path(FLOOR_TEX), true)
 	if tex != null:
 		fm.set_shader_parameter("tex", tex)

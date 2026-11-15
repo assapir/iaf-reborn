@@ -56,12 +56,12 @@ const KINDS := [
 const TRUNK := Color(0.16, 0.11, 0.07)
 const ImageryLayers := preload("res://shared/terrain/imagery_layers.gd")
 const GroundTextures := preload("res://shared/terrain/ground_textures.gd")
-const SHADER := preload("res://shared/terrain/scenery.gdshader")
-const DETAILED_SHADER := preload("res://shared/terrain/scenery_detailed.gdshader")
-const TREE_SHADER := preload("res://shared/terrain/scenery_tree.gdshader")
-const ROOF_SHADER := preload("res://shared/terrain/scenery_roof.gdshader")
-const FOLIAGE_SHADER := preload("res://shared/terrain/scenery_foliage.gdshader")
-const FOLIAGE_FAR_SHADER := preload("res://shared/terrain/scenery_foliage_far.gdshader")
+const SHADER := "res://shared/terrain/scenery.gdshader"
+const DETAILED_SHADER := "res://shared/terrain/scenery_detailed.gdshader"
+const TREE_SHADER := "res://shared/terrain/scenery_tree.gdshader"
+const ROOF_SHADER := "res://shared/terrain/scenery_roof.gdshader"
+const FOLIAGE_SHADER := "res://shared/terrain/scenery_foliage.gdshader"
+const FOLIAGE_FAR_SHADER := "res://shared/terrain/scenery_foliage_far.gdshader"
 ## The foliage textures setup composes (iaf_tools::foliage, under GroundTextures.dir()), the texture array's layers.
 const FOLIAGE_LAYERS := ["broadleaf", "conifer", "palm", "bark"]
 ## Per tree kind with the foliage textures: its layer, leaf colour and trunk colour (linear albedo), crown sway (m).
@@ -298,7 +298,7 @@ static func warm_up(camera: Camera3D, layers: Array) -> Node3D:
 
 ## The buildings' shader: Settings.scenery_ortho() compiles it with SCENERY_ORTHO (once per shader).
 static func building_shader() -> Shader:
-	var base: Shader = DETAILED_SHADER if detailed() else SHADER
+	var base: Shader = load(DETAILED_SHADER if detailed() else SHADER)
 	if not Settings.scenery_ortho():
 		return base
 	if not _ortho.has(base):
@@ -400,7 +400,7 @@ static func _foliage_tree(kind: int, tex: Texture2DArray) -> ArrayMesh:
 	_trunk(st, 0.12 if kind == 2 else 0.18, 0.22 if kind == 2 else 0.3, spec[0] + 0.5, 6)
 	var mesh := st.commit()
 	var m := ShaderMaterial.new()
-	m.shader = FOLIAGE_SHADER
+	m.shader = load(FOLIAGE_SHADER)
 	m.set_shader_parameter("foliage", tex)
 	m.set_shader_parameter("layer", float(FOLIAGE[kind][0]))
 	m.set_shader_parameter("albedo", _linear(FOLIAGE[kind][1]))
@@ -415,7 +415,7 @@ static func _foliage_tree(kind: int, tex: Texture2DArray) -> ArrayMesh:
 ## (cut-out cards cost too much to fill over a forest), in the near model's colour, each tree its own shade.
 static func _far_foliage_material(kind: int) -> ShaderMaterial:
 	var m := ShaderMaterial.new()
-	m.shader = FOLIAGE_FAR_SHADER
+	m.shader = load(FOLIAGE_FAR_SHADER)
 	m.set_shader_parameter("albedo", _linear(FOLIAGE[kind][1]))
 	m.set_shader_parameter("near_m", FOLIAGE_NEAR)
 	m.set_shader_parameter("band_m", TREES_BAND)
@@ -583,7 +583,7 @@ static func _trunk(st: SurfaceTool, r_top: float, r_foot: float, h: float, seg: 
 ## A tree surface's material: its colour, the model it belongs to (scenery_tree.gdshader picks per tree by distance).
 static func _tree_material(colour: Color, far: bool) -> ShaderMaterial:
 	var m := ShaderMaterial.new()
-	m.shader = TREE_SHADER
+	m.shader = load(TREE_SHADER)
 	m.set_shader_parameter("albedo", _linear(colour))
 	m.set_shader_parameter("far_model", far)
 	m.set_shader_parameter("near_m", TREES_NEAR)
@@ -735,7 +735,7 @@ static func _make_tree(kind: int) -> ArrayMesh:
 static func roof_mesh(item: int) -> ArrayMesh:
 	if _roof_meshes.is_empty():
 		var m := ShaderMaterial.new()
-		m.shader = ROOF_SHADER
+		m.shader = load(ROOF_SHADER)
 		m.set_shader_parameter("far_m", ROOF_ITEMS)
 		m.set_shader_parameter("grow_m", ROOF_GROW)
 		for k in 3:

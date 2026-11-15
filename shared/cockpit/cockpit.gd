@@ -704,7 +704,7 @@ func _update_hud_mask() -> void:
 		return
 	if _hud_mask == null:
 		_hud_mask = ShaderMaterial.new()
-		_hud_mask.shader = HUD_GLASS
+		_hud_mask.shader = load(HUD_GLASS)
 		for n in [hud, hud.outer]:
 			n.material = _hud_mask
 	var view := get_viewport_rect().size
@@ -717,7 +717,7 @@ func _update_hud_mask() -> void:
 	_hud_mask.set_shader_parameter("corners", pts)
 
 
-const HUD_GLASS := preload("res://shared/cockpit/hud_glass.gdshader")
+const HUD_GLASS := "res://shared/cockpit/hud_glass.gdshader"
 
 ## Ours, "Better cockpit" turning_compass (compass.gd): the panel compasses turn with the heading; made on first
 ## use, hidden while off (the static art shows).
@@ -1115,7 +1115,7 @@ func _draw_adi(s: float) -> void:
 		_lens.show_behind_parent = true
 		_lens.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_lens.material = ShaderMaterial.new()
-		_lens.material.shader = preload("res://shared/cockpit/lens_adi.gdshader")
+		_lens.material.shader = load("res://shared/cockpit/lens_adi.gdshader")
 		add_child(_lens)
 	if _lens == null:
 		return

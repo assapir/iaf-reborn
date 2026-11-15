@@ -51,7 +51,9 @@ func run() -> void:
 				parts["roof items"].append(n)
 			else:  # the far model by its material (with the foliage textures both start at 0 m)
 				var tm: ShaderMaterial = n.multimesh.mesh.surface_get_material(0)
-				var far: bool = tm.shader == scenery_gd.FOLIAGE_FAR_SHADER or tm.get_shader_parameter("far_model")
+				var far: bool = (
+					tm.shader.resource_path == scenery_gd.FOLIAGE_FAR_SHADER or tm.get_shader_parameter("far_model")
+				)
 				parts["trees far" if far else "trees near"].append(n)
 		elif n is MeshInstance3D:
 			parts["buildings far" if n.get_instance_shader_parameter("far_model") else "buildings near"].append(n)

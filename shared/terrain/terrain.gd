@@ -82,7 +82,7 @@ var _meshes: Array[ArrayMesh] = []
 ## Colour nodes load setup's pre-compressed BC1 .dds files when there (docs/rendering.md §1.5); false: always the
 ## JPEG, compressed at run time (tests, benches).
 static var precompressed := true
-var shader := preload("res://shared/terrain/terrain.gdshader")
+var shader := load("res://shared/terrain/terrain.gdshader")
 
 # Resources (colour texture per textured node, height texture + image per theatre node), keyed by
 # Vector4i(kind, i, j, level) with kind 0 = colour, 1 = height.

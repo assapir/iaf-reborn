@@ -46,7 +46,7 @@ const OSB_REACH := 12.0
 ## its case (0.25 mm at World scale Real 1:1), 0.38 m from the eye at 1:1: 2.5 % (9.6 mm) keeps it ahead to there
 ## (docs/cockpit.md "3D cockpit").
 const SCREEN_PULL := 0.025
-const SCREEN_SHADER := preload("res://shared/cockpit/cockpit3d_screen.gdshader")
+const SCREEN_SHADER := "res://shared/cockpit/cockpit3d_screen.gdshader"
 
 var cockpit: Control
 var camera: Camera3D
@@ -528,7 +528,7 @@ func _screen_viewport(screen: MeshInstance3D, px: Vector2i) -> SubViewport:
 ## shadow: the pull would move it.
 func _matte(screen: MeshInstance3D) -> void:
 	var mat := ShaderMaterial.new()
-	mat.shader = SCREEN_SHADER
+	mat.shader = load(SCREEN_SHADER)
 	mat.set_shader_parameter("screen", (screen.material_override as StandardMaterial3D).emission_texture)
 	mat.set_shader_parameter("pull", SCREEN_PULL)
 	screen.material_override = mat

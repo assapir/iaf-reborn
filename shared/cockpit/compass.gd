@@ -77,7 +77,7 @@ func setup(c: Control, s: Dictionary) -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
 	material = ShaderMaterial.new()
-	material.shader = preload("res://shared/cockpit/compass.gdshader")
+	material.shader = load("res://shared/cockpit/compass.gdshader")
 	material.set_shader_parameter("hub", float(s.hub) / float(s.r))
 	_card = ImageTexture.create_from_image(card_image())
 	if s.get("pointers", false):

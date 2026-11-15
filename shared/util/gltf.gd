@@ -385,8 +385,17 @@ static func variant_model(file: String) -> String:
 	return own if own == "" or own.begins_with("res://") else s.converted(own)
 
 
-## The aircraft definitions' models (IafAirframe.models), read when the script loads: is_detailed runs on workers.
-static var _airframe_models: PackedStringArray = ClassDB.class_call_static("IafAirframe", "models")
+## The aircraft definitions' models (IafAirframe.models), read by Settings at start-up (read_airframe_models) for
+## is_detailed on workers. Not in this static's initializer: that runs on whichever thread loads the script first, the
+## flight scene's loader thread (terrain_preload.gd), where gdext refuses the call (a panic, the list left empty and
+## six instances leaked at exit).
+static var _airframe_models := PackedStringArray()
+
+
+## Fills _airframe_models: on the main thread (Settings._ready).
+static func read_airframe_models() -> void:
+	if ClassDB.class_exists("IafAirframe"):
+		_airframe_models = ClassDB.class_call_static("IafAirframe", "models")
 
 
 ## True for our detailed models (DETAILED, STORES, the aircraft definitions' models in the repo): parsed with LODs. By

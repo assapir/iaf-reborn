@@ -147,7 +147,7 @@ func _stream(sc: GDScript, meta: Dictionary, c: Vector2i, mode: String) -> void:
 	var node: Node3D = t.scenery._cells[c].node
 	check(node.get_child_count() >= 2, "near + far meshes and trees (%d nodes)" % node.get_child_count())
 	var mat: ShaderMaterial = t.scenery._cells[c].mat
-	var shader: Shader = sc.DETAILED_SHADER if mode == "detailed" else sc.SHADER
+	var shader: Shader = load(sc.DETAILED_SHADER if mode == "detailed" else sc.SHADER)
 	check(mat.shader == shader, "%s: its building shader" % mode)
 	# Building colours (docs/scenery.md §3.4): Photo by default.
 	check(mat.get_shader_parameter("palette_colours") == settings().building_palette, "%s: building colours" % mode)

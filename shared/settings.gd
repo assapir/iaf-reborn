@@ -466,6 +466,7 @@ func _init() -> void:
 
 
 func _ready() -> void:
+	load("res://shared/util/gltf.gd").read_airframe_models()  # on the main thread (gltf.gd says why)
 	# The original defaults, for the DEFAULT button (§12.2).
 	for section in PREFS:
 		for key in PREFS[section]:
@@ -1416,12 +1417,19 @@ func quit() -> void:
 
 
 ## Waits while the flight scene still loads on its thread (terrain_preload.gd preload_scene): quitting under it
-## aborts the load with parse errors.
+## aborts the load with parse errors. LOAD_WAIT_S at most: a load that never ends must not keep the game from quitting.
 func wait_for_loads() -> void:
 	var scene: String = load("res://shared/terrain/terrain_preload.gd").SCENE
-	while ResourceLoader.load_threaded_get_status(scene) == ResourceLoader.THREAD_LOAD_IN_PROGRESS:
+	var end := Time.get_ticks_msec() + int(LOAD_WAIT_S * 1000.0)
+	while (
+		ResourceLoader.load_threaded_get_status(scene) == ResourceLoader.THREAD_LOAD_IN_PROGRESS
+		and Time.get_ticks_msec() < end
+	):
 		await get_tree().process_frame
 
+
+## The quit's wait for the flight scene's load at most, s (it takes about 1 s; inferred margin).
+const LOAD_WAIT_S := 15.0
 
 ## The timed game log (util/timed_log.gd, docs/logs.md §2): installed when the project turns Godot's file log off
 ## (Modern IAF); null otherwise (the original game's log is Godot's own).

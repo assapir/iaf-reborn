@@ -3633,7 +3633,7 @@ func _own_key(event: InputEventKey) -> void:
 func _toggle_goggles() -> void:
 	if _goggles == null:
 		var mat := ShaderMaterial.new()
-		mat.shader = preload("res://shared/terrain/night_vision.gdshader")
+		mat.shader = load("res://shared/terrain/night_vision.gdshader")
 		for k in goggles_tube():
 			mat.set_shader_parameter(k, goggles_tube()[k])
 		mat.set_shader_parameter("glare", 0.0 if goggles_lit(player.get("type", 0), Settings.mission_year()) else 0.15)

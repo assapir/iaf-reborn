@@ -157,7 +157,7 @@ func _set_crisp(on: bool) -> void:
 	crisp = on
 	if on and _crisp_material == null:
 		_crisp_material = ShaderMaterial.new()
-		_crisp_material.shader = preload("res://shared/cockpit/mfd_crisp.gdshader")
+		_crisp_material.shader = load("res://shared/cockpit/mfd_crisp.gdshader")
 	material = _crisp_material if on else null
 
 

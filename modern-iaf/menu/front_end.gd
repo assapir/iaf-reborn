@@ -1433,12 +1433,14 @@ func _page_pilot() -> void:
 			_focus = e
 		_spacer_px(f, 12)
 	_logbook(h, creating or first)
-	var back := _action(s("back"), "Secondary", pilot_back)
-	back.name = "Back"
 	var save := _action(s("save"), "Primary", save_pilot)
 	save.name = "Save"
 	save.disabled = str(draft.name).strip_edges() == ""
-	var actions := [save] if first else [back, save]
+	var actions := [save]
+	if not first:  # the first pilot has no Back (a button made and never added leaks at exit)
+		var back := _action(s("back"), "Secondary", pilot_back)
+		back.name = "Back"
+		actions.push_front(back)
 	if not first and not creating:
 		var reset := _action(s("reset_log"), "Secondary", reset_log)
 		reset.name = "ResetLog"
@@ -1447,7 +1449,7 @@ func _page_pilot() -> void:
 		del.name = "DeleteProfile"
 		var other := _action(s("other_pilots"), "Secondary", pilot_back.bind("pilots"))
 		other.name = "OtherPilots"
-		actions = [reset, del, other, back, save]
+		actions = [reset, del, other] + actions
 	_footer("", actions)
 	# Tab: the picture, the fields, the Pilot log, the bottom bar, the crumb.
 	var order := [pick] + ["Field_name", "Field_nickname", "pilot_log"].map(func(n): return find_child(n, true, false))

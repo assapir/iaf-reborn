@@ -513,6 +513,22 @@ They parse on low-priority pool tasks, which leave the decode tasks and the menu
   The game posts pool tasks only with `add_task`. The one GDScript `Thread` is in the bench
   `tests/godot/_stream_bench.gd`, which waits for it. The Rust threads (setup's pipeline, the scenery, roads and
   city lights loaders) are plain OS threads outside the pool; the pool's exit waits for its own workers only.
+- **The flight scene's loader thread** (2026-11-15, the user's Mac: "the godot process kept alive after I exited
+  it", "6 ObjectDB instances were leaked at exit"). `TerrainPreload.preload_scene` compiles the flight's scripts on a
+  loader thread, so their static initializers and their `preload`s run there. Three faults on that path, each found
+  headless on Linux with `--verbose` and fixed:
+  - `gltf.gd`'s `_airframe_models` called `IafAirframe.models` in its static initializer; on the loader thread gdext
+    panicked ("attempted to access binding from different thread than main thread; this is UB"), the list stayed
+    empty. Settings now fills it on the main thread at start-up (`Gltf.read_airframe_models`).
+  - A script compiled there that preloads a `.gdshader` leaks one engine-internal `RefCounted` per shader at exit
+    (Godot 4.7; a shader already loaded on the main thread leaks nothing, a `.tscn` or script preload nothing): these
+    are the six instances reported at the flight's quit. The shaders are loaded where they are used (`load(...)`; the
+    scenery's, the cockpit's and the HUD glass's constants hold the paths, and the tests compare `resource_path`).
+  - The Pilot screen made a Back button for the first pilot and never added it: one orphan node and its styles.
+  `Settings.wait_for_loads` waits for that load `LOAD_WAIT_S` at most. Guard: `modern-iaf/tests/test_exit.gd` runs the
+  player's path in a child Godot (`_exit_run.gd`: the front end, the mission page, the flight) and wants each quit to
+  end the process within 5 s with nothing leaked. The process staying alive was not reproduced on Linux, headless or
+  in a hidden real render (0.4–0.6 s from the quit to the end); on macOS it is open until the test runs there.
 - **Wayland at exit.** A real-render run on Linux could hang for good after its last line, in Godot's own Wayland
   shutdown (Godot 4.7.2, unchanged on master 2026-10-29). `WaylandThread::destroy`
   (platform/linuxbsd/wayland/wayland_thread.cpp) sets `thread_done`, sends a `wl_display_roundtrip` to wake the

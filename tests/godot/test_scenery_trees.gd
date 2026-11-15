@@ -21,10 +21,13 @@ func run() -> void:
 		var far: ArrayMesh = Scenery.tree_mesh(kind, true)
 		var m: ShaderMaterial = near.surface_get_material(0)
 		check(
-			near.get_surface_count() == 2 and m.shader == Scenery.TREE_SHADER,
+			near.get_surface_count() == 2 and m.shader.resource_path == Scenery.TREE_SHADER,
 			"fallback kind %d: the plain trunk and canopy" % kind
 		)
-		check(far.surface_get_material(0).shader == Scenery.TREE_SHADER, "fallback kind %d: plain far model" % kind)
+		check(
+			far.surface_get_material(0).shader.resource_path == Scenery.TREE_SHADER,
+			"fallback kind %d: plain far model" % kind
+		)
 
 	# --- with the textures (setup's foliage step) ---
 	GroundTextures.base_dir = ""
@@ -39,7 +42,7 @@ func run() -> void:
 			var far: ArrayMesh = Scenery.tree_mesh(kind, true)
 			var m: ShaderMaterial = near.surface_get_material(0)
 			check(
-				near.get_surface_count() == 1 and m.shader == Scenery.FOLIAGE_SHADER,
+				near.get_surface_count() == 1 and m.shader.resource_path == Scenery.FOLIAGE_SHADER,
 				"kind %d: one textured surface" % kind
 			)
 			var tn := _triangles(near)
@@ -47,7 +50,10 @@ func run() -> void:
 			check(tn <= 140 and tf < tn, "kind %d: %d triangles near, %d far" % [kind, tn, tf])
 			var cols: PackedColorArray = near.surface_get_arrays(0)[Mesh.ARRAY_COLOR]
 			check(cols.size() == near.surface_get_array_len(0), "kind %d: vertex colours (occlusion, sway)" % kind)
-			check(far.surface_get_material(0).shader == Scenery.FOLIAGE_FAR_SHADER, "kind %d: solid far model" % kind)
+			check(
+				far.surface_get_material(0).shader.resource_path == Scenery.FOLIAGE_FAR_SHADER,
+				"kind %d: solid far model" % kind
+			)
 	Scenery.reset_trees()
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(TMP.path_join("thirdparty/ambientcg")))
 
