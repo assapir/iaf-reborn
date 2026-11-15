@@ -448,14 +448,18 @@ its place. In the pilot's first start-up mission only a help line stands over th
 PgDn or wheel: page · click a tab", the key as bound); `notebook_help_seen` in the settings file's `[sim]` section
 remembers it.
 
-**The training highlight.** In a start-up training mission a ring (the sim's sky blue, 4 px with a glow) stands on the
-current step's switch: the controls of the 3D cockpit that send its command (`<model>_controls.json`, the F-16's engine
-step the throttle grip), their mesh bounds projected through the cockpit's camera every frame and the ring drawn 6 px
-outside them (a control's `ring`, a radius in metres, overrides the bounds). A step may also watch a gauge (`gauges`
-in `data/notebook.json`: the F-16's RPM needle for the idle step, its ring labelled "RPM · watch 20 %"). A part out of
-the view (or behind the eye) gets a pointer at the screen's edge toward it, with the step's line ("▼ Throttle to idle
-at 20 % RPM"). When the raised notebook would cover a ring, it slides down its side to 18 px below the ring (at least
-220 px of it left on the screen), else up above it.
+**The training highlight.** In a start-up training mission an outline (the sim's sky blue, 2 px on a dark 4.5 px edge)
+follows the shape of the current step's switch: the controls of the 3D cockpit that send its command
+(`<model>_controls.json`, the F-16's engine step the throttle grip), each its mesh's points projected through the
+cockpit's camera every frame, their convex hull drawn 3 px outside. A step may also watch a gauge (`gauges` in
+`data/notebook.json`: the F-16's RPM gauge for the idle step, labelled "RPM · watch 20 %"): its dial is drawn as the
+ellipse it shows, a circle of `radius_m` round its needle's turning centre in the plane square to the needle's axis
+(the model's animation, `f16.json`). Since 2026-11-15 (the user: "smaller circles around the thing … on the exact shape
+of the instrument"); until then a circle round the part's projected box, 6 px out with a 14 px glow, and the gauge's
+on the NOZ POS gauge above the RPM's (node `anim067`, now `anim069`). A part out of the view (or behind the eye) gets a
+pointer at the screen's edge toward it, with the step's line ("▼ Throttle to idle at 20 % RPM"). When the raised
+notebook would cover an outline, it slides down its side to 18 px below it (at least 220 px of it left on the screen),
+else up above it. Pictures: `modern-iaf/tests/_click_areas_shot.gd`.
 
 **Every checklist switch clickable.** With no key hints, each step's switch must answer the mouse. On the pages:
 

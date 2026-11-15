@@ -176,8 +176,14 @@ The layer is general (`shared/cockpit/cockpit3d_controls.gd`, behind `Settings.c
 false in the original game): a cockpit's table `<model>_controls.json` beside its model binds a node to a `click`
 command (a switch) or a `turn` command (a knob: the wheel, a drag); a guarded switch names its guard's property
 (`guard`): while the guard is closed a click only lifts it, the next sends the command (the F-35I's ENG switch,
-docs/f35i.md §4.5); a control's hit area is its mesh's box, and the
-pointer over it lights its rim (`material_overlay`, the shader `RIM`): a faint cool white, thin where the part faces
+docs/f35i.md §4.5); a control's hit area is its mesh's own surface: the pointer finds the control whose surface its ray
+meets nearest the eye, so the area is never bigger than the part and never a neighbour's (the user, 2026-11-15:
+"smaller circles … on the exact shape of the instrument"; until then the mesh's box grown by 4 mm, of the boxes crossed
+the nearest centre, which reached past small switches into their neighbours). The surfaces are kept in millimetres:
+Godot's ray-triangle test takes a triangle a few millimetres across as parallel to every ray. The canopy handle's hit
+area is its rod. The control lit under the pointer keeps the clicks and the wheel until the pointer moves off it, so
+the throttle's grip, moved by its own wheel steps out from under a still pointer, still takes the next step. The
+pointer over a control lights its rim (`material_overlay`, the shader `RIM`): a faint cool white, thin where the part faces
 the eye and thicker where its surface turns away, so its own colour and texture still show (2026-11-11; it was a warm
 yellow fill, which the user found "too yellowish" and hiding the SYM wheel's texture). The overlay is a mix of low
 alpha, not an add: the cockpit's picture is composited by its alpha (`cockpit_composite.gdshader`), and an add pushed

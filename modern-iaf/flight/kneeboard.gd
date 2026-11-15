@@ -6,9 +6,10 @@
 # - stowed: a board on the pilot's right thigh in the 3D cockpit (the notebook drawn into a texture when it changes);
 #   raised by the Checklist notebook key (H, keys.json record 118): a panel at the screen's lower right (in
 #   Hebrew too: the thigh's side), never its centre; a start-up mission starts with it raised;
-# - in a start-up training mission a ring on the current step's switch (and the gauge it watches), from the part's
-#   bounds through the camera every frame; a part out of the view gets a pointer at the screen's edge; the raised
-#   board slides along its side off a ring it would cover;
+# - in a start-up training mission an outline round the current step's switch (and the gauge it watches): the part's
+#   own shape seen from the eye (the hull of its mesh's points, the gauge's dial as the ellipse it shows), through the
+#   camera every frame; a part out of the view gets a pointer at the screen's edge; the raised board slides along its
+#   side off an outline it would cover;
 # - a help line over the board in the pilot's first start-up mission only (Settings.notebook_help_seen).
 extends Node
 
@@ -19,8 +20,11 @@ const KEY := 118
 const DATA := "res://data/notebook.json"
 ## The raised board's inset from the screen's inline-end and bottom edges (px at the 1080-high canvas).
 const MARGIN := Vector2(26, 18)
-## A ring: this far (px) outside the part's projected bounds; the board keeps GAP px off it.
-const RING_PAD := 6.0
+## An outline: this far (px) outside the part's shape on the screen; the board keeps GAP px off it. (Until 2026-11-15 a
+## circle round the part's box, 6 px out with a 14 px glow: the user found it too big to show the part.)
+const RING_PAD := 3.0
+## A gauge's dial outline: this many points round it.
+const DIAL_POINTS := 32
 const GAP := 18.0
 ## The least of the slid board left on the screen (px).
 const MIN_SHOWN := 220.0
@@ -32,15 +36,16 @@ var flight: Node  # sim_flight.gd
 var board: Notebook
 var raised := false
 var data := {}
-## The rings and pointers of this frame: [{rect: canvas Rect2 of the part (a ring) or null, at: Vector2 (a pointer's
-## place), text, dir: Vector2}].
+## The outlines and pointers of this frame: [{rect: canvas Rect2 round the outlines or null (a pointer), polys: the
+## outlines (canvas PackedVector2Array each), at: Vector2 (a pointer's place), text, dir: Vector2}].
 var marks: Array = []
 var _holder: Control  # the raised board's place on the flight's text layer
-var _overlay: Control  # the rings, the pointers, the help line
+var _overlay: Control  # the outlines, the pointers, the help line
 var _help: PanelContainer
 var _vp: SubViewport
 var _quad: MeshInstance3D
 var _y := -1.0  # the raised board's top (canvas px), sliding
+var _points := {}  # Mesh -> its distinct vertices (the mesh's frame), for its outline
 var _missions := {}  # data/missions/*.json, by name
 
 
@@ -425,7 +430,7 @@ func _help_line() -> void:
 	_help.position = Vector2(0, -36)
 
 
-# --- every frame: the raised board's place, the 3D board, the rings ---------------------------------------------
+# --- every frame: the raised board's place, the 3D board, the outlines ------------------------------------------
 
 
 func _process(delta: float) -> void:
@@ -441,7 +446,7 @@ func _process(delta: float) -> void:
 	var r := Rect2(x, home, Notebook.W, Notebook.H)
 	for m in marks:
 		if m.rect != null and r.grow(GAP).intersects(m.rect):
-			# Below the ring when enough of the board stays on the screen there, else above it.
+			# Below the outline when enough of the board stays on the screen there, else above it.
 			want = (
 				m.rect.end.y + GAP
 				if view.y - (m.rect.end.y + GAP) >= MIN_SHOWN
@@ -481,7 +486,7 @@ func _stowed_board() -> void:
 		_quad.visible = not raised
 
 
-## The rings and pointers of this frame (a start-up training mission's current step only).
+## The outlines and pointers of this frame (a start-up training mission's current step only).
 func _marks() -> Array:
 	var out := []
 	var c3d = flight.host.get("cockpit_3d")
@@ -507,12 +512,27 @@ func _marks() -> Array:
 		var meshes := [gauge] if gauge is MeshInstance3D else gauge.find_children("*", "MeshInstance3D", true, false)
 		var mi: Node = meshes.front() if not meshes.is_empty() else null
 		if mi != null:
-			out.append(_mark([[mi, {"ring": float(g.get("radius_m", 0.0))}]], String(g.label[lang()]), c3d.camera))
+			out.append(
+				_mark([[mi, _dial(c3d, gauge, float(g.get("radius_m", 0.0)))]], String(g.label[lang()]), c3d.camera)
+			)
 	return out
 
 
-## One mark around parts `parts` ([mesh, its record]): a ring on the screen (canvas px), or a pointer at the screen's
-## edge toward them when out of the view.
+## A gauge's dial for _mark: its needle `node`'s turning centre and axis (the model's animation, <model>.json) and the
+## dial's radius (m); without an animation the needle's own outline.
+static func _dial(c3d: Node, node: Node3D, radius: float) -> Dictionary:
+	for a in c3d._anims:
+		if a[0] == node and radius > 0.0 and node.get_parent() is Node3D:
+			var r: Dictionary = a[2][0]
+			var parent: Transform3D = node.get_parent().global_transform
+			var c: Vector3 = parent * (a[1].origin + Vector3(r.centre[0], r.centre[1], r.centre[2]))
+			var axis: Vector3 = (parent.basis * Vector3(r.axis[0], r.axis[1], r.axis[2])).normalized()
+			return {"ring": radius, "centre": c, "axis": axis}
+	return {}
+
+
+## One mark round parts `parts` ([mesh, its record]): each part's outline on the screen (canvas px), or a pointer at the
+## screen's edge toward them when out of the view.
 func _mark(parts: Array, text: String, cam: Camera3D) -> Dictionary:
 	var k: float = flight.ui.scale.x
 	var vp_size := cam.get_viewport().get_visible_rect().size
@@ -522,30 +542,45 @@ func _mark(parts: Array, text: String, cam: Camera3D) -> Dictionary:
 	var hi := -lo
 	var behind := false
 	var centre := Vector3.ZERO
+	var polys := []
 	for e in parts:
 		var mi: MeshInstance3D = e[0]
-		var box := mi.get_aabb()
-		var c: Vector3 = mi.global_transform * box.get_center()
-		centre += c / parts.size()
-		var r := float(e[1].get("ring", 0.0))
-		var pts := []
-		if r > 0.0:
-			var side := cam.global_transform.basis.x * r
-			var up := cam.global_transform.basis.y * r
-			pts = [c - side - up, c + side + up]
+		var pts := PackedVector3Array()
+		if e[1].has("centre"):  # a dial: the circle round its needle's centre, in the dial's plane
+			var n: Vector3 = e[1].axis
+			var u := n.cross(Vector3.UP if absf(n.y) < 0.9 else Vector3.RIGHT).normalized() * float(e[1].ring)
+			var v := n.cross(u)
+			for j in DIAL_POINTS:
+				var t := TAU * j / DIAL_POINTS
+				pts.append(e[1].centre + u * cos(t) + v * sin(t))
 		else:
-			for j in 8:
-				pts.append(mi.global_transform * box.get_endpoint(j))
+			if not _points.has(mi.mesh):
+				var seen := {}
+				for p in mi.mesh.get_faces():
+					seen[p] = true
+				_points[mi.mesh] = PackedVector3Array(seen.keys())
+			for p in _points[mi.mesh]:
+				pts.append(mi.global_transform * p)
+		var flat := PackedVector2Array()
+		var c := Vector3.ZERO
 		for p in pts:
+			c += p / pts.size()
 			behind = behind or cam.is_position_behind(p)
 			var sp: Vector2 = to_canvas.call(p)
+			flat.append(sp)
 			lo = lo.min(sp)
 			hi = hi.max(sp)
+		centre += c / parts.size()
+		var hull := Geometry2D.convex_hull(flat)
+		var grown := Geometry2D.offset_polygon(hull, RING_PAD, Geometry2D.JOIN_ROUND)
+		var poly: PackedVector2Array = grown[0] if not grown.is_empty() else hull
+		if poly.size() >= 3:  # a degenerate mesh draws no outline
+			polys.append(poly)
 	var view: Vector2 = flight.ui.size
 	var mid := (lo + hi) / 2.0
 	if not behind and Rect2(Vector2.ZERO, view).has_point(mid):
-		var rad := maxf(hi.x - lo.x, hi.y - lo.y) / 2.0 + RING_PAD
-		return {"rect": Rect2(mid - Vector2(rad, rad), Vector2(rad, rad) * 2.0), "text": text, "at": mid}
+		var pad := Vector2(RING_PAD, RING_PAD)
+		return {"rect": Rect2(lo - pad, hi - lo + pad * 2.0), "polys": polys, "text": text, "at": mid}
 	# Out of the view: toward the part as the eye sees it (its bearing in the camera's frame, which holds behind the
 	# eye too), held at the screen's edge.
 	var local: Vector3 = cam.global_transform.affine_inverse() * centre
@@ -563,10 +598,11 @@ func _draw_marks() -> void:
 		if m.rect != null:
 			var r: Rect2 = m.rect
 			var c := r.get_center()
-			var rad := r.size.x / 2.0
-			_overlay.draw_arc(c, rad, 0, TAU, 64, Color(RING, 0.25), 14.0, true)
-			_overlay.draw_arc(c, rad + 3.5, 0, TAU, 64, Color(NAVY, 0.6), 3.0, true)
-			_overlay.draw_arc(c, rad, 0, TAU, 64, RING, 4.0, true)
+			for poly: PackedVector2Array in m.polys:
+				var loop := poly.duplicate()
+				loop.append(poly[0])
+				_overlay.draw_polyline(loop, Color(NAVY, 0.7), 4.5, true)  # a dark edge: the line shows on a pale part
+				_overlay.draw_polyline(loop, RING, 2.0, true)
 			if String(m.text) != "" and m.text != _step_text():
 				_tag(font, Vector2(r.position.x - 10, c.y) if not he() else Vector2(r.end.x + 10, c.y), m.text, true)
 		else:

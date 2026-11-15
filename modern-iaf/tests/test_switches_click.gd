@@ -97,7 +97,7 @@ func _switch(tv: Node, rec: Rec, id: String, node: String, cmd: Array) -> void:
 		return
 	var mi: MeshInstance3D = e[0][0]
 	var r: Dictionary = e[0][1]
-	var at := await _aim(tv, mi)
+	var at := _on_part(c3d, mi, await _aim(tv, mi))
 	var hit = c3d.clickable.at(at)
 	check(hit != null and hit[0] == mi, "%s: the pointer at %s finds %s" % [id, node, hit[0].name if hit else null])
 	var vp: Viewport = tv.get_viewport()
@@ -122,15 +122,23 @@ func _switch(tv: Node, rec: Rec, id: String, node: String, cmd: Array) -> void:
 ## back to idle (5); a drag down begun above idle stops at idle.
 func _throttle(tv: Node, rec: Rec, id: String, node: String) -> void:
 	var mi: MeshInstance3D = tv.cockpit_3d.find_child(node, true, false)
-	var at := await _aim(tv, mi)
-	var vp: Viewport = tv.get_viewport()
 	tv._press([9, 30, 0])
-	var n: int = rec.sent.size()
 	await frames(2)
+	var at := _on_part(tv.cockpit_3d, mi, await _aim(tv, mi))
+	var vp: Viewport = tv.get_viewport()
+	# The pointer on the grip lights it; the lit grip keeps the wheel and the drags as it slides from under the pointer.
+	var hover := InputEventMouseMotion.new()
+	hover.position = at
+	vp.push_input(hover)
+	check(tv.cockpit_3d.clickable._lit() != null, "%s: the throttle's grip lights under the pointer" % id)
+	var n: int = rec.sent.size()
 	for i in 5:
 		vp.push_input(_wheel(at, MOUSE_BUTTON_WHEEL_DOWN))
 		await frames(2)
-	check(rec.sent.slice(n).all(func(c): return c == [6, 0, 0]), "%s: the wheel down takes 5 %%" % id)
+	check(
+		rec.sent.slice(n).size() >= 5 and rec.sent.slice(n).all(func(c): return c == [6, 0, 0]),
+		"%s: the wheel down takes 5 %%" % id
+	)
 	check(float(tv.throttle) == 0.0, "%s: the wheel down stops at idle (%.2f)" % [id, tv.throttle])
 	n = rec.sent.size()
 	await _drag(vp, at, 3, 1.0)
@@ -159,6 +167,27 @@ func _drag(vp: Viewport, at: Vector2, steps: int, way: float) -> void:
 		vp.push_input(m)
 		await frames(2)
 	vp.push_input(_click(at, false))
+
+
+## Of the part's triangles' centres seen on the screen, the one nearest `at` where the pointer finds `mi`: the hit area
+## is the part's own surface, and its box's centre may lie off it (the F-35I's gear handle: a long lever, most of it
+## inside the panel); `at` when none.
+static func _on_part(c3d: Node, mi: MeshInstance3D, at: Vector2) -> Vector2:
+	var cam: Camera3D = c3d.camera
+	var f: PackedVector3Array = mi.mesh.get_faces()
+	var best := at
+	var best_d := INF
+	for i in range(0, f.size(), 3):
+		var c: Vector3 = mi.global_transform * ((f[i] + f[i + 1] + f[i + 2]) / 3.0)
+		if cam.is_position_behind(c):
+			continue
+		var p := cam.unproject_position(c)
+		if p.distance_to(at) < best_d:
+			var hit = c3d.clickable.at(p)
+			if hit != null and hit[0] == mi:
+				best = p
+				best_d = p.distance_to(at)
+	return best
 
 
 ## The head turned until `mi`'s centre is straight ahead (test_mvp.gd _aim); its place on the screen.

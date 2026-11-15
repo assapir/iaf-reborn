@@ -85,8 +85,8 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   text windows, 2026-11-14), PgUp / PgDn and the page's own ‹ › with its page count turn it. No
   key hints on it; a help line in the first start-up mission only. It replaces the start-up card: the steps whose
   switches are on ticked (a switch back off unticks its step), the step to take now marked. In a start-up training
-  mission a ring on the current step's switch (and the F-16's RPM gauge for the idle step), a pointer at the screen's
-  edge for a part out of view, the board sliding off a ring it would cover. English and Hebrew (mirrored). RADIO's
+  mission an outline of the current step's switch's own shape (and of the F-16's RPM dial for the idle step), a pointer
+  at the screen's edge for a part out of view, the board sliding off an outline it would cover. English and Hebrew (mirrored). RADIO's
   frequencies: OurAirports' where published, the rest invented ([training.md](training.md) §11). `test_notebook.gd`.
   Open: the GUIDE tab and the front end's Guides screen (part 2); the throttle OFF, the brakes and the ejection handle
   by the mouse.
@@ -286,6 +286,11 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   system halved the picture; the game now turns hiDPI off there and renders the monitor's own 2,560 x 1,440, full
   Retina on the MacBook's screen (real-hud.md "A 1× monitor beside a Retina screen"). Open: a window dragged to the
   other screen keeps its start-up scale until the next start.
+- **Click areas and the training outline by shape (2026-11-15, the user's Mac play):** a 3D cockpit control's hit area
+  is its mesh's own surface (the nearest along the pointer's ray: never bigger than the part, never a neighbour's), the
+  canopy handle's its rod; the training highlight outlines the switch's own shape and the RPM dial as the ellipse it
+  shows (it had circled the NOZ POS gauge). Every control of the three jets checked at 1,280 x 720 and 2,560 x 1,440
+  (`_click_areas_shot.gd`; [cockpit.md](cockpit.md) §5.1, [training.md](training.md) §11). `test_switches_click.gd`.
 - **The start-up switches (2026-11-09):** the F-16s' start-up checklist by the mouse in the 3D cockpit: MAIN PWR, the
   JFS switch, the throttle, the AVIONIC POWER switches, the INS knob (their own nodes of `f16.glb`, each turning to its
   on position) and the canopy handle (a hit area), each sending its key's command; the card names each switch and its

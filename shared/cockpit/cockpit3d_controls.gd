@@ -2,8 +2,9 @@
 # cockpit's table, <model>_controls.json beside its model, binds the model's nodes to key commands:
 #   {"<node>": {"click": [id, p1, p2], "turn": [id, p1, p2], "drag_px": 10, "prop": "<FlightGear property>",
 #    "on": 2, "off": 0, "box": [x, y, z, w, h, d]}, ...}
-#   - the node: a mesh of the model (its box, grown by REACH, is the hit area); a part merged into the model's body
-#     has no node of its own: "box" (the model's frame, m: centre and size) is its hit area, lit when hovered; a box
+#   - the node: a mesh of the model (its own surface is the hit area: the pointer finds the part its ray meets first,
+#     never a neighbour's); a part merged into the model's body has no node of its own: "box" (the model's frame, m:
+#     centre and size, fitted tight round the part) is its hit area, lit when hovered; a box
 #     with "grip": a part the model lacks, drawn as a grey rod along the box's length (_area);
 #   - "click": sent on a left click (a switch);
 #   - "prop", "on", "off": the switch's FlightGear property (its animation in <model>.json) and its two positions,
@@ -23,8 +24,6 @@
 # lights its rim (RIM): its own texture stays as it is.
 extends Node
 
-## A control's hit area: its mesh's box grown this much (m) on each side.
-const REACH := 0.004
 ## The pixels of a drag per "turn" command, unless the control sets its own.
 const DRAG_PX := 10.0
 ## The throttle at its bottom (idle, or OFF over the detent) for a "detent": sim_flight.gd THROTTLE_OFF, the lever's
@@ -45,6 +44,10 @@ void fragment() {
 """
 
 var _controls := []  # [MeshInstance3D, its record]
+var _shapes := {}  # MeshInstance3D -> its surface (TriangleMesh, the mesh's frame in mm): the hit area
+## The surfaces' scale (mm per m): Godot's ray-triangle test takes a triangle a few mm across as parallel to every ray
+## (its fixed epsilon, Geometry3D ray_intersects_triangle), so the switches' surfaces are kept in millimetres.
+const MM := 1000.0
 var _hover: MeshInstance3D
 var _held := {}  # the record under a left drag
 var _drag := 0.0  # px dragged up since the last command
@@ -63,6 +66,15 @@ func setup(model: Node3D, table: Dictionary) -> void:
 			model.add_child(mi)
 		if mi != null:
 			_controls.append([mi, r])
+			var faces := mi.mesh.get_faces()
+			var xf := Transform3D.IDENTITY.scaled(Vector3.ONE * MM)
+			if mi.get_child_count() > 0 and mi.get_child(0) is MeshInstance3D:  # a box's grip: the rod alone (_area)
+				faces = mi.get_child(0).mesh.get_faces()
+				xf = xf * mi.get_child(0).transform
+			for i in faces.size():
+				faces[i] = xf * faces[i]
+			_shapes[mi] = TriangleMesh.new()
+			_shapes[mi].create_from_faces(faces)
 	_light = ShaderMaterial.new()
 	_light.shader = Shader.new()
 	_light.shader.code = RIM
@@ -105,6 +117,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		return  # a zoom's scroll stays the zoom's when a knob comes under the pointer (Settings.zoom_steps)
 	var hit = at(event.position)
 	if hit == null:
+		hit = _lit()  # the lit part: a lever turned by the wheel slides out from under a still pointer
+	if hit == null:
 		return
 	var r: Dictionary = hit[1]
 	match event.button_index:
@@ -145,23 +159,25 @@ func _live() -> bool:
 	return false
 
 
-## The control under the viewport point `pos`: [its mesh, its record], of those whose box the view's ray crosses the
-## one whose centre lies nearest the ray (the boxes overlap: the throttle's grip over the ELEC panel); null when none.
+## The control under the viewport point `pos`: [its mesh, its record], the one whose surface the view's ray meets
+## nearest the eye (the user, 2026-11-15: the hit area the part's own shape, never bigger, never a neighbour's; until
+## then each part's box grown by 4 mm, the nearest centre of those crossed); null when none.
 func at(pos: Vector2):
 	var ray: Array = get_parent()._ray(pos)
 	var best = null
 	var best_d := INF
 	for e in _controls:
 		var mi: MeshInstance3D = e[0]
+		if not mi.is_visible_in_tree():
+			continue
 		var inv := mi.global_transform.affine_inverse()
-		var box := mi.get_aabb()
-		var hit = box.grow(REACH).intersects_ray(inv * ray[0], inv.basis * ray[1])
-		if hit != null and mi.is_visible_in_tree():
-			var c: Vector3 = mi.global_transform * box.get_center() - ray[0]
-			var d: float = (c - c.project(ray[1])).length()
-			if d < best_d:
-				best_d = d
-				best = e
+		var hit: Dictionary = _shapes[mi].intersect_ray(inv * ray[0] * MM, inv.basis * ray[1])
+		if hit.is_empty():
+			continue
+		var d: float = ray[1].dot(mi.global_transform * (hit.position / MM) - ray[0])
+		if d < best_d:
+			best_d = d
+			best = e
 	return best
 
 
@@ -252,6 +268,15 @@ func _turn(r: Dictionary, way: float, drag := false) -> void:
 func _throttle() -> float:
 	var tv: Object = get_parent().command.get_object()
 	return float(tv.get("throttle")) if tv != null and tv.get("throttle") != null else 1.0
+
+
+## The control lit under the pointer ([its mesh, its record]), null when none: it keeps the clicks and the wheel until
+## the pointer moves off it, so the throttle's grip, moved by its own wheel steps, still takes the next one.
+func _lit():
+	for e in _controls:
+		if e[0] == _hover and is_instance_valid(_hover) and _hover.is_visible_in_tree():
+			return e
+	return null
 
 
 func _highlight(mi: MeshInstance3D) -> void:

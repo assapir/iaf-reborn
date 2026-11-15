@@ -100,7 +100,7 @@
     "f35i": {"position": [0.145, 0.66, -5.52], "rotation_deg": [-58, 0, 0], "width_m": 0.13}
   },
   "gauges": {
-    "f16": {"engine": {"node": "anim067", "radius_m": 0.04, "label": {"en": "RPM · watch 20 %", "he": "סל״ד · 20%"}}}
+    "f16": {"engine": {"node": "anim069", "radius_m": 0.021, "label": {"en": "RPM · watch 20 %", "he": "סל״ד · 20%"}}}
   },
   "sources": {
     "radio.Ramon.APP": "oa_llrm",
@@ -114,7 +114,7 @@
     "pages.f16.emergency": "the hot start after the T.O. checklist (training.md [^ep], weak); the fire on the ground and the ejection inferred",
     "pages.f35i": "inferred",
     "stowed": "inferred: on the right thigh, as the mock-up of 2026-11-13",
-    "gauges": "the F-16 model's RPM gauge (f16.json animations)"
+    "gauges": "the F-16 model's RPM gauge: anim069, its needle on engines/engine[0]/n2 (f16.json animations); the dial's radius measured on a render (2026-11-15; until then anim067, the NOZ POS gauge above it)"
   },
   "footnotes": {
     "oa_llrm": "OurAirports, Ramon Airbase (LLRM), frequencies, https://ourairports.com/airports/LLRM/",
