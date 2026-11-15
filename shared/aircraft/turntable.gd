@@ -263,7 +263,7 @@ func _gui_input(event: InputEvent) -> void:
 		# Dragging down raises the camera: the jet's top turns toward the viewer, as if held and tilted.
 		orbit(event.relative.x * DRAG, event.relative.y * DRAG)
 	elif event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-		grab_focus()
+		grab_focus(true)  # its keys orbit now; no ring under the pointer (the user, 15 Nov: no border while dragging)
 		if event.double_click:
 			reset_view()
 	elif event is InputEventMouseButton or event is InputEventPanGesture:
@@ -291,10 +291,11 @@ func _gui_input(event: InputEvent) -> void:
 	accept_event()
 
 
-## The focus ring (the theme's button focus) round the view while it holds the focus.
+## The focus ring round the view while it holds the focus from the keyboard or a gamepad (a click's focus is hidden):
+## the theme's "Turntable" focus box, none when the theme has no such box (Godot's default would draw a white frame).
 func _draw() -> void:
-	if has_focus():
-		draw_style_box(get_theme_stylebox("focus", "Button"), Rect2(Vector2.ZERO, size))
+	if has_focus(true) and has_theme_stylebox("focus", "Turntable"):
+		draw_style_box(get_theme_stylebox("focus", "Turntable"), Rect2(Vector2.ZERO, size))
 
 
 ## The SubViewport at this control's size in window pixels.

@@ -224,6 +224,8 @@ static func make() -> Theme:
 	for k in ["pressed", "hover_pressed"]:
 		t.set_stylebox(k, "JetRow", row_on)
 	t.set_stylebox("disabled", "JetRow", row)
+	# The Hangar's jet view with the keyboard's focus (turntable.gd): a faint ring, never a bright frame round the jet.
+	t.set_stylebox("focus", "Turntable", box(Color(0, 0, 0, 0), Color(ACCENT, 0.4), 1, 8, Vector2.ZERO))
 	return t
 
 
@@ -237,14 +239,23 @@ static func person_icon(w: int) -> ImageTexture:
 	return _svg(p % [w, w * 4 / 3, _hex(LINE.lerp(EDGE, 0.35))])
 
 
-## The Settings' gear, drawn in the text colour at the canvas' size.
-static func gear_icon() -> ImageTexture:
+## The Settings' gear (our own drawing: eight teeth round a hub), in the text colour with the radio rings' stroke
+## weight, `px` canvas px wide. Drawn at 4 × and mipmapped, so it stays crisp from 1280 × 720 to 2560 × 1440 where the
+## canvas is scaled (the caller draws it at `px`: icon_max_width, or a TextureRect's size, with mipmapped filtering).
+static func gear_icon(px := 22) -> ImageTexture:
 	var g := (
-		"<svg xmlns='http://www.w3.org/2000/svg' width='22' height='22' viewBox='0 0 24 24' fill='none' stroke='%s'"
-		+ " stroke-width='2'><circle cx='12' cy='12' r='3.2'/><path d='M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1"
-		+ " 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1'/></svg>"
+		"<svg xmlns='http://www.w3.org/2000/svg' width='%d' height='%d' viewBox='0 0 24 24' fill='none' stroke='%s'"
+		+ " stroke-width='1.9' stroke-linejoin='round'><path d='M9.78 4.73L10.05 1.99L13.95 1.99L14.22 4.73A7.6 7.6 0 0"
+		+ " 1 15.57 5.29L17.7 3.54L20.46 6.3L18.71 8.43A7.6 7.6 0 0 1 19.27 9.78L22.01 10.05L22.01 13.95L19.27 14.22A7.6"
+		+ " 7.6 0 0 1 18.71 15.57L20.46 17.7L17.7 20.46L15.57 18.71A7.6 7.6 0 0 1 14.22 19.27L13.95 22.01L10.05 22.01L9.78"
+		+ " 19.27A7.6 7.6 0 0 1 8.43 18.71L6.3 20.46L3.54 17.7L5.29 15.57A7.6 7.6 0 0 1 4.73 14.22L1.99 13.95L1.99 10.05L4.73"
+		+ " 9.78A7.6 7.6 0 0 1 5.29 8.43L3.54 6.3L6.3 3.54L8.43 5.29A7.6 7.6 0 0 1 9.78 4.73Z'/>"
+		+ "<circle cx='12' cy='12' r='3.1'/></svg>"
 	)
-	return _svg(g % _hex(TEXT))
+	var img := Image.new()
+	img.load_svg_from_string(g % [px * 4, px * 4, _hex(TEXT)], 1.0)
+	img.generate_mipmaps()
+	return ImageTexture.create_from_image(img)
 
 
 static func _hex(c: Color) -> String:

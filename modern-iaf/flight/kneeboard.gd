@@ -15,7 +15,6 @@ extends Node
 
 const Notebook := preload("notebook.gd")
 const Look := preload("../menu/look.gd")
-const Fly := preload("fly.gd")
 ## The sim's key record of the Checklist notebook key (modern-iaf/data/keys.json, command 203).
 const KEY := 118
 const DATA := "res://data/notebook.json"
@@ -156,10 +155,7 @@ func _family() -> String:
 	return "f35i" if flight.plane == "f35i" else "f16"
 
 
-## The readable mission as flown (sim_flight's: the jet's own lesson where another jet flies it), else its file's.
 func _readable() -> Dictionary:
-	if not flight.readable.is_empty():
-		return flight.readable
 	return _missions.get(flight.mission_name, _missions.get(_mission_file(), {}))
 
 
@@ -189,11 +185,11 @@ func _mission_of(kind: String) -> Dictionary:
 	return by_jet
 
 
-## The checklist the START-UP page shows: the flight's own, else its jet's start-up mission's (fly.gd for_jet).
+## The checklist the START-UP page shows: the flight's own, else its jet's start-up mission's.
 func checklist() -> Array:
 	if is_startup():
 		return flight.checklist
-	var m := Fly.for_jet(_mission_of("startup"), flight.plane, _missions.values())
+	var m := _mission_of("startup")
 	if String(m.get("start", {}).get("unit", "")) != flight.plane:
 		return []
 	return m.get("training", {}).get("checklist", [])

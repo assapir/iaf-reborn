@@ -3,6 +3,15 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **The Missions and section screens, each jet's own missions (2026-11-15, the front-end finish list's M2,
+  [front-end.md](front-end.md) §2, §12):** a section lists only the Hangar jet's missions (the user: "show only the
+  same plane missions"), numbered 1, 2 …, with that jet's statuses, Next and progress (also on the Hangar's card); a
+  mission flies in its own jet again and the debrief's Next mission is that jet's next one. The Missions screen's
+  cards fill the screen and say what each section holds (Training: the jet's missions and the lessons coming later;
+  the others "Coming later" with what they will hold); the section's list has a side panel on the mission under the
+  focus (what it is for, base, time allowed, last result, best time); both screens have the footer's Back with Esc.
+  The Settings' icon is a gear of our own, crisp at every size (Hangar, pause menu, Settings title). The Hangar's jet
+  view shows no white frame while dragged; only the keyboard's focus shows a faint ring.
 - **The briefing ready for several flights (2026-11-15, the front-end finish list's N1, [front-end.md](front-end.md)
   §10):** a mission names its flights (Alpha, the player's, and Bravo..Delta: callsign, jet, task, route, stores; Rust
   `flights.rs`, compiled into `sim.flights`); the briefing shows a mission of several flights as tabs with the
@@ -15,12 +24,8 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   missions greyed, no click, no focus; Fly now greyed until random missions and dogfights come); a section opens its
   list with each mission's last result (Pass with the best time, Fail, Not flown yet) and the next one to fly marked
   and focused; a row opens its briefing (no mission tabs on it any more), whose Back returns to the list; Arming
-  returns to the briefing; the debrief has Next mission, Fly again and Back to missions. The missions are one list for
-  every jet: each is flown in the Hangar's jet (the player's slot takes its unit; a training mission takes the jet's
-  own checklist, weights and texts from that jet's own start-up or take-off, at the mission's place). The list's
-  progression logic is shared with reborn (`shared/mission/mission_list.gd`). Today Training holds the six missions;
-  Campaign and Single missions wait for their missions. Open: the jet's lesson merge (`fly.gd` `for_jet`) is
-  GDScript, written while no Rust build was possible; by the Rust-first rule it moves into `iaf-sim` / `IafBriefing`.
+  returns to the briefing; the debrief has Next mission, Fly again and Back to missions. The list's progression logic
+  is shared with reborn (`shared/mission/mission_list.gd`). Campaign and Single missions wait for their missions.
 - **The Loadout screen (2026-11-14, the front-end finish list's F3, [front-end.md](front-end.md) §10.1):** Arming on
   the briefing opens a screen of its own: the jet seen from beneath (the Hangar's live model, the camera under it, the
   F-35I's bays open) with a callout per station (number, place on the wing, store, weight; an empty one dashed) and

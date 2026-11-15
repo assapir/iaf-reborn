@@ -93,12 +93,16 @@ func walk(fe: Control, lang: String) -> void:
 		check(not _has_part(card, t), "%s: no %s on the card" % [lang, t])
 	if he:
 		await _code_first(fe, "the Hangar")
-	check(_has_part(card, "2 מתוך 6" if he else "2 of 6 passed"), "%s: the training's progress" % lang)
+	check(_has_part(card, "2 מתוך 2" if he else "2 of 2 passed"), "%s: the training's progress (the Sufa's)" % lang)
 	var last: Label = fe.find_child("LastFlight", true, false)
 	check(last.text.contains("המראה" if he else "Take-off"), "%s: the last flight: %s" % [lang, last.text])
 	check(fe.find_child("Campaign", true, false) == null, lang + ": no campaign button (the Missions screen has it)")
 	var gear: Button = fe.find_child("Settings", true, false)
 	check(gear != null and gear.text == ("הגדרות" if he else "Settings"), "%s: the Settings in the top bar" % lang)
+	check(
+		gear.icon != null and gear.icon.get_width() == 88 and gear.get_theme_constant("icon_max_width") == 22,
+		"%s: the Settings' gear, drawn at 4 × and shown at 22 px" % lang
+	)
 	check(_has(fe, "קרדיטים ורישיונות" if he else "Attributions"), "%s: Attributions at the foot" % lang)
 	check(fe.find_child("PilotBlock", true, false) is Button, "%s: the pilot in the top bar" % lang)
 	check(fe.find_child("pilot_log", true, false) == null, "%s: no Pilot log entry" % lang)
@@ -218,6 +222,16 @@ func orbit(fe: Control, tt: TextureRect) -> void:
 		is_equal_approx(tts.yaw, tts.START) and tts.pitch == tts.PITCH_START and tts.zoom == 1.0,
 		"a double click: the start view"
 	)
+	# The white border (the user, 15 Nov): a click takes the focus without its ring; the keyboard's focus shows the
+	# theme's quiet one (never Godot's default white frame).
+	check(tt.has_focus() and not tt.has_focus(true), "a click focuses the view without a ring")
+	(fe.find_child("adir", true, false) as Control).grab_focus()
+	check(await _press(fe, KEY_TAB) == "Turntable" and tt.has_focus(true), "Tab focuses the view with its ring")
+	var ring: StyleBox = tt.get_theme_stylebox("focus", "Turntable")
+	check(
+		tt.has_theme_stylebox("focus", "Turntable") and ring is StyleBoxFlat and ring.border_color.a < 0.5,
+		"the view's ring is the theme's faint one"
+	)
 	tt._gui_input(_drag(Vector2(50, 20)))
 	await _press(fe, KEY_HOME)
 	check(is_equal_approx(tts.yaw, tts.START) and tts.pitch == tts.PITCH_START, "Home: the start view")
@@ -283,8 +297,8 @@ func no_data(fe: Control) -> void:
 		await frames(2)
 		fo = fe.get_viewport().gui_get_focus_owner()
 		check(
-			fe.find_child("NoMissions", true, false) != null and fo != null and fo.name == "Crumb_hangar",
-			"%s, no data: the mission screen says so, the Hangar crumb focused" % lang
+			fe.find_child("NoMissions", true, false) != null and fo != null and fo.name == "Back",
+			"%s, no data: the mission screen says so, its Back focused" % lang
 		)
 	if was != "":
 		OS.set_environment("IAF_ASSETS_DIR", was)

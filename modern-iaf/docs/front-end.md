@@ -21,8 +21,8 @@ The window opens plain in the front end's background colour (#00163C, no Godot s
 | screen | what it does | English | Hebrew |
 |---|---|---|---|
 | Hangar | the first screen (§12): the jets at the inline start, the picked one in 3D in the middle (the player looks at it from any side) with its full name faint behind it, its card at the inline end (squadron and base, facts, the training's progress, Fly to the Missions screen); Settings and the pilot in the top bar, Attributions at the foot | ![Hangar](pictures/front-end/hangar_en.webp) | ![Hangar, Hebrew](pictures/front-end/hangar_he.webp) |
-| Missions | the Hangar's Fly (§2): a card per section, Training, Campaign, Single missions and Fly now, each with what it holds and the pilot's progress in it; a section without missions greyed, out of the focus, without a click (Fly now always, until it flies random missions and dogfights) | ![Missions](pictures/front-end/missions_en.webp) | ![Missions, Hebrew](pictures/front-end/missions_he.webp) |
-| A section's list | a section's missions in order, flown in the Hangar's jet: the number, the title, the base and what it trains, the last result (Pass with the best time, Fail, Not flown yet); the next one to fly marked Next, tinted and focused (§2) | ![Training](pictures/front-end/section_en.webp) | ![Training, Hebrew](pictures/front-end/section_he.webp) |
+| Missions | the Hangar's Fly (§2): a card per section, Training, Campaign, Single missions and Fly now, down to the footer, each with what it holds (Training: the jet's missions and the lessons coming later) and the pilot's progress in it; a section without missions greyed, "Coming later" with what it will hold, out of the focus, without a click (Fly now always, until it flies random missions and dogfights); the footer's Back (Esc) | ![Missions](pictures/front-end/missions_en.webp) | ![Missions, Hebrew](pictures/front-end/missions_he.webp) |
+| A section's list | the Hangar jet's missions of the section in order, numbered 1, 2 …: the title, the base and what it trains, the last result (Pass with the best time, Fail, Not flown yet); the next one to fly marked Next, tinted and focused; beside the list a panel on the mission under the focus or the pointer (§2); the footer's Back (Esc) | ![Training](pictures/front-end/section_en.webp) | ![Training, Hebrew](pictures/front-end/section_he.webp) |
 | Briefing | the briefing, map first (§10): the map over the screen, opened on the base and the route with the pins; the mission card (the facts, the objectives, the Arming summary with Edit, Back to the section's list, Arming, Fly: Edit and Arming open the Loadout screen §10.1); what you will learn and how to fly it, the keys as bound; the map's chips | ![Briefing](pictures/front-end/mission_en.webp) | ![Briefing, Hebrew](pictures/front-end/mission_he.webp) |
 | Settings | the sections Graphics, Language, Sound and Devices listed at the inline start; the picked one's settings open beside them as controls: dropdown, switch, slider, radio list; Devices has the afterburner detent (§9.2); the footer's Export settings file / Import settings file (below) | ![Settings](pictures/front-end/prefs_graphics_en.webp) | ![Settings, Hebrew](pictures/front-end/prefs_graphics_he.webp) |
 | Debrief | the record as a sheet: Plane flown, From, Time, Mission, Result, the mission's goals (a take-off: runway, lift-off and reference speed, centreline offset, tower calls; a start-up: none), Remarks (the fail reason first, or that it passed; the lift-off against the reference); Export flight data (below), Back to missions, Fly again, Next mission (§2) | ![Debrief](pictures/front-end/debrief_en.webp) | ![Debrief, Hebrew](pictures/front-end/debrief_he.webp) |
@@ -92,24 +92,29 @@ list. The breadcrumbs: Hangar · the jet (Missions) · the section (its list) ·
 loadout screen) or Debrief.
 
 - **The sections** (`SECTIONS` in `front_end.gd`): Training, Campaign, Single missions and Fly now, each holding the
-  missions of its `category` (the readable mission's: `training`, `campaign`, `single`). A section without missions is
-  greyed with no click and no focus; Fly now holds no category and stays greyed until it flies random missions and
-  dogfights. Today Training holds the six missions and the others are greyed.
-- **One list for every jet.** A section's missions are the same whatever jet the Hangar picked; each is flown in that
-  jet (`flight/fly.gd` `for_jet`). The mission keeps its place (base, parking spot, runway, route, time, wind) and its
-  menu id (the records' and the statuses'); its start's unit becomes the picked jet, and a training mission takes its
-  lesson from that jet's own mission of the same kind (the one starting in that jet): the start-up's checklist, the
-  take-off's empty weight and speeds, the briefing's and the result's texts. So Ramon's start-up in the Adir is the
-  Adir's checklist (battery, IPP) at Ramon's parking spot, and its briefing, notebook and scorer all read that.
-  `Fly.prepare(id, unit)` puts the unit in the player's slot (the compiled mission's Player1 entity, `0x2c6`), which
-  the flight reads its airframe from, and hands the jet's readable mission to `sim_flight.gd` in the compiled data's
-  `readable` (written beside the records as `flown-mission.json` for the scorer); its own jet flies the files as they
-  are. A `--mission` run flies the mission's own jet.
+  Hangar jet's missions of its `category` (the readable mission's: `training`, `campaign`, `single`). A card fills the
+  height down to the footer and says what the section holds under "What it holds" / "תכולה": Training the titles of
+  the jet's missions, then under "Coming later" the lessons of the training programme (the user, 12 November 2026:
+  start-up, take-off, pattern and landing, navigation, weapons range, emergencies, intercept a drone; `LESSONS`) that
+  the jet has no mission for yet, by its missions' `training.kind`. A section without missions is greyed, marked
+  "Coming later" / "יגיע בהמשך", with what it will hold (strings `sec_<id>_holds`: Campaign Epic Fury over Iran, with
+  packages of several flights and the player leading a four-ship; Single missions; Fly now a random mission or a
+  dogfight), no click and no focus. Today Training holds each jet's start-up and take-off and the others are greyed.
+- **Each jet's own missions** (the user, 15 November 2026: "you should show only the same plane missions"): a
+  section lists only the missions whose start is in the Hangar's jet (the readable mission's `start.unit`), numbered
+  1, 2 … after that filter; the Sufa's Training is Ramon's start-up and take-off. The statuses, Next, "N of M passed",
+  the Hangar card's progress and the side panel count that jet's missions only. A mission is flown in its own jet
+  (`flight/fly.gd` `start(menu id)`); the debrief's Next mission is the next one of the flown mission's jet.
 - **A section's list:** the missions in menu-id order with their last result (`IafPilotLog.summary`: Pass with the best
   time, Fail, Not flown yet). The next one to fly is the one after the last one flown, the first when none was; once
   the last one was flown, the first one not passed, else the first (`MissionList.after_last_flown`,
   `shared/mission/mission_list.gd`, the same rule reborn's Jump_In uses for the scramble missions). It is marked
-  Next, tinted as a picked jet and focused; Enter or a click on a row opens its briefing.
+  Next, tinted as a picked jet and focused; Enter or a click on a row opens its briefing. The panel beside the list
+  follows the focus and the pointer: the mission's number and title, what you will learn (another section's: its
+  purpose; the briefing's `briefing.purpose`, its keys as bound), its base, the time allowed, the last result with its
+  day and the best time. It holds no map: the briefing's map is the briefing's own screen.
+- **Back:** the Missions screen and a section's list have Back in the footer with its key cap Esc, the same button as
+  the Keys and Joystick screens' (`back_button`); Tab reaches it after the cards or the rows, Down from the last row.
 - **The debrief's buttons:** Next mission (the mission after the flown one in its section, `MissionList.next_in`,
   reborn's Next Mission rule; absent after the section's last one), focused when there; Fly again (the flown mission's
   briefing with Fly focused: Enter or a click on Fly starts the flight); Back to missions (the section's list). Each
@@ -125,8 +130,8 @@ Tel Nof base files, airbases.md §3). Making one flyable moves its row from `SOO
 - **The missions:** the compiled list `assets/converted/modern-iaf/missions/missionlist.json` (`iaf-sim missions`), each
   read from its readable file `modern-iaf/data/missions/<name>.json`, in its section by its `category`, in menu-id
   order.
-- **Fly:** `flight/fly.gd` `start(menu id, unit)` loads the compiled mission in that jet (above; "" the mission's own,
-  a `--mission` run) and changes to the flight scene.
+- **Fly:** `flight/fly.gd` `start(menu id)` loads the compiled mission in its own jet and changes to the flight
+  scene.
 - **Export flight data** on a debrief copies the flight's recording (the record's `flight`, JSON lines) where the
   player picks in the system's file dialog, named `iaf-<the recording's name>`. Without that file (a record from
   before the recorder, or the file deleted) the button is greyed and out of the focus.
@@ -275,10 +280,10 @@ which showed them whole with their credits, are gone.
 
 - `modern-iaf/tests/test_front_end.gd` walks the Hangar → Missions → Training → the briefing → the debrief of a stored
   record → Back to missions, Fly again, Next mission in English and Hebrew: the texts, each jet's card with its
-  squadron, the four sections (Training open and focused, the others greyed without focus or click), the list's six
-  missions with their statuses and the next one marked and focused, the layout direction; the missions shared by the
-  jets (one list for each jet; Ramon's take-off in the Barak with the Barak in the player's slot and its own rules and
-  texts, Ramon's start-up in the Adir with the Adir's checklist);
+  squadron, the four sections (Training open and focused with what it holds and the lessons coming later, the others greyed,
+  "Coming later", without focus or click), the footer's Back with Esc, the Sufa's two missions with their statuses, the
+  next one marked and focused, the side panel following the focus, the layout direction; each jet's own missions
+  (numbered 1, 2, the Barak's own progress and Next, Next mission by the flown mission's jet);
   the plane pick; the Ra'am's and the Baz's rows greyed and not pickable; the Settings' controls and the live language switch; the Pilot log
   and Attributions. With `-- --fly` it also flies Ramon's start-up from the mission screen to a pass, finds the flight
   paused under Mission accomplished, continues it with Esc (the panel not coming back), opens the pause menu, ends the
@@ -1025,7 +1030,7 @@ round 3 of the menu ideas (`r3_hangar_en.png`, `r3_hangar_he.png`, outside the r
 
 | what | where, from what |
 |---|---|
-| the top bar | the sim's name and the Hangar crumb; Settings (a gear and the word; "הגדרות") and the pilot (the nickname, the name under it, the picture or initials: one button to the Pilot screen) at the inline end |
+| the top bar | the sim's name and the Hangar crumb; Settings (the gear and the word; "הגדרות") and the pilot (the nickname, the name under it, the picture or initials: one button to the Pilot screen) at the inline end |
 | the jets | at the inline start under "Aircraft" / "מטוסים": the full name ("F-16I Sufa"), the squadron's number and the base; the Ra'am and the Baz greyed (§2). A click, or Enter on the focused row, picks the jet; the arrows move between the rows and on to the card |
 | the jet | in the middle, standing still in its start view; the player looks at it from any side (below); its full name in large faint letters behind it; no help line (the user: "it should be obvious you can use the mouse") |
 | the card | at the inline end: the full name, then this jet's own data, the same three for every jet (the user, A31: "Just the specific plane data"): Squadron (its number and name, the airbase file's), Base and Tail number (the unit record's, the number painted on the model); no type figures (weight, gun rounds, radar range: tried 13 November and dropped by the user). Then the training (passed of all, the bar, the last flight on the jet), Fly (focused on entry; opens the Missions screen, §2; the greyed Missions and campaign button went with it). Without missions (the sim's data not built) the training's box says so with the command `./modern-iaf-setup` on a line of its own (Windows: `.\modern-iaf-setup.ps1`) and Fly is greyed, out of the focus |
@@ -1057,7 +1062,15 @@ should be able to look from all directions, not only move right to left and not 
 The view carries over between pages and jets (the next jet picked is seen from where the last one was); a switch of
 language turns the jet to the new layout's start. A caller sets a start view through the script's static `yaw`, `pitch`
 and `zoom` before `show_jet()` (`yaw` NAN: the layout's start turn). The view takes the focus by Tab (between the jets
-and Fly) or a click, and shows the theme's focus ring then.
+and Fly) or a click. Only the keyboard's or a gamepad's focus shows a ring, the theme's faint one (`Turntable` in
+`look.gd`); a click's focus is hidden (`grab_focus(true)`), so no frame shows while the jet is dragged (the user, 15
+November 2026: "remove the white borders around it"; the frame was Godot's default focus box, which the view drew
+while it held a click's focus).
+
+**The gear** (`Look.gear_icon`): our own drawing of eight teeth round a hub, in the text colour, stroked as the radio
+rings; drawn at four times its size and mipmapped, so it stays crisp from 1280 × 720 to 2560 × 1440. It stands
+before Settings in the Hangar's top bar and on the pause menu, and before the Settings screen's title (it replaced a
+sun-like ring of rays, the user, 15 November 2026: "the sun icon on the setting button is wrong").
 
 **Frame cost** (`_hangar_shot.gd`, the user's Mac, 13 November 2026; measured with the jet turning, the same work as the view standing still or moving): the turntable adds about 1.3 ms of GPU time a
 frame at both 1920 × 1080 (its area 1070 × 800 px) and 2560 × 1440 (1426 × 1066 px), and 0.1 ms of the renderer's
