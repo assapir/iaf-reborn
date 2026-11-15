@@ -407,14 +407,14 @@ In Hebrew the page is mirrored: the bar fills from the inline start, the right.
 
 `modern-iaf/tests/_loading_shot.gd` takes these pictures (its header).
 
-## 8. Over the flight: the radio lines, the key hint
+## 8. Over the flight: the radio lines, no key hint
 
 The sim draws its own text over the flight in the front end's look (`modern-iaf/flight/flight_ui.gd`, Heebo, look.gd's
 palette, on the 1080-high canvas scaled to the window), mirrored in Hebrew; the original game's console and panels
 stay the original's (`terrain_view.gd _on_subtitle` hands each line to the flight add-on when it has a `subtitle()`).
 
-- **A clean start:** a flight starts with the flight running and nothing over it but the key hint (the user,
-  2026-11-13). A start-up mission starts with the pilot's notebook raised; H (the Checklist notebook key) raises and stows it ([training.md](training.md) §11). The mission's goals
+- **A clean start:** a flight starts with the flight running and nothing over it (the user, 2026-11-13; no key hint
+  since 2026-11-15, below). A start-up mission starts with the pilot's notebook raised; H (the Checklist notebook key) raises and stows it ([training.md](training.md) §11). The mission's goals
   are in the briefing (§10), the panel's live "To complete: …" line, the completion message and the debrief
   ([training.md](training.md) §3). The in-flight mission card on H was
   removed on 2026-11-13 (the user's order); H is the notebook's key since the same day (record 118).
@@ -430,15 +430,16 @@ stay the original's (`terrain_view.gd _on_subtitle` hands each line to the fligh
   control's anchors, so in Hebrew the radio menu and "To complete" stood at the top left (the Mac run of 2026-11-13).
 - **The info line** (F12, at the top left): the mission's name and the frames per second (`Settings.info_line_full`
   false; the original game's line also holds the modes, the place, the speed and the controls).
-- **The key hint** at the bottom: Esc and the pause menu. It shows for the first 8 s after the loading screen and
-  for 4 s after a language change, then fades out. It is hidden while the pilot's notebook is raised (the user,
-  2026-11-10: the hint stays out of the way of the narrative). The pause menu's own key hints are separate.
-  The text stands 18 px from its key cap. At 12 px the Hebrew "תפריט השהיה" read as touching the Esc cap on the
-  Mac (2026-11-13). Measured: no glyph reaches past its advance, so the ink gap was the full 12 px (18 px on the
-  Mac's screen), but Heebo's ת has no side bearing and the cockpit shows through the gap. `test_flight_ui.gd`
-  measures the gap on the glyphs' bitmaps in both languages.
+- **No key hint** (the user, 2026-11-15: "why are you still showing the hint when mission start (esc for menu)? we
+  said to remove it completely"; 2026-11-13: "lets remove the kb hints"): nothing over the flight names a key, at the
+  start or later, in either language. From 2026-11-10 to 2026-11-15 a line at the bottom showed Esc and the pause menu
+  for the first 8 s and after a language change; it is gone. The keys are listed in the pilot's notebook (H) and on the
+  Keys screen; the one line over the flight naming keys is the notebook's own help line in the pilot's first start-up
+  mission (approved 2026-11-13, [training.md](training.md) §11). Esc still opens the pause menu.
+  `test_flight_ui.gd` checks that no hint shows. Pictures in these docs taken before 2026-11-15 may still show the
+  line.
 
-A language switched over the flight (Esc → Settings → Language) applies at once to the key hint, the panel (an
+A language switched over the flight (Esc → Settings → Language) applies at once to the panel (an
 open radio menu at once, a training line at the next frame's score), the pilot's notebook ([training.md](training.md)
 §11) and the radio lines: `radio.gd` keeps each line it prints in both languages (`subtitles`, the pilot's call from
 `sim_flight.gd pick`), so a line shown, or still waiting for its voice, shows in the language of the moment.
@@ -448,8 +449,8 @@ checks the layout at a start in each language and after a switch each way, and t
 
 | | English | Hebrew |
 |---|---|---|
-| the strip after a tower call, the key hint still showing | ![A tower call in the band](pictures/front-end/band_en.webp) | ![A tower call in Hebrew](pictures/front-end/band_he.webp) |
-| 10 s into the flight: the key hint faded out | ![The take-off 10 s in, no key hint](pictures/front-end/flight10_en.webp) | ![The take-off 10 s in, Hebrew](pictures/front-end/flight10_he.webp) |
+| the strip after a tower call (taken before 2026-11-15: the key hint since removed still shows) | ![A tower call in the band](pictures/front-end/band_en.webp) | ![A tower call in Hebrew](pictures/front-end/band_he.webp) |
+| 10 s into the flight | ![The take-off 10 s in, no key hint](pictures/front-end/flight10_en.webp) | ![The take-off 10 s in, Hebrew](pictures/front-end/flight10_he.webp) |
 
 ## 9. Keys and Joystick
 

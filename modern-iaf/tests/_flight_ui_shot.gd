@@ -3,7 +3,7 @@
 #   tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 SHOT_DIR=/tmp/fui -- --log-file /tmp/fui.log --path modern-iaf \
 #     --resolution 1920x1080 -s ../modern-iaf/tests/_flight_ui_shot.gd
 # Writes SHOT_DIR/band_<lang>.png (after the start-up call), pause_<lang>.png, accomplished_<lang>.png (a training
-# mission's pass: sim_flight.gd _accomplished) and flight10_<lang>.png (10 s into the flight: the key hint faded out).
+# mission's pass: sim_flight.gd _accomplished) and flight10_<lang>.png (10 s into the flight).
 extends "res://../tests/godot/base.gd"
 
 

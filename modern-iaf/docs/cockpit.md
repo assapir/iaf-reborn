@@ -504,7 +504,7 @@ its own that does not jump on the ground, so the original game is unchanged. `te
 ### 6.1 The pictures (2026-11-09)
 
 Each picture: ahead, left (80° left, 30° down), right; back, down (25° down; the F-35I's 20°). The sim's key hint
-strip ("Esc Pause menu") is part of the view.
+strip ("Esc Pause menu") is part of these pictures; it was removed from the flight on 2026-11-15 (front-end.md §8).
 
 ![The Sufa by day](pictures/cockpit/sufa_day.jpg)
 ![The Sufa at 22:00](pictures/cockpit/sufa_night.jpg)

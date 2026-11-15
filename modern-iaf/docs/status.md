@@ -90,9 +90,10 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   side-stick's grip (it hung 9 cm ahead of it) and the left palm sits on the throttle's head (it lay on the console
   beside it), its fingers closed on the grip (they spread onto the panel beside it), cold and in flight
   ([cockpit.md](cockpit.md) §5.3). `test_cockpit_view.gd` checks both hands.
-- **No mission card (2026-11-13, the user):** a flight starts with nothing over it but the key hint, the flight
-  running; the in-flight mission card and its H key are gone (record 118 and H are the Checklist notebook's since). The key hint names Esc
-  and the pause menu for its first 8 s ([front-end.md](front-end.md) §8). The goals are in the briefing, the live "To
+- **No mission card (2026-11-13, the user):** a flight starts with nothing over it, the flight running; the in-flight
+  mission card and its H key are gone (record 118 and H are the Checklist notebook's since). No key hint over the
+  flight since 2026-11-15 (the Esc line removed; [front-end.md](front-end.md) §8); only the notebook's help line in
+  the pilot's first start-up mission. The goals are in the briefing, the live "To
   complete" line, the completion message and the debrief. `test_flight_ui.gd` checks it.
 - **Reborn's code reused (2026-11-14, the reuse audit's R1–R3):** the mission page preloads the ground and models
   with reborn's `TerrainPreload` ([front-end.md](front-end.md) §7); the briefing map's wheel zoom and the notebook's
@@ -241,7 +242,7 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   run out; our own muzzle flash and tracers; every flight starts with the master arm safe, Shift+A arms
   ([weapons.md](weapons.md)). `test_sim_gun.gd`.
 - **The Mac play test's findings (2026-11-08, [plan.md](plan.md#f-the-probe) F):** the mission card (removed 2026-11-13), the radio lines
-  in the sim's band wholly in the game's language, the key hint; the pause menu centred at any size in Hebrew;
+  in the sim's band wholly in the game's language; the pause menu centred at any size in Hebrew;
   Preferences without an aid or realism row and the aids off; Home on every start;
   clickable breadcrumbs ([front-end.md](front-end.md) §1, §8). `test_flight_ui.gd`, `test_front_end.gd`.
 - **Keys and Joystick (P1, 2026-11-08, the Mac run's "keys / joystick mapping"):** Settings → Devices opens a

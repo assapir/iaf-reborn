@@ -1,7 +1,7 @@
 # Modern IAF's text over the flight (flight/flight_ui.gd, modern-iaf/docs/front-end.md §8) in English and Hebrew: a
 # clean start (no pause menu, the flight running; H opens nothing), the radio lines in the sim's band (not the
-# original's console), entirely in the game's language but for callsigns and runway designators, and the key hint line
-# (Esc's pause menu: shown at the start, faded out after).
+# original's console), entirely in the game's language but for callsigns and runway designators, and no key hint over
+# the flight at any time (the user, 2026-11-15: "we said to remove it completely").
 #   IAF_DEFAULT_SETTINGS=1 godot --headless --audio-driver Dummy --path modern-iaf \
 #     -s ../modern-iaf/tests/test_flight_ui.gd --log-file <temp>
 extends "res://../tests/godot/base.gd"
@@ -20,18 +20,13 @@ func run() -> void:
 		var tv := await _start(2012)
 		var sim_flight: Node = tv.addon
 		var ui: Control = sim_flight.ui
-		var hint: Control = ui.find_child("Hint", true, false)
-		var pause_text := "תפריט השהיה" if lang == "he" else "Pause menu"
-		check(hint != null and pause_text in _labels(hint), "%s: the key hint line in the game's language" % lang)
-		check(hint.visible and hint.modulate.a > 0.9, "%s: the key hint shows at the start" % lang)
+		check(_no_key_hint(tv), "%s: no key hint at the start" % lang)
 		check(tv.fe_overlay == null and not paused, "%s: a clean start: no pause menu, the flight runs" % lang)
-		check(_labels(hint).size() == 2, "%s: the key hint holds Esc and its pause menu only" % lang)
 		await _layout(sim_flight, lang + " start")
 		if lang == "en":
 			s.language = "he"  # as the pause menu's Preferences switch it over the flight
 			await frames(2)
-			hint = ui.find_child("Hint", true, false)
-			check("תפריט השהיה" in _labels(hint), "en → he over the flight: the key hint in Hebrew")
+			check(_no_key_hint(tv), "en → he over the flight: no key hint")
 			await _layout(sim_flight, "en → he")
 			s.language = "en"
 			await frames(2)
@@ -47,10 +42,8 @@ func run() -> void:
 		tv._unhandled_input(h)
 		await frames(1)
 		check(sim_flight.kneeboard.raised == raised, "%s: H again puts it back" % lang)
-		if lang == "en":  # the hint fades out (real time: the start's 8 s at most)
-			await create_timer(ui.HINT_START_S + ui.HINT_FADE_S + 0.3, true, false, true).timeout
-			await frames(1)
-			check(not ui.find_child("Hint", true, false).visible, "en: the key hint faded out")
+		await fly(tv, 2.0)
+		check(_no_key_hint(tv), "%s: no key hint later" % lang)
 		# The tower's answer and the pilot's call: in the band, in the game's language, each as its voice starts.
 		sim_flight.pick("startup")
 		var band: Array = []
@@ -118,41 +111,22 @@ func _layout(sim_flight: Node, what: String) -> void:
 	check(("מגדל" in ui.panel_label.text) == he, "%s: the menu in the language (%s)" % [what, ui.panel_label.text])
 	check(ui.panel_label.is_layout_rtl() == he, "%s: the panel's text direction" % what)
 	sim_flight.set_open(false)
-	for n in ["Band", "Hint"]:
-		var c: Control = ui.find_child(n, true, false)
-		var mid := c.get_rect().get_center().x
-		check(absf(mid - ui.size.x / 2.0) < 2.0 or c.size.x == 0.0, "%s: the %s centred (%d)" % [what, n, mid])
+	var c: Control = ui.find_child("Band", true, false)
+	var mid := c.get_rect().get_center().x
+	check(absf(mid - ui.size.x / 2.0) < 2.0 or c.size.x == 0.0, "%s: the band centred (%d)" % [what, mid])
 	check(sim_flight.kneeboard.board.rtl == he, "%s: the notebook's pages in the language" % what)
-	var gap := _ink_gap(ui.find_child("Hint", true, false))
-	check(gap >= 16.0, "%s: the hint's text clear of its key cap (%.1f px of ink gap)" % [what, gap])
 
 
-## The gap (px) between a key row's cap and the ink of its text, measured on the glyphs as drawn (their bitmaps, so
-## a glyph reaching past its advance counts; the Mac's Hebrew "תפריט השהיה" touched the Esc cap, 2026-11-13).
-func _ink_gap(hint: Control) -> float:
-	var cap: Control = hint.find_children("*", "PanelContainer", true, false)[0]
-	var t: Label = cap.get_parent().get_child(1)
-	var font: Font = t.get_theme_font("font")
-	var px: int = t.get_theme_font_size("font_size")
-	var line := TextLine.new()
-	line.direction = TextServer.DIRECTION_RTL if t.is_layout_rtl() else TextServer.DIRECTION_LTR
-	line.add_string(t.text, font, px)
-	var ts := TextServerManager.get_primary_interface()
-	var x := 0.0
-	var ink := Vector2(INF, -INF)
-	for g: Dictionary in ts.shaped_text_get_glyphs(line.get_rid()):
-		var at := Vector2i(px, 0)
-		ts.font_render_glyph(g.font_rid, at, g.index)
-		var off: Vector2 = ts.font_get_glyph_offset(g.font_rid, at, g.index)
-		var sz: Vector2 = ts.font_get_glyph_size(g.font_rid, at, g.index)
-		if sz.x > 0.0:
-			ink = Vector2(minf(ink.x, x + g.offset.x + off.x), maxf(ink.y, x + g.offset.x + off.x + sz.x))
-		x += g.advance * g.repeat
-	# In the row's own frame (both are its children; the UI may be scaled): the label draws its line from its edge.
-	var left := t.position.x + (t.size.x - line.get_line_width()) * (1.0 if t.is_layout_rtl() else 0.0)
-	if cap.position.x > t.position.x:
-		return cap.position.x - (left + ink.y)
-	return left + ink.x - cap.get_rect().end.x
+## No key hint over the flight: no text naming Esc or the pause menu in the flight's own overlay (flight_ui.gd and the
+## add-on), and no node of the old hint.
+func _no_key_hint(tv: Node) -> bool:
+	var ui: Control = tv.addon.ui
+	if ui.find_child("Hint", true, false) != null:
+		return false
+	for l in tv.addon.find_children("*", "Label", true, false) + ui.find_children("*", "Label", true, false):
+		if l.is_visible_in_tree() and (l.text == "Esc" or "Pause menu" in l.text or "תפריט השהיה" in l.text):
+			return false
+	return true
 
 
 func _start(id: int) -> Node:
@@ -164,7 +138,3 @@ func _start(id: int) -> Node:
 		tv = current_scene
 	await frames(2)
 	return tv
-
-
-func _labels(root: Node) -> Array:
-	return root.find_children("*", "Label", true, false).map(func(l): return String(l.text))
