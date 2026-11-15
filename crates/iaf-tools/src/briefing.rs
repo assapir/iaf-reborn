@@ -12,6 +12,7 @@ use anyhow::{Context, Result};
 use iaf_avionics::roads::{self, Roads};
 use serde_json::{Map, Value, json};
 
+use crate::flights;
 use crate::loadout;
 use crate::sim::place;
 use crate::sim_bases::{self, Base, grid_heading, utm36n_geo};
@@ -82,6 +83,8 @@ pub struct Briefing {
     pub focus: [f64; 4],
     /// The whole built theatre [x0, y0, x1, y1] (the map's metres; `meta.json`), where the map scrolls; None without it.
     pub theatre: Option<[f64; 4]>,
+    /// The mission's other flights (`flights::flights`, Bravo..): their callsign and route from their start.
+    pub flights: Vec<(&'static str, Vec<[f64; 2]>)>,
 }
 
 impl Briefing {
@@ -107,6 +110,7 @@ impl Briefing {
             "pins": self.pins.iter().map(|p| json!({"place": p.place, "at": flat(&[p.at]), "first": p.first, "last": p.last})).collect::<Vec<_>>(),
             "focus": self.focus.map(round),
             "theatre": self.theatre.map(|t| t.map(round)),
+            "flights": self.flights.iter().map(|(c, l)| json!({"callsign": c, "pts": flat(l)})).collect::<Vec<_>>(),
         });
         if let (Some(v), Value::Object(l)) = (v.as_object_mut(), self.layers.to_json()) {
             v.extend(l);
@@ -165,9 +169,16 @@ pub fn briefing(
             route.push(place(p, "route")?);
         }
     }
-    // The extent: the base, the start and the route with MARGIN_M around them, at least MIN_SPAN_M across, at the
+    // The other flights (Bravo..): from their start along their waypoints.
+    let others: Vec<(&'static str, Vec<[f64; 2]>)> = flights::flights(mission, |_| None)?
+        .into_iter()
+        .filter(|f| !f.player())
+        .map(|f| (f.callsign, f.start.into_iter().chain(f.route).collect()))
+        .collect();
+    // The extent: the base, the start and the routes with MARGIN_M around them, at least MIN_SPAN_M across, at the
     // screen's aspect, centred on them.
     let pts = base.runways.iter().flat_map(|r| r.ends).chain([at]).chain(route.iter().copied());
+    let pts = pts.chain(others.iter().flat_map(|o| o.1.iter().copied()));
     let (lo, hi) = pts.fold(([f64::MAX; 2], [f64::MIN; 2]), |(lo, hi), p| {
         ([lo[0].min(p[0]), lo[1].min(p[1])], [hi[0].max(p[0]), hi[1].max(p[1])])
     });
@@ -192,6 +203,7 @@ pub fn briefing(
     let (fc, fh) = ([(lo[0] + hi[0]) / 2.0, (lo[1] + hi[1]) / 2.0], [half(lo[0], hi[0]), half(lo[1], hi[1])]);
     Ok(Briefing {
         pins: pins.collect(),
+        flights: others.into_iter().map(|(c, l)| (c, l.into_iter().map(local).collect())).collect(),
         focus: [fc[0] - fh[0], fc[1] - fh[1], fc[0] + fh[0], fc[1] + fh[1]],
         theatre: None,
         extent: ext,
@@ -719,6 +731,25 @@ mod tests {
         assert_eq!(v["pins"][1]["first"], 3);
         assert_eq!(v["route"].as_array().unwrap().len(), 4);
         assert_eq!(v["heading"].as_f64().unwrap(), hdg.round());
+        assert!(b.flights.is_empty() && v["flights"] == json!([]), "one flight: the player's, drawn as the route");
+    }
+
+    /// The two-flight sample (modern-iaf/tests/data, not a shipped mission): Bravo's route from its start, in the map,
+    /// the player's route as before.
+    #[test]
+    fn a_second_flight_has_its_own_route() {
+        let bases = sim_bases::load(&data().join("airbases")).unwrap();
+        let two: Value =
+            serde_json::from_slice(&std::fs::read(data().join("../tests/data/two_flights.json")).unwrap()).unwrap();
+        let b = briefing(&two, &bases, &map(), 0.6, None, &[]).unwrap();
+        let one = briefing(&mission("ramon_takeoff"), &bases, &map(), 0.6, None, &[]).unwrap();
+        assert_eq!(b.flights.len(), 1);
+        let (callsign, pts) = &b.flights[0];
+        assert_eq!((*callsign, pts.len()), ("Bravo", 3), "its start and two waypoints");
+        let inside = |p: &[f64; 2]| p[0] >= 0.0 && p[1] >= 0.0 && p[0] <= b.size[0] && p[1] <= b.size[1];
+        assert!(pts.iter().all(inside), "the map holds Bravo's route");
+        assert_eq!(b.route.len(), one.route.len());
+        assert_eq!(b.to_json()["flights"][0]["callsign"], "Bravo");
     }
 
     #[test]

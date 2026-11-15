@@ -20,6 +20,7 @@ use std::sync::atomic::AtomicBool;
 use anyhow::{Context, Result, bail, ensure};
 use serde_json::{Map, Value, json};
 
+use crate::flights;
 use crate::log;
 use crate::mission_edit;
 use crate::mission_edit::Heights;
@@ -777,6 +778,9 @@ pub fn compile_mission(
     m["sim"] = json!({"title": texts(f, "title")?, "briefing": briefing(f)?, "win": f.v["win"],
         "lose": f.v["lose"], "menu_id": int(f, "menu_id")?, "runway": f.v["runway"], "training": f.v["training"],
         "base": base_name});
+    // The briefing's flights (flights.rs): callsign, jet, task, route, the record's stores.
+    let flights = flights::flights(&f.v, |u| db.unit(u).ok().map(|r| r.v.clone())).with_context(|| f.name.clone())?;
+    m["sim"]["flights"] = flights.iter().map(flights::Flight::to_json).collect();
     if let Some(note) = f.v["note"].as_str() {
         m["sim"]["note"] = json!(note);
     }
@@ -1349,6 +1353,23 @@ mod tests {
         let m = compile_mission(&f, &db, &bases, &mut |_, _| None).unwrap();
         let c = mission_edit::conditions(&m, &Value::Null);
         assert_eq!(c["keep_alive"], json!([{"id": 1, "name": "Player1"}]), "{c}");
+    }
+
+    /// The briefing's flights ride in `sim`: the two-flight sample (modern-iaf/tests/data, not a shipped mission) names
+    /// Alpha, the player's, and Bravo.
+    #[test]
+    fn the_briefing_flights_are_compiled() {
+        let (db, bases) = (Db::read(&data()).unwrap(), sim_bases::load(&data().join("airbases")).unwrap());
+        let v = serde_json::from_slice(&std::fs::read(data().join("../tests/data/two_flights.json")).unwrap()).unwrap();
+        let m = compile_mission(&File { name: "two_flights".into(), v }, &db, &bases, &mut |_, _| None).unwrap();
+        let f = m["sim"]["flights"].as_array().unwrap();
+        assert_eq!(f.iter().map(|f| f["callsign"].clone()).collect::<Vec<_>>(), [json!("Alpha"), json!("Bravo")]);
+        assert_eq!(
+            (&f[0]["player"], &f[0]["unit"], &f[1]["unit"], &f[1]["task"]),
+            (&json!(true), &json!("f16i"), &json!("f15c"), &json!("cap"))
+        );
+        let names = m["formations"]["items"].as_array().unwrap().iter().filter_map(|f| f["0x3e8"].as_str());
+        assert!(names.collect::<Vec<_>>().contains(&"Bravo"), "the formation set_flight named");
     }
 
     /// A flight without a route (none or empty) gets set_flight's default point, as Alpha does.

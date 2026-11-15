@@ -3,6 +3,13 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **The briefing ready for several flights (2026-11-15, the front-end finish list's N1, [front-end.md](front-end.md)
+  §10):** a mission names its flights (Alpha, the player's, and Bravo..Delta: callsign, jet, task, route, stores; Rust
+  `flights.rs`, compiled into `sim.flights`); the briefing shows a mission of several flights as tabs with the
+  player's picked and its line, and the map draws each other flight's route in its own colour. Every mission has one
+  flight today and shows no tabs. Multi-flight missions themselves wait for their AI flights' missions.
+  `cargo test -p iaf-tools --lib flights briefing sim`, `test_front_end.gd` (the sample mission
+  `modern-iaf/tests/data/two_flights.json`).
 - **The menu flow (2026-11-15, the front-end finish list's M, [front-end.md](front-end.md) §1, §2):** the Hangar's Fly
   opens a Missions screen with the sections Training, Campaign, Single missions and Fly now (a section without
   missions greyed, no click, no focus; Fly now greyed until random missions and dogfights come); a section opens its

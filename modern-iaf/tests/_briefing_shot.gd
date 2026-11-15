@@ -5,9 +5,10 @@
 # briefing_<menu id>_text_<lang>.png (the explanation focused and scrolled by the keys: a start-up's switch pictures),
 # briefing_2012_plain_<lang>.png (the take-off with its labels and photo off), briefing_2012_theatre_<lang>.png (zoomed
 # out to the whole theatre), briefing_2012_far_<lang>.png and briefing_2012_far_close_<lang>.png (the theatre's middle,
-# about 100 km north of Ramon, at 2× and 24× the mission's area) and, per jet, startup_<jet>_<lang>.png
-# (its start-up, the explanation scrolled), at SHOT_SIZE (1920x1080 by default; the front end in a
-# viewport of that size, its 1920 × 1080 canvas stretched to it as the window's is).
+# about 100 km north of Ramon, at 2× and 24× the mission's area) and, per jet, startup_<jet>_<lang>.png (its start-up,
+# the explanation scrolled), briefing_two_flights[_bravo]_<lang>.png (the two-flight sample
+# modern-iaf/tests/data/two_flights.json, Alpha then Bravo picked), at SHOT_SIZE (1920x1080 by default; the front end in
+# a viewport of that size, its 1920 × 1080 canvas stretched to it as the window's is).
 extends "res://../tests/godot/base.gd"
 
 
@@ -61,6 +62,18 @@ func run() -> void:
 					fe.find_child("MapPhoto", true, false).button_pressed = false
 					await frames(4)
 					save.call("briefing_%d_plain_%s" % [id, lang])
+		# The two-flight sample (test data): Alpha picked, then Bravo.
+		var two: Dictionary = s.load_json("res://tests/data/two_flights.json")
+		two["_file"] = "res://tests/data/two_flights.json"
+		s.sim_jet = "f16i"
+		fe.missions = [two]
+		fe.mission_i = 0
+		fe.show_page("mission")
+		await frames(12)
+		save.call("briefing_two_flights_%s" % lang)
+		fe.find_child("Flight_Bravo", true, false).button_pressed = true
+		await frames(4)
+		save.call("briefing_two_flights_bravo_%s" % lang)
 	s.language = "en"
 	s.pilot_name = ""
 

@@ -652,6 +652,14 @@ over it sit two cards and the map's chips (`menu/briefing_page.gd` lays them out
 **The mission card** at the inline start (the left in English, the right in Hebrew), 600 px wide:
 - **The title and the line under it**: the mission's kind, then what it is and the jet's squadron ("Radio calls, taxi
   and take-off. F-16I Sufa · 201 Squadron The One · Ramon"), once; the tail number is the top bar's.
+- **Flights** (מבנים), in a mission of more than one flight only (the user, 2026-11-15: "briefing need future support
+  for multiple flights together (alpha, bravo, etc)"): a tab a flight, its callsign (Alpha, the player's, first and
+  picked; Bravo, Charlie, Delta), and under the tabs the picked flight's line: "Your flight · 1 × F-16I Sufa ·
+  Training · 6 × AIM-9M · 2 × 370 gal tank" (the player's stores as the Arming summary's, another flight's its unit
+  record's own pylons). Another flight picked, its route is drawn wider on the map. The flights are Rust's
+  (`IafBriefing.flights`, `crates/iaf-tools/src/flights.rs`, from the mission's `start` and `flights`,
+  [data-formats.md](data-formats.md) §5); `iaf-sim` writes the same list into the compiled mission's `sim.flights`.
+  A mission of one flight, every mission today, shows no Flights block: its card is as before.
 - **The facts:** the runway end and its grid heading ("25R · 246°"; a take-off only), the time as military time
   ("0800"), the wind as pilots read it, direction and speed ("250° / 8 kt", "250° / 8 קשר"; calm is "000° / 0 kt"),
   from the mission's `wind_from` and `wind_kt`, the time allowed. Both languages keep the digits left to right.
@@ -706,9 +714,9 @@ route are always drawn, navy over a pale edge. Until 2026-11-15 a **Taxi route**
 the navy lines alone were lost on the dark photo, so the user saw it change nothing ("the taxi route button doesn't
 show anything I think it isn't needed at all") and it was removed; **Zoom + / −** zooms around the middle of the room between the cards.
 
-Focus: Tab runs the missions, Edit, Back, Arming, Fly, the chips, the map and the text, round; the arrows move the same
-way on the screen (down from a mission to Edit, then Fly; from Fly toward the inline end the text; up from the text's
-top the chips). Esc goes to the Hangar.
+Focus: Tab runs the flights' tabs (several flights), Edit, Back, Arming, Fly, the chips, the map and the text, round;
+the arrows move the same way on the screen (down from a mission to Edit, then Fly; from Fly toward the inline end the
+text; up from the text's top the chips). Esc goes to the Hangar.
 
 | the Sufa's start-up at Ramon, the explanation scrolled | the Adir's at Nevatim |
 |---|---|
@@ -754,6 +762,9 @@ did not handle, so it could not be zoomed in to make a drag move. It draws:
   taxis), the route from the lineup through the mission's waypoints with an arrow, the runway end and its heading
   beside the first leg, the base's label at the whole map's zoom; zoomed out past the mission's area the runway's
   label and the pins' names stay off (the pins a few pixels apart), and a label whose place is off the map is left out;
+- the mission's other flights (Bravo..; IafBriefing's `flights`): each from its start (a square) through its
+  waypoints (rings) to an arrow, each in a colour of its own (orange, green, purple) apart from the player's navy,
+  its callsign on a plate at its start, the one the Flights tabs pick wider;
 - the pins: a disc in the accent with the number of the text's first paragraph done at its place, the place's name on
   a dark plate beside it ("Start", "Stop short of 25R", "Take-off · 246°"). The pins stay tied to the explanation:
   the places are Rust's (IafBriefing's `pins`): a paragraph's `at` in the mission's `briefing.how` (`start`, `hold`,
@@ -763,14 +774,14 @@ did not handle, so it could not be zoomed in to make a drag move. It draws:
   A take-off: paragraphs 1–3 at the parking spot, 4 at the holding point, 5–6 at the lineup; a start-up: its whole
   text at the parking spot.
 
-The mission's area holds the runways, the start and the route with 6 km around them, at least 50 km across. A
-north arrow (true north: the map is UTM 36N's grid, about 1° off) at the room's top inline-end corner and a scale bar
-(100 m to 100 km, the longest within a quarter of the width) at its bottom beside the mission card follow the zoom. The map never
-mirrors; in Hebrew its north arrow and scale bar swap sides. Its credit, OpenStreetMap's, sits under the scale bar in
-16 px type. Tested 2026-11-09 and dropped: the area beside a separate close-up of the base; one zoomable map shows both
-and leaves each the whole page (the user's A14, round 4). From 2026-11-09 to 2026-11-14 the briefing sat beside a
-list of the missions, in three tabs (Briefing, Map, Arming) switched by the arrow keys; the map-first screen replaced
-them (the user's A25 round 3), the Arming page moving to the loadout screen.
+The mission's area holds the runways, the start and the routes (the other flights' too) with 6 km around them, at least
+50 km across. A north arrow (true north: the map is UTM 36N's grid, about 1° off) at the room's top inline-end corner
+and a scale bar (100 m to 100 km, the longest within a quarter of the width) at its bottom beside the mission card
+follow the zoom. The map never mirrors; in Hebrew its north arrow and scale bar swap sides. Its credit, OpenStreetMap's,
+sits under the scale bar in 16 px type. Tested 2026-11-09 and dropped: the area beside a separate close-up of the base;
+one zoomable map shows both and leaves each the whole page (the user's A14, round 4). From 2026-11-09 to 2026-11-14 the
+briefing sat beside a list of the missions, in three tabs (Briefing, Map, Arming) switched by the arrow keys; the
+map-first screen replaced them (the user's A25 round 3), the Arming page moving to the loadout screen.
 
 The whole map's ground shows rectangles of other tones and a step at the border with Sinai: the Survey of Israel
 sheets' own levels and the end of its coverage, where Sentinel-2 alone goes on ([terrain.md](terrain.md) §10, Open).

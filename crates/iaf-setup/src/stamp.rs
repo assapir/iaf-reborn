@@ -78,6 +78,7 @@ const SIM: &[&str] = &[
     "crates/iaf-formats/src/ini.rs",
     "crates/iaf-tools/src/mission_creator.rs",
     "crates/iaf-tools/src/sim.rs",
+    "crates/iaf-tools/src/flights.rs",
     "crates/iaf-tools/src/sim_bases.rs",
     "crates/iaf-tools/src/sim_scenery.rs",
     "crates/iaf-tools/src/sim_cockpit.rs",

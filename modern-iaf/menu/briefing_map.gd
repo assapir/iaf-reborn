@@ -1,15 +1,16 @@
 # The mission briefing's map (modern-iaf/docs/front-end.md §10), from IafBriefing (crates/iaf-tools briefing.rs), drawn
 # north up with a north arrow and a scale bar: the theatre's ground colour (else the TSD map's polygons), the main
 # roads, the towns' names, the base's paved shapes (aprons, shelters' pads, taxiways, stopways, runways, parking spots),
-# the taxi, the route with its runway's heading and the pins (the place of each run of the briefing text's paragraphs,
-# numbered as its paragraphs, with its name). It opens on the base and the route (IafBriefing's `focus`) in the room the
-# briefing's cards leave (`aim`). It zooms and scrolls over the whole built theatre: the mouse wheel zooms around the
-# pointer, a drag scrolls, a double click shows the mission's area; with the focus, + / − zoom, the arrows scroll and 0
-# shows the mission's area. The ground's tiles (the theatre's colour nodes at the view's detail, IafBriefing.tiles)
-# decode on worker threads, and the roads, towns and polygons are asked again (`layers_source`) for wherever the view
-# goes. Zoomed in,
-# the runways' designators show. The labels and the photo each turn off (`show_*`, the briefing's
-# chips). The map itself never mirrors; in Hebrew its north arrow and scale bar swap sides with the layout.
+# the taxi, the route with its runway's heading, the mission's other flights' routes (each in its colour, with its
+# callsign; the one the briefing's tabs pick wider) and the pins (the place of each run of the briefing text's
+# paragraphs, numbered as its paragraphs, with its name). It opens on the base and the route (IafBriefing's `focus`) in
+# the room the briefing's cards leave (`aim`). It zooms and scrolls over the whole built theatre: the mouse wheel zooms
+# around the pointer, a drag scrolls, a double click shows the mission's area; with the focus, + / − zoom, the arrows
+# scroll and 0 shows the mission's area. The ground's tiles (the theatre's colour nodes at the view's detail,
+# IafBriefing.tiles) decode on worker threads, and the roads, towns and polygons are asked again (`layers_source`) for
+# wherever the view goes. Zoomed in, the runways' designators show. The labels and the photo each turn off (`show_*`,
+# the briefing's chips). The map itself never mirrors; in Hebrew its north arrow and scale bar swap sides with the
+# layout.
 extends Control
 
 const Look := preload("look.gd")
@@ -17,6 +18,8 @@ const RUNWAY := Color("4a4f57")
 const ROUTE := Look.NAVY
 ## The taxi's and the route's pale edge.
 const CASING := Color(1, 1, 1, 0.75)
+## The other flights' routes (Bravo, Charlie, Delta), each in its own colour, apart from the player's NAVY.
+const FLIGHT_COLOURS := [Color("c2571a"), Color("2e7d32"), Color("8e24aa")]
 ## The base's pavement over the ground and the parking spots.
 const PAVEMENT := Color("8f8b82")
 const SPOT := Color("2a2e35")
@@ -75,6 +78,11 @@ var show_labels := true:
 var show_photo := true:
 	set(v):
 		show_photo = v
+		queue_redraw()
+## The flight the briefing's tabs picked (its callsign): another flight's route drawn wider.
+var selected := "":
+	set(v):
+		selected = v
 		queue_redraw()
 var _aspect := 0.0
 var _dragging := false
@@ -432,6 +440,7 @@ func _draw() -> void:
 		_arrow(route[route.size() - 2], route[route.size() - 1])
 		for p in route.slice(1):
 			draw_circle(p, 7.0, ROUTE, false, 2.5, true)
+	_draw_flights(xf)
 	var start := _points(data.get("start", []), xf)
 	var at: Vector2 = start[0] if start.size() == 1 else size / 2.0
 	var taken: Array[Rect2] = []
@@ -452,6 +461,12 @@ func _draw() -> void:
 		# Beside the take-off's first leg, a little past the lineup (in the room the cards leave).
 		var along := (route[1] - route[0]).normalized() * minf(route[0].distance_to(route[1]), 240.0)
 		_tag(font, runway_label, route[0] + along + Vector2(-40, -18), 20, taken)
+	if show_labels:
+		var flights: Array = data.get("flights", [])
+		for i in flights.size():
+			var pts := _points(flights[i].pts, xf)
+			if not pts.is_empty():
+				_tag(font, str(flights[i].callsign), pts[0] + Vector2(12, -12), 19, taken)
 	if show_labels:
 		_draw_places(font, xf, taken)
 	pins.call()
@@ -625,11 +640,30 @@ func _tag(font: Font, t: String, at: Vector2, px: int, taken: Array[Rect2]) -> v
 	draw_string(font, at, t, HORIZONTAL_ALIGNMENT_LEFT, -1, px, Look.INK)
 
 
-func _arrow(a: Vector2, b: Vector2) -> void:
+## The mission's other flights (IafBriefing's `flights`): from the start (a square) along the waypoints (rings) to an
+## arrow, each in its FLIGHT_COLOURS; the picked one (`selected`) wider.
+func _draw_flights(xf: Transform2D) -> void:
+	var flights: Array = data.get("flights", [])
+	for i in flights.size():
+		var pts := _points(flights[i].pts, xf)
+		if pts.is_empty():
+			continue
+		var c: Color = FLIGHT_COLOURS[i % FLIGHT_COLOURS.size()]
+		var w := 5.0 if str(flights[i].callsign) == selected else 3.0
+		draw_rect(Rect2(pts[0] - Vector2(7, 7), Vector2(14, 14)), c)
+		if pts.size() >= 2:
+			draw_polyline(pts, CASING, w + 4.0, true)  # the player's route's pale edge, readable on the photo
+			draw_polyline(pts, c, w, true)
+			_arrow(pts[pts.size() - 2], pts[pts.size() - 1], c)
+			for p in pts.slice(1):
+				draw_circle(p, 7.0, c, false, 2.5, true)
+
+
+func _arrow(a: Vector2, b: Vector2, c := ROUTE) -> void:
 	var d := (b - a).normalized()
 	var n := Vector2(-d.y, d.x)
 	var tip := b - d * 9.0
-	draw_colored_polygon(PackedVector2Array([tip, tip - d * 16.0 + n * 8.0, tip - d * 16.0 - n * 8.0]), ROUTE)
+	draw_colored_polygon(PackedVector2Array([tip, tip - d * 16.0 + n * 8.0, tip - d * 16.0 - n * 8.0]), c)
 
 
 ## The north arrow's centre: the room's top inline-end corner.

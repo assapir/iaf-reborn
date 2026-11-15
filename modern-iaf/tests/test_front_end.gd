@@ -60,6 +60,10 @@ func run() -> void:
 		await walk(fe, ids, lang)
 	s.language = "en"
 	await crumbs(fe)
+	for lang in ["en", "he"]:
+		s.language = lang
+		await two_flights(fe, lang)
+	s.language = "en"
 	await shared_missions(fe)
 	await prefs(fe)
 	for lang in ["en", "he"]:
@@ -346,6 +350,47 @@ func crumbs(fe: Control) -> void:
 	(fe.find_child("Crumb_section", true, false) as Button).pressed.emit()
 	await frames(2)
 	check(fe.page == "section", "crumbs: the debrief's Training crumb opens the section's list")
+
+
+## A mission of two flights (N1; the sample modern-iaf/tests/data/two_flights.json, test data, not a shipped mission):
+## FLIGHTS tabs Alpha (the player's, picked) and Bravo over a line for the picked flight (its jets, task, stores),
+## Bravo's route on the map, picked by its tab; up from Edit the tabs.
+func two_flights(fe: Control, lang: String) -> void:
+	var m: Dictionary = settings().load_json("res://tests/data/two_flights.json")
+	m["_file"] = "res://tests/data/two_flights.json"
+	fe.section = "training"
+	fe.missions = [m]
+	fe.open_mission(0)
+	await frames(2)
+	var tabs: Control = fe.find_child("FlightTabs", true, false)
+	check(tabs != null and tabs.get_child_count() == 2, "%s: flights: two tabs" % lang)
+	if tabs == null:
+		return
+	var a: Button = tabs.find_child("Flight_Alpha", false, false)
+	var b: Button = tabs.find_child("Flight_Bravo", false, false)
+	check(a != null and b != null and a.button_pressed and not b.button_pressed, "%s: flights: Alpha picked" % lang)
+	var detail: Label = fe.find_child("FlightDetail", true, false)
+	check(
+		detail.text.begins_with(fe.s("your_flight")) and detail.text.contains("F-16I"),
+		"%s: flights: the player's line (%s)" % [lang, detail.text]
+	)
+	var map: Control = fe.find_child("PageMap", true, false)
+	await frames(2)
+	var others: Array = map.data.get("flights", [])
+	check(others.size() == 1 and others[0].callsign == "Bravo", "%s: map: Bravo's route" % lang)
+	check(map.selected == "Alpha", "%s: map: the player's flight picked" % lang)
+	b.button_pressed = true
+	await frames(1)
+	check(
+		map.selected == "Bravo" and detail.text.contains("2 × ") and detail.text.contains("F-15C"),
+		"%s: flights: Bravo's line and route picked (%s)" % [lang, detail.text]
+	)
+	check(detail.text.contains(fe.s("task_cap")), "%s: flights: Bravo's task" % lang)
+	var edit: Button = fe.find_child("ArmEdit", true, false)
+	check(edit.get_node(edit.focus_neighbor_top) == a, "%s: flights: up from Edit the tabs" % lang)
+	check(a.get_node(a.focus_neighbor_bottom) == edit, "%s: flights: down from the tabs Edit" % lang)
+	fe.show_page("section")
+	await frames(2)
 
 
 ## The missions are shared by the jets (fly.gd for_jet, front-end.md §2): the same list whatever jet the Hangar
@@ -1409,6 +1454,8 @@ func _briefing_checks(fe: Control, lang: String) -> void:
 		"%s: focus: on Fly, up to Edit and back down" % lang
 	)
 	check(pane.find_child("Missions", true, false) == null, "%s: briefing: no mission tabs" % lang)
+	check(pane.find_child("Flights", true, false) == null, "%s: briefing: one flight, no flight tabs" % lang)
+	check(fe.find_child("PageMap", true, false).data.get("flights") == [], "%s: map: no other flight" % lang)
 	var back: Button = pane.find_child("Back", true, false)
 	back.pressed.emit()
 	await frames(2)

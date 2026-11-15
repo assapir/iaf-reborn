@@ -1024,7 +1024,7 @@ func objectives(m: Dictionary, budget: String) -> Array:
 func briefing_map(m: Dictionary, aspect: float) -> Dictionary:
 	var d = JSON.parse_string(
 		IafBriefing.map(
-			ProjectSettings.globalize_path("res://data/missions/%s.json" % str(m.get("id", ""))),
+			mission_file(m),
 			ProjectSettings.globalize_path("res://data/airbases"),
 			_map_file(m),
 			briefing_theatre(),
@@ -1057,6 +1057,19 @@ func briefing_theatre() -> String:
 ## The compiled TSD map of mission `m`'s jet (absolute).
 func _map_file(m: Dictionary) -> String:
 	return ProjectSettings.globalize_path(Settings.converted("own/cockpits/%s/map.json" % jet_of(m).get("unit", "")))
+
+
+## Readable mission `m`'s file, an absolute path: res://data/missions/<id>.json, else its `_file` (a test's sample
+## mission, modern-iaf/tests/data).
+static func mission_file(m: Dictionary) -> String:
+	return ProjectSettings.globalize_path(str(m.get("_file", "res://data/missions/%s.json" % str(m.get("id", "")))))
+
+
+## Mission `m`'s flights (IafBriefing.flights: [{callsign, unit, count, task, player, start, route, stores}]), the
+## player's first; [] when it cannot be read.
+func flights(m: Dictionary) -> Array:
+	var d = JSON.parse_string(IafBriefing.flights(mission_file(m), ProjectSettings.globalize_path(units_dir)))
+	return d if d is Array else []
 
 
 ## "25R · 246°": the runway end and its grid heading (IafBriefing: the HUD's and the compass's), left to right.

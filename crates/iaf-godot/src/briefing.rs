@@ -2,7 +2,7 @@
 //! Pick a mission screen (`menu/briefing_map.gd` draws it).
 
 use godot::prelude::*;
-use iaf_tools::{briefing, loadout, sim_bases};
+use iaf_tools::{briefing, flights, loadout, sim_bases};
 use serde_json::{Value, json};
 
 use crate::world::text;
@@ -30,6 +30,18 @@ impl IafBriefing {
         ) {
             Ok(b) => b.to_json(),
             Err(e) => serde_json::json!({ "error": format!("{e:#}") }),
+        };
+        text(&out)
+    }
+
+    /// The flights of the readable mission file `mission` with the unit records in `units` (absolute paths;
+    /// `flights::flights_files`), the player's first, as JSON text [`flights::Flight::to_json`, …]; `{"error": …}`
+    /// when the mission cannot be read.
+    #[func]
+    fn flights(mission: GString, units: GString) -> GString {
+        let out = match flights::flights_files(Path::new(&mission.to_string()), Path::new(&units.to_string())) {
+            Ok(f) => Value::Array(f.iter().map(flights::Flight::to_json).collect()),
+            Err(e) => json!({ "error": format!("{e:#}") }),
         };
         text(&out)
     }

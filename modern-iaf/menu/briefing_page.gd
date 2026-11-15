@@ -1,10 +1,10 @@
-# The mission briefing, map first (modern-iaf/docs/front-end.md §10; the approved mock r3_briefing, the user's A25
-# round 3, 2026-11-13): the map fills the screen (briefing_map.gd); over it at the inline start the mission card (the
-# title, the facts, the objectives, the Arming summary with Edit, Back to the section's list, Arming and Fly), at the
-# inline end the map's chips (Labels, Photo, Zoom) and the mission's text (the user's note, 2026-11-15: what
-# you will learn, then how and what to do, in prose with the keys as bound, its paragraphs numbered as the map's pins; a
-# start-up's switch pictures under their paragraphs). `build` lays it out on the front end `fe` (front_end.gd), whose
-# building blocks it uses.
+# The mission briefing, map first (modern-iaf/docs/front-end.md §10; the approved mock r3_briefing, the user's A25 round
+# 3, 2026-11-13): the map fills the screen (briefing_map.gd); over it at the inline start the mission card (the title, a
+# mission of several flights its FLIGHTS tabs, the facts, the objectives, the Arming summary with Edit, Back to the
+# section's list, Arming and Fly), at the inline end the map's chips (Labels, Photo, Zoom) and the mission's text (the
+# user's note, 2026-11-15: what you will learn, then how and what to do, in prose with the keys as bound, its paragraphs
+# numbered as the map's pins; a start-up's switch pictures under their paragraphs). `build` lays it out on the front end
+# `fe` (front_end.gd), whose building blocks it uses.
 extends RefCounted
 
 const Look := preload("look.gd")
@@ -22,10 +22,11 @@ const TEXT_PX := 23
 
 
 ## The briefing of mission `m` on `fe`; the controls named for the tests and the focus (ArmEdit, Back,
-## Arming, Fly, MapLabels, MapPhoto, ZoomIn, ZoomOut, PageMap, Purpose, HowScroll, Para<n>).
+## Arming, Fly, MapLabels, MapPhoto, ZoomIn, ZoomOut, PageMap, Purpose, HowScroll, Para<n>; with several
+## flights Flights, Flight_<callsign>, FlightDetail).
 static func build(fe: Control, m: Dictionary) -> void:
 	var map := _map(fe, m)
-	var card := _card(fe, m)
+	var card := _card(fe, m, map)
 	var chips := _chips(fe, map)
 	var text := _text_card(fe, m)
 	# The map opens on the base and the route in the room between the cards, under the chips, over the scale bar.
@@ -83,7 +84,7 @@ static func _map(fe: Control, m: Dictionary) -> Control:
 
 
 ## The mission card at the inline start.
-static func _card(fe: Control, m: Dictionary) -> Control:
+static func _card(fe: Control, m: Dictionary, map: Control) -> Control:
 	var card := PanelContainer.new()
 	card.name = "Briefing"
 	card.add_theme_stylebox_override("panel", Look.box(Color(Look.PANEL, 0.94), Look.LINE, 1, 6, Vector2(32, 28)))
@@ -99,6 +100,7 @@ static func _card(fe: Control, m: Dictionary) -> Control:
 		tv, "%s %s · %s" % [fe.s("desc_" + fe.kind(m)), fe.full_name(j), fe.subtitle(j, false)], "Sub"
 	)
 	sub.name = "Subtitle"
+	_flights(fe, v, m, map)
 	_facts(fe, v, m)
 	_objectives(fe, v, m)
 	_arming(fe, v, m)
@@ -123,6 +125,68 @@ static func _arming_button(fe: Control, foot: Control) -> Button:
 	b.custom_minimum_size.y = 64
 	b.tooltip_text = fe.s("arming_tip")
 	return b
+
+
+## FLIGHTS, in a mission of more than one (the player's, Alpha, and Bravo..; one flight shows none): a tab a flight,
+## the player's first and picked, and under them the picked flight's jets, task and stores (the player's as the Arming
+## summary's). The picked flight's route stands out on the map (briefing_map.gd `selected`).
+static func _flights(fe: Control, parent: Control, m: Dictionary, map: Control) -> void:
+	var list: Array = fe.flights(m)
+	if list.size() < 2:
+		return
+	var fv: VBoxContainer = fe._vbox(parent, 8)
+	fv.name = "Flights"
+	_heading(fe, fv, fe.s("flights"))
+	var tabs: HBoxContainer = fe._hbox(fv, 10)
+	tabs.name = "FlightTabs"
+	var detail: Label = fe._text(fv, "", "")
+	detail.name = "FlightDetail"
+	var group := ButtonGroup.new()
+	for f in list:
+		var b := Button.new()
+		b.name = "Flight_" + str(f.callsign)
+		b.text = fe._ltr(str(f.callsign))
+		b.toggle_mode = true
+		b.button_group = group
+		_pill(b)
+		tabs.add_child(b)
+		var line := _flight_line(fe, m, f)
+		var callsign := str(f.callsign)
+		b.toggled.connect(
+			func(on: bool):
+				if on:
+					detail.text = line
+					map.selected = callsign
+		)
+		if bool(f.player):
+			b.button_pressed = true
+
+
+## A flight's line: "Your flight · 1 × F-16I Sufa · Training · 6 × AIM-9M · 2 × 370 gal tank".
+static func _flight_line(fe: Control, m: Dictionary, f: Dictionary) -> String:
+	var parts := [fe.s("your_flight")] if bool(f.player) else []
+	# The player's jet is the mission's as the page shows it (the Hangar's jet: front_end.gd section_missions).
+	var unit := str(m.get("start", {}).get("unit", f.unit)) if bool(f.player) else str(f.unit)
+	var name := unit.to_upper()
+	var script: GDScript = fe.get_script()
+	for j in script.JETS + script.SOON:
+		if j.unit == unit:
+			name = fe.full_name(j)
+	parts.append("%d × %s" % [int(f.count), name])
+	parts.append(fe.s("task_" + str(f.task)))
+	var stores: Array = fe.arming(m, fe.mission_loadout(m)).get("stores", []) if bool(f.player) else f.stores
+	parts.append(_stores_text(fe, stores))
+	return " · ".join(parts)
+
+
+## Stores as "6 × AIM-9M · 2 × 370 gal tank" ({weapon, count} each; an Arming store off every station left out), else
+## "Empty".
+static func _stores_text(fe: Control, stores: Array) -> String:
+	var parts := []
+	for st in stores:
+		if not (st.get("stations", [0]) as Array).is_empty():
+			parts.append("%d × %s" % [int(st.count), fe.short_store(str(st.weapon))])
+	return " · ".join(parts) if not parts.is_empty() else fe.s("arm_empty")
 
 
 ## The facts: the runway with its heading (a take-off), the time, the wind, the time allowed.
@@ -173,11 +237,7 @@ static func _arming(fe: Control, parent: Control, m: Dictionary) -> void:
 	var left: VBoxContainer = fe._vbox(h, 2)
 	left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_heading(fe, left, fe.s("tab_arming"))
-	var parts := []
-	for st in a.get("stores", []):
-		if not (st.get("stations", []) as Array).is_empty():
-			parts.append("%d × %s" % [int(st.count), fe.short_store(str(st.weapon))])
-	var stores: Label = fe._text(left, " · ".join(parts) if not parts.is_empty() else fe.s("arm_empty"), "")
+	var stores: Label = fe._text(left, _stores_text(fe, a.get("stores", [])), "")
 	stores.name = "ArmingStores"
 	if a.get("takeoff_kg") != null:
 		var wv: VBoxContainer = fe._vbox(h, 0)
@@ -397,8 +457,9 @@ static func fill_text(fe: Control, m: Dictionary, t: String) -> String:
 	return t
 
 
-## Tab and the arrows: Edit, Back, Arming, Fly; on to the chips, the map, the text; round. Fly takes the focus (Arming
-## when the loadout keeps Fly off); across from Fly the text, up from the text's top the chips, down from them the map.
+## Tab and the arrows: the flights' tabs (several flights), Edit, Back, Arming, Fly; on to the chips, the map, the
+## text; round. Fly takes the focus (Arming when the loadout keeps Fly off); across from Fly the text, up from the
+## text's top the chips, down from them the map; up from Edit the flights' tabs, down from them Edit.
 static func _focus_order(fe: Control, card: Control, chips: Control, text: Control, map: Control) -> void:
 	var edit: Control = card.find_child("ArmEdit", true, false)
 	var back: Control = card.find_child("Back", true, false)
@@ -406,13 +467,17 @@ static func _focus_order(fe: Control, card: Control, chips: Control, text: Contr
 	var fly: Button = card.find_child("Fly", true, false)
 	var chip_list: Array = chips.find_children("*", "Button", true, false)
 	var how: Control = text.find_child("HowScroll", true, false)
-	var ring: Array = [edit, back, arm] + ([fly] if not fly.disabled else []) + chip_list + [map, how]
+	var tabs: Array = card.find_children("Flight_*", "Button", true, false)
+	var ring: Array = tabs + [edit, back, arm] + ([fly] if not fly.disabled else []) + chip_list + [map, how]
 	fe._chain(ring)
 	var start := "right" if fe.he() else "left"
 	var end := "left" if fe.he() else "right"
 	var last_card: Control = fly if not fly.disabled else arm
 	fe._focus = last_card
-	fe._nb(edit, {"top": edit, "bottom": last_card, start: edit, end: chip_list[0]})
+	var up: Control = edit if tabs.is_empty() else tabs[0]
+	for t in tabs:
+		fe._nb(t, {"top": t, "bottom": edit})
+	fe._nb(edit, {"top": up, "bottom": last_card, start: edit, end: chip_list[0]})
 	fe._nb(back, {"top": edit, "bottom": back, start: back, end: arm})
 	fe._nb(arm, {"top": edit, "bottom": arm, start: back, end: fly if not fly.disabled else how})
 	fe._nb(fly, {"top": edit, "bottom": fly, start: arm, end: how})

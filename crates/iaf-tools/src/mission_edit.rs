@@ -18,7 +18,8 @@ use crate::mission_events;
 
 /// The jets the TSD lets the player fly (`tsd.gd FLYABLE_TYPES`, bdb object 0x5b4).
 const FLYABLE: [i64; 9] = [100, 110, 120, 130, 140, 160, 180, 190, 200];
-const FLIGHT_NAMES: [&str; 4] = ["Alpha", "Bravo", "Charlie", "Delta"];
+/// The flights' callsigns by `set_flight` number − 1 (the formations' names, 0x3e8).
+pub const FLIGHT_NAMES: [&str; 4] = ["Alpha", "Bravo", "Charlie", "Delta"];
 /// bdb object classes (0x5aa, `tsd.gd ICON_CLASS`).
 const VEHICLES: [i64; 2] = [5, 6];
 const SITES: [i64; 6] = [8, 9, 10, 11, 12, 13]; // SAM, IR-SAM, AAA, radars, buildings
