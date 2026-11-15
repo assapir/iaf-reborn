@@ -7,7 +7,7 @@
     "Hatzerim": [["GND", 268.7], ["TWR", 256.9], ["APP", 122.15]]
   },
   "calls": [
-    {"call": "startup", "on": "GND", "en": "“{cs}, cleared to start”", "he": "״{cs}, מאושר להתניע״"},
+    {"call": "startup", "on": "GND", "en": "“{cs}, cleared to start”", "he": "״{cs}, אישור התנעה״"},
     {"call": "taxi", "on": "GND", "en": "“{cs}, taxi to runway {runway}”", "he": "״{cs}, הסעה למסלול {runway}״"},
     {"call": "takeoff", "on": "TWR", "en": "“line up runway {runway}” · “cleared for take-off”", "he": "״כניסה למסלול {runway}״ · ״מאושר להמריא״"},
     {"call": "landing", "on": "TWR", "en": "“proceed to runway …”", "he": "״המשך למסלול …״"}

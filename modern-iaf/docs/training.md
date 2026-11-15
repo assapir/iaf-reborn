@@ -254,9 +254,8 @@ reads the same `checklist` event. The throttle goes back to OFF by its own key, 
 | 4 | Canopy: close and lock | Ctrl+K | at once; the canopy, its aft end up 30° about its front hinge at the cold start, comes down over 10 s | any time; taxiing with it up has no consequence | inferred (front-hinged: [f35i.md](../../docs/f35i.md) §4; the angle and time the F-16's) |
 
 Each step's `wait` (mission data) says the state to wait for before the next step, in the table's figures (the JFS's
-20 % RPM, the idle with the main generator, the displays, the INS's 90 s; the IPP's 10 s); the notebook and the
-briefing's How show it under the step, the briefing beside a picture of the step's switch in the 3D cockpit
-([front-end.md](front-end.md) §10).
+20 % RPM, the idle with the main generator, the displays, the INS's 90 s; the IPP's 10 s); the notebook shows it under the step. The briefing's text says the same in prose, its paragraphs with the steps'
+switch pictures from the 3D cockpit ([front-end.md](front-end.md) §10).
 
 The avionics of the F-35I report ready 90 s after the battery[^ayton].
 
@@ -341,7 +340,8 @@ state machine as it is. In the menu the tower no longer talks on
 its own on the ground (the original game's tower is unchanged). Each pick is a `radio` event in the recording (§9),
 which the debrief counts as `tower_calls`. The scorer has no rule on the calls (a take-off without them still passes).
 
-A take-off mission's `training.steps` (mission data) lists the pilot's sequence for the briefing's How: each call
+A take-off mission's `training.steps` (mission data) lists the pilot's sequence for the notebook's TAXI / T-O page
+(the briefing tells it in prose, its `briefing.how`): each call
 on its own at its place (request start-up before the engine start, taxi once at idle with the avionics up, line-up at
 the holding point, take-off once lined up), each with its key, the menu's pick and the answer to wait for (the table
 above). The picks are the menu's fixed order: start-up 1, taxi 2, line-up 3, take-off 4.

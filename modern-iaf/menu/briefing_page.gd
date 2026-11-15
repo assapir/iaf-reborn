@@ -1,46 +1,48 @@
 # The mission briefing, map first (modern-iaf/docs/front-end.md §10; the approved mock r3_briefing, the user's A25
 # round 3, 2026-11-13): the map fills the screen (briefing_map.gd); over it at the inline start the mission card (the
 # missions as tabs with their pass chips, the title, the facts, the objectives, the Arming summary with Edit, Back and
-# Fly), at the inline end the map's chips (Taxi route, Labels, Photo, Zoom) and the ORDER OF ACTIONS card (the steps,
-# numbered as the map's pins, each with its key as bound; a step opens to its state to wait for and its switch's
-# picture). `build` lays it out on the front end `fe` (front_end.gd), whose building blocks it uses.
+# Arming and Fly), at the inline end the map's chips (Taxi route, Labels, Photo, Zoom) and the mission's text (the
+# user's note, 2026-11-15: what you will learn, then how and what to do, in prose with the keys as bound, its
+# paragraphs numbered as the map's pins; a start-up's switch pictures under their paragraphs). `build` lays it out on
+# the front end `fe` (front_end.gd), whose building blocks it uses.
 extends RefCounted
 
 const Look := preload("look.gd")
 const BriefingMap := preload("briefing_map.gd")
 ## The card's width and the screen's edge (px on the 1920 × 1080 canvas, the mock's).
 const CARD_W := 600
-const ORDER_W := 640
+const TEXT_W := 640
 const EDGE := 68
 ## The map's chips' row from the top, and the gap kept between the cards and the map's opening view.
 const CHIPS_TOP := 120
 const GAP := 32
+## The text card's top (under the chips) and the explanation's type size (readable at 1280 × 720: 15 px there).
+const TEXT_TOP := 190
+const TEXT_PX := 23
+## The Arming button's key (the front end binds no letter keys; keys.json's are the flight's).
+const ARMING_KEY := KEY_A
 
 
 ## The briefing of mission `m` on `fe`; the controls named for the tests and the focus (Mission<n>, ArmEdit, Back,
-## Fly, MapTaxi, MapLabels, MapPhoto, ZoomIn, ZoomOut, PageMap, Step<n>).
+## Arming, Fly, MapTaxi, MapLabels, MapPhoto, ZoomIn, ZoomOut, PageMap, Purpose, HowScroll, Para<n>).
 static func build(fe: Control, m: Dictionary) -> void:
 	var map := _map(fe, m)
 	var card := _card(fe, m)
 	var chips := _chips(fe, map)
-	var order := _order(fe, m)
-	# The map opens on the base and the route in the room between the cards, under the chips.
+	var text := _text_card(fe, m)
+	# The map opens on the base and the route in the room between the cards, under the chips, over the scale bar.
 	var aim := func():
 		var r := map.get_global_rect()
 		var c := card.get_global_rect()
-		var o := order.get_global_rect()
-		# The order card's top with its steps closed: a step opened grows it, and the view stays where it is.
-		for more in order.find_children("More", "", true, false):
-			if more.visible:
-				o.position.y += more.size.y + 6.0
+		var o := text.get_global_rect()
 		var rtl: bool = fe.he()
-		var x0: float = (c.end.x + GAP) if not rtl else (r.position.x + GAP)
-		var x1: float = (r.end.x - GAP) if not rtl else (c.position.x - GAP)
+		var x0: float = (c.end.x + GAP) if not rtl else (o.end.x + GAP)
+		var x1: float = (o.position.x - GAP) if not rtl else (c.position.x - GAP)
 		var top := chips.get_global_rect().end.y + 16.0
-		map.aim(Rect2(x0 - r.position.x, top - r.position.y, x1 - x0, o.position.y - GAP - top))
+		map.aim(Rect2(x0 - r.position.x, top - r.position.y, x1 - x0, r.end.y - 110.0 - top))
 		# The scale bar and the credit at the bottom of the room beside the card.
 		map.scale_at = Vector2((x0 - r.position.x) if not rtl else (x1 - r.position.x), r.size.y - 70.0)
-	for n in [map, card, order]:
+	for n in [map, card, text]:
 		n.resized.connect(aim)
 	aim.call_deferred()  # the cards are sized already: their first resized has gone
 	var credit: Label = fe._label(fe, fe.s("map_credit"), "Small")
@@ -51,7 +53,7 @@ static func build(fe: Control, m: Dictionary) -> void:
 	credit.add_theme_color_override("font_outline_color", Color(Look.BG, 0.85))
 	credit.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	fe._place(credit, CARD_W + EDGE + GAP, -1, -44, 0)
-	_focus_order(fe, card, chips, order, map)
+	_focus_order(fe, card, chips, text, map)
 
 
 ## The map over the whole screen, under the header's shade.
@@ -71,7 +73,6 @@ static func _map(fe: Control, m: Dictionary) -> Control:
 		"hold": fe.s("pin_hold") % rwy,
 		"lineup": (fe.s("pin_lineup") % roundi(float(heading))) if heading != null else fe.s("pin_start"),
 	}
-	map.steps_text = fe.s("pin_steps")
 	map.source = func(a: float) -> Dictionary: return fe.briefing_map(m, a, true)
 	# Added once set up: its first size loads the map.
 	fe.add_child(map)
@@ -145,12 +146,40 @@ static func _card(fe: Control, m: Dictionary) -> Control:
 	var back: Button = fe._button(foot, fe.s("back"), "Secondary", func(): fe.show_page("hangar"))
 	back.name = "Back"
 	back.custom_minimum_size = Vector2(142, 64)
+	_arming_button(fe, foot)
 	var fly: Button = fe._button(foot, fe.s("fly"), "Fly", func(): fe.fly_mission(m))
 	fly.name = "Fly"
 	fly.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	fly.custom_minimum_size.y = 76
 	fly.disabled = bool(fe.arming(m, fe.mission_loadout(m)).get("blocked", false))
 	return card
+
+
+## Arming beside Fly (the user's note, 2026-11-15: the way to the loadout screen was unclear): the page "arming", as
+## the summary's Edit; its key (ARMING_KEY) a shortcut, shown as a key cap beside the word.
+static func _arming_button(fe: Control, foot: Control) -> Button:
+	var b: Button = fe._button(foot, "", "Secondary", func(): fe.show_page("arming"))
+	b.name = "Arming"
+	var key := InputEventKey.new()
+	key.physical_keycode = ARMING_KEY
+	b.shortcut = Shortcut.new()
+	b.shortcut.events = [key]
+	b.shortcut_feedback = false
+	var c := CenterContainer.new()
+	c.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	b.add_child(c)
+	c.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var h: HBoxContainer = fe._hbox(c, 12)
+	h.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	fe._label(h, fe.s("tab_arming"), "Strong").mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# The key's name on the player's layout (the shortcut is the physical key: Q on AZERTY).
+	var label := OS.get_keycode_string(DisplayServer.keyboard_get_label_from_physical(ARMING_KEY))
+	if label == "":
+		label = OS.get_keycode_string(ARMING_KEY)  # no layout known (headless)
+	fe._keycap(h, label).mouse_filter = Control.MOUSE_FILTER_IGNORE
+	b.custom_minimum_size = Vector2(h.get_combined_minimum_size().x + 40, 64)
+	b.tooltip_text = fe.s("arming_tip") % label
+	return b
 
 
 ## The facts: the runway with its heading (a take-off), the time, the wind, the time allowed.
@@ -276,118 +305,181 @@ static func _pill(b: Button) -> void:
 		b.add_theme_color_override(k, Look.TEXT)
 
 
-## ORDER OF ACTIONS at the bottom inline end: a row per step, its number (the map's pins'), the step and its key as
-## bound; the row with the focus (a click, the arrows, Tab) opens to the state to wait for and, on a start-up, the
-## switch's picture cut from the 3D cockpit with its name and place.
-static func _order(fe: Control, m: Dictionary) -> Control:
+## The mission's text at the inline end, under the chips to the bottom: WHAT YOU WILL LEARN (a training mission's;
+## another's PURPOSE), the mission's `briefing.purpose`; then HOW, its `briefing.how` paragraphs in a scrolled list,
+## each numbered as the map's pins (a pin carries the number of the first paragraph done at its place), its keys as
+## bound in key caps, a start-up's switch pictures under their paragraph. The list scrolls by the wheel (a
+## touchscreen's drag) and with the focus by the arrows / the gamepad's pad and Page Up / Down; at its ends the arrows
+## move the focus on.
+static func _text_card(fe: Control, m: Dictionary) -> Control:
 	var card := PanelContainer.new()
-	card.name = "Order"
-	card.add_theme_stylebox_override("panel", Look.box(Color(Look.PANEL, 0.94), Look.LINE, 1, 6, Vector2(24, 22)))
+	card.name = "Text"
+	var off := Look.box(Color(Look.PANEL, 0.94), Look.LINE, 1, 6, Vector2(28, 24))
+	var on := Look.box(Color(Look.PANEL, 0.94), Look.ACCENT_TEXT, 2, 6, Vector2(28, 24))
+	card.add_theme_stylebox_override("panel", off)
 	fe.add_child(card)
-	var v: VBoxContainer = fe._vbox(card, 0)
-	var head := _heading(fe, v, fe.s("order"))
-	head.custom_minimum_size.y = 40
-	var steps: VBoxContainer = fe._vbox(v, 0)
-	steps.name = "Steps"
-	var list: Array = fe.briefing_steps(m)
-	for i in list.size():
-		steps.add_child(_step(fe, i, list[i]))
-	fe._place(card, -1, EDGE, -40, 0)
-	card.offset_left = card.offset_right - ORDER_W
-	card.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	# Its height its content's, grown upward from the bottom (its wrapped lines are measured once it has its width).
+	fe._place(card, -1, EDGE, TEXT_TOP, 0)
+	card.offset_left = card.offset_right - TEXT_W
+	card.anchor_bottom = 1.0
 	card.offset_bottom = -40
-	card.offset_top = -40
+	var v: VBoxContainer = fe._vbox(card, 10)
+	var lang := "he" if fe.he() else "en"
+	var b: Dictionary = m.get("briefing", {})
+	_heading(fe, v, fe.s("learn" if str(m.get("category", "")) == "training" else "purpose"))
+	var purpose := _rich(fe, v, fill_text(fe, m, str(b.get("purpose", {}).get(lang, ""))))
+	purpose.name = "Purpose"
+	purpose.add_theme_color_override("default_color", Look.ACCENT_TEXT)
+	fe._spacer_px(v, 6)
+	_heading(fe, v, fe.s("how"))
+	var scroll := ScrollContainer.new()
+	scroll.name = "HowScroll"
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.focus_mode = Control.FOCUS_ALL
+	scroll.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+	v.add_child(scroll)
+	var list: VBoxContainer = fe._vbox(scroll, 18)
+	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var how: Array = b.get("how", [])
+	var unit := str(m.get("start", {}).get("unit", ""))
+	for i in how.size():
+		var row: HBoxContainer = fe._hbox(list, 14)
+		row.name = "Para%d" % (i + 1)
+		var n: Label = fe._label(row, str(i + 1), "Strong")
+		n.add_theme_color_override("font_color", Look.ACCENT)
+		n.add_theme_font_size_override("font_size", TEXT_PX)
+		n.custom_minimum_size.x = 24
+		n.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+		var pv: VBoxContainer = fe._vbox(row, 10)
+		pv.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		_rich(fe, pv, fill_text(fe, m, str(how[i].get(lang, ""))))
+		var pics := HFlowContainer.new()
+		pics.add_theme_constant_override("h_separation", 12)
+		pics.add_theme_constant_override("v_separation", 12)
+		for sw in how[i].get("switches", []):
+			var crop: Texture2D = fe._texture(
+				ProjectSettings.globalize_path(fe.get_script().SWITCHES.path_join(unit).path_join(str(sw) + ".webp"))
+			)
+			if crop == null:
+				continue
+			var pic := TextureRect.new()
+			pic.name = "Switch_" + str(sw)
+			pic.texture = crop
+			pic.tooltip_text = _where(m, str(sw), lang)
+			pic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			pic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			pic.custom_minimum_size = Vector2(240, 160)
+			pics.add_child(pic)
+		if pics.get_child_count() > 0:
+			pv.add_child(pics)
+		else:
+			pics.free()
+	scroll.focus_entered.connect(func(): card.add_theme_stylebox_override("panel", on))
+	scroll.focus_exited.connect(func(): card.add_theme_stylebox_override("panel", off))
+	scroll.gui_input.connect(func(e: InputEvent): _scroll_keys(scroll, e))
 	return card
 
 
-static func _step(fe: Control, i: int, st: Dictionary) -> Control:
-	var row := PanelContainer.new()
-	row.name = "Step%d" % (i + 1)
-	row.focus_mode = Control.FOCUS_ALL
-	row.mouse_filter = Control.MOUSE_FILTER_STOP
-	var line := Look.box(Color(0, 0, 0, 0), Look.LINE, 0, 0, Vector2(4, 8))
-	line.border_width_top = 1
-	var on := Look.box(Color(Look.ACCENT, 0.12), Look.ACCENT_TEXT, 2, 4, Vector2(4, 8))
-	row.add_theme_stylebox_override("panel", line)
-	var v: VBoxContainer = fe._vbox(row, 6)
-	var h: HBoxContainer = fe._hbox(v, 16)
-	var n: Label = fe._label(h, str(i + 1), "Strong")
-	n.add_theme_color_override("font_color", Look.ACCENT)
-	n.custom_minimum_size.x = 22
-	n.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	fe._text(h, st.text, "")
-	var cap: Control = fe._keycap(h, st.key)
-	cap.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	# The step opened: the state to wait for, the switch's picture with its name and place (else that in words).
-	var more: HBoxContainer = fe._hbox(v, 16)
-	more.name = "More"
-	more.visible = false
-	fe._spacer_px(more, 0).custom_minimum_size.x = 22
-	var words: VBoxContainer = fe._vbox(more, 4)
-	words.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	if st.wait != "":
-		var w: Label = fe._text(words, st.wait, "Small")
-		w.name = "Wait"
-		w.add_theme_color_override("font_color", Look.ACCENT_TEXT)
-	if st.where != "":
-		fe._text(words, st.where, "Small").name = "Where"
-	var crop: Texture2D = fe._texture(ProjectSettings.globalize_path(st.crop)) if st.crop != "" else null
-	if crop != null:
-		var pic := TextureRect.new()
-		pic.name = "Switch%d" % (i + 1)
-		pic.texture = crop
-		pic.tooltip_text = st.where
-		pic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		pic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		pic.custom_minimum_size = Vector2(210, 140)
-		more.add_child(pic)
-	var has_more: bool = st.wait != "" or st.where != "" or crop != null
-	row.tooltip_text = st.where
-	row.focus_entered.connect(
-		func():
-			row.add_theme_stylebox_override("panel", on)
-			for r in row.get_parent().get_children():
-				r.find_child("More", true, false).visible = r == row and has_more
-	)
-	row.focus_exited.connect(func(): row.add_theme_stylebox_override("panel", line))
-	row.gui_input.connect(
-		func(e: InputEvent):
-			if e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT:
-				row.grab_focus()
-	)
-	for c in row.find_children("*", "Control", true, false):
-		c.mouse_filter = Control.MOUSE_FILTER_PASS if c is TextureRect else Control.MOUSE_FILTER_IGNORE
-	return row
+## The arrows (the gamepad's pad: ui_up / ui_down) and Page Up / Down scroll the list with the focus; at its top or
+## bottom an arrow is left to move the focus on.
+static func _scroll_keys(scroll: ScrollContainer, e: InputEvent) -> void:
+	var bar := scroll.get_v_scroll_bar()
+	var page := scroll.size.y * 0.85
+	var step := 0.0
+	if e.is_action_pressed("ui_down", true):
+		step = 80.0
+	elif e.is_action_pressed("ui_up", true):
+		step = -80.0
+	elif e is InputEventKey and e.pressed and e.keycode in [KEY_PAGEDOWN, KEY_PAGEUP]:
+		step = page if e.keycode == KEY_PAGEDOWN else -page
+	if step == 0.0:
+		return
+	var top := bar.max_value - bar.page
+	if (step > 0.0 and bar.value >= top - 1.0) or (step < 0.0 and bar.value <= 0.0):
+		return
+	scroll.scroll_vertical = int(clampf(bar.value + step, 0.0, top))
+	scroll.accept_event()
 
 
-## Tab and the arrows: the missions, Edit, Back, Fly; on to the chips, the map, the steps; round. Down from a mission
-## reaches Edit, then Fly; across from Fly the chips, down from them the map and the steps.
-static func _focus_order(fe: Control, card: Control, chips: Control, order: Control, map: Control) -> void:
+## A text of the card: wrapped, its height its content's, in the language's direction.
+static func _rich(fe: Control, parent: Control, bb: String) -> RichTextLabel:
+	var r := RichTextLabel.new()
+	r.bbcode_enabled = true
+	r.fit_content = true
+	r.scroll_active = false
+	r.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	r.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	r.mouse_filter = Control.MOUSE_FILTER_PASS
+	r.text_direction = Control.TEXT_DIRECTION_RTL if fe.he() else Control.TEXT_DIRECTION_LTR
+	r.add_theme_font_size_override("normal_font_size", TEXT_PX)
+	r.add_theme_constant_override("line_separation", 6)
+	r.add_theme_color_override("default_color", Look.TEXT)
+	parent.add_child(r)
+	r.text = bb
+	return r
+
+
+## A start-up step's switch and its place (the checklist's `where`), for its picture's tooltip.
+static func _where(m: Dictionary, step: String, lang: String) -> String:
+	for c in m.get("training", {}).get("checklist", []):
+		if str(c.get("step")) == step:
+			return str(c.get("where", {}).get(lang, ""))
+	return ""
+
+
+## A briefing text as BBCode: {runway}, {tolerance} (the climb-out's ± degrees) and {minutes} (the time allowed)
+## filled in, {key:<record>} / {key:<record>:<pick>} as the key table's key as bound (the radio menu's pick after it)
+## in a key cap kept left to right; the text's own brackets escaped.
+static func fill_text(fe: Control, m: Dictionary, t: String) -> String:
+	var tr: Dictionary = m.get("training", {})
+	t = t.replace("[", "[lb]")
+	t = t.replace("{runway}", fe._ltr(str(m.get("runway", ""))))
+	t = t.replace("{tolerance}", str(int(tr.get("heading_tolerance_deg", 10))))
+	t = t.replace("{minutes}", str(int(float(tr.get("time_budget_s", 0)) / 60.0)))
+	var re := RegEx.create_from_string("\\{key:(\\d+)(?::(\\d+))?\\}")
+	for k in re.search_all(t):
+		var name: String = fe.key_name(int(k.get_string(1)))
+		if name == "":
+			name = "—"
+		elif k.get_string(2) != "":
+			name += ", " + k.get_string(2)
+		var cap := (
+			"[bgcolor=#%s][color=#%s]\u2066\u00a0%s\u00a0\u2069[/color][/bgcolor]"
+			% [
+				Color(Look.BG, 0.9).to_html(),
+				Look.TEXT.to_html(false),
+				name.replace("[", "[lb]").replace(" ", "\u00a0")
+			]
+		)
+		t = t.replace(k.get_string(), cap)
+	return t
+
+
+## Tab and the arrows: the missions, Edit, Back, Arming, Fly; on to the chips, the map, the text; round. Down from a
+## mission reaches Edit, then Fly; across from Fly the text, up from the text's top the chips, down from them the map.
+static func _focus_order(fe: Control, card: Control, chips: Control, text: Control, map: Control) -> void:
 	var missions: Array = card.find_child("Missions", true, false).get_children()
 	var edit: Control = card.find_child("ArmEdit", true, false)
 	var back: Control = card.find_child("Back", true, false)
+	var arm: Control = card.find_child("Arming", true, false)
 	var fly: Button = card.find_child("Fly", true, false)
 	var chip_list: Array = chips.find_children("*", "Button", true, false)
-	var steps: Array = order.find_child("Steps", true, false).get_children()
-	var ring: Array = missions + [edit, back] + ([fly] if not fly.disabled else []) + chip_list + [map] + steps
+	var how: Control = text.find_child("HowScroll", true, false)
+	var ring: Array = missions + [edit, back, arm] + ([fly] if not fly.disabled else []) + chip_list + [map, how]
 	fe._chain(ring)
 	var start := "right" if fe.he() else "left"
 	var end := "left" if fe.he() else "right"
-	var last_card: Control = fly if not fly.disabled else back
+	var last_card: Control = fly if not fly.disabled else arm
 	for b in missions:
 		fe._nb(b, {"bottom": edit, "top": b})
 	fe._nb(missions[0], {start: missions[0]})
 	fe._nb(missions[-1], {end: chip_list[0]})
 	fe._nb(edit, {"top": missions[0], "bottom": last_card, start: edit, end: chip_list[0]})
-	fe._nb(back, {"top": edit, "bottom": back, start: back, end: last_card})
-	fe._nb(fly, {"top": edit, "bottom": fly, start: back, end: steps[0] if not steps.is_empty() else fly})
+	fe._nb(back, {"top": edit, "bottom": back, start: back, end: arm})
+	fe._nb(arm, {"top": edit, "bottom": arm, start: back, end: fly if not fly.disabled else how})
+	fe._nb(fly, {"top": edit, "bottom": fly, start: arm, end: how})
 	fe._nb(chip_list[0], {start: missions[-1]})
 	fe._nb(chip_list[-1], {end: chip_list[-1]})
 	for c in chip_list:
 		fe._nb(c, {"top": c, "bottom": map})
-	if not steps.is_empty():
-		fe._nb(steps[0], {"top": chip_list[0]})
-		fe._nb(steps[-1], {"bottom": steps[-1]})
-		for s in steps:
-			fe._nb(s, {start: last_card, end: s})
+	fe._nb(how, {"top": chip_list[0], "bottom": how, start: last_card, end: how})

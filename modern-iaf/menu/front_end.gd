@@ -39,9 +39,6 @@ const SAMPLES := {
 	"sfx_volume": [["SFX_WARNING", "WRN_MASTER"], SoundBuses.SFX],
 	"speech_volume": ["twr_takeoff.wav", SoundBuses.SPEECH],
 }
-## The flight's checklist, whose key records the briefing's How names too (one source: STEP_IDS, CHECK_KEY,
-## THROTTLE_IDLE_KEY; training.md §7.1).
-const SimFlight := preload("res://flight/sim_flight.gd")
 ## The planes the sim flies, each from its home base (strings <name>, base_<base>; the squadron: data/airbases).
 const JETS := [
 	{"unit": "f16i", "airframe": "f16i", "name": "sufa", "code": "F-16I", "base": "ramon", "icao": "llrm"},
@@ -894,56 +891,6 @@ func briefing_map(m: Dictionary, aspect: float, ground := false) -> Dictionary:
 ## "25R · 246°": the runway end and its grid heading (IafBriefing: the HUD's and the compass's), left to right.
 func runway_text(runway: String, heading) -> String:
 	return runway if heading == null else s("runway_heading") % [runway, roundi(float(heading))]
-
-
-## The steps: a start-up's checklist (the rules' `checklist`, the flight's notebook), a take-off's in the order
-## the scorer judges them; each [text, key].
-func briefing_steps(m: Dictionary) -> Array:
-	var lang := "he" if he() else "en"
-	var out := []
-	var tr: Dictionary = m.training
-	if kind(m) == "startup":
-		var unit := str(m.get("start", {}).get("unit", ""))
-		for c in tr.get("checklist", []):
-			var i := SimFlight.STEP_IDS.find(str(c.get("step")))
-			var rec: int = (
-				SimFlight.THROTTLE_IDLE_KEY if c.get("step") == "engine" else (SimFlight.CHECK_KEY + i if i >= 0 else 0)
-			)
-			(
-				out
-				. append(
-					{
-						"text": str(c.get(lang, "")),
-						"key": key_name(rec),
-						"where": str(c.get("where", {}).get(lang, "")),
-						"wait": str(c.get("wait", {}).get(lang, "")),
-						"crop": SWITCHES.path_join(unit).path_join(str(c.get("step")) + ".webp"),
-					}
-				)
-			)
-		return out
-	# A take-off's steps (the rules' `steps`): each call to the tower on its own, with the menu's pick after the key.
-	var fill := func(t: String) -> String:
-		return t.replace("{runway}", _ltr(str(m.get("runway", "")))).replace(
-			"{tolerance}", str(int(tr.get("heading_tolerance_deg", 10)))
-		)
-	for c in tr.get("steps", []):
-		var key := key_name(int(c.get("key", 0)))
-		if c.has("pick") and key != "":
-			key += ", %d" % int(c.pick)
-		(
-			out
-			. append(
-				{
-					"text": fill.call(str(c.get(lang, ""))),
-					"key": key,
-					"where": "",
-					"wait": fill.call(str(c.get("wait", {}).get(lang, ""))),
-					"crop": "",
-				}
-			)
-		)
-	return out
 
 
 ## Key record `record` of the sim's key table as bound ("⌘" for Ctrl, "Option" for Alt on macOS).

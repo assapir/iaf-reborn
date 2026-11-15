@@ -578,6 +578,40 @@ fn texts(f: &File, k: &str) -> Result<Value> {
     Ok(f.v[k].clone())
 }
 
+/// The mission's briefing (`briefing`): `purpose`, the short summary (`{"en", "he"}`; a training mission's "what you
+/// will learn"), and `how`, the explanation of what to do and how, its paragraphs in order (`[{"en", "he", "at",
+/// "switches"}]`; `at`, optional, the place the paragraph is done at, the map's pins: `training::STEP_PLACES`;
+/// `switches`, optional, start-up step ids whose switch pictures follow the paragraph).
+fn briefing(f: &File) -> Result<Value> {
+    let b = &f.v["briefing"];
+    for lang in ["en", "he"] {
+        ensure!(b["purpose"][lang].is_string(), "{}: \"briefing.purpose\" needs \"{lang}\"", f.name);
+    }
+    let how = b["how"].as_array().filter(|h| !h.is_empty());
+    let how = how.with_context(|| format!("{}: \"briefing.how\" needs its paragraphs", f.name))?;
+    for (i, p) in how.iter().enumerate() {
+        for lang in ["en", "he"] {
+            ensure!(p[lang].is_string(), "{}: briefing.how[{i}] needs \"{lang}\"", f.name);
+        }
+        if let Some(at) = p.get("at") {
+            ensure!(
+                at.as_str().is_some_and(|a| training::STEP_PLACES.contains(&a)),
+                "{}: briefing.how[{i}]: \"at\" {at} is not one of {:?}",
+                f.name,
+                training::STEP_PLACES
+            );
+        }
+        for s in p["switches"].as_array().into_iter().flatten() {
+            ensure!(
+                s.as_str().is_some_and(|s| training::STEPS.contains(&s)),
+                "{}: briefing.how[{i}]: switch {s} is not a start-up step",
+                f.name
+            );
+        }
+    }
+    Ok(b.clone())
+}
+
 /// One compiled mission file from a readable one.
 /// `bases`: the airbases (sim_bases::load); `ground`: the theatre's height at a point, None without it (the
 /// start's `elevation_m` then stands).
@@ -740,7 +774,7 @@ pub fn compile_mission(
     // Placed at the real bases already: World scale Real's base move leaves the file as it is
     // (mission_runtime.gd move_with_bases).
     m["frame"] = json!("real");
-    m["sim"] = json!({"title": texts(f, "title")?, "briefing": texts(f, "briefing")?, "win": f.v["win"],
+    m["sim"] = json!({"title": texts(f, "title")?, "briefing": briefing(f)?, "win": f.v["win"],
         "lose": f.v["lose"], "menu_id": int(f, "menu_id")?, "runway": f.v["runway"], "training": f.v["training"],
         "base": base_name});
     if let Some(note) = f.v["note"].as_str() {
@@ -1533,6 +1567,18 @@ mod tests {
             ramon(json!({"training": {"kind": "startup", "time_budget_s": 60, "end_hold_s": 5, "goals": ["fps"]}}));
         let e = compile_mission(&goal, &db, &bases, &mut |_, _| None).unwrap_err();
         assert!(format!("{e:#}").contains("\"fps\" is no debrief item"), "{e:#}");
+        // The briefing: the purpose in both languages, the explanation's paragraphs with known places and switches.
+        let bad = |b: Value, want: &str| {
+            let e = compile_mission(&ramon(json!({"briefing": b})), &db, &bases, &mut |_, _| None).unwrap_err();
+            assert!(e.to_string().contains(want), "{e}");
+        };
+        let how = json!([{"en": "x", "he": "x"}]);
+        bad(json!({"purpose": {"en": "x"}, "how": how}), "\"briefing.purpose\" needs \"he\"");
+        bad(json!({"purpose": {"en": "x", "he": "x"}, "how": []}), "needs its paragraphs");
+        let at = json!([{"en": "x", "he": "x", "at": "tower"}]);
+        bad(json!({"purpose": {"en": "x", "he": "x"}, "how": at}), "\"at\" \"tower\"");
+        let sw = json!([{"en": "x", "he": "x", "switches": ["flaps"]}]);
+        bad(json!({"purpose": {"en": "x", "he": "x"}, "how": sw}), "switch \"flaps\"");
         let airbases: Vec<Value> = read_dir(&data().join("airbases")).unwrap().into_iter().map(|f| f.v).collect();
         for f in read_dir(&data().join("missions")).unwrap() {
             if let Some(r) = f.v["runway"].as_str() {

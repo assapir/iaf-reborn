@@ -167,6 +167,11 @@ pub struct Rules {
 /// and the take-off roll ("takeoff": both).
 pub const CLEARANCES: [&str; 3] = ["startup", "taxi", "takeoff"];
 
+/// The places a part of the briefing's explanation is done at (a paragraph's `at` in the mission's `briefing.how`; the
+/// briefing map's pins): the start (the parking spot), the holding point (the taxi's last point before the lineup,
+/// iaf.ibx's `TaxiWayPtsFrom`, as the flight's radio menu takes it), the lineup point.
+pub const STEP_PLACES: [&str; 3] = ["start", "hold", "lineup"];
+
 /// Every step a start-up checklist may name (iaf_flight start.rs `Start::press`).
 pub const STEPS: [&str; 6] = ["main_power", "starter", "engine", "avionics", "ins", "canopy"];
 

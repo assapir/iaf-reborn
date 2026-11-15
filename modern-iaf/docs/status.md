@@ -326,15 +326,16 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   the flight, its debrief sheet, the Pilot log, Preferences and Attributions, in English and Hebrew (mirrored), in the
   round-3 look ([front-end.md](front-end.md)). Esc over a flight opens the pause menu. `test_front_end.gd`.
 - **The mission briefing, map first (2026-11-14, the approved mock r3_briefing; finish list F2):** the map fills the
-  screen and opens on the base and the route, the steps' pins numbered as the ORDER OF ACTIONS card (each step with
-  its key as bound; a step opens to its wait and, on a start-up, its switch's picture); the mission card holds the
-  missions as tabs with their pass chips, the facts, the objectives, the Arming summary with Edit, Back and Fly; the
+  screen and opens on the base and the route, the pins numbered as the text's paragraphs; since 2026-11-15 the text card says what
+  you will learn and how to fly it in prose, the keys as bound, scrolled by the wheel, the keys and the gamepad (every
+  mission's texts in English and Hebrew, mission data `briefing`); the mission card holds the missions as tabs with
+  their pass chips, the facts, the objectives, the Arming summary with Edit, Back, Arming (key A) and Fly; the
   map's chips turn the taxi route, the labels and the photo off and zoom. The whole map's rectangles of other tones are
   the Survey of Israel sheets' own levels (terrain.md §10, Open). From 2026-11-09: one zoomable map (the theatre's
   ground colour, roads, towns, the route, the whole airbase); Edit on the Arming summary opens the Loadout screen (until 2026-11-14 an Arming page with
   each jet's front view); the subtitles name the tail number and squadron, no wing; the missions' titles are their kinds ([front-end.md](front-end.md) §10, `IafBriefing`). `test_front_end.gd`, `cargo test -p iaf-tools --lib briefing`.
-- **The briefing's switch pictures (2026-11-11, awaiting the user's approval):** a start-up's step opened in the
-  order of actions shows its switch cut from the jet's 3D cockpit with a ring round it and the state to wait for
+- **The briefing's switch pictures (2026-11-11, awaiting the user's approval):** a start-up's paragraph in the
+  briefing's text shows its switch cut from the jet's 3D cockpit with a ring round it and the state to wait for
   (`modern-iaf/data/switches`, `modern-iaf/tests/_switch_crops.gd`; [front-end.md](front-end.md) §10). `test_front_end.gd`.
 - **The loadout editor (2026-11-10, awaiting the user's approval; on the Loadout screen since 2026-11-14):** a store
   drags from the stores onto a station, between stations and back; each station takes only what the unit record's `allowed` lists

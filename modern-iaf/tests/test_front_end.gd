@@ -1126,17 +1126,17 @@ func _labels_of(root: Node, kind: String) -> Array:
 
 ## The briefing, map first (front-end.md §10) of the take-off picked, then of the start-up: the mission card (the title
 ## as the kind, the time as military time, the wind as pilots read it, the objectives, the runway's heading, the Arming
-## summary and its Edit), the ORDER OF ACTIONS card (the steps with their keys, each tower call its own step, a step
-## opened to its wait and switch), the map under them (it opens on the base and the route with the steps' pins; the
+## summary and its Edit, Arming beside Fly), the text card (what you will learn, the explanation's paragraphs with
+## their keys as bound, scrolled by the keys), the map under them (it opens on the base and the route with the pins; the
 ## chips; it zooms around the pointer, scrolls, resets, follows the keys, its scale bar with the zoom), the focus order,
 ## the loadout screen Edit opens (the front view with a slot per station, the weights, the loadout editor).
 func _briefing_checks(fe: Control, lang: String) -> void:
 	var he := lang == "he"
 	var pane: Control = fe.find_child("Briefing", true, false)
-	var order: Control = fe.find_child("Order", true, false)
+	var text: Control = fe.find_child("Text", true, false)
 	check(
-		(pane.get_global_rect().get_center().x > 960) == he and (order.get_global_rect().get_center().x < 960) == he,
-		"%s: briefing: the card at the inline start, the order of actions at the end" % lang
+		(pane.get_global_rect().get_center().x > 960) == he and (text.get_global_rect().get_center().x < 960) == he,
+		"%s: briefing: the card at the inline start, the text at the end" % lang
 	)
 	check(_has(pane, "המראה" if he else "Take-off"), "%s: briefing: the title is the kind" % lang)
 	check(not _has_part(pane, "מרמון" if he else "from Ramon"), "%s: briefing: no base in the title" % lang)
@@ -1157,26 +1157,48 @@ func _briefing_checks(fe: Control, lang: String) -> void:
 		"%s: briefing: the subtitle once, under the title (%s)" % [lang, sub.text]
 	)
 	check(not sub.text.contains("846"), "%s: briefing: no tail in the card (the header has it)" % lang)
-	var steps: Control = order.find_child("Steps", true, false)
-	check(steps.get_child_count() == 7, "%s: briefing: the take-off's seven steps" % lang)
-	check(not _has_part(steps, "מדפים" if he else "Flaps"), "%s: briefing: no flaps step" % lang)
-	# Each call to the tower its own step: start-up, taxi, line-up, take-off at the menu's picks 1-4, with the answer
-	# to wait for.
-	# The keys by the table, as the player's platform names them: Ctrl + T, "⌘ + T" on a Mac (key_table.gd cmd_is_ctrl).
+	# The text: what you will learn, then the explanation in paragraphs, the keys as bound in it; nothing clipped.
+	var purpose: RichTextLabel = text.find_child("Purpose", true, false)
+	check(_has(text, "מה לומדים" if he else "WHAT YOU WILL LEARN"), "%s: briefing: what you will learn" % lang)
+	check(purpose.get_parsed_text().contains("\u206625R\u2069"), "%s: briefing: the purpose, its runway" % lang)
+	var how: ScrollContainer = text.find_child("HowScroll", true, false)
+	var paras: Array = how.get_child(0).get_children()
+	check(paras.size() == 6, "%s: briefing: the take-off's six paragraphs (%d)" % [lang, paras.size()])
+	var words := (
+		"\n"
+		. join(paras.map(func(r): return r.find_children("*", "RichTextLabel", true, false)[0].get_parsed_text()))
+		. replace("\u00a0", " ")
+	)
+	check(not words.contains("{"), "%s: briefing: every placeholder filled" % lang)
+	# The keys by the table, as the player's platform names them: Ctrl + T, "⌘ + T" on a Mac (key_table.gd cmd_is_ctrl);
+	# each call to the tower with the menu's pick 1-4.
 	var tower: String = fe.key_name(47)
 	check(tower != "", "%s: briefing: the tower key named" % lang)
 	var calls := 0
 	for k in 4:
-		calls += _labels(steps).count("%s, %d" % [tower, k + 1])
+		calls += words.count("%s, %d" % [tower, k + 1])
 	check(calls == 4, "%s: briefing: four tower calls, Ctrl + T, 1-4 (%d)" % [lang, calls])
-	check(_has_part(steps, "בקשת כניסה למסלול" if he else "request line-up"), "%s: briefing: the line-up call" % lang)
-	check(_has_part(steps, "אישור המראה" if he else "cleared for take-off"), "%s: briefing: the wait" % lang)
-	# A step opens to its wait with the focus; one at a time.
-	var s6: Control = steps.get_child(5)
-	s6.grab_focus()
+	check(words.contains("אישור המראה" if he else "cleared for take-off"), "%s: briefing: the wait" % lang)
+	check(
+		text.get_global_rect().end.y <= text.get_viewport_rect().end.y - 39,
+		(
+			"%s: briefing: the text card on the screen (%s in %s)"
+			% [lang, text.get_global_rect(), text.get_viewport_rect()]
+		)
+	)
+	# The keys scroll the explanation with the focus; at its end the arrow is left to move the focus.
+	how.grab_focus()
 	await frames(2)
-	var opened: Array = steps.get_children().filter(func(r): return r.find_child("More", true, false).visible)
-	check(opened == [s6] and _has_part(s6, "אישור המראה" if he else "cleared for take-off"), "%s: step opened" % lang)
+	var bar := how.get_v_scroll_bar()
+	check(bar.max_value > bar.page, "%s: briefing: the explanation longer than its card scrolls" % lang)
+	for n in 40:
+		how.gui_input.emit(_key_event(KEY_DOWN))
+	await frames(1)
+	check(how.scroll_vertical > 0 and bar.value >= bar.max_value - bar.page - 1.0, "%s: text: Down scrolls" % lang)
+	how.gui_input.emit(_key_event(KEY_PAGEUP))
+	check(how.scroll_vertical < bar.max_value - bar.page - 1.0, "%s: text: Page Up scrolls" % lang)
+	how.scroll_vertical = 0
+	how.release_focus()
 	var credit: Label = fe.find_child("Credit", true, false)
 	check(credit != null and "OpenStreetMap" in credit.text, "%s: briefing: the map's credit" % lang)
 	check(credit.is_layout_rtl() == he, "%s: map: the credit right to left" % lang)
@@ -1186,15 +1208,28 @@ func _briefing_checks(fe: Control, lang: String) -> void:
 		_has_part(summ, "6 × AIM-9M") and _has_part(summ, "16,471") and _has(summ, "חימוש" if he else "ARMING"),
 		"%s: briefing: the Arming summary" % lang
 	)
-	# The focus: down from a mission to Edit, then to Fly.
+	# The focus: down from a mission to Edit, then to Fly; Back, Arming, Fly in a row; across from Fly the text.
 	var m2: Control = fe.find_child("Mission2", true, false)
 	var edit: Button = fe.find_child("ArmEdit", true, false)
 	var fly: Button = fe.find_child("Fly", true, false)
+	var arm: Button = fe.find_child("Arming", true, false)
 	check(
 		m2.get_node(m2.focus_neighbor_bottom) == edit and edit.get_node(edit.focus_neighbor_bottom) == fly,
 		"%s: focus: down from the missions to Edit, then Fly" % lang
 	)
 	check(fly.get_node(fly.focus_next) is Button and not fly.disabled, "%s: focus: on from Fly to the chips" % lang)
+	var back_b: Button = fe.find_child("Back", true, false)
+	check(
+		back_b.get_node(back_b.focus_next) == arm and arm.get_node(arm.focus_next) == fly,
+		"%s: focus: Back, Arming, Fly" % lang
+	)
+	var end_side := "focus_neighbor_left" if he else "focus_neighbor_right"
+	check(fly.get_node(fly.get(end_side)) == how, "%s: focus: across from Fly the text" % lang)
+	check(
+		(arm.get_global_rect().get_center().x < fly.get_global_rect().get_center().x) != he,
+		"%s: Arming beside Fly, before it" % lang
+	)
+	check(_has_part(arm, "חימוש" if he else "Arming") and _has(arm, "A"), "%s: Arming: its word and key" % lang)
 	# The map: the whole screen under the cards, opened on the base and the route with the steps' pins.
 	var map: Control = fe.find_child("PageMap", true, false)
 	await frames(2)
@@ -1204,19 +1239,11 @@ func _briefing_checks(fe: Control, lang: String) -> void:
 	check(d.runways.size() >= 2 and d.route.size() == 4 and d.taxi.size() >= 4, "%s: map: runways, taxi, route" % lang)
 	check(d.aprons.size() > 0 and d.taxiways.size() > 0 and d.parking.size() > 0, "%s: map: the airbase" % lang)
 	check(map.base_label == ("רמון" if he else "Ramon"), "%s: map: the base" % lang)
-	check(d.pins.map(func(p): return int(p.first)) == [0, 3, 5], "%s: map: pins 1, 4 and 6" % lang)
+	check(d.pins.map(func(p): return int(p.first)) == [0, 3, 4], "%s: map: pins 1, 4 and 5 (%s)" % [lang, d.pins])
 	check(map.zoom > 4.0 and map.view.has_area(), "%s: map: opened on the base (%.1f)" % [lang, map.zoom])
 	for p in d.pins:
 		var at: Vector2 = map._xf() * Vector2(float(p.at[0]), float(p.at[1]))
 		check(map.view.grow(2).has_point(at), "%s: map: pin %d in the room between the cards" % [lang, p.first + 1])
-	# A step opened grows the order card; the map's view stays.
-	var z1: float = map.zoom
-	var c9: Vector2 = map.center
-	steps.get_child(1).grab_focus()
-	await frames(3)
-	check(
-		is_equal_approx(map.zoom, z1) and map.center.is_equal_approx(c9), "%s: map: a step opened keeps the view" % lang
-	)
 	var hold_name := "עצירה לפני \u206625R\u2069" if he else "Stop short of \u206625R\u2069"
 	check(map.pin_names.hold == hold_name, "%s: map: the holding point's pin named (%s)" % [lang, map.pin_names.hold])
 	# The roads with setup's road layer (the optional scenery step); without it the map draws the ground alone.
@@ -1329,14 +1356,18 @@ func _briefing_checks(fe: Control, lang: String) -> void:
 	# The start-up: its checklist, one pin for all of it, each step's switch pictured.
 	fe.find_child("Mission1", true, false).pressed.emit()
 	await frames(3)
-	steps = fe.find_child("Order", true, false).find_child("Steps", true, false)
-	check(steps.get_child_count() == 6, "%s: briefing: the start-up's six checklist steps" % lang)
-	var check_key: String = fe.key_name(fe.SimFlight.CHECK_KEY)
-	check(check_key != "" and _has(steps, check_key), "%s: briefing: the checklist's keys as bound" % lang)
-	check(
-		_has(steps, fe.key_name(fe.SimFlight.THROTTLE_IDLE_KEY)), "%s: briefing: the idle step's key, the card's" % lang
+	how = fe.find_child("HowScroll", true, false)
+	paras = how.get_child(0).get_children()
+	check(paras.size() == 5, "%s: briefing: the start-up's five paragraphs (%d)" % [lang, paras.size()])
+	words = (
+		"\n"
+		. join(paras.map(func(r): return r.find_children("*", "RichTextLabel", true, false)[0].get_parsed_text()))
+		. replace("\u00a0", " ")
 	)
-	var pics: Array = steps.find_children("Switch*", "TextureRect", true, false)
+	for rec in [119, 120, 7, 122, 123, 124]:
+		var k: String = fe.key_name(rec)
+		check(k != "" and words.contains(k), "%s: briefing: the checklist key %d as bound (%s)" % [lang, rec, k])
+	var pics: Array = how.find_children("Switch_*", "TextureRect", true, false)
 	check(
 		pics.size() == 6 and pics.all(func(p): return p.texture != null),
 		"%s: briefing: each step's switch pictured from the 3D cockpit (%d)" % [lang, pics.size()]
@@ -1344,13 +1375,10 @@ func _briefing_checks(fe: Control, lang: String) -> void:
 	check(
 		pics.size() > 0 and "MAIN PWR" in pics[0].tooltip_text, "%s: briefing: the switch named on its picture" % lang
 	)
-	check(_has_part(steps, "20") and _has_part(steps, "90"), "%s: briefing: the waits" % lang)
-	steps.get_child(0).grab_focus()
-	await frames(2)
-	check(pics[0].is_visible_in_tree(), "%s: briefing: the step opened shows its switch" % lang)
+	check(words.contains("20") and words.contains("90"), "%s: briefing: the waits" % lang)
 	var m: Control = fe.find_child("PageMap", true, false)
 	check(m.runway_label == "", "%s: map: a start-up has no runway" % lang)
-	check(m.data.pins.size() == 1 and int(m.data.pins[0].last) == 5, "%s: map: one pin, the whole checklist" % lang)
+	check(m.data.pins.size() == 1 and int(m.data.pins[0].last) == 4, "%s: map: one pin, the whole text" % lang)
 	check(fe.find_child("Fly", true, false) != null, "%s: briefing: Fly" % lang)
 	fe.find_child("Mission2", true, false).pressed.emit()
 	await frames(2)

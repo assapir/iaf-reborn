@@ -2,9 +2,9 @@
 #   tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 SHOT_DIR=/tmp/br [SHOT_SIZE=1280x720] -- --log-file /tmp/br.log \
 #     --path modern-iaf -s ../modern-iaf/tests/_briefing_shot.gd
 # Writes SHOT_DIR/briefing_<menu id>_<lang>.png (Ramon's start-up 2011 and take-off 2012 as the screen opens),
-# briefing_<menu id>_step_<lang>.png (a step opened: its state to wait for, a start-up's switch picture),
+# briefing_<menu id>_text_<lang>.png (the explanation focused and scrolled by the keys: a start-up's switch pictures),
 # briefing_2012_plain_<lang>.png (the take-off with its labels and photo off) and, per jet, startup_<jet>_<lang>.png
-# (its start-up, its second step opened), at SHOT_SIZE (1920x1080 by default; the front end in a
+# (its start-up, the explanation scrolled), at SHOT_SIZE (1920x1080 by default; the front end in a
 # viewport of that size, its 1920 × 1080 canvas stretched to it as the window's is).
 extends "res://../tests/godot/base.gd"
 
@@ -42,12 +42,14 @@ func run() -> void:
 				var id := int(m.menu_id)
 				if jet == "f16i":
 					save.call("briefing_%d_%s" % [id, lang])
-				# A step opened: the take-off's first (its state to wait for), the start-up's second (its switch).
-				var step: Control = fe.find_child("Step%d" % (2 if fe.kind(m) == "startup" else 1), true, false)
-				step.grab_focus()
+				# The explanation with the focus, scrolled down by the keys to its middle (a start-up's switch pictures).
+				var how: ScrollContainer = fe.find_child("HowScroll", true, false)
+				how.grab_focus()
+				for n in 4:
+					how.gui_input.emit(_key(KEY_DOWN))
 				await frames(6)
 				if jet == "f16i":
-					save.call("briefing_%d_step_%s" % [id, lang])
+					save.call("briefing_%d_text_%s" % [id, lang])
 				if fe.kind(m) == "startup":
 					save.call("startup_%s_%s" % [jet, lang])
 					continue
@@ -58,3 +60,11 @@ func run() -> void:
 					save.call("briefing_%d_plain_%s" % [id, lang])
 	s.language = "en"
 	s.pilot_name = ""
+
+
+func _key(k: Key) -> InputEventKey:
+	var e := InputEventKey.new()
+	e.keycode = k
+	e.physical_keycode = k
+	e.pressed = true
+	return e

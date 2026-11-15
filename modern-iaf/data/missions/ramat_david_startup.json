@@ -39,8 +39,49 @@
     "he": "התנעה"
   },
   "briefing": {
-    "en": "Your F-16D Barak stands cold on the apron at Ramat David. Start the engine and bring the avionics up.",
-    "he": "הברק שלך עומד כבוי ברחבה ברמת דוד. התנע את המנוע והעלה את מערכות האוויוניקה."
+    "purpose": {
+      "en": "To bring a cold F-16D Barak to life in the real order: main power, the jet fuel starter, the engine to idle, then the avionics and the INS, all within {minutes} minutes.",
+      "he": "להתניע ברק קר בסדר האמיתי: מתח ראשי, המתנע (JFS), המנוע לסרק, ואחריהם האוויוניקה וה־INS, הכול בתוך {minutes} דקות."
+    },
+    "how": [
+      {
+        "at": "start",
+        "switches": [
+          "main_power"
+        ],
+        "en": "The jet stands cold at its parking spot: no power, the screens dark, the canopy up. Each step is a key or a click on its switch in the 3D cockpit, and the checklist notebook ({key:118}) lists the steps and ticks them off. Begin with main power: {key:119} sets the MAIN PWR switch (ELEC panel, left console, by the throttle) to MAIN. The lamps and the engine gauges come alive.",
+        "he": "המטוס עומד קר בחניה: אין מתח, המסכים כבויים והחופה פתוחה. כל שלב הוא מקש או לחיצה על המתג שלו בתא הטייס התלת־ממדי, והבד\"ח ({key:118}) מציג את השלבים ומסמן את מה שבוצע. להתחיל במתח הראשי: {key:119} מעביר את מתג MAIN PWR (לוח ELEC, בקונסולה השמאלית ליד המצערת) ל־MAIN. הנוריות ומדי המנוע נדלקים."
+      },
+      {
+        "switches": [
+          "starter"
+        ],
+        "en": "Start the jet fuel starter: {key:120} sets the JFS switch (ENG & JET START panel, left console) to START 2. The JFS turns the engine up to 20 % RPM in about 15 s and holds it there. Watch the RPM gauge.",
+        "he": "להפעיל את המתנע: {key:120} מעביר את מתג JFS (לוח ENG & JET START, בקונסולה השמאלית) ל־START 2. המתנע מסובב את המנוע עד 20% סל״ד בתוך כ־15 שניות ומחזיק אותו שם. לעקוב אחרי מד הסל״ד."
+      },
+      {
+        "switches": [
+          "engine"
+        ],
+        "en": "At 20 % RPM bring the throttle up from OFF to idle: {key:7}, the throttle axis, or a click on the throttle grip. The engine lights about 5 s later and runs up to idle; at 52 % RPM the main generator comes on line and the JFS stops. The throttle moved below 20 % RPM is a hot start: the engine shuts down and the mission fails.",
+        "he": "ב־20% סל״ד להעביר את המצערת מ־OFF לסרק: {key:7}, ציר המצערת או לחיצה על ידית המצערת. המנוע ניצת כעבור כ־5 שניות ומאיץ לסרק; ב־52% סל״ד הגנרטור הראשי נכנס לפעולה והמתנע נכבה. הזזת המצערת מתחת ל־20% סל״ד היא התנעה חמה: המנוע נכבה והמשימה נכשלת."
+      },
+      {
+        "switches": [
+          "avionics",
+          "ins"
+        ],
+        "en": "With the generators on line, turn the avionics on: {key:122} sets the four AVIONIC POWER switches (MMC, ST STA, MFD, UFC; right console) to ON, and the displays and the HUD come up 3 s later. Then start the INS's stored-heading alignment with {key:123}; it takes 90 s. Avionics switched on before the generators get no power, and the mission fails.",
+        "he": "כשהגנרטורים פועלים, להדליק את האוויוניקה: {key:122} מעביר את ארבעת מתגי AVIONIC POWER (MMC, ST STA, MFD, UFC; בקונסולה הימנית) ל־ON, והתצוגות וה־HUD עולים כעבור 3 שניות. אחר כך להתחיל את יישור ה־INS בשיטת STOR HDG עם {key:123}; היישור נמשך 90 שניות. הדלקת האוויוניקה לפני הגנרטורים אינה מקבלת מתח, והמשימה נכשלת."
+      },
+      {
+        "switches": [
+          "canopy"
+        ],
+        "en": "Close and lock the canopy with {key:124}; it comes down over 10 s. The mission passes when every step is done, the engine idles and the avionics are up within {minutes} minutes. A step out of order fails it at once, with the reason first in the debrief.",
+        "he": "לסגור ולנעול את החופה עם {key:124}; היא יורדת במשך 10 שניות. המשימה מצליחה כשכל השלבים בוצעו, המנוע בסרק והאוויוניקה פועלת בתוך {minutes} דקות. שלב שבוצע שלא לפי הסדר מכשיל אותה מיד, והסיבה מופיעה ראשונה בתחקיר."
+      }
+    ]
   },
   "win": {
     "en": "Mission - successful. The engine is at idle and the avionics are up.",

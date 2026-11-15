@@ -48,8 +48,39 @@
     "he": "המראה"
   },
   "briefing": {
-    "en": "Ask the tower for start-up, taxi and take-off, taxi to runway 27 and take off on its heading.",
-    "he": "בקש מהמגדל התנעה, הסעה והמראה, הסע למסלול 27 והמרא בכיוונו."
+    "purpose": {
+      "en": "To fly a full departure with the tower: the start-up and taxi clearances, the taxi to runway {runway}, the line-up and take-off clearances, and a take-off on the runway heading with the gear up.",
+      "he": "לבצע יציאה מלאה מול המגדל: אישורי התנעה והסעה, הסעה למסלול {runway}, אישורי כניסה למסלול והמראה, והמראה בכיוון המסלול עם כן נסע אסוף."
+    },
+    "how": [
+      {
+        "at": "start",
+        "en": "You start cold at your parking spot, as in the Start-up mission. Call the tower first: {key:47:1} requests start-up; wait for \"cleared to start\". An engine started without that clearance fails the mission.",
+        "he": "ההתחלה בחניה, במטוס קר, כמו במשימת ההתנעה. קודם לקרוא למגדל: {key:47:1} מבקש התנעה; להמתין ל\"אישור התנעה\". התנעת המנוע ללא האישור מכשילה את המשימה."
+      },
+      {
+        "en": "Start the jet by its start-up checklist (the notebook, {key:118}), as you learned it: main power {key:119}, the JFS {key:120}, the throttle to idle at 20 % RPM ({key:7}), then at idle the avionics {key:122} and the INS alignment {key:123} (90 s). Close the canopy with {key:124}.",
+        "he": "להתניע לפי בד\"ח ההתנעה ({key:118}), כפי שנלמד: מתח ראשי {key:119}, המתנע {key:120}, המצערת לסרק ב־20% סל״ד ({key:7}), ובסרק את האוויוניקה {key:122} ויישור ה־INS {key:123} (90 שניות). לסגור את החופה עם {key:124}."
+      },
+      {
+        "en": "With the engine at idle and the avionics up, request taxi: {key:47:2}; the tower answers \"taxi to runway {runway}\". Moving more than a few metres before that fails the mission. Taxi along the dashed route on the map: add a little power if the jet does not roll ({key:16} raises the throttle 5 %, {key:15} lowers it), steer with the rudder ({key:37} / {key:38}, or the pedals) and brake with {key:22}. Keep on the pavement: the jet off it fails the mission.",
+        "he": "כשהמנוע בסרק והאוויוניקה פועלת, לבקש הסעה: {key:47:2}; המגדל עונה \"הסעה למסלול {runway}\". תזוזה של יותר מכמה מטרים לפני כן מכשילה את המשימה. להסיע לאורך המסלול המקווקו שבמפה: להוסיף מעט כוח אם המטוס אינו זז ({key:16} מגביר את המצערת ב־5%, {key:15} מפחית), לכוון בהגה הכיוון ({key:37} / {key:38}, או הדוושות) ולבלום עם {key:22}. להישאר על השטח הסלול: יציאה ממנו מכשילה את המשימה."
+      },
+      {
+        "at": "hold",
+        "en": "Stop short of runway {runway} at the holding point, the taxi route's last point before the runway. Request line-up: {key:47:3}. On \"line up runway {runway}\" taxi onto the runway and stop on its centreline, facing down it. Entering the runway without the clearance fails the mission; on another runway the tower warns you, and a take-off roll there fails it.",
+        "he": "לעצור לפני מסלול {runway} בנקודת ההמתנה, הנקודה האחרונה של מסלול ההסעה לפני המסלול. לבקש כניסה למסלול: {key:47:3}. עם \"כניסה למסלול {runway}\" להסיע אל המסלול ולעצור על קו האמצע, בכיוון ההמראה. כניסה למסלול ללא אישור מכשילה את המשימה; על מסלול אחר המגדל מזהיר, וריצת המראה עליו מכשיל אותה."
+      },
+      {
+        "at": "lineup",
+        "en": "Request take-off: {key:47:4}, and wait for \"cleared for take-off\". Release the brakes and go to full power: military power {key:12}, or the afterburner, {key:13} and {key:14}. Hold the centreline with the rudder. Near the take-off speed (the heavier the jet, the faster; the debrief gives the reference) raise the nose ({key:24}) and let the jet fly off the runway.",
+        "he": "לבקש המראה: {key:47:4}, ולהמתין ל\"אישור המראה\". לשחרר את הבלמים ולהעביר לכוח מלא: מצערת 100% {key:12}, או המבער, {key:13} ו־{key:14}. להחזיק את קו האמצע בהגה הכיוון. קרוב למהירות ההמראה (ככל שהמטוס כבד יותר, היא גבוהה יותר; התחקיר מציג את מהירות הייחוס) להרים את האף ({key:24}) ולתת למטוס להתרומם מהמסלול."
+      },
+      {
+        "en": "Once climbing, raise the gear with {key:20} and climb out on the runway heading, within ±{tolerance}°. The mission passes when you are airborne, gear up and on that heading within {minutes} minutes of the start, with no crash, no damage and the wheels never off the pavement. The debrief shows your lift-off speed against the reference, how far you strayed from the centreline and your tower calls.",
+        "he": "בטיפוס, לאסוף את כן הנסע עם {key:20} ולטפס בכיוון המסלול, בטווח ±{tolerance}°. המשימה מצליחה כשהמטוס באוויר, כן הנסע אסוף והכיוון נשמר בתוך {minutes} דקות מההתחלה, בלי התרסקות, בלי נזק ובלי יציאה מהשטח הסלול. התחקיר מציג את מהירות ההתרוממות מול מהירות הייחוס, את הסטייה מקו האמצע ואת הקריאות למגדל."
+      }
+    ]
   },
   "win": {
     "en": "Mission - successful. Airborne with the gear up.",
@@ -79,7 +110,7 @@
         "he": "קריאה למגדל: בקשת התנעה",
         "wait": {
           "en": "wait for \"cleared to start\"",
-          "he": "המתנה ל\"מאושר להתניע\""
+          "he": "המתנה ל\"אישור התנעה\""
         }
       },
       {
@@ -102,12 +133,11 @@
         }
       },
       {
-        "at": "hold",
         "en": "Taxi to runway {runway} and stop short of it",
         "he": "הסעה למסלול {runway} ועצירה לפניו",
         "wait": {
-          "en": "at the holding point, about 100 m before the lineup point",
-          "he": "בנקודת ההמתנה, כ־100 מ׳ לפני נקודת הכניסה למסלול"
+          "en": "at the holding point, the taxi route's last point before the runway",
+          "he": "בנקודת ההמתנה, הנקודה האחרונה של מסלול ההסעה לפני המסלול"
         }
       },
       {
@@ -123,7 +153,6 @@
       {
         "key": 47,
         "pick": 4,
-        "at": "lineup",
         "en": "Call the tower: request take-off",
         "he": "קריאה למגדל: בקשת המראה",
         "wait": {

@@ -39,8 +39,41 @@
     "he": "התנעה"
   },
   "briefing": {
-    "en": "Your F-35I Adir stands cold on the apron at Nevatim. Start the engine and bring the avionics up.",
-    "he": "האדיר שלך עומד כבוי ברחבה בנבטים. התנע את המנוע והעלה את מערכות האוויוניקה."
+    "purpose": {
+      "en": "To start a cold F-35I Adir: the battery, the integrated power package (IPP), then the engine, and to wait for the avionics to report ready, all within {minutes} minutes.",
+      "he": "להתניע אדיר קר: המצבר, יחידת הכוח המשולבת (IPP) ואחריהם המנוע, ולהמתין עד שהאוויוניקה מוכנה, הכול בתוך {minutes} דקות."
+    },
+    "how": [
+      {
+        "at": "start",
+        "switches": [
+          "main_power"
+        ],
+        "en": "The jet stands cold at its parking spot: no power, the screens dark, the canopy up. Each step is a key or a click on its switch in the 3D cockpit, and the checklist notebook ({key:118}) lists the steps and ticks them off. Begin with the battery: {key:119} sets the BATT switch (start panel, left console, forward) on.",
+        "he": "המטוס עומד קר בחניה: אין מתח, המסכים כבויים והחופה פתוחה. כל שלב הוא מקש או לחיצה על המתג שלו בתא הטייס התלת־ממדי, והבד\"ח ({key:118}) מציג את השלבים ומסמן את מה שבוצע. להתחיל במצבר: {key:119} מדליק את מתג BATT (לוח ההתנעה, בקונסולה השמאלית מלפנים)."
+      },
+      {
+        "switches": [
+          "starter"
+        ],
+        "en": "Start the IPP with {key:120} (the IPP switch on the start panel). It runs up for about 10 s and then holds, ready to turn the engine; the displays come up on its power.",
+        "he": "להפעיל את ה־IPP עם {key:120} (מתג IPP בלוח ההתנעה). הוא מאיץ במשך כ־10 שניות ואז מחזיק, מוכן לסובב את המנוע; התצוגות עולות על המתח שלו."
+      },
+      {
+        "switches": [
+          "engine"
+        ],
+        "en": "Once the IPP runs, bring the throttle up from OFF: {key:7}, the throttle axis, or the ENG switch or the START button on the start panel. The engine turns, lights and runs up to idle by itself in about 35 s. The throttle moved before the IPP is up to speed starts nothing, and the mission fails.",
+        "he": "כשה־IPP פועל, להעביר את המצערת מ־OFF: {key:7}, ציר המצערת, או מתג ENG או לחצן START בלוח ההתנעה. המנוע מסתובב, ניצת ומאיץ לסרק בעצמו בתוך כ־35 שניות. הזזת המצערת לפני שה־IPP הגיע למהירות אינה מתניעה דבר, והמשימה נכשלת."
+      },
+      {
+        "switches": [
+          "canopy"
+        ],
+        "en": "Close and lock the canopy with {key:124}; it comes down over 10 s. Then wait: the avionics report ready 90 s after the battery went on. The mission passes when every step is done, the engine idles and the avionics are up within {minutes} minutes. A step out of order fails it at once, with the reason first in the debrief.",
+        "he": "לסגור ולנעול את החופה עם {key:124}; היא יורדת במשך 10 שניות. אחר כך להמתין: האוויוניקה מדווחת מוכנה 90 שניות אחרי הדלקת המצבר. המשימה מצליחה כשכל השלבים בוצעו, המנוע בסרק והאוויוניקה פועלת בתוך {minutes} דקות. שלב שבוצע שלא לפי הסדר מכשיל אותה מיד, והסיבה מופיעה ראשונה בתחקיר."
+      }
+    ]
   },
   "win": {
     "en": "Mission - successful. The engine is at idle and the avionics are up.",

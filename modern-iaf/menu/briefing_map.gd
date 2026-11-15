@@ -1,8 +1,8 @@
 # The mission briefing's map (modern-iaf/docs/front-end.md §10), from IafBriefing (crates/iaf-tools briefing.rs), drawn
 # north up with a north arrow and a scale bar: the theatre's ground colour (else the TSD map's polygons), the main
-# roads, the towns' names, the base's paved shapes (aprons, shelters' pads, taxiways, stopways, runways, parking
-# spots), the taxi, the route with its runway's heading and the steps' pins (the place of each run of steps, numbered as
-# the ORDER OF ACTIONS card, with its name). It opens on the base and the route (IafBriefing's `focus`) in the room the
+# roads, the towns' names, the base's paved shapes (aprons, shelters' pads, taxiways, stopways, runways, parking spots),
+# the taxi, the route with its runway's heading and the pins (the place of each run of the briefing text's paragraphs,
+# numbered as its paragraphs, with its name). It opens on the base and the route (IafBriefing's `focus`) in the room the
 # briefing's cards leave (`aim`). It zooms and scrolls: the mouse wheel zooms around the pointer, a drag scrolls, a
 # double click shows the whole map; with the focus, + / − zoom, the arrows scroll and 0 shows the whole map. Zoomed in,
 # the runways' designators show. The taxi and route, the labels and the photo each turn off (`show_*`, the briefing's
@@ -35,9 +35,8 @@ var data := {}
 ## The base's label, the runway's label ("25R · 246°"), the units ("km", "m").
 var base_label := ""
 var runway_label := ""
-## The pins' names by place ("start", "hold", "lineup") and a run of steps' text ("Steps %s", the range in for %s).
+## The pins' names by place ("start", "hold", "lineup").
 var pin_names := {}
-var steps_text := "%s"
 var km := "km"
 var metres := "m"
 ## The towns' names in Hebrew.
@@ -278,9 +277,9 @@ func _draw() -> void:
 	_scale(font, k)
 
 
-## The steps' pins (IafBriefing's `pins`): a disc in the accent numbered with the run's first step (moved up off a disc
-## it would cover, a line back to its place); with the labels on, its place's name on a dark plate and, for a run of
-## steps, "Steps 1–3" under it. Their room is taken now; the Callable it answers draws them over everything.
+## The pins (IafBriefing's `pins`): a disc in the accent numbered with the first paragraph of the briefing's text done
+## at its place (moved up off a disc it would cover, a line back to its place); with the labels on, its place's name on
+## a dark plate. Their room is taken now; the Callable it answers draws them over everything.
 func _pins(font: Font, xf: Transform2D, taken: Array[Rect2]) -> Callable:
 	var discs := []
 	var plates := []
@@ -300,9 +299,6 @@ func _pins(font: Font, xf: Transform2D, taken: Array[Rect2]) -> Callable:
 			var c: Vector2 = discs[i][1]
 			var r := _plate(font, str(pin_names.get(p.place, "")), c + Vector2(26, 8), 19, taken)
 			plates.append([r, str(pin_names.get(p.place, "")), 19])
-			if int(p.last) > int(p.first):
-				var t := steps_text % ("\u2066%d–%d\u2069" % [int(p.first) + 1, int(p.last) + 1])
-				plates.append([_plate(font, t, Vector2(r.position.x + 8, r.end.y + 24), 17, taken), t, 17])
 	return func():
 		for d in discs:
 			if d[0] != d[1]:
