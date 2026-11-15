@@ -664,8 +664,8 @@ over it sit two cards and the map's chips (`menu/briefing_page.gd` lays them out
   weight (in the warning colour over the maximum) and **Edit**, which opens the loadout screen.
 - **Back** (the section's list), **Arming** and **Fly** (focused on entry), off while the loadout blocks the take-off (over the maximum weight).
   Arming opens the loadout screen, as Edit does (the user, 2026-11-15: "it's unclear how do I go to arming page from
-  the brief page"); its key, A (the physical key; the cap names it on the player's layout), stands in a key cap beside the word and works anywhere on the briefing (the front end
-  binds no other letter key).
+  the brief page"). It has no key of its own: its key A and key cap were removed the same day (the user: "remove the
+  key shortcut for arming"); the mouse, Tab / the arrows and a gamepad reach it.
 - **The facts' figures:** each value's figures are a label of their own, left to right, and its unit a label beside
   them, so "16,471 ק״ג", "000° / 0 קשר" and "25R · 246°" keep their order in a Hebrew line.
 
@@ -700,9 +700,11 @@ to 2026-11-15 the ORDER OF ACTIONS card listed the steps (a start-up's checklist
 a step with the focus opening to its wait and picture; the user found a checklist the wrong thing to read before the
 flight (2026-11-15).
 
-**The map's chips** at the top inline end: **Taxi route** (the taxi, the route and its runway label), **Labels** (the
-towns, the runways' designators, the base and the pins' names) and **Photo** (the ground photo, else the TSD map's
-colours) each turn their layer off and on; **Zoom + / −** zooms around the middle of the room between the cards.
+**The map's chips** at the top inline end: **Labels** (the towns, the runways' designators, the base and the pins'
+names) and **Photo** (the ground photo, else the TSD map's colours) each turn their layer off and on. The taxi and the
+route are always drawn, navy over a pale edge. Until 2026-11-15 a **Taxi route** chip turned them off; it worked, but
+the navy lines alone were lost on the dark photo, so the user saw it change nothing ("the taxi route button doesn't
+show anything I think it isn't needed at all") and it was removed; **Zoom + / −** zooms around the middle of the room between the cards.
 
 Focus: Tab runs the missions, Edit, Back, Arming, Fly, the chips, the map and the text, round; the arrows move the same
 way on the screen (down from a mission to Edit, then Fly; from Fly toward the inline end the text; up from the text's
@@ -712,29 +714,46 @@ top the chips). Esc goes to the Hangar.
 |---|---|
 | ![The Sufa's start-up in Hebrew, the explanation scrolled to its switch pictures](pictures/front-end/startup_steps_f16i_he.webp) | ![The Adir's start-up in Hebrew, the explanation scrolled](pictures/front-end/startup_steps_f35i_he.webp) |
 
-**The map** under the cards, north up, that zooms and scrolls. It opens on the base and the route: the start, the taxi
+**The map** under the cards, north up, that zooms and scrolls over the whole built theatre. It opens on the base and the route: the start, the taxi
 and the lineup with 400 m around them, at least 2.5 km across (IafBriefing's `focus`), fitted into the room between the
-mission card, the chips and the text card, above the scale bar. The mouse wheel zooms around the pointer
-(1× to 32×, 1.25× a notch; one way per scroll, as the cockpit's zoom: `Settings.zoom_steps` drops the reverse steps a
-Mac's scroll ends with), a drag with the left or middle button scrolls, a double click shows the whole map;
+mission card, the chips and the text card, above the scale bar, with 40 px kept round it and room for the pins'
+names on their right (so no panel covers a pin or its name; checked at 1280 × 720, 1920 × 1080 and 2560 × 1440 in both
+languages). It frames again when the window or a card changes size. The mouse wheel zooms around the pointer
+(from the whole theatre, 347 × 511 km, to 32× the mission's area, 1.25× a notch; one way per scroll, as the cockpit's
+zoom: `Settings.zoom_steps` drops the reverse steps a Mac's scroll ends with), a drag with the left or middle button
+scrolls, a double click shows the mission's area, fitted into the same room;
 on a trackpad a two-finger scroll (`InputEventPanGesture`, and a wheel's horizontal notches) scrolls and a pinch
 (`InputEventMagnifyGesture`) zooms around the pointer; with the focus, + and − zoom, the arrows scroll and 0 shows the
-whole map. The view's centre stays on the map, so a drag moves it at every zoom, the whole map too (fixed 2026-11-10,
-the Mac's P1: at 1× the view was held on the whole map, so a drag did nothing, and a trackpad's scroll and pinch arrive
-as gesture events, which the map did not handle, so it could not be zoomed in to make a drag move). It draws:
-- the theatre's ground colour (its level-5 colour nodes, 32 m a pixel, [terrain.md](terrain.md) §3, resampled once
-  by `IafBriefing.ground`; without them the TSD map's polygons, `converted/own/cockpits/<jet>/map.json`,
-  [data-formats.md](data-formats.md) §14);
-- the main roads (motorway to secondary, the theatre's road layer `roads/main.bin`, [data-formats.md](data-formats.md)
-  §15) over a dark casing;
+mission's area. The view's centre stays on the theatre, so a drag moves it at every zoom, the whole theatre too. Until
+2026-11-15 the map held only the mission's area (the user's note after playing: "the map in briefing should
+dynamically load more and not only the 'relevant' place"). Fixed 2026-11-10, the Mac's P1: at 1× the view was held
+on the whole map, so a drag did nothing, and a trackpad's scroll and pinch arrive as gesture events, which the map
+did not handle, so it could not be zoomed in to make a drag move. It draws:
+- the theatre's ground colour, loaded by the view: the theatre's colour nodes ([terrain.md](terrain.md) §3, the
+  flight's own tiles) at the level whose pixel is the largest within a screen pixel (2 m zoomed in on a base, 256 m
+  for the whole theatre at 1080 px) and the two levels above it, coarser ones too where the finer have no node
+  (`IafBriefing.tiles`, Rust's `briefing::Pyramid::tiles`). Coarse ones draw first, so a coarser picture shows while
+  a finer one loads; until the view's first tile is in, the TSD map's colours show. They decode on two worker tasks as the flight's terrain decodes its nodes
+  (`terrain.gd` `load_colour`: setup's BC1 `.dds` when there, else the JPEG, mipmapped). Every task is waited for
+  when the screen closes or the game quits. At most 64 decoded tiles are kept (about 0.7 MB each); past that the
+  ones seen longest ago that the view does not need go. Without the theatre the TSD map's polygons,
+  `converted/own/cockpits/<jet>/map.json`, [data-formats.md](data-formats.md) §14;
+- the main roads (the theatre's road layer `roads/main.bin`, [data-formats.md](data-formats.md) §15) over a dark
+  casing: motorway to secondary, from 60 m a pixel to primary, from 200 m a pixel motorways and trunk roads only, no
+  two points nearer than a pixel;
 - the towns' names in the game's language (OpenStreetMap's places, `places.json`; the villages only where fewer than
-  six towns and cities are in the map; a name that would cover an earlier label is left out);
+  six towns and cities are in the box, the cities alone from 200 m a pixel; a name that would cover an earlier label
+  or reach above the room between the cards, into the header's band, is left out).
+  The roads, the towns and the TSD map's polygons come for the view (`IafBriefing.layers`, `briefing::layers`): for a
+  box half a view larger on every side, asked again when the view leaves that box, or its scale changes
+  twofold (Rust keeps `roads/main.bin` and `places.json` read once a process);
 - the whole airbase as filled shapes: the aprons and the shelters' pads, the taxiways and the stopways at their
   widths, the runways at their widths; zoomed in (from 0.15 px a metre) their dashed centrelines, the parking spots
   and the runways' designators at their ends;
 - the taxi from the parking spot to the lineup as a dashed line (the base's departure route, the one the sim's AI
   taxis), the route from the lineup through the mission's waypoints with an arrow, the runway end and its heading
-  beside the first leg, the base's label at the whole map's zoom;
+  beside the first leg, the base's label at the whole map's zoom; zoomed out past the mission's area the runway's
+  label and the pins' names stay off (the pins a few pixels apart), and a label whose place is off the map is left out;
 - the pins: a disc in the accent with the number of the text's first paragraph done at its place, the place's name on
   a dark plate beside it ("Start", "Stop short of 25R", "Take-off · 246°"). The pins stay tied to the explanation:
   the places are Rust's (IafBriefing's `pins`): a paragraph's `at` in the mission's `briefing.how` (`start`, `hold`,
@@ -744,9 +763,9 @@ as gesture events, which the map did not handle, so it could not be zoomed in to
   A take-off: paragraphs 1–3 at the parking spot, 4 at the holding point, 5–6 at the lineup; a start-up: its whole
   text at the parking spot.
 
-The whole map holds the runways, the start and the route with 6 km around them, at least 50 km across. A north arrow
-(true north: the map is UTM 36N's grid, about 1° off) at the room's top inline-end corner and a scale bar (100 m to
-50 km, the longest within a quarter of the width) at its bottom beside the mission card follow the zoom. The map never
+The mission's area holds the runways, the start and the route with 6 km around them, at least 50 km across. A
+north arrow (true north: the map is UTM 36N's grid, about 1° off) at the room's top inline-end corner and a scale bar
+(100 m to 100 km, the longest within a quarter of the width) at its bottom beside the mission card follow the zoom. The map never
 mirrors; in Hebrew its north arrow and scale bar swap sides. Its credit, OpenStreetMap's, sits under the scale bar in
 16 px type. Tested 2026-11-09 and dropped: the area beside a separate close-up of the base; one zoomable map shows both
 and leaves each the whole page (the user's A14, round 4). From 2026-11-09 to 2026-11-14 the briefing sat beside a
@@ -898,8 +917,11 @@ corner):
 | `start`, `taxi`, `route` | the start; the taxi (the base's departure route, `sim_bases::routes`, when the runway is the base's take-off end); the lineup and the waypoints |
 | `pins` | the text's places in paragraph order: `{place, at, first, last}`, `place` one of `start`, `hold`, `lineup`, `first` / `last` the run's paragraphs of `briefing.how` (from 0) |
 | `focus` | the view the map opens on `[x0, y0, x1, y1]`: the start, the taxi and the lineup, 400 m around them, at least 2.5 km across |
+| `theatre` | the whole built theatre `[x0, y0, x1, y1]` (its `meta.json`), where the view may go; null without it |
 
-`IafBriefing.ground(theatre, extent, width)` answers the area's ground colour as {w, h, rgb} (`briefing::ground`).
+`IafBriefing.layers(map, theatre, view, origin, m_per_px)` answers `fills`, `roads` and `places` over a view (the
+map's metres from `origin`, the map's north-west corner in UTM metres). `IafBriefing.tiles(theatre, view, origin,
+m_per_px)` answers the colour nodes that draw it, coarse to fine, `[level, i, j, x0, y0, x1, y1]` each.
 `IafBriefing.arming(unit, weapons, loadout)` answers the Loadout screen's figures (`briefing::arming`).
 `modern-iaf/menu/briefing_map.gd` draws the map, `modern-iaf/menu/briefing_page.gd` lays out the screen. `modern-iaf/tests/_briefing_shot.gd` takes the pictures (its header).
 
@@ -909,6 +931,9 @@ corner):
 | take-off from Ramon (2012) | ![The take-off's briefing](pictures/front-end/briefing_2012_en.webp) | ![The take-off's briefing in Hebrew](pictures/front-end/briefing_2012_he.webp) |
 | the take-off, the explanation focused and scrolled | ![The take-off with its explanation scrolled](pictures/front-end/briefing_2012_text_en.webp) | ![The same in Hebrew](pictures/front-end/briefing_2012_text_he.webp) |
 | the take-off, labels and photo off | ![The take-off's map without labels or photo](pictures/front-end/briefing_2012_plain_en.webp) | ![The same in Hebrew](pictures/front-end/briefing_2012_plain_he.webp) |
+| the take-off, zoomed out to the whole theatre | ![The map zoomed out to the whole theatre](pictures/front-end/briefing_2012_theatre_en.webp) | ![The same in Hebrew](pictures/front-end/briefing_2012_theatre_he.webp) |
+| the take-off, scrolled 100 km north of Ramon (2×) | ![The map far from the base, near Beit Shemesh](pictures/front-end/briefing_2012_far_en.webp) | ![The same in Hebrew](pictures/front-end/briefing_2012_far_he.webp) |
+| the same place zoomed in (24×, the 2 m photo) | ![The map zoomed in far from the base on a village](pictures/front-end/briefing_2012_far_close_en.webp) | ![The same in Hebrew](pictures/front-end/briefing_2012_far_close_he.webp) |
 
 ## 11. The crash page
 

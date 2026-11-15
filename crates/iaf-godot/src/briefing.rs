@@ -44,22 +44,52 @@ impl IafBriefing {
         b.end(&designator.to_string()).map_or(-1.0, |(ri, k)| b.runways[ri].heading(k).rem_euclid(360.0))
     }
 
-    /// The theatre's ground colour (`briefing::ground`) over `extent` [x0, y0, x1, y1] (UTM metres), `width` px
-    /// wide: {w, h, rgb (RGB8)}, {} without the theatre.
+    /// The map's layers over its view `view` [x0, y0, x1, y1] (the map's metres from its north-west corner `origin`,
+    /// UTM metres [easting, northing]; the map's `extent`) at `m_per_px` metres a pixel (`briefing::layers_files`) from
+    /// the compiled TSD map `map` and the theatre's folder `theatre` (absolute paths), as JSON text {fills, roads,
+    /// places}; `{"error": …}` when it cannot be made.
     #[func]
-    fn ground(theatre: GString, extent: PackedFloat64Array, width: i64) -> VarDictionary {
-        let e = extent.as_slice();
-        if e.len() != 4 {
-            return VarDictionary::new();
-        }
-        match briefing::ground(Path::new(&theatre.to_string()), [e[0], e[1], e[2], e[3]], width.max(1) as u32) {
-            Some((w, h, rgb)) => {
-                let mut d = vdict! { "w" => w as i64, "h" => h as i64 };
-                d.set("rgb", &PackedByteArray::from(rgb));
-                d
+    fn layers(
+        map: GString,
+        theatre: GString,
+        view: PackedFloat64Array,
+        origin: PackedFloat64Array,
+        m_per_px: f64,
+    ) -> GString {
+        let (v, o) = (view.as_slice(), origin.as_slice());
+        let out = if v.len() != 4 || o.len() != 2 {
+            json!({ "error": "view [x0, y0, x1, y1] and origin [e, n] wanted" })
+        } else {
+            let (map, theatre) = (map.to_string(), theatre.to_string());
+            let at = [v[0], v[1], v[2], v[3]];
+            match briefing::layers_files(Path::new(&map), Path::new(&theatre), at, [o[0], o[1]], m_per_px) {
+                Ok(l) => l.to_json(),
+                Err(e) => json!({ "error": format!("{e:#}") }),
             }
-            None => VarDictionary::new(),
+        };
+        text(&out)
+    }
+
+    /// The theatre's colour nodes that draw the view `view` (the map's metres from `origin`, as `layers`) at
+    /// `m_per_px` metres a pixel (`briefing::Pyramid::tiles`), coarse to fine: [level, i, j, x0, y0, x1, y1] each, its
+    /// box in the map's metres; empty without the theatre's `meta.json`.
+    #[func]
+    fn tiles(
+        theatre: GString,
+        view: PackedFloat64Array,
+        origin: PackedFloat64Array,
+        m_per_px: f64,
+    ) -> PackedFloat64Array {
+        let (v, o) = (view.as_slice(), origin.as_slice());
+        let Some(p) = briefing::pyramid(Path::new(&theatre.to_string())).filter(|_| v.len() == 4 && o.len() == 2)
+        else {
+            return PackedFloat64Array::new();
+        };
+        let mut out = vec![];
+        for (l, i, j, b) in p.tiles(briefing::view_box([v[0], v[1], v[2], v[3]], [o[0], o[1]]), m_per_px) {
+            out.extend([f64::from(l), i as f64, j as f64, b[0] - o[0], o[1] - b[3], b[2] - o[0], o[1] - b[1]]);
         }
+        PackedFloat64Array::from(out)
     }
 
     /// The Arming page of the unit record `unit` with the weapon records in `weapons` (absolute paths) and the loadout

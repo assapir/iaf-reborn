@@ -1195,6 +1195,21 @@ func _loadout_checks(fe: Control, lang: String) -> void:
 	)
 
 
+## True when the briefing map's mission area lies in the room between the panels (its centre there, its box filling
+## the room along one side).
+func _area_in_room(map: Control) -> bool:
+	var a: Rect2 = map._xf() * Rect2(Vector2.ZERO, map._size_m())
+	return map.view.grow(2).encloses(a) and (a.size.x >= map.view.size.x * 0.3 or a.size.y >= map.view.size.y * 0.3)
+
+
+## Waits (at most 10 s) until the briefing map's view settled: its tiles decoded.
+func _map_settled(map: Control) -> void:
+	for i in 600:
+		await frames(1)
+		if not map._view_dirty and map._want.is_empty() and map._jobs.is_empty():
+			return
+
+
 ## A press of `button` at `at`, a move by `by` with the button held, the release, through the viewport `vp`.
 func _push_drag(vp: Viewport, at: Vector2, button: MouseButton, by: Vector2) -> void:
 	var press := InputEventMouseButton.new()
@@ -1417,7 +1432,7 @@ func _briefing_checks(fe: Control, lang: String) -> void:
 		(arm.get_global_rect().get_center().x < fly.get_global_rect().get_center().x) != he,
 		"%s: Arming beside Fly, before it" % lang
 	)
-	check(_has_part(arm, "חימוש" if he else "Arming") and _has(arm, "A"), "%s: Arming: its word and key" % lang)
+	check(arm.text == ("חימוש" if he else "Arming") and arm.shortcut == null, "%s: Arming: its word, no key" % lang)
 	# The map: the whole screen under the cards, opened on the base and the route with the steps' pins.
 	var map: Control = fe.find_child("PageMap", true, false)
 	await frames(2)
@@ -1428,21 +1443,31 @@ func _briefing_checks(fe: Control, lang: String) -> void:
 	check(d.aprons.size() > 0 and d.taxiways.size() > 0 and d.parking.size() > 0, "%s: map: the airbase" % lang)
 	check(map.base_label == ("רמון" if he else "Ramon"), "%s: map: the base" % lang)
 	check(d.pins.map(func(p): return int(p.first)) == [0, 3, 4], "%s: map: pins 1, 4 and 5 (%s)" % [lang, d.pins])
-	check(map.zoom > 4.0 and map.view.has_area(), "%s: map: opened on the base (%.1f)" % [lang, map.zoom])
+	check(map.zoom > 2.0 and map.view.has_area(), "%s: map: opened on the base (%.1f)" % [lang, map.zoom])
 	for p in d.pins:
 		var at: Vector2 = map._xf() * Vector2(float(p.at[0]), float(p.at[1]))
 		check(map.view.grow(2).has_point(at), "%s: map: pin %d in the room between the cards" % [lang, p.first + 1])
+		# Its name's plate too (toward the map's right), so no panel covers what the briefing points at.
+		var w: float = (
+			map.get_theme_font("font", "Label").get_string_size(str(map.pin_names.get(p.place, "")), 0, -1, 19).x
+		)
+		check(
+			at.x + 26.0 + w + 16.0 <= map.view.end.x + 2.0,
+			"%s: map: pin %d's name clear of the panel" % [lang, p.first + 1]
+		)
 	var hold_name := "עצירה לפני \u206625R\u2069" if he else "Stop short of \u206625R\u2069"
 	check(map.pin_names.hold == hold_name, "%s: map: the holding point's pin named (%s)" % [lang, map.pin_names.hold])
 	# The roads with setup's road layer (the optional scenery step); without it the map draws the ground alone.
 	var roads: bool = load("res://shared/terrain/ground_roads.gd").available()
-	check(
-		d.get("texture") is Texture2D and (d.roads.size() > 0) == roads, "%s: map: the ground, roads %s" % [lang, roads]
-	)
+	check((d.roads.size() > 0) == roads, "%s: map: roads %s" % [lang, roads])
+	# The ground: the view's tiles (IafBriefing.tiles) decoded on worker threads.
+	await _map_settled(map)
+	check(map._tiles.size() > 0 and map._tex.size() > 0, "%s: map: the ground's tiles (%d)" % [lang, map._tex.size()])
 	var towns: Array = d.places.map(func(p): return p.he if he else p.en)
 	check(("מצפה רמון" if he else "Mitspe Ramon") in towns, "%s: map: Mitzpe Ramon (%s)" % [lang, towns])
 	# The chips: the layers off and on, the zoom.
-	for c in [["MapTaxi", "show_taxi"], ["MapLabels", "show_labels"], ["MapPhoto", "show_photo"]]:
+	check(fe.find_child("MapTaxi", true, false) == null, "%s: no Taxi route chip (the route always drawn)" % lang)
+	for c in [["MapLabels", "show_labels"], ["MapPhoto", "show_photo"]]:
 		var b: Button = fe.find_child(c[0], true, false)
 		b.button_pressed = false
 		check(not map.get(c[1]), "%s: chip %s off" % [lang, c[0]])
@@ -1454,6 +1479,8 @@ func _briefing_checks(fe: Control, lang: String) -> void:
 	fe.find_child("ZoomOut", true, false).pressed.emit()
 	check(map.zoom < z0, "%s: chip: zoom out" % lang)
 	map.reset_view()
+	check(_area_in_room(map), "%s: map: reset fits the mission's area into the room" % lang)
+	var zr: float = map.zoom
 	# The wheel zooms around the pointer: the map point under it stays; the scale bar follows.
 	var at: Vector2 = map.view.get_center()
 	var under: Vector2 = map._xf().affine_inverse() * at
@@ -1464,7 +1491,7 @@ func _briefing_checks(fe: Control, lang: String) -> void:
 		w.pressed = true
 		w.position = at
 		map._gui_input(w)
-	check(map.zoom > 5.0, "%s: map: the wheel zooms in (%.2f)" % [lang, map.zoom])
+	check(map.zoom > zr * 5.0, "%s: map: the wheel zooms in (%.2f)" % [lang, map.zoom])
 	var still: Vector2 = map._xf() * under
 	check(still.distance_to(at) < 1.0, "%s: map: zoomed around the pointer (%s)" % [lang, still - at])
 	check(map.scale_metres() < scale0, "%s: map: the scale bar follows (%d m)" % [lang, map.scale_metres()])
@@ -1484,7 +1511,7 @@ func _briefing_checks(fe: Control, lang: String) -> void:
 	check(map.center.x < c0.x and map.center.y > c0.y, "%s: map: a drag scrolls" % lang)
 	press.double_click = true
 	map._gui_input(press)
-	check(is_equal_approx(map.zoom, 1.0), "%s: map: a double click shows the whole map" % lang)
+	check(is_equal_approx(map.zoom, zr) and _area_in_room(map), "%s: map: a double click shows the whole map" % lang)
 	# Through the window, in the room between the cards (nothing over the map there takes the events): a left drag
 	# and a middle drag move it, a trackpad's two-finger scroll (a pan gesture) moves it, a pinch zooms.
 	var vp := map.get_viewport()
@@ -1511,9 +1538,10 @@ func _briefing_checks(fe: Control, lang: String) -> void:
 	var mg := InputEventMagnifyGesture.new()
 	mg.position = mid
 	mg.factor = 1.5
+	var zp: float = map.zoom
 	vp.push_input(mg)
 	await frames(1)
-	check(map.zoom > 1.4, "%s: map: a pinch zooms (%.2f)" % [lang, map.zoom])
+	check(map.zoom > zp * 1.4, "%s: map: a pinch zooms (%.2f)" % [lang, map.zoom])
 	map.reset_view()
 	# The keys: + zooms, an arrow scrolls, 0 shows the whole map.
 	map.grab_focus()
@@ -1521,9 +1549,37 @@ func _briefing_checks(fe: Control, lang: String) -> void:
 	map._gui_input(_key_event(KEY_EQUAL))
 	var c1: Vector2 = map.center
 	map._gui_input(_key_event(KEY_RIGHT))
-	check(map.zoom > 1.4 and map.center.x > c1.x, "%s: map: + zooms, an arrow scrolls" % lang)
+	check(map.zoom > zr * 1.4 and map.center.x > c1.x, "%s: map: + zooms, an arrow scrolls" % lang)
 	map._gui_input(_key_event(KEY_0))
-	check(is_equal_approx(map.zoom, 1.0), "%s: map: 0 shows the whole map" % lang)
+	check(is_equal_approx(map.zoom, zr) and _area_in_room(map), "%s: map: 0 shows the whole map" % lang)
+	# Out to the whole theatre: below the mission's area, the coarse tiles.
+	for n in 40:
+		map.zoom_at(1.0 / map.ZOOM_STEP, map.size / 2.0)
+	await _map_settled(map)
+	check(
+		is_equal_approx(map.zoom, map._zoom_min()) and int(map._tiles[0]) >= 7,
+		"%s: map: out to the theatre (%.2f)" % [lang, map.zoom]
+	)
+	# Far from the base (the theatre's middle, about 100 km north of Ramon), zoomed in: its ground and its towns load;
+	# the decoded tiles stay within MAX_TILES.
+	var towns0: Array = map.data.places.duplicate()
+	map.center = map._bounds().get_center()
+	map.zoom = 2.0
+	map._clamp()
+	await _map_settled(map)
+	var far: Vector2 = map.center
+	check(map._layers_box.has_point(far), "%s: map: the layers asked again there" % lang)
+	check(map.data.places.size() > 0 and map.data.places != towns0, "%s: map: the towns there" % lang)
+	var drawn: int = (
+		range(0, map._tiles.size(), 7)
+		. filter(
+			func(t): return map._tex.has(Vector3i(int(map._tiles[t + 1]), int(map._tiles[t + 2]), int(map._tiles[t])))
+		)
+		. size()
+	)
+	check(drawn * 7 == map._tiles.size(), "%s: map: the ground there (%d tiles)" % [lang, drawn])
+	check(map._tex.size() <= map.MAX_TILES, "%s: map: at most MAX_TILES kept (%d)" % [lang, map._tex.size()])
+	map.reset_view()
 	map.release_focus()
 	# Edit: the loadout screen, its crumb back to the briefing.
 	edit.pressed.emit()
@@ -1540,7 +1596,7 @@ func _briefing_checks(fe: Control, lang: String) -> void:
 		fe.show_page(screen)
 	await frames(3)
 	map = fe.find_child("PageMap", true, false)
-	check(fe.mission_i == mi and map.zoom > 4.0, "%s: entering again: the mission kept, the map on the base" % lang)
+	check(fe.mission_i == mi and map.zoom > 2.0, "%s: entering again: the mission kept, the map on the base" % lang)
 	# The start-up: the tower's call, then its checklist, one pin for all of it, each step's switch pictured.
 	fe.open_mission(0)
 	await frames(3)

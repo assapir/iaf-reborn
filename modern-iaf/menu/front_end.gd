@@ -1020,31 +1020,43 @@ func objectives(m: Dictionary, budget: String) -> Array:
 	return out
 
 
-## IafBriefing's map of mission `m` at `aspect` (width / height), with `ground` the theatre's ground colour as
-## `texture`: {} when it cannot be made (the error logged).
-func briefing_map(m: Dictionary, aspect: float, ground := false) -> Dictionary:
+## IafBriefing's map of mission `m` at `aspect` (width / height): {} when it cannot be made (the error logged).
+func briefing_map(m: Dictionary, aspect: float) -> Dictionary:
 	var d = JSON.parse_string(
 		IafBriefing.map(
 			ProjectSettings.globalize_path("res://data/missions/%s.json" % str(m.get("id", ""))),
 			ProjectSettings.globalize_path("res://data/airbases"),
-			ProjectSettings.globalize_path(Settings.converted("own/cockpits/%s/map.json" % jet_of(m).get("unit", ""))),
-			ProjectSettings.globalize_path(Settings.converted("terrain/israel")),
+			_map_file(m),
+			briefing_theatre(),
 			aspect
 		)
 	)
 	if not d is Dictionary or d.has("error"):
 		push_warning("briefing map: %s" % (d.error if d is Dictionary else "no answer"))
 		return {}
-	if ground:
-		# The theatre's ground colour under the area, about a texel a screen pixel.
-		var g: Dictionary = IafBriefing.ground(
-			ProjectSettings.globalize_path(Settings.converted("terrain/israel")), PackedFloat64Array(d.extent), 1600
-		)
-		if not g.is_empty():
-			d.texture = ImageTexture.create_from_image(
-				Image.create_from_data(g.w, g.h, false, Image.FORMAT_RGB8, g.rgb)
-			)
 	return d
+
+
+## The briefing map's layers over `view` ([x0, y0, x1, y1], the map's metres from `origin`, its north-west corner in
+## UTM metres) at `m_per_px` metres a pixel (IafBriefing.layers): {fills, roads, places}, {} when they cannot be made.
+func briefing_layers(
+	m: Dictionary, view: PackedFloat64Array, origin: PackedFloat64Array, m_per_px: float
+) -> Dictionary:
+	var d = JSON.parse_string(IafBriefing.layers(_map_file(m), briefing_theatre(), view, origin, m_per_px))
+	if not d is Dictionary or d.has("error"):
+		push_warning("briefing map layers: %s" % (d.error if d is Dictionary else "no answer"))
+		return {}
+	return d
+
+
+## The theatre's folder (absolute): its colour nodes, roads and towns.
+func briefing_theatre() -> String:
+	return ProjectSettings.globalize_path(Settings.converted("terrain/israel"))
+
+
+## The compiled TSD map of mission `m`'s jet (absolute).
+func _map_file(m: Dictionary) -> String:
+	return ProjectSettings.globalize_path(Settings.converted("own/cockpits/%s/map.json" % jet_of(m).get("unit", "")))
 
 
 ## "25R · 246°": the runway end and its grid heading (IafBriefing: the HUD's and the compass's), left to right.

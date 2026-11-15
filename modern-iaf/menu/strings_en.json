@@ -317,12 +317,11 @@
 	"learn": "What you will learn",
 	"purpose": "Purpose",
 	"how": "How to fly it",
-	"arming_tip": "Arming: the loadout screen (%s)",
+	"arming_tip": "Arming: the loadout screen",
 	"edit": "Edit",
 	"pin_start": "Start",
 	"pin_hold": "Stop short of %s",
 	"pin_lineup": "Take-off · %d°",
-	"map_taxi": "Taxi route",
 	"map_labels": "Labels",
 	"map_photo": "Photo",
 	"map_zoom": "Zoom"

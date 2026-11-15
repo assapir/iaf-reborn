@@ -4,6 +4,7 @@
 //! Every place is in the sim's frame (UTM 36N, `sim_bases::utm36n`) and comes back in the map's own metres: x east and
 //! y south from the map's north-west corner, so the drawing only scales.
 
+use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 
@@ -55,8 +56,8 @@ pub struct Briefing {
     pub north: f64,
     /// The map's width and height (m).
     pub size: [f64; 2],
-    /// The map's polygons in paint order: their colour and their fill as triangles (three points each).
-    pub fills: Vec<([u8; 3], Vec<[f32; 2]>)>,
+    /// The map's polygons, main roads and towns over its whole area ([`layers`] at the most detail).
+    pub layers: Layers,
     /// The base's runways: the two ends, the width (m) and the ends' designators.
     pub runways: Vec<([[f64; 2]; 2], f64, [String; 2])>,
     /// The jet's start (its parking spot or the lineup point).
@@ -66,7 +67,7 @@ pub struct Briefing {
     pub taxi: Vec<[f64; 2]>,
     /// The flight from the lineup point through the mission's waypoints; empty without a take-off.
     pub route: Vec<[f64; 2]>,
-    /// The map's box in the sim's frame [x0, y0, x1, y1] (UTM 36N metres; for [`ground`]).
+    /// The map's box in the sim's frame [x0, y0, x1, y1] (UTM 36N metres).
     pub extent: [f64; 4],
     /// The base's paved shapes: the taxiways (centreline, width), the stopways (centreline), the aprons and the
     /// shelters' pads (outlines), the parking spots.
@@ -75,27 +76,24 @@ pub struct Briefing {
     pub aprons: Vec<Vec<[f64; 2]>>,
     pub shelters: Vec<Vec<[f64; 2]>>,
     pub parking: Vec<[f64; 2]>,
-    /// The theatre's main roads in the map (`roads/main.bin`): class (`iaf_avionics::roads::CLASS_*`) and points.
-    pub roads: Vec<(u8, Vec<[f64; 2]>)>,
-    /// The towns in the map (`places.json`): kind, English and Hebrew name, place.
-    pub places: Vec<(String, String, String, [f64; 2])>,
     /// The explanation's pins (`Pin`), in paragraph order.
     pub pins: Vec<Pin>,
     /// The view the map opens on [x0, y0, x1, y1] (the map's metres): the start, the taxi and the lineup.
     pub focus: [f64; 4],
+    /// The whole built theatre [x0, y0, x1, y1] (the map's metres; `meta.json`), where the map scrolls; None without it.
+    pub theatre: Option<[f64; 4]>,
 }
 
 impl Briefing {
     /// As JSON for the game: points as flat [x, y, …] arrays, `runway` / `heading` null without a runway.
     pub fn to_json(&self) -> Value {
         let flat = |p: &[[f64; 2]]| p.iter().flat_map(|q| [round(q[0]), round(q[1])]).collect::<Vec<_>>();
-        json!({
+        let mut v = json!({
             "base": self.base,
             "runway": self.runway.as_ref().map(|r| r.0.clone()),
             "heading": self.runway.as_ref().map(|r| r.1.round()),
             "north": (self.north * 100.0).round() / 100.0,
             "size": [round(self.size[0]), round(self.size[1])],
-            "fills": self.fills.iter().map(|(c, t)| json!({"color": c, "tris": t.iter().flat_map(|p| [p[0].round(), p[1].round()]).collect::<Vec<_>>()})).collect::<Vec<_>>(),
             "runways": self.runways.iter().map(|(e, w, d)| json!([round(e[0][0]), round(e[0][1]), round(e[1][0]), round(e[1][1]), w, d[0], d[1]])).collect::<Vec<_>>(),
             "start": flat(&[self.start]),
             "taxi": flat(&self.taxi),
@@ -106,11 +104,14 @@ impl Briefing {
             "aprons": self.aprons.iter().map(|l| flat(l)).collect::<Vec<_>>(),
             "shelters": self.shelters.iter().map(|l| flat(l)).collect::<Vec<_>>(),
             "parking": flat(&self.parking),
-            "roads": self.roads.iter().map(|(c, l)| json!({"class": c, "pts": flat(l)})).collect::<Vec<_>>(),
-            "places": self.places.iter().map(|(k, en, he, p)| json!({"kind": k, "en": en, "he": he, "at": flat(&[*p])})).collect::<Vec<_>>(),
             "pins": self.pins.iter().map(|p| json!({"place": p.place, "at": flat(&[p.at]), "first": p.first, "last": p.last})).collect::<Vec<_>>(),
             "focus": self.focus.map(round),
-        })
+            "theatre": self.theatre.map(|t| t.map(round)),
+        });
+        if let (Some(v), Value::Object(l)) = (v.as_object_mut(), self.layers.to_json()) {
+            v.extend(l);
+        }
+        v
     }
 }
 
@@ -177,51 +178,10 @@ pub fn briefing(
     let c = [(lo[0] + hi[0]) / 2.0, (lo[1] + hi[1]) / 2.0];
     let ext = [c[0] - size[0] / 2.0, c[1] - size[1] / 2.0, c[0] + size[0] / 2.0, c[1] + size[1] / 2.0];
     let local = |p: [f64; 2]| [p[0] - ext[0], ext[3] - p[1]];
-    let mut fills = vec![];
-    for op in map["ops"].as_array().context("the map has no \"ops\"")? {
-        let (Some(ring), Some(b)) = (op["rings"][0].as_array(), op["brush"].as_array()) else { continue };
-        let ring: Vec<[f64; 2]> = ring
-            .as_chunks::<2>()
-            .0
-            .iter()
-            .map(|p| from_map([p[0].as_f64().unwrap_or(0.0), p[1].as_f64().unwrap_or(0.0)]))
-            .collect();
-        let ring = clip_to(ring, ext);
-        if ring.len() < 3 {
-            continue;
-        }
-        let ring: Vec<[f32; 2]> = ring.into_iter().map(|p| local(p).map(|v| v as f32)).collect();
-        let tris = iaf_formats::emf::fill_triangles(&[ring], true);
-        let c = |i: usize| b.get(i).and_then(Value::as_u64).unwrap_or(0).min(255) as u8;
-        if !tris.is_empty() {
-            fills.push(([c(0), c(1), c(2)], tris));
-        }
-    }
+    let layers = layers(map, roads, places, ext, [ext[0], ext[3]], 0.0)?;
     let lines = |v: &[Vec<[f64; 2]>]| -> Vec<Vec<[f64; 2]>> {
         v.iter().map(|l| l.iter().map(|&p| local(p)).collect()).collect()
     };
-    let inside = |p: [f64; 2]| p[0] >= ext[0] && p[0] <= ext[2] && p[1] >= ext[1] && p[1] <= ext[3];
-    let mut road_lines = vec![];
-    if let Some(r) = roads {
-        for w in r.in_rect([ext[0], ext[1]], [ext[2], ext[3]], roads::CLASS_SECONDARY) {
-            let pts: Vec<[f64; 2]> = r.way_points(w).map(local).collect();
-            road_lines.push((r.ways[w as usize].class, pts));
-        }
-    }
-    let mut towns: Vec<(String, String, String, [f64; 2])> = places
-        .iter()
-        .filter_map(|p| {
-            let at = [p["x"].as_f64()?, p["y"].as_f64()?];
-            let s = |k: &str| p[k].as_str().unwrap_or("").to_string();
-            inside(at).then(|| (s("kind"), s("en"), s("he"), local(at)))
-        })
-        .collect();
-    // The cities first, then the towns; the villages only where fewer than VILLAGES_UNDER towns are in the map.
-    let rank = |k: &str| sim_scenery::PLACE_KINDS.iter().position(|x| *x == k).unwrap_or(9);
-    towns.sort_by_key(|t| rank(&t.0));
-    if towns.iter().filter(|t| rank(&t.0) < 2).count() >= VILLAGES_UNDER {
-        towns.retain(|t| rank(&t.0) < 2);
-    }
     let pins = pins(mission, at, &taxi, route.first().copied())?.into_iter().map(|p| Pin { at: local(p.at), ..p });
     // The opening view: the start, the taxi and the lineup, FOCUS_MARGIN_M around them, FOCUS_MIN_M across at least.
     let near = [at].into_iter().chain(taxi.iter().copied()).chain(route.first().copied()).map(local);
@@ -233,19 +193,18 @@ pub fn briefing(
     Ok(Briefing {
         pins: pins.collect(),
         focus: [fc[0] - fh[0], fc[1] - fh[1], fc[0] + fh[0], fc[1] + fh[1]],
+        theatre: None,
         extent: ext,
         taxiways: base.taxiways.iter().map(|(l, w)| (l.iter().map(|&p| local(p)).collect(), *w)).collect(),
         stopways: lines(&base.stopways),
         aprons: lines(&base.aprons),
         shelters: lines(&base.shelters),
         parking: base.parking.iter().map(|p| local(p.at)).collect(),
-        roads: road_lines,
-        places: towns,
         base: base.name_en.trim_end_matches(" Airbase").to_string(),
         runway,
         north,
         size,
-        fills,
+        layers,
         runways: base.runways.iter().map(|r| (r.ends.map(local), r.width, r.designators.clone())).collect(),
         start: local(at),
         taxi: taxi.into_iter().map(local).collect(),
@@ -286,6 +245,232 @@ fn pins(mission: &Value, start: [f64; 2], taxi: &[[f64; 2]], lineup: Option<[f64
         }
     }
     Ok(out)
+}
+
+/// The map's layers over a view, in the map's metres: the TSD map's polygons cut to the view (paint order: colour,
+/// triangles), the main roads (class, points) and the towns (kind, English and Hebrew name, place).
+#[derive(Debug, Default)]
+pub struct Layers {
+    pub fills: Vec<([u8; 3], Vec<[f32; 2]>)>,
+    pub roads: Vec<(u8, Vec<[f64; 2]>)>,
+    pub places: Vec<(String, String, String, [f64; 2])>,
+}
+
+impl Layers {
+    /// As JSON for the game, the keys and shapes of [`Briefing::to_json`]'s `fills`, `roads` and `places`.
+    pub fn to_json(&self) -> Value {
+        let flat = |p: &[[f64; 2]]| p.iter().flat_map(|q| [round(q[0]), round(q[1])]).collect::<Vec<_>>();
+        json!({
+            "fills": self.fills.iter().map(|(c, t)| json!({"color": c, "tris": t.iter().flat_map(|p| [p[0].round(), p[1].round()]).collect::<Vec<_>>()})).collect::<Vec<_>>(),
+            "roads": self.roads.iter().map(|(c, l)| json!({"class": c, "pts": flat(l)})).collect::<Vec<_>>(),
+            "places": self.places.iter().map(|(k, en, he, p)| json!({"kind": k, "en": en, "he": he, "at": flat(&[*p])})).collect::<Vec<_>>(),
+        })
+    }
+}
+
+/// From this scale (m a pixel) up the map's roads are the primary roads and above (the secondary ones would only
+/// crowd it; inferred) …
+pub const PRIMARY_FROM_M_PX: f64 = 60.0;
+/// … and from this one the motorways and trunk roads, the cities without the towns.
+pub const TRUNK_FROM_M_PX: f64 = 200.0;
+
+/// The layers of the compiled TSD map `map`, the main roads `roads` and the towns `places` inside the box `ext` (UTM
+/// 36N [x0, y0, x1, y1]) in the frame whose north-west corner is `origin` (UTM 36N), drawn at `m_per_px` metres a
+/// pixel (0: the most detail): the roads by class (motorway to secondary, fewer from [`PRIMARY_FROM_M_PX`] and
+/// [`TRUNK_FROM_M_PX`]) with no two points nearer than a pixel; the cities first, then the towns (none from
+/// [`TRUNK_FROM_M_PX`]), the villages only where fewer than [`VILLAGES_UNDER`] towns and cities are in the box.
+pub fn layers(
+    map: &Value,
+    roads: Option<&Roads>,
+    places: &[Value],
+    ext: [f64; 4],
+    origin: [f64; 2],
+    m_per_px: f64,
+) -> Result<Layers> {
+    let local = |p: [f64; 2]| [p[0] - origin[0], origin[1] - p[1]];
+    let mut out = Layers::default();
+    for op in map["ops"].as_array().context("the map has no \"ops\"")? {
+        let (Some(ring), Some(b)) = (op["rings"][0].as_array(), op["brush"].as_array()) else { continue };
+        let ring: Vec<[f64; 2]> = ring
+            .as_chunks::<2>()
+            .0
+            .iter()
+            .map(|p| from_map([p[0].as_f64().unwrap_or(0.0), p[1].as_f64().unwrap_or(0.0)]))
+            .collect();
+        let ring = clip_to(ring, ext);
+        if ring.len() < 3 {
+            continue;
+        }
+        let ring: Vec<[f32; 2]> = ring.into_iter().map(|p| local(p).map(|v| v as f32)).collect();
+        let tris = iaf_formats::emf::fill_triangles(&[ring], true);
+        let c = |i: usize| b.get(i).and_then(Value::as_u64).unwrap_or(0).min(255) as u8;
+        if !tris.is_empty() {
+            out.fills.push(([c(0), c(1), c(2)], tris));
+        }
+    }
+    if let Some(r) = roads {
+        let class = match m_per_px {
+            m if m >= TRUNK_FROM_M_PX => roads::CLASS_TRUNK,
+            m if m >= PRIMARY_FROM_M_PX => roads::CLASS_PRIMARY,
+            _ => roads::CLASS_SECONDARY,
+        };
+        for w in r.in_rect([ext[0], ext[1]], [ext[2], ext[3]], class) {
+            let mut pts: Vec<[f64; 2]> = vec![];
+            let all: Vec<[f64; 2]> = r.way_points(w).collect();
+            for (i, &p) in all.iter().enumerate() {
+                let far = pts.last().is_none_or(|q: &[f64; 2]| (q[0] - p[0]).hypot(q[1] - p[1]) >= m_per_px);
+                if far || i + 1 == all.len() {
+                    pts.push(p);
+                }
+            }
+            out.roads.push((r.ways[w as usize].class, pts.into_iter().map(local).collect()));
+        }
+    }
+    let inside = |p: [f64; 2]| p[0] >= ext[0] && p[0] <= ext[2] && p[1] >= ext[1] && p[1] <= ext[3];
+    let mut towns: Vec<(String, String, String, [f64; 2])> = places
+        .iter()
+        .filter_map(|p| {
+            let at = [p["x"].as_f64()?, p["y"].as_f64()?];
+            let s = |k: &str| p[k].as_str().unwrap_or("").to_string();
+            inside(at).then(|| (s("kind"), s("en"), s("he"), local(at)))
+        })
+        .collect();
+    // The cities first, then the towns; the villages only where fewer than VILLAGES_UNDER towns are in the map.
+    let rank = |k: &str| sim_scenery::PLACE_KINDS.iter().position(|x| *x == k).unwrap_or(9);
+    towns.sort_by_key(|t| rank(&t.0));
+    if m_per_px >= TRUNK_FROM_M_PX {
+        towns.retain(|t| rank(&t.0) < 1);
+    } else if towns.iter().filter(|t| rank(&t.0) < 2).count() >= VILLAGES_UNDER {
+        towns.retain(|t| rank(&t.0) < 2);
+    }
+    out.places = towns;
+    Ok(out)
+}
+
+/// The UTM 36N box of the map's view `view` [x0, y0, x1, y1] (the map's metres, y south) whose map's north-west
+/// corner is `origin`.
+pub fn view_box(view: [f64; 4], origin: [f64; 2]) -> [f64; 4] {
+    [origin[0] + view[0], origin[1] - view[3], origin[0] + view[2], origin[1] - view[1]]
+}
+
+/// [`layers`] from files over the view `view` (the map's metres from `origin`): the compiled map.json and the
+/// theatre's folder (`roads/main.bin`, `places.json`; either missing leaves its layer out).
+pub fn layers_files(map: &Path, theatre: &Path, view: [f64; 4], origin: [f64; 2], m_per_px: f64) -> Result<Layers> {
+    let map: Value = serde_json::from_slice(&std::fs::read(map).with_context(|| map.display().to_string())?)?;
+    let roads = main_roads(theatre);
+    let places = towns(theatre);
+    let places = places.as_deref().map_or(&[][..], Vec::as_slice);
+    layers(&map, roads.as_deref(), places, view_box(view, origin), origin, m_per_px)
+}
+
+/// The theatre's colour pyramid as `meta.json` describes it (modern-iaf/docs/terrain.md §3): its frame (the
+/// north-west corner's easting and northing), a level-0 node's side and pixel (m), the root level, its size (m) and the
+/// colour nodes each level has (level, i, j).
+#[derive(Debug, Default)]
+pub struct Pyramid {
+    pub e0: f64,
+    pub n1: f64,
+    pub span0: f64,
+    pub px0: f64,
+    pub root: u32,
+    pub size: [f64; 2],
+    pub nodes: HashSet<(u32, i64, i64)>,
+}
+
+impl Pyramid {
+    fn from_meta(meta: &Value) -> Option<Pyramid> {
+        let t = meta["theatre"].as_array()?;
+        let mut nodes = HashSet::new();
+        for (l, list) in meta["nodes"].as_object()? {
+            let l: u32 = l.parse().ok()?;
+            for ij in list.as_array()? {
+                nodes.insert((l, ij[0].as_i64()?, ij[1].as_i64()?));
+            }
+        }
+        let u = meta["units_to_metres"].as_f64().unwrap_or(1.0);
+        Some(Pyramid {
+            e0: meta["x_shift"].as_f64()?,
+            n1: meta["y_shift"].as_f64()?,
+            span0: meta["node_pixels"].as_f64().unwrap_or(1024.0) * u,
+            px0: u,
+            root: meta["root_level"].as_u64()? as u32,
+            size: [(t[2].as_f64()? - t[0].as_f64()?) * u, (t[3].as_f64()? - t[1].as_f64()?) * u],
+            nodes,
+        })
+    }
+
+    /// The theatre's box in the frame whose north-west corner is `origin` (UTM 36N): [x0, y0, x1, y1], y south.
+    pub fn local_box(&self, origin: [f64; 2]) -> [f64; 4] {
+        let (x0, y0) = (self.e0 - origin[0], origin[1] - self.n1);
+        [x0, y0, x0 + self.size[0], y0 + self.size[1]]
+    }
+
+    /// The colour nodes that draw the UTM 36N box `ext` at `m_per_px` metres a pixel, coarse to fine, each (level, i,
+    /// j, its UTM 36N box): the level whose pixel is the largest within a screen pixel (the finest one there is, at
+    /// most the root) and the [`TILE_LEVELS`]` − 1` above it (shown while the finer ones load, and where they have no
+    /// node), then coarser ones until one level covers the whole box.
+    pub fn tiles(&self, ext: [f64; 4], m_per_px: f64) -> Vec<(u32, i64, i64, [f64; 4])> {
+        let finest = self.nodes.iter().map(|n| n.0).min().unwrap_or(0);
+        let l0 = ((m_per_px / self.px0).max(1.0).log2().floor() as u32).clamp(finest, self.root.max(finest));
+        let mut out = vec![];
+        let mut covered = false;
+        for l in l0..=self.root.max(l0) {
+            let span = self.span0 * f64::from(1u32 << l);
+            let last = |m: f64| ((m / span).ceil() as i64 - 1).max(0);
+            let cell = |m: f64, hi: i64| ((m / span).floor() as i64).clamp(0, hi);
+            let (ilast, jlast) = (last(self.size[0]), last(self.size[1]));
+            let (i0, i1) = (cell(ext[0] - self.e0, ilast), cell(ext[2] - self.e0, ilast));
+            let (j0, j1) = (cell(self.n1 - ext[3], jlast), cell(self.n1 - ext[1], jlast));
+            let mut all = true;
+            for j in j0..=j1 {
+                for i in i0..=i1 {
+                    if self.nodes.contains(&(l, i, j)) {
+                        let x = self.e0 + i as f64 * span;
+                        let y = self.n1 - j as f64 * span;
+                        out.push((l, i, j, [x, y - span, x + span, y]));
+                    } else {
+                        all = false;
+                    }
+                }
+            }
+            covered |= all;
+            if covered && l + 1 >= l0 + TILE_LEVELS {
+                break;
+            }
+        }
+        out.reverse();
+        out
+    }
+}
+
+/// The levels [`Pyramid::tiles`] always asks for: the view's own and the coarser ones shown while it loads.
+pub const TILE_LEVELS: u32 = 3;
+
+/// The theatre's pyramid, read once a process.
+// ponytail: one theatre folder cached; a second folder replaces it.
+static PYRAMID: Mutex<Option<(PathBuf, Arc<Pyramid>)>> = Mutex::new(None);
+
+/// The theatre's colour pyramid (`meta.json`); None without it.
+pub fn pyramid(theatre: &Path) -> Option<Arc<Pyramid>> {
+    let mut c = PYRAMID.lock().ok()?;
+    if c.as_ref().is_none_or(|(p, _)| p != theatre) {
+        let meta: Value = serde_json::from_slice(&std::fs::read(theatre.join("meta.json")).ok()?).ok()?;
+        *c = Some((theatre.to_path_buf(), Arc::new(Pyramid::from_meta(&meta)?)));
+    }
+    c.as_ref().map(|(_, p)| p.clone())
+}
+
+/// The theatre's towns (`places.json`), read once a process (350 kB; the map asks for them wherever it scrolls).
+// ponytail: one theatre folder cached; a second folder replaces it.
+static TOWNS: Mutex<Option<(PathBuf, Arc<Vec<Value>>)>> = Mutex::new(None);
+
+fn towns(theatre: &Path) -> Option<Arc<Vec<Value>>> {
+    let mut c = TOWNS.lock().ok()?;
+    if c.as_ref().is_none_or(|(p, _)| p != theatre) {
+        let v: Value = serde_json::from_slice(&std::fs::read(theatre.join("places.json")).ok()?).ok()?;
+        *c = Some((theatre.to_path_buf(), Arc::new(v.as_array()?.clone())));
+    }
+    c.as_ref().map(|(_, t)| t.clone())
 }
 
 /// The theatre's main roads, read once a process (10 MB; the briefing asks for them on every map).
@@ -454,48 +639,11 @@ pub fn briefing_files(mission: &Path, airbases: &Path, map: &Path, theatre: &Pat
         Ok(serde_json::from_slice(&std::fs::read(p).with_context(|| p.display().to_string())?)?)
     };
     let roads = main_roads(theatre);
-    let places = read(&theatre.join("places.json")).unwrap_or(Value::Null);
-    let places = places.as_array().map_or(&[][..], Vec::as_slice);
-    briefing(&read(mission)?, &sim_bases::load(airbases)?, &read(map)?, aspect, roads.as_deref(), places)
-}
-
-/// The theatre's ground colour over the box `ext` (UTM 36N [x0, y0, x1, y1]) as RGB8, `w` pixels wide (the height at
-/// the box's aspect), north up: its level-5 colour nodes (32 m a pixel, `L5/c_<i>_<j>.jpg`, modern-iaf/docs/terrain.md
-/// §3) sampled at each pixel's centre; outside the nodes the theatre's sea colour. None without the theatre's
-/// `meta.json`.
-pub fn ground(theatre: &Path, ext: [f64; 4], w: u32) -> Option<(u32, u32, Vec<u8>)> {
-    const LEVEL: u32 = 5;
-    let meta: Value = serde_json::from_slice(&std::fs::read(theatre.join("meta.json")).ok()?).ok()?;
-    let (e0, n1) = (meta["x_shift"].as_f64()?, meta["y_shift"].as_f64()?);
-    let node_px = meta["node_pixels"].as_f64().unwrap_or(1024.0);
-    let sea: Vec<u8> = meta["built_from"]["sea"]
-        .as_array()
-        .map_or(vec![53, 72, 82], |a| a.iter().map(|v| v.as_u64().unwrap_or(0) as u8).collect());
-    let w = w.clamp(1, 2048);
-    let h = ((f64::from(w) * (ext[3] - ext[1]) / (ext[2] - ext[0])).round() as u32).clamp(1, 4096);
-    let (m, span) = (f64::from(1u32 << LEVEL), node_px * f64::from(1u32 << LEVEL));
-    let mut nodes: std::collections::HashMap<(i64, i64), Option<image::RgbImage>> = Default::default();
-    let mut out = Vec::with_capacity((w * h * 3) as usize);
-    for r in 0..h {
-        for c in 0..w {
-            let x = ext[0] + (f64::from(c) + 0.5) / f64::from(w) * (ext[2] - ext[0]);
-            let y = ext[3] - (f64::from(r) + 0.5) / f64::from(h) * (ext[3] - ext[1]);
-            let (tx, ty) = (x - e0, n1 - y);
-            let k = ((tx / span).floor() as i64, (ty / span).floor() as i64);
-            let img = nodes.entry(k).or_insert_with(|| {
-                image::open(theatre.join(format!("L{LEVEL}/c_{}_{}.jpg", k.0, k.1))).ok().map(|i| i.to_rgb8())
-            });
-            match img {
-                Some(img) => {
-                    let px = (((tx - k.0 as f64 * span) / m) as u32).min(img.width() - 1);
-                    let py = (((ty - k.1 as f64 * span) / m) as u32).min(img.height() - 1);
-                    out.extend_from_slice(&img.get_pixel(px, py).0);
-                }
-                None => out.extend_from_slice(&sea[..3]),
-            }
-        }
-    }
-    Some((w, h, out))
+    let places = towns(theatre);
+    let places = places.as_deref().map_or(&[][..], Vec::as_slice);
+    let mut b = briefing(&read(mission)?, &sim_bases::load(airbases)?, &read(map)?, aspect, roads.as_deref(), places)?;
+    b.theatre = pyramid(theatre).map(|p| p.local_box([b.extent[0], b.extent[3]]));
+    Ok(b)
 }
 
 #[cfg(test)]
@@ -552,14 +700,14 @@ mod tests {
         // The waypoint lies west-south-west of the lineup (25R): x smaller, y larger (south down).
         assert!(b.route[1][0] < b.route[0][0] && b.route[1][1] > b.route[0][1]);
         // The sea first (the background), then the land; every fill is whole triangles inside the map.
-        assert_eq!(b.fills.iter().map(|f| f.0).collect::<Vec<_>>(), [[34, 34, 91], [137, 136, 135]]);
-        for (_, t) in &b.fills {
+        assert_eq!(b.layers.fills.iter().map(|f| f.0).collect::<Vec<_>>(), [[34, 34, 91], [137, 136, 135]]);
+        for (_, t) in &b.layers.fills {
             assert!(t.len() % 3 == 0 && !t.is_empty());
             assert!(t.iter().all(|p| p[0] >= -1.0 && p[1] >= -1.0 && p[0] <= b.size[0] as f32 + 1.0));
         }
         // The base's shapes, and the towns inside the map only.
         assert!(!b.taxiways.is_empty() && !b.aprons.is_empty() && !b.parking.is_empty());
-        assert!(b.places.len() <= 1 && b.places.iter().all(|p| p.1 != "Eilat"));
+        assert!(b.layers.places.len() <= 1 && b.layers.places.iter().all(|p| p.1 != "Eilat"));
         // The pins: the explanation's paragraphs 1-3 at the parking spot, 4 at the holding point (the taxi's last point
         // before the lineup), 5-6 at the lineup; the opening view holds them and the taxi.
         let want = [("start", b.start, 0, 2), ("hold", b.taxi[b.taxi.len() - 2], 3, 3), ("lineup", b.route[0], 4, 5)];
@@ -657,5 +805,57 @@ mod tests {
         let mut m = mission("ramon_takeoff");
         m["briefing"]["how"][3]["at"] = json!("tower");
         assert!(briefing(&m, &bases, &map(), 0.6, None, &[]).is_err());
+    }
+
+    #[test]
+    fn tiles_pick_the_view_level_and_coarser_ones_to_fill_in() {
+        // A 4 × 4 km theatre of 1 km nodes (1 m pixels): level 2 whole, level 1 whole, level 0 only its north-west
+        // node.
+        let mut p = Pyramid {
+            e0: 1000.0,
+            n1: 9000.0,
+            span0: 1000.0,
+            px0: 1.0,
+            root: 2,
+            size: [4000.0, 4000.0],
+            ..Default::default()
+        };
+        p.nodes.extend([(2, 0, 0), (1, 0, 0), (1, 1, 0), (1, 0, 1), (1, 1, 1), (0, 0, 0)]);
+        // At 1 m a pixel over the north-west node: level 0, then 1 and 2 under it, coarse first.
+        let t = p.tiles([1100.0, 8100.0, 1900.0, 8900.0], 1.0);
+        assert_eq!(t.iter().map(|n| (n.0, n.1, n.2)).collect::<Vec<_>>(), [(2, 0, 0), (1, 0, 0), (0, 0, 0)]);
+        assert_eq!(t[2].3, [1000.0, 8000.0, 2000.0, 9000.0]);
+        // Over the south-east, where level 0 has no node: levels 1 and 2.
+        let t = p.tiles([4100.0, 5100.0, 4900.0, 5900.0], 1.2);
+        assert_eq!(t.iter().map(|n| (n.0, n.1, n.2)).collect::<Vec<_>>(), [(2, 0, 0), (1, 1, 1)]);
+        // 3 m a pixel: level 1 and the root; past the root, the root alone.
+        assert_eq!(p.tiles([1000.0, 5000.0, 5000.0, 9000.0], 3.0).len(), 5);
+        assert_eq!(p.tiles([1000.0, 5000.0, 5000.0, 9000.0], 50.0).len(), 1);
+        assert_eq!(p.local_box([0.0, 10_000.0]), [1000.0, 1000.0, 5000.0, 5000.0]);
+    }
+
+    #[test]
+    fn layers_follow_the_view() {
+        let (m, e) = (sim_bases::utm36n(34.8016, 30.6106), sim_bases::utm36n(34.9519, 29.5577));
+        let origin = [m[0] - 10_000.0, m[1] + 10_000.0];
+        // Around Eilat, far from the map's corner: Eilat in the map's metres; Mitzpe Ramon left out.
+        let view = [
+            e[0] - origin[0] - 5000.0,
+            origin[1] - e[1] - 5000.0,
+            e[0] - origin[0] + 5000.0,
+            origin[1] - e[1] + 5000.0,
+        ];
+        let l = layers(&map(), None, &places(), view_box(view, origin), origin, 0.0).unwrap();
+        assert_eq!(l.places.len(), 1);
+        assert_eq!(l.places[0].1, "Eilat");
+        assert!(
+            (l.places[0].3[0] - (e[0] - origin[0])).abs() < 1e-6
+                && (l.places[0].3[1] - (origin[1] - e[1])).abs() < 1e-6
+        );
+        // The whole of both: at a coarse scale the city stays and the town goes.
+        let both = [-200_000.0, -200_000.0, 200_000.0, 200_000.0];
+        let l = layers(&map(), None, &places(), view_box(both, origin), origin, TRUNK_FROM_M_PX).unwrap();
+        assert_eq!(l.places.iter().map(|p| p.1.as_str()).collect::<Vec<_>>(), ["Eilat"]);
+        assert_eq!(l.to_json()["places"][0]["kind"], "city");
     }
 }

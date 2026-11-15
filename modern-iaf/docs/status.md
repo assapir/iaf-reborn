@@ -349,7 +349,8 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   their pass chips, the facts, the objectives, the Arming summary with Edit, Back, Arming (key A) and Fly; the
   map's chips turn the taxi route, the labels and the photo off and zoom. The whole map's rectangles of other tones are
   the Survey of Israel sheets' own levels (terrain.md §10, Open). From 2026-11-09: one zoomable map (the theatre's
-  ground colour, roads, towns, the route, the whole airbase); Edit on the Arming summary opens the Loadout screen (until 2026-11-14 an Arming page with
+  ground colour, roads, towns, the route, the whole airbase); from 2026-11-15 it zooms and scrolls over the whole theatre,
+  its ground tiles, roads and towns loaded for the view (finish list C); Edit on the Arming summary opens the Loadout screen (until 2026-11-14 an Arming page with
   each jet's front view); the subtitles name the tail number and squadron, no wing; the missions' titles are their kinds ([front-end.md](front-end.md) §10, `IafBriefing`). `test_front_end.gd`, `cargo test -p iaf-tools --lib briefing`.
 - **The briefing's switch pictures (2026-11-11, awaiting the user's approval):** a start-up's paragraph in the
   briefing's text shows its switch cut from the jet's 3D cockpit with a ring round it and the state to wait for

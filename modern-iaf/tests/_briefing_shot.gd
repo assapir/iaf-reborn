@@ -3,7 +3,9 @@
 #     --path modern-iaf -s ../modern-iaf/tests/_briefing_shot.gd
 # Writes SHOT_DIR/briefing_<menu id>_<lang>.png (Ramon's start-up 2011 and take-off 2012 as the screen opens),
 # briefing_<menu id>_text_<lang>.png (the explanation focused and scrolled by the keys: a start-up's switch pictures),
-# briefing_2012_plain_<lang>.png (the take-off with its labels and photo off) and, per jet, startup_<jet>_<lang>.png
+# briefing_2012_plain_<lang>.png (the take-off with its labels and photo off), briefing_2012_theatre_<lang>.png (zoomed
+# out to the whole theatre), briefing_2012_far_<lang>.png and briefing_2012_far_close_<lang>.png (the theatre's middle,
+# about 100 km north of Ramon, at 2× and 24× the mission's area) and, per jet, startup_<jet>_<lang>.png
 # (its start-up, the explanation scrolled), at SHOT_SIZE (1920x1080 by default; the front end in a
 # viewport of that size, its 1920 × 1080 canvas stretched to it as the window's is).
 extends "res://../tests/godot/base.gd"
@@ -54,6 +56,7 @@ func run() -> void:
 					save.call("startup_%s_%s" % [jet, lang])
 					continue
 				if jet == "f16i":
+					await _views(fe, save, lang)
 					fe.find_child("MapLabels", true, false).button_pressed = false
 					fe.find_child("MapPhoto", true, false).button_pressed = false
 					await frames(4)
@@ -68,3 +71,26 @@ func _key(k: Key) -> InputEventKey:
 	e.physical_keycode = k
 	e.pressed = true
 	return e
+
+
+## The take-off's map zoomed out to the theatre, then far from the base at two zooms, each once its tiles are in.
+func _views(fe: Control, save: Callable, lang: String) -> void:
+	var map: Control = fe.find_child("PageMap", true, false)
+	var c0: Vector2 = map.center
+	var z0: float = map.zoom
+	for v in [
+		["theatre", Vector2.INF, 0.0], ["far", map._bounds().get_center(), 2.0], ["far_close", Vector2.INF, 24.0]
+	]:
+		if v[1] != Vector2.INF:
+			map.center = v[1]
+		map.zoom = maxf(v[2], map._zoom_min())
+		map._clamp()
+		for i in 600:
+			await frames(1)
+			if not map._view_dirty and map._want.is_empty() and map._jobs.is_empty():
+				break
+		await frames(3)
+		save.call("briefing_2012_%s_%s" % [v[0], lang])
+	map.center = c0
+	map.zoom = z0
+	map._clamp()

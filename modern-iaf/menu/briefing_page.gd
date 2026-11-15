@@ -1,7 +1,7 @@
 # The mission briefing, map first (modern-iaf/docs/front-end.md §10; the approved mock r3_briefing, the user's A25
 # round 3, 2026-11-13): the map fills the screen (briefing_map.gd); over it at the inline start the mission card (the
 # title, the facts, the objectives, the Arming summary with Edit, Back to the section's list, Arming and Fly), at the
-# inline end the map's chips (Taxi route, Labels, Photo, Zoom) and the mission's text (the user's note, 2026-11-15: what
+# inline end the map's chips (Labels, Photo, Zoom) and the mission's text (the user's note, 2026-11-15: what
 # you will learn, then how and what to do, in prose with the keys as bound, its paragraphs numbered as the map's pins; a
 # start-up's switch pictures under their paragraphs). `build` lays it out on the front end `fe` (front_end.gd), whose
 # building blocks it uses.
@@ -19,12 +19,10 @@ const GAP := 32
 ## The text card's top (under the chips) and the explanation's type size (readable at 1280 × 720: 15 px there).
 const TEXT_TOP := 190
 const TEXT_PX := 23
-## The Arming button's key (the front end binds no letter keys; keys.json's are the flight's).
-const ARMING_KEY := KEY_A
 
 
 ## The briefing of mission `m` on `fe`; the controls named for the tests and the focus (ArmEdit, Back,
-## Arming, Fly, MapTaxi, MapLabels, MapPhoto, ZoomIn, ZoomOut, PageMap, Purpose, HowScroll, Para<n>).
+## Arming, Fly, MapLabels, MapPhoto, ZoomIn, ZoomOut, PageMap, Purpose, HowScroll, Para<n>).
 static func build(fe: Control, m: Dictionary) -> void:
 	var map := _map(fe, m)
 	var card := _card(fe, m)
@@ -73,7 +71,10 @@ static func _map(fe: Control, m: Dictionary) -> Control:
 		"hold": fe.s("pin_hold") % rwy,
 		"lineup": (fe.s("pin_lineup") % roundi(float(heading))) if heading != null else fe.s("pin_start"),
 	}
-	map.source = func(a: float) -> Dictionary: return fe.briefing_map(m, a, true)
+	map.source = func(a: float) -> Dictionary: return fe.briefing_map(m, a)
+	map.layers_source = func(v: PackedFloat64Array, o: PackedFloat64Array, k: float) -> Dictionary:
+		return fe.briefing_layers(m, v, o, k)
+	map.theatre = fe.briefing_theatre()
 	# Added once set up: its first size loads the map.
 	fe.add_child(map)
 	fe.move_child(map, 1)  # over the background, under the bars
@@ -115,29 +116,12 @@ static func _card(fe: Control, m: Dictionary) -> Control:
 
 
 ## Arming beside Fly (the user's note, 2026-11-15: the way to the loadout screen was unclear): the page "arming", as
-## the summary's Edit; its key (ARMING_KEY) a shortcut, shown as a key cap beside the word.
+## the summary's Edit. No key of its own (the user, 2026-11-15: "remove the key shortcut for arming").
 static func _arming_button(fe: Control, foot: Control) -> Button:
-	var b: Button = fe._button(foot, "", "Secondary", func(): fe.show_page("arming"))
+	var b: Button = fe._button(foot, fe.s("tab_arming"), "Secondary", func(): fe.show_page("arming"))
 	b.name = "Arming"
-	var key := InputEventKey.new()
-	key.physical_keycode = ARMING_KEY
-	b.shortcut = Shortcut.new()
-	b.shortcut.events = [key]
-	b.shortcut_feedback = false
-	var c := CenterContainer.new()
-	c.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	b.add_child(c)
-	c.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	var h: HBoxContainer = fe._hbox(c, 12)
-	h.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	fe._label(h, fe.s("tab_arming"), "Strong").mouse_filter = Control.MOUSE_FILTER_IGNORE
-	# The key's name on the player's layout (the shortcut is the physical key: Q on AZERTY).
-	var label := OS.get_keycode_string(DisplayServer.keyboard_get_label_from_physical(ARMING_KEY))
-	if label == "":
-		label = OS.get_keycode_string(ARMING_KEY)  # no layout known (headless)
-	fe._keycap(h, label).mouse_filter = Control.MOUSE_FILTER_IGNORE
-	b.custom_minimum_size = Vector2(h.get_combined_minimum_size().x + 40, 64)
-	b.tooltip_text = fe.s("arming_tip") % label
+	b.custom_minimum_size.y = 64
+	b.tooltip_text = fe.s("arming_tip")
 	return b
 
 
@@ -218,12 +202,11 @@ static func _heading(fe: Control, parent: Control, t: String) -> Label:
 	return l
 
 
-## The map's chips at the top inline end: Taxi route, Labels and Photo turn their layer on and off; Zoom + / −.
+## The map's chips at the top inline end: Labels and Photo turn their layer on and off; Zoom + / −.
 static func _chips(fe: Control, map: Control) -> Control:
 	var row: HBoxContainer = fe._hbox(fe, 10)
 	row.name = "MapChips"
-	var chips := [["MapTaxi", "map_taxi", "show_taxi"], ["MapLabels", "map_labels", "show_labels"]]
-	chips.append(["MapPhoto", "map_photo", "show_photo"])
+	var chips := [["MapLabels", "map_labels", "show_labels"], ["MapPhoto", "map_photo", "show_photo"]]
 	for c in chips:
 		var b := Button.new()
 		b.name = c[0]

@@ -604,12 +604,8 @@ func _work() -> void:
 ## heights -> RG8 (R = high byte, G = low byte of the raw u16).
 func _decode(key: Vector4i) -> Image:
 	var n := Vector3i(key.y, key.z, key.w)
-	if key.x == 0 and precompressed and not _inset.has(n) and not _needs_bake(key):
-		var dds := _path(key).get_basename() + ".dds"
-		if FileAccess.file_exists(dds):
-			var img := Image.new()
-			if img.load_dds_from_buffer(FileAccess.get_file_as_bytes(dds)) == OK:
-				return img
+	if key.x == 0 and not _inset.has(n) and not _needs_bake(key):
+		return load_colour(_path(key))
 	var img := _inset_image(n) if key.x == 0 and _inset.has(n) else Image.load_from_file(_path(key))
 	if img != null and _needs_bake(key):
 		img.set_meta("bake", true)  # patched on the main thread (_finish_jobs), then compressed there
@@ -620,6 +616,23 @@ func _decode(key: Vector4i) -> Image:
 			img.compress(Image.COMPRESS_S3TC)
 		else:
 			img.convert(Image.FORMAT_RG8)
+	return img
+
+
+## A colour node's JPEG `jpg` as a mipmapped BC1 image: setup's pre-compressed .dds beside it when there (and
+## `precompressed`), else the JPEG compressed here; null when it cannot be read. Thread-safe (the decode workers, the
+## briefing map's loader).
+static func load_colour(jpg: String) -> Image:
+	if precompressed:
+		var dds := jpg.get_basename() + ".dds"
+		if FileAccess.file_exists(dds):
+			var d := Image.new()
+			if d.load_dds_from_buffer(FileAccess.get_file_as_bytes(dds)) == OK:
+				return d
+	var img := Image.load_from_file(jpg)
+	if img != null:
+		img.generate_mipmaps()
+		img.compress(Image.COMPRESS_S3TC)
 	return img
 
 
