@@ -41,8 +41,10 @@ func _ready() -> void:
 	_label(box, "H1", str(s.get("crash_title", "")))
 	_label(box, "Big", what).name = "What"
 	if step != "":
-		_label(box, "Muted", str(s.get("crash_step", "%s")) % step)
-	_label(box, "Muted", str(s.get("crash_log", "%s")) % log_path).name = "Log"
+		_label(box, "Muted", str(s.get("crash_step", "%s")) % step_text(step, s)).name = "Step"
+	# The path stays one left-to-right run inside a Hebrew line (an isolate: its slashes keep their order).
+	var path := "\u2066%s\u2069" % log_path if he else log_path
+	_label(box, "Muted", str(s.get("crash_log", "%s")) % path).name = "Log"
 	var row := HBoxContainer.new()
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	row.add_theme_constant_override("separation", 18)
@@ -56,6 +58,13 @@ func _ready() -> void:
 	report.grab_focus.call_deferred()
 	_fit()
 	get_viewport().size_changed.connect(_fit)
+
+
+## The loading step `at_step` in the page's language (`s`: the menu strings): its name as the loading screen shows it
+## (strings loading_<name>; "terrain, after tiles" by its "terrain"), else as logged. The issue keeps the logged step.
+static func step_text(at_step: String, s: Dictionary) -> String:
+	var key := "loading_" + at_step.get_slice(",", 0).strip_edges().replace(" ", "_")
+	return str(s.get(key, at_step))
 
 
 ## The prefilled issue: the title the failure's line, the body the step, the build, the OS and GPU, the log's tail.

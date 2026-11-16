@@ -75,6 +75,19 @@ func run() -> void:
 	var page: Control = root.get_node("Crash").get_child(0) if root.has_node("Crash") else null
 	check(page != null and "loading stopped" in page.what, "the page names the stopped loading (%s)" % page.what)
 	check(page != null and page.step != "", "the page names the step (%s)" % page.step)
+	var shown: Label = page.find_child("Step", true, false) if page != null else null
+	check(
+		(
+			shown != null
+			and shown.text.ends_with(CrashPage.step_text(page.step, s.strings("res://menu/strings")))
+			and not shown.text.ends_with(page.step)
+		),
+		"the step by its loading-screen name (%s)" % (shown.text if shown != null else "")
+	)
+	var he_s: Dictionary = s.strings("res://menu/strings", "he")
+	check(CrashPage.step_text("terrain, after tiles", he_s) == he_s.loading_terrain, "a sub-step by its step, Hebrew")
+	check(CrashPage.step_text("first frames", he_s) == he_s.loading_first_frames, "the first frames, Hebrew")
+	check(CrashPage.step_text("odd", he_s) == "odd", "an unknown step as logged")
 	_dismiss()
 
 	# An error logged during the loading (the Mac's cloud textures, 2026-11-11): the crash page once, over the loading,
@@ -118,6 +131,16 @@ func run() -> void:
 	var cut: String = CrashPage.issue_link("x", "", long)
 	check(cut.length() <= CrashPage.URL_MAX and "399%20a%20long" in cut, "a long log cut from its oldest lines")
 	_dismiss()
+	# In Hebrew the log's path is one left-to-right run (an isolate) inside the line.
+	s.language = "he"
+	var hp: Control = CrashPage.new()
+	hp.log_path = "/home/x/logs/godot.log"
+	root.add_child(hp)
+	await frames(1)
+	var log_line: Label = hp.find_child("Log", true, false)
+	check(log_line != null and "\u2066/home/x/logs/godot.log\u2069" in log_line.text, "Hebrew: the log path isolated")
+	hp.free()
+	s.language = "en"
 
 	# The bisect switch (IAF_SAFE / --safe, front-end.md §11.1): each name turns its feature off.
 	OS.set_environment("IAF_SAFE", "sky, water,nothing")

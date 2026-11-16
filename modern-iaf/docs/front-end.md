@@ -986,8 +986,11 @@ the front end's look (§4), mirrored in Hebrew. It shows:
 
 - the title "Modern IAF stopped" ("הזרוע הארוכה נעצרה");
 - what failed, in one line;
-- the loading step it happened in, when it happened during a flight's start;
-- the log file's path (docs/logs.md);
+- the loading step it happened in, when it happened during a flight's start, by the name the loading screen shows
+  in the page's language ("While loading: The ground around the base", "בזמן הטעינה: הקרקע סביב הבסיס"; a sub-step
+  such as "terrain, after tiles" by its step, the first frames as "The first frames"; the issue keeps the logged step);
+- the log file's path (docs/logs.md); in Hebrew one left-to-right run (an isolate), so its slashes stay in order
+  (F10, 2026-11-16: the leading "/" jumped to the line's end).
 - **Report the problem on GitHub:** opens a new issue on `github.com/assapir/iaf-reborn` in the browser
   (`OS.shell_open`). The title is the failure's line. The body holds the step, the build (the extension's commit, the
   Godot version), the OS and its version, the GPU, its vendor, the renderer and the driver API, then the log's last 60

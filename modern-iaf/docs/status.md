@@ -3,6 +3,8 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **The crash page in Hebrew (2026-11-16, the finish list's F10, [front-end.md](front-end.md) §11):** the loading
+  step by its loading-screen name in the page's language; the log's path one left-to-right run.
 - **The Pilot log, the Pilot screen, the section list (2026-11-16, the finish list's F6, [front-end.md](front-end.md)
   §2, §3):** the log's dates as the debrief's with the time, filters by jet and by mission, rows named, a footer Back;
   the Pilot screen's form in one column (no empty middle column); with every mission passed no Next on the list.
