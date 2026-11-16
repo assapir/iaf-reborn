@@ -97,9 +97,6 @@ const PREFS := [
 ## The Missions screen's sections (front-end.md §2, the user's menu flow of 15 Nov): [id, the missions' `category`]; a
 ## section without missions is greyed, Fly now (no category: random missions and dogfights later) always.
 const SECTIONS := [["training", "training"], ["campaign", "campaign"], ["single", "single"], ["fly_now", ""]]
-## The training programme's lessons (the user, 12 Nov: training-design-decisions), by their missions' `training.kind`;
-## the Missions screen's Training card lists those a jet has no mission for yet as coming later (strings lesson_<kind>).
-const LESSONS := ["startup", "takeoff", "pattern", "navigation", "range", "emergency", "intercept"]
 ## The screen each breadcrumb opens (_header).
 const CRUMB_PAGES := {
 	"hangar": "hangar",
@@ -794,11 +791,10 @@ func section_crumbs() -> Array:
 	return ["hangar", [full_name(jet()), "missions"], [s("sec_" + section), "section"]]
 
 
-## The Missions screen (front-end.md §2, the user's menu flow of 15 Nov): a card per section (SECTIONS), as tall as
-## the screen allows, with what it holds: Training this jet's lessons (its missions, then the planned ones not built,
-## LESSONS) and the pilot's progress; a section without missions greyed, "Coming later", with what it will hold
-## (strings sec_<id>_holds), out of the focus and without a click. Enter or a click opens the section's list; Back (Esc)
-## the Hangar.
+## The Missions screen (front-end.md §2, the user's menu flow of 15 Nov): a card per section (SECTIONS), its number and
+## title, at its foot the pilot's progress; a section without missions greyed, "Coming later", out of the focus and
+## without a click (no subtitle or contents list: the user, 2026-11-16). Enter or a click opens the section's list;
+## Back (Esc) the Hangar.
 func _page_missions() -> void:
 	var j := jet()
 	_header(["hangar", full_name(j), "missions"])
@@ -806,7 +802,8 @@ func _page_missions() -> void:
 	_title(v, s("missions"), s("flown_in") % full_name(j))
 	var row := _hbox(v, 28)
 	row.name = "Sections"
-	row.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	# The cards' own height, the row in the middle of the room under the title.
+	row.size_flags_vertical = Control.SIZE_EXPAND | Control.SIZE_SHRINK_CENTER
 	var cards := []
 	for sec in SECTIONS:
 		var list := section_missions(sec[1]) if sec[1] != "" else []
@@ -814,31 +811,14 @@ func _page_missions() -> void:
 		b.name = "Section_" + sec[0]
 		b.theme_type_variation = "Card"
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		b.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		b.custom_minimum_size.y = 320
 		row.add_child(b)
 		var cv := _vbox(_margin(b, 32, 30), 14)
 		cv.get_parent().set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		var h3 := _label(cv, "%02d" % (SECTIONS.find(sec) + 1), "Num")
 		h3.add_theme_font_size_override("font_size", 36)
 		_label(cv, s("sec_" + sec[0]), "H2")
-		_text(cv, s("sec_%s_d" % sec[0]), "Muted")
-		_spacer_px(cv, 6)
-		var holds := _vbox(cv, 8)
-		holds.name = "Holds"
-		holds.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		_label(holds, s("holds").to_upper(), "H3").add_theme_font_size_override("font_size", 17)
-		var lines: Array = (
-			list.map(func(m): return title_of(m)) if not list.is_empty() else strings.get("sec_%s_holds" % sec[0], [])
-		)
-		for l in lines:
-			_text(holds, "·  " + str(l), "Row").add_theme_font_size_override("font_size", 22)
-		if sec[0] == "training" and not list.is_empty():
-			var later := lessons_later(list)
-			if not later.is_empty():
-				_spacer_px(holds, 6)
-				_label(holds, s("coming_later").to_upper(), "H3").add_theme_font_size_override("font_size", 17)
-				var soon := _text(holds, " · ".join(later.map(func(k): return s("lesson_" + k))), "Muted")
-				soon.name = "LessonsLater"
+		_spacer(cv, true)  # the progress (or Coming later) at the card's foot
 		if not list.is_empty():
 			var passed := passed_count(list)
 			_label(cv, s("passed_of") % [passed, list.size()], "Small")
@@ -875,13 +855,6 @@ func _page_missions() -> void:
 	for c in cards:
 		_nb(c, {"bottom": back})
 	_nb(back, {"top": _focus})
-
-
-## The training lessons planned (the user's training programme, 12 Nov) that jet's missions in `list` do not hold yet,
-## in LESSONS order.
-func lessons_later(list: Array) -> Array:
-	var have := list.map(func(m): return kind(m))
-	return LESSONS.filter(func(k): return not k in have)
 
 
 ## Opens section `id`'s list.
@@ -1213,24 +1186,6 @@ static func _ltr(t: String) -> String:
 	return "\u2066%s\u2069" % t.replace(" ", "\u00a0")
 
 
-## A key cap (flight_ui.gd's), nothing for "".
-func _keycap(parent: Control, key: String) -> Control:
-	if key == "":
-		var none := Control.new()
-		parent.add_child(none)
-		return none
-	var cap := PanelContainer.new()
-	parent.add_child(cap)
-	var kb := Look.box(Color(Look.BG, 0.7), Look.DIM, 1, 5, Vector2(9, 1))
-	kb.border_width_bottom = 3
-	cap.add_theme_stylebox_override("panel", kb)
-	cap.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	cap.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	var l := _label(cap, key, "Key")
-	l.text_direction = Control.TEXT_DIRECTION_LTR
-	return cap
-
-
 ## Fly: the mission's flight scene (flight/fly.gd), with the ground preloaded on this page (_preload_ground).
 func fly_mission(m: Dictionary) -> void:
 	if Fly.prepare(int(m.menu_id)):
@@ -1477,28 +1432,10 @@ func _page_joystick() -> void:
 	JoystickScreen.page(self)
 
 
-## A footer's Back (as Esc: back()) with its key cap: the Keys, Joystick, Missions and section screens.
+## A footer's Back (Esc does the same: back()): the screens with a footer Back. No key cap (the user, 2026-11-16).
 func back_button() -> Button:
-	var b := key_button(s("back"), "Esc", "Secondary", back)
+	var b := _action(s("back"), "Secondary", back)
 	b.name = "Back"
-	return b
-
-
-## A button of kind `kind_name` (not in the tree yet) saying `text`, key cap `key` beside it (the key doing the same).
-func key_button(text: String, key: String, kind_name: String, on: Callable) -> Button:
-	var b := _action("", kind_name, on)
-	var c := CenterContainer.new()
-	c.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	b.add_child(c)
-	c.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	var h := _hbox(c, 12)
-	h.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_label(h, text, "Strong").mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_keycap(h, key).mouse_filter = Control.MOUSE_FILTER_IGNORE
-	# Its width from the word and the cap as the theme sizes them (known once it is in the tree).
-	var fit := func(): b.custom_minimum_size = Vector2(h.get_combined_minimum_size().x + 40, 64)
-	h.minimum_size_changed.connect(fit)
-	fit.call()
 	return b
 
 

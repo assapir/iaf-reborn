@@ -3,6 +3,9 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **The Missions cards and no key caps (2026-11-16, the user, [front-end.md](front-end.md) §2):** a section's card
+  shows its number, title and progress (no subtitle or "What it holds"); no button carries a key cap (Back's "Esc"
+  gone everywhere, Esc still works).
 - **Attributions (2026-11-16, the finish list's F8, [front-end.md](front-end.md) §5):** a footer Back, the list
   scrolls by the arrows and Page Up / Down; the six unused jet photos, their entry and credits deleted.
 - **MAIN PWR's BATT, the JFS's START 1 and RDR ALT's STBY (2026-11-16, finish list C3, [cockpit.md](cockpit.md)

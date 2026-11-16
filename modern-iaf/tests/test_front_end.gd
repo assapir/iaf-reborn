@@ -1463,32 +1463,19 @@ func _missions_checks(fe: Control, lang: String) -> void:
 		"%s: missions: the sections from the inline start" % lang
 	)
 	check(_has(fe, "2 מתוך 2 עברו" if he else "2 of 2 passed"), "%s: missions: Training's progress" % lang)
-	# What each card holds: Training the jet's missions and the lessons to come; the others what they will hold.
+	# A card: its number, title and progress (or Coming later); no subtitle, no list of what it holds (2026-11-16).
 	var tr: Control = fe.find_child("Section_training", true, false)
-	check(
-		(
-			_has(tr, "·  " + ("התנעה" if he else "Start-up"))
-			and tr.find_child("LessonsLater", true, false).text.contains("ניווט" if he else "Navigation")
-		),
-		"%s: missions: Training holds the start-up, navigation to come" % lang
-	)
+	var texts := func(c: Control) -> Array: return _labels(c).filter(func(x): return x != "")
+	check(texts.call(tr).size() == 3, "%s: missions: Training: number, title, progress (%s)" % [lang, texts.call(tr)])
 	var camp: Control = fe.find_child("Section_campaign", true, false)
 	check(
-		(
-			_has(camp, "יגיע בהמשך" if he else "Coming later")
-			and _has(camp, "·  " + ("הובלת רביעייה" if he else "You lead a four-ship"))
-		),
-		"%s: missions: Campaign coming later, what it will hold" % lang
+		_has(camp, "יגיע בהמשך" if he else "Coming later") and texts.call(camp).size() == 3,
+		"%s: missions: Campaign: number, title, Coming later (%s)" % [lang, texts.call(camp)]
 	)
 	var back: Button = fe.find_child("Back", true, false)
 	check(
-		(
-			back != null
-			and back.focus_mode != Control.FOCUS_NONE
-			and _has(back, "Esc")
-			and _has(back, "חזרה" if he else "Back")
-		),
-		"%s: missions: the footer's Back with its key" % lang
+		back != null and back.focus_mode != Control.FOCUS_NONE and back.text == ("חזרה" if he else "Back"),
+		"%s: missions: the footer's Back" % lang
 	)
 	check(
 		tr.get_node(tr.focus_next) == back and back.get_node(back.focus_next) == tr, "%s: missions: Tab to Back" % lang
@@ -1541,7 +1528,7 @@ func _missions_checks(fe: Control, lang: String) -> void:
 	var purpose: RichTextLabel = side.find_child("SidePurpose", true, false)
 	check(purpose != null and purpose.get_parsed_text().contains("25R"), "%s: list: the side panel's purpose" % lang)
 	back = fe.find_child("Back", true, false)
-	check(rows[1].get_node(rows[1].focus_next) == back and _has(back, "Esc"), "%s: list: Tab to Back" % lang)
+	check(rows[1].get_node(rows[1].focus_next) == back, "%s: list: Tab to Back" % lang)
 	back.pressed.emit()
 	await frames(2)
 	check(fe.page == "missions", "%s: list: Back opens the Missions screen" % lang)
@@ -1878,6 +1865,23 @@ func _briefing_checks(fe: Control, lang: String) -> void:
 	check(fe.find_child("Fly", true, false) != null, "%s: briefing: Fly" % lang)
 	fe.open_mission(1)
 	await frames(2)
+
+	# No key cap on a screen's footer (the user, 2026-11-16: "remove the back/esc hint").
+	var was: String = fe.page
+	# A key cap is a Label of the theme's "Key" kind: none on any screen but the Keys and Joystick screens' own
+	# bound keys and buttons.
+	var pages := ["hangar", "missions", "section", "mission", "arming", "log", "credits", "prefs", "keys", "joystick"]
+	for p in pages + ["pilot", "pilots"]:
+		fe.show_page(p)
+		await frames(1)
+		var foot: Node = fe.find_child("Footer", true, false)
+		var caps: Array = [] if p in ["keys", "joystick"] else _labels_of(fe, "Key")
+		check(
+			caps.is_empty() and (foot == null or _labels(foot).all(func(x): return x != "Esc")),
+			"%s: %s: no key cap %s" % [lang, p, caps]
+		)
+	fe.show_page(was)
+	await frames(1)
 
 
 func _has(root: Node, t: String) -> bool:

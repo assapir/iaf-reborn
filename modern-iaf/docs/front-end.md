@@ -21,7 +21,7 @@ The window opens plain in the front end's background colour (#00163C, no Godot s
 | screen | what it does | English | Hebrew |
 |---|---|---|---|
 | Hangar | the first screen (§12): the jets at the inline start, the picked one in 3D in the middle (the player looks at it from any side) with its full name faint behind it, its card at the inline end (squadron and base, facts, the training's progress, Fly to the Missions screen); Settings and the pilot in the top bar, Attributions at the foot | ![Hangar](pictures/front-end/hangar_en.webp) | ![Hangar, Hebrew](pictures/front-end/hangar_he.webp) |
-| Missions | the Hangar's Fly (§2): a card per section, Training, Campaign, Single missions and Fly now, down to the footer, each with what it holds (Training: the jet's missions and the lessons coming later) and the pilot's progress in it; a section without missions greyed, "Coming later" with what it will hold, out of the focus, without a click (Fly now always, until it flies random missions and dogfights); the footer's Back (Esc) | ![Missions](pictures/front-end/missions_en.webp) | ![Missions, Hebrew](pictures/front-end/missions_he.webp) |
+| Missions | the Hangar's Fly (§2): a card per section, Training, Campaign, Single missions and Fly now, each with its number, its title and the pilot's progress in it; a section without missions greyed, "Coming later", out of the focus, without a click (Fly now always, until it flies random missions and dogfights); the footer's Back (Esc) | ![Missions](pictures/front-end/missions_en.webp) | ![Missions, Hebrew](pictures/front-end/missions_he.webp) |
 | A section's list | the Hangar jet's missions of the section in order, numbered 1, 2 …: the title, the base and what it trains, the last result (Pass with the best time, Fail, Not flown yet); the next one to fly marked Next, tinted and focused (every mission passed: no Next, the first focused); beside the list a panel on the mission under the focus or the pointer (§2); the footer's Back (Esc) | ![Training](pictures/front-end/section_en.webp) | ![Training, Hebrew](pictures/front-end/section_he.webp) |
 | Briefing | the briefing, map first (§10): the map over the screen, opened on the base and the route with the pins; the mission card (the facts, the objectives, the Arming summary with Edit, Back to the section's list, Arming, Fly: Edit and Arming open the Loadout screen §10.1); what you will learn and how to fly it, the keys as bound; the map's chips | ![Briefing](pictures/front-end/mission_en.webp) | ![Briefing, Hebrew](pictures/front-end/mission_he.webp) |
 | Settings | the sections Graphics, Language, Sound and Devices listed at the inline start; the picked one's settings open beside them as controls: dropdown, switch, slider, radio list; Devices has the afterburner detent (§9.2); the footer's Export settings file / Import settings file (below) | ![Settings](pictures/front-end/prefs_graphics_en.webp) | ![Settings, Hebrew](pictures/front-end/prefs_graphics_he.webp) |
@@ -94,14 +94,12 @@ list. The breadcrumbs: Hangar · the jet (Missions) · the section (its list) ·
 loadout screen) or Debrief.
 
 - **The sections** (`SECTIONS` in `front_end.gd`): Training, Campaign, Single missions and Fly now, each holding the
-  Hangar jet's missions of its `category` (the readable mission's: `training`, `campaign`, `single`). A card fills the
-  height down to the footer and says what the section holds under "What it holds" / "תכולה": Training the titles of
-  the jet's missions, then under "Coming later" the lessons of the training programme (the user, 12 November 2026:
-  start-up, take-off, pattern and landing, navigation, weapons range, emergencies, intercept a drone; `LESSONS`) that
-  the jet has no mission for yet, by its missions' `training.kind`. A section without missions is greyed, marked
-  "Coming later" / "יגיע בהמשך", with what it will hold (strings `sec_<id>_holds`: Campaign Epic Fury over Iran, with
-  packages of several flights and the player leading a four-ship; Single missions; Fly now a random mission or a
-  dogfight), no click and no focus. Today Training holds each jet's start-up and take-off and the others are greyed.
+  Hangar jet's missions of its `category` (the readable mission's: `training`, `campaign`, `single`). A card, 320 px
+  high, the row of cards in the middle of the room under the title, shows its number and title and at its foot the
+  pilot's progress ("2 of 2 passed" and a bar). A section without missions is greyed, marked "Coming later" / "יגיע
+  בהמשך", no click and no focus. Today Training holds each jet's start-up and take-off and the others are greyed.
+  Until 2026-11-16 a card also had a subtitle and a "What it holds" list (Training's missions and its lessons coming
+  later, the greyed sections what they would hold); the user removed them ("remove the subtitles and what it holds").
 - **Each jet's own missions** (the user, 15 November 2026: "you should show only the same plane missions"): a
   section lists only the missions whose start is in the Hangar's jet (the readable mission's `start.unit`), numbered
   1, 2 … after that filter; the Sufa's Training is Ramon's start-up and take-off. The statuses, Next, "N of M passed",
@@ -116,8 +114,10 @@ loadout screen) or Debrief.
   follows the focus and the pointer: the mission's number and title, what you will learn (another section's: its
   purpose; the briefing's `briefing.purpose`, its keys as bound), its base, the time allowed, the last result with its
   day and the best time. It holds no map: the briefing's map is the briefing's own screen.
-- **Back:** the Missions screen and a section's list have Back in the footer with its key cap Esc, the same button as
-  the Keys and Joystick screens' (`back_button`); Tab reaches it after the cards or the rows, Down from the last row.
+- **Back:** the Missions screen and a section's list have Back in the footer, the same button as every other
+  screen's footer Back (`back_button`); Esc does the same. Tab reaches it after the cards or the rows, Down from the
+  last row. No key cap on any button since 2026-11-16 (the user: "remove the back/esc hint"; until then Back carried
+  an "Esc" cap).
 - **The debrief's buttons:** Next mission (the mission after the flown one in its section, `MissionList.next_in`,
   reborn's Next Mission rule; absent after the section's last one), focused when there; Fly again (the flown mission's
   briefing with Fly focused: Enter or a click on Fly starts the flight); Back to missions (the section's list). Each
