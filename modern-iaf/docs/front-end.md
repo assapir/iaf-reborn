@@ -25,7 +25,7 @@ The window opens plain in the front end's background colour (#00163C, no Godot s
 | A section's list | the Hangar jet's missions of the section in order, numbered 1, 2 …: the title, the base and what it trains, the last result (Pass with the best time, Fail, Not flown yet); the next one to fly marked Next, tinted and focused; beside the list a panel on the mission under the focus or the pointer (§2); the footer's Back (Esc) | ![Training](pictures/front-end/section_en.webp) | ![Training, Hebrew](pictures/front-end/section_he.webp) |
 | Briefing | the briefing, map first (§10): the map over the screen, opened on the base and the route with the pins; the mission card (the facts, the objectives, the Arming summary with Edit, Back to the section's list, Arming, Fly: Edit and Arming open the Loadout screen §10.1); what you will learn and how to fly it, the keys as bound; the map's chips | ![Briefing](pictures/front-end/mission_en.webp) | ![Briefing, Hebrew](pictures/front-end/mission_he.webp) |
 | Settings | the sections Graphics, Language, Sound and Devices listed at the inline start; the picked one's settings open beside them as controls: dropdown, switch, slider, radio list; Devices has the afterburner detent (§9.2); the footer's Export settings file / Import settings file (below) | ![Settings](pictures/front-end/prefs_graphics_en.webp) | ![Settings, Hebrew](pictures/front-end/prefs_graphics_he.webp) |
-| Debrief | the record as a sheet: Plane flown, From, Time, Mission, Result, the mission's goals (a take-off: runway, lift-off and reference speed, centreline offset, tower calls; a start-up: none), Remarks (the fail reason first, or that it passed; the lift-off against the reference); Export flight data (below), Back to missions, Fly again, Next mission (§2) | ![Debrief](pictures/front-end/debrief_en.webp) | ![Debrief, Hebrew](pictures/front-end/debrief_he.webp) |
+| Debrief | the sheet at the inline start (Plane flown, From, Time, Mission, Result; the goals with the target, the flown figure and ✓ / !; Remarks with "Next time:"), at the inline end the whole flight on the map and the flight's graphs (§13); Pilot log, Export flight data (below), Back to missions, Fly again, Next mission (§2) | ![Debrief](pictures/front-end/debrief_en.webp) | ![Debrief, Hebrew](pictures/front-end/debrief_he.webp) |
 | Pilot | the Hangar → the pilot: the picture in a service ID photo's fixed 3:4 frame (a click on it, or Choose a picture…, opens the system's file dialog; without a picture the initials, or a head and shoulders before there is a name), the name and the nickname, and the logbook panel down to the bottom bar (§3) with its Pilot log button; the footer's Reset the log, Delete profile, Change pilot, Back and Save (§3) | ![Pilot](pictures/front-end/pilot_en.webp) | ![Pilot, Hebrew](pictures/front-end/pilot_he.webp) |
 | Create your pilot | the first start, before the Hangar: the Pilot screen with Save only and no pilot in the top bar yet; the logbook panel says "No flights yet." (§3) | ![Create your pilot](pictures/front-end/pilot_first_en.webp) | ![Create your pilot, Hebrew](pictures/front-end/pilot_first_he.webp) |
 | Reset the log | the Pilot screen's Reset: a warning modal, then a second confirm (§3) | ![Reset the log](pictures/front-end/pilot_reset_en.webp) | ![Reset the log, Hebrew](pictures/front-end/pilot_reset_he.webp) |
@@ -53,7 +53,7 @@ front end's canvas scaled to the window and centred by a container, so it sits i
 either language (the Mac run of 2026-11-08: in Hebrew in a 2560 × 1440 window the overlay mirrored its own position
 by its unscaled width and sat off the right edge, its buttons' labels outside the screen). Ending a training flight
 scores it as it stands and opens its debrief; a flight that was not scored goes back to the Hangar. The sheet shows only
-the record's `goals` ([training.md](training.md) §4); every other number stays in the record file.
+the record's `checks` ([training.md](training.md) §4); every other number stays in the record file.
 
 | the Hebrew pause menu before the fix (2026-11-08) | after |
 |---|---|
@@ -63,7 +63,7 @@ the record's `goals` ([training.md](training.md) §4); every other number stays 
 |---|---|---|
 | the pause menu over the flight | ![Pause menu](pictures/front-end/pause_en.webp) | ![Pause menu, Hebrew](pictures/front-end/pause_he.webp) |
 | a training mission accomplished: the flight paused | ![Mission accomplished](pictures/front-end/accomplished_en.webp) | ![Mission accomplished, Hebrew](pictures/front-end/accomplished_he.webp) |
-| a failed debrief (a take-off with the gear never raised) | ![Failed debrief](pictures/front-end/debrief_fail_en.webp) | ![Failed debrief, Hebrew](pictures/front-end/debrief_fail_he.webp) |
+| a failed debrief from before the goals and the recording (a take-off with the gear never raised): its numbers, the right column's empty state | ![Failed debrief](pictures/front-end/debrief_fail_en.webp) | ![Failed debrief, Hebrew](pictures/front-end/debrief_fail_he.webp) |
 | the debrief of that flight | ![Debrief after a flight](pictures/front-end/flown_debrief_en.webp) | ![Debrief after a flight, Hebrew](pictures/front-end/flown_debrief_he.webp) |
 
 Keys: Enter picks the focused control, Esc goes one screen back (on the Hangar it asks "Quit the sim?", Cancel focused),
@@ -273,13 +273,13 @@ centreline in the roll.
 
 Six Wikimedia Commons photos, downscaled, credited on Attributions and in [../../docs/credits.md](../../docs/credits.md) "Modern IAF's photos". The list with each page:
 `modern-iaf/data/photos/SOURCES.md`. Round 3's Barak photo was CC BY-SA; the front end uses a CC BY 2.0 one instead.
-Since the Hangar (2026-11-13) only their blurred copies show, behind the debrief; Home, Pick a plane and Training,
-which showed them whole with their credits, are gone.
+No screen shows them since the debrief's redo (§13, 2026-11-15, the approved mock's plain background): their blurred
+copies behind the debrief are gone; Home, Pick a plane and Training, which showed them whole, went with the Hangar.
 
 ## 6. Checks
 
 - `modern-iaf/tests/test_front_end.gd` walks the Hangar → Missions → Training → the briefing → the debrief of a stored
-  record → Back to missions, Fly again, Next mission in English and Hebrew: the texts, each jet's card with its
+  record (the sample flight scored, §13; then a record from before the goals) → Back to missions, Fly again, Next mission in English and Hebrew: the texts, each jet's card with its
   squadron, the four sections (Training open and focused with what it holds and the lessons coming later, the others greyed,
   "Coming later", without focus or click), the footer's Back with Esc, the Sufa's two missions with their statuses, the
   next one marked and focused, the side panel following the focus, the layout direction; each jet's own missions
@@ -288,7 +288,7 @@ which showed them whole with their credits, are gone.
   and Attributions. With `-- --fly` it also flies Ramon's start-up from the mission screen to a pass, finds the flight
   paused under Mission accomplished, continues it with Esc (the panel not coming back), opens the pause menu, ends the
   flight and finds that flight's debrief. Run in a real render through `tools/godot_window.sh` it is
-  the real run (`SHOT_DIR=<dir>` saves the two pictures of §1's second table).
+  the real run (`SHOT_DIR=<dir>` saves the pictures of §1's second table).
   It also checks the first start (the Pilot screen before the Hangar, no pilot in its top bar, the empty picture's head
   and shoulders turning into the typed name's initials, Save only with a name typed through real input events, Down and
   Up between Name and Nickname, Esc staying, Save storing the name on the active pilot and opening the Hangar), no Pilot log entry on the
@@ -1099,3 +1099,38 @@ Fly, Up from Fly to Settings; Down from Fly stays (it went to the foot first, th
 
 **Esc** on the Hangar asks "Quit the sim?" / "לצאת מהסימולטור?" (Cancel focused); Home's Quit and its greyed Guides
 went with Home.
+
+## 13. The debrief
+
+The approved mock r3_debrief (the user, A25 round 3, 2026-11-13: "awesome"; "maybe heights / G scales / graphs?"),
+built by `menu/debrief_page.gd`:
+
+- **The sheet** at the inline start: Plane flown, From, Time (the day with the month named in both languages, "2 Nov
+  2026" / "2 בנובמבר 2026", and the mission clock from the start to the end), Mission, Result; GOALS, each row a mark
+  (✓ met, ! off the mark with the mission passed, ✗ failed), the goal, its target ("25R", "max 22.6 m", "246° ±10")
+  and the flown figure; REMARKS: the reason that failed it or that it passed, then "Next time:" with the scorer's
+  tip. All of it is the Rust scorer's record ([training.md](training.md) §4); the sheet ends after Remarks. Its cells'
+  1 px rules are anti-aliased so they show at 1280 × 720.
+- **The whole flight on the map** at the inline end: the briefing map (§10) of the mission with the recorded track
+  over it (IafTraining.track, [training.md](training.md) §4.1), coloured by phase over a dark casing, the planned
+  taxi and route, pins at the start (a disc), the lift-off (a ring) and the end (a square) with their mission-clock
+  times, opened on all of the track; the base inset at its bottom left (the start and the taxi, the briefing's view);
+  the legend of the phases flown and the planned route. With the focus it zooms and scrolls as the briefing's map.
+- **The flight**: the phase band over three graphs against the mission clock, speed (kt), height above the ground
+  (ft) and load (g), with the marked events (the rotation's load, the lift-off speed, the gear-up height, the highest
+  load; a touchdown, crash, hit or ejection as a line across all three). The clock runs left to right in Hebrew too:
+  clock times and numbers read left to right in Hebrew, and the approved Hebrew mock draws it so.
+- **The footer**: Pilot log and Export flight data at the inline start; Back to missions, Fly again and Next mission
+  at the inline end, the last the primary and focused. Tab and Shift + Tab go round the map and the buttons; Up from a
+  button goes to the map; with the focus on the map the arrows scroll it and Tab leaves it.
+- A record without a recording (records from before it, a flight file deleted) shows the sheet, and both panels of
+  the right column say "This sortie has no flight recording."; Export flight data is greyed and out of the focus.
+- Hebrew mirrors the page: the sheet at the right, the map and graphs at the left; the map and the graphs never
+  mirror.
+- The sample flight for the tests and pictures: `modern-iaf/tests/data/ramon_takeoff_flight.jsonl`, a synthetic
+  take-off at Ramon written by `sample_flight.py` beside it (its header).
+
+| screen | English | Hebrew |
+|---|---|---|
+| the debrief of the sample flight | ![Debrief](pictures/front-end/debrief_en.webp) | ![Debrief, Hebrew](pictures/front-end/debrief_he.webp) |
+| at 1280 × 720 | ![Debrief at 1280 × 720](pictures/front-end/debrief_1280_en.webp) | ![Debrief at 1280 × 720, Hebrew](pictures/front-end/debrief_1280_he.webp) |

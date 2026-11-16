@@ -141,16 +141,34 @@ up there only warns; the roll there (faster than 30 kt) fails at once with `wron
 ## 4. The debrief record
 `Debrief::to_json` (`iaf-training score … --json`): `mission`, `kind`, `pass`, `reasons` (ids), `items` (each `id`,
 `value` rounded to 0.1 or null, `unit`, optional `text` (a name in place of the value) and `note` id), `goals` (the
-rules' `goals`) and `strings` `{"en": {id: text}, "he": {id: text}}` with every id the record names. The CLI prints
-the English summary.
+rules' `goals`), `checks` (the sheet's goals, below), `next` (the "Next time" line, `{"en", "he"}`, or null) and
+`strings` `{"en": {id: text}, "he": {id: text}}` with every id the record names. The CLI prints the English summary.
 
-The record keeps every item; the debrief sheet ([front-end.md](front-end.md)) shows only the `goals` (the user,
-2026-11-08: "no one cares how long it took to start or how many times I moved the throttle unless it is a goal"):
+The record keeps every item; the debrief sheet ([front-end.md](front-end.md) §13) shows the `checks` (the user,
+2026-11-08: "no one cares how long it took to start or how many times I moved the throttle unless it is a goal").
+Each check has `id`, `label` (`{"en", "he"}`), `target` (`value` or `text`, `unit`; `max: true` an upper limit,
+`tol` a tolerance), `flown` (the same, `value` null when not reached) and `mark` (`ok`; `warn`: off the mark, the
+mission still passes; `fail`). A record from before `checks` shows its `goals` items.
 
-| mission | the sheet shows |
+| mission | the checks |
 |---|---|
-| start-up | pass / fail and the reason (no goals) |
-| take-off | the runway used, the lift-off speed and the reference speed, the max offset from the centreline, the tower calls |
+| start-up | idle with the avionics up within the time budget; the checklist steps done (a mission with a `checklist`) |
+| take-off | the runway (the mission's against the one rolled on), within the time budget (the first airborne sample with the gear up on the heading), the gear up on the runway heading (± `heading_tolerance_deg`), the centreline offset over the roll (at most half the runway's width; `fail` on an excursion), the lift-off speed against the reference (`warn` beyond 10 kt, inferred: the reference table's own step), the tower calls (one each for the start-up and the taxi, two for the take-off; `warn` when fewer) |
+
+`next` is the tip for the reason that failed the flight first (off the pavement, an excursion, the wrong runway, no
+lift-off, no engine start, a phase without clearance), else for the first check not `ok` (the lift-off: "Start the
+rotation at" the reference less 10 kt, inferred), none when all are met.
+
+### 4.1 The flight's track
+`training::track` (`IafTraining.track(flight, mission, airbases)`, `Track::to_json`) is the debrief's view of a
+recording: its samples thinned to at most 1,200, each with `t` (s from the start), `at` (the sim's frame, UTM 36N, a
+flat [x, y, …]), `speed_kt`, `agl_ft`, `g` (empty without the column) and `phase`; `runs` (each phase's span,
+`{phase, from, to}`); `marks` (`{id, t, graph, value}`: the rotation and its load, the lift-off and its speed, the
+gear up and its height, the highest load in the air from 1.3 g; touchdowns, crashes, hits and ejections with no graph);
+`pins` (start, lift-off, end: a sample index) and the names in English and Hebrew. The phases (`PHASES`): start-up
+until the jet first moves faster than 1 kt; on the ground the taxi, a hold where it stands 5 s or longer (inferred:
+a shorter stop is part of the taxi); the roll from its start (§3.2 on the mission's runway, else the last moment below
+30 kt) to the lift-off; airborne after it.
 
 | id | unit | meaning |
 |---|---|---|
@@ -175,7 +193,7 @@ The record keeps every item; the debrief sheet ([front-end.md](front-end.md)) sh
 `cargo test -p iaf-tools --lib training`: three synthetic take-offs from Ramon 25R built in the test (a clean one, a
 gear-down climb-out, a runway excursion, a crash on the roll (fails at once, the crash first), damage, the wheels
 off the pavement (the live check: the parking spot and the lineup paved, 200 m beside the runway not); also a rolling take-off, a one-sample glitch off the ground while
-taxiing, a rotation on the lift-off sample, a recording cut mid-line at its end), a synthetic start-up (a pass at its end with no goals, a crash with the crash first, over the budget, never started), and the
+taxiing, a rotation on the lift-off sample, a recording cut mid-line at its end), a synthetic start-up (a pass at its end with no goals, a crash with the crash first, over the budget, never started), the sample take-off `modern-iaf/tests/data/ramon_takeoff_flight.jsonl` (written by `sample_flight.py` beside it: its checks, marks and Next time; its track's phases, marks and pins; a long flight thinned keeping the lift-off), and the
 newest real recording in the flights folder (`user://flights`: `~/.local/share/godot/app_userdata/iaf-reborn/flights`
 on Linux, `~/Library/Application Support/Godot/app_userdata/iaf-reborn/flights` on macOS, or `IAF_FLIGHTS`) scored
 against Ramon's take-off, skipped with a message when there is none. `IAF_TRAINING_WRITE=<dir>` keeps the synthetic

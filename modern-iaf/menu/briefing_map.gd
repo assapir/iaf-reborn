@@ -10,7 +10,8 @@
 # IafBriefing.tiles) decode on worker threads, and the roads, towns and polygons are asked again (`layers_source`) for
 # wherever the view goes. Zoomed in, the runways' designators show. The labels and the photo each turn off (`show_*`,
 # the briefing's chips). The map itself never mirrors; in Hebrew its north arrow and scale bar swap sides with the
-# layout.
+# layout. The debrief lays a flown track over it (`track`, coloured by phase, its pins with their times); `chrome` off
+# leaves out the north arrow and the scale bar (the debrief's base inset).
 extends Control
 
 const Look := preload("look.gd")
@@ -93,6 +94,14 @@ var selected := "":
 		if was != "" and v != was:
 			_view_flight(v)
 		queue_redraw()
+## A flown track (the map's metres), each point's phase (an index of `track_colors`) and its pins: [point index,
+## label, "start" / "liftoff" / "end"] each.
+var track := PackedVector2Array()
+var track_phase: Array = []
+var track_colors: Array = []
+var track_pins: Array = []
+## The north arrow and the scale bar shown.
+var chrome := true
 var _aspect := 0.0
 var _dragging := false
 ## The view's ground tiles, coarse to fine: [level, i, j, x0, y0, x1, y1] each (IafBriefing.tiles, the map's metres).
@@ -489,6 +498,8 @@ func _draw() -> void:
 		# Beside the take-off's first leg, a little past the lineup (in the room the cards leave).
 		var along := (route[1] - route[0]).normalized() * minf(route[0].distance_to(route[1]), 240.0)
 		_tag(font, runway_label, route[0] + along + Vector2(-40, -18), 20, taken)
+	# The track's pins and labels before the towns, which give way to them.
+	var track_labels := _draw_track(font, xf, taken)
 	if show_labels:
 		var flights: Array = data.get("flights", [])
 		for i in flights.size():
@@ -497,9 +508,11 @@ func _draw() -> void:
 				_tag(font, str(flights[i].callsign), pts[0] + Vector2(20, -12), 19, taken)
 	if show_labels:
 		_draw_places(font, xf, taken)
+	track_labels.call()
 	pins.call()
-	_north(font)
-	_scale(font, k)
+	if chrome:
+		_north(font)
+		_scale(font, k)
 
 
 ## The pins (IafBriefing's `pins`): a disc in the accent numbered with the first paragraph of the briefing's text done
@@ -577,6 +590,69 @@ func _draw_tiles(xf: Transform2D, k: float) -> void:
 			draw_texture_rect(
 				e.tex, Rect2(at, Vector2(_tiles[t + 5] - _tiles[t + 3], _tiles[t + 6] - _tiles[t + 4]) * k), false
 			)
+
+
+## The flown track over a dark casing, a run of points per phase in its colour, and its pins: Start a disc in the
+## accent, Lift-off a ring, End a square. With the labels on, each pin's label on a dark plate beside it, on the first
+## side (right, left, below, above) where it stays inside the map clear of what is taken. The labels' room is taken
+## now; the Callable it answers draws the pins and their labels over everything.
+func _draw_track(font: Font, xf: Transform2D, taken: Array[Rect2]) -> Callable:
+	if track.size() < 2:
+		return func(): pass
+	var pts := xf * track
+	draw_polyline(pts, Color(0, 0, 0, 0.5), 6.0, true)
+	var i := 0
+	while i < pts.size() - 1:
+		var p = track_phase[i] if i < track_phase.size() else 0
+		var j := i + 1
+		while j < pts.size() - 1 and j < track_phase.size() and track_phase[j] == p:
+			j += 1
+		var c: Color = track_colors[p] if p < track_colors.size() else Look.ACCENT
+		draw_polyline(pts.slice(i, j + 1), c, 3.5, true)
+		i = j
+	var at_of := func(pin) -> Vector2: return pts[clampi(int(pin[0]), 0, pts.size() - 1)]
+	for pin in track_pins:
+		taken.append(Rect2(at_of.call(pin) - Vector2(12, 12), Vector2(24, 24)))
+	var plates := []
+	var inside := Rect2(Vector2.ZERO, size).grow(-4)
+	for pin in track_pins if show_labels else []:
+		var t := str(pin[1])
+		if t == "":
+			continue
+		var at: Vector2 = at_of.call(pin)
+		var sz := Vector2(font.get_string_size(t, HORIZONTAL_ALIGNMENT_LEFT, -1, 17).x + 16, 30)
+		var tries := [at + Vector2(16, -15), at + Vector2(-16 - sz.x, -15), at + Vector2(-sz.x / 2, 16)]
+		tries.append(at + Vector2(-sz.x / 2, -16 - sz.y))
+		var pick := Rect2()
+		for o in tries:
+			var r := Rect2(o, sz)
+			if inside.encloses(r) and not taken.any(func(x): return x.intersects(r)):
+				pick = r
+				break
+		if not pick.has_area():
+			for o in tries:
+				if inside.encloses(Rect2(o, sz)):
+					pick = Rect2(o, sz)
+					break
+		if pick.has_area():
+			taken.append(pick)
+			plates.append([pick, t])
+	return func():
+		for pin in track_pins:
+			var at: Vector2 = at_of.call(pin)
+			match str(pin[2]):
+				"start":
+					draw_circle(at, 10.0, Look.ACCENT, true, -1.0, true)
+					draw_circle(at, 10.0, Color.WHITE, false, 2.5, true)
+				"end":
+					draw_rect(Rect2(at - Vector2(8, 8), Vector2(16, 16)), Color.WHITE)
+					draw_rect(Rect2(at - Vector2(8, 8), Vector2(16, 16)), Look.BG, false, 2.5)
+				_:
+					draw_circle(at, 7.0, Color.WHITE, true, -1.0, true)
+					draw_circle(at, 7.0, Look.BG, false, 2.5, true)
+		for pl in plates:
+			draw_rect(pl[0], Color(Look.BG, 0.88))
+			draw_string(font, pl[0].position + Vector2(8, 21), pl[1], HORIZONTAL_ALIGNMENT_LEFT, -1, 17, Look.TEXT)
 
 
 ## The TSD map's polygons (without the theatre's ground colour).

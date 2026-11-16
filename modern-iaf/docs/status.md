@@ -3,6 +3,12 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **The debrief (2026-11-15, the front-end finish list's F5, [front-end.md](front-end.md) §13):** the approved
+  r3_debrief: the sheet with the goals (target, flown figure, ✓ / !) and "Next time:" from the Rust scorer, the whole
+  flight on the map (the track coloured by phase, the planned route, Start / Lift-off / End pins with their times, the
+  base inset) and the speed, height and load graphs with the phase band and the marked events (`IafTraining.track`);
+  Pilot log, Export flight data, Back to missions, Fly again, Next mission; a record without a recording shows the
+  sheet and the right column's empty state; Hebrew dates name the month.
 - **The Missions and section screens, each jet's own missions (2026-11-15, the front-end finish list's M2,
   [front-end.md](front-end.md) §2, §12):** a section lists only the Hangar jet's missions (the user: "show only the
   same plane missions"), numbered 1, 2 …, with that jet's statuses, Next and progress (also on the Hangar's card); a

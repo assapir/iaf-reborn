@@ -32,6 +32,12 @@ const ROLL_START_KT: f64 = 30.0;
 const LIFTOFF_HOLD_S: f64 = 1.0;
 /// Rotation: the first moment of the roll the pitch is this much above the pitch at the roll's start (inferred).
 const ROTATION_PITCH_DEG: f64 = 2.0;
+/// A lift-off this far from the reference speed is marked on the sheet (kt, inferred: the reference table's own
+/// step between weights).
+const LIFTOFF_WARN_KT: f64 = 10.0;
+/// The "Next time" tip's rotation: this far below the reference take-off speed (kt, inferred: the nose comes up over
+/// the last seconds of the roll).
+const ROTATE_BEFORE_KT: f64 = 10.0;
 /// A throttle step smaller than this between two samples is noise, not a movement.
 const THROTTLE_STEP: f64 = 0.005;
 /// The engine is being started once its RPM is this high (%): the starter cranks it from 0 (inferred: a cold engine
@@ -135,6 +141,83 @@ const STRINGS: &[(&str, &str, &str)] = &[
     ("max_centreline_offset", "Max offset from the centreline", "סטייה מרבית מקו המרכז"),
     ("tower_calls", "Tower calls", "קריאות למגדל"),
     ("cut_lines", "Lines cut off at the recording's end, skipped", "שורות קטועות בסוף ההקלטה, שהושמטו"),
+    // The sheet's goals ({} the figures of the label).
+    ("goal_runway", "Take off from runway {}", "המראה ממסלול {}"),
+    ("goal_time", "Within {} min of the start", "תוך {} דקות מההתחלה"),
+    ("goal_heading", "Gear up on the runway heading (±{}°)", "איסוף כן הנסע בכיוון המסלול (±{}°)"),
+    ("goal_centreline", "Offset from the centreline during the roll", "סטייה מקו המרכז בריצת ההמראה"),
+    (
+        "goal_liftoff",
+        "Lift-off speed against the reference at this weight",
+        "מהירות ניתוק מול המהירות המומלצת במשקל זה",
+    ),
+    ("goal_calls", "Tower calls", "קריאות למגדל"),
+    ("goal_startup_time", "Idle with the avionics up within {} min", "סרק ואוויוניקה פועלת תוך {} דקות"),
+    ("goal_checklist", "Checklist steps done", "שלבי הבד״ח שבוצעו"),
+    // The "Next time" tips.
+    ("next_runway", "Line up on runway {}, the one the tower names.", "להיכנס למסלול {}, המסלול שהמגדל מציין."),
+    (
+        "next_time",
+        "Ask the tower for the next step as soon as the last one is done: {} min are allowed.",
+        "לבקש מהמגדל את השלב הבא מיד עם סיום הקודם: מוקצות {} דקות.",
+    ),
+    (
+        "next_heading",
+        "Raise the gear right after the lift-off, on the runway heading, before any turn.",
+        "לאסוף את כן הנסע מיד אחרי הניתוק, בכיוון המסלול, לפני כל פנייה.",
+    ),
+    (
+        "next_centreline",
+        "Keep the nose on the centreline with the rudder pedals through the whole roll.",
+        "לשמור את האף על קו המרכז בעזרת דוושות ההגה לאורך כל הריצה.",
+    ),
+    (
+        "next_fast",
+        "Lift-off was {} kt above the reference speed. Start the rotation at {} kt.",
+        "הניתוק היה {} קשר מעל המהירות המומלצת. להתחיל להרים את האף ב־{} קשר.",
+    ),
+    (
+        "next_slow",
+        "Lift-off was {} kt below the reference speed. Wait for {} kt before the rotation.",
+        "הניתוק היה {} קשר מתחת למהירות המומלצת. להמתין ל־{} קשר לפני הרמת האף.",
+    ),
+    (
+        "next_calls",
+        "Call the tower before each phase: start-up, taxi, line-up and take-off.",
+        "לקרוא למגדל לפני כל שלב: התנעה, הסעה, כניסה למסלול והמראה.",
+    ),
+    (
+        "next_startup_time",
+        "Go on to the next step as soon as the last one is done: {} min are allowed.",
+        "לעבור לשלב הבא מיד עם סיום הקודם: מוקצות {} דקות.",
+    ),
+    ("next_checklist", "Work the checklist from the top: every step counts.", "לבצע את הבד״ח מההתחלה: כל שלב נספר."),
+    (
+        "next_pavement",
+        "Keep the nosewheel on the taxiway's centreline and slow down before each turn.",
+        "לשמור את גלגל האף על קו המרכז של המסלול המוביל ולהאט לפני כל פנייה.",
+    ),
+    ("next_clearance", "Wait for the tower's answer before each phase.", "להמתין לתשובת המגדל לפני כל שלב."),
+    (
+        "next_liftoff",
+        "Open the throttle to full on the runway and raise the nose as the speed nears the reference.",
+        "לפתוח מצערת מלאה על המסלול ולהרים את האף כשהמהירות מתקרבת למהירות המומלצת.",
+    ),
+    ("next_start", "Start the engine once the tower clears the start-up.", "להתניע את המנוע לאחר אישור ההתנעה מהמגדל."),
+    // The flight's phases and marked events (the debrief's map and graphs, `track`).
+    ("ph_startup", "Start-up", "התנעה"),
+    ("ph_taxi", "Taxi", "הסעה"),
+    ("ph_hold", "Hold", "המתנה"),
+    ("ph_roll", "Roll", "ריצה"),
+    ("ph_airborne", "Airborne", "באוויר"),
+    ("ev_liftoff", "lift-off", "ניתוק"),
+    ("ev_rotation", "rotation", "הרמת האף"),
+    ("ev_gear_up", "gear up", "איסוף כן"),
+    ("ev_peak_g", "peak", "שיא"),
+    ("ev_touchdown", "touchdown", "נגיעה"),
+    ("ev_crash", "crash", "התרסקות"),
+    ("ev_hit", "hit", "פגיעה"),
+    ("ev_eject", "ejection", "מילוט"),
     // Notes in place of a value.
     ("none_modelled", "none modelled", "לא ממודל"),
     ("from_spool", "from the engine start and the model's wind-up", "מהתנעת המנוע וזמן ההאצה של המודל"),
@@ -314,6 +397,8 @@ pub struct Sample {
     pub y: f64,
     pub agl_m: Option<f64>,
     pub speed_kt: f64,
+    /// The load factor (g), where the recording has the column.
+    pub g: Option<f64>,
     pub heading: f64,
     pub pitch: f64,
     pub on_ground: bool,
@@ -348,7 +433,7 @@ pub fn parse_flight(text: &str) -> Result<Flight> {
         ["t", "x", "z", "speed_kt", "heading", "pitch", "on_ground", "engine", "throttle", "gear", "fuel_kg"].map(need);
     let (t, x, z, speed, heading, pitch) = (t?, x?, z?, speed?, heading?, pitch?);
     let (ground, engine, throttle, gear, fuel) = (ground?, engine?, throttle?, gear?, fuel?);
-    let (agl, rpm, avionics) = (col("agl_m"), col("rpm"), col("avionics"));
+    let (agl, g, rpm, avionics) = (col("agl_m"), col("g"), col("rpm"), col("avionics"));
     let mut f = Flight::default();
     while let Some((i, l)) = lines.next() {
         let v: Value = match serde_json::from_str(l) {
@@ -371,6 +456,7 @@ pub fn parse_flight(text: &str) -> Result<Flight> {
             y: oy - n(z),
             agl_m: agl.and_then(|i| r.get(i)?.as_f64()),
             speed_kt: n(speed),
+            g: g.and_then(|i| r.get(i)?.as_f64()),
             heading: n(heading),
             pitch: n(pitch),
             on_ground: b(ground),
@@ -486,8 +572,82 @@ pub struct Debrief {
     /// Fail reason ids, in the order checked.
     pub reasons: Vec<&'static str>,
     pub items: Vec<Item>,
-    /// The items the sheet shows (the rules' `goals`).
+    /// The items the sheet shows (the rules' `goals`; records from before `checks`).
     pub goals: Vec<String>,
+    /// The sheet's goals: what the mission asks against what was flown, marked.
+    pub checks: Vec<Check>,
+}
+
+/// A figure of a goal: a value with its unit, a name ("25R"), or neither (not reached).
+#[derive(Debug, Clone, PartialEq)]
+pub struct Figure {
+    pub value: Option<f64>,
+    pub text: Option<String>,
+    pub unit: &'static str,
+}
+
+impl Figure {
+    fn value(v: f64, unit: &'static str) -> Figure {
+        Figure { value: Some(v), text: None, unit }
+    }
+
+    fn text(t: &str) -> Figure {
+        Figure { value: None, text: Some(t.into()), unit: "" }
+    }
+
+    fn none(unit: &'static str) -> Figure {
+        Figure { value: None, text: None, unit }
+    }
+
+    fn to_json(&self) -> Value {
+        let mut v = json!({"value": self.value.map(|v| (v * 10.0).round() / 10.0), "unit": self.unit});
+        if let Some(t) = &self.text {
+            v["text"] = json!(t);
+        }
+        v
+    }
+}
+
+/// How a goal's target reads: as it is ("25R", "159 kt"), an upper limit ("max 10 m") or a value with a tolerance
+/// ("247° ±10").
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum Bound {
+    Exact,
+    Max,
+    Tol(f64),
+}
+
+/// A goal's mark on the sheet: met (✓), off the mark without failing the mission (!), failed (✗).
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum Mark {
+    Ok,
+    Warn,
+    Fail,
+}
+
+/// A goal row of the debrief sheet: its label (string `id`, each "{}" filled from `args`), the target, the flown
+/// figure and the mark.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Check {
+    pub id: &'static str,
+    pub args: Vec<String>,
+    pub target: Figure,
+    pub bound: Bound,
+    pub flown: Figure,
+    pub mark: Mark,
+}
+
+/// The string `id` in language `lang` (0 English, 1 Hebrew) with each "{}" filled from `args` in turn.
+fn fill(id: &str, lang: usize, args: &[String]) -> String {
+    let t = STRINGS.iter().find(|s| s.0 == id).map_or("?", |s| if lang == 0 { s.1 } else { s.2 });
+    let mut out = String::new();
+    let mut parts = t.split("{}");
+    out += parts.next().unwrap_or("");
+    for (i, p) in parts.enumerate() {
+        out += args.get(i).map_or("", String::as_str);
+        out += p;
+    }
+    out
 }
 
 impl Debrief {
@@ -519,7 +679,58 @@ impl Debrief {
                 v
             }).collect::<Vec<_>>(),
             "goals": self.goals,
+            "checks": self.checks.iter().map(|c| {
+                let mut target = c.target.to_json();
+                match c.bound {
+                    Bound::Exact => {}
+                    Bound::Max => target["max"] = json!(true),
+                    Bound::Tol(t) => target["tol"] = json!(t),
+                }
+                json!({
+                    "id": c.id,
+                    "label": {"en": fill(c.id, 0, &c.args), "he": fill(c.id, 1, &c.args)},
+                    "target": target,
+                    "flown": c.flown.to_json(),
+                    "mark": match c.mark { Mark::Ok => "ok", Mark::Warn => "warn", Mark::Fail => "fail" },
+                })
+            }).collect::<Vec<_>>(),
+            "next": self.next().map(|(id, args)| json!({"en": fill(id, 0, &args), "he": fill(id, 1, &args)})),
             "strings": {"en": strings(0), "he": strings(1)},
+        })
+    }
+
+    /// The "Next time" remark: the tip for the reason that failed it first, else for the first goal not met; None
+    /// when every goal is met. (string id, its arguments)
+    pub fn next(&self) -> Option<(&'static str, Vec<String>)> {
+        let check = |id: &str| self.checks.iter().find(|c| c.id == id);
+        let runway = || vec![check("goal_runway").and_then(|c| c.target.text.clone()).unwrap_or_default()];
+        for r in &self.reasons {
+            match *r {
+                "off_pavement" => return Some(("next_pavement", vec![])),
+                "excursion" => return Some(("next_centreline", vec![])),
+                "wrong_runway" => return Some(("next_runway", runway())),
+                "no_liftoff" => return Some(("next_liftoff", vec![])),
+                "no_start" => return Some(("next_start", vec![])),
+                r if r.starts_with("no_") && r.ends_with("_clearance") => return Some(("next_clearance", vec![])),
+                _ => {}
+            }
+        }
+        let c = self.checks.iter().find(|c| c.mark != Mark::Ok)?;
+        let minutes = c.args.first().cloned().unwrap_or_default();
+        Some(match c.id {
+            "goal_runway" => ("next_runway", runway()),
+            "goal_time" => ("next_time", vec![minutes]),
+            "goal_heading" => ("next_heading", vec![]),
+            "goal_centreline" => ("next_centreline", vec![]),
+            "goal_liftoff" => {
+                let (flown, target) = (c.flown.value.unwrap_or(0.0), c.target.value.unwrap_or(0.0));
+                let rotate = format!("{}", target - ROTATE_BEFORE_KT);
+                let d = format!("{}", (flown - target).abs());
+                if flown > target { ("next_fast", vec![d, rotate]) } else { ("next_slow", vec![d, rotate]) }
+            }
+            "goal_calls" => ("next_calls", vec![]),
+            "goal_startup_time" => ("next_startup_time", vec![minutes]),
+            _ => ("next_checklist", vec![]),
         })
     }
 
@@ -574,6 +785,17 @@ pub fn score(flight: &Flight, mission: &Value, airbases: &[Value]) -> Result<Deb
             for step in r.checklist.iter().filter(|s| !done(s)) {
                 d.reasons.push(string_id(&format!("skip_{step}")).unwrap_or("not_done"));
             }
+            if !r.checklist.is_empty() {
+                let n = r.checklist.iter().filter(|s| done(s)).count();
+                d.checks.push(Check {
+                    id: "goal_checklist",
+                    args: vec![],
+                    target: Figure::value(r.checklist.len() as f64, ""),
+                    bound: Bound::Exact,
+                    flown: Figure::value(n as f64, ""),
+                    mark: if n == r.checklist.len() { Mark::Ok } else { Mark::Fail },
+                });
+            }
             d.pass = d.reasons.is_empty();
             d
         }
@@ -581,8 +803,14 @@ pub fn score(flight: &Flight, mission: &Value, airbases: &[Value]) -> Result<Deb
             let airbase = airbase_of(mission, airbases)?;
             let rw = runway(airbase, mission["runway"].as_str().unwrap_or(""))?;
             let base = sim_bases::base(airbase, &format!("{id}: start.base"))?;
-            let t =
-                Takeoff { rw: &rw, base: &base, tolerance: *heading_tolerance_deg, empty_kg: *empty_kg, takeoff_kt };
+            let t = Takeoff {
+                rw: &rw,
+                base: &base,
+                tolerance: *heading_tolerance_deg,
+                empty_kg: *empty_kg,
+                takeoff_kt,
+                clearances: &r.clearances,
+            };
             takeoff(flight, id, &t, r.time_budget_s, failed.is_some())
         }
     };
@@ -870,6 +1098,192 @@ pub fn score_files(flight: &std::path::Path, mission: &std::path::Path, airbases
     score(&f, &m, &bases)
 }
 
+// --- The flight's track ----------------------------------------------------------------------------------------------
+
+/// The flight's phases, in the order they come (`track`).
+pub const PHASES: [&str; 5] = ["startup", "taxi", "hold", "roll", "airborne"];
+/// The jet moves on the ground faster than this (kt; the take-off's own figure for the taxi's start).
+const MOVING_KT: f64 = 1.0;
+/// A stop on the ground shorter than this is part of the taxi (s, inferred: a pause at a turn is not a hold).
+const HOLD_MIN_S: f64 = 5.0;
+/// The highest load in the air is marked from this many g (inferred: above a gentle turn's 1.15 g).
+const PEAK_G_MIN: f64 = 1.3;
+/// The track keeps at most this many samples (inferred: a point a pixel or two across the debrief's graphs).
+const TRACK_POINTS: usize = 1200;
+const FT_PER_M: f64 = 3.28084;
+
+/// A marked moment of the flight: its event id (`ev_*` without the prefix), its time from the start (s), the graph it
+/// marks ("speed", "agl", "g", or "" all three) and the value there (kt, ft or g).
+#[derive(Debug, Clone, PartialEq)]
+pub struct Moment {
+    pub id: &'static str,
+    pub t: f64,
+    pub graph: &'static str,
+    pub value: f64,
+}
+
+/// The debrief's view of a recording (modern-iaf/docs/front-end.md §13): its samples thinned to TRACK_POINTS, each with its phase
+/// (index of PHASES); the phases' runs; the marked events; the lift-off's sample (in the thinned samples).
+#[derive(Debug, Default)]
+pub struct Track {
+    pub samples: Vec<Sample>,
+    pub phase: Vec<usize>,
+    /// (phase, from, to): times from the start, s.
+    pub runs: Vec<(usize, f64, f64)>,
+    pub marks: Vec<Moment>,
+    pub lift: Option<usize>,
+}
+
+/// The phases of every sample: the start-up until the jet first moves; on the ground then the taxi, a hold where it
+/// stands HOLD_MIN_S or longer, the take-off roll from its start (`roll_start` on the mission's runway `rw`, else the
+/// last moment below ROLL_START_KT) to the lift-off; airborne after it.
+fn phases(s: &[Sample], lift: Option<usize>, rw: Option<&Runway>) -> Vec<usize> {
+    let roll = lift.map(|l| match rw {
+        Some(rw) => roll_start(s, l, rw).0,
+        None => s[..l].iter().rposition(|x| x.speed_kt < ROLL_START_KT).unwrap_or(0),
+    });
+    let moved = s.iter().position(|x| x.speed_kt > MOVING_KT || !x.on_ground);
+    let mut ph: Vec<usize> = (0..s.len())
+        .map(|i| {
+            if lift.is_some_and(|l| i >= l) && !s[i].on_ground {
+                4
+            } else if roll.is_some_and(|r| i >= r) && lift.is_some_and(|l| i < l) {
+                3
+            } else if moved.is_none_or(|m| i < m) {
+                0
+            } else if s[i].speed_kt <= MOVING_KT {
+                2
+            } else {
+                1
+            }
+        })
+        .collect();
+    // A short stop is taxi.
+    let mut i = 0;
+    while i < ph.len() {
+        let end = i + ph[i..].iter().take_while(|p| **p == ph[i]).count();
+        if ph[i] == 2 && s[end - 1].t - s[i].t < HOLD_MIN_S {
+            ph[i..end].fill(1);
+        }
+        i = end;
+    }
+    ph
+}
+
+/// The track of flight `f`, its take-off roll on the runway `rw` (a take-off mission's).
+pub fn track(f: &Flight, rw: Option<&Runway>) -> Track {
+    let s = &f.samples;
+    if s.is_empty() {
+        return Track::default();
+    }
+    let t0 = s[0].t;
+    let lift = liftoff(s);
+    let ph = phases(s, lift, rw);
+    let mut runs: Vec<(usize, f64, f64)> = vec![];
+    for (i, p) in ph.iter().enumerate() {
+        match runs.last_mut() {
+            Some(r) if r.0 == *p => r.2 = s[i].t - t0,
+            _ => {
+                if let Some(r) = runs.last_mut() {
+                    r.2 = s[i].t - t0;
+                }
+                runs.push((*p, s[i].t - t0, s[i].t - t0));
+            }
+        }
+    }
+    let mut marks = vec![];
+    let at = |i: usize, id: &'static str, graph: &'static str, value: f64| Moment { id, t: s[i].t - t0, graph, value };
+    if let Some(l) = lift {
+        marks.push(at(l, "liftoff", "speed", s[l].speed_kt.round()));
+        let roll = ph.iter().position(|p| *p == 3).unwrap_or(l);
+        if let Some(r) = rotation(s, roll, l).filter(|&r| s[r].g.is_some()) {
+            marks.push(at(r, "rotation", "g", s[r].g.unwrap_or(1.0)));
+        }
+        if let Some(i) = (l..s.len()).find(|&i| !s[i].gear && !s[i].on_ground) {
+            marks.push(at(i, "gear_up", "agl", (s[i].agl_m.unwrap_or(0.0) * FT_PER_M).round()));
+        }
+        let peak = (l..s.len())
+            .filter(|&i| !s[i].on_ground)
+            .max_by(|&a, &b| s[a].g.unwrap_or(0.0).total_cmp(&s[b].g.unwrap_or(0.0)));
+        if let Some(p) = peak.filter(|&p| s[p].g.unwrap_or(0.0) >= PEAK_G_MIN) {
+            marks.push(at(p, "peak_g", "g", s[p].g.unwrap_or(0.0)));
+        }
+    }
+    for e in &f.events {
+        let id = match e["event"].as_str() {
+            Some("touchdown") => "touchdown",
+            Some("crash") => "crash",
+            Some("hit") => "hit",
+            Some("eject") => "eject",
+            _ => continue,
+        };
+        marks.push(Moment { id, t: e["t"].as_f64().unwrap_or(t0) - t0, graph: "", value: 0.0 });
+    }
+    marks.sort_by(|a, b| a.t.total_cmp(&b.t));
+    // Thinned: every step-th sample and the last; the lift-off's sample kept.
+    let step = s.len().div_ceil(TRACK_POINTS).max(1);
+    let keep: Vec<usize> = (0..s.len()).filter(|&i| i % step == 0 || i + 1 == s.len() || Some(i) == lift).collect();
+    Track {
+        lift: lift.and_then(|l| keep.iter().position(|&i| i == l)),
+        samples: keep.iter().map(|&i| s[i].clone()).collect(),
+        phase: keep.iter().map(|&i| ph[i]).collect(),
+        runs,
+        marks,
+    }
+}
+
+impl Track {
+    /// As JSON for the debrief: times from the start (s) and the places (the sim's frame, a flat [x, y, …]) of the
+    /// samples, their speed (kt), height above the ground (ft), load (g; empty without the column) and phase (index
+    /// of `phases`); the phases' runs; the marks; the pins (start, lift-off, end: a sample's index); every phase's and
+    /// mark's name in English and Hebrew.
+    pub fn to_json(&self) -> Value {
+        let r1 = |v: f64| (v * 10.0).round() / 10.0;
+        let s = &self.samples;
+        let t0 = s.first().map_or(0.0, |x| x.t);
+        let has_g = s.iter().any(|x| x.g.is_some());
+        let mut pins = vec![json!({"id": "start", "i": 0})];
+        if let Some(l) = self.lift {
+            pins.push(json!({"id": "liftoff", "i": l}));
+        }
+        if s.len() > 1 {
+            pins.push(json!({"id": "end", "i": s.len() - 1}));
+        }
+        let ids: Vec<String> =
+            PHASES.iter().map(|p| format!("ph_{p}")).chain(self.marks.iter().map(|m| format!("ev_{}", m.id))).collect();
+        let strings = |lang: usize| -> Map<String, Value> {
+            ids.iter().map(|id| (id.clone(), json!(fill(id, lang, &[])))).collect()
+        };
+        json!({
+            "t": s.iter().map(|x| r1(x.t - t0)).collect::<Vec<_>>(),
+            "at": s.iter().flat_map(|x| [r1(x.x), r1(x.y)]).collect::<Vec<_>>(),
+            "speed_kt": s.iter().map(|x| x.speed_kt.round()).collect::<Vec<_>>(),
+            "agl_ft": s.iter().map(|x| (x.agl_m.unwrap_or(0.0).max(0.0) * FT_PER_M).round()).collect::<Vec<_>>(),
+            "g": if has_g { s.iter().map(|x| (x.g.unwrap_or(1.0) * 100.0).round() / 100.0).collect::<Vec<f64>>() } else { vec![] },
+            "phase": self.phase,
+            "phases": PHASES,
+            "runs": self.runs.iter().map(|r| json!({"phase": r.0, "from": r1(r.1), "to": r1(r.2)})).collect::<Vec<_>>(),
+            "marks": self.marks.iter().map(|m| json!({"id": m.id, "t": r1(m.t), "graph": m.graph, "value": (m.value * 10.0).round() / 10.0})).collect::<Vec<_>>(),
+            "pins": pins,
+            "strings": {"en": strings(0), "he": strings(1)},
+        })
+    }
+}
+
+/// The track of the recording at `flight` (`track`), its roll on the runway of the readable mission file `mission`
+/// (a take-off's; the airbase files in `airbases`), else without one.
+pub fn track_files(flight: &std::path::Path, mission: &std::path::Path, airbases: &std::path::Path) -> Result<Track> {
+    let read = |p: &std::path::Path| std::fs::read_to_string(p).with_context(|| p.display().to_string());
+    let f = parse_flight(&read(flight)?).with_context(|| flight.display().to_string())?;
+    let rw = (|| -> Result<Runway> {
+        let m: Value = serde_json::from_str(&read(mission)?)?;
+        let bases: Vec<_> = sim::read_dir(airbases)?.into_iter().map(|f| f.v).collect();
+        runway(airbase_of(&m, &bases)?, m["runway"].as_str().context("no runway")?)
+    })()
+    .ok();
+    Ok(track(&f, rw.as_ref()))
+}
+
 /// Throttle movements: the runs of samples in which the lever moves.
 fn throttle_moves(s: &[Sample]) -> f64 {
     let mut moving = false;
@@ -894,6 +1308,15 @@ fn startup(f: &Flight, mission: String, budget: f64) -> Debrief {
     let has_avionics = s.iter().any(|x| x.avionics.is_some());
     let avionics = if has_avionics { s.iter().find(|x| x.avionics == Some(true)).map(|x| x.t - t0) } else { idle };
     let mut reasons = vec![];
+    let up = idle.zip(avionics).map(|(i, a)| i.max(a));
+    let checks = vec![Check {
+        id: "goal_startup_time",
+        args: vec![format!("{}", (budget / 60.0).round())],
+        target: Figure::value(budget, "s"),
+        bound: Bound::Max,
+        flown: Figure { value: up, ..Figure::none("s") },
+        mark: if up.is_some_and(|u| u <= budget) { Mark::Ok } else { Mark::Fail },
+    }];
     match idle.zip(avionics) {
         _ if !s.iter().any(|x| x.engine) => reasons.push("no_start"),
         None => reasons.push("not_done"),
@@ -921,6 +1344,7 @@ fn startup(f: &Flight, mission: String, budget: f64) -> Debrief {
             noted("faults", None, "", "none_modelled"),
         ],
         goals: vec![],
+        checks,
     }
 }
 
@@ -931,6 +1355,8 @@ struct Takeoff<'a> {
     tolerance: f64,
     empty_kg: f64,
     takeoff_kt: &'a [[f64; 2]],
+    /// The phases that need the tower's clearance (the rules' `clearances`).
+    clearances: &'a [&'static str],
 }
 
 /// The runway end the roll from `a` toward `b` ran on ("25R"), or None off every runway of the base.
@@ -941,6 +1367,40 @@ fn runway_used(base: &Base, a: [f64; 2], b: [f64; 2]) -> Option<String> {
     Some(r.designators[k].clone())
 }
 
+/// The lift-off: the first sample off the ground after one on it that starts LIFTOFF_HOLD_S airborne (or stays
+/// airborne to the recording's end), so a one-sample glitch on the ground is not one.
+fn liftoff(s: &[Sample]) -> Option<usize> {
+    let held = |i: usize| {
+        let run = s[i..].iter().take_while(|x| !x.on_ground).count();
+        i + run == s.len() || s[i + run - 1].t - s[i].t >= LIFTOFF_HOLD_S
+    };
+    (1..s.len()).find(|&i| s[i - 1].on_ground && !s[i].on_ground && held(i))
+}
+
+/// The take-off roll's first sample before the lift-off `lift`, and its last sample below ROLL_START_KT: the slowest
+/// sample on the runway (the latest of equals) between the jet's entry onto the runway and that last slow sample (the
+/// stop on the lineup point, or the entry of a rolling take-off). A jet below ROLL_START_KT off the runway starts its
+/// roll there.
+fn roll_start(s: &[Sample], lift: usize, rw: &Runway) -> (usize, usize) {
+    let k = s[..lift].iter().rposition(|x| x.speed_kt < ROLL_START_KT).unwrap_or(0);
+    let mut entry = k;
+    while entry > 0 && rw.on(s[k].x, s[k].y) && rw.on(s[entry - 1].x, s[entry - 1].y) {
+        entry -= 1;
+    }
+    ((entry..=k).rev().min_by(|&a, &b| s[a].speed_kt.total_cmp(&s[b].speed_kt)).unwrap_or(k), k)
+}
+
+/// The rotation: the first sample of the roll `roll..=lift` with the pitch ROTATION_PITCH_DEG above the roll's start.
+fn rotation(s: &[Sample], roll: usize, lift: usize) -> Option<usize> {
+    (roll..=lift).find(|&i| s[i].pitch >= s[roll].pitch + ROTATION_PITCH_DEG)
+}
+
+/// The tower calls a mission's `clearances` need: one each for the start-up and the taxi, two for the take-off (the
+/// line-up and the take-off).
+fn calls_needed(clearances: &[&str]) -> usize {
+    clearances.iter().map(|c| if *c == "takeoff" { 2 } else { 1 }).sum()
+}
+
 /// `ended`: a hard fail (`hard_fail`) ended the mission, so the climb-out is not judged.
 fn takeoff(f: &Flight, mission: String, t: &Takeoff, budget: f64, ended: bool) -> Debrief {
     let (rw, tolerance) = (t.rw, t.tolerance);
@@ -948,27 +1408,48 @@ fn takeoff(f: &Flight, mission: String, t: &Takeoff, budget: f64, ended: bool) -
     let t0 = s[0].t;
     let radio = f.events.iter().filter(|e| e["event"] == "radio").count();
     let tower = item("tower_calls", Some(radio as f64), "");
+    let needed = calls_needed(t.clearances);
+    let calls = (needed > 0).then(|| Check {
+        id: "goal_calls",
+        args: vec![],
+        target: Figure::value(needed as f64, ""),
+        bound: Bound::Exact,
+        flown: Figure::value(radio as f64, ""),
+        mark: if radio >= needed { Mark::Ok } else { Mark::Warn },
+    });
     let mut reasons = vec![];
-    // The lift-off: the first sample off the ground after one on it that starts LIFTOFF_HOLD_S airborne (or stays
-    // airborne to the recording's end), so a one-sample glitch on the ground is not one.
-    let held = |i: usize| {
-        let run = s[i..].iter().take_while(|x| !x.on_ground).count();
-        i + run == s.len() || s[i + run - 1].t - s[i].t >= LIFTOFF_HOLD_S
+    // The goals with nothing flown: the jet never left the ground.
+    let runway_check = |used: Option<String>| Check {
+        id: "goal_runway",
+        args: vec![rw.designator.clone()],
+        mark: if used.as_deref() == Some(rw.designator.as_str()) { Mark::Ok } else { Mark::Fail },
+        target: Figure::text(&rw.designator),
+        bound: Bound::Exact,
+        flown: Figure { text: used, ..Figure::none("") },
     };
-    let lift = (1..s.len()).find(|&i| s[i - 1].on_ground && !s[i].on_ground && held(i));
-    let Some(lift) = lift else {
+    let time_check = |flown: Option<f64>| Check {
+        id: "goal_time",
+        args: vec![format!("{}", (budget / 60.0).round())],
+        target: Figure::value(budget, "s"),
+        bound: Bound::Max,
+        mark: if flown.is_some_and(|v| v <= budget) { Mark::Ok } else { Mark::Fail },
+        flown: Figure { value: flown, ..Figure::none("s") },
+    };
+    let heading_check = |flown: Option<f64>, ok: bool| Check {
+        id: "goal_heading",
+        args: vec![format!("{}", tolerance.round())],
+        target: Figure::value(rw.heading.round(), "deg"),
+        bound: Bound::Tol(tolerance),
+        mark: if ok { Mark::Ok } else { Mark::Fail },
+        flown: Figure { value: flown.map(|h| h.rem_euclid(360.0).round()), ..Figure::none("deg") },
+    };
+    let Some(lift) = liftoff(s) else {
         reasons.push("no_liftoff");
-        return Debrief { mission, kind: "takeoff", pass: false, reasons, items: vec![tower], goals: vec![] };
+        let mut checks = vec![runway_check(None), time_check(None), heading_check(None, false)];
+        checks.extend(calls);
+        return Debrief { mission, kind: "takeoff", pass: false, reasons, items: vec![tower], goals: vec![], checks };
     };
-    // The roll: the slowest sample on the runway (the latest of equals) between the jet's entry onto the runway and
-    // its last sample below ROLL_START_KT before the lift-off: the stop on the lineup point, or the entry of a rolling
-    // take-off. A jet below ROLL_START_KT off the runway starts its roll there.
-    let k = s[..lift].iter().rposition(|x| x.speed_kt < ROLL_START_KT).unwrap_or(0);
-    let mut entry = k;
-    while entry > 0 && rw.on(s[k].x, s[k].y) && rw.on(s[entry - 1].x, s[entry - 1].y) {
-        entry -= 1;
-    }
-    let roll = (entry..=k).rev().min_by(|&a, &b| s[a].speed_kt.total_cmp(&s[b].speed_kt)).unwrap_or(k);
+    let (roll, k) = roll_start(s, lift, rw);
     // The lineup heading: at the stop, or (a rolling take-off) where the roll passes ROLL_START_KT.
     let lineup = if s[roll].speed_kt < 1.0 { roll } else { k };
     let rolls = &s[roll..lift];
@@ -980,7 +1461,7 @@ fn takeoff(f: &Flight, mission: String, t: &Takeoff, budget: f64, ended: bool) -
     } else if rolls.iter().any(|x| !rw.on(x.x, x.y)) {
         reasons.push("excursion");
     }
-    let rot = s[roll..=lift].iter().find(|x| x.pitch >= s[roll].pitch + ROTATION_PITCH_DEG).map(|x| x.speed_kt);
+    let rot = rotation(s, roll, lift).map(|i| s[i].speed_kt);
     let gear_up = s[lift..].iter().find(|x| !x.gear && !x.on_ground);
     // The first airborne sample with the gear up on the runway heading; the earliest, so the budget is checked on it.
     let climb = s[lift..].iter().find(|x| !x.on_ground && !x.gear && angle(x.heading, rw.heading).abs() <= tolerance);
@@ -993,8 +1474,35 @@ fn takeoff(f: &Flight, mission: String, t: &Takeoff, budget: f64, ended: bool) -
         }
     }
     let gross = t.empty_kg + s[lift].fuel_kg;
+    let reference = interpolate(t.takeoff_kt, gross);
     let used = runway_used(t.base, [s[roll].x, s[roll].y], [s[lift].x, s[lift].y]);
     let max = |g: &dyn Fn(&Sample) -> f64| rolls.iter().map(g).fold(0.0, f64::max);
+    let offset = max(&|x| rw.local(x.x, x.y).1.abs());
+    let mut checks = vec![
+        runway_check(used.clone()),
+        time_check(climb.map(|x| x.t - t0)),
+        heading_check(climb.or(gear_up).map(|x| x.heading), climb.is_some()),
+        Check {
+            id: "goal_centreline",
+            args: vec![],
+            target: Figure::value(rw.width_m / 2.0, "m"),
+            bound: Bound::Max,
+            flown: Figure::value(offset, "m"),
+            mark: if reasons.contains(&"excursion") { Mark::Fail } else { Mark::Ok },
+        },
+        Check {
+            id: "goal_liftoff",
+            args: vec![],
+            target: Figure::value(reference.round(), "kt"),
+            bound: Bound::Exact,
+            flown: Figure::value(s[lift].speed_kt.round(), "kt"),
+            mark: if (s[lift].speed_kt - reference).abs() > LIFTOFF_WARN_KT { Mark::Warn } else { Mark::Ok },
+        },
+    ];
+    if reasons.contains(&"wrong_runway") {
+        checks[0].mark = Mark::Fail;
+    }
+    checks.extend(calls);
     let items = vec![
         item("taxi_time", Some(s[roll].t - s[moved].t), "s"),
         item("lineup_heading_error", Some(angle(s[lineup].heading, rw.heading)), "deg"),
@@ -1005,14 +1513,14 @@ fn takeoff(f: &Flight, mission: String, t: &Takeoff, budget: f64, ended: bool) -
         item("rotation_speed", rot, "kt"),
         item("liftoff_speed", Some(s[lift].speed_kt), "kt"),
         item("gross_weight", Some(gross), "kg"),
-        item("reference_speed", Some(interpolate(t.takeoff_kt, gross)), "kt"),
+        item("reference_speed", Some(reference), "kt"),
         item("gear_up_height", gear_up.and_then(|x| x.agl_m), "m"),
         item("gear_up_time", gear_up.map(|x| x.t - s[lift].t), "s"),
         item("roll_heading_deviation", Some(max(&|x| angle(x.heading, rw.heading).abs())), "deg"),
-        item("max_centreline_offset", Some(max(&|x| rw.local(x.x, x.y).1.abs())), "m"),
+        item("max_centreline_offset", Some(offset), "m"),
         tower,
     ];
-    Debrief { mission, kind: "takeoff", pass: reasons.is_empty(), reasons, items, goals: vec![] }
+    Debrief { mission, kind: "takeoff", pass: reasons.is_empty(), reasons, items, goals: vec![], checks }
 }
 
 #[cfg(test)]
@@ -1612,6 +2120,91 @@ mod tests {
         assert_eq!(late.reasons, ["over_time"]);
         let cold: Vec<Sample> = samples.iter().map(|s| Sample { engine: false, ..s.clone() }).collect();
         assert_eq!(scored(&with(&jsonl(&cold), &steps), "ramon_startup").reasons, ["no_start"]);
+    }
+
+    /// The debrief's sample flight (modern-iaf/tests/data/sample_flight.py writes it): a whole take-off at Ramon as
+    /// the game records it, lifting off 13 kt above the reference speed, with a 1.8 g turn in the climb.
+    fn sample_takeoff() -> String {
+        std::fs::read_to_string(data().join("../tests/data/ramon_takeoff_flight.jsonl")).unwrap()
+    }
+
+    #[test]
+    fn the_sample_flight_scores_with_its_goals_and_next_time() {
+        let d = scored(&sample_takeoff(), "ramon_takeoff");
+        assert!(d.pass, "{:?}", d.reasons);
+        let ids: Vec<_> = d.checks.iter().map(|c| (c.id, c.mark)).collect();
+        assert_eq!(
+            ids,
+            [
+                ("goal_runway", Mark::Ok),
+                ("goal_time", Mark::Ok),
+                ("goal_heading", Mark::Ok),
+                ("goal_centreline", Mark::Ok),
+                ("goal_liftoff", Mark::Warn),
+                ("goal_calls", Mark::Ok),
+            ]
+        );
+        let j = d.to_json();
+        assert_eq!(j["checks"][0]["label"]["en"], "Take off from runway 25R");
+        assert_eq!(j["checks"][2]["target"]["tol"], 10.0);
+        assert_eq!(j["checks"][3]["target"]["max"], true);
+        assert_eq!(j["checks"][5]["target"]["value"], 4.0);
+        let next = j["next"]["en"].as_str().unwrap();
+        assert!(next.starts_with("Lift-off was ") && next.contains("above the reference speed"), "{next}");
+        assert!(j["next"]["he"].as_str().unwrap().contains("מעל המהירות המומלצת"));
+    }
+
+    #[test]
+    fn the_track_has_the_phases_and_the_marks() {
+        let f = parse_flight(&sample_takeoff()).unwrap();
+        let m = mission("ramon_takeoff");
+        let rw = runway(airbase_of(&m, &airbases()).unwrap(), "25R").unwrap();
+        let tr = track(&f, Some(&rw));
+        let order: Vec<&str> = tr.runs.iter().map(|r| PHASES[r.0]).collect();
+        assert_eq!(order, ["startup", "taxi", "hold", "taxi", "hold", "roll", "airborne"]);
+        assert_eq!(tr.runs[0].1, 0.0);
+        let marks: Vec<&str> = tr.marks.iter().map(|m| m.id).collect();
+        assert_eq!(marks, ["rotation", "liftoff", "gear_up", "peak_g"]);
+        assert!((tr.marks[3].value - 1.8).abs() < 0.01, "{:?}", tr.marks[3]);
+        let l = tr.lift.unwrap();
+        assert!(!tr.samples[l].on_ground && tr.samples[l - 1].on_ground);
+        let j = tr.to_json();
+        assert_eq!(j["at"].as_array().unwrap().len(), 2 * j["t"].as_array().unwrap().len());
+        assert_eq!(j["strings"]["he"]["ph_roll"], "ריצה");
+        assert_eq!(j["pins"][1]["id"], "liftoff");
+        // Without the runway, the roll starts at the last moment below the roll's speed.
+        let bare = track(&f, None);
+        assert_eq!(bare.runs.iter().map(|r| PHASES[r.0]).next_back(), Some("airborne"));
+    }
+
+    #[test]
+    fn next_time_names_the_step_never_reached() {
+        let d = |reason: &'static str| Debrief {
+            mission: "m".into(),
+            kind: "takeoff",
+            pass: false,
+            reasons: vec![reason],
+            items: vec![],
+            goals: vec![],
+            checks: vec![],
+        };
+        assert_eq!(d("no_liftoff").next().map(|n| n.0), Some("next_liftoff"));
+        assert_eq!(d("no_start").next().map(|n| n.0), Some("next_start"));
+        assert_eq!(d("no_taxi_clearance").next().map(|n| n.0), Some("next_clearance"));
+    }
+
+    #[test]
+    fn a_long_flight_is_thinned_keeping_the_liftoff() {
+        let mut f = parse_flight(&sample_takeoff()).unwrap();
+        let mut more = f.samples.clone();
+        for k in 1..8 {
+            let dt = (k as f64) * 10_000.0;
+            more.extend(f.samples.iter().filter(|x| !x.on_ground).map(|x| Sample { t: x.t + dt, ..x.clone() }));
+        }
+        f.samples = more;
+        let tr = track(&f, None);
+        assert!(tr.samples.len() <= TRACK_POINTS + 2, "{}", tr.samples.len());
+        assert!(tr.lift.is_some_and(|l| !tr.samples[l].on_ground));
     }
 
     /// The newest recording in the player's flights folder (user://flights, docs/blackbox.schema.json) scores

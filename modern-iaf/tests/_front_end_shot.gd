@@ -3,10 +3,10 @@
 #     -s ../modern-iaf/tests/_front_end_shot.gd
 # Writes SHOT_DIR/<screen>_<lang>.png (the Preferences: prefs_<section>_*; the Pilot screens: _pilot) at 1920×1080 (the
 # front end in a viewport of that size, whatever the window's) with the sample pilot log and debrief of
-# test_front_end.gd (debrief_fail: its take-off with the gear never raised; fly_again: the debrief's Fly again).
-# SHOT_ONLY=<screens> takes those alone (comma-separated, e.g. SHOT_ONLY=missions,section); SHOT_SIZE=1280x720
-# renders at that size (the 1920 × 1080 canvas scaled to it). nodata_hangar / nodata_missions: a fresh install
-# (IAF_ASSETS_DIR an empty folder for those two).
+# test_front_end.gd (debrief: the sample flight; debrief_fail: a record from before the goals and the recording, its
+# take-off with the gear never raised; fly_again: the debrief's Fly again). SHOT_ONLY=<screens> takes those alone
+# (comma-separated, e.g. SHOT_ONLY=missions,section); SHOT_SIZE=1280x720 renders at that size (the 1920 × 1080 canvas
+# scaled to it). nodata_hangar / nodata_missions: a fresh install (IAF_ASSETS_DIR an empty folder for those two).
 extends "res://../tests/godot/base.gd"
 
 const SCREENS := ["hangar", "missions", "section", "mission", "debrief", "debrief_fail", "fly_again", "log", "credits"]

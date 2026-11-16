@@ -112,6 +112,20 @@ impl IafTraining {
         };
         GString::from(out.to_string().as_str())
     }
+
+    /// The debrief's view of the recording `flight` (`training::track_files`; its roll on the take-off runway of the
+    /// readable mission file `mission`, the airbase files in `airbases`; absolute paths) as JSON text (`Track::to_json`),
+    /// `{"error": …}` when the recording cannot be read.
+    #[func]
+    fn track(flight: GString, mission: GString, airbases: GString) -> GString {
+        let p = |s: &GString| s.to_string();
+        let out = match training::track_files(Path::new(&p(&flight)), Path::new(&p(&mission)), Path::new(&p(&airbases)))
+        {
+            Ok(t) => t.to_json(),
+            Err(e) => serde_json::json!({ "error": format!("{e:#}") }),
+        };
+        GString::from(out.to_string().as_str())
+    }
 }
 
 /// `now["answers"]`: the tower's answer templates so far.

@@ -15,6 +15,8 @@
 extends "res://../tests/godot/base.gd"
 
 const STAMP := "20261102-080000"
+## The sample recording of the take-off (tests/data/sample_flight.py).
+const SAMPLE_FLIGHT := "res://tests/data/ramon_takeoff_flight.jsonl"
 ## flight/fly.gd, loaded once the autoloads run (a preload here would compile it before Settings exists).
 var fly_gd: GDScript
 
@@ -648,64 +650,7 @@ func walk(fe: Control, ids: Dictionary, lang: String) -> void:
 	fe._ready()
 	await frames(2)
 	check(fe.page == "debrief", "%s: a flight's end opens its debrief" % lang)
-	for t in (
-		[
-			"מטוס",
-			"מבסיס",
-			"זמן",
-			"משימה",
-			"תוצאה",
-			"המספרים",
-			"הערות",
-			"F-16I סופה",
-			"רמון, מסלול 25R",
-			"מסלול",
-			"25R",
-			"3.1 מ׳",
-			"172 קשר"
-		]
-		if he
-		else [
-			"Plane flown",
-			"From",
-			"Time",
-			"Mission",
-			"Result",
-			"THE NUMBERS",
-			"REMARKS",
-			"F-16I Sufa",
-			"Ramon, runway 25R",
-			"Runway",
-			"25R",
-			"3.1 m",
-			"172 kt",
-			"PASS"
-		]
-	):
-		check(_has(fe, t), "%s: debrief: %s" % [lang, t])
-	check(_has(fe, "2.11.2026 · 08:00–08:11" if he else "2 Nov 2026 · 08:00–08:11"), "%s: debrief: the time" % lang)
-	for t in (
-		["הניתוק ב־13 קשר מעל המהירות המומלצת.", "המטוס באוויר עם כן נסע אסוף, בכיוון המסלול. לא נרשם כשל."]
-		if he
-		else [
-			"Lift-off 13 kt above the reference speed.",
-			"Airborne with the gear up on the runway heading. Nothing failed."
-		]
-	):
-		check(_has(fe, t), "%s: debrief remark: %s" % [lang, t])
-	# Only the goals: the other numbers stay in the record.
-	for t in ["1,140 מ׳", "5:12 דק׳", "13,420 ק״ג"] if he else ["1,140 m", "5:12 min", "13,420 kg"]:
-		check(not _has(fe, t), "%s: debrief: no %s (not a goal)" % [lang, t])
-	var exp: Button = fe.find_child("ExportFlight", true, false)
-	check(
-		(
-			exp != null
-			and exp.disabled
-			and exp.focus_mode == Control.FOCUS_NONE
-			and exp.text == ("ייצוא נתוני טיסה" if he else "Export flight data")
-		),
-		"%s: debrief: Export flight data greyed and unfocusable without the recording" % lang
-	)
+	await _debrief_checks(fe, lang, ids)
 	# The take-off is the Sufa's last mission: no Next mission, Fly again focused.
 	check(fe.find_child("NextMission", true, false) == null, "%s: debrief: no Next mission after the jet's last" % lang)
 	check(fe.find_child("FlyAgain", true, false).has_focus(), "%s: debrief: Fly again focused" % lang)
@@ -885,6 +830,81 @@ func prefs(fe: Control) -> void:
 	await frames(2)
 
 
+## The debrief of the sample flight (the fixture's passed take-off): the sheet's fields, the goals with their target,
+## flown figure and mark, Remarks with Next time, the whole flight on the map with its pins and legend, the graphs,
+## Export flight data offered; then the failed record from before the goals: its numbers and the empty right column.
+func _debrief_checks(fe: Control, lang: String, ids: Dictionary) -> void:
+	var he := lang == "he"
+	var want := (
+		["מטוס", "תוצאה", "יעדים", "הערות", "F-16I סופה", "רמון, מסלול 25R", "המראה ממסלול 25R", "160 קשר", "147 קשר"]
+		if he
+		else (
+			["Plane flown", "Result", "GOALS", "REMARKS", "F-16I Sufa", "Ramon, runway 25R", "Take off from runway 25R"]
+			+ ["160 kt", "147 kt", "PASS"]
+		)
+	)
+	for t in want:
+		check(_has(fe, t), "%s: debrief: %s" % [lang, t])
+	check(_has_part(fe, "2 בנובמבר 2026" if he else "2 Nov 2026"), "%s: debrief: the date, the month named" % lang)
+	check(_has_part(fe, "08:00–08:13"), "%s: debrief: the mission clock" % lang)
+	var goals: Node = fe.find_child("Goals", true, false)
+	var marks: Array = goals.find_children("*", "Label", true, false).map(func(l): return l.text)
+	check(marks.count("✓") == 5 and marks.count("!") == 1, "%s: debrief: five goals met, the lift-off marked" % lang)
+	var next_time: RichTextLabel = fe.find_child("NextTime", true, false)
+	check(
+		(
+			next_time != null
+			and next_time.get_parsed_text().begins_with("בפעם הבאה:" if he else "Next time:")
+			and next_time.get_parsed_text().contains("13 קשר מעל" if he else "13 kt above the reference speed")
+		),
+		"%s: debrief: Next time from the scorer" % lang
+	)
+	var map: Control = fe.find_child("DebriefMap", true, false)
+	check(
+		map != null and map.track.size() > 100 and map.track_pins.size() == 3, "%s: debrief: the track and pins" % lang
+	)
+	check(
+		map != null and str(map.track_pins[1][1]) == ("ניתוק · 08:10:17" if he else "Lift-off · 08:10:17"),
+		"%s: debrief: the lift-off pin's time" % lang
+	)
+	check(fe.find_child("Inset", true, false) != null, "%s: debrief: the base inset" % lang)
+	var legend: Node = fe.find_child("Legend", true, false)
+	check(
+		(
+			legend != null
+			and _has(legend, "הסעה" if he else "Taxi")
+			and _has(legend, "המסלול המתוכנן" if he else "Planned route")
+		),
+		"%s: debrief: the legend" % lang
+	)
+	var graphs: Control = fe.find_child("Graphs", true, false)
+	check(graphs != null and graphs.size.y > 200 and graphs.flight.marks.size() == 4, "%s: debrief: the graphs" % lang)
+	check(fe.find_child("NoRecording", true, false) == null, "%s: debrief: no empty state" % lang)
+	var exp: Button = fe.find_child("ExportFlight", true, false)
+	check(exp != null and not exp.disabled, "%s: debrief: Export flight data offers the recording" % lang)
+	var order := ["PilotLog", "ExportFlight", "BackMissions", "FlyAgain"]
+	var foot: Array = fe.find_child("Footer", true, false).get_children().filter(func(c): return c.name in order)
+	check(foot.map(func(c): return str(c.name)) == order, "%s: debrief: the buttons' order" % lang)
+	check(
+		map.focus_next != NodePath() and exp.focus_neighbor_top == exp.get_path_to(map), "%s: debrief: the focus" % lang
+	)
+	# The failed record from before the goals and the recording.
+	fe.open_debrief(ids.fail)
+	await frames(2)
+	check(
+		_has(fe, "3.1 מ׳" if he else "3.1 m") and _has(fe, "172 קשר" if he else "172 kt"),
+		"%s: an old record's numbers" % lang
+	)
+	check(fe.find_children("NoRecording", "", true, false).size() == 2, "%s: an old record: the empty state" % lang)
+	var gone: Button = fe.find_child("ExportFlight", true, false)
+	check(
+		gone.disabled and gone.focus_mode == Control.FOCUS_NONE,
+		"%s: debrief: Export flight data greyed and unfocusable without the recording" % lang
+	)
+	fe.open_debrief(ids.pass)
+	await frames(2)
+
+
 ## Writes the JSON records from before the database (storage.md §5): a pilot log with the start-up's pass, a failed
 ## take-off and a passed one, with their debrief records (the scorer's shape, training.md §4), in a new records
 ## folder; the store imports them on its first open. The take-off's sortie ids: {pass, fail}.
@@ -970,7 +990,18 @@ static func fixture(s: Node) -> Dictionary:
 	}
 	var file := dir.path_join("debrief-%s-ramon_takeoff.json" % STAMP)
 	var start := dir.path_join("debrief-20261102-075000-ramon_startup.json")
-	FileAccess.open(file, FileAccess.WRITE).store_string(JSON.stringify(rec))
+	# The passed take-off: the scorer's record of the sample flight (tests/data/sample_flight.py), with its recording.
+	var flight := ProjectSettings.globalize_path(SAMPLE_FLIGHT)
+	var scored = JSON.parse_string(
+		IafTraining.new().score(
+			flight,
+			ProjectSettings.globalize_path("res://data/missions/ramon_takeoff.json"),
+			ProjectSettings.globalize_path("res://data/airbases")
+		)
+	)
+	scored.merge({"flight": flight, "date": "2026-11-02T08:14:00", "elapsed_s": 832.0}, true)
+	FileAccess.open(file, FileAccess.WRITE).store_string(JSON.stringify(scored))
+	# The failed one: a record from before the goals and the recording (its numbers, no flight).
 	var fail := rec.duplicate(true)
 	fail["pass"] = false
 	fail["date"] = "2026-11-02T08:05:00"
@@ -992,7 +1023,7 @@ static func fixture(s: Node) -> Dictionary:
 				"attempts":
 				[
 					{"result": 0, "debrief": failed, "date": "2026-11-02T08:05:00"},
-					{"result": 1, "debrief": file, "date": "2026-11-02T08:11:00"},
+					{"result": 1, "debrief": file, "date": "2026-11-02T08:14:00"},
 				]
 			},
 			{"id": 2011, "attempts": [{"result": 1, "debrief": start, "date": "2026-11-02T07:52:00"}]},
@@ -1454,9 +1485,9 @@ func _missions_checks(fe: Control, lang: String) -> void:
 	await frames(2)
 	var side: Control = fe.find_child("Side", true, false)
 	for t in (
-		["משימה 2", "המראה", "רמון", "15 דקות", "עבר · 2.11.2026", "11:00", "זמן מוקצב", "תוצאה אחרונה"]
+		["משימה 2", "המראה", "רמון", "15 דקות", "עבר · 2 בנובמבר 2026", "13:52", "זמן מוקצב", "תוצאה אחרונה"]
 		if he
-		else ["Mission 2", "Take-off", "Ramon", "15 min", "Pass · 2 Nov 2026", "11:00", "Time allowed", "Last result"]
+		else ["Mission 2", "Take-off", "Ramon", "15 min", "Pass · 2 Nov 2026", "13:52", "Time allowed", "Last result"]
 	):
 		check(_has(side, t), "%s: list: the side panel: %s" % [lang, t])
 	var purpose: RichTextLabel = side.find_child("SidePurpose", true, false)

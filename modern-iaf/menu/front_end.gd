@@ -19,12 +19,12 @@ const TerrainPreload := preload("res://shared/terrain/terrain_preload.gd")
 const Img := preload("res://shared/util/img.gd")
 const KeyTable := preload("res://shared/controls/key_table.gd")
 const BriefingPage := preload("res://menu/briefing_page.gd")
+const DebriefPage := preload("res://menu/debrief_page.gd")
 const LoadoutScreen := preload("res://menu/loadout_screen.gd")
 const MissionList := preload("res://shared/mission/mission_list.gd")
 const Turntable := preload("res://shared/aircraft/turntable.gd")
 const AircraftModel := preload("res://shared/aircraft/aircraft_model.gd")
 
-const PHOTOS := "res://data/photos"
 ## The settings file Export offers to write (Settings → footer, FileExport).
 const SETTINGS_FILE := "modern-iaf-settings.cfg"
 ## The start-up steps' switches cropped from each jet's 3D cockpit: <unit>/<step>.webp (tests/_switch_crops.gd).
@@ -51,8 +51,6 @@ const SOON := [
 	{"unit": "f15i", "name": "raam", "code": "F-15I", "base": "hatzerim", "icao": "llhb"},
 	{"unit": "f15c", "name": "baz", "code": "F-15C", "base": "tel_nof", "icao": "llek"},
 ]
-## Each flyable jet's photo (data/photos): its blurred copy is the debrief's background.
-const JET_PHOTOS := {"sufa": "sufa.jpg", "barak": "barak.jpg", "adir": "adir.jpg"}
 ## The Preferences: [group, [[setting, control, choices]]]. Controls: "dropdown" / "radio" ([[label key, value]]; a
 ## label without a string is shown as written), "switch" (choices: [off value, on value], default [false, true]),
 ## "slider" (0..1), "page" (a button that opens that screen: keys_screen → keys). A row reborn shows too has no choices
@@ -151,7 +149,6 @@ var _focus: Control
 ## The Sound sliders' sample player and the sound table it reads (made at the first slider move).
 var _sample: AudioStreamPlayer
 var _sounds: RefCounted
-static var _textures := {}
 ## The sim's key table for the briefing's keys (KeyTable.load_table, loaded once).
 var _keys: RefCounted = null
 ## The unit records' folder (a test's own records: tests/_loadout_shot.gd's lowered maximum).
@@ -1983,160 +1980,17 @@ func open_debrief(id: int) -> bool:
 	return true
 
 
+## The debrief (debrief_page.gd): the record's mission as flown, in the record's jet (its `plane`; a record from
+## before it: the mission's own), its section picked for the crumbs.
 func _page_debrief() -> void:
 	var m := mission_by_name(str(record.get("mission", "")))
 	var j := jet_of(m)
-	var bg := _photo(self, str(JET_PHOTOS[j.get("name", "sufa")]).replace(".jpg", "_blur.jpg"))
-	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	bg.modulate = Color(0.55, 0.57, 0.6)
 	var cat := str(m.get("category", ""))
 	var sec: Array = SECTIONS.filter(func(x): return x[1] != "" and x[1] == cat)
 	if not sec.is_empty():
 		section = sec[0][0]
 	_header(["hangar", [full_name(j), "missions"], [s("sec_" + section), "section"], "debrief"])
-	var sheet := PanelContainer.new()
-	sheet.name = "Sheet"
-	sheet.add_theme_stylebox_override("panel", Look.box(Look.PAPER, Look.PAPER, 0, 5, Vector2.ZERO))
-	add_child(sheet)
-	sheet.anchor_left = 0.12
-	sheet.anchor_right = 0.88
-	sheet.anchor_bottom = 1.0
-	sheet.offset_left = 0
-	sheet.offset_right = 0
-	sheet.offset_top = 113
-	sheet.offset_bottom = -108
-	var v := _vbox(sheet, 0)
-	var band := PanelContainer.new()
-	var bb := Look.box(Look.NAVY, Look.NAVY, 0, 5, Vector2(33, 12))
-	bb.corner_radius_bottom_left = 0
-	bb.corner_radius_bottom_right = 0
-	band.add_theme_stylebox_override("panel", bb)
-	v.add_child(band)
-	var bh := _hbox(band, 0)
-	_label(bh, s("debrief_band"), "Band")
-	_spacer(bh)
-	_label(bh, s("number") % ("%04d" % record_sortie), "Band")
-	var inner := _vbox(_margin(v, 33, 22), 0)
-	# The fields: Plane flown, From, Time, Mission, Result.
-	var fields := _hbox(inner, 0)
-	fields.add_theme_constant_override("separation", -1)
-	var from := s("base_" + str(j.get("base", "")))
-	if m.has("runway"):
-		from = s("from_runway") % [from, m.runway]
-	var cells := [
-		["plane_flown", full_name(j), 1.0],
-		["from", from, 1.3],
-		["f_time", debrief_time(m), 1.3],
-		["mission", title_of(m) if not m.is_empty() else str(record.get("mission", "")), 1.1],
-		["result", "", 0.7],
-	]
-	for c in cells:
-		var cell := PanelContainer.new()
-		cell.add_theme_stylebox_override("panel", Look.box(Color(0, 0, 0, 0), Look.RULE, 1, 0, Vector2(17, 10)))
-		cell.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		cell.size_flags_stretch_ratio = c[2]
-		fields.add_child(cell)
-		var cv := _vbox(cell, 2)
-		_label(cv, s(c[0]), "PaperLabel")
-		if c[0] == "result":
-			# The box places a plain Control at the inline start; the stamp inside it keeps its tilt (a container
-			# resets its own children's rotation).
-			var row := _hbox(cv, 0)
-			var tilt := Control.new()
-			row.add_child(tilt)
-			var stamp := _label(tilt, s("stamp_pass" if record.get("pass", false) else "stamp_fail"), "Stamp")
-			stamp.name = "Stamp"
-			stamp.add_theme_stylebox_override("normal", Look.box(Color(0, 0, 0, 0), Look.NAVY, 3, 3, Vector2(14, 0)))
-			stamp.rotation_degrees = -4.0
-			tilt.custom_minimum_size = stamp.get_combined_minimum_size() + Vector2(0, 10)
-			stamp.position.y = 6
-		else:
-			var val := _text(cv, c[1], "PaperValue")
-			val.name = "Field_" + c[0]
-			if c[0] == "f_time":
-				val.text_direction = Control.TEXT_DIRECTION_LTR
-	# The mission's goals (the record's `goals`; a record from before them: every number) in two columns.
-	var lang := "he" if he() else "en"
-	var names: Dictionary = record.get("strings", {}).get(lang, {})
-	var all: Array = record.get("items", [])
-	var goals: Array = record.get("goals", all.map(func(it): return it.id))
-	var shown := []
-	for g in goals:
-		for it in all:
-			if it.id == g and (it.get("value") != null or it.has("text")):
-				shown.append(it)
-	var half := ceili(shown.size() / 2.0)
-	if not shown.is_empty():
-		_spacer_px(inner, 22)
-		_label(inner, s("numbers"), "PaperHead")
-		_rule(inner, Look.INK, 2)
-	var cols := _hbox(inner, 62)
-	cols.name = "Numbers"
-	for c in 2 if not shown.is_empty() else 0:
-		var col := _vbox(cols, 0)
-		col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		for it in shown.slice(c * half, (c + 1) * half):
-			var r := _hbox(_margin(col, 0, 9), 12)
-			var l := _label(r, str(names.get(it.id, it.id)), "Paper")
-			l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			var val := _label(r, value_text(it), "PaperNum")
-			val.text_direction = (
-				Control.TEXT_DIRECTION_LTR if he() and str(it.unit) in ["deg", ""] else Control.TEXT_DIRECTION_AUTO
-			)
-			_rule(col, Look.RULE)
-	# Remarks: why it failed (the reason that ended it first), or that it passed; the lift-off against the reference.
-	_spacer_px(inner, 22)
-	_label(inner, s("remarks"), "PaperHead")
-	_rule(inner, Look.INK, 2)
-	var lines := []
-	for r in record.get("reasons", []):
-		lines.append(str(names.get(r, r)))
-	if record.get("pass", false) and strings.has("done_" + str(record.get("kind", ""))):
-		lines.append(s("done_" + str(record.kind)))
-	lines.append_array(remarks())
-	var rem := _vbox(inner, 0)
-	rem.name = "Remarks"
-	for i in maxi(lines.size(), 3):
-		var l := _label(_margin(rem, 0, 8), lines[i] if i < lines.size() else " ", "Paper")
-		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		_rule(rem, Look.RULE)
-	var back := _action(s("back_missions"), "Secondary", func(): back_to_missions(m))
-	back.name = "BackMissions"
-	var again := _action(s("fly_again"), "Secondary" if next_of(m) != 0 else "Primary", func(): fly_again(m))
-	again.name = "FlyAgain"
-	again.disabled = m.is_empty()
-	_focus = again
-	var acts := [back, again]
-	# Next mission: the next one of the section (MissionList.next_in), none after its last one.
-	if next_of(m) != 0:
-		var nx := _action(s("next_mission"), "Primary", func(): next_mission(m))
-		nx.name = "NextMission"
-		acts.append(nx)
-		_focus = nx
-	# The flight's recording (the record's `flight`, sim_flight.gd _finish) saved where the player picks (FileExport,
-	# reborn's debrief Export flight data); greyed and skipped by the focus when the file is gone.
-	var flight_file := str(record.get("flight", ""))
-	var export := _action(s("export_flight"), "Secondary", FileExport.export_flight.bind(self, flight_file))
-	export.name = "ExportFlight"
-	if not FileAccess.file_exists(flight_file):
-		export.disabled = true
-		export.focus_mode = Control.FOCUS_NONE
-		export.mouse_default_cursor_shape = Control.CURSOR_FORBIDDEN
-		# Its kind's plain box, the text greyed (as _soon: the theme gives the disabled state no box).
-		export.add_theme_stylebox_override("disabled", _theme.get_stylebox("normal", "Secondary"))
-	_footer("", acts, false, [export])
-
-
-## The remark the goals give: the lift-off speed against the reference.
-func remarks() -> Array:
-	var it := {}
-	for i in record.get("items", []):
-		if i.get("value") != null:
-			it[i.id] = i
-	if not (it.has("liftoff_speed") and it.has("reference_speed")):
-		return []
-	var d := float(it.liftoff_speed.value) - float(it.reference_speed.value)
-	return [s("remark_above" if d >= 0 else "remark_below") % value_text({"value": absf(d), "unit": "kt"})]
+	DebriefPage.build(self, m)
 
 
 ## Back to missions: the list of the flown mission's section (its category) with the jet flown picked.
@@ -2192,18 +2046,7 @@ func _pick_jet_quiet(j: Dictionary) -> void:
 	Settings.save()
 
 
-## The day and the mission clock from the start to the end: "2 Nov 2026 · 08:00–08:11" (Hebrew "2.11.2026 · …").
-func debrief_time(m: Dictionary) -> String:
-	var out := day_text(str(record.get("date", "")))
-	var start := str(m.get("time", ""))
-	if start.contains(":"):
-		var t0 := int(start.get_slice(":", 0)) * 60 + int(start.get_slice(":", 1))
-		var t1 := t0 + int(float(record.get("elapsed_s", 0.0)) / 60.0)
-		out += " · %s–%02d:%02d" % [start, (t1 / 60) % 24, t1 % 60]
-	return out
-
-
-## The day of a record's date ("2026-11-02T08:14…"): "2 Nov 2026" (Hebrew "2.11.2026"), "" without one.
+## The day of a record's date ("2026-11-02T08:14…"): "2 Nov 2026" (Hebrew "2 בנובמבר 2026"), "" without one.
 func day_text(date: String) -> String:
 	var day := date.get_slice("T", 0).split("-")
 	if day.size() != 3:
@@ -2212,24 +2055,6 @@ func day_text(date: String) -> String:
 	if months.is_empty():
 		return "%d.%d.%s" % [int(day[2]), int(day[1]), day[0]]
 	return "%d %s %s" % [int(day[2]), months[int(day[1]) - 1], day[0]]
-
-
-## A debrief value with its unit: thousands grouped, seconds as m:ss past a minute; a name (the runway) as it is.
-func value_text(it: Dictionary) -> String:
-	if it.has("text"):
-		return str(it.text)
-	var v := float(it.value)
-	var unit := str(it.unit)
-	if unit == "s" and v >= 60.0:
-		return "%s %s" % [clock(v), s("u_min")]
-	var num := Look.group(v)
-	match unit:
-		"":
-			return num
-		"deg":
-			return num + "°"
-		_:
-			return "%s %s" % [num, s("u_" + unit) if strings.has("u_" + unit) else unit]
 
 
 # --- Pilot log --------------------------------------------------------------------------------------------------------
@@ -2626,19 +2451,6 @@ func _chip(parent: Node, t: String, ok: bool) -> Label:
 	)
 	l.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	return l
-
-
-func _photo(parent: Node, file: String) -> TextureRect:
-	if not _textures.has(file):
-		_textures[file] = Img.load_texture(ProjectSettings.globalize_path(PHOTOS.path_join(file)))
-	var r := TextureRect.new()
-	r.texture = _textures[file]
-	r.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	r.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-	r.clip_contents = true
-	r.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	parent.add_child(r)
-	return r
 
 
 func _rule(parent: Node, c: Color, px := 1) -> void:
