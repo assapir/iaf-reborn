@@ -116,6 +116,21 @@ the gun.
 | next target | the radar locks the next target | the same | Enter | 58 |
 | gun | the trigger held | the same | Tab | 64 |
 
+**Every store drawn on its rack (2026-11-15).** A station that holds several stores shows each of them, on the Loadout
+screen's jet, the Hangar's and in flight alike (`shared/weapons/stores.gd` `place` / `rack_layout`,
+`player_weapons.gd` `hang`): the Sufa's and the Barak's three Mk 82 hang on a TER-9/A, two on its shoulders turned
+45° toward it and one under it; two GBU-38 hang side by side under a BRU-57/A; the Adir's four GBU-39 sit on their
+BRU-61/A as before. The racks are our own models (`shared/extra/models/stores/ter9.glb`, `bru57.glb`, made by
+`tools/stores/build.gd`; their sizes are inferred: no published dimensions were found). The original's slots
+([../../docs/weapons.md](../../docs/weapons.md) §2.2) come from the original store model's `pilon` helper, which the sim has no install for: they put
+every store of a station on one point, so a full TER showed as one bomb (the user, 15 Nov: "if it includes 4 bombs
+the visual show only 1"). A release takes the store of the last slot first (the TER's lower one); the others stay
+drawn, and the rack stays when the last one goes. Reborn keeps the original's layout.
+
+| the Sufa with two GBU-38 on 3 / 7 and three Mk 82 on 4 / 6 | one Mk 82 released from 4 |
+|---|---|
+| ![The Sufa's left wing: two GBU-38 under a BRU-57/A, three Mk 82 on a TER-9/A](pictures/weapons/racks_full.webp) | ![The same after a release: two Mk 82 on the TER](pictures/weapons/racks_released.webp) |
+
 **The stores page.** The F-16s' SMS (the right MFD's format; [../../docs/mfd.md](../../docs/mfd.md) §9) and the
 F-35I's SMS portal ([../../docs/f35i.md](../../docs/f35i.md)) are the original game's real formats on the shared
 stores state: every station's store and count as hung on the Arming page, the selected weapon and its page (A-G with
@@ -144,6 +159,8 @@ offered it.
   (the F-35I's from its bay) that flies away from the jet; Tab fires the
   gun. The stores page agrees at each step: the bombs on their stations before arming, the selected weapon the HUD's,
   no RDY while safe and RDY once armed, the counts after the release, the stations empty after the jettison.
+- `modern-iaf/tests/test_mvp.gd --only loadout`: three Mk 82 on a TER drawn apart, the rack on the jet; after one
+  release the other two still hang.
 - `modern-iaf/tests/test_sim_release.gd`: one of the Sufa's two MK-84 released (SGL) in level flight: the flight
   model's mass drops by the bomb's 925 kg, the drag index it is given drops by the bomb's on one wing, and the moment of the other bomb
   rolls the jet hands off ([flight-model.md](flight-model.md) §9.12).

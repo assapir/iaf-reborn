@@ -83,6 +83,9 @@ var tank_moment: float:
 	get:
 		return _st.tank_moment
 
+## The detailed models' boxes measured so far (_box): full path -> AABB.
+static var _boxes := {}
+
 var _s = ClassDB.instantiate("IafStores")
 var _st := {}
 
@@ -141,9 +144,8 @@ func setup(load: Array, db: RefCounted, descriptor: Dictionary, pilon_of: Callab
 		}  # no Station helper: nowhere to hang it
 		if st.drawn:
 			var pilon = pilon_of.call(w.model_path) if pilon_of.is_valid() else null
-			st.slots = ClassDB.class_call_static(
-				"IafStores", "slots", i, attach, n, w.type in BOMBS or w.has("gps"), pilon
-			)
+			var racked: bool = load[i].size() > 2 and float(load[i][2]) > 0.0  # a rack's weight: the stores on a rack
+			st.merge(place(i, attach, n, w.type in BOMBS or w.has("gps"), String(w.model_path), pilon, racked), true)
 		stations[i] = st
 		var r := {
 			"type": w.type,
@@ -163,16 +165,68 @@ func setup(load: Array, db: RefCounted, descriptor: Dictionary, pilon_of: Callab
 	_sync()
 
 
+## The store places of station `i` (`count` stores of the model at `path`, `bomb` the bomb rack layout, `pilon` the
+## store's Pilon helper or null): {slots [glTF]}, the original's (IafStores.slots, FUN_0053c990); with `racked` and a
+## rack of ours for the store (rack_layout) {slots, rolls, rack, rack_at}. The flight (setup) and the Hangar's and the
+## Loadout screen's jet (turntable.gd) alike.
+static func place(i: int, attach: Vector3, count: int, bomb: bool, path: String, pilon, racked: bool) -> Dictionary:
+	var lay := rack_layout(path, attach) if racked else {}
+	if not lay.is_empty():
+		return lay
+	return {"slots": ClassDB.class_call_static("IafStores", "slots", i, attach, count, bomb, pilon)}
+
+
+## Ours, Modern IAF: the rack under a station of stores with no original model to place them (Gltf.OWN_RACKS: the
+## TER-9/A of Mk 82s, the BRU-57/A of GBU-38s; the original's slots, from the original's Pilon helper, would put them
+## all on one point): {rack (its model), rack_at (its origin), slots, rolls (each store's roll about its length, rad)},
+## {} none. The rack's top is where a lone store's top meets the pylon; under it the stores as on the real rack: the
+## TER-9/A's two on its shoulders, turned 45° toward it, and one under it, the BRU-57/A's two side by side. The last
+## slot's store leaves first (PlayerWeapons._drop_store): the TER's lower one.
+static func rack_layout(path: String, attach: Vector3) -> Dictionary:
+	var f := path.get_file()
+	if not Gltf.OWN_RACKS.has(f) or Gltf.has_original(path):
+		return {}
+	var rack := Gltf.STORES_DIR + str(Gltf.OWN_RACKS[f]) + ".glb"
+	var store := _box(Gltf.detailed(path))
+	var rb := _box(rack)
+	if not store.has_volume() or not rb.has_volume():
+		return {}
+	var top := store.end.y
+	var half := store.end.x
+	var h := rb.size.y
+	var p := attach + Vector3(0, top, 0)  # the pylon's bottom
+	var out := {
+		"rack": rack, "rack_at": p - Vector3(rb.get_center().x, rb.end.y, rb.get_center().z), "slots": [], "rolls": []
+	}
+	for sx in [1.0, -1.0]:
+		if f == "mk82_m.gltf":  # the TER-9/A's shoulders, the lugs on its slanted sides
+			out.slots.append(p + Vector3(sx * half * 1.63, -h * 0.77, 0))
+			out.rolls.append(sx * PI / 4.0)
+		else:
+			out.slots.append(p + Vector3(sx * (half + 0.015), -h - top, 0))
+			out.rolls.append(0.0)
+	if f == "mk82_m.gltf":
+		out.slots.append(p + Vector3(0, -h - top, 0))
+		out.rolls.append(0.0)
+	return out
+
+
 ## How far the top of the store model of `path` (our detailed one, its lugs) stands above its origin, m; 0 without it.
 static func _top(path: String) -> float:
-	var hd := Gltf.detailed(path)
-	var model = Gltf.model(hd) if hd != "" else null
-	if model == null:
-		return 0.0
-	var n := Gltf.instance(model)
-	var top := Gltf.model_aabb(n).end.y
-	n.free()
-	return top
+	return _box(Gltf.detailed(path)).end.y
+
+
+## The box of the model at the full path `full` (its frame), measured once; empty without the model.
+static func _box(full: String) -> AABB:
+	if not _boxes.has(full):
+		var model = Gltf.model(full) if full != "" else null
+		var box := AABB()
+		if model != null:
+			var n := Gltf.instance(model)
+			box = Gltf.model_aabb(n)
+			n.free()
+		_boxes[full] = box
+	return _boxes[full]
 
 
 func station(i: int) -> Dictionary:

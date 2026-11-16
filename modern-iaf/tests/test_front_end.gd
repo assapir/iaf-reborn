@@ -1014,10 +1014,10 @@ func _labels(root: Node) -> Array:
 
 ## The Loadout screen (front-end.md §10) of the Sufa's take-off: the crumb, the jet from beneath with a callout per
 ## station and its line, the take-off weight panel, the stores; the editor: a refused drop changes nothing, a drop
-## fills the mirror station too, a store dragged back to the stores takes its pair off, the keyboard path (Enter on a
-## callout, Enter on a store, Esc), racks, the balance, the loadout stored per pilot per jet and handed to the flight
-## (fly.gd arm) and to the Hangar's jet, the maximum (a lowered one: the weight red, Fly off), saved loadouts (save,
-## pick, delete), Reset.
+## changes that station only, with Mirror on its mirror station too, a store dragged back to the stores takes its pair
+## off, the keyboard path (Enter on a callout, Enter on a store, Esc), racks, the balance, the loadout stored per pilot
+## per jet and handed to the flight (fly.gd arm) and to the Hangar's jet, the maximum (a lowered one: the weight red,
+## Fly off), saved loadouts (save, pick, delete), Reset.
 func _loadout_checks(fe: Control, lang: String) -> void:
 	var he := lang == "he"
 	var s := settings()
@@ -1030,6 +1030,7 @@ func _loadout_checks(fe: Control, lang: String) -> void:
 	for e in JSON.parse_string(IafPilotLog.saved_loadouts(db, s.pilot(), "f16i")):
 		IafPilotLog.delete_saved_loadout(db, s.pilot(), int(e.id))
 	IafPilotLog.set_loadout(db, s.pilot(), "f16i", "")
+	load("res://menu/loadout_screen.gd").mirror = false  # the game's start: Mirror off
 	fe.show_page("arming")
 	await frames(3)
 	check(fe.page == "arming" and scr.call() != null, "%s: loadout: the Arming tab opens the Loadout screen" % lang)
@@ -1088,13 +1089,43 @@ func _loadout_checks(fe: Control, lang: String) -> void:
 	stage.dropped({"store": "tank-370", "from": ""}, "2")
 	await frames(3)
 	check(stored.call() == "", "%s: loadout: a tank on station 2 is refused" % lang)
+	var fly_b: Control = fe.find_child("Fly", true, false)
+	var brief_b: Control = fe.find_child("ToBriefing", true, false)
+	check(
+		fly_b.size.is_equal_approx(brief_b.size) and fly_b.theme_type_variation == "Primary",
+		"%s: loadout: Fly the size of its neighbours (%s, %s)" % [lang, fly_b.size, brief_b.size]
+	)
+	var mir: CheckButton = fe.find_child("Mirror", true, false)
+	check(
+		(
+			mir != null
+			and not mir.button_pressed
+			and mir.text == ("שיקוף לכנף הנגדית" if he else "Mirror to the other wing")
+		),
+		"%s: loadout: Mirror to the other wing, off" % lang
+	)
 	stage.dropped({"store": "mk-84", "from": ""}, "3")
+	await frames(3)
+	check(
+		held.call("3") == "mk-84" and held.call("7") == "aim-9m" and stored.call().contains("aim-9m"),
+		"%s: loadout: an MK-84 on 3 changes 3 only" % lang
+	)
+	check(
+		(
+			_has(fe.find_child("Weight", true, false), "17,310")
+			and _has_part(fe.find_child("Weight", true, false), "כבדה" if he else "heavier")
+		),
+		"%s: loadout: one MK-84, the uneven wings shown" % lang
+	)
+	(fe.find_child("Mirror", true, false) as CheckButton).button_pressed = true
+	fe.find_child("Stage", true, false).dropped({"store": "mk-84", "from": ""}, "3")
 	await frames(3)
 	stage = fe.find_child("Stage", true, false)
 	check(
 		held.call("3") == "mk-84" and held.call("7") == "mk-84" and held.call("2") == "aim-9m",
-		"%s: loadout: an MK-84 on 3 fills 7 too" % lang
+		"%s: loadout: with Mirror on, an MK-84 on 3 fills 7 too" % lang
 	)
+	check((fe.find_child("Mirror", true, false) as CheckButton).button_pressed, "%s: loadout: Mirror stays on" % lang)
 	check(_has(fe.find_child("Weight", true, false), "18,149"), "%s: loadout: the weight with two MK-84s" % lang)
 	check(not fe.find_child("LoadoutMission", true, false).button_pressed, "%s: loadout: edited, Mission off" % lang)
 	check(fe.jet_stores(fe.jet()).get(2, {}).get("path", "") != "", "%s: loadout: the Hangar's jet carries it" % lang)
@@ -1135,6 +1166,18 @@ func _loadout_checks(fe: Control, lang: String) -> void:
 	fe.find_child("Stage", true, false).dropped({"store": "mk-82", "from": ""}, "4")
 	await frames(3)
 	check(slot.call("4").store[2] == 3 and slot.call("6").store[2] == 3, "%s: loadout: three Mk 82 on 4 and 6" % lang)
+	if scr.call().tt != null:
+		# Every bomb drawn: three Mk 82 apart on each TER-9/A of 4 and 6 (the jet's model; Stores.place).
+		var kids: Array = scr.call().tt._model.get_children()
+		var bombs := kids.filter(func(k): return k.get_meta("store_of", -1) in [3, 5] and k.visible)
+		var racks := kids.filter(func(k): return k.get_meta("station", -1) in [3, 5])
+		var spots := {}
+		for b in bombs:
+			spots[(b.position * 100.0).round()] = true
+		check(
+			bombs.size() == 6 and spots.size() == 6 and racks.size() == 2,
+			"%s: loadout: six Mk 82 drawn on two TERs (%d, %d, %d)" % [lang, bombs.size(), spots.size(), racks.size()]
+		)
 	scr.call().cycle("4")
 	await frames(3)
 	check(

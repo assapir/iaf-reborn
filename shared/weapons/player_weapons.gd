@@ -2661,7 +2661,7 @@ static func _instance(path: String, allow_detailed := true) -> Node3D:
 		return null
 	var n: Node3D = Gltf.instance(model)
 	var orig = (
-		Gltf.object(path, false) if allow_detailed and Gltf.detailed(path) != "" and _has_original(path) else null
+		Gltf.object(path, false) if allow_detailed and Gltf.detailed(path) != "" and Gltf.has_original(path) else null
 	)
 	if orig != null:
 		for g: GeometryInstance3D in n.find_children("*", "GeometryInstance3D", true, false):
@@ -2687,19 +2687,10 @@ static func attach_stores(stores: RefCounted, model: Node3D) -> Dictionary:
 	for i in stores.stations:
 		var st: Dictionary = stores.stations[i]
 		if st.drawn:
-			var list := []
-			for s in st.slots:
-				var n := _instance(String(st.w.model_path), st.w.get("detailed", true))
-				if n == null:
-					break
-				model.add_child(n)
-				n.position = s
-				list.append(n)
-			nodes[i] = list
-			var rack := _rack(st, list)
-			if rack != null:
-				model.add_child(rack)
-				pods.append(rack)
+			var h := hang(st, model)
+			nodes[i] = h.nodes
+			if h.rack != null:
+				pods.append(h.rack)
 			# Ours: a model's own pylon for the station (Pylon<letter>, the F-35I's) shows while the station is loaded.
 			var pylon := model.find_child("Pylon" + "ABCDEFGHI"[i], true, false) as Node3D if i < 9 else null
 			if pylon != null:
@@ -2712,6 +2703,43 @@ static func attach_stores(stores: RefCounted, model: Node3D) -> Dictionary:
 				b.scale = Vector3.ONE * ROCKET_BOX_SCALE / STORE_PRESENT_SCALE  # the stores ride on the jet's scale
 				pods.append(b)
 	return {"nodes": nodes, "pods": pods}
+
+
+## A station's store models on the jet `model`, one per slot of `st` (stores.gd's station: index, w, slots, and with
+## a rack of ours rolls, rack, rack_at; each model's meta `store_of` the station), and its rack (meta `station`):
+## {nodes, rack (null none)}. The flight (attach_stores) and the Hangar's
+## and the Loadout screen's jet (turntable.gd) alike.
+static func hang(st: Dictionary, model: Node3D) -> Dictionary:
+	var list := []
+	var rolls: Array = st.get("rolls", [])
+	for k in st.slots.size():
+		var n := _instance(String(st.w.model_path), st.w.get("detailed", true))
+		if n == null:
+			break
+		model.add_child(n)
+		n.position = st.slots[k]
+		n.set_meta("store_of", int(st.index))
+		if k < rolls.size():
+			n.rotation.z = rolls[k]
+		list.append(n)
+	var rack: Node3D = _own_rack(st) if st.has("rack") else _rack(st, list)
+	if rack != null:
+		model.add_child(rack)
+	return {"nodes": list, "rack": rack}
+
+
+## Ours, Modern IAF: the rack of stores.gd rack_layout at its place (the TER-9/A, the BRU-57/A), or null. It stays
+## when the stores go.
+static func _own_rack(st: Dictionary) -> Node3D:
+	var model = Gltf.model(String(st.rack))
+	if model == null:
+		return null
+	var rack := Gltf.instance(model)
+	rack.position = st.rack_at
+	rack.set_meta("station", int(st.index))
+	for g: GeometryInstance3D in rack.find_children("*", "GeometryInstance3D", true, false):
+		g.visibility_range_end = STORE_LOD_M  # as the detailed stores
+	return rack
 
 
 ## Ours, Models: Detailed: the rack over a station of four detailed stores (Gltf.RACKS: the GBU-39s' BRU-61/A), or
@@ -2742,21 +2770,18 @@ static func _rack(st: Dictionary, nodes: Array) -> Node3D:
 	for k in nodes.size():
 		var s: Vector3 = st.slots[k]
 		var n: Node3D = nodes[k]
-		n.position = mid + Vector3(signf(s.x - mid.x) * RACK_PAIR.x, 0, signf(s.z - mid.z) * RACK_PAIR.y)
+		# The side from the slot; Modern IAF's slots all share one x (no original pilon helper): the MER order's then.
+		var side := signf(s.x - mid.x) if not is_equal_approx(s.x, mid.x) or k >= 4 else (1.0 if k < 2 else -1.0)
+		n.position = mid + Vector3(side * RACK_PAIR.x, 0, signf(s.z - mid.z) * RACK_PAIR.y)
 	rack.set_meta("station", int(st.index))
 	for g: GeometryInstance3D in rack.find_children("*", "GeometryInstance3D", true, false):
 		g.visibility_range_end = STORE_LOD_M  # as the detailed stores: none on the originals beyond
 	return rack
 
 
-## The original store model of `path` is there (the 1998 game's install; Modern IAF has none): a quiet probe.
-static func _has_original(path: String) -> bool:
-	return Settings.has_converted("objects".path_join(Gltf.STAND_INS.get(path, path)))
-
-
 ## The store model's `pilon` helper (glTF, the sum of its and its parents' translations), or null.
 static func _pilon_of(path: String) -> Variant:
-	if not _has_original(path):
+	if not Gltf.has_original(path):
 		# Modern IAF draws only our detailed stores: they are fitted onto the original's frame (tools/stores/build.gd),
 		# where the AIM-9's pilon is the origin (inferred the same for the rest).
 		# ponytail: the origin for every store; store each original's pilon with our model if one sits elsewhere.

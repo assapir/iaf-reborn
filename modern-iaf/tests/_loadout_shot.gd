@@ -6,14 +6,16 @@
 # over its station: the callouts that take it framed, the others dimmed), _refused_hover.png (a store held over a
 # station that does not take it), _refused_shake.png (that drop refused: the callout mid-shake), _over.png (a heavy
 # loadout against a maximum lowered for the picture: no sourced loadout reaches the real one; the take-off weight red,
-# Fly off), _rack.png (racks: three Mk 82 on a TER on the Sufa's 3 / 7, four GBU-39 on a BRU-61 in the Adir's bays 4 /
-# 8, each callout's "×n" badge), at SHOT_SIZE (default 1920x1080; the file names then end _<width>).
+# Fly off), _one_side.png (one station edited, Mirror off: the wings' balance off centre), _rack.png (racks, every
+# store drawn: two GBU-38 on a BRU-57/A on the Sufa's 3 / 7 and three Mk 82 on a TER-9/A on 4 / 6, four GBU-39 on a
+# BRU-61 in the Adir's bays 4 / 8, each callout's "×n" badge), at SHOT_SIZE (default 1920x1080; the file names then
+# end _<width>).
 extends "res://../tests/godot/base.gd"
 
 ## jet → [the store dragged, its station, a store its target refuses, that station, the heavy loadout, the lowered
 ## maximum (kg)].
 const CASES := {
-	"f16i": ["mk-84", "3", "tank-370", "2", [[3, "mk-84"], [2, "aim-120"]], 17000, [[3, "mk-82"]]],
+	"f16i": ["mk-84", "3", "tank-370", "2", [[3, "mk-84"], [2, "aim-120"]], 17000, [[3, "gbu-38"], [4, "mk-82"]]],
 	"f35i": ["gbu-31", "4", "gbu-31", "5", [[4, "gbu-31"], [3, "gbu-31"]], 24000, [[4, "gbu-39"], [1, "aim-9x"]]],
 }
 
@@ -84,6 +86,10 @@ func run() -> void:
 			await _open(jet)
 			await _save("%s_%s_over" % [jet, lang])
 			fe.units_dir = "res://data/db/units"
+			# One station edited (Mirror off): the store on the dragged one's station alone, the wings uneven.
+			IafPilotLog.set_loadout(db, s.pilot(), jet, IafBriefing.put(u, "", int(c[1]), c[0], false))
+			await _open(jet)
+			await _save("%s_%s_one_side" % [jet, lang])
 			# Racks.
 			lo = ""
 			for p in c[6]:

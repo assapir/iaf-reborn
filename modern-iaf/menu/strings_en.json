@@ -120,6 +120,7 @@
 	"lo_of_max": "%d %% of the maximum, %s kg",
 	"lo_left": "Left",
 	"lo_right": "Right",
+	"lo_mirror": "Mirror to the other wing",
 	"lo_balanced": "Wings balanced",
 	"lo_heavier_left": "Left wing heavier by %s kg",
 	"lo_heavier_right": "Right wing heavier by %s kg",

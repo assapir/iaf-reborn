@@ -81,7 +81,7 @@ the same licence.
 
 ## Our own
 
-`pyth5.glb`, `gbu39.glb`, `bru61.glb`, `popeye.glb`, `gbu28.glb`, `spice1000.glb`, `spice2000.glb` and `spikenlos.glb` are ours,
+`pyth5.glb`, `gbu39.glb`, `bru61.glb`, `ter9.glb`, `bru57.glb`, `popeye.glb`, `gbu28.glb`, `spice1000.glb`, `spice2000.glb` and `spikenlos.glb` are ours,
 made by `tools/stores/build.gd` from the shapes in `tools/stores/ours.gd` (no third-party mesh or texture), under the
 repository's licence (GPL-3.0-or-later). Their sizes come from these sources; the rest is measured by eye on the
 photos (inferred):
@@ -93,6 +93,9 @@ photos (inferred):
   https://www.boeing.com/content/dam/boeing/boeingdotcom/defense/weapons-weapons/images/small_diameter_bomb_product_card.pdf;
   BRU-61/A 143 × 16 × 16 in: the same card; photos: Commons, Category:GBU-39 Small Diameter Bomb ("BRU-61+4xGBU-39.jpg",
   "Boeing GBU-39 Small Diameter Bomb.jpg", "SDB3.jpg"), https://commons.wikimedia.org/wiki/Category:GBU-39_Small_Diameter_Bomb
+- TER-9/A and BRU-57/A (Modern IAF's racks of three Mk 82 and two GBU-38): no published dimensions found; their
+  shapes and sizes are inferred, set by the bombs they carry (a beam with slanted lower sides; a beam with a
+  crosspiece and two ejector housings).
 - Popeye: 4.82 m, 533 mm, 1.98 m span: Wikipedia, "Popeye (missile)", https://en.wikipedia.org/wiki/Popeye_(missile),
   and FAS, "AGM-142 Have Nap", https://man.fas.org/dod-101/sys/smart/agm-142.htm; photo: Commons "Popey missile.jpg",
   https://commons.wikimedia.org/wiki/Category:Popeye_(missile)

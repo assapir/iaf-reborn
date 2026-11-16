@@ -79,6 +79,9 @@ const STORES := {
 	# The GBU-28 (ours, the F-15I's) at the MK-84's scale on the MK-84L it stands in for: its real 5.82 m.
 	"gbu28": {"orig": "mk84lb/mk84lb_m.gltf", "parts": Ours.GBU28, "scale_as": "mk84"},
 	"bru61": {"parts": Ours.BRU61},
+	# Modern IAF's racks of stores with no original model (util/gltf.gd OWN_RACKS): the TER-9/A, the BRU-57/A.
+	"ter9": {"parts": Ours.TER9},
+	"bru57": {"parts": Ours.BRU57},
 	"popeye": {"orig": "popeye/popeye_m.gltf", "parts": Ours.POPEYE},
 	"spice1000": {"parts": Ours.SPICE1000},
 	"spice2000": {"parts": Ours.SPICE2000},

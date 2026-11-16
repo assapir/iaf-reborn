@@ -139,6 +139,21 @@ func changed_loadout() -> void:
 		skg != null and absf(float(skg) - st.fm_mass) < 3.0, "loadout: the briefing's stores %s kg = the flight's" % skg
 	)
 	check(not tv.weapons._store_nodes.get(2, []).is_empty(), "loadout: the bomb's model on the jet")
+	# Every Mk 82 drawn on its TER-9/A, each in its own place (front-end.md §10.1); one released, two still show.
+	var ter: Array = tv.weapons._store_nodes.get(3, [])
+	var at := {}
+	for n in ter:
+		at[(n.position * 100.0).round()] = true
+	var racks: Array = tv.weapons._pod_nodes.filter(func(r): return r.get_meta("station", -1) == 3)
+	check(
+		ter.size() == 3 and at.size() == 3 and not racks.is_empty(), "loadout: three Mk 82 apart on their TER (%s)" % at
+	)
+	st.fired(3)
+	tv.weapons._update_store_nodes()
+	check(
+		int(st.station(3).count) == 2 and not ter[2].visible and ter[0].visible and ter[1].visible,
+		"loadout: after a release the other two still hang"
+	)
 	check(int(st.station(9).count) == 511, "loadout: the gun's 511 rounds")
 
 

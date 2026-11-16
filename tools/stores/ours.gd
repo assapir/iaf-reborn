@@ -79,6 +79,29 @@ const BRU61 := [
 	{"box": [Vector3(0, -0.17, 1.815), Vector3(0.36, 0.07, 3.1)], "taper": 1.15, "rgb": DARK},
 ]
 
+## TER-9/A (Modern IAF's three Mk 82): a beam 1.9 m long, 0.24 m across its top, its lower sides slanted 45° in to a
+## 0.10 m keel, 0.26 m deep, the sway brace pads under it for the lower bomb; grey. Its weight is the data sheet's
+## (data/db/units/f16i.json, ter-9a); the size is inferred (no published dimensions found), set by the Mk 82s it carries
+## (2.2 m long). The bombs drawn on it at run time (stores.gd rack_layout, util/gltf.gd OWN_RACKS).
+const TER9 := [
+	{"box": [Vector3(0, -0.07, 0.95), Vector3(0.24, 0.14, 1.9)], "rgb": GREY},
+	{"box": [Vector3(0, -0.20, 0.95), Vector3(0.10, 0.12, 1.75)], "taper": 2.4, "rgb": GREY},
+	{"box": [Vector3(0, -0.07, 0.02), Vector3(0.20, 0.10, 0.06)], "rgb": DARK},
+	{"box": [Vector3(0, -0.265, 0.55), Vector3(0.16, 0.025, 0.06)], "rgb": DARK},
+	{"box": [Vector3(0, -0.265, 1.35), Vector3(0.16, 0.025, 0.06)], "rgb": DARK},
+]
+
+## BRU-57/A (Modern IAF's two GBU-38): a beam 2.0 m long, 0.22 m across, and under it a crosspiece 0.62 m wide with an
+## ejector housing at each end, from which the two bombs hang side by side; 0.26 m deep in all; grey. Its weight is
+## L3Harris's (data/db/units/f16i.json, l3h-bru57); the size is inferred (no published dimensions found), set by the
+## GBU-38s it carries (2.3 m long).
+const BRU57 := [
+	{"box": [Vector3(0, -0.09, 1.0), Vector3(0.22, 0.18, 2.0)], "rgb": GREY},
+	{"box": [Vector3(0, -0.20, 1.0), Vector3(0.62, 0.06, 1.3)], "rgb": GREY},
+	{"box": [Vector3(0.16, -0.235, 1.0), Vector3(0.16, 0.05, 1.2)], "rgb": DARK},
+	{"box": [Vector3(-0.16, -0.235, 1.0), Vector3(0.16, 0.05, 1.2)], "rgb": DARK},
+]
+
 ## Popeye (AGM-142): 4.82 m long, 533 mm across, 1.98 m span; a gold-tinted dome, small swept fins (X) behind the
 ## nose, long-chord swept tail fins (X); grey with a yellow band (photo: Commons "Popey missile").
 const POP_BODY := [

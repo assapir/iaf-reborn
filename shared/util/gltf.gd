@@ -281,6 +281,12 @@ const STAND_INS := {
 }
 
 
+## The original model of `path` (under converted/objects, STAND_INS followed) is there: the 1998 game's install;
+## Modern IAF has none. A quiet probe.
+static func has_original(path: String) -> bool:
+	return _settings().has_converted("objects".path_join(STAND_INS.get(path, path)))
+
+
 ## open() of the model at the full `path`, cached per OBJECT DETAIL level: every unit and jet of a type shares it.
 static func model(path: String) -> Variant:
 	var key := "%d:%s" % [object_level, path]
@@ -349,6 +355,9 @@ const STORES := {
 ## The racks drawn over a station of four detailed stores (Models: Detailed; PlayerWeapons.attach_stores): the store's
 ## file -> the rack's detailed model (ours, tools/stores/ours.gd), stretched along its length to the four slots.
 const RACKS := {"gbu39_m.gltf": "bru61"}
+## Ours, Modern IAF: the racks of stores that have no original model to place them on a station (stores.gd
+## rack_layout, a station with a rack weight): the store's file -> the rack's detailed model (tools/stores/ours.gd).
+const OWN_RACKS := {"mk82_m.gltf": "ter9", "gbu38_m.gltf": "bru57"}
 
 
 ## The detailed model standing in for the original at `path` with the switch on (an F-16's: the Sufa with the F-16

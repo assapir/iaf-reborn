@@ -126,6 +126,7 @@ class Unit:
 	var round_scale := 1.0  # the round model's Present scale
 	var stores  # stores.gd of an AI jet: the weight / drag on its flight model and the pylon models
 	var store_nodes := {}  # station -> [Node3D per slot] (player_weapons.gd attach_stores)
+	var pod_nodes := []  # its racks and rocket boxes (attach_stores' pods)
 	## The AI ripple (W+0xe4 left, W+0xe8 quantity, W+0xec interval, W+0xf0 period; iaf_avionics Ripple): set by the
 	## actions 350 / 360 / 380; before one, 1 bomb (UNCERTAIN: W+0xe8 is not set by the handler's constructor).
 	var ripple = ClassDB.instantiate("IafRipple")
@@ -243,7 +244,9 @@ func _setup_aircraft(ent: Dictionary, obj: Dictionary, db, now: float, given: Ar
 	)
 	_push_stores(u)
 	if ent.get("node") is Node3D:
-		u.store_nodes = PlayerWeapons.attach_stores(u.stores, ent.node).nodes
+		var att := PlayerWeapons.attach_stores(u.stores, ent.node)
+		u.store_nodes = att.nodes
+		u.pod_nodes = att.pods
 	for i in 10:
 		if i < u.stations.size() and int(u.stations[i].count) > 0 and (i < 9 or u.cur < 0):
 			u.cur = i
@@ -324,6 +327,9 @@ func _show_stores(u: Unit) -> void:
 			var sn = u.store_nodes[i][k]
 			if is_instance_valid(sn):
 				sn.visible = Settings.external_stores and near and k < n
+	for b in u.pod_nodes:
+		if is_instance_valid(b):
+			b.visible = Settings.external_stores and near
 
 
 func _select(u: Unit, i: int) -> void:

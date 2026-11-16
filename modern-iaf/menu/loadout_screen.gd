@@ -8,11 +8,11 @@
 # rounds, chaff / flares) and the STORES the jet may carry. The footer: Reset to the mission's, Briefing, Fly.
 #
 # The editor's rules are arming_drawing.gd's and loadout.rs's: a store drags from STORES onto a callout, between
-# callouts and back; a drop on a station fills its mirror station too unless Shift is held; a station that does not
-# take it shakes; a rack's "×n" badge cycles its count. The keyboard: Enter on a callout picks it and moves to the first
-# store it takes ("Empty" takes its store off), Enter there hangs it, Esc leaves the callout as it was. The loadout is
-# the pilot's per jet (IafPilotLog.loadout): the flight and the Hangar's jet carry it. A mission with
-# `fixed_loadout` shows its own, read-only.
+# callouts and back; an edit changes that station only, and its mirror station too while "Mirror to the other wing" is
+# on (off by default); a station that does not take it shakes; a rack's "×n" badge cycles its count. The keyboard: Enter
+# on a callout picks it and moves to the first store it takes ("Empty" takes its store off), Enter there hangs it, Esc
+# leaves the callout as it was. The loadout is the pilot's per jet (IafPilotLog.loadout): the flight and the Hangar's
+# jet carry it. A mission with `fixed_loadout` shows its own, read-only.
 extends Control
 
 const Look := preload("res://menu/look.gd")
@@ -28,6 +28,9 @@ const DELETE_W := 36.0
 
 ## The focus to take back after the screen is made again (a Control's name), "" none.
 static var _refocus := ""
+## "Mirror to the other wing": an edit fills the mirror station too (loadout.rs `pair`). Off by default (the user,
+## 15 Nov: "by default change only the station that was used"); kept while the game runs.
+static var mirror := false
 
 var fe: Control
 var m: Dictionary
@@ -80,9 +83,8 @@ func build() -> void:
 		reset.disabled = now == ""
 	var brief: Button = fe._action(s("lo_briefing"), "Secondary", func(): fe.show_page("mission"))
 	brief.name = "ToBriefing"
-	var fly: Button = fe._action(s("fly"), "Fly", func(): fe.fly_mission(m))
+	var fly: Button = fe._action(s("fly"), "Primary", func(): fe.fly_mission(m))
 	fly.name = "Fly"
-	fly.custom_minimum_size = Vector2(184, 76)
 	fly.disabled = bool(a.get("blocked", a.get("over", false)))
 	fe._footer("", [brief, fly], false, [] if fixed else [reset])
 	if reset != null and reset.disabled:
@@ -516,6 +518,18 @@ func _balance(v: VBoxContainer) -> void:
 	cap.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	if bad:
 		cap.add_theme_color_override("font_color", Look.AMBER)
+	if not fixed:
+		var mir := CheckButton.new()
+		mir.name = "Mirror"
+		mir.text = s("lo_mirror")
+		mir.button_pressed = mirror
+		mir.add_theme_font_size_override("font_size", 18)
+		mir.toggled.connect(_set_mirror)
+		v.add_child(mir)
+
+
+func _set_mirror(on: bool) -> void:
+	mirror = on
 
 
 ## The STORES the jet may carry (the unit record's `inventory`), two to a row, each a framed name that drags to a
@@ -558,10 +572,10 @@ func _stores(v: VBoxContainer) -> void:
 
 
 ## A store dropped (data {store, from: a station, "" the inventory}) on station `to` ("" the inventory): the loadout
-## changed as the record allows (IafBriefing put / shift / take; both of a pair unless Shift is held), stored and
-## shown; false when refused.
+## changed as the record allows (IafBriefing put / shift / take; its mirror station too while `mirror` is on), stored
+## and shown; false when refused.
 func drop(data: Dictionary, to: String) -> bool:
-	var pair := not Input.is_key_pressed(KEY_SHIFT)
+	var pair := mirror
 	var u: String = fe._unit_file(m)
 	var from := str(data.get("from", ""))
 	var lo := ""
@@ -588,9 +602,9 @@ func set_loadout(lo: String) -> void:
 	fe.show_page("arming")
 
 
-## A click on a rack's "×n" badge: one store fewer, from one back to full (both of the pair unless Shift is held).
+## A click on a rack's "×n" badge: one store fewer, from one back to full (its mirror's too while `mirror` is on).
 func cycle(st: String) -> void:
-	var lo: String = IafBriefing.cycle(fe._unit_file(m), now, int(st), not Input.is_key_pressed(KEY_SHIFT))
+	var lo: String = IafBriefing.cycle(fe._unit_file(m), now, int(st), mirror)
 	if lo != "":
 		_refocus = "Slot" + st
 		set_loadout(lo)
@@ -629,7 +643,7 @@ func unpick() -> bool:
 	return true
 
 
-## Enter on a store: hung on the callout picked (both of a pair unless Shift is held), or with "Empty" its store
+## Enter on a store: hung on the callout picked (its mirror too while `mirror` is on), or with "Empty" its store
 ## off; the store already on its rack: the next count. A station that does not take it shakes.
 func choose_store(id: String) -> void:
 	if pick == "":
@@ -648,7 +662,7 @@ func escape() -> bool:
 
 
 ## Tab through the loadouts, Save (or the name field and its Save while open), the callouts by station number from the
-## highest down, the stores, Reset, Briefing and Fly.
+## highest down, Mirror, the stores, Reset, Briefing and Fly.
 func _focus_order() -> void:
 	var order: Array = find_children("Loadout*", "Button", true, false).filter(func(b): return not b.disabled)
 	for d in find_children("Delete*", "Button", true, false):
@@ -664,6 +678,7 @@ func _focus_order() -> void:
 	cs.sort_custom(func(x, y): return int(x) > int(y))  # 9 .. 1: the left column (the right wing) first
 	if not fixed:
 		order.append_array(cs.map(func(k): return callouts[k]))
+		order.append(find_child("Mirror", true, false))
 		order.append_array(
 			find_child("StoreGrid", true, false).get_children().filter(
 				func(c): return c.focus_mode != Control.FOCUS_NONE and c.visible

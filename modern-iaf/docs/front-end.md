@@ -838,17 +838,21 @@ editing pieces (the callout, the store, the stores' column).
 - **STORES** under it: the stores the jet may carry (the record's `inventory`), two to a row, each its short name in a
   thin frame (the full name the tooltip), the ones left where the record gives a count (none does yet).
 - **The footer:** "Reset to the mission's" at the inline start (off while the mission's own is on the jet), Briefing
-  and Fly at the inline end.
-- **The keyboard, the joystick:** Tab runs the loadouts, Save, the callouts, the stores, Reset, Briefing and Fly; the
+  and Fly at the inline end, Fly the size of Briefing in the accent colour (the user, 2026-11-15: "the fly button in
+  arming should be the same size as other buttons"). The briefing's larger Fly is the approved mock's; the debrief's
+  buttons are all one size.
+- **The keyboard, the joystick:** Tab runs the loadouts, Save, the callouts, Mirror, the stores, Reset, Briefing and Fly; the
   arrows move by place; the focus is the loadout on the jet when the screen opens.
 
-The Sufa's take-off, its own loadout beside a saved one, and the Adir's with its bays open:
+The Sufa's take-off, its own loadout beside a saved one, the Adir's with its bays open, a one-sided edit and the racks:
 
 | | English | Hebrew |
 |---|---|---|
 | the Sufa | ![The Sufa from beneath with its callouts, the loadouts and the take-off weight](pictures/front-end/loadout_f16i_en.webp) | ![The same in Hebrew, the columns mirrored, the jet not](pictures/front-end/loadout_f16i_he.webp) |
 | a bomb dragged over station 3 | ![The callouts that take an MK-84 framed, the others dimmed](pictures/front-end/loadout_f16i_drag_en.webp) | ![The same in Hebrew](pictures/front-end/loadout_f16i_drag_he.webp) |
 | the Adir | ![The Adir from beneath, its bays open with two AIM-120](pictures/front-end/loadout_f35i_en.webp) | ![The Adir in Hebrew](pictures/front-end/loadout_f35i_he.webp) |
+| one station edited, Mirror off | ![An MK-84 on 3 alone, 7 keeps its AIM-9M; "Left wing heavier by 839 kg", the Mirror switch off](pictures/front-end/loadout_f16i_one_side_en.webp) | ![The same in Hebrew](pictures/front-end/loadout_f16i_one_side_he.webp) |
+| racks, every store drawn | ![Two GBU-38 on a BRU-57/A on 3 / 7, three Mk 82 on a TER-9/A on 4 / 6, each bomb in its place](pictures/front-end/loadout_f16i_rack_en.webp) | ![The same in Hebrew](pictures/front-end/loadout_f16i_rack_he.webp) |
 
 **The loadout editor** (the user, 2026-11-10: "can we already select ammunition?"):
 - **Drag and drop.** A store drags from STORES onto a callout, from a callout onto another, or from a callout back
@@ -858,7 +862,7 @@ The Sufa's take-off, its own loadout beside a saved one, and the Adir's with its
   where it can go before the drop. A store on a station that holds another sends that one back.
 - **Racks.** Where the record's `allowed` gives a station a rack (three Mk 82 on a TER-9/A on the F-16s' 3 / 7 and
   4 / 6, two GBU-38 on a BRU-57/A on 3 / 7, four GBU-39 on a BRU-61/A in the Adir's bays 4 / 8), a drop hangs the full
-  rack (as many as are left); the callout shows a "×3" badge at its bottom corner; the stores count per store; the weight adds each store and the rack's `rack_kg` (the TER-9/A 47.6 kg, the BRU-57/A 120.2 kg, the BRU-61/A
+  rack (as many as are left), drawn on the jet with each store in its place ([weapons.md](weapons.md) §5); the callout shows a "×3" badge at its bottom corner; the stores count per store; the weight adds each store and the rack's `rack_kg` (the TER-9/A 47.6 kg, the BRU-57/A 120.2 kg, the BRU-61/A
   147 kg). In flight the station carries that many (`Settings.arm_loadouts`' count) and the rack's weight and drag
   (`sim_load`'s third and fourth values, `stores.rs` `rack_kg` / `rack_drag`); the rack stays on the jet when its
   stores go.
@@ -866,18 +870,23 @@ The Sufa's take-off, its own loadout beside a saved one, and the Adir's with its
   the table with its sources and what is inferred). A refused drop
   leaves the loadout as it was; its callout shakes for a quarter of a second with its frame in the warning colour, no
   text.
-- **Pairs.** A drop also fills the mirror station (3 with 7, 4 with 6, the Adir's 4 with 8; the stations numbered
-  from the left wing tip, so station n's mirror is the highest + 1 − n) where that takes the store, as real loadouts
-  are symmetric; with Shift held, the one station only. Back to STORES, the mirror's store goes too when it is
-  the same store. A move takes the pair along.
+- **One station at a time; Mirror.** An edit changes the station it was made on, and only that one (the user,
+  2026-11-15: "by default change only the station that was used"). "Mirror to the other wing" / "שיקוף לכנף הנגדית",
+  a switch under the wings' balance, off when the game starts and kept while it runs, makes each edit fill the mirror
+  station too (3 with 7, 4 with 6, the Adir's 4 with 8; the stations numbered from the left wing tip, so station n's
+  mirror is the highest + 1 − n) where that takes the store; back to STORES, the mirror's store goes too when it is the
+  same store; a move takes the pair along; the badge's count goes to both. Until 2026-11-15 every edit filled the
+  pair unless Shift was held; Shift does nothing now. The pair rule stays in `loadout.rs` (`pair`), the switch passes
+  it. An uneven load shows in the wings' balance ("Left wing heavier by 925 kg", amber past the limit); saved
+  loadouts keep each station's store.
 - **The keyboard and the joystick.** Enter on a callout picks it and puts the focus on the first store its station
-  takes; the arrows move through the stores, Enter hangs the store (both of the pair unless Shift is held). An
+  takes; the arrows move through the stores, Enter hangs the store (its mirror's too with Mirror on). An
   "Empty" / "ריק" entry heads the stores while a picked callout holds a store: Enter there takes it off. Esc leaves
   the callout as it was (a second Esc goes back to the briefing).
 - **Not yet flyable.** A store whose record has no model of ours (the 600 US gal tank) is greyed in STORES: it neither drags nor takes the focus, and nothing says why (the user, A15
   round 3: "disabled for now"). Its record stays.
 - **The rack's count.** The "×n" badge on a rack's callout is a control: a click takes one store off, from one back to the
-  full rack (a TER 3 → 2 → 1 → 3, a BRU-57/A 2 → 1 → 2), the pair along unless Shift is held, the weight and the
+  full rack (a TER 3 → 2 → 1 → 3, a BRU-57/A 2 → 1 → 2), the mirror's along with Mirror on, the weight and the
   stores following (`loadout::cycle`). The keyboard: Enter on the callout, then Enter on the store it holds.
 - **The wings' balance.** The stores' rolling moment (each station's stores and rack at its distance from the jet's
   middle in the drawing) against the record's `lateral_limit_kgm` (the F-16s: 25,020 ft-lb, 3,459 kg·m,
@@ -909,7 +918,8 @@ The Sufa's take-off, its own loadout beside a saved one, and the Adir's with its
   and the version-3 file migrated; `pilot_log` the saved loadouts per pilot per jet);
   `modern-iaf/tests/test_front_end.gd` (the screen from Edit, its crumb, a callout per station with its
   place and weight, the stations' places on the model with the left wing on the right, the mission's row on without a
-  side bar, the columns mirrored, the weight panel's figures, a refused drop, a pair, a tank pair back, the keyboard
+  side bar, the columns mirrored, the weight panel's figures, Fly the size of Briefing, a refused drop, Mirror off: one
+  station changed and the wings uneven, Mirror on: a pair, a tank pair back, six Mk 82 drawn on two TERs, the keyboard
   path and Esc, a TER on 4 / 6, its badge 3 → 2, the Delilah not offered, a one-sided load's amber balance, the
   flight's pylons, the Hangar's jet, save / pick / delete a saved loadout, a lowered maximum, Reset; both languages); `test_mvp.gd --only loadout` (a take-off with MK-84s on 3 / 7 and three Mk 82 on 4 / 6: the pylons
   and counts, the stores' mass, no tanks' fuel, the bomb's model, the gun's rounds). `modern-iaf/tests/_loadout_shot.gd` takes the pictures; `modern-iaf/tests/_store_pictures.gd` renders the stores'.

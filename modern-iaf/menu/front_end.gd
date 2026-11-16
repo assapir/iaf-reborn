@@ -658,7 +658,12 @@ func jet_stores(j: Dictionary, lo = null) -> Dictionary:
 		if slots[st].get("pylon") == null:
 			continue
 		out[int(slots[st].pylon)] = {
-			"path": str(w.model), "count": int(slots[st].count), "lugged": k in ["bomb", "tank"], "bomb": k == "bomb"
+			"path": str(w.model),
+			"count": int(slots[st].count),
+			"lugged": k in ["bomb", "tank"],
+			"bomb": k == "bomb",
+			# On a rack: the record's rack entry (a count over one, with the rack_kg the flight's load carries).
+			"racked": int(slots[st].get("max", 1)) > 1,
 		}
 	return out
 

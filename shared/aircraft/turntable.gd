@@ -118,10 +118,10 @@ func _ready() -> void:
 	_update_mode()
 
 
-## Shows plane folder `plane` (AircraftModel.plane_file's) with `stores`: {pylon 0..8 (A..I): {path (the weapon
-## record's model), count, lugged (a bomb or tank, hung by its top from the station's lugs), bomb (a bomb's rack
-## layout)}}. The stores of the descriptor's `internal_stations` stay out of sight, in the shut bays, as in flight.
-## False (and `failed`) when the model would not load.
+## Shows plane folder `plane` (AircraftModel.plane_file's) with `stores`: {pylon 0..8 (A..I): {path (the weapon record's
+## model), count, lugged (a bomb or tank, hung by its top from the station's lugs), bomb (a bomb's rack layout), racked
+## (on a rack: Stores.place)}}. The stores of the descriptor's `internal_stations` stay out of sight, in the shut bays,
+## as in flight. False (and `failed`) when the model would not load.
 func show_jet(plane: String, stores: Dictionary) -> bool:
 	for c in _pivot.get_children():
 		c.queue_free()
@@ -156,15 +156,12 @@ func show_jet(plane: String, stores: Dictionary) -> bool:
 		var top := Stores._top(path) if lug is Array and st.lugged else 0.0
 		if top > 0.0:
 			attach = Vector3(lug[0], lug[1] - top, lug[2])
-		var slots: Array = ClassDB.class_call_static(
-			"IafStores", "slots", i, attach, int(st.count), st.bomb, PlayerWeapons._pilon_of(path)
-		)
-		for s in slots:
-			var n := PlayerWeapons._instance(path)
-			if n == null:
-				break
-			m.add_child(n)
-			n.position = s
+		var n := int(st.count)
+		var at := {"index": i, "w": {"model_path": path}}
+		at.merge(Stores.place(i, attach, n, st.bomb, path, PlayerWeapons._pilon_of(path), st.get("racked", false)))
+		var nodes: Array = PlayerWeapons.hang(at, m).nodes
+		for k in nodes.size():
+			nodes[k].visible = k < n  # as the flight shows them (PlayerWeapons._update_store_nodes)
 		# A model's own pylon for the station (Pylon<letter>, the F-35I's) shows while the station is loaded.
 		var pylon := m.find_child("Pylon" + "ABCDEFGHI"[i], true, false) as Node3D
 		if pylon != null:

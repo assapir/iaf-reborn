@@ -32,7 +32,10 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   its line to the station on the model; LOADOUTS (the mission's own and the pilot's saved ones, named per jet, saved,
   picked and deleted on the screen; the one on the jet tinted, no side bar); TAKE-OFF WEIGHT (figure, share of the
   maximum, the wings' balance, fuel, gun rounds, chaff / flares) and STORES; Reset to the mission's, Briefing, Fly.
-  The editor's rules stay (racks, pairs, refusal, drag and drop, keyboard). Open: named type loadouts wait for a
+  The editor's rules stay (racks, refusal, drag and drop, keyboard). Since 2026-11-15 (finish list L, the user's
+  notes): an edit changes its own station only, "Mirror to the other wing" (off by default) fills the pair; Fly the
+  size of its neighbours; every store of a rack drawn in its place on the Loadout screen's, the Hangar's and the
+  flown jet (a TER-9/A's three Mk 82, a BRU-57/A's two GBU-38; our own rack models). Open: named type loadouts wait for a
   sourced real loadout. `test_front_end.gd`, `cargo test -p iaf-tools --lib loadout pilot_log`.
 - **Weapon physics (2026-11-14, the physics finish list W rows):** the gun's rounds fly a ballistic path (muzzle
   velocity plus the jet's, the M56's drag by air density, gravity) and the EEGS funnel predicts it (W2,
@@ -387,16 +390,17 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   drags from the stores onto a station, between stations and back; each station takes only what the unit record's `allowed` lists
   (re-sourced per jet, data-formats.md §3; each store its own record with its weight and size), racks (a TER of three
   Mk 82, two GBU-38, four GBU-39) with a "×n" badge that cycles the count, the stores without a model greyed, an
-  amber imbalance warning past the F-16's asymmetric moment limit, a refused drop shakes its station; a drop
-  fills the mirror station too unless Shift is held; the keyboard path (Enter on a station, Enter on a store); the fuel
+  amber imbalance warning past the F-16's asymmetric moment limit, a refused drop shakes its station; an edit changes
+  its own station, and the mirror station too with Mirror on (until 2026-11-15 a drop filled both unless Shift was
+  held); the keyboard path (Enter on a station, Enter on a store); the fuel
   and the take-off weight follow, over the maximum it reads red and Fly is off; the loadout is the pilot's per jet in
   the records database and flies with the mission (mass, drag, tanks' fuel, the stores' models), Reset brings back
   the record's ([front-end.md](front-end.md) §10). Since 2026-11-11 the racks' weight rides in flight too (the
   BRU-57/A's 120.2 kg sourced), and since 2026-11-14 every store's and rack's drag index (inferred from its size, none in the F-35I's bays; [flight-model.md](flight-model.md) §9.18), the bombs, guided bombs and tanks hang by their lugs under the
   F-16's pylons, and the Python 5 and SPICE 2000 fly as `modern_weapons.gd` records with their public figures. The
   Delilah is dropped for now (the user, 2026-11-14): no store list offers or carries it, as it needs a powered
-  cruise-missile flight class the engine does not have; its record stays. Open: a model of the 600 gal tank, a Sufa /
-  Barak station chart.
+  cruise-missile flight class the engine does not have; its record stays. Open: a model of the 600 gal tank (the user, 2026-11-15:
+  "no rush"; greyed until then), a Sufa / Barak station chart.
 - **Inventory counts:** no public source gives the IAF's store counts; the records list none, so the inventory is
   unlimited. `cargo test -p iaf-tools --lib loadout`, `test_front_end.gd`,
   `test_mvp.gd --only loadout`.
