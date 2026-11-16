@@ -161,6 +161,10 @@ func setup(c: Control, cam: Camera3D, type_code: int) -> bool:
 	meta = Settings.load_json(path.get_basename() + ".json")
 	_materials(n, path, Settings.airframe_id(type_code) == "f16")
 	var anims: Dictionary = meta.get("animations", {})
+	# The model's controls' properties (<model>.json `controls`): unset, a control shows as modelled.
+	meta.controls_props = {}
+	for k in meta.get("controls", {}):
+		meta.controls_props[meta.controls[k].prop] = true
 	for name in anims:
 		var node := n.find_child(name, true, false) as Node3D
 		if node != null:
@@ -211,7 +215,7 @@ func setup(c: Control, cam: Camera3D, type_code: int) -> bool:
 	if Settings.cockpit_controls() and FileAccess.file_exists(table):
 		clickable = Controls.new()
 		add_child(clickable)
-		clickable.setup(n, Settings.load_json(table))
+		clickable.setup(n, Settings.load_json(table), meta.get("controls", {}))
 	return true
 
 
@@ -936,7 +940,7 @@ func _prop(p: String) -> float:
 			return Settings.mfd_brightness
 		"f16/avionics/hud-brt-switch":  # ours: the HUD's DAY / AUTO BRT / NIGHT switch, 0 / 1 / 2 (command 217)
 			return float(Settings.hud_brt_switch)
-	if p in SWITCH_PROPS:
+	if p in SWITCH_PROPS or meta.get("controls_props", {}).has(p):
 		return float(switches.get(p, NAN))
 	if p.begins_with("consumables/fuel/total-fuel-lbs-"):
 		# The drum of that digit: the units' turning, the others stepping.

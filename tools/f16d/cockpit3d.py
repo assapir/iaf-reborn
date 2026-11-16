@@ -23,6 +23,7 @@
 # bounds.
 import json
 import math
+import re
 import os
 import subprocess
 import sys
@@ -134,7 +135,32 @@ CONTROLS = {
     ("RightConsole", "fcr-switch"): "FCR",
     ("RightConsole", "rdr-alt-switch"): "RDR_ALT",
     ("Throttle", "GRIP"): "THROTTLE",
+    ("LeftAuxConsole", "gear_lever"): "GEAR_LEVER",  # until 2026-11-15 the unnamed anim023
 }
+# Every other control of the panels the build includes (2026-11-15, the user: "just make all knobs in all planes act as
+# they should"): each object of a FlightGear `pick` / `knob` / `slider` animation is its own node too, named after its
+# object (its part's name first where two parts share one), its turn or slide on its property's FlightGear mapping
+# (the animations of every control's property are kept, as NEEDLE_PROPS'), and its positions read from FlightGear's own
+# bindings into <out>.json `controls` (control_of; shared/cockpit/cockpit3d_controls.gd moves it). Left out: the
+# properties another control or the user's rules own (PICK_SKIP: trim, the throttle's cutoff lever, the HUD's DAY /
+# AUTO BRT / NIGHT switch that split_control.py cuts out, the gear lever's nasal) and the MFDs' OSBs (`buttons`).
+PICK_SKIP = {"controls/flight/rudder-trim", "controls/flight/aileron-trim", "controls/flight/elevator-trim",
+             "f16/fcs/trim-ap-disc-switch", "f16/engine/cutoff-release-lever", "f16/avionics/hud-daytime",
+             "controls/gear/gear-down"}
+# The covers FlightGear turns by a script (no pick of their own), made controls: (part, object) -> property.
+COVERS = {("LeftConsole", "SW_EPU_COVER"): "fdm/jsbsim/elec/switches/epu-cover"}
+# A guarded switch's cover (its property) and the position the closing cover puts it back to: the EPU switch held at
+# NORM (FlightGear's script opens the cover off NORM). MASTER ARM has none: the model draws no cover over it
+# (FlightGear's misc.xml: its cover is pre block 52's).
+GUARDED = {"fdm/jsbsim/elec/switches/epu": ("fdm/jsbsim/elec/switches/epu-cover", 1.0)}
+# The switches that spring back to their rest position when let go, as the real ones (inferred from their labels on
+# the panel art: TEST / RESET / OVRD positions are momentary): property -> rest value.
+SPRINGS = {"fdm/jsbsim/fcs/fbw-override": 0.0, "controls/test/test-panel/oxy-test": 0.0,
+           "controls/test/test-panel/epu-test": 0.0, "f16/engine/ab-reset": 0.0,
+           "f16/fail/servo-rudder-switch": 0.0, "f16/fail/servo-flaperon-switch": 0.0,
+           "f16/fail/servo-tail-switch": 0.0}
+OSB = re.compile(r"MFDButton[TBLR]\d")  # the MFDs' push buttons: theirs is the MFD's own press path (`buttons`)
+CONTINUOUS_STEP = 0.05  # a continuous knob's (FlightGear's 0..1 with a wide turn) step per wheel notch or drag step
 # So are its six round buttons along the top (COM 1, COM 2, IFF, LIST, A-A, A-G): collapsed, their caps came out as
 # lumpy polygons with ragged rims (the user's review, 2026-11-09).
 ICP_ROUND = {"ICP/com1", "ICP/com2", "ICP/iff", "ICP/list", "ICP/a-a", "ICP/a-g"}
@@ -260,10 +286,17 @@ def term(t):
             "greater-than-equals": a >= b, "less-than-equals": a <= b}.get(k, True)
 
 
-def axis_of(a):
+def axis_of(a, objs=None, frame=None):
+    """An animation's axis and the middle of its axis line (FlightGear's frame): x / y / z, two points, or an axis
+    object of the model (a line of two vertices: `objs`, kit.import_ac's lines_out, in Blender's frame; `frame` the
+    sub-model's C @ m)."""
     ax = a.find("axis")
     if ax is None:
         return Vector((0, 0, 1)), None
+    line = objs.get((ax.findtext("object-name") or "").strip()) if objs else None
+    if line is not None:
+        p1, p2 = (frame.inverted() @ v for v in line)
+        return (p2 - p1).normalized(), (p1 + p2) / 2
     if ax.find("x1-m") is not None:
         p1 = Vector((num(ax, "x1-m"), num(ax, "y1-m"), num(ax, "z1-m")))
         p2 = Vector((num(ax, "x2-m"), num(ax, "y2-m"), num(ax, "z2-m")))
@@ -287,6 +320,50 @@ def mapping(a, unit="-deg"):
     return m
 
 
+def control_of(a, t, part, obj):
+    """A control's positions from its FlightGear animation `a` (type `t`): {prop, mode, min, max, step, wrap} with mode
+    cycle (a switch or knob of steps: a click the next, round), slide (a continuous knob: the wheel and drags only),
+    add (a pick adding its step, clamped) or push (pressed while held: press, then back to rest); None for a property
+    another control owns (PICK_SKIP) or a pick of no action."""
+    act, inc = a.find("action"), a.find("increase")
+    src = inc if inc is not None else act
+    if src is None:
+        return None
+    bs = src.findall("binding")
+    adj = next((b for b in bs if (b.findtext("command") or "").strip().startswith("property-")), None)
+    prop_ = ((a.findtext("property") or "") if t != "pick" else "").strip()
+    if adj is not None and not prop_:
+        prop_ = (adj.findtext("property") or "").strip()
+    if prop_ in PICK_SKIP or (adj is None and t != "pick") or (adj is not None and not prop_):
+        return None
+    cmd = (adj.findtext("command") or "").strip() if adj is not None else "nasal"
+    mu = act.find("mod-up") if t == "pick" and act is not None else None
+    if t == "pick" and (mu is not None or cmd == "nasal"):
+        up = mu.find("binding") if mu is not None else None
+        if not prop_:
+            prop_ = "c3d/%s/%s" % (part, obj)  # a script's button: pressed, nothing else
+        return {"prop": prop_, "mode": "push", "press": num(adj, "value", 1.0) if adj is not None else 1.0,
+                "rest": num(up, "value") if up is not None else 0.0}
+    if cmd == "property-toggle":
+        return {"prop": prop_, "mode": "cycle", "min": 0.0, "max": 1.0, "step": 1.0, "wrap": True}
+    if cmd == "property-assign":
+        return {"prop": prop_, "mode": "push", "press": num(adj, "value", 1.0), "rest": 0.0}
+    lo, hi = num(adj, "min", -1e9), num(adj, "max", 1e9)
+    step = abs(num(adj, "step", 1.0)) or 1.0
+    wrap = (adj.findtext("wrap") or "").strip() == "true"
+    if t == "pick":
+        return {"prop": prop_, "mode": "add", "min": lo, "max": hi, "step": num(adj, "step", 1.0), "wrap": wrap}
+    if hi - lo <= 1.0 and abs(num(a, "factor", 1.0)) * (hi - lo) > 100.0 or step < 1.0:
+        return {"prop": prop_, "mode": "slide", "min": lo, "max": hi, "step": step if step < 1.0 else CONTINUOUS_STEP,
+                "wrap": wrap}
+    r = {"prop": prop_, "mode": "cycle", "min": lo, "max": hi, "step": step, "wrap": True}
+    if prop_ in SPRINGS:
+        r["rest"] = SPRINGS[prop_]
+    if prop_ in GUARDED:
+        r["guard"], r["safe"] = GUARDED[prop_]
+    return r
+
+
 class Build:
     def __init__(self):
         self.parts = {}  # sub-model name -> [objects]
@@ -296,18 +373,32 @@ class Build:
         self.lamps = {}  # object -> {key, hide (a select lamp: hidden when off), colour (its emission)}
         self.displays = {}  # object -> node name
         self.shown = {}  # object -> SHOWN key
+        self.controls = {}  # object -> (part, its FlightGear object, control_of's record)
 
     def walk(self, xml, m, part, depth=0):
         here = os.path.dirname(xml)
         root = ET.parse(xml).getroot()
         m = m @ offsets(root)
         ac = root.findtext("path")
-        objs, groups = {}, {}
+        objs, groups, axes = {}, {}, {}
         if ac and fg_path(ac, here) and os.path.exists(fg_path(ac, here)):
-            objs = kit.import_ac(fg_path(ac, here), matrix=C @ m @ C.inverted(), prefix=part + "/", groups=groups)
+            objs = kit.import_ac(fg_path(ac, here), matrix=C @ m @ C.inverted(), prefix=part + "/", groups=groups,
+                                 lines_out=axes)
         for n, d in ((n, d) for (p, n), d in TO_FRONT.items() if p == part and n in objs):
             objs[n].data.transform(Matrix.Translation((C @ m).to_3x3() @ Vector((d, 0, 0))))
         hide = set()
+        ctl = {}  # FlightGear object -> its control (control_of), the panel's pick / knob / slider animations
+        for a in root.findall("animation"):
+            t = (a.findtext("type") or "").strip()
+            if t in ("pick", "knob", "slider"):
+                for o in a.findall("object-name"):
+                    rec = control_of(a, t, part, o.text.strip())
+                    if rec is not None and o.text.strip() not in ctl and not OSB.match(o.text.strip()):
+                        ctl[o.text.strip()] = rec
+        for (p, n), cp in COVERS.items():
+            if p == part:
+                ctl[n] = {"prop": cp, "mode": "cycle", "min": 0.0, "max": 1.0, "step": 1.0, "wrap": True}
+        moved = NEEDLE_PROPS | {r["prop"] for r in ctl.values()}
         for a in root.findall("animation"):
             t = (a.findtext("type") or "").strip()
             names = [o.text.strip() for o in a.findall("object-name")]
@@ -330,8 +421,8 @@ class Build:
                 for n in names:
                     if n in objs:
                         self.texanims.setdefault(objs[n], []).append(rec)
-            elif t in ("rotate", "knob", "translate") and (a.findtext("property") or "").strip() in NEEDLE_PROPS:
-                axis, mid = axis_of(a)
+            elif t in ("rotate", "knob", "translate") and (a.findtext("property") or "").strip() in moved:
+                axis, mid = axis_of(a, axes, C @ m)
                 c = a.find("center")
                 centre = Vector((num(c, "x-m"), num(c, "y-m"), num(c, "z-m"))) if c is not None else (mid or Vector())
                 rec = {"prop": a.findtext("property").strip(), **mapping(a, "-m" if t == "translate" else "-deg"),
@@ -349,6 +440,10 @@ class Build:
         for n in hide & set(objs):
             bpy.data.objects.remove(objs.pop(n))
             self.hidden += 1
+        for n, rec in ctl.items():  # a group's meshes each a control of the same property
+            for i, g in enumerate(groups.get(n, [n])):
+                if g in objs:
+                    self.controls[objs[g]] = (part, n if g == n else "%s_%d" % (n, i), rec)
         self.parts.setdefault(part, []).extend(objs.values())
         for sub in root.findall("model"):
             name = (sub.findtext("name") or "").strip()
@@ -1219,6 +1314,25 @@ def main():
             raise SystemExit("CONTROLS: no %s/%s; like it: %s" % (
                 part, n, [o.name for o in b.parts.get(part, []) if n.lower()[:4] in o.name.lower()]))
         named[name] = found[0]
+    # Every other control (Build.controls) its own node, and its positions in <out>.json `controls`, each with the
+    # position the model shows it at (`modelled`: its turn's zero, FlightGear's value for the mesh as drawn).
+    controls = {}
+    by_obj = {o: k for k, o in named.items()}
+    names = [n for (_p, n, _r) in b.controls.values()]
+    for o, (part, n, rec) in b.controls.items():
+        name = by_obj.get(o) or (n if names.count(n) == 1 else part.replace(" ", "_") + "_" + n)
+        name = "".join(c if c.isalnum() or c in "_-" else "_" for c in name)
+        named[name] = o
+        r = dict(rec)
+        an = next((x for x in b.anims.get(o, []) if x["prop"] == r["prop"]), {})
+        f = an.get("factor", 0.0)
+        if r["mode"] in ("cycle", "slide", "add") and f:
+            v = -an.get("offset", 0.0) / f
+            k = round((v - r["min"]) / r["step"]) if r["mode"] == "cycle" else (v - r["min"]) / r["step"]
+            r["modelled"] = round(min(max(r["min"] + k * r["step"], r["min"]), r["max"]), 4)
+        elif r["mode"] == "push":
+            r["modelled"] = r["rest"]
+        controls[name] = r
     shown = {}
     for o, key in b.shown.items():
         named[o.name.split("/", 1)[1]] = o
@@ -1266,7 +1380,7 @@ def main():
     eye = C @ Vector(FG_EYE) + SHIFT - root_at
     textures = {k: b.texanims[v] for k, v in named.items() if v in b.texanims}
     meta = {"source": "FlightGear F-16 " + PIN, "eye": gl(eye), "animations": anims, "buttons": button_at,
-            "lamps": lamps, "textures": textures, "shown": shown, "light": "f16_light.png"}
+            "lamps": lamps, "textures": textures, "shown": shown, "light": "f16_light.png", "controls": controls}
     for o in kit.scene().objects:
         o.select_set(o is rest_root or o.parent is rest_root)
     tmp = OUT + ".png.glb"

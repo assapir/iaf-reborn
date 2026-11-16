@@ -293,7 +293,7 @@ switches as FlightGear models them.
 | 4 | MMC, ST STA, MFD, UFC switches (`AVIONICS_MMC`, `AVIONICS_ST_STA`, `AVIONICS_MFD`, `AVIONICS_UFC`) | AVIONIC POWER panel, right console[^bms-ramp][^fg-right] | a click `[219, ±1, 0..3]`, each its own; Ctrl+A `[213, 0, 0]` all four | Ctrl+A | ON (1) / OFF (0): the key all four, a click its own switch |
 | 5 | INS knob (`INS`) | AVIONIC POWER panel, right console[^bms-ramp][^fg-right] | `[214, 0, 0]`; the wheel and a drag `[214, ±1, 0]` | Ctrl+N | six positions: OFF (0), STOR HDG (1), NORM (2), NAV (3), IN FLT ALIGN (4), ATT (5); the step done at STOR HDG to IN FLT ALIGN |
 | 6 | canopy handle (`CANOPY_HANDLE`, a hit area) | left side, aft of the left console, by the canopy switch[^dcs-canopy] | `[215, 0, 0]` | Ctrl+K | none |
-| take-off, landing | landing gear handle (`anim023`) | left auxiliary console (FlightGear's `LeftAuxConsole` `gear_lever`) | `[14, 0, 0]` | G | the handle's own animation (`controls/gear/gear-down`) |
+| take-off, landing | landing gear handle (`GEAR_LEVER`) | left auxiliary console (FlightGear's `LeftAuxConsole` `gear_lever`) | `[14, 0, 0]` | G | the handle's own animation (`controls/gear/gear-down`) |
 | (sensors) | FCR, RDR ALT switches (`FCR`, `RDR_ALT`) | SNSR PWR panel, right console[^fg-right] | `[219, ±1, 4]`, `[219, ±1, 5]` | none | ON (1) / OFF (0); RDR ALT ON (2) / OFF (0) |
 
 - **The throttle by the mouse** (both F-16s and the F-35I; 2026-11-13, the switches audit's M1): a click adds 5 %
@@ -405,6 +405,34 @@ step is done while all four are on; one off undoes it, and the debrief reads tha
 - **The warm-up** of each switch is the displays' 3 s (inferred).
 - **A power loss** (main power off, the generators off line) takes every system down with it: the radar too goes to
   OFF and drops its lock, and waits for its mode key once the power is back.
+
+#### Every control (2026-11-15)
+
+The user: "just make all knobs in all planes act as they should". Every control of the F-16s' model is now its own part
+that moves, keeps its position and goes through all of its positions both ways, by one rule
+(`cockpit3d_controls.gd`, the model's `controls` in `f16.json`; the F-35I's model takes the same rule with its remodel
+to the real jet's controls, open):
+
+- **Where the positions come from.** The F-16's from FlightGear's own bindings of each `pick` / `knob` / `slider`
+  object of the panels the build includes (`tools/f16d/cockpit3d.py` `control_of`: the property, its range, its step,
+  a push button's pressed and rest values), about 200 parts; its turn or slide is FlightGear's own animation on that
+  property[^fg-left][^fg-right]: 160 controls.
+- **The rule.** A switch or a knob of steps: a click the next position, the last going round to the first; a drag a
+  step on or back, stopping at the ends; the wheel too on a rotary of four positions or more (on a switch the wheel
+  stays the view's zoom). A continuous knob (lighting, volume, brightness): the wheel and a
+  drag in steps of 5 %; the HSI's heading and course knobs go round. A push button: down while held, up when let go.
+  A spring-loaded switch (MPO, the TEST and RESET positions: inferred from their labels) returns to rest when let go.
+  A guarded switch (the EPU): shut, a click lifts the cover first; shutting the cover puts the switch back to NORM.
+  MASTER ARM has no cover: the model draws none.
+- **Where the position is kept.** The start-up switches' in the flight model (`start.rs`, above); every other one in
+  `cockpit3d.gd` `switches`, from the position the model shows it at.
+- **Left out:** the trim wheels and knob and the TRIM / AP DISC switch (trim stays as it is), the throttle and the
+  stick (keys, joystick and throttle hardware only), the MFDs' push buttons (their own press path). The gear lever is
+  the node `GEAR_LEVER` (until 2026-11-15 the unnamed `anim023`).
+- Most of these controls move with no system behind them yet ("moves; system not modelled").
+
+`modern-iaf/tests/test_controls_all.gd` takes every one of these controls in each F-16: the pointer finds it, and it
+goes through every position both ways, kept and shown.
 
 `modern-iaf/tests/test_switches_both_ways.gd` runs each jet's switches off and on after the Start engine command
 and checks the position, the consequence, the steps done and the switch shown; on the F-16s it switches each of the

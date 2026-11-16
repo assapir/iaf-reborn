@@ -21,12 +21,29 @@
 #   - "turn_down": sent for a turn down in place of "turn" with p1 negated (the throttle: up 5 %, down 5 %);
 #   - "detent": sent for a turn down by a drag begun with the throttle at its bottom (terrain_view.gd `throttle`), the
 #     deliberate second pull over the idle-cutoff detent (the throttle: Throttle OFF, command 218; inferred UX);
-# through the key path (cockpit3d.gd `command`, terrain_view.gd _press), as the keys send them. Hovering a control
+# through the key path (cockpit3d.gd `command`, terrain_view.gd _press), as the keys send them.
+# Every other control comes from the model's own <model>.json `controls` (tools/f16d/cockpit3d.py control_of: the
+# F-16's FlightGear bindings), the table's row laid over it where both name a node:
+#   {"prop": "<property>", "mode": "cycle" | "slide" | "add" | "push", "min", "max", "step", "wrap", "modelled",
+#    "rest", "press", "guard", "safe"}
+#   - cycle (a switch or a knob of steps): a click the next position, the last going round to the first (as the INS
+#     knob); the wheel and a drag a step on or back, stopping at the ends; with "rest" it springs: held at the
+#     position the press chose (the next from rest) and back to rest when let go, the wheel's step back after SPRING_S;
+#   - slide (a continuous knob, a wheel): the wheel and a drag a step either way, round past the ends only with "wrap";
+#   - add (a button stepping a value, the ASI's bugs): a click adds its step;
+#   - push (a push button): "press" while held, "rest" when let go;
+#   - "guard": its cover's property (a control too): shut, a click lifts it first; shutting it puts the switch back to
+#     "safe" (the F-16's EPU at NORM);
+#   - "modelled": the position the model shows it at, its value until moved.
+# The position is kept in cockpit3d.gd `switches` (the one store of the cockpit's switches; the start-up's are the
+# flight model's, start.rs) and shown by the model's own mapping. Hovering a control
 # lights its rim (RIM): its own texture stays as it is.
 extends Node
 
 ## The pixels of a drag per "turn" command, unless the control sets its own.
 const DRAG_PX := 10.0
+## A spring-loaded switch moved by the wheel stays this long before it springs back (s, inferred).
+const SPRING_S := 0.4
 ## The throttle at its bottom (idle, or OFF over the detent) for a "detent": sim_flight.gd THROTTLE_OFF, the lever's
 ## noise allowed.
 const THROTTLE_BOTTOM := 0.02
@@ -57,10 +74,17 @@ var _low := false  # the held control's drag began with the throttle at its bott
 var _light: ShaderMaterial
 
 
-## The controls of `table` found in `model`.
-func setup(model: Node3D, table: Dictionary) -> void:
+## The controls of `table` and of the model's own `generic` (<model>.json `controls`) found in `model`; a table row
+## laid over the model's record of the same node.
+func setup(model: Node3D, table: Dictionary, generic := {}) -> void:
+	var all := generic.duplicate()
 	for name in table:
-		var r: Dictionary = table[name]
+		all[name] = generic.get(name, {}).merged(table[name], true)
+	var sw: Dictionary = get_parent().switches
+	for name in all:
+		var r: Dictionary = all[name]
+		if r.has("modelled") and not r.has("on") and not sw.has(r.prop):
+			sw[r.prop] = float(r.modelled)  # a switch the flight model does not hold starts as the model shows it
 		var mi := model.find_child(name, true, false) as MeshInstance3D
 		if mi == null and r.has("box"):
 			mi = _area(name, r.box, r.get("grip", false))
@@ -91,7 +115,7 @@ func _input(event: InputEvent) -> void:
 		_highlight(hit[0] if hit != null else null)
 		return
 	if not event.button_mask & MOUSE_BUTTON_MASK_LEFT:
-		_held = {}  # released where this layer could not see it (a Control, the look's captured pointer)
+		_drop()  # released where this layer could not see it (a Control, the look's captured pointer)
 		return
 	_drag -= event.relative.y
 	var px := float(_held.get("drag_px", DRAG_PX))
@@ -109,9 +133,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if not event.pressed:
 		if event.button_index == MOUSE_BUTTON_LEFT and not _held.is_empty():
-			if not _turned and _held.has("click"):
-				get_parent().command.call(_held.click)
-			_held = {}
+			release()
 			get_viewport().set_input_as_handled()
 		return
 	if event.button_index in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN] and Settings.zoom_scrolling():
@@ -121,13 +143,15 @@ func _unhandled_input(event: InputEvent) -> void:
 		hit = _lit()  # the lit part: a lever turned by the wheel slides out from under a still pointer
 	if hit == null:
 		return
-	if event.button_index in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN] and not hit[1].has("turn"):
+	if event.button_index in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN] and not _wheeled(hit[1]):
 		return  # a switch takes no wheel: the view's zoom has it
 	var r: Dictionary = hit[1]
 	match event.button_index:
 		MOUSE_BUTTON_LEFT:
 			if r.has("guard") and float(get_parent().switches.get(r.guard, 0.0)) < 0.5:
 				get_parent().switches[r.guard] = 1.0  # the guard lifts; the switch moves on the next click
+			elif _generic(r) or r.get("mode", "") == "push":
+				press(r)
 			elif r.get("toggle", false):
 				_toggle(r)
 			elif r.has("turn"):
@@ -158,7 +182,7 @@ func _live() -> bool:
 	):
 		return true
 	_highlight(null)
-	_held = {}
+	_drop()
 	return false
 
 
@@ -249,6 +273,11 @@ func _is_on(r: Dictionary) -> bool:
 
 ## Turns `r` a step (`way` 1 up, −1 down) by the wheel, or by the held control's left drag (`drag`).
 func _turn(r: Dictionary, way: float, drag := false) -> void:
+	if drag:
+		_turned = true
+	if _generic(r):
+		_step(r, way)
+		return
 	if not r.has("turn"):
 		return
 	if drag:
@@ -265,6 +294,115 @@ func _turn(r: Dictionary, way: float, drag := false) -> void:
 	var cmd: Array = r.turn.duplicate()
 	cmd[1] = int(cmd[1] * way)
 	get_parent().command.call(cmd)
+
+
+## A control of the model's own `controls` alone: moved here, no command (a table row's "click", "turn" or "toggle"
+## sends its own).
+static func _generic(r: Dictionary) -> bool:
+	return r.has("mode") and not (r.has("click") or r.has("turn") or r.has("toggle"))
+
+
+## Whether `r` takes the wheel: a table row's "turn", a continuous knob, a stepping button, a rotary of four positions
+## or more; a switch (up to three) leaves the wheel to the view's zoom and goes both ways by its drag.
+static func _wheeled(r: Dictionary) -> bool:
+	if r.has("turn") or (_generic(r) and r.mode in ["slide", "add"]):
+		return true
+	return _generic(r) and r.mode == "cycle" and (float(r.max) - float(r.min)) / float(r.step) >= 2.5
+
+
+## The left press on `r` (the pointer's, or a test's): a push button or a spring-loaded switch moves at once and is
+## held; any other is held for a drag, its release with no turn its click. Under a shut cover: the cover lifts.
+func press(r: Dictionary) -> void:
+	if r.has("guard") and float(get_parent().switches.get(r.guard, 0.0)) < 0.5:
+		get_parent().switches[r.guard] = 1.0  # its cover lifts; the switch moves on the next press
+		return
+	_held = r
+	_drag = 0.0
+	_turned = false
+	_low = r.has("detent") and _throttle() <= THROTTLE_BOTTOM
+	if r.get("mode", "") == "push":
+		put(r, float(r.press))
+	elif r.has("rest") and r.get("mode", "") == "cycle":
+		put(r, _next(r, float(r.rest)))
+
+
+## The left button let go over the held control: a push button or a spring back to rest; a press with no turn clicks.
+func release() -> void:
+	var r := _held
+	_held = {}
+	if r.is_empty():
+		return
+	if not _generic(r):
+		if r.get("mode", "") == "push":  # a push button with a command: back up, the command on its release
+			put(r, float(r.rest))
+		if not _turned and r.has("click"):
+			get_parent().command.call(r.click)
+		return
+	if r.has("rest"):
+		put(r, float(r.rest))
+	elif not _turned:
+		match r.mode:
+			"cycle":
+				put(r, _next(r, value(r)))
+			"add":
+				_step(r, signf(float(r.step)))
+
+
+## The held control let go unseen: a push button or a spring back to rest, no click.
+func _drop() -> void:
+	if _held.has("rest") and _held.has("prop"):
+		put(_held, float(_held.rest))
+	_held = {}
+
+
+## The position of control `r` now (as modelled until moved).
+func value(r: Dictionary) -> float:
+	return float(get_parent().switches.get(r.prop, r.get("modelled", 0.0)))
+
+
+## The position after `v` for a click: the next step, the last going round to the first.
+static func _next(r: Dictionary, v: float) -> float:
+	var n := v + absf(float(r.step))
+	return float(r.min) if n > float(r.max) + 1e-4 else n
+
+
+## `r` a step on (`way` 1) or back (−1): stopping at the ends, or round with "wrap" (not a switch's: its round is the
+## click's); a spring's step held SPRING_S, then back to rest.
+func _step(r: Dictionary, way: float) -> void:
+	var lo := float(r.get("min", 0.0))
+	var hi := float(r.get("max", 1.0))
+	var st := absf(float(r.get("step", 1.0)))
+	if r.get("mode", "") == "push":
+		return
+	if r.has("rest"):
+		put(r, clampf(float(r.rest) + way * st, lo, hi))
+		get_tree().create_timer(SPRING_S).timeout.connect(_spring.bind(r))
+		return
+	var v := value(r) + way * st
+	if r.get("wrap", false) and r.mode != "cycle":
+		v = lo + fposmod(v - lo, hi - lo)
+	put(r, clampf(snappedf(v, st * 1e-3), lo, hi))
+
+
+## A spring's wheel or drag step back to rest, unless it is held.
+func _spring(r: Dictionary) -> void:
+	if _held != r:
+		put(r, float(r.rest))
+
+
+## Control `r` to `v` in the store, with its click; a guard shut puts the switches under it back to their safe place.
+func put(r: Dictionary, v: float) -> void:
+	var sw: Dictionary = get_parent().switches
+	if is_equal_approx(float(sw.get(r.prop, NAN)), v):
+		return
+	sw[r.prop] = v
+	var tv: Object = get_parent().command.get_object() if get_parent().command.is_valid() else null
+	if tv != null and tv.get("sounds") != null:
+		tv.sounds.play("SFX_BUTTON")
+	if v < 0.5:
+		for e in _controls:
+			if e[1].get("guard", "") == r.prop and e[1].has("safe") and _generic(e[1]):
+				sw[e[1].prop] = float(e[1].safe)
 
 
 ## The throttle's lever (terrain_view.gd `throttle`, 0 idle / OFF .. 1), 1 without the key path's host.

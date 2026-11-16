@@ -528,6 +528,334 @@
     ]
    }
   ],
+  "AVTR_TEST": [
+   {
+    "prop": "controls/test/avtr-test",
+    "factor": -0.0035,
+    "offset": 0.0,
+    "centre": [
+     0.37138,
+     -0.07726,
+     -0.42216
+    ],
+    "axis": [
+     0.17365,
+     0.98481,
+     -0.0
+    ],
+    "type": "translate"
+   }
+  ],
+  "CAUTION_RESET": [
+   {
+    "prop": "f16/avionics/caution/elec-reset-btn",
+    "factor": -0.0035,
+    "offset": 0.0,
+    "centre": [
+     0.45192,
+     -0.09324,
+     -0.39514
+    ],
+    "axis": [
+     0.17365,
+     0.98481,
+     -0.0
+    ],
+    "type": "translate"
+   }
+  ],
+  "COMM1_KNOB": [
+   {
+    "prop": "instrumentation/comm[0]/volume",
+    "factor": 250.0,
+    "offset": -90.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     -0.17279,
+     -0.97992,
+     -0.0995
+    ]
+   }
+  ],
+  "COMM2_KNOB": [
+   {
+    "prop": "instrumentation/comm[1]/volume",
+    "factor": 250.0,
+    "offset": -120.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     -0.17279,
+     -0.97992,
+     -0.0995
+    ]
+   }
+  ],
+  "FIRE_OHEAT_DETECT": [
+   {
+    "prop": "controls/test/test-panel/fire-ovht-test",
+    "factor": -0.0035,
+    "offset": 0.0,
+    "centre": [
+     0.51952,
+     -0.10153,
+     -0.7944
+    ],
+    "axis": [
+     0.17365,
+     0.98481,
+     -0.0
+    ],
+    "type": "translate"
+   }
+  ],
+  "HF-PBG_TEST": [
+   {
+    "prop": "controls/test/test-panel/pbg-test",
+    "factor": -0.0005,
+    "offset": 0.0,
+    "centre": [
+     0.33175,
+     -0.06332,
+     -0.77423
+    ],
+    "axis": [
+     0.17365,
+     0.98481,
+     -0.0
+    ],
+    "type": "translate"
+   }
+  ],
+  "ils-vol-knob": [
+   {
+    "prop": "f16/avionics/ils-volume",
+    "factor": 250.0,
+    "offset": -120.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     -0.17365,
+     -0.98481,
+     -0.0
+    ]
+   }
+  ],
+  "intercom-knob": [
+   {
+    "prop": "f16/avionics/intercom-volume",
+    "factor": 250.0,
+    "offset": -120.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     -0.17365,
+     -0.98481,
+     -0.0
+    ]
+   }
+  ],
+  "MAL_IND_LTS": [
+   {
+    "prop": "controls/test/test-panel/mal-ind-lts-btn",
+    "factor": -0.0035,
+    "offset": 0.0,
+    "centre": [
+     0.51994,
+     -0.1016,
+     -0.74989
+    ],
+    "axis": [
+     0.17365,
+     0.98481,
+     -0.0
+    ],
+    "type": "translate"
+   }
+  ],
+  "msl-vol-knob": [
+   {
+    "prop": "f16/ews/msl-vol-knob",
+    "factor": 250.0,
+    "offset": -170.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     -0.17365,
+     -0.98481,
+     -0.0
+    ]
+   }
+  ],
+  "SW_AIR_REFUEL": [
+   {
+    "prop": "systems/refuel/switch",
+    "factor": 40.0,
+    "offset": -20.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     0.0,
+     0.0,
+     1.0
+    ]
+   }
+  ],
+  "SW_ALT_FLAPS_50": [
+   {
+    "prop": "controls/flight/alt-flaps",
+    "factor": -40.0,
+    "offset": 20.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     0.0,
+     0.0,
+     -1.0
+    ]
+   }
+  ],
+  "SW_ANTI_COLLISION_50": [
+   {
+    "prop": "controls/lighting/ext-lighting-panel/anti-collision",
+    "factor": 40.0,
+    "offset": -20.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     0.0,
+     0.0,
+     1.0
+    ]
+   }
+  ],
+  "SW_DBU": [
+   {
+    "prop": "f16/fcs/digital-backup",
+    "factor": -40.0,
+    "offset": 20.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     0.0,
+     0.0,
+     -1.0
+    ]
+   }
+  ],
+  "SW_EPU": [
+   {
+    "prop": "fdm/jsbsim/elec/switches/epu",
+    "factor": 20.0,
+    "offset": -20.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     -0.98481,
+     0.17365,
+     -0.0
+    ]
+   }
+  ],
+  "SW_EPU_COVER": [
+   {
+    "prop": "fdm/jsbsim/elec/switches/epu-cover",
+    "factor": -40.0,
+    "offset": 0.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     0.0,
+     0.0,
+     -1.0
+    ]
+   }
+  ],
+  "SW_FLCS_BIT": [
+   {
+    "prop": "f16/fcs/bit",
+    "factor": 40.0,
+    "offset": -20.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     0.0,
+     0.0,
+     1.0
+    ]
+   }
+  ],
+  "SW_FLCS_TEST": [
+   {
+    "prop": "fdm/jsbsim/elec/switches/flcs-pwr-test",
+    "factor": 20.0,
+    "offset": 0.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     0.0,
+     0.0,
+     1.0
+    ]
+   }
+  ],
+  "SW_FUSELAGE_50": [
+   {
+    "prop": "controls/lighting/ext-lighting-panel/fuselage",
+    "factor": 20.0,
+    "offset": 0.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     0.0,
+     0.0,
+     1.0
+    ]
+   }
+  ],
   "JFS": [
    {
     "prop": "f16/engine/jfs-start-switch",
@@ -542,6 +870,74 @@
      0.98481,
      -0.17365,
      -0.0
+    ]
+   }
+  ],
+  "SW_KNOB_ENG_FEED": [
+   {
+    "prop": "f16/engine/feed",
+    "factor": -47.0,
+    "offset": 45.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     0.17365,
+     0.98481,
+     -0.0
+    ]
+   }
+  ],
+  "SW_KNOB_EXT_FORM_LIGHT_50": [
+   {
+    "prop": "controls/lighting/ext-lighting-panel/form-knob",
+    "factor": 90.0,
+    "offset": -90.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     -0.17365,
+     -0.98481,
+     -0.0
+    ]
+   }
+  ],
+  "SW_KNOB_REFUEL_50": [
+   {
+    "prop": "controls/lighting/ext-lighting-panel/ar-knob",
+    "factor": 90.0,
+    "offset": -90.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     -0.17365,
+     -0.98481,
+     -0.0
+    ]
+   }
+  ],
+  "SW_LE_FLAPS_50": [
+   {
+    "prop": "f16/fcs/le-flaps-switch",
+    "factor": -40.0,
+    "offset": 20.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     0.0,
+     0.0,
+     1.0
     ]
    }
   ],
@@ -562,7 +958,263 @@
     ]
    }
   ],
-  "anim023": [
+  "SW_MASTER_50": [
+   {
+    "prop": "controls/lighting/ext-lighting-panel/master",
+    "factor": 40.0,
+    "offset": -20.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     0.0,
+     0.0,
+     1.0
+    ]
+   }
+  ],
+  "SW_MASTER_FUEL": [
+   {
+    "prop": "fdm/jsbsim/elec/switches/master-fuel-cmd",
+    "factor": 40.0,
+    "offset": -40.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     0.0,
+     0.0,
+     1.0
+    ]
+   }
+  ],
+  "anim048": [
+   {
+    "prop": "fdm/jsbsim/elec/switches/master-fuel-cmd",
+    "factor": -40.0,
+    "offset": 40.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     0.98481,
+     -0.17365,
+     -0.0
+    ]
+   }
+  ],
+  "SW_MAX_POWER": [
+   {
+    "prop": "f16/engine/max-power",
+    "factor": -40.0,
+    "offset": 20.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     0.98481,
+     -0.17365,
+     -0.0
+    ]
+   }
+  ],
+  "SW_MPO": [
+   {
+    "prop": "fdm/jsbsim/fcs/fbw-override",
+    "factor": 40.0,
+    "offset": -20.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     0.0,
+     0.0,
+     1.0
+    ]
+   }
+  ],
+  "SW_POS_LIGHTS_50": [
+   {
+    "prop": "controls/lighting/ext-lighting-panel/pos-lights-flash",
+    "factor": 40.0,
+    "offset": -20.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     0.0,
+     0.0,
+     1.0
+    ]
+   }
+  ],
+  "SW_PROBE_HEAT": [
+   {
+    "prop": "f16/avionics/probe-heat-switch",
+    "factor": 20.0,
+    "offset": 0.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     0.0,
+     0.0,
+     1.0
+    ]
+   }
+  ],
+  "SW_STARTING_FUEL": [
+   {
+    "prop": "f16/engine/ab-reset",
+    "factor": -25.0,
+    "offset": 0.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     0.98481,
+     -0.17365,
+     -0.0
+    ]
+   }
+  ],
+  "SW_TANK_INERTING": [
+   {
+    "prop": "controls/fuel/tank-inerting",
+    "factor": 40.0,
+    "offset": -20.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     0.0,
+     0.0,
+     1.0
+    ]
+   }
+  ],
+  "SW_TEST_EPU": [
+   {
+    "prop": "controls/test/test-panel/epu-test",
+    "factor": 40.0,
+    "offset": -20.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     0.0,
+     0.0,
+     1.0
+    ]
+   }
+  ],
+  "SW_TEST_OXY": [
+   {
+    "prop": "controls/test/test-panel/oxy-test",
+    "factor": 40.0,
+    "offset": -20.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     0.0,
+     0.0,
+     1.0
+    ]
+   }
+  ],
+  "SW_WING-TAIL_50": [
+   {
+    "prop": "controls/lighting/ext-lighting-panel/wing-tail",
+    "factor": 20.0,
+    "offset": 0.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     0.0,
+     0.0,
+     1.0
+    ]
+   }
+  ],
+  "tacan-vol-knob": [
+   {
+    "prop": "instrumentation/tacan/volume",
+    "factor": 250.0,
+    "offset": -120.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     -0.17365,
+     -0.98481,
+     -0.0
+    ]
+   }
+  ],
+  "threat-vol-knob": [
+   {
+    "prop": "f16/ews/rwr-volume",
+    "factor": 250.0,
+    "offset": -170.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     -0.17365,
+     -0.98481,
+     -0.0
+    ]
+   }
+  ],
+  "alt-gear": [
+   {
+    "prop": "f16/cockpit/alt-gear-handle",
+    "factor": 0.025,
+    "offset": 0.0,
+    "centre": [
+     0.46745,
+     -0.10303,
+     -0.07081
+    ],
+    "axis": [
+     0.21149,
+     0.69636,
+     0.68582
+    ],
+    "type": "translate"
+   }
+  ],
+  "GEAR_LEVER": [
    {
     "prop": "controls/gear/gear-down",
     "factor": 90.0,
@@ -596,7 +1248,454 @@
     ]
    }
   ],
-  "anim025": [
+  "horn_silencer": [
+   {
+    "prop": "controls/gear/gear-horn-cutout",
+    "factor": -0.0025,
+    "offset": 0.0,
+    "centre": [
+     0.36103,
+     -0.16979,
+     0.05188
+    ],
+    "axis": [
+     0.21149,
+     0.69636,
+     0.68582
+    ],
+    "type": "translate"
+   }
+  ],
+  "light-land-switch": [
+   {
+    "prop": "controls/lighting/landing-light",
+    "factor": -25.0,
+    "offset": 0.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     0.97685,
+     -0.17365,
+     -0.12491
+    ]
+   }
+  ],
+  "light-land-switch_01": [
+   {
+    "prop": "controls/lighting/landing-light",
+    "factor": -25.0,
+    "offset": 0.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     0.97685,
+     -0.17365,
+     -0.12491
+    ]
+   }
+  ],
+  "SW_GND_JETT": [
+   {
+    "prop": "f16/avionics/gnd-jett",
+    "factor": -50.0,
+    "offset": 25.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     0.97685,
+     -0.17365,
+     -0.12491
+    ]
+   }
+  ],
+  "SW_HOOK": [
+   {
+    "prop": "f16/cockpit/tailhook-handle",
+    "factor": 50.0,
+    "offset": 10.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     0.97685,
+     -0.17365,
+     -0.12491
+    ]
+   }
+  ],
+  "SW_PARKING_BRAKE": [
+   {
+    "prop": "controls/gear/brake-parking",
+    "factor": 40.0,
+    "offset": 0.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     -0.97685,
+     0.17365,
+     0.12491
+    ]
+   }
+  ],
+  "SW_STORES_CONFIG": [
+   {
+    "prop": "fdm/jsbsim/fcs/fly-by-wire/enable-cat-III",
+    "factor": -60.0,
+    "offset": 30.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     -0.97685,
+     0.17365,
+     0.12491
+    ]
+   }
+  ],
+  "MODE_50_knob": [
+   {
+    "prop": "f16/ews/ew-mode-knob",
+    "factor": 60.0,
+    "offset": -120.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     -0.21149,
+     -0.69636,
+     -0.68582
+    ]
+   }
+  ],
+  "MWS_50_switch": [
+   {
+    "prop": "f16/ews/ew-mws-switch",
+    "factor": 60.0,
+    "offset": -30.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     -0.97685,
+     0.17365,
+     0.12491
+    ]
+   }
+  ],
+  "01_50_switch": [
+   {
+    "prop": "f16/avionics/cmds-01-switch",
+    "factor": 60.0,
+    "offset": -30.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     -0.97685,
+     0.17365,
+     0.12491
+    ]
+   }
+  ],
+  "02_50_switch": [
+   {
+    "prop": "f16/avionics/cmds-02-switch",
+    "factor": 60.0,
+    "offset": -30.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     -0.97685,
+     0.17365,
+     0.12491
+    ]
+   }
+  ],
+  "CH_50_switch": [
+   {
+    "prop": "f16/avionics/cmds-ch-switch",
+    "factor": 60.0,
+    "offset": -30.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     -0.97685,
+     0.17365,
+     0.12491
+    ]
+   }
+  ],
+  "FL_50_switch": [
+   {
+    "prop": "f16/avionics/cmds-fl-switch",
+    "factor": 60.0,
+    "offset": -30.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     -0.97685,
+     0.17365,
+     0.12491
+    ]
+   }
+  ],
+  "RWR_50_switch": [
+   {
+    "prop": "f16/ews/ew-rwr-switch",
+    "factor": 60.0,
+    "offset": -30.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     -0.97685,
+     0.17365,
+     0.12491
+    ]
+   }
+  ],
+  "JETT_50_switch": [
+   {
+    "prop": "f16/ews/ew-jett-switch",
+    "factor": 60.0,
+    "offset": -30.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     -0.97685,
+     0.17365,
+     0.12491
+    ]
+   }
+  ],
+  "JMR_50_switch": [
+   {
+    "prop": "f16/ews/ew-jmr-switch",
+    "factor": 60.0,
+    "offset": -30.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     -0.97685,
+     0.17365,
+     0.12491
+    ]
+   }
+  ],
+  "HMCS_SYM_INT_KNOB": [
+   {
+    "prop": "f16/avionics/hmd-sym-int-knob",
+    "factor": 270.0,
+    "offset": -140.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     -0.21149,
+     -0.69636,
+     -0.68582
+    ]
+   }
+  ],
+  "active-off": [
+   {
+    "prop": "f16/fcs/adv-mode-sel",
+    "factor": -0.0035,
+    "offset": 0.0,
+    "centre": [
+     0.27767,
+     -0.36644,
+     0.06054
+    ],
+    "axis": [
+     0.0,
+     0.17365,
+     0.98481
+    ],
+    "type": "translate"
+   }
+  ],
+  "roll-hold-switch": [
+   {
+    "prop": "f16/fcs/switch-pitch-block20",
+    "factor": 45.0,
+    "offset": 0.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     1.0,
+     -0.00116,
+     -0.00046
+    ]
+   }
+  ],
+  "pitch-hold-switch": [
+   {
+    "prop": "f16/fcs/switch-roll-block20",
+    "factor": 45.0,
+    "offset": 0.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     1.0,
+     -0.00116,
+     -0.00046
+    ]
+   }
+  ],
+  "adv-mode-button": [
+   {
+    "prop": "f16/fcs/adv-mode-sel",
+    "factor": -0.0035,
+    "offset": 0.0,
+    "centre": [
+     0.27756,
+     -0.362,
+     0.0616
+    ],
+    "axis": [
+     0.0,
+     0.17365,
+     0.98481
+    ],
+    "type": "translate"
+   }
+  ],
+  "stby-off": [
+   {
+    "prop": "f16/fcs/adv-mode-sel",
+    "factor": -0.0035,
+    "offset": 0.0,
+    "centre": [
+     0.27767,
+     -0.35791,
+     0.05903
+    ],
+    "axis": [
+     0.0,
+     0.17365,
+     0.98481
+    ],
+    "type": "translate"
+   }
+  ],
+  "quiet-switch": [
+   {
+    "prop": "f16/avionics/rf/rf-switch",
+    "factor": -40.0,
+    "offset": 40.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     -1.0,
+     0.00118,
+     0.00052
+    ]
+   }
+  ],
+  "alt-rel-button": [
+   {
+    "prop": "controls/armament/alt-rel-button",
+    "factor": -0.005,
+    "offset": 0.0,
+    "centre": [
+     0.26224,
+     -0.42215,
+     0.06458
+    ],
+    "axis": [
+     0.0,
+     0.17365,
+     0.98481
+    ],
+    "type": "translate"
+   }
+  ],
+  "laser-arm-switch": [
+   {
+    "prop": "controls/armament/laser-arm-dmd",
+    "factor": 60.0,
+    "offset": 0.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     1.0,
+     -0.00117,
+     -0.00052
+    ]
+   }
+  ],
+  "master-arm-switch": [
+   {
+    "prop": "controls/armament/master-arm-switch",
+    "factor": 45.0,
+    "offset": 0.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     1.0,
+     -0.00079,
+     -0.00035
+    ]
+   }
+  ],
+  "anim089": [
    {
     "prop": "instrumentation/airspeed-indicator/indicated-speed-kt",
     "table": [
@@ -689,7 +1788,7 @@
     ]
    }
   ],
-  "anim026": [
+  "anim090": [
    {
     "prop": "instrumentation/airspeed-indicator/indicated-speed-kt",
     "table": [
@@ -817,7 +1916,100 @@
     ]
    }
   ],
-  "anim027": [
+  "anim091": [
+   {
+    "prop": "sim/model/f16/instrumentation/airspeed-indicator/safe-speed-limit-bug",
+    "table": [
+     [
+      0.0,
+      0.0
+     ],
+     [
+      40.0,
+      16.0
+     ],
+     [
+      75.0,
+      31.0
+     ],
+     [
+      100.0,
+      45.0
+     ],
+     [
+      117.0,
+      61.0
+     ],
+     [
+      135.0,
+      75.0
+     ],
+     [
+      150.0,
+      90.0
+     ],
+     [
+      170.0,
+      104.0
+     ],
+     [
+      185.0,
+      120.0
+     ],
+     [
+      200.0,
+      134.0
+     ],
+     [
+      250.0,
+      156.0
+     ],
+     [
+      300.0,
+      180.0
+     ],
+     [
+      350.0,
+      204.0
+     ],
+     [
+      400.0,
+      224.0
+     ],
+     [
+      500.0,
+      251.0
+     ],
+     [
+      600.0,
+      280.0
+     ],
+     [
+      700.0,
+      305.0
+     ],
+     [
+      800.0,
+      332.0
+     ],
+     [
+      850.0,
+      345.0
+     ]
+    ],
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     0.0,
+     -0.34202,
+     -0.93969
+    ]
+   }
+  ],
+  "anim092": [
    {
     "prop": "orientation/roll-deg",
     "factor": 1.0,
@@ -884,7 +2076,7 @@
     "type": "translate"
    }
   ],
-  "anim030": [
+  "anim095": [
    {
     "prop": "instrumentation/slip-skid-ball/indicated-slip-skid",
     "factor": 2.0,
@@ -903,7 +2095,7 @@
     ]
    }
   ],
-  "anim031": [
+  "anim096": [
    {
     "prop": "orientation/roll-deg",
     "factor": 1.0,
@@ -935,7 +2127,7 @@
     ]
    }
   ],
-  "anim032": [
+  "anim097": [
    {
     "prop": "instrumentation/turn-indicator/indicated-turn-rate",
     "factor": 0.0073,
@@ -975,7 +2167,7 @@
     "type": "translate"
    }
   ],
-  "anim034": [
+  "anim099": [
    {
     "prop": "f16/avionics/vvi-indicated-speed-fps",
     "table": [
@@ -1036,7 +2228,75 @@
     ]
    }
   ],
-  "anim035": [
+  "HSI_course-knob": [
+   {
+    "prop": "instrumentation/nav[0]/radials/selected-deg-knob",
+    "factor": 1.0,
+    "offset": 0.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     0.0,
+     -0.79864,
+     -0.60182
+    ]
+   }
+  ],
+  "HSI_hdg-knob": [
+   {
+    "prop": "instrumentation/heading-indicator/heading-bug-deg",
+    "factor": 1.0,
+    "offset": 0.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     0.0,
+     -0.79864,
+     -0.60182
+    ]
+   }
+  ],
+  "FQS_fuel-trans-switch": [
+   {
+    "prop": "controls/fuel/external-transfer",
+    "factor": 50.0,
+    "offset": 0.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     -1.0,
+     0.0,
+     -0.0
+    ]
+   }
+  ],
+  "FQS_sel-knob": [
+   {
+    "prop": "controls/fuel/qty-selector",
+    "factor": 45.0,
+    "offset": 0.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     0.0,
+     -0.79864,
+     -0.60182
+    ]
+   }
+  ],
+  "anim104": [
    {
     "prop": "f16/cockpit/pressure-ft",
     "factor": 0.0061,
@@ -1053,7 +2313,7 @@
     ]
    }
   ],
-  "anim036": [
+  "anim105": [
    {
     "prop": "instrumentation/clock/indicated-sec",
     "factor": 0.00833333333333333,
@@ -1070,7 +2330,7 @@
     ]
    }
   ],
-  "anim037": [
+  "anim106": [
    {
     "prop": "instrumentation/clock/indicated-sec",
     "factor": 0.1,
@@ -1087,7 +2347,7 @@
     ]
    }
   ],
-  "anim038": [
+  "anim107": [
    {
     "prop": "instrumentation/clock/indicated-sec",
     "factor": 6.0,
@@ -1104,7 +2364,7 @@
     ]
    }
   ],
-  "anim039": [
+  "anim108": [
    {
     "prop": "f16/cockpit/hydrazine-minutes",
     "factor": 24.0,
@@ -1121,7 +2381,7 @@
     ]
    }
   ],
-  "anim040": [
+  "anim109": [
    {
     "prop": "f16/fuel/hand-aft-lag",
     "factor": 0.06,
@@ -1139,7 +2399,7 @@
     ]
    }
   ],
-  "anim041": [
+  "anim110": [
    {
     "prop": "f16/fuel/hand-aft-lag",
     "factor": 0.06,
@@ -1157,7 +2417,7 @@
     ]
    }
   ],
-  "anim042": [
+  "anim111": [
    {
     "prop": "consumables/fuel/total-fuel-lbs-10000",
     "factor": 0.0036,
@@ -1174,7 +2434,7 @@
     ]
    }
   ],
-  "anim043": [
+  "anim112": [
    {
     "prop": "consumables/fuel/total-fuel-lbs-1000",
     "factor": 0.036,
@@ -1191,7 +2451,7 @@
     ]
    }
   ],
-  "anim044": [
+  "anim113": [
    {
     "prop": "consumables/fuel/total-fuel-lbs-100",
     "factor": 0.36,
@@ -1208,7 +2468,7 @@
     ]
    }
   ],
-  "anim045": [
+  "anim114": [
    {
     "prop": "consumables/fuel/total-fuel-lbs-10",
     "factor": 3.6,
@@ -1225,7 +2485,7 @@
     ]
    }
   ],
-  "anim046": [
+  "anim115": [
    {
     "prop": "consumables/fuel/total-fuel-lbs-1",
     "factor": 36.0,
@@ -1242,7 +2502,7 @@
     ]
    }
   ],
-  "anim047": [
+  "anim116": [
    {
     "prop": "f16/fuel/hand-fwd-lag",
     "factor": 0.06,
@@ -1260,7 +2520,7 @@
     ]
    }
   ],
-  "anim048": [
+  "anim117": [
    {
     "prop": "f16/fuel/hand-fwd-lag",
     "factor": 0.06,
@@ -1278,7 +2538,7 @@
     ]
    }
   ],
-  "anim049": [
+  "anim118": [
    {
     "prop": "fdm/jsbsim/systems/hydraulics/sysa-psi",
     "factor": 0.08,
@@ -1295,7 +2555,7 @@
     ]
    }
   ],
-  "anim050": [
+  "anim119": [
    {
     "prop": "fdm/jsbsim/systems/hydraulics/sysb-psi",
     "factor": 0.08,
@@ -1312,7 +2572,7 @@
     ]
    }
   ],
-  "anim051": [
+  "anim120": [
    {
     "prop": "f16/cockpit/oxygen-liters-output",
     "factor": 36.0,
@@ -1329,6 +2589,91 @@
     ]
    }
   ],
+  "AirSource_knob": [
+   {
+    "prop": "controls/ventilation/airconditioning-source",
+    "factor": 45.0,
+    "offset": -45.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     0.17365,
+     -0.98481,
+     -0.0
+    ]
+   }
+  ],
+  "TEMP_knob": [
+   {
+    "prop": "controls/ventilation/airconditioning-enabled",
+    "factor": 90.0,
+    "offset": -15.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     0.17365,
+     -0.98481,
+     -0.0
+    ]
+   }
+  ],
+  "ant-sel-iff-switch": [
+   {
+    "prop": "f16/avionics/rf/ant-sel-iff-switch",
+    "factor": -25.0,
+    "offset": 0.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     0.0,
+     0.0,
+     1.0
+    ]
+   }
+  ],
+  "ant-sel-uhf-switch": [
+   {
+    "prop": "f16/avionics/rf/ant-sel-uhf-switch",
+    "factor": -25.0,
+    "offset": 0.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     0.0,
+     0.0,
+     1.0
+    ]
+   }
+  ],
+  "anti-ice-switch": [
+   {
+    "prop": "f16/avionics/anti-ice-switch",
+    "factor": -25.0,
+    "offset": 0.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     0.0,
+     0.0,
+     1.0
+    ]
+   }
+  ],
   "INS": [
    {
     "prop": "f16/avionics/ins-knob",
@@ -1342,6 +2687,329 @@
     "axis": [
      -0.17365,
      0.98481,
+     -0.0
+    ]
+   }
+  ],
+  "dl-switch": [
+   {
+    "prop": "f16/avionics/power-dl",
+    "factor": 50.0,
+    "offset": -25.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     0.0,
+     0.0,
+     -1.0
+    ]
+   }
+  ],
+  "gps-switch": [
+   {
+    "prop": "f16/avionics/power-gps",
+    "factor": 50.0,
+    "offset": -25.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     0.0,
+     0.0,
+     -1.0
+    ]
+   }
+  ],
+  "altrad-switch": [
+   {
+    "prop": "f16/avionics/hud-alt",
+    "factor": 35.0,
+    "offset": -35.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     -0.98481,
+     -0.17365,
+     -0.0
+    ]
+   }
+  ],
+  "att_fpm-switch": [
+   {
+    "prop": "f16/avionics/hud-fpm",
+    "factor": 35.0,
+    "offset": -35.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     -0.98481,
+     -0.17365,
+     -0.0
+    ]
+   }
+  ],
+  "tas-switch": [
+   {
+    "prop": "f16/avionics/hud-velocity",
+    "factor": 35.0,
+    "offset": 0.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     -0.98481,
+     -0.17365,
+     -0.0
+    ]
+   }
+  ],
+  "test-step-switch": [
+   {
+    "prop": "f16/avionics/hud-test",
+    "factor": 35.0,
+    "offset": -35.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     -0.98481,
+     -0.17365,
+     -0.0
+    ]
+   }
+  ],
+  "w_vah-switch": [
+   {
+    "prop": "f16/avionics/hud-scales",
+    "factor": 35.0,
+    "offset": -35.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     -0.98481,
+     -0.17365,
+     -0.0
+    ]
+   }
+  ],
+  "KY_58_KNOB_MODE": [
+   {
+    "prop": "f16/avionics/ky58-mode",
+    "factor": -55.0,
+    "offset": 60.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     -0.17365,
+     0.98481,
+     -0.0
+    ]
+   }
+  ],
+  "KY_58_KNOB_PULL": [
+   {
+    "prop": "f16/avionics/ky58-z",
+    "factor": -37.0,
+    "offset": 0.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     -0.17365,
+     0.98481,
+     -0.0
+    ]
+   }
+  ],
+  "KY_58_VOL_KNOB": [
+   {
+    "prop": "f16/avionics/ky58-volume",
+    "factor": -200.0,
+    "offset": 10.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     -0.17365,
+     0.98481,
+     -0.0
+    ]
+   }
+  ],
+  "TD_knob": [
+   {
+    "prop": "f16/avionics/ky58-enable",
+    "factor": -35.0,
+    "offset": 60.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     -0.17365,
+     0.98481,
+     -0.0
+    ]
+   }
+  ],
+  "console-flood-knob": [
+   {
+    "prop": "controls/lighting/lighting-panel/console-flood-knob",
+    "factor": -330.0,
+    "offset": 155.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     -0.17365,
+     0.98481,
+     -0.0
+    ]
+   }
+  ],
+  "console-primary-knob": [
+   {
+    "prop": "controls/lighting/lighting-panel/console-primary-knob",
+    "factor": -222.0,
+    "offset": 135.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     -0.17365,
+     0.98481,
+     -0.0
+    ]
+   }
+  ],
+  "data-entry-display-knob": [
+   {
+    "prop": "controls/lighting/lighting-panel/data-entry-display",
+    "factor": -222.0,
+    "offset": 135.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     -0.17365,
+     0.98481,
+     -0.0
+    ]
+   }
+  ],
+  "indv-lgt-cont": [
+   {
+    "prop": "f16/avionics/indv-ltg-brightness-switch",
+    "factor": 60.0,
+    "offset": -30.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     -0.98481,
+     -0.17365,
+     -0.0
+    ]
+   }
+  ],
+  "inst-pnl-flood-knob": [
+   {
+    "prop": "controls/lighting/lighting-panel/flood-inst-pnl-knob",
+    "factor": -222.0,
+    "offset": 135.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     -0.17365,
+     0.98481,
+     -0.0
+    ]
+   }
+  ],
+  "inst-pnl-primary-knob": [
+   {
+    "prop": "controls/lighting/lighting-panel/pri-inst-pnl-knob",
+    "factor": -222.0,
+    "offset": 135.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     -0.17365,
+     0.98481,
+     -0.0
+    ]
+   }
+  ],
+  "mal-ind-lts-switch": [
+   {
+    "prop": "controls/lighting/lighting-panel/mal-ind-lts-brightness-switch",
+    "factor": 30.0,
+    "offset": 0.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     -0.98481,
+     -0.17365,
+     -0.0
+    ]
+   }
+  ],
+  "mms-switch": [
+   {
+    "prop": "f16/avionics/nvis",
+    "factor": 60.0,
+    "offset": -30.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     -0.98481,
+     -0.17365,
      -0.0
     ]
    }
@@ -1380,7 +3048,24 @@
     ]
    }
   ],
-  "anim055": [
+  "plain-switch": [
+   {
+    "prop": "f16/avionics/plain-cipher",
+    "factor": 25.0,
+    "offset": 0.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     -0.98481,
+     -0.17365,
+     -0.0
+    ]
+   }
+  ],
+  "anim149": [
    {
     "prop": "f16/avionics/oxy-psi",
     "factor": -0.6,
@@ -1397,9 +3082,94 @@
     ]
    }
   ],
+  "EM-NO-TE": [
+   {
+    "prop": "f16/avionics/em-no-te-switch",
+    "factor": -20.0,
+    "offset": 0.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     0.0,
+     0.0,
+     1.0
+    ]
+   }
+  ],
+  "O2": [
+   {
+    "prop": "f16/avionics/o2-switch",
+    "factor": -20.0,
+    "offset": 0.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     0.0,
+     0.0,
+     1.0
+    ]
+   }
+  ],
+  "PBG": [
+   {
+    "prop": "f16/avionics/pbg-switch",
+    "factor": -20.0,
+    "offset": 0.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     0.0,
+     0.0,
+     1.0
+    ]
+   }
+  ],
   "FCR": [
    {
     "prop": "f16/avionics/power-fcr",
+    "factor": 40.0,
+    "offset": -20.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     -0.98481,
+     -0.17365,
+     -0.0
+    ]
+   }
+  ],
+  "l-hdpt-switch": [
+   {
+    "prop": "f16/avionics/power-left-hdpt",
+    "factor": 40.0,
+    "offset": -20.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     -0.98481,
+     -0.17365,
+     -0.0
+    ]
+   }
+  ],
+  "r-hdpt-switch": [
+   {
+    "prop": "f16/avionics/power-right-hdpt",
     "factor": 40.0,
     "offset": -20.0,
     "centre": [
@@ -1465,7 +3235,24 @@
     ]
    }
   ],
-  "anim060": [
+  "voice-msg-switch": [
+   {
+    "prop": "f16/avionics/voice-msg-inhibit",
+    "factor": -50.0,
+    "offset": 25.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     -0.98481,
+     -0.17365,
+     -0.0
+    ]
+   }
+  ],
+  "anim160": [
    {
     "prop": "f16/cockpit/fuel-flow-digit-5",
     "factor": 36.0,
@@ -1482,7 +3269,7 @@
     ]
    }
   ],
-  "anim061": [
+  "anim161": [
    {
     "prop": "f16/cockpit/fuel-flow-digit-4",
     "factor": 36.0,
@@ -1499,7 +3286,7 @@
     ]
    }
   ],
-  "anim062": [
+  "anim162": [
    {
     "prop": "f16/cockpit/fuel-flow-digit-3",
     "factor": 36.0,
@@ -1516,7 +3303,7 @@
     ]
    }
   ],
-  "anim063": [
+  "anim163": [
    {
     "prop": "instrumentation/attitude-indicator[2]/indicated-roll-deg",
     "factor": 1.0,
@@ -1533,7 +3320,7 @@
     ]
    }
   ],
-  "anim064": [
+  "anim164": [
    {
     "prop": "instrumentation/attitude-indicator[2]/indicated-roll-deg",
     "factor": 1.0,
@@ -1550,7 +3337,7 @@
     ]
    }
   ],
-  "anim065": [
+  "anim165": [
    {
     "prop": "instrumentation/attitude-indicator[2]/indicated-roll-deg",
     "factor": 1.0,
@@ -1582,7 +3369,7 @@
     ]
    }
   ],
-  "anim066": [
+  "anim166": [
    {
     "prop": "engines/engine[0]/ftit-degc",
     "table": [
@@ -1627,7 +3414,7 @@
     ]
    }
   ],
-  "anim067": [
+  "anim167": [
    {
     "prop": "engines/engine[0]/nozzle-pos-norm-lag",
     "factor": 250.0,
@@ -1644,7 +3431,7 @@
     ]
    }
   ],
-  "anim068": [
+  "anim168": [
    {
     "prop": "engines/engine[0]/oil-pressure-psi",
     "factor": 3.3,
@@ -1661,7 +3448,7 @@
     ]
    }
   ],
-  "anim069": [
+  "anim169": [
    {
     "prop": "engines/engine[0]/n2",
     "table": [
@@ -1690,7 +3477,7 @@
     ]
    }
   ],
-  "anim070": [
+  "anim170": [
    {
     "prop": "instrumentation/magnetic-compass/indicated-heading-deg",
     "factor": 1.0,
@@ -1703,6 +3490,549 @@
     "axis": [
      0.0,
      1.0,
+     -0.0
+    ]
+   }
+  ],
+  "IFF_button": [
+   {
+    "prop": "f16/ews/rwr-int",
+    "factor": -180.0,
+    "offset": 0.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     0.0,
+     0.23853,
+     0.97113
+    ]
+   }
+  ],
+  "MFD1_MFDButtonBrightness": [
+   {
+    "prop": "f16/avionics/mfd-l-brt",
+    "factor": 0.0,
+    "offset": 0.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     1.0,
+     0.0,
+     -0.0
+    ]
+   }
+  ],
+  "MFD1_MFDButtonCon": [
+   {
+    "prop": "f16/avionics/mfd-l-con",
+    "factor": 0.0,
+    "offset": 0.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     1.0,
+     0.0,
+     -0.0
+    ]
+   }
+  ],
+  "MFD1_MFDButtonGain": [
+   {
+    "prop": "f16/avionics/mfd-l-gain",
+    "factor": 0.0,
+    "offset": 0.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     1.0,
+     0.0,
+     -0.0
+    ]
+   }
+  ],
+  "MFD2_MFDButtonBrightness": [
+   {
+    "prop": "f16/avionics/mfd-r-brt",
+    "factor": 0.0,
+    "offset": 0.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     1.0,
+     0.0,
+     -0.0
+    ]
+   }
+  ],
+  "MFD2_MFDButtonCon": [
+   {
+    "prop": "f16/avionics/mfd-r-con",
+    "factor": 0.0,
+    "offset": 0.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     1.0,
+     0.0,
+     -0.0
+    ]
+   }
+  ],
+  "MFD2_MFDButtonGain": [
+   {
+    "prop": "f16/avionics/mfd-l-gain",
+    "factor": 0.0,
+    "offset": 0.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     1.0,
+     0.0,
+     -0.0
+    ]
+   }
+  ],
+  "brt": [
+   {
+    "prop": "f16/avionics/hud-brt",
+    "factor": -240.0,
+    "offset": 240.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     1.0,
+     0.0,
+     -0.0
+    ]
+   }
+  ],
+  "cont": [
+   {
+    "prop": "f16/avionics/hud-cont",
+    "factor": -240.0,
+    "offset": 240.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     1.0,
+     0.0,
+     -0.0
+    ]
+   }
+  ],
+  "depr_ret": [
+   {
+    "prop": "f16/avionics/hud-depr-ret",
+    "factor": -240.0,
+    "offset": 240.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     1.0,
+     0.0,
+     -0.0
+    ]
+   }
+  ],
+  "drift": [
+   {
+    "prop": "f16/avionics/hud-drift",
+    "factor": 40.0,
+    "offset": -40.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     -1.0,
+     0.0,
+     -0.0
+    ]
+   }
+  ],
+  "0": [
+   {
+    "prop": "controls/icp/key[0]",
+    "factor": -0.0015,
+    "offset": 0.0,
+    "centre": [
+     -0.0133,
+     0.01687,
+     -0.00054
+    ],
+    "axis": [
+     0.0,
+     0.0,
+     1.0
+    ],
+    "type": "translate"
+   }
+  ],
+  "1": [
+   {
+    "prop": "controls/icp/key[1]",
+    "factor": -0.0015,
+    "offset": 0.0,
+    "centre": [
+     0.04611,
+     -0.02455,
+     -0.00054
+    ],
+    "axis": [
+     0.0,
+     0.0,
+     1.0
+    ],
+    "type": "translate"
+   }
+  ],
+  "2": [
+   {
+    "prop": "controls/icp/key[2]",
+    "factor": -0.0015,
+    "offset": 0.0,
+    "centre": [
+     0.02693,
+     -0.02455,
+     -0.00054
+    ],
+    "axis": [
+     0.0,
+     0.0,
+     1.0
+    ],
+    "type": "translate"
+   }
+  ],
+  "3": [
+   {
+    "prop": "controls/icp/key[3]",
+    "factor": -0.0015,
+    "offset": 0.0,
+    "centre": [
+     0.00533,
+     -0.02455,
+     -0.00054
+    ],
+    "axis": [
+     0.0,
+     0.0,
+     1.0
+    ],
+    "type": "translate"
+   }
+  ],
+  "4": [
+   {
+    "prop": "controls/icp/key[4]",
+    "factor": -0.0015,
+    "offset": 0.0,
+    "centre": [
+     0.04611,
+     -0.00293,
+     -0.00054
+    ],
+    "axis": [
+     0.0,
+     0.0,
+     1.0
+    ],
+    "type": "translate"
+   }
+  ],
+  "5": [
+   {
+    "prop": "controls/icp/key[5]",
+    "factor": -0.0015,
+    "offset": 0.0,
+    "centre": [
+     0.02693,
+     -0.00293,
+     -0.00054
+    ],
+    "axis": [
+     0.0,
+     0.0,
+     1.0
+    ],
+    "type": "translate"
+   }
+  ],
+  "6": [
+   {
+    "prop": "controls/icp/key[6]",
+    "factor": -0.0015,
+    "offset": 0.0,
+    "centre": [
+     0.00533,
+     -0.00293,
+     -0.00054
+    ],
+    "axis": [
+     0.0,
+     0.0,
+     1.0
+    ],
+    "type": "translate"
+   }
+  ],
+  "7": [
+   {
+    "prop": "controls/icp/key[7]",
+    "factor": -0.0015,
+    "offset": 0.0,
+    "centre": [
+     0.04611,
+     0.01687,
+     -0.00054
+    ],
+    "axis": [
+     0.0,
+     0.0,
+     1.0
+    ],
+    "type": "translate"
+   }
+  ],
+  "8": [
+   {
+    "prop": "controls/icp/key[8]",
+    "factor": -0.0015,
+    "offset": 0.0,
+    "centre": [
+     0.02693,
+     0.01687,
+     -0.00054
+    ],
+    "axis": [
+     0.0,
+     0.0,
+     1.0
+    ],
+    "type": "translate"
+   }
+  ],
+  "9": [
+   {
+    "prop": "controls/icp/key[9]",
+    "factor": -0.0015,
+    "offset": 0.0,
+    "centre": [
+     0.00533,
+     0.01687,
+     -0.00054
+    ],
+    "axis": [
+     0.0,
+     0.0,
+     1.0
+    ],
+    "type": "translate"
+   }
+  ],
+  "a-a": [
+   {
+    "prop": "controls/icp/button-a-a",
+    "factor": -0.005,
+    "offset": 0.0,
+    "centre": [
+     -0.03022,
+     -0.04609,
+     -0.00411
+    ],
+    "axis": [
+     0.0,
+     0.0,
+     1.0
+    ],
+    "type": "translate"
+   }
+  ],
+  "a-g": [
+   {
+    "prop": "controls/icp/button-a-g",
+    "factor": -0.005,
+    "offset": 0.0,
+    "centre": [
+     -0.05083,
+     -0.04584,
+     -0.00411
+    ],
+    "axis": [
+     0.0,
+     0.0,
+     1.0
+    ],
+    "type": "translate"
+   }
+  ],
+  "com1": [
+   {
+    "prop": "controls/icp/button-com1",
+    "factor": -0.005,
+    "offset": 0.0,
+    "centre": [
+     0.05222,
+     -0.04602,
+     -0.00411
+    ],
+    "axis": [
+     0.0,
+     0.0,
+     1.0
+    ],
+    "type": "translate"
+   }
+  ],
+  "com2": [
+   {
+    "prop": "controls/icp/button-com2",
+    "factor": -0.005,
+    "offset": 0.0,
+    "centre": [
+     0.03152,
+     -0.04595,
+     -0.00411
+    ],
+    "axis": [
+     0.0,
+     0.0,
+     1.0
+    ],
+    "type": "translate"
+   }
+  ],
+  "entr": [
+   {
+    "prop": "controls/icp/key[10]",
+    "factor": -0.0015,
+    "offset": 0.0,
+    "centre": [
+     -0.01643,
+     -0.00355,
+     -0.00274
+    ],
+    "axis": [
+     0.0,
+     0.0,
+     1.0
+    ],
+    "type": "translate"
+   }
+  ],
+  "ICP_iff": [
+   {
+    "prop": "controls/icp/button-iff",
+    "factor": -0.005,
+    "offset": 0.0,
+    "centre": [
+     0.01089,
+     -0.04548,
+     -0.00411
+    ],
+    "axis": [
+     0.0,
+     0.0,
+     1.0
+    ],
+    "type": "translate"
+   }
+  ],
+  "list": [
+   {
+    "prop": "controls/icp/button-list",
+    "factor": -0.005,
+    "offset": 0.0,
+    "centre": [
+     -0.00962,
+     -0.04566,
+     -0.00411
+    ],
+    "axis": [
+     0.0,
+     0.0,
+     1.0
+    ],
+    "type": "translate"
+   }
+  ],
+  "rcl": [
+   {
+    "prop": "controls/icp/key[11]",
+    "factor": -0.0015,
+    "offset": 0.0,
+    "centre": [
+     -0.01643,
+     -0.02517,
+     -0.00079
+    ],
+    "axis": [
+     0.0,
+     0.0,
+     1.0
+    ],
+    "type": "translate"
+   }
+  ],
+  "anim200": [
+   {
+    "prop": "f16/avionics/rtn-seq",
+    "factor": 30.0,
+    "offset": 0.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     0.0,
+     1.0,
+     -0.0
+    ]
+   },
+   {
+    "prop": "f16/avionics/ded-up-down",
+    "factor": -30.0,
+    "offset": 0.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     1.0,
+     0.0,
      -0.0
     ]
    }
@@ -1724,7 +4054,7 @@
     ]
    }
   ],
-  "anim072": [
+  "anim202": [
    {
     "prop": "instrumentation/altimeter/indicated-altitude-ft",
     "factor": 0.36,
@@ -2116,5 +4446,1359 @@
   "ADI_yaw-steering-bar": "ils",
   "ADI_pitch-strg-bar": "ils"
  },
- "light": "f16_light.png"
+ "light": "f16_light.png",
+ "controls": {
+  "CAUTION_RESET": {
+   "prop": "f16/avionics/caution/elec-reset-btn",
+   "mode": "push",
+   "press": 1.0,
+   "rest": 0.0,
+   "modelled": 0.0
+  },
+  "SW_FLCS_BIT": {
+   "prop": "f16/fcs/bit",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 0.0
+  },
+  "AVTR_TEST": {
+   "prop": "controls/test/avtr-test",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 0.0
+  },
+  "SW_KNOB_ENG_FEED": {
+   "prop": "f16/engine/feed",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 3.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 1.0
+  },
+  "SW_PROBE_HEAT": {
+   "prop": "f16/avionics/probe-heat-switch",
+   "mode": "cycle",
+   "min": -1.0,
+   "max": 1.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 0.0
+  },
+  "SW_TEST_OXY": {
+   "prop": "controls/test/test-panel/oxy-test",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 1.0,
+   "wrap": true,
+   "rest": 0.0,
+   "modelled": 0.0
+  },
+  "SW_TEST_EPU": {
+   "prop": "controls/test/test-panel/epu-test",
+   "mode": "push",
+   "press": 1.0,
+   "rest": 0.0,
+   "modelled": 0.0
+  },
+  "FIRE_OHEAT_DETECT": {
+   "prop": "controls/test/test-panel/fire-ovht-test",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 0.0
+  },
+  "HF-PBG_TEST": {
+   "prop": "controls/test/test-panel/pbg-test",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 0.0
+  },
+  "SW_FLCS_TEST": {
+   "prop": "fdm/jsbsim/elec/switches/flcs-pwr-test",
+   "mode": "push",
+   "press": 1.0,
+   "rest": 0.0,
+   "modelled": 0.0
+  },
+  "SW_MASTER_FUEL": {
+   "prop": "fdm/jsbsim/elec/switches/master-fuel-cmd",
+   "mode": "push",
+   "press": 1.0,
+   "rest": 0.0,
+   "modelled": 0.0
+  },
+  "SW_AIR_REFUEL": {
+   "prop": "systems/refuel/switch",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 0.0
+  },
+  "SW_TANK_INERTING": {
+   "prop": "controls/fuel/tank-inerting",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 0.0
+  },
+  "SW_ALT_FLAPS_50": {
+   "prop": "controls/flight/alt-flaps",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 0.0
+  },
+  "SW_DBU": {
+   "prop": "f16/fcs/digital-backup",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 0.0
+  },
+  "SW_MASTER_50": {
+   "prop": "controls/lighting/ext-lighting-panel/master",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 0.0
+  },
+  "SW_ANTI_COLLISION_50": {
+   "prop": "controls/lighting/ext-lighting-panel/anti-collision",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 0.0
+  },
+  "SW_POS_LIGHTS_50": {
+   "prop": "controls/lighting/ext-lighting-panel/pos-lights-flash",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 0.0
+  },
+  "SW_WING-TAIL_50": {
+   "prop": "controls/lighting/ext-lighting-panel/wing-tail",
+   "mode": "cycle",
+   "min": -1.0,
+   "max": 1.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 0.0
+  },
+  "SW_FUSELAGE_50": {
+   "prop": "controls/lighting/ext-lighting-panel/fuselage",
+   "mode": "cycle",
+   "min": -1.0,
+   "max": 1.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 0.0
+  },
+  "MAL_IND_LTS": {
+   "prop": "controls/test/test-panel/mal-ind-lts-btn",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 0.0
+  },
+  "SW_LE_FLAPS_50": {
+   "prop": "f16/fcs/le-flaps-switch",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 0.0
+  },
+  "JFS": {
+   "prop": "f16/engine/jfs-start-switch",
+   "mode": "cycle",
+   "min": -1.0,
+   "max": 1.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 0.0
+  },
+  "SW_MPO": {
+   "prop": "fdm/jsbsim/fcs/fbw-override",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 1.0,
+   "wrap": true,
+   "rest": 0.0,
+   "modelled": 0.0
+  },
+  "MAIN_PWR": {
+   "prop": "fdm/jsbsim/elec/switches/main-pwr",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 2.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 1.0
+  },
+  "SW_MAX_POWER": {
+   "prop": "f16/engine/max-power",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 0.0
+  },
+  "SW_STARTING_FUEL": {
+   "prop": "f16/engine/ab-reset",
+   "mode": "cycle",
+   "min": -1.0,
+   "max": 1.0,
+   "step": 1.0,
+   "wrap": true,
+   "rest": 0.0,
+   "modelled": 0.0
+  },
+  "SW_EPU": {
+   "prop": "fdm/jsbsim/elec/switches/epu",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 2.0,
+   "step": 1.0,
+   "wrap": true,
+   "guard": "fdm/jsbsim/elec/switches/epu-cover",
+   "safe": 1.0,
+   "modelled": 1.0
+  },
+  "ils-vol-knob": {
+   "prop": "f16/avionics/ils-volume",
+   "mode": "slide",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 0.05,
+   "wrap": false,
+   "modelled": 0.48
+  },
+  "msl-vol-knob": {
+   "prop": "f16/ews/msl-vol-knob",
+   "mode": "slide",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 0.05,
+   "wrap": false,
+   "modelled": 0.68
+  },
+  "tacan-vol-knob": {
+   "prop": "instrumentation/tacan/volume",
+   "mode": "slide",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 0.05,
+   "wrap": false,
+   "modelled": 0.48
+  },
+  "threat-vol-knob": {
+   "prop": "f16/ews/rwr-volume",
+   "mode": "slide",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 0.05,
+   "wrap": false,
+   "modelled": 0.68
+  },
+  "intercom-knob": {
+   "prop": "f16/avionics/intercom-volume",
+   "mode": "slide",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 0.05,
+   "wrap": false,
+   "modelled": 0.48
+  },
+  "COMM1_KNOB": {
+   "prop": "instrumentation/comm[0]/volume",
+   "mode": "slide",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 0.05,
+   "wrap": false,
+   "modelled": 0.36
+  },
+  "COMM2_KNOB": {
+   "prop": "instrumentation/comm[1]/volume",
+   "mode": "slide",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 0.05,
+   "wrap": false,
+   "modelled": 0.48
+  },
+  "SW_KNOB_EXT_FORM_LIGHT_50": {
+   "prop": "controls/lighting/ext-lighting-panel/form-knob",
+   "mode": "slide",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 0.05,
+   "wrap": false,
+   "modelled": 1.0
+  },
+  "SW_KNOB_REFUEL_50": {
+   "prop": "controls/lighting/ext-lighting-panel/ar-knob",
+   "mode": "slide",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 0.05,
+   "wrap": false,
+   "modelled": 1.0
+  },
+  "SW_EPU_COVER": {
+   "prop": "fdm/jsbsim/elec/switches/epu-cover",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 0.0
+  },
+  "horn_silencer": {
+   "prop": "controls/gear/gear-horn-cutout",
+   "mode": "push",
+   "press": 1.0,
+   "rest": 0.0,
+   "modelled": 0.0
+  },
+  "EMER_JETT": {
+   "prop": "c3d/LeftAuxConsole/EMER_JETT",
+   "mode": "push",
+   "press": 1.0,
+   "rest": 0.0,
+   "modelled": 0.0
+  },
+  "alt-gear": {
+   "prop": "f16/cockpit/alt-gear-handle",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 0.0
+  },
+  "SW_HOOK": {
+   "prop": "f16/cockpit/tailhook-handle",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 0.0
+  },
+  "SW_GND_JETT": {
+   "prop": "f16/avionics/gnd-jett",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 0.0
+  },
+  "light-land-switch": {
+   "prop": "controls/lighting/landing-light",
+   "mode": "cycle",
+   "min": -1.0,
+   "max": 1.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 0.0
+  },
+  "light-land-switch_01": {
+   "prop": "controls/lighting/landing-light",
+   "mode": "cycle",
+   "min": -1.0,
+   "max": 1.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 0.0
+  },
+  "SW_PARKING_BRAKE": {
+   "prop": "controls/gear/brake-parking",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 0.0
+  },
+  "SW_STORES_CONFIG": {
+   "prop": "fdm/jsbsim/fcs/fly-by-wire/enable-cat-III",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 0.0
+  },
+  "RWR_50_switch": {
+   "prop": "f16/ews/ew-rwr-switch",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 0.0
+  },
+  "MWS_50_switch": {
+   "prop": "f16/ews/ew-mws-switch",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 0.0
+  },
+  "JETT_50_switch": {
+   "prop": "f16/ews/ew-jett-switch",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 0.0
+  },
+  "JMR_50_switch": {
+   "prop": "f16/ews/ew-jmr-switch",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 0.0
+  },
+  "01_50_switch": {
+   "prop": "f16/avionics/cmds-01-switch",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 0.0
+  },
+  "02_50_switch": {
+   "prop": "f16/avionics/cmds-02-switch",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 0.0
+  },
+  "CH_50_switch": {
+   "prop": "f16/avionics/cmds-ch-switch",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 0.0
+  },
+  "FL_50_switch": {
+   "prop": "f16/avionics/cmds-fl-switch",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 0.0
+  },
+  "MODE_50_knob": {
+   "prop": "f16/ews/ew-mode-knob",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 2.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 2.0
+  },
+  "HMCS_SYM_INT_KNOB": {
+   "prop": "f16/avionics/hmd-sym-int-knob",
+   "mode": "slide",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 0.05,
+   "wrap": false,
+   "modelled": 0.5185
+  },
+  "alt-rel-button": {
+   "prop": "controls/armament/alt-rel-button",
+   "mode": "push",
+   "press": 1.0,
+   "rest": 0.0,
+   "modelled": 0.0
+  },
+  "laser-arm-switch": {
+   "prop": "controls/armament/laser-arm-dmd",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 0.0
+  },
+  "master-arm-switch": {
+   "prop": "controls/armament/master-arm-switch",
+   "mode": "cycle",
+   "min": -1.0,
+   "max": 1.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 0.0
+  },
+  "quiet-switch": {
+   "prop": "f16/avionics/rf/rf-switch",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 2.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 1.0
+  },
+  "roll-hold-switch": {
+   "prop": "f16/fcs/switch-pitch-block20",
+   "mode": "cycle",
+   "min": -1.0,
+   "max": 1.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 0.0
+  },
+  "pitch-hold-switch": {
+   "prop": "f16/fcs/switch-roll-block20",
+   "mode": "cycle",
+   "min": -1.0,
+   "max": 1.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 0.0
+  },
+  "stby-off": {
+   "prop": "f16/fcs/adv-mode-sel",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 0.0
+  },
+  "active-off": {
+   "prop": "f16/fcs/adv-mode-sel",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 0.0
+  },
+  "adv-mode-button": {
+   "prop": "f16/fcs/adv-mode-sel",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 0.0
+  },
+  "ASI_bug-left": {
+   "prop": "sim/model/f16/instrumentation/airspeed-indicator/safe-speed-limit-bug",
+   "mode": "add",
+   "min": 225.0,
+   "max": 1000000000.0,
+   "step": -10.0,
+   "wrap": false
+  },
+  "ASI_bug-right": {
+   "prop": "sim/model/f16/instrumentation/airspeed-indicator/safe-speed-limit-bug",
+   "mode": "add",
+   "min": -1000000000.0,
+   "max": 850.0,
+   "step": 10.0,
+   "wrap": false
+  },
+  "HSI_hdg-knob": {
+   "prop": "instrumentation/heading-indicator/heading-bug-deg",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 360.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 0.0
+  },
+  "HSI_course-knob": {
+   "prop": "instrumentation/nav[0]/radials/selected-deg-knob",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 360.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 0.0
+  },
+  "EHSI_button": {
+   "prop": "sim/model/f16/controls/navigation/instrument-mode-panel/mode/rotary-switch-knob",
+   "mode": "add",
+   "min": 0.0,
+   "max": 5.0,
+   "step": 1.0,
+   "wrap": true
+  },
+  "FQS_sel-knob": {
+   "prop": "controls/fuel/qty-selector",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 5.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 0.0
+  },
+  "FQS_fuel-trans-switch": {
+   "prop": "controls/fuel/external-transfer",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 0.0
+  },
+  "time-offset-left": {
+   "prop": "instrumentation/clock/offset-sec",
+   "mode": "add",
+   "min": -1000000000.0,
+   "max": 1000000000.0,
+   "step": -60.0,
+   "wrap": false
+  },
+  "time-offset-right": {
+   "prop": "instrumentation/clock/offset-sec",
+   "mode": "add",
+   "min": -1000000000.0,
+   "max": 1000000000.0,
+   "step": 60.0,
+   "wrap": false
+  },
+  "chronometer-button": {
+   "prop": "c3d/RightAuxConsole/chronometer-button",
+   "mode": "push",
+   "press": 1.0,
+   "rest": 0.0,
+   "modelled": 0.0
+  },
+  "inst-pnl-flood-knob": {
+   "prop": "controls/lighting/lighting-panel/flood-inst-pnl-knob",
+   "mode": "slide",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 0.05,
+   "wrap": false,
+   "modelled": 0.6081
+  },
+  "inst-pnl-primary-knob": {
+   "prop": "controls/lighting/lighting-panel/pri-inst-pnl-knob",
+   "mode": "slide",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 0.05,
+   "wrap": false,
+   "modelled": 0.6081
+  },
+  "console-flood-knob": {
+   "prop": "controls/lighting/lighting-panel/console-flood-knob",
+   "mode": "slide",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 0.05,
+   "wrap": false,
+   "modelled": 0.4697
+  },
+  "data-entry-display-knob": {
+   "prop": "controls/lighting/lighting-panel/data-entry-display",
+   "mode": "slide",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 0.05,
+   "wrap": false,
+   "modelled": 0.6081
+  },
+  "console-primary-knob": {
+   "prop": "controls/lighting/lighting-panel/console-primary-knob",
+   "mode": "slide",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 0.05,
+   "wrap": false,
+   "modelled": 0.6081
+  },
+  "TEMP_knob": {
+   "prop": "controls/ventilation/airconditioning-enabled",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 0.0
+  },
+  "AirSource_knob": {
+   "prop": "controls/ventilation/airconditioning-source",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 3.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 1.0
+  },
+  "tas-switch": {
+   "prop": "f16/avionics/hud-velocity",
+   "mode": "cycle",
+   "min": -1.0,
+   "max": 1.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 0.0
+  },
+  "altrad-switch": {
+   "prop": "f16/avionics/hud-alt",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 2.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 1.0
+  },
+  "w_vah-switch": {
+   "prop": "f16/avionics/hud-scales",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 2.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 1.0
+  },
+  "att_fpm-switch": {
+   "prop": "f16/avionics/hud-fpm",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 2.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 1.0
+  },
+  "test-step-switch": {
+   "prop": "f16/avionics/hud-test",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 2.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 1.0
+  },
+  "l-hdpt-switch": {
+   "prop": "f16/avionics/power-left-hdpt",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 0.0
+  },
+  "mal-ind-lts-switch": {
+   "prop": "controls/lighting/lighting-panel/mal-ind-lts-brightness-switch",
+   "mode": "cycle",
+   "min": -1.0,
+   "max": 1.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 0.0
+  },
+  "mms-switch": {
+   "prop": "f16/avionics/nvis",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 0.0
+  },
+  "indv-lgt-cont": {
+   "prop": "f16/avionics/indv-ltg-brightness-switch",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 0.0
+  },
+  "r-hdpt-switch": {
+   "prop": "f16/avionics/power-right-hdpt",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 0.0
+  },
+  "FCR": {
+   "prop": "f16/avionics/power-fcr",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 0.0
+  },
+  "RDR_ALT": {
+   "prop": "f16/avionics/power-rdr-alt",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 2.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 1.0
+  },
+  "voice-msg-switch": {
+   "prop": "f16/avionics/voice-msg-inhibit",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 0.0
+  },
+  "AVIONICS_MMC": {
+   "prop": "f16/avionics/power-mmc",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 0.0
+  },
+  "AVIONICS_ST_STA": {
+   "prop": "f16/avionics/power-st-sta",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 0.0
+  },
+  "AVIONICS_MFD": {
+   "prop": "f16/avionics/power-mfd",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 0.0
+  },
+  "AVIONICS_UFC": {
+   "prop": "f16/avionics/power-ufc",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 0.0
+  },
+  "dl-switch": {
+   "prop": "f16/avionics/power-dl",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 0.0
+  },
+  "gps-switch": {
+   "prop": "f16/avionics/power-gps",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 0.0
+  },
+  "anti-ice-switch": {
+   "prop": "f16/avionics/anti-ice-switch",
+   "mode": "cycle",
+   "min": -1.0,
+   "max": 1.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 0.0
+  },
+  "ant-sel-iff-switch": {
+   "prop": "f16/avionics/rf/ant-sel-iff-switch",
+   "mode": "cycle",
+   "min": -1.0,
+   "max": 1.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 0.0
+  },
+  "ant-sel-uhf-switch": {
+   "prop": "f16/avionics/rf/ant-sel-uhf-switch",
+   "mode": "cycle",
+   "min": -1.0,
+   "max": 1.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 0.0
+  },
+  "EM-NO-TE": {
+   "prop": "f16/avionics/em-no-te-switch",
+   "mode": "cycle",
+   "min": -1.0,
+   "max": 1.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 0.0
+  },
+  "O2": {
+   "prop": "f16/avionics/o2-switch",
+   "mode": "slide",
+   "min": -1.0,
+   "max": 1.0,
+   "step": 0.1,
+   "wrap": false,
+   "modelled": 0.0
+  },
+  "PBG": {
+   "prop": "f16/avionics/pbg-switch",
+   "mode": "cycle",
+   "min": -1.0,
+   "max": 1.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 0.0
+  },
+  "KY_58_VOL_KNOB": {
+   "prop": "f16/avionics/ky58-volume",
+   "mode": "slide",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 0.1,
+   "wrap": false,
+   "modelled": 0.05
+  },
+  "KY_58_KNOB_MODE": {
+   "prop": "f16/avionics/ky58-mode",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 3.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 1.0
+  },
+  "KY_58_KNOB_PULL": {
+   "prop": "f16/avionics/ky58-z",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 7.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 0.0
+  },
+  "TD_knob": {
+   "prop": "f16/avionics/ky58-enable",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 2.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 2.0
+  },
+  "INS": {
+   "prop": "f16/avionics/ins-knob",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 5.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 3.0
+  },
+  "plain-switch": {
+   "prop": "f16/avionics/plain-cipher",
+   "mode": "cycle",
+   "min": -1.0,
+   "max": 1.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 0.0
+  },
+  "nuke-consent-cover": {
+   "prop": "c3d/RightConsole/nuke-consent-cover",
+   "mode": "push",
+   "press": 1.0,
+   "rest": 0.0,
+   "modelled": 0.0
+  },
+  "nuke-consent-switch": {
+   "prop": "c3d/RightConsole/nuke-consent-switch",
+   "mode": "push",
+   "press": 1.0,
+   "rest": 0.0,
+   "modelled": 0.0
+  },
+  "EYEBROW_LEFT_iff": {
+   "prop": "instrumentation/radar/iff",
+   "mode": "push",
+   "press": 1.0,
+   "rest": 0.0,
+   "modelled": 0.0
+  },
+  "master_reset": {
+   "prop": "f16/avionics/caution/master-btn",
+   "mode": "push",
+   "press": 1.0,
+   "rest": 0.0,
+   "modelled": 0.0
+  },
+  "f-ack": {
+   "prop": "c3d/EYEBROW_LEFT/f-ack",
+   "mode": "push",
+   "press": 1.0,
+   "rest": 0.0,
+   "modelled": 0.0
+  },
+  "pri": {
+   "prop": "f16/ews/rwr-show-priority-only",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 1.0,
+   "wrap": true
+  },
+  "sep": {
+   "prop": "f16/ews/rwr-separate",
+   "mode": "push",
+   "press": 1.0,
+   "rest": 0.0,
+   "modelled": 0.0
+  },
+  "unk": {
+   "prop": "f16/ews/rwr-show-unknowns",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 1.0,
+   "wrap": true
+  },
+  "IFF_button": {
+   "prop": "f16/ews/rwr-int",
+   "mode": "slide",
+   "min": 0.2,
+   "max": 2.0,
+   "step": 0.1,
+   "wrap": false,
+   "modelled": 0.2
+  },
+  "MFD1_MFDButtonGain": {
+   "prop": "f16/avionics/mfd-l-gain",
+   "mode": "slide",
+   "min": 1.0,
+   "max": 2.5,
+   "step": 0.1,
+   "wrap": false
+  },
+  "MFD1_MFDButtonCon": {
+   "prop": "f16/avionics/mfd-l-con",
+   "mode": "slide",
+   "min": 0.0,
+   "max": 2.0,
+   "step": 0.1,
+   "wrap": false
+  },
+  "MFD1_MFDButtonBrightness": {
+   "prop": "f16/avionics/mfd-l-brt",
+   "mode": "slide",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 0.1,
+   "wrap": false
+  },
+  "MFD2_MFDButtonGain": {
+   "prop": "f16/avionics/mfd-l-gain",
+   "mode": "slide",
+   "min": 1.0,
+   "max": 2.5,
+   "step": 0.1,
+   "wrap": false
+  },
+  "MFD2_MFDButtonCon": {
+   "prop": "f16/avionics/mfd-r-con",
+   "mode": "slide",
+   "min": 0.0,
+   "max": 2.0,
+   "step": 0.1,
+   "wrap": false
+  },
+  "MFD2_MFDButtonBrightness": {
+   "prop": "f16/avionics/mfd-r-brt",
+   "mode": "slide",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 0.1,
+   "wrap": false
+  },
+  "drift": {
+   "prop": "f16/avionics/hud-drift",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 2.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 1.0
+  },
+  "brt": {
+   "prop": "f16/avionics/hud-brt",
+   "mode": "slide",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 0.025,
+   "wrap": false,
+   "modelled": 1.0
+  },
+  "SYM": {
+   "prop": "f16/avionics/hud-sym",
+   "mode": "slide",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 0.025,
+   "wrap": false,
+   "modelled": 1.0
+  },
+  "depr_ret": {
+   "prop": "f16/avionics/hud-depr-ret",
+   "mode": "slide",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 0.025,
+   "wrap": false,
+   "modelled": 1.0
+  },
+  "cont": {
+   "prop": "f16/avionics/hud-cont",
+   "mode": "slide",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 0.025,
+   "wrap": false,
+   "modelled": 1.0
+  },
+  "cursor-up": {
+   "prop": "c3d/ICP/cursor-up",
+   "mode": "push",
+   "press": 1.0,
+   "rest": 0.0,
+   "modelled": 0.0
+  },
+  "cursor-down": {
+   "prop": "c3d/ICP/cursor-down",
+   "mode": "push",
+   "press": 1.0,
+   "rest": 0.0,
+   "modelled": 0.0
+  },
+  "a-a": {
+   "prop": "controls/icp/button-a-a",
+   "mode": "push",
+   "press": 1.0,
+   "rest": 0.0,
+   "modelled": 0.0
+  },
+  "a-g": {
+   "prop": "controls/icp/button-a-g",
+   "mode": "push",
+   "press": 1.0,
+   "rest": 0.0,
+   "modelled": 0.0
+  },
+  "com1": {
+   "prop": "controls/icp/button-com1",
+   "mode": "push",
+   "press": 1.0,
+   "rest": 0.0,
+   "modelled": 0.0
+  },
+  "com2": {
+   "prop": "controls/icp/button-com2",
+   "mode": "push",
+   "press": 1.0,
+   "rest": 0.0,
+   "modelled": 0.0
+  },
+  "ICP_iff": {
+   "prop": "controls/icp/button-iff",
+   "mode": "push",
+   "press": 1.0,
+   "rest": 0.0,
+   "modelled": 0.0
+  },
+  "list": {
+   "prop": "controls/icp/button-list",
+   "mode": "push",
+   "press": 1.0,
+   "rest": 0.0,
+   "modelled": 0.0
+  },
+  "1": {
+   "prop": "controls/icp/key[1]",
+   "mode": "push",
+   "press": 1.0,
+   "rest": 0.0,
+   "modelled": 0.0
+  },
+  "2": {
+   "prop": "controls/icp/key[2]",
+   "mode": "push",
+   "press": 1.0,
+   "rest": 0.0,
+   "modelled": 0.0
+  },
+  "3": {
+   "prop": "controls/icp/key[3]",
+   "mode": "push",
+   "press": 1.0,
+   "rest": 0.0,
+   "modelled": 0.0
+  },
+  "4": {
+   "prop": "controls/icp/key[4]",
+   "mode": "push",
+   "press": 1.0,
+   "rest": 0.0,
+   "modelled": 0.0
+  },
+  "5": {
+   "prop": "controls/icp/key[5]",
+   "mode": "push",
+   "press": 1.0,
+   "rest": 0.0,
+   "modelled": 0.0
+  },
+  "6": {
+   "prop": "controls/icp/key[6]",
+   "mode": "push",
+   "press": 1.0,
+   "rest": 0.0,
+   "modelled": 0.0
+  },
+  "7": {
+   "prop": "controls/icp/key[7]",
+   "mode": "push",
+   "press": 1.0,
+   "rest": 0.0,
+   "modelled": 0.0
+  },
+  "8": {
+   "prop": "controls/icp/key[8]",
+   "mode": "push",
+   "press": 1.0,
+   "rest": 0.0,
+   "modelled": 0.0
+  },
+  "9": {
+   "prop": "controls/icp/key[9]",
+   "mode": "push",
+   "press": 1.0,
+   "rest": 0.0,
+   "modelled": 0.0
+  },
+  "0": {
+   "prop": "controls/icp/key[0]",
+   "mode": "push",
+   "press": 1.0,
+   "rest": 0.0,
+   "modelled": 0.0
+  },
+  "rcl": {
+   "prop": "controls/icp/key[11]",
+   "mode": "push",
+   "press": 1.0,
+   "rest": 0.0,
+   "modelled": 0.0
+  },
+  "entr": {
+   "prop": "controls/icp/key[10]",
+   "mode": "push",
+   "press": 1.0,
+   "rest": 0.0,
+   "modelled": 0.0
+  },
+  "wx": {
+   "prop": "c3d/ICP/wx",
+   "mode": "push",
+   "press": 1.0,
+   "rest": 0.0,
+   "modelled": 0.0
+  },
+  "flir_ud": {
+   "prop": "c3d/ICP/flir_ud",
+   "mode": "push",
+   "press": 1.0,
+   "rest": 0.0,
+   "modelled": 0.0
+  },
+  "switchSquareLeft": {
+   "prop": "f16/avionics/rtn-seq",
+   "mode": "push",
+   "press": -1.0,
+   "rest": 0.0,
+   "modelled": 0.0
+  },
+  "switchSquareRight": {
+   "prop": "f16/avionics/rtn-seq",
+   "mode": "push",
+   "press": 1.0,
+   "rest": 0.0,
+   "modelled": 0.0
+  },
+  "switchSquareUp": {
+   "prop": "f16/avionics/ded-up-down",
+   "mode": "push",
+   "press": 1.0,
+   "rest": 0.0,
+   "modelled": 0.0
+  },
+  "switchSquareDown": {
+   "prop": "f16/avionics/ded-up-down",
+   "mode": "push",
+   "press": -1.0,
+   "rest": 0.0,
+   "modelled": 0.0
+  }
+ }
 }
