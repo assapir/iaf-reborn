@@ -501,6 +501,11 @@ and the left on the throttle.
   none at the wrist to half its offset at the knuckles, and lowers the thumb 1.5 cm along the grip's inboard face.
   `test_cockpit_view.gd` checks, in the rest pose, the palm's centre within 3 cm of the head's top and no finger
   more than 2 cm inboard of the grip nor 2.5 cm ahead of it.
+- **The legs stay still (2026-11-15, the user: "moving the throttle change the left leg?")**: `pilot.py` weighted the
+  throttle's shape keys and the stick's nudge by place alone, so they took the left knee and boot too (272 of the
+  3,794 moved vertices), and the knee moved with the throttle. Now only the arms' own meshes take them: FlightGear's
+  groups `LL-arm` (the left forearm and glove) and `LR-armA` (the right arm), marked before the join. 3,352 vertices
+  move, none in a leg. `test_cockpit_view.gd` `_legs_still` checks that no vertex below the thigh's top moves.
 - **Where**: `cockpit3d.gd` hangs `<model>_pilot.glb` beside the model when `Settings.cockpit_pilot_body()` is true:
   true in Modern IAF, false in the original game, whose 3D cockpit stays as it was (docs/cockpit.md "Looking down at
   the pilot"). The body takes the footwell's dim fill (`UNLIT` `pilot_`) and casts no shadow. The cut model leaves

@@ -35,6 +35,7 @@ func run() -> void:
 			check(tv._own_eye.is_equal_approx(f16_eye), "%s: the eye at the F-16's pilot eye (%s)" % [jet, tv._own_eye])
 			_right_glove(tv.cockpit_3d, jet)
 			_left_glove(tv.cockpit_3d, jet)
+			_legs_still(tv.cockpit_3d, jet)
 		await _zoom_at_pointer(tv)
 		await _lean(tv, jet)
 		if jet == "f16i":
@@ -193,6 +194,31 @@ func _left_glove(c3d: Node3D, jet: String) -> void:
 			"%s: the left fingers on the grip (glove to x %.3f, z %.3f; grip's inboard %.3f, front %.3f)"
 			% [jet, most_in, most_ahead, inboard, front]
 		)
+	)
+
+
+## The throttle's shape keys move the left arm and glove only (tools/f16d/pilot.py: the arms' own meshes; the user,
+## 2026-11-15: "moving the throttle change the left leg?"): no vertex below the thigh's top (y 0.25 in the body's
+## frame) moves.
+func _legs_still(c3d: Node3D, jet: String) -> void:
+	var body: MeshInstance3D = c3d._pilot
+	if body == null:
+		return
+	var m: ArrayMesh = body.mesh
+	var moved := 0
+	var low := 0
+	for s in m.get_surface_count():
+		var base: PackedVector3Array = m.surface_get_arrays(s)[Mesh.ARRAY_VERTEX]
+		for shape in m.surface_get_blend_shape_arrays(s):
+			var at: PackedVector3Array = shape[Mesh.ARRAY_VERTEX]
+			for i in base.size():
+				var d: Vector3 = at[i] - base[i] if m.blend_shape_mode == Mesh.BLEND_SHAPE_MODE_NORMALIZED else at[i]
+				if d.length() > 0.001:
+					moved += 1
+					low += int(base[i].y < 0.25)
+	check(
+		moved > 1000 and low == 0,
+		"%s: the throttle's keys move the arm only (%d moved, %d below it)" % [jet, moved, low]
 	)
 
 

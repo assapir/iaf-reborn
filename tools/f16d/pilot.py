@@ -31,8 +31,23 @@ g = json.load(open(ORIG))
 n = g["nodes"][g["scenes"][0]["nodes"][0]]
 t = n["matrix"][12:15] if "matrix" in n else n.get("translation", (0, 0, 0))
 root_at = Vector((t[0], -t[2], t[1]))  # cockpit3d.py original_root
-objs = list(kit.import_ac(os.path.join(FG, "Models/Pilots/pilot_internalview.ac"), prefix="pilot/").values())
-body = kit.join(objs, "pilot_body")
+groups = {}
+parts = kit.import_ac(os.path.join(FG, "Models/Pilots/pilot_internalview.ac"), prefix="pilot/", groups=groups)
+# The arms' own meshes marked before the join (FlightGear's groups LL-arm: the left forearm, wrist and glove; LR-armA:
+# the right arm): the throttle's and the stick's moves take only these. Picked by place alone, the left arm's weights
+# took the left knee too, so the leg moved with the throttle (the user, 2026-11-15: "moving the throttle change the
+# left leg?").
+for name, o in parts.items():
+    for group, side in (("LL-arm", "left_arm"), ("LR-armA", "right_arm")):
+        if name in groups.get(group, []):
+            o.vertex_groups.new(name=side).add(list(range(len(o.data.vertices))), 1.0, "REPLACE")
+body = kit.join(list(parts.values()), "pilot_body")
+LEFT_ARM, RIGHT_ARM = body.vertex_groups["left_arm"].index, body.vertex_groups["right_arm"].index
+
+
+def in_group(v, gi):
+    return any(g.group == gi and g.weight > 0.0 for g in v.groups)
+
 body.data.transform(Matrix.Translation(SHIFT - root_at))
 # The left glove on the throttle's grip (the Mac play test's finding 12). FlightGear posed it for its own grip turned
 # about 28° aft (the throttle near idle), 4 cm inboard of the grip and 3 cm over it. The forearm and glove turn about
@@ -74,7 +89,7 @@ def turn(g, deg):
     return THR_PIVOT + Matrix.Rotation(math.radians(deg), 3, "X") @ (g - THR_PIVOT)
 
 
-arm = [(v, arm_weight(godot_of(v.co))) for v in body.data.vertices]
+arm = [(v, arm_weight(godot_of(v.co)) if in_group(v, LEFT_ARM) else 0.0) for v in body.data.vertices]
 for v, w in arm:
     if w > 0.0:
         v.co = co_of(turn(godot_of(v.co), REST_DEG * w) + NUDGE * w)
@@ -110,7 +125,7 @@ def stick_arm_weight(g):
 
 right = 0
 for v in body.data.vertices:
-    w = stick_arm_weight(godot_of(v.co))
+    w = stick_arm_weight(godot_of(v.co)) if in_group(v, RIGHT_ARM) else 0.0
     if w > 0.0:
         v.co = co_of(godot_of(v.co) + STICK_NUDGE * w)
         right += 1
