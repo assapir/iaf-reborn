@@ -67,8 +67,8 @@
         "switches": [
           "engine"
         ],
-        "en": "At 20 % RPM bring the throttle up from OFF to idle: {key:7}, the throttle axis, or a click on the throttle grip. The engine lights about 5 s later and runs up to idle; at 52 % RPM the main generator comes on line and the JFS stops. The throttle moved below 20 % RPM is a hot start: the engine shuts down and the mission fails.",
-        "he": "ב־20% סל״ד להעביר את המצערת מ־OFF לסרק: {key:7}, ציר המצערת או לחיצה על ידית המצערת. המנוע ניצת כעבור כ־5 שניות ומאיץ לסרק; ב־52% סל״ד הגנרטור הראשי נכנס לפעולה והמתנע נכבה. הזזת המצערת מתחת ל־20% סל״ד היא התנעה חמה: המנוע נכבה והמשימה נכשלת."
+        "en": "At 20 % RPM bring the throttle up from OFF to idle: {key:7} or the throttle axis. The engine lights about 5 s later and runs up to idle; at 52 % RPM the main generator comes on line and the JFS stops. The throttle moved below 20 % RPM is a hot start: the engine shuts down and the mission fails.",
+        "he": "ב־20% סל״ד להעביר את המצערת מ־OFF לסרק: {key:7} או ציר המצערת. המנוע ניצת כעבור כ־5 שניות ומאיץ לסרק; ב־52% סל״ד הגנרטור הראשי נכנס לפעולה והמתנע נכבה. הזזת המצערת מתחת ל־20% סל״ד היא התנעה חמה: המנוע נכבה והמשימה נכשלת."
       },
       {
         "switches": [
@@ -131,7 +131,7 @@
         "key": "throttle up from OFF",
         "en": "Throttle to idle at 20 % RPM",
         "he": "מצערת לסרק ב־20% סל״ד",
-        "where": {"en": "Throttle grip, left console: click it out of OFF", "he": "ידית המצערת, משמאל: לחיצה מעבירה מ־OFF"},
+        "where": {"en": "Throttle, left console: move it out of OFF (the throttle lever or its keys)", "he": "מצערת, משמאל: הזזה מ־OFF (ידית המצערת או מקשיה)"},
         "wait": {"en": "then wait for idle and the main generator (52 % RPM, about 20 s)", "he": "ואז המתנה לסרק ולגנרטור הראשי (52% סל״ד, כ־20 שנ׳)"}
       },
       {

@@ -1,8 +1,8 @@
 # The checklist's switches by the mouse (the switches audit's M1, modern-iaf/docs/cockpit.md §5.2): in each jet's cold
 # start-up flight every switch the notebook's start-up, taxi / take-off and landing pages name is a clickable part of
 # the 3D cockpit, lights under the pointer and sends its key's command on a click (recorded, not run: the order of the
-# steps is test_mvp.gd's); the throttle by the mouse: a click and the wheel up add 5 %, the wheel down takes 5 %, a drag
-# down begun at idle goes over the detent to OFF (Throttle OFF, command 218), a drag up from OFF back to idle.
+# steps is test_mvp.gd's); the throttle and the stick take no mouse (the user, 2026-11-15): neither is a control, the
+# pointer on them finds none.
 #   IAF_DEFAULT_SETTINGS=1 godot --headless --audio-driver Dummy --path modern-iaf \
 #     -s ../modern-iaf/tests/test_switches_click.gd --log-file <temp>
 extends "res://../tests/godot/base.gd"
@@ -22,7 +22,6 @@ const JETS := {
 			["IPP", [211, 0, 0]],
 			["ENG", [212, 0, 0]],
 			["START", [212, 1, 0]],
-			["throttle", [5, 0, 0]],
 			["CANOPY", [215, 0, 0]],
 			["gear_handle", [14, 0, 0]],
 		]
@@ -31,7 +30,6 @@ const JETS := {
 const F16 := [
 	["MAIN_PWR", [210, 0, 0]],
 	["JFS", [211, 0, 0]],
-	["THROTTLE", [5, 0, 0]],
 	["AVIONICS_MMC", [219, 1, 0]],
 	["AVIONICS_ST_STA", [219, 1, 1]],
 	["AVIONICS_MFD", [219, 1, 2]],
@@ -83,7 +81,7 @@ func run() -> void:
 		c3d.command = Callable(rec, "run")
 		for sw in JETS[id][1]:
 			await _switch(tv, rec, id, sw[0], sw[1])
-		await _throttle(tv, rec, id, "throttle" if id == "f35i" else "THROTTLE")
+		await _no_mouse(tv, rec, id)
 		if id != "f35i":
 			await _knob(tv, rec, id, "INS", 214)
 		tv.views.snap = null
@@ -120,42 +118,20 @@ func _switch(tv: Node, rec: Rec, id: String, node: String, cmd: Array) -> void:
 	vp.push_input(hover)
 
 
-## The throttle by the mouse: the wheel down to idle, a drag down from idle over the detent to OFF (218), a drag up
-## back to idle (5); a drag down begun above idle stops at idle.
-func _throttle(tv: Node, rec: Rec, id: String, node: String) -> void:
-	var mi: MeshInstance3D = tv.cockpit_3d.find_child(node, true, false)
-	tv._press([9, 30, 0])
-	await frames(2)
-	var at := _on_part(tv.cockpit_3d, mi, await _aim(tv, mi))
-	var vp: Viewport = tv.get_viewport()
-	# The pointer on the grip lights it; the lit grip keeps the wheel and the drags as it slides from under the pointer.
-	var hover := InputEventMouseMotion.new()
-	hover.position = at
-	vp.push_input(hover)
-	check(tv.cockpit_3d.clickable._lit() != null, "%s: the throttle's grip lights under the pointer" % id)
-	var n: int = rec.sent.size()
-	for i in 5:
-		vp.push_input(_wheel(at, MOUSE_BUTTON_WHEEL_DOWN))
-		await frames(2)
-	check(
-		rec.sent.slice(n).size() >= 5 and rec.sent.slice(n).all(func(c): return c == [6, 0, 0]),
-		"%s: the wheel down takes 5 %%" % id
-	)
-	check(float(tv.throttle) == 0.0, "%s: the wheel down stops at idle (%.2f)" % [id, tv.throttle])
-	n = rec.sent.size()
-	await _drag(vp, at, 3, 1.0)
-	check(
-		rec.sent.slice(n).count([218, 0, 0]) == 1,
-		"%s: a drag down at idle: Throttle OFF once %s" % [id, rec.sent.slice(n)]
-	)
-	n = rec.sent.size()
-	await _drag(vp, at, 1, -1.0)
-	check(rec.sent.slice(n) == [[5, 0, 0]] and tv.throttle > 0.0, "%s: a drag up from OFF: idle and up" % id)
-	n = rec.sent.size()
-	await _drag(vp, at, 3, 1.0)
-	check(not [218, 0, 0] in rec.sent.slice(n), "%s: a drag down begun above idle stops at idle" % id)
-	vp.push_input(_wheel(at, MOUSE_BUTTON_WHEEL_UP))
-	check(rec.sent.back() == [5, 0, 0], "%s: the wheel up adds 5 %%" % id)
+## The throttle and the stick take no mouse: neither is a control, and the pointer on them finds none of theirs. On the
+## F-16 the MAX POWER switch beside the grip is clickable (the grip's hit area once hid it).
+func _no_mouse(tv: Node, rec: Rec, id: String) -> void:
+	if id != "f35i":
+		await _switch(tv, rec, id, "SW_MAX_POWER", [])
+	var c3d = tv.cockpit_3d
+	for node in ["THROTTLE", "throttle", "anim000", "STICK"]:
+		var mi: MeshInstance3D = c3d.find_child(node, true, false)
+		if mi == null:
+			continue
+		check(not c3d.clickable._controls.any(func(e): return e[0] == mi), "%s: %s takes no mouse" % [id, node])
+		var at := await _aim(tv, mi)
+		var hit = c3d.clickable.at(at)
+		check(hit == null or hit[0] != mi, "%s: the pointer on %s finds no control" % [id, node])
 
 
 ## A knob by the mouse (the INS knob, cockpit.md §5.2): the wheel up a position on ([cmd, 1, 0]), the wheel down a

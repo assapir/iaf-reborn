@@ -103,9 +103,9 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   altitude; the INS needs main power only. Each has its own command (219); Ctrl+A throws the four AVIONIC POWER
   switches; the avionics step is the four on ([cockpit.md](cockpit.md) §5.2 "One by one"; `test_switches_both_ways.gd`).
   Open: the real consequences beyond the switches' names (sources), the CARA ALOW and GAAF voices without RDR ALT.
-- **Every checklist switch by the mouse (2026-11-13, the switches audit's M1):** in the 3D cockpits the throttle
-  answers the wheel and a drag both ways; a drag down begun at idle goes over the detent to OFF (Throttle OFF), a
-  drag up moves it out of OFF (the idle step); the landing gear handles (both F-16s, the F-35I) send the G key's
+- **Every checklist switch by the mouse (2026-11-13, the switches audit's M1):** the throttle takes no mouse since
+  2026-11-15 (the user: "shouldn't be able to move the throttle or stick from the mouse"; it took the wheel and drags);
+  the landing gear handles (both F-16s, the F-35I) send the G key's
   toggle; the F-16's FCR and RDR ALT switches (FlightGear's own `fcr-switch` / `rdr-alt-switch`, now nodes of `f16.glb`) move on a click
   and power the radar and the radar altimeter since M2b ([cockpit.md](cockpit.md) §5.2). `test_switches_click.gd` checks every switch of each jet's
   start-up, take-off and landing steps resolves to a clickable part, lights and sends its command. The F-35I's

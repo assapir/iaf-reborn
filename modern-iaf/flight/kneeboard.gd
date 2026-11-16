@@ -523,8 +523,10 @@ func _marks() -> Array:
 			parts.append(e)
 		elif id == "avionics" and int(click[0]) == 219 and _avionic_off(int(click[2])):
 			parts.append(e)  # the F-16's AVIONIC POWER switches (command 219, no step key): those still off
-	if parts.is_empty() and id == "engine":  # the F-16's engine step: the throttle out of OFF
-		parts = c3d.clickable._controls.filter(func(e): return int(e[1].get("click", [-1])[0]) == 5)
+	if parts.is_empty() and id == "engine":  # the F-16's engine step: the throttle out of OFF, by its keys or lever
+		var grip := c3d.find_child("THROTTLE", true, false) as MeshInstance3D
+		if grip != null:
+			parts = [[grip, {}]]
 	if not parts.is_empty():
 		out.append(_mark(parts, String(list[i][lang()]), c3d.camera))
 	var g: Dictionary = data.get("gauges", {}).get(_family(), {}).get(id, {})

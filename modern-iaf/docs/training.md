@@ -252,7 +252,7 @@ consequence and returns a fault, which ends the mission at once as a Fail with t
 
 The idle step has no key (the user, 2026-11-09): moving the throttle up from OFF, by its keys or the axis, is the step,
 as the real throttle's idle-cutoff detent, once the starter step (JFS / IPP) is done (before it the throttle moves
-alone and starts nothing). OFF is the throttle's bottom (2 % allowed for a lever's noise); a lever already up goes to OFF first. The briefing's How names the Throttle idle key (record 7, the 1 key) on that line (the user, 2026-11-09: "we have 1 for throttle"); the axis, the 0 key (Throttle up 5 %), the 1 key and a click on the throttle grip all make the step (the 1 key sets the throttle to idle, which is OFF, so the key itself takes the step at OFF);
+alone and starts nothing). OFF is the throttle's bottom (2 % allowed for a lever's noise); a lever already up goes to OFF first. The briefing's How names the Throttle idle key (record 7, the 1 key) on that line (the user, 2026-11-09: "we have 1 for throttle"); the axis, the 0 key (Throttle up 5 %) and the 1 key all make the step (the 1 key sets the throttle to idle, which is OFF, so the key itself takes the step at OFF);
 The step reaches the flight model and the recording as the key did (`sim_flight.gd _throttle_step`), so the scorer
 reads the same `checklist` event. The throttle goes back to OFF by its own key, Throttle OFF (§7.2).
 
@@ -281,9 +281,8 @@ The avionics of the F-35I report ready 90 s after the battery[^ayton].
 ### 7.2 The shutdown: the throttle to OFF
 **Throttle OFF** (Shift+1, record 121 of the sim's `keys.json`, command 218) moves the throttle over the idle-cutoff
 detent to OFF, which cuts the engine's fuel (T.O. checklist: "Retard THROTTLE to OFF"[^ep]). The 1 key and the axis
-stop at idle: OFF takes its own key, as the real throttle's detent takes a deliberate move. In the 3D cockpit a
-drag down on the throttle grip begun at idle sends the same command ([cockpit.md](cockpit.md) §5.2); the wheel and a
-drag begun above idle stop at idle. The flight model
+stop at idle: OFF takes its own key, as the real throttle's detent takes a deliberate move. The 3D cockpit's throttle
+takes no mouse (2026-11-15, [cockpit.md](cockpit.md) §5.2). The flight model
 (`Start::cut_off` in `crates/iaf-flight/src/sixdof/start.rs`, `IafFlight.start_step("cutoff")`) then runs the
 shutdown:
 
@@ -494,9 +493,9 @@ else up above it. Pictures: `modern-iaf/tests/_click_areas_shot.gd`.
 
 | page | step | clickable |
 |---|---|---|
-| START-UP | every step of the Sufa, the Barak and the Adir: MAIN PWR, JFS, the throttle, the four AVIONIC POWER switches, the INS knob, the canopy handle; BATT, IPP, ENG / START, the throttle, CANOPY | yes ([cockpit.md](cockpit.md) §5.2; `test_mvp.gd` clicks each, the F-35I's CANOPY included) |
+| START-UP | every step of the Sufa, the Barak and the Adir: MAIN PWR, JFS, the four AVIONIC POWER switches, the INS knob, the canopy handle; BATT, IPP, ENG / START, CANOPY; the throttle out of OFF by its keys or lever (no mouse since 2026-11-15) | yes, except the throttle ([cockpit.md](cockpit.md) §5.2; `test_mvp.gd` clicks each, the F-35I's CANOPY included) |
 | LANDING | the landing gear handle (both cockpits) | yes since 2026-11-13: the G key's command, refused on the ground |
-| LANDING, EMERGENCY | the throttle to OFF over the idle detent | no: a click on the grip moves it up 5 %; OFF is Shift + 1 only (open) |
+| LANDING, EMERGENCY | the throttle to OFF over the idle detent | no: the throttle takes no mouse; OFF is Throttle OFF (Shift + 1) |
 | LANDING | the wheel brakes (the rudder pedals) | no: no pedal part answers the mouse (open) |
 | EMERGENCY | JFS OFF, MAIN PWR OFF, BATT OFF | no: a click turns these on only (open) |
 | EMERGENCY | the ejection handle | no: no part of the seat answers the mouse (open) |

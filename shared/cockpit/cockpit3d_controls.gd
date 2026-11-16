@@ -18,9 +18,6 @@
 #   - "turn": sent on the wheel (up as it is, down with p1 negated) and once per drag_px of a left drag (up: as it is);
 #     a control with "click" too takes a left press as a drag, and its release with no turn as the click (the INS
 #     knob: a click and the wheel up turn it a position on, the wheel down a position back);
-#   - "turn_down": sent for a turn down in place of "turn" with p1 negated (the throttle: up 5 %, down 5 %);
-#   - "detent": sent for a turn down by a drag begun with the throttle at its bottom (terrain_view.gd `throttle`), the
-#     deliberate second pull over the idle-cutoff detent (the throttle: Throttle OFF, command 218; inferred UX);
 # through the key path (cockpit3d.gd `command`, terrain_view.gd _press), as the keys send them.
 # Every other control comes from the model's own <model>.json `controls` (tools/f16d/cockpit3d.py control_of: the
 # F-16's FlightGear bindings), the table's row laid over it where both name a node:
@@ -37,16 +34,16 @@
 #   - "modelled": the position the model shows it at, its value until moved.
 # The position is kept in cockpit3d.gd `switches` (the one store of the cockpit's switches; the start-up's are the
 # flight model's, start.rs) and shown by the model's own mapping. Hovering a control
-# lights its rim (RIM): its own texture stays as it is.
+# lights its rim (RIM): its own texture stays as it is. The flight controls are in neither table: the throttle and the
+# stick move by the keys and the joystick's stick and throttle axes only, and animate with them (the user, 2026-11-15:
+# "shouldn't be able to move the throttle or stick from the mouse"; until then the throttle grip took clicks, the wheel
+# and drags, a drag down from idle over the detent to OFF).
 extends Node
 
 ## The pixels of a drag per "turn" command, unless the control sets its own.
 const DRAG_PX := 10.0
 ## A spring-loaded switch moved by the wheel stays this long before it springs back (s, inferred).
 const SPRING_S := 0.4
-## The throttle at its bottom (idle, or OFF over the detent) for a "detent": sim_flight.gd THROTTLE_OFF, the lever's
-## noise allowed.
-const THROTTLE_BOTTOM := 0.02
 ## The hover's overlay: a faint cool white laid thinly over the part and thicker where its surface turns away from the
 ## eye, a rim light that leaves the part's own colour and texture showing (the user, 2026-11-11: the warm fill "is too
 ## yellowish and loses the texture of the wheel"; the colour and strengths are inferred). A mix, not an add: the
@@ -70,7 +67,6 @@ var _hover: MeshInstance3D
 var _held := {}  # the record under a left drag
 var _drag := 0.0  # px dragged up since the last command
 var _turned := false  # the held control turned since its press (else its release clicks)
-var _low := false  # the held control's drag began with the throttle at its bottom (its "detent")
 var _light: ShaderMaterial
 
 
@@ -162,7 +158,6 @@ func _unhandled_input(event: InputEvent) -> void:
 				_held = r
 				_drag = 0.0
 				_turned = false
-				_low = _throttle() <= THROTTLE_BOTTOM
 			elif r.has("click"):
 				get_parent().command.call(r.click)
 		MOUSE_BUTTON_WHEEL_UP:
@@ -284,17 +279,6 @@ func _turn(r: Dictionary, way: float, drag := false) -> void:
 		return
 	if not r.has("turn"):
 		return
-	if drag:
-		_turned = true
-		if way > 0.0:
-			_low = false  # pushed up: back down this drag stops at idle
-	if way < 0.0 and r.has("detent") and drag and _low and _throttle() <= THROTTLE_BOTTOM:
-		_low = false  # once a drag
-		get_parent().command.call(r.detent)
-		return
-	if way < 0.0 and r.has("turn_down"):
-		get_parent().command.call(r.turn_down)
-		return
 	var cmd: Array = r.turn.duplicate()
 	cmd[1] = int(cmd[1] * way)
 	get_parent().command.call(cmd)
@@ -323,7 +307,6 @@ func press(r: Dictionary) -> void:
 	_held = r
 	_drag = 0.0
 	_turned = false
-	_low = r.has("detent") and _throttle() <= THROTTLE_BOTTOM
 	if r.get("mode", "") == "push":
 		put(r, float(r.press))
 	elif r.has("rest") and r.get("mode", "") == "cycle":
@@ -409,14 +392,9 @@ func put(r: Dictionary, v: float) -> void:
 				sw[e[1].prop] = float(e[1].safe)
 
 
-## The throttle's lever (terrain_view.gd `throttle`, 0 idle / OFF .. 1), 1 without the key path's host.
-func _throttle() -> float:
-	var tv: Object = get_parent().command.get_object()
-	return float(tv.get("throttle")) if tv != null and tv.get("throttle") != null else 1.0
-
-
 ## The control lit under the pointer ([its mesh, its record]), null when none: it keeps the clicks and the wheel until
-## the pointer moves off it, so the throttle's grip, moved by its own wheel steps, still takes the next one.
+## the pointer moves off it, so a lever moved by its own click or wheel step (the HUD's DAY / AUTO BRT / NIGHT switch)
+## still takes the next one.
 func _lit():
 	for e in _controls:
 		if e[0] == _hover and is_instance_valid(_hover) and _hover.is_visible_in_tree():

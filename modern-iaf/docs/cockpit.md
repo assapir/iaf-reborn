@@ -196,8 +196,9 @@ meets nearest the eye, so the area is never bigger than the part and never a nei
 "smaller circles … on the exact shape of the instrument"; until then the mesh's box grown by 4 mm, of the boxes crossed
 the nearest centre, which reached past small switches into their neighbours). The surfaces are kept in millimetres:
 Godot's ray-triangle test takes a triangle a few millimetres across as parallel to every ray. The canopy handle's hit
-area is its rod. The control lit under the pointer keeps the clicks and the wheel until the pointer moves off it, so
-the throttle's grip, moved by its own wheel steps out from under a still pointer, still takes the next step. The
+area is its rod. The flight controls take no mouse: the throttle and the stick move by the keys and the joystick's stick and
+throttle axes only, and animate with them (the user, 2026-11-15: "shouldn't be able to move the throttle or stick from
+the mouse"; from 2026-11-13 the throttle grip took clicks, the wheel and drags). The
 pointer over a control lights its rim (`material_overlay`, the shader `RIM`): a faint cool white, thin where the part faces
 the eye and thicker where its surface turns away, so its own colour and texture still show (2026-11-11; it was a warm
 yellow fill, which the user found "too yellowish" and hiding the SYM wheel's texture). The overlay is a mix of low
@@ -289,20 +290,16 @@ switches as FlightGear models them.
 |---|---|---|---|---|---|
 | 1 | MAIN PWR switch (`MAIN_PWR`) | ELEC panel, left console, beside the throttle[^bms-ramp][^fg-left] | `[210, 0, 0]` | Ctrl+B | MAIN (2) / OFF (0) |
 | 2 | JFS switch (`JFS`) | ENG & JET START panel, left console, aft[^bms-ramp][^fg-left] | `[211, 0, 0]` | Ctrl+J | START 2 (1) / OFF (0) |
-| 3 | throttle grip (`THROTTLE`) | the throttle, left console | `[5, 0, 0]`, the wheel and a drag (below) | Throttle up | the throttle's own animation: out of OFF |
+| 3 | throttle (`THROTTLE`, not clickable) | the throttle, left console | its keys (Throttle up, 1) and the throttle lever | Throttle up | the throttle's own animation: out of OFF |
 | 4 | MMC, ST STA, MFD, UFC switches (`AVIONICS_MMC`, `AVIONICS_ST_STA`, `AVIONICS_MFD`, `AVIONICS_UFC`) | AVIONIC POWER panel, right console[^bms-ramp][^fg-right] | a click `[219, ±1, 0..3]`, each its own; Ctrl+A `[213, 0, 0]` all four | Ctrl+A | ON (1) / OFF (0): the key all four, a click its own switch |
 | 5 | INS knob (`INS`) | AVIONIC POWER panel, right console[^bms-ramp][^fg-right] | `[214, 0, 0]`; the wheel and a drag `[214, ±1, 0]` | Ctrl+N | six positions: OFF (0), STOR HDG (1), NORM (2), NAV (3), IN FLT ALIGN (4), ATT (5); the step done at STOR HDG to IN FLT ALIGN |
 | 6 | canopy handle (`CANOPY_HANDLE`, a hit area) | left side, aft of the left console, by the canopy switch[^dcs-canopy] | `[215, 0, 0]` | Ctrl+K | none |
 | take-off, landing | landing gear handle (`GEAR_LEVER`) | left auxiliary console (FlightGear's `LeftAuxConsole` `gear_lever`) | `[14, 0, 0]` | G | the handle's own animation (`controls/gear/gear-down`) |
 | (sensors) | FCR, RDR ALT switches (`FCR`, `RDR_ALT`) | SNSR PWR panel, right console[^fg-right] | `[219, ±1, 4]`, `[219, ±1, 5]` | none | ON (1) / OFF (0); RDR ALT ON (2) / OFF (0) |
 
-- **The throttle by the mouse** (both F-16s and the F-35I; 2026-11-13, the switches audit's M1): a click adds 5 %
-  (Throttle up, command 5, sent on the release), the wheel up adds 5 % and the wheel down takes 5 % (Throttle down,
-  command 6), and a left drag moves it a step per 15 px, up or down. The wheel and a drag stop at idle. A drag down
-  begun with the throttle already at idle goes over the idle-cutoff detent to OFF (Throttle OFF, command 218,
-  [training.md](training.md) §7.2), once a drag: the second, deliberate pull of the real detent (inferred UX). A click,
-  the wheel up or a drag up from OFF moves it out of OFF (5 %): the idle step of the start (§7.1). The rows' keys:
-  `turn` / `turn_down` (the wheel and the drag), `detent` (`cockpit3d_controls.gd`).
+- **The throttle by the mouse** (2026-11-13 to 2026-11-15, dropped at the user's word: "shouldn't be able to move
+  the throttle or stick from the mouse"): a click and the wheel stepped it 5 %, a drag moved it, a drag down from idle
+  went over the detent to OFF. The throttle now moves by its keys and the lever only; OFF is Throttle OFF (Shift + 1).
 
 - **The canopy handle** has no part in FlightGear's model, so its row is a `box` with `grip`: a grey metal rod, 3 cm
   thick and 14 cm long, along the left canopy sill's inner face 10 cm aft of the throttle, lit under the pointer
@@ -335,7 +332,7 @@ switches, not readable labels ([../../docs/f35i.md](../../docs/f35i.md) §4.2).
 | 2 | IPP switch (`IPP`) | start panel, second | `[211, 0, 0]` | Ctrl+J | forward (1) / aft (0) |
 | 3 | ENG switch (`ENG`, under a red guard) | start panel, third | `[212, 0, 0]` | none | forward (1) / aft (0) |
 | 3 | START button (`START`) | start panel, fourth | `[212, 1, 0]` (on only) | none | a push button |
-| 3 | throttle (`throttle`) | the throttle, left console | `[5, 0, 0]`, the wheel and a drag (as the F-16's) | Throttle up | the throttle's own animation |
+| 3 | throttle (`throttle`, not clickable) | the throttle, left console | its keys and the throttle lever (as the F-16's) | Throttle up | the throttle's own animation |
 | 4 | canopy lever (`CANOPY`) | left wall just above the console, aft of the throttle's track[^ife-canopy] | `[215, 0, 0]` | Ctrl+K | forward (1, shut) / 40° aft (0, open) |
 | take-off, landing | landing gear handle (`gear_handle`) | left of the main panel | `[14, 0, 0]` | G | the handle's own animation |
 

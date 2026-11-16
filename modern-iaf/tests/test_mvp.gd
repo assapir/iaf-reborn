@@ -445,7 +445,7 @@ func _checklist(tv: Node, f35: bool, click := false) -> void:
 		await _until(tv, func(): return rpm.call() >= 0.2, 60.0)
 		check(tv.sounds._jfs != null and tv.sounds._jfs.playing, "the JFS whine during the crank")
 		if click:
-			await _step(tv, 0, "THROTTLE", click)  # throttle to idle at 20 %
+			await _step(tv, 0, "THROTTLE", false)  # throttle to idle at 20 %: by its key (no mouse on the throttle)
 		else:
 			_card_shows(tv, "engine")
 			await _target(tv, "THROTTLE")
