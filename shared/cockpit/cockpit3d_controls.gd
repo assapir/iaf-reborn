@@ -145,6 +145,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if event.button_index in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN] and not _wheeled(hit[1]):
 		return  # a switch takes no wheel: the view's zoom has it
+	# The part acted on is the lit one: a lever thrown by this click (the HUD's DAY / AUTO BRT / NIGHT switch) moves out
+	# from under a still pointer, and the next wheel step still turns it rather than zooming the view (2026-11-16: a
+	# click with no hover before it left nothing lit, and the wheel after it zoomed).
+	_highlight(hit[0])
 	var r: Dictionary = hit[1]
 	match event.button_index:
 		MOUSE_BUTTON_LEFT:
