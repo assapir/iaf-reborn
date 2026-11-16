@@ -31,7 +31,7 @@ The window opens plain in the front end's background colour (#00163C, no Godot s
 | Reset the log | the Pilot screen's Reset: a warning modal, then a second confirm (§3) | ![Reset the log](pictures/front-end/pilot_reset_en.webp) | ![Reset the log, Hebrew](pictures/front-end/pilot_reset_he.webp) |
 | Pilots | the Pilot screen's Change pilot: every pilot with a name, the active one marked Current; New pilot (§3) | ![Pilots](pictures/front-end/pilots_en.webp) | ![Pilots, Hebrew](pictures/front-end/pilots_he.webp) |
 | Pilot log | the Pilot screen → Pilot log: every attempt, newest first, its day as the debrief writes it and the time ("2 Nov 2026 · 08:14", "2 בנובמבר 2026 · 08:14"); two filters, a jet and a mission (those flown, "All jets" / "All missions" first; with a jet picked, only its missions; a filter the pilot's log does not hold, kept from another pilot, falls back to All); a row opens its debrief; the footer's Back (Esc) to the Pilot screen | ![Pilot log](pictures/front-end/log_en.webp) | ![Pilot log, Hebrew](pictures/front-end/log_he.webp) |
-| Attributions | the setup wizard's list of sources and licences, the jet models and photos with them; the Hangar's foot opens it ("קרדיטים ורישיונות" in Hebrew) | ![Attributions](pictures/front-end/credits_en.webp) | ![Attributions, Hebrew](pictures/front-end/credits_he.webp) |
+| Attributions | the setup wizard's list of sources and licences, the jet models with them; the Hangar's foot opens it ("קרדיטים ורישיונות" in Hebrew); the arrows and Page Up / Down scroll it (Down at its end reaches Back); the footer's Back (Esc) | ![Attributions](pictures/front-end/credits_en.webp) | ![Attributions, Hebrew](pictures/front-end/credits_he.webp) |
 | Hangar without data | a fresh install before `./modern-iaf-setup` (no training missions): the card says what is missing and the command (`./modern-iaf-setup`; Windows `.\modern-iaf-setup.ps1`), in place of the training's progress; Fly greyed and out of the focus, the picked jet focused; the F-16s' still pictures (§12) | ![Hangar without data](pictures/front-end/nodata_hangar_en.webp) | ![Hangar without data, Hebrew](pictures/front-end/nodata_hangar_he.webp) |
 | Loadout | Edit on the briefing's Arming summary (§10.1): the jet from beneath with a callout per station, the loadouts (the mission's, the pilot's saved ones), the take-off weight and the stores; Reset to the mission's, Briefing, Fly | ![Loadout](pictures/front-end/loadout_f16i_en.webp) | ![Loadout, Hebrew](pictures/front-end/loadout_f16i_he.webp) |
 | Missions without data | the same note under the title, every section greyed; the Hangar crumb focused | ![Missions without data](pictures/front-end/nodata_missions_en.webp) | ![Missions without data, Hebrew](pictures/front-end/nodata_missions_he.webp) |
@@ -154,7 +154,6 @@ Tel Nof base files, airbases.md §3). Making one flyable moves its row from `SOO
 |---|---|---|
 | the sorties and their debrief records | `user://modern-iaf.sqlite` (tests: `<temp>/modern-iaf-records-<pid>/`, the run's own), `Settings.records_db()`, read through `IafPilotLog` ([storage.md](storage.md) §5) | `sim_flight.gd` at the scoring: the scorer's record plus `flight`, `date` (the end, local time) and `elapsed_s` (the flight's length, s) |
 | the picked jet | `user://settings.cfg` `[sim] jet` | the front end |
-| the jet photos | `modern-iaf/data/photos/` (§5) | — |
 
 The pilot's profile (the Pilot screen) is in the records database's `pilots` row ([storage.md](storage.md) §5): the
 name, the nickname and the picture, a copy of the chosen file in `pictures/` beside the database. Every screen's top
@@ -280,10 +279,9 @@ centreline in the roll.
 
 ## 5. The photos
 
-Six Wikimedia Commons photos, downscaled, credited on Attributions and in [../../docs/credits.md](../../docs/credits.md) "Modern IAF's photos". The list with each page:
-`modern-iaf/data/photos/SOURCES.md`. Round 3's Barak photo was CC BY-SA; the front end uses a CC BY 2.0 one instead.
-No screen shows them since the debrief's redo (§13, 2026-11-15, the approved mock's plain background): their blurred
-copies behind the debrief are gone; Home, Pick a plane and Training, which showed them whole, went with the Hangar.
+Six Wikimedia Commons photos of the jets shipped in modern-iaf/data/photos until 2026-11-16. No screen showed them
+after the debrief's redo (§13, 2026-11-15); Home, Pick a plane and Training, which showed them whole, had gone with
+the Hangar (2026-11-13). The finish list's F8 deleted them with their Attributions entry and their credits.
 
 ## 6. Checks
 
@@ -1059,7 +1057,7 @@ round 3 of the menu ideas (`r3_hangar_en.png`, `r3_hangar_he.png`, outside the r
 | the jets | at the inline start under "Aircraft" / "מטוסים": the full name ("F-16I Sufa"), the squadron's number and the base; the Ra'am and the Baz greyed (§2). A click, or Enter on the focused row, picks the jet; the arrows move between the rows and on to the card |
 | the jet | in the middle, standing still in its start view; the player looks at it from any side (below); its full name in large faint letters behind it; no help line (the user: "it should be obvious you can use the mouse") |
 | the card | at the inline end: the full name, then this jet's own data, the same three for every jet (the user, A31: "Just the specific plane data"): Squadron (its number and name, the airbase file's), Base and Tail number (the unit record's, the number painted on the model); no type figures (weight, gun rounds, radar range: tried 13 November and dropped by the user). Then the training (passed of all, the bar, the last flight on the jet), Fly (focused on entry; opens the Missions screen, §2; the greyed Missions and campaign button went with it). Without missions (the sim's data not built) the training's box says so with the command `./modern-iaf-setup` on a line of its own (Windows: `.\modern-iaf-setup.ps1`) and Fly is greyed, out of the focus |
-| the foot | Attributions at the inline start: the models' and photos' credits live there (`docs/credits.md`; the FlightGear F-16 is GPL, the F-35I CC BY 4.0, neither asks for a line on the screen) |
+| the foot | Attributions at the inline start: the models' credits live there (`docs/credits.md`; the FlightGear F-16 is GPL, the F-35I CC BY 4.0, neither asks for a line on the screen) |
 
 **The jet's view** is `shared/aircraft/turntable.gd`: the flight's own model through `AircraftModel.create` (the same
 file, descriptor and gear-down ground pose as the flight; the plane folder is the aircraft definition's base, else its

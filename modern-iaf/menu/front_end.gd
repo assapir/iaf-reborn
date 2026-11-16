@@ -2214,6 +2214,13 @@ func _page_credits() -> void:
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	v.add_child(scroll)
 	_focus = scroll
+	# The arrows (the gamepad's pad) and Page Up / Down scroll it, as the briefing's card; at its end Down reaches Back.
+	scroll.gui_input.connect(func(e: InputEvent): BriefingPage._scroll_keys(scroll, e))
+	var back := back_button()
+	_footer("", [back])
+	_chain([scroll, back])
+	_nb(scroll, {"bottom": back})
+	_nb(back, {"top": scroll})
 	var list := _vbox(scroll, 18)
 	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	for c in Wizard.credits():

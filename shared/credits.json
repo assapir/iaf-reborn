@@ -73,7 +73,6 @@
 		{"name": "F-35I", "use": "for_f35", "lines": ["\"Lockheed Martin F35 Lightning II\" by andertan (sketchfab.com), CC BY 4.0"]},
 		{"name": "NASA TP-1538", "use": "for_fm", "lines": ["L. T. Nguyen et al., NASA TP-1538 (1979), a work of the U.S. Government (public domain); the jets' published figures, each cited in the data files"]},
 		{"name": "Heebo", "use": "for_font", "lines": ["Copyright 2014 The Heebo Project Authors (github.com/OdedEzer/heebo), SIL Open Font License 1.1"]},
-		{"name": "Hershey Fonts", "use": "for_hud_font", "lines": ["The Hershey Fonts were originally created by Dr. A. V. Hershey while working at the U. S. National Bureau of Standards", "The format of the Font data in this distribution was originally created by James Hurt, Cognition, Inc."]},
-		{"name": "Wikimedia Commons", "use": "for_photos", "lines": ["F-16I Sufa 407 and F-35I Adir in flight: Major Ofer, Israeli Air Force, CC BY 4.0", "F-16I Sufa 851 at Tel Nof: MathKnight and Zachi Evenor, CC BY 4.0", "F-16D Barak 034: Zachi Evenor and MathKnight, CC BY 2.0", "F-15I Ra'am of 69 Squadron in flight: Tech. Sgt. Kevin Gruenwald, U.S. Air Force, public domain", "F-15C Baz 802 at Tel Nof: MathKnight and Zachi Evenor, CC BY 4.0"]}
+		{"name": "Hershey Fonts", "use": "for_hud_font", "lines": ["The Hershey Fonts were originally created by Dr. A. V. Hershey while working at the U. S. National Bureau of Standards", "The format of the Font data in this distribution was originally created by James Hurt, Cognition, Inc."]}
 	]
 }

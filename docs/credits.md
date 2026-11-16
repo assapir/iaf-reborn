@@ -194,15 +194,7 @@ Mostafa's `futural.jhf`[^hershey] (`tools/iaf-2026/fonts/`). Its terms ask for t
 originally created by Dr. A. V. Hershey while working at the U. S. National Bureau of Standards" and "The format of
 the Font data in this distribution was originally created by James Hurt, Cognition, Inc."
 
-## Modern IAF's photos
-
-The sim's front end (modern-iaf/docs/front-end.md) shows six Wikimedia Commons photos of the jets, downscaled, in
-`modern-iaf/data/photos/` (`SOURCES.md` there lists each page): F-16I Sufa 407 and F-35I Adir in flight by Major Ofer,
-Israeli Air Force (CC BY 4.0)[^c-sufa][^c-adir]; F-16I Sufa 851 at Tel Nof by MathKnight and Zachi Evenor (CC BY
-4.0)[^c-sufa2]; F-16D Barak 034 by Zachi Evenor and MathKnight (CC BY 2.0)[^c-barak]; an F-15I Ra'am of 69 Squadron
-in flight by Tech. Sgt. Kevin Gruenwald, U.S. Air Force (public domain)[^c-raam]; F-15C Baz 802 at Tel Nof by
-MathKnight and Zachi Evenor (CC BY 4.0)[^c-baz]. Since the Hangar (2026-11-13) only their blurred copies show,
-behind the debrief; the front end's Attributions screen and the setup wizard's list name all six.
+## Modern IAF's pictures
 
 The Hangar turns the jets' own models (§ Model credits); its stills for a model that does not load
 (`modern-iaf/data/hangar/`) are renders of them, the F-16s' under the FlightGear F-16's GPL 2.0 or later, the F-35I's
@@ -243,12 +235,6 @@ F-16 (GPL 2.0 or later), the F-35I's from andertan's model (CC BY 4.0), the stor
     and licence: https://langnico.github.io/globalcanopyheight/
 [^tp1538]: L. T. Nguyen et al., NASA TP-1538 (1979), "Simulator Study of Stall/Post-Stall Characteristics of a Fighter
     Airplane With Relaxed Longitudinal Static Stability": https://ntrs.nasa.gov/citations/19800005879
-[^c-sufa]: Wikimedia Commons, "IAF-F-16I-2016-12-13.jpg": https://commons.wikimedia.org/wiki/File:IAF-F-16I-2016-12-13.jpg
-[^c-adir]: Wikimedia Commons, "IAF-F-35I-2016-12-13.jpg": https://commons.wikimedia.org/wiki/File:IAF-F-35I-2016-12-13.jpg
-[^c-sufa2]: Wikimedia Commons, "IAF-F-16I-Sufa--Independence-Day-2017-Tel-Nof-IZE-182.jpg": https://commons.wikimedia.org/wiki/File:IAF-F-16I-Sufa--Independence-Day-2017-Tel-Nof-IZE-182.jpg
-[^c-barak]: Wikimedia Commons, "F-16D--Our-IDF-2018-IZE-239.jpg": https://commons.wikimedia.org/wiki/File:F-16D--Our-IDF-2018-IZE-239.jpg
-[^c-raam]: Wikimedia Commons, "F-15I Ra'am.jpg": https://commons.wikimedia.org/wiki/File:F-15I_Ra%27am.jpg
-[^c-baz]: Wikimedia Commons, "IAF-F-15C-Baz--Independence-Day-2017-Tel-Nof-IZE-084.jpg": https://commons.wikimedia.org/wiki/File:IAF-F-15C-Baz--Independence-Day-2017-Tel-Nof-IZE-084.jpg
 [^hershey]: hershey-fonts, Kamal Mostafa (`hershey-fonts/futural.jhf` and the Hershey Fonts licence in `COPYING`): https://github.com/kamalmostafa/hershey-fonts
 [^heebo]: Google Fonts, Heebo (`ofl/heebo/Heebo[wght].ttf` and `OFL.txt`): https://github.com/google/fonts/tree/main/ofl/heebo
 [^cop-dem]: "Licence for the use of the Copernicus WorldDEM-30", Article 6: https://documentation.dataspace.copernicus.eu/APIs/SentinelHub/Data/DEM/resources/license/License-COPDEM-30.pdf

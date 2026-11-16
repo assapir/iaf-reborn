@@ -762,9 +762,14 @@ func walk(fe: Control, ids: Dictionary, lang: String) -> void:
 	fe.show_page("credits")
 	await frames(2)
 	check(
-		_has(fe, "Copernicus DEM GLO-30") and _has(fe, "Wikimedia Commons"),
-		"%s: attributions: the wizard's list and the photos" % lang
+		_has(fe, "Copernicus DEM GLO-30") and not _has_part(fe, "Major Ofer"),
+		"%s: attributions: the wizard's list, no jet photos" % lang
 	)
+	var cs: ScrollContainer = fe.find_child("Credits", true, false)
+	check(cs.has_focus() and fe.find_child("Back", true, false) != null, "%s: attributions: focused, a Back" % lang)
+	cs.gui_input.emit(_key_event(KEY_PAGEDOWN))
+	await frames(1)
+	check(cs.scroll_vertical > 0, "%s: attributions: Page Down scrolls (%d)" % [lang, cs.scroll_vertical])
 
 
 func prefs(fe: Control) -> void:
