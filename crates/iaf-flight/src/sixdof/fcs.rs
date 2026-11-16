@@ -144,6 +144,14 @@ pub fn cat3_alpha_limit(weight_lb: f64, n: f64) -> f64 {
     a1 + (n - 1.0) / (g2 - 1.0) * (a2 - a1)
 }
 
+/// The α the F-16's limiter holds at 1 g, deg (T.O. 1F-16A-1 figure 1-44, TP-1538's limiter). A jet with another
+/// limit ([`Fcs::with_alpha_max`]) has the limiter, the α filter's range, the departure prevention and the pedals'
+/// fade moved by the difference (inferred: the F-35I's 50°, modern-iaf/docs/flight-model.md §9.19).
+pub const F16_ALPHA_MAX: f64 = 25.2;
+/// The α-rate lead (s) of a shifted limiter's second branch (inferred: from a sweep of 0–1 s on 2026-11-16, 0.6 s holds
+/// a full pull at 150–400 kt within 2.2° of the F-35I's 50°).
+const ALPHA_RATE_LEAD: f64 = 0.6;
+
 /// The full stick's and pedals' forces, N: the ends of the gradients above (inferred: the game's stick and pedals
 /// cover each gradient's whole range; a push reaches −80 N, a pull 180 N).
 const PULL_N: f64 = 180.0;
@@ -157,6 +165,10 @@ pub struct Fcs {
     /// The jet's load-factor limits, g (figure 62(a)'s +8 incremental is the F-16's 9 g).
     max_g: f64,
     min_g: f64,
+    /// The jet's α limit less the F-16's, deg (0 on the F-16s).
+    alpha_shift: f64,
+    /// The filtered α of the last step, deg (for the shifted limiter's α-rate lead).
+    alpha_prev: f64,
     // Pitch.
     f_long: Lag,
     n_cmd: Lag,
@@ -194,11 +206,17 @@ impl Fcs {
         Fcs { max_g, min_g, roll, ..Fcs::default() }
     }
 
+    /// The control system with the limiter holding `deg` of α at 1 g ([`F16_ALPHA_MAX`]: no change).
+    pub fn with_alpha_max(self, deg: f64) -> Fcs {
+        Fcs { alpha_shift: deg - F16_ALPHA_MAX, ..self }
+    }
+
     /// One step of `dt` s (the rigid body's integrator step, at most 1/120 s): the surfaces' positions.
     pub fn step(&mut self, pilot: &Pilot, s: &Sensors, dt: f64) -> Surfaces {
         let qbar_k = s.qbar / 1000.0;
         // α filter (figure 62: limited −5…30°, 10/(s + 10)), shared by the three axes.
-        let alpha_f = self.alpha_f.step(10.0, s.alpha.clamp(-5.0, 30.0), dt);
+        let sh = self.alpha_shift;
+        let alpha_f = self.alpha_f.step(10.0, s.alpha.clamp(-5.0, 30.0 + sh), dt);
 
         // --- Pitch (figure 62(a)) ---
         let force = if pilot.stick_y >= 0.0 { pilot.stick_y * PULL_N } else { pilot.stick_y * PUSH_N };
@@ -212,8 +230,14 @@ impl Fcs {
         // Pitch rate washed out, s/(s + 1).
         let q_wo = s.q - self.q_wash.step(1.0, s.q, dt);
         // The α limiter: 0.322 g/deg above 15° (with pitch-rate lead), 1 g/deg more above 20.4°.
-        let l1 = (0.322 * (alpha_f + 0.7 * table(&Q_GAIN, qbar_k) * q_wo - 15.0)).max(0.0);
-        let l2 = (alpha_f - 20.4).max(0.0);
+        let l1 = (0.322 * (alpha_f + 0.7 * table(&Q_GAIN, qbar_k) * q_wo - 15.0 - sh)).max(0.0);
+        // A jet with a higher limit (the F-35I) also leads the second branch by α's rate × `ALPHA_RATE_LEAD`: TP-1538's
+        // pitch-rate lead is washed out (s/(s + 1)) before the jet has climbed the 35° from 15° to 50°, so without it
+        // a full pull overshot to 68° (inferred, modern-iaf/docs/flight-model.md §9.19). None on the F-16s.
+        let a_dot = (alpha_f - self.alpha_prev) / dt.max(1e-6);
+        self.alpha_prev = alpha_f;
+        let lead = if sh > 0.0 { ALPHA_RATE_LEAD * a_dot } else { 0.0 };
+        let l2 = (alpha_f + lead - 20.4 - sh).max(0.0);
         // Feedback: (3s + 12)/(s + 12) of the limiter's first branch, pitch rate and filtered (an − 1).
         let an = self.an_f.step(50.0, s.an - 1.0, dt);
         // CAT III (figure 1-44): the α limit of the jet's weight at its load factor, with the same pitch-rate lead.
@@ -239,14 +263,15 @@ impl Fcs {
         // MPO above α 29° (T.O. 1F-16A-1: "enable manual control of the horizontal tails"): full stick is full
         // stabilator, centred stick streamlines it; the integrator follows (the proportional path returns at once
         // when the MPO lets go; the actuator's 60 deg/s limits the step).
-        let manual = pilot.mpo && s.alpha > 29.0;
+        let manual = pilot.mpo && s.alpha > 29.0 + sh;
+        // The α feedforward stays on the F-16's range (to 30°; the F-35I's limit beyond it, inferred).
         let dh_cmd = if manual {
             let dh = -25.0 * pilot.stick_y.clamp(-1.0, 1.0);
-            self.integ = (0.5 * alpha_f - dh).clamp(-25.0, 25.0);
+            self.integ = (0.5 * alpha_f.min(30.0) - dh).clamp(-25.0, 25.0);
             dh
         } else {
             self.integ = if s.on_ground { 0.0 } else { (self.integ + ui * dt).clamp(-25.0, 25.0) };
-            -(self.integ + (5.0 * u).clamp(-25.0, 25.0)) + 0.5 * alpha_f
+            -(self.integ + (5.0 * u).clamp(-25.0, 25.0)) + 0.5 * alpha_f.min(30.0)
         };
         let dh = self.dh.step(20.2, 60.0, (-25.0, 25.0), dh_cmd, dt);
 
@@ -271,9 +296,10 @@ impl Fcs {
         };
         let p_f = self.p_f.step(50.0, s.p, dt);
         let r_f = self.r_f.step(50.0, s.r, dt);
-        // Above α 29° the departure / spin prevention drives the ailerons against the yaw rate instead.
+        // Above α 29° (the F-16's; moved with the jet's limit) the departure / spin prevention drives the ailerons
+        // against the yaw rate instead.
         let trim = pilot.roll_trim * full;
-        let (roll_cmd, ff) = if alpha_f >= 29.0 {
+        let (roll_cmd, ff) = if alpha_f >= 29.0 + sh {
             (-8.34 * r_f, 0.0)
         } else {
             (p_cmd + trim - p_f, F16_CLP * p_cmd.to_radians() * ff_span / (2.0 * s.tas.max(30.0)) / F16_CL_DA)
@@ -285,12 +311,12 @@ impl Fcs {
         let f = self.f_ped.step(60.0, pilot.pedal * PEDAL_N, dt);
         // The pedals fade out to none at α 30° (TP-1538); CAT III: none from α 15° (T.O. 1F-16A-1 figure 1-43: "Zero
         // rudder authority available at 15° AOA", faded from 5°, inferred); MPO above α 29°: full (figure 1-43 note 2).
-        let fade = if pilot.mpo && s.alpha > 29.0 {
+        let fade = if pilot.mpo && s.alpha > 29.0 + sh {
             1.0
         } else if pilot.cat3 {
             ((15.0 - alpha_f) / 10.0).clamp(0.0, 1.0)
         } else {
-            ((30.0 - alpha_f) / 10.0).clamp(0.0, 1.0)
+            ((30.0 + sh - alpha_f) / 10.0).clamp(0.0, 1.0)
         };
         let pedal = table(&RUDDER_GRADIENT, f) * fade;
         // Stability-axis yaw rate r − p·α, (3s + 15)/(s + 15), washed out 1.5 s/(s + 1).
@@ -302,7 +328,8 @@ impl Fcs {
         let tri = (1.0 - alpha_f.abs() / 10.0).max(0.0);
         let ramp = ((s.qbar / s.ps.max(1.0) - 0.187) / (1.129 - 0.187)).clamp(0.0, 1.0);
         let ari = (0.075 * alpha_f - tri * ramp) * da_c;
-        let yaw_right = if alpha_f >= 29.0 { pedal - 0.75 * r_f } else { pedal + ari - 0.5 * (damper + 19.32 * s.ay) };
+        let yaw_right =
+            if alpha_f >= 29.0 + sh { pedal - 0.75 * r_f } else { pedal + ari - 0.5 * (damper + 19.32 * s.ay) };
         let dr = -self.dr.step(20.2, 120.0, (-30.0, 30.0), yaw_right, dt);
 
         // --- Leading-edge flap (appendix A): 1.38 (2s + 7.25)/(s + 7.25) α − 9.05 q̄/ps + 1.45, its actuator a
@@ -322,12 +349,13 @@ impl Fcs {
     /// Starts the control system settled at `alpha` (deg) with the stabilator at `dh` (deg): the filters at their
     /// steady values, the integrator holding the stabilator.
     pub fn settle(&mut self, alpha: f64, dh: f64, qbar: f64, ps: f64) {
-        let a = alpha.clamp(-5.0, 30.0);
+        let a = alpha.clamp(-5.0, 30.0 + self.alpha_shift);
         self.alpha_f.y = a;
+        self.alpha_prev = a;
         self.lef_alpha_x = alpha;
         self.lef.y = lef_schedule(alpha, qbar, ps.max(1.0));
         self.dh.y = dh;
-        self.integ = (0.5 * a - dh).clamp(-25.0, 25.0);
+        self.integ = (0.5 * a.min(30.0) - dh).clamp(-25.0, 25.0);
     }
 }
 

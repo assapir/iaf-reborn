@@ -160,6 +160,10 @@ Each entry names the switch and where it lives, then the difference: "Original: 
 - **Gear overspeed limit.** Original: the gear is damaged above 450 kt true airspeed with the gear down. Ours, with
   the switch: the jet's aircraft definition's `gear_limit` in calibrated airspeed and Mach (the F-16's 300 KCAS /
   Mach 0.65, T.O. 1F-16A-1; the F-35I's the same, inferred); a jet without one keeps 450 kt true — damage.md §5.2.
+- **F-35I flight figures** (finish list F23; our jet, always on its Real row). The F-35I reads the one F-35I set
+  Modern IAF's 6-DoF Adir also reads (`data_set::F35I`; sources: f35i.md §2.1): +9 / −3 g, the F-16's roll (240
+  deg/s at 688 deg/s², inferred) and a 134 kt minimum-speed floor (inferred from the approach). Until 2026-11-16 it
+  rolled at 280 deg/s at 900 deg/s² with a 122 kt floor (no source).
 - **RWR display.** Original: the display copies the first `count` slots without compacting, so an entry can vanish
   after a removal. Ours, with the switch: it lists every used slot — rwr.md §1.
 - **Autopilot landing gear.** Original: the NAV landing lowers the gear once, at step 7, and the lever refuses it

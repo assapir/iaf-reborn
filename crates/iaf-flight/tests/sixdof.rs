@@ -701,10 +701,10 @@ fn a_cold_jet_starts_by_its_start_command() {
 
 // --- The trailing-edge flaps (flight-model.md §9.16) -------------------------------------------------------------
 
-/// A steady 3° approach at α `alpha` (deg), gear down and the speed brakes at 43° (T.O. GR1F-16CJ-1's landing
+/// A steady 3° approach at α `alpha` (deg), gear down and the speed brakes at `dsb` (43°: T.O. GR1F-16CJ-1's landing
 /// pattern), the trailing-edge flaps at `dtef`: (calibrated speed kt, stabilator deg, CL). Sea level; the thrust along
 /// the body x axis balances the drag; the leading-edge flap on its schedule.
-fn approach(jet: &Jet, alpha: f64, dtef: f64) -> (f64, f64, f64) {
+fn approach(jet: &Jet, alpha: f64, dtef: f64, dsb: f64) -> (f64, f64, f64) {
     let af = &jet.airframe;
     let w = af.mass * iaf_flight::sixdof::G;
     let (sg, cg) = 3f64.to_radians().sin_cos();
@@ -714,7 +714,7 @@ fn approach(jet: &Jet, alpha: f64, dtef: f64) -> (f64, f64, f64) {
     for _ in 0..40 {
         let qbar = 0.5 * rho(0.0) * v * v;
         let c = |dh: f64| {
-            let s = Surfaces { dh, dlef: lef_schedule(alpha, qbar, ps(0.0)), dsb: 43.0, dtef, ..Surfaces::default() };
+            let s = Surfaces { dh, dlef: lef_schedule(alpha, qbar, ps(0.0)), dsb, dtef, ..Surfaces::default() };
             let mut c = coefficients(&Flow { alpha, v, ..Flow::default() }, &s, af);
             iaf_flight::sixdof::aero::add_drag(&mut c, 0.02, alpha);
             c
@@ -740,8 +740,8 @@ fn flaps_with_the_gear_handle() {
     // The approach at 13° α: the flaps add their lift (TEF_CL, less the stabilator's share of trimming their
     // nose-down moment) and slow the approach by the square root of the lift ratio.
     let barak = jets::all()[0].at_weight(19_100.0 + 500.0);
-    let (v0, dh0, cl0) = approach(&barak, 13.0, 0.0);
-    let (v1, dh1, cl1) = approach(&barak, 13.0, 20.0);
+    let (v0, dh0, cl0) = approach(&barak, 13.0, 0.0, 43.0);
+    let (v1, dh1, cl1) = approach(&barak, 13.0, 20.0, 43.0);
     println!(
         "Barak 19,600 lb, 13° α, gear down, speed brakes 43°: flaps up {v0:.1} kt (δh {dh0:.2}°, CL {cl0:.3}), flaps 20° \
          {v1:.1} kt (δh {dh1:.2}°, CL {cl1:.3})"
@@ -771,7 +771,7 @@ fn approach_speed_against_the_manual() {
     let missiles = 2.0 * 157.0 / 0.453_592_37 / 1000.0 * 4.0;
     for (weight, manual) in [(21_000.0, 136.0), (21_600.0, 138.0), (21_900.0, 138.0)] {
         let jet = jets::all()[0].at_weight(weight);
-        let (v13, v11) = (approach(&jet, 13.0, 20.0).0, approach(&jet, 11.0, 20.0).0);
+        let (v13, v11) = (approach(&jet, 13.0, 20.0, 43.0).0, approach(&jet, 11.0, 20.0, 43.0).0);
         let m = manual + missiles;
         println!("{weight} lb: 13° α {v13:.1} kt, 11° α {v11:.1} kt (T.O. GR1F-16CJ-1: {m:.1}, {:.1})", m + 8.0);
         assert!((v13 - m).abs() <= 5.0, "{weight} lb, 13°: {v13} against {m}");
@@ -957,7 +957,11 @@ fn f16s_roll_at_the_shared_figure() {
     // within 5 % of the figure; the time to 90° (0.87 s at 350 kt, 0.80 s at 480 kt, 2026-11-14: the flaperons' rate
     // and TP-1538's roll power keep the jet's onset at 390–500 deg/s², against ~0.55 s for an instant 688 deg/s²).
     let fig = iaf_flight::data_set::F16_ROLL;
-    for (jet, kt, t90_max) in [(0, 350.0, 0.90), (0, 480.0, 0.83), (1, 350.0, 0.90), (1, 480.0, 0.85)] {
+    // The Adir (2) flies the same figure (`data_set::F35I.roll`, inferred: finish list F23); its 90° times are bounds
+    // for its larger inertia (inferred, not a source).
+    for (jet, kt, t90_max) in
+        [(0, 350.0, 0.90), (0, 480.0, 0.83), (1, 350.0, 0.90), (1, 480.0, 0.85), (2, 350.0, 1.1), (2, 480.0, 1.0)]
+    {
         let j = jets::all()[jet];
         let mut f = flight(j, 3048.0, kt * KT, true);
         let (mut t90, mut peak, mut onset, mut last, mut p0, mut at_1_5) = (f64::NAN, 0.0f64, 0.0f64, 0.0, 0.0, 0.0);
@@ -1096,4 +1100,72 @@ fn deep_stall_recovered_with_mpo_rocking() {
     );
     assert!(t < 30.0 && rock_ft < 4500.0, "{t} s, {rock_ft} ft");
     assert!(!s.stalled && (-5.0..25.0).contains(&a) && s.speed > 103.0, "{a} {}", s.speed);
+}
+
+#[test]
+fn adir_flies_the_f35_figures() {
+    // Finish list F23: the Adir on TP-1538's tables with the F-35I set (`data_set::F35I`, docs/f35i.md §2.1,
+    // modern-iaf/docs/flight-model.md §9.19).
+    let fig = iaf_flight::data_set::F35I;
+    let adir = jets::all()[2];
+    // The approach (USAF accident report, 2020): 13° α "desired", about 152 KCAS; the same jet held 202 KCAS at α 5.2°.
+    // At the inferred landing weight, gear down, the flaps on their schedule (20°), no speed brake; ±5 %.
+    let jet = adir.at_weight(fig.approach_lb);
+    let v13 = approach(&jet, fig.approach_alpha, 20.0, 0.0).0;
+    let (fast_kcas, fast_alpha) = fig.fast_approach;
+    let v5 = approach(&jet, fast_alpha, 20.0, 0.0).0;
+    println!(
+        "Adir {:.0} lb: {:.0}° α {v13:.1} kt (report ~{:.0}), {fast_alpha}° α {v5:.1} kt (report {fast_kcas:.0})",
+        fig.approach_lb, fig.approach_alpha, fig.approach_kcas
+    );
+    assert!((v13 / fig.approach_kcas - 1.0).abs() <= 0.05, "13°: {v13}");
+    assert!((v5 / fast_kcas - 1.0).abs() <= 0.05, "5.2°: {v5}");
+
+    // The α limit (Lockheed Martin: 50°): a full pull at 150–400 kt, 10,000 ft holds α within 3° of it with the
+    // sideslip small (no departure); then a full push brings the jet below 15° within 6 s (controllable there: the
+    // nose-down moment, inferred). A centred stick is a 1 g command: at ~100 kt it rightly stays near the limit.
+    for kt in [150.0, 200.0, 300.0, 400.0] {
+        let mut f = flight(adir, 3048.0, kt * KT, true);
+        let full = iaf_flight::Controls { stick_y: 1.0, throttle: 1.0, ..f.controls() };
+        let (mut amax, mut bmax) = (0.0f64, 0.0f64);
+        fly_for(&mut f, 8.0, |s| {
+            let st = s.state();
+            amax = amax.max(st.alpha.to_degrees() as f64);
+            bmax = bmax.max((st.beta.to_degrees() as f64).abs());
+            full
+        });
+        let a_end = f.state().alpha.to_degrees() as f64;
+        let push = iaf_flight::Controls { stick_y: -1.0, ..full };
+        let mut t15 = f64::NAN;
+        for i in 1..=(6 * 60) {
+            fly_for(&mut f, 1.0 / 60.0, |_| push);
+            if f.state().alpha.to_degrees() < 15.0 {
+                t15 = i as f64 / 60.0;
+                break;
+            }
+        }
+        println!(
+            "Adir, full pull at {kt} kt: α peak {amax:.1}°, after 8 s {a_end:.1}°, |β| ≤ {bmax:.1}°; full push: below \
+             15° in {t15:.1} s"
+        );
+        assert!((amax - fig.alpha_max).abs() < 3.0 && (a_end - fig.alpha_max).abs() < 3.0, "{kt}: {amax} {a_end}");
+        assert!(bmax < 5.0, "{kt}: {bmax}");
+        assert!(t15 <= 6.0, "{kt}: {t15}");
+    }
+
+    // The g limit (+9, Lockheed Martin): a full pull at 550 kt stays at most 0.5 g over it.
+    let mut f = flight(adir, 3048.0, 550.0 * KT, true);
+    let full = iaf_flight::Controls { stick_y: 1.0, throttle: 1.0, ..f.controls() };
+    let mut peak: f32 = 0.0;
+    fly_for(&mut f, 6.0, |s| {
+        peak = peak.max(s.state().g);
+        full
+    });
+    println!("Adir, full pull at 550 kt: peak {peak:.2} g");
+    assert!(peak > 8.0 && (peak as f64) < fig.g.0 + 0.5, "{peak}");
+
+    // The 1 g stall within the α limit, sea level, the reference weight: within 10 % of the inferred figure.
+    let stall = iaf_flight::sixdof::flight::stall_speed(&adir) / KT;
+    println!("Adir: 1 g stall {stall:.0} kt (inferred {:.0})", fig.stall_kt);
+    assert!((stall / fig.stall_kt - 1.0).abs() <= 0.10, "{stall}");
 }

@@ -121,7 +121,7 @@ const REFS: &[Ref] = &[
         fuel: Some((18000.0, 18500.0, "18,250 lb (Lockheed Martin)")),
         thrust_mil: Some((25000.0, 28500.0, "25,000 installed .. 28,000 uninstalled lbf")),
         thrust_ab: Some((40000.0, 43500.0, "40,000 installed .. 43,000 uninstalled lbf")),
-        stall: Some((115.0, 130.0, "~120-125 kt (U, approach ~150 kt)")),
+        stall: Some((121.0, 147.0, "134 kt ±10 % (inferred: approach 152 KCAS at 13° α / 1.3, data_set::F35I)")),
         ceiling: Some((48500.0, 51500.0, "50,000 ft")),
         roll_rate: None,
         vmax_sl: Some((680.0, 720.0, "~700 kt (Mach 1.06)")),
@@ -861,16 +861,11 @@ fn sixdof_jets_against_public_data() {
             verdict: verdict(t_ab, r.thrust_ab),
         });
 
-        // 1 g stall: the slowest speed at sea level where the stick that holds the α limiter's 25° (0.78 of the
-        // pull, modern-iaf/docs/flight-model.md §9.13) still gives 1 g.
-        let holds = |kt: f32| {
-            fly6(&mut sixdof(jet, 0.0, kt), 1.0, |_| Controls { stick_y: 0.78, throttle: 1.0, ..mil }).g > 0.95
-        };
-        let (mut lo, mut hi) = (60.0f32, 250.0f32);
-        for _ in 0..20 {
-            let mid = 0.5 * (lo + hi);
-            if holds(mid) { hi = mid } else { lo = mid }
-        }
+        // 1 g stall: the slowest trimmed level flight at sea level within the jet's α limit (`flight::stall_speed`).
+        // Until 2026-11-16 a 1 s pull at the stick that holds 25°: since the ground and gear (finish list F1) the flight
+        // at 0 m met the ground and the crash froze its g (every jet read 60 kt), and the Adir's 50° limit takes
+        // longer than 1 s to reach.
+        let hi = iaf_flight::sixdof::flight::stall_speed(&jet) as f32 * KT;
         rows.push(Row {
             item: "1 g stall speed, SL (α limit)",
             iaf: format!("{hi:.0} kt"),

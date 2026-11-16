@@ -150,6 +150,13 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   (+0.122). The 13° α approach is 136–139 kt at the manual's three weights (manual 139–141 kt, was 118–121 kt)
   ([flight-model.md](flight-model.md) §9.17). Since 2026-11-15 the F-16s' speed brake stops at 43° with the main gear down
   (T.O. 1F-16A-1); the Adir's surfaces have no such limit (inferred).
+- **The Adir's own flight figures (2026-11-16, finish list F23):** one F-35I set (`data_set::F35I`) that the 6-DoF
+  and the original game's F-35I both read: the control law's 50° α limit (Lockheed Martin; a full pull at 150–400 kt
+  peaks at 51–52° and holds 50°, a full push recovers in under 6 s), +9 g, the F-16's roll (inferred), a nose-down
+  moment at high α and an α-rate lead in the limiter (both inferred), the approach at 152 KCAS and 13° α (USAF
+  accident report) and a 134 kt 1 g stall (inferred; 128 kt measured) asserted ([flight-model.md](flight-model.md)
+  §9.19, [../../docs/f35i.md](../../docs/f35i.md) §2.1). Open: the F-35's roll rate, sustained turn condition and
+  climb.
 - **The trailing-edge flaps droop with the gear handle (2026-11-11):** on the 6-DoF the F-16s' and the Adir's
   flaperons go 20° down with the gear handle below 240 kt, less to 370 kt, and up with the handle, in the gear's 3.1 s
   (the F-16 flight manual); their lift, drag and nose-down moment are inferred (DATCOM, FM-0's drag); the models'

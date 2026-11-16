@@ -193,6 +193,64 @@ pub const F16_ROLL: Roll = Roll { rate: 240.0, accel: 688.0, flaperon_rate: 62.0
 /// authority" (T.O. 1F-16A-1 figure 1-43): the stick's roll command × 0.6.
 pub const F16_CAT3_ROLL: f64 = 0.6;
 
+/// The F-35I's flight figures (finish list F23, the user, 2026-11-14: "Infer the f35 (in both games)"): the F-35A's
+/// public figures and the inferred ones, one set that reborn's F-35I Real row and Modern IAF's 6-DoF Adir both read.
+/// Sources and reasoning: docs/f35i.md §2.1, modern-iaf/docs/flight-model.md §9.19.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct F35 {
+    /// The control law's angle-of-attack limit, deg: 50 (Lockheed Martin, 2012).
+    pub alpha_max: f64,
+    /// Load-factor limits, g: +9 (Lockheed Martin); −3 inferred (the F-16's).
+    pub g: (f64, f64),
+    /// Final approach, KCAS at `approach_alpha` deg: 13° "desired", 202 KCAS "about 50 knots in excess" (USAF
+    /// accident report, 2020); at `approach_lb`, inferred (empty + pilot + 6,000 lb of fuel).
+    pub approach_kcas: f64,
+    pub approach_alpha: f64,
+    pub approach_lb: f64,
+    /// The same report's fast approach at the same weight: 202 KCAS at α 5.2°.
+    pub fast_approach: (f64, f64),
+    /// 1 g stall, kt at sea level, at the 6-DoF's reference weight (47,550 lb): inferred, the approach / 1.3 (the
+    /// conventional approach margin) × √(47,550 / `approach_lb`).
+    pub stall_kt: f64,
+    /// The roll: inferred the F-16's (no public F-35 roll rate; the closest Lockheed Martin fly-by-wire fighter).
+    pub roll: Roll,
+    /// The high-α pitching moment the F-16's tables lack (inferred): ΔCm 0 at `from` deg, `dcm` at `to` deg and above.
+    pub nose_down: HighAlphaCm,
+}
+
+/// A nose-down pitching moment growing linearly with α between two angles ([`F35::nose_down`]).
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct HighAlphaCm {
+    pub from: f64,
+    pub to: f64,
+    pub dcm: f64,
+}
+
+impl HighAlphaCm {
+    /// ΔCm at α `alpha` deg.
+    pub fn at(&self, alpha: f64) -> f64 {
+        self.dcm * ((alpha - self.from) / (self.to - self.from)).clamp(0.0, 1.0)
+    }
+}
+
+/// The F-35I's set (sources: docs/f35i.md §2.1).
+pub const F35I: F35 = F35 {
+    alpha_max: 50.0,
+    g: (9.0, -3.0),
+    approach_kcas: 152.0,
+    approach_alpha: 13.0,
+    approach_lb: 36_000.0,
+    fast_approach: (202.0, 5.2),
+    stall_kt: 134.0,
+    roll: F16_ROLL,
+    // The F-16's tables lose their nose-down stabilator at α 45° (deep stall); the F-35A is controllable to its 50°
+    // limit and recovers from it: from 30° to −0.20 at 60° (−0.13 at 50°, trimmed there within the stabilator's
+    // nose-up travel; past 50° it keeps growing, so a full push recovers within 6 s from 150–400 kt). Chosen from a
+    // sweep of ramps (from 20–40°, to 50–70°, −0.10…−0.40) on 2026-11-16: 40° → −0.10 at 50° overshot to 68° and could
+    // stay in a deep stall under full push at 300 kt (inferred, §9.19).
+    nose_down: HighAlphaCm { from: 30.0, to: 60.0, dcm: -0.20 },
+};
+
 fn real(t: &Type) -> Option<&'static Real> {
     REAL.iter().find(|r| r.aircraft == t.name)
 }
@@ -438,12 +496,12 @@ const REAL: &[Real] = &[
         // TSFC ~2.0 in afterburner (~86,000 lb/h), ~0.8 dry (~22,000 lb/h) (U).
         ff_ab_lb_s: Some(86_000.0 / 3600.0),
         ff_mil_lb_h: Some(22_000.0),
-        // Approach ~150 kt at 13° AoA -> 1 g stall ~122 kt (U, derived).
-        stall_kt: Some(122.0),
-        // FLCS like the F-16's (no public F-35 roll rate).
-        roll_deg_s: Some(280.0),
-        roll_accel: Some((900.0, 900.0)),
-        g: Some((9.0, -3.0)),
+        // The F-35I set (F35I, finish list F23), as the 6-DoF Adir: 1 g stall 134 kt (inferred from the approach), the
+        // F-16's roll (inferred), +9 / −3 g. Until 2026-11-16: 122 kt, 280 deg/s at 900 deg/s² (no source).
+        stall_kt: Some(F35I.stall_kt as f32),
+        roll_deg_s: Some(F35I.roll.rate as f32),
+        roll_accel: Some((F35I.roll.accel as f32, F35I.roll.accel as f32)),
+        g: Some((F35I.g.0 as f32, F35I.g.1 as f32)),
         ceiling_ft: Some(50_000.0),
         nose_wheel: Some(Nws { angle_deg: 32.0, wheelbase_ft: 17.6, grip_g: 0.3 }),
         afterburner: Some(true),
@@ -909,6 +967,31 @@ mod tests {
         assert_eq!(apply(DataSet::Original, "F-4", &p, &e).0.chute_cd, 0.0);
         let (r, _) = apply(DataSet::Real, "F-4", &p, &e);
         assert!((r.chute_cd - 0.63 * 18.68 / r.wing_area).abs() < 0.01, "{} (wing {} m²)", r.chute_cd, r.wing_area);
+    }
+
+    #[test]
+    fn f35_set_feeds_both_games() {
+        // Finish list F23: reborn's F-35I Real row and the 6-DoF Adir read the one set.
+        let s = F35I;
+        // The inferred stall: the approach / 1.3 at its weight, scaled to the 6-DoF's 47,550 lb.
+        let derived = s.approach_kcas / 1.3 * (47_550.0 / s.approach_lb).sqrt();
+        assert!((s.stall_kt - derived).abs() < 0.5, "{derived}");
+        let p = Params::from_section(
+            iaf_formats::ini::Ini::parse(b"[F-16]\r\nWingArea = 300\r\n").section("F-16").unwrap(),
+        );
+        let e = Envelope::parse(b"[Min Velocity Table]\r\n0 100 0\r\n1 150 0\r\n1 160 40000\r\n");
+        let (r, env) = apply(DataSet::Real, "F-35I", &p, &e);
+        assert!((r.max_roll_rate.to_degrees() - s.roll.rate as f32).abs() < 1e-3);
+        assert!((r.roll_accel.to_degrees() - s.roll.accel as f32).abs() < 1e-3);
+        assert_eq!((r.max_g_m1, r.min_g_m1), (s.g.0 as f32 - 1.0, s.g.1 as f32 - 1.0));
+        assert_eq!(env.stall_floor, Some(s.stall_kt as f32 * KT));
+        let adir = crate::sixdof::jets::by_type("F-35I").unwrap();
+        assert_eq!(
+            (adir.alpha_max, adir.g_limits, adir.roll, adir.nose_down),
+            (s.alpha_max, s.g, Some(s.roll), Some(s.nose_down))
+        );
+        // The nose-down moment: none to 30°, half at 45°, all of it from 60°.
+        assert_eq!((s.nose_down.at(30.0), s.nose_down.at(45.0), s.nose_down.at(70.0)), (0.0, -0.10, -0.20));
     }
 
     #[test]

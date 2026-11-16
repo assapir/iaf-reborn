@@ -254,7 +254,7 @@ OFF there. Picture: the same tables as an HTML page (the C1 section of the "IAF 
 |---|---|---|---|
 | empty weight / internal fuel | 29,300 / 18,250 lb | 29,300 / 18,250 lb | ok / ok |
 | thrust SL static, military / full AB | 28,703 / 43,000 lbf | 25,000–28,000 / 40,000–43,000 lbf | close / ok |
-| 1 g stall speed / ceiling | 125 kt / 50,000 ft | ~120–125 kt / 50,000 ft | ok / ok |
+| 1 g stall speed / ceiling | 134 kt / 50,000 ft | 121–147 kt (134 kt inferred, §9.19) / 50,000 ft | ok / ok |
 | max level speed, SL | Mach 1.07 (705 kt) | ~700 kt (Mach 1.06) | ok |
 | max level speed, 40,000 ft | Mach 1.35 | Mach 1.6 | OFF |
 | fuel flow military / full AB | 21,996 / 86,001 lb/h | ~20,000–25,000 / ~86,000 lb/h | ok / ok |
@@ -704,8 +704,8 @@ printed pp. 210–217), stepped with the rigid body (at most 1/120 s):
   constants reborn's "Asymmetric stores" uses; inferred: figure 64(a)'s proportional loop alone settles at 218 deg/s
   against its 308 deg/s command); the 0.12 loop corrects the rest, so unbalanced stores still roll the jet. The
   autopilot's rate command keeps the 10/(s + 10) path without the feedforward (with it the Sufa's autopilot landing
-  crashed, `player_autopilot_flies_the_sims_three_jets`). The Adir, the Ra'am and TP-1538's jet keep control
-  system A's roll (308 deg/s, 80 deg/s): the Adir's own roll comes with finish list F23.
+  crashed, `player_autopilot_flies_the_sims_three_jets`). The Adir flies the same figure (`data_set::F35I.roll`,
+  inferred, §9.19). The Ra'am and TP-1538's jet keep control system A's roll (308 deg/s, 80 deg/s).
 * **Yaw** (figure 65): figure 65(b)'s pedal gradient (±30°), faded out between α 20° and 30°; the stability-axis yaw
   damper (r − p α, (3s + 15)/(s + 15), 1.5 s/(s + 1), × 0.5) and lateral acceleration (19.32); the aileron-rudder
   interconnect 0.075 α minus figure 65(a)'s q̄/ps term; above α 29° 0.75 × yaw rate; 120 deg/s, ±30°.
@@ -838,11 +838,11 @@ the same public figures as §5; "ok" inside, "close" within 10 %, "OFF" further;
 | test | Barak | Sufa | Adir | Ra'am |
 |---|---|---|---|---|
 | thrust SL static, military / full AB | 17,110 / 29,000 lbf ok / ok | 17,800 / 29,160 ok / ok | 28,000 / 43,000 ok / ok | 35,600 / 58,320 ok / ok |
-| 1 g stall at the α limit, SL | 132 kt ok | 143 kt close | 147 kt **OFF** (120–125) | 143 kt close (155 KCAS) |
+| 1 g stall at the α limit, SL (`flight::stall_speed`, 2026-11-16) | 125 kt ok | 136 kt close | 128 kt ok (121–147) | 136 kt **OFF** (155 KCAS) |
 | neutral stick, 60 s, 10,000 ft, military | +818 ft, to 643 kt **OFF** | +1,066 ft **OFF** | +1,164 ft **OFF** | +1,063 ft **OFF** |
 | max level speed, SL | 785 kt, Mach 1.19 ok (1.2) | Mach 1.19 ok | 750 kt, Mach 1.14 close (700 kt) | Mach 1.19 (-) |
 | max level speed, 40,000 ft | Mach 1.99 ok (2.0) | Mach 1.99 ok (1.89–2.05) | Mach 1.60 ok (1.6) | Mach 1.99 ok (2.0) |
-| max roll rate, roll 0 → 90° at 350 kt | 267 deg/s **OFF**, 0.87 s **OFF** (0.55) | 265 **OFF**, 0.88 s **OFF** | 200 (-), 0.92 s (-) | 181 (-), 0.98 s (-) |
+| max roll rate, roll 0 → 90° at 350 kt | 267 deg/s **OFF**, 0.87 s **OFF** (0.55) | 265 **OFF**, 0.88 s **OFF** | 243 (-), 0.95 s (-) (the F-16's roll since 2026-11-16) | 181 (-), 0.98 s (-) |
 | instantaneous turn, 420 kt, 10,000 ft | 21.4 deg/s at 7.7 g ok | 20.3 at 7.0 g ok | 20.0 at 6.7 g (-) | 19.2 at 6.8 g (-) |
 | climb (Ps), SL, full AB | 57,456 ft/min close | 47,572 (-) | 40,149 (-) | 46,583 (-) |
 | fuel flow military / full AB, SL | 10,911 / 63,618 lb/h ok / ok | 13,484 / 59,947 ok / ok | 22,066 / 89,458 ok / ok | 26,968 / 119,775 ok / ok |
@@ -1054,6 +1054,40 @@ the pipper and the impact stay together.
 Result (`stores_drag_follows_the_drag_index`, tests/sixdof.rs): two 370 gal tanks add the same drag force to all three
 jets at 400 kt and 10,000 ft (within 3 %), cut the Sufa's sea-level top speed and raise its cruise fuel flow.
 
+### 9.19 The F-35I's own aerodynamics (finish list F23; plan 2026-11-15, run and tuned 2026-11-16)
+
+The user decided on 2026-11-14: "Infer the f35 (in both games)". No F-35 aerodynamic tables are public, so the Adir
+keeps TP-1538's tables on the F-35A's wing (460 ft², 35 ft) and takes what differs from one set,
+`iaf_flight::data_set::F35I`, which reborn's F-35I Real row reads too (sources and the full table: docs/f35i.md
+§2.1). The source column says sourced (with its footnote), inferred (with the reasoning) or open.
+
+| part | the F-35I set | source | how the 6-DoF uses it |
+|---|---|---|---|
+| α limit | 50° | sourced: "its 50 degree limit"[^lm-aoa] | `Jet::alpha_max` → `Fcs::with_alpha_max`: the limiter's two branches (15° and 20.4°), the α filter's range (30°), the departure prevention (29°) and the pedals' fade (20–30°) all move up by 50 − 25.2 = 24.8°; the AoA warning (`drag_x`) and the deep-stall flag move with them. The F-16s keep 25.2° (T.O. 1F-16A-1 figure 1-44), so their numbers are unchanged to the bit |
+| α feedforward | 0.5 α to the stabilator, α held at 30° | inferred | TP-1538's 0.5 α offsets the F-16's own pitching moment over its α range; carried to 50° it would ask the integrator for 39° of stabilator (its limit is 25°) |
+| high-α pitching moment | ΔCm 0 at 30° → −0.20 at 60° and above | inferred | TP-1538's tables lose their nose-down stabilator at 45° (Cm +0.025 at 50° with full nose-down δh +25°: the F-16's deep stall); the F-35A is controllable at its limit. Chosen 2026-11-16 from a sweep (from 20–40°, to 50–70°, −0.10…−0.40, full pulls at 150–400 kt): the first plan, 40° → −0.10 at 50°, overshot to 68° and at 300 kt stayed above 15° for 10 s under full push. This ramp (−0.13 at 50°) holds 50° within the stabilator's nose-up travel and recovers in 3.7–5.5 s. Below 30° the tables are untouched, so the approach keeps TP-1538's lift. Added in `Jet::forces` after `compressibility` |
+| α-rate lead | 0.6 s on the limiter's second branch (1 g/deg above 20.4° + shift) | inferred | TP-1538's limiter leads α by the washed-out pitch rate (s/(s + 1)): it fades before the jet has climbed the 35° from 15° to 50°. Without the lead a full pull peaked at 63–68°; with it 50.7–52.2° (sweep of 0–1 s on both branches, 2026-11-16). Only on a jet whose limit is shifted: the F-16s' numbers are unchanged to the bit |
+| lift | TP-1538's, no factor | inferred | checked against the approach (next row): within its weight's uncertainty, so no lift factor is fitted. Tried on paper the same day: a c.g. 5 % c̄ forward (the same nose-down margin at 50°) moved the trim at every α and needed the integrator past its limit at 50°: dropped |
+| final approach | 152 KCAS at 13° α; 202 KCAS at 5.2° α; at 36,000 lb | sourced: speeds and α[^asf20]; inferred: the weight | `adir_flies_the_f35_figures`: both within 5 % (estimated on paper from the tables: about 147 and 208 kt) |
+| 1 g stall | 134 kt at 47,550 lb | inferred: the approach / 1.3, × √(47,550 / 36,000) | `flight::stall_speed` (the slowest trimmed 1 g level flight within the α limit, power off, clean): 128 kt, within the test's 10 % (the lift peaks near 38°, before the 50° limit). The same function measures every 6-DoF jet's stall row in validation since 2026-11-16 (Barak 125, Sufa 136, Ra'am 136 kt; the Ra'am is OFF against its 155 KCAS, open: the F-15E's own lift is not modelled): the 1 s pull it replaced started at 0 m and, since the ground and gear (F1), met the ground (every jet read 60 kt) |
+| g limits | +9 / −3 | sourced: +9 (docs/f35i.md §2.1); inferred: −3 (the F-16's) | `Jet::g_limits` |
+| roll | 240 deg/s at 688 deg/s², flaperons 62 deg/s | inferred: the F-16's; open: no public F-35 figure | `Jet::roll`: the F-16's production command with its feedforward (§9.11); `f16s_roll_at_the_shared_figure` now flies the Adir too (steady and peak within 5 %, 90° within 1.1 s at 350 kt, 1.0 s at 480 kt: inferred bounds for its inertia) |
+| speed brake | the F-16's drag at 60°, no gear-down limit | sourced: the function (docs/f35i.md §2.1); inferred: the drag | finish list F12's `F35_SPEED_BRAKE` (`jets.rs`) |
+| top speeds | Mach 1.6 at 40,000 ft | sourced (docs/f35i.md §2.1) | unchanged: the wave-drag fit (§9.15) |
+| sustained turn 4.6 g, climb | — | open: the turn's Mach and altitude; no climb figure | not asserted |
+
+Checks the test makes beyond the figures: full pulls at 150, 200, 300 and 400 kt, 10,000 ft, peak, and after 8 s
+hold, within 3° of 50°, with |β| under 5° (no departure: TP-1538's Cnβ,dyn stays positive to 55°, worked out
+from the tables); a full push then brings α below 15° within 6 s (a centred stick is a 1 g command, so at ~100 kt it rightly
+stays near the limit), and a full pull at 550 kt peaks between 8 and 9.5 g. Reborn's model has
+no α: it takes the set's g limits, roll and stall floor (the unit test `f35_set_feeds_both_games`).
+
+[^lm-aoa]: Lockheed Martin press release, 19 November 2012, quoted by SLDInfo, "The F-35 and High Angle of Attack
+    Flight Testing" ("rapidly expanded its high angle of attack (AOA) test envelope to its 50 degree limit in only four
+    flights"), https://sldinfo.com/2012/11/the-f-35-and-high-angle-of-attack-flight-testing/
+[^asf20]: Air & Space Forces Magazine, "Eglin F-35 Crash Blamed on Landing Speed, but Software, Helmet, Oxygen Also
+    Faulted" (2020: "a shallow angle of attack of 5.2 degrees, instead of the desired 13 degrees"; the 202-knot speed
+    hold "50 knots too fast"), https://www.airandspaceforces.com/eglin-f-35-crash-blamed-on-landing-speed-but-software-helmet-oxygen-also-faulted/
 [^tp1538]: L. T. Nguyen, M. E. Ogburn, W. P. Gilbert, K. S. Kibler, P. W. Brown, P. L. Deal, "Simulator Study of
     Stall/Post-Stall Characteristics of a Fighter Airplane With Relaxed Longitudinal Static Stability", NASA
     TP-1538, December 1979 (public domain, a work of the U.S. Government): https://ntrs.nasa.gov/citations/19800005879

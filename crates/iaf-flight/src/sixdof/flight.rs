@@ -213,7 +213,7 @@ impl SixDof {
             tef: if st.airborne { 0.0 } else { jet.tef_deg },
             pivot: None,
         };
-        s.fcs = Fcs::new(jet.g_limits, jet.roll.map(|r| (r, jet.airframe.b)));
+        s.fcs = Fcs::new(jet.g_limits, jet.roll.map(|r| (r, jet.airframe.b))).with_alpha_max(jet.alpha_max);
         if st.airborne {
             s.controls = Controls { throttle: MILITARY, gear_down: false, ..Controls::default() };
             s.gear = GEAR_UP;
@@ -687,7 +687,9 @@ impl SixDof {
         let power = self.engine.power;
         let g = -self.accel_g.z;
         let (max_g, _) = self.jet.g_limits;
-        let stalled = !self.on_ground && !(-5.0..=29.0).contains(&alpha.to_degrees());
+        // The jet's α limit less the F-16's (the F-35I's 50°: the warning and the deep-stall flag move with it).
+        let sh = self.jet.alpha_max - super::fcs::F16_ALPHA_MAX;
+        let stalled = !self.on_ground && !(-5.0..=29.0 + sh).contains(&alpha.to_degrees());
         State {
             time: self.t,
             position: enu(b.pos),
@@ -720,13 +722,13 @@ impl SixDof {
             stalled,
             buffet: alpha.to_degrees() > 15.0 && !self.on_ground,
             // The AoA warning measure: 0 below the 25° limiter, rising to the original's 1.2 at 30° (inferred).
-            drag_x: ((alpha.to_degrees() - 25.0) / 5.0 * 1.2).clamp(0.0, 1.2) as f32,
+            drag_x: ((alpha.to_degrees() - 25.0 - sh) / 5.0 * 1.2).clamp(0.0, 1.2) as f32,
             over_g: g > max_g,
             on_ground: self.on_ground,
             // A spin: stalled and turning about the vertical faster than 35 deg/s (inferred: half the 70–100 deg/s the
             // manual gives an upright F-16 spin).
             spinning: stalled && b.att.rotate(b.omega).z.abs().to_degrees() > 35.0,
-            deep_stall: alpha.to_degrees() > 45.0 && !self.on_ground,
+            deep_stall: alpha.to_degrees() > 45.0 + sh && !self.on_ground,
             tornado: false,
             end_worlds: 0,
             gear: self.gear,
@@ -902,6 +904,44 @@ pub fn top_speed(jet: &Jet, alt_m: f64, stores_cd: f64) -> f64 {
         v += 1.0;
     }
     v
+}
+
+/// The 1 g stall speed (m/s, true = calibrated at sea level) of `jet` at its reference weight, clean, power off: the
+/// slowest level flight its lift holds at any α up to the control system's limit (`Jet::alpha_max`) with the
+/// stabilator trimming the pitching moment within its ±25° (α in 0.25° steps; the flap on its schedule).
+pub fn stall_speed(jet: &Jet) -> f64 {
+    let (rho, ps, _) = atmosphere(0.0);
+    let af = &jet.airframe;
+    let w = af.mass * G;
+    let mut best = f64::INFINITY;
+    for i in 0..=(jet.alpha_max * 4.0) as usize {
+        let a = i as f64 * 0.25;
+        let (mut v, mut dh, mut ok) = (100.0, 0.0, false);
+        for _ in 0..30 {
+            let qbar = 0.5 * rho * v * v;
+            let c = |dh: f64| {
+                let s = Surfaces { dh, dlef: lef_schedule(a, qbar, ps), ..Surfaces::default() };
+                let mut c = coefficients(&Flow { alpha: a, v, ..Flow::default() }, &s, af);
+                if let Some(n) = jet.nose_down {
+                    c.cm += n.at(a);
+                }
+                c
+            };
+            let (c0, c1) = (c(dh), c(dh + 1e-3));
+            dh -= c0.cm * 1e-3 / (c1.cm - c0.cm);
+            let k = c(dh);
+            let cl = k.cx * a.to_radians().sin() - k.cz * a.to_radians().cos();
+            ok = cl > 0.0 && dh.abs() <= 25.0;
+            if !ok {
+                break;
+            }
+            v = (2.0 * w / (rho * af.s * cl)).sqrt();
+        }
+        if ok {
+            best = best.min(v);
+        }
+    }
+    best
 }
 
 /// Figure 66(b)'s travel → the game's throttle lever (the inverse of [`lever_to_travel`]).

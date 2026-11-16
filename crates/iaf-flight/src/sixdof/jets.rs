@@ -5,6 +5,7 @@
 use super::aero::{Flow, Surfaces, add_drag, coefficients, compressibility, force_moment, ground_effect};
 use super::body::{Airframe, Body};
 use super::engine::{Engine, EngineSpec, FIG66_IDLE_MAX, FIG66_IDLE_MIL, TSFC_F100};
+use super::fcs::F16_ALPHA_MAX;
 use super::gear::{Anchors, Gear, TYRES, Wheels};
 use super::start::{IPP, JFS, StartSpec};
 use crate::Vec3;
@@ -46,6 +47,11 @@ pub struct Jet {
     pub start: StartSpec,
     /// The speed brake's openings ([`SpeedBrake`]).
     pub speed_brake: SpeedBrake,
+    /// The angle of attack the control system's limiter holds at 1 g, deg: the F-16's 25.2° (T.O. 1F-16A-1 figure
+    /// 1-44, TP-1538's limiter, [`super::fcs::F16_ALPHA_MAX`]); the F-35I's 50° (`data_set::F35I`).
+    pub alpha_max: f64,
+    /// A pitching moment added at high α (`data_set::F35I`'s, the F-35I only).
+    pub nose_down: Option<crate::data_set::HighAlphaCm>,
 }
 
 /// A jet's speed brake: its opening in flight and with the main gear down and locked, deg of the F-16's split
@@ -151,6 +157,8 @@ pub fn tp1538() -> Jet {
         tef_deg: 20.0,
         start: JFS,
         speed_brake: F16_SPEED_BRAKE,
+        alpha_max: F16_ALPHA_MAX,
+        nose_down: None,
     }
 }
 
@@ -173,6 +181,8 @@ pub fn all() -> [Jet; 4] {
             tef_deg: 20.0,
             start: JFS,
             speed_brake: F16_SPEED_BRAKE,
+            alpha_max: F16_ALPHA_MAX,
+            nose_down: None,
         },
         // F-16I Sufa: 20,500 lb + 8,850 lb (the F-16I REAL row).
         Jet {
@@ -191,6 +201,8 @@ pub fn all() -> [Jet; 4] {
             tef_deg: 20.0,
             start: JFS,
             speed_brake: F16_SPEED_BRAKE,
+            alpha_max: F16_ALPHA_MAX,
+            nose_down: None,
         },
         // F-35I Adir: 29,300 lb + 18,250 lb, wing 460 ft² (the F-35I REAL row), span 35 ft (Lockheed Martin);
         // wheelbase 19.75 ft, track 14.24 ft (Mason, Virginia Tech, F-35A data).
@@ -205,11 +217,15 @@ pub fn all() -> [Jet; 4] {
             // Fit: Mach 1.6 at 40,000 ft (Lockheed Martin), with the Barak's k; the 700 kt at sea level is the F-35A's
             // placard (inferred), not fitted: Mach 1.14 there.
             wave_drag: (0.0682, 0.195),
-            g_limits: (9.0, -3.0),
-            roll: None,
+            // The F-35I set (`data_set::F35I`, finish list F23): its g limits, α limit, roll (the F-16's, inferred)
+            // and high-α nose-down moment on TP-1538's tables.
+            g_limits: crate::data_set::F35I.g,
+            roll: Some(crate::data_set::F35I.roll),
             tef_deg: 20.0,
             start: IPP,
             speed_brake: F35_SPEED_BRAKE,
+            alpha_max: crate::data_set::F35I.alpha_max,
+            nose_down: Some(crate::data_set::F35I.nose_down),
         },
         // F-15I Ra'am: 37,000 lb + 22,665 lb, wing 608 ft², span 42.8 ft (the F-15I REAL row, TO 1F-15E-1, USAF);
         // wheelbase 17.78 ft (the F-15 row, SAC), track 9 ft (TO 1F-15E-1, docs/f15i.md).
@@ -229,6 +245,8 @@ pub fn all() -> [Jet; 4] {
             start: JFS,
             // The F-15's dorsal speed brake: no gear-down limit (inferred: nothing near the runway).
             speed_brake: SpeedBrake { max_deg: 60.0, gear_down_deg: 60.0 },
+            alpha_max: F16_ALPHA_MAX,
+            nose_down: None,
         },
     ]
 }
@@ -335,6 +353,9 @@ impl Jet {
         let mach = flow.v / a.sound as f64;
         let mut coeffs = coefficients(&flow, &c.surfaces, &self.airframe);
         compressibility(&mut coeffs, mach, flow.alpha, self.aspect_ratio(), self.wave_drag);
+        if let Some(n) = self.nose_down {
+            coeffs.cm += n.at(flow.alpha);
+        }
         // The gear's drag, ΔCD 0.02 (FM-0's LandingGearDragIndex, inferred), and the stores'.
         add_drag(&mut coeffs, if c.gear_down { 0.02 } else { 0.0 } + self.stores_dcd(c.stores_cd), flow.alpha);
         // Ground effect at the wing's height, taken as the c.g.'s above the terrain (inferred: the wing sits near the

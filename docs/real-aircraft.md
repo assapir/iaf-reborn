@@ -100,8 +100,8 @@ The original thrust and fuel model limits what a row can match:
   It is set for the AI types. A heavy transport or bomber on a lighter section's value makes less than 1 g of lift.
 * **Jets without afterburner** (row field `afterburner`): full throttle gives the table's k = 1 (the rated dry
   thrust), and the fuel flow at full throttle is the row's `ff_ab`.
-* **Roll acceleration** changes only for the F-16 and the F-16I (688 deg/s², §8.2) and the F-35I (900 deg/s², the
-  F-16's earlier value). The other jets keep the original start / stop values, so their 0 → 90° roll takes ~1 s.
+* **Roll acceleration** changes only for the F-16, the F-16I and the F-35I (688 deg/s², §8.2; the F-35I's is the
+  F-16's, inferred, f35i.md §2.1). The other jets keep the original start / stop values, so their 0 → 90° roll takes ~1 s.
 * **One stall floor** (`stall_kt`) sets both the slow end (landing, 1 g) and the g available below corner speed
   (g ≤ (V / floor)²). A jet whose FLCS limits AoA lower in a hard turn than near the landing AoA cannot match both;
   the rows set the floor from the landing side.
