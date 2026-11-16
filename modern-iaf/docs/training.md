@@ -458,7 +458,10 @@ remembers it.
 
 **The training highlight.** In a start-up training mission an outline (the sim's sky blue, 2 px on a dark 4.5 px edge)
 follows the shape of the current step's switch: the controls of the 3D cockpit that send its command
-(`<model>_controls.json`, the F-16's engine step the throttle grip), each its mesh's points projected through the
+(`<model>_controls.json`, the F-16's engine step the throttle grip; its avionics step the AVIONIC POWER switches still
+off, command 219, one fewer at each switch thrown: until 2026-11-15 that step showed nothing, its parts sought by the
+step's key command 213, which those switches never send; the user: "it never shows the avionics panel to turn it
+on"), each its mesh's points projected through the
 cockpit's camera every frame, their convex hull drawn 3 px outside. A step may also watch a gauge (`gauges` in
 `data/notebook.json`: the F-16's RPM gauge for the idle step, labelled "RPM · watch 20 %"): its dial is drawn as the
 ellipse it shows, a circle of `radius_m` round its needle's turning centre in the plane square to the needle's axis

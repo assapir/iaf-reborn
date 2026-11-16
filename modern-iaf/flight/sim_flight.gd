@@ -99,6 +99,8 @@ const STEP_IDS := ["main_power", "starter", "engine", "avionics", "ins", "canopy
 ## The F-16's power switches one by one (command 219's p2 → SYSTEMS[i]; iaf-flight start.rs SYSTEMS, the same order):
 ## the four AVIONIC POWER switches (together the avionics step) and the SNSR PWR panel's FCR and RDR ALT.
 const SYSTEMS := ["mmc", "st_sta", "mfd", "ufc", "fcr", "rdr_alt"]
+## The avionics step's switches of SYSTEMS (the AVIONIC POWER panel's four; the step is on with all four).
+const AVIONIC_POWER := ["mmc", "st_sta", "mfd", "ufc"]
 ## The checklist's first key record (modern-iaf/data/keys.json, records 119–124: STEP_IDS in order; commands 210–215).
 const CHECK_KEY := 119
 ## The engine step has no key: the throttle moved up from OFF is it, as the real idle-cutoff detent (training.md

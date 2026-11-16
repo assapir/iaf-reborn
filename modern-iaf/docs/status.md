@@ -321,6 +321,11 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   the pilot's body hidden while leaning, so the ELEC panel under the left glove, the consoles and the lower pedestal
   show close up; a switch under the pointer leaves the wheel to the zoom ([cockpit.md](cockpit.md) §2).
   `test_cockpit_view.gd`.
+- **The start-up lesson's guidance on every step (2026-11-15, the user: "it never shows the avionics panel to turn it
+  on"):** the F-16s' avionics step outlines the AVIONIC POWER switches still off (it showed none); `test_mvp.gd`
+  checks on every start-up step of the Sufa, the Barak and the F-35I that the guidance names the step's control, that
+  it is outlined on the screen once the head is on it, and that it moves on only as switches are done
+  ([training.md](training.md) §11).
 - **Click areas and the training outline by shape (2026-11-15, the user's Mac play):** a 3D cockpit control's hit area
   is its mesh's own surface (the nearest along the pointer's ray: never bigger than the part, never a neighbour's), the
   canopy handle's its rod; the training highlight outlines the switch's own shape and the RPM dial as the ellipse it

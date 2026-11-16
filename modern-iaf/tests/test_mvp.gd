@@ -433,6 +433,7 @@ func _checklist(tv: Node, f35: bool, click := false) -> void:
 			await _step(tv, 0, "THROTTLE", click)  # throttle to idle at 20 %
 		else:
 			_card_shows(tv, "engine")
+			await _target(tv, "THROTTLE")
 			_press(tv, KEY_1)  # Throttle idle: the throttle stays at OFF, the key takes the step
 		await _until(tv, func(): return rpm.call() >= 0.55, 60.0)  # the generators on line
 		if click:  # each AVIONIC POWER switch its own: one click leaves the others and the step
@@ -460,10 +461,38 @@ func _checklist(tv: Node, f35: bool, click := false) -> void:
 ## The notebook marks that step as the current one first (_card_shows).
 func _step(tv: Node, n: int, node: String, click: bool) -> void:
 	_card_shows(tv, "engine" if n == 0 else tv.addon.STEP_IDS[n - 1])
+	await _target(tv, node)
 	if click:
 		await _click_control(tv, node)
 	else:
 		tv._command([209 + n, 0, 0] if n > 0 else [5, 0, 0])
+
+
+## The start-up lesson's guidance (kneeboard.gd marks) shows the current step's control `node` (an outline in view,
+## else a pointer at the screen's edge), and once the head is turned to it, an outline on the screen; not `done` (a
+## switch of the same step already on). The user, 2026-11-15: "it never shows the avionics panel to turn it on".
+func _target(tv: Node, node: String, done := "") -> void:
+	var kb: Node = tv.addon.kneeboard
+	await frames(2)
+	var on := func() -> Array: return kb.marks.filter(func(m): return node in m.get("parts", []))
+	check(not on.call().is_empty(), "the guidance shows %s (%s)" % [node, kb.marks.map(func(m): return m.get("parts"))])
+	check(
+		done == "" or not kb.marks.any(func(m): return done in m.get("parts", [])),
+		"the guidance left %s, already on" % done
+	)
+	var mi: MeshInstance3D = tv.cockpit_3d.find_child(node, true, false)
+	if mi == null or on.call().is_empty():
+		return
+	var was = tv.views.snap
+	await _aim(tv, func() -> Vector3: return mi.global_transform * mi.get_aabb().get_center(), 0.0)
+	await frames(2)
+	var m: Array = on.call()
+	var view := Rect2(Vector2.ZERO, kb.flight.ui.size)
+	check(
+		m.size() == 1 and m[0].rect != null and view.encloses(m[0].rect),
+		"%s outlined on the screen with the head on it (%s)" % [node, m[0].rect if not m.is_empty() else null]
+	)
+	tv.views.snap = was
 
 
 ## A left click on the 3D cockpit's control `node` (f16_controls.json), the head turned to it, as the window's mouse
@@ -498,6 +527,7 @@ func _avionics_clicks(tv: Node) -> void:
 	_card_shows(tv, "avionics")
 	var sw: Dictionary = tv.cockpit_3d.switches
 	var others := ["power-st-sta", "power-mfd", "power-ufc"].map(func(p): return float(sw.get("f16/avionics/" + p)))
+	await _target(tv, "AVIONICS_MMC")
 	await _click_control(tv, "AVIONICS_MMC")
 	var now := ["power-st-sta", "power-mfd", "power-ufc"].map(func(p): return float(sw.get("f16/avionics/" + p)))
 	check(
@@ -507,6 +537,7 @@ func _avionics_clicks(tv: Node) -> void:
 	check(not "avionics" in tv.addon.done, "one avionics switch does not take the step")
 	check(tv.sounds.played.has("SFX_BUTTON/None"), "the switch clicks")
 	for n in ["AVIONICS_ST_STA", "AVIONICS_MFD", "AVIONICS_UFC"]:
+		await _target(tv, n, "AVIONICS_MMC")  # MMC on: the guidance moved on to the switches still off
 		await _click_control(tv, n)
 	check("avionics" in tv.addon.done, "the four avionics switches take the step")
 

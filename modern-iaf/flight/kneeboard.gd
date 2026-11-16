@@ -37,7 +37,8 @@ var board: Notebook
 var raised := false
 var data := {}
 ## The outlines and pointers of this frame: [{rect: canvas Rect2 round the outlines or null (a pointer), polys: the
-## outlines (canvas PackedVector2Array each), at: Vector2 (a pointer's place), text, dir: Vector2}].
+## outlines (canvas PackedVector2Array each), at: Vector2 (a pointer's place), text, dir: Vector2, parts: the parts'
+## node names}].
 var marks: Array = []
 var _holder: Control  # the raised board's place on the flight's text layer
 var _overlay: Control  # the outlines, the pointers, the help line
@@ -517,8 +518,11 @@ func _marks() -> Array:
 	var cmd: int = 210 + flight.STEP_IDS.find(id)
 	var parts := []
 	for e in c3d.clickable._controls:
-		if int(e[1].get("click", [-1])[0]) == cmd:
+		var click: Array = e[1].get("click", [-1, 0, 0])
+		if int(click[0]) == cmd:
 			parts.append(e)
+		elif id == "avionics" and int(click[0]) == 219 and _avionic_off(int(click[2])):
+			parts.append(e)  # the F-16's AVIONIC POWER switches (command 219, no step key): those still off
 	if parts.is_empty() and id == "engine":  # the F-16's engine step: the throttle out of OFF
 		parts = c3d.clickable._controls.filter(func(e): return int(e[1].get("click", [-1])[0]) == 5)
 	if not parts.is_empty():
@@ -533,6 +537,16 @@ func _marks() -> Array:
 				_mark([[mi, _dial(c3d, gauge, float(g.get("radius_m", 0.0)))]], String(g.label[lang()]), c3d.camera)
 			)
 	return out
+
+
+## True for the F-16's AVIONIC POWER switch `i` (sim_flight.gd SYSTEMS, command 219's p2) while it is off: the
+## avionics step's targets, one fewer at each switch thrown (until 2026-11-15 the step showed none: its parts were
+## sought by the step's key command, 213, which these switches never send; the user: "it never shows the avionics
+## panel to turn it on").
+func _avionic_off(i: int) -> bool:
+	if i < 0 or i >= flight.SYSTEMS.size() or not flight.SYSTEMS[i] in flight.AVIONIC_POWER:
+		return false
+	return flight.host.flight == null or not flight.host.flight.start_on(flight.SYSTEMS[i])
 
 
 ## A gauge's dial for _mark: its needle `node`'s turning centre and axis (the model's animation, <model>.json) and the
@@ -560,6 +574,7 @@ func _mark(parts: Array, text: String, cam: Camera3D) -> Dictionary:
 	var behind := false
 	var centre := Vector3.ZERO
 	var polys := []
+	var names := parts.map(func(e): return String(e[0].name))
 	for e in parts:
 		var mi: MeshInstance3D = e[0]
 		var pts := PackedVector3Array()
@@ -597,7 +612,7 @@ func _mark(parts: Array, text: String, cam: Camera3D) -> Dictionary:
 	var mid := (lo + hi) / 2.0
 	if not behind and Rect2(Vector2.ZERO, view).has_point(mid):
 		var pad := Vector2(RING_PAD, RING_PAD)
-		return {"rect": Rect2(lo - pad, hi - lo + pad * 2.0), "polys": polys, "text": text, "at": mid}
+		return {"rect": Rect2(lo - pad, hi - lo + pad * 2.0), "polys": polys, "text": text, "at": mid, "parts": names}
 	# Out of the view: toward the part as the eye sees it (its bearing in the camera's frame, which holds behind the
 	# eye too), held at the screen's edge.
 	var local: Vector3 = cam.global_transform.affine_inverse() * centre
@@ -605,7 +620,7 @@ func _mark(parts: Array, text: String, cam: Camera3D) -> Dictionary:
 	d = d.normalized() if d.length() > 0.0001 else Vector2.DOWN
 	var half := view / 2.0 - Vector2(150, 40)
 	var t := minf(half.x / maxf(absf(d.x), 0.001), half.y / maxf(absf(d.y), 0.001))
-	return {"rect": null, "text": text, "at": view / 2.0 + d * t, "dir": d}
+	return {"rect": null, "text": text, "at": view / 2.0 + d * t, "dir": d, "parts": names}
 
 
 func _draw_marks() -> void:
