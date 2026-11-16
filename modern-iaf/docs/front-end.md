@@ -24,7 +24,7 @@ The window opens plain in the front end's background colour (#00163C, no Godot s
 | Missions | the Hangar's Fly (§2): a card per section, Training, Campaign, Single missions and Fly now, each with its number, its title and the pilot's progress in it; a section without missions greyed, "Coming later", out of the focus, without a click (Fly now always, until it flies random missions and dogfights); the footer's Back (Esc) | ![Missions](pictures/front-end/missions_en.webp) | ![Missions, Hebrew](pictures/front-end/missions_he.webp) |
 | A section's list | the Hangar jet's missions of the section in order, numbered 1, 2 …: the title, the base and what it trains, the last result (Pass with the best time, Fail, Not flown yet); the next one to fly marked Next, tinted and focused (every mission passed: no Next, the first focused); beside the list a panel on the mission under the focus or the pointer (§2); the footer's Back (Esc) | ![Training](pictures/front-end/section_en.webp) | ![Training, Hebrew](pictures/front-end/section_he.webp) |
 | Briefing | the briefing, map first (§10): the map over the screen, opened on the base and the route with the pins; the mission card (the facts, the objectives, the Arming summary with Edit, Back to the section's list, Arming, Fly: Edit and Arming open the Loadout screen §10.1); what you will learn and how to fly it, the keys as bound; the map's chips | ![Briefing](pictures/front-end/mission_en.webp) | ![Briefing, Hebrew](pictures/front-end/mission_he.webp) |
-| Settings | the sections Graphics, Language, Sound and Devices listed at the inline start; the picked one's settings open beside them as controls: dropdown, switch, slider, radio list; Devices has the afterburner detent (§9.2); the footer's Export settings file / Import settings file (below) | ![Settings](pictures/front-end/prefs_graphics_en.webp) | ![Settings, Hebrew](pictures/front-end/prefs_graphics_he.webp) |
+| Settings | the search; the sections Graphics, Language, Sound and Devices with their counts at the inline start; the picked one's settings beside them as segmented buttons, switches and sliders, Graphics with its Preset row and a cost chip per row; the pane at the inline end on the hovered setting (§14); Devices has the afterburner detent (§9.2); the footer's Defaults, Export settings file / Import settings file (below) and Back to the hangar | ![Settings](pictures/front-end/prefs_graphics_en.webp) | ![Settings, Hebrew](pictures/front-end/prefs_graphics_he.webp) |
 | Debrief | the sheet at the inline start (Plane flown, From, Time, Mission, Result; the goals with the target, the flown figure and ✓ / !; Remarks with "Next time:"), at the inline end the whole flight on the map and the flight's graphs (§13); Pilot log, Export flight data (below), Back to missions, Fly again, Next mission (§2) | ![Debrief](pictures/front-end/debrief_en.webp) | ![Debrief, Hebrew](pictures/front-end/debrief_he.webp) |
 | Pilot | the Hangar → the pilot: the name and the nickname, under them the picture in a service ID photo's fixed 3:4 frame (a click on it, or Choose a picture…, opens the system's file dialog; without a picture the initials, or a head and shoulders before there is a name), and beside that column the logbook panel down to the bottom bar (§3) with its Pilot log button; the footer's Reset the log, Delete profile, Change pilot, Back and Save (§3) | ![Pilot](pictures/front-end/pilot_en.webp) | ![Pilot, Hebrew](pictures/front-end/pilot_he.webp) |
 | Create your pilot | the first start, before the Hangar: the Pilot screen with Save only and no pilot in the top bar yet; the logbook panel says "No flights yet." (§3) | ![Create your pilot](pictures/front-end/pilot_first_en.webp) | ![Create your pilot, Hebrew](pictures/front-end/pilot_first_he.webp) |
@@ -247,12 +247,11 @@ centreline in the roll.
   wing is the base, so it is left out). The tail number is the unit record's `tail`, the number painted on the jet's model
   ([data-formats.md](data-formats.md) §3); the squadron is its airbase file's
   ([airbases.md](airbases.md) §3).
-- **Settings** ("Preferences" until 2026-11-14, the approved mocks' word): one screen: the sections listed at the inline start, the picked one's rows beside them (Graphics
-  until one is picked; the user, 2026-11-09, of the screen per section: "I liked it more before"). The section's pane
-  scrolls over its full height, its scroll bar running from its top to its bottom. A row shows its name and its
-  control, no line under it; a greyed row says why (Scenery without its setup step, §4). A row's few choices (Clouds,
-  Buildings and trees, the Devices rows) stand side by side, so the Graphics section fits between the bars at
-  1920 × 1080 with no row cut. Over a flight the Settings, Keys and Joystick screens have the front end's top bar (the
+- **Settings** ("Preferences" until 2026-11-14, the approved mocks' word): one screen in the approved r3_settings layout (§14, the finish list's F7, 2026-11-16): the search, the sections with their counts at the inline start, the picked one's rows beside them (Graphics
+  until one is picked; the user, 2026-11-09, of the screen per section: "I liked it more before"), and the pane at the
+  inline end telling about the hovered or focused setting. A row shows its name, its control (segmented buttons, a switch, a
+  slider or a button) and, on Graphics, its cost chip; a greyed row says why (Scenery without its setup step, §4). The
+  Graphics section fits between the bars at 1920 × 1080 with no row cut. Over a flight the Settings, Keys and Joystick screens have the front end's top bar (the
   crumbs start at Paused, the pilot and the jet at the inline end) and a footer with Back (since 2026-11-16, finish
   list F4; before, a bare title and no Back); Esc or Back on the Settings goes back to the pause menu, and the Keys
   and Joystick screens go back to the Settings on Devices. Tried
@@ -1144,3 +1143,98 @@ built by `menu/debrief_page.gd`:
 |---|---|---|
 | the debrief of the sample flight | ![Debrief](pictures/front-end/debrief_en.webp) | ![Debrief, Hebrew](pictures/front-end/debrief_he.webp) |
 | at 1280 × 720 | ![Debrief at 1280 × 720](pictures/front-end/debrief_1280_en.webp) | ![Debrief at 1280 × 720, Hebrew](pictures/front-end/debrief_1280_he.webp) |
+
+## 14. The Settings
+
+The Settings follow the approved mock r3_settings (the finish list's F7, 2026-11-16).
+
+- **Search** (the field beside the title): the rows of every section whose name, description or choices hold every
+  word typed, in English or Hebrew, listed under their sections' names. While it is set no section is lit and each
+  section's count is its matches; cleared, the counts are the sections' rows again.
+- **Preset** (Graphics' first row): Laptop, Balanced, High and Everything on set the seven graphics settings below at
+  once (`shared/util/pref_choices.gd` `PRESETS`); a choice this computer cannot pick (Volumetric clouds without their
+  support, Buildings and trees without their setup step) is left at its default. Custom lights when the settings match
+  no preset; it is never a pick.
+
+| setting | Laptop | Balanced | High | Everything on |
+|---|---|---|---|---|
+| Antialiasing | MSAA 4× | MSAA 4× | MSAA 4× | MSAA 4× + FXAA |
+| Upscaling | Balanced | Quality | Native | Native |
+| Shadows | on | on | on | on |
+| Long shadows | off | off | on | on |
+| Terrain detail | 50 % | 75 % | 100 % | 100 % |
+| Clouds | Flat layer | Flat layer | Flat layer | Volumetric |
+| Buildings and trees | Off | On | On | Detailed |
+
+- **The pane** (inline end): the hovered or focused setting's name and what it does (strings `<setting>_about`); for
+  a graphics setting its Off / On picture (§14.1) and the frame time measured on this computer (§14.2).
+- **Devices:** with no joystick connected, Flight controls, Rudder and Throttle show Keyboard with the device's choice
+  greyed (Joystick reads no axis then); the stored choice comes back when one is plugged in. The afterburner detent is
+  Off or "Set at lever" (once set, its percent). The Keys and Joystick screens use the Settings' frame (title row, side
+  list and columns at the same places); the Joystick screen has no axis rows with no joystick connected.
+- **Footer:** Defaults (the section's rows, or the search's matches, back to their defaults by
+  `Settings.default_value`, as reborn's DEFAULT; the language kept), Export / Import settings file (§2) and Back to the
+  hangar. Over a flight: Defaults and Back (to the pause menu).
+
+### 14.1 The cost chips and the Off / On pictures
+
+Each graphics row carries a chip naming the frame time its current choice adds on the Iris Xe laptop over the row's
+plain choice (Off, Native, MSAA 4×, Flat layer, the lowest terrain detail): saves (under −0.3 ms), none (under
+0.3 ms), low (under 1.5 ms), medium (under 4 ms), high (amber, 4 ms or more). Full screen and VSync cost no GPU time
+and read none.
+
+How the costs were measured: `tools/settings_cost.sh` runs the flight bench (`modern-iaf/tests/_flight_bench.gd`)
+on this Linux laptop (Intel Iris Xe, a 1920 × 1080 window): the take-off mission's jet held over Tel Aviv at 500 m
+for 12 s once the ground has streamed in, cockpit view, VSync off, the random draws seeded so the cloud layer is the
+same. Each choice that differs from the preset High is run right after a run of High. The High runs spread over a few
+ms: the laptop's integrated GPU shares its power with the processor, and other work on the laptop (on 2026-11-16 a
+second session's tests) slows it (High read 30 to 36 ms). So a choice's cost is its run's average GPU time minus the
+median of all the High runs, and the noise (`noise_ms`) is half the High runs' spread (the largest minus the smallest); a
+difference smaller than the noise reads none. The results go to `modern-iaf/data/settings/cost.json` with the date,
+the computer and High's median time (`base_ms`). Terrain detail's chip interpolates between its measured
+points (50 %, 75 %, 100 %).
+
+The measurement of 2026-11-16 (High's median 31.6 ms, noise 2.9 ms):
+
+| setting | choice | GPU time against High (ms) | chip |
+|---|---|---|---|
+| Antialiasing | MSAA 4× | +0.0 | none |
+| Antialiasing | MSAA 4× + FXAA | -2.0 | none |
+| Antialiasing | TAA | -10.7 | saves |
+| Antialiasing | FSR 2 | -4.4 | saves |
+| Upscaling | Native | +0.0 | none |
+| Upscaling | Quality | -7.8 | saves |
+| Upscaling | Balanced | -9.8 | saves |
+| Shadows | off | -3.4 | none |
+| Shadows | on | +0.0 | medium |
+| Long shadows | off | -0.3 | none |
+| Long shadows | on | +0.0 | none |
+| Terrain detail | 50 % | +0.7 | none |
+| Terrain detail | 75 % | +2.6 | none |
+| Terrain detail | 100 % | +0.0 | none |
+| Clouds | Flat layer | +0.0 | none |
+| Clouds | Volumetric | +9.2 | high |
+| Buildings and trees | Off | -2.8 | none |
+| Buildings and trees | On | +0.0 | none |
+| Buildings and trees | Detailed | +2.8 | high |
+
+The Off / On pictures are our own renders: `modern-iaf/tests/_settings_previews.gd` flies the same mission twice per
+setting with High but for that setting's two choices (`data/settings/previews.json`), the jet over Tel Aviv at 350 m in
+the cockpit view, and joins the left half of the first picture to the right half of the second
+(`data/settings/<setting>.webp`, 840 × 472; Antialiasing and Upscaling show the view's middle at the screen's own
+pixels, where their difference shows). Full screen, VSync and the other sections have no picture.
+
+### 14.2 The frame time measured on this computer
+
+Every flight measures its own frame time from its 10th to its 30th second (`modern-iaf/flight/frame_meter.gd`): each
+frame's cost is the larger of the GPU's time and the CPU's (the scripts' process and physics time plus the render
+thread's draw calls), so VSync's wait does not count. The average is kept with the window's size and the graphics
+settings it was taken with (`Settings.frame_measured`, `settings.cfg` `[sim] frame_measured`). The pane shows it on a
+bar up to 33 ms with a line at 60 frames a second (16.7 ms). When the graphics settings now differ from those it was
+measured with, a line under it gives the estimate for the settings now: the measured time scaled by the ratio of the
+two configurations' Iris Xe frame times (§14.1). Before the first flight the pane says it is not measured yet.
+
+| screen | English | Hebrew |
+|---|---|---|
+| Graphics with the pane on Buildings and trees | ![Settings, the pane](pictures/front-end/prefs_about_en.webp) | ![Settings, the pane, Hebrew](pictures/front-end/prefs_about_he.webp) |
+| a search | ![Settings, a search](pictures/front-end/prefs_search_en.webp) | ![Settings, a search, Hebrew](pictures/front-end/prefs_search_he.webp) |

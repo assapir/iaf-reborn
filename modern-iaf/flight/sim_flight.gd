@@ -15,6 +15,7 @@ extends Node
 const MissionRuntime := preload("res://shared/mission/mission_runtime.gd")
 const Kneeboard := preload("kneeboard.gd")
 const FlightUi := preload("flight_ui.gd")
+const FrameMeter := preload("frame_meter.gd")
 const WizardTheme := preload("../setup/wizard_theme.gd")  # relative: a test of the original's project loads it too
 const Look := preload("../menu/look.gd")
 ## A pass pauses the flight under the front end's "accomplished" panel (training.md §9) once the radio's queued speech
@@ -171,6 +172,7 @@ func _ready() -> void:
 	layer.add_child(ui)
 	ui.language_changed.connect(_language_changed)
 	# A mission with the start-up checklist starts with the notebook raised at its START-UP page (training.md §11).
+	add_child(FrameMeter.new())  # the frame time the Settings screen shows (front-end.md §4.2)
 	kneeboard = Kneeboard.new(self)
 	add_child(kneeboard)
 

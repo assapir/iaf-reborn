@@ -43,12 +43,10 @@ static func page(front_end: Control) -> Node:
 	front_end.add_child(me)
 	var first = "hangar" if front_end.flight == null else [front_end.s("paused"), "pause"]
 	front_end._header([first, "preferences", "devices", "keys_screen"])
-	var v: VBoxContainer = front_end._vbox(front_end._body(), 28)
-	front_end._title(v, front_end.s("keys_screen"), front_end.s("keys_sub"))
-	var h: HBoxContainer = front_end._hbox(v, 96)
-	h.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	var nav: VBoxContainer = front_end._vbox(h, 0)
-	nav.custom_minimum_size.x = 384
+	# The Settings' frame (front_end.gd settings_frame): the same title row, side list and columns.
+	var f: Dictionary = front_end.settings_frame(front_end.s("keys_screen"), front_end.s("keys_sub"))
+	var h: HBoxContainer = f.h
+	var nav: VBoxContainer = f.nav
 	me.scroll = ScrollContainer.new()
 	me.scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	me.scroll.follow_focus = true

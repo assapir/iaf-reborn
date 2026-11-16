@@ -804,14 +804,18 @@ func prefs(fe: Control) -> void:
 		for c in fe.find_children("Pref_*", "", true, false):
 			rows[String(c.name).trim_prefix("Pref_")] = g
 		if g == "graphics":
-			var aa: OptionButton = fe.find_child("Pref_antialiasing", true, false).find_child("Control", true, false)
-			check(aa.get_item_text(aa.selected).begins_with("MSAA 4×"), "prefs: antialiasing is a dropdown at MSAA 4×")
+			var aa: Button = fe.find_child("Pref_antialiasing", true, false).find_child("Choice_msaa4", true, false)
+			check(
+				aa != null and aa.button_pressed and aa.text.begins_with("MSAA 4×"),
+				"prefs: antialiasing as segmented buttons at MSAA 4×"
+			)
+			await settings_screen(fe)
 			var sh: CheckButton = fe.find_child("Pref_shadows", true, false).find_child("Control", true, false)
 			sh.button_pressed = false
 			check(s.shadows == false, "prefs: the shadows switch sets the setting")
 			sh.button_pressed = true
 			var sc: Control = fe.find_child("Pref_scenery", true, false)
-			var radios := sc.find_children("*", "CheckBox", true, false)
+			var radios := sc.find_children("Choice_*", "Button", true, false)
 			var have: bool = load("res://shared/terrain/scenery.gd").available()
 			check(
 				radios.size() == 3 and radios.all(func(r): return r.disabled != have),
@@ -837,6 +841,7 @@ func prefs(fe: Control) -> void:
 	fe._sample.stop()
 	for k in ["flight_controls", "rudder", "throttle", "stick_response"]:
 		check(rows.get(k) == "devices", "prefs: Devices has %s" % k)
+	await devices_no_joystick(fe)
 	check(rows.get("language") == "language", "prefs: Language has the language")
 	for k in [
 		"flight_data", "unlimited_fuel", "invulnerable", "no_crashes", "no_blackouts", "rain", "water", "ground_roads"
@@ -844,14 +849,10 @@ func prefs(fe: Control) -> void:
 		check(not rows.has(k), "prefs: no %s row (no realism switch, no aid, nothing the profile fixes)" % k)
 	(fe.find_child("Section_language", true, false) as Button).pressed.emit()
 	await frames(2)
-	var lang: OptionButton = fe.find_child("Pref_language", true, false).find_child("Control", true, false)
-	lang.select(1)
-	lang.item_selected.emit(1)
+	(fe.find_child("Pref_language", true, false).find_child("Choice_he", true, false) as Button).pressed.emit()
 	await frames(2)
 	check(s.language == "he" and fe.is_layout_rtl() and _has(fe, "שפה"), "prefs: Hebrew switches every string at once")
-	lang = fe.find_child("Pref_language", true, false).find_child("Control", true, false)
-	lang.select(0)
-	lang.item_selected.emit(0)
+	(fe.find_child("Pref_language", true, false).find_child("Choice_en", true, false) as Button).pressed.emit()
 	await frames(2)
 	check(s.language == "en" and not fe.is_layout_rtl() and _has(fe, "Language"), "prefs: and back to English")
 	# The settings file (FileExport): Export / Import in the footer; an import restores the file's values and keeps
@@ -880,6 +881,105 @@ func prefs(fe: Control) -> void:
 
 ## The debrief of the sample flight (the fixture's passed take-off): the sheet's fields, the goals with their target,
 ## flown figure and mark, Remarks with Next time, the whole flight on the map with its pins and legend, the graphs,
+## The r3 Settings on Graphics (front-end.md §14): the Preset row (a preset sets its settings, a change lands on
+## Custom), a cost chip per row, the pane on the hovered setting (its picture, text and the frame time), the sections'
+## counts, the search across the sections in either language, Defaults, the footer.
+func settings_screen(fe: Control) -> void:
+	var s := settings()
+	var pc = load("res://shared/util/pref_choices.gd")
+	var counts := {"graphics": 9, "language": 1, "sound": 4, "devices": 7}
+	for g in counts:
+		var n: Label = fe.find_child("Section_" + g, true, false).find_child("Count", true, false)
+		check(n.text == str(counts[g]), "settings: %s counts %d (%s)" % [g, counts[g], n.text])
+	var preset: Control = fe.find_child("Pref_preset", true, false)
+	check(preset != null and preset.get_index() == 0, "settings: Graphics opens with the Preset row")
+	for name in ["laptop", "balanced", "high", "everything", "custom"]:
+		check(preset.find_child("Choice_" + name, true, false) is Button, "settings: preset %s" % name)
+	(preset.find_child("Choice_laptop", true, false) as Button).pressed.emit()
+	await frames(2)
+	var want: Dictionary = pc.preset("laptop")
+	check(want.keys().all(func(k): return pc._same(s.get(k), want[k])), "settings: Laptop sets its settings")
+	check(pc.preset_of(pc.preset_values()) == "laptop", "settings: the settings match Laptop")
+	var laptop: Button = fe.find_child("Pref_preset", true, false).find_child("Choice_laptop", true, false)
+	check(laptop.button_pressed, "settings: Laptop lit")
+	var sh: CheckButton = fe.find_child("Pref_shadows", true, false).find_child("Control", true, false)
+	sh.button_pressed = not sh.button_pressed
+	var custom: Button = fe.find_child("Pref_preset", true, false).find_child("Choice_custom", true, false)
+	check(custom.button_pressed and not laptop.button_pressed, "settings: a change by hand lands on Custom")
+	for k in ["antialiasing", "upscaling", "shadows", "shadow_reach", "terrain_detail", "clouds", "scenery", "vsync"]:
+		var chip: Label = fe.find_child("Pref_" + k, true, false).find_child("Cost", true, false)
+		check(chip != null and chip.text != "", "settings: %s has a cost chip (%s)" % [k, chip.text if chip else ""])
+	check(fe.cost_band(-1.0) == "saves" and fe.cost_band(5.0) == "high", "settings: the cost bands")
+	check(fe.chip_cost("upscaling", "balanced") < -0.3, "settings: Upscaling Balanced saves frame time on the Iris Xe")
+	check(fe.chip_cost("shadows", true) > 0.3, "settings: the shadows cost frame time on the Iris Xe")
+	# The pane: the hovered row's name, text and its Off / On picture; the frame time for a graphics setting.
+	fe.find_child("Pref_scenery", true, false).mouse_entered.emit()
+	var about: Control = fe.find_child("About", true, false)
+	var title: Label = about.find_child("AboutTitle", true, false)
+	check(title != null and title.text == fe.s("scenery"), "settings: the pane tells about the hovered row")
+	check(about.find_child("Preview", true, false) != null, "settings: the pane's Off / On picture")
+	check(about.find_child("FrameHead", true, false) != null, "settings: the pane's frame time")
+	s.frame_measured = {"ms": 24.0, "size": [2560, 1440], "settings": pc.preset_values()}
+	fe._about_key = ""
+	fe._about("scenery")
+	var ms: Label = about.find_child("FrameMs", true, false)
+	check(ms != null and ms.text.begins_with("24 ms"), "settings: the measured frame time shown")
+	s.frame_measured = {}
+	# The search: across the sections, in either language; the counts are the matches.
+	var search: LineEdit = fe.find_child("Search", true, false)
+	search.text = "joystick"
+	search.text_changed.emit(search.text)
+	await frames(2)
+	check(fe.find_child("Pref_flight_controls", true, false) != null, "settings: a search finds Devices' rows")
+	check(fe.find_child("Pref_shadows", true, false) == null, "settings: and only the matches")
+	var dev: Label = fe.find_child("Section_devices", true, false).find_child("Count", true, false)
+	check(int(dev.text) > 0 and int(dev.text) < 7, "settings: the count is the matches (%s)" % dev.text)
+	search.text = "צללים"
+	search.text_changed.emit(search.text)
+	await frames(2)
+	check(fe.find_child("Pref_shadows", true, false) != null, "settings: a Hebrew search in English")
+	search.text = "ג'ויסטיק"
+	search.text_changed.emit(search.text)
+	await frames(2)
+	check(fe.find_child("Pref_flight_controls", true, false) != null, "settings: a Hebrew search typed with '")
+	search.text = "zzzz"
+	search.text_changed.emit(search.text)
+	await frames(2)
+	check(fe.find_child("Pref_shadows", true, false) == null, "settings: no match, no row")
+	search.text = ""
+	search.text_changed.emit("")
+	await frames(2)
+	# Defaults: the section back to its defaults, the language kept.
+	s.shadows = not s.default_value("shadows")
+	fe.find_child("Defaults", true, false).pressed.emit()
+	await frames(2)
+	check(s.shadows == s.default_value("shadows") and s.language == "en", "settings: Defaults")
+	var back: Button = fe.find_child("Back", true, false)
+	check(back != null and back.text == fe.s("back_hangar"), "settings: the footer's Back to the hangar")
+
+
+## Devices with no joystick connected: Keyboard picked on the joystick's rows (the device's choice greyed); the
+## Joystick screen without its axis rows.
+func devices_no_joystick(fe: Control) -> void:
+	if root.get_node("Joystick").device() >= 0:
+		return
+	var was: int = settings().flight_controls
+	settings().flight_controls = 1
+	fe.pref_group = "devices"
+	fe.show_page("prefs")
+	await frames(2)
+	var row: Control = fe.find_child("Pref_flight_controls", true, false)
+	var kb: Button = row.find_child("Choice_0", true, false)
+	var joy: Button = row.find_child("Choice_1", true, false)
+	check(kb.button_pressed and joy.disabled, "devices: Keyboard with no joystick connected")
+	settings().flight_controls = was
+	fe.show_page("joystick")
+	await frames(2)
+	check(fe.find_child("Tab_joy_axes", true, false) == null, "devices: no axis rows with no joystick")
+	fe.show_page("prefs")
+	await frames(2)
+
+
 ## Export flight data offered; then the failed record from before the goals: its numbers and the empty right column.
 func _debrief_checks(fe: Control, lang: String, ids: Dictionary) -> void:
 	var he := lang == "he"

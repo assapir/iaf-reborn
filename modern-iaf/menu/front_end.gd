@@ -27,6 +27,16 @@ const AircraftModel := preload("res://shared/aircraft/aircraft_model.gd")
 
 ## The settings file Export offers to write (Settings → footer, FileExport).
 const SETTINGS_FILE := "modern-iaf-settings.cfg"
+## The Settings' data (front-end.md §14.1): the frame costs measured on the Iris Xe laptop (cost.json,
+## tools/settings_cost.sh) and the graphics settings' Off / On pictures (<setting>.webp, previews.json,
+## tests/_settings_previews.gd).
+const SETTINGS_DATA := "res://data/settings"
+## The Settings' columns on the 1920 × 1080 canvas (the r3 mock): the side list, the gap after it, the rows' list.
+const NAV_W := 280
+const NAV_GAP := 52
+const LIST_W := 820
+## The Devices rows a joystick works (keyboard = 0): Keyboard with none connected (_pref_row).
+const JOY_ROWS := ["flight_controls", "rudder", "throttle"]
 ## The start-up steps' switches cropped from each jet's 3D cockpit: <unit>/<step>.webp (tests/_switch_crops.gd).
 const SWITCHES := "res://data/switches"
 ## The canvas the screens lay out on: the window shows it scaled to its height (Look's sizes are its pixels).
@@ -51,27 +61,29 @@ const SOON := [
 	{"unit": "f15i", "name": "raam", "code": "F-15I", "base": "hatzerim", "icao": "llhb"},
 	{"unit": "f15c", "name": "baz", "code": "F-15C", "base": "tel_nof", "icao": "llek"},
 ]
-## The Preferences: [group, [[setting, control, choices]]]. Controls: "dropdown" / "radio" ([[label key, value]]; a
-## label without a string is shown as written), "switch" (choices: [off value, on value], default [false, true]),
-## "slider" (0..1), "page" (a button that opens that screen: keys_screen → keys). A row reborn shows too has no choices
-## here: they come from shared/util/pref_choices.gd (pref_choices), each named by the string "<setting>_<value>", else
-## "<value>". Realism and aids have no switch (plan.md "physics"; sim_settings.gd PROFILE).
+## The Settings: [group, [[setting, control, choices]]]. Controls: "segments" (segmented buttons, [[label key, value]];
+## a label without a string is shown as written), "switch" (choices: [off value, on value], default [false, true]),
+## "slider" (0..1), "detent" (the afterburner detent: Off or the lever's place), "page" (a button that opens that
+## screen: keys_screen → keys). A row reborn shows too has no choices here: they come from
+## shared/util/pref_choices.gd (pref_choices), each named by the string "<setting>_<value>", else "<value>". Realism
+## and aids have no switch (plan.md "physics"; sim_settings.gd PROFILE). The first group is Graphics: its rows carry
+## the cost chips and open with the Preset row (§14.1).
 const PREFS := [
 	[
 		"graphics",
 		[
-			["antialiasing", "dropdown"],
-			["upscaling", "dropdown"],
+			["antialiasing", "segments"],
+			["upscaling", "segments"],
 			["shadows", "switch", []],
 			["shadow_reach", "switch"],
 			["terrain_detail", "slider", []],
-			["clouds", "radio"],
-			["scenery", "radio"],
+			["clouds", "segments"],
+			["scenery", "segments"],
 			["fullscreen", "switch"],
 			["vsync", "switch", []],
 		]
 	],
-	["language", [["language", "dropdown"]]],
+	["language", [["language", "segments"]]],
 	[
 		"sound",
 		[
@@ -84,11 +96,11 @@ const PREFS := [
 	[
 		"devices",
 		[
-			["flight_controls", "radio", [["joystick", 1], ["keyboard", 0]]],
-			["rudder", "radio", [["pedals", 1], ["keyboard", 0]]],
-			["throttle", "radio", [["lever", 1], ["keyboard", 0]]],
+			["flight_controls", "segments", [["keyboard", 0], ["joystick", 1]]],
+			["rudder", "segments", [["keyboard", 0], ["pedals", 1]]],
+			["throttle", "segments", [["keyboard", 0], ["lever", 1]]],
 			["throttle_detent", "detent", []],
-			["stick_response", "radio", [["linear", "linear"], ["soft", "soft"]]],
+			["stick_response", "segments", [["linear", "linear"], ["soft", "soft"]]],
 			["keys_screen", "page", []],
 			["joystick_screen", "page", []],
 		]
@@ -140,8 +152,22 @@ var missions: Array = []
 var mission_i := 0
 var record := {}
 var record_sortie := 0
-## The Preferences section shown beside the list (_page_prefs).
+## The Settings section shown beside the list (_page_prefs), and the search typed over them ("" none).
 var pref_group := ""
+var pref_search := ""
+## The Settings' parts filled by _fill_prefs: the rows' list, the right pane, each row by its setting, the cost chips,
+## the Preset row's buttons; the setting the pane tells about; the other language's strings (the search's).
+var _pref_list: VBoxContainer
+var _about_box: VBoxContainer
+var _pref_rows := {}
+var _chips := {}
+var _preset_buttons := {}
+var _about_key := ""
+var _strings_other := {}
+## The frame costs measured on the Iris Xe laptop (data/settings/cost.json), read once.
+static var _cost := {}
+## The Settings' preview pictures, loaded once (_preview).
+var _textures := {}
 var _focus: Control
 ## The Sound sliders' sample player and the sound table it reads (made at the first slider move).
 var _sample: AudioStreamPlayer
@@ -1214,48 +1240,91 @@ func _preload_ground() -> void:
 # --- Preferences ------------------------------------------------------------------------------------------------------
 
 
-## Preferences: the sections listed at the inline start, the picked one's rows beside them on the same screen
-## (pref_group; the first section until one is picked), its pane scrolled over its full height.
+## The Settings (front-end.md §4, the approved r3 mock): the search over every section, the sections listed at the
+## inline start with their counts, the picked one's rows beside them (the first section until one is picked), and the
+## right pane telling about the setting under the pointer or the focus. Graphics opens with the Preset row; each
+## graphics row carries its cost chip (§14.1). Over a flight the same screen, its crumb and Back to the pause menu.
 func _page_prefs() -> void:
 	# Over a flight the same bars: the crumb back is the pause menu, the footer's Back too.
 	_header(["hangar", "preferences"] if flight == null else [[s("paused"), "pause"], "preferences"])
 	if PREFS.all(func(g): return g[0] != pref_group):
 		pref_group = PREFS[0][0]
-	var v := _vbox(_body(), 30)
-	_title(v, s("preferences"), "", 44)
-	var h := _hbox(v, 64)
-	h.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	var nav := _vbox(h, 4)
-	nav.custom_minimum_size.x = 384
+	var f := settings_frame(s("preferences"), "", 44)
+	var field := PanelContainer.new()
+	field.name = "SearchBox"
+	field.custom_minimum_size = Vector2(560, 52)
+	field.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	field.add_theme_stylebox_override("panel", Look.box(Look.FIELD, Look.EDGE, 1, 5, Vector2(18, 0)))
+	f.top.add_child(field)
+	var sh := _hbox(field, 12)
+	var icon := TextureRect.new()
+	icon.texture = Look.search_icon(22)
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.custom_minimum_size = Vector2(22, 22)
+	icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	sh.add_child(icon)
+	var search := LineEdit.new()
+	search.name = "Search"
+	search.placeholder_text = s("search_hint")
+	search.text = pref_search
+	search.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	search.add_theme_stylebox_override("normal", StyleBoxEmpty.new())
+	search.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+	search.clear_button_enabled = true
+	sh.add_child(search)
+	search.focus_entered.connect(func(): field.get_theme_stylebox("panel").border_color = Look.ACCENT)
+	search.focus_exited.connect(func(): field.get_theme_stylebox("panel").border_color = Look.EDGE)
+	search.text_changed.connect(
+		func(t):
+			pref_search = t.strip_edges()
+			_fill_prefs()
+	)
 	var group := ButtonGroup.new()
+	group.allow_unpress = true  # the search unlights them all
 	for g in PREFS:
 		var tab := Button.new()
 		tab.name = "Section_" + g[0]
-		tab.text = s(g[0])
 		tab.theme_type_variation = "Tab"
 		tab.toggle_mode = true
 		tab.button_group = group
-		tab.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		tab.custom_minimum_size = Vector2(NAV_W, 60)
 		tab.button_pressed = g[0] == pref_group
 		tab.pressed.connect(_open_section.bind(g[0]))
-		nav.add_child(tab)
+		f.nav.add_child(tab)
+		# The name and the count as a row inside the tab, so both mirror in Hebrew.
+		var m := _margin(tab, 22, 0)
+		m.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		m.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var th := _hbox(m, 8)
+		th.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var tl := _label(th, s(g[0]), "Row")
+		tl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		tl.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		var n := _label(th, "", "Small")
+		n.name = "Count"
+		n.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		if g[0] == pref_group:
 			_focus = tab
 	var scroll := ScrollContainer.new()
 	scroll.name = "SectionPane"
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	scroll.custom_minimum_size.x = 1180
-	scroll.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	scroll.follow_focus = true
+	scroll.custom_minimum_size.x = LIST_W
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	h.add_child(scroll)
-	# Room for the scroll bar on either side, so no control sits under it in either direction.
-	var bm := _margin(scroll, 32, 0)
-	bm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var body := _vbox(bm, 0)
-	for g in PREFS:
-		if g[0] == pref_group:
-			for row in g[1]:
-				_pref_row(body, row)
+	f.h.add_child(scroll)
+	_pref_list = _vbox(scroll, 0)
+	_pref_list.name = "Rows"
+	_pref_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var about := PanelContainer.new()
+	about.name = "About"
+	about.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	about.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	about.add_theme_stylebox_override("panel", Look.box(Look.PANEL, Look.LINE, 1, 6, Vector2(20, 20)))
+	f.h.add_child(about)
+	_about_box = _vbox(about, 14)
+	var defaults := _action(s("defaults"), "Secondary", pref_defaults)
+	defaults.name = "Defaults"
+	var start := [defaults]
 	# The settings to / from a file (FileExport, reborn's Extras Settings file); over the flight the pause menu's own.
 	if flight == null:
 		var exp := _action(
@@ -1268,9 +1337,429 @@ func _page_prefs() -> void:
 			FileExport.settings_file.bind(self, false, SETTINGS_FILE, {}, import_settings)
 		)
 		imp.name = "ImportSettings"
-		_footer("", [], false, [exp, imp])
+		start += [exp, imp]
+	# Back (as Esc): to the Hangar, or over a flight to the pause menu.
+	var back_b := back_button()
+	if flight == null:
+		back_b.text = s("back_hangar")
+	_footer("", [back_b], false, start)
+	_fill_prefs()
+
+
+## The Settings' frame, the Keys and Joystick screens' too: the title row (`title`, `sub` under it, `gear` px of the
+## Settings' gear before it; more beside it in `top`), then the side list (`nav`, NAV_W wide) and the rest of the
+## row (`h`) beside it. {"top", "nav", "h"}.
+func settings_frame(title: String, sub: String, gear := 0) -> Dictionary:
+	var v := _vbox(_body(68), 34)
+	var top := _hbox(v, NAV_GAP)
+	var tv := _vbox(top, 0)
+	tv.custom_minimum_size.x = NAV_W
+	_title(tv, title, sub, gear)
+	var h := _hbox(v, NAV_GAP)
+	h.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	var nav := _vbox(h, 4)
+	nav.custom_minimum_size.x = NAV_W
+	return {"top": top, "nav": nav, "h": h}
+
+
+## The rows again: the section picked, or with a search every row whose name, description or choices (English or
+## Hebrew) hold the words, under its section's name; the sections' counts follow (rows, or matches while searching).
+func _fill_prefs() -> void:
+	for c in _pref_list.get_children():
+		_pref_list.remove_child(c)
+		c.queue_free()
+	_pref_rows = {}
+	_chips = {}
+	_preset_buttons = {}
+	var first := ""
+	var focusables: Array = []
+	for g in PREFS:
+		var shown: Array = g[1].filter(func(row): return _pref_matches(row)) if pref_search != "" else g[1]
+		var tab: Button = find_child("Section_" + g[0], true, false)
+		tab.find_child("Count", true, false).text = str(shown.size())
+		# While searching no section is lit: the list holds every section's matches.
+		tab.set_pressed_no_signal(pref_search == "" and g[0] == pref_group)
+		if pref_search == "" and g[0] != pref_group or shown.is_empty():
+			continue
+		if pref_search != "":
+			var head := _label(_margin(_pref_list, 18, 10), s(g[0]), "H3")
+			head.name = "Head_" + g[0]
+		elif g[0] == "graphics":
+			_preset_row(_pref_list)
+			first = "preset"
+		for row in shown:
+			_pref_row(_pref_list, row)
+			if first == "":
+				first = row[0]
+	if first == "":
+		_text(_margin(_pref_list, 18, 18), s("search_none"), "Muted")
+	_about_key = ""  # the pane again: a preset or Defaults changed the settings it tells about
+	_about(first)
+	# Tab: the search, the sections, the rows' controls in order, the footer, the crumb.
+	for c in _pref_list.find_children("*", "Control", true, false):
+		if c.focus_mode == Control.FOCUS_ALL and c.is_visible_in_tree() and not (c is BaseButton and c.disabled):
+			focusables.append(c)
+	var tabs := PREFS.map(func(g): return find_child("Section_" + g[0], true, false))
+	var foot: Array = find_child("Footer", true, false).get_children().filter(func(c): return c is Button)
+	var crumb := find_child("Crumb_hangar", true, false)
+	var order: Array = [find_child("Search", true, false)] + tabs + focusables + foot + ([crumb] if crumb else [])
+	_chain(order)
+
+
+## True when a row's names, description or choices (in either language) hold every word of the search.
+func _pref_matches(row: Array) -> bool:
+	var key: String = row[0]
+	var hay := ""
+	for t in [strings, _other_strings()]:
+		hay += " %s %s" % [t.get(key, ""), t.get(key + "_about", "")]
+		for c in pref_choices(row):
+			hay += " " + str(t.get(c[0], c[0]))
+	hay = _plain(hay)
+	return Array(_plain(pref_search).split(" ", false)).all(func(w): return hay.contains(w))
+
+
+## `t` lower-cased, the Hebrew geresh and gershayim (׳ ״) as the keyboard's ' and " (a Hebrew keyboard types those).
+static func _plain(t: String) -> String:
+	return t.to_lower().replace("\u05f3", "'").replace("\u05f4", '"')
+
+
+## The Preset row's Custom: never a pick (always disabled), lit as a picked segment while the settings match no preset.
+func _custom_lit(b: Button, on: bool) -> void:
+	b.disabled = true
+	b.focus_mode = Control.FOCUS_NONE
+	b.set_pressed_no_signal(on)
+	if on:
+		b.add_theme_stylebox_override("disabled", b.get_theme_stylebox("pressed"))
+		b.add_theme_color_override("font_disabled_color", Look.NAVY)
 	else:
-		_footer("", [back_button()])
+		b.remove_theme_stylebox_override("disabled")
+		b.remove_theme_color_override("font_disabled_color")
+
+
+## The strings of the language not shown (the search finds a setting by its name in either).
+func _other_strings() -> Dictionary:
+	if _strings_other.is_empty() or _strings_other.lang != Settings.language:
+		var other := "en" if he() else "he"
+		_strings_other = {"lang": Settings.language, "t": Settings.strings("res://menu/strings", other)}
+	return _strings_other.t
+
+
+## Graphics' first row: the presets (PrefChoices.PRESETS, Custom when the settings match none) and the cost column's
+## head.
+func _preset_row(parent: Control) -> void:
+	var p := PanelContainer.new()
+	p.name = "Pref_preset"
+	p.add_theme_stylebox_override("panel", Look.box(Look.PANEL, Look.LINE, 1, 6, Vector2(18, 14)))
+	parent.add_child(p)
+	_spacer_px(parent, 10)
+	var h := _hbox(p, 20)
+	var name_l := _label(h, s("preset"), "Strong")
+	name_l.custom_minimum_size.x = 110
+	name_l.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var seg := _hbox(h, -1)
+	seg.name = "Control"
+	seg.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var g := ButtonGroup.new()
+	var now := PrefChoices.preset_of(PrefChoices.preset_values())
+	for name in PrefChoices.PRESETS.keys() + ["custom"]:
+		var b := _segment(seg, s("preset_" + name), g, name == now)
+		b.name = "Choice_" + name
+		_preset_buttons[name] = b
+		if name == "custom":
+			_custom_lit(b, name == now)
+		else:
+			b.pressed.connect(_apply_preset.bind(name))
+		_hover(b, "preset")
+	var cost := _label(h, s("cost"), "Muted")
+	cost.custom_minimum_size.x = 84
+	cost.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT if not he() else HORIZONTAL_ALIGNMENT_LEFT
+	cost.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_hover(p, "preset")
+
+
+## Preset `name`: its settings stored at once, the rows again.
+func _apply_preset(name: String) -> void:
+	var p := PrefChoices.preset(name)
+	for k in p:
+		Settings.set(k, p[k])
+	Settings.save()
+	_fill_prefs()
+	_grab.call_deferred(find_child("Pref_preset", true, false).find_child("Choice_" + name, true, false))
+
+
+## Defaults: the rows shown back to their defaults (Settings.default_value, as reborn's DEFAULT: _pref_defaults), the
+## language kept.
+func pref_defaults() -> void:
+	for g in PREFS:
+		if pref_search == "" and g[0] != pref_group:
+			continue
+		for row in g[1]:
+			if row[0] != "language" and row[1] not in ["page"] and (pref_search == "" or _pref_matches(row)):
+				Settings.set(row[0], Settings.default_value(row[0]))
+	Settings.save()
+	SoundBuses.apply()
+	_fill_prefs()
+
+
+## A segmented control's button: `text`, in group `g`, lit when `on`.
+func _segment(parent: Control, text: String, g: ButtonGroup, on: bool) -> Button:
+	var b := Button.new()
+	b.text = text
+	b.theme_type_variation = "Segment"
+	b.toggle_mode = true
+	b.button_group = g
+	b.button_pressed = on
+	b.custom_minimum_size.y = 44
+	parent.add_child(b)
+	return b
+
+
+## The right pane tells about `key` while `c` has the pointer or the focus.
+func _hover(c: Control, key: String) -> void:
+	c.mouse_entered.connect(_about.bind(key))
+	if c.focus_mode != Control.FOCUS_NONE:
+		c.focus_entered.connect(_about.bind(key))
+
+
+## The right pane for setting `key` (or "preset"): its Off / On picture (our own renders, tests/_settings_previews.gd)
+## for a graphics setting, its name, what it does (strings <key>_about), and for the graphics the frame time measured
+## on this computer (§14.2). Its row lit.
+func _about(key: String) -> void:
+	if _about_box == null or not is_instance_valid(_about_box):
+		return
+	for k in _pref_rows:
+		_pref_rows[k].add_theme_stylebox_override("panel", _row_box(k == key))
+	if key == _about_key and _about_box.get_child_count() > 0:
+		return
+	_about_key = key
+	for c in _about_box.get_children():
+		_about_box.remove_child(c)
+		c.queue_free()
+	var graphics: bool = key == "preset" or PREFS[0][1].any(func(r): return r[0] == key)
+	_about_box.get_parent().visible = key != ""
+	if key == "":
+		return
+	var pic := _preview(key)
+	if pic != null:
+		_about_box.add_child(pic)
+	var t := _label(_about_box, s(key), "Strong")
+	t.add_theme_font_size_override("font_size", 30)
+	t.name = "AboutTitle"
+	var d := _text(_about_box, s(key + "_about"), "Muted")
+	d.name = "AboutText"
+	d.add_theme_color_override("font_color", Look.TEXT)
+	if graphics:
+		_rule(_about_box, Look.LINE)
+		_frame_time(_about_box)
+
+
+## The row's box: lit (an accent edge on a raised fill) while it is the one the pane tells about.
+func _row_box(on: bool) -> StyleBoxFlat:
+	return Look.box(
+		Color(Look.RAISED, 0.6) if on else Color(0, 0, 0, 0),
+		Look.ACCENT if on else Color(0, 0, 0, 0),
+		1,
+		6,
+		Vector2(18, 7)
+	)
+
+
+## Setting `key`'s split picture (data/settings/<key>.webp, previews.json the two choices drawn): its halves named by
+## their choices at the top corners, a line between them. null when it has none.
+func _preview(key: String) -> Control:
+	var pairs: Dictionary = Settings.load_json(SETTINGS_DATA.path_join("previews.json"))
+	var file := ProjectSettings.globalize_path(SETTINGS_DATA.path_join(key + ".webp"))
+	if not pairs.has(key) or not FileAccess.file_exists(file):
+		return null
+	if not _textures.has(file):
+		_textures[file] = Img.load_texture(file)
+	var box := Control.new()
+	box.name = "Preview"
+	box.custom_minimum_size = Vector2(0, 315)
+	box.layout_direction = Control.LAYOUT_DIRECTION_LTR  # a picture never flips: its low choice stays at the left
+	var r := TextureRect.new()
+	r.texture = _textures[file]
+	r.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	r.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	r.clip_contents = true
+	box.add_child(r)
+	r.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var line := ColorRect.new()
+	line.color = Color.WHITE
+	box.add_child(line)
+	line.anchor_left = 0.5
+	line.anchor_right = 0.5
+	line.anchor_bottom = 1.0
+	line.offset_left = -1
+	line.offset_right = 1
+	var row := [key, ""]
+	for p in PREFS:
+		for rr in p[1]:
+			if rr[0] == key:
+				row = rr
+	for side in 2:
+		var v = pairs[key][side]
+		var tag := _label(box, _choice_name(row, v), "Chip")
+		tag.name = "Side%d" % side
+		tag.add_theme_color_override("font_color", Look.TEXT)
+		tag.add_theme_stylebox_override(
+			"normal", Look.box(Color(Look.BG, 0.85), Color(0, 0, 0, 0), 0, 4, Vector2(10, 4))
+		)
+		tag.position = Vector2(10, 10)
+		if side == 1:
+			tag.anchor_left = 1.0
+			tag.anchor_right = 1.0
+			tag.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+			tag.offset_right = -10
+			tag.offset_left = -10
+			tag.offset_top = 10
+	return box
+
+
+## A choice's name on its row (the switches' Off / On, a slider's percent).
+func _choice_name(row: Array, v) -> String:
+	if v is bool:
+		return s("on") if v else s("off")
+	if v is float:
+		return "%d %%" % roundi(v * 100)
+	for c in pref_choices(row):
+		if c[1] == v:
+			return s(c[0]) if strings.has(c[0]) else c[0]
+	return str(v)
+
+
+## The frame time measured on this computer during the last flight (Settings.frame_measured, flight/frame_meter.gd):
+## the bar up to 33 ms (30 frames a second) with the line at 60 frames a second; when the settings differ from those
+## it was measured with, the estimate for them from the Iris Xe costs (§14.1) scaled to this computer.
+func _frame_time(parent: Control) -> void:
+	var fm: Dictionary = Settings.frame_measured
+	var size: Array = fm.get("size", [])
+	var head := s("frame_measured") % ("%d × %d" % [size[0], size[1]] if size.size() == 2 else "")
+	_text(parent, head if size.size() == 2 else s("frame_measured_none_head"), "Muted").name = "FrameHead"
+	if fm.is_empty():
+		_text(parent, s("frame_none"), "Small").name = "FrameNone"
+		return
+	var ms := float(fm.ms)
+	var bar := ProgressBar.new()
+	bar.name = "FrameBar"
+	bar.max_value = 1000.0 / 30.0
+	bar.value = ms
+	bar.show_percentage = false
+	bar.custom_minimum_size.y = 12
+	bar.add_theme_stylebox_override("fill", Look.box(Look.AMBER, Look.AMBER, 0, 4, Vector2(0, 3)))
+	parent.add_child(bar)
+	var mark := ColorRect.new()
+	mark.color = Look.TEXT
+	bar.add_child(mark)
+	mark.anchor_left = 0.5
+	mark.anchor_right = 0.5
+	mark.anchor_bottom = 1.0
+	mark.offset_left = -1
+	mark.offset_right = 1
+	mark.offset_top = -6
+	mark.offset_bottom = 6
+	var h := _hbox(parent, 12)
+	var l := _label(h, s("frame_ms") % [_ms(ms), roundi(1000.0 / ms)], "Row")
+	l.name = "FrameMs"
+	l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_label(h, s("frame_line"), "Muted")
+	var now := PrefChoices.preset_values()
+	var then: Dictionary = fm.get("settings", {})
+	if now.keys().any(func(k): return not PrefChoices._same(then.get(k), now[k])):
+		var est := ms * cost_estimate(now) / maxf(cost_estimate(then), 0.1)
+		_text(parent, s("frame_estimate") % _ms(est), "Small").name = "FrameEstimate"
+
+
+static func _ms(ms: float) -> String:
+	return str(roundi(ms)) if ms >= 10.0 else "%.1f" % ms
+
+
+## The frame time (ms) settings `values` would take on the Iris Xe laptop: the measured preset High's plus each
+## setting's difference from High's choice (data/settings/cost.json).
+static func cost_estimate(values: Dictionary) -> float:
+	var t: Dictionary = _cost_table()
+	var high := PrefChoices.PRESETS.high
+	var ms := float(t.get("base_ms", 0.0))
+	for k in high:
+		ms += cost_of(k, values.get(k, high[k])) - cost_of(k, high[k])
+	return ms
+
+
+## The frame time choice `v` of setting `key` adds on the Iris Xe laptop over the preset High's choice (ms; a slider's
+## between its measured points); 0 for a setting not measured.
+static func cost_of(key: String, v) -> float:
+	var pts: Array = _cost_table().get("rows", {}).get(key, [])
+	if v is float or v is int:
+		var lo: Array = pts[0] if not pts.is_empty() else [0.0, 0.0]  # below the first point: its cost
+		for p in pts:
+			if not (p[0] is float or p[0] is int):
+				continue
+			if is_equal_approx(float(p[0]), float(v)):
+				return float(p[1])
+			if float(p[0]) < float(v):
+				lo = p
+			else:
+				var span := float(p[0]) - float(lo[0])
+				return lerpf(float(lo[1]), float(p[1]), (float(v) - float(lo[0])) / span if span > 0 else 1.0)
+		return float(lo[1])
+	for p in pts:
+		if p[0] == v:
+			return float(p[1])
+	return 0.0
+
+
+## What a row's chip measures: the frame time choice `v` of `key` adds over the row's plain choice (Off, Native,
+## MSAA 4×, Flat layer, the lowest terrain detail: cost.json lists it first), on the Iris Xe laptop; 0 within the
+## measurement's noise.
+static func chip_cost(key: String, v) -> float:
+	var pts: Array = _cost_table().get("rows", {}).get(key, [])
+	var ms := cost_of(key, v) - (cost_of(key, pts[0][0]) if not pts.is_empty() else 0.0)
+	# A difference within the measurement's noise (half the High runs' spread, tools/settings_cost.sh) is no cost found.
+	return ms if absf(ms) >= float(_cost_table().get("noise_ms", 0.0)) else 0.0
+
+
+## The cost chip's word for `ms` (front-end.md §14.1): saves below -0.3, none below 0.3, low below 1.5, medium below 4,
+## else high.
+static func cost_band(ms: float) -> String:
+	if ms < -0.3:
+		return "saves"
+	if ms < 0.3:
+		return "none"
+	if ms < 1.5:
+		return "low"
+	return "medium" if ms < 4.0 else "high"
+
+
+static func _cost_table() -> Dictionary:
+	if _cost.is_empty():
+		_cost = Settings.load_json(SETTINGS_DATA.path_join("cost.json"))
+	return _cost
+
+
+## Row `key`'s chip again (its choice now), and the Preset row's pick.
+func _after_change(key: String) -> void:
+	if _chips.has(key) and is_instance_valid(_chips[key]):
+		_set_chip(_chips[key], key)
+	var now := PrefChoices.preset_of(PrefChoices.preset_values())
+	for name in _preset_buttons:
+		var b: Button = _preset_buttons[name]
+		if is_instance_valid(b):
+			b.set_pressed_no_signal(name == now)
+			if name == "custom":
+				_custom_lit(b, name == now)
+	if _about_key in PrefChoices.PRESET_KEYS or _about_key == "preset":
+		var k := _about_key
+		_about_key = ""
+		_about(k)
+
+
+func _set_chip(chip: Label, key: String) -> void:
+	var band := "none" if not key in PrefChoices.PRESET_KEYS else cost_band(chip_cost(key, Settings.get(key)))
+	chip.text = s("cost_" + band)
+	chip.add_theme_color_override("font_color", Look.AMBER if band == "high" else Look.MUTED)
+	chip.add_theme_stylebox_override(
+		"normal", Look.box(Color(0, 0, 0, 0), Look.AMBER if band == "high" else Look.EDGE, 1, 18, Vector2(14, 2))
+	)
 
 
 ## Reads the settings file at `path` (FileExport.import_settings: the sim's own rules, Hebrew without its font in
@@ -1290,20 +1779,30 @@ func import_settings(path: String) -> void:
 
 func _open_section(group: String) -> void:
 	pref_group = group
+	pref_search = ""
 	show_page("prefs")
 
 
-## One preference: its name at the inline start (a line why when it is greyed), its control at the inline end.
+## One setting: its name at the inline start (a line why when it is greyed), its control (segmented choices, a switch,
+## a slider, a button), the cost chip at the inline end for a graphics row. The row lights while the pane tells about
+## it.
 func _pref_row(parent: Control, row: Array) -> void:
 	var key: String = row[0]
-	var m := _margin(parent, 0, 14)
+	var m := PanelContainer.new()
 	m.name = "Pref_" + key
-	var h := _hbox(m, 30)
+	m.mouse_filter = Control.MOUSE_FILTER_PASS
+	m.add_theme_stylebox_override("panel", _row_box(false))
+	parent.add_child(m)
+	_pref_rows[key] = m
+	_hover(m, key)
+	var h := _hbox(m, 20)
+	h.custom_minimum_size.y = 46
 	var t := _vbox(h, 0)
-	t.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_label(t, s(key), "Strong").add_theme_font_size_override("font_size", 25)
-	# Greyed with its why: Scenery without setup's scenery step (PrefChoices.state), the Joystick
-	# screen with no joystick connected (it comes alive when one is plugged in, _on_joy_connection).
+	t.custom_minimum_size.x = 230
+	t.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_label(t, s(key), "Row")
+	# Greyed with its why: Scenery without setup's scenery step (PrefChoices.state), the afterburner detent and the
+	# Joystick screen with no joystick connected (they come alive when one is plugged in, _on_joy_connection).
 	var why := ""
 	var choices := pref_choices(row)
 	if key == "scenery" and not PrefChoices.state(key, "on").available:
@@ -1312,91 +1811,87 @@ func _pref_row(parent: Control, row: Array) -> void:
 		why = "scenery_left_out" if "sim-scenery" in left.get("excluded", []) else "scenery_missing"
 	elif key in ["joystick_screen", "throttle_detent"] and Joystick.device() < 0:
 		why = "joy_none"
-	elif key == "throttle_detent":
-		why = "detent_note"
-	var off := why != "" and why != "detent_note"
-	if why != "":
-		_label(t, s(why), "Small")
+	var off := why != ""
 	if off:
+		_text(t, s(why), "Small").custom_minimum_size.x = 230
 		m.modulate.a = 0.5
-	var ctl := _hbox(h, 20)
-	ctl.custom_minimum_size.x = 420
-	ctl.alignment = BoxContainer.ALIGNMENT_END
+	var ctl := _hbox(h, 12)
+	ctl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	ctl.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	var value = Settings.get(key)
+	# With no joystick connected the controls are the keyboard's (Joystick reads no axis): the row shows Keyboard, the
+	# device's choice greyed; the stored choice comes back when one is plugged in.
+	var no_joy: bool = key in JOY_ROWS and Joystick.device() < 0
+	if no_joy:
+		value = 0
 	match row[1]:
-		"dropdown":
-			var o := OptionButton.new()
-			o.name = "Control"
-			o.custom_minimum_size = Vector2(307, 58)
+		"segments":
+			var seg := _hbox(ctl, -1)
+			seg.name = "Control"
+			var g := ButtonGroup.new()
 			for c in choices:
 				# A left-to-right mark keeps "MSAA 4×" whole in a right-to-left line.
-				o.add_item(s(c[0]) if strings.has(c[0]) else c[0] + "\u200e")
-				o.set_item_disabled(o.item_count - 1, not PrefChoices.state(key, c[1]).available)
-				if c[1] == value:
-					o.select(o.item_count - 1)
-			o.item_selected.connect(func(i): _set_pref(key, choices[i][1]))
-			ctl.add_child(o)
+				var b := _segment(seg, s(c[0]) if strings.has(c[0]) else c[0] + "\u200e", g, c[1] == value)
+				b.name = "Choice_" + str(c[1])
+				b.disabled = off or not PrefChoices.state(key, c[1]).available or no_joy and c[1] != 0
+				b.pressed.connect(_set_pref.bind(key, c[1]))
+				_hover(b, key)
 		"switch":
 			var vals: Array = choices.map(func(c): return c[1]) if not choices.is_empty() else [false, true]
-			var label := _label(ctl, s("on") if value == vals[1] else s("off"), "Row")
-			label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 			var c := CheckButton.new()
 			c.name = "Control"
 			c.button_pressed = value == vals[1]
-			c.toggled.connect(
-				func(on):
-					label.text = s("on") if on else s("off")
-					_set_pref(key, vals[1] if on else vals[0])
-			)
+			c.toggled.connect(func(on): _set_pref(key, vals[1] if on else vals[0]))
 			ctl.add_child(c)
+			_hover(c, key)
 		"slider":
 			var sl := HSlider.new()
 			sl.name = "Control"
-			sl.custom_minimum_size = Vector2(283, 30)
+			sl.custom_minimum_size = Vector2(300, 30)
 			sl.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 			sl.max_value = 1.0
 			sl.step = 0.05
 			sl.value = float(value)
 			ctl.add_child(sl)
-			var pct := _label(ctl, "%d%%" % roundi(float(value) * 100), "Row")
+			var pct := _label(ctl, "%d %%" % roundi(float(value) * 100), "Row")
 			pct.text_direction = Control.TEXT_DIRECTION_LTR
-			pct.custom_minimum_size.x = 64
+			pct.custom_minimum_size.x = 72
 			sl.value_changed.connect(
 				func(x):
-					pct.text = "%d%%" % roundi(x * 100)
+					pct.text = "%d %%" % roundi(x * 100)
 					_set_pref(key, x)
 			)
+			_hover(sl, key)
 		"detent":
 			# Ours, reborn's Devices "Detent = MIL" (joystick.gd detent_map): the lever's raw position in its click, past
-			# it the afterburner; Off = the lever linear.
-			var at := _label(ctl, s("off") if int(value) < 0 else s("detent_at") % int(value), "Row")
-			at.name = "Value"
-			at.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-			var no := _button(ctl, s("off"), "Secondary", _set_detent.bind(-1))
+			# it the afterburner; Off = the lever linear. Two choices, Off and the lever's place (once set, its percent).
+			var seg := _hbox(ctl, -1)
+			seg.name = "Control"
+			var g := ButtonGroup.new()
+			var no := _segment(seg, s("off"), g, int(value) < 0)
 			no.name = "Off"
-			no.disabled = off or int(value) < 0
-			var lever := _button(ctl, s("set_at_lever"), "Secondary", _set_detent.bind(0))
-			lever.name = "Control"
-			lever.disabled = off
+			no.pressed.connect(_set_detent.bind(-1))
+			var at := s("set_at_lever") if int(value) < 0 else s("detent_at") % int(value)
+			var lever := _segment(seg, at, g, int(value) >= 0)
+			lever.name = "Lever"
+			lever.pressed.connect(_set_detent.bind(0))
+			for b in [no, lever]:
+				b.disabled = off
+				_hover(b, key)
 		"page":
 			var b := _button(ctl, s("change"), "Secondary", show_page.bind(key.trim_suffix("_screen")))
 			b.name = "Control"
 			b.disabled = off
-		"radio":
-			# The choices side by side, so a section fits between the bars without a cut row.
-			var rv := _hbox(ctl, 24)
-			rv.name = "Control"
-			var g := ButtonGroup.new()
-			for c in choices:
-				var r := CheckBox.new()
-				r.text = s(c[0])
-				r.button_group = g
-				r.button_pressed = c[1] == value
-				r.disabled = off or not PrefChoices.state(key, c[1]).available
-				r.add_theme_font_size_override("font_size", 24)
-				r.pressed.connect(_set_pref.bind(key, c[1]))
-				rv.add_child(r)
+			b.custom_minimum_size = Vector2(150, 48)
+			_hover(b, key)
+	if PREFS[0][1].has(row):
+		var chip := _label(h, "", "Chip")
+		chip.name = "Cost"
+		chip.custom_minimum_size.x = 84
+		chip.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		chip.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		_set_chip(chip, key)
+		_chips[key] = chip
 	_rule(parent, Look.LINE)
 
 
@@ -1448,6 +1943,7 @@ func _set_detent(off_or_lever: int) -> void:
 func _set_pref(key: String, value: Variant) -> void:
 	Settings.set(key, value)
 	Settings.save()
+	_after_change(key)
 	if key in ["engine_volume", "sfx_volume", "speech_volume", "mute"]:
 		SoundBuses.apply()
 	if SAMPLES.has(key):

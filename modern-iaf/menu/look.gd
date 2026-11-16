@@ -76,6 +76,7 @@ const TYPES := [
 	["Secondary", "Button", 600, 24, TEXT],
 	["Card", "Button", 400, R, TEXT],
 	["Tab", "Button", 500, 24, TEXT],
+	["Segment", "Button", 500, 22, TEXT],
 	["JetRow", "Button", 400, R, TEXT],
 	["JetName", "Label", 800, 30, TEXT],
 ]
@@ -137,6 +138,23 @@ static func make() -> Theme:
 	t.set_stylebox("focus", "Tab", box(Color(0, 0, 0, 0), ACCENT, 2, 4, Vector2(28, 16)))
 	for k in ["pressed", "hover_pressed"]:
 		t.set_stylebox(k, "Tab", tab_on)
+	# A segmented control's button (the Settings' choices, the r3 mock): an outlined cell, the picked one filled in the
+	# accent with navy text; the focus a light ring.
+	var seg := box(Color(0, 0, 0, 0), EDGE, 1, 4, Vector2(16, 8))
+	var seg_on := box(ACCENT, ACCENT, 1, 4, Vector2(16, 8))
+	_button(
+		t,
+		"Segment",
+		seg,
+		box(Color(ACCENT, 0.14), EDGE, 1, 4, Vector2(16, 8)),
+		box(Color(0, 0, 0, 0), TEXT, 2, 4, Vector2(16, 8))
+	)
+	for k in ["pressed", "hover_pressed"]:
+		t.set_stylebox(k, "Segment", seg_on)
+	t.set_stylebox("disabled", "Segment", seg)
+	for k in ["font_pressed_color", "font_hover_pressed_color"]:
+		t.set_color(k, "Segment", NAVY)
+	t.set_color("font_disabled_color", "Segment", DIM)
 	# A breadcrumb that opens its screen: the muted text, brighter with a faint accent under the pointer or the focus.
 	var crumb := box(Color(0, 0, 0, 0), Color(0, 0, 0, 0), 0, 5, Vector2(8, 4))
 	var crumb_on := box(Color(ACCENT, 0.16), Color(0, 0, 0, 0), 0, 5, Vector2(8, 4))
@@ -254,6 +272,19 @@ static func gear_icon(px := 22) -> ImageTexture:
 	)
 	var img := Image.new()
 	img.load_svg_from_string(g % [px * 4, px * 4, _hex(TEXT)], 1.0)
+	img.generate_mipmaps()
+	return ImageTexture.create_from_image(img)
+
+
+## The Settings' search field's magnifier (our own drawing), in the muted text colour, `px` canvas px, drawn at 4 ×
+## and mipmapped as the gear.
+static func search_icon(px := 22) -> ImageTexture:
+	var g := (
+		"<svg xmlns='http://www.w3.org/2000/svg' width='%d' height='%d' viewBox='0 0 24 24' fill='none' stroke='%s'"
+		+ " stroke-width='2.2' stroke-linecap='round'><circle cx='10' cy='10' r='6.5'/><path d='M15 15L21 21'/></svg>"
+	)
+	var img := Image.new()
+	img.load_svg_from_string(g % [px * 4, px * 4, _hex(MUTED)], 1.0)
 	img.generate_mipmaps()
 	return ImageTexture.create_from_image(img)
 

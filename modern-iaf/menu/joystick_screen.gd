@@ -35,12 +35,10 @@ static func page(front_end: Control) -> Node:
 	front_end.add_child(me)
 	var first = "hangar" if front_end.flight == null else [front_end.s("paused"), "pause"]
 	front_end._header([first, "preferences", "devices", "joystick_screen"])
-	var v: VBoxContainer = front_end._vbox(front_end._body(), 28)
-	front_end._title(v, front_end.s("joystick_screen"), front_end.s("joystick_sub"))
-	var h: HBoxContainer = front_end._hbox(v, 96)
-	h.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	var nav: VBoxContainer = front_end._vbox(h, 0)
-	nav.custom_minimum_size.x = 384
+	# The Settings' frame (front_end.gd settings_frame): the same title row, side list and columns.
+	var f: Dictionary = front_end.settings_frame(front_end.s("joystick_screen"), front_end.s("joystick_sub"))
+	var h: HBoxContainer = f.h
+	var nav: VBoxContainer = f.nav
 	me.scroll = ScrollContainer.new()
 	me.scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	me.scroll.follow_focus = true
@@ -59,7 +57,10 @@ static func page(front_end: Control) -> Node:
 func build(body: VBoxContainer, nav: VBoxContainer) -> void:
 	var group := ButtonGroup.new()
 	var tabs := []
-	for part in ["joy_devices", "joy_axes", "joy_buttons"]:
+	var ids: Array = Joystick.fake_devices + ([] if Settings.isolated() else Input.get_connected_joypads())
+	# No joystick connected: no axis rows (their bars and roles have nothing to read), the devices' line says so.
+	var parts := ["joy_devices", "joy_axes", "joy_buttons"] if not ids.is_empty() else ["joy_devices", "joy_buttons"]
+	for part in parts:
 		var tab := Button.new()
 		tab.name = "Tab_" + part
 		tab.text = fe.s(part)
@@ -71,7 +72,6 @@ func build(body: VBoxContainer, nav: VBoxContainer) -> void:
 		nav.add_child(tab)
 		tabs.append(tab)
 	_head(body, "joy_devices", true)
-	var ids: Array = Joystick.fake_devices + ([] if Settings.isolated() else Input.get_connected_joypads())
 	if ids.is_empty():
 		fe._label(fe._margin(body, 0, 14), fe.s("joy_none"), "Muted")
 	for d in ids:
@@ -84,10 +84,11 @@ func build(body: VBoxContainer, nav: VBoxContainer) -> void:
 		if d == Joystick.device():
 			fe._chip(row, fe.s("joy_in_use"), true)
 		fe._rule(body, Look.LINE)
-	_head(body, "joy_axes", false)
-	var n := AXES if Joystick.axis_count < 0 else clampi(Joystick.axis_count, 1, AXES)
-	for i in n:
-		_axis_row(body, i)
+	if "joy_axes" in parts:
+		_head(body, "joy_axes", false)
+		var n := AXES if Joystick.axis_count < 0 else clampi(Joystick.axis_count, 1, AXES)
+		for i in n:
+			_axis_row(body, i)
 	_head(body, "joy_buttons", false)
 	fe._label(fe._margin(body, 0, 8), fe.s("joy_buttons_note"), "Small")
 	buttons = KeysScreen.new(fe, "button")

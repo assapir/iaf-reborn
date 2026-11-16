@@ -3,6 +3,13 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **The Settings in the r3 layout (2026-11-16, the finish list's F7, [front-end.md](front-end.md) §14):** a search
+  across the sections in English or Hebrew, the sections' counts, Graphics' Preset row (Laptop, Balanced, High,
+  Everything on, Custom), segmented buttons for every row's choices, a cost chip per graphics row from measurements on
+  the Iris Xe laptop (`tools/settings_cost.sh`), the pane on the hovered setting with its Off / On picture (our own
+  renders), its description and the frame time measured during the player's last flight; Defaults and Back to the
+  hangar in the footer. Devices: Keyboard with no joystick connected; the Joystick screen without axis rows then; the
+  Keys and Joystick screens in the Settings' frame.
 - **The autopilot lands softly; the roll starts faster (2026-11-16, finish list: autopilot touchdown, roll onset,
   [flight-model.md](flight-model.md) §9.6, §9.13):** on the 6-DoF the autopilot flies a real final, 3° (inferred) at
   the speed of the F-16 manual's 13° α (about 145 kt), with a flare from about 15 m: touchdowns at 2.0–2.6 m/s (were

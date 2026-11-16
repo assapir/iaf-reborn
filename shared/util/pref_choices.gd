@@ -72,3 +72,80 @@ static func state(key: String, value, work := {}) -> Dictionary:
 		elif value == "detailed" and not available:
 			why = "Needs Survey 2 m"
 	return {"available": available, "name": name, "why": why}
+
+
+## The graphics presets (Modern IAF's Settings → Graphics → Preset; modern-iaf/docs/front-end.md §14.1 lists what each
+## sets and why): the settings PRESET_KEYS each one sets, from the frame costs measured on the Iris Xe laptop.
+const PRESET_KEYS := ["antialiasing", "upscaling", "shadows", "shadow_reach", "terrain_detail", "clouds", "scenery"]
+const PRESETS := {
+	"laptop":
+	{
+		"antialiasing": "msaa4",
+		"upscaling": "balanced",
+		"shadows": true,
+		"shadow_reach": "original",
+		"terrain_detail": 0.5,
+		"clouds": "original",
+		"scenery": "off",
+	},
+	"balanced":
+	{
+		"antialiasing": "msaa4",
+		"upscaling": "quality",
+		"shadows": true,
+		"shadow_reach": "original",
+		"terrain_detail": 0.75,
+		"clouds": "original",
+		"scenery": "on",
+	},
+	"high":
+	{
+		"antialiasing": "msaa4",
+		"upscaling": "off",
+		"shadows": true,
+		"shadow_reach": "far",
+		"terrain_detail": 1.0,
+		"clouds": "original",
+		"scenery": "on",
+	},
+	"everything":
+	{
+		"antialiasing": "msaa4_fxaa",
+		"upscaling": "off",
+		"shadows": true,
+		"shadow_reach": "far",
+		"terrain_detail": 1.0,
+		"clouds": "volumetric",
+		"scenery": "detailed",
+	},
+}
+
+
+## Preset `name`'s settings as this machine can have them: a choice it cannot pick (state()) is the setting's default.
+static func preset(name: String) -> Dictionary:
+	var out := {}
+	for k in PRESETS[name]:
+		var v = PRESETS[name][k]
+		out[k] = v if CHOICES.get(k, []).is_empty() or state(k, v).available else Settings.default_value(k)
+	return out
+
+
+## The settings PRESET_KEYS sets, as they are now.
+static func preset_values() -> Dictionary:
+	var out := {}
+	for k in PRESET_KEYS:
+		out[k] = Settings.get(k)
+	return out
+
+
+## The preset `values` match, or "custom".
+static func preset_of(values: Dictionary) -> String:
+	for name in PRESETS:
+		var p := preset(name)
+		if p.keys().all(func(k): return _same(p[k], values.get(k))):
+			return name
+	return "custom"
+
+
+static func _same(a, b) -> bool:
+	return is_equal_approx(a, b) if a is float and (b is float or b is int) else a == b

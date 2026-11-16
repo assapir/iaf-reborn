@@ -11,7 +11,7 @@
 # backlight (the 3D cockpit's backlit labels at night). BENCH_SPIKES=1 prints every frame over 12 ms. BENCH_AT=x,y
 # starts the legs over that engine point (metres; e.g. a dense town with Scenery on: 332520,586500). BENCH_HOUR=h sets
 # the clock (e.g. 22 for night) and the cockpit's night by it. Each leg also prints the video memory in use at its end.
-# BENCH_SETTLE=s waits that long more before each leg.
+# BENCH_SETTLE=s waits that long more before each leg. BENCH_SEED=n seeds the random draws (the cloud layer's texture).
 extends "res://../tests/godot/base.gd"
 
 
@@ -33,6 +33,9 @@ func run() -> void:
 		var cur = settings().get(p[0])
 		var v = int(p[1]) if cur is int else (float(p[1]) if cur is float else p[1])
 		settings().set(p[0], (p[1] == "true") if cur is bool else v)
+	# BENCH_SEED=n: the same random draws every run (the cloud layer's texture), so runs compare.
+	if OS.get_environment("BENCH_SEED") != "":
+		seed(int(OS.get_environment("BENCH_SEED")))
 	var tv = await start_mission(
 		int(OS.get_environment("BENCH_MISSION")) if OS.get_environment("BENCH_MISSION") != "" else 311
 	)

@@ -117,6 +117,9 @@ var flown_sortie := 0
 ## The checklist notebook's help line was shown (flight/kneeboard.gd: once, in the pilot's first start-up mission;
 ## settings.cfg [sim] notebook_help_seen).
 var notebook_help_seen := false
+## The frame time measured during the last flight on this computer (flight/frame_meter.gd; settings.cfg [sim]
+## frame_measured): {"ms", "size" [w, h], "settings" (the Preset row's settings then)}; {} before the first flight.
+var frame_measured := {}
 var _fonts := {}  # display_font's, by style
 var _keys: Array = []  # has_setting's
 ## The player's joystick axes (devices_file); a test sets its own.
@@ -149,6 +152,8 @@ func read_config(cfg: ConfigFile) -> void:
 	var pid = cfg.get_value("sim", "pilot", -1)
 	pilot_id = pid if pid is int else -1
 	notebook_help_seen = cfg.get_value("sim", "notebook_help_seen", false) == true
+	var fm = cfg.get_value("sim", "frame_measured", {})
+	frame_measured = fm if fm is Dictionary else {}
 	_apply_profile()
 
 
@@ -163,6 +168,8 @@ func write_config(values := {}) -> ConfigFile:
 	cfg.set_value("sim", "jet", sim_jet)
 	cfg.set_value("sim", "pilot", pilot_id)
 	cfg.set_value("sim", "notebook_help_seen", notebook_help_seen)
+	if not frame_measured.is_empty():
+		cfg.set_value("sim", "frame_measured", frame_measured)
 	return cfg
 
 

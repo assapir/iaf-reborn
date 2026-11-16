@@ -1,0 +1,1 @@
+{"antialiasing":["msaa4","msaa4_fxaa"],"upscaling":["balanced","off"],"shadows":[false,true],"shadow_reach":["original","far"],"terrain_detail":[0.5,1.0],"clouds":["original","volumetric"],"scenery":["off","on"]}

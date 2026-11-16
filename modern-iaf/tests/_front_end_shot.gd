@@ -1,7 +1,8 @@
 # Real-render pictures of Modern IAF's front end, every screen in English and Hebrew (modern-iaf/docs/front-end.md):
 #   tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 SHOT_DIR=/tmp/fe -- --log-file /tmp/fe.log --path modern-iaf \
 #     -s ../modern-iaf/tests/_front_end_shot.gd
-# Writes SHOT_DIR/<screen>_<lang>.png (the Preferences: prefs_<section>_*; the Pilot screens: _pilot) at 1920×1080 (the
+# Writes SHOT_DIR/<screen>_<lang>.png (the Settings: prefs_<section>_*, prefs_about_* (the pane on Buildings and trees),
+# prefs_search_*; the Pilot screens: _pilot) at 1920×1080 (the
 # front end in a viewport of that size, whatever the window's) with the sample pilot log and debrief of
 # test_front_end.gd (debrief: the sample flight; debrief_fail: a record from before the goals and the recording, its
 # take-off with the gear never raised; fly_again: the debrief's Fly again; log_filtered: the Pilot log filtered to one
@@ -38,13 +39,20 @@ func run() -> void:
 		s.language = lang
 		s.pilot_name = "נועה גולן" if lang == "he" else "Noa Golan"
 		s.sim_jet = "f16i"
-		for g in [] if only != "" else ["graphics", "sound", "devices", "language"]:
+		for g in ["graphics", "sound", "devices", "language"] if only == "" or "prefs" in only.split(",") else []:
 			fe.pref_group = g
+			fe.pref_search = ""
 			fe.show_page("prefs")
-			await frames(10)
-			var gp: String = dir.path_join("prefs_%s_%s.png" % [g, lang])
-			check(vp.get_texture().get_image().save_png(gp) == OK, "saved " + gp)
-		for p in Array(only.split(",")) if only != "" else SCREENS:
+			await _shot(vp, dir, "prefs_%s_%s" % [g, lang])
+			if g == "graphics":
+				# The pane on a setting with its Off / On picture (the mock's Buildings and trees), then a search.
+				fe._about("scenery")
+				await _shot(vp, dir, "prefs_about_" + lang)
+				fe.pref_search = "צל" if lang == "he" else "shadow"
+				fe.show_page("prefs")
+				await _shot(vp, dir, "prefs_search_" + lang)
+				fe.pref_search = ""
+		for p in Array(only.split(",")).filter(func(x): return x != "prefs") if only != "" else SCREENS:
 			if p == "debrief":
 				fe.open_debrief(ids.pass)
 			elif p == "debrief_fail":
