@@ -201,6 +201,10 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   levelled per sheet as the original game's (no match to Sentinel-2), its 4 m and 8 m levels built from it, its grey
   hills warmed as that layer's: the ground reads as the original game's photo. A rebuild of the theatre's photo
   (setup's terrain step "will run", nothing to download). Pictures in [terrain.md](terrain.md) §15.
+- **Steady taxi lines (2026-11-15, the user: "the yellow marks on taxi way show strange if even a bit far"):** the
+  yellow taxiway centreline is one thin line from the cockpit at every distance, fading with it, from the air too;
+  before, it broke into dashes and blobs and vanished along the view (the shared shader's line read from a 2 m
+  distance field, [rendering.md](../../docs/rendering.md) §7). The original game's Detailed airbases get the same fix.
 - **The airbases from the air (2026-11-14, built, awaiting the user's yes on the pictures):** the bases' Sentinel-2
   fill toned to the photo around (no tan block; one colour map per base from the medians of the ground around, an odd
   Survey sheet left out, Sentinel-2's brighter dry grass brought down to the earth tones around); the painted

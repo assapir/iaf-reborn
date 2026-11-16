@@ -2069,6 +2069,16 @@ Only the nearest base is drawn, so two bases nearer than about 30 km to each oth
   threshold.
 - Every mark is box-filtered over the pixel's footprint along and across the runway, so it fades to its average far
   away instead of shimmering.
+- **Taxi lines from the distance field** (`terrain.gdshader ab_taxi_line`, 2026-11-15): the mask's third channel holds
+  the unsigned distance to the nearest path per 2 m texel (2.5 m in the 1998 art). Read bilinearly, that distance stays
+  up to half a texel (1 m) above zero wherever the path runs between texel centres, so the 0.3 m line broke into dashes
+  and blobs from a few metres away and vanished along the view (the user: "the yellow marks on taxi way show strange if
+  even a bit far"). The shader rebuilds the signed distance in the pixel's 2 × 2 texels instead: of the seven sign
+  patterns a straight line can cut a cell into, it takes the one whose plane fits the four texels and the four beside
+  them best (those tell a line between the rows from one between the columns); on a straight path it is within 2 cm. The
+  plane's gradient gives the line's footprint across it on screen, so the line keeps its width close up and fades to
+  its share of the pixel farther out, also when it runs along the view (seen end-on, the footprint across the line is
+  the pixel's narrow side). Where two paths meet in one cell the fit is approximate over a few metres.
 
 **Cost** (M4 Pro, `tests/godot/_airbase_shot.gd` with SHOT_BENCH: `terrain_airbases` switched every 120 frames in one
 window, median of 12 pairs; 1920 × 1080 at render scale 2.0 = 8.3 Mpx, Terrain close up on):

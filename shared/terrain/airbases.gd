@@ -145,7 +145,8 @@ static func _select(b: Dictionary, o: Vector2) -> void:
 		data.set_pixel(i, 0, texels[i])
 	RenderingServer.global_shader_parameter_set("airbase_data", ImageTexture.create_from_image(data))
 	var taxi := TAXI_HALF_WIDTH_REAL if b.has("mask_affine") else TAXI_HALF_WIDTH
-	RenderingServer.global_shader_parameter_set("airbase_info", Vector4(b.runways.size(), taxi, 0, 0))
+	# z: the mask's texel in the mask's own metres (the taxi distance field's unit; a moved base scales the world's).
+	RenderingServer.global_shader_parameter_set("airbase_info", Vector4(b.runways.size(), taxi, float(m.px_m), 0))
 
 
 ## Engine metres [X, Y] → Godot (x, z) relative to the world origin.

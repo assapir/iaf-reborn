@@ -61,7 +61,7 @@ global uniform sampler2D terrain_water_warp : filter_linear_mipmap, repeat_enabl
 // G = apron (tinted concrete), B = the distance to the nearest taxi line / 10 m; rect = (x0, z0 of its north-west corner, 1 / width m, 1 / height m). The data: per runway
 // three texels (centre x, z, unit direction x, z from end 0 to end 1), (half length, half width, number at end 0, at
 // end 1), (threshold at end 0, at end 1: metres in from the end, letter at end 0, at end 1: 0 none, 1 L, 2 R, 3 C);
-// info = (runways, the taxi lines' half width m, 0, 0).
+// info = (runways, the taxi lines' half width m, the mask's texel m, 0).
 global uniform float terrain_airbases;
 global uniform sampler2D airbase_mask : filter_linear_mipmap, repeat_disable;
 // The mask's uv = mat2(airbase_mask_xf.xy, airbase_mask_xf.zw) · world_xz + airbase_mask_rect.xy (a moved base's mask is
@@ -288,6 +288,58 @@ float ab_train_int(float x, float on, float period) {
 float ab_train(float x, float on, float period, float fw) {
 	fw = max(fw, 1e-3);
 	return (ab_train_int(x + 0.5 * fw, on, period) - ab_train_int(x - 0.5 * fw, on, period)) / fw;
+}
+
+float ab_mask_dist(ivec2 i, ivec2 mx) {
+	return texelFetch(airbase_mask, clamp(i, ivec2(0), mx), 0).b * 10.0;
+}
+
+// The taxi line's coverage (half width hw m) at mask uv `muv` (msz texels of tex_m m), from the mask's B channel (the
+// distance to the nearest path, 0–10 m). The bilinear lookup of an unsigned distance misses the line wherever it runs
+// between texel centres (by up to half a texel: the 0.3 m line broke into dashes and blobs, 2026-11-15), so the line's
+// signed distance is rebuilt in the 2 × 2 cell: of the sign patterns (none, one corner, one side flipped), the one whose
+// plane best fits the cell and the four texels beside it (they tell a line between the rows from one between the
+// columns). The plane's gradient gives the line's own footprint across it on screen, so the line fades to its share
+// of the pixel at every distance and angle (a line along the view keeps its narrow footprint). (tx, ty): the texel
+// position's screen derivatives.
+float ab_taxi_line(vec2 muv, vec2 msz, vec2 tx, vec2 ty, float tex_m, float hw) {
+	// Far from any path (the bilinear distance overstates the true one by at most half a texel): nothing to draw.
+	if (textureLod(airbase_mask, muv, 0.0).b * 10.0 > 1.5 * tex_m) {
+		return 0.0;
+	}
+	vec2 tc = muv * msz - 0.5;
+	ivec2 i0 = ivec2(floor(tc));
+	vec2 f = tc - floor(tc);
+	ivec2 mx = ivec2(msz) - 1;
+	vec4 u = vec4(ab_mask_dist(i0, mx), ab_mask_dist(i0 + ivec2(1, 0), mx), ab_mask_dist(i0 + ivec2(0, 1), mx),
+			ab_mask_dist(i0 + ivec2(1, 1), mx));
+	vec4 s = vec4(1.0);
+	// A line crossing the cell lies within a diagonal of each corner: farther, the corners are all on one side.
+	if (max(max(u.x, u.y), max(u.z, u.w)) < 1.5 * tex_m) {
+		// The texels left of, right of, below and above the cell's first corner and its opposite one.
+		vec4 e = vec4(ab_mask_dist(i0 + ivec2(-1, 0), mx), ab_mask_dist(i0 + ivec2(2, 0), mx),
+				ab_mask_dist(i0 + ivec2(0, -1), mx), ab_mask_dist(i0 + ivec2(0, 2), mx));
+		vec4 flips[7] = vec4[](vec4(1.0), vec4(-1.0, 1.0, 1.0, 1.0), vec4(1.0, -1.0, 1.0, 1.0), vec4(1.0, 1.0, -1.0, 1.0),
+				vec4(1.0, 1.0, 1.0, -1.0), vec4(-1.0, -1.0, 1.0, 1.0), vec4(-1.0, 1.0, -1.0, 1.0));
+		float best = 1e9;
+		for (int k = 0; k < 7; k++) {
+			vec4 v = flips[k] * u;
+			float gx = 0.5 * (v.y - v.x + v.w - v.z);
+			float gy = 0.5 * (v.z - v.x + v.w - v.y);
+			float s0 = 0.25 * (v.x + v.y + v.z + v.w) - 0.5 * (gx + gy);
+			vec4 pe = abs(s0 + vec4(-gx, 2.0 * gx, -gy, 2.0 * gy));
+			float r = abs(v.x + v.w - v.y - v.z) + dot(abs(pe - e), vec4(1.0));
+			if (r < best) {
+				best = r;
+				s = flips[k];
+			}
+		}
+	}
+	vec4 v = s * u;
+	float dist = mix(mix(v.x, v.y, f.x), mix(v.z, v.w, f.x), f.y);
+	// d dist / d texel, then per screen pixel.
+	vec2 g = vec2(mix(v.y - v.x, v.w - v.z, f.y), mix(v.z - v.x, v.w - v.y, f.x));
+	return ab_band(abs(dist), hw, abs(dot(g, tx)) + abs(dot(g, ty)));
 }
 
 float ab_hash(vec2 p) {
@@ -759,7 +811,9 @@ void fragment() {
 		vec2 p = world_xz;
 		vec2 pw = clamp(fwidth(pm) * 0.75, vec2(0.02), vec2(0.5));
 		vec2 msz = vec2(textureSize(airbase_mask, 0));
-		float mfar = clamp(max(length(dFdx(muv * msz)), length(dFdy(muv * msz))), 0.0, 1.0);
+		vec2 mtx = dFdx(muv * msz);
+		vec2 mty = dFdy(muv * msz);
+		float mfar = clamp(max(length(mtx), length(mty)), 0.0, 1.0);
 		float paved = mix(smoothstep(0.5 - pw.x, 0.5 + pw.x, pm.r), pm.r, mfar);
 		float runway = 0.0;
 		float paint = 0.0;
@@ -827,10 +881,13 @@ void fragment() {
 		}
 		// Taxi lines (iaf.ibx's taxi paths): yellow, airbase_info.y each side of the path (0.3 m wide; World scale Real
 		// 1 m), on the paved surface off the runways, within 2 km; the mask's B channel holds the distance to the nearest
-		// path (0–10 m).
+		// path (0–10 m; ab_taxi_line).
 		float fpx = max(length(wdx), length(wdy));
-		float taxi = ab_band(textureLod(airbase_mask, muv, 0.0).b * 10.0, airbase_info.y, fpx) * paved * (1.0 - runway)
-				* (1.0 - smoothstep(1500.0, 2000.0, length(VERTEX)));
+		float tex_m = airbase_info.z;
+		float taxi = (1.0 - smoothstep(1500.0, 2000.0, length(VERTEX))) * paved * (1.0 - runway);
+		if (taxi > 0.0) {
+			taxi *= ab_taxi_line(muv, msz, mtx, mty, tex_m, airbase_info.y);
+		}
 		float surf = max(paved, runway) * kab;
 		paved_k = surf;
 		// Concrete slabs on the aprons only.
