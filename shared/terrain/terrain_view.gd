@@ -4105,6 +4105,10 @@ var _key_was_held := {}
 ## The STORES CONFIG switch at CAT III (the 6-DoF; Alt + S) and whether Alt + S was down last frame.
 var cat3 := false
 var _cat3_key := false
+## The MANUAL PITCH override held by the 3D cockpit's MPO switch (cockpit3d_controls.gd), and the override as the flight
+## model has it this frame (that switch or Alt + M).
+var mpo := false
+var mpo_on := false
 var _eo_pan := Vector2i.ZERO
 
 
@@ -4157,7 +4161,8 @@ func _read_controls(delta: float) -> void:
 	if s_down and not _cat3_key:
 		cat3 = not cat3
 	_cat3_key = s_down
-	flight.set_fcs_switches(alt and Input.is_key_pressed(KEY_M), cat3)
+	mpo_on = mpo or (alt and Input.is_key_pressed(KEY_M))
+	flight.set_fcs_switches(mpo_on, cat3)
 
 
 ## One event of the joystick poller (FUN_004df560): GEV 1 stick (x, y ±100), 9 throttle (0..100), 10 rudder,

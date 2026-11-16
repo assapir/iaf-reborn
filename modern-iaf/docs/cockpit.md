@@ -428,6 +428,22 @@ to the real jet's controls, open):
   the node `GEAR_LEVER` (until 2026-11-15 the unnamed `anim023`).
 - Most of these controls move with no system behind them yet ("moves; system not modelled").
 
+The controls of a system the game has work it (2026-11-16; `f16_controls.json` `system`, `cockpit3d_controls.gd`
+`_system_put`). Each switch shows its system's state every frame, so its key moves the switch too:
+
+| control | consequence | its key |
+|---|---|---|
+| MASTER ARM (SIMULATE / OFF / MASTER ARM) | MASTER ARM arms; OFF and SIMULATE are safe (SIMULATE's training mode is not modelled) | Shift+A |
+| EMER JETT | the emergency jettison (`player_weapons.gd` `jettison`) | Shift+C |
+| ICP A-A / A-G | the next air-to-air / air-to-ground store | `]` / `[` |
+| MFD BRT (each MFD) | the displays' brightness, at least 10 %: one setting, so the two rockers move together | - |
+| ALT FLAPS (NORM / EXTEND) | the flaps lever | F |
+| STORES CONFIG (CAT I / CAT III) | the 6-DoF's CAT III limits (flight-model.md §9.11) | Alt+S |
+| MANUAL PITCH (MPO, held) | the 6-DoF's manual pitch override | Alt+M held |
+| HMCS SYM INT | at OFF the helmet display (looking off the HUD) is dark | - |
+| MAL & IND LTS (held; a spring, inferred) | every lamp of the cockpit lit while there is power | - |
+| MASTER CAUTION | the lamp out until the next caution | - |
+
 `modern-iaf/tests/test_controls_all.gd` takes every one of these controls in each F-16: the pointer finds it, and it
 goes through every position both ways, kept and shown.
 

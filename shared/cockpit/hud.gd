@@ -155,6 +155,8 @@ func hud_failed() -> bool:
 func _draw() -> void:
 	if cockpit == null or cockpit.layout.is_empty() or hud_failed():
 		return
+	if not cockpit.helmet_power and cockpit.dash():
+		return  # the HMCS switched off: the helmet display dark
 	_layout()
 	var s: float = cockpit.ui_scale()
 	var st: Dictionary = cockpit.state

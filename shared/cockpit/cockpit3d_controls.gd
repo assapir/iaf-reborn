@@ -31,7 +31,9 @@
 #   - push (a push button): "press" while held, "rest" when let go;
 #   - "guard": its cover's property (a control too): shut, a click lifts it first; shutting it puts the switch back to
 #     "safe" (the F-16's EPU at NORM);
-#   - "modelled": the position the model shows it at, its value until moved.
+#   - "modelled": the position the model shows it at, its value until moved;
+#   - "system" (a table row's, laid over the model's control): the game's system the control works (_system_put) and
+#     shows (_system_state, each frame: a key moves the switch too).
 # The position is kept in cockpit3d.gd `switches` (the one store of the cockpit's switches; the start-up's are the
 # flight model's, start.rs) and shown by the model's own mapping. Hovering a control
 # lights its rim (RIM): its own texture stays as it is. The flight controls are in neither table: the throttle and the
@@ -386,10 +388,78 @@ func put(r: Dictionary, v: float) -> void:
 	var tv: Object = get_parent().command.get_object() if get_parent().command.is_valid() else null
 	if tv != null and tv.get("sounds") != null:
 		tv.sounds.play("SFX_BUTTON")
+	if r.has("system") and tv != null and tv.get("weapons") != null:
+		_system_put(tv, r.system, v)
 	if v < 0.5:
 		for e in _controls:
 			if e[1].get("guard", "") == r.prop and e[1].has("safe") and _generic(e[1]):
 				sw[e[1].prop] = float(e[1].safe)
+
+
+# The switches wired to the systems the game has (a row's "system", finish list C2; modern-iaf/docs/cockpit.md §5.2):
+# a move sends the system's own command through the key path (or sets its state), and each frame the switch shows the
+# system's state, so a key moves the switch too. A system the game lacks leaves its switch a moving part only.
+
+
+## Each frame: every switch with a "system" not held shown at that system's state (_system_state).
+func sync() -> void:
+	var tv: Object = get_parent().command.get_object() if get_parent().command.is_valid() else null
+	if tv == null or tv.get("weapons") == null:
+		return
+	var sw: Dictionary = get_parent().switches
+	for e in _controls:
+		var r: Dictionary = e[1]
+		if r.has("system") and _held != r:
+			var v := _system_state(tv, r.system, value(r))
+			if not is_nan(v):
+				sw[r.prop] = v
+
+
+## System `name`'s state as its switch's position (`now` the switch's own); NAN: the switch keeps its own.
+static func _system_state(tv: Object, name: String, now: float) -> float:
+	match name:
+		"master_arm":  # SIMULATE / OFF / MASTER ARM: safe keeps SIMULATE (not modelled) or OFF
+			return 1.0 if tv.weapons.master_arm else minf(now, 0.0)
+		"mfd_brt":
+			return Settings.mfd_brightness
+		"alt_flaps":
+			return 1.0 if float(tv.flaps) > 0.0 else 0.0
+		"stores_config":
+			return 1.0 if tv.cat3 else 0.0
+		"mpo":
+			return 1.0 if tv.mpo or tv.mpo_on else 0.0
+	return NAN
+
+
+## Switch of system `name` moved to `v`: the system's command (terrain_view.gd _press, as the key sends it) or state.
+static func _system_put(tv: Object, name: String, v: float) -> void:
+	var on := v > 0.5
+	match name:
+		"master_arm":  # command 202 flips it
+			if on != tv.weapons.master_arm:
+				tv._press([202, 0, 0])
+		"emer_jett":  # the push: command 72
+			if on:
+				tv._press([72, 0, 0])
+		"a_a", "a_g":  # the ICP's A-A / A-G: commands 62 / 60
+			if on:
+				tv._press([62 if name == "a_a" else 60, 0, 0])
+		"mfd_brt":  # command 216: thousandths up or down
+			tv._press([216, roundi((v - Settings.mfd_brightness) * 1000.0), 0])
+		"alt_flaps":  # command 12 flips the flaps lever
+			if on != (float(tv.flaps) > 0.0):
+				tv._press([12, 0, 0])
+		"stores_config":
+			tv.cat3 = on
+		"mpo":
+			tv.mpo = on
+		"hmcs":  # the HMCS SYM INT knob: OFF takes the helmet display's power
+			tv.cockpit.helmet_power = v > 0.0
+		"lamp_test":  # MAL & IND LTS: every lamp lit while held
+			tv.cockpit_3d.lamp_test = on
+		"master_caution":  # the push-light: the MASTER CAUTION lamp out until the next caution
+			if on:
+				tv.cockpit.indicators[0] = false
 
 
 ## The control lit under the pointer ([its mesh, its record]), null when none: it keeps the clicks and the wheel until

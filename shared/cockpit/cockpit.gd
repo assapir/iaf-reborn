@@ -681,6 +681,8 @@ var hud_clip = null
 ## The 3D cockpit has a combiner glass (cockpit3d.gd); false for a helmet display only (the F-35I), whose look-aside
 ## mode keeps the head pan's rule in dash().
 var hud_on_glass := false
+## Ours, the 3D F-16's HMCS SYM INT knob (cockpit3d_controls.gd): off, the helmet display (dash) shows nothing.
+var helmet_power := true
 ## The 3D cockpit's shift of the HUD with the head (px): where the nose is on the screen against where it is with the
 ## head straight ahead, so the HUD stays on its glass (the 2D panel pans by head_pan instead).
 var view_shift := Vector2.ZERO

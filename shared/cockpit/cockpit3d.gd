@@ -611,6 +611,8 @@ func release() -> void:
 func _process(_delta: float) -> void:
 	if cockpit == null:
 		return
+	if clickable != null:
+		clickable.sync()  # the switches wired to a system show its state
 	for a in _anims:
 		var xf: Transform3D = a[1]
 		var recs: Array = a[2]
@@ -966,6 +968,8 @@ const BLINK_MS := 300
 ## Lamp key -> [[node, hide (shown only when lit), its surfaces' materials]]; what they showed (tests).
 var _lamps := {}
 var lamps_lit := {}
+## The MAL & IND LTS test held (cockpit3d_controls.gd): every lamp lit, with power.
+var lamp_test := false
 ## An always-shown lamp's material drawn lit (FlightGear's sheet paints the F-16's gear lamps lit green, the gear
 ## handle's light is plain red; the F-35I's own lenses are dark): material -> its lit albedo, darkened by LAMP_OFF
 ## while the lamp is off (an unlit lens; inferred).
@@ -1036,7 +1040,7 @@ func _attach_display(screen: MeshInstance3D, kind: int, px: Vector2i) -> void:
 
 func _update_instruments() -> void:
 	for key in _lamps:
-		var on: bool = cockpit.power >= 1 and _lamp_on(key)
+		var on: bool = cockpit.power >= 1 and (lamp_test or _lamp_on(key))
 		lamps_lit[key] = on
 		for l in _lamps[key]:
 			if l[1]:

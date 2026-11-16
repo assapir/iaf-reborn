@@ -11,5 +11,17 @@
 "CANOPY_HANDLE": {"click": [215, 0, 0], "box": [-0.35, 0.46, -3.15, 0.03, 0.03, 0.14], "grip": true},
 "GEAR_LEVER": {"click": [14, 0, 0]},
 "FCR": {"click": [219, 0, 4], "prop": "f16/avionics/power-fcr", "on": 1, "off": 0, "modelled": 0, "toggle": true},
-"RDR_ALT": {"click": [219, 0, 5], "prop": "f16/avionics/power-rdr-alt", "on": 2, "off": 0, "modelled": 0, "toggle": true}
+"RDR_ALT": {"click": [219, 0, 5], "prop": "f16/avionics/power-rdr-alt", "on": 2, "off": 0, "modelled": 0, "toggle": true},
+"master-arm-switch": {"system": "master_arm"},
+"EMER_JETT": {"system": "emer_jett"},
+"a-a": {"system": "a_a"},
+"a-g": {"system": "a_g"},
+"MFD1_MFDButtonBrightness": {"system": "mfd_brt"},
+"MFD2_MFDButtonBrightness": {"system": "mfd_brt"},
+"SW_ALT_FLAPS_50": {"system": "alt_flaps"},
+"SW_STORES_CONFIG": {"system": "stores_config"},
+"SW_MPO": {"system": "mpo"},
+"HMCS_SYM_INT_KNOB": {"system": "hmcs"},
+"MAL_IND_LTS": {"system": "lamp_test", "rest": 0},
+"master_reset": {"system": "master_caution"}
 }
