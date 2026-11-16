@@ -674,6 +674,40 @@ Mean sRGB of the frames' lower 45 % (the original game / the sim): Ramon 100 / 1
 Sentinel-2 sea); the Judean hills 118 / 113 / 103, 132 / 128 / 120. The sim's frame rate at the same poses: 39–72 fps
 (the laptop's GPU shared with other jobs; the shader does less than before, §15).
 
+## 16. Graded airbases
+
+GLO-30 is a surface model with metre-scale noise, so the runways' raw heights were not a runway: along Nevatim's
+runways the slope went from −2.2 % to +2.0 %, and a crest threw a jet off its wheels at 118 and 161 kt
+([flight-model.md](flight-model.md) "Hops on Nevatim's runway"). The heights step grades the five bases in the 64 m
+grid before it writes the height nodes (`grade_base` in `crates/iaf-tools/src/sim_terrain.rs`), so every level, the
+flight's `height_at`, `IafHeights` and the airbases' heights read the graded ground:
+
+- **The runways**: one quadratic surface per base, fitted by least squares to the DEM at the grid points within a
+  texel of a runway. One surface for all of a base's runways, so crossing runways meet; its curvature is at most
+  5 × 10⁻⁶ /m at the five bases, a sixth of the most a runway may have (inferred from the FAA's vertical curves[^faa]).
+- **Taxiways, aprons and shelters' pads**: the DEM smoothed (a box blur of 4 grid points, twice: σ ≈ 230 m), blending
+  into the runway surface from 100 m to 400 m off a runway's edge.
+- **The shoulder**: every grid point within 96 m of the pavement takes the graded surface (a texel's diagonal is
+  91 m, so every texel touching the pavement is graded whole), fading back to the DEM at 320 m.
+
+The cut or fill is at most 3.2 m on a runway, 10.4 m on a taxiway (Nevatim's shelters, which the surface model holds
+as mounds) and 13.3 m in Ramon's shoulders (the crater's slopes).
+
+Check (`grading_smooths_the_runways` on a synthetic base; `modern-iaf/tests/test_runway_grade.gd` on the built
+theatre): along each runway's centreline and edges, every 4 m, the height's second difference over a 64 m texel stays
+within 0.24 m: a 1 % grade change over 305 m of vertical curve (0.134 m over 64 m)[^faa] plus the nodes' 0.1 m step.
+Across the width (edge, centre, edge) it stays within a 1.5 % crown's (0.015 per metre of width). Before the grading:
+0.31–1.08 m along and up to 0.025 per metre across; after: 0.08–0.14 m and at most 0.001. The scripted take-off of
+all three jets (`test_mvp.gd`) keeps its wheels on the runway until the rotation and leaves it once.
+
+The grading's version is in `grade.txt` beside `meta.json`. A theatre built before it rebuilds only the 12 height nodes
+around the bases (about 20 s, no colour, no download) and keeps its `meta.json`, so the scenery stays up to date: its
+cells read no ground height (the game sets them on the ground as it loads them).
+
+[^faa]: FAA, Advisory Circular 150/5300-13B "Airport Design" (2022), runway longitudinal grades: vertical curves of
+    at least 1,000 ft for each 1 % of grade change (approach categories C and D), transverse grade 1.0–1.5 %,
+    https://www.faa.gov/airports/resources/advisory_circulars/index.cfm/go/document.current/documentNumber/150_5300-13
+
 [^dem]: ESA, "Copernicus DEM: Product Handbook" and the collection description, https://dataspace.copernicus.eu/explore-data/data-collections/copernicus-contributing-missions/collections-description/COP-DEM
 [^dem-licence]: "Licence for the use of the Copernicus WorldDEM-30", Article 6, read 2026-11-02, https://documentation.dataspace.copernicus.eu/APIs/SentinelHub/Data/DEM/resources/license/License-COPDEM-30.pdf
 [^dem-aws]: Registry of Open Data on AWS, "Copernicus Digital Elevation Model (DEM)", https://registry.opendata.aws/copernicus-dem/

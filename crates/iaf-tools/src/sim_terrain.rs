@@ -171,6 +171,79 @@ impl HeightGrid {
     }
 }
 
+/// The bases' graded ground (modern-iaf/docs/terrain.md "Graded airbases"), its version in GRADE_FILE beside
+/// `meta.json` (not in the stamp: a new grading rewrites the height nodes around the bases alone and leaves `meta.json`,
+/// which the scenery's stamp reads, as it was; the scenery reads no ground height). The grid points
+/// within GRADE_IN m of the pavement take the graded surface, fading back to the DEM at GRADE_OUT (a 64 m texel's
+/// diagonal is 91 m: every texel touching the pavement is graded whole).
+const GRADE: &str = "runway quadratic, smoothed apron, 96-320 m shoulder";
+const GRADE_FILE: &str = "grade.txt";
+const GRADE_IN: f64 = 96.0;
+const GRADE_OUT: f64 = 320.0;
+/// The graded surface: the base's runway surface (one quadratic fitted to the DEM on its runways, so crossing runways
+/// meet) to RUNWAY_IN m off a runway's edge, fading to the smoothed DEM (the taxiways, aprons) at RUNWAY_OUT.
+const RUNWAY_IN: f64 = 100.0;
+const RUNWAY_OUT: f64 = 400.0;
+/// The smoothed DEM: imagery::blur's box of this radius (grid points), twice (σ ≈ 230 m).
+const GRADE_BLUR: i32 = 4;
+
+/// 1 up to `a`, 0 from `b`, smooth between.
+fn fade(d: f64, a: f64, b: f64) -> f64 {
+    let t = ((b - d) / (b - a)).clamp(0.0, 1.0);
+    t * t * (3.0 - 2.0 * t)
+}
+
+/// Grades base `b`'s runways, taxiways and aprons in the grid (see GRADE); returns the UTM rect it changed, None for
+/// a base outside the theatre.
+fn grade_base(g: &mut HeightGrid, f: &Frame, b: &crate::sim_bases::Base) -> Option<[f64; 4]> {
+    let pts: Vec<[f64; 2]> = b
+        .runways
+        .iter()
+        .flat_map(|r| r.ends)
+        .chain(b.taxiways.iter().flat_map(|t| t.0.iter().copied()))
+        .chain(b.stopways.iter().chain(&b.aprons).chain(&b.shelters).flatten().copied())
+        .collect();
+    let m = GRADE_OUT + DEM_STEP * f64::from(2 * GRADE_BLUR + 2);
+    let lo = |k: usize| pts.iter().map(|p| p[k]).fold(f64::INFINITY, f64::min) - m;
+    let hi = |k: usize| pts.iter().map(|p| p[k]).fold(f64::NEG_INFINITY, f64::max) + m;
+    let gx = |e: f64| ((e - f.e0) / DEM_STEP).clamp(0.0, (g.w - 1) as f64) as usize;
+    let gy = |n: f64| ((f.n1 - n) / DEM_STEP).clamp(0.0, (g.h - 1) as f64) as usize;
+    let (x0, x1, y0, y1) = (gx(lo(0)), gx(hi(0)), gy(hi(1)), gy(lo(1)));
+    if pts.is_empty() || x0 >= x1 || y0 >= y1 {
+        return None;
+    }
+    let (w, h) = (x1 - x0 + 1, y1 - y0 + 1);
+    let at = |k: usize| [f.e0 + DEM_STEP * (x0 + k % w) as f64, f.n1 - DEM_STEP * (y0 + k / w) as f64];
+    let dem: Vec<f32> = (0..w * h).map(|k| g.data[(y0 + k / w) * g.w + x0 + k % w]).collect();
+    let near: Vec<[f64; 2]> = (0..w * h).map(|k| [b.runway_dist(at(k)), b.paved_dist(at(k))]).collect();
+    // The runway surface: least squares over the grid points within a texel of a runway, in km about their centre.
+    let on: Vec<usize> = (0..w * h).filter(|&k| near[k][0] <= DEM_STEP).collect();
+    let c = on.iter().fold([0.0; 2], |s, &k| [s[0] + at(k)[0], s[1] + at(k)[1]]).map(|v| v / on.len().max(1) as f64);
+    let terms = |p: [f64; 2]| {
+        let (x, y) = ((p[0] - c[0]) / 1000.0, (p[1] - c[1]) / 1000.0);
+        [1.0, x, y, x * x, x * y, y * y]
+    };
+    let (mut a, mut q) = (vec![0.0; 36], vec![[0.0; 2]; 6]);
+    for &k in &on {
+        let (t, z) = (terms(at(k)), f64::from(dem[k]));
+        for ((ti, qi), row) in t.iter().zip(&mut q).zip(a.chunks_mut(6)) {
+            qi[0] += ti * z;
+            row.iter_mut().zip(&t).for_each(|(r, tj)| *r += ti * tj);
+        }
+    }
+    crate::georef::solve(&mut a, &mut q, 6)?;
+    let runway = |p: [f64; 2]| terms(p).iter().zip(&q).map(|(t, q)| t * q[0]).sum::<f64>();
+    let mut smooth = dem.clone();
+    imagery::blur(&mut smooth, w, h, GRADE_BLUR);
+    for (k, (&[dr, dp], (&d, &s))) in near.iter().zip(dem.iter().zip(&smooth)).enumerate() {
+        let (d, s) = (f64::from(d), f64::from(s));
+        let graded = s + (runway(at(k)) - s) * fade(dr, RUNWAY_IN, RUNWAY_OUT);
+        g.data[(y0 + k / w) * g.w + x0 + k % w] = (d + (graded - d) * fade(dp, GRADE_IN, GRADE_OUT)) as f32;
+    }
+    let (sw, ne) = (at(w * (h - 1)), at(w - 1));
+    Some([sw[0], sw[1], ne[0], ne[1]])
+}
+
 /// The UTM rect's lon / lat bounding box (17 points per side).
 fn geo_bbox(r: [f64; 4]) -> Result<[f64; 4]> {
     let mut pts = Vec::new();
@@ -241,9 +314,20 @@ pub fn dem_grid(src: &[PathBuf], area: [f64; 4], work: &Path) -> Result<HeightGr
 }
 
 /// Height nodes `L<l>/h_<i>_<j>.png` for the levels 6–11: 1025² texels (the neighbour's first row / column
-/// included), R = high byte, G = low byte, as `terrain::theatre`.
-fn write_heights(f: &Frame, g: &HeightGrid, out: &Path, threads: usize, cancel: &AtomicBool) -> Result<()> {
-    let nodes: Vec<Key> = (HEIGHT_LEVEL..=ROOT_LEVEL).flat_map(|l| f.nodes(l)).collect();
+/// included), R = high byte, G = low byte, as `terrain::theatre`. With `only`, just the nodes touching those UTM rects.
+fn write_heights(
+    f: &Frame,
+    g: &HeightGrid,
+    out: &Path,
+    only: Option<&[[f64; 4]]>,
+    threads: usize,
+    cancel: &AtomicBool,
+) -> Result<()> {
+    let touches = |k: &Key| {
+        let n = f.utm(*k);
+        only.is_none_or(|rs| rs.iter().any(|r| r[0] < n[2] && n[0] < r[2] && r[1] < n[3] && n[1] < r[3]))
+    };
+    let nodes: Vec<Key> = (HEIGHT_LEVEL..=ROOT_LEVEL).flat_map(|l| f.nodes(l)).filter(touches).collect();
     par(&nodes, threads, cancel, |&(l, i, j)| {
         let img = RgbImage::from_fn(NODE_PIXELS + 1, NODE_PIXELS + 1, |x, y| {
             let v = g.raw(l, i, j, x, y);
@@ -1112,17 +1196,33 @@ fn cached_in(cache: &Path, geo: [f64; 4]) -> u64 {
     sum
 }
 
-/// The heights branch: the GLO-30 tiles (cache first), the 64 m grid, the height nodes; returns what it reused.
-fn heights(r: &Run, f: &Frame, geo: [f64; 4], work: &Path, pr: &dyn Progress, cancel: &AtomicBool) -> Result<String> {
+/// The heights branch: the GLO-30 tiles (cache first), the 64 m grid, the bases graded, the height nodes (`bases_only`:
+/// those around the bases); returns what it reused.
+fn heights(
+    r: &Run,
+    f: &Frame,
+    geo: [f64; 4],
+    work: &Path,
+    bases_only: bool,
+    pr: &dyn Progress,
+    cancel: &AtomicBool,
+) -> Result<String> {
     let t0 = std::time::Instant::now();
     log!(pr, "heights: GLO-30 tiles from {}", r.dem_cache.display());
     let (tiles, line) = crate::imagery_run::fetch_dem(&r.dem_cache, geo, pr, cancel)?;
     log!(pr, "heights: DEM {line}");
     log!(pr, "heights: the 64 m grid from {} tiles", tiles.len());
-    let grid = dem_grid(&tiles, r.area, work)?;
-    log!(pr, "heights: the height nodes");
+    let mut grid = dem_grid(&tiles, r.area, work)?;
+    let graded: Vec<[f64; 4]> =
+        crate::sim_bases::load(&r.airbases)?.iter().filter_map(|b| grade_base(&mut grid, f, b)).collect();
+    log!(
+        pr,
+        "heights: {} bases graded; the height nodes{}",
+        graded.len(),
+        if bases_only { " around them" } else { "" }
+    );
     // Half the workers: the colour branch runs beside it.
-    write_heights(f, &grid, &r.out, (r.threads / 2).max(1), cancel)?;
+    write_heights(f, &grid, &r.out, bases_only.then_some(&graded[..]), (r.threads / 2).max(1), cancel)?;
     log!(pr, "heights: done ({})", crate::progress::duration(t0.elapsed()));
     Ok(line)
 }
@@ -1412,11 +1512,22 @@ pub fn terrain(r: &Run, pr: &dyn Progress, cancel: &AtomicBool) -> Result<()> {
     let built_from = stamp(r);
     let old: serde_json::Value =
         std::fs::read(out.join("meta.json")).ok().and_then(|b| serde_json::from_slice(&b).ok()).unwrap_or_default();
-    if old["built_from"] == built_from {
+    // The same theatre (a "grade" key: the stamp of the grading's first build, 2026-11-16, now GRADE_FILE).
+    let mut was = old["built_from"].clone();
+    if let Some(o) = was.as_object_mut() {
+        o.remove("grade");
+    }
+    let graded = std::fs::read_to_string(out.join(GRADE_FILE)).is_ok_and(|g| g == GRADE);
+    if was == built_from && graded {
         log!(pr, "{}: up to date (same box, detail area and sheets)", out.display());
         return Ok(());
     }
     std::fs::create_dir_all(&work)?;
+    if was == built_from {
+        log!(pr, "{}: the bases' grading changed: their height nodes only", out.display());
+        heights(r, &f, geo_bbox(r.area)?, &work, true, pr, cancel)?;
+        return Ok(std::fs::write(out.join(GRADE_FILE), GRADE)?);
+    }
     for l in 0..=ROOT_LEVEL {
         std::fs::create_dir_all(out.join(format!("L{l}")))?;
     }
@@ -1436,7 +1547,7 @@ pub fn terrain(r: &Run, pr: &dyn Progress, cancel: &AtomicBool) -> Result<()> {
     // its nodes, the Survey over them; the long one). At most 4 transfers: the DEM's one by one, the tiles' 3 at once.
     // A failure in either stops the other at its next check.
     let (heights, colour) =
-        both(cancel, |stop| heights(r, &f, geo, &work, pr, stop), |stop| colour(r, &f, geo, &work, pr, stop))?;
+        both(cancel, |stop| heights(r, &f, geo, &work, false, pr, stop), |stop| colour(r, &f, geo, &work, pr, stop))?;
 
     // A theatre finished with the old fill (its stamp has no "sea"); a fresh one has only SEA, and the composite's own
     // pixels near OLD_SEA stay.
@@ -1450,6 +1561,7 @@ pub fn terrain(r: &Run, pr: &dyn Progress, cancel: &AtomicBool) -> Result<()> {
         parents(out, l, None, r.threads, cancel)?;
     }
     write_meta(&f, out, built_from)?;
+    std::fs::write(out.join(GRADE_FILE), GRADE)?;
     let mut bytes = 0u64;
     let mut counts = String::new();
     for l in 0..=ROOT_LEVEL {
@@ -1724,6 +1836,7 @@ mod tests {
         };
         let f = Frame::new(run.area).unwrap();
         write_meta(&f, &out, stamp(&run)).unwrap();
+        std::fs::write(out.join(GRADE_FILE), GRADE).unwrap();
         terrain(&run, &crate::progress::Stdout, &AtomicBool::new(false)).unwrap();
         assert!(!out.join(".work").exists(), "returned before any work");
         std::fs::remove_dir_all(&out).unwrap();
@@ -1808,6 +1921,73 @@ mod tests {
         std::fs::remove_dir_all(&out).unwrap();
     }
 
+    /// A base on bumpy ground (3 m bumps a kilometre apart, the DEM's kind): graded, its crossing runways' height has
+    /// a second difference over a texel within a real runway's (FAA AC 150/5300-13B: 305 m of vertical curve per 1 %
+    /// of grade change, 0.134 m over 64 m; plus the 0.1 m height step) along the centreline and the edges, and across
+    /// the width within a 1.5 % crown's; the ground past the shoulder is the DEM's.
+    #[test]
+    fn grading_smooths_the_runways() {
+        let f = Frame::new([600_000.0, 3_500_000.0, 608_192.0, 3_508_192.0]).unwrap();
+        let w = 129;
+        let dem = |x: f64, y: f64| (50.0 + 0.01 * x + 3.0 * (x / 150.0).sin() * (y / 170.0).cos()) as f32;
+        let data = (0..w * w).map(|k| dem(64.0 * (k % w) as f64, 64.0 * (k / w) as f64)).collect();
+        let bumpy = HeightGrid { w, h: w, data };
+        let ll = |e: f64, n: f64| {
+            let g = utm36n_geo(e, n);
+            serde_json::json!([g[1], g[0]])
+        };
+        let end = |d: &str, e: f64, n: f64| {
+            let g = utm36n_geo(e, n);
+            serde_json::json!({ "designator": d, "lat": g[1], "lon": g[0] })
+        };
+        let g = utm36n_geo(604_200.0, 3_504_600.0);
+        let v = serde_json::json!({
+            "icao": "LLRD", "elevation_m": 50.0, "reference": ll(604_096.0, 3_504_096.0),
+            "runways": [
+                { "width_m": 45.0, "ends": [end("09", 602_596.0, 3_504_096.0), end("27", 605_596.0, 3_504_096.0)] },
+                { "width_m": 45.0, "ends": [end("15", 603_300.0, 3_505_300.0), end("33", 604_900.0, 3_502_700.0)] },
+            ],
+            "taxiways": [{ "points": [ll(602_800.0, 3_504_400.0), ll(605_400.0, 3_504_400.0)], "width_m": 23.0 }],
+            "aprons": [{ "polygon": [ll(604_000.0, 3_504_500.0), ll(604_400.0, 3_504_500.0),
+                ll(604_400.0, 3_504_700.0), ll(604_000.0, 3_504_700.0)] }],
+            "parking": [{ "unit": "x", "lat": g[1], "lon": g[0], "heading": 180.0 }],
+        });
+        let b = crate::sim_bases::base(&v, "test").unwrap();
+        let mut graded = HeightGrid { w, h: w, data: bumpy.data.clone() };
+        let rect = grade_base(&mut graded, &f, &b).unwrap();
+        assert!(rect[0] > 600_000.0 && rect[3] < 3_508_192.0, "{rect:?}: the base's window");
+        // The height as the flight reads it: the texel's two triangles (iaf_avionics::heights).
+        let at = |g: &HeightGrid, p: [f64; 2]| {
+            let (tx, ty) = ((p[0] - f.e0) / DEM_STEP, (f.n1 - p[1]) / DEM_STEP);
+            let (x0, y0) = (tx.floor() as usize, ty.floor() as usize);
+            let (fx, fy) = (tx - x0 as f64, ty - y0 as f64);
+            let z = |x: usize, y: usize| f64::from(g.data[y * g.w + x]);
+            let (a, b, c, d) = (z(x0, y0), z(x0 + 1, y0), z(x0, y0 + 1), z(x0 + 1, y0 + 1));
+            if fx >= fy { a + (b - a) * fx + (d - b) * fy } else { a + (d - c) * fx + (c - a) * fy }
+        };
+        // The worst second difference along (over 64 m, every 4 m) and across (edge, centre, edge).
+        let worst = |g: &HeightGrid| {
+            let mut out = [0.0f64; 2];
+            for r in &b.runways {
+                let (u, half) = (r.dir(0), r.width / 2.0);
+                let p = |m: f64, x: f64| at(g, [r.at(0, m)[0] - u[1] * x, r.at(0, m)[1] + u[0] * x]);
+                for m in (16..(r.length() / 4.0) as usize - 16).map(|k| 4.0 * k as f64) {
+                    for x in [-half, 0.0, half] {
+                        out[0] = out[0].max((p(m - 64.0, x) - 2.0 * p(m, x) + p(m + 64.0, x)).abs());
+                    }
+                    out[1] = out[1].max((p(m, -half) - 2.0 * p(m, 0.0) + p(m, half)).abs() / r.width);
+                }
+            }
+            out
+        };
+        let (before, after) = (worst(&bumpy), worst(&graded));
+        assert!(before[0] > 0.24, "the test's ground is bumpy: {before:?}");
+        assert!(after[0] < 0.24 && after[1] < 0.015, "graded: {after:?} (before {before:?})");
+        for k in [0, w - 1, w * w - 1] {
+            assert_eq!(graded.data[k], bumpy.data[k], "the DEM past the shoulder");
+        }
+    }
+
     /// The tile writer on a box of two level-6 nodes: the height nodes' edges match, the raw encoding, the parents
     /// up to the root and meta.json.
     #[test]
@@ -1822,7 +2002,7 @@ mod tests {
         let (w, h) = (2049, 1025);
         let data = (0..w * h).map(|k| if k < w { -100.0 } else { (k % w) as f32 }).collect();
         let g = HeightGrid { w, h, data };
-        write_heights(&f, &g, &out, 2, &AtomicBool::new(false)).unwrap();
+        write_heights(&f, &g, &out, None, 2, &AtomicBool::new(false)).unwrap();
         let px = |p: &str, x: u32, y: u32| {
             let v = image::open(out.join(p)).unwrap().to_rgb8().get_pixel(x, y).0;
             u16::from(v[0]) << 8 | u16::from(v[1])

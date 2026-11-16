@@ -163,7 +163,7 @@ pub fn parse(json: &str) -> Result<(Vec<Point>, f64)> {
 }
 
 /// Gaussian elimination with partial pivoting, in place: `a` (m×m, row-major) · x = `b`; x in `b`.
-fn solve(a: &mut [f64], b: &mut [[f64; 2]], m: usize) -> Option<()> {
+pub(crate) fn solve(a: &mut [f64], b: &mut [[f64; 2]], m: usize) -> Option<()> {
     for k in 0..m {
         let p = (k..m).max_by(|&i, &j| a[i * m + k].abs().total_cmp(&a[j * m + k].abs()))?;
         if a[p * m + k].abs() < 1e-14 {

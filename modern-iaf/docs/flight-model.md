@@ -597,7 +597,11 @@ the gear in transit: the limit is then a quarter of 4 m/s, and 1.6 m/s crashed i
 F-35I figures (α limit, stall speed) play no part. Fixed in the test: the wait restarts on every ground contact (gear
 up with a positive climb), and the take-off now fails on any wheel back on the ground after gear up or on any
 descent from 1 s to 8 s after it (all three jets; the least climb there: the F-35I about 1,000 fpm, the Sufa 84–140
-fpm, where the test's pitch hold lets the nose sag to 5°). Open: grading the runway heights in the sim's terrain.
+fpm, where the test's pitch hold lets the nose sag to 5°). Fixed in the terrain on 2026-11-16: the bases are graded
+([terrain.md](terrain.md) §16), and the test is strict again: the gear-up wait starts at the first airborne frame,
+and the take-off fails on an airborne frame below the rotation speed or any wheel back on the ground after lift-off. The
+scripted pitch hold's gain went from 0.05 to 0.1 per degree: off Ramon's graded runway the Sufa's nose sagged to 4°
+after gear up and it sank 120 fpm; at 0.1 its least climb there is 370–590 fpm.
 Tested and dropped (2026-11-16): the strut as the air spring itself (F·(column / gas length)^1.1, 0.15 m of stroke to
 static, a fifth of the load fully extended) kept the wheels on the 118 kt crest but not the 161 kt one, and full pedal
 at 50 kt then rolled the Barak over (74°): the inner strut stays loaded, the lean doubles to about 4°. Counting a

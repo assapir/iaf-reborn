@@ -237,17 +237,29 @@ impl Base {
     /// Paved at p, `margin` m past the edges: the mask's paved coverage (`mask`) as a test: within half the width of
     /// a runway's, stopway's or taxiway's centreline, or inside an apron or a shelter's pad.
     pub fn paved(&self, p: [f64; 2], margin: f64) -> bool {
-        let near = |l: &[[f64; 2]], half: f64| l.windows(2).any(|s| seg_dist(p, s[0], s[1]) <= half + margin);
-        let widest = self.runways.iter().map(|r| r.width).fold(0.0, f64::max);
-        self.runways.iter().any(|r| r.dist(p) <= r.width / 2.0 + margin)
-            || self.stopways.iter().any(|s| near(s, widest / 2.0))
-            || self.taxiways.iter().any(|(l, w)| near(l, w / 2.0))
-            || self
-                .aprons
-                .iter()
-                .chain(&self.shelters)
-                .any(|poly| inside(poly, p) || near(&[poly, &poly[..1]].concat(), 0.0))
+        self.paved_dist(p) <= margin
     }
+    /// Metres from p to the nearest runway's or stopway's edge (negative on it).
+    pub fn runway_dist(&self, p: [f64; 2]) -> f64 {
+        let widest = self.runways.iter().map(|r| r.width).fold(0.0, f64::max);
+        let stopways = self.stopways.iter().map(|s| line_dist(p, s) - widest / 2.0);
+        self.runways.iter().map(|r| r.dist(p) - r.width / 2.0).chain(stopways).fold(f64::INFINITY, f64::min)
+    }
+    /// Metres from p to the nearest paved surface of `paved` (≤ 0 on it).
+    pub fn paved_dist(&self, p: [f64; 2]) -> f64 {
+        let taxiways = self.taxiways.iter().map(|(l, w)| line_dist(p, l) - w / 2.0);
+        let pads = self
+            .aprons
+            .iter()
+            .chain(&self.shelters)
+            .map(|poly| if inside(poly, p) { 0.0 } else { line_dist(p, &[poly, &poly[..1]].concat()) });
+        taxiways.chain(pads).fold(self.runway_dist(p), f64::min)
+    }
+}
+
+/// Metres from p to the polyline `l`.
+fn line_dist(p: [f64; 2], l: &[[f64; 2]]) -> f64 {
+    l.windows(2).map(|s| seg_dist(p, s[0], s[1])).fold(f64::INFINITY, f64::min)
 }
 
 /// p inside `poly` (even-odd).
