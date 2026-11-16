@@ -4,6 +4,7 @@
 #   the Master arm key (Shift+A, command 202) arms it.
 # - The own art: the muzzle flash's gunfire.tga and a tracer streak per round slot (converted/own).
 # - The F-35I's gun record at the GAU-22/A's rate; the bomb fixes and the wind on falling stores on.
+# - The decoys: a flare sinks away beside the jet and burns 4 s; chaff stops in the air behind it.
 #   IAF_DEFAULT_SETTINGS=1 godot --headless --audio-driver Dummy --path modern-iaf \
 #     -s ../modern-iaf/tests/test_sim_gun.gd --log-file <temp>
 extends "res://../tests/godot/base.gd"
@@ -69,3 +70,20 @@ func run() -> void:
 	_press(tv, KEY_TAB)
 	await frames(5)
 	check(not w.firing and w.stores.displayed(9) == 0, "empty: the trigger fires nothing")
+	# The decoys' flight (data/db/weapons flare.json / chaff.json motion): released at 250 m/s 3 km up, a flare sinks
+	# away from the jet (about 20 m off after 1 s) and burns to the 4 s cap, so a chase view behind the jet sees it;
+	# chaff stops in the air (about 75 m behind after 1 s). Until 2026-11-16 both flew 200 m aft and ended in 0.85 s.
+	# The jet's own pose in the weapons' world frame (east, north, up), lifted 3 km and flying 250 m/s along its nose.
+	var pose: Dictionary = w.own()
+	var p0: Vector3 = pose.pos + pose.up * 3000.0
+	pose.pos = p0
+	pose.vel = pose.fwd * 250.0
+	for d in [[550, "flare", 10.0, 40.0, 3.5], [540, "chaff", 40.0, 120.0, 3.5]]:
+		check(w.release_decoy(d[0], p0, pose, "decoy-test", false, 1.0), "%s released" % d[1])
+		var dc: Dictionary = w.decoys.back()
+		var off: float = (w._decoy_motion[d[0]].position(dc.r, w.now + 1.0) - (p0 + pose.vel)).length()
+		var life: float = dc.end - w.now
+		check(
+			off > d[2] and off < d[3] and life >= d[4],
+			"%s: %.0f m from the jet after 1 s, burns %.1f s" % [d[1], off, life]
+		)

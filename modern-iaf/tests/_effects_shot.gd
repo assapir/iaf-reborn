@@ -7,12 +7,13 @@
 #     -- --at 666059 3409044 3000 246 0
 # EFX_JET=sufa|barak|f35i: the free flight's jet (EFX_MISSION=id: a mission's). EFX_HOUR=h: the clock (e.g. 17 for
 # dusk); EFX_ONLY=name,...: some shots (ab_rear, ab_side, cruise_rear, cruise_side, cloud_ab, cloud_cruise, flares,
-# missile, bomb).
+# missile, bomb, flares_rear, chaff).
 # EFX_NOHAZE=1: the heat haze hidden (to compare). Saves EFX_OUT/<EFX_TAG>_<shot>.png.
 extends "res://../tests/godot/base.gd"
 
 ## stores.gd FLARE (its preload fails before the autoloads in a -s script).
 const FLARE := 550
+const CHAFF := 540
 
 var tv: Node
 var out := ""
@@ -59,21 +60,26 @@ func run() -> void:
 		)
 	)
 	# 1. Flares while flying (the decoys move with the sim clock), the jet in afterburner.
-	if _want("flares"):
-		# From ahead, a little to the side: the flares falling back behind the jet.
-		_orbit(25.0, 3.0, 55.0)
+	# Flares from ahead (falling back behind the jet), from the chase view behind it, and chaff from behind.
+	for d in [
+		["flares", FLARE, 25.0, 3.0, 55.0], ["flares_rear", FLARE, 205.0, 8.0, 45.0], ["chaff", CHAFF, 25.0, 3.0, 55.0]
+	]:
+		if not _want(d[0]):
+			continue
+		_orbit(d[2], d[3], d[4])
 		var n := 0
 		for i in 6:
-			n += int(tv.weapons.dispense(FLARE))
-			await _hold(100, 0.05)
-		await _hold(100, 0.05)
+			n += int(tv.weapons.dispense(d[1]))
+			await _hold(100, 0.12)
+		await _hold(100, 0.3)
 		var fx = tv.weapons.decoy_fx
 		var at: Array = []
 		if fx != null:
 			for f in fx._flares.values():
 				at.append(f.node.global_position - tv.aircraft.global_position)
-		print("EFX flares released %d, drawn at %s from the jet" % [n, at])
-		await _shot("flares")
+		print("EFX %s released %d, flares drawn at %s from the jet" % [d[0], n, at])
+		await _shot(d[0])
+		await _hold(100, 4.5)  # the decoys burnt out before the next
 	tv.frozen = true
 	tv.fm_stopped = true
 	for f in tv.aircraft.flames:

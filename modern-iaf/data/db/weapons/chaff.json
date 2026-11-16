@@ -10,8 +10,12 @@
   "blast_m": 0,
   "drag": 0,
   "motion": {
-    "_velocityJump": 10.0,
-    "_limitVel": 5.0
+    "_velocityJump": 0.0,
+    "_absAcceleration": -150.0,
+    "_limitVel": 5.0,
+    "_fireEndVecX": 0.0,
+    "_fireEndVecY": 2000.0,
+    "_fireEndVecZ": -30.0
   },
   "sources": {
     "kg": "inferred",
@@ -19,12 +23,16 @@
     "blast_m": "inferred",
     "drag": "inferred",
     "motion._velocityJump": "inferred",
-    "motion._limitVel": "inferred"
+    "motion._limitVel": "inferred",
+    "motion._absAcceleration": "inferred",
+    "motion._fireEndVecX": "inferred",
+    "motion._fireEndVecY": "inferred",
+    "motion._fireEndVecZ": "inferred"
   },
   "notes": {
     "number": "33: see 20mm",
     "kg": "a cartridge's weight is the jet's",
-    "motion": "a decoy's slow ejection, not the gun-round defaults of the reader (1,200 m/s: the decoy reached its aim point 200 m aft in 0.13 s and ended unseen); the shared decoy flight of docs/weapons.md §10, about 0.85 s at 250 m/s"
+    "motion": "released at the jet's speed along its nose, a little down (toward a point 2 km ahead, 30 m below, in body axes), slowing at 150 m/s² to 5 m/s: the chaff bundle stops in the air within about 1.6 s and blooms 75 m behind the jet after 1 s at 250 m/s, its pieces falling (decoy_fx.gd). Until 2026-11-16 the decoy flew 200 m aft at |V| + 10 m/s and ended there in about 0.85 s, so from behind the jet no decoy was ever seen"
   },
   "footnotes": {}
 }

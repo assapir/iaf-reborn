@@ -482,7 +482,9 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   (0 today). The sim's own loading screen in English and Hebrew ([front-end.md](front-end.md) §7).
   The flight shows no message texts until the sim's own messages. The effects draw the sim's own sprites since
   2026-11-14 (`iaf-sim own`, [weapons.md](weapons.md) §2; before: a soft dot, the afterburner a white shaft): flares as bright
-  points with thin smoke trails. Open: a bomb's hit still draws the shared grey domes.
+  points with thin smoke trails. Since 2026-11-16 a flare sinks away under the jet and burns 4 s, chaff stops in the
+  air behind it, so both show from a chase view behind the jet too (weapons.md §2); the F-35I's dispensers sit on its
+  lower aft fuselage. Open: a bomb's hit still draws the shared grey domes.
 - **[A3](plan.md#a3-the-setup-wizard), the setup wizard (2026-11-03):** `./modern-iaf-setup` opens the wizard; it builds the terrain,
   the airbases, the units and weapons, the sounds and voices and the training missions as a step graph with stamps (a
   second run is all up to date), in English and Hebrew ([setup.md](setup.md)). Its look is Godot's default theme until

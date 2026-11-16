@@ -52,10 +52,16 @@ the PGU-47 / PGU-48). Figures, sources and tests: [../../docs/real-weapons.md](.
 `gunfire.tga`. The effects read theirs through `Settings.effect_art(rel)`: the converted original sprite in the
 original game, the file of the same name here.
 
-The chaff and flare records give their decoys a slow ejection (`motion` `_velocityJump` 10, `_limitVel` 5, inferred):
-the shared decoy flight ([../../docs/weapons.md](../../docs/weapons.md) §10) then lasts about 0.85 s at 250 m/s.
-Until 2026-11-14 they took the reader's gun-round defaults (1,200 m/s), so each decoy reached its end point 200 m aft
-in 0.13 s and was never seen.
+The chaff and flare records give their decoys a flight of their own (`motion`, inferred), through the shared decoy
+flight ([../../docs/weapons.md](../../docs/weapons.md) §10): the decoy leaves at the jet's speed toward an aim point
+2 km ahead and a little below (`_fireEndVec` 0, 2000, -60 for a flare, -30 for chaff) and slows at `_absAcceleration`
+(flare -40, chaff -150 m/s²) to 5 m/s, so it falls back behind the jet as drag would slow it. At 250 m/s a flare is
+about 20 m off the jet after 1 s and 80 m behind after 2 s, and burns to the 4 s cap; chaff stops in the air about 75 m
+behind after 1 s. A chase view behind the jet sees the flares leave under its tail.
+Until 2026-11-14 the decoys took the reader's gun-round defaults (1,200 m/s) and were never seen. From 2026-11-14 to
+2026-11-16 they flew 200 m aft at |V| + 10 m/s (the original's `_fireEndVec`) and ended there in about 0.85 s: seen
+from ahead, but from behind the jet (an F-35I picture shoot, 2026-11-16) they had passed the camera before any picture.
+`test_sim_gun.gd` checks both flights.
 Each burning flare trails a thin smoke ribbon (`trails.gd` `FLARE`: 0.2 m wide at the flare, 1.2 s, drawn with
 `trail.png`; `decoy_fx.gd` when not `original_art()`) in place of the original's white puffs (3.2 → 9.6 m every
 1/30 s), which around the sim's sprites read as one cloud of smoke.
