@@ -20,6 +20,8 @@ pub struct IafFlight {
     ground: Option<Callable>,
     /// The Better cockpit's engine temperatures (iaf_flight::instruments::EngineTemps).
     temps: iaf_flight::instruments::EngineTemps,
+    /// The NOZ POS gauges' nozzle positions (iaf_flight::instruments::NozzleLag).
+    nozzle: iaf_flight::instruments::NozzleLag,
     /// The F-16 3D cockpit's turn needle and slip ball (iaf_flight::instruments::TurnSlip).
     turn_slip: iaf_flight::instruments::TurnSlip,
     /// The MiG-29 AoA / g meter's max-g memory (iaf_flight::instruments::g_memory); reset by `start`.
@@ -733,7 +735,8 @@ impl IafFlight {
         let no: Vec<f32> = (0..2)
             .flat_map(|e| instruments::nozzle_and_oil(better[3 * e + 1], s.afterburner, s.gear <= 0.0, dmg[e]))
             .collect();
-        d.set("nozzle_oil", &PackedFloat32Array::from(no.as_slice()));
+        let noz = self.nozzle.update(s.time, [no[0], no[2]]);
+        d.set("nozzle_oil", &PackedFloat32Array::from(&[noz[0], no[1], noz[1], no[3]][..]));
         d.set("fuel_fill_total", i.fuel_fill_total);
         d.set("fuel_flow_pph", ac.fuel_flow() * 3600.0 / 0.45359);
         let v = Vec3::new(s.velocity[0] as f64, s.velocity[1] as f64, s.velocity[2] as f64);

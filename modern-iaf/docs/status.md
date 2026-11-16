@@ -329,6 +329,10 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   checks on every start-up step of the Sufa, the Barak and the F-35I that the guidance names the step's control, that
   it is outlined on the screen once the head is on it, and that it moves on only as switches are done
   ([training.md](training.md) §11).
+- **The NOZ POS needle glides (2026-11-16, the user: "in the right, you have 4 gauges. the second move by the
+  throttle, but jump"):** the right eyebrow's second gauge is NOZ POS; each AB stage jumped it 50 % in one frame. The
+  nozzle now follows with a 0.8 s lag (`iaf_flight::instruments::NozzleLag`); OIL, RPM and FTIT were already smooth
+  (measured per frame). The F-35I has no round engine gauges (its engine page is on the panoramic display).
 - **Click areas and the training outline by shape (2026-11-15, the user's Mac play):** a 3D cockpit control's hit area
   is its mesh's own surface (the nearest along the pointer's ray: never bigger than the part, never a neighbour's), the
   canopy handle's its rod; the training highlight outlines the switch's own shape and the RPM dial as the ellipse it

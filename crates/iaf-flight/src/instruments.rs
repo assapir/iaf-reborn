@@ -169,6 +169,36 @@ impl EngineTemps {
     }
 }
 
+/// The F-16's exhaust nozzle position as its NOZ POS gauge shows it (%), one per engine: a first-order lag toward
+/// [`nozzle_and_oil`]'s position, as the nozzle's actuators move it (inferred: `TAU` 0.8 s, a step to an afterburner
+/// stage taking about 2 s). Until 2026-11-16 the gauge took the position as it was, so each AB stage jumped it 50 %
+/// in one frame (the user: "the second move by the throttle, but jump").
+#[derive(Debug, Clone, Copy, Default)]
+pub struct NozzleLag {
+    pos: [f32; 2],
+    /// The FM time of the last update; None before the first (the position then starts at its target).
+    t: Option<f64>,
+}
+
+impl NozzleLag {
+    pub const TAU: f32 = 0.8;
+
+    /// Steps both nozzles toward `target` (%) to the FM time `time` (s) and returns their positions. A time going
+    /// back (a restarted flight) starts again at the target.
+    pub fn update(&mut self, time: f64, target: [f32; 2]) -> [f32; 2] {
+        let dt = match self.t {
+            Some(t0) if time >= t0 => (time - t0) as f32,
+            _ => f32::INFINITY,
+        };
+        self.t = Some(time);
+        let k = 1.0 - (-dt / Self::TAU).exp();
+        for (p, g) in self.pos.iter_mut().zip(target) {
+            *p += (g - *p) * k;
+        }
+        self.pos
+    }
+}
+
 /// Ours (the F-16 3D cockpit's ADI, docs/cockpit.md "3D cockpit"): the turn needle's yaw rate and the slip ball's
 /// specific force, from the FM state's change between two updates (the FM keeps no body rates or accelerations),
 /// each lagged by `TAU` (FlightGear's slip ball: a low pass of dt·2, inferred for the needle too).
@@ -502,6 +532,17 @@ mod tests {
         assert_eq!(better_engine_needles(1.0, 2, 0.0, ab)[0], 1.0);
         let dead = EngineDamage { permanent: true, ..none };
         assert_eq!(better_engine_needles(1.0, 2, 650.0, dead), [0.0, 0.0, 0.65]);
+    }
+
+    #[test]
+    fn the_nozzle_follows_its_target_with_a_lag() {
+        let mut n = NozzleLag::default();
+        assert_eq!(n.update(0.0, [5.0, 5.0]), [5.0, 5.0]);
+        let p = n.update(NozzleLag::TAU as f64, [55.0, 5.0]);
+        assert!((p[0] - (5.0 + 50.0 * (1.0 - (-1.0f32).exp()))).abs() < 0.01 && p[1] == 5.0, "{p:?}");
+        assert!(n.update(NozzleLag::TAU as f64 + 1.0 / 60.0, [55.0, 5.0])[0] < 55.0);
+        assert!((n.update(20.0, [55.0, 5.0])[0] - 55.0).abs() < 0.01);
+        assert_eq!(n.update(0.0, [20.0, 20.0]), [20.0, 20.0]);
     }
 
     #[test]

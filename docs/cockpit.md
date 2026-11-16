@@ -1180,7 +1180,10 @@ measured on the art, linear between them). The records it moves are not drawn on
 come from the other gauge items: RPM from `engine_rpm`, TEMP from `engine_temp`, THROTTLE from `throttle_ab` (each
 the original's value while its item is off). The F-16's oil pressure and nozzle are `iaf_flight::instruments::
 nozzle_and_oil` (`IafFlight.instruments` → `nozzle_oil`; unit test `nozzle_opens_at_ground_idle_and_in_ab_and_oil_
-rises_with_rpm`).
+rises_with_rpm`); the nozzle's position follows it with a 0.8 s lag (`NozzleLag`, inferred: the actuators' travel;
+since 2026-11-16, when the 3D cockpit's NOZ POS needle jumped 50 % in one frame at each AB stage: the user, "the second
+move by the throttle, but jump"; unit test `the_nozzle_follows_its_target_with_a_lag`). The RPM, oil and FTIT needles
+already moved smoothly (RPM with the engine's spool, FTIT with `EngineTemps`' lag), measured per frame on the Sufa.
 * F-16 dial scales (clock degrees, read on the art, ±5°): OIL 0 psi at 210°, 3° per psi; NOZ POS 0 % at 60°, 2.4°
   per %; RPM 0 at 0°, 20 % 30°, 40 % 65°, 60 % 100°, 70 % 145°, 80 % 185°, 90 % 235°, 100 % 280°, 110 % 325°; FTIT
   200 °C 140°, 700 °C 215°, 800 °C 270°, 900 °C 330°, 1000 °C 35°, 1100 °C 55°, 1200 °C 75° (the 1000–1200 °C
