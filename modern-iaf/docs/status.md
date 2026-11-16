@@ -471,6 +471,10 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   Since 2026-11-14 (finish list F2) the Barak and the Sufa roll at the F-16's sourced 240 deg/s with 62 deg/s
   flaperons, the figure reborn's Real F-16 rows read ([flight-model.md](flight-model.md) §9.11, §9.13); open: their
   0 → 90° time, 0.78–0.88 s against ~0.55 s.
+- **The 6-DoF's control laws (2026-11-15, finish list F3, F7, F15):** 9 g in about 2 s below the α limiter, the
+  STORES CONFIG switch (CAT III α limit and roll), the MANUAL PITCH override with deep
+  stall recovery by rocking, `stalled` / `spinning` from the motion ([flight-model.md](flight-model.md) §9.11, §9.13).
+  Open: the autopilot's touchdown sinks 4.5–10 m/s, over the 4 m/s landing limit (§9.6).
 - **[C2](plan.md#c2-the-6-dof) stage (b), engines, gear, the jets' data (2026-11-03):** TP-1538's engine model scaled to the F110-GE-100,
   F100-PW-229 and F135; a three-strut gear with brakes, steering and a braked stand; the four jets' mass, inertia and
   geometry; tests against the ratings, the spool times, a take-off roll and a stop ([flight-model.md](flight-model.md)
@@ -544,7 +548,7 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   time over Tel Aviv (3.1 ms) and 13 % over Beersheba (2.7 ms), against the 7 % budget; 17 % and 15 % before the
   buildings' colours per vertex and their 250 m tiles, which keep the picture ([scenery.md](scenery.md) §6).
 - **The 6-DoF's wave drag is a fit ([C2](plan.md#c2-the-6-dof), the 6-DoF):** fit to each jet's published top speeds, not a sourced table; open: a public
-  F-16 drag rise, the high-speed g onset, the take-off roll, the flaps' sourced aerodynamics and the approach speed
+  F-16 drag rise, the take-off roll, the flaps' sourced aerodynamics and the approach speed
   ([flight-model.md](flight-model.md) §9.6, §9.16).
 - **[E3b](plan.md#e3-the-training-missions)'s open points** ([training.md](training.md) §6): the Hebrew voice (the user), the
   pilot's request voice (sound.md §7); the 6-DoF's short take-off roll.

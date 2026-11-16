@@ -425,11 +425,10 @@ fn fly_for(f: &mut SixDof, secs: f64, mut ctl: impl FnMut(&SixDof) -> iaf_flight
 #[test]
 fn control_system_holds_one_g_and_its_limits() {
     // Neutral stick: the g command holds 1 g, so the jet holds its height (the Barak, 350 kt, 10,000 ft, 60 s).
-    // Full aft stick at 550 kt: the g command stops at 8 g incremental (figure 62(a)'s limit), so the jet never
-    // pulls more than 9 g; it reaches 8.4 g in 6 s (the integrator is slow at this q̄ and the speed bleeds; open:
-    // the real F-16 pulls 9 g). At 200 kt the α limiter holds α near 25° (figure 63: no g left above 25.5°).
-    // (First written as "reaches 9 ± 0.5 g at 450 kt": there a 9 g pull needs α ≈ 21°, the limiter takes 2 g away,
-    // 7.6 g, figure 63's design; at 550 kt 8.4 g; 2026-11-03.)
+    // Full aft stick: the g command stops at 8 g incremental (figure 62(a)'s limit). At 200 kt the α limiter holds α
+    // near 25° (figure 63, T.O. 1F-16A-1 figure 1-44: 1 g left at 25°). (First written as "reaches 9 ± 0.5 g at
+    // 450 kt": there a 9 g pull needs α ≈ 21°, the limiter takes 2 g away, 7.6 g, figure 63's design; 2026-11-03.
+    // TP-1538's integrator then reached 8.4 g in 6 s at 550 kt; the g command region's integrator since F3.)
     let barak = jets::all()[0];
     let mut f = flight(barak, 3048.0, 350.0 * KT, true);
     let c0 = f.controls();
@@ -443,15 +442,37 @@ fn control_system_holds_one_g_and_its_limits() {
     );
     assert!((s.position.z - 3048.0).abs() < 60.0, "{}", s.position.z);
 
-    let mut f = flight(barak, 3048.0, 550.0 * KT, true);
+    // Below 15° α the F-16 is a g command system and pulls 9 g (T.O. 1F-16A-1 figure 1-44, "Commanded pitch
+    // responses are in g increments per stick force for AOA below 15 degrees"); a modern fly-by-wire fighter reaches
+    // "a bit over nine Gs in about one and a half seconds" (van Patten 1991): 9 g within 1.5 s + 50 %; on the limiter it stays
+    // under the 9.5 g the manual counts as an over-g. Each of the three F-16-limited jets, 550 kt, 10,000 ft.
+    for (i, jet) in jets::all().iter().take(3).enumerate() {
+        let mut f = flight(*jet, 3048.0, 550.0 * KT, true);
+        let full = iaf_flight::Controls { stick_y: 1.0, throttle: 1.0, ..f.controls() };
+        let (mut peak, mut t9, mut t) = (0.0f32, f64::NAN, 0.0);
+        fly_for(&mut f, 6.0, |s| {
+            let g = s.state().g;
+            peak = peak.max(g);
+            if g >= 9.0 && t9.is_nan() {
+                t9 = t;
+            }
+            t += 1.0 / 60.0;
+            full
+        });
+        println!("jet {i}, full pull at 550 kt: 9 g after {t9:.2} s, peak {peak:.2} g");
+        assert!(t9 <= 2.25 && peak < 9.5, "jet {i}: {t9} s, {peak} g");
+    }
+    // The corner: 9 g at 440 KIAS, 10,000 ft (the F-16A's "330 KIAS to 440 KIAS", Plaehn); 440 KCAS there is
+    // 512 KTAS (σ 0.738).
+    let mut f = flight(barak, 3048.0, 512.0 * KT, true);
     let full = iaf_flight::Controls { stick_y: 1.0, throttle: 1.0, ..f.controls() };
     let mut peak: f32 = 0.0;
-    fly_for(&mut f, 6.0, |s| {
+    fly_for(&mut f, 4.0, |s| {
         peak = peak.max(s.state().g);
         full
     });
-    println!("Barak, full pull at 550 kt: peak {peak:.2} g in 6 s");
-    assert!(peak > 8.0 && peak < 9.3, "{peak}");
+    println!("Barak, full pull at 440 KCAS, 10,000 ft: peak {peak:.2} g");
+    assert!(peak >= 9.0, "{peak}");
 
     let mut f = flight(barak, 3048.0, 200.0 * KT, true);
     let full = iaf_flight::Controls { stick_y: 1.0, throttle: 1.0, ..f.controls() };
@@ -973,4 +994,114 @@ fn f16s_roll_at_the_shared_figure() {
         assert!((peak - fig.rate).abs() < 0.05 * fig.rate, "{} {kt} kt: {peak}", j.name);
         assert!(t90 <= t90_max, "{} {kt} kt: {t90}", j.name);
     }
+}
+
+/// A Barak flight at `kt` and 10,000 ft with `extra_kg` of stores (no drag), its STORES CONFIG switch set.
+fn barak_at(kt: f64, extra_kg: f32, cat3: bool) -> SixDof {
+    let mut f = flight(jets::all()[0], 3048.0, kt * KT, true);
+    f.set_stores(extra_kg, 0.0, 0.0);
+    f.cat3 = cat3;
+    f
+}
+
+#[test]
+fn cat_iii_limits_alpha_and_roll() {
+    // T.O. 1F-16A-1 figures 1-43 / 1-44: in CAT III "maximum AOA varies from approximately 16-18 degrees as a function
+    // of GW and g"; at 30,000 lb the line runs from 15.65° at 1 g to 17.05° at 8.35 g. Full aft stick at 300 kt: α
+    // stays within 0.6° of the line at the g the jet pulls, and never past 18°. The roll command: "reduced by
+    // approximately 40 percent of CAT I authority". (From 4 s on: the first second's overshoot reaches 1.3°.)
+    let w_kg = 30_000.0 * 0.45359237;
+    let mut f = barak_at(300.0, 0.0, true);
+    let extra = (w_kg - f.mass()) as f32;
+    f.set_stores(extra, 0.0, 0.0);
+    let full = iaf_flight::Controls { stick_y: 1.0, throttle: 1.0, ..f.controls() };
+    let (mut amax, mut worst) = (0.0f64, 0.0f64);
+    fly_for(&mut f, 6.0, |s| {
+        let st = s.state();
+        let a = st.alpha.to_degrees() as f64;
+        amax = amax.max(a);
+        if st.time > 4.0 {
+            let lim = iaf_flight::sixdof::fcs::cat3_alpha_limit(w_kg / 0.45359237, st.g as f64);
+            worst = worst.max(a - lim);
+        }
+        full
+    });
+    println!("CAT III, 30,000 lb, full pull at 300 kt: α peaks at {amax:.1}°, at most {worst:+.2}° over the line");
+    assert!(amax < 18.0 && worst < 0.6, "{amax} {worst}");
+    // CAT I at the same weight goes on to the 25° limiter.
+    let mut f = barak_at(300.0, extra, false);
+    let mut amax1 = 0.0f64;
+    fly_for(&mut f, 6.0, |s| {
+        amax1 = amax1.max(s.state().alpha.to_degrees() as f64);
+        full
+    });
+    assert!(amax1 > 22.0, "{amax1}");
+
+    let peak = |cat3: bool| {
+        let mut f = barak_at(350.0, 0.0, cat3);
+        let c = iaf_flight::Controls { stick_x: 1.0, ..f.controls() };
+        let mut p = 0.0f64;
+        fly_for(&mut f, 1.5, |s| {
+            p = p.max(s.body().omega.x.to_degrees());
+            c
+        });
+        p
+    };
+    let (p1, p3) = (peak(false), peak(true));
+    println!("roll rate at 350 kt: CAT I {p1:.0} deg/s, CAT III {p3:.0} deg/s ({:.2})", p3 / p1);
+    assert!((p3 / p1 - 0.6).abs() < 0.06, "{p1} {p3}");
+}
+
+#[test]
+fn deep_stall_recovered_with_mpo_rocking() {
+    // The Barak put in an upright deep stall at 20,000 ft (α 60°, the nose on the horizon, 60 m/s: in a zoom the
+    // control system keeps it out of one, α never past 26.4°) settles in TP-1538's stable deep stall (α 58.6° at full
+    // nose-down stabilator, §9.4) and stays there with the stick centred (`stalled` set). T.O. 1F-16A-1: with the
+    // MPO switch held the stick moves the stabilator, "if the nose is pitching up, pull back on the stick ... then
+    // push full forward"; "only one or two correctly applied cycles are required", "Altitude loss is approximately
+    // 1000-1500 feet per pitch rock cycle". The rule is reborn's (aircraft.rs `fbw_deep_stall_behaviour_and_recovery`):
+    // the stick in phase with the pitch rate.
+    let mut f = flight(jets::all()[0], 6096.0, 150.0 * KT, true);
+    let a = 60f64.to_radians();
+    let b = f.body();
+    f.set_body(Body::new(b.pos, Vec3::new(60.0 * a.cos(), 0.0, 60.0 * a.sin()), Quat::from_euler(0.0, 0.0, 0.0)));
+    f.set_controls(iaf_flight::Controls { throttle: 0.0, ..f.controls() });
+    f.mpo = false;
+    fly_for(&mut f, 15.0, |s| iaf_flight::Controls { stick_y: 0.0, ..s.controls() });
+    let s = f.state();
+    println!("deep stall: α {:.1}°, {:.0} m/s down", s.alpha.to_degrees(), -s.velocity[2]);
+    assert!(s.alpha.to_degrees() > 45.0 && s.stalled, "{}", s.alpha.to_degrees());
+    // The MPO alone with the stick centred streamlines the tail: no recovery.
+    f.mpo = true;
+    fly_for(&mut f, 10.0, |s| iaf_flight::Controls { stick_y: 0.0, ..s.controls() });
+    assert!(f.state().stalled, "centred stick with MPO does not recover");
+    // Rocking in phase.
+    let z0 = f.state().position.z;
+    let mut last = f.state().pitch;
+    let mut t = 0.0;
+    while f.state().stalled && t < 30.0 {
+        let s = f.state();
+        let rate = (s.pitch - last) * 60.0;
+        last = s.pitch;
+        f.set_controls(iaf_flight::Controls { stick_y: rate.signum(), ..f.controls() });
+        f.step(1.0 / 60.0);
+        t += 1.0 / 60.0;
+    }
+    let rock_ft = (z0 - f.state().position.z) / 0.3048;
+    // Then as the manual says: the MPO held and the stick neutral until 200 kt; the nose may pitch through ("a
+    // tendency for the aircraft to continue pitching through"), and the jet flies again within 20 s.
+    for _ in 0..(20 * 60) {
+        f.mpo = f.state().speed < 103.0;
+        f.set_controls(iaf_flight::Controls { stick_y: 0.0, ..f.controls() });
+        f.step(1.0 / 60.0);
+    }
+    f.mpo = false;
+    let s = f.state();
+    let a = s.alpha.to_degrees();
+    println!(
+        "MPO rocking: out after {t:.1} s, {rock_ft:.0} ft lost rocking; 20 s on α {a:.1}°, {:.0} kt",
+        s.speed as f64 / KT
+    );
+    assert!(t < 30.0 && rock_ft < 4500.0, "{t} s, {rock_ft} ft");
+    assert!(!s.stalled && (-5.0..25.0).contains(&a) && s.speed > 103.0, "{a} {}", s.speed);
 }

@@ -189,6 +189,9 @@ pub struct Roll {
 
 /// 240 deg/s clean; 12 rad/s² (the clean end of 8–12 rad/s², inferred); flaperons at 62 deg/s, 20° down / 23° up.
 pub const F16_ROLL: Roll = Roll { rate: 240.0, accel: 688.0, flaperon_rate: 62.0, flaperon: (20.0, 23.0) };
+/// The F-16's STORES CONFIG switch at CAT III: "Maximum roll rate command reduced by approximately 40 percent of CAT I
+/// authority" (T.O. 1F-16A-1 figure 1-43): the stick's roll command × 0.6.
+pub const F16_CAT3_ROLL: f64 = 0.6;
 
 fn real(t: &Type) -> Option<&'static Real> {
     REAL.iter().find(|r| r.aircraft == t.name)

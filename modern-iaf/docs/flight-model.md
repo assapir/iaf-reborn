@@ -487,8 +487,6 @@ Stage (c) is done (§9.11–9.15): the control system, the switch, the state in 
 budget, a real flight. Open:
 * **A sourced drag rise**: the wave drag is a fit to public performance, not a sourced table (§9.15); a public F-16
   drag-rise and high-Mach thrust table replaces it when one turns up.
-* **The g onset at high speed**: the TP-1538 control system's integrator is slow at high q̄: a full pull at 550 kt
-  reaches 8.4 g in 6 s (the real F-16 9 g); TP-1538's system is a low-speed study system.
 * **The take-off roll**: 1,823 ft with the control system's rotation and the flaps down, still −23 % against the
   F-16A SAC (§9.10).
 * **The flaps' aerodynamics**: TP-1538 has no trailing-edge flap data; the flaps' increments are inferred (§9.16).
@@ -498,9 +496,12 @@ budget, a real flight. Open:
 * **The player's autopilot on the 6-DoF** (2026-11-14, test `player_autopilot_flies_the_sims_three_jets`, the own
   data and the own airbases): on the Barak, the Sufa and the Adir, level holds the height within 1.3 m for 60 s, NAV
   passes a waypoint 90° off the nose 1,000 m higher within 1.1–1.3 km (its pass radius is 1,852 m) at 8–10 m of its
-  height, and NAV to a landing waypoint lands on Ramat David's centreline and stops. The touchdown sinks 9–11 m/s:
-  the flare starts at its height, but the 6-DoF's g onset at approach speed is too slow to stop the 6° glide path's
-  sink in time (F3 in the finish list, the production FLCS's g onset). That touchdown passes because the game keeps
+  height, and NAV to a landing waypoint lands on Ramat David's centreline and stops. The touchdown sinks 4.5–10 m/s
+  (2026-11-15: Barak 9.8, Sufa 4.5, Adir 8.9): the shared autopilot flies the original's steep final (about 185 kt,
+  10 m/s of sink), and at that speed with the gear down the 6-DoF's g takes about a second to follow the flare's
+  command (TP-1538's loop; the production F-16 lands in its pitch-rate "takeoff and landing gains", not modelled).
+  Tested and dropped (2026-11-15): the flare acting on the height 0.3–1.0 s ahead (7.7–8.7 m/s, and 1.0 s ballooned
+  and crashed), and the flare started at 3.5 s instead of 2 s of sink (4.6 m/s, still over the limit). That touchdown passes because the game keeps
   the original's landing limits while the autopilot lands, on both models (`set_ap_landing`). "No stalls" and "No
   spins" reach only reborn's model: the 6-DoF has no scripted stall or spin to block, and the sim fixes both off.
 * **Not modelled, one plain log line per run when the game asks** (`IafFlight`, no warning): the drag chute. No F-16
@@ -631,7 +632,32 @@ printed pp. 210–217), stepped with the rigid body (at most 1/120 s):
   pitch-rate lead, 1 g/deg more above 20.4°: appendix A's "0.322 g/deg between 15° and 20.4° and 1.322 g/deg above"),
   shaped by (3s + 12)/(s + 12); the loop gain 1.5 × figure 62(d)'s q̄ schedule into a proportional and an integral
   path (5 and 5/s, ±25° each), plus 0.5 × α for the artificial stability; the actuator 20.2/(s + 20.2), 60 deg/s,
-  ±25°. Figure 63's maximum commandable g by α follows from the limiter.
+  ±25°. Figure 63's maximum commandable g by α follows from the limiter. It is the production F-16's CAT I limit:
+  T.O. 1F-16A-1 figure 1-44 draws 9 g up to 15°, 7.3 g at 20.4° and 1 g at 25.2°[^to-f16a].
+* **The g command region** (2026-11-15, finish list F3): below the limiter the integrator takes the g error alone
+  (n_cmd − (an − 1)) at 2.5 × the loop gain (inferred). The manual: "Commanded pitch responses are in g increments
+  per stick force for AOA below 15 degrees"[^to-f16a]. TP-1538's integrator, 5/s on the whole shaped error with its
+  washed-out pitch rate, stopped 0.5 g short while the speed bled (8.4 g at 550 kt) and reached 7.4 g after 1.5 s;
+  on the g error alone at 5/s it overshot to 10 g. Now a full pull at 550 kt, 10,000 ft reaches 9 g after 1.9 s
+  (Barak, Sufa) and 2.1 s (Adir), peak 9.3 g. Sources: a modern fly-by-wire fighter reaches "a bit over nine Gs in
+  about one and a half seconds"[^vanpatten], and on the limiter the F-16 stays under the 9.5 g the manual counts as an
+  over-g[^to-f16a]. At 440 KIAS, 10,000 ft (the top of the F-16A's "330 KIAS to 440 KIAS" corner[^plaehn]) the Barak
+  pulls 9.3 g. On the limiter, TP-1538's integrator as before.
+* **STORES CONFIG, CAT I / CAT III** (F7): the pilot's switch, as in the jet ("The CAT III position shall be
+  selected when the aircraft is configured with a category III loading"[^to-f16a]); key Alt + S,
+  `IafFlight.set_fcs_switches`; it starts at CAT I. CAT III adds a limiter on figure 1-44's CAT III line for the
+  jet's weight (α at 1 g / where it meets CAT I: 25,000 lb 15.5° / 16.25° at 8.6 g, 30,000 lb 15.65° / 17.05° at 8.35
+  g, 35,000 lb 15.8° / 18.0° at 8.0 g; "maximum AOA varies from approximately 16-18 degrees as a function of GW and
+  g"), 20 g per degree over it with the pitch-rate lead (inferred); the stick's roll command × 0.6 ("reduced by
+  approximately 40 percent of CAT I authority", `data_set::F16_CAT3_ROLL`, beside the F-16's other roll figures); pedal rudder
+  faded out from 5° to none at 15° ("Zero rudder authority available at 15° AOA"; the 5° start inferred). Open: figure 1-43's CAT III "g command
+  system until 7° AOA at 100 knots to 15° AOA at 420 knots" (the model keeps CAT I's 15° for that boundary).
+* **MANUAL PITCH override** (F15): held (key Alt + M), it removes figure 62(b)'s negative g limit (the jet's −3 g
+  stays, inferred); above α 29° the stick moves the stabilator directly (full stick ±25°, centred stick streamlines it) and the
+  pedals the rudder without the α fade[^to-f16a]. `State.stalled` is set in the air outside α −5…29° (the manual's
+  recovery is "AOA within −5 to +25 degrees", and above 29° the limiters give way to the yaw-rate limiter);
+  `spinning` when stalled and turning about the vertical faster than 35 deg/s (inferred: half the manual's 70–100
+  deg/s upright spin).
 * **Roll** (figure 64): figure 64(b)'s gradient (up to 308 deg/s), 10/(s + 10), against the filtered roll rate,
   × 0.12 to the ailerons (±21.5°, 80 deg/s, 20.2/(s + 20.2)); above α 29° the spin prevention drives them against the
   yaw rate (8.34). The Barak and the Sufa fly the production F-16's roll instead (2026-11-14, finish list F2; the
@@ -743,7 +769,11 @@ before. The autopilot drives either through the `autopilot::Host` trait (the `Ai
 | test | the model | source | tolerance | verdict |
 |---|---|---|---|---|
 | neutral stick, Barak, 350 kt, 10,000 ft, 60 s (the control system's 1 g hold) | +16 m, 1.00 g | (design) | 60 m | ok |
-| full pull at 550 kt, Barak | 8.45 g peak in 6 s | figure 62(a): at most 8 g incremental | above 8, below 9.3 g | ok |
+| full pull at 550 kt, Barak / Sufa / Adir (2026-11-15) | 9 g after 1.92 / 1.90 / 2.13 s, peak 9.33 / 9.27 / 9.04 g | "about one and a half seconds"[^vanpatten]; under 9.5 g[^to-f16a] | 1.5 s + 50 %; < 9.5 g | ok |
+| full pull at 440 KCAS (the source's KIAS taken as KCAS), 10,000 ft, Barak | 9.31 g | the corner's top end, 440 KIAS[^plaehn] | ≥ 9 g | ok |
+| CAT III, 30,000 lb, full pull at 300 kt | α peaks 17.3°, settles within 0.32° of figure 1-44's line | 16–18°[^to-f16a] | < 18°, 0.6° | ok |
+| full roll stick at 350 kt, CAT III / CAT I | 144 / 243 deg/s (0.59) | 0.6[^to-f16a] | ±0.06 | ok |
+| deep stall (put in at α 60°, 20,000 ft), MPO rocking in phase | stays at α 59° hands-off; out after 9.4 s, 1,764 ft lost rocking; flying at 354 kt 20 s on | "one or two" cycles, "1000-1500 feet per pitch rock cycle"[^to-f16a] | < 30 s, < 4,500 ft | ok |
 | full pull at 200 kt, Barak | α peaks at 26.6° | figure 63, appendix A: the limiter holds about 25° | ±3° | ok |
 | roll from 1 g at α 25°, 30,000 ft, full stick (TP-1538's jet, at 186 kt, α 24.7°) | 90° in 2.32 s, 180° in 3.63 s | TP-1538 Table V, control system A: 2.6 s, 3.8 s | ±30 % | ok (−11 %, −4 %) |
 | fuel flow, Sufa, military, sea level | 13,492 lb/h | 13,500 lb/h (the F-16I REAL row) | 3 % | ok |
@@ -1034,4 +1064,11 @@ jets at 400 kt and 10,000 ft (within 3 %), cut the Sufa's sea-level top speed an
     clean F-16 is the drag coefficient at 0.8 mach using the reference area of the F-16"; "a store drag index is also
     referenced to wing area"): https://www.f-16.net/forum/viewtopic.php?p=188297
 [^to-f16a]: T.O. 1F-16A-1, *Flight Manual, F-16A/B Block 10 and 15*, August 2003, p. 2-25 (landing), p. 1-120 /
-  1-125 / 1-127 (flight controls), https://archive.org/details/to-1-f-16-a-1-flight-manual-f-16-a-b-block-10-15-august-2003
+  1-125 / 1-127 (flight controls), "FLCS limiters" and figures 1-43 / 1-44 (the AOA/g limiter, CAT I / CAT III),
+  "MANUAL PITCH Override", "STORES CONFIG Switch", p. 5-3 (over-g), section III / VI (deep stall recovery),
+  "Normal flight characteristics", https://archive.org/details/to-1-f-16-a-1-flight-manual-f-16-a-b-block-10-15-august-2003
+[^vanpatten]: R. E. van Patten, "G-Lock and the Fighter Jock", *Air Force Magazine*, 1 October 1991 (a modern
+  fighter's g limiter lets the pilot "reach a maneuver limit of a bit over nine Gs in about one and a half seconds"):
+  https://www.airandspaceforces.com/article/1091glock/
+[^plaehn]: T. Plaehn, "Turning and burning", *Land, Fly or Die*, 19 December 2023 (a fighter pilot's account: "the
+  F-16A corner velocity expanded to a range of 330 KIAS to 440 KIAS"): https://landflyordie.substack.com/p/turning-and-burning

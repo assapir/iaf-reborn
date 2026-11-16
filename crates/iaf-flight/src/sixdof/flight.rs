@@ -74,6 +74,10 @@ pub struct SixDof {
     stores_cd_asym: f64,
     /// The roll trim, stick units (`aircraft::step_roll_trim`).
     roll_trim: f64,
+    /// The MANUAL PITCH override held (`fcs::Pilot`).
+    pub mpo: bool,
+    /// The STORES CONFIG switch at CAT III (`fcs::Pilot`).
+    pub cat3: bool,
     /// The pilot's systems damage flags (bit n = flag n) and whether the jet has two engines, as the original's
     /// (`aircraft::damage_bits`, `aircraft::stick_authority`).
     damage: u32,
@@ -163,6 +167,8 @@ impl SixDof {
             tank_moment: 0.0,
             stores_cd_asym: 0.0,
             roll_trim: 0.0,
+            mpo: false,
+            cat3: false,
             damage: 0,
             twin: false,
             empty_kg,
@@ -509,6 +515,8 @@ impl SixDof {
             // (full stick the flight data's MaxRollRate, the original's roll channel `p_cmd`).
             // The trim left out while an autopilot loop flies, as the original's (`Aircraft::roll_stick`).
             roll_trim: if self.ap_flying { 0.0 } else { self.roll_trim * stick_k },
+            mpo: self.mpo,
+            cat3: self.cat3,
             g_command: self.ap_flying.then_some(if stick_y >= 0.0 {
                 1.0 + stick_y * (max_g - 1.0)
             } else {
@@ -529,6 +537,7 @@ impl SixDof {
             ps,
             on_ground: self.on_ground,
             tas: flow.v,
+            weight_lb: self.mass() / LB,
         };
         // Total flight-control damage (24): the control system no longer moves the surfaces; they stay where they were
         // (inferred; the original forces a spin, which a 6-DoF has to fly into).
@@ -660,6 +669,7 @@ impl SixDof {
         let power = self.engine.power;
         let g = -self.accel_g.z;
         let (max_g, _) = self.jet.g_limits;
+        let stalled = !self.on_ground && !(-5.0..=29.0).contains(&alpha.to_degrees());
         State {
             time: self.t,
             position: enu(b.pos),
@@ -687,13 +697,17 @@ impl SixDof {
             thrust_n: self.thrust_n as f32,
             fuel_kg: self.fuel_kg as f32,
             mass_kg: self.mass() as f32,
-            stalled: false,
+            // Out of the control system's range (T.O. 1F-16A-1: recovery is "AOA within −5 to +25 degrees"; above
+            // 29° its limiters give way to the yaw-rate limiter): stalled above 29° or below −5° in the air.
+            stalled,
             buffet: alpha.to_degrees() > 15.0 && !self.on_ground,
             // The AoA warning measure: 0 below the 25° limiter, rising to the original's 1.2 at 30° (inferred).
             drag_x: ((alpha.to_degrees() - 25.0) / 5.0 * 1.2).clamp(0.0, 1.2) as f32,
             over_g: g > max_g,
             on_ground: self.on_ground,
-            spinning: false,
+            // A spin: stalled and turning about the vertical faster than 35 deg/s (inferred: half the 70–100 deg/s the
+            // manual gives an upright F-16 spin).
+            spinning: stalled && b.att.rotate(b.omega).z.abs().to_degrees() > 35.0,
             deep_stall: alpha.to_degrees() > 45.0 && !self.on_ground,
             tornado: false,
             end_worlds: 0,
@@ -777,6 +791,12 @@ impl SixDof {
     /// The control surfaces' positions (deg), for the part animation and the tests.
     pub fn surfaces(&self) -> Surfaces {
         self.surfaces
+    }
+
+    /// Puts the rigid body in state `b` (the tests' departures: in a zoom the control system keeps the jet out of a
+    /// deep stall).
+    pub fn set_body(&mut self, b: Body) {
+        self.body = b;
     }
 
     pub fn body(&self) -> &Body {

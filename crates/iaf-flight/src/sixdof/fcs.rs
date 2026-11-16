@@ -9,7 +9,7 @@
 
 use super::aero::{Surfaces, lef_schedule};
 use crate::aircraft::{F16_CL_DA, F16_CLP};
-use crate::data_set::Roll;
+use crate::data_set::{F16_CAT3_ROLL, Roll};
 
 /// The pilot's controls, −1…1: stick right, stick pulled (nose up), right pedal.
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
@@ -26,6 +26,12 @@ pub struct Pilot {
     /// The roll trim, stick units (full stick 1): figure 64(a) adds it to the roll-rate error as a roll rate, at most
     /// ±40 × 1.67 = ±66.8 deg/s (`aircraft::step_roll_trim`).
     pub roll_trim: f64,
+    /// The MANUAL PITCH override switch held at OVRD: the negative g limit off; above α 29° the stick moves the
+    /// stabilator directly and the pedals the rudder.
+    pub mpo: bool,
+    /// The STORES CONFIG switch at CAT III: figure 1-44's CAT III α limit, the roll command × 0.6 and no pedal
+    /// rudder from α 15°.
+    pub cat3: bool,
 }
 
 /// What the control system senses.
@@ -45,6 +51,8 @@ pub struct Sensors {
     pub ps: f64,
     /// Weight on the wheels.
     pub on_ground: bool,
+    /// The jet's weight, lb (CAT III's α limit depends on it).
+    pub weight_lb: f64,
     /// True airspeed, m/s.
     pub tas: f64,
 }
@@ -113,6 +121,29 @@ const Q_GAIN: [(f64, f64); 2] = [(4.4, 1.0), (15.5, 0.37)];
 /// Figure 62(d): pitch-loop gain by q̄ (kN/m²).
 const LOOP_GAIN: [(f64, f64); 2] = [(12.3, 1.0), (43.4, 0.5)];
 
+/// T.O. 1F-16A-1 figure 1-44, CAT III: per gross weight (lb), the α limit at 1 g and the point (α, g) where the CAT III
+/// line meets the CAT I limit (read off the chart, ±0.1°).
+const CAT3_LIMIT: [(f64, f64, f64, f64); 3] =
+    [(25_000.0, 15.5, 16.25, 8.6), (30_000.0, 15.65, 17.05, 8.35), (35_000.0, 15.8, 18.0, 8.0)];
+/// The CAT III limiter's gain, g per degree of α over the line (inferred: high enough to hold the steep line within
+/// about half a degree with the stick full aft).
+const CAT3_GAIN: f64 = 20.0;
+/// The integrator's gain in the g command region (below the α limiter), per s (inferred: TP-1538's 5 on the g error
+/// alone overshoots to 10 g; 2.5 meets the onset source, modern-iaf/docs/flight-model.md §9.11).
+const G_INTEGRATOR: f64 = 2.5;
+
+/// CAT III's α limit (deg) at load factor `n` (g) for a jet of `weight_lb`: figure 1-44's line for that weight,
+/// interpolated between the chart's weights and held outside them.
+pub fn cat3_alpha_limit(weight_lb: f64, n: f64) -> f64 {
+    let w = weight_lb.clamp(CAT3_LIMIT[0].0, CAT3_LIMIT[2].0);
+    let i = if w <= CAT3_LIMIT[1].0 { 0 } else { 1 };
+    let (a, b) = (CAT3_LIMIT[i], CAT3_LIMIT[i + 1]);
+    let k = (w - a.0) / (b.0 - a.0);
+    let lerp = |x: f64, y: f64| x + (y - x) * k;
+    let (a1, a2, g2) = (lerp(a.1, b.1), lerp(a.2, b.2), lerp(a.3, b.3));
+    a1 + (n - 1.0) / (g2 - 1.0) * (a2 - a1)
+}
+
 /// The full stick's and pedals' forces, N: the ends of the gradients above (inferred: the game's stick and pedals
 /// cover each gradient's whole range; a push reaches −80 N, a pull 180 N).
 const PULL_N: f64 = 180.0;
@@ -173,7 +204,10 @@ impl Fcs {
         let force = if pilot.stick_y >= 0.0 { pilot.stick_y * PULL_N } else { pilot.stick_y * PUSH_N };
         let f = self.f_long.step(60.0, force, dt);
         let n = pilot.g_command.map_or_else(|| table(&PITCH_GRADIENT, f), |g| g - 1.0);
-        let cmd = n.clamp(table(&NEG_G, qbar_k).max(self.min_g - 1.0), self.max_g - 1.0);
+        // The MPO overrides the negative g limiter (T.O. 1F-16A-1, "MANUAL PITCH Override"): the jet's own limit
+        // stays (inferred).
+        let neg = if pilot.mpo { self.min_g - 1.0 } else { table(&NEG_G, qbar_k).max(self.min_g - 1.0) };
+        let cmd = n.clamp(neg, self.max_g - 1.0);
         let n_f = self.n_cmd.step(8.3, cmd, dt);
         // Pitch rate washed out, s/(s + 1).
         let q_wo = s.q - self.q_wash.step(1.0, s.q, dt);
@@ -182,15 +216,38 @@ impl Fcs {
         let l2 = (alpha_f - 20.4).max(0.0);
         // Feedback: (3s + 12)/(s + 12) of the limiter's first branch, pitch rate and filtered (an − 1).
         let an = self.an_f.step(50.0, s.an - 1.0, dt);
-        let fb_in = l1 + 0.334 * q_wo + an;
+        // CAT III (figure 1-44): the α limit of the jet's weight at its load factor, with the same pitch-rate lead.
+        let l3 = if pilot.cat3 {
+            let lim = cat3_alpha_limit(s.weight_lb, an + 1.0);
+            CAT3_GAIN * (alpha_f + 0.7 * table(&Q_GAIN, qbar_k) * q_wo - lim).max(0.0)
+        } else {
+            0.0
+        };
+        let fb_in = l1 + l3 + 0.334 * q_wo + an;
         // (3s + 12)/(s + 12) = 3 − 24/(s + 12): x' = u − 12 x, y = 3u − 24x.
         self.lead_x += (fb_in / 12.0 - self.lead_x) * (1.0 - (-12.0 * dt).exp());
         let fb = 3.0 * fb_in - 24.0 * self.lead_x;
         let u = 1.5 * table(&LOOP_GAIN, qbar_k) * (n_f - fb - l2);
-        // The integrator (5/s, ±25°), held at zero with weight on the wheels (inferred: the F-16's weight-on-wheels
-        // switch; TP-1538 flies no ground phase), and the proportional path (5, ±25°).
-        self.integ = if s.on_ground { 0.0 } else { (self.integ + 5.0 * u * dt).clamp(-25.0, 25.0) };
-        let dh_cmd = -(self.integ + (5.0 * u).clamp(-25.0, 25.0)) + 0.5 * alpha_f;
+        // The integrator (±25°), held at zero with weight on the wheels (inferred: the F-16's weight-on-wheels
+        // switch; TP-1538 flies no ground phase), and the proportional path (5, ±25°). Below the α limiter the
+        // production F-16 is a g command system ("Commanded pitch responses are in g increments per stick force for
+        // AOA below 15 degrees", T.O. 1F-16A-1): there the integrator takes the g error alone (`G_INTEGRATOR`), so
+        // the jet holds the commanded g while its speed and pitch rate change; TP-1538's integrator (5/s on the whole
+        // shaped error, its washed-out pitch rate included) stopped 0.5 g short and reached it slowly. On the
+        // limiter, TP-1538's.
+        let ui = if l1 + l2 + l3 > 0.0 { 5.0 * u } else { G_INTEGRATOR * 1.5 * table(&LOOP_GAIN, qbar_k) * (n_f - an) };
+        // MPO above α 29° (T.O. 1F-16A-1: "enable manual control of the horizontal tails"): full stick is full
+        // stabilator, centred stick streamlines it; the integrator follows (the proportional path returns at once
+        // when the MPO lets go; the actuator's 60 deg/s limits the step).
+        let manual = pilot.mpo && s.alpha > 29.0;
+        let dh_cmd = if manual {
+            let dh = -25.0 * pilot.stick_y.clamp(-1.0, 1.0);
+            self.integ = (0.5 * alpha_f - dh).clamp(-25.0, 25.0);
+            dh
+        } else {
+            self.integ = if s.on_ground { 0.0 } else { (self.integ + ui * dt).clamp(-25.0, 25.0) };
+            -(self.integ + (5.0 * u).clamp(-25.0, 25.0)) + 0.5 * alpha_f
+        };
         let dh = self.dh.step(20.2, 60.0, (-25.0, 25.0), dh_cmd, dt);
 
         // --- Roll (figure 64(a); the notch filter and the command shaping left out, inferred) ---
@@ -204,7 +261,8 @@ impl Fcs {
         // `aircraft::F16_CLP`; inferred: figure 64(a)'s proportional loop alone stops short of its command); the loop
         // corrects the rest, so a steady moment (unbalanced stores) still rolls the jet. TP-1538's control system A
         // otherwise, and for the autopilot's rate command: 308 deg/s, 10/(s + 10), 80 deg/s, ±21.5°, no feedforward.
-        let stick = table(&ROLL_GRADIENT, f);
+        // CAT III: the stick's roll command × `F16_CAT3_ROLL` (T.O. 1F-16A-1 figure 1-43).
+        let stick = table(&ROLL_GRADIENT, f) * if pilot.cat3 { F16_CAT3_ROLL } else { 1.0 };
         let (da_rate, da_max) =
             self.roll.map_or((80.0, 21.5), |(r, _)| (r.flaperon_rate, (r.flaperon.0 + r.flaperon.1) / 2.0));
         let (p_cmd, ff_span) = match (self.roll, pilot.roll_rate_command) {
@@ -225,7 +283,15 @@ impl Fcs {
 
         // --- Yaw (figure 65(a)) ---
         let f = self.f_ped.step(60.0, pilot.pedal * PEDAL_N, dt);
-        let fade = ((30.0 - alpha_f) / 10.0).clamp(0.0, 1.0);
+        // The pedals fade out to none at α 30° (TP-1538); CAT III: none from α 15° (T.O. 1F-16A-1 figure 1-43: "Zero
+        // rudder authority available at 15° AOA", faded from 5°, inferred); MPO above α 29°: full (figure 1-43 note 2).
+        let fade = if pilot.mpo && s.alpha > 29.0 {
+            1.0
+        } else if pilot.cat3 {
+            ((15.0 - alpha_f) / 10.0).clamp(0.0, 1.0)
+        } else {
+            ((30.0 - alpha_f) / 10.0).clamp(0.0, 1.0)
+        };
         let pedal = table(&RUDDER_GRADIENT, f) * fade;
         // Stability-axis yaw rate r − p·α, (3s + 15)/(s + 15), washed out 1.5 s/(s + 1).
         let r_stab = r_f - p_f * alpha_f / 57.3;

@@ -149,6 +149,14 @@ impl IafFlight {
         self.aircraft.as_ref().map_or(0.0, |ac| ac.roll_trim() as f64)
     }
 
+    /// The 6-DoF's MANUAL PITCH override (held) and STORES CONFIG switch (CAT III on); the original model has neither.
+    #[func]
+    fn set_fcs_switches(&mut self, mpo: bool, cat3: bool) {
+        if let Some(Fm::SixDof(s)) = self.aircraft.as_mut() {
+            (s.mpo, s.cat3) = (mpo, cat3);
+        }
+    }
+
     /// Stick x/y −1..1 (y: pull positive), rudder −1..1, throttle 0..1 (0.74 military, ≥0.75 AB).
     #[func]
     fn set_controls(&mut self, stick: Vector2, rudder: f64, throttle: f64, flaps: f64, gear_down: bool, brakes: bool) {

@@ -4083,6 +4083,9 @@ var frozen := false
 ## Down pressed = pull; releasing either centres). No ramp, curve or spring: the flight model's lift ramp
 ## (G_Rate, docs/flight-model.md §4) is the only smoothing.
 var _key_was_held := {}
+## The STORES CONFIG switch at CAT III (the 6-DoF; Alt + S) and whether Alt + S was down last frame.
+var cat3 := false
+var _cat3_key := false
 var _eo_pan := Vector2i.ZERO
 
 
@@ -4115,11 +4118,23 @@ func _read_controls(delta: float) -> void:
 	# Ours: the roll trim, from the throttle rocker (Devices page) and Alt + Left / Right (docs/controls.md); held
 	# still while the autopilot flies (it ignores the trim, so a change would land all at once when it lets go).
 	var trim := Joystick.rocker()
-	if Input.is_key_pressed(KEY_ALT) and not Input.is_key_pressed(KEY_CTRL) and not Input.is_key_pressed(KEY_SHIFT):
+	var alt := (
+		Input.is_key_pressed(KEY_ALT) and not Input.is_key_pressed(KEY_CTRL) and not Input.is_key_pressed(KEY_SHIFT)
+	)
+	if alt:
 		trim += float(Input.is_key_pressed(KEY_RIGHT)) - float(Input.is_key_pressed(KEY_LEFT))
 	var ap_on: bool = autopilot != null and autopilot.mode != 0
 	if trim != 0.0 and flight != null and not ap_on:
 		flight.trim_roll(trim, delta)
+	# Ours, the 6-DoF only (the original model has neither; modern-iaf/docs/flight-model.md §9.11): Alt + M held is the
+	# MANUAL PITCH override, Alt + S flips the STORES CONFIG switch CAT I / CAT III.
+	if flight == null:
+		return
+	var s_down := alt and Input.is_key_pressed(KEY_S)
+	if s_down and not _cat3_key:
+		cat3 = not cat3
+	_cat3_key = s_down
+	flight.set_fcs_switches(alt and Input.is_key_pressed(KEY_M), cat3)
 
 
 ## One event of the joystick poller (FUN_004df560): GEV 1 stick (x, y ±100), 9 throttle (0..100), 10 rudder,
