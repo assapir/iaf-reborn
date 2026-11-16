@@ -646,7 +646,7 @@ How the flight reads it:
   poller's stick y (+100 at +1, 0 inside the dead zone, +50 at 0.55); a button and the hat bound by pressing them;
   the axis mapping against the 1998 game's table (with the Hotas X's defaults every role sends reborn's event at five
   positions, every bar has its event's sign and size, the lever forward is a full throttle bar); the hat through the
-  1998 game's poller (up then up-right sends the front-right view, centred releases it) and binds nothing; 98 commands listed, no free look;
+  1998 game's poller (up then up-right sends the front-right view, centred releases it) and binds nothing; 105 commands listed (the six lean commands since 2026-11-15), one head-look set;
   the Hotas X's map; with `Settings.laptop_keys` on, the laptop map: the rudder on Z / X, no key on two records, no
   numpad key, a stored key wins over it; a `devices.json` from before 2026-11-14 and a settings file with reborn's
   `[keys]` entries both load into `Settings.key_bindings`. `iaf-sim own`'s unit test checks the laptop table compiles

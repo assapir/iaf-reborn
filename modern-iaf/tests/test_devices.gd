@@ -108,7 +108,8 @@ func keys(fe: Control) -> void:
 	var listed := 0
 	for g in ks.GROUPS:
 		listed += ks.records_of(g).size()
-	check(listed == 99, "keys: 99 commands listed, one head-look set (%d)" % listed)
+	# 99 until 2026-11-15, then the six lean commands (keys.json records 126-131, 4aad56fd).
+	check(listed == 105, "keys: 105 commands listed, one head-look set (%d)" % listed)
 	check(
 		ks.GROUPS.all(func(g): return [74, 86, 89, 93].all(func(r): return not ks.records_of(g).has(r))),
 		"keys: no free look or F2 rear view (the snap views and the mouse look around)"
