@@ -216,7 +216,112 @@ func setup(c: Control, cam: Camera3D, type_code: int) -> bool:
 		clickable = Controls.new()
 		add_child(clickable)
 		clickable.setup(n, Settings.load_json(table), meta.get("controls", {}))
+		_still_controls(n)
 	return true
+
+
+## The least move a control's animation makes over its range (m for a slide along its axis, ° for a turn), else it is
+## given its own (_still_controls).
+const MOVE_MIN_M := 0.0015
+const MOVE_MIN_DEG := 3.0
+## The moves given (inferred, finish list C4): a push button or a latched one in 2 mm; a rocker 12° either way of its
+## middle.
+const PRESS_M := 0.002
+const ROCK_DEG := 12.0
+
+
+## The controls whose model has no animation that shows their position (FlightGear's buttons that only light; a
+## rocker of factor 0; a 0.5 mm press) given one about the face the eye sees (finish list C4: every control visibly
+## moves): a button pressed in, a rocker tilted. A stepping button ("add": the ASI's bug knob) shows its value by the
+## part it sets (the ASI's bug).
+func _still_controls(n: Node3D) -> void:
+	var have := {}
+	for a in _anims:
+		have[a[0]] = a
+	var eye := _v3(meta.get("eye", [0.0, 0.0, 0.0]))
+	for e in clickable._controls:
+		var mi: MeshInstance3D = e[0]
+		var r: Dictionary = e[1]
+		if not r.has("mode") or r.mode == "add" or _shown_by_model(r):
+			continue
+		var to_root := Transform3D.IDENTITY  # the part's parent's frame -> the model's (n)
+		var p := mi.get_parent()
+		while p is Node3D and p != n:
+			to_root = (p as Node3D).transform * to_root
+			p = p.get_parent()
+		var box := mi.get_aabb()
+		var face := _face(mi.mesh.get_faces(), (to_root * mi.transform).affine_inverse() * eye - box.get_center())
+		var axis := (mi.transform.basis * face).normalized()  # the parent's frame, toward the eye
+		var lo := float(r.get("min", 0.0))
+		var hi := float(r.get("max", 1.0))
+		var rec := {"prop": r.prop, "centre": [0.0, 0.0, 0.0], "offset": 0.0}
+		match r.mode:
+			"slide":  # a rocker: tilted across its length
+				var long := Vector3.ZERO  # the box's longest side across the face (its own frame)
+				for k in 3:
+					var d := Vector3.ZERO
+					d[k] = 1.0
+					if absf(d.dot(face)) < 0.7 and (long == Vector3.ZERO or box.size[k] > absf(box.size.dot(long))):
+						long = d
+				axis = axis.cross(mi.transform.basis * long).normalized()
+				rec.factor = 2.0 * ROCK_DEG / maxf(hi - lo, 1e-6)
+				rec.offset = -ROCK_DEG - rec.factor * lo
+			_:  # a push button, or one latched in: pressed in, away from the eye
+				rec.type = "translate"
+				axis = -axis
+				var rest := float(r.get("rest", lo))
+				var press := float(r.get("press", hi))
+				# Signed: a button pressed to -1 goes in too; one sharing its property with a partner pressed the
+				# other way (the DED's up / down) stays at rest (min).
+				rec.factor = PRESS_M / (press - rest if absf(press - rest) > 1e-6 else 1.0)
+				rec.offset = -rec.factor * rest
+				rec.min = 0.0
+		if rec.get("type", "") != "translate":
+			var c: Vector3 = mi.transform.basis * box.get_center()
+			rec.centre = [c.x, c.y, c.z]
+		rec.axis = [axis.x, axis.y, axis.z]
+		if have.has(mi):
+			have[mi][2] = [rec]
+		else:
+			_anims.append([mi, mi.transform, [rec]])
+
+
+## Whether some part of the model already moves visibly with control `r`'s property (its own animation, or another
+## part's: the DED's 4-way knob tilts for its four squares).
+func _shown_by_model(r: Dictionary) -> bool:
+	for a in _anims:
+		if _moves(a[2].filter(func(x): return x.get("prop", "") == r.prop), r):
+			return true
+	return false
+
+
+## Whether the animation `recs` of control `r` moves it visibly over its range.
+static func _moves(recs: Array, r: Dictionary) -> bool:
+	var span := absf(float(r.get("max", r.get("press", 1.0))) - float(r.get("min", r.get("rest", 0.0))))
+	for x in recs:
+		if x.has("table"):
+			return true
+		var m := absf(float(x.get("factor", 0.0))) * minf(span, 1e6)
+		if m >= (MOVE_MIN_M if x.get("type", "") == "translate" else MOVE_MIN_DEG):
+			return true
+	return false
+
+
+## The direction of the face of `faces` (a mesh's triangles, its own frame) with the most area seen from `to_eye`
+## (from the part's centre to the eye), turned toward the eye: whatever the triangles' winding, an open cap's too.
+static func _face(faces: PackedVector3Array, to_eye: Vector3) -> Vector3:
+	var area := {}
+	var eye := to_eye.normalized()
+	for i in range(0, faces.size(), 3):
+		var c := (faces[i + 1] - faces[i]).cross(faces[i + 2] - faces[i])
+		var nrm := c.normalized() * signf(c.dot(eye))
+		var k := (nrm * 10.0).round()
+		area[k] = float(area.get(k, 0.0)) + c.length() * absf(nrm.dot(eye))
+	var best := Vector3.ZERO
+	for k in area:
+		if best == Vector3.ZERO or area[k] > area[best]:
+			best = k
+	return best.normalized() if best != Vector3.ZERO else to_eye.normalized()
 
 
 const Controls := preload("res://shared/cockpit/cockpit3d_controls.gd")

@@ -3,6 +3,9 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **Every F-16 3D-cockpit control is seen to move (2026-11-16, finish list C4, [cockpit.md](cockpit.md) §5.2 "Every
+  control"):** the parts FlightGear does not animate are pressed in or tilted; the proof renders every control through
+  its positions (`modern-iaf/tests/_controls_shot.gd`).
 - **The Settings in the r3 layout (2026-11-16, the finish list's F7, [front-end.md](front-end.md) §14):** a search
   across the sections in English or Hebrew, the sections' counts, Graphics' Preset row (Laptop, Balanced, High,
   Everything on, Custom), segmented buttons for every row's choices, a cost chip per graphics row from measurements on

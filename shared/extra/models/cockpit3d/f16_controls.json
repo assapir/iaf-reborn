@@ -23,5 +23,9 @@
 "SW_MPO": {"system": "mpo"},
 "HMCS_SYM_INT_KNOB": {"system": "hmcs"},
 "MAL_IND_LTS": {"system": "lamp_test", "rest": 0},
-"master_reset": {"system": "master_caution"}
+"master_reset": {"system": "master_caution"},
+"MFD2_MFDButtonGain": {"prop": "f16/avionics/mfd-r-gain"},
+"ASI_bug-left": {"min": 0, "max": 850},
+"ASI_bug-right": {"min": 0, "max": 850},
+"EHSI_button": {"mode": "push", "prop": "c3d/EHSI/M", "press": 1, "rest": 0}
 }

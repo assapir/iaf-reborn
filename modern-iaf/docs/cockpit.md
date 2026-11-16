@@ -456,6 +456,16 @@ The controls of a system the game has work it (2026-11-16; `f16_controls.json` `
 `modern-iaf/tests/test_controls_all.gd` takes every one of these controls in each F-16: the pointer finds it, and it
 goes through every position both ways, kept and shown.
 
+Every control is seen to move (2026-11-16, finish list C4). Some of FlightGear's parts have no animation that shows
+their position: its push buttons that only light, the MFDs' rockers (factor 0), the PBG TEST button (0.5 mm). The
+cockpit gives each such part a move of its own about the face the eye sees (`cockpit3d.gd` `_still_controls`;
+inferred): a push button, or a button latched in, goes 2 mm in; a rocker tilts 12° either way of its middle. A
+stepping button shows its value by the part it sets: the ASI's bug knob (0 to 850 kt) moves the bug on the dial. Data
+fixes in `f16_controls.json`: the right MFD's GAIN rocker has its own property (FlightGear's gives it the left one's),
+and the EHSI's M button is a push button. The proof: `modern-iaf/tests/_controls_shot.gd` (a real render) takes
+each F-16's every control through its positions and crops the part with what it moves; it prints a control whose
+crops are all alike as `STILL`.
+
 `modern-iaf/tests/test_switches_both_ways.gd` runs each jet's switches off and on after the Start engine command
 and checks the position, the consequence, the steps done and the switch shown; on the F-16s it switches each of the
 six alone and checks its system down with its consequence, the other five up, and the system back after the warm-up.
