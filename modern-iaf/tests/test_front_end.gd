@@ -1251,6 +1251,18 @@ func _area_in_room(map: Control) -> bool:
 	return map.view.grow(2).encloses(a) and (a.size.x >= map.view.size.x * 0.3 or a.size.y >= map.view.size.y * 0.3)
 
 
+## Every pin and its name's plate (drawn, toward the map's right) in the room between the cards, so no panel covers
+## what the briefing points at.
+func _pins_in_room(map: Control, what: String) -> void:
+	var pins: Array = map.data.pins
+	check(map.plates.size() == pins.size(), "%s: every pin's name shown (%d)" % [what, map.plates.size()])
+	for p in pins:
+		var at: Vector2 = map._xf() * Vector2(float(p.at[0]), float(p.at[1]))
+		check(map.view.grow(2).has_point(at), "%s: pin %d in the room between the cards" % [what, p.first + 1])
+	for r in map.plates:
+		check(map.view.grow(2).encloses(r), "%s: a name's plate in the room (%s)" % [what, r])
+
+
 ## Waits (at most 10 s) until the briefing map's view settled: its tiles decoded.
 func _map_settled(map: Control) -> void:
 	for i in 600:
@@ -1546,17 +1558,8 @@ func _briefing_checks(fe: Control, lang: String) -> void:
 	check(map.base_label == ("רמון" if he else "Ramon"), "%s: map: the base" % lang)
 	check(d.pins.map(func(p): return int(p.first)) == [0, 3, 4], "%s: map: pins 1, 4 and 5 (%s)" % [lang, d.pins])
 	check(map.zoom > 2.0 and map.view.has_area(), "%s: map: opened on the base (%.1f)" % [lang, map.zoom])
-	for p in d.pins:
-		var at: Vector2 = map._xf() * Vector2(float(p.at[0]), float(p.at[1]))
-		check(map.view.grow(2).has_point(at), "%s: map: pin %d in the room between the cards" % [lang, p.first + 1])
-		# Its name's plate too (toward the map's right), so no panel covers what the briefing points at.
-		var w: float = (
-			map.get_theme_font("font", "Label").get_string_size(str(map.pin_names.get(p.place, "")), 0, -1, 19).x
-		)
-		check(
-			at.x + 26.0 + w + 16.0 <= map.view.end.x + 2.0,
-			"%s: map: pin %d's name clear of the panel" % [lang, p.first + 1]
-		)
+	await frames(1)
+	_pins_in_room(map, "%s: map" % lang)
 	var hold_name := "עצירה לפני \u206625R\u2069" if he else "Stop short of \u206625R\u2069"
 	check(map.pin_names.hold == hold_name, "%s: map: the holding point's pin named (%s)" % [lang, map.pin_names.hold])
 	# The roads with setup's road layer (the optional scenery step); without it the map draws the ground alone.
@@ -1567,6 +1570,19 @@ func _briefing_checks(fe: Control, lang: String) -> void:
 	check(map._tiles.size() > 0 and map._tex.size() > 0, "%s: map: the ground's tiles (%d)" % [lang, map._tex.size()])
 	var towns: Array = d.places.map(func(p): return p.he if he else p.en)
 	check(("מצפה רמון" if he else "Mitspe Ramon") in towns, "%s: map: Mitzpe Ramon (%s)" % [lang, towns])
+	# The text card wider: the map frames again in the narrower room between the cards.
+	var text_card: Control = fe.find_child("Text", true, false)
+	var room0: Rect2 = map.view
+	text_card.offset_left -= 200  # toward the map in either layout (the anchors mirror in Hebrew)
+	await frames(3)
+	check(
+		absf(map.view.size.x - (room0.size.x - 200.0)) < 1.0,
+		"%s: map: the room follows the text card (%s)" % [lang, map.view]
+	)
+	_pins_in_room(map, "%s: map, the text card wider" % lang)
+	text_card.offset_left += 200
+	await frames(3)
+	check(map.view == room0, "%s: map: the room back (%s)" % [lang, map.view])
 	# The chips: the layers off and on, the zoom.
 	check(fe.find_child("MapTaxi", true, false) == null, "%s: no Taxi route chip (the route always drawn)" % lang)
 	for c in [["MapLabels", "show_labels"], ["MapPhoto", "show_photo"]]:
@@ -1582,6 +1598,9 @@ func _briefing_checks(fe: Control, lang: String) -> void:
 	check(map.zoom < z0, "%s: chip: zoom out" % lang)
 	map.reset_view()
 	check(_area_in_room(map), "%s: map: reset fits the mission's area into the room" % lang)
+	await frames(1)
+	_pins_in_room(map, "%s: map at the reset" % lang)
+	check(map._area_shown(), "%s: map: the runway label at the reset" % lang)
 	var zr: float = map.zoom
 	# The wheel zooms around the pointer: the map point under it stays; the scale bar follows.
 	var at: Vector2 = map.view.get_center()

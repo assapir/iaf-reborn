@@ -766,8 +766,9 @@ did not handle, so it could not be zoomed in to make a drag move. It draws:
   and the runways' designators at their ends;
 - the taxi from the parking spot to the lineup as a dashed line (the base's departure route, the one the sim's AI
   taxis), the route from the lineup through the mission's waypoints with an arrow, the runway end and its heading
-  beside the first leg, the base's label at the whole map's zoom; zoomed out past the mission's area the runway's
-  label and the pins' names stay off (the pins a few pixels apart), and a label whose place is off the map is left out;
+  beside the first leg, the base's label at the whole map's zoom; zoomed out past the mission's area (past the
+  zoom a double click or 0 shows, which keeps them) the runway's label and the pins' names stay off (the pins a few
+  pixels apart), and a label whose place is off the map is left out;
 - the mission's other flights (Bravo..; IafBriefing's `flights`): each from its start (a square) through its
   waypoints (rings) to an arrow, each in a colour of its own (orange, green, purple) apart from the player's navy,
   its callsign on a plate at its start, the one the Flights tabs pick wider;

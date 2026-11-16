@@ -69,6 +69,11 @@ var center := Vector2.ZERO
 ## The room the map opens in (px; empty: the whole control), its north arrow at its top inline-end corner; the scale
 ## bar's inline-start bottom corner (px; negative: the control's corner).
 var view := Rect2()
+## The zoom that shows the mission's area in the room (`reset_view`): zoomed out past it the pins' names and the runway
+## label turn off.
+var area_zoom := 1.0
+## The pins' name plates last drawn (px).
+var plates: Array[Rect2] = []
 var scale_at := Vector2(-1, -1)
 ## The layers the chips turn on and off: the labels, the photo (else the TSD map's colours).
 var show_labels := true:
@@ -170,8 +175,8 @@ func _update_view() -> void:
 	if data.is_empty():
 		return
 	var inv := _xf().affine_inverse()
-	var view := Rect2(inv * Vector2.ZERO, size / (_fit() * zoom))
-	var box := PackedFloat64Array([view.position.x, view.position.y, view.end.x, view.end.y])
+	var seen := Rect2(inv * Vector2.ZERO, size / (_fit() * zoom))
+	var box := PackedFloat64Array([seen.position.x, seen.position.y, seen.end.x, seen.end.y])
 	var e: Array = data.get("extent", [])
 	if e.size() != 4:
 		return
@@ -190,9 +195,9 @@ func _update_view() -> void:
 			else:
 				_want.append(n)
 		_trim()
-	var fresh := _layers_box.encloses(view) and mpp >= _layers_fine and mpp <= _layers_coarse
+	var fresh := _layers_box.encloses(seen) and mpp >= _layers_fine and mpp <= _layers_coarse
 	if layers_source.is_valid() and not fresh:
-		var grown := view.grow(maxf(view.size.x, view.size.y) / 2.0)
+		var grown := seen.grow(maxf(seen.size.x, seen.size.y) / 2.0)
 		var l: Dictionary = layers_source.call(
 			PackedFloat64Array([grown.position.x, grown.position.y, grown.end.x, grown.end.y]), origin, mpp
 		)
@@ -238,13 +243,15 @@ func aim(r: Rect2) -> void:
 		open_view()
 
 
-## The base and the route (`focus`, the map's metres) fitted into `view`; the whole map without them.
+## The base and the route (`focus`, the map's metres) fitted into `view`; the whole map without them. Nothing before
+## the map has a size.
 func open_view() -> void:
-	var f: Array = data.get("focus", [])
-	if f.size() != 4 or size.x <= 0.0:
-		reset_view()
+	if size.x <= 0.0 or size.y <= 0.0:
 		return
-	_frame(Rect2(float(f[0]), float(f[1]), float(f[2]) - float(f[0]), float(f[3]) - float(f[1])))
+	reset_view()
+	var f: Array = data.get("focus", [])
+	if f.size() == 4:
+		_frame(Rect2(float(f[0]), float(f[1]), float(f[2]) - float(f[0]), float(f[3]) - float(f[1])))
 
 
 ## Fits the box `box` (the map's metres) into the room with PIN_ROOM round it (a disc stacks up to two discs above its
@@ -283,9 +290,10 @@ func zoom_view(f: float) -> void:
 	zoom_at(f, _room().get_center())
 
 
-## The mission's area (the map's `size`) fitted into the room.
+## The mission's area (the map's `size`) fitted into the room (its zoom kept as `area_zoom`).
 func reset_view() -> void:
 	_frame(Rect2(Vector2.ZERO, _size_m()))
+	area_zoom = zoom
 
 
 ## The map's area (m).
@@ -457,7 +465,7 @@ func _draw() -> void:
 				_tag(font, d[0], d[1] + Vector2(-w / 2.0, 8.0), 17, taken)
 	elif show_labels:
 		_tag(font, base_label, at + Vector2(-60, 48), 22, taken)
-	if show_labels and runway_label != "" and route.size() >= 2 and zoom >= 1.0:
+	if show_labels and runway_label != "" and route.size() >= 2 and _area_shown():
 		# Beside the take-off's first leg, a little past the lineup (in the room the cards leave).
 		var along := (route[1] - route[0]).normalized() * minf(route[0].distance_to(route[1]), 240.0)
 		_tag(font, runway_label, route[0] + along + Vector2(-40, -18), 20, taken)
@@ -479,7 +487,7 @@ func _draw() -> void:
 ## a dark plate. Their room is taken now; the Callable it answers draws them over everything.
 func _pins(font: Font, xf: Transform2D, taken: Array[Rect2]) -> Callable:
 	var discs := []
-	var plates := []
+	var names: Array[String] = []
 	for p in data.get("pins", []):
 		var at: Vector2 = _points(p.at, xf)[0]
 		var c := at
@@ -490,7 +498,8 @@ func _pins(font: Font, xf: Transform2D, taken: Array[Rect2]) -> Callable:
 		discs.append([at, c, str(int(p.first) + 1)])
 		taken.append(Rect2(c - Vector2(18, 18), Vector2(36, 36)))
 	# Their names in view only, and not zoomed out past the mission's area (the pins a few pixels apart there).
-	if show_labels and zoom >= 1.0:
+	plates.clear()
+	if show_labels and _area_shown():
 		var pins: Array = data.get("pins", [])
 		for i in pins.size():
 			var p: Dictionary = pins[i]
@@ -498,22 +507,29 @@ func _pins(font: Font, xf: Transform2D, taken: Array[Rect2]) -> Callable:
 			if not Rect2(Vector2.ZERO, size).has_point(c):
 				continue
 			var r := _plate(font, str(pin_names.get(p.place, "")), c + Vector2(26, 8), 19, taken)
-			plates.append([r, str(pin_names.get(p.place, "")), 19])
+			if r.has_area():
+				plates.append(r)
+				names.append(str(pin_names.get(p.place, "")))
 	return func():
 		for d in discs:
 			if d[0] != d[1]:
 				draw_line(d[0], d[1], Color.WHITE, 2.0, true)
 				draw_circle(d[0], 4.0, Color.WHITE, true, -1.0, true)
-		for pl in plates:
-			if pl[0].has_area():
-				draw_rect(pl[0], Color(Look.BG, 0.88))
-				var at: Vector2 = pl[0].position + Vector2(8, pl[2] + 4)
-				draw_string(font, at, pl[1], HORIZONTAL_ALIGNMENT_LEFT, -1, pl[2], Look.TEXT)
+		for i in plates.size():
+			draw_rect(plates[i], Color(Look.BG, 0.88))
+			draw_string(
+				font, plates[i].position + Vector2(8, 23), names[i], HORIZONTAL_ALIGNMENT_LEFT, -1, 19, Look.TEXT
+			)
 		for d in discs:
 			draw_circle(d[1], 17.0, Look.ACCENT, true, -1.0, true)
 			draw_circle(d[1], 17.0, Color.WHITE, false, 2.5, true)
 			var w := font.get_string_size(d[2], HORIZONTAL_ALIGNMENT_LEFT, -1, 18).x
 			draw_string(font, d[1] + Vector2(-w / 2.0, 6.5), d[2], HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Look.NAVY)
+
+
+## The view shows the mission's area or less (not zoomed out past `reset_view`'s zoom).
+func _area_shown() -> bool:
+	return zoom >= area_zoom - 1e-3
 
 
 ## A pin label's plate for text `t` at `at` (its baseline's start), moved down past a plate already there (at most four
@@ -626,8 +642,8 @@ func _draw_base(xf: Transform2D, k: float) -> void:
 			draw_rect(Rect2(p - Vector2(4, 4), Vector2(8, 8)), SPOT)
 
 
-## A label on a pale plate at `at` (left out when `at` is far off the map), kept inside the map; its plate joins
-## `taken`.
+## A label on a pale plate at `at` (left out when `at` is far off the map), kept inside the map and moved down past a
+## pin or label already there (at most four times, as the pins' plates); its plate joins `taken`.
 func _tag(font: Font, t: String, at: Vector2, px: int, taken: Array[Rect2]) -> void:
 	if t == "" or not Rect2(Vector2.ZERO, size).grow(px * 4).has_point(at):
 		return
@@ -635,9 +651,13 @@ func _tag(font: Font, t: String, at: Vector2, px: int, taken: Array[Rect2]) -> v
 	at.x = clampf(at.x, 8.0, size.x - w - 18.0)
 	at.y = clampf(at.y, px + 8.0, size.y - 8.0)
 	var plate := Rect2(at + Vector2(-6, -px - 2), Vector2(w + 12, px + 12))
+	for i in 4:
+		if not taken.any(func(o): return o.intersects(plate)):
+			break
+		plate.position.y += px + 14
 	taken.append(plate)
 	draw_rect(plate, Color(Look.PAPER, 0.85))
-	draw_string(font, at, t, HORIZONTAL_ALIGNMENT_LEFT, -1, px, Look.INK)
+	draw_string(font, plate.position + Vector2(6, px + 2), t, HORIZONTAL_ALIGNMENT_LEFT, -1, px, Look.INK)
 
 
 ## The mission's other flights (IafBriefing's `flights`): from the start (a square) along the waypoints (rings) to an
