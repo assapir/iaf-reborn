@@ -1,7 +1,8 @@
 # The 3D cockpit's controls of the systems the game has (finish list C2; modern-iaf/docs/cockpit.md "Every control"):
 # in each F-16's cold start-up flight each control with a `system` (f16_controls.json) works its system, and the
 # system's own key moves the control: MASTER ARM, STORES CONFIG, MPO (held), ALT FLAPS, the MFD BRT rockers, HMCS SYM
-# INT, MAL & IND LTS (held), MASTER CAUTION, the ICP's A-A / A-G; then in the air EMER JETT.
+# INT, MAL & IND LTS (held), MASTER CAUTION, the ICP's A-A / A-G; then in the air EMER JETT. First the switches of
+# three positions (C3): MAIN PWR, the JFS, RDR ALT.
 #   IAF_DEFAULT_SETTINGS=1 godot --headless --audio-driver Dummy --path modern-iaf \
 #     -s ../modern-iaf/tests/test_controls_systems.gd --log-file <temp>
 extends "res://../tests/godot/base.gd"
@@ -30,6 +31,7 @@ func run() -> void:
 		if _c3d == null or _c3d.clickable == null:
 			continue
 		_ctl = _c3d.clickable
+		await _three(tv, id)
 		tv._press([210, 1, 0])  # main power, for the lamps
 		await frames(3)
 		tv.addon.result = {"pass": true}  # the training's checks stop (sim_flight.gd _finish)
@@ -50,6 +52,30 @@ func _click(node: String) -> void:
 func _shown(node: String) -> float:
 	_c3d._process(0.0)
 	return _ctl.value(_r(node))
+
+
+## The switches of three positions (finish list C3; start.rs Start::position) through every position both ways, each
+## the flight model's, and their keys shown: MAIN PWR OFF / BATT / MAIN PWR, the JFS START 1 / OFF / START 2, RDR ALT
+## OFF / STBY / RDR ALT.
+func _three(tv: Node, id: String) -> void:
+	for e in [
+		["MAIN_PWR", "main_power", [1, 2, 1, 0, 2]],
+		["RDR_ALT", "rdr_alt", [1, 2, 1, 0]],
+		["JFS", "starter", [-1, 0, 1, 0]]
+	]:
+		for p in e[2]:
+			_ctl.put(_r(e[0]), float(p))
+			await frames(1)
+			check(
+				tv.flight.start_position(e[1]) == p and _shown(e[0]) == float(p),
+				"%s: %s at %d (the flight model's %d)" % [id, e[0], p, tv.flight.start_position(e[1])]
+			)
+	tv._press([210, 0, 0])  # the key: main power off and on
+	await frames(1)
+	check(_shown("MAIN_PWR") == 0.0, "%s: the main power key shows OFF" % id)
+	tv._press([210, 0, 0])
+	await frames(1)
+	check(_shown("MAIN_PWR") == 2.0, "%s: and MAIN PWR" % id)
 
 
 func _ground(tv: Node, id: String) -> void:

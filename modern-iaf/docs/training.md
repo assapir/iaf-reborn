@@ -497,7 +497,7 @@ else up above it. Pictures: `modern-iaf/tests/_click_areas_shot.gd`.
 | LANDING | the landing gear handle (both cockpits) | yes since 2026-11-13: the G key's command, refused on the ground |
 | LANDING, EMERGENCY | the throttle to OFF over the idle detent | no: the throttle takes no mouse; OFF is Throttle OFF (Shift + 1) |
 | LANDING | the wheel brakes (the rudder pedals) | no: no pedal part answers the mouse (open) |
-| EMERGENCY | JFS OFF, MAIN PWR OFF, BATT OFF | no: a click turns these on only (open) |
+| EMERGENCY | JFS OFF, MAIN PWR OFF, BATT OFF | the F-16s' yes: a click goes round to OFF, a drag down too (since 2026-11-16, [cockpit.md](cockpit.md) §5.2); the F-35I's BATT: a click turns it on only (open) |
 | EMERGENCY | the ejection handle | no: no part of the seat answers the mouse (open) |
 | not on the pages | FCR, RDR ALT | no: FlightGear's console has no part for them (cockpit.md §5.2); the start-up steps leave them out |
 

@@ -99,6 +99,9 @@ const STEP_IDS := ["main_power", "starter", "engine", "avionics", "ins", "canopy
 ## The F-16's power switches one by one (command 219's p2 → SYSTEMS[i]; iaf-flight start.rs SYSTEMS, the same order):
 ## the four AVIONIC POWER switches (together the avionics step) and the SNSR PWR panel's FCR and RDR ALT.
 const SYSTEMS := ["mmc", "st_sta", "mfd", "ufc", "fcr", "rdr_alt"]
+## The F-16's switches of three positions: a command's p1 2 puts one at its in-between position (MAIN PWR at BATT, the
+## JFS at START 1, RDR ALT at STBY; iaf-flight start.rs Start::position), the flight model's step of that name.
+const IN_BETWEEN := {"main_power": "main_power_batt", "starter": "starter_1", "rdr_alt": "rdr_alt_stby"}
 ## The avionics step's switches of SYSTEMS (the AVIONIC POWER panel's four; the step is on with all four).
 const AVIONIC_POWER := ["mmc", "st_sta", "mfd", "ufc"]
 ## The checklist's first key record (modern-iaf/data/keys.json, records 119–124: STEP_IDS in order; commands 210–215).
@@ -529,18 +532,19 @@ func system_switch(i: int, want: int) -> void:
 		_set_switch(SYSTEMS[i], want, "avionics")
 
 
-## Switch `sw` set (IafFlight.start_switch), its checklist step `id` recorded when it changes or faults.
+## Switch `sw` set (IafFlight.start_switch; `want` 2: its in-between position, IN_BETWEEN), its checklist step `id`
+## recorded when it changes or faults, with the position of a switch of more than two (the INS knob's, IN_BETWEEN's).
 func _set_switch(sw: String, want: int, id: String) -> void:
 	if host.flight == null or not result.is_empty():
 		return
 	var was: bool = host.flight.start_on(id)
-	var knob: int = host.flight.ins_knob()
-	var fault: String = host.flight.start_switch(sw, want)
+	var pos := _position(sw)
+	var fault: String = host.flight.start_switch(IN_BETWEEN.get(sw, sw) if want == 2 else sw, mini(want, 1))
 	var on: bool = host.flight.start_on(id)
 	var e := {"event": "checklist", "step": id}
-	var turned: bool = sw == "ins" and host.flight.ins_knob() != knob
+	var turned: bool = _position(sw) != pos
 	if turned:
-		e["position"] = host.flight.ins_knob()  # the INS knob's (0 OFF .. 5 ATT)
+		e["position"] = _position(sw)  # the INS knob's 0 OFF .. 5 ATT; IafFlight.start_position's
 	if fault != "":
 		e["fault"] = fault
 		_fault = fault
@@ -557,6 +561,13 @@ func _set_switch(sw: String, want: int, id: String) -> void:
 	kneeboard.refresh()  # a fault shows on the START-UP page even with no switch changed
 
 
+## The position of switch `sw` when it has more than two (the INS knob, IN_BETWEEN's), else -9.
+func _position(sw: String) -> int:
+	if sw == "ins":
+		return host.flight.ins_knob()
+	return host.flight.start_position(sw) if IN_BETWEEN.has(sw) else -9
+
+
 ## The checklist from the flight model's switches (IafFlight.start_on), each frame: `done`, the notebook, and the 3D
 ## cockpit's switches that changed (cockpit3d_controls.gd set_switch: a step's by its command 210 + i, a power
 ## switch's by 219 and its index; the JFS switch springs back to OFF; a cold jet's start off; a refused click back).
@@ -565,7 +576,8 @@ func _sync_switches() -> void:
 		return
 	var now := []
 	for id in STEP_IDS:
-		if host.flight.start_on(id):
+		# MAIN PWR's step is done at MAIN PWR, not at BATT (no generators on the buses: the avionics would wait).
+		if host.flight.start_on(id) and (id != "main_power" or host.flight.start_position(id) == 2):
 			now.append(id)
 	var c3d = host.get("cockpit_3d")
 	if is_instance_valid(c3d) and c3d.clickable != null:

@@ -433,6 +433,14 @@ impl IafFlight {
         self.aircraft.as_ref().is_none_or(|ac| ac.start_on(&step.to_string()))
     }
 
+    /// The position of the F-16's switch of three positions `step`, FlightGear's value: "main_power" 0 OFF, 1 BATT,
+    /// 2 MAIN PWR; "starter" -1 START 1, 0 OFF, 1 START 2; "rdr_alt" 0 OFF, 1 STBY, 2 RDR ALT (finish list C3).
+    #[func]
+    fn start_position(&self, step: GString) -> i64 {
+        let step = step.to_string();
+        self.aircraft.as_ref().map_or(2 * i64::from(step != "starter"), |ac| i64::from(ac.start_position(&step)))
+    }
+
     /// The INS knob's position, FlightGear's `f16/avionics/ins-knob` value (0 OFF, 1 STOR HDG, 2 NORM, 3 NAV, 4 IN FLT
     /// ALIGN, 5 ATT; modern-iaf/docs/cockpit.md §5.2).
     #[func]

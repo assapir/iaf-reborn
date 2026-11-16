@@ -215,7 +215,8 @@ func set_switch(id: int, on: bool, p2 := -1, value := NAN) -> void:
 	for e in _controls:
 		var r: Dictionary = e[1]
 		var click: Array = r.get("click", [-1, 0, 0])
-		if r.has("prop") and int(click[0]) == id and (p2 < 0 or int(click[2]) == p2):
+		# A switch with a "system" shows its system's own position (sync).
+		if r.has("prop") and int(click[0]) == id and (p2 < 0 or int(click[2]) == p2) and not r.has("system"):
 			get_parent().switches[r.prop] = value if not is_nan(value) else float(r.on if on else r.off)
 			if on and r.has("guard"):  # thrown by its key or the throttle: its guard up too, not shut over the bat
 				get_parent().switches[r.guard] = 1.0
@@ -289,7 +290,7 @@ func _turn(r: Dictionary, way: float, drag := false) -> void:
 ## A control of the model's own `controls` alone: moved here, no command (a table row's "click", "turn" or "toggle"
 ## sends its own).
 static func _generic(r: Dictionary) -> bool:
-	return r.has("mode") and not (r.has("click") or r.has("turn") or r.has("toggle"))
+	return r.has("mode") and (r.has("system") or not (r.has("click") or r.has("turn") or r.has("toggle")))
 
 
 ## Whether `r` takes the wheel: a table row's "turn", a continuous knob, a stepping button, a rotary of four positions
@@ -388,13 +389,17 @@ func put(r: Dictionary, v: float) -> void:
 	var tv: Object = get_parent().command.get_object() if get_parent().command.is_valid() else null
 	if tv != null and tv.get("sounds") != null:
 		tv.sounds.play("SFX_BUTTON")
-	if r.has("system") and tv != null and tv.get("weapons") != null:
-		_system_put(tv, r.system, v)
+	if r.has("system"):
+		_system_put(r.system, v)
 	if v < 0.5:
 		for e in _controls:
 			if e[1].get("guard", "") == r.prop and e[1].has("safe") and _generic(e[1]):
 				sw[e[1].prop] = float(e[1].safe)
 
+
+## The start-up switches of three positions (f16_controls.json `system`) and their command [id, p2]: MAIN PWR 210,
+## the JFS 211, RDR ALT 219 with its index in sim_flight.gd SYSTEMS.
+const START_CMD := {"main_power": [210, 0], "starter": [211, 0], "rdr_alt": [219, 5]}
 
 # The switches wired to the systems the game has (a row's "system", finish list C2; modern-iaf/docs/cockpit.md §5.2):
 # a move sends the system's own command through the key path (or sets its state), and each frame the switch shows the
@@ -428,11 +433,22 @@ static func _system_state(tv: Object, name: String, now: float) -> float:
 			return 1.0 if tv.cat3 else 0.0
 		"mpo":
 			return 1.0 if tv.mpo or tv.mpo_on else 0.0
+		"main_power", "starter", "rdr_alt":  # the flight model's (start.rs Start::position)
+			return float(tv.flight.start_position(name)) if tv.flight != null else NAN
 	return NAN
 
 
 ## Switch of system `name` moved to `v`: the system's command (terrain_view.gd _press, as the key sends it) or state.
-static func _system_put(tv: Object, name: String, v: float) -> void:
+func _system_put(name: String, v: float) -> void:
+	var cmd: Callable = get_parent().command
+	if name in START_CMD:  # the start-up switches of three positions: p1 -1 OFF, 2 the in-between position, 1 on
+		var p := roundi(v)
+		var mid := -1 if name == "starter" else 1  # START 1, BATT, STBY
+		cmd.call([START_CMD[name][0], -1 if p == 0 else (2 if p == mid else 1), START_CMD[name][1]])
+		return
+	var tv: Object = cmd.get_object() if cmd.is_valid() else null
+	if tv == null or tv.get("weapons") == null:
+		return
 	var on := v > 0.5
 	match name:
 		"master_arm":  # command 202 flips it

@@ -5,6 +5,8 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 ## Works
 - **Attributions (2026-11-16, the finish list's F8, [front-end.md](front-end.md) §5):** a footer Back, the list
   scrolls by the arrows and Page Up / Down; the six unused jet photos, their entry and credits deleted.
+- **MAIN PWR's BATT, the JFS's START 1 and RDR ALT's STBY (2026-11-16, finish list C3, [cockpit.md](cockpit.md)
+  §5.2):** each a position of its own in the flight model with its consequence, clicked or dragged in the 3D cockpit.
 - **The crash page in Hebrew (2026-11-16, the finish list's F10, [front-end.md](front-end.md) §11):** the loading
   step by its loading-screen name in the page's language; the log's path one left-to-right run.
 - **The F-16s' 3D cockpit switches work their systems (2026-11-16, finish list C2, [cockpit.md](cockpit.md) §5.2

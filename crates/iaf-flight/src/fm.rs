@@ -190,6 +190,15 @@ impl Fm {
         }
     }
 
+    /// The position of a switch of three positions (the 6-DoF's `start_position`: MAIN PWR 0..2, the JFS -1..1, RDR ALT
+    /// 0..2): in the original model MAIN PWR and RDR ALT on (2), the JFS at OFF.
+    pub fn start_position(&self, step: &str) -> i8 {
+        match self {
+            Fm::SixDof(s) => s.start_position(step),
+            Fm::Original(_) => 2 * i8::from(step != "starter"),
+        }
+    }
+
     /// The INS knob's position (the 6-DoF's, 0 OFF .. 5 ATT): NAV (3) in the original model.
     pub fn ins_knob(&self) -> u8 {
         match self {

@@ -282,20 +282,21 @@ switches as FlightGear models them.
 - **FCR and RDR ALT** (2026-11-13, the switches audit's M1): FlightGear's right console has both as their own objects,
   `fcr-switch` and `rdr-alt-switch` on the SNSR PWR panel, turning on `f16/avionics/power-fcr` (OFF 0 / ON 1) and
   `f16/avionics/power-rdr-alt` (OFF 0 / STBY 1 / ON 2)[^fg-right]; `CONTROLS` makes them the nodes `FCR` and
-  `RDR_ALT`. Each is a `toggle` sending its own command (`[219, ±1, 4]`, `[219, ±1, 5]`): a click moves it between
-  OFF and ON (RDR ALT skips STBY), with its click. A cold jet has them OFF (as the model shows them unset), a hot jet
+  `RDR_ALT`. FCR is a `toggle` sending `[219, ±1, 4]`: a click moves it between OFF and ON. RDR ALT (since
+  2026-11-16) is a switch of three positions sending `[219, -1 / 2 / 1, 5]` for OFF / STBY / RDR ALT (the in-between
+  positions below). A cold jet has them OFF (as the model shows them unset), a hot jet
   ON; they are no checklist step.
 
 | step | control (node) | place on the jet | command | key | on / off (FlightGear's value) |
 |---|---|---|---|---|---|
-| 1 | MAIN PWR switch (`MAIN_PWR`) | ELEC panel, left console, beside the throttle[^bms-ramp][^fg-left] | `[210, 0, 0]` | Ctrl+B | MAIN (2) / OFF (0) |
-| 2 | JFS switch (`JFS`) | ENG & JET START panel, left console, aft[^bms-ramp][^fg-left] | `[211, 0, 0]` | Ctrl+J | START 2 (1) / OFF (0) |
+| 1 | MAIN PWR switch (`MAIN_PWR`) | ELEC panel, left console, beside the throttle[^bms-ramp][^fg-left] | a key `[210, 0, 0]`; a click `[210, -1 / 2 / 1, 0]` | Ctrl+B | MAIN (2) / BATT (1) / OFF (0) |
+| 2 | JFS switch (`JFS`) | ENG & JET START panel, left console, aft[^bms-ramp][^fg-left] | a key `[211, 0, 0]`; a click `[211, -1 / 2 / 1, 0]` | Ctrl+J | START 2 (1) / START 1 (-1) / OFF (0) |
 | 3 | throttle (`THROTTLE`, not clickable) | the throttle, left console | its keys (Throttle up, 1) and the throttle lever | Throttle up | the throttle's own animation: out of OFF |
 | 4 | MMC, ST STA, MFD, UFC switches (`AVIONICS_MMC`, `AVIONICS_ST_STA`, `AVIONICS_MFD`, `AVIONICS_UFC`) | AVIONIC POWER panel, right console[^bms-ramp][^fg-right] | a click `[219, ±1, 0..3]`, each its own; Ctrl+A `[213, 0, 0]` all four | Ctrl+A | ON (1) / OFF (0): the key all four, a click its own switch |
 | 5 | INS knob (`INS`) | AVIONIC POWER panel, right console[^bms-ramp][^fg-right] | `[214, 0, 0]`; the wheel and a drag `[214, ±1, 0]` | Ctrl+N | six positions: OFF (0), STOR HDG (1), NORM (2), NAV (3), IN FLT ALIGN (4), ATT (5); the step done at STOR HDG to IN FLT ALIGN |
 | 6 | canopy handle (`CANOPY_HANDLE`, a hit area) | left side, aft of the left console, by the canopy switch[^dcs-canopy] | `[215, 0, 0]` | Ctrl+K | none |
 | take-off, landing | landing gear handle (`GEAR_LEVER`) | left auxiliary console (FlightGear's `LeftAuxConsole` `gear_lever`) | `[14, 0, 0]` | G | the handle's own animation (`controls/gear/gear-down`) |
-| (sensors) | FCR, RDR ALT switches (`FCR`, `RDR_ALT`) | SNSR PWR panel, right console[^fg-right] | `[219, ±1, 4]`, `[219, ±1, 5]` | none | ON (1) / OFF (0); RDR ALT ON (2) / OFF (0) |
+| (sensors) | FCR, RDR ALT switches (`FCR`, `RDR_ALT`) | SNSR PWR panel, right console[^fg-right] | `[219, ±1, 4]`, `[219, -1 / 2 / 1, 5]` | none | ON (1) / OFF (0); RDR ALT ON (2) / STBY (1) / OFF (0) |
 
 - **The throttle by the mouse** (2026-11-13 to 2026-11-15, dropped at the user's word: "shouldn't be able to move
   the throttle or stick from the mouse"): a click and the wheel stepped it 5 %, a drag moved it, a drag down from idle
@@ -373,8 +374,16 @@ on (`iaf-tools` `training.rs`).
   generator); the F-35I's BATT and IPP likewise. The INS kept on the aircraft battery through a short power loss.
 - **Next (the audit's M3):** the indicator lamps on battery, the JFS RUN light, the INS's ALIGN / RDY and the IPP's
   ready cue read these positions.
-- The positions the switches show between OFF and ON (MAIN PWR's BATT, the JFS's START 1, RDR ALT's STBY) come with
-  their own steps.
+- **The in-between positions (2026-11-16, finish list C3):** MAIN PWR, the JFS and RDR ALT each have three positions
+  in the flight model (`start.rs` `Start::position`, the one source the 3D cockpit shows: `f16_controls.json`
+  `system`). MAIN PWR at BATT: the battery's power only (the lamps, the engine gauges, the INS's alignment); the generators
+  stay off the buses, so the displays wait for MAIN PWR, and the checklist's main power step waits for it too
+  (inferred). The JFS at START 1 starts the engine as START 2 does (one
+  accumulator against two; the same timing, inferred); either springs back to OFF once the engine sustains itself.
+  RDR ALT at STBY: powered and warmed up, no radar altitude until RDR ALT. A click takes a switch to its next
+  position, round from the last to the first; a drag a position either way. The commands 210, 211 and 219 take p1 2
+  for the in-between position (`sim_flight.gd` `IN_BETWEEN`); the keys still go OFF / on. The recording's checklist
+  event carries the switch's `position` when it changes.
 
 #### One by one (2026-11-13, the switches audit's M2b)
 

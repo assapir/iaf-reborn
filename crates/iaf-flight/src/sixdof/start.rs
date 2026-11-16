@@ -21,6 +21,11 @@
 //! The F-16's power switches one by one (the switches audit's M2b, cockpit.md §5.2): the generators give the displays'
 //! power (`Start::power` 2); each AVIONIC POWER switch (MMC, ST STA, MFD, UFC) and SNSR PWR switch (FCR, RDR ALT) then
 //! powers its own system after the warm-up (`Start::system`). The checklist's avionics step is the four on.
+//!
+//! The F-16's switches of three positions (finish list C3, cockpit.md §5.2; `Start::position`): MAIN PWR OFF / BATT /
+//! MAIN PWR ("main_power_batt": the battery alone, the generators kept off the buses, so the displays stay dark;
+//! inferred), JFS START 1 / OFF / START 2 ("starter_1": the JFS from one accumulator; it starts the engine as START 2
+//! does, inferred) and RDR ALT OFF / STBY / RDR ALT ("rdr_alt_stby": warmed up, no radar altitude until RDR ALT).
 
 /// The 6-DoF's idle RPM, % (its gauge's line, modern-iaf/docs/flight-model.md §9.7).
 pub const IDLE_RPM: f64 = 60.0;
@@ -171,6 +176,10 @@ pub struct Start {
     starter_on: bool,
     ins_knob: u8,
     canopy_closed: bool,
+    /// The in-between positions (`Start::position`): MAIN PWR at BATT, JFS at START 1, RDR ALT at STBY.
+    batt_only: bool,
+    start_1: bool,
+    rdr_alt_stby: bool,
 }
 
 impl Start {
@@ -285,11 +294,12 @@ impl Start {
         if self.rpm >= s.generator_rpm {
             self.starter_on = false;
         }
-        let powered = self.commanded
+        let main = self.commanded && !self.batt_only; // MAIN PWR at MAIN PWR: the generators on the buses
+        let powered = main
             && self.phase != Phase::Rundown
             && self.phase != Phase::Off
             && if s.displays_on_starter { self.phase != Phase::Starter } else { self.rpm >= s.generator_rpm };
-        if self.displays_at.is_none() && (powered || (self.commanded && self.phase == Phase::Running)) {
+        if self.displays_at.is_none() && (powered || (main && self.phase == Phase::Running)) {
             self.displays_at = Some(self.t);
         }
         // The INS knob left on through a main power loss aligns again once main power is back (inferred).
@@ -310,6 +320,7 @@ impl Start {
     pub fn power(&self, s: &StartSpec) -> u8 {
         match self.displays_at {
             _ if !self.commanded => 0,
+            _ if self.batt_only => 1,
             Some(at) if self.t >= at + s.warmup_s => 2,
             _ => 1,
         }
@@ -318,7 +329,8 @@ impl Start {
     /// System `name` of `SYSTEMS` up: the displays' power, and the F-16's own switch on for the warm-up (inferred: the
     /// displays' 3 s). The F-35I's systems come with the power (no per-system switches are sourced).
     pub fn system(&self, s: &StartSpec, name: &str) -> bool {
-        let on = |i: usize| self.systems[i].is_some_and(|at| self.t >= at + s.warmup_s);
+        let stby = |i: usize| self.rdr_alt_stby && SYSTEMS[i] == "rdr_alt";
+        let on = |i: usize| !stby(i) && self.systems[i].is_some_and(|at| self.t >= at + s.warmup_s);
         self.power(s) == 2 && (s.fadec || SYSTEMS.iter().position(|n| *n == name).is_some_and(on))
     }
 
@@ -334,16 +346,26 @@ impl Start {
     /// start stops the engine).
     pub fn press(&mut self, s: &StartSpec, step: &str) -> Result<(), &'static str> {
         match step {
-            "main_power" => {
+            "main_power" | "main_power_batt" => {
                 if !self.commanded && self.phase == Phase::Off {
                     self.manual = true;
                 }
                 self.commanded = true;
+                let batt = step == "main_power_batt";
+                if batt && !self.batt_only {
+                    self.displays_at = None; // the generators off the buses: the displays dark, a warm-up again
+                }
+                self.batt_only = batt;
+            }
+            "starter_1" => {
+                self.press(s, "starter")?;
+                self.start_1 = true;
             }
             "starter" if !self.commanded => return Err("no_power"),
             // Winding down above the light-off RPM: the starter waits, the key does nothing.
             "starter" if self.phase == Phase::Rundown && !self.starter_engages(s) => return Err("starter_high"),
             "starter" => {
+                self.start_1 = false;
                 if self.starter_engages(s) {
                     self.next(Phase::Starter);
                 }
@@ -376,9 +398,16 @@ impl Start {
             "ins" if self.ins_knob == INS_OFF => return self.turn_ins(s, 1),
             "ins" => {}
             "canopy" => self.canopy_closed = true,
+            "rdr_alt_stby" => {
+                self.press(s, "rdr_alt")?;
+                self.rdr_alt_stby = true;
+            }
             _ => {
                 if let Some(i) = SYSTEMS.iter().position(|n| *n == step) {
                     self.systems[i] = self.systems[i].or(Some(self.t));
+                }
+                if step == "rdr_alt" {
+                    self.rdr_alt_stby = false;
                 }
             }
         }
@@ -394,6 +423,7 @@ impl Start {
         match step {
             "main_power" => {
                 self.commanded = false;
+                self.batt_only = false;
                 self.displays_at = None;
                 self.ins_lost();
                 self.starter_on = false; // held on by its power only (inferred), as the JFS switch's spring-back
@@ -412,6 +442,9 @@ impl Start {
             _ => {
                 if let Some(i) = SYSTEMS.iter().position(|n| *n == step) {
                     self.systems[i] = None;
+                }
+                if step == "rdr_alt" {
+                    self.rdr_alt_stby = false;
                 }
             }
         }
@@ -490,6 +523,20 @@ impl Start {
             "ins" => self.ins_aligning(),
             "canopy" => self.canopy_closed,
             _ => SYSTEMS.iter().position(|n| *n == step).is_some_and(|i| self.systems[i].is_some()),
+        }
+    }
+
+    /// The position of a switch of three positions, in FlightGear's values: "main_power" 0 OFF, 1 BATT, 2 MAIN PWR;
+    /// "starter" (the JFS switch as it stands: back at OFF once the JFS has cut out) -1 START 1, 0 OFF, 1 START 2;
+    /// "rdr_alt" 0 OFF, 1 STBY, 2 RDR ALT. Any other step: 1 on, 0 off.
+    pub fn position(&self, step: &str) -> i8 {
+        match step {
+            "main_power" if !self.commanded => 0,
+            "main_power" => 2 - i8::from(self.batt_only),
+            "starter" if !self.starter_on => 0,
+            "starter" => 1 - 2 * i8::from(self.start_1),
+            "rdr_alt" if self.on(step) => 2 - i8::from(self.rdr_alt_stby),
+            _ => i8::from(self.on(step)),
         }
     }
 }
@@ -695,6 +742,48 @@ mod tests {
         st.press(&IPP, "starter").unwrap();
         st.release("starter");
         assert_eq!((st.phase, st.on("starter")), (Phase::Off, false));
+    }
+
+    /// The switches of three positions (finish list C3): MAIN PWR at BATT, JFS at START 1, RDR ALT at STBY.
+    #[test]
+    fn the_in_between_positions() {
+        let tick = |st: &mut Start, s: f64| {
+            for _ in 0..(s * 30.0) as usize {
+                st.step(&JFS, 1.0 / 30.0);
+            }
+        };
+        // BATT: the battery's power alone; START 1 cranks and starts the engine; the displays wait for MAIN PWR.
+        let mut st = Start::default();
+        st.press(&JFS, "main_power_batt").unwrap();
+        assert_eq!((st.position("main_power"), st.power(&JFS)), (1, 1));
+        st.press(&JFS, "starter_1").unwrap();
+        assert_eq!(st.position("starter"), -1, "the JFS at START 1");
+        tick(&mut st, 30.0);
+        st.press(&JFS, "engine").unwrap();
+        tick(&mut st, 60.0);
+        assert_eq!((st.phase, st.position("starter"), st.power(&JFS)), (Phase::Running, 0, 1), "BATT: no displays");
+        st.press(&JFS, "main_power").unwrap();
+        tick(&mut st, 3.5);
+        assert_eq!((st.position("main_power"), st.power(&JFS)), (2, 2));
+        // Back to BATT: the displays dark; OFF: no power.
+        st.press(&JFS, "main_power_batt").unwrap();
+        tick(&mut st, 3.5);
+        assert_eq!((st.position("main_power"), st.power(&JFS)), (1, 1));
+        st.release("main_power");
+        assert_eq!((st.position("main_power"), st.power(&JFS)), (0, 0));
+        // RDR ALT: STBY warms up with no radar altitude; RDR ALT gives it at once; OFF.
+        let mut st = Start::running();
+        st.release("rdr_alt");
+        assert_eq!(st.position("rdr_alt"), 0);
+        st.press(&JFS, "rdr_alt_stby").unwrap();
+        tick(&mut st, 3.5);
+        assert_eq!((st.position("rdr_alt"), st.system(&JFS, "rdr_alt")), (1, false));
+        st.press(&JFS, "rdr_alt").unwrap();
+        assert_eq!((st.position("rdr_alt"), st.system(&JFS, "rdr_alt")), (2, true));
+        st.press(&JFS, "rdr_alt_stby").unwrap();
+        assert_eq!((st.position("rdr_alt"), st.system(&JFS, "rdr_alt")), (1, false));
+        st.release("rdr_alt");
+        assert_eq!(st.position("rdr_alt"), 0);
     }
 
     /// The INS knob through its six positions both ways (cockpit.md §5.2): each position reached by a turn on and a

@@ -479,6 +479,8 @@ func _step(tv: Node, n: int, node: String, click: bool) -> void:
 	await _target(tv, node)
 	if click:
 		await _click_control(tv, node)
+		if node == "MAIN_PWR":  # OFF, BATT, MAIN PWR: two clicks (start.rs Start::position)
+			await _click_control(tv, node)
 	else:
 		tv._command([209 + n, 0, 0] if n > 0 else [5, 0, 0])
 

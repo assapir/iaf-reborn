@@ -360,6 +360,11 @@ impl SixDof {
         self.start_seq.on(step)
     }
 
+    /// The position of a switch of three positions ([`Sequence::position`]: MAIN PWR, the JFS, RDR ALT).
+    pub fn start_position(&self, step: &str) -> i8 {
+        self.start_seq.position(step)
+    }
+
     /// The INS knob's position ([`Sequence::ins_knob`]: 0 OFF .. 5 ATT, `start::INS_KNOB`).
     pub fn ins_knob(&self) -> u8 {
         self.start_seq.ins_knob()

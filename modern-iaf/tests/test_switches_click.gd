@@ -28,14 +28,14 @@ const JETS := {
 	],
 }
 const F16 := [
-	["MAIN_PWR", [210, 0, 0]],
-	["JFS", [211, 0, 0]],
+	["MAIN_PWR", [210, 2, 0]],  # OFF to BATT (p1 2: the in-between position, sim_flight.gd IN_BETWEEN)
+	["JFS", [211, 1, 0]],  # OFF to START 2
 	["AVIONICS_MMC", [219, 1, 0]],
 	["AVIONICS_ST_STA", [219, 1, 1]],
 	["AVIONICS_MFD", [219, 1, 2]],
 	["AVIONICS_UFC", [219, 1, 3]],
 	["FCR", [219, 1, 4]],
-	["RDR_ALT", [219, 1, 5]],
+	["RDR_ALT", [219, 2, 5]],  # OFF to STBY
 	["INS", [214, 0, 0]],
 	["CANOPY_HANDLE", [215, 0, 0]],
 	["GEAR_LEVER", [14, 0, 0]],
