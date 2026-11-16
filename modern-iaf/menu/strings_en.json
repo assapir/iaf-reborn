@@ -355,6 +355,7 @@
 	"preset_custom": "Custom",
 	"cost": "Cost",
 	"cost_none": "none",
+	"cost_under": "under %s ms",
 	"cost_low": "low",
 	"cost_medium": "medium",
 	"cost_high": "high",

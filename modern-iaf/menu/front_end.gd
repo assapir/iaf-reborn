@@ -1730,6 +1730,17 @@ static func cost_band(ms: float) -> String:
 	return "medium" if ms < 4.0 else "high"
 
 
+## True when `v` is row `key`'s plain choice (cost.json's first point: the chip's reference).
+static func is_plain(key: String, v) -> bool:
+	var pts: Array = _cost_table().get("rows", {}).get(key, [])
+	return pts.is_empty() or pts[0][0] == v
+
+
+## The chip's text for a cost the measurement cannot tell from its noise: "under <noise_ms> ms" (Hebrew too).
+func cost_under() -> String:
+	return s("cost_under") % ("%.1f" % float(_cost_table().get("noise_ms", 0.0)))
+
+
 static func _cost_table() -> Dictionary:
 	if _cost.is_empty():
 		_cost = Settings.load_json(SETTINGS_DATA.path_join("cost.json"))
@@ -1756,6 +1767,9 @@ func _after_change(key: String) -> void:
 func _set_chip(chip: Label, key: String) -> void:
 	var band := "none" if not key in PrefChoices.PRESET_KEYS else cost_band(chip_cost(key, Settings.get(key)))
 	chip.text = s("cost_" + band)
+	# A choice other than the plain one whose difference the noise hides: no cost found, at most the noise.
+	if band == "none" and key in PrefChoices.PRESET_KEYS and not is_plain(key, Settings.get(key)):
+		chip.text = cost_under()
 	chip.add_theme_color_override("font_color", Look.AMBER if band == "high" else Look.MUTED)
 	chip.add_theme_stylebox_override(
 		"normal", Look.box(Color(0, 0, 0, 0), Look.AMBER if band == "high" else Look.EDGE, 1, 18, Vector2(14, 2))

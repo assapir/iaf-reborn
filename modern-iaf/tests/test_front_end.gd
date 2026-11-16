@@ -911,7 +911,11 @@ func settings_screen(fe: Control) -> void:
 		check(chip != null and chip.text != "", "settings: %s has a cost chip (%s)" % [k, chip.text if chip else ""])
 	check(fe.cost_band(-1.0) == "saves" and fe.cost_band(5.0) == "high", "settings: the cost bands")
 	check(fe.chip_cost("upscaling", "balanced") < -0.3, "settings: Upscaling Balanced saves frame time on the Iris Xe")
-	check(fe.chip_cost("shadows", true) > 0.3, "settings: the shadows cost frame time on the Iris Xe")
+	check(fe.chip_cost("clouds", "volumetric") > 0.3, "settings: volumetric clouds cost frame time on the Iris Xe")
+	check(
+		fe.is_plain("clouds", "original") and not fe.is_plain("clouds", "volumetric") and fe.cost_under().contains("."),
+		"settings: a cost inside the noise reads as under it (%s)" % fe.cost_under()
+	)
 	# The pane: the hovered row's name, text and its Off / On picture; the frame time for a graphics setting.
 	fe.find_child("Pref_scenery", true, false).mouse_entered.emit()
 	var about: Control = fe.find_child("About", true, false)

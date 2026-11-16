@@ -355,6 +355,7 @@
 	"preset_custom": "מותאם",
 	"cost": "עלות",
 	"cost_none": "ללא",
+	"cost_under": "פחות מ־%s מ״ש",
 	"cost_low": "נמוכה",
 	"cost_medium": "בינונית",
 	"cost_high": "גבוהה",

@@ -1180,8 +1180,8 @@ The Settings follow the approved mock r3_settings (the finish list's F7, 2026-11
 
 Each graphics row carries a chip naming the frame time its current choice adds on the Iris Xe laptop over the row's
 plain choice (Off, Native, MSAA 4×, Flat layer, the lowest terrain detail): saves (under −0.3 ms), none (under
-0.3 ms), low (under 1.5 ms), medium (under 4 ms), high (amber, 4 ms or more). Full screen and VSync cost no GPU time
-and read none.
+0.3 ms), low (under 1.5 ms), medium (under 4 ms), high (amber, 4 ms or more); a difference smaller than the
+measurement's noise reads "under" the noise (below). Full screen and VSync cost no GPU time and read none.
 
 How the costs were measured: `tools/settings_cost.sh` runs the flight bench (`modern-iaf/tests/_flight_bench.gd`)
 on this Linux laptop (Intel Iris Xe, a 1920 × 1080 window): the take-off mission's jet held over Tel Aviv at 500 m
@@ -1190,33 +1190,36 @@ same. Each choice that differs from the preset High is run right after a run of 
 ms: the laptop's integrated GPU shares its power with the processor, and other work on the laptop (on 2026-11-16 a
 second session's tests) slows it (High read 30 to 36 ms). So a choice's cost is its run's average GPU time minus the
 median of all the High runs, and the noise (`noise_ms`) is half the High runs' spread (the largest minus the smallest); a
-difference smaller than the noise reads none. The results go to `modern-iaf/data/settings/cost.json` with the date,
+difference smaller than the noise reads "under" the noise (below). The results go to `modern-iaf/data/settings/cost.json` with the date,
 the computer and High's median time (`base_ms`). Terrain detail's chip interpolates between its measured
 points (50 %, 75 %, 100 %).
 
-The measurement of 2026-11-16 (High's median 31.6 ms, noise 2.9 ms):
+The measurement of 2026-11-16, evening (High's median 30.1 ms, noise 3.3 ms; other sessions'
+jobs ran on the laptop between the runs, so the noise stayed high, as at the first measurement that morning: 31.6 ms,
+noise 2.9 ms). A choice other than its row's plain one whose difference is smaller than the noise reads "under
+3.3 ms" ("פחות מ־3.3 מ״ש"): no cost found, at most that much; the plain choice reads none.
 
 | setting | choice | GPU time against High (ms) | chip |
 |---|---|---|---|
 | Antialiasing | MSAA 4× | +0.0 | none |
-| Antialiasing | MSAA 4× + FXAA | -2.0 | none |
-| Antialiasing | TAA | -10.7 | saves |
-| Antialiasing | FSR 2 | -4.4 | saves |
+| Antialiasing | MSAA 4× + FXAA | +1.1 | under 3.3 ms |
+| Antialiasing | TAA | -10.0 | saves |
+| Antialiasing | FSR 2 | -3.0 | under 3.3 ms |
 | Upscaling | Native | +0.0 | none |
-| Upscaling | Quality | -7.8 | saves |
-| Upscaling | Balanced | -9.8 | saves |
-| Shadows | off | -3.4 | none |
-| Shadows | on | +0.0 | medium |
-| Long shadows | off | -0.3 | none |
-| Long shadows | on | +0.0 | none |
-| Terrain detail | 50 % | +0.7 | none |
-| Terrain detail | 75 % | +2.6 | none |
-| Terrain detail | 100 % | +0.0 | none |
+| Upscaling | Quality | -3.0 | under 3.3 ms |
+| Upscaling | Balanced | -6.6 | saves |
+| Shadows | off | -3.1 | none |
+| Shadows | on | +0.0 | under 3.3 ms |
+| Long shadows | off | -0.5 | none |
+| Long shadows | on | +0.0 | under 3.3 ms |
+| Terrain detail | 50 % | +3.1 | none |
+| Terrain detail | 75 % | +4.0 | under 3.3 ms |
+| Terrain detail | 100 % | +0.0 | under 3.3 ms |
 | Clouds | Flat layer | +0.0 | none |
-| Clouds | Volumetric | +9.2 | high |
-| Buildings and trees | Off | -2.8 | none |
-| Buildings and trees | On | +0.0 | none |
-| Buildings and trees | Detailed | +2.8 | high |
+| Clouds | Volumetric | +3.7 | medium |
+| Buildings and trees | Off | -0.9 | none |
+| Buildings and trees | On | +0.0 | under 3.3 ms |
+| Buildings and trees | Detailed | +4.5 | high |
 
 The Off / On pictures are our own renders: `modern-iaf/tests/_settings_previews.gd` flies the same mission twice per
 setting with High but for that setting's two choices (`data/settings/previews.json`), the jet over Tel Aviv at 350 m in
