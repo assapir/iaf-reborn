@@ -150,6 +150,11 @@ impl IafStores {
     }
 
     #[func]
+    fn jettison_rack(&mut self, i: i64) {
+        self.stores.jettison_rack(idx(i));
+    }
+
+    #[func]
     fn consume(&mut self, i: i64) {
         self.stores.consume(idx(i));
     }

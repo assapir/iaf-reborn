@@ -5,7 +5,8 @@
 # - "[" selects the bombs (the CCIP HUD mode, the SMS's A-G page with the same weapon), safe: no RDY; Shift+A arms
 #   (RDY, ARM), ST STA is up once the avionics are;
 # - Space held releases: the bomb exists, falls over a kilometre and is gone at the terrain (its burst); the SMS's
-#   counts go down; Shift+C jettisons the rest (the F-16s' tanks first) and the stations empty;
+#   counts go down; Shift+C, the emergency jettison, drops the rest and the F-16s' tanks in one press (the F-35I's
+#   bay stores once its doors are open) and the stations empty;
 # - "]" selects the missiles; Space launches one: it leaves the jet and flies away from it;
 # - Tab fires the gun: the rounds count down.
 #   IAF_DEFAULT_SETTINGS=1 godot --headless --audio-driver Dummy --path modern-iaf \
@@ -81,7 +82,8 @@ func jet(mission: String, unit: String, station: int, bomb: String, count: int) 
 		s.own_dir(), tv.player.fm_section, pos, Vector3(0, 0, st0.heading), st0.forward * 200.0, airborne_flags()
 	)
 	tv.gear_down = false
-	tv.throttle = 0.9
+	# Part power: at military the Sufa passes the bombs' 600 KCAS release limit before the delayed release below.
+	tv.throttle = 0.7
 	tv.brakes = false
 	await frames(10)
 	var wp: Dictionary = tv.cockpit.weapons
@@ -108,7 +110,10 @@ func jet(mission: String, unit: String, station: int, bomb: String, count: int) 
 	check(_status(tv) == "RDY", "%s: armed: RDY (%s)" % [unit, _status(tv)])
 	var before: int = w.stores.total(t, w.stores.current_name())
 	_press(tv, KEY_SPACE)
-	var left := await _until(tv, func(): return w.stores.total(t, w.stores.current_name()) < before, 30.0)
+	# Level at 1,500 m the impact lies ~26° below the horizon, under the HUD's lower edge (~7-9°): Space freezes the
+	# delayed CCIP's target at that edge, 7-11 km beyond the impact, and the bomb goes when the impact reaches it
+	# (time-to-go 35-57 s at 200 m/s, first_bomb_waits).
+	var left := await _until(tv, func(): return w.stores.total(t, w.stores.current_name()) < before, 70.0)
 	_press(tv, KEY_SPACE, false)
 	check(left, "%s: Space releases a %s (%d left)" % [unit, bomb, w.stores.total(t, w.stores.current_name())])
 	await frames(2)
@@ -137,11 +142,11 @@ func jet(mission: String, unit: String, station: int, bomb: String, count: int) 
 			% [unit, y0 - last.y, last.y - float(ground)]
 		)
 	)
-	# Shift+C: the F-16s' tanks first, then the bombs left; the stations empty on the page.
+	# Shift+C, the emergency jettison: the bombs left and the F-16s' tanks in one press; the stations empty on the page.
 	var tanks := range(9).filter(func(i): return w.stores.type_of(i) == 660 and w.stores.displayed(i) > 0)
-	for k in 2:
-		_press(tv, KEY_C, true, true)
-		await frames(3)
+	_press(tv, KEY_C, true, true)
+	await _until(tv, func(): return w.stores.displayed(2) + w.stores.displayed(6) == 0, 2.0)
+	await frames(3)
 	wp = tv.cockpit.weapons
 	check(
 		_on(wp, 2)[1] == 0 and _on(wp, 6)[1] == 0 and tanks.all(func(i): return int(wp.stations[i].count) == 0),

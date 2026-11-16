@@ -73,7 +73,7 @@
     {"index": 69, "group": "weapons", "label": {"en": "Release selected weapon", "he": "שחרור החימוש הנבחר"}, "key": "Space", "joystick": 1, "press": [64, 0, 0], "release": [65, 0, 0], "shown": true},
     {"index": 70, "group": "weapons", "label": {"en": "Drop chaff", "he": "שחרור מוץ"}, "key": "Insert", "joystick": -1, "press": [68, 0, 0], "release": [0, 0, 0], "shown": true},
     {"index": 71, "group": "weapons", "label": {"en": "Drop flares", "he": "שחרור נורים"}, "key": "Delete", "joystick": 3, "press": [69, 0, 0], "release": [0, 0, 0], "shown": true},
-    {"index": 72, "group": "weapons", "label": {"en": "Jettison tanks / bombs", "he": "השלכת מיכלים / פצצות"}, "key": "Shift + C", "joystick": -1, "press": [72, 0, 0], "release": [0, 0, 0], "shown": true},
+    {"index": 72, "group": "weapons", "label": {"en": "Emergency jettison", "he": "השלכת חירום"}, "key": "Shift + C", "joystick": -1, "press": [72, 0, 0], "release": [0, 0, 0], "shown": true},
     {"index": 73, "group": "views", "label": {"en": "Cockpit / HUD-only view", "he": "מבט תא טייס / תע\"ל בלבד"}, "key": "F1", "joystick": -1, "press": [28, 1, 0], "release": [0, 0, 0], "shown": true},
     {"index": 74, "label": {"en": "", "he": ""}, "key": "", "joystick": -1, "press": [22, 180, 0], "release": [22, -1, 0], "shown": false},
     {"index": 75, "group": "views", "label": {"en": "Lock-on view", "he": "מבט נעילה על מטרה"}, "key": "F3", "joystick": -1, "press": [28, 22, 0], "release": [0, 0, 0], "shown": true},

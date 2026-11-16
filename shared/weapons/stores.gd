@@ -140,7 +140,9 @@ func setup(load: Array, db: RefCounted, descriptor: Dictionary, pilon_of: Callab
 			"unlimited": false,
 			"attach": attach,
 			"slots": [],
-			"drawn": w.type in DRAWN and i < 9 and p is Array
+			"drawn": w.type in DRAWN and i < 9 and p is Array,
+			"rack_kg": float(load[i][2]) if load[i].size() > 2 else 0.0,  # Modern IAF's rack (its jettison: Real)
+			"rack_drag": float(load[i][3]) if load[i].size() > 3 else 0.0,
 		}  # no Station helper: nowhere to hang it
 		if st.drawn:
 			var pilon = pilon_of.call(w.model_path) if pilon_of.is_valid() else null
@@ -155,8 +157,8 @@ func setup(load: Array, db: RefCounted, descriptor: Dictionary, pilon_of: Callab
 			"drag": 0.0 if load[i].size() > 4 and int(load[i][4]) == 1 else w.get("drag", 0.0),
 			"count": n,
 			"arm": attach.x,
-			"rack_kg": float(load[i][2]) if load[i].size() > 2 else 0.0,
-			"rack_drag": float(load[i][3]) if load[i].size() > 3 else 0.0,
+			"rack_kg": st.rack_kg,
+			"rack_drag": st.rack_drag,
 		}
 		if w.has("rounds_per_tick"):
 			r.rounds_per_tick = w.rounds_per_tick
@@ -299,6 +301,14 @@ func fired(i: int) -> void:
 ## A tank jettisoned from station i (FUN_00458760): count −1 and the drag update only.
 func jettisoned(i: int) -> void:
 	_s.jettisoned(i)
+	_sync()
+
+
+## Weapon data Real's jettison (ours): station i's rack leaves, its weight and drag with it.
+func jettison_rack(i: int) -> void:
+	_s.jettison_rack(i)
+	stations[i].rack_kg = 0.0
+	stations[i].rack_drag = 0.0
 	_sync()
 
 

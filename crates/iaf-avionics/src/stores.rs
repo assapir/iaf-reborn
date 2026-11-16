@@ -416,6 +416,16 @@ impl Stores {
         }
     }
 
+    /// Weapon data Real's jettison (ours, docs/real-weapons.md §1.11): station `i`'s rack (Modern IAF's TER-9/A,
+    /// BRU-57/A, BRU-61/A) leaves with its weight, drag and moment; a station without one is unchanged.
+    pub fn jettison_rack(&mut self, i: usize) {
+        let unit = if self.weight_fix { 1.0 } else { LB_PER_KG };
+        let Some(s) = self.stations.get_mut(i).and_then(Option::as_mut) else { return };
+        let (kg, drag) = (std::mem::take(&mut s.rack_kg), std::mem::take(&mut s.rack_drag));
+        self.load.mass = (self.load.mass - kg * unit).max(0.0);
+        self.release_drag(i, &Weapon { drag, ..Weapon::default() });
+    }
+
     fn released(&mut self, i: usize) {
         self.last_fired = i;
         self.just_fired = true;
@@ -585,6 +595,11 @@ mod tests {
         assert!((s.load().mass - 47.6).abs() < 0.05, "{}", s.load().mass); // the original's lb round trip
         assert!((s.load().di_left - 6e-4).abs() < 1e-12);
         assert!((s.roll_moment() + 2.0 * 47.6).abs() < 1e-9);
+        // Weapon data Real's jettison: the rack leaves too, its weight, drag and moment with it.
+        s.jettison_rack(3);
+        assert!(s.load().mass < 0.05 && s.load().di_left.abs() < 1e-12 && s.roll_moment().abs() < 1e-9);
+        s.jettison_rack(3);
+        assert!(s.load().di_left.abs() < 1e-12, "a second jettison changes nothing");
     }
 
     /// Six MK-82 singles on stations 1–3 / 5–7 (the probe's load), 1 m arms per station.

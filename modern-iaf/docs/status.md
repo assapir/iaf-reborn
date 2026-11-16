@@ -42,6 +42,12 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   [weapons.md](weapons.md) §1); the unguided bombs fall by gravity and their own drag through the wind, nothing
   steering them, and CCIP predicts that fall (W5, W6); the GPS bombs miss by their published CEP (W11); a drop tank's own empty weight loads the jet until it is
   jettisoned (370 gal 443 lb sourced, 600 gal 611 lb inferred; F27). Shared with the original game's Weapon data Real.
+- **Release limits, jettisons, bay doors (2026-11-15, W17, W18, W22):** a bomb leaves only at 600 KCAS or less and in
+  a dive of 60° or less; Shift+C is the F-16's emergency jettison (every store and rack but the A-A missiles and the pods in one
+  press, unarmed, the tanks' fuel with them); the F-16 SMS's S-J and Space jettison the selected store with its racks;
+  the F-35I's bay doors open in 0.47 s, shut 0.5 s after the release and add drag while open
+  ([../../docs/real-weapons.md](../../docs/real-weapons.md) §1.11). Shared with the original game's Weapon data Real.
+  Test: `test_sim_jettison.gd`.
 - **Bombs, missiles and the gun in every flight (2026-11-14, the user: "the fact that you can drop weapons"):** on
   the Sufa, the Barak and the F-35I the stores hung on the Loadout screen fly with the mission; after the
   take-off's pass the flight goes on, and Shift+A, `[` and Space release the bombs (the HUD's CCIP cue; the F-35I's

@@ -37,9 +37,16 @@ const TRACER_M := 18.0
 const TRACER_DOT := 0.03
 ## Stores are drawn within 9000 m of the camera (0x638a08).
 const STORES_DRAW_DIST := 9000.0
-## Weapon bays (ours, the F-35I): a bay station's release waits for its doors to open (0.5 s); they stay open
-## this long after.
+## Weapon bays (ours, the F-35I): a bay station's release waits for its doors to open (0.47 s: aircraft_model.gd
+## BAY_MAX / RATE_BAY); they stay open this long after.
 const BAY_HOLD := 2.0
+## Weapon data Real (ours, modern-iaf/docs/weapons.md §5.1): they close 0.5 s after the release, so the doors open,
+## release and close in about 1.4 s, inside the "under two seconds" reported for the F-35 (inferred from a press
+## report); the open doors and bays add BAY_DRAG to the drag index, in proportion to their opening (inferred: an
+## open cavity's drag of 0.02 of its opening's dynamic-pressure force, two bays of 3.9 × 0.9 m, on the 6-DoF's
+## 300 ft² drag reference).
+const BAY_HOLD_REAL := 0.5
+const BAY_DRAG := 50.0
 ## Player's systems damage flags (docs/damage.md §5): 13 gun, 20 / 21 weapon systems.
 const DMG_GUN := 13
 const DMG_WEAPONS := [20, 21]
@@ -133,6 +140,7 @@ var _bc_store_nodes := {}  # the same on the cockpit-view model (host.own_bc)
 var _bay_until := -1.0
 var _releases := 0
 var _bay_retry := false  # a missile release waiting for the bay doors
+var _bay_pushed := 0.0  # the doors' opening the flight model's drag last got (Weapon data Real)
 var _pod_nodes: Array = []  # rocket boxes
 ## The rocket box model and its scale ([Weapons] RocketBoxScale, default 4.0).
 const ROCKET_BOX := "weapons/lau61/lau61_m.gltf"
@@ -299,7 +307,10 @@ static func store_models(entity: Dictionary, object: Dictionary, bdb: Dictionary
 ## The flight model carries the stores (S+0x424, S+0x42c, S+0x428) and their lateral moment (Better physics).
 func _push_stores() -> void:
 	if host != null and host.flight != null:
-		host.flight.set_stores(stores.fm_mass, stores.fm_di_left, stores.fm_di_right)
+		# Weapon data Real: the open bay doors' drag, half on each side (BAY_DRAG; ours).
+		_bay_pushed = host.aircraft.bay_fraction() if db.real and host.aircraft != null else 0.0
+		var bay := 0.5e-4 * BAY_DRAG * _bay_pushed
+		host.flight.set_stores(stores.fm_mass, stores.fm_di_left + bay, stores.fm_di_right + bay)
 		host.flight.set_stores_moment(stores.roll_moment, stores.tank_moment)
 
 
@@ -509,6 +520,8 @@ func mfd_event(ev: int, arg = null) -> void:
 			eo.laser_key(flir_pod)
 		-1:
 			gps_mode_key()  # ours: the F-16 SMS / WPN format's PRE / VIS OSB (key K; cockpit/f16_mfd.gd)
+		-2:
+			sel_jett = db.real and not sel_jett  # ours: the F-16 SMS's S-J OSB (Weapon data Real, selective_jettison)
 		0x37:
 			if String(arg) != harm.selected:  # FUN_005358b0: the selected entry sends nothing
 				harm.select(String(arg))
@@ -782,6 +795,9 @@ func _weapons_down() -> bool:
 func fire_selected() -> void:
 	if not master_arm:
 		return
+	if sel_jett:
+		selective_jettison()  # Weapon data Real: the S-J page up, WPN REL jettisons the selected store
+		return
 	if not ClassDB.class_call_static(
 		"IafRelease",
 		"space_allowed",
@@ -832,8 +848,11 @@ var bombs_jettisoned := false
 
 
 ## Event 0x48: nothing with the gear handle down; the first press drops the tanks (FUN_00458760), the
-## next ones the bombs (FUN_00458d10).
+## next ones the bombs (FUN_00458d10). Weapon data Real: the F-16's emergency jettison (emergency_jettison).
 func jettison() -> void:
+	if db.real:
+		emergency_jettison()
+		return
 	if host.gear_down:
 		return
 	if not tanks_jettisoned:
@@ -854,10 +873,101 @@ func cheat_reload() -> bool:
 	return true
 
 
-## FUN_0045ee10, the release permission of bombs and jettisons: load factor ≥ 0 and |roll| ≤ 90°.
-func release_allowed() -> bool:
+## FUN_0045ee10, the release permission of bombs and jettisons: load factor ≥ 0 and |roll| ≤ 90°. Weapon data Real
+## (ours, docs/real-weapons.md §1.11) adds the release limits of store `type` (0: none, the jettisons): a bomb at most
+## 600 KCAS, an AGM-65 at most Mach 1.2 and 30° of bank, neither in a dive past 60° (release.rs real_release_allowed).
+func release_allowed(type := 0) -> bool:
 	var st: Dictionary = host.flight.state() if host.flight != null else {}
-	return st.is_empty() or ClassDB.class_call_static("IafRelease", "release_allowed", float(st.g), float(st.roll))
+	if st.is_empty():
+		return true
+	if db.real and type in [500, 510, 635, 650]:
+		var h: float = float(st.alt_ft) / 3.2808
+		var climb: float = float(st.vs_fpm) / 196.85
+		return ClassDB.class_call_static(
+			"IafRelease", "real_release_allowed", type, float(st.g), float(st.roll), float(st.speed), h, climb
+		)
+	return ClassDB.class_call_static("IafRelease", "release_allowed", float(st.g), float(st.roll))
+
+
+## The A-A missiles' types: the jettisons keep them (T.O. 1F-16A-1).
+const AA_TYPES := [570, 580, 600, 610]
+## Weapon data Real: the stations whose racks went with a jettison (their rack models hidden), and the bay stations a
+## jettison waits to drop until the doors are open.
+var _racks_gone := {}
+var _bay_jett := []
+## Weapon data Real: the F-16 SMS's selective jettison page is up (S-J, OSB 11): WPN REL jettisons, it does not fire.
+var sel_jett := false
+
+
+## Weapon data Real (ours, docs/real-weapons.md §1.11): the F-16's EMER STORES JETTISON, "a one-step operation which
+## clears all expendable stores and racks except air-to-air missiles", released unarmed and unguided (T.O.
+## 1F-16A-1). One press; on the ground only with GND JETT ENABLE, which the sim does not model: refused there. No
+## release permission: the button works in any attitude. The F-35I the same way, its bay stores once the doors are
+## open (inferred: no public F-35 jettison procedure).
+func emergency_jettison() -> void:
+	if not _wow():
+		_jettison_stations(range(9))
+
+
+## The flight model has the jet on the ground (weight on wheels).
+func _wow() -> bool:
+	return host.flight != null and bool(host.flight.state().get("on_ground", false))
+
+
+## Weapon data Real: the F-16's selective jettison (T.O. 1F-16A-1: SEL JETT, the stations, WPN REL): every station of
+## the selected store goes, unarmed, with its rack (the manual's RACK selection); never the A-A missiles. The stations
+## are the selected store's (ours: no station-by-station choice on the page).
+func selective_jettison() -> void:
+	if _wow():
+		return
+	var t: int = stores.current_type()
+	var nm: String = stores.current_name()
+	var sel := []
+	for i in 9:
+		if int(stores.type_of(i)) == t and stores.name_of(i) == nm:
+			sel.append(i)
+	_jettison_stations(sel)
+
+
+## Stations `list` (0..8) jettisoned the Real way: each store but the A-A missiles falls unarmed (no burst) and
+## unguided, a tank's fuel goes (as FUN_00458760), the station's rack goes too. Bay stations wait for their doors
+## (_bay_wait; update() goes on with them once open).
+func _jettison_stations(list: Array) -> void:
+	list = list.filter(_jettisonable)
+	var bays := list.filter(func(i): return _internal(i))
+	if not bays.is_empty() and _bay_wait(bays[0]):
+		_bay_jett = bays
+		list = list.filter(func(i): return not _internal(i))
+	var was: bool = stores.unlimited
+	stores.set_unlimited(false)
+	var tank := false
+	for i in list:
+		var t: int = stores.type_of(i)
+		var is_tank: bool = "LB" in stores.name_of(i)
+		while stores.displayed(i) > 0:
+			_drop_store(i, _jettison_aim(t), true)
+			if is_tank:
+				stores.jettisoned(i)
+				tank = true
+			else:
+				stores.fired(i)
+		stores.jettison_rack(i)
+		_racks_gone[i] = true
+	stores.set_unlimited(was)
+	if tank:
+		_tank_fuel_gone()
+	_push_stores()
+	_update_store_nodes()
+
+
+## Station i holds what a Real jettison drops: a store but an A-A missile, or a rack.
+func _jettisonable(i: int) -> bool:
+	# The pods stay too (the F-16's targeting and ECM pods hang on stations the jettison does not release; inferred),
+	# so the laser and the ECM keep their pod.
+	var n: String = stores.name_of(i)
+	if stores.type_of(i) in AA_TYPES or "FLIR" in n or "ECM" in n:
+		return false
+	return stores.displayed(i) > 0 or float(stores.station(i).get("rack_kg", 0.0)) > 0.0
 
 
 ## FUN_00458760 (with the release permission): every pylon whose store name contains "LB" releases
@@ -874,13 +984,18 @@ func _jettison_tanks() -> void:
 			_drop_store(i, _jettison_aim(int(stores.type_of(i))))
 			stores.jettisoned(i)
 	stores.set_unlimited(was)
+	_tank_fuel_gone()
+	tanks_jettisoned = true
+	_push_stores()
+	_update_store_nodes()
+
+
+## FUN_00458760: when the fuel is at or above FuelWeight, the fuel and its maximum become FuelWeight (motion 0x18).
+func _tank_fuel_gone() -> void:
 	if host.flight != null:
 		var st: Dictionary = host.flight.state()
 		if float(st.fuel_lbs) >= float(st.internal_fuel_kg) * 2.2046:
 			host.flight.set_fuel(float(st.internal_fuel_kg))
-	tanks_jettisoned = true
-	_push_stores()
-	_update_store_nodes()
 
 
 ## FUN_00458d10 (with the release permission; Unlimited ammo off meanwhile): every round of the
@@ -1081,6 +1196,8 @@ func _release_tv() -> void:
 	var i: int = stores.fire_station()
 	if i < 0 or stores.displayed(i) <= 0:
 		return
+	if db.real and not release_allowed(int(stores.type_of(i))):
+		return  # Weapon data Real: outside the AGM-65's launch limits (ours)
 	var st: Dictionary = stores.station(i)
 	var w: Dictionary = st.w
 	var o := own()
@@ -1557,7 +1674,7 @@ func _ripple_tick() -> void:
 	if t == 650 and not gps:
 		aim = _laser_aim(p, aim)
 	# FUN_0045ee10 and the delayed release (the first bomb waits for time-to-go ≤ 0.9 s; a GPS bomb goes at once).
-	if not release_allowed() or _bay_wait(i):
+	if not release_allowed(t) or _bay_wait(i):
 		return
 	if not gps and ClassDB.class_call_static("IafRelease", "first_bomb_waits", ag.off, ripple_left == n, float(ag.ttg)):
 		return
@@ -1740,7 +1857,8 @@ func _ripple_end() -> void:
 ## drawn) or the pylon through the attitude, at the jet's velocity; rockets (560) fly the
 ## fixed-weapon motion, laser bombs (650) the guided one (§12), everything else the ballistic one. Sounds: the release
 ## (SFX_AIRCRAFT_FIRED_WEAPON) and the fall loop (SFX_OBJECT_SPECIFIC).
-func _drop_store(i: int, aim: Vector3) -> void:
+## `safe` (Weapon data Real's jettison): the store falls unguided and does not burst.
+func _drop_store(i: int, aim: Vector3, safe := false) -> void:
 	var st: Dictionary = stores.station(i)
 	var w: Dictionary = st.w
 	var type := int(w.type)
@@ -1751,6 +1869,10 @@ func _drop_store(i: int, aim: Vector3) -> void:
 	var p0 := body_to_world(at)
 	var ost: String = OST.get(type, "OST_BOMB")
 	_place_sound(host.sounds.play("SFX_AIRCRAFT_FIRED_WEAPON", ost), p0)
+	if safe:
+		drop_bomb(w, p0, o.vel, aim, _me())
+		bombs[-1].safe = true
+		return
 	release_store(w, p0, o.vel, aim, _me())
 
 
@@ -1965,7 +2087,13 @@ func _update_bombs() -> void:
 		_place_bomb(bm)
 		if not hit.is_empty():
 			bombs.erase(bm)
-			_bomb_detonate(bm, hit.pos)
+			if not bm.get("safe", false):
+				_bomb_detonate(bm, hit.pos)
+			else:  # an unarmed jettisoned store: no burst
+				if bm.node != null:
+					bm.node.queue_free()
+				if bm.sound != null:
+					host.sounds.stop(bm.sound)
 	if rockets != null:
 		rockets.update(now)
 		for k in _rocket_nodes:
@@ -2358,10 +2486,16 @@ func update(t: float) -> void:
 	if _bay_retry:
 		_bay_retry = false
 		_release_missile()
+	if not _bay_jett.is_empty() and not _bay_wait(_bay_jett[0]):  # the doors held open until they are
+		var bays := _bay_jett
+		_bay_jett = []
+		_jettison_stations(bays)
 	if stores.releases != _releases:
 		_releases = stores.releases
 		if _internal(stores.last_fired):
-			_bay_until = now + BAY_HOLD
+			_bay_until = now + (BAY_HOLD_REAL if db.real else BAY_HOLD)
+	if db.real and host != null and host.aircraft != null and host.aircraft.bay_fraction() != _bay_pushed:
+		_push_stores()
 	while firing and _gun_next <= now:
 		_gun_shot()  # catch-up shots share the timestamp
 		_gun_next += GUN_PERIOD
@@ -2589,6 +2723,7 @@ func _publish() -> void:
 		"quantity": ripple_qty,
 		"interval": ripple_int,
 		"release": "" if Settings.bomb_release != "real" else ("PAIR" if release_pairs else "SGL"),
+		"sel_jett": sel_jett,
 		"seeker": seeker.symbol,
 		"lock": seeker.lock,
 		"have_missiles": stores.total(t, stores.current_name()) > 0,
@@ -2845,7 +2980,7 @@ func bay_open() -> bool:
 func _bay_wait(i: int) -> bool:
 	if not _internal(i):
 		return false
-	_bay_until = maxf(_bay_until, now + BAY_HOLD)
+	_bay_until = maxf(_bay_until, now + (BAY_HOLD_REAL if db.real else BAY_HOLD))
 	return host.aircraft != null and host.aircraft.bay_fraction() < 1.0
 
 
@@ -2868,7 +3003,8 @@ func _update_store_nodes() -> void:
 			for k in nodes[i].size():
 				nodes[i][k].visible = Settings.external_stores and near and k < n and (bay_shown or not _internal(i))
 	for b in _pod_nodes:
-		b.visible = Settings.external_stores and near and (bay_shown or not _internal(b.get_meta("station", -1)))
+		var k: int = b.get_meta("station", -1)
+		b.visible = Settings.external_stores and near and (bay_shown or not _internal(k)) and not _racks_gone.has(k)
 
 
 ## FUN_00411d90: two crossed quads along the gun line, gunFire.tga, 0.85–1.15 long × 0.6 wide

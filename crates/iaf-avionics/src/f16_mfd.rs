@@ -167,7 +167,7 @@ impl Mfd {
 
     /// An OSB press (its real number). The bottom row on every format (fig. 1-43): OSB 15 SWAP, OSBs 14..12 the three
     /// formats (the primary's opens or closes the menu; an empty one becomes the primary with the menu open), OSB 11
-    /// DCLT (`S-J` on the SMS: no action). On the menu a format's OSB puts it in the primary slot (out of another slot
+    /// DCLT (`S-J` on the SMS: the format's own, the selective jettison with Weapon data Real). On the menu a format's OSB puts it in the primary slot (out of another slot
     /// holding it).
     pub fn press(&mut self, osb: i32) -> Press {
         match osb {
@@ -183,7 +183,7 @@ impl Mfd {
                 self.menu = false;
                 return self.slots[k].map_or(Press::None, Press::Format);
             }
-            11 if !self.menu && self.shown() == Some(Format::Sms) => return Press::None,
+            11 if !self.menu && self.shown() == Some(Format::Sms) => return Press::Own(11),
             11 => {
                 self.declutter = !self.declutter;
                 return Press::Declutter;
@@ -298,7 +298,7 @@ mod tests {
         assert_eq!(m.press(11), Press::Declutter);
         assert!(m.declutter);
         m.follow(page::STORES);
-        assert_eq!(m.press(11), Press::None, "S-J on the SMS");
+        assert_eq!(m.press(11), Press::Own(11), "S-J on the SMS");
     }
 
     #[test]

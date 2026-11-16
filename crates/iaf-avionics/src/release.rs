@@ -23,6 +23,41 @@ pub fn release_allowed(load_factor: f64, roll_deg: f64) -> bool {
     load_factor >= 0.0 && roll_deg.abs() <= 90.0
 }
 
+/// Weapon data Real (ours, docs/real-weapons.md §1.11): the fastest bomb release, KCAS. Low-drag deliveries are
+/// limited to 600 KCAS: above it the bomb's fall turns unstable and scatters (T.O. 1-1M-34).
+pub const REAL_BOMB_KCAS: f64 = 600.0;
+/// Weapon data Real: the steepest release dive, degrees below the horizon: the AGM-65's (T.O. 1-1M-34), held for the
+/// bombs too (inferred: no public F-16 bomb dive limit found).
+pub const REAL_MAX_DIVE_DEG: f64 = 60.0;
+/// Weapon data Real: the AGM-65's launch limits besides the dive, Mach 1.2 and 30° of bank (T.O. 1-1M-34).
+pub const REAL_AGM65_MACH: f64 = 1.2;
+pub const REAL_AGM65_BANK_DEG: f64 = 30.0;
+/// The Maverick's type code.
+const AGM65: i64 = 635;
+/// m/s to kt.
+const KT: f64 = 1.943_844;
+
+/// The calibrated airspeed (kt) of true airspeed `tas` (m/s) at `alt_m` in the standard atmosphere
+/// (`iaf_flight::atmosphere::cas`).
+pub fn kcas(tas: f64, alt_m: f64) -> f64 {
+    iaf_flight::atmosphere::cas(tas as f32, alt_m as f32) as f64 * KT
+}
+
+/// Weapon data Real: the release permission of a bomb (500 / 510 / 650) or an AGM-65 (635): the exe's rule
+/// ([`release_allowed`]) and the T.O. 1-1M-34 limits: a bomb at most 600 KCAS, a Maverick at most Mach 1.2 and 30° of
+/// bank; neither in a dive steeper than 60°. `tas` m/s, `climb` m/s (up +).
+pub fn real_release_allowed(type_code: i64, load_factor: f64, roll_deg: f64, tas: f64, alt_m: f64, climb: f64) -> bool {
+    let dive = -(climb / tas.max(1.0)).clamp(-1.0, 1.0).asin().to_degrees();
+    if !release_allowed(load_factor, roll_deg) || dive > REAL_MAX_DIVE_DEG {
+        return false;
+    }
+    if type_code == AGM65 {
+        let mach = tas / iaf_flight::atmosphere::air(alt_m as f32).sound as f64;
+        return mach <= REAL_AGM65_MACH && roll_deg.abs() <= REAL_AGM65_BANK_DEG;
+    }
+    kcas(tas, alt_m) <= REAL_BOMB_KCAS
+}
+
 /// Space (event 0x40): HUD mode 1..8; the gear handle down only with Safety off and the gun; not with weapon systems
 /// damage (flag 20).
 pub fn space_allowed(hud: i64, gear_down: bool, safety_off: bool, gun: bool, weapons_damaged: bool) -> bool {
@@ -223,6 +258,32 @@ mod tests {
         assert_eq!(launch_q(Sight::Circle { q: 0.5 }, true, None), 1.0);
         assert!(!space_allowed(5, true, true, false, false) && space_allowed(3, true, true, true, false));
         assert!(!release_allowed(-0.5, 0.0) && release_allowed(1.0, -90.0));
+    }
+
+    #[test]
+    fn real_release_limits() {
+        // Calibrated airspeed: equal to the true at sea level; 348 KTAS at 10,000 ft is 300 KCAS (the standard
+        // airspeed table); the two pitot formulas meet at Mach 1.
+        assert!((kcas(600.0 / KT, 0.0) - 600.0).abs() < 0.5, "{}", kcas(600.0 / KT, 0.0));
+        let k10 = kcas(348.0 / KT, 3048.0);
+        assert!((k10 - 300.0).abs() < 3.0, "348 KTAS at 10,000 ft: {k10:.1} KCAS");
+        let a20 = iaf_flight::atmosphere::air(6096.0).sound as f64;
+        let (below, above) = (kcas(0.9999 * a20, 6096.0), kcas(1.0001 * a20, 6096.0));
+        assert!(above > below && above - below < 0.2, "Mach 1 at 20,000 ft: {below:.2} / {above:.2} KCAS");
+        let level = |t, kt: f64, alt| real_release_allowed(t, 1.0, 0.0, kt / KT, alt, 0.0);
+        // T.O. 1-1M-34: low-drag bombs at most 600 KCAS.
+        assert!(level(500, 595.0, 0.0) && !level(500, 605.0, 0.0));
+        assert!(level(650, 640.0, 3048.0), "640 KTAS at 10,000 ft is under 600 KCAS: the limit is calibrated");
+        // Dive: 59° allowed, 61° refused (bombs and the AGM-65).
+        let v = 250.0;
+        let dive = |t, deg: f64| real_release_allowed(t, 1.0, 0.0, v, 3000.0, -v * deg.to_radians().sin());
+        assert!(dive(500, 59.0) && !dive(500, 61.0) && dive(635, 59.0) && !dive(635, 61.0));
+        // The AGM-65: Mach 1.2 and 30° of bank (sea level: 340.3 m/s a Mach).
+        assert!(real_release_allowed(635, 1.0, 29.0, 1.19 * 340.3, 0.0, 0.0));
+        assert!(!real_release_allowed(635, 1.0, 31.0, 300.0, 0.0, 0.0));
+        assert!(!real_release_allowed(635, 1.0, 0.0, 1.21 * 340.3, 0.0, 0.0));
+        // The exe's rule still holds under Real.
+        assert!(!real_release_allowed(500, -0.5, 0.0, 200.0, 0.0, 0.0));
     }
 
     #[test]

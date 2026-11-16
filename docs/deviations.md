@@ -184,7 +184,13 @@ Each entry names the switch and where it lives, then the difference: "Original: 
   velocity, the M56's drag, gravity) in place of the original's straight line, and the A-G gun pipper shows where the
   round is after `_limitDist` (real-weapons.md §1.4). The player's unguided bombs fall by gravity and their own drag
   through the wind, nothing steering them onto the aim, and CCIP predicts that fall (real-weapons.md §1.10). The GPS bombs miss by a random draw of their published CEP (real-weapons.md §1.6). The Real HUD's EEGS funnel takes the same round's time of
-  flight with either Weapon data (2026-11-14).
+  flight with either Weapon data (2026-11-14). With Real (2026-11-15, real-weapons.md §1.11): a bomb leaves only at
+  600 KCAS or less and in a dive of 60° or less, an AGM-65 only within Mach 1.2, 30° of bank and 60° of dive (the
+  original: load factor ≥ 0 and bank ≤ 90°); Shift+C is the F-16's emergency jettison (every store and rack but the
+  A-A missiles and the pods in one press, unarmed, the tanks' fuel with them; the original: the tanks on the first press, the bombs
+  on the next, armed); the F-16 SMS's S-J turns the selective jettison on (Space jettisons the selected store's
+  stations with their racks; the original: S-J does nothing); the F-35I's bay doors shut 0.5 s after a release (the
+  F-35I with Original weapon data: 2 s) and add drag while open; the jettisons keep the A-A missiles and the pods.
 - **RWR (Original / Real).** Original: the RWR shows a ground site only once it locks the jet or launches at it.
   Ours, with Real (`rwr_search`): it also shows the hostile SAM / AAA radars searching the jet, within their radar's
   range and in terrain line of sight, as steady symbols with WRN_NEW_GUY when a new one appears; terrain masking

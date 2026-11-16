@@ -31,7 +31,7 @@
           {"en": "The bombs: hung on the briefing's Arming page before Fly", "he": "הפצצות: נתלות בדף החימוש בתדריך לפני הטיסה", "where": {"en": "the mission's briefing, Arming tab", "he": "תדריך המשימה, לשונית החימוש"}},
           {"en": "Bombs: A-G, the HUD shows the CCIP pipper", "he": "פצצות: A-G, ב־HUD מוצג סמן ה־CCIP", "where": {"en": "ICP, under the HUD", "he": "לוח ICP, מתחת ל־HUD"}, "key": 65},
           {"en": "Pickle held: the bomb leaves when the pipper reaches the aim point", "he": "כפתור השחרור לחוץ: הפצצה משתחררת כשהסמן מגיע לנקודת הכיוון", "where": {"en": "stick grip, under the thumb", "he": "ידית ההיגוי, מתחת לאגודל"}, "key": 69},
-          {"en": "Jettison: the tanks, then the bombs", "he": "השלכה: המיכלים, ואז הפצצות", "where": {"en": "front panel, the jettison button", "he": "הלוח הקדמי, כפתור ההשלכה"}, "key": 72}
+          {"en": "Emergency jettison: all stores but the missiles", "he": "השלכת חירום: כל החימוש מלבד הטילים", "where": {"en": "front panel, the jettison button", "he": "הלוח הקדמי, כפתור ההשלכה"}, "key": 72}
         ]},
         {"title": {"en": "AIR-TO-AIR", "he": "אוויר-אוויר"}, "steps": [
           {"en": "Missiles: A-A, the HUD shows the seeker circle", "he": "טילים: A-A, ב־HUD מוצג מעגל המחפש", "where": {"en": "ICP, under the HUD", "he": "לוח ICP, מתחת ל־HUD"}, "key": 66},
@@ -74,7 +74,7 @@
           {"en": "The bombs: hung on the briefing's Arming page before Fly", "he": "הפצצות: נתלות בדף החימוש בתדריך לפני הטיסה", "where": {"en": "the mission's briefing, Arming tab", "he": "תדריך המשימה, לשונית החימוש"}},
           {"en": "Bombs: A-G, the CCIP cue on the helmet display", "he": "פצצות: A-G, סמן ה־CCIP בתצוגת הקסדה", "where": {"en": "the panoramic display", "he": "התצוגה הפנורמית"}, "key": 65},
           {"en": "Weapon release held: the bay doors open, the bomb leaves, the doors close", "he": "שחרור חימוש לחוץ: דלתות התא נפתחות, הפצצה משתחררת, הדלתות נסגרות", "where": {"en": "stick grip, under the thumb", "he": "ידית ההיגוי, מתחת לאגודל"}, "key": 69},
-          {"en": "Jettison: the bombs", "he": "השלכה: הפצצות", "where": {"en": "the panoramic display", "he": "התצוגה הפנורמית"}, "key": 72}
+          {"en": "Emergency jettison: all stores but the missiles", "he": "השלכת חירום: כל החימוש מלבד הטילים", "where": {"en": "the panoramic display", "he": "התצוגה הפנורמית"}, "key": 72}
         ]},
         {"title": {"en": "AIR-TO-AIR", "he": "אוויר-אוויר"}, "steps": [
           {"en": "Missiles: A-A (the AIM-120 in the bays)", "he": "טילים: A-A (ה־AIM-120 בתאים)", "where": {"en": "the panoramic display", "he": "התצוגה הפנורמית"}, "key": 66},

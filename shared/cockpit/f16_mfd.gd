@@ -139,13 +139,14 @@ func stepper(value: String) -> void:
 
 
 ## The bottom row (fig. 1-43): OSB 15 SWAP, 14..12 the three formats (the primary inverse), OSB 11 DCLT (S-J on the
-## SMS).
+## SMS, inverse while the selective jettison is up: Weapon data Real).
 func bottom_row(shown: String) -> void:
 	var st: Dictionary = m.real.state()
 	label(15, "SWAP")
 	for k in 3:
 		label(14 - k, st.slots[k], k == st.primary)
-	label(11, "S-J" if shown == "SMS" else "DCLT", st.declutter)
+	var sj: bool = shown == "SMS" and bool(cockpit.weapons.get("sel_jett", false))
+	label(11, "S-J" if shown == "SMS" else "DCLT", st.declutter or sj)
 
 
 ## Draws the format (or the menu) at the MFD's screen scale `s`.
@@ -823,10 +824,15 @@ func _own(f: String, osb: int) -> void:
 
 ## Ours: the GPS bomb's PRE / VIS (key K; player_weapons.gd mfd_event).
 const GPS_MODE_EVENT := -1
+## Ours: the SMS's S-J (player_weapons.gd mfd_event, sel_jett).
+const SEL_JETT_EVENT := -2
 
 
 func _own_sms(osb: int) -> void:
 	var wp: Dictionary = cockpit.weapons
+	if osb == 11:
+		m._mfd_event(SEL_JETT_EVENT)  # S-J: the selective jettison (Weapon data Real; nothing with Original)
+		return
 	if osb == 4:
 		sms_inv = not sms_inv
 		return

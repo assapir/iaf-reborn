@@ -111,7 +111,7 @@ the gun.
 | gear | up: nothing releases with the gear handle down | the same | G | 20 |
 | bombs | A-G: the HUD's CCIP pipper (HUD mode 5) | A-G: the CCIP cue (a GPS bomb, HUD mode 6) | `[` | 65 |
 | release | the pickle held: the bombs leave as a pair once the pipper reaches the aim point | held: the bay doors open, the bombs leave, the doors close | Space | 69 |
-| jettison | the tanks, then the bombs | the bombs | Shift+C | 72 |
+| jettison | the emergency jettison: every store and rack but the A-A missiles and the pods in one press; the SMS's S-J, then the pickle: the selected store's stations | every store but the A-A missiles and the pods, the bays' once the doors are open | Shift+C | 72 |
 | missiles | A-A: the AIM-9M's seeker circle | A-A: the AIM-120 (it waits for the bay doors) | `]` | 66 |
 | next target | the radar locks the next target | the same | Enter | 58 |
 | gun | the trigger held | the same | Tab | 64 |
@@ -149,6 +149,10 @@ powered cruise-missile flight class the engine does not have, and flew as a glid
 (`data/db/weapons/delilah.json`) and the shared record (`modern_weapons.gd` 1012) stay; the original game never
 offered it.
 
+**Limits and doors.** A bomb leaves only at 600 KCAS or less and in a dive of 60° or less; the jettisoned stores fall
+unarmed; the F-35I's bay doors open in 0.47 s, shut 0.5 s after the release and add 50 to the drag index while open
+(sources and the inferred figures in [../../docs/real-weapons.md](../../docs/real-weapons.md) §1.11).
+
 ## 6. Tests
 - `cargo test -p iaf-tools --lib sim::`: the bdb holds 511 / 511 / 180 rounds; a flyable jet without a gun count is
   refused; `iaf-sim own` writes both images (the flash opaque at the muzzle, clear at the corners).
@@ -164,6 +168,11 @@ offered it.
 - `modern-iaf/tests/test_sim_release.gd`: one of the Sufa's two MK-84 released (SGL) in level flight: the flight
   model's mass drops by the bomb's 925 kg, the drag index it is given drops by the bomb's on one wing, and the moment of the other bomb
   rolls the jet hands off ([flight-model.md](flight-model.md) §9.12).
+- `modern-iaf/tests/test_sim_jettison.gd`: the Sufa refuses a Mk 82 release over 600 KCAS and in a 65° dive; S-J and
+  Space drop six Mk 82 with their two TER-9/A (the 6-DoF's mass and drag index fall by theirs, the tanks and missiles
+  stay, the bombs fall unarmed); Shift+C then drops both tanks in one press (mass −2 × 201 kg plus the fuel above the
+  internal, fuel at the internal, drag index −2 × 19.1), the four AIM-9M stay. The F-35I's Shift+C opens the bay
+  doors; the GBU-31s leave 0.47 s later with the doors' drag index on, and the doors are shut within 2 s.
 - `modern-iaf/tests/_weapons_shot.gd` (real render): the same flown from the front end, the start-up, the tower and the
   take-off included; the pictures of the bombs leaving, the burst, the missile, the gun and the notebook tab.
 - `modern-iaf/tests/test_sim_gun.gd`: the Sufa's take-off mission starts with 511 rounds and the master arm safe; the

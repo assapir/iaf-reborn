@@ -416,6 +416,57 @@ has no drag (docs/weapons.md §9.5), so its CCIP is right by construction.
     (NAWCWD TP 8347), §8-1 "Free fall / aircraft drag", sample calculation,
     https://pe2bz.philpem.me.uk/Comm/-%20Transmitters/-%20Jammers/B-101-ElectWarfare-RadarBook/freefall.pdf
 
+### 1.11 Release limits, jettisons and bay doors (2026-11-15)
+With Weapon data Real the player's stores follow these limits and procedures (`release.rs` `real_release_allowed`,
+`player_weapons.gd` `release_allowed`, `emergency_jettison`, `selective_jettison`). The original's rules stay with
+Original (docs/weapons.md §9.5, §9.6).
+
+- **Release limits.** A release outside them is refused: the store stays on its station and the ripple waits.
+  - Bombs (500, 510, 650): at most **600 KCAS**. Low-drag deliveries are limited to 600 KCAS because the bomb's fall
+    turns unstable and scatters above it[^to34]. The limit is calibrated airspeed: the jet's true airspeed and height
+    give it through the standard atmosphere (isentropic pitot pressure below Mach 1, Rayleigh's pitot formula above;
+    `atmosphere::cas`). The HUD's airspeed is the 1998 gauge formula, so it can read a few knots off this figure.
+    The source names the low-drag bombs; the cluster and GPS bombs on the same bodies keep it too (inferred).
+  - The AGM-65 (635): at most **Mach 1.2**, **30° of bank** and **60° of dive**[^to34]. Its 30°/s roll-rate limit is
+    not applied: the flight model's state gives no roll rate to the weapons.
+  - Bombs: at most **60° of dive** (inferred: the AGM-65's limit; no public F-16 bomb dive limit was found).
+  - Load factor ≥ 0 and bank ≤ 90° stay as the original's permission (`FUN_0045ee10`). The F-16's store carriage
+    limits (speed and g per store, T.O. 1F-16C-1-2) are open: that volume is not public, and the flight manual refers
+    to it for every store limit[^to16].
+- **Emergency jettison** (Shift+C): "a one-step operation which clears all expendable stores and racks except
+  air-to-air missiles"; the weapons leave unarmed or unguided[^to16]. One press drops every bomb, tank, pod and rack
+  but the A-A missiles (570, 580, 600, 610); the tanks' fuel goes with them (the internal fuel stays); each store
+  falls unsteered and does not burst. No attitude limit applies. On the ground it is refused (the real jet needs GND
+  JETT ENABLE[^to16], which the sim does not model). The F-35I follows the same rule, its bay stores once the doors are
+  open (inferred: no public F-35 jettison procedure).
+- **Selective jettison** (the F-16 SMS's S-J, OSB 11, then the weapon release): it releases selected stores
+  "(except air-to-air missiles) or suspension equipment in an unarmed or unguided condition"[^to16]. S-J turns the
+  page's selective mode on (the label shown inverse) and off; while it is on, Space jettisons every station of the
+  selected store with its rack (the manual's RACK selection), instead of releasing it. The stations are the selected
+  store's (ours: the page has no station-by-station choice).
+- **F-35I bay doors.** A release from a bay waits for the doors to open (0.47 s, the model's door rate; inferred);
+  they shut 0.5 s after the release, so the doors open, release and shut in about 1.4 s, inside the "under two
+  seconds" a press report gives[^wion] (the time itself inferred). While open the doors and bays add **50** to the
+  drag index, in proportion to their opening (inferred: an open cavity's drag taken as 0.02 of its opening's
+  dynamic-pressure force, two bays of 3.9 × 0.9 m, the GBU-31's 3.879 m length with room, on the 300 ft² drag
+  reference, modern-iaf/docs/flight-model.md §9.18; no public open-bay drag figure was found).
+- **Tests:** `cargo test -p iaf-avionics --lib release::` (`real_release_limits`: 595 / 605 KCAS at sea level, the
+  calibrated speed at 10,000 ft, 59° / 61° dive, the AGM-65's Mach 1.2 and 30°), `stores::` (the rack leaves with its
+  weight, drag and moment), and `modern-iaf/tests/test_sim_jettison.gd` (the limits, both jettisons and the bay doors
+  in the sim's flight model; modern-iaf/docs/weapons.md §6).
+
+[^to34]: US Air Force, T.O. 1-1M-34, *Aircrew Weapons Delivery Manual (Nonnuclear)*, Section I (MK 82 / MK 84 AIR:
+    "LD deliveries should be limited to a maximum of 600 KCAS as testing has found excessive dispersion caused by
+    ballistic instability at delivery speeds above 600 KCAS"; "AGM-65 operational limitations": launch speed Mach
+    1.2, dive 60°, bank 30°, roll rate 30°/s), https://www.bulletpicker.com/pdf/TO-1-1M-34.pdf
+[^to16]: US Air Force, T.O. 1F-16A-1, *Flight Manual, F-16A/B Blocks 10 and 15*, 2003, Section III "Jettison"
+    (selective and emergency jettison), Section I figure 1-37 (GND JETT ENABLE on the ground), Section V "Stores
+    limitations" (refers to T.O. 1F-16A-1-3 / -1-4),
+    https://archive.org/details/to-1-f-16-a-1-flight-manual-f-16-a-b-block-10-15-august-2003
+[^wion]: WION, "Why the F-35's internal weapons bays open so quickly", 23 August 2026 ("the doors open, release the
+    payload, and close in under two seconds"),
+    https://www.wionews.com/photos/why-the-f-35-internal-weapons-bays-open-so-quickly-1787440984317
+
 ## 2. Mapping onto the original's model
 Each real value lands in one field or rule of the original model:
 

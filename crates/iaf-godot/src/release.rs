@@ -25,6 +25,12 @@ impl IafRelease {
         release::release_allowed(load_factor, roll_deg)
     }
 
+    /// Weapon data Real's release permission of store `type_code`: `tas` and `climb` m/s, `alt_m` m.
+    #[func]
+    fn real_release_allowed(type_code: i64, load_factor: f64, roll_deg: f64, tas: f64, alt_m: f64, climb: f64) -> bool {
+        release::real_release_allowed(type_code, load_factor, roll_deg, tas, alt_m, climb)
+    }
+
     #[func]
     fn space_allowed(hud: i64, gear_down: bool, safety_off: bool, gun: bool, weapons_damaged: bool) -> bool {
         release::space_allowed(hud, gear_down, safety_off, gun, weapons_damaged)

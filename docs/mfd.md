@@ -843,7 +843,8 @@ right 16–20 are 6–10). On every format the bottom row holds:
 - OSB 15 `SWAP`: the left and right MFDs trade formats and pages.
 - OSBs 14, 13, 12: the MFD's three formats, the shown one in an inverse box. Pressing another shows it. Pressing the
   shown one opens the format menu (game page 8), and again closes it.
-- OSB 11 `DCLT`: hides the side and top mnemonics (their OSBs still work); `S-J` on the SMS, no action.
+- OSB 11 `DCLT`: hides the side and top mnemonics (their OSBs still work); `S-J` on the SMS: with Weapon data Real the
+  selective jettison, shown inverse while on (docs/real-weapons.md §1.11); with Original no action.
 
 The formats at the start (inferred): left FCR, TGP, TEST; right HSD, SMS, WPN. A page set elsewhere puts its format
 first: from its slot, else in place of the shown one. The format menu (fig. 1-29) offers FCR (OSB 20), TGP (19, only
