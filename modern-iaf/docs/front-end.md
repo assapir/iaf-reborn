@@ -662,7 +662,8 @@ over it sit two cards and the map's chips (`menu/briefing_page.gd` lays them out
   for multiple flights together (alpha, bravo, etc)"): a tab a flight, its callsign (Alpha, the player's, first and
   picked; Bravo, Charlie, Delta), and under the tabs the picked flight's line: "Your flight · 1 × F-16I Sufa ·
   Training · 6 × AIM-9M · 2 × 370 gal tank" (the player's stores as the Arming summary's, another flight's its unit
-  record's own pylons). Another flight picked, its route is drawn wider on the map. The flights are Rust's
+  record's own pylons). Another flight picked, the map fits its route into view and draws it wider; Alpha
+  picked again, the map's opening view. The flights are Rust's
   (`IafBriefing.flights`, `crates/iaf-tools/src/flights.rs`, from the mission's `start` and `flights`,
   [data-formats.md](data-formats.md) §5); `iaf-sim` writes the same list into the compiled mission's `sim.flights`.
   A mission of one flight, every mission today, shows no Flights block: its card is as before.
@@ -960,6 +961,7 @@ m_per_px)` answers the colour nodes that draw it, coarse to fine, `[level, i, j,
 | the take-off, the explanation focused and scrolled | ![The take-off with its explanation scrolled](pictures/front-end/briefing_2012_text_en.webp) | ![The same in Hebrew](pictures/front-end/briefing_2012_text_he.webp) |
 | the take-off, labels and photo off | ![The take-off's map without labels or photo](pictures/front-end/briefing_2012_plain_en.webp) | ![The same in Hebrew](pictures/front-end/briefing_2012_plain_he.webp) |
 | the take-off, zoomed out to the whole theatre | ![The map zoomed out to the whole theatre](pictures/front-end/briefing_2012_theatre_en.webp) | ![The same in Hebrew](pictures/front-end/briefing_2012_theatre_he.webp) |
+| two flights (the test sample `modern-iaf/tests/data/two_flights.json`), Bravo picked | ![Two flights, Bravo picked and its route in view](pictures/front-end/briefing_two_flights_en.webp) | ![The same in Hebrew](pictures/front-end/briefing_two_flights_he.webp) |
 | the take-off, scrolled 100 km north of Ramon (2×) | ![The map far from the base, near Beit Shemesh](pictures/front-end/briefing_2012_far_en.webp) | ![The same in Hebrew](pictures/front-end/briefing_2012_far_he.webp) |
 | the same place zoomed in (24×, the 2 m photo) | ![The map zoomed in far from the base on a village](pictures/front-end/briefing_2012_far_close_en.webp) | ![The same in Hebrew](pictures/front-end/briefing_2012_far_close_he.webp) |
 

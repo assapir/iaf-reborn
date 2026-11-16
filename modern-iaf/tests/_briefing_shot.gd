@@ -75,6 +75,7 @@ func run() -> void:
 		fe.find_child("Flight_Bravo", true, false).button_pressed = true
 		await frames(4)
 		save.call("briefing_two_flights_bravo_%s" % lang)
+		fe.show_page("section")  # the section's own list again
 	s.language = "en"
 	s.pilot_name = ""
 

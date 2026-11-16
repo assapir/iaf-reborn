@@ -84,10 +84,14 @@ var show_photo := true:
 	set(v):
 		show_photo = v
 		queue_redraw()
-## The flight the briefing's tabs picked (its callsign): another flight's route drawn wider.
+## The flight the briefing's tabs picked (its callsign): another flight's route drawn wider and fitted into the room;
+## the player's again, the opening view. The first pick (the page opening) leaves the view.
 var selected := "":
 	set(v):
+		var was := selected
 		selected = v
+		if was != "" and v != was:
+			_view_flight(v)
 		queue_redraw()
 var _aspect := 0.0
 var _dragging := false
@@ -252,6 +256,22 @@ func open_view() -> void:
 	var f: Array = data.get("focus", [])
 	if f.size() == 4:
 		_frame(Rect2(float(f[0]), float(f[1]), float(f[2]) - float(f[0]), float(f[3]) - float(f[1])))
+
+
+## Flight `callsign`'s route (IafBriefing's `flights`) fitted into the room; the opening view for the player's.
+func _view_flight(callsign: String) -> void:
+	for f in data.get("flights", []):
+		if str(f.callsign) == callsign:
+			var pts := PackedVector2Array()
+			for i in range(0, f.pts.size() - 1, 2):
+				pts.append(Vector2(float(f.pts[i]), float(f.pts[i + 1])))
+			if not pts.is_empty():
+				var box := Rect2(pts[0], Vector2.ZERO)
+				for p in pts:
+					box = box.expand(p)
+				_frame(box)
+			return
+	open_view()
 
 
 ## Fits the box `box` (the map's metres) into the room with PIN_ROOM round it (a disc stacks up to two discs above its
@@ -474,7 +494,7 @@ func _draw() -> void:
 		for i in flights.size():
 			var pts := _points(flights[i].pts, xf)
 			if not pts.is_empty():
-				_tag(font, str(flights[i].callsign), pts[0] + Vector2(12, -12), 19, taken)
+				_tag(font, str(flights[i].callsign), pts[0] + Vector2(20, -12), 19, taken)
 	if show_labels:
 		_draw_places(font, xf, taken)
 	pins.call()

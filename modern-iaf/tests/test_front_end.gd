@@ -386,6 +386,13 @@ func two_flights(fe: Control, lang: String) -> void:
 		"%s: flights: Bravo's line and route picked (%s)" % [lang, detail.text]
 	)
 	check(detail.text.contains(fe.s("task_cap")), "%s: flights: Bravo's task" % lang)
+	var xf: Transform2D = map._xf()
+	var bravo: Array = others[0].pts
+	var room: Rect2 = map._room().grow(40)
+	check(
+		room.has_point(xf * Vector2(float(bravo[0]), float(bravo[1]))),
+		"%s: map: Bravo picked, its route in view" % lang
+	)
 	var edit: Button = fe.find_child("ArmEdit", true, false)
 	check(edit.get_node(edit.focus_neighbor_top) == a, "%s: flights: up from Edit the tabs" % lang)
 	check(a.get_node(a.focus_neighbor_bottom) == edit, "%s: flights: down from the tabs Edit" % lang)
