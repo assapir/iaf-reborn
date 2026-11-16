@@ -323,6 +323,8 @@ var paused := false
 var menu_open := false
 var overlay: Control
 var fe_overlay: Control
+## The flight's own 2D layers (cockpit, HUD text, captions, messages) hidden while the front end is over the flight.
+var _fe_hidden: Array = []
 ## Ctrl+P froze the sim (flight window +0x40: only when the clock was running).
 var _pause_froze := false
 var _frozen_sounds: Array = []
@@ -3631,6 +3633,11 @@ func _open_front_end(to: String) -> void:
 	if to != "pref":
 		_release_held_keys()
 		_freeze(true, false)
+	# Nothing of the flight's 2D layers shows through the front end's translucent bars and dim: only the 3D view
+	# stays behind it (the weather's layers below 0 belong to that view).
+	_fe_hidden = find_children("*", "CanvasLayer", true, false).filter(func(l): return l.visible and l.layer >= 0)
+	for l in _fe_hidden:
+		l.visible = false
 	var layer := CanvasLayer.new()
 	layer.layer = 16
 	layer.process_mode = Node.PROCESS_MODE_ALWAYS
@@ -3649,6 +3656,10 @@ func close_front_end() -> void:
 	var was: String = fe_overlay.screen
 	fe_overlay.get_parent().queue_free()
 	fe_overlay = null
+	for l in _fe_hidden:
+		if is_instance_valid(l):
+			l.visible = true
+	_fe_hidden = []
 	if was == "pref":
 		_apply_preferences()
 	else:

@@ -76,6 +76,7 @@ func run() -> void:
 		check(
 			sizes.all(func(z): return z == ui.SUBTITLE_PX), "%s: the band's lines at subtitle size (%s)" % [lang, sizes]
 		)
+		await _nothing_through(tv)
 	s.language = "en"
 	# The start-up mission opens with the notebook raised at its START-UP page (training.md §11).
 	var tv := await _start(2011)
@@ -126,6 +127,29 @@ func _layout(sim_flight: Node, what: String) -> void:
 	var mid := c.get_rect().get_center().x
 	check(absf(mid - ui.size.x / 2.0) < 2.0 or c.size.x == 0.0, "%s: the band centred (%d)" % [what, mid])
 	check(sim_flight.kneeboard.board.rtl == he, "%s: the notebook's pages in the language" % what)
+
+
+## Nothing of the flight's 2D layers (the radio band, messages, the cockpit's text) shows through the front end over
+## the flight: the pause menu, its Settings, Keys and Joystick screens. Closing it brings them back.
+func _nothing_through(tv: Node) -> void:
+	var before: Array = tv.find_children("*", "CanvasLayer", true, false).filter(
+		func(l): return l.visible and l.layer >= 0
+	)
+	tv._esc_key()
+	await frames(2)
+	var fe_layer: Node = tv.fe_overlay.get_parent()
+	for page in ["", "prefs", "keys", "joystick"]:
+		if page != "":
+			tv.fe_overlay.show_page(page)
+			await frames(2)
+		var through: Array = tv.find_children("*", "CanvasLayer", true, false).filter(
+			func(l): return l != fe_layer and l.visible and l.layer >= 0
+		)
+		check(through.is_empty(), "pause %s: no flight layer over the 3D view (%s)" % [page, through])
+	tv.close_front_end()
+	await frames(2)
+	check(before.all(func(l): return l.visible), "the flight's layers back after the front end closes")
+	check(not paused, "the flight runs again")
 
 
 ## No key hint over the flight: no text naming Esc or the pause menu in the flight's own overlay (flight_ui.gd and the

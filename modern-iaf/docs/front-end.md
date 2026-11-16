@@ -449,6 +449,10 @@ stay the original's (`terrain_view.gd _on_subtitle` hands each line to the fligh
   mission (approved 2026-11-13, [training.md](training.md) §11). Esc still opens the pause menu.
   `test_flight_ui.gd` checks that no hint shows. Pictures in these docs taken before 2026-11-15 may still show the
   line.
+- **Under the front end** (the pause menu, its Settings, Keys and Joystick screens, Mission accomplished): only the
+  frozen 3D view shows behind the dim. `terrain_view.gd _open_front_end` hides every 2D layer of the flight (this
+  text, the messages, the info line, the 2D cockpit) and `close_front_end` shows them again. Until 2026-11-16 the
+  radio band showed faintly through the Settings top bar. `test_flight_ui.gd` checks each of those screens.
 
 A language switched over the flight (Esc → Settings → Language) applies at once to the panel (an
 open radio menu at once, a training line at the next frame's score), the pilot's notebook ([training.md](training.md)
