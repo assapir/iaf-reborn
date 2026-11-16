@@ -567,6 +567,17 @@ up or down (a nose- or tail-first impact) gets the runway's push and no tyre for
 0.15 m of sag at the jet's reference weight, damping ratio 0.6; 12 % of the weight on the nose wheel (all inferred:
 no public strut data).
 
+**The drawn wheels** (since 2026-11-15, the user: "the wheels of the plane are not strictly above ground but half on
+it"). The struts' lengths come from the jet's model: the game passes the model's `height` helper (its tyres' bottoms
+below the c.g.; `IafFlight.set_gear_clearance`), and the gear stands there at the flight's weight on level ground
+(`Gear::set_static_height`: each strut extended by its static sag, the loads shared by the wheels' places along the
+body; set again each frame as fuel burns and stores leave). Before, the struts stood at the jets.rs c.g. height less
+the sag at a heavier weight: the F-16s' tyres 11 cm into the apron. The ground under each wheel is the terrain's plane
+under the c.g. (`IafFlight.set_ground_slope`, the height's rise per metre east and north from the terrain's heights
+3 m to each side; `Gear::ground_slope`): on a sloping apron the wheels each meet the ground under themselves (the
+F-35I at Nevatim stood 14 cm off the ground on one wheel). Guard: `modern-iaf/tests/test_wheels.gd`, each jet at its
+base, parked, taxiing and lined up on the runway, every tyre within 6 cm of the ground.
+
 ### 9.9 The jets' data (stage (b))
 
 `sixdof/jets.rs`. The aerodynamics are TP-1538's F-16 tables for every jet, on each jet's own wing area, span and

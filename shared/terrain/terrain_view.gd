@@ -2130,14 +2130,21 @@ func _crash_report(reason: String) -> void:
 ## Terrain slope under the aircraft: the vertical share of the surface normal (1 = flat), from
 ## height samples 3 m either side (the surface type comes from terraintype.dat, terrain.surface_at).
 func _ground_normal_z(p: Vector3) -> float:
+	var g := _ground_gradient(p)
+	return Vector3(-g.x, 1.0, g.y).normalized().y
+
+
+## The terrain's slope at scene position `p`: its height's rise per metre east (x) and per metre north (y), from the
+## heights 3 m to each side; zero where the terrain is not loaded.
+func _ground_gradient(p: Vector3) -> Vector2:
 	const D := 3.0
 	var hx0 = terrain.height_at(p - Vector3(D, 0, 0))
 	var hx1 = terrain.height_at(p + Vector3(D, 0, 0))
 	var hz0 = terrain.height_at(p - Vector3(0, 0, D))
 	var hz1 = terrain.height_at(p + Vector3(0, 0, D))
 	if hx0 == null or hx1 == null or hz0 == null or hz1 == null:
-		return 1.0
-	return Vector3(-(hx1 - hx0) / (2.0 * D), 1.0, -(hz1 - hz0) / (2.0 * D)).normalized().y
+		return Vector2.ZERO
+	return Vector2((hx1 - hx0) / (2.0 * D), -(hz1 - hz0) / (2.0 * D))  # Godot's z runs south
 
 
 func _spawn_player() -> void:
@@ -3799,6 +3806,8 @@ func _process(delta: float) -> void:
 		# The terraintype.dat flags (FUN_005bb9f0: water, runway, rough ground, map edge).
 		var surface: int = terrain.surface_at(rig.position)
 		flight.set_ground_surface(_ground_normal_z(rig.position), surface)
+		var slope := _ground_gradient(rig.position)  # each wheel on the ground under itself (the 6-DoF)
+		flight.set_ground_slope(slope.x, slope.y)
 		sounds.on_runway = (surface & terrain.SURFACE_ANY_RUNWAY) != 0  # the belly screech (f & 0x30)
 		# The systems damage the flight model reads (docs/damage.md §5.3): thrust, stick, spin.
 		flight.set_damage(player_damage.flags, player_damage.twin)

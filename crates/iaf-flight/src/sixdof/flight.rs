@@ -83,6 +83,8 @@ pub struct SixDof {
     /// Terrain height under the jet (ENU z, m); the gear's height above its contact (for the instruments).
     pub ground_height: f32,
     pub gear_clearance: f32,
+    /// The drawn model's tyres below the c.g., m (`set_wheel_height`); None: the jet's own gear figures.
+    wheel_height: Option<f64>,
     pub engine_on: bool,
     /// The ground start ([`SixDof::start_engine`]); a running engine's is [`Sequence::running`].
     start_seq: Sequence,
@@ -166,6 +168,7 @@ impl SixDof {
             empty_kg,
             ground_height: 0.0,
             gear_clearance: jet.gear.struts[0].pos.z as f32,
+            wheel_height: None,
             engine_on: st.engine_on || st.airborne,
             start_seq: if st.engine_on || st.airborne { Sequence::running() } else { Sequence::default() },
             gear: 0.0,
@@ -250,13 +253,33 @@ impl SixDof {
         (self.controls.stick_x, self.controls.stick_y)
     }
 
+    /// The drawn model's wheels: their tyres' bottoms `metres` below the c.g. (the model's `height` helper). The gear
+    /// stands there at the flight's weight on level ground (`gear.rs` `Gear::set_static_height`), so the tyres drawn
+    /// touch the ground as the struts carry the jet.
+    /// Set again each frame at the flight's weight (fuel burnt, stores gone), so the tyres stay on the ground.
+    pub fn set_wheel_height(&mut self, metres: f32) {
+        if metres > 0.0 {
+            self.wheel_height = Some(metres as f64);
+            self.jet.gear.set_static_height(metres as f64, self.mass() * G);
+            self.gear_clearance = metres;
+        }
+    }
+
+    /// The ground's slope under the jet (ENU): its height's rise per metre east and per metre north. Each wheel then
+    /// meets the ground under itself (`gear.rs` `Gear::ground_slope`).
+    pub fn set_ground_slope(&mut self, east: f32, north: f32) {
+        self.jet.gear.ground_slope = [-north as f64, -east as f64];
+    }
+
     /// The terrain height under the jet (ENU z). The first one after a ground start sets the jet on its gear,
     /// the struts at their static sag.
     pub fn set_ground_height(&mut self, h: f32) {
         self.ground_height = h;
         if self.place_on_gear && h > -1.0e8 {
             self.place_on_gear = false;
-            self.body.pos.z = -(h as f64 + self.jet.gear.struts[0].pos.z - 0.15);
+            // At the drawn wheels' height once the game gave it, else the struts' extended length less the sag.
+            let up = self.wheel_height.unwrap_or(self.jet.gear.struts[0].pos.z - 0.15);
+            self.body.pos.z = -(h as f64 + up);
         }
     }
 
@@ -426,8 +449,11 @@ impl SixDof {
         }
         let dt = dt.min(MAX_FRAME);
         let n = (dt / MAX_STEP).ceil().max(1.0);
-        // The mass and the rotors' momentum change slowly: once per frame.
+        // The mass and the rotors' momentum change slowly: once per frame; the drawn wheels' height at that weight.
         let af = self.airframe();
+        if let Some(h) = self.wheel_height {
+            self.jet.gear.set_static_height(h, self.mass() * G);
+        }
         if self.start_seq.step(&self.jet.start, dt) {
             self.engine_on = true; // the sequence reached idle
         }

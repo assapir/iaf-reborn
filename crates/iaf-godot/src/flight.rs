@@ -198,11 +198,23 @@ impl IafFlight {
         }
     }
 
-    /// Height of the aircraft origin above its wheels (the model's `height` helper).
+    /// Height of the aircraft origin above its wheels (the model's `height` helper); the 6-DoF stands its gear there
+    /// (`SixDof::set_wheel_height`: the drawn tyres on the ground).
     #[func]
     fn set_gear_clearance(&mut self, metres: f64) {
-        if let Some(ac) = self.aircraft.as_mut().and_then(Fm::original) {
-            ac.gear_clearance = metres as f32;
+        match self.aircraft.as_mut() {
+            Some(Fm::Original(ac)) => ac.gear_clearance = metres as f32,
+            Some(Fm::SixDof(s)) => s.set_wheel_height(metres as f32),
+            None => {}
+        }
+    }
+
+    /// The ground's slope under the jet: its height's rise per metre east and per metre north (the 6-DoF's wheels each
+    /// meet the ground under themselves; the original model has one ground height).
+    #[func]
+    fn set_ground_slope(&mut self, east: f64, north: f64) {
+        if let Some(Fm::SixDof(s)) = self.aircraft.as_mut() {
+            s.set_ground_slope(east as f32, north as f32);
         }
     }
 

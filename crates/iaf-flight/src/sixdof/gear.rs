@@ -35,10 +35,13 @@ pub const TYRES: Tyres = Tyres { rolling: 0.02, braking: 0.4, side: 0.3 };
 /// still instead of chattering; inferred).
 const SLIP: f64 = 0.03;
 
-/// The gear's three struts: nose, left main, right main.
+/// The gear's three struts: nose, left main, right main; and the runway's tilt under the jet.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Gear {
     pub struts: [Strut; 3],
+    /// The ground's slope under the jet (NED): how much its height `z` grows per metre north and per metre east, so
+    /// each wheel meets the ground under itself (a sloping apron), not the height under the c.g.
+    pub ground_slope: [f64; 2],
 }
 
 /// Where each braked tyre sticks to the runway (world, NED), if it does: a held brake pins the tyre to its spot
@@ -79,13 +82,32 @@ impl Gear {
                 strut(main_x, -track / 2.0, main, false),
                 strut(main_x, track / 2.0, main, false),
             ],
+            ground_slope: [0.0; 2],
         }
     }
 
-    /// A strut's wheel on the runway at `ground_z`: the compressed wheel's position in body axes (the strut gives
-    /// along its body z axis, inferred), its world position and velocity, and its normal load (N); None in the air.
-    fn contact(s: &Strut, b: &Body, ground_z: f64) -> Option<(Vec3, Vec3, Vec3, f64)> {
-        let depth = (b.pos + b.att.rotate(s.pos)).z - ground_z;
+    /// The wheels' height set from the drawn model: at weight `weight` (N), standing on level ground, every tyre's
+    /// bottom `height` m below the c.g. (the model's wheels as drawn; the struts' static sag added to their extended
+    /// length). The static loads share the weight by the wheels' places along the body.
+    pub fn set_static_height(&mut self, height: f64, weight: f64) {
+        let (nose_x, main_x) = (self.struts[0].pos.x, self.struts[1].pos.x);
+        if nose_x - main_x <= 0.0 {
+            return;
+        }
+        let nose_share = -main_x / (nose_x - main_x);
+        for (n, s) in self.struts.iter_mut().enumerate() {
+            let share = if n == 0 { nose_share } else { (1.0 - nose_share) / 2.0 };
+            s.pos.z = height + weight * share / s.k;
+        }
+    }
+
+    /// A strut's wheel on the runway at `ground_z` (under the c.g.; under the wheel by `ground_slope`): the compressed
+    /// wheel's position in body axes (the strut gives along its body z axis, inferred), its world position and
+    /// velocity, and its normal load (N); None in the air.
+    fn contact(&self, s: &Strut, b: &Body, ground_z: f64) -> Option<(Vec3, Vec3, Vec3, f64)> {
+        let w = b.pos + b.att.rotate(s.pos);
+        let [north, east] = self.ground_slope;
+        let depth = w.z - (ground_z + north * (w.x - b.pos.x) + east * (w.y - b.pos.y));
         if depth <= 0.0 {
             return None;
         }
@@ -96,7 +118,7 @@ impl Gear {
 
     /// Each strut's normal load (N) on a runway at `ground_z`.
     pub fn loads(&self, b: &Body, ground_z: f64) -> [f64; 3] {
-        self.struts.map(|s| Self::contact(&s, b, ground_z).map_or(0.0, |c| c.3))
+        self.struts.map(|s| self.contact(&s, b, ground_z).map_or(0.0, |c| c.3))
     }
 
     /// Body-axis force and moment from the runway at world height `ground_z` (NED, down positive), and each
@@ -104,7 +126,7 @@ impl Gear {
     pub fn forces(&self, b: &Body, ground_z: f64, w: &Wheels, t: &Tyres, anchors: &Anchors) -> (Vec3, Vec3, [f64; 3]) {
         let (mut f, mut m, mut loads) = (Vec3::ZERO, Vec3::ZERO, [0.0; 3]);
         for (n, s) in self.struts.iter().enumerate() {
-            let Some((r, p, v, normal)) = Self::contact(s, b, ground_z) else { continue };
+            let Some((r, p, v, normal)) = self.contact(s, b, ground_z) else { continue };
             loads[n] = normal;
             // The wheel's rolling direction on the runway; none when the wheel points straight up or down (a nose-
             // or tail-first impact): then the runway pushes only.
@@ -141,7 +163,7 @@ impl Gear {
     /// pulls harder than its braking friction, or that leaves the runway or loses its brake, slides again.
     pub fn update(&self, b: &Body, ground_z: f64, w: &Wheels, t: &Tyres, anchors: &mut Anchors) {
         for (n, s) in self.struts.iter().enumerate() {
-            let held = match Self::contact(s, b, ground_z) {
+            let held = match self.contact(s, b, ground_z) {
                 Some((_, p, v, normal)) if s.brake && w.brake > 0.0 && normal > 0.0 => {
                     let cap = (t.rolling + t.braking * w.brake.clamp(0.0, 1.0)) * normal;
                     match anchors.0[n] {
@@ -173,5 +195,30 @@ mod tests {
         let (f, _, loads) = g.forces(&b, 0.0, &Wheels::default(), &TYRES, &Anchors::default());
         assert!(loads[0] > 0.0, "{loads:?}");
         assert!(b.att.rotate(f).z < 0.0, "pushed up: {f:?}");
+    }
+
+    #[test]
+    fn the_drawn_wheels_set_the_static_height() {
+        // At its weight, level with the c.g. 1.674 m over the ground (the Sufa model's wheels), the struts carry the
+        // whole weight: the drawn tyres stand on the ground.
+        let w = 110_000.0;
+        let mut g = Gear::tricycle(4.0, 2.4, 1.75, 0.12, 90_000.0, 0.15);
+        g.set_static_height(1.674, w);
+        let b = Body::new(Vec3::new(0.0, 0.0, -1.674), Vec3::ZERO, Quat::from_euler(0.0, 0.0, 0.0));
+        let total: f64 = g.loads(&b, 0.0).iter().sum();
+        assert!((total - w).abs() < 1.0, "{total}");
+        assert!(g.struts.iter().all(|s| s.pos.z > 1.674), "the struts extended beyond the drawn wheels");
+    }
+
+    #[test]
+    fn each_wheel_meets_the_ground_under_itself() {
+        // The ground rises 5 cm per metre to the east: the right main wheel (east, heading north) is deeper in it.
+        let mut g = Gear::tricycle(4.0, 2.4, 1.75, 0.12, 100_000.0, 0.15);
+        let b = Body::new(Vec3::new(0.0, 0.0, -1.65), Vec3::ZERO, Quat::from_euler(0.0, 0.0, 0.0));
+        let level = g.loads(&b, 0.0);
+        g.ground_slope = [0.0, -0.05];
+        let tilted = g.loads(&b, 0.0);
+        assert!((level[1] - level[2]).abs() < 1e-6);
+        assert!(tilted[2] > level[2] && tilted[1] < level[1], "{tilted:?}");
     }
 }
