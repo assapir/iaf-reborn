@@ -3,6 +3,9 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **The Pilot log, the Pilot screen, the section list (2026-11-16, the finish list's F6, [front-end.md](front-end.md)
+  §2, §3):** the log's dates as the debrief's with the time, filters by jet and by mission, rows named, a footer Back;
+  the Pilot screen's form in one column (no empty middle column); with every mission passed no Next on the list.
 - **The pause menu and the Settings over a flight (2026-11-16, the finish list's F4, [front-end.md](front-end.md)
   §8, §9):** the pause menu names the mission and the jet; the Settings, Keys and Joystick screens over the flight
   have the front end's top bar (crumbs from Paused) and a footer with Back; a row's choices side by side, so Graphics

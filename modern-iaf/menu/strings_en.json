@@ -183,6 +183,8 @@
 	"u_kg": "kg",
 	"u_deg": "°",
 	"months": ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+	"all_jets": "All jets",
+	"all_missions": "All missions",
 	"no_flights": "No flights yet.",
 	"date": "Date",
 	"graphics": "Graphics",

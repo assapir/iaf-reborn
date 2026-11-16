@@ -165,6 +165,9 @@ static var _pictures := {}
 var draft := {}
 ## The Pilot screen makes a new pilot (New pilot on the pilot list) instead of editing the active one.
 var creating := false
+## The Pilot log's filters: a jet's unit ("" = every jet), a mission's id (-1 = every mission).
+var log_jet := ""
+var log_mission := -1
 static var _args_done := false
 
 
@@ -918,7 +921,9 @@ func _page_section() -> void:
 	side.add_theme_stylebox_override("panel", Look.box(Color(Look.PANEL, 0.94), Look.LINE, 1, 6, Vector2(32, 28)))
 	side.custom_minimum_size.x = 560
 	cols.add_child(side)
-	var next := next_index()
+	# Every mission passed: no Next, the first one focused.
+	var all_passed := passed_count(missions) == missions.size()
+	var next := -1 if all_passed else next_index()
 	var rows := []
 	for i in missions.size():
 		var m: Dictionary = missions[i]
@@ -965,8 +970,8 @@ func _page_section() -> void:
 		_nb(rows[i], {"left": rows[i], "right": rows[i]})
 	_nb(rows[-1], {"bottom": back})
 	_nb(back, {"top": rows[-1]})
-	_focus = rows[next]
-	_side(side, missions[next])
+	_focus = rows[maxi(next, 0)]
+	_side(side, missions[maxi(next, 0)])
 
 
 ## The side panel on the section's list for mission `m`: its title and number, what it is for (its briefing's purpose),
@@ -1552,8 +1557,12 @@ func _page_pilot() -> void:
 		_title(v, s("new_pilot") if creating else s("pilot"), "")
 	var h := _hbox(v, 72)
 	h.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	var col := _vbox(h, 20)
-	var fr := _picture_frame(col, Vector2(330, 440), draft_picture())
+	# The form in one column (the fields, the picture under them), the logbook beside it to the inline end.
+	var f := _vbox(h, 12)
+	f.custom_minimum_size.x = 640
+	var col := HBoxContainer.new()  # added under the fields below
+	col.add_theme_constant_override("separation", 24)
+	var fr := _picture_frame(col, Vector2(255, 340), draft_picture())
 	fr.name = "Picture"
 	# The picture (or its placeholder) opens the file picker as the button does.
 	fr.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -1564,7 +1573,7 @@ func _page_pilot() -> void:
 		# No picture: the initials as the name is typed, a head and shoulders before there is a name.
 		var empty := TextureRect.new()
 		empty.name = "Placeholder"
-		empty.texture = Look.person_icon(326)
+		empty.texture = Look.person_icon(251)
 		empty.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		empty.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		empty.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -1577,8 +1586,7 @@ func _page_pilot() -> void:
 		_show_initials()
 	var pick := _button(col, s("choose_picture"), "Secondary", choose_picture)
 	pick.name = "ChoosePicture"
-	var f := _vbox(h, 12)
-	f.custom_minimum_size.x = 640
+	pick.size_flags_vertical = Control.SIZE_SHRINK_END
 	for field in ["name", "nickname"]:
 		_label(f, s("pilot_" + field), "Strong").add_theme_font_size_override("font_size", 25)
 		var e := LineEdit.new()
@@ -1594,6 +1602,7 @@ func _page_pilot() -> void:
 		if _focus == null:
 			_focus = e
 		_spacer_px(f, 12)
+	f.add_child(col)
 	_logbook(h, creating or first)
 	var save := _action(s("save"), "Primary", save_pilot)
 	save.name = "Save"
@@ -1613,8 +1622,10 @@ func _page_pilot() -> void:
 		other.name = "OtherPilots"
 		actions = [reset, del, other] + actions
 	_footer("", actions)
-	# Tab: the picture, the fields, the Pilot log, the bottom bar, the crumb.
-	var order := [pick] + ["Field_name", "Field_nickname", "pilot_log"].map(func(n): return find_child(n, true, false))
+	# Tab: the fields, the picture, the Pilot log, the bottom bar, the crumb.
+	var order := ["Field_name", "Field_nickname", "ChoosePicture", "pilot_log"].map(
+		func(n): return find_child(n, true, false)
+	)
 	_chain((order + actions + [find_child("Crumb_hangar", true, false)]).filter(func(c): return c != null))
 
 
@@ -1662,10 +1673,7 @@ func _logbook(parent: Control, new := false) -> void:
 	rows.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	for pl in planes:
 		_rule(rows, Look.LINE)
-		var j := {}
-		for x in JETS:
-			if x.unit == str(pl.plane):
-				j = x
+		var j := _jet(str(pl.plane))
 		var head := _hbox(rows, 16)
 		head.name = "Plane_" + str(pl.plane)
 		var name := _label(head, full_name(j) if not j.is_empty() else str(pl.plane), "Strong")
@@ -1708,9 +1716,9 @@ func _show_initials() -> void:
 func _field_keys(event: InputEvent, e: LineEdit) -> void:
 	var to: Control = null
 	if event.is_action_pressed("ui_down"):
-		to = find_child("Field_nickname" if e.name == "Field_name" else "Save", true, false)
+		to = find_child("Field_nickname" if e.name == "Field_name" else "ChoosePicture", true, false)
 	elif event.is_action_pressed("ui_up"):
-		to = find_child("Field_name" if e.name == "Field_nickname" else "ChoosePicture", true, false)
+		to = find_child("Field_name" if e.name == "Field_nickname" else "Crumb_hangar", true, false)
 	if to == null:
 		return
 	e.accept_event()
@@ -2071,8 +2079,39 @@ func _page_log() -> void:
 	var v := _vbox(_body(), 26)
 	_title(v, s("pilot_log"), "")
 	var att := sorties()
+	var back := back_button()
+	_footer("", [back])
 	if att.is_empty():
 		_label(v, s("no_flights"), "Sub")
+		_focus = back
+		return
+	# The filters: a jet, a mission (those flown; with a jet picked, its own), each "All" first.
+	var jets := [""]
+	var ids := [-1]
+	var unit_of := {}  # a sortie's mission id -> its jet's unit
+	for a in att:
+		var unit := str(jet_of(mission_by_id(int(a.mission_id))).get("unit", ""))
+		unit_of[int(a.mission_id)] = unit
+		if unit != "" and unit not in jets:
+			jets.append(unit)
+	# A filter kept from another pilot's log (or a mission of another jet): every one again.
+	if log_jet not in jets:
+		log_jet = ""
+	for id in unit_of:
+		if log_jet == "" or unit_of[id] == log_jet:
+			ids.append(id)
+	if log_mission not in ids:
+		log_mission = -1
+	var bar := _hbox(v, 20)
+	bar.name = "Filters"
+	var by_jet := _filter(bar, "FilterJet", jets.map(func(u): return s("all_jets") if u == "" else full_name(_jet(u))))
+	by_jet.select(maxi(jets.find(log_jet), 0))
+	by_jet.item_selected.connect(func(i): _log_filter(jets[i], log_mission))
+	var by_mission := _filter(
+		bar, "FilterMission", ids.map(func(id): return s("all_missions") if id < 0 else mission_title(id))
+	)
+	by_mission.select(maxi(ids.find(log_mission), 0))
+	by_mission.item_selected.connect(func(i): _log_filter(log_jet, ids[i]))
 	var scroll := ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -2080,20 +2119,53 @@ func _page_log() -> void:
 	var list := _vbox(scroll, 0)
 	list.name = "Log"
 	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	if not att.is_empty():
-		_log_row(list, [s("date"), s("mission"), s("plane_flown")], -1, null)
+	_log_row(list, [s("date"), s("mission"), s("plane_flown")], -1, null)
 	for i in range(att.size() - 1, -1, -1):
 		var a: Dictionary = att[i]
 		var m := mission_by_id(int(a.mission_id))
 		var j := jet_of(m)
+		if (
+			(log_jet != "" and str(j.get("unit", "")) != log_jet)
+			or (log_mission >= 0 and int(a.mission_id) != log_mission)
+		):
+			continue
 		var cells := [
-			str(a.date).replace("T", " ").left(16),
+			"%s · %s" % [day_text(str(a.date)), str(a.date).get_slice("T", 1).left(5)],
 			title_of(m) if not m.is_empty() else str(a.mission_id),
 			full_name(j),
 		]
 		var b := _log_row(list, cells, int(a.result), a)
+		b.name = "Sortie_%d" % int(a.id)
 		if _focus == null:
 			_focus = b
+
+
+## A pilot log filter: a dropdown of `items` named `n`.
+func _filter(parent: Control, n: String, items: Array) -> OptionButton:
+	var o := OptionButton.new()
+	o.name = n
+	o.custom_minimum_size = Vector2(360, 52)
+	for x in items:
+		o.add_item(x)
+	parent.add_child(o)
+	return o
+
+
+## The log again with filter jet `unit` and mission `id`, the dropdown just used still focused.
+func _log_filter(unit: String, id: int) -> void:
+	var used := "FilterJet" if unit != log_jet else "FilterMission"
+	log_jet = unit
+	log_mission = id
+	show_page("log")
+	_grab.call_deferred(find_child(used, true, false))
+
+
+## The jet of unit id `unit` (JETS), {} when none.
+func _jet(unit: String) -> Dictionary:
+	for j in JETS:
+		if j.unit == unit:
+			return j
+	return {}
 
 
 func _log_row(list: Control, cells: Array, result: int, a) -> Control:
@@ -2114,9 +2186,7 @@ func _log_row(list: Control, cells: Array, result: int, a) -> Control:
 	for i in cells.size():
 		var l := _label(h, cells[i], "Muted" if a == null else "Row")
 		l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		l.size_flags_stretch_ratio = [0.8, 1.4, 1.0][i]
-		if i == 0:
-			l.text_direction = Control.TEXT_DIRECTION_LTR
+		l.size_flags_stretch_ratio = [1.0, 1.3, 0.9][i]
 	# The result column: a box, so its label or chip sits at the column's inline start in both directions.
 	var last := _hbox(h, 0)
 	last.custom_minimum_size.x = 140

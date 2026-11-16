@@ -105,12 +105,14 @@ func first_start(fe: Control) -> void:
 	vp.push_input(_key_event(KEY_DOWN), true)
 	await frames(1)
 	check(vp.gui_get_focus_owner().name == "Field_nickname", "first start: Down from Name: Nickname")
+	vp.push_input(_key_event(KEY_DOWN), true)
+	await frames(1)
+	check(vp.gui_get_focus_owner().name == "ChoosePicture", "first start: Down from Nickname: Choose a picture")
+	vp.gui_get_focus_owner().release_focus()
+	fe.find_child("Field_nickname", true, false).grab_focus()
 	vp.push_input(_key_event(KEY_UP), true)
 	await frames(1)
 	check(vp.gui_get_focus_owner() == e, "first start: Up from Nickname: Name")
-	vp.push_input(_key_event(KEY_UP), true)
-	await frames(1)
-	check(vp.gui_get_focus_owner().name == "ChoosePicture", "first start: Up from Name: Choose a picture")
 	e.grab_focus()
 	save.pressed.emit()
 	await frames(2)
@@ -716,7 +718,36 @@ func walk(fe: Control, ids: Dictionary, lang: String) -> void:
 	await frames(2)
 	check(fe.page == "log", "%s: the Pilot screen's Pilot log opens the Pilot log" % lang)
 	check(_has(fe, "המראה" if he else "Take-off"), "%s: log: the take-off" % lang)
-	var rows: Array = fe.find_child("Log", true, false).find_children("*", "Button", true, false)
+	check(_has(fe, "2 בנובמבר 2026 · 08:14" if he else "2 Nov 2026 · 08:14"), "%s: log: the date localised" % lang)
+	check(fe.find_child("Back", true, false) != null, "%s: log: the footer's Back" % lang)
+	var all_rows: int = fe.find_child("Log", true, false).find_children("Sortie_*", "Button", true, false).size()
+	var by_mission: OptionButton = fe.find_child("FilterMission", true, false)
+	var take_off := -1
+	for i in by_mission.item_count:
+		if by_mission.get_item_text(i) == ("המראה" if he else "Take-off"):
+			take_off = i
+	by_mission.select(take_off)
+	by_mission.item_selected.emit(take_off)
+	await frames(2)
+	check(
+		fe.get_viewport().gui_get_focus_owner().name == "FilterMission", "%s: log: the filter used keeps focus" % lang
+	)
+	var shown: Array = fe.find_child("Log", true, false).find_children("Sortie_*", "Button", true, false)
+	check(
+		take_off > 0 and shown.size() > 0 and shown.size() < all_rows and not _has(fe, "התנעה" if he else "Start-up"),
+		"%s: log: the mission filter (%d of %d)" % [lang, shown.size(), all_rows]
+	)
+	var by_jet: OptionButton = fe.find_child("FilterJet", true, false)
+	check(by_jet != null and by_jet.get_item_text(0) == ("כל המטוסים" if he else "All jets"), "%s: log: jets" % lang)
+	# A filter this pilot's log never flew falls back to every flight (a filter kept from another pilot).
+	fe.log_mission = 99999
+	fe.show_page("log")
+	await frames(2)
+	check(
+		fe.log_mission == -1 and fe.find_child("Sortie_*", true, false) != null,
+		"%s: log: a stale filter falls back to All" % lang
+	)
+	var rows: Array = fe.find_child("Log", true, false).find_children("Sortie_*", "Button", true, false)
 	rows[0].pressed.emit()
 	await frames(2)
 	check(
@@ -1474,12 +1505,12 @@ func _missions_checks(fe: Control, lang: String) -> void:
 	var status := func(i: int) -> String: return str(rows[i].find_child("Status", true, false).text)
 	check(status.call(0).begins_with("עבר" if he else "Pass"), "%s: list: the start-up passed" % lang)
 	check(status.call(1).begins_with("עבר" if he else "Pass"), "%s: list: the take-off passed (its last flight)" % lang)
-	# All passed: the first one is Next again.
+	# All passed: no Next, the first one focused.
 	check(
-		rows[0].find_child("NextUp", true, false) != null and rows[0].has_focus() and rows[0].button_pressed,
-		"%s: list: the next one to fly marked and focused" % lang
+		rows.all(func(r): return r.find_child("NextUp", true, false) == null and not r.button_pressed),
+		"%s: list: all passed, no Next" % lang
 	)
-	check(rows.filter(func(r): return r.find_child("NextUp", true, false) != null).size() == 1, "%s: one next" % lang)
+	check(rows[0].has_focus(), "%s: list: all passed, the first focused" % lang)
 	check(
 		_has(
 			rows[0],
