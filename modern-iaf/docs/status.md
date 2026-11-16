@@ -3,6 +3,10 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **The pause menu and the Settings over a flight (2026-11-16, the finish list's F4, [front-end.md](front-end.md)
+  §8, §9):** the pause menu names the mission and the jet; the Settings, Keys and Joystick screens over the flight
+  have the front end's top bar (crumbs from Paused) and a footer with Back; a row's choices side by side, so Graphics
+  fits with VSync whole. The notebook's frame cost and pictures in [training.md](training.md) §11.
 - **The debrief (2026-11-15, the front-end finish list's F5, [front-end.md](front-end.md) §13):** the approved
   r3_debrief: the sheet with the goals (target, flown figure, ✓ / !) and "Next time:" from the Rust scorer, the whole
   flight on the map (the track coloured by phase, the planned route, Start / Lift-off / End pins with their times, the

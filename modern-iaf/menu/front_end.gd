@@ -1257,11 +1257,11 @@ func _preload_ground() -> void:
 ## Preferences: the sections listed at the inline start, the picked one's rows beside them on the same screen
 ## (pref_group; the first section until one is picked), its pane scrolled over its full height.
 func _page_prefs() -> void:
-	if flight == null:
-		_header(["hangar", "preferences"])
+	# Over a flight the same bars: the crumb back is the pause menu, the footer's Back too.
+	_header(["hangar", "preferences"] if flight == null else [[s("paused"), "pause"], "preferences"])
 	if PREFS.all(func(g): return g[0] != pref_group):
 		pref_group = PREFS[0][0]
-	var v := _vbox(_body(96, 112 if flight == null else 60), 30)
+	var v := _vbox(_body(), 30)
 	_title(v, s("preferences"), "", 44)
 	var h := _hbox(v, 64)
 	h.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -1309,6 +1309,8 @@ func _page_prefs() -> void:
 		)
 		imp.name = "ImportSettings"
 		_footer("", [], false, [exp, imp])
+	else:
+		_footer("", [back_button()])
 
 
 ## Reads the settings file at `path` (FileExport.import_settings: the sim's own rules, Hebrew without its font in
@@ -1422,7 +1424,8 @@ func _pref_row(parent: Control, row: Array) -> void:
 			b.name = "Control"
 			b.disabled = off
 		"radio":
-			var rv := _vbox(ctl, 4)
+			# The choices side by side, so a section fits between the bars without a cut row.
+			var rv := _hbox(ctl, 24)
 			rv.name = "Control"
 			var g := ButtonGroup.new()
 			for c in choices:
@@ -1771,7 +1774,10 @@ func _delete_now() -> void:
 
 ## A breadcrumb: its screen; from the Pilot screen through Back's discard prompt.
 func _crumb(to: String) -> void:
-	if page == "pilot":
+	if flight != null and to == "pause":
+		flight._apply_preferences()  # leaving the Settings over a flight, as Esc does (back)
+		show_page(to)
+	elif page == "pilot":
 		pilot_back(to)
 	else:
 		show_page(to)
@@ -2169,6 +2175,12 @@ func _page_pause() -> void:
 	var v := _vbox(_margin(panel, 48, 40), 22)
 	_label(v, str(setup_strings.get("name", "")), "Mark")
 	_label(v, s("paused"), "H2")
+	# What is flown: the mission and the jet.
+	var id = flight.get("mission_id")
+	if id != null:
+		var what := _text(v, "%s · %s" % [mission_title(int(id)), full_name(jet())], "Muted")
+		what.name = "Flying"
+		what.custom_minimum_size.x = 464
 	var go := _button(v, s("resume"), "Primary", func(): flight.close_front_end())
 	go.name = "Resume"
 	_focus = go

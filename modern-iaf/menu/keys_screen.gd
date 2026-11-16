@@ -41,9 +41,9 @@ func _init(front_end: Control, col := "key") -> void:
 static func page(front_end: Control) -> Node:
 	var me = load("res://menu/keys_screen.gd").new(front_end, "key")
 	front_end.add_child(me)
-	if front_end.flight == null:
-		front_end._header(["hangar", "preferences", "devices", "keys_screen"])
-	var v: VBoxContainer = front_end._vbox(front_end._body(96, 112 if front_end.flight == null else 60), 28)
+	var first = "hangar" if front_end.flight == null else [front_end.s("paused"), "pause"]
+	front_end._header([first, "preferences", "devices", "keys_screen"])
+	var v: VBoxContainer = front_end._vbox(front_end._body(), 28)
 	front_end._title(v, front_end.s("keys_screen"), front_end.s("keys_sub"))
 	var h: HBoxContainer = front_end._hbox(v, 96)
 	h.size_flags_vertical = Control.SIZE_EXPAND_FILL

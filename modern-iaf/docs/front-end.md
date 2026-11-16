@@ -48,7 +48,8 @@ a voice; the flight runs on meanwhile. The pilot's notebook (H) and the radio me
 A fail shows a banner with "Fail" and the reason; about 5 s later the flight ends into its debrief
 ([training.md](training.md) §9).
 
-Over a flight, Esc opens the pause menu: Continue the flight, Settings, End the flight. It is laid out on the
+Over a flight, Esc opens the pause menu: the mission and the jet flown ("Take-off · F-16I Sufa"), then Continue the
+flight, Settings, End the flight. It is laid out on the
 front end's canvas scaled to the window and centred by a container, so it sits in the middle at any window size and in
 either language (the Mac run of 2026-11-08: in Hebrew in a 2560 × 1440 window the overlay mirrored its own position
 by its unscaled width and sat off the right edge, its buttons' labels outside the screen). Ending a training flight
@@ -62,6 +63,7 @@ the record's `checks` ([training.md](training.md) §4); every other number stays
 | screen | English | Hebrew |
 |---|---|---|
 | the pause menu over the flight | ![Pause menu](pictures/front-end/pause_en.webp) | ![Pause menu, Hebrew](pictures/front-end/pause_he.webp) |
+| the Settings over the flight: the front end's top bar (the crumb Paused goes back to the pause menu) and a footer with Back | ![Settings over the flight](pictures/front-end/flight_prefs_en.webp) | ![Settings over the flight, Hebrew](pictures/front-end/flight_prefs_he.webp) |
 | a training mission accomplished: the flight paused | ![Mission accomplished](pictures/front-end/accomplished_en.webp) | ![Mission accomplished, Hebrew](pictures/front-end/accomplished_he.webp) |
 | a failed debrief from before the goals and the recording (a take-off with the gear never raised): its numbers, the right column's empty state | ![Failed debrief](pictures/front-end/debrief_fail_en.webp) | ![Failed debrief, Hebrew](pictures/front-end/debrief_fail_he.webp) |
 | the debrief of that flight | ![Debrief after a flight](pictures/front-end/flown_debrief_en.webp) | ![Debrief after a flight, Hebrew](pictures/front-end/flown_debrief_he.webp) |
@@ -246,8 +248,12 @@ centreline in the roll.
 - **Settings** ("Preferences" until 2026-11-14, the approved mocks' word): one screen: the sections listed at the inline start, the picked one's rows beside them (Graphics
   until one is picked; the user, 2026-11-09, of the screen per section: "I liked it more before"). The section's pane
   scrolls over its full height, its scroll bar running from its top to its bottom. A row shows its name and its
-  control, no line under it; a greyed row says why (Scenery without its setup step, §4). Over a flight Esc on the
-  Settings goes back to the pause menu; the Keys and Joystick screens go back to the Settings on Devices. Tried
+  control, no line under it; a greyed row says why (Scenery without its setup step, §4). A row's few choices (Clouds,
+  Buildings and trees, the Devices rows) stand side by side, so the Graphics section fits between the bars at
+  1920 × 1080 with no row cut. Over a flight the Settings, Keys and Joystick screens have the front end's top bar (the
+  crumbs start at Paused, the pilot and the jet at the inline end) and a footer with Back (since 2026-11-16, finish
+  list F4; before, a bare title and no Back); Esc or Back on the Settings goes back to the pause menu, and the Keys
+  and Joystick screens go back to the Settings on Devices. Tried
   2026-11-08 and dropped 2026-11-09: one screen per section, the list as cards with the rows' names under each
   section. Realism and aids have no switch (plan.md "physics";
   the user, 2026-11-08): the sim's `PROFILE` (`modern-iaf/sim_settings.gd`) fixes the original Gameplay page's aids off

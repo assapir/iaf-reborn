@@ -539,10 +539,22 @@ func fly_once(fe: Control) -> void:
 	await frames(3)
 	var pause: Node = tv.fe_overlay
 	check(pause != null and pause.page == "pause" and _has(pause, "Paused"), "fly: Esc opens the pause menu")
+	var flying: Label = pause.find_child("Flying", true, false)
+	var want: String = "%s · %s" % [pause.mission_title(int(tv.mission_id)), pause.full_name(pause.jet())]
+	check(flying != null and flying.text == want and want.length() > 5, "fly: the pause menu names the mission and jet")
 	pause.find_child("PausePrefs", true, false).pressed.emit()
 	await frames(2)
 	check(
 		pause.page == "prefs" and pause.find_child("Section_graphics", true, false) != null, "fly: pause, Preferences"
+	)
+	# The front end's bars over the flight: the crumb back to the pause menu and the footer's Back.
+	check(pause.find_child("Crumb_pause", true, false) != null, "fly: Settings over the flight, crumb Paused")
+	check(pause.find_child("Back", true, false) != null, "fly: Settings over the flight, the footer's Back")
+	var pane: Control = pause.find_child("SectionPane", true, false)
+	var last: Control = pause.find_child("Pref_vsync", true, false)
+	check(
+		pane != null and last != null and last.get_global_rect().end.y <= pane.get_global_rect().end.y + 1,
+		"fly: Settings over the flight, Graphics whole (VSync not cut)"
 	)
 	(pause.find_child("Section_graphics", true, false) as Button).pressed.emit()
 	await frames(2)

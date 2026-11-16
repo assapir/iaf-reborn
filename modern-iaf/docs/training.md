@@ -515,11 +515,27 @@ checked).
 **The frame cost** (`_notebook_shot.gd` with `NB_BENCH=1`, 1920 x 1080, this Linux laptop's Intel Iris Xe, 300 frames
 each, the scripts' process time and the GPU's render time of the window and the cockpit's world):
 
-NB_BENCH_TABLE
+| head and notebook | GPU, notebook off | GPU, notebook on | the notebook's script |
+|---|---|---|---|
+| stowed, looking ahead (the thigh out of view) | 26.3 ms | 29.8 ms | 0.022 ms |
+| stowed, looking down at it | 43.2 ms | 44.2 ms | 0.031 ms |
+| raised | 34.1 ms | 28.5 ms | 0.011 ms |
+| raised, the training ring in view | 32.4 ms | 32.5 ms | 0.015 ms |
+
+Measured 2026-11-16. The GPU's frame time moves by several ms from run to run on this laptop (the "raised" row is
+faster with the notebook on), so the notebook's GPU cost is within that noise; its script costs under 0.04 ms a
+frame.
 
 **The pictures** (`modern-iaf/tests/_notebook_shot.gd`, a real render, its header):
 
-NB_PICTURES
+| | |
+|---|---|
+| ![The first start-up: the raised notebook with its help line](pictures/notebook/first_training.webp) | ![Raised at START-UP, the step to take now on its yellow band](pictures/notebook/raised_en.webp) |
+| ![The Hebrew notebook, mirrored](pictures/notebook/raised_he.webp) | ![The RADIO page: Ramon's frequencies and the calls](pictures/notebook/radio.webp) |
+| ![A section's second page, ‹ and › both live](pictures/notebook/pages.webp) | ![Stowed on the right thigh](pictures/notebook/stowed.webp) |
+| ![The training ring on the RPM gauge, the notebook slid down off it](pictures/notebook/training.webp) | ![A step's part out of the view: the pointer at the screen's edge](pictures/notebook/edge.webp) |
+
+Taken 2026-11-16 at 1920 x 1080 on this Linux laptop.
 
 **Checks.** `modern-iaf/tests/test_notebook.gd` (headless): the start-up mission raises it at START-UP with the first
 step current and no key on the page, the help line once, H stows it into the thigh's texture and raises it (K leaves it), a step
