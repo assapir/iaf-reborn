@@ -242,6 +242,16 @@ static func make() -> Theme:
 	for k in ["pressed", "hover_pressed"]:
 		t.set_stylebox(k, "JetRow", row_on)
 	t.set_stylebox("disabled", "JetRow", row)
+	# A list that scrolls as one (Attributions, ScrollContainer.draw_focus_border): the same ring as a row's, the list
+	# inset inside it (the scroll clips what is drawn outside its rect).
+	t.set_type_variation("ListScroll", "ScrollContainer")
+	t.set_stylebox("focus", "ListScroll", box(Color(0, 0, 0, 0), ACCENT, 2, 6, Vector2.ZERO))
+	var inset := StyleBoxEmpty.new()
+	inset.content_margin_left = 16
+	inset.content_margin_right = 16
+	inset.content_margin_top = 12
+	inset.content_margin_bottom = 12
+	t.set_stylebox("panel", "ListScroll", inset)
 	# The Hangar's jet view with the keyboard's focus (turntable.gd): a faint ring, never a bright frame round the jet.
 	t.set_stylebox("focus", "Turntable", box(Color(0, 0, 0, 0), Color(ACCENT, 0.4), 1, 8, Vector2.ZERO))
 	return t

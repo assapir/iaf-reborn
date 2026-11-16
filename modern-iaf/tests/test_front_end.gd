@@ -767,6 +767,11 @@ func walk(fe: Control, ids: Dictionary, lang: String) -> void:
 	)
 	var cs: ScrollContainer = fe.find_child("Credits", true, false)
 	check(cs.has_focus() and fe.find_child("Back", true, false) != null, "%s: attributions: focused, a Back" % lang)
+	var ring: StyleBox = cs.get_theme_stylebox("focus")
+	check(
+		cs.draw_focus_border and ring is StyleBoxFlat and ring.border_width_top > 0,
+		"%s: attributions: the focus ring shows" % lang
+	)
 	cs.gui_input.emit(_key_event(KEY_PAGEDOWN))
 	await frames(1)
 	check(cs.scroll_vertical > 0, "%s: attributions: Page Down scrolls (%d)" % [lang, cs.scroll_vertical])

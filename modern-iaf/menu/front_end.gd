@@ -2657,6 +2657,8 @@ func _page_credits() -> void:
 	var scroll := ScrollContainer.new()
 	scroll.name = "Credits"
 	scroll.focus_mode = Control.FOCUS_ALL
+	scroll.theme_type_variation = "ListScroll"  # the focus ring (look.gd), as a row's
+	scroll.draw_focus_border = true
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	v.add_child(scroll)
