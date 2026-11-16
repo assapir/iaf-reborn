@@ -963,8 +963,8 @@ impl Watch {
     }
 
     /// The runway end the jet is lined up on (`aligned`) in the first half of the runway from that end, where a
-    /// take-off from it starts: (runway, end), else None. A backtrack along the runway toward its take-off end (the
-    /// base's taxi-out path at Ramon and Ramat David) runs the far half on the other end's heading: not lined up.
+    /// take-off from it starts: (runway, end), else None. A backtrack along the runway toward its take-off end (where no
+    /// taxiway leads to the start) runs the far half on the other end's heading: not lined up.
     pub fn lined_up(&self, s: &Now) -> Option<(usize, usize)> {
         let (i, k, along) = self.aligned(s)?;
         (along < self.base.runways[i].length() / 2.0).then_some((i, k))

@@ -50,7 +50,15 @@ fn main() {
     for p in parts {
         let p = root.join(p);
         println!("cargo:rerun-if-changed={}", p.display());
-        if p.is_dir() { walk(&p, &mut files) } else { files.push(p) }
+        let n = files.len();
+        if p.is_dir() {
+            walk(&p, &mut files)
+        } else if p.is_file() {
+            files.push(p.clone())
+        }
+        // A missing source would hash as nothing and every step's code fingerprint would stop following the code
+        // (2026-11-16: a shared target's run in a worktree being removed wrote an empty SOURCES, one stamp for all).
+        assert!(files.len() > n, "build.rs: no source at {}", p.display());
     }
     files.sort();
     let mut out = String::from("pub(crate) const SOURCES: &[(&str, u64)] = &[\n");

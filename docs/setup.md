@@ -125,7 +125,12 @@ New code redoes only the steps whose sources changed, and the steps that wait fo
 sources in `STEP_SOURCES` (`crates/iaf-setup/src/stamp.rs`). A source is a file, a folder (every file in it) or
 `Cargo.lock:<crate>` (the crate's locked version, for a library that decides the output, such as `image` for the
 pictures). `crates/iaf-setup/build.rs` fingerprints each file. A Rust file's comment lines and `mod x;` lines are
-left out of its fingerprint, because they change no output.
+left out of its fingerprint, because they change no output. The build stops when a listed source is missing, so a
+build never makes fingerprints that ignore the code. Cargo reruns `build.rs` only when a source is newer than its
+last run. In a target folder shared by several worktrees (`tools/worktree.sh`), that last run can come from another
+worktree. Then a build keeps that worktree's fingerprints: on 2026-11-16 the `airbases` step read "up to date" after
+a `sim_bases.rs` change. Before building a worktree into a shared target, run `touch crates/iaf-setup/build.rs`. In a
+single checkout, `git pull` writes the changed files after the last build, so the script reruns by itself.
 
 | Steps | Sources (besides iaf-tools' `lib.rs`, iaf-formats' `lib.rs`, `bytes.rs`, `terrain_types.rs`) |
 |---|---|

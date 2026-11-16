@@ -224,6 +224,14 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   yellow taxiway centreline is one thin line from the cockpit at every distance, fading with it, from the air too;
   before, it broke into dashes and blobs and vanished along the view (the shared shader's line read from a 2 m
   distance field, [rendering.md](../../docs/rendering.md) §7). The original game's Detailed airbases get the same fix.
+- **Signs and taxi routes to the runway's start (2026-11-15, awaiting the user's yes on the pictures; the user: "ab
+  signs should lead to runway start only, not to the middle of the runway, it's confusing"):** a direction sign's board
+  leads only to a runway's start (a way may cross a runway on its way there); a mid-field intersection keeps its
+  holding sign with both ends, and no board leads there. The departure the briefing draws and the tower clears keeps
+  to the taxiways to the start instead of back-taxiing on the runway (Ramon, Ramat David, Tel Nof), so it agrees with
+  the signs. Since 2026-11-16 every sign a departure to any runway end passes names that end with the route's turn
+  (Ramon's way to 25R read "25L" alone; now "25L 25R" on the shared parallel taxiway). A rebuild of the airbases step (nothing to download) ([airbases.md](airbases.md) §9,
+  [data-formats.md](data-formats.md) §12).
 - **The airbases from the air (2026-11-14, built, awaiting the user's yes on the pictures):** the bases' Sentinel-2
   fill toned to the photo around (no tan block; one colour map per base from the medians of the ground around, an odd
   Survey sheet left out, Sentinel-2's brighter dry grass brought down to the earth tones around); the painted

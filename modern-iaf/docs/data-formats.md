@@ -589,7 +589,10 @@ their defaults without one). Nothing in it comes from the original's file: its k
 
 The taxi paths follow the shortest way on the OSM taxiway network (Dijkstra; ways joined where they share a point,
 and along each runway between the taxiway points that lie on it: at Ramat David the taxiways meet only through the
-runways), thinned to the points that turn by more than 8 m (Ramer–Douglas–Peucker).
+runways), thinned to the points that turn by more than 8 m (Ramer–Douglas–Peucker). A metre along a runway counts as
+four (`RUNWAY_TAXI_COST`, inferred, 2026-11-15): the departure keeps to the taxiways to the runway's start and crosses
+a runway rather than back-taxi on it. Before, Ramon's departure joined 07L/25R 1 km from the 07L end and back-taxied
+1.7 km to 25R's start, Tel Nof's and Ramat David's back-taxied on their take-off runway too.
 
 **`converted/terrain/israel/airbases.json`**: `{"bases": [...]}` in the shape `iaf-terrain airbases` writes for the
 original (`airbases.gd`, `airbase_lights.gd`, the tower's wind turn), found through `Settings.airbases_file()`:

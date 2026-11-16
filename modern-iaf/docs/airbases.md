@@ -189,10 +189,26 @@ code reads ([data-formats.md](data-formats.md) §12):
   runway within 400 m of an end (inferred), that take-off end alone ("07L"; FAA AIM 2-3-8[^aim]); before each junction
   of three or more taxiways, 40 m back on every arriving taxiway (inferred), a direction sign (black on yellow) with
   a board for each end of every runway the other branches lead to: an arrow for the turn (to 45°) toward the branch
-  with the shortest way to that end, and the end's designator. A way's length is the taxi plus the back-taxi on the
-  runway to the end; a branch leads to the runway of its shortest way's end (and of ends within 300 m more,
-  inferred: Ramat David's 09 and 11 start 200 m apart). Before 2026-11-13 a branch named the end nearest its first runway join, so a parallel taxiway's
+  with the shortest way to that end, and the end's designator. A way leads to a runway end only where it joins the
+  runway at that end's start: before the declared runway start or within 400 m past it (`Runway::entry_end`); a way
+  may cross a runway on its way there. Boards lead to starts only, so every board sends a departing jet to a
+  runway's start (2026-11-15, the user: "ab signs should lead to runway start only, not to the middle of the
+  runway, it's confusing"; until then a way's length was the taxi plus the back-taxi on the runway to its nearer end,
+  so a board pointed at any join). A way's length is the taxi to the start plus the runway to the end's lineup point;
+  a branch leads to the runway of its shortest way's end (and of ends within 300 m more, inferred: Ramat David's 09
+  and 11 start 200 m apart). Before 2026-11-13 a branch named the end nearest its first runway join, so a parallel taxiway's
   left and right boards both read the end nearer a mid-field link (Nevatim's "26L" on every board around the spot).
+  At an intersection partway along a runway the holding sign names both ends: it marks the holding position, and no
+  direction sign leads a departure there. The same start rule picks a holding sign's single end (the start, declared
+  start plus 400 m; before 2026-11-15 the runway's physical end plus 400 m, so Tel Nof's 33L entry, 427 m in, read
+  "15R-33L"). The departures from the first parking spot to every runway end whose
+  route joins the runway at that end's start (`departure`, the route the briefing draws and the tower clears) set
+  their end's board: a direction sign the route passes names its end with the arrow the
+  route takes 40 m past the junction, whatever the branches' shortest ways say. Before 2026-11-16 Ramon's route to 25R ran the
+  parallel taxiway, whose junctions reach 25L first, and its boards named 25L alone; now they read 25L and 25R where
+  the routes share the way. `sim_bases::tests::signs_agree_with_the_departure` checks, for every base and runway end,
+  that every direction sign the route passes names that end with the route's turn, and that the take-off end's route
+  ends at a holding sign with that end alone.
   Each sign stands on the jet's left, 12 m past the taxiway's edge (Annex 14 Table 5-5).
   Signs stand apart (2026-11-13; before, at Ramon 25L and Nevatim 26L a holding sign stood 5–10 m in front of a
   direction sign and hid it): two signs facing the same way within 25 m become one array, and no sign stands in the
@@ -225,11 +241,11 @@ code reads ([data-formats.md](data-formats.md) §12):
 
 | base | section | take-off | lineup (UTM 36N) | taxi points out / in | tower |
 |---|---|---|---|---|---|
-| Ramon | `Ramon` | 25R, 246° | 660,563, 3,406,637 | 12 / 5 | the reference point (open) |
-| Ramat David | `David` | 27, 265° | 705,360, 3,616,494 | 6 / 9 | the reference point (open) |
-| Hatzerim | `Hatzerim` | 28L, 284° | 659,817, 3,455,824 | 6 / 16 | the reference point (open) |
-| Nevatim | `Nevatim` | 26L, 256° | 693,191, 3,454,815 | 10 / 9 | §5 |
-| Tel Nof | `TelNof` | 33L, 330° | 673,422, 3,522,971 | 6 / 7 | the reference point (open) |
+| Ramon | `Ramon` | 25R, 246° | 660,563, 3,406,637 | 5 / 5 | the reference point (open) |
+| Ramat David | `David` | 27, 265° | 705,360, 3,616,494 | 12 / 9 | the reference point (open) |
+| Hatzerim | `Hatzerim` | 28L, 284° | 659,817, 3,455,824 | 6 / 13 | the reference point (open) |
+| Nevatim | `Nevatim` | 26L, 256° | 693,191, 3,454,815 | 10 / 11 | §5 |
+| Tel Nof | `TelNof` | 33L, 330° | 673,422, 3,522,971 | 9 / 9 | the reference point (open) |
 
 The training missions fail a jet on the ground off the pavement (training.md §3.0); `sim_bases::Base::paved` tests
 the same shapes as the mask. `sim_bases::tests::the_departure_is_paved` checks every metre of the departure from each

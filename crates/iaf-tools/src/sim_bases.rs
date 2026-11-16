@@ -182,6 +182,14 @@ impl Runway {
     pub fn dist(&self, p: [f64; 2]) -> f64 {
         seg_dist(p, self.ends[0], self.ends[1])
     }
+    /// The end whose take-off a taxiway joining the runway at `p` starts: p lies before that end's declared start or
+    /// within END_ENTRY_M past it (along the centreline); None for a join partway along the runway (an intersection).
+    pub fn entry_end(&self, p: [f64; 2]) -> Option<usize> {
+        (0..2).find(|&k| {
+            let u = self.dir(k);
+            (p[0] - self.ends[k][0]) * u[0] + (p[1] - self.ends[k][1]) * u[1] < self.starts[k] + END_ENTRY_M
+        })
+    }
 }
 
 /// A parking spot: the start point of a unit's missions.
@@ -344,7 +352,13 @@ pub fn by_name<'a>(bases: &'a [Base], name: &str) -> Option<&'a Base> {
 
 /// The taxiway network: the centrelines' points, joined where two ways share a point (rounded to the metre), and
 /// along each runway between the points that lie on it (a jet crosses or backtracks there; at Ramat David the
-/// taxiways meet only through the runways).
+/// taxiways meet only through the runways), a metre along a runway costing RUNWAY_TAXI_COST.
+/// A metre taxied along a runway counts as this many on a taxiway (inferred): the departure takes the taxiways to the
+/// runway's start and crosses a runway rather than back-taxi on it (until 2026-11-15 Ramon's joined 07L/25R 1 km from
+/// 07L and back-taxied 1.7 km to 25R's start, the user: "not to the middle of the runway, it's confusing"); a back-taxi
+/// stays where no taxiway leads to the start.
+const RUNWAY_TAXI_COST: f64 = 4.0;
+
 struct Graph {
     pts: Vec<[f64; 2]>,
     adj: Vec<Vec<(usize, f64)>>,
@@ -365,7 +379,7 @@ impl Graph {
         for (l, _) in lines {
             for w in l.windows(2) {
                 let (a, b) = (id(&mut g, w[0]), id(&mut g, w[1]));
-                g.link(a, b);
+                g.link(a, b, 1.0);
             }
         }
         for r in runways {
@@ -375,15 +389,15 @@ impl Graph {
                 .collect();
             on.sort_by(|a, b| a.0.total_cmp(&b.0));
             for w in on.windows(2) {
-                g.link(w[0].1, w[1].1);
+                g.link(w[0].1, w[1].1, RUNWAY_TAXI_COST);
             }
         }
         g
     }
 
-    fn link(&mut self, a: usize, b: usize) {
+    fn link(&mut self, a: usize, b: usize, cost: f64) {
         if a != b {
-            let d = dist(self.pts[a], self.pts[b]);
+            let d = dist(self.pts[a], self.pts[b]) * cost;
             self.adj[a].push((b, d));
             self.adj[b].push((a, d));
         }
@@ -474,18 +488,59 @@ pub fn routes(b: &Base) -> Result<Routes> {
     let r = &b.runways[ri];
     let node = |p: [f64; 2]| g.nearest(p).with_context(|| format!("{}: no taxiways", b.icao));
     let hub = node(b.parking[0].at)?;
-    // The departure joins the runway at its declared start (the first taxiway entry, airbases.md §4); the arrival
-    // leaves it at the other end's start.
-    let entry = node(r.at(k, r.starts[k]))?;
+    // The arrival leaves the runway at the other end's start.
     let exit = node(r.at(1 - k, r.starts[1 - k]))?;
-    let path = |a: usize, z: usize| {
-        g.path(a, z).with_context(|| format!("{}: the taxiways do not join {:?} and {:?}", b.icao, g.pts[a], g.pts[z]))
-    };
-    let mut from = path(hub, entry)?;
+    let mut from = taxi_out(b, &g, ri, k)?;
     from.push(r.lineup(k));
     let mut to = vec![r.at(1 - k, r.starts[1 - k] + LINEUP_IN_M)];
-    to.extend(path(exit, hub)?);
+    to.extend(
+        g.path(exit, hub).with_context(|| format!("{}: the taxiways do not join {:?} and the hub", b.icao, r.ends))?,
+    );
     Ok(Routes { hub: g.pts[hub], from: simplify(&from, 8.0), to: simplify(&to, 8.0) })
+}
+
+/// The departure from the first parking spot to end k of runway ri as a jet taxis it: the spot, taxi_out, the lineup;
+/// None where the taxiways do not join them.
+fn departure(b: &Base, g: &Graph, ri: usize, k: usize) -> Option<Vec<[f64; 2]>> {
+    let out = taxi_out(b, g, ri, k).ok()?;
+    // Only a route that joins the runway at that end's start: the nearest point to a start no taxiway reaches can be
+    // a join partway along (signed it would lead a jet onto the runway's middle).
+    if b.runways[ri].entry_end(*out.last()?) != Some(k) {
+        return None;
+    }
+    Some(std::iter::once(b.parking[0].at).chain(out).chain([b.runways[ri].lineup(k)]).collect())
+}
+
+/// Where `path` passes `road` taxiing along the unit `d` (within 10 m and 45°), the turn it takes at the junction
+/// DIRECTION_BACK_M ahead (degrees, positive left): toward its point DIRECTION_BACK_M past the junction.
+fn route_turn(path: &[[f64; 2]], road: [f64; 2], d: [f64; 2]) -> Option<f64> {
+    let i = path.windows(2).position(|t| {
+        let u = unit(t[0], t[1]);
+        seg_dist(road, t[0], t[1]) < 10.0 && u[0] * d[0] + u[1] * d[1] > 0.7
+    })?;
+    let (mut at, mut left, mut k) = (road, DIRECTION_BACK_M * 2.0, i + 1);
+    while k < path.len() && dist(at, path[k]) < left {
+        left -= dist(at, path[k]);
+        at = path[k];
+        k += 1;
+    }
+    if k < path.len() {
+        let u = unit(at, path[k]);
+        at = [at[0] + u[0] * left, at[1] + u[1] * left];
+    }
+    let j = [road[0] + d[0] * DIRECTION_BACK_M, road[1] + d[1] * DIRECTION_BACK_M];
+    let o = unit(j, at);
+    Some((d[0] * o[1] - d[1] * o[0]).atan2(d[0] * o[0] + d[1] * o[1]).to_degrees())
+}
+
+/// The departure's taxi from the hub (the first parking spot's nearest taxiway point) to end k of runway ri, joining
+/// the runway at its declared start (the first taxiway entry, airbases.md §4): the taxiway points of `g` (a Graph with
+/// the runways), unsimplified.
+fn taxi_out(b: &Base, g: &Graph, ri: usize, k: usize) -> Result<Vec<[f64; 2]>> {
+    let r = &b.runways[ri];
+    let node = |p: [f64; 2]| g.nearest(p).with_context(|| format!("{}: no taxiways", b.icao));
+    let (hub, entry) = (node(b.parking[0].at)?, node(r.at(k, r.starts[k]))?);
+    g.path(hub, entry).with_context(|| format!("{}: the taxiways do not join the hub and {}", b.icao, r.designators[k]))
 }
 
 // --- taxiway signs --------------------------------------------------------------------------------------------------
@@ -687,14 +742,11 @@ pub fn signs(b: &Base) -> Vec<Sign> {
                     d[0] * (e[1] - p[1]) - d[1] * (e[0] - p[0]) > 0.0
                 };
                 let k = if left(0) { 0 } else { 1 };
-                // At the runway's end the sign names that take-off end alone (FAA AIM 2-3-8: "on taxiways that
+                // At the runway's start the sign names that take-off end alone (FAA AIM 2-3-8: "on taxiways that
                 // intersect the beginning of the takeoff runway, only the designation of the takeoff runway may appear
-                // on the sign"); elsewhere both ends, the one on the jet's left first.
-                let along = |e: usize| {
-                    let u = r.dir(e);
-                    (p[0] - r.ends[e][0]) * u[0] + (p[1] - r.ends[e][1]) * u[1]
-                };
-                let text = match (0..2).find(|&e| along(e) < END_ENTRY_M) {
+                // on the sign"); at an intersection both ends, the one on the jet's left first (it marks the holding
+                // position; no direction sign leads a departure there).
+                let text = match r.entry_end(p) {
                     Some(e) => r.designators[e].clone(),
                     None => format!("{}-{}", r.designators[k], r.designators[1 - k]),
                 };
@@ -706,8 +758,11 @@ pub fn signs(b: &Base) -> Vec<Sign> {
         }
     }
     // The runway ends each branch leads to and the way's length: from `next`, never back through `from` nor along a
-    // runway, a join's cost is the taxi there plus the back-taxi on the runway to its nearer end (the threshold the
-    // take-off starts from), each end at its cheapest join, within REACH_M.
+    // runway (the graph has no runway links; a taxiway crossing one goes on), to a join at a runway's start
+    // (Runway::entry_end) and that end's lineup, each end at its cheapest join, within REACH_M. A join partway along a
+    // runway leads nowhere: until 2026-11-15 it led to the nearer end by a back-taxi on the runway, and the boards sent
+    // the departing jet onto the runway's middle (the user: "ab signs should lead to runway start only, not to the
+    // middle of the runway, it's confusing").
     let leads_to = |from: usize, next: usize| -> Vec<(String, f64)> {
         let mut best = vec![f64::INFINITY; g.pts.len()];
         let mut heap = BinaryHeap::new();
@@ -724,13 +779,13 @@ pub fn signs(b: &Base) -> Vec<Sign> {
             }
             if let Some(ri) = on_runway(g.pts[k]) {
                 let r = &b.runways[ri];
-                let e = if dist(g.pts[k], r.ends[0]) < dist(g.pts[k], r.ends[1]) { 0 } else { 1 };
-                let total = d + dist(g.pts[k], r.ends[e]);
-                match found.iter_mut().find(|t| t.0 == r.designators[e]) {
-                    Some(t) => t.1 = t.1.min(total),
-                    None => found.push((r.designators[e].clone(), total)),
+                if let Some(e) = r.entry_end(g.pts[k]) {
+                    let total = d + dist(g.pts[k], r.lineup(e));
+                    match found.iter_mut().find(|t| t.0 == r.designators[e]) {
+                        Some(t) => t.1 = t.1.min(total),
+                        None => found.push((r.designators[e].clone(), total)),
+                    }
                 }
-                continue;
             }
             for &(n, w) in &g.adj[k] {
                 if n != from && d + w < best[n] {
@@ -759,6 +814,14 @@ pub fn signs(b: &Base) -> Vec<Sign> {
             (prev, cur) = (cur, nexts[0]);
         }
     };
+    // The departures to every runway end (`departure`, the route the briefing draws and the tower clears): a sign one
+    // passes names its end with the arrow the route takes, whatever the branches' shortest ways say. Ramon's route to
+    // 25R runs the parallel taxiway, whose junctions reach 25L first: its boards named 25L alone (until 2026-11-16).
+    let routed = Graph::new(&b.taxiways, &b.runways);
+    let departures: Vec<(&String, Vec<[f64; 2]>)> = (0..b.runways.len())
+        .flat_map(|ri| (0..2).map(move |k| (ri, k)))
+        .filter_map(|(ri, k)| Some((&b.runways[ri].designators[k], departure(b, &routed, ri, k)?)))
+        .collect();
     for j in 0..g.pts.len() {
         let mut branches: Vec<usize> = g.adj[j].iter().map(|a| a.0).collect();
         branches.sort();
@@ -800,11 +863,21 @@ pub fn signs(b: &Base) -> Vec<Sign> {
                 .iter()
                 .map(|(n, t)| {
                     let o = unit(g.pts[j], g.pts[*n]);
-                    // The turn from d to o, positive right (clockwise), to 45° steps.
+                    // The turn from d to o (positive left), as an arrow to 45° steps (positive right).
                     let turn = (d[0] * o[1] - d[1] * o[0]).atan2(d[0] * o[0] + d[1] * o[1]).to_degrees();
                     Panel { style: "direction", text: t.0.clone(), arrow: Some((-turn / 45.0).round() * 45.0 + 0.0) }
                 })
                 .collect();
+            for (end, path) in &departures {
+                if let Some(turn) = route_turn(path, p, d) {
+                    panels.retain(|q| &q.text != *end);
+                    panels.push(Panel {
+                        style: "direction",
+                        text: end.to_string(),
+                        arrow: Some((-turn / 45.0).round() * 45.0 + 0.0),
+                    });
+                }
+            }
             // Left to right, as the turns.
             panels.sort_by(|a, b| a.arrow.unwrap_or(0.0).total_cmp(&b.arrow.unwrap_or(0.0)).then(a.text.cmp(&b.text)));
             if !panels.is_empty() {
@@ -2023,7 +2096,8 @@ mod tests {
                         .expect("a runway end of the base");
                     let Some((_, other)) = texts[0].split_once('-') else {
                         let at = dist(s.at, r.ends[k]);
-                        assert!(at < END_ENTRY_M + 200.0, "{} {texts:?} {:?}: {at} m from its end", b.icao, s.at);
+                        let max = r.starts[k] + END_ENTRY_M + 200.0;
+                        assert!(at < max, "{} {texts:?} {:?}: {at} m from its end", b.icao, s.at);
                         continue;
                     };
                     assert_eq!(r.designators[1 - k], other, "{} {texts:?}", b.icao);
@@ -2044,6 +2118,140 @@ mod tests {
             let main = main_ends()[b.section.as_str()];
             assert!(named.contains(main), "{}: no direction sign to {main} ({named:?})", b.icao);
         }
+    }
+
+    /// A join counts as a runway's start up to END_ENTRY_M past the declared start (or before it), from either end;
+    /// a join partway along is an intersection.
+    #[test]
+    fn entry_end_is_the_start_only() {
+        let r = Runway {
+            designators: ["09".into(), "27".into()],
+            ends: [[0.0, 0.0], [3000.0, 0.0]],
+            width: 45.0,
+            starts: [300.0, 0.0],
+        };
+        assert_eq!(r.entry_end([-50.0, 0.0]), Some(0));
+        assert_eq!(r.entry_end([650.0, 30.0]), Some(0));
+        assert_eq!(r.entry_end([750.0, 0.0]), None);
+        assert_eq!(r.entry_end([1500.0, 0.0]), None);
+        assert_eq!(r.entry_end([2650.0, 0.0]), Some(1));
+    }
+
+    /// The signs agree with the departures the briefing draws and the tower clears ("taxi to runway <end>": taxi_out):
+    /// for every base and every runway end, each direction sign the route from the parking spot passes names that end,
+    /// its board turning where the route turns (none names only another runway or points away); the take-off end's
+    /// route ends at a holding sign naming that end alone (its start).
+    #[test]
+    fn signs_agree_with_the_departure() {
+        let mut checked = 0;
+        for b in load(&data()).unwrap() {
+            let all = signs(&b);
+            let g = Graph::new(&b.taxiways, &b.runways);
+            // The taxiway junctions (three or more ways), where signs() puts direction signs.
+            let taxi = Graph::new(&b.taxiways, &[]);
+            let junctions: Vec<[f64; 2]> = (0..taxi.pts.len())
+                .filter(|&k| {
+                    let mut n: Vec<usize> = taxi.adj[k].iter().map(|a| a.0).collect();
+                    n.sort();
+                    n.dedup();
+                    n.len() >= 3
+                })
+                .map(|k| taxi.pts[k])
+                .collect();
+            for (ri, r) in b.runways.iter().enumerate() {
+                for e in 0..2 {
+                    let end = &r.designators[e];
+                    let Some(path) = departure(&b, &g, ri, e) else { continue };
+                    for s in all.iter().filter(|s| s.panels.iter().any(|p| p.style == "direction")) {
+                        // The jet reading it taxis along −facing; the route passes it when a taxiway leg along that
+                        // way (within 25°) runs beside the board (within 45 m, the taxiway's half width and the sign's
+                        // offset). A leg 45° off is the other arm of a V-shaped junction, whose jet does not face this
+                        // board (Ramat David's route to 11 beside the board for 09, 2026-11-16); a leg on a runway is
+                        // the lineup or a crossing, where no direction sign stands (Hatzerim's 10R lineup 43 m from a
+                        // taxiway's board).
+                        let f = s.facing.to_radians();
+                        let d = [-f.sin(), -f.cos()];
+                        let passes = path.windows(2).any(|t| {
+                            let u = unit(t[0], t[1]);
+                            let along = (s.at[0] - t[0][0]) * u[0] + (s.at[1] - t[0][1]) * u[1];
+                            let mid = [(t[0][0] + t[1][0]) / 2.0, (t[0][1] + t[1][1]) / 2.0];
+                            !b.runways.iter().any(|r| r.dist(mid) <= r.width / 2.0 + 5.0)
+                                && u[0] * d[0] + u[1] * d[1] > 0.9
+                                && (0.0..=dist(t[0], t[1])).contains(&along)
+                                && seg_dist(s.at, t[0], t[1]) < 45.0
+                        });
+                        if !passes {
+                            continue;
+                        }
+                        // The junction the board stands before: the first taxiway junction the route reaches from
+                        // beside the sign's road point, within DIRECTION_BACK_M plus SIGN_GAP_M (a board joined to a
+                        // sign array keeps the array's road point) and 10 m. The junction lies along the taxiway's
+                        // bends (Hatzerim's curved link from the spot, 2026-11-16), so it is found along the route.
+                        let i0 = (0..path.len() - 1)
+                            .min_by(|&a, &c| {
+                                seg_dist(s.road, path[a], path[a + 1]).total_cmp(&seg_dist(
+                                    s.road,
+                                    path[c],
+                                    path[c + 1],
+                                ))
+                            })
+                            .unwrap();
+                        let (mut run, mut k, mut q) = (dist(s.road, path[i0 + 1]), i0 + 1, None);
+                        while k < path.len() && run <= DIRECTION_BACK_M + SIGN_GAP_M + 10.0 {
+                            if junctions.iter().any(|&p| dist(p, path[k]) < 1.0) {
+                                q = Some(k);
+                                break;
+                            }
+                            run += path.get(k + 1).map_or(f64::INFINITY, |&n| dist(path[k], n));
+                            k += 1;
+                        }
+                        let Some(vi) = q else {
+                            panic!("{} route to {end} passes sign {:?} {:?} and no junction", b.icao, s.at, s.panels)
+                        };
+                        // The way the route leaves it: from the junction to the route's point DIRECTION_BACK_M on.
+                        let (mut at, mut left, mut k) = (path[vi], DIRECTION_BACK_M, vi + 1);
+                        while k < path.len() && dist(at, path[k]) < left {
+                            left -= dist(at, path[k]);
+                            at = path[k];
+                            k += 1;
+                        }
+                        if k < path.len() {
+                            let u = unit(at, path[k]);
+                            at = [at[0] + u[0] * left, at[1] + u[1] * left];
+                        }
+                        let o = unit(path[vi], at);
+                        let turn = (d[0] * o[1] - d[1] * o[0]).atan2(d[0] * o[0] + d[1] * o[1]).to_degrees();
+                        let board = s.panels.iter().find(|p| p.style == "direction" && &p.text == end);
+                        let Some(board) = board else {
+                            panic!("{} route to {end} passes sign {:?} {:?} without it", b.icao, s.at, s.panels)
+                        };
+                        let arrow = board.arrow.unwrap_or(0.0);
+                        assert!(
+                            (arrow + turn).abs() < 50.0,
+                            "{} route to {end}: sign {:?} {:?}, the route turns {:.0}",
+                            b.icao,
+                            s.at,
+                            s.panels,
+                            -turn
+                        );
+                        checked += 1;
+                    }
+                }
+            }
+            let main = main_ends()[b.section.as_str()];
+            let rt = routes(&b).unwrap();
+            let path: Vec<[f64; 2]> = std::iter::once(b.parking[0].at).chain(rt.from.iter().copied()).collect();
+            let lineup = *rt.from.last().unwrap();
+            let hold = all.iter().filter(|s| s.panels.iter().any(|p| p.style == "mandatory" && p.text == main));
+            assert!(
+                hold.clone()
+                    .any(|s| path.windows(2).any(|t| seg_dist(s.at, t[0], t[1]) < 60.0) && dist(s.at, lineup) < 1200.0),
+                "{}: no holding sign {main} on the route's end: {:?}",
+                b.icao,
+                hold.map(|s| s.at).collect::<Vec<_>>()
+            );
+        }
+        assert!(checked > 0, "no route passes a direction sign");
     }
 
     /// One designator per runway end for the paint, the signs, the tower and the missions: the tower's iaf.ibx

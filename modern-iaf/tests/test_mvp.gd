@@ -1019,7 +1019,7 @@ func _taxi(tv: Node, path: Array, hdg: float, line_up := true) -> bool:
 		var aim: Vector2 = from + leg.normalized() * minf(along + LOOK_M, leg.length())
 		var err := _bearing_err(tv, aim)
 		# Slow through a turn until the nose is on the new leg.
-		# Slow on the last leg's end too (Ramon's 900 m backtrack along the runway at taxi speed, 2026-11-13).
+		# Slow on the last leg's end too, into the lineup (2026-11-13; then Ramon's route ended in a 900 m backtrack).
 		var last := i == path.size() - 1 and d < TURN_M
 		_drive(tv, err, TURN_MS if turn or absf(err) > 15.0 or last else TAXI_MS)
 		await process_frame
