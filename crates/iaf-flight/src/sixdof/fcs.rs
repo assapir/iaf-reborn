@@ -9,6 +9,7 @@
 
 use super::aero::{Surfaces, lef_schedule};
 use crate::aircraft::{F16_CL_DA, F16_CLP};
+use crate::channels::Angle;
 use crate::data_set::{F16_CAT3_ROLL, Roll};
 
 /// The pilot's controls, −1…1: stick right, stick pulled (nose up), right pedal.
@@ -181,6 +182,10 @@ pub struct Fcs {
     // Roll.
     f_lat: Lag,
     p_cmd: Lag,
+    /// The production F-16's roll command: reborn's roll channel (`channels::Angle`, its rate ramped at `accel`).
+    p_ramp: Angle,
+    /// The flight's time, s (the channel's clock).
+    t: f64,
     p_f: Lag,
     /// The production F-16's roll (`data_set::F16_ROLL`) and the jet's span, m; None: TP-1538's figure 64.
     roll: Option<(Roll, f64)>,
@@ -203,7 +208,9 @@ impl Fcs {
     /// and at figure 62(b)'s negative limit or `min_g` − 1, whichever is less negative. `roll`: the production F-16's
     /// roll and the jet's span (m), or None for TP-1538's control system A.
     pub fn new((max_g, min_g): (f64, f64), roll: Option<(Roll, f64)>) -> Fcs {
-        Fcs { max_g, min_g, roll, ..Fcs::default() }
+        let p_ramp =
+            roll.map_or_else(Angle::default, |(r, _)| Angle::new(0.0, r.accel as f32, r.accel as f32, r.rate as f32));
+        Fcs { max_g, min_g, roll, p_ramp, ..Fcs::default() }
     }
 
     /// The control system with the limiter holding `deg` of α at 1 g ([`F16_ALPHA_MAX`]: no change).
@@ -279,10 +286,12 @@ impl Fcs {
         let f = self.f_lat.step(60.0, pilot.stick_x * LAT_N, dt);
         let full = ROLL_GRADIENT[ROLL_GRADIENT.len() - 1].1;
         // The production F-16 (`data_set::F16_ROLL`): figure 64(b)'s stick shape scaled to its full-stick rate and
-        // followed at its onset (a first-order command of time constant rate / accel: a full-stick step starts at
-        // `accel`), its flaperons' rate and travel (the aileron is half their difference: (20° down + 23° up) / 2 =
-        // 21.5°, as TP-1538's). The stick's command also goes forward as the aileron that rolls the jet steadily at
-        // that rate (the roll damping met by the roll control: δa = Clp·(p·b/2V) / Cl_δa, TP-1538's derivatives,
+        // reached at its onset as reborn's Real roll is: its roll channel (`channels::Angle`, the original's
+        // `FUN_005adc70`) ramps the commanded rate at `accel` (a full-stick command reaches 90° in 0.55 s; the jet
+        // lags it by its flaperons' rate, modern-iaf/docs/flight-model.md §9.13). Then the flaperons' rate and travel
+        // (the aileron is half their difference: (20° down + 23° up) / 2 = 21.5°, as TP-1538's). The stick's command
+        // also goes forward as the aileron that rolls the jet steadily at that rate (the roll damping met by the roll
+        // control: δa = Clp·(p·b/2V) / Cl_δa, TP-1538's derivatives,
         // `aircraft::F16_CLP`; inferred: figure 64(a)'s proportional loop alone stops short of its command); the loop
         // corrects the rest, so a steady moment (unbalanced stores) still rolls the jet. TP-1538's control system A
         // otherwise, and for the autopilot's rate command: 308 deg/s, 10/(s + 10), 80 deg/s, ±21.5°, no feedforward.
@@ -291,9 +300,20 @@ impl Fcs {
         let (da_rate, da_max) =
             self.roll.map_or((80.0, 21.5), |(r, _)| (r.flaperon_rate, (r.flaperon.0 + r.flaperon.1) / 2.0));
         let (p_cmd, ff_span) = match (self.roll, pilot.roll_rate_command) {
-            (Some((r, span)), None) => (self.p_cmd.step(r.accel / r.rate, stick * r.rate / full, dt), span),
-            (_, c) => (self.p_cmd.step(10.0, c.unwrap_or(stick), dt), 0.0),
+            (Some((r, span)), None) => {
+                self.p_ramp.set(self.t, 0.0, (stick * r.rate / full) as f32);
+                // The autopilot's command, when it takes over, starts from the stick's.
+                self.p_cmd.y = self.p_ramp.sample(self.t + dt).1 as f64;
+                (self.p_cmd.y, span)
+            }
+            (_, c) => {
+                // The stick's ramp starts again from rest when the autopilot lets go.
+                let a = self.p_ramp;
+                self.p_ramp = Angle::new(0.0, a.start_accel, a.stop_accel, a.max_rate);
+                (self.p_cmd.step(10.0, c.unwrap_or(stick), dt), 0.0)
+            }
         };
+        self.t += dt;
         let p_f = self.p_f.step(50.0, s.p, dt);
         let r_f = self.r_f.step(50.0, s.r, dt);
         // Above α 29° (the F-16's; moved with the jet's limit) the departure / spin prevention drives the ailerons

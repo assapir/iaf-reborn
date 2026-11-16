@@ -84,7 +84,7 @@ fn wrap(a: f64) -> f64 {
 
 /// Acceleration-limited angle (type B: `FUN_005adc70`): the rate accelerates
 /// toward a target rate, then the angle continues at that rate.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Default, PartialEq)]
 pub struct Angle {
     t0: f64,
     pos0: f64,

@@ -279,9 +279,8 @@ fn player_autopilot_flies_the_sims_three_jets() {
         let p = touchdown.unwrap_or_else(|| panic!("{name}: touched down"));
         assert!((p.y - rd.lineup[1] as f64).abs() < 30.0, "{name}: centreline ({:.0} m)", p.y - rd.lineup[1] as f64);
         assert!(stopped, "{name}: stopped on the runway");
-        // The flare starts (step 14) but the 6-DoF's g onset at approach speed is too slow to arrest the 6° glide's
-        // ~11 m/s in the flare's 20 m (finish list F3, the production FLCS's g onset): the touchdown passes the
-        // original's limits that autopilot landings keep on both models, not the real 4 m/s.
-        assert!(sink < 13.0, "{name}: touchdown sink {sink}");
+        // The real final (`autopilot::REAL_FINAL`: 3° at 13° α, ~145 kt) and its 15 m flare: about 2 m/s (2026-11-16:
+        // 2.6 / 2.5 / 2.0). The original's 6° final at 185–195 kt touched at 9.6 / 4.3 / 6.8 m/s.
+        assert!(sink < 3.0, "{name}: touchdown sink {sink}");
     }
 }

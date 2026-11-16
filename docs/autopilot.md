@@ -145,6 +145,9 @@ approach and the float before touchdown steer to the centreline with a damped la
     (`Landing::flare`).
   - FinalApproach hands over to StopPlane at the original's radius around the lineup or, for the player, once the
     wheels are below the flare's height for the jet's sink (2 s × (sink − 1.5 m/s)), whichever comes first.
+  - Modern IAF's 6-DoF only (`ApView::final_speed` set; reborn never reaches it): FinalApproach flies a 3° path at the
+    speed of 13° α, its path gain the same both sides (0.1°/m, damping 1.0), its speed law's error summed, and the
+    flare's profile is 6 s instead of 2 s (`REAL_FINAL`, `REAL_FINAL_LAWS`; modern-iaf/docs/flight-model.md §9.6).
   - For the player, StopPlane counts as "rolling" once the wheels touch, not on the original's test (flight-path
     pitch within 0.2° and within 5 m of the ground). The flare's path passes that test above the runway. Rolling,
     the player's StopPlane sets the ground law's stick (pitch law B, target 0) on every tick. The original sets it

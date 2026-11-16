@@ -491,12 +491,25 @@ budget, a real flight. Open:
 * **The player's autopilot on the 6-DoF** (2026-11-14, test `player_autopilot_flies_the_sims_three_jets`, the own
   data and the own airbases): on the Barak, the Sufa and the Adir, level holds the height within 1.3 m for 60 s, NAV
   passes a waypoint 90° off the nose 1,000 m higher within 1.1–1.3 km (its pass radius is 1,852 m) at 8–10 m of its
-  height, and NAV to a landing waypoint lands on Ramat David's centreline and stops. The touchdown sinks 4.5–10 m/s
-  (2026-11-15: Barak 9.8, Sufa 4.5, Adir 8.9): the shared autopilot flies the original's steep final (about 185 kt,
-  10 m/s of sink), and at that speed with the gear down the 6-DoF's g takes about a second to follow the flare's
-  command (TP-1538's loop; the production F-16 lands in its pitch-rate "takeoff and landing gains", not modelled).
-  Tested and dropped (2026-11-15): the flare acting on the height 0.3–1.0 s ahead (7.7–8.7 m/s, and 1.0 s ballooned
-  and crashed), and the flare started at 3.5 s instead of 2 s of sink (4.6 m/s, still over the limit). That touchdown passes because the game keeps
+  height, and NAV to a landing waypoint lands on Ramat David's centreline and stops, sinking 2.0–2.6 m/s at the
+  touchdown (2026-11-16: Barak 2.6, Sufa 2.5, Adir 2.0; the test asserts under 3 m/s).
+  **The real final** (2026-11-16, `autopilot::REAL_FINAL`): on the 6-DoF (its `ApView::final_speed` set with the gear
+  down) the autopilot flies a 3° glide path (inferred: the usual ILS glide slope[^aim-gs]; the F-16 manual gives no
+  angle) at the speed of 13° α, the manual's on-speed α ("arrive on final at 11 or 13 degrees AOA", T.O. GR1F-16CJ-1
+  p. 2-23, figure 2-3[^to-f16cj]; the F-35A's 13° in the Eglin accident report[^asf20]), computed from the jet's own
+  aerodynamics at its weight, height, flaps and speed brake (`sixdof::flight::approach_speed`, the function the
+  approach-speed test checks against figure 2-3). The speed law's error is summed (0.2 /s), the path held by a
+  gain the same both sides of it (0.1° of flight path per m, damping 1.0 per deg/s) and the flare starts at
+  6 s × (sink − 1.5 m/s), about 15 m (the original's 2 s). The Barak's final: 146 kt, α 12.8°, 3.9 m/s of sink. The
+  original model keeps the original's 6° final.
+  Before (2026-11-15): the original's 6° final at 185–195 kt, 8–12 m/s of sink, touched at 9.6 / 4.3 / 6.8 m/s: at
+  that speed with the gear down the 6-DoF's g takes about a second to follow the flare's command. Tested and dropped
+  then (2026-11-15/16): the flare acting on the height 0.3–1.0 s ahead (7.7–8.7 m/s, 1.0 s ballooned and crashed), the
+  flare started at 3.5 s of sink (4.6 m/s), a constant-deceleration flare (1.8–2.4 m/s next to crashes). Swept on the
+  real final (2026-11-16, Barak / Sufa / Adir, the diag flight of the test): the flare's time 2–5 s gave 2.7–4.1 m/s,
+  6 s 1.9–2.2, 7–8 s ballooned the Adir 300 m short; the original's path gains (0.3 above / 0.03 below, damping 0.5)
+  cycled ±2 m/s about the path and touched at 3.4–9 m/s; damping 0.5 with a symmetric gain 3.3–6.8 m/s.
+  That touchdown passes because the game keeps
   the original's landing limits while the autopilot lands, on both models (`set_ap_landing`). "No stalls" and "No
   spins" reach only reborn's model: the 6-DoF has no scripted stall or spin to block, and the sim fixes both off.
 * **Not modelled, one plain log line per run when the game asks** (`IafFlight`, no warning): the drag chute. No F-16
@@ -842,7 +855,7 @@ the same public figures as §5; "ok" inside, "close" within 10 %, "OFF" further;
 | neutral stick, 60 s, 10,000 ft, military | +818 ft, to 643 kt **OFF** | +1,066 ft **OFF** | +1,164 ft **OFF** | +1,063 ft **OFF** |
 | max level speed, SL | 785 kt, Mach 1.19 ok (1.2) | Mach 1.19 ok | 750 kt, Mach 1.14 close (700 kt) | Mach 1.19 (-) |
 | max level speed, 40,000 ft | Mach 1.99 ok (2.0) | Mach 1.99 ok (1.89–2.05) | Mach 1.60 ok (1.6) | Mach 1.99 ok (2.0) |
-| max roll rate, roll 0 → 90° at 350 kt | 267 deg/s **OFF**, 0.87 s **OFF** (0.55) | 265 **OFF**, 0.88 s **OFF** | 243 (-), 0.95 s (-) (the F-16's roll since 2026-11-16) | 181 (-), 0.98 s (-) |
+| max roll rate, roll 0 → 90° at 350 kt (2026-11-16: the command ramped) | 266 deg/s **OFF**, 0.80 s **OFF** (0.55) | 261 close, 0.85 s **OFF** | 258 (-), 0.93 s (-) (the F-16's roll since 2026-11-16) | 178 (-), 0.98 s (-) |
 | instantaneous turn, 420 kt, 10,000 ft | 21.4 deg/s at 7.7 g ok | 20.3 at 7.0 g ok | 20.0 at 6.7 g (-) | 19.2 at 6.8 g (-) |
 | climb (Ps), SL, full AB | 57,456 ft/min close | 47,572 (-) | 40,149 (-) | 46,583 (-) |
 | fuel flow military / full AB, SL | 10,911 / 63,618 lb/h ok / ok | 13,484 / 59,947 ok / ok | 22,066 / 89,458 ok / ok | 26,968 / 119,775 ok / ok |
@@ -858,19 +871,27 @@ figure for the military top speed at 10,000 ft). The Adir's stall: TP-1538's lif
 
 | jet, speed | steady rate (1.5–2 s) | peak | largest roll acceleration, first 0.5 s | 0 → 90° |
 |---|---|---|---|---|
-| Barak, 350 kt | 247 deg/s | 248 | 421 deg/s² | 0.87 s |
-| Barak, 480 kt | 244 | 245 | 515 | 0.78 s |
-| Sufa, 350 kt | 246 | 247 | 392 | 0.88 s |
-| Sufa, 480 kt | 244 | 245 | 486 | 0.80 s |
+| Barak, 350 kt | 249 deg/s | 250 | 472 deg/s² | 0.80 s |
+| Barak, 480 kt | 247 | 249 | 801 | 0.65 s |
+| Sufa, 350 kt | 247 | 249 | 419 | 0.85 s |
+| Sufa, 480 kt | 247 | 247 | 727 | 0.68 s |
+| Adir, 350 kt | 246 | 247 | 344 | 0.93 s |
+| Adir, 480 kt | 248 | 248 | 599 | 0.72 s |
 
-The test asserts the steady rate and the peak within 5 % of 240 deg/s and 90° within 0.90 s at 350 kt, 0.83 s
-(Barak) and 0.85 s (Sufa) at 480 kt. Before F2 the Barak rolled at 218 deg/s and banked 90° in 0.80 s at 350 kt (the
+Since 2026-11-16 (finish list, roll onset) the stick's rate command ramps at 688 deg/s² to the stick's rate, through
+reborn's roll channel (`channels::Angle`, the original's `FUN_005adc70`, the rule reborn's Real F-16 rolls by:
+240/688/2 + 90/240 = 0.55 s to 90°). Before, a first-order command of time constant 240/688 = 0.35 s started at
+688 deg/s² and slowed (Barak 0.87 / 0.78 s, Sufa 0.88 / 0.80 s, Adir 0.92 s at 350 kt). The jet lags the command: the
+flaperons move at 62 deg/s (Stepaniak, AFIT 1995) and reach the aileron that rolls 240 deg/s at 350 kt only after
+about 0.3 s, so the onset is 420–470 deg/s² at 350 kt and 730–800 at 480 kt: within the measured 8–12 rad/s²
+(460–690 deg/s², docs/real-aircraft.md §8.2) at 350 kt, above it at 480 kt. Tested and dropped (2026-11-16): an
+aileron for the ramp's roll acceleration (Ix·ṗ / (q̄·S·b·Cl_δa)) added to the feedforward, 0.78 s at 350 kt (−0.02 s):
+the loop already drives the flaperons at their rate. The test asserts the steady rate and the peak within 5 % of
+240 deg/s and 90° within 0.82 / 0.87 / 0.95 s at 350 kt and 0.67 / 0.70 / 0.75 s at 480 kt (Barak / Sufa / Adir). Before F2 the Barak rolled at 218 deg/s and banked 90° in 0.80 s at 350 kt (the
 Sufa 218, 0.83 s). The table above it reads 265–267 deg/s: its "max roll rate" is the largest frame-to-frame change
 of the bank angle over 3 s, which the Euler angles inflate once the jet is past inverted. The steady rate is 2–3 %
 above the figure: the loop leaves the moments the feedforward does not model (the rudder interconnect's roll, the
-sideslip). The 90° times are open: an instant 688 deg/s² gives 0.55 s (reborn's Real F-16 flies that), but the
-flaperons' 62 deg/s (slower than TP-1538's 80 deg/s) and TP-1538's roll power hold the jet's onset to
-390–520 deg/s². Tested and dropped (2026-11-14): the feedforward on TP-1538's 10/(s + 10) command (0.80 s at 350 kt,
+sideslip). Tested and dropped (2026-11-14): the feedforward on TP-1538's 10/(s + 10) command (0.80 s at 350 kt,
 0.68 s at 450 kt) made the validation's bank-holding pilot oscillate ±50° about 80° (the flaperons hit their rate
 limit at each reversal), so its turn row fell from 21.4 to 16.7 deg/s, and with the autopilot's command it crashed
 the Sufa's landing; the tables' own Clp and Cl_δa at α instead of the two constants gave 254 deg/s steady, no
@@ -1085,6 +1106,9 @@ no α: it takes the set's g limits, roll and stall floor (the unit test `f35_set
 [^lm-aoa]: Lockheed Martin press release, 19 November 2012, quoted by SLDInfo, "The F-35 and High Angle of Attack
     Flight Testing" ("rapidly expanded its high angle of attack (AOA) test envelope to its 50 degree limit in only four
     flights"), https://sldinfo.com/2012/11/the-f-35-and-high-angle-of-attack-flight-testing/
+[^aim-gs]: FAA, *Aeronautical Information Manual*, 1-1-9 "Instrument Landing System (ILS)": the glide path is
+    normally set at 3° (cited from memory, not re-read for this change; no download was allowed),
+    <https://www.faa.gov/air_traffic/publications/atpubs/aim_html/chap1_section_1.html>
 [^asf20]: Air & Space Forces Magazine, "Eglin F-35 Crash Blamed on Landing Speed, but Software, Helmet, Oxygen Also
     Faulted" (2020: "a shallow angle of attack of 5.2 degrees, instead of the desired 13 degrees"; the 202-knot speed
     hold "50 knots too fast"), https://www.airandspaceforces.com/eglin-f-35-crash-blamed-on-landing-speed-but-software-helmet-oxygen-also-faulted/

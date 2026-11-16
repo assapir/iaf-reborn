@@ -331,6 +331,10 @@ pub struct ApView {
     /// Airborne lift per commanded g: the flaps' share below 125 m/s and Better physics' ground effect, which the
     /// flight model adds on top of the stick's g ([`Aircraft::lift_factor`]).
     pub lift_factor: f32,
+    /// Modern IAF's 6-DoF, airborne with the gear down: the true airspeed, m/s, of the real final (3° at the
+    /// on-speed α, [`crate::sixdof::flight::approach_speed`]), which its autopilot flies; None on the original model,
+    /// which keeps the original's 6° final.
+    pub final_speed: Option<f32>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -2650,6 +2654,7 @@ impl Aircraft {
             gear_speed_wait: p.gear_speed_wait,
             stick_centre: [self.stick_centre_v, self.stick_centre_a, self.stick_centre_b],
             lift_factor: self.lift_factor(t, speed),
+            final_speed: None,
         }
     }
 

@@ -789,6 +789,12 @@ impl SixDof {
             gear_speed_wait: p.gear_speed_wait,
             stick_centre: [0.0, 0.0, 1.0],
             lift_factor: 1.0,
+            final_speed: (self.controls.gear_down && !s.on_ground).then(|| {
+                let (alpha, glide) = crate::autopilot::REAL_FINAL;
+                let jet = self.jet.at_weight(self.mass() / LB);
+                let dsb = self.jet.speed_brake.gear_down_deg;
+                approach_speed(&jet, s.position.z, alpha as f64, glide as f64, self.jet.tef_deg, dsb).0 as f32
+            }),
         }
     }
 
@@ -947,6 +953,35 @@ pub fn stall_speed(jet: &Jet) -> f64 {
         }
     }
     best
+}
+
+/// The steady final of `jet` (at its weight) at `alt_m`: the true airspeed (m/s), the stabilator (deg) and the CL
+/// that fly `alpha_deg` down a `glide_deg` path with the gear down (its drag 0.02, as figure 2-3's test), the flaps at
+/// `dtef` and the speed brake at `dsb`, deg. The lift and the thrust's share balance the weight's: qS (CL + CD tan α)
+/// = W (cos γ + sin γ tan α), the thrust being the drag less W sin γ.
+pub fn approach_speed(jet: &Jet, alt_m: f64, alpha_deg: f64, glide_deg: f64, dtef: f64, dsb: f64) -> (f64, f64, f64) {
+    let (rho, ps, _) = atmosphere(alt_m);
+    let af = &jet.airframe;
+    let w = af.mass * G;
+    let (sg, cg) = glide_deg.to_radians().sin_cos();
+    let (sa, ca) = alpha_deg.to_radians().sin_cos();
+    let (mut v, mut dh, mut cl) = (70.0, 0.0, 0.0);
+    for _ in 0..40 {
+        let qbar = 0.5 * rho * v * v;
+        let c = |dh: f64| {
+            let s = Surfaces { dh, dlef: lef_schedule(alpha_deg, qbar, ps), dsb, dtef, ..Surfaces::default() };
+            let mut c = coefficients(&Flow { alpha: alpha_deg, v, ..Flow::default() }, &s, af);
+            add_drag(&mut c, 0.02, alpha_deg);
+            c
+        };
+        let (c0, c1) = (c(dh), c(dh + 1e-3));
+        dh -= c0.cm * 1e-3 / (c1.cm - c0.cm);
+        let k = c(dh);
+        cl = k.cx * sa - k.cz * ca;
+        let cd = -k.cx * ca - k.cz * sa;
+        v = (2.0 * w * (cg + sg * sa / ca) / (rho * af.s * (cl + cd * sa / ca))).sqrt();
+    }
+    (v, dh, cl)
 }
 
 /// Figure 66(b)'s travel → the game's throttle lever (the inverse of [`lever_to_travel`]).

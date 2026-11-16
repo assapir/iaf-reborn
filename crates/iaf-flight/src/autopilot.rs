@@ -189,6 +189,21 @@ const FLARE_SINK: f32 = 1.5;
 const FLARE_KV: f32 = 2.0;
 const FLARE_KI: f32 = 0.5;
 const FLARE_I_MAX: f32 = 3.0;
+/// Ours, Modern IAF's 6-DoF ([`ApView::final_speed`] set): the real final's α and glide path, deg. The α is the F-16
+/// manual's 13° (T.O. GR1F-16CJ-1 p. 2-23, "arrive on final at 11 or 13 degrees AOA", and figure 2-3), the F-35's
+/// too (the Eglin F-35A accident report); the glide path the usual 3° of an ILS (inferred: the F-16 manual gives
+/// none). modern-iaf/docs/flight-model.md §9.6.
+pub const REAL_FINAL: (f32, f32) = (13.0, 3.0);
+/// Ours, the real final's laws on the 6-DoF (swept 2026-11-16, modern-iaf/docs/flight-model.md §9.6): the path's
+/// gain, deg of flight path per m off the glide path, the same both sides (the original's 0.3 above / 0.03 below
+/// cycled ±2 m/s about the path at 150 kt); its damping, deg per deg/s of path rate (the original's 0.5); the flare's
+/// `FLARE_TAU`, s (the 6-DoF's g lags: its flare starts at 6 × (sink − 1.5) ≈ 15 m).
+const REAL_FINAL_LAWS: (f32, f32, f32) = (0.1, 1.0, 6.0);
+
+/// The flare's `FLARE_TAU`: the real final's on the 6-DoF ([`REAL_FINAL_LAWS`]).
+fn flare_tau(v: &ApView) -> f32 {
+    if v.final_speed.is_some() { REAL_FINAL_LAWS.2 } else { FLARE_TAU }
+}
 
 /// Terrain height (m) at a world point (x, y), supplied by the host.
 pub type Ground<'a> = &'a dyn Fn(f64, f64) -> f32;
@@ -1449,6 +1464,8 @@ struct Landing {
     flare: bool,
     /// The player's flare: the vertical acceleration (m/s²) summed from the sink's error ([`Landing::flare`]).
     flare_i: f32,
+    /// The real final's speed error summed, m/s ([`Landing::final_approach`]).
+    final_i: f32,
     /// The player's flare: the wheels have touched (a bounce flares to [`FLARE_SINK`] only).
     touched: bool,
 }
@@ -2342,6 +2359,7 @@ impl Landing {
             align: false,
             flare: false,
             flare_i: 0.0,
+            final_i: 0.0,
             touched: false,
         })
     }
@@ -2440,7 +2458,7 @@ impl Landing {
                 // jet's sink, so a fast final (the Kurnass 2000 Real at 200 kt sinks 11 m/s) starts on its profile
                 // instead of 2° below it at the original's ~12 m (docs/autopilot.md §2.3).
                 let v = l.v;
-                let flare_h = FLARE_TAU * (-(v.vel[2] as f32) - FLARE_SINK);
+                let flare_h = flare_tau(v) * (-(v.vel[2] as f32) - FLARE_SINK);
                 let early = self.player && self.flare && wheels_height(v) < flare_h;
                 if early || dist2(pos, pt[4][0], pt[4][1]) < r {
                     l.out.rudder = Some(0.0);
@@ -2509,13 +2527,23 @@ impl Landing {
         let p5 = self.pts[4];
         let d = v.pos - p5;
         let (s, c) = ((self.rn as f64).sin(), (self.rn as f64).cos());
-        let (sg, cg) = (6f64.to_radians().sin(), 6f64.to_radians().cos());
+        let glide = if v.final_speed.is_some() { REAL_FINAL.1 } else { 6.0 };
+        let (sg, cg) = ((glide as f64).to_radians().sin(), (glide as f64).to_radians().cos());
         let fwd = Vec3::new(s * cg, c * cg, -sg);
         let up = Vec3::new(s * sg, c * sg, cg);
         let right = Vec3::new(c, -s, 0.0);
         let dot = |a: Vec3| a.dot(d) as f32;
         let (cross, along, above) = (dot(right), dot(fwd), dot(up));
-        let vt = (vmin1 + 10.2944).max(72.0611);
+        // The real final flies its on-speed α's speed (the speed brake is open from step 13 on, as the F-16 manual's
+        // final has it: figure 2-3, "SPEEDBRAKES OPEN"). The speed law's error is summed (0.2 /s, ours): its fixed
+        // 0.7 lever at no error held the 6-DoF 50 kt fast.
+        let vt = match v.final_speed {
+            Some(vt) => {
+                self.final_i = (self.final_i + 0.2 * 0.1 * (vt - v.speed)).clamp(-40.0, 40.0);
+                vt + self.final_i
+            }
+            None => (vmin1 + 10.2944).max(72.0611),
+        };
         // The original caps the throttle at 0.5 (`5d4c50`, 0.5 at 0x6133c4): a heavy jet (the Kurnass 2000 with
         // its 312 load) sinks below the glide path at its AoA limit and lands short. Off the original the player's
         // jet below the path keeps the speed law's full throttle (docs/autopilot.md §2.3).
@@ -2528,14 +2556,18 @@ impl Landing {
             (-0.001_396_3 * cross + e * l.c.change_head_k / 3.0 - l.c.change_head_beta * v.rates[2])
                 .clamp(-DEG80, DEG80)
         };
-        let kz = if above < 0.0 {
+        let kz = if v.final_speed.is_some() {
+            REAL_FINAL_LAWS.0
+        } else if above < 0.0 {
             0.03
         } else if v.type_code == C130 {
             0.05
         } else {
             0.3
         };
-        let pitch_deg = -kz * above - 0.5 * v.rates[0].to_degrees() - if along < -1000.0 { 6.0 } else { 4.0 };
+        let bias = if v.final_speed.is_some() || along < -1000.0 { glide } else { glide * 2.0 / 3.0 };
+        let kd = if v.final_speed.is_some() { REAL_FINAL_LAWS.1 } else { 0.5 };
+        let pitch_deg = -kz * above - kd * v.rates[0].to_degrees() - bias;
         let y = l.pitch(pitch_deg.to_radians());
         let x = l.roll(bank);
         l.stick(y, x);
@@ -2600,7 +2632,8 @@ impl Landing {
         // load bounced to 16 m at 185 kt, then hit nose 9° down): it holds the small sink instead.
         let h = if self.touched { 0.0 } else { wheels_height(v).max(0.0) };
         let vz = v.vel[2] as f32;
-        let e = -(h / FLARE_TAU + FLARE_SINK) - vz;
+        let tau = flare_tau(v);
+        let e = -(h / tau + FLARE_SINK) - vz;
         self.flare_i = (self.flare_i + e * 0.2 * FLARE_KI).clamp(-FLARE_I_MAX, FLARE_I_MAX);
         let a = FLARE_KV * e + self.flare_i;
         // The load factor for that vertical acceleration on the flight path, at the bank.

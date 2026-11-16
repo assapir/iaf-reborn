@@ -705,28 +705,7 @@ fn a_cold_jet_starts_by_its_start_command() {
 /// pattern), the trailing-edge flaps at `dtef`: (calibrated speed kt, stabilator deg, CL). Sea level; the thrust along
 /// the body x axis balances the drag; the leading-edge flap on its schedule.
 fn approach(jet: &Jet, alpha: f64, dtef: f64, dsb: f64) -> (f64, f64, f64) {
-    let af = &jet.airframe;
-    let w = af.mass * iaf_flight::sixdof::G;
-    let (sg, cg) = 3f64.to_radians().sin_cos();
-    let (sa, ca) = alpha.to_radians().sin_cos();
-    let (mut v, mut dh) = (70.0, 0.0);
-    let mut cl = 0.0;
-    for _ in 0..40 {
-        let qbar = 0.5 * rho(0.0) * v * v;
-        let c = |dh: f64| {
-            let s = Surfaces { dh, dlef: lef_schedule(alpha, qbar, ps(0.0)), dsb, dtef, ..Surfaces::default() };
-            let mut c = coefficients(&Flow { alpha, v, ..Flow::default() }, &s, af);
-            iaf_flight::sixdof::aero::add_drag(&mut c, 0.02, alpha);
-            c
-        };
-        let (c0, c1) = (c(dh), c(dh + 1e-3));
-        dh -= c0.cm * 1e-3 / (c1.cm - c0.cm);
-        let k = c(dh);
-        cl = k.cx * sa - k.cz * ca;
-        let cd = -k.cx * ca - k.cz * sa;
-        // qS (CL + CD tan α) = W (cos γ + sin γ tan α): lift plus the thrust's share, the thrust = drag − W sin γ.
-        v = (2.0 * w * (cg + sg * sa / ca) / (rho(0.0) * af.s * (cl + cd * sa / ca))).sqrt();
-    }
+    let (v, dh, cl) = iaf_flight::sixdof::flight::approach_speed(jet, 0.0, alpha, 3.0, dtef, dsb);
     (v / KT, dh, cl)
 }
 
@@ -954,13 +933,14 @@ fn f16s_roll_at_the_shared_figure() {
     // Finish list F2: the Barak and the Sufa command the production F-16's roll (`data_set::F16_ROLL`, the figure
     // reborn's Real F-16 rows read): 240 deg/s clean at 688 deg/s² onset, the flaperons at 62 deg/s within 20° down /
     // 23° up. Full right stick from wings level at 10,000 ft, military, 2 s: the steady rate (1.5–2 s) and the peak
-    // within 5 % of the figure; the time to 90° (0.87 s at 350 kt, 0.80 s at 480 kt, 2026-11-14: the flaperons' rate
-    // and TP-1538's roll power keep the jet's onset at 390–500 deg/s², against ~0.55 s for an instant 688 deg/s²).
+    // within 5 % of the figure; the time to 90° (2026-11-16, the command ramped at 688 deg/s² as reborn's roll channel:
+    // 0.80 / 0.85 s at 350 kt, 0.65 / 0.68 s at 480 kt; the flaperons' 62 deg/s and TP-1538's roll power hold the
+    // jet's onset to 420–800 deg/s², so it lags the command's 0.55 s).
     let fig = iaf_flight::data_set::F16_ROLL;
     // The Adir (2) flies the same figure (`data_set::F35I.roll`, inferred: finish list F23); its 90° times are bounds
     // for its larger inertia (inferred, not a source).
     for (jet, kt, t90_max) in
-        [(0, 350.0, 0.90), (0, 480.0, 0.83), (1, 350.0, 0.90), (1, 480.0, 0.85), (2, 350.0, 1.1), (2, 480.0, 1.0)]
+        [(0, 350.0, 0.82), (0, 480.0, 0.67), (1, 350.0, 0.87), (1, 480.0, 0.70), (2, 350.0, 0.95), (2, 480.0, 0.75)]
     {
         let j = jets::all()[jet];
         let mut f = flight(j, 3048.0, kt * KT, true);

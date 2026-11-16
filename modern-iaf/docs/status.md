@@ -3,6 +3,12 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **The autopilot lands softly; the roll starts faster (2026-11-16, finish list: autopilot touchdown, roll onset,
+  [flight-model.md](flight-model.md) §9.6, §9.13):** on the 6-DoF the autopilot flies a real final, 3° (inferred) at
+  the speed of the F-16 manual's 13° α (about 145 kt), with a flare from about 15 m: touchdowns at 2.0–2.6 m/s (were
+  4.3–9.6). The stick's roll command ramps at 688 deg/s² as reborn's Real roll does (its roll channel): 90° in
+  0.80 / 0.85 s at 350 kt and 0.65 / 0.68 s at 480 kt (Barak / Sufa, were 0.87 / 0.88 and 0.78 / 0.80); the
+  flaperons' sourced 62 deg/s keep it above the command's 0.55 s.
 - **The Missions cards and no key caps (2026-11-16, the user, [front-end.md](front-end.md) §2):** a section's card
   shows its number, title and progress (no subtitle or "What it holds"); no button carries a key cap (Back's "Esc"
   gone everywhere, Esc still works).
