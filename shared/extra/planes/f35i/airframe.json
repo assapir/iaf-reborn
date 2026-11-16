@@ -26,7 +26,9 @@
     "loads": { "1001": [1, "AI"], "1003": [1, "BCGH"], "1005": [1, "BCGH"], "1007": [4, "CG"] }
   },
   "drag_chute": false,
+  "gear_limit": { "kcas": 300, "mach": 0.65 },
   "notes": {
+    "gear_limit": "Flight data Real: the F-35A's gear limit is open (no public figure); the F-16's 300 KCAS / Mach 0.65 (inferred), docs/damage.md 5.2",
     "drag_chute": "no F-16 or F-35 has a drag chute: the flight never asks the flight model for one",
     "sixdof": "Physics Flight model on 6-DoF: Modern IAF's 6-DoF from its own data (modern-iaf/docs/flight-model.md §9; docs/deviations.md §2)",
     "radar.row": "iaf_avionics::radar::F35I, the AN/APG-81's row",

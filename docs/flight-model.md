@@ -507,7 +507,9 @@ Where our port differs from the original. Everything else follows §15 (status i
       landing check (`aircraft::landing_limits`);
     * both limits ×2 with Easy landing; the sink limit ×0.25 with the gear not down;
     * the check uses the current attitude; original: the attitude saved at the last update;
-    * crash reasons "sink rate" / "tail strike".
+    * crash reasons "sink rate" / "tail strike";
+    * a landing that sinks faster than 10 ft/s (the gear's design limit, `aircraft::hard_landing`) damages the gear
+      (flag 7, docs/damage.md §5.2); original: no outcome between a landing and a crash.
 
     BP does not apply while the player's autopilot flies the landing (NAV, a "landing" stage; `ap_landing`). The 1998
     autopilot touches down faster than 4 m/s (with Original data it crashed), so its landings keep the original's

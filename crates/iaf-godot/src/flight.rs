@@ -812,6 +812,8 @@ impl IafFlight {
         d.set("speed", s.speed);
         d.set("speed_kt", s.speed * 1.943844);
         d.set("mach", s.mach);
+        // Calibrated airspeed (ISA, no position error): the real gear limit's measure (`player_damage.gd`).
+        d.set("cas_kt", iaf_flight::atmosphere::cas(s.speed, s.position[2] as f32) * 1.943844);
         d.set("alt_ft", s.position[2] as f32 * 3.28084);
         d.set("vs_fpm", v[2] * 196.85);
         d.set("pitch", s.pitch.to_degrees());
@@ -840,6 +842,8 @@ impl IafFlight {
         d.set("crash_reason", s.crashed.map_or("", |c| c.name()));
         // Successful gear-down touchdowns so far: the mission's landed handler fires on each (v1.1).
         d.set("landings", s.landings as i64);
+        // Of them, the hard ones (past the gear's design sink speed): the game damages the gear (docs/damage.md §5.2).
+        d.set("hard_landings", s.hard_landings as i64);
         // The "Tornado" map-edge push-back and the EndWorld.wav count (docs/flight-model.md §15.5a).
         d.set("tornado", s.tornado);
         d.set("end_worlds", s.end_worlds as i64);

@@ -74,13 +74,23 @@ func run() -> void:
 
 	# Gear overspeed (@449082): > 450 kt with the handle down and leg 1 locked, unless Invulnerable.
 	pd.flags[7] = false
-	pd.gear_overspeed(240.0, true, 2, true)
+	pd.gear_overspeed({"speed": 240.0}, {}, true, 2, true)
 	check(not pd.flags[7], "invulnerable: no gear overspeed damage")
-	pd.gear_overspeed(230.0, true, 2, false)
+	pd.gear_overspeed({"speed": 230.0}, {}, true, 2, false)
 	check(not pd.flags[7], "447 kt: no damage")
-	pd.gear_overspeed(240.0, true, 1, false)
+	pd.gear_overspeed({"speed": 240.0}, {}, true, 1, false)
 	check(not pd.flags[7], "leg in transit: no damage")
-	pd.gear_overspeed(240.0, true, 2, false)
+	# Ours, Flight data Real: the definition's limit in calibrated airspeed and Mach (the F-16's 300 KCAS / 0.65).
+	var lim := {"kcas": 300.0, "mach": 0.65}
+	pd.gear_overspeed({"speed": 240.0, "cas_kt": 299.0, "mach": 0.6}, lim, true, 2, false)
+	check(not pd.flags[7], "real limit: 299 KCAS, no damage")
+	pd.gear_overspeed({"speed": 240.0, "cas_kt": 280.0, "mach": 0.66}, lim, true, 2, false)
+	check(pd.flags[7], "real limit: Mach 0.66, gear damage")
+	pd.flags[7] = false
+	pd.gear_overspeed({"speed": 160.0, "cas_kt": 320.0, "mach": 0.5}, lim, true, 2, false)
+	check(pd.flags[7], "real limit: 320 KCAS, gear damage")
+	pd.flags[7] = false
+	pd.gear_overspeed({"speed": 240.0}, {}, true, 2, false)
 	check(pd.flags[7], "466 kt with the gear down and locked: gear damage")
 
 	# The afterburner flame of a side with AB damage (8 left / 9 right) stays out (FUN_005abc90 / 5abdc0).

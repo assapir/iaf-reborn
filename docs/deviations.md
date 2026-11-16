@@ -148,6 +148,8 @@ Each entry names the switch and where it lives, then the difference: "Original: 
   jets, the AI's jets and the autopilot's bases keep the original game's data. Without the sim's data (built by
   `./modern-iaf-setup`) the 6-DoF choice reads "Not built", greyed; a saved 6-DoF choice then flies the original model
   and logs "Flight model 6-DoF: Modern IAF's data is not built". Each flight logs "Flight model: original|6dof".
+  On the 6-DoF the rudder keys ramp the pedals to full over 1 s instead of jumping (docs/controls.md §2); the
+  original model keeps the jump.
 
 **Flight data = Real**
 - **F-16 roll** (finish list F2). Original: the 1998 F-16 rolls at MaxRollRate 200 deg/s, RollAccel 270 deg/s².
@@ -155,6 +157,9 @@ Each entry names the switch and where it lives, then the difference: "Original: 
   clean, starting and stopping at 688 deg/s² (12 rad/s²), the figure Modern IAF's 6-DoF Barak and Sufa also fly
   (`data_set::F16_ROLL`; sources and results: real-aircraft.md §8.2). Until 2026-11-14 the Real row gave 280 deg/s at
   900 deg/s² (no source).
+- **Gear overspeed limit.** Original: the gear is damaged above 450 kt true airspeed with the gear down. Ours, with
+  the switch: the jet's aircraft definition's `gear_limit` in calibrated airspeed and Mach (the F-16's 300 KCAS /
+  Mach 0.65, T.O. 1F-16A-1; the F-35I's the same, inferred); a jet without one keeps 450 kt true — damage.md §5.2.
 - **RWR display.** Original: the display copies the first `count` slots without compacting, so an entry can vanish
   after a removal. Ours, with the switch: it lists every used slot — rwr.md §1.
 - **Autopilot landing gear.** Original: the NAV landing lowers the gear once, at step 7, and the lever refuses it

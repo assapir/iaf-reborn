@@ -362,6 +362,19 @@ ENG at +0x560 / +0x598 / +0x5b0 = flags 2 / 16 / 22, so the copy starts at +0x55
 | 11 (instruments), 19, 21 | — | **only the damage page** (and 19 / 21 through the flags they set): no gauge reads them |
 | 12 (HUD) | `45cd30` → `446830`: S+0x5c0 | the HUD pass `FUN_00530b70` returns at once while it is set: no HUD symbols and no I-mode marks (docs/cockpit.md "I-mode"). Ported: `hud.gd` `hud_failed` |
 
+**Ours: the real gear limits (Flight data Real; Modern IAF always; docs/deviations.md).**
+- **Gear overspeed**: the jet's aircraft definition's `gear_limit` replaces the 450 kt true airspeed: the F-16's 300
+  KIAS / Mach 0.65 with the gear extended or in transit[^to-f16a-gear] (KIAS taken as calibrated airspeed, ISA, no
+  position error: inferred; the flight state's `cas_kt`), the F-35I the same (inferred: no public F-35 figure, open).
+  A jet without `gear_limit` (the F-15I, every 1998 jet) keeps 450 kt true.
+- **Hard landing**: a touchdown that passes the landing limits (sink 4 m/s, docs/flight-model.md) but sinks faster
+  than 10 ft/s (3.05 m/s) damages the gear (7). 10 ft/s is the limit descent velocity a gear is designed for at the
+  design landing weight[^far25-473]; for the F-16 "10 fps at low weight" is quoted on the Falcon BMS forum
+  (secondary)[^bms-sink]. `iaf_flight::aircraft::hard_landing`, on both flight models (the original's with Better physics
+  `landing_limits`); Easy landing doubles it. No blown tyre or gear collapse: the gear stays down and stuck.
+- **The 6-DoF holds a damaged gear** (7) where it is: the lever no longer moves it (Modern IAF's flight model; the
+  original's gear legs freeze in `terrain_view.gd` as above).
+
 **"No malfunctions"** (Gameplay, pref `+0x24`) and **"No wind"** (`+0x28`) have no reader. The exe touches them only in
 the copy from the menu (`4fe5f8`, `4fe676`) and in save / load; none of the 37 pref-getter (`43b5d0`) calls reads
 them. So systems still break with "No malfunctions" on, as in the original. The exe's flight model has no wind; the
@@ -604,3 +617,12 @@ that frame.
 - The flight model's reaction to the hit shake.
 - Collision: full vs half extents (the renderer call behind vtable +0xb0 is not traced).
 - Open for the user: puffs per frame (the original) or at 30 Hz (ours, §6.3).
+
+[^to-f16a-gear]: T.O. 1F-16A-1, *Flight Manual, F-16A/B Block 10 and 15*, August 2003, figure 5-7 p. 5-13 ("LG
+    Extended or in Transit: 300/0.65, whichever is less", KIAS / Mach):
+    https://archive.org/details/to-1-f-16-a-1-flight-manual-f-16-a-b-block-10-15-august-2003
+[^far25-473]: 14 CFR 25.473(a)(2), landing load conditions: "With a limit descent velocity of 10 fps at the design
+    landing weight" (a transport-category rule, taken for the fighter's gear: inferred):
+    https://www.law.cornell.edu/cfr/text/14/25.473
+[^bms-sink]: Falcon BMS forum, "Max descent rate on touchdown", post by Frederf ("10 fps at low weight decreasing to 6
+    fps at MLW"; no source given): https://forum.falcon-bms.com/topic/13584/max-descent-rate-on-touchdown

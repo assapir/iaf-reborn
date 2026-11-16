@@ -129,6 +129,13 @@ func extinguish() -> void:
 ## Per frame (FUN_00448b20 @448fe2..4490a1): above 450 kt true airspeed (FM getter 5, ·1.9428) with the
 ## gear handle down and the left main leg down and locked (leg 1 == 2), not Invulnerable and no gear
 ## damage yet: gear damage (7) through the damage handler (console text, red lamps, master caution).
-func gear_overspeed(speed_mps: float, handle_down: bool, leg1: int, invulnerable: bool) -> void:
-	if minf(speed_mps, 1200.0) * 1.9427955 > 450.0 and not invulnerable and handle_down and not flags[7] and leg1 == 2:
+## Ours: `limit` the jet's real gear limit (its aircraft definition's `gear_limit` with Flight data Real,
+## docs/damage.md §5.2): above its calibrated airspeed (`kcas`, the flight state's `cas_kt`) or its Mach instead.
+func gear_overspeed(st: Dictionary, limit: Dictionary, handle_down: bool, leg1: int, invulnerable: bool) -> void:
+	var over: bool
+	if limit.is_empty():
+		over = minf(st.speed, 1200.0) * 1.9427955 > 450.0
+	else:
+		over = st.cas_kt > float(limit.kcas) or st.mach > float(limit.get("mach", INF))
+	if over and not invulnerable and handle_down and not flags[7] and leg1 == 2:
 		system_damage(7)

@@ -30,6 +30,15 @@ const TEF_RATE: f64 = 20.0 / (GEAR_UP / GEAR_RATE) as f64;
 const PROBE_MIN_KT: f64 = 60.0;
 /// The indicated AoA's lag, s (inferred: enough to steady the needle at taxi and take-off speeds).
 const PROBE_TAU: f64 = 0.25;
+/// The autopilot's taxi turn radius, m: the original's pivot arc (`Aircraft::set_pivot`).
+const PIVOT_RADIUS: f64 = 30.0;
+/// The pedals' deflection (of 1) below which the nose-wheel steering is off and the nose wheel castors. The F-16's
+/// steering has no speed schedule (±32°), but the pilot engages it with a button when it is needed: "Use NWS until
+/// rudder is effective (approximately 70 knots)", "NWS should not be engaged above taxi speed unless required"
+/// (T.O. 1F-16A-1 pp. 2-20, 2-25). The game has no NWS button: the pedals engage it (inferred). With the steering
+/// held straight under full antiskid braking (the main tyres keep 0.16 of side grip) the jet yawed away into a ground
+/// loop (2026-11-16); a castoring nose wheel leaves it running straight on its mains.
+const NWS_ON_PEDAL: f32 = 0.02;
 
 /// NED → the game's ENU.
 fn enu(v: Vec3) -> Vec3 {
@@ -100,6 +109,8 @@ pub struct SixDof {
     on_ground: bool,
     crashed: Option<Crash>,
     landings: u32,
+    /// Touchdowns that passed the landing limits but sank past the gear's design limit ([`crate::aircraft::hard_landing`]).
+    hard_landings: u32,
     thrust_n: f64,
     pub fuel_flow: f32,
     pub unlimited_fuel: bool,
@@ -124,6 +135,8 @@ pub struct SixDof {
     aoa_ind: f64,
     /// The trailing-edge flaps, deg down ([`jets::tef_schedule`]).
     tef: f64,
+    /// The autopilot's taxi pivot: its target heading, rad ([`SixDof::set_pivot`]).
+    pivot: Option<f64>,
 }
 
 /// The indicated AoA one frame `dt` on from `shown` (deg): toward the flow's `alpha_deg` at `cas_kt` from
@@ -183,6 +196,7 @@ impl SixDof {
             on_ground: !st.airborne,
             crashed: None,
             landings: 0,
+            hard_landings: 0,
             thrust_n: 0.0,
             fuel_flow: 0.0,
             unlimited_fuel: false,
@@ -197,6 +211,7 @@ impl SixDof {
             ap_flying: false,
             aoa_ind: 0.0,
             tef: if st.airborne { 0.0 } else { jet.tef_deg },
+            pivot: None,
         };
         s.fcs = Fcs::new(jet.g_limits, jet.roll.map(|r| (r, jet.airframe.b)));
         if st.airborne {
@@ -484,9 +499,11 @@ impl SixDof {
     fn substep(&mut self, dt: f64, af: &super::body::Airframe) {
         let c = self.controls;
         self.t += dt;
-        // Gear lever ramp.
-        let target = if c.gear_down { 0.0 } else { GEAR_UP };
-        self.gear += (target - self.gear).clamp(-GEAR_RATE * dt as f32, GEAR_RATE * dt as f32);
+        // Gear lever ramp; gear damage (7) holds the gear where it is, as the game's legs (docs/damage.md §5.2).
+        if self.damage & (1 << 7) == 0 {
+            let target = if c.gear_down { 0.0 } else { GEAR_UP };
+            self.gear += (target - self.gear).clamp(-GEAR_RATE * dt as f32, GEAR_RATE * dt as f32);
+        }
         let gear_down = self.gear < GEAR_UP;
         let ground_z = -self.ground_height as f64;
         let b = self.body;
@@ -510,7 +527,8 @@ impl SixDof {
             stick_x,
             stick_y,
             pedal: c.rudder as f64,
-            speed_brake: c.brakes && !self.on_ground,
+            // The jet's limit with the main gear down and locked (the ramp at 0).
+            speed_brake: self.jet.speed_brake.command(c.brakes && !self.on_ground, self.gear <= 0.0),
             // The autopilot's stick is linear in g (its ApView: centre 1 g, full stick MaxG / MinG) and in roll rate
             // (full stick the flight data's MaxRollRate, the original's roll channel `p_cmd`).
             // The trim left out while an autopilot loop flies, as the original's (`Aircraft::roll_stick`).
@@ -561,10 +579,7 @@ impl SixDof {
         let jc = jets::Controls {
             surfaces: self.surfaces,
             throttle: travel,
-            wheels: super::gear::Wheels {
-                brake: if c.brakes && self.on_ground { 1.0 } else { 0.0 },
-                steer: c.rudder as f64 * self.jet.nws_deg,
-            },
+            wheels: self.wheels(&c),
             gear_down,
             stores_cd: self.stores_cd,
             stores_roll: (self.stores_moment
@@ -648,6 +663,9 @@ impl SixDof {
             );
             if crash.is_none() && self.t > 1.0 {
                 self.landings += 1;
+                if crate::aircraft::hard_landing(-sink as f32, self.easy_landing, real) {
+                    self.hard_landings += 1;
+                }
             }
             crash
         } else {
@@ -714,6 +732,7 @@ impl SixDof {
             gear: self.gear,
             crashed: self.crashed,
             landings: self.landings,
+            hard_landings: self.hard_landings,
         }
     }
 
@@ -772,14 +791,38 @@ impl SixDof {
         self.ap_flying = on;
     }
 
-    /// The autopilot's taxi pivot turn: the 6-DoF turns on the spot to the target heading (inferred: its wheels
-    /// steer, but the autopilot's taxi laws were made for the original's pivot).
+    /// The autopilot's taxi pivot turn (motion 0x16) to the heading `target` (rad), None to end it: the 6-DoF turns
+    /// on its wheels ([`SixDof::wheels`]) where the original model flies a scripted 30 m arc
+    /// (`Aircraft::set_pivot`).
     pub fn set_pivot(&mut self, target: Option<f32>) {
-        if let Some(h) = target {
-            let (roll, pitch, _) = self.body.att.euler();
-            self.body.att = Quat::from_euler(roll, pitch, h as f64);
-            self.body.vel = Vec3::ZERO;
-            self.anchors = Anchors::default();
+        self.pivot = target.map(|h| h as f64);
+    }
+
+    /// The wheels this frame: the pilot's brakes and nose-wheel steering (the rudder), or during a taxi pivot the
+    /// autopilot's turn: the nose wheel steered toward the target heading on the original's 30 m turn radius, wider
+    /// where the side grip cannot hold that radius at the speed (half of it used), and braked down to the speed
+    /// that radius allows, straight: a braked main tyre keeps little side grip (the friction circle), and turning
+    /// under full brakes ground-looped the jet backwards onto its tail (2026-11-16; all inferred).
+    fn wheels(&self, c: &Controls) -> super::gear::Wheels {
+        let brake = if c.brakes && self.on_ground { 1.0 } else { 0.0 };
+        let steer = c.rudder as f64 * self.jet.nws_deg;
+        let Some(target) = self.pivot.filter(|_| self.on_ground) else {
+            let castor = c.rudder.abs() < NWS_ON_PEDAL;
+            return super::gear::Wheels { brake, steer, castor };
+        };
+        let s = &self.jet.gear.struts;
+        let wheelbase = s[0].pos.x - s[1].pos.x;
+        let v = self.body.speed();
+        let grip = 0.5 * super::gear::TYRES.side * G;
+        let radius = PIVOT_RADIUS.max(v * v / grip);
+        let err = (target - self.body.att.euler().2 + std::f64::consts::PI).rem_euclid(std::f64::consts::TAU)
+            - std::f64::consts::PI;
+        let max = (wheelbase / radius).atan().to_degrees();
+        let too_fast = v * v > grip * PIVOT_RADIUS;
+        super::gear::Wheels {
+            brake: if too_fast { 1.0 } else { brake },
+            steer: if too_fast { 0.0 } else { (err.to_degrees() * 20.0).clamp(-max, max) },
+            castor: false,
         }
     }
 
@@ -916,6 +959,241 @@ mod tests {
         assert_eq!(touch(0.0, 0.0, 8.1, easy), Some(Crash::SinkRate));
         assert_eq!(touch(0.0, 0.0, 10.0, &|f| f.ap_landing = true), None, "the autopilot: the original's limits");
         assert_eq!(touch(0.0, 0.0, 30.0, &|f| f.no_crashes = true), None);
+    }
+
+    fn airborne(jet: jets::Jet) -> SixDof {
+        let ini = iaf_formats::ini::Ini::parse(b"[X]\nMaxRollRate=308\n");
+        let st = Start {
+            position: Vec3::new(0.0, 0.0, 1000.0),
+            pitch: 0.0,
+            roll: 0.0,
+            heading: 0.0,
+            velocity: Vec3::new(0.0, 120.0, 0.0),
+            airborne: true,
+            engine_on: true,
+        };
+        SixDof::start(Params::from_section(ini.section("X").unwrap()), Envelope::parse(b""), jet, st)
+    }
+
+    /// A touchdown inside the landing limits that sinks past the gear's design limit, 10 ft/s (3.05 m/s), counts as
+    /// a hard landing (the game damages the gear, flag 7); just under it, a plain landing. Easy landing doubles it.
+    #[test]
+    fn a_hard_landing_past_10_ft_per_s_counts_for_the_gear() {
+        let hard = |sink: f64, easy: bool| {
+            let mut f = airborne(jets::all()[0]);
+            f.t = 2.0;
+            f.gear = 0.0;
+            f.on_ground = true;
+            f.easy_landing = easy;
+            f.body.pos = Vec3::new(0.0, 0.0, -(f.jet.gear.struts[0].pos.z - 0.1).max(0.6));
+            f.body.att = Quat::IDENTITY;
+            f.body.vel = Vec3::new(0.0, 0.0, sink);
+            f.check_ground(false, true, 0.0);
+            assert_eq!((f.crashed, f.landings), (None, 1), "{sink}");
+            f.state().hard_landings
+        };
+        assert_eq!(hard(3.0, false), 0);
+        assert_eq!(hard(3.1, false), 1);
+        assert_eq!(hard(3.9, false), 1);
+        assert_eq!((hard(6.0, true), hard(6.2, true)), (0, 1));
+        assert!(!crate::aircraft::hard_landing(-3.9, false, false), "the original's limits: no hard landing");
+    }
+
+    /// Gear damage (7) holds the gear where it is: the lever no longer moves it.
+    #[test]
+    fn damaged_gear_ignores_the_lever() {
+        let mut f = airborne(jets::all()[0]);
+        f.gear = 0.0;
+        f.set_damage(1 << 7, false);
+        f.set_controls(crate::aircraft::Controls { gear_down: false, ..f.controls() });
+        for _ in 0..240 {
+            f.step(1.0 / 60.0);
+        }
+        assert_eq!(f.state().gear, 0.0);
+        f.set_damage(0, false);
+        for _ in 0..60 {
+            f.step(1.0 / 60.0);
+        }
+        assert!(f.state().gear > 0.4, "{}", f.state().gear);
+    }
+
+    /// The F-16's speed brake opens to 60°, to 43° with the main gear down and locked (T.O. 1F-16A-1 p. 1-118); the
+    /// F-35I's surfaces have no gear-down limit (inferred).
+    #[test]
+    fn speed_brake_43_degrees_with_the_gear_down() {
+        let open = |jet: jets::Jet, gear: f32| {
+            let mut f = airborne(jet);
+            f.gear = gear;
+            let c = crate::aircraft::Controls { brakes: true, gear_down: gear == 0.0, ..f.controls() };
+            f.set_controls(c);
+            for _ in 0..240 {
+                f.step(1.0 / 60.0);
+            }
+            f.surfaces().dsb
+        };
+        let [barak, sufa, adir, _] = jets::all();
+        assert!((open(barak, 0.0) - 43.0).abs() < 0.1 && (open(sufa, 0.0) - 43.0).abs() < 0.1);
+        assert!((open(barak, super::GEAR_UP) - 60.0).abs() < 0.1);
+        assert!((open(adir, 0.0) - 60.0).abs() < 0.1);
+    }
+
+    /// `jet` standing on a runway heading north (ENU x = 0 the centreline), engine running, brakes on.
+    fn on_runway(jet: jets::Jet) -> SixDof {
+        let ini = iaf_formats::ini::Ini::parse(b"[X]\nMaxRollRate=308\n");
+        let st = Start {
+            position: Vec3::ZERO,
+            pitch: 0.0,
+            roll: 0.0,
+            heading: 0.0,
+            velocity: Vec3::ZERO,
+            airborne: false,
+            engine_on: true,
+        };
+        let mut f = SixDof::start(Params::from_section(ini.section("X").unwrap()), Envelope::parse(b""), jet, st);
+        f.set_ground_height(0.0);
+        for _ in 0..120 {
+            f.step(1.0 / 60.0);
+        }
+        f
+    }
+
+    /// A pilot keeping the jet on the centreline with the pedals (rudder and nose-wheel steering) and the wings
+    /// level with the stick: the controls for one frame (heading north, x = 0).
+    fn centreline(f: &SixDof, throttle: f32, brakes: bool, pull: f32) -> crate::aircraft::Controls {
+        let s = f.state();
+        let hdg = (s.heading as f64 + std::f64::consts::PI).rem_euclid(std::f64::consts::TAU) - std::f64::consts::PI;
+        let pedal = -(0.08 * s.position.x + 3.0 * hdg + f.body.omega.z);
+        crate::aircraft::Controls {
+            throttle,
+            brakes,
+            stick_y: pull,
+            stick_x: (-2.0 * s.roll).clamp(-1.0, 1.0),
+            rudder: pedal.clamp(-1.0, 1.0) as f32,
+            gear_down: true,
+            ..f.controls()
+        }
+    }
+
+    /// The F-16's crosswind limit, 25 kt (secondary: modern-iaf/docs/flight-model.md §9.8): a maximum-power take-off
+    /// and a landing roll from 140 kt to a stop in a 25 kt wind straight across the runway stay within 5 m of the
+    /// centreline (a quarter of the runway's half width).
+    #[test]
+    fn crosswind_take_off_and_landing_track_the_centreline() {
+        let [barak, sufa, ..] = jets::all();
+        for jet in [barak, sufa] {
+            let mut f = on_runway(jet);
+            f.set_wind(25.0, 90.0);
+            let (mut worst, mut kt) = (0.0f32, 0.0);
+            for _ in 0..60 * 60 {
+                let s = f.state();
+                let pull = if s.speed as f64 > 150.0 * 0.514444 {
+                    (0.15 * (12.0 - s.pitch.to_degrees())).clamp(-1.0, 1.0)
+                } else {
+                    0.0
+                };
+                f.set_controls(centreline(&f, 1.0, false, pull));
+                f.step(1.0 / 60.0);
+                let s = f.state();
+                if !s.on_ground {
+                    kt = s.speed as f64 / 0.514444;
+                    break;
+                }
+                worst = worst.max(s.position.x.abs() as f32);
+            }
+            println!("{}: crosswind take-off, off the centreline at most {worst:.2} m, lift-off {kt:.0} kt", jet.name);
+            assert!(kt > 100.0 && worst < 5.0, "{}: {worst} m", jet.name);
+
+            let mut f = on_runway(jet);
+            f.set_wind(25.0, 90.0);
+            f.body.vel = Vec3::new(140.0 * 0.514444, 0.0, 0.0);
+            let mut worst = 0.0f32;
+            for i in 0..60 * 60 {
+                f.set_controls(centreline(&f, 0.0, i > 120, 0.0));
+                f.step(1.0 / 60.0);
+                worst = worst.max(f.state().position.x.abs() as f32);
+                if f.body.speed() < 1.0 {
+                    break;
+                }
+            }
+            println!("{}: crosswind landing roll, off the centreline at most {worst:.2} m", jet.name);
+            assert!(f.body.speed() < 1.0 && f.crashed.is_none() && worst < 5.0, "{}: {worst} m", jet.name);
+        }
+    }
+
+    /// Full right pedal on the runway, idle, no brakes, for 4 s from `kt`: the largest ground sideslip at the c.g. (deg,
+    /// the path against the nose) and the mean yaw rate over the last second (deg/s).
+    fn full_pedal(jet: jets::Jet, kt: f64) -> (f64, f64, f64) {
+        let mut f = on_runway(jet);
+        f.body.vel = Vec3::new(kt * 0.514444, 0.0, 0.0);
+        let (mut slip, mut yaw, mut roll) = (0.0f64, 0.0, 0.0f64);
+        for i in 0..240 {
+            f.set_controls(crate::aircraft::Controls { throttle: 0.0, brakes: false, rudder: 1.0, ..f.controls() });
+            f.step(1.0 / 60.0);
+            let v = f.body.vel;
+            if v.x > 0.5 {
+                slip = slip.max(v.y.atan2(v.x).to_degrees().abs());
+            }
+            if i >= 180 {
+                yaw += f.body.omega.z.to_degrees() / 60.0;
+            }
+            roll = roll.max(f.body.att.euler().0.to_degrees().abs());
+        }
+        (slip, yaw, roll)
+    }
+
+    /// Ground steering (the user's report, 2026-11-15: full pedal skidded the jet from about 60 kt, −6° of sideslip at
+    /// 66 kt and −14° at 104 kt). At 6 kt full pedal turns the jet on the nose wheel's 32° (the kinematic yaw rate
+    /// v · tan 32° / wheelbase within 25 %); at 30–140 kt it yaws hard (sideslip up to ~16°, the side grip 0.55) and
+    /// the jet never tips: it leans under 10° (the struts' air-spring stiffness, `jets::STRUT_SAG`).
+    #[test]
+    fn full_pedal_steers_at_taxi_speed_and_never_tips() {
+        for jet in jets::all().into_iter().take(3) {
+            let (slip, yaw, _) = full_pedal(jet, 6.0);
+            let wheelbase = jet.gear.struts[0].pos.x - jet.gear.struts[1].pos.x;
+            let kinematic = (6.0 * 0.514444 * jet.nws_deg.to_radians().tan() / wheelbase).to_degrees();
+            println!(
+                "{}: full pedal at 6 kt: yaw {yaw:.1} deg/s (kinematic {kinematic:.1}), slip {slip:.1}°",
+                jet.name
+            );
+            assert!((yaw / kinematic - 1.0).abs() < 0.25, "{}: {yaw} vs {kinematic}", jet.name);
+            for kt in [30.0, 50.0, 66.0, 80.0, 100.0, 120.0, 140.0] {
+                let (slip, yaw, roll) = full_pedal(jet, kt);
+                println!("{}: full pedal at {kt} kt: slip {slip:.2}°, yaw {yaw:.2} deg/s, roll {roll:.1}°", jet.name);
+                assert!(roll < 10.0, "{} at {kt} kt: rolled {roll}°", jet.name);
+            }
+        }
+    }
+
+    /// The autopilot's taxi pivot turns the 6-DoF on its wheels: from 10 m/s a 90° turn right ends within 10 s, the
+    /// heading and the position moving smoothly (no jump), on about the original's 30 m radius.
+    #[test]
+    fn taxi_pivot_turns_on_the_wheels() {
+        let mut f = on_runway(jets::all()[0]);
+        f.body.vel = Vec3::new(10.0, 0.0, 0.0);
+        f.set_controls(crate::aircraft::Controls { brakes: false, throttle: 0.0, ..f.controls() });
+        f.set_pivot(Some(std::f32::consts::FRAC_PI_2));
+        let (mut t, mut last) = (0.0, f.state());
+        while (f.state().heading - std::f32::consts::FRAC_PI_2).abs() > 0.5f32.to_radians() && t < 10.0 {
+            f.step(1.0 / 60.0);
+            t += 1.0 / 60.0;
+            let s = f.state();
+            let turn = (s.heading - last.heading + std::f32::consts::PI).rem_euclid(std::f32::consts::TAU)
+                - std::f32::consts::PI;
+            assert!(turn.abs() < 2f32.to_radians(), "a heading jump at {t:.2} s");
+            assert!((s.position - last.position).length() < 0.5, "a position jump at {t:.2} s");
+            last = s;
+        }
+        f.set_pivot(None);
+        let s = f.state();
+        println!(
+            "taxi pivot: 90° in {t:.1} s, now {:.1} m east, {:.1} m north, heading {:.2}°, {:.1} m/s",
+            s.position.x,
+            s.position.y,
+            s.heading.to_degrees(),
+            s.speed
+        );
+        assert!(t < 10.0 && f.crashed.is_none(), "{t} s");
+        assert!(s.position.x > 15.0 && s.position.x < 60.0, "{}", s.position.x);
     }
 
     #[test]

@@ -487,12 +487,7 @@ Stage (c) is done (§9.11–9.15): the control system, the switch, the state in 
 budget, a real flight. Open:
 * **A sourced drag rise**: the wave drag is a fit to public performance, not a sourced table (§9.15); a public F-16
   drag-rise and high-Mach thrust table replaces it when one turns up.
-* **The take-off roll**: 1,823 ft with the control system's rotation and the flaps down, still −23 % against the
-  F-16A SAC (§9.10).
 * **The flaps' aerodynamics**: TP-1538 has no trailing-edge flap data; the flaps' increments are inferred (§9.16).
-* **The speed brake's 43° limit with the gear down**: the control system opens the speed brake to 60° in every
-  configuration (§9.17).
-* **The autopilot's taxi pivot**: the 6-DoF turns on the spot (`SixDof::set_pivot`, inferred).
 * **The player's autopilot on the 6-DoF** (2026-11-14, test `player_autopilot_flies_the_sims_three_jets`, the own
   data and the own airbases): on the Barak, the Sufa and the Adir, level holds the height within 1.3 m for 60 s, NAV
   passes a waypoint 90° off the nose 1,000 m higher within 1.1–1.3 km (its pass radius is 1,852 m) at 8–10 m of its
@@ -558,15 +553,35 @@ engine is the F110-GE-100 (FM-0's choice, docs/real-aircraft.md §2); the -129 i
 ### 9.8 The gear (stage (b))
 
 `sixdof/gear.rs`: three struts (nose, two mains). Each is a spring and damper along the world vertical at its
-wheel's contact point; the tyre's forces lie in the runway plane: rolling friction 0.02, braking friction 0.4 × the
-pedal on the mains (FM-0's value), side grip 0.3 (the 1998 data's "0.3 g" nose-wheel grip), each growing linearly
-from zero over a slip band of 0.03 m/s so nothing chatters. A braked tyre that stops sticks to its spot through a stiff
+wheel's contact point; the tyre's forces lie in the runway plane: rolling friction 0.02 (inferred), braking friction 0.51 × the
+pedal on the mains, side grip 0.55 (the tyre's peak, below), each growing linearly
+from zero over a slip band of 0.03 m/s so nothing chatters; above walking pace the side force grows with the tyre's
+slip angle and reaches the grip at 8° (a tyre's cornering stiffness; inferred). A braked tyre that stops sticks to its spot through a stiff
 tangential spring until the pull exceeds its braking friction, so a braked jet stands against its idle thrust
 (`Anchors`, kept by the flight with its engine and updated once per frame; a braked jet moves less than 1 mm in 10 s).
 The forces act at the compressed wheel (the strut gives along its body z axis, inferred). A wheel pointing straight
-up or down (a nose- or tail-first impact) gets the runway's push and no tyre force. The nose wheel steers (±32°, the F-15I ±45°: the 1998 Real rows). Springs:
-0.15 m of sag at the jet's reference weight, damping ratio 0.6; 12 % of the weight on the nose wheel (all inferred:
-no public strut data).
+up or down (a nose- or tail-first impact) gets the runway's push and no tyre force. The nose wheel steers (±32°, the
+F-15I ±45°: the 1998 Real rows) at any speed: the F-16's steering has no speed schedule. The pilot engages it with a
+button, "Use NWS until rudder is effective (approximately 70 knots)", "NWS should not be engaged above taxi speed
+unless required"[^to-f16a]; the game has no NWS button, so the pedals engage it: with the pedals centred (under 2 % of
+their travel) the nose wheel castors, rolling along its path with no side force (inferred). With the steering held
+straight under full antiskid braking (the main tyres keep 0.15 of side grip, below) the jet yawed away into a ground
+loop; the castoring nose wheel leaves it running straight on its mains (2026-11-16).
+
+Springs: an oleo strut is an air spring, stiffest at its static point. Serviced to the common rule of thumb (its gas
+compresses 4:1 from fully extended to static[^avweb]), its gas column at static is a third of its static compression,
+and its stiffness there n·F / column (n = 1.1). With 0.15 m of static compression that is a linear sag of 0.15 / 3.3
+= 0.045 m at the jet's reference weight (`jets::STRUT_SAG`), damping ratio 0.6; 12 % of the weight on the nose wheel
+(all inferred: no public strut data). Until 2026-11-16 the sag was a linear 0.15 m: the soft struts let the body lean
+out about 7° in a hard ground turn, and full pedal at 40–140 kt rolled the F-16 over its outer main wheel.
+
+**Full pedal on the runway** (2026-11-16, the user's report: full pedal skidded the jet from about 60 kt). Test
+`full_pedal_steers_at_taxi_speed_and_never_tips` (`sixdof/flight.rs`): at 6 kt full pedal turns the Barak, the Sufa
+and the Adir on the nose wheel's 32° within 25 % of the kinematic rate (29 / 28 / 20 deg/s against 27.5 / 27.5 /
+18.4 deg/s); at 30–140 kt it yaws hard (the rudder and the steered nose wheel, up to 0.55 g of side grip: sideslip
+7–16°), and the jet leans at most 2° (the F-16s) and 0.7° (the Adir), never over (bound 10°). On the 6-DoF the
+keyboard's rudder keys move the pedals to full over 1 s instead of at once (`terrain_view.gd` `PEDAL_RAMP_S`,
+docs/controls.md); a rudder axis stays direct.
 
 **The drawn wheels** (since 2026-11-15, the user: "the wheels of the plane are not strictly above ground but half on
 it"). The struts' lengths come from the jet's model: the game passes the model's `height` helper (its tyres' bottoms
@@ -578,6 +593,28 @@ under the c.g. (`IafFlight.set_ground_slope`, the height's rise per metre east a
 3 m to each side; `Gear::ground_slope`): on a sloping apron the wheels each meet the ground under themselves (the
 F-35I at Nevatim stood 14 cm off the ground on one wheel). Guard: `modern-iaf/tests/test_wheels.gd`, each jet at its
 base, parked, taxiing and lined up on the runway, every tyre within 6 cm of the ground.
+
+**Tyre friction and the antiskid (2026-11-15).** No public figure gives the F-16's or the F-35's tyre friction; the
+model takes NASA's antiskid tests on a DC-9 main-gear tyre (inferred for a fighter's): on the dry runway the tyre's
+peak drag-force friction coefficient is about 0.55, and the antiskid holds the braked tyre near that peak, averaging
+0.91–0.93 of it[^tp1051]. Full brakes give 0.92 × 0.55 = 0.51 (was 0.4, FM-0's). Braking and cornering share the
+peak (a friction circle): a fully braked tyre keeps at most √(0.55² − 0.53²) ≈ 0.15 of side grip, as the side force
+falls during antiskid braking in the same tests. No wet or icy runway: the missions fly in dry weather.
+
+**Crosswind.** The flight manual leaves the crosswind limits to its performance supplement (T.O. 1F-16A-1-1, not
+public); the F-16's commonly quoted limit is 25 kt on a dry runway (secondary: Falcon BMS forum, citing Joe Bill
+Dryden's "Semper Viper" crosswind tests)[^bms-xwind]. Test `crosswind_take_off_and_landing_track_the_centreline`
+(`sixdof/flight.rs`): the Barak and the Sufa in 25 kt straight across, a maximum-power take-off and a landing roll
+from 140 kt to a stop, a pilot on the pedals (rudder and nose-wheel steering) and the stick: at most 1.8 / 1.4 m off
+the centreline on the take-off and 3.6 / 3.4 m on the landing roll (bound 5 m, a quarter of a 45 m runway's half
+width; with the stiffer struts of 2026-11-16 the test's pilot needed twice the pedal gains).
+
+**The autopilot's taxi turns** (`SixDof::set_pivot`, motion 0x16). The original model flies a scripted 30 m arc at
+the speed it has. The 6-DoF turns on its wheels: the nose wheel steers toward the target heading on that 30 m
+radius, wider where half the side grip cannot hold it at the speed, and the brakes slow it, straight, to the speed
+the radius allows (9.0 m/s, 17 kt; all inferred): a braked main tyre keeps little side grip, and turning under full
+brakes ground-looped the jet backwards onto its tail (2026-11-16). Test `taxi_pivot_turns_on_the_wheels`: from
+10 m/s a 90° turn ends in 7.0 s on about a 32 m radius, the heading and the position smooth. The AI jets on the original model keep their arc.
 
 ### 9.9 The jets' data (stage (b))
 
@@ -607,9 +644,8 @@ turning the same way.
 | idle → military, F110 / F100-PW-229 | 3.00 / 3.00 s | 3 s (above) | 0.05 s | ok |
 | idle → maximum, F100-PW-229 | 3.50 s | "less than 4 s" (F-15E, USAF) | below 4 s | ok |
 | idle → maximum, F135 | 6.00 s | "about 6 s" (Pratt & Whitney) | 0.05 s | ok |
-| standing on the gear, brakes on, idle, 3 s after the drop (all five jets) | at rest, sag 0.150 m, nose wheel 13.8–15.3 %, then under 1 mm in 10 s | 0.15 m and 12 % + the idle thrust's moment (design) | 0.03 m, 1 %, 5 mm | ok |
-| take-off roll, TP-1538's F-16A at 29,253 lb, maximum power, rotation at 150 kt[^ni-f16] (`take_off_roll_against_the_sac`) | 1,759 ft, lift-off at 164 kt | 2,380 ft (USAF SAC F-16A, at that weight with two tanks and two AIM-9J[^sac-migflug]) | ±20 % | **fails: −26 %**; the test is `#[ignore]`d with that reason |
-| the same roll pinned (`take_off_roll_regression_pins_todays_value`) | 1,759 ft | (a regression pin, no source) | ±15 ft | ok |
+| standing on the gear, brakes on, idle, 3 s after the drop (all five jets) | at rest, sag 0.045 m (`STRUT_SAG`), nose wheel 13.8–15.3 %, then under 1 mm in 10 s | `STRUT_SAG` and 12 % + the idle thrust's moment (design) | 0.03 m, 1 %, 5 mm | ok |
+| take-off roll, TP-1538's F-16A at 29,253 lb, maximum power, rotation at 150 kt[^ni-f16] (2026-11-03; since 2026-11-15 the rotation at 170 kt, §9.13) | 1,759 ft, lift-off at 164 kt then; 2,201 ft since 2026-11-15 | 2,380 ft (USAF SAC F-16A, at that weight with two tanks and two AIM-9J[^sac-migflug]) |±20 % (±10 % since 2026-11-15) | failed −26 % then; passes since 2026-11-15 (§9.13) |
 | braking from 100 kt, Barak, idle, full brakes | 487 m, straight | 440 m from the friction and the idle thrust | ±25 % | ok |
 
 **The take-off roll is 26 % short (2026-11-03).** Looked at: the stores' drag the test leaves out (two tanks, two
@@ -617,10 +653,9 @@ missiles, ΔCD about 0.025, inferred) is about 2–3 % of the thrust at take-off
 the thrust: Table VI's maximum, carried to Mach 0, is 20,140 lbf installed, and at 29,253 lb the mean acceleration
 over the roll is about 0.65 g, which gives this distance. Open: the SAC's lift-off speed and its conditions (runway
 temperature, the power setting's definition, the take-off technique). The rotation here is a fixed full nose-up
-stabilator at 150 kt; stage (c)'s control system flies the real technique. Until then the source test stays at its
-±20 % and is ignored with the reason (`cargo test -p iaf-flight --test sixdof -- --ignored` shows the miss), and a
-separate test pins today's 1,759 ft so a change that moves the roll shows up; that pin checks nothing against a
-source.
+stabilator at 150 kt then. Since 2026-11-15 the rotation is at 170 kt (§9.13) and the source test
+`take_off_roll_against_the_sac` runs within ±10 % of both SAC rolls (2,201 / 3,623 ft against 2,380 / 3,725 ft); the
+1,759 ft pin is gone.
 
 ### 9.11 The control system (stage (c))
 
@@ -777,7 +812,19 @@ before. The autopilot drives either through the `autopilot::Host` trait (the `Ai
 | full pull at 200 kt, Barak | α peaks at 26.6° | figure 63, appendix A: the limiter holds about 25° | ±3° | ok |
 | roll from 1 g at α 25°, 30,000 ft, full stick (TP-1538's jet, at 186 kt, α 24.7°) | 90° in 2.32 s, 180° in 3.63 s | TP-1538 Table V, control system A: 2.6 s, 3.8 s | ±30 % | ok (−11 %, −4 %) |
 | fuel flow, Sufa, military, sea level | 13,492 lb/h | 13,500 lb/h (the F-16I REAL row) | 3 % | ok |
-| take-off roll through the control system (TP-1538's jet, 29,253 lb, rotation at 150 kt to 12°; the flaps down since 2026-11-11, 1,813 ft before) | 1,823 ft, lift-off at 166 kt | 2,380 ft (SAC) | ±20 % | **fails: −23 %**; still ignored |
+| take-off roll through the control system (TP-1538's jet, 29,253 lb, maximum power, rotation at 170 kt to 12°, flaps down; 2026-11-15) | 2,201 ft, lift-off at 182 kt | 2,380 ft (SAC) | ±10 % | ok, −7.5 % |
+| the same at military power (2026-11-15) | 3,623 ft, lift-off at 176 kt | 3,725 ft (SAC, intermediate) | ±10 % | ok, −2.7 % |
+
+**The take-off roll, found (2026-11-15).** The roll was 23 % short because the test rotated at 150 kt, a clean jet's
+afterburner rotation[^ni-f16], with the SAC's 29,253 lb. The model itself lifts off 6–12 kt after the pull starts,
+as the manual's technique says (rotate 10–15 kt below the take-off speed to 8–12° of pitch, T.O. 1F-16A-1
+p. 2-20[^to-f16a]). Both SAC rolls, at maximum and at intermediate power, fit one lift-off speed of about 180 kt
+with the model's thrust; the thrust carried below Mach 0.2 (Table VI), the rolling friction and the stores' drag
+move them by a few per cent only. So the take-off now rotates at 170 kt, the rotation speed quoted for an
+air-to-air load (Falcon BMS forum, secondary)[^bms]; both rolls are within 10 %. A regression found on the same
+forum ("70 kt plus 3 kt per 1,000 lb of gross weight", 158 kt here, its chart unnamed) gives a roll 30 % shorter
+than both SAC figures and is not used. The F-16C/D's and F-16I's take-off speeds by weight are open (their
+performance supplements are not public).
 
 **Tested and corrected (2026-11-03): two test setups.** The g test was first written as "9 ± 0.5 g at 450 kt"; there a
 9 g pull needs α ≈ 21°, the α limiter takes 2 g away and the jet pulls 7.6 g, which is figure 63's design: the test
@@ -1063,7 +1110,7 @@ jets at 400 kt and 10,000 ft (within 3 %), cut the Sufa's sea-level top speed an
 [^f16net-di]: F-16.net forum, "Drag index calculation", posts by johnwill, 8 and 10 January 2011 ("A drag index for a
     clean F-16 is the drag coefficient at 0.8 mach using the reference area of the F-16"; "a store drag index is also
     referenced to wing area"): https://www.f-16.net/forum/viewtopic.php?p=188297
-[^to-f16a]: T.O. 1F-16A-1, *Flight Manual, F-16A/B Block 10 and 15*, August 2003, p. 2-25 (landing), p. 1-120 /
+[^to-f16a]: T.O. 1F-16A-1, *Flight Manual, F-16A/B Block 10 and 15*, August 2003, p. 2-20 (take-off), p. 2-25 (landing), p. 1-120 /
   1-125 / 1-127 (flight controls), "FLCS limiters" and figures 1-43 / 1-44 (the AOA/g limiter, CAT I / CAT III),
   "MANUAL PITCH Override", "STORES CONFIG Switch", p. 5-3 (over-g), section III / VI (deep stall recovery),
   "Normal flight characteristics", https://archive.org/details/to-1-f-16-a-1-flight-manual-f-16-a-b-block-10-15-august-2003
@@ -1072,3 +1119,15 @@ jets at 400 kt and 10,000 ft (within 3 %), cut the Sufa's sea-level top speed an
   https://www.airandspaceforces.com/article/1091glock/
 [^plaehn]: T. Plaehn, "Turning and burning", *Land, Fly or Die*, 19 December 2023 (a fighter pilot's account: "the
   F-16A corner velocity expanded to a range of 330 KIAS to 440 KIAS"): https://landflyordie.substack.com/p/turning-and-burning
+[^avweb]: M. Busch, "The Savvy Aviator #31: Know Your Oleo", AVweb ("a widely-used rule-of-thumb is that the
+  compression ratio of a main-gear oleo strut should be about 4:1 between the fully-extended and static (taxi)
+  position, and about 3:1 between the static and fully-compressed position"):
+  https://avweb.com/ownership/the-savvy-aviator-31-know-your-oleo/
+[^tp1051]: S. M. Stubbs, J. A. Tanner, E. G. Smith, *Behavior of Aircraft Antiskid Braking Systems on Dry and Wet
+  Runway Surfaces*, NASA TP-1051, December 1979 (dry runway: maximum drag-force friction coefficient about 0.55,
+  fig. 24; braking-behaviour indexes 0.91–0.93; the side force reduced during antiskid braking):
+  https://ntrs.nasa.gov/citations/19800003834
+[^bms-xwind]: Falcon BMS forum, "Crosswind landings" thread (25 kt, the limit Joe Bill Dryden's tests reached,
+  as recalled there by a forum member; secondary): https://forum.falcon-bms.com/post/21564
+[^bms]: Falcon BMS forum, "Rotation speed" (rotate at 170 kt with an air-to-air load, 180 kt heavy; the take-off
+  speed 70 kt plus 3 kt per 1,000 lb of gross weight), https://forum.falcon-bms.com/post/314659

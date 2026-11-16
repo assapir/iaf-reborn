@@ -47,6 +47,9 @@ pub struct Airframe {
     pub fly_by_wire: Option<bool>,
     /// A drag chute (`false`: none, so the flight never asks the flight model for one; terrain_view.gd).
     pub drag_chute: Option<bool>,
+    /// Flight data Real: the gear's airspeed limit; above it with the gear down the gear is damaged
+    /// (`player_damage.gd` `gear_overspeed`; without it the 1998 450 kt true airspeed).
+    pub gear_limit: Option<GearLimit>,
     /// The engine's spool times in seconds, `[idle_mil, mil_idle, ab_light, ab_fill]` (spool.rs `Spool`).
     pub engine_spool: Option<[f32; 4]>,
     /// Physics "Flight model" on 6-DoF flies this jet on Modern IAF's 6-DoF (`data_set::sixdof`, docs/deviations.md
@@ -86,6 +89,14 @@ pub struct Radar {
     pub row: Option<u32>,
     pub km: Option<f64>,
     pub ai_nm: Option<f64>,
+}
+
+/// `gear_limit`: calibrated airspeed (kt) and Mach, whichever is reached first.
+#[derive(Clone, Debug, PartialEq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct GearLimit {
+    pub kcas: f64,
+    pub mach: Option<f64>,
 }
 
 /// `gun`: rounds a minute (all barrels), muzzle velocity m/s, guns per jet.
@@ -293,7 +304,8 @@ mod tests {
 
     /// With every switch off a 1998 jet's definition holds no value its type-code tables decide, so the game reads
     /// exactly the 1998 values; only what the original has no table for (the model file it is, the 3D cockpit and
-    /// its HUD) and `drag_chute: false`, as the 1998 F-16 (its model has no `Parach` part, docs/part-animation.md).
+    /// its HUD) and `drag_chute: false`, as the 1998 F-16 (its model has no `Parach` part, docs/part-animation.md),
+    /// and `gear_limit`, which only Flight data Real reads.
     #[test]
     fn switches_off_give_the_1998_values() {
         let off = Switches { f16: "barak", f15: "baz" };
@@ -304,7 +316,8 @@ mod tests {
             let keys: Vec<&str> = a.keys().map(String::as_str).collect();
             assert!(
                 keys.iter().all(|k| {
-                    ["name", "doc", "notes", "original_model", "hud_3d", "cockpit_3d", "drag_chute"].contains(k)
+                    ["name", "doc", "notes", "original_model", "hud_3d", "cockpit_3d", "drag_chute", "gear_limit"]
+                        .contains(k)
                 }),
                 "{code}: {keys:?}"
             );

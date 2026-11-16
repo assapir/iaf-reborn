@@ -275,7 +275,7 @@ impl Rig {
 const BRAKES: Controls = Controls {
     surfaces: Surfaces { dh: 0.0, da: 0.0, dr: 0.0, dlef: 0.0, dsb: 0.0, dtef: 0.0 },
     throttle: 0.0,
-    wheels: Wheels { brake: 1.0, steer: 0.0 },
+    wheels: Wheels { brake: 1.0, steer: 0.0, castor: true },
     gear_down: true,
     stores_cd: 0.0,
     engine_on: true,
@@ -288,7 +288,7 @@ const BRAKES: Controls = Controls {
 #[test]
 fn standing_jets_settle_on_their_gear() {
     // Dropped onto extended struts, brakes on, idle: each jet comes to rest within 3 s and sinks its strut sag
-    // (0.15 m, inferred). The nose wheel carries its design share (12 %, inferred) plus the idle thrust's
+    // (`jets::STRUT_SAG`, inferred). The nose wheel carries its design share (12 %, inferred) plus the idle thrust's
     // nose-down moment against the braked mains: T·h / (W·wheelbase).
     for j in jets::all().into_iter().chain([jets::tp1538()]) {
         let mut r = Rig::on_runway(j, 0.0);
@@ -313,25 +313,25 @@ fn standing_jets_settle_on_their_gear() {
         let thrust = r.engine.thrust(&j.engine, 0.0, 0.0) * j.engines as f64;
         let n = j.gear.struts[0].pos;
         let share = 0.12 + thrust * (n.z - sag) / (total * (n.x - j.gear.struts[1].pos.x));
-        assert!((sag - 0.15).abs() < 0.03 && (loads[0] / total - share).abs() < 0.01, "{} {share}", j.name);
+        assert!((sag - jets::STRUT_SAG).abs() < 0.01 && (loads[0] / total - share).abs() < 0.01, "{} {share}", j.name);
         assert!((total / (j.airframe.mass * iaf_flight::sixdof::G) - 1.0).abs() < 0.02);
     }
 }
 
 /// TP-1538's own F-16A and engine (the F100-PW-200 of the SAC's jet) at 29,253 lb, flown through its control system
-/// (`SixDof`): maximum power from a standing start, brakes released; at 150 kt (an F-16 pilot's afterburner
-/// take-off rotation, The National Interest) the pilot pulls to 12° of pitch (inferred: the F-16's take-off
-/// attitude of 10–12°, open) and holds it until every wheel is off the runway. Returns the ground roll (ft) and the
-/// lift-off speed (kt).
-fn take_off() -> (f64, f64) {
+/// (`SixDof`): `throttle` (1 maximum, 0.74 military) from a standing start, brakes released; at 170 kt (the
+/// rotation with an air-to-air load, Falcon BMS forum, modern-iaf/docs/flight-model.md §9.10) the pilot pulls to
+/// 12° of pitch (the take-off attitude 8–12°, T.O. 1F-16A-1 p. 2-20) and holds it until every wheel is off the
+/// runway. Returns the ground roll (ft) and the lift-off speed (kt).
+fn take_off(throttle: f32) -> (f64, f64) {
     let mut f = flight(jets::tp1538().at_weight(29_253.0), 0.0, 0.0, false);
     let x0 = f.state().position.y;
     let mut rotate = false;
     for _ in 0..60 * 60 {
         let s = f.state();
-        rotate |= s.speed as f64 >= 150.0 * KT;
+        rotate |= s.speed as f64 >= 170.0 * KT;
         let pull = if rotate { (0.15 * (12.0 - s.pitch.to_degrees())).clamp(-1.0, 1.0) } else { 0.0 };
-        let c = iaf_flight::Controls { throttle: 1.0, stick_y: pull, gear_down: true, ..f.controls() };
+        let c = iaf_flight::Controls { throttle, stick_y: pull, gear_down: true, ..f.controls() };
         f.set_controls(iaf_flight::Controls { brakes: false, ..c });
         f.step(1.0 / 60.0);
         if !f.state().on_ground && rotate {
@@ -343,37 +343,28 @@ fn take_off() -> (f64, f64) {
 }
 
 #[test]
-#[ignore = "known miss: −23 % against the SAC's 2,380 ft, with the control system's rotation too (flight-model.md §9.10, §9.13)"]
 fn take_off_roll_against_the_sac() {
-    // USAF Standard Aircraft Characteristics, F-16A Block 1–15 (1984): ground roll 2,380 ft at maximum power,
-    // 29,253 lb with two AIM-9J and two 370 US gal tanks (as quoted by migflug.com); the stores' drag left out.
-    // Tolerance ±20 %, set before the first run.
-    let (ft, kt) = take_off();
-    println!("TP-1538 F-16A, 29,253 lb, maximum power: lift-off at {kt:.0} kt after {ft:.0} ft (SAC 2,380 ft)");
-    assert!((ft / 2_380.0 - 1.0).abs() <= 0.2, "{ft}");
-}
-
-#[test]
-fn take_off_roll_regression_pins_todays_value() {
-    const PIN_FT: f64 = 1_823.0;
-    // A regression pin, not a check against a source: today's roll of `take_off()` (2026-11-03; 1,813 → 1,823 ft
-    // on 2026-11-11 with the trailing-edge flaps down for the roll), so a change to
-    // the engine, the gear or the aerodynamics that moves it shows up. The source check is the ignored
-    // take_off_roll_against_the_sac.
-    let (ft, kt) = take_off();
-    println!("take-off regression: {ft:.0} ft, {kt:.0} kt (pinned: {PIN_FT} ft)");
-    assert!((ft - PIN_FT).abs() < 15.0, "{ft}");
+    // USAF Standard Aircraft Characteristics, F-16A Block 1–15 (1984): ground roll 2,380 ft at maximum power and
+    // 3,725 ft at intermediate (military), 29,253 lb with two AIM-9J and two 370 US gal tanks (as quoted by
+    // migflug.com); the stores' drag left out. Tolerance ±10 %.
+    for (throttle, sac) in [(1.0, 2_380.0), (0.74, 3_725.0)] {
+        let (ft, kt) = take_off(throttle);
+        println!(
+            "TP-1538 F-16A, 29,253 lb, throttle {throttle}: lift-off at {kt:.0} kt after {ft:.0} ft (SAC {sac} ft)"
+        );
+        assert!((ft / sac - 1.0).abs() <= 0.1, "{throttle}: {ft}");
+    }
 }
 
 #[test]
 fn braking_to_a_stop() {
     // The Barak at 100 kt on the runway, idle, full brakes, stabilator neutral: it stops in a straight line. The
-    // distance against the friction and the static idle thrust, v² / (2 (g (0.88 × 0.4 + 0.02) − T/m)), the mains
+    // distance against the friction and the static idle thrust, v² / (2 (g (0.88 × braking + 0.02) − T/m)), the mains
     // braked: the aerodynamic drag shortens it, the wing's lift lengthens it. Tolerance ±25 %.
     let j = jets::all()[0];
     let v0 = 100.0 * KT;
     let mut r = Rig::on_runway(j, v0);
-    r.body.pos.z += 0.15; // on its static sag
+    r.body.pos.z += jets::STRUT_SAG; // on its static sag
     let mut t = 0.0;
     while r.body.vel.x > 0.05 && t < 60.0 {
         r.frame(BRAKES);
@@ -381,7 +372,8 @@ fn braking_to_a_stop() {
     }
     let b = r.body;
     let idle = r.engine.thrust(&j.engine, 0.0, 0.0) / j.airframe.mass;
-    let ideal = v0 * v0 / (2.0 * (iaf_flight::sixdof::G * (0.88 * 0.4 + 0.02) - idle));
+    let ideal =
+        v0 * v0 / (2.0 * (iaf_flight::sixdof::G * (0.88 * iaf_flight::sixdof::gear::TYRES.braking + 0.02) - idle));
     println!(
         "Barak, 100 kt, full brakes: stopped in {:.0} m, {t:.1} s (friction and idle thrust {ideal:.0} m); drift {:.2} m",
         b.pos.x, b.pos.y

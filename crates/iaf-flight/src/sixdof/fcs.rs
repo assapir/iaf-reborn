@@ -17,8 +17,8 @@ pub struct Pilot {
     pub stick_x: f64,
     pub stick_y: f64,
     pub pedal: f64,
-    /// Speed brake out.
-    pub speed_brake: bool,
+    /// The speed brake's commanded opening, deg (0 closed; the flight sets the jet's limit, [`super::jets::SpeedBrake`]).
+    pub speed_brake: f64,
     /// A load factor commanded directly (g, the autopilot's), instead of the stick's pitch.
     pub g_command: Option<f64>,
     /// A roll rate commanded directly (deg/s, the autopilot's), instead of the stick's roll.
@@ -313,8 +313,8 @@ impl Fcs {
         let lef_cmd = lef_schedule(alpha_lead, s.qbar, s.ps.max(1.0));
         let dlef = self.lef.step(1.0 / 0.136, 25.0, (0.0, 25.0), lef_cmd, dt);
 
-        // Speed brake: 0…60° at 30 deg/s (inferred: two seconds to open).
-        let dsb = self.sb.step(100.0, 30.0, (0.0, 60.0), if pilot.speed_brake { 60.0 } else { 0.0 }, dt);
+        // Speed brake: to its command (0…60°) at 30 deg/s (inferred: two seconds to open).
+        let dsb = self.sb.step(100.0, 30.0, (0.0, 60.0), pilot.speed_brake, dt);
 
         Surfaces { dh, da, dr, dlef, dsb, dtef: 0.0 }
     }

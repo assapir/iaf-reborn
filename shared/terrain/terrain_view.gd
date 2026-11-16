@@ -43,6 +43,12 @@ var flight = null  # IafFlight
 var real_data := false
 var stick := Vector2.ZERO  # x roll right+, y pull+
 var rudder := 0.0
+## The 6-DoF flies (IafFlight's model): the rudder keys move the pedals over PEDAL_RAMP_S toward `_pedal_key`.
+var _sixdof := false
+var _pedal_key = null
+## Ours, the 6-DoF: a rudder key moves the pedals from centre to full in this time (s; inferred: a pilot's push on
+## the pedals) instead of at once, so a tap gives a little rudder and nose-wheel steering; an axis stays direct.
+const PEDAL_RAMP_S := 1.0
 var throttle := 0.74
 var flaps := 0.0
 var gear_down := false
@@ -240,6 +246,7 @@ var _chute: Node3D
 var _derelict := {}
 ## Landings the flight model has reported (its `landings` counter; the landed handler runs on each new one).
 var _landings := 0
+var _hard_landings := 0
 ## EndWorld.wav plays the flight model has reported (its `end_worlds` counter, the map edge).
 var _end_worlds := 0
 ## The crash was handled (flight ends like the original's player death).
@@ -1979,6 +1986,7 @@ func _start_flight() -> void:
 		push_error("flight model: " + err)
 		flight = null
 		return
+	_sixdof = flight.state().get("model", "") == "6dof"
 	print("Flight model: %s (%s)" % [flight.state().get("model", ""), player.fm_section])
 	_apply_player_prefs()
 	_setup_autopilot(install)
@@ -3262,11 +3270,14 @@ func _take_over(target: Dictionary, old: Dictionary) -> void:
 	# The new jet's type: cockpit, sounds, systems, model and weapons. Its brain's autopilot mode ends (FM mode 0:
 	# the flight model's AI rules no longer apply), its AI settings back to a player's.
 	flight = new_flight
+	_sixdof = flight.state().get("model", "") == "6dof"
+	_pedal_key = null
 	flight.ap_set_mode(0, runtime.now)
 	flight.set_ai(false, 2)
 	flight.set_ai_damage(true)
 	var st: Dictionary = flight.state()
 	_landings = int(st.get("landings", 0))  # the new jet's own landings are not new ones
+	_hard_landings = int(st.get("hard_landings", 0))
 	_apply_player_prefs()
 	start_airborne = airborne_start
 	player = PlayerAircraft.profile(int(target.type_code))
@@ -3870,6 +3881,11 @@ func _process(delta: float) -> void:
 			_derelict_update(delta)
 		if st.crashed and not crashed:
 			_on_crashed(st.crash_reason)
+		# A hard landing (past the gear's design sink speed, real landing limits only) damages the gear (7).
+		if int(st.get("hard_landings", 0)) > _hard_landings:
+			_hard_landings = int(st.hard_landings)
+			if not player_damage.flags[7] and not mission_pref("invulnerable"):
+				player_damage.system_damage(7)
 		if int(st.get("landings", 0)) > _landings:
 			_landings = int(st.landings)
 			_on_landed()
@@ -3883,7 +3899,10 @@ func _process(delta: float) -> void:
 		if not waiting_for_ground:
 			_check_collisions()
 		if not (frozen or waiting_for_ground or fm_stopped or crashed):
-			player_damage.gear_overspeed(st.speed, gear_down, gear_legs[1], mission_pref("invulnerable"))
+			var gear_limit: Dictionary = (
+				Settings.airframe(player.type).get("gear_limit", {}) if Settings.real_data() else {}
+			)
+			player_damage.gear_overspeed(st, gear_limit, gear_down, gear_legs[1], mission_pref("invulnerable"))
 		for k in [
 			"speed_kt",
 			"mach",
@@ -4115,6 +4134,10 @@ func _read_controls(delta: float) -> void:
 			_apply_held(i, cmd)
 	for e in Joystick.poll():
 		_joy_event(e)
+	if _pedal_key != null:
+		rudder = move_toward(rudder, _pedal_key, delta / PEDAL_RAMP_S)
+		if rudder == _pedal_key:
+			_pedal_key = null
 	# Ours: the roll trim, from the throttle rocker (Devices page) and Alt + Left / Right (docs/controls.md); held
 	# still while the autopilot flies (it ignores the trim, so a change would land all at once when it lets go).
 	var trim := Joystick.rocker()
@@ -4161,7 +4184,7 @@ func _joy_event(e: Array) -> void:
 
 ## One stick / rudder key event. The keys rewrite roll / pitch into one stick event with the other axis's
 ## last value; the autopilot may drop it or go off (shared/controls/autopilot.gd).
-func _apply_held(_i: int, cmd: Array) -> void:
+func _apply_held(i: int, cmd: Array) -> void:
 	var kb: Vector2 = autopilot.kb_stick if autopilot != null else stick
 	match int(cmd[0]):
 		139, 140:
@@ -4179,9 +4202,12 @@ func _apply_held(_i: int, cmd: Array) -> void:
 		3:
 			kb.y = clampf(-cmd[2] * 0.01, -1.0, 1.0)
 		10:
-			rudder = clampf(cmd[1] * 0.01, -1.0, 1.0)
+			var r := clampf(cmd[1] * 0.01, -1.0, 1.0)
+			_pedal_key = r if _sixdof and i >= 0 else null
+			if _pedal_key == null:
+				rudder = r
 			if autopilot != null:
-				autopilot.rudder_event(rudder)
+				autopilot.rudder_event(r)
 			return
 	if int(cmd[0]) in [2, 3] and Joystick.stick_mixed():  # the other axis stays the joystick's
 		if Joystick.stick_axis_used(0):

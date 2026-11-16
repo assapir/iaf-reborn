@@ -434,6 +434,17 @@ pub fn landing_limits(
     Some(if real && attitude_ok { Crash::SinkRate } else { Crash::Landing })
 }
 
+/// The gear's design-limit sink speed, m/s: 10 ft/s (the limit descent velocity at the design landing weight, 14 CFR
+/// 25.473; the F-16's "10 fps at low weight", Falcon BMS forum; docs/damage.md §5.2).
+pub const GEAR_SINK_LIMIT: f32 = 10.0 * 0.3048;
+
+/// A touchdown that passed [`landing_limits`] but sank faster than [`GEAR_SINK_LIMIT`] (`vz` up positive, × 2 with
+/// Easy landing): the gear is damaged (flag 7). Real limits only (`real`, as [`landing_limits`]); the original has
+/// no outcome between a landing and a crash.
+pub fn hard_landing(vz: f32, easy: bool, real: bool) -> bool {
+    real && vz < -GEAR_SINK_LIMIT * if easy { 2.0 } else { 1.0 }
+}
+
 /// Mission start (`FUN_005a5820`, §15.6.4).
 #[derive(Debug, Clone, Copy)]
 pub struct Start {
@@ -608,6 +619,8 @@ pub struct State {
     /// Landings so far: +1 at each touchdown with the gear down that passes the landing check (the mission's
     /// landed handler fires on each, v1.1; the flag is re-armed at lift-off).
     pub landings: u32,
+    /// Of them, the hard ones: past the gear's design sink speed ([`hard_landing`]): the game damages the gear.
+    pub hard_landings: u32,
 }
 
 /// In/out values of the mode hooks (`5aab90`): acceleration, lift targets, roll command; `aero`: called from the
@@ -819,6 +832,8 @@ pub struct Aircraft {
     /// its 0 → 1 edges, i.e. the calls of the landed handler (`440f90`).
     landed: bool,
     landings: u32,
+    /// Ours: the hard ones among them (Better physics `landing_limits`, [`hard_landing`]).
+    hard_landings: u32,
     /// Motion 0x16 scripted heading turn (mode `veh+0xc78`, `5a8d40`), the AI's taxi pivots.
     pivot: Option<Pivot>,
 }
@@ -1001,6 +1016,7 @@ impl Aircraft {
             ground_dir: Vec3::new(sh, ch, 0.0),
             landed: false,
             landings: 0,
+            hard_landings: 0,
             pivot: None,
             params,
             envelope,
@@ -2380,6 +2396,10 @@ impl Aircraft {
                 // at lift-off in v1.1).
                 self.landed = true;
                 self.landings += 1;
+                let real = self.better.landing_limits && !self.ap_landing && !self.immune();
+                if hard_landing(vz, self.easy_landing, real) {
+                    self.hard_landings += 1;
+                }
             }
             // The rolling checks below run in the same tick.
         } else if z > clear && vz > 0.001 {
@@ -2771,6 +2791,7 @@ impl Aircraft {
             gear: self.gear.sample(t),
             crashed: self.crashed,
             landings: self.landings,
+            hard_landings: self.hard_landings,
         }
     }
 }

@@ -96,6 +96,7 @@ the §1 type-code tables stay for the 1998 jets.
 | `hud_tint` (number) | `cockpit3d.gd` | Modern IAF's combiner tint, a fraction of the full one (`SIM_TINT` 0 when absent) |
 | `fly_by_wire` (bool) | `aircraft.rs` `fly_by_wire` | the F-16's roll-rate command, and the deep stall in place of the spin |
 | `drag_chute` (bool) | `terrain_view.gd` | `false`: the jet has no drag chute, so the flight never asks the flight model for one (every F-16 and F-35) |
+| `gear_limit` (`kcas`, `mach`) | `player_damage.gd` `gear_overspeed` | Flight data Real: the gear is damaged above this calibrated airspeed (kt) or Mach with the gear down; without it the 1998 450 kt true airspeed (docs/damage.md §5.2) |
 | `sixdof` (bool) | `data_set.rs` `sixdof` | Physics "Flight model" on 6-DoF flies it on Modern IAF's 6-DoF from the sim's data (deviations.md §2) |
 | `engine_spool` [4 numbers] | `spool.rs` `of_type` (via `lib.rs` `load_section`) | Better physics engine spool, before the type code's row: idle → military, military → idle, afterburner light-off, light-off → full (s) |
 | `goggles` | `terrain_view.gd` `goggles_tube`, `goggles_lit` | the night goggles' tube whatever the year (`TUBES`), the cockpit lit for them |

@@ -5,7 +5,9 @@
   "hud_3d": "HUD_std",
   "cockpit_3d": "res://shared/extra/models/cockpit3d/f16.glb",
   "drag_chute": false,
+  "gear_limit": { "kcas": 300, "mach": 0.65 },
   "notes": {
+    "gear_limit": "Flight data Real: gear damage above 300 KIAS / Mach 0.65 with the gear extended (T.O. 1F-16A-1 fig. 5-7; KIAS taken as KCAS), docs/damage.md 5.2",
     "drag_chute": "no F-16 or F-35 has a drag chute: the flight never asks the flight model for one",
     "": "The F-16 family's base and the Barak itself (the 1998 type 100): everything else of the Barak is the original's type-code tables.",
     "original_model": "the 1998 model file a variant's model replaces",

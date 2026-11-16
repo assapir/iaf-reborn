@@ -44,6 +44,38 @@ pub struct Jet {
     pub tef_deg: f64,
     /// The ground start's sequence ([`super::start`]).
     pub start: StartSpec,
+    /// The speed brake's openings ([`SpeedBrake`]).
+    pub speed_brake: SpeedBrake,
+}
+
+/// A jet's speed brake: its opening in flight and with the main gear down and locked, deg of the F-16's split
+/// panels (the drag is `aero::SB_CD` × opening / 60°).
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct SpeedBrake {
+    pub max_deg: f64,
+    pub gear_down_deg: f64,
+}
+
+/// The F-16's: 60°, limited to 43° with the right main gear down and locked "to prevent the lower surfaces from
+/// striking the runway during landing" (T.O. 1F-16A-1 p. 1-118; the override switch and the full opening after the
+/// nose strut compresses are not modelled: the brake key is the wheel brakes on the ground).
+pub const F16_SPEED_BRAKE: SpeedBrake = SpeedBrake { max_deg: 60.0, gear_down_deg: 43.0 };
+
+/// The F-35's: no dedicated surface, "an all-around deflection of various control surfaces" (Air & Space Forces,
+/// 2007); its drag is the F-16's at 60° and nothing reaches the runway, so no gear-down limit (both inferred).
+pub const F35_SPEED_BRAKE: SpeedBrake = SpeedBrake { max_deg: 60.0, gear_down_deg: 60.0 };
+
+impl SpeedBrake {
+    /// The commanded opening, deg: closed unless `out`; with the main gear down and locked, the gear-down limit.
+    pub fn command(&self, out: bool, gear_locked_down: bool) -> f64 {
+        if !out {
+            0.0
+        } else if gear_locked_down {
+            self.gear_down_deg
+        } else {
+            self.max_deg
+        }
+    }
 }
 
 /// TP-1538's F-16 (Table I) scaled to `weight_lb`, span `span_ft`, area `area_ft2`: the inertia × the mass ratio
@@ -65,10 +97,21 @@ fn scaled(weight_lb: f64, span_ft: f64, area_ft2: f64) -> Airframe {
     }
 }
 
+/// The struts' linear sag (m) at the reference weight: the stiffness of an oleo-pneumatic strut at its static point.
+/// The strut is an air spring; serviced to the common rule of thumb, its gas compresses 4:1 from fully extended to
+/// static[^avweb], so its gas column at static is a third of its 0.15 m static compression (inferred, no public F-16
+/// strut data), and its stiffness there n·F / column with the polytropic n = 1.1 (inferred): the same load sags
+/// 0.15 / 3.3 = 0.045 m on a linear spring. (Until 2026-11-16 a linear 0.15 m: the struts let a full-pedal ground
+/// turn at 40–140 kt roll the F-16 over on its outer main wheel, the body leaning out ~7° before it went.)
+/// [^avweb]: M. Busch, "The Savvy Aviator #31: Know Your Oleo", AVweb: "a widely-used rule-of-thumb is that the
+/// compression ratio of a main-gear oleo strut should be about 4:1 between the fully-extended and static (taxi)
+/// position, and about 3:1 between the static and fully-compressed position".
+pub const STRUT_SAG: f64 = 0.15 / (3.0 * 1.1);
+
 /// Gear from the public wheelbase and track (ft) and the inferred c.g. height (m); 12 % of the weight on the nose
-/// wheel and 0.15 m of strut sag at `weight_lb` (inferred).
+/// wheel and [`STRUT_SAG`] at `weight_lb` (inferred).
 fn gear(wheelbase_ft: f64, track_ft: f64, height_m: f64, weight_lb: f64) -> Gear {
-    Gear::tricycle(wheelbase_ft * FT, track_ft * FT, height_m, 0.12, weight_lb * LB * G, 0.15)
+    Gear::tricycle(wheelbase_ft * FT, track_ft * FT, height_m, 0.12, weight_lb * LB * G, STRUT_SAG)
 }
 
 /// The F100-PW-229 (F-16I Sufa, F-15I Ra'am): 17,800 / 29,160 lbf (Pratt & Whitney); idle → military 3.0 s, the
@@ -107,6 +150,7 @@ pub fn tp1538() -> Jet {
         roll: None,
         tef_deg: 20.0,
         start: JFS,
+        speed_brake: F16_SPEED_BRAKE,
     }
 }
 
@@ -128,6 +172,7 @@ pub fn all() -> [Jet; 4] {
             roll: Some(crate::data_set::F16_ROLL),
             tef_deg: 20.0,
             start: JFS,
+            speed_brake: F16_SPEED_BRAKE,
         },
         // F-16I Sufa: 20,500 lb + 8,850 lb (the F-16I REAL row).
         Jet {
@@ -145,6 +190,7 @@ pub fn all() -> [Jet; 4] {
             roll: Some(crate::data_set::F16_ROLL),
             tef_deg: 20.0,
             start: JFS,
+            speed_brake: F16_SPEED_BRAKE,
         },
         // F-35I Adir: 29,300 lb + 18,250 lb, wing 460 ft² (the F-35I REAL row), span 35 ft (Lockheed Martin);
         // wheelbase 19.75 ft, track 14.24 ft (Mason, Virginia Tech, F-35A data).
@@ -163,6 +209,7 @@ pub fn all() -> [Jet; 4] {
             roll: None,
             tef_deg: 20.0,
             start: IPP,
+            speed_brake: F35_SPEED_BRAKE,
         },
         // F-15I Ra'am: 37,000 lb + 22,665 lb, wing 608 ft², span 42.8 ft (the F-15I REAL row, TO 1F-15E-1, USAF);
         // wheelbase 17.78 ft (the F-15 row, SAC), track 9 ft (TO 1F-15E-1, docs/f15i.md).
@@ -180,6 +227,8 @@ pub fn all() -> [Jet; 4] {
             roll: None,
             tef_deg: 0.0,
             start: JFS,
+            // The F-15's dorsal speed brake: no gear-down limit (inferred: nothing near the runway).
+            speed_brake: SpeedBrake { max_deg: 60.0, gear_down_deg: 60.0 },
         },
     ]
 }

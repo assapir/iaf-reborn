@@ -71,6 +71,10 @@ Terms used on this page:
   * Every id except 0x84 while `this+0x10 < 1` (UNCERTAIN: not in flight).
 * **Held commands** are the records with a release command: pitch / roll / rudder, EO pan, view pan and zoom.
   Every other command is one-shot.
+* **Ours, the 6-DoF** (Physics "Flight model" 6-DoF, and Modern IAF): a rudder key moves the pedals from centre to
+  full over 1 s (`terrain_view.gd` `PEDAL_RAMP_S`) and back over 1 s when released, so a tap gives a little rudder and
+  nose-wheel steering; a joystick rudder axis stays direct. The original model keeps the original's jump to ±100
+  (modern-iaf/docs/flight-model.md §9.8).
 * **v1.1 changes**: the key table (all 117 records byte-identical, `0x64c3c8`; v1.0 `0x647ff8`), this dispatch and
   the mute key are as in v1.0. One handler changed: **Z "Full screen weapon MFD"** (event 0x1f in `FUN_004cd630`)
   works only in v1.1 (docs/mfd.md §3 "Full-screen weapon MFD"; built).

@@ -18,22 +18,34 @@ pub struct Strut {
     pub brake: bool,
 }
 
-/// Tyre and runway friction (inferred, open: no public figure for these jets).
+/// Tyre and runway friction on a dry runway (modern-iaf/docs/flight-model.md §9.8). No public figure for these jets'
+/// tyres: the braking from NASA TP-1051's antiskid tests on a DC-9 main-gear tyre (inferred for a fighter's).
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Tyres {
-    /// Rolling friction on concrete.
+    /// Rolling friction on concrete (inferred).
     pub rolling: f64,
-    /// Braking friction at full brake on a dry runway (the FM-0 data's 0.4).
+    /// The tyre's peak friction (braking and cornering together): TP-1051's maximum drag-force friction coefficient
+    /// on the dry runway, about 0.55.
+    pub peak: f64,
+    /// Braking friction at full brake: the antiskid holds the tyre near its peak, averaging 0.91–0.93 of it on a dry
+    /// runway (TP-1051's braking-behaviour index): 0.92 × 0.55.
     pub braking: f64,
-    /// Side grip: the 1998 data's nose-wheel "grip 0.3 g" (`data_set.rs`), as a friction coefficient.
+    /// Side grip: the same tyre's peak (TP-1051), shared with braking through the friction circle. (Until
+    /// 2026-11-16 the 1998 data's nose-wheel "grip 0.3 g", `data_set.rs`: full rudder at 66–100 kt then slid the
+    /// jet 9–13° sideways with the nose wheel free.)
     pub side: f64,
 }
 
-pub const TYRES: Tyres = Tyres { rolling: 0.02, braking: 0.4, side: 0.3 };
+pub const TYRES: Tyres = Tyres { rolling: 0.02, peak: 0.55, braking: 0.92 * 0.55, side: 0.55 };
 
 /// Below this slip speed (m/s) friction grows linearly from 0 (a regularised Coulomb law, so a standing jet holds
 /// still instead of chattering; inferred).
 const SLIP: f64 = 0.03;
+
+/// The slip angle (between the wheel's heading and its path) at which a rolling tyre's side force reaches its
+/// friction limit; below it the force grows in proportion to the angle, the tyre's cornering stiffness (inferred: a
+/// typical tyre's cornering curve; no public figure for these jets' tyres).
+const CORNER_SLIP_DEG: f64 = 8.0;
 
 /// The gear's three struts: nose, left main, right main; and the runway's tilt under the jet.
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -60,6 +72,8 @@ pub struct Wheels {
     pub brake: f64,
     /// Nose-wheel angle, deg, positive right.
     pub steer: f64,
+    /// The nose-wheel steering is off: the nose wheel castors, rolling along its path with no side force.
+    pub castor: bool,
 }
 
 impl Gear {
@@ -132,16 +146,26 @@ impl Gear {
             // or tail-first impact): then the runway pushes only.
             let steer = if s.steer { w.steer.to_radians() } else { 0.0 };
             let heading = b.att.rotate(Vec3::new(steer.cos(), steer.sin(), 0.0));
+            let castor = s.steer && w.castor && v.x.hypot(v.y) > SLIP;
+            let heading = if castor { v } else { heading };
             let tangential = match Vec3::new(heading.x, heading.y, 0.0).try_normalize() {
                 None => Vec3::ZERO,
                 Some(roll) => {
                     let side = Vec3::new(-roll.y, roll.x, 0.0);
                     let sat = |u: f64| (u / SLIP).clamp(-1.0, 1.0);
                     let mu_roll = t.rolling + if s.brake { t.braking * w.brake.clamp(0.0, 1.0) } else { 0.0 };
+                    // Braking and cornering share the tyre's peak (a friction circle): a braked tyre grips less
+                    // sideways (TP-1051: the side force falls during antiskid braking).
+                    let mu_side = t.side.min((t.peak * t.peak - mu_roll * mu_roll).max(0.0).sqrt());
+                    // The side force grows with the slip angle up to `CORNER_SLIP_DEG`, then holds at the friction
+                    // limit; at walking pace and below, the regularised Coulomb law (a standing jet holds still).
+                    let (v_roll, v_side) = (v.dot(roll), v.dot(side));
+                    let corner = SLIP.max(v_roll.abs() * CORNER_SLIP_DEG.to_radians().tan());
                     let held =
                         anchors.0[n].map(|a| Self::anchor_force(s, p, v, a)).filter(|h| h.length() <= mu_roll * normal);
                     held.unwrap_or_else(|| {
-                        roll * -(mu_roll * normal * sat(v.dot(roll))) - side * (t.side * normal * sat(v.dot(side)))
+                        roll * -(mu_roll * normal * sat(v_roll))
+                            - side * (mu_side * normal * (v_side / corner).clamp(-1.0, 1.0))
                     })
                 }
             };

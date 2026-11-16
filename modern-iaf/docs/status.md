@@ -137,7 +137,8 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 - **The F-16's approach speed matches the manual (2026-11-11):** TP-1538's speed-brake tables gave the open speed
   brake lift (+0.25 CL at 13° α); the 6-DoF flies the JSBSim model's speed-brake drag instead, and its flaps' lift
   (+0.122). The 13° α approach is 136–139 kt at the manual's three weights (manual 139–141 kt, was 118–121 kt)
-  ([flight-model.md](flight-model.md) §9.17). Open: the speed brake's 43° limit with the gear down.
+  ([flight-model.md](flight-model.md) §9.17). Since 2026-11-15 the F-16s' speed brake stops at 43° with the main gear down
+  (T.O. 1F-16A-1); the Adir's surfaces have no such limit (inferred).
 - **The trailing-edge flaps droop with the gear handle (2026-11-11):** on the 6-DoF the F-16s' and the Adir's
   flaperons go 20° down with the gear handle below 240 kt, less to 370 kt, and up with the handle, in the gear's 3.1 s
   (the F-16 flight manual); their lift, drag and nose-down moment are inferred (DATCOM, FM-0's drag); the models'
@@ -510,7 +511,13 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 - **[C2](plan.md#c2-the-6-dof) stage (b), engines, gear, the jets' data (2026-11-03):** TP-1538's engine model scaled to the F110-GE-100,
   F100-PW-229 and F135; a three-strut gear with brakes, steering and a braked stand; the four jets' mass, inertia and
   geometry; tests against the ratings, the spool times, a take-off roll and a stop ([flight-model.md](flight-model.md)
-  §9.7–9.10). The take-off roll is 26 % short of the F-16A's SAC figure (open).
+  §9.7–9.10). Since 2026-11-15 the take-off roll meets both F-16A SAC rolls within 10 % (2,201 / 3,623 ft against
+  2,380 / 3,725 ft, the rotation at 170 kt, §9.13); the tyres brake at NASA's antiskid figure with a friction circle,
+  a 25 kt crosswind take-off and landing roll stay within 4 m of the centreline, the autopilot's taxi turns run on the
+  wheels; a touchdown past 10 ft/s damages the gear, gear damage holds the gear, and the gear's 300 KCAS limit comes
+  from the aircraft definition ([flight-model.md](flight-model.md) §9.8; docs/damage.md §5.2). Since 2026-11-16 full
+  pedal yaws the jet hard at any speed and never tips it (air-spring strut stiffness), centred pedals let the nose
+  wheel castor, and the keyboard's rudder keys ramp the pedals over 1 s.
 - **[C2](plan.md#c2-the-6-dof) stage (a), the 6-DoF's core (2026-11-03):** `crates/iaf-flight/src/sixdof/`: NASA TP-1538's aerodynamic
   tables checked value by value against the scan, appendix B's coefficient build-up, a quaternion rigid body; the
   trim tests match the report's trims and Stevens & Lewis's ([flight-model.md](flight-model.md) §9). Nothing calls
@@ -580,10 +587,10 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   time over Tel Aviv (3.1 ms) and 13 % over Beersheba (2.7 ms), against the 7 % budget; 17 % and 15 % before the
   buildings' colours per vertex and their 250 m tiles, which keep the picture ([scenery.md](scenery.md) §6).
 - **The 6-DoF's wave drag is a fit ([C2](plan.md#c2-the-6-dof), the 6-DoF):** fit to each jet's published top speeds, not a sourced table; open: a public
-  F-16 drag rise, the take-off roll, the flaps' sourced aerodynamics and the approach speed
+  F-16 drag rise, the flaps' sourced aerodynamics and the approach speed
   ([flight-model.md](flight-model.md) §9.6, §9.16).
 - **[E3b](plan.md#e3-the-training-missions)'s open points** ([training.md](training.md) §6): the Hebrew voice (the user), the
-  pilot's request voice (sound.md §7); the 6-DoF's short take-off roll.
+  pilot's request voice (sound.md §7).
 - **[E2](plan.md#e2-the-front-end)'s open points** ([front-end.md](front-end.md)): a pilot list (the name is the computer's user
   name); the debrief sheet and the pilot log in the original game ([shared.md](shared.md)); the missions'
   own Hebrew briefings in `modern-iaf/data/missions/` still use the masculine imperative (the front end shows its own
