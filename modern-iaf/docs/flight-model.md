@@ -588,6 +588,21 @@ and its stiffness there n·F / column (n = 1.1). With 0.15 m of static compressi
 (all inferred: no public strut data). Until 2026-11-16 the sag was a linear 0.15 m: the soft struts let the body lean
 out about 7° in a hard ground turn, and full pedal at 40–140 kt rolled the F-16 over its outer main wheel.
 
+**Hops on Nevatim's runway** (2026-11-16, `test_mvp` F-35I take-off: "sink rate" at 161 kt, Mac headless). The
+sim's terrain under the runway is the elevation data as it is, not a graded runway: its slope changes between 0.6 %
+and 1.8 % within a few metres. At 118 kt and at 161 kt such a crest throws the Adir off its wheels for one frame
+(0.1 g), and the roll sees up to 2.9 g; Ramon's runway gives the Sufa at most 1.6 g. The test's scripted pilot started
+its 2 s gear-up wait at the first hop, so the gear moved during the second hop and the jet met the runway again with
+the gear in transit: the limit is then a quarter of 4 m/s, and 1.6 m/s crashed it. The jet had not rotated yet; the
+F-35I figures (α limit, stall speed) play no part. Fixed in the test: the wait restarts on every ground contact (gear
+up with a positive climb), and the take-off now fails on any wheel back on the ground after gear up or on any
+descent from 1 s to 8 s after it (all three jets; the least climb there: the F-35I about 1,000 fpm, the Sufa 84–140
+fpm, where the test's pitch hold lets the nose sag to 5°). Open: grading the runway heights in the sim's terrain.
+Tested and dropped (2026-11-16): the strut as the air spring itself (F·(column / gas length)^1.1, 0.15 m of stroke to
+static, a fifth of the load fully extended) kept the wheels on the 118 kt crest but not the 161 kt one, and full pedal
+at 50 kt then rolled the Barak over (74°): the inner strut stays loaded, the lean doubles to about 4°. Counting a
+touching tyre as on the ground (not only a loaded one) changed nothing: the hops leave the runway.
+
 **Full pedal on the runway** (2026-11-16, the user's report: full pedal skidded the jet from about 60 kt). Test
 `full_pedal_steers_at_taxi_speed_and_never_tips` (`sixdof/flight.rs`): at 6 kt full pedal turns the Barak, the Sufa
 and the Adir on the nose wheel's 32° within 25 % of the kinematic rate (29 / 28 / 20 deg/s against 27.5 / 27.5 /

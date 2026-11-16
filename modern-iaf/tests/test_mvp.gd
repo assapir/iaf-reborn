@@ -1040,7 +1040,9 @@ func _taxi(tv: Node, path: Array, hdg: float, line_up := true) -> bool:
 	return await _until(tv, func(): return tv.flight.state().speed < 0.5, 30.0)
 
 
-## The roll on the centreline, the rotation, the climb on the heading, gear up.
+## The roll on the centreline, the rotation, the climb on the heading, gear up 2 s into the climb (a hop over a bump
+## in the runway restarts the wait); no sink back: no wheel on the ground again and no descent from 1 s to
+## 8 s after gear up (the least climb there: the Sufa 84–140 fpm, the F-35I 1,000).
 func _roll(tv: Node, id: String, lineup: Vector2, hdg: float) -> void:
 	var dir := Vector2(sin(deg_to_rad(hdg)), cos(deg_to_rad(hdg)))
 	tv.brakes = false
@@ -1048,13 +1050,20 @@ func _roll(tv: Node, id: String, lineup: Vector2, hdg: float) -> void:
 	tv._throttle_event()
 	var t0: float = tv._sim_time
 	var gear_at := INF
+	var gear_up_at := INF
+	var least_vs := INF  # the least vertical speed (fpm) 1–8 s after gear up
+	var resettled := false
 	var slow_aoa := 0.0  # the most |AoA| shown below 30 kt (the probe's rest: 0°)
 	var fast_aoa := []  # [shown, true] AoA from 150 kt
 	# A pass holds and the flight goes on: the climb continues until the AoA probe has its samples.
 	var going := func():
 		return tv.addon.result.is_empty() or tv.addon.result.get("pass", false) and fast_aoa.size() < 60
 	var continued := false
-	while (going.call() or not continued and tv.addon.result.get("pass", false)) and tv._sim_time - t0 < 120.0:
+	while tv._sim_time - t0 < 120.0:
+		# The climb is probed until 8 s after gear up (gear_up_at: a local, not seen by a lambda's copy).
+		var climbing: bool = tv.addon.result.get("pass", false) and tv._sim_time < gear_up_at + 8.0
+		if not (going.call() or not continued and tv.addon.result.get("pass", false) or climbing):
+			break
 		if tv.crashed:
 			break
 		var done: Node = tv.fe_overlay
@@ -1074,6 +1083,8 @@ func _roll(tv: Node, id: String, lineup: Vector2, hdg: float) -> void:
 		var along := (Vector2(w.x, w.y) - lineup).dot(dir)
 		var herr := wrapf(hdg - float(st.heading), -180.0, 180.0)
 		if st.on_ground:
+			gear_at = INF
+			resettled = resettled or gear_up_at < INF
 			_drive_roll(tv, _bearing_err(tv, lineup + dir * (along + 300.0)))
 			tv.scripted_stick = Vector2(0, 0.5 if float(st.speed_kt) > ROTATE_KT[id] else 0.0)
 		else:
@@ -1081,6 +1092,9 @@ func _roll(tv: Node, id: String, lineup: Vector2, hdg: float) -> void:
 				gear_at = tv._sim_time + 2.0
 			elif tv._sim_time > gear_at and tv.gear_down:
 				tv._toggle_gear()
+				gear_up_at = tv._sim_time
+			if tv._sim_time - gear_up_at > 1.0 and tv._sim_time - gear_up_at < 8.0:
+				least_vs = minf(least_vs, float(st.vs_fpm))
 			tv.scripted_rudder = 0.0
 			var pitch_cmd := clampf((CLIMB_PITCH - float(st.pitch)) * 0.05, -0.3, 0.5)
 			var roll_cmd := clampf((clampf(herr * 2.0, -15.0, 15.0) - float(st.roll)) * 0.03, -0.5, 0.5)
@@ -1089,6 +1103,10 @@ func _roll(tv: Node, id: String, lineup: Vector2, hdg: float) -> void:
 	# The AoA probe (modern-iaf/docs/cockpit.md §5.4): at rest from a standstill, following the flow from 150 kt.
 	if not tv.addon.result.get("pass", false):
 		return  # a failed take-off (the clearance runs): no climb to probe
+	check(
+		gear_up_at < INF and not resettled and not tv.crashed and least_vs > 0.0 and least_vs < INF,
+		"%s: climbs after gear up (least %.0f fpm, back on the ground %s)" % [id, least_vs, resettled or tv.crashed]
+	)
 	check(continued and tv.fe_overlay == null, "%s: the panel does not come back after Continue" % id)
 	var shown := fast_aoa.map(func(e): return e[0])
 	check(slow_aoa == 0.0, "%s: the AoA rests at 0° below 30 kt (most %.2f°)" % [id, slow_aoa])
