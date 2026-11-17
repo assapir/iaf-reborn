@@ -40,6 +40,46 @@ var data := {}
 ## body_cue).
 var _covered := false
 
+
+## What the current step still misses, one short line (the user, 17 Nov: the main power needs two clicks and the card
+## did not say so): MAIN PWR at BATT, the RPM still under 20 %, a throttle not at OFF, the AVIONIC POWER switches still
+## off, the INS's alignment and NAV; with every step done, the F-35I's self test. "" when the step needs nothing more.
+func hint() -> String:
+	var f = flight.host.flight
+	var list := checklist()
+	var i := _current()
+	if f == null or list.is_empty():
+		return ""
+	if i >= list.size():
+		return s("nb_hint_selftest") if not bool(f.state().get("avionics", true)) else ""
+	match String(list[i].step):
+		"main_power":
+			if f.start_position("main_power") == 1 and flight.plane != "f35i":
+				return s("nb_hint_batt")
+		"engine":
+			if "starter" in flight.done and float(f.state().get("rpm", 0.0)) < 0.2:
+				return s("nb_hint_rpm") % int(float(f.state().get("rpm", 0.0)) * 100.0)
+			if "starter" in flight.done and float(flight.host.throttle) > flight.THROTTLE_OFF:
+				return s("nb_hint_throttle_off")
+		"avionics":
+			var off: Array = flight.AVIONIC_POWER.filter(func(n): return not f.start_on(n))
+			if off.size() < flight.AVIONIC_POWER.size():
+				return (
+					s("nb_hint_avionics") % ", ".join(off.map(func(n): return String(n).to_upper().replace("_", " ")))
+				)
+		"ins":
+			var knob: int = f.ins_knob()
+			var st: Array = f.ins_status()
+			if knob == 0:
+				return s("nb_hint_ins_off")
+			if not bool(st[2]):
+				var left := int(ceil(float(st[1]) - float(st[0])))
+				return s("nb_hint_ins_norm" if knob == flight.INS_NORM else "nb_hint_ins_wait") % left
+			if knob != flight.INS_NAV:
+				return s("nb_hint_ins_nav")
+	return ""
+
+
 ## The outlines and pointers of this frame: [{rect: canvas Rect2 round the outlines or null (a pointer), polys: the
 ## outlines (canvas PackedVector2Array each), at: Vector2 (a pointer's place), text, dir: Vector2, parts: the parts'
 ## node names}].
@@ -247,6 +287,9 @@ func _sections() -> Array:
 		var fault := ""
 		if state == "cur" and flight._fault_shown != "" and flight.trainer != null:
 			fault = String(flight.trainer.text(flight._fault_shown, l))
+		var h := hint() if state == "cur" else ""
+		if h != "":
+			lines.append("[color=#1f4e8c][b]%s[/b][/color]" % _esc(h))
 		blocks.append(step(n + i, String(c[l]), lines, state, fault))
 	secs.append(_sec("startup", "nb_startup", "%s · %s" % [s("nb_startup"), _jet()], blocks))
 	# TAXI / T-O
@@ -518,7 +561,10 @@ func _marks() -> Array:
 	var c3d = flight.host.get("cockpit_3d")
 	var list := checklist()
 	var i := _current()
-	if not is_startup() or flight.rules.is_empty() or i >= list.size() or not is_instance_valid(c3d) or call_pending():
+	# Every Training lesson that starts cold rings the start-up's current switch (until 17 Nov the start-up lesson
+	# alone: the take-off lessons rang nothing, and the user could not find MAIN PWR under the glove).
+	var waits: bool = "startup" in flight.rules.get("clearances", []) and not "ACFT_CLEAR_TO_START" in flight.answers
+	if flight.rules.is_empty() or i >= list.size() or not is_instance_valid(c3d) or waits:
 		return out  # no switch ringed before the tower's clearance
 	if c3d.camera == null or not c3d.camera.current or c3d.clickable == null:
 		return out
@@ -536,10 +582,14 @@ func _marks() -> Array:
 		if grip != null:
 			parts = [[grip, {}]]
 	if not parts.is_empty():
-		out.append(_mark(parts, String(list[i][lang()]), c3d.camera))
-		# The pilot's body hidden while it covers the ringed control from the eye (the user, 17 Nov: "I am unable to
+		var h := hint()
+		out.append(_mark(parts, h if h != "" else String(list[i][lang()]), c3d.camera))
+		# The pilot's body hidden while it covers the ringed control in view from the eye (the user, 17 Nov: "I am unable to
 		# click the main power on the second traininig": the left glove over the ELEC panel).
-		_covered = parts.any(func(e): return c3d.body_covers(e[0].global_transform * e[0].get_aabb().get_center()))
+		_covered = (
+			out[-1].rect != null
+			and parts.any(func(e): return c3d.body_covers(e[0].global_transform * e[0].get_aabb().get_center()))
+		)
 	var g: Dictionary = data.get("gauges", {}).get(_family(), {}).get(id, {})
 	var gauge := c3d.find_child(String(g.get("node", "-")), true, false) as Node3D
 	if gauge != null:

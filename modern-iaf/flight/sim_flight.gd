@@ -105,6 +105,10 @@ const SYSTEMS := ["mmc", "st_sta", "mfd", "ufc", "fcr", "rdr_alt"]
 const IN_BETWEEN := {"main_power": "main_power_batt", "starter": "starter_1", "rdr_alt": "rdr_alt_stby"}
 ## The avionics step's switches of SYSTEMS (the AVIONIC POWER panel's four; the step is on with all four).
 const AVIONIC_POWER := ["mmc", "st_sta", "mfd", "ufc"]
+## The INS knob's positions (iaf-flight start.rs INS_KNOB): STOR HDG aligns in 90 s, NORM in 8 minutes, NAV navigates.
+const INS_STOR_HDG := 1
+const INS_NORM := 2
+const INS_NAV := 3
 ## The checklist's first key record (modern-iaf/data/keys.json, records 119–124: STEP_IDS in order; commands 210–215).
 const CHECK_KEY := 119
 ## The engine step has no key: the throttle moved up from OFF is it, as the real idle-cutoff detent (training.md
@@ -241,11 +245,11 @@ func menu_text() -> String:
 	var lang := 1 if not _he() else 2
 	var base := _tower_name()
 	var lines := [ui.s("fl_radio") % base]
-	var next := next_call() if not rules.is_empty() else ""
+	# No "(next)" mark (the user, 17 Nov: "remove the (next) from the raio menu").
 	for i in shown.size():
 		for it in ITEMS:
 			if it[0] == shown[i]:
-				lines.append("%d. %s%s" % [i + 1, it[lang], ui.s("fl_next") if it[0] == next else ""])
+				lines.append("%d. %s" % [i + 1, it[lang]])
 	return "\n".join(lines)
 
 
@@ -594,10 +598,18 @@ func _sync_switches() -> void:
 		if _shown.get("ins_knob") != knob:
 			c3d.clickable.set_switch(214, knob != 0, -1, knob)
 			_shown["ins_knob"] = knob
-	if now != done:
-		done = now
+	# The INS step is done at NAV with the alignment finished (the user, 17 Nov: "I also see align on the hud but no idea
+	# how to do that"): its switch is on from STOR HDG (the 3D knob above), the step waits for the alignment and NAV.
+	var steps := now.filter(func(id): return id != "ins" or ins_ready())
+	if steps != done:
+		done = steps
 		if kneeboard != null:
 			kneeboard.refresh()
+
+
+## The INS ready to navigate: the knob at NAV, the alignment done (IafFlight.ins_status).
+func ins_ready() -> bool:
+	return host.flight.ins_knob() == INS_NAV and bool(host.flight.ins_status()[2])
 
 
 ## The canopy (training.md §7.1): up on a cold jet until its step, then down over CANOPY_S; shut on a hot or airborne

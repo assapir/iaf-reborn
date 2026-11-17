@@ -56,6 +56,7 @@ func _cue(tv: Node) -> void:
 ## Alt + H hides the body while held, Alt + G hides and shows it for the flight (records 192 / 193, command 205).
 func _body_keys(tv: Node) -> void:
 	var body: Node3D = tv.cockpit_3d.pilot_body
+	tv.flight.start_switch("main_power", 1)  # MAIN PWR on: the lesson's ring off it, on the JFS the body leaves clear
 	tv.views.snap = Vector2.ZERO
 	await frames(2)
 	check(body.visible, "the body shown")

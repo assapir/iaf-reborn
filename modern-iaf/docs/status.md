@@ -461,6 +461,13 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   picture. The 14 Nov switch to the monitor's own pixels (hiDPI off) was reverted on 15 Nov at the user's word: with
   Upscaling Quality the cockpit came out soft there. Open again: the HUD's thin stroke on that monitor, two half-lit
   pixels (real-hud.md "A 1× monitor beside a Retina screen").
+- **The start-up lesson's lines and waits (2026-11-17, the user: "it needs 2 clicks. the checklist isn't clear
+  enough", "I also see align on the hud but no idea how to do that", "it takes to long after finishing the startup to
+  get the mission accomplished screen"):** each line says the position and the clicks, the waits say WAIT, the
+  notebook and the ring say what the current step still misses, the INS step goes on to NAV after the alignment, the
+  alignment's 90 s wait is the INS step with a countdown (it was a silent wait after the last step) and the pass comes
+  within a second of NAV, and the take-off lessons ring the start-up's
+  switches ([training.md](training.md) §7.1). The radio menu marks no call ("(next)" removed). `test_lesson_steps.gd`.
 - **One click sound a click (2026-11-17, the user: "the clicks on the panel are happens twice for every click I
   think"):** an ICP key's click sounded three times and entered once; every control now sounds once a click
   ([cockpit.md](cockpit.md) §5.2). `test_one_click.gd`.

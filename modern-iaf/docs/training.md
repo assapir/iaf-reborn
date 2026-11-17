@@ -293,7 +293,7 @@ reads the same `checklist` event. The throttle goes back to OFF by its own key, 
 | 2 | JFS: START 2 | Ctrl+J | cranks the engine to 20 % RPM in 15 s, then holds there | before main power: nothing runs, `no_power` | [^chk]; the 15 s inferred |
 | 3 | Throttle to idle at 20 % RPM | the throttle up from OFF | light-off 5 s later, idle 15 s after it; the main generator at 52 %, the JFS off | below 20 %: a hot start, the engine shut down, `hot_start`; no rotation: no light-off, `no_rotation`; never: the JFS holds at 20 % | 20 % minimum[^chk]; 52 %[^f16net]; the times inferred |
 | 4 | Avionics power: the four AVIONIC POWER switches ON, after the generators | Ctrl+A (or a click on each; the key also turns the SNSR PWR panel's FCR and RDR ALT on) | each switch's system 3 s later ([cockpit.md](cockpit.md) §5.2 "One by one") | before the generators: no power, `avionics_early` | inferred (the avionics go on after the engine start in the checklist[^chk]) |
-| 5 | INS: stored-heading alignment | Ctrl+N | aligned 90 s later: the avionics up | without main power: `ins_no_power` | 90 s[^ins] (a full alignment takes about 8 minutes[^ins]) |
+| 5 | INS: STOR HDG, wait, then NAV | Ctrl+N or a click: the knob one position on (OFF, STOR HDG, NORM, NAV, …) | aligned 90 s after STOR HDG (ALIGN on the HUD, flashing when done; the DED's INS page, LIST then 6, counts it); the step is done at NAV once aligned (since 2026-11-17: until then the lesson's pass waited 90 s in silence after the last step) | without main power: `ins_no_power` | 90 s[^ins] (a full alignment takes about 8 minutes[^ins]) |
 | 6 | Canopy: close and lock | Ctrl+K | at once; the canopy, up 30° at the cold start, comes down over 10 s | any time; taxiing with it up has no consequence | [^chk]; 30° and 10 s[^fgcanopy] |
 
 | # | F-35I Adir | key | timing | out of order | source |
@@ -302,6 +302,20 @@ reads the same `checklist` event. The throttle goes back to OFF by its own key, 
 | 2 | IPP: START | Ctrl+J | runs 10 s, then holds | before the battery: `no_power` | [^ayton]; the 10 s inferred |
 | 3 | Throttle to idle: the engine starts | the throttle up from OFF (in the 3D cockpit also the ENGINE switch or the IPP knob to START, [cockpit.md](cockpit.md) §5.2) | cranks, lights and runs to idle by itself (the F-16's figures); the displays on the IPP's power | before the IPP: `no_ipp`; before the IPP is up to speed: `ipp_not_ready` | [^ayton]; inferred |
 | 4 | Canopy: close and lock | Ctrl+K | at once; the canopy, its aft end up 30° about its front hinge at the cold start, comes down over 10 s | any time; taxiing with it up has no consequence | inferred (front-hinged: [f35i.md](../../docs/f35i.md) §4; the angle and time the F-16's) |
+
+**The step's lines (2026-11-17, the user: "it needs 2 clicks. the checklist isn't clear enough", "I also see align on
+the hud but no idea how to do that", "it takes to long after finishing the startup to get the mission accomplished
+screen").** Each line says the position wanted and how to get there when it is more than one action (MAIN PWR: two
+clicks, OFF, BATT, MAIN PWR; the INS: one click to STOR HDG, then two on to NAV), and a wait for a value says WAIT
+before the next action (the JFS's 20 % RPM before the throttle). Under the current step the notebook says what it
+still misses, one line in blue, and the ring's label says the same (`kneeboard.gd` `hint`): at BATT one more click; the
+RPM so far of 20 %; a throttle not at OFF; the AVIONIC POWER switches still off; the INS's seconds left (NORM: its 8
+minutes), then the knob to NAV; with every step done, the F-35I's self test still running. A later step taken while an
+earlier one is open is ticked; the earlier step stays the current one, ringed, with its line of what is missing. The
+end: the INS's 90 s alignment, which came as a silent wait after the last step (about 89 s after the canopy, measured
+as the time from the canopy to the alignment's end), is now the INS step with its countdown; the pass comes at the
+next score (every 3 s) after the knob reaches NAV (0.7 s; `modern-iaf/tests/test_lesson_steps.gd`). Every Training lesson that starts cold rings the start-up's
+current switch (until 2026-11-17 only the start-up lesson did).
 
 Each step's `wait` (mission data) says the state to wait for before the next step, in the table's figures (the JFS's
 20 % RPM, the idle with the main generator, the displays, the INS's 90 s; the IPP's 10 s); the notebook shows it under the step. The briefing's text says the same in prose, its paragraphs with the steps'
@@ -350,8 +364,9 @@ closes the list, and since 2026-11-15 it closes by itself 6 s after it opened (o
 (`sim_flight.gd` `MENU_S`; the user: "the radio menu should disappear after few seconds if not in use"; the original
 game has no such menu, so the time is inferred). Opened again it lists the calls of that moment. Since 2026-11-13 (the user: "all radio calls should always be available. on ground show only starting
 calls, in the air show landing") the list holds every ground call on the ground (start-up, taxi, line-up, take-off,
-always 1–4) and the landing call in the air (`training::radio_calls`). In a training mission the call the moment
-expects is marked "(next)" / "(הבאה)" (`training::next_call`, the "marked when" column). A ground call made before
+always 1–4) and the landing call in the air (`training::radio_calls`). The menu marks no call: until 2026-11-17 the call a
+training mission expected next carried "(next)" / "(הבאה)" (the user: "remove the (next) from the raio menu");
+`training::next_call` (the "marked when" column) still tells the lesson which call comes next. A ground call made before
 the clearance it follows (take-off before line-up, line-up before taxi, taxi before start-up;
 `training::missing_before`) gets "Alpha, negative, hold position, request line-up first" ("Alpha, שלילי, המתנה במקום,
 יש לבקש כניסה למסלול קודם"; `ACFT_NEGATIVE`) and clears nothing; a call repeated gets its answer again. A wrong call

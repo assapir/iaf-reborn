@@ -456,6 +456,13 @@ func _checklist(tv: Node, f35: bool, click := false) -> void:
 		else:
 			await _step(tv, 4, "AVIONICS_MMC", click)  # avionics power
 		await _step(tv, 5, "INS", click)  # INS stored-heading alignment
+		# The INS step is done at NAV once aligned (sim_flight.gd ins_ready): two positions on, through NORM.
+		await _until(tv, func(): return bool(tv.flight.ins_status()[2]), 120.0)
+		for k in 2:
+			if click:
+				await _click_control(tv, "INS")
+			else:
+				tv._command([214, 0, 0])
 	await _step(tv, 6, "CANOPY" if f35 else "CANOPY_HANDLE", click)  # canopy
 	tv.views.snap = null
 	check(tv.sounds.played.has("SFX_DOOR_CLOSE/None"), "the canopy step: the canopy closes")
@@ -679,7 +686,11 @@ func _call(tv: Node, id: String) -> String:
 	_press(tv, KEY_T, true)
 	var shown: bool = tv.addon.open
 	var i: int = tv.addon.shown.find(id)
-	check(i >= 0 and tv.addon.next_call() == id, "the radio menu marks %s: %s" % [id, tv.addon.menu_text()])
+	var plain: bool = not tv.addon.menu_text().contains("(")
+	check(
+		i >= 0 and tv.addon.next_call() == id and plain,
+		"the radio menu lists %s, unmarked: %s" % [id, tv.addon.menu_text()]
+	)
 	_press(tv, KEY_1 + i)
 	await fly(tv, 0.5)
 	var said: Array = tv.radio.said
