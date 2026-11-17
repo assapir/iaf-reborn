@@ -59,6 +59,9 @@ pub const ATTRIBUTION: [&str; 3] = [
 /// Copernicus WorldDEM-30 licence, Article 6 (c): this sentence goes with every distribution.
 pub const DEM_LIABILITY: &str = "The organisations in charge of the Copernicus programme by law or by delegation do not incur any liability for any use of the Copernicus WorldDEM-30";
 
+/// A Survey sheet's extent (ITM) and levels (`imagery::levels_at`).
+type SheetLevels = ([f64; 4], [f32; 4]);
+
 /// A node: level, i (east), j (south); it covers units [i, i+1) × [j, j+1) · (1024 << level).
 type Key = (u32, u32, u32);
 
@@ -434,9 +437,10 @@ fn done(work: &Path, what: &str, k: Key) -> PathBuf {
     work.join(format!("done_{what}_{}_{}_{}", k.0, k.1, k.2))
 }
 
-/// Sentinel-2 over one unit (a node of `unit.0`), cut into its nodes of `level` that `want` keeps.
+/// Sentinel-2 (the VRT `vrt`) over one unit (a node of `unit.0`), cut into its nodes of `level` that `want` keeps,
+/// toned at the border (`border`).
 fn sentinel_unit(
-    vrt: &str,
+    (vrt, border): (&str, Option<&BorderTone>),
     f: &Frame,
     unit: Key,
     level: u32,
@@ -463,13 +467,19 @@ fn sentinel_unit(
             if !want(k) {
                 continue;
             }
+            let (rect, step) = (f.utm(k), span(level) / f64::from(NODE_PIXELS));
             let img = RgbImage::from_fn(NODE_PIXELS, NODE_PIXELS, |x, y| {
                 let p = (sj as usize * m + y as usize) * n + si as usize * m + x as usize;
                 if sea[p] {
                     return image::Rgb(SEA);
                 }
                 let b = |c: usize| f32::from(u16::from_le_bytes(px[p * 4 + c]));
-                image::Rgb(imagery::tone([b(0), b(1), b(2)]).map(|v| v.round() as u8))
+                let mut c = imagery::tone([b(0), b(1), b(2)]);
+                if let Some(bt) = border {
+                    let (e, n) = (rect[0] + (f64::from(x) + 0.5) * step, rect[3] - (f64::from(y) + 0.5) * step);
+                    c = bt.tone(e, n, c);
+                }
+                image::Rgb(c.map(|v| v.round() as u8))
             });
             save(&img, &colour_path(out, k))?;
         }
@@ -515,6 +525,7 @@ struct Survey<'a> {
 /// to the base's brighter dry grass from the darker fields around Ramat David it made an icy white); a histogram match
 /// per band (Ramon pink with black blots, its values past the ring's on both ends); gain and offset per band (Ramon
 /// black-red); a ratio per band (Ramon cyan, Hatzerim's grey roofs and gravel pale blue).
+#[derive(Clone, Copy)]
 struct BaseTone {
     /// The UTM rect it serves: the outline's box and TONE_REACH_M around it.
     rect: [f64; 4],
@@ -596,8 +607,15 @@ impl BaseTone {
             photo.push(imagery::levels_at(&sv.levels, itm[0], itm[1]).map_or(rgb, |lv| imagery::photo_levels(rgb, lv)));
             sat.push(s2[i].map(|v| v / count[i]));
         }
+        Ok(Self::fit(r, &photo, &sat, &inner))
+    }
+
+    /// The tone from the photo's and Sentinel-2's colours on the same cells (`photo`, `sat`), Sentinel-2's median
+    /// brightness over `inner` brought to the photo's (a base's own ground; at the border the same cells); None
+    /// without cells.
+    fn fit(r: [f64; 4], photo: &[[f32; 3]], sat: &[[f32; 3]], inner: &[[f32; 3]]) -> Option<Self> {
         if sat.is_empty() || inner.is_empty() {
-            return Ok(None);
+            return None;
         }
         let q = |v: &[[f32; 3]], f: f32, band: Option<usize>| {
             let mut v: Vec<f32> = v.iter().map(|p| band.map_or((p[0] + p[1] + p[2]) / 3.0, |k| p[k])).collect();
@@ -607,7 +625,7 @@ impl BaseTone {
         // The cells whose brightness ratio is within TONE_KEEP of the median's: a darker Survey sheet beside Ramon is
         // out.
         let grey = |p: &[f32; 3]| (p[0] + p[1] + p[2]) / 3.0 + 4.0;
-        let ratios: Vec<[f32; 3]> = photo.iter().zip(&sat).map(|(p, s)| [grey(p) / grey(s); 3]).collect();
+        let ratios: Vec<[f32; 3]> = photo.iter().zip(sat).map(|(p, s)| [grey(p) / grey(s); 3]).collect();
         let m = q(&ratios, 0.5, Some(0));
         let keep = |i: &usize| (m / TONE_KEEP..=m * TONE_KEEP).contains(&ratios[*i][0]);
         let kp: Vec<[f32; 3]> = (0..photo.len()).filter(keep).map(|i| photo[i]).collect();
@@ -620,7 +638,7 @@ impl BaseTone {
         let (mp, ms) = med.iter().fold((0.0, 0.0), |(a, b), m| (a + m.0 / 3.0, b + m.1 / 3.0));
         let mr = ((mp + 4.0) / (ms + 4.0)).clamp(0.33, 3.0);
         let spread = |v: &[[f32; 3]]| q(v, 0.75, None) - q(v, 0.25, None);
-        let g = (spread(&photo) / (mr * spread(&sat)).max(1.0)).clamp(TONE_SPREAD[0], TONE_SPREAD[1]);
+        let g = (spread(photo) / (mr * spread(sat)).max(1.0)).clamp(TONE_SPREAD[0], TONE_SPREAD[1]);
         // The tint: Sentinel-2's (a band's median over the bands' mean) scaled onto the photo's, and the rest of the
         // photo's added, so grey stays near grey.
         let (tp, ts) = (med.map(|m| m.0 - mp), med.map(|m| m.1 - ms));
@@ -629,9 +647,9 @@ impl BaseTone {
         // The base's median brightness (Sentinel-2's inside the outline) to the photo's around: Sentinel-2 sees the
         // dry grass on a base brighter than the fields around, where the photo's ratio left it a light grey at Ramat
         // David.
-        let grey = [mr * g, mp - mr * g * q(&inner, 0.5, None)];
+        let grey = [mr * g, mp - mr * g * q(inner, 0.5, None)];
         let tint = [0, 1, 2].map(|k| tp[k] - chroma * ts[k]);
-        Ok(Some(Self { rect: r, grey, chroma, tint, knee: q(&photo, TONE_KNEE_AT, None) }))
+        Some(Self { rect: r, grey, chroma, tint, knee: q(photo, TONE_KNEE_AT, None) })
     }
 
     /// Sentinel-2's colour `v` at UTM (e, n) toned; None outside the rect.
@@ -640,6 +658,11 @@ impl BaseTone {
         if e < r[0] || e > r[2] || n < r[1] || n > r[3] {
             return None;
         }
+        Some(self.apply(v))
+    }
+
+    /// Sentinel-2's colour `v` toned.
+    fn apply(&self, v: [f32; 3]) -> [f32; 3] {
         let m = (v[0] + v[1] + v[2]) / 3.0;
         let c = [0, 1, 2].map(|k| m * self.grey[0] + self.grey[1] + self.chroma * (v[k] - m) + self.tint[k]);
         // Above the knee the brightness rises at TONE_KNEE_SLOPE, the hue kept: Sentinel-2's bright tracks in a base's
@@ -650,8 +673,279 @@ impl BaseTone {
         let m = (c[0] + c[1] + c[2]) / 3.0;
         let spread = c.iter().fold(f32::MIN, |a, &v| a.max(v)) - c.iter().fold(f32::MAX, |a, &v| a.min(v));
         let k = (TONE_CHROMA_MAX / spread.max(1e-3)).min(1.0);
-        Some(c.map(|v| (m + (v - m) * k).clamp(0.0, 255.0)))
+        c.map(|v| (m + (v - m) * k).clamp(0.0, 255.0))
     }
+}
+
+/// The neighbours' Sentinel-2 toned to the Survey photo along its edge (2026-11-15; before, the ground changed at the
+/// border from the levelled 2 m photo to Sentinel-2's own colours, the user: "the change between israel and other
+/// country looks bad"). On BORDER_CELL_M cells over the detail area and BORDER_FEATHER_M around it: the signed distance
+/// to the photo's edge (out of the photo positive), and on a BORDER_BLOCK_M grid one BaseTone per block from the cells
+/// of the photo within BORDER_SAMPLE_M of its edge (in the block and half a block around), Sentinel-2's own median
+/// brightness brought to the photo's there, no knee. A pixel out of the photo takes the blocks' tones blended
+/// bilinearly between their centres, fully at the edge and fading out over BORDER_FEATHER_M; the photo's own side
+/// keeps Sentinel-2 as it is past BORDER_INSIDE_M (the bases' fill, BaseTone, reads it). Water keeps its colour.
+struct BorderTone {
+    /// The cells' rect (UTM) and size.
+    rect: [f64; 4],
+    w: usize,
+    h: usize,
+    /// Per cell, metres to the photo's edge: > 0 out of the photo, < 0 in it.
+    dist: Vec<f32>,
+    /// The blocks' tones (None: too few photo cells near the edge), bw per row.
+    bw: usize,
+    bh: usize,
+    tones: Vec<Option<BaseTone>>,
+    /// The 8 m Sentinel-2 units (level 5) and the Survey units (level 4) holding a pixel it tones.
+    s2_units: BTreeSet<Key>,
+    survey_units: BTreeSet<Key>,
+}
+
+const BORDER_CELL_M: f64 = 100.0;
+const BORDER_FEATHER_M: f32 = 10_000.0;
+/// On the photo's side: Sentinel-2 (under the photo's soft edge in the 2 m nodes) toned fully to this far in, none
+/// from the second value (m).
+const BORDER_INSIDE_M: [f32; 2] = [200.0, 400.0];
+const BORDER_BLOCK_M: f64 = 16_400.0;
+const BORDER_SAMPLE_M: f32 = 4_000.0;
+/// The fewest photo cells near the edge a block's tone is fitted from.
+const BORDER_MIN_CELLS: usize = 200;
+
+fn smoothstep(a: f32, b: f32, x: f32) -> f32 {
+    let t = ((x - a) / (b - a)).clamp(0.0, 1.0);
+    t * t * (3.0 - 2.0 * t)
+}
+
+/// Two passes of a chamfer distance (1 and √2 per step): per cell of a w × h grid, cells to the nearest `seed`,
+/// within 8 % of the straight distance; 1e7 where there is none.
+fn chamfer(seed: &[bool], w: usize, h: usize) -> Vec<f32> {
+    let mut d: Vec<f32> = seed.iter().map(|&s| if s { 0.0 } else { 1e7 }).collect();
+    let r2 = std::f32::consts::SQRT_2;
+    for y in 0..h {
+        for x in 0..w {
+            let i = y * w + x;
+            let mut v = d[i];
+            if x > 0 {
+                v = v.min(d[i - 1] + 1.0);
+            }
+            if y > 0 {
+                v = v.min(d[i - w] + 1.0);
+                if x > 0 {
+                    v = v.min(d[i - w - 1] + r2);
+                }
+                if x + 1 < w {
+                    v = v.min(d[i - w + 1] + r2);
+                }
+            }
+            d[i] = v;
+        }
+    }
+    for y in (0..h).rev() {
+        for x in (0..w).rev() {
+            let i = y * w + x;
+            let mut v = d[i];
+            if x + 1 < w {
+                v = v.min(d[i + 1] + 1.0);
+            }
+            if y + 1 < h {
+                v = v.min(d[i + w] + 1.0);
+                if x + 1 < w {
+                    v = v.min(d[i + w + 1] + r2);
+                }
+                if x > 0 {
+                    v = v.min(d[i + w - 1] + r2);
+                }
+            }
+            d[i] = v;
+        }
+    }
+    d
+}
+
+impl BorderTone {
+    /// From the Survey's VRT (`levels` its sheets' levels) and Sentinel-2's (the 10 m tiles), both warped to the
+    /// cells over `area` (UTM).
+    fn new(
+        sv_vrt: &str,
+        levels: &[SheetLevels],
+        s2_vrt: &str,
+        f: &Frame,
+        area: [f64; 4],
+        work: &Path,
+        bases: &[Vec<[f64; 2]>],
+    ) -> Result<Self> {
+        let c = BORDER_CELL_M;
+        let (w, h) = (((area[2] - area[0]) / c).ceil() as usize, ((area[3] - area[1]) / c).ceil() as usize);
+        let r = [area[0], area[3] - h as f64 * c, area[0] + w as f64 * c, area[3]];
+        let extra = ["-r", "average", "-srcnodata", "255 255 255", "-wo", "UNIFIED_SRC_NODATA=YES", "-dstalpha"];
+        let photo = warp(sv_vrt, r, [w, h], &extra, &work.join("border_photo.bin"))?;
+        if photo.bands != 4 || photo.raw.len() != w * h * 4 {
+            bail!("border tone: want RGBA bytes from the Survey, got {} bands", photo.bands);
+        }
+        let extra = ["-r", "average", "-srcnodata", "0", "-dstnodata", "0", "-wo", "UNIFIED_SRC_NODATA=YES"];
+        let s2 = warp(s2_vrt, r, [w, h], &extra, &work.join("border_s2.bin"))?;
+        if s2.bands != 4 || s2.dtype != "12" || s2.raw.len() != w * h * 8 {
+            bail!("border tone: want 4 bands of u16 from Sentinel-2, got {} / type {}", s2.bands, s2.dtype);
+        }
+        let px = s2.raw.as_chunks::<2>().0;
+        let sat: Vec<Option<[f32; 3]>> = (0..w * h)
+            .map(|i| {
+                let b = |k: usize| f32::from(u16::from_le_bytes(px[i * 4 + k]));
+                let empty = (0..3).all(|k| px[i * 4 + k] == [0, 0]);
+                (!empty).then(|| imagery::tone([b(0), b(1), b(2)]))
+            })
+            .collect();
+        let land = |i: usize| sat[i].is_some_and(|s| !imagery::is_photo_water(s));
+        let covered: Vec<bool> = (0..w * h)
+            .map(|i| {
+                let p = &photo.raw[i * 4..i * 4 + 4];
+                p[3] >= 250 && !p[..3].iter().all(|&v| v >= NEAR_WHITE)
+            })
+            .collect();
+        let uncovered_land: Vec<bool> = (0..w * h).map(|i| !covered[i] && land(i)).collect();
+        let (out, inside) = (chamfer(&covered, w, h), chamfer(&uncovered_land, w, h));
+        let cf = c as f32;
+        let dist: Vec<f32> = (0..w * h).map(|i| if covered[i] { -inside[i] * cf } else { out[i] * cf }).collect();
+        // The blocks' tones from the photo's cells near its edge.
+        let b = BORDER_BLOCK_M;
+        let (bw, bh) = (((r[2] - r[0]) / b).ceil() as usize, ((r[3] - r[1]) / b).ceil() as usize);
+        let cells = (b / c) as isize;
+        let mut tones = Vec::with_capacity(bw * bh);
+        for bj in 0..bh as isize {
+            for bi in 0..bw as isize {
+                let (mut ph, mut sa) = (Vec::new(), Vec::new());
+                for y in (bj * cells - cells / 2).max(0)..((bj + 1) * cells + cells / 2).min(h as isize) {
+                    for x in (bi * cells - cells / 2).max(0)..((bi + 1) * cells + cells / 2).min(w as isize) {
+                        let i = y as usize * w + x as usize;
+                        let Some(s) = sat[i] else { continue };
+                        if !covered[i] || dist[i] < -BORDER_SAMPLE_M || !land(i) {
+                            continue;
+                        }
+                        let q = [r[0] + (x as f64 + 0.5) * c, r[3] - (y as f64 + 0.5) * c];
+                        let g = utm36n_geo(q[0], q[1]);
+                        let itm = crate::itm::from_wgs84(g[0], g[1]);
+                        let rgb = [0, 1, 2].map(|k| f32::from(photo.raw[i * 4 + k]));
+                        ph.push(
+                            imagery::levels_at(levels, itm[0], itm[1]).map_or(rgb, |lv| imagery::photo_levels(rgb, lv)),
+                        );
+                        sa.push(s);
+                    }
+                }
+                let t = (ph.len() >= BORDER_MIN_CELLS).then(|| BaseTone::fit(r, &ph, &sa, &sa)).flatten();
+                // No knee: the neighbours' bright ground (Sinai's dunes) keeps its contrast.
+                tones.push(t.map(|t| BaseTone { knee: 255.0, ..t }));
+            }
+        }
+        let mut bt =
+            Self { rect: r, w, h, dist, bw, bh, tones, s2_units: BTreeSet::new(), survey_units: BTreeSet::new() };
+        for i in (0..w * h).filter(|&i| land(i)) {
+            let q = [r[0] + ((i % w) as f64 + 0.5) * c, r[3] - ((i / w) as f64 + 0.5) * c];
+            if bt.weight(q[0], q[1]) <= 0.0 {
+                continue;
+            }
+            for (level, set) in [(5, &mut bt.s2_units), (4, &mut bt.survey_units)] {
+                let s = span(level);
+                let (x, y) = ((q[0] - f.e0) / s, (f.n1 - q[1]) / s);
+                if x >= 0.0 && y >= 0.0 && x < f64::from(f.w) / s && y < f64::from(f.h) / s {
+                    set.insert((level, x as u32, y as u32));
+                }
+            }
+        }
+        // A base whose 8 m units the tone touches gets all of them redone: its tone (BaseTone::new) reads Sentinel-2
+        // from the level-3 nodes within TONE_REACH_M, which hold the photo after a run (review, 2026-11-16).
+        for b in bases {
+            let bb = crate::bbox(b.iter());
+            let m = TONE_REACH_M + BASE_COVER_M + BASE_FEATHER_M;
+            let near = f.nodes_in(5, [bb[0] - m, bb[1] - m, bb[2] + m, bb[3] + m]);
+            if near.iter().any(|k| bt.s2_units.contains(k)) {
+                bt.s2_units.extend(near);
+            }
+        }
+        Ok(bt)
+    }
+
+    /// How much of the tone UTM (e, n) takes: the distance to the photo's edge bilinear between the cells' centres.
+    fn weight(&self, e: f64, n: f64) -> f32 {
+        let c = BORDER_CELL_M;
+        let x = ((e - self.rect[0]) / c - 0.5).clamp(0.0, (self.w - 1) as f64);
+        let y = ((self.rect[3] - n) / c - 0.5).clamp(0.0, (self.h - 1) as f64);
+        let (x0, y0) = (x as usize, y as usize);
+        let (x1, y1) = ((x0 + 1).min(self.w - 1), (y0 + 1).min(self.h - 1));
+        let (fx, fy) = ((x - x0 as f64) as f32, (y - y0 as f64) as f32);
+        let v = |x: usize, y: usize| self.dist[y * self.w + x];
+        let top = v(x0, y0) + (v(x1, y0) - v(x0, y0)) * fx;
+        let d = top + (v(x0, y1) + (v(x1, y1) - v(x0, y1)) * fx - top) * fy;
+        if d >= 0.0 {
+            1.0 - smoothstep(0.0, BORDER_FEATHER_M, d)
+        } else {
+            1.0 - smoothstep(BORDER_INSIDE_M[0], BORDER_INSIDE_M[1], -d)
+        }
+    }
+
+    /// Sentinel-2's colour `v` at UTM (e, n): toned by its weight, the blocks' tones blended between their centres;
+    /// outside the cells' rect, on water or far from the photo as it is.
+    fn tone(&self, e: f64, n: f64, v: [f32; 3]) -> [f32; 3] {
+        let r = self.rect;
+        if e < r[0] || e > r[2] || n < r[1] || n > r[3] || imagery::is_photo_water(v) {
+            return v;
+        }
+        let k = self.weight(e, n);
+        if k <= 0.0 {
+            return v;
+        }
+        let b = BORDER_BLOCK_M;
+        let x = ((e - r[0]) / b - 0.5).clamp(0.0, (self.bw - 1) as f64);
+        let y = ((r[3] - n) / b - 0.5).clamp(0.0, (self.bh - 1) as f64);
+        let (x0, y0) = (x as usize, y as usize);
+        let (fx, fy) = ((x - x0 as f64) as f32, (y - y0 as f64) as f32);
+        let (mut acc, mut sum) = ([0f32; 3], 0f32);
+        for (bx, by, wt) in [
+            (x0, y0, (1.0 - fx) * (1.0 - fy)),
+            (x0 + 1, y0, fx * (1.0 - fy)),
+            (x0, y0 + 1, (1.0 - fx) * fy),
+            (x0 + 1, y0 + 1, fx * fy),
+        ] {
+            let Some(t) = self.tones.get(by.min(self.bh - 1) * self.bw + bx.min(self.bw - 1)).copied().flatten() else {
+                continue;
+            };
+            if wt <= 0.0 {
+                continue;
+            }
+            let c = t.apply(v);
+            for (a, cj) in acc.iter_mut().zip(c) {
+                *a += wt * cj;
+            }
+            sum += wt;
+        }
+        if sum <= 0.0 {
+            return v;
+        }
+        [0, 1, 2].map(|j| v[j] + (acc[j] / sum - v[j]) * k)
+    }
+}
+
+/// The units the border tone touches (`BorderTone`'s s2_units and survey_units), kept in the work folder between runs:
+/// a run with every Sentinel-2 unit done partitions its Survey units from it. None: not made yet.
+fn border_units(work: &Path) -> Option<[BTreeSet<Key>; 2]> {
+    let v: serde_json::Value = serde_json::from_slice(&std::fs::read(border_path(work)).ok()?).ok()?;
+    let set = |k: &str, level: u32| -> BTreeSet<Key> {
+        v[k].as_array()
+            .into_iter()
+            .flatten()
+            .filter_map(|ij| Some((level, ij[0].as_u64()? as u32, ij[1].as_u64()? as u32)))
+            .collect()
+    };
+    Some([set("s2", 5), set("survey", 4)])
+}
+
+fn border_path(work: &Path) -> PathBuf {
+    work.join(format!("border_{BORDER_FILL}.json"))
+}
+
+fn write_border_units(work: &Path, s2: &BTreeSet<Key>, survey: &BTreeSet<Key>) -> Result<()> {
+    let list = |s: &BTreeSet<Key>| s.iter().map(|k| [k.1, k.2]).collect::<Vec<_>>();
+    std::fs::write(border_path(work), serde_json::json!({ "s2": list(s2), "survey": list(survey) }).to_string())?;
+    Ok(())
 }
 
 /// The published Survey photo paints the military bases over with made-up ground: Sentinel-2 shows instead inside
@@ -956,8 +1250,10 @@ pub fn stamp(r: &Run) -> serde_json::Value {
     let survey = if zips.is_empty() { "" } else { "levels" };
     // "base_fill": the bases' Sentinel-2 toned to the photo around them (BASE_FILL, 2026-11-14; before: no key).
     let base_fill = if zips.is_empty() { "" } else { BASE_FILL };
+    // "border_fill": the neighbours' Sentinel-2 toned to the photo along its edge (BORDER_FILL, 2026-11-15).
+    let border_fill = if zips.is_empty() { "" } else { BORDER_FILL };
     serde_json::json!({ "box": r.area, "detail": r.detail, "survey_zips": zips, "airbases": bases, "osm": osm,
-        "shore": shore, "sea": SEA, "survey": survey, "base_fill": base_fill })
+        "shore": shore, "sea": SEA, "survey": survey, "base_fill": base_fill, "border_fill": border_fill })
 }
 
 /// `meta.json` (the shape `terrain::theatre` writes) with the georeference, the sources and the run's stamp.
@@ -1228,7 +1524,12 @@ fn heights(
 }
 
 /// The Sentinel-2 units (the 32 m nodes' level-7 units, the 8 m nodes' level-5 units) and their done marks' names.
-fn s2_units(f: &Frame, detail: [f64; 4], bases: &[Vec<[f64; 2]>]) -> [(&'static str, Vec<Key>); 3] {
+fn s2_units(
+    f: &Frame,
+    detail: [f64; 4],
+    bases: &[Vec<[f64; 2]>],
+    border: &BTreeSet<Key>,
+) -> [(&'static str, Vec<Key>); 4] {
     let detail5: BTreeSet<Key> = f.nodes_in(5, detail).into_iter().collect();
     let inside = |k: Key| (k.1 << k.0) * NODE_PIXELS < f.w && (k.2 << k.0) * NODE_PIXELS < f.h;
     let coarse = |k: Key| inside(k) && !detail5.contains(&k);
@@ -1245,9 +1546,11 @@ fn s2_units(f: &Frame, detail: [f64; 4], bases: &[Vec<[f64; 2]>]) -> [(&'static 
             [b[0] - m, b[1] - m, b[2] + m, b[3] + m]
         })
         .collect();
+    // The 8 m units the border tone touches (BorderTone) are marked with BORDER_FILL, before the bases'.
+    let (on_border, detail5): (Vec<Key>, Vec<Key>) = detail5.into_iter().partition(|k| border.contains(k));
     let (on_base, rest): (Vec<Key>, Vec<Key>) =
         detail5.into_iter().partition(|&k| near.iter().any(|b| f.nodes_in(5, *b).contains(&k)));
-    [("s2_32m_rim", u7), ("s2_8m", rest), (S2_8M_BASE, on_base)]
+    [("s2_32m_rim", u7), ("s2_8m", rest), (S2_8M_BASE, on_base), (S2_8M_BORDER, on_border)]
 }
 
 /// The bases' fill (the done marks of the units on them, `stamp`'s "base_fill"): Sentinel-2 toned to the photo around
@@ -1255,6 +1558,12 @@ fn s2_units(f: &Frame, detail: [f64; 4], bases: &[Vec<[f64; 2]>]) -> [(&'static 
 /// Sentinel-2 back into the level-3 nodes the tone reads.
 const BASE_FILL: &str = "median";
 const S2_8M_BASE: &str = "s2_8m_median";
+/// The border's fill (`stamp`'s "border_fill", the done marks of the units at the border and the work file of their
+/// list): the neighbours' Sentinel-2 toned to the photo (BorderTone, 2026-11-15). S2_8M_BORDER changes with it. A
+/// border unit has only this mark, also when it lies on a base or the shore: renaming BASE_FILL, "s2_8m" or the
+/// Survey's "_lv" marks, rename BORDER_FILL with them, or the border units keep the old build.
+const BORDER_FILL: &str = "tone1";
+const S2_8M_BORDER: &str = "s2_8m_border_tone1";
 
 /// Whether `dir` holds a Survey sheet ZIP: only then does the colour branch make the 2 m nodes (and read the shore).
 fn has_zips(dir: &Path) -> bool {
@@ -1263,9 +1572,15 @@ fn has_zips(dir: &Path) -> bool {
         .unwrap_or(false)
 }
 
-/// Whether a Sentinel-2 unit is still to do (its mark missing in `work`): only then are the tiles listed and read.
-fn s2_left(f: &Frame, detail: [f64; 4], bases: &[Vec<[f64; 2]>], work: &Path) -> bool {
-    s2_units(f, detail, bases).iter().any(|(what, list)| list.iter().any(|&u| !done(work, what, u).exists()))
+/// Whether a Sentinel-2 unit is still to do (its mark missing in `work`), or with the Survey (`zips`) the border's
+/// units not listed yet: only then are the tiles listed and read.
+fn s2_left(f: &Frame, detail: [f64; 4], bases: &[Vec<[f64; 2]>], work: &Path, zips: bool) -> bool {
+    let border = border_units(work);
+    if zips && border.is_none() {
+        return true;
+    }
+    let [s2, _] = border.unwrap_or_default();
+    s2_units(f, detail, bases, &s2).iter().any(|(what, list)| list.iter().any(|&u| !done(work, what, u).exists()))
 }
 
 /// Whether the Sentinel-2 units still to do read only the cache: every 32 m unit done (the edge tiles' extracts read
@@ -1273,7 +1588,7 @@ fn s2_left(f: &Frame, detail: [f64; 4], bases: &[Vec<[f64; 2]>], work: &Path) ->
 /// (BASE_FILL) fetches nothing.
 fn s2_cached(r: &Run, f: &Frame, bases: &[Vec<[f64; 2]>]) -> bool {
     let work = r.out.join(".work");
-    let [(m32, u7), ..] = s2_units(f, r.detail, bases);
+    let [(m32, u7), ..] = s2_units(f, r.detail, bases, &BTreeSet::new());
     if u7.iter().any(|&u| !done(&work, m32, u).exists()) {
         return false;
     }
@@ -1308,7 +1623,7 @@ pub fn would_fetch(r: &Run) -> Result<Vec<String>> {
         }
     }
     let (f, bases) = (Frame::new(r.area)?, base_outlines(&r.airbases)?);
-    if s2_left(&f, r.detail, &bases, &r.out.join(".work")) && !s2_cached(r, &f, &bases) {
+    if s2_left(&f, r.detail, &bases, &r.out.join(".work"), has_zips(&r.sheets)) && !s2_cached(r, &f, &bases) {
         v.push("sentinel-2".into());
     }
     Ok(v)
@@ -1321,10 +1636,11 @@ fn sentinel(
     f: &Frame,
     geo: [f64; 4],
     work: &Path,
-    has_zips: bool,
+    survey: Option<(&str, &[SheetLevels])>,
     pr: &dyn Progress,
     cancel: &AtomicBool,
 ) -> Result<([f32; 5], String)> {
+    let has_zips = survey.is_some();
     let (t0, out, f) = (std::time::Instant::now(), r.out.as_path(), *f);
     // Sentinel-2: one VRT over the WorldCover tiles (their overviews serve the 32 m nodes).
     log!(pr, "sentinel-2: WorldCover tiles from {}", r.s2_cache.display());
@@ -1377,10 +1693,41 @@ fn sentinel(
     let inside = |k: Key| (k.1 << k.0) * NODE_PIXELS < f.w && (k.2 << k.0) * NODE_PIXELS < f.h;
     let coarse = |k: Key| inside(k) && !detail5.contains(&k);
     let fine = |k: Key| inside(k) && detail5.contains(&(5, k.1 >> (5 - k.0), k.2 >> (5 - k.0)));
-    let [(m32, u7), (m8, u5), (m8b, u5b)] = s2_units(&f, r.detail, &base_outlines(&r.airbases)?);
-    units(m32, &u7, work, r.threads, &part(1), cancel, |u| sentinel_unit(s2_20, &f, u, 5, &coarse, work, out))?;
-    units(m8, &u5, work, r.threads, &part(2), cancel, |u| sentinel_unit(s2, &f, u, 3, &fine, work, out))?;
-    units(m8b, &u5b, work, r.threads, &part(2), cancel, |u| sentinel_unit(s2, &f, u, 3, &fine, work, out))?;
+    // With the Survey: the border's tone over the detail area and BORDER_FEATHER_M around (in the theatre), and the
+    // units it touches listed for the runs after.
+    let border = match survey {
+        Some((vrt, levels)) => {
+            let m = f64::from(BORDER_FEATHER_M);
+            let area = [
+                (r.detail[0] - m).max(f.e0),
+                (r.detail[1] - m).max(f.n1 - f64::from(f.h)),
+                (r.detail[2] + m).min(f.e0 + f64::from(f.w)),
+                (r.detail[3] + m).min(f.n1),
+            ];
+            let t1 = std::time::Instant::now();
+            let bt = BorderTone::new(vrt, levels, s2, &f, area, work, &base_outlines(&r.airbases)?)?;
+            write_border_units(work, &bt.s2_units, &bt.survey_units)?;
+            log!(
+                pr,
+                "sentinel-2: the border toned to the photo, {} of {} blocks fitted, {} 8 m and {} Survey units ({})",
+                bt.tones.iter().flatten().count(),
+                bt.tones.len(),
+                bt.s2_units.len(),
+                bt.survey_units.len(),
+                crate::progress::duration(t1.elapsed())
+            );
+            Some(bt)
+        }
+        None => None,
+    };
+    let none = BTreeSet::new();
+    let on_border = border.as_ref().map_or(&none, |b| &b.s2_units);
+    let [(m32, u7), (m8, u5), (m8b, u5b), (m8x, u5x)] = s2_units(&f, r.detail, &base_outlines(&r.airbases)?, on_border);
+    let bt = border.as_ref();
+    units(m32, &u7, work, r.threads, &part(1), cancel, |u| sentinel_unit((s2_20, None), &f, u, 5, &coarse, work, out))?;
+    units(m8, &u5, work, r.threads, &part(2), cancel, |u| sentinel_unit((s2, bt), &f, u, 3, &fine, work, out))?;
+    units(m8b, &u5b, work, r.threads, &part(2), cancel, |u| sentinel_unit((s2, bt), &f, u, 3, &fine, work, out))?;
+    units(m8x, &u5x, work, r.threads, &part(2), cancel, |u| sentinel_unit((s2, bt), &f, u, 3, &fine, work, out))?;
     Ok((ends, s2_line))
 }
 
@@ -1394,18 +1741,9 @@ fn colour(r: &Run, f: &Frame, geo: [f64; 4], work: &Path, pr: &dyn Progress, can
     let detail5: BTreeSet<Key> = f.nodes_in(5, r.detail).into_iter().collect();
     let inside = |k: Key| (k.1 << k.0) * NODE_PIXELS < f.w && (k.2 << k.0) * NODE_PIXELS < f.h;
     let fine = |k: Key| inside(k) && detail5.contains(&(5, k.1 >> (5 - k.0), k.2 >> (5 - k.0)));
-    // Sentinel-2 only while one of its units is still to do: a theatre rebuilt for its photo (or any later change)
-    // reads no tile and fetches nothing (the user, 2026-11-13: a code change never makes the player download again).
-    let (ends, s2_line) = if s2_left(&f, r.detail, &base_outlines(&r.airbases)?, &work) {
-        sentinel(r, &f, geo, &work, has_zips, pr, cancel)?
-    } else {
-        log!(pr, "sentinel-2: every node built, no tile read");
-        (part_ends(0, has_zips), "every node built".to_string())
-    };
-    let part = |i: usize| Part { pr, from: ends[i], to: ends[i + 1] };
-
-    // The Survey of Israel 2 m sheets already downloaded.
-    if has_zips {
+    // The Survey of Israel 2 m sheets already downloaded: their units, levels and VRT, before Sentinel-2 (its units at
+    // the border are toned to the photo, BorderTone).
+    let survey = if has_zips {
         seed_sheets(&work, &r.sheet_index, pr)?;
         log!(pr, "survey: the sheet ZIPs in {}", r.sheets.display());
         let (sheets, _) = list_sheets(&r.sheets, &work, pr, cancel)?;
@@ -1438,6 +1776,27 @@ fn colour(r: &Run, f: &Frame, geo: [f64; 4], work: &Path, pr: &dyn Progress, can
         let sheets = near(&sheets, &list.iter().map(|u| u.2).collect::<Vec<_>>(), 2000.0);
         let vrt = soi_vrt(&sheets, &r.sheets, &work, pr)?;
         log!(pr, "survey: {} sheets ({})", sheets.len(), crate::progress::duration(t0.elapsed()));
+        Some((list, keys, sheets, vrt))
+    } else {
+        None
+    };
+    // Sentinel-2 only while one of its units is still to do: a theatre rebuilt for its photo (or any later change)
+    // reads no tile and fetches nothing (the user, 2026-11-13: a code change never makes the player download again).
+    let (ends, s2_line) = if s2_left(&f, r.detail, &base_outlines(&r.airbases)?, &work, has_zips) {
+        let sv = match &survey {
+            Some((_, _, sheets, vrt)) => {
+                Some((utf8(vrt)?, sheets.iter().map(|s| (s.bbox, s.levels)).collect::<Vec<_>>()))
+            }
+            None => None,
+        };
+        sentinel(r, &f, geo, &work, sv.as_ref().map(|(v, l)| (*v, l.as_slice())), pr, cancel)?
+    } else {
+        log!(pr, "sentinel-2: every node built, no tile read");
+        (part_ends(0, has_zips), "every node built".to_string())
+    };
+    let part = |i: usize| Part { pr, from: ends[i], to: ends[i + 1] };
+
+    if let Some((list, keys, sheets, vrt)) = survey {
         let bases = base_outlines(&r.airbases)?;
         let pbfs = crate::sim_coast::fetch_extracts(&r.osm, geo, pr, cancel)?;
         log!(pr, "survey: the coastline from {} OpenStreetMap extracts", pbfs.len());
@@ -1451,9 +1810,18 @@ fn colour(r: &Run, f: &Frame, geo: [f64; 4], work: &Path, pr: &dyn Progress, can
         };
         // The units on a base's cover have their own marks (BASE_FILL), as their 8 m Sentinel-2 units (s2_units): they
         // run again when the bases' fill changes, over Sentinel-2's own level-3 nodes.
+        // The units the border's tone touches (BorderTone: their 2 m nodes hold its Sentinel-2 under the photo's soft
+        // edge) have theirs too (BORDER_FILL), as their 8 m units; a base's cover in one is toned as in the others.
+        let border4 = border_units(&work).map(|[_, s]| s).unwrap_or_default();
+        let border_mark = format!("survey_2m_border_{BORDER_FILL}");
+        let (on_border, keys): (Vec<Key>, Vec<Key>) = keys.iter().partition(|&&k| border4.contains(&k));
         let (on_base, keys): (Vec<Key>, Vec<Key>) =
             keys.iter().partition(|&&k| BaseMask::new(&bases, f.utm(k)).is_some());
-        if on_base.iter().any(|&k| !done(&work, &format!("survey_2m_{BASE_FILL}"), k).exists()) {
+        if on_base.iter().any(|&k| !done(&work, &format!("survey_2m_{BASE_FILL}"), k).exists())
+            || on_border
+                .iter()
+                .any(|&k| !done(&work, &border_mark, k).exists() && BaseMask::new(&bases, f.utm(k)).is_some())
+        {
             for b in &bases {
                 if let Some(t) = BaseTone::new(&sv, &f, b, out, &work)? {
                     let c = crate::bbox(b.iter());
@@ -1490,6 +1858,7 @@ fn colour(r: &Run, f: &Frame, geo: [f64; 4], work: &Path, pr: &dyn Progress, can
         // before writes its 2 m nodes again. Their base (`ancestor_crop(.., 3)`) is Sentinel-2 only until the first
         // `parents(out, 3, ..)` below writes the photo into level 3: renaming these marks again, rename "s2_8m" with
         // them, or the units run over the old photo at 8 m (the airbases' made-up ground, the sea's no-data).
+        units(&border_mark, &on_border, &work, r.threads, &part(3), cancel, run)?;
         units("survey_2m_lv", &inland, &work, r.threads, &part(3), cancel, run)?;
         units("survey_2m_sea_lv", &shore, &work, r.threads, &part(3), cancel, run)?;
         // The coarser levels over the photo are the photo's, as the original game's Survey layer (its own pyramid):
@@ -1818,6 +2187,71 @@ mod tests {
         assert!(open_checked >= 25, "{open_checked} points with open water 1 km out");
     }
 
+    /// The chamfer distance: 0 on the seeds, a cell a step along a row, √2 along a diagonal, within 8 % far off.
+    #[test]
+    fn chamfer_measures_cells_to_the_seed() {
+        let (w, h) = (40, 30);
+        let mut seed = vec![false; w * h];
+        seed[10 * w + 5] = true;
+        let d = chamfer(&seed, w, h);
+        assert_eq!(d[10 * w + 5], 0.0);
+        assert_eq!(d[10 * w + 6], 1.0);
+        assert!((d[11 * w + 6] - std::f32::consts::SQRT_2).abs() < 1e-6);
+        let (dx, dy) = (30.0f32, 15.0f32);
+        let far = d[25 * w + 35];
+        assert!((far / dx.hypot(dy) - 1.0).abs() < 0.08, "{far}");
+        assert!(chamfer(&[false; 4], 2, 2).iter().all(|&v| v >= 1e6), "no seed: far");
+    }
+
+    /// A tone fitted on the same colours on both sides changes nothing (BaseTone::fit, as the bases' and the border's).
+    #[test]
+    fn a_tone_of_equal_images_is_identity() {
+        let cells: Vec<[f32; 3]> = (0..400)
+            .map(|i| {
+                let v = 60.0 + (i % 20) as f32 * 4.0;
+                [v + 6.0, v, v - 8.0]
+            })
+            .collect();
+        let t = BaseTone::fit([0.0; 4], &cells, &cells, &cells).unwrap();
+        let t = BaseTone { knee: 255.0, ..t };
+        for c in [[70.0, 64.0, 56.0], [120.0, 110.0, 100.0]] {
+            let o = t.apply(c);
+            assert!((0..3).all(|k| (o[k] - c[k]).abs() < 1.5), "{c:?} -> {o:?}");
+        }
+    }
+
+    /// The border's tone: full at the photo's edge, half way across the feather partly, none past it, none deep in the
+    /// photo (the bases' Sentinel-2) and none on water.
+    #[test]
+    fn the_border_tone_fades_from_the_edge() {
+        // Cells 100 m wide along x: x < 50 in the photo, the edge at 5,000 m.
+        let (w, h) = (300, 2);
+        let dist: Vec<f32> = (0..w * h).map(|i| ((i % w) as f32 + 0.5) * 100.0 - 5000.0).collect();
+        let darker = BaseTone { rect: [0.0; 4], grey: [0.5, 0.0], chroma: 1.0, tint: [0.0; 3], knee: 255.0 };
+        let bt = BorderTone {
+            rect: [0.0, 0.0, 30_000.0, 200.0],
+            w,
+            h,
+            dist,
+            bw: 2,
+            bh: 1,
+            tones: vec![Some(darker); 2],
+            s2_units: BTreeSet::new(),
+            survey_units: BTreeSet::new(),
+        };
+        let sand = [200.0, 180.0, 150.0];
+        let at = |e: f64| bt.tone(e, 100.0, sand);
+        let toned = darker.apply(sand);
+        assert!((0..3).all(|k| (at(5_000.0)[k] - toned[k]).abs() < 0.5), "the edge: {:?}", at(5_000.0));
+        let mid = at(10_000.0)[0];
+        assert!((mid - (sand[0] + toned[0]) / 2.0).abs() < 1.0, "half the feather: {mid}");
+        assert_eq!(at(16_000.0), sand, "past the feather");
+        assert_eq!(at(4_000.0), sand, "1 km into the photo");
+        let water = [40.0, 70.0, 90.0];
+        assert_eq!(bt.tone(5_000.0, 100.0, water), water, "water");
+        assert_eq!(bt.tone(-10.0, 100.0, sand), sand, "outside the cells");
+    }
+
     /// A finished run is stamped in meta.json; the same inputs again return before any work (no network).
     #[test]
     fn a_finished_run_is_not_redone() {
@@ -1887,14 +2321,25 @@ mod tests {
         std::fs::write(run.sheets.join("a.zip"), "").unwrap();
         let work = run.out.join(".work");
         std::fs::create_dir_all(&work).unwrap();
-        let units = s2_units(&Frame::new(run.area).unwrap(), run.detail, &base_outlines(&run.airbases).unwrap());
-        assert!(units.iter().all(|(_, l)| !l.is_empty()), "the box has units of every kind");
+        let units = s2_units(
+            &Frame::new(run.area).unwrap(),
+            run.detail,
+            &base_outlines(&run.airbases).unwrap(),
+            &BTreeSet::new(),
+        );
+        assert!(units[..3].iter().all(|(_, l)| !l.is_empty()), "the box has units of every kind");
         assert_eq!(would_fetch(&run).unwrap(), ["sentinel-2"], "a new theatre reads Sentinel-2");
         for (what, list) in &units {
             for &u in list {
                 std::fs::write(done(&work, what, u), "").unwrap();
             }
         }
+        assert_eq!(would_fetch(&run).unwrap(), ["sentinel-2"], "the border's units not listed yet");
+        // The other 8 m unit at the border (BorderTone's list, written by `sentinel`), done.
+        let east = units[1].1[0];
+        write_border_units(&work, &[east].into(), &BTreeSet::new()).unwrap();
+        assert_eq!(would_fetch(&run).unwrap(), ["sentinel-2"], "the border's unit left");
+        std::fs::write(done(&work, S2_8M_BORDER, east), "").unwrap();
         assert!(would_fetch(&run).unwrap().is_empty(), "every unit done, every source here: nothing to fetch");
         // And `colour` itself (without the sheet, no GDAL run) lists no tile: a listing would land in (or fail to
         // reach) the empty `s2_cache`.
@@ -1914,8 +2359,7 @@ mod tests {
             std::fs::write(run.s2_cache.join(tile), "12345").unwrap();
         }
         assert!(would_fetch(&run).unwrap().is_empty(), "the base's unit left, every tile whole: nothing to fetch");
-        let (what, list) = &units[1];
-        std::fs::remove_file(done(&work, what, list[0])).unwrap();
+        std::fs::remove_file(done(&work, S2_8M_BORDER, east)).unwrap();
         std::fs::remove_file(run.s2_cache.join("ESA_WorldCover_10m_2021_v200_N30E034_S2RGBNIR.tif")).unwrap();
         assert_eq!(would_fetch(&run).unwrap(), ["sentinel-2"], "one unit left, a tile missing");
         std::fs::remove_dir_all(&out).unwrap();

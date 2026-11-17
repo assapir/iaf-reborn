@@ -187,6 +187,25 @@ left" over the tiles still to fetch, a DEM tile's MB so far.
      redoes those units only: 8 Sentinel-2 units and 12 Survey units, then the coarser levels, 2 min 30 s on the Mac
      (M4 Pro), nothing downloaded (run with the network blocked; `would_fetch` lists nothing while the cache holds
      the 10 m tiles whole).
+   - **Borders** (2026-11-15, `BorderTone`; the user: "the change between israel and other country looks bad"):
+     the photo covers Israel only, so at Lebanon, Syria, Jordan, Egypt and Gaza the ground changed at once from the
+     levelled 2 m photo to Sentinel-2's own colours. Sentinel-2 beyond the photo's edge is now toned to the photo,
+     with the bases' colour map (above) on the border's cells: on a 100 m grid over the detail area and 10 km around,
+     the photo (warped at 100 m, its sheets' levels) and Sentinel-2 (the 10 m tiles averaged) give the photo's edge
+     (where the photo shows, no white no-data) and per cell the distance to it, inside and out (a two-pass chamfer,
+     within 8 %). One colour map per 16.4 km block, from the photo's cells within 4 km of its edge in the block and
+     half a block around (at least 200): Sentinel-2's median brightness there becomes the photo's, the contrast,
+     tint and band limit as a base's, and no knee (the neighbours' bright ground, as Sinai's dunes, keeps its
+     contrast). A pixel out of the photo takes the blocks' maps blended between the blocks' centres, fully at the
+     edge and less to 10 km out (smoothstep); on the photo's side Sentinel-2 is toned to 200 m in (under the photo's
+     soft edge in the 2 m nodes) and kept from 400 m (the bases' fill reads it). Water keeps Sentinel-2's colour.
+     Open: Sentinel-2 stays 10 m beside the 2 m photo; along the Egyptian border the blocks show as stepped edges
+     and a lighter outlined patch (approved as shown, 2026-11-17).
+     The 8 m Sentinel-2 units (level 5) and Survey units (level 4) with a toned pixel are listed in
+     `.work/border_tone1.json` and have their own done marks (`s2_8m_border_tone1`, `survey_2m_border_tone1`): a
+     theatre built before redoes those (`stamp`'s `border_fill`), Sentinel-2's from the local tiles, nothing
+     downloaded. A base within reach of the toned ground has all its 8 m units redone too: its own tone reads
+     Sentinel-2 from them, which would otherwise mix the photo into its fit; the 100 m warps of the photo and Sentinel-2 run once per run that writes an 8 m unit.
 5. **Coarser levels**: levels 2 and 4–11 from their four children (Triangle filter); level 3 too over the photo (§3).
 6. **`meta.json`**: the node lists per level, the georeference, `attribution` (§5) and `notice` (the DEM's liability
    sentence).

@@ -363,6 +363,12 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   the signs. Since 2026-11-16 every sign a departure to any runway end passes names that end with the route's turn
   (Ramon's way to 25R read "25L" alone; now "25L 25R" on the shared parallel taxiway). A rebuild of the airbases step (nothing to download) ([airbases.md](airbases.md) §9,
   [data-formats.md](data-formats.md) §12).
+- **The borders (2026-11-15, approved 2026-11-17: "A52 approved"; the user: "the change between israel and other
+  country looks bad"):** Sentinel-2 beyond the photo's edge (Lebanon, Syria, Jordan, Egypt, Gaza) toned to the
+  photo's colour and brightness along the border, fading out over 10 km, with the bases' colour map per 16 km block
+  ([terrain.md](terrain.md) §4). A rebuild of the theatre's border units (setup's terrain step, then the scenery:
+  nothing to download). Open: Sentinel-2 stays softer (10 m) than the photo (2 m) beside it; along the Egyptian border
+  stepped block edges and a lighter outlined patch.
 - **The airbases from the air (2026-11-14, built, awaiting the user's yes on the pictures):** the bases' Sentinel-2
   fill toned to the photo around (no tan block; one colour map per base from the medians of the ground around, an odd
   Survey sheet left out, Sentinel-2's brighter dry grass brought down to the earth tones around); the painted
