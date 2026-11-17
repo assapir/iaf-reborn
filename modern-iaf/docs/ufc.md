@@ -39,7 +39,10 @@ The user has no HOTAS ([avionics-plan.md](avionics-plan.md) §8, decision 3): ev
 | Alt + K | 255 | IFF IDENT: the transponder's IDENT for 18 s ([ews.md](ews.md) §8) | — (the model has no IDENT button) |
 | Alt + D | 252, 4 | HUD DED DATA: DED / PFL / OFF | — (not in the model) |
 | Alt + R | 252, 5 | HUD DEPR RET: STBY / PRI / OFF | — (not in the model) |
-| — | 252, 0–3 | HUD SCALES, FP MARKER, VELOCITY, ALT | the HUD control panel's switches |
+| Alt + X | 252, 0 | HUD SCALES: VV/VAH / VAH / OFF | the HUD control panel's SCALES switch |
+| Alt + F | 252, 1 | HUD FP MARKER: ATT/FPM / FPM / OFF | the HUD control panel's FP MARKER switch |
+| Alt + Z | 252, 2 | HUD VELOCITY: CAS / TAS / GND SPD | the HUD control panel's VELOCITY switch |
+| Alt + A | 252, 3 | HUD ALT: RADAR / BARO / AUTO (RADAR and AUTO need RDR ALT powered) | the HUD control panel's ALT switch |
 | — | — | RET DEPR: the standby reticle's depression, 0–260 mr (inferred range) | the ICP's RET DEPR wheel |
 | V / Shift + V | 251, 1 / 2 | DGFT / MSL OVRD; the same key again centres the switch | — (the throttle is not clickable) |
 | Shift + A | 202 | MASTER ARM; the 3D switch's lower position is SIMULATE | MASTER ARM (three positions) |

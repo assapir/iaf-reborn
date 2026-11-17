@@ -88,7 +88,8 @@ func _cold(id: String) -> void:
 ## The HUD control panel by clicks (the user, 17 Nov: "why I don't have R altitude in the hud?"): each of SCALES, FP
 ## MARKER, VELOCITY and ALT moves its setting through every position and changes the HUD; with RDR ALT powered (the
 ## avionics key) ALT RADAR shows the radar altitude (AR), AUTO the same below 1,200 ft; the altitude box with its
-## thousands comma. DED DATA and DEPR RET (not on the model's panel) by their keys, Alt + D / Alt + R.
+## thousands comma. Every panel switch by its key: Alt + D DED DATA, Alt + R DEPR RET (neither on the model's panel),
+## Alt + X SCALES, Alt + F FP MARKER, Alt + Z VELOCITY, Alt + A ALT.
 func _hud_panel(tv: Node, id: String) -> void:
 	var c = tv.cockpit
 	var h = c.hud
@@ -130,7 +131,10 @@ func _hud_panel(tv: Node, id: String) -> void:
 		check(seen.size() == 3, "%s: %s through its three positions (%s)" % [id, sw[1], seen.keys()])
 	var box: Array = texts.call().filter(func(t): return t.length() >= 5 and t.contains(","))
 	check(not box.is_empty(), "%s: the altitude box with a thousands comma (%s)" % [id, box])
-	for k in [[KEY_D, "ded"], [KEY_R, "depr"]]:
+	var keys := [
+		[KEY_D, "ded"], [KEY_R, "depr"], [KEY_X, "scales"], [KEY_F, "fpm"], [KEY_Z, "velocity"], [KEY_A, "alt"]
+	]
+	for k in keys + keys.slice(2):  # the panel's four twice: each key moves its switch on, round
 		var was := str(prims.call())
 		var pos := int(c.hud_panel[k[1]])
 		var e := InputEventKey.new()
@@ -143,8 +147,13 @@ func _hud_panel(tv: Node, id: String) -> void:
 		check(
 			int(c.hud_panel[k[1]]) == (pos + 1) % 3, "%s: Alt + %s moves %s" % [id, OS.get_keycode_string(k[0]), k[1]]
 		)
-		# DEPR RET draws only at STBY (ufc.md §4): PRI and OFF look alike.
-		var same: bool = k[1] == "depr" and pos != 0 and int(c.hud_panel.depr) != 0
+		# DEPR RET draws only at STBY, ALT AUTO above 1,200 ft as BARO (ufc.md §4): those moves leave the HUD.
+		var now := int(c.hud_panel[k[1]])
+		var agl_now = h._real_in.get("agl_ft")
+		var same: bool = (
+			k[1] == "depr" and pos != 0 and now != 0
+			or k[1] == "alt" and pos + now == 3 and (agl_now == null or float(agl_now) >= 1200.0)
+		)
 		check(
 			(str(prims.call()) == was) == same,
 			"%s: %s at %d %s the HUD" % [id, k[1], c.hud_panel[k[1]], "leaves" if same else "changes"]
