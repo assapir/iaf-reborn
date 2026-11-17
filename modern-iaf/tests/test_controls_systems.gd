@@ -127,6 +127,34 @@ func _ground(tv: Node, id: String) -> void:
 	_ctl.release()
 	_c3d._process(0.0)
 	check(not _c3d.lamps_lit.values().all(func(v): return v), "%s: let go, the lamps as before" % id)
+	# ADV MODE (finish list C4b): a click selects it, its STBY legend lit (ACTIVE dark: no terrain following); again,
+	# both dark.
+	_click("adv-mode-button")
+	_c3d._process(0.0)
+	check(
+		_c3d.lamps_lit.get("adv_stby", false) and not _c3d.lamps_lit.get("adv_active", true), "%s: ADV MODE STBY" % id
+	)
+	_click("adv-mode-button")
+	_c3d._process(0.0)
+	check(not _c3d.lamps_lit.get("adv_stby", true), "%s: ADV MODE off, STBY dark" % id)
+	# The EHSI's HDG and CRS knobs: the wheel turns the heading bug and the course arrow it draws.
+	var ehsi: Control = _c3d.displays.EHSI_screen
+	_ctl._turn(_r("HSI_hdg-knob"), 1.0)
+	_ctl._turn(_r("HSI_course-knob"), 1.0)
+	_ctl._turn(_r("HSI_course-knob"), 1.0)
+	await frames(2)
+	check(
+		(
+			is_equal_approx(float(ehsi.shown.get("hdg_bug", -1.0)), 1.0)
+			and is_equal_approx(float(ehsi.shown.get("course", -1.0)), 2.0)
+		),
+		"%s: the EHSI's heading bug and course follow HDG and CRS (%s)" % [id, ehsi.shown]
+	)
+	# The clock's knob sets it a minute back a click (FlightGear's offset).
+	var t0: float = _c3d._prop("instrumentation/clock/indicated-sec")
+	_click("time-offset-left")
+	var dt: float = fposmod(t0 - _c3d._prop("instrumentation/clock/indicated-sec"), 43200.0)
+	check(dt > 55.0 and dt < 65.0, "%s: the clock's knob sets it a minute back (%s s)" % [id, dt])
 	# MASTER CAUTION: its push puts the lamp out.
 	tv.cockpit.indicators[0] = true
 	_click("master_reset")

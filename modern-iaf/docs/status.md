@@ -55,9 +55,9 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   control"):** the parts FlightGear does not animate are pressed in or tilted; the proof renders every control through
   its positions (`modern-iaf/tests/_controls_shot.gd`). 2026-11-17 (C4b): the M button and the right MFD's GAIN rocker
   move (a row's own property is read from the store); the MFDs' inboard rockers and MAX POWER are seen with the head
-  leaned; the proof compares full-size crops and pictures a hidden part from a lean. Open, waiting for the user's
-  approval of a look change: the EHSI's HDG and CRS knobs (no mark shows their turn) and the ADV MODE button (behind
-  FlightGear's Block 15 panel face).
+  leaned; the proof compares full-size crops and pictures a hidden part from a lean; the EHSI draws the heading bug and
+  course arrow its HDG and CRS knobs set; the ADV MODE button shows (the build hides FlightGear's Block 15 panel face
+  over it) and its STBY legend lights while selected.
 - **The Settings in the r3 layout (2026-11-16, the finish list's F7, [front-end.md](front-end.md) §14):** a search
   across the sections in English or Hebrew, the sections' counts, Graphics' Preset row (Laptop, Balanced, High,
   Everything on, Custom), segmented buttons for every row's choices, a cost chip per graphics row from measurements on

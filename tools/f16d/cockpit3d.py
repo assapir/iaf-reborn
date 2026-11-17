@@ -442,7 +442,11 @@ class Build:
         for n in objs:
             if (part, n) in DISPLAYS:
                 self.displays[objs[n]] = DISPLAYS[(part, n)]
-        for n in hide & set(objs):
+        # A select on a group hides the meshes in it (until 2026-11-17 only a single object's: the MISC panel's Block 15
+        # face and switch levers, a group, stood over the Block 50's ADV MODE button; finish list C4b).
+        for n in {g for h in hide for g in groups.get(h, [h])} & set(objs):
+            if n not in hide:
+                print("hide %s/%s (its group)" % (part, n))
             bpy.data.objects.remove(objs.pop(n))
             self.hidden += 1
         for n, rec in ctl.items():  # a group's meshes each a control of the same property

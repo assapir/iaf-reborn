@@ -1,5 +1,6 @@
 # Dev helper (not run by tools/test.sh): the proof of the F-16s' 3D-cockpit controls (finish-cockpit-controls.md C4,
-# C4b). In each F-16's cold start-up (2011 Sufa, 2021 Barak; one model) every control of the model's own `controls`
+# C4b). In each F-16's start-up (2011 Sufa, 2021 Barak; one model), started first (MAIN PWR, the JFS, the throttle to
+# idle: the lamps and the EHSI powered), every control of the model's own `controls`
 # (f16.json; cockpit3d_controls.gd) and the HUD's DAY / AUTO BRT / NIGHT switch goes through its positions in the
 # store the cockpit shows (cockpit3d.gd `switches`): a switch or a knob of steps each step from min to max, a
 # continuous knob or a stepping button five values, a push button at rest and pressed. For each control the head turns
@@ -51,6 +52,7 @@ func run() -> void:
 			await process_frame
 			tv = current_scene
 		await create_timer(2.0).timeout
+		await _start(tv)
 		tv.addon.ui.visible = false
 		tv.cockpit.zoom = tv.cockpit.ZOOM_MAX
 		var c3d = tv.cockpit_3d
@@ -89,6 +91,20 @@ func run() -> void:
 		f.close()
 		check(n >= (1 if not only.is_empty() else 150), "%s: %d controls pictured" % [unit, n])
 		tv.views.snap = null
+
+
+## The engine started (as _switch_shot.gd's BEFORE): MAIN PWR, the JFS up to 20 %, the throttle to idle, up to 55 %
+## (the generators: the lamps and the EHSI powered).
+func _start(tv: Node) -> void:
+	tv.addon.pick("startup")  # the tower's clearance first (training.md §3.3)
+	Engine.time_scale = 8.0
+	for cmd in [[210, 0, 0], [211, 0, 0], [5, 0, 0]]:
+		tv._command(cmd)
+		var rpm := 0.2 if cmd[0] == 211 else (0.55 if cmd[0] == 5 else 0.0)
+		while float(tv.flight.state().rpm) < rpm:
+			await process_frame
+	Engine.time_scale = 1.0
+	await create_timer(1.0).timeout
 
 
 ## Control `r` (part `mi`) at each of `vals`, cropped round the part: <path>_<k>.png; whether the crops differ.
@@ -161,6 +177,9 @@ var _surfaces := []  # [MeshInstance3D, TriangleMesh] of the cockpit (_seen)
 ## The part `mi` of control `r` and the parts near it its position moves (the ASI's bug by its knob), world frame.
 static func _box(c3d: Node, mi: MeshInstance3D, r: Dictionary) -> AABB:
 	var box: AABB = mi.global_transform * mi.get_aabb()
+	var shows := c3d.find_child(r.get("shows", "-"), true, false) as MeshInstance3D  # its display (the EHSI)
+	if shows != null:
+		box = box.merge(shows.global_transform * shows.get_aabb())
 	for a in c3d._anims:
 		var m := a[0] as MeshInstance3D
 		if m == null or m == mi or not a[2].any(func(x): return x.get("prop", "") == r.get("prop", "-")):

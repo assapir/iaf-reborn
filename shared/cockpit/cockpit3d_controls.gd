@@ -35,7 +35,11 @@
 #     "safe" (the F-16's EPU at NORM);
 #   - "modelled": the position the model shows it at, its value until moved;
 #   - "system" (a table row's, laid over the model's control): the game's system the control works (_system_put) and
-#     shows (_system_state, each frame: a key moves the switch too).
+#     shows (_system_state, each frame: a key moves the switch too);
+#   - "lamp", "lit_uv" (a table row's): the part is also a lamp, lit by showing its sheet's lit legend `lit_uv` away
+#     (cockpit3d.gd _setup_legend_lamps: the ADV MODE button's STBY and ACTIVE);
+#   - "shows" (a table row's): the node that shows the control's setting (the EHSI's screen for its HDG and CRS knobs;
+#     the proof modern-iaf/tests/_controls_shot.gd pictures it with the knob).
 # The position is kept in cockpit3d.gd `switches` (the one store of the cockpit's switches; the start-up's are the
 # flight model's, start.rs) and shown by the model's own mapping. Hovering a control
 # lights its rim (RIM): its own texture stays as it is. The flight controls are in neither table: the throttle and the

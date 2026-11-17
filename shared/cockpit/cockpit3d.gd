@@ -215,11 +215,13 @@ func setup(c: Control, cam: Camera3D, type_code: int) -> bool:
 	if Settings.cockpit_controls() and FileAccess.file_exists(table):
 		clickable = Controls.new()
 		add_child(clickable)
-		clickable.setup(n, Settings.load_json(table), meta.get("controls", {}))
+		var rows: Dictionary = Settings.load_json(table)
+		clickable.setup(n, rows, meta.get("controls", {}))
 		for e in clickable._controls:  # a table row's own property (over the model's) shown from the store too
 			if e[1].has("prop"):
 				meta.controls_props[e[1].prop] = true
 		_still_controls(n)
+		_setup_legend_lamps(n, rows)
 	return true
 
 
@@ -1038,8 +1040,10 @@ func _prop(p: String) -> float:
 			return float(s.throttle)
 		"controls/engines/engine/augmentation":
 			return 1.0 if float(s.get("afterburner", 0)) > 0.0 else 0.0
-		"instrumentation/clock/indicated-sec":
-			return fmod(float(s.get("tod", 0.0)), 43200.0)
+		"instrumentation/clock/indicated-sec":  # the time of day, set on by the clock's knob (FlightGear's offset)
+			return fposmod(
+				float(s.get("tod", 0.0)) + float(switches.get("instrumentation/clock/offset-sec", 0.0)), 43200.0
+			)
 		"controls/flight/elevator":
 			return -float(controls.get("stick_y", 0.0))  # FlightGear's elevator: + pushes (stick_y: + pulls)
 		"controls/flight/aileron":
@@ -1155,6 +1159,7 @@ func _own_materials(mi: MeshInstance3D) -> Array:
 ## top part); the RWR scope's and EHSI's UVs cover their screens.
 func _attach_display(screen: MeshInstance3D, kind: int, px: Vector2i) -> void:
 	var d := Display.new(cockpit, kind, px)
+	d.switches = switches
 	_screen_viewport(screen, px).add_child(d)
 	displays[String(screen.name)] = d
 	var ext := uv_extent(screen.mesh)
@@ -1173,7 +1178,33 @@ static func uv_extent(mesh: Mesh) -> Vector2:
 	return m
 
 
+## The lamps a control's table row lights ("lamp": its key, "lit_uv": [u, v]): the ADV MODE button's STBY and ACTIVE
+## legends. FlightGear's sheet paints each legend lit beside its unlit one (its select shows the lit object, which the
+## build leaves out with the lamps off); lit, the part's texture moves by `lit_uv` onto the lit legend and glows by it,
+## unlit it stays as drawn under the cockpit's fill. [its own materials, key, the UV offset, their light passes].
+var _legend_lamps := []
+
+
+func _setup_legend_lamps(model: Node3D, rows: Dictionary) -> void:
+	for name in rows:
+		var r: Dictionary = rows[name]
+		var mi := model.find_child(name, true, false) as MeshInstance3D
+		if r.has("lamp") and mi != null:
+			var mats := _own_materials(mi)
+			var uv := Vector3(float(r.lit_uv[0]), float(r.lit_uv[1]), 0.0)
+			_legend_lamps.append([mats, r.lamp, uv, mats.map(func(m): return m.next_pass)])
+
+
 func _update_instruments() -> void:
+	for l in _legend_lamps:
+		var on: bool = cockpit.power >= 1 and (lamp_test or _lamp_on(l[1]))
+		lamps_lit[l[1]] = on
+		for i in l[0].size():
+			var m: BaseMaterial3D = l[0][i]
+			m.uv1_offset = l[2] if on else Vector3.ZERO
+			m.next_pass = null if on else l[3][i]  # lit: not shaded by the baked light
+			if on or _lit.r >= 0.0:
+				m.emission = Color.WHITE if on else _lit
 	for key in _lamps:
 		var on: bool = cockpit.power >= 1 and (lamp_test or _lamp_on(key))
 		lamps_lit[key] = on
@@ -1226,6 +1257,8 @@ func _lamp_on(key: String) -> bool:
 			return int(legs[["gear_nose", "gear_left", "gear_right"].find(key)]) == 2
 		"gear_transit":
 			return legs.any(func(v): return int(v) != (2 if cockpit.gear_handle_down else 0))
+		"adv_stby":  # ADV MODE selected stands by: the terrain following it engages is not modelled (inferred)
+			return float(switches.get("f16/fcs/adv-mode-sel", 0.0)) >= 0.5
 		"rwr_launch":
 			var launch: bool = cockpit.rwr.any(func(e): return e.active and e.launch)
 			return launch and int(Time.get_ticks_msec() / BLINK_MS) % 2 == 0

@@ -522,9 +522,19 @@ Finish list C4b (2026-11-17), the parts that proof still found alike:
   head leaned 10 to 15 cm aside (Shift + the arrows).
 - The ASI's bug, the M button and MASTER CAUTION move a few pixels at the proof's zoom: the proof compares its crops
   at full size.
-- The EHSI's HDG and CRS knobs turn, plain round knobs that show no turn; the ADV MODE button and its STBY / ACTIVE
-  legends sit behind the face of FlightGear's Block 15 MISC panel, which the build keeps (its `select` hides a group,
-  and the build hides only single objects). Their fixes change how the panel looks and wait for the user's approval.
+- The EHSI's HDG and CRS knobs are plain round knobs: their turn shows on the EHSI, which draws the heading bug and
+  the course arrow where they set them (`cockpit3d_display.gd`; 0° until turned, the jet's setting at a cold start is
+  open; the shapes inferred).
+- The ADV MODE button and its STBY / ACTIVE legends sat behind the face of FlightGear's Block 15 MISC panel: a
+  FlightGear `select` on a group hides the meshes in it, and the build hid only single objects
+  (`tools/f16d/cockpit3d.py`; the Block 15 panel face and autopilot switch base, the only meshes it left). The button
+  goes 3.5 mm in and stays in while selected (FlightGear's), and STBY lights: FlightGear's sheet paints each legend lit
+  beside its unlit one, and the cockpit shows the lit one (`f16_controls.json` `lamp`, `lit_uv`; `cockpit3d.gd`
+  `_setup_legend_lamps`). ACTIVE stays dark: the terrain following ADV MODE engages is not modelled (inferred). MAL &
+  IND LTS lights both.
+- The clock's two knobs set its time a minute a click (FlightGear's `offset-sec`, added to the time of day; the proof
+  had seen only its seconds hand run).
+- The proof starts each jet first (MAIN PWR, the JFS, idle): the lamps and the EHSI powered.
 
 `modern-iaf/tests/test_switches_both_ways.gd` runs each jet's switches off and on after the Start engine command
 and checks the position, the consequence, the steps done and the switch shown; on the F-16s it switches each of the

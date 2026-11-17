@@ -70,5 +70,9 @@
 "JETT_50_switch": {"system": "cmds_jett"},
 "dl-switch": {"system": "dl"},
 "threat-vol-knob": {"system": "threat_vol"},
-"msl-vol-knob": {"system": "msl_vol"}
+"msl-vol-knob": {"system": "msl_vol"},
+"stby-off": {"lamp": "adv_stby", "lit_uv": [0.175, -0.0019]},
+"active-off": {"lamp": "adv_active", "lit_uv": [0.1741, -0.0019]},
+"HSI_hdg-knob": {"shows": "EHSI_screen"},
+"HSI_course-knob": {"shows": "EHSI_screen"}
 }

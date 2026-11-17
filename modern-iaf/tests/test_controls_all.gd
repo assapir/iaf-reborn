@@ -13,8 +13,8 @@ const MISSIONS := "converted/modern-iaf/missions"
 const JETS := {"f16i": "ramon_startup", "f16": "ramat_david_startup", "f35i": "nevatim_startup"}
 const Click := preload("res://tests/test_switches_click.gd")
 ## The F-16s' controls the C4 proof found still (finish-cockpit-controls.md C4b): each moves, and is seen and clicked
-## from the seat's eye or a lean of the head (the MFDs' inboard rockers behind the ICP and the instrument housing,
-## MAX POWER under the throttle's grip).
+## (it or a part of its property: ADV MODE's legends on its button) from the seat's eye or a lean of the head (the
+## MFDs' inboard rockers behind the ICP and the instrument housing, MAX POWER under the throttle's grip).
 const C4B := [
 	"HSI_hdg-knob",
 	"HSI_course-knob",
@@ -23,6 +23,9 @@ const C4B := [
 	"MFD1_MFDButtonCon",
 	"MFD2_MFDButtonGain",
 	"MFD2_MFDButtonBrightness",
+	"adv-mode-button",
+	"stby-off",
+	"active-off",
 	"EHSI_button",
 	"master_reset",
 	"SW_MAX_POWER"
@@ -209,9 +212,9 @@ func _c4b(tv: Node, c3d: Node, ctl: Node, id: String) -> void:
 		for lean in [Vector3.ZERO] + Array(Shot.LEANS):
 			tv.views.lean = lean
 			var at: Vector2 = await _aim(tv, mi)
-			if Shot.first_hit(meshes, c3d.camera.global_position, mi) == mi:
+			if Shot.first_hit(meshes, c3d.camera.global_position, mi) in parts:  # ADV MODE's legends on its button
 				var hit = ctl.at(at)
-				if hit != null and hit[0] == mi:
+				if hit != null and hit[0] in parts:
 					seen = lean
 					break
 		tv.views.lean = Vector3.ZERO

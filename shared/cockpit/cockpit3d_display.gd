@@ -47,8 +47,13 @@ static var _font: Font
 static var _font_of: Script  # the Settings script that gave _font (a test swaps it)
 var cockpit: Control
 var kind := Kind.RWR
-## What the last draw showed (tests): the RWR symbols' count, the DED's lines, the EHSI's range (NM, -1 none).
+## What the last draw showed (tests): the RWR symbols' count, the DED's lines, the EHSI's range (NM, -1 none), heading
+## bug and course (°, -1 none).
 var shown := {}
+## The 3D cockpit's switches (cockpit3d.gd `switches`): the EHSI's HDG and CRS knobs' settings.
+var switches := {}
+const HDG_BUG := "instrumentation/heading-indicator/heading-bug-deg"
+const COURSE := "instrumentation/nav[0]/radials/selected-deg-knob"
 
 
 func _init(c: Control, k: Kind, px: Vector2i) -> void:
@@ -215,7 +220,33 @@ func _ehsi() -> void:
 			_text(Vector2(size.x * 0.13, size.y * 0.1), "%03d" % mini(roundi(dist), 999), fs, WHITE)
 			_text(Vector2(size.x * 0.13, size.y * 0.18), "NM", int(fs * 0.7), WHITE)
 	_text(Vector2(size.x * 0.12, size.y * 0.92), "TCN" if cockpit.ehsi_tcn else "NAV", fs, WHITE)
-	shown = {"dist_nm": dist, "heading": hdg, "mode": "TCN" if cockpit.ehsi_tcn else "NAV"}
+	# The heading bug and the course arrow where their knobs (HDG, CRS) set them, as the model shows the knobs until
+	# turned: 0° (the jet's setting at a cold start is open; their shapes and colour inferred).
+	var bug := float(switches.get(HDG_BUG, -1.0))
+	if bug >= 0.0:
+		var a := deg_to_rad(bug - hdg)
+		var d := Vector2(sin(a), -cos(a))
+		var n := Vector2(-d.y, d.x) * r * 0.08
+		var o := c + d * r * 1.12
+		var i := c + d * r * 0.98
+		# A notched block astride the rose's rim.
+		draw_colored_polygon(
+			PackedVector2Array([i - n, o - n, o - n * 0.35, i + d * r * 0.06, o + n * 0.35, o + n, i + n]), WHITE
+		)
+	var crs := float(switches.get(COURSE, -1.0))
+	if crs >= 0.0:
+		var a := deg_to_rad(crs - hdg)
+		var d := Vector2(sin(a), -cos(a))
+		var n := Vector2(-d.y, d.x)
+		draw_line(c + d * r * 0.4, c + d * r * 0.8, WHITE, 3.0, true)
+		draw_colored_polygon(
+			PackedVector2Array([c + d * r * 0.82, c + d * r * 0.68 + n * r * 0.07, c + d * r * 0.68 - n * r * 0.07]),
+			WHITE
+		)
+		draw_line(c - d * r * 0.4, c - d * r * 0.8, WHITE, 3.0, true)  # its tail
+	shown = {
+		"dist_nm": dist, "heading": hdg, "hdg_bug": bug, "course": crs, "mode": "TCN" if cockpit.ehsi_tcn else "NAV"
+	}
 
 
 ## The DED, 5 lines of 24 characters. Modern IAF's F-16s: the up-front controls' pages (cockpit.gd ded_lines,
