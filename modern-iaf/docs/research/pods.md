@@ -232,7 +232,8 @@ countermeasure rows), the Litening's SAR mode (one 2026 report; parked as sensor
 ## 6. Recommendation (priority order)
 
 1. **P1 then P2:** finish slice 4's Litening and laser bombs, and swap the stand-in for the real Litening shape
-   from the source we already credit. Small, and it closes the decided item (§8.2).
+   from the source we already credit. Small, and it closes the decided item (the plan's §8.2). With them, **P12**
+   and **P13** (§8): the laser bombs arrive together with the rule that they need the pod.
 2. **P3** with the Barak's slice 6 (data only).
 3. **P5** with slice 9's laser path: the cockpit steps make the pod a procedure, not a camera.
 4. **P4** when a second pod or a centreline store needs a station; until then station 5 serves.
@@ -251,6 +252,68 @@ countermeasure rows), the Litening's SAR mode (one 2026 report; parked as sensor
    intended play (inferred yes)?
 5. **Terrain following on the Sufa:** if wanted, take it from the radar's TF mode (sourced, one page) or from a
    LANTIRN pod (§1 open)?
+
+## 8. Weapons that need a pod
+
+The user, 17 November 2026: "also considration for pods: if there are some ammunitions that can't be used without
+it, it should not be allowed to use without them". This section lists, for every store the sim's jets carry, whether
+the real jet can employ it without a pod, and proposes the game's rule. Cockpit procedure only.
+
+### 8.1 Each store and the pod
+
+The stores: `modern-iaf/data/db/weapons/` on main, and the GBU-10 / 12 / 16 and the Litening on branch
+`wt/avionics-s4` (§4).
+
+| store | needs a pod? | delivery without a pod | what the pod adds | source |
+|---|---|---|---|---|
+| GBU-10 / 12 / 16 (laser-guided) | **yes, a laser designator**: the own targeting pod, or another designator | released on a spot another aircraft (buddy lasing) or a ground team designates; the bomb's laser code set to match the designator's | self-designation: find, track and lase the target from the own jet (§3.1) | the bomb homes on "the reflected light ("sparkle") of the designating laser"[^w-paveway]; F-4 manual: "unless guided by another aircraft", the pod "is the main mode to employ GBUs"[^hb-f4-lgb] (secondary); ground designation: forum only, inferred |
+| GBU-31, GBU-38 (JDAM) | no | target coordinates loaded before take-off or changed by the crew in flight (PRE) | coordinates of a target found in flight, "entered by a datalink from onboard targeting equipment, such as the LITENING II or Sniper targeting pods" (VIS / target of opportunity) | [^w-jdam] |
+| GBU-39 (SDB) | no | as the JDAM: coordinates (inferred from its GPS guidance, [../../../docs/weapons.md](../../../docs/weapons.md) §13.2) | as the JDAM (inferred) | inferred |
+| SPICE 1000 / 2000 | no | up to 100 targets loaded before flight, picked in flight; the bomb's own camera picture in the cockpit through the pylon's data link | coordinates or an image of a new target (inferred: the source names "an image or geographical coordinates", not their origin) | [^w-spice] |
+| Mk 82 / 83 / 84 | no | CCIP and the other visual or radar modes ([../avionics-plan.md](../avionics-plan.md) S2–S6) | identifying the target; laser range for the release solution (the LANTIRN targeting pod passes its laser range to the fire control system[^fas-lantirn]) | [^fas-lantirn], inferred |
+| AIM-9M, AIM-9X, Python 5, AIM-120, the gun | no | the radar, the helmet and the HUD | none (an A-A pod mode exists on the TGP page; not needed) | inferred |
+| Delilah (record only; on no station) | open | open | open | open |
+| Tanks, chaff, flares | no | — | — | — |
+
+**The navigation pod:** no weapon needs it. It serves night low-level flight (§2.1); the attack itself uses the
+targeting pod or the weapon's own guidance (inferred). Its rule is a flight rule (night low-level), not a weapon rule:
+none is proposed until night missions exist (§6).
+
+**The F-35I:** its EOTS is built in, so it always has the laser (§2.4); the Ra'am's built-in pod (§4) the same.
+
+### 8.2 What exists today
+
+- **Release:** `crates/iaf-avionics/src/release.rs` `laser_aim` takes the designation only with the laser on; with
+  no laser (no pod, or the laser off) a laser bomb still flies the guided motion **to the ripple aim**, the
+  CCIP-style point ([../../../docs/weapons.md](../../../docs/weapons.md) §9.8, the original's rule). So today a laser
+  bomb without a pod is released, and steers to the release point: the game lets it be used without a pod.
+  `gps_aim` in the same file takes PRE, then the pod's point, then the radar's designation, then CCIP for the GPS
+  bombs: no pod needed (correct by §8.1).
+- **Stores:** `crates/iaf-avionics/src/stores.rs` knows pods only as stores that are never selected or released
+  (station select refuses "a tank / pod"); no store records what it needs.
+- **SMS:** the RDY legend needs MASTER ARM and the stations' power ([../weapons.md](../weapons.md) §5); nothing
+  checks a pod. The TGP format shows only with a pod store (`shared/cockpit/f16_mfd.gd`).
+- **Loadout screen:** `modern-iaf/menu/loadout_screen.gd` refuses a store a station's `allowed` list lacks (the
+  callout shakes), and has two weight rules ([../front-end.md](../front-end.md) §10.1): over the maximum take-off
+  weight the figure turns the warning colour and **Fly is off**; past the balance limit an amber warning and Fly
+  stays on unless the unit record's `lateral_limit_hard`. No rule looks at two stores together.
+- **Briefing:** the Arming summary lists the stores and the weight; no warning line.
+
+### 8.3 The proposed rule (pick list)
+
+The data side, common to all three: a weapon record gains a field such as `"needs": "laser"` (the GBU-10 / 12 / 16),
+met by a pod store whose record says `"gives": "laser"` (the Litening) or by a built-in pod (the F-35I, the Ra'am).
+Ours, inferred: one field, read by the loadout, the release logic and the briefing alike, in Rust (the placement
+rule). Buddy lasing (P6) would later meet the need from a mission's designator instead of a pod.
+
+| # | item: what the player sees | size | kind |
+|---|---|---|---|
+| P12 | **Loadout rule.** A load with a laser bomb and no designator is flagged on the loadout screen and in the stores column. Options: (A) **hard**: as the weight rule, Fly is off until the pod is loaded or the bombs removed; (B) **warning**: amber, Fly stays on (as the balance rule); (C) **auto-add**: dropping a laser bomb on a jet without a pod also loads the pod on its station, with a line saying so. Wording options (English; Hebrew in the same tone): "GBU-12 needs a targeting pod. Load the Litening on station 5, or remove the GBU-12." / "No laser designator: the GBU-12 cannot be guided." / "Litening added: the GBU-12 needs it." Ours, recommended: (A) while the sim has no buddy lasing, since nothing else could guide the bomb; (B) once missions can carry a lasing wingman or ground team | S | extend (record field; `IafBriefing` check; `loadout_screen.gd` line and Fly gate) |
+| P13 | **In flight.** If a jet still flies a laser bomb without a designator (a mission's fixed load, or the pod failed): the SMS shows the laser bomb's station but not RDY, with a reason line such as `NO LASER` (ours: the public dash-34 legend for this case was not found, open); the pickle releases nothing while selected; the release rule `laser_aim` drops the "steer to the ripple aim" fallback for a jet with no designator, so a jettisoned or forced-off bomb falls unguided (inferred: it is a deviation from the 1998 original's rule, kept for reborn and changed only in Modern IAF, recorded in `docs/deviations.md` if shared code changes) | S–M | extend (`release.rs`, `f16_mfd.rs` SMS legend, `player_weapons.gd`) |
+| P14 | **Briefing.** The Arming summary shows a line under the stores when a weapon's need is unmet, in the same words as P12, with Edit opening the loadout on the station to fix; nothing when the load is complete | S | extend (the briefing's Arming summary) |
+
+Not proposed: a rule for the GPS bombs and the SPICE without a pod (they work without one, §8.1); a rule for the
+navigation pod (no weapon needs it).
 
 [^at-sufa]: Airforce Technology, "F-16I Soufa Multirole Fighter, Israel" (Litening II "targeting and navigation pod";
     the LANTIRN navigation pod; the photo caption; the Elisra SPS-3000; the radar's terrain following):
@@ -293,5 +356,14 @@ countermeasure rows), the Litening's SAR mode (one 2026 report; parked as sensor
     laser arm and fire, the laser code, the display): https://f14.manuals.heatblur.se/f14ab/systems/lantirn/overview.html
 [^bms-forum-laser]: Secondary. Falcon BMS forum, "Key command for fire laser?" (the trigger's first detent, held;
     laser arm, TGP not masked, TGP the SOI): https://forum.falcon-bms.com/post/115243
+[^w-paveway]: Wikipedia, "Paveway" (the seeker homes on the designating laser's reflection):
+    https://en.wikipedia.org/wiki/Paveway
+[^hb-f4-lgb]: Secondary. Heatblur Simulations, *DCS: F-4E manual*, "Laser Guided Bombs" (the own pod or buddy
+    lasing; the bombs' laser code set on the ground):
+    https://f4.manuals.heatblur.se/stores/air_to_ground/bombs/laser_guided_bombs.html
+[^w-jdam]: Wikipedia, "Joint Direct Attack Munition" (coordinates loaded before take-off, changed in flight, or
+    entered from a targeting pod such as the Litening II): https://en.wikipedia.org/wiki/Joint_Direct_Attack_Munition
+[^w-spice]: Wikipedia, "Spice (bomb)" (targets loaded pre-flight and picked in flight; the pylon's data link; a new
+    target as an image or coordinates): https://en.wikipedia.org/wiki/Spice_(bomb)
 [^bms-tfr]: Secondary. Falcon BMS community wiki (Chinese), "8 低空导航" (low-altitude navigation; follows
     BMS1-F16CM-34-1-1 and the dash-34 §2.10): https://wiki.biligame.com/falconbms/8_%E4%BD%8E%E7%A9%BA%E5%AF%BC%E8%88%AA
