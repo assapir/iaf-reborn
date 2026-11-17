@@ -446,6 +446,8 @@ static func _system_state(tv: Object, name: String, now: float) -> float:
 	match name:
 		"master_arm":  # SIMULATE / OFF / MASTER ARM: safe keeps SIMULATE (not modelled) or OFF
 			return 1.0 if tv.weapons.master_arm else minf(now, 0.0)
+		"laser_arm":  # OFF / ARM (the modern MFDs' LASER ARM, player_weapons.gd laser_arm)
+			return 1.0 if tv.weapons.laser_arm else 0.0
 		"mfd_brt":
 			return Settings.mfd_brightness
 		"alt_flaps":
@@ -487,6 +489,9 @@ func _system_put(name: String, v: float, was := NAN) -> void:
 		"master_arm":  # command 202 flips it
 			if on != tv.weapons.master_arm:
 				tv._press([202, 0, 0])
+		"laser_arm":  # command 241 flips it
+			if on != tv.weapons.laser_arm:
+				tv._press([241, 0, 0])
 		"emer_jett":  # the push: command 72
 			if on:
 				tv._press([72, 0, 0])

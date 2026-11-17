@@ -934,9 +934,85 @@ Bottom left: Modern and MFDs (F-16) on Real, Modern IAF's RWR symbols (top left 
 draws no map). Bottom right: the Sufa with Modern, its colour HSD over the OpenStreetMap map. Made by
 `tests/godot/_mfd_shot.gd` with `MFD_LOOK=extras`.
 
+### Modern MFDs (Modern IAF's F-16s)
+
+Modern IAF's F-16s (`Settings.modern_mfds()`, with the F-16's real MFDs in the cockpit: `player_weapons.gd`
+`modern_f16`) add what the real jet's MFDs do beyond the formats above (avionics-plan.md slice 4). The 1998 game keeps
+its Real MFDs as above. The real layouts of the Sufa's displays are not public; where a figure of the dash-34[^d34] or
+the MLU M1 guide[^mlu] does not show it, the layout follows the DCS F-16 manual[^dcs], a simulator manual, and is
+inferred for the Sufa. The logic is `crates/iaf-avionics/src/f16_mfd.rs` (`Mfd::modern`, `Hsd`, `dms`,
+`ag_submodes`, `flcs_bit`, `tgp_track`) and `release.rs` (`Profiles`); the drawing `shared/cockpit/f16_mfd.gd`.
+
+**The frame.**
+- Each MFD keeps three formats per master mode, NAV, A-A and A-G (DGFT and MSL with avionics-plan.md G17): a master
+  mode brings back its own three and its own primary, and the game places no page on a master mode (the 1998 rule
+  `FUN_00449810`'s pages; the EO sensor still starts with the laser bombs). They start as above in every mode, the right
+  MFD's A-G primary the SMS, as the 1998 game shows the stores page for the bombs (inferred: the real jet's come from
+  its data cartridge). SWAP trades the current mode's formats.
+- The menu also offers BLANK (OSB 1), RESET (OSB 5, the RESET MENU), DTE (OSB 8) and FLCS (OSB 10), shown on page 11,
+  a page of their own the game's systems never set. HAD, RCCE, TFR and FLIR are not offered: the sim has no HARM
+  targeting system, recce pod, terrain-following mode (avionics-plan.md G12) or navigation FLIR pod.
+- The sensor of interest (SOI): one of the HUD, the left MFD or the right MFD; it starts on the left MFD. The SOI MFD
+  draws a box inside its edge; an FCR, HSD, TGP or WPN format that is not the SOI reads `NOT SOI` low. A format that
+  cannot be the SOI (SMS, TEST, DTE, FLCS, BLANK, RESET, the menu) hands it to the HUD. The cursor keys (Ctrl +
+  arrows) and the TMS keys act on the SOI: the FCR's cursor and TMS ([radar.md](radar.md) §9.4), the HSD's cursor
+  and TMS up, the TGP's slew and track modes; with the HUD the SOI they act as before.
+- RESET MENU: OSB 6 `MSMD RESET` puts every master mode's formats on both MFDs back to the start; OSB 7 `DCLT RESET`
+  turns both MFDs' declutter off (the layout inferred).
+
+**The keys** (`modern-iaf/data/keys.json` records 147–151; the Keys screen's Sensors and Weapons groups):
+
+| key | function (real switch) |
+|---|---|
+| Ctrl + Page Up | DMS up: the SOI on the HUD |
+| Ctrl + Page Down | DMS down: the SOI on the left MFD (else the right), then from one MFD to the other |
+| Ctrl + `[` | DMS left: the left MFD's next format |
+| Ctrl + `]` | DMS right: the right MFD's next format |
+| Shift + L | LASER ARM (the MISC panel's switch, also clickable in the 3D cockpit): the laser fires only armed; it starts OFF |
+
+**HSD.** OSB 1 `DEP` / `CEN` (the ownship a quarter up, or in the middle), OSB 2 `DCPL` / `CPL` (the range coupled to
+the FCR's), OSB 3 `NORM` / `EXP1` / `EXP2` (2:1, 4:1 about the HSD cursor), OSB 4 `FRZ` (the picture held where it
+was, the ownship moving over it), OSB 5 `CNTL`. The CNTL page's options turn the layers on and off: `FCR` (OSB 20,
+the scan wedge), `PRE` (19, the preplanned threats), `NAV1` (6, the route), `RINGS` (7), `BULL` (8, the bullseye). The
+bullseye is the route's first point, the home base (inferred: the sim's missions name none), drawn as a cyan circle
+with a dot, the ownship's bearing and range from it in the lower left. While the HSD is the SOI its cursor (a cross)
+moves on the cursor keys; TMS up (`/`) on a steerpoint makes it the current one.
+
+**SMS.** The A-G page's OSB 2 opens the submode menu down the left from OSB 20, the current one boxed: CCIP, or a GPS
+bomb's PRE / VIS (the release has no CCRP, DTOS, LADD or MAN yet: avionics-plan.md G21 adds them). OSB 7 `PROF1` /
+`PROF2`: each A-G weapon keeps two profiles of release pulses, interval and SGL / PAIR; a profile never set starts as
+a copy of the other, and a weapon selected again brings back its active profile. The GUN page reads `EEGS` (A-A) or
+`STRF` (A-G), as the HUD draws them (also the 1998 game's Real MFDs: until 2026-11-17 they read LCOS / EEGS).
+
+**TGP** (the Litening pod, station 5 on the chin; modern-iaf/docs/weapons.md §7). The TGP format shows beside the WPN
+(the 1998 rule allows one EO page). Without the pod it reads `NO POD`. With the TGP the SOI:
+- TMS up (`/`): a POINT track on the unit under the cross (within 2 m of its drawn model), else an AREA track on the
+  ground point there; TMS right (`;`): an AREA track; TMS down (Shift + `/`): the pod slaved to the SPI, the radar's
+  designated ground point, else the current steerpoint, following it as it moves;
+- the cursor keys slew it (the track legend `INR` while slewing; releasing them tracks the ground point, AREA);
+- the track legend at the top: `POINT`, `AREA`, `INR`, none while slaved; `ARM` low left with LASER ARM on; OSB 3
+  `LASR` (and L) fires the laser only armed; OSBs 20 / 19 the zoom, OSB 2 WIDE / NARO as before.
+The WPN shows no video for a laser bomb (inferred: the real F-16 has no WPN page for one; the 1998 game sets the TV
+status for them). The laser bombs (GBU-10, GBU-12, GBU-16) fly the shared laser path onto the pod's laser spot ([weapons.md](weapons.md)
+§9.8).
+
+**DTE** (inferred layout): OSB 3 `LOAD` loads the data cartridge (the mission's data, loaded at the start): `LOAD IN
+PROG` for 3 s, then `LOAD COMPLETE`. **FLCS** (inferred layout): the four branches A–D, `OK`, `DEGR` (damage flag 18)
+or `FAIL` (flag 24); OSB 3 `BIT` runs only on the ground: `BIT RUN` for 45 s, then `BIT PASS` or `BIT FAIL`.
+**BLANK**: nothing but the bottom row.
+
+Test: modern-iaf/tests/test_sim_mfd.gd. Pictures: modern-iaf/tests/_mfd_s4_shot.gd.
+
 ## Open questions
 - Unreferenced tiles (132,132) "Debug", (132,264) LAS, (132,396) TWS, (0,528): leftovers?
 - Straight-ahead vertical pan (+0x568) → exact on-screen MFD y.
 - Meaning of the TSD ×1.0071394 factor and the ~20 m offsets between TSD, MAP and DataShift constants.
 - state+0x3a0 (the STT closure source).
 - That the NAV ETA's clock offset (clock+0x18) is the mission start time 0x460.
+
+[^d34]: T.O. GR1F-16CJ-34-1-1, Hellenic AF F-16C/D Block 50 avionics and weapons delivery (dash-34), 1997:
+    https://falcon.blu3wolf.com/Docs/HAF-F16-34.pdf
+[^mlu]: Lockheed Martin, F-16 A/B MLU Production Tape M1 pilot's guide (16PR14341, 15 Nov 1998):
+    https://falcon.blu3wolf.com/Docs/MLU_M1.pdf
+[^dcs]: Eagle Dynamics, *DCS: F-16C Viper Early Access Guide* (EN, 2026), a simulator manual of a Block 50 M4 tape:
+    https://www.digitalcombatsimulator.com/en/downloads/documentation/dcs-viper_early_access_manual_en/

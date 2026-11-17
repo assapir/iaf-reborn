@@ -1088,6 +1088,14 @@ func modern_radar() -> bool:
 	return false
 
 
+## Ours: the F-16's modern MFDs (docs/mfd.md §9.6): the formats kept per master mode, the DMS and the sensor of
+## interest, the formats with no game page (DTE, FLCS, BLANK, RESET), the HSD's settings, the SMS profiles, the
+## targeting pod's track modes and the LASER ARM switch. The 1998 game keeps its Real MFDs as they are; Modern IAF says
+## yes.
+func modern_mfds() -> bool:
+	return false
+
+
 ## The folders under assets/converted holding the aircraft descriptors (aircraft_model.gd: `<plane>/aircraft.json` and
 ## the index `aircraft.json`) and the menu missions (mission_runtime.gd: `missionlist.json` and the missions): the
 ## original's converted ones; Modern IAF's own (sim_settings.gd).

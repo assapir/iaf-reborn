@@ -83,13 +83,18 @@ pub const F16_GLB: &str = "shared/extra/models/f16/f16d.glb";
 ///     below the pylon's bottom, on its middle (inferred, as at the rails);
 ///   - 4 and 6 (StationD, StationF): under the inboard pylons (x ±1.73 m, bottom y −0.341 m, z −0.18 to 2.23 m), the
 ///     370 US gal tank's top (0.328 m above its origin in stores/f16ftk.glb) on the pylon's bottom.
+///   - 5 (StationE): the Sufa's targeting pod station, the right chin hardpoint under the intake (ours: the sim's
+///     station 5; the model's centreline helper is not used, no sim store goes there): the intake's bottom at x 0.3 m
+///     right, y −0.80 m, z −1.25 m (aft of the nose gear; place inferred from photos of the F-16's chin pods, the
+///     right side as the Sufa's Litening, modern-iaf/docs/weapons.md §7), the pod's top on it (`F16_SIM_LUGS`).
 ///
 /// These are the rail points the missiles hang at; the stores that hang by their lugs take `F16_SIM_LUGS` instead.
-const F16_SIM_STATIONS: [(&str, [f64; 3]); 8] = [
+const F16_SIM_STATIONS: [(&str, [f64; 3]); 9] = [
     ("StationA", [-4.7075, -0.2015, 2.35]),
     ("StationB", [-3.974, -0.3855, 2.496]),
     ("StationC", [-2.986, -0.4555, 1.912]),
     ("StationD", [-1.735, -0.669, 1.023]),
+    ("StationE", [0.3, -1.0, -1.25]),
     ("StationF", [1.726, -0.669, 1.023]),
     ("StationG", [2.977, -0.4555, 1.912]),
     ("StationH", [3.965, -0.3855, 2.496]),
@@ -100,9 +105,10 @@ const F16_SIM_STATIONS: [(&str, [f64; 3]); 8] = [
 /// bottom on its middle (the same pylons as `F16_SIM_STATIONS`), the descriptor's `lugs`. A bomb, a guided bomb or a
 /// tank hangs its top there (stores.gd `LUGGED`), so the Mk 84 on 3 / 7 hangs under the pylon, not on the AIM-9's
 /// axis inside it; the tank's place on 4 / 6 stays as before.
-const F16_SIM_LUGS: [(&str, [f64; 3]); 4] = [
+const F16_SIM_LUGS: [(&str, [f64; 3]); 5] = [
     ("StationC", [-2.986, -0.392, 1.912]),
     ("StationD", [-1.735, -0.341, 1.023]),
+    ("StationE", [0.3, -0.8, -1.25]),
     ("StationF", [1.726, -0.341, 1.023]),
     ("StationG", [2.977, -0.392, 1.912]),
 ];
@@ -201,6 +207,10 @@ const KINDS: &[(&str, i64, &str, i64)] = &[
     ("ir_sam", 620, "Heat sam", -1),
     ("radar_sam", 630, "Radar sam", -1),
     ("tank", 660, "Shell", -1),
+    // Ours: the targeting pod (the original's FLIR pod is a 660 named "FLIR"; player_weapons.gd finds a pod by its
+    // name) and the laser-guided bombs (650 without a GPS kit: the guided motion, docs/weapons.md §9.8).
+    ("pod", 660, "Shell", -1),
+    ("laser_bomb", 650, "Laser bomb", -1),
 ];
 const SIDES: &[(&str, i64)] = &[("blue", 1), ("red", 2)];
 /// Pylon stations A..I are stations 0..8 (CArmament, docs/formats/mis.md "CArmament").
@@ -1950,7 +1960,7 @@ mod tests {
         }
         let keys: Value = serde_json::from_str(&std::fs::read_to_string(root.0.join(KEYS_FILE)).unwrap()).unwrap();
         let recs = keys["records"].as_array().unwrap();
-        assert_eq!(recs.len(), 147);
+        assert_eq!(recs.len(), 152);
         for r in recs {
             let labelled = r["label"].as_str().is_some_and(|l| !l.is_empty());
             assert!(labelled || r["shown"] == false, "{r}");
@@ -1970,7 +1980,7 @@ mod tests {
         let lap: Value =
             serde_json::from_str(&std::fs::read_to_string(root.0.join(KEYS_LAPTOP_FILE)).unwrap()).unwrap();
         let lrecs = lap["records"].as_array().unwrap();
-        assert_eq!((lrecs.len(), lrecs[37]["dik"].as_u64(), lrecs[38]["dik"].as_u64()), (147, Some(0x2c), Some(0x2d)));
+        assert_eq!((lrecs.len(), lrecs[37]["dik"].as_u64(), lrecs[38]["dik"].as_u64()), (152, Some(0x2c), Some(0x2d)));
         for r in lrecs {
             let dik = r["dik"].as_u64().unwrap();
             assert!(!matches!(dik, 0x37 | 0x47..=0x53 | 0x9c | 0xb5), "{r}");

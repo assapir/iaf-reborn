@@ -74,6 +74,16 @@ var sms_inv := false
 var fcr_cntl := false
 ## Tests: the colours drawn this frame.
 var used := {}
+## Ours (Settings.modern_mfds, Modern IAF; docs/mfd.md §9 "Modern MFDs"): the formats per master mode, DMS / SOI, the
+## formats of its own, the HSD's settings, the SMS profiles and submode menu, the TGP's track modes.
+var modern := false
+## The SMS A-G page's submode menu is open (OSB 2).
+var sms_sub := false
+## DTE: when LOAD was pressed (s, the engine's ticks), -1 never; FLCS: when its BIT started, -1 never.
+var dte_t := -1.0
+var bit_t := -1.0
+## The HSD's world -> MFD px this frame (the picks of TMS up read it).
+var hsd_x := Transform2D.IDENTITY
 
 
 func _init(mfd: Control) -> void:
@@ -82,6 +92,7 @@ func _init(mfd: Control) -> void:
 		_font_of = Settings.get_script()
 	super(mfd, mfd.cockpit, _font)
 	m = mfd
+	modern = Settings.modern_mfds()
 
 
 ## The colour of a role: the colour ink on the Sufa, the green on the Barak.
@@ -172,10 +183,29 @@ func draw_format(s: float) -> void:
 			tgp()
 		"TEST":
 			test()
+		"DTE":
+			dte()
+		"FLCS":
+			flcs()
+		"RESET":
+			reset_menu()
 		"MENU":
 			format_menu(String(st.shown))
 	bottom_row(f)
+	if modern and f != "MENU":
+		_soi_mark(st)
 	end()
+
+
+## Ours, the modern MFDs: the SOI box inside the format's edge on the sensor of interest; NOT SOI low on a format that
+## could be it (the DCS F-16 manual, a simulator manual; inferred for the Sufa).
+func _soi_mark(st: Dictionary) -> void:
+	if not st.soi:
+		return
+	if cockpit.soi == m.index:
+		box(Rect2(1.5, 1.5, 129, 129), c("text"), LINE * 1.5)
+	elif not st.declutter:
+		centred(66, 110, "NOT SOI", c("text"), SMALL)
 
 
 # --- the format menu ------------------------------------------------------------------------------------------------
@@ -184,7 +214,7 @@ func draw_format(s: float) -> void:
 ## Fig. 1-29: the formats by their OSBs, the current one highlighted; TGP only with a targeting pod (the original's
 ## MENU "FLIR" gate).
 func format_menu(current: String) -> void:
-	for e in ClassDB.class_call_static("IafF16Mfd", "menu"):
+	for e in ClassDB.class_call_static("IafF16Mfd", "menu_modern" if modern else "menu"):
 		if e[1] == "TGP" and not m._flir_menu():
 			continue
 		label(int(e[0]), String(e[1]), e[1] == current)
@@ -545,52 +575,85 @@ const HSD_R := 88.0  # px from the ownship to the outer ring (= the range scale)
 ## The HSD (fig. 1-45, pp. 1-82..1-83): the range with its triangles, three rings a third of the range apart and the
 ## north tic, the route through the past, current and next two steerpoints (the current filled), the preplanned
 ## threats as rings from the game's SAM sites (inferred; MLU figs. 1-18..1-19), the FCR's scan as a wedge, the ownship.
-## The Sufa's colour moving map (f16i.md §4) under it all: the game's TSD map, dimmed.
+## The Sufa's colour moving map (f16i.md §4) under it all: the game's TSD map, dimmed. The modern MFDs add the HSD's
+## settings (IafF16Mfd.hsd: DEP / CEN, CPL, EXP, FRZ, the CNTL page's options), the bullseye and the HSD cursor.
 func hsd() -> void:
-	var nm: float = ClassDB.class_call_static("IafF16Mfd", "hsd_range_nm", m.tsd_scale)
-	var mpp := nm * 1852.0 / HSD_R
+	var tsd_nm: float = ClassDB.class_call_static("IafF16Mfd", "hsd_range_nm", m.tsd_scale)
+	var v := {
+		"own": HSD_OWN,
+		"r": HSD_R,
+		"nm": tsd_nm,
+		"exp": 1.0,
+		"exp_at": HSD_OWN,
+		"frozen": null,
+		"show": [true, true, true, true, false],
+		"cntl": false
+	}
+	if modern:
+		v = m.real.hsd(tsd_nm, _fcr_nm())
+		for l in v.labels:
+			label(int(l[0]), String(l[1]), bool(l[2]))
+		if v.cntl:
+			return
+	else:
+		label(1, "DEP")
+		label(5, "CNTL")
+	stepper("%d" % int(v.nm))
+	var mpp := float(v.nm) * 1852.0 / float(v.r)
+	var k := float(v.exp)
+	# The picture's origin: the ownship, or where FRZ held it (its place and heading).
+	var origin := own_world()
+	var h0 := heading_rad()
+	if v.frozen != null:
+		origin = Vector2(v.frozen.x, v.frozen.y)
+		h0 = float(v.frozen.z)
+	hsd_x = _hsd_xform(v.own, mpp, origin, h0)
+	if k != 1.0:
+		hsd_x = Transform2D(0.0, Vector2(k, k), 0.0, (v.exp_at as Vector2) * (1.0 - k)) * hsd_x
+	var xf := hsd_x
 	var clip := PackedVector2Array([Vector2(1, 12), Vector2(131, 12), Vector2(131, 121), Vector2(1, 121)])
 	if m.real_look == "colour":
 		# At night darker: the 3D screens by MAP_NIGHT (cockpit3d.gd sets map_dim), the 2D panel's by MAP_NIGHT_2D.
 		var dim := maxf(0.62, MfdNode.MAP_NIGHT_2D if cockpit.night and m.screen_px == 0.0 else m.map_dim)
-		var xf := scope_xform(HSD_OWN, mpp)  # one transform per frame (pcd_formats.gd tsd)
 		for piece_src in cockpit.tsd_map:
 			var pts: PackedVector2Array = xf * (piece_src.points as PackedVector2Array)
 			for piece in Geometry2D.intersect_polygons(pts, clip):
 				if piece.size() >= 3 and not Geometry2D.triangulate_polygon(piece).is_empty():
 					ci.draw_colored_polygon(piece, Color(piece_src.color).darkened(dim))
-	label(1, "DEP")
-	label(5, "CNTL")
-	stepper("%d" % int(nm))
+	var show: Array = v.show
+	var ring_c: Vector2 = xf * origin
+	var rr := float(v.r) * k
 	var rc := c("ring")
-	for k in [1, 2, 3]:
-		for seg in _arc_clipped(HSD_OWN, HSD_R * k / 3.0, clip):
-			poly(seg, rc, THIN)
-	var hn := -heading_rad()
-	var nd := Vector2(sin(hn), -cos(hn))
-	var tic_at := HSD_OWN + nd * HSD_R
-	if Geometry2D.is_point_in_polygon(tic_at, clip):
-		line(tic_at, tic_at + nd * 4.0, rc, LINE)
+	if show[3]:
+		for i in [1, 2, 3]:
+			for seg in _arc_clipped(ring_c, rr * i / 3.0, clip):
+				poly(seg, rc, THIN)
+		var nd := Vector2(sin(-h0), -cos(-h0))
+		var tic_at := ring_c + nd * rr
+		if Geometry2D.is_point_in_polygon(tic_at, clip):
+			line(tic_at, tic_at + nd * 4.0, rc, LINE)
+	var own_p: Vector2 = xf * own_world()
+	var dh := heading_rad() - h0  # the ownship turned on a frozen picture
 	# The FCR's scan (A-A search modes): a wedge to the radar's range.
 	var r: Dictionary = cockpit.radar
 	var mode := int(r.get("mode", 0))
-	if mode >= 3 and mode <= 6:
+	if show[0] and mode >= 3 and mode <= 6:
 		var half := float(r.get("width", TAU / 3.0)) / 2.0
-		var mid := -float(r.get("shift", 0.0))
-		var rr: float = MfdNode.RADAR_RANGES[clampi(int(r.get("idx", 1)), 1, 6) - 1] * 1852.0 / mpp
-		var pts := PackedVector2Array([HSD_OWN])
+		var mid := -float(r.get("shift", 0.0)) + dh
+		var fr := _fcr_nm() * 1852.0 / mpp * k
+		var pts := PackedVector2Array([own_p])
 		for i in 13:
 			var a := mid - half + 2.0 * half * i / 12.0
-			pts.append(HSD_OWN + Vector2(sin(a), -cos(a)) * rr)
-		pts.append(HSD_OWN)
+			pts.append(own_p + Vector2(sin(a), -cos(a)) * fr)
+		pts.append(own_p)
 		for seg in Geometry2D.intersect_polyline_with_polygon(pts, clip):
 			poly(seg, c("own"), THIN)
 	# The route: the past, current and next two steerpoints.
 	var wps: Array = cockpit.waypoints
 	var cur: int = cockpit.current_waypoint
 	var prev = null
-	for i in range(maxi(cur - 1, 0), mini(cur + 3, wps.size())):
-		var p := to_scope(wps[i].world, HSD_OWN, mpp)
+	for i in range(maxi(cur - 1, 0), mini(cur + 3, wps.size()) if show[2] else 0):
+		var p: Vector2 = xf * (wps[i].world as Vector2)
 		if prev != null:
 			for seg in Geometry2D.intersect_polyline_with_polygon(PackedVector2Array([prev, p]), clip):
 				poly(seg, c("route"), THIN)
@@ -601,25 +664,72 @@ func hsd() -> void:
 			else:
 				circle(p, 2.0, c("route"), THIN)
 	# Preplanned threats: a ring of the site's reach with the site's mark; red with the jet inside (a simulator manual).
-	for site in cockpit.sam_sites:
-		var p := to_scope(site.pos, HSD_OWN, mpp)
+	var sites: Array = cockpit.sam_sites if show[1] else []
+	for site in sites:
+		var p: Vector2 = xf * (site.pos as Vector2)
 		var inside: bool = own_world().distance_to(site.pos) < float(site.r)
 		var col := c("inside" if inside else "threat")
-		var rad := float(site.r) / mpp
+		var rad := float(site.r) / mpp * k
 		if rad > 0.5:
 			for seg in _arc_clipped(p, rad, clip):
 				poly(seg, col, THIN)
 		if Geometry2D.is_point_in_polygon(p, clip):
 			box(Rect2(p - Vector2(1.5, 1.5), Vector2(3, 3)), col, THIN)
-	_ownship(HSD_OWN)
+	if modern and show[4]:
+		_bullseye(xf, clip)
+	if modern and (cockpit.soi == m.index or bool(v.cursor_set)):
+		var q: Vector2 = v.cursor
+		for d in [Vector2(1, 0), Vector2(0, 1)]:
+			line(q - d * 4.0, q - d * 1.5, c("cursor"), LINE)
+			line(q + d * 1.5, q + d * 4.0, c("cursor"), LINE)
+	if Geometry2D.is_point_in_polygon(own_p, clip):
+		_ownship(own_p, dh)
 
 
-## The ownship: a small aeroplane pointing up.
-func _ownship(p: Vector2) -> void:
+## The HSD's world -> MFD px: heading-up about `origin` (world) at `at` (px), `mpp` metres a pixel (scope_xform's,
+## about a frozen point when FRZ holds the picture).
+func _hsd_xform(at: Vector2, mpp: float, origin: Vector2, h: float) -> Transform2D:
+	var x := Vector2(cos(h), -sin(h)) / mpp
+	var y := Vector2(-sin(h), -cos(h)) / mpp
+	return Transform2D(x, y, at - x * origin.x - y * origin.y)
+
+
+## The FCR's range (NM).
+func _fcr_nm() -> float:
+	return MfdNode.RADAR_RANGES[clampi(int(cockpit.radar.get("idx", 1)), 1, 6) - 1]
+
+
+## The bullseye (ours, inferred: the sim's missions name none, so the route's first point, the home base): a circle
+## with a dot, and the ownship's bearing and range from it in the lower left (cyan, as the MLU's bullseye).
+func _bullseye(xf: Transform2D, clip: PackedVector2Array) -> void:
+	if cockpit.waypoints.is_empty():
+		return
+	var b: Vector2 = cockpit.waypoints[0].world
 	var col := c("own")
-	line(p + Vector2(0, -4), p + Vector2(0, 4), col, LINE)
-	line(p + Vector2(-4, -0.5), p + Vector2(4, -0.5), col, LINE)
-	line(p + Vector2(-2, 3.5), p + Vector2(2, 3.5), col, LINE)
+	var p: Vector2 = xf * b
+	if Geometry2D.is_point_in_polygon(p, clip):
+		circle(p, 3.0, col, THIN)
+		ci.draw_circle(p, 0.8, col, true, -1.0, true)
+	var rel := own_world() - b
+	var brg := posmod(int(round(rad_to_deg(atan2(rel.x, rel.y)))), 360)
+	text(Vector2(14, 104), "%03d %d" % [brg, int(rel.length() / 1852.0)], SMALL, col)
+
+
+## TMS up with the HSD the SOI: the steerpoint under the HSD cursor (IafF16Mfd.hsd_pick), -1 none.
+func hsd_pick() -> int:
+	var pts := PackedVector2Array()
+	for wp in cockpit.waypoints:
+		pts.append(hsd_x * (wp.world as Vector2))
+	return m.real.hsd_pick(pts)
+
+
+## The ownship: a small aeroplane pointing up (turned by `rot` on a frozen picture).
+func _ownship(p: Vector2, rot := 0.0) -> void:
+	var col := c("own")
+	for seg in [
+		[Vector2(0, -4), Vector2(0, 4)], [Vector2(-4, -0.5), Vector2(4, -0.5)], [Vector2(-2, 3.5), Vector2(2, 3.5)]
+	]:
+		line(p + seg[0].rotated(rot), p + seg[1].rotated(rot), col, LINE)
 
 
 # --- SMS ------------------------------------------------------------------------------------------------------------
@@ -636,6 +746,7 @@ func sms_format() -> void:
 	var sel := int(wp.selected)
 	var t := int(wp.get("type", 0))
 	var page := "INV" if sms_inv or sel < 0 else ("GUN" if sel == 9 else ("AAM" if t in AAM_TYPES else "A-G"))
+	sms_sub = sms_sub and page == "A-G"
 	label(4, "INV", page == "INV")
 	match page:
 		"INV":
@@ -643,7 +754,8 @@ func sms_format() -> void:
 			_inventory(wp)
 		"GUN":
 			label(1, "GUN")
-			label(2, "EEGS" if int(wp.get("hud_mode", 0)) == 4 else "LCOS")
+			# The gun's HUD mode (real_hud/f16.rs): the A-G gun's STRF, the A-A gun's EEGS.
+			label(2, "STRF" if int(wp.get("hud_mode", 0)) == 4 else "EEGS")
 			label(6, "%dGUN" % (int(wp.gun) / 10))
 			centred(66, 66, _status(wp), c("text"))
 		"AAM":
@@ -713,8 +825,18 @@ func _station_row(wp: Dictionary) -> void:
 func _ag_page(wp: Dictionary) -> void:
 	var gps: Dictionary = wp.get("ag", {}).get("gps", {})
 	label(1, "A-G")
-	label(2, ("PRE" if gps.get("pre", true) else "VIS") if _gps(wp) else "CCIP")
+	var sub: String = ("PRE" if gps.get("pre", true) else "VIS") if _gps(wp) else "CCIP"
+	label(2, sub, sms_sub)
+	if modern and sms_sub:
+		# Ours, the modern MFDs: the submode menu (fig. 1-70's list; IafF16Mfd.ag_submodes: those the release has),
+		# down the left from OSB 20, the current one boxed.
+		var subs: PackedStringArray = ClassDB.class_call_static("IafF16Mfd", "ag_submodes", _gps(wp))
+		for i in subs.size():
+			label(20 - i, subs[i], subs[i] == sub)
+		return
 	label(6, _weapon_name(wp))
+	if modern:
+		label(7, "PROF%d" % (int(wp.get("profile", 0)) + 1))
 	if String(wp.get("release", "")) != "":
 		label(8, String(wp.release))
 	label(9, "%d INT" % int(wp.get("interval", 10)))
@@ -777,10 +899,19 @@ func wpn() -> void:
 	# A GPS bomb first: it shares the TV weapons' type 650, so the TV status is set with one selected.
 	if not wp.is_empty() and _gps(wp):
 		_jdam(wp)
-	elif int(tv.get("status", 0)) != 0:
+	elif wpn_video():
 		_maverick(wp, tv)
 	else:
 		centred(66, 66, "WPN OFF", c("text"))
+
+
+## The WPN shows a TV weapon's video (its TV status set). Ours, the modern MFDs: not a laser bomb's (the original
+## sets the TV status for the 650s too; the real F-16 has no WPN page for a laser-guided bomb, inferred).
+func wpn_video() -> bool:
+	var wp: Dictionary = cockpit.weapons
+	if int(cockpit.eo.get("tv", {}).get("status", 0)) == 0:
+		return false
+	return not (modern and int(wp.get("type", 0)) == 650 and not _gps(wp))
 
 
 func _maverick(wp: Dictionary, tv: Dictionary) -> void:
@@ -862,9 +993,13 @@ func _has() -> void:
 func tgp() -> void:
 	var f: Dictionary = cockpit.eo.get("flir", {})
 	label(1, "A-G")
-	label(5, "CNTL")
+	if not modern:
+		label(5, "CNTL")
 	label(6, "WHOT")
 	var col := c("text")
+	if modern and not cockpit.eo.get("flir_pod", false):
+		centred(66, 66, "NO POD", col)
+		return
 	if f.is_empty():
 		centred(66, 66, "NOT TIMED OUT", col)
 		return
@@ -875,6 +1010,63 @@ func tgp() -> void:
 		line(Vector2(66, 66) + d * 3.0, Vector2(66, 66) + d * 12.0, col, LINE)
 	var rt := "%s %s" % ["L" if f.laser else "T", String(f.range)]
 	text(Vector2(126 - text_width(rt, SIZE), 118), rt, SIZE, col)
+	if modern:
+		# Ours, the modern MFDs: the track mode at the top (IafF16Mfd.tgp_track: AREA, POINT, INR slewing, none while
+		# slaved to the steerpoint or the radar's designation) and ARM with the LASER ARM switch on (inferred places).
+		centred(66, 24, String(cockpit.eo.get("track_mode", "")), col)
+		if cockpit.eo.get("laser_arm", false):
+			text(Vector2(14, 118), "ARM", SIZE, col)
+
+
+# --- DTE, FLCS, RESET (ours, the modern MFDs) ---------------------------------------------------------------------
+
+
+## The mission clock (s; cockpit.state tod: it stops with the game's pause).
+func _clock() -> float:
+	return float(cockpit.state.get("tod", 0.0))
+
+
+## How long DTE's LOAD shows LOAD IN PROG (s; inferred).
+const DTE_LOAD_S := 3.0
+
+
+## DTE (the data transfer equipment; inferred layout: the real format's page is not in the cited figures): OSB 3 LOAD
+## loads the cartridge (the mission's data, loaded at the start), the status in the middle.
+func dte() -> void:
+	label(3, "LOAD")
+	var t := _clock()
+	var busy := dte_t >= 0.0 and t - dte_t < DTE_LOAD_S
+	centred(66, 62, "LOAD IN PROG" if busy else "LOAD COMPLETE", c("text"))
+
+
+## FLCS (inferred layout): the four branches A..D (failed with the FLCS fault, degraded with its degradation; the
+## damage flags 24 / 18), OSB 3 BIT on the ground (IafF16Mfd.flcs_bit: RUN for 45 s, then PASS or FAIL).
+func flcs() -> void:
+	label(3, "BIT", bit_t >= 0.0 and _bit() == "RUN")
+	var flags: Array = cockpit.damage_flags
+	var fail: bool = flags.size() > 24 and flags[24]
+	var degr: bool = flags.size() > 18 and flags[18]
+	centred(66, 34, "FLCS", c("text"))
+	for i in 4:
+		var st := "FAIL" if fail else ("DEGR" if degr and i == 3 else "OK")
+		var col := c("warning" if st == "FAIL" else ("caution" if st == "DEGR" else "text"))
+		text(Vector2(34, 48 + 9 * i), "BRANCH %s  %s" % ["ABCD"[i], st], SIZE, col)
+	var b := _bit()
+	if b != "":
+		centred(66, 92, "BIT %s" % b, c("warning" if b == "FAIL" else "text"))
+
+
+func _bit() -> String:
+	var flags: Array = cockpit.damage_flags
+	var fault: bool = flags.size() > 24 and (flags[24] or flags[18])
+	return ClassDB.class_call_static("IafF16Mfd", "flcs_bit", bit_t, _clock(), fault)
+
+
+## RESET MENU (inferred layout): MSMD RESET (every master mode's formats back to the start, both MFDs) on OSB 6, DCLT
+## RESET (both MFDs' declutter off) on OSB 7.
+func reset_menu() -> void:
+	label(6, "MSMD RESET")
+	label(7, "DCLT RESET")
 
 
 # --- TEST -----------------------------------------------------------------------------------------------------------
@@ -980,8 +1172,28 @@ func _own(f: String, osb: int) -> void:
 					if real and int(cockpit.radar.get("mode", 0)) in [7, 8]:
 						m._radar_event(RadarEv.EV_AG_OSB, osb)
 		"HSD":
+			if modern:
+				var own := Vector3(own_world().x, own_world().y, heading_rad())
+				if m.real.hsd_press(osb, own) or m.real.hsd(15.0, 0.0).cntl:
+					return
 			if osb in [20, 19]:
 				m.tsd_scale = ClassDB.class_call_static("IafF16Mfd", "hsd_step", m.tsd_scale, osb == 20)
+		"DTE":
+			if osb == 3:
+				dte_t = _clock()
+		"FLCS":
+			if osb == 3 and float(cockpit.state.get("agl_ft", 0.0)) < 10.0 and _bit() != "RUN":  # on the ground
+				bit_t = _clock()
+		"RESET":
+			if osb in [6, 7]:
+				for n in cockpit.mfds:
+					if n.real == null:
+						continue
+					if osb == 6:
+						n.real.reset_modes()
+						n.real_fmt.show_format(String(n.real.state().shown))
+					else:
+						n.real.clear_declutter()
 		"SMS":
 			_own_sms(osb)
 		"WPN", "TGP":
@@ -1003,10 +1215,21 @@ func _own(f: String, osb: int) -> void:
 const GPS_MODE_EVENT := -1
 ## Ours: the SMS's S-J (player_weapons.gd mfd_event, sel_jett).
 const SEL_JETT_EVENT := -2
+## Ours, the modern MFDs: the SMS's PROF1 / PROF2 (player_weapons.gd mfd_event, IafRipple toggle_profile).
+const PROFILE_EVENT := -3
 
 
 func _own_sms(osb: int) -> void:
 	var wp: Dictionary = cockpit.weapons
+	if modern and sms_sub and not wp.is_empty():
+		# The submode menu: a submode's OSB picks it (a GPS bomb's PRE / VIS), any press closes the menu.
+		var subs: PackedStringArray = ClassDB.class_call_static("IafF16Mfd", "ag_submodes", _gps(wp))
+		var i := 20 - osb
+		var now := "VIS" if not wp.get("ag", {}).get("gps", {}).get("pre", true) else "PRE"
+		if _gps(wp) and i >= 0 and i < subs.size() and subs[i] != now:
+			m._mfd_event(GPS_MODE_EVENT)
+		sms_sub = false
+		return
 	if osb == 11:
 		m._mfd_event(SEL_JETT_EVENT)  # S-J: the selective jettison (Weapon data Real; nothing with Original)
 		return
@@ -1026,8 +1249,14 @@ func _own_sms(osb: int) -> void:
 		6:
 			_next_weapon(wp)
 		2:
-			if _gps(wp):
+			var ag: bool = int(wp.selected) != 9 and not int(wp.get("type", 0)) in AAM_TYPES
+			if modern and ag:
+				sms_sub = true  # the submode menu
+			elif _gps(wp):
 				m._mfd_event(GPS_MODE_EVENT)
+		7:
+			if modern:
+				m._mfd_event(PROFILE_EVENT)
 		8:
 			if String(wp.get("release", "")) != "" and cockpit.on_ripple_event.is_valid():
 				cockpit.on_ripple_event.call(-1, true)

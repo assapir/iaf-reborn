@@ -1,0 +1,40 @@
+{
+  "id": "litening",
+  "number": 19,
+  "name": "TGP",
+  "kind": "pod",
+  "generation": 2,
+  "model": "weapons/flrpod/flrpod_m.gltf",
+  "kg": 208,
+  "power": 0,
+  "blast_m": 0,
+  "drag": 7.0,
+  "motion": {},
+  "length_m": 2.2,
+  "diameter_m": 0.406,
+  "sources": {
+    "power": "inferred",
+    "blast_m": "inferred",
+    "drag": "w-litening, inferred",
+    "kg": "w-litening",
+    "length_m": "w-litening",
+    "diameter_m": "w-litening"
+  },
+  "notes": {
+    "number": "ours",
+    "name": "TGP, the targeting pod as the SMS lists it (inferred); player_weapons.gd takes a store named TGP (or the 1998 game's FLIR) as the targeting pod",
+    "kind": "the targeting pod: the TGP format, the laser for the laser bombs (docs/mfd.md §9.9); the F-16I's Litening C4 (w-litening), the Sufa's Litening II as sufa-at names it",
+    "drag": "carriage drag index (flight-model.md §9.18): 0.15 x its 0.406 m across (w-litening) frontal area, 0.15 the drag of a streamlined pod on its pylon on that area (inferred, as the tanks')",
+    "motion": "the reader's defaults (never released)",
+    "power": "a pod does no damage",
+    "blast_m": "a pod does no damage",
+    "model": "stand-in: our LANTIRN targeting pod (shared/extra/models/stores/flrpod.glb, the AN/AAQ-13); no Litening model of ours yet",
+    "generation": "ours: the weapons.ibx section key (generation · 1000 + type) is one per weapon of a kind (the tanks hold 0 and 1)",
+    "station": "the chin hardpoint (twz-litening: the pod on the F-16's chin station); the sim's station 5 (sim.rs F16_SIM_STATIONS StationE)"
+  },
+  "footnotes": {
+    "w-litening": "Wikipedia, \"LITENING\" (208 kg; 2.20 m; 40.6 cm; the F-16I Sufa's Litening C4), https://en.wikipedia.org/wiki/LITENING",
+    "sufa-at": "Airforce Technology, \"F-16I Soufa Multirole Fighter, Israel\" (GBU-10 / 12 / 16 carried, the Litening II pod), https://www.airforce-technology.com/projects/f-16i-soufa/",
+    "twz-litening": "The War Zone, \"We talk new features on the Litening large aperture targeting pod\" (a Litening on the usual chin station of an F-16C), https://www.twz.com/news-features/we-talk-new-features-on-the-litening-large-aperture-targeting-pod"
+  }
+}

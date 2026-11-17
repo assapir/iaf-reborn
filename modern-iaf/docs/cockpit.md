@@ -458,6 +458,7 @@ The controls of a system the game has work it (2026-11-16; `f16_controls.json` `
 | control | consequence | its key |
 |---|---|---|
 | MASTER ARM (SIMULATE / OFF / MASTER ARM) | MASTER ARM arms; OFF and SIMULATE are safe (SIMULATE's training mode is not modelled) | Shift+A |
+| LASER ARM (OFF / ARM) | ARM lets the targeting pod's laser fire; it starts OFF ([../../docs/mfd.md](../../docs/mfd.md) §9 "Modern MFDs") | Shift+L |
 | EMER JETT | the emergency jettison (`player_weapons.gd` `jettison`) | Shift+C |
 | ICP A-A / A-G | the next air-to-air / air-to-ground store | `]` / `[` |
 | MFD BRT (each MFD) | the displays' brightness, at least 10 %: one setting, so the two rockers move together | - |

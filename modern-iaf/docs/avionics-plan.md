@@ -95,15 +95,15 @@ following[^sufa-at][^sufa-lm-radar]. The pilot's view of each is the dash-34's F
 
 | # | format | real content | today | status |
 |---|---|---|---|---|
-| M1 | Frame | 20 OSBs, SWAP, three formats per MFD, DCLT, the format menu, the DMS stepping formats | `crates/iaf-avionics/src/f16_mfd.rs`, `shared/cockpit/f16_mfd.gd`; the 3D cockpit's OSBs press through their own path ([cockpit.md](cockpit.md) §5.2 "Every control") | Sim (DMS: G8) |
+| M1 | Frame | 20 OSBs, SWAP, three formats per MFD, DCLT, the format menu, the DMS stepping formats | `crates/iaf-avionics/src/f16_mfd.rs`, `shared/cockpit/f16_mfd.gd`; the 3D cockpit's OSBs press through their own path ([cockpit.md](cockpit.md) §5.2 "Every control"); the formats kept per master mode, DMS on keys, RESET's MSMD / DCLT ([../../docs/mfd.md](../../docs/mfd.md) §9 "Modern MFDs") | Sim (17 Nov) |
 | M2 | FCR | §2.1 | `f16_mfd.gd` `fcr`; the CNTL page (OSB 5) with TGT HIS and MTR acting on the search (radar.md §9.3) | Sim |
-| M3 | HSD | depressed view, rings, route, scan wedge, threat rings, colour map; CNTL, data-link tracks, bullseye | `f16_mfd.gd` `hsd` with the sim's map; no CNTL, data link or bullseye | Partly (G14) |
-| M4 | SMS | INV, AAM, A-G (CCIP / CCRP / DTOS / LADD / MAN, profiles, fuzing NSTL / NOSE / TAIL, pairs, interval, pulses), GUN, S-J | INV, AAM, A-G with CCIP and the GPS block, GUN, S-J (`f16_mfd.gd` `sms_format`); RDY needs MASTER ARM and ST STA ([weapons.md](weapons.md) §5) | Partly (G24, G25) |
+| M3 | HSD | depressed view, rings, route, scan wedge, threat rings, colour map; CNTL, data-link tracks, bullseye | `f16_mfd.gd` `hsd` with the sim's map; DEP / CEN, CPL, EXP1 / 2, FRZ, the CNTL page (FCR, PRE, NAV1, RINGS, BULL), the bullseye (the home base, inferred), the HSD cursor and TMS up on a steerpoint (`f16_mfd.rs` `Hsd`); data-link tracks with G30 | Sim (17 Nov; data link G30) |
+| M4 | SMS | INV, AAM, A-G (CCIP / CCRP / DTOS / LADD / MAN, profiles, fuzing NSTL / NOSE / TAIL, pairs, interval, pulses), GUN, S-J | INV, AAM, A-G with CCIP and the GPS block, GUN (EEGS / STRF), S-J (`f16_mfd.gd` `sms_format`); RDY needs MASTER ARM and ST STA ([weapons.md](weapons.md) §5); the A-G submode menu (the release's own submodes) and PROF1 / PROF2 per weapon (`release.rs` `Profiles`) | Sim (17 Nov; the other release modes and fuzing G21, G22) |
 | M5 | WPN | weapon video (Maverick), HAS, a GPS bomb's status | `f16_mfd.gd` `wpn` / `_jdam`; the sim carries no Maverick or HARM | Sim (GPS) |
-| M6 | TGP | the Litening picture, WIDE / NARO, laser, polarity, range | `f16_mfd.gd` `tgp`, `shared/weapons/eo_sensor.gd`; offered only with a pod store, and the sim's F-16s list none (`modern-iaf/data/db/units/f16i.json` `allowed`) | Reborn (G15) |
+| M6 | TGP | the Litening picture, WIDE / NARO, laser, polarity, range | `f16_mfd.gd` `tgp`, `shared/weapons/eo_sensor.gd`; the Litening on station 5 (the chin; [weapons.md](weapons.md) §7); POINT / AREA / INR track, slaved to the radar's designation or the steerpoint (TMS down), the zoom, LASER ARM and the laser | Sim (17 Nov) |
 | M7 | TEST | the fault list | `f16_mfd.gd` `test` | Sim |
-| M8 | SOI | the SOI box, NOT SOI, the DMS moving it | — | Missing (G8) |
-| M9 | DTE, FLCS, FLIR, TFR, BLANK, RESET | data transfer, flight controls, navigation FLIR, terrain following | — | Missing, low value (G16) |
+| M8 | SOI | the SOI box, NOT SOI, the DMS moving it | the SOI box and NOT SOI on the MFDs, DMS on keys, the cursor and TMS keys acting on the SOI (`f16_mfd.rs` `dms`, `cockpit.gd` `soi_format`); the HUD's own SOI mark is open | Sim (17 Nov) |
+| M9 | DTE, FLCS, FLIR, TFR, BLANK, RESET | data transfer, flight controls, navigation FLIR, terrain following | DTE (LOAD), FLCS (branches, BIT on the ground), BLANK, RESET MENU (inferred layouts); FLIR and TFR not offered: no navigation FLIR pod on the Sufa (inferred), TF parked with G12 | Sim (17 Nov) |
 
 ### 2.3 HUD and helmet
 
@@ -138,7 +138,7 @@ following[^sufa-at][^sufa-lm-radar]. The pilot's view of each is the dash-34's F
 | S8 | Fuzing, arming time, LOW cue | NSTL / NOSE / TAIL; LOW when the release is below the fuze's arming height | — | Missing (G22) |
 | S9 | GPS bombs (GBU-31, GBU-38, GBU-39) PRE / VIS, LAR, TMR, TTI | [../../docs/weapons.md](../../docs/weapons.md) §13.2–13.3 | `crates/iaf-avionics/src/gps.rs`, the HUD and WPN cues; PRE targets are set only on reborn's briefing TSD (`iaf-reborn/menu/tsd_gps.gd`), the sim's missions have no target steerpoint, VIS needs a MAP designation | Partly (G4) |
 | S10 | SPICE 1000 / 2000 | INS / GPS then scene matching[^sufa-spice] | the GPS bomb code with wings (LD 6.8); listed on the sim's F-16s | Partly (G4) |
-| S11 | Laser bombs, pod lasing | Litening II pod; GBU-10 / 12 / 16 carried[^sufa-at] | `release.rs` `laser_aim`, `tests/godot/test_laser_bombs.gd`; no pod or laser bomb record in the sim | Reborn (G15) |
+| S11 | Laser bombs, pod lasing | Litening II pod; GBU-10 / 12 / 16 carried[^sufa-at] | `release.rs` `laser_aim`, `tests/godot/test_laser_bombs.gd`; the sim's GBU-10 / 12 / 16 and Litening records ([weapons.md](weapons.md) §7), `modern-iaf/tests/test_sim_mfd.gd` | Sim (17 Nov) |
 | S12 | Gun: EEGS, LCOS, strafe | dash-34 EEGS levels, STRF | `gun.rs`, `f16.rs`; 511 rounds ([weapons.md](weapons.md) §1) | Partly (G23: the flash) |
 | W1 | SRM (AIM-9M): seeker, tone, uncage | the cage / uncage button, SPOT / SCAN | the seeker locks by itself (`sight.rs`) and growls | Partly (G26) |
 | W2 | Python 5 HOBS, LOAL | 100° off boresight, LOAL[^sufa-python] | [../../docs/weapons.md](../../docs/weapons.md) §13.1, the DASH cues | Sim |
@@ -155,7 +155,7 @@ following[^sufa-at][^sufa-lm-radar]. The pilot's view of each is the dash-34's F
 | N4 | ILS | localizer and glide slope | the HUD's ILS lines at the exact deviation ([../../docs/real-hud.md](../../docs/real-hud.md) "What ours draws") | Sim |
 | N5 | Data link | Link 16 / IDM tracks on the HSD and FCR | — | Missing (G30) |
 | N6 | Radios | UHF / VHF, the tower, AWACS | the tower menu ([training.md](training.md) §8); AWACS calls in `crates/iaf-avionics/src/fctrl.rs`, no AWACS in the sim's missions | Partly (G31) |
-| N7 | HOTAS functions | TMS, DMS, CMS, cursor, uncage, DGFT, expand, pickle, trigger | pickle, trigger, chaff / flare as keys; the rest are 1998 keys or missing | Partly (G8) |
+| N7 | HOTAS functions | TMS, DMS, CMS, cursor, uncage, DGFT, expand, pickle, trigger | pickle, trigger, chaff / flare as keys; TMS, the cursor and DMS on keys (slices 2 and 4); uncage, DGFT and CMS later | Partly (G17, G20, G26) |
 
 ## 3. F-16D Barak: its differences
 
@@ -168,7 +168,7 @@ The Barak in the sim is the Block 40 two-seater with the F-16 radar row, green M
 | B2 | MFDs | monochrome green 4 × 4 in ([../../docs/real-mfd.md](../../docs/real-mfd.md) "Colours and font") | the green formats | Sim |
 | B3 | HSD map | none (monochrome) | no map under the Barak's HSD | Sim |
 | B4 | AIFF | none: the APX-101 is a transponder ([../../docs/real-hud.md](../../docs/real-hud.md) "IFF") | none | Sim |
-| B5 | Targeting pod | LANTIRN on the Block 40 (inferred: none on the Block 30) | as the Sufa's M6 | Reborn (G15) |
+| B5 | Targeting pod | LANTIRN on the Block 40 (inferred: none on the Block 30) | the Litening and the laser bombs in its record too (§8.2) | Sim (17 Nov; checked with slice 6) |
 | B6 | Helmet | DASH III | `dash.rs` | Sim |
 | B7 | RWR | the set is open (the dash-34's display is the nearest) | as the Sufa's E1 | Partly (G3) |
 | B8 | MAW, SAM mode, SAR | none on the Block 30/40 (inferred) | — | Sim |
@@ -242,7 +242,7 @@ by the sim; **extend** = existing shared logic grown; **new** = new logic in a R
 | G5 | Selectable scan width (A6 / A3 / A1) and bars (B1–B4), antenna elevation, the cursor's altitude coverage | M | new (`radar.rs`: the scan volume becomes a setting; the hit test reads it) | Rust: a target outside ±10° is found with A6, not with A1; the FCR shows the coverage |
 | G6 | VSR; the (V)9's four-track situation mode (Sufa only) | M | new | Rust: VSR orders by closure; the situation mode keeps four tracks while searching |
 | G7 | ACM patterns 20 / 60 / SLEW / BORE | S | extend | Rust: each pattern's volume locks the target inside it |
-| G8 | HOTAS layer: cursor slew, TMS (bug, lock, drop, AIFF), DMS (formats, SOI), CMS, uncage, DGFT / MSL override, expand; new keys and joystick buttons, listed on the Keys screen and in the notebook (K / Shift+K moved into `modern-iaf/data/keys.json`) | M | new (a HOTAS state in Rust, keys in `modern-iaf/data/keys.json`) | `modern-iaf/tests/test_devices.gd` sees the new records; a sim test slews the cursor onto a blip and locks it with TMS up |
+| G8 | HOTAS layer: cursor slew, TMS (bug, lock, drop, AIFF), DMS (formats, SOI), CMS, uncage, DGFT / MSL override, expand; new keys and joystick buttons, listed on the Keys screen and in the notebook (K / Shift+K moved into `modern-iaf/data/keys.json`). **Cursor and TMS built with slice 2, DMS and the SOI with slice 4 (17 Nov);** CMS, uncage, DGFT with G20, G26, G17 | M | new (a HOTAS state in Rust, keys in `modern-iaf/data/keys.json`) | `modern-iaf/tests/test_devices.gd` sees the new records; a sim test slews the cursor onto a blip and locks it with TMS up |
 | G9 | GM: DBS1 / DBS2, FZ, CZ, SP. **Built 17 Nov (slice 3)** with STP / TGT, the ground cursor, designation and FTT | S | extend (`radar.rs`, `f16_mfd.gd` `_ground_map`) | Rust: freeze holds the picture; the FCR test reads the legends |
 | G10 | SAR / DBS patch picture (F-16 GM DBS, F-35I ASR) from the terrain and the sim's imagery. **Built 17 Nov (slice 3)** for the F-16 (`radar.rs` `render`); the F-35I's ASR takes it in slice 7 | M–L | new (picture from the height field, `crates/iaf-avionics/src/heights.rs`) | a picture test: the patch shows the runway of the base under the cursor |
 | G11 | SEA mode: ships as returns over water. **Built 17 Nov (slice 3)**, with the range's barge | S | extend | Rust: a ship shows, land returns do not |
@@ -253,9 +253,9 @@ by the sim; **extend** = existing shared logic grown; **new** = new logic in a R
 
 | # | gap | size | kind | test |
 |---|---|---|---|---|
-| G14 | HSD CNTL, bullseye, data-link tracks | S | extend | `tests/godot/test_f16_mfd.gd` |
-| G15 | Targeting pod (Litening on the Sufa, LANTIRN on the Barak) and laser bombs in the sim's data: a pod store and laser bomb records; the TGP format, laser and laser bombs are shared already | S (data) | wire | `tests/godot/test_laser_bombs.gd` and a sim run: the pod's laser guides a GBU-12 onto a range target |
-| G16 | The low-value formats (DTE, FLCS, TFR; F-35 FCS, PHM, CHKLST, DIM) | S each | new (drawing) | listed, built only on the user's word |
+| G14 | HSD CNTL, bullseye, data-link tracks. **Built 17 Nov (slice 4):** CNTL, bullseye, DEP / CEN, CPL, EXP, FRZ, the cursor; the data-link tracks come with G30 | S | extend | `tests/godot/test_f16_mfd.gd` |
+| G15 | Targeting pod (Litening on the Sufa, LANTIRN on the Barak) and laser bombs in the sim's data: a pod store and laser bomb records; the TGP format, laser and laser bombs are shared already. **Built 17 Nov (slice 4):** the Litening on both F-16s (§8.2), the GBU-10 / 12 / 16, the TGP's track modes and LASER ARM ([weapons.md](weapons.md) §7) | S (data) | wire | `tests/godot/test_laser_bombs.gd` and a sim run: the pod's laser guides a GBU-12 onto a range target |
+| G16 | The low-value formats (DTE, FLCS, TFR; F-35 FCS, PHM, CHKLST, DIM). **The F-16's built 17 Nov (slice 4; the user: "All mfds"):** DTE, FLCS, BLANK, RESET; TFR waits for G12 | S each | new (drawing) | listed, built only on the user's word |
 | G17 | DGFT / MSL override | S | extend (`master.rs`) | Rust: DGFT selects ACM, the gun and the SRM at once |
 | G18 | HUD VVI; INS ALIGN / RDY on the HUD and the DED INS page | S | extend (`f16.rs`, `start.rs` state) | Rust snapshot of the HUD; `modern-iaf/tests/test_switches_both_ways.gd` sees ALIGN then RDY |
 | G19 | MAW (Sufa PAWS, Adir DAS): direction and time to impact of a missile launched at the jet, from the RWR's missile list | M | new (`rwr.rs`) | Rust: a launch shows its bearing and a falling time; voice and symbol in the sim |
@@ -275,8 +275,8 @@ by the sim; **extend** = existing shared logic grown; **new** = new logic in a R
 |---|---|---|---|---|
 | G21 | CCRP, DTOS, LADD, MAN release modes with their HUD cues and SMS submodes | L | new (`release.rs`, `bombs.rs` solution; `f16.rs` cues) | Rust: each mode's release lands within the bomb's own spread of the designated point; sim run per mode on the range |
 | G22 | Fuzing and arming time; the LOW cue; a bomb released below its arming height does not burst | S | new | Rust: a release at 150 ft shows LOW and the bomb is a dud |
-| G24 | SMS profiles PROF1 / PROF2 | S | extend | `tests/godot/test_f16_mfd.gd` |
-| G25 | SMS A-G submode menu (CCIP / CCRP / DTOS / LADD / MAN) | S | extend (with G21) | as G21 |
+| G24 | SMS profiles PROF1 / PROF2. **Built 17 Nov (slice 4)** | S | extend | `tests/godot/test_f16_mfd.gd` |
+| G25 | SMS A-G submode menu (CCIP / CCRP / DTOS / LADD / MAN). **The menu built 17 Nov (slice 4)** with the submodes the release has (CCIP, PRE / VIS); G21 adds its modes to it | S | extend (with G21) | as G21 |
 | G26 | SRM cage / uncage, SPOT / SCAN | S | extend (`sight.rs`) | Rust: caged, the seeker holds the boresight; uncaged it tracks |
 | G27 | Post-launch cues: time to active and to impact on the HUD and the FCR, the missile's line on the FCR, the times from the existing shared missile model | S | extend | Rust snapshot of the HUD after a launch |
 
@@ -293,7 +293,7 @@ renders through `tools/godot_window.sh`, with every graphics setting on, from th
 | 1 Range (built 17 Nov) | targets for every later slice: the sim's own jets as drones and plain ground targets (§8.1; no threat records); the briefing's PRE target pick waits for the user's yes on its own branch | G3 | M | `modern-iaf/data/missions/*_range.json`, `data/db/brains/`, the drone and target unit records, `sim.rs` (drones, brains), `training.rs` (kind `range`) | test_sim_range.gd | the range in the mission list, the drones on the radar and from the cockpit, the ground targets, the debrief after a kill |
 | 2 Sufa radar A-A (built 17 Nov) | scan and bars, VSR, situation mode, ACM patterns with their HUD cues, cursor and TMS (keyboard keys first, §8.3), EXP, the CNTL page, NO RAD; G1's power-on STBY and weight on wheels | G5–G8 | L | `radar.rs`, `f16_mfd.rs` / `.gd`, `modern-iaf/data/keys.json` | modern-iaf/tests/test_sim_fcr.gd: each mode finds, bugs and locks a range target | the FCR in each mode with targets |
 | 3 Sufa radar A-G (built 17 Nov) | GM DBS / FZ / SP / CZ, the ground cursor, designation and FTT, SAR patch, SEA, AGR; a towed hulk and a barge on the range | G9–G12 (AGR) | M–L | `radar.rs`, `heights.rs`, `f16_mfd.gd` | the same test, A-G part | GM, DBS, SAR and SEA pictures |
-| 4 Sufa MFDs | SOI and DMS (keys, §8.3), HSD CNTL / bullseye, SMS profiles and submode menu, the Litening pod, TGP and the GBU-10 / 12 / 16 (§8.2) | G8 (DMS), G14, G15, G24, G25 | M | `f16_mfd.rs` / `.gd`, the sim's pod and laser bomb records | `tests/godot/test_f16_mfd.gd`, a sim TGP run | each format, both MFDs |
+| 4 Sufa MFDs (built 17 Nov) | SOI and DMS (keys, §8.3), HSD CNTL / bullseye, SMS profiles and submode menu, the Litening pod, TGP and the GBU-10 / 12 / 16 (§8.2) | G8 (DMS), G14, G15, G24, G25 | M | `f16_mfd.rs` / `.gd`, the sim's pod and laser bomb records | `tests/godot/test_f16_mfd.gd`, a sim TGP run | each format, both MFDs |
 | 5 Sufa rest | DGFT, VVI, ALIGN / RDY, DED pages, TACAN, MAW, CMS programs, AIFF, data link, AWACS | G13, G17–G20, G28–G31 | L (two merges: HUD / nav first, EW / IFF / link second) | `master.rs`, `real_hud/f16.rs`, `start.rs`, `rwr.rs`, `fctrl.rs`, `cockpit3d_display.gd` | Rust tests per gap; a sim run per merge | HUD in DGFT, the DED pages, the MAW cue, AIFF symbols |
 | 6 Barak | its rows of §3 as today's upgraded jet (§8.4), with the Litening pod and laser bombs (§8.2) | B1–B9 | S | data and switches on `Settings.airframe` | the Sufa's tests with the Barak | the Barak's MFDs and HUD |
 | 7 Adir | SRCH / ASR with the SAR picture, combat ID, TWD with emitters, WPN-A / WPN-S, CNI, portal management (widen a portal over its half, enlarge it over its windows, swap the halves, the 5 preset layouts; the default split is in since 2026-11-17), HOTAS cursor (keys, §8.3), GCAS mark, DAS warning, the SPICE 1000 (§8.6); last and low priority a simple DAS camera picture (§8.5); no electronic attack | A1–A7, P2, P5, P7–P12, H8, E5 | L (two merges: radar and PCD first, DAS second) | `pcd.gd`, `pcd_formats.gd`, `radar.rs`, `real_hud/f35.rs` | a PCD sim test against range targets | each portal format; the helmet with the GCAS mark |

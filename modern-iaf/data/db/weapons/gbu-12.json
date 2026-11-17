@@ -1,0 +1,38 @@
+{
+  "id": "gbu-12",
+  "number": 16,
+  "name": "GBU-12",
+  "kind": "laser_bomb",
+  "generation": 0,
+  "model": "weapons/mk82lb/mk82lb_m.gltf",
+  "kg": 230,
+  "power": 4350,
+  "blast_m": 50,
+  "drag": 5.3,
+  "motion": {},
+  "length_m": 3.27,
+  "diameter_m": 0.273,
+  "sources": {
+    "power": "inferred",
+    "blast_m": "open",
+    "drag": "w-gbu12, inferred",
+    "kg": "w-gbu12",
+    "length_m": "w-gbu12",
+    "diameter_m": "w-gbu12"
+  },
+  "notes": {
+    "number": "ours",
+    "kind": "a laser-guided bomb: the shared laser path (docs/weapons.md §9.8), guided onto the targeting pod's laser spot when the laser fires, else to the bomb's CCIP point",
+    "drag": "carriage drag index (10^4 x the drag coefficient on the F-16's 300 sq ft wing, flight-model.md §9.18): 0.25 x its 0.273 m across (w-gbu12) frontal area, 0.25 the drag of a body with a guidance kit (canards, the wing kit) on its pylon on that area (inferred, as the JDAMs')",
+    "motion": "the reader's defaults (the shared guided motion's, guided.rs GuidedMotion::default)",
+    "power": "the MK-82's (our damage scale): the same bomb body",
+    "blast_m": "the MK-82's",
+    "model": "our MK-82 with the Paveway II's guidance and tail kits (shared/extra/models/stores/mk82lb.glb)",
+    "generation": "ours: the weapons.ibx section key (generation · 1000 + type) is one per weapon of a kind",
+    "carried": "the F-16I carries the GBU-10, GBU-12 and GBU-16 (sufa-at)"
+  },
+  "footnotes": {
+    "w-gbu12": "Wikipedia, \"GBU-12 Paveway II\" (230 kg; 3.27 m; 273 mm), https://en.wikipedia.org/wiki/GBU-12_Paveway_II",
+    "sufa-at": "Airforce Technology, \"F-16I Soufa Multirole Fighter, Israel\" (GBU-10 / 12 / 16 carried, the Litening II pod), https://www.airforce-technology.com/projects/f-16i-soufa/"
+  }
+}

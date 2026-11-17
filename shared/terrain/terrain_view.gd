@@ -2762,7 +2762,8 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event is InputEventKey and event.pressed:
 		if event.echo:
 			# Held PgUp / PgDn keep sliding the panel (our keys); other repeats do nothing.
-			if event.keycode in [KEY_PAGEUP, KEY_PAGEDOWN] and not event.shift_pressed:  # Shift: the head's lean
+			# Shift: the head's lean; Ctrl: the modern MFDs' DMS up / down (Modern IAF's keys.json).
+			if event.keycode in [KEY_PAGEUP, KEY_PAGEDOWN] and not event.shift_pressed and not event.ctrl_pressed:
 				_own_key(event)
 			return
 		# The original key table first (docs/controls.md, with the player's rebinds); our own keys
@@ -2991,7 +2992,19 @@ func _command(cmd: Array) -> bool:
 			# 2 right, 3 left), 222 OSB 2's submode, 223 / 224 the azimuth scan / bars, 225 the antenna elevation (p2 the
 			# way while held; its release stops it, _release_command), 226 OVRD, 227 EXP (the pinky switch). The FCR goes
 			# on an MFD first if none shows it, as for the 1998 radar keys.
-			if weapons != null and not weapons.radar.real.is_empty():
+			# Ours, the modern MFDs: TMS acts on the sensor of interest: the TGP's track modes, the HSD's steerpoint
+			# pick (TMS up); with the FCR or the HUD the SOI the radar's as before.
+			var soi: String = cockpit.soi_format() if Settings.modern_mfds() and int(cmd[0]) == 221 else ""
+			if soi in ["TGP", "WPN"] and weapons != null:
+				weapons.tgp_tms(p1)
+			elif soi == "HSD":
+				var i: int = cockpit.mfds[cockpit.soi].real_fmt.hsd_pick() if p1 == 0 else -1
+				if i >= 0:
+					if autopilot != null:
+						autopilot.set_waypoint(i)
+					else:
+						cockpit.current_waypoint = i
+			elif weapons != null and not weapons.radar.real.is_empty():
 				cockpit.radar_mfd()
 				var ev: int = [
 					weapons.RADAR_TMS,
@@ -3009,6 +3022,18 @@ func _command(cmd: Array) -> bool:
 			if weapons != null and not weapons.radar.real.is_empty():
 				cockpit.radar_mfd()
 				weapons.radar_event(weapons.RADAR_AG_OSB, p1)
+		240:
+			# Ours, the modern MFDs' DMS (Modern IAF's keys.json): p1 0 up, 1 down, 2 left, 3 right (cockpit.gd dms).
+			if Settings.modern_mfds():
+				cockpit.dms(p1)
+		241:
+			# Ours, the modern MFDs' LASER ARM switch (key Shift + L, the 3D cockpit's switch): the laser fires only
+			# armed; disarming stops it (player_weapons.gd laser_arm).
+			if weapons != null and weapons.modern_f16:
+				weapons.laser_arm = not weapons.laser_arm
+				if not weapons.laser_arm and weapons.eo.laser:
+					weapons.eo.laser = false
+				_on_subtitle("Laser armed" if weapons.laser_arm else "Laser safe")
 		219:
 			# Ours, Modern IAF: one F-16 power switch (the 3D cockpit's AVIONIC POWER and SNSR PWR switches; no key sends
 			# it): p2 its index in sim_flight.gd SYSTEMS, p1 as 210-215's (modern-iaf/docs/cockpit.md §5.2).

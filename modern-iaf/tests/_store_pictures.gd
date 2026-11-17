@@ -20,6 +20,10 @@ const STORES := {
 	"gbu-39": "gbu39.glb",
 	"spice-1000": "spice1000.glb",
 	"spice-2000": "spice2000.glb",
+	"gbu-12": "mk82lb.glb",
+	"gbu-16": "mk83lb.glb",
+	"gbu-10": "mk84lb.glb",
+	"litening": "flrpod.glb",
 }
 const PX_PER_M := 64.0
 

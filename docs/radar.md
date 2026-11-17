@@ -279,7 +279,7 @@ The keyboard is the first-class input (the user, 17 November 2026: "I don't have
 | Alt + Up / Alt + Down (held) | the antenna elevation thumbwheel |
 | Ctrl + `/` | OSB 4: OVRD |
 | Ctrl + `;` | OSB 3 / the pinky switch: EXP; A-G: NORM → EXP → DBS1 → DBS2 |
-| Ctrl + arrows | the cursor control: the acquisition cursor (A-G: the ground cursor) while no EO picture runs, else the EO sensor (records 48–51; inferred until the SOI is built, G8) |
+| Ctrl + arrows | the cursor control: it moves the sensor of interest (records 48–51; [mfd.md](mfd.md) §9 "Modern MFDs"): with the FCR the SOI the acquisition cursor (A-G: the ground cursor); with the HUD the SOI the cursor while no EO picture runs, else the EO sensor |
 | Alt + `;` | A-G OSB 7: FZ (record 143, command 228) |
 | Alt + `'` | A-G OSB 8: SP (record 144) |
 | Alt + `/` | A-G OSB 9: CZ (record 145) |
@@ -287,7 +287,7 @@ The keyboard is the first-class input (the user, 17 November 2026: "I don't have
 
 The mouse over the FCR puts the cursor, and a click on a blip presses TMS up there (A-G: the mouse puts the ground
 cursor on the ground point under it, a double-click presses TMS up). Q, R, S, the range keys, `\`,
-Return and Backspace keep their 1998 meaning. The FCR's OSBs 2, 3, 4, 17 and 18 do the same as their keys; the CNTL page's options are pressed on the MFD
+Return and Backspace keep their 1998 meaning. The TMS keys act on the radar while the FCR or the HUD is the sensor of interest; with the TGP or the HSD the SOI they act on that format ([mfd.md](mfd.md) §9 "Modern MFDs"). The FCR's OSBs 2, 3, 4, 17 and 18 do the same as their keys; the CNTL page's options are pressed on the MFD
 (a click), as the real jet's are.
 
 ### 9.5 The HUD's ACM cues

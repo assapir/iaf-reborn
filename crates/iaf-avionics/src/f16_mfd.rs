@@ -16,6 +16,8 @@ pub mod page {
     pub const MENU: i32 = 8;
     pub const ADI: i32 = 9;
     pub const HARM: i32 = 10;
+    /// Ours (Modern IAF): a format with no game page (DTE, FLCS, BLANK, RESET); the drawing reads the format.
+    pub const OWN: i32 = 11;
 }
 
 /// A real head-down format (dash-34 fig. 1-29). HAS (the HARM page) is the WPN format with a HARM selected, as on the
@@ -28,10 +30,25 @@ pub enum Format {
     Wpn,
     Tgp,
     Test,
+    Dte,
+    Flcs,
+    Blank,
+    Reset,
 }
 
 impl Format {
-    pub const ALL: [Format; 6] = [Format::Fcr, Format::Sms, Format::Hsd, Format::Wpn, Format::Tgp, Format::Test];
+    pub const ALL: [Format; 10] = [
+        Format::Fcr,
+        Format::Sms,
+        Format::Hsd,
+        Format::Wpn,
+        Format::Tgp,
+        Format::Test,
+        Format::Dte,
+        Format::Flcs,
+        Format::Blank,
+        Format::Reset,
+    ];
 
     pub fn label(self) -> &'static str {
         match self {
@@ -41,7 +58,22 @@ impl Format {
             Format::Wpn => "WPN",
             Format::Tgp => "TGP",
             Format::Test => "TEST",
+            Format::Dte => "DTE",
+            Format::Flcs => "FLCS",
+            Format::Blank => "BLANK",
+            Format::Reset => "RESET",
         }
+    }
+
+    /// Ours (Modern IAF, the modern MFDs): the formats with no game page, offered only there.
+    pub fn modern_only(self) -> bool {
+        matches!(self, Format::Dte | Format::Flcs | Format::Blank | Format::Reset)
+    }
+
+    /// The formats that can be the sensor of interest (the FCR, HSD, TGP and WPN; the DCS F-16 manual, a simulator
+    /// manual, inferred for the Sufa): the others draw no SOI box and pass the SOI to the HUD.
+    pub fn soi(self) -> bool {
+        matches!(self, Format::Fcr | Format::Hsd | Format::Tgp | Format::Wpn)
     }
 
     pub fn from_label(s: &str) -> Option<Format> {
@@ -72,11 +104,14 @@ impl Format {
             Format::Wpn => page::TV,
             Format::Tgp => page::FLIR,
             Format::Test => page::DAMAGE,
+            _ => page::OWN,
         }
     }
 
-    /// Its OSB on the format menu (fig. 1-29: FCR, TGP, WPN down the left from OSB 20; SMS, HSD by OSB 6 / 7 and TEST
-    /// by OSB 9 on the right; TFR, FLIR, DTE and FLCS have no game page and are not offered).
+    /// Its OSB on the format menu (fig. 1-29: FCR, TGP, WPN down the left from OSB 20; SMS, HSD, DTE, TEST, FLCS by
+    /// OSBs 6..10 on the right; BLANK by OSB 1 and RESET (the RESET MENU) by OSB 5 on the top. HAD, RCCE, TFR and FLIR
+    /// are not offered: the sim has no HARM targeting system, recce pod, terrain-following radar mode (avionics-plan.md
+    /// G12) or navigation FLIR pod).
     pub fn menu_osb(self) -> i32 {
         match self {
             Format::Fcr => 20,
@@ -85,13 +120,39 @@ impl Format {
             Format::Sms => 6,
             Format::Hsd => 7,
             Format::Test => 9,
+            Format::Dte => 8,
+            Format::Flcs => 10,
+            Format::Blank => 1,
+            Format::Reset => 5,
         }
     }
 }
 
-/// A page an F-16 MFD may show: one that stands for a format, or the menu.
+/// The formats on the menu: the modern MFDs' all, else the six with a game page.
+pub fn menu(modern: bool) -> Vec<Format> {
+    Format::ALL.into_iter().filter(|f| modern || !f.modern_only()).collect()
+}
+
+/// A page an F-16 MFD may show: one that stands for a format, the menu, or (the modern MFDs) a format of its own.
 pub fn offered(p: i32) -> bool {
-    p == page::MENU || Format::of_page(p).is_some()
+    p == page::MENU || p == page::OWN || Format::of_page(p).is_some()
+}
+
+/// The master modes whose formats each MFD keeps (the real MFDs store their three formats per master mode; the DCS
+/// F-16 manual, a simulator manual): NAV, A-A, A-G. (DGFT and MSL override come with avionics-plan.md G17.)
+pub const NAV: usize = 0;
+pub const AA: usize = 1;
+pub const AG: usize = 2;
+
+/// The master mode group of the game's master mode (`Master`) and the selected store's type: the A-A gun and the
+/// missiles A-A, the HARM (590) among them A-G; the bombs, the A-G gun, the laser bombs and the TV weapons A-G.
+pub fn group(master: i32, store_type: i64) -> usize {
+    match master {
+        0 => NAV,
+        3 => AA,
+        4 if store_type != 590 => AA,
+        _ => AG,
+    }
 }
 
 /// The page shown in place of one that is not offered (NAV by the M key): the HSD, which carries the route (inferred).
@@ -127,25 +188,104 @@ pub enum Press {
 }
 
 /// One MFD: its three formats (OSBs 14, 13, 12; an empty slot shows no mnemonic), the primary one shown, the format
-/// menu open, the edge labels decluttered.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+/// menu open, the edge labels decluttered. The modern MFDs (Modern IAF) keep the three formats per master mode
+/// (`sets`, the current mode's in `slots` / `primary`), offer the formats with no game page and hold the HSD's
+/// settings.
+#[derive(Clone, Debug, PartialEq)]
 pub struct Mfd {
     pub slots: [Option<Format>; 3],
     pub primary: usize,
     pub menu: bool,
     pub declutter: bool,
+    pub modern: bool,
+    pub group: usize,
+    sets: [([Option<Format>; 3], usize); 3],
+    side: usize,
+    pub hsd: Hsd,
+}
+
+/// The formats at the start (inferred: the game's default pages first, radar on the left and the TSD on the right,
+/// docs/mfd.md §7): left FCR, TGP, TEST; right HSD, SMS, WPN; the same in every master mode (inferred: the real
+/// jet's come from its data cartridge).
+fn start_slots(side: usize) -> [Option<Format>; 3] {
+    if side == 0 {
+        [Some(Format::Fcr), Some(Format::Tgp), Some(Format::Test)]
+    } else {
+        [Some(Format::Hsd), Some(Format::Sms), Some(Format::Wpn)]
+    }
+}
+
+/// The modern MFDs' formats at the start, per master mode: `start_slots`, the right MFD's A-G primary the SMS.
+fn start_sets(side: usize) -> [([Option<Format>; 3], usize); 3] {
+    let s = start_slots(side);
+    [(s, 0), (s, 0), (s, if side == 1 { 1 } else { 0 })]
 }
 
 impl Mfd {
-    /// The formats at the start (inferred: the game's default pages first, radar on the left and the TSD on the
-    /// right, docs/mfd.md §7): left FCR, TGP, TEST; right HSD, SMS, WPN.
     pub fn new(side: usize) -> Mfd {
-        let slots = if side == 0 {
-            [Some(Format::Fcr), Some(Format::Tgp), Some(Format::Test)]
-        } else {
-            [Some(Format::Hsd), Some(Format::Sms), Some(Format::Wpn)]
-        };
-        Mfd { slots, primary: 0, menu: false, declutter: false }
+        let slots = start_slots(side);
+        Mfd {
+            slots,
+            primary: 0,
+            menu: false,
+            declutter: false,
+            modern: false,
+            group: NAV,
+            sets: [(slots, 0); 3],
+            side,
+            hsd: Hsd::default(),
+        }
+    }
+
+    /// The modern MFDs (Modern IAF, `Settings.modern_mfds()`): A-G starts with the right MFD on the SMS, as the 1998
+    /// game shows the stores page for the bombs (inferred: the real jet's sets come from its data cartridge).
+    pub fn modern(side: usize) -> Mfd {
+        let mut m = Mfd { modern: true, ..Mfd::new(side) };
+        m.sets = start_sets(side);
+        m
+    }
+
+    /// The master mode group changed (`group`): the current formats are kept for the old one and the new one's come
+    /// back, with its primary shown. False when the group stays (or on the 1998 game's MFDs, which hold one set).
+    pub fn set_group(&mut self, g: usize) -> bool {
+        if !self.modern || g == self.group || g > AG {
+            return false;
+        }
+        self.sets[self.group] = (self.slots, self.primary);
+        (self.slots, self.primary) = self.sets[g];
+        self.group = g;
+        self.menu = false;
+        true
+    }
+
+    /// The RESET MENU's MSMD RESET (ours on its OSB, inferred): every master mode's formats back to the start.
+    pub fn reset_modes(&mut self) {
+        self.sets = start_sets(self.side);
+        (self.slots, self.primary) = self.sets[self.group];
+        self.menu = false;
+    }
+
+    /// DMS left (the left MFD) / right (the right MFD): the next format of the three becomes the primary, skipping
+    /// empty slots (the DCS F-16 manual, a simulator manual; inferred for the Sufa).
+    pub fn step(&mut self) -> Option<Format> {
+        for k in 1..=3 {
+            let i = (self.primary + k) % 3;
+            if self.slots[i].is_some() {
+                self.primary = i;
+                self.menu = false;
+                return self.slots[i];
+            }
+        }
+        None
+    }
+
+    /// SWAP: the two MFDs trade their current formats (and the HSD's settings with them).
+    pub fn swap(&mut self, o: &mut Mfd) {
+        std::mem::swap(&mut self.slots, &mut o.slots);
+        std::mem::swap(&mut self.primary, &mut o.primary);
+        std::mem::swap(&mut self.hsd, &mut o.hsd);
+        self.menu = false;
+        o.menu = false;
     }
 
     pub fn shown(&self) -> Option<Format> {
@@ -193,7 +333,7 @@ impl Mfd {
         if !self.menu {
             return Press::Own(osb);
         }
-        let Some(f) = Format::ALL.into_iter().find(|f| f.menu_osb() == osb) else {
+        let Some(f) = menu(self.modern).into_iter().find(|f| f.menu_osb() == osb) else {
             return Press::None;
         };
         if let Some(j) = self.slots.iter().position(|&s| s == Some(f)) {
@@ -202,6 +342,187 @@ impl Mfd {
         self.slots[self.primary] = Some(f);
         self.menu = false;
         Press::Format(f)
+    }
+}
+
+/// The sensor of interest on the HUD (else the MFD's side, 0 left, 1 right).
+pub const SOI_HUD: i32 = -1;
+
+/// DMS up / down (ours on keys; the DCS F-16 manual, a simulator manual, inferred for the Sufa): up puts the SOI on
+/// the HUD; down moves it from the HUD to the left MFD (else the right) and from one MFD to the other, only onto an MFD
+/// whose shown format can be the SOI (`ok`).
+pub fn dms(soi: i32, down: bool, ok: [bool; 2]) -> i32 {
+    if !down {
+        return SOI_HUD;
+    }
+    let order: [i32; 2] = match soi {
+        0 => [1, 0],
+        1 => [0, 1],
+        _ => [0, 1],
+    };
+    order.into_iter().find(|&i| ok[i as usize]).unwrap_or(SOI_HUD)
+}
+
+/// The SOI kept valid: an MFD whose format can no longer be the SOI hands it to the HUD (inferred).
+pub fn soi_valid(soi: i32, ok: [bool; 2]) -> i32 {
+    if (0..2).contains(&soi) && !ok[soi as usize] { SOI_HUD } else { soi }
+}
+
+/// The HSD's settings (dash-34 pp. 1-82..1-83 and fig. 1-45; the CNTL page's options and their OSBs inferred from
+/// the DCS F-16 manual, a simulator manual): OSB 1 DEP / CEN (the ownship a quarter up or in the middle), OSB 2 CPL /
+/// DCPL (the range coupled to the FCR's), OSB 3 NORM / EXP1 / EXP2 (2:1, 4:1 about the HSD cursor), OSB 4 FRZ (the
+/// picture held where it was), OSB 5 CNTL; the CNTL page's options; the HSD cursor (the SOI's cursor slews it).
+#[derive(Clone, Debug, PartialEq)]
+pub struct Hsd {
+    pub centred: bool,
+    pub coupled: bool,
+    pub exp: u8,
+    /// FRZ: the ownship's world (x, y) and heading when frozen.
+    pub frozen: Option<[f64; 3]>,
+    pub cntl: bool,
+    /// The CNTL options shown (`HSD_OPTIONS`' order).
+    pub show: [bool; 5],
+    /// The HSD cursor (MFD px); None: on the ownship.
+    pub cursor: Option<(f64, f64)>,
+    /// EXP's centre (MFD px), the cursor when EXP was pressed.
+    pub exp_at: (f64, f64),
+}
+
+impl Default for Hsd {
+    fn default() -> Self {
+        Hsd {
+            centred: false,
+            coupled: false,
+            exp: 0,
+            frozen: None,
+            cntl: false,
+            show: [true; 5],
+            cursor: None,
+            exp_at: HSD_DEP,
+        }
+    }
+}
+
+/// The CNTL page's options by OSB: the FCR's scan, the preplanned threats, the route, the range rings, the bullseye.
+pub const HSD_OPTIONS: [(i32, &str); 5] = [(20, "FCR"), (19, "PRE"), (6, "NAV1"), (7, "RINGS"), (8, "BULL")];
+pub const HSD_FCR: usize = 0;
+pub const HSD_PRE: usize = 1;
+pub const HSD_NAV: usize = 2;
+pub const HSD_RINGS: usize = 3;
+pub const HSD_BULL: usize = 4;
+/// The ownship's place and the outer ring's radius (MFD px): depressed a quarter up from the bottom (fig. 1-45), or
+/// centred (inferred).
+const HSD_DEP: (f64, f64) = (66.0, 99.0);
+const HSD_CEN: (f64, f64) = (66.0, 66.0);
+const HSD_DEP_R: f64 = 88.0;
+const HSD_CEN_R: f64 = 54.0;
+
+impl Hsd {
+    /// The ownship (MFD px), the outer ring's radius (px) and its range (NM) for the HSD's own range `scale_nm`, or
+    /// the FCR's `fcr_nm` when coupled.
+    pub fn view(&self, scale_nm: f64, fcr_nm: f64) -> ((f64, f64), f64, f64) {
+        let nm = if self.coupled && fcr_nm > 0.0 { fcr_nm } else { scale_nm };
+        if self.centred { (HSD_CEN, HSD_CEN_R, nm) } else { (HSD_DEP, HSD_DEP_R, nm) }
+    }
+
+    /// EXP's magnification (1, 2, 4).
+    pub fn exp_k(&self) -> f64 {
+        f64::from(1u8 << self.exp.min(2))
+    }
+
+    /// The cursor's place (MFD px).
+    pub fn cursor_px(&self) -> (f64, f64) {
+        self.cursor.unwrap_or(if self.centred { HSD_CEN } else { HSD_DEP })
+    }
+
+    /// An OSB press of the HSD (`own` = the ownship's world x, y and heading for FRZ): true when it was the HSD's.
+    pub fn press(&mut self, osb: i32, own: [f64; 3]) -> bool {
+        if osb == 5 {
+            self.cntl = !self.cntl;
+            return true;
+        }
+        if self.cntl {
+            return match HSD_OPTIONS.iter().position(|o| o.0 == osb) {
+                Some(i) => {
+                    self.show[i] = !self.show[i];
+                    true
+                }
+                None => false,
+            };
+        }
+        match osb {
+            1 => {
+                self.centred = !self.centred;
+                self.cursor = None;
+            }
+            2 => self.coupled = !self.coupled,
+            3 => {
+                self.exp = (self.exp + 1) % 3;
+                self.exp_at = self.cursor_px();
+            }
+            4 => self.frozen = if self.frozen.is_some() { None } else { Some(own) },
+            _ => return false,
+        }
+        true
+    }
+
+    /// The labels by their OSBs: [(osb, text, highlighted)].
+    pub fn labels(&self) -> Vec<(i32, String, bool)> {
+        if self.cntl {
+            let mut v: Vec<(i32, String, bool)> =
+                HSD_OPTIONS.iter().zip(self.show).map(|(o, on)| (o.0, o.1.to_string(), on)).collect();
+            v.push((5, "CNTL".into(), true));
+            return v;
+        }
+        vec![
+            (1, if self.centred { "CEN" } else { "DEP" }.into(), false),
+            (2, if self.coupled { "CPL" } else { "DCPL" }.into(), false),
+            (3, ["NORM", "EXP1", "EXP2"][usize::from(self.exp.min(2))].into(), false),
+            (4, "FRZ".into(), self.frozen.is_some()),
+            (5, "CNTL".into(), false),
+        ]
+    }
+
+    /// The cursor slewed by (dx, dy) MFD px, kept on the format.
+    pub fn slew(&mut self, dx: f64, dy: f64) {
+        let (x, y) = self.cursor_px();
+        self.cursor = Some(((x + dx).clamp(12.0, 120.0), (y + dy).clamp(14.0, 118.0)));
+    }
+
+    /// TMS up on the HSD: the point under the cursor (within 6 px, the nearest) among `pts` (MFD px).
+    pub fn pick(&self, pts: &[(f64, f64)]) -> Option<usize> {
+        let c = self.cursor_px();
+        let d = |p: &(f64, f64)| (p.0 - c.0).hypot(p.1 - c.1);
+        pts.iter().enumerate().filter(|(_, p)| d(p) <= 6.0).min_by(|a, b| d(a.1).total_cmp(&d(b.1))).map(|(i, _)| i)
+    }
+}
+
+/// The SMS A-G page's submodes offered for the selected bomb (dash-34 fig. 1-70's list; ours: only those the release
+/// code has, avionics-plan.md G21 adds CCRP, DTOS, LADD and MAN): a GPS bomb's PRE / VIS, else CCIP.
+pub fn ag_submodes(gps: bool) -> &'static [&'static str] {
+    if gps { &["PRE", "VIS"] } else { &["CCIP"] }
+}
+
+/// The FLCS format's BIT (ours, inferred: the real BIT runs on the ground for about 45 s; the DCS F-16 manual, a
+/// simulator manual): "" not run, RUN, then PASS, or FAIL with an FLCS fault.
+pub const FLCS_BIT_S: f64 = 45.0;
+pub fn flcs_bit(started: Option<f64>, now: f64, fault: bool) -> &'static str {
+    match started {
+        None => "",
+        Some(t) if now - t < FLCS_BIT_S => "RUN",
+        Some(_) if fault => "FAIL",
+        Some(_) => "PASS",
+    }
+}
+
+/// The TGP's track mode legend (ours from the DCS F-16 manual, a simulator manual, inferred for the Sufa's Litening):
+/// `aim` 0 free (slewing: INR), 1 a ground point (AREA), 2 a unit (POINT); slaved to the SPI: none.
+pub fn tgp_track(aim: i64, slaved: bool) -> &'static str {
+    match aim {
+        _ if slaved => "",
+        1 => "AREA",
+        2 => "POINT",
+        _ => "INR",
     }
 }
 
@@ -337,5 +658,101 @@ mod tests {
         assert_eq!(hsd_range_nm(40), 60);
         assert_eq!((wrap_presses(3, 1, 14, 1), wrap_presses(14, 1, 14, 1)), (1, -13));
         assert_eq!(wrap_presses(200, 10, 200, 10), -19);
+    }
+
+    #[test]
+    fn modern_menu_offers_the_own_formats() {
+        let mut m = Mfd::new(0);
+        m.press(14);
+        assert_eq!(m.press(8), Press::None, "the 1998 game's MFDs offer no DTE");
+        let mut m = Mfd::modern(0);
+        m.press(14);
+        assert_eq!(m.press(8), Press::Format(Format::Dte));
+        assert_eq!(m.shown(), Some(Format::Dte));
+        assert_eq!(Format::Dte.page(false), page::OWN);
+        m.follow(page::OWN);
+        assert_eq!(m.shown(), Some(Format::Dte), "the own page keeps the format");
+        assert!(offered(page::OWN));
+        assert_eq!(menu(false).len(), 6);
+        assert_eq!(menu(true).len(), 10);
+        let osbs: Vec<i32> = menu(true).iter().map(|f| f.menu_osb()).collect();
+        let mut sorted = osbs.clone();
+        sorted.sort_unstable();
+        sorted.dedup();
+        assert_eq!(sorted.len(), osbs.len(), "one OSB per format");
+    }
+
+    #[test]
+    fn each_master_mode_keeps_its_formats() {
+        let mut m = Mfd::modern(1);
+        assert!(!m.set_group(NAV));
+        m.press(13);
+        assert_eq!(m.shown(), Some(Format::Sms));
+        assert!(m.set_group(AG));
+        assert_eq!((m.primary, m.shown()), (1, Some(Format::Sms)), "A-G starts on its own primary: the SMS");
+        m.press(12);
+        assert!(m.set_group(NAV));
+        assert_eq!(m.shown(), Some(Format::Sms), "NAV's choice came back");
+        assert!(m.set_group(AG));
+        assert_eq!(m.shown(), Some(Format::Wpn));
+        m.reset_modes();
+        assert_eq!((m.primary, m.shown()), (1, Some(Format::Sms)));
+        let mut old = Mfd::new(0);
+        assert!(!old.set_group(AG), "the 1998 game's MFDs hold one set");
+        assert_eq!((group(0, 0), group(4, 570), group(4, 590), group(1, 500), group(3, 565)), (NAV, AA, AG, AG, AA));
+    }
+
+    #[test]
+    fn dms_steps_formats_and_moves_the_soi() {
+        let mut m = Mfd::modern(0);
+        assert_eq!(m.step(), Some(Format::Tgp));
+        assert_eq!(m.step(), Some(Format::Test));
+        assert_eq!(m.step(), Some(Format::Fcr));
+        assert_eq!(dms(SOI_HUD, true, [true, true]), 0);
+        assert_eq!(dms(0, true, [true, true]), 1);
+        assert_eq!(dms(1, true, [false, true]), 1, "the left shows no SOI format: stays");
+        assert_eq!(dms(SOI_HUD, true, [false, false]), SOI_HUD);
+        assert_eq!(dms(1, false, [true, true]), SOI_HUD);
+        assert_eq!(soi_valid(1, [true, false]), SOI_HUD);
+        assert_eq!(soi_valid(0, [true, false]), 0);
+        assert!(Format::Tgp.soi() && !Format::Sms.soi());
+        let mut r = Mfd::modern(1);
+        m.swap(&mut r);
+        assert_eq!((m.shown(), r.shown()), (Some(Format::Hsd), Some(Format::Fcr)));
+    }
+
+    #[test]
+    fn hsd_settings_and_cursor() {
+        let mut h = Hsd::default();
+        assert_eq!(h.view(30.0, 40.0), ((66.0, 99.0), 88.0, 30.0));
+        assert!(h.press(1, [0.0; 3]) && h.press(2, [0.0; 3]));
+        assert_eq!(h.view(30.0, 40.0), ((66.0, 66.0), 54.0, 40.0), "CEN, coupled to the FCR");
+        h.slew(10.0, -5.0);
+        assert_eq!(h.cursor_px(), (76.0, 61.0));
+        assert!(h.press(3, [0.0; 3]));
+        assert_eq!((h.exp_k(), h.exp_at), (2.0, (76.0, 61.0)));
+        assert_eq!(h.pick(&[(10.0, 10.0), (78.0, 60.0), (75.0, 62.0)]), Some(2));
+        assert_eq!(h.pick(&[(10.0, 10.0)]), None);
+        assert!(h.press(4, [1.0, 2.0, 0.5]));
+        assert_eq!(h.frozen, Some([1.0, 2.0, 0.5]));
+        assert!(h.press(5, [0.0; 3]) && h.cntl);
+        assert!(h.press(20, [0.0; 3]) && !h.show[HSD_FCR]);
+        assert!(!h.press(1, [0.0; 3]), "OSB 1 is not a CNTL option");
+        assert_eq!(h.labels()[0], (20, "FCR".to_string(), false));
+        h.press(5, [0.0; 3]);
+        assert_eq!(h.labels()[3], (4, "FRZ".to_string(), true));
+    }
+
+    #[test]
+    fn sms_flcs_and_tgp_legends() {
+        assert_eq!(ag_submodes(true), ["PRE", "VIS"]);
+        assert_eq!(ag_submodes(false), ["CCIP"]);
+        assert_eq!(flcs_bit(None, 5.0, false), "");
+        assert_eq!(flcs_bit(Some(0.0), 10.0, false), "RUN");
+        assert_eq!((flcs_bit(Some(0.0), 50.0, false), flcs_bit(Some(0.0), 50.0, true)), ("PASS", "FAIL"));
+        assert_eq!(
+            (tgp_track(0, false), tgp_track(1, false), tgp_track(2, false), tgp_track(1, true)),
+            ("INR", "AREA", "POINT", "")
+        );
     }
 }

@@ -127,6 +127,18 @@ var safety_off := false
 ## Ours: the master arm; safe, no gun or store fires (gun_trigger, fire_selected). The original has none, so it stays
 ## armed; Modern IAF starts safe (Settings.starts_safe) and the Master arm key (command 202) toggles it.
 var master_arm := true
+## Ours, the modern MFDs (Settings.modern_mfds): the LASER ARM switch (the 3D cockpit's, key Shift + L); the laser fires
+## only armed. The original has none: armed. The TGP slaved to the SPI (the radar's designated point, else the
+## steerpoint) until a track or a slew; the HSD cursor's slew rate (MFD px/s) while the HSD is the SOI.
+var laser_arm := true
+## The jet flies the F-16's modern MFDs (Settings.modern_mfds with the F-16's real MFDs in its cockpit; set by setup).
+var modern_f16 := false
+var tgp_slaved := false
+var hsd_rate := Vector2.ZERO
+## The weapon whose SMS profile was last recalled (IafRipple recall_profile).
+var _prof_name := ""
+var _dt := 0.0
+var _last_t := 0.0
 ## FUN_0044fe30's break X: ctl+0x818, the DLZ min it compares the lock's range with (kept between updates), and the
 ## next update time of its 1 s timer (ctl+0x820).
 var _break_min := 0.0
@@ -236,12 +248,18 @@ func setup(host_node: Node, entity: Dictionary, object: Dictionary, bdb: Diction
 		return u.get("pos")
 	harm = HarmSensor.new()
 	for i in 9:
-		if "FLIR" in stores.name_of(i):
+		# The 1998 game's FLIR pod; Modern IAF's targeting pod (the Litening, its SMS name TGP).
+		if "FLIR" in stores.name_of(i) or stores.name_of(i) == "TGP":
 			flir_pod = true
 		if "ECM" in stores.name_of(i):
 			ecm_fitted = true
 	ecm_fitted = ecm_fitted or jet_type in [100, 140]
 	flir_pod = flir_pod or bool(Settings.airframe(jet_type).get("flir", false))  # ours: a built-in one (the F-35I's EOTS)
+	var pit = host.get("cockpit")  # the F-16's real MFDs (Settings.real_mfd: its definition's mfd) in this cockpit
+	modern_f16 = (
+		Settings.modern_mfds() and pit != null and Settings.real_mfd(Settings.cockpit_folder(pit.cockpit_dir)) != ""
+	)
+	laser_arm = not modern_f16  # its LASER ARM starts OFF
 	_push_stores()
 	# The tanks' fuel (FUN_005a8980 before the start fills the fuel to FuelWeight + tanks).
 	if host.flight != null and _given_load.is_empty():  # a jet taken over in flight keeps its fuel
@@ -466,7 +484,9 @@ func _mfd_page() -> void:
 			_harm_capture()  # FUN_0045c2b0: the sensor comes on with a scan
 	if master in [1, 2, 3, 4]:
 		_eo_leave()
-	if page >= 0 and host.cockpit != null:
+	# Ours, the modern MFDs: a master mode brings back its own three formats per MFD (mfd.gd _follow_real), so the game
+	# places no page.
+	if page >= 0 and host.cockpit != null and not modern_f16:
 		if host.cockpit.place_mfd_page(page) != null and page in [5, 6, 10]:
 			_replaced[page] = host.cockpit.replaced_page
 	if master == 5 and flir_pod and not gps:
@@ -518,7 +538,9 @@ func _eo_start(mode: int) -> void:
 ## 0x5a placed on the Left (1 MFD, or Left not radar) keeps 6 instead (the exe stores the new page there).
 func flir_on(mfd = null) -> bool:
 	var c = host.cockpit
-	if not flir_pod or c == null or c.mfds.any(func(m): return m.page in [5, 6]):
+	# Ours, the modern MFDs: the TGP shows beside the WPN (page 5), as on the real jet; only one TGP.
+	var busy := [6] if modern_f16 else [5, 6]
+	if not flir_pod or c == null or c.mfds.any(func(m): return m.page in busy):
 		return false
 	if mfd != null:
 		_replaced[6] = mfd.page
@@ -539,11 +561,14 @@ func mfd_event(ev: int, arg = null) -> void:
 		0x20:
 			eo.wide_spot()
 		0x6a:
-			eo.laser_key(flir_pod)
+			eo.laser_key(flir_pod and (laser_arm or eo.laser))  # ours: lasing needs LASER ARM (always on in 1998)
 		-1:
 			gps_mode_key()  # ours: the F-16 SMS / WPN format's PRE / VIS OSB (key K; cockpit/f16_mfd.gd)
 		-2:
 			sel_jett = db.real and not sel_jett  # ours: the F-16 SMS's S-J OSB (Weapon data Real, selective_jettison)
+		-3:
+			# Ours, the modern MFDs: the SMS's PROF1 / PROF2 (IafRipple toggle_profile).
+			release_pairs = _ripple.toggle_profile(stores.current_name(), release_pairs)
 		0x37:
 			if String(arg) != harm.selected:  # FUN_005358b0: the selected entry sends nothing
 				harm.select(String(arg))
@@ -554,11 +579,85 @@ func mfd_event(ev: int, arg = null) -> void:
 ## Ours: with the real F-16 FCR and no EO picture running, the same keys slew the radar's acquisition cursor (the
 ## cursor control moves the sensor of interest; inferred until the SOI is built, avionics-plan.md G8).
 func eo_pan(x: int, y: int) -> void:
+	# Ours, the modern MFDs: the cursor keys move the sensor of interest (cockpit.gd soi_format): the HSD's cursor, the
+	# FCR's, the pod; with the HUD the SOI the 1998 rule below.
+	var soi: String = host.cockpit.soi_format() if modern_f16 and host.cockpit != null else ""
+	hsd_rate = Vector2(x, -y) * HSD_SLEW if soi == "HSD" else Vector2.ZERO
+	if soi == "HSD":
+		return
+	if soi == "FCR" and not radar.real.is_empty():
+		radar.set_cursor_slew(x * 0.01, y * 0.01)
+		return
+	if soi in ["TGP", "WPN"] and (x != 0 or y != 0):
+		tgp_slaved = false
 	if not radar.real.is_empty() and eo.mode == EoSensor.NONE:
 		radar.set_cursor_slew(x * 0.01, y * 0.01)
 		return
 	var o := own()
 	eo.pan(x, y, now, _eo_base(o), _eo_from(o), eo_centre, tv_flying())
+
+
+## The HSD cursor's slew (MFD px/s per key unit of ±100; inferred).
+const HSD_SLEW := 0.4
+
+
+## Ours, the modern MFDs: TMS with the TGP the SOI (the DCS F-16 manual, a simulator manual; inferred for the Sufa's
+## Litening): `dir` 0 up a POINT track on the unit under the cross, else an AREA track on the ground there; 2 right an
+## AREA track; 1 down back to the SPI (slaved); 3 left nothing.
+func tgp_tms(dir: int) -> void:
+	if eo.mode != EoSensor.FLIR:
+		return
+	match dir:
+		0, 2:
+			var key := _unit_at(eo_centre) if dir == 0 else ""
+			eo.start(EoSensor.FLIR, true, key if key != "" else eo_centre, now)
+			eo_on_unit = key != ""
+			tgp_slaved = false
+		1:
+			tgp_slaved = true
+			eo.start(EoSensor.FLIR, true, spi(), now)
+			eo_on_unit = false
+
+
+## The unit whose drawn model holds `p` (within 2 m of its box; the EO pick's bounds), "" none.
+func _unit_at(p: Vector3) -> String:
+	for u in _units():
+		var n = u.ent.node
+		if n is Node3D and n.has_meta("eo_box"):
+			var b: AABB = (n as Node3D).global_transform * (n.get_meta("eo_box") as AABB)
+			if b.grow(2.0).has_point(to_scene(p)):
+				return String(u.key)
+	return ""
+
+
+## The SPI (the sensor's point of interest): the radar's designated ground point, else the current steerpoint on the
+## ground.
+func spi() -> Vector3:
+	if radar.designated:
+		return radar.desig
+	var c = host.cockpit
+	if c == null or c.waypoints.is_empty():
+		return eo_centre
+	var w: Vector2 = c.waypoints[clampi(c.current_waypoint, 0, c.waypoints.size() - 1)].world
+	var g = host.mission_ground(Vector3(w.x, w.y, 0.0))
+	return Vector3(w.x, w.y, float(g) if g != null else 0.0)
+
+
+## Per update: the slaved pod follows the SPI; the HSD cursor slews; the SMS profile of a newly selected weapon.
+func _modern_update() -> void:
+	if tgp_slaved and eo.mode == EoSensor.FLIR:
+		var p := spi()
+		if p.distance_to(eo.point) > 1.0 or eo.target != "":
+			eo.start(EoSensor.FLIR, true, p, now)
+	var c = host.cockpit
+	if hsd_rate != Vector2.ZERO and c != null and c.soi_format() == "HSD":
+		c.mfds[c.soi].real.hsd_slew(hsd_rate.x * _dt, hsd_rate.y * _dt)
+	var name: String = stores.current_name()
+	if name != _prof_name:
+		_prof_name = name
+		var pairs = _ripple.recall_profile(name)
+		if pairs != null:
+			release_pairs = pairs
 
 
 ## The launched TV weapon still flies (mcp+0xc's +0x48 == 1).
@@ -1647,8 +1746,10 @@ var _rocket_nodes := {}  # pool index -> {node, w}
 func ripple_event(ev: int, up: bool) -> void:
 	if ev == -1:
 		release_pairs = not release_pairs
-		return
-	_ripple.step(ev == 0x4a, up)
+	else:
+		_ripple.step(ev == 0x4a, up)
+	if modern_f16:
+		_ripple.keep_profile(stores.current_name(), release_pairs)  # the active SMS profile keeps them
 
 
 ## Extras "Bomb release" Real for the selected store: bombs, cluster and laser bombs (rockets keep the original).
@@ -2585,6 +2686,10 @@ func update(t: float) -> void:
 		_rwr_search()
 	if harm.active and refreshed:
 		_harm_capture()
+	_dt = clampf(t - _last_t, 0.0, 0.25)
+	_last_t = t
+	if modern_f16:
+		_modern_update()
 	_eo_update()
 	_update_full_screen()
 	# FUN_00461680: an A-A radar lock slaves the IR seeker (any lock clears the seeker's own target).
@@ -2758,7 +2863,13 @@ func _publish() -> void:
 		"flir": eo.flir_page(eo_ae, (eo_centre - o.pos).length()),
 		"tv": eo.tv_page(eo_ae, tv_status()),
 		"tv_time": tv_time(),
-		"flir_pod": flir_pod
+		"flir_pod": flir_pod,
+		# Ours, the modern MFDs: the TGP's track legend (IafF16Mfd.tgp_track) and LASER ARM.
+		"track_mode":
+		ClassDB.class_call_static(
+			"IafF16Mfd", "tgp_track", 0 if eo.track == 1 else (2 if eo.target != "" else 1), tgp_slaved
+		),
+		"laser_arm": laser_arm
 	}
 	c.harm = harm.page(_base(o), stores.total(stores.current_type(), stores.current_name()), harm_in_range)
 	c.rwr = rwr.display()
@@ -2787,6 +2898,7 @@ func _publish() -> void:
 		"interval": ripple_int,
 		"release": "" if Settings.bomb_release != "real" else ("PAIR" if release_pairs else "SGL"),
 		"sel_jett": sel_jett,
+		"profile": _ripple.profile(stores.current_name()),
 		"seeker": seeker.symbol,
 		"lock": seeker.lock,
 		"have_missiles": stores.total(t, stores.current_name()) > 0,

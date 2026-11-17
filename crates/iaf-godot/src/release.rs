@@ -6,7 +6,7 @@ use godot::prelude::*;
 use iaf_avionics::gps::Mode;
 use iaf_avionics::hud;
 use iaf_avionics::missile::Dlz;
-use iaf_avionics::release::{self, Ripple, Sight};
+use iaf_avionics::release::{self, Profile, Profiles, Ripple, Sight};
 
 /// A DLZ [max, min] ([] none).
 fn dlz(a: &VarArray) -> Option<Dlz> {
@@ -123,6 +123,13 @@ impl IafRelease {
 #[class(init, base = RefCounted)]
 pub struct IafRipple {
     ripple: Ripple,
+    profiles: Profiles,
+}
+
+impl IafRipple {
+    fn now(&self, pairs: bool) -> Profile {
+        Profile { qty: self.ripple.qty, interval: self.ripple.interval, pairs }
+    }
 }
 
 #[godot_api]
@@ -163,6 +170,41 @@ impl IafRipple {
     #[func]
     fn pulses(&self, pairs: bool, awru: bool) -> i64 {
         self.ripple.pulses(pairs, awru)
+    }
+
+    /// Ours, the F-16 SMS's PROF1 / PROF2 (`Profiles`): the active profile (0 / 1) of `name`.
+    #[func]
+    fn profile(&self, name: GString) -> i64 {
+        self.profiles.active(&name.to_string()) as i64
+    }
+
+    /// The settings now (with `pairs`) kept in `name`'s active profile.
+    #[func]
+    fn keep_profile(&mut self, name: GString, pairs: bool) {
+        let now = self.now(pairs);
+        self.profiles.keep(&name.to_string(), now);
+    }
+
+    /// `name` selected: its active profile's settings applied; the profile's PAIR (true), SGL (false), or null when it
+    /// holds none (nothing changed).
+    #[func]
+    fn recall_profile(&mut self, name: GString) -> Variant {
+        match self.profiles.recall(&name.to_string()) {
+            Some(p) => {
+                self.ripple.set(p.qty, p.interval);
+                p.pairs.to_variant()
+            }
+            None => Variant::nil(),
+        }
+    }
+
+    /// The PROF OSB: the other profile applied; its PAIR / SGL.
+    #[func]
+    fn toggle_profile(&mut self, name: GString, pairs: bool) -> bool {
+        let now = self.now(pairs);
+        let p = self.profiles.toggle(&name.to_string(), now);
+        self.ripple.set(p.qty, p.interval);
+        p.pairs
     }
 
     #[func]

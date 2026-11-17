@@ -3,6 +3,16 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **The Sufa's MFDs (2026-11-17, avionics-plan.md slice 4, G8 DMS, G14–G16, G24, G25;
+  [../../docs/mfd.md](../../docs/mfd.md) §9 "Modern MFDs"):** each MFD keeps three formats per master mode (NAV,
+  A-A, A-G); the menu adds DTE, FLCS, BLANK and the RESET MENU; the sensor of interest with its box and NOT SOI, DMS on
+  Ctrl + Page Up / Down and Ctrl + `[` / `]`, the cursor and TMS keys acting on the SOI; the HSD's DEP / CEN, CPL, EXP,
+  FRZ, CNTL page, bullseye and cursor (TMS up on a steerpoint makes it current); the SMS's submode menu and PROF1 /
+  PROF2 per weapon; the Litening pod on the chin with the TGP's POINT / AREA / INR tracks, slaving to the radar's
+  designation or the steerpoint, LASER ARM (Shift + L, the 3D cockpit's switch) and the laser; the GBU-10, GBU-12
+  and GBU-16 on both F-16s ([weapons.md](weapons.md) §7). Checked on the range: a GBU-12 lased by the pod hits a
+  hulk (`modern-iaf/tests/test_sim_mfd.gd`). Open: the HUD's own SOI mark (no source shows it); the Litening drawn
+  with our LANTIRN model until a model of ours exists.
 - **The Sufa's radar, air to ground (2026-11-17, avionics-plan.md slice 3, G9–G12;
   [../../docs/radar.md](../../docs/radar.md) §9.7):** R gives GM, Q steps GMT and SEA; NORM's fan and the EXP, DBS1
   and DBS2 patches (Ctrl + `;`) over a radar picture made from the terrain (slopes, shadows, dark water and runways,

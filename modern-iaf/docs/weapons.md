@@ -122,6 +122,7 @@ the gun.
 | next target | the radar locks the next target (the Sufa: each press bugs the next target; TMS up or a click on the bug locks it) | the same | Enter | 58 |
 | the Sufa's radar | the real FCR's TMS, submodes, scan width and bars, antenna elevation, OVRD and EXP ([../../docs/radar.md](../../docs/radar.md) §9.4) | — | `/`, Shift+`/`, `;`, Shift+`;`, `'`, Shift+`'`, Ctrl+`'`, Alt+Up / Down, Ctrl+`/`, Ctrl+`;`; the cursor on Ctrl+arrows | 132–142, 48–51 |
 | the Sufa's ground map | GM's OSBs 7–10: FZ, SP, CZ, STP / TGT; in A-G the TMS keys designate or track and Ctrl+`;` steps EXP / DBS1 / DBS2 ([../../docs/radar.md](../../docs/radar.md) §9.7) | — | Alt+`;`, Alt+`'`, Alt+`/`, Alt+`.` | 143–146 |
+| the F-16 MFDs | DMS (the SOI, each MFD's next format); LASER ARM ([../../docs/mfd.md](../../docs/mfd.md) §9 "Modern MFDs") | — | Ctrl+Page Up / Down, Ctrl+`[` / `]`; Shift+L | 147–151 |
 | gun | the trigger held | the same | Tab | 64 |
 
 **Every store drawn on its rack (2026-11-15).** A station that holds several stores shows each of them, on the Loadout
@@ -188,6 +189,42 @@ unarmed; the F-35I's bay doors open in 0.47 s, shut 0.5 s after the release and 
   the F-35I's gun record fires 11 rounds a tick at 1,040 m/s; the bomb fixes are on and a 20 kt wind reaches the
   falling stores.
 
+
+## 7. The targeting pod and the laser bombs
+The user's yes of 17 November 2026 ([avionics-plan.md](avionics-plan.md) §8, item 2): the Litening pod and the GBU-10, GBU-12 and GBU-16 on the
+Sufa and the Barak (the F-16I carries all three and the Litening II[^sufa-at]). Their records:
+
+| store | record | weight | stations | model |
+|---|---|---|---|---|
+| Litening targeting pod (SMS name `TGP`) | `data/db/weapons/litening.json`, kind `pod` (660) | 208 kg[^w-litening] | 5, the chin | our LANTIRN pod (`flrpod.glb`) standing in |
+| GBU-12 Paveway II | `gbu-12.json`, kind `laser_bomb` (650) | 230 kg[^w-gbu12] | 3, 4, 6, 7 | the Mk 82 with the Paveway kit (`mk82lb.glb`) |
+| GBU-16 Paveway II | `gbu-16.json` | 450 kg[^w-gbu16] | 3, 4, 6, 7 | `mk83lb.glb` |
+| GBU-10 Paveway II | `gbu-10.json` | 910 kg[^w-gbu10] | 3, 4, 6, 7 | `mk84lb.glb` |
+
+- **The chin.** The real F-16 hangs its targeting pod on a chin hardpoint under the intake[^twz-litening] (the right
+  one on the Sufa, inferred from photos). The sim's nine pylons are the stations 1–9; station 5, the centreline, takes
+  no sim store, so the sim numbers the chin station 5 and hangs it under the right intake (`sim.rs`
+  `F16_SIM_STATIONS` StationE, `F16_SIM_LUGS`). The briefing's balance takes it on the jet's middle (its 0.3 m offset
+  inferred as negligible).
+- **The pod.** `player_weapons.gd` takes a store named TGP (or the 1998 game's FLIR) as the targeting pod: the TGP
+  format ([../../docs/mfd.md](../../docs/mfd.md) §9 "Modern MFDs"), its picture, the track modes, the laser.
+- **The laser bombs** fly the shared laser path ([../../docs/weapons.md](../../docs/weapons.md) §9.8): released as
+  bombs on the CCIP rules, guided onto the laser spot while the laser fires (within 60° of the line to the bomb's
+  point), else to the bomb's CCIP point. Their motion is the shared guided motion's defaults (`guided.rs`
+  `GuidedMotion::default`; no new performance modelling, avionics-plan.md §7).
+- **The flow** on the range: A-G with a GBU selected, the radar's ground map designates a hulk, the TGP the SOI
+  (DMS), TMS down slaves the pod there (or TMS up / right tracks what is under its cross), LASER ARM (Shift+L), L
+  fires the laser, MASTER ARM, the pickle. Test: `modern-iaf/tests/test_sim_mfd.gd` (a GBU-12 hits Target 1).
+
 [^gdots]: General Dynamics OTS, "F-16 20mm Gatling gun system" (511 rounds), https://www.gd-ots.com/wp-content/uploads/2017/11/F-16.pdf
 [^w-f35]: Wikipedia, "Lockheed Martin F-35 Lightning II" (GAU-22/A, 180 rounds in the F-35A), https://en.wikipedia.org/wiki/Lockheed_Martin_F-35_Lightning_II
 [^w-m61]: Wikipedia, "M61 Vulcan" (6,000 rounds per minute), https://en.wikipedia.org/wiki/M61_Vulcan
+[^sufa-at]: Airforce Technology, "F-16I Soufa Multirole Fighter, Israel" (GBU-10 / 12 / 16 carried, the Litening II
+    pod): https://www.airforce-technology.com/projects/f-16i-soufa/
+[^w-litening]: Wikipedia, "LITENING" (208 kg; the F-16I Sufa's Litening C4): https://en.wikipedia.org/wiki/LITENING
+[^w-gbu12]: Wikipedia, "GBU-12 Paveway II" (230 kg): https://en.wikipedia.org/wiki/GBU-12_Paveway_II
+[^w-gbu16]: Wikipedia, "GBU-16 Paveway II" (450 kg): https://en.wikipedia.org/wiki/GBU-16_Paveway_II
+[^w-gbu10]: Wikipedia, "GBU-10 Paveway II" (910 kg): https://en.wikipedia.org/wiki/GBU-10_Paveway_II
+[^twz-litening]: The War Zone, "We talk new features on the Litening large aperture targeting pod" (a Litening on the
+    usual chin station of an F-16C):
+    https://www.twz.com/news-features/we-talk-new-features-on-the-litening-large-aperture-targeting-pod

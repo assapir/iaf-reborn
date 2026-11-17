@@ -101,6 +101,9 @@ var tsd_map: Array = []
 ## The TSD's SAM sites (state+0x1148, FUN_00446270): [{pos (world X / Y), r (ring radius, m)}].
 var sam_sites: Array = []
 var mfds: Array = []
+## Ours, the F-16's modern MFDs (Settings.modern_mfds; docs/mfd.md §9 "Modern MFDs"): the sensor of interest, -1 the
+## HUD, else the MFD's index (0 left, 1 right); it starts on the left MFD, the FCR's (inferred).
+var soi := 0
 
 ## Panel lights (docs/cockpit.md "Panel lights"). Indicators 0..8: master, (left) engine fire,
 ## right engine fire, AI, SAM, air brake, ECM, hook, autopilot; the gear handle (LIGHT009) follows
@@ -395,6 +398,38 @@ func place_mfd_page(page: int) -> Node:
 	replaced_page = mfds[i].page
 	mfds[i].page = page
 	return mfds[i]
+
+
+## Ours, the modern MFDs: the format of the sensor of interest ("" the HUD, or an MFD whose format cannot be the SOI,
+## which hands the SOI to the HUD: IafF16Mfd.soi_valid).
+func soi_format() -> String:
+	var ok := _soi_ok()
+	soi = ClassDB.class_call_static("IafF16Mfd", "soi_valid", soi, ok[0], ok[1])
+	if soi < 0 or soi >= mfds.size():
+		return ""
+	return String(mfds[soi].real.state().shown)
+
+
+## Whether each of the two MFDs shows a format that can be the SOI (IafF16Mfd state soi).
+func _soi_ok() -> Array:
+	var ok := [false, false]
+	for i in mini(mfds.size(), 2):
+		ok[i] = mfds[i].real != null and bool(mfds[i].real.state().soi)
+	return ok
+
+
+## Ours, the modern MFDs' DMS (keys; IafF16Mfd.dms / step): 0 up (the SOI to the HUD), 1 down (to an MFD, then the
+## other), 2 left / 3 right (the left / right MFD's next format).
+func dms(dir: int) -> void:
+	var ok := _soi_ok()
+	if dir < 2:
+		soi = ClassDB.class_call_static("IafF16Mfd", "dms", soi, dir == 1, ok[0], ok[1])
+		return
+	var i := dir - 2
+	if i < mfds.size() and mfds[i].real != null:
+		var f: String = mfds[i].real.step()
+		if f != "":
+			mfds[i].real_fmt.show_format(f)
 
 
 ## The MFD showing the radar (radar keys first put the radar on the Left MFD if none shows it).

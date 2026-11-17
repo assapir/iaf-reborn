@@ -450,6 +450,11 @@ func modern_radar() -> bool:
 	return true
 
 
+## The F-16's modern MFDs (docs/mfd.md §9.6).
+func modern_mfds() -> bool:
+	return true
+
+
 ## The sim's aircraft descriptors (`iaf-sim own`: the F-16's from our model) and its compiled missions.
 func planes_folder() -> String:
 	return "own/planes"

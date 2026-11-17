@@ -933,9 +933,14 @@ func _draw_pictures() -> void:
 		_draw_ag_picture(r, ag)
 	elif page == RADAR and int(r.get("mode", 0)) == 8:
 		_draw_map_picture(r, RADAR_RANGES[clampi(int(r.get("idx", 1)), 1, 6) - 1])
-	elif page == FLIR or (page == TV and int(cockpit.eo.get("tv", {}).get("status", 0)) != 0):
+	elif page == FLIR or (page == TV and int(cockpit.eo.get("tv", {}).get("status", 0)) != 0 and _video()):
 		if cockpit.eo_texture != null and cockpit.eo.get("camera", false):
 			_under.draw_texture_rect(cockpit.eo_texture, Rect2(10, 10, 112, 112), false)
+
+
+## The TV page's video: the real formats' WPN decides (f16_mfd.gd wpn_video), the original's always.
+func _video() -> bool:
+	return real_look == "" or real_fmt == null or real_fmt.wpn_video()
 
 
 ## FLIR page (FUN_00536c10): the picture, the tile (0,660), zoom "%1d" right-aligned at (11,33), WIDE / SPOT
@@ -1338,12 +1343,16 @@ func _ring(c: Vector2, r: float) -> void:
 
 ## Keeps the formats with the page: a page with no real format (NAV by the M key) shows the HSD in its place; the
 ## page's format becomes the primary one.
+## The modern MFDs (Settings.modern_mfds) keep three formats per master mode: a new master mode shows its own.
 func _follow_real() -> void:
 	if real == null:
-		real = ClassDB.class_call_static("IafF16Mfd", "create", index)
+		real = ClassDB.class_call_static("IafF16Mfd", "create_modern" if Settings.modern_mfds() else "create", index)
 		real_fmt = preload("res://shared/cockpit/f16_mfd.gd").new(self)
 	if not ClassDB.class_call_static("IafF16Mfd", "offered", page):
 		page = ClassDB.class_call_static("IafF16Mfd", "stand_in")
+	var w: Dictionary = cockpit.weapons
+	if not w.is_empty() and real.set_master(int(w.get("master", 0)), int(w.get("type", 0))):
+		real_fmt.show_format(String(real.state().shown))
 	real.follow(page)
 
 

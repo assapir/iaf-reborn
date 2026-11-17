@@ -112,6 +112,49 @@ impl Ripple {
     }
 }
 
+/// The settings an SMS profile keeps (Modern IAF's F-16 SMS, PROF1 / PROF2; avionics-plan.md G24): the release
+/// pulses, the interval and SGL / PAIR.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Profile {
+    pub qty: i64,
+    pub interval: i64,
+    pub pairs: bool,
+}
+
+/// The A-G weapons' two profiles each (the real SMS keeps PROF1 / PROF2 per weapon; the DCS F-16 manual, a simulator
+/// manual, inferred for the Sufa): by weapon name the active one (0 / 1) and what each holds (None: not set yet,
+/// the weapon's settings then stay as they are).
+#[derive(Clone, Debug, Default)]
+pub struct Profiles {
+    by_weapon: std::collections::HashMap<String, (usize, [Option<Profile>; 2])>,
+}
+
+impl Profiles {
+    pub fn active(&self, name: &str) -> usize {
+        self.by_weapon.get(name).map_or(0, |e| e.0)
+    }
+
+    /// The weapon's settings changed (or it is left): its active profile keeps them.
+    pub fn keep(&mut self, name: &str, now: Profile) {
+        let e = self.by_weapon.entry(name.to_string()).or_insert((0, [None; 2]));
+        e.1[e.0] = Some(now);
+    }
+
+    /// The weapon selected: its active profile's settings, None when it holds none.
+    pub fn recall(&self, name: &str) -> Option<Profile> {
+        self.by_weapon.get(name).and_then(|e| e.1[e.0])
+    }
+
+    /// The PROF OSB: the settings `now` kept in the active profile, the other one made active; its settings to apply
+    /// (a profile never set starts as a copy of the other).
+    pub fn toggle(&mut self, name: &str, now: Profile) -> Profile {
+        self.keep(name, now);
+        let e = self.by_weapon.get_mut(name).expect("kept above");
+        e.0 = 1 - e.0;
+        *e.1[e.0].get_or_insert(now)
+    }
+}
+
 /// The first bomb of a ripple off the HUD waits for time-to-go ≤ 0.9 s.
 pub fn first_bomb_waits(off_hud: bool, first: bool, ttg: f64) -> bool {
     off_hud && first && ttg > TTG_RELEASE
@@ -309,5 +352,20 @@ mod tests {
         // PRE: the pre-planned coordinates whatever the sensors point at; none set: the CCIP.
         assert_eq!(gps_aim(Mode::Pre, Some(pre), ccip, Some(pod), 0.0, Some(td)), (pre, true));
         assert_eq!(gps_aim(Mode::Pre, None, ccip, Some(pod), 0.0, Some(td)), (ccip, false));
+    }
+
+    #[test]
+    fn sms_profiles_per_weapon() {
+        let mut p = Profiles::default();
+        let a = Profile { qty: 2, interval: 10, pairs: true };
+        let b = Profile { qty: 4, interval: 60, pairs: false };
+        assert_eq!((p.active("MK-82"), p.recall("MK-82")), (0, None));
+        assert_eq!(p.toggle("MK-82", a), a, "PROF2 starts as PROF1's copy");
+        assert_eq!(p.active("MK-82"), 1);
+        p.keep("MK-82", b);
+        assert_eq!(p.toggle("MK-82", b), a, "back to PROF1");
+        assert_eq!(p.toggle("MK-82", a), b);
+        assert_eq!(p.recall("MK-82"), Some(b));
+        assert_eq!(p.recall("GBU-12"), None, "per weapon");
     }
 }
