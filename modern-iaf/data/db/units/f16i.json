@@ -25,7 +25,8 @@
   },
   "lateral_limit_kgm": 3459,
   "lateral_limit_hard": false,
-  "positions": { "1": "wingtip", "2": "outboard", "3": "mid", "4": "inboard", "5": "chin", "6": "inboard", "7": "mid", "8": "outboard", "9": "wingtip" },
+  "positions": { "1": "wingtip", "2": "outboard", "3": "mid", "4": "inboard", "5": "chin", "6": "inboard", "7": "mid", "8": "outboard", "9": "wingtip", "10": "chin" },
+  "labels": { "5": "5R", "10": "5L" },
   "allowed": {
     "1": ["aim-9m", "python-5", "aim-120"],
     "2": ["aim-9m", "python-5", "aim-120"],
@@ -35,7 +36,8 @@
     "6": ["tank-370", "tank-600", { "id": "mk-82", "count": 3, "rack": "TER-9/A", "rack_kg": 47.6, "rack_drag": 4.2 }, "mk-83", "mk-84", "spice-1000", "spice-2000", "gbu-12", "gbu-16", "gbu-10"],
     "7": ["aim-9m", "aim-120", { "id": "mk-82", "count": 3, "rack": "TER-9/A", "rack_kg": 47.6, "rack_drag": 4.2 }, "mk-83", "mk-84", "gbu-31", { "id": "gbu-38", "count": 2, "rack": "BRU-57/A", "rack_kg": 120.2, "rack_drag": 5.3 }, "spice-1000", "spice-2000", "gbu-12", "gbu-16", "gbu-10"],
     "8": ["aim-9m", "python-5", "aim-120"],
-    "9": ["aim-9m", "python-5", "aim-120"]
+    "9": ["aim-9m", "python-5", "aim-120"],
+    "10": ["lantirn-nav"]
   },
   "inventory": [
     { "weapon": "aim-9m" },
@@ -53,12 +55,14 @@
     { "weapon": "gbu-12" },
     { "weapon": "gbu-16" },
     { "weapon": "gbu-10" },
-    { "weapon": "litening" }
+    { "weapon": "litening" },
+    { "weapon": "lantirn-nav" }
   ],
   "sources": {
     "positions": "inferred",
+    "labels": "f16net-lantirn, inferred",
     "lateral_limit_kgm": "bms-asym, inferred",
-    "allowed": "f16net-aim9, f16net-aim120, f16net-jdam, f16net-mk82, f16net-tanks, usaf-600, ter-9a, l3h-bru57, sufa-at, twz-litening, inferred",
+    "allowed": "f16net-aim9, f16net-aim120, f16net-jdam, f16net-mk82, f16net-tanks, usaf-600, ter-9a, l3h-bru57, sufa-at, twz-litening, f16net-lantirn, iaf-f16i, inferred",
     "tail": "model-846",
     "max_takeoff_kg": "aft-f16i-mtow",
     "type": "inferred",
@@ -69,13 +73,14 @@
     "loadout.chaff": "open",
     "loadout.flare": "open",
     "pylons": "w-f16, mf-f16i, aft-f16i, ipms-f16i, inferred, f16net-aim9, f16net-aim120",
-    "inventory": "f16net-aim9, f16net-aim120, f16net-tanks, w-f16-arm, sufa-at, inferred"
+    "inventory": "f16net-aim9, f16net-aim120, f16net-tanks, w-f16-arm, sufa-at, inferred, iaf-f16i"
   },
   "notes": {
-    "positions": "each station's place on the wing as the Loadout screen names it: 1 / 9 the wingtip rails, 2 / 8 outboard, 3 / 7 mid, 4 / 6 inboard (the wet stations), 5 the targeting pod's chin hardpoint under the right intake (the real jet's 5R; the centreline is not used; inferred from the F-16's station numbering)",
+    "positions": "each station's place on the wing as the Loadout screen names it: 1 / 9 the wingtip rails, 2 / 8 outboard, 3 / 7 mid, 4 / 6 inboard (the wet stations), 5 the targeting pod's chin hardpoint under the right intake (the real jet's 5R; the centreline is not used; inferred from the F-16's station numbering), 10 the navigation pod's chin hardpoint under the left intake (the real jet's 5L, numbered after the wing's nine: the engine's pylon J)",
+    "labels": "the chin hardpoints' real names, 5R (the sim's 5) and 5L (the sim's 10), shown in place of their numbers: the F-16's navigation pod on 5L (f16net-lantirn), the targeting pod on the other (inferred, modern-iaf/docs/research/pods.md §2.3)",
     "lateral_limit_kgm": "the F-16's maximum allowable asymmetric (rolling) moment, 25,020 ft-lb (3,459 kg·m), as a forum quotes the flight manual's stores limitations (bms-asym; the manual itself not seen, so inferred); the Sufa's and the Barak's taken the same (inferred)",
     "lateral_limit_hard": "false: the briefing warns and lets the jet fly (the manual forbids the take-off only when the roll trim cannot hold the moment, which the briefing does not know)",
-    "allowed": "the stores each station takes, by its real number. Sourced: the AIM-9 and the AIM-120 on 1 / 9, 2 / 8 and 3 / 7 (f16net-aim9, f16net-aim120); the GBU-31 on 3 / 7, one each, and the GBU-38 there two to a BRU-57/A (120.2 kg, l3h-bru57; f16net-jdam); three Mk 82 on a TER-9/A (47.6 kg, ter-9a) on 3 / 7, and on 4 / 6 (f16net-mk82, a forum: inferred; with tanks on 4 / 6 the real jet takes two on 3 / 7, not modelled); the 370 US gal tank on 4 / 6 (f16net-tanks) and the 600 US gal tank there (usaf-600). Inferred: the Python 5 on the AIM-9 rails 1 / 9 and 2 / 8 (a modified LAU-129; no station chart found); the Mk 83 and the Mk 84 one each on 3 / 7 and 4 / 6 (f16net-mk82 tells of four Mk 84); the SPICE 1000 / 2000 on 3 / 7 and 4 / 6 (no source gives their stations); the Delilah on none (dropped 2026-11-14: no cruise-missile flight class); the Sufa and the Barak the same (no source shows a difference). Each rack's rack_drag (drag index, flight-model.md §9.18) inferred as one of its stores' (a beam of about their cross-section). The laser-guided GBU-12, GBU-16 and GBU-10 (sufa-at) one each on 3 / 7 and 4 / 6, as the Mk 82 to Mk 84 bodies they are built on (inferred); the targeting pod (the Litening, sufa-at) on the right chin hardpoint (twz-litening: a chin station; the right side inferred from photos), the sim's station 5 (the user's yes to the pod and the laser bombs on the F-16s, 17 Nov 2026, avionics-plan.md §8.2)",
+    "allowed": "the stores each station takes, by its real number. Sourced: the AIM-9 and the AIM-120 on 1 / 9, 2 / 8 and 3 / 7 (f16net-aim9, f16net-aim120); the GBU-31 on 3 / 7, one each, and the GBU-38 there two to a BRU-57/A (120.2 kg, l3h-bru57; f16net-jdam); three Mk 82 on a TER-9/A (47.6 kg, ter-9a) on 3 / 7, and on 4 / 6 (f16net-mk82, a forum: inferred; with tanks on 4 / 6 the real jet takes two on 3 / 7, not modelled); the 370 US gal tank on 4 / 6 (f16net-tanks) and the 600 US gal tank there (usaf-600). Inferred: the Python 5 on the AIM-9 rails 1 / 9 and 2 / 8 (a modified LAU-129; no station chart found); the Mk 83 and the Mk 84 one each on 3 / 7 and 4 / 6 (f16net-mk82 tells of four Mk 84); the SPICE 1000 / 2000 on 3 / 7 and 4 / 6 (no source gives their stations); the Delilah on none (dropped 2026-11-14: no cruise-missile flight class); the Sufa and the Barak the same (no source shows a difference). Each rack's rack_drag (drag index, flight-model.md §9.18) inferred as one of its stores' (a beam of about their cross-section). The laser-guided GBU-12, GBU-16 and GBU-10 (sufa-at) one each on 3 / 7 and 4 / 6, as the Mk 82 to Mk 84 bodies they are built on (inferred); the targeting pod (the Litening, sufa-at) on the right chin hardpoint (twz-litening: a chin station; the right side inferred from photos), the sim's station 5 (the user's yes to the pod and the laser bombs on the F-16s, 17 Nov 2026, avionics-plan.md §8.2); the LANTIRN navigation pod, AN/AAQ-13, on the left chin hardpoint, 10 (5L): the IAF names the two pods under the Sufa's intake (iaf-f16i), the F-16 carries the navigation pod on 5L (f16net-lantirn); carried, drawn and weighed only, its functions later (modern-iaf/docs/research/pods.md P7, P8)",
     "tail": "the number painted on the Sufa's model (shared/extra/models/f16/f16i.glb: F-16I 846 of 201 Squadron, also at Ramon; docs/f16i.md §8.1), so every screen shows the jet the player sees (the user, 2026-11-13, A31). Until then 482 of 253 Squadron (jp-482); the squadron since then the model's, 201 (the base file's `squadrons`; the user, 2026-11-13)",
     "max_takeoff_kg": "the F-16I's maximum take-off weight, 23,582 kg (about 52,000 lb), which its F100-PW-229 IPE allows",
     "type": "the F-16's type code, the one the shared code keys the F-16 family on; the airframe definition f16i makes it the Sufa",
@@ -90,6 +95,8 @@
     "inventory": "the stores the briefing lists as the jet's, each its own record in data/db/weapons with its sourced weight and size: the AIM-9M, the Python 5, the AIM-120, the Mk 82, Mk 83 and Mk 84, the GBU-31 and GBU-38 JDAM, the SPICE 1000 and 2000, the 370 and 600 US gal tanks; no counts published"
   },
   "footnotes": {
+    "f16net-lantirn": "F-16.net, \"AN/AAQ-13 & AN/AAQ-14 LANTIRN\" (the navigation pod on 5L), https://www.f-16.net/f-16_armament_article2.html",
+    "iaf-f16i": "Israeli Air Force site, \"F-16I הדור הבא\" (the F-16I carries two pods beneath its air intake: a Litening for targets and a LANTIRN pod for navigation), https://www.iaf.org.il/522-19034-he/IAF.aspx (as the search engine returned it; modern-iaf/docs/research/pods.md §1)",
     "bms-asym": "Falcon BMS forum, \"Asymmetric loads - Air to Ground for F16\" (quotes the F-16 flight manual, section 5: the maximum allowable asymmetric (rolling) moment for ground handling, taxi, takeoff, inflight and landing is 25,020 foot-pounds), https://forum.falcon-bms.com/post/167880",
     "f16net-mk82": "F-16.net forum, \"Mk 82 loadouts\" (TER-9A on stations 3 and 7, two with 370 gal tanks on 4 and 6; TERs on 4 / 6; four Mk 84s), https://www.f-16.net/forum/viewtopic.php?p=123057",
     "usaf-600": "USAF, \"600 Gallon External Fuel Tank Assembly\", solicitation FA8232-26-R-B014 (600 gal tanks on wing stations four and six), https://samsearch.co/gov-explore/federal/600-gallon-external-fuel-tank-assembly/FA8232-26-R-B014",

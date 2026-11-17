@@ -16,3 +16,4 @@ Each store's side view on the Arming page (modern-iaf/docs/front-end.md §10), r
 | delilah.png, tank-600.png | none: a flat silhouette drawn with ImageMagick (the Delilah's 2.71 m by 0.33 m body with its wings and tail; the 600 US gal tank's outline, its size open), standing in until a model of ours exists | ours |
 | gbu-12.png, gbu-16.png, gbu-10.png | `shared/extra/models/stores/mk82lb.glb`, `mk83lb.glb`, `mk84lb.glb` (the Paveway II bodies) | GPL 2.0 or later (the FlightGear F-16's stores) |
 | litening.png | `shared/extra/models/stores/litening.glb` (the Litening, FlightGear's AN/AAQ-28) | the same |
+| lantirn-nav.png, pathfinder.png | `shared/extra/models/stores/lantirn.glb` (FlightGear's AN-AAQ-13; the Pathfinder drawn with its shape, inferred) | the same |

@@ -27,6 +27,7 @@ use crate::mission_edit::Heights;
 use crate::progress::{Progress, check};
 use crate::sim_bases::{self, Base};
 use crate::training;
+use iaf_avionics::stores::{STATIONS, pylon_index};
 
 pub use crate::sim_files::{BDB, BDB_FILE};
 pub const OBJECTS_FILE: &str = "converted/objects/objects.json";
@@ -89,9 +90,14 @@ pub const F16_GLB: &str = "shared/extra/models/f16/f16d.glb";
 ///     Litening (loads_models.xml: 0.69 m right, its axis 1.02 m down, 2.25 m ahead of its origin, 1.05 m aft of
 ///     ours): the pod's top on the pylon's bottom at x 0.69 m, y −0.82 m, z −1.20 m (`F16_SIM_LUGS`), its axis
 ///     0.2 m lower; the right side as the Sufa's Litening (modern-iaf/docs/weapons.md §7).
+///   - 5L (StationJ, the engine's 13th station, `iaf_avionics::stores::CHIN_LEFT`; ours): the navigation pod's left
+///     chin hardpoint under the model's left chin pylon (`PylonChinL`), where FlightGear hangs its AN-AAQ-13
+///     (loads_models.xml `Station11_LANTIRNnav`: 0.66 m left, its axis 1.02 m down, 2.45 m ahead of its origin): the
+///     axis at x −0.66 m, y −1.02 m, z −1.40 m, the pod's top (its mount, 0.428 m above the axis in lantirn.glb) at
+///     y −0.592 m (`F16_SIM_LUGS`), as FlightGear places it (modern-iaf/docs/weapons.md §7.3).
 ///
 /// These are the rail points the missiles hang at; the stores that hang by their lugs take `F16_SIM_LUGS` instead.
-const F16_SIM_STATIONS: [(&str, [f64; 3]); 9] = [
+const F16_SIM_STATIONS: [(&str, [f64; 3]); 10] = [
     ("StationA", [-4.7075, -0.2015, 2.35]),
     ("StationB", [-3.974, -0.3855, 2.496]),
     ("StationC", [-2.986, -0.4555, 1.912]),
@@ -101,23 +107,25 @@ const F16_SIM_STATIONS: [(&str, [f64; 3]); 9] = [
     ("StationG", [2.977, -0.4555, 1.912]),
     ("StationH", [3.965, -0.3855, 2.496]),
     ("StationI", [4.7115, -0.2015, 2.347]),
+    ("StationJ", [-0.66, -1.02, -1.4]),
 ];
 
 /// The bomb lugs of the F-16's heavy stations 3 / 7 (StationC, StationG) and 4 / 6 (StationD, StationF): the pylon's
 /// bottom on its middle (the same pylons as `F16_SIM_STATIONS`), the descriptor's `lugs`. A bomb, a guided bomb or a
 /// tank hangs its top there (stores.gd `LUGGED`), so the Mk 84 on 3 / 7 hangs under the pylon, not on the AIM-9's
-/// axis inside it; the tank's place on 4 / 6 stays as before.
-const F16_SIM_LUGS: [(&str, [f64; 3]); 5] = [
+/// axis inside it; the tank's place on 4 / 6 stays as before. The chin pods (E, J) hang their tops there too.
+const F16_SIM_LUGS: [(&str, [f64; 3]); 6] = [
     ("StationC", [-2.986, -0.392, 1.912]),
     ("StationD", [-1.735, -0.341, 1.023]),
     ("StationE", [0.69, -0.82, -1.2]),
     ("StationF", [1.726, -0.341, 1.023]),
     ("StationG", [2.977, -0.392, 1.912]),
+    ("StationJ", [-0.66, -0.592, -1.4]),
 ];
 
 /// The F-16 model's own adapters (nodes of f16d.glb / f16i.glb, hidden until shown) by station: the right chin
-/// pylon under the Litening. `PylonChinL`, the left one, waits for the navigation pod's station (pods.md P4 / P9).
-const F16_SIM_PYLONS: [(&str, &str); 1] = [("StationE", "PylonChinR")];
+/// pylon under the Litening, the left one under the navigation pod.
+const F16_SIM_PYLONS: [(&str, &str); 2] = [("StationE", "PylonChinR"), ("StationJ", "PylonChinL")];
 
 // --- The readable → hex mapping ------------------------------------------------------------------------------------
 
@@ -219,8 +227,6 @@ const KINDS: &[(&str, i64, &str, i64)] = &[
     ("laser_bomb", 650, "Laser bomb", -1),
 ];
 const SIDES: &[(&str, i64)] = &[("blue", 1), ("red", 2)];
-/// Pylon stations A..I are stations 0..8 (CArmament, docs/formats/mis.md "CArmament").
-const PYLONS: &str = "ABCDEFGHI";
 /// The Objects fields whose meaning is open (docs/formats/mis.md §4): every reader ignores them; written as the
 /// format's usual values.
 const OBJECT_REST: &[(&str, i64)] = &[
@@ -467,6 +473,10 @@ pub fn compile_db(db: &Db) -> Result<(Value, Map<String, Value>, String)> {
                 rec[k] = w.v[k].clone();
             }
         }
+        // Ours, unhexed: a pod (a shell that is not a tank), which the Real jettison keeps (player_weapons.gd).
+        if w.v["kind"] == "pod" {
+            rec["pod"] = json!(true);
+        }
         weapons.push(rec);
     }
     for u in &db.units {
@@ -479,7 +489,7 @@ pub fn compile_db(db: &Db) -> Result<(Value, Map<String, Value>, String)> {
             .map(|c| (c.1, c.2))
             .with_context(|| format!("{}: unknown class {}", u.name, u.v["class"]))?;
         add_present(n, text(u, "id")?, u.v["model"].as_str().unwrap_or(""), number(u, "scale")?);
-        let mut hard = vec![0i64; 24];
+        let mut hard = vec![0i64; 2 * STATIONS];
         for (wid, count) in u.v["loadout"].as_object().into_iter().flatten() {
             let w = db.weapon(wid).with_context(|| u.name.clone())?;
             let station = KINDS.iter().find(|k| w.v["kind"] == k.0).map_or(-1, |k| k.3);
@@ -495,8 +505,9 @@ pub fn compile_db(db: &Db) -> Result<(Value, Map<String, Value>, String)> {
             u.name
         );
         for (st, p) in u.v["pylons"].as_object().into_iter().flatten() {
-            let i = PYLONS.find(st.as_str()).filter(|_| st.len() == 1);
-            let i = i.with_context(|| format!("{}: pylon \"{st}\" is not A..I", u.name))?;
+            // Pylon stations A..I are stations 0..8 (CArmament, docs/formats/mis.md "CArmament"), J is 12 (ours).
+            let i = Some(st.as_bytes()).filter(|b| b.len() == 1).and_then(|b| pylon_index(b[0]));
+            let i = i.with_context(|| format!("{}: pylon \"{st}\" is not A..J", u.name))?;
             let w = db.weapon(p["weapon"].as_str().unwrap_or("")).with_context(|| u.name.clone())?;
             hard[2 * i] = int(w, "number")?;
             hard[2 * i + 1] = p["count"].as_i64().unwrap_or(1);
@@ -1873,6 +1884,10 @@ mod tests {
         assert_eq!(f16["stations"]["StationA"], json!(F16_SIM_STATIONS[0].1));
         assert_eq!(f16["lugs"]["StationC"], json!(F16_SIM_LUGS[0].1));
         assert_eq!(f16["pylons"]["StationE"], "PylonChinR");
+        assert_eq!(
+            (f16["pylons"]["StationJ"].as_str(), f16["lugs"]["StationJ"][0].as_f64()),
+            (Some("PylonChinL"), Some(-0.66))
+        );
         let clip = |f: &str| ogg_seconds(&std::fs::read(sounds.join(f.to_lowercase())).unwrap()).unwrap();
         let trx = std::fs::read_to_string(sounds.join("soundprop.trx")).unwrap();
         let rows: Vec<Vec<&str>> =

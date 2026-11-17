@@ -54,6 +54,7 @@ static func _record(w: Dictionary, paths: Dictionary) -> Dictionary:
 		# Ours, Modern IAF's data: what the store needs from another and gives (stores.rs unmet; a laser bomb, the pod).
 		"needs": PackedStringArray(w.get("needs", [])),
 		"gives": PackedStringArray(w.get("gives", [])),
+		"pod": bool(w.get("pod", false)),  # ours, Modern IAF's data: a pod (sim.rs), kept by the Real jettison
 		"drag": float(w.get("0x73a", 0)),
 		"model": model,
 		"model_path": String(paths.get(str(model), "")),

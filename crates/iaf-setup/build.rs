@@ -43,6 +43,8 @@ fn main() {
         "crates/iaf-tools/data",
         "crates/iaf-formats/src",
         "crates/iaf-setup/src",
+        // The station table the sim's units compile against (sim.rs: STATIONS, pylon_index).
+        "crates/iaf-avionics/src/stores.rs",
         "tools/install-launcher.sh",
         "tools/windows/install-launcher.ps1",
     ];

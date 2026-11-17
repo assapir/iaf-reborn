@@ -455,6 +455,7 @@ authors and changes in `SOURCES.md` there). They show on every jet that carries 
 | ECM | AN/ALQ-131 | 1 284 |
 | FLIR | AN/AAQ-13 (LANTIRN) | 938 |
 | Litening (Modern IAF's targeting pod, `weapons/sufa/litening_m.gltf`) | AN/AAQ-28 (Litening AT) at the real 2.20 m by 0.406 m, on the FLIR pod's place | 2 059 |
+| LANTIRN navigation pod and Pathfinder (Modern IAF's, `weapons/sufa/lantirn_m.gltf`, `lantirn.glb`) | AN/AAQ-13 at the real 1.99 m (the Pathfinder's own shape not found: the same, inferred), on the FLIR pod's place | 938 |
 | AIM-9X (the Sufa's, ours) | AIM-9X | 7 766 |
 | GBU-31, BLU109 (the Sufa's) | GBU-31 | 2 944 |
 | GBU-38 (the Sufa's) | GBU-54 (the laser JDAM: a GBU-38 with a laser nose) | 3 208 |

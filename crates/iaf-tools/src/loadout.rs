@@ -4,6 +4,7 @@
 //! each station takes and how many, its `pylons` the default. `IafBriefing` hands these rules to `menu/front_end.gd`;
 //! `pilot_log` keeps each pilot's per jet.
 
+use iaf_avionics::stores::{CHIN_LEFT, STATIONS, pylon_index};
 use serde_json::{Map, Value, json};
 use std::collections::BTreeMap;
 use std::path::Path;
@@ -50,21 +51,22 @@ fn rack(unit: &Value, st: u32, id: &str, f: &str) -> f64 {
 }
 
 /// The station across the jet from `st` (stations numbered from the left wing tip: 3 ↔ 7 of nine), none for the
-/// middle one.
+/// middle one and the left chin hardpoint (pylon J, numbered after the wing's: the F-16's 5L).
 pub fn mirror(unit: &Value, st: u32) -> Option<u32> {
-    let all = stations(unit);
+    let all: Vec<u32> = stations(unit).into_iter().filter(|&s| letter(unit, s) != Some(CHIN_LEFT)).collect();
     let n = (all.last()? + 1).checked_sub(st)?;
     (n != st && all.contains(&n)).then_some(n)
 }
 
-/// The engine's pylon letter of station `st` (A..I; the record's `stations` where its numbers differ), none for a
-/// station the engine's nine pylons leave out.
+/// The engine's station index of station `st`'s pylon letter (A..I 0..8, J 12: `iaf_avionics::stores::LETTERS`; the
+/// record's `stations` where its numbers differ, else the number's letter, 10 → J), none for a station the engine's
+/// pylons leave out.
 pub fn letter(unit: &Value, st: u32) -> Option<usize> {
     let l = match unit["stations"].as_object() {
         Some(m) => m.get(&st.to_string())?.as_str()?.bytes().next()?,
         None => b'A' + u8::try_from(st.checked_sub(1)?).ok()?,
     };
-    (b'A'..=b'I').contains(&l).then(|| (l - b'A') as usize)
+    pylon_index(l)
 }
 
 /// The inventory entry of store `id`.
@@ -77,8 +79,8 @@ pub fn default(unit: &Value) -> Loadout {
     let mut lo = Loadout::new();
     for (k, p) in unit["pylons"].as_object().into_iter().flatten() {
         let Some(w) = p["weapon"].as_str() else { continue };
-        let i = k.bytes().next().map(|c| c.wrapping_sub(b'A') as usize);
-        if let Some(st) = stations(unit).into_iter().find(|&s| letter(unit, s) == i) {
+        let Some(i) = k.bytes().next().and_then(pylon_index) else { continue };
+        if let Some(st) = stations(unit).into_iter().find(|&s| letter(unit, s) == Some(i)) {
             lo.insert(st, (w.to_string(), p["count"].as_u64().unwrap_or(1) as u32));
         }
     }
@@ -219,13 +221,13 @@ pub fn weigh(base: f64, stores: &[(f64, f64)]) -> Weight {
     w
 }
 
-/// The stores on pylons A..I as the engine's armament holds them, [weapon number, count, rack kg, rack drag,
-/// internal] × 9 (`Settings.arm_loadouts`, player_weapons.gd `_armed`, stores.gd `setup`): each store's weapon
+/// The stores on the pylons as the engine's armament holds them, [weapon number, count, rack kg, rack drag, internal]
+/// by station index × 13 (A..I 0..8, J 12; 9..11 the gun, chaff and flares, left empty) (`Settings.arm_loadouts`, player_weapons.gd `_armed`, stores.gd `setup`): each store's weapon
 /// record's `sim` (a `modern_weapons.gd` record built on it, the GBU-31's 1003), else its `number`, its rack's
 /// `rack_kg` / `rack_drag` (0 without a rack), and 1 on a station inside a weapons bay (the record's `internal`: its
 /// stores and rack add no drag, the rack's drag written 0), else 0; a station the engine has no pylon for carries nothing.
 pub fn sim_load(unit: &Value, weapons: &Path, lo: &Loadout) -> Vec<Value> {
-    let mut out = vec![json!([0, 0, 0.0, 0.0, 0]); 9];
+    let mut out = vec![json!([0, 0, 0.0, 0.0, 0]); STATIONS];
     let bays = unit["internal"].as_array();
     for (&st, (id, n)) in lo {
         let rec: Option<Value> =
@@ -309,6 +311,28 @@ mod tests {
         // A saved loadout keeps only what the record allows, as many as the station holds.
         let p = parse(&u, &json!({"2": "tank-370", "4": "tank-370", "6": {"id": "mk-82", "count": 9}, "x": "mk-84"}));
         assert_eq!(to_json(&p), json!({"4": {"id": "tank-370", "count": 1}, "6": {"id": "mk-82", "count": 3}}));
+    }
+
+    #[test]
+    fn chin_stations_take_their_own_pods() {
+        // The Sufa's LANTIRN navigation pod and the Barak's Pathfinder on 10 (5L, pylon J: station index 12) only;
+        // the Litening on 5 (5R) only; neither chin station has a mirror.
+        for (id, nav, number) in [("f16i", "lantirn-nav", 20), ("f16d", "pathfinder", 21)] {
+            let u = unit(id);
+            let mut lo = default(&u);
+            assert_eq!((letter(&u, 10), letter(&u, 5), letter(&u, 9)), (Some(12), Some(4), Some(8)), "{id}");
+            assert_eq!((mirror(&u, 10), mirror(&u, 5), mirror(&u, 1)), (None, None, Some(9)), "{id}");
+            assert!(!put(&u, &mut lo, 5, nav, true) && !put(&u, &mut lo, 10, "litening", true), "{id}");
+            assert!(put(&u, &mut lo, 10, nav, true) && put(&u, &mut lo, 5, "litening", true), "{id}");
+            assert_eq!((at(&lo, 10), at(&lo, 5)), ((nav, 1), ("litening", 1)), "{id}");
+            let load = sim_load(&u, &weapons(), &lo);
+            assert_eq!(load.len(), STATIONS);
+            assert_eq!((load[12][0].as_i64(), load[4][0].as_i64()), (Some(number), Some(19)), "{id}");
+            let a = crate::briefing::arming(&u, &weapons(), &lo);
+            assert_eq!((a["labels"]["10"].as_str(), a["labels"]["5"].as_str()), (Some("5L"), Some("5R")), "{id}");
+            assert_eq!((a["pylons"]["10"].as_i64(), a["slots"]["10"]["pylon"].as_i64()), (Some(12), Some(12)), "{id}");
+            assert!(a["inventory"].as_array().unwrap().iter().any(|e| e["id"] == nav && e["group"] == "pod"));
+        }
     }
 
     #[test]

@@ -503,8 +503,9 @@ fn main_roads(theatre: &Path) -> Option<Arc<Roads>> {
 /// matched by the record's `name`), the stores' weight (each store's `kg`, plus a tank's `empty_kg`, from its record in
 /// `weapons`, the folder of `data/db/weapons`, times its count, and each rack's `rack_kg`) and the drop tanks' fuel in it, the take-off weight
 /// (empty + internal fuel + stores), the record's `max_takeoff_kg` and `over` (the take-off weight above it). Weights
-/// in kg, rounded; a figure it cannot find is null. Also the record's `internal` stations, `allowed` (station → [{id,
-/// count}]) and its `inventory`, each entry `{id, count, used, left, group}`: the store's id, the record's count (null:
+/// in kg, rounded; a figure it cannot find is null. Also the record's `internal` stations, its `positions` and
+/// `labels` (station → the name the screens show where it is not the number: the F-16's 5R / 5L), `pylons` (station →
+/// the engine's station index), `allowed` (station → [{id, count}]) and its `inventory`, each entry `{id, count, used, left, group}`: the store's id, the record's count (null:
 /// none), how many hang on the jet, how many are left (null without a count) and its group by the weapon's kind ("air"
 /// air-to-air missiles, "ground" bombs, laser bombs and air-to-ground missiles (`role` "ground"), "tank", "pod"; an
 /// unknown weapon is left out).
@@ -577,6 +578,10 @@ pub fn arming(unit: &Value, weapons: &Path, lo: &loadout::Loadout) -> Value {
     let limit = unit["lateral_limit_kgm"].as_f64();
     let imbalanced = limit.is_some_and(|l| moment.abs() > l);
     let over = takeoff.zip(max).is_some_and(|(t, m)| t.round() > m);
+    // Every station's engine station index (`loadout::letter`: A..I 0..8, J 12; null none), where the Loadout screen
+    // draws its line to.
+    let pylons: Map<String, Value> =
+        loadout::stations(unit).into_iter().map(|s| (s.to_string(), json!(loadout::letter(unit, s)))).collect();
     let allowed: Map<String, Value> = loadout::stations(unit)
         .into_iter()
         .map(|s| {
@@ -621,6 +626,8 @@ pub fn arming(unit: &Value, weapons: &Path, lo: &loadout::Loadout) -> Value {
         "imbalanced": imbalanced,
         "balance": (balance * 1000.0).round() / 1000.0,
         "positions": unit["positions"],
+        "labels": unit["labels"],
+        "pylons": pylons,
         "blocked": over || (imbalanced && unit["lateral_limit_hard"].as_bool().unwrap_or(false)) || !unmet.is_empty(),
         "unmet": unmet,
         "tail": unit["tail"],
@@ -850,8 +857,8 @@ mod tests {
         let groups: Vec<_> = a["inventory"].as_array().unwrap().iter().map(|e| e["group"].clone()).collect();
         let want = ["air", "air", "air", "ground", "ground", "ground", "ground", "ground", "ground", "ground"];
         assert_eq!(groups[..10], want.map(|g| json!(g)));
-        // The laser bombs and the targeting pod are on the shelf too (the loadout line asks for the pod).
-        assert_eq!(groups[12..], [json!("ground"), json!("ground"), json!("ground"), json!("pod")]);
+        // The laser bombs, the targeting pod (the loadout line asks for it) and the navigation pod are on the shelf too.
+        assert_eq!(groups[12..], [json!("ground"), json!("ground"), json!("ground"), json!("pod"), json!("pod")]);
     }
 
     #[test]

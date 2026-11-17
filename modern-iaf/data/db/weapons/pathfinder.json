@@ -1,0 +1,40 @@
+{
+  "id": "pathfinder",
+  "number": 21,
+  "name": "PATH",
+  "kind": "pod",
+  "generation": 4,
+  "model": "weapons/sufa/lantirn_m.gltf",
+  "kg": 84,
+  "power": 0,
+  "blast_m": 0,
+  "drag": 3.9,
+  "motion": {},
+  "length_m": 1.98,
+  "sources": {
+    "power": "inferred",
+    "blast_m": "inferred",
+    "drag": "w-lantirn, inferred",
+    "kg": "fi-pathfinder",
+    "length_m": "fi-pathfinder",
+    "model": "inferred"
+  },
+  "notes": {
+    "number": "ours",
+    "name": "PATH, the Pathfinder as the SMS lists it (ours, inferred: no SMS mnemonic was found)",
+    "kind": "the Pathfinder (AN/AAQ-20), the AN/AAQ-13 navigation pod's export version without the terrain-following radar: a forward-looking infrared camera whose picture shows on the HUD (fi-pathfinder, w-lantirn); the F-16C/D Barak's from 1992 (fi-pathfinder; which IAF jets carried it is inferred, modern-iaf/docs/research/pods.md §1). Carried, drawn and weighed only: its HUD picture comes later (pods.md P7), so it gives nothing yet",
+    "kg": "84 kg (fi-pathfinder)",
+    "drag": "as the AN/AAQ-13's (lantirn-nav.json, 0.305 m across, w-lantirn): the Pathfinder's diameter was not found (inferred)",
+    "motion": "the reader's defaults (never released)",
+    "power": "a pod does no damage",
+    "blast_m": "a pod does no damage",
+    "model": "the AN/AAQ-13's shape (lantirn.glb, 1.99 m): no public drawing of the Pathfinder's own shape was found; it is the AN/AAQ-13 scaled down, 198 cm long (fi-pathfinder), so the stand-in is 1 cm longer (inferred)",
+    "generation": "ours: the weapons.ibx section key (generation · 1000 + type) is one per weapon of a kind",
+    "station": "the left chin hardpoint, 5L, where the F-16 carries its navigation pod (f16net-lantirn; for the Barak inferred); the sim's pylon J"
+  },
+  "footnotes": {
+    "fi-pathfinder": "Forecast International, Electro-Optical Systems Forecast, \"Pathfinder/Sharpshooter - Archived 02/2004\" (Israel's Pathfinder pods of 1992; no terrain-following radar; its FLIR on the HUD; 198 cm, 84 kg), https://www.forecastinternational.com/archive/disp_pdf.cfm?DACH_RECNO=556",
+    "w-lantirn": "Wikipedia, \"LANTIRN\" (the AN/AAQ-20 Pathfinder, the navigation pod's export version without the terrain-following radar; the AN/AAQ-13's 30 cm across), https://en.wikipedia.org/wiki/LANTIRN",
+    "f16net-lantirn": "F-16.net, \"AN/AAQ-13 & AN/AAQ-14 LANTIRN\" (the navigation pod on 5L; the Pathfinder a derivative), https://www.f-16.net/f-16_armament_article2.html"
+  }
+}

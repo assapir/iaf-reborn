@@ -1,7 +1,8 @@
 # The stores of one aircraft (docs/weapons.md §2–§5): 12 stations (0..8 pylons StationA..I, 9 gun, 10 chaff,
-# 11 flares). The logic (selection cycle, the station firing next, counts, the flight model's stores weight /
-# drag) is iaf_avionics::stores (crates/iaf-avionics/src/stores.rs) through IafStores; this keeps the GDScript
-# face: `stations` mirrors the counts next to each station's weapon record, attach point and store slots.
+# 11 flares) and Modern IAF's 13th (12, pylon J: the F-16's left chin hardpoint, ours; iaf_avionics::stores
+# CHIN_LEFT). The logic (selection cycle, the station firing next, counts, the flight model's stores weight / drag)
+# is iaf_avionics::stores (crates/iaf-avionics/src/stores.rs) through IafStores; this keeps the GDScript face:
+# `stations` mirrors the counts next to each station's weapon record, attach point and store slots.
 extends RefCounted
 
 const Gltf := preload("res://shared/util/gltf.gd")
@@ -23,8 +24,13 @@ const FRAMES := [
 	"StationI",
 	"StationGun",
 	"StationCha",
-	"StationFla"
+	"StationFla",
+	"StationJ"
 ]
+## The pylon stations (stores.rs is_pylon): the original's 0..8 and Modern IAF's left chin hardpoint, 12.
+const PYLONS := [0, 1, 2, 3, 4, 5, 6, 7, 8, 12]
+## Each station's pylon letter ("-": the gun, chaff and flares; stores.rs LETTERS).
+const LETTERS := "ABCDEFGHI---J"
 ## Types that get a store model (FUN_0053ceb0 / FUN_0053ced0; 560 rockets get the rocket box). BOMBS: the bomb rack
 ## layout, which the GPS bombs (ours, modern_weapons.gd) take too: four GBU-39s sit on one rack.
 const BOMBS := [500, 510]
@@ -109,7 +115,7 @@ func setup(load: Array, db: RefCounted, descriptor: Dictionary, pilon_of: Callab
 	stations.clear()
 	var frames: Dictionary = descriptor.get("stations", {})
 	var rs := []
-	for i in 12:
+	for i in FRAMES.size():
 		rs.append({})
 		if i >= load.size():
 			continue
@@ -140,7 +146,7 @@ func setup(load: Array, db: RefCounted, descriptor: Dictionary, pilon_of: Callab
 			"unlimited": false,
 			"attach": attach,
 			"slots": [],
-			"drawn": w.type in DRAWN and i < 9 and p is Array,
+			"drawn": w.type in DRAWN and i in PYLONS and p is Array,
 			"rack_kg": float(load[i][2]) if load[i].size() > 2 else 0.0,  # Modern IAF's rack (its jettison: Real)
 			"rack_drag": float(load[i][3]) if load[i].size() > 3 else 0.0,
 		}  # no Station helper: nowhere to hang it

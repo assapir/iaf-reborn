@@ -135,7 +135,7 @@ func show_jet(plane: String, stores: Dictionary) -> bool:
 	var internal := "" if below else str(desc.get("internal_stations", ""))
 	_model = m
 	_stations.clear()
-	for i in 9:
+	for i in Stores.PYLONS:
 		var at = desc.get("stations", {}).get(Stores.FRAMES[i])
 		if at is Array:
 			_stations[i] = Vector3(at[0], at[1], at[2])
@@ -144,7 +144,7 @@ func show_jet(plane: String, stores: Dictionary) -> bool:
 		m.update({"bay_open": true, "on_ground": true}, 0.0)
 		m.settle()
 	for i in stores:
-		if "ABCDEFGHI"[i] in internal:
+		if Stores.LETTERS[i] in internal:
 			continue
 		var st: Dictionary = stores[i]
 		var path := str(st.path)

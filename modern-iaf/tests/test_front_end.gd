@@ -1238,8 +1238,11 @@ func _loadout_checks(fe: Control, lang: String) -> void:
 		"%s: loadout: the footer's Briefing named" % lang
 	)
 	var c: Dictionary = scr.call().callouts
-	# Every station, 5 the chin's Litening (avionics slice 4).
-	check(c.size() == 9 and c.has("5"), "%s: loadout: a callout per station that takes a store (%s)" % [lang, c.keys()])
+	# Every station, 5 (5R) the chin's Litening (avionics slice 4), 10 (5L) the navigation pod's (pods part 1).
+	check(
+		c.size() == 10 and c.has("5") and c.has("10"),
+		"%s: loadout: a callout per station that takes a store (%s)" % [lang, c.keys()]
+	)
 	check(
 		c["4"].head == ("4 · פנימית" if he else "4 · INBOARD") and c["4"].sub == "1,321 " + ("ק״ג" if he else "kg"),
 		"%s: loadout: the callout's number, place and weight (%s, %s)" % [lang, c["4"].head, c["4"].sub]
@@ -1249,7 +1252,7 @@ func _loadout_checks(fe: Control, lang: String) -> void:
 	check(stage.layout_direction == Control.LAYOUT_DIRECTION_LTR, "%s: loadout: the jet never mirrors" % lang)
 	if scr.call().tt != null:
 		var pts: Dictionary = scr.call().points()
-		check(pts.size() == 9, "%s: loadout: each station's place on the model (%d)" % [lang, pts.size()])
+		check(pts.size() == 10, "%s: loadout: each station's place on the model (%d)" % [lang, pts.size()])
 		check(
 			pts["1"].x > pts["9"].x and c["1"].position.x > c["9"].position.x,
 			"%s: loadout: from beneath the left wing (1) on the right" % lang
@@ -1406,8 +1409,9 @@ func _loadout_checks(fe: Control, lang: String) -> void:
 			need != null
 			and live.call("Fly").disabled
 			and want.contains("לייטנינג" if he else "Litening")
-			and want.contains("5")
-		),
+			and want.contains("פוד" if he else "pod")
+			and want.length() < 40
+		),  # one short line (the user, 17 Nov: "too long and big")
 		"%s: loadout: a GBU-12 without the pod: the line, Fly off (%s)" % [lang, want]
 	)
 	fe.show_page("mission")
@@ -1417,13 +1421,71 @@ func _loadout_checks(fe: Control, lang: String) -> void:
 		need2 != null and need2.text == want and live.call("Fly").disabled,
 		"%s: briefing: the Arming summary's line, Fly off (%s)" % [lang, need2.text if need2 != null else "none"]
 	)
-	IafPilotLog.set_loadout(db, s.pilot(), "f16i", JSON.stringify({"3": "gbu-12", "7": "gbu-12", "5": "litening"}))
+	# Such a load is not saved as a preset (the user, 17 Nov): Save off, and save_named stores nothing.
+	fe.show_page("arming")
+	await frames(3)
+	var saves := func() -> int:
+		var v = JSON.parse_string(IafPilotLog.saved_loadouts(db, s.pilot(), "f16i"))
+		return v.size() if v is Array else -1
+	var n_saved: int = saves.call()
+	scr.call().find_child("LoadoutName", true, false).text = "no pod"
+	scr.call().save_named()
+	await frames(3)
+	check(
+		live.call("SaveLoadout").disabled and saves.call() == n_saved,
+		"%s: loadout: a laser bomb with no pod is not saved as a preset" % lang
+	)
+	# A preset stored before the rule: picked, its stores kept, the line shown, Fly and Save off.
+	var old: int = IafPilotLog.save_loadout(
+		db,
+		s.pilot(),
+		"f16i",
+		"old",
+		JSON.stringify({"3": {"id": "gbu-12", "count": 1}, "7": {"id": "gbu-12", "count": 1}})
+	)
+	IafPilotLog.set_loadout(db, s.pilot(), "f16i", "")
+	fe.show_page("arming")
+	await frames(3)
+	live.call("LoadoutSaved%d" % old).emit_signal("pressed")
+	await frames(3)
+	check(
+		(
+			stored.call().contains("gbu-12")
+			and live.call("NeedLine") != null
+			and live.call("Fly").disabled
+			and live.call("SaveLoadout").disabled
+		),
+		"%s: loadout: an old preset without the pod: kept, the line, Fly and Save off (%s)" % [lang, stored.call()]
+	)
+	IafPilotLog.delete_saved_loadout(db, s.pilot(), old)
+	IafPilotLog.set_loadout(
+		db, s.pilot(), "f16i", JSON.stringify({"3": "gbu-12", "7": "gbu-12", "5": "litening", "10": "lantirn-nav"})
+	)
 	fe.show_page("arming")
 	await frames(3)
 	check(
-		live.call("NeedLine") == null and not live.call("Fly").disabled,
-		"%s: loadout: the pod loaded: no line, Fly on" % lang
+		live.call("NeedLine") == null and not live.call("Fly").disabled and not live.call("SaveLoadout").disabled,
+		"%s: loadout: the pod loaded: no line, Fly and Save on" % lang
 	)
+	# The two chin stations by their real names, the navigation pod on 5L drawn on its own pylon.
+	var head5: String = live.call("Slot5").head
+	var head10: String = live.call("Slot10").head
+	check(
+		head5.begins_with("5R") and head10.begins_with("5L"), "%s: loadout: 5R and 5L (%s, %s)" % [lang, head5, head10]
+	)
+	if scr.call().tt != null:
+		var jet: Node3D = scr.call().tt._model
+		var pods: Array = jet.get_node("StoresMount").get_children().filter(
+			func(k): return k.get_meta("store_of", -1) == 12 and k.visible
+		)
+		var pl: Node3D = jet.find_child("PylonChinL", true, false)
+		check(
+			pods.size() == 1 and pods[0].position.x < -0.5 and pl != null and pl.visible,
+			(
+				"%s: loadout: the navigation pod under the left chin pylon (%s)"
+				% [lang, pods.map(func(p): return p.position)]
+			)
+		)
 	IafPilotLog.set_loadout(db, s.pilot(), "f16i", lo_keep)
 	fe.show_page("arming")
 	await frames(3)
@@ -1437,7 +1499,7 @@ func _loadout_checks(fe: Control, lang: String) -> void:
 		var pylons: Array = s.arm_loadouts.values()[0] if s.arm_loadouts.size() == 1 else []
 		check(
 			(
-				pylons.size() == 9
+				pylons.size() == 13
 				and pylons[2] == [2.0, 1.0, 0.0, 0.0, 0.0]
 				and pylons[6] == [2.0, 1.0, 0.0, 0.0, 0.0]
 				and pylons[0] == [1.0, 1.0, 0.0, 0.0, 0.0]

@@ -203,17 +203,10 @@ fn hardpoints(v: &Value) -> Vec<(i64, i64)> {
     h.chunks(2).map(|c| (c[0], *c.get(1).unwrap_or(&0))).collect()
 }
 
-/// The loadout an entity spawns with: [(weapon id, count)] for the 12 stations.
+/// The loadout an entity spawns with (`iaf_avionics::stores::loadout`): [(weapon id, count)] of its loaded stations.
 fn loadout(e: &Value, obj: &Value) -> Vec<(i64, i64)> {
-    let (ent, typ) = (hardpoints(e), hardpoints(obj));
-    let pylons_set = ent.iter().take(9).any(|(id, _)| *id != 0);
-    (0..12)
-        .map(|s| {
-            let src = if s < 9 && pylons_set { &ent } else { &typ };
-            src.get(s).copied().unwrap_or((0, 0))
-        })
-        .filter(|(id, n)| *id != 0 && *n != 0)
-        .collect()
+    let all = iaf_avionics::stores::loadout(&hardpoints(e), &hardpoints(obj));
+    all.into_iter().filter(|(id, n)| *id != 0 && *n != 0).collect()
 }
 
 fn ops(e: &Value, part: &str) -> Vec<i64> {

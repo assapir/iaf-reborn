@@ -1,0 +1,42 @@
+{
+  "id": "lantirn-nav",
+  "number": 20,
+  "name": "NVP",
+  "kind": "pod",
+  "generation": 3,
+  "model": "weapons/sufa/lantirn_m.gltf",
+  "kg": 204.6,
+  "power": 0,
+  "blast_m": 0,
+  "drag": 3.9,
+  "motion": {},
+  "length_m": 1.99,
+  "diameter_m": 0.305,
+  "sources": {
+    "power": "inferred",
+    "blast_m": "inferred",
+    "drag": "w-lantirn, inferred",
+    "kg": "w-lantirn",
+    "length_m": "w-lantirn",
+    "diameter_m": "w-lantirn"
+  },
+  "notes": {
+    "number": "ours",
+    "name": "NVP, the navigation pod as the SMS lists it (ours, inferred: the dash-34's mnemonic was not found)",
+    "kind": "the LANTIRN navigation pod, AN/AAQ-13: a terrain-following radar and a forward-looking infrared camera whose picture shows on the HUD (fas-lantirn); the F-16I Sufa's (iaf-f16i). Carried, drawn and weighed only: its HUD picture and terrain following come later (modern-iaf/docs/research/pods.md P7, P8), so it gives nothing yet",
+    "kg": "204.6 kg (w-lantirn; FAS gives 211.5 kg, fas-lantirn)",
+    "drag": "carriage drag index (flight-model.md §9.18): 0.15 x its 0.305 m across (w-lantirn) frontal area, 0.15 the drag of a streamlined pod on its pylon on that area (inferred, as the tanks' and the Litening's)",
+    "motion": "the reader's defaults (never released)",
+    "power": "a pod does no damage",
+    "blast_m": "a pod does no damage",
+    "model": "our LANTIRN navigation pod (shared/extra/models/stores/lantirn.glb: FlightGear's AN-AAQ-13 at the real 1.99 m, w-lantirn)",
+    "generation": "ours: the weapons.ibx section key (generation · 1000 + type) is one per weapon of a kind (the tanks hold 0 and 1, the Litening 2)",
+    "station": "the left chin hardpoint, 5L (f16net-lantirn: the navigation pod on 5L); the sim's pylon J (sim.rs F16_SIM_STATIONS StationJ)"
+  },
+  "footnotes": {
+    "w-lantirn": "Wikipedia, \"LANTIRN\" (the AN/AAQ-13 navigation pod: 199 cm long, 30 cm across, 204.6 kg), https://en.wikipedia.org/wiki/LANTIRN",
+    "fas-lantirn": "FAS Military Analysis Network, \"LANTIRN\" (the navigation pod: 1.99 m, 0.31 m, 211.5 kg; its TFR and FLIR on the HUD), https://man.fas.org/dod-101/sys/smart/lantirn.htm",
+    "iaf-f16i": "Israeli Air Force site, \"F-16I הדור הבא\" (the F-16I carries the LANTIRN navigation pod and the Litening beneath its air intake), https://www.iaf.org.il/522-19034-he/IAF.aspx (as the search engine returned it; modern-iaf/docs/research/pods.md §1)",
+    "f16net-lantirn": "F-16.net, \"AN/AAQ-13 & AN/AAQ-14 LANTIRN\" (the navigation pod on 5L), https://www.f-16.net/f-16_armament_article2.html"
+  }
+}

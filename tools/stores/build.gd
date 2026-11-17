@@ -115,6 +115,11 @@ const STORES := {
 		"len": 2.20,
 		"girth": 1.023
 	},
+	# Modern IAF's navigation pods on the F-16s' left chin station (the LANTIRN AN/AAQ-13 and the Pathfinder, which
+	# share this shape: modern-iaf/docs/research/pods.md P9): FlightGear's AN-AAQ-13 at its real 1.99 m (Wikipedia,
+	# "LANTIRN"; the FlightGear pod is 1.986 m by 0.305 m), its top on the FLIR pod original's top.
+	"lantirn":
+	{"orig": "flrpod/flrpod_m.gltf", "ac": ["External-stores/LANTIRN/AN-AAQ-13.ac"], "top": true, "len": 1.99},
 	# The Soviet stores (phase 2): the MiG-21bis's (OPRF, GPL-3.0) and the MiG-29 9-12's (S. Salov, GPL-3.0).
 	"aa2": {"orig": "aa2/aa2_m.gltf", "dir": MIG21, "ac": ["R-3S/r-3s.ac"], "glass": ["glass"], "tint": PAINT_21},
 	"aa8": {"orig": "aa8/aa8_m.gltf", "dir": MIG29, "ac": ["R-60M/R-60M.ac"], "tint": PAINT_29},

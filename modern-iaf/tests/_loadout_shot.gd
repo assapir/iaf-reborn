@@ -10,7 +10,7 @@
 # store drawn: two GBU-38 on a BRU-57/A on the Sufa's 3 / 7 and three Mk 82 on a TER-9/A on 4 / 6, four GBU-39 on a
 # BRU-61 in the Adir's bays 4 / 8, each callout's "×n" badge), at SHOT_SIZE (default 1920x1080; the file names then
 # end _<width>). First f16i_<lang>_need.png and _need_briefing.png (two GBU-12 and no pod: the line saying what to
-# add, Fly off); SHOT_ONLY=need stops there.
+# add, Fly off), then <jet>_<lang>_pods.png (the Sufa and the Barak with both chin pods); SHOT_ONLY=need stops there.
 extends "res://../tests/godot/base.gd"
 
 ## jet → [the store dragged, its station, a store its target refuses, that station, the heavy loadout, the lowered
@@ -55,6 +55,14 @@ func run() -> void:
 		fe.show_page("mission")
 		await frames(10)
 		await _save("f16i_%s_need_briefing" % lang)
+		# The chin stations (weapons.md §7.3): the Litening on 5R, the jet's navigation pod on 5L, the GBU-12s on 3 / 7.
+		for jet in [["f16i", "lantirn-nav"], ["f16d", "pathfinder"]]:
+			var u := ProjectSettings.globalize_path("res://data/db/units/%s.json" % jet[0])
+			var pods: String = IafBriefing.put(u, IafBriefing.put(u, "", 5, "litening", false), 10, jet[1], false)
+			IafPilotLog.set_loadout(db, s.pilot(), jet[0], IafBriefing.put(u, pods, 3, "gbu-12", true))
+			await _open(jet[0])
+			await _save("%s_%s_pods" % [jet[0], lang])
+			IafPilotLog.set_loadout(db, s.pilot(), jet[0], "")
 		IafPilotLog.set_loadout(db, s.pilot(), "f16i", "")
 		if OS.get_environment("SHOT_ONLY") == "need":
 			continue

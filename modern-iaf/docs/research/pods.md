@@ -251,7 +251,10 @@ the Sharpshooter (§1). The plan's decided §8.2 (the Litening on both F-16s) ma
   (gap G16), laser spot search, the laser code, the pod's own power and cool-down.
 - **Conditions:** every sim mission flies by day (`modern-iaf/data/missions/`, "the MVP's conditions: day"); the
   goggles (Shift+N, `shared/settings.gd`) exist. Night missions do not come first (decided, §7).
-- **No navigation pod store and no station for a second chin pod:** the sim's station 5 holds one store.
+- **The chin stations (pods part 1, step B, 17 November 2026):** the Litening on 5R (the sim's 5), the navigation
+  pods on 5L (the sim's 10: the engine's 13th station, pylon J): the AN/AAQ-13 on the Sufa, the Pathfinder on the
+  Barak, both drawn with `lantirn.glb` (FlightGear's AN-AAQ-13 at the real 1.99 m), weighed and kept by the
+  jettisons ([../weapons.md](../weapons.md) §7.3). They give nothing yet: their functions are P7 and P8.
 
 ## 5. What would need to be added (pick list)
 
@@ -263,10 +266,10 @@ more. Kind: **wire** = existing logic reached; **extend** = existing logic grown
 | P1 | The Litening and laser bombs | the pod on the loadout, the TGP page, lasing, GBU-10 / 12 / 16 hits | (merged 17 Nov) | wire | — | 4 (G15) |
 | P2 | Litening model: convert FlightGear's `AN-AAQ-28` in place of the AAQ-13 stand-in (approved and merged 17 Nov) | the right pod on the jet in the hangar, loadout and flight | S | art | FlightGear F-16 `LITENING_AT`, GPL-2.0-or-later, authors already credited | 4 |
 | P3 | Barak: fix row B5 in the plan (the Litening is already on its station 5, slice 4) | the plan as the IAF flew it | S | docs | — | 6 |
-| P4 | **Pod stations: split the sim's station 5 into 5L / 5R** (and a centreline 5): the navigation pod on 5L, the Litening on 5R (§2.3); weight and drag per pod; jettison keeps the pods. Now needed: both F-16s carry two chin pods | the real two-pod load, its weight and picture | M | extend (`sim.rs` stations, unit records, the loadout screen) | — | 6 |
+| P4 | **Built 17 Nov** ([../weapons.md](../weapons.md) §7.3; no centreline store: no sim store hangs there). **Pod stations: split the sim's station 5 into 5L / 5R** (and a centreline 5): the navigation pod on 5L, the Litening on 5R (§2.3); weight and drag per pod; jettison keeps the pods. Now needed: both F-16s carry two chin pods | the real two-pod load, its weight and picture | M | extend (`sim.rs` stations, unit records, the loadout screen) | — | 6 |
 | P5 | TGP cockpit procedure complete: pod power and cool-down, WIDE / NARO / expand, WHOT / BHOT, CCD TV, laser code, `L` flashing, the trigger's first detent as the laser key, masking by the jet | the real pod workflow | M | extend (`eo.rs`, `f16_mfd.rs` / `.gd`) | — | 4 (rest) or 9 |
 | P6 | Laser spot search: find a wingman's or a ground team's laser spot | buddy lasing in missions | M | new (`eo.rs`; a lasing wingman in the AI) | — | 9 |
-| P9 | **Navigation pods as stores on 5L:** the AN/AAQ-13 on the Sufa (204.6 kg[^w-lantirn]); the Pathfinder on the Barak (84 kg, 198 cm[^fi-pathfinder]) | the pod on the jet, its weight and drag; the FLIR and TF items need it | S | wire (data) | the AAQ-13: `flrpod.glb` (already ours); the Pathfinder: none found (the AAQ-13 shape is a stand-in, inferred) | 6, with P4 |
+| P9 | **Built 17 Nov** (the Pathfinder's shape the AN/AAQ-13's, inferred). **Navigation pods as stores on 5L:** the AN/AAQ-13 on the Sufa (204.6 kg[^w-lantirn]); the Pathfinder on the Barak (84 kg, 198 cm[^fi-pathfinder]) | the pod on the jet, its weight and drag; the FLIR and TF items need it | S | wire (data) | the AAQ-13: `flrpod.glb` (already ours); the Pathfinder: none found (the AAQ-13 shape is a stand-in, inferred) | 6, with P4 |
 | P7 | **Navigation FLIR on the HUD** with the navigation pod (both jets): the FLIR format's STBY / OPER and warm-up, a thermal-look picture drawn inside the HUD, gain / level, snap-look; usable by day and at night (the user's "no" to night missions first) | the HUD picture of the terrain ahead | M–L | new (render; GPU budget on the Iris Xe) | none (a shader) | 6, after P9 |
 | P8 | **Terrain following, Sufa only** (the AN/AAQ-13's TFR; the Barak's Pathfinder has none): the TFR format, SCP, ride, automatic TF on the pitch channel, manual TF box, fly-ups, TF FAIL, the HUD cues | low-level flight hands-off | L | new (`crates/iaf-flight` pitch command from `heights.rs`; `real_hud/f16.rs` cues) | none | low priority (the user's "yes, not in priority"); G12's TF row moves from the radar to the pod |
 | P10 | Ra'am pods when the F-15I flies: Litening on the left intake, LANTIRN navigation pod | the strike eagle's night kit | M | wire + P7 / P8 | `flrpod.glb`, P2's model | Ra'am (not planned) |
@@ -279,7 +282,7 @@ countermeasure rows), the Litening's SAR mode (one 2026 report; parked as sensor
 
 Re-ordered after the decisions of §7:
 1. **P2, P12, P13:** the real Litening shape, and the rule that the laser bombs need the pod (P1 merged).
-2. **P4 and P9 together:** the 5L / 5R stations and the navigation pods as stores, the AN/AAQ-13 on the Sufa and
+2. **P4 and P9 together (built 17 November 2026):** the 5L / 5R stations and the navigation pods as stores, the AN/AAQ-13 on the Sufa and
    the Pathfinder on the Barak; then **P3** (the plan's B5 row).
 3. **P5:** the targeting pod's cockpit steps, which the player does alone in the two-seaters (§7).
 4. **P7:** the navigation FLIR on the HUD for both jets; not gated on night missions.
@@ -301,6 +304,15 @@ The user answered round 1's five questions on 17 November 2026. His words in quo
 4. **The two-seaters' pod work:** "yes". The player does the navigator's pod work alone.
 5. **Terrain following:** "yes, not in priority". In the plan at low priority (P8); on the Sufa it comes from the
    navigation pod (the IAF), the Barak has none.
+
+**Later the same day (17 November 2026), on pods part 1:**
+6. **Hebrew:** "in Hebrew also use the term פוד". The front end's Hebrew names every pod פוד (פוד ייעוד לייטנינג,
+   פוד ניווט לנטירן, פוד ניווט פאת'פיינדר) and the line below says פוד.
+7. **The warning:** "the warning is arming is too long and big". The Loadout screen's and the briefing's line is one
+   short line at the small text size: "GBU-12 needs the Litening pod" (ל־GBU-12 נדרש פוד לייטנינג).
+8. **Presets:** "Also don't allow to save presetting with laser that doesn't have it". A load with an unmet need is
+   not saved; an older saved one loads whole with the line, Fly and Save off; Fly refuses it from any screen
+   ([../weapons.md](../weapons.md) §7.1).
 
 ## 8. Weapons that need a pod
 
@@ -360,7 +372,7 @@ rule). Buddy lasing (P6) would later meet the need from a mission's designator i
 | P13 | **In flight.** If a jet still flies a laser bomb without a designator (a mission's fixed load, or the pod failed): the SMS shows the laser bomb's station but not RDY, with a reason line such as `NO LASER` (ours: the public dash-34 legend for this case was not found, open); the pickle releases nothing while selected; the release rule `laser_aim` drops the "steer to the ripple aim" fallback for a jet with no designator, so a jettisoned or forced-off bomb falls unguided (inferred: it is a deviation from the 1998 original's rule, kept for reborn and changed only in Modern IAF, recorded in `docs/deviations.md` if shared code changes) | S–M | extend (`release.rs`, `f16_mfd.rs` SMS legend, `player_weapons.gd`) |
 | P14 | **Briefing.** The Arming summary shows a line under the stores when a weapon's need is unmet, in the same words as P12, with Edit opening the loadout on the station to fix; nothing when the load is complete | S | extend (the briefing's Arming summary) |
 
-**Built (pods part 1, 17 November 2026):** P12 option A, P13 and P14 ([../weapons.md](../weapons.md) §7.1), and P5's
+**Built (pods part 1, 17 November 2026):** P12 option A (with the presets, §7 item 8), P13 and P14 ([../weapons.md](../weapons.md) §7.1), and P5's
 cockpit steps ([../weapons.md](../weapons.md) §7.2).
 
 Not proposed: a rule for the GPS bombs and the SPICE without a pod (they work without one, §8.1); a rule for the

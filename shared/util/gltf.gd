@@ -279,6 +279,7 @@ const STAND_INS := {
 	"weapons/sufa/spice2000_m.gltf": "weapons/mk84lb/mk84lb_m.gltf",
 	"weapons/sufa/gbu28_m.gltf": "weapons/mk84lb/mk84lb_m.gltf",
 	"weapons/sufa/litening_m.gltf": "weapons/flrpod/flrpod_m.gltf",
+	"weapons/sufa/lantirn_m.gltf": "weapons/flrpod/flrpod_m.gltf",
 }
 
 
@@ -336,6 +337,7 @@ const STORES := {
 	"ecmpod_m.gltf": "ecmpod",
 	"flrpod_m.gltf": "flrpod",
 	"litening_m.gltf": "litening",
+	"lantirn_m.gltf": "lantirn",
 	"aim9x_m.gltf": "aim9x",
 	"gbu31_m.gltf": "gbu31",
 	"gbu31v3_m.gltf": "gbu31v3",

@@ -41,6 +41,12 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   drawn with its own model (FlightGear's AN/AAQ-28 at the real 2.20 m by 0.406 m, 2026-11-17,
   [../../docs/aircraft-models.md](../../docs/aircraft-models.md) §5.1); the Hangar and the Loadout screen hang it by its
   top from the chin station, as the flight does, under the model's right chin pylon (FlightGear's, 0.69 m right).
+  Pods part 1, step B (2026-11-17): the chin stations 5R (the Litening) and 5L (the engine's 13th station, pylon J),
+  the LANTIRN navigation pod (AN/AAQ-13) on the Sufa's 5L and the Pathfinder on the Barak's, carried, drawn (their
+  own model, `lantirn.glb`), weighed and kept by the jettisons, on the SMS inventory under 5R (weapons.md §7.3;
+  `modern-iaf/tests/test_sim_chin_pods.gd`); a load with a laser bomb and no pod is not saved as a preset, and the
+  Loadout screen's line is one short line, the front end's Hebrew saying פוד. The navigation pods' HUD picture and
+  terrain following come in pods part 2.
 - **The Sufa's radar, air to ground (2026-11-17, avionics-plan.md slice 3, G9–G12;
   [../../docs/radar.md](../../docs/radar.md) §9.7):** R gives GM, Q steps GMT and SEA; NORM's fan and the EXP, DBS1
   and DBS2 patches (Ctrl + `;`) over a radar picture made from the terrain (slopes, shadows, dark water and runways,

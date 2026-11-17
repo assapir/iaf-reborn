@@ -267,7 +267,7 @@ func setup(host_node: Node, entity: Dictionary, object: Dictionary, bdb: Diction
 		var u: Dictionary = _rwr_unit(key)
 		return u.get("pos")
 	harm = HarmSensor.new()
-	for i in 9:
+	for i in Stores.PYLONS:
 		# The 1998 game's FLIR pod; Modern IAF's targeting pod (the Litening, its SMS name TGP).
 		if "FLIR" in stores.name_of(i) or stores.name_of(i) == "TGP":
 			flir_pod = true
@@ -291,10 +291,10 @@ func setup(host_node: Node, entity: Dictionary, object: Dictionary, bdb: Diction
 	_build_visuals()
 
 
-## The stores left on the jet, [[weapon id, count] × 12] (the jet handed to the AI by the FlyTSD's Fly).
+## The stores left on the jet, [[weapon id, count] × 13] (the jet handed to the AI by the FlyTSD's Fly).
 func loadout() -> Array:
 	var out := []
-	for i in 12:
+	for i in Stores.FRAMES.size():
 		var st: Dictionary = stores.station(i)
 		out.append([int(st.w.id), int(ceil(float(st.count)))] if not st.is_empty() else [0, 0])
 	return out
@@ -332,8 +332,9 @@ static func _armed(load: Array, entity: Dictionary, n: int) -> Array:
 	if (entity.is_empty() and Settings.jet_id < 0) or not Settings.arm_loadouts.has(n):
 		return load
 	var arm: Array = Settings.arm_loadouts[n]
-	for i in mini(9, arm.size()):
-		load[i] = [int(arm[i][0]), int(arm[i][1])] + Array(arm[i]).slice(2)  # Modern IAF: the rack's kg, drag
+	for i in Stores.PYLONS:  # Modern IAF's arm holds every station index (loadout::sim_load), the 1998 game's nine
+		if i < arm.size() and i < load.size():
+			load[i] = [int(arm[i][0]), int(arm[i][1])] + Array(arm[i]).slice(2)  # Modern IAF: the rack's kg, drag
 	return load
 
 
@@ -1033,7 +1034,7 @@ func unmet_need() -> String:
 	if needs.is_empty():
 		return ""
 	var gives := PackedStringArray()
-	for i in 9:
+	for i in Stores.PYLONS:
 		var st: Dictionary = stores.station(i)
 		if int(st.get("count", 0)) > 0:
 			gives.append_array(st.w.get("gives", PackedStringArray()))
@@ -1162,7 +1163,7 @@ var sel_jett := false
 ## open (inferred: no public F-35 jettison procedure).
 func emergency_jettison() -> void:
 	if not _wow():
-		_jettison_stations(range(9))
+		_jettison_stations(Stores.PYLONS)
 
 
 ## The flight model has the jet on the ground (weight on wheels).
@@ -1179,15 +1180,15 @@ func selective_jettison() -> void:
 	var t: int = stores.current_type()
 	var nm: String = stores.current_name()
 	var sel := []
-	for i in 9:
+	for i in Stores.PYLONS:
 		if int(stores.type_of(i)) == t and stores.name_of(i) == nm:
 			sel.append(i)
 	_jettison_stations(sel)
 
 
-## Stations `list` (0..8) jettisoned the Real way: each store but the A-A missiles falls unarmed (no burst) and
-## unguided, a tank's fuel goes (as FUN_00458760), the station's rack goes too. Bay stations wait for their doors
-## (_bay_wait; update() goes on with them once open).
+## Stations `list` (pylons, Stores.PYLONS) jettisoned the Real way: each store but the A-A missiles and the pods falls
+## unarmed (no burst) and unguided, a tank's fuel goes (as FUN_00458760), the station's rack goes too. Bay stations
+## wait for their doors (_bay_wait; update() goes on with them once open).
 func _jettison_stations(list: Array) -> void:
 	list = list.filter(_jettisonable)
 	var bays := list.filter(func(i): return _internal(i))
@@ -1218,10 +1219,11 @@ func _jettison_stations(list: Array) -> void:
 
 ## Station i holds what a Real jettison drops: a store but an A-A missile, or a rack.
 func _jettisonable(i: int) -> bool:
-	# The pods stay too (the F-16's targeting and ECM pods hang on stations the jettison does not release; inferred),
-	# so the laser and the ECM keep their pod.
+	# The pods stay too (the F-16's targeting, navigation and ECM pods hang on stations the jettison does not release;
+	# inferred), so the laser and the ECM keep their pod: the 1998 game's by name, Modern IAF's by their record.
 	var n: String = stores.name_of(i)
-	if stores.type_of(i) in AA_TYPES or "FLIR" in n or "ECM" in n:
+	var pod: bool = "FLIR" in n or "ECM" in n or bool(stores.station(i).get("w", {}).get("pod", false))
+	if stores.type_of(i) in AA_TYPES or pod:
 		return false
 	return stores.displayed(i) > 0 or float(stores.station(i).get("rack_kg", 0.0)) > 0.0
 
@@ -1235,7 +1237,7 @@ func _jettison_tanks() -> void:
 		return
 	var was: bool = stores.unlimited
 	stores.set_unlimited(false)
-	for i in 9:
+	for i in Stores.PYLONS:
 		if stores.stations.has(i) and "LB" in stores.name_of(i) and stores.displayed(i) > 0:
 			_drop_store(i, _jettison_aim(int(stores.type_of(i))))
 			stores.jettisoned(i)
@@ -1262,7 +1264,7 @@ func _jettison_bombs() -> void:
 		return
 	var was: bool = stores.unlimited
 	stores.set_unlimited(false)
-	for i in 9:
+	for i in Stores.PYLONS:
 		var t: int = stores.type_of(i)
 		if not t in [500, 510, 650]:
 			continue
@@ -2032,7 +2034,7 @@ func pre_targets() -> Dictionary:
 		actions.append(int(wp.get("action", 0)))
 	var d: int = ClassDB.class_call_static("IafGpsBomb", "default_target", actions)
 	var out := {}
-	for i in 9:
+	for i in Stores.PYLONS:
 		var st: Dictionary = stores.station(i)
 		if not st.get("w", {}).has("gps"):
 			continue
@@ -2943,7 +2945,7 @@ func _publish() -> void:
 	if c == null:
 		return
 	var list := []
-	for i in 12:
+	for i in Stores.FRAMES.size():
 		list.append({"type": stores.type_of(i), "count": stores.displayed(i), "name": stores.name_of(i)})
 	var t: int = stores.current_type()
 	var mal := _weapons_down() or (_flag(DMG_GUN) and t == Stores.GUN)
@@ -3166,7 +3168,7 @@ static func attach_stores(stores: RefCounted, model: Node3D) -> Dictionary:
 			var pylon := station_pylon(model, i)
 			if pylon != null:
 				pylon.visible = true
-		if i < 9 and stores.type_of(i) == 560:
+		if i in Stores.PYLONS and stores.type_of(i) == 560:
 			var b := _instance(ROCKET_BOX)
 			if b != null:
 				mount(model).add_child(b)
@@ -3187,11 +3189,11 @@ static func mount(model: Node3D) -> Node3D:
 ## null: the node the descriptor's `pylons` names for the station (the F-16's right chin pylon, Modern IAF's sim.rs),
 ## else Pylon<letter> (the F-35I's).
 static func station_pylon(model: Node3D, i: int) -> Node3D:
-	if i >= 9:
+	if not i in Stores.PYLONS:
 		return null
 	var desc = model.get("desc")
 	var frame: String = Stores.FRAMES[i]
-	var name := "Pylon" + "ABCDEFGHI"[i]
+	var name := "Pylon" + Stores.LETTERS[i]
 	if desc is Dictionary:
 		name = str(desc.get("pylons", {}).get(frame, name))
 	return model.find_child(name, true, false) as Node3D
@@ -3341,9 +3343,9 @@ func _bay_wait(i: int) -> bool:
 	return host.aircraft != null and host.aircraft.bay_fraction() < 1.0
 
 
-## Station i is in a weapon bay (descriptor `internal_stations`, letters A..I; ours).
+## Station i is in a weapon bay (descriptor `internal_stations`, letters A..J; ours).
 func _internal(i: int) -> bool:
-	return i >= 0 and i < 9 and "ABCDEFGHI"[i] in String(descriptor.get("internal_stations", ""))
+	return i in Stores.PYLONS and Stores.LETTERS[i] in String(descriptor.get("internal_stations", ""))
 
 
 ## Stations 0..8 draw `count` stores at slot[0..count−1] (FUN_0053e430) with EXTERNAL STORES on

@@ -26,7 +26,7 @@ pub struct IafStores {
 
 #[godot_api]
 impl IafStores {
-    /// The loadout an aircraft spawns with (`FUN_0058f110`) from the entity's and the object's armament: [[id, n] × 12].
+    /// The loadout an aircraft spawns with (`FUN_0058f110`) from the entity's and the object's armament: [[id, n] × 13].
     #[func]
     fn loadout(entity: VarDictionary, object: VarDictionary) -> VarArray {
         stores::loadout(&pairs(&entity), &pairs(&object)).iter().map(|&(id, n)| varray![id, n].to_variant()).collect()
@@ -71,7 +71,7 @@ impl IafStores {
             .collect()
     }
 
-    /// The 12 stations: {} none, else {type, name, weight_lb, empty_lb (a tank's own, optional), drag, rounds_per_tick
+    /// The 13 stations (stores.rs STATIONS): {} none, else {type, name, weight_lb, empty_lb (a tank's own, optional), drag, rounds_per_tick
     /// (optional), count, arm (the attach
     /// point's glTF x, + right), rack_kg / rack_drag (optional: the rack the stores hang on)}.
     #[func]
@@ -185,7 +185,7 @@ impl IafStores {
         self.stores.reload();
     }
 
-    /// {counts [12] (−1 none), unlimited [12], last_fired, releases, unlimited_all, fm_mass, fm_di_left, fm_di_right,
+    /// {counts [13] (−1 none), unlimited [13], last_fired, releases, unlimited_all, fm_mass, fm_di_left, fm_di_right,
     /// has_tank, tank_fuel, roll_moment, tank_moment}.
     #[func]
     fn state(&self) -> VarDictionary {

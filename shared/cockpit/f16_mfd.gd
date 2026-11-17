@@ -41,7 +41,9 @@ const SIZE := 6.0  # the mnemonics' font size, MFD px (about 18 characters acros
 const SMALL := 4.8
 ## The game's stations 0..8 (real 1..9) on the INV page by the OSBs the original's stores page selects them with
 ## (0xd, 0xc, 0xb, 1, 3, 5, 0x10, 0x11, 0x12 as real numbers): an inverted V, station 1 lower left, 5 top centre.
-const STATION_OSB := [18, 19, 20, 1, 3, 5, 6, 7, 8]
+## Ours, Modern IAF: the left chin hardpoint 5L (station index 12, stores.gd PYLONS) by OSB 3 too, a line under 5 (5R;
+## inferred).
+const STATION_OSB := {0: 18, 1: 19, 2: 20, 3: 1, 4: 3, 5: 5, 6: 6, 7: 7, 8: 8, 12: 3}
 ## Air-to-air missile types (the AAM page); 590 is the HARM (WPN: HAS).
 const AAM_TYPES := [570, 580, 600, 610]
 ## The damage flags (docs/damage.md §5.2) as fault-list lines (inferred: the MFL's layout is open), each once.
@@ -832,13 +834,15 @@ func sms_format() -> void:
 ## gun's rounds in tens by OSB 16.
 func _inventory(wp: Dictionary) -> void:
 	var sel := int(wp.selected)
-	for i in 9:
+	for i in STATION_OSB:
+		if i >= wp.stations.size() or (i == 12 and int(wp.stations[i].count) <= 0):
+			continue  # the left chin hardpoint shows only with a store on it (the 1998 jets have none)
 		var st: Dictionary = wp.stations[i]
 		var n := int(st.count)
 		var t := "%d %s" % [n, String(st.name)] if n > 0 and String(st.name) != "" else "----"
 		var osb: int = STATION_OSB[i]
-		if osb <= 5:  # the top stations under the mode row
-			var a := osb_at(osb) + Vector2(0, 9)
+		if osb <= 5:  # the top stations under the mode row (5L a line under 5R)
+			var a := osb_at(osb) + Vector2(0, 9 + (SMALL * 1.3 if i == 12 else 0.0))
 			var w := text_width(t, SMALL)
 			if i == sel:
 				fill(Rect2(a.x - w / 2.0 - 1.0, a.y - SMALL * 0.82, w + 2.0, SMALL * 1.05), c("text"))
@@ -1325,7 +1329,8 @@ func _own_sms(osb: int) -> void:
 	if wp.is_empty():
 		return
 	if sms_inv or int(wp.selected) < 0:
-		var i := STATION_OSB.find(osb)
+		var k = STATION_OSB.find_key(osb)
+		var i: int = -1 if k == null else int(k)
 		if osb == 16:
 			i = 9
 		if i >= 0 and cockpit.on_station_select.is_valid():

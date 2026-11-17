@@ -196,14 +196,15 @@ Sufa and the Barak (the F-16I carries all three and the Litening II[^sufa-at]). 
 
 | store | record | weight | stations | model |
 |---|---|---|---|---|
-| Litening targeting pod (SMS name `TGP`) | `data/db/weapons/litening.json`, kind `pod` (660) | 208 kg[^w-litening] | 5, the chin | our Litening (`litening.glb`, FlightGear's AN/AAQ-28 at the real 2.20 m by 0.406 m[^w-litening]) |
+| Litening targeting pod (SMS name `TGP`) | `data/db/weapons/litening.json`, kind `pod` (660) | 208 kg[^w-litening] | 5 (5R), the right chin | our Litening (`litening.glb`, FlightGear's AN/AAQ-28 at the real 2.20 m by 0.406 m[^w-litening]) |
 | GBU-12 Paveway II | `gbu-12.json`, kind `laser_bomb` (650) | 230 kg[^w-gbu12] | 3, 4, 6, 7 | the Mk 82 with the Paveway kit (`mk82lb.glb`) |
 | GBU-16 Paveway II | `gbu-16.json` | 450 kg[^w-gbu16] | 3, 4, 6, 7 | `mk83lb.glb` |
 | GBU-10 Paveway II | `gbu-10.json` | 910 kg[^w-gbu10] | 3, 4, 6, 7 | `mk84lb.glb` |
 
 - **The chin.** The real F-16 hangs its targeting pod on a chin hardpoint under the intake[^twz-litening] (the right
   one on the Sufa, inferred from photos). The sim's nine pylons are the stations 1–9; station 5, the centreline, takes
-  no sim store, so the sim numbers the chin station 5 and hangs it under the right intake (`sim.rs`
+  no sim store, so the sim numbers the right chin station 5 (shown as 5R; the left one, 5L, §7.3) and hangs it under
+  the right intake (`sim.rs`
   `F16_SIM_STATIONS` StationE, `F16_SIM_LUGS`): from the model's right chin pylon (`PylonChinR`, FlightGear's
   fuselage pylon, shown while the station is loaded), where FlightGear hangs its Litening, 0.69 m right of the
   centreline (2026-11-17; before, 0.3 m, against the intake's bottom with no pylon). The briefing's balance takes it
@@ -229,10 +230,17 @@ to use without them" ([research/pods.md](research/pods.md) §8, items P12–P14,
   flight. A later dependency is a new name in the records, with no new code.
 - **The Loadout screen.** A load with an unmet need keeps Fly off (`briefing::arming`'s `blocked`; its `unmet` lists
   each such store, the store in the jet's inventory that gives the need and the first station that takes it). The
-  footer shows one warning-coloured line: "GBU-12 Paveway II needs a targeting pod: load the Litening on station 5, or
-  remove the GBU-12 Paveway II." (Hebrew: "ל־GBU-12 פייבוויי II נדרש תרמיל ייעוד: יש לתלות את הלייטנינג בתחנה 5, או
-  להסיר את ה־GBU-12 פייבוויי II.").
-- **The briefing.** The Arming summary shows the same line under the stores, and its Fly is off.
+  footer shows one short warning-coloured line at the screen's notice size (16 px, as the balance warning): "GBU-12
+  needs the Litening pod" (Hebrew: "ל־GBU-12 נדרש פוד לייטנינג"). Until 17 November 2026 it was a wrapped sentence
+  ("… needs a targeting pod: load the Litening on station 5, or remove the …"); the user found it "too long and
+  big", so it names only what is missing. The front end's Hebrew says פוד for a pod (the user, 17 November 2026).
+- **Presets.** Such a load is never saved as a preset: "+ Save this loadout" is off and the save stores nothing (the
+  user, 17 November 2026: "don't allow to save presetting with laser that doesn't have it"). A preset saved before the
+  rule loads with all its stores, shows the line, and keeps Fly and Save off until the pod is on.
+- **Fly.** `front_end.gd` `fly_mission`, which every Fly button calls, refuses a `blocked` load, so no screen flies one.
+  A `--mission` run (`modern-iaf/flight/fly.gd`, a development path past the front end) flies the stored load, and
+  the in-flight rule below holds its laser bombs.
+- **The briefing.** The Arming summary shows the same line under the stores in the small text, and its Fly is off.
 - **In flight.** A selected store whose need is unmet shows `NO LASER` on the SMS in RDY's place (ours: the public
   dash-34 legend for this case was not found) and the pickle releases nothing (`player_weapons.gd` `unmet_need`).
   Before this rule a laser bomb with no pod was released and steered to its CCIP point. A jettisoned laser bomb falls
@@ -265,6 +273,41 @@ The laser is modelled only as cockpit procedure. A bomb takes its aim at its rel
 guidance is not modelled further. Not built here: the FLIR polarity (WHOT / BHOT) and the CCD TV picture, which
 change the picture's look and wait for the user's approval of a picture. Test: `modern-iaf/tests/test_sim_pod.gd`.
 
+### 7.3 The chin stations and the navigation pods
+The user, 17 November 2026: the pods "are on the side of the air intake"; the Sufa carries a Litening and a LANTIRN
+navigation pod beneath its intake[^iaf-f16i], the F-16's navigation pod hangs on the left chin hardpoint,
+5L[^f16net-lantirn] ([research/pods.md](research/pods.md) §1, §2.3, items P4 and P9).
+
+| store | record | weight | drag index | station | model |
+|---|---|---|---|---|---|
+| LANTIRN navigation pod, AN/AAQ-13 (SMS name `NVP`, inferred) | `lantirn-nav.json`, kind `pod` | 204.6 kg[^w-lantirn] | 3.9 (0.305 m across[^w-lantirn]; the tanks' rule, inferred) | the Sufa's 10 (5L) | `lantirn.glb`: FlightGear's AN-AAQ-13 at the real 1.99 m[^w-lantirn] |
+| Pathfinder, AN/AAQ-20 (SMS name `PATH`, inferred) | `pathfinder.json`, kind `pod` | 84 kg[^fi-pathfinder] | 3.9 (the AN/AAQ-13's, inferred) | the Barak's 10 (5L) | the same `lantirn.glb` (inferred: no public drawing of its own shape; 198 cm[^fi-pathfinder], 1 cm shorter) |
+
+- **The station.** The engine's nine pylons A..I were all in use, so the left chin hardpoint is a 13th station:
+  index 12, pylon letter J, frame `StationJ`, after the gun (9), chaff (10) and flares (11), so the 1998 game's indexes
+  and its 12-pair armaments stay (`iaf_avionics::stores` `STATIONS`, `CHIN_LEFT`, `LETTERS`, `is_pylon`; GDScript
+  `stores.gd` `PYLONS`, `LETTERS`). The unit records number it 10 (after the wing's nine, so 5 keeps its meaning) and
+  show it as 5L, station 5 as 5R (the records' `labels`). It takes only the jet's own navigation pod; it has no mirror
+  station. Where FlightGear hangs its AN-AAQ-13: the axis 0.66 m left, 1.02 m down, 1.40 m ahead of our origin, under
+  the model's `PylonChinL`, shown while the station is loaded (`sim.rs` `F16_SIM_STATIONS`, `F16_SIM_LUGS`,
+  `F16_SIM_PYLONS`).
+- **Weight and drag.** The pod's weight loads the jet at its 0.66 m arm (the asymmetric-stores moment); its drag
+  goes half to each side, as station 5's. The briefing's balance takes it on the jet's middle, as the Litening.
+- **What changes for every table keyed by station.** The loadout (`stores::loadout`, `loadout::sim_load`, 13 entries),
+  the weight and drag, jettison, the release lists, the Real jettison, the Loadout screen's lines (`briefing::arming`
+  `pylons`), the turntable and the flight's store models, the AI's loads (`combat.gd`, from the same load) and the
+  mission report read the 13 stations. The SMS inventory page lists 5L by OSB 3, a line under 5R, when it holds a
+  store (`f16_mfd.gd` `STATION_OSB`). The 1998 game's own arming tables (`mission_weapons.gd`, the CDMEWeaponLoadItem
+  flags) keep their file format's nine.
+- **Jettison.** The emergency and selective jettisons keep every pod: the 1998 game's by name (FLIR, ECM) and Modern
+  IAF's by its record (`kind: pod`, compiled as `"pod": true`). Until now the Litening, named TGP, was jettisoned.
+- **The functions come later.** The navigation pods are carried, drawn and weighed only: they give nothing (no
+  `gives`). The FLIR picture on the HUD (research/pods.md P7) and the Sufa's terrain following (P8, low priority) come
+  in pods part 2.
+- **Tests:** `crates/iaf-avionics/src/stores.rs` `left_chin_station_loads_weighs_and_drags_both_sides`,
+  `crates/iaf-tools/src/loadout.rs` `chin_stations_take_their_own_pods`, `modern-iaf/tests/test_sim_chin_pods.gd`
+  (load, draw, weight, jettison, the SMS inventory), `modern-iaf/tests/test_front_end.gd` (5R / 5L, the pod drawn).
+
 [^gdots]: General Dynamics OTS, "F-16 20mm Gatling gun system" (511 rounds), https://www.gd-ots.com/wp-content/uploads/2017/11/F-16.pdf
 [^w-f35]: Wikipedia, "Lockheed Martin F-35 Lightning II" (GAU-22/A, 180 rounds in the F-35A), https://en.wikipedia.org/wiki/Lockheed_Martin_F-35_Lightning_II
 [^w-m61]: Wikipedia, "M61 Vulcan" (6,000 rounds per minute), https://en.wikipedia.org/wiki/M61_Vulcan
@@ -274,6 +317,14 @@ change the picture's look and wait for the user's approval of a picture. Test: `
 [^w-gbu12]: Wikipedia, "GBU-12 Paveway II" (230 kg): https://en.wikipedia.org/wiki/GBU-12_Paveway_II
 [^w-gbu16]: Wikipedia, "GBU-16 Paveway II" (450 kg): https://en.wikipedia.org/wiki/GBU-16_Paveway_II
 [^w-gbu10]: Wikipedia, "GBU-10 Paveway II" (910 kg): https://en.wikipedia.org/wiki/GBU-10_Paveway_II
+[^iaf-f16i]: Israeli Air Force site, "F-16I הדור הבא" (two pods beneath the F-16I's air intake: a Litening and a
+    LANTIRN navigation pod), https://www.iaf.org.il/522-19034-he/IAF.aspx (as the search engine returned it)
+[^f16net-lantirn]: F-16.net, "AN/AAQ-13 & AN/AAQ-14 LANTIRN" (the navigation pod on 5L):
+    https://www.f-16.net/f-16_armament_article2.html
+[^w-lantirn]: Wikipedia, "LANTIRN" (the AN/AAQ-13: 199 cm, 30 cm across, 204.6 kg; the AN/AAQ-20 Pathfinder, its
+    export version without the terrain-following radar): https://en.wikipedia.org/wiki/LANTIRN
+[^fi-pathfinder]: Forecast International, "Pathfinder/Sharpshooter - Archived 02/2004" (Israel's Pathfinders of 1992;
+    198 cm, 84 kg): https://www.forecastinternational.com/archive/disp_pdf.cfm?DACH_RECNO=556
 [^twz-litening]: The War Zone, "We talk new features on the Litening large aperture targeting pod" (a Litening on the
     usual chin station of an F-16C):
     https://www.twz.com/news-features/we-talk-new-features-on-the-litening-large-aperture-targeting-pod

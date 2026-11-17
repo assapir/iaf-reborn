@@ -1,5 +1,6 @@
 //! The stores of one aircraft (docs/weapons.md §2–§5): the station container (ctl+0xfc, `FUN_0053b460`) with its 12
-//! stations (0..8 pylons StationA..I, 9 gun, 10 chaff, 11 flares), the loadout at mission start, the selection
+//! stations (0..8 pylons StationA..I, 9 gun, 10 chaff, 11 flares) and Modern IAF's 13th (12, StationJ: the F-16's left
+//! chin hardpoint, ours), the loadout at mission start, the selection
 //! cycle, which station fires next, the count decrement, and the stores weight / drag the flight model reads (S+0x424,
 //! S+0x428, S+0x42c).
 
@@ -10,9 +11,29 @@ pub const CHAFF: i64 = 540;
 pub const FLARE: i64 = 550;
 /// Fuel tanks and pods.
 pub const SHELL: i64 = 660;
-pub const STATIONS: usize = 12;
-/// Pylons 0..8.
+pub const STATIONS: usize = 13;
+/// The wing pylons 0..8 (the original's nine; the mirror and the drag sides count them).
 const PYLONS: usize = 9;
+/// Ours (Modern IAF, modern-iaf/docs/weapons.md §7.3): the F-16's left chin hardpoint (5L), pylon J, after the
+/// original's gun, chaff and flares so their indexes stay. The 1998 game's data never fills it.
+pub const CHIN_LEFT: usize = 12;
+/// Each station's pylon letter ('-': the gun, chaff and flares).
+pub const LETTERS: &[u8; STATIONS] = b"ABCDEFGHI---J";
+
+/// Station `i` is a pylon (A..I or J).
+pub fn is_pylon(i: usize) -> bool {
+    i < PYLONS || i == CHIN_LEFT
+}
+
+/// The station index of pylon letter `l` (A..J).
+pub fn pylon_index(l: u8) -> Option<usize> {
+    LETTERS.iter().position(|&c| c == l && c != b'-')
+}
+
+/// A centre station (the original's 4, the left chin 12): its drag goes half to each side.
+fn centre(i: usize) -> bool {
+    i == 4 || i == CHIN_LEFT
+}
 /// [Misc] BombStationLength (IAF.ibx, default 2.0 @0x60c5bc; not in the shipped file).
 const BOMB_STATION_LENGTH: f64 = 2.0;
 /// [Misc] PilonDefaultZ.
@@ -104,24 +125,25 @@ pub struct Load {
     pub di_right: f64,
 }
 
-/// The loadout an aircraft spawns with (`FUN_0058f110`): pylons 0..8 from the entity's CArmament when any of them is
-/// set, else from the object type's; 9..11 (gun, chaff, flares) always from the type. [weapon id, count] × 12.
+/// The loadout an aircraft spawns with (`FUN_0058f110`): the pylons (0..8, and 12) from the entity's CArmament when
+/// any of them is set, else from the object type's; 9..11 (gun, chaff, flares) always from the type. [weapon id,
+/// count] × 13 (an armament of the original's 12 leaves 12 empty).
 pub fn loadout(entity: &[(i64, i64)], object: &[(i64, i64)]) -> [(i64, i64); STATIONS] {
-    let pylons_set = entity.iter().take(PYLONS).any(|&(id, _)| id != 0 && id != -1);
+    let pylons_set = entity.iter().enumerate().any(|(i, &(id, _))| is_pylon(i) && id != 0 && id != -1);
     std::array::from_fn(|i| {
-        let src = if i < PYLONS && pylons_set { entity } else { object };
+        let src = if is_pylon(i) && pylons_set { entity } else { object };
         src.get(i).copied().unwrap_or((0, 0))
     })
 }
 
 /// The store positions of a station (`FUN_0053c990`) in glTF metres, computed once in the original's E frame (x =
 /// −glTF x, y = glTF z, z = glTF y) from the attach point and the store's Pilon: TER (3) for non-bombs and bombs ≤ 3,
-/// MER (6) for bombs ≥ 4 spread ±BombStationLength fore / aft. Stations above 5 are mirrored (station 5 is not: the
-/// original's `> 5.0` test).
+/// MER (6) for bombs ≥ 4 spread ±BombStationLength fore / aft. Stations 6..8 are mirrored (station 5 is not: the
+/// original's `> 5.0` test; nor the left chin 12, ours).
 pub fn slots(index: usize, attach: Vec3, count: i64, bomb: bool, pilon: Option<Vec3>) -> Vec<Vec3> {
     let pl = pilon.unwrap_or(Vec3::new(0.0, PILON_DEFAULT_Z, 0.0));
     let (px, py, pz) = (-pl.x, pl.z, pl.y);
-    let mirror = index > 5;
+    let mirror = index > 5 && index < PYLONS;
     let l = BOMB_STATION_LENGTH;
     let e = if bomb && count >= 4 {
         let s = if mirror { -1.0 } else { 1.0 };
@@ -368,7 +390,7 @@ impl Stores {
     pub fn fired(&mut self, i: usize) {
         let Some(w) = self.station(i).map(|s| s.weapon.clone()) else { return };
         self.released(i);
-        if !self.unlimited && i < PYLONS {
+        if !self.unlimited && is_pylon(i) {
             self.release_drag(i, &w);
             let m = self.load.mass * LB_PER_KG - w.weight_lb;
             if m >= 0.0 {
@@ -391,7 +413,7 @@ impl Stores {
     }
 
     fn moment(&self, tanks: bool) -> f64 {
-        let stores = self.stations.iter().take(PYLONS).flatten();
+        let stores = self.stations.iter().enumerate().filter(|(i, _)| is_pylon(*i)).filter_map(|(_, s)| s.as_ref());
         stores
             .map(|s| {
                 let n = if s.weapon.rounds_per_tick.is_some() { s.count.min(1.0) } else { s.count };
@@ -462,7 +484,8 @@ impl Stores {
     }
 
     /// `FUN_00454010`: one store per station 0..8 whatever the count (original); tanks go to the fuel (`tank_fuel`)
-    /// instead of the stores weight; drag of stations 0..3 left, 5..8 right, station 4 half to each. The weight
+    /// instead of the stores weight; drag of stations 0..3 left, 5..8 right, station 4 half to each (and the left
+    /// chin 12, ours). The weight
     /// (pounds) goes into the kg field as is. With the weight fix: every store counted, in kg, tank fuel in kg. A rack
     /// (ours) adds its weight and drag once per station.
     pub fn init_weight_drag(&mut self) {
@@ -470,7 +493,7 @@ impl Stores {
         let (mut weight, mut left, mut right) = (0.0, 0.0, 0.0);
         self.has_tank = false;
         self.tank_fuel = 0.0;
-        for (i, s) in self.stations.iter().enumerate().take(PYLONS) {
+        for (i, s) in self.stations.iter().enumerate().filter(|(i, _)| is_pylon(*i)) {
             let Some(s) = s else { continue };
             let n = if self.weight_fix { s.count } else { 1.0 };
             if s.weapon.is_tank() {
@@ -485,29 +508,29 @@ impl Stores {
             }
             weight += s.rack_kg * if self.weight_fix { 1.0 } else { LB_PER_KG };
             let d = n * s.weapon.drag + s.rack_drag;
-            match i {
-                0..4 => left += d,
-                4 => {
-                    left += 0.5 * d;
-                    right += 0.5 * d;
-                }
-                _ => right += d,
+            if centre(i) {
+                left += 0.5 * d;
+                right += 0.5 * d;
+            } else if i < 4 {
+                left += d;
+            } else {
+                right += d;
             }
         }
         self.load = Load { mass: weight, di_left: (left * 1e-4).max(0.0), di_right: (right * 1e-4).max(0.0) };
     }
 
-    /// `FUN_004583a0`: that side's drag index loses the store's drag (half at station 4, both sides), only when it stays
-    /// ≥ 0.
+    /// `FUN_004583a0`: that side's drag index loses the store's drag (half at station 4, both sides; the left chin 12
+    /// the same), only when it stays ≥ 0.
     fn release_drag(&mut self, i: usize, w: &Weapon) {
-        let d = w.drag * if i == 4 { 0.5 } else { 1.0 };
+        let d = w.drag * if centre(i) { 0.5 } else { 1.0 };
         let drop = |di: &mut f64| {
             let v = *di * 10000.0 - d;
             if v >= 0.0 {
                 *di = (v * 1e-4).max(0.0);
             }
         };
-        if i <= 4 {
+        if i <= 4 || centre(i) {
             drop(&mut self.load.di_left);
         }
         if i >= 4 {
@@ -589,6 +612,37 @@ mod tests {
         assert!((s.roll_moment() - 200.0 * KG_PER_LB * 2.0).abs() < 1e-9, "{}", s.roll_moment());
         s.jettisoned(4);
         assert!((s.load().di_left - 10e-4).abs() < 1e-12 && (s.load().di_right - 20e-4).abs() < 1e-12);
+    }
+
+    #[test]
+    fn left_chin_station_loads_weighs_and_drags_both_sides() {
+        // Modern IAF (weight fix): the pods on the chin stations, the navigation pod on 12 (0.69 m left), the targeting
+        // pod on 4 (0.69 m right); each pod's drag half to each side, its weight in the moment at its arm.
+        assert_eq!((pylon_index(b'J'), pylon_index(b'I'), pylon_index(b'-')), (Some(CHIN_LEFT), Some(8), None));
+        assert!(is_pylon(CHIN_LEFT) && !is_pylon(9) && !is_pylon(11));
+        let mut s = Stores { player: true, weight_fix: true, ..Stores::default() };
+        let mut stations: [Option<Station>; STATIONS] = Default::default();
+        stations[4] = st(SHELL, "TGP", 1.0);
+        stations[CHIN_LEFT] = st(SHELL, "NVP", 1.0);
+        stations[4].as_mut().unwrap().arm = 0.69;
+        stations[CHIN_LEFT].as_mut().unwrap().arm = -0.69;
+        stations[CHIN_LEFT].as_mut().unwrap().weapon.weight_lb = 451.0;
+        s.setup(stations);
+        let (tgp, nav) = (200.0 * KG_PER_LB, 451.0 * KG_PER_LB);
+        assert!((s.load().mass - (tgp + nav)).abs() < 1e-9, "{}", s.load().mass);
+        assert_eq!((s.load().di_left, s.load().di_right), (10e-4, 10e-4));
+        assert!((s.roll_moment() - 0.69 * (tgp - nav)).abs() < 1e-9, "{}", s.roll_moment());
+        // A pod is never selected; a release from 12 (a jettison) takes its weight and half its drag off each side.
+        assert!(!s.select_station(CHIN_LEFT));
+        s.fired(CHIN_LEFT);
+        assert!((s.load().mass - tgp).abs() < 0.05 && (s.load().di_left - 5e-4).abs() < 1e-12);
+        // The spawn loadout: an armament of the original's 12 pairs leaves 12 empty; a 13th pair fills it.
+        let twelve = [(1, 1); 12];
+        assert_eq!(loadout(&twelve, &twelve)[CHIN_LEFT], (0, 0));
+        let mut ent = [(0, 0); 13];
+        ent[CHIN_LEFT] = (21, 1);
+        assert_eq!(loadout(&ent, &twelve)[CHIN_LEFT], (21, 1));
+        assert_eq!(loadout(&ent, &twelve)[0], (0, 0), "a set pylon 12 takes the entity's pylons");
     }
 
     #[test]

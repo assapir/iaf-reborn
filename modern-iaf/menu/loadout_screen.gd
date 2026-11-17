@@ -90,8 +90,12 @@ func build() -> void:
 	var need: String = fe.need_text(a)
 	var line: Label = fe._footer(need, [brief, fly], false, [] if fixed else [reset])
 	if need != "":
+		# One short line at the screen's notice size (as the balance warning's), not a wrapped paragraph (the user,
+		# 17 Nov: "too long and big").
 		line.name = "NeedLine"
 		line.add_theme_color_override("font_color", Look.WARN)
+		line.add_theme_font_size_override("font_size", 16)
+		line.autowrap_mode = TextServer.AUTOWRAP_OFF
 	if reset != null and reset.disabled:
 		# Its plain box, dimmed (the theme's disabled box reads as another kind of button).
 		reset.add_theme_stylebox_override("disabled", reset.get_theme_stylebox("normal"))
@@ -152,7 +156,8 @@ func _stage(j: Dictionary) -> void:
 		c.station = st
 		c.read_only = fixed
 		c.size = CALLOUT
-		c.head = ("%s · %s" % [st, s("pos_" + str(pos.get(st, "")))]).to_upper() if pos.has(st) else st
+		var nm: String = fe.station_label(a, st)
+		c.head = ("%s · %s" % [nm, s("pos_" + str(pos.get(st, "")))]).to_upper() if pos.has(st) else nm
 		c.empty_text = s("arm_empty")
 		c.rtl = fe.he()
 		if slots.has(st):
@@ -221,13 +226,9 @@ func points() -> Dictionary:
 	if tt == null:
 		return out
 	var by_pylon: Dictionary = tt.points()
-	var slots: Dictionary = a.get("slots", {}) if a.get("slots") is Dictionary else {}
-	var stations: Dictionary = Settings.load_json("res://data/db/units/%s.json" % unit).get("stations", {})
+	var pylons: Dictionary = a.get("pylons", {}) if a.get("pylons") is Dictionary else {}
 	for st in callouts:
-		var letter := str(stations.get(st, "ABCDEFGHI"[int(st) - 1] if int(st) in range(1, 10) else ""))
-		if slots.has(st) and slots[st].get("pylon") != null:
-			letter = "ABCDEFGHI"[int(slots[st].pylon)]
-		var i := "ABCDEFGHI".find(letter) if letter != "" else -1
+		var i := int(pylons[st]) if pylons.get(st) != null else -1  # the engine's station (loadout.rs letter)
 		if i >= 0 and by_pylon.has(i):
 			out[st] = tt.position + by_pylon[i]
 	return out
@@ -283,6 +284,11 @@ func _loadouts() -> void:
 		save.name = "SaveLoadout"
 		save.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		save.add_theme_color_override("font_color", Look.ACCENT_TEXT)
+		# A load that cannot be employed (a laser bomb with no pod) is not saved (the user, 17 Nov: "don't allow to
+		# save presetting with laser that doesn't have it"): Save off, the footer's line says what is missing.
+		var need: String = fe.need_text(a)
+		save.disabled = need != ""
+		save.tooltip_text = need
 		var form: HBoxContainer = fe._hbox(col, 8)
 		form.name = "NameForm"
 		form.visible = false
@@ -406,6 +412,8 @@ func close_name() -> bool:
 ## the field open.
 func save_named() -> void:
 	var field: LineEdit = find_child("LoadoutName", true, false)
+	if fe.need_text(a) != "":
+		return  # the pod rule (weapons.md §7.1): a load that cannot be employed is never stored
 	var st := {}
 	var slots: Dictionary = a.get("slots", {}) if a.get("slots") is Dictionary else {}
 	for k in slots:

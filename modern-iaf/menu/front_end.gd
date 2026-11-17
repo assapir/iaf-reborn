@@ -669,9 +669,9 @@ func _jet_view(j: Dictionary) -> void:
 	_place(still, 380, 470, 250, 800)
 
 
-## The jet's stores for the turntable: {pylon 0..8 (A..I): {path, count, lugged, bomb}} from loadout `lo` (JSON
-## text, "" the unit record's; null: the pilot's now, as the Loadout screen shows it; IafBriefing.arming; each slot's
-## `pylon` maps the real station number to the engine's pylon, the F-35I's 5 to D).
+## The jet's stores for the turntable: {engine station (A..I 0..8, J 12): {path, count, lugged, bomb}} from loadout
+## `lo` (JSON text, "" the unit record's; null: the pilot's now, as the Loadout screen shows it; IafBriefing.arming;
+## each slot's `pylon` maps the real station number to the engine's pylon, the F-35I's 5 to D, the F-16's 10 to J).
 func jet_stores(j: Dictionary, lo = null) -> Dictionary:
 	var m := {"start": {"unit": j.unit}}
 	var out := {}
@@ -1093,8 +1093,8 @@ func arming(m: Dictionary, lo := "") -> Dictionary:
 	return a if a is Dictionary else {}
 
 
-## The line that says why arming `a` cannot fly and what to add (its first `unmet`: "GBU-12 needs a targeting pod:
-## load the Litening on station 5, or remove the GBU-12."; docs/weapons.md §7.1), "" when nothing is unmet.
+## The short line that says what arming `a` is missing (its first `unmet`: "GBU-12 needs the Litening pod";
+## docs/weapons.md §7.1), "" when nothing is unmet.
 func need_text(a: Dictionary) -> String:
 	var un: Array = a.get("unmet", []) if a.get("unmet") is Array else []
 	if un.is_empty():
@@ -1102,8 +1102,13 @@ func need_text(a: Dictionary) -> String:
 	var u: Dictionary = un[0]
 	var w := short_store(str(u.weapon))
 	var giver := short_store(str(u.store)) if u.get("store") != null else ""
-	var st := str(int(u.station)) if u.get("station") != null else "?"
-	return s("need_" + str(u.need)) % [w, giver, st, w]
+	return s("need_" + str(u.need)) % [w, giver]
+
+
+## Station `st`'s name on the screens: arming `a`'s record label (the F-16's chin hardpoints 5R / 5L), else its number.
+func station_label(a: Dictionary, st: String) -> String:
+	var labels = a.get("labels")
+	return str(labels.get(st, st)) if labels is Dictionary else st
 
 
 ## The mission's unit record, an absolute path (in `units_dir`).
@@ -1235,6 +1240,10 @@ static func _ltr(t: String) -> String:
 
 ## Fly: the mission's flight scene (flight/fly.gd), with the ground preloaded on this page (_preload_ground).
 func fly_mission(m: Dictionary) -> void:
+	# The one load rule (weapons.md §7.1), whichever button asked: a load that cannot fly (a laser bomb with no pod,
+	# over the maximum weight) is never flown.
+	if bool(arming(m, mission_loadout(m)).get("blocked", false)):
+		return
 	if Fly.prepare(int(m.menu_id)):
 		TerrainPreload.fly(get_tree())
 	else:

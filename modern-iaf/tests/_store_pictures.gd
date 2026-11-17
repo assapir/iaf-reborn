@@ -24,6 +24,8 @@ const STORES := {
 	"gbu-16": "mk83lb.glb",
 	"gbu-10": "mk84lb.glb",
 	"litening": "litening.glb",
+	"lantirn-nav": "lantirn.glb",
+	"pathfinder": "lantirn.glb",
 }
 const PX_PER_M := 64.0
 
