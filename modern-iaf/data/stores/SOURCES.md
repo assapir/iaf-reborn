@@ -15,4 +15,4 @@ Each store's side view on the Arming page (modern-iaf/docs/front-end.md §10), r
 | python-5.png, gbu-39.png, spice-1000.png, spice-2000.png | `shared/extra/models/stores/pyth5.glb`, `gbu39.glb`, `spice1000.glb`, `spice2000.glb` (ours) | ours (`shared/extra/models/stores/SOURCES.md`) |
 | delilah.png, tank-600.png | none: a flat silhouette drawn with ImageMagick (the Delilah's 2.71 m by 0.33 m body with its wings and tail; the 600 US gal tank's outline, its size open), standing in until a model of ours exists | ours |
 | gbu-12.png, gbu-16.png, gbu-10.png | `shared/extra/models/stores/mk82lb.glb`, `mk83lb.glb`, `mk84lb.glb` (the Paveway II bodies) | GPL 2.0 or later (the FlightGear F-16's stores) |
-| litening.png | `shared/extra/models/stores/flrpod.glb` (the AN/AAQ-13 LANTIRN pod standing in for the Litening until a model of ours exists) | the same |
+| litening.png | `shared/extra/models/stores/litening.glb` (the Litening, FlightGear's AN/AAQ-28) | the same |

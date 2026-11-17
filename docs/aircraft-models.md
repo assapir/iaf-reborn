@@ -38,7 +38,10 @@ The game reads positions from the aircraft model. The detailed model keeps them 
 - **Helpers at the original's positions** (within 1 cm): the `Station*` pylon points, `StationGun`, `StationFla`,
   `Camera` (the eye), `EndWingL/R` and `height` (where the wheels touch). The pylon meshes were moved so each touches
   its station: stores hang where they hang on the original. Station E has FlightGear's centreline pylon (grey, as
-  the original's). The wingtip missiles (stations A and I) bring their own launcher, which meets FlightGear's tip
+  the original's). FlightGear's two chin pylons (`fuselage-pylon-right.ac` / `-left.ac`, at FlightGear's own place
+  under the intake, grey) are the nodes `PylonChinR` / `PylonChinL`: hidden, shown only while a station that the
+  descriptor's `pylons` maps to one is loaded (`PlayerWeapons.station_pylon`; Modern IAF's StationE, the Litening,
+  takes `PylonChinR`; the 1998 game's descriptor names none). The wingtip missiles (stations A and I) bring their own launcher, which meets FlightGear's tip
   rail 0.10 m off.
 - **The descriptor stays the original's** (`aircraft.json` from your install). `AircraftModel.detailed_descriptor()`
   takes three things from the detailed model:
@@ -451,6 +454,7 @@ authors and changes in `SOURCES.md` there). They show on every jet that carries 
 | 2700LB, 2100LB (the F-16's tanks) | 370 gal, 300 gal tanks in the IAF livery's paint | 2 102, 2 014 |
 | ECM | AN/ALQ-131 | 1 284 |
 | FLIR | AN/AAQ-13 (LANTIRN) | 938 |
+| Litening (Modern IAF's targeting pod, `weapons/sufa/litening_m.gltf`) | AN/AAQ-28 (Litening AT) at the real 2.20 m by 0.406 m, on the FLIR pod's place | 2 059 |
 | AIM-9X (the Sufa's, ours) | AIM-9X | 7 766 |
 | GBU-31, BLU109 (the Sufa's) | GBU-31 | 2 944 |
 | GBU-38 (the Sufa's) | GBU-54 (the laser JDAM: a GBU-38 with a laser nose) | 3 208 |
@@ -470,7 +474,7 @@ MiG-23's 2800LB tank shares the F-4's tank model (`f4ftk`), so it keeps the orig
 The SA-13 and the Shrike show the detailed AIM-9 / AIM-7, as they showed the original AIM-9 / AIM-7. The Sufa's
 records without an original model of their own (weapons.md §13) name ours (`weapons/sufa/…`); with Models Original
 `util/gltf.gd` `STAND_INS` draws the original AIM-9, MK-84L, MK-82L, MK-83L, Python 4 and MK-82 (the GBU-39, at
-0.8 scale) in their place.
+0.8 scale) in their place; Modern IAF's Litening has the FLIR pod's original as its stand-in.
 
 ### 5.1 How they fit the game
 
@@ -482,13 +486,19 @@ detailed model is built onto the original's frame (`tools/stores/build.gd`):
 - its axis (the mean of its nose's and its tail's centroids) on the original's axis; the tanks and pods (whose
   FlightGear mounts stand above the body) with their top on the original's top, where the pylon meets them;
 - the laser bombs at their plain bomb's scale, so they keep its girth and are 41–47 % longer than the original's
-  (which has the plain bomb's length), as the real ones.
+  (which has the plain bomb's length), as the real ones;
+- the Litening at its published size (`build.gd` `len` 2.20 m, `girth` to 0.406 m across: Wikipedia, "LITENING",
+  https://en.wikipedia.org/wiki/LITENING), its top on the FLIR pod's top; FlightGear's pod (2.241 m by 0.404 m) has no
+  mount of its own, so its body hangs straight from the chin station's lugs.
 
 So loadouts, release points, arming screens (2D icons) and CCIP stay as they are. Across the axis the detailed
 models keep FlightGear's proportions: their fins differ in span from the original's by up to ± 13 cm.
 
 ### 5.2 Loading and drawing
 
+- The store models hang under the jet's `StoresMount` (`AircraftModel.stores_mount`, `PlayerWeapons.mount`), which
+  follows the airframe as it sits on its oleos on the ground (`Sit1` / `Sit2`), so a store stays on its pylon there;
+  before 2026-11-17 the stores kept the airborne pose under a pitched airframe (0.14 m off at the chin pylon).
 - `Gltf.STORES` maps the original's file to the detailed one; `Gltf.object(path, allow_detailed)` opens it with the
   switch on. With the switch on, every detailed store is in the mission's model list
   (`TerrainPreload.mission_models`): worker threads parse them with their LODs on the mission screens, and the
@@ -502,7 +512,7 @@ models keep FlightGear's proportions: their fins differ in span from the origina
   ≈ 3 ms each): ≈ 3 MB of video memory for the first 16, against ≈ 23 MB uncompressed.
 - Cost (estimated, not measured): an F-16 with nine detailed stores draws ≈ 20–35 k more triangles close up, a few
   thousand at a distance (the LODs) and the original's few hundred beyond 800 m; one draw per store and texture as
-  before. Files: 4.4 MB in the repo (34 models; the five Soviet ones 0.65 MB, ours of §5.6 0.36 MB).
+  before. Files: 4.5 MB in the repo (38 models; the five Soviet ones 0.65 MB, ours of §5.6 0.36 MB).
 
 ### 5.3 Rebuilding the stores
 

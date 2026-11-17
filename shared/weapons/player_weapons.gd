@@ -3051,18 +3051,38 @@ static func attach_stores(stores: RefCounted, model: Node3D) -> Dictionary:
 			nodes[i] = h.nodes
 			if h.rack != null:
 				pods.append(h.rack)
-			# Ours: a model's own pylon for the station (Pylon<letter>, the F-35I's) shows while the station is loaded.
-			var pylon := model.find_child("Pylon" + "ABCDEFGHI"[i], true, false) as Node3D if i < 9 else null
+			var pylon := station_pylon(model, i)
 			if pylon != null:
 				pylon.visible = true
 		if i < 9 and stores.type_of(i) == 560:
 			var b := _instance(ROCKET_BOX)
 			if b != null:
-				model.add_child(b)
+				mount(model).add_child(b)
 				b.position = st.attach
 				b.scale = Vector3.ONE * ROCKET_BOX_SCALE / STORE_PRESENT_SCALE  # the stores ride on the jet's scale
 				pods.append(b)
 	return {"nodes": nodes, "pods": pods}
+
+
+## The node the store models of jet `model` hang under: its stores mount (AircraftModel.stores_mount: they sit on
+## their oleos with the airframe), else the model itself.
+static func mount(model: Node3D) -> Node3D:
+	var m = model.get("stores_mount")
+	return m if m is Node3D else model
+
+
+## Ours: the model's own pylon for station `i`, shown while the station is loaded (the flight and turntable.gd), or
+## null: the node the descriptor's `pylons` names for the station (the F-16's right chin pylon, Modern IAF's sim.rs),
+## else Pylon<letter> (the F-35I's).
+static func station_pylon(model: Node3D, i: int) -> Node3D:
+	if i >= 9:
+		return null
+	var desc = model.get("desc")
+	var frame: String = Stores.FRAMES[i]
+	var name := "Pylon" + "ABCDEFGHI"[i]
+	if desc is Dictionary:
+		name = str(desc.get("pylons", {}).get(frame, name))
+	return model.find_child(name, true, false) as Node3D
 
 
 ## A station's store models on the jet `model`, one per slot of `st` (stores.gd's station: index, w, slots, and with
@@ -3076,7 +3096,7 @@ static func hang(st: Dictionary, model: Node3D) -> Dictionary:
 		var n := _instance(String(st.w.model_path), st.w.get("detailed", true))
 		if n == null:
 			break
-		model.add_child(n)
+		mount(model).add_child(n)
 		n.position = st.slots[k]
 		n.set_meta("store_of", int(st.index))
 		if k < rolls.size():
@@ -3084,7 +3104,7 @@ static func hang(st: Dictionary, model: Node3D) -> Dictionary:
 		list.append(n)
 	var rack: Node3D = _own_rack(st) if st.has("rack") else _rack(st, list)
 	if rack != null:
-		model.add_child(rack)
+		mount(model).add_child(rack)
 	return {"nodes": list, "rack": rack}
 
 

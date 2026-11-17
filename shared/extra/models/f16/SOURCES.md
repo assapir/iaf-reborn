@@ -24,6 +24,7 @@
 | `Models/pilot_externalview.ac`, `Models/Pilots/*` | the two pilots |
 | `Models/Liveries/Block40/90-0874.png` | the IAF desert livery (101 Squadron, tail 547) |
 | `Models/central-pylon.ac` | the centreline pylon (station E) |
+| `Models/Armament/External-stores/Pylons/fuselage-pylon-right.ac`, `fuselage-pylon-left.ac` | the chin pylons (`PylonChinR`, `PylonChinL`; Modern IAF's chin pods) |
 | `Models/F-16.xml`, `Models/Armament/loads_models.xml` | hinge lines, the nozzle's and the centreline pylon's placement, gear and door angles |
 
 ## Changes
@@ -55,7 +56,8 @@ Made by `tools/f16/rig.py ... barak`: the F-16 base (`tools/f16/base.py`) with t
      the canopy past the exhaust, where it becomes the tail extension);
    - the original game model's spine (`f16_h`) set its first shape (until 2026-10-29); its top climbs to the
      canopy's height at the fin, as FlightGear's fin root does, which the photographs above do not show.
-3. Given FlightGear's centreline pylon, so a store on station E hangs from it.
+3. Given FlightGear's centreline pylon, so a store on station E hangs from it, and its two chin pylons at its own place
+   (grey, hidden until a chin station is loaded).
 4. Placed on the original game model's frame: the wing on the original's wing, the pylons moved onto the
    original's stations (each touching its station), the oleos compressed so the wheels touch where the original's do.
 5. The moving parts joined, named and hinged as the game expects; closed gear-door copies added.

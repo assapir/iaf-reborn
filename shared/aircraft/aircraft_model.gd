@@ -42,6 +42,9 @@ var type_code := 100
 ## The glTF scene and its root frame (parts are its direct children).
 var scene: Node3D
 var root_frame: Node3D
+## The stores' parent (PlayerWeapons.mount): the model's frame moved as the airframe sits on its oleos (_apply_sit),
+## so a store stays on its pylon on the ground; the descriptor's station points are in its frame.
+var stores_mount: Node3D
 ## name -> {node, id, basis, origin, axis (Vector3 or null)}
 var parts := {}
 ## Afterburner flames (left, right) — only when the model has an engine pair.
@@ -439,6 +442,9 @@ func setup(gltf_scene: Node3D, descriptor: Dictionary, type := -1, on_ground := 
 			f.scale_factor = float(desc.get("scale", 5.0))
 			root_frame.add_child(f)
 			flames.append(f)
+	stores_mount = Node3D.new()
+	stores_mount.name = "StoresMount"
+	add_child(stores_mount)
 	var s1 := root_frame.get_node_or_null("Sit1") as Node3D
 	var s2 := root_frame.get_node_or_null("Sit2") as Node3D
 	if s1 != null and s2 != null:
@@ -702,6 +708,7 @@ func _apply_sit() -> void:
 		return
 	var r := Basis(Vector3.RIGHT, _sit_angle * sit)
 	root_frame.transform = _sit_base * Transform3D(r, _sit_pivot - r * _sit_pivot)
+	stores_mount.transform = root_frame.transform * _sit_base.affine_inverse()
 
 
 func _apply() -> void:

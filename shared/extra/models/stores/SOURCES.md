@@ -45,6 +45,7 @@ Under `Models/` in the FlightGear F-16, unless the row names another aircraft.
 | `f16ftkm.glb` | the F-16's 2100 lb (300 gal) centreline tank | `Armament/External-stores/Fueltanks/300G.ac`, `Liveries/Block40/90-0874.png` |
 | `ecmpod.glb` | ECM pod | `Armament/External-stores/AN_ALQ-131/AN_ALQ-131.ac`, `AN_ALQ-131.png` |
 | `flrpod.glb` | FLIR pod | `Armament/External-stores/LANTIRN/AN-AAQ-13.ac`, `AN-AAQ-13.png` |
+| `litening.glb` | Modern IAF's Litening targeting pod | `Armament/External-stores/LITENING_AT/AN-AAQ-28.ac`, `AN-AAQ-28.png` (the Litening AT), scaled to the real 2.20 m by 0.406 m |
 | `aim9x.glb` | AIM-9X (ours, the F-16I Sufa's) | `Armament/Weapons/AIM-9X/AIM-9X.ac`, `AIM-9X.png` |
 | `gbu31.glb` | GBU-31, GBU-31(V)3 (the Sufa's) | `Armament/Weapons/GBU-31/GBU-31.ac`, `GBU-31.png` |
 | `gbu38.glb` | GBU-38 (the Sufa's) | `Armament/Weapons/GBU-54/GBU-54.ac`, `GBU-54.png` (the laser JDAM's look) |

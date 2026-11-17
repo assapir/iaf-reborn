@@ -20,7 +20,8 @@ extends SceneTree
 ## original, which has the plain bomb's length), `top` (its top on the original's top, where the pylon meets it,
 ## instead of its axis on the original's: the tanks and pods whose FlightGear mounts stand above the body), `dy`
 ## (metres up after the fit), `tris` (decimated to about that), `tint` (the texture's colour factor: the MiG-29 9-12's
-## textures are plain white, with no baked shading).
+## textures are plain white, with no baked shading), `len` (the store's real length in metres: its scale, in place of
+## the original's length).
 ## Every model is scaled uniformly to the original's length, its centre on the original's, its axis (FlightGear's
 ## origin line) on the original's (the mean of its nose and tail centroids).
 ## Our own stores' shapes (parts()).
@@ -103,6 +104,17 @@ const STORES := {
 	},
 	"ecmpod": {"orig": "ecmpod/ecmpod_m.gltf", "ac": ["External-stores/AN_ALQ-131/AN_ALQ-131.ac"], "top": true},
 	"flrpod": {"orig": "flrpod/flrpod_m.gltf", "ac": ["External-stores/LANTIRN/AN-AAQ-13.ac"], "top": true},
+	# Modern IAF's Litening (the F-16s' chin pod): on the FLIR pod's original, at its real size (`len`, `girth`; the
+	# FlightGear pod is 2.241 m by 0.404 m, the Litening 2.20 m by 0.406 m: Wikipedia, "LITENING"); FlightGear's
+	# pod has no mount of its own, so its top goes on the original's top.
+	"litening":
+	{
+		"orig": "flrpod/flrpod_m.gltf",
+		"ac": ["External-stores/LITENING_AT/AN-AAQ-28.ac"],
+		"top": true,
+		"len": 2.20,
+		"girth": 1.023
+	},
 	# The Soviet stores (phase 2): the MiG-21bis's (OPRF, GPL-3.0) and the MiG-29 9-12's (S. Salov, GPL-3.0).
 	"aa2": {"orig": "aa2/aa2_m.gltf", "dir": MIG21, "ac": ["R-3S/r-3s.ac"], "glass": ["glass"], "tint": PAINT_21},
 	"aa8": {"orig": "aa8/aa8_m.gltf", "dir": MIG29, "ac": ["R-60M/R-60M.ac"], "tint": PAINT_29},
@@ -343,6 +355,8 @@ func build(name: String, spec: Dictionary) -> void:
 		var b := measure(original_verts(other.orig))
 		s = (b.z1 - b.z0) / (a.z1 - a.z0)
 	s *= float(spec.get("k", 1.0))
+	if spec.has("len"):
+		s = float(spec.len) / (m.z1 - m.z0)
 	var g := float(spec.get("girth", 1.0))
 	var fit := Transform3D(
 		Basis.from_scale(Vector3(s * g, s * g, s)),

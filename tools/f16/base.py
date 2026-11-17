@@ -407,6 +407,24 @@ def gear_doors(body):
     return kit.join(down, "LdgDr"), kit.join(up, "LdgDrUp")
 
 
+# The chin stations' adapters under the intake: FlightGear's fuselage pylons (loads_models.xml's Podpylon_right /
+# _left, at their own place, offsets 0), grey as the centreline pylon. Not parts: the game hides them and shows one
+# while a station of the descriptor's `pylons` that names it is loaded (Modern IAF's sim.rs: StationE, the right
+# one, carries the Litening; the left one waits for the navigation pod, pods.md P4 / P9).
+CHIN_PYLONS = {"right": "PylonChinR", "left": "PylonChinL"}
+
+
+def chin_pylons(body):
+    for side, name in CHIN_PYLONS.items():
+        ac = os.path.join(M, "Armament/External-stores/Pylons/fuselage-pylon-%s.ac" % side)
+        o = kit.join(list(kit.import_ac(ac, prefix=name + "_").values()), name)
+        o.data.materials.clear()
+        o.data.materials.append(kit.material("chin_pylon_grey", (0.42, 0.44, 0.45), roughness=0.55))
+        body[name] = o
+        lo, hi = bounds([o])
+        print("chin pylon", name, tuple(round(x, 3) for x in lo), tuple(round(x, 3) for x in hi))
+
+
 def fit_pylons(body, helpers, root):
     """Each pylon onto its station: the middle of its bottom edge on the station, then raised or lowered so its
     surface straight above the station touches it (where the store's attach point hangs)."""
@@ -714,6 +732,7 @@ def build(variant):
         fg((0, 0.02, 0))), prefix="cl_").values()), "CLStation")
     body["CLStation"].data.materials.clear()
     body["CLStation"].data.materials.append(kit.material("pylon_grey", (0.42, 0.44, 0.45), roughness=0.55))
+    chin_pylons(body)
     lower_fin(body)
     tub_f, crew_f = cockpit("front_", 0.0, SEAT_SEEN)
     two_seat(list(body.values()) + [tub_f])
@@ -749,6 +768,8 @@ def build(variant):
     parts["LdgDrUp"] = doors_up
     parts["pilot"] = crew_f
     parts["pilotB"] = crew_r
+    for name in CHIN_PYLONS.values():
+        parts[name] = body.pop(name)
     for name, o in parts.items():
         o.name = o.data.name = name
     keep = set(parts.values())
@@ -769,7 +790,7 @@ def build(variant):
             if a.dot(ref) < 0:
                 a = -a
         rig.part(name, c, a)
-    for name in ("LdgDr", "LdgDrUp", "pilot", "pilotB"):
+    for name in ("LdgDr", "LdgDrUp", "pilot", "pilotB", *CHIN_PYLONS.values()):
         rig.place_centre(name)
     # Every other helper of the original, at the original's position.
     hinge_names = {n + s for n in PARTS for s in "12"}

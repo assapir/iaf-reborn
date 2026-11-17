@@ -235,17 +235,17 @@ the Sharpshooter (§1). The plan's decided §8.2 (the Litening on both F-16s) ma
 - **Slice 4, merged 17 November (6af62293)**, as read on its branch in round 1: the weapon records
   `modern-iaf/data/db/weapons/litening.json`, `gbu-10.json`, `gbu-12.json`, `gbu-16.json`; the Litening on the sim's
   station 5 of both F-16s (`modern-iaf/data/db/units/f16i.json`, `f16d.json`),
-  renamed "chin" (the right chin hardpoint under the intake, x 0.3 m, in `crates/iaf-tools/src/sim.rs`), 208 kg,
+  renamed "chin" (the right chin hardpoint under the intake, x 0.69 m under the model's right chin pylon since P2, in `crates/iaf-tools/src/sim.rs`), 208 kg,
   drag index 7.0 (inferred), store name `TGP`; the laser bombs on 3 / 7 and 4 / 6 of both F-16s; the kinds `pod` and
   `laser_bomb`; keys DMS and LASER ARM (`modern-iaf/data/keys.json`); in `crates/iaf-avionics/src/f16_mfd.rs` the
   modern MFD frame with SOI, DMS and the TGP's track legend (`AREA`, `POINT`, `INR`, none when slaved), and in
   `shared/cockpit/f16_mfd.gd` the track mode and `ARM` drawn on the TGP page.
 - **Models:** `shared/extra/models/stores/flrpod.glb` is the **AN/AAQ-13 navigation pod** (FlightGear F-16,
-  `AN-AAQ-13.ac`, GPL-2.0-or-later; `shared/extra/models/stores/SOURCES.md`). The Litening record uses it as a stand-in
-  ("no Litening model of ours yet"): the shape of the Sufa's other pod, the navigation pod. `ecmpod.glb` is an AN/ALQ-131. The same
-  FlightGear repository, at the commit we already use, also holds `LITENING_AT/AN-AAQ-28.ac` (the Litening AT),
-  `LANTIRN/AN-AAQ-14.ac` and `SniperATP` (listed through GitHub's API 17 Nov; not downloaded), under the same
-  GPL-2.0-or-later and the same credited authors.
+  `AN-AAQ-13.ac`, GPL-2.0-or-later; `shared/extra/models/stores/SOURCES.md`), kept for the navigation pod (P9).
+  The Litening record draws `litening.glb` (P2, 17 Nov), FlightGear's `LITENING_AT/AN-AAQ-28.ac` (the Litening AT) from
+  the same checkout and commit, the same GPL-2.0-or-later and credited authors, at the real 2.20 m by 0.406
+  m[^w-litening] ([../../../docs/aircraft-models.md](../../../docs/aircraft-models.md) §5.1). `ecmpod.glb` is an
+  AN/ALQ-131. The same repository also holds `LANTIRN/AN-AAQ-14.ac` and `SniperATP`.
 - **Missing everywhere:** a navigation FLIR picture on the HUD, terrain following for the player's jet (the AI's
   autopilot has a terrain-following leg, `crates/iaf-flight/src/autopilot.rs`, not a TFR), the TFR and FLIR formats
   (gap G16), laser spot search, the laser code, the pod's own power and cool-down.
@@ -261,7 +261,7 @@ more. Kind: **wire** = existing logic reached; **extend** = existing logic grown
 | # | item | what the player gains | size | kind | model / art | slice |
 |---|---|---|---|---|---|---|
 | P1 | The Litening and laser bombs | the pod on the loadout, the TGP page, lasing, GBU-10 / 12 / 16 hits | (merged 17 Nov) | wire | — | 4 (G15) |
-| P2 | Litening model: convert FlightGear's `AN-AAQ-28` in place of the AAQ-13 stand-in | the right pod on the jet in the hangar, loadout and flight | S | art | FlightGear F-16 `LITENING_AT`, GPL-2.0-or-later, authors already credited | 4 |
+| P2 | Litening model: convert FlightGear's `AN-AAQ-28` in place of the AAQ-13 stand-in (approved and merged 17 Nov) | the right pod on the jet in the hangar, loadout and flight | S | art | FlightGear F-16 `LITENING_AT`, GPL-2.0-or-later, authors already credited | 4 |
 | P3 | Barak: fix row B5 in the plan (the Litening is already on its station 5, slice 4) | the plan as the IAF flew it | S | docs | — | 6 |
 | P4 | **Pod stations: split the sim's station 5 into 5L / 5R** (and a centreline 5): the navigation pod on 5L, the Litening on 5R (§2.3); weight and drag per pod; jettison keeps the pods. Now needed: both F-16s carry two chin pods | the real two-pod load, its weight and picture | M | extend (`sim.rs` stations, unit records, the loadout screen) | — | 6 |
 | P5 | TGP cockpit procedure complete: pod power and cool-down, WIDE / NARO / expand, WHOT / BHOT, CCD TV, laser code, `L` flashing, the trigger's first detent as the laser key, masking by the jet | the real pod workflow | M | extend (`eo.rs`, `f16_mfd.rs` / `.gd`) | — | 4 (rest) or 9 |

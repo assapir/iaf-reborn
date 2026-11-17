@@ -84,9 +84,11 @@ pub const F16_GLB: &str = "shared/extra/models/f16/f16d.glb";
 ///   - 4 and 6 (StationD, StationF): under the inboard pylons (x ±1.73 m, bottom y −0.341 m, z −0.18 to 2.23 m), the
 ///     370 US gal tank's top (0.328 m above its origin in stores/f16ftk.glb) on the pylon's bottom.
 ///   - 5 (StationE): the Sufa's targeting pod station, the right chin hardpoint under the intake (ours: the sim's
-///     station 5; the model's centreline helper is not used, no sim store goes there): the intake's bottom at x 0.3 m
-///     right, y −0.80 m, z −1.25 m (aft of the nose gear; place inferred from photos of the F-16's chin pods, the
-///     right side as the Sufa's Litening, modern-iaf/docs/weapons.md §7), the pod's top on it (`F16_SIM_LUGS`).
+///     station 5; the model's centreline helper is not used, no sim store goes there): under the model's right chin
+///     pylon (`PylonChinR`, FlightGear's fuselage pylon, tools/f16/base.py `CHIN_PYLONS`), where FlightGear hangs its
+///     Litening (loads_models.xml: 0.69 m right, its axis 1.02 m down, 2.25 m ahead of its origin, 1.05 m aft of
+///     ours): the pod's top on the pylon's bottom at x 0.69 m, y −0.82 m, z −1.20 m (`F16_SIM_LUGS`), its axis
+///     0.2 m lower; the right side as the Sufa's Litening (modern-iaf/docs/weapons.md §7).
 ///
 /// These are the rail points the missiles hang at; the stores that hang by their lugs take `F16_SIM_LUGS` instead.
 const F16_SIM_STATIONS: [(&str, [f64; 3]); 9] = [
@@ -94,7 +96,7 @@ const F16_SIM_STATIONS: [(&str, [f64; 3]); 9] = [
     ("StationB", [-3.974, -0.3855, 2.496]),
     ("StationC", [-2.986, -0.4555, 1.912]),
     ("StationD", [-1.735, -0.669, 1.023]),
-    ("StationE", [0.3, -1.0, -1.25]),
+    ("StationE", [0.69, -1.02, -1.2]),
     ("StationF", [1.726, -0.669, 1.023]),
     ("StationG", [2.977, -0.4555, 1.912]),
     ("StationH", [3.965, -0.3855, 2.496]),
@@ -108,10 +110,14 @@ const F16_SIM_STATIONS: [(&str, [f64; 3]); 9] = [
 const F16_SIM_LUGS: [(&str, [f64; 3]); 5] = [
     ("StationC", [-2.986, -0.392, 1.912]),
     ("StationD", [-1.735, -0.341, 1.023]),
-    ("StationE", [0.3, -0.8, -1.25]),
+    ("StationE", [0.69, -0.82, -1.2]),
     ("StationF", [1.726, -0.341, 1.023]),
     ("StationG", [2.977, -0.392, 1.912]),
 ];
+
+/// The F-16 model's own adapters (nodes of f16d.glb / f16i.glb, hidden until shown) by station: the right chin
+/// pylon under the Litening. `PylonChinL`, the left one, waits for the navigation pod's station (pods.md P4 / P9).
+const F16_SIM_PYLONS: [(&str, &str); 1] = [("StationE", "PylonChinR")];
 
 // --- The readable → hex mapping ------------------------------------------------------------------------------------
 
@@ -1349,6 +1355,10 @@ fn planes(repo: &Path, assets: &Path) -> Result<()> {
     for (station, p) in F16_SIM_LUGS {
         d["lugs"][station] = json!(p);
     }
+    // The model's own adapter per station, shown while the station is loaded (turntable.gd, attach_stores).
+    for (station, node) in F16_SIM_PYLONS {
+        d["pylons"][station] = json!(node);
+    }
     let out = assets.join(PLANES_DIR);
     write(&out.join("f16/aircraft.json"), &serde_json::to_string(&d)?)?;
     let index = json!({"f16": {"model": "f16/f16_h.gltf", "descriptor": "f16/aircraft.json", "type": 100,
@@ -1853,6 +1863,7 @@ mod tests {
         assert_eq!(f16["engines"]["pairs"], 1);
         assert_eq!(f16["stations"]["StationA"], json!(F16_SIM_STATIONS[0].1));
         assert_eq!(f16["lugs"]["StationC"], json!(F16_SIM_LUGS[0].1));
+        assert_eq!(f16["pylons"]["StationE"], "PylonChinR");
         let clip = |f: &str| ogg_seconds(&std::fs::read(sounds.join(f.to_lowercase())).unwrap()).unwrap();
         let trx = std::fs::read_to_string(sounds.join("soundprop.trx")).unwrap();
         let rows: Vec<Vec<&str>> =

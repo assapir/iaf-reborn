@@ -1238,10 +1238,8 @@ func _loadout_checks(fe: Control, lang: String) -> void:
 		"%s: loadout: the footer's Briefing named" % lang
 	)
 	var c: Dictionary = scr.call().callouts
-	check(
-		c.size() == 8 and not c.has("5"),
-		"%s: loadout: a callout per station that takes a store (%s)" % [lang, c.keys()]
-	)
+	# Every station, 5 the chin's Litening (avionics slice 4).
+	check(c.size() == 9 and c.has("5"), "%s: loadout: a callout per station that takes a store (%s)" % [lang, c.keys()])
 	check(
 		c["4"].head == ("4 · פנימית" if he else "4 · INBOARD") and c["4"].sub == "1,321 " + ("ק״ג" if he else "kg"),
 		"%s: loadout: the callout's number, place and weight (%s, %s)" % [lang, c["4"].head, c["4"].sub]
@@ -1251,7 +1249,7 @@ func _loadout_checks(fe: Control, lang: String) -> void:
 	check(stage.layout_direction == Control.LAYOUT_DIRECTION_LTR, "%s: loadout: the jet never mirrors" % lang)
 	if scr.call().tt != null:
 		var pts: Dictionary = scr.call().points()
-		check(pts.size() == 8, "%s: loadout: each station's place on the model (%d)" % [lang, pts.size()])
+		check(pts.size() == 9, "%s: loadout: each station's place on the model (%d)" % [lang, pts.size()])
 		check(
 			pts["1"].x > pts["9"].x and c["1"].position.x > c["9"].position.x,
 			"%s: loadout: from beneath the left wing (1) on the right" % lang
@@ -1363,7 +1361,7 @@ func _loadout_checks(fe: Control, lang: String) -> void:
 	check(slot.call("4").store[2] == 3 and slot.call("6").store[2] == 3, "%s: loadout: three Mk 82 on 4 and 6" % lang)
 	if scr.call().tt != null:
 		# Every bomb drawn: three Mk 82 apart on each TER-9/A of 4 and 6 (the jet's model; Stores.place).
-		var kids: Array = scr.call().tt._model.get_children()
+		var kids: Array = scr.call().tt._model.get_node("StoresMount").get_children()
 		var bombs := kids.filter(func(k): return k.get_meta("store_of", -1) in [3, 5] and k.visible)
 		var racks := kids.filter(func(k): return k.get_meta("station", -1) in [3, 5])
 		var spots := {}

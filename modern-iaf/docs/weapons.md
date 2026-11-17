@@ -196,7 +196,7 @@ Sufa and the Barak (the F-16I carries all three and the Litening II[^sufa-at]). 
 
 | store | record | weight | stations | model |
 |---|---|---|---|---|
-| Litening targeting pod (SMS name `TGP`) | `data/db/weapons/litening.json`, kind `pod` (660) | 208 kg[^w-litening] | 5, the chin | our LANTIRN pod (`flrpod.glb`) standing in |
+| Litening targeting pod (SMS name `TGP`) | `data/db/weapons/litening.json`, kind `pod` (660) | 208 kg[^w-litening] | 5, the chin | our Litening (`litening.glb`, FlightGear's AN/AAQ-28 at the real 2.20 m by 0.406 m[^w-litening]) |
 | GBU-12 Paveway II | `gbu-12.json`, kind `laser_bomb` (650) | 230 kg[^w-gbu12] | 3, 4, 6, 7 | the Mk 82 with the Paveway kit (`mk82lb.glb`) |
 | GBU-16 Paveway II | `gbu-16.json` | 450 kg[^w-gbu16] | 3, 4, 6, 7 | `mk83lb.glb` |
 | GBU-10 Paveway II | `gbu-10.json` | 910 kg[^w-gbu10] | 3, 4, 6, 7 | `mk84lb.glb` |
@@ -204,8 +204,10 @@ Sufa and the Barak (the F-16I carries all three and the Litening II[^sufa-at]). 
 - **The chin.** The real F-16 hangs its targeting pod on a chin hardpoint under the intake[^twz-litening] (the right
   one on the Sufa, inferred from photos). The sim's nine pylons are the stations 1–9; station 5, the centreline, takes
   no sim store, so the sim numbers the chin station 5 and hangs it under the right intake (`sim.rs`
-  `F16_SIM_STATIONS` StationE, `F16_SIM_LUGS`). The briefing's balance takes it on the jet's middle (its 0.3 m offset
-  inferred as negligible).
+  `F16_SIM_STATIONS` StationE, `F16_SIM_LUGS`): from the model's right chin pylon (`PylonChinR`, FlightGear's
+  fuselage pylon, shown while the station is loaded), where FlightGear hangs its Litening, 0.69 m right of the
+  centreline (2026-11-17; before, 0.3 m, against the intake's bottom with no pylon). The briefing's balance takes it
+  on the jet's middle (its 0.69 m offset, about a third of a wingtip AIM-9M's moment, inferred as negligible).
 - **The pod.** `player_weapons.gd` takes a store named TGP (or the 1998 game's FLIR) as the targeting pod: the TGP
   format ([../../docs/mfd.md](../../docs/mfd.md) §9 "Modern MFDs"), its picture, the track modes, the laser.
 - **The laser bombs** fly the shared laser path ([../../docs/weapons.md](../../docs/weapons.md) §9.8): released as

@@ -23,7 +23,7 @@ const STORES := {
 	"gbu-12": "mk82lb.glb",
 	"gbu-16": "mk83lb.glb",
 	"gbu-10": "mk84lb.glb",
-	"litening": "flrpod.glb",
+	"litening": "litening.glb",
 }
 const PX_PER_M := 64.0
 

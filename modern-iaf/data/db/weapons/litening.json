@@ -4,7 +4,7 @@
   "name": "TGP",
   "kind": "pod",
   "generation": 2,
-  "model": "weapons/flrpod/flrpod_m.gltf",
+  "model": "weapons/sufa/litening_m.gltf",
   "kg": 208,
   "power": 0,
   "blast_m": 0,
@@ -28,7 +28,7 @@
     "motion": "the reader's defaults (never released)",
     "power": "a pod does no damage",
     "blast_m": "a pod does no damage",
-    "model": "stand-in: our LANTIRN targeting pod (shared/extra/models/stores/flrpod.glb, the AN/AAQ-13); no Litening model of ours yet",
+    "model": "our Litening (shared/extra/models/stores/litening.glb: FlightGear's AN/AAQ-28 Litening AT at the real 2.20 m by 0.406 m, w-litening)",
     "generation": "ours: the weapons.ibx section key (generation · 1000 + type) is one per weapon of a kind (the tanks hold 0 and 1)",
     "station": "the chin hardpoint (twz-litening: the pod on the F-16's chin station); the sim's station 5 (sim.rs F16_SIM_STATIONS StationE)"
   },

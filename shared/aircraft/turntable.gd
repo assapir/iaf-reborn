@@ -119,9 +119,9 @@ func _ready() -> void:
 
 
 ## Shows plane folder `plane` (AircraftModel.plane_file's) with `stores`: {pylon 0..8 (A..I): {path (the weapon record's
-## model), count, lugged (a bomb or tank, hung by its top from the station's lugs), bomb (a bomb's rack layout), racked
-## (on a rack: Stores.place)}}. The stores of the descriptor's `internal_stations` stay out of sight, in the shut bays,
-## as in flight. False (and `failed`) when the model would not load.
+## model), count, lugged (a bomb, tank or pod, hung by its top from the station's lugs), bomb (a bomb's rack layout),
+## racked (on a rack: Stores.place)}}. The stores of the descriptor's `internal_stations` stay out of sight, in the
+## shut bays, as in flight. False (and `failed`) when the model would not load.
 func show_jet(plane: String, stores: Dictionary) -> bool:
 	for c in _pivot.get_children():
 		c.queue_free()
@@ -162,8 +162,8 @@ func show_jet(plane: String, stores: Dictionary) -> bool:
 		var nodes: Array = PlayerWeapons.hang(at, m).nodes
 		for k in nodes.size():
 			nodes[k].visible = k < n  # as the flight shows them (PlayerWeapons._update_store_nodes)
-		# A model's own pylon for the station (Pylon<letter>, the F-35I's) shows while the station is loaded.
-		var pylon := m.find_child("Pylon" + "ABCDEFGHI"[i], true, false) as Node3D
+		# A model's own pylon for the station shows while the station is loaded.
+		var pylon := PlayerWeapons.station_pylon(m, i)
 		if pylon != null:
 			pylon.visible = true
 	# The navigation lights and strobe (Night lights Detailed: billboards made for a sky behind them) would draw as dark
@@ -201,7 +201,8 @@ func points() -> Dictionary:
 		return out
 	var k := size / Vector2(vp.size)
 	for i in _stations:
-		var w: Vector3 = _pivot.transform * (_model.transform * _stations[i])
+		# The stores' frame: they sit on the oleos with the airframe (PlayerWeapons.mount).
+		var w: Vector3 = _pivot.transform * (_model.transform * (PlayerWeapons.mount(_model).transform * _stations[i]))
 		out[i] = _cam.unproject_position(w) * k
 	return out
 

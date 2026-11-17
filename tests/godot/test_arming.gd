@@ -145,7 +145,7 @@ func run() -> void:
 			models
 			and u.store_nodes.has(2)
 			and u.store_nodes[2].size() >= 1
-			and u.store_nodes[2][0].get_parent() == u.ent.node
+			and u.store_nodes[2][0].get_parent() == PW.mount(u.ent.node)
 		)
 	check(models, "the MK-84 models hang on Bravo's pylons (station 3)")
 	# The player's wingman (Alpha's second member slot, FUN_004f0380) carries Alpha's load, as the player's jet.
