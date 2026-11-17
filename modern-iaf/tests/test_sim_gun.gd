@@ -67,6 +67,15 @@ func run() -> void:
 		w.stores.displayed(9) == 0 and not w.firing and took > 4.5 and took < 6.0,
 		"511 rounds empty the gun in %.1f s (6000 rpm: 5.1 s)" % took
 	)
+	# The glow ends TRACER_S after the muzzle while the round flies on (the user, 15 Nov: "flare of bullets stay for
+	# too long and are too big").
+	await fly(tv, w.TRACER_S + 0.2)
+	var lit: int = range(w._round_nodes.size()).filter(func(k): return w._round_nodes[k].visible).size()
+	var flying: int = w.gun.pool.filter(func(r): return r.flying).size()
+	check(
+		flying > 0 and lit == 0,
+		"the tracers out %.1f s after the muzzle (%d flying, %d lit)" % [w.TRACER_S, flying, lit]
+	)
 	_press(tv, KEY_TAB)
 	await frames(5)
 	check(not w.firing and w.stores.displayed(9) == 0, "empty: the trigger fires nothing")

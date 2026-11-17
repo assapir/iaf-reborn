@@ -30,11 +30,13 @@ const Img := preload("res://shared/util/img.gd")
 
 ## The gun's shot timer period (DAT_0082f4e8 = 0.2 s, sim time).
 const GUN_PERIOD := 0.2
-## Ours: the tracer streak's length (m) for a gun round with no model (_tracer), about a frame's flight at 60 fps, and
-## its head's screen size (a fixed-size billboard's quad: about 15 px at 1080 lines), which shows the round
-## end on.
+## Ours: the tracer streak's length (m) for a gun round with no model (_tracer), about a frame's flight at 60 fps, its
+## head's screen size (a fixed-size billboard's quad: about 5 px at 1080 lines; 15 px until 2026-11-17), which shows the
+## round end on, and how long a round's tracer shows after it leaves the muzzle (s; inferred: about a kilometre at the
+## M61's 1,030 m/s). The user, 15 Nov: "flare of bullets stay for too long and are too big".
 const TRACER_M := 18.0
-const TRACER_DOT := 0.03
+const TRACER_DOT := 0.01
+const TRACER_S := 1.0
 ## Stores are drawn within 9000 m of the camera (0x638a08).
 const STORES_DRAW_DIST := 9000.0
 ## Weapon bays (ours, the F-35I): a bay station's release waits for its doors to open (0.47 s: aircraft_model.gd
@@ -3085,8 +3087,8 @@ func _update_visuals() -> void:
 	for k in _round_nodes.size():
 		var r: Dictionary = gun.pool[k]
 		var n: Node3D = _round_nodes[k]
-		n.visible = r.flying
-		if r.flying:
+		n.visible = r.flying and (not n.has_meta("tracer") or now - float(r.t0) < TRACER_S)
+		if n.visible:
 			n.position = to_scene(gun.position(r, now))
 			var u: Vector3 = r.u
 			var du := Terrain.dir_to_scene(u)
