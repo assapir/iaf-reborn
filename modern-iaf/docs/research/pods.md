@@ -3,7 +3,7 @@
 This page records what public sources say about the pods the Israeli Air Force's F-16I Sufa, F-16C/D Barak and F-15I
 Ra'am carry, what the pilot sees and does with each, what Modern IAF has today, and what the game would need. It is
 research only: it changes no code or data. The user asked for it on 17 November 2026: "do some reaserch about
-lantrin/lighning pods and what needs to be added to the game, don't impl yet." Research date: 17 November 2026.
+lantrin/lighning pods and what needs to be added to the game, don't impl yet." Research date: 17 November 2026; round 2 the same day, after the user's answers (§7).
 
 **Terms**
 - **TGP:** targeting pod; also the F-16 MFD format that shows its picture.
@@ -20,26 +20,64 @@ Scope: what each pod does for the pilot. Sensor ranges, weapon and guidance perf
 of scope (the project's parked rows, [../avionics-plan.md](../avionics-plan.md) §7). Laser designation appears only
 as the cockpit procedure.
 
-## 1. The answer first: does the Sufa carry a navigation pod?
+## 1. The answer first: which navigation pod each F-16 carries
 
-**Commonly repeated, not confirmed for today's jet.** What the sources show:
+Round 2 (17 November 2026), after the user's "search more. I preatty sure both the D and the I use LANTIRN". The
+grades: **primary** = the IAF's own pages or a US government notice; **dated photograph** = a dated service photo
+described by a reputable page (we did not download or view the pictures themselves: their captions are the
+evidence); **secondary** = trade pages, encyclopedias, forums; **not found**.
 
-| claim | source | strength |
-|---|---|---|
-| "The aircraft is also equipped with the Lockheed Martin LANTIRN navigation pod, which provides night navigation and all-weather automatic terrain following"; a photo caption: "the Litening II targeting pod (on the left) and the LANTIRN navigation pod (on the right)" | Airforce Technology[^at-sufa] | one trade page, undated; the caption's "left / right" may be the photo's sides, not the jet's |
-| "During the roll-out ceremony, the F-16I carried both Lantirn pods" (14 November 2003, at the factory) | F-16.net, Israel users page[^f16net-il] | a roll-out display; says nothing of service use |
-| Litening is a "targeting and navigational pod" | F-16.net[^f16net-il]; AIN: "this targeting and navigation system"[^ain-2011] | the Litening itself does the navigation FLIR (below) |
-| Litening's wide field of view "is displayed on the head-up for navigation"; Rafael: the first pod with a wide-field FLIR "to provide a display on the pilot's HUD to enable low-level navigation at night" | FAS[^fas-litening]; AIN quoting Rafael[^ain-2011] | two sources, one a manufacturer claim |
-| The Sufa's radar (APG-68(V)9) has a terrain-following mode | Airforce Technology[^at-sufa] (already cited in [../avionics-plan.md](../avionics-plan.md) R14) | one trade page |
-| Israel buys 50 AN/AAQ-13 LANTIRN navigation pods (August 2024) | US arms-sale notice, Transmittal No. 24-01, in the Congressional Record[^crec-2401] | primary; **for the F-15IA and F-15I+**, not the F-16 |
-| The IAF calls LANTIRN "ענבר" (Anbar) | Hamichlol[^hm-lantirn] | one encyclopedia page |
+| jet | navigation pod | targeting pod | grade |
+|---|---|---|---|
+| F-16I Sufa | **LANTIRN navigation pod, AN/AAQ-13** (with its terrain-following radar), on one chin station | Litening on the other | navigation pod: **primary** (IAF) and **dated photograph** (2007); Litening: primary (IAF) |
+| F-16C/D Barak | **Pathfinder** from 1992: Lockheed Martin's export derivative of the AN/AAQ-13, a navigation FLIR **without** the terrain-following radar | **Sharpshooter** from 1992 (the AN/AAQ-14's export derivative), later the Litening | Pathfinder and Sharpshooter: **secondary** (one trade report); Litening replacing the Sharpshooter: secondary; an AN/AAQ-13 on the Barak: **not found** |
 
-No primary source (an IAF page, an arms-sale notice, a readable service photo) shows an AN/AAQ-13 on an F-16I in
-service. The 1998 US proposal to equip "both F-15I's and F-16C/D's" with LANTIRN pods[^f16net-il] is a proposal,
-not a delivery. Our reading (inferred): the Sufa flies with a Litening on a chin station, and that Litening gives
-the pilot the night navigation picture on the HUD; terrain following on the Sufa, if used, may come from its own
-radar's mode rather than a pod. Whether a LANTIRN navigation pod hangs on the other chin station of today's Sufa is
-**open**. The LANTIRN navigation pod is current in the IAF on the F-15 fleet (sourced, 2024).
+**The Sufa, the evidence:**
+- The IAF's site: "To navigate at low altitude, in all visibility and weather conditions, the F-16I will be equipped
+  with the navigation pod of the LANTIRN system" (כדי לנווט בגובה נמוך, בכל תנאי ראות ומזג-אוויר, יצויד ה-F-16I בפוד
+  הניווט של מערכת הלנטירן), and the jet "will carry two pods beneath its air intake: a Litening pod for locating and
+  acquiring targets, and a LANTIRN pod for navigation" (פוד לייטנינג לאיתור ולרכישת מטרות, ופוד לנטירן לניווט); the
+  IAF calls the pairing a first of its kind[^iaf-f16i-next]. The IAF's magazine: the Sufa's navigation pod lets it fly
+  low "at a fixed height and speed without the pilot's intervention"[^iaf-mag-sufa]. The IAF's Sufa page lists the
+  LANTIRN navigation pod beside the Litening[^iaf-sufa]. The IAF's pages refused automated access; these quotes are
+  as the search engine returned them from the pages (no other route was tried).
+- The IAF describes the LANTIRN navigation pod as a FLIR night sensor and a terrain-following radar that warns of
+  obstacles (its F-15I page)[^iaf-raam]: so the Sufa's pod is the AN/AAQ-13, not a FLIR-only derivative (inferred
+  from the IAF naming the same LANTIRN navigation pod on both jets).
+- Dated photograph: one of the F-16Is of the September 2007 strike on the Syrian reactor, released by the IDF in
+  March 2018; The War Zone's caption: "the jet only carriers the navigation pod of its LANTIRN system, with the
+  targeting pod left off"[^twz-syria].
+- Agreeing secondary sources: Airforce Technology[^at-sufa]; the 2003 roll-out "carried both Lantirn pods"[^f16net-il];
+  Joe Baugher: "The F-16I contract will also include Lockeed Martin LANTIRN navigation and targeting
+  pods"[^baugher-f16i].
+- 2026: no dated photo after 2018 found; the IAF's March 2026 RAMPAGE picture's write-ups name no pods[^dif-rampage].
+  The IAF keeps buying the AN/AAQ-13 (50 for the F-15IA / F-15I+, 2024[^crec-2401]). In service on the Sufa in 2026:
+  inferred.
+
+**The Barak, the evidence:**
+- Forecast International (February 2003): "Israel followed suit and ordered 10 Pathfinder pods and 20 Sharpshooter
+  pods for delivery in 1992"; its distribution table: Israel 33 Pathfinder and 30 Sharpshooter pods; timeline "1992
+  Israel receives Sharpshooter and Pathfinder pods"[^fi-pathfinder]. The Pathfinder "was designed as a scaled-down
+  version of Lockheed Martin's LANTIRN AAQ-13"; "Unlike the LANTIRN navigation pod ... there is no
+  terrain-following radar subsystem"; it "can present FLIR imagery on any standard Head-Up Display"; 198 cm long,
+  84 kg[^fi-pathfinder]. Which IAF jets carried them is not stated; the Barak (F-16C/D, Block 30 and 40, delivered
+  from 1987) is the IAF's F-16 of 1992 that F-16.net ties to the Sharpshooter (inferred for the Pathfinder too).
+- The Sharpshooter "is a derivative of the LANTIRN AAQ-14 targeting pod", without "the missile boresight correlator
+  used for target hand-off to Maverick (IR) missiles"[^fi-pathfinder]; F-16.net: "a downgraded version of the Martin
+  Marietta AN/AAQ-14 LANTIRN targeting pod", fitted to the IAF's F-16C/D first, "later replaced by the Rafael Litening",
+  the Sharpshooters going to the F-15I[^f16net-il]; F-16.net's LANTIRN page: "Pathfinder and Sharpshooter are
+  (cheaper and slightly less capable) derivatives"[^f16net-lantirn].
+- The 1998 US offer of 60 F-16C/D "equipped with LANTIRN pods" was not taken up: Israel bought the F-16I
+  instead[^f16net-il][^baugher-f16i].
+- Not found: any IAF page, notice or dated photo of an AN/AAQ-13 on a Barak; which navigation pod, if any, the
+  Barak 2020 upgrade (completed 2014[^w-f16var]) flies with today.
+
+**What round 1 got wrong.** Round 1 called the Sufa's navigation pod "commonly repeated, not confirmed" and read the
+Litening's wide view as the Sufa's navigation picture: wrong; the IAF's own pages confirm the LANTIRN navigation pod.
+Round 1 said the Barak flew the Sharpshooter then the Litening, "never LANTIRN": incomplete; the Sharpshooter is the
+AN/AAQ-14's export derivative and the IAF also bought the Pathfinder, the AN/AAQ-13's FLIR-only derivative, both
+delivered in 1992. The user's "both the D and the I use LANTIRN" holds for the Sufa exactly and for the Barak as the
+LANTIRN family's export pods.
 
 ## 2. The pods
 
@@ -53,14 +91,16 @@ radar's mode rather than a pod. Whether a LANTIRN navigation pod hangs on the ot
   for LANTIRN pods"[^w-f16var].
 - **IAF:** the F-15I from 1996 ("Israel is buying both the LANTIRN navigation pod and the Sharpshooter targeting
   pod for its F-15Is", [../../../docs/f15i.md](../../../docs/f15i.md)); 50 more for the F-15IA / F-15I+ in
-  2024[^crec-2401]. The F-16I: §1 (open). The F-16C/D Barak: no source shows one (the 1998 proposal aside).
-- **In 2026:** being bought for the F-15IA (sourced); its use is not public.
+  2024[^crec-2401]. The F-16I Sufa: confirmed by the IAF (§1). The F-16C/D Barak: the Pathfinder, its derivative
+  without the radar (§1); an AN/AAQ-13 not found.
+- **In 2026:** on the Sufa (inferred, §1) and being bought for the F-15IA (sourced); its use is not public.
 
 ### 2.2 LANTIRN targeting pod, AN/AAQ-14, and the Sharpshooter
 
 - **What it is:** a FLIR, a laser designator-rangefinder, automatic target tracking and a Maverick hand-off; 240 kg
-  (Wikipedia) / 235.8 kg (FAS)[^w-lantirn][^fas-lantirn]. The Sharpshooter is "a downgraded version of the AN/AAQ-14"
-  for export[^f16net-il].
+  (Wikipedia) / 235.8 kg (FAS)[^w-lantirn][^fas-lantirn]. The Sharpshooter is the AN/AAQ-14's export derivative,
+  the same pod without the Maverick hand-off[^fi-pathfinder][^f16net-il]; its navigation partner, the Pathfinder, is
+  the AN/AAQ-13's without the terrain-following radar (§1).
 - **On the F-16:** the right chin hardpoint, 5R (inferred from the HTS-on-the-left rule above and an F-16A test
   jet's LANTIRN on 5R[^ah-5r]).
 - **IAF:** the Barak was "originally fitted with the Martin-Marietta Sharpshooter pod"; the Sharpshooters were
@@ -82,9 +122,14 @@ radar's mode rather than a pod. Whether a LANTIRN navigation pod hangs on the ot
   Hamichlol: "Litening 3"), F-16C/D Barak (replaced the Sharpshooter; "probably upgraded to Litening III"), F-15I
   (Litening III)[^w-litening][^at-sufa][^hm-litening][^f16net-il]. Which version flies on which jet in 2026 is open;
   the version names disagree.
-- **Station:** a chin hardpoint (a Litening on the usual chin station of an F-16C[^twz-litening]). The side on the
-  Sufa is open: the usual F-16 practice puts the targeting pod on 5R (inferred, §2.2), Airforce Technology's photo
-  caption says "on the left"[^at-sufa]. The Ra'am's pod hangs under the left intake in 2021 and 2024 photos (type
+- **Station:** a chin hardpoint (a Litening on the usual chin station of an F-16C[^twz-litening]). The side, round 2
+  (the user: "search"): the IAF says only "beneath its air intake" for both pods[^iaf-f16i-next]. No dated photo
+  description names a side. Secondary: a modelling forum lists the Sufa's "LANTIRN nav pod and LITENING II tgt pod
+  on 5L/5R"[^bm-sufa], the F-16's rule puts the navigation pod on the left (5L)[^w-f16var][^f16net-lantirn], and
+  Airforce Technology's caption "Litening II targeting pod (on the left) and the LANTIRN navigation pod (on the
+  right)"[^at-sufa] reads the same way if it describes a photo taken from ahead (inferred). Result: **the Litening
+  on the right chin station (5R), the LANTIRN navigation pod on the left (5L): secondary sources only**. The Barak:
+  the same by the F-16's rule (inferred; not found for the Barak itself). The Ra'am's pod hangs under the left intake in 2021 and 2024 photos (type
   not readable; [../../../docs/f15i.md](../../../docs/f15i.md)).
 - **In 2026:** in daily use; Rafael says the IAF uses targeting pods heavily and that the local pods "proved their
   superiority" over the US ones it had (December 2023)[^dif-gaza].
@@ -105,7 +150,7 @@ The F-35I carries no pod: its targeting sensor (EOTS) is built in ([../avionics-
 
 The IAF's own procedures are not public. Each item below is the public F-16 (or F-14) description, inferred for the
 IAF jets. In the two-seat Sufa and Barak the back-seater, whom the IAF calls the navigator[^twz-sufa], usually works
-the pod (inferred); in the game the player flies alone and does both.
+the pod (inferred); in the game the player flies alone and does both (decided, §7).
 
 ### 3.1 The targeting pod page (F-16)
 
@@ -135,7 +180,8 @@ secondary sources[^dcs-f16][^hb-lantirn][^bms-forum-laser]):
 
 ### 3.2 The navigation FLIR on the HUD
 
-The LANTIRN navigation pod's FLIR (or the Litening's wide field of view) is drawn on the HUD as a picture of the
+The Sufa's LANTIRN navigation pod (and the Barak's Pathfinder, which "can present FLIR imagery on any standard
+Head-Up Display"[^fi-pathfinder]; the Litening's wide field of view the same way) is drawn on the HUD as a picture of the
 terrain ahead, under the HUD symbols[^fas-lantirn][^fas-litening]. The public F-16 flow (secondary: a Falcon BMS
 community page that follows the dash-34[^bms-tfr]):
 - the FLIR format: STBY, a 7–15 minute warm-up, then OPER puts the picture on the HUD; boresight from the format;
@@ -167,14 +213,14 @@ These rows are secondary; a primary public source for the TFR format and cues is
 
 | jet | targeting pod | navigation picture | terrain following |
 |---|---|---|---|
-| F-16I Sufa | Litening (§2.3), the F-16 TGP format | the Litening's wide view on the HUD (inferred); a LANTIRN navigation pod open (§1) | the radar's TF mode[^at-sufa], or the pod's if carried (open) |
-| F-16C/D Barak | Litening (it replaced the Sharpshooter[^f16net-il]) | the Litening's wide view (inferred) | none shown (open) |
+| F-16I Sufa | Litening (§2.3), the F-16 TGP format | the LANTIRN navigation pod's FLIR on the HUD (§1) | the LANTIRN navigation pod's TFR: the IAF ties the Sufa's automatic low flight to the pod[^iaf-mag-sufa][^iaf-f16i-next]; the radar's TF mode is named by one trade page only[^at-sufa] |
+| F-16C/D Barak | Litening (it replaced the Sharpshooter[^f16net-il]) | the Pathfinder's FLIR on the HUD (§1; in 2026 open) | none: the Pathfinder has no TFR[^fi-pathfinder]; no radar TF mode found for the Block 30/40 (not found) |
 | F-15I Ra'am (not flown yet) | a pod under the left intake (Litening per two encyclopedias[^w-litening][^hm-lantirn]) | the LANTIRN navigation pod[^crec-2401] | the LANTIRN TFR[^crec-2401] |
 | F-35I Adir | built-in EOTS | the DAS and EOTS in the helmet | none |
 
 Correction for [../avionics-plan.md](../avionics-plan.md) row B5 ("LANTIRN on the Block 40"): the IAF's Barak
-carried the Sharpshooter, then the Litening[^f16net-il]. The decided §8.2 (the Litening on both F-16s) already
-matches this.
+carried the LANTIRN family's export pods, the Sharpshooter and the Pathfinder (1992), then the Litening in place of
+the Sharpshooter (§1). The plan's decided §8.2 (the Litening on both F-16s) matches this.
 
 ## 4. What Modern IAF has today
 
@@ -186,17 +232,17 @@ matches this.
   `shared/cockpit/f16_mfd.gd` (`tgp`); the HUD's target box in `crates/iaf-avionics/src/real_hud/f16.rs`. A pod is
   found by its store name (`TGP`, or the 1998 game's `FLIR`) in `shared/weapons/player_weapons.gd`; the F-35I and the
   Ra'am have a built-in pod (`flir_pod`).
-- **On main, the sim's F-16s list no pod or laser bomb** (`modern-iaf/data/db/units/f16i.json` `allowed`).
-- **Branch `wt/avionics-s4` (in progress, four wip commits, not merged; read 17 Nov, not edited):** adds weapon
-  records litening, gbu-10, gbu-12, gbu-16 under modern-iaf/data/db/weapons/; the Litening on the sim's station 5,
+- **Slice 4, merged 17 November (6af62293)**, as read on its branch in round 1: the weapon records
+  `modern-iaf/data/db/weapons/litening.json`, `gbu-10.json`, `gbu-12.json`, `gbu-16.json`; the Litening on the sim's
+  station 5 of both F-16s (`modern-iaf/data/db/units/f16i.json`, `f16d.json`),
   renamed "chin" (the right chin hardpoint under the intake, x 0.3 m, in `crates/iaf-tools/src/sim.rs`), 208 kg,
   drag index 7.0 (inferred), store name `TGP`; the laser bombs on 3 / 7 and 4 / 6 of both F-16s; the kinds `pod` and
   `laser_bomb`; keys DMS and LASER ARM (`modern-iaf/data/keys.json`); in `crates/iaf-avionics/src/f16_mfd.rs` the
   modern MFD frame with SOI, DMS and the TGP's track legend (`AREA`, `POINT`, `INR`, none when slaved), and in
   `shared/cockpit/f16_mfd.gd` the track mode and `ARM` drawn on the TGP page.
 - **Models:** `shared/extra/models/stores/flrpod.glb` is the **AN/AAQ-13 navigation pod** (FlightGear F-16,
-  `AN-AAQ-13.ac`, GPL-2.0-or-later; `shared/extra/models/stores/SOURCES.md`). The branch uses it as a stand-in for the
-  Litening ("no Litening model of ours yet"): the wrong pod's shape. `ecmpod.glb` is an AN/ALQ-131. The same
+  `AN-AAQ-13.ac`, GPL-2.0-or-later; `shared/extra/models/stores/SOURCES.md`). The Litening record uses it as a stand-in
+  ("no Litening model of ours yet"): the shape of the Sufa's other pod, the navigation pod. `ecmpod.glb` is an AN/ALQ-131. The same
   FlightGear repository, at the commit we already use, also holds `LITENING_AT/AN-AAQ-28.ac` (the Litening AT),
   `LANTIRN/AN-AAQ-14.ac` and `SniperATP` (listed through GitHub's API 17 Nov; not downloaded), under the same
   GPL-2.0-or-later and the same credited authors.
@@ -204,8 +250,8 @@ matches this.
   autopilot has a terrain-following leg, `crates/iaf-flight/src/autopilot.rs`, not a TFR), the TFR and FLIR formats
   (gap G16), laser spot search, the laser code, the pod's own power and cool-down.
 - **Conditions:** every sim mission flies by day (`modern-iaf/data/missions/`, "the MVP's conditions: day"); the
-  goggles (Shift+N, `shared/settings.gd`) exist. A navigation FLIR or terrain following pays off only at night or in
-  weather (inferred).
+  goggles (Shift+N, `shared/settings.gd`) exist. Night missions do not come first (decided, §7).
+- **No navigation pod store and no station for a second chin pod:** the sim's station 5 holds one store.
 
 ## 5. What would need to be added (pick list)
 
@@ -214,15 +260,15 @@ more. Kind: **wire** = existing logic reached; **extend** = existing logic grown
 
 | # | item | what the player gains | size | kind | model / art | slice |
 |---|---|---|---|---|---|---|
-| P1 | Finish the Litening and laser bombs (branch `wt/avionics-s4`) | the pod on the loadout, the TGP page, lasing, GBU-10 / 12 / 16 hits | (in progress) | wire | — | 4 (G15) |
+| P1 | The Litening and laser bombs | the pod on the loadout, the TGP page, lasing, GBU-10 / 12 / 16 hits | (merged 17 Nov) | wire | — | 4 (G15) |
 | P2 | Litening model: convert FlightGear's `AN-AAQ-28` in place of the AAQ-13 stand-in | the right pod on the jet in the hangar, loadout and flight | S | art | FlightGear F-16 `LITENING_AT`, GPL-2.0-or-later, authors already credited | 4 |
-| P3 | Barak: the Litening with the Sufa's records; fix row B5 | the Barak's pod as the IAF flies it | S | wire (data) | as P2 | 6 |
-| P4 | Pod stations: split the sim's station 5 into 5L / 5R (and a centreline 5), each pod on its side; weight and drag per pod; jettison keeps the pods | a correct loadout picture and weight; room for a second pod | M | extend (`sim.rs` stations, unit records, the loadout screen) | — | 4 or 6 |
+| P3 | Barak: fix row B5 in the plan (the Litening is already on its station 5, slice 4) | the plan as the IAF flew it | S | docs | — | 6 |
+| P4 | **Pod stations: split the sim's station 5 into 5L / 5R** (and a centreline 5): the navigation pod on 5L, the Litening on 5R (§2.3); weight and drag per pod; jettison keeps the pods. Now needed: both F-16s carry two chin pods | the real two-pod load, its weight and picture | M | extend (`sim.rs` stations, unit records, the loadout screen) | — | 6 |
 | P5 | TGP cockpit procedure complete: pod power and cool-down, WIDE / NARO / expand, WHOT / BHOT, CCD TV, laser code, `L` flashing, the trigger's first detent as the laser key, masking by the jet | the real pod workflow | M | extend (`eo.rs`, `f16_mfd.rs` / `.gd`) | — | 4 (rest) or 9 |
 | P6 | Laser spot search: find a wingman's or a ground team's laser spot | buddy lasing in missions | M | new (`eo.rs`; a lasing wingman in the AI) | — | 9 |
-| P7 | Navigation FLIR on the HUD (Litening wide view; the LANTIRN pod's if carried): a second camera with a thermal look drawn inside the HUD, gain / level, snap-look | flying low at night by the HUD picture | M–L | new (render; GPU budget on the Iris Xe) | none (a shader) | after night missions |
-| P8 | Terrain following: TFR format, SCP, ride, automatic TF on the pitch channel, manual TF box, fly-ups, TF FAIL, the HUD cues | low-level night penetration | L | new (`crates/iaf-flight` pitch command from `heights.rs`; `real_hud/f16.rs` cues) | none | parked (G12) until night missions and §1 |
-| P9 | LANTIRN navigation pod as a store (AN/AAQ-13 on 5L) | the pod on the jet; needed by P8 only if the Sufa carries it | S | wire (data) | `flrpod.glb` (already ours, the AAQ-13) | with P4 |
+| P9 | **Navigation pods as stores on 5L:** the AN/AAQ-13 on the Sufa (204.6 kg[^w-lantirn]); the Pathfinder on the Barak (84 kg, 198 cm[^fi-pathfinder]) | the pod on the jet, its weight and drag; the FLIR and TF items need it | S | wire (data) | the AAQ-13: `flrpod.glb` (already ours); the Pathfinder: none found (the AAQ-13 shape is a stand-in, inferred) | 6, with P4 |
+| P7 | **Navigation FLIR on the HUD** with the navigation pod (both jets): the FLIR format's STBY / OPER and warm-up, a thermal-look picture drawn inside the HUD, gain / level, snap-look; usable by day and at night (the user's "no" to night missions first) | the HUD picture of the terrain ahead | M–L | new (render; GPU budget on the Iris Xe) | none (a shader) | 6, after P9 |
+| P8 | **Terrain following, Sufa only** (the AN/AAQ-13's TFR; the Barak's Pathfinder has none): the TFR format, SCP, ride, automatic TF on the pitch channel, manual TF box, fly-ups, TF FAIL, the HUD cues | low-level flight hands-off | L | new (`crates/iaf-flight` pitch command from `heights.rs`; `real_hud/f16.rs` cues) | none | low priority (the user's "yes, not in priority"); G12's TF row moves from the radar to the pod |
 | P10 | Ra'am pods when the F-15I flies: Litening on the left intake, LANTIRN navigation pod | the strike eagle's night kit | M | wire + P7 / P8 | `flrpod.glb`, P2's model | Ra'am (not planned) |
 | P11 | TGP page polish against the Litening (its own legends, not LANTIRN's) | closer look | S | extend | — | open: no public Litening page |
 
@@ -231,27 +277,30 @@ countermeasure rows), the Litening's SAR mode (one 2026 report; parked as sensor
 
 ## 6. Recommendation (priority order)
 
-1. **P1 then P2:** finish slice 4's Litening and laser bombs, and swap the stand-in for the real Litening shape
-   from the source we already credit. Small, and it closes the decided item (the plan's §8.2). With them, **P12**
-   and **P13** (§8): the laser bombs arrive together with the rule that they need the pod.
-2. **P3** with the Barak's slice 6 (data only).
-3. **P5** with slice 9's laser path: the cockpit steps make the pod a procedure, not a camera.
-4. **P4** when a second pod or a centreline store needs a station; until then station 5 serves.
-5. **P7, then P8, P9** only after the sim has night missions, and only after the user decides §1's question. P6
-   when missions have a lasing wingman.
+Re-ordered after the decisions of §7:
+1. **P2, P12, P13:** the real Litening shape, and the rule that the laser bombs need the pod (P1 merged).
+2. **P4 and P9 together:** the 5L / 5R stations and the navigation pods as stores, the AN/AAQ-13 on the Sufa and
+   the Pathfinder on the Barak; then **P3** (the plan's B5 row).
+3. **P5:** the targeting pod's cockpit steps, which the player does alone in the two-seaters (§7).
+4. **P7:** the navigation FLIR on the HUD for both jets; not gated on night missions.
+5. **P8:** terrain following on the Sufa from the navigation pod, at low priority. **P6** when missions have a lasing
+   wingman; **P10, P11** later.
 
-## 7. Open questions for the user
+## 7. Decisions (17 November 2026)
 
-1. **The Sufa's navigation pod:** no primary source shows an AN/AAQ-13 on today's Sufa (§1). Carry one on 5L (two
-   secondary sources), or let the Litening's wide view be the navigation picture?
-2. **Night:** do night missions come before the navigation FLIR and terrain following (P7, P8), which pay off only
-   at night?
-3. **The Litening's side:** the right chin station (usual F-16 practice; the branch's choice) or the left (Airforce
-   Technology's caption)? A clear Sufa photo would settle it.
-4. **Two-seaters:** the navigator works the pod in the real Sufa and Barak; is the player doing both jobs alone the
-   intended play (inferred yes)?
-5. **Terrain following on the Sufa:** if wanted, take it from the radar's TF mode (sourced, one page) or from a
-   LANTIRN pod (§1 open)?
+The user answered round 1's five questions on 17 November 2026. His words in quotes; the result after each.
+
+1. **The navigation pod:** "search more. I preatty sure both the D and the I use LANTIRN". Round 2 (§1): the Sufa
+   carries the LANTIRN navigation pod, AN/AAQ-13 (the IAF's own pages; a dated 2007 photo); the Barak carried the
+   LANTIRN family's export pods, the Pathfinder navigation FLIR (no terrain-following radar) and the Sharpshooter,
+   from 1992 (one trade report). Both become stores (P9).
+2. **Night missions first:** "no". The navigation FLIR and terrain following do not wait for night missions (P7,
+   P8 are not gated on them).
+3. **The Litening's side:** "search". Round 2 (§2.3): the right chin station, 5R, with the navigation pod on the left,
+   5L; secondary sources only.
+4. **The two-seaters' pod work:** "yes". The player does the navigator's pod work alone.
+5. **Terrain following:** "yes, not in priority". In the plan at low priority (P8); on the Sufa it comes from the
+   navigation pod (the IAF), the Barak has none.
 
 ## 8. Weapons that need a pod
 
@@ -261,8 +310,7 @@ the real jet can employ it without a pod, and proposes the game's rule. Cockpit 
 
 ### 8.1 Each store and the pod
 
-The stores: `modern-iaf/data/db/weapons/` on main, and the GBU-10 / 12 / 16 and the Litening on branch
-`wt/avionics-s4` (§4).
+The stores: `modern-iaf/data/db/weapons/` (the GBU-10 / 12 / 16 and the Litening since slice 4, §4).
 
 | store | needs a pod? | delivery without a pod | what the pod adds | source |
 |---|---|---|---|---|
@@ -365,5 +413,31 @@ navigation pod (no weapon needs it).
     entered from a targeting pod such as the Litening II): https://en.wikipedia.org/wiki/Joint_Direct_Attack_Munition
 [^w-spice]: Wikipedia, "Spice (bomb)" (targets loaded pre-flight and picked in flight; the pylon's data link; a new
     target as an image or coordinates): https://en.wikipedia.org/wiki/Spice_(bomb)
+[^iaf-f16i-next]: Israeli Air Force site, "F-16I הדור הבא מטוס הקרב החדש של..." (F-16I, the next generation; the
+    LANTIRN navigation pod and the Litening under the intake), https://www.iaf.org.il/522-19034-he/IAF.aspx (refused
+    automated access; quoted as the search engine returned it, 17 November 2026)
+[^iaf-mag-sufa]: Israeli Air Force magazine (בטאון חיל האוויר) on the IAF site (the Sufa's navigation pod: low
+    flight at a fixed height and speed without the pilot's intervention), https://www.iaf.org.il/1424-23020-he/IAF.aspx
+    (refused automated access; quoted as the search engine returned it)
+[^iaf-sufa]: Israeli Air Force site, "סופה (F-16 I)" (the Sufa's page: the LANTIRN navigation pod and the Litening),
+    https://www.iaf.org.il/645-21805-he/IAF.aspx (refused automated access; as the search engine returned it)
+[^iaf-raam]: Israeli Air Force site, "בואינג F-15I (רעם)" (the LANTIRN navigation pod: a FLIR night sensor and a
+    terrain-following radar), https://www.iaf.org.il/187-he/IAF.aspx (refused automated access; as the search engine
+    returned it)
+[^twz-syria]: The War Zone, J. Trevithick, "Israel Details Long Secret Raid On Syrian Nuclear Reactor, Says It's
+    Willing To Do It Again", 21 March 2018 (the photo caption of an F-16I of the 2007 strike):
+    https://www.twz.com/19492/israel-details-long-secret-raid-on-syrian-nuclear-reactor-says-its-willing-to-do-it-again
+[^baugher-f16i]: Joe Baugher, "General Dynamics F-16I Fighting Falcon for Israel" (Peace Marble V, 1999–2001; the
+    LANTIRN navigation and targeting pods in the contract): https://www.joebaugher.com/usaf_fighters/f16_42.html
+[^fi-pathfinder]: Forecast International, *Electro-Optical Systems Forecast*, "Pathfinder/Sharpshooter - Archived
+    02/2004" (February 2003; Israel's 1992 Pathfinder and Sharpshooter pods; the Pathfinder without the TFR, its FLIR
+    on the HUD; the Sharpshooter without the Maverick correlator):
+    https://www.forecastinternational.com/archive/disp_pdf.cfm?DACH_RECNO=556
+[^f16net-lantirn]: F-16.net, "AN/AAQ-13 & AN/AAQ-14 LANTIRN" (the navigation pod on 5L; Pathfinder and Sharpshooter
+    as derivatives): https://www.f-16.net/f-16_armament_article2.html
+[^bm-sufa]: Secondary. Britmodeller forum, "Israeli F-16I Sufa questions" (the LANTIRN navigation pod and the
+    Litening II on 5L / 5R; as summarised by the search engine, the thread not opened), https://www.britmodeller.com/forums/index.php?%2Ftopic%2F15480-israeli-f-16i-sufa-questions%2F=
+[^dif-rampage]: Defence Industry Europe, "Israeli Air Force image shows F-16I Sufa fighter armed with four RAMPAGE
+    stand-off missiles", 8 March 2026 (the IAF's photo of 6 March 2026; no pods named): https://defence-industry.eu/?p=69037
 [^bms-tfr]: Secondary. Falcon BMS community wiki (Chinese), "8 低空导航" (low-altitude navigation; follows
     BMS1-F16CM-34-1-1 and the dash-34 §2.10): https://wiki.biligame.com/falconbms/8_%E4%BD%8E%E7%A9%BA%E5%AF%BC%E8%88%AA
