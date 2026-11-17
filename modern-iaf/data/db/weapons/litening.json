@@ -3,6 +3,7 @@
   "number": 19,
   "name": "TGP",
   "kind": "pod",
+  "gives": ["laser"],
   "generation": 2,
   "model": "weapons/sufa/litening_m.gltf",
   "kg": 208,
@@ -30,6 +31,7 @@
     "blast_m": "a pod does no damage",
     "model": "our Litening (shared/extra/models/stores/litening.glb: FlightGear's AN/AAQ-28 Litening AT at the real 2.20 m by 0.406 m, w-litening)",
     "generation": "ours: the weapons.ibx section key (generation · 1000 + type) is one per weapon of a kind (the tanks hold 0 and 1)",
+    "gives": "the laser designator the laser bombs need (modern-iaf/docs/weapons.md §7.1)",
     "station": "the chin hardpoint (twz-litening: the pod on the F-16's chin station); the sim's station 5 (sim.rs F16_SIM_STATIONS StationE)"
   },
   "footnotes": {

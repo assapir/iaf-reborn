@@ -845,7 +845,9 @@ editing pieces (the callout, the store, the stores' column).
   difference over their stores) with "Wings balanced" or "Left wing heavier by 1,321 kg", then Fuel (internal and the
   tanks'), Gun rounds and Chaff / flares. Over the maximum the figure, the bar and the share read in the warning
   colour and Fly is off; past the balance limit the marker and its line read amber (a warning: Fly stays on unless the
-  record's `lateral_limit_hard`).
+  record's `lateral_limit_hard`). A store that cannot be employed (a laser bomb with no targeting pod) also turns Fly
+  off, with a warning-coloured line in the footer that says what to add ([weapons.md](weapons.md) §7.1); the
+  briefing's Arming summary shows the same line.
 - **STORES** under it: the stores the jet may carry (the record's `inventory`), two to a row, each its short name in a
   thin frame (the full name the tooltip), the ones left where the record gives a count (none does yet).
 - **The footer:** "Reset to the mission's" at the inline start (off while the mission's own is on the jet), Briefing

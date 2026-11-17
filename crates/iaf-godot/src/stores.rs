@@ -41,6 +41,15 @@ impl IafStores {
         vdict! { "total" => w.total, "left" => w.left, "right" => w.right, "moment" => w.moment }
     }
 
+    /// stores::unmet: the needs no `gives` meets.
+    #[func]
+    fn unmet(needs: PackedStringArray, gives: PackedStringArray) -> PackedStringArray {
+        let s = |a: &PackedStringArray| a.as_slice().iter().map(GString::to_string).collect::<Vec<_>>();
+        let (n, g) = (s(&needs), s(&gives));
+        let g: Vec<&str> = g.iter().map(String::as_str).collect();
+        stores::unmet(&n.iter().map(String::as_str).collect::<Vec<_>>(), &g).into_iter().map(GString::from).collect()
+    }
+
     /// Weapon category (`FUN_004d72a0`): 0 gun, 1 AA, 2 AG, 3 other.
     #[func]
     fn category(type_code: i64) -> i64 {

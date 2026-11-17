@@ -703,9 +703,10 @@ func real_hud() -> Dictionary:
 			"at": _hud_point(lk.pos, true),
 			"aspect": lk.get("aspect")
 		}
-	elif not rd.get("real", {}).is_empty() and rd.get("designated", false):
-		# Ours, the real FCR's designated ground point (docs/radar.md §9.7): its TD box and slant range.
-		var dp: Vector3 = rd.desig
+	elif cockpit.eo.get("tgp_at") != null or (not rd.get("real", {}).is_empty() and rd.get("designated", false)):
+		# Ours, the real FCR's designated ground point (docs/radar.md §9.7), or the targeting pod's aim point once it
+		# tracks off the SPI (modern-iaf/docs/weapons.md §7.2): its TD box and slant range.
+		var dp: Vector3 = cockpit.eo.tgp_at if cockpit.eo.get("tgp_at") != null else rd.desig
 		var dist := 0.0
 		if camera != null and host_world_to_scene.is_valid():
 			dist = camera.global_position.distance_to(host_world_to_scene.call(dp))

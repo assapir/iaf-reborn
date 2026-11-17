@@ -383,6 +383,40 @@ mod tests {
     }
 
     #[test]
+    fn laser_bombs_need_the_pod() {
+        let u = unit("f16i");
+        let mut lo = default(&u);
+        assert!(put(&u, &mut lo, 3, "gbu-12", true));
+        let a = crate::briefing::arming(&u, &weapons(), &lo);
+        assert_eq!(a["blocked"], true, "a laser bomb without a designator: Fly off");
+        assert_eq!(a["unmet"], json!([{"weapon": "gbu-12", "need": "laser", "store": "litening", "station": 5}]));
+        assert!(put(&u, &mut lo, 5, "litening", false));
+        let a = crate::briefing::arming(&u, &weapons(), &lo);
+        assert_eq!((a["blocked"].as_bool(), a["unmet"].as_array().map(Vec::len)), (Some(false), Some(0)));
+        // The F-35I's EOTS is a built-in pod (its aircraft definition's `flir`).
+        let mut adir = unit("f35i");
+        adir["allowed"]["4"] = json!(["gbu-12"]);
+        let lo = parse(&adir, &json!({"4": "gbu-12"}));
+        assert_eq!(crate::briefing::arming(&adir, &weapons(), &lo)["unmet"], json!([]));
+    }
+
+    #[test]
+    fn every_default_load_can_be_employed() {
+        // Every unit's own load (the missions' and the AI's: no mission sets a load of its own) meets its needs.
+        let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../modern-iaf/data/db/units");
+        for f in std::fs::read_dir(dir).unwrap() {
+            let u: Value = serde_json::from_slice(&std::fs::read(f.unwrap().path()).unwrap()).unwrap();
+            let a = crate::briefing::arming(&u, &weapons(), &default(&u));
+            assert_eq!(a["unmet"], json!([]), "{}", u["id"]);
+        }
+        let missions = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../modern-iaf/data/missions");
+        for f in std::fs::read_dir(missions).unwrap() {
+            let text = std::fs::read_to_string(f.unwrap().path()).unwrap();
+            assert!(!text.contains("\"pylons\"") && !text.contains("\"loadout\""), "a mission load: check its needs");
+        }
+    }
+
+    #[test]
     fn heaviest_loadouts_stay_under_the_maximum() {
         // No sourced loadout reaches a jet's maximum: the heaviest store on every station; a lower maximum is over.
         let heavy: [(&str, &[(u32, &str)]); 2] = [

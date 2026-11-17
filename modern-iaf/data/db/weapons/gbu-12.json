@@ -3,6 +3,7 @@
   "number": 16,
   "name": "GBU-12",
   "kind": "laser_bomb",
+  "needs": ["laser"],
   "generation": 0,
   "model": "weapons/mk82lb/mk82lb_m.gltf",
   "kg": 230,
@@ -29,9 +30,11 @@
     "blast_m": "the MK-82's",
     "model": "our MK-82 with the Paveway II's guidance and tail kits (shared/extra/models/stores/mk82lb.glb)",
     "generation": "ours: the weapons.ibx section key (generation · 1000 + type) is one per weapon of a kind",
+    "needs": "a laser designator to guide it (the bomb homes on the designating laser's reflection, w-paveway; inferred: the sim has no buddy lasing, so only the jet's own targeting pod gives it); the loadout screen keeps Fly off and the release logic holds the bomb without one (modern-iaf/docs/weapons.md §7.1)",
     "carried": "the F-16I carries the GBU-10, GBU-12 and GBU-16 (sufa-at)"
   },
   "footnotes": {
+    "w-paveway": "Wikipedia, \"Paveway\" (the seeker homes on the designating laser's reflection), https://en.wikipedia.org/wiki/Paveway",
     "w-gbu12": "Wikipedia, \"GBU-12 Paveway II\" (230 kg; 3.27 m; 273 mm), https://en.wikipedia.org/wiki/GBU-12_Paveway_II",
     "sufa-at": "Airforce Technology, \"F-16I Soufa Multirole Fighter, Israel\" (GBU-10 / 12 / 16 carried, the Litening II pod), https://www.airforce-technology.com/projects/f-16i-soufa/"
   }

@@ -28,7 +28,10 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   PROF2 per weapon; the Litening pod on the chin with the TGP's POINT / AREA / INR tracks, slaving to the radar's
   designation or the steerpoint, LASER ARM (Shift + L, the 3D cockpit's switch) and the laser; the GBU-10, GBU-12
   and GBU-16 on both F-16s ([weapons.md](weapons.md) §7). Checked on the range: a GBU-12 lased by the pod hits a
-  hulk (`modern-iaf/tests/test_sim_mfd.gd`). Open: the HUD's own SOI mark (no source shows it). The Litening
+  hulk (`modern-iaf/tests/test_sim_mfd.gd`). Pods part 1 (2026-11-17): a laser bomb needs the pod (the loadout's
+  Fly off with a line saying what to add, the briefing's line, the SMS's NO LASER; weapons.md §7.1) and the pod's
+  cockpit steps (power-up, STBY, CZ, the TD box, the laser code, the automatic laser, MASK; §7.2;
+  `modern-iaf/tests/test_sim_pod.gd`). Open: the HUD's own SOI mark (no source shows it). The Litening
   drawn with its own model (FlightGear's AN/AAQ-28 at the real 2.20 m by 0.406 m, 2026-11-17,
   [../../docs/aircraft-models.md](../../docs/aircraft-models.md) §5.1); the Hangar and the Loadout screen hang it by its
   top from the chin station, as the flight does, under the model's right chin pylon (FlightGear's, 0.69 m right).

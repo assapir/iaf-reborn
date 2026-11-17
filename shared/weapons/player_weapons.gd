@@ -144,6 +144,16 @@ var modern_f16 := false
 ## Ours, the modern F-16s' threat display, MAW, CMDS, AIFF and data link (ews.gd; null on any other jet).
 var ews: RefCounted = null
 var tgp_slaved := false
+## Ours, the modern F-16s' pod procedure (modern-iaf/docs/weapons.md §7.2): when the pod got its power (with the
+## avionics, NAN none; IafEo.pod_state times its cool-down), STBY (the TGP's OSB 1), the player's laser key (L: on
+## until pressed again; the laser fires only through IafEo.lasing), the line of sight through the jet (the masking
+## cue) and the released laser bomb whose time to impact starts the automatic laser.
+var pod_power_at := NAN
+var tgp_stby := false
+var laser_fire := false
+var tgp_masked := false
+var _laser_bomb: RefCounted = null
+var _pod_seen := false
 var hsd_rate := Vector2.ZERO
 ## The weapon whose SMS profile was last recalled (IafRipple recall_profile).
 var _prof_name := ""
@@ -575,7 +585,14 @@ func mfd_event(ev: int, arg = null) -> void:
 		0x20:
 			eo.wide_spot()
 		0x6a:
-			eo.laser_key(flir_pod and (laser_arm or eo.laser))  # ours: lasing needs LASER ARM (always on in 1998)
+			if modern_f16:
+				laser_fire = flir_pod and laser_arm and not laser_fire  # it fires through IafEo.lasing (_update_pod)
+			else:
+				eo.laser_key(flir_pod and (laser_arm or eo.laser))  # ours: lasing needs LASER ARM (always on in 1998)
+		-4:
+			tgp_stby = not tgp_stby  # ours, the modern MFDs: the TGP's OSB 1, STBY / A-G
+		-5:
+			tgp_tms(1)  # ours, the modern MFDs: the TGP's CZ, the cursor's slews zeroed: back on the SPI
 		-1:
 			gps_mode_key()  # ours: the F-16 SMS / WPN format's PRE / VIS OSB (key K; cockpit/f16_mfd.gd)
 		-2:
@@ -619,7 +636,7 @@ const HSD_SLEW := 0.4
 ## Litening): `dir` 0 up a POINT track on the unit under the cross, else an AREA track on the ground there; 2 right an
 ## AREA track; 1 down back to the SPI (slaved); 3 left nothing.
 func tgp_tms(dir: int) -> void:
-	if eo.mode != EoSensor.FLIR:
+	if eo.mode != EoSensor.FLIR or pod_state() != 3:  # no track while NOT TIMED OUT or in STBY
 		return
 	match dir:
 		0, 2:
@@ -665,6 +682,8 @@ func _modern_update() -> void:
 		var p := spi()
 		if p.distance_to(eo.point) > 1.0 or eo.target != "":
 			eo.start(EoSensor.FLIR, true, p, now)
+	if flir_pod:
+		_update_pod()
 	var c = host.cockpit
 	if hsd_rate != Vector2.ZERO and c != null and c.soi_format() == "HSD":
 		c.mfds[c.soi].real.hsd_slew(hsd_rate.x * _dt, hsd_rate.y * _dt)
@@ -674,6 +693,49 @@ func _modern_update() -> void:
 		var pairs = _ripple.recall_profile(name)
 		if pairs != null:
 			release_pairs = pairs
+
+
+## The modern F-16s' pod per update (modern-iaf/docs/weapons.md §7.2): its power with the avionics (powered on the
+## ground it cools; a jet whose avionics are up from the start, or that gets them in the air, has it timed out), the
+## masking cue, a POINT track whose unit is gone falls back to an AREA track on its last point, and the laser
+## (IafEo.lasing: the pod working, LASER ARM, not masked, the laser key or the automatic laser within LASER ST TIME of
+## the released laser bomb's impact).
+func _update_pod() -> void:
+	var up := _up("mmc")
+	var o := own()
+	if not up:
+		pod_power_at = NAN
+	elif is_nan(pod_power_at):
+		pod_power_at = now if _pod_seen and o.wow else -1.0e6
+	_pod_seen = true
+	var d: Vector3 = (eo_centre - o.pos).normalized()
+	tgp_masked = (
+		eo.mode == EoSensor.FLIR
+		and ClassDB.class_call_static("IafEo", "masked", Vector3(d.dot(o.right), d.dot(o.fwd), d.dot(o.up)))
+	)
+	if eo.mode == EoSensor.FLIR and eo.target != "" and eo.unit_pos.is_valid() and eo.unit_pos.call(eo.target) == null:
+		eo.start(EoSensor.FLIR, true, eo.point, now)  # the tracked unit gone: an AREA track where it was
+		eo_on_unit = false
+	if _laser_bomb != null and _laser_bomb.ended:
+		_laser_bomb = null
+	eo.laser = ClassDB.class_call_static("IafEo", "lasing", pod_state(), laser_arm, tgp_masked, laser_fire, laser_ttg())
+
+
+## The pod's state (IafEo.pod_state): 0 off, 1 NOT TIMED OUT, 2 STBY, 3 working; the 1998 game's pod always works.
+func pod_state() -> int:
+	if not modern_f16:
+		return 3
+	var on: float = -1.0 if is_nan(pod_power_at) else now - pod_power_at
+	return ClassDB.class_call_static("IafEo", "pod_state", on, tgp_stby)
+
+
+## The released laser bomb's time to impact (s), -1 none.
+func laser_ttg() -> float:
+	if _laser_bomb == null or _laser_bomb.ended:
+		return -1.0
+	return ClassDB.class_call_static(
+		"IafEo", "time_to_impact", _laser_bomb.position(now), _laser_bomb.velocity(now), _laser_bomb.aim
+	)
 
 
 ## The launched TV weapon still flies (mcp+0xc's +0x48 == 1).
@@ -963,6 +1025,24 @@ func _weapons_down() -> bool:
 	return DMG_WEAPONS.any(func(i): return _flag(i))
 
 
+## Ours, Modern IAF's data rule (modern-iaf/docs/weapons.md §7.1): the selected store's first need that nothing on the
+## jet gives (IafStores.unmet: its record's `needs` against every carried store's `gives`, and the laser of a built-in
+## pod, the aircraft definition's `flir`), "" none. The 1998 game's records name no needs.
+func unmet_need() -> String:
+	var needs: PackedStringArray = stores.station(stores.cur).get("w", {}).get("needs", PackedStringArray())
+	if needs.is_empty():
+		return ""
+	var gives := PackedStringArray()
+	for i in 9:
+		var st: Dictionary = stores.station(i)
+		if int(st.get("count", 0)) > 0:
+			gives.append_array(st.w.get("gives", PackedStringArray()))
+	if bool(Settings.airframe(jet_type).get("flir", false)):
+		gives.append("laser")
+	var left: PackedStringArray = ClassDB.class_call_static("IafStores", "unmet", needs, gives)
+	return left[0] if not left.is_empty() else ""
+
+
 ## Space (event 0x40): HUD mode 1..8; the gear handle down only with Safety off and the gun; not
 ## with weapon systems damage (flag 20).
 func fire_selected() -> void:
@@ -986,6 +1066,9 @@ func fire_selected() -> void:
 		return
 	# Ours, Modern IAF: the F-16's ST STA switch off, no store releases; the gun fires (cockpit.md §5.2, inferred).
 	if stores.current_type() != Stores.GUN and not _up("st_sta"):
+		return
+	# Ours, Modern IAF's data rule: a store whose need nothing on the jet meets (a laser bomb with no pod) is held.
+	if unmet_need() != "":
 		return
 	releasing = true
 	match stores.current_type():
@@ -1862,6 +1945,8 @@ func _ripple_tick() -> void:
 		_drop_store(k, gps_aim(aim, k)[0] if gps else aim)
 		stores.fired(k)
 		_released[k] = int(_released.get(k, 0)) + 1
+		if t == 650 and not gps:
+			_laser_bomb = last_launched  # its impact times the automatic laser (modern F-16s, _update_pod)
 	_push_stores()
 	_update_store_nodes()
 
@@ -1871,7 +1956,13 @@ func _ripple_tick() -> void:
 ## when it lies within 60° of the line to the bomb's point P (cos 60°, 0x82f4e0 from 0x600ee8) and at most 2 m
 ## above the terrain (0x600f08); else the ripple aim (`FUN_00457c20`). Recomputed per store.
 func _laser_aim(p: Vector3, ripple: Vector3) -> Vector3:
-	if not eo.laser:
+	# Ours, the modern F-16s' pod procedure (modern-iaf/docs/weapons.md §7.2): the bomb takes the spot when the laser
+	# fires or the automatic laser is set (LASER ARM, the pod working, not masked) and the DED's TGP CODE is the bomb's.
+	if modern_f16:
+		var set_up: bool = ClassDB.class_call_static("IafEo", "lasing", pod_state(), laser_arm, tgp_masked, true, -1.0)
+		if not ClassDB.class_call_static("IafEo", "bomb_sees_spot", eo.laser, set_up, laser_code()):
+			return ripple
+	elif not eo.laser:
 		return ripple
 	var d: Vector3 = eo_centre
 	if eo_on_unit and eo.target != "" and eo.unit_pos.is_valid():
@@ -1880,6 +1971,12 @@ func _laser_aim(p: Vector3, ripple: Vector3) -> Vector3:
 			d = u
 	var g = host.mission_ground(d)
 	return ClassDB.class_call_static("IafRelease", "laser_aim", own().pos, p, ripple, d, float(g) if g != null else 0.1)
+
+
+## The DED's TGP CODE (the UFC's laser_code; 1688, the default, without one).
+func laser_code() -> int:
+	var u = host.cockpit.get("ufc") if host.cockpit != null else null
+	return int(u.state().get("laser_code", 1688)) if u != null else 1688
 
 
 ## A GPS bomb's aim (ours, docs/weapons.md §13.2): [point, designated], the coordinates handed to the bomb of
@@ -2916,7 +3013,20 @@ func _publish() -> void:
 		ClassDB.class_call_static(
 			"IafF16Mfd", "tgp_track", 0 if eo.track == 1 else (2 if eo.target != "" else 1), tgp_slaved
 		),
-		"laser_arm": laser_arm
+		"laser_arm": laser_arm,
+		# Ours, the modern F-16s' pod procedure (weapons.md §7.2): its state (pod_state), the masking cue, the DED's TGP
+		# CODE, the released laser bomb's time to impact (-1 none) and the pod's aim point for the HUD's TD box once
+		# the pod tracks or was slewed off the SPI (null while slaved: the SPI's own cue shows; or not working).
+		"pod": pod_state(),
+		"masked": tgp_masked,
+		"code": laser_code() if modern_f16 else 0,
+		"ttg": laser_ttg(),
+		"tgp_at":
+		(
+			eo_centre
+			if modern_f16 and flir_pod and eo.mode == EoSensor.FLIR and pod_state() == 3 and not tgp_slaved
+			else null
+		)
 	}
 	c.harm = harm.page(_base(o), stores.total(stores.current_type(), stores.current_name()), harm_in_range)
 	c.rwr = rwr.display()
@@ -2939,6 +3049,8 @@ func _publish() -> void:
 		"ready": not mal,
 		# Ours (Modern IAF, cockpit.md §5.2): the stores' power (the F-16's ST STA) for the SMS's RDY.
 		"stores_power": _up("st_sta"),
+		# Ours (Modern IAF's data rule): the selected store's unmet need ("laser": the SMS's NO LASER), "" none.
+		"need": unmet_need(),
 		"srm": srm,
 		"mrm": mrm,
 		"gun": stores.displayed(9),

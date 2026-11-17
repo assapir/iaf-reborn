@@ -51,6 +51,9 @@ static func _record(w: Dictionary, paths: Dictionary) -> Dictionary:
 		"radius": float(w.get("0x74e", 0)),
 		"weight_lb": float(w.get("0x758", 0)),
 		"empty_lb": float(w.get("empty_lb", 0)),  # a tank's own weight (ours, Modern IAF's data)
+		# Ours, Modern IAF's data: what the store needs from another and gives (stores.rs unmet; a laser bomb, the pod).
+		"needs": PackedStringArray(w.get("needs", [])),
+		"gives": PackedStringArray(w.get("gives", [])),
 		"drag": float(w.get("0x73a", 0)),
 		"model": model,
 		"model_path": String(paths.get(str(model), "")),

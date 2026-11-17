@@ -218,6 +218,53 @@ Sufa and the Barak (the F-16I carries all three and the Litening II[^sufa-at]). 
   (DMS), TMS down slaves the pod there (or TMS up / right tracks what is under its cross), LASER ARM (Shift+L), L
   fires the laser, MASTER ARM, the pickle. Test: `modern-iaf/tests/test_sim_mfd.gd` (a GBU-12 hits Target 1).
 
+### 7.1 A store that needs another: the laser bombs and the pod
+The user, 17 November 2026: "if there are some ammunitions that can't be used without it, it should not be allowed
+to use without them" ([research/pods.md](research/pods.md) §8, items P12–P14, option A).
+
+- **The data rule.** A weapon record names what it needs, `"needs": ["laser"]` (the GBU-10, GBU-12, GBU-16), and a
+  store names what it gives, `"gives": ["laser"]` (the Litening). A jet's built-in pod (its aircraft definition's
+  `flir`: the F-35I's EOTS, the Ra'am's) gives the laser too. `iaf-sim db` copies both lists into the compiled
+  weapon records; one Rust rule, `iaf_avionics::stores::unmet`, compares them for the loadout, the briefing and the
+  flight. A later dependency is a new name in the records, with no new code.
+- **The Loadout screen.** A load with an unmet need keeps Fly off (`briefing::arming`'s `blocked`; its `unmet` lists
+  each such store, the store in the jet's inventory that gives the need and the first station that takes it). The
+  footer shows one warning-coloured line: "GBU-12 Paveway II needs a targeting pod: load the Litening on station 5, or
+  remove the GBU-12 Paveway II." (Hebrew: "ל־GBU-12 פייבוויי II נדרש תרמיל ייעוד: יש לתלות את הלייטנינג בתחנה 5, או
+  להסיר את ה־GBU-12 פייבוויי II.").
+- **The briefing.** The Arming summary shows the same line under the stores, and its Fly is off.
+- **In flight.** A selected store whose need is unmet shows `NO LASER` on the SMS in RDY's place (ours: the public
+  dash-34 legend for this case was not found) and the pickle releases nothing (`player_weapons.gd` `unmet_need`).
+  Before this rule a laser bomb with no pod was released and steered to its CCIP point. A jettisoned laser bomb falls
+  unguided, as before.
+- **Buddy lasing** (a wingman's or a ground team's laser) does not exist in the sim, so the jet's own pod is the only
+  designator.
+- **The 1998 game** names no needs, so reborn is unchanged. Every unit's own load meets its needs (no mission sets a
+  load of its own): `crates/iaf-tools/src/loadout.rs` `every_default_load_can_be_employed`.
+
+### 7.2 The pod's cockpit steps
+The Litening's cockpit procedure on the Sufa and the Barak ([research/pods.md](research/pods.md) §3.1, item P5). The
+public F-16 flow comes from simulator manuals, inferred for the IAF's jets. In the two-seaters the player does the
+navigator's pod work. Logic: `crates/iaf-avionics/src/eo.rs` (the section "Modern IAF: the targeting pod's cockpit
+procedure", bridged by `IafEo`). Wiring: `player_weapons.gd` `_update_pod`. Drawing: `f16_mfd.gd` `tgp`.
+
+| step | what the player does / sees | control |
+|---|---|---|
+| Power-up | the pod powers with the avionics (the SNSR PWR panel is not modelled). It cools for 180 s (inferred), and the TGP page shows NOT TIMED OUT. A jet whose avionics are up from the start, or come up in the air, has a cooled pod | the avionics' power |
+| STBY / A-G | OSB 1 toggles STBY (the picture, no track, no laser) and A-G | TGP OSB 1 |
+| Fields of view and zoom | WIDE / NARO on OSB 2; the zoom steps 1, 2, 4, 8 (the digital expand) on OSB 20 / 19 | TGP OSB 2, 20, 19 |
+| Tracks | TMS up POINT (a unit under the cross) or AREA, TMS right AREA, TMS down slaved to the SPI; the legend AREA / POINT / INR (slewed). A POINT track whose unit is gone becomes an AREA track on its last point | the TMS keys |
+| Cursor zero | CZ (OSB 7) zeroes the slews: the pod back on the SPI | TGP OSB 7 |
+| The HUD's TD box | once the pod tracks or was slewed off the SPI, the HUD's target designator box sits on the pod's aim point with its slant range | — |
+| Laser code | the DED's LASR page (LIST, 0 MISC, 5 LASR) sets the TGP CODE (default 1688). The page shows it bottom left, above ARM's place. The laser bombs carry code 1688, set on the ground (inferred). A bomb takes the spot only when the codes match | the ICP |
+| Laser | LASER ARM (Shift + L, the 3D cockpit's switch), then L fires the laser until pressed again. It fires only with the pod in A-G and the line of sight clear. The legend LASR is highlighted while the laser fires | Shift + L, L |
+| Automatic laser | a released laser bomb's time to impact counts down bottom right (in place of the range); with LASER ARM on the laser fires by itself within LASER ST TIME (the DED's 16 s) of the impact; the L flashes while it fires. A bomb released with LASER ARM on and the line of sight clear takes the spot | — |
+| Masking | a line of sight more than 2° above the belly's plane passes through the jet (inferred: the chin pod sees the lower half). The page shows MASK and the laser holds | — |
+
+The laser is modelled only as cockpit procedure. A bomb takes its aim at its release (the shared laser path), and its
+guidance is not modelled further. Not built here: the FLIR polarity (WHOT / BHOT) and the CCD TV picture, which
+change the picture's look and wait for the user's approval of a picture. Test: `modern-iaf/tests/test_sim_pod.gd`.
+
 [^gdots]: General Dynamics OTS, "F-16 20mm Gatling gun system" (511 rounds), https://www.gd-ots.com/wp-content/uploads/2017/11/F-16.pdf
 [^w-f35]: Wikipedia, "Lockheed Martin F-35 Lightning II" (GAU-22/A, 180 rounds in the F-35A), https://en.wikipedia.org/wiki/Lockheed_Martin_F-35_Lightning_II
 [^w-m61]: Wikipedia, "M61 Vulcan" (6,000 rounds per minute), https://en.wikipedia.org/wiki/M61_Vulcan

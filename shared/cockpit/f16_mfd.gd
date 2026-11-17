@@ -859,6 +859,10 @@ func _weapon_name(wp: Dictionary) -> String:
 func _status(wp: Dictionary) -> String:
 	if not wp.get("ready", true):
 		return "MAL"
+	# Ours (Modern IAF's data rule, weapons.md §7.1): a store whose need is unmet, e.g. a laser bomb with no pod: NO
+	# LASER in RDY's place (the public dash-34 legend for this case was not found).
+	if String(wp.get("need", "")) != "":
+		return "NO " + String(wp.need).to_upper()
 	if not wp.get("armed", true) or not wp.get("stores_power", true):
 		return ""
 	return "RDY" if int(wp.get("total", 0)) > 0 else ""
@@ -1053,7 +1057,9 @@ func _has() -> void:
 ## the zoom by its triangles, WHOT, the cross, and the range bottom right (L with the laser, T without).
 func tgp() -> void:
 	var f: Dictionary = cockpit.eo.get("flir", {})
-	label(1, "A-G")
+	var pod := int(cockpit.eo.get("pod", 3)) if modern else 3
+	# Ours, the modern MFDs' pod procedure (modern-iaf/docs/weapons.md §7.2): OSB 1 STBY / A-G, OSB 7 CZ.
+	label(1, "STBY" if pod == 2 else "A-G")
 	if not modern:
 		label(5, "CNTL")
 	label(6, "WHOT")
@@ -1061,7 +1067,7 @@ func tgp() -> void:
 	if modern and not cockpit.eo.get("flir_pod", false):
 		centred(66, 66, "NO POD", col)
 		return
-	if f.is_empty():
+	if f.is_empty() or pod < 2:
 		centred(66, 66, "NOT TIMED OUT", col)
 		return
 	label(2, "NARO" if f.spot else "WIDE")
@@ -1069,14 +1075,25 @@ func tgp() -> void:
 	stepper("%d" % int(f.zoom))
 	for d in [Vector2(1, 0), Vector2(-1, 0), Vector2(0, 1), Vector2(0, -1)]:
 		line(Vector2(66, 66) + d * 3.0, Vector2(66, 66) + d * 12.0, col, LINE)
-	var rt := "%s %s" % ["L" if f.laser else "T", String(f.range)]
+	# Bottom right: L (laser ranging) or T, the range; while a laser bomb falls its time to impact, the L flashing
+	# while the laser fires (the laser's timing cue; F-14 LANTIRN, a simulator manual).
+	var ttg := float(cockpit.eo.get("ttg", -1.0)) if modern else -1.0
+	var lt := "L" if f.laser else "T"
+	if f.laser and modern and fmod(_clock(), 0.5) >= 0.25:
+		lt = " "
+	var rt := "%s %s" % [lt, String(f.range) if ttg < 0.0 else "%02d" % ceili(ttg)]
 	text(Vector2(126 - text_width(rt, SIZE), 118), rt, SIZE, col)
 	if modern:
+		label(7, "CZ")
 		# Ours, the modern MFDs: the track mode at the top (IafF16Mfd.tgp_track: AREA, POINT, INR slewing, none while
-		# slaved to the steerpoint or the radar's designation) and ARM with the LASER ARM switch on (inferred places).
-		centred(66, 24, String(cockpit.eo.get("track_mode", "")), col)
+		# slaved to the steerpoint or the radar's designation), ARM with the LASER ARM switch on and the DED's TGP CODE
+		# over it, MASK while the jet hides the line of sight (inferred places).
+		centred(66, 24, String(cockpit.eo.get("track_mode", "")) if pod == 3 else "", col)
 		if cockpit.eo.get("laser_arm", false):
 			text(Vector2(14, 118), "ARM", SIZE, col)
+		text(Vector2(14, 110), "%d" % int(cockpit.eo.get("code", 1688)), SIZE, col)
+		if cockpit.eo.get("masked", false):
+			centred(66, 90, "MASK", col)
 
 
 # --- DTE, FLCS, RESET (ours, the modern MFDs) ---------------------------------------------------------------------
@@ -1270,6 +1287,11 @@ func _own(f: String, osb: int) -> void:
 				1:
 					if f == "WPN" and _gps(cockpit.weapons):
 						m._mfd_event(GPS_MODE_EVENT)
+					elif f == "TGP" and modern:
+						m._mfd_event(TGP_STBY_EVENT)
+				7:
+					if f == "TGP" and modern:
+						m._mfd_event(TGP_CZ_EVENT)
 
 
 ## Ours: the GPS bomb's PRE / VIS (key K; player_weapons.gd mfd_event).
@@ -1278,6 +1300,9 @@ const GPS_MODE_EVENT := -1
 const SEL_JETT_EVENT := -2
 ## Ours, the modern MFDs: the SMS's PROF1 / PROF2 (player_weapons.gd mfd_event, IafRipple toggle_profile).
 const PROFILE_EVENT := -3
+## Ours, the modern MFDs: the TGP's STBY / A-G (OSB 1) and CZ (OSB 7) (player_weapons.gd mfd_event).
+const TGP_STBY_EVENT := -4
+const TGP_CZ_EVENT := -5
 
 
 func _own_sms(osb: int) -> void:

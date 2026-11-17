@@ -4,7 +4,7 @@
 use crate::world::{get, num, terrain, v2, vec3, vector3};
 use godot::prelude::*;
 use iaf_avionics::Vec3;
-use iaf_avionics::eo::{Aim, Eo, Mode};
+use iaf_avionics::eo::{self, Aim, Eo, Mode, Pod};
 use iaf_avionics::harm::{self, Emitter, Harm, Source, Unit};
 
 fn base(v: Vector2) -> (f64, f64) {
@@ -92,6 +92,49 @@ impl IafEo {
     #[func]
     fn laser_key(&mut self, pod_fitted: bool) {
         self.eo.laser_key(pod_fitted);
+    }
+
+    /// Ours, Modern IAF's pod procedure (`iaf_avionics::eo`): the pod's state, 0 off, 1 cooling (NOT TIMED OUT), 2
+    /// STBY, 3 working; `powered_s` < 0 no power.
+    #[func]
+    fn pod_state(powered_s: f64, standby: bool) -> i64 {
+        match eo::pod_state((powered_s >= 0.0).then_some(powered_s), standby) {
+            Pod::Off => 0,
+            Pod::Cooling => 1,
+            Pod::Standby => 2,
+            Pod::Operate => 3,
+        }
+    }
+
+    /// The line of sight in the jet's body frame (x right, y forward, z up) passes through the jet.
+    #[func]
+    fn masked(los_body: Vector3) -> bool {
+        eo::masked(vec3(los_body))
+    }
+
+    /// The laser fires (`pod` as `pod_state`); `ttg` the released laser bomb's time to impact, < 0 none (the
+    /// automatic laser).
+    #[func]
+    fn lasing(pod: i64, armed: bool, masked: bool, fire: bool, ttg: f64) -> bool {
+        let auto = eo::auto_laser((ttg >= 0.0).then_some(ttg));
+        eo::lasing(if pod == 3 { Pod::Operate } else { Pod::Off }, armed, masked, fire, auto)
+    }
+
+    /// A laser bomb takes the pod's spot at its release (`eo::bomb_sees_spot`).
+    #[func]
+    fn bomb_sees_spot(lasing: bool, set: bool, pod_code: i64) -> bool {
+        eo::bomb_sees_spot(lasing, set, u16::try_from(pod_code).unwrap_or(0))
+    }
+
+    #[func]
+    fn time_to_impact(pos: Vector3, vel: Vector3, aim_at: Vector3) -> f64 {
+        eo::time_to_impact(vec3(pos), vec3(vel), vec3(aim_at))
+    }
+
+    /// The automatic laser's lead (s): the DED's LASER ST TIME.
+    #[func]
+    fn laser_start_s() -> f64 {
+        eo::LASER_START_S
     }
 
     /// The full-screen weapon MFD may open / stay open (`iaf_avionics::eo::full_screen_ok`).

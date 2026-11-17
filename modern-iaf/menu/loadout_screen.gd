@@ -86,7 +86,12 @@ func build() -> void:
 	var fly: Button = fe._action(s("fly"), "Primary", func(): fe.fly_mission(m))
 	fly.name = "Fly"
 	fly.disabled = bool(a.get("blocked", a.get("over", false)))
-	fe._footer("", [brief, fly], false, [] if fixed else [reset])
+	# A store that cannot be employed (a laser bomb with no pod): Fly off and the line saying what to add.
+	var need: String = fe.need_text(a)
+	var line: Label = fe._footer(need, [brief, fly], false, [] if fixed else [reset])
+	if need != "":
+		line.name = "NeedLine"
+		line.add_theme_color_override("font_color", Look.WARN)
 	if reset != null and reset.disabled:
 		# Its plain box, dimmed (the theme's disabled box reads as another kind of button).
 		reset.add_theme_stylebox_override("disabled", reset.get_theme_stylebox("normal"))

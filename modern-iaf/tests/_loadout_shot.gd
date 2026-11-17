@@ -9,7 +9,8 @@
 # Fly off), _one_side.png (one station edited, Mirror off: the wings' balance off centre), _rack.png (racks, every
 # store drawn: two GBU-38 on a BRU-57/A on the Sufa's 3 / 7 and three Mk 82 on a TER-9/A on 4 / 6, four GBU-39 on a
 # BRU-61 in the Adir's bays 4 / 8, each callout's "×n" badge), at SHOT_SIZE (default 1920x1080; the file names then
-# end _<width>).
+# end _<width>). First f16i_<lang>_need.png and _need_briefing.png (two GBU-12 and no pod: the line saying what to
+# add, Fly off); SHOT_ONLY=need stops there.
 extends "res://../tests/godot/base.gd"
 
 ## jet → [the store dragged, its station, a store its target refuses, that station, the heavy loadout, the lowered
@@ -47,6 +48,16 @@ func run() -> void:
 	for lang in ["en", "he"]:
 		s.language = lang
 		s.pilot_name = "נועה גולן" if lang == "he" else "Noa Golan"
+		# A laser bomb with no targeting pod (weapons.md §7.1): the Loadout screen's line and Fly off, the briefing's line.
+		IafPilotLog.set_loadout(db, s.pilot(), "f16i", JSON.stringify({"3": "gbu-12", "7": "gbu-12"}))
+		await _open("f16i")
+		await _save("f16i_%s_need" % lang)
+		fe.show_page("mission")
+		await frames(10)
+		await _save("f16i_%s_need_briefing" % lang)
+		IafPilotLog.set_loadout(db, s.pilot(), "f16i", "")
+		if OS.get_environment("SHOT_ONLY") == "need":
+			continue
 		for jet in CASES:
 			var c: Array = CASES[jet]
 			IafPilotLog.set_loadout(db, s.pilot(), jet, "")

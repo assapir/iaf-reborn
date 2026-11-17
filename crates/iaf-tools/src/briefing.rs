@@ -506,8 +506,8 @@ fn main_roads(theatre: &Path) -> Option<Arc<Roads>> {
 /// in kg, rounded; a figure it cannot find is null. Also the record's `internal` stations, `allowed` (station → [{id,
 /// count}]) and its `inventory`, each entry `{id, count, used, left, group}`: the store's id, the record's count (null:
 /// none), how many hang on the jet, how many are left (null without a count) and its group by the weapon's kind ("air"
-/// air-to-air missiles, "ground" bombs and air-to-ground missiles (`role` "ground"), "tank"; an unknown weapon is left
-/// out).
+/// air-to-air missiles, "ground" bombs, laser bombs and air-to-ground missiles (`role` "ground"), "tank", "pod"; an
+/// unknown weapon is left out).
 pub fn arming(unit: &Value, weapons: &Path, lo: &loadout::Loadout) -> Value {
     let record = |w: &str| -> Option<Value> {
         serde_json::from_slice(&std::fs::read(weapons.join(format!("{w}.json"))).ok()?).ok()
@@ -526,7 +526,8 @@ pub fn arming(unit: &Value, weapons: &Path, lo: &loadout::Loadout) -> Value {
             let group = match r["kind"].as_str()? {
                 _ if r["role"] == "ground" => "ground",
                 k if k.ends_with("missile") => "air",
-                "bomb" => "ground",
+                "bomb" | "laser_bomb" => "ground",
+                "pod" => "pod",
                 "tank" => "tank",
                 _ => return None,
             };
@@ -601,6 +602,7 @@ pub fn arming(unit: &Value, weapons: &Path, lo: &loadout::Loadout) -> Value {
             (st.to_string(), json!({"id": id, "count": n, "max": max, "pylon": loadout::letter(unit, *st), "kg": kg}))
         })
         .collect();
+    let unmet = needs(unit, &record, lo);
     let r = |v: Option<f64>| v.map(f64::round);
     json!({
         "stores": stores,
@@ -619,12 +621,51 @@ pub fn arming(unit: &Value, weapons: &Path, lo: &loadout::Loadout) -> Value {
         "imbalanced": imbalanced,
         "balance": (balance * 1000.0).round() / 1000.0,
         "positions": unit["positions"],
-        "blocked": over || (imbalanced && unit["lateral_limit_hard"].as_bool().unwrap_or(false)),
+        "blocked": over || (imbalanced && unit["lateral_limit_hard"].as_bool().unwrap_or(false)) || !unmet.is_empty(),
+        "unmet": unmet,
         "tail": unit["tail"],
         "internal": unit["internal"],
         "allowed": allowed,
         "inventory": inventory,
     })
+}
+
+/// The loadout's unmet needs (modern-iaf/docs/weapons.md §7.1, `iaf_avionics::stores::unmet`): for each store on the jet
+/// whose record `needs` what no store on the jet `gives` (nor the jet's built-in pod, its aircraft definition's `flir`,
+/// which gives the laser), {weapon, need, store, station}: the store the record's inventory holds that gives it and the
+/// first station that takes that store (null when none), for the line that says what to add.
+fn needs(unit: &Value, record: &dyn Fn(&str) -> Option<Value>, lo: &loadout::Loadout) -> Vec<Value> {
+    let list = |v: &Value| -> Vec<String> {
+        v.as_array().into_iter().flatten().filter_map(|s| s.as_str().map(String::from)).collect()
+    };
+    let built_in = unit["airframe"].as_str().and_then(iaf_flight::airframe::get).and_then(|a| a.flir) == Some(true);
+    let mut gives: Vec<String> = lo.values().filter_map(|(id, _)| record(id)).flat_map(|r| list(&r["gives"])).collect();
+    if built_in {
+        gives.push("laser".into());
+    }
+    let gives: Vec<&str> = gives.iter().map(String::as_str).collect();
+    let mut out: Vec<Value> = vec![];
+    for (id, _) in lo.values() {
+        let Some(r) = record(id) else { continue };
+        let wanted = list(&r["needs"]);
+        let wanted: Vec<&str> = wanted.iter().map(String::as_str).collect();
+        for n in iaf_avionics::stores::unmet(&wanted, &gives) {
+            if out.iter().any(|o| o["weapon"] == id.as_str() && o["need"] == n) {
+                continue;
+            }
+            let store = unit["inventory"]
+                .as_array()
+                .into_iter()
+                .flatten()
+                .filter_map(|e| e["weapon"].as_str())
+                .find(|s| record(s).is_some_and(|g| list(&g["gives"]).iter().any(|x| x == n)));
+            let station = store.and_then(|s| {
+                loadout::stations(unit).into_iter().find(|&st| loadout::allowed(unit, st).iter().any(|a| a.0 == s))
+            });
+            out.push(json!({"weapon": id, "need": n, "store": store, "station": station}));
+        }
+    }
+    out
 }
 
 /// Each station's distance from the jet's middle (m, + toward the right wing) in the drawing
@@ -809,7 +850,8 @@ mod tests {
         let groups: Vec<_> = a["inventory"].as_array().unwrap().iter().map(|e| e["group"].clone()).collect();
         let want = ["air", "air", "air", "ground", "ground", "ground", "ground", "ground", "ground", "ground"];
         assert_eq!(groups[..10], want.map(|g| json!(g)));
-        assert_eq!(groups.len(), 12);
+        // The laser bombs and the targeting pod are on the shelf too (the loadout line asks for the pod).
+        assert_eq!(groups[12..], [json!("ground"), json!("ground"), json!("ground"), json!("pod")]);
     }
 
     #[test]

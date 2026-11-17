@@ -427,10 +427,11 @@ func _header(crumbs: Array) -> void:
 
 
 ## The bottom bar: the photo credit and the screen's buttons (none when it has neither); `at_end`: the credit at the
-## bar's inline end (right in English, left in Hebrew), smaller; `start`: buttons at the bar's inline start.
-func _footer(credit := "", actions: Array = [], at_end := false, start: Array = []) -> void:
+## bar's inline end (right in English, left in Hebrew), smaller; `start`: buttons at the bar's inline start. Returns
+## the credit's label (null without one).
+func _footer(credit := "", actions: Array = [], at_end := false, start: Array = []) -> Label:
 	if credit == "" and actions.is_empty() and start.is_empty():
-		return
+		return null
 	var shade := _shade(false)
 	shade.offset_top = -130
 	var bar := _margin(self, 67, 0)
@@ -442,8 +443,9 @@ func _footer(credit := "", actions: Array = [], at_end := false, start: Array = 
 		h.add_child(a)
 		a.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_spacer(h)
+	var c: Label = null
 	if credit != "":
-		var c := _label(h, credit, "Small")
+		c = _label(h, credit, "Small")
 		c.name = "Credit"
 		c.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		if at_end:
@@ -458,6 +460,7 @@ func _footer(credit := "", actions: Array = [], at_end := false, start: Array = 
 	for a in actions:
 		h.add_child(a)
 		a.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	return c
 
 
 ## A fade from the bar's edge so the bars read over a photo.
@@ -1088,6 +1091,19 @@ func arming(m: Dictionary, lo := "") -> Dictionary:
 		IafBriefing.arming(_unit_file(m), ProjectSettings.globalize_path("res://data/db/weapons"), lo)
 	)
 	return a if a is Dictionary else {}
+
+
+## The line that says why arming `a` cannot fly and what to add (its first `unmet`: "GBU-12 needs a targeting pod:
+## load the Litening on station 5, or remove the GBU-12."; docs/weapons.md §7.1), "" when nothing is unmet.
+func need_text(a: Dictionary) -> String:
+	var un: Array = a.get("unmet", []) if a.get("unmet") is Array else []
+	if un.is_empty():
+		return ""
+	var u: Dictionary = un[0]
+	var w := short_store(str(u.weapon))
+	var giver := short_store(str(u.store)) if u.get("store") != null else ""
+	var st := str(int(u.station)) if u.get("station") != null else "?"
+	return s("need_" + str(u.need)) % [w, giver, st, w]
 
 
 ## The mission's unit record, an absolute path (in `units_dir`).

@@ -516,9 +516,24 @@ impl Stores {
     }
 }
 
+/// What a store needs from the rest of the jet (ours, Modern IAF's data rule, modern-iaf/docs/weapons.md §7.1): the
+/// needs of a weapon record's `needs` that no store's `gives` on the jet, nor a built-in sensor, meets. A store with
+/// an unmet need cannot be employed: the loadout screen keeps Fly off, the release logic holds it. The 1998 game's
+/// records name no needs.
+pub fn unmet<'a>(needs: &[&'a str], gives: &[&str]) -> Vec<&'a str> {
+    needs.iter().copied().filter(|n| !gives.contains(n)).collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn needs_met_by_gives() {
+        assert_eq!(unmet(&["laser"], &[]), ["laser"]);
+        assert!(unmet(&["laser"], &["laser"]).is_empty());
+        assert!(unmet(&[], &[]).is_empty());
+    }
 
     fn st(type_code: i64, name: &str, count: f64) -> Option<Station> {
         let weapon =

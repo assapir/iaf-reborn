@@ -3121,7 +3121,8 @@ func _command(cmd: Array) -> bool:
 			# armed; disarming stops it (player_weapons.gd laser_arm).
 			if weapons != null and weapons.modern_f16:
 				weapons.laser_arm = not weapons.laser_arm
-				if not weapons.laser_arm and weapons.eo.laser:
+				if not weapons.laser_arm:
+					weapons.laser_fire = false
 					weapons.eo.laser = false
 				_on_subtitle("Laser armed" if weapons.laser_arm else "Laser safe")
 		260, 261, 262, 263, 264, 265:

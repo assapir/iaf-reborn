@@ -360,6 +360,9 @@ rule). Buddy lasing (P6) would later meet the need from a mission's designator i
 | P13 | **In flight.** If a jet still flies a laser bomb without a designator (a mission's fixed load, or the pod failed): the SMS shows the laser bomb's station but not RDY, with a reason line such as `NO LASER` (ours: the public dash-34 legend for this case was not found, open); the pickle releases nothing while selected; the release rule `laser_aim` drops the "steer to the ripple aim" fallback for a jet with no designator, so a jettisoned or forced-off bomb falls unguided (inferred: it is a deviation from the 1998 original's rule, kept for reborn and changed only in Modern IAF, recorded in `docs/deviations.md` if shared code changes) | S–M | extend (`release.rs`, `f16_mfd.rs` SMS legend, `player_weapons.gd`) |
 | P14 | **Briefing.** The Arming summary shows a line under the stores when a weapon's need is unmet, in the same words as P12, with Edit opening the loadout on the station to fix; nothing when the load is complete | S | extend (the briefing's Arming summary) |
 
+**Built (pods part 1, 17 November 2026):** P12 option A, P13 and P14 ([../weapons.md](../weapons.md) §7.1), and P5's
+cockpit steps ([../weapons.md](../weapons.md) §7.2).
+
 Not proposed: a rule for the GPS bombs and the SPICE without a pod (they work without one, §8.1); a rule for the
 navigation pod (no weapon needs it).
 

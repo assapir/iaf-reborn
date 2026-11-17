@@ -323,11 +323,96 @@ pub fn unit_pick(from: Vec3, dir: Vec3, boxes: &[(Vec3, Vec3)], max: f64) -> Opt
         .min_by(f64::total_cmp)
 }
 
+// --- Ours, Modern IAF: the targeting pod's cockpit procedure (modern-iaf/docs/weapons.md §7.2) ---------------------
+
+/// The pod's cool-down after power-up, the TGP page's NOT TIMED OUT (inferred: the public sources say only that the
+/// page shows it while the detector cools, research/pods.md §3.1).
+pub const POD_COOL_S: f64 = 180.0;
+/// The DED's LASER ST TIME (its 16 s, ufc.rs): the automatic laser fires this long before the bomb's impact.
+pub const LASER_START_S: f64 = 16.0;
+/// The laser bombs' code, set on the ground (inferred: the DED's default TGP code, ufc.rs).
+pub const BOMB_CODE: u16 = 1688;
+/// The masking line: a line of sight more than 2° above the belly's plane passes through the jet (inferred: the pod
+/// under the intake sees the lower half of the sky; the fuselage hides the upper).
+const MASK_Z: f64 = 0.0348995;
+
+/// The targeting pod's state.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Pod {
+    /// No power.
+    Off,
+    /// Powered less than POD_COOL_S: NOT TIMED OUT.
+    Cooling,
+    /// STBY: the picture, no tracking, no laser.
+    Standby,
+    /// A-G: the pod works.
+    Operate,
+}
+
+/// The pod's state from how long it has had power (None: none) and the TGP page's STBY.
+pub fn pod_state(powered_s: Option<f64>, standby: bool) -> Pod {
+    match powered_s {
+        None => Pod::Off,
+        Some(t) if t < POD_COOL_S => Pod::Cooling,
+        _ if standby => Pod::Standby,
+        _ => Pod::Operate,
+    }
+}
+
+/// The line of sight `los_body` (a unit vector in the jet's body frame: x right, y forward, z up) passes through the
+/// jet: the masking cue, no laser.
+pub fn masked(los_body: Vec3) -> bool {
+    los_body.z > MASK_Z
+}
+
+/// The laser fires: the pod working, LASER ARM on, the line of sight clear, and the player's laser key on (`fire`) or
+/// the automatic laser's time (`auto`).
+pub fn lasing(pod: Pod, armed: bool, masked: bool, fire: bool, auto: bool) -> bool {
+    pod == Pod::Operate && armed && !masked && (fire || auto)
+}
+
+/// The automatic laser's time: a released laser bomb's time to impact `ttg` (s) within LASER_START_S.
+pub fn auto_laser(ttg: Option<f64>) -> bool {
+    ttg.is_some_and(|t| t > 0.0 && t <= LASER_START_S)
+}
+
+/// A laser bomb takes the pod's spot at its release when the laser fires now or will by itself before the impact
+/// (`set`: LASER ARM with the pod working and the line of sight clear), and the pod's code (the DED's TGP CODE) is
+/// the bomb's.
+pub fn bomb_sees_spot(lasing: bool, set: bool, pod_code: u16) -> bool {
+    (lasing || set) && pod_code == BOMB_CODE
+}
+
+/// A falling bomb's time to impact (s): its distance to its aim over its speed (inferred: the TGP page's countdown).
+pub fn time_to_impact(pos: Vec3, vel: Vec3, aim: Vec3) -> f64 {
+    (aim - pos).length() / vel.length().max(1.0)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     const NONE: &dyn Fn(&str) -> Option<Vec3> = &|_| None;
+
+    #[test]
+    fn pod_procedure() {
+        assert_eq!(pod_state(None, false), Pod::Off);
+        assert_eq!(pod_state(Some(10.0), false), Pod::Cooling);
+        assert_eq!(pod_state(Some(POD_COOL_S), true), Pod::Standby);
+        assert_eq!(pod_state(Some(POD_COOL_S), false), Pod::Operate);
+        assert!(masked(Vec3::new(0.0, 0.7, 0.7)) && !masked(Vec3::new(0.0, 0.7, -0.7)));
+        assert!(lasing(Pod::Operate, true, false, true, false));
+        assert!(lasing(Pod::Operate, true, false, false, true), "the automatic laser");
+        assert!(!lasing(Pod::Operate, false, false, true, false), "no LASER ARM");
+        assert!(!lasing(Pod::Operate, true, true, true, false), "masked");
+        assert!(!lasing(Pod::Standby, true, false, true, false) && !lasing(Pod::Cooling, true, false, true, false));
+        assert!(auto_laser(Some(16.0)) && !auto_laser(Some(16.5)) && !auto_laser(Some(0.0)) && !auto_laser(None));
+        assert!(bomb_sees_spot(false, true, BOMB_CODE) && bomb_sees_spot(true, false, BOMB_CODE));
+        assert!(!bomb_sees_spot(true, true, 1511), "another code");
+        assert!(!bomb_sees_spot(false, false, BOMB_CODE));
+        let t = time_to_impact(Vec3::new(0.0, 0.0, 1000.0), Vec3::new(0.0, 0.0, -100.0), Vec3::ZERO);
+        assert!((t - 10.0).abs() < 1e-9);
+    }
 
     #[test]
     fn unit_pick_takes_the_nearest_box_on_the_ray() {

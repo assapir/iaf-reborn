@@ -239,6 +239,12 @@ static func _arming(fe: Control, parent: Control, m: Dictionary) -> void:
 	_heading(fe, left, fe.s("tab_arming"))
 	var stores: Label = fe._text(left, _stores_text(fe, a.get("stores", [])), "")
 	stores.name = "ArmingStores"
+	# A store that cannot be employed (a laser bomb with no pod): the loadout screen's line, Fly off.
+	var need: String = fe.need_text(a)
+	if need != "":
+		var warn: Label = fe._text(left, need, "")
+		warn.name = "ArmingNeed"
+		warn.add_theme_color_override("font_color", Look.WARN)
 	if a.get("takeoff_kg") != null:
 		var wv: VBoxContainer = fe._vbox(h, 0)
 		wv.name = "Fact_takeoff_weight"

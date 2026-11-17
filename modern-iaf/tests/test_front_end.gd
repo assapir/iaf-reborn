@@ -1388,6 +1388,42 @@ func _loadout_checks(fe: Control, lang: String) -> void:
 		bal.get_theme_color("font_color") == Color("ffb547") and not fe.find_child("Fly", true, false).disabled,
 		"%s: loadout: the wings out of balance, a warning, Fly on (%s)" % [lang, bal.text]
 	)
+	# A laser bomb with no targeting pod (modern-iaf/docs/weapons.md §7.1): the line saying what to add, Fly off; the
+	# briefing's Arming summary the same line, its Fly off.
+	IafPilotLog.set_loadout(db, s.pilot(), "f16i", JSON.stringify({"3": "gbu-12", "7": "gbu-12"}))
+	# The nodes of the page shown, not of one being freed.
+	var live := func(n: String) -> Node:
+		for x in fe.find_children(n, "", true, false):
+			if not x.is_queued_for_deletion():
+				return x
+		return null
+	fe.show_page("arming")
+	await frames(3)
+	var need: Label = live.call("NeedLine")
+	var want := need.text if need != null else "-"
+	check(
+		(
+			need != null
+			and live.call("Fly").disabled
+			and want.contains("לייטנינג" if he else "Litening")
+			and want.contains("5")
+		),
+		"%s: loadout: a GBU-12 without the pod: the line, Fly off (%s)" % [lang, want]
+	)
+	fe.show_page("mission")
+	await frames(5)
+	var need2: Label = live.call("ArmingNeed")
+	check(
+		need2 != null and need2.text == want and live.call("Fly").disabled,
+		"%s: briefing: the Arming summary's line, Fly off (%s)" % [lang, need2.text if need2 != null else "none"]
+	)
+	IafPilotLog.set_loadout(db, s.pilot(), "f16i", JSON.stringify({"3": "gbu-12", "7": "gbu-12", "5": "litening"}))
+	fe.show_page("arming")
+	await frames(3)
+	check(
+		live.call("NeedLine") == null and not live.call("Fly").disabled,
+		"%s: loadout: the pod loaded: no line, Fly on" % lang
+	)
 	IafPilotLog.set_loadout(db, s.pilot(), "f16i", lo_keep)
 	fe.show_page("arming")
 	await frames(3)

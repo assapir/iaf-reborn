@@ -458,6 +458,15 @@ pub fn compile_db(db: &Db) -> Result<(Value, Map<String, Value>, String)> {
         if given(&w.v["empty_kg"]) {
             rec["empty_lb"] = json!((number(w, "empty_kg")? * LB_PER_KG).round());
         }
+        // Ours, unhexed: what the store needs from another and what it gives (modern-iaf/docs/weapons.md §7.1; a laser
+        // bomb needs the laser a targeting pod gives), for weapon_db.gd and the release rule (stores.rs unmet).
+        for k in ["needs", "gives"] {
+            if given(&w.v[k]) {
+                let ok = w.v[k].as_array().is_some_and(|a| a.iter().all(Value::is_string));
+                ensure!(ok, "{}: \"{k}\" must be a list of names", w.name);
+                rec[k] = w.v[k].clone();
+            }
+        }
         weapons.push(rec);
     }
     for u in &db.units {

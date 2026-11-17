@@ -89,6 +89,48 @@ func _show(i: int, f: String) -> void:
 		await osb(i, r)
 
 
+## SHOT_ONLY=pod: the TGP page's procedure states (modern-iaf/docs/weapons.md §7.2): pod_cooling (NOT TIMED OUT),
+## pod_stby, pod_area_td (an AREA track, the HUD's TD box on the pod's aim, the TGP CODE over ARM), pod_mask (banked
+## past the pod's view: MASK), pod_auto_laser (a GBU-12 falling: its time to impact, the automatic laser's L).
+func _pod_states(t1: Vector3) -> void:
+	_put(t1 - Vector3(7000.0, 0, 0), 90.0, 1200.0)
+	_tap(KEY_R)
+	await fly(tv, 1.0)
+	w.select_ag()
+	w.select_station(2)
+	await fly(tv, 0.5)
+	await _show(0, "TGP")
+	c.soi = 0
+	w.pod_power_at = w.now
+	await _shot("pod_cooling", 0)
+	w.pod_power_at = -1.0e6
+	await osb(0, 1)
+	await _shot("pod_stby", 0)
+	await osb(0, 1)
+	w.radar.designate(t1.x, t1.y, t1.z, w.now)
+	_tap(KEY_SLASH, true)
+	await fly(tv, 0.5)
+	_tap(KEY_SEMICOLON)
+	_tap(KEY_L, true)
+	await _shot("pod_area_td", 0)
+	var pos: Vector3 = tv.rig.position
+	var v := Vector3(200, 0, 0)
+	tv.flight.start(settings().own_dir(), tv.player.fm_section, pos, Vector3(0, 120, 90), v, airborne_flags())
+	await _shot("pod_mask", 0)
+	_put(t1 - Vector3(6000.0, 0, 0), 90.0, 800.0)
+	_tap(KEY_A, true)
+	w.safety_off = true
+	w.release_pairs = false
+	await fly(tv, 0.5)
+	_tap(KEY_SLASH, true)
+	w.fire_selected()
+	var t0: float = tv._sim_time
+	while w.guided.is_empty() and tv._sim_time - t0 < 30.0:
+		await process_frame
+	await fly(tv, 1.0)
+	await _shot("pod_auto_laser", 0)
+
+
 func run() -> void:
 	if DisplayServer.get_name() == "headless":
 		check(false, "needs a window")
@@ -133,6 +175,12 @@ func run() -> void:
 	tv.views.snap = Vector2(0.0, deg_to_rad(-22.0))
 	_tap(KEY_Q)
 	await fly(tv, 2.0)
+	if OS.get_environment("SHOT_ONLY") == "pod":
+		await _pod_states(t1)
+		print("RESULT PASS")
+		tv.queue_free()
+		await frames(5)
+		return
 	# NAV: the HSD (the steerpoints, the bullseye) and its settings.
 	c.soi = 1
 	await _shot("hsd", 1)

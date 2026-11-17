@@ -723,7 +723,7 @@ impl Ufc {
                 format!("   TGP CODE {}", self.show(0, format!("{}", self.laser_code))),
                 format!("   LST CODE  {}", self.laser_code),
                 s("A-G: CMBT  A-A: TRNG"),
-                s(" LASER ST TIME  16 SEC"),
+                format!(" LASER ST TIME  {:.0} SEC", crate::eo::LASER_START_S),
             ],
             Page::Bull => [
                 format!("     {}", self.show(0, s(if self.bull { "BULLSEYE" } else { "  OFF   " }))),
