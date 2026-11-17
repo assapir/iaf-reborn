@@ -663,7 +663,10 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   wheels; a touchdown past 10 ft/s damages the gear, gear damage holds the gear, and the gear's 300 KCAS limit comes
   from the aircraft definition ([flight-model.md](flight-model.md) §9.8; docs/damage.md §5.2). Since 2026-11-16 full
   pedal yaws the jet hard at any speed and never tips it (air-spring strut stiffness), centred pedals let the nose
-  wheel castor, and the keyboard's rudder keys ramp the pedals over 1 s.
+  wheel castor, and the keyboard's rudder keys ramp the pedals over 1 s. Since 2026-11-17 the nose wheel follows
+  centred pedals back to straight below 30 kt (a released ground turn stops), the brakes ramp in over 0.5 s and the
+  struts damp their extension four times harder: braking dips the nose 1° and it eases back with no rock
+  ([flight-model.md](flight-model.md) §9.8).
 - **[C2](plan.md#c2-the-6-dof) stage (a), the 6-DoF's core (2026-11-03):** `crates/iaf-flight/src/sixdof/`: NASA TP-1538's aerodynamic
   tables checked value by value against the scan, appendix B's coefficient build-up, a quaternion rigid body; the
   trim tests match the report's trims and Stevens & Lewis's ([flight-model.md](flight-model.md) §9). Nothing calls

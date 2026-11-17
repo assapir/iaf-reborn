@@ -36,9 +36,18 @@ const PIVOT_RADIUS: f64 = 30.0;
 /// steering has no speed schedule (±32°), but the pilot engages it with a button when it is needed: "Use NWS until
 /// rudder is effective (approximately 70 knots)", "NWS should not be engaged above taxi speed unless required"
 /// (T.O. 1F-16A-1 pp. 2-20, 2-25). The game has no NWS button: the pedals engage it (inferred). With the steering
-/// held straight under full antiskid braking (the main tyres keep 0.16 of side grip) the jet yawed away into a ground
+/// held straight under full antiskid braking (the main tyres keep 0.15 of side grip) the jet yawed away into a ground
 /// loop (2026-11-16); a castoring nose wheel leaves it running straight on its mains.
 const NWS_ON_PEDAL: f32 = 0.02;
+/// Below this ground speed, kt, the nose-wheel steering stays engaged with the pedals centred: the nose wheel follows
+/// the pedals back to straight, as when taxiing with NWS on. Castoring there let a ground turn run on after the pedals
+/// were centred (the user, 2026-11-17: the jet "keeps moving after I release", turning; the Sufa at 10 kt still
+/// turned at 13 deg/s 2 s later). Held straight under full braking the jet stays straight from 30 kt and below
+/// and ground-loops from 40 kt (inferred: the taxi speed).
+const NWS_TAXI_KT: f64 = 30.0;
+/// The toe brakes go from off to full (and back) over this time, s: the brake key is a switch, and a step from no
+/// braking to full pitched the nose down 40 % past its braked attitude (inferred: a pilot's press on the pedals).
+const BRAKE_RAMP_S: f64 = 0.5;
 
 /// NED → the game's ENU.
 fn enu(v: Vec3) -> Vec3 {
@@ -137,6 +146,8 @@ pub struct SixDof {
     tef: f64,
     /// The autopilot's taxi pivot: its target heading, rad ([`SixDof::set_pivot`]).
     pivot: Option<f64>,
+    /// The toe brakes' travel, 0…1, following the brake switch over [`BRAKE_RAMP_S`].
+    brake: f64,
 }
 
 /// The indicated AoA one frame `dt` on from `shown` (deg): toward the flow's `alpha_deg` at `cas_kt` from
@@ -212,6 +223,7 @@ impl SixDof {
             aoa_ind: 0.0,
             tef: if st.airborne { 0.0 } else { jet.tef_deg },
             pivot: None,
+            brake: if st.airborne { 0.0 } else { 1.0 },
         };
         s.fcs = Fcs::new(jet.g_limits, jet.roll.map(|r| (r, jet.airframe.b))).with_alpha_max(jet.alpha_max);
         if st.airborne {
@@ -509,6 +521,8 @@ impl SixDof {
     fn substep(&mut self, dt: f64, af: &super::body::Airframe) {
         let c = self.controls;
         self.t += dt;
+        let target = if c.brakes && self.on_ground { 1.0 } else { 0.0 };
+        self.brake += (target - self.brake).clamp(-dt / BRAKE_RAMP_S, dt / BRAKE_RAMP_S);
         // Gear lever ramp; gear damage (7) holds the gear where it is, as the game's legs (docs/damage.md §5.2).
         if self.damage & (1 << 7) == 0 {
             let target = if c.gear_down { 0.0 } else { GEAR_UP };
@@ -822,10 +836,10 @@ impl SixDof {
     /// that radius allows, straight: a braked main tyre keeps little side grip (the friction circle), and turning
     /// under full brakes ground-looped the jet backwards onto its tail (2026-11-16; all inferred).
     fn wheels(&self, c: &Controls) -> super::gear::Wheels {
-        let brake = if c.brakes && self.on_ground { 1.0 } else { 0.0 };
+        let brake = self.brake;
         let steer = c.rudder as f64 * self.jet.nws_deg;
         let Some(target) = self.pivot.filter(|_| self.on_ground) else {
-            let castor = c.rudder.abs() < NWS_ON_PEDAL;
+            let castor = c.rudder.abs() < NWS_ON_PEDAL && self.body.speed() >= NWS_TAXI_KT * 0.514444;
             return super::gear::Wheels { brake, steer, castor };
         };
         let s = &self.jet.gear.struts;
@@ -1294,5 +1308,88 @@ mod tests {
         assert!((a - 8.0).abs() < 0.01, "{a}");
         let step = probe_aoa(0.0, 8.0, 150.0, 1.0 / 30.0);
         assert!(step > 0.0 && step < 1.2, "lagged: {step}");
+    }
+
+    /// Ground steering released (the user, 2026-11-17: after a turn on the pedals the jet "keeps moving after I
+    /// release", turning). Taxiing at 10 and 20 kt, full pedal for 2 s, then the pedals centred: the nose wheel is
+    /// straight at once (not castoring), and the yaw rate falls as fast as the tyres' side grip turns the jet's yaw
+    /// momentum: under 20 % of its value 2 s later at 10 kt, under 35 % at 20 kt, and under 0.5 deg/s 5 s later.
+    /// Before, a castoring nose wheel let the Sufa still turn at 13 deg/s 2 s after release at 10 kt (2.6 deg/s 6 s
+    /// after).
+    #[test]
+    fn centred_pedals_stop_the_ground_turn() {
+        let dt = 1.0 / 60.0;
+        for jet in jets::all() {
+            for (kt, share) in [(10.0, 0.2), (20.0, 0.35)] {
+                let mut f = on_runway(jet);
+                f.body.vel = Vec3::new(kt * 0.514444, 0.0, 0.0);
+                let mut at = [0.0f64; 4];
+                for i in 0..7 * 60 {
+                    let rudder = if i < 120 { 1.0 } else { 0.0 };
+                    f.set_controls(crate::aircraft::Controls { throttle: 0.0, brakes: false, rudder, ..f.controls() });
+                    if i == 120 {
+                        let w = f.wheels(&f.controls());
+                        assert!(w.steer == 0.0 && !w.castor, "{}: the nose wheel at release {w:?}", jet.name);
+                    }
+                    f.step(dt);
+                    if let Some(k) = [119, 179, 239, 419].iter().position(|&n| n == i) {
+                        at[k] = f.body.omega.z.to_degrees();
+                    }
+                }
+                println!("{} at {kt} kt: yaw at release, +1, +2, +5 s: {at:.2?} deg/s", jet.name);
+                assert!(at[2].abs() < share * at[0].abs() && at[3].abs() < 0.5, "{} at {kt} kt: {at:?}", jet.name);
+            }
+        }
+    }
+
+    /// Braking pitch (the user, 2026-11-17: the jet leans "to much forward and backward on the ground when pressing
+    /// the breaks"). From 10, 20 and 40 kt at idle, the brake switch on to a full stop: every jet's nose dips at most
+    /// 1.1° (the static braked attitude 0.9° for the F-16s), comes back up no more than 0.1° past the standing
+    /// attitude when the stop takes the braking force away, is within 0.1° of it 1 s after the stop, and the jet runs
+    /// straight.
+    /// Before (a brake that stepped to full, struts damped alike both ways): 1.24° down, 0.4° back up, three rocks.
+    #[test]
+    fn braking_dips_the_nose_and_settles_without_rocking() {
+        let dt = 1.0 / 60.0;
+        for jet in jets::all() {
+            for kt in [10.0, 20.0, 40.0] {
+                let mut f = on_runway(jet);
+                let p0 = f.body.att.euler().1.to_degrees();
+                f.set_controls(crate::aircraft::Controls { throttle: 0.0, brakes: false, ..f.controls() });
+                f.body.vel = Vec3::new(kt * 0.514444, 0.0, 0.0);
+                f.body.omega.z = 0.5f64.to_radians(); // a small yaw to show any ground loop
+                for _ in 0..30 {
+                    f.step(dt);
+                }
+                f.set_controls(crate::aircraft::Controls { brakes: true, ..f.controls() });
+                let (mut down, mut up, mut stop, mut late, mut hdg) = (0.0f64, 0.0f64, None, 0.0f64, 0.0f64);
+                for i in 0..15 * 60 {
+                    f.step(dt);
+                    let p = f.body.att.euler().1.to_degrees() - p0;
+                    hdg = hdg.max(f.body.att.euler().2.to_degrees().abs());
+                    down = down.min(p);
+                    if stop.is_none() && f.body.speed() < 0.05 {
+                        stop = Some(i);
+                    }
+                    if let Some(s) = stop {
+                        up = up.max(p);
+                        if i > s + 60 {
+                            late = late.max(p.abs());
+                        }
+                    }
+                }
+                println!(
+                    "{} braking from {kt} kt: nose down {down:.2}°, back up {up:.2}°, after the stop's first second \
+                     within {late:.2}°, heading {hdg:.1}°, stopped at {:.1} s",
+                    jet.name,
+                    stop.unwrap_or(0) as f64 * dt
+                );
+                assert!(
+                    stop.is_some() && down > -1.1 && up < 0.1 && late < 0.1 && hdg < 2.0,
+                    "{} from {kt} kt",
+                    jet.name
+                );
+            }
+        }
     }
 }

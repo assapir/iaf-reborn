@@ -47,6 +47,13 @@ const SLIP: f64 = 0.03;
 /// typical tyre's cornering curve; no public figure for these jets' tyres).
 const CORNER_SLIP_DEG: f64 = 8.0;
 
+/// An oleo strut's damping while it extends, × its damping while it compresses: the oil returns through a smaller
+/// orifice, so the strut eases back out instead of bouncing (inferred: no public figure for these struts). At × 1
+/// (until 2026-11-17) the jet pitched 0.4° nose up past level when a full stop under the brakes took the braking
+/// force away, and rocked three times; at × 4 it eases back to level with no overshoot
+/// (modern-iaf/docs/flight-model.md §9.8).
+const REBOUND: f64 = 4.0;
+
 /// The gear's three struts: nose, left main, right main; and the runway's tilt under the jet.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Gear {
@@ -127,7 +134,9 @@ impl Gear {
         }
         let r = s.pos - Vec3::new(0.0, 0.0, depth);
         let v = b.att.rotate(b.vel + b.omega.cross(r));
-        Some((r, b.pos + b.att.rotate(r), v, (s.k * depth + s.c * v.z).max(0.0)))
+        // An extending strut damps harder (`REBOUND`).
+        let c = if v.z < 0.0 { s.c * REBOUND } else { s.c };
+        Some((r, b.pos + b.att.rotate(r), v, (s.k * depth + c * v.z).max(0.0)))
     }
 
     /// Each strut's normal load (N) on a runway at `ground_z`.

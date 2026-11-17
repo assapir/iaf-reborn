@@ -148,8 +148,8 @@ Each entry names the switch and where it lives, then the difference: "Original: 
   jets, the AI's jets and the autopilot's bases keep the original game's data. Without the sim's data (built by
   `./modern-iaf-setup`) the 6-DoF choice reads "Not built", greyed; a saved 6-DoF choice then flies the original model
   and logs "Flight model 6-DoF: Modern IAF's data is not built". Each flight logs "Flight model: original|6dof".
-  On the 6-DoF the rudder keys ramp the pedals to full over 1 s instead of jumping (docs/controls.md §2); the
-  original model keeps the jump.
+  On the 6-DoF the rudder keys ramp the pedals to full over 1 s instead of jumping and spring back over 0.25 s
+  (docs/controls.md §2); the original model keeps the jump.
 
 **Flight data = Real**
 - **F-16 roll** (finish list F2). Original: the 1998 F-16 rolls at MaxRollRate 200 deg/s, RollAccel 270 deg/s².

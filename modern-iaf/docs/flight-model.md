@@ -576,8 +576,9 @@ The forces act at the compressed wheel (the strut gives along its body z axis, i
 up or down (a nose- or tail-first impact) gets the runway's push and no tyre force. The nose wheel steers (±32°, the
 F-15I ±45°: the 1998 Real rows) at any speed: the F-16's steering has no speed schedule. The pilot engages it with a
 button, "Use NWS until rudder is effective (approximately 70 knots)", "NWS should not be engaged above taxi speed
-unless required"[^to-f16a]; the game has no NWS button, so the pedals engage it: with the pedals centred (under 2 % of
-their travel) the nose wheel castors, rolling along its path with no side force (inferred). With the steering held
+unless required"[^to-f16a]; the game has no NWS button, so the pedals engage it, and below taxi speed (30 kt,
+inferred) it stays engaged: there centred pedals steer the nose wheel straight. Above 30 kt, with the pedals centred
+(under 2 % of their travel) the nose wheel castors, rolling along its path with no side force (inferred). With the steering held
 straight under full antiskid braking (the main tyres keep 0.15 of side grip, below) the jet yawed away into a ground
 loop; the castoring nose wheel leaves it running straight on its mains (2026-11-16).
 
@@ -614,6 +615,46 @@ and the Adir on the nose wheel's 32° within 25 % of the kinematic rate (29 / 28
 7–16°), and the jet leans at most 2° (the F-16s) and 0.7° (the Adir), never over (bound 10°). On the 6-DoF the
 keyboard's rudder keys move the pedals to full over 1 s instead of at once (`terrain_view.gd` `PEDAL_RAMP_S`,
 docs/controls.md); a rudder axis stays direct.
+
+**Taxi steering and braking pitch** (2026-11-17, the user on the Sufa at Ramon: the jet "keeps moving after I
+release" the pedals, turning, and it "lean to much forward and backward on the ground when pressing the breaks").
+Measured in the 6-DoF (Mac, `cargo test`), full pedal 2 s then released, and the brake switch on to a full stop at
+idle:
+
+* **The turn ran on.** Centred pedals let the nose wheel castor at every speed. A castoring nose wheel gives no side
+  force, and the main wheels stand only 0.5 m behind the c.g., so nothing stopped the jet's yaw: at 10 kt the Sufa
+  still turned at 13 deg/s 2 s after the release and 2.6 deg/s 6 s after. The keyboard's rudder keys also took 1 s to
+  bring the pedals back. Fixed: below 30 kt the steering stays engaged and the nose wheel follows the pedals back to
+  straight at once (`flight.rs` `NWS_TAXI_KT`); the keys spring the pedals back over 0.25 s (`PEDAL_CENTRE_S`,
+  [controls.md](../../docs/controls.md)). The trim is untouched: the steering never writes it. The yaw now falls as
+  fast as the nose tyre's side grip turns the jet's yaw momentum (the grip grows with the slip angle up to 8°, above):
+
+  | jet | 10 kt: yaw at release, +1 s, +2 s, +5 s | 20 kt: the same |
+  |---|---|---|
+  | F-16D Barak | 29.1, 8.3, 1.7, 0.03 deg/s | 23.4, 9.9, 4.3, 0.43 deg/s |
+  | F-16I Sufa | 29.1, 8.3, 1.5, 0.02 deg/s | 23.5, 9.9, 4.2, 0.40 deg/s |
+  | F-35I Adir | 22.9, 3.3, 0.2, 0.00 deg/s | 23.0, 5.9, 1.5, 0.04 deg/s |
+  | F-15I Ra'am | 17.5, 5.2, 1.0, 0.02 deg/s | 15.1, 6.9, 3.2, 0.38 deg/s |
+
+  At 20 kt the slower fall is the tyres' own: with less slip angle per deg/s of yaw the nose tyre pushes less. Why not
+  30 kt and above: held straight under full braking, the jet ground-loops from 40 kt (the braked mains keep 0.15 of
+  side grip); from 30 kt and below it stops straight. Test `centred_pedals_stop_the_ground_turn`.
+* **The rock.** The brake switch stepped the brakes from none to full, and the struts damped extension as softly as
+  compression (damping ratio 0.6 per strut, about 0.3 in the jet's pitch). The F-16s' nose dipped 1.22–1.24° (the
+  braked attitude is 0.88°: a 40 % overshoot); at the stop the braking force vanished and the nose came back up 0.4°
+  past level and rocked three times, 1.3 s to settle within 0.1°; the Adir 0.61° and 0.17°, the Ra'am 0.85° and
+  0.29°. The reborn model's inferred figure is about a degree under firm braking (8° per g limited to 2°,
+  [docs/flight-model.md](../../docs/flight-model.md) "Brake pitch"); the dip itself was in range, the overshoot and
+  the rock were not. Fixed: the brakes ramp from off to full and back over 0.5 s (`BRAKE_RAMP_S`, inferred: a pilot's
+  press on the pedals), and an extending strut damps four times harder than a compressing one (`gear.rs` `REBOUND`,
+  inferred: an oleo's smaller return orifice). Now from 10, 20 and 40 kt the Barak and Sufa dip 0.98–1.01°, the Adir
+  0.50°, the Ra'am 0.69°; none comes back up past level (0.00°), and each is within 0.01° of its standing attitude 1 s
+  after the stop. Test `braking_dips_the_nose_and_settles_without_rocking`.
+* **Side effects on take-off and landing.** A brake held through touchdown builds up over 0.5 s, and a bounce starts
+  that build-up again; brake release at full power starts the roll 0.3–0.5 s later; the harder extension damping
+  also acts at rotation, lift-off and touchdown bounces; below 30 kt with the pedals centred the nose wheel holds
+  straight on the take-off roll and the end of the landing roll. The take-off, landing, crosswind and full-pedal
+  tests still pass unchanged.
 
 **The drawn wheels** (since 2026-11-15, the user: "the wheels of the plane are not strictly above ground but half on
 it"). The struts' lengths come from the jet's model: the game passes the model's `height` helper (its tyres' bottoms

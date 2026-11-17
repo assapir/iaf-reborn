@@ -49,6 +49,9 @@ var _pedal_key = null
 ## Ours, the 6-DoF: a rudder key moves the pedals from centre to full in this time (s; inferred: a pilot's push on
 ## the pedals) instead of at once, so a tap gives a little rudder and nose-wheel steering; an axis stays direct.
 const PEDAL_RAMP_S := 1.0
+## Released, the rudder keys let the pedals spring back to centre in this time (s; inferred: a centring spring), so
+## the nose wheel is straight within a quarter second (the user, 2026-11-17: the turn ran on after the keys).
+const PEDAL_CENTRE_S := 0.25
 var throttle := 0.74
 var flaps := 0.0
 var gear_down := false
@@ -4346,7 +4349,7 @@ func _read_controls(delta: float) -> void:
 	for e in Joystick.poll():
 		_joy_event(e)
 	if _pedal_key != null:
-		rudder = move_toward(rudder, _pedal_key, delta / PEDAL_RAMP_S)
+		rudder = move_toward(rudder, _pedal_key, delta / (PEDAL_CENTRE_S if _pedal_key == 0.0 else PEDAL_RAMP_S))
 		if rudder == _pedal_key:
 			_pedal_key = null
 	# Ours: the roll trim, from the throttle rocker (Devices page) and Alt + Left / Right (docs/controls.md); held
