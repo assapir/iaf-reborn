@@ -461,6 +461,9 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   picture. The 14 Nov switch to the monitor's own pixels (hiDPI off) was reverted on 15 Nov at the user's word: with
   Upscaling Quality the cockpit came out soft there. Open again: the HUD's thin stroke on that monitor, two half-lit
   pixels (real-hud.md "A 1× monitor beside a Retina screen").
+- **One click sound a click (2026-11-17, the user: "the clicks on the panel are happens twice for every click I
+  think"):** an ICP key's click sounded three times and entered once; every control now sounds once a click
+  ([cockpit.md](cockpit.md) §5.2). `test_one_click.gd`.
 - **The pilot's body off the switches (2026-11-17, the user: "I am unable to click the main power on the second
   traininig"):** Alt + H hides the body while held, Alt + G for the flight; the first lesson hides it while it covers
   the ringed switch; the body never took the click ([cockpit.md](cockpit.md) §5.3). `test_lesson_clicks.gd`.

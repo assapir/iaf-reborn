@@ -279,6 +279,12 @@ where the flight model has it, every frame: a cold jet's off, a hot jet's on, ea
 off when it goes back off ("Both ways" below); a refused step leaves its switch off. The original game keeps the
 switches as FlightGear models them.
 
+- **One click sound a click** (2026-11-17, the user: "the clicks on the panel are happens twice for every click I
+  think"): a click on an ICP key entered its key once but sounded three clicks (`SFX_BUTTON` on the press, again from
+  the key's command 250, again on the spring-back). A control's move sounds once: not on a push button's or a spring's
+  way back to rest, and not when the command it sends played the click itself (`cockpit3d_controls.gd` `put`).
+  `modern-iaf/tests/test_one_click.gd`: ICP digits through the pointer (one digit, one sound each), a toggle, MAIN
+  PWR, the INS knob.
 - **The AVIONIC POWER switches** (2026-11-11, from the user's Mac; each its own system since 2026-11-13, "One by one"
   below): each is its own `toggle` in `f16_controls.json`. A click flips that switch alone, with its click
   (`SFX_BUTTON`), and sends its own command, `[219, 1, i]` on and `[219, -1, i]` off (i: MMC 0, ST STA 1, MFD 2,

@@ -409,10 +409,16 @@ func put(r: Dictionary, v: float) -> void:
 	var was := value(r)
 	sw[r.prop] = v
 	var tv: Object = get_parent().command.get_object() if get_parent().command.is_valid() else null
-	if tv != null and tv.get("sounds") != null:
-		tv.sounds.play("SFX_BUTTON")
+	var snd: Node = tv.get("sounds") if tv != null else null
+	var n: int = snd.played.size() if snd != null else 0
 	if r.has("system"):
 		_system_put(r.system, v, was)
+	# One click sound a click (the user, 17 Nov: "the clicks on the panel are happens twice for every click I think":
+	# an ICP key clicked on its press, again by its key's command and on its spring-back): none when the system's
+	# command played its own, none on a push button's or a spring's way back to rest.
+	var back := r.has("rest") and is_equal_approx(v, float(r.rest)) and _springs(r, was)
+	if snd != null and not back and not snd.played.slice(n).has("SFX_BUTTON/None"):
+		snd.play("SFX_BUTTON")
 	if v < 0.5:
 		for e in _controls:
 			if e[1].get("guard", "") == r.prop and e[1].has("safe") and _generic(e[1]):
