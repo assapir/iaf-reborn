@@ -69,11 +69,11 @@ python3 -I tools/flight_timeline.py <flight.jsonl> [--html f.html] # a recorded 
 
 - Open bugs come before look and design work.
 - A change the user ordered directly, and a fix that restores an approved state, merge after review.
-- Any other visible change (a new look, layout, text size, a moved cockpit part, night lighting) waits on its own
+- Any other visible change (a new look, layout or text size) waits on its own
   branch with before / after pictures until the user says yes (the approvals page).
 - Finish with no known gaps: a job closes every fault it knows about in the thing it was asked to build. An item stays
   open only when truly blocked, with the concrete reason written down. A "still different" list is not a result.
-- Scope is the user's own words. Extra rows an inventory adds (voice content, new missions, models) are listed as
+- Scope is the user's own words. Extra rows an inventory adds are listed as
   "not started", not built.
 - A cockpit or model look is matched to its reference picture from the same camera (side by side and overlaid), not
   to a list of items.
@@ -120,18 +120,21 @@ python3 -I tools/flight_timeline.py <flight.jsonl> [--html f.html] # a recorded 
 ### Modern IAF rules
 
 - Game logic is in Rust; Godot wires and renders. Modern IAF reuses the original game's logic through `shared/` and
-  the crates, never its 1998 data formats or looks; the original game's behaviour does not change (pattern:
-  `Settings.modern_radar()`).
+  the crates, never its 1998 data formats or looks; the original game's behaviour does not change.
 - One jet's avionics are finished before the next; a second jet of the same family is a data difference, not a second
   implementation.
 - Every cockpit function has a keyboard key or a clickable control in the 3D cockpit: the keyboard is the first-class
   input, a joystick mapping is optional and never the only way. New keys go in the sim's key table and the controls
   doc, with no conflicts.
-- A weapon that cannot be employed without a pod is not allowed without it. The rule is data (`needs` on the weapon,
-  `gives` on the store, `stores::unmet`), enforced on the arming screen (Fly and saving a preset refused, one short
-  line), in the briefing and in flight.
-- Every screen has Hebrew and English. Hebrew is gender-neutral and formal; a pod is "פוד". Notices on a screen are
-  one short line in the screen's normal text size.
+- A load, setting or preset that cannot be used in flight is refused where it is made, not only in flight; the screen
+  says why in one line. Such a dependency is data on the records, with one rule in Rust that every screen and the
+  flight call. It applies everywhere the thing can be stored or started from: the screen, a saved preset (old ones
+  too), a mission's default.
+- Every screen has Hebrew and English. Hebrew is gender-neutral and formal.
+- Before writing a Hebrew term for an aviation or weapon-system thing, search for the term Hebrew speakers in the field
+  use (the air force's own publications, Israeli aviation press) and use that, a transliterated loanword included
+  where that is what is used; do not coin a translation. One thing has one term across the whole front end.
+- A notice on a screen is one short line in the screen's normal text size: it says what is wrong and what to do.
 - The plan and its decisions live in `modern-iaf/docs/avionics-plan.md` and `modern-iaf/docs/research/pods.md`; a
   slice updates its rows, `docs/status.md` and the controls doc in the same change. Pilot guides for Modern IAF are
   planned with the user before any is written.
