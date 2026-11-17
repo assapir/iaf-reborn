@@ -3,6 +3,11 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **The F-16s' lighting controls (2026-11-17, the lights audit part B, [cockpit.md](cockpit.md) §5.5; approved
+  17 Nov):** the lighting panel's dimmers, MAL & IND LTS, NVIS, INDV LTG CONT and DATA ENTRY DISPLAY,
+  the ICP's BRT wheel, the exterior lights panel and LANDING / TAXI each do their job; LE FLAPS rests at AUTO and its
+  caution lights at LOCK (`modern-iaf/tests/test_cockpit_lights.gd`). ANTI SKID, STORES CONFIG and SEAT NOT ARMED stay
+  test only: the anti-skid system, the load's category and the seat lever are not modelled.
 - **The Adir's radar, sensors and helmet (2026-11-17, avionics-plan.md slice 7 part B, A2–A7, E5, H6–H8, N9, P5):**
   the real FCR's controls on the APG-81's row (`radar.fcr`; the Sufa's keys): SRCH with CRM RWS / TWS / VSR, SAM's
   four bugs, STT, ACM and BORE, the cursor with its altitude coverage; ASR with the ground map as a grey SAR picture

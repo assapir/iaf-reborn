@@ -95,8 +95,10 @@ var _sun: DirectionalLight3D  # _lighting
 var _lit_mats := []
 var _lit := Color(-1, -1, -1)  # the fill colour set
 var _screen_mats := []  # every screen's material (_screen_viewport)
-var _on_shown := Vector2.ONE  # the screens' and the DED's levels shown (_lighting): unpowered 0, else MFD BRT
+## The screens', the DED's levels and the DED knob's shown (_lighting): unpowered 0, else MFD BRT.
+var _on_shown := Vector3.ONE
 var _ded_mat: StandardMaterial3D  # the F-16's DED screen (_attach_display): dark with its UFC switch off
+var _pfl_mat: StandardMaterial3D  # the F-16's pilot fault list (_attach_display)
 var _split := -1.0  # the scene's first shadow split (_sun_split)
 ## The pilot's body whose left glove follows the throttle's grip (_pilot_throttle); null without one.
 var _pilot: MeshInstance3D
@@ -166,6 +168,9 @@ func setup(c: Control, cam: Camera3D, type_code: int) -> bool:
 						mi.find_blend_shape_by_name("throttle_idle"), mi.find_blend_shape_by_name("throttle_full")
 					]
 	meta = Settings.load_json(path.get_basename() + ".json")
+	for k in meta.get("controls", {}):  # the lighting panel's rests (_knob)
+		if meta.controls[k].has("modelled"):
+			_rest[meta.controls[k].prop] = float(meta.controls[k].modelled)
 	_materials(n, path, Settings.airframe_id(type_code) == "f16")
 	var anims: Dictionary = meta.get("animations", {})
 	# The model's controls' properties (<model>.json `controls`): unset, a control shows as modelled.
@@ -384,6 +389,26 @@ const FLOOD := Color(0.45, 0.34, 0.18)
 const FLOOD_ENERGY := 0.9
 const BACKLIGHT := Color(0.476, 0.9, 0.161)
 const BACKLIGHT_ENERGY := 0.7
+## The F-16's lighting panel (the lights audit, part B, 2026-11-17; modern-iaf/docs/cockpit.md "Lighting"): its knobs'
+## FlightGear properties. FLOOD and BACKLIGHT above are the light at each knob's rest (<model>.json `modelled`, as the
+## model shows it); a knob dims its light to none at OFF and raises it to DIMMER_MAX at its full turn, linearly on
+## either side of its rest (_dimmer; inferred). PRIMARY CONSOLES and PRIMARY INST PNL light the backlit labels of the
+## consoles (CONSOLE_SHEETS) and of the instrument panel and its auxiliary consoles; FLOOD CONSOLES and FLOOD INST PNL
+## their flood; DATA ENTRY DISPLAY the DED and the pilot fault list (FlightGear's ded.xml, pfd.xml). They light the
+## cockpit's night (cockpit.night); by day the sun's fill outshines them.
+const PRI_CONSOLE := "controls/lighting/lighting-panel/console-primary-knob"
+const PRI_PANEL := "controls/lighting/lighting-panel/pri-inst-pnl-knob"
+const FLOOD_CONSOLE := "controls/lighting/lighting-panel/console-flood-knob"
+const FLOOD_PANEL := "controls/lighting/lighting-panel/flood-inst-pnl-knob"
+const DED_KNOB := "controls/lighting/lighting-panel/data-entry-display"
+const DIMMER_MAX := 2.5
+## The consoles' sheets (material names; not the auxiliary consoles beside the instrument panel).
+const CONSOLE_SHEETS := ["_console", "throttle", "rear-left", "temp.zKnob"]
+## The ICP's BRT wheel: the HUD's brightness (FlightGear's hud.xml factor-prop), on the HUD's alpha.
+const HUD_BRT := "f16/avionics/hud-brt"
+var _rest := {}  # a control's property -> its rest (<model>.json controls' "modelled")
+var _console_mats := {}  # the lit materials of the consoles (CONSOLE_SHEETS)
+var _gains := Vector4(-1, -1, -1, -1)  # the dimmers shown: flood panel, flood consoles, primary panel, consoles
 ## The MFDs' brightness at the cockpit's night (ours, as a pilot turns the BRT rocker down): at full brightness the
 ## map pages' light grey land (the TSD's, the Sufa's HSD's) glared in the dark cockpit.
 const MFD_NIGHT := 0.3
@@ -434,6 +459,9 @@ func _setup_light(model: Node3D) -> void:
 				TUB_FILL if UNLIT.any(func(u): return mat.resource_name.contains(u)) else 1.0
 			)
 			_lit_mats.append(mat)
+			var n := mat.resource_name
+			if not n.contains("aux") and CONSOLE_SHEETS.any(func(c): return n.contains(c)):
+				_console_mats[mat] = true
 	_setup_baked_light(model, lamp_mats)
 	_setup_backlight()
 	var p := get_parent()
@@ -543,12 +571,15 @@ func _lighting() -> void:
 	# frame, with their night level).
 	# The F-16's AVIONIC POWER switches (cockpit.up, the flight model's systems): MFD the two MFDs, UFC the DED.
 	var on: float = Settings.mfd_brightness if cockpit.power == 2 else 0.0
-	var ded: float = on if cockpit.up("ufc") else 0.0
-	if Vector2(on, ded) != _on_shown:
-		_on_shown = Vector2(on, ded)
+	var dk := _dimmer(DED_KNOB)
+	var ded: float = on * dk if cockpit.up("ufc") else 0.0
+	if Vector3(on, ded, dk) != _on_shown:
+		_on_shown = Vector3(on, ded, dk)
 		for m: StandardMaterial3D in _screen_mats:
 			if not _screens.any(func(e): return e[2].material_override == m):
-				m.emission_energy_multiplier = ded if m == _ded_mat else on
+				m.emission_energy_multiplier = ded if m == _ded_mat else (on * dk if m == _pfl_mat else on)
+	if _rest.has(HUD_BRT):
+		cockpit.hud.modulate.a = clampf(_knob(HUD_BRT), 0.0, 1.0)
 	var mfd: float = on if cockpit.up("mfd") else 0.0
 	for e in _screens:  # the MFDs turned down at night (MFD_NIGHT), their map fill darker (MAP_NIGHT)
 		(e[2].material_override as StandardMaterial3D).emission_energy_multiplier = (
@@ -560,15 +591,66 @@ func _lighting() -> void:
 	elif _sun != null:
 		c = _sun.light_color * (FILL * _sun.light_energy)
 	c.a = 1.0
+	var g := Vector4(_dimmer(FLOOD_PANEL), _dimmer(FLOOD_CONSOLE), _dimmer(PRI_PANEL), _dimmer(PRI_CONSOLE))
 	# Written only when it changed by more than an 8-bit step (the sun's colour moves once a sim second).
-	if maxf(maxf(absf(c.r - _lit.r), absf(c.g - _lit.g)), absf(c.b - _lit.b)) <= 1.0 / 255.0:
+	if maxf(maxf(absf(c.r - _lit.r), absf(c.g - _lit.g)), absf(c.b - _lit.b)) <= 1.0 / 255.0 and g == _gains:
 		return
 	_lit = c
+	_gains = g
 	for mat: BaseMaterial3D in _lit_mats:
-		mat.emission = c
+		mat.emission = c * ((g.y if _console_mats.has(mat) else g.x) if cockpit.night else 1.0)
+	for mat: BaseMaterial3D in _glows:
+		var b := BACKLIGHT * BACKLIGHT_ENERGY * (g.w if _console_mats.has(mat) else g.z)
+		_glows[mat].set_shader_parameter("glow", Vector3(b.r, b.g, b.b))
 	var day := c * (float(meta.get("day_fill", 0.0)) / FILL)
 	for mat: BaseMaterial3D in _night_mats:
 		mat.emission = _night_mats[mat][0] if cockpit.night else _night_mats[mat][1] * day
+
+
+## Control `prop`'s position: as set, else its rest.
+func _knob(prop: String) -> float:
+	return float(switches.get(prop, _rest.get(prop, 0.0)))
+
+
+## A lighting panel dimmer's light: 1 at its rest, 0 at OFF, DIMMER_MAX at its full turn (1 without the knob).
+func _dimmer(prop: String) -> float:
+	if not _rest.has(prop):
+		return 1.0
+	var rest: float = _rest[prop]
+	var v := _knob(prop)
+	if v <= rest:
+		return v / rest if rest > 0.0 else 1.0
+	return lerpf(1.0, DIMMER_MAX, (v - rest) / (1.0 - rest))
+
+
+## The exterior lights panel and the gear panel's LANDING / TAXI switch (the lights audit, part B; FlightGear's
+## f16.nas sendLightsToMp): what the jet shows outside (aircraft_model.gd panel_lights), {} without the panel (the 2D
+## panel, the original game, the F-35I). MASTER feeds them all but the landing and taxi lights, on the generators
+## (cockpit.power 2: FlightGear's AC buses): WING / TAIL the wingtips', inlets' and tail's position lights (BRT 1,
+## DIM 0.2), steady or flashing (FLASH); with WING / TAIL off the wingtips glow as formation lights. ANTI-COLL the
+## fin's strobe; FUSELAGE the white lights on the aft fuselage (BRT 1, DIM 0.4); FORM (a knob) the formation lights;
+## AR (a knob) the air refuelling receptacle's light with its door open. LANDING / TAXI: 1 LANDING, -1 TAXI.
+const EXT := "controls/lighting/ext-lighting-panel/"
+var _ext := {}
+
+
+func ext_lights() -> Dictionary:
+	if clickable == null or not Settings.cockpit_controls() or not _rest.has(EXT + "master"):
+		return {}  # the 1998 game (its switches not clickable): the lights stay on as before
+	var on: bool = cockpit.power >= 2 and _knob(EXT + "master") > 0.5
+	var wing := roundi(_knob(EXT + "wing-tail")) if on else 0
+	var fuse := roundi(_knob(EXT + "fuselage")) if on else 0
+	var form := clampf(_knob(EXT + "form-knob"), 0.0, 1.0) if on else 0.0
+	var e := _ext  # one dictionary for every frame
+	e.wing = 0.0 if wing == 0 else (1.0 if wing > 0 else 0.2)
+	e.flash = _knob(EXT + "pos-lights-flash") > 0.5
+	e.form_tips = form if wing == 0 else 0.0
+	e.strobe = on and _knob(EXT + "anti-collision") > 0.5
+	e.fuselage = 0.0 if fuse == 0 else (1.0 if fuse > 0 else 0.4)
+	e.form = form
+	e.ar = clampf(_knob(EXT + "ar-knob"), 0.0, 1.0) if on and _knob("systems/refuel/switch") > 0.5 else 0.0
+	e.land = roundi(_knob("controls/lighting/landing-light")) if cockpit.power >= 2 else 0
+	return e
 
 
 ## The sun's first shadow split pulled in to the cockpit (SPLIT_M) while it is drawn, the scene's otherwise.
@@ -721,6 +803,7 @@ func release() -> void:
 		cockpit.hud_clip = null
 		cockpit.hud_on_glass = false
 		cockpit.zoom = minf(cockpit.zoom, cockpit.ZOOM_MAX)  # the zoom past true size is the 3D cockpit's only
+		cockpit.hud.modulate.a = 1.0  # the BRT wheel's (_lighting)
 	if _sun != null and _split >= 0.0:
 		_sun.directional_shadow_split_1 = _split
 
@@ -1216,6 +1299,8 @@ func _attach_display(screen: MeshInstance3D, kind: int, px: Vector2i) -> void:
 		(screen.material_override as StandardMaterial3D).uv1_scale = Vector3(1.0 / ext.x, 1.0 / ext.y, 1.0)
 	if screen.name == "DED_screen":
 		_ded_mat = screen.material_override
+	if screen.name == "PFD_screen":
+		_pfl_mat = screen.material_override
 
 
 ## The largest UV a mesh's surfaces use.
@@ -1247,7 +1332,35 @@ func _setup_legend_lamps(model: Node3D, rows: Dictionary) -> void:
 			_legend_lamps.append([mats, r.lamp, uv, mats.map(func(m): return m.next_pass)])
 
 
+## The lamps' brightness (the lights audit, part B): the lighting panel's MAL & IND LTS switch (BRT / DIM, sprung to
+## its middle) sets every lamp but the indexers bright or dim and the level stays; DIM takes only with PRIMARY INST PNL
+## on, and the lamps go back to bright with BRT, PRIMARY INST PNL off, FLOOD CONSOLES at full or the power off
+## (FlightGear's f16.nas, from T.O. 1F-16A-1 page 1-155; its dim level 0.5). Its NVIS / NORMAL switch at NVIS holds
+## them dim (inferred: the night vision goggles' cockpit). The INDV LTG CONT knob dims the AoA indexer and the AR / NWS
+## light, BRT to DIM (to INDEXER_DIM; inferred).
+const MAL_IND := "controls/lighting/lighting-panel/mal-ind-lts-brightness-switch"
+const NVIS := "f16/avionics/nvis"
+const INDEXER_KNOB := "f16/avionics/indv-ltg-brightness-switch"
+const LAMP_DIM := 0.5
+const INDEXER_DIM := 0.25
+var lamp_level := 1.0
+
+
+func _lamp_level() -> float:
+	if not _rest.has(MAL_IND):
+		return 1.0
+	var s := _knob(MAL_IND)
+	var pri := _knob(PRI_PANEL)
+	if s < -0.5 and pri > 0.0:
+		lamp_level = LAMP_DIM
+	if s > 0.5 or pri <= 0.0 or _knob(FLOOD_CONSOLE) >= 1.0 or cockpit.power < 1:
+		lamp_level = 1.0
+	return minf(lamp_level, LAMP_DIM if _knob(NVIS) > 0.5 else 1.0)
+
+
 func _update_instruments() -> void:
+	var level := _lamp_level()
+	var indexers := lerpf(1.0, INDEXER_DIM, clampf(_knob(INDEXER_KNOB), 0.0, 1.0)) if _rest.has(INDEXER_KNOB) else 1.0
 	for l in _legend_lamps:
 		var on: bool = cockpit.power >= 1 and (lamp_test or _lamp_on(l[1]))
 		lamps_lit[l[1]] = on
@@ -1256,7 +1369,7 @@ func _update_instruments() -> void:
 			m.uv1_offset = l[2] if on else Vector3.ZERO
 			m.next_pass = null if on else l[3][i]  # lit: not shaded by the baked light
 			if on or _lit.r >= 0.0:
-				m.emission = Color.WHITE if on else _lit
+				m.emission = Color.WHITE * level if on else _lit * (_gains.x if cockpit.night else 1.0)
 	_cautions_update()
 	for key in _lamps:
 		var base: String = key.trim_suffix("_unlit")
@@ -1272,7 +1385,7 @@ func _update_instruments() -> void:
 			if l[1]:
 				l[0].visible = on
 			for m in l[2]:
-				m.emission_energy_multiplier = lit if on else 0.0
+				m.emission_energy_multiplier = lit * (indexers if INDEXER_GAIN.has(key) else level) if on else 0.0
 				if _lamp_albedo.has(m):
 					m.albedo_color = _lamp_albedo[m] if on else _lamp_albedo[m].darkened(off)
 	var ils := _ils_live()
@@ -1354,6 +1467,8 @@ func _lamp_on(key: String) -> bool:
 			return ["main_gen", "stby_gen", "flcs_pmg", "to_flcs", "flcs_rly"].any(_lamp_on)
 		"caution_engine_fault", "caution_avionics":  # the pilot fault list's ENG and AV classes (the damage flags)
 			return _fault_class(2 if key == "caution_engine_fault" else 3)
+		"caution_le_flaps":  # the LE FLAPS switch at LOCK (FlightGear's failures.nas; the jet flies at AUTO, its rest)
+			return float(switches.get("f16/fcs/le-flaps-switch", 1.0)) < 0.5
 		"caution_hook":  # the hook handle down (the hook itself is not modelled)
 			return _sw("f16/cockpit/tailhook-handle")
 		"caution_cabin_press":  # the cabin above 27,000 ft (FlightGear's)

@@ -30,6 +30,7 @@ uniform float gain = 1.0;
 uniform float fog_k = 0.00003;
 uniform float vp_h = 1080.0;
 uniform float lift = 1.5;
+uniform float pull = -1.0;
 #include "res://shared/terrain/clouds_behind.gdshaderinc"
 varying float fade;
 varying vec3 col;
@@ -57,8 +58,9 @@ void vertex() {
 		}
 	}
 	POINT_SIZE = clamp(px, min_px * rows, max_px * rows);
-	// The sprite is flat at the light's depth: drawn size_m nearer, the ground or skin around the light hides none of it.
-	POSITION = PROJECTION_MATRIX * vec4(v.xyz * max(d - size_m, 0.5) / d, 1.0);
+	// The sprite is flat at the light's depth: drawn size_m nearer, the ground or skin around the light hides none of it
+	// (`pull` nearer when set: the F-16 panel's lights, which the jet's own skin hides from its far side).
+	POSITION = PROJECTION_MATRIX * vec4(v.xyz * max(d - (pull < 0.0 ? size_m : pull), 0.5) / d, 1.0);
 }
 void fragment() {
 	vec2 c = POINT_COORD * 2.0 - 1.0;
@@ -169,6 +171,32 @@ static func set_gain(night: bool, fog_density: float, rows: float) -> void:
 		m.set_shader_parameter("gain", 1.0 if night else (0.35 if m == glow() else 0.12))
 		m.set_shader_parameter("fog_k", fog_density)
 		m.set_shader_parameter("vp_h", rows)
+	for level in _navs:
+		_dimmed(level)
+
+
+## The F-16 panel's lights (aircraft_model.gd panel_lights) at `level` of their brightness (DIM, the FORM knob; in
+## steps of a twentieth), drawn PANEL_PULL nearer than they are: the jet's skin hides those on its far side (the
+## inlets', the landing light's seen from above).
+const PANEL_PULL := 0.3
+static var _navs := {}
+
+
+static func panel_glow(level: float) -> ShaderMaterial:
+	var k := snappedf(clampf(level, 0.05, 1.0), 0.05)
+	if not _navs.has(k):
+		_navs[k] = nav_glow().duplicate()
+		_navs[k].set_shader_parameter("pull", PANEL_PULL)
+		_dimmed(k)
+	return _navs[k]
+
+
+static func _dimmed(level: float) -> void:
+	for p in ["fog_k", "vp_h"]:
+		if nav_glow().get_shader_parameter(p) != null:
+			_navs[level].set_shader_parameter(p, nav_glow().get_shader_parameter(p))
+	var g = nav_glow().get_shader_parameter("gain")
+	_navs[level].set_shader_parameter("gain", (1.0 if g == null else float(g)) * level)
 
 
 ## The original's material for a light set: unshaded points of `px` pixels, vertex colours, no depth write, fogged.
@@ -312,6 +340,116 @@ static func add_lights_on(frame: Node3D, key: String, ew) -> Node3D:
 		m.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		frame.add_child(m)
 	return strobe
+
+
+## The F-16's exterior lights besides the navigation lights and the strobe, which its exterior lights panel works
+## (cockpit3d.gd ext_lights; aircraft_model.gd panel_lights): group -> [[FlightGear's spot (its frame: x aft, y right,
+## z up), colour (alpha below 1: one way, as the glow shader's), outward (FlightGear's frame)]]. The inlets' position
+## lights, the fuselage lights and the landing / taxi light at FlightGear's F-16.xml spots; the formation strips (the
+## forward fuselage's sides, the aft fuselage's, the fin's: the F-16's electroluminescent strips, their pale green;
+## inferred from photographs) and the air refuelling receptacle's light (on the spine behind the canopy; inferred),
+## which FlightGear does not place, at our spots. Each moves onto the model's skin (_on_skin). Our detailed F-16s are
+## on FlightGear's frame (tools/f16/base.py), placed by the fin top (FlightGear's strobe, FG_FIN).
+const FG_FIN := Vector3(5.3, 0.0, 3.2)
+const FORM_GREEN := Color(0.55, 1.0, 0.4)
+const PANEL_LIGHTS := {
+	"inlet":
+	[
+		[Vector3(-3.36687, -0.748387, -0.555937), NAV_RED, Vector3(0, -1, 0)],
+		[Vector3(-3.36687, 0.748387, -0.555937), NAV_GREEN, Vector3(0, 1, 0)]
+	],
+	"fuselage":
+	[
+		[Vector3(3.45, -0.95, 0.22), NAV_WHITE, Vector3(0, -1, 0)],
+		[Vector3(3.45, 0.95, 0.22), NAV_WHITE, Vector3(0, 1, 0)]
+	],
+	"form":
+	[
+		[Vector3(-5.0, -0.5, 0.2), FORM_GREEN, Vector3(0, -1, 0)],
+		[Vector3(-5.0, 0.5, 0.2), FORM_GREEN, Vector3(0, 1, 0)],
+		[Vector3(4.0, -0.85, 0.3), FORM_GREEN, Vector3(0, -1, 0)],
+		[Vector3(4.0, 0.85, 0.3), FORM_GREEN, Vector3(0, 1, 0)],
+		[Vector3(5.6, -0.05, 2.6), FORM_GREEN, Vector3(0, -1, 0)],
+		[Vector3(5.6, 0.05, 2.6), FORM_GREEN, Vector3(0, 1, 0)]
+	],
+	"ar": [[Vector3(-1.2, 0.0, 1.0), NAV_WHITE, Vector3(0, 0, 1)]],
+	"land": [[Vector3(-3.13064, 0.307693, -1.23477), Color(1.0, 0.97, 0.9, 0.75), Vector3(0, 0, -1)]],
+}
+
+
+## The panel's lights on `frame` (an F-16's root, its spots cached as `key`): group -> its MeshInstance3D (hidden),
+## and "tips" (the wingtips' red and green as formation lights) and "land_at" (the landing light's spot, `frame`'s).
+static func add_panel_lights(frame: Node3D, key: String) -> Dictionary:
+	if not _spots.has(key):
+		_spots[key] = _light_spots(frame)
+	if _spots[key].is_empty():
+		return {}
+	var s: Array = _spots[key]
+	if not _panel_spots.has(key):
+		_panel_spots[key] = _on_skin(_skin(frame), s[3])
+	var out := {}
+	for group in PANEL_LIGHTS:
+		var cols := PackedColorArray()
+		for e in PANEL_LIGHTS[group]:
+			cols.append(e[1])
+		out[group] = _points(frame, "Panel_" + group, _panel_spots[key][group], cols)
+	out.tips = _points(frame, "Panel_tips", PackedVector3Array([s[0], s[1]]), PackedColorArray([NAV_RED, NAV_GREEN]))
+	out.land_at = _panel_spots[key].land[0]
+	return out
+
+
+static var _panel_spots := {}
+
+## PANEL_LIGHTS' spots in our frame (the fin top at `fin`), each the outermost point of `skin` (along its outward)
+## within PANEL_REACH of it across, 3 cm out: group -> spots.
+const PANEL_REACH := 0.2
+
+
+static func _on_skin(skin: PackedVector3Array, fin: Vector3) -> Dictionary:
+	var out := {}
+	for group in PANEL_LIGHTS:
+		var pts := PackedVector3Array()
+		for e in PANEL_LIGHTS[group]:
+			var p: Vector3 = e[0]
+			var at := fin + Vector3(p.y, p.z - FG_FIN.z, p.x - FG_FIN.x)
+			var o := Vector3(e[2].y, e[2].z, e[2].x)
+			var best := at
+			var far := -INF
+			for v in skin:
+				var r := v - at
+				if (r - o * r.dot(o)).length_squared() < PANEL_REACH * PANEL_REACH and r.dot(o) > far:
+					far = r.dot(o)
+					best = v
+			pts.append(best + o * 0.03)
+		out[group] = pts
+	return out
+
+
+static func _points(frame: Node3D, name: String, pts: PackedVector3Array, cols: PackedColorArray) -> MeshInstance3D:
+	var m := MeshInstance3D.new()
+	m.name = name
+	m.mesh = point_mesh(pts, cols)
+	m.material_override = panel_glow(1.0)
+	m.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	m.visible = false
+	frame.add_child(m)
+	return m
+
+
+## The vertices of `frame`'s shown meshes in its space, but the gear's, the hook's and the panel's own.
+static func _skin(frame: Node3D) -> PackedVector3Array:
+	var verts := PackedVector3Array()
+	for mi: MeshInstance3D in frame.find_children("*", "MeshInstance3D", true, false):
+		var n := str(mi.name)
+		if mi.mesh == null or not _shown(frame, mi) or n == "Hook" or n.begins_with("Ldg") or n.begins_with("Panel_"):
+			continue
+		if n.begins_with("Afterburner") or n in ["NavLights", "Strobe"]:
+			continue
+		var t := _rel(frame, mi)
+		for i in mi.mesh.get_surface_count():
+			for v: Vector3 in mi.mesh.surface_get_arrays(i)[Mesh.ARRAY_VERTEX]:
+				verts.append(t * v)
+	return verts
 
 
 ## [left tip, right tip, tail, fin top] in `frame`'s space ([] without meshes). +X right, +Y up, +Z aft (the glTF).

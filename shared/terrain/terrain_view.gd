@@ -4189,6 +4189,8 @@ func _process(delta: float) -> void:
 			if fs.has("tef"):
 				parts_in["tef"] = fs.tef  # the 6-DoF's trailing-edge flaps (modern-iaf/docs/flight-model.md §9.16)
 			parts_in["ground_speed"] = Vector2(fs.velocity.x, fs.velocity.z).length()  # the rolling wheels (ours)
+		if cockpit_3d != null:
+			parts_in["ext_lights"] = cockpit_3d.ext_lights()  # the F-16's exterior lights panel
 		aircraft.update(parts_in, delta)
 		if cockpit_3d != null:
 			cockpit_3d.controls = parts_in

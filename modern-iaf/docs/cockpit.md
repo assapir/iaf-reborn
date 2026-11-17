@@ -651,6 +651,55 @@ render, `tests/godot/_cockpit3d_shot.gd` with `C3D_SIM=1 C3D_ONLY=down`.
 ![The Sufa looking down: before, the seat's well and a black slab; after, the pilot's legs, hands and vest](pictures/cockpit/lookdown_sufa.jpg)
 ![The Barak looking down: before and after](pictures/cockpit/lookdown_barak.jpg)
 
+### 5.5 Lighting (2026-11-17, the lights audit part B; approved 17 Nov)
+
+The F-16s' lighting controls work (`cockpit3d.gd` `_lighting`, `_update_instruments`, `ext_lights`;
+`aircraft_model.gd` `_panel_lights`; FlightGear's f16.nas and F-16.xml as the source). At each control's rest, as the
+model draws it, the cockpit looks as before: by day unchanged, at night the flood and the backlit labels at their
+earlier level.
+
+**The lighting panel** (right console). Each knob is continuous: OFF none, its rest as before, its full turn 2.5 times
+that (linear either side; inferred).
+
+| Control | What it does |
+|---|---|
+| PRIMARY CONSOLES / INST PNL | the backlit labels of the consoles / of the instrument panel and its auxiliary consoles |
+| FLOOD CONSOLES / INST PNL | the warm flood on the consoles / on the instrument panel |
+| DATA ENTRY DISPLAY | the DED's and the pilot fault list's brightness |
+| MAL & IND LTS | BRT / DIM, sprung to its middle: every lamp but the indexers dim (half) or bright; the level stays. DIM takes only with PRIMARY INST PNL on; PRIMARY INST PNL off, FLOOD CONSOLES at full or the power off make them bright (T.O. 1F-16A-1 p. 1-155 through FlightGear) |
+| NVIS / NORMAL | NVIS holds the lamps dim (inferred) |
+| INDV LTG CONT | dims the AoA indexer and the AR / NWS light, BRT to a quarter at DIM (inferred) |
+
+The cockpit's own light (the flood and the labels) shows at the cockpit's night (`cockpit.night`); by day the sun's fill
+outshines it, so the knobs change nothing by day. The DED, the lamps and the HUD follow their controls by day and at
+night. The interior lights work without electrical power (ours: a cold cockpit stays readable at night).
+
+**The ICP's BRT wheel** sets the HUD's brightness (its alpha; FlightGear's hud-brt). The SYM wheel and the MFDs' BRT
+rockers work as before (§5.2).
+
+**The exterior lights panel** (left console) and the gear panel's **LANDING / TAXI** switch show on the jet's model.
+MASTER feeds every light but the landing and taxi light, and the lights need the generators (FlightGear's AC buses).
+
+| Control | What it does |
+|---|---|
+| WING / TAIL | the red and green wingtip and inlet lights and the white tail light; BRT, OFF, DIM (a fifth) |
+| FLASH / STEADY | the position lights blink (1 s, on half of it; inferred) or stay lit |
+| ANTI-COLL | the white strobe on the fin |
+| FUSELAGE | the white lights on the aft fuselage; BRT, OFF, DIM (0.4) |
+| FORM | the pale green formation strips (forward and aft fuselage, fin) at the knob's level; with WING / TAIL off the wingtips glow as formation lights |
+| AR | the air refuelling receptacle's light at the knob's level, with the AIR REFUEL door open |
+| LANDING / TAXI | with the gear down: the lamp under the nose and a SpotLight3D that lights the ground ahead (LANDING 7.5° wide, 10° below the jet's axis, 250 m; TAXI 30°, 5° below, 100 m; FlightGear's cones); no shadow |
+
+The extra lights sit at FlightGear's spots on our F-16s (the same frame), the formation strips and the receptacle's light
+at our own (inferred from photographs). They are drawn 0.3 m nearer than they are (the other jets' lights 2 m), so the
+jet's own skin hides those on its far side. Only the player's jet with the 3D cockpit's controls uses the panel; every
+other jet, the AI's F-16s too, keeps its navigation lights and strobe always on. The panel's rest is MASTER off: a jet
+starts dark until the pilot sets the lights.
+
+The LE FLAPS switch rests at AUTO (it rested at LOCK, while the jet flies AUTO); at LOCK its caution lights.
+
+Test: `modern-iaf/tests/test_cockpit_lights.gd` (both jets). Pictures: `modern-iaf/tests/_lights_shot.gd`.
+
 ### 5.4 The AoA probe (2026-11-11, from the user's Mac)
 
 On the ground the AoA gauge and the indexer jumped about: the 6-DoF's α is the angle of the body's velocity, which

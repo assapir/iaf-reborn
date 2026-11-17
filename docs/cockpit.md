@@ -796,9 +796,14 @@ occlusion, 1.8 MB; built by
   These light only in that test: they show a system the game does not model. TF FAIL, the blank eyebrow lamps, the AR
   status unit's RDY and DISC, the marker beacon, the EPU's RUN, GEN, PMG, HYDRAZINE and AIR, FLCS BIT FAIL, the FLCS
   FAIL lamps, STBY GAINS, the ECM panel's lamps, HANDOFF, the left eyebrow's IFF, and the cautions ADC, AFT NOT
-  ENGAGED, ANTI SKID, BUC, C ADC, EEC, FLT CONT SYS, FUEL OIL HOT, IFF, INLET ICING, LE FLAPS, NUCLEAR, NWS FAIL, OXY
-  LOW, RADAR ALT, SEAT NOT ARMED, SEC, STORES CONFIG. The panels' legends of the ELEC, EPU, FLCS, AVTR, ECM and threat
-  warning panels keep their sheet while off (`SHEET_KEPT`), as before they were lamps.
+  ENGAGED, ANTI SKID, BUC, C ADC, EEC, FLT CONT SYS, FUEL OIL HOT, IFF, INLET ICING, NUCLEAR, NWS FAIL, OXY LOW,
+  RADAR ALT, SEAT NOT ARMED, SEC, STORES CONFIG. LE FLAPS lights with the LE FLAPS switch at LOCK (part B, 2026-11-17:
+  the switch now rests at AUTO, as the jet flies; FlightGear's failures.nas). ANTI SKID stays test only (no anti-skid
+  system; the model's switch has the parking brake's two positions only), STORES CONFIG (the lamp shows no CAT I /
+  CAT III category of the load), SEAT NOT ARMED (the model has no seat safety lever). The panels' legends of the ELEC,
+  EPU, FLCS, AVTR, ECM and threat warning panels keep their sheet while off (`SHEET_KEPT`), as before they were lamps.
+  The exterior lights panel works only where the 3D cockpit's switches can be clicked (Modern IAF,
+  `Settings.cockpit_controls()`); in this game the jet's navigation lights and strobe stay on as before.
 * **Displays**, each a SubViewport whose texture lights its screen (emissive, as the MFDs; `cockpit3d_display.gd`):
   * the RWR azimuth indicator (256 px): the 2D panel's RWR symbols (`cockpit.gd` `draw_rwr_symbols`, the F-16
     panel dial's scale: 37,060 m at the rim) inside two printed rings; nothing with RWR damage (flag 14);

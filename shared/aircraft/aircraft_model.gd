@@ -493,8 +493,9 @@ func attach_nav_lights(to: Node3D) -> void:
 ## Switches the navigation lights and strobe off (a hit, falling or destroyed jet).
 func lights_off() -> void:
 	_lit = false
-	for n: Node3D in _lights:
-		n.visible = false
+	for n: Node3D in _lights + _panel.values().filter(func(v): return v is Node3D) + [_land]:
+		if n != null:
+			n.visible = false
 
 
 ## Drives the parts. `input` (all optional, like the flight state dictionary):
@@ -567,8 +568,11 @@ func update(input: Dictionary, delta: float) -> void:
 		_chute_angle = randf_range(-CHUTE_JITTER, CHUTE_JITTER)
 		_chute_t = _time
 	_chute_state = chute
+	var panel: Dictionary = input.get("ext_lights", {})
+	if not panel.is_empty() and not _strobes.is_empty():
+		_panel_lights(panel)
 	for sn: Node3D in _strobes:
-		sn.visible = _lit and NightLights.strobe_on(_time, _strobe_phase)
+		sn.visible = _lit and panel.get("strobe", true) and NightLights.strobe_on(_time, _strobe_phase)
 	# Afterburner level (FUN_005abc90 left / FUN_005abdc0 right): 75 + 12.5·stage when lit and that side's
 	# afterburner damage flag (8 / 9) is clear, else RPM·100·0.74 (never drawn).
 	var stage: int = input.get("afterburner", 0)
@@ -581,6 +585,67 @@ func update(input: Dictionary, delta: float) -> void:
 
 
 var _chute_state := 0
+
+## Ours, the F-16's exterior lights panel (cockpit3d.gd ext_lights: the player's jet flown with the 3D cockpit's
+## controls; every other jet keeps its lights on): its lights made at its first use (NightLights.add_panel_lights) and
+## the navigation lights and the strobe shown by its switches, the position lights blinking with FLASH (FLASH_PERIOD,
+## on half of it; inferred). The landing / taxi light (gear down) is also a SpotLight3D beside the jet in the world (it
+## lights the ground, the jet hidden in the cockpit view too), without a shadow: FlightGear's F-16.xml cones (LANDING
+## 7.5° wide, 10° below the jet's axis, 250 m; TAXI 30°, 5° below, 100 m) at our energy.
+const FLASH_PERIOD := 1.0
+## LANDING (1) / TAXI (-1): [spot angle °, below the axis °, range m, energy].
+const LAND_SPOT := {1: [7.5, 10.0, 250.0, 40.0], -1: [30.0, 5.0, 100.0, 25.0]}
+## The panel's light groups and the ext_lights key each one reads.
+const PANEL_GROUPS := {"tips": "form_tips", "fuselage": "fuselage", "form": "form", "ar": "ar"}
+var _panel := {}
+var _land: SpotLight3D
+
+
+func _panel_lights(e: Dictionary) -> void:
+	if _panel.is_empty():
+		var f := str(desc.get("model", name))
+		var hd: String = Gltf.detailed(f)
+		_panel = NightLights.add_panel_lights(root_frame, hd if hd != "" else f)
+		if _panel.is_empty():
+			_panel = {"none": true}
+			return
+		_land = SpotLight3D.new()
+		_land.name = "LandingLight"
+		_land.shadow_enabled = false
+		_land.light_color = Color(1.0, 0.95, 0.88)
+		_land.visible = false
+		get_parent().add_child(_land)
+		tree_exiting.connect(_land.queue_free)
+	if _panel.has("none"):
+		return
+	var wing: float = 0.0 if e.flash and fposmod(_time, FLASH_PERIOD) >= FLASH_PERIOD * 0.5 else float(e.wing)
+	for n: Node3D in _lights:
+		if n.name == "NavLights":
+			_shown_at(n, wing)
+	_shown_at(_panel.inlet, wing)
+	for k in PANEL_GROUPS:
+		_shown_at(_panel[k], float(e[PANEL_GROUPS[k]]))
+	var land: int = int(e.land) if _lit and ramps.gear < GEAR_MAX * 0.7 else 0
+	_shown_at(_panel.land, 1.0 if land != 0 else 0.0)
+	_land.visible = land != 0
+	if land != 0:
+		var s: Array = LAND_SPOT[land]
+		_land.spot_angle = s[0]
+		_land.spot_range = s[2]
+		_land.light_energy = s[3]
+		var g := root_frame.global_transform
+		_land.global_transform = Transform3D(
+			g.basis.orthonormalized() * Basis(Vector3.RIGHT, -deg_to_rad(s[1])), g * Vector3(_panel.land_at)
+		)
+
+
+## A light group shown at `level` of its brightness (none: hidden).
+func _shown_at(n: MeshInstance3D, level: float) -> void:
+	n.visible = _lit and level > 0.0
+	if n.visible:
+		n.material_override = NightLights.panel_glow(level)
+
+
 ## The flaps ramp is the 6-DoF's trailing-edge flaps (`tef`): the flaperons droop with it on every jet.
 var _tef := false
 
