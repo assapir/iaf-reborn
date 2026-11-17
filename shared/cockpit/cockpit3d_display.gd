@@ -14,6 +14,10 @@ const RING := Color(0.12, 0.45, 0.16)
 const WHITE := Color(0.92, 0.95, 0.92)
 const CYAN := Color(0.3, 0.85, 1.0)
 const DED_GREEN := Color(0.55, 1.0, 0.3)
+## The part of the DED's screen (texture fractions) the pilot sees from the default eye: FlightGear's DED sits 10 cm
+## behind the ICP's face, so the ICP's right edge hides its left fifth, and the glareshield's lip its top and bottom
+## edges (a ray cast from the eye over the model, 2026-11-17; docs/cockpit.md "3D cockpit"). The text keeps inside it.
+const DED_SEEN := Rect2(0.22, 0.06, 0.75, 0.88)
 ## The pilot fault list display's colours (FlightGear's pfd.nas, the Block 50/52's).
 const PFL_BG := Color(0.0, 0.04, 0.01)
 const PFL_GREEN := Color(0.45, 0.98, 0.06)
@@ -263,15 +267,17 @@ func _ded() -> void:
 		lines = [
 			"%24s" % (stpt + "     "), "", "%24s" % ("%02d:%02d:%02d   " % [t / 3600, t / 60 % 60, t % 60]), "", ""
 		]
-	# A character per cell, so the DED's columns line up whatever the font (the sim's display font is proportional).
-	var lh := size.y / 5.0
-	var cell := size.x * 0.96 / 24.0
+	# A character per cell, so the DED's columns line up whatever the font (the sim's display font is proportional),
+	# inside the part of the screen the pilot's eye sees (DED_SEEN).
+	var box := Rect2(DED_SEEN.position * size, DED_SEEN.size * size)
+	var lh := box.size.y / 5.0
+	var cell := box.size.x / 24.0
 	var fs := int(minf(lh * 0.9, cell / 0.6))
 	for i in 5:
 		var line: String = lines[i]
 		for j in line.length():
 			if line[j] != " ":
-				_text(Vector2(size.x * 0.02 + (j + 0.5) * cell, lh * (i + 0.45)), line[j], fs, DED_GREEN)
+				_text(box.position + Vector2((j + 0.5) * cell, lh * (i + 0.5)), line[j], fs, DED_GREEN)
 	shown = {"lines": lines}
 
 

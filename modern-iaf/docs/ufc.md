@@ -52,7 +52,9 @@ Five lines of 24 characters, drawn on the 3D cockpit's DED (`cockpit3d_display.g
 power (the AVIONIC POWER panel's UFC switch). Each character has its own cell, so the columns line up as on the real
 display (the sim's display font is proportional). The drawing covers the whole screen: FlightGear's DED screen maps
 only the top two thirds of its texture, which hid lines 4 and 5 until 17 November (`cockpit3d.gd` `_attach_display`
-stretches the texture over the screen's UVs). The selected field shows between asterisks, with the digits typed in
+stretches the texture over the screen's UVs). The text keeps to the part of the screen the pilot sees from the
+default eye (`DED_SEEN`, [../../docs/cockpit.md](../../docs/cockpit.md) "3D cockpit"): the ICP's right edge hides the
+screen's left fifth. The selected field shows between asterisks, with the digits typed in
 place of its value; ENTR enters them and moves to the next field; a wrong entry is refused (the value stays). A lone
 0 then ENTR toggles a choice (M-SEL: the TACAN band, BULLSEYE, MODE).
 

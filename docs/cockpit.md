@@ -792,7 +792,11 @@ occlusion, 1.8 MB; built by
   * the DED (384 x 128 px): the CNI page's steerpoint (line 1) and time of day (line 3), green. Its radio and IFF
     fields are left out: the game has no radios to tune. Since 2026-11-17 the texture covers the whole screen
     (`cockpit3d.gd` `_attach_display`): FlightGear's screen maps only the top two thirds of it, which hid lines 4 and 5
-    and drew the glyphs half as tall again as wide;
+    and drew the glyphs half as tall again as wide. The text keeps to the part the pilot sees from the default eye,
+    22 to 97 % across and 6 to 94 % down (`cockpit3d_display.gd` `DED_SEEN`). FlightGear's DED sits 10 cm behind the
+    ICP's face, so from the eye the ICP's right edge hides the screen's left fifth and the glareshield's lip its top
+    and bottom edges (2026-11-17: rays cast from the eye to points across the screen through the model's triangles).
+    Moving the screen out to the ICP's face would show all of it; the model's DED is FlightGear's place and stays;
   * the pilot fault list display (256 x 128 px, FlightGear's `pfd.nas` layout and colours: green on a dark green
     ground): line 1 the classes with a fault (FLCS, ENG, AV), lines 3–5 the first three faults, the third framed by
     ▼ when more wait; blank with none. The faults come from the damage flags (damage.md §5.2), warnings first, with
