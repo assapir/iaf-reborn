@@ -36,6 +36,10 @@ var flight: Node  # sim_flight.gd
 var board: Notebook
 var raised := false
 var data := {}
+## The ringed control is covered by the pilot's body from the eye this frame (_marks): the body hidden (cockpit3d.gd
+## body_cue).
+var _covered := false
+
 ## The outlines and pointers of this frame: [{rect: canvas Rect2 round the outlines or null (a pointer), polys: the
 ## outlines (canvas PackedVector2Array each), at: Vector2 (a pointer's place), text, dir: Vector2, parts: the parts'
 ## node names}].
@@ -453,7 +457,11 @@ func _help_line() -> void:
 
 func _process(delta: float) -> void:
 	_stowed_board()
+	_covered = false
 	marks = _marks()
+	var c3d = flight.host.get("cockpit_3d")
+	if is_instance_valid(c3d):
+		c3d.body_cue = _covered
 	_overlay.queue_redraw()
 	if not raised:
 		return
@@ -529,6 +537,9 @@ func _marks() -> Array:
 			parts = [[grip, {}]]
 	if not parts.is_empty():
 		out.append(_mark(parts, String(list[i][lang()]), c3d.camera))
+		# The pilot's body hidden while it covers the ringed control from the eye (the user, 17 Nov: "I am unable to
+		# click the main power on the second traininig": the left glove over the ELEC panel).
+		_covered = parts.any(func(e): return c3d.body_covers(e[0].global_transform * e[0].get_aabb().get_center()))
 	var g: Dictionary = data.get("gauges", {}).get(_family(), {}).get(id, {})
 	var gauge := c3d.find_child(String(g.get("node", "-")), true, false) as Node3D
 	if gauge != null:

@@ -461,6 +461,9 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   picture. The 14 Nov switch to the monitor's own pixels (hiDPI off) was reverted on 15 Nov at the user's word: with
   Upscaling Quality the cockpit came out soft there. Open again: the HUD's thin stroke on that monitor, two half-lit
   pixels (real-hud.md "A 1× monitor beside a Retina screen").
+- **The pilot's body off the switches (2026-11-17, the user: "I am unable to click the main power on the second
+  traininig"):** Alt + H hides the body while held, Alt + G for the flight; the first lesson hides it while it covers
+  the ringed switch; the body never took the click ([cockpit.md](cockpit.md) §5.3). `test_lesson_clicks.gd`.
 - **No white cockpit flashes with Upscaling (2026-11-17, the user: "the cockpit goes white, brighter for a sec when
   it jumps for a sec when starting the first training", "also moving the view doing white flashs"):** the cockpit's
   sharp layer is off; the cockpit is upscaled with the view as before ([cockpit.md](cockpit.md) §6.3). Open: a sharp

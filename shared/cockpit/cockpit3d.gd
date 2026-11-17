@@ -102,6 +102,13 @@ var _split := -1.0  # the scene's first shadow split (_sun_split)
 var _pilot: MeshInstance3D
 ## The pilot's body (its glTF's root), hidden while the head leans off the seat (show_body).
 var pilot_body: Node3D
+## The body hidden by the pilot (Hide pilot's body: held, or toggled for the flight; command 205) and by a start-up
+## lesson while the body covers its ringed control (kneeboard.gd). The body never takes the mouse: the click test
+## (cockpit3d_controls.gd at) meets the controls only.
+var body_held := false
+var body_off := false
+var body_cue := false
+var _body_tris := []  # [MeshInstance3D, TriangleMesh] of the body at rest (body_covers), made at the first ask
 ## Ours, the lean (terrain_view.gd, views.gd lean): the cockpit's surfaces round the eye, [MeshInstance3D, TriangleMesh]
 ## of every mesh of the cockpit-view model and this cockpit but the body, made at the first lean.
 var _room := []
@@ -826,8 +833,25 @@ func _clear_at(from: Vector3, at: Vector3, room := [], crossing_only := []) -> b
 ## The pilot's body shown (`on`) or hidden: hidden while the head leans off the seat, as the body does not move with it
 ## and the eye would see from inside it (and so the glove no longer covers the panel under the throttle).
 func show_body(on: bool) -> void:
+	on = on and not (body_held or body_off or body_cue)
 	if pilot_body != null and pilot_body.visible != on:
 		pilot_body.visible = on
+
+
+## True when the pilot's body (at rest: its shape keys left out) lies between the eye and the world point `p`.
+func body_covers(p: Vector3) -> bool:
+	if pilot_body == null or camera == null:
+		return false
+	if _body_tris.is_empty():
+		for mi: MeshInstance3D in pilot_body.find_children("*", "MeshInstance3D", true, false):
+			if mi.mesh != null:
+				_body_tris.append([mi, mi.mesh.generate_triangle_mesh()])
+	var eye := camera.global_position
+	for e in _body_tris:
+		var inv: Transform3D = e[0].global_transform.affine_inverse()
+		if e[1] != null and not e[1].intersect_segment(inv * eye, inv * p).is_empty():
+			return true
+	return false
 
 
 ## The left glove turned with the throttle's grip: the body's shape keys by the grip's angle (f16.json's THROTTLE).

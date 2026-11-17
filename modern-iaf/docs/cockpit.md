@@ -36,6 +36,9 @@ lights and the lit labels at night); the panel's night art is not used.
   `_zoom_cockpit`: the head's bearing and elevation solved so the pointer's ray at the new focal length looks where the
   old one did); + / − zoom about the view's centre. Every jet opens at the wide view with the head straight ahead
   (`modern-iaf/tests/test_cockpit_view.gd`).
+- **Hide pilot's body (2026-11-17):** Alt + H hides the pilot's body while held, Alt + G hides or shows it for the
+  flight (records 192 / 193 of `data/keys.json`, command 205; the Keys screen's Views group); the body is shown at
+  every flight's start. The body never takes the mouse (§5.3).
 - **Lean (2026-11-15):** Shift + Left / Right lean the head left / right, Shift + Up / Down forward / back, Shift +
   Page Up / Page Down raise / lower it, at 0.3 m/s while held (records 126–131 of `data/keys.json`, command 204; the
   Keys screen's Views group rebinds them). The head moves within 15 cm aside (a strapped-in pilot's; at 20 cm the eye
@@ -623,6 +626,14 @@ and the left on the throttle.
   shown and hidden, 60 frames each, both viewports): the frame takes 27–30 ms either way. With the head bent the
   body fills most of the view, and per view it adds −0.5 to +2.0 ms, +1.3 ms on the mean of the six views (before
   the bend −1.3 to +2.4 ms, +0.5 ms on the mean, within the run's noise). It draws only in the cockpit view.
+
+- **Over the switches (2026-11-17, the user: "I am unable to click the main power on the second traininig"):** from
+  the eye turned to the ELEC panel the left glove and sleeve cover MAIN PWR on the F-16s. The body takes no click
+  or hover: the click test meets the controls only (`cockpit3d_controls.gd` `at`), so a click there reaches MAIN
+  PWR; the player saw no switch to click. The first lesson rings its current switch and the body is hidden while it
+  covers that switch from the eye (`kneeboard.gd` `_covered`, `cockpit3d.gd` `body_covers`, `body_cue`); the
+  take-off lessons ring nothing, and Alt + H / Alt + G hide it there (§2). Pictures:
+  `modern-iaf/tests/_body_shot.gd`; check: `modern-iaf/tests/test_lesson_clicks.gd`.
 
 Looking down-left (40° left), down and down-right, at the head's lowest. Top row before, bottom row after. A real
 render, `tests/godot/_cockpit3d_shot.gd` with `C3D_SIM=1 C3D_ONLY=down`.

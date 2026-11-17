@@ -518,7 +518,8 @@ of the instrument"); until then a circle round the part's projected box, 6 px ou
 on the NOZ POS gauge above the RPM's (node `anim067`, now `anim069`). A part out of the view (or behind the eye) gets a
 pointer at the screen's edge toward it, with the step's line ("▼ Throttle to idle at 20 % RPM"). When the raised
 notebook would cover an outline, it slides down its side to 18 px below it (at least 220 px of it left on the screen),
-else up above it. Pictures: `modern-iaf/tests/_click_areas_shot.gd`.
+else up above it. While the pilot's body covers the ringed switch from the eye (the F-16s' left glove over MAIN PWR)
+the body is hidden ([cockpit.md](cockpit.md) §5.3). Pictures: `modern-iaf/tests/_click_areas_shot.gd`.
 
 **Every checklist switch clickable.** With no key hints, each step's switch must answer the mouse. On the pages:
 

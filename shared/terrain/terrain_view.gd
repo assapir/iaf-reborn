@@ -3034,6 +3034,14 @@ func _command(cmd: Array) -> bool:
 			# passes them to the flight model and ticks its card.
 			if addon != null and addon.has_method("start_step"):
 				addon.start_step(int(cmd[0]) - 210, int(cmd[1]))  # p1: 1 on, -1 off, 0 the other way
+		205:
+			# Ours, Hide pilot's body (Modern IAF's keys.json, records 192 / 193; modern-iaf/docs/cockpit.md §5.3): p1 1
+			# hidden while held (the release shows it), 2 hidden or shown for the flight.
+			if cockpit_3d != null:
+				if p1 == 2:
+					cockpit_3d.body_off = not cockpit_3d.body_off
+				else:
+					cockpit_3d.body_held = true
 		204:
 			# Ours, the 3D cockpit's lean (Modern IAF's keys.json, Shift + arrows / Page Up / Page Down): p1 the axis
 			# (0 right, 1 up, 2 aft), p2 the way (views.gd lean_key); the release stops it (_release_command).
@@ -3773,6 +3781,9 @@ func _release_command(cmd: Array) -> void:
 			_snap_command(int(cmd[1]), int(cmd[2]))
 		204:
 			views.lean_key(int(cmd[1]), 0)
+		205:
+			if cockpit_3d != null:
+				cockpit_3d.body_held = false
 		225:
 			if weapons != null:
 				weapons.radar_event(weapons.RADAR_ELEVATION, 0.0)
