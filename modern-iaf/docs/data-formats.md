@@ -338,7 +338,7 @@ Example, `modern-iaf/data/db/weapons/aim-9m.json`:
 | `route` | the player's waypoints: `lat`, `lon`, `alt_m`, and `speed_kmh` or `t_s`. The compiled waypoint holds the planned arrival time in sim seconds (docs/ai.md §7.2): `t_s`, else the time from the flight's start along the legs at each point's speed. No route gives set_flight's one point 20 km ahead |
 | `runway` | the runway the mission's tower clears (kept in `sim` for item E3) |
 | `note` | a caveat the compiler prints and keeps in `sim` |
-| `training` | the pass / fail rules ([training.md](training.md) §3), kept in `sim`: `kind` (`"startup"`, `"takeoff"` or `"range"`), `time_budget_s`, `end_hold_s` (a fail shows its reason this long before the debrief), `goals` (the debrief items the sheet shows, in order; ids of `training::ITEMS`, refused otherwise); a start-up by keys `checklist` (`[{"step", "key", "en", "he", "where"}]`: the steps in order, ids of `training::STEPS`, with the key and the card's line in both languages; `where`, optional, `{"en", "he"}`: the step's switch and its place in the cockpit, shown under the line ([cockpit.md](cockpit.md) §5.2); `wait`, optional, `{"en", "he"}`: the state to wait for before the next step; training.md §7.1); `steps` (`[{"key", "pick", "en", "he", "wait"}]`: the pilot's sequence for the notebook, a take-off's on its TAXI / T-O page, a start-up's tower call first on its START-UP page, `key` a record of `data/keys.json`, `pick` the radio menu's number after it, `{runway}` and `{tolerance}` filled in; training.md §8); a take-off also `heading_tolerance_deg`, `empty_kg` and `takeoff_kt` (`[[kg, kt], …]`, rising in kg) and needs `runway`; a range `air_kills` and `ground_kills` (the kills it asks for, at least one in all; training.md §3.4); `clearances`, optional, the phases that need the tower's clearance first (ids of `training::CLEARANCES`: `startup`, `taxi`, `takeoff`; `takeoff` needs `runway`; training.md §3.3). The compiler parses them and wants a source for each figure (`"training.time_budget_s"` …) |
+| `training` | the pass / fail rules ([training.md](training.md) §3), kept in `sim`: `kind` (`"startup"`, `"takeoff"` or `"range"`), `time_budget_s`, `end_hold_s` (a fail shows its reason this long before the debrief), `goals` (the debrief items the sheet shows, in order; ids of `training::ITEMS`, refused otherwise); a start-up lesson's `checklist` (`["<item id>", …]`: the items of the jet's checklist card, `data/checklists/*.json`, it asks for, in order; training.md §12); `steps` (`[{"key", "pick", "en", "he", "wait"}]`: the pilot's sequence for the notebook, a take-off's on its TAXI / T-O page, a start-up's tower call first on its START-UP page, `key` a record of `data/keys.json`, `pick` the radio menu's number after it, `{runway}` and `{tolerance}` filled in; training.md §8); a take-off also `heading_tolerance_deg`, `empty_kg` and `takeoff_kt` (`[[kg, kt], …]`, rising in kg) and needs `runway`; a range `air_kills` and `ground_kills` (the kills it asks for, at least one in all; training.md §3.4); `clearances`, optional, the phases that need the tower's clearance first (ids of `training::CLEARANCES`: `startup`, `taxi`, `takeoff`; `takeoff` needs `runway`; training.md §3.3). The compiler parses them and wants a source for each figure (`"training.time_budget_s"` …) |
 | `fixed_loadout` | optional, `true`: the mission flies the unit record's own loadout; the briefing's Arming page shows it read-only and the pilot's stored loadout is not loaded ([front-end.md](front-end.md) §10). Not compiled (the front end and `flight/fly.gd` read it from the readable file) |
 | `flights` | Bravo..Delta: `unit`, `count`, `task`, `start` {`lat`, `lon`, `heading`, `alt_m`}, `route`. A flight's `task` (Alpha's in `start`) is one of `training`, `cap`, `strike`, `escort` (`flights.rs` `TASKS`), `training` by default in a training mission and needed in any other. The briefing lists the flights ([front-end.md](front-end.md) §10), and the compiler writes them into the compiled file's `sim.flights`: [{`callsign`, `unit`, `count`, `task`, `player`, `start`, `route` (UTM 36N), `stores` (the unit record's pylon stores, [{`weapon`, `count`}])}]. A two-flight sample, test data and not a shipped mission: `modern-iaf/tests/data/two_flights.json` |
 | `drones` | the weapons range's target drones (§5.1): red flights already airborne. Each: `unit`, `count` (1 or 2), `name` (its members are "<name> 1", "<name> 2"), `brain` (a brain id of `data/db/brains`, §5.1), `start` {`lat`, `lon`, `heading`, `alt_m`}, `route` (as the player's, flown `laps` times, default 1). Their figures need sources as a flight's. Compiled with `set_red_flight` (formation 8, side red) and the role 2 |
@@ -354,6 +354,17 @@ the lineup point of that runway end (§12: 100 m past the declared runway's star
 
 Red flights of the threat set wait for its records. The range's drones use `set_red_flight` with their own start
 (`start` [x, y, alt, heading] in place of a 1998 base) and brains (`brains` [leader, wingman]).
+
+### 5.0 The checklist cards: `data/checklists/<file>.json`
+One card per cockpit, the same in every mission (training.md §12): `jets` (the jets that carry it: `f16i`, `f16d`;
+`f35i`), `about`, and `sections` in order, each `{"id", "en", "he", "when"?, "starts"?, "items"}`: `when` `"air"`,
+`"approach"` or `"landed"` (the section waits for that phase), `starts` `"hot"` or `"air"` (a jet that starts so opens the card there).
+An item is `{"id", "en", "he", "how"?, "where"?, "check"?, "control"?}`: `id` unique on the card (a start-up lesson's
+`training.checklist` names it; the flight model's step ids `main_power`, `starter`, `engine`, `avionics`, `ins`,
+`canopy` keep their own debrief lines); `how` and `where` `{"en", "he"}`; `control` the 3D cockpit's node names the
+training ring outlines; `check` the state that ticks it (`step`, `set`, `test`, `lamp_off`, `state`, `gear`,
+`throttle_off`: training.md §12). No `check`: read and acknowledged. Read at run time by `modern-iaf/flight/card.gd`; not
+compiled.
 
 ### 5.1 The weapons range: drones, brains and ground targets
 
@@ -706,7 +717,8 @@ and the event `radio`: `{"t", "event": "radio", "call": <"startup", "taxi" or "t
 template, "KCH2" when no tower answers>, "text": <its words>}`; in a training mission the event `surface`:
 `{"t", "event": "surface", "paved": false}` when the jet on the ground leaves the base's pavement (training.md §3.0);
 the event `checklist`: `{"t", "event": "checklist", "step": <id>, "fault": <id, when refused>}` for each start-up
-checklist key; and the event `eject`: `{"t", "event": "eject", "short": <below the seat's low limit>}` when the pilot ejects.
+checklist key, and `{"t", "event": "checklist", "item": <card item id>, "on": false when unticked}` for each item of the
+jet's checklist card ticked or unticked (training.md §12); and the event `eject`: `{"t", "event": "eject", "short": <below the seat's low limit>}` when the pilot ejects.
 The original game keeps version 1 (no change).
 
 **The records database**, `user://modern-iaf.sqlite` ([storage.md](storage.md) §5, `iaf_tools::pilot_log`): the table

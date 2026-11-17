@@ -431,65 +431,157 @@ func eject() -> void:
 ## cockpit's switches (f16_controls.json, f35i_controls.json, cockpit3d_controls.gd), each switch turned to its on
 ## position; the F-35I's engine step by its ENG switch (command 212).
 func _checklist(tv: Node, f35: bool, click := false) -> void:
-	var rpm := func() -> float: return float(tv.flight.state().rpm)
-	await _step(tv, 1, "BATT" if f35 else "MAIN_PWR", click)  # main power / battery
-	await fly(tv, 1.0)
-	await _step(tv, 2, "IPP" if f35 else "JFS", click)  # JFS / IPP
-	if f35:
-		await fly(tv, 11.0)  # the IPP up to speed
-		if click:
-			await _lift_guard(tv, "ENG", "ENG_GUARD")
-		await _step(tv, 0, "ENG", click)  # the ENG switch (by key: the throttle up from OFF)
-		await fly(tv, 0.5)  # the flight takes the throttle's move on its next frame
-	else:
-		await _until(tv, func(): return rpm.call() >= 0.2, 60.0)
-		check(tv.sounds._jfs != null and tv.sounds._jfs.playing, "the JFS whine during the crank")
-		if click:
-			await _step(tv, 0, "THROTTLE", false)  # throttle to idle at 20 %: by its key (no mouse on the throttle)
-		else:
-			_card_shows(tv, "engine")
-			await _target(tv, "THROTTLE")
-			_press(tv, KEY_1)  # Throttle idle: the throttle stays at OFF, the key takes the step
-		await _until(tv, func(): return rpm.call() >= 0.55, 60.0)  # the generators on line
-		if click:  # each AVIONIC POWER switch its own: one click leaves the others and the step
-			await _avionics_clicks(tv)
-		else:
-			await _step(tv, 4, "AVIONICS_MMC", click)  # avionics power
-		await _step(tv, 5, "INS", click)  # INS stored-heading alignment
-		# The INS step is done at NAV once aligned (sim_flight.gd ins_ready): two positions on, through NORM.
-		await _until(tv, func(): return bool(tv.flight.ins_status()[2]), 120.0)
-		for k in 2:
-			if click:
-				await _click_control(tv, "INS")
-			else:
-				tv._command([214, 0, 0])
-	await _step(tv, 6, "CANOPY" if f35 else "CANOPY_HANDLE", click)  # canopy
+	var ids: Array = tv.addon.checklist
+	await _fly_card(tv, func(it): return it.id in ids, not click)
 	tv.views.snap = null
 	check(tv.sounds.played.has("SFX_DOOR_CLOSE/None"), "the canopy step: the canopy closes")
 	if not f35:
 		await _until(tv, func(): return tv.sounds._jfs == null, 10.0)
-		check(tv.sounds._jfs == null, "the JFS wound down after the generators (RPM %.2f)" % rpm.call())
+		check(tv.sounds._jfs == null, "the JFS wound down after the generators")
 	var st: Dictionary = tv.flight.state()
+	var left: Array = ids.filter(func(id): return not tv.addon.card.done.has(id))
 	check(
-		tv.addon.done.size() == tv.addon.checklist.size() and tv.addon._fault_shown == "",
+		left.is_empty() and tv.addon._fault_shown == "",
 		(
-			"the checklist: %d of %d steps, no fault (%s, power %s)"
-			% [tv.addon.done.size(), tv.addon.checklist.size(), st.start_phase, st.power]
+			"the lesson's %d card items done, no fault (left %s, %s, power %s)"
+			% [ids.size(), left, st.start_phase, st.power]
 		)
 	)
 
 
-## Checklist step `n` (0: the throttle up from OFF) by its key's command, or by a click on its control `node`.
-## The notebook marks that step as the current one first (_card_shows).
-func _step(tv: Node, n: int, node: String, click: bool) -> void:
-	_card_shows(tv, "engine" if n == 0 else tv.addon.STEP_IDS[n - 1])
-	await _target(tv, node)
-	if click:
-		await _click_control(tv, node)
-		if node in ["MAIN_PWR", "ENG"]:  # OFF, BATT, MAIN PWR (start.rs Start::position); OFF, MOTOR, NORM: two clicks
-			await _click_control(tv, node)
-	else:
-		tv._command([209 + n, 0, 0] if n > 0 else [5, 0, 0])
+## The jet's checklist card (card.gd) worked from its current item while `go` holds for it: each item by real clicks on
+## its controls (_do_item), then waited for until ticked. `keys`: the flight model's start-up steps by their keys'
+## commands instead (the Barak's run). A Training lesson's ring is checked on each item's control first (_target).
+func _fly_card(tv: Node, go: Callable, keys := false) -> void:
+	var card = tv.addon.card
+	for n in 100:
+		await frames(1)
+		var it: Dictionary = card.current()
+		if it.is_empty() or not go.call(it):
+			return
+		await _do_item(tv, it, keys)
+		var ok := await _until(tv, func(): return card.done.has(it.id), 150.0)
+		check(ok, "%s card: %s ticked" % [tv.addon.plane, it.id])
+		if not ok:
+			return
+
+
+## One card item by the cockpit's controls, as its line says: the start-up steps (the JFS's 20 %% RPM and the INS's
+## alignment waited for), each "test" control to its test position, each "set" control clicked round to its position (a
+## shut guard's first click lifts it), a lit lamp's reset, the gear handle.
+func _do_item(tv: Node, it: Dictionary, keys: bool) -> void:
+	var c: Dictionary = it.check
+	var card = tv.addon.card
+	var f35: bool = tv.addon.plane == "f35i"
+	var ctl: Array = it.get("control", [])
+	var step := String(c.get("step", ""))
+	var lesson: bool = not tv.addon.rules.is_empty()
+	if lesson and step != "":
+		_card_shows(tv, String(it.id))
+	var open := ctl.filter(func(n): return not (c.get("set", {}).has(n) and card.at(n, c.set[n])))
+	if lesson and not open.is_empty() and step != "avionics" and not (step == "engine" and keys):
+		await _target(tv, String(open[0]))
+	match step:
+		"main_power", "starter", "canopy":
+			if keys:
+				# MAIN PWR at BATT (the card's item before): the key turned the other way would put it OFF; p1 1 goes on
+				var on := 1 if step == "main_power" and tv.flight.start_position(step) == 1 else 0
+				tv._command([210 + tv.addon.STEP_IDS.find(step), on, 0])
+			else:
+				for k in 3:
+					if step in tv.addon.done and (step != "main_power" or tv.flight.start_position(step) == 2):
+						break
+					await _click_control(tv, String(ctl[0]), _moves(tv, String(ctl[0])))
+		"engine":
+			if f35:
+				await fly(tv, 11.0)  # the card's WAIT: the IPP up to speed (10 s)
+			if f35 and not keys:
+				await _lift_guard(tv, "ENG", "ENG_GUARD")
+				for k in 2:
+					await _click_control(tv, "ENG")
+			else:
+				if not f35:
+					var rpm := func() -> bool: return float(tv.flight.state().rpm) >= 0.2
+					check(await _until(tv, rpm, 60.0), "the JFS cranks to 20 %")
+				tv._command([5, 0, 0])  # Throttle idle: no mouse on the throttle
+				await fly(tv, 0.5)
+		"avionics":
+			if keys:
+				tv._command([213, 0, 0])
+			else:
+				await _avionics_clicks(tv)
+		"ins":
+			await _until(tv, func(): return bool(tv.flight.ins_status()[2]), 120.0)
+			for k in 4:
+				if tv.flight.ins_knob() == tv.addon.INS_NAV:
+					break
+				if keys:
+					tv._command([214, 0, 0])
+				else:
+					await _click_control(tv, "INS")
+	for n in c.get("test", {}):
+		for k in 5:
+			if card.seen(n, float(c.test[n])):
+				break
+			await _click_control(tv, n, _moves(tv, n))
+	for n in c.get("set", {}):
+		for k in 6:
+			if card.at(n, c.set[n]):
+				break
+			await _click_control(tv, n, _moves(tv, n))
+	if c.has("lamp_off") and bool(tv.cockpit_3d.lamps_lit.get(String(c.lamp_off), false)) and not ctl.is_empty():
+		await _click_control(tv, String(ctl[0]), false)
+	if c.has("gear") and tv.cockpit.gear_handle_down != (String(c.gear) == "down"):
+		await _click_control(tv, String(ctl[0]))
+
+
+## A click on control `node` shows a move that stays: not a push button, a spring or a shut guard's first click.
+func _moves(tv: Node, node: String) -> bool:
+	var r: Dictionary = tv.addon.card.record(node)
+	var guard := String(r.get("guard", ""))
+	var shut: bool = guard != "" and float(tv.cockpit_3d.switches.get(guard, 0.0)) < 0.5
+	return not (r.get("mode", "") == "push" or r.has("rest") or shut)
+
+
+## The take-off lesson flown by the card (the user, 17 Nov: "all of this should be part of the checklist"): the tower's
+## start-up clearance, the card by clicks to its BEFORE TAKEOFF, the taxi, BEFORE TAKEOFF at the hold, the line-up,
+## the take-off to its pass and Continue, then AFTER TAKEOFF in the climb. `pod`: the Litening on the right chin
+## station (the pilot's loadout for this flight).
+func _card_flight(id: String, pod := false) -> Node:
+	var unit: String = "f16d" if id == "f16" else id
+	var db: String = settings().records_db()
+	if pod:
+		var rec := ProjectSettings.globalize_path("res://data/db/units/%s.json" % unit)
+		IafPilotLog.set_loadout(db, settings().pilot(), unit, IafBriefing.put(rec, "", 5, "litening", false))
+	var tv := await _start(JETS[id][1] + "_takeoff", pod)
+	if pod:
+		IafPilotLog.set_loadout(db, settings().pilot(), unit, "")
+	var sec := func(names: Array) -> Callable:
+		return func(it): return String(tv.addon.card.sections[int(it.section)].id) in names
+	check(await _call(tv, "startup") == "ACFT_CLEAR_TO_START", "%s: start-up clearance" % id)
+	await _fly_card(tv, sec.call(["before_start", "start", "after_start", "before_taxi", "taxi"]))
+	check(tv.flight.state().engine_on and tv.flight.state().avionics, "%s: the engine idles, the avionics up" % id)
+	var a := await _call(tv, "taxi")
+	check(a == "ACFT_TAXI_TO_RUNWAY", "%s: taxi request -> %s" % [id, a])
+	var s: Dictionary = settings().load_ibx(settings().own_dir().path_join("iaf.ibx"))[JETS[id][2]]
+	var path: Array = []
+	for i in int(s.TaxiWayPtsFrom):
+		path.append(Vector2(float(s["FromTaxiPtX%d" % i]), float(s["FromTaxiPtY%d" % i])))
+	var hdg := float(s.RunwayNumber)
+	tv.brakes = false
+	tv.scripted_stick = Vector2.ZERO
+	check(await _taxi(tv, path.slice(0, -1), hdg, false), "%s: taxied" % id)
+	await _fly_card(tv, sec.call(["before_takeoff"]))
+	check(String(tv.addon.card.sections[tv.addon.card.section].id) == "after_takeoff", "%s: BEFORE TAKEOFF done" % id)
+	check((await _call(tv, "lineup")).begins_with("ACFT_CLEAR_TO_LINEUP"), "%s: line-up clearance" % id)
+	check(await _taxi(tv, [path[-1]], hdg), "%s: lined up" % id)
+	check(await _call(tv, "takeoff") == "ACFT_CLEAR_TO_TAKEOFF", "%s: take-off clearance" % id)
+	await _roll(tv, id, path[-1], hdg)
+	check(bool(tv.addon.result.get("pass", false)), "%s: the take-off passed, the flight goes on" % id)
+	Engine.time_scale = 1.0
+	tv.scripted_stick = Vector2(0.0, 0.05)
+	await _fly_card(tv, sec.call(["after_takeoff"]))
+	return tv
 
 
 ## The start-up lesson's guidance (kneeboard.gd marks) shows the current step's control `node` (an outline in view,
@@ -521,7 +613,7 @@ func _target(tv: Node, node: String, done := "") -> void:
 
 ## A left click on the 3D cockpit's control `node` (f16_controls.json), the head turned to it, as the window's mouse
 ## events: hovering lights it, the click sends its command; a switch with a FlightGear property turns.
-func _click_control(tv: Node, node: String) -> void:
+func _click_control(tv: Node, node: String, moves := true) -> void:
 	var c3d = tv.cockpit_3d
 	var mi: MeshInstance3D = c3d.find_child(node, true, false) if c3d != null else null
 	check(mi != null and c3d.clickable != null, "the 3D cockpit's control %s" % node)
@@ -534,15 +626,26 @@ func _click_control(tv: Node, node: String) -> void:
 	var hover := InputEventMouseMotion.new()
 	hover.position = at
 	vp.push_input(hover)
-	check(mi.material_overlay != null, "%s: the pointer over it lights it (at %s)" % [node, at])
+	# Lit: this part, or its twin of the same switch (the F-16's LANDING TAXI switch is two parts of one property).
+	var hov = c3d.clickable._hover
+	var twin: bool = hov != null and _prop_of(c3d, mi) != "" and _prop_of(c3d, hov) == _prop_of(c3d, mi)
+	check(mi.material_overlay != null or twin, "%s: the pointer over it lights it (at %s)" % [node, at])
 	var rest := mi.transform
 	vp.push_input(_click(at, MOUSE_BUTTON_LEFT, true))
 	vp.push_input(_click(at, MOUSE_BUTTON_LEFT, false))
 	await frames(2)
-	if not node in ["THROTTLE", "CANOPY_HANDLE"]:  # the throttle moves with its own animation; the handle: a hit area
+	if moves and not node in ["THROTTLE", "CANOPY_HANDLE"]:  # the throttle: its own animation; the handle: a hit area
 		check(not mi.transform.is_equal_approx(rest), "%s: the switch turned" % node)
 	hover.position = Vector2.ZERO
 	vp.push_input(hover)
+
+
+## The FlightGear property of the 3D cockpit's control `mi` ("" when it has none).
+static func _prop_of(c3d: Node, mi: Node) -> String:
+	for e in c3d.clickable._controls:
+		if e[0] == mi:
+			return String(e[1].get("prop", ""))
+	return ""
 
 
 ## The AVIONIC POWER panel by the mouse: a click on MMC moves it alone (the others and the step stay off); the last
@@ -602,9 +705,7 @@ func _card_step(tv: Node) -> Array:
 	var c: Dictionary = list[i]
 	var lang := "he" if settings().language == "he" else "en"
 	var text: String = kb.board.page_text()
-	return [
-		String(c.step), kb.board.current_id() == "startup" and (not c.has("where") or String(c.where[lang]) in text)
-	]
+	return [String(c.id), kb.board.current_id() == "startup" and (not c.has("where") or String(c.where[lang]) in text)]
 
 
 ## A step out of order: the JFS before the main power ends the start-up at once, its fault first.

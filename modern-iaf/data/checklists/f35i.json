@@ -1,0 +1,58 @@
+{
+"about": "The F-35I Adir's checklist card (modern-iaf/docs/training.md §12): the public start flow (battery, IPP, engine, the 90 s self test)[^ayton]; every other item and the section order inferred from the F-16's[^haf] and our cockpit.",
+"jets": ["f35i"],
+"sections": [
+{"id": "before_start", "en": "BEFORE ENGINE START", "he": "לפני התנעה", "items": [
+  {"id": "park_brake", "en": "PARKING BRAKE – ON", "he": "בלם חנייה – ‏ON", "where": {"en": "left of the front panel", "he": "משמאל ללוח הקדמי"}, "check": {"set": {"PARK_BRAKE": 1}}, "control": ["PARK_BRAKE"]},
+  {"id": "master_arm_safe", "en": "MASTER ARM – SAFE", "he": "MASTER ARM – ‏SAFE", "check": {"set": {"MASTER_ARM": 0}}, "control": ["MASTER_ARM"]},
+  {"id": "alt_gear_norm", "en": "ALT GEAR – in, guard down", "he": "ALT GEAR – פנימה, מכסה סגור", "check": {"set": {"ALT_GEAR": 0}}, "control": ["ALT_GEAR"]},
+  {"id": "land_taxi_off", "en": "LAND/TAXI LIGHTS – OFF", "he": "LAND/TAXI LIGHTS – ‏OFF", "check": {"set": {"LAND_TAXI": 0}}, "control": ["LAND_TAXI"]},
+  {"id": "gear_down", "en": "Landing gear handle – DN", "he": "ידית כן הנסע – ‏DN", "check": {"gear": "down"}, "control": ["gear_handle"]}
+]},
+{"id": "start", "en": "ENGINE START", "he": "התנעה", "items": [
+  {"id": "main_power", "en": "BATT – ON", "he": "BATT – ‏ON", "how": {"en": "one click", "he": "לחיצה אחת"}, "where": {"en": "BATT switch: start panel, left of the front panel", "he": "מתג BATT: לוח ההתנעה, משמאל ללוח הקדמי"}, "check": {"step": "main_power"}, "control": ["BATT"]},
+  {"id": "starter", "en": "IPP – START", "he": "IPP – ‏START", "how": {"en": "one click; then WAIT 10 s for the IPP to run up", "he": "לחיצה אחת; ואז להמתין 10 שנ׳ להאצת ה־IPP"}, "where": {"en": "IPP knob: start panel", "he": "בורר IPP: לוח ההתנעה"}, "check": {"step": "starter"}, "control": ["IPP"]},
+  {"id": "engine", "en": "ENG – NORM: the engine starts", "he": "ENG – ‏NORM: המנוע מותנע", "how": {"en": "the first click lifts the guard; then two clicks (OFF, MOTOR, NORM); WAIT for idle", "he": "הלחיצה הראשונה מרימה את המכסה; ואז שתי לחיצות (OFF, ‏MOTOR, ‏NORM); להמתין לסרק"}, "where": {"en": "ENG switch: start panel, under its guard", "he": "מתג ENG: לוח ההתנעה, מתחת למכסה"}, "check": {"step": "engine", "state": {"power": 2}}, "control": ["ENG"]},
+  {"id": "selftest", "en": "Self test – WAIT until done (90 s from BATT)", "he": "בדיקה עצמית – להמתין לסיום (90 שנ׳ מ־BATT)", "check": {"state": {"avionics": true}}}
+]},
+{"id": "after_start", "en": "AFTER ENGINE START", "he": "אחרי התנעה", "items": [
+  {"id": "hmd", "en": "HMD – AUTO or DAY", "he": "HMD – ‏AUTO או DAY", "where": {"en": "HMD knob: right of the front panel", "he": "בורר HMD: מימין ללוח הקדמי"}, "check": {"set": {"HMD_MODE": [2, 3]}}, "control": ["HMD_MODE"]},
+  {"id": "displays", "en": "Displays and HMD brightness – set", "he": "בהירות תצוגות ו־HMD – כיוון"},
+  {"id": "fuel_joker", "en": "Joker and bingo fuel – set", "he": "דלק Joker ו־Bingo – כיוון"},
+  {"id": "icaw", "en": "Cautions – none lit, MASTER CAUTION out", "he": "אזהרות – אין, MASTER CAUTION כבויה", "check": {"lamp_off": "master_caution"}, "control": ["lamp_master_caution_0"]}
+]},
+{"id": "before_taxi", "en": "BEFORE TAXI", "he": "לפני הסעה", "starts": "hot", "items": [
+  {"id": "canopy", "en": "Canopy – close and lock", "he": "חופה – סגירה ונעילה", "where": {"en": "CANOPY switch: left console", "he": "מתג CANOPY: הקונסולה השמאלית"}, "check": {"step": "canopy"}, "control": ["CANOPY"]},
+  {"id": "seat_arm", "en": "Ejection seat – ARM", "he": "כיסא מפלט – ‏ARM"},
+  {"id": "taxi_light", "en": "LAND/TAXI LIGHTS – TAXI", "he": "LAND/TAXI LIGHTS – ‏TAXI", "check": {"set": {"LAND_TAXI": 1}}, "control": ["LAND_TAXI"]},
+  {"id": "park_brake_off", "en": "PARKING BRAKE – OFF", "he": "בלם חנייה – ‏OFF", "check": {"set": {"PARK_BRAKE": 0}}, "control": ["PARK_BRAKE"]}
+]},
+{"id": "taxi", "en": "TAXI", "he": "הסעה", "items": [
+  {"id": "brakes_nws", "en": "Brakes and nosewheel steering – check", "he": "בלמים והיגוי גלגל אף – בדיקה"}
+]},
+{"id": "before_takeoff", "en": "BEFORE TAKEOFF", "he": "לפני המראה", "items": [
+  {"id": "fcs_reset", "en": "FCS RESET – push", "he": "FCS RESET – לחיצה", "check": {"test": {"FCS_RESET": 1}}, "control": ["FCS_RESET"]},
+  {"id": "flight_controls", "en": "Flight controls – cycle", "he": "היגוי – תנועה מלאה"},
+  {"id": "cautions", "en": "Cautions – none lit", "he": "אזהרות – אין", "check": {"lamp_off": "master_caution"}, "control": ["lamp_master_caution_0"]},
+  {"id": "landing_light", "en": "LAND/TAXI LIGHTS – LAND", "he": "LAND/TAXI LIGHTS – ‏LAND", "how": {"en": "one click on from TAXI", "he": "לחיצה אחת מ־TAXI"}, "check": {"set": {"LAND_TAXI": 2}}, "control": ["LAND_TAXI"]}
+]},
+{"id": "after_takeoff", "en": "AFTER TAKEOFF", "he": "אחרי המראה", "when": "air", "starts": "air", "items": [
+  {"id": "gear_up", "en": "Landing gear – UP", "he": "כן הנסע – למעלה", "check": {"gear": "up"}, "control": ["gear_handle"]},
+  {"id": "landing_light_off", "en": "LAND/TAXI LIGHTS – OFF", "he": "LAND/TAXI LIGHTS – ‏OFF", "check": {"set": {"LAND_TAXI": 0}}, "control": ["LAND_TAXI"]}
+]},
+{"id": "before_landing", "en": "BEFORE LANDING", "he": "לפני נחיתה", "when": "approach", "items": [
+  {"id": "landing_light_on", "en": "LAND/TAXI LIGHTS – LAND", "he": "LAND/TAXI LIGHTS – ‏LAND", "check": {"set": {"LAND_TAXI": 2}}, "control": ["LAND_TAXI"]},
+  {"id": "gear_down_ldg", "en": "Landing gear – DN, three green", "he": "כן הנסע – למטה, שלוש ירוקות", "check": {"gear": "down"}, "control": ["gear_handle"]}
+]},
+{"id": "after_landing", "en": "AFTER LANDING", "he": "אחרי נחיתה", "when": "landed", "items": [
+  {"id": "taxi_light_in", "en": "LAND/TAXI LIGHTS – TAXI", "he": "LAND/TAXI LIGHTS – ‏TAXI", "check": {"set": {"LAND_TAXI": 1}}, "control": ["LAND_TAXI"]},
+  {"id": "arm_safe", "en": "MASTER ARM – SAFE", "he": "MASTER ARM – ‏SAFE", "check": {"set": {"MASTER_ARM": 0}}, "control": ["MASTER_ARM"]},
+  {"id": "seat_safe", "en": "Ejection seat – SAFE", "he": "כיסא מפלט – ‏SAFE"}
+]},
+{"id": "shutdown", "en": "ENGINE SHUTDOWN", "he": "כיבוי מנוע", "when": "landed", "items": [
+  {"id": "park_brake_on", "en": "PARKING BRAKE – ON", "he": "בלם חנייה – ‏ON", "check": {"set": {"PARK_BRAKE": 1}}, "control": ["PARK_BRAKE"]},
+  {"id": "throttle_off", "en": "Throttle – OFF", "he": "מצערת – ‏OFF", "how": {"en": "over the idle detent: the Throttle OFF key", "he": "מעבר לעצירת הסרק: מקש Throttle OFF"}, "check": {"throttle_off": true, "state": {"engine_on": false}}},
+  {"id": "batt_off", "en": "BATT – OFF", "he": "BATT – ‏OFF", "check": {"set": {"BATT": 0}}, "control": ["BATT"]}
+]}
+]
+}

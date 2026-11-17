@@ -258,7 +258,7 @@ procedure", bridged by `IafEo`). Wiring: `player_weapons.gd` `_update_pod`. Draw
 
 | step | what the player does / sees | control |
 |---|---|---|
-| Power-up | the pod powers with the avionics (the SNSR PWR panel is not modelled). It cools for 180 s (inferred), and the TGP page shows NOT TIMED OUT. A jet whose avionics are up from the start, or come up in the air, has a cooled pod | the avionics' power |
+| Power-up | the pod powers with the avionics (MMC) and the SNSR PWR panel's RIGHT HDPT switch (since 2026-11-17; the checklist card's AFTER ENGINE START, [training.md](training.md) §12). It cools for 180 s (inferred), and the TGP page shows NOT TIMED OUT. A jet whose avionics are up from the start, or come up in the air, has a cooled pod | the avionics' and RIGHT HDPT's power |
 | STBY / A-G | OSB 1 toggles STBY (the picture, no track, no laser) and A-G | TGP OSB 1 |
 | Fields of view and zoom | WIDE / NARO on OSB 2; the zoom steps 1, 2, 4, 8 (the digital expand) on OSB 20 / 19 | TGP OSB 2, 20, 19 |
 | Tracks | TMS up POINT (a unit under the cross) or AREA, TMS right AREA, TMS down slaved to the SPI; the legend AREA / POINT / INR (slewed). A POINT track whose unit is gone becomes an AREA track on its last point | the TMS keys |

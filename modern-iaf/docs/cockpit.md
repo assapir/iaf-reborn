@@ -289,7 +289,7 @@ switches as FlightGear models them.
   below): each is its own `toggle` in `f16_controls.json`. A click flips that switch alone, with its click
   (`SFX_BUTTON`), and sends its own command, `[219, 1, i]` on and `[219, -1, i]` off (i: MMC 0, ST STA 1, MFD 2,
   UFC 3). Once all four are on the avionics step is done. A switch refused (before the generators) goes back off.
-  Ctrl+A throws all four together: on (with FCR and RDR ALT) while any of the six is off, off only when all six are on.
+  Ctrl+A throws all four together: on (with the SNSR PWR panel's FCR, RDR ALT, LEFT HDPT and RIGHT HDPT) while any of the eight is off, off only when all eight are on.
 - **FCR and RDR ALT** (2026-11-13, the switches audit's M1): FlightGear's right console has both as their own objects,
   `fcr-switch` and `rdr-alt-switch` on the SNSR PWR panel, turning on `f16/avionics/power-fcr` (OFF 0 / ON 1) and
   `f16/avionics/power-rdr-alt` (OFF 0 / STBY 1 / ON 2)[^fg-right]; `CONTROLS` makes them the nodes `FCR` and
@@ -308,6 +308,7 @@ switches as FlightGear models them.
 | 6 | canopy handle (`CANOPY_HANDLE`, a hit area) | left side, aft of the left console, by the canopy switch[^dcs-canopy] | `[215, 0, 0]` | Ctrl+K | none |
 | take-off, landing | landing gear handle (`GEAR_LEVER`) | left auxiliary console (FlightGear's `LeftAuxConsole` `gear_lever`) | `[14, 0, 0]` | G | the handle's own animation (`controls/gear/gear-down`) |
 | (sensors) | FCR, RDR ALT switches (`FCR`, `RDR_ALT`) | SNSR PWR panel, right console[^fg-right] | `[219, ±1, 4]`, `[219, -1 / 2 / 1, 5]`; Ctrl+A turns both on with the avionics | Ctrl+A (on only) | ON (1) / OFF (0); RDR ALT ON (2) / STBY (1) / OFF (0) |
+| (pods) | LEFT HDPT, RIGHT HDPT switches (`l-hdpt-switch`, `r-hdpt-switch`; since 2026-11-17) | SNSR PWR panel, right console[^fg-right] | `[219, ±1, 6]`, `[219, ±1, 7]`: the chin stations' power, RIGHT HDPT the targeting pod's ([weapons.md](weapons.md) §7.2); Ctrl+A turns both on with the avionics | Ctrl+A (on only) | ON (1) / OFF (0) |
 
 - **The throttle by the mouse** (2026-11-13 to 2026-11-15, dropped at the user's word: "shouldn't be able to move
   the throttle or stick from the mouse"): a click and the wheel stepped it 5 %, a drag moved it, a drag down from idle
@@ -413,13 +414,13 @@ The user: "why moving one button on the avionics/power board move them all?" and
 things out of scenario". On the Sufa and the Barak the generators give the displays' power (the flight model's
 `power` 2, after a 3 s warm-up); each AVIONIC POWER and SNSR PWR switch then powers its own system, with its own 3 s
 warm-up when switched on (`iaf-flight` `start.rs` `Start::system`, the list `SYSTEMS`; `IafFlight` state
-`systems`; `cockpit.gd` `up`). The command is 219 for all six, p1 the way (1 on, −1 off, 0 the other way), p2 the
+`systems`; `cockpit.gd` `up`). The command is 219 for all eight, p1 the way (1 on, −1 off, 0 the other way), p2 the
 switch (`sim_flight.gd` `SYSTEMS`); no key sends it, Ctrl+A throws the four AVIONIC POWER switches. Since
 2026-11-17 Ctrl+A on also turns the SNSR PWR panel's FCR and RDR ALT on (Ctrl+A off leaves them on; `start.rs`
 `press("avionics")`): a start by the keys had left them off, so the radar stayed held at STBY and the Real HUD had no
 radar altitude for its break X (the user, 15 Nov: "radar isn't working? can't move out of stby?", "no x on pull
 up?!"; `test_sim_radar.gd`). Since the second fix of 17 Nov (the user: "it seems I can't power it", after a Training
-lesson by clicks) the key turns all six on while any is off (`sim_flight.gd` `start_step`; before, with the four
+lesson by clicks) the key turns all eight on while any is off (`sim_flight.gd` `start_step`; before, with the four
 clicked on, it turned them off and never reached the FCR), and every start-up and power switch keeps working after a
 lesson's pass (before, `_set_switch` refused them once the lesson was scored, so the FCR could not be powered in the
 flight that went on; `test_radar_cold.gd`: each jet's take-off lesson by clicks, then the radar radiates). The avionics step is done while all four are on; one off undoes it, and the debrief
@@ -554,7 +555,7 @@ Finish list C4b (2026-11-17), the parts that proof still found alike:
 
 `modern-iaf/tests/test_switches_both_ways.gd` runs each jet's switches off and on after the Start engine command
 and checks the position, the consequence, the steps done and the switch shown; on the F-16s it switches each of the
-six alone and checks its system down with its consequence, the other five up, and the system back after the warm-up.
+eight alone and checks its system down with its consequence, the other seven up, and the system back after the warm-up.
 
 The pilot's notebook names each switch and its place under the step's line, and no key
 ([training.md](training.md) §11; the mission's `training.checklist[].where`, [data-formats.md](data-formats.md) §5).

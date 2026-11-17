@@ -100,7 +100,7 @@ func _step(tv: Node, kb: Node, id: String, i: int) -> void:
 		return
 	var c3d = tv.cockpit_3d
 	var parts := []
-	var cmd: int = 210 + tv.addon.STEP_IDS.find(String(kb.checklist()[kb._current()].step))
+	var cmd: int = 210 + tv.addon.STEP_IDS.find(String(kb.checklist()[kb._current()].id))
 	for e in c3d.clickable._controls:
 		if int(e[1].get("click", [-1])[0]) in [cmd, 5 if cmd == 212 and id != "f35i" else -2]:
 			parts.append(e[0])
@@ -111,7 +111,7 @@ func _step(tv: Node, kb: Node, id: String, i: int) -> void:
 	var img := root.get_texture().get_image()
 	img.save_png(out.path_join("%s_step%d_%d.png" % [id, i + 1, img.get_height()]))
 	var g: Dictionary = kb.data.get("gauges", {}).get(kb._family(), {}).get(
-		String(kb.checklist()[kb._current()].step), {}
+		String(kb.checklist()[kb._current()].id), {}
 	)
 	var gauge := c3d.find_child(String(g.get("node", "-")), true, false) as MeshInstance3D
 	if gauge != null:  # the gauge the step watches, its dial outlined

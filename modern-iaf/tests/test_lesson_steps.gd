@@ -2,7 +2,8 @@
 # the checklist isn't clear enough", "I also see align on the hud but no idea how to do that", "it takes to long after
 # finishing the startup to get the mission accomplished screen"): MAIN PWR clicked one position at a time (at BATT the
 # notebook says one more click and the JFS still rings), the RPM wait, the INS's STOR HDG, its alignment and NAV, and
-# the pass within a few seconds of the last step. The take-off lesson rings the start-up's switches too.
+# the pass within a few seconds of the last item; since 17 Nov in the card's order (card.gd: BATT, FLCS PWR TEST, MAIN
+# PWR ...). The take-off lesson rings the card's switches too.
 extends "res://tests/test_mvp.gd"
 
 
@@ -13,12 +14,17 @@ func run() -> void:
 	DirAccess.make_dir_recursive_absolute(out)
 	var tv := await _start("ramon_startup")
 	var kb: Node = tv.addon.kneeboard
+	var card = tv.addon.card
 	var hint := func() -> String: return String(kb.hint())
+	var now := func() -> String: return String(card.current().get("id", ""))
 	await _call(tv, "startup")
 	Engine.time_scale = 1.0
+	await _fly_card(tv, func(it): return it.id != "batt")
 	await _click_control(tv, "MAIN_PWR")
 	await frames(3)
 	check(tv.flight.start_position("main_power") == 1, "one click: MAIN PWR at BATT")
+	check(now.call() == "flcs_pwr_test", "at BATT the card's next item: FLCS PWR TEST (%s)" % now.call())
+	await _fly_card(tv, func(it): return it.id == "flcs_pwr_test")
 	check(not "main_power" in tv.addon.done, "at BATT the main power step stays open")
 	check(hint.call() == kb.s("nb_hint_batt"), "at BATT the notebook says one more click (%s)" % hint.call())
 	check(_ring_text(kb) == hint.call(), "the ring's label says it too (%s)" % _ring_text(kb))
@@ -29,44 +35,31 @@ func run() -> void:
 	tv._command([211, 0, 0])  # the JFS: START 2
 	await fly(tv, 2.0)
 	check(hint.call().begins_with(kb.s("nb_hint_rpm").split("%")[0]), "cranking: wait for 20 %% RPM (%s)" % hint.call())
-	await _until(tv, func(): return float(tv.flight.state().rpm) >= 0.2, 60.0)
-	_press(tv, KEY_1)  # the throttle to idle
-	await _until(tv, func(): return float(tv.flight.state().rpm) >= 0.55, 60.0)
-	tv._command([213, 0, 0])  # avionics
-	await fly(tv, 1.0)
-	tv._command([214, 0, 0])  # INS: STOR HDG
-	await fly(tv, 1.0)
-	check(tv.flight.ins_knob() == tv.addon.INS_STOR_HDG, "one INS press: STOR HDG")
-	check(not "ins" in tv.addon.done, "aligning: the INS step open")
+	await _fly_card(tv, func(it): return it.id != "ins")
+	check(now.call() == "ins", "the card at INS NAV (%s)" % now.call())
+	var aligning := not bool(tv.flight.ins_status()[2])
 	check(
-		hint.call().begins_with(kb.s("nb_hint_ins_wait").split("%")[0]), "aligning: the seconds left (%s)" % hint.call()
+		(
+			hint.call().begins_with(kb.s("nb_hint_ins_wait").split("%")[0])
+			if aligning
+			else hint.call() == kb.s("nb_hint_ins_nav")
+		),
+		"the INS: the seconds left, or the knob to NAV (%s)" % hint.call()
 	)
-	tv._command([215, 0, 0])  # the canopy: the last step until 17 Nov
-	var t_canopy: float = tv._sim_time
-	await _until(tv, func(): return bool(tv.flight.ins_status()[2]), 120.0)
-	var t_aligned: float = tv._sim_time
-	check(tv.addon.result.is_empty(), "aligned at STOR HDG: the lesson waits for NAV")
-	check(hint.call() == kb.s("nb_hint_ins_nav"), "aligned: the knob to NAV (%s)" % hint.call())
-	tv._command([214, 0, 0])
-	tv._command([214, 0, 0])
-	var t_nav: float = tv._sim_time
+	await _fly_card(tv, func(it): return it.id in tv.addon.checklist)
+	var t_last: float = tv._sim_time
 	await _until(tv, func(): return not tv.addon.result.is_empty(), 30.0)
 	var t_end: float = tv._sim_time
 	check(bool(tv.addon.result.get("pass", false)), "the start-up passes (%s)" % [tv.addon.result.get("reasons")])
-	print(
-		(
-			"end delay: before %.1f s after the canopy (the silent alignment, scored every 3 s), now %.1f s after NAV"
-			% [t_aligned - t_canopy, t_end - t_nav]
-		)
-	)
-	check(t_end - t_nav <= SCORE_S, "the pass within %d s of the last step (%.1f s)" % [SCORE_S, t_end - t_nav])
+	check(t_end - t_last <= SCORE_S, "the pass within %d s of the last item (%.1f s)" % [SCORE_S, t_end - t_last])
 	Engine.time_scale = 1.0
-	# The take-off lesson rings MAIN PWR after the start-up's clearance (until 17 Nov nothing: the user could not find it).
+	# The take-off lesson rings the card's first open item after the start-up's clearance (until 17 Nov nothing: the
+	# user could not find MAIN PWR).
 	tv = await _start("ramon_takeoff")
 	await _call(tv, "startup")
 	Engine.time_scale = 1.0
 	await frames(3)
-	check(not tv.addon.kneeboard.marks.is_empty(), "the take-off lesson rings the start-up's first switch")
+	check(not tv.addon.kneeboard.marks.is_empty(), "the take-off lesson rings the card's first open item")
 
 
 const SCORE_S := 4

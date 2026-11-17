@@ -169,7 +169,7 @@ var power := 2
 var systems := {}
 
 
-## System `name` ("mmc", "st_sta", "mfd", "ufc", "fcr", "rdr_alt") up.
+## System `name` ("mmc", "st_sta", "mfd", "ufc", "fcr", "rdr_alt", "l_hdpt", "r_hdpt") up.
 func up(name: String) -> bool:
 	return power == 2 and bool(systems.get(name, true))
 

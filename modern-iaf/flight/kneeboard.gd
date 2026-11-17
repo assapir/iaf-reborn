@@ -1,15 +1,15 @@
 # The pilot's checklist notebook in the flight (modern-iaf/docs/training.md §11), a child of sim_flight.gd:
-# - the notebook (notebook.gd) with START-UP (the mission's start-up checklist, or the jet's from its start-up
-#   mission: done steps ticked, the current one marked, its fault in red), TAXI / T-O (the base's take-off mission's
-#   steps), RADIO (the base's frequencies, the calls and the tower's answers), LANDING, WEAPONS (with each step's key),
-#   EMERGENCY (data/notebook.json) and DATA (the mission's figures);
+# - the notebook (notebook.gd) with CHECKLIST (the jet's checklist card, card.gd, in every flight: its sections, the
+#   items ticked, the current one marked, a fault in red; a start-up lesson's tower call above it), TAXI / T-O (the
+#   base's take-off mission's steps), RADIO (the base's frequencies, the calls and the tower's answers), LANDING,
+#   WEAPONS (with each step's key), EMERGENCY (data/notebook.json) and DATA (the mission's figures);
 # - stowed: a board on the pilot's right thigh in the 3D cockpit (the notebook drawn into a texture when it changes);
-#   raised by the Checklist notebook key (H, keys.json record 118): a panel at the screen's lower right (in
-#   Hebrew too: the thigh's side), never its centre; a start-up mission starts with it raised;
-# - in a start-up training mission an outline round the current step's switch (and the gauge it watches): the part's
-#   own shape seen from the eye (the hull of its mesh's points, the gauge's dial as the ellipse it shows), through the
-#   camera every frame; a part out of the view gets a pointer at the screen's edge; the raised board slides along its
-#   side off an outline it would cover;
+#   raised by the Checklist notebook key (H, keys.json record 118): a panel at the screen's lower right (in Hebrew
+#   too: the thigh's side), never its centre; a start-up mission starts with it raised;
+# - in a Training lesson that starts cold an outline round the current item's controls (and the gauge it watches): the
+#   part's own shape seen from the eye (the hull of its mesh's points, the gauge's dial as the ellipse it shows),
+#   through the camera every frame; a part out of the view gets a pointer at the screen's edge; the raised board
+#   slides along its side off an outline it would cover;
 # - a help line over the board in the pilot's first start-up mission only (Settings.notebook_help_seen).
 extends Node
 
@@ -41,18 +41,15 @@ var data := {}
 var _covered := false
 
 
-## What the current step still misses, one short line (the user, 17 Nov: the main power needs two clicks and the card
+## What the current item still misses, one short line (the user, 17 Nov: the main power needs two clicks and the card
 ## did not say so): MAIN PWR at BATT, the RPM still under 20 %, a throttle not at OFF, the AVIONIC POWER switches still
-## off, the INS's alignment and NAV; with every step done, the F-35I's self test. "" when the step needs nothing more.
+## off, the INS's alignment and NAV, the F-35I's self test. "" when the item needs nothing more.
 func hint() -> String:
 	var f = flight.host.flight
-	var list := checklist()
-	var i := _current()
-	if f == null or list.is_empty():
+	var it: Dictionary = flight.card.current()
+	if f == null or it.is_empty():
 		return ""
-	if i >= list.size():
-		return s("nb_hint_selftest") if not bool(f.state().get("avionics", true)) else ""
-	match String(list[i].step):
+	match String(it.id):
 		"main_power":
 			if f.start_position("main_power") == 1 and flight.plane != "f35i":
 				return s("nb_hint_batt")
@@ -77,6 +74,9 @@ func hint() -> String:
 				return s("nb_hint_ins_norm" if knob == flight.INS_NORM else "nb_hint_ins_wait") % left
 			if knob != flight.INS_NAV:
 				return s("nb_hint_ins_nav")
+		"selftest":
+			if not bool(f.state().get("avionics", true)):
+				return s("nb_hint_selftest")
 	return ""
 
 
@@ -92,6 +92,7 @@ var _quad: MeshInstance3D
 var _y := -1.0  # the raised board's top (canvas px), sliding
 var _points := {}  # Mesh -> its distinct vertices (the mesh's frame), for its outline
 var _missions := {}  # data/missions/*.json, by name
+var _cur_block := 0  # the CHECKLIST page's block of the item to do now (or the lesson's tower call)
 
 
 func _init(f: Node) -> void:
@@ -163,9 +164,8 @@ func set_raised(on: bool) -> void:
 ## The pages again from the flight's state (a step taken, a fault, the language).
 func refresh() -> void:
 	board.set_sections(_sections(), he())
-	if is_startup() and board.current_id() == "startup":
-		# The page holding the step to take now (its block: the tower call first).
-		board.open("startup", 0 if call_pending() else _current() + calls().size())
+	if board.current_id() == "startup":
+		board.open("startup", _cur_block)  # the page holding the item to do now (the lesson's tower call first)
 	if _help != null:
 		_help.queue_free()
 		_help = null
@@ -230,14 +230,9 @@ func _mission_of(kind: String) -> Dictionary:
 	return by_jet
 
 
-## The checklist the START-UP page shows: the flight's own, else its jet's start-up mission's.
+## The jet's checklist card's items in order (card.gd), the same in every flight.
 func checklist() -> Array:
-	if is_startup():
-		return flight.checklist
-	var m := _mission_of("startup")
-	if String(m.get("start", {}).get("unit", "")) != flight.plane:
-		return []
-	return m.get("training", {}).get("checklist", [])
+	return flight.card.flat
 
 
 ## A start-up lesson's tower call before its checklist (the rules' `steps`, training.md §3.3): first on the START-UP
@@ -251,13 +246,10 @@ func call_pending() -> bool:
 	return not calls().is_empty() and not "ACFT_CLEAR_TO_START" in flight.answers
 
 
-## The first checklist step not taken (its index; the list's size when all are).
+## The card's item to do now (its index in checklist(); the list's size when none is open).
 func _current() -> int:
-	var list := checklist()
-	var i := 0
-	while i < list.size() and String(list[i].step) in flight.done:
-		i += 1
-	return i
+	var it: Dictionary = flight.card.current()
+	return checklist().find(it) if not it.is_empty() else checklist().size()
 
 
 func _sections() -> Array:
@@ -267,29 +259,41 @@ func _sections() -> Array:
 	var to := _mission_of("takeoff")
 	if runway == "":
 		runway = String(to.get("runway", ""))
-	# START-UP
+	# CHECKLIST: a start-up lesson's tower call, then the jet's card section by section
 	var blocks := []
-	var list := checklist()
 	var cur := _current() if not call_pending() else -1
-	var n := 0  # the tower call first, the checklist numbered after it
+	_cur_block = 0
+	var n := 0  # the tower call first, the card's items numbered after it
 	for c in calls():
 		var lines := ["[i]%s[/i]" % _esc(String(c.wait[l]))] if c.has("wait") else []
 		blocks.append(step(n, String(c[l]), lines, "cur" if call_pending() else "done", ""))
 		n += 1
+	var list := checklist()
+	var at_section := -1
 	for i in list.size():
 		var c: Dictionary = list[i]
-		var state := "done" if String(c.step) in flight.done else ("cur" if i == cur else "")
+		if int(c.section) != at_section:
+			at_section = int(c.section)
+			var sec: Dictionary = flight.card.sections[at_section]
+			blocks.append("[font_size=16][b]%s[/b][/font_size]" % _esc(String(sec[l])))
+		var state := "done" if flight.card.done.has(c.id) else ("cur" if i == cur else "")
+		if not c.has("check"):
+			state = "ack"
 		var lines := []
+		if c.has("how"):
+			lines.append("[i]%s[/i]" % _esc(String(c.how[l])))
 		if c.has("where"):
-			lines.append(String(c.where[l]))
-		if c.has("wait"):
-			lines.append("[i]%s[/i]" % _esc(String(c.wait[l])))
+			lines.append(_esc(String(c.where[l])))
+		if state == "ack":
+			lines.append("[i]%s[/i]" % s("nb_ack"))
 		var fault := ""
 		if state == "cur" and flight._fault_shown != "" and flight.trainer != null:
 			fault = String(flight.trainer.text(flight._fault_shown, l))
 		var h := hint() if state == "cur" else ""
 		if h != "":
 			lines.append("[color=#1f4e8c][b]%s[/b][/color]" % _esc(h))
+		if state == "cur":
+			_cur_block = blocks.size()
 		blocks.append(step(n + i, String(c[l]), lines, state, fault))
 	secs.append(_sec("startup", "nb_startup", "%s · %s" % [s("nb_startup"), _jet()], blocks))
 	# TAXI / T-O
@@ -438,8 +442,9 @@ static func _esc(t: String) -> String:
 	return t.replace("[", "[lb]")
 
 
-## A checklist step's block: its mark (✓ done, ▶ current, else its number), its line in bold and the lines under it
-## small; the current step on a yellow band, a fault in red under it.
+## A checklist item's block: its mark (✓ done, ▶ current, ○ read and acknowledge, else its number), its line in bold
+## and the lines under it small;
+## the current item on a yellow band, a fault in red under it.
 func step(i: int, text: String, lines: Array, state: String, fault: String) -> String:
 	var mark := str(i + 1)
 	var ink := "#1b1b1b"
@@ -448,6 +453,9 @@ func step(i: int, text: String, lines: Array, state: String, fault: String) -> S
 		ink = "#6b675e"
 	elif state == "cur":
 		mark = "◀" if he() else "▶"
+	elif state == "ack":  # read and acknowledge: its system is not modelled
+		mark = "○"
+		ink = "#4a4740"
 	var under := ""
 	for x in lines:
 		under += "\n[font_size=%d][color=#444444]%s[/color][/font_size]" % [Notebook.SMALL_PX, x]
@@ -555,35 +563,41 @@ func _stowed_board() -> void:
 		_quad.visible = not raised
 
 
-## The outlines and pointers of this frame (a start-up training mission's current step only).
+## The outlines and pointers of this frame: the card's current item's controls (its "control" nodes; those its check
+## wants at a value already there left out, and of the F-16's AVIONIC POWER switches those already on), in a Training
+## lesson that starts cold.
 func _marks() -> Array:
 	var out := []
 	var c3d = flight.host.get("cockpit_3d")
 	var list := checklist()
 	var i := _current()
-	# Every Training lesson that starts cold rings the start-up's current switch (until 17 Nov the start-up lesson
-	# alone: the take-off lessons rang nothing, and the user could not find MAIN PWR under the glove).
+	# Every Training lesson that starts cold rings the card's current item (until 17 Nov the start-up lesson alone: the
+	# take-off lessons rang nothing, and the user could not find MAIN PWR under the glove).
 	var waits: bool = "startup" in flight.rules.get("clearances", []) and not "ACFT_CLEAR_TO_START" in flight.answers
-	if flight.rules.is_empty() or i >= list.size() or not is_instance_valid(c3d) or waits:
+	if flight.rules.is_empty() or i >= list.size() or not is_instance_valid(c3d) or waits or not flight.card.phase_ok:
 		return out  # no switch ringed before the tower's clearance
 	if c3d.camera == null or not c3d.camera.current or c3d.clickable == null:
 		return out
-	var id := String(list[i].step)
-	var cmd: int = 210 + flight.STEP_IDS.find(id)
+	var it: Dictionary = list[i]
+	var id := String(it.id)
+	var check: Dictionary = it.get("check", {})
 	var parts := []
-	for e in c3d.clickable._controls:
+	for node in it.get("control", []):
+		var e: Array = _part(c3d, String(node))
+		if e.is_empty():
+			continue
+		var want = check.get("set", {}).get(node)
+		if want != null and flight.card.at(node, want):
+			continue
+		if check.get("test", {}).has(node) and flight.card.seen(node, float(check.test[node])):
+			continue
 		var click: Array = e[1].get("click", [-1, 0, 0])
-		if int(click[0]) == cmd:
-			parts.append(e)
-		elif id == "avionics" and int(click[0]) == 219 and _avionic_off(int(click[2])):
-			parts.append(e)  # the F-16's AVIONIC POWER switches (command 219, no step key): those still off
-	if parts.is_empty() and id == "engine":  # the F-16's engine step: the throttle out of OFF, by its keys or lever
-		var grip := c3d.find_child("THROTTLE", true, false) as MeshInstance3D
-		if grip != null:
-			parts = [[grip, {}]]
+		if id == "avionics" and int(click[0]) == 219 and not _avionic_off(int(click[2])):
+			continue  # the F-16's AVIONIC POWER switches: those still off
+		parts.append(e)
 	if not parts.is_empty():
 		var h := hint()
-		out.append(_mark(parts, h if h != "" else String(list[i][lang()]), c3d.camera))
+		out.append(_mark(parts, h if h != "" else String(it[lang()]), c3d.camera))
 		# The pilot's body hidden while it covers the ringed control in view from the eye (the user, 17 Nov: "I am unable to
 		# click the main power on the second traininig": the left glove over the ELEC panel).
 		_covered = (
@@ -600,6 +614,16 @@ func _marks() -> Array:
 				_mark([[mi, _dial(c3d, gauge, float(g.get("radius_m", 0.0)))]], String(g.label[lang()]), c3d.camera)
 			)
 	return out
+
+
+## Control `node` of the 3D cockpit: [its mesh, its record], a mesh not clickable (the throttle's grip) with {}; [] when
+## the model has no such part.
+static func _part(c3d: Node, node: String) -> Array:
+	for e in c3d.clickable._controls:
+		if String(e[0].name) == node:
+			return e
+	var mi := c3d.find_child(node, true, false) as MeshInstance3D
+	return [mi, {}] if mi != null else []
 
 
 ## True for the F-16's AVIONIC POWER switch `i` (sim_flight.gd SYSTEMS, command 219's p2) while it is off: the

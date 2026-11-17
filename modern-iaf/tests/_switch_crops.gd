@@ -38,7 +38,7 @@ func run() -> void:
 		var unit: String = tv.addon.plane
 		var controls: Array = tv.cockpit_3d.clickable._controls
 		for c in tv.addon.rules.get("checklist", []):
-			var step := str(c.step)
+			var step := str(c)
 			var cmd: int = 210 + tv.addon.STEP_IDS.find(step)
 			# The avionics step: the four AVIONIC POWER switches (command 219, p2 0-3: sim_flight.gd SYSTEMS).
 			var four := func(k: Array) -> bool: return step == "avionics" and int(k[0]) == 219 and int(k[2]) < 4

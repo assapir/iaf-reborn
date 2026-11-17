@@ -48,6 +48,10 @@
 # and drags, a drag down from idle over the detent to OFF).
 extends Node
 
+## Control `prop` put to `value` (`put`: a click, a drag, the wheel, a spring back): the checklist card hears a test
+## switch's moment by it (modern-iaf/flight/card.gd).
+signal moved(prop: String, value: float)
+
 ## The pixels of a drag per "turn" command, unless the control sets its own.
 const DRAG_PX := 10.0
 ## A spring-loaded switch moved by the wheel stays this long before it springs back (s, inferred).
@@ -408,6 +412,7 @@ func put(r: Dictionary, v: float) -> void:
 		return
 	var was := value(r)
 	sw[r.prop] = v
+	moved.emit(String(r.prop), v)
 	var tv: Object = get_parent().command.get_object() if get_parent().command.is_valid() else null
 	var snd: Node = tv.get("sounds") if tv != null else null
 	var n: int = snd.played.size() if snd != null else 0

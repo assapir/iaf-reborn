@@ -183,7 +183,7 @@ mission still passes; `fail`). A record from before `checks` shows its `goals` i
 
 | mission | the checks |
 |---|---|
-| start-up | idle with the avionics up within the time budget; the checklist steps done (a mission with a `checklist`) |
+| start-up | idle with the avionics up within the time budget; the card items the lesson names ticked (§12) |
 | take-off | the runway (the mission's against the one rolled on), within the time budget (the first airborne sample with the gear up on the heading), the gear up on the runway heading (± `heading_tolerance_deg`), the centreline offset over the roll (at most half the runway's width; `fail` on an excursion), the lift-off speed against the reference (`warn` beyond 10 kt, inferred: the reference table's own step), the tower calls (one each for the start-up and the taxi, two for the take-off; `warn` when fewer) |
 
 `next` is the tip for the reason that failed the flight first (off the pavement, an excursion, the wrong runway, no
@@ -237,6 +237,8 @@ are refused, an unknown goal is refused, and every take-off mission's runway is 
 - A start-up fault model (hot / hung start): none in the flight model.
 - The roll's start and rotation thresholds checked against a real flight of each mission by the user.
 - The 6-DoF's take-off roll is short (flight-model.md §9.6): the probe's Sufa lifts off after about 465 m at 180 kt.
+- Radio calls and the ground flow around the checklist are a manual topic (the pilot's manual, planned separately); the
+  card (§12) holds no radio call.
 
 ## 7. The start in the game
 A flight starts with a clean view, the flight running (the user, 2026-11-13; [front-end.md](front-end.md) §8). The
@@ -272,7 +274,8 @@ for the F-16s and 47 s / 92 s for the F-35I (the recorder samples 10 times a sec
 
 ### 7.1 The start-up checklist by keys
 Since 2026-11-08 (the user: "the first mission, which is just one click, is pointless") the start-up mission is the
-real start by keys, step by step. The pilot's notebook (§11) shows the steps on its START-UP page, in English and
+real start by keys, step by step. The pilot's notebook (§11) shows the steps among the card's items on its CHECKLIST
+page (§12; START-UP until 2026-11-17), in English and
 Hebrew: each step with its switch's name and place and the state to wait for, the steps taken ticked, the step to take
 now marked, and a fault in red under it. Since 2026-11-13 it names no key (the user: "lets remove the kb hints"): the
 briefing's How and the Keys screen list the keys. Each step but the idle is a key of the sim's own `keys.json` (records 119–124,
@@ -350,11 +353,12 @@ The recording gets a `checklist` event with step `cutoff` and its fault: `shutdo
 `no_start` (it was lighting or accelerating to idle). A cold or cranking engine has nothing to cut: no fault. In a
 training mission the fault fails it at once (§3.0) with "Engine shutdown: the throttle went to OFF with the engine
 running." first in the debrief. Open: the air. In flight the real jet's emergency power unit and standby generator
-keep the displays up, and the engine windmills rather than stopping; the sim models neither. The mission passes when every step is done
-(`skip_<step>` names a step never taken), the engine idles and the avionics are up within the time budget (5 min,
-inferred), and nothing failed, at its end. The steps and their notebook lines are mission data (`training.checklist`,
-[data-formats.md](data-formats.md) §5); each key press is a `checklist` event in the recording (`step`, and `fault`
-when it was refused). The take-off missions still start cold: the same keys start the jet there, the notebook stowed.
+keep the displays up, and the engine windmills rather than stopping; the sim models neither. The mission passes when every card item it asks for is
+ticked (`skip_<step>` names a start-up step never taken, `skip_item` any other item), the engine idles and the avionics
+are up within the time budget (10 min since 2026-11-17, inferred), and nothing failed, at its end. The items' lines are
+the jet's card (§12); the lesson's `training.checklist` names them ([data-formats.md](data-formats.md) §5). Each key
+press or switch is a `checklist` event in the recording (`step`, and `fault` when it was refused), each card item
+ticked or unticked one with `item`. The take-off missions still start cold: the same keys start the jet there, the notebook stowed.
 
 The notebook's pictures are in §11.
 
@@ -488,7 +492,7 @@ from K to its own key (the user: "Give notebook its own key"): K had shared it w
 turn), so stowed it costs one textured quad.
 
 **Raised** it is a 460 x 620 px panel (at the 1080-high canvas) at the screen's lower right, 26 px from the edge, in
-Hebrew too (the thigh's side), never the screen's centre. A start-up mission starts with it raised at its START-UP
+Hebrew too (the thigh's side), never the screen's centre. A start-up mission starts with it raised at its CHECKLIST
 page; every other flight starts with it stowed. In Hebrew the page is mirrored: the tabs run down the board's left
 edge, the text right to left.
 
@@ -496,7 +500,7 @@ edge, the text right to left.
 
 | tab (English / Hebrew) | the page | from |
 |---|---|---|
-| START-UP / התנעה | the start-up checklist: each step's line, its switch and place (`where`), the state to wait for (`wait`); the steps whose switches are on ticked (a switch back off unticks its step, [cockpit.md](cockpit.md) "Both ways"), the step to take now on a yellow band with ▶ (◀ in Hebrew), a refused step's fault in red under it | the flight's own `training.checklist` (§7.1), else the one of the start-up mission of the flight's jet |
+| CHECKLIST / בד״ח (START-UP / התנעה until 2026-11-17) | the jet's checklist card (§12), section by section: each item's line, how to do it (`how`: the clicks, the waits), its switch and place (`where`); the items whose check holds ticked (a switch back off unticks its item, [cockpit.md](cockpit.md) "Both ways"), ○ on an item read and acknowledged, the item to do now on a yellow band with ▶ (◀ in Hebrew), a refused step's fault in red under it | the jet's card, `data/checklists` (§12); a start-up lesson's tower call above it |
 | TAXI / T-O / הסעה / המראה | the radio calls, the taxi and the take-off as numbered steps, the runway's designator, heading, length and elevation | the take-off mission's `training.steps` (§8) of the flight's base (else its jet); the base's airbase file |
 | RADIO / קשר | the callsign, the base's frequencies (name, MHz, VHF / UHF), the four calls with the frequency to call on and the tower's answer | `data/notebook.json` `radio` and `calls`; the call names are the radio menu's (`sim_flight.gd` `ITEMS`) |
 | LANDING / נחיתה | the call, the gear, the final's AOA, the touchdown, the throttle to OFF on the spot | `data/notebook.json` `pages.<f16 / f35i>.landing` |
@@ -512,7 +516,7 @@ width and the page breaks between them. The pages turn by:
 - the mouse wheel over the notebook, and PgUp / PgDn while it is raised.
 
 Past a section's last page the next section's first page opens; back from its first page, the previous section's
-last. ‹ dims on the notebook's first page, › on its last. On the START-UP tab the page follows the step to take now.
+last. ‹ dims on the notebook's first page, › on its last. On the CHECKLIST tab the page follows the item to do now.
 
 **No key hints, no title, no clip** (the user, 2026-11-13: "lets remove the kb hints"): the steps name the switch and
 its place. In the pilot's first start-up mission only a help line stands over the raised notebook ("H stow · PgUp /
@@ -540,7 +544,7 @@ the body is hidden ([cockpit.md](cockpit.md) §5.3). Pictures: `modern-iaf/tests
 
 | page | step | clickable |
 |---|---|---|
-| START-UP | every step of the Sufa, the Barak and the Adir: MAIN PWR, JFS, the four AVIONIC POWER switches, the INS knob, the canopy handle; BATT, IPP, ENG / START, CANOPY; the throttle out of OFF by its keys or lever (no mouse since 2026-11-15) | yes, except the throttle ([cockpit.md](cockpit.md) §5.2; `test_mvp.gd` clicks each, the F-35I's CANOPY included) |
+| CHECKLIST | every start-up step of the Sufa, the Barak and the Adir: MAIN PWR, JFS, the four AVIONIC POWER switches, the INS knob, the canopy handle; BATT, IPP, ENG / START, CANOPY; the throttle out of OFF by its keys or lever (no mouse since 2026-11-15) | yes, except the throttle ([cockpit.md](cockpit.md) §5.2; `test_mvp.gd` clicks each, the F-35I's CANOPY included) |
 | LANDING | the landing gear handle (both cockpits) | yes since 2026-11-13: the G key's command, refused on the ground |
 | LANDING, EMERGENCY | the throttle to OFF over the idle detent | no: the throttle takes no mouse; OFF is Throttle OFF (Shift + 1) |
 | LANDING | the wheel brakes (the rudder pedals) | no: no pedal part answers the mouse (open) |
@@ -594,6 +598,85 @@ current step from the notebook.
 end's Guides screen drawing the same pages) is the next part. Gauge rings for the other steps; the throttle OFF, the
 brakes, the ejection handle and the switches' OFF positions by the mouse.
 
+
+## 12. The jet's checklist card
+Since 2026-11-17 (the user: "the checklist isn't clear enough. we also need to make the checklist full", "try to find a
+real checklist and use it", "right now the checklist is very training specfic", "ok so all of this should be part of
+the checklist, ya? turning radar on etc") each jet carries one real checklist, the same card in every mission: the
+notebook's first tab, CHECKLIST / בד״ח (§11). The card is the jet's data, not a lesson's:
+`modern-iaf/data/checklists/f16.json` (the F-16I Sufa and the F-16D Barak, one cockpit) and `f35i.json` (the F-35I
+Adir); `modern-iaf/flight/card.gd` ticks it.
+
+**The source.** The F-16 card follows the real F-16C/D normal procedures: their sections and their order[^haf], cross
+checked with a checklist card derived from the real one for Falcon BMS[^bmscl]. Each item is written in our own words:
+the switch, then its position. Radio calls, ground-crew items (chocks, pins, the fireguard) and the "as required" items
+of systems the sim lacks are left off; the radio calls and the ground flow around the checklist are a manual topic
+(planned separately). The F-35 card holds the one public start flow: the battery, the IPP, the engine and the 90 s self
+test[^ayton]; every other item and its section are inferred from the F-16's and from our cockpit (no public F-35
+checklist was found). The Hebrew section names are the field's: the checklist is בד״ח (בדיקות חיוניות), its parts
+"בדיקות לפני המראה", "אחרי המראה", "לפני נחיתה", "אחרי נחיתה"[^bdh]; the switches keep their English labels, as
+painted in the cockpit.
+
+**Where ours differs from the source** (all inferred):
+- The INS: the source aligns at NORM (about 8 minutes); the card aligns at STOR HDG (90 s), the source's quick-response
+  alignment[^haf], then NAV in BEFORE TAXI as the source has it.
+- LEFT HDPT and RIGHT HDPT: the source has them "as required"; the card turns both on, for the chin pods the IAF
+  jets carry (the navigation pod on 5L, the targeting pod on 5R). Since this change the targeting pod has power only
+  with RIGHT HDPT on ([weapons.md](weapons.md) §7.2); both are switches of the flight model (`start.rs` `SYSTEMS`,
+  [cockpit.md](cockpit.md) §5.2), on in a jet that starts hot, and Ctrl+A turns them on with the avionics.
+- The EPU check: the source runs it before take-off with the engine at a raised RPM; the card has the EPU switch to
+  OFF and back to NORM after the start (the source's items 31 and 33), as the sim has no EPU.
+- The landing light: the source's take-off has none; the card turns LANDING on before take-off and off after it.
+- The F-35I's LAND/TAXI positions (OFF, TAXI, LAND) and its PARKING BRAKE are our cockpit's (research/f35-cockpit.md).
+
+**The sections and items.** F-16: BEFORE STARTING ENGINE, STARTING ENGINE, AFTER ENGINE START, BEFORE TAXI, TAXI,
+BEFORE TAKEOFF, AFTER TAKEOFF, BEFORE LANDING, AFTER LANDING, PRIOR TO ENGINE SHUTDOWN, ENGINE SHUTDOWN: 67 items, 49
+checked by the sim and 18 read and acknowledged. F-35I: the same sections less PRIOR TO ENGINE SHUTDOWN: 32 items, 26
+checked and 6 read and acknowledged.
+
+**An item** (`data/checklists/*.json`, [data-formats.md](data-formats.md) §5) has its line (`en`, `he`), how to do it
+when that is more than one action or a wait (`how`: "two clicks …", "WAIT for 20 % RPM"), the switch's place (`where`),
+the controls the training ring outlines (`control`, the 3D cockpit's node names) and its `check`, the state that ticks
+it:
+
+| check | ticked when |
+|---|---|
+| `step` | the flight model's start-up step is done (§7.1: MAIN PWR at MAIN PWR, the JFS, the idle, the four AVIONIC POWER switches, the INS at NAV aligned, the canopy) |
+| `set` | each control is at its position (or within `[lo, hi]`) |
+| `test` | each control has been at its test position (a held test switch's moment: `cockpit3d_controls.gd` `moved`) |
+| `lamp_off` | that cockpit lamp is dark (MASTER CAUTION, CANOPY, ENGINE) |
+| `state` | the flight state's values (the generators' power, the engine running, the F-35I's self test) |
+| `gear` | the gear handle up or down |
+| `throttle_off` | the throttle at OFF |
+
+An item with no `check` is read and acknowledged: its system is not modelled (the oxygen, the IFF, the trim, the
+ejection seat's lever). The notebook shows it with ○ and "Read and acknowledge: not modelled in the sim"; it is never
+the current item.
+
+**How it runs.** The sections run in order. The current section is the first with a checked item still open, and its
+first open item is the current one: on a yellow band in the notebook and, in a Training lesson that starts cold, ringed
+in the 3D cockpit (§11). In the current section a switch put back unticks its item; the sections before it stay done.
+AFTER TAKEOFF waits for the air, BEFORE LANDING for the approach (airborne, descending below 3,000 ft above the ground,
+inferred), AFTER LANDING and the shutdown for the ground after a flight. Once airborne (or landed) the card goes on at
+that phase's first section even with an earlier item left open. A jet
+that starts hot opens the card at BEFORE TAXI, one that starts in the air at AFTER TAKEOFF. Each item ticked or
+unticked is a `checklist` event in the recording (`item`: its id; `"on": false` unticked), which the start-up
+lessons' scorer reads.
+
+**The lessons.** A lesson keeps its own prompts (the tower calls and their waits, the TAXI / T-O page) and names the
+card's items it asks for: the start-up lessons' `training.checklist` lists every checked item from BEFORE STARTING
+ENGINE through BEFORE TAXI (33 for the F-16s, 14 for the F-35I), and their time budget is 10 minutes (it was 5 for the
+six steps). The scorer fails an item not ticked with its own line for the start-up's six steps and "Skipped: a
+checklist item" for the rest. The take-off lessons show and ring the same card; they are scored as before.
+
+**Checks.** `modern-iaf/tests/test_checklist_card.gd` (headless, each jet): the take-off lesson flown from a cold jet
+by exactly the card's items, each by real clicks on its controls (`test_mvp.gd` `_fly_card`), the taxi, BEFORE TAKEOFF
+at the hold, the take-off and AFTER TAKEOFF; then the radar radiates, the INS is in NAV and aligned with its
+steerpoints, no ALIGN on the HUD, RDR ALT gives the radar altitude, the targeting pod works (the F-16s) and no caution
+is lit. Then the Sufa's weapons range as an ordinary sortie: the card opens on the notebook, its current item on the
+page in English and Hebrew, and a click ticks it. `test_mvp.gd`, `test_lesson_steps.gd`, `test_notebook.gd` and
+`test_radar_cold.gd` fly the lessons by the card.
+
 [^ins]: F-16.net forum, "INS alignment time and time to takeoff from cold start" (a normal alignment about 8 minutes, a stored-heading alignment about 90 s), https://www.f-16.net/forum/viewtopic.php?p=7943; Eagle Dynamics forum, "What is the difference between stored INS align and normal INS align in the F-16C Viper", https://forum.dcs.world/topic/267433-what-is-the-difference-between-stored-ins-align-and-normal-ins-align-in-the-f-16c-viper (both weak: forums)
 [^w-f16]: Wikipedia, "General Dynamics F-16 Fighting Falcon", Specifications (F-16C Block 50 / 52): empty weight 18,900 lb (8,573 kg), https://en.wikipedia.org/wiki/General_Dynamics_F-16_Fighting_Falcon
 [^w-f35]: Wikipedia, "Lockheed Martin F-35 Lightning II", Specifications (F-35A): empty weight 29,300 lb (13,290 kg), https://en.wikipedia.org/wiki/Lockheed_Martin_F-35_Lightning_II
@@ -609,3 +692,6 @@ brakes, the ejection handle and the switches' OFF positions by the mouse.
 [^oa-llrm]: OurAirports, Ramon Airbase (LLRM), frequencies: APP 120.9 MHz, https://ourairports.com/airports/LLRM/
 [^oa-llrd]: OurAirports, Ramat David Airbase (LLRD), frequencies: TWR 118.6 MHz, APP 125.8 MHz, https://ourairports.com/airports/LLRD/
 [^oa-llnv]: OurAirports, Nevatim Airbase (LLNV), frequencies: APP 120.9 MHz, https://ourairports.com/airports/LLNV/
+[^haf]: Lockheed Martin, T.O. GR1F-16CJ-1, Flight Manual, Hellenic Air Force F-16C/D Block 50/52+, 15 October 2002, change 1 of 15 June 2003, section II "Normal Procedures" (the parent text of the -1CL-1 checklist), pp. 2-3 to 2-30; the scramble's STOR HDG alignment p. 2-30; a public copy, https://archive.org/details/haf-f-16
+[^bmscl]: Combat sim checklists, Falcon BMS "Main Volume" (derived from the -1CL-1; weak: a simulation's), http://www.ravico.com/ST/Download/Checklists/BMS/Checklists/1107_02_main.pdf
+[^bdh]: Hebrew Wikipedia, "בדיקות חיוניות" (בד״ח: the checklist booklet; its sections before and after the take-off and the landing), through its mirror https://www.hamichlol.org.il/בדיקות_חיוניות

@@ -75,7 +75,7 @@ func run() -> void:
 	if _want("radio"):
 		kb.board.open("radio")
 		await _shot("radio")
-		kb.board.open("startup", kb._current())
+		kb.board.open("startup", kb._cur_block)
 	# The page control: the first section with more than one page, at its second page (‹ and › both live).
 	if _want("pages"):
 		for sec in kb.board.sections:
@@ -85,7 +85,7 @@ func run() -> void:
 				break
 		await fly(tv, 0.3)
 		await _shot("pages")
-		kb.board.open("startup", kb._current())
+		kb.board.open("startup", kb._cur_block)
 	if _want("stowed"):
 		kb.set_raised(false)
 		tv.views.snap = Vector2(-0.15, -1.05)

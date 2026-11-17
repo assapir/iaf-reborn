@@ -37,8 +37,9 @@ pub const RUNDOWN_TAU: f64 = 15.0;
 pub const STOP_RPM: f64 = 1.0;
 
 /// The F-16's per-system power switches (`Start::system`): the four AVIONIC POWER switches (the checklist's avionics
-/// step) and the SNSR PWR panel's FCR and RDR ALT; IafFlight command 219's p2 indexes them.
-pub const SYSTEMS: [&str; 6] = ["mmc", "st_sta", "mfd", "ufc", "fcr", "rdr_alt"];
+/// step) and the SNSR PWR panel's FCR, RDR ALT, LEFT HDPT and RIGHT HDPT (the chin stations' pods: the navigation pod
+/// on 5L, the targeting pod on 5R; modern-iaf/docs/weapons.md §7.3); IafFlight command 219's p2 indexes them.
+pub const SYSTEMS: [&str; 8] = ["mmc", "st_sta", "mfd", "ufc", "fcr", "rdr_alt", "l_hdpt", "r_hdpt"];
 /// The first `AVIONICS` of `SYSTEMS` make the avionics step.
 const AVIONICS: usize = 4;
 
@@ -342,7 +343,7 @@ impl Start {
     }
 
     /// One checklist step by its key (training.md §7.1): "main_power", "starter", "engine", "avionics" (the four
-    /// AVIONIC POWER switches and the SNSR PWR panel's two), "ins", "canopy"; or one of `SYSTEMS`. Err: the fault of a step out of order, with its consequence applied (the switch does nothing; a hot
+    /// AVIONIC POWER switches and the SNSR PWR panel's four), "ins", "canopy"; or one of `SYSTEMS`. Err: the fault of a step out of order, with its consequence applied (the switch does nothing; a hot
     /// start stops the engine).
     pub fn press(&mut self, s: &StartSpec, step: &str) -> Result<(), &'static str> {
         match step {
@@ -390,7 +391,7 @@ impl Start {
             "avionics" | "mmc" | "st_sta" | "mfd" | "ufc" if self.displays_at.is_none() => {
                 return Err("avionics_early");
             }
-            // The key throws the SNSR PWR panel's FCR and RDR ALT on with the four (inferred: the checklist turns
+            // The key throws the SNSR PWR panel's four on with the four (inferred: the checklist turns
             // them on with the avionics; until 2026-11-17 they stayed off, the radar held dead and the GAAF without a
             // radar altitude after a keyed start). Its release leaves them on: they have switches of their own.
             "avionics" => {
@@ -628,7 +629,7 @@ mod tests {
         st.t = 10.0;
         st.press(&JFS, "avionics").unwrap();
         st.t = 20.0;
-        assert!(SYSTEMS.iter().all(|n| st.on(n) && st.system(&JFS, n)), "all six up");
+        assert!(SYSTEMS.iter().all(|n| st.on(n) && st.system(&JFS, n)), "all eight up");
         assert_eq!(st.position("rdr_alt"), 2, "RDR ALT at RDR ALT");
         st.release("avionics");
         assert!(st.system(&JFS, "fcr") && st.system(&JFS, "rdr_alt") && !st.system(&JFS, "mmc"));

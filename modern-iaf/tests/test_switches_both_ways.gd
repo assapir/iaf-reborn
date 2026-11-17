@@ -43,7 +43,7 @@ func _jet(tv: Node, id: String, f35: bool) -> void:
 	tv._command([200, 0, 0])  # Start engine: the whole checklist
 	check(await _until(tv, func(): return bool(f.state().avionics), 120.0), "%s: the engine started, avionics up" % id)
 	await frames(2)
-	check(tv.addon._steps().all(func(s): return s in tv.addon.done), "%s: every step done %s" % [id, tv.addon.done])
+	check(tv.addon.STEP_IDS.all(func(s): return s in tv.addon.done), "%s: every step done %s" % [id, tv.addon.done])
 	check(float(sw.get(main)) > 0.0, "%s: the main power switch shown on" % id)
 	# Main power off: everything dark, the engine runs on; on: the displays after their warm-up.
 	await _cmd(tv, 210)
@@ -133,7 +133,7 @@ func _ins(tv: Node, id: String) -> void:
 		check(at.call(i), "%s: the INS knob turned back to %d (%s)" % [id, i, f.ins_knob()])
 	check(not f.start_on("ins") and not "ins" in tv.addon.done, "%s: the INS knob at OFF: the step undone" % id)
 	await _cmd(tv, 214)
-	check(at.call(1) and "ins" in tv.addon.done, "%s: the key from OFF: STOR HDG, aligning" % id)
+	check(at.call(1) and f.start_on("ins"), "%s: the key from OFF: STOR HDG, aligning" % id)  # done at NAV, aligned
 	check(await _until(tv, func(): return bool(f.state().avionics), 100.0), "%s: aligned at STOR HDG" % id)
 
 
@@ -143,7 +143,7 @@ func _ins(tv: Node, id: String) -> void:
 func _systems(tv: Node, id: String) -> void:
 	var f = tv.flight
 	var names: Array = tv.addon.SYSTEMS
-	var props := ["mmc", "st-sta", "mfd", "ufc", "fcr", "rdr-alt"]
+	var props := ["mmc", "st-sta", "mfd", "ufc", "fcr", "rdr-alt", "left-hdpt", "right-hdpt"]
 	for i in names.size():
 		var n: String = names[i]
 		await _cmd(tv, 219, -1, i)
@@ -190,6 +190,10 @@ func _dark(tv: Node, n: String) -> bool:
 			h._real_frame = -1  # this frame's Real HUD inputs again
 			h.real_hud()
 			return h._real_in.has("agl_ft") and h._real_in.agl_ft == null
+		"r_hdpt":  # the targeting pod on 5R unpowered (a lesson without a pod: the switch's power alone)
+			return w.pod_state() == 0 if w.flir_pod else not tv.cockpit.up("r_hdpt")
+		"l_hdpt":  # the navigation pod on 5L: its FLIR and terrain following are not modelled, its power is all
+			return not tv.cockpit.up("l_hdpt")
 	return false
 
 

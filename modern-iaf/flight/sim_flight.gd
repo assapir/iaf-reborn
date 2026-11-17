@@ -14,6 +14,7 @@ extends Node
 
 const MissionRuntime := preload("res://shared/mission/mission_runtime.gd")
 const Kneeboard := preload("kneeboard.gd")
+const Card := preload("card.gd")
 const FlightUi := preload("flight_ui.gd")
 const FrameMeter := preload("frame_meter.gd")
 const WizardTheme := preload("../setup/wizard_theme.gd")  # relative: a test of the original's project loads it too
@@ -88,18 +89,21 @@ var _wrong_said: Array = []
 ## When the flight ends into the debrief (ms, real time), once the mission ended; the banner over the view.
 var _end_ms := INF
 var _banner: PanelContainer
-## The start-up checklist (the readable mission's training.checklist: [{step, key, en, he, where, wait}]), the
-## steps whose switches are on (ids: IafFlight.start_on, read each frame), a step's fault waiting for the live
-## check, the last fault shown, and the pilot's notebook (kneeboard.gd: its START-UP page shows them; training.md §11).
+## A start-up lesson's items of the jet's card it asks for (the readable mission's training.checklist: card item ids,
+## training.md §12), the flight model's start-up steps whose switches are on (ids: IafFlight.start_on, read each
+## frame), a step's fault waiting for the live check, the last fault shown, the jet's checklist card (card.gd) and
+## the pilot's notebook (kneeboard.gd: its CHECKLIST page shows the card; training.md §11).
 var checklist: Array = []
+var card: Node
 var done: Array = []
 var _fault := ""
 var _fault_shown := ""
 var kneeboard: Node
 const STEP_IDS := ["main_power", "starter", "engine", "avionics", "ins", "canopy"]
 ## The F-16's power switches one by one (command 219's p2 → SYSTEMS[i]; iaf-flight start.rs SYSTEMS, the same order):
-## the four AVIONIC POWER switches (together the avionics step) and the SNSR PWR panel's FCR and RDR ALT.
-const SYSTEMS := ["mmc", "st_sta", "mfd", "ufc", "fcr", "rdr_alt"]
+## the four AVIONIC POWER switches (together the avionics step) and the SNSR PWR panel's FCR, RDR ALT, LEFT HDPT and
+## RIGHT HDPT (the chin pods).
+const SYSTEMS := ["mmc", "st_sta", "mfd", "ufc", "fcr", "rdr_alt", "l_hdpt", "r_hdpt"]
 ## The F-16's switches of three positions: a command's p1 2 puts one at its in-between position (MAIN PWR at BATT, the
 ## JFS at START 1, RDR ALT at STBY; iaf-flight start.rs Start::position), the flight model's step of that name.
 const IN_BETWEEN := {"main_power": "main_power_batt", "starter": "starter_1", "rdr_alt": "rdr_alt_stby"}
@@ -175,6 +179,8 @@ func _ready() -> void:
 	ui = FlightUi.new(host)
 	layer.add_child(ui)
 	ui.language_changed.connect(_language_changed)
+	card = Card.new(self, plane)
+	add_child(card)
 	# A mission with the start-up checklist starts with the notebook raised at its START-UP page (training.md §11).
 	add_child(FrameMeter.new())  # the frame time the Settings screen shows (front-end.md §4.2)
 	kneeboard = Kneeboard.new(self)
@@ -373,6 +379,8 @@ func _process(delta: float) -> void:
 		set_open(false)  # not in use
 	_throttle_step()
 	_sync_switches()
+	if card.update() and kneeboard != null:
+		kneeboard.refresh()
 	_canopy(delta)
 	if rules.is_empty() or not result.is_empty() or host.flight == null or host.get("_log") == null:
 		return
@@ -418,7 +426,7 @@ func _process(delta: float) -> void:
 	var ready := false
 	if String(rules.get("kind", "")) == "startup":
 		ready = bool(st.get("engine_on", false)) and bool(st.get("avionics", false))
-		ready = ready and _steps().all(func(id): return id in done)  # every checklist step's switch on
+		ready = ready and _steps().all(func(id): return card.done.has(id))  # every item the lesson asks for ticked
 	else:
 		ready = not bool(st.on_ground)  # airborne: scored with the gear up or down, so a missing goal shows
 	if not (ready or t > budget + PAST_BUDGET):
@@ -526,7 +534,7 @@ func _finish(d: Dictionary) -> void:
 ## A checklist switch (commands 210–215 → STEP_IDS[i]; `want` the command's p1: 1 on, -1 off, 0 (a key) the other
 ## way): the flight model sets it (IafFlight.start_switch decides its consequence and fault; modern-iaf/docs/cockpit.md
 ## §5.2); the recording gets a change ("on": false for a switch back off) or a fault; the notebook follows the switches.
-## The avionics key turns all six SYSTEMS on while any is off, and the four off only when all six are on: after the
+## The avionics key turns all eight SYSTEMS on while any is off, and the four off only when all eight are on: after the
 ## four clicked on, the key once turned them off and never reached the FCR (the user, 17 Nov: "it seems I can't power
 ## it").
 func start_step(i: int, want := 0) -> void:
@@ -730,7 +738,7 @@ func _idle_key(cmd: Array) -> void:
 
 
 func _steps() -> Array:
-	return checklist.map(func(c): return String(c.step))
+	return checklist.map(func(c): return String(c))
 
 
 ## The pass's pause: the notebook and the radio menu put away, the front end's "accomplished" panel over the frozen

@@ -427,11 +427,18 @@ static func _rich(fe: Control, parent: Control, bb: String) -> RichTextLabel:
 	return r
 
 
-## A start-up step's switch and its place (the checklist's `where`), for its picture's tooltip.
+## A start-up step's switch and its place (the jet's checklist card's item `where`, data/checklists), for its
+## picture's tooltip.
 static func _where(m: Dictionary, step: String, lang: String) -> String:
-	for c in m.get("training", {}).get("checklist", []):
-		if str(c.get("step")) == step:
-			return str(c.get("where", {}).get(lang, ""))
+	var unit := str(m.get("start", {}).get("unit", ""))
+	for f in DirAccess.get_files_at("res://data/checklists"):
+		var card := Settings.load_json("res://data/checklists/" + f)
+		if not unit in card.get("jets", []):
+			continue
+		for sec in card.get("sections", []):
+			for it in sec.items:
+				if str(it.id) == step:
+					return str(it.get("where", {}).get(lang, ""))
 	return ""
 
 

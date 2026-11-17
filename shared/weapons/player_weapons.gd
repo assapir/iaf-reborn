@@ -705,7 +705,7 @@ func _modern_update() -> void:
 ## (IafEo.lasing: the pod working, LASER ARM, not masked, the laser key or the automatic laser within LASER ST TIME of
 ## the released laser bomb's impact).
 func _update_pod() -> void:
-	var up := _up("mmc")
+	var up := _up("mmc") and _up("r_hdpt")  # the targeting pod on 5R: RIGHT HDPT's power (start.rs SYSTEMS)
 	var o := own()
 	if not up:
 		pod_power_at = NAN

@@ -107,6 +107,11 @@ const STRINGS: &[(&str, &str, &str)] = &[
     ("skip_avionics", "Skipped: avionics power.", "לא בוצע: מתח אוויוניקה."),
     ("skip_ins", "Skipped: INS alignment.", "לא בוצע: יישור הניווט האינרציאלי."),
     ("skip_canopy", "Skipped: the canopy.", "לא בוצע: החופה."),
+    (
+        "skip_item",
+        "Skipped: a checklist item (the notebook's CHECKLIST page shows which).",
+        "לא בוצע: פריט בבד״ח (עמוד הבד״ח במחברת מראה איזה).",
+    ),
     ("wrong_runway", "The take-off was not from the assigned runway.", "ההמראה לא הייתה מהמסלול שהוקצה."),
     ("excursion", "The jet left the runway during the take-off roll.", "המטוס יצא מהמסלול בזמן ריצת ההמראה."),
     ("gear_down", "The gear was never raised.", "כן הנסע לא נאסף."),
@@ -270,8 +275,9 @@ pub struct Rules {
     pub end_hold_s: f64,
     /// The debrief items the sheet shows, in order (ids of ITEMS).
     pub goals: Vec<String>,
-    /// A start-up by keys: its checklist's step ids, in order (training.md §7.1); empty: none.
-    pub checklist: Vec<&'static str>,
+    /// A start-up lesson: the ids of the jet's checklist card's items it asks for, in order (training.md §7.1, §12);
+    /// empty: none.
+    pub checklist: Vec<String>,
     /// The phases that need the tower's clearance first (ids of CLEARANCES, training.md §3.3); empty: none.
     pub clearances: Vec<&'static str>,
 }
@@ -285,7 +291,8 @@ pub const CLEARANCES: [&str; 3] = ["startup", "taxi", "takeoff"];
 /// iaf.ibx's `TaxiWayPtsFrom`, as the flight's radio menu takes it), the lineup point.
 pub const STEP_PLACES: [&str; 3] = ["start", "hold", "lineup"];
 
-/// Every step a start-up checklist may name (iaf_flight start.rs `Start::press`).
+/// The flight model's start-up steps (iaf_flight start.rs `Start::press`): the card's items of these ids are the start
+/// itself, each with its own "skipped" line; any other card item skipped is `skip_item`.
 pub const STEPS: [&str; 6] = ["main_power", "starter", "engine", "avionics", "ins", "canopy"];
 
 #[derive(Debug, Clone, PartialEq)]
@@ -385,12 +392,12 @@ pub fn rules(mission: &Value) -> Result<Option<Rules>> {
         .into_iter()
         .flatten()
         .map(|c| {
-            let id = c["step"].as_str().unwrap_or("");
+            let id = c.as_str().unwrap_or("");
             ensure!(
-                c["en"].is_string() && c["he"].is_string(),
-                "training: checklist step {id:?} needs \"en\" and \"he\""
+                !id.is_empty() && id.bytes().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'_'),
+                "training: checklist {c} is no card item id (the jet's data/checklists file, training.md §12)"
             );
-            STEPS.iter().find(|s| **s == id).copied().with_context(|| format!("training: {c} is no checklist step"))
+            Ok(id.to_string())
         })
         .collect::<Result<_>>()?;
     let clearances = t["clearances"]
@@ -822,21 +829,17 @@ pub fn score(flight: &Flight, mission: &Value, airbases: &[Value]) -> Result<Deb
     let mut d = match &r.kind {
         Kind::Startup => {
             let mut d = startup(flight, id, r.time_budget_s);
-            // A checklist step not done (its last event without a fault is not its switch back off, "on": false)
-            // fails it.
+            // A card item not ticked (its last `item` event is not an untick, "on": false) fails it; the switches'
+            // own `step` events carry the start-up's faults only.
             let done = |step: &str| {
-                let last = flight
-                    .events
-                    .iter()
-                    .rev()
-                    .find(|e| e["event"] == "checklist" && e["step"] == step && e["fault"].is_null());
+                let last = flight.events.iter().rev().find(|e| e["event"] == "checklist" && e["item"] == step);
                 last.is_some_and(|e| e["on"] != false)
             };
-            for step in r.checklist.iter().filter(|s| !done(s)) {
-                d.reasons.push(string_id(&format!("skip_{step}")).unwrap_or("not_done"));
+            for step in r.checklist.iter().filter(|s| !done(s.as_str())) {
+                d.reasons.push(string_id(&format!("skip_{step}")).unwrap_or("skip_item"));
             }
             if !r.checklist.is_empty() {
-                let n = r.checklist.iter().filter(|s| done(s)).count();
+                let n = r.checklist.iter().filter(|s| done(s.as_str())).count();
                 d.checks.push(Check {
                     id: "goal_checklist",
                     args: vec![],
@@ -1804,6 +1807,32 @@ mod tests {
         d.items.iter().find(|i| i.id == id).and_then(|i| i.value).unwrap_or(f64::NAN)
     }
 
+    /// Every lesson's `checklist` names items of its jet's checklist card (training.md §12), once each, in the card's
+    /// order, and holds the flight model's six start-up steps.
+    #[test]
+    fn lessons_name_their_jets_card_items() {
+        let cards = crate::sim::read_dir(&data().join("checklists")).unwrap();
+        for m in crate::sim::read_dir(&data().join("missions")).unwrap() {
+            let Some(r) = rules(&m.v).unwrap() else { continue };
+            if r.checklist.is_empty() {
+                continue;
+            }
+            let unit = m.v["start"]["unit"].as_str().unwrap();
+            let card = cards.iter().find(|c| c.v["jets"].as_array().unwrap().iter().any(|j| j == unit)).unwrap();
+            let ids: Vec<&str> = card.v["sections"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .flat_map(|s| s["items"].as_array().unwrap())
+                .map(|it| it["id"].as_str().unwrap())
+                .collect();
+            let at: Vec<usize> = r.checklist.iter().map(|c| ids.iter().position(|i| i == c).unwrap()).collect();
+            assert!(at.windows(2).all(|w| w[0] < w[1]), "{unit}: {:?} in the card's order", r.checklist);
+            let need = if unit == "f35i" { 4 } else { 6 };
+            assert_eq!(STEPS.iter().filter(|s| r.checklist.iter().any(|c| c == *s)).count(), need, "{unit}");
+        }
+    }
+
     #[test]
     fn a_clean_takeoff_passes_with_its_numbers() {
         let (text, rw) = takeoff(CLEAN);
@@ -2235,14 +2264,16 @@ mod tests {
                 Sample { t, engine: t >= 20.0, throttle, on_ground: true, gear: true, ..Default::default() }
             })
             .collect();
-        let steps: Vec<Value> = STEPS.iter().map(|s| json!({"t": 20.0, "event": "checklist", "step": s})).collect();
+        let card = rules(&mission("ramon_startup")).unwrap().unwrap().checklist;
+        assert!(STEPS.iter().all(|s| card.iter().any(|c| c == s)), "the lesson asks for the start's steps");
+        let steps: Vec<Value> = card.iter().map(|s| json!({"t": 20.0, "event": "checklist", "item": s})).collect();
         let bare = jsonl(&samples);
         let text = with(&bare, &steps);
         keep("startup.jsonl", &text);
         // The checklist not flown: each step skipped.
         let skipped = scored(&bare, "ramon_startup");
-        assert_eq!(skipped.reasons[0], "skip_main_power");
-        assert_eq!(skipped.reasons.len(), 6);
+        assert!(skipped.reasons.contains(&"skip_main_power"));
+        assert_eq!(skipped.reasons.len(), card.len());
         // A hot start fails it first.
         let hot = json!({"t": 21.0, "event": "checklist", "step": "engine", "fault": "hot_start"});
         assert_eq!(scored(&with(&text, &[hot]), "ramon_startup").reasons, ["hot_start"]);
@@ -2250,9 +2281,9 @@ mod tests {
         let off = json!({"t": 30.0, "event": "checklist", "step": "cutoff", "fault": "shutdown"});
         assert_eq!(scored(&with(&text, &[off]), "ramon_startup").reasons, ["shutdown"]);
         // A switch put back off fails its step; on again, it is done (the switches audit's M2).
-        let off = json!({"t": 25.0, "event": "checklist", "step": "avionics", "on": false});
+        let off = json!({"t": 25.0, "event": "checklist", "item": "avionics", "on": false});
         assert_eq!(scored(&with(&text, std::slice::from_ref(&off)), "ramon_startup").reasons, ["skip_avionics"]);
-        let again = json!({"t": 26.0, "event": "checklist", "step": "avionics"});
+        let again = json!({"t": 26.0, "event": "checklist", "item": "avionics"});
         assert!(scored(&with(&text, &[off, again]), "ramon_startup").pass);
         let d = scored(&text, "ramon_startup");
         assert!(d.pass, "a clean start-up passes at its end");

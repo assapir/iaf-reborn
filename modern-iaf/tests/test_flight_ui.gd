@@ -86,7 +86,10 @@ func run() -> void:
 	var kb: Node = tv.addon.kneeboard
 	check(not paused, "start-up: the flight runs")
 	check(side != null and side.visible and kb.raised, "start-up: the notebook is raised")
-	check(kb.board.current_id() == "startup" and kb._current() == 0, "start-up: its START-UP page, the first step")
+	check(
+		kb.board.current_id() == "startup" and String(tv.addon.card.current().get("id")) == "batt",
+		"start-up: its CHECKLIST page, BATT the first open item"
+	)
 	check(
 		side.position.x > ui.size.x / 2.0,
 		"start-up: the notebook at the side (x %d of %d)" % [side.position.x, ui.size.x]

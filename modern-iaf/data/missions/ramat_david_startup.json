@@ -25,9 +25,9 @@
     "wind_kt": "the MVP's conditions: calm (plan.md, MVP)",
     "wind_from": "calm: no direction",
     "start": "the base's parking spot for the unit (modern-iaf/data/airbases, airbases.md §5); the altitude: the terrain's ground there (elevation_m without the terrain)",
-    "training.time_budget_s": "five minutes from the mission's start: the checklist by keys, the engine's wind-up and the INS stored-heading alignment (90 s) or the F-35's 90 s self test, with time to read the card",
+    "training.time_budget_s": "ten minutes from the mission's start: the card's items before taxi by clicks, the engine's wind-up and the INS stored-heading alignment (90 s) or the F-35's 90 s self test, with time to read the card",
     "training.end_hold_s": "a fail shows its reason 5 s before the debrief: time to see the result",
-    "training.checklist": "the start-up checklist by keys (training.md §7.1): the F-16's after the T.O. checklist's order, the F-35's battery, IPP, engine (AIR International, 2012)"
+    "training.checklist": "the jet's checklist card's items from BEFORE STARTING ENGINE through BEFORE TAXI (data/checklists, training.md §12)"
   },
   "footnotes": {
     "oa": "OurAirports, airports.csv (public domain; LLRD elevation 185 ft), https://davidmegginson.github.io/ourairports-data/airports.csv"
@@ -107,56 +107,9 @@
         "wait": {"en": "wait for \"cleared to start\"", "he": "המתנה ל\"אישור התנעה\""}
       }
     ],
-    "time_budget_s": 300,
+    "time_budget_s": 600,
     "end_hold_s": 5,
     "goals": [],
-    "checklist": [
-      {
-        "step": "main_power",
-        "key": "Ctrl+B",
-        "en": "Main power: MAIN PWR (two clicks: OFF, BATT, MAIN PWR)",
-        "he": "מתח ראשי: MAIN PWR (שתי לחיצות: OFF, BATT, MAIN PWR)",
-        "where": {"en": "MAIN PWR switch: ELEC panel, left console, by the throttle", "he": "מתג MAIN PWR: לוח ELEC, הקונסולה השמאלית, ליד המצערת"}
-      },
-      {
-        "step": "starter",
-        "key": "Ctrl+J",
-        "en": "JFS: START 2",
-        "he": "מתנע (JFS): START 2",
-        "where": {"en": "JFS switch: ENG & JET START panel, left console", "he": "מתג JFS: לוח ENG & JET START, הקונסולה השמאלית"},
-        "wait": {"en": "then WAIT for 20 % RPM (about 15 s); the throttle stays at OFF", "he": "ואז להמתין ל־20% סל״ד (כ־15 שנ׳); המצערת נשארת ב־OFF"}
-      },
-      {
-        "step": "engine",
-        "key": "throttle up from OFF",
-        "en": "At 20 % RPM, not before: throttle to idle",
-        "he": "ב־20% סל״ד, לא לפני: מצערת לסרק",
-        "where": {"en": "Throttle, left console: move it out of OFF (the throttle lever or its keys)", "he": "מצערת, משמאל: הזזה מ־OFF (ידית המצערת או מקשיה)"},
-        "wait": {"en": "then wait for idle and the main generator (52 % RPM, about 20 s)", "he": "ואז המתנה לסרק ולגנרטור הראשי (52% סל״ד, כ־20 שנ׳)"}
-      },
-      {
-        "step": "avionics",
-        "key": "Ctrl+A",
-        "en": "Avionics power: ON, after the generators",
-        "he": "מתח אוויוניקה: ON, אחרי הגנרטורים",
-        "where": {"en": "MMC, ST STA, MFD, UFC switches: AVIONIC POWER panel, right console", "he": "מתגי MMC, ST STA, MFD, UFC: לוח AVIONIC POWER, הקונסולה הימנית"},
-        "wait": {"en": "then wait for the displays and the HUD (3 s)", "he": "ואז המתנה לתצוגות ול־HUD (3 שנ׳)"}
-      },
-      {
-        "step": "ins",
-        "key": "Ctrl+N",
-        "en": "INS: STOR HDG, wait 90 s, then NAV",
-        "he": "INS: ‏STOR HDG, המתנה של 90 שנ׳, ואז NAV",
-        "where": {"en": "INS knob: AVIONIC POWER panel, right console", "he": "בורר INS: לוח AVIONIC POWER, הקונסולה הימנית"},
-        "wait": {"en": "one click to STOR HDG; WAIT until ALIGN on the HUD flashes (the DED: LIST, 6), then two clicks on to NAV", "he": "לחיצה אחת ל־STOR HDG; להמתין עד ש־ALIGN ב־HUD מהבהב (ב־DED: ‏LIST, 6), ואז שתי לחיצות נוספות ל־NAV"}
-      },
-      {
-        "step": "canopy",
-        "key": "Ctrl+K",
-        "en": "Canopy: close and lock",
-        "he": "חופה: סגירה ונעילה",
-        "where": {"en": "Canopy handle: left canopy sill, aft", "he": "ידית החופה: שפת תא הטייס השמאלית, מאחור"}
-      }
-    ]
+    "checklist": ["epu_norm", "eng_feed", "le_flaps", "air_source", "master_arm_off", "gear_down", "batt", "flcs_pwr_test", "main_power", "starter", "engine", "jfs_off", "engine_lights", "probe_heat_test", "fire_test", "mal_ind_test", "avionics", "gps_dl", "ins_align", "hdpt", "fcr", "rdr_alt", "hud", "master_caution", "flcs_bit", "dbu", "mpo", "epu_check", "canopy", "ext_lights", "cmds", "ins", "taxi_light"]
   }
 }

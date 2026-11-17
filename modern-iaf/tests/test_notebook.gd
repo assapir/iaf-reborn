@@ -23,7 +23,10 @@ func run() -> void:
 	var kb: Node = tv.addon.kneeboard
 	var nb: Control = kb.board
 	check(kb.raised and nb.is_visible_in_tree(), "start-up: the notebook is raised")
-	check(nb.current_id() == "startup" and kb._current() == 0, "start-up: at START-UP, the first step current")
+	var now := func() -> String: return String(tv.addon.card.current().get("id", ""))
+	check(
+		nb.current_id() == "startup" and now.call() == "batt", "start-up: at CHECKLIST, BATT current (%s)" % now.call()
+	)
 	check(kb._help != null, "the first start-up: the help line shows")
 	check(settings().notebook_help_seen, "the help line is marked seen")
 	var text: String = nb.page_text()
@@ -47,17 +50,19 @@ func run() -> void:
 	# A step taken: ticked, the next current.
 	tv._command([210, 0, 0])
 	await frames(2)
-	check(kb._current() == 1 and "✓" in nb.page_text(), "main power taken: ticked, the JFS current")
+	check(now.call() == "flcs_pwr_test" and "✓" in nb.page_text(), "main power taken: ticked, FLCS PWR TEST current")
 	# The switch back off undoes its step (cockpit.md "Both ways"): the tick gone, main power current again.
 	tv._command([210, -1, 0])
 	await frames(2)
-	check(kb._current() == 0 and not "✓" in nb.page_text(), "main power back off: unticked, current again")
+	check(
+		now.call() == "batt" and not tv.addon.card.done.has("main_power"), "main power back off: unticked, BATT current"
+	)
 	tv._command([210, 1, 0])
 	await frames(2)
-	check(kb._current() == 1, "main power on again: the JFS current")
+	check(now.call() == "flcs_pwr_test", "main power on again: FLCS PWR TEST current")
 	tv.addon.pick("startup")
 	await frames(2)
-	check(not kb.call_pending() and nb.page_text().count("✓") == 2, "the tower's clearance: the call ticked")
+	check(not kb.call_pending() and "✓" in nb.page_text(), "the tower's clearance: the call ticked")
 	# Turning: a tab click, the wheel, PgDn / PgUp and the footer's ›.
 	var radio := ids.find("radio")
 	_tap(nb, nb.tab_rect(radio).get_center())
@@ -79,7 +84,7 @@ func run() -> void:
 	# The training ring: on the current step's switch (the JFS), in the view or as an edge pointer.
 	nb.open("startup")
 	await frames(2)
-	check(kb.marks.size() >= 1, "the training mark of the JFS step (%d)" % kb.marks.size())
+	check(kb.marks.size() >= 1, "the training mark of the current item (%d)" % kb.marks.size())
 	# Hebrew: mirrored, the tabs down the left edge, the board still at the right side.
 	settings().language = "he"
 	await frames(3)
@@ -93,7 +98,7 @@ func run() -> void:
 	await frames(3)
 	kb = tv.addon.kneeboard
 	check(not kb.raised, "take-off: the notebook starts stowed")
-	check(kb.checklist().size() == 6 and kb._help == null, "take-off: the Sufa's start-up checklist, no help line")
+	check(kb.checklist().size() > 40 and kb._help == null, "take-off: the Sufa's checklist card, no help line")
 	_key(tv, KEY_H)
 	check(kb.raised and kb.board.current_id() == "startup", "take-off: H raises it")
 	kb.board.open("taxi")
