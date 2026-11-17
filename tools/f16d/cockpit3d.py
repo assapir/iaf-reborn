@@ -90,6 +90,34 @@ LAMPS = {
     ("Tub", "ar_nws"): "ar_nws", ("LeftAuxConsole", "GEAR-nose"): "gear_nose",
     ("LeftAuxConsole", "GEAR-left"): "gear_left", ("LeftAuxConsole", "GEAR-right"): "gear_right",
     ("LeftAuxConsole", "gear_lever_light"): "gear_transit", ("THREAT", "launch"): "rwr_launch",
+    # The lights audit (2026-11-17, cockpit3d.gd _lamp_on): every other lamp of the panels the build keeps.
+    ("EYEBROW_LEFT", "tf_fail"): "tf_fail", ("EYEBROW_LEFT", "unused1"): "eyebrow_blank",
+    ("EYEBROW_LEFT", "unused2"): "eyebrow_blank", ("EYEBROW_LEFT", "none"): "eyebrow_blank",
+    ("EYEBROW_RIGHT", "canopy"): "canopy", ("EYEBROW_RIGHT", "dbu_on"): "dbu_on",
+    ("EYEBROW_RIGHT", "unused"): "eyebrow_blank", ("Tub", "rdy"): "ar_rdy", ("Tub", "disc"): "ar_disc",
+    ("LeftConsole", "light_main"): "main_gen", ("LeftConsole", "light_stby"): "stby_gen",
+    ("LeftConsole", "light_pmg"): "flcs_pmg", ("LeftConsole", "light_epu_gen"): "epu_gen",
+    ("LeftConsole", "light_epu_pmg"): "epu_pmg", ("LeftConsole", "light_to"): "to_flcs",
+    ("LeftConsole", "light_fail"): "flcs_rly", ("LeftConsole", "flcs-pwr"): "flcs_pwr",
+    ("LeftConsole", "JFS_RUN_light"): "jfs_run", ("LeftConsole", "EPU_RUN_light"): "epu_run",
+    ("LeftConsole", "light_epu_hydrazine"): "epu_hydrazine", ("LeftConsole", "light_epu_air"): "epu_air",
+    ("LeftConsole", "flcs-bit-fail"): "flcs_bit_fail", ("LeftConsole", "flcs-bit-run"): "flcs_bit_run",
+    ("LeftConsole", "AVTR_CTVS"): "avtr", ("LeftConsole", "AVTR_AVTR"): "avtr",
+    ("MISC", "ecm-enbl-on"): "ecm_enbl", ("MISC", "ecm-enbl-off"): "ecm_enbl_unlit",
+    ("THREAT", "test"): "twd_test", ("THREAT", "handoff"): "twd_handoff",
+    ("Fuel Quantity Sel", "FQS_marker-beacon-on"): "marker_beacon",
+    **{("LeftConsole", n): "flcs_fail" for n in ("light_a", "light_b", "light_c", "light_d")},
+    **{("LeftConsole", n): "stby_gains" for n in ("stbygains-y", "stbygains-r", "stbygains-p", "stbygains-dot")},
+    **{("LeftConsole", n): "ecm_panel" for n in ("mal", "adv", "slf-tst-num", "ecm-1", "ecm-2", "ecm-3", "ecm-4",
+                                                  "ecm-5", "ecm-nil", "ecm-frm", "ecm-spl")},
+    # The caution panel: FlightGear's lit legend shown over its unlit one (`_unlit`: shown while the lamp is dark).
+    **{("RightAuxConsole", "%s_%s" % (n, s)):
+       "caution_%s%s" % ("blank" if n[0] == "-" else n.lower(), "" if s == "lit" else "_unlit")
+       for n in ("----.001", "----.002", "----.003", "ADC", "AFT_FUEL_LOW", "AFT_NOT_ENGAGED", "ANTI_SKID",
+                 "AVIONICS", "BUC", "CABIN_PRESS", "C_ADC", "ECM", "EEC", "ELEC_SYS", "ENGINE_FAULT", "EQUIP_HOT",
+                 "FLT_CONT_SYS", "FUEL_OIL_HOT", "FWD_FUEL_LOW", "HOOK", "IFF", "INLET_ICING", "LE_FLAPS",
+                 "NUCLEAR", "NWS_FAIL", "OVERHEAT", "OXY_LOW", "PROBE_HEAT", "RADAR_ALT", "SEAT_NOT_ARMED", "SEC",
+                 "STORES_CONFIG") for s in ("lit", "unlit")},
 }
 # The lamps kept in view unlit (dark), not hidden: the AoA indexer's symbols and the AR / NWS light. FlightGear hides
 # them off (its select), which left the units' faces blank, the AR / NWS light gone (the user, 2026-11-12).
@@ -1281,8 +1309,11 @@ def main():
     # aside: at the far end a 1.2 cm opening 12.5 cm deep cut a symbol once the eye moved a few millimetres.
     indexer = kit.material(INDEXER_BODY, INDEXER_GREY, roughness=0.6)
     eye = C @ Vector(FG_EYE)
+    # The AR status unit's RDY and DISC lamps ride with it (2026-11-17, the lights audit): its turn and move still taken
+    # from the AR / NWS lamp alone, as A36 set them.
+    riders = {"Tub/box_right": ("Tub/rdy", "Tub/disc")}
     for box, lamp_names in (("Tub/box_left", ("Tub/up", "Tub/steady", "Tub/down")), ("Tub/box_right", ("Tub/ar_nws",))):
-        unit = [o for o in b.parts.get("Tub", []) if o.name == box or o.name in lamp_names]
+        unit = [o for o in b.parts.get("Tub", []) if o.name == box or o.name in lamp_names + riders.get(box, ())]
         for o in unit:
             if o.name == box:
                 o.data.materials.clear()
@@ -1301,7 +1332,7 @@ def main():
         to_mouth = (eye - pivot).normalized() * (axis.length + INDEXER_LIP)
         for o in unit:
             o.data.transform(Matrix.Translation(pivot) @ turn @ Matrix.Translation(-pivot))
-            if o.name in lamp_names:
+            if o.name in lamp_names + riders.get(box, ()):
                 o.data.transform(Matrix.Translation(to_mouth))
     if os.environ.get("C3D_DEBUG") == "1":  # every object's bounds (Blender frame, before the shift)
         for o in everything:

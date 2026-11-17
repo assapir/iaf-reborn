@@ -594,6 +594,10 @@ func _system_put(name: String, v: float, was := NAN) -> void:
 		"master_caution":  # the push-light: the MASTER CAUTION lamp out until the next caution
 			if on:
 				tv.cockpit.indicators[0] = false
+				tv.cockpit_3d.acknowledge()
+		"elec_reset":  # the ELEC panel's CAUTION RESET: ELEC SYS's part of MASTER CAUTION out (FlightGear's)
+			if on:
+				tv.cockpit_3d.acknowledge(true)
 
 
 ## The control lit under the pointer ([its mesh, its record]), null when none: it keeps the clicks and the wheel until

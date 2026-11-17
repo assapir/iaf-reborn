@@ -4319,6 +4319,15 @@
     1
    ]
   },
+  "lamp_ar_rdy_0": {
+   "key": "ar_rdy",
+   "hide": true,
+   "colour": [
+    1,
+    1,
+    1
+   ]
+  },
   "lamp_ar_nws_0": {
    "key": "ar_nws",
    "hide": false,
@@ -4326,6 +4335,330 @@
     1,
     1,
     1
+   ]
+  },
+  "lamp_ar_disc_0": {
+   "key": "ar_disc",
+   "hide": true,
+   "colour": [
+    1,
+    1,
+    1
+   ]
+  },
+  "lamp_ecm_panel_0": {
+   "key": "ecm_panel",
+   "hide": true,
+   "colour": [
+    0.45,
+    0.34,
+    0.18
+   ]
+  },
+  "lamp_ecm_panel_1": {
+   "key": "ecm_panel",
+   "hide": false,
+   "colour": [
+    0.45,
+    0.34,
+    0.18
+   ]
+  },
+  "lamp_ecm_panel_2": {
+   "key": "ecm_panel",
+   "hide": false,
+   "colour": [
+    0.45,
+    0.34,
+    0.18
+   ]
+  },
+  "lamp_ecm_panel_3": {
+   "key": "ecm_panel",
+   "hide": false,
+   "colour": [
+    0.45,
+    0.34,
+    0.18
+   ]
+  },
+  "lamp_ecm_panel_4": {
+   "key": "ecm_panel",
+   "hide": false,
+   "colour": [
+    0.45,
+    0.34,
+    0.18
+   ]
+  },
+  "lamp_ecm_panel_5": {
+   "key": "ecm_panel",
+   "hide": false,
+   "colour": [
+    0.45,
+    0.34,
+    0.18
+   ]
+  },
+  "lamp_ecm_panel_6": {
+   "key": "ecm_panel",
+   "hide": false,
+   "colour": [
+    0.45,
+    0.34,
+    0.18
+   ]
+  },
+  "lamp_ecm_panel_7": {
+   "key": "ecm_panel",
+   "hide": false,
+   "colour": [
+    0.45,
+    0.34,
+    0.18
+   ]
+  },
+  "lamp_ecm_panel_8": {
+   "key": "ecm_panel",
+   "hide": false,
+   "colour": [
+    0.45,
+    0.34,
+    0.18
+   ]
+  },
+  "lamp_flcs_pwr_0": {
+   "key": "flcs_pwr",
+   "hide": false,
+   "colour": [
+    0.45,
+    0.34,
+    0.18
+   ]
+  },
+  "lamp_flcs_bit_run_0": {
+   "key": "flcs_bit_run",
+   "hide": true,
+   "colour": [
+    0.45,
+    0.34,
+    0.18
+   ]
+  },
+  "lamp_flcs_bit_fail_0": {
+   "key": "flcs_bit_fail",
+   "hide": true,
+   "colour": [
+    0.45,
+    0.34,
+    0.18
+   ]
+  },
+  "lamp_epu_run_0": {
+   "key": "epu_run",
+   "hide": false,
+   "colour": [
+    1.0,
+    1.0,
+    1.0
+   ]
+  },
+  "lamp_epu_air_0": {
+   "key": "epu_air",
+   "hide": false,
+   "colour": [
+    1.0,
+    1.0,
+    1.0
+   ]
+  },
+  "lamp_epu_hydrazine_0": {
+   "key": "epu_hydrazine",
+   "hide": false,
+   "colour": [
+    1.0,
+    1.0,
+    1.0
+   ]
+  },
+  "lamp_avtr_0": {
+   "key": "avtr",
+   "hide": true,
+   "colour": [
+    0.45,
+    0.34,
+    0.18
+   ]
+  },
+  "lamp_avtr_1": {
+   "key": "avtr",
+   "hide": true,
+   "colour": [
+    0.45,
+    0.34,
+    0.18
+   ]
+  },
+  "lamp_jfs_run_0": {
+   "key": "jfs_run",
+   "hide": false,
+   "colour": [
+    1.0,
+    1.0,
+    1.0
+   ]
+  },
+  "lamp_flcs_fail_0": {
+   "key": "flcs_fail",
+   "hide": false,
+   "colour": [
+    1.0,
+    1.0,
+    1.0
+   ]
+  },
+  "lamp_flcs_fail_1": {
+   "key": "flcs_fail",
+   "hide": false,
+   "colour": [
+    1.0,
+    1.0,
+    1.0
+   ]
+  },
+  "lamp_flcs_fail_2": {
+   "key": "flcs_fail",
+   "hide": false,
+   "colour": [
+    1.0,
+    1.0,
+    1.0
+   ]
+  },
+  "lamp_flcs_fail_3": {
+   "key": "flcs_fail",
+   "hide": false,
+   "colour": [
+    1.0,
+    1.0,
+    1.0
+   ]
+  },
+  "lamp_epu_gen_0": {
+   "key": "epu_gen",
+   "hide": false,
+   "colour": [
+    1.0,
+    1.0,
+    1.0
+   ]
+  },
+  "lamp_epu_pmg_0": {
+   "key": "epu_pmg",
+   "hide": false,
+   "colour": [
+    1.0,
+    1.0,
+    1.0
+   ]
+  },
+  "lamp_flcs_rly_0": {
+   "key": "flcs_rly",
+   "hide": false,
+   "colour": [
+    1.0,
+    1.0,
+    1.0
+   ]
+  },
+  "lamp_main_gen_0": {
+   "key": "main_gen",
+   "hide": false,
+   "colour": [
+    1.0,
+    1.0,
+    1.0
+   ]
+  },
+  "lamp_flcs_pmg_0": {
+   "key": "flcs_pmg",
+   "hide": false,
+   "colour": [
+    1.0,
+    1.0,
+    1.0
+   ]
+  },
+  "lamp_stby_gen_0": {
+   "key": "stby_gen",
+   "hide": false,
+   "colour": [
+    1.0,
+    1.0,
+    1.0
+   ]
+  },
+  "lamp_to_flcs_0": {
+   "key": "to_flcs",
+   "hide": false,
+   "colour": [
+    1.0,
+    1.0,
+    1.0
+   ]
+  },
+  "lamp_ecm_panel_9": {
+   "key": "ecm_panel",
+   "hide": true,
+   "colour": [
+    0.45,
+    0.34,
+    0.18
+   ]
+  },
+  "lamp_ecm_panel_10": {
+   "key": "ecm_panel",
+   "hide": true,
+   "colour": [
+    0.45,
+    0.34,
+    0.18
+   ]
+  },
+  "lamp_stby_gains_0": {
+   "key": "stby_gains",
+   "hide": true,
+   "colour": [
+    0.45,
+    0.34,
+    0.18
+   ]
+  },
+  "lamp_stby_gains_1": {
+   "key": "stby_gains",
+   "hide": true,
+   "colour": [
+    0.45,
+    0.34,
+    0.18
+   ]
+  },
+  "lamp_stby_gains_2": {
+   "key": "stby_gains",
+   "hide": true,
+   "colour": [
+    0.45,
+    0.34,
+    0.18
+   ]
+  },
+  "lamp_stby_gains_3": {
+   "key": "stby_gains",
+   "hide": true,
+   "colour": [
+    0.45,
+    0.34,
+    0.18
    ]
   },
   "lamp_gear_left_0": {
@@ -4364,6 +4697,618 @@
     0.0
    ]
   },
+  "lamp_ecm_enbl_unlit_0": {
+   "key": "ecm_enbl_unlit",
+   "hide": true,
+   "colour": [
+    1,
+    1,
+    1
+   ]
+  },
+  "lamp_ecm_enbl_0": {
+   "key": "ecm_enbl",
+   "hide": true,
+   "colour": [
+    1.0,
+    1.0,
+    1.0
+   ]
+  },
+  "lamp_marker_beacon_0": {
+   "key": "marker_beacon",
+   "hide": true,
+   "colour": [
+    0.0,
+    0.8,
+    0.0
+   ]
+  },
+  "lamp_caution_blank_0": {
+   "key": "caution_blank",
+   "hide": true,
+   "colour": [
+    1.0,
+    1.0,
+    1.0
+   ]
+  },
+  "lamp_caution_blank_unlit_0": {
+   "key": "caution_blank_unlit",
+   "hide": true,
+   "colour": [
+    1,
+    1,
+    1
+   ]
+  },
+  "lamp_caution_blank_1": {
+   "key": "caution_blank",
+   "hide": true,
+   "colour": [
+    1.0,
+    1.0,
+    1.0
+   ]
+  },
+  "lamp_caution_blank_unlit_1": {
+   "key": "caution_blank_unlit",
+   "hide": true,
+   "colour": [
+    1,
+    1,
+    1
+   ]
+  },
+  "lamp_caution_blank_2": {
+   "key": "caution_blank",
+   "hide": true,
+   "colour": [
+    1.0,
+    1.0,
+    1.0
+   ]
+  },
+  "lamp_caution_blank_unlit_2": {
+   "key": "caution_blank_unlit",
+   "hide": true,
+   "colour": [
+    1,
+    1,
+    1
+   ]
+  },
+  "lamp_caution_adc_0": {
+   "key": "caution_adc",
+   "hide": true,
+   "colour": [
+    1.0,
+    1.0,
+    1.0
+   ]
+  },
+  "lamp_caution_adc_unlit_0": {
+   "key": "caution_adc_unlit",
+   "hide": true,
+   "colour": [
+    1,
+    1,
+    1
+   ]
+  },
+  "lamp_caution_aft_fuel_low_0": {
+   "key": "caution_aft_fuel_low",
+   "hide": true,
+   "colour": [
+    1.0,
+    1.0,
+    1.0
+   ]
+  },
+  "lamp_caution_aft_fuel_low_unlit_0": {
+   "key": "caution_aft_fuel_low_unlit",
+   "hide": true,
+   "colour": [
+    1,
+    1,
+    1
+   ]
+  },
+  "lamp_caution_aft_not_engaged_0": {
+   "key": "caution_aft_not_engaged",
+   "hide": true,
+   "colour": [
+    1.0,
+    1.0,
+    1.0
+   ]
+  },
+  "lamp_caution_aft_not_engaged_unlit_0": {
+   "key": "caution_aft_not_engaged_unlit",
+   "hide": true,
+   "colour": [
+    1,
+    1,
+    1
+   ]
+  },
+  "lamp_caution_anti_skid_0": {
+   "key": "caution_anti_skid",
+   "hide": true,
+   "colour": [
+    1.0,
+    1.0,
+    1.0
+   ]
+  },
+  "lamp_caution_anti_skid_unlit_0": {
+   "key": "caution_anti_skid_unlit",
+   "hide": true,
+   "colour": [
+    1,
+    1,
+    1
+   ]
+  },
+  "lamp_caution_avionics_0": {
+   "key": "caution_avionics",
+   "hide": true,
+   "colour": [
+    1.0,
+    1.0,
+    1.0
+   ]
+  },
+  "lamp_caution_avionics_unlit_0": {
+   "key": "caution_avionics_unlit",
+   "hide": true,
+   "colour": [
+    1,
+    1,
+    1
+   ]
+  },
+  "lamp_caution_buc_0": {
+   "key": "caution_buc",
+   "hide": true,
+   "colour": [
+    1.0,
+    1.0,
+    1.0
+   ]
+  },
+  "lamp_caution_buc_unlit_0": {
+   "key": "caution_buc_unlit",
+   "hide": true,
+   "colour": [
+    1,
+    1,
+    1
+   ]
+  },
+  "lamp_caution_c_adc_0": {
+   "key": "caution_c_adc",
+   "hide": true,
+   "colour": [
+    1.0,
+    1.0,
+    1.0
+   ]
+  },
+  "lamp_caution_c_adc_unlit_0": {
+   "key": "caution_c_adc_unlit",
+   "hide": true,
+   "colour": [
+    1,
+    1,
+    1
+   ]
+  },
+  "lamp_caution_cabin_press_0": {
+   "key": "caution_cabin_press",
+   "hide": true,
+   "colour": [
+    1.0,
+    1.0,
+    1.0
+   ]
+  },
+  "lamp_caution_cabin_press_unlit_0": {
+   "key": "caution_cabin_press_unlit",
+   "hide": true,
+   "colour": [
+    1,
+    1,
+    1
+   ]
+  },
+  "lamp_caution_ecm_0": {
+   "key": "caution_ecm",
+   "hide": true,
+   "colour": [
+    1.0,
+    1.0,
+    1.0
+   ]
+  },
+  "lamp_caution_ecm_unlit_0": {
+   "key": "caution_ecm_unlit",
+   "hide": true,
+   "colour": [
+    1,
+    1,
+    1
+   ]
+  },
+  "lamp_caution_eec_0": {
+   "key": "caution_eec",
+   "hide": true,
+   "colour": [
+    1.0,
+    1.0,
+    1.0
+   ]
+  },
+  "lamp_caution_eec_unlit_0": {
+   "key": "caution_eec_unlit",
+   "hide": true,
+   "colour": [
+    1,
+    1,
+    1
+   ]
+  },
+  "lamp_caution_elec_sys_0": {
+   "key": "caution_elec_sys",
+   "hide": true,
+   "colour": [
+    1.0,
+    1.0,
+    1.0
+   ]
+  },
+  "lamp_caution_elec_sys_unlit_0": {
+   "key": "caution_elec_sys_unlit",
+   "hide": true,
+   "colour": [
+    1,
+    1,
+    1
+   ]
+  },
+  "lamp_caution_engine_fault_0": {
+   "key": "caution_engine_fault",
+   "hide": true,
+   "colour": [
+    1.0,
+    1.0,
+    1.0
+   ]
+  },
+  "lamp_caution_engine_fault_unlit_0": {
+   "key": "caution_engine_fault_unlit",
+   "hide": true,
+   "colour": [
+    1,
+    1,
+    1
+   ]
+  },
+  "lamp_caution_equip_hot_0": {
+   "key": "caution_equip_hot",
+   "hide": true,
+   "colour": [
+    1.0,
+    1.0,
+    1.0
+   ]
+  },
+  "lamp_caution_equip_hot_unlit_0": {
+   "key": "caution_equip_hot_unlit",
+   "hide": true,
+   "colour": [
+    1,
+    1,
+    1
+   ]
+  },
+  "lamp_caution_flt_cont_sys_0": {
+   "key": "caution_flt_cont_sys",
+   "hide": true,
+   "colour": [
+    1.0,
+    1.0,
+    1.0
+   ]
+  },
+  "lamp_caution_flt_cont_sys_unlit_0": {
+   "key": "caution_flt_cont_sys_unlit",
+   "hide": true,
+   "colour": [
+    1,
+    1,
+    1
+   ]
+  },
+  "lamp_caution_fuel_oil_hot_0": {
+   "key": "caution_fuel_oil_hot",
+   "hide": true,
+   "colour": [
+    1.0,
+    1.0,
+    1.0
+   ]
+  },
+  "lamp_caution_fuel_oil_hot_unlit_0": {
+   "key": "caution_fuel_oil_hot_unlit",
+   "hide": true,
+   "colour": [
+    1,
+    1,
+    1
+   ]
+  },
+  "lamp_caution_fwd_fuel_low_0": {
+   "key": "caution_fwd_fuel_low",
+   "hide": true,
+   "colour": [
+    1.0,
+    1.0,
+    1.0
+   ]
+  },
+  "lamp_caution_fwd_fuel_low_unlit_0": {
+   "key": "caution_fwd_fuel_low_unlit",
+   "hide": true,
+   "colour": [
+    1,
+    1,
+    1
+   ]
+  },
+  "lamp_caution_hook_0": {
+   "key": "caution_hook",
+   "hide": true,
+   "colour": [
+    1.0,
+    1.0,
+    1.0
+   ]
+  },
+  "lamp_caution_hook_unlit_0": {
+   "key": "caution_hook_unlit",
+   "hide": true,
+   "colour": [
+    1,
+    1,
+    1
+   ]
+  },
+  "lamp_caution_iff_0": {
+   "key": "caution_iff",
+   "hide": true,
+   "colour": [
+    1.0,
+    1.0,
+    1.0
+   ]
+  },
+  "lamp_caution_iff_unlit_0": {
+   "key": "caution_iff_unlit",
+   "hide": true,
+   "colour": [
+    1,
+    1,
+    1
+   ]
+  },
+  "lamp_caution_inlet_icing_0": {
+   "key": "caution_inlet_icing",
+   "hide": true,
+   "colour": [
+    1.0,
+    1.0,
+    1.0
+   ]
+  },
+  "lamp_caution_inlet_icing_unlit_0": {
+   "key": "caution_inlet_icing_unlit",
+   "hide": true,
+   "colour": [
+    1,
+    1,
+    1
+   ]
+  },
+  "lamp_caution_le_flaps_0": {
+   "key": "caution_le_flaps",
+   "hide": true,
+   "colour": [
+    1.0,
+    1.0,
+    1.0
+   ]
+  },
+  "lamp_caution_le_flaps_unlit_0": {
+   "key": "caution_le_flaps_unlit",
+   "hide": true,
+   "colour": [
+    1,
+    1,
+    1
+   ]
+  },
+  "lamp_caution_nuclear_0": {
+   "key": "caution_nuclear",
+   "hide": true,
+   "colour": [
+    1.0,
+    1.0,
+    1.0
+   ]
+  },
+  "lamp_caution_nuclear_unlit_0": {
+   "key": "caution_nuclear_unlit",
+   "hide": true,
+   "colour": [
+    1,
+    1,
+    1
+   ]
+  },
+  "lamp_caution_nws_fail_0": {
+   "key": "caution_nws_fail",
+   "hide": true,
+   "colour": [
+    1.0,
+    1.0,
+    1.0
+   ]
+  },
+  "lamp_caution_nws_fail_unlit_0": {
+   "key": "caution_nws_fail_unlit",
+   "hide": true,
+   "colour": [
+    1,
+    1,
+    1
+   ]
+  },
+  "lamp_caution_overheat_0": {
+   "key": "caution_overheat",
+   "hide": true,
+   "colour": [
+    1.0,
+    1.0,
+    1.0
+   ]
+  },
+  "lamp_caution_overheat_unlit_0": {
+   "key": "caution_overheat_unlit",
+   "hide": true,
+   "colour": [
+    1,
+    1,
+    1
+   ]
+  },
+  "lamp_caution_oxy_low_0": {
+   "key": "caution_oxy_low",
+   "hide": true,
+   "colour": [
+    1.0,
+    1.0,
+    1.0
+   ]
+  },
+  "lamp_caution_oxy_low_unlit_0": {
+   "key": "caution_oxy_low_unlit",
+   "hide": true,
+   "colour": [
+    1,
+    1,
+    1
+   ]
+  },
+  "lamp_caution_probe_heat_0": {
+   "key": "caution_probe_heat",
+   "hide": true,
+   "colour": [
+    1.0,
+    1.0,
+    1.0
+   ]
+  },
+  "lamp_caution_probe_heat_unlit_0": {
+   "key": "caution_probe_heat_unlit",
+   "hide": true,
+   "colour": [
+    1,
+    1,
+    1
+   ]
+  },
+  "lamp_caution_radar_alt_0": {
+   "key": "caution_radar_alt",
+   "hide": true,
+   "colour": [
+    1.0,
+    1.0,
+    1.0
+   ]
+  },
+  "lamp_caution_radar_alt_unlit_0": {
+   "key": "caution_radar_alt_unlit",
+   "hide": true,
+   "colour": [
+    1,
+    1,
+    1
+   ]
+  },
+  "lamp_caution_seat_not_armed_0": {
+   "key": "caution_seat_not_armed",
+   "hide": true,
+   "colour": [
+    1.0,
+    1.0,
+    1.0
+   ]
+  },
+  "lamp_caution_seat_not_armed_unlit_0": {
+   "key": "caution_seat_not_armed_unlit",
+   "hide": true,
+   "colour": [
+    1,
+    1,
+    1
+   ]
+  },
+  "lamp_caution_sec_0": {
+   "key": "caution_sec",
+   "hide": true,
+   "colour": [
+    1.0,
+    1.0,
+    1.0
+   ]
+  },
+  "lamp_caution_sec_unlit_0": {
+   "key": "caution_sec_unlit",
+   "hide": true,
+   "colour": [
+    1,
+    1,
+    1
+   ]
+  },
+  "lamp_caution_stores_config_0": {
+   "key": "caution_stores_config",
+   "hide": true,
+   "colour": [
+    1.0,
+    1.0,
+    1.0
+   ]
+  },
+  "lamp_caution_stores_config_unlit_0": {
+   "key": "caution_stores_config_unlit",
+   "hide": true,
+   "colour": [
+    1,
+    1,
+    1
+   ]
+  },
+  "lamp_canopy_0": {
+   "key": "canopy",
+   "hide": true,
+   "colour": [
+    1.0,
+    1.0,
+    1.0
+   ]
+  },
   "lamp_eng_fire_0": {
    "key": "eng_fire",
    "hide": true,
@@ -4375,6 +5320,15 @@
   },
   "lamp_flcs_0": {
    "key": "flcs",
+   "hide": true,
+   "colour": [
+    1.0,
+    1.0,
+    1.0
+   ]
+  },
+  "lamp_eyebrow_blank_0": {
+   "key": "eyebrow_blank",
    "hide": true,
    "colour": [
     1.0,
@@ -4409,6 +5363,51 @@
     1.0
    ]
   },
+  "lamp_dbu_on_0": {
+   "key": "dbu_on",
+   "hide": true,
+   "colour": [
+    1.0,
+    1.0,
+    1.0
+   ]
+  },
+  "lamp_eyebrow_blank_1": {
+   "key": "eyebrow_blank",
+   "hide": true,
+   "colour": [
+    1.0,
+    1.0,
+    1.0
+   ]
+  },
+  "lamp_eyebrow_blank_2": {
+   "key": "eyebrow_blank",
+   "hide": true,
+   "colour": [
+    1.0,
+    1.0,
+    1.0
+   ]
+  },
+  "lamp_eyebrow_blank_3": {
+   "key": "eyebrow_blank",
+   "hide": true,
+   "colour": [
+    1.0,
+    1.0,
+    1.0
+   ]
+  },
+  "lamp_tf_fail_0": {
+   "key": "tf_fail",
+   "hide": true,
+   "colour": [
+    1.0,
+    1.0,
+    1.0
+   ]
+  },
   "lamp_master_caution_0": {
    "key": "master_caution",
    "hide": true,
@@ -4420,6 +5419,24 @@
   },
   "lamp_rwr_launch_0": {
    "key": "rwr_launch",
+   "hide": false,
+   "colour": [
+    1.0,
+    1.0,
+    1.0
+   ]
+  },
+  "lamp_twd_test_0": {
+   "key": "twd_test",
+   "hide": false,
+   "colour": [
+    1.0,
+    1.0,
+    1.0
+   ]
+  },
+  "lamp_twd_handoff_0": {
+   "key": "twd_handoff",
    "hide": false,
    "colour": [
     1.0,

@@ -758,11 +758,22 @@ occlusion, 1.8 MB; built by
 
   | Lamp | Lit when |
   |---|---|
-  | MASTER CAUTION (left eyebrow) | the master caution indicator (`indicators[0]`: any damage, "Panel lights") |
-  | ENG FIRE (right eyebrow) | either engine fire indicator (`indicators[1]`, `[2]`) |
+  | MASTER CAUTION (left eyebrow) | the master caution indicator (`indicators[0]`: any damage, "Panel lights"), or a caution panel lamp lit since MASTER CAUTION was last pushed (FlightGear's `failures.nas`; ELEC SYS is acknowledged by the ELEC panel's CAUTION RESET only) |
+  | ENG FIRE (right eyebrow) | either engine fire indicator (`indicators[1]`, `[2]`), or the FIRE & OHEAT DETECT test |
   | FLCS, TO/LDG CONFIG | `better` `flcs`, `to_ldg_config` (as the 2D panel's warning lamps) |
-  | ENGINE | damage flag 2 or 22 (engine cut out, permanent engine damage; inferred) |
-  | HYD/OIL PRESS | damage flag 18 (hydraulics; inferred) |
+  | ENGINE | damage flag 2 or 22 (engine cut out, permanent engine damage; inferred), or the engine not running (the start's phase, FlightGear's) |
+  | HYD/OIL PRESS | damage flag 18 (hydraulics; inferred), or the engine not running and the hydraulic pressure below 1000 psi (FlightGear's) |
+  | CANOPY (right eyebrow) | the canopy not shut (`aircraft_model.gd` `canopy_open`) |
+  | DBU ON (right eyebrow) | the DBU switch on |
+  | MAIN GEN, STBY GEN (ELEC panel) | on the battery (power 1: the generators off the buses; FlightGear's `jsb-electrical.xml`) |
+  | FLCS PMG, FLCS RLY (ELEC panel) | on the battery before the JFS turns (the start's phase `off`) |
+  | ACFT BATT TO FLCS (ELEC panel) | the engine turning below 44 % in a start or a run-down |
+  | FLCS PWR (test panel) | FLCS PWR TEST or the EPU test held |
+  | JFS RUN | the JFS switch at START and past its spool-up |
+  | FLCS BIT RUN, AVTR | their switch on |
+  | ECM ENBL (MISC panel) | the ECM pod jamming (`indicators[6]`, the J key) |
+  | PRI, UNK, TGT SEP, SYS TEST (threat warning prime panel) | with the UFC's power: priority mode, UNKNOWN, TGT SEP held, the system test (`ews.gd`) |
+  | caution panel | ELEC SYS: an ELEC panel lamp; ENGINE FAULT, AVIONICS: the pilot fault list's ENG, AV classes; HOOK: the hook handle down; CABIN PRESS: the cabin above 27,000 ft; FWD / AFT FUEL LOW: below 800 / 500 lb (FlightGear's reservoirs, 400 / 250 lb, inferred from one total); OVERHEAT: a fire or the FIRE & OHEAT DETECT test; PROBE HEAT: flashing with the switch at TEST; ECM: damage flag 1; EQUIP HOT: the avionics up with AIR SOURCE at OFF, or RAM below 70 kt (FlightGear's) |
   | AoA indexer (left of the HUD) | `better` `aoa_index`: 1 the slow chevron (red), 2 the donut (green), 3 the fast chevron (yellow) |
   | AR/NWS (right of the HUD) | `better` `ar_nws` (on the ground) |
   | the three gear lamps | that leg down and locked (`gear_legs[i]` = 2: nose, left, right) |
@@ -781,8 +792,14 @@ occlusion, 1.8 MB; built by
   inferred: a lamp read in daylight), the AR / NWS letters at about 1 (× 15: more washed its lens pale), their black
   lenses staying dark; at night at the sheet's own level. Unlit they keep 8 % of the sheet (`INDEXER_OFF`), a dark
   lens. The 3D cockpit lights them whatever the Better cockpit items say (it is an
-  opt-in of its own). CANOPY, DBU ON,
-  TF FAIL and the other lamps stay dark: the game has no state for them.
+  opt-in of its own). The lights audit (2026-11-17) made every other lamp of the model its own node (`tools/f16d/cockpit3d.py`
+  `LAMPS`; the caution panel's unlit legends too, shown while their lamp is dark), so MAL & IND LTS lights them all.
+  These light only in that test: they show a system the game does not model. TF FAIL, the blank eyebrow lamps, the AR
+  status unit's RDY and DISC, the marker beacon, the EPU's RUN, GEN, PMG, HYDRAZINE and AIR, FLCS BIT FAIL, the FLCS
+  FAIL lamps, STBY GAINS, the ECM panel's lamps, HANDOFF, the left eyebrow's IFF, and the cautions ADC, AFT NOT
+  ENGAGED, ANTI SKID, BUC, C ADC, EEC, FLT CONT SYS, FUEL OIL HOT, IFF, INLET ICING, LE FLAPS, NUCLEAR, NWS FAIL, OXY
+  LOW, RADAR ALT, SEAT NOT ARMED, SEC, STORES CONFIG. The panels' legends of the ELEC, EPU, FLCS, AVTR, ECM and threat
+  warning panels keep their sheet while off (`SHEET_KEPT`), as before they were lamps.
 * **Displays**, each a SubViewport whose texture lights its screen (emissive, as the MFDs; `cockpit3d_display.gd`):
   * the RWR azimuth indicator (256 px): the 2D panel's RWR symbols (`cockpit.gd` `draw_rwr_symbols`, the F-16
     panel dial's scale: 37,060 m at the rim) inside two printed rings; nothing with RWR damage (flag 14);

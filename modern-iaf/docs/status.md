@@ -3,6 +3,12 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **The F-16s' 3D-cockpit lamps (2026-11-17, the lights audit, [cockpit.md](cockpit.md) §5.2):** every lamp of the
+  model lights, the caution panel's 32 among them; each is wired to the state that lights it (the start-up's lamps on
+  the battery, the ELEC panel, JFS RUN, the cautions and MASTER CAUTION with its reset and the ELEC panel's CAUTION
+  RESET, the test switches, the threat warning panel's buttons, ECM ENBL), and MAL & IND LTS lights them all. Lamps of
+  systems the game lacks (the EPU, TF, the AR system, the marker beacons, the seat, oxygen) light only in that test
+  (`modern-iaf/tests/test_cockpit_lamps.gd`).
 - **The Sufa's up-front controls, HUD panel, navigation and DGFT (2026-11-17, avionics-plan.md slice 5 part A,
   G2, G17, G18, G28, G29; [ufc.md](ufc.md)):** every DED page the sim can feed with data entry on keys and the 3D
   ICP (STPT editing, markpoints 26–30, BINGO, ALOW, CRUS, TIME, T-ILS with TACAN to the bases, INS, BULL, LASR,

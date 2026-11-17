@@ -382,8 +382,11 @@ on (`iaf-tools` `training.rs`).
   command flies the whole checklist with the INS aligned.
 - **Open:** the real F-16's MAIN PWR OFF with the engine running (which loads stay up on the engine's own
   generator); the F-35I's BATT and IPP likewise. The INS kept on the aircraft battery through a short power loss.
-- **Next (the audit's M3):** the indicator lamps on battery, the JFS RUN light, the INS's ALIGN / RDY and the IPP's
-  ready cue read these positions.
+- **The lamps on battery (2026-11-17, the lights audit):** MAIN PWR on lights ENGINE, HYD / OIL PRESS, CANOPY (until
+  shut), the ELEC panel's MAIN GEN, STBY GEN, FLCS PMG and FLCS RLY, ELEC SYS and MASTER CAUTION; the JFS lights JFS
+  RUN and ACFT BATT TO FLCS below 44 %; on the generators they go out (the lamp table:
+  [../../docs/cockpit.md](../../docs/cockpit.md) "3D cockpit", Lamps). Next: the INS's ALIGN / RDY and the IPP's ready
+  cue.
 - **The in-between positions (2026-11-16, finish list C3):** MAIN PWR, the JFS and RDR ALT each have three positions
   in the flight model (`start.rs` `Start::position`, the one source the 3D cockpit shows: `f16_controls.json`
   `system`). MAIN PWR at BATT: the battery's power only (the lamps, the engine gauges, the INS's alignment); the generators

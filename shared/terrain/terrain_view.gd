@@ -4127,6 +4127,7 @@ func _process(delta: float) -> void:
 			cockpit.state["alow_ft"] = float(cockpit.ufc.state().alow_ft)
 		cockpit.power = int(st.get("power", 2))  # the 6-DoF's ground start (Modern IAF); always 2 in the original game
 		cockpit.systems = st.get("systems", {})
+		cockpit.state["start_phase"] = String(st.get("start_phase", "running"))  # the 3D cockpit's ENGINE, ELEC lamps
 		_record(st, delta)
 		if not frozen and not waiting_for_ground:
 			_sim_time += delta

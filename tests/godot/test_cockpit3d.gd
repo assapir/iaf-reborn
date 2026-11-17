@@ -310,6 +310,12 @@ func _instruments(tv: Node, c: Control, c3: Node3D, variant: String) -> void:
 	c.indicators[0] = false
 	await frames(2)
 	check(not lamp.visible and not c3.lamps_lit.master_caution, "%s 3D: master caution off" % variant)
+	# The original game's jet runs on its generators (power 2, no start phase): the start-up's lamps (ENGINE, HYD / OIL
+	# PRESS, the ELEC panel, ELEC SYS, CANOPY) and the cautions dark (the lights audit, 2026-11-17).
+	var startup := ["engine", "hyd_oil_press", "main_gen", "stby_gen", "flcs_pmg", "flcs_rly", "to_flcs", "canopy"]
+	var startup_lit: Array = startup.filter(func(k): return c3.lamps_lit.get(k, false))
+	startup_lit += c3.lamps_lit.keys().filter(func(k): return k.begins_with("caution_") and c3.lamps_lit[k])
+	check(startup_lit.is_empty(), "%s 3D: no start-up lamp or caution lit in flight %s" % [variant, startup_lit])
 	c.indicators[0] = true
 	await frames(2)
 	var mat := lamp.get_surface_override_material(0) as BaseMaterial3D
@@ -329,7 +335,7 @@ func _instruments(tv: Node, c: Control, c3: Node3D, variant: String) -> void:
 	var unlit := []
 	for key in c3._lamps:
 		for l in c3._lamps[key]:
-			if not l[1] and not c3.lamps_lit[key]:
+			if not l[1] and not c3.lamps_lit.get(key, true) and key not in c3.SHEET_KEPT:  # the panels' legends: as drawn
 				unlit.append_array(l[2].map(func(m): return [key, (m as BaseMaterial3D).albedo_color.v]))
 	check(
 		unlit.size() >= 5 and unlit.all(func(e): return e[1] < 0.5),

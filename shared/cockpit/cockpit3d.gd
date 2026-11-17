@@ -1087,6 +1087,31 @@ var lamp_test := false
 ## while the lamp is off (an unlit lens; inferred).
 var _lamp_albedo := {}
 const LAMP_OFF := 0.7
+## The panels' lamps drawn as their sheet paints them while off (the lights audit, 2026-11-17: the ELEC, EPU, FLCS, AVTR
+## and ECM panels' and the threat warning panel's legends, as the cockpit showed them before they became lamps); lit,
+## they glow.
+const SHEET_KEPT := [
+	"main_gen",
+	"stby_gen",
+	"flcs_pmg",
+	"epu_gen",
+	"epu_pmg",
+	"to_flcs",
+	"flcs_rly",
+	"flcs_pwr",
+	"jfs_run",
+	"epu_run",
+	"epu_hydrazine",
+	"epu_air",
+	"flcs_bit_fail",
+	"flcs_bit_run",
+	"avtr",
+	"flcs_fail",
+	"stby_gains",
+	"ecm_panel",
+	"twd_test",
+	"twd_handoff"
+]
 ## The AoA indexer's and the AR / NWS lamps lit by day, × their sheet: FlightGear's sheet paints their symbols dim (at
 ## their brightest, in linear light, the slow chevron's red 0.33, the donut 0.78, the fast chevron 0.9, the AR / NWS
 ## letters 0.07), so at the sheet's own level a lit one hardly showed against the sunlit glareshield. Each is raised to
@@ -1122,7 +1147,7 @@ func _setup_instruments(model: Node3D) -> void:
 			m.emission_operator = BaseMaterial3D.EMISSION_OP_MULTIPLY
 			m.emission_texture = m.albedo_texture
 			m.emission = Color(c[0], c[1], c[2])
-			if not rec.hide and m.albedo_color.v > 0.5:
+			if not rec.hide and m.albedo_color.v > 0.5 and rec.key not in SHEET_KEPT:
 				_lamp_albedo[m] = m.albedo_color
 		_lamps.get_or_add(rec.key, []).append([mi, bool(rec.hide), mats])
 	var textures: Dictionary = meta.get("textures", {})
@@ -1179,9 +1204,11 @@ static func uv_extent(mesh: Mesh) -> Vector2:
 
 
 ## The lamps a control's table row lights ("lamp": its key, "lit_uv": [u, v]): the ADV MODE button's STBY and ACTIVE
-## legends. FlightGear's sheet paints each legend lit beside its unlit one (its select shows the lit object, which the
-## build leaves out with the lamps off); lit, the part's texture moves by `lit_uv` onto the lit legend and glows by it,
-## unlit it stays as drawn under the cockpit's fill. [its own materials, key, the UV offset, their light passes].
+## legends; without "lit_uv" the part glows by its own sheet (the threat warning panel's PRI, UNK and SEP buttons, the
+## left eyebrow's IFF light). FlightGear's sheet paints each legend lit beside its unlit one (its select shows the lit
+## object, which the build leaves out with the lamps off); lit, the part's texture moves by `lit_uv` onto the lit legend
+## and glows by it, unlit it stays as drawn under the cockpit's fill. [its own materials, key, the UV offset, their
+## light passes].
 var _legend_lamps := []
 
 
@@ -1191,7 +1218,8 @@ func _setup_legend_lamps(model: Node3D, rows: Dictionary) -> void:
 		var mi := model.find_child(name, true, false) as MeshInstance3D
 		if r.has("lamp") and mi != null:
 			var mats := _own_materials(mi)
-			var uv := Vector3(float(r.lit_uv[0]), float(r.lit_uv[1]), 0.0)
+			var at: Array = r.get("lit_uv", [0.0, 0.0])
+			var uv := Vector3(float(at[0]), float(at[1]), 0.0)
 			_legend_lamps.append([mats, r.lamp, uv, mats.map(func(m): return m.next_pass)])
 
 
@@ -1205,8 +1233,14 @@ func _update_instruments() -> void:
 			m.next_pass = null if on else l[3][i]  # lit: not shaded by the baked light
 			if on or _lit.r >= 0.0:
 				m.emission = Color.WHITE if on else _lit
+	_cautions_update()
 	for key in _lamps:
-		var on: bool = cockpit.power >= 1 and (lamp_test or _lamp_on(key))
+		var base: String = key.trim_suffix("_unlit")
+		var on: bool = cockpit.power >= 1 and (lamp_test or _lamp_on(base))
+		if base != key:  # the caution panel's and ECM ENBL's unlit legends: shown while their lamp is dark
+			for l in _lamps[key]:
+				l[0].visible = not on
+			continue
 		lamps_lit[key] = on
 		var lit: float = 1.0 if cockpit.night else float(INDEXER_GAIN.get(key, 1.0))
 		var off: float = INDEXER_OFF if INDEXER_GAIN.has(key) else LAMP_OFF
@@ -1241,16 +1275,20 @@ func _lamp_on(key: String) -> bool:
 	var flags: Array = cockpit.damage_flags
 	var flag := func(i: int) -> bool: return i < flags.size() and bool(flags[i])
 	match key:
-		"master_caution":
-			return bool(cockpit.indicators[0])
+		"master_caution":  # the game's, or a caution not yet acknowledged (FlightGear's failures.nas)
+			return bool(cockpit.indicators[0]) or _cautions.values().has(false)
 		"eng_fire":
-			return bool(cockpit.indicators[1]) or bool(cockpit.indicators[2])
+			return (
+				bool(cockpit.indicators[1])
+				or bool(cockpit.indicators[2])
+				or _sw("controls/test/test-panel/fire-ovht-test")
+			)
 		"flcs", "to_ldg_config", "ar_nws":
 			return bool(better.get(key, false))
-		"engine":
-			return flag.call(2) or flag.call(22)
-		"hyd_oil_press":
-			return flag.call(18)
+		"engine":  # the engine not running (FlightGear's), or failed
+			return flag.call(2) or flag.call(22) or _phase() != "running"
+		"hyd_oil_press":  # failed, or, the engine not running, a system below 1000 psi (FlightGear's): its pumps slow
+			return flag.call(18) or (_phase() != "running" and float(better.get("hyd", HYD_LOW)) < HYD_LOW)
 		"aoa_slow", "aoa_on_speed", "aoa_fast":
 			return int(better.get("aoa_index", 0)) == ["", "aoa_slow", "aoa_on_speed", "aoa_fast"].find(key)
 		"gear_nose", "gear_left", "gear_right":
@@ -1258,11 +1296,117 @@ func _lamp_on(key: String) -> bool:
 		"gear_transit":
 			return legs.any(func(v): return int(v) != (2 if cockpit.gear_handle_down else 0))
 		"adv_stby":  # ADV MODE selected stands by: the terrain following it engages is not modelled (inferred)
-			return float(switches.get("f16/fcs/adv-mode-sel", 0.0)) >= 0.5
+			return _sw("f16/fcs/adv-mode-sel")
+		"canopy":  # not closed and locked (FlightGear's canopy-pos-norm > 0)
+			var a = _tv().get("aircraft") if _tv() != null else null
+			return a != null and float(a.get("canopy_open")) > 0.01
+		"dbu_on":  # the DBU switch on (the digital backup itself is not modelled)
+			return _sw("f16/fcs/digital-backup")
+		"main_gen", "stby_gen":  # the generators not on the buses: on the battery (FlightGear's jsb-electrical)
+			return cockpit.power == 1
+		"flcs_pmg", "flcs_rly":  # on the battery until the JFS turns (FlightGear's jsb-electrical)
+			return _phase() == "off"
+		"to_flcs":  # the battery feeding the FLCS while the engine turns below 44 % (start or run-down)
+			return _phase() not in ["off", "running"] and float(cockpit.state.rpm) < 0.44
+		"flcs_pwr":  # FLCS PWR TEST held (or the EPU test): the FLCS's power good (FlightGear's)
+			return _sw("fdm/jsbsim/elec/switches/flcs-pwr-test") or _sw("controls/test/test-panel/epu-test")
+		"jfs_run":  # the JFS at speed: its switch at START and past its spool-up (start.rs)
+			return (
+				absf(float(switches.get("f16/engine/jfs-start-switch", 0.0))) > 0.5
+				and _phase() not in ["off", "starter"]
+			)
+		"flcs_bit_run":  # the BIT switch at BIT (the self test itself is not modelled)
+			return _sw("f16/fcs/bit")
+		"avtr":
+			return _sw("controls/test/avtr-test")
+		"ecm_enbl":  # the ECM pod jamming (the J key; player_weapons.gd ecm_key)
+			return bool(cockpit.indicators[6])
+		"twd_pri":  # the threat warning prime panel (ews.gd), on the UFC's power (FlightGear's power-ufc-warm):
+			return cockpit.up("ufc") and not bool(_twd().get("open", true))  # PRIORITY mode,
+		"twd_unk", "twd_sep", "twd_test":  # UNKNOWN, TGT SEP held, its test
+			var k: String = {"twd_unk": "unknowns", "twd_sep": "sep", "twd_test": "testing"}[key]
+			return cockpit.up("ufc") and bool(_twd().get(k, false))
+		"caution_elec_sys":  # any lamp of the ELEC panel (FlightGear's elec-sys)
+			return ["main_gen", "stby_gen", "flcs_pmg", "to_flcs", "flcs_rly"].any(_lamp_on)
+		"caution_engine_fault", "caution_avionics":  # the pilot fault list's ENG and AV classes (the damage flags)
+			return _fault_class(2 if key == "caution_engine_fault" else 3)
+		"caution_hook":  # the hook handle down (the hook itself is not modelled)
+			return _sw("f16/cockpit/tailhook-handle")
+		"caution_cabin_press":  # the cabin above 27,000 ft (FlightGear's)
+			return float(cockpit.state.get("cabin_alt_ft", 0.0)) > 27000.0
+		"caution_fwd_fuel_low", "caution_aft_fuel_low":
+			# FlightGear's: the forward reservoir below 400 lb, the aft below 250 lb; the game keeps one total, the two
+			# reservoirs drained alike: below 800 and 500 lb (inferred).
+			return float(cockpit.state.get("fuel_lbs", 1e9)) < (800.0 if key == "caution_fwd_fuel_low" else 500.0)
+		"caution_overheat":  # a fire (damage 16, 17) or the FIRE & OHEAT DETECT test (FlightGear's)
+			return flag.call(16) or flag.call(17) or _sw("controls/test/test-panel/fire-ovht-test")
+		"caution_probe_heat":  # the PROBE HEAT switch at TEST: the caution flashes (FlightGear's, 0.15 s)
+			var test := float(switches.get("f16/avionics/probe-heat-switch", 0.0)) < -0.5
+			return test and int(Time.get_ticks_msec() / 150) % 2 == 0
+		"caution_ecm":  # the ECM pod failed (damage 1)
+			return flag.call(1)
+		"caution_equip_hot":  # the avionics up without cooling: AIR SOURCE at OFF, or RAM below 70 kt (FlightGear's)
+			var air := roundi(float(switches.get("controls/ventilation/airconditioning-source", 1.0)))
+			var ram_slow := air == 3 and float(cockpit.state.get("tas_kt", 0.0)) < 70.0
+			return cockpit.up("ufc") and (air == 0 or ram_slow)
 		"rwr_launch":
 			var launch: bool = cockpit.rwr.any(func(e): return e.active and e.launch)
 			return launch and int(Time.get_ticks_msec() / BLINK_MS) % 2 == 0
 	return false
+
+
+## HYD / OIL PRESS's threshold: 1000 psi in the game's pressure (bar, iaf_flight::instruments::hydraulic_pressure).
+const HYD_LOW := 1000.0 / 14.504
+
+
+## The cockpit's switch at `prop` on (its stored position, else the model's rest: off for every lamp switch).
+func _sw(prop: String) -> bool:
+	return float(switches.get(prop, 0.0)) > 0.5
+
+
+## The flight scene (its weapons, aircraft), null without one.
+func _tv() -> Object:
+	return command.get_object() if command.is_valid() else null
+
+
+## The engine start's phase (start.rs Phase::name; "running" for the original model).
+func _phase() -> String:
+	return String(cockpit.state.get("start_phase", "running"))
+
+
+## The threat warning prime panel's state (ews.gd state "twd": open, unknowns, sep, testing), {} without one.
+func _twd() -> Dictionary:
+	return cockpit.ews.get("twd", {}) if cockpit.ews != null else {}
+
+
+## A fault of the pilot fault list's class `c` (1 FLCS, 2 ENG, 3 AV) in the damage flags (cockpit3d_display.gd FAULTS).
+func _fault_class(c: int) -> bool:
+	var flags: Array = cockpit.damage_flags
+	return Display.FAULTS.any(
+		func(f): return f[1] == c and f[0].any(func(i: int) -> bool: return i < flags.size() and bool(flags[i]))
+	)
+
+
+## The caution panel's lamps lit and acknowledged (key -> MASTER CAUTION pushed since it lit): a new one lights MASTER
+## CAUTION until pushed (FlightGear's failures.nas; ELEC SYS by the ELEC panel's CAUTION RESET only). The lamp test
+## lights none of them anew.
+var _cautions := {}
+
+
+func _cautions_update() -> void:
+	for key in _lamps:
+		if key.begins_with("caution_") and not key.ends_with("_unlit"):
+			if cockpit.power >= 1 and _lamp_on(key):
+				_cautions.get_or_add(key, false)
+			else:
+				_cautions.erase(key)
+
+
+## MASTER CAUTION (or, `elec`, the ELEC panel's CAUTION RESET) pushed: the cautions lit acknowledged.
+func acknowledge(elec := false) -> void:
+	for key in _cautions:
+		if (key == "caution_elec_sys") == elec:
+			_cautions[key] = true
 
 
 ## The ADI's ILS bars show while the HUD shows its ILS (NAV mode, the gear handle down: hud.gd), as the MiG-23's ПНП
