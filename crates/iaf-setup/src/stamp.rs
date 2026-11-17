@@ -401,14 +401,14 @@ pub(crate) fn sim_io(id: &str, ctx: &SimCtx) -> Option<(PathBuf, Vec<PathBuf>)> 
                 ctx.repo.join(iaf_tools::sim::F16_GLB),
             ],
         ),
-        "sim-airbases" => (a.join("converted/own/iaf.ibx"), vec![data.join("airbases")]),
+        "sim-airbases" => (a.join("converted/own/iaf.ibx"), vec![data.join("airbases"), data.join("parking.json")]),
         "sim-fm" => (a.join(iaf_tools::sim_fm0::MD_DIR).join("bd.ibx"), vec![]),
         "sim-scenery" => (a.join(THEATRE).join("scenery/manifest.json"), vec![data.join("airbases")]),
         // The ambientCG materials and the trees' foliage, composed last (`steps::textures_into`).
         "sim-textures" => (a.join("thirdparty/ambientcg/trees/foliage.json"), vec![]),
         "sim-missions" => (
             a.join("converted/modern-iaf/missions"),
-            vec![data.join("missions"), data.join("db"), data.join("airbases")],
+            vec![data.join("missions"), data.join("db"), data.join("airbases"), data.join("parking.json")],
         ),
         _ => return None,
     })

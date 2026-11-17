@@ -1,0 +1,36 @@
+{
+ "LLRM": [
+  {"unit": "f16i", "lat": 30.7699351, "lon": 34.6594869, "heading": 67, "source": "inferred"},
+  {"unit": "f16i", "lat": 30.7697271, "lon": 34.6595901, "heading": 67, "source": "inferred"},
+  {"unit": "f16i", "lat": 30.7695191, "lon": 34.6596933, "heading": 67, "source": "inferred"},
+  {"unit": "f16i", "lat": 30.7693111, "lon": 34.6597964, "heading": 67, "source": "inferred"}
+ ],
+ "LLHB": [
+  {"unit": "f15i", "lat": 31.2405291, "lon": 34.6611625, "heading": 105, "source": "inferred"},
+  {"unit": "f15i", "lat": 31.2407476, "lon": 34.6612307, "heading": 105, "source": "inferred"},
+  {"unit": "f15i", "lat": 31.240966, "lon": 34.6612989, "heading": 105, "source": "inferred"},
+  {"unit": "f15i", "lat": 31.2411844, "lon": 34.6613671, "heading": 105, "source": "inferred"},
+  {"unit": "f16i", "lat": 31.2402288, "lon": 34.6623126, "heading": 105, "source": "inferred"},
+  {"unit": "f16i", "lat": 31.2404472, "lon": 34.6623812, "heading": 105, "source": "inferred"},
+  {"unit": "f16i", "lat": 31.2406655, "lon": 34.6624498, "heading": 105, "source": "inferred"},
+  {"unit": "f16i", "lat": 31.2408839, "lon": 34.6625183, "heading": 105, "source": "inferred"}
+ ],
+ "LLNV": [
+  {"unit": "f35i", "lat": 31.2083748, "lon": 35.0264948, "heading": 165, "source": "inferred"},
+  {"unit": "f35i", "lat": 31.2083176, "lon": 35.0262391, "heading": 165, "source": "inferred"},
+  {"unit": "f35i", "lat": 31.2082604, "lon": 35.0259833, "heading": 165, "source": "inferred"},
+  {"unit": "f35i", "lat": 31.2082032, "lon": 35.0257276, "heading": 165, "source": "inferred"}
+ ],
+ "LLEK": [
+  {"unit": "f15c", "lat": 31.8383348, "lon": 34.8126877, "heading": 226, "source": "inferred"},
+  {"unit": "f15c", "lat": 31.8384975, "lon": 34.8125029, "heading": 226, "source": "inferred"},
+  {"unit": "f15c", "lat": 31.8386602, "lon": 34.8123181, "heading": 226, "source": "inferred"},
+  {"unit": "f15c", "lat": 31.8388229, "lon": 34.8121333, "heading": 226, "source": "inferred"}
+ ],
+ "LLRD": [
+  {"unit": "f16d", "lat": 32.6678273, "lon": 35.1762686, "heading": 177, "source": "inferred"},
+  {"unit": "f16d", "lat": 32.6678398, "lon": 35.1765367, "heading": 177, "source": "inferred"},
+  {"unit": "f16d", "lat": 32.6678522, "lon": 35.1768049, "heading": 177, "source": "inferred"},
+  {"unit": "f16d", "lat": 32.6678647, "lon": 35.1770731, "heading": 177, "source": "inferred"}
+ ]
+}

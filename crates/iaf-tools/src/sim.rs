@@ -787,13 +787,17 @@ pub fn compile_mission(
     let base_name = start["base"].as_str().with_context(|| format!("{}: start needs \"base\"", f.name))?;
     let base =
         sim_bases::by_name(bases, base_name).with_context(|| format!("{}: no airbase \"{base_name}\"", f.name))?;
+    // A wingman at a parking start stands on the unit's second spot.
+    let mut wing = None;
     let [x, y, h] = match start["at"].as_str() {
         Some("runway") => runway_start(base, start["runway"].as_str().unwrap_or("")).with_context(|| f.name.clone())?,
         // A parking start without its own place takes the base's spot for its unit (data/airbases, §10).
         Some("parking") if start["lat"].is_null() => {
             let unit = start["unit"].as_str().unwrap_or("");
-            let p = base.parking.iter().find(|p| p.unit == unit);
+            let mut spots = base.parking.iter().filter(|p| p.unit == unit);
+            let p = spots.next();
             let p = p.with_context(|| format!("{}: {} has no parking spot for {unit}", f.name, base.name_en))?;
+            wing = spots.next().map(|w| json!([w.at[0].round(), w.at[1].round(), w.heading.round()]));
             [p.at[0], p.at[1], p.heading]
         }
         Some("parking") => {
@@ -839,6 +843,9 @@ pub fn compile_mission(
         "slot_x": x.round(), "slot_y": y.round(), "alt": elev, "heading": h.round()});
     if has_route(&f.v["route"]) {
         spec["points"] = json!(route(&f.v["route"], [x, y, elev])?);
+    }
+    if let Some(w) = wing {
+        spec["wing"] = w;
     }
     m = mission_edit::set_flight(m, 1, &spec);
     // Only the player's jet (Alpha's leader, Player1) must survive; a wingman keeps the neutral role.
@@ -1783,6 +1790,16 @@ mod tests {
         );
         assert_eq!(e["0x302"].as_f64().unwrap(), spot.heading.round());
         assert_eq!(e["0x2f8"].as_f64().unwrap(), 643.3, "the ground's height");
+        // The wingman on the unit's second spot.
+        f.v["start"]["count"] = json!(2);
+        let m = compile_mission(&f, &db, &bases, &mut |_, _| None).unwrap();
+        let id = &m["formations"]["items"][0]["members"][1]["0x41a"];
+        let w = m["entities"]["items"].as_array().unwrap().iter().find(|e| &e["0x1e"] == id).unwrap();
+        let spot = &sim_bases::by_name(&bases, "Ramon").unwrap().parking[1];
+        assert_eq!(
+            (w["0x2e4"].as_f64().unwrap(), w["0x2ee"].as_f64().unwrap(), w["0x302"].as_f64().unwrap()),
+            (spot.at[0].round(), spot.at[1].round(), spot.heading.round())
+        );
         f.v["start"]["unit"] = json!("f35i");
         assert!(
             compile_mission(&f, &db, &bases, &mut |_, _| None).unwrap_err().to_string().contains("no parking spot")

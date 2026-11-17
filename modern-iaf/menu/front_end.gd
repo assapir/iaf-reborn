@@ -535,13 +535,18 @@ func _page_hangar() -> void:
 	cr.name = "credits"
 	cr.add_theme_font_size_override("font_size", 17)
 	_place(cr, 60, -1, -66, 0)
+	# Quit (the user, 2026-11-17: "we don't have a quit button"); Esc asks the same.
+	var q := _button(self, s("quit"), "CrumbLink", back)
+	q.name = "quit"
+	q.add_theme_font_size_override("font_size", 17)
+	_place(q, 60 + int(cr.get_combined_minimum_size().x) + 36, -1, -66, 0)
 	_hangar_focus()
 
 
 ## The Hangar's focus order (F1), by Tab and by the arrows: the top bar (Settings, the pilot), the jets, the jet's view
-## (Tab only: with the focus its arrows orbit the jet), Fly, Attributions. Down from the top bar goes to the picked
-## jet, Down from the last jet to Attributions; Down from Fly stays (the foot is the list's, not the card's). Without
-## missions Fly takes no focus.
+## (Tab only: with the focus its arrows orbit the jet), Fly, Attributions, Quit. Down from the top bar goes to the
+## picked jet, Down from the last jet to Attributions; Down from Fly stays (the foot is the list's, not the card's).
+## Without missions Fly takes no focus.
 func _hangar_focus() -> void:
 	var gear: Control = find_child("Settings", true, false)
 	var block: Control = find_child("PilotBlock", true, false)
@@ -554,7 +559,8 @@ func _hangar_focus() -> void:
 	var card: Control = fly if fly.focus_mode != Control.FOCUS_NONE else null
 	var view: Control = find_child("Turntable", true, false)
 	var views := [view] if view != null and not view.is_queued_for_deletion() else []
-	_chain([gear, block] + jets + views + ([card] if card != null else []) + [cr])
+	var quit_b: Control = find_child("quit", true, false)
+	_chain([gear, block] + jets + views + ([card] if card != null else []) + [cr, quit_b])
 	# The sides on the screen: the inline start is the right in Hebrew.
 	var start := "right" if he() else "left"
 	var end := "left" if he() else "right"
@@ -566,7 +572,8 @@ func _hangar_focus() -> void:
 		_nb(b, {start: b, end: card if card != null else b})
 	if card != null:
 		_nb(card, {"top": gear, start: picked, end: card, "bottom": card})
-	_nb(cr, {"top": jets[-1], start: cr, end: card if card != null else cr, "bottom": cr})
+	_nb(cr, {"top": jets[-1], start: cr, end: quit_b, "bottom": cr})
+	_nb(quit_b, {"top": jets[-1], start: cr, end: card if card != null else quit_b, "bottom": quit_b})
 
 
 ## Tab and Shift + Tab through `controls` in that order, round.
@@ -2745,6 +2752,8 @@ func _page_pause() -> void:
 	_gear(prefs)
 	var end := _button(v, s("end_flight"), "Secondary", func(): flight._end_flight(true))
 	end.name = "EndFlight"
+	var q := _button(v, s("quit_desktop"), "Secondary", func(): modal(s("quit_q"), "", s("quit"), Settings.quit))
+	q.name = "QuitDesktop"
 
 
 ## A training mission accomplished (training.md §9): the flight paused under the pause menu's panel, Continue the

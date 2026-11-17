@@ -168,7 +168,8 @@ func bases() -> void:
 	var spots := {}
 	for b in s.load_json(abf).get("bases", []):
 		for p in b.get("parking", []):
-			spots["%s %s" % [b.name, p.unit]] = p
+			if not spots.has("%s %s" % [b.name, p.unit]):  # the leader's: the unit's first
+				spots["%s %s" % [b.name, p.unit]] = p
 	for id in JETS:
 		var m: Dictionary = s.load_json(a.path_join(MISSIONS).path_join(JETS[id][1] + ".json"))
 		var unit: Dictionary = mr.player_unit(m)

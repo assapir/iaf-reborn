@@ -234,15 +234,44 @@ fn inside(poly: &[[f64; 2]], p: [f64; 2]) -> bool {
     odd
 }
 
-/// The bases from `<dir>/<icao>.json`, in BASES' order.
+/// The airbase files of `dir` (every `.json`), each with its parking spots from `<dir>/../parking.json` by ICAO code
+/// (airbases.md §5; their own file: the theatre's stamp hashes the airbase files, `sim_terrain::stamp`, and a moved
+/// spot leaves the theatre as built).
+pub fn files(dir: &Path) -> Result<Vec<Value>> {
+    let read = |p: &Path| -> Result<Value> {
+        serde_json::from_slice(&std::fs::read(p).with_context(|| format!("{}", p.display()))?)
+            .with_context(|| format!("{}", p.display()))
+    };
+    let spots = dir.with_file_name("parking.json");
+    let spots = if spots.exists() { read(&spots)? } else { Value::Null };
+    let mut paths: Vec<_> = std::fs::read_dir(dir)
+        .with_context(|| format!("{}", dir.display()))?
+        .filter_map(|e| e.ok().map(|e| e.path()))
+        .filter(|p| p.extension().is_some_and(|x| x == "json"))
+        .collect();
+    paths.sort();
+    let mut out = Vec::new();
+    for p in paths {
+        let mut v = read(&p)?;
+        if !spots.is_null() {
+            let icao = v["icao"].as_str().unwrap_or("");
+            ensure!(spots[icao].is_array(), "parking.json: no spots for {icao:?} ({})", p.display());
+            v["parking"] = spots[icao].clone();
+        }
+        out.push(v);
+    }
+    Ok(out)
+}
+
+/// The bases of `files(dir)`, in BASES' order.
 pub fn load(dir: &Path) -> Result<Vec<Base>> {
+    let files = files(dir)?;
     BASES
         .iter()
         .map(|(icao, ..)| {
             let path = dir.join(format!("{}.json", icao.to_lowercase()));
-            let v: Value =
-                serde_json::from_slice(&std::fs::read(&path).with_context(|| format!("{}", path.display()))?)?;
-            base(&v, &path.display().to_string())
+            let v = files.iter().find(|v| v["icao"] == *icao).with_context(|| format!("{}", path.display()))?;
+            base(v, &path.display().to_string())
         })
         .collect()
 }
@@ -330,6 +359,8 @@ pub fn by_name<'a>(bases: &'a [Base], name: &str) -> Option<&'a Base> {
 /// 07L and back-taxied 1.7 km to 25R's start, the user: "not to the middle of the runway, it's confusing"); a back-taxi
 /// stays where no taxiway leads to the start.
 const RUNWAY_TAXI_COST: f64 = 4.0;
+/// Taxiway junctions nearer each other than this (m) count as one (inferred: a jet passes both in a length).
+const JOIN_M: f64 = 12.0;
 
 struct Graph {
     pts: Vec<[f64; 2]>,
@@ -354,9 +385,31 @@ impl Graph {
                 g.link(a, b, 1.0);
             }
         }
+        // Junctions nearer each other than JOIN_M are one (a jet reads one sign for them; Hatzerim's fillets join the
+        // parallel taxiway 5–10 m apart): the later one's ways go from the first.
+        for a in 0..g.pts.len() {
+            if g.adj[a].len() < 3 {
+                continue;
+            }
+            while let Some(&(b, _)) = g.adj[a].iter().find(|&&(b, w)| w < JOIN_M && b != a && g.adj[b].len() >= 3) {
+                g.merge(a, b);
+            }
+        }
+        // So are two taxiways' points on a runway (Nevatim's crossing of 08R/26L, its two sides 11 m apart along the
+        // runway: a jet crosses straight on).
+        for r in runways {
+            let on: Vec<usize> = (0..g.pts.len()).filter(|&k| r.dist(g.pts[k]) <= r.width / 2.0 + 5.0).collect();
+            for (i, &a) in on.iter().enumerate() {
+                for &b in &on[i + 1..] {
+                    if !g.adj[a].is_empty() && !g.adj[b].is_empty() && dist(g.pts[a], g.pts[b]) < JOIN_M {
+                        g.merge(a, b);
+                    }
+                }
+            }
+        }
         for r in runways {
             let mut on: Vec<(f64, usize)> = (0..g.pts.len())
-                .filter(|&k| r.dist(g.pts[k]) <= r.width / 2.0 + 5.0)
+                .filter(|&k| !g.adj[k].is_empty() && r.dist(g.pts[k]) <= r.width / 2.0 + 5.0)
                 .map(|k| (dist(g.pts[k], r.ends[0]), k))
                 .collect();
             on.sort_by(|a, b| a.0.total_cmp(&b.0));
@@ -365,6 +418,18 @@ impl Graph {
             }
         }
         g
+    }
+
+    /// Makes point `b` one with `a`: its ways go from `a`.
+    fn merge(&mut self, a: usize, b: usize) {
+        let ways = std::mem::take(&mut self.adj[b]);
+        self.adj[a].retain(|x| x.0 != b);
+        for (n, _) in ways {
+            self.adj[n].retain(|x| x.0 != b);
+            if n != a && !self.adj[a].iter().any(|x| x.0 == n) {
+                self.link(a, n, 1.0);
+            }
+        }
     }
 
     fn link(&mut self, a: usize, b: usize, cost: f64) {
@@ -376,43 +441,45 @@ impl Graph {
     }
 
     fn nearest(&self, p: [f64; 2]) -> Option<usize> {
-        (0..self.pts.len()).min_by(|&a, &b| dist(self.pts[a], p).total_cmp(&dist(self.pts[b], p)))
+        (0..self.pts.len())
+            .filter(|&k| !self.adj[k].is_empty())
+            .min_by(|&a, &b| dist(self.pts[a], p).total_cmp(&dist(self.pts[b], p)))
     }
 
-    /// The shortest path from `a` to `b` (Dijkstra), its points; None when they are not joined.
-    fn path(&self, a: usize, b: usize) -> Option<Vec<[f64; 2]>> {
+    /// The shortest ways to `to` (Dijkstra from it): each point's next point toward `to` (usize::MAX for `to` and the
+    /// points not joined to it).
+    fn toward(&self, to: usize) -> Vec<usize> {
         let mut best = vec![f64::INFINITY; self.pts.len()];
-        let mut prev = vec![usize::MAX; self.pts.len()];
+        let mut next = vec![usize::MAX; self.pts.len()];
         let mut heap = BinaryHeap::new();
-        best[a] = 0.0;
+        best[to] = 0.0;
         // Non-negative f64s order as their bits.
-        heap.push(std::cmp::Reverse((0f64.to_bits(), a)));
+        heap.push(std::cmp::Reverse((0f64.to_bits(), to)));
         while let Some(std::cmp::Reverse((d, k))) = heap.pop() {
             let d = f64::from_bits(d);
             if d > best[k] {
                 continue;
             }
-            if k == b {
-                break;
-            }
             for &(n, w) in &self.adj[k] {
                 if d + w < best[n] {
                     best[n] = d + w;
-                    prev[n] = k;
+                    next[n] = k;
                     heap.push(std::cmp::Reverse(((d + w).to_bits(), n)));
                 }
             }
         }
-        if !best[b].is_finite() {
-            return None;
-        }
-        let mut out = vec![self.pts[b]];
-        let mut k = b;
-        while k != a {
-            k = prev[k];
+        next
+    }
+
+    /// The shortest path from `a` to `b`, its points; None when they are not joined.
+    fn path(&self, a: usize, b: usize) -> Option<Vec<[f64; 2]>> {
+        let next = self.toward(b);
+        let mut out = vec![self.pts[a]];
+        let mut k = a;
+        while k != b {
+            k = *next.get(k).filter(|&&n| n != usize::MAX)?;
             out.push(self.pts[k]);
         }
-        out.reverse();
         Some(out)
     }
 }
@@ -454,12 +521,72 @@ pub struct Routes {
     pub to: Vec<[f64; 2]>,
 }
 
+/// The taxiways with each parking spot joined to them: a way from the spot along its nose to the first taxiway it meets
+/// within SPOT_EXIT_M (the lane the spots stand square to, airbases.md §5), else to the nearest taxiway point; the
+/// point is added to that taxiway. A jet leaves its spot by that way (a sign faces it there; the departure starts on it).
+pub fn taxi_lines(b: &Base) -> Vec<(Vec<[f64; 2]>, f64)> {
+    let mut lines = b.taxiways.clone();
+    for s in &b.parking {
+        let n = [s.heading.to_radians().sin(), s.heading.to_radians().cos()];
+        let ahead = [s.at[0] + n[0] * SPOT_EXIT_M, s.at[1] + n[1] * SPOT_EXIT_M];
+        // (line, segment, the point): the nose's nearest hit, else the nearest point of any taxiway.
+        let mut hit: Option<(usize, usize, [f64; 2])> = None;
+        let mut near: Option<(usize, usize, [f64; 2])> = None;
+        // The base's taxiways only: an earlier spot's way out is no lane.
+        for (li, (l, _)) in lines.iter().enumerate().take(b.taxiways.len()) {
+            for (si, w) in l.windows(2).enumerate() {
+                if let Some(t) = cross_at(s.at, ahead, w[0], w[1]) {
+                    let q = [w[0][0] + (w[1][0] - w[0][0]) * t, w[0][1] + (w[1][1] - w[0][1]) * t];
+                    if hit.is_none_or(|h| dist(s.at, q) < dist(s.at, h.2)) {
+                        hit = Some((li, si, q));
+                    }
+                }
+                let (dx, dy) = (w[1][0] - w[0][0], w[1][1] - w[0][1]);
+                let t = (((s.at[0] - w[0][0]) * dx + (s.at[1] - w[0][1]) * dy) / (dx * dx + dy * dy).max(1e-9))
+                    .clamp(0.0, 1.0);
+                let q = [w[0][0] + dx * t, w[0][1] + dy * t];
+                if near.is_none_or(|h| dist(s.at, q) < dist(s.at, h.2)) {
+                    near = Some((li, si, q));
+                }
+            }
+        }
+        let Some((li, si, q)) = hit.or(near) else { continue };
+        let l = &mut lines[li].0;
+        let q = if dist(q, l[si]) <= 1.0 {
+            l[si]
+        } else if dist(q, l[si + 1]) <= 1.0 {
+            l[si + 1]
+        } else {
+            l.insert(si + 1, q);
+            q
+        };
+        lines.push((vec![s.at, q], TAXIWAY_WIDTH_M));
+    }
+    lines
+}
+
+/// The farthest a parking spot's nose looks for its lane (m; inferred: the spots stand 20–30 m from it).
+const SPOT_EXIT_M: f64 = 60.0;
+
+/// Where segment ab crosses segment cd: the fraction along cd; None when they do not cross.
+fn cross_at(a: [f64; 2], b: [f64; 2], c: [f64; 2], d: [f64; 2]) -> Option<f64> {
+    let (r, s) = ([b[0] - a[0], b[1] - a[1]], [d[0] - c[0], d[1] - c[1]]);
+    let den = r[0] * s[1] - r[1] * s[0];
+    if den.abs() < 1e-12 {
+        return None;
+    }
+    let (qx, qy) = (c[0] - a[0], c[1] - a[1]);
+    let (t, u) = ((qx * s[1] - qy * s[0]) / den, (qx * r[1] - qy * r[0]) / den);
+    ((0.0..=1.0).contains(&t) && (0.0..=1.0).contains(&u)).then_some(u)
+}
+
 pub fn routes(b: &Base) -> Result<Routes> {
-    let g = Graph::new(&b.taxiways, &b.runways);
+    let g = Graph::new(&taxi_lines(b), &b.runways);
     let (ri, k) = b.main;
     let r = &b.runways[ri];
     let node = |p: [f64; 2]| g.nearest(p).with_context(|| format!("{}: no taxiways", b.icao));
-    let hub = node(b.parking[0].at)?;
+    // The hub: where the first spot's way out meets its lane.
+    let hub = g.adj[node(b.parking[0].at)?][0].0;
     // The arrival leaves the runway at the other end's start.
     let exit = node(r.at(1 - k, r.starts[1 - k]))?;
     let mut from = taxi_out(b, &g, ri, k)?;
@@ -473,45 +600,23 @@ pub fn routes(b: &Base) -> Result<Routes> {
 
 /// The departure from the first parking spot to end k of runway ri as a jet taxis it: the spot, taxi_out, the lineup;
 /// None where the taxiways do not join them.
+#[cfg(test)]
 fn departure(b: &Base, g: &Graph, ri: usize, k: usize) -> Option<Vec<[f64; 2]>> {
     let out = taxi_out(b, g, ri, k).ok()?;
-    // Only a route that joins the runway at that end's start: the nearest point to a start no taxiway reaches can be
-    // a join partway along (signed it would lead a jet onto the runway's middle).
-    if b.runways[ri].entry_end(*out.last()?) != Some(k) {
-        return None;
-    }
-    Some(std::iter::once(b.parking[0].at).chain(out).chain([b.runways[ri].lineup(k)]).collect())
+    let r = &b.runways[ri];
+    // At an intersection take-off (`takeoff`) the jet lines up where it joins.
+    let lineup = if r.entry_end(*out.last()?) == Some(k) { r.lineup(k) } else { *out.last()? };
+    Some(std::iter::once(b.parking[0].at).chain(out).chain([lineup]).collect())
 }
 
-/// Where `path` passes `road` taxiing along the unit `d` (within 10 m and 45°), the turn it takes at the junction
-/// DIRECTION_BACK_M ahead (degrees, positive left): toward its point DIRECTION_BACK_M past the junction.
-fn route_turn(path: &[[f64; 2]], road: [f64; 2], d: [f64; 2]) -> Option<f64> {
-    let i = path.windows(2).position(|t| {
-        let u = unit(t[0], t[1]);
-        seg_dist(road, t[0], t[1]) < 10.0 && u[0] * d[0] + u[1] * d[1] > 0.7
-    })?;
-    let (mut at, mut left, mut k) = (road, DIRECTION_BACK_M * 2.0, i + 1);
-    while k < path.len() && dist(at, path[k]) < left {
-        left -= dist(at, path[k]);
-        at = path[k];
-        k += 1;
-    }
-    if k < path.len() {
-        let u = unit(at, path[k]);
-        at = [at[0] + u[0] * left, at[1] + u[1] * left];
-    }
-    let j = [road[0] + d[0] * DIRECTION_BACK_M, road[1] + d[1] * DIRECTION_BACK_M];
-    let o = unit(j, at);
-    Some((d[0] * o[1] - d[1] * o[0]).atan2(d[0] * o[0] + d[1] * o[1]).to_degrees())
-}
-
-/// The departure's taxi from the hub (the first parking spot's nearest taxiway point) to end k of runway ri, joining
-/// the runway at its declared start (the first taxiway entry, airbases.md §4): the taxiway points of `g` (a Graph with
-/// the runways), unsimplified.
+/// The departure's taxi from the hub (where the first parking spot's way out meets its lane) to end k of runway ri,
+/// joining the runway at its declared start (the first taxiway entry, airbases.md §4): the points of `g` (a Graph of
+/// taxi_lines with the runways), unsimplified.
 fn taxi_out(b: &Base, g: &Graph, ri: usize, k: usize) -> Result<Vec<[f64; 2]>> {
     let r = &b.runways[ri];
     let node = |p: [f64; 2]| g.nearest(p).with_context(|| format!("{}: no taxiways", b.icao));
-    let (hub, entry) = (node(b.parking[0].at)?, node(r.at(k, r.starts[k]))?);
+    let hub = g.adj[node(b.parking[0].at)?][0].0;
+    let entry = takeoff(b, g, ri, k).with_context(|| format!("{}: no taxiway joins {}", b.icao, r.designators[k]))?;
     g.path(hub, entry).with_context(|| format!("{}: the taxiways do not join the hub and {}", b.icao, r.designators[k]))
 }
 
@@ -526,13 +631,11 @@ const DIRECTION_BACK_M: f64 = 40.0;
 /// A taxiway meeting a runway this near its end (m along the runway, or past it) enters at that take-off end
 /// (inferred).
 const END_ENTRY_M: f64 = 400.0;
-/// Runway ends a branch reaches this little farther than its nearest (m) count as where it leads (inferred: Ramat
-/// David's 09 and 11 start 200 m apart).
-const SAME_WAY_M: f64 = 300.0;
-/// The farthest taxi (m) a direction sign looks along for a runway end (inferred: the bases' taxiways span 5 km).
-const REACH_M: f64 = 8000.0;
 /// A sign's offset from the taxiway's edge (m; Annex 14 Table 5-5: 11–21 m from the edge for code D–F taxiways).
 const SIGN_EDGE_M: f64 = 12.0;
+/// A sign's least distance from a runway's edge (m; Annex 14 Table 5-5: 8–15 m for code 3 and 4 runways. On
+/// 2026-11-17 a direction sign after Ramon's crossing of 07R/25L stood 5 m from the runway).
+const SIGN_RUNWAY_M: f64 = 8.0;
 
 /// One board of a sign: `style` "mandatory" (white on red: a runway-holding position's runway designations, the
 /// threshold on the left first) or "direction" (black on yellow: a runway designator and its arrow, `arrow` the turn
@@ -552,6 +655,9 @@ pub struct Sign {
     pub facing: f64,
     pub panels: Vec<Panel>,
     pub road: [f64; 2],
+    /// How far back from `road` along its taxiway a jet reads it (m; READ_FROM_M's farthest, or the way's length where
+    /// a shorter way leads there: a parking spot's way out).
+    pub read: f64,
 }
 
 /// Two signs for the same taxiing jet nearer than this (m) stand as one array (inferred: 2026-11-13 a holding sign
@@ -560,6 +666,9 @@ pub const SIGN_GAP_M: f64 = 25.0;
 /// Signs facing different ways (other taxiways' signs at a junction) stand at least this far apart (m; inferred: two
 /// 3 m boards and room between them).
 pub const SIGN_APART_M: f64 = 8.0;
+/// A board in the line of sight hides a sign's legend only this near it, as a share of the eye's distance (inferred: an
+/// eye 2.5 m up, the boards' tops 1.1 m up and the legend's middle 0.65 m, sign_boards.gd: (2.5 − 1.1) / (2.5 − 0.65)).
+const HIDE_SHARE: f64 = 0.75;
 /// The stretch of centreline (m before a sign) from which a jet reads it (inferred: a 0.45 m legend reads at 150 m).
 const READ_FROM_M: [f64; 2] = [15.0, 150.0];
 
@@ -578,21 +687,33 @@ impl Sign {
     }
 
     /// Whether `self` stands in a jet's line of sight to any part of `other`, the jet on the taxiway's centreline
-    /// READ_FROM_M before `other` (taxiing along −facing, the sign facing it).
+    /// READ_FROM_M (up to `other.read`) before `other` (taxiing along −facing, the sign facing it). The pilot looks
+    /// down over a nearer board: only one in the last HIDE_SHARE of the way to `other` covers its legend (until
+    /// 2026-11-17 any board on the line seen from above, which left signs out where junctions crowd).
     pub fn hides(&self, other: &Sign) -> bool {
         let f = other.facing.to_radians();
         let [e0, e1] = self.ends();
-        (0..=27).map(|i| READ_FROM_M[0] + (READ_FROM_M[1] - READ_FROM_M[0]) * i as f64 / 27.0).any(|s| {
+        let far = other.read.max(READ_FROM_M[0] + 1.0);
+        (0..=27).map(|i| READ_FROM_M[0] + (far - READ_FROM_M[0]) * i as f64 / 27.0).any(|s| {
             let eye = [other.road[0] + f.sin() * s, other.road[1] + f.cos() * s];
-            other.ends().into_iter().chain([other.at]).any(|t| segments_cross(eye, t, e0, e1))
+            other.ends().into_iter().chain([other.at]).any(|t| cross_at(e0, e1, eye, t).is_some_and(|u| u > HIDE_SHARE))
         })
     }
 
-    /// Whether the two signs stand too near each other (SIGN_GAP_M facing the same way, within 45°, else SIGN_APART_M)
-    /// or one hides the other.
+    /// Whether the two signs stand too near each other (SIGN_GAP_M for one jet's signs, along the same way; else
+    /// SIGN_APART_M: other ways' signs, or the signs of neighbouring parking spots' ways out, side by side) or one
+    /// hides the other.
     pub fn crowds(&self, other: &Sign) -> bool {
-        let gap = if self.same_way(other) { SIGN_GAP_M } else { SIGN_APART_M };
+        let gap = if self.same_lane(other) { SIGN_GAP_M } else { SIGN_APART_M };
         dist(self.at, other.at) < gap || self.hides(other) || other.hides(self)
+    }
+
+    /// Whether the two are signs for one taxiing jet: facing the same way, their centreline points within 15 m across
+    /// that way.
+    pub fn same_lane(&self, other: &Sign) -> bool {
+        let f = self.facing.to_radians();
+        let across = (other.road[0] - self.road[0]) * f.cos() - (other.road[1] - self.road[1]) * f.sin();
+        self.same_way(other) && across.abs() < 15.0
     }
 
     /// Whether the two face the same way (within 45°): signs for the same taxiing jet.
@@ -601,31 +722,21 @@ impl Sign {
     }
 }
 
-/// Whether segments ab and cd cross.
-fn segments_cross(a: [f64; 2], b: [f64; 2], c: [f64; 2], d: [f64; 2]) -> bool {
-    let side = |p: [f64; 2], q: [f64; 2], r: [f64; 2]| (q[0] - p[0]) * (r[1] - p[1]) - (q[1] - p[1]) * (r[0] - p[0]);
-    side(a, b, c) * side(a, b, d) < 0.0 && side(c, d, a) * side(c, d, b) < 0.0
-}
-
-/// Adds a sign for a jet at `p` taxiing along `d`, or folds it into one already there. A sign that crowds a sign facing
-/// the same way joins it as one array: the holding position stays where it is (FAA AIM 2-3-8: the holding marking in
-/// line with the sign), its direction boards left to right by their turn ("arranged clockwise starting from the first
-/// taxiway on the pilot's left", AIM 2-3-10), the mandatory board inboard, on the taxiway's side (as a location sign
-/// collocated with a holding sign stands outboard of it, AIM 2-3-9; inferred for direction boards). Otherwise it takes
-/// the first of sign_spots that crowds none, else it is left out.
-fn place(
-    out: &mut Vec<Sign>,
-    p: [f64; 2],
-    d: [f64; 2],
-    half: f64,
-    panels: Vec<Panel>,
-    paved: &dyn Fn([f64; 2]) -> bool,
-) {
+/// Adds a sign at the first of `spots` (its place, and the centreline point beside it, `Sign::road`) for a jet taxiing
+/// along `d`, or folds it into
+/// one already there. A sign that crowds a sign facing the same way joins it as one array where one of the two is a
+/// holding sign (two junctions' direction signs stay apart: each names where its own junction leads): the holding position stays where it is (FAA AIM 2-3-8: the holding
+/// marking in line with the sign), its direction boards left to right by their turn ("arranged clockwise starting from
+/// the first taxiway on the pilot's left", AIM 2-3-10), the mandatory board inboard, on the taxiway's side (as a
+/// location sign collocated with a holding sign stands outboard of it, AIM 2-3-9; inferred for direction boards).
+/// Otherwise it takes the first of `spots` that crowds none, else it is left out.
+fn place(out: &mut Vec<Sign>, d: [f64; 2], spots: Vec<([f64; 2], [f64; 2], f64)>, panels: Vec<Panel>) -> bool {
     let facing = grid_deg([-d[0], -d[1]]);
-    let spots = sign_spots(p, d, half, paved);
-    let Some(&first) = spots.first() else { return };
-    let new = Sign { at: first, facing, panels, road: p };
-    if let Some(o) = out.iter_mut().find(|o| o.same_way(&new) && o.crowds(&new)) {
+    let Some(&(at, road, read)) = spots.first() else { return false };
+    let new = Sign { at, facing, panels, road, read };
+    let directions = |s: &Sign| s.panels.iter().any(|p| p.style == "direction");
+    let joins = |o: &Sign| o.same_lane(&new) && dist(o.at, new.at) < SIGN_GAP_M && !(directions(o) && directions(&new));
+    if let Some(o) = out.iter_mut().find(|o| joins(o)) {
         let mut all: Vec<Panel> = Vec::new();
         for q in o.panels.iter().chain(new.panels.iter()) {
             if !all.iter().any(|a| a.style == q.style && a.text == q.text) {
@@ -639,15 +750,25 @@ fn place(
                 .then(a.text.cmp(&b.text))
         });
         o.panels = all;
-        return;
+        return true;
     }
-    for at in spots {
-        let s = Sign { at, ..new.clone() };
+    for &(at, road, read) in &spots {
+        let s = Sign { at, road, read, ..new.clone() };
         if !out.iter().any(|o| o.crowds(&s)) {
             out.push(s);
-            return;
+            return true;
         }
     }
+    // Where junctions crowd (Hatzerim's sunshade rows), the first place SIGN_APART_M from every sign: a sign that may
+    // stand in another's line of sight beats a junction without one.
+    for (at, road, read) in spots {
+        let s = Sign { at, road, read, ..new.clone() };
+        if !out.iter().any(|o| dist(o.at, s.at) < SIGN_APART_M) {
+            out.push(s);
+            return true;
+        }
+    }
+    false
 }
 
 fn grid_deg(d: [f64; 2]) -> f64 {
@@ -671,22 +792,40 @@ fn sign_spots(p: [f64; 2], d: [f64; 2], half: f64, paved: &dyn Fn([f64; 2]) -> b
         .collect()
 }
 
-/// The base's taxiway signs (ICAO Annex 14 §5.4): a runway-holding sign (mandatory) where each taxiway comes within
-/// HOLD_M of a runway's centreline, and at each junction of three or more taxiways a direction sign before it on each
-/// arriving taxiway, one board per other branch that leads to a runway (the designator of the end nearer where it
-/// joins: the take-off away from it). OpenStreetMap names none of the bases' taxiways, so no location sign.
+/// The base's taxiway signs (ICAO Annex 14 §5.4), each naming only where it leads (the user, 2026-11-17: "how
+/// possible 25L and 07R are on the same sign"):
+/// - a runway-holding sign (mandatory) where each taxiway comes within HOLD_M of a runway's centreline, with the one
+///   end a jet takes off from there: at a runway's start that end (FAA AIM 2-3-8), partway along the end with the
+///   more runway ahead (the one nearer the join; inferred);
+/// - at each junction of three or more ways, for a jet arriving on each branch where it has a choice (two or more of
+///   the other branches lead on to a runway), a direction sign with a board for each runway start whose shortest taxi
+///   leaves the junction by another branch: its designator and the arrow of that branch. Every board of every sign
+///   on the way sends a jet along the same shortest taxi, so a jet that follows one end's boards from anywhere reaches
+///   that end's start (`sim_bases::tests::following_the_signs_reaches_every_runway_start`).
+///
+/// The sign stands DIRECTION_BACK_M before the junction on the jet's left, or, where the branch is shorter (a parking
+/// spot's way out, a short link), across the junction facing the jet (inferred). The parking spots' ways out
+/// (taxi_lines) are branches too. OpenStreetMap names none of the bases' taxiways, so no location sign.
 pub fn signs(b: &Base) -> Vec<Sign> {
-    let g = Graph::new(&b.taxiways, &[]);
+    let lines = taxi_lines(b);
+    let routed = Graph::new(&lines, &b.runways);
     let m = mask(b);
+    // Where no sign stands: the paved surface, and beside a runway nearer than SIGN_RUNWAY_M from its edge.
     let paved = |q: [f64; 2]| {
         let (x, y) = ((q[0] - m.origin[0]) / MASK_PX_M, (m.origin[1] - q[1]) / MASK_PX_M);
-        x >= 0.0 && y >= 0.0 && (x as usize) < m.w && (y as usize) < m.h && m.img.get_pixel(x as u32, y as u32)[0] >= 64
+        (x >= 0.0
+            && y >= 0.0
+            && (x as usize) < m.w
+            && (y as usize) < m.h
+            && m.img.get_pixel(x as u32, y as u32)[0] >= 64)
+            || b.runways.iter().any(|r| r.dist(q) < r.width / 2.0 + SIGN_RUNWAY_M)
     };
     let half = |p: [f64; 2]| {
         b.taxiways
             .iter()
             .filter(|(l, _)| l.windows(2).any(|s| seg_dist(p, s[0], s[1]) < 1.0))
             .map(|(_, w)| w / 2.0)
+            .chain(b.runways.iter().filter(|r| r.dist(p) <= r.width / 2.0 + 5.0).map(|r| r.width / 2.0))
             .fold(TAXIWAY_WIDTH_M / 2.0, f64::max)
     };
     let on_runway = |p: [f64; 2]| b.runways.iter().position(|r| r.dist(p) <= r.width / 2.0 + 5.0);
@@ -708,156 +847,200 @@ pub fn signs(b: &Base) -> Vec<Sign> {
                 }
                 let p = [s[0][0] + (s[1][0] - s[0][0]) * lo, s[0][1] + (s[1][1] - s[0][1]) * lo];
                 let d = unit(s[0], s[1]);
-                // The threshold on the jet's left first (left of d: d × (e − p) > 0).
-                let left = |k: usize| {
-                    let e = r.ends[k];
-                    d[0] * (e[1] - p[1]) - d[1] * (e[0] - p[0]) > 0.0
-                };
-                let k = if left(0) { 0 } else { 1 };
-                // At the runway's start the sign names that take-off end alone (FAA AIM 2-3-8: "on taxiways that
-                // intersect the beginning of the takeoff runway, only the designation of the takeoff runway may appear
-                // on the sign"); at an intersection both ends, the one on the jet's left first (it marks the holding
-                // position; no direction sign leads a departure there).
-                let text = match r.entry_end(p) {
-                    Some(e) => r.designators[e].clone(),
-                    None => format!("{}-{}", r.designators[k], r.designators[1 - k]),
-                };
-                if out.iter().any(|o| dist(o.at, p) < 60.0 && o.panels.iter().any(|q| q.text == text)) {
+                let nearer = if dist(p, r.ends[0]) < dist(p, r.ends[1]) { 0 } else { 1 };
+                let text = r.designators[r.entry_end(p).unwrap_or(nearer)].clone();
+                // The same holding position once (two ways drawn over each other); another taxiway's, 37 m away at
+                // Nevatim's 08R, has its own sign.
+                if out.iter().any(|o| dist(o.road, p) < JOIN_M && o.panels.iter().any(|q| q.text == text)) {
                     continue;
                 }
-                place(&mut out, p, d, w / 2.0, vec![Panel { style: "mandatory", text, arrow: None }], &paved);
+                let spots = sign_spots(p, d, w / 2.0, &paved).into_iter().map(|q| (q, p, READ_FROM_M[1])).collect();
+                place(&mut out, d, spots, vec![Panel { style: "mandatory", text, arrow: None }]);
             }
         }
     }
-    // The runway ends each branch leads to and the way's length: from `next`, never back through `from` nor along a
-    // runway (the graph has no runway links; a taxiway crossing one goes on), to a join at a runway's start
-    // (Runway::entry_end) and that end's lineup, each end at its cheapest join, within REACH_M. A join partway along a
-    // runway leads nowhere: until 2026-11-15 it led to the nearer end by a back-taxi on the runway, and the boards sent
-    // the departing jet onto the runway's middle (the user: "ab signs should lead to runway start only, not to the
-    // middle of the runway, it's confusing").
-    let leads_to = |from: usize, next: usize| -> Vec<(String, f64)> {
-        let mut best = vec![f64::INFINITY; g.pts.len()];
-        let mut heap = BinaryHeap::new();
-        let mut found: Vec<(String, f64)> = Vec::new();
-        best[next] = dist(g.pts[from], g.pts[next]);
-        heap.push(std::cmp::Reverse((best[next].to_bits(), next)));
-        while let Some(std::cmp::Reverse((d, k))) = heap.pop() {
-            let d = f64::from_bits(d);
-            if d > best[k] {
-                continue;
-            }
-            if d > REACH_M {
-                break;
-            }
-            if let Some(ri) = on_runway(g.pts[k]) {
-                let r = &b.runways[ri];
-                if let Some(e) = r.entry_end(g.pts[k]) {
-                    let total = d + dist(g.pts[k], r.lineup(e));
-                    match found.iter_mut().find(|t| t.0 == r.designators[e]) {
-                        Some(t) => t.1 = t.1.min(total),
-                        None => found.push((r.designators[e].clone(), total)),
+    // Each runway end's take-off point (`takeoff`) and every point's next point on the shortest taxi there.
+    let starts: Vec<(&String, Vec<usize>)> = b
+        .runways
+        .iter()
+        .enumerate()
+        .flat_map(|(ri, r)| (0..2).map(move |k| (ri, r, k)))
+        .filter_map(|(ri, r, k)| Some((&r.designators[k], routed.toward(takeoff(b, &routed, ri, k)?))))
+        .collect();
+    // The junctions the taxis from the parking spots to the starts pass, by the branch they arrive on: the ends
+    // whose taxi passes there. Only these get direction signs (the user, 2026-11-17: "I need something that isn't
+    // confusing"): a jet that leaves the shortest taxi has left the signs' way.
+    let mut used: std::collections::BTreeMap<(usize, usize), Vec<usize>> = Default::default();
+    for (e, (_, next)) in starts.iter().enumerate() {
+        for s in &b.parking {
+            let Some(mut cur) = routed.nearest(s.at) else { continue };
+            let mut prev = usize::MAX;
+            while next[cur] != usize::MAX {
+                // On a runway only where the taxi turns off the straightest way (a back-taxi, an offset crossing): a
+                // jet crosses a runway straight on.
+                let turns = on_runway(routed.pts[cur]).is_none() || straightest(&routed, prev, cur) != Some(next[cur]);
+                if prev != usize::MAX && routed.adj[cur].len() >= 3 && turns {
+                    let ends = used.entry((cur, prev)).or_default();
+                    if !ends.contains(&e) {
+                        ends.push(e);
                     }
                 }
-            }
-            for &(n, w) in &g.adj[k] {
-                if n != from && d + w < best[n] {
-                    best[n] = d + w;
-                    heap.push(std::cmp::Reverse(((d + w).to_bits(), n)));
-                }
+                (prev, cur) = (cur, next[cur]);
             }
         }
-        found
-    };
-    // The point DIRECTION_BACK_M back from the junction `j` along the branch through `n` (bends followed), and the
-    // way a jet taxis there toward `j`; None when the branch ends sooner.
-    let back = |j: usize, n: usize| -> Option<([f64; 2], [f64; 2])> {
-        let (mut prev, mut cur, mut left) = (j, n, DIRECTION_BACK_M);
-        loop {
-            let seg = dist(g.pts[prev], g.pts[cur]);
-            if seg >= left {
-                let d = unit(g.pts[cur], g.pts[prev]);
-                return Some(([g.pts[prev][0] - d[0] * left, g.pts[prev][1] - d[1] * left], d));
-            }
-            left -= seg;
-            let nexts: Vec<usize> = g.adj[cur].iter().map(|a| a.0).filter(|&a| a != prev).collect();
-            if nexts.len() != 1 {
-                return None;
-            }
-            (prev, cur) = (cur, nexts[0]);
-        }
-    };
-    // The departures to every runway end (`departure`, the route the briefing draws and the tower clears): a sign one
-    // passes names its end with the arrow the route takes, whatever the branches' shortest ways say. Ramon's route to
-    // 25R runs the parallel taxiway, whose junctions reach 25L first: its boards named 25L alone (until 2026-11-16).
-    let routed = Graph::new(&b.taxiways, &b.runways);
-    let departures: Vec<(&String, Vec<[f64; 2]>)> = (0..b.runways.len())
-        .flat_map(|ri| (0..2).map(move |k| (ri, k)))
-        .filter_map(|(ri, k)| Some((&b.runways[ri].designators[k], departure(b, &routed, ri, k)?)))
-        .collect();
-    for j in 0..g.pts.len() {
-        let mut branches: Vec<usize> = g.adj[j].iter().map(|a| a.0).collect();
+    }
+    for (&(j, arrive), ends) in &used {
+        let mut branches: Vec<usize> = routed.adj[j].iter().map(|a| a.0).collect();
         branches.sort();
         branches.dedup();
-        if branches.len() < 3 || on_runway(g.pts[j]).is_some() {
+        let live: Vec<usize> = branches.iter().copied().filter(|&n| leads_on(&routed, j, n, &on_runway)).collect();
+        let others: Vec<usize> = live.iter().copied().filter(|&n| n != arrive).collect();
+        if branches.len() < 3 || others.len() < 2 {
             continue;
         }
-        let dests: Vec<(usize, Vec<(String, f64)>)> = branches.iter().map(|&n| (n, leads_to(j, n))).collect();
-        for &arrive in &branches {
-            let Some((p, d)) = back(j, arrive) else { continue };
-            if on_runway(p).is_some() {
-                continue;
+        // Before the junction: DIRECTION_BACK_M back on the jet's left, else nearer or farther, either side;
+        // where the branch is shorter (a spot's way out, a short link), across the junction facing the jet, else
+        // beside the branch's last metres (inferred).
+        let d = unit(routed.pts[arrive], routed.pts[j]);
+        let mut spots: Vec<([f64; 2], [f64; 2], f64)> = Vec::new();
+        // Where the taxi turns on a runway, before the holding position (beside the holding sign).
+        let backs = if on_runway(routed.pts[j]).is_some() {
+            [HOLD_M + 15.0, HOLD_M + 30.0, HOLD_M + 45.0, HOLD_M + 5.0, HOLD_M + 60.0]
+        } else {
+            [DIRECTION_BACK_M, 30.0, 50.0, 20.0, 60.0]
+        };
+        for back_m in backs {
+            if let Some((p, d)) = back(&routed, j, arrive, back_m) {
+                spots.extend(sign_spots(p, d, half(p), &paved).into_iter().map(|q| (q, p, READ_FROM_M[1])));
             }
-            // The runways the other branches lead to: each branch's nearest end and those within SAME_WAY_M of it. Both
-            // ends of each get a board, on the branch with the shortest way there (a destination named once). Naming
-            // each branch's nearest join alone gave a parallel taxiway's left and right boards the same end, the one
-            // nearer a mid-field link (Nevatim's "26L" on every board, 2026-11-13).
-            let mut ends: Vec<&String> = Vec::new();
-            for (_, ts) in dests.iter().filter(|(n, _)| *n != arrive) {
-                let least = ts.iter().map(|t| t.1).fold(f64::INFINITY, f64::min);
-                for t in ts.iter().filter(|t| t.1 < least + SAME_WAY_M) {
-                    if let Some(r) = b.runways.iter().find(|r| r.designators.contains(&t.0)) {
-                        ends.extend(r.designators.iter());
-                    }
-                }
+        }
+        if spots.is_empty() {
+            let j0 = routed.pts[j];
+            // The way's length back to its last junction or end.
+            let branch_m = (1..=40)
+                .map(|m| m as f64 * 5.0)
+                .take_while(|&m| back(&routed, j, arrive, m).is_some())
+                .last()
+                .unwrap_or(0.0)
+                + 5.0;
+            let far = [j0[0] + d[0] * (half(j0) + SIGN_EDGE_M), j0[1] + d[1] * (half(j0) + SIGN_EDGE_M)];
+            spots.extend(
+                [0.0, 6.0, -6.0, 12.0, -12.0]
+                    .map(|s| [far[0] - d[1] * s, far[1] + d[0] * s])
+                    .into_iter()
+                    .filter(|q| [-2.0, 0.0, 2.0].iter().all(|k| !paved([q[0] + d[1] * k, q[1] - d[0] * k])))
+                    .map(|q| (q, j0, branch_m)),
+            );
+            for back_m in [10.0, 15.0, 6.0].into_iter().filter(|&m| m < branch_m - 6.0) {
+                let near = [j0[0] - d[0] * back_m, j0[1] - d[1] * back_m];
+                let read = branch_m - back_m;
+                spots.extend(sign_spots(near, d, half(near), &paved).into_iter().map(|q| (q, near, read)));
             }
-            let mut ways: Vec<(usize, &(String, f64))> = Vec::new();
-            for (n, t) in dests.iter().flat_map(|(n, ts)| ts.iter().map(move |t| (*n, t))) {
-                if n == arrive || !ends.contains(&&t.0) {
-                    continue;
-                }
-                match ways.iter_mut().find(|w| w.1.0 == t.0) {
-                    Some(w) if t.1 < w.1.1 => *w = (n, t),
-                    Some(_) => {}
-                    None => ways.push((n, t)),
-                }
-            }
-            let mut panels: Vec<Panel> = ways
-                .iter()
-                .map(|(n, t)| {
-                    let o = unit(g.pts[j], g.pts[*n]);
-                    // The turn from d to o (positive left), as an arrow to 45° steps (positive right).
-                    let turn = (d[0] * o[1] - d[1] * o[0]).atan2(d[0] * o[0] + d[1] * o[1]).to_degrees();
-                    Panel { style: "direction", text: t.0.clone(), arrow: Some((-turn / 45.0).round() * 45.0 + 0.0) }
-                })
-                .collect();
-            for (end, path) in &departures {
-                if let Some(turn) = route_turn(path, p, d) {
-                    panels.retain(|q| &q.text != *end);
-                    panels.push(Panel {
-                        style: "direction",
-                        text: end.to_string(),
-                        arrow: Some((-turn / 45.0).round() * 45.0 + 0.0),
-                    });
-                }
-            }
-            // Left to right, as the turns.
-            panels.sort_by(|a, b| a.arrow.unwrap_or(0.0).total_cmp(&b.arrow.unwrap_or(0.0)).then(a.text.cmp(&b.text)));
-            if !panels.is_empty() {
-                place(&mut out, p, d, half(p), panels, &paved);
-            }
+        }
+        if spots.is_empty() {
+            // Paved all round (an apron's middle): beside the way all the same, farthest out on the left.
+            let j0 = routed.pts[j];
+            let off = half(j0) + SIGN_EDGE_M + 18.0;
+            let p = [j0[0] - d[0] * 15.0, j0[1] - d[1] * 15.0];
+            spots.push(([p[0] - d[1] * off, p[1] + d[0] * off], p, READ_FROM_M[1]));
+        }
+        let mut panels: Vec<Panel> = ends
+            .iter()
+            .map(|&e| &starts[e])
+            .map(|(end, next)| Panel {
+                style: "direction",
+                text: end.to_string(),
+                arrow: Some(arrow(&routed.pts, j, d, next[j], &others)),
+            })
+            .collect();
+        // Left to right, as the turns.
+        panels.sort_by(|a, b| a.arrow.unwrap_or(0.0).total_cmp(&b.arrow.unwrap_or(0.0)).then(a.text.cmp(&b.text)));
+        if !panels.is_empty() {
+            place(&mut out, d, spots, panels);
         }
     }
     out
+}
+
+/// The turn (degrees, positive to the right) of a jet taxiing along the unit `d` onto the unit `o`.
+fn turn(d: [f64; 2], o: [f64; 2]) -> f64 {
+    -(d[0] * o[1] - d[1] * o[0]).atan2(d[0] * o[0] + d[1] * o[1]).to_degrees()
+}
+
+/// A direction board's arrow toward `to` among the ways `ways` from a junction at `j`, for a jet arriving along the
+/// unit `d`: the turn in 45° steps, or in 15° steps where another way rounds to the same 45° (a narrow fork).
+fn arrow(pts: &[[f64; 2]], j: usize, d: [f64; 2], to: usize, ways: &[usize]) -> f64 {
+    let t = |n: usize| turn(d, unit(pts[j], pts[n]));
+    let step = |n: usize, s: f64| (t(n) / s).round() * s + 0.0;
+    if ways.iter().any(|&n| n != to && step(n, 45.0) == step(to, 45.0)) { step(to, 15.0) } else { step(to, 45.0) }
+}
+
+/// Where a jet joins runway ri to take off from end k (a point of `g`, a Graph of taxi_lines with the runways): the
+/// taxiway's join at the declared start (Runway::entry_end); where none joins there, the first join from that end, an
+/// intersection take-off (Nevatim's 07, 1212 m in: before 2026-11-17 no sign or route led to 07). None where no
+/// taxiway joins the runway (Hatzerim's 10/28: OpenStreetMap joins none of its taxiways to the base's).
+fn takeoff(b: &Base, g: &Graph, ri: usize, k: usize) -> Option<usize> {
+    let r = &b.runways[ri];
+    let entry = g.nearest(r.at(k, r.starts[k]))?;
+    if r.entry_end(g.pts[entry]) == Some(k) {
+        return Some(entry);
+    }
+    let u = r.dir(k);
+    let along = |p: [f64; 2]| (p[0] - r.ends[k][0]) * u[0] + (p[1] - r.ends[k][1]) * u[1];
+    // The runway's points that a taxiway reaches: on it, with a way off it.
+    (0..g.pts.len())
+        .filter(|&n| r.dist(g.pts[n]) <= r.width / 2.0 + 5.0)
+        .filter(|&n| g.adj[n].iter().any(|a| r.dist(g.pts[a.0]) > r.width / 2.0 + 5.0))
+        .min_by(|&a, &c| along(g.pts[a]).total_cmp(&along(g.pts[c])))
+}
+
+/// The way on from `cur` (arriving from `prev`) with the least turn, None at the start or a dead end.
+fn straightest(g: &Graph, prev: usize, cur: usize) -> Option<usize> {
+    if prev == usize::MAX {
+        return None;
+    }
+    let d = unit(g.pts[prev], g.pts[cur]);
+    let t = |n: &usize| turn(d, unit(g.pts[cur], g.pts[*n])).abs();
+    g.adj[cur].iter().map(|a| a.0).filter(|&n| n != prev).min_by(|a, c| t(a).total_cmp(&t(c)))
+}
+
+/// Whether the branch from junction `j` through `n` leads on to a runway (not only to parking spots or a dead end).
+fn leads_on(g: &Graph, j: usize, n: usize, on_runway: &dyn Fn([f64; 2]) -> Option<usize>) -> bool {
+    let mut seen = vec![false; g.pts.len()];
+    seen[j] = true;
+    seen[n] = true;
+    let mut todo = vec![n];
+    while let Some(k) = todo.pop() {
+        if on_runway(g.pts[k]).is_some() {
+            return true;
+        }
+        for &(m, _) in &g.adj[k] {
+            if !seen[m] {
+                seen[m] = true;
+                todo.push(m);
+            }
+        }
+    }
+    false
+}
+
+/// The point `m` metres back from junction `j` along the branch through `n` (bends followed), and the way a jet taxis
+/// there toward `j`; None when the branch ends or meets another junction sooner.
+fn back(g: &Graph, j: usize, n: usize, m: f64) -> Option<([f64; 2], [f64; 2])> {
+    let (mut prev, mut cur, mut left) = (j, n, m);
+    loop {
+        let seg = dist(g.pts[prev], g.pts[cur]);
+        if seg >= left {
+            let d = unit(g.pts[cur], g.pts[prev]);
+            return Some(([g.pts[prev][0] - d[0] * left, g.pts[prev][1] - d[1] * left], d));
+        }
+        left -= seg;
+        let nexts: Vec<usize> = g.adj[cur].iter().map(|a| a.0).filter(|&a| a != prev).collect();
+        if nexts.len() != 1 {
+            return None;
+        }
+        (prev, cur) = (cur, nexts[0]);
+    }
 }
 
 // --- the paved-surface mask -----------------------------------------------------------------------------------------
@@ -1966,6 +2149,8 @@ mod tests {
                 let near =
                     b.taxiways.iter().any(|(l, w)| l.windows(2).any(|t| seg_dist(s.at, t[0], t[1]) < w / 2.0 + 45.0));
                 assert!(near, "{} sign {:?}: no taxiway near", b.icao, s.at);
+                let off = b.runways.iter().map(|r| r.dist(s.at) - r.width / 2.0).fold(f64::INFINITY, f64::min);
+                assert!(off >= SIGN_RUNWAY_M, "{} sign {:?}: {off:.0} m from a runway's edge", b.icao, s.panels);
             }
             if b.section != "Ramon" {
                 continue;
@@ -2016,19 +2201,26 @@ mod tests {
         }
     }
 
-    /// No two signs crowd each other (2026-11-13: a holding sign 5–10 m before a direction sign hid it at Ramon 25L and
-    /// Nevatim 26L): each pair stands SIGN_GAP_M apart and neither stands in the line of sight to the other from the
-    /// centreline before it. Where a holding position and a junction meet, one array holds both, the mandatory board
-    /// inboard (last).
+    /// No two signs crowd each other: each pair stands SIGN_APART_M apart; no sign hides a holding sign, and no holding
+    /// sign hides another sign (2026-11-13: a holding sign 5–10 m before a direction sign hid it at Ramon 25L and
+    /// Nevatim 26L). Direction signs where junctions crowd may stand in each other's line of sight (`place`). Where a
+    /// holding position and a junction meet, one array holds both, the mandatory board inboard (last).
     #[test]
     fn signs_stand_apart() {
         for b in load(&data()).unwrap() {
             let all = signs(&b);
             for (i, s) in all.iter().enumerate() {
                 for o in &all[i + 1..] {
-                    let (at, gap) = (dist(s.at, o.at), if s.same_way(o) { SIGN_GAP_M } else { SIGN_APART_M });
-                    assert!(at >= gap, "{}: {:?} and {:?} {at:.0} m apart", b.icao, s.panels, o.panels);
-                    assert!(!s.hides(o) && !o.hides(s), "{}: {:?} hides {:?} or back", b.icao, s.panels, o.panels);
+                    let at = dist(s.at, o.at);
+                    assert!(at >= SIGN_APART_M, "{}: {:?} and {:?} {at:.0} m apart", b.icao, s.panels, o.panels);
+                    let hold = |x: &Sign| x.panels.iter().any(|p| p.style == "mandatory");
+                    assert!(
+                        !((hold(o) || hold(s)) && (s.hides(o) || o.hides(s))),
+                        "{}: {:?} hides {:?}",
+                        b.icao,
+                        s.panels,
+                        o.panels
+                    );
                 }
                 let m = s.panels.iter().position(|p| p.style == "mandatory");
                 assert!(
@@ -2041,16 +2233,14 @@ mod tests {
         }
     }
 
-    /// Each base's signs name its own runway ends: a holding sign stands at the runway it names, both ends with the
-    /// threshold on the taxiing jet's left first, or at the runway's end that end alone (FAA AIM 2-3-8); a direction
-    /// sign names each end once, and one leads to the base's take-off end (Nevatim's signs read
-    /// "26L" left and right, 2026-11-13).
+    /// Each sign names only where it leads: a holding board one end of the runway it stands at (that end's start
+    /// there, else the end nearer the join: the take-off from that point), never two ("25L-07R" until 2026-11-17); a
+    /// direction sign names each end once, and one leads to the base's take-off end.
     #[test]
     fn signs_name_the_runway_ends_near_them() {
         for b in load(&data()).unwrap() {
             let mut named = std::collections::BTreeSet::new();
             for s in signs(&b) {
-                // A sign's direction boards (an array may hold a holding board too, last).
                 let texts: Vec<String> =
                     s.panels.iter().filter(|p| p.style == "direction").map(|p| p.text.clone()).collect();
                 let mut u = texts.clone();
@@ -2059,34 +2249,14 @@ mod tests {
                 assert_eq!(u.len(), texts.len(), "{} sign {:?}: an end named twice", b.icao, s.at);
                 named.extend(texts);
                 for p in s.panels.iter().filter(|p| p.style == "mandatory") {
-                    let texts = [p.text.clone()];
-                    let first = texts[0].split('-').next().unwrap();
-                    let (r, k) = b
-                        .runways
-                        .iter()
-                        .find_map(|r| r.designators.iter().position(|d| d == first).map(|k| (r, k)))
-                        .expect("a runway end of the base");
-                    let Some((_, other)) = texts[0].split_once('-') else {
-                        let at = dist(s.at, r.ends[k]);
-                        let max = r.starts[k] + END_ENTRY_M + 200.0;
-                        assert!(at < max, "{} {texts:?} {:?}: {at} m from its end", b.icao, s.at);
-                        continue;
-                    };
-                    assert_eq!(r.designators[1 - k], other, "{} {texts:?}", b.icao);
-                    let off = r.dist(s.at);
-                    assert!(off < HOLD_M + 60.0, "{} {texts:?} {:?}: {off} m from its runway", b.icao, s.at);
-                    // `facing` points back at the jet: the jet taxis along −facing, its left (cos f, −sin f).
-                    let f = s.facing.to_radians();
-                    let left = |e: [f64; 2]| (e[0] - s.at[0]) * f.cos() - (e[1] - s.at[1]) * f.sin() > 0.0;
-                    assert!(
-                        left(r.ends[k]) && !left(r.ends[1 - k]),
-                        "{} {texts:?} {:?}: not left to right",
-                        b.icao,
-                        s.at
-                    );
+                    let (ri, k) = b.end(&p.text).unwrap_or_else(|| panic!("{} {:?}: no runway end", b.icao, p.text));
+                    let r = &b.runways[ri];
+                    let off = r.dist(s.road);
+                    assert!((off - HOLD_M).abs() < 1.0, "{} {:?} {:?}: {off} m from its runway", b.icao, p.text, s.at);
+                    let nearer = if dist(s.road, r.ends[0]) < dist(s.road, r.ends[1]) { 0 } else { 1 };
+                    assert_eq!(r.entry_end(s.road).unwrap_or(nearer), k, "{} {:?} at {:?}", b.icao, p.text, s.road);
                 }
             }
-            // A direction sign leads to the take-off end.
             let main = main_ends()[b.section.as_str()];
             assert!(named.contains(main), "{}: no direction sign to {main} ({named:?})", b.icao);
         }
@@ -2109,121 +2279,182 @@ mod tests {
         assert_eq!(r.entry_end([2650.0, 0.0]), Some(1));
     }
 
-    /// The signs agree with the departures the briefing draws and the tower clears ("taxi to runway <end>": taxi_out):
-    /// for every base and every runway end, each direction sign the route from the parking spot passes names that end,
-    /// its board turning where the route turns (none names only another runway or points away); the take-off end's
-    /// route ends at a holding sign naming that end alone (its start).
+    /// A jet that leaves parking spot `from` and follows the signs for runway end `end`: at each junction where it has
+    /// a choice (two or more ways on that lead to a runway, `leads_on`), the direction sign facing it before the
+    /// junction (or across it) must name `end`, and its arrow must match one way alone; elsewhere it rolls on (across
+    /// a runway, straight). The points it taxis, to that end's start, where a holding sign naming `end` alone must
+    /// face it; Err says where it gets stuck.
+    fn follow(b: &Base, all: &[Sign], from: [f64; 2], end: &str) -> Result<Vec<[f64; 2]>, String> {
+        let lines = taxi_lines(b);
+        let routed = Graph::new(&lines, &b.runways);
+        let on_runway = |p: [f64; 2]| b.runways.iter().position(|r| r.dist(p) <= r.width / 2.0 + 5.0);
+        let (ri, k) = b.end(end).ok_or("no such end")?;
+        let entry = takeoff(b, &routed, ri, k).ok_or("no taxiway joins it")?;
+        let tree = routed.toward(entry);
+        let (mut cur, mut prev) = (routed.nearest(from).unwrap(), usize::MAX);
+        if tree[cur] == usize::MAX {
+            return Err("no taxiway joins it to the spot".into());
+        }
+        let mut path = vec![routed.pts[cur]];
+        // Where the jet passed its last junction (the signs it reads stand after it).
+        let mut since = 0;
+        for _ in 0..20_000 {
+            if cur == entry {
+                // The holding sign for `end`, facing the jet on its last taxiway leg.
+                let held = all.iter().any(|s| {
+                    let f = s.facing.to_radians();
+                    let d = [-f.sin(), -f.cos()];
+                    s.panels.iter().any(|p| p.style == "mandatory" && p.text == end)
+                        && path.windows(2).rev().take(40).any(|t| {
+                            seg_dist(s.road, t[0], t[1]) < JOIN_M && {
+                                let u = unit(t[0], t[1]);
+                                u[0] * d[0] + u[1] * d[1] > 0.7
+                            }
+                        })
+                });
+                return if held { Ok(path) } else { Err(format!("no holding sign {end} before its start")) };
+            }
+            let mut nexts: Vec<usize> = routed.adj[cur].iter().map(|a| a.0).filter(|&n| n != prev).collect();
+            nexts.sort();
+            nexts.dedup();
+            let here = routed.pts[cur];
+            let next = if prev == usize::MAX {
+                *nexts.first().ok_or("a spot without a way out")?
+            } else {
+                let mut branches: Vec<usize> = routed.adj[cur].iter().map(|a| a.0).collect();
+                branches.sort();
+                branches.dedup();
+                let runway = on_runway(here).is_some();
+                let live: Vec<usize> =
+                    nexts.iter().copied().filter(|&n| runway || leads_on(&routed, cur, n, &on_runway)).collect();
+                // The boards for `end` a jet here reads: facing it (within 45°), on its way since the last junction.
+                let d = unit(routed.pts[prev], here);
+                let last = path[since];
+                let read: Vec<(f64, [f64; 2])> = all
+                    .iter()
+                    .filter(|s| {
+                        let f = s.facing.to_radians();
+                        let sd = [-f.sin(), -f.cos()];
+                        sd[0] * d[0] + sd[1] * d[1] > 0.7
+                            && dist(s.road, last) > 1.0
+                            && path[since..].windows(2).any(|t| seg_dist(s.road, t[0], t[1]) < 1.0)
+                    })
+                    .flat_map(|s| {
+                        let f = s.facing.to_radians();
+                        s.panels
+                            .iter()
+                            .filter(|p| p.style == "direction" && p.text == end)
+                            .map(move |p| (p.arrow.unwrap_or(0.0), [-f.sin(), -f.cos()]))
+                    })
+                    .collect();
+                if runway && read.is_empty() {
+                    // Across the runway: straight on.
+                    straightest(&routed, prev, cur).ok_or("stuck on a runway")?
+                } else if branches.len() < 3 || live.len() < 2 {
+                    *live.first().or(nexts.first()).ok_or_else(|| format!("a dead end at {here:?}"))?
+                } else {
+                    // Each board's way: the one nearest its arrow, clearly (10°) nearer than the next; boards read
+                    // here must agree.
+                    let pick = |a: f64, sd: [f64; 2]| -> Option<usize> {
+                        let mut by: Vec<(f64, usize)> =
+                            live.iter().map(|&n| ((turn(sd, unit(here, routed.pts[n])) - a).abs(), n)).collect();
+                        by.sort_by(|x, y| x.0.total_cmp(&y.0));
+                        (by.len() < 2 || by[1].0 - by[0].0 >= 10.0).then_some(by[0].1)
+                    };
+                    let picks: Vec<Option<usize>> = read.iter().map(|&(a, sd)| pick(a, sd)).collect();
+                    if !read.is_empty() && picks.iter().all(|p| p.is_some() && *p == picks[0]) {
+                        picks[0].unwrap()
+                    } else {
+                        return Err(format!(
+                            "{} boards for {end} at {here:?} arriving {:.0}° disagree or fit two ways",
+                            read.len(),
+                            grid_deg(d)
+                        ));
+                    }
+                }
+            };
+            if next != tree[cur] {
+                return Err(format!("left the shortest taxi at {here:?}"));
+            }
+            if routed.adj[cur].len() >= 3 {
+                since = path.len() - 1;
+            }
+            (prev, cur) = (cur, next);
+            path.push(routed.pts[cur]);
+        }
+        Err("a loop".into())
+    }
+
+    /// The user's rule (2026-11-17, "where do I go with my fucking plane where it say 25R"): from every parking spot
+    /// of every base, a jet that follows only the signs for a runway end reaches that end's start, a sign at every
+    /// junction where it has a choice; from the first spot it taxis the departure the briefing draws. The ends no
+    /// taxiway joins at their start are listed (no board names them).
     #[test]
-    fn signs_agree_with_the_departure() {
-        let mut checked = 0;
+    fn following_the_signs_reaches_every_runway_start() {
+        let (mut no_start, mut stuck) = (Vec::new(), Vec::new());
         for b in load(&data()).unwrap() {
             let all = signs(&b);
-            let g = Graph::new(&b.taxiways, &b.runways);
-            // The taxiway junctions (three or more ways), where signs() puts direction signs.
-            let taxi = Graph::new(&b.taxiways, &[]);
-            let junctions: Vec<[f64; 2]> = (0..taxi.pts.len())
-                .filter(|&k| {
-                    let mut n: Vec<usize> = taxi.adj[k].iter().map(|a| a.0).collect();
-                    n.sort();
-                    n.dedup();
-                    n.len() >= 3
-                })
-                .map(|k| taxi.pts[k])
-                .collect();
+            let g = Graph::new(&taxi_lines(&b), &b.runways);
             for (ri, r) in b.runways.iter().enumerate() {
-                for e in 0..2 {
-                    let end = &r.designators[e];
-                    let Some(path) = departure(&b, &g, ri, e) else { continue };
-                    for s in all.iter().filter(|s| s.panels.iter().any(|p| p.style == "direction")) {
-                        // The jet reading it taxis along −facing; the route passes it when a taxiway leg along that
-                        // way (within 25°) runs beside the board (within 45 m, the taxiway's half width and the sign's
-                        // offset). A leg 45° off is the other arm of a V-shaped junction, whose jet does not face this
-                        // board (Ramat David's route to 11 beside the board for 09, 2026-11-16); a leg on a runway is
-                        // the lineup or a crossing, where no direction sign stands (Hatzerim's 10R lineup 43 m from a
-                        // taxiway's board).
-                        let f = s.facing.to_radians();
-                        let d = [-f.sin(), -f.cos()];
-                        let passes = path.windows(2).any(|t| {
-                            let u = unit(t[0], t[1]);
-                            let along = (s.at[0] - t[0][0]) * u[0] + (s.at[1] - t[0][1]) * u[1];
-                            let mid = [(t[0][0] + t[1][0]) / 2.0, (t[0][1] + t[1][1]) / 2.0];
-                            !b.runways.iter().any(|r| r.dist(mid) <= r.width / 2.0 + 5.0)
-                                && u[0] * d[0] + u[1] * d[1] > 0.9
-                                && (0.0..=dist(t[0], t[1])).contains(&along)
-                                && seg_dist(s.at, t[0], t[1]) < 45.0
-                        });
-                        if !passes {
-                            continue;
-                        }
-                        // The junction the board stands before: the first taxiway junction the route reaches from
-                        // beside the sign's road point, within DIRECTION_BACK_M plus SIGN_GAP_M (a board joined to a
-                        // sign array keeps the array's road point) and 10 m. The junction lies along the taxiway's
-                        // bends (Hatzerim's curved link from the spot, 2026-11-16), so it is found along the route.
-                        let i0 = (0..path.len() - 1)
-                            .min_by(|&a, &c| {
-                                seg_dist(s.road, path[a], path[a + 1]).total_cmp(&seg_dist(
-                                    s.road,
-                                    path[c],
-                                    path[c + 1],
-                                ))
-                            })
-                            .unwrap();
-                        let (mut run, mut k, mut q) = (dist(s.road, path[i0 + 1]), i0 + 1, None);
-                        while k < path.len() && run <= DIRECTION_BACK_M + SIGN_GAP_M + 10.0 {
-                            if junctions.iter().any(|&p| dist(p, path[k]) < 1.0) {
-                                q = Some(k);
-                                break;
+                for (k, end) in r.designators.iter().enumerate() {
+                    for (i, spot) in b.parking.iter().enumerate() {
+                        match follow(&b, &all, spot.at, end) {
+                            Ok(path) if i == 0 => {
+                                let dep = departure(&b, &g, ri, k).expect("a departure");
+                                assert_eq!(&path[..], &dep[..dep.len() - 1], "{} {end}: not the departure", b.icao);
                             }
-                            run += path.get(k + 1).map_or(f64::INFINITY, |&n| dist(path[k], n));
-                            k += 1;
+                            Ok(_) => {}
+                            Err(e) if e.starts_with("no taxiway joins") => {
+                                if i == 0 {
+                                    no_start.push(format!("{} {end}", b.icao));
+                                }
+                                let named = |p: &Panel| &p.text == end && p.style == "direction";
+                                let named = all.iter().any(|s| s.panels.iter().any(named));
+                                assert!(!named, "{} {end}: a direction board names an end no taxiway joins", b.icao);
+                            }
+                            Err(e) => stuck.push(format!("{} spot {i} ({}) to {end}: {e}", b.icao, spot.unit)),
                         }
-                        let Some(vi) = q else {
-                            panic!("{} route to {end} passes sign {:?} {:?} and no junction", b.icao, s.at, s.panels)
-                        };
-                        // The way the route leaves it: from the junction to the route's point DIRECTION_BACK_M on.
-                        let (mut at, mut left, mut k) = (path[vi], DIRECTION_BACK_M, vi + 1);
-                        while k < path.len() && dist(at, path[k]) < left {
-                            left -= dist(at, path[k]);
-                            at = path[k];
-                            k += 1;
-                        }
-                        if k < path.len() {
-                            let u = unit(at, path[k]);
-                            at = [at[0] + u[0] * left, at[1] + u[1] * left];
-                        }
-                        let o = unit(path[vi], at);
-                        let turn = (d[0] * o[1] - d[1] * o[0]).atan2(d[0] * o[0] + d[1] * o[1]).to_degrees();
-                        let board = s.panels.iter().find(|p| p.style == "direction" && &p.text == end);
-                        let Some(board) = board else {
-                            panic!("{} route to {end} passes sign {:?} {:?} without it", b.icao, s.at, s.panels)
-                        };
-                        let arrow = board.arrow.unwrap_or(0.0);
-                        assert!(
-                            (arrow + turn).abs() < 50.0,
-                            "{} route to {end}: sign {:?} {:?}, the route turns {:.0}",
-                            b.icao,
-                            s.at,
-                            s.panels,
-                            -turn
-                        );
-                        checked += 1;
                     }
                 }
             }
-            let main = main_ends()[b.section.as_str()];
-            let rt = routes(&b).unwrap();
-            let path: Vec<[f64; 2]> = std::iter::once(b.parking[0].at).chain(rt.from.iter().copied()).collect();
-            let lineup = *rt.from.last().unwrap();
-            let hold = all.iter().filter(|s| s.panels.iter().any(|p| p.style == "mandatory" && p.text == main));
-            assert!(
-                hold.clone()
-                    .any(|s| path.windows(2).any(|t| seg_dist(s.at, t[0], t[1]) < 60.0) && dist(s.at, lineup) < 1200.0),
-                "{}: no holding sign {main} on the route's end: {:?}",
-                b.icao,
-                hold.map(|s| s.at).collect::<Vec<_>>()
-            );
         }
-        assert!(checked > 0, "no route passes a direction sign");
+        // OpenStreetMap joins none of the base's taxiways to Hatzerim's 10/28 (airbases.md §9).
+        assert_eq!(no_start, ["LLHB 10", "LLHB 28"]);
+        assert!(stuck.is_empty(), "{} stuck:\n{}", stuck.len(), stuck.join("\n"));
+    }
+
+    /// Prints each base's signs as JSON lines (lat, lon, facing, panels) for the overview pictures, and the poses for
+    /// cockpit pictures along its departure:
+    /// `cargo test -p iaf-tools --lib sim_bases::tests::dump_signs -- --ignored --nocapture`.
+    #[test]
+    #[ignore]
+    fn dump_signs() {
+        for b in load(&data()).unwrap() {
+            for s in signs(&b) {
+                let g = utm36n_geo(s.at[0], s.at[1]);
+                let f = s.facing - grid_heading(g[0], g[1], 0.0);
+                let panels: Vec<Value> =
+                    s.panels.iter().map(|p| json!({"style": p.style, "text": p.text, "arrow": p.arrow})).collect();
+                println!("SIGN {}", json!({"icao": b.icao, "lat": g[1], "lon": g[0], "facing": f, "panels": panels}));
+            }
+            // The cockpit pictures' poses (x, y, grid heading): the first spot, then 60 m before each sign the taxi from
+            // it to the take-off end passes (nearer where the way to the sign is shorter).
+            let (all, spot) = (signs(&b), &b.parking[0]);
+            println!("POSE {} {:.1},{:.1},{:.0} spot", b.icao, spot.at[0], spot.at[1], spot.heading);
+            let path = follow(&b, &all, spot.at, main_ends()[b.section.as_str()]).unwrap();
+            for t in path.windows(2) {
+                let u = unit(t[0], t[1]);
+                for s in all.iter().filter(|s| seg_dist(s.road, t[0], t[1]) < JOIN_M) {
+                    let f = s.facing.to_radians();
+                    if -f.sin() * u[0] - f.cos() * u[1] > 0.7 {
+                        let m = (s.read - 2.0).clamp(10.0, 60.0);
+                        let texts: Vec<&String> = s.panels.iter().map(|p| &p.text).collect();
+                        let (x, y) = (s.road[0] - u[0] * m, s.road[1] - u[1] * m);
+                        println!("POSE {} {x:.1},{y:.1},{:.0} {texts:?}", b.icao, grid_deg(u));
+                    }
+                }
+            }
+        }
     }
 
     /// One designator per runway end for the paint, the signs, the tower and the missions: the tower's iaf.ibx

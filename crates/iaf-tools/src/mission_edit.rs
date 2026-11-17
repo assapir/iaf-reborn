@@ -334,7 +334,8 @@ fn formation_index(mission: &mut Value, number: i64) -> Option<usize> {
 
 /// Creates or updates blue flight `number` (1..4, Alpha..Delta) from `spec` {type (bdb object id), count (1 or 2:
 /// a formation has two member slots), slot_x, slot_y, alt, heading, points? ([[x, y, alt, speed(, action)]])}: the
-/// leader at the slot, the wingman 50 m off its left as the Mission Creator puts it (`FUN_0058eb40`). New members are
+/// leader at the slot, the wingman 50 m off its left as the Mission Creator puts it (`FUN_0058eb40`), or at `wing`?
+/// ([x, y, heading]: Modern IAF's second parking spot). New members are
 /// named Player<n> / Player<nn> (the Mission Creator's slots) and copied from a blue aircraft of the mission.
 pub fn set_flight(mut mission: Value, number: i64, spec: &Value) -> Value {
     if !(1..=4).contains(&number) {
@@ -356,7 +357,8 @@ pub fn set_flight(mut mission: Value, number: i64, spec: &Value) -> Value {
     let count = int(&spec["count"]).clamp(1, 2) as usize;
     let (x, y, alt, h) = (num(&spec["slot_x"]), num(&spec["slot_y"]), num(&spec["alt"]), num(&spec["heading"]));
     let (wx, wy) = beside(x, y, h + 90.0);
-    let place = [[x, y], [wx, wy]];
+    let wing = spec["wing"].as_array().map_or([wx, wy, h], |w| [num(&w[0]), num(&w[1]), num(&w[2])]);
+    let place = [[x, y, h], wing];
     let members: Vec<i64> = (0..2).map(|k| int(&mission["formations"]["items"][fi]["members"][k]["0x41a"])).collect();
     let find = |m: &Value, id: i64| {
         m["entities"]["items"].as_array().and_then(|a| a.iter().find(|e| real(e) && int(&e["0x1e"]) == id)).cloned()
@@ -375,7 +377,7 @@ pub fn set_flight(mut mission: Value, number: i64, spec: &Value) -> Value {
         fields.insert("0x2e4".into(), json!(place[k][0]));
         fields.insert("0x2ee".into(), json!(place[k][1]));
         fields.insert("0x2f8".into(), json!(alt));
-        fields.insert("0x302".into(), json!(h));
+        fields.insert("0x302".into(), json!(place[k][2]));
         fields.insert("0x35c".into(), json!(1));
         // Empty pylons load the type's own stores (FUN_005951c0).
         fields.insert("armament".into(), json!({"_class": "CArmament", "hardpoints": vec![0; 24]}));

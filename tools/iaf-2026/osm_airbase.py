@@ -64,25 +64,38 @@ AS_TAXIWAY = {
 # The lineup point is the B2b compiler's (Rust), from runway_start_m and the end's heading.
 
 # Points OSM lacks, placed by eye on the overlay pictures (inferred; each a judgement call for the user,
-# modern-iaf/docs/airbases.md §5). parking: unit id -> (lat, lon, true heading of the nose). tower: (lat, lon), or None
-# where no picture shows it (open). aprons (optional): rings of (lat, lon) where OSM maps no apron.
+# modern-iaf/docs/airbases.md §5). parking: unit id -> its spots [(lat, lon, true heading of the nose)], the leader's
+# first, then its wingmen's. tower: (lat, lon), or None where no picture shows it (open). aprons (optional): rings of
+# (lat, lon) where OSM maps no apron.
+# The spots (2026-11-17, the user: "it should be 90 degrees on the apron"): four in a row beside the taxi lane the jets
+# leave by, 25 m apart (inferred: an F-15's 13 m span and Annex 14's 7.5 m stand clearance), each nose square to the
+# lane, the centre 20-30 m from its centreline; a 20 x 14 m footprint on the apron and clear of the shelters. The
+# spots move into the shelters once the base has shelter models (airbases.md §5).
 PLACED = {
-    # The centre of the paved pad by 07R/25L's western link (OSM apron 1496591869), nose along the pad toward the
-    # runway; the shelters at the loop ends are too small for the 10 m picture.
-    "LLRM": {"parking": {"f16i": (30.769935, 34.6594868, 335)}, "tower": None},
-    # The south ends of the two sunshade rows by the parallel taxiway (OSM aprons 1157437942, 1157437936), nose to
-    # their exit; which squadron uses which row is open.
-    "LLHB": {"parking": {"f15i": (31.2405172, 34.6612147, 195), "f16i": (31.2401938, 34.6624651, 195)},
+    # The narrow pad along the loop taxiway by 07R/25L's western link (OSM apron 1496591869): the row along the pad,
+    # noses east to the taxiway (until 2026-11-17 one spot, nose along the pad at the runway).
+    "LLRM": {"parking": {"f16i": [(30.7699351, 34.6594869, 67), (30.7697271, 34.6595901, 67),
+                                  (30.7695191, 34.6596933, 67), (30.7693111, 34.6597964, 67)]}, "tower": None},
+    # The two sunshade rows by the parallel taxiway (OSM aprons 1157437942, 1157437936): each row down its middle from
+    # the south end, noses east to the row's eastern lane; which squadron uses which row is open.
+    "LLHB": {"parking": {"f15i": [(31.2405291, 34.6611625, 105), (31.2407476, 34.6612307, 105),
+                                  (31.240966, 34.6612989, 105), (31.2411844, 34.6613671, 105)],
+                         "f16i": [(31.2402288, 34.6623126, 105), (31.2404472, 34.6623812, 105),
+                                  (31.2406655, 34.6624498, 105), (31.2408839, 34.6625183, 105)]},
              "tower": None},
-    # The east end of the middle lane of the apron north of 08R/26L (OSM apron 1089049618, paved by 2021), nose
-    # along the lane to the apron's west exit. Tower: the compound between 08L/26R and 08R/26L midfield (2015 photo).
-    "LLNV": {"parking": {"f35i": (31.2086757, 35.0264028, 256)}, "tower": (31.2058009, 35.0125383)},
-    # The free west part of the base's one OSM apron (1328724315, north of 09/27; its middle holds OSM buildings),
-    # nose to the taxiway south of it.
-    "LLRD": {"parking": {"f16d": (32.6679365, 35.1765842, 176)}, "tower": None},
-    # OSM maps no apron at Tel Nof: the pale paved pad west of 18/36's middle, at the end of the taxiway stub from
-    # the south-east, drawn by eye on the Sentinel-2 picture; the Baz stands in it, nose to the stub.
-    "LLEK": {"parking": {"f15c": (31.8387931, 34.8127868, 265)}, "tower": None,
+    # The apron north of 08R/26L (OSM apron 1089049618, paved by 2021): a row north of its southern lane, noses south
+    # to it. Tower: the compound between 08L/26R and 08R/26L midfield (2015 photo).
+    "LLNV": {"parking": {"f35i": [(31.2083748, 35.0264948, 165), (31.2083176, 35.0262391, 165),
+                                  (31.2082604, 35.0259833, 165), (31.2082032, 35.0257276, 165)]},
+             "tower": (31.2058009, 35.0125383)},
+    # The base's one OSM apron (1328724315, north of 09/27; OSM buildings on its north half): a row along its south
+    # half, noses south to the taxiway along it.
+    "LLRD": {"parking": {"f16d": [(32.6678273, 35.1762686, 177), (32.6678398, 35.1765367, 177),
+                                  (32.6678522, 35.1768049, 177), (32.6678647, 35.1770731, 177)]}, "tower": None},
+    # OSM maps no apron at Tel Nof: the pale paved pad west of 18/36's middle, drawn by eye on the Sentinel-2 picture;
+    # a row beside the taxiway stub that runs along its south-west side, noses south-west to the stub.
+    "LLEK": {"parking": {"f15c": [(31.8383348, 34.8126877, 226), (31.8384975, 34.8125029, 226),
+                                  (31.8386602, 34.8123181, 226), (31.8388229, 34.8121333, 226)]}, "tower": None,
              "aprons": [[(31.8397814, 34.8122581), (31.8399611, 34.8137385), (31.8390627, 34.8142672),
                          (31.8381643, 34.81395), (31.8381643, 34.8126811), (31.838838, 34.811465),
                          (31.8397814, 34.8122581)]]},
@@ -368,7 +381,7 @@ def extract(icao, data, oa_airports, oa_runways):
         "tower": tower,
         "lights": lights,
         "parking": [{"unit": u, "lat": p[0], "lon": p[1], "heading": p[2], "source": "inferred"}
-                    for u, p in placed["parking"].items()],
+                    for u, row in placed["parking"].items() for p in row],
         **({"squadrons": [{"unit": u, "number": s[0], "name": {"en": s[1], "he": s[2]}, "source": s[3]}
                           for u, s in SQUADRONS[icao].items()]} if icao in SQUADRONS else {}),
         "sources": {"name": "osm", "boundary": "osm", "elevation_m": "oa", "reference": "oa",
@@ -383,12 +396,22 @@ def extract(icao, data, oa_airports, oa_runways):
     }
 
 
+PARKING = os.path.join(ROOT, "modern-iaf/data/parking.json")
+
+
 def write(icao, base):
     os.makedirs(OUT, exist_ok=True)
+    # The parking spots go to their own file, by ICAO code (airbases.md §5): the theatre's stamp hashes the airbase
+    # files, and a moved spot leaves the theatre as built.
+    spots = json.load(open(PARKING, encoding="utf-8")) if os.path.exists(PARKING) else {}
+    spots[icao] = base["parking"]
+    with open(PARKING, "w", encoding="utf-8") as f:
+        f.write("{\n" + ",\n".join(' "%s": [\n%s\n ]' % (k, ",\n".join("  " + json.dumps(p) for p in v))
+                                    for k, v in spots.items()) + "\n}\n")
     path = os.path.join(OUT, icao.lower() + ".json")
     with open(path, "w", encoding="utf-8") as f:
         # One line per point: a [lat, lon] pair stays on its line.
-        text = json.dumps(base, ensure_ascii=False, indent=1)
+        text = json.dumps({k: v for k, v in base.items() if k != "parking"}, ensure_ascii=False, indent=1)
         f.write(re.sub(r"\[\s+(-?[\d.]+),\s+(-?[\d.]+)\s+\]", r"[\1, \2]", text) + "\n")
     n = {k: len(base[k]) for k in ("runways", "stopways", "taxiways", "holding_positions", "aprons", "shelters",
                                    "lights", "parking")}
@@ -423,6 +446,7 @@ def sheets_for(box):
 def overlay(icao, outdir, mapi):
     """The picture on the Survey of Israel photo (mapi) or on Sentinel-2; written as <icao>[_2015].png / .jpg."""
     base = json.load(open(os.path.join(OUT, icao.lower() + ".json")))
+    base["parking"] = json.load(open(PARKING, encoding="utf-8"))[icao]
     every = [[e["lat"], e["lon"]] for r in base["runways"] for e in r["ends"]]
     every += [p for t in base["taxiways"] for p in t["points"]]
     every += [p for a in base["aprons"] + base["shelters"] for p in a["polygon"]]

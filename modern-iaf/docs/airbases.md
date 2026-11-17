@@ -109,21 +109,33 @@ Two runways start at their ways' ends (`runway_start_m` 0 at both ends) for want
 ## 5. Points placed by eye (for the user's approval)
 
 The parking spots and Nevatim's tower are placed by eye on the pictures (§6) and kept in `PLACED` in the script;
-each is a judgement call.
+each is a judgement call. The script writes the spots to `modern-iaf/data/parking.json` (by ICAO code;
+[data-formats.md](data-formats.md) §10) and the rest to the base's airbase file. The theatre's stamp hashes the
+airbase files (`sim_terrain::stamp`), so a moved spot leaves the theatre's ground and photo as built: the airbases
+and the missions are compiled again, and the scenery after them (the spots' taxi paths are paved ground in
+`terraintype.dat`, which the scenery reads).
 
-| base | point | where | lat, lon, heading |
+Each unit has four spots in a row beside the taxi lane the jets leave by (2026-11-17, the user: "the plane, when
+cold and dark, looking on the runway. it should be 90 degrees on the apron"). The spots stand 25 m apart (inferred:
+an F-15's 13 m span and Annex 14's 7.5 m stand clearance), each nose square to the lane, 20–30 m from its centreline,
+a 20 × 14 m footprint on the apron. The leader takes the first spot and its wingman the second
+(`sim::compile_mission`, `mission_edit::set_flight`'s `wing`); the third and fourth serve a four-ship.
+
+| base | point | where | first spot: lat, lon, heading |
 |---|---|---|---|
-| Ramon | Sufa parking | the centre of the paved pad by 07R/25L's western link (OSM apron 1496591869, the start-up mission's spot today), nose along the pad toward the runway | 30.7699350, 34.6594868, 335° |
-| Hatzerim | F-15I parking | near the south end of the western of two sunshade rows by the parallel taxiway, on the row's middle (OSM apron 1157437942; moved 27 m west onto the row on 2026-11-03, when B2b's check found the first spot 6.5 m off the apron), nose to its exit | 31.2405172, 34.6612147, 195° |
-| Hatzerim | Sufa parking | the same in the eastern row (OSM apron 1157437936) | 31.2401938, 34.6624651, 195° |
-| Nevatim | F-35I parking | the east end of the middle lane of the apron north of 08R/26L (OSM apron 1089049618, paved in the 2021 picture, bare in 2015), nose along the lane to the apron's west exit | 31.2086757, 35.0264028, 256° |
+| Ramon | Sufa parking | the narrow pad along the loop taxiway by 07R/25L's western link (OSM apron 1496591869): a row along the pad, noses east to the taxiway (until 2026-11-17 one spot, nose along the pad at the runway) | 30.7699351, 34.6594869, 67° |
+| Hatzerim | F-15I parking | the western of two sunshade rows by the parallel taxiway (OSM apron 1157437942): down the row's middle from the south end, noses east to the row's eastern lane | 31.2405291, 34.6611625, 105° |
+| Hatzerim | Sufa parking | the same in the eastern row (OSM apron 1157437936) | 31.2402288, 34.6623126, 105° |
+| Nevatim | F-35I parking | the apron north of 08R/26L (OSM apron 1089049618, paved in the 2021 picture, bare in 2015): a row north of its southern lane, noses south to it | 31.2083748, 35.0264948, 165° |
 | Nevatim | tower | the compound midfield between 08L/26R and 08R/26L (2015 photo) | 31.2058009, 35.0125383 |
 | Tel Nof | apron | OSM maps no apron at Tel Nof: a ring round the pale paved pad west of 18/36's middle, out to the end of the taxiway stub from the south-east (Sentinel-2, 10 m: which squadron uses it, or whether it is an apron at all, is open) | 6 points, about 200 × 200 m |
-| Tel Nof | Baz parking | in that pad, about 100 m east of the stub's end, nose to the stub | 31.8387931, 34.8127868, 265° |
-| Ramat David | Barak parking | the free west part of the base's one OSM apron (1328724315, north of 09/27; its middle holds OSM buildings), nose to the taxiway south of it | 32.6679365, 35.1765842, 176° |
+| Tel Nof | Baz parking | in that pad, a row beside the taxiway stub along its south-west side, noses south-west to the stub | 31.8383348, 34.8126877, 226° |
+| Ramat David | Barak parking | the base's one OSM apron (1328724315, north of 09/27; OSM buildings on its north half): a row along its south half, noses south to the taxiway along it | 32.6678273, 35.1762686, 177° |
 
-Which squadron uses which apron or row is open at every base. Ramon's shelters at the ends of the loop taxiways (seen
-as small white roofs) are a few pixels in the 10 m picture, so the Sufa stands on the pad by the runway.
+Which squadron uses which apron or row is open at every base. The start spots move into the shelters when the bases
+have shelter models (the user, 2026-11-17: "if there are shelters then start inside one"): today the sim draws a
+shelter's pad only (§9), and Ramon's shelters at the ends of the loop taxiways are a few pixels in the 10 m picture,
+so the jets start on the apron rows.
 
 ## 6. The check pictures
 
@@ -183,42 +195,44 @@ code reads ([data-formats.md](data-formats.md) §12):
   (inland water since item B3, [terrain.md](terrain.md) §11); since 2026-11-08 the taxiways, aprons and shelters'
   pads and the AI's taxi paths from every spot (23 m wide) too, as paved ground without the runway flag: before, only the runways' rectangles were paved, so a jet
   taxiing off its spot faster than 25.7 m/s (50 kt) crashed on "rough ground" (the original's rule; a Mac run's log).
-- the taxiway signs in `airbases.json` (2026-11-08): at each taxiway's runway-holding position, 90 m from the
-  runway's centreline (ICAO Annex 14 Table 3-2, code 4 instrument runway), a mandatory sign (white on red) with the
-  runway's designations, the threshold on the taxiing jet's left first ("25R-07L"), or where the taxiway meets the
-  runway within 400 m of an end (inferred), that take-off end alone ("07L"; FAA AIM 2-3-8[^aim]); before each junction
-  of three or more taxiways, 40 m back on every arriving taxiway (inferred), a direction sign (black on yellow) with
-  a board for each end of every runway the other branches lead to: an arrow for the turn (to 45°) toward the branch
-  with the shortest way to that end, and the end's designator. A way leads to a runway end only where it joins the
-  runway at that end's start: before the declared runway start or within 400 m past it (`Runway::entry_end`); a way
-  may cross a runway on its way there. Boards lead to starts only, so every board sends a departing jet to a
-  runway's start (2026-11-15, the user: "ab signs should lead to runway start only, not to the middle of the
-  runway, it's confusing"; until then a way's length was the taxi plus the back-taxi on the runway to its nearer end,
-  so a board pointed at any join). A way's length is the taxi to the start plus the runway to the end's lineup point;
-  a branch leads to the runway of its shortest way's end (and of ends within 300 m more, inferred: Ramat David's 09
-  and 11 start 200 m apart). Before 2026-11-13 a branch named the end nearest its first runway join, so a parallel taxiway's
-  left and right boards both read the end nearer a mid-field link (Nevatim's "26L" on every board around the spot).
-  At an intersection partway along a runway the holding sign names both ends: it marks the holding position, and no
-  direction sign leads a departure there. The same start rule picks a holding sign's single end (the start, declared
-  start plus 400 m; before 2026-11-15 the runway's physical end plus 400 m, so Tel Nof's 33L entry, 427 m in, read
-  "15R-33L"). The departures from the first parking spot to every runway end whose
-  route joins the runway at that end's start (`departure`, the route the briefing draws and the tower clears) set
-  their end's board: a direction sign the route passes names its end with the arrow the
-  route takes 40 m past the junction, whatever the branches' shortest ways say. Before 2026-11-16 Ramon's route to 25R ran the
-  parallel taxiway, whose junctions reach 25L first, and its boards named 25L alone; now they read 25L and 25R where
-  the routes share the way. `sim_bases::tests::signs_agree_with_the_departure` checks, for every base and runway end,
-  that every direction sign the route passes names that end with the route's turn, and that the take-off end's route
-  ends at a holding sign with that end alone.
-  Each sign stands on the jet's left, 12 m past the taxiway's edge (Annex 14 Table 5-5).
+- the taxiway signs in `airbases.json` (ICAO Annex 14 §5.4; `sim_bases::signs`). Each sign names only where it
+  leads (the user, 2026-11-17: "how possible 25L and 07R are on the same sign", "I need something that isn't
+  confusing"):
+  - a runway-holding sign (white on red) at each taxiway's holding position, 90 m from the runway's centreline
+    (Annex 14 Table 3-2, code 4 instrument runway), with the one end a jet takes off from there: at a runway's start
+    that end (FAA AIM 2-3-8[^aim]; a start reaches from before the declared runway start to 400 m past it,
+    `Runway::entry_end`, inferred), partway along the runway the nearer end, the one with more runway ahead
+    (inferred). Until 2026-11-17 a sign partway along named both ends ("25L-07R");
+  - a direction sign (black on yellow) before each junction on the shortest taxi from a parking spot to a runway
+    start, for the jet arriving on that taxi where it has a choice (two or more of the other branches lead on to a
+    runway): a board for each runway end whose taxi passes there, its designator and the arrow of the branch that
+    taxi takes (45° steps, 15° at a narrow fork). The shortest taxi keeps to the taxiways (a metre along a runway
+    counts as four, `RUNWAY_TAXI_COST`) and joins the runway at the end's start; where no taxiway joins there
+    (Nevatim's 07, 1212 m in) it joins at the first taxiway from that end, an intersection take-off. A jet crosses a
+    runway straight on; a board stands before a runway only where the taxi turns on it.
+
+  A jet that follows one end's boards from any parking spot reaches that end's start, past a holding sign naming
+  that end: `sim_bases::tests::following_the_signs_reaches_every_runway_start` taxis it from every spot to every
+  end at the five bases, and from the first spot the taxi is the departure the briefing draws (`departure`).
+  OpenStreetMap joins none of the base's taxiways to Hatzerim's 10/28, so no board names 10 or 28 (the test says so).
+  Junctions within 12 m of each other count as one (`JOIN_M`: Hatzerim's fillets, and two taxiways' points on a
+  runway, as Nevatim's crossing of 08R/26L, whose sides join it 11 m apart). The parking spots' ways out
+  (`taxi_lines`: from the spot along its nose to its lane) are branches too.
+  A direction sign stands 40 m before its junction (inferred; Annex 14 5.4.3.30) on the jet's left, 12 m past the
+  taxiway's edge and 8 m or more from a runway's edge (Annex 14 Table 5-5); where the branch is shorter (a spot's way out), across the junction facing
+  the jet (inferred).
   Signs stand apart (2026-11-13; before, at Ramon 25L and Nevatim 26L a holding sign stood 5–10 m in front of a
-  direction sign and hid it): two signs facing the same way within 25 m become one array, and no sign stands in the
-  line of sight from the taxiway's centreline (15–150 m before a sign) to any part of another. In an array the
-  holding sign keeps its place, in line with the holding position. The direction boards read left to right in turn
-  order, "clockwise starting from the first taxiway on the pilot's left" (FAA AIM 2-3-10[^aim]). The holding board
-  stands last, nearest the taxiway, as a taxiway location sign collocated with a holding sign stands outboard of it
-  (AIM 2-3-9; inferred for direction boards). A sign that would crowd one facing another way (8 m apart, or in its
-  line of sight) takes the next place out or across the taxiway, else is left out (two at Ramat David, where branches meet at a sharp angle).
-  `sim_bases::tests::signs_stand_apart` checks every pair at every base.
+  direction sign and hid it): a holding sign and a direction sign facing the same way within 25 m become one array,
+  the holding sign keeping its place in line with the holding position, the direction boards left to right in turn
+  order ("clockwise starting from the first taxiway on the pilot's left", FAA AIM 2-3-10[^aim]), the holding board
+  last, nearest the taxiway (as AIM 2-3-9's location sign; inferred for direction boards). A sign that would crowd
+  another (8 m apart, or a board in the last quarter of the line of sight from the centreline 15–150 m before it,
+  `HIDE_SHARE`: the pilot looks over a nearer board) takes the next place out or across the taxiway; where junctions
+  crowd (Hatzerim's sunshade rows) a direction sign takes the first place 8 m from every sign. No holding sign is
+  hidden. `sim_bases::tests::signs_stand_apart` checks every pair at every base.
+  Earlier rules, replaced on 2026-11-17: a board for every runway end at every junction of the base (2026-11-08),
+  then for runway starts only (2026-11-15, the user: "ab signs should lead to runway start only, not to the middle
+  of the runway, it's confusing").
   OpenStreetMap names none of these taxiways (no `ref`), so there are no location signs (yellow on black).
   `sign_boards.gd board()` builds them (a 0.9 m face, the lettering in the sim's display font), `airbases.gd` stands
   the nearest base's signs on the ground; nothing of the original's sign models. Ramon's hold sign "07R-25L" from
@@ -272,7 +286,8 @@ base move: its bases stand at their real places already (`sim_settings.gd sync_b
 first frames draw Ramon's runways and its paved mask.
 
 Open: the towers of Ramon, Hatzerim and Ramat David (their reference points stand in); the taxiways' names (no
-location signs until a source names them); one hub per base where every parking spot meets the taxiways (the
+location signs until a source names them); Hatzerim's 10/28 (no taxiway joins it in OpenStreetMap, so no sign or
+route leads there); the shelters' models (§5); one hub per base where every parking spot meets the taxiways (the
 AI of a second spot at Hatzerim taxis from the first spot's hub); the radio's tower list (`radio.gd BASES`) holds
 the original's ten names, so Hatzerim and Nevatim had no talking tower; since item E3b every base of the own
 `iaf.ibx` talks (`Settings.tower_bases`, [training.md](training.md) §8).

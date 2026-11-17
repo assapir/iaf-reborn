@@ -93,7 +93,8 @@ func walk(fe: Control, lang: String) -> void:
 		check(not _has_part(card, t), "%s: no %s on the card" % [lang, t])
 	if he:
 		await _code_first(fe, "the Hangar")
-	check(_has_part(card, "2 מתוך 2" if he else "2 of 2 passed"), "%s: the training's progress (the Sufa's)" % lang)
+	# Two of the Sufa's three training missions passed in the fixture (the range is the third).
+	check(_has_part(card, "2 מתוך 3" if he else "2 of 3 passed"), "%s: the training's progress (the Sufa's)" % lang)
 	var last: Label = fe.find_child("LastFlight", true, false)
 	check(last.text.contains("המראה" if he else "Take-off"), "%s: the last flight: %s" % [lang, last.text])
 	check(fe.find_child("Campaign", true, false) == null, lang + ": no campaign button (the Missions screen has it)")
@@ -151,13 +152,19 @@ func walk(fe: Control, lang: String) -> void:
 	key(fe, KEY_ESCAPE)
 	await frames(2)
 	check(fe.page == "hangar", "%s: Esc on the Missions screen: the Hangar" % lang)
+	# Quit asks first (the user, 2026-11-17: "we don't have a quit button").
+	(fe.find_child("quit", true, false) as Button).pressed.emit()
+	await frames(2)
+	check(fe.find_child("ModalOk", true, false) != null, "%s: Quit asks before it quits" % lang)
+	fe.close_modal()
+	await frames(2)
 
 
-## The focus order (F1): Tab from Fly through Attributions, Settings, the pilot, the three jets and back to Fly; Down
-## from Fly stays; Up from Fly to Settings, Down from there to the picked jet; toward the inline end from a jet: Fly;
-## Down from the last jet: Attributions.
+## The focus order (F1): Tab from Fly through Attributions, Quit, Settings, the pilot, the three jets and back to Fly;
+## Down from Fly stays; Up from Fly to Settings, Down from there to the picked jet; toward the inline end from a jet:
+## Fly; Down from the last jet: Attributions.
 func _focus_order(fe: Control, lang: String) -> void:
-	var order := ["credits", "Settings", "PilotBlock", "sufa", "barak", "adir", "Turntable", "Fly"]
+	var order := ["credits", "quit", "Settings", "PilotBlock", "sufa", "barak", "adir", "Turntable", "Fly"]
 	var walked := []
 	for n in order:
 		walked.append(await _press(fe, KEY_TAB))

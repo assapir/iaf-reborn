@@ -20,7 +20,7 @@ The window opens plain in the front end's background colour (#00163C, no Godot s
 
 | screen | what it does | English | Hebrew |
 |---|---|---|---|
-| Hangar | the first screen (§12): the jets at the inline start, the picked one in 3D in the middle (the player looks at it from any side) with its full name faint behind it, its card at the inline end (squadron and base, facts, the training's progress, Fly to the Missions screen); Settings and the pilot in the top bar, Attributions at the foot | ![Hangar](pictures/front-end/hangar_en.webp) | ![Hangar, Hebrew](pictures/front-end/hangar_he.webp) |
+| Hangar | the first screen (§12): the jets at the inline start, the picked one in 3D in the middle (the player looks at it from any side) with its full name faint behind it, its card at the inline end (squadron and base, facts, the training's progress, Fly to the Missions screen); Settings and the pilot in the top bar, Attributions and Quit at the foot | ![Hangar](pictures/front-end/hangar_en.webp) | ![Hangar, Hebrew](pictures/front-end/hangar_he.webp) |
 | Missions | the Hangar's Fly (§2): a card per section, Training, Campaign, Single missions and Fly now, each with its number, its title and the pilot's progress in it; a section without missions greyed, "Coming later", out of the focus, without a click (Fly now always, until it flies random missions and dogfights); the footer's Back (Esc) | ![Missions](pictures/front-end/missions_en.webp) | ![Missions, Hebrew](pictures/front-end/missions_he.webp) |
 | A section's list | the Hangar jet's missions of the section in order, numbered 1, 2 …: the title, the base and what it trains, the last result (Pass with the best time, Fail, Not flown yet); the next one to fly marked Next, tinted and focused (every mission passed: no Next, the first focused); beside the list a panel on the mission under the focus or the pointer (§2); the footer's Back (Esc) | ![Training](pictures/front-end/section_en.webp) | ![Training, Hebrew](pictures/front-end/section_he.webp) |
 | Briefing | the briefing, map first (§10): the map over the screen, opened on the base and the route with the pins; the mission card (the facts, the objectives, the Arming summary with Edit, Back to the section's list, Arming, Fly: Edit and Arming open the Loadout screen §10.1); what you will learn and how to fly it, the keys as bound; the map's chips | ![Briefing](pictures/front-end/mission_en.webp) | ![Briefing, Hebrew](pictures/front-end/mission_he.webp) |
@@ -49,7 +49,8 @@ A fail shows a banner with "Fail" and the reason; about 5 s later the flight end
 ([training.md](training.md) §9).
 
 Over a flight, Esc opens the pause menu: the mission and the jet flown ("Take-off · F-16I Sufa"), then Continue the
-flight, Settings, End the flight. It is laid out on the
+flight, Settings, End the flight, Quit to desktop ("יציאה לשולחן העבודה"; it asks "Quit the sim?" first; the user,
+2026-11-17: "we don't have a quit button"). It is laid out on the
 front end's canvas scaled to the window and centred by a container, so it sits in the middle at any window size and in
 either language (the Mac run of 2026-11-08: in Hebrew in a 2560 × 1440 window the overlay mirrored its own position
 by its unscaled width and sat off the right edge, its buttons' labels outside the screen). Ending a training flight
@@ -1114,8 +1115,11 @@ round (the view by Tab only: with the focus, its arrows orbit the jet). Down fro
 the top bar goes to the picked jet, Down from the last flyable jet to Attributions, toward the inline end from a jet to
 Fly, Up from Fly to Settings; Down from Fly stays (it went to the foot first, the inventory of 14 November).
 
-**Esc** on the Hangar asks "Quit the sim?" / "לצאת מהסימולטור?" (Cancel focused); Home's Quit and its greyed Guides
-went with Home.
+**Esc** on the Hangar asks "Quit the sim?" / "לצאת מהסימולטור?" (Cancel focused), and so does **Quit** / "יציאה" at
+the foot beside Attributions (2026-11-17, the user: "we don't have a quit button"; Home's Quit had gone with Home, with
+its greyed Guides). The window's close button and the system's quit key (Cmd+Q on a Mac, Alt+F4 elsewhere) quit at
+once, from any screen and from a flight (`Settings._notification`: the window's close request, `Settings.quit`).
+
 
 ## 13. The debrief
 

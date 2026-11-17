@@ -566,6 +566,11 @@ func fly_once(fe: Control) -> void:
 	check(pause.page == "pause" and tv.fe_overlay == pause, "fly: Esc from Preferences back to the pause menu")
 	if shot != "":
 		await _shots(pause, shot, "pause")
+	pause.find_child("QuitDesktop", true, false).pressed.emit()
+	await frames(2)
+	check(pause.find_child("ModalOk", true, false) != null, "fly: Quit to desktop asks before it quits")
+	pause.close_modal()
+	await frames(2)
 	pause.find_child("EndFlight", true, false).pressed.emit()
 	var back: Node = null
 	while back == null or back.get("page") == null:

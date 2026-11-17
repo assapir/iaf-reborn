@@ -961,7 +961,7 @@ impl Watch {
         let m: Value =
             serde_json::from_str(&std::fs::read_to_string(mission).with_context(|| mission.display().to_string())?)
                 .with_context(|| mission.display().to_string())?;
-        let bases: Vec<_> = sim::read_dir(airbases)?.into_iter().map(|f| f.v).collect();
+        let bases: Vec<_> = sim_bases::files(airbases)?;
         let rules = rules(&m)?.with_context(|| format!("{}: no \"training\" rules", mission.display()))?;
         let base = sim_bases::base(airbase_of(&m, &bases)?, &mission.display().to_string())?;
         let runway = match m["runway"].as_str() {
@@ -1145,7 +1145,7 @@ pub fn score_files(flight: &std::path::Path, mission: &std::path::Path, airbases
     let read = |p: &std::path::Path| std::fs::read_to_string(p).with_context(|| p.display().to_string());
     let f = parse_flight(&read(flight)?).with_context(|| flight.display().to_string())?;
     let m: Value = serde_json::from_str(&read(mission)?).with_context(|| mission.display().to_string())?;
-    let bases: Vec<_> = sim::read_dir(airbases)?.into_iter().map(|f| f.v).collect();
+    let bases: Vec<_> = sim_bases::files(airbases)?;
     score(&f, &m, &bases)
 }
 
@@ -1328,7 +1328,7 @@ pub fn track_files(flight: &std::path::Path, mission: &std::path::Path, airbases
     let f = parse_flight(&read(flight)?).with_context(|| flight.display().to_string())?;
     let rw = (|| -> Result<Runway> {
         let m: Value = serde_json::from_str(&read(mission)?)?;
-        let bases: Vec<_> = sim::read_dir(airbases)?.into_iter().map(|f| f.v).collect();
+        let bases: Vec<_> = sim_bases::files(airbases)?;
         runway(airbase_of(&m, &bases)?, m["runway"].as_str().context("no runway")?)
     })()
     .ok();
@@ -1665,7 +1665,7 @@ mod tests {
     }
 
     fn airbases() -> Vec<Value> {
-        crate::sim::read_dir(&data().join("airbases")).unwrap().into_iter().map(|f| f.v).collect()
+        sim_bases::files(&data().join("airbases")).unwrap()
     }
 
     /// A recording as the game writes it (header, rows of COLUMNS + gear + fuel_kg) from engine-frame samples.

@@ -537,7 +537,7 @@ item also holds `"osm"`, its element (`"way/188475529"`).
 | `aprons`, `shelters` | `osm`, `polygon`; a shelter's `kind` is `hangar` (OSM hangar) or `shelter` (OSM bunker) |
 | `tower` | `lat`, `lon`, or null (`sources.tower` "open") |
 | `lights` | PAPI / approach lights: `kind`, `osm`, `lat`, `lon` (none in OSM at the four bases) |
-| `parking` | the start-up spots: `unit` (a unit id, `f15i` for the F-15I), `lat`, `lon`, `heading` (the nose) |
+| `parking` (in `modern-iaf/data/parking.json`, by ICAO code) | the start-up spots, a unit's leader first, then its wingmen: `unit` (a unit id, `f15i` for the F-15I), `lat`, `lon`, `heading` (the nose), `source`. Their own file since 2026-11-17: the theatre's stamp hashes the airbase files, and a moved spot leaves the theatre as built. An airbase file written before then holds the spot of that time under `parking`; `sim_bases::load` takes parking.json's |
 | `sources`, `footnotes` | the base's own sources and the full citations |
 
 Example (parts of `llrm.json`):
@@ -570,8 +570,18 @@ Example (parts of `llrm.json`):
    "sources": {"designator": "osm", "ends": "osm", "width_m": "oa", "length_published_m": "oa", "length_m": "osm",
                "surface": "osm"}
   }
- ],
- "parking": [{"unit": "f16i", "lat": 30.769935, "lon": 34.6594868, "heading": 335, "source": "inferred"}]
+ ]
+}
+```
+
+`modern-iaf/data/parking.json`:
+
+```json
+{
+ "LLRM": [
+  {"unit": "f16i", "lat": 30.7699351, "lon": 34.6594869, "heading": 67, "source": "inferred"},
+  {"unit": "f16i", "lat": 30.7697271, "lon": 34.6595901, "heading": 67, "source": "inferred"}
+ ]
 }
 ```
 
