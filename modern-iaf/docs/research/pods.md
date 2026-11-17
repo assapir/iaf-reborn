@@ -378,6 +378,14 @@ cockpit steps ([../weapons.md](../weapons.md) §7.2).
 Not proposed: a rule for the GPS bombs and the SPICE without a pod (they work without one, §8.1); a rule for the
 navigation pod (no weapon needs it).
 
+## 9. IAF Hebrew names
+
+The IAF's own Hebrew names for the pods and the other stores, the Hebrew word for "pod", and a proposal for the
+front end's strings: [hebrew-store-names.md](hebrew-store-names.md) (17 November 2026). In short: the sources write
+**פוד** and, for the targeting pod, **פוד תקיפה**; no IAF name was confirmed for any pod (an old IAF attack system
+**ענבר** is linked to the LANTIRN by secondary sources only). The guided bombs have IAF names (ברד כבד, ברד חד, ברד
+קל, ברד פלדה).
+
 [^at-sufa]: Airforce Technology, "F-16I Soufa Multirole Fighter, Israel" (Litening II "targeting and navigation pod";
     the LANTIRN navigation pod; the photo caption; the Elisra SPS-3000; the radar's terrain following):
     https://www.airforce-technology.com/projects/f-16i-soufa/
