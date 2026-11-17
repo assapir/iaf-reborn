@@ -55,10 +55,31 @@ GLASS_D = 0.008  # the glass's height above the face
 # The status bar's height (in, of the display's 8): LM's portal layout puts 4 portals of 5 x 5 in under it and 8
 # windows of 2.5 x 2.5 in under those (docs/f35i.md §4).
 BAR_IN = 0.5
-ESIS = (0.075, -0.392, 0.084, 0.066)  # the standby display's centre x, z and size (m)
-GEAR_X, GEAR_Z = -0.215, -0.395  # the gear handle's slot (left of the pedestal, under the display's left half)
-LAMPS = {"LIGHT000": (0.195, -0.394), "LIGHT001": (0.255, -0.394)}  # master caution, engine fire: centre x, z
-LAMP_W = 0.040
+# The forward panels under the display (docs/research/f35-cockpit.md §2.1-2.3; round 2 of 2026-11-16 after the
+# photos, until then one flat face with the parts on it): the centre pedestal a grey housing standing PED_D proud of
+# the face from under the display down between the knees (PED_TOP .. PED_FOOT, face heights), its top strip (P1-P6)
+# leant back STRIP_PITCH toward the eye; black inserts with raised lips and screws on the housings (insert()).
+PED_TOP, PED_FOOT, PED_W, PED_D = -0.358, -0.62, 0.27, 0.050
+STRIP_Z, STRIP_PITCH = -0.372, 35.0
+# The consoles (round 3, 2026-11-17; docs/f35i.md §4.1 "Consoles"): each one solid from aft of the seat forward past
+# the throttle (left) or the side-stick (right), then rising as a ramp up to the cheek's foot under the display's end,
+# as the photos show (the left forward panel's column rising from the throttle's console to the display, the right
+# one from the stick's). CONSOLE_X: their inner and outer edges' |x| (the inner edge until round 3 0.305, the leg room
+# between them 0.61 m; now 0.50 m, the seat filling it as in the user's simulator photo of 2026-11-17); RAMP_FOOT: each ramp's foot (y) at the deck, ahead of the throttle's trim plate and of the
+# stick's housing; RAMP_TOP: where the ramps meet the cheeks' feet (y, z). The left forward panel lies on the left
+# ramp, its centre at LFWD_X (until round 3 a separate housing 0.21 m off the centre line inboard of the console,
+# hanging 0.15 m below the console's top, turned 25 deg to the pilot).
+CONSOLE_X = (0.25, 0.475)
+CONSOLE_AFT = -0.375
+RAMP_FOOT = {-1: 0.45, 1: 0.505}
+RAMP_TOP = (0.615, -0.395)
+LFWD_X = -0.345
+TRIM_Y = 0.4125  # the left console's trim plate (y), between the throttle's track and the ramp
+ESIS = (0.060, -0.428, 0.084, 0.066)  # the standby display's centre x, z and size (m), on the pedestal's front
+ESIS_D = PED_D + 0.0085  # its glass's depth
+# Master caution, engine fire: centre x, z, on their housing LAMP_D proud of the face right of the pedestal.
+LAMPS = {"LIGHT000": (0.182, -0.394), "LIGHT001": (0.237, -0.394)}
+LAMP_W, LAMP_D = 0.040, 0.024
 GEAR_TRAVEL = 0.018  # the knob's travel either side of the slot's centre (m)
 STICK = (0.38, 0.44)  # the side-stick's x, y on the right console
 
@@ -84,11 +105,16 @@ class Mats:
             def m(*a, grain=0.0, wear=0.0, coat=0.0, **k):
                 return kit.material(*a, **k)
         self.panel = m("panel", (0.030, 0.032, 0.036), roughness=0.62, grain=0.05, wear=0.5)
+        # The panels' housings: a mid grey, lighter than the black inserts on them (the photos' two tones).
+        self.housing = m("housing", (0.044, 0.046, 0.051), roughness=0.55, grain=0.05, wear=0.45)
+        # The inserts (the edge-lit panels): near black, satin.
+        self.plate = m("insert", (0.011, 0.011, 0.012), roughness=0.5, wear=0.3)
+        self.green = m("placard_green", (0.010, 0.20, 0.09), roughness=0.5)
         self.rubber = m("glareshield", (0.013, 0.013, 0.015), roughness=0.92, grain=0.12, wear=0.25)
         self.bezel = m("bezel", (0.026, 0.027, 0.030), roughness=0.38, wear=0.4)
         self.glass = m("pcd_glass", (0.004, 0.005, 0.008), roughness=0.05, coat=1.0)
         self.screen = m("esis_glass", (0.003, 0.004, 0.006), roughness=0.05, coat=1.0)
-        self.frame = m("canopy_frame", (0.055, 0.057, 0.062), roughness=0.5, wear=0.6)
+        self.frame = m("canopy_frame", (0.022, 0.023, 0.025), roughness=0.55, wear=0.4)
         self.seal = m("canopy_seal", (0.010, 0.010, 0.011), roughness=0.85)
         # The tub's floor: dark grey non-slip paint, lighter than the panels (as the black seal it read as a void).
         self.floor = m("tub_floor", (0.040, 0.041, 0.044), roughness=0.9, grain=0.15, wear=0.3)
@@ -105,9 +131,11 @@ class Mats:
         self.boot = m("stick_boot", (0.005, 0.005, 0.006), roughness=0.92)  # the stick's black rubber boot
         self.metal = m("switch", (0.16, 0.16, 0.17), metallic=1.0, roughness=0.3)  # the toggles' bats
         self.red = m("guard_red", (0.40, 0.02, 0.015), roughness=0.5)  # a guarded switch's red cover
-        self.yellow = m("stripe_yellow", (0.80, 0.55, 0.02), roughness=0.5)
+        # A deep safety yellow (until round 2 (0.80, 0.55, 0.02), which the day fill washed to a pale cream).
+        self.yellow = m("stripe_yellow", (0.50, 0.22, 0.0), roughness=0.5)
         self.wheel = m("gear_knob", (0.020, 0.020, 0.022), roughness=0.7, grain=0.3)
-        self.hub = m("gear_hub", (0.30, 0.31, 0.31), roughness=0.4, wear=0.3)
+        # The knobs' and rockers' grey (until round 2 0.30, which read white from the seat).
+        self.hub = m("gear_hub", (0.060, 0.062, 0.065), roughness=0.4, wear=0.3)
         self.label = m("label", (0.62, 0.63, 0.62), roughness=0.6, emission=((0.30, 1.0, 0.42), 0.0))
         self.lens = {}  # lamp -> its lens (off: a dark tinted lens; lit: emission)
         for key, rgb in (("LIGHT000", (1.0, 0.62, 0.05)), ("LIGHT001", (1.0, 0.08, 0.04)), ("gear", (1.0, 0.1, 0.05))):
@@ -129,18 +157,6 @@ def face_box(name, x, z, w, h, depth, mat, d0=0.0, bevel=0.003):
 def label(text, x, z, size, depth, mats, off=0.0006):
     return kit.text_decal("lbl_" + text.replace(" ", "_"), text, mats.label, on_face(x, z, depth + 0.05), INTO_FACE,
                           size, (1, 0, 0), off=off)
-
-
-def knob(name, x, z, depth, mats, r=0.008):
-    kit.cyl(name, on_face(x, z, depth + 0.007), r, 0.014, mats.knob, rot=KNOB_ROT, verts=32)
-    kit.cyl(name + "_skirt", on_face(x, z, depth + 0.0015), r * 1.35, 0.003, mats.knob, rot=KNOB_ROT, verts=32)
-    face_box(name + "_index", x, z + r * 0.55, 0.0012, r * 0.8, depth + 0.0142, mats.label, d0=depth + 0.0135, bevel=0)
-
-
-def rocker(name, x, z, depth, mats):
-    face_box(name, x, z, 0.010, 0.022, depth + 0.009, mats.knob, d0=depth, bevel=0.002)
-    for dz in (0.006, -0.006):
-        face_box(f"{name}_{dz}", x, z + dz, 0.004, 0.0012, depth + 0.0095, mats.label, d0=depth + 0.009, bevel=0)
 
 
 def screw_head(name, centre, r, rot, m):
@@ -205,56 +221,61 @@ def build(mats, rail_3d=False):
     lip = [(0.0, -0.014), (0.006, -0.010), (0.008, -0.004), (0.006, 0.002), (0.0, 0.005), (-0.06, 0.0),
            (-0.14, -0.04), (-0.22, -0.10), (-0.22, -0.112), (-0.14, -0.052), (-0.06, -0.012)]
     kit.sweep("glareshield", mats.rubber, lip, path, bevel=0.003)
-    # The cheeks: rounded blocks down each side of the display (the cowl's sides in the mock-up photo).
+    # The cheeks: grey housings down each side of the display (the cowl's sides in the photos), bolted, standing on the
+    # consoles' ramps (until round 3 5 cm longer, their feet in the air); the right one carries the right forward
+    # panel's insert (controls()).
     for s in (-1, 1):
-        face_box(f"cheek{s}", s * 0.322, -0.232, 0.064, 0.235, 0.032, mats.rubber, bevel=0.018)
+        face_box(f"cheek{s}", s * 0.322, -0.2075, 0.064, 0.185, 0.034, mats.housing, d0=-0.02, bevel=0.010)
+        for i, dz in enumerate((-0.080, 0.080)):
+            screw_head(f"cheek{s}_scr{i}", on_face(s * 0.322, -0.2075 + dz, 0.034), 0.0022, KNOB_ROT, mats.alu)
 
-    # Under the display: the centre pedestal with the display brightness panel (left) and the standby display.
-    face_box("pedestal", 0, -0.405, 0.30, 0.09, 0.012, mats.panel, bevel=0.005)
-    bx, bz, bw, bh = -0.072, -0.392, 0.125, 0.060
-    face_box("brt_panel", bx, bz, bw, bh, 0.018, mats.bezel, d0=0.012, bevel=0.003)
-    screws("brt", bx, bz, bw, bh, 0.018, mats)
-    for i, (dx, name) in enumerate(((-0.040, "HMD"), (0.022, "MFD"))):
-        knob(f"brt_knob{i}", bx + dx, bz - 0.004, 0.018, mats, r=0.009)
-        rocker(f"brt_rock{i}", bx + dx + 0.024, bz - 0.004, 0.018, mats)
-        label(name, bx + dx + 0.012, bz - 0.024, 0.0075, 0.018, mats)
-        label("BRT", bx + dx + 0.024, bz + 0.016, 0.0055, 0.018, mats)
-        label("OFF  NT  DAY", bx + dx, bz + 0.016, 0.0040, 0.018, mats)
+    # Under the display (modern-iaf/docs/research/f35-cockpit.md §2.1-2.3): the centre pedestal, the left forward panel
+    # and the lamps' housing; the controls' parts and positions in controls() / REG.
+    z0, z1 = PED_TOP - 0.014, -0.49
+    pbox(pane(0, (z0 + z1) / 2, PED_D), "pedestal", 0, 0, PED_W, (z0 - z1) * FZ, -0.07, 0, mats.housing, bevel=0.006)
+    # Its lower block between the knees, stepped back and narrower, an access plate on it.
+    pbox(pane(0, (z1 + PED_FOOT) / 2, PED_D), "pedestal_foot", 0, 0, 0.20, (z1 - PED_FOOT) * FZ, -0.08, -0.012,
+         mats.housing, bevel=0.006)
+    insert(pane(0, -0.552, PED_D), "ped_foot", 0, 0, 0.15, 0.090, -0.012, mats)
+    # The top strip, leant back toward the eye, its wedge filling down to the housing's front.
+    sm = strip_m()
+    pbox(sm, "ped_strip_back", 0, 0, PED_W, 0.040, -0.05, -0.002, mats.housing, bevel=0.004)
+    insert(sm, "ped_strip", 0, 0, PED_W - 0.012, 0.032, 0.0, mats, screws=6)
+    # The radios' insert (P7-P10) and the standby display's case (P11-P14) side by side on the front.
+    insert(pane(-0.0685, -0.432, PED_D), "radio_panel", 0, 0, 0.119, 0.100, 0.0, mats, screws=6)
     ex, ez, ew, eh = ESIS
-    face_box("esis_case", ex, ez, ew + 0.022, eh + 0.020, 0.024, mats.bezel, d0=0.012, bevel=0.004)
-    face_box("esis_glass", ex, ez, ew, eh, 0.0245, mats.screen, d0=0.022, bevel=0)
-    for i in range(4):
-        for side in (-1, 1):
-            face_box(f"esis_btn{side}_{i}", ex + side * (ew / 2 + 0.0065), ez + eh / 2 - 0.010 - i * 0.015,
-                     0.006, 0.009, 0.027, mats.knob, d0=0.024, bevel=0.0012)
-    screws("esis", ex, ez, ew + 0.022, eh + 0.020, 0.024, mats, r=0.0018)
+    em = pane(ex, ez - 0.006, PED_D)
+    pbox(em, "esis_case", 0, 0, ew + 0.030, eh + 0.036, -0.002, ESIS_D - PED_D - 0.0005, mats.plate, bevel=0.003)
+    face_box("esis_glass", ex, ez, ew, eh, ESIS_D, mats.screen, d0=ESIS_D - 0.002, bevel=0)
+    for i, (du, dv) in enumerate(((-1, -1), (1, -1), (-1, 1), (1, 1))):
+        pscrew(em, f"esis_scr{i}", du * (ew / 2 + 0.010), dv * (eh / 2 + 0.013), ESIS_D - PED_D - 0.0005, mats)
 
-    # Left of the pedestal: the landing gear handle's slot (the lever is gear_handle()), the emergency jettison button
-    # outboard of it; both inside the consoles' line of sight and under the display's bottom rim.
-    face_box("gear_panel", GEAR_X, GEAR_Z, 0.075, 0.075, 0.016, mats.bezel, bevel=0.004)
-    face_box("gear_slot", GEAR_X, GEAR_Z, 0.010, 2 * GEAR_TRAVEL + 0.016, 0.0165, mats.seal, d0=0.015, bevel=0.001)
-    screws("gear", GEAR_X, GEAR_Z, 0.075, 0.075, 0.016, mats)
-    label("LDG GEAR", GEAR_X, GEAR_Z + 0.0315, 0.0060, 0.016, mats)
-    label("UP", GEAR_X + 0.022, GEAR_Z + GEAR_TRAVEL, 0.0055, 0.016, mats)
-    label("DN", GEAR_X + 0.022, GEAR_Z - GEAR_TRAVEL, 0.0055, 0.016, mats)
-    jx, jz = GEAR_X - 0.060, GEAR_Z + 0.018
-    face_box("jett_panel", jx, jz, 0.040, 0.040, 0.012, mats.bezel, bevel=0.003)
-    cyl("jett_ring", on_face(jx, jz + 0.003, 0.014), 0.012, 0.004, mats.yellow, rot=KNOB_ROT, verts=32)
-    cyl("jett_btn", on_face(jx, jz + 0.003, 0.019), 0.0085, 0.008, mats.lens["LIGHT001"], rot=KNOB_ROT, verts=32)
-    label("EMER JETT", jx, jz - 0.0145, 0.0040, 0.012, mats)
+    # The left forward panel (§2.1) on the left console's ramp: an insert for HOOK at the top and one for the rest; the
+    # gear handle's slot. A blanking insert on the right ramp (nothing sourced there).
+    lm = lfwd_m()
+    h = ramp_len(-1)
+    insert(lm, "lfwd_hook", 0, h / 2 - 0.022, 0.098, 0.030, 0.0, mats)
+    insert(lm, "lfwd_panel", 0, h / 2 - 0.041 - 0.100, 0.098, 0.200, 0.0, mats, screws=6)
+    insert(ramp_m(1, 0.38), "r_ramp", 0, 0, 0.120, ramp_len(1) - 0.035, 0.0, mats, screws=6)
+    placed(gear_m(), lambda: kit.box("gear_slot", (0, 0, 0.0005), (0.010, 2 * GEAR_TRAVEL + 0.016, 0.003), mats.seal,
+                                   bevel=0.001))
 
-    # Right of the pedestal: the master caution and engine fire push-lights (our lamps LIGHT000 / LIGHT001).
+    # Right of the pedestal: the master caution and engine fire push-lights (our lamps LIGHT000 / LIGHT001) on their
+    # housing, a blank insert under them.
     lx, lz = (LAMPS["LIGHT000"][0] + LAMPS["LIGHT001"][0]) / 2, LAMPS["LIGHT000"][1] - 0.006
-    face_box("lamp_panel", lx, lz, 0.118, 0.062, 0.012, mats.bezel, bevel=0.003)
-    screws("lamp", lx, lz, 0.118, 0.062, 0.012, mats)
+    face_box("lamp_housing", lx, -0.448, 0.120, 0.168, LAMP_D, mats.housing, d0=-0.03, bevel=0.005)
+    insert(pane(lx, lz, LAMP_D), "lamp_panel", 0, 0, 0.110, 0.060, 0.0, mats)
+    insert(pane(lx, -0.478, LAMP_D), "lamp_blank", 0, 0, 0.110, 0.088, 0.0, mats, screws=6)
     for key, (x, z) in LAMPS.items():
-        face_box(f"{key}_case", x, z, LAMP_W + 0.006, LAMP_W * 0.7 + 0.006, 0.018, mats.knob, d0=0.012, bevel=0.002)
-        face_box(f"{key}_lens", x, z, LAMP_W, LAMP_W * 0.7, 0.0195, mats.lens[key], d0=0.017, bevel=0.0015)
-    for key, top, bottom, size in (("LIGHT000", "MASTER", "CAUTION", 0.0050), ("LIGHT001", "ENG", "FIRE", 0.0055)):
+        face_box(f"{key}_case", x, z, LAMP_W + 0.006, LAMP_W * 0.7 + 0.006, LAMP_D + 0.008, mats.knob, d0=LAMP_D,
+                 bevel=0.002)
+        face_box(f"{key}_lens", x, z, LAMP_W, LAMP_W * 0.7, LAMP_D + 0.0095, mats.lens[key], d0=LAMP_D + 0.005,
+                 bevel=0.0015)
+    for key, top, bottom, size in (("LIGHT000", "MASTER", "CAUTION", 0.0058), ("LIGHT001", "ENG", "FIRE", 0.0070)):
         x, z = LAMPS[key]
         # Lifted 1.5 mm off the lens: at 0.6 mm the 3D cockpit's depth buffer hid them in the lens.
-        label(top, x, z + 0.006, size, 0.0196, mats, off=0.0015)
-        label(bottom, x, z - 0.0045, size, 0.0196, mats, off=0.0015)
+        label(top, x, z + 0.006, size, LAMP_D + 0.0096, mats, off=0.0015)
+        label(bottom, x, z - 0.0050, size, LAMP_D + 0.0096, mats, off=0.0015)
 
     # The canopy's frame along each side: a heavy rounded rail on the sill, bolted, its black seal on top, curving in
     # to the glareshield's ends; the canopy's bow arches over the cockpit from rail to rail just ahead of the head.
@@ -265,18 +286,26 @@ def build(mats, rail_3d=False):
     # which nothing draws there (bc.py), so their tips stood in the air (2026-11-09; the 2D art keeps them whole).
     for s in (-1, 1):
         rail = spline([(s * x, y, z) for x, y, z in (RAIL[:-RAIL_3D_END] if rail_3d else RAIL)], 60)
-        kit.sweep(f"canopy_rail{s}", mats.frame, kit.rounded_rect(0.085, 0.060, 0.022), rail)
-        kit.sweep(f"canopy_seal{s}", mats.seal, kit.rounded_rect(0.030, 0.014, 0.005),
-                  [(x - s * 0.012, y, z + 0.034) for x, y, z in rail])
+        kit.sweep(f"canopy_rail{s}", mats.frame, RAIL_PROFILE, rail)
+        kit.sweep(f"canopy_seal{s}", mats.seal, kit.rounded_rect(0.024, 0.010, 0.004),
+                  [(x - s * 0.010, y, z + 0.024) for x, y, z in rail])
         for i, p in enumerate(rail[2:-6:3]):
-            screw_head(f"rail_bolt{s}_{i}", (p[0] - s * 0.0425, p[1], p[2] + 0.008), 0.0035, (0, -s * 90, 0), mats.alu)
+            screw_head(f"rail_bolt{s}_{i}", (p[0] - s * 0.030, p[1], p[2] + 0.006), 0.003, (0, -s * 90, 0), mats.alu)
         if rail_3d:  # the rails' front ends to the canopy's front, shown with the canopy up (`canopy_tips`, export_glb)
             whole = spline([(s * x, y, z) for x, y, z in RAIL], 60)
             tip = [q for q in whole if q[1] >= rail[-1][1] - 0.02]
-            kit.sweep(f"canopy_tiprail{s}", mats.frame, kit.rounded_rect(0.085, 0.060, 0.022), tip)
-            kit.sweep(f"canopy_tipseal{s}", mats.seal, kit.rounded_rect(0.030, 0.014, 0.005),
-                      [(x - s * 0.012, y, z + 0.034) for x, y, z in tip])
-        box(f"console{s}", (s * 0.39, 0.10, CZ - 0.055), (0.17, 0.95, 0.10), mats.panel, bevel=0.012)
+            kit.sweep(f"canopy_tiprail{s}", mats.frame, RAIL_PROFILE, tip)
+            kit.sweep(f"canopy_tipseal{s}", mats.seal, kit.rounded_rect(0.024, 0.010, 0.004),
+                      [(x - s * 0.010, y, z + 0.024) for x, y, z in tip])
+        # The console: one solid, its deck CZ high (its top 5 mm under it: the inserts stand on it) from aft of the seat
+        # to RAMP_FOOT, the ramp up to the cheek, its front buried behind the panel face (until round 3 a box to 0.575
+        # m ahead, the left forward panel a separate housing).
+        top, (yt, zt) = CZ - 0.005, RAMP_TOP
+        side = [(CONSOLE_AFT, CZ - 0.105), (CONSOLE_AFT, top), (RAMP_FOOT[s], top), (yt, zt), (0.72, zt),
+                (0.72, CZ - 0.105)]
+        xi, xo = CONSOLE_X
+        kit.sweep(f"console{s}", mats.panel, [(-y, z) for y, z in side], [(x, 0, 0) for x in sorted((s * xi, s * xo))],
+                  bevel=0.008, smooth=False)
         # The wall under the rail: one smooth plate swept along it from beside the eye (bc.py's carries it on behind)
         # down past the consoles (until 2026-11-09 fourteen stepped boxes, their seams showing looking aside).
         kit.sweep(f"wall{s}", mats.panel, WALL_PROFILE, [p for p in rail if p[1] > -0.16])
@@ -285,33 +314,506 @@ def build(mats, rail_3d=False):
         canopy_lever(mats)
     consoles(mats)
     hotas(mats)
+    controls(mats)
 
 
-# The consoles' switch panels (docs/f35i.md §4.2): the real jet's side panels carry a mix of toggles, guarded toggles,
-# rotary knobs and push buttons with printed labels (the photos, §5); which switch sits where is inferred. CZ is the
-# panels' top (the consoles' top, at the hands' height, docs/f35i.md §4.1 "Eye position"; until 2026-11-09 -0.415, the
-# grips' palms at the shoulders); [x, y, w, h, (kind, dx, dy, label) per control]. The start-up's (2026-11-09): BATT,
-# IPP and ENG (the three selections of the real start, docs/f35i.md §4.5) with START on the forward left panel, in the
-# start's order; their places are inferred. The canopy's control is a lever on the left wall (canopy_lever).
+# The consoles and the cockpit's controls (2026-11-16, finish list C1b) after the research of the real jet's physical
+# controls, modern-iaf/docs/research/f35-cockpit.md (§2: the IDs in the comments). Until 2026-11-16 the consoles carried
+# eight panels of 21 switches of our own invention (lights, fuel, oxygen, countermeasures, IFF); their functions are on
+# the panoramic display on the real jet (§2.8, §3). CZ is the consoles' top (the hands' height, docs/f35i.md §4.1).
 CZ = -0.57
-CONSOLE_PANELS = {
-    "L0": (-0.39, 0.49, 0.145, 0.10, [("toggle", -0.051, -0.01, "BATT"), ("toggle", -0.017, -0.01, "IPP"),
-                                      ("guard_red", 0.017, -0.01, "ENG"), ("push", 0.051, -0.01, "START")]),
-    "L1": (-0.43, 0.235, 0.055, 0.30, [("toggle", 0.0, 0.09, "LDG LT"), ("toggle", 0.0, 0.0, "TAXI"),
-                                       ("knob", 0.0, -0.10, "FORM")]),
-    "L2": (-0.39, -0.03, 0.145, 0.12, [("guard", -0.044, -0.01, "DUMP"), ("knob", 0.0, -0.01, "FUEL"),
-                                       ("toggle", 0.044, -0.01, "AR DOOR")]),
-    "L3": (-0.39, -0.18, 0.145, 0.12, [("knob", -0.044, -0.01, "FLOOD"), ("knob", 0.0, -0.01, "CONSOLE"),
-                                       ("toggle", 0.044, -0.01, "NVIS")]),
-    "R1": (0.39, 0.29, 0.145, 0.12, [("toggle", -0.044, -0.01, "OBOGS"), ("guard", 0.0, -0.01, "BKUP O2"),
-                                     ("knob", 0.044, -0.01, "TEMP")]),
-    "R2": (0.39, 0.15, 0.145, 0.12, [("toggle", -0.044, -0.01, "CHAFF"), ("toggle", 0.0, -0.01, "FLARE"),
-                                     ("knob", 0.044, -0.01, "CMDS")]),
-    "R3": (0.39, 0.01, 0.145, 0.12, [("knob", -0.044, -0.01, "POSN"), ("knob", 0.0, -0.01, "STROBE"),
-                                     ("toggle", 0.044, -0.01, "ANTI COLL")]),
-    "R4": (0.39, -0.13, 0.145, 0.12, [("guard_red", -0.044, -0.01, "ZEROIZE"), ("push", 0.0, -0.01, "IFF"),
-                                      ("push", 0.044, -0.01, "EMER")]),
-}
+# Every control is its own node (REG: node -> its parts, pivot and animation, and its positions for
+# cockpit3d_controls.gd), built in a local frame (x right, y up the panel or forward on a console, z out of it) and
+# placed by a matrix (face_m, top_m, wall_m, back_m). A toggle is modelled leaning forward (its last position) and
+# turns TOGGLE_DEG aft over its travel; a rotary's index points up at its middle position and turns clockwise; a push
+# button or a pulled handle moves along its axis while held.
+REG = {}
+TOGGLE_DEG = 40.0
+GUARD_DEG = 110.0
+PUSH_M = 0.003  # a push button's travel into its face (m; inferred), a pulled handle's PULL_M
+PULL_M = 0.02
+
+
+def face_m(x, z, depth):
+    """The local frame on the panel face at (x, z), `depth` toward the pilot."""
+    return Matrix.Translation(on_face(x, z, depth)) @ Matrix.Rotation(math.radians(90 - TILT), 4, 'X')
+
+
+def top_m(x, y, z=CZ):
+    return Matrix.Translation((x, y, z))
+
+
+def wall_m(x, y, z, s=-1):
+    """The local frame on a side wall (s -1 the left, its face inboard), x forward on the left, aft on the right."""
+    return Matrix(((0, 0, -s, x), (-s, 0, 0, y), (0, 1, 0, z), (0, 0, 0, 1)))
+
+
+def back_m(x, y, z):
+    """The local frame on a face toward the pilot standing upright (the lower pedestal's)."""
+    return Matrix(((1, 0, 0, x), (0, 0, -1, y), (0, 1, 0, z), (0, 0, 0, 1)))
+
+
+def pane(x, z, depth=0.0, yaw=0.0, pitch=0.0):
+    """The local frame (x right, y up the panel, z toward the pilot) of a panel at face (x, z), `depth` toward the
+    pilot, turned `yaw` deg about its up (+: its face toward +x) and leant `pitch` deg back (its face toward the eye)."""
+    return face_m(x, z, depth) @ Matrix.Rotation(math.radians(yaw), 4, 'Y') @ Matrix.Rotation(math.radians(-pitch), 4,
+                                                                                               'X')
+
+
+def at(m, u, v, d=0.0):
+    """Frame `m` moved to its local (u, v, d)."""
+    return m @ Matrix.Translation((u, v, d))
+
+
+def strip_m():
+    """The pedestal's top strip's frame (its insert's face at 0)."""
+    return pane(0, STRIP_Z, PED_D - 0.010, pitch=STRIP_PITCH)
+
+
+def ramp_m(s, x):
+    """The frame on console `s`'s ramp (x right, y up the ramp, z out of it) at its middle, at lateral x."""
+    y0, z0, (y1, z1) = RAMP_FOOT[s], CZ - 0.005, RAMP_TOP
+    return Matrix.Translation((x, (y0 + y1) / 2, (z0 + z1) / 2)) @ Matrix.Rotation(math.atan2(z1 - z0, y1 - y0), 4, 'X')
+
+
+def ramp_len(s):
+    return math.hypot(RAMP_TOP[0] - RAMP_FOOT[s], RAMP_TOP[1] - CZ + 0.005)
+
+
+def lfwd_m():
+    """The left forward panel's frame: its centre, on the left console's ramp."""
+    return ramp_m(-1, LFWD_X)
+
+
+# The gear handle's slot on the left forward panel's insert, inboard (the photos: above JETTISON, beside it).
+def gear_m():
+    return at(lfwd_m(), 0.024, ramp_len(-1) / 2 - 0.075, INSERT_UP)
+
+
+def pbox(m, name, u, v, w, h, d0, d1, mat, bevel=0.002):
+    """A block in frame `m` at (u, v), w x h, from depth d0 to d1."""
+    placed(m, lambda: kit.box(name, (u, v, (d0 + d1) / 2), (w, h, d1 - d0), mat, bevel=bevel))
+
+
+def pscrew(m, name, u, v, d, mats, r=0.0018):
+    """A slotted screw head in frame `m` at (u, v) on a surface at depth d."""
+    placed(m, lambda: (screw_head(name, (u, v, d), r, (0, 0, 0), mats.alu),
+                       kit.box(name + "_slot", (u, v, d + r * 0.42), (r * 1.5, r * 0.28, r * 0.25), mats.knob,
+                               bevel=0)))
+
+
+INSERT_UP = 0.002  # an insert's face over the surface it sits on
+FZ = 1 / math.cos(math.radians(TILT))  # a face height difference as a length along the face
+
+
+def insert(m, name, u, v, w, h, d, mats, screws=4):
+    """A black panel insert on a surface at depth `d` of frame `m`: its plate INSERT_UP proud in a raised grey lip,
+    screwed at its corners (`screws` 6: and half way along its long sides)."""
+    pbox(m, name, u, v, w, h, d - 0.004, d + INSERT_UP, mats.plate, bevel=0.001)
+    lip = 0.0028
+    for k, (uu, vv, ww, hh) in enumerate(((u, v + (h + lip) / 2, w + 2 * lip, lip), (u, v - (h + lip) / 2, w + 2 * lip,
+                                                                                     lip),
+                                          (u - (w + lip) / 2, v, lip, h), (u + (w + lip) / 2, v, lip, h))):
+        pbox(m, f"{name}_lip{k}", uu, vv, ww, hh, d - 0.004, d + INSERT_UP + 0.0016, mats.housing, bevel=0.0008)
+    pts = [(-1, -1), (1, -1), (-1, 1), (1, 1)]
+    if screws == 6:
+        pts += [(0, -1), (0, 1)] if w > h else [(-1, 0), (1, 0)]
+    for i, (du, dv) in enumerate(pts):
+        pscrew(m, f"{name}_scr{i}", u + du * (w / 2 - 0.0055), v + dv * (h / 2 - 0.0055), d + INSERT_UP, mats,
+               r=0.0019)
+
+
+def placed(m, fn):
+    """Builds `fn`'s objects in the local frame and moves them to `m`."""
+    before = set(bpy.data.objects)
+    fn()
+    for o in set(bpy.data.objects) - before:
+        o.matrix_world = m @ o.matrix_world
+
+
+def gltf(v):
+    """A direction in Blender's world as the glb's (+Y up, -Z nose), rounded."""
+    return [round(v[0], 5), round(v[2], 5), round(-v[1], 5)]
+
+
+def lab(m, text, lx, ly, mats, size=0.0045):
+    """A label printed on the surface under local (lx, ly), reading from the seat."""
+    r = m.to_3x3()
+    n = (r @ Vector((0, 0, 1))).normalized()
+    return kit.text_decal("lbl_" + text.replace(" ", "_"), text, mats.label, m @ Vector((lx, ly, 0.05)), tuple(-n),
+                          size, tuple(r @ Vector((1, 0, 0))), off=0.0008)
+
+
+def toggle(name, x, y, mats, guard=None, z0=CZ, bat=None, lean=20, length=0.014, nut=0.0045, tip=0.0023):
+    """A bat toggle on its nut, leaning forward; `guard`: a cover's two cheeks and its bar over it, in that colour."""
+    kit.cyl(name + "_nut", (x, y, z0 + 0.002), nut, 0.004, mats.alu, rot=(0, 0, 0), verts=12)
+    t = math.radians(lean)
+    kit.cyl(name + "_bat", (x, y + math.sin(t) * length / 2, z0 + 0.0036 + math.cos(t) * length / 2), 0.0014,
+            length, bat or mats.metal, rot=(-lean, 0, 0), verts=8)
+    kit.cyl(name + "_tip", (x, y + math.sin(t) * length, z0 + 0.0036 + math.cos(t) * length), tip, tip * 1.3,
+            bat or mats.metal, rot=(-lean, 0, 0), verts=10)
+    if guard:
+        for s in (-1, 1):
+            kit.box(f"{name}_guard{s}", (x + s * 0.0068, y, z0 + 0.0065), (0.0018, 0.020, 0.013), guard, bevel=0.0006)
+        kit.box(name + "_guardbar", (x, y + 0.009, z0 + 0.0125), (0.0154, 0.0024, 0.0022), guard, bevel=0.0006)
+
+
+def rotary_knob(name, mats, r, h, mat, pointer=True, ribs=0):
+    """A rotary's knob at the local origin on its skirt (its parts `name`, `name`_index), knurled with `ribs`."""
+    kit.cyl(name + "_skirt", (0, 0, 0.0012), r * 1.3, 0.0024, mats.knob, rot=(0, 0, 0), verts=24)
+    kit.cyl(name, (0, 0, h / 2), r, h, mat, rot=(0, 0, 0), verts=24)
+    parts = [name]
+    for k in range(ribs):
+        a = 2 * math.pi * k / ribs
+        kit.box(f"{name}_rib{k}", (math.sin(a) * r, math.cos(a) * r, h / 2), (0.0012, 0.0012, h * 0.9), mat,
+                rot=(0, 0, -math.degrees(a)), bevel=0)
+        parts.append(f"{name}_rib{k}")
+    if pointer:
+        kit.box(name + "_index", (0, r * 0.5, h + 0.0004), (0.0013, r * 0.85, 0.0008), mats.label, bevel=0)
+        parts.append(name + "_index")
+    return parts
+
+
+def stripes(name, s, mats, z=0.0):
+    """A square yellow plate of side `s` with black diagonal stripes (the jettison's and AUTO RECOVERY's)."""
+    kit.box(name, (0, 0, z + 0.00075), (s, s, 0.0015), mats.yellow, bevel=0)
+    p = 0.006
+    c = -s + p
+    k = 0
+    while c < s - p / 2:
+        ln = math.sqrt(2) * (s - abs(c)) - p
+        if ln > 0.002:
+            kit.box(f"{name}_s{k}", (c / 2, c / 2, z + 0.0017), (ln, p / 2, 0.0006), mats.knob, rot=(0, 0, -45),
+                    bevel=0)
+        c += p
+        k += 1
+
+
+def reg(node, parts, pivot, anim, control):
+    REG[node] = {"parts": parts, "pivot": Vector(pivot), "anim": anim, "control": control}
+
+
+def put_toggle(node, m, mats, prop, lo=0.0, hi=1.0, modelled=None, rest=None, guard=None, bat=None, labels=(),
+               length=0.014, nut=0.0045, lx=0.013, label_size=0.0042, tip=0.0023):
+    """A toggle of positions lo..hi (labels printed beside, bottom to top) at frame `m`; `guard`: its cover's colour
+    (its own node `node`_GUARD); `rest`: spring-loaded to that position."""
+    p = "c_" + node
+    placed(m, lambda: toggle(p, 0, 0, mats, guard=guard, z0=0.0, bat=bat, length=length, nut=nut, tip=tip))
+    span = hi - lo
+    c = {"prop": prop, "mode": "cycle", "min": lo, "max": hi, "step": 1.0, "wrap": True,
+         "modelled": hi if modelled is None else modelled}
+    if rest is not None:
+        c["rest"] = rest
+    if guard is not None:
+        c.update(guard=prop + "-guard", safe=lo)
+        reg(node + "_GUARD", [p + s for s in ("_guard-1", "_guard1", "_guardbar")], m @ Vector((0, -0.010, 0)),
+            [{"centre": [0, 0, 0], "axis": gltf(m.to_3x3() @ Vector((1, 0, 0))), "factor": GUARD_DEG,
+              "offset": 0.0}],
+            {"prop": prop + "-guard", "mode": "cycle", "min": 0.0, "max": 1.0, "step": 1.0, "wrap": True,
+             "modelled": 0.0})
+    reg(node, [p + "_bat", p + "_tip"], m @ Vector((0, 0, 0.002)),
+        [{"centre": [0, 0, 0], "axis": gltf(m.to_3x3() @ Vector((1, 0, 0))), "factor": -TOGGLE_DEG / span,
+          "offset": TOGGLE_DEG * hi / span}], c)
+    for i, t in enumerate(labels):
+        if t:
+            lab(m, t, lx + math.copysign(0.0011 * len(t), lx), -0.010 + 0.020 * i / max(1, len(labels) - 1), mats,
+                size=label_size)
+
+
+def put_rotary(node, m, mats, prop, labels, deg=45.0, modelled=0.0, r=0.0065, h=0.010, mat=None, ribs=0, rest=None,
+               size=0.0030, radius=None, slide=False, spring=None, label_at=None):
+    """A rotary of len(labels) positions `deg` apart printed round it (clockwise from the first), or with `slide` a
+    continuous knob 0..1 over 300 deg."""
+    p = "c_" + node
+    parts = []
+    placed(m, lambda: parts.extend(rotary_knob(p, mats, r, h, mat or mats.knob, ribs=ribs)))
+    if slide:
+        anim = {"factor": -300.0, "offset": 150.0}
+        c = {"prop": prop, "mode": "slide", "min": 0.0, "max": 1.0, "step": 0.05, "wrap": False, "modelled": 0.5}
+    else:
+        n = len(labels)
+        anim = {"factor": -deg, "offset": deg * (n - 1) / 2}
+        c = {"prop": prop, "mode": "cycle", "min": 0.0, "max": float(n - 1), "step": 1.0, "wrap": True,
+             "modelled": modelled}
+        if rest is not None:
+            c["rest"] = rest
+        if spring is not None:  # only these positions spring back to rest, the others latch
+            c["spring"] = spring
+        rr = radius or r * 1.3 + 0.006
+        for i, t in enumerate(labels):
+            a = math.radians((i - (n - 1) / 2) * deg)
+            lx, ly = label_at[i] if label_at else (math.sin(a) * rr, math.cos(a) * rr)
+            lab(m, t, lx, ly, mats, size=size)
+    reg(node, parts, m @ Vector((0, 0, 0)),
+        [{"centre": [0, 0, 0], "axis": gltf(m.to_3x3() @ Vector((0, 0, 1))), **anim}], c)
+
+
+def put_push(node, m, mats, prop, w=0.010, mat=None, round_=False, guard=None, travel=PUSH_M, pull=False, h=0.005,
+             parts=None):
+    """A push button (square, or `round_`) in its bezel pressed `travel` while held; `pull`: a handle pulled out;
+    `parts`: objects already built (the handle's) in place of the button."""
+    p = "c_" + node
+    if parts is None:
+        def build():
+            kit.box(p + "_bezel", (0, 0, 0.002), (w + 0.005, w + 0.005, 0.004), mats.bezel, bevel=0.001)
+            if round_:
+                kit.cyl(p, (0, 0, 0.004 + h / 2), w / 2, h, mat or mats.hat, rot=(0, 0, 0), verts=20)
+            else:
+                kit.box(p, (0, 0, 0.004 + h / 2), (w, w, h), mat or mats.hat, bevel=0.0012)
+            if guard:
+                for s in (-1, 1):
+                    kit.box(f"{p}_guard{s}", (s * (w / 2 + 0.003), 0, 0.006), (0.0018, w + 0.008, 0.012), guard,
+                            bevel=0.0006)
+                kit.box(p + "_guardbar", (0, w / 2 + 0.003, 0.0115), (w + 0.0078, 0.0024, 0.0022), guard,
+                        bevel=0.0006)
+        placed(m, build)
+        parts = [p]
+    axis = m.to_3x3() @ Vector((0, 0, 1 if pull else -1))
+    c = {"prop": prop, "mode": "push", "press": 1.0, "rest": 0.0, "modelled": 0.0}
+    if guard:
+        c.update(guard=prop + "-guard", safe=0.0)
+        reg(node + "_GUARD", [p + s for s in ("_guard-1", "_guard1", "_guardbar")],
+            m @ Vector((0, -(w / 2 + 0.004), 0)),
+            [{"centre": [0, 0, 0], "axis": gltf(m.to_3x3() @ Vector((1, 0, 0))), "factor": GUARD_DEG,
+              "offset": 0.0}],
+            {"prop": prop + "-guard", "mode": "cycle", "min": 0.0, "max": 1.0, "step": 1.0, "wrap": True,
+             "modelled": 0.0})
+    reg(node, parts, m @ Vector((0, 0, 0)),
+        [{"type": "translate", "axis": gltf(axis), "factor": travel / PRESENT_SCALE, "offset": 0.0}], c)
+
+
+def put_rocker(node, m, mats, prop, labels=("", "")):
+    """A paddle rocker, spring-loaded to its middle: up (1) and down (-1) while held."""
+    p = "c_" + node
+
+    def build():
+        kit.box(p + "_well", (0, 0, 0.0015), (0.012, 0.024, 0.003), mats.knob, bevel=0.001)
+        kit.box(p, (0, 0, 0.0055), (0.009, 0.020, 0.006), mats.hub, bevel=0.002)
+        for dy in (0.006, -0.006):
+            kit.box(f"{p}_{dy}", (0, dy, 0.0086), (0.004, 0.0012, 0.0006), mats.knob, bevel=0)
+    placed(m, build)
+    reg(node, [p] + [f"{p}_{dy}" for dy in (0.006, -0.006)], m @ Vector((0, 0, 0.003)),
+        [{"centre": [0, 0, 0], "axis": gltf(m.to_3x3() @ Vector((1, 0, 0))), "factor": -12.0, "offset": 0.0}],
+        {"prop": prop, "mode": "cycle", "min": -1.0, "max": 1.0, "step": 1.0, "wrap": True, "rest": 0.0,
+         "modelled": 0.0})
+    for t, ly in zip(labels, (0.0175, -0.0175)):
+        if t:
+            lab(m, t, 0, ly, mats, size=0.0030)
+
+
+def controls(mats):
+    """The forward controls (§2.1-2.3), the consoles' (§2.5, §2.6) and the side walls'; the seat's are seat_controls."""
+    # §2.2 the centre pedestal: the top strip P1-P6 (leant back), the radios P7-P9 and MASTER ARM P10 on their insert,
+    # the standby display's P12-P14 on its case. Labels at least 4 mm (the seat's view at 1080p, round 2).
+    sm = strip_m()
+    ux = (-0.104, -0.062, -0.020, 0.006, 0.054, 0.100)
+    up = INSERT_UP
+
+    def sl(t, u, v, size=0.0044):
+        lab(at(sm, u, v, up), t, 0, 0, mats, size=size)
+    put_rocker("HMD_BRT", at(sm, ux[0], -0.007, up), mats, "f35i/hmd/brt")
+    put_rotary("HMD_MODE", at(sm, ux[1], -0.009, up), mats, "f35i/hmd/mode", ["OFF", "NIGHT", "AUTO", "DAY"],
+               deg=48.0, modelled=3.0, r=0.0058, size=0.0042, radius=0.0190)
+    put_rocker("VIDEO_BRT", at(sm, ux[2], -0.007, up), mats, "f35i/hmd/video-brt")
+    put_rocker("VIDEO_CONT", at(sm, ux[3], -0.007, up), mats, "f35i/hmd/video-cont")
+    put_rotary("MFD_MODE", at(sm, ux[4], -0.009, up), mats, "f35i/mfd/mode", ["NIGHT", "DAY"], deg=70.0,
+               modelled=1.0, r=0.0058, size=0.0042, radius=0.0190)
+    put_rocker("MFD_BRT", at(sm, ux[5], -0.007, up), mats, "f35i/mfd/brt")
+    sl("HMD", ux[0], 0.0165, 0.0048)
+    sl("BRT", ux[0], 0.0100, 0.0046)
+    sl("VIDEO", (ux[2] + ux[3]) / 2, 0.0165, 0.0048)
+    sl("BRT", ux[2] - 0.002, 0.0100, 0.0046)
+    sl("CONT", ux[3] + 0.002, 0.0100, 0.0046)
+    sl("MFD", ux[5], 0.0165, 0.0048)
+    sl("BRT", ux[5], 0.0100, 0.0046)
+    d = PED_D + up
+    for i, (z, t) in enumerate(((-0.411, "COM A"), (-0.438, "COM B"), (-0.465, "C/BUR"))):
+        put_rotary(("COM_A", "COM_B", "COM_C")[i], face_m(-0.111, z, d), mats, f"f35i/radio/com{i + 1}", [],
+                   r=0.0068, h=0.020, mat=mats.hub, ribs=12, slide=True)
+        label(t, -0.086, z, 0.0050, d, mats)
+    put_toggle("MASTER_ARM", face_m(-0.042, -0.446, d), mats, "f35i/weapons/master-arm", modelled=0.0, length=0.032,
+               nut=0.0080, tip=0.0048)
+    label("MASTER", -0.042, -0.411, 0.0050, d, mats)
+    label("ARM", -0.042, -0.418, 0.0050, d, mats)
+    label("ARM", -0.021, -0.437, 0.0050, d, mats)
+    label("SAFE", -0.020, -0.456, 0.0050, d, mats)
+    ex, ez, ew, eh = ESIS
+    ed = ESIS_D - 0.0005
+    put_rotary("SFD_BARO", face_m(ex + ew / 2 + 0.0075, ez + eh / 2 + 0.002, ed), mats, "f35i/sfd/baro", [],
+               r=0.0048, h=0.009, slide=True, ribs=10)
+    for x, t in ((ex - 0.030, "ALIGN"), (ex + 0.014, "BRT")):
+        put_push("SFD_" + t, face_m(x, ez - eh / 2 - 0.0105, ed), mats, f"f35i/sfd/{t.lower()}", w=0.008)
+        label(t, x + 0.0066 + 0.0016 * len(t), ez - eh / 2 - 0.0105, 0.0046, ed, mats)
+
+    # PEDAL ADJ (P15): a round handle on the pedestal's foot under the radios (the photos), pulled toward the pilot
+    # while held (its turn: inferred); until round 2 low on the pedestal between the feet.
+    pm = pane(0, -0.556, PED_D - 0.012 + up)
+    placed(pm, lambda: (kit.cyl("c_PEDAL_ADJ", (0, 0, 0.014), 0.017, 0.012, mats.hub, rot=(0, 0, 0), verts=28),
+                        kit.cyl("c_PEDAL_ADJ_stem", (0, 0, 0.004), 0.006, 0.008, mats.alu, rot=(0, 0, 0), verts=12)))
+    put_push("PEDAL_ADJ", pm, mats, "f35i/pedals/adjust", pull=True, travel=PULL_M,
+             parts=["c_PEDAL_ADJ", "c_PEDAL_ADJ_stem"])
+    lab(pm, "PEDAL ADJ", 0, 0.030, mats, size=0.0060)
+
+    # §2.1 the left forward panel (lfwd_m: x across, y up the left console's ramp): HOOK/STOVL at the top under the
+    # display's corner, then the outboard column (JETTISON, TOW MODE STATUS, PARKING BRAKE) and the inboard one (the
+    # gear lever, ALT GEAR EXTENSION, LAND/TAXI LIGHTS), as the photos.
+    lm = lfwd_m()
+    hv = ramp_len(-1) / 2  # its top's v
+
+    def ll(t, u, v, size=0.0044):
+        lab(at(lm, u, v, up), t, 0, 0, mats, size=size)
+    put_push("HOOK", at(lm, -0.030, hv - 0.022, up), mats, "f35i/hook", w=0.015, mat=mats.hat)
+    ll("HOOK", -0.009, hv - 0.022, 0.0046)
+    ll("LDG GEAR", 0.026, hv - 0.022, 0.0046)
+    gv = hv - 0.075  # the gear slot's centre (gear_m)
+    ll("UP", 0.042, gv + GEAR_TRAVEL, 0.0044)
+    ll("DN", 0.042, gv - GEAR_TRAVEL, 0.0044)
+    ju, jv = -0.022, hv - 0.106
+    placed(at(lm, ju, jv, up), lambda: stripes("jett_plate", 0.036, mats))
+    # Its positions' labels just over the striped plate (the photos), clear of the stripes.
+    put_rotary("JETT_SEL", at(lm, ju, jv, up + 0.0015), mats, "f35i/weapons/jett-select", ["ALL", "EXT", "SEL"],
+               deg=45.0, modelled=1.0, r=0.0105, h=0.013, mat=mats.hub, ribs=16, size=0.0044,
+               label_at=[(-0.016, 0.0235), (0, 0.0285), (0.016, 0.0235)])
+    placed(at(lm, ju, jv, up + 0.0145), lambda: stripes("jett_cap_s", 0.0075, mats))
+    put_push("EMER_JETT", at(lm, ju, jv, up + 0.0143), mats, "f35i/weapons/emer-jett", w=0.0085, round_=True,
+             mat=mats.yellow, h=0.0018)
+    ll("JETTISON", ju, jv + 0.039, 0.0050)
+    tv = jv - 0.054
+    ll("TOW MODE", ju, tv + 0.0215, 0.0044)
+    ll("STATUS", ju, tv + 0.0140, 0.0044)
+    pbox(lm, "tow_window", ju, tv, 0.024, 0.012, up, up + 0.0015, mats.knob, bevel=0.001)
+    for i in range(4):
+        pbox(lm, f"tow_lamp{i}", ju - 0.0075 + i * 0.005, tv, 0.0032, 0.0032, up + 0.0015, up + 0.0022,
+             mats.lens["LIGHT000"], bevel=0)
+    pv = tv - 0.052
+    put_toggle("PARK_BRAKE", at(lm, ju, pv, up), mats, "f35i/brakes/parking", modelled=1.0, length=0.018)
+    ll("PARKING", ju, pv + 0.026, 0.0044)
+    ll("BRAKE", ju, pv + 0.0185, 0.0044)
+    ll("ON", ju + 0.017, pv + 0.008, 0.0044)
+    ll("OFF", ju + 0.018, pv - 0.010, 0.0044)
+    av = tv + 0.004
+    put_toggle("ALT_GEAR", at(lm, 0.030, av, up), mats, "f35i/gear/alt-extension", modelled=0.0, guard=mats.red)
+    ll("ALT GEAR", 0.030, av + 0.019, 0.0044)
+    put_toggle("LAND_TAXI", at(lm, 0.028, pv, up), mats, "f35i/lights/land-taxi", lo=0.0, hi=2.0, modelled=0.0,
+               length=0.016)
+    ll("LAND/TAXI", 0.029, pv + 0.021, 0.0042)
+    for t, dv in (("LAND", 0.0095), ("TAXI", 0.0), ("OFF", -0.0095)):
+        ll(t, 0.041, pv + dv, 0.0040)
+
+    # §2.3 the right forward panel: the red switch in its striped surround (AUTO RECOVERY, the name low) and the
+    # rotary under it (BYPASS / NORM / ZEROIZE), here on an insert on the cheek right of the display.
+    cd = 0.034 + up
+    insert(pane(0.322, -0.222, 0.034), "rfwd_panel", 0, 0, 0.052, 0.150, 0.0, mats)
+    placed(face_m(0.322, -0.190, cd), lambda: stripes("arec_plate", 0.028, mats))
+    put_toggle("AUTO_RECOVERY", face_m(0.322, -0.194, cd + 0.0015), mats, "f35i/fcs/auto-recovery", modelled=1.0,
+               bat=mats.red, length=0.013)
+    label("AUTO", 0.322, -0.162, 0.0046, cd, mats)
+    label("REC", 0.322, -0.169, 0.0046, cd, mats)
+    put_rotary("ZEROIZE", face_m(0.322, -0.248, cd), mats, "f35i/zeroize", ["BYP", "NORM", "ZERO"], deg=50.0,
+               modelled=1.0, r=0.0062, h=0.010, mat=mats.hub, size=0.0040, radius=0.0170)
+    label("ZEROIZE", 0.322, -0.273, 0.0046, cd, mats)
+
+    # §2.5 the left console: the trim plate ahead of the throttle (L1 rudder trim: geometry only, trim is the keys';
+    # L2 FCS/ENG RESET), the ENGINE panel and the friction and THROTTLE ACTIVE aft of the throttle, the start panel aft;
+    # blanking inserts on the rest of the console (round 2: the bare console tops).
+    def plate(name, x, y, w, h):
+        insert(top_m(x, y, CZ), "cpanel_" + name, 0, 0, w, h, -INSERT_UP, mats, screws=6 if max(w, h) > 0.1 else 4)
+    # Round 3: the trim plate between the throttle's track and the ramp (until then 8 cm further forward).
+    ty = TRIM_Y
+    plate("trim", -0.365, ty + 0.003, 0.11, 0.056)
+    toggle("trim_rudder", -0.385, ty, mats)
+    for s in (-1, 1):  # its wire-loop guards either side
+        kit.box(f"trim_loop{s}", (-0.385 + s * 0.0085, ty, CZ + 0.008), (0.0010, 0.014, 0.016), mats.alu,
+                bevel=0.0004)
+    put_push("FCS_RESET", top_m(-0.340, ty), mats, "f35i/fcs/reset", w=0.011)
+    plate("outboard", -0.4375, 0.24, 0.058, 0.28)  # round 3: clear of the trim plate
+    plate("eng", -0.410, 0.000, 0.075, 0.075)
+    # ENGINE NORM / MOTOR / OFF (L6), three latched positions under its red guard.
+    put_toggle("ENG", top_m(-0.430, 0.002), mats, "f35i/engine/eng", lo=0.0, hi=2.0, guard=mats.red, modelled=0.0,
+               labels=("OFF", "MOTOR", "NORM"), lx=0.012)
+    put_push("VS_BIT", top_m(-0.387, -0.016), mats, "f35i/vs-bit", w=0.009)
+    top_label("lbl_vsbit", "VS BIT", -0.387, 0.004, mats, size=0.0046)
+    top_label("lbl_engine", "ENGINE", -0.418, 0.027, mats, size=0.0050)
+    plate("thr", -0.340, THROTTLE_XY[1] - THROTTLE_AFT - 0.075, 0.060, 0.058)
+    put_rotary("THR_FRICTION", top_m(-0.355, THROTTLE_XY[1] - THROTTLE_AFT - 0.068), mats,
+               "f35i/throttle/friction", [], r=0.007, h=0.012, mat=mats.hub, ribs=12, slide=True)
+    put_toggle("THR_ACTIVE", top_m(-0.324, THROTTLE_XY[1] - THROTTLE_AFT - 0.068), mats, "f35i/throttle/active",
+               bat=mats.red)
+    plate("mid", -0.392, -0.063, 0.150, 0.036)
+    plate("start", -0.392, -0.175, 0.150, 0.170)
+    for i, n in enumerate(("IPP", "ICC1", "ICC2")):
+        put_toggle(n, top_m(-0.448, -0.115 - 0.052 * i), mats, f"f35i/elec/{n.lower()}" if n != "IPP" else
+                   "f35i/engine/ipp", labels=("OFF/RESET", "ON"), modelled=1.0, lx=0.016, label_size=0.0036)
+    put_rotary("CABIN_PRESS", top_m(-0.385, -0.125), mats, "f35i/ecs/cabin-press", ["DUMP", "NORM", "ALTN"],
+               deg=55.0, modelled=1.0, r=0.0075, h=0.012, mat=mats.hub, size=0.0040, radius=0.0185)
+    # BATT ON / OFF / RESET (L14), three latched positions.
+    put_toggle("BATT", top_m(-0.390, -0.218), mats, "f35i/elec/batt", lo=-1.0, hi=1.0, modelled=0.0,
+               labels=("RESET", "OFF", "ON"))
+    for i, t in enumerate(("28V", "270V")):
+        x = -0.402 + 0.024 * i
+        kit.box(f"lowlamp{i}", (x, -0.178, CZ + 0.001), (0.012, 0.007, 0.002), mats.lens["LIGHT000"], bevel=0.0005)
+        top_label(f"lbl_low{i}", t, x, -0.1695, mats, size=0.0036)
+    # IPP OFF / AUTO / START (L16): START springs back to AUTO, OFF latches (the research: START spring-loaded).
+    put_push("IPP_EMER_OFF", top_m(-0.343, -0.140), mats, "f35i/engine/ipp-emer-off", w=0.010, round_=True,
+             mat=mats.red, guard=mats.red)
+    put_rotary("START", top_m(-0.343, -0.218), mats, "f35i/engine/ipp-start", ["OFF", "AUTO", "START"], deg=55.0,
+               modelled=1.0, rest=1.0, spring=[2.0], r=0.0075, h=0.012, mat=mats.hub, size=0.0040, radius=0.0185)
+    plate("aft", -0.392, -0.315, 0.150, 0.090)
+
+    for i, (t, x, y, sz) in enumerate((("IPP", -0.448, -0.095, 0.0046), ("ICC1", -0.448, -0.147, 0.0046),
+                                       ("ICC2", -0.448, -0.199, 0.0046), ("CABIN PRESS", -0.385, -0.097, 0.0042),
+                                       ("BATT", -0.390, -0.196, 0.0046), ("LOW", -0.390, -0.1865, 0.0036),
+                                       ("IPP EMER OFF", -0.343, -0.119, 0.0038), ("IPP", -0.343, -0.192, 0.0046),
+                                       ("RUDDER", -0.385, TRIM_Y + 0.0225, 0.0046),
+                                       ("L   R", -0.385, TRIM_Y - 0.0175, 0.0040),
+                                       ("FCS/ENG", -0.340, TRIM_Y + 0.0225, 0.0040),
+                                       ("RESET", -0.340, TRIM_Y - 0.0175, 0.0040),
+                                       ("FRICTION", -0.355, THROTTLE_XY[1] - THROTTLE_AFT - 0.091, 0.0036),
+                                       ("THR ACT", -0.324, THROTTLE_XY[1] - THROTTLE_AFT - 0.091, 0.0036))):
+        top_label(f"lbl_c{i}", t, x, y, mats, size=sz)
+
+    # §2.6 the right console: the side-stick (hotas()), STICK ACTIVE aft of its base outboard (in its lee the stick's
+    # housing hid it from the seat), the arm rest behind it,
+    # blanking inserts aft of the arm rest (the one ahead of the stick on its ramp, build()).
+    plate("stick_act", 0.4475, STICK[1] - 0.085, 0.044, 0.056)
+    put_toggle("STICK_ACTIVE", top_m(0.4475, STICK[1] - 0.076), mats, "f35i/stick/active", bat=mats.red)
+    top_label("lbl_stick_active", "STICK ACTIVE", 0.4475, STICK[1] - 0.102, mats, size=0.0040)  # after its plate
+    plate("r_aft1", 0.39, -0.160, 0.150, 0.120)
+    plate("r_aft2", 0.39, -0.300, 0.150, 0.120)
+    kit.box("armrest_base", (0.39, 0.10, CZ + 0.012), (0.075, 0.30, 0.024), mats.housing, bevel=0.006)
+    kit.box("armrest", (0.39, 0.10, CZ + 0.040), (0.095, 0.36, 0.034), mats.grip, bevel=0.014)
+
+    # The side walls: DEFOG (L8) between the ENGINE panel and the throttle, the canopy's MDC handle (S4) on the right.
+    wm = wall_m(-0.456, 0.15, CZ + 0.075, -1)
+    placed(wm, lambda: kit.box("defog_slot", (0, 0, 0.001), (0.065, 0.004, 0.002), mats.seal, bevel=0))
+    placed(wm, lambda: (kit.cyl("c_DEFOG", (0.0, 0, 0.007), 0.0055, 0.008, mats.knob, rot=(0, 0, 0), verts=16),
+                        kit.cyl("c_DEFOG_stem", (0.0, 0, 0.002), 0.002, 0.004, mats.alu, rot=(0, 0, 0), verts=8)))
+    reg("DEFOG", ["c_DEFOG", "c_DEFOG_stem"], wm @ Vector((0, 0, 0)),
+        [{"type": "translate", "axis": gltf(wm.to_3x3() @ Vector((1, 0, 0))), "factor": 0.06 / PRESENT_SCALE,
+          "offset": -0.03 / PRESENT_SCALE}],
+        {"prop": "f35i/ecs/defog", "mode": "slide", "min": 0.0, "max": 1.0, "step": 0.1, "wrap": False,
+         "modelled": 0.5})
+    lab(wm, "MIN  DEFOG  MAX", 0, 0.011, mats, size=0.0036)
+    rm = wall_m(0.456, -0.06, CZ + 0.06, 1)
+
+    def mdc():
+        kit.cyl("c_MDC", (0, 0, 0.014), 0.003, 0.028, mats.alu, rot=(0, 0, 0), verts=8)
+        kit.box("c_MDC_bar", (0, 0, 0.028), (0.036, 0.009, 0.008), mats.yellow, bevel=0.003)
+        for k in (-1, 1):
+            kit.box(f"c_MDC_s{k}", (k * 0.009, 0, 0.0325), (0.006, 0.0095, 0.0012), mats.knob, bevel=0)
+        kit.box("mdc_mount", (0, 0, 0.002), (0.020, 0.016, 0.004), mats.knob, bevel=0.001)
+    placed(rm, mdc)
+    put_push("MDC", rm, mats, "f35i/canopy/mdc", pull=True, travel=PULL_M,
+             parts=["c_MDC", "c_MDC_bar", "c_MDC_s-1", "c_MDC_s1"])
+    lab(rm, "CANOPY", 0, 0.020, mats, size=0.0040)
+
+
+def consoles(mats):
+    """The consoles' throttle track's detent marks (the panels and switches: controls())."""
+    for text, y in (("IDLE", THROTTLE_XY[1] - THROTTLE_AFT), ("MIL", THROTTLE_XY[1]),
+                    ("AB", THROTTLE_XY[1] + THROTTLE_AB)):  # inboard of the track
+        top_label("lbl_thr_" + text, text, -0.321, y, mats, size=0.0050, z=CZ - 0.005)
+        kit.box("thr_mark_" + text, (-0.3375, y, CZ - 0.0045), (0.0035, 0.0012, 0.001), mats.label, bevel=0)
 
 
 # The canopy control lever (docs/f35i.md §4.5): a yellow lever on the left cockpit wall just above the console, aft of
@@ -323,72 +825,36 @@ CANOPY_LEVER = (-0.445, 0.055, CZ + 0.035)
 
 
 def canopy_lever(mats):
+    # Round 2: its quadrant plate on the wall (the slot, CLOSE forward, OPEN aft), the pivot boss, a flat arm and a
+    # T-grip striped yellow and black (until then a yellow rod and block).
     x, y, z = CANOPY_LEVER
-    kit.box("canopy_lever_nut", (x, y, z), (0.022, 0.030, 0.026), mats.knob, bevel=0.004)
-    kit.cyl("canopy_lever_bat", (x + 0.014, y + 0.012, z + 0.040), 0.0055, 0.075, mats.yellow, rot=(-20, 0, 0),
-            verts=12)
-    kit.box("canopy_lever_tip", (x + 0.014, y + 0.026, z + 0.080), (0.020, 0.030, 0.022), mats.yellow, rot=(-20, 0, 0),
-            bevel=0.006)
-    kit.text_decal("lbl_canopy", "CANOPY", mats.label, (x + 0.03, y - 0.032, z + 0.02), (-1, 0, 0), 0.0075,
-                   (0, 1, 0), off=0.0008)
+    wm = wall_m(-0.456, y, z + 0.012, -1)
+    placed(wm, lambda: (kit.box("canopy_quadrant", (0, 0, 0.002), (0.085, 0.060, 0.004), mats.plate, bevel=0.002),
+                        kit.box("canopy_slot", (0, 0.004, 0.0042), (0.055, 0.006, 0.0006), mats.seal, bevel=0)))
+    for i, (du, dv) in enumerate(((-1, -1), (1, -1), (-1, 1), (1, 1))):
+        pscrew(wm, f"canopy_quadrant_scr{i}", du * 0.036, dv * 0.024, 0.004, mats)
+    lab(wm, "CANOPY", 0, -0.016, mats, size=0.0060)
+    lab(wm, "CLOSE", 0.026, 0.020, mats, size=0.0044)
+    lab(wm, "OPEN", -0.028, 0.020, mats, size=0.0044)
+    kit.cyl("canopy_lever_boss", (x, y, z), 0.011, 0.018, mats.knob, rot=(0, 90, 0), verts=20)
+    t = math.radians(20)
+    arm = 0.070
+    kit.box("canopy_lever_bat", (x + 0.004, y + math.sin(t) * arm / 2, z + math.cos(t) * arm / 2), (0.006, 0.012, arm),
+            mats.metal, rot=(-20, 0, 0), bevel=0.002)
+    gx, gy, gz = x + 0.004 + 0.018, y + math.sin(t) * arm, z + math.cos(t) * arm
+    kit.cyl("canopy_lever_tip", (gx, gy, gz), 0.0085, 0.046, mats.yellow, rot=(0, 90, 0), verts=16)
+    rings = []
+    for k, dx in enumerate((-0.012, 0.0, 0.012)):
+        rings.append(f"canopy_lever_ring{k}")
+        kit.cyl(rings[-1], (gx + dx, gy, gz), 0.0088, 0.004, mats.knob, rot=(0, 90, 0), verts=16)
+    reg("CANOPY", ["canopy_lever_bat", "canopy_lever_tip"] + rings, (x, y, z),
+        [{"prop": "f35i/canopy", "centre": [0, 0, 0], "axis": [1, 0, 0], "factor": -TOGGLE_DEG,
+          "offset": TOGGLE_DEG}], None)
 
 
 def top_label(name, text, x, y, mats, size=0.0088, z=CZ):
     """A label printed on the console under (x, y), reading from the seat (its top forward)."""
     return kit.text_decal(name, text, mats.label, (x, y, z + 0.05), (0, 0, -1), size, (1, 0, 0), off=0.0008)
-
-
-def toggle(name, x, y, mats, guard=None):
-    """A bat toggle on its nut, leaning forward; `guard`: a cover's two cheeks and its bar over it, in that colour."""
-    kit.cyl(name + "_nut", (x, y, CZ + 0.002), 0.0045, 0.004, mats.alu, rot=(0, 0, 0), verts=12)
-    kit.cyl(name + "_bat", (x, y + 0.0024, CZ + 0.0106), 0.0014, 0.014, mats.metal, rot=(-20, 0, 0), verts=8)
-    kit.cyl(name + "_tip", (x, y + 0.0053, CZ + 0.0186), 0.0023, 0.003, mats.metal, rot=(-20, 0, 0), verts=10)
-    if guard:
-        for s in (-1, 1):
-            kit.box(f"{name}_guard{s}", (x + s * 0.0068, y, CZ + 0.0065), (0.0018, 0.020, 0.013), guard, bevel=0.0006)
-        kit.box(name + "_guardbar", (x, y + 0.009, CZ + 0.0125), (0.0154, 0.0024, 0.0022), guard, bevel=0.0006)
-
-
-def console_knob(name, x, y, mats, r=0.008):
-    """A rotary knob with its skirt, a white index and three scale ticks round it."""
-    kit.cyl(name + "_skirt", (x, y, CZ + 0.0012), r * 1.4, 0.0024, mats.knob, rot=(0, 0, 0), verts=24)
-    kit.cyl(name, (x, y, CZ + 0.0085), r, 0.013, mats.knob, rot=(0, 0, 0), verts=24)
-    kit.box(name + "_index", (x, y + r * 0.5, CZ + 0.0153), (0.0013, r * 0.85, 0.0008), mats.label, bevel=0)
-    for k, a in enumerate((-50, 0, 50)):
-        t = math.radians(a)
-        kit.box(f"{name}_tick{k}", (x + math.sin(t) * r * 1.85, y + math.cos(t) * r * 1.85, CZ + 0.0005),
-                (0.0011, 0.0035, 0.001), mats.label, rot=(0, 0, -a), bevel=0)
-
-
-def push(name, x, y, mats, w=0.013):
-    """A square push button in its bezel."""
-    kit.box(name + "_bezel", (x, y, CZ + 0.002), (w + 0.005, w + 0.005, 0.004), mats.bezel, bevel=0.001)
-    kit.box(name, (x, y, CZ + 0.0055), (w, w, 0.005), mats.hat, bevel=0.0012)
-
-
-def consoles(mats):
-    """The switch panels on both consoles (CONSOLE_PANELS) and the throttle track's detent marks."""
-    labels = []
-    for key, (x, y, w, h, controls) in CONSOLE_PANELS.items():
-        kit.box(f"cpanel_{key}", (x, y, CZ - 0.003), (w, h, 0.006), mats.bezel, bevel=0.002)
-        for i, (dx, dy) in enumerate(((-1, -1), (1, -1), (-1, 1), (1, 1))):
-            screw_head(f"cpanel_{key}_scr{i}", (x + dx * (w / 2 - 0.006), y + dy * (h / 2 - 0.006), CZ), 0.0018,
-                       (0, 0, 0), mats.alu)
-        for j, (kind, dx, dy, text) in enumerate(controls):
-            n, cx, cy = f"csw_{key}_{j}", x + dx, y + dy
-            if kind == "knob":
-                console_knob(n, cx, cy, mats)
-            elif kind == "push":
-                push(n, cx, cy, mats)
-            else:
-                toggle(n, cx, cy, mats, guard={"guard": mats.knob, "guard_red": mats.red}.get(kind))
-            labels.append((f"lbl_{key}_{j}", text, cx, cy + 0.026))
-    for name, text, x, y in labels:  # after the panels: a label lies on the surface under it
-        top_label(name, text, x, y, mats)
-    for text, y in (("IDLE", THROTTLE_XY[1] - THROTTLE_AFT), ("MIL", THROTTLE_XY[1]),
-                    ("AB", THROTTLE_XY[1] + THROTTLE_AB)):  # inboard of the track
-        top_label("lbl_thr_" + text, text, -0.321, y, mats, size=0.0050, z=CZ - 0.005)
-        kit.box("thr_mark_" + text, (-0.3375, y, CZ - 0.0045), (0.0035, 0.0012, 0.001), mats.label, bevel=0)
 
 
 # The side-stick's grip after the mock-up's (docs/f35i.md §4.2): about three times as tall as wide, a slim stem with a
@@ -541,7 +1007,6 @@ def hotas(mats):
     for i, (dx, dy) in enumerate(((-1, -1), (1, -1), (-1, 1), (1, 1))):
         screw_head(f"throttle_rail_scr{i}", (tx + dx * 0.026, ym + dy * (ly / 2 + 0.008), CZ + 0.006), 0.0018,
                    (0, 0, 0), mats.alu)
-    console_knob("throttle_friction", tx, y0 - 0.032, mats, r=0.007)  # aft of the track
     box("throttlem_carriage", (tx, ty - 0.004, CZ + 0.014), (0.030, 0.055, 0.016), mats.bezel, bevel=0.005)
     box("throttlem_post", (tx, ty, CZ + 0.032), (0.026, 0.028, 0.026), mats.knob, bevel=0.003)  # the square post
     cyl("throttlem_band", (tx, ty, CZ + 0.0455), 0.0165, 0.004, mats.hatg, rot=(0, 0, 0), verts=24)
@@ -595,23 +1060,39 @@ def set_floods(flood, on):
 
 def gear_handle(mats):
     """The gear lever and its wheel-shaped knob (moved by `set_gear`); the knob's red lamp lights in transit."""
-    lever = kit.box("gear_lever", on_face(GEAR_X, GEAR_Z, 0.030), (0.008, 0.030, 0.008), mats.alu, rot=FACE_ROT, bevel=0.002)
-    wheel = kit.cyl("gear_wheel", on_face(GEAR_X, GEAR_Z, 0.046), 0.016, 0.010, mats.wheel, rot=KNOB_ROT, verts=40)
-    hub = kit.cyl("gear_hub", on_face(GEAR_X, GEAR_Z, 0.0515), 0.010, 0.002, mats.hub, rot=KNOB_ROT, verts=32)
-    lamp = kit.cyl("gear_lamp", on_face(GEAR_X, GEAR_Z, 0.0530), 0.005, 0.0015, mats.lens["gear"], rot=KNOB_ROT, verts=24)
-    return [lever, wheel, hub, lamp]
+    parts = []
+    placed(gear_m(), lambda: parts.extend((
+        kit.box("gear_lever", (0, 0, 0.022), (0.008, 0.008, 0.046), mats.alu, bevel=0.002),
+        kit.cyl("gear_wheel", (0, 0, 0.046), 0.016, 0.010, mats.wheel, rot=(0, 0, 0), verts=40),
+        kit.cyl("gear_hub", (0, 0, 0.0515), 0.010, 0.002, mats.hub, rot=(0, 0, 0), verts=32),
+        kit.cyl("gear_lamp", (0, 0, 0.0530), 0.005, 0.0015, mats.lens["gear"], rot=(0, 0, 0), verts=24))))
+    for o in parts:
+        GEAR_BASE[o.name] = o.matrix_world.copy()
+    return parts
+
+
+GEAR_BASE = {}  # the handle's parts' places at the slot's centre
 
 
 def set_gear(parts, frac):
     """Handle travel: 0 up (top of the slot) .. 1 down."""
     dz = GEAR_TRAVEL * (1 - 2 * frac)
-    for o, depth in zip(parts, (0.030, 0.046, 0.0515, 0.0530)):
-        o.location = on_face(GEAR_X, GEAR_Z + dz, depth)
+    up = gear_m().to_3x3() @ Vector((0, 1, 0))
+    for o in parts:
+        o.matrix_world = Matrix.Translation(up * dz) @ GEAR_BASE[o.name]
 
 
 def px_rect(cam, x, z, w, h, depth, pad=2):
     """A face rectangle's bounding box in whole panel px, `pad` px around."""
     pts = [kit.panel_px(cam, on_face(x + dx * w / 2, z + dz * h / 2, d)) for dx in (-1, 1) for dz in (-1, 1)
+           for d in (0.0, depth)]
+    return (math.floor(min(p.x for p in pts)) - pad, math.floor(min(p.y for p in pts)) - pad,
+            math.ceil(max(p.x for p in pts)) + pad, math.ceil(max(p.y for p in pts)) + pad)
+
+
+def px_frame(cam, m, w, h, depth, pad=2):
+    """A box of frame `m` (w x h about its origin, 0 .. depth toward the pilot) in whole panel px, `pad` px around."""
+    pts = [kit.panel_px(cam, m @ Vector((du * w / 2, dv * h / 2, d))) for du in (-1, 1) for dv in (-1, 1)
            for d in (0.0, depth)]
     return (math.floor(min(p.x for p in pts)) - pad, math.floor(min(p.y for p in pts)) - pad,
             math.ceil(max(p.x for p in pts)) + pad, math.ceil(max(p.y for p in pts)) + pad)
@@ -626,7 +1107,7 @@ def layout(cam):
     portal_list, k = kit.portals(x0, x1, y0 + bar, [3, 2, 1, 7])
     win_top = y0 + bar + 132 * k
     ex, ez, ew, eh = ESIS
-    e0, e1 = px(on_face(ex - ew / 2, ez + eh / 2, 0.0245)), px(on_face(ex + ew / 2, ez - eh / 2, 0.0245))
+    e0, e1 = px(on_face(ex - ew / 2, ez + eh / 2, ESIS_D)), px(on_face(ex + ew / 2, ez - eh / 2, ESIS_D))
     sec = {"MFD": {"Portals": portal_list},
            "PCD": {"Rect": [round(x0, 1), round(y0, 1), round(x1 - x0, 1), round(y1 - y0, 1)], "Bar": round(bar, 1),
                    "WindowTop": round(win_top, 1),
@@ -644,11 +1125,11 @@ LIGHTS_PNG, LIGHTS_NIGHT_PNG = "f35lights.png", "f35lights_night.png"
 def lamp_frames(cam, mats, gear):
     """Our lamps as crops of the render: [(key, rect, [frame pixels])]; frame 0 is the panel's own state."""
     tmp = os.path.join(OUT_DIR, "_crop.png")
-    jobs = [(key, px_rect(cam, x, z, LAMP_W + 0.006, LAMP_W * 0.7 + 0.006, 0.02),
+    jobs = [(key, px_rect(cam, x, z, LAMP_W + 0.006, LAMP_W * 0.7 + 0.006, LAMP_D + 0.012),
              [lambda key=key: mats.lamp(key, False), lambda key=key: mats.lamp(key, True)])
             for key, (x, z) in LAMPS.items()]
     # The gear handle: up / in transit (its lamp lit) / down, over the slot's full travel.
-    jobs.append(("LIGHT009", px_rect(cam, GEAR_X, GEAR_Z, 0.05, 0.075, 0.058, pad=3),
+    jobs.append(("LIGHT009", px_frame(cam, gear_m(), 0.05, 0.075, 0.058, pad=3),
                  [lambda: (set_gear(gear, 0.0), mats.lamp("gear", False)),
                   lambda: (set_gear(gear, 0.5), mats.lamp("gear", True)),
                   lambda: (set_gear(gear, 1.0), mats.lamp("gear", False))]))
@@ -719,7 +1200,12 @@ RAIL = ((0.42, -1.1, -0.32), (0.46, -0.6, -0.35), (0.47, -0.05, -0.36), (0.47, 0
 # position"). Until 2026-11-13 it stood 0.42 m behind the eye, leaning forward over the head (until 2026-11-09 a light
 # grey 7 x 5 cm pipe upright 0.75 m behind it). bc.py's is the same.
 ARCH_Y, ARCH_TOP, ARCH_LEAN = 0.57, 0.325, 0.16
-ARCH_BAND = kit.rounded_rect(0.035, 0.07, 0.012)  # 4.5 x 9 cm until 2026-11-13
+# 3 cm deep and 4.5 cm fore and aft (until 2026-11-16 3.5 x 7 cm, until 2026-11-13 4.5 x 9 cm): from the seat the
+# real bow is a slim black arch over the display (the mock-ups' and the simulator's photos, docs/f35i.md §4.1).
+ARCH_BAND = kit.rounded_rect(0.030, 0.045, 0.010)
+# The canopy rails' section: 6 cm wide, 4.5 cm tall, in the canopy frame's near-black (until 2026-11-16 8.5 x 6 cm in
+# a lighter grey, which read from the seat as wide grey walls along the sills).
+RAIL_PROFILE = kit.rounded_rect(0.060, 0.045, 0.016)
 # The cockpit's side wall under each rail (u across, v up from the rail's centre line): 3 cm thick, 0.40 m deep.
 WALL_PROFILE = [(u, v - 0.23) for u, v in kit.rounded_rect(0.03, 0.40, 0.004)]
 
@@ -809,8 +1295,6 @@ def pedals(mats):
         box(f"pedal_arm{s}", (x, (PEDAL_Y + FOOTWELL_Y) / 2 + 0.01, PEDAL_Z + 0.02), (0.03, FOOTWELL_Y - PEDAL_Y,
                                                                                      0.03), mats.bezel, bevel=0.005)
         box(f"pedal_box{s}", (x, FOOTWELL_Y - 0.03, PEDAL_Z + 0.02), (0.07, 0.05, 0.09), mats.panel, bevel=0.008)
-    # The pedals' adjustment crank between them, on the front wall.
-    kit.cyl("pedal_adj", (0, FOOTWELL_Y - 0.012, PEDAL_Z + 0.06), 0.018, 0.02, mats.knob, verts=24)
 
 
 def seat_bucket(mats):
@@ -821,28 +1305,64 @@ def seat_bucket(mats):
     y0, z0 = SRP
     yf = y0 + SEAT_DEPTH
     t = math.radians(PAN_DEG)
-    box("seat_pan", (0, y0 + SEAT_DEPTH / 2, z0 - 0.03 + SEAT_DEPTH / 2 * math.sin(t)), (0.40, SEAT_DEPTH, 0.06),
+    # Round 3: the cushion 0.44 m wide and the bucket's sides at 0.232 m (0.40 m and 0.225 m before), so it fills the
+    # leg room between the consoles as in the user's simulator photo (2026-11-17; inferred from a simulator photo).
+    box("seat_pan", (0, y0 + SEAT_DEPTH / 2, z0 - 0.03 + SEAT_DEPTH / 2 * math.sin(t)), (0.44, SEAT_DEPTH, 0.06),
         mats.rubber, rot=(PAN_DEG, 0, 0), bevel=0.02)
     zt = z0 + SEAT_DEPTH * math.sin(t)  # the cushion's front top
     h = zt - FLOOR_Z
     for s in (-1, 1):
-        box(f"seat_side{s}", (s * 0.225, y0 + SEAT_DEPTH / 2 - 0.02, FLOOR_Z + (h + 0.06) / 2),
+        box(f"seat_side{s}", (s * 0.232, y0 + SEAT_DEPTH / 2 - 0.02, FLOOR_Z + (h + 0.06) / 2),
             (0.03, SEAT_DEPTH + 0.04, h + 0.06), mats.frame, bevel=0.01)
-    box("seat_front", (0, yf + 0.005, FLOOR_Z + h / 2), (0.48, 0.03, h), mats.frame, bevel=0.01)
+    # The bucket's front: a bevelled plate, its upper edge a rounded lip, a centre housing for the firing handle and
+    # the leg restraints' snubbers either side (round 2, after the photos; until then one flat plate).
+    box("seat_front", (0, yf + 0.005, FLOOR_Z + h / 2), (0.49, 0.03, h), mats.frame, bevel=0.015)
+    kit.sweep("seat_lip", mats.grip, kit.rounded_rect(0.045, 0.040, 0.016),
+              [(xx, yf - 0.005, zt - 0.012) for xx in np.linspace(-0.23, 0.23, 3)], ref=(0, 0, 1))
+    box("seat_handle_housing", (0, yf + 0.004, zt - 0.030), (0.085, 0.05, 0.075), mats.knob, bevel=0.012)
+    for s in (-1, 1):
+        box(f"seat_snubber{s}", (s * 0.15, yf + 0.024, zt - 0.06), (0.05, 0.022, 0.05), mats.knob, bevel=0.008)
+        ring = [(s * 0.15 + 0.016 * math.cos(a), yf + 0.037, zt - 0.06 + 0.016 * math.sin(a))
+                for a in np.linspace(0, 2 * math.pi, 17)]
+        kit.sweep(f"seat_garter{s}", mats.metal, [(0.0025 * math.cos(a), 0.0025 * math.sin(a))
+                                                 for a in np.linspace(0, 2 * math.pi, 8, endpoint=False)], ring)
+        for k in (-1, 1):
+            box(f"seat_rib{s}{k}", (s * 0.15 + k * 0.045, yf - 0.012, FLOOR_Z + h / 2 - 0.03), (0.012, 0.012, h - 0.12),
+                mats.frame, bevel=0.004)
     # The firing handle: a loop, taller than wide, standing up from its black fitting at the front of the cushion
     # between the thighs, striped yellow and black; the yellow EGRESS placard beside it (the mock-up photo, §4.1).
     fy, fz = yf - 0.015, zt + 0.004
     kit.cyl("seat_handle_fit", (0, fy, fz + 0.008), 0.011, 0.022, mats.knob, rot=(0, 0, 0), verts=16)
-    lean = math.radians(15)
+    # A slim round loop (round 2: 11 mm thick, 9 cm tall, 6 cm wide, standing up from the housing, as the egress
+    # photos' handle; until then leaning back 15 deg, which the seat's view saw flat as a ring).
+    lean = math.radians(-6)
     loop = []
-    for a in np.linspace(math.pi * 0.08, math.pi * 1.92, 49):  # both ends at the fitting, 12.4 cm tall
-        u, v = 0.038 * math.sin(a), 0.062 * (1 - math.cos(a))
+    for a in np.linspace(math.pi * 0.10, math.pi * 1.90, 49):  # both ends at the fitting
+        u, v = 0.030 * math.sin(a), 0.045 * (1 - math.cos(a))
         loop.append((u, fy - v * math.sin(lean), fz + 0.018 + v * math.cos(lean)))
-    ring = [(0.0065 * math.cos(a), 0.0065 * math.sin(a)) for a in np.linspace(0, 2 * math.pi, 10, endpoint=False)]
+    ring = [(0.0055 * math.cos(a), 0.0055 * math.sin(a)) for a in np.linspace(0, 2 * math.pi, 14, endpoint=False)]
     for k in range(0, len(loop) - 2, 2):
         kit.sweep(f"seat_handle{k}", mats.yellow if k // 2 % 2 == 0 else mats.knob, ring, loop[k:k + 3])
-    box("seat_egress", (-0.075, yf - 0.02, zt + 0.003), (0.07, 0.04, 0.003), mats.yellow, rot=(PAN_DEG, 0, 0),
-        bevel=0.001)
+    # The EGRESS placard: green with white letters, on the bucket's left side by SAFE / ARM (the egress photos).
+    eg = top_m(-0.232, yf - 0.022, zt + 0.06)
+    placed(eg, lambda: kit.box("seat_egress", (0, 0, 0.001), (0.028, 0.034, 0.002), mats.green, bevel=0.0006))
+    lab(eg, "EGRESS", 0, 0, mats, size=0.0058)
+    # The firing handle pulled up and aft while held (S1; it moves only: ejection is its key's, so a stray click never
+    # fires the seat); the SAFE / ARM / MOH lever (S2) on the bucket's left side (the side open: inferred), the seat
+    # height switch (S3, spring-loaded: inferred) on its right.
+    pull = gltf(Vector((0, -math.sin(lean), math.cos(lean))))
+    reg("EJECT_HANDLE", [f"seat_handle{k}" for k in range(0, len(loop) - 2, 2)], (0, fy, fz),
+        [{"type": "translate", "axis": pull, "factor": PULL_M / PRESENT_SCALE, "offset": 0.0}],
+        {"prop": "f35i/seat/firing-handle", "mode": "push", "press": 1.0, "rest": 0.0, "modelled": 0.0})
+    top = zt + 0.06
+    lm = top_m(-0.232, yf - 0.07, top)
+    placed(lm, lambda: kit.box("seat_quadrant", (0, 0, 0.003), (0.046, 0.046, 0.006), mats.knob, bevel=0.002))
+    put_toggle("SEAT_SAFE", top_m(-0.241, yf - 0.07, top + 0.006), mats, "f35i/seat/safe-arm", lo=0.0, hi=2.0,
+               modelled=1.0, bat=mats.yellow, length=0.026)
+    for t, dy in (("SAFE", -0.014), ("ARM", 0.0), ("MOH", 0.014)):
+        lab(lm, t, 0.011, dy, mats, size=0.0046)
+    put_toggle("SEAT_HEIGHT", top_m(0.232, yf - 0.07, top), mats, "f35i/seat/height", lo=-1.0, hi=1.0,
+               modelled=0.0, rest=0.0, labels=("DN", "", "UP"))
 
 
 def tub(mats):
@@ -858,9 +1378,9 @@ def tub(mats):
         box(f"tub_wall{s}", (s * 0.47, ty, tz), (0.03, FOOTWELL_Y - FLOOR_Y0, CZ - FLOOR_Z), mats.panel,
             bevel=TUB_BEVEL)
         # The consoles' inner sides down to the floor, and the footwell's sides under the panel (the knee panels).
-        box(f"tub_console_side{s}", (s * 0.305, 0.10, tz - 0.03), (0.02, 0.95, CZ - FLOOR_Z - 0.06), mats.panel,
+        box(f"tub_console_side{s}", (s * (CONSOLE_X[0] + 0.01), 0.10, tz - 0.03), (0.02, 0.95, CZ - FLOOR_Z - 0.06), mats.panel,
             bevel=TUB_BEVEL)
-        box(f"knee_panel{s}", (s * 0.30, (FACE_FOOT[0] + FOOTWELL_Y) / 2, (FACE_FOOT[1] + FLOOR_Z) / 2),
+        box(f"knee_panel{s}", (s * (CONSOLE_X[0] + 0.015), (FACE_FOOT[0] + FOOTWELL_Y) / 2, (FACE_FOOT[1] + FLOOR_Z) / 2),
             (0.03, FOOTWELL_Y - FACE_FOOT[0], FACE_FOOT[1] - FLOOR_Z), mats.panel, bevel=TUB_BEVEL)
     # The centre pedestal between the knees, from under the panel to the floor (the photos, §4.1), its rear face a
     # bolted access plate (inferred).
@@ -940,30 +1460,12 @@ def bake_atlas(objs, baked):
         o.data.materials.append(m)
 
 
-# The 3D cockpit's clickable controls (shared/cockpit/cockpit3d_controls.gd, f35i_controls.json beside the glb): node
-# -> (the build's object, kind); the switches' and knobs' properties (cockpit3d.gd _prop, SWITCH_PROPS): a switch is
-# on at 1, off at 0; the HMD knob turns with the HUD's brightness, the MFD knob with the displays'.
-CONTROLS = {"BATT": ("csw_L0_0", "toggle"), "IPP": ("csw_L0_1", "toggle"), "ENG": ("csw_L0_2", "toggle"),
-            "START": ("csw_L0_3", "push"), "CANOPY": ("canopy_lever", "toggle"), "HMD_BRT": ("brt_knob0", "knob"),
-            "MFD_BRT": ("brt_knob1", "knob")}
-CONTROL_PROPS = {"BATT": "f35i/elec/batt", "IPP": "f35i/engine/ipp", "ENG": "f35i/engine/eng",
-                 "CANOPY": "f35i/canopy", "HMD_BRT": "f16/avionics/hud-sym",
-                 "MFD_BRT": "instrumentation/mfd/brightness-norm"}
-TOGGLE_DEG = 40.0
-# The ENG switch's red guard (its cheeks and bar, GUARDS: node -> (the toggle's object, the guard's property)): its own
-# node hinged at its aft end, closed at 0 as modelled, at 1 flipped up and aft GUARD_DEG (a click lifts it before the
-# switch moves, cockpit3d_controls.gd "guard"; 2026-11-09).
-GUARDS = {"ENG_GUARD": ("csw_L0_2", "f35i/engine/eng-guard")}
-GUARD_DEG = 110.0
-KNOB_DEG = 100.0  # from OFF (upper left) to DAY (upper right) on the printed scale
-
-
 def export_glb(out, eye_g, hinge_g):
     """The 3D cockpit (shared/cockpit/cockpit3d.gd): build() with plain colours, the tub, the screens as flat quads
     `PCD` (the display's glass) and `ESIS` (the standby display), the lamp lenses as their own nodes
     `lamp_<key>_0`, the gear handle `gear_handle` (its lamp `lamp_gear_transit_0` on it) turning about its pivot, the
     side-stick `side_stick` tilting about its boot and the throttle `throttle` sliding on its rail, the clickable
-    controls (CONTROLS) turning about their pivots; everything else one mesh. The large surfaces (panel, glareshield,
+    controls (REG) turning about their pivots; everything else one mesh. The large surfaces (panel, glareshield,
     bezels, canopy frame, seals, grips, the tub) carry the render's look baked into textures (bake_atlas), the rest
     plain colours; written with KTX2 textures (tools/plane/glb_ktx2.py,
     needs `basisu`). In the cockpit-view model's frame: the eye at eye_g (glTF: +Y up, -Z nose), half size about it."""
@@ -979,7 +1481,7 @@ def export_glb(out, eye_g, hinge_g):
         bpy.data.objects.remove(bpy.data.objects[n])
     pcd = screen_quad("PCD", 0, PCD_TOP - PCD[1] / 2, PCD[0], PCD[1], GLASS_D, flat.glass)
     ex, ez, ew, eh = ESIS
-    esis = screen_quad("ESIS", ex, ez, ew, eh, 0.0245, flat.screen)
+    esis = screen_quad("ESIS", ex, ez, ew, eh, ESIS_D, flat.screen)
     objs = [o for o in kit.scene().objects if o.type == 'MESH']
     kit.deselect()
     for o in objs:  # the bevels applied (a join keeps only the active object's modifiers)
@@ -988,12 +1490,12 @@ def export_glb(out, eye_g, hinge_g):
     bpy.ops.object.convert(target='MESH')
     eye = Vector((eye_g[0], -eye_g[2], eye_g[1]))  # Blender: Z up, +Y nose
     k = Matrix.Translation(eye) @ Matrix.Scale(1.0 / PRESENT_SCALE, 4)
-    pivot = k @ Vector(on_face(GEAR_X, GEAR_Z, -GEAR_PIVOT))
+    pivot = k @ (gear_m() @ Vector((0, 0, -GEAR_PIVOT)))
     stick_pivot = k @ Vector((*STICK, STICK_PIVOT_Z))
     for o in objs:
         o.matrix_world = k @ o.matrix_world
     kit.bake_transforms(objs)
-    baked = [mats.panel, mats.rubber, mats.bezel, mats.frame, mats.grip, mats.seal, mats.floor]
+    baked = [mats.panel, mats.housing, mats.rubber, mats.bezel, mats.frame, mats.grip, mats.seal, mats.floor]
     if not os.environ.get("NO_BAKE"):  # NO_BAKE=1: plain colours only, a quick look (about a minute)
         bake_atlas([o for o in objs if o.data.materials and o.data.materials[0] in baked], baked)
     swap = {getattr(mats, a): getattr(flat, a) for a in vars(mats) if a != "lens"}
@@ -1003,20 +1505,10 @@ def export_glb(out, eye_g, hinge_g):
             o.data.materials[i] = swap.get(m, m)
     named = {"PCD": pcd, "ESIS": esis, "lamp_master_caution_0": bpy.data.objects["LIGHT000_lens"],
              "lamp_eng_fire_0": bpy.data.objects["LIGHT001_lens"], "lamp_gear_transit_0": gear[3]}
-    # The clickable controls (CONTROLS), each its own node about its pivot: a toggle's bat and tip about its nut, a
-    # knob with its index about its axis, a push button's cap.
+    # The controls (REG), each its own node about its pivot (the scaled-down model's), its parts joined.
     pivots = {}
-    for node, (part, kind) in CONTROLS.items():
-        parts = {"toggle": ("_bat", "_tip"), "knob": ("", "_index"), "push": ("",)}[kind]
-        ref = bpy.data.objects[part + ("_nut" if kind == "toggle" else "")]
-        vs = [v.co for v in ref.data.vertices]
-        at = (Vector(map(min, *vs)) + Vector(map(max, *vs))) / 2
-        pivots[kit.join([bpy.data.objects[part + p] for p in parts], node)] = at
-    for node, (part, _prop) in GUARDS.items():  # a guard about its hinge: its aft end, at the bottom
-        g = kit.join([bpy.data.objects[part + s] for s in ("_guard-1", "_guard1", "_guardbar")], node)
-        vs = [v.co for v in g.data.vertices]
-        lo, hi = Vector(map(min, *vs)), Vector(map(max, *vs))
-        pivots[g] = Vector(((lo.x + hi.x) / 2, lo.y, lo.z))
+    for node, rec in REG.items():
+        pivots[kit.join([bpy.data.objects[p] for p in rec["parts"]], node)] = k @ rec["pivot"]
     handle = kit.join(gear[:3], "gear_handle")
     stick = kit.join([o for o in kit.scene().objects if o.name.startswith("stickm_")], "side_stick")
     throttle = kit.join([o for o in kit.scene().objects if o.name.startswith("throttlem_")], "throttle")
@@ -1080,7 +1572,8 @@ def export_glb(out, eye_g, hinge_g):
                       "lamp_gear_transit_0": {"key": "gear_transit", "hide": False, "colour": lens("gear")}},
             # Up at -GEAR_DEG, down at +GEAR_DEG about the x axis through the pivot (the node's origin).
             "animations": {
-                "gear_handle": [{"prop": "controls/gear/gear-down", "centre": [0, 0, 0], "axis": [1, 0, 0],
+                "gear_handle": [{"prop": "controls/gear/gear-down", "centre": [0, 0, 0],
+                                 "axis": gltf(gear_m().to_3x3() @ Vector((1, 0, 0))),
                                  "factor": round(2 * GEAR_DEG, 3), "offset": round(-GEAR_DEG, 3)}],
                 # A pull (FlightGear's elevator -1) tilts the grip aft (+z), right (aileron +) to +x, about the
                 # pivot (its origin).
@@ -1095,19 +1588,19 @@ def export_glb(out, eye_g, hinge_g):
                               "table": [[0.0, -THROTTLE_AFT / PRESENT_SCALE], [0.74, 0.0],
                                         [0.75, THROTTLE_AB * 0.6 / PRESENT_SCALE],
                                         [1.0, THROTTLE_AB / PRESENT_SCALE]]}]}}
-    # The switches: on (1) as modelled, leaning forward; off (0) TOGGLE_DEG aft about their nut (x). The knobs turn
-    # about the face's normal (toward the pilot), clockwise for brighter, over KNOB_DEG; at 0.5 the index stands up.
-    n = [0, round(math.sin(math.radians(TILT)), 5), round(math.cos(math.radians(TILT)), 5)]
-    for node, (part, kind) in CONTROLS.items():
-        if kind == "toggle":
-            meta["animations"][node] = [{"prop": CONTROL_PROPS[node], "centre": [0, 0, 0], "axis": [1, 0, 0],
-                                         "factor": -TOGGLE_DEG, "offset": TOGGLE_DEG}]
-        elif kind == "knob":
-            meta["animations"][node] = [{"prop": CONTROL_PROPS[node], "centre": [0, 0, 0], "axis": n,
-                                         "factor": -KNOB_DEG, "offset": KNOB_DEG / 2}]
-    for node, (_part, prop) in GUARDS.items():
-        meta["animations"][node] = [{"prop": prop, "centre": [0, 0, 0], "axis": [1, 0, 0], "factor": GUARD_DEG,
+    # The controls' animations (REG: each about its node's origin, its pivot) and positions (cockpit3d_controls.gd);
+    # the push-lights pressed while held (MASTER CAUTION resets the lamp, f35i_controls.json "system").
+    meta["controls"] = {}
+    for node, rec in REG.items():
+        meta["animations"][node] = [dict({"prop": rec["control"]["prop"]} if rec["control"] else {}, **a)
+                                    for a in rec["anim"]]
+        if rec["control"]:
+            meta["controls"][node] = rec["control"]
+    into = gltf(Vector(INTO_FACE))
+    for lamp, prop in (("lamp_master_caution_0", "f35i/master-caution-push"), ("lamp_eng_fire_0", "f35i/fire-push")):
+        meta["animations"][lamp] = [{"type": "translate", "prop": prop, "axis": into, "factor": PUSH_M / PRESENT_SCALE,
                                      "offset": 0.0}]
+        meta["controls"][lamp] = {"prop": prop, "mode": "push", "press": 1.0, "rest": 0.0, "modelled": 0.0}
     json.dump(meta, open(os.path.splitext(out)[0] + ".json", "w"), indent=1)
     tris = sum(len(p.vertices) - 2 for o in kit.scene().objects if o.type == 'MESH' for p in o.data.polygons)
     print("COCKPIT3D", out, "triangles", tris, "bytes", os.path.getsize(out), "materials", len(body.data.materials))

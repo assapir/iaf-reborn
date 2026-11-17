@@ -229,12 +229,14 @@ the sun (AUTO).
 |---|---|
 | ![The DAY / AUTO BRT / NIGHT switch lit under the pointer](pictures/cockpit/hud_mode_hover.jpg) | ![The switch thrown to NIGHT](pictures/cockpit/hud_mode_night.jpg) |
 
-The F-35I: the HMD BRT knob on its pedestal (`f35i.glb` node `HMD_BRT`, `f35i_controls.json`) works as the SYM
-wheel: the same command `[123, ±25, 0]`, the same steps, and it turns with `Settings.hud_brightness` (100° of travel,
-the index up at 50 %; inferred). The helmet's symbols follow the level in the P43 green, as the HUD (§5.1). The MFD
-BRT knob beside it (`MFD_BRT`) turns the displays' brightness, `Settings.mfd_brightness` (10–100 %, saved as the
-HUD's level; ours, command `[216, ±25, 0]`, no key): the PCD, the standby display and the MFDs of the 3D cockpit, the
-F-16s' too (their own BRT rockers are not bound).
+The F-35I: the HMD BRT rocker on the top strip of its pedestal (`f35i.glb` node `HMD_BRT`; the strip after the
+research, [research/f35-cockpit.md](research/f35-cockpit.md) §2.2) is spring-loaded to its middle: a press pushes it up and steps the HUD's level up 2.5 %, a drag down while held
+pushes it down a step (the same command, `[123, ±25, 0]`); let go it springs back (its spring inferred; as every switch
+of three positions it leaves the wheel to the view's zoom). The helmet's symbols follow the level in the P43 green, as the HUD (§5.1). The MFD BRT
+rocker at the strip's right end (`MFD_BRT`) steps the displays' brightness the same way, `Settings.mfd_brightness`
+(10–100 %, saved as the HUD's level; ours, command `[216, ±25, 0]`, no key): the PCD, the standby display and the
+MFDs of the 3D cockpit, the F-16s' too (their own BRT rockers are not bound). Until 2026-11-16 both were knobs that
+turned with the level.
 
 The Sufa on Ramon's ILS final, a real render (`modern-iaf/tests/_sym_wheel_shot.gd`): the pointer over the wheel, then
 the wheel turned down 24 notches (100 % to 40 %) and the pointer moved away.
@@ -321,31 +323,39 @@ switches as FlightGear models them.
 - **The JFS switch** springs back to OFF when the engine sustains itself (52 %), as the real JFS cuts out at 50–54
   %[^jfs50]; the starter step stays done.
 
-The F-35I's start-up works the same way on its own panels (`f35i_controls.json`). Its switches are our model's
-(`tools/f35i/cockpit3d.py` `CONTROLS`): bat toggles that lean forward when on and 40° aft when off, each turning on a
-property of ours (`f35i/...`) by `f35i.json`'s mapping. The real start is three switch selections, battery, IPP and
-engine[^ayton]; which panel holds them, and every place below, is inferred: the photos show the consoles' mix of
-switches, not readable labels ([../../docs/f35i.md](../../docs/f35i.md) §4.2).
+The F-35I's start-up works the same way on its own panels (`f35i_controls.json`). Its controls are our model's
+(`tools/f35i/cockpit3d.py` `controls()`, after [research/f35-cockpit.md](research/f35-cockpit.md) §2), each turning on
+a property of ours (`f35i/...`) by `f35i.json`'s mapping. The real start is three switch selections, battery, IPP and
+engine[^ayton]. Their panels sit where IndiaFoxtEcho's F-35 puts them (a simulator, weak: the only source for the left
+console aft of the throttle, research §2.5); the labels are its, the rest inferred.
 
-| step | control (node) | place in our cockpit | command | key | on / off |
+| step | control (node) | place in our cockpit | command | key | positions |
 |---|---|---|---|---|---|
-| 1 | BATT switch (`BATT`) | start panel, left console, forward (first of four) | `[210, 0, 0]` | Ctrl+B | forward (1) / aft (0) |
-| 2 | IPP switch (`IPP`) | start panel, second | `[211, 0, 0]` | Ctrl+J | forward (1) / aft (0) |
-| 3 | ENG switch (`ENG`, under a red guard) | start panel, third | `[212, 0, 0]` | none | forward (1) / aft (0) |
-| 3 | START button (`START`) | start panel, fourth | `[212, 1, 0]` (on only) | none | a push button |
+| 1 | BATT switch (`BATT`) | start panel, left console aft of the throttle, centre | `[210, ±1, 0]` as it moves to or from ON | Ctrl+B | ON forward (1) / OFF (0) / RESET aft (-1) |
+| 2 | IPP switch (`IPP`) | start panel, left column, top | `[211, 0, 0]` | Ctrl+J | ON forward (1) / OFF/RESET aft (0) |
+| 3 | ENGINE switch (`ENG`, under a red guard) | ENGINE panel, left console just aft of the throttle | `[212, ±1, 0]` as it moves to or from NORM | none | NORM forward (2) / MOTOR (1) / OFF aft (0) |
+| 3 | IPP knob (`START`) | start panel, bottom right | `[212, 1, 0]` at START | none | OFF / AUTO / START: START springs back to AUTO, OFF latches |
 | 3 | throttle (`throttle`, not clickable) | the throttle, left console | its keys and the throttle lever (as the F-16's) | Throttle up | the throttle's own animation |
 | 4 | canopy lever (`CANOPY`) | left wall just above the console, aft of the throttle's track[^ife-canopy] | `[215, 0, 0]` | Ctrl+K | forward (1, shut) / 40° aft (0, open) |
-| take-off, landing | landing gear handle (`gear_handle`) | left of the main panel | `[14, 0, 0]` | G | the handle's own animation |
+| take-off, landing | landing gear handle (`gear_handle`) | left forward panel under the display's left end, inboard | `[14, 0, 0]` | G | the handle's own animation |
 
-- **The canopy lever** is yellow, standing up from a dark pivot block on the left wall with CANOPY printed behind it,
+- **The canopy lever** is a flat arm with a T-grip striped yellow and black, on a black quadrant plate on the left wall
+  (CANOPY, CLOSE forward, OPEN aft; until round 2 of 2026-11-16 a yellow rod on a pivot block),
   where IndiaFoxtEcho's F-35 has its "canopy control lever"[^ife-canopy] (a simulator, weak; no manual or photo of
   the real jet's left wall was found, open). Its shape and travel are inferred. From 2026-11-09 to 2026-11-13 a
-  CANOPY toggle on a small panel of its own aft on the left console (inferred); the lighting panel (FLOOD, CONSOLE,
-  NVIS) keeps its place ([../../docs/f35i.md](../../docs/f35i.md) §4.1 "Canopy control").
-- **The engine step** is the ENG switch as on the jet (command 212, which no key sends: the step's key stays the
+  CANOPY toggle on a small panel of its own aft on the left console (inferred).
+- **The engine step** is the ENGINE switch as on the jet (command 212, which no key sends: the step's key stays the
   throttle up from OFF, [training.md](training.md) §7.1); the throttle stays where it is, and the engine runs to idle
-  by itself. Moving the throttle up from OFF takes the same step.
-- **Not modelled:** the ENG switch's guard stays down (the bat passes under it); the START button does not move.
+  by itself. Moving the throttle up from OFF, or the IPP knob to START, takes the same step.
+- **MOTOR and RESET** (research §2.5): the ENGINE switch has its MOTOR position between OFF and NORM and the BATT
+  switch its RESET aft of OFF (round 2 of 2026-11-16; `f35i_controls.json` `system` `eng` and `batt`,
+  `cockpit3d_controls.gd` `_system_put`). The start model has no dry motoring and no battery reset: MOTOR and RESET
+  move the switch and count as off (ENGINE at MOTOR shuts a running engine down, inferred). The IPP switches' legend
+  is OFF/RESET, one position. Each switch shows the start model's state: a key moves it too.
+- **The IPP knob's spring:** only START springs back to AUTO; OFF latches (the control's `spring` list, `[2]`). Until
+  round 2 the layer sprang the whole control, OFF too.
+- **Until 2026-11-16** the start panel stood on the left console ahead of the throttle with BATT, IPP, ENG and a START
+  push button, all inferred.
 
 #### Both ways (2026-11-13, the switches audit's M2)
 
@@ -416,8 +426,7 @@ step is done while all four are on; one off undoes it, and the debrief reads tha
 
 The user: "just make all knobs in all planes act as they should". Every control of the F-16s' model is now its own part
 that moves, keeps its position and goes through all of its positions both ways, by one rule
-(`cockpit3d_controls.gd`, the model's `controls` in `f16.json`; the F-35I's model takes the same rule with its remodel
-to the real jet's controls, open):
+(`cockpit3d_controls.gd`, the model's `controls` in `f16.json`; the F-35I's in `f35i.json`, below):
 
 - **Where the positions come from.** The F-16's from FlightGear's own bindings of each `pick` / `knob` / `slider`
   object of the panels the build includes (`tools/f16d/cockpit3d.py` `control_of`: the property, its range, its step,
@@ -427,7 +436,9 @@ to the real jet's controls, open):
   step on or back, stopping at the ends; the wheel too on a rotary of four positions or more (on a switch the wheel
   stays the view's zoom). A continuous knob (lighting, volume, brightness): the wheel and a
   drag in steps of 5 %; the HSI's heading and course knobs go round. A push button: down while held, up when let go.
-  A spring-loaded switch (MPO, the TEST and RESET positions: inferred from their labels) returns to rest when let go.
+  A spring-loaded switch (MPO, the TEST and RESET positions: inferred from their labels) returns to rest when let go;
+  a control with a `spring` list returns to rest only from those positions and latches in the others (the F-35I's
+  IPP knob).
   A guarded switch (the EPU): shut, a click lifts the cover first; shutting the cover puts the switch back to NORM.
   MASTER ARM has no cover: the model draws none.
 - **Where the position is kept.** The start-up switches' in the flight model (`start.rs`, above); every other one in
@@ -453,7 +464,32 @@ The controls of a system the game has work it (2026-11-16; `f16_controls.json` `
 | MAL & IND LTS (held; a spring, inferred) | every lamp of the cockpit lit while there is power | - |
 | MASTER CAUTION | the lamp out until the next caution | - |
 
-`modern-iaf/tests/test_controls_all.gd` takes every one of these controls in each F-16: the pointer finds it, and it
+The F-35I (2026-11-16, finish list C1b): its model carries the real jet's physical controls as the research found them
+([research/f35-cockpit.md](research/f35-cockpit.md) §2), 45 parts on the same rule, their positions in `f35i.json`
+`controls` (`tools/f35i/cockpit3d.py` `controls()`). The 21 console switches of our own invention (lights, fuel,
+oxygen, countermeasures, IFF; on the real jet these are the PCD's pages) are gone, and so are the standby display's
+eight side buttons. Its systems:
+
+| control (node) | consequence | its key |
+|---|---|---|
+| MASTER ARM (`MASTER_ARM`, SAFE / ARM; the labels inferred) | MASTER ARM arms | Shift+A |
+| JETTISON push (`EMER_JETT`, the jettison knob's striped cap; the push inferred) | the emergency jettison | Shift+C |
+| HMD rotary (`HMD_MODE`, OFF / NIGHT / AUTO / DAY) | at OFF the helmet display is dark (NIGHT / AUTO / DAY not modelled) | - |
+| HMD BRT, MFD BRT rockers | the HUD's and the displays' level, 2.5 % a push (above) | - |
+| ALT GEAR EXTENSION (`ALT_GEAR`, under a red guard) | the gear down when it is up | - |
+| IPP knob (`START`) at START | the engine start (above) | - |
+| MASTER CAUTION push-light | the lamp out until the next caution (no source shows the lamp on the real jet: kept for the game's cautions) | - |
+
+The rest move and keep their position with no system behind them: JETTISON's ALL / EXT / SEL, PARKING BRAKE,
+LAND/TAXI LIGHTS, HOOK, the VIDEO BRT and CONT rockers, the MFD NIGHT / DAY knob, the three radio knobs, the standby
+display's knob, ALIGN and BRT, PEDAL ADJ, AUTO RECOVERY, the BYPASS / NORM / ZEROIZE knob, FCS/ENG RESET, VS BIT, the
+throttle's friction and THROTTLE ACTIVE, ICC1, ICC2, CABIN PRESSURE, IPP EMER OFF (guarded), STICK ACTIVE, DEFOG, the
+seat's firing handle (pulled while held; ejection stays its key's, so a stray click never fires the seat), SAFE /
+ARM / MOH and height switch, the canopy's MDC handle, ENG FIRE. The rudder trim switch is drawn but takes no mouse
+(trim stays the keys'). Places and labels whose confidence is low in the research are inferred
+([../../docs/f35i.md](../../docs/f35i.md) §4.2).
+
+`modern-iaf/tests/test_controls_all.gd` takes every one of these controls in each jet: the pointer finds it, and it
 goes through every position both ways, kept and shown.
 
 Every control is seen to move (2026-11-16, finish list C4). Some of FlightGear's parts have no animation that shows

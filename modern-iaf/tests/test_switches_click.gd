@@ -18,10 +18,10 @@ const JETS := {
 	[
 		"nevatim_startup",
 		[
-			["BATT", [210, 0, 0]],
+			["BATT", [210, 1, 0]],  # OFF to ON (its system row: p1 1 on)
 			["IPP", [211, 0, 0]],
-			["ENG", [212, 0, 0]],
-			["START", [212, 1, 0]],
+			["ENG", []],  # OFF to MOTOR: the switch moves only (NORM sends [212, 1, 0])
+			["START", []],
 			["CANOPY", [215, 0, 0]],
 			["gear_handle", [14, 0, 0]],
 		]

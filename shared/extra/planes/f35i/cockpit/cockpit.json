@@ -160,10 +160,10 @@
   "Bar": 14.2,
   "WindowTop": 181.2,
   "Esis": [
-   995.3,
-   302.9,
-   92.8,
-   84.2
+   980.6,
+   365.6,
+   99.0,
+   91.8
   ]
  },
  "LIGHTSON": {
@@ -177,18 +177,18 @@
   "Active": 1.0,
   "Left": 0.0,
   "Top": 0.0,
-  "Right": 62.0,
-  "Bottom": 57.0,
-  "OffsetX": 1136.0,
+  "Right": 68.0,
+  "Bottom": 65.0,
+  "OffsetX": 1122.0,
   "OffsetY": 312.0
  },
  "LIGHT001": {
   "Active": 1.0,
-  "Left": 62.0,
+  "Left": 68.0,
   "Top": 0.0,
-  "Right": 127.0,
-  "Bottom": 57.0,
-  "OffsetX": 1198.0,
+  "Right": 140.0,
+  "Bottom": 65.0,
+  "OffsetX": 1179.0,
   "OffsetY": 312.0,
   "Blink": 1.0
  },
@@ -215,12 +215,12 @@
  },
  "LIGHT009": {
   "Active": 1.0,
-  "Left": 127.0,
+  "Left": 140.0,
   "Top": 0.0,
-  "Right": 217.0,
-  "Bottom": 112.0,
-  "OffsetX": 678.0,
-  "OffsetY": 288.0,
+  "Right": 223.0,
+  "Bottom": 52.0,
+  "OffsetX": 714.0,
+  "OffsetY": 348.0,
   "AnimFrames": 3.0,
   "AnimTime": 600.0
  },

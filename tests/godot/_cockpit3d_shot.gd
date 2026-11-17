@@ -94,18 +94,22 @@ func run() -> void:
 	settings().jet_id = -1
 
 
-## The pilot's body's GPU cost in this view (cockpit3d.gd, Settings.cockpit_pilot_body): the frame's GPU time (the
-## scene's and the cockpit's viewports) with the body shown and hidden, each the mean of 60 frames.
+## The pilot's body's GPU cost in this view (cockpit3d.gd, Settings.cockpit_pilot_body).
 func _body_cost(view: String) -> void:
 	var body := tv.cockpit_3d.find_child("f16_pilot", true, false) as Node3D
-	if body == null:
-		return
-	var vps := [tv.get_viewport().get_viewport_rid(), body.get_viewport().get_viewport_rid()]  # the scene, the cockpit's
+	if body != null:
+		await _gpu_cost(body, "BODY " + view)
+
+
+## The frame's GPU time (the scene's and the node's viewports) with the node shown and hidden, each the mean of 60
+## frames, twice.
+func _gpu_cost(node: Node3D, tag: String) -> void:
+	var vps := [tv.get_viewport().get_viewport_rid(), node.get_viewport().get_viewport_rid()]  # the scene, the cockpit's
 	for vp in vps:
 		RenderingServer.viewport_set_measure_render_time(vp, true)
 	var ms := []
 	for shown in [true, false, true, false]:
-		body.visible = shown
+		node.visible = shown
 		await frames(10)
 		var t := 0.0
 		for i in 60:
@@ -113,8 +117,44 @@ func _body_cost(view: String) -> void:
 			for vp in vps:
 				t += RenderingServer.viewport_get_measured_render_time_gpu(vp)
 		ms.append(t / 60.0)
-	body.visible = true
-	print("BODY %s: GPU %.3f ms shown, %.3f ms hidden" % [view, (ms[0] + ms[2]) / 2.0, (ms[1] + ms[3]) / 2.0])
+	node.visible = true
+	print("%s: GPU %.3f ms shown, %.3f ms hidden" % [tag, (ms[0] + ms[2]) / 2.0, (ms[1] + ms[3]) / 2.0])
+
+
+## C3D_JET=f35i C3D_ONLY=consoles: the consoles whole from the seat (ahead, the seat's look down, down left and right
+## along each console), from above and behind the seat (the eye moved 0.32 m up and 0.30 m aft, the rig's frame) and
+## from over the headrest (0.22 m up, 0.40 m aft: the user's simulator photo's viewpoint).
+func _f35i_consoles(c: Control, tag: String) -> void:
+	var src := GDScript.new()
+	src.source_code = (
+		"extends Node\nvar cam: Camera3D\nvar rig: Node3D\nvar by := Vector3.ZERO\n\nfunc _process(_d):\n"
+		+ "\tif by != Vector3.ZERO:\n\t\tcam.global_position = rig.global_transform * "
+		+ "(rig.global_transform.affine_inverse() * cam.global_position + by)\n"
+	)
+	src.reload()
+	var lift := Node.new()
+	lift.set_script(src)
+	lift.cam = tv.camera
+	lift.rig = tv.rig
+	lift.process_priority = 20  # after the view and the 3D cockpit placed the eye
+	tv.add_child(lift)
+	for v in [
+		["ahead", 0.0, 0.0, 0.6, Vector3.ZERO],
+		["seat", 0.0, -22.0, 0.6, Vector3.ZERO],
+		["down_left", -32.0, -38.0, 0.6, Vector3.ZERO],
+		["down_right", 32.0, -38.0, 0.6, Vector3.ZERO],
+		["above", 0.0, -52.0, 0.6, Vector3(0.0, 0.32, 0.30)],
+		["headrest", 0.0, -30.0, 0.6, Vector3(0.0, 0.22, 0.40)]
+	]:
+		c.zoom = v[3]
+		lift.by = v[4]
+		tv.views.snap = Vector2(deg_to_rad(v[1]), deg_to_rad(v[2]))
+		await _settle()
+		await _shot("f35i_%s_%s" % [tag, v[0]], 0.0)
+	lift.queue_free()
+	tv.views.snap = null
+	settings().f35i_slot = -1
+	settings().jet_id = -1
 
 
 ## C3D_SIM=1: a free flight (the sim has none of the original's missions) over its own theatre, in UTM metres:
@@ -251,6 +291,56 @@ func _f35i(hour: float) -> void:
 	_sim_spec(spec)
 	await _cockpit_scene("f35i", spec)
 	var c: Control = tv.cockpit
+	if OS.get_environment("C3D_ONLY") == "cost":  # the 3D cockpit model's frame cost from the seat (cockpit.md)
+		for v in [["ahead", 0.0, 0.0, 0.6], ["seat", 0.0, -22.0, 0.6]]:
+			c.zoom = v[3]
+			tv.views.snap = Vector2(deg_to_rad(v[1]), deg_to_rad(v[2]))
+			await _settle()
+			await _gpu_cost(tv.cockpit_3d, "COST %s %s" % [v[0], "night" if hour >= 20.0 else "day"])
+		tv.views.snap = null
+		settings().f35i_slot = -1
+		settings().jet_id = -1
+		return
+	if OS.get_environment("C3D_ONLY") == "consoles":  # the consoles whole (C1b round 3)
+		await _f35i_consoles(c, "night" if hour >= 20.0 else "day")
+		return
+	if OS.get_environment("C3D_ONLY") == "controls":  # the seat's view and each panel close up (C1b), [yaw, pitch, zoom]
+		var tag := "night" if hour >= 20.0 else "day"
+		# [name, the node aimed at (none: the head's yaw and pitch as given), yaw, pitch (deg, added), zoom]
+		for v in [
+			["seat", "", 0.0, -22.0, 0.6],
+			["seat_down", "", 0.0, -30.0, 0.6],
+			["pedestal", "MASTER_ARM", 4.0, 0.0, 2.2],
+			["left_fwd", "PARK_BRAKE", 2.0, 2.5, 2.4],
+			["cheek_l", "HOOK", 0.0, 0.0, 3.0],
+			["cheek_r", "ZEROIZE", 0.0, 2.0, 3.0],
+			["console_l_fwd", "FCS_RESET", -2.0, 0.0, 2.0],
+			["console_l_eng", "VS_BIT", 0.0, 0.0, 2.2],
+			["console_l_start", "CABIN_PRESS", 0.0, -2.0, 2.2],
+			["console_r", "STICK_ACTIVE", 0.0, 0.0, 1.6],
+			["wall_l", "DEFOG", 0.0, 0.0, 2.0],
+			["wall_r", "MDC", 0.0, 0.0, 2.0],
+			["seat_front", "EJECT_HANDLE", 0.0, 0.0, 1.2],
+			["bow", "", 0.0, 12.0, 0.6]
+		]:
+			c.zoom = v[4]
+			var h := Vector2.ZERO
+			var mi := tv.cockpit_3d.find_child(v[1], true, false) as MeshInstance3D if v[1] != "" else null
+			for i in 4 if mi != null else 0:
+				tv.views.snap = h
+				await frames(2)
+				var d: Vector3 = (
+					tv.cockpit_3d.camera.global_transform.affine_inverse()
+					* (mi.global_transform * mi.get_aabb().get_center())
+				)
+				h += Vector2(-atan2(-d.x, -d.z), atan2(d.y, Vector2(d.x, d.z).length()))
+			tv.views.snap = h + Vector2(deg_to_rad(v[2]), deg_to_rad(v[3]))
+			await _settle()
+			await _shot("f35i_%s_%s" % [tag, v[0]], 0.0)
+		tv.views.snap = null
+		settings().f35i_slot = -1
+		settings().jet_id = -1
+		return
 	var vps := {}
 	if tv.cockpit_3d != null:
 		vps = {"PCD": c.pcd.get_parent(), "ESIS": tv.cockpit_3d.esis.get_parent()}

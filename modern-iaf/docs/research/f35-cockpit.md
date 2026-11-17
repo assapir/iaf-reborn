@@ -47,8 +47,15 @@ Each row's **ID** matches the layout sketches (§4) and the numbered photo (§4.
 
 ### 2.1 Left forward panel
 
-A vertical panel under the PCD's left half, between the left console and the centre pedestal: an inboard strip with
-the gear lever beside the PCD's left edge, an outboard strip with the jettison knob.
+A panel under the PCD's left end: an inboard strip with the gear lever beside the PCD's left edge, an outboard strip
+with the jettison knob. It is the left console's forward end: the console runs forward from the throttle and rises
+as one column, its face toward the pilot, up to the PCD's lower-left corner, with no gap between the throttle's deck
+and the column[^bsda][^cf1]. The right console rises the same way from the side-stick's housing to the right forward
+panel beside the PCD's right edge[^bsda][^demo2015][^usersim]. The column's lean (about 45° on the left, steeper on the right) and
+where the deck turns into it are inferred from the photos' perspective (re-checked 2026-11-17). Seen over the
+headrest, a simulator's cab shows the same: each console one surface from behind the seat to its column, the seat's
+cushion filling nearly all the room between the consoles, the side columns' outer edges about 1.6 PCD widths apart
+(inferred from a simulator photo[^usersim]).
 
 | ID | Label as printed | Kind | Positions | Latch | What it does | Place | Conf. | Sources |
 |---|---|---|---|---|---|---|---|---|
@@ -288,6 +295,10 @@ by the user's rule, but the part is real), L2 FCS/ENG RESET, L4 friction (geomet
 L7 VS BIT, L8 DEFOG, L11–L13 ICC1, ICC2, CABIN PRESSURE, L15 IPP EMER OFF, C2 STICK ACTIVE, C3 arm rest, S1 the
 ejection D-ring, S2 SAFE/ARM/MOH, S3 seat height, S4 canopy MDC handle.
 
+Since 2026-11-16 (finish list C1b) our model carries every control above at the place listed in §2, each a moving
+part with its positions; the 21 invented console switches and the standby display's eight side buttons are gone
+([f35i.md](../../../docs/f35i.md) §4.2 "The real controls"). The table above is the state before that change.
+
 Inferred from the count: the real cockpit has about 48 physical controls and indicators outside the HOTAS (§2),
 against our 36 of which 20 have no real counterpart.
 
@@ -319,6 +330,7 @@ the paywalled SAE paper 2010-01-2330 "F-35 Lightning II Cockpit Vision"; the Isr
 https://www.iaf.org.il/ (403). Wikimedia Commons refused full-size downloads for hours (HTTP 429); its 1920 px copies
 were used. No walk-around video was watched (open).
 
+[^usersim]: An F-35 simulator cab photographed from over the headrest, supplied by the user on 2026-11-17 (a Facebook post; no direct link fetched); `user_1117_sim_cockpit_from_seat.jpg` in the reference folder.
 [^bsda]: U.S. Embassy Romania, F-35 cockpit mock-up at Black Sea Defense & Aerospace, 13 May 2026 (public domain), https://commons.wikimedia.org/wiki/File:BSDA_Day_1_-_Deputy_Chief_of_Mission_Michael_Dickerson_visit_(55271792185).jpg
 [^cf1]: US Navy 120120-D-BW835-017, jet CF-1 at Patuxent River, 20 Jan 2012 (public domain), https://commons.wikimedia.org/wiki/File:US_Navy_120120-D-BW835-017_Secretary_of_Defense_Leon_E._Panetta_and_Congressman_Steny_Hoyer_(D-Md)_are_shown_the_cockpit_of_the_F-35_Joint_Strike_F.jpg
 [^demo2015]: US Navy 150608-N-MH885-026, F-35 cockpit demonstrator, 8 Jun 2015 (public domain), https://commons.wikimedia.org/wiki/File:F-35_demonstrator_150608-N-MH885-026.jpg

@@ -26,6 +26,8 @@
 #   - cycle (a switch or a knob of steps): a click the next position, the last going round to the first (as the INS
 #     knob); the wheel and a drag a step on or back, stopping at the ends; with "rest" it springs: held at the
 #     position the press chose (the next from rest) and back to rest when let go, the wheel's step back after SPRING_S;
+#     with "spring" too (a list of positions) only those spring back, the others latch (the F-35I's IPP knob: START
+#     springs back to AUTO, OFF stays);
 #   - slide (a continuous knob, a wheel): the wheel and a drag a step either way, round past the ends only with "wrap";
 #   - add (a button stepping a value, the ASI's bugs): a click adds its step;
 #   - push (a push button): "press" while held, "rest" when let go;
@@ -313,7 +315,9 @@ func press(r: Dictionary) -> void:
 	if r.get("mode", "") == "push":
 		put(r, float(r.press))
 	elif r.has("rest") and r.get("mode", "") == "cycle":
-		put(r, _next(r, float(r.rest)))
+		var n := _next(r, value(r) if r.has("spring") else float(r.rest))
+		if _springs(r, n):  # else a latched position: the release's click moves it
+			put(r, n)
 
 
 ## The left button let go over the held control: a push button or a spring back to rest; a press with no turn clicks.
@@ -328,7 +332,7 @@ func release() -> void:
 		if not _turned and r.has("click"):
 			get_parent().command.call(r.click)
 		return
-	if r.has("rest"):
+	if _springs(r, value(r)):
 		put(r, float(r.rest))
 	elif not _turned:
 		match r.mode:
@@ -340,7 +344,7 @@ func release() -> void:
 
 ## The held control let go unseen: a push button or a spring back to rest, no click.
 func _drop() -> void:
-	if _held.has("rest") and _held.has("prop"):
+	if _held.has("prop") and _springs(_held, value(_held)):
 		put(_held, float(_held.rest))
 	_held = {}
 
@@ -364,20 +368,33 @@ func _step(r: Dictionary, way: float) -> void:
 	var st := absf(float(r.get("step", 1.0)))
 	if r.get("mode", "") == "push":
 		return
-	if r.has("rest"):
+	if r.has("rest") and not r.has("spring"):
 		put(r, clampf(float(r.rest) + way * st, lo, hi))
 		get_tree().create_timer(SPRING_S).timeout.connect(_spring.bind(r))
 		return
 	var v := value(r) + way * st
 	if r.get("wrap", false) and r.mode != "cycle":
 		v = lo + fposmod(v - lo, hi - lo)
-	put(r, clampf(snappedf(v, st * 1e-3), lo, hi))
+	v = clampf(snappedf(v, st * 1e-3), lo, hi)
+	put(r, v)
+	if _springs(r, v):
+		get_tree().create_timer(SPRING_S).timeout.connect(_spring.bind(r))
 
 
 ## A spring's wheel or drag step back to rest, unless it is held.
 func _spring(r: Dictionary) -> void:
-	if _held != r:
+	if _held != r and _springs(r, value(r)):
 		put(r, float(r.rest))
+
+
+## Whether `r` springs back to rest from position `v`: any position of a spring-loaded control, or only those of its
+## "spring" list.
+static func _springs(r: Dictionary, v: float) -> bool:
+	if not r.has("rest"):
+		return false
+	if not r.has("spring"):
+		return true
+	return (r.spring as Array).any(func(p): return is_equal_approx(float(p), v))
 
 
 ## Control `r` to `v` in the store, with its click; a guard shut puts the switches under it back to their safe place.
@@ -385,12 +402,13 @@ func put(r: Dictionary, v: float) -> void:
 	var sw: Dictionary = get_parent().switches
 	if is_equal_approx(float(sw.get(r.prop, NAN)), v):
 		return
+	var was := value(r)
 	sw[r.prop] = v
 	var tv: Object = get_parent().command.get_object() if get_parent().command.is_valid() else null
 	if tv != null and tv.get("sounds") != null:
 		tv.sounds.play("SFX_BUTTON")
 	if r.has("system"):
-		_system_put(r.system, v)
+		_system_put(r.system, v, was)
 	if v < 0.5:
 		for e in _controls:
 			if e[1].get("guard", "") == r.prop and e[1].has("safe") and _generic(e[1]):
@@ -400,6 +418,9 @@ func put(r: Dictionary, v: float) -> void:
 ## The start-up switches of three positions (f16_controls.json `system`) and their command [id, p2]: MAIN PWR 210,
 ## the JFS 211, RDR ALT 219 with its index in sim_flight.gd SYSTEMS.
 const START_CMD := {"main_power": [210, 0], "starter": [211, 0], "rdr_alt": [219, 5]}
+## The F-35I's BATT (RESET / OFF / ON) and ENGINE (OFF / MOTOR / NORM): their command and the position over which they
+## are on; MOTOR and RESET move the switch only (motoring and the battery's reset are not modelled).
+const F35_START := {"batt": [210, 0.5], "eng": [212, 1.5]}
 
 # The switches wired to the systems the game has (a row's "system", finish list C2; modern-iaf/docs/cockpit.md §5.2):
 # a move sends the system's own command through the key path (or sets its state), and each frame the switch shows the
@@ -435,12 +456,24 @@ static func _system_state(tv: Object, name: String, now: float) -> float:
 			return 1.0 if tv.mpo or tv.mpo_on else 0.0
 		"main_power", "starter", "rdr_alt":  # the flight model's (start.rs Start::position)
 			return float(tv.flight.start_position(name)) if tv.flight != null else NAN
+		"batt":  # the F-35I's BATT RESET (-1) / OFF / ON: off keeps RESET or OFF
+			if tv.flight != null:
+				return 1.0 if tv.flight.start_on("main_power") else minf(now, 0.0)
+		"eng":  # the F-35I's ENGINE OFF / MOTOR / NORM: not running keeps MOTOR or OFF
+			if tv.flight != null:
+				return 2.0 if tv.flight.start_on("engine") else (1.0 if is_equal_approx(now, 1.0) else 0.0)
 	return NAN
 
 
-## Switch of system `name` moved to `v`: the system's command (terrain_view.gd _press, as the key sends it) or state.
-func _system_put(name: String, v: float) -> void:
+## Switch of system `name` moved to `v` from `was`: the system's command (terrain_view.gd _press, as the key sends it)
+## or state.
+func _system_put(name: String, v: float, was := NAN) -> void:
 	var cmd: Callable = get_parent().command
+	if name in F35_START:  # a command as the switch moves into or out of its on position: p1 1 on, -1 off
+		var at: float = F35_START[name][1]
+		if is_nan(was) or (v > at) != (was > at):
+			cmd.call([F35_START[name][0], 1 if v > at else -1, 0])
+		return
 	if name in START_CMD:  # the start-up switches of three positions: p1 -1 OFF, 2 the in-between position, 1 on
 		var p := roundi(v)
 		var mid := -1 if name == "starter" else 1  # START 1, BATT, STBY
@@ -462,6 +495,15 @@ func _system_put(name: String, v: float) -> void:
 				tv._press([62 if name == "a_a" else 60, 0, 0])
 		"mfd_brt":  # command 216: thousandths up or down
 			tv._press([216, roundi((v - Settings.mfd_brightness) * 1000.0), 0])
+		"hmd_brt", "mfd_step":  # the F-35I's spring-loaded BRT rockers: a step (2.5 %) up or down as they are pushed
+			if absf(v) > 0.5:
+				tv._press([123 if name == "hmd_brt" else 216, 25 * int(signf(v)), 0])
+		"ipp_start":  # the F-35I's IPP knob turned to START (its last position): the engine start, as the key's
+			if v > 1.5:
+				tv._press([212, 1, 0])
+		"alt_gear":  # the F-35I's ALT GEAR EXTENSION: the gear down when it is up (command 14 moves the lever)
+			if on and not tv.gear_down:
+				tv._press([14, 0, 0])
 		"alt_flaps":  # command 12 flips the flaps lever
 			if on != (float(tv.flaps) > 0.0):
 				tv._press([12, 0, 0])

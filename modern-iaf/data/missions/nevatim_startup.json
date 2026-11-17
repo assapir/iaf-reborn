@@ -53,8 +53,8 @@
         "switches": [
           "main_power"
         ],
-        "en": "The jet stands cold at its parking spot: no power, the screens dark, the canopy up. Each step is a key or a click on its switch in the 3D cockpit, and the checklist notebook ({key:118}) lists the steps and ticks them off. Begin with the battery: {key:119} sets the BATT switch (start panel, left console, forward) on.",
-        "he": "המטוס עומד קר בחניה: אין מתח, המסכים כבויים והחופה פתוחה. כל שלב הוא מקש או לחיצה על המתג שלו בתא הטייס התלת־ממדי, והבד\"ח ({key:118}) מציג את השלבים ומסמן את מה שבוצע. להתחיל במצבר: {key:119} מדליק את מתג BATT (לוח ההתנעה, בקונסולה השמאלית מלפנים)."
+        "en": "The jet stands cold at its parking spot: no power, the screens dark, the canopy up. Each step is a key or a click on its switch in the 3D cockpit, and the checklist notebook ({key:118}) lists the steps and ticks them off. Begin with the battery: {key:119} sets the BATT switch (start panel, left console, aft of the throttle) on.",
+        "he": "המטוס עומד קר בחניה: אין מתח, המסכים כבויים והחופה פתוחה. כל שלב הוא מקש או לחיצה על המתג שלו בתא הטייס התלת־ממדי, והבד\"ח ({key:118}) מציג את השלבים ומסמן את מה שבוצע. להתחיל במצבר: {key:119} מדליק את מתג BATT (לוח ההתנעה, בקונסולה השמאלית מאחורי המצערת)."
       },
       {
         "switches": [
@@ -67,8 +67,8 @@
         "switches": [
           "engine"
         ],
-        "en": "Once the IPP runs, bring the throttle up from OFF: {key:7}, the throttle axis, or the ENG switch or the START button on the start panel. The engine turns, lights and runs up to idle by itself in about 35 s. The throttle moved before the IPP is up to speed starts nothing, and the mission fails.",
-        "he": "כשה־IPP פועל, להעביר את המצערת מ־OFF: {key:7}, ציר המצערת, או מתג ENG או לחצן START בלוח ההתנעה. המנוע מסתובב, ניצת ומאיץ לסרק בעצמו בתוך כ־35 שניות. הזזת המצערת לפני שה־IPP הגיע למהירות אינה מתניעה דבר, והמשימה נכשלת."
+        "en": "Once the IPP runs, bring the throttle up from OFF: {key:7}, the throttle axis, the ENGINE switch aft of the throttle to NORM (past MOTOR), or the IPP knob turned to START on the start panel. The engine turns, lights and runs up to idle by itself in about 35 s. The throttle moved before the IPP is up to speed starts nothing, and the mission fails.",
+        "he": "כשה־IPP פועל, להעביר את המצערת מ־OFF: {key:7}, ציר המצערת, מתג ENGINE מאחורי המצערת ל־NORM (דרך MOTOR), או סיבוב בורר ה־IPP ל־START בלוח ההתנעה. המנוע מסתובב, ניצת ומאיץ לסרק בעצמו בתוך כ־35 שניות. הזזת המצערת לפני שה־IPP הגיע למהירות אינה מתניעה דבר, והמשימה נכשלת."
       },
       {
         "switches": [
@@ -108,14 +108,14 @@
         "key": "Ctrl+B",
         "en": "Battery: ON",
         "he": "מצבר: ON",
-        "where": {"en": "BATT switch: start panel, left console, forward", "he": "מתג BATT: לוח ההתנעה, הקונסולה השמאלית, מלפנים"}
+        "where": {"en": "BATT switch: start panel, left console, aft of the throttle", "he": "מתג BATT: לוח ההתנעה, הקונסולה השמאלית, מאחורי המצערת"}
       },
       {
         "step": "starter",
         "key": "Ctrl+J",
         "en": "IPP: START (10 s)",
         "he": "IPP: START (10 שנ׳)",
-        "where": {"en": "IPP switch: start panel, left console, forward", "he": "מתג IPP: לוח ההתנעה, הקונסולה השמאלית, מלפנים"},
+        "where": {"en": "IPP switch: start panel, left console, aft of the throttle", "he": "מתג IPP: לוח ההתנעה, הקונסולה השמאלית, מאחורי המצערת"},
         "wait": {"en": "then wait for the IPP to run up (10 s)", "he": "ואז המתנה להתייצבות ה־IPP (10 שנ׳)"}
       },
       {
@@ -123,7 +123,7 @@
         "key": "throttle up from OFF",
         "en": "Throttle to idle: the engine starts",
         "he": "מצערת לסרק: המנוע מותנע",
-        "where": {"en": "ENG switch or START: start panel, left console; or the throttle grip out of OFF", "he": "מתג ENG או START: לוח ההתנעה, הקונסולה השמאלית; או ידית המצערת מ־OFF"},
+        "where": {"en": "ENGINE switch aft of the throttle to NORM, or the IPP knob to START on the start panel; or the throttle grip out of OFF", "he": "מתג ENGINE מאחורי המצערת ל־NORM, או בורר ה־IPP ל־START בלוח ההתנעה; או ידית המצערת מ־OFF"},
         "wait": {"en": "then wait for idle; the avionics report ready 90 s after the battery", "he": "ואז המתנה לסרק; האוויוניקה מוכנה 90 שנ׳ אחרי המצבר"}
       },
       {

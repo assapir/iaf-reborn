@@ -58,9 +58,9 @@
      0
     ],
     "axis": [
-     1,
-     0,
-     0
+     1.0,
+     0.0,
+     -0.0
     ],
     "factor": 19.275,
     "offset": -9.638
@@ -127,57 +127,6 @@
     ]
    }
   ],
-  "BATT": [
-   {
-    "prop": "f35i/elec/batt",
-    "centre": [
-     0,
-     0,
-     0
-    ],
-    "axis": [
-     1,
-     0,
-     0
-    ],
-    "factor": -40.0,
-    "offset": 40.0
-   }
-  ],
-  "IPP": [
-   {
-    "prop": "f35i/engine/ipp",
-    "centre": [
-     0,
-     0,
-     0
-    ],
-    "axis": [
-     1,
-     0,
-     0
-    ],
-    "factor": -40.0,
-    "offset": 40.0
-   }
-  ],
-  "ENG": [
-   {
-    "prop": "f35i/engine/eng",
-    "centre": [
-     0,
-     0,
-     0
-    ],
-    "axis": [
-     1,
-     0,
-     0
-    ],
-    "factor": -40.0,
-    "offset": 40.0
-   }
-  ],
   "CANOPY": [
    {
     "prop": "f35i/canopy",
@@ -197,36 +146,386 @@
   ],
   "HMD_BRT": [
    {
-    "prop": "f16/avionics/hud-sym",
+    "prop": "f35i/hmd/brt",
     "centre": [
      0,
      0,
      0
     ],
     "axis": [
-     0,
-     0.30902,
-     0.95106
+     1.0,
+     0.0,
+     -0.0
     ],
-    "factor": -100.0,
-    "offset": 50.0
+    "factor": -12.0,
+    "offset": 0.0
+   }
+  ],
+  "HMD_MODE": [
+   {
+    "prop": "f35i/hmd/mode",
+    "centre": [
+     0,
+     0,
+     0
+    ],
+    "axis": [
+     0.0,
+     0.79864,
+     0.60181
+    ],
+    "factor": -48.0,
+    "offset": 72.0
+   }
+  ],
+  "VIDEO_BRT": [
+   {
+    "prop": "f35i/hmd/video-brt",
+    "centre": [
+     0,
+     0,
+     0
+    ],
+    "axis": [
+     1.0,
+     0.0,
+     -0.0
+    ],
+    "factor": -12.0,
+    "offset": 0.0
+   }
+  ],
+  "VIDEO_CONT": [
+   {
+    "prop": "f35i/hmd/video-cont",
+    "centre": [
+     0,
+     0,
+     0
+    ],
+    "axis": [
+     1.0,
+     0.0,
+     -0.0
+    ],
+    "factor": -12.0,
+    "offset": 0.0
+   }
+  ],
+  "MFD_MODE": [
+   {
+    "prop": "f35i/mfd/mode",
+    "centre": [
+     0,
+     0,
+     0
+    ],
+    "axis": [
+     0.0,
+     0.79864,
+     0.60181
+    ],
+    "factor": -70.0,
+    "offset": 35.0
    }
   ],
   "MFD_BRT": [
    {
-    "prop": "instrumentation/mfd/brightness-norm",
+    "prop": "f35i/mfd/brt",
     "centre": [
      0,
      0,
      0
     ],
     "axis": [
+     1.0,
+     0.0,
+     -0.0
+    ],
+    "factor": -12.0,
+    "offset": 0.0
+   }
+  ],
+  "COM_A": [
+   {
+    "prop": "f35i/radio/com1",
+    "centre": [
      0,
+     0,
+     0
+    ],
+    "axis": [
+     0.0,
      0.30902,
      0.95106
     ],
-    "factor": -100.0,
+    "factor": -300.0,
+    "offset": 150.0
+   }
+  ],
+  "COM_B": [
+   {
+    "prop": "f35i/radio/com2",
+    "centre": [
+     0,
+     0,
+     0
+    ],
+    "axis": [
+     0.0,
+     0.30902,
+     0.95106
+    ],
+    "factor": -300.0,
+    "offset": 150.0
+   }
+  ],
+  "COM_C": [
+   {
+    "prop": "f35i/radio/com3",
+    "centre": [
+     0,
+     0,
+     0
+    ],
+    "axis": [
+     0.0,
+     0.30902,
+     0.95106
+    ],
+    "factor": -300.0,
+    "offset": 150.0
+   }
+  ],
+  "MASTER_ARM": [
+   {
+    "prop": "f35i/weapons/master-arm",
+    "centre": [
+     0,
+     0,
+     0
+    ],
+    "axis": [
+     1.0,
+     0.0,
+     -0.0
+    ],
+    "factor": -40.0,
+    "offset": 40.0
+   }
+  ],
+  "SFD_BARO": [
+   {
+    "prop": "f35i/sfd/baro",
+    "centre": [
+     0,
+     0,
+     0
+    ],
+    "axis": [
+     0.0,
+     0.30902,
+     0.95106
+    ],
+    "factor": -300.0,
+    "offset": 150.0
+   }
+  ],
+  "SFD_ALIGN": [
+   {
+    "prop": "f35i/sfd/align",
+    "type": "translate",
+    "axis": [
+     0.0,
+     -0.30902,
+     -0.95106
+    ],
+    "factor": 0.0015,
+    "offset": 0.0
+   }
+  ],
+  "SFD_BRT": [
+   {
+    "prop": "f35i/sfd/brt",
+    "type": "translate",
+    "axis": [
+     0.0,
+     -0.30902,
+     -0.95106
+    ],
+    "factor": 0.0015,
+    "offset": 0.0
+   }
+  ],
+  "PEDAL_ADJ": [
+   {
+    "prop": "f35i/pedals/adjust",
+    "type": "translate",
+    "axis": [
+     0.0,
+     0.30902,
+     0.95106
+    ],
+    "factor": 0.01,
+    "offset": 0.0
+   }
+  ],
+  "HOOK": [
+   {
+    "prop": "f35i/hook",
+    "type": "translate",
+    "axis": [
+     0.0,
+     -0.67572,
+     -0.73715
+    ],
+    "factor": 0.0015,
+    "offset": 0.0
+   }
+  ],
+  "JETT_SEL": [
+   {
+    "prop": "f35i/weapons/jett-select",
+    "centre": [
+     0,
+     0,
+     0
+    ],
+    "axis": [
+     0.0,
+     0.67572,
+     0.73715
+    ],
+    "factor": -45.0,
+    "offset": 45.0
+   }
+  ],
+  "EMER_JETT": [
+   {
+    "prop": "f35i/weapons/emer-jett",
+    "type": "translate",
+    "axis": [
+     0.0,
+     -0.67572,
+     -0.73715
+    ],
+    "factor": 0.0015,
+    "offset": 0.0
+   }
+  ],
+  "PARK_BRAKE": [
+   {
+    "prop": "f35i/brakes/parking",
+    "centre": [
+     0,
+     0,
+     0
+    ],
+    "axis": [
+     1.0,
+     0.0,
+     -0.0
+    ],
+    "factor": -40.0,
+    "offset": 40.0
+   }
+  ],
+  "ALT_GEAR_GUARD": [
+   {
+    "prop": "f35i/gear/alt-extension-guard",
+    "centre": [
+     0,
+     0,
+     0
+    ],
+    "axis": [
+     1.0,
+     0.0,
+     -0.0
+    ],
+    "factor": 110.0,
+    "offset": 0.0
+   }
+  ],
+  "ALT_GEAR": [
+   {
+    "prop": "f35i/gear/alt-extension",
+    "centre": [
+     0,
+     0,
+     0
+    ],
+    "axis": [
+     1.0,
+     0.0,
+     -0.0
+    ],
+    "factor": -40.0,
+    "offset": 40.0
+   }
+  ],
+  "LAND_TAXI": [
+   {
+    "prop": "f35i/lights/land-taxi",
+    "centre": [
+     0,
+     0,
+     0
+    ],
+    "axis": [
+     1.0,
+     0.0,
+     -0.0
+    ],
+    "factor": -20.0,
+    "offset": 40.0
+   }
+  ],
+  "AUTO_RECOVERY": [
+   {
+    "prop": "f35i/fcs/auto-recovery",
+    "centre": [
+     0,
+     0,
+     0
+    ],
+    "axis": [
+     1.0,
+     0.0,
+     -0.0
+    ],
+    "factor": -40.0,
+    "offset": 40.0
+   }
+  ],
+  "ZEROIZE": [
+   {
+    "prop": "f35i/zeroize",
+    "centre": [
+     0,
+     0,
+     0
+    ],
+    "axis": [
+     0.0,
+     0.30902,
+     0.95106
+    ],
+    "factor": -50.0,
     "offset": 50.0
+   }
+  ],
+  "FCS_RESET": [
+   {
+    "prop": "f35i/fcs/reset",
+    "type": "translate",
+    "axis": [
+     0.0,
+     -1.0,
+     -0.0
+    ],
+    "factor": 0.0015,
+    "offset": 0.0
    }
   ],
   "ENG_GUARD": [
@@ -238,13 +537,723 @@
      0
     ],
     "axis": [
-     1,
-     0,
-     0
+     1.0,
+     0.0,
+     -0.0
     ],
     "factor": 110.0,
     "offset": 0.0
    }
+  ],
+  "ENG": [
+   {
+    "prop": "f35i/engine/eng",
+    "centre": [
+     0,
+     0,
+     0
+    ],
+    "axis": [
+     1.0,
+     0.0,
+     -0.0
+    ],
+    "factor": -20.0,
+    "offset": 40.0
+   }
+  ],
+  "VS_BIT": [
+   {
+    "prop": "f35i/vs-bit",
+    "type": "translate",
+    "axis": [
+     0.0,
+     -1.0,
+     -0.0
+    ],
+    "factor": 0.0015,
+    "offset": 0.0
+   }
+  ],
+  "THR_FRICTION": [
+   {
+    "prop": "f35i/throttle/friction",
+    "centre": [
+     0,
+     0,
+     0
+    ],
+    "axis": [
+     0.0,
+     1.0,
+     -0.0
+    ],
+    "factor": -300.0,
+    "offset": 150.0
+   }
+  ],
+  "THR_ACTIVE": [
+   {
+    "prop": "f35i/throttle/active",
+    "centre": [
+     0,
+     0,
+     0
+    ],
+    "axis": [
+     1.0,
+     0.0,
+     -0.0
+    ],
+    "factor": -40.0,
+    "offset": 40.0
+   }
+  ],
+  "IPP": [
+   {
+    "prop": "f35i/engine/ipp",
+    "centre": [
+     0,
+     0,
+     0
+    ],
+    "axis": [
+     1.0,
+     0.0,
+     -0.0
+    ],
+    "factor": -40.0,
+    "offset": 40.0
+   }
+  ],
+  "ICC1": [
+   {
+    "prop": "f35i/elec/icc1",
+    "centre": [
+     0,
+     0,
+     0
+    ],
+    "axis": [
+     1.0,
+     0.0,
+     -0.0
+    ],
+    "factor": -40.0,
+    "offset": 40.0
+   }
+  ],
+  "ICC2": [
+   {
+    "prop": "f35i/elec/icc2",
+    "centre": [
+     0,
+     0,
+     0
+    ],
+    "axis": [
+     1.0,
+     0.0,
+     -0.0
+    ],
+    "factor": -40.0,
+    "offset": 40.0
+   }
+  ],
+  "CABIN_PRESS": [
+   {
+    "prop": "f35i/ecs/cabin-press",
+    "centre": [
+     0,
+     0,
+     0
+    ],
+    "axis": [
+     0.0,
+     1.0,
+     -0.0
+    ],
+    "factor": -55.0,
+    "offset": 55.0
+   }
+  ],
+  "BATT": [
+   {
+    "prop": "f35i/elec/batt",
+    "centre": [
+     0,
+     0,
+     0
+    ],
+    "axis": [
+     1.0,
+     0.0,
+     -0.0
+    ],
+    "factor": -20.0,
+    "offset": 20.0
+   }
+  ],
+  "IPP_EMER_OFF_GUARD": [
+   {
+    "prop": "f35i/engine/ipp-emer-off-guard",
+    "centre": [
+     0,
+     0,
+     0
+    ],
+    "axis": [
+     1.0,
+     0.0,
+     -0.0
+    ],
+    "factor": 110.0,
+    "offset": 0.0
+   }
+  ],
+  "IPP_EMER_OFF": [
+   {
+    "prop": "f35i/engine/ipp-emer-off",
+    "type": "translate",
+    "axis": [
+     0.0,
+     -1.0,
+     -0.0
+    ],
+    "factor": 0.0015,
+    "offset": 0.0
+   }
+  ],
+  "START": [
+   {
+    "prop": "f35i/engine/ipp-start",
+    "centre": [
+     0,
+     0,
+     0
+    ],
+    "axis": [
+     0.0,
+     1.0,
+     -0.0
+    ],
+    "factor": -55.0,
+    "offset": 55.0
+   }
+  ],
+  "STICK_ACTIVE": [
+   {
+    "prop": "f35i/stick/active",
+    "centre": [
+     0,
+     0,
+     0
+    ],
+    "axis": [
+     1.0,
+     0.0,
+     -0.0
+    ],
+    "factor": -40.0,
+    "offset": 40.0
+   }
+  ],
+  "DEFOG": [
+   {
+    "prop": "f35i/ecs/defog",
+    "type": "translate",
+    "axis": [
+     0.0,
+     0.0,
+     -1.0
+    ],
+    "factor": 0.03,
+    "offset": -0.015
+   }
+  ],
+  "MDC": [
+   {
+    "prop": "f35i/canopy/mdc",
+    "type": "translate",
+    "axis": [
+     -1.0,
+     0.0,
+     -0.0
+    ],
+    "factor": 0.01,
+    "offset": 0.0
+   }
+  ],
+  "EJECT_HANDLE": [
+   {
+    "prop": "f35i/seat/firing-handle",
+    "type": "translate",
+    "axis": [
+     0.0,
+     0.99452,
+     -0.10453
+    ],
+    "factor": 0.01,
+    "offset": 0.0
+   }
+  ],
+  "SEAT_SAFE": [
+   {
+    "prop": "f35i/seat/safe-arm",
+    "centre": [
+     0,
+     0,
+     0
+    ],
+    "axis": [
+     1.0,
+     0.0,
+     -0.0
+    ],
+    "factor": -20.0,
+    "offset": 40.0
+   }
+  ],
+  "SEAT_HEIGHT": [
+   {
+    "prop": "f35i/seat/height",
+    "centre": [
+     0,
+     0,
+     0
+    ],
+    "axis": [
+     1.0,
+     0.0,
+     -0.0
+    ],
+    "factor": -20.0,
+    "offset": 20.0
+   }
+  ],
+  "lamp_master_caution_0": [
+   {
+    "type": "translate",
+    "prop": "f35i/master-caution-push",
+    "axis": [
+     0.0,
+     -0.30902,
+     -0.95106
+    ],
+    "factor": 0.0015,
+    "offset": 0.0
+   }
+  ],
+  "lamp_eng_fire_0": [
+   {
+    "type": "translate",
+    "prop": "f35i/fire-push",
+    "axis": [
+     0.0,
+     -0.30902,
+     -0.95106
+    ],
+    "factor": 0.0015,
+    "offset": 0.0
+   }
   ]
+ },
+ "controls": {
+  "HMD_BRT": {
+   "prop": "f35i/hmd/brt",
+   "mode": "cycle",
+   "min": -1.0,
+   "max": 1.0,
+   "step": 1.0,
+   "wrap": true,
+   "rest": 0.0,
+   "modelled": 0.0
+  },
+  "HMD_MODE": {
+   "prop": "f35i/hmd/mode",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 3.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 3.0
+  },
+  "VIDEO_BRT": {
+   "prop": "f35i/hmd/video-brt",
+   "mode": "cycle",
+   "min": -1.0,
+   "max": 1.0,
+   "step": 1.0,
+   "wrap": true,
+   "rest": 0.0,
+   "modelled": 0.0
+  },
+  "VIDEO_CONT": {
+   "prop": "f35i/hmd/video-cont",
+   "mode": "cycle",
+   "min": -1.0,
+   "max": 1.0,
+   "step": 1.0,
+   "wrap": true,
+   "rest": 0.0,
+   "modelled": 0.0
+  },
+  "MFD_MODE": {
+   "prop": "f35i/mfd/mode",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 1.0
+  },
+  "MFD_BRT": {
+   "prop": "f35i/mfd/brt",
+   "mode": "cycle",
+   "min": -1.0,
+   "max": 1.0,
+   "step": 1.0,
+   "wrap": true,
+   "rest": 0.0,
+   "modelled": 0.0
+  },
+  "COM_A": {
+   "prop": "f35i/radio/com1",
+   "mode": "slide",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 0.05,
+   "wrap": false,
+   "modelled": 0.5
+  },
+  "COM_B": {
+   "prop": "f35i/radio/com2",
+   "mode": "slide",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 0.05,
+   "wrap": false,
+   "modelled": 0.5
+  },
+  "COM_C": {
+   "prop": "f35i/radio/com3",
+   "mode": "slide",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 0.05,
+   "wrap": false,
+   "modelled": 0.5
+  },
+  "MASTER_ARM": {
+   "prop": "f35i/weapons/master-arm",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 0.0
+  },
+  "SFD_BARO": {
+   "prop": "f35i/sfd/baro",
+   "mode": "slide",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 0.05,
+   "wrap": false,
+   "modelled": 0.5
+  },
+  "SFD_ALIGN": {
+   "prop": "f35i/sfd/align",
+   "mode": "push",
+   "press": 1.0,
+   "rest": 0.0,
+   "modelled": 0.0
+  },
+  "SFD_BRT": {
+   "prop": "f35i/sfd/brt",
+   "mode": "push",
+   "press": 1.0,
+   "rest": 0.0,
+   "modelled": 0.0
+  },
+  "PEDAL_ADJ": {
+   "prop": "f35i/pedals/adjust",
+   "mode": "push",
+   "press": 1.0,
+   "rest": 0.0,
+   "modelled": 0.0
+  },
+  "HOOK": {
+   "prop": "f35i/hook",
+   "mode": "push",
+   "press": 1.0,
+   "rest": 0.0,
+   "modelled": 0.0
+  },
+  "JETT_SEL": {
+   "prop": "f35i/weapons/jett-select",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 2.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 1.0
+  },
+  "EMER_JETT": {
+   "prop": "f35i/weapons/emer-jett",
+   "mode": "push",
+   "press": 1.0,
+   "rest": 0.0,
+   "modelled": 0.0
+  },
+  "PARK_BRAKE": {
+   "prop": "f35i/brakes/parking",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 1.0
+  },
+  "ALT_GEAR_GUARD": {
+   "prop": "f35i/gear/alt-extension-guard",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 0.0
+  },
+  "ALT_GEAR": {
+   "prop": "f35i/gear/alt-extension",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 0.0,
+   "guard": "f35i/gear/alt-extension-guard",
+   "safe": 0.0
+  },
+  "LAND_TAXI": {
+   "prop": "f35i/lights/land-taxi",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 2.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 0.0
+  },
+  "AUTO_RECOVERY": {
+   "prop": "f35i/fcs/auto-recovery",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 1.0
+  },
+  "ZEROIZE": {
+   "prop": "f35i/zeroize",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 2.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 1.0
+  },
+  "FCS_RESET": {
+   "prop": "f35i/fcs/reset",
+   "mode": "push",
+   "press": 1.0,
+   "rest": 0.0,
+   "modelled": 0.0
+  },
+  "ENG_GUARD": {
+   "prop": "f35i/engine/eng-guard",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 0.0
+  },
+  "ENG": {
+   "prop": "f35i/engine/eng",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 2.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 0.0,
+   "guard": "f35i/engine/eng-guard",
+   "safe": 0.0
+  },
+  "VS_BIT": {
+   "prop": "f35i/vs-bit",
+   "mode": "push",
+   "press": 1.0,
+   "rest": 0.0,
+   "modelled": 0.0
+  },
+  "THR_FRICTION": {
+   "prop": "f35i/throttle/friction",
+   "mode": "slide",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 0.05,
+   "wrap": false,
+   "modelled": 0.5
+  },
+  "THR_ACTIVE": {
+   "prop": "f35i/throttle/active",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 1.0
+  },
+  "IPP": {
+   "prop": "f35i/engine/ipp",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 1.0
+  },
+  "ICC1": {
+   "prop": "f35i/elec/icc1",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 1.0
+  },
+  "ICC2": {
+   "prop": "f35i/elec/icc2",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 1.0
+  },
+  "CABIN_PRESS": {
+   "prop": "f35i/ecs/cabin-press",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 2.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 1.0
+  },
+  "BATT": {
+   "prop": "f35i/elec/batt",
+   "mode": "cycle",
+   "min": -1.0,
+   "max": 1.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 0.0
+  },
+  "IPP_EMER_OFF_GUARD": {
+   "prop": "f35i/engine/ipp-emer-off-guard",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 0.0
+  },
+  "IPP_EMER_OFF": {
+   "prop": "f35i/engine/ipp-emer-off",
+   "mode": "push",
+   "press": 1.0,
+   "rest": 0.0,
+   "modelled": 0.0,
+   "guard": "f35i/engine/ipp-emer-off-guard",
+   "safe": 0.0
+  },
+  "START": {
+   "prop": "f35i/engine/ipp-start",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 2.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 1.0,
+   "rest": 1.0,
+   "spring": [
+    2.0
+   ]
+  },
+  "STICK_ACTIVE": {
+   "prop": "f35i/stick/active",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 1.0
+  },
+  "DEFOG": {
+   "prop": "f35i/ecs/defog",
+   "mode": "slide",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 0.1,
+   "wrap": false,
+   "modelled": 0.5
+  },
+  "MDC": {
+   "prop": "f35i/canopy/mdc",
+   "mode": "push",
+   "press": 1.0,
+   "rest": 0.0,
+   "modelled": 0.0
+  },
+  "EJECT_HANDLE": {
+   "prop": "f35i/seat/firing-handle",
+   "mode": "push",
+   "press": 1.0,
+   "rest": 0.0,
+   "modelled": 0.0
+  },
+  "SEAT_SAFE": {
+   "prop": "f35i/seat/safe-arm",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 2.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 1.0
+  },
+  "SEAT_HEIGHT": {
+   "prop": "f35i/seat/height",
+   "mode": "cycle",
+   "min": -1.0,
+   "max": 1.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 0.0,
+   "rest": 0.0
+  },
+  "lamp_master_caution_0": {
+   "prop": "f35i/master-caution-push",
+   "mode": "push",
+   "press": 1.0,
+   "rest": 0.0,
+   "modelled": 0.0
+  },
+  "lamp_eng_fire_0": {
+   "prop": "f35i/fire-push",
+   "mode": "push",
+   "press": 1.0,
+   "rest": 0.0,
+   "modelled": 0.0
+  }
  }
 }

@@ -269,7 +269,7 @@ reads the same `checklist` event. The throttle goes back to OFF by its own key, 
 |---|---|---|---|---|---|
 | 1 | Battery: ON | Ctrl+B | at once | — | battery, IPP, engine[^ayton] |
 | 2 | IPP: START | Ctrl+J | runs 10 s, then holds | before the battery: `no_power` | [^ayton]; the 10 s inferred |
-| 3 | Throttle to idle: the engine starts | the throttle up from OFF (in the 3D cockpit also the ENG switch or START, [cockpit.md](cockpit.md) §5.2) | cranks, lights and runs to idle by itself (the F-16's figures); the displays on the IPP's power | before the IPP: `no_ipp`; before the IPP is up to speed: `ipp_not_ready` | [^ayton]; inferred |
+| 3 | Throttle to idle: the engine starts | the throttle up from OFF (in the 3D cockpit also the ENGINE switch or the IPP knob to START, [cockpit.md](cockpit.md) §5.2) | cranks, lights and runs to idle by itself (the F-16's figures); the displays on the IPP's power | before the IPP: `no_ipp`; before the IPP is up to speed: `ipp_not_ready` | [^ayton]; inferred |
 | 4 | Canopy: close and lock | Ctrl+K | at once; the canopy, its aft end up 30° about its front hinge at the cold start, comes down over 10 s | any time; taxiing with it up has no consequence | inferred (front-hinged: [f35i.md](../../docs/f35i.md) §4; the angle and time the F-16's) |
 
 Each step's `wait` (mission data) says the state to wait for before the next step, in the table's figures (the JFS's

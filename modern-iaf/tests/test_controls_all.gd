@@ -53,8 +53,8 @@ func run() -> void:
 			)
 			_positions(c3d, ctl, id, e[0], r)
 			await frames(1)
-		# The F-35I's console parts come with its remodel to the real controls (finish-cockpit-controls.md C1b).
-		check(n >= (0 if id == "f35i" else 150), "%s: %d controls of the model's own" % [id, n])
+		# The F-35I's: its real controls (modern-iaf/docs/research/f35-cockpit.md, finish-cockpit-controls.md C1b).
+		check(n >= (40 if id == "f35i" else 150), "%s: %d controls of the model's own" % [id, n])
 		tv.views.snap = null
 
 

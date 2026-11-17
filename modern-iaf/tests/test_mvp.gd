@@ -479,7 +479,7 @@ func _step(tv: Node, n: int, node: String, click: bool) -> void:
 	await _target(tv, node)
 	if click:
 		await _click_control(tv, node)
-		if node == "MAIN_PWR":  # OFF, BATT, MAIN PWR: two clicks (start.rs Start::position)
+		if node in ["MAIN_PWR", "ENG"]:  # OFF, BATT, MAIN PWR (start.rs Start::position); OFF, MOTOR, NORM: two clicks
 			await _click_control(tv, node)
 	else:
 		tv._command([209 + n, 0, 0] if n > 0 else [5, 0, 0])
@@ -874,12 +874,15 @@ func _hud_light(tv: Node, jet: String) -> void:
 		"%s: the combiner glass untinted (the F-35I: none)" % jet
 	)
 	var mfd: float = settings().mfd_brightness
-	# The F-16s' SYM wheel; the F-35I's HMD and MFD BRT knobs on the pedestal (f35i_controls.json).
+	# The F-16s' SYM wheel; the F-35I's HMD and MFD BRT rockers on the pedestal (f35i_controls.json).
 	var knobs := (
 		{"SYM": "hud_brightness"} if own == null else {"HMD_BRT": "hud_brightness", "MFD_BRT": "mfd_brightness"}
 	)
 	for node in knobs:
-		await _knob(tv, jet, node, knobs[node])
+		if own == null:
+			await _knob(tv, jet, node, knobs[node])
+		else:
+			await _rocker(tv, jet, node, knobs[node])
 	if own == null:
 		await _hud_mode(tv, jet)
 	tv.views.snap = null
@@ -925,6 +928,40 @@ func _knob(tv: Node, jet: String, node: String, key: String) -> void:
 	hover.position = Vector2.ZERO
 	vp.push_input(hover)
 	check(knob.material_overlay == null, "%s: off %s, unlit" % [jet, node])
+
+
+## The F-35I's BRT rocker `node` on the pedestal's top strip (f35i.json `controls`, f35i_controls.json "system"):
+## hovering lights it; a left press holds it up and steps the Settings level `key` 2.5 % (the HUD key's command, 123,
+## or the displays' 216); let go it springs back to its middle (a switch of three positions leaves the wheel to the
+## view's zoom); the settings file keeps the level.
+func _rocker(tv: Node, jet: String, node: String, key: String) -> void:
+	var c3d = tv.cockpit_3d
+	var ctl = c3d.clickable if c3d != null else null
+	var mi: MeshInstance3D = c3d.find_child(node, true, false) if c3d != null else null
+	check(ctl != null and mi != null, "%s: the 3D cockpit's %s rocker" % [jet, node])
+	if ctl == null or mi == null:
+		return
+	var vp: Viewport = tv.get_viewport()
+	var at := await _aim(tv, func() -> Vector3: return mi.global_transform * mi.get_aabb().get_center(), 0.0)
+	var hover := InputEventMouseMotion.new()
+	hover.position = at
+	vp.push_input(hover)
+	check(mi.material_overlay != null, "%s: hovering %s lights it (at %s)" % [jet, node, at])
+	settings().set(key, 0.5)
+	c3d._process(0.0)
+	var rest := mi.transform.basis
+	vp.push_input(_click(at, MOUSE_BUTTON_LEFT, true))
+	c3d._process(0.0)
+	check(is_equal_approx(settings().get(key), 0.525), "%s: a press on %s: +2.5 %%" % [jet, node])
+	check(not mi.transform.basis.is_equal_approx(rest), "%s: %s held up" % [jet, node])
+	vp.push_input(_click(at, MOUSE_BUTTON_LEFT, false))
+	c3d._process(0.0)
+	check(mi.transform.basis.is_equal_approx(rest), "%s: %s let go: back to its middle" % [jet, node])
+	var kept := float(settings().write_config().get_value("graphics", key))
+	check(kept == settings().get(key), "%s: the settings file keeps %s's level (%s)" % [jet, node, kept])
+	hover.position = Vector2.ZERO
+	vp.push_input(hover)
+	check(mi.material_overlay == null, "%s: off %s, unlit" % [jet, node])
 
 
 ## The F-16s' HUD DAY / AUTO BRT / NIGHT switch (f16.glb HUD_MODE, command 217): DAY keeps the day level at night,
