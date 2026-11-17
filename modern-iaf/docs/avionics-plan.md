@@ -89,7 +89,7 @@ following[^sufa-at][^sufa-lm-radar]. The pilot's view of each is the dash-34's F
 | R12 | GMT | bright movers on a dimmed map | `Mode::Gmt`; the real FCR's to 40 NM, its map dimmed, EXP; the range's towed hulk moves for it | Sim |
 | R13 | SEA | GM tuned for ships, no DBS | GM listing ships only, no DBS; the range's barge off the coast | Sim (17 Nov) |
 | R14 | AGR, BCN, TF | ranging for the A-G solution; beacon; terrain following[^sufa-at] | AGR with a CCIP bomb or the A-G gun: the slant range along the pipper's line on the FCR and the HUD; BCN and TF parked by G12 (no beacons in the sim) | AGR Sim (17 Nov); BCN, TF parked (G12) |
-| R15 | AIFF interrogation | TMS left; a green circle (friend) or yellow square (unknown) at the reply on the FCR[^mlu1] | O (SCAN), Shift + O (LOS) and TMS left in CRM; green circles / yellow squares on the FCR and the HSD for 3 s, SCAN blanking the FCR; the DED's IFF and INTG pages ([ews.md](ews.md) §5, §8; `aiff.rs`) | Sim (17 Nov) |
+| R15 | AIFF interrogation | TMS left; a green circle (friend) or yellow square (unknown) at the reply on the FCR[^mlu1] | O (SCAN), Shift + O (LOS) and TMS left in CRM; green circles / yellow squares on the FCR and the HSD for 3 s, SCAN blanking the FCR; the DED's IFF and INTG pages ([ews.md](ews.md) §5, §8; `aiff.rs`); the transponder's modes, codes and IDENT (Alt + K) on the IFF and CNI pages, a cockpit procedure only ([ews.md](ews.md) §8) | Sim (17 Nov) |
 
 ### 2.2 MFD formats (colour)
 
@@ -120,7 +120,7 @@ following[^sufa-at][^sufa-lm-radar]. The pilot's view of each is the dash-34's F
 | # | function | real | today | status |
 |---|---|---|---|---|
 | E1 | RWR display | Elisra RWR[^sufa-at]; the threat azimuth indicator's symbols (real-mfd.md "The threat azimuth indicator") | `rwr.rs` (all-aspect on the modern F-16s) and `ews.rs` on the 3D RWR scope: labels by class, the diamond, lock square, launch circle, new-threat flash, PRI / OPEN, UNKNOWN, TGT SEP, HANDOFF, SYS TEST, the THREAT / MSL knobs; the range's radar drones show as "35" ([ews.md](ews.md) §2) | Sim (17 Nov) |
-| E2 | MAW | PAWS: "the direction, missile type, and time to impact"[^sufa-janes] | `ews.rs` `Maw` from the RWR's missile list: an "M" on the RWR scope at the missile's direction with the seconds to impact, the launch tone ([ews.md](ews.md) §3); the missile type open | Sim (17 Nov) |
+| E2 | MAW | PAWS: "the direction, missile type, and time to impact"[^sufa-janes] | `ews.rs` `Maw` from the RWR's missile list: an "M" on the RWR scope at the missile's direction with the seconds to impact, the launch tone ([ews.md](ews.md) §3); no missile type: a missile's type and performance belong to the parked rows (§7) | Sim (17 Nov) |
 | E3 | Jammer | SPS-3000 / internal jammer[^sufa-at][^sufa-periscope] | the shared ECM (J; [../../docs/weapons.md](../../docs/weapons.md) §10) | Partly (G3) |
 | E4 | Chaff / flares, programs | dispenser programs from the CMS | `cmds.rs`: the CMDS panel (MODE, CH, FL, O1, O2, RWR, JMR, MWS, JETT), programs 1–4, the CMS keys (P, Shift + P, Y), SEMI / AUTO on a launch, "Counter", "Chaff flare low / out"; releases through the game's dispense ([ews.md](ews.md) §4); the DED's EWS pages: programs, BINGO, options ([ews.md](ews.md) §8) | Sim (17 Nov) |
 
@@ -154,7 +154,7 @@ following[^sufa-at][^sufa-lm-radar]. The pilot's view of each is the dash-34's F
 | N3 | TACAN | channel, bearing and range to a base | T-ILS page, the bases' stations (our channels), the EHSI's TCN ([ufc.md](ufc.md) §2) | Sim (17 Nov) |
 | N4 | ILS | localizer and glide slope | the HUD's ILS lines at the exact deviation ([../../docs/real-hud.md](../../docs/real-hud.md) "What ours draws") | Sim |
 | N5 | Data link | Link 16 / IDM tracks on the HSD and FCR | `datalink.rs`: the flight's jets and the AWACS's tracks on the HSD and the FCR with the DL switch, the DED's DLNK page ([ews.md](ews.md) §6, §8) | Sim (17 Nov) |
-| N6 | Radios | UHF / VHF, the tower, AWACS | COM1 / COM2 presets and the backup UHF on the DED ([ufc.md](ufc.md) §2); the tower menu ([training.md](training.md) §8); the AWACS's contact calls (`fctrl.rs`) on the range, their voice waiting for the `voices` step ([ews.md](ews.md) §7) | Partly (G31) |
+| N6 | Radios | UHF / VHF, the tower, AWACS | COM1 / COM2 presets and the backup UHF on the DED ([ufc.md](ufc.md) §2); the tower menu ([training.md](training.md) §8); the AWACS's contact calls (`fctrl.rs`) on the range in the AWACS's voice ([ews.md](ews.md) §7) | Sim (17 Nov) |
 | N7 | HOTAS functions | TMS, DMS, CMS, cursor, uncage, DGFT, expand, pickle, trigger | pickle, trigger, chaff / flare as keys; TMS, the cursor and DMS on keys (slices 2 and 4); DGFT / MSL OVRD on V (slice 5); the CMS ([ews.md](ews.md) §1); uncage with slice 8 | Partly (G26) |
 
 ## 3. F-16D Barak: its differences
@@ -263,7 +263,7 @@ by the sim; **extend** = existing shared logic grown; **new** = new logic in a R
 | G28 | DED / ICP pages: STPT entry, markpoints, bingo, ALOW setting. **Built 17 Nov (slice 5)** with every page the sim can feed ([ufc.md](ufc.md)) | M | new (Rust page state; `cockpit3d_display.gd` draws) | sim test: a markpoint over the jet becomes a steerpoint on the HSD |
 | G29 | TACAN to the bases (channel, bearing, range) on the HSI / EHSI, the HUD and the F-35's function bar. **The F-16s' built 17 Nov (slice 5)**; the F-35's with slice 7 | S | new (base channels in `modern-iaf/data/airbases`) | Rust: bearing and range to Ramon from a known point |
 | G30 | Data link: tracks of the flight's other jets and of AWACS on the HSD, FCR and TSD. **The F-16s' built 17 Nov (slice 5, [ews.md](ews.md) §6)**; the F-35I's TSD with slice 7 | M | new | Rust: a wingman's radar contact appears on the player's HSD |
-| G31 | AWACS in the sim's missions (the shared radio calls). the calls' voice data written 17 Nov on `wt/avionics-s5-awacs-voices`, waiting for the `voices` step's clips ([ews.md](ews.md) §7) | S | wire | `modern-iaf/tests/test_radio_calls.gd` hears a contact call |
+| G31 | AWACS in the sim's missions (the shared radio calls). **Built 17 Nov:** the calls' templates and clips in the AWACS's voice ([ews.md](ews.md) §7) | S | wire | `modern-iaf/tests/test_sim_ews.gd` hears a contact call |
 | G32 | SRCH layout once a source shows it | S | extend | picture |
 | G33 | F-35I electronic attack and passive ESM | M | new | open: sources are one line[^apg81]; built only on the user's word |
 | G34 | F-35I WPN-A / WPN-S, CNI pop-up, double-width formats, the 5 presets | M | new (drawing) | PCD test: each format opens from MENU and widens |

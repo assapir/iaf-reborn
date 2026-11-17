@@ -14,7 +14,7 @@ const SCOPE_AZ := TAU / 3.0
 var w: Object  # player_weapons.gd
 var aiff := false
 var maw := false
-## What the cockpit draws: {symbols, maw, twd, cmds, aiff, blank, link}.
+## What the cockpit draws: {symbols, maw, twd, cmds, aiff, blank, link, own (the jet's world position)}.
 var state := {}
 var _e = ClassDB.instantiate("IafEws")
 var _launch_ids := {}
@@ -146,6 +146,7 @@ func update() -> void:
 		"aiff": _e.aiff_replies(w.now),
 		"blank": _e.aiff_blanking(w.now),
 		"link": _e.link_tracks(),
+		"own": o.pos,
 	}
 	state.ded = _ded(state)
 

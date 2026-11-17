@@ -36,6 +36,7 @@ The user has no HOTAS ([avionics-plan.md](avionics-plan.md) §8, decision 3): ev
 | Alt + = / Alt + - | 250, 20 / 21 | INC / DEC: the steerpoint, the TACAN channel, the radio preset | the arrows rocker |
 | Alt + N | 253 | the EHSI's mode: NAV / TCN | the EHSI's M button |
 | Alt + U | 254 | the backup UHF panel's channel, one on (the UHF goes to BACKUP) | — (the model has no moving backup panel) |
+| Alt + K | 255 | IFF IDENT: the transponder's IDENT for 18 s ([ews.md](ews.md) §8) | — (the model has no IDENT button) |
 | Alt + D | 252, 4 | HUD DED DATA: DED / PFL / OFF | — (not in the model) |
 | Alt + R | 252, 5 | HUD DEPR RET: STBY / PRI / OFF | — (not in the model) |
 | — | 252, 0–3 | HUD SCALES, FP MARKER, VELOCITY, ALT | the HUD control panel's switches |
@@ -48,13 +49,16 @@ Ctrl + digits rather than Alt + digits: the laptop map's look keys are Alt + 1 �
 ## 2. The DED
 
 Five lines of 24 characters, drawn on the 3D cockpit's DED (`cockpit3d_display.gd` `_ded`), dark without the UFC's
-power (the AVIONIC POWER panel's UFC switch). The selected field shows between asterisks, with the digits typed in
+power (the AVIONIC POWER panel's UFC switch). Each character has its own cell, so the columns line up as on the real
+display (the sim's display font is proportional). The drawing covers the whole screen: FlightGear's DED screen maps
+only the top two thirds of its texture, which hid lines 4 and 5 until 17 November (`cockpit3d.gd` `_attach_display`
+stretches the texture over the screen's UVs). The selected field shows between asterisks, with the digits typed in
 place of its value; ENTR enters them and moves to the next field; a wrong entry is refused (the value stays). A lone
 0 then ENTR toggles a choice (M-SEL: the TACAN band, BULLSEYE, MODE).
 
 | page | how | shows / sets |
 |---|---|---|
-| CNI | RTN | UHF frequency (or BACKUP), the steerpoint (↕ steps it), VHF preset, time of day, the hack clock while it runs, the TACAN channel |
+| CNI | RTN | UHF frequency (or BACKUP), the steerpoint (↕ steps it), VHF preset, time of day, the hack clock while it runs, the transponder's modes on (`M1 3 C`, `I` during IDENT; [ews.md](ews.md) §8), the TACAN channel |
 | T-ILS | 1 | TACAN mode (REC / T/R / A/A TR, SEQ), channel (1–126) and band (X / Y), the ILS frequency (108.10–111.95) and course, CMD STRG, the station's name, bearing and range |
 | ALOW | 2 | CARA ALOW (the HUD's `AL`, the "ALTITUDE" voice), MSL FLOOR; the TF line as the page has it (TF is parked, G12) |
 | STPT | 4 | the steerpoint's number (typed or ↕), latitude, longitude, elevation, TOS; SEQ: AUTO / MAN |
@@ -66,7 +70,7 @@ place of its value; ENTR enters them and moves to the next field; a wrong entry 
 | LIST | LIST | 1 DEST (the steerpoint's coordinates), 2 BNGO (the bingo: the HUD's FUEL), 4 NAV (system accuracy: HIGH once the INS navigates), 6 INS (alignment time / status, RDY, position, altitude, heading, ground speed), 8 MODE (A-A / A-G), 0 MISC |
 | MISC | LIST 0 | 2 MAGV (about 5° E over Israel, inferred; shown only: the sim's headings are grid headings), 5 LASR (the TGP's laser code, 1111–1788), 8 BULL (the HSD's bullseye on or off, at the home base or a steerpoint), RCL HMCS (the helmet's blanking) |
 | COM1 / COM2 | COM1 / COM2 | a preset (1–20) or a frequency typed (24250 = 242.50 MHz); ↕ steps the preset |
-| EWS, IFF, DLNK, INTG | LIST 7, the IFF key, LIST ENTR, LIST RCL | the CMDS's programs, BINGO and options; the AIFF; the data link; the last interrogation ([ews.md](ews.md) §8) |
+| EWS, IFF, DLNK, INTG | LIST 7, the IFF key, LIST ENTR, LIST RCL | the CMDS's programs, BINGO and options; the transponder, then (SEQ) the AIFF; the data link; the last interrogation ([ews.md](ews.md) §8) |
 
 Not offered, with the reason: LIST 3 VIP, 5 MAN, 9 VRP and MISC 7 DRNG serve the release modes of slice 9 (G21); MISC
 1 CORR and 4 INSM (HUD and INS corrections: the sim has no such errors), 3 OFP (the software's identities are not
@@ -100,7 +104,11 @@ What `real_hud/f16.rs` draws from the panel ([../../docs/real-hud.md](../../docs
 - FP MARKER: ATT/FPM the ladder and the marker, FPM the marker alone, OFF neither.
 - VELOCITY: CAS (`C`), TAS (`T`) or ground speed (`G`); CAS with the gear down or in DGFT.
 - ALT: RADAR the radar altitude on the scale (`AR`), BARO, AUTO the radar altitude's thermometer below 1,200 ft.
-- DED DATA: the DED's lines low in the HUD (inferred place).
+- DED DATA: at DED the DED's five lines, at PFL the pilot fault list's, low in the HUD, one character per 5 px cell
+  so the DED's columns line up, in the gap between the left and the right data column, from the right column's
+  second row down (inferred place: under the heading scale's lower position); the roll indicator is not drawn
+  meanwhile (the dash-34 as a simulator forum quotes it, [../../docs/real-hud.md](../../docs/real-hud.md) "F-16C/D").
+  `f16.rs` `ded_data_overlaps_nothing_in_any_mode` checks that no cell touches another symbol in any HUD mode.
 - DEPR RET at STBY: the standby reticle, a 50 mr ring with its pipper, depressed by RET DEPR.
 - MASTER ARM at SIMULATE: `SIM` in place of `ARM`; nothing is released or fired.
 - `FUEL` flashes below the bingo; `AL` shows the DED's ALOW.

@@ -830,6 +830,9 @@ its scale. The original HUD keeps the original layout.
     panel's switches (the VVI scale at VV/VAH, FPM alone, the scales off, CAS / TAS / ground speed, the radar
     altitude and AUTO's thermometer, DED DATA, the standby reticle), ALIGN, SIM, DGFT / MSL, the DED's ALOW, `FUEL`
     flashing and the SOI asterisk. Reborn's HUD keeps the VAH, ATT/FPM, CAS and BARO positions.
+  - DED DATA (DED or PFL): the five lines one character per cell, between the left and the right data column from the
+    right column's second row down (inferred place), and no roll indicator meanwhile ("not displayed [when] DED or
+    PFLD data is displayed on the HUD", a simulator forum quoting the jet's manual[^dcs-roll]).
   - `FUEL` below the bingo flashes in both games since 2026-11-17 (the dash-34's window 6; it was steady before).
   - Not drawn: DTOS / CCRP (the game has no such modes), BATR / FEDS, the LOW mnemonic (the game has no fuze arming
     height); in reborn the VVI and the AUTO scale (no HUD control panel).
@@ -1141,3 +1144,5 @@ The F-35I's helmet display over the Negev, before and after, by day and at 22:00
     https://commons.wikimedia.org/wiki/File:Auto-GCAS_Saves_Unconscious_F-16_Pilot%E2%80%94Declassified_USAF_Footage.webm
 [^f16c-front]: US Air Force, F-16C cockpit from the front seat, public domain, Wikimedia Commons
     `File:F-16C_cockpit_m02006112700032.jpg`. <https://commons.wikimedia.org/wiki/File:F-16C_cockpit_m02006112700032.jpg>
+[^dcs-roll]: DCS forum, "HUD question about judging bank angle" (the roll indicator's display conditions, quoted
+    from the F-16's manual; secondary): https://forum.dcs.world/topic/234734-hud-question-about-judging-bank-angle

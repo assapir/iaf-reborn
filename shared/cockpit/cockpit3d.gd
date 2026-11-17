@@ -1148,13 +1148,29 @@ func _own_materials(mi: MeshInstance3D) -> Array:
 	return out
 
 
-## A Display drawn into a SubViewport whose texture lights `screen` (emissive), as the MFDs (_attach).
+## A Display drawn into a SubViewport whose texture lights `screen` (emissive), as the MFDs (_attach). The texture is
+## stretched over the part of it the screen's UVs cover on the DED: FlightGear's DED canvas fills only its top two
+## thirds (v to 0.673), so the drawing over the whole texture lost lines 4 and 5; stretched, its 384 x 128 px meet the
+## screen's 88 x 29 mm with square pixels. The fault list keeps FlightGear's canvas (_pfl lays its lines out in that
+## top part); the RWR scope's and EHSI's UVs cover their screens.
 func _attach_display(screen: MeshInstance3D, kind: int, px: Vector2i) -> void:
 	var d := Display.new(cockpit, kind, px)
 	_screen_viewport(screen, px).add_child(d)
 	displays[String(screen.name)] = d
+	var ext := uv_extent(screen.mesh)
+	if kind == Display.Kind.DED and ext.x > 0.0 and ext.y > 0.0:
+		(screen.material_override as StandardMaterial3D).uv1_scale = Vector3(1.0 / ext.x, 1.0 / ext.y, 1.0)
 	if screen.name == "DED_screen":
 		_ded_mat = screen.material_override
+
+
+## The largest UV a mesh's surfaces use.
+static func uv_extent(mesh: Mesh) -> Vector2:
+	var m := Vector2.ZERO
+	for s in mesh.get_surface_count():
+		for uv: Vector2 in mesh.surface_get_arrays(s)[Mesh.ARRAY_TEX_UV]:
+			m = m.max(uv)
+	return m
 
 
 func _update_instruments() -> void:

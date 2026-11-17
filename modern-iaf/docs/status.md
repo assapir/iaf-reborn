@@ -15,9 +15,11 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   "M" with the seconds to impact); the CMDS panel, programs 1–4 and the CMS keys (P, Shift + P, Y; Shift + Y MODE,
   Ctrl + Y program) releasing through the game's dispense with the VMS's "Counter" and "Chaff flare low / out"; the
   Sufa's AIFF (O, Shift + O, TMS left in CRM: green circles, yellow squares); the data link on the HSD and the FCR (the
-  DL switch); the DED's EWS pages (programs, BINGO, REQCTR / BINGO / FDBK / REQJAM), IFF, DLNK and INTG. Open: the
-  MAW's missile type; the transponder's modes on the IFF page (no transponder model); the AWACS's calls' voice (its data on `wt/avionics-s5-awacs-voices`,
-  waiting for the `voices` step's clips).
+  DL switch); the DED's EWS pages (programs, BINGO, REQCTR / BINGO / FDBK / REQJAM), IFF, DLNK and INTG; the transponder's modes, codes and IFF IDENT (Alt + K); the AWACS's contact calls voiced. Fixed the
+  same day: the HUD's DED DATA overlapped its right column (now a block of character cells between the columns, the
+  roll indicator off meanwhile), the threat symbols piled on the centre (now on rings by lethality, apart), the AIFF's
+  circle sat below its FCR contact (now by slant range), the 3D DED showed 3 of its 5 lines and its columns did not
+  line up. The MAW names no missile type (the parked rows of missile performance).
 - **The Sufa's MFDs (2026-11-17, avionics-plan.md slice 4, G8 DMS, G14–G16, G24, G25;
   [../../docs/mfd.md](../../docs/mfd.md) §9 "Modern MFDs"):** each MFD keeps three formats per master mode (NAV,
   A-A, A-G); the menu adds DTE, FLCS, BLANK and the RESET MENU; the sensor of interest with its box and NOT SOI, DMS on

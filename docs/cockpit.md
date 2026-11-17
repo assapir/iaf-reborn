@@ -790,7 +790,9 @@ occlusion, 1.8 MB; built by
     (NM, top left; `hud.gd` `nav_cues`), "NAV" bottom left. The course arrow, the CDI and the heading bug are left
     out: the game has no selected course or heading;
   * the DED (384 x 128 px): the CNI page's steerpoint (line 1) and time of day (line 3), green. Its radio and IFF
-    fields are left out: the game has no radios to tune;
+    fields are left out: the game has no radios to tune. Since 2026-11-17 the texture covers the whole screen
+    (`cockpit3d.gd` `_attach_display`): FlightGear's screen maps only the top two thirds of it, which hid lines 4 and 5
+    and drew the glyphs half as tall again as wide;
   * the pilot fault list display (256 x 128 px, FlightGear's `pfd.nas` layout and colours: green on a dark green
     ground): line 1 the classes with a fault (FLCS, ENG, AV), lines 3–5 the first three faults, the third framed by
     ▼ when more wait; blank with none. The faults come from the damage flags (damage.md §5.2), warnings first, with

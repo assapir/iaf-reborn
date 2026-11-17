@@ -27,7 +27,7 @@
       "speed": 1.1,
       "url": "https://huggingface.co/hexgrad/Kokoro-82M",
       "licence": "Kokoro-82M v1.0 model and voice packs, Apache-2.0",
-      "use": "the AWACS controller (radio chain); no call has its clips yet"
+      "use": "the AWACS controller (radio chain): the contact calls ACFT_FCTRL_LONG / _SHORT (docs/radio.md §4)"
     }
   },
   "clips": [
@@ -1489,6 +1489,588 @@
       "say": "Nevatim tower, Alpha, request landing.",
       "mode": "helmet",
       "note": "the player's call, whole"
+    },
+    {
+      "file": "awx_alpha.ogg",
+      "voice": "awacs",
+      "say": "Alpha",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_bravo.ogg",
+      "voice": "awacs",
+      "say": "Bravo",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_charlie.ogg",
+      "voice": "awacs",
+      "say": "Charlie",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_delta.ogg",
+      "voice": "awacs",
+      "say": "Delta",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_bearing_010.ogg",
+      "voice": "awacs",
+      "say": "bearing zero one zero",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_heading_010.ogg",
+      "voice": "awacs",
+      "say": "heading zero one zero",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_bearing_020.ogg",
+      "voice": "awacs",
+      "say": "bearing zero two zero",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_heading_020.ogg",
+      "voice": "awacs",
+      "say": "heading zero two zero",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_bearing_030.ogg",
+      "voice": "awacs",
+      "say": "bearing zero three zero",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_heading_030.ogg",
+      "voice": "awacs",
+      "say": "heading zero three zero",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_bearing_040.ogg",
+      "voice": "awacs",
+      "say": "bearing zero four zero",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_heading_040.ogg",
+      "voice": "awacs",
+      "say": "heading zero four zero",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_bearing_050.ogg",
+      "voice": "awacs",
+      "say": "bearing zero five zero",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_heading_050.ogg",
+      "voice": "awacs",
+      "say": "heading zero five zero",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_bearing_060.ogg",
+      "voice": "awacs",
+      "say": "bearing zero six zero",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_heading_060.ogg",
+      "voice": "awacs",
+      "say": "heading zero six zero",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_bearing_070.ogg",
+      "voice": "awacs",
+      "say": "bearing zero seven zero",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_heading_070.ogg",
+      "voice": "awacs",
+      "say": "heading zero seven zero",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_bearing_080.ogg",
+      "voice": "awacs",
+      "say": "bearing zero eight zero",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_heading_080.ogg",
+      "voice": "awacs",
+      "say": "heading zero eight zero",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_bearing_090.ogg",
+      "voice": "awacs",
+      "say": "bearing zero niner zero",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_heading_090.ogg",
+      "voice": "awacs",
+      "say": "heading zero niner zero",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_bearing_100.ogg",
+      "voice": "awacs",
+      "say": "bearing one zero zero",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_heading_100.ogg",
+      "voice": "awacs",
+      "say": "heading one zero zero",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_bearing_110.ogg",
+      "voice": "awacs",
+      "say": "bearing one one zero",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_heading_110.ogg",
+      "voice": "awacs",
+      "say": "heading one one zero",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_bearing_120.ogg",
+      "voice": "awacs",
+      "say": "bearing one two zero",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_heading_120.ogg",
+      "voice": "awacs",
+      "say": "heading one two zero",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_bearing_130.ogg",
+      "voice": "awacs",
+      "say": "bearing one three zero",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_heading_130.ogg",
+      "voice": "awacs",
+      "say": "heading one three zero",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_bearing_140.ogg",
+      "voice": "awacs",
+      "say": "bearing one four zero",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_heading_140.ogg",
+      "voice": "awacs",
+      "say": "heading one four zero",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_bearing_150.ogg",
+      "voice": "awacs",
+      "say": "bearing one five zero",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_heading_150.ogg",
+      "voice": "awacs",
+      "say": "heading one five zero",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_bearing_160.ogg",
+      "voice": "awacs",
+      "say": "bearing one six zero",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_heading_160.ogg",
+      "voice": "awacs",
+      "say": "heading one six zero",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_bearing_170.ogg",
+      "voice": "awacs",
+      "say": "bearing one seven zero",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_heading_170.ogg",
+      "voice": "awacs",
+      "say": "heading one seven zero",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_bearing_180.ogg",
+      "voice": "awacs",
+      "say": "bearing one eight zero",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_heading_180.ogg",
+      "voice": "awacs",
+      "say": "heading one eight zero",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_bearing_190.ogg",
+      "voice": "awacs",
+      "say": "bearing one niner zero",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_heading_190.ogg",
+      "voice": "awacs",
+      "say": "heading one niner zero",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_bearing_200.ogg",
+      "voice": "awacs",
+      "say": "bearing two zero zero",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_heading_200.ogg",
+      "voice": "awacs",
+      "say": "heading two zero zero",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_bearing_210.ogg",
+      "voice": "awacs",
+      "say": "bearing two one zero",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_heading_210.ogg",
+      "voice": "awacs",
+      "say": "heading two one zero",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_bearing_220.ogg",
+      "voice": "awacs",
+      "say": "bearing two two zero",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_heading_220.ogg",
+      "voice": "awacs",
+      "say": "heading two two zero",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_bearing_230.ogg",
+      "voice": "awacs",
+      "say": "bearing two three zero",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_heading_230.ogg",
+      "voice": "awacs",
+      "say": "heading two three zero",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_bearing_240.ogg",
+      "voice": "awacs",
+      "say": "bearing two four zero",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_heading_240.ogg",
+      "voice": "awacs",
+      "say": "heading two four zero",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_bearing_250.ogg",
+      "voice": "awacs",
+      "say": "bearing two five zero",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_heading_250.ogg",
+      "voice": "awacs",
+      "say": "heading two five zero",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_bearing_260.ogg",
+      "voice": "awacs",
+      "say": "bearing two six zero",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_heading_260.ogg",
+      "voice": "awacs",
+      "say": "heading two six zero",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_bearing_270.ogg",
+      "voice": "awacs",
+      "say": "bearing two seven zero",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_heading_270.ogg",
+      "voice": "awacs",
+      "say": "heading two seven zero",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_bearing_280.ogg",
+      "voice": "awacs",
+      "say": "bearing two eight zero",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_heading_280.ogg",
+      "voice": "awacs",
+      "say": "heading two eight zero",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_bearing_290.ogg",
+      "voice": "awacs",
+      "say": "bearing two niner zero",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_heading_290.ogg",
+      "voice": "awacs",
+      "say": "heading two niner zero",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_bearing_300.ogg",
+      "voice": "awacs",
+      "say": "bearing three zero zero",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_heading_300.ogg",
+      "voice": "awacs",
+      "say": "heading three zero zero",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_bearing_310.ogg",
+      "voice": "awacs",
+      "say": "bearing three one zero",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_heading_310.ogg",
+      "voice": "awacs",
+      "say": "heading three one zero",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_bearing_320.ogg",
+      "voice": "awacs",
+      "say": "bearing three two zero",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_heading_320.ogg",
+      "voice": "awacs",
+      "say": "heading three two zero",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_bearing_330.ogg",
+      "voice": "awacs",
+      "say": "bearing three three zero",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_heading_330.ogg",
+      "voice": "awacs",
+      "say": "heading three three zero",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_bearing_340.ogg",
+      "voice": "awacs",
+      "say": "bearing three four zero",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_heading_340.ogg",
+      "voice": "awacs",
+      "say": "heading three four zero",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_bearing_350.ogg",
+      "voice": "awacs",
+      "say": "bearing three five zero",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_heading_350.ogg",
+      "voice": "awacs",
+      "say": "heading three five zero",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_bearing_360.ogg",
+      "voice": "awacs",
+      "say": "bearing three six zero",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_heading_360.ogg",
+      "voice": "awacs",
+      "say": "heading three six zero",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_miles_01.ogg",
+      "voice": "awacs",
+      "say": "1 mile",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_miles_02.ogg",
+      "voice": "awacs",
+      "say": "2 miles",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_miles_03.ogg",
+      "voice": "awacs",
+      "say": "3 miles",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_miles_04.ogg",
+      "voice": "awacs",
+      "say": "4 miles",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_miles_05.ogg",
+      "voice": "awacs",
+      "say": "5 miles",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_miles_06.ogg",
+      "voice": "awacs",
+      "say": "6 miles",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_miles_07.ogg",
+      "voice": "awacs",
+      "say": "7 miles",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_miles_08.ogg",
+      "voice": "awacs",
+      "say": "8 miles",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_miles_09.ogg",
+      "voice": "awacs",
+      "say": "9 miles",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_miles_10.ogg",
+      "voice": "awacs",
+      "say": "10 miles",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_miles_15.ogg",
+      "voice": "awacs",
+      "say": "15 miles",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_miles_20.ogg",
+      "voice": "awacs",
+      "say": "20 miles",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_miles_25.ogg",
+      "voice": "awacs",
+      "say": "25 miles",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_miles_30.ogg",
+      "voice": "awacs",
+      "say": "30 miles",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_miles_35.ogg",
+      "voice": "awacs",
+      "say": "35 miles",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_friendlies.ogg",
+      "voice": "awacs",
+      "say": "friendlies",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_target.ogg",
+      "voice": "awacs",
+      "say": "target",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_unidentified.ogg",
+      "voice": "awacs",
+      "say": "unidentified contacts",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_free_to_engage.ogg",
+      "voice": "awacs",
+      "say": "free to engage",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_already_engaged.ogg",
+      "voice": "awacs",
+      "say": "targets are already engaged",
+      "mode": "particle"
+    },
+    {
+      "file": "awx_please_identify.ogg",
+      "voice": "awacs",
+      "say": "please identify",
+      "mode": "particle"
     }
   ],
   "particles": {
@@ -2511,6 +3093,491 @@
       "file": "plt_nevatim_alpha_landing.ogg",
       "text": "Nevatim tower, Alpha, request landing",
       "text_he": "מגדל נבטים, Alpha, בקשת נחיתה"
+    },
+    "ALPHA_R": {
+      "file": "awx_alpha.ogg",
+      "text": "Alpha",
+      "text_he": "Alpha"
+    },
+    "BRAVO_R": {
+      "file": "awx_bravo.ogg",
+      "text": "Bravo",
+      "text_he": "Bravo"
+    },
+    "CHARLIE_R": {
+      "file": "awx_charlie.ogg",
+      "text": "Charlie",
+      "text_he": "Charlie"
+    },
+    "DELTA_R": {
+      "file": "awx_delta.ogg",
+      "text": "Delta",
+      "text_he": "Delta"
+    },
+    "BEARING010": {
+      "file": "awx_bearing_010.ogg",
+      "text": "bearing 010",
+      "text_he": "אזימוט 010"
+    },
+    "HEADING010": {
+      "file": "awx_heading_010.ogg",
+      "text": "heading 010",
+      "text_he": "כיוון טיסה 010"
+    },
+    "BEARING020": {
+      "file": "awx_bearing_020.ogg",
+      "text": "bearing 020",
+      "text_he": "אזימוט 020"
+    },
+    "HEADING020": {
+      "file": "awx_heading_020.ogg",
+      "text": "heading 020",
+      "text_he": "כיוון טיסה 020"
+    },
+    "BEARING030": {
+      "file": "awx_bearing_030.ogg",
+      "text": "bearing 030",
+      "text_he": "אזימוט 030"
+    },
+    "HEADING030": {
+      "file": "awx_heading_030.ogg",
+      "text": "heading 030",
+      "text_he": "כיוון טיסה 030"
+    },
+    "BEARING040": {
+      "file": "awx_bearing_040.ogg",
+      "text": "bearing 040",
+      "text_he": "אזימוט 040"
+    },
+    "HEADING040": {
+      "file": "awx_heading_040.ogg",
+      "text": "heading 040",
+      "text_he": "כיוון טיסה 040"
+    },
+    "BEARING050": {
+      "file": "awx_bearing_050.ogg",
+      "text": "bearing 050",
+      "text_he": "אזימוט 050"
+    },
+    "HEADING050": {
+      "file": "awx_heading_050.ogg",
+      "text": "heading 050",
+      "text_he": "כיוון טיסה 050"
+    },
+    "BEARING060": {
+      "file": "awx_bearing_060.ogg",
+      "text": "bearing 060",
+      "text_he": "אזימוט 060"
+    },
+    "HEADING060": {
+      "file": "awx_heading_060.ogg",
+      "text": "heading 060",
+      "text_he": "כיוון טיסה 060"
+    },
+    "BEARING070": {
+      "file": "awx_bearing_070.ogg",
+      "text": "bearing 070",
+      "text_he": "אזימוט 070"
+    },
+    "HEADING070": {
+      "file": "awx_heading_070.ogg",
+      "text": "heading 070",
+      "text_he": "כיוון טיסה 070"
+    },
+    "BEARING080": {
+      "file": "awx_bearing_080.ogg",
+      "text": "bearing 080",
+      "text_he": "אזימוט 080"
+    },
+    "HEADING080": {
+      "file": "awx_heading_080.ogg",
+      "text": "heading 080",
+      "text_he": "כיוון טיסה 080"
+    },
+    "BEARING090": {
+      "file": "awx_bearing_090.ogg",
+      "text": "bearing 090",
+      "text_he": "אזימוט 090"
+    },
+    "HEADING090": {
+      "file": "awx_heading_090.ogg",
+      "text": "heading 090",
+      "text_he": "כיוון טיסה 090"
+    },
+    "BEARING100": {
+      "file": "awx_bearing_100.ogg",
+      "text": "bearing 100",
+      "text_he": "אזימוט 100"
+    },
+    "HEADING100": {
+      "file": "awx_heading_100.ogg",
+      "text": "heading 100",
+      "text_he": "כיוון טיסה 100"
+    },
+    "BEARING110": {
+      "file": "awx_bearing_110.ogg",
+      "text": "bearing 110",
+      "text_he": "אזימוט 110"
+    },
+    "HEADING110": {
+      "file": "awx_heading_110.ogg",
+      "text": "heading 110",
+      "text_he": "כיוון טיסה 110"
+    },
+    "BEARING120": {
+      "file": "awx_bearing_120.ogg",
+      "text": "bearing 120",
+      "text_he": "אזימוט 120"
+    },
+    "HEADING120": {
+      "file": "awx_heading_120.ogg",
+      "text": "heading 120",
+      "text_he": "כיוון טיסה 120"
+    },
+    "BEARING130": {
+      "file": "awx_bearing_130.ogg",
+      "text": "bearing 130",
+      "text_he": "אזימוט 130"
+    },
+    "HEADING130": {
+      "file": "awx_heading_130.ogg",
+      "text": "heading 130",
+      "text_he": "כיוון טיסה 130"
+    },
+    "BEARING140": {
+      "file": "awx_bearing_140.ogg",
+      "text": "bearing 140",
+      "text_he": "אזימוט 140"
+    },
+    "HEADING140": {
+      "file": "awx_heading_140.ogg",
+      "text": "heading 140",
+      "text_he": "כיוון טיסה 140"
+    },
+    "BEARING150": {
+      "file": "awx_bearing_150.ogg",
+      "text": "bearing 150",
+      "text_he": "אזימוט 150"
+    },
+    "HEADING150": {
+      "file": "awx_heading_150.ogg",
+      "text": "heading 150",
+      "text_he": "כיוון טיסה 150"
+    },
+    "BEARING160": {
+      "file": "awx_bearing_160.ogg",
+      "text": "bearing 160",
+      "text_he": "אזימוט 160"
+    },
+    "HEADING160": {
+      "file": "awx_heading_160.ogg",
+      "text": "heading 160",
+      "text_he": "כיוון טיסה 160"
+    },
+    "BEARING170": {
+      "file": "awx_bearing_170.ogg",
+      "text": "bearing 170",
+      "text_he": "אזימוט 170"
+    },
+    "HEADING170": {
+      "file": "awx_heading_170.ogg",
+      "text": "heading 170",
+      "text_he": "כיוון טיסה 170"
+    },
+    "BEARING180": {
+      "file": "awx_bearing_180.ogg",
+      "text": "bearing 180",
+      "text_he": "אזימוט 180"
+    },
+    "HEADING180": {
+      "file": "awx_heading_180.ogg",
+      "text": "heading 180",
+      "text_he": "כיוון טיסה 180"
+    },
+    "BEARING190": {
+      "file": "awx_bearing_190.ogg",
+      "text": "bearing 190",
+      "text_he": "אזימוט 190"
+    },
+    "HEADING190": {
+      "file": "awx_heading_190.ogg",
+      "text": "heading 190",
+      "text_he": "כיוון טיסה 190"
+    },
+    "BEARING200": {
+      "file": "awx_bearing_200.ogg",
+      "text": "bearing 200",
+      "text_he": "אזימוט 200"
+    },
+    "HEADING200": {
+      "file": "awx_heading_200.ogg",
+      "text": "heading 200",
+      "text_he": "כיוון טיסה 200"
+    },
+    "BEARING210": {
+      "file": "awx_bearing_210.ogg",
+      "text": "bearing 210",
+      "text_he": "אזימוט 210"
+    },
+    "HEADING210": {
+      "file": "awx_heading_210.ogg",
+      "text": "heading 210",
+      "text_he": "כיוון טיסה 210"
+    },
+    "BEARING220": {
+      "file": "awx_bearing_220.ogg",
+      "text": "bearing 220",
+      "text_he": "אזימוט 220"
+    },
+    "HEADING220": {
+      "file": "awx_heading_220.ogg",
+      "text": "heading 220",
+      "text_he": "כיוון טיסה 220"
+    },
+    "BEARING230": {
+      "file": "awx_bearing_230.ogg",
+      "text": "bearing 230",
+      "text_he": "אזימוט 230"
+    },
+    "HEADING230": {
+      "file": "awx_heading_230.ogg",
+      "text": "heading 230",
+      "text_he": "כיוון טיסה 230"
+    },
+    "BEARING240": {
+      "file": "awx_bearing_240.ogg",
+      "text": "bearing 240",
+      "text_he": "אזימוט 240"
+    },
+    "HEADING240": {
+      "file": "awx_heading_240.ogg",
+      "text": "heading 240",
+      "text_he": "כיוון טיסה 240"
+    },
+    "BEARING250": {
+      "file": "awx_bearing_250.ogg",
+      "text": "bearing 250",
+      "text_he": "אזימוט 250"
+    },
+    "HEADING250": {
+      "file": "awx_heading_250.ogg",
+      "text": "heading 250",
+      "text_he": "כיוון טיסה 250"
+    },
+    "BEARING260": {
+      "file": "awx_bearing_260.ogg",
+      "text": "bearing 260",
+      "text_he": "אזימוט 260"
+    },
+    "HEADING260": {
+      "file": "awx_heading_260.ogg",
+      "text": "heading 260",
+      "text_he": "כיוון טיסה 260"
+    },
+    "BEARING270": {
+      "file": "awx_bearing_270.ogg",
+      "text": "bearing 270",
+      "text_he": "אזימוט 270"
+    },
+    "HEADING270": {
+      "file": "awx_heading_270.ogg",
+      "text": "heading 270",
+      "text_he": "כיוון טיסה 270"
+    },
+    "BEARING280": {
+      "file": "awx_bearing_280.ogg",
+      "text": "bearing 280",
+      "text_he": "אזימוט 280"
+    },
+    "HEADING280": {
+      "file": "awx_heading_280.ogg",
+      "text": "heading 280",
+      "text_he": "כיוון טיסה 280"
+    },
+    "BEARING290": {
+      "file": "awx_bearing_290.ogg",
+      "text": "bearing 290",
+      "text_he": "אזימוט 290"
+    },
+    "HEADING290": {
+      "file": "awx_heading_290.ogg",
+      "text": "heading 290",
+      "text_he": "כיוון טיסה 290"
+    },
+    "BEARING300": {
+      "file": "awx_bearing_300.ogg",
+      "text": "bearing 300",
+      "text_he": "אזימוט 300"
+    },
+    "HEADING300": {
+      "file": "awx_heading_300.ogg",
+      "text": "heading 300",
+      "text_he": "כיוון טיסה 300"
+    },
+    "BEARING310": {
+      "file": "awx_bearing_310.ogg",
+      "text": "bearing 310",
+      "text_he": "אזימוט 310"
+    },
+    "HEADING310": {
+      "file": "awx_heading_310.ogg",
+      "text": "heading 310",
+      "text_he": "כיוון טיסה 310"
+    },
+    "BEARING320": {
+      "file": "awx_bearing_320.ogg",
+      "text": "bearing 320",
+      "text_he": "אזימוט 320"
+    },
+    "HEADING320": {
+      "file": "awx_heading_320.ogg",
+      "text": "heading 320",
+      "text_he": "כיוון טיסה 320"
+    },
+    "BEARING330": {
+      "file": "awx_bearing_330.ogg",
+      "text": "bearing 330",
+      "text_he": "אזימוט 330"
+    },
+    "HEADING330": {
+      "file": "awx_heading_330.ogg",
+      "text": "heading 330",
+      "text_he": "כיוון טיסה 330"
+    },
+    "BEARING340": {
+      "file": "awx_bearing_340.ogg",
+      "text": "bearing 340",
+      "text_he": "אזימוט 340"
+    },
+    "HEADING340": {
+      "file": "awx_heading_340.ogg",
+      "text": "heading 340",
+      "text_he": "כיוון טיסה 340"
+    },
+    "BEARING350": {
+      "file": "awx_bearing_350.ogg",
+      "text": "bearing 350",
+      "text_he": "אזימוט 350"
+    },
+    "HEADING350": {
+      "file": "awx_heading_350.ogg",
+      "text": "heading 350",
+      "text_he": "כיוון טיסה 350"
+    },
+    "BEARING360": {
+      "file": "awx_bearing_360.ogg",
+      "text": "bearing 360",
+      "text_he": "אזימוט 360"
+    },
+    "HEADING360": {
+      "file": "awx_heading_360.ogg",
+      "text": "heading 360",
+      "text_he": "כיוון טיסה 360"
+    },
+    "MILES01": {
+      "file": "awx_miles_01.ogg",
+      "text": "1 mile",
+      "text_he": "1 מייל"
+    },
+    "MILES02": {
+      "file": "awx_miles_02.ogg",
+      "text": "2 miles",
+      "text_he": "2 מייל"
+    },
+    "MILES03": {
+      "file": "awx_miles_03.ogg",
+      "text": "3 miles",
+      "text_he": "3 מייל"
+    },
+    "MILES04": {
+      "file": "awx_miles_04.ogg",
+      "text": "4 miles",
+      "text_he": "4 מייל"
+    },
+    "MILES05": {
+      "file": "awx_miles_05.ogg",
+      "text": "5 miles",
+      "text_he": "5 מייל"
+    },
+    "MILES06": {
+      "file": "awx_miles_06.ogg",
+      "text": "6 miles",
+      "text_he": "6 מייל"
+    },
+    "MILES07": {
+      "file": "awx_miles_07.ogg",
+      "text": "7 miles",
+      "text_he": "7 מייל"
+    },
+    "MILES08": {
+      "file": "awx_miles_08.ogg",
+      "text": "8 miles",
+      "text_he": "8 מייל"
+    },
+    "MILES09": {
+      "file": "awx_miles_09.ogg",
+      "text": "9 miles",
+      "text_he": "9 מייל"
+    },
+    "MILES10": {
+      "file": "awx_miles_10.ogg",
+      "text": "10 miles",
+      "text_he": "10 מייל"
+    },
+    "MILES15": {
+      "file": "awx_miles_15.ogg",
+      "text": "15 miles",
+      "text_he": "15 מייל"
+    },
+    "MILES20": {
+      "file": "awx_miles_20.ogg",
+      "text": "20 miles",
+      "text_he": "20 מייל"
+    },
+    "MILES25": {
+      "file": "awx_miles_25.ogg",
+      "text": "25 miles",
+      "text_he": "25 מייל"
+    },
+    "MILES30": {
+      "file": "awx_miles_30.ogg",
+      "text": "30 miles",
+      "text_he": "30 מייל"
+    },
+    "MILES35": {
+      "file": "awx_miles_35.ogg",
+      "text": "35 miles",
+      "text_he": "35 מייל"
+    },
+    "DESC_FRIENDS": {
+      "file": "awx_friendlies.ogg",
+      "text": "friendlies",
+      "text_he": "כוחות ידידותיים"
+    },
+    "DESC_TARGET": {
+      "file": "awx_target.ogg",
+      "text": "target",
+      "text_he": "מטרה"
+    },
+    "DESC_UNID_CONTACT": {
+      "file": "awx_unidentified.ogg",
+      "text": "unidentified contacts",
+      "text_he": "מגעים לא מזוהים"
+    },
+    "FREE_TO_ENGAGE": {
+      "file": "awx_free_to_engage.ogg",
+      "text": "free to engage",
+      "text_he": "מותר לתקוף"
+    },
+    "TRGT_ALRDY_ENGAGE": {
+      "file": "awx_already_engaged.ogg",
+      "text": "targets are already engaged",
+      "text_he": "המטרות כבר מותקפות"
+    },
+    "PLEASE_IDENTIFY": {
+      "file": "awx_please_identify.ogg",
+      "text": "please identify",
+      "text_he": "נא לזהות"
     }
   },
   "templates": {
@@ -2533,7 +3600,9 @@
     "ACFT_WRONG_RUNWAY": "%S1 , ON_RWY %D1 , CLEARED_RWY %D2",
     "ACFT_NEGATIVE": "%S1 , NEGATIVE_HOLD , %S2",
     "ACFT_ROGER": "ROGER",
-    "PILOT_CALL": "%S1 , %S2 , %S3"
+    "PILOT_CALL": "%S1 , %S2 , %S3",
+    "ACFT_FCTRL_LONG": "%S1 , %S2 , %S3 , %S4 , %S5 , %S6",
+    "ACFT_FCTRL_SHORT": "%S1 , %S2 , %S3"
   },
   "he": {
     "voice": "he_IL-saspeech-medium (pending: its dataset's licence is non-commercial; the user decides)",

@@ -3,17 +3,17 @@
 //! (MAW) from the RWR's list of missiles launched at the jet.
 //!
 //! The display follows the dash-34's threat azimuth indicator (docs/real-mfd.md "The threat azimuth indicator"): the
-//! ownship in the centre, the inner ring at 25 NM and the edge at 50 NM, a threat at its range (farther ones on the
-//! edge), the highest-priority one in a diamond, a lethal one (a lock) in a square, a launch in a circle; overlapping
-//! symbols moved outward, then counter-clockwise along the edge. The MLU's ALR-69 adds PRI (the 5 highest-priority
+//! ownship in the centre, the highest-priority threat in a diamond, a lethal one (a lock) in a square, a launch in a
+//! circle. Each symbol sits at its bearing on the ring of its lethality, a launch nearest the centre, a lock on the
+//! inner ring, a search radar outside it (inferred, as the ALR-69 class of sets places its symbols by lethality: the
+//! scope's place by range of the dash-34's set piled the range's close drones on the centre); a symbol too close to
+//! one already placed moves along its ring, either way in turn. The MLU's ALR-69 adds PRI (the 5 highest-priority
 //! threats) and OPEN (up to 16), and the UNKNOWN and TGT SEP buttons. World frame X east, Y north, Z up, metres.
 
 use crate::rwr::Shown;
 use crate::vec3::{Vec3, wrap_pi};
 use std::collections::HashMap;
 
-/// The scope's edge: 50 NM (dash-34 p. 1-199); the inner ring is half of it.
-pub const EDGE_M: f64 = 50.0 * 1852.0;
 /// PRI mode shows the 5 highest-priority threats, OPEN up to 16 (MLU M1 fig. 7-3).
 pub const PRI_MAX: usize = 5;
 pub const OPEN_MAX: usize = 16;
@@ -21,9 +21,14 @@ pub const OPEN_MAX: usize = 16;
 pub const NEW_S: f64 = 4.0;
 /// SYS TEST shows its test pattern this long (inferred).
 pub const TEST_S: f64 = 3.0;
-/// Two symbols closer than this (in scope radii) are moved apart; TGT SEP held spreads them wider (inferred).
-const SEP: f64 = 0.14;
-const SEP_WIDE: f64 = 0.28;
+/// Two symbols closer than this (in scope radii: the top threat's diamond is 0.43 wide on the 3D cockpit's scope, a
+/// lock's square 0.3) are moved apart; TGT SEP held spreads them wider (inferred).
+const SEP: f64 = 0.45;
+const SEP_WIDE: f64 = 0.65;
+/// The rings by lethality (scope radii; inferred): a launch, a lock (the inner ring), a search radar.
+pub const RING_LAUNCH: f64 = 0.3;
+pub const RING_LOCK: f64 = 0.58;
+pub const RING_SEARCH: f64 = 0.9;
 
 /// A threat's class, which sets its symbol's frame.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -173,8 +178,15 @@ impl Twd {
         let gap = if self.sep { SEP_WIDE } else { SEP };
         let mut placed: Vec<(f64, f64)> = Vec::new();
         list.iter()
-            .map(|&(id, kind, label, dist, rel, lethal, launch)| {
-                let at = separate((dist / EDGE_M).min(1.0), rel, &placed, gap);
+            .map(|&(id, kind, label, _, rel, lethal, launch)| {
+                let ring = if launch {
+                    RING_LAUNCH
+                } else if lethal {
+                    RING_LOCK
+                } else {
+                    RING_SEARCH
+                };
+                let at = separate(ring, rel, &placed, gap);
                 placed.push(at);
                 Symbol {
                     id,
@@ -191,22 +203,19 @@ impl Twd {
     }
 }
 
-/// A symbol's place at radius `r` (scope radii) and relative bearing `rel`, moved outward, then counter-clockwise
-/// along the edge, while it lies within `gap` of one already `placed`.
-fn separate(mut r: f64, mut rel: f64, placed: &[(f64, f64)], gap: f64) -> (f64, f64) {
-    let xy = |r: f64, a: f64| (r * a.sin(), r * a.cos());
-    let near = |p: (f64, f64)| placed.iter().any(|q| (p.0 - q.0).hypot(p.1 - q.1) < gap);
-    for _ in 0..64 {
-        if !near(xy(r, rel)) {
-            break;
-        }
-        if r < 1.0 {
-            r = (r + gap).min(1.0);
-        } else {
-            rel -= gap;
-        }
-    }
-    xy(r, rel)
+/// A symbol's place on ring `r` (scope radii) at relative bearing `rel`, moved along the ring by a gap at a time,
+/// counter-clockwise then clockwise in turn, while it lies within `gap` of one already `placed` (where the ring is
+/// full, at its bearing).
+fn separate(r: f64, rel: f64, placed: &[(f64, f64)], gap: f64) -> (f64, f64) {
+    let xy = |a: f64| (r * a.sin(), r * a.cos());
+    let clear = |p: (f64, f64)| placed.iter().all(|q| (p.0 - q.0).hypot(p.1 - q.1) >= gap);
+    let step = 2.0 * (gap / (2.0 * r)).min(1.0).asin();
+    let n = (std::f64::consts::PI / step).floor() as i32;
+    (0..=n)
+        .flat_map(|k| [rel - f64::from(k) * step, rel + f64::from(k) * step])
+        .map(xy)
+        .find(|p| clear(*p))
+        .unwrap_or(xy(rel))
 }
 
 /// SYS TEST's pattern (inferred): one symbol of each class at the four quarters of the inner ring.
@@ -299,7 +308,10 @@ mod tests {
         let s = t.update(&shown, Vec3::ZERO, 0.0, 0.0);
         assert_eq!(s.iter().map(|s| s.label).collect::<Vec<_>>(), ["6", "16", "35"], "launch, lock, search");
         assert!(s[0].diamond && s[0].launch && s[0].lethal && !s[1].diamond && !s[2].lethal);
-        assert!((s[1].at.0 - 0.4).abs() < 1e-9 && s[1].at.1.abs() < 1e-9, "20 NM right: 0.4 of the radius");
+        // At their bearings, on the rings by lethality: the launch nearest, the lock on the inner ring, the search out.
+        assert!((s[0].at.0 + RING_LAUNCH).abs() < 1e-9 && s[0].at.1.abs() < 1e-9, "the launch left: {:?}", s[0].at);
+        assert!((s[1].at.0 - RING_LOCK).abs() < 1e-9 && s[1].at.1.abs() < 1e-9, "the lock right: {:?}", s[1].at);
+        assert!(s[2].at.0.abs() < 1e-9 && (s[2].at.1 - RING_SEARCH).abs() < 1e-9, "the search ahead: {:?}", s[2].at);
         assert!(s.iter().all(|s| s.new) && t.take_new_guy() && !t.take_new_guy());
         t.unknowns = true;
         let s = t.update(&shown, Vec3::ZERO, 0.0, 1.0);
@@ -313,25 +325,32 @@ mod tests {
     }
 
     #[test]
-    fn heading_up_far_on_the_edge_and_separation() {
+    fn heading_up_rings_and_separation() {
         let mut t = Twd::default();
-        // Heading east: an emitter to the east is ahead; one 90 NM north is on the left edge.
+        let d = |a: (f64, f64), b: (f64, f64)| (a.0 - b.0).hypot(a.1 - b.1);
+        // Heading east: a lock to the east is ahead on the inner ring; a search radar 90 NM north on the left.
         let shown = vec![(1, at(100, 10.0 * 1852.0, 0.0, false, false)), (2, at(110, 0.0, 90.0 * 1852.0, true, false))];
         let s = t.update(&shown, Vec3::ZERO, std::f64::consts::FRAC_PI_2, 0.0);
-        assert!(s[0].at.0.abs() < 1e-9 && (s[0].at.1 - 0.2).abs() < 1e-9);
-        assert!((s[1].at.0 + 1.0).abs() < 1e-9, "beyond 50 NM: on the edge");
-        // Two at the same place: the second moves out.
-        let same = vec![(1, at(100, 0.0, 10.0 * 1852.0, false, false)), (2, at(110, 0.0, 10.0 * 1852.0, false, false))];
-        let s = t.update(&same, Vec3::ZERO, 0.0, 0.0);
-        let d = |a: (f64, f64), b: (f64, f64)| (a.0 - b.0).hypot(a.1 - b.1);
-        assert!(d(s[0].at, s[1].at) >= SEP - 1e-9 && d(s[0].at, (0.0, 0.2)) < 1e-9);
-        t.sep = true;
-        let s = t.update(&same, Vec3::ZERO, 0.0, 0.0);
-        assert!(d(s[0].at, s[1].at) >= SEP_WIDE - 1e-9, "TGT SEP spreads them wider");
-        // On the edge they move counter-clockwise.
-        let edge = vec![(1, at(100, 0.0, 99e3 * 2.0, false, false)), (2, at(110, 0.0, 99e3 * 2.0, false, false))];
-        let s = t.update(&edge, Vec3::ZERO, 0.0, 0.0);
-        assert!(s[1].at.0 < 0.0 && (s[1].at.0.hypot(s[1].at.1) - 1.0).abs() < 1e-9);
+        assert!(d(s[0].at, (0.0, RING_LOCK)) < 1e-9 && d(s[1].at, (-RING_SEARCH, 0.0)) < 1e-9, "{s:?}");
+        // The range's drones: four close together ahead, two locking: each pair apart on its ring, none on the
+        // ownship, every symbol clear of every other.
+        let drones: Vec<(u64, Shown)> =
+            (0..4).map(|k| (k, at(1000, 100.0 * k as f64, 5.0 * 1852.0, k >= 2, false))).collect();
+        for wide in [false, true] {
+            t.sep = wide;
+            let s = t.update(&drones, Vec3::ZERO, 0.0, 0.0);
+            let gap = if wide { SEP_WIDE } else { SEP };
+            for (i, a) in s.iter().enumerate() {
+                let r = if a.lethal { RING_LOCK } else { RING_SEARCH };
+                assert!((a.at.0.hypot(a.at.1) - r).abs() < 1e-9, "on its ring: {a:?}");
+                assert!(wide || a.at.1 > 0.0, "still ahead: {a:?}");
+                for b in &s[i + 1..] {
+                    assert!(d(a.at, b.at) >= gap - 1e-9, "apart: {a:?} {b:?}");
+                }
+            }
+        }
+        // A full ring keeps its bearing rather than loop.
+        assert_eq!(separate(0.3, 0.0, &[(0.0, 0.0)], 2.0), (0.0, 0.3));
     }
 
     #[test]

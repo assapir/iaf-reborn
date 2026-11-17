@@ -87,6 +87,7 @@ func run() -> void:
 	await _aiff(drones[0].ent)
 	await _link()
 	await _ded()
+	await _awacs()
 
 
 func _threats() -> void:
@@ -97,6 +98,14 @@ func _threats() -> void:
 	)
 	check(sy.any(func(x): return x.label == "35" and x.kind == "air" and x.lethal), "E1: '35' locking: %s" % [sy])
 	check(sy.size() > 0 and sy[0].diamond, "E1: the top threat in the diamond")
+	# Each symbol on the ring of its lethality (ews.rs RING_*), the symbols apart (SEP), none on the ownship.
+	var rings := sy.all(func(x): return absf(x.at.length() - (0.3 if x.launch else (0.58 if x.lethal else 0.9))) < 1e-3)
+	check(rings, "E1: each symbol on its ring (%s)" % [sy.map(func(x): return [x.at, x.lethal])])
+	var apart := true
+	for i in sy.size():
+		for j in range(i + 1, sy.size()):
+			apart = apart and (sy[i].at as Vector2).distance_to(sy[j].at) >= 0.45 - 1e-3
+	check(apart, "E1: the symbols apart (%s)" % [sy.map(func(x): return x.at)])
 	var scope = tv.cockpit_3d.displays.get("RWR_scope") if tv.get("cockpit_3d") != null else null
 	if scope != null:
 		scope.queue_redraw()
@@ -201,6 +210,20 @@ func _aiff(drone: Dictionary) -> void:
 	_tap(KEY_SEMICOLON, "s")
 	await fly(tv, 0.2)
 	check(not c.ews.get("aiff", []).is_empty(), "R15: TMS left in CRM: SCAN")
+	# The reply's circle on the FCR sits on its contact (both by slant range; f16_mfd.gd fcr_place).
+	await fly(tv, 1.2)
+	var mfd = load("res://shared/cockpit/f16_mfd.gd")
+	var rd: Dictionary = c.radar
+	var nm: float = [5, 10, 20, 40, 80, 160][clampi(int(rd.get("idx", 1)), 1, 6) - 1]
+	var h := deg_to_rad(float(c.state.heading))
+	var rp: Array = c.ews.get("aiff", []).filter(func(x): return x.key == drone.key)
+	var ct: Array = rd.get("contacts", []).filter(func(x): return x.get("key") == drone.key)
+	if rp.is_empty() or ct.is_empty():
+		check(false, "R15: the friend replies and is a contact (%s, %s)" % [rp, ct])
+	else:
+		var at: Vector2 = mfd.fcr_place(rp[0].pos, c.ews.own, h, nm)
+		var want: Vector2 = mfd.bscope(rd, ct[0], nm)
+		check(at.distance_to(want) < 1.5, "R15: the AIFF circle on its contact (%s, %s)" % [at, want])
 	drone.side = side
 
 
@@ -233,7 +256,20 @@ func _ded() -> void:
 	await frames(1)
 	check(float(w.ews.cmds_state().programs[0][0]) == 3.0, "EWS PRGM: program 1's chaff BQ 3")
 	c.ufc_press(15)
-	check("AIFF" in _lines()[0], "the IFF key: the AIFF's page (%s)" % [_lines()])
+	check("XPDR" in _lines()[0] and "2000" in _lines()[3], "the IFF key: the transponder's page (%s)" % [_lines()])
+	for b in [17, 17, 4, 7, 2, 1, 10]:  # DCS down twice to mode 3/A, 4721, ENTR
+		c.ufc_press(b)
+	check("4721" in _lines()[3], "IFF: mode 3/A's code 4721 (%s)" % [_lines()])
+	c.ufc_press(19)
+	check("AIFF" in _lines()[0], "IFF SEQ: the AIFF's page (%s)" % [_lines()])
+	_tap(KEY_K, "a")
+	# The DED's five lines on its screen: the texture stretched over the screen's UVs (cockpit3d.gd _attach_display).
+	var c3d = tv.get("cockpit_3d")
+	if c3d != null and c3d.displays.has("DED_screen"):
+		var mat: StandardMaterial3D = c3d._ded_mat
+		check(absf(mat.uv1_scale.y - 1.0 / 0.673) < 0.01, "DED: its texture over the screen (%s)" % mat.uv1_scale)
+	c.ufc_press(18)
+	check(_lines()[4].begins_with("M1 3 C I"), "Alt + K: IDENT on the CNI page (%s)" % [_lines()])
 	for b in [12, 10]:
 		c.ufc_press(b)
 	check("DLNK" in _lines()[0] and "ON" in _lines()[1], "LIST ENTR: DLNK, the link on (%s)" % [_lines()])
@@ -241,3 +277,16 @@ func _ded() -> void:
 		c.ufc_press(b)
 	check("INTG" in _lines()[0] and "SCAN" in _lines()[1], "LIST RCL: INTG, the last SCAN (%s)" % [_lines()])
 	c.ufc_press(18)
+
+
+## N6: the AWACS's contact call on the range (radio.gd _awacs, from 60 s into the flight), said in its voice.
+func _awacs() -> void:
+	var r: Node = tv.radio
+	var call := func(p): return String(p.template).begins_with("ACFT_FCTRL")
+	var t0 := Time.get_ticks_msec()
+	while Time.get_ticks_msec() - t0 < 120000 and not r.said.any(call):
+		await fly(tv, 1.0)
+	var calls: Array = r.said.filter(call)
+	check(not calls.is_empty(), "N6: an AWACS contact call on the range")
+	var played: Array = tv.sounds.played.map(func(x): return str(x))
+	check(played.any(func(x): return "awx_" in x), "N6: the call heard in the AWACS's voice (%s)" % [calls.slice(0, 1)])

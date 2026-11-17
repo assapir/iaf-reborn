@@ -13,6 +13,7 @@ const ORIGINAL_HEIGHT := 480.0
 const Img := preload("res://shared/util/img.gd")
 const WorldMap := preload("res://shared/util/world_map.gd")
 const Gauges := preload("res://shared/cockpit/gauges.gd")
+const Display3D := preload("res://shared/cockpit/cockpit3d_display.gd")
 const Compass := preload("res://shared/cockpit/compass.gd")
 const Hud := preload("res://shared/cockpit/hud.gd")
 const Instruments := preload("res://shared/cockpit/instruments.gd")
@@ -594,6 +595,8 @@ func hud_panel_input() -> Dictionary:
 	var ded := PackedStringArray()
 	if int(hud_panel.ded) == 0:
 		ded = ded_lines()
+	elif int(hud_panel.ded) == 1:
+		ded = PackedStringArray(Display3D.pfl_lines(damage_flags))
 	var ins: Array = state.get("ins", [3, 0.0, 0.0, true])
 	var align = null
 	if int(ins[0]) in [1, 2]:

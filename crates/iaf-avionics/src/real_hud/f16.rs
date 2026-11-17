@@ -71,10 +71,13 @@ pub(super) fn frame(f: Field, i: &Input, max_g: f64) -> Frame {
     // The heading scale: the lower position (below the scales) in NAV, A-A and strafe; the upper one in the A-G modes
     // and gear down.
     let hdg_y = if i.gear_down || matches!(mode, 5..=7) { f.top + 10.0 } else { tape_y + TAPE_HALF + 6.0 };
-    // EEGS has neither the heading scale nor the roll indicator (fig. 1-257).
+    // EEGS has neither the heading scale nor the roll indicator (fig. 1-257); DED DATA's lines replace the roll
+    // indicator (the dash-34 as a simulator forum quotes it, docs/real-hud.md "F-16C/D").
     if mode != 3 && scales {
         heading(o, hdg_y, i.heading_deg, i.steerpoint.map(|s| s.bearing_deg));
-        roll_indicator(o, i, f.bottom);
+        if pn.ded.is_empty() {
+            roll_indicator(o, i, f.bottom);
+        }
     }
     // The left column: ARM, Mach, max g, the mode / weapon.
     let (lx, ly) = (sc.left + 4.0, tape_y + TAPE_HALF + 12.0);
@@ -141,12 +144,10 @@ pub(super) fn frame(f: Field, i: &Input, max_g: f64) -> Frame {
         let cue = if w.shoot { "SHOOT" } else { "FUEL" };
         o.push(text((0.0, i.gun_cross.1 + i.mr(70.0)), cue, Align::Centre));
     }
-    // DED DATA: the DED's lines low in the HUD's centre (dash-34 "HUD remote control panel"; inferred place: under
-    // the roll indicator, inside the glass).
-    let n = pn.ded.len() as f64;
-    for (k, l) in pn.ded.iter().enumerate() {
-        o.push(text((0.0, f.bottom - (n - k as f64) * ROW + 6.0), l.trim_end(), Align::Centre));
-    }
+    // DED DATA: the DED's lines low in the HUD (dash-34 "HUD remote control panel"): one character per cell, so the
+    // DED's columns line up, in the gap between the left and the right column, from the right column's second row
+    // down (inferred place: under the heading scale's lower position, where the roll indicator was).
+    ded_block(o, &pn.ded, (lx, rx), ry + ROW);
 
     // The field: boresight cross, ladder, marker, AoA bracket, steerpoint, target, weapon symbols.
     let p = &mut fr.field;
@@ -530,6 +531,29 @@ fn heading(p: &mut Vec<Prim>, y: f64, hdg: f64, bearing: Option<f64>) {
     }
 }
 
+/// The HUD's character cell (px): the text's average width (hud.gd `_gdi`, Arial h10 w5).
+const CHAR_W: f64 = 5.0;
+
+/// DED DATA's lines, one character per cell, centred in the gap `(left, right)` between the two data columns: a cell
+/// clear of the left column's right-aligned text, 3 px of the right column's left-aligned text (its letters start at
+/// their place); the cells narrowed to fit a narrow field. The first row's baseline at `y`, the others `ROW` apart.
+fn ded_block(o: &mut Vec<Prim>, lines: &[String], (left, right): (f64, f64), y: f64) {
+    let w = lines.iter().map(|l| l.chars().count()).max().unwrap_or(0);
+    if w == 0 {
+        return;
+    }
+    let (left, right) = (left + CHAR_W, right - 3.0);
+    // The glyphs' centres `cell` apart, the first and last glyphs (a cell wide each) inside the gap.
+    let n = (w.max(2) - 1) as f64;
+    let cell = ((right - left - CHAR_W) / n).min(CHAR_W);
+    let c0 = (left + right) / 2.0 - cell * (w - 1) as f64 / 2.0;
+    for (k, l) in lines.iter().enumerate() {
+        for (j, ch) in l.chars().enumerate().filter(|(_, c)| *c != ' ') {
+            o.push(text((c0 + j as f64 * cell, y + k as f64 * ROW), ch.to_string(), Align::Centre));
+        }
+    }
+}
+
 /// The roll indicator: tics on a 70 mr arc centred 50 mr below the HUD centre, every 10° to ±30° and at ±45°, and the
 /// pointer at the bank angle (limited to ±45°).
 /// Its centre 50 mr below the FOV centre. With the original view the cockpit art's glass is shorter than the real
@@ -676,6 +700,52 @@ mod tests {
         assert!(low.fold(f64::MIN, f64::max) <= FIELD.bottom, "a line below the glass");
     }
 
+    /// A primitive's box (x0, y0, x1, y1): a text by its 5 px cells and 7 px capitals above the baseline.
+    fn bbox(p: &Prim) -> (f64, f64, f64, f64) {
+        match p {
+            Prim::Text { at, text, align } => {
+                let w = CHAR_W * text.chars().count() as f64;
+                let x0 = match align {
+                    Align::Left => at.0,
+                    Align::Centre => at.0 - w / 2.0,
+                    Align::Right => at.0 - w,
+                };
+                (x0, at.1 - 7.0, x0 + w, at.1)
+            }
+            Prim::Line { a, b } => (a.0.min(b.0), a.1.min(b.1), a.0.max(b.0), a.1.max(b.1)),
+            Prim::Circle { c, r } | Prim::Dot { c, r } | Prim::Arc { c, r, .. } => (c.0 - r, c.1 - r, c.0 + r, c.1 + r),
+        }
+    }
+
+    #[test]
+    fn ded_data_overlaps_nothing_in_any_mode() {
+        let full: Vec<String> = (0..5).map(|_| "8".repeat(24)).collect();
+        // FIELD, and the sim's narrower field (125 px between the columns, the Sufa's glass from the default eye).
+        let narrow = Field { left: -77.5, right: 77.5, ..FIELD };
+        for (f, mode) in [FIELD, narrow].into_iter().flat_map(|f| [0, 1, 2, 3, 5, 6, 7].map(|m| (f, m))) {
+            for scales in [Scales::Vah, Scales::VvVah] {
+                let mut i = input(Jet::F16);
+                i.weapons.hud_mode = mode;
+                i.agl_ft = Some(800.0);
+                i.panel.scales = scales;
+                let plain = frame(f, &i, 1.0).outer;
+                i.panel.ded = full.clone();
+                let with = frame(f, &i, 1.0).outer;
+                let (ded, rest): (Vec<&Prim>, Vec<&Prim>) = with.iter().partition(|p| !plain.contains(p));
+                assert_eq!(ded.len(), 120, "mode {mode}: every cell drawn");
+                for d in ded.iter().map(|p| bbox(p)) {
+                    assert!(d.0 >= f.left && d.2 <= f.right, "mode {mode}: {d:?} off the field");
+                    for (p, r) in rest.iter().map(|p| (p, bbox(p))) {
+                        // A text 3 px clear beside a cell, so the two do not read as one word.
+                        let m = if matches!(p, Prim::Text { .. }) { 3.0 } else { -0.5 };
+                        let hit = d.0 - m < r.2 && r.0 < d.2 + m && d.1 < r.3 - 0.5 && r.1 < d.3 - 0.5;
+                        assert!(!hit, "mode {mode} {scales:?}: DED cell {d:?} on {p:?}");
+                    }
+                }
+            }
+        }
+    }
+
     #[test]
     fn a_limited_steerpoint_stays_off_the_scale_labels() {
         let mut i = input(Jet::F16);
@@ -781,7 +851,17 @@ mod tests {
         i.panel.ded = vec!["UHF  305.00  STPT   1".into()];
         i.panel.alow_ft = Some(500.0);
         let (t, ..) = all(&i);
-        for s in ["ALIGN", "SIM", "DGFT", "*", "UHF  305.00  STPT   1", "AL 500"] {
+        // DED DATA: a character per cell, on the right column's second row (FIELD: -6 + 36 + 12 + 9).
+        let row: String = frame(FIELD, &i, 1.0)
+            .outer
+            .iter()
+            .filter_map(|p| match p {
+                Prim::Text { at, text, .. } if at.1 == 51.0 && text.len() == 1 => Some(text.as_str()),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(row, "UHF305.00STPT1");
+        for s in ["ALIGN", "SIM", "DGFT", "*", "AL 500"] {
             assert!(t.iter().any(|x| x == s), "{s}: {t:?}");
         }
         i.panel.align = Some(true);

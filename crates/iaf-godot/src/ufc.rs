@@ -167,6 +167,12 @@ impl IafUfc {
         }
     }
 
+    /// The IFF IDENT button at `tod` (time of day, s): the transponder's IDENT for 18 s.
+    #[func]
+    fn ident(&mut self, tod: f64) {
+        self.ufc.ident(tod);
+    }
+
     /// The backup UHF panel's channel knob one channel on (the UHF goes to BACKUP).
     #[func]
     fn backup_channel(&mut self) {

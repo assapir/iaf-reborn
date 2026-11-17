@@ -185,6 +185,8 @@ enum Fld {
     Opt(u8),
     ChaffBingo,
     FlareBingo,
+    /// The transponder's modes 1, 2, 3/A and C (`Xpdr`).
+    Mode(u8),
     Bq,
     Bi,
     Sq,
@@ -247,6 +249,47 @@ pub struct EwsView {
     pub dl: bool,
     pub team: u32,
     pub tracks: u32,
+}
+
+/// The IFF transponder as the DED sets it (modern-iaf/docs/ews.md §8): modes 1, 2, 3/A and C on or off, the codes of
+/// modes 1, 2 and 3/A (octal digits as typed: mode 1 two, the others four), and the IDENT's reply, on until
+/// `ident_until` (time of day, s). A cockpit procedure only: nothing in the sim interrogates the jet.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Xpdr {
+    pub on: [bool; 4],
+    pub codes: [u16; 3],
+    pub ident_until: f64,
+}
+
+/// The IDENT's reply lasts this long (s; inferred, within the 15–30 s transponders give it).
+pub const IDENT_S: f64 = 18.0;
+
+impl Default for Xpdr {
+    /// Modes 1, 3/A and C on; mode 3/A's code 2000 (ICAO's code for none assigned), the others zero (inferred).
+    fn default() -> Self {
+        Xpdr { on: [true, false, true, true], codes: [0, 0, 2000], ident_until: f64::NEG_INFINITY }
+    }
+}
+
+impl Xpdr {
+    pub fn ident(&self, tod: f64) -> bool {
+        tod < self.ident_until
+    }
+
+    /// The CNI page's IFF field: "M" and the modes on (`M1 3 C`), with an `I` while IDENT replies (inferred).
+    fn cni(&self, tod: f64) -> String {
+        let modes: Vec<&str> = ["1", "2", "3", "C"].into_iter().zip(self.on).filter(|m| m.1).map(|m| m.0).collect();
+        let mut s = if modes.is_empty() { String::new() } else { format!("M{}", modes.join(" ")) };
+        if self.ident(tod) {
+            s.push_str(" I");
+        }
+        s
+    }
+}
+
+/// Octal digits `s`, exactly `n` of them.
+fn octal(s: &str, n: usize) -> Option<u16> {
+    (s.len() == n && s.bytes().all(|c| (b'0'..=b'7').contains(&c))).then(|| s.parse().ok())?
 }
 
 /// What an EWS page entry changes in the CMDS (`cmds.rs`).
@@ -377,6 +420,7 @@ pub struct Ufc {
     pub bull_no: u8,
     /// The EWS PRGM pages' program (0–3; INC / DEC).
     pub ews_prog: usize,
+    pub xpdr: Xpdr,
 }
 
 impl Default for Ufc {
@@ -407,6 +451,7 @@ impl Default for Ufc {
             bull: true,
             bull_no: 0,
             ews_prog: 0,
+            xpdr: Xpdr::default(),
         }
     }
 }
@@ -493,6 +538,7 @@ impl Ufc {
             Page::Lasr => &[Fld::Code],
             Page::Bull => &[Fld::Toggle, Fld::BullNo],
             Page::Mode => &[Fld::Toggle],
+            Page::Iff if self.sub == 1 => &[Fld::Mode(0), Fld::Mode(1), Fld::Mode(2), Fld::Mode(3)],
             Page::Ews => match self.sub {
                 1 => &[Fld::Opt(0), Fld::Opt(1), Fld::Opt(2), Fld::Opt(3)],
                 2 => &[Fld::ChaffBingo, Fld::FlareBingo],
@@ -519,7 +565,11 @@ impl Ufc {
                     String::new(),
                     format!("VHF  {:<8}{:>11}", self.vhf.preset, hms(nav.tod_s)),
                     if hack > 0.0 { format!("{:>24}", format!("HACK {}", hms(hack))) } else { String::new() },
-                    format!("{:>24}", format!("T {}{}", self.tcn_chan, if self.tcn_y { 'Y' } else { 'X' })),
+                    format!(
+                        "{:<12}{:>12}",
+                        if nav.ews.is_some() { self.xpdr.cni(nav.tod_s) } else { String::new() },
+                        format!("T {}{}", self.tcn_chan, if self.tcn_y { 'Y' } else { 'X' })
+                    ),
                 ]
             }
             Page::Stpt | Page::Dest => {
@@ -744,6 +794,24 @@ impl Ufc {
                     format!("   SI {}", self.show(3, format!("{:6.2}", d.si))),
                 ]
             }
+            Page::Iff if self.sub == 1 => {
+                let x = self.xpdr;
+                let mode = |i: usize, name: &str| {
+                    let code = match i {
+                        0 => format!("  {:02}", x.codes[0]),
+                        1 | 2 => format!("{:04}", x.codes[i]),
+                        _ => "    ".to_string(),
+                    };
+                    format!(" {name} {}", self.show(i, format!("{} {code}", on(x.on[i]))))
+                };
+                [
+                    format!("  IFF  XPDR  {}", if x.ident(nav.tod_s) { "IDENT" } else { "" }),
+                    mode(0, "M1 "),
+                    mode(1, "M2 "),
+                    mode(2, "M3A"),
+                    mode(3, "MC "),
+                ]
+            }
             Page::Iff if e.aiff => [
                 "        IFF  AIFF".to_string(),
                 format!("  SCAN  {:>3}\u{b0} AZ/EL", crate::aiff::SCAN_HALF.to_degrees().round()),
@@ -878,6 +946,11 @@ impl Ufc {
                     Page::Stpt => self.auto_seq = !self.auto_seq,
                     Page::Ews => {
                         self.sub = self.sub % 4 + 1;
+                        self.field = 0;
+                    }
+                    // The transponder, then the AIFF's page (inferred: one IFF page each).
+                    Page::Iff => {
+                        self.sub = self.sub % 2 + 1;
                         self.field = 0;
                     }
                     _ => {}
@@ -1125,6 +1198,18 @@ impl Ufc {
                 }
                 None => Effect::None,
             },
+            // M-SEL (a lone 0) turns a mode on or off; octal digits set mode 1's (two) or mode 2's / 3/A's (four) code.
+            (Fld::Mode(i), Some(_)) => {
+                let i = usize::from(i);
+                if s == "0" {
+                    self.xpdr.on[i] = !self.xpdr.on[i];
+                } else if let Some(c) = (i < 3).then(|| octal(s, if i == 0 { 2 } else { 4 })).flatten() {
+                    self.xpdr.codes[i] = c;
+                } else {
+                    return Effect::None;
+                }
+                Effect::None
+            }
             (Fld::ChaffBingo | Fld::FlareBingo, Some(v @ 0..=99)) => match &nav.ews {
                 Some(e) => {
                     let mut b = e.bingo;
@@ -1152,10 +1237,17 @@ impl Ufc {
             _ => Effect::None,
         };
         // An entry moves to the next field, as the DED's asterisks do (DCS guide "UFC").
-        if !matches!(f, Fld::StptNo | Fld::Toggle | Fld::Hack | Fld::Chan | Fld::Opt(_)) && !self.fields().is_empty() {
+        if !matches!(f, Fld::StptNo | Fld::Toggle | Fld::Hack | Fld::Chan | Fld::Opt(_) | Fld::Mode(_))
+            && !self.fields().is_empty()
+        {
             self.field = (self.field + 1) % self.fields().len();
         }
         fx
+    }
+
+    /// The IFF IDENT button: the transponder replies with IDENT for [`IDENT_S`] from `tod` (s of the day).
+    pub fn ident(&mut self, tod: f64) {
+        self.xpdr.ident_until = tod + IDENT_S;
     }
 
     /// The backup UHF panel's channel knob (the UHF goes to BACKUP on it), one channel on.
@@ -1416,13 +1508,13 @@ mod tests {
     fn iff_dlnk_and_intg_pages() {
         let n = ews_nav();
         let mut u = Ufc::default();
-        keys(&mut u, &n, &[15]);
+        keys(&mut u, &n, &[15, 19]);
         assert!(u.page == Page::Iff && u.lines(&n)[1].contains("60"), "{:?}", u.lines(&n));
         keys(&mut u, &n, &[12, 10]);
         assert!(u.page == Page::Dlnk && u.lines(&n)[1].contains("ON") && u.lines(&n)[3].contains("  5"));
         keys(&mut u, &n, &[12, 11]);
         assert!(u.page == Page::Intg && u.lines(&n)[1].contains("SCAN") && u.lines(&n)[2].contains("  2"));
-        for p in [[12, 7], [12, 10], [12, 11], [18, 15]] {
+        for p in [[12, 7], [12, 10], [12, 11], [18, 15], [15, 19]] {
             keys(&mut u, &n, &p);
             for l in u.lines(&n) {
                 assert_eq!(l.chars().count(), W, "{:?}: {l:?}", u.page);
@@ -1445,5 +1537,36 @@ mod tests {
         assert!(!u.bull);
         keys(&mut u, &n, &[0, 10, 17, 2, 10]);
         assert!(u.bull && u.bullseye(&n.route).unwrap().number == 2);
+    }
+
+    #[test]
+    fn the_transponder_page_and_ident() {
+        let n = ews_nav();
+        let mut u = Ufc::default();
+        let cni = |u: &Ufc, n: &Nav| u.lines(n)[4].clone();
+        assert!(cni(&u, &n).starts_with("M1 3 C") && cni(&u, &n).ends_with("T 75X"), "{:?}", cni(&u, &n));
+        keys(&mut u, &n, &[15]);
+        let l = u.lines(&n);
+        assert!(l[0].contains("XPDR") && l[1].contains("*ON    00*") && l[3].contains("ON  2000"), "{l:?}");
+        // Mode 3/A's code 4721 (DCS down twice), then mode 2 on (DCS up, M-SEL).
+        keys(&mut u, &n, &[17, 17, 4, 7, 2, 1, 10]);
+        assert_eq!(u.xpdr.codes[2], 4721);
+        keys(&mut u, &n, &[16, 0, 10]);
+        assert!(u.xpdr.on[1]);
+        // 8 is no octal digit; three digits are no mode 3/A code.
+        keys(&mut u, &n, &[17, 4, 7, 2, 8, 10, 1, 2, 3, 10]);
+        assert_eq!(u.xpdr.codes[2], 4721);
+        // Mode C off.
+        keys(&mut u, &n, &[17, 0, 10]);
+        assert!(!u.xpdr.on[3]);
+        // IDENT: on the page and the CNI for 18 s.
+        u.ident(n.tod_s);
+        assert!(u.lines(&n)[0].contains("IDENT"));
+        keys(&mut u, &n, &[18]);
+        assert!(cni(&u, &n).starts_with("M1 2 3 I"), "{:?}", cni(&u, &n));
+        let later = Nav { tod_s: n.tod_s + IDENT_S + 0.1, ..ews_nav() };
+        assert!(cni(&u, &later).starts_with("M1 2 3 ") && !cni(&u, &later).contains(" I"));
+        // Without the EWS (reborn's jets) the CNI has no IFF field.
+        assert!(cni(&u, &nav()).starts_with("     "));
     }
 }

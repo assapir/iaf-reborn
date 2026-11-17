@@ -234,6 +234,15 @@ static func bscope(r: Dictionary, ct: Dictionary, nm: float) -> Vector2:
 	)
 
 
+## A world point's place on the A-A FCR's B-scope (MFD px; the AIFF's replies, the data link's tracks): its bearing
+## off the nose across ±60° and its slant range, as the radar places its contacts (radar.rs norm_xy: the range in
+## RANGE_M's NM of 1851.87 m), over the scale `nm`. The ground range drew a reply below its contact by the height
+## between the jets.
+static func fcr_place(pos: Vector3, own: Vector3, heading: float, nm: float) -> Vector2:
+	var az := wrapf(atan2(pos.x - own.x, pos.y - own.y) - heading, -PI, PI)
+	return scope_px(Vector2(0.5 + az / (TAU / 3.0), (pos - own).length() / (nm * 1851.8744)))
+
+
 ## A place on the real FCR's scope (0..1 across ±60°, up) in MFD px.
 static func scope_px(q: Vector2) -> Vector2:
 	return Vector2(10.0 + 112.0 * q.x, 115.0 - 112.0 * q.y)
@@ -359,11 +368,8 @@ func fcr() -> void:
 			centred(p.x, p.y + 9.0, "%02d" % int(float(ct.get("alt", 0.0)) * 0.0032808398), col, SMALL)
 	if not vsr and not expanded:
 		_steerpoint_bscope(nm, r)
-		var to_scope := func(pos: Vector3) -> Vector2:
-			var d := Vector2(pos.x, pos.y) - own_world()
-			var az := wrapf(atan2(d.x, d.y) - h, -PI, PI)
-			return scope_px(Vector2(0.5 + az / (TAU / 3.0), d.length() / (nm * 1852.0)))
-		_offboard(to_scope, Rect2(8, 8, 116, 110), h)
+		var own: Vector3 = cockpit.ews.get("own", Vector3.ZERO)
+		_offboard(func(pos: Vector3) -> Vector2: return fcr_place(pos, own, h, nm), Rect2(8, 8, 116, 110), h)
 	# The acquisition cursor: two short vertical lines (p. 1-124); the real FCR's from its cursor (the keys or the
 	# mouse) with the search altitudes it covers there in kft (fig. 1-85), none in ACM.
 	var cur = m.mouse

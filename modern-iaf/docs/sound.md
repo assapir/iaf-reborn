@@ -358,7 +358,7 @@ licence:
 | Betty | `af_heart`, 1.3, +3 semitones | the VMS calls |
 | tower | `am_michael`, 1.1 | the tower's phrases, the friendly-fire call, the map edge |
 | pilot | `am_puck`, 1.1 | the player's radio-menu calls (helmet chain, §5.2), "Roger", eject, the friendly-fire calls of the target and the wingman |
-| AWACS | `am_fenrir`, 1.1 | nothing yet: `radio.gd`'s AWACS templates have no particles (§7) |
+| AWACS | `am_fenrir`, 1.1 | the contact calls `ACFT_FCTRL_LONG` / `_SHORT` ([ews.md](ews.md) §7) |
 
 **Choice** (9 November 2026; the user on 3 November: "less British", American or neutral voices). Kokoro's
 American voices graded best by its own VOICES.md[^kokoro]: `af_heart` (A) and `af_bella` (A−) among the women,
@@ -375,7 +375,8 @@ Sufa and the Barak are F-16s; the F-35I's set is open, so it takes the same):
 | `BTY_FIRE`, `BTY_ENGINE` | "Warning. Warning." | the VMS says WARNING for a fire or an engine failure |
 | `BTY_FUEL`, `BTY_BINGO` | "Bingo. Bingo." | the VMS's fuel call |
 | `BTY_MISS`, `BTY_OVER_G`, `BTY_SPIN` | nothing (no row) | not in the VMS list; the launch has the RWR tone |
-| `BTY_LOCK`, `BTY_CHAFF_FLARE`, `BTY_LOW`, `BTY_OUT`, `BTY_COUNTER`, `BTY_JAMMER`, `BTY_DATA`, `BTY_IFF` | the word | VMS; our sub codes, no caller yet |
+| `BTY_CHAFF_FLARE`, `BTY_LOW`, `BTY_OUT`, `BTY_COUNTER` | the word | VMS; the CMDS's calls ([ews.md](ews.md) §4) |
+| `BTY_LOCK`, `BTY_JAMMER`, `BTY_DATA`, `BTY_IFF` | the word | VMS; our sub codes, no caller yet |
 
 Each warning is said twice, as in both reference recordings (§5.1). Betty is about 4 dB louder than the other speech
 (§8; the original's Betty is about −17 dB vrms).
@@ -443,8 +444,10 @@ their press command (the doc's names for them look swapped).
 3. ffmpeg writes it as 22050 Hz mono Ogg Vorbis, quality 4, into `modern-iaf/data/sounds/`, which ships the clips;
 4. `sim::own_sounds` compiles the sound folder into `assets/converted/own/resource/soundfiles/`, as `iaf-sim own`
    (the wizard's "sounds, voices, keys and effects art" step) does.
-The set is 151 clips plus four computed ones (`kch2`, `key_on`, `key_off`, `twr_pause`); a full run takes about
-3 minutes on 4 CPU cores. `iaf-sim voices --only <name part>` remakes some clips; `iaf-sim voices --say <role>
+The set is 318 clips (the AWACS's 97 `awx_*` since 17 November) plus four computed ones (`kch2`, `key_on`, `key_off`,
+`twr_pause`). `iaf-sim voices --only <name part>` remakes some clips (`--only awx` the AWACS's, about 1 minute); with
+the model and voice packs in the cache, `HF_HUB_OFFLINE=1` and `IAF_KOKORO_PYTHON` set to the venv's Python, the step
+runs without the network; `iaf-sim voices --say <role>
 <mode> <text> <out.ogg>` makes one line (the approval samples).
 
 ### 5.1 Betty
@@ -561,8 +564,8 @@ The setup wizard (item A3) and the credits roll live outside this branch's folde
 - Loops as Ogg Vorbis: a looped ogg may click at its seam where the WAV did not (listen to the engine, the gun and the
   air-brake wind).
 - The Hebrew voice (§5.4).
-- The AWACS, wingman-command, waypoint and flight-report phrases (`radio.gd`'s other templates have no particles yet,
-  so they are silent); the AWACS voice and chain are ready (§3, §5.2).
+- The wingman-command, waypoint and flight-report phrases (`radio.gd`'s other templates have no particles yet, so
+  they are silent). The AWACS's contact calls have theirs since 17 November ([ews.md](ews.md) §7).
 - The pilot's calls as Bravo–Delta play part by part (only Alpha has whole-call clips), and the callsigns past Delta
   have no particle (the tower's set stops there too).
 - The cockpit sound model (§1.9): the canopy's real transmission loss, the helmet in flight, the air-conditioning

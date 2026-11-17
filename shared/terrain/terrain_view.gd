@@ -3107,6 +3107,11 @@ func _command(cmd: Array) -> bool:
 			# Ours, the backup UHF panel's channel knob (Alt + U): one channel on, the UHF on BACKUP.
 			if cockpit.ufc != null:
 				cockpit.ufc.backup_channel()
+		255:
+			# Ours, the IFF IDENT button (Alt + K): the transponder's IDENT for 18 s (modern-iaf/docs/ews.md §8).
+			if cockpit.ufc != null and weapons != null and weapons.ews != null:
+				cockpit.ufc.ident(float(cockpit.state.get("tod", 0.0)))
+				_on_subtitle("IFF IDENT")
 		240:
 			# Ours, the modern MFDs' DMS (Modern IAF's keys.json): p1 0 up, 1 down, 2 left, 3 right (cockpit.gd dms).
 			if Settings.modern_mfds():

@@ -109,7 +109,8 @@ func _threats(c: Vector2, r: float) -> void:
 	draw_line(c - Vector2(k, 0), c + Vector2(k, 0), col, 2.0, true)
 	draw_line(c - Vector2(0, k), c + Vector2(0, k), col, 2.0, true)
 	var blink := int(Time.get_ticks_msec() / 167) % 2 == 0  # 3 Hz (the MLU's launch light)
-	var fs := int(size.x * 0.075)
+	# The symbols' size: the diamond 0.43 of the scope's radius wide, a lock's square 0.3, inside ews.rs's SEP (0.45).
+	var fs := int(size.x * 0.06)
 	var labels := []
 	for sy in cockpit.ews.get("symbols", []):
 		labels.append(String(sy.label))
@@ -231,12 +232,15 @@ func _ded() -> void:
 		lines = [
 			"%24s" % (stpt + "     "), "", "%24s" % ("%02d:%02d:%02d   " % [t / 3600, t / 60 % 60, t % 60]), "", ""
 		]
+	# A character per cell, so the DED's columns line up whatever the font (the sim's display font is proportional).
 	var lh := size.y / 5.0
-	var fs := int(minf(lh * 0.9, size.x / 24.0 / 0.6))
+	var cell := size.x * 0.96 / 24.0
+	var fs := int(minf(lh * 0.9, cell / 0.6))
 	for i in 5:
-		draw_string(
-			_font, Vector2(size.x * 0.02, lh * (i + 0.8)), lines[i], HORIZONTAL_ALIGNMENT_LEFT, -1, fs, DED_GREEN
-		)
+		var line: String = lines[i]
+		for j in line.length():
+			if line[j] != " ":
+				_text(Vector2(size.x * 0.02 + (j + 0.5) * cell, lh * (i + 0.45)), line[j], fs, DED_GREEN)
 	shown = {"lines": lines}
 
 
@@ -244,7 +248,23 @@ func _ded() -> void:
 ## 3-5 the first three faults, a third line framed by ▼ when more wait.
 func _pfl() -> void:
 	draw_rect(Rect2(Vector2.ZERO, size), PFL_BG)
-	var flags: Array = cockpit.damage_flags
+	var lines := pfl_lines(cockpit.damage_flags)
+	var fs := int(size.y * 0.1)
+	for i in 5:
+		draw_string(
+			_font,
+			Vector2(size.x * 0.215, size.y * (0.2 + 0.1 * i)),
+			lines[i],
+			HORIZONTAL_ALIGNMENT_LEFT,
+			-1,
+			fs,
+			PFL_GREEN
+		)
+	shown = {"lines": lines}
+
+
+## The fault list's five lines for the damage `flags` (_pfl; the HUD's DED DATA at PFL, cockpit.gd hud_panel_input).
+static func pfl_lines(flags: Array) -> Array:
 	var faults := []
 	var classes := [false, false, false]
 	for f in FAULTS:
@@ -262,18 +282,7 @@ func _pfl() -> void:
 		lines.append(("  %s  " % faults[i]) if i < faults.size() else "")
 	if faults.size() > 3:
 		lines[4] = "\u25bc %s \u25bc" % faults[2]
-	var fs := int(size.y * 0.1)
-	for i in 5:
-		draw_string(
-			_font,
-			Vector2(size.x * 0.215, size.y * (0.2 + 0.1 * i)),
-			lines[i],
-			HORIZONTAL_ALIGNMENT_LEFT,
-			-1,
-			fs,
-			PFL_GREEN
-		)
-	shown = {"lines": lines}
+	return lines
 
 
 func _text(at: Vector2, t: String, fs: int, col: Color) -> void:

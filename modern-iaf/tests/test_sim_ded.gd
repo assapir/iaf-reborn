@@ -172,7 +172,9 @@ func _panel() -> void:
 	tv._press([252, 2, 0])
 	_key(KEY_D, "alt")  # DED DATA: the DED's lines on the HUD
 	var l := ded()
-	check(hud_texts().has(l[0].strip_edges(false, true)), "DED DATA: the DED's first line on the HUD (%s)" % l[0])
+	# A character per cell (real_hud/f16.rs ded_block): the cells in order spell the line.
+	var cells := "".join(hud_texts().filter(func(t): return t.length() == 1))
+	check(l[0].replace(" ", "") in cells, "DED DATA: the DED's first line on the HUD (%s)" % l[0])
 	tv._press([252, 4, 2])
 	# MASTER ARM at SIMULATE: SIM on the HUD, nothing fires.
 	var c3d = tv.get("cockpit_3d")
