@@ -300,6 +300,158 @@
         "heading": "inferred",
         "alt_m": "inferred"
       }
+    },
+    {
+      "unit": "target_mig29",
+      "name": "Target 5",
+      "lat": 31.03,
+      "lon": 34.556,
+      "alt_m": 0,
+      "heading": 90,
+      "route": [
+        {
+          "lat": 31.03,
+          "lon": 34.556
+        },
+        {
+          "lat": 31.03,
+          "lon": 34.586
+        },
+        {
+          "lat": 31.01,
+          "lon": 34.586
+        },
+        {
+          "lat": 31.01,
+          "lon": 34.556
+        },
+        {
+          "lat": 31.03,
+          "lon": 34.556
+        },
+        {
+          "lat": 31.03,
+          "lon": 34.586
+        },
+        {
+          "lat": 31.01,
+          "lon": 34.586
+        },
+        {
+          "lat": 31.01,
+          "lon": 34.556
+        },
+        {
+          "lat": 31.03,
+          "lon": 34.556
+        },
+        {
+          "lat": 31.03,
+          "lon": 34.586
+        },
+        {
+          "lat": 31.01,
+          "lon": 34.586
+        },
+        {
+          "lat": 31.01,
+          "lon": 34.556
+        },
+        {
+          "lat": 31.03,
+          "lon": 34.556
+        },
+        {
+          "lat": 31.03,
+          "lon": 34.586
+        },
+        {
+          "lat": 31.01,
+          "lon": 34.586
+        },
+        {
+          "lat": 31.01,
+          "lon": 34.556
+        },
+        {
+          "lat": 31.03,
+          "lon": 34.556
+        },
+        {
+          "lat": 31.03,
+          "lon": 34.586
+        },
+        {
+          "lat": 31.01,
+          "lon": 34.586
+        },
+        {
+          "lat": 31.01,
+          "lon": 34.556
+        },
+        {
+          "lat": 31.03,
+          "lon": 34.556
+        }
+      ],
+      "speed_kmh": 40,
+      "sources": {
+        "lat": "inferred",
+        "lon": "inferred",
+        "heading": "inferred",
+        "alt_m": "inferred",
+        "route": "inferred",
+        "speed_kmh": "inferred"
+      },
+      "notes": {
+        "": "a moving ground target for the radar's GMT: the MiG-29 hulk towed five times round a 3 x 2 km loop (an hour) beside the parked ones (real ranges tow or drive their moving targets; inferred)"
+      }
+    },
+    {
+      "unit": "target_barge",
+      "name": "Target 6",
+      "lat": 31.8,
+      "lon": 34.5,
+      "alt_m": 0,
+      "heading": 270,
+      "route": [
+        {
+          "lat": 31.8,
+          "lon": 34.5
+        },
+        {
+          "lat": 31.8,
+          "lon": 34.45
+        },
+        {
+          "lat": 31.8,
+          "lon": 34.5
+        },
+        {
+          "lat": 31.8,
+          "lon": 34.45
+        },
+        {
+          "lat": 31.8,
+          "lon": 34.5
+        },
+        {
+          "lat": 31.8,
+          "lon": 34.45
+        }
+      ],
+      "speed_kmh": 15,
+      "sources": {
+        "lat": "inferred",
+        "lon": "inferred",
+        "heading": "inferred",
+        "alt_m": "inferred",
+        "route": "inferred",
+        "speed_kmh": "inferred"
+      },
+      "notes": {
+        "": "a sea target for the radar's SEA mode: a target barge with a hulk on it, at sea off the coast, steaming slowly west and back three times (an hour) (inferred)"
+      }
     }
   ],
   "sam_sites": [],
@@ -319,7 +471,7 @@
     "start": "the base's parking spot for the unit (modern-iaf/data/airbases, airbases.md §5); the altitude: the terrain's ground there (elevation_m without the terrain)",
     "route": "the air range over the open Negev between Ramon and Revivim, then the ground targets in the Halutza sands, 28 km north of Ramon",
     "drones": "the range's drones (avionics-plan.md §6 slice 1; the user's decision of 17 Nov, §8.1): the sim's own F-16 and F-35 flown by the shared AI as targets, red for the exercise, never shooting",
-    "targets": "four retired airframes parked in the open in the Halutza sands, 28 km north of Ramon, clear of buildings (the theatre's scenery has none within 1 km): a real range's place is not published, this one is inferred",
+    "targets": "four retired airframes parked in the open in the Halutza sands, 28 km north of Ramon, clear of buildings (the theatre's scenery has none within 1 km): a real range's place is not published, this one is inferred; Target 5, the MiG-29 hulk towed on a loop beside them, moves for the radar's GMT; Target 6, a target barge off the coast, is the radar's SEA target (both inferred, docs/radar.md §9.7)",
     "training.air_kills": "two of the five drones: one gun or missile kill and a second to show it was no luck (inferred)",
     "training.ground_kills": "two of the four ground targets (inferred)",
     "training.time_budget_s": "45 minutes: the start-up, the taxi and the take-off (about 15), the transit and both parts of the range",

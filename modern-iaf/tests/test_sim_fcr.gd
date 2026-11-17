@@ -11,7 +11,8 @@
 # - ACM: the 30 x 20 acquires a drone ahead; a drone 30° above is outside it until TMS right (10 x 60); TMS down
 #   from that lock goes back to the 30 x 20; the HUD's ACM cues (10 x 60 lines, SLEW and BORE crosses);
 # - NO RAD on the ground and in OVRD; the CNTL page (OSB 5) steps TGT HIS, whose earlier frames show; EXP (Ctrl + ;)
-#   puts the SAM bug mid-scope; the bug centres the scan.
+#   puts the SAM bug mid-scope and draws the scope 4:1 about it (the cursor beside the bug 4 times farther); the bug
+#   centres the scan.
 #   IAF_DEFAULT_SETTINGS=1 godot --headless --audio-driver Dummy --path modern-iaf \
 #     -s ../modern-iaf/tests/test_sim_fcr.gd --log-file <temp>
 extends "res://../tests/godot/base.gd"
@@ -178,7 +179,10 @@ func run() -> void:
 		)
 	)
 	_tap(KEY_APOSTROPHE, true)
-	w.radar_event(w.RADAR_CURSOR, Vector2(c.scope))  # the cursor back on the bug: TMS up below locks it
+	# EXP draws the scope 4:1 about the bug: the cursor 0.025 of the scope beside the bug is drawn 0.1 beside it.
+	w.radar_event(w.RADAR_CURSOR, Vector2(c.scope) + Vector2(0.025, 0.0))
+	await fly(tv, 0.1)
+	var norm_gap := Vector2(w.radar.real.cursor).distance_to(Vector2(_contact(d1).scope))
 	_tap(KEY_SEMICOLON, false, true)
 	await fly(tv, 0.3)
 	c = _contact(d1)
@@ -186,9 +190,15 @@ func run() -> void:
 		w.radar.real.exp and Vector2(c.scope).distance_to(Vector2(0.5, 0.5)) < 0.02,
 		"Ctrl + ; EXP: the bug mid-scope (%s)" % c.scope
 	)
+	var exp_gap := Vector2(w.radar.real.cursor).distance_to(Vector2(c.scope))
+	check(
+		absf(exp_gap / maxf(norm_gap, 1e-6) - 4.0) < 0.2,
+		"EXP: the scope drawn 4:1 (cursor to bug %.3f, NORM %.3f)" % [exp_gap, norm_gap]
+	)
 	_tap(KEY_SEMICOLON, false, true)
 	await fly(tv, 0.3)
 	check(not w.radar.real.exp, "Ctrl + ; again: NORM")
+	w.radar_event(w.RADAR_CURSOR, Vector2(_contact(d1).scope))  # the cursor back on the bug: TMS up below locks it
 	_tap(KEY_SLASH)
 	await fly(tv, 0.5)
 	check(int(w.radar.mode) == w.radar.STT, "/ again: STT (%d)" % w.radar.mode)
@@ -239,9 +249,14 @@ func run() -> void:
 	_tap(KEY_APOSTROPHE)
 	await fly(tv, 0.3)
 	check(int(w.radar.mode) == w.radar.LRS and w.radar.real.vsr, "' after TWS: VSR")
-	st = d1.state()
-	_put(st.position - st.velocity.normalized() * 20000.0, st.velocity * 1.6, float(st.heading))
-	await fly(tv, 9.0)
+	# Behind Drone 1 again every 6 s (the racetrack's turns take it out of the scan), until a frame lists it.
+	for i in 24:
+		if i % 12 == 0:
+			st = d1.state()
+			_put(st.position - st.velocity.normalized() * 20000.0, st.velocity * 1.6, float(st.heading))
+		await fly(tv, 0.5)
+		if _seen(d1):
+			break
 	check(_seen(d1) and float(_contact(d1).closure) > 0.0, "VSR: Drone 1 ahead, the jet faster: closing")
 	st = d1.state()
 	_put(st.position - st.velocity.normalized() * 20000.0, st.velocity * 0.6, float(st.heading))

@@ -269,8 +269,8 @@ The keyboard is the first-class input (the user, 17 November 2026: "I don't have
 
 | key | function (real switch) |
 |---|---|
-| `/` | TMS up: bug the target under the cursor, then lock it; ACM: BORE |
-| Shift + `/` | TMS down: drop the lock or the bugs; ACM, and a lock taken in ACM: back to the 30 × 20 |
+| `/` | TMS up: bug the target under the cursor, then lock it; ACM: BORE; A-G: track the return under the ground cursor, else designate its point (§9.7) |
+| Shift + `/` | TMS down: drop the lock or the bugs; ACM, and a lock taken in ACM: back to the 30 × 20; A-G: drop the track or the designation, the cursor back on the steerpoint |
 | `;` | TMS right: CRM's submode RWS → TWS → VSR (inferred: the real switch toggles RWS / TWS, VSR is on OSB 2); ACM: 10 × 60 |
 | Shift + `;` | TMS left: ACM SLEW (inferred); in CRM the AIFF later (avionics-plan.md G13) |
 | `'` | OSB 2: CRM's submode; ACM's pattern 20 → 60 → SLEW → BORE |
@@ -278,10 +278,15 @@ The keyboard is the first-class input (the user, 17 November 2026: "I don't have
 | Ctrl + `'` | OSB 17: the bars |
 | Alt + Up / Alt + Down (held) | the antenna elevation thumbwheel |
 | Ctrl + `/` | OSB 4: OVRD |
-| Ctrl + `;` | OSB 3 / the pinky switch: EXP |
-| Ctrl + arrows | the cursor control: the acquisition cursor while no EO picture runs, else the EO sensor (records 48–51; inferred until the SOI is built, G8) |
+| Ctrl + `;` | OSB 3 / the pinky switch: EXP; A-G: NORM → EXP → DBS1 → DBS2 |
+| Ctrl + arrows | the cursor control: the acquisition cursor (A-G: the ground cursor) while no EO picture runs, else the EO sensor (records 48–51; inferred until the SOI is built, G8) |
+| Alt + `;` | A-G OSB 7: FZ (record 143, command 228) |
+| Alt + `'` | A-G OSB 8: SP (record 144) |
+| Alt + `/` | A-G OSB 9: CZ (record 145) |
+| Alt + `.` | A-G OSB 10: STP / TGT (record 146) |
 
-The mouse over the FCR puts the cursor, and a click on a blip presses TMS up there. Q, R, S, the range keys, `\`,
+The mouse over the FCR puts the cursor, and a click on a blip presses TMS up there (A-G: the mouse puts the ground
+cursor on the ground point under it, a double-click presses TMS up). Q, R, S, the range keys, `\`,
 Return and Backspace keep their 1998 meaning. The FCR's OSBs 2, 3, 4, 17 and 18 do the same as their keys; the CNTL page's options are pressed on the MFD
 (a click), as the real jet's are.
 
@@ -293,7 +298,55 @@ SLEW as a cross at its patch's centre, stabilised on the horizon; BORE as a cros
 boresight cross. The 30 × 20 draws nothing: it fills the HUD's field.
 
 ### 9.6 Later slices
-AIFF on TMS left (G13, slice 5); the SOI and DMS (G8's rest, slice 4).
+AIFF on TMS left (G13, slice 5); the SOI and DMS (G8's rest, slice 4). BCN and TF (avionics-plan.md G12) stay parked:
+the plan builds them only on the user's word, and the sim has no radar beacons.
+
+### 9.7 Air to ground: GM, GMT, SEA and AGR
+The real FCR's ground modes on the game's MAP (GM, SEA) and GMT (`radar.rs` "the real FCR's air-to-ground modes";
+avionics-plan.md slice 3; the layout from the dash-34's GM, figs. 1-97 / 1-100, [real-mfd.md](real-mfd.md) "A-G
+modes"). Only the jets with `radar.fcr`; the original's MAP / GMT stay as §1–§8 describe.
+- **Modes (OSB 1):** OSB 2 reads `MAN`, the manual range option, and changes nothing (the range keys and OSBs 20 /
+  19 set the scale). R from A-A gives GM first; Q steps GM → GMT → SEA → GM. GM to 80 NM (10, 20, 40, 80; it starts
+  at 40), GMT to 40 NM (p. 1-150). SEA lists ships only (classes 15 and 16); GMT movers only; GM every ground return.
+  The ground modes bug nothing by themselves (the original's nearest selection stays off); Return and Shift + Return
+  still walk and lock as in §2.
+- **The display:** NORM is the PPI fan from (66, 109), 94 px = the range scale, heading-up about the jet. EXP, DBS1
+  and DBS2 show a patch about the ground cursor, mid-display, at 4, 8 and 64 times the scale (a simulator guide[^chuck];
+  the A-A EXP's 4:1 is the dash-34's), with the 1500 ft yardstick top left where it fits. GMT and SEA have EXP but no
+  DBS (pp. 1-150, 1-151). DBS needs the patch off the ground track: within 10° of it OSB 3 skips DBS1 / DBS2 and a DBS
+  patch falls back to EXP (inferred; the real limit is open). A manual range step returns to NORM (inferred from a
+  simulator).
+- **The picture** (`radar.rs` `render`, one per radar frame, 108 × 106 px over the window (12, 12)–(120, 118); inferred
+  shading): the ground's return grows with its slope toward the radar, with a fixed speckle; water (the sea level) and
+  the runways (`shared/terrain/airbases.gd`) return nothing; the terrain's shadow is dark (one march per 0.25° of
+  azimuth from the jet, the steepest rise so far; the bare ground's heights, no roofs or trees); outside the NORM fan black;
+  the listed returns bright, as large as their units. `mfd.gd` draws it at a display gain of 2.2 (the GM format's
+  gain; inferred). GMT dims the map to 35 % under its movers (p. 1-150). Where the
+  terrain's heights are not streamed the picture is clear and the theatre's land / water map (`isr.png`) shows under
+  it. `mfd.gd` `_draw_ag_picture` draws the last picture through its own frame, so it stays on the ground as the jet
+  moves between frames. One frame with its picture costs about 11 ms on the Linux laptop (GM at 40 NM, every 2 s;
+  `test_sim_fcr_ag.gd` holds it under 40 ms).
+- **The ground cursor:** a world point, ground-stabilised: the X-Y cursor lines cross on it. It starts on the
+  steerpoint (when within the range scale), else half the scale ahead; the cursor keys and the mouse move it; slewed
+  beyond 95 % or inside 5 % of the scale in NORM it bumps the scale (p. 1-122). Bottom right: the time to it at the
+  ground speed (fig. 1-97 `00:29`).
+- **OSB 7 FZ:** the picture, its returns and the frame held (a ground track keeps following its unit, so the weapons'
+  point stays live); the jet's symbol moves over the frozen map; FZ again, a
+  mode or range change ends it. **OSB 8 SP:** the cursor held half the scale ahead of the jet until SP again, a slew or
+  a TMS up. **OSB 9 CZ:** the slews removed: the cursor back on the steerpoint (STP) or the designated point (TGT).
+  **OSB 10:** `STP` / `TGT`, CZ's point; TMS up sets TGT, TMS down STP.
+- **TMS up:** a return within 4 px of the cursor is tracked (GM / SEA: FTT, GMT: the mover): the solid diamond, the
+  cursor riding it; else the cursor's point is designated (the diamond, the HUD's TD box). **TMS down:** the track or
+  the designation dropped, the cursor back on the steerpoint.
+- **The weapons' point** (`target_point`, `IafRadar` state `spi`): the ground track's unit, else the designated point.
+  The GPS bombs and the SPICE in VIS aim at it (`player_weapons.gd` `gps_aim`); the HUD's TD box sits on it, and the
+  F-16 Real HUD's slant range window reads its range (`hud.gd`: a designated point is the Real HUD's target too). The
+  original's radar hands over the designated point only, as before.
+- **AGR:** with a visual A-G delivery selected (a CCIP bomb, the A-G gun) the FCR ranges along the pipper's line to
+  the ground (to 20 NM, inferred): OSB 1 reads `AGR`, the slant range in NM mid-scope (layout inferred), and the Real
+  HUD's slant range window shows it as `F` when no target is locked (`real_hud/f16.rs`; the letter inferred).
+- **Targets on the weapons range** for these modes (modern-iaf/docs/data-formats.md): each range's Target 5, the
+  MiG-29 hulk towed on a loop (GMT), and Target 6, a barge off the coast (SEA).
 
 ## 10. Validation
 `tests/godot/test_radar.gd` checks:
@@ -308,9 +361,13 @@ AIFF on TMS left (G13, slice 5); the SOI and DMS (G8's rest, slice 4).
 9. Backspace returns to LRS; S goes to STBY.
 
 The real FCR: `crates/iaf-avionics/src/radar.rs` tests (power and weight on wheels, scan width / bars / elevation,
-VSR, SAM, the TMS and the cursor, the ACM patterns, TWS's files) and `modern-iaf/tests/test_sim_fcr.gd` against the
-weapons range's drones.
+VSR, SAM, the TMS and the cursor, the ACM patterns, TWS's files, EXP's 4:1, and A-G: the PPI places, the EXP / DBS
+scales and the notch, FZ, SP, CZ, GMT's movers, SEA's ships, the designation and FTT, the picture's slopes, shadow and
+runways, AGR) and `modern-iaf/tests/test_sim_fcr.gd` / `test_sim_fcr_ag.gd` against the weapons range's drones and
+ground targets.
 
+[^chuck]: Chuck's Guides, "DCS Guide - F-16CM Viper" (EXP, DBS1 8:1, DBS2 64:1), a simulator guide:
+    https://chucksguides.com/aircraft/dcs/f-16cm/
 [^bms-slew]: Falcon BMS forum, "How does ACM slew work?" (the slewable pattern about 60° wide and 20° high, the only
     stabilised ACM pattern): https://forum.falcon-bms.com/post/336643
 [^dcs-acm]: DCS forum, "Questions about ACM modes" (the 30 × 20 about the HUD's field, the 10 × 60 scanning up):

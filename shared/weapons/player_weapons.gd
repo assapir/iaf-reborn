@@ -23,6 +23,8 @@ const RADAR_ELEVATION := Radar.EV_ELEVATION
 const RADAR_OVRD := Radar.EV_OVRD
 const RADAR_CURSOR := Radar.EV_CURSOR
 const RADAR_CNTL := Radar.EV_CNTL
+const RADAR_AG_OSB := Radar.EV_AG_OSB
+const RADAR_GROUND := Radar.EV_GROUND
 const Rwr := preload("res://shared/weapons/rwr.gd")
 const WorldMap := preload("res://shared/util/world_map.gd")
 const EoSensor := preload("res://shared/weapons/eo_sensor.gd")
@@ -336,7 +338,7 @@ func to_world(p: Vector3) -> Vector3:
 	return host.scene_to_world(p)
 
 
-## The own jet in the world frame: {pos, vel, fwd, up, right, yaw}.
+## The own jet in the world frame: {pos, vel, fwd, up, right, yaw, wow, steer (the steerpoint; absent: none)}.
 func own() -> Dictionary:
 	var b: Basis = host.rig.global_basis
 	var vel := Vector3.ZERO
@@ -355,6 +357,11 @@ func own() -> Dictionary:
 		"yaw": atan2(fwd.x, fwd.y),
 		"wow": wow
 	}
+	# Ours: the current steerpoint (the real FCR's A-G cursor starts there, CZ returns it; radar.rs Own.steer).
+	var c = host.get("cockpit")
+	if c != null and c.current_waypoint >= 0 and c.current_waypoint < c.waypoints.size():
+		var sp: Vector2 = c.waypoints[c.current_waypoint].world
+		o.steer = Vector3(sp.x, sp.y, 0.0)
 	o.merge(seeker_view())
 	return o
 
@@ -1744,7 +1751,9 @@ func gps_aim(ripple: Vector3, station := -1) -> Array:
 				pod = u
 		var gh = host.mission_ground(pod)
 		g = float(gh) if gh != null else 0.1
-	var td = radar.desig if radar.designated else null
+	# The radar's target point: the designated point (the TD box); ours, the real FCR's ground track too (radar.rs
+	# target_point).
+	var td = radar.spi
 	return ClassDB.class_call_static("IafRelease", "gps_aim", vis, pre, ripple, pod, g, td)
 
 
@@ -2259,6 +2268,10 @@ func radar_event(ev: int, arg = null) -> void:
 			radar.set_cursor(arg.x, arg.y)
 		RADAR_CNTL:
 			radar.cntl_press(int(arg))
+		RADAR_AG_OSB:
+			radar.ag_press(int(arg), now)
+		RADAR_GROUND:
+			radar.set_ground_cursor(arg)
 		0x21:
 			radar.step_range(1, now)
 		0x22:
@@ -2361,6 +2374,8 @@ func radar_snapshot() -> Dictionary:
 		"exp": radar.exp,
 		"designated": radar.designated,
 		"desig": radar.desig,
+		"spi": radar.spi,
+		"pic": radar.pic,
 		"dlz": s348,
 		"emit": radar.emit,
 		"real": radar.real
@@ -2554,6 +2569,14 @@ func update(t: float) -> void:
 	var dead: bool = _flag(15) or not _up("fcr")
 	if dead != radar.damaged:
 		radar.set_damaged(dead)
+	# Ours, the real FCR's AGR: a visual A-G delivery (the CCIP pipper, the A-G gun's) ranges along its aim line.
+	var agr = null
+	if not radar.real.is_empty() and hud_mode in [5, 6] and ag.pipper != null and ag.get("gps", {}).is_empty():
+		agr = ag.target if ag.off else ag.impact  # the pipper's point (delayed: the one under the HUD-edge pipper)
+	elif not radar.real.is_empty() and hud_mode == 4:
+		var o := own()
+		agr = gun.aim_point(o.pos, o.vel, GunRounds.shot_dir(o.fwd, o.up), true)
+	radar.set_agr(agr)
 	radar.update(now)
 	rwr.damaged = _flag(14)
 	var refreshed: bool = now >= rwr._next_refresh

@@ -71,9 +71,11 @@ pub(super) fn frame(f: Field, i: &Input, max_g: f64) -> Frame {
         let lit = !crate::gaaf::alow_hud(a, i.vs_fpm, i.kcas) || flash_on(i.time_s);
         rows.push(if lit { format!("AL {}", crate::gaaf::ALOW_FT) } else { String::new() });
     }
-    match (i.target, i.steerpoint) {
-        (Some(t), _) => rows.push(slant('F', t.range_m)),
-        (None, Some(s)) => rows.push(slant('B', s.dist_m)),
+    // The slant range: the FCR's target, else its AGR ranging (ours: the same F, inferred), else the steerpoint's.
+    match (i.target, i.agr_m, i.steerpoint) {
+        (Some(t), _, _) => rows.push(slant('F', t.range_m)),
+        (None, Some(m), _) => rows.push(slant('F', m)),
+        (None, None, Some(s)) => rows.push(slant('B', s.dist_m)),
         _ => {}
     }
     if mode == 3
@@ -820,5 +822,10 @@ mod tests {
         assert_eq!(slant('B', 115.0 * NM), "B115.0");
         assert_eq!(slant('F', 2.5 * NM), "F02.5");
         assert_eq!(slant('F', 6000.0 * FT), "F 060");
+        // AGR's ranging replaces the steerpoint's (docs/radar.md §9.7).
+        let mut i = input(Jet::F16);
+        i.agr_m = Some(2.5 * NM);
+        let t = frame(FIELD, &i, 1.0);
+        assert!(texts(&t.outer).contains(&"F02.5") && !texts(&t.outer).contains(&"B12.0"));
     }
 }

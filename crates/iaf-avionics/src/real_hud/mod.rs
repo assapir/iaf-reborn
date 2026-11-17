@@ -358,6 +358,8 @@ pub struct Input {
     pub radar_mode: i64,
     /// The real FCR's ACM pattern while nothing is locked (the F-16s in Modern IAF; docs/radar.md §9.2).
     pub acm: Option<AcmCue>,
+    /// The real FCR's AGR slant range to the visual delivery's aim point (m; docs/radar.md §9.7).
+    pub agr_m: Option<f64>,
     /// The ILS bars drawn over the HUD (NAV, gear down): the localizer's x and the glide slope's y (HUD px).
     pub ils: Option<P>,
     pub steerpoint: Option<Steerpoint>,

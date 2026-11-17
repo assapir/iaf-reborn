@@ -5,7 +5,7 @@
 
 use crate::world::{get, terrain, vec3, vector3};
 use godot::prelude::*;
-use iaf_avionics::radar::{Contact, Event, Fcr, Input, Own, Radar, Tms, Unit};
+use iaf_avionics::radar::{Contact, Event, Fcr, GroundFrame, Input, Own, Radar, Runway, Tms, Unit};
 
 #[derive(GodotClass)]
 #[class(init, base = RefCounted)]
@@ -20,7 +20,11 @@ impl IafRadar {
     /// Runs `f` on the radar with the last input; a no-op before `setup`.
     fn with<R: Default>(&mut self, f: impl FnOnce(&mut Radar, &Input) -> R) -> R {
         let terrain = terrain(self.terrain.clone());
-        let input = Input { own: self.own, units: &self.units, terrain: &terrain };
+        // The bare height field for the A-G picture where the terrain is the mission's ground (no roofs or trees).
+        let field = |p: iaf_avionics::vec3::Vec3| crate::heights::FIELD.read().unwrap().height(p);
+        let mg = self.terrain.as_ref().and_then(Callable::method_name).is_some_and(|m| m == "mission_ground");
+        let bare: Option<&dyn Fn(iaf_avionics::vec3::Vec3) -> Option<f64>> = if mg { Some(&field) } else { None };
+        let input = Input { own: self.own, units: &self.units, terrain: &terrain, bare };
         self.radar.as_mut().map(|r| f(r, &input)).unwrap_or_default()
     }
 }
@@ -52,6 +56,43 @@ fn record(r: &Radar, c: Option<&Contact>) -> VarDictionary {
     c.map(|c| contact(r, c)).unwrap_or_default()
 }
 
+fn frame(f: Option<GroundFrame>) -> VarDictionary {
+    f.map_or_else(VarDictionary::new, |f| {
+        vdict! {
+            "centre" => vector3(f.centre),
+            "yaw" => f.yaw,
+            "k" => f.k,
+            "sym" => Vector2::new(f.sym.0 as f32, f.sym.1 as f32),
+        }
+    })
+}
+
+/// The real FCR's A-G state ({} outside A-G): name (OSB 1), fov (OSB 3's legend), zoom, frame (the display's
+/// {centre, yaw, k (m per MFD px), sym (MFD px of the centre)}), cursor (MFD px), ground (the cursor's world point),
+/// frozen, snowplow, tgt, agr (the slant range m, -1 none), pic {serial, frame, window (x, y, w, h)}.
+fn ag(r: &Radar, x: &iaf_avionics::radar::Real) -> VarDictionary {
+    let Some(name) = r.ag_mode() else { return VarDictionary::new() };
+    let (wx, wy, ww, wh) = iaf_avionics::radar::PIC_WINDOW;
+    let px = |p: Option<(f64, f64)>| p.map_or(Variant::nil(), |(a, b)| Vector2::new(a as f32, b as f32).to_variant());
+    vdict! {
+        "name" => name,
+        "fov" => iaf_avionics::radar::AG_FOV[x.fov].0,
+        "zoom" => r.zoom(),
+        "frame" => &frame(r.ground_frame()),
+        "cursor" => &px(r.ground_cursor_px()),
+        "ground" => &x.ground.map_or(Variant::nil(), |g| vector3(g).to_variant()),
+        "frozen" => x.frozen.is_some(),
+        "snowplow" => x.snowplow,
+        "tgt" => x.tgt,
+        "agr" => x.agr.unwrap_or(-1.0),
+        "pic" => &vdict! {
+            "serial" => x.picture.serial as i64,
+            "frame" => &frame(x.picture.frame),
+            "window" => Rect2::new(Vector2::new(wx as f32, wy as f32), Vector2::new(ww as f32, wh as f32)),
+        },
+    }
+}
+
 fn unit(u: &VarDictionary) -> Unit {
     Unit {
         key: get::<GString>(u, "key").unwrap_or_default().to_string(),
@@ -78,7 +119,7 @@ impl IafRadar {
         self.radar = Some(Radar::new(usize::try_from(cockpit).unwrap_or(1), lrs, fcr, ours));
     }
 
-    /// The own jet {pos, fwd, yaw}, the units [{key, pos, vel, klass, state, coll_radius, heading, type, hostile}]
+    /// The own jet {pos, fwd, yaw, up, vel, wow, steer (the steerpoint, absent: none)}, the units [{key, pos, vel, klass, state, coll_radius, heading, type, hostile}]
     /// and the terrain (Callable(Vector3) -> float or null) for the next calls.
     #[func]
     fn set_input(&mut self, own: VarDictionary, units: VarArray, terrain: Callable) {
@@ -89,6 +130,7 @@ impl IafRadar {
             up: vec3(get(&own, "up").unwrap_or_default()),
             vel: vec3(get(&own, "vel").unwrap_or_default()),
             wow: get(&own, "wow").unwrap_or_default(),
+            steer: get::<Vector3>(&own, "steer").map(vec3),
         };
         self.units = units.iter_shared().filter_map(|v| v.try_to::<VarDictionary>().ok()).map(|u| unit(&u)).collect();
         self.terrain = Some(terrain);
@@ -241,6 +283,46 @@ impl IafRadar {
         self.with(|r, _| r.toggle_ovrd());
     }
 
+    /// Ours, the real FCR's A-G: a press on the GM format's OSB 7 FZ, 8 SP, 9 CZ or 10 STP / TGT.
+    #[func]
+    fn ag_press(&mut self, osb: i64, now: f64) {
+        self.with(|r, i| r.ag_press(osb as u8, now, i));
+    }
+
+    /// Ours, the real FCR's A-G: the ground cursor on a world point (a mouse move over the display).
+    #[func]
+    fn set_ground_cursor(&mut self, w: Vector3) {
+        self.with(|r, _| r.set_ground_cursor(vec3(w)));
+    }
+
+    /// Ours, the real FCR's AGR: a visual delivery's aim point (Vector3), null: none.
+    #[func]
+    fn set_agr(&mut self, at: Variant) {
+        let at = at.try_to::<Vector3>().ok().map(vec3);
+        self.with(|r, _| r.set_agr(at));
+    }
+
+    /// Ours, the real FCR's GM picture: the runways [[x0, y0, x1, y1, width], …] it shows dark.
+    #[func]
+    fn set_runways(&mut self, list: VarArray) {
+        let runways = list
+            .iter_shared()
+            .filter_map(|v| v.try_to::<PackedFloat64Array>().ok())
+            .filter(|a| a.len() >= 5)
+            .map(|a| Runway { a: (a[0], a[1]), b: (a[2], a[3]), half_width: a[4] / 2.0 })
+            .collect();
+        self.with(|r, _| r.set_runways(runways));
+    }
+
+    /// Ours, the real FCR's GM picture of the last frame: LA8 bytes over the window of `state().real.ag.window`.
+    #[func]
+    fn picture(&self) -> PackedByteArray {
+        let Some(p) = self.radar.as_ref().and_then(|r| r.real()).map(|x| &x.picture) else {
+            return PackedByteArray::new();
+        };
+        PackedByteArray::from(p.la8.as_slice())
+    }
+
     #[func]
     fn set_damaged(&mut self, on: bool) {
         self.with(|r, _| r.set_damaged(on));
@@ -281,6 +363,7 @@ impl IafRadar {
                 "vsr_max" => iaf_avionics::radar::VSR_MAX_KT,
                 "exp" => r.exp_centre().is_some(),
                 "cntl" => &x.cntl.iter().map(|&v| v as i64).collect::<PackedInt64Array>(),
+                "ag" => &ag(r, x),
                 "history" => &r
                     .history_xy()
                     .iter()
@@ -306,6 +389,7 @@ impl IafRadar {
             "has_lock" => r.has_lock(),
             "antenna" => Vector2::new(az as f32, el as f32),
             "heading_shift" => r.heading_shift(),
+            "spi" => &r.target_point().map_or(Variant::nil(), |p| vector3(p).to_variant()),
             "designated" => r.designated().is_some(),
             "desig" => vector3(r.designated().unwrap_or_default()),
             "exp" => r.expanded(),

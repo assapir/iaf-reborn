@@ -224,12 +224,19 @@ func fcr() -> void:
 	if fcr_cntl and not real.is_empty():
 		_fcr_cntl(real)
 		return
-	label(1, names[0])
+	var ag: Dictionary = real.get("ag", {})
+	# The real FCR's A-G: OSB 1 its mode (GM, GMT, SEA, AGR), OSB 2 MAN (the range option), OSB 3 the field of view.
+	label(1, String(ag.name) if not ag.is_empty() else names[0])
 	if real.is_empty():
 		label(2, names[1])
+	elif not ag.is_empty():
+		label(2, "MAN")
 	else:
 		label(2, ClassDB.class_call_static("IafF16Mfd", "fcr_real_submode", named, real.vsr, real.acm))
-	label(3, "EXP" if (mode == 8 and r.get("exp", false)) or real.get("exp", false) else "NORM")
+	if not ag.is_empty():
+		label(3, String(ag.fov))
+	else:
+		label(3, "EXP" if (mode == 8 and r.get("exp", false)) or real.get("exp", false) else "NORM")
 	label(4, "OVRD", bool(real.get("ovrd", false)))
 	label(5, "CNTL")
 	if mode >= 2:
@@ -244,6 +251,9 @@ func fcr() -> void:
 	# (inferred from simulators; docs/radar.md §9.1).
 	if not real.is_empty() and mode >= 2 and not bool(r.get("emit", false)):
 		centred(66.0, 96.0, "NO RAD", c("text"))
+	if not ag.is_empty():
+		_real_ground_map(r, ag, nm)
+		return
 	if mode in [7, 8]:
 		_ground_map(r, mode, nm)
 		return
@@ -404,21 +414,8 @@ func _dlz(dlz: Array, dist: float, nm: float) -> void:
 ## its range arcs (10 NM: one at 5; else three a quarter apart), the X-Y cursors on the mouse, the returns (GMT:
 ## squares) and a tracked target or the designated point as a solid diamond; the steerpoint.
 func _ground_map(r: Dictionary, mode: int, nm: float) -> void:
-	var sc := c("scale")
 	var apex := Vector2(66, 109)
-	var rect := PackedVector2Array([Vector2(12, 12), Vector2(120, 12), Vector2(120, 118), Vector2(12, 118)])
-	for a in [-PI / 3.0, PI / 3.0]:
-		for seg in Geometry2D.intersect_polyline_with_polygon(
-			PackedVector2Array([apex, apex + Vector2(sin(a), -cos(a)) * 94.0]), rect
-		):
-			poly(seg, sc, THIN)
-	for f in [0.5] if nm <= 10 else [0.25, 0.5, 0.75]:
-		var pts := PackedVector2Array()
-		for i in 25:
-			var a := -PI / 3.0 + 2.0 * PI / 3.0 * i / 24.0
-			pts.append(apex + Vector2(sin(a), -cos(a)) * 94.0 * f)
-		for seg in Geometry2D.intersect_polyline_with_polygon(pts, rect):
-			poly(seg, sc, THIN)
+	_fan(nm)
 	var fr: Dictionary = m._map_frame(r) if mode == 8 else {"centre": own_world(), "hdg": heading_rad(), "sym": apex}
 	var k := nm * 19.7128
 	var any_locked := false
@@ -445,6 +442,92 @@ func _ground_map(r: Dictionary, mode: int, nm: float) -> void:
 		var q: Vector2 = m.mouse
 		line(Vector2(12, q.y), Vector2(120, q.y), c("cursor"), THIN)
 		line(Vector2(q.x, 12), Vector2(q.x, 118), c("cursor"), THIN)
+
+
+## The PPI fan's edges at ±60° and its range arcs (10 NM: one at 5; else three a quarter apart), from (66, 109).
+func _fan(nm: float) -> void:
+	var sc := c("scale")
+	var apex := Vector2(66, 109)
+	var rect := PackedVector2Array([Vector2(12, 12), Vector2(120, 12), Vector2(120, 118), Vector2(12, 118)])
+	for a in [-PI / 3.0, PI / 3.0]:
+		for seg in Geometry2D.intersect_polyline_with_polygon(
+			PackedVector2Array([apex, apex + Vector2(sin(a), -cos(a)) * 94.0]), rect
+		):
+			poly(seg, sc, THIN)
+	for f in [0.5] if nm <= 10 else [0.25, 0.5, 0.75]:
+		var pts := PackedVector2Array()
+		for i in 25:
+			var a := -PI / 3.0 + 2.0 * PI / 3.0 * i / 24.0
+			pts.append(apex + Vector2(sin(a), -cos(a)) * 94.0 * f)
+		for seg in Geometry2D.intersect_polyline_with_polygon(pts, rect):
+			poly(seg, sc, THIN)
+
+
+## The real FCR's A-G (fig. 1-97, fig. 1-100, pp. 1-142..1-151; docs/radar.md §9.7) over its radar picture
+## (mfd.gd _draw_pictures): the fan in NORM, the 1500 ft yardstick top left in EXP / DBS; the right edge's FZ, SP, CZ,
+## STP / TGT (highlighted while on); GMT's movers as squares (GM and SEA show their returns in the picture); a ground
+## track or the designated point as the solid diamond; the steerpoint; the jet over a frozen map; the X-Y cursors;
+## the time to the cursor bottom right. AGR: its slant range mid-scope (inferred layout).
+func _real_ground_map(r: Dictionary, ag: Dictionary, nm: float) -> void:
+	label(7, "FZ", ag.frozen)
+	label(8, "SP", ag.snowplow)
+	label(9, "CZ")
+	label(10, "TGT" if ag.tgt else "STP")
+	var col := c("text")
+	if ag.name == "AGR":
+		var m_agr := float(ag.agr)
+		centred(66, 66, "%.1f" % (m_agr / 1852.0) if m_agr >= 0.0 else "---", col)
+		return
+	var fr: Dictionary = ag.frame
+	if fr.is_empty():
+		return
+	var win := Rect2(12, 12, 108, 106)
+	if fr.sym == Vector2(66, 109):
+		_fan(nm)
+	else:
+		# The 1500 ft yardstick (fig. 1-97), where it fits.
+		var px := 457.2 / float(fr.k)
+		if px <= 60.0:
+			line(Vector2(16, 16), Vector2(16 + px, 16), c("scale"), LINE)
+	var any_track := false
+	for ct in r.get("contacts", []):
+		var p: Vector2 = MfdNode.ag_px(fr, ct.pos)
+		if not win.has_point(p):
+			continue
+		if ct.locked:
+			any_track = true
+			_diamond(p, c("track"))
+		elif ag.name == "GMT":
+			fill(Rect2(p - Vector2(1.5, 1.5), Vector2(3, 3)), c("search"))
+	if r.get("designated", false) and not any_track:
+		var dp: Vector2 = MfdNode.ag_px(fr, r.desig)
+		if win.has_point(dp):
+			_diamond(dp, c("track"))
+	var sp = m._steerpoint()
+	if sp != null:
+		var p: Vector2 = MfdNode.ag_px(fr, Vector3(sp.x, sp.y, 0.0))
+		if win.has_point(p):
+			ci.draw_colored_polygon(
+				PackedVector2Array([p + Vector2(0, -3), p + Vector2(3, 2), p + Vector2(-3, 2)]), c("route")
+			)
+	if ag.frozen:
+		var op: Vector2 = MfdNode.ag_px(fr, Vector3(own_world().x, own_world().y, 0.0))
+		if win.has_point(op):
+			_ownship(op)
+	if ag.cursor != null:
+		var q: Vector2 = ag.cursor
+		var cc := c("cursor")
+		if win.has_point(q):
+			line(Vector2(12, q.y), Vector2(q.x - 3, q.y), cc, THIN)
+			line(Vector2(q.x + 3, q.y), Vector2(120, q.y), cc, THIN)
+			line(Vector2(q.x, 12), Vector2(q.x, q.y - 3), cc, THIN)
+			line(Vector2(q.x, q.y + 3), Vector2(q.x, 118), cc, THIN)
+		# The time to the cursor at the ground speed (bottom right, fig. 1-97 "00:29").
+		var gs := float(cockpit.state.get("ground_kt", 0.0)) / 1.9438445
+		var g = ag.ground
+		if g != null and gs > 1.0:
+			var t := int(own_world().distance_to(Vector2(g.x, g.y)) / gs)
+			text(Vector2(96, 116), "%02d:%02d" % [mini(t / 60, 99), t % 60], SMALL, col)
 
 
 func _diamond(p: Vector2, col: Color) -> void:
@@ -889,9 +972,13 @@ func _own(f: String, osb: int) -> void:
 							)
 						)
 				3:
-					# MAP's EXP; the real FCR's NORM / EXP in CRM (radar.rs toggle_exp).
+					# MAP's EXP; the real FCR's NORM / EXP in CRM, its A-G NORM / EXP / DBS1 / DBS2 (radar.rs toggle_exp).
 					if int(cockpit.radar.get("mode", 0)) == 8 or real:
 						m._radar_event(0x30)
+				7, 8, 9, 10:
+					# The real FCR's A-G: FZ, SP, CZ, STP / TGT (radar.rs ag_press).
+					if real and int(cockpit.radar.get("mode", 0)) in [7, 8]:
+						m._radar_event(RadarEv.EV_AG_OSB, osb)
 		"HSD":
 			if osb in [20, 19]:
 				m.tsd_scale = ClassDB.class_call_static("IafF16Mfd", "hsd_step", m.tsd_scale, osb == 20)

@@ -69,7 +69,10 @@ func jet(mission: String, unit: String) -> void:
 		)
 	)
 	check(drones.all(func(p): return p.mode == 7), "%s: every drone flies its route (WayPtSet)" % unit)
-	var ground: Array = tv.runtime.entities.values().filter(func(e): return int(e.klass) == 6 and int(e.side) == 2)
+	# The hulks (class 6, a vehicle; one towed) and the barge (class 15, a ship).
+	var ground: Array = tv.runtime.entities.values().filter(
+		func(e): return int(e.klass) in [6, 15] and int(e.side) == 2
+	)
 	check(
 		ground.size() == readable.targets.size() and ground.all(func(e): return e.node != null and e.node.visible),
 		"%s: the %d ground targets drawn" % [unit, ground.size()]

@@ -634,6 +634,21 @@ static func _heading_up(e: Vector2, hdg: float, k: float) -> Vector2:
 	return Vector2(e.x * cos_h - e.y * sin_h, -(e.x * sin_h + e.y * cos_h)) / k
 
 
+## Ours, the real FCR's A-G display (radar.rs GroundFrame; frame {centre, yaw, k, sym}): a world point's MFD px.
+static func ag_px(fr: Dictionary, w: Vector3) -> Vector2:
+	var c: Vector3 = fr.centre
+	return Vector2(fr.sym) + _heading_up(Vector2(w.x - c.x, w.y - c.y), float(fr.yaw), float(fr.k))
+
+
+## The world point (z 0) at an MFD px of the real FCR's A-G display.
+static func ag_world(fr: Dictionary, p: Vector2) -> Vector3:
+	var c: Vector3 = fr.centre
+	var a: float = (p.x - fr.sym.x) * float(fr.k)
+	var b: float = (fr.sym.y - p.y) * float(fr.k)
+	var yaw := float(fr.yaw)
+	return Vector3(c.x + a * cos(yaw) + b * sin(yaw), c.y - a * sin(yaw) + b * cos(yaw), 0.0)
+
+
 ## A ground contact (GMT / MAP): ±10 cross when locked, then the 3×3 box (MAP: with the \ diagonal).
 func _ground_symbol(p: Vector2, locked: bool, diagonal: bool) -> void:
 	if locked:
@@ -734,7 +749,9 @@ func _draw_map_picture(r: Dictionary, nm: float) -> void:
 ## The MAP picture's polygons in the window: [{points (MFD px), uvs (0..1 of isr.bmp)}] for the centre
 ## (world X / Y) shown at MFD px `img`, heading-up for `hdg` (rad), range `nm`. isr px q of MFD px p:
 ## q = q0 + S·(dx·C − dy·S', dx·S' + dy·C), (dx, dy) = p − img.
-static func map_picture(centre: Vector2, hdg: float, nm: float, img: Vector2, frame: Dictionary = MAPFRAME) -> Array:
+static func map_picture(
+	centre: Vector2, hdg: float, nm: float, img: Vector2, frame: Dictionary = MAPFRAME, window := PackedVector2Array()
+) -> Array:
 	var s: float = nm * 1853.0 * ISR_SIZE.y / ((frame.top - frame.bottom) * 94.0)
 	var cos_h := cos(hdg)
 	var sin_h := sin(hdg)
@@ -743,14 +760,16 @@ static func map_picture(centre: Vector2, hdg: float, nm: float, img: Vector2, fr
 	for q in [Vector2.ZERO, Vector2(ISR_SIZE.x, 0), ISR_SIZE, Vector2(0, ISR_SIZE.y)]:
 		var d: Vector2 = (q - q0) / s
 		corners.append(img + Vector2(d.x * cos_h + d.y * sin_h, -d.x * sin_h + d.y * cos_h))
-	var win := PackedVector2Array(
-		[
-			MAP_WINDOW.position,
-			Vector2(MAP_WINDOW.end.x, MAP_WINDOW.position.y),
-			MAP_WINDOW.end,
-			Vector2(MAP_WINDOW.position.x, MAP_WINDOW.end.y)
-		]
-	)
+	var win := window
+	if win.is_empty():
+		win = PackedVector2Array(
+			[
+				MAP_WINDOW.position,
+				Vector2(MAP_WINDOW.end.x, MAP_WINDOW.position.y),
+				MAP_WINDOW.end,
+				Vector2(MAP_WINDOW.position.x, MAP_WINDOW.end.y)
+			]
+		)
 	var out := []
 	for piece in Geometry2D.intersect_polygons(corners, win):
 		if piece.size() < 3:
@@ -761,6 +780,61 @@ static func map_picture(centre: Vector2, hdg: float, nm: float, img: Vector2, fr
 			uvs.append((q0 + s * Vector2(d.x * cos_h - d.y * sin_h, d.x * sin_h + d.y * cos_h)) / ISR_SIZE)
 		out.append({"points": piece, "uvs": uvs})
 	return out
+
+
+## Ours, the real FCR's A-G picture (radar.rs render; docs/radar.md §9.7): the theatre's land / water map under it
+## (where the terrain's heights are not streamed), then the radar frame's picture, both in the display's frame; the
+## picture was made in its own frame (the jet has moved since), so it is drawn through both. GMT dims the map; AGR
+## draws none.
+const GMT_MAP_DIM := 0.35  # GMT's map under its movers, dimmed (radar.rs GMT_DIM)
+## The picture's display gain (the GM format's gain; the value inferred): the radar's returns ×2.2, clipped at full.
+const AG_GAIN := 2.2
+
+var _ag_tex: ImageTexture
+var _ag_serial := -1
+
+
+func _draw_ag_picture(r: Dictionary, ag: Dictionary) -> void:
+	var fr: Dictionary = ag.frame
+	var pic: Dictionary = ag.pic
+	if fr.is_empty() or ag.name == "AGR":
+		return
+	var win := Rect2(pic.window)
+	var rect := PackedVector2Array(
+		[win.position, Vector2(win.end.x, win.position.y), win.end, Vector2(win.position.x, win.end.y)]
+	)
+	var green := Color(0, GMT_MAP_DIM if ag.name == "GMT" else 1.0, 0)
+	var t := _isr()
+	if t != null:
+		# The map's scale: its fan radius (94 px) = the range over the zoom.
+		var nm := float(fr.k) * 94.0 / 1853.0
+		var mf: Dictionary = cockpit.layout.get("MAPFRAME", MAPFRAME)
+		for piece in map_picture(Vector2(fr.centre.x, fr.centre.y), float(fr.yaw), nm, fr.sym, mf, rect):
+			_under.draw_colored_polygon(piece.points, green, piece.uvs, t)
+	if int(pic.serial) != _ag_serial:
+		_ag_serial = int(pic.serial)
+		var bytes: PackedByteArray = r.get("pic", PackedByteArray())
+		_ag_tex = null
+		if bytes.size() == int(win.size.x) * int(win.size.y) * 2:
+			_ag_tex = ImageTexture.create_from_image(
+				Image.create_from_data(int(win.size.x), int(win.size.y), false, Image.FORMAT_LA8, bytes)
+			)
+	var pf: Dictionary = pic.frame
+	if _ag_tex == null or pf.is_empty():
+		return
+	var quad := PackedVector2Array()
+	for q in rect:
+		quad.append(ag_px(fr, ag_world(pf, q)))
+	var pieces := Geometry2D.intersect_polygons(quad, rect)
+	# The picture's own frame (FZ, or no move since): the clip of two equal squares can come back empty. A picture
+	# wholly off the display draws nothing.
+	if pieces.is_empty() and quad[0].distance_to(rect[0]) < 0.01 and quad[2].distance_to(rect[2]) < 0.01:
+		pieces = [rect]
+	for piece in pieces:
+		var uvs := PackedVector2Array()
+		for p in piece:
+			uvs.append((ag_px(pf, ag_world(fr, p)) - win.position) / win.size)
+		_under.draw_colored_polygon(piece, Color(0, AG_GAIN, 0), uvs, _ag_tex)
 
 
 func _isr() -> Texture2D:
@@ -854,7 +928,10 @@ func _draw_pictures() -> void:
 	if real_look != "":  # the real formats' black screen (the original's tiles bring their own), under the pictures
 		_under.draw_rect(Rect2(2, 2, 128, 128), Color.BLACK)
 	var r: Dictionary = cockpit.radar
-	if page == RADAR and int(r.get("mode", 0)) == 8:
+	var ag: Dictionary = r.get("real", {}).get("ag", {})
+	if page == RADAR and not ag.is_empty():
+		_draw_ag_picture(r, ag)
+	elif page == RADAR and int(r.get("mode", 0)) == 8:
 		_draw_map_picture(r, RADAR_RANGES[clampi(int(r.get("idx", 1)), 1, 6) - 1])
 	elif page == FLIR or (page == TV and int(cockpit.eo.get("tv", {}).get("status", 0)) != 0):
 		if cockpit.eo_texture != null and cockpit.eo.get("camera", false):
@@ -1341,7 +1418,11 @@ func _gui_input(event: InputEvent) -> void:
 		mouse = q if Rect2(10, 10, 112, 112).has_point(q) else null
 		# Ours, the real F-16 FCR: the mouse puts the acquisition cursor (radar.rs set_cursor; docs/radar.md §9.4).
 		if mouse != null and page == RADAR and not cockpit.radar.get("real", {}).is_empty():
-			_radar_event(RadarEv.EV_CURSOR, Vector2((q.x - 10.0) / 112.0, (115.0 - q.y) / 112.0))
+			var ag: Dictionary = cockpit.radar.real.get("ag", {})
+			if not ag.is_empty() and not ag.frame.is_empty():
+				_radar_event(RadarEv.EV_GROUND, ag_world(ag.frame, q))  # the A-G cursor on the ground point
+			else:
+				_radar_event(RadarEv.EV_CURSOR, Vector2((q.x - 10.0) / 112.0, (115.0 - q.y) / 112.0))
 		if _bezel() == 0.0:
 			hover_osb = touch_osb(q)
 		return
@@ -1363,7 +1444,12 @@ func _gui_input(event: InputEvent) -> void:
 	elif page == RADAR and Rect2(10, 10, 112, 112).has_point(p):
 		# GMT / MAP pass 4 and the TWS lock act on the double-click flag (+0x27e0, set by the WM_LBUTTONDBLCLK
 		# handler FUN_004dc8a0 → FUN_00522120); LRS and the TWS select on the press (+0x27d8).
+		var real_ag: bool = not cockpit.radar.get("real", {}).get("ag", {}).is_empty()
 		match int(cockpit.radar.get("mode", 0)):
+			_ when real_ag:
+				# Ours, the real FCR's A-G: a double-click presses TMS up at the cursor (radar.rs ground_track).
+				if event.double_click:
+					_radar_event(RadarEv.EV_TMS, 0)
 			4:
 				_click_blip(p)
 			5:

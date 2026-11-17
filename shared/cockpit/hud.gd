@@ -701,6 +701,13 @@ func real_hud() -> Dictionary:
 			"at": _hud_point(lk.pos, true),
 			"aspect": lk.get("aspect")
 		}
+	elif not rd.get("real", {}).is_empty() and rd.get("designated", false):
+		# Ours, the real FCR's designated ground point (docs/radar.md §9.7): its TD box and slant range.
+		var dp: Vector3 = rd.desig
+		var dist := 0.0
+		if camera != null and host_world_to_scene.is_valid():
+			dist = camera.global_position.distance_to(host_world_to_scene.call(dp))
+		target = {"range_m": dist, "closure": 0.0, "at": _hud_point(dp, true)}
 	var pip = null
 	if mode == 4 and wp.get("pipper") != null:
 		pip = _hud_point(wp.pipper, false)
@@ -772,6 +779,8 @@ func real_hud() -> Dictionary:
 		),
 		"steerpoint": steer,
 		"target": target,
+		# Ours, the real FCR's AGR slant range (m; docs/radar.md §9.7), null without one.
+		"agr_m": _agr_m(rd),
 		"dlz": rd.get("dlz", []) if not target.is_empty() else [],
 		"weapons":
 		{
@@ -1614,6 +1623,12 @@ func _draw_target_box(s: float, w: float) -> void:
 			col,
 			w
 		)
+
+
+## The real FCR's AGR slant range (m), null without one (radar.rs ground_controls).
+static func _agr_m(rd: Dictionary):
+	var m := float(rd.get("real", {}).get("ag", {}).get("agr", -1.0))
+	return m if m >= 0.0 else null
 
 
 ## The box: {p (HUD px), h (half size), edge (held at the HUD edge), hostile}; {} without a lock or a designation.

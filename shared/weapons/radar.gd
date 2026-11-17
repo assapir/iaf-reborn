@@ -13,6 +13,9 @@ const EV_ELEVATION := -24
 const EV_OVRD := -25
 const EV_CURSOR := -26
 const EV_CNTL := -27
+## Ours, the real FCR's A-G: the GM format's OSBs 7..10 (arg the OSB), the ground cursor on a world point (arg).
+const EV_AG_OSB := -28
+const EV_GROUND := -29
 
 ## bdb type code → cockpit index (FUN_00447e70).
 const COCKPIT := preload("res://shared/aircraft/player_aircraft.gd").COCKPIT
@@ -39,8 +42,15 @@ var emit := false
 ## Ours, the real F-16 FCR (docs/radar.md §9; {} the original's radar): half (scan's half width, deg), bars, elevation,
 ## cursor (0..1 across ±60°, up), cursor_alt (ft high / low, NAN none), vsr, sam (keys, the primary last), acm (0
 ## 20, 1 60, 2 SLEW), ovrd, volume (az from, az to, el low, el high; deg), vsr_max (kt), exp (EXP showing), cntl (the
-## CNTL page's value indices, IafRadar.cntl_table's order), history (TGT HIS: x, y on the scope, z the frames back).
+## CNTL page's value indices, IafRadar.cntl_table's order), history (TGT HIS: x, y on the scope, z the frames back),
+## ag (A-G: {name, fov, zoom, frame {centre, yaw, k, sym}, cursor (MFD px), ground, frozen, snowplow, tgt, agr, pic};
+## IafRadar ag).
 var real := {}
+## Ours: the point the A-G weapons aim at (radar.rs target_point: the real FCR's ground track, else the designated
+## point), null none; the real FCR's GM picture of the last frame (LA8 bytes over real.ag.pic.window).
+var spi = null
+var pic := PackedByteArray()
+var _pic_serial := -1
 
 ## Owner callbacks: units() -> [{key, pos, vel, ent, hostile}], ground(world) -> height or null,
 ## own() -> {pos, vel, fwd, up, right, yaw}, on_lock(key, on) (the target's RWR), illumination_lost()
@@ -68,6 +78,14 @@ func setup(type_code: int, lrs_nm := 0.0) -> void:
 	var row := int(def.get("row", COCKPIT.get(type_code, 1)))
 	var modern: bool = Settings.modern_radar()
 	_r.setup(row, lrs_nm, int(def.get("fcr", {}).get("sam_tracks", 0)) if modern else 0, modern)
+	# The real FCR's GM picture shows the runways dark (shared/terrain/airbases.gd: world metres, width).
+	if modern:
+		var list := []
+		for b in load("res://shared/terrain/airbases.gd").bases():
+			for rw in b.get("runways", []):
+				var e: Array = rw.ends
+				list.append(PackedFloat64Array([e[0][0], e[0][1], e[1][0], e[1][1], float(rw.width)]))
+		_r.set_runways(list)
 	_sync()
 
 
@@ -110,6 +128,11 @@ func _sync() -> void:
 	heading_shift = _st.heading_shift
 	emit = _st.emit
 	real = _st.real
+	spi = _st.get("spi")
+	var serial := int(real.get("ag", {}).get("pic", {}).get("serial", -1))
+	if serial != _pic_serial:
+		_pic_serial = serial
+		pic = _r.picture()
 	contacts = (_st.contacts as Array).map(_attach)
 	_st.locked = _attach(_st.locked)
 	for e in _r.events():
@@ -303,6 +326,23 @@ func cntl_press(osb: int) -> void:
 func toggle_ovrd() -> void:
 	_r.toggle_ovrd()
 	_sync()
+
+
+## The GM format's OSB 7 FZ, 8 SP, 9 CZ, 10 STP / TGT.
+func ag_press(osb: int, now: float) -> void:
+	_feed()
+	_r.ag_press(osb, now)
+	_sync()
+
+
+## The A-G ground cursor on a world point (a mouse move over the GM display).
+func set_ground_cursor(w: Vector3) -> void:
+	_r.set_ground_cursor(w)
+
+
+## AGR: a visual delivery's aim point (the CCIP pipper's ground point), null none.
+func set_agr(at) -> void:
+	_r.set_agr(at)
 
 
 ## Damage (cases 0xf / 0x13 / 0x15, FUN_004adb20): off, every call a no-op.

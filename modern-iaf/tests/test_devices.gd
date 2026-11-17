@@ -109,8 +109,9 @@ func keys(fe: Control) -> void:
 	for g in ks.GROUPS:
 		listed += ks.records_of(g).size()
 	# 99 until 2026-11-15, then the six lean commands (keys.json records 126-131, 4aad56fd); 105 until 2026-11-17,
-	# then the real FCR's eleven (records 132-142, docs/radar.md §9.4).
-	check(listed == 116, "keys: 116 commands listed, one head-look set (%d)" % listed)
+	# then the real FCR's eleven (records 132-142, docs/radar.md §9.4); 116 until slice 3, then its ground-map four
+	# (records 143-146, docs/radar.md §9.7).
+	check(listed == 120, "keys: 120 commands listed, one head-look set (%d)" % listed)
 	check(
 		ks.GROUPS.all(func(g): return [74, 86, 89, 93].all(func(r): return not ks.records_of(g).has(r))),
 		"keys: no free look or F2 rear view (the snap views and the mouse look around)"

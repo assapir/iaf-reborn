@@ -3,6 +3,14 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **The Sufa's radar, air to ground (2026-11-17, avionics-plan.md slice 3, G9–G12;
+  [../../docs/radar.md](../../docs/radar.md) §9.7):** R gives GM, Q steps GMT and SEA; NORM's fan and the EXP, DBS1
+  and DBS2 patches (Ctrl + `;`) over a radar picture made from the terrain (slopes, shadows, dark water and runways,
+  bright returns); the ground cursor on the cursor keys or the mouse; FZ, SP, CZ and STP / TGT (Alt + `;`, `'`, `/`,
+  `.`); TMS up designates the cursor's point or tracks the return under it (FTT), and the GPS bombs, the SPICE in VIS
+  and the HUD's TD box take that point; GMT lists the movers on a dimmed map, SEA the ships; AGR ranges a CCIP
+  delivery for the FCR and the HUD. Each range has a towed hulk (GMT) and a barge at sea (SEA). Checked on the range
+  (`modern-iaf/tests/test_sim_fcr_ag.gd`). BCN and TF stay parked (avionics-plan.md G12).
 - **The Sufa's radar, air to air (2026-11-17, avionics-plan.md slice 2, G1 and G5–G8;
   [../../docs/radar.md](../../docs/radar.md) §9):** the real F-16 FCR on the game's modes: STBY at power-on, no
   radiating with weight on wheels, CRM by itself once airborne; RWS with the A6 / A3 / A1 scans, B4 / B1 / B2 bars and

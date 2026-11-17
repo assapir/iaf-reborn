@@ -139,6 +139,7 @@ impl IafRealHud {
                 3 => Some(AcmCue::Bore),
                 _ => None,
             },
+            agr_m: num(&i, "agr_m"),
             ils: pt(&i, "ils"),
             steerpoint: dict("steerpoint").map(|s| Steerpoint {
                 number: num(&s, "number").unwrap_or_default() as i64,

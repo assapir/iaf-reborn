@@ -93,6 +93,83 @@ pub const CNTL: [(u8, &str, &[&str]); 8] = [
 const CNTL_MTR: usize = 4;
 const CNTL_TGT_HIS: usize = 6;
 
+// Ours, the real FCR's air-to-ground modes (docs/radar.md §9.7; the dash-34's GM, GMT, SEA and AGR, docs/real-mfd.md
+// "A-G modes").
+/// GM's fields of view on OSB 3 (the pinky switch): NORM, EXP 4:1, DBS1 8:1, DBS2 64:1 (a simulator guide; the
+/// dash-34's A-A EXP is 4:1, p. 1-140). GMT and SEA have NORM and EXP only (p. 1-150, p. 1-151).
+pub const AG_FOV: [(&str, f64); 4] = [("NORM", 1.0), ("EXP", 4.0), ("DBS1", 8.0), ("DBS2", 64.0)];
+/// The A-G display in MFD px (the 132 px format): the PPI fan's apex, the expanded patch's centre, the fan's radius
+/// (= the range scale) and the picture's window (x, y, width, height; one picture px per MFD px).
+pub const FAN_APEX: (f64, f64) = (66.0, 109.0);
+pub const PATCH_CENTRE: (f64, f64) = (66.0, 66.0);
+pub const FAN_PX: f64 = 94.0;
+pub const PIC_WINDOW: (f64, f64, usize, usize) = (12.0, 12.0, 108, 106);
+/// Doppler beam sharpening needs the patch off the ground track: inside this many degrees of it OSB 3 skips DBS1 /
+/// DBS2 and a DBS patch falls back to EXP (inferred; the real limit is open).
+const DBS_NOTCH_DEG: f64 = 10.0;
+/// The ships' classes (15 boat, 16 armed boat; docs/front-end.md "TSD icon class"): SEA lists only these.
+const SHIP_CLASSES: [i64; 2] = [0xf, 0x10];
+/// The A-G cursor's slew: the display widths per second (as the A-A cursor's).
+const GROUND_SLEW: f64 = CURSOR_RATE;
+/// GMT's map is dimmed under its movers (p. 1-150; the factor inferred).
+const GMT_DIM: f64 = 0.35;
+/// AGR ranges along the aim line to this far (m; inferred: 20 NM).
+const AGR_REACH: f64 = 37040.0;
+
+/// The A-G display's frame: the world point at MFD px `sym`, heading-up for `yaw` (rad, clockwise from north), `k`
+/// metres per MFD px (mfd.gd `_heading_up`'s transform).
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct GroundFrame {
+    pub centre: Vec3,
+    pub yaw: f64,
+    pub k: f64,
+    pub sym: (f64, f64),
+}
+
+impl GroundFrame {
+    /// A world point's place on the display (MFD px).
+    pub fn to_px(&self, w: Vec3) -> (f64, f64) {
+        let (s, c) = self.yaw.sin_cos();
+        let (e, n) = (w.x - self.centre.x, w.y - self.centre.y);
+        (self.sym.0 + (e * c - n * s) / self.k, self.sym.1 - (e * s + n * c) / self.k)
+    }
+
+    /// The world point (z 0) at a place on the display.
+    pub fn from_px(&self, (x, y): (f64, f64)) -> Vec3 {
+        let (s, c) = self.yaw.sin_cos();
+        let (a, b) = ((x - self.sym.0) * self.k, (self.sym.1 - y) * self.k);
+        Vec3::new(self.centre.x + a * c + b * s, self.centre.y - a * s + b * c, 0.0)
+    }
+}
+
+/// A runway: its two ends (world X, Y) and half width (m). The GM picture shows it dark: a smooth surface returns
+/// little (inferred).
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Runway {
+    pub a: (f64, f64),
+    pub b: (f64, f64),
+    pub half_width: f64,
+}
+
+impl Runway {
+    fn holds(&self, p: Vec3) -> bool {
+        let (dx, dy) = (self.b.0 - self.a.0, self.b.1 - self.a.1);
+        let len2 = (dx * dx + dy * dy).max(1.0);
+        let t = ((p.x - self.a.0) * dx + (p.y - self.a.1) * dy) / len2;
+        let (cx, cy) = (self.a.0 + t * dx, self.a.1 + t * dy);
+        (0.0..=1.0).contains(&t) && (p.x - cx).hypot(p.y - cy) <= self.half_width
+    }
+}
+
+/// The GM picture of one radar frame: luminance and alpha per px over `PIC_WINDOW` (alpha 0: no terrain data there,
+/// the map under it shows), drawn in `frame`; `serial` counts the pictures.
+#[derive(Clone, Debug, Default)]
+pub struct Picture {
+    pub frame: Option<GroundFrame>,
+    pub la8: Vec<u8>,
+    pub serial: u64,
+}
+
 /// Ours: the real F-16 fire-control radar, from the aircraft definition's `radar.fcr` (docs/radar.md §9). The jets
 /// without one keep the original's radar.
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -166,6 +243,19 @@ pub struct Real {
     pub cntl: [usize; 8],
     /// RWS's earlier search frames for TGT HIS, the newest first.
     pub history: Vec<Vec<Contact>>,
+    /// A-G: the field of view (index into `AG_FOV`), SEA (in [`Mode::Map`]), the ground cursor (a world point,
+    /// ground-stabilised; None until the first A-G frame), SP (snowplow: the cursor half the range ahead), OSB 10's
+    /// TGT (CZ to the designated point, else the steerpoint), FZ's frozen frame, AGR's slant range and its aim point.
+    pub fov: usize,
+    pub sea: bool,
+    pub ground: Option<Vec3>,
+    pub snowplow: bool,
+    pub tgt: bool,
+    pub frozen: Option<GroundFrame>,
+    pub agr: Option<f64>,
+    agr_at: Option<Vec3>,
+    pub runways: Vec<Runway>,
+    pub picture: Picture,
 }
 
 impl Real {
@@ -187,6 +277,16 @@ impl Real {
             exp_at: (0.5, 0.5),
             cntl: [0, 0, 0, 0, 0, 0, 2, 0],
             history: Vec::new(),
+            fov: 0,
+            sea: false,
+            ground: None,
+            snowplow: false,
+            tgt: false,
+            frozen: None,
+            agr: None,
+            agr_at: None,
+            runways: Vec::new(),
+            picture: Picture::default(),
         }
     }
 
@@ -327,10 +427,15 @@ impl Ranges {
 
     /// The real FCR's scales (docs/real-mfd.md "FCR"): RWS / VSR to 160 NM, TWS to 80 NM, from where they start.
     fn real(mut self) -> Self {
-        for (mode, max) in [(Mode::Lrs, 6), (Mode::Tws, 5)] {
+        for (mode, max) in [(Mode::Lrs, 6), (Mode::Tws, 5), (Mode::Map, 5)] {
             if let Some(r) = self.get_mut(mode) {
                 r.max = r.max.max(max);
             }
+        }
+        // GMT: 10, 20 and 40 NM only (p. 1-150).
+        if let Some(r) = self.get_mut(Mode::Gmt) {
+            r.max = r.max.min(4);
+            r.index = r.index.min(4);
         }
         self
     }
@@ -381,6 +486,8 @@ pub struct Own {
     pub up: Vec3,
     pub vel: Vec3,
     pub wow: bool,
+    /// Ours: the current steerpoint (z: any; the real FCR's A-G cursor starts there and CZ returns it there).
+    pub steer: Option<Vec3>,
 }
 
 /// What a call sees: the own jet, the units and the terrain height at a world point (None: no terrain there).
@@ -388,6 +495,8 @@ pub struct Input<'a> {
     pub own: Own,
     pub units: &'a [Unit],
     pub terrain: &'a dyn Fn(Vec3) -> Option<f64>,
+    /// Ours: the bare ground's height (no roofs or trees; the A-G picture's cheaper lookup), None: `terrain`.
+    pub bare: Option<&'a dyn Fn(Vec3) -> Option<f64>>,
 }
 
 impl Input<'_> {
@@ -539,6 +648,8 @@ pub struct Radar {
     wow: bool,
     /// The own altitude at the last update (m): the bugged target's elevation for the scan's centre.
     own_z: f64,
+    /// The own jet at the last update (the A-G display's frame).
+    own: Own,
     auto_on: bool,
     /// Ours: the real F-16 FCR (None: the original's radar).
     real: Option<Real>,
@@ -557,7 +668,8 @@ impl Radar {
             ranges: if fcr.is_some() { ranges.real() } else { ranges },
             mode: if ours { Mode::Standby } else { Mode::Off },
             last_aa: Mode::Lrs,
-            last_ag: Mode::Gmt,
+            // The real FCR's first A-G mode is GM (ours; the original's GMT).
+            last_ag: if fcr.is_some() { Mode::Map } else { Mode::Gmt },
             bore_return: Mode::Lrs,
             air_to_air: true,
             damaged: false,
@@ -578,6 +690,7 @@ impl Radar {
             ours,
             wow: false,
             own_z: 0.0,
+            own: Own::default(),
             auto_on: ours,
             real: fcr.map(Real::new),
             now: 0.0,
@@ -843,6 +956,7 @@ impl Radar {
         self.now = now;
         self.wow = input.own.wow;
         self.own_z = input.own.pos.z;
+        self.own = input.own;
         // Ours: airborne and powered in STBY, the radar goes to the last A-A mode by itself.
         if self.auto_on && !self.wow && !self.damaged && self.mode == Mode::Standby {
             self.toggle_aa_ag(now, input);
@@ -866,7 +980,8 @@ impl Radar {
             self.antenna = a;
         }
         self.stt_transitions(now, input);
-        if now >= self.next_scan {
+        // Ours: FZ holds the A-G picture and its returns.
+        if now >= self.next_scan && self.real.as_ref().is_none_or(|r| r.frozen.is_none()) {
             self.scan(now, input);
         }
         if self.mode == Mode::Stt {
@@ -894,6 +1009,10 @@ impl Radar {
             r.history.clear();
         }
         r.elevation = (r.elevation + r.elev_rate * ELEV_RATE * dt).clamp(-ELEV_MAX, ELEV_MAX);
+        if mode.air_to_ground() {
+            return self.ground_controls(dt, now, input);
+        }
+        r.frozen = None;
         // EXP: the cursor moves at the same speed over the expanded display.
         let rate = CURSOR_RATE * dt / if r.exp && matches!(mode, Mode::Lrs | Mode::Tws) { EXP_K } else { 1.0 };
         r.cursor.0 = (r.cursor.0 + r.slew.0 * rate).clamp(0.0, 1.0);
@@ -1057,7 +1176,12 @@ impl Radar {
         let scale = self.range_m();
         let centre = own.pos + own.fwd.flat_dir() * (scale / 2.0);
         let detection = self.ranges.get(self.mode).map_or(0.0, Range::detection_m);
+        // Ours, the real FCR's SEA: ships only.
+        let sea = self.mode == Mode::Map && self.real.as_ref().is_some_and(|r| r.sea);
         let test = |u: &Unit| {
+            if sea && !SHIP_CLASSES.contains(&u.class) {
+                return None;
+            }
             hit(u, own, air, cone, vol.as_ref(), input.terrain)
                 .filter(|c| !vsr || c.closure_kt > 0.0)
                 .filter(|c| mtr == 0.0 || (c.vel.dot(c.pos - own.pos) / c.dist.max(1.0)).abs() * KT >= mtr)
@@ -1119,7 +1243,7 @@ impl Radar {
         self.contacts = list;
         // The cursor: the old selection if still listed, else the nearest (its RWR hears a lock); the real FCR's
         // search waits for the pilot's bug.
-        let auto = self.real.is_none() || matches!(self.mode, Mode::Acm | Mode::Bore | Mode::Gmt | Mode::Map);
+        let auto = self.real.is_none() || matches!(self.mode, Mode::Acm | Mode::Bore);
         self.selection = match old {
             Some(s) if self.contact(&s.key).is_some() => Some(s),
             old => {
@@ -1138,6 +1262,10 @@ impl Radar {
             && let Some(s) = &mut self.selection
         {
             s.locked = true;
+        }
+        // Ours: the real FCR's GM / GMT / SEA picture of this frame.
+        if self.real.is_some() && self.mode.air_to_ground() {
+            self.render(input);
         }
     }
 
@@ -1204,6 +1332,19 @@ impl Radar {
                 .find(|&m| self.ranges.get(m).is_some())
                 .unwrap_or(order[(start + 2) % 3]);
             self.mode = self.last_aa;
+        } else if let Some(r) = &mut self.real {
+            // Ours, the real FCR (the mode menu's GM, GMT, SEA; fig. 1-77): GM → GMT → SEA → GM. A lock, FZ and the
+            // DBS steps go.
+            (self.last_ag, r.sea) = match (self.mode, r.sea) {
+                (Mode::Map, false) => (Mode::Gmt, false),
+                (Mode::Gmt, _) => (Mode::Map, true),
+                _ => (Mode::Map, false),
+            };
+            r.frozen = None;
+            r.fov = r.fov.min(1);
+            self.mode = self.last_ag;
+            self.unlock();
+            self.selection = None;
         } else {
             self.last_ag = if self.last_ag == Mode::Gmt { Mode::Map } else { Mode::Gmt };
             self.mode = self.last_ag;
@@ -1223,6 +1364,9 @@ impl Radar {
         self.selection = None;
         self.air_to_air = !self.air_to_air || was_off;
         self.mode = if self.air_to_air { self.last_aa } else { self.last_ag };
+        if let Some(r) = &mut self.real {
+            r.frozen = None;
+        }
         self.switch_on(was_off, now, input);
         self.illumination_lost();
     }
@@ -1260,9 +1404,16 @@ impl Radar {
         if !self.radiating() || self.mode == Mode::Stt || (real && matches!(self.mode, Mode::Acm | Mode::Bore)) {
             return;
         }
-        let min = if real && !self.mode.air_to_ground() { REAL_MIN_INDEX } else { 1 };
+        let min = if real { REAL_MIN_INDEX } else { 1 };
         if let Some(r) = self.ranges.get_mut(self.mode) {
             r.index = r.index.saturating_add_signed(step).clamp(min, r.max);
+        }
+        // Ours, the real FCR's A-G: a range step returns EXP / DBS to NORM and ends FZ (inferred from a simulator).
+        if let Some(r) = &mut self.real
+            && self.mode.air_to_ground()
+        {
+            r.fov = 0;
+            r.frozen = None;
         }
         self.scan(now, input);
     }
@@ -1417,6 +1568,9 @@ impl Radar {
     /// Event 0x30 (`FUN_004ade70`, MAP page OSB 3): NORM ↔ EXP, only with a designated point. Ours, the real FCR's
     /// OSB 3 / the pinky switch in CRM's RWS and TWS: EXP about the bugged target, else about the cursor.
     pub fn toggle_exp(&mut self) {
+        if self.real.is_some() && self.mode.air_to_ground() {
+            return self.step_fov();
+        }
         if let Some(r) = &mut self.real
             && matches!(self.mode, Mode::Lrs | Mode::Tws)
             && !r.vsr
@@ -1482,6 +1636,8 @@ impl Radar {
                     self.lock_key(&key);
                 }
             }
+            Tms::Up if self.mode.air_to_ground() => self.ground_track(now, input),
+            Tms::Down if self.mode.air_to_ground() => self.ground_drop(now, input),
             Tms::Down if self.mode == Mode::Stt && self.last_aa == Mode::Acm => {
                 self.acm_pattern(Acm::Twenty, now, input)
             }
@@ -1602,8 +1758,334 @@ impl Radar {
         self.selection = None;
         if let Some(r) = &mut self.real {
             r.history.clear();
+            // The A-G picture goes too (a new serial, no bytes).
+            r.picture = Picture { frame: None, la8: Vec::new(), serial: r.picture.serial + 1 };
         }
         self.illumination_lost();
+    }
+
+    // --- ours: the real FCR's air-to-ground modes (docs/radar.md §9.7) ------------------------------------------
+
+    /// The A-G mode's name (OSB 1): `GM`, `GMT`, `SEA`, or `AGR` while a visual delivery ranges; None outside A-G.
+    pub fn ag_mode(&self) -> Option<&'static str> {
+        let r = self.real.as_ref()?;
+        Some(match self.mode {
+            _ if r.agr_at.is_some() && self.mode.air_to_ground() => "AGR",
+            Mode::Gmt => "GMT",
+            Mode::Map if r.sea => "SEA",
+            Mode::Map => "GM",
+            _ => return None,
+        })
+    }
+
+    /// The field of view's expansion (1 NORM, 4 EXP, 8 DBS1, 64 DBS2).
+    pub fn zoom(&self) -> f64 {
+        self.real.as_ref().map_or(1.0, |r| AG_FOV[r.fov].1)
+    }
+
+    /// The A-G display's frame: FZ's frozen one; NORM the PPI fan from the jet, heading-up, the fan's radius the
+    /// range scale; EXP / DBS the patch about the ground cursor, mid-display, the range scale over the zoom.
+    pub fn ground_frame(&self) -> Option<GroundFrame> {
+        let r = self.real.as_ref()?;
+        if !self.mode.air_to_ground() {
+            return None;
+        }
+        if r.frozen.is_some() {
+            return r.frozen;
+        }
+        let k = self.range_m() / FAN_PX / self.zoom();
+        Some(match r.ground {
+            Some(g) if r.fov > 0 => GroundFrame { centre: g, yaw: self.own.yaw, k, sym: PATCH_CENTRE },
+            _ => GroundFrame { centre: self.own.pos, yaw: self.own.yaw, k, sym: FAN_APEX },
+        })
+    }
+
+    /// The ground cursor's place on the display (MFD px).
+    pub fn ground_cursor_px(&self) -> Option<(f64, f64)> {
+        Some(self.ground_frame()?.to_px(self.real.as_ref()?.ground?))
+    }
+
+    /// The point the A-G weapons aim at (the SPI): the real FCR's ground track (FTT / GMT's), else the designated
+    /// point. The original's radar: the designated point only.
+    pub fn target_point(&self) -> Option<Vec3> {
+        if self.real.is_some()
+            && self.mode.air_to_ground()
+            && let Some(c) = self.locked()
+        {
+            return Some(c.pos);
+        }
+        self.designated
+    }
+
+    /// The ground cursor's bearing off the ground track (deg).
+    fn off_track(&self, g: Vec3) -> f64 {
+        let own = &self.own;
+        let track = if own.vel.flat_dir() == Vec3::ZERO { own.fwd } else { own.vel };
+        let (t, d) = (track.flat_dir(), (g - own.pos).flat_dir());
+        t.dot(d).clamp(-1.0, 1.0).acos().to_degrees()
+    }
+
+    /// The A-G per frame: the ground cursor follows the slew (ground-stabilised), SP holds it half the range ahead, a
+    /// ground track carries it; DBS inside the notch falls back to EXP; the cursor bumps the range scale in NORM; AGR
+    /// ranges along its aim line.
+    fn ground_controls(&mut self, dt: f64, now: f64, input: &Input) {
+        let own = input.own;
+        let range = self.range_m();
+        let frame = self.ground_frame();
+        let locked = self.locked().map(|c| c.pos);
+        let radiating = self.radiating();
+        let Some(r) = &mut self.real else { return };
+        let ahead = own.pos + own.fwd.flat_dir() * (range / 2.0);
+        let mut g = r.ground.unwrap_or_else(|| own.steer.filter(|s| s.distance(own.pos) < range).unwrap_or(ahead));
+        if r.slew != (0.0, 0.0) {
+            r.snowplow = false;
+        }
+        if let Some(p) = locked {
+            g = p;
+        } else if r.snowplow {
+            g = ahead;
+        } else if let Some(f) = frame {
+            let (s, c) = f.yaw.sin_cos();
+            let rate = GROUND_SLEW * PIC_WINDOW.2 as f64 * f.k * dt;
+            g.x += (r.slew.0 * c + r.slew.1 * s) * rate;
+            g.y += (-r.slew.0 * s + r.slew.1 * c) * rate;
+        }
+        g.z = (input.terrain)(g).unwrap_or(0.0);
+        r.ground = Some(g);
+        r.agr = r.agr_at.filter(|_| radiating).and_then(|p| ground_hit(own.pos, p - own.pos, input.terrain));
+        let notch = self.off_track(g) < DBS_NOTCH_DEG;
+        let Some(r) = &mut self.real else { return };
+        if r.fov >= 2 && notch {
+            r.fov = 1;
+        }
+        // NORM: the cursor slewed beyond 95 % of the scale steps it up, inside 5 % down (p. 1-122, as in A-A).
+        if r.fov == 0 && r.frozen.is_none() && locked.is_none() && !r.snowplow && r.slew != (0.0, 0.0) {
+            let rel = Vec3::new(g.x - own.pos.x, g.y - own.pos.y, 0.0);
+            let ahead = rel.dot(own.fwd.flat_dir());
+            let frac = rel.length() / range;
+            let step = i8::from(frac > BUMP.1) - i8::from(ahead > 0.0 && frac < BUMP.0);
+            let index = self.range_index();
+            let max = self.ranges.get(self.mode).map_or(1, |x| x.max);
+            if (step > 0 && index < max) || (step < 0 && index > REAL_MIN_INDEX) {
+                self.step_range(step, now, input);
+            }
+        }
+    }
+
+    /// OSB 3 / the pinky switch in A-G: NORM → EXP → DBS1 → DBS2 → NORM in GM; GMT and SEA NORM ↔ EXP; DBS skipped
+    /// inside the notch.
+    fn step_fov(&mut self) {
+        let max = if self.mode == Mode::Map && !self.real.as_ref().is_some_and(|r| r.sea) { 3 } else { 1 };
+        let notch = self.real.as_ref().and_then(|r| r.ground).is_some_and(|g| self.off_track(g) < DBS_NOTCH_DEG);
+        let Some(r) = &mut self.real else { return };
+        r.fov = if r.fov >= max || (r.fov >= 1 && notch) { 0 } else { r.fov + 1 };
+        r.frozen = None;
+        self.dirty = true;
+        self.next_scan = self.now; // a new picture at once
+    }
+
+    /// TMS up in A-G: a return under the cursor is tracked (GM / SEA: FTT, GMT: the mover; the solid diamond), else
+    /// the cursor's point is designated (the target point). SP ends: the cursor stays where it is.
+    fn ground_track(&mut self, now: f64, input: &Input) {
+        let Some(f) = self.ground_frame() else { return };
+        let Some((cx, cy)) = self.ground_cursor_px() else { return };
+        let near = |c: &Contact| {
+            let (x, y) = f.to_px(c.pos);
+            (x - cx).hypot(y - cy)
+        };
+        let key = self
+            .contacts
+            .iter()
+            .filter(|c| near(c) < CURSOR_NEAR * 100.0)
+            .min_by(|a, b| near(a).total_cmp(&near(b)))
+            .map(|c| c.key.clone());
+        if let Some(r) = &mut self.real {
+            r.snowplow = false;
+            r.tgt = true;
+        }
+        match key {
+            Some(key) => {
+                self.designated = None;
+                self.lock_key(&key);
+            }
+            None => {
+                let g = self.real.as_ref().and_then(|r| r.ground).unwrap_or_default();
+                self.designate(g, now, input);
+            }
+        }
+    }
+
+    /// TMS down in A-G: the track or the designation is dropped and the cursor returns to the steerpoint (STP).
+    fn ground_drop(&mut self, now: f64, input: &Input) {
+        if self.has_lock() {
+            self.unlock();
+            self.selection = None;
+            self.illumination_lost();
+        }
+        self.designated = None;
+        if let Some(r) = &mut self.real {
+            r.tgt = false;
+        }
+        self.cursor_zero(input);
+        self.scan(now, input);
+    }
+
+    /// CZ: the cursor's slews removed: back on the steerpoint (STP) or the designated point (TGT); with neither, half
+    /// the range ahead.
+    fn cursor_zero(&mut self, input: &Input) {
+        let own = input.own;
+        let ahead = own.pos + own.fwd.flat_dir() * (self.range_m() / 2.0);
+        let target = self.designated;
+        let Some(r) = &mut self.real else { return };
+        let mut g = if r.tgt { target.or(own.steer) } else { own.steer }.unwrap_or(ahead);
+        g.z = (input.terrain)(g).unwrap_or(0.0);
+        r.ground = Some(g);
+        r.snowplow = false;
+    }
+
+    /// The GM format's right-edge OSBs: 7 FZ (freeze), 8 SP (snowplow), 9 CZ (cursor zero), 10 STP / TGT.
+    pub fn ag_press(&mut self, osb: u8, now: f64, input: &Input) {
+        if !self.mode.air_to_ground() || self.real.is_none() {
+            return;
+        }
+        let frame = self.ground_frame();
+        let Some(r) = &mut self.real else { return };
+        match osb {
+            7 => r.frozen = if r.frozen.is_some() { None } else { frame },
+            8 => r.snowplow = !r.snowplow,
+            9 => self.cursor_zero(input),
+            10 => r.tgt = !r.tgt,
+            _ => return,
+        }
+        self.dirty = true;
+        if osb == 7 && self.real.as_ref().is_some_and(|r| r.frozen.is_none()) {
+            self.scan(now, input);
+        }
+    }
+
+    /// The ground cursor put on a world point (a mouse move over the A-G display); SP ends.
+    pub fn set_ground_cursor(&mut self, w: Vec3) {
+        if let Some(r) = &mut self.real {
+            r.ground = Some(w);
+            r.snowplow = false;
+        }
+    }
+
+    /// AGR: a visual A-G delivery's aim point (the CCIP pipper's ground point), None: no visual delivery.
+    pub fn set_agr(&mut self, at: Option<Vec3>) {
+        if let Some(r) = &mut self.real {
+            r.agr_at = at;
+            if at.is_none() {
+                r.agr = None;
+            }
+        }
+    }
+
+    /// The runways the GM picture shows dark.
+    pub fn set_runways(&mut self, runways: Vec<Runway>) {
+        if let Some(r) = &mut self.real {
+            r.runways = runways;
+        }
+    }
+
+    /// The GM picture of this frame (radar.md §9.7): each px of `PIC_WINDOW` at its ground point. The ground returns
+    /// by the terrain's slope toward the radar with a fixed speckle (land), none from water (the sea level) and
+    /// runways, none in the terrain's shadow; NORM only inside the ±60° fan; the listed returns bright, as large as
+    /// their units; GMT's map dimmed under its movers; no data (unstreamed terrain): transparent. Inferred shading.
+    fn render(&mut self, input: &Input) {
+        let Some(f) = self.ground_frame() else { return };
+        let Some(r) = &self.real else { return };
+        if r.agr_at.is_some() {
+            return;
+        }
+        let ground = input.bare.unwrap_or(input.terrain);
+        let own = input.own.pos.raised(LOS_RAISE);
+        let (x0, y0, w, h) = PIC_WINDOW;
+        let gain = if self.mode == Mode::Gmt { GMT_DIM } else { 1.0 };
+        let fan = f.sym == FAN_APEX;
+        let d = (f.k * 0.75).max(10.0);
+        let mut la8 = vec![0u8; w * h * 2];
+        // The terrain's shadow by azimuth: out along each bin's ray from the jet, the steepest rise seen so far (tan of
+        // its elevation) at each step; a point lower than that is in shadow. One march per 0.25° bin, not per px.
+        let corners = [(x0, y0), (x0 + w as f64, y0), (x0, y0 + h as f64), (x0 + w as f64, y0 + h as f64)];
+        let reach = corners.iter().map(|&q| f.from_px(q).distance(Vec3::new(own.x, own.y, 0.0))).fold(0.0, f64::max);
+        let step = (f.k * 0.75).max(20.0).max(reach / 2000.0);
+        let mut horizon: std::collections::HashMap<i64, Vec<f64>> = std::collections::HashMap::new();
+        let mut shadowed = |p: Vec3| -> bool {
+            let (dx, dy) = (p.x - own.x, p.y - own.y);
+            let dist = dx.hypot(dy);
+            let bin = (dx.atan2(dy).to_degrees() * 4.0).round() as i64;
+            let prof = horizon.entry(bin).or_insert_with(|| {
+                let a = (bin as f64 / 4.0).to_radians();
+                let (sa, ca) = a.sin_cos();
+                let mut best = f64::NEG_INFINITY;
+                (0..=(reach / step) as usize + 1)
+                    .map(|i| {
+                        let seen = best;
+                        let s = i as f64 * step;
+                        if let Some(g) = ground(Vec3::new(own.x + s * sa, own.y + s * ca, 0.0)).filter(|_| s > 0.0) {
+                            best = best.max((g - own.z) / s);
+                        }
+                        seen
+                    })
+                    .collect()
+            });
+            let i = ((dist / step) as usize).min(prof.len() - 1);
+            dist > step && (p.z - own.z) / dist < prof[i] - 1e-3
+        };
+        for j in 0..h {
+            for i in 0..w {
+                let (x, y) = (x0 + i as f64 + 0.5, y0 + j as f64 + 0.5);
+                let at = 2 * (j * w + i);
+                if fan {
+                    let (dx, dy) = (x - FAN_APEX.0, FAN_APEX.1 - y);
+                    if dy <= 0.0 || dx.abs() > dy * 3f64.sqrt() || dx.hypot(dy) > FAN_PX {
+                        la8[at + 1] = 255; // black outside the fan
+                        continue;
+                    }
+                }
+                let mut p = f.from_px((x, y));
+                let Some(z) = ground(p) else { continue };
+                p.z = z;
+                la8[at + 1] = 255;
+                let water = z.abs() < 0.5;
+                if water || r.runways.iter().any(|rw| rw.holds(p)) {
+                    continue;
+                }
+                let hx = ground(Vec3::new(p.x + d, p.y, 0.0)).unwrap_or(z) - z;
+                let hy = ground(Vec3::new(p.x, p.y + d, 0.0)).unwrap_or(z) - z;
+                let n = Vec3::new(-hx / d, -hy / d, 1.0);
+                let look = own - p;
+                let cos = (n.dot(look) / (n.length() * look.length()).max(1e-9)).max(0.0);
+                if shadowed(p) {
+                    continue;
+                }
+                let v = (0.12 + 0.88 * cos.powf(1.5)) * speckle(p) * gain;
+                la8[at] = (v * 255.0).clamp(0.0, 255.0) as u8;
+            }
+        }
+        for c in &self.contacts {
+            let (cx, cy) = f.to_px(c.pos);
+            let rad = (input.unit(&c.key).map_or(5.0, |u| u.coll_radius) / f.k).max(0.8);
+            let reach = rad.ceil() as i64;
+            for dj in -reach..=reach {
+                for di in -reach..=reach {
+                    let (x, y) = (cx + di as f64, cy + dj as f64);
+                    if (di as f64).hypot(dj as f64) > rad || x < x0 || y < y0 {
+                        continue;
+                    }
+                    let (i, j) = ((x - x0) as usize, (y - y0) as usize);
+                    if i < w && j < h {
+                        la8[2 * (j * w + i)] = 255;
+                        la8[2 * (j * w + i) + 1] = 255;
+                    }
+                }
+            }
+        }
+        let serial = r.picture.serial + 1;
+        if let Some(r) = &mut self.real {
+            r.picture = Picture { frame: Some(f), la8, serial };
+        }
     }
 
     /// Damage (cases 0xf / 0x13 / 0x15, `FUN_004adb20`): off, every call a no-op.
@@ -1686,6 +2168,37 @@ fn body_angles(own: &Own, d: Vec3) -> (f64, f64) {
     (x.atan2(y).to_degrees(), z.atan2(x.hypot(y)).to_degrees())
 }
 
+/// The GM picture's fixed speckle (0.85..1.15) on a 30 m grid: a hash of the ground cell, so the picture keeps it
+/// frame to frame (inferred).
+fn speckle(p: Vec3) -> f64 {
+    let (i, j) = ((p.x / 30.0).floor() as i64, (p.y / 30.0).floor() as i64);
+    let mut h = (i.wrapping_mul(73_856_093) ^ j.wrapping_mul(19_349_663)) as u64;
+    h ^= h >> 13;
+    h = h.wrapping_mul(0x5bd1_e995);
+    h ^= h >> 15;
+    0.85 + 0.3 * ((h & 0xffff) as f64 / 65535.0)
+}
+
+/// AGR: the slant range (m) from `from` along `dir` to where it meets the terrain, within `AGR_REACH`.
+fn ground_hit(from: Vec3, dir: Vec3, terrain: &dyn Fn(Vec3) -> Option<f64>) -> Option<f64> {
+    let dir = dir.try_normalize()?;
+    let mut s = 0.0;
+    let mut last = 0.0;
+    while s <= AGR_REACH {
+        let p = from + dir * s;
+        let h = p.z - terrain(p)?;
+        if h <= 0.0 {
+            // Back to the crossing between the last two samples.
+            let prev = from + dir * last;
+            let hp = prev.z - terrain(prev).unwrap_or(prev.z);
+            return Some(last + (s - last) * hp / (hp - h).max(1e-9));
+        }
+        last = s;
+        s += (h / 2.0).clamp(LOS_MIN_STEP / 4.0, 500.0);
+    }
+    None
+}
+
 /// Line-of-sight sampling: the smallest step (m) and the steepest terrain assumed (rise per metre).
 const LOS_MIN_STEP: f64 = 20.0;
 const LOS_MAX_SLOPE: f64 = 1.5;
@@ -1755,10 +2268,11 @@ mod tests {
         up: Vec3::UP,
         vel: Vec3::new(0.0, 250.0, 0.0),
         wow: false,
+        steer: None,
     };
 
     fn scene(units: &[Unit]) -> Input<'_> {
-        Input { own: OWN, units, terrain: &flat }
+        Input { own: OWN, units, terrain: &flat, bare: None }
     }
 
     fn keys(r: &Radar) -> Vec<&str> {
@@ -1948,7 +2462,7 @@ mod tests {
     }
 
     fn ground(units: &[Unit]) -> Input<'_> {
-        Input { own: Own { wow: true, ..OWN }, units, terrain: &flat }
+        Input { own: Own { wow: true, ..OWN }, units, terrain: &flat, bare: None }
     }
 
     /// Airborne: the radar comes out of STBY into CRM by itself.
@@ -2192,5 +2706,245 @@ mod tests {
         let many: Vec<Unit> = (0..12).map(|i| at(&format!("m{i}"), 0.0, 10.0 + f64::from(i), 0.0)).collect();
         r.scan(15.0, &scene(&many));
         assert_eq!(r.contacts().len(), 10, "ten track files");
+    }
+
+    #[test]
+    fn exp_spreads_the_scope_four_times() {
+        let units = [at("a", 2.0, 20.0, 0.0), at("b", 6.0, 22.0, 0.0)];
+        let mut r = up(&units);
+        r.scan(1.0, &scene(&units));
+        let gap = |r: &Radar| {
+            let (a, b) = (r.scope_xy(r.contact("a").unwrap()), r.scope_xy(r.contact("b").unwrap()));
+            (a.0 - b.0).hypot(a.1 - b.1)
+        };
+        let norm = gap(&r);
+        r.set_cursor(0.53, 0.14);
+        r.toggle_exp();
+        assert!((gap(&r) / norm - EXP_K).abs() < 1e-9, "EXP draws the returns 4 times farther apart");
+    }
+
+    // --- ours: the real FCR's air-to-ground modes (docs/radar.md §9.7) ---
+
+    /// 100 m plains with a north–south ridge 300 m high at x 3–4 km (its west face toward the jet at x 0).
+    fn hills(p: Vec3) -> Option<f64> {
+        let ridge = 300.0 * (1.0 - ((p.x - 3500.0) / 500.0).abs()).max(0.0);
+        Some(100.0 + ridge)
+    }
+
+    /// A ground unit (class 6, a vehicle) `deg` right of the nose `km` out; moving north at `v` m/s.
+    fn hulk(key: &str, deg: f64, km: f64, v: f64) -> Unit {
+        let a = deg.to_radians();
+        let pos = Vec3::new(km * 1000.0 * a.sin(), km * 1000.0 * a.cos(), 100.0);
+        Unit {
+            key: key.into(),
+            pos,
+            vel: Vec3::new(0.0, v, 0.0),
+            class: 6,
+            state: 1,
+            coll_radius: 5.0,
+            ..Default::default()
+        }
+    }
+
+    fn land(units: &[Unit]) -> Input<'_> {
+        Input { own: Own { steer: Some(Vec3::new(0.0, 15000.0, 0.0)), ..OWN }, units, terrain: &hills, bare: None }
+    }
+
+    /// Airborne in CRM, then R: GM.
+    fn gm(units: &[Unit]) -> Radar {
+        let mut r = sufa();
+        r.update(0.0, &land(units));
+        r.toggle_aa_ag(0.0, &land(units));
+        r.update(0.01, &land(units));
+        assert_eq!((r.mode(), r.ag_mode()), (Mode::Map, Some("GM")), "R: the real FCR's GM first");
+        r
+    }
+
+    #[test]
+    fn ground_map_shows_the_returns_where_they_are_and_expands() {
+        let units = [hulk("h1", 20.0, 20.0, 0.0), hulk("h2", 20.3, 20.0, 0.0)];
+        let mut r = gm(&units);
+        assert_eq!(r.range_m(), RANGE_M[3], "GM at 40 NM");
+        assert!(r.selection().is_none(), "GM bugs nothing by itself");
+        assert_eq!(keys(&r).len(), 2);
+        let f = r.ground_frame().unwrap();
+        assert_eq!((f.sym, f.k), (FAN_APEX, RANGE_M[3] / FAN_PX));
+        let (x, y) = f.to_px(units[0].pos);
+        let (a, d) = (20f64.to_radians(), 20000.0 / f.k);
+        assert!((x - (66.0 + d * a.sin())).abs() < 1e-6 && (y - (109.0 - d * a.cos())).abs() < 1e-6, "PPI place");
+        let back = f.from_px((x, y));
+        assert!(back.distance(Vec3::new(units[0].pos.x, units[0].pos.y, 0.0)) < 1e-6);
+        assert_eq!(r.real().unwrap().ground.map(|g| g.y), Some(15000.0), "the cursor starts on the steerpoint");
+        // The cursor on the hulks (20° off the track: outside the DBS notch); OSB 3 steps EXP, DBS1, DBS2, NORM.
+        r.set_ground_cursor(units[0].pos);
+        let gap = |r: &Radar| {
+            let f = r.ground_frame().unwrap();
+            let (a, b) = (f.to_px(units[0].pos), f.to_px(units[1].pos));
+            (a.0 - b.0).hypot(a.1 - b.1)
+        };
+        let norm = gap(&r);
+        for (legend, zoom) in [("EXP", 4.0), ("DBS1", 8.0), ("DBS2", 64.0), ("NORM", 1.0)] {
+            r.toggle_exp();
+            r.update(r.now() + 0.01, &land(&units));
+            assert_eq!(AG_FOV[r.real().unwrap().fov].0, legend);
+            assert!((gap(&r) / norm - zoom).abs() < 1e-6, "{legend}: the scale × {zoom}");
+            if zoom > 1.0 {
+                let f = r.ground_frame().unwrap();
+                assert_eq!(f.sym, PATCH_CENTRE);
+                let c = r.ground_cursor_px().unwrap();
+                assert!((c.0 - 66.0).abs() < 1e-6 && (c.1 - 66.0).abs() < 1e-6, "the patch about the cursor");
+            }
+        }
+        // On the nose (inside the notch) DBS is skipped; a range step returns to NORM.
+        r.set_ground_cursor(Vec3::new(0.0, 20000.0, 100.0));
+        r.toggle_exp();
+        r.toggle_exp();
+        assert_eq!(r.real().unwrap().fov, 0, "EXP → NORM on the ground track");
+        r.toggle_exp();
+        r.step_range(-1, r.now(), &land(&units));
+        assert_eq!((r.real().unwrap().fov, r.range_m()), (0, RANGE_M[2]), "a range step: NORM at 20 NM");
+        // The cursor slewed past 95 % of the scale bumps it up.
+        r.set_ground_cursor(Vec3::new(0.0, 0.97 * RANGE_M[2], 100.0));
+        r.set_slews(None, Some((0.0, 1.0)));
+        r.update(r.now() + 0.01, &land(&units));
+        r.set_slews(None, Some((0.0, 0.0)));
+        assert_eq!(r.range_m(), RANGE_M[3], "the cursor bumps the scale up");
+        r.update(r.now() + 0.01, &land(&units));
+        assert_eq!(r.range_m(), RANGE_M[3], "held still, no bump");
+        assert!(Radar::new(F16I, None, Some(Fcr { sam_tracks: 4 }), true).ranges().get(Mode::Map).unwrap().max == 5);
+    }
+
+    #[test]
+    fn freeze_holds_the_picture_and_snowplow_and_cz_move_the_cursor() {
+        let mut units = vec![hulk("h", 20.0, 20.0, 0.0)];
+        let mut r = gm(&units);
+        r.update(2.5, &land(&units));
+        let serial = r.real().unwrap().picture.serial;
+        assert!(serial > 0, "a picture each frame");
+        r.ag_press(7, 2.6, &land(&units));
+        let f = r.ground_frame().unwrap();
+        units[0] = hulk("h", 30.0, 20.0, 0.0);
+        let moved = Input { own: Own { pos: Vec3::new(0.0, 3000.0, 5000.0), ..land(&units).own }, ..land(&units) };
+        for t in [3.0, 6.0, 9.0] {
+            r.update(t, &moved);
+        }
+        assert_eq!(r.ground_frame(), Some(f), "FZ: the frame stays");
+        assert_eq!(r.real().unwrap().picture.serial, serial, "FZ: no new picture");
+        assert_eq!(r.contact("h").unwrap().pos, hulk("h", 20.0, 20.0, 0.0).pos, "FZ: the returns stay");
+        let own_px = f.to_px(moved.own.pos);
+        assert!((own_px.1 - (FAN_APEX.1 - 3000.0 / f.k)).abs() < 1e-6, "the jet moves over the frozen map");
+        r.ag_press(7, 9.1, &moved);
+        assert!(r.real().unwrap().picture.serial > serial, "FZ off: a new frame");
+        assert_eq!(r.contact("h").unwrap().pos, units[0].pos);
+        // SP: the cursor half the range ahead, with the jet; CZ back on the steerpoint.
+        r.ag_press(8, 9.2, &moved);
+        r.update(9.3, &moved);
+        let g = r.real().unwrap().ground.unwrap();
+        assert!((g.y - (3000.0 + RANGE_M[3] / 2.0)).abs() < 1.0 && g.x.abs() < 1.0, "SP: {g:?}");
+        r.ag_press(9, 9.4, &moved);
+        assert_eq!(r.real().unwrap().ground.map(|g| (g.x, g.y)), Some((0.0, 15000.0)), "CZ: the steerpoint");
+        assert!(!r.real().unwrap().snowplow);
+    }
+
+    #[test]
+    fn gmt_shows_movers_and_sea_ships_only() {
+        let mut ship = hulk("ship", -20.0, 20.0, 0.0);
+        ship.class = 0xf;
+        let units = [hulk("still", 20.0, 20.0, 0.0), hulk("mover", 10.0, 15.0, 8.0), ship];
+        let mut r = gm(&units);
+        assert_eq!(keys(&r).len(), 3, "GM: every ground return");
+        r.cycle_mode(0.1, &land(&units));
+        assert_eq!((r.mode(), r.ag_mode(), keys(&r)), (Mode::Gmt, Some("GMT"), vec!["mover"]), "GMT: the mover");
+        assert!(r.range_m() <= RANGE_M[3], "GMT to 40 NM");
+        r.cycle_mode(0.2, &land(&units));
+        assert_eq!((r.mode(), r.ag_mode(), keys(&r)), (Mode::Map, Some("SEA"), vec!["ship"]), "SEA: the ship");
+        r.toggle_exp();
+        r.toggle_exp();
+        assert_eq!(r.real().unwrap().fov, 0, "SEA: no DBS");
+        r.cycle_mode(0.3, &land(&units));
+        assert_eq!(r.ag_mode(), Some("GM"));
+        // The original's radar keeps its GMT / MAP with the nearest selected.
+        let mut o = Radar::new(1, None, None, false);
+        o.toggle_aa_ag(0.0, &land(&units));
+        o.toggle_aa_ag(0.0, &land(&units));
+        assert_eq!((o.mode(), o.ag_mode()), (Mode::Gmt, None));
+        assert_eq!(o.selection().map(|s| s.key.as_str()), Some("mover"));
+    }
+
+    #[test]
+    fn tms_tracks_or_designates_and_the_weapons_get_the_point() {
+        let units = [hulk("h", 20.0, 20.0, 0.0)];
+        let mut r = gm(&units);
+        let spot = Vec3::new(-4000.0, 18000.0, 0.0);
+        r.set_ground_cursor(spot);
+        r.update(0.1, &land(&units));
+        r.tms(Tms::Up, 0.2, &land(&units));
+        let p = r.target_point().expect("TMS up off the returns: the point designated");
+        assert!((p.x, p.y, p.z) == (-4000.0, 18000.0, 100.0), "{p:?}");
+        assert!(r.real().unwrap().tgt, "TGT");
+        r.set_ground_cursor(units[0].pos);
+        r.tms(Tms::Up, 0.3, &land(&units));
+        assert!(r.has_lock() && r.designated().is_none(), "on the hulk: FTT");
+        assert_eq!(r.target_point(), Some(units[0].pos), "the weapons get the tracked hulk");
+        r.update(0.4, &land(&units));
+        assert_eq!(r.mode(), Mode::Map, "a ground track stays in GM");
+        assert_eq!(r.real().unwrap().ground, Some(units[0].pos), "the cursor rides the track");
+        r.tms(Tms::Down, 0.5, &land(&units));
+        assert!(!r.has_lock() && r.target_point().is_none(), "TMS down drops it");
+        assert_eq!(r.real().unwrap().ground.map(|g| g.y), Some(15000.0), "back on the steerpoint");
+    }
+
+    #[test]
+    fn the_picture_shades_slopes_and_shows_runways_dark() {
+        let units = [hulk("h", 0.0, 6.0, 0.0)];
+        let mut r = gm(&units);
+        r.set_runways(vec![Runway { a: (-2000.0, 8000.0), b: (-2000.0, 11000.0), half_width: 30.0 }]);
+        // 10 NM (197 m a px), the jet 600 m up: the ridge shadows the ground behind it.
+        let low = Input { own: Own { pos: Vec3::new(0.0, 0.0, 600.0), ..land(&units).own }, ..land(&units) };
+        r.step_range(-2, 1.0, &low);
+        let pic = r.real().unwrap().picture.clone();
+        let f = pic.frame.unwrap();
+        let at = |w: Vec3| {
+            let (x, y) = f.to_px(w);
+            let (i, j) = ((x - PIC_WINDOW.0) as usize, (y - PIC_WINDOW.1) as usize);
+            (pic.la8[2 * (j * PIC_WINDOW.2 + i)], pic.la8[2 * (j * PIC_WINDOW.2 + i) + 1])
+        };
+        let face = at(Vec3::new(3250.0, 10000.0, 0.0));
+        let plain = at(Vec3::new(-8000.0, 16000.0, 0.0));
+        let behind = at(Vec3::new(4600.0, 10000.0, 0.0));
+        assert_eq!(at(units[0].pos), (255, 255), "the hulk a bright return");
+        assert!(face.0 > plain.0, "the ridge's face toward the radar brighter ({face:?} vs {plain:?})");
+        assert_eq!(behind, (0, 255), "the ridge's shadow dark");
+        assert!(plain.0 > 10, "the plains return");
+        assert_eq!(at(Vec3::new(-9000.0, 3000.0, 0.0)), (0, 255), "outside the fan: black");
+        // DBS1 on the runway (25 m a px): the 60 m strip dark, the ground beside it lit.
+        r.set_ground_cursor(Vec3::new(-2000.0, 9500.0, 0.0));
+        r.toggle_exp();
+        r.toggle_exp();
+        r.update(r.now() + 0.01, &low);
+        assert_eq!(AG_FOV[r.real().unwrap().fov].0, "DBS1");
+        let pic = r.real().unwrap().picture.clone();
+        let f = pic.frame.unwrap();
+        let at = |w: Vec3| {
+            let (x, y) = f.to_px(w);
+            pic.la8[2 * ((y - PIC_WINDOW.1) as usize * PIC_WINDOW.2 + (x - PIC_WINDOW.0) as usize)]
+        };
+        assert_eq!(at(Vec3::new(-2000.0, 9500.0, 0.0)), 0, "the runway dark");
+        assert!(at(Vec3::new(-2150.0, 9500.0, 0.0)) > 10, "the ground beside it lit");
+    }
+
+    #[test]
+    fn agr_ranges_along_the_aim_line() {
+        let units = [];
+        let mut r = gm(&units);
+        r.set_agr(Some(Vec3::new(0.0, 6000.0, 100.0)));
+        r.update(0.2, &land(&units));
+        assert_eq!(r.ag_mode(), Some("AGR"));
+        let want = Vec3::new(0.0, 6000.0, 100.0).distance(OWN.pos);
+        let got = r.real().unwrap().agr.unwrap();
+        assert!((got - want).abs() < 2.0, "slant range {got} vs {want}");
+        r.set_agr(None);
+        r.update(0.3, &land(&units));
+        assert_eq!((r.ag_mode(), r.real().unwrap().agr), (Some("GM"), None));
     }
 }

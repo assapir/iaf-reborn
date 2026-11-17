@@ -45,7 +45,7 @@ reader takes them.
 
 | record | readable | hex | named values |
 |---|---|---|---|
-| unit | `id`, `category` (from `class`), `label`, `brain`, `radius_m`, `strength`, `collider`, `class`, `type` | `0x514`, `0x51e`, `0x528`, `0x532`, `0x564`, `0x56e`, `0x58c`, `0x5aa`, `0x5b4` | class `fighter` 0x1c "Controlled aircraft", `radar_sam` 8 "Radar sam", `ir_sam` 9 "Infra red sam", `aaa` 10 "Gundish", `ground_radar` 11 "Ground radar", `vehicle` 6 "Vehicle" |
+| unit | `id`, `category` (from `class`), `label`, `brain`, `radius_m`, `strength`, `collider`, `class`, `type` | `0x514`, `0x51e`, `0x528`, `0x532`, `0x564`, `0x56e`, `0x58c`, `0x5aa`, `0x5b4` | class `fighter` 0x1c "Controlled aircraft", `radar_sam` 8 "Radar sam", `ir_sam` 9 "Infra red sam", `aaa` 10 "Gundish", `ground_radar` 11 "Ground radar", `vehicle` 6 "Vehicle", `ship` 15 "Boat" |
 | unit (model) | `id`, `model`, `scale` | Present `0x640`, `0x64a`, `0x65e`; the unit's `0x53c` = its number | — |
 | weapon | `name`, `kind`, `model`, `drag`, `power`, `blast_m`, `kg` (→ pounds), `generation`, type (from `kind`); a tank's `empty_kg` (→ pounds) | `0x708`, `0x712`, `0x730`, `0x73a`, `0x744`, `0x74e`, `0x758`, `0x762`, `0x780`; `empty_lb` (ours: the original's record has no such field; `weapon_db.gd` reads it) | `gun` 565, `chaff` 540, `flare` 550, `ir_missile` 570, `bomb` 500, `radar_missile` 600, `semi_radar_missile` 610, `ir_sam` 620, `radar_sam` 630, `tank` 660 |
 | mission | `title.en`, `time`, `wind_kt`, `wind_from`, `win.en`, `lose.en`, `category` | misc `0x44c`, `0x460`, `0x46a`, `0x474`, `0x47e`, `0x492`, `0x4d8` | — |
@@ -363,7 +363,11 @@ sim's own (the user's decision of 17 Nov 2026, avionics-plan.md §8, item 1); no
   the flight model of their type code. Clean: no stores, no gun, and no `airframe`, so the Hangar does not list them.
 - **Ground targets** (`target_f16.json`, `target_mig29.json`): retired airframes parked in the open (class `vehicle`,
   type −1, no brain, strength 600), drawn with our F-16 model and the detailed MiG-29 already in the repo
-  (`shared/extra/models/mig29`, GPL 3, [../../docs/credits.md](../../docs/credits.md)).
+  (`shared/extra/models/mig29`, GPL 3, [../../docs/credits.md](../../docs/credits.md)). Each range's Target 5 is the
+  MiG-29 hulk towed on a ground route (the radar's GMT mover).
+- **Sea target** (`target_barge.json`): class `ship` (15, a boat, which the radar's SEA mode lists), the MiG-29 hulk
+  on a target barge, towed off the coast as each range's Target 6 (docs/radar.md §9.7). The repo has no ship model,
+  so the barge is not drawn.
 - **Brains** (`data/db/brains/<id>.json`): `id`, `number` (the bdb brain id, 1..999), `name`, `rules`, `notes`. A
   rule is `{"if": [[measure, op, value], …], "then": [action, …]}`; `["always"]` is a condition that always holds.
   Measures (docs/ai.md §4): `always` 0, `altitude_m` 4, `speed_kt` 6, `target_range_m` 13, `random` 15 (0..100),

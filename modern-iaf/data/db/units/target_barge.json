@@ -1,0 +1,31 @@
+{
+  "id": "target_barge",
+  "number": 34,
+  "name": "Target barge (range target)",
+  "label": "Target barge",
+  "class": "ship",
+  "type": -1,
+  "model": "mig29/mig29_h.gltf",
+  "scale": 1.0,
+  "radius_m": 5.68,
+  "strength": 600,
+  "loadout": {},
+  "pylons": {},
+  "sources": {
+    "type": "inferred",
+    "scale": "inferred",
+    "radius_m": "w-mig29",
+    "strength": "inferred"
+  },
+  "notes": {
+    "": "The weapons range's sea target: a retired MiG-29 airframe on a target barge, towed slowly at sea (inferred). Class \"ship\" (15, a boat): the radar's SEA mode lists only ships (docs/radar.md §9.7). The repo holds no ship model, so the hulk is drawn on the water and the barge is not drawn.",
+    "type": "-1: no type code, as the original's static objects",
+    "model": "the MiG-29 hulk's (target_mig29); nothing of the original's is read",
+    "scale": "1: our models are built true size",
+    "radius_m": "the hulk's: half the MiG-29's span, 11.36 m",
+    "strength": "as the hulks' (inferred)"
+  },
+  "footnotes": {
+    "w-mig29": "Wikipedia, \"Mikoyan MiG-29\" (span 11.36 m), https://en.wikipedia.org/wiki/Mikoyan_MiG-29"
+  }
+}

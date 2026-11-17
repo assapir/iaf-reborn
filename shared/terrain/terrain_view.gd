@@ -3003,6 +3003,12 @@ func _command(cmd: Array) -> bool:
 					0x30
 				][int(cmd[0]) - 221]
 				weapons.radar_event(ev, p1 if int(cmd[0]) == 221 else float(cmd[2]))
+		228:
+			# Ours, the real F-16 FCR's GM format OSBs on keys (Modern IAF's keys.json; docs/radar.md §9.7): p1 the OSB,
+			# 7 FZ, 8 SP, 9 CZ, 10 STP / TGT. The FCR goes on an MFD first, as for the other radar keys.
+			if weapons != null and not weapons.radar.real.is_empty():
+				cockpit.radar_mfd()
+				weapons.radar_event(weapons.RADAR_AG_OSB, p1)
 		219:
 			# Ours, Modern IAF: one F-16 power switch (the 3D cockpit's AVIONIC POWER and SNSR PWR switches; no key sends
 			# it): p2 its index in sim_flight.gd SYSTEMS, p1 as 210-215's (modern-iaf/docs/cockpit.md §5.2).

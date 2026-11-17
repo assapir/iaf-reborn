@@ -2,8 +2,9 @@
 # working? can't move out of stby?" and "no x on pull up?!"): the Sufa in the air with the SNSR PWR panel's FCR and
 # RDR ALT off and the AVIONIC POWER switches off, as a start by the checklist's keys leaves them; the avionics key
 # (command 213) then powers the FCR and RDR ALT with the four: Q takes the radar out of STBY into CRM, and the Real
-# HUD gets the radar altitude its GAAF break X reads. G4: with the radar up, R then Q put it in MAP and a MAP click
-# designates the point a SPICE 1000 in VIS takes (player_weapons.gd gps_aim); without the FCR there was no MAP to click.
+# HUD gets the radar altitude its GAAF break X reads. G4: with the radar up, R puts it in GM (the real FCR's first A-G
+# mode, MAP) and a MAP click designates the point a SPICE 1000 in VIS takes (player_weapons.gd gps_aim); without the
+# FCR there was no MAP to click.
 #   IAF_DEFAULT_SETTINGS=1 godot --headless --audio-driver Dummy --path modern-iaf \
 #     -s ../modern-iaf/tests/test_sim_radar.gd --log-file <temp>
 extends "res://../tests/godot/base.gd"
@@ -55,11 +56,9 @@ func run() -> void:
 	var agl = tv.cockpit.hud._real_in.get("agl_ft")
 	check(agl != null and float(agl) > 100.0, "the Real HUD has the radar altitude its break X reads (%s ft)" % agl)
 	# G4: a SPICE 1000 in VIS takes the radar's MAP designation.
-	key(tv, KEY_R)  # A-G: the last A-G mode, GMT at first
+	key(tv, KEY_R)  # A-G: the last A-G mode, the real FCR's GM at first (radar.rs)
 	await frames(3)
-	key(tv, KEY_Q)  # GMT -> MAP (radar.rs cycle_mode)
-	await frames(3)
-	check(int(w.radar.mode) == 8, "R, Q: the radar in MAP (mode %d)" % w.radar.mode)
+	check(int(w.radar.mode) == 8, "R: the radar in GM, MAP (mode %d)" % w.radar.mode)
 	var o: Dictionary = w.own()
 	var aim: Vector3 = o.pos + Vector3(o.fwd.x, o.fwd.y, 0.0).normalized() * 8000.0
 	w.radar_event(0x2f, Vector2(aim.x, aim.y))  # the MAP click (mfd.gd _click_map)
