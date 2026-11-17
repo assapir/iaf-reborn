@@ -373,6 +373,9 @@ Each entry names the switch and where it lives, then the difference: "Original: 
   - The F-35I's stations are the real F-35A's (docs/f35i.md §3.1). It carries the modern weapons whatever the
     "Weapons" switch: the AIM-9X on its outboard wing pylons (stations 1 / 11), the GBU-31, GBU-32 and GBU-39 in its
     bays (a GBU-31 in each by default) and the GBU-31 / GBU-32 on its heavy pylons (weapons.md §13).
+  - The F-35I's radar has no switch: it comes up in STBY, does not radiate with weight on wheels and searches by itself
+    once airborne (radar.md §9.1).
+    Original: every radar starts OFF until Q or R.
 - **"F-16 version" (Barak (F-16D) / Sufa (F-16I))** (ours, Extras; [f16i.md](f16i.md)). Original: the game's F-16D
   Barak. Ours, with Sufa: every F-16 (type 100: the player's, the AI's and the parked ones) is the IAF's F-16I Block
   52+ with conformal fuel tanks:

@@ -72,12 +72,14 @@ var _by_key := {}
 ## range (Weapon data Real). The radar starts OFF. Ours, with either Weapon data: a jet with an aircraft definition
 ## takes its radar.row (the F-16I Sufa the APG-68(V)9's, the F-35I the APG-81's); both start at 80 NM (in Modern
 ## IAF in STBY); its radar.fcr gives the real F-16 FCR's controls (the Sufa's) where Settings.modern_radar()
-## (Modern IAF), with its power rules: STBY at power-on, no radiating with weight on wheels (docs/radar.md §9.1).
+## (Modern IAF), with its power rules: STBY at power-on, no radiating with weight on wheels (docs/radar.md §9.1). A
+## definition's radar.auto (the F-35I: no radar switch, the mission systems run it) takes the power rules in both games.
 func setup(type_code: int, lrs_nm := 0.0) -> void:
 	var def: Dictionary = Settings.airframe(type_code).get("radar", {})
 	var row := int(def.get("row", COCKPIT.get(type_code, 1)))
 	var modern: bool = Settings.modern_radar()
-	_r.setup(row, lrs_nm, int(def.get("fcr", {}).get("sam_tracks", 0)) if modern else 0, modern)
+	var fcr := int(def.get("fcr", {}).get("sam_tracks", 0)) if modern else 0
+	_r.setup(row, lrs_nm, fcr, modern or bool(def.get("auto", false)))
 	# The real FCR's GM picture shows the runways dark (shared/terrain/airbases.gd: world metres, width).
 	if modern:
 		var list := []

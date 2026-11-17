@@ -189,7 +189,7 @@ manuals[^ife] and LM slides[^sld-cockpit]; each row says so.
 
 | # | function | real | today | status |
 |---|---|---|---|---|
-| A1 | Radar power and standby | managed by the mission systems (inferred); no FCR switch on the panel ([research/f35-cockpit.md](research/f35-cockpit.md) §2) | the radar is created OFF and waits for Q or R | Partly (G1) |
+| A1 | Radar power and standby | managed by the mission systems (inferred); no FCR switch on the panel ([research/f35-cockpit.md](research/f35-cockpit.md) §2) | the radar comes up in STBY with power and searches once airborne (radar.md §9.1); the definition's `radar.auto` gives the same in the 1998 game, whose F-35I showed `RADAR OFF` on the display until Q (fixed 17 Nov, `tests/godot/test_f35i_radar.gd`) | Sim (17 Nov) |
 | A2 | SRCH (A-A search) | layout open[^f16net-pages] | `shared/cockpit/pcd_formats.gd` `radar`, the F35I row of `radar.rs` (80 NM) | Partly (G32: inferred layout) |
 | A3 | A-A track, TWS, STT, ACM, BORE | fused tracks; layout open | the shared modes on SRCH | Sim |
 | A4 | ASR: SAR map | a grey SAR picture (LM slide 8, a simulator manual)[^sld-cockpit][^ife] | ASR in GMT / MAP without the picture ([../../docs/f35i.md](../../docs/f35i.md) §4.3) | Partly (G10) |

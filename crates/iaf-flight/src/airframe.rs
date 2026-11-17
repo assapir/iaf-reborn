@@ -85,7 +85,8 @@ pub struct Voice {
 }
 
 /// `radar`: the radar table row, the Real range (km), the AI's sensor range (NM); `fcr` the real F-16 fire-control
-/// radar's controls (`iaf_avionics::radar::Fcr`, docs/radar.md §9).
+/// radar's controls (`iaf_avionics::radar::Fcr`, docs/radar.md §9); `auto` a radar with no switch, run by the mission
+/// systems (the F-35I): the power rules of docs/radar.md §9.1 in both games.
 #[derive(Clone, Debug, PartialEq, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct Radar {
@@ -93,6 +94,7 @@ pub struct Radar {
     pub km: Option<f64>,
     pub ai_nm: Option<f64>,
     pub fcr: Option<Fcr>,
+    pub auto: Option<bool>,
 }
 
 /// `ews`: the AIFF interrogator and the missile approach warning (modern-iaf/docs/ews.md).
@@ -291,6 +293,8 @@ mod tests {
             }
             assert!(get(id).is_some(), "{id}");
         }
+        let auto = |id| get(id).and_then(|a| a.radar.as_ref()).and_then(|r| r.auto);
+        assert_eq!((auto("f35i"), auto("f16i")), (Some(true), None), "the F-35I's radar has no switch");
     }
 
     /// A misspelt or wrongly typed field fails, naming the file and the field.

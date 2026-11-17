@@ -194,7 +194,9 @@ jets without `radar.fcr` keep the original's radar unchanged. Only Modern IAF ap
 has.
 
 ### 9.1 Power, STBY and weight on wheels
-Ours, in Modern IAF (`Settings.modern_radar()`; every sim jet: the Sufa, the Barak, the Adir):
+Ours, in Modern IAF (`Settings.modern_radar()`; every sim jet: the Sufa, the Barak, the Adir), and for the F-35I in
+both games: it has no radar switch (the mission systems run the radar; its definition's `radar.auto`), so the 1998
+game's F-35I follows these rules too instead of starting OFF:
 - The radar comes up in STBY: at its creation, and each time the FCR switch powers it again (`set_damaged(false)`).
   The FCR format shows `STBY`.
 - With weight on wheels it does not radiate (no scan, no contacts). A mode chosen on the ground shows, and the radar
