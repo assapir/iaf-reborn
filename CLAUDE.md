@@ -23,6 +23,7 @@ tools/setup-cli.sh [--patch v1.1.exe] "/path/to/Jane's IAF.iso"   # one-time: ex
 ./start-modern-iaf [-- --mission 2012]                           # Modern IAF: the front end; --mission flies one mission, then its debrief
 cargo test -q --workspace                                     # Rust tests (data/python3-dependent ones skip with a message)
 cargo test -q -p iaf-flight --test validation <name>          # one Rust test
+iaf-sim <terrain|db|missions|own|fm|airbases|scenery|textures|all|adopt|voices>   # one stamped setup step (target/release/iaf-sim)
 tools/test.sh                                                 # everything: cargo tests, tests/godot + modern-iaf/tests headless, gdparse
 cargo build --release -p iaf-godot                            # needed before Godot tests: game loads target/release/libiaf_godot.*
 IAF_DEFAULT_SETTINGS=1 godot --headless --audio-driver Dummy --path iaf-reborn -s ../tests/godot/test_radar.gd   # one Godot test
@@ -51,6 +52,99 @@ python3 -I tools/flight_timeline.py <flight.jsonl> [--html f.html] # a recorded 
   on macOS it renders as a hidden app that never takes the user's focus. Plain `godot` without `--headless` opens a
   window over the user's work.
 
+## How work is run
+
+### Roles
+
+- An orchestrator session plans, briefs and relays; it writes no repo code. Agents do the work, each in its own
+  worktree (`tools/worktree.sh <name>`), and report once, at the end, in a short report.
+- Opus-class agents design, build and review; a smaller model does mechanical chores (page updates, shared builds,
+  setup steps).
+- A job is retired and re-briefed with a hand-over when its context grows large. A brief quotes the user's words with
+  the date.
+- Every merge to main has: a review with a formal `VERDICT` line (MERGE / FIX), the findings fixed, the branch
+  rebased on main, one squash commit, CI green, and the worktree and branch removed (local and remote).
+
+### What may merge without asking
+
+- Open bugs come before look and design work.
+- A change the user ordered directly, and a fix that restores an approved state, merge after review.
+- Any other visible change (a new look, layout, text size, a moved cockpit part, night lighting) waits on its own
+  branch with before / after pictures until the user says yes (the approvals page).
+- Finish with no known gaps: a job closes every fault it knows about in the thing it was asked to build. An item stays
+  open only when truly blocked, with the concrete reason written down. A "still different" list is not a result.
+- Scope is the user's own words. Extra rows an inventory adds (voice content, new missions, models) are listed as
+  "not started", not built.
+- A cockpit or model look is matched to its reference picture from the same camera (side by side and overlaid), not
+  to a list of items.
+
+### Building on the shared laptop
+
+- Agents do not run cargo on the Linux laptop. Rust is built and unit-tested on the build Mac over ssh (headless only:
+  cargo and headless Godot, no windows or renders, an own clone, nothing of the user's touched). When the Mac is
+  unreachable, an agent may run cargo on the laptop gently: one `nice` cargo at a time, narrow packages, its own small
+  target folder deleted after use, never under 5 GB free disk.
+- The laptop has one shared game library and tools build, `target/` of the main checkout. Only the orchestrator's
+  build chore writes it. An agent commits, pushes and sends `READY_TO_BUILD <hash>` naming the stamped setup steps it
+  needs; it aims for one round.
+- The build chore checks the free disk and that no cargo runs, and that the branch contains `origin/main`. From the
+  branch's worktree it runs `touch crates/iaf-setup/build.rs && find crates -name lib.rs -exec touch {} +
+  && CARGO_TARGET_DIR=<main checkout>/target nice cargo build --release -q -p iaf-godot -p iaf-tools -p iaf-setup
+  --bins --lib` (the `touch` keeps the stamps' fingerprint honest), runs the named steps with the built `iaf-sim`,
+  and tells the agent.
+- Only one Rust branch can use the shared library at a time: a second one waits, rebases after the first merges, and
+  asks again. Work that needs no Rust fills the second slot.
+- After a Rust merge the agent's report says `REBUILD FROM MAIN` when main's Rust differs from the last built hash.
+
+### Assets and downloads
+
+- Assets are built only through the stamped setup pipeline (`iaf-sim <step>`, the wizards). An unstamped build makes
+  the wizard redo and re-download everything.
+- A code change never triggers a download: sources stay under `assets/source` by file name; only compile steps
+  re-run. New converter sources and data files are registered for the stamps (`crates/iaf-setup/build.rs` `SOURCES`,
+  the step lists in `stamp.rs`).
+- Nothing is downloaded without the user's word. A model or sound already on disk from a credited source may be used;
+  otherwise the job stops and names the file, its licence and size.
+- The voices step needs `IAF_KOKORO_PYTHON=<the voice venv>/bin/python` and runs offline with `HF_HUB_OFFLINE=1`
+  (`modern-iaf/docs/sound.md`).
+
+### Real renders and tests
+
+- Real renders run one at a time under `flock ~/.cache/iaf-gpu-bench.lock`. A locked desktop stops the hidden window
+  from drawing, so a black or hanging render is reported as owed, not retried in a loop.
+- `IAF_DEFAULT_SETTINGS=1` is also set for `gdparse` runs.
+- Run only the tests a diff touches, once; the full suite slows the user's machine.
+- A test or picture that fails inside unrelated script code with an argument-count or missing-method error means the
+  shared library was built from another branch.
+
+### Modern IAF rules
+
+- Game logic is in Rust; Godot wires and renders. Modern IAF reuses the original game's logic through `shared/` and
+  the crates, never its 1998 data formats or looks; the original game's behaviour does not change (pattern:
+  `Settings.modern_radar()`).
+- One jet's avionics are finished before the next; a second jet of the same family is a data difference, not a second
+  implementation.
+- Every cockpit function has a keyboard key or a clickable control in the 3D cockpit: the keyboard is the first-class
+  input, a joystick mapping is optional and never the only way. New keys go in the sim's key table and the controls
+  doc, with no conflicts.
+- A weapon that cannot be employed without a pod is not allowed without it. The rule is data (`needs` on the weapon,
+  `gives` on the store, `stores::unmet`), enforced on the arming screen (Fly and saving a preset refused, one short
+  line), in the briefing and in flight.
+- Every screen has Hebrew and English. Hebrew is gender-neutral and formal; a pod is "פוד". Notices on a screen are
+  one short line in the screen's normal text size.
+- The plan and its decisions live in `modern-iaf/docs/avionics-plan.md` and `modern-iaf/docs/research/pods.md`; a
+  slice updates its rows, `docs/status.md` and the controls doc in the same change. Pilot guides for Modern IAF are
+  planned with the user before any is written.
+
+### Research and limits
+
+- A request to an outside site carries no name or email, also not in a User-Agent. A site that refuses automated
+  access is left alone and another source is used; evidence taken from a search engine's quote of such a page is
+  marked as second-hand.
+- Parked, not to be researched, modelled or tuned: real missile performance (motors, range envelopes, guidance and
+  seeker behaviour, fuzing), countermeasure effectiveness, electronic attack. Cockpit procedure for these systems
+  (switches, pages, counts) is in scope.
+
 ## Architecture
 
 - `crates/iaf-formats` — parsers for the original file formats (ISO9660, PTT terrain, terraintype.dat, X models, ESA, EMF, menu, RTF,
@@ -72,7 +166,11 @@ python3 -I tools/flight_timeline.py <flight.jsonl> [--html f.html] # a recorded 
   (`gun.rs`), the homing / guided missiles (`missile.rs`, `guided.rs`), the IR seeker and MRM sight (`sight.rs`),
   the radio controller (`fctrl.rs`: AWACS contact calls, kill / airborne / landed reports), the stores (`stores.rs`), bombs / CCIP (`bombs.rs`), the master / HUD modes (`master.rs`), the RWR (`rwr.rs`), I-mode (`imode.rs`), the terrain height field (`heights.rs`),
   the EO (`eo.rs`) and HARM (`harm.rs`) sensors, the release rules (`release.rs`), the HUD's weapon values and range
-  scale (`hud.rs`), the per-jet Real HUD symbology (`real_hud/`) and the F-16's ground-avoidance cues (`gaaf.rs`). Their GDScript fronts in `shared/weapons/` (`radar.gd`,
+  scale (`hud.rs`), the per-jet Real HUD symbology (`real_hud/`) and the F-16's ground-avoidance cues (`gaaf.rs`). Modern IAF's F-16 systems (ours): the ICP / DED (`ufc.rs`), the MFD formats
+  (`f16_mfd.rs`), the threat warning display and MAW (`ews.rs`), the countermeasures dispenser (`cmds.rs`), the AIFF
+  interrogator (`aiff.rs`), the data link's picture (`datalink.rs`), GPS / INS guided bombs (`gps.rs`), the real Betty
+  calls (`betty.rs`); the world's data: the terrain frame (`frame.rs`), OpenStreetMap roads (`roads.rs`), buildings and
+  trees (`scenery.rs`), city lights at night (`city_lights.rs`). Their GDScript fronts in `shared/weapons/` (`radar.gd`,
   `gun_rounds.gd`, `missile.gd`, `guided.gd`, `ir_seeker.gd`, `stores.gd`, `bombs.gd`, `rwr.gd`,
   `eo_sensor.gd`, `harm_sensor.gd`; the modes in `player_weapons.gd`) keep the old interface. Their fields read the
   Iaf object's state through getters; `radar.gd`, `rwr.gd` and `gun_rounds.gd` copy it into plain fields after each
@@ -80,7 +178,7 @@ python3 -I tools/flight_timeline.py <flight.jsonl> [--html f.html] # a recorded 
   `predict_impact`); the rest of `IafBomb`, and `IafMrmSight`, callers call through `ClassDB.class_call_static`.
 - `crates/iaf-godot` — gdext bridge: `IafFlight` (`flight.rs`), `IafRadar` (`radar.rs`), `IafRounds` / `IafLcos`
   (`gun.rs`), `IafMissile` / `IafGuided` (`missile.rs`), `IafSeeker` / `IafMrmSight` (`sight.rs`), `IafStores`
-  (`stores.rs`), `IafBomb` / `IafModes` (`bombs.rs`), `IafRwr` (`rwr.rs`), `IafEo` / `IafHarm` (`sensors.rs`), `IafRelease` / `IafRipple` (`release.rs`), `IafRealHud` (`real_hud.rs`), `IafFlightController` (`fctrl.rs`, the AWACS and radio reports), `IafSetup` (`setup.rs`, the setup wizard's pipeline), `IafSurface` (`surface.rs`, terraintype.dat rasterised for the terrain shader), `IafEmf` (`emf.rs`, the TSD map's polygon fill), `IafHeights` (`heights.rs`), `IafImode` (`imode.rs`), `IafBases` (`bases.rs`, the base move), `IafMcr` (`mcr.rs`, the Mission Creator), `IafMissionEdit` (`mission_edit.rs`, the mission editor), `IafAutorun` (`autorun.rs`, the CD launcher);
+  (`stores.rs`), `IafBomb` / `IafModes` (`bombs.rs`), `IafRwr` (`rwr.rs`), `IafEo` / `IafHarm` (`sensors.rs`), `IafRelease` / `IafRipple` (`release.rs`), `IafRealHud` (`real_hud.rs`), `IafFlightController` (`fctrl.rs`, the AWACS and radio reports), `IafSetup` (`setup.rs`, the setup wizard's pipeline), `IafSurface` (`surface.rs`, terraintype.dat rasterised for the terrain shader), `IafEmf` (`emf.rs`, the TSD map's polygon fill), `IafHeights` (`heights.rs`), `IafImode` (`imode.rs`), `IafBases` (`bases.rs`, the base move), `IafMcr` (`mcr.rs`, the Mission Creator), `IafMissionEdit` (`mission_edit.rs`, the mission editor), `IafAutorun` (`autorun.rs`, the CD launcher), and for Modern IAF `IafUfc`, `IafF16Mfd`, `IafEws`, `IafAirframe` (the aircraft definitions), `IafBriefing` (the briefing map), `IafCockpitSound`, `IafDevices` (joystick axes store), `IafPilotLog` (records store), `IafTraining` (the training scorer), `IafScenery`, `IafRoads`, `IafCityLights`, `IafHid` (joystick axis count);
   `world.rs` converts the weapons' world frame. Handles the frame conversion: FM is ENU (east, north, up); Godot is
   X east, Y up, Z south. Loaded via `iaf-reborn/iaf.gdextension`.
 - `iaf-reborn/` — the original game's Godot project (entry page `iaf-reborn/README.md`): `menu` (the front end, TSD, pilots), `setup` (the wizard), `editor`
