@@ -12,6 +12,22 @@ extends "res://../tests/godot/base.gd"
 const MISSIONS := "converted/modern-iaf/missions"
 const JETS := {"f16i": "ramon_startup", "f16": "ramat_david_startup", "f35i": "nevatim_startup"}
 const Click := preload("res://tests/test_switches_click.gd")
+## The F-16s' controls the C4 proof found still (finish-cockpit-controls.md C4b): each moves, and is seen and clicked
+## from the seat's eye or a lean of the head (the MFDs' inboard rockers behind the ICP and the instrument housing,
+## MAX POWER under the throttle's grip).
+const C4B := [
+	"HSI_hdg-knob",
+	"HSI_course-knob",
+	"ASI_bug-left",
+	"ASI_bug-right",
+	"MFD1_MFDButtonCon",
+	"MFD2_MFDButtonGain",
+	"MFD2_MFDButtonBrightness",
+	"EHSI_button",
+	"master_reset",
+	"SW_MAX_POWER"
+]
+const Shot := preload("res://tests/_controls_shot.gd")
 
 
 func run() -> void:
@@ -53,6 +69,8 @@ func run() -> void:
 			)
 			_positions(c3d, ctl, id, e[0], r)
 			await frames(1)
+		if id != "f35i":
+			await _c4b(tv, c3d, ctl, id)
 		# The F-35I's: its real controls (modern-iaf/docs/research/f35-cockpit.md, finish-cockpit-controls.md C1b).
 		check(n >= (40 if id == "f35i" else 150), "%s: %d controls of the model's own" % [id, n])
 		tv.views.snap = null
@@ -148,3 +166,57 @@ func _aim(tv: Node, mi: MeshInstance3D) -> Vector2:
 	tv.views.snap = h
 	await frames(2)
 	return cam.unproject_position(p.call())
+
+
+## Each of C4B moves (its part, or the part its setting turns: the ASI's bug) between two of its positions, and is the
+## first surface the eye meets at its centre from the seat's eye or one of the proof's leans, where the pointer finds
+## it.
+func _c4b(tv: Node, c3d: Node, ctl: Node, id: String) -> void:
+	var meshes := []
+	for m: MeshInstance3D in c3d.find_children("*", "MeshInstance3D", true, false):
+		if (
+			m.mesh != null
+			and m.is_visible_in_tree()
+			and (c3d.pilot_body == null or not c3d.pilot_body.is_ancestor_of(m))
+		):
+			meshes.append([m, m.mesh.generate_triangle_mesh()])
+	for name in C4B:
+		var e: Array = ctl._controls.filter(func(x): return x[0].name == name)
+		check(e.size() == 1, "%s: %s a control" % [id, name])
+		if e.size() != 1:
+			continue
+		var mi: MeshInstance3D = e[0][0]
+		var r: Dictionary = e[0][1]
+		var parts := [mi]
+		for a in c3d._anims:
+			if a[0] != mi and a[2].any(func(x): return x.get("prop", "") == r.prop):
+				parts.append(a[0])
+		var lo := float(r.get("rest", r.get("min", 0.0)))
+		var hi := float(r.get("max", 1.0))
+		if r.has("press"):
+			hi = float(r.press)
+		elif hi > 12.0:  # a knob of many steps (the HSI's 0..360°), the ASI's bug: ten steps on
+			hi = lo + 10.0 * absf(float(r.step))
+		var was = c3d.switches.get(r.prop)
+		var poses := []
+		for v in [lo, hi]:
+			c3d.switches[r.prop] = v
+			c3d._process(0.0)
+			poses.append(parts.map(func(p): return p.transform))
+		check(poses[0] != poses[1], "%s: %s moves (%s -> %s)" % [id, name, lo, hi])
+		c3d.switches[r.prop] = lo  # at rest while seen (a pressed button sinks into its bezel)
+		var seen := Vector3.INF
+		for lean in [Vector3.ZERO] + Array(Shot.LEANS):
+			tv.views.lean = lean
+			var at: Vector2 = await _aim(tv, mi)
+			if Shot.first_hit(meshes, c3d.camera.global_position, mi) == mi:
+				var hit = ctl.at(at)
+				if hit != null and hit[0] == mi:
+					seen = lean
+					break
+		tv.views.lean = Vector3.ZERO
+		check(seen != Vector3.INF, "%s: %s seen and clicked (from the lean %s)" % [id, name, seen])
+		if was == null:
+			c3d.switches.erase(r.prop)
+		else:
+			c3d.switches[r.prop] = was

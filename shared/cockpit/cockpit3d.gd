@@ -216,6 +216,9 @@ func setup(c: Control, cam: Camera3D, type_code: int) -> bool:
 		clickable = Controls.new()
 		add_child(clickable)
 		clickable.setup(n, Settings.load_json(table), meta.get("controls", {}))
+		for e in clickable._controls:  # a table row's own property (over the model's) shown from the store too
+			if e[1].has("prop"):
+				meta.controls_props[e[1].prop] = true
 		_still_controls(n)
 	return true
 

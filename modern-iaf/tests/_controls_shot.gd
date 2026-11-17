@@ -1,11 +1,15 @@
-# Dev helper (not run by tools/test.sh): the proof of the F-16s' 3D-cockpit controls (finish-cockpit-controls.md C4).
-# In each F-16's cold start-up (2011 Sufa, 2021 Barak; one model) every control of the model's own `controls`
+# Dev helper (not run by tools/test.sh): the proof of the F-16s' 3D-cockpit controls (finish-cockpit-controls.md C4,
+# C4b). In each F-16's cold start-up (2011 Sufa, 2021 Barak; one model) every control of the model's own `controls`
 # (f16.json; cockpit3d_controls.gd) and the HUD's DAY / AUTO BRT / NIGHT switch goes through its positions in the
 # store the cockpit shows (cockpit3d.gd `switches`): a switch or a knob of steps each step from min to max, a
 # continuous knob or a stepping button five values, a push button at rest and pressed. For each control the head turns
 # to it, zoomed in, the pilot's body hidden; each position is cropped round the part: SHOT_OUT/<unit>/<nnn>_<node>_<k>
 # .png (180 x 180), the list in SHOT_OUT/<unit>/index.txt (<nnn> <node> <values>). A control whose crops are all the
-# same is printed "STILL <unit> <node>". tools/controls_sheet.sh makes the contact sheets of the crops.
+# same is printed "STILL <unit> <node>". A part the panel hides from the seat's eye (FlightGear's ICP and instrument
+# housing stand 8-23 cm proud of the MFDs' inboard rockers, the throttle's grip over MAX POWER) or whose move runs
+# along the eye's line (a push button) is pictured again from the leans (LEANS) the pilot's head can take, until the
+# crops differ ("LEAN <unit> <node> <lean>"). Crops compare at their full size: a small part's move (the ASI's bug, a
+# 2 mm press) is a few pixels. SHOT_ONLY: these nodes alone (comma-separated).
 #   flock -o ~/.cache/iaf-gpu-bench.lock tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 SHOT_OUT=<dir> -- --log-file <t> \
 #     --resolution 1920x1080 --path modern-iaf -s ../modern-iaf/tests/_controls_shot.gd
 extends "res://tests/_switch_shot.gd"
@@ -13,6 +17,22 @@ extends "res://tests/_switch_shot.gd"
 const TILE := 180
 ## The least view round a part (px at 1920 x 1080).
 const MIN_VIEW := 140.0
+## The heads leaned (views.gd `lean`, m: x right, y up, z aft; within its LEAN_MIN..LEAN_MAX) a hidden or pressed
+## part is pictured from, nearest first.
+const LEANS: Array[Vector3] = [
+	Vector3(-0.1, 0.0, 0.0),
+	Vector3(0.1, 0.0, 0.0),
+	Vector3(-0.15, -0.05, 0.0),
+	Vector3(0.15, -0.05, 0.0),
+	Vector3(-0.1, -0.1, -0.2),
+	Vector3(0.1, -0.1, -0.2),
+	Vector3(-0.15, -0.15, -0.3),
+	Vector3(0.15, -0.15, -0.3),
+	Vector3(0.0, -0.15, -0.3),
+]
+## A crop differs where more than this share of its pixels changed (at least DIFF_MIN of them).
+const DIFF_SHARE := 0.0005
+const DIFF_MIN := 16
 ## The samples of a continuous knob, a stepping button or a knob of more than MAX_STEPS steps.
 const SLIDE_N := 5
 const MAX_STEPS := 12
@@ -22,6 +42,7 @@ func run() -> void:
 	settings().show_info = false
 	var dir := OS.get_environment("SHOT_OUT")
 	var ids := OS.get_environment("SHOT_MISSIONS")
+	var only := OS.get_environment("SHOT_ONLY").split(",", false)
 	for id in (ids if ids != "" else "2011,2021").split(","):
 		load("res://flight/fly.gd").start(int(id))
 		var tv: Node = null
@@ -33,6 +54,7 @@ func run() -> void:
 		tv.addon.ui.visible = false
 		tv.cockpit.zoom = tv.cockpit.ZOOM_MAX
 		var c3d = tv.cockpit_3d
+		_surfaces = []
 		if c3d.pilot_body != null:  # the body hides the consoles' switches (out of the tree: show_body shows it each frame)
 			c3d.pilot_body.get_parent().remove_child(c3d.pilot_body)
 		c3d.command = func(_cmd): pass  # the store alone: no system answers and puts a switch back (sync)
@@ -44,49 +66,96 @@ func run() -> void:
 		for e in c3d.clickable._controls:
 			var r: Dictionary = e[1]
 			var vals := _values(r, e[0].name)
-			if vals.is_empty():
+			if vals.is_empty() or (not only.is_empty() and not e[0].name in only):
 				continue
 			n += 1
 			var tag := "%03d_%s" % [n, e[0].name]
 			index.append("%03d %s %s" % [n, e[0].name, " ".join(vals.map(func(v): return str(snappedf(v, 0.001))))])
-			# Asked anew after the aim: the cockpit's world moves with the head (_switch_shot.gd _aim).
-			await _aim(tv, func() -> Vector3: return _box(c3d, e[0], r).get_center(), 0.0)
-			var cam: Camera3D = c3d.camera
-			var box := _box(c3d, e[0], r)
-			var rect := Rect2(cam.unproject_position(box.position), Vector2.ZERO)
-			for k in 8:
-				rect = rect.expand(cam.unproject_position(box.get_endpoint(k)))
-			var side := maxf(maxf(rect.size.x, rect.size.y) * 2.0, MIN_VIEW)
-			var shot_rect := Rect2i(rect.get_center() - Vector2(side, side) / 2.0, Vector2i(int(side), int(side)))
-			var was = _shown(tv, r)
-			var cover = c3d.switches.get(r.get("guard", ""))
-			var first: Image = null
-			var moved := false
-			for k in vals.size():
-				_show(tv, r, vals[k])
-				await frames(2)
-				await RenderingServer.frame_post_draw
-				var img := get_root().get_texture().get_image().get_region(shot_rect)
-				img.resize(TILE, TILE, Image.INTERPOLATE_LANCZOS)
-				img.convert(Image.FORMAT_RGB8)
-				if first == null:
-					first = img
-				elif not moved:
-					moved = _differs(first, img)
-				img.save_png(out.path_join("%s_%d.png" % [tag, k]))
-			_show(tv, r, was)
-			if r.has("guard"):  # its cover as it was (_show lifts it)
-				if cover == null:
-					c3d.switches.erase(r.guard)
-				else:
-					c3d.switches[r.guard] = cover
+			var moved := await _pictures(tv, e[0], r, vals, out.path_join(tag))
+			if not moved:
+				for lean in LEANS:
+					tv.views.lean = lean
+					await frames(3)
+					if await _seen(tv, e[0], r):
+						moved = await _pictures(tv, e[0], r, vals, out.path_join(tag))
+						if moved:
+							print("LEAN %s %s %s" % [unit, e[0].name, tv.views.lean])
+							break
+			tv.views.lean = Vector3.ZERO
 			if not moved:
 				print("STILL %s %s" % [unit, e[0].name])
 		var f := FileAccess.open(out.path_join("index.txt"), FileAccess.WRITE)
 		f.store_string("\n".join(index) + "\n")
 		f.close()
-		check(n >= 150, "%s: %d controls pictured" % [unit, n])
+		check(n >= (1 if not only.is_empty() else 150), "%s: %d controls pictured" % [unit, n])
 		tv.views.snap = null
+
+
+## Control `r` (part `mi`) at each of `vals`, cropped round the part: <path>_<k>.png; whether the crops differ.
+func _pictures(tv: Node, mi: MeshInstance3D, r: Dictionary, vals: Array, path: String) -> bool:
+	var c3d = tv.cockpit_3d
+	# Asked anew after the aim: the cockpit's world moves with the head (_switch_shot.gd _aim).
+	await _aim(tv, func() -> Vector3: return _box(c3d, mi, r).get_center(), 0.0)
+	var cam: Camera3D = c3d.camera
+	var box := _box(c3d, mi, r)
+	var rect := Rect2(cam.unproject_position(box.position), Vector2.ZERO)
+	for k in 8:
+		rect = rect.expand(cam.unproject_position(box.get_endpoint(k)))
+	var side := maxf(maxf(rect.size.x, rect.size.y) * 2.0, MIN_VIEW)
+	var shot_rect := Rect2i(rect.get_center() - Vector2(side, side) / 2.0, Vector2i(int(side), int(side)))
+	var was = _shown(tv, r)
+	var cover = c3d.switches.get(r.get("guard", ""))
+	var first: Image = null
+	var moved := false
+	for k in vals.size():
+		_show(tv, r, vals[k])
+		await frames(2)
+		await RenderingServer.frame_post_draw
+		var img := get_root().get_texture().get_image().get_region(shot_rect)
+		img.convert(Image.FORMAT_RGB8)
+		if first == null:
+			first = img
+		elif not moved:
+			moved = _differs(first, img)
+		img = img.duplicate()
+		img.resize(TILE, TILE, Image.INTERPOLATE_LANCZOS)
+		img.save_png("%s_%d.png" % [path, k])
+	_show(tv, r, was)
+	if r.has("guard"):  # its cover as it was (_show lifts it)
+		if cover == null:
+			c3d.switches.erase(r.guard)
+		else:
+			c3d.switches[r.guard] = cover
+	return moved
+
+
+## Whether part `mi` is what the eye sees first at its centre (no other surface of the cockpit in front of it).
+func _seen(tv: Node, mi: MeshInstance3D, r: Dictionary) -> bool:
+	var c3d = tv.cockpit_3d
+	await _aim(tv, func() -> Vector3: return _box(c3d, mi, r).get_center(), 0.0)
+	var eye: Vector3 = c3d.camera.global_position
+	if _surfaces.is_empty():
+		for m: MeshInstance3D in c3d.find_children("*", "MeshInstance3D", true, false):
+			if m.mesh != null and m.is_visible_in_tree():
+				_surfaces.append([m, m.mesh.generate_triangle_mesh()])
+	return first_hit(_surfaces, eye, mi) == mi
+
+
+## The mesh of `surfaces` ([mesh, TriangleMesh]) the ray from `eye` to `mi`'s centre meets first.
+static func first_hit(surfaces: Array, eye: Vector3, mi: MeshInstance3D) -> MeshInstance3D:
+	var to := mi.global_transform * mi.get_aabb().get_center()
+	var best := INF
+	var first: MeshInstance3D = null
+	for e in surfaces:
+		var inv: Transform3D = e[0].global_transform.affine_inverse()
+		var hit: Dictionary = e[1].intersect_ray(inv * eye, (inv.basis * (to - eye)).normalized())
+		if not hit.is_empty() and (e[0].global_transform * hit.position - eye).length() < best:
+			best = (e[0].global_transform * hit.position - eye).length()
+			first = e[0]
+	return first
+
+
+var _surfaces := []  # [MeshInstance3D, TriangleMesh] of the cockpit (_seen)
 
 
 ## The part `mi` of control `r` and the parts near it its position moves (the ASI's bug by its knob), world frame.
@@ -157,7 +226,7 @@ func _show(tv: Node, r: Dictionary, v) -> void:
 				sw[r.prop] = v
 
 
-## Whether two crops differ past the renderer's noise: more than 0.2 % of the pixels changed by over 0.1.
+## Whether two crops differ past the renderer's noise: more than DIFF_SHARE of the pixels changed by over 0.1.
 static func _differs(a: Image, b: Image) -> bool:
 	var n := 0
 	for y in a.get_height():
@@ -166,4 +235,4 @@ static func _differs(a: Image, b: Image) -> bool:
 			var q := b.get_pixel(x, y)
 			if absf(p.r - q.r) + absf(p.g - q.g) + absf(p.b - q.b) > 0.3:
 				n += 1
-	return n > a.get_width() * a.get_height() * 0.002
+	return n > maxi(DIFF_MIN, int(a.get_width() * a.get_height() * DIFF_SHARE))

@@ -506,6 +506,20 @@ and the EHSI's M button is a push button. The proof: `modern-iaf/tests/_controls
 each F-16's every control through its positions and crops the part with what it moves; it prints a control whose
 crops are all alike as `STILL`.
 
+Finish list C4b (2026-11-17), the parts that proof still found alike:
+- A row's own property (`f16_controls.json` `prop`, laid over the model's) is read from the store as the model's are
+  (`cockpit3d.gd` `controls_props`). Until then the M button and the right MFD's GAIN rocker, the two rows whose property is not the model's,
+  did not move at all.
+- The MFDs' inboard rockers (the left MFD's CON, the right MFD's GAIN and BRT) sit on their bezels as the outboard
+  ones do. From the seat's eye FlightGear's ICP (23 cm proud of the MFDs) and the centre instruments' housing (8 cm
+  proud) stand in front of them, and the throttle's grip stands over MAX POWER. Each one is seen and clicked with the
+  head leaned 10 to 15 cm aside (Shift + the arrows).
+- The ASI's bug, the M button and MASTER CAUTION move a few pixels at the proof's zoom: the proof compares its crops
+  at full size.
+- The EHSI's HDG and CRS knobs turn, plain round knobs that show no turn; the ADV MODE button and its STBY / ACTIVE
+  legends sit behind the face of FlightGear's Block 15 MISC panel, which the build keeps (its `select` hides a group,
+  and the build hides only single objects). Their fixes change how the panel looks and wait for the user's approval.
+
 `modern-iaf/tests/test_switches_both_ways.gd` runs each jet's switches off and on after the Start engine command
 and checks the position, the consequence, the steps done and the switch shown; on the F-16s it switches each of the
 six alone and checks its system down with its consequence, the other five up, and the system back after the warm-up.
