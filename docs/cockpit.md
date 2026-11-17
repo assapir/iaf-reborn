@@ -462,7 +462,16 @@ occlusion, 1.8 MB; built by
   flat unlit black; they take a near-black grey (`INDEXER_GREY`) and the glareshield top's baked light
   (`indexer_body`, 2026-11-12). Their lamps stay in view unlit (`LAMPS_DARK`): FlightGear hides them off, which left
   the units' faces blank and the AR / NWS light gone. Left out for a day on 2026-11-12 (taken for stray slabs), the
-  units left the lamps floating and holes beside the posts. The plate (its image glass `HUDImage2`, back face and rim) is fitted inside the curved
+  units left the lamps floating and holes beside the posts. Each unit is an open hood 12.5 cm deep and 1.2 cm wide
+  inside with FlightGear's lamps at its far end, aimed 9.5° inboard: from the eye (11.3° at FlightGear's place, 13.3°
+  after `INDEXER_OUT`) the hood's inboard wall hid 50 to 60 % of each lamp, so the chevrons read as one stroke, the
+  donut as a C and the AR / NWS letters cut (the user, 2026-11-16: "you only see half of chevrons"). Since then each
+  unit with its lamps is turned to aim at the eye, and the lamps sit at the hood's open end, 1 mm aft of its rim
+  (`INDEXER_LIP`): the unit's aft face. `test_cockpit_view.gd` `_indexers_whole` checks that no opaque part of the
+  cockpit cuts any of the four lamps from the eye, at rest and 4 cm aside either way. The Sufa keeps them whole with
+  the head up to 9 cm left and 5 cm right (then its wide HUD's posts cover them), the Barak up to 15 cm and 14 cm.
+  The units are lifted 3 mm (`INDEXER_UP`): with the lamps at the mouth, the glareshield's aft edge hid the lowest
+  1 to 2 mm of the fast chevron. The plate (its image glass `HUDImage2`, back face and rim) is fitted inside the curved
   posts (`cockpit3d.py` `hud_glass_fit`, 2026-11-12): FlightGear's plate is a rectangle wider than the posts' curve,
   so from the eye its tinted corners and straight sides showed past the posts as a pale rectangle around the HUD (the
   user's "rectangle around the HUD"). At 8 heights over the plate the posts' points are seen from the eye on the
@@ -762,7 +771,13 @@ occlusion, 1.8 MB; built by
   left HUD post, by day and at night. An unlit lamp that stays in view (the gear lamps, the gear handle's light,
   LAUNCH) shows its sheet darkened by `LAMP_OFF` (70 %, inferred: an unlit lens): FlightGear's sheet paints the gear
   lamps lit green and the handle's light is plain red, so until 2026-11-03 they read lit with the gear up or on a
-  cold jet. The 3D cockpit lights them whatever the Better cockpit items say (it is an
+  cold jet. The AoA indexer's and the AR / NWS lamps beside the HUD (2026-11-16, the user: barely visible; mostly their
+  hoods hiding half of each symbol, "3D cockpit" HUD above): the sheet paints their symbols dim (at their brightest,
+  in linear light, the slow chevron's red 0.33, the AR / NWS letters 0.07), and the unlit donut at 30 % read as lit
+  as the lit chevron. Lit by day the AoA lamps now glow at about 3 at their brightest (`INDEXER_GAIN`, × 3.5 to × 9;
+  inferred: a lamp read in daylight), the AR / NWS letters at about 1 (× 15: more washed its lens pale), their black
+  lenses staying dark; at night at the sheet's own level. Unlit they keep 8 % of the sheet (`INDEXER_OFF`), a dark
+  lens. The 3D cockpit lights them whatever the Better cockpit items say (it is an
   opt-in of its own). CANOPY, DBU ON,
   TF FAIL and the other lamps stay dark: the game has no state for them.
 * **Displays**, each a SubViewport whose texture lights its screen (emissive, as the MFDs; `cockpit3d_display.gd`):

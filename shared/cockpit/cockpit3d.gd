@@ -1080,6 +1080,17 @@ var lamp_test := false
 ## while the lamp is off (an unlit lens; inferred).
 var _lamp_albedo := {}
 const LAMP_OFF := 0.7
+## The AoA indexer's and the AR / NWS lamps lit by day, × their sheet: FlightGear's sheet paints their symbols dim (at
+## their brightest, in linear light, the slow chevron's red 0.33, the donut 0.78, the fast chevron 0.9, the AR / NWS
+## letters 0.07), so at the sheet's own level a lit one hardly showed against the sunlit glareshield. Each is raised to
+## about 3 at its brightest, a lamp read in daylight (inferred); the black lens around the symbol (0.004) stays dark.
+## The AR / NWS lamp to about 1: its lens's faint green at × 40 washed the letters' ground pale. At night they glow at
+## the sheet's own level (the real units' dimmer; inferred). (The user's "barely visible" of 2026-11-16 was mostly the
+## hoods hiding half of each symbol: tools/f16d/cockpit3d.py INDEXER_LIP.)
+const INDEXER_GAIN := {"aoa_slow": 9.0, "aoa_on_speed": 4.0, "aoa_fast": 3.5, "ar_nws": 15.0}
+## An unlit indexer lamp's sheet darkened this much: its lens dark. LAMP_OFF's 30 % left the unlit donut a clear green,
+## as bright as the lit chevron beside it.
+const INDEXER_OFF := 0.92
 ## [node, records, its surfaces' materials] per scrolled texture.
 var _scrolls := []
 ## Display node name -> the Display drawing it.
@@ -1147,13 +1158,15 @@ func _update_instruments() -> void:
 	for key in _lamps:
 		var on: bool = cockpit.power >= 1 and (lamp_test or _lamp_on(key))
 		lamps_lit[key] = on
+		var lit: float = 1.0 if cockpit.night else float(INDEXER_GAIN.get(key, 1.0))
+		var off: float = INDEXER_OFF if INDEXER_GAIN.has(key) else LAMP_OFF
 		for l in _lamps[key]:
 			if l[1]:
 				l[0].visible = on
 			for m in l[2]:
-				m.emission_energy_multiplier = 1.0 if on else 0.0
+				m.emission_energy_multiplier = lit if on else 0.0
 				if _lamp_albedo.has(m):
-					m.albedo_color = _lamp_albedo[m] if on else _lamp_albedo[m].darkened(LAMP_OFF)
+					m.albedo_color = _lamp_albedo[m] if on else _lamp_albedo[m].darkened(off)
 	var ils := _ils_live()
 	for e in _shown:
 		e[0].visible = ils if e[1] == "ils" else true

@@ -36,10 +36,100 @@ func run() -> void:
 			_right_glove(tv.cockpit_3d, jet)
 			_left_glove(tv.cockpit_3d, jet)
 			_legs_still(tv.cockpit_3d, jet)
+			_indexers_whole(tv.cockpit_3d, jet)
 		await _zoom_at_pointer(tv)
 		await _lean(tv, jet)
 		if jet == "f16i":
 			await _wheel(c)
+
+
+## The AoA indexer's three lamps and the AR / NWS lamp whole from the eye (the user, 2026-11-16: "you only see half of
+## chevrons": FlightGear's hoods hid them, tools/f16d/cockpit3d.py INDEXER_LIP): no opaque part of the cockpit stands
+## between the eye and any point of the four faces, at rest and with the head INDEXER_LEAN aside either way. The
+## widest lean that keeps them whole is printed.
+const INDEXER_LEAN := 0.04
+const INDEXER_LAMPS := ["aoa_slow", "aoa_on_speed", "aoa_fast", "ar_nws"]
+
+
+func _indexers_whole(c3d: Node3D, jet: String) -> void:
+	var lamps := []
+	for key in INDEXER_LAMPS:
+		var mi := c3d.find_child("lamp_%s_0" % key, true, false) as MeshInstance3D
+		check(mi != null, "%s: the %s lamp in the model" % [jet, key])
+		if mi != null:
+			lamps.append(mi)
+	var walls := []  # [mesh, its surface in mm (Godot's ray test drops mm-sized triangles: cockpit3d_controls.gd MM)]
+	for mi: MeshInstance3D in c3d.find_children("*", "MeshInstance3D", true, false):
+		if mi in lamps or mi.mesh == null or not mi.is_visible_in_tree():
+			continue
+		var faces := _opaque_faces(mi)
+		if faces.is_empty():
+			continue
+		for i in faces.size():
+			faces[i] *= 1000.0
+		var tm := TriangleMesh.new()
+		tm.create_from_faces(faces)
+		walls.append([mi, tm])
+	check(not walls.is_empty(), "%s: the cockpit's opaque surfaces to test the indexers against" % jet)
+	var eye: Vector3 = c3d.camera.global_position
+	var side: Vector3 = c3d.camera.global_transform.basis.x
+	for d in [-INDEXER_LEAN, 0.0, INDEXER_LEAN]:
+		var cut := _indexer_cut(lamps, walls, eye + side * d)
+		check(cut.is_empty(), "%s: the indexer lamps whole from the eye %+.2f m aside %s" % [jet, d, cut])
+	var reach := Vector2.ZERO
+	for way in [-1, 1]:
+		for cm in range(1, 16):
+			if not _indexer_cut(lamps, walls, eye + side * way * cm * 0.01).is_empty():
+				break
+			reach[(way + 1) / 2] = cm
+	print("%s: the indexer lamps whole with the head up to %d cm left, %d cm right" % [jet, reach.x, reach.y])
+
+
+## The lamps (of `lamps`) whose face a wall cuts from `eye`: the segment to the centre and to each corner pulled 10 %
+## in, ending 0.5 mm short of the face.
+func _indexer_cut(lamps: Array, walls: Array, eye: Vector3) -> Array:
+	var out := []
+	for mi: MeshInstance3D in lamps:
+		var vs := mi.mesh.get_faces()
+		var mid := Vector3.ZERO
+		for v in vs:
+			mid += v / vs.size()
+		var points := [mid]
+		for v in vs:
+			points.append(mid.lerp(v, 0.9))
+		for p in points:
+			var to: Vector3 = mi.global_transform * p
+			var end := to + (eye - to).normalized() * 0.0005
+			if walls.any(func(w): return _blocks(w, eye, end)):
+				out.append(String(mi.name))
+				break
+	return out
+
+
+func _blocks(w: Array, a: Vector3, b: Vector3) -> bool:
+	var mi: MeshInstance3D = w[0]
+	if not (mi.global_transform * mi.get_aabb()).grow(0.001).intersects_segment(a, b):
+		return false
+	var inv := mi.global_transform.affine_inverse()
+	return not (w[1] as TriangleMesh).intersect_segment(inv * a * 1000.0, inv * b * 1000.0).is_empty()
+
+
+## The triangles of `mi`'s opaque surfaces (the HUD's glass and the cut-out labels let the lamps through).
+func _opaque_faces(mi: MeshInstance3D) -> PackedVector3Array:
+	var out := PackedVector3Array()
+	for s in mi.mesh.get_surface_count():
+		var m := mi.get_active_material(s) as BaseMaterial3D
+		if m != null and m.transparency != BaseMaterial3D.TRANSPARENCY_DISABLED:
+			continue
+		var arr: Array = mi.mesh.surface_get_arrays(s)
+		var v: PackedVector3Array = arr[Mesh.ARRAY_VERTEX]
+		var idx: PackedInt32Array = arr[Mesh.ARRAY_INDEX]
+		if idx.is_empty():
+			out.append_array(v)
+		else:
+			for i in idx:
+				out.append(v[i])
+	return out
 
 
 ## The wheel at a point low on the left (the left console): the point under the pointer stays within 0.5 px of it over

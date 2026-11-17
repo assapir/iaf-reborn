@@ -208,6 +208,11 @@ INDEXER_BODY = "indexer_body"
 # them from the eye; in the F-16C front-seat photo (Wikimedia Commons `File:F-16C_cockpit_m02006112700032.jpg`) a
 # clear gap separates each unit from its post (the user, 2026-11-13: "isn't aoa too close to the hud?"). Inferred.
 INDEXER_OUT = 0.025
+# The lamps' faces this far aft of their hood's rim (m), clear of its edge (the rim's walls are 0.3 mm thick).
+INDEXER_LIP = 0.001
+# The units lifted this far (m): with the lamps at the hood's mouth the glareshield's aft edge hid the lowest 1 to 2 mm
+# of the bottom lamp (the fast chevron) from the eye. The units' feet stay sunk in the glareshield.
+INDEXER_UP = 0.003
 # Their paint: the HUD housing's near-black grey, untextured (the F-16C front-seat photo, Wikimedia Commons
 # `File:F-16C_cockpit_m02006112700032.jpg`: both units dark beside the posts; FlightGear's sheet texel under them read
 # flat black; the user, 2026-11-12: "not flat black"). Linear RGB, inferred.
@@ -1263,14 +1268,37 @@ def main():
     # FlightGear gives them no UVs (all at the sheet's black corner), so from the eye they were two flat black bars;
     # they take the housing's dark grey (INDEXER_GREY) and the glareshield top's baked light (bake_light). 2026-11-12:
     # left out for a day, which left the lamps floating and holes beside the posts.
+    # Each unit is an open hood 12.5 cm deep and 1.2 cm wide inside, its lamps at the far end. FlightGear aims it 9.5°
+    # inboard, short of the eye (11.3° at its place, 13.3° INDEXER_OUT outboard), so the hood's inboard wall hid a third
+    # to two thirds of each symbol: the chevrons read as one stroke, the donut as a C (the user, 2026-11-16: "you only
+    # see half of chevrons"). Each unit with its lamps is turned about its lamps' centre so the hood's axis points at
+    # the eye (FG_EYE): about 3.8° in yaw and 1.5° in pitch. The lamps then move along the axis to the hood's open end
+    # (INDEXER_LIP aft of its rim), the unit's aft face, so no wall stands between them and a head leaning
+    # aside: at the far end a 1.2 cm opening 12.5 cm deep cut a symbol once the eye moved a few millimetres.
     indexer = kit.material(INDEXER_BODY, INDEXER_GREY, roughness=0.6)
-    for o in b.parts.get("Tub", []):
-        if o.name in ("Tub/box_left", "Tub/box_right"):
-            o.data.materials.clear()
-            o.data.materials.append(indexer)
-        if o.name in ("Tub/box_left", "Tub/box_right", "Tub/up", "Tub/steady", "Tub/down", "Tub/ar_nws"):
+    eye = C @ Vector(FG_EYE)
+    for box, lamp_names in (("Tub/box_left", ("Tub/up", "Tub/steady", "Tub/down")), ("Tub/box_right", ("Tub/ar_nws",))):
+        unit = [o for o in b.parts.get("Tub", []) if o.name == box or o.name in lamp_names]
+        for o in unit:
+            if o.name == box:
+                o.data.materials.clear()
+                o.data.materials.append(indexer)
             c = sum((v.co for v in o.data.vertices), Vector()) / max(len(o.data.vertices), 1)
-            o.data.transform(Matrix.Translation((math.copysign(INDEXER_OUT, c.x), 0, 0)))
+            o.data.transform(Matrix.Translation((math.copysign(INDEXER_OUT, c.x), 0, INDEXER_UP)))
+        lamps_at = [v.co.copy() for o in unit if o.name in lamp_names for v in o.data.vertices]
+        hood = [v.co.copy() for o in unit if o.name == box for v in o.data.vertices]
+        if not lamps_at or not hood:
+            continue
+        pivot = sum(lamps_at, Vector()) / len(lamps_at)
+        far = max((p - pivot).length for p in hood)
+        mouth = [p for p in hood if (p - pivot).length > far / 2]  # the hood's open end, toward the eye
+        axis = sum(mouth, Vector()) / len(mouth) - pivot
+        turn = axis.rotation_difference(eye - pivot).to_matrix().to_4x4()
+        to_mouth = (eye - pivot).normalized() * (axis.length + INDEXER_LIP)
+        for o in unit:
+            o.data.transform(Matrix.Translation(pivot) @ turn @ Matrix.Translation(-pivot))
+            if o.name in lamp_names:
+                o.data.transform(Matrix.Translation(to_mouth))
     if os.environ.get("C3D_DEBUG") == "1":  # every object's bounds (Blender frame, before the shift)
         for o in everything:
             vs = [v.co for v in o.data.vertices]
