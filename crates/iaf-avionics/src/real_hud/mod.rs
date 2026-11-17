@@ -367,6 +367,69 @@ pub struct Input {
     /// The selected store's launch zone at the target (m).
     pub dlz: Option<Dlz>,
     pub weapons: Weapons,
+    /// Modern IAF's F-16s: the HUD control panel and the up-front controls (modern-iaf/docs/ufc.md). The
+    /// default draws the HUD as before (reborn's).
+    pub panel: Panel,
+}
+
+/// The F-16's HUD control panel switches (dash-34 "HUD remote control panel") and what the up-front controls give the
+/// HUD.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct Panel {
+    pub scales: Scales,
+    pub fpm: FpmSwitch,
+    pub velocity: Velocity,
+    pub alt: AltSwitch,
+    /// DED DATA: the DED's lines repeated low on the HUD (empty: OFF).
+    pub ded: Vec<String>,
+    /// DEPR RET at STBY: the standby reticle depressed this far (mr) by the RET DEPR wheel.
+    pub depr_mr: Option<f64>,
+    /// The CARA ALOW setting (ft; None: `gaaf::ALOW_FT`).
+    pub alow_ft: Option<f64>,
+    /// The INS alignment: Some(false) aligning (ALIGN), Some(true) ready to navigate (ALIGN flashing), None neither.
+    pub align: Option<bool>,
+    /// The DGFT / MSL OVRD switch (`master::Override` as its number: 1 DGFT, 2 MSL OVRD).
+    pub over: u8,
+    /// MASTER ARM at SIMULATE.
+    pub sim: bool,
+    /// The HUD is the sensor of interest.
+    pub soi: bool,
+}
+
+/// SCALES: VV/VAH (the vertical velocity scale too), VAH (airspeed, altitude, heading), OFF.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum Scales {
+    VvVah,
+    #[default]
+    Vah,
+    Off,
+}
+
+/// FP MARKER: ATT/FPM (the ladder and the marker), FPM (the marker only), OFF.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum FpmSwitch {
+    #[default]
+    AttFpm,
+    Fpm,
+    Off,
+}
+
+/// VELOCITY: CAS, TAS, GND SPD (CAS always with the gear down or in DGFT).
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum Velocity {
+    #[default]
+    Cas,
+    Tas,
+    Gnd,
+}
+
+/// ALT: RADAR (the radar altitude on the scale), BARO, AUTO (the radar altitude's thermometer below 1,200 ft).
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum AltSwitch {
+    Radar,
+    #[default]
+    Baro,
+    Auto,
 }
 
 impl Input {

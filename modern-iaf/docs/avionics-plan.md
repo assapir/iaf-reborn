@@ -89,7 +89,7 @@ following[^sufa-at][^sufa-lm-radar]. The pilot's view of each is the dash-34's F
 | R12 | GMT | bright movers on a dimmed map | `Mode::Gmt`; the real FCR's to 40 NM, its map dimmed, EXP; the range's towed hulk moves for it | Sim |
 | R13 | SEA | GM tuned for ships, no DBS | GM listing ships only, no DBS; the range's barge off the coast | Sim (17 Nov) |
 | R14 | AGR, BCN, TF | ranging for the A-G solution; beacon; terrain following[^sufa-at] | AGR with a CCIP bomb or the A-G gun: the slant range along the pipper's line on the FCR and the HUD; BCN and TF parked by G12 (no beacons in the sim) | AGR Sim (17 Nov); BCN, TF parked (G12) |
-| R15 | AIFF interrogation | TMS left; a green circle (friend) or yellow square (unknown) at the reply on the FCR[^mlu1] | planned in [../../docs/real-hud.md](../../docs/real-hud.md) "IFF", not built | Missing (G13) |
+| R15 | AIFF interrogation | TMS left; a green circle (friend) or yellow square (unknown) at the reply on the FCR[^mlu1] | O (SCAN), Shift + O (LOS) and TMS left in CRM; green circles / yellow squares on the FCR and the HSD for 3 s, SCAN blanking the FCR; the DED's IFF and INTG pages ([ews.md](ews.md) §5, §8; `aiff.rs`) | Sim (17 Nov) |
 
 ### 2.2 MFD formats (colour)
 
@@ -97,32 +97,32 @@ following[^sufa-at][^sufa-lm-radar]. The pilot's view of each is the dash-34's F
 |---|---|---|---|---|
 | M1 | Frame | 20 OSBs, SWAP, three formats per MFD, DCLT, the format menu, the DMS stepping formats | `crates/iaf-avionics/src/f16_mfd.rs`, `shared/cockpit/f16_mfd.gd`; the 3D cockpit's OSBs press through their own path ([cockpit.md](cockpit.md) §5.2 "Every control"); the formats kept per master mode, DMS on keys, RESET's MSMD / DCLT ([../../docs/mfd.md](../../docs/mfd.md) §9 "Modern MFDs") | Sim (17 Nov) |
 | M2 | FCR | §2.1 | `f16_mfd.gd` `fcr`; the CNTL page (OSB 5) with TGT HIS and MTR acting on the search (radar.md §9.3) | Sim |
-| M3 | HSD | depressed view, rings, route, scan wedge, threat rings, colour map; CNTL, data-link tracks, bullseye | `f16_mfd.gd` `hsd` with the sim's map; DEP / CEN, CPL, EXP1 / 2, FRZ, the CNTL page (FCR, PRE, NAV1, RINGS, BULL), the bullseye (the home base, inferred), the HSD cursor and TMS up on a steerpoint (`f16_mfd.rs` `Hsd`); data-link tracks with G30 | Sim (17 Nov; data link G30) |
+| M3 | HSD | depressed view, rings, route, scan wedge, threat rings, colour map; CNTL, data-link tracks, bullseye | `f16_mfd.gd` `hsd` with the sim's map; DEP / CEN, CPL, EXP1 / 2, FRZ, the CNTL page (FCR, PRE, NAV1, RINGS, BULL), the bullseye (the home base, inferred), the HSD cursor and TMS up on a steerpoint (`f16_mfd.rs` `Hsd`); data-link tracks (the DL switch; [ews.md](ews.md) §6) | Sim (17 Nov) |
 | M4 | SMS | INV, AAM, A-G (CCIP / CCRP / DTOS / LADD / MAN, profiles, fuzing NSTL / NOSE / TAIL, pairs, interval, pulses), GUN, S-J | INV, AAM, A-G with CCIP and the GPS block, GUN (EEGS / STRF), S-J (`f16_mfd.gd` `sms_format`); RDY needs MASTER ARM and ST STA ([weapons.md](weapons.md) §5); the A-G submode menu (the release's own submodes) and PROF1 / PROF2 per weapon (`release.rs` `Profiles`) | Sim (17 Nov; the other release modes and fuzing G21, G22) |
 | M5 | WPN | weapon video (Maverick), HAS, a GPS bomb's status | `f16_mfd.gd` `wpn` / `_jdam`; the sim carries no Maverick or HARM | Sim (GPS) |
 | M6 | TGP | the Litening picture, WIDE / NARO, laser, polarity, range | `f16_mfd.gd` `tgp`, `shared/weapons/eo_sensor.gd`; the Litening on station 5 (the chin; [weapons.md](weapons.md) §7); POINT / AREA / INR track, slaved to the radar's designation or the steerpoint (TMS down), the zoom, LASER ARM and the laser | Sim (17 Nov) |
 | M7 | TEST | the fault list | `f16_mfd.gd` `test` | Sim |
-| M8 | SOI | the SOI box, NOT SOI, the DMS moving it | the SOI box and NOT SOI on the MFDs, DMS on keys, the cursor and TMS keys acting on the SOI (`f16_mfd.rs` `dms`, `cockpit.gd` `soi_format`); the HUD's own SOI mark is open | Sim (17 Nov) |
+| M8 | SOI | the SOI box, NOT SOI, the DMS moving it | the SOI box and NOT SOI on the MFDs, DMS on keys, the cursor and TMS keys acting on the SOI (`f16_mfd.rs` `dms`, `cockpit.gd` `soi_format`); the HUD's asterisk as the SOI ([ufc.md](ufc.md) §4) | Sim (17 Nov) |
 | M9 | DTE, FLCS, FLIR, TFR, BLANK, RESET | data transfer, flight controls, navigation FLIR, terrain following | DTE (LOAD), FLCS (branches, BIT on the ground), BLANK, RESET MENU (inferred layouts); FLIR and TFR not offered: no navigation FLIR pod on the Sufa (inferred), TF parked with G12 | Sim (17 Nov) |
 
 ### 2.3 HUD and helmet
 
 | # | function | real | today | status |
 |---|---|---|---|---|
-| H1 | NAV / A-A / A-G layouts | dash-34 figs. 1-110 / 1-111 / 1-115 ([../../docs/real-hud.md](../../docs/real-hud.md) "F-16C/D") | `crates/iaf-avionics/src/real_hud/f16.rs` through `shared/cockpit/hud.gd`, in the sim's P43 light | Sim |
-| H2 | Break X, GAAF, pull-up cue, ALOW | flashing X at the GAAF advisory, steady inside Rmin; the U; `AL` below ALOW[^dash34gaaf] | `crates/iaf-avionics/src/gaaf.rs`, `f16.rs` `pullup_cue`; the original's own break X rule also runs (`player_weapons.gd` `_break_x_cue`); RDR ALT gates the radar altitude | Partly (G2) |
-| H3 | DGFT / MSL override | the throttle's switch: the dogfight radar, gun and SRM at once | — (M cycles the master modes) | Missing (G17) |
-| H4 | VVI, ALIGN / RDY, SIM | the vertical velocity scale; the INS alignment cue; SIM training mode | — | Missing (G18) |
+| H1 | NAV / A-A / A-G layouts | dash-34 figs. 1-110 / 1-111 / 1-115 ([../../docs/real-hud.md](../../docs/real-hud.md) "F-16C/D") | `crates/iaf-avionics/src/real_hud/f16.rs` through `shared/cockpit/hud.gd`, in the sim's P43 light; the HUD control panel's SCALES (VV/VAH), FP MARKER, VELOCITY, ALT (AUTO's thermometer), DED DATA, DEPR RET ([ufc.md](ufc.md) §4) | Sim (17 Nov) |
+| H2 | Break X, GAAF, pull-up cue, ALOW | flashing X at the GAAF advisory, steady inside Rmin; the U; `AL` below ALOW[^dash34gaaf] | `crates/iaf-avionics/src/gaaf.rs`, `f16.rs` `pullup_cue`; the original's own break X rule also runs (`player_weapons.gd` `_break_x_cue`); RDR ALT gates the radar altitude; ALOW set on the DED | Sim (17 Nov; G2) |
+| H3 | DGFT / MSL override | the throttle's switch: the dogfight radar, gun and SRM at once | V / Shift + V: the radar's ACM / CRM, the SRM / MRM, the HUD's DGFT with the EEGS funnel ([ufc.md](ufc.md) §5) | Sim (17 Nov) |
+| H4 | VVI, ALIGN / RDY, SIM | the vertical velocity scale; the INS alignment cue; SIM training mode | VV/VAH's scale, ALIGN steady / flashing, MASTER ARM's SIMULATE with `SIM` ([ufc.md](ufc.md) §3–4) | Sim (17 Nov) |
 | H5 | DASH IV helmet | the aiming cross, the seeker diamond, HOBS cues | `crates/iaf-avionics/src/real_hud/dash.rs`; the HMCS SYM INT switch darkens it ([cockpit.md](cockpit.md) §5.2) | Sim |
 
 ### 2.4 RWR and EW
 
 | # | function | real | today | status |
 |---|---|---|---|---|
-| E1 | RWR display | Elisra RWR[^sufa-at]; the threat azimuth indicator's symbols (real-mfd.md "The threat azimuth indicator") | `crates/iaf-avionics/src/rwr.rs`, the panel screen (`shared/cockpit/cockpit3d_display.gd` `_rwr`) with the sim's glyphs; no hostile emitter exists to show | Partly (G3) |
-| E2 | MAW | PAWS: "the direction, missile type, and time to impact"[^sufa-janes] | the RWR list already holds the missiles launched at the jet (`rwr.rs` `missiles`) | Missing (G19) |
+| E1 | RWR display | Elisra RWR[^sufa-at]; the threat azimuth indicator's symbols (real-mfd.md "The threat azimuth indicator") | `rwr.rs` (all-aspect on the modern F-16s) and `ews.rs` on the 3D RWR scope: labels by class, the diamond, lock square, launch circle, new-threat flash, PRI / OPEN, UNKNOWN, TGT SEP, HANDOFF, SYS TEST, the THREAT / MSL knobs; the range's radar drones show as "35" ([ews.md](ews.md) §2) | Sim (17 Nov) |
+| E2 | MAW | PAWS: "the direction, missile type, and time to impact"[^sufa-janes] | `ews.rs` `Maw` from the RWR's missile list: an "M" on the RWR scope at the missile's direction with the seconds to impact, the launch tone ([ews.md](ews.md) §3); the missile type open | Sim (17 Nov) |
 | E3 | Jammer | SPS-3000 / internal jammer[^sufa-at][^sufa-periscope] | the shared ECM (J; [../../docs/weapons.md](../../docs/weapons.md) §10) | Partly (G3) |
-| E4 | Chaff / flares, programs | dispenser programs from the CMS | single chaff / flare by key; the sim's decoy flight ([weapons.md](weapons.md) §2) | Partly (G20) |
+| E4 | Chaff / flares, programs | dispenser programs from the CMS | `cmds.rs`: the CMDS panel (MODE, CH, FL, O1, O2, RWR, JMR, MWS, JETT), programs 1–4, the CMS keys (P, Shift + P, Y), SEMI / AUTO on a launch, "Counter", "Chaff flare low / out"; releases through the game's dispense ([ews.md](ews.md) §4); the DED's EWS pages: programs, BINGO, options ([ews.md](ews.md) §8) | Sim (17 Nov) |
 
 ### 2.5 Stores, release and weapons
 
@@ -149,13 +149,13 @@ following[^sufa-at][^sufa-lm-radar]. The pilot's view of each is the dash-34's F
 
 | # | function | real | today | status |
 |---|---|---|---|---|
-| N1 | INS alignment | the INS knob, the DED INS page, the HUD ALIGN / RDY | the knob and 90 s / 8 min alignment (`crates/iaf-flight/src/sixdof/start.rs`); no DED page, no HUD cue | Partly (G18) |
-| N2 | Steerpoints, DED, ICP | STPT page, keypad entry, markpoints, bingo, ALOW setting | the route, W / Shift+W, the DED's STPT and time (`cockpit3d_display.gd` `_ded`), the EHSI | Partly (G28) |
-| N3 | TACAN | channel, bearing and range to a base | — | Missing (G29) |
+| N1 | INS alignment | the INS knob, the DED INS page, the HUD ALIGN / RDY | the knob and 90 s / 8 min alignment (`start.rs`), the DED's INS page, the HUD's ALIGN, no steering until it navigates ([ufc.md](ufc.md) §3) | Sim (17 Nov) |
+| N2 | Steerpoints, DED, ICP | STPT page, keypad entry, markpoints, bingo, ALOW setting | every DED page with data entry (`ufc.rs`): STPT editing, markpoints 26–30, BINGO, ALOW, CRUS, TIME, BULL, FIX, the radios ([ufc.md](ufc.md) §2) | Sim (17 Nov) |
+| N3 | TACAN | channel, bearing and range to a base | T-ILS page, the bases' stations (our channels), the EHSI's TCN ([ufc.md](ufc.md) §2) | Sim (17 Nov) |
 | N4 | ILS | localizer and glide slope | the HUD's ILS lines at the exact deviation ([../../docs/real-hud.md](../../docs/real-hud.md) "What ours draws") | Sim |
-| N5 | Data link | Link 16 / IDM tracks on the HSD and FCR | — | Missing (G30) |
-| N6 | Radios | UHF / VHF, the tower, AWACS | the tower menu ([training.md](training.md) §8); AWACS calls in `crates/iaf-avionics/src/fctrl.rs`, no AWACS in the sim's missions | Partly (G31) |
-| N7 | HOTAS functions | TMS, DMS, CMS, cursor, uncage, DGFT, expand, pickle, trigger | pickle, trigger, chaff / flare as keys; TMS, the cursor and DMS on keys (slices 2 and 4); uncage, DGFT and CMS later | Partly (G17, G20, G26) |
+| N5 | Data link | Link 16 / IDM tracks on the HSD and FCR | `datalink.rs`: the flight's jets and the AWACS's tracks on the HSD and the FCR with the DL switch, the DED's DLNK page ([ews.md](ews.md) §6, §8) | Sim (17 Nov) |
+| N6 | Radios | UHF / VHF, the tower, AWACS | COM1 / COM2 presets and the backup UHF on the DED ([ufc.md](ufc.md) §2); the tower menu ([training.md](training.md) §8); the AWACS's contact calls (`fctrl.rs`) on the range, their voice waiting for the `voices` step ([ews.md](ews.md) §7) | Partly (G31) |
+| N7 | HOTAS functions | TMS, DMS, CMS, cursor, uncage, DGFT, expand, pickle, trigger | pickle, trigger, chaff / flare as keys; TMS, the cursor and DMS on keys (slices 2 and 4); DGFT / MSL OVRD on V (slice 5); the CMS ([ews.md](ews.md) §1); uncage with slice 8 | Partly (G26) |
 
 ## 3. F-16D Barak: its differences
 
@@ -225,7 +225,7 @@ by the sim; **extend** = existing shared logic grown; **new** = new logic in a R
 | # | gap | size | kind | test |
 |---|---|---|---|---|
 | G1 | **Radar standby.** Powered, the radar sits at OFF until Q or R; the real FCR comes up in STBY and shows it. Make power-on go to STBY with the FCR's `STBY` legend, keep it from radiating with WOW (forum-level source[^wow]; inferred), go to CRM on the first mode press or after take-off (inferred). The F-35I the same without the switch. The user's own description of the fault is to be read back to him before the fix. **Found and fixed 17 Nov:** his words were "radar isn't working? can't move out of stby?": a start by the checklist's keys left the SNSR PWR panel's FCR off, so the radar was held dead, the FCR format showed STBY and Q / R did nothing; Ctrl+A (the avionics step) now turns FCR and RDR ALT on with the four (`start.rs`). The power-on STBY and the WOW rule were built with slice 2 (17 Nov; radar.md §9.1) | S | extend (`radar.rs` power-on state; `player_weapons.gd` FCR hold) | Rust unit test in `radar.rs`; new modern-iaf/tests/test_sim_radar.gd: FCR on → STBY on the FCR format, no contacts on the ground, CRM LRS after Q in the air |
-| G2 | **Break X and the HUD against reborn.** Two break X rules run in the sim: the original's (`_break_x_cue`, the 1998 pull-up rule) and the Real HUD's GAAF (`gaaf.rs`), which reads the radar altitude the RDR ALT switch gates. First compare reborn's F-16 Real HUD and the sim's in the same states (dive, A-A lock inside Rmin, RDR ALT off), list each difference, then fix in the shared code. **Found and fixed 17 Nov** (his words: "no x on pull up?!"): the sim draws reborn's Real HUD code (`real_hud/f16.rs`) unchanged; its break X needs the radar altitude, and RDR ALT stayed off after a keyed start (the G1 cause; the GAAF voice spoke without it). The side-by-side comparison of the rest stays open | S–M | extend | `tests/godot/test_real_hud.gd` gains the states; a sim twin in new modern-iaf/tests/test_sim_hud.gd; pictures side by side (`tests/godot/_hud_compare_shot.gd`) |
+| G2 | **Break X and the HUD against reborn.** Two break X rules run in the sim: the original's (`_break_x_cue`, the 1998 pull-up rule) and the Real HUD's GAAF (`gaaf.rs`), which reads the radar altitude the RDR ALT switch gates. First compare reborn's F-16 Real HUD and the sim's in the same states (dive, A-A lock inside Rmin, RDR ALT off), list each difference, then fix in the shared code. **Found and fixed 17 Nov** (his words: "no x on pull up?!"): the sim draws reborn's Real HUD code (`real_hud/f16.rs`) unchanged; its break X needs the radar altitude, and RDR ALT stayed off after a keyed start (the G1 cause; the GAAF voice spoke without it). The rest (17 Nov, slice 5): the sim and reborn draw the same `f16.rs`; the sim adds only the HUD panel's switches and the UFC's cues ([ufc.md](ufc.md) §4), so with the panel at its default both HUDs are the same frame | S–M | extend | `tests/godot/test_real_hud.gd` gains the states; a sim twin in new modern-iaf/tests/test_sim_hud.gd; pictures side by side (`tests/godot/_hud_compare_shot.gd`) |
 | G4 | **SPICE / GPS targets.** In the sim a GPS bomb in PRE has no target: PRE targets come from reborn's briefing TSD only (`iaf-reborn/menu/tsd_gps.gd`), the sim's missions have no target steerpoint, and VIS needs a MAP designation. Fix: move the PRE target store and its pick into `shared/` (the reuse rule), let the sim's briefing map set them, and give missions a target steerpoint that `gps.rs` `default_target` reads. **Found 17 Nov** (his words: "is spice bombs really works? do we even support gps pre?"): VIS works once the radar is up (the G1 fix: R and Q give MAP, a MAP click designates, the SPICE aims there; `test_sim_radar.gd`). PRE has nothing to aim at: the sim's missions hold no target and one steerpoint at the base, and the sim's briefing has no target pick; that waits for G3's targets and the user's yes on a briefing pick | M | wire + extend | `modern-iaf/tests/test_weapons_flight.gd` gains a GBU-38 PRE and a SPICE 1000 VIS run against a ground target; `tests/godot/test_modern_weapons.gd` stays green |
 | G23 | **Gun flash.** The muzzle flash hangs on the outside model only (`player_weapons.gd` `_muzzle_flash` added to `host.aircraft`); the stores are mirrored on the cockpit-view model (`own_bc`), the flash is not (inferred cause; confirm with the user's report). **Found 17 Nov:** his words were "flare of bullets stay for too long and are too big": the rounds' own tracer heads (`player_weapons.gd` `_tracer`, a fixed-size glow on every round for its whole flight), not the muzzle flash; a smaller, shorter glow waits for his yes | S | wire | `modern-iaf/tests/test_sim_gun.gd`: the flash node visible in the cockpit view while firing, hidden after |
 
@@ -233,7 +233,7 @@ by the sim; **extend** = existing shared logic grown; **new** = new logic in a R
 
 | # | gap | size | kind | test |
 |---|---|---|---|---|
-| G3 | **Targets.** **Built 17 Nov (slice 1):** a range mission per jet (`ramon_range`, `ramat_david_range`, `nevatim_range`; training.md §3.4): five drones (our F-16 and F-35 models on the shared AI under the sim's own brains, data-formats.md §5.1: co-altitude, low, a manoeuvring one, a pair with radars on) and four ground targets (F-16 and MiG-29 hulks); kills scored by the range's training kind. The SAM site with a radar waits for approved records | M | wire (shared AI, mission runtime) + data | modern-iaf/tests/test_sim_range.gd: per jet the drones fly, the radar finds one, a gun kill is scored |
+| G3 | **Targets.** **Built 17 Nov (slice 1; their radars on the threat display with slice 5, [ews.md](ews.md) §2):** a range mission per jet (`ramon_range`, `ramat_david_range`, `nevatim_range`; training.md §3.4): five drones (our F-16 and F-35 models on the shared AI under the sim's own brains, data-formats.md §5.1: co-altitude, low, a manoeuvring one, a pair with radars on) and four ground targets (F-16 and MiG-29 hulks); kills scored by the range's training kind. The SAM site with a radar waits for approved records | M | wire (shared AI, mission runtime) + data | modern-iaf/tests/test_sim_range.gd: per jet the drones fly, the radar finds one, a gun kill is scored |
 
 ### 5.3 Radar
 
@@ -247,7 +247,7 @@ by the sim; **extend** = existing shared logic grown; **new** = new logic in a R
 | G10 | SAR / DBS patch picture (F-16 GM DBS, F-35I ASR) from the terrain and the sim's imagery. **Built 17 Nov (slice 3)** for the F-16 (`radar.rs` `render`); the F-35I's ASR takes it in slice 7 | M–L | new (picture from the height field, `crates/iaf-avionics/src/heights.rs`) | a picture test: the patch shows the runway of the base under the cursor |
 | G11 | SEA mode: ships as returns over water. **Built 17 Nov (slice 3)**, with the range's barge | S | extend | Rust: a ship shows, land returns do not |
 | G12 | AGR (ranging for the A-G solution), BCN, TF. **AGR built 17 Nov (slice 3)**; BCN and TF stay parked | S each | new | parked as low value unless the user asks |
-| G13 | AIFF (Sufa) and combat ID (Adir): replies and identity on the FCR, HSD, SRCH and TSD; unknown = yellow square | M | new (`fctrl.rs` or a new `iff.rs`) | Rust: a friend replies, a hostile does not; the PCD and FCR draw the symbols |
+| G13 | AIFF (Sufa) and combat ID (Adir): replies and identity on the FCR, HSD, SRCH and TSD; unknown = yellow square. **The Sufa's AIFF built 17 Nov (slice 5, [ews.md](ews.md) §5)**; the Adir's combat ID with slice 7 | M | new (`fctrl.rs` or a new `iff.rs`) | Rust: a friend replies, a hostile does not; the PCD and FCR draw the symbols |
 
 ### 5.4 Displays, HUD, navigation, EW
 
@@ -256,14 +256,14 @@ by the sim; **extend** = existing shared logic grown; **new** = new logic in a R
 | G14 | HSD CNTL, bullseye, data-link tracks. **Built 17 Nov (slice 4):** CNTL, bullseye, DEP / CEN, CPL, EXP, FRZ, the cursor; the data-link tracks come with G30 | S | extend | `tests/godot/test_f16_mfd.gd` |
 | G15 | Targeting pod (Litening on the Sufa, LANTIRN on the Barak) and laser bombs in the sim's data: a pod store and laser bomb records; the TGP format, laser and laser bombs are shared already. **Built 17 Nov (slice 4):** the Litening on both F-16s (§8.2), the GBU-10 / 12 / 16, the TGP's track modes and LASER ARM ([weapons.md](weapons.md) §7) | S (data) | wire | `tests/godot/test_laser_bombs.gd` and a sim run: the pod's laser guides a GBU-12 onto a range target |
 | G16 | The low-value formats (DTE, FLCS, TFR; F-35 FCS, PHM, CHKLST, DIM). **The F-16's built 17 Nov (slice 4; the user: "All mfds"):** DTE, FLCS, BLANK, RESET; TFR waits for G12 | S each | new (drawing) | listed, built only on the user's word |
-| G17 | DGFT / MSL override | S | extend (`master.rs`) | Rust: DGFT selects ACM, the gun and the SRM at once |
-| G18 | HUD VVI; INS ALIGN / RDY on the HUD and the DED INS page | S | extend (`f16.rs`, `start.rs` state) | Rust snapshot of the HUD; `modern-iaf/tests/test_switches_both_ways.gd` sees ALIGN then RDY |
-| G19 | MAW (Sufa PAWS, Adir DAS): direction and time to impact of a missile launched at the jet, from the RWR's missile list | M | new (`rwr.rs`) | Rust: a launch shows its bearing and a falling time; voice and symbol in the sim |
-| G20 | Chaff / flare programs (bursts, intervals) on the CMS | S | extend | Rust: program 1 drops its count at its interval |
-| G28 | DED / ICP pages: STPT entry, markpoints, bingo, ALOW setting | M | new (Rust page state; `cockpit3d_display.gd` draws) | sim test: a markpoint over the jet becomes a steerpoint on the HSD |
-| G29 | TACAN to the bases (channel, bearing, range) on the HSI / EHSI, the HUD and the F-35's function bar | S | new (base channels in `modern-iaf/data/airbases`) | Rust: bearing and range to Ramon from a known point |
-| G30 | Data link: tracks of the flight's other jets and of AWACS on the HSD, FCR and TSD | M | new | Rust: a wingman's radar contact appears on the player's HSD |
-| G31 | AWACS in the sim's missions (the shared radio calls) | S | wire | `modern-iaf/tests/test_radio_calls.gd` hears a contact call |
+| G17 | DGFT / MSL override. **Built 17 Nov (slice 5)** | S | extend (`master.rs`) | Rust: DGFT selects ACM, the gun and the SRM at once |
+| G18 | HUD VVI; INS ALIGN / RDY on the HUD and the DED INS page. **Built 17 Nov (slice 5)** | S | extend (`f16.rs`, `start.rs` state) | Rust snapshot of the HUD; `modern-iaf/tests/test_switches_both_ways.gd` sees ALIGN then RDY |
+| G19 | MAW (Sufa PAWS, Adir DAS): direction and time to impact of a missile launched at the jet, from the RWR's missile list. **The Sufa's built 17 Nov (slice 5, [ews.md](ews.md) §3)**; the Adir's DAS with slice 7 | M | new (`rwr.rs`) | Rust: a launch shows its bearing and a falling time; voice and symbol in the sim |
+| G20 | Chaff / flare programs (bursts, intervals) on the CMS. **Built 17 Nov (slice 5, [ews.md](ews.md) §4)** | S | extend | Rust: program 1 drops its count at its interval |
+| G28 | DED / ICP pages: STPT entry, markpoints, bingo, ALOW setting. **Built 17 Nov (slice 5)** with every page the sim can feed ([ufc.md](ufc.md)) | M | new (Rust page state; `cockpit3d_display.gd` draws) | sim test: a markpoint over the jet becomes a steerpoint on the HSD |
+| G29 | TACAN to the bases (channel, bearing, range) on the HSI / EHSI, the HUD and the F-35's function bar. **The F-16s' built 17 Nov (slice 5)**; the F-35's with slice 7 | S | new (base channels in `modern-iaf/data/airbases`) | Rust: bearing and range to Ramon from a known point |
+| G30 | Data link: tracks of the flight's other jets and of AWACS on the HSD, FCR and TSD. **The F-16s' built 17 Nov (slice 5, [ews.md](ews.md) §6)**; the F-35I's TSD with slice 7 | M | new | Rust: a wingman's radar contact appears on the player's HSD |
+| G31 | AWACS in the sim's missions (the shared radio calls). the calls' voice data written 17 Nov on `wt/avionics-s5-awacs-voices`, waiting for the `voices` step's clips ([ews.md](ews.md) §7) | S | wire | `modern-iaf/tests/test_radio_calls.gd` hears a contact call |
 | G32 | SRCH layout once a source shows it | S | extend | picture |
 | G33 | F-35I electronic attack and passive ESM | M | new | open: sources are one line[^apg81]; built only on the user's word |
 | G34 | F-35I WPN-A / WPN-S, CNI pop-up, double-width formats, the 5 presets | M | new (drawing) | PCD test: each format opens from MENU and widens |

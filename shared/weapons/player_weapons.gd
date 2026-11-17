@@ -26,6 +26,7 @@ const RADAR_CNTL := Radar.EV_CNTL
 const RADAR_AG_OSB := Radar.EV_AG_OSB
 const RADAR_GROUND := Radar.EV_GROUND
 const Rwr := preload("res://shared/weapons/rwr.gd")
+const Ews := preload("res://shared/weapons/ews.gd")
 const WorldMap := preload("res://shared/util/world_map.gd")
 const EoSensor := preload("res://shared/weapons/eo_sensor.gd")
 const HarmSensor := preload("res://shared/weapons/harm_sensor.gd")
@@ -127,12 +128,21 @@ var safety_off := false
 ## Ours: the master arm; safe, no gun or store fires (gun_trigger, fire_selected). The original has none, so it stays
 ## armed; Modern IAF starts safe (Settings.starts_safe) and the Master arm key (command 202) toggles it.
 var master_arm := true
+## Ours, Modern IAF's F-16s: MASTER ARM at SIMULATE (the 3D cockpit's switch down): nothing is released or fired, the
+## HUD shows SIM (modern-iaf/docs/weapons.md §3).
+var master_sim := false
+## Ours, Modern IAF's F-16s: the throttle's DGFT / MSL OVRD switch (IafModes.override_throw: 0 centred, 1 DGFT, 2 MSL
+## OVRD) and what it changed: {station, radar} before it was thrown.
+var override := 0
+var _override_from := {}
 ## Ours, the modern MFDs (Settings.modern_mfds): the LASER ARM switch (the 3D cockpit's, key Shift + L); the laser fires
 ## only armed. The original has none: armed. The TGP slaved to the SPI (the radar's designated point, else the
 ## steerpoint) until a track or a slew; the HSD cursor's slew rate (MFD px/s) while the HSD is the SOI.
 var laser_arm := true
 ## The jet flies the F-16's modern MFDs (Settings.modern_mfds with the F-16's real MFDs in its cockpit; set by setup).
 var modern_f16 := false
+## Ours, the modern F-16s' threat display, MAW, CMDS, AIFF and data link (ews.gd; null on any other jet).
+var ews: RefCounted = null
 var tgp_slaved := false
 var hsd_rate := Vector2.ZERO
 ## The weapon whose SMS profile was last recalled (IafRipple recall_profile).
@@ -260,6 +270,10 @@ func setup(host_node: Node, entity: Dictionary, object: Dictionary, bdb: Diction
 		Settings.modern_mfds() and pit != null and Settings.real_mfd(Settings.cockpit_folder(pit.cockpit_dir)) != ""
 	)
 	laser_arm = not modern_f16  # its LASER ARM starts OFF
+	if modern_f16:
+		ews = Ews.new(self, Settings.airframe(jet_type).get("ews", {}))
+		if pit != null:
+			pit.on_cmds = ews.ded_edit
 	_push_stores()
 	# The tanks' fuel (FUN_005a8980 before the start fills the fuel to FuelWeight + tanks).
 	if host.flight != null and _given_load.is_empty():  # a jet taken over in flight keeps its fuel
@@ -645,6 +659,8 @@ func spi() -> Vector3:
 
 ## Per update: the slaved pod follows the SPI; the HSD cursor slews; the SMS profile of a newly selected weapon.
 func _modern_update() -> void:
+	if ews != null:
+		ews.update()
 	if tgp_slaved and eo.mode == EoSensor.FLIR:
 		var p := spi()
 		if p.distance_to(eo.point) > 1.0 or eo.target != "":
@@ -844,6 +860,37 @@ func select_ag() -> void:
 		_next(2)
 	_master_from_type(false)
 	_mfd_page()
+
+
+## Ours, the DGFT / MSL OVRD switch thrown toward `to` (1 DGFT, 2 MSL OVRD; again: centred): DGFT selects the SRM
+## (else an A-A missile) and the radar's ACM, MSL OVRD a radar missile and CRM; centred, the station and radar mode
+## before come back (IafModes.override_throw, modern-iaf/docs/ufc.md). Returns the new position.
+func override_key(to: int) -> int:
+	if releasing or firing:
+		return override
+	var st := []
+	for i in 10:
+		st.append([stores.type_of(i), stores.displayed(i)])
+	var r: Dictionary = ClassDB.class_call_static("IafModes", "override_throw", override, to, st)
+	if override == 0:
+		_override_from = {"station": stores.cur, "radar": int(radar.mode)}
+	override = int(r.at)
+	if override == 0:
+		if stores.select_station(int(_override_from.get("station", stores.cur))):
+			_master_from_type(Stores.category(stores.current_type()) == 1)
+		if not radar.real.is_empty():
+			radar.set_mode(int(_override_from.get("radar", radar.mode)), now)
+	else:
+		# No A-A missile loaded: DGFT still gives the gun (its EEGS), MSL OVRD leaves the store (inferred).
+		if int(r.station) >= 0 and stores.select_station(int(r.station)):
+			_master_from_type(true)
+		elif override == 1 and hud_mode != 3:
+			select_aa()
+		if not radar.real.is_empty() and int(r.radar) >= 0:
+			radar.set_mode(int(r.radar), now)
+	_mfd_page()
+	host.sounds.play("SFX_BUTTON")
+	return override
 
 
 ## FUN_00454210 / FUN_00454240: not while releasing or firing.
@@ -2873,10 +2920,13 @@ func _publish() -> void:
 	}
 	c.harm = harm.page(_base(o), stores.total(stores.current_type(), stores.current_name()), harm_in_range)
 	c.rwr = rwr.display()
+	c.ews = ews.state if ews != null else {}
 	c.sam_sites = _sam_sites()
 	c.indicators[Rwr.LAMP_AI] = rwr.lamps[Rwr.LAMP_AI]
 	c.indicators[Rwr.LAMP_SAM] = rwr.lamps[Rwr.LAMP_SAM]
 	c.weapons = {
+		"override": override,
+		"sim": master_sim,
 		"hud_mode": hud_mode,
 		# Ours: the master arm (Modern IAF's, weapons.md §3) for the SMS; true where the game has none.
 		"armed": master_arm,

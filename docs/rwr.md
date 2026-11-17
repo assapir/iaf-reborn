@@ -108,6 +108,11 @@ view (`@4ce003`), AI action 430 and condition 38 (for a unit with a controller) 
 - `tests/godot/test_rwr.gd` drives these feeds with synthetic emitters.
 - Better cockpit `spo15` (ours): the MiG-23 panel's SPO-15 lamps from the cockpit copy (`rwr.rs` `spo15`,
   `IafRwr.spo15`; docs/cockpit.md "MiG gauges").
+- Modern IAF's F-16s (ours, [../modern-iaf/docs/ews.md](../modern-iaf/docs/ews.md)): `all_aspect` hears an
+  aircraft's radar from every side (§1's emitter test without the 120° rule); `display_keyed` gives each cockpit-copy
+  entry a stable id for their threat display; `rwr.gd`'s `new_guy_tone`, `threat_volume` and `launch_volume` let that
+  display play the new-threat tone and the cockpit's THREAT and MSL knobs scale the tones. Reborn's jets keep the
+  original rules.
 - Not ported: the network messages; the restart path of the launch loop in `FUN_00448120` (@4482ee, a flight
   restored with launch flags).
 

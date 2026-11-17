@@ -46,16 +46,16 @@ pub fn advisory_height(kcas: f64, tas_ms: f64, vs_fpm: f64, roll_deg: f64, gear_
     Some(loss_ft + loss_ft * (0.25 - 0.125 * k) + 150.0 - 100.0 * k)
 }
 
-/// CARA ALOW's voice (p. 1-316): below the ALOW height; it stops above it, climbing faster than 1,200 fpm, with the
-/// gear handle down or below 15 ft.
-pub fn alow(agl_ft: f64, vs_fpm: f64, gear_down: bool) -> bool {
-    (15.0..ALOW_FT).contains(&agl_ft) && vs_fpm <= 1200.0 && !gear_down
+/// CARA ALOW's voice (p. 1-316): below the ALOW height `alow_ft` (`ALOW_FT`, or the DED's ALOW page); it stops above
+/// it, climbing faster than 1,200 fpm, with the gear handle down or below 15 ft.
+pub fn alow(agl_ft: f64, vs_fpm: f64, gear_down: bool, alow_ft: f64) -> bool {
+    (15.0..alow_ft).contains(&agl_ft) && vs_fpm <= 1200.0 && !gear_down
 }
 
 /// CARA ALOW on the HUD (p. 1-316): the `AL` mnemonic and its readout flash below the ALOW height; they stop above
 /// it, climbing faster than 1,200 fpm or below 70 kt.
-pub fn alow_hud(agl_ft: f64, vs_fpm: f64, kcas: f64) -> bool {
-    agl_ft < ALOW_FT && vs_fpm <= 1200.0 && kcas >= 70.0
+pub fn alow_hud(agl_ft: f64, vs_fpm: f64, kcas: f64, alow_ft: f64) -> bool {
+    agl_ft < alow_ft && vs_fpm <= 1200.0 && kcas >= 70.0
 }
 
 #[cfg(test)]
@@ -90,11 +90,13 @@ mod tests {
 
     #[test]
     fn alow_rule() {
-        assert!(alow(250.0, -500.0, false));
-        assert!(!alow(350.0, -500.0, false) && !alow(150.0, 1500.0, false) && !alow(150.0, 0.0, true));
-        assert!(!alow(10.0, 0.0, false));
+        let a = ALOW_FT;
+        assert!(alow(250.0, -500.0, false, a));
+        assert!(!alow(350.0, -500.0, false, a) && !alow(150.0, 1500.0, false, a) && !alow(150.0, 0.0, true, a));
+        assert!(!alow(10.0, 0.0, false, a));
+        assert!(alow(450.0, -500.0, false, 500.0), "the DED's ALOW setting");
         // The HUD's flash: gear down and on the ground too, but not below 70 kt.
-        assert!(alow_hud(250.0, -500.0, 300.0) && alow_hud(10.0, 0.0, 150.0));
-        assert!(!alow_hud(350.0, 0.0, 300.0) && !alow_hud(150.0, 1500.0, 300.0) && !alow_hud(0.0, 0.0, 60.0));
+        assert!(alow_hud(250.0, -500.0, 300.0, a) && alow_hud(10.0, 0.0, 150.0, a));
+        assert!(!alow_hud(350.0, 0.0, 300.0, a) && !alow_hud(150.0, 1500.0, 300.0, a) && !alow_hud(0.0, 0.0, 60.0, a));
     }
 }

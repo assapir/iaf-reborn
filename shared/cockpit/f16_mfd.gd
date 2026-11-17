@@ -328,7 +328,9 @@ func fcr() -> void:
 	var lock_p = null
 	var h := heading_rad()
 	var sam: Array = real.get("sam", [])
-	for ct in r.get("contacts", []):
+	# Ours, the Sufa's AIFF: a SCAN interrogation blanks the FCR's own targets (MLU M1 p. 53; ews.gd).
+	var blank: bool = cockpit.ews.get("blank", false)
+	for ct in r.get("contacts", []) if not blank else []:
 		if mode == 2 and not ct.locked:
 			continue
 		var bug: bool = ct.locked or ct.get("selected", false)
@@ -357,6 +359,11 @@ func fcr() -> void:
 			centred(p.x, p.y + 9.0, "%02d" % int(float(ct.get("alt", 0.0)) * 0.0032808398), col, SMALL)
 	if not vsr and not expanded:
 		_steerpoint_bscope(nm, r)
+		var to_scope := func(pos: Vector3) -> Vector2:
+			var d := Vector2(pos.x, pos.y) - own_world()
+			var az := wrapf(atan2(d.x, d.y) - h, -PI, PI)
+			return scope_px(Vector2(0.5 + az / (TAU / 3.0), d.length() / (nm * 1852.0)))
+		_offboard(to_scope, Rect2(8, 8, 116, 110), h)
 	# The acquisition cursor: two short vertical lines (p. 1-124); the real FCR's from its cursor (the keys or the
 	# mouse) with the search altitudes it covers there in kft (fig. 1-85), none in ACM.
 	var cur = m.mouse
@@ -566,6 +573,35 @@ func _diamond(p: Vector2, col: Color) -> void:
 	)
 
 
+## Ours, the modern F-16s (ews.gd; modern-iaf/docs/ews.md): the data link's tracks (a flight member a cyan circle
+## with its number, a friend a green circle, a hostile a red diamond, each with a line along its heading; inferred) and
+## the AIFF's replies (a green circle for a friend, a yellow square for an unknown reply; MLU M1 p. 53) at `place`
+## (world -> MFD px) inside `area`; `up` the display's heading (radians) for the heading lines.
+func _offboard(place: Callable, area: Rect2, up: float) -> void:
+	for t in cockpit.ews.get("link", []):
+		var p: Vector2 = place.call(t.pos)
+		if not area.has_point(p):
+			continue
+		var col := c("own") if t.kind == "team" else (c("friend") if t.kind == "friend" else C_RED)
+		if t.kind == "hostile":
+			var q := PackedVector2Array([p + Vector2(0, -3), p + Vector2(3, 0), p + Vector2(0, 3), p + Vector2(-3, 0)])
+			poly(q, col, THIN, true)
+		else:
+			circle(p, 3.0, col, THIN)
+		if t.kind == "team":
+			centred(p.x, p.y + 1.5, "%d" % int(t.n), col, SMALL * 0.7)
+		var a := deg_to_rad(float(t.heading)) - up
+		line(p + Vector2(sin(a), -cos(a)) * 3.0, p + Vector2(sin(a), -cos(a)) * 7.0, col, THIN)
+	for rp in cockpit.ews.get("aiff", []):
+		var p: Vector2 = place.call(rp.pos)
+		if not area.has_point(p):
+			continue
+		if rp.friend:
+			circle(p, 4.0, c("friend"), LINE)
+		else:
+			box(Rect2(p - Vector2(4, 4), Vector2(8, 8)), C_YELLOW, LINE)
+
+
 # --- HSD ------------------------------------------------------------------------------------------------------------
 
 const HSD_OWN := Vector2(66, 99)  # the depressed view: the ownship a quarter up from the bottom (fig. 1-45)
@@ -663,6 +699,15 @@ func hsd() -> void:
 				ci.draw_circle(p, 2.4, c("route"), true, -1.0, true)
 			else:
 				circle(p, 2.0, c("route"), THIN)
+	# Ours, Modern IAF's markpoints (the DED's MARK page, steerpoints 26 to 30): an X each, circled while steered to
+	# (inferred: the HSD's markpoint symbol is not public).
+	for mk in cockpit.marks.size() if show[2] else 0:
+		var p: Vector2 = xf * (cockpit.marks[mk].world as Vector2)
+		if Geometry2D.is_point_in_polygon(p, clip):
+			line(p - Vector2(2, 2), p + Vector2(2, 2), c("route"), THIN)
+			line(p + Vector2(-2, 2), p + Vector2(2, -2), c("route"), THIN)
+			if mk == cockpit.steer_mark:
+				circle(p, 3.2, c("route"), THIN)
 	# Preplanned threats: a ring of the site's reach with the site's mark; red with the jet inside (a simulator manual).
 	var sites: Array = cockpit.sam_sites if show[1] else []
 	for site in sites:
@@ -682,6 +727,7 @@ func hsd() -> void:
 		for d in [Vector2(1, 0), Vector2(0, 1)]:
 			line(q - d * 4.0, q - d * 1.5, c("cursor"), LINE)
 			line(q + d * 1.5, q + d * 4.0, c("cursor"), LINE)
+	_offboard(func(pos: Vector3) -> Vector2: return xf * Vector2(pos.x, pos.y), Rect2(1, 12, 130, 109), h0)
 	if Geometry2D.is_point_in_polygon(own_p, clip):
 		_ownship(own_p, dh)
 
@@ -701,10 +747,19 @@ func _fcr_nm() -> float:
 
 ## The bullseye (ours, inferred: the sim's missions name none, so the route's first point, the home base): a circle
 ## with a dot, and the ownship's bearing and range from it in the lower left (cyan, as the MLU's bullseye).
+## Modern IAF's DED (LIST MISC BULL): off, or a steerpoint of its choice in place of the home base.
 func _bullseye(xf: Transform2D, clip: PackedVector2Array) -> void:
 	if cockpit.waypoints.is_empty():
 		return
 	var b: Vector2 = cockpit.waypoints[0].world
+	if cockpit.ufc != null:
+		var u: Dictionary = cockpit.ufc.state()
+		if not u.bull:
+			return
+		var all: Array = cockpit.steer_route()
+		for i in all.size():
+			if int(u.bull_no) > 0 and int(all[i].get("number", i + 1)) == int(u.bull_no):
+				b = all[i].world
 	var col := c("own")
 	var p: Vector2 = xf * b
 	if Geometry2D.is_point_in_polygon(p, clip):

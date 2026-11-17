@@ -1371,6 +1371,37 @@ impl Radar {
         self.illumination_lost();
     }
 
+    /// Ours, the F-16's DGFT / MSL OVRD switch (modern-iaf/docs/ufc.md): mode `m` at once, from any mode (ACM
+    /// for DGFT, LRS = CRM for MSL OVRD; the mode before when the switch is centred again). A lock stays (STT is kept,
+    /// inferred); OFF / STBY go to standby; a mode the jet's radar lacks is ignored.
+    pub fn override_mode(&mut self, m: Mode, now: f64, input: &Input) {
+        if self.damaged || self.mode == Mode::Stt || m == Mode::Stt || m == self.mode {
+            return;
+        }
+        if !m.radiating() {
+            return self.standby();
+        }
+        if !m.air_to_ground() && self.ranges.get(m).is_none() {
+            return;
+        }
+        self.auto_on = false;
+        let was_off = !self.mode.radiating();
+        self.unlock();
+        self.selection = None;
+        self.air_to_air = !m.air_to_ground();
+        if self.air_to_air {
+            self.last_aa = m;
+        } else {
+            self.last_ag = m;
+        }
+        self.mode = m;
+        if let Some(r) = &mut self.real {
+            r.frozen = None;
+        }
+        self.switch_on(was_off, now, input);
+        self.illumination_lost();
+    }
+
     /// The tail of Q / R: an off radar starts (lists cleared), then a scan.
     fn switch_on(&mut self, was_off: bool, now: f64, input: &Input) {
         if was_off {
@@ -2277,6 +2308,20 @@ mod tests {
 
     fn keys(r: &Radar) -> Vec<&str> {
         r.contacts().iter().map(|c| c.key.as_str()).collect()
+    }
+
+    #[test]
+    fn set_mode_for_dgft_and_back() {
+        let mut r = Radar::new(1, None, None, false);
+        let sc = scene(&[]);
+        r.override_mode(Mode::Acm, 0.0, &sc);
+        assert_eq!((r.mode(), r.air_to_air), (Mode::Acm, true), "DGFT from OFF: ACM radiating");
+        r.override_mode(Mode::Map, 1.0, &sc);
+        assert_eq!((r.mode(), r.air_to_air), (Mode::Map, false));
+        r.override_mode(Mode::Lrs, 2.0, &sc);
+        assert_eq!(r.mode(), Mode::Lrs);
+        r.override_mode(Mode::Standby, 3.0, &sc);
+        assert_eq!(r.mode(), Mode::Standby);
     }
 
     #[test]

@@ -468,6 +468,11 @@ The controls of a system the game has work it (2026-11-16; `f16_controls.json` `
 | HMCS SYM INT | at OFF the helmet display (looking off the HUD) is dark | - |
 | MAL & IND LTS (held; a spring, inferred) | every lamp of the cockpit lit while there is power | - |
 | MASTER CAUTION | the lamp out until the next caution | - |
+| Threat warning MODE / UNKNOWN / TGT SEP (held) | the threat display's PRI / OPEN, unknowns, wider separation ([ews.md](ews.md) §2) | Alt+I / Alt+O / Alt+J |
+| CMDS MODE (OFF / STBY / MAN on the model) | the countermeasures' mode ([ews.md](ews.md) §4) | Shift+Y |
+| CMDS CH, FL, O1, O2, RWR, JMR, MWS, JETT | the dispensers' power, the inputs that start SEMI / AUTO, JETT's flares ([ews.md](ews.md) §4) | - |
+| DL (AVIONIC POWER) | the data link's tracks on the HSD and the FCR ([ews.md](ews.md) §6) | - |
+| THREAT / MSL volume | the new-threat and launch tones' volume | - |
 
 The F-35I (2026-11-16, finish list C1b): its model carries the real jet's physical controls as the research found them
 ([research/f35-cockpit.md](research/f35-cockpit.md) §2), 45 parts on the same rule, their positions in `f35i.json`

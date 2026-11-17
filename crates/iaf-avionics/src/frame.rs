@@ -47,6 +47,50 @@ impl Frame {
     }
 }
 
+// --- UTM 36N (Modern IAF's world: engine X / Y are the easting / northing, modern-iaf/docs/terrain.md §2) ----------
+
+/// WGS84 (lon, lat) degrees → UTM zone 36N (easting, northing) metres: the transverse Mercator (Krüger series to
+/// n⁴, < 1 mm in the zone) with k₀ 0.9996, central meridian 33° E, false easting 500 km.
+pub fn utm36n(lon: f64, lat: f64) -> [f64; 2] {
+    const A: f64 = 6_378_137.0;
+    const F: f64 = 1.0 / 298.257_223_563;
+    let n = F / (2.0 - F);
+    let a = A / (1.0 + n) * (1.0 + n * n / 4.0 + n.powi(4) / 64.0);
+    let al = [
+        n / 2.0 - 2.0 * n * n / 3.0 + 5.0 * n.powi(3) / 16.0 + 41.0 * n.powi(4) / 180.0,
+        13.0 * n * n / 48.0 - 3.0 * n.powi(3) / 5.0 + 557.0 * n.powi(4) / 1440.0,
+        61.0 * n.powi(3) / 240.0 - 103.0 * n.powi(4) / 140.0,
+        49561.0 * n.powi(4) / 161_280.0,
+    ];
+    let c = 2.0 * n.sqrt() / (1.0 + n);
+    let s = lat.to_radians().sin();
+    let t = (s.atanh() - c * (c * s).atanh()).sinh();
+    let dl = (lon - 33.0).to_radians();
+    let (xi1, eta1) = (t.atan2(dl.cos()), (dl.sin() / (1.0 + t * t).sqrt()).atanh());
+    let (mut xi, mut eta) = (xi1, eta1);
+    for (j, a) in al.iter().enumerate() {
+        let k = 2.0 * (j + 1) as f64;
+        xi += a * (k * xi1).sin() * (k * eta1).cosh();
+        eta += a * (k * xi1).cos() * (k * eta1).sinh();
+    }
+    [500_000.0 + 0.9996 * a * eta, 0.9996 * a * xi]
+}
+
+/// UTM zone 36N (easting, northing) → WGS84 (lon, lat): `utm36n` inverted by Newton steps (a few, to well under a
+/// millimetre).
+pub fn utm36n_geo(e: f64, n: f64) -> [f64; 2] {
+    let lat = n / 110_900.0;
+    let mut g = [33.0 + (e - 500_000.0) / (111_320.0 * lat.to_radians().cos()), lat];
+    for _ in 0..5 {
+        let (p, d) = (utm36n(g[0], g[1]), 1e-6);
+        let (px, py) = (utm36n(g[0] + d, g[1]), utm36n(g[0], g[1] + d));
+        let (a, b, c, k) = ((px[0] - p[0]) / d, (py[0] - p[0]) / d, (px[1] - p[1]) / d, (py[1] - p[1]) / d);
+        let (r0, r1, det) = (e - p[0], n - p[1], a * k - b * c);
+        g = [g[0] + (k * r0 - b * r1) / det, g[1] + (a * r1 - c * r0) / det];
+    }
+    g
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

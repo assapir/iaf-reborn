@@ -484,6 +484,13 @@ impl Start {
         self.ins_knob
     }
 
+    /// The INS alignment as the DED's INS page shows it (modern-iaf/docs/ufc.md): the seconds it has run, its
+    /// length (the knob's mode as it started) and whether it is done.
+    pub fn ins_status(&self, s: &StartSpec) -> (f64, f64, bool) {
+        let ran = self.ins_at.map_or(0.0, |a| (self.t - a).clamp(0.0, self.ins_need.max(0.0)));
+        (ran, self.ins_need, self.ins_aligned || self.ins_done(s))
+    }
+
     /// The knob at a position where the INS runs its alignment on (STOR HDG, NORM, NAV, IN FLT ALIGN).
     fn ins_aligning(&self) -> bool {
         self.ins_knob != INS_OFF && self.ins_knob != INS_ATT
@@ -706,7 +713,10 @@ mod tests {
         st.release("ins");
         assert!(!st.avionics(&JFS) && !st.on("ins"));
         st.press(&JFS, "ins").unwrap();
-        tick(&mut st, 89.0);
+        tick(&mut st, 45.0);
+        let (ran, need, done) = st.ins_status(&JFS);
+        assert!((ran - 45.0).abs() < 1e-6 && need == 90.0 && !done, "the DED's INS page halfway");
+        tick(&mut st, 44.0);
         assert!(!st.avionics(&JFS));
         tick(&mut st, 1.5);
         assert!(st.avionics(&JFS));
@@ -735,6 +745,7 @@ mod tests {
         st.press(&JFS, "ins").unwrap();
         tick(&mut st, 91.0);
         assert!(st.ins_done(&JFS));
+        assert_eq!(st.ins_status(&JFS), (90.0, 90.0, true));
         // The JFS off during the crank stops it; main power off stops it too.
         let mut st = Start::default();
         st.press(&JFS, "main_power").unwrap();

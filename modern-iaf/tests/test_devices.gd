@@ -112,7 +112,9 @@ func keys(fe: Control) -> void:
 	# then the real FCR's eleven (records 132-142, docs/radar.md §9.4); 116 until slice 3, then its ground-map four
 	# (records 143-146, docs/radar.md §9.7); 120 until slice 4, then the modern MFDs' DMS and LASER ARM (records
 	# 147-151, docs/mfd.md §9 "Modern MFDs").
-	check(listed == 125, "keys: 125 commands listed, one head-look set (%d)" % listed)
+	# 125 until slice 5, then the up-front controls, HUD panel and DGFT keys (records 152-178, modern-iaf/docs/ufc.md)
+	# and the EW and identification keys (records 179-190, modern-iaf/docs/ews.md).
+	check(listed == 164, "keys: 164 commands listed, one head-look set (%d)" % listed)
 	check(
 		ks.GROUPS.all(func(g): return [74, 86, 89, 93].all(func(r): return not ks.records_of(g).has(r))),
 		"keys: no free look or F2 rear view (the snap views and the mouse look around)"

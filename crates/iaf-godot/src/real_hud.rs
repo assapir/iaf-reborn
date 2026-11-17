@@ -8,7 +8,8 @@ use godot::prelude::*;
 use iaf_avionics::gps::Lar;
 use iaf_avionics::missile::Dlz;
 use iaf_avionics::real_hud::{
-    AcmCue, Align, Delay, Field, GpsCue, Hobs, Input, Jet, P, Prim, RealHud, Steerpoint, Target, Weapons,
+    AcmCue, Align, AltSwitch, Delay, Field, FpmSwitch, GpsCue, Hobs, Input, Jet, P, Panel, Prim, RealHud, Scales,
+    Steerpoint, Target, Velocity, Weapons,
 };
 
 fn prims(ps: &[Prim]) -> VarArray {
@@ -40,6 +41,28 @@ fn pt(d: &VarDictionary, k: &str) -> Option<P> {
     get::<Vector2>(d, k).map(|v| (f64::from(v.x), f64::from(v.y)))
 }
 
+/// Modern IAF's F-16 HUD panel {scales (0 VV/VAH, 1 VAH, 2 OFF), fpm (0 ATT/FPM, 1 FPM, 2 OFF), velocity (0 CAS,
+/// 1 TAS, 2 GND SPD), alt (0 RADAR, 1 BARO, 2 AUTO), ded (the DED's lines, [] OFF), depr_mr (or null), alow_ft, align
+/// (null, false aligning, true ready), over (1 DGFT, 2 MSL OVRD), sim, soi}.
+fn panel(p: &VarDictionary) -> Panel {
+    let k = |key: &str, d: i64| num(p, key).map_or(d, |v| v as i64);
+    Panel {
+        scales: [Scales::VvVah, Scales::Vah, Scales::Off][k("scales", 1).clamp(0, 2) as usize],
+        fpm: [FpmSwitch::AttFpm, FpmSwitch::Fpm, FpmSwitch::Off][k("fpm", 0).clamp(0, 2) as usize],
+        velocity: [Velocity::Cas, Velocity::Tas, Velocity::Gnd][k("velocity", 0).clamp(0, 2) as usize],
+        alt: [AltSwitch::Radar, AltSwitch::Baro, AltSwitch::Auto][k("alt", 1).clamp(0, 2) as usize],
+        ded: get::<PackedStringArray>(p, "ded")
+            .map(|a| a.as_slice().iter().map(|s| s.to_string()).collect())
+            .unwrap_or_default(),
+        depr_mr: num(p, "depr_mr"),
+        alow_ft: num(p, "alow_ft"),
+        align: get::<bool>(p, "align"),
+        over: k("over", 0).clamp(0, 2) as u8,
+        sim: get(p, "sim").unwrap_or(false),
+        soi: get(p, "soi").unwrap_or(false),
+    }
+}
+
 #[derive(GodotClass)]
 #[class(init, base = RefCounted)]
 pub struct IafRealHud {
@@ -54,10 +77,11 @@ impl IafRealHud {
         iaf_avionics::gaaf::advisory(agl_ft, kcas, tas_ms, vs_fpm, roll_deg, gear_down, ag)
     }
 
-    /// The F-16's CARA ALOW voice ("ALTITUDE", `iaf_avionics::gaaf::alow`).
+    /// The F-16's CARA ALOW voice ("ALTITUDE", `iaf_avionics::gaaf::alow`) below `alow_ft` (the DED's ALOW page in
+    /// Modern IAF, `gaaf::ALOW_FT` otherwise).
     #[func]
-    fn alow(agl_ft: f64, vs_fpm: f64, gear_down: bool) -> bool {
-        iaf_avionics::gaaf::alow(agl_ft, vs_fpm, gear_down)
+    fn alow(agl_ft: f64, vs_fpm: f64, gear_down: bool, alow_ft: f64) -> bool {
+        iaf_avionics::gaaf::alow(agl_ft, vs_fpm, gear_down, alow_ft)
     }
 
     /// Extras "Real Betty": the sim's Betty sub code a real jet of voice `set` speaks for the game's call `sub`
@@ -193,6 +217,7 @@ impl IafRealHud {
                     loal: get(&h, "loal").unwrap_or(false),
                 }),
             },
+            panel: dict("panel").map(|p| panel(&p)).unwrap_or_default(),
         };
         let r = Field {
             left: field.position.x.into(),

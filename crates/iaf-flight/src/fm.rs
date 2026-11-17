@@ -207,6 +207,14 @@ impl Fm {
         }
     }
 
+    /// The INS alignment (the 6-DoF's: seconds run, its length, done); the original model's is always done.
+    pub fn ins_status(&self) -> (f64, f64, bool) {
+        match self {
+            Fm::SixDof(s) => s.ins_status(),
+            Fm::Original(_) => (0.0, 0.0, true),
+        }
+    }
+
     /// The electrical power (0 none, 1 the battery, 2 the displays up): the original model's is always up.
     pub fn power(&self) -> u8 {
         match self {

@@ -93,6 +93,9 @@ var on_mfd_event: Callable
 var on_flir: Callable
 ## The RWR copy (FUN_00446200 → state+0xe80..: the first `count` slots): [{type, pos: Vector2, launch, active}].
 var rwr: Array = []
+## Ours, the modern F-16s (player_weapons.gd ews, ews.gd state): the threat display's symbols, the MAW, the CMDS, the
+## AIFF's replies and the data link's tracks; {} on any other jet.
+var ews := {}
 ## The player's route: [{name, world: Vector2}], and the current waypoint index.
 var waypoints: Array = []
 var current_waypoint := 0
@@ -226,6 +229,7 @@ func load_cockpit(rel: String) -> void:
 	_load_panel_mask()
 	_load_tsd_map()
 	_create_mfds()
+	_create_ufc()
 	hud.cockpit = self
 
 
@@ -430,6 +434,184 @@ func dms(dir: int) -> void:
 		var f: String = mfds[i].real.step()
 		if f != "":
 			mfds[i].real_fmt.show_format(f)
+
+
+# --- Ours, Modern IAF's F-16 up-front controls and HUD control panel (modern-iaf/docs/ufc.md) -------------
+
+## The ICP and DED (IafUfc), with the modern F-16 MFDs only (reborn's jets and the F-35I: null).
+var ufc: RefCounted
+## The markpoints (steerpoints 26 to 30, the DED's MARK page): {world, alt (m), number, mark}; and the one steered
+## to (an index into marks), -1 while a route steerpoint is.
+var marks: Array = []
+var steer_mark := -1
+## The HUD control panel's switches (the 3D cockpit's, command 252): scales 0 VV/VAH, 1 VAH, 2 OFF; fpm 0 ATT/FPM,
+## 1 FPM, 2 OFF; velocity 0 CAS, 1 TAS, 2 GND SPD; alt 0 RADAR, 1 BARO, 2 AUTO; ded 0 DED, 1 PFL, 2 OFF; depr 0 STBY,
+## 1 PRI, 2 OFF. HUD_PANEL lists them in command 252's p1 order.
+const HUD_PANEL := ["scales", "fpm", "velocity", "alt", "ded", "depr"]
+var hud_panel := {"scales": 1, "fpm": 0, "velocity": 0, "alt": 1, "ded": 2, "depr": 1}
+## The RET DEPR wheel's depression of the standby reticle (mr).
+var depr_mr := 0.0
+## The EHSI's mode (its M button): false NAV, true TCN (the TACAN station's bearing and range).
+var ehsi_tcn := false
+## The markpoints' sensors' points (the host's, terrain_view.gd mark_points): {fcr_at, tgp_at, hud_at}.
+var mark_points: Callable
+
+
+func _create_ufc() -> void:
+	var f16 := Settings.modern_mfds() and Settings.real_mfd(Settings.cockpit_folder(cockpit_dir)) != ""
+	ufc = ClassDB.instantiate("IafUfc") if f16 and ClassDB.class_exists("IafUfc") else null
+
+
+## The steerpoints the DED, HUD and EHSI steer by: the route, then the markpoints.
+func steer_route() -> Array:
+	return waypoints + marks
+
+
+## The index into steer_route() steered to.
+func steer_index() -> int:
+	return waypoints.size() + steer_mark if steer_mark >= 0 and steer_mark < marks.size() else current_waypoint
+
+
+## The jet and the route for IafUfc (its `nav`; UTM 36N metres: Modern IAF's mission world).
+func ufc_nav() -> Dictionary:
+	var route := []
+	var all := steer_route()
+	for i in all.size():
+		var w: Dictionary = all[i]
+		var t := float(w.get("tos", -1.0))
+		# Floats: the bridge reads the array's numbers as floats.
+		route.append([float(w.get("number", i + 1)), w.world.x, w.world.y, float(w.get("elev_ft", 0.0)), t])
+	var wind: Vector2 = state.get("wind", Vector2.ZERO)
+	var aa := -1
+	if not weapons.is_empty() and int(weapons.get("hud_mode", 0)) > 0:
+		aa = 1 if int(weapons.hud_mode) <= 3 else 0
+	var nav := {
+		"e": state.world.x,
+		"n": state.world.y,
+		"alt_ft": state.get("alt_ft", 0.0),
+		"heading": state.get("heading", 0.0),
+		"ground_kt": state.get("ground_kt", 0.0),
+		"fuel_lbs": state.get("fuel_lbs", 0.0),
+		"fuel_pph": state.get("fuel_pph", 0.0),
+		"tod": state.get("tod", 0.0),
+		"wind_from": wind.x,
+		"wind_kt": wind.y,
+		"bingo_lbs": float(Settings.bingo_lbs),
+		"ins": _ins_floats(),
+		"route": route,
+		"stpt": steer_index(),
+		"master": aa
+	}
+	if mark_points.is_valid():
+		nav.merge(mark_points.call())
+	nav.ews = ews.get("ded", {})  # the modern F-16s' EW pages (ews.gd)
+	return nav
+
+
+## The INS for IafUfc: [knob, seconds run, its length, done] with the numbers as floats (the bridge's reading).
+func _ins_floats() -> Array:
+	var i: Array = state.get("ins", [3, 0.0, 0.0, true])
+	return [float(i[0]), float(i[1]), float(i[2]), bool(i[3])]
+
+
+## The INS can navigate (aligned, the knob at NAV or IN FLT ALIGN); always without the UFC.
+func ins_nav() -> bool:
+	var i: Array = state.get("ins", [3, 0.0, 0.0, true])
+	return ufc == null or (bool(i[3]) and int(i[0]) in [3, 4])
+
+
+## An ICP key (command 250; IafUfc.press): the DED's page changes, and what it changes outside it is applied here:
+## the steerpoint, an edited one (the autopilot's route too), a markpoint, the bingo, the MODE page's master mode, the
+## EWS page's CMDS programs, BINGO quantities and options.
+## Returns the effect's kind ("" none).
+func ufc_press(btn: int) -> String:
+	if ufc == null:
+		return ""
+	var fx: Dictionary = ufc.press(btn, ufc_nav())
+	match String(fx.get("kind", "")):
+		"steer":
+			var i := int(fx.index)
+			if i < waypoints.size():
+				steer_mark = -1
+				if on_steer.is_valid():
+					on_steer.call(i)
+				else:
+					current_waypoint = i
+			else:
+				steer_mark = i - waypoints.size()
+		"edit":
+			var i := int(fx.index)
+			var w: Dictionary = steer_route()[i]
+			w.world = Vector2(fx.e, fx.n)
+			w.elev_ft = fx.elev_ft
+			if fx.tos != null:
+				w.tos = fx.tos
+			if i < waypoints.size() and on_route_changed.is_valid():
+				on_route_changed.call()
+		"mark":
+			var k := int(fx.number) - 26
+			var m := {"world": Vector2(fx.e, fx.n), "number": int(fx.number), "mark": true}
+			m.elev_ft = (
+				fx.elev_ft
+				if not is_nan(float(fx.elev_ft))
+				else float(state.get("alt_ft", 0.0)) - float(state.get("agl_ft", 0.0))
+			)
+			if k < marks.size():
+				marks[k] = m
+			else:
+				marks.append(m)
+		"bingo":
+			Settings.bingo_lbs = int(fx.value)
+		"master":
+			if on_master.is_valid():
+				on_master.call(bool(fx.aa))
+		"cmds_program", "cmds_bingo", "cmds_opts":
+			if on_cmds.is_valid():
+				on_cmds.call(fx)
+	return String(fx.get("kind", ""))
+
+
+## The host's: select route steerpoint i (the autopilot's set_waypoint), the route edited (the autopilot's copy
+## again), the MODE page's master mode (true A-A); the EWS page's entries.
+var on_steer: Callable
+var on_route_changed: Callable
+var on_master: Callable
+## The modern F-16s' EWS page entries (ews.gd ded_edit).
+var on_cmds: Callable
+
+
+## The DED's lines (IafUfc), [] without the UFC or its power (AVIONIC POWER's UFC switch).
+func ded_lines() -> PackedStringArray:
+	if ufc == null or not up("ufc"):
+		return PackedStringArray()
+	return ufc.lines(ufc_nav())
+
+
+## The Real HUD's panel input (real_hud.rs `panel`), {} without the UFC (reborn's HUD as it is).
+func hud_panel_input() -> Dictionary:
+	if ufc == null:
+		return {}
+	var ded := PackedStringArray()
+	if int(hud_panel.ded) == 0:
+		ded = ded_lines()
+	var ins: Array = state.get("ins", [3, 0.0, 0.0, true])
+	var align = null
+	if int(ins[0]) in [1, 2]:
+		align = bool(ins[3]) or float(ins[1]) >= float(ins[2])
+	var st: Dictionary = ufc.state()
+	return {
+		"scales": hud_panel.scales,
+		"fpm": hud_panel.fpm,
+		"velocity": hud_panel.velocity,
+		"alt": hud_panel.alt,
+		"ded": ded,
+		"depr_mr": depr_mr if int(hud_panel.depr) == 0 else null,
+		"alow_ft": st.alow_ft,
+		"align": align,
+		"over": int(weapons.get("override", 0)),
+		"sim": bool(weapons.get("sim", false)),
+		"soi": soi < 0
+	}
 
 
 ## The MFD showing the radar (radar keys first put the radar on the Left MFD if none shows it).

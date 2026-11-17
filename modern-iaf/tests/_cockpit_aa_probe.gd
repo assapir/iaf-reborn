@@ -1,7 +1,7 @@
 # Probe (real render): the cockpit world's anti-aliasing (cockpit_origin.gd), MSAA 4× (today) against FXAA, in one
 # run over the same still frame. Mission 2012, the flight model stopped, the cockpit world's processing paused so its
 # camera holds still; per mode the GPU time of the flight's viewport and the cockpit's over 120 frames, and a picture
-# AA_OUT/<mode>.png (compare the HUD and the panel's text with ImageMagick: modern-iaf/docs/cockpit.md §6.2).
+# AA_OUT/<mode>.png (compare the HUD and the panel's text with ImageMagick: modern-iaf/docs/ufc.md.2).
 #   flock -o ~/.cache/iaf-gpu-bench.lock tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 AA_OUT=<dir> -- --log-file <log> \
 #     --resolution 1920x1080 --path modern-iaf -s ../modern-iaf/tests/_cockpit_aa_probe.gd
 extends "res://../tests/godot/base.gd"

@@ -193,9 +193,70 @@ pub fn m_key_radar(cycle: u8, n: usize, aa: bool, mode: u8) -> u8 {
     }
 }
 
+/// Ours, Modern IAF's F-16s: the throttle's DGFT / MSL OVRD switch (dash-34 "Dogfight and missile override modes";
+/// modern-iaf/docs/ufc.md). DGFT: the A-A mode with the SRM selected (the gun ready on the trigger, its funnel
+/// on the HUD) and the radar in ACM; MSL OVRD: the A-A mode with the missiles, the radar in CRM. Centred, the mode,
+/// store and radar mode before come back.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum Override {
+    #[default]
+    Off = 0,
+    Dgft = 1,
+    Msl = 2,
+}
+
+impl Override {
+    pub fn from_index(i: i64) -> Self {
+        match i {
+            1 => Override::Dgft,
+            2 => Override::Msl,
+            _ => Override::Off,
+        }
+    }
+
+    /// The switch thrown toward `to`: there, or centred when it already was (one key per way).
+    pub fn throw(self, to: Override) -> Override {
+        if self == to { Override::Off } else { to }
+    }
+
+    /// The radar mode it gives (`radar::Mode` numbers: ACM 6, LRS 4 = CRM), None centred.
+    pub fn radar_mode(self) -> Option<i64> {
+        match self {
+            Override::Dgft => Some(6),
+            Override::Msl => Some(4),
+            Override::Off => None,
+        }
+    }
+
+    /// The station it selects among `stations` ([type, count] each): DGFT an IR missile (an SRM) first, then any A-A
+    /// missile; MSL OVRD a radar missile first, then any A-A missile; None when none is loaded (the gun stays).
+    pub fn station(self, stations: &[(i64, i64)]) -> Option<usize> {
+        let first = |f: &dyn Fn(i64) -> bool| stations.iter().position(|&(t, n)| n > 0 && f(t));
+        let (srm, mrm) = (|t| matches!(t, 570 | 580), |t| matches!(t, 600 | 610));
+        match self {
+            Override::Dgft => first(&srm).or_else(|| first(&is_aa_missile)),
+            Override::Msl => first(&mrm).or_else(|| first(&is_aa_missile)),
+            Override::Off => None,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn dgft_and_msl_override() {
+        assert_eq!(Override::Off.throw(Override::Dgft), Override::Dgft);
+        assert_eq!(Override::Dgft.throw(Override::Dgft), Override::Off);
+        assert_eq!(Override::Dgft.throw(Override::Msl), Override::Msl);
+        let st = [(500, 2), (600, 2), (570, 0), (580, 2)];
+        assert_eq!(Override::Dgft.station(&st), Some(3), "the SRM with rounds");
+        assert_eq!(Override::Msl.station(&st), Some(1));
+        assert_eq!(Override::Dgft.station(&[(600, 1)]), Some(0), "no SRM: an MRM");
+        assert_eq!(Override::Msl.station(&[(500, 4)]), None);
+        assert_eq!((Override::Dgft.radar_mode(), Override::Msl.radar_mode()), (Some(6), Some(4)));
+    }
 
     #[test]
     fn store_modes() {

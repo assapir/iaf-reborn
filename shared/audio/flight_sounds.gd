@@ -515,7 +515,10 @@ func _altitude_warning(low: bool, h_ft: float, gear_down: bool, now: float, pitc
 func _real_warning(voice: String, h_ft: float, st: Dictionary, inp: Dictionary, now: float) -> void:
 	_pull_timer = -1.0
 	var vs := float(st.get("vs_fpm", 0.0))
-	if voice == "f16" and ClassDB.class_call_static("IafRealHud", "alow", h_ft, vs, inp.gear_down):
+	# The ALOW height: the DED's ALOW page in Modern IAF (cockpit.gd ufc), gaaf.rs's 300 ft otherwise.
+	var ck = host.get("cockpit") if host != null else null
+	var alow := float(ck.state.get("alow_ft", 300.0)) if ck != null else 300.0
+	if voice == "f16" and ClassDB.class_call_static("IafRealHud", "alow", h_ft, vs, inp.gear_down, alow):
 		if _alt_timer < 0.0:
 			_alt_timer = now
 		_alt_timer = _betty_tick(_alt_timer, "BTY_ALT", now)

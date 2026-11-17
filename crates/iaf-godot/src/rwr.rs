@@ -45,6 +45,12 @@ impl IafRwr {
         self.rwr.compact = on;
     }
 
+    /// Ours, Modern IAF's F-16s: aircraft heard from every side (`Rwr::all_aspect`).
+    #[func]
+    fn set_all_aspect(&mut self, on: bool) {
+        self.rwr.all_aspect = on;
+    }
+
     #[func]
     fn lock(&mut self, key: GString, unit: Callable, own: VarDictionary, now: f64) {
         with_world(&unit, &own, now, |w| self.rwr.lock(w, &key.to_string()));
@@ -116,16 +122,16 @@ impl IafRwr {
         self.rwr.take_new_guy()
     }
 
-    /// The cockpit copy: [{type, pos (world X / Y), launch, active, search}].
+    /// The cockpit copy: [{type, pos (world X / Y), launch, active, search, id (the emitter's, `display_keyed`)}].
     #[func]
     fn display(&self) -> VarArray {
         self.rwr
-            .display()
+            .display_keyed()
             .iter()
-            .map(|s| {
+            .map(|(id, s)| {
                 let pos = Vector2::new(s.pos.x as f32, s.pos.y as f32);
                 vdict! { "type" => s.type_code, "pos" => pos, "launch" => s.launch, "active" => s.active,
-                "search" => s.search }
+                "search" => s.search, "id" => *id as i64 }
                 .to_variant()
             })
             .collect()

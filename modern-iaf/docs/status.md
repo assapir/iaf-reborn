@@ -3,6 +3,21 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **The Sufa's up-front controls, HUD panel, navigation and DGFT (2026-11-17, avionics-plan.md slice 5 part A,
+  G2, G17, G18, G28, G29; [ufc.md](ufc.md)):** every DED page the sim can feed with data entry on keys and the 3D
+  ICP (STPT editing, markpoints 26–30, BINGO, ALOW, CRUS, TIME, T-ILS with TACAN to the bases, INS, BULL, LASR,
+  COM1 / COM2 and the backup UHF); the HUD control panel's switches, ALIGN, SIM and the SOI asterisk; no steering
+  until the INS navigates; DGFT / MSL OVRD on V / Shift + V; the EHSI's TCN.
+- **The F-16s' EW and identification (2026-11-17, avionics-plan.md slice 5 part B, E1, E2, E4, R15, N5, N6; G13,
+  G19, G20, G30, G31; [ews.md](ews.md)):** the threat display on the 3D RWR scope after the dash-34 and the ALR-69
+  (labels by class, diamond, lock square, launch circle, new-threat flash and tone, PRI / OPEN, UNKNOWN, TGT SEP,
+  HANDOFF, SYS TEST, the volume knobs), the range's radar drones heard from every side as "35"; the Sufa's MAW (an
+  "M" with the seconds to impact); the CMDS panel, programs 1–4 and the CMS keys (P, Shift + P, Y; Shift + Y MODE,
+  Ctrl + Y program) releasing through the game's dispense with the VMS's "Counter" and "Chaff flare low / out"; the
+  Sufa's AIFF (O, Shift + O, TMS left in CRM: green circles, yellow squares); the data link on the HSD and the FCR (the
+  DL switch); the DED's EWS pages (programs, BINGO, REQCTR / BINGO / FDBK / REQJAM), IFF, DLNK and INTG. Open: the
+  MAW's missile type; the transponder's modes on the IFF page (no transponder model); the AWACS's calls' voice (its data on `wt/avionics-s5-awacs-voices`,
+  waiting for the `voices` step's clips).
 - **The Sufa's MFDs (2026-11-17, avionics-plan.md slice 4, G8 DMS, G14–G16, G24, G25;
   [../../docs/mfd.md](../../docs/mfd.md) §9 "Modern MFDs"):** each MFD keeps three formats per master mode (NAV,
   A-A, A-G); the menu adds DTE, FLCS, BLANK and the RESET MENU; the sensor of interest with its box and NOT SOI, DMS on

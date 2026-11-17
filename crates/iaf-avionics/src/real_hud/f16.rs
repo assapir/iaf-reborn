@@ -15,6 +15,8 @@ const HDG_HALF: f64 = 34.0;
 const DLZ_HALF: f64 = 24.0;
 const DLZ_IN: f64 = 10.0;
 const ALT_OUT: f64 = 12.0;
+/// The vertical velocity scale this far inboard of the altitude scale.
+const VVI_IN: f64 = 20.0;
 /// Data rows 9 px apart.
 const ROW: f64 = 9.0;
 /// The scales and data blocks this far in from the field's sides (`Field::inset`), the right block in A-A included.
@@ -36,40 +38,74 @@ pub(super) fn frame(f: Field, i: &Input, max_g: f64) -> Frame {
     let dlz = matches!(mode, 1 | 2).then_some(()).and(i.target.zip(i.dlz));
     // A GPS bomb's coordinates: its cues replace the CCIP's (docs/weapons.md §13.3).
     let gps = w.gps.is_some() && matches!(mode, 5 | 6);
-    // Scales.
-    airspeed(o, sc.left, tape_y, i.kcas);
+    let pn = &i.panel;
+    let scales = pn.scales != Scales::Off;
+    // Scales. The airspeed by the VELOCITY switch, CAS with the gear down or in DGFT (window 1's C / T / G).
+    let (kt, letter) = match pn.velocity {
+        _ if i.gear_down || pn.over == 1 => (i.kcas, "C"),
+        Velocity::Cas => (i.kcas, "C"),
+        Velocity::Tas => (i.tas_ms * MS_TO_KT, "T"),
+        Velocity::Gnd => (i.ground_kt, "G"),
+    };
+    airspeed(o, sc.left, tape_y, kt, letter, scales);
     o.push(text((sc.left + 3.0, tape_y - TAPE_HALF - 4.0), format!("{:.1}", i.g), Align::Left));
+    // The HUD as the SOI: an asterisk at the upper left (the dash-34 as simulator forums quote it, docs/real-hud.md;
+    // inferred place: left of the g readout).
+    if pn.soi {
+        o.push(text((sc.left - 8.0, tape_y - TAPE_HALF - 4.0), "*", Align::Left));
+    }
     let alt_x = sc.right + if dlz.is_some() || gps { ALT_OUT } else { 0.0 };
-    altitude(o, alt_x, tape_y, i.alt_ft);
+    // The altitude by the ALT switch: RADAR the radar altitude (AR), AUTO the radar altitude's thermometer below
+    // 1,200 ft, BARO (and a radar altitude out of reach) the barometric one.
+    let agl = i.agl_ft.filter(|a| *a < 50_000.0);
+    match (pn.alt, agl) {
+        (AltSwitch::Auto, Some(a)) if a < 1200.0 => thermometer(o, alt_x, tape_y, a),
+        (AltSwitch::Radar, Some(a)) => altitude(o, alt_x, tape_y, a, scales, "AR"),
+        _ => altitude(o, alt_x, tape_y, i.alt_ft, scales, ""),
+    }
     if let Some((t, z)) = dlz {
         dlz_scale(o, sc.right - DLZ_IN, tape_y, DLZ_HALF, t, z);
+    } else if pn.scales == Scales::VvVah && !gps {
+        vvi(o, alt_x - VVI_IN, tape_y, i.vs_fpm);
     }
     // The heading scale: the lower position (below the scales) in NAV, A-A and strafe; the upper one in the A-G modes
     // and gear down.
     let hdg_y = if i.gear_down || matches!(mode, 5..=7) { f.top + 10.0 } else { tape_y + TAPE_HALF + 6.0 };
     // EEGS has neither the heading scale nor the roll indicator (fig. 1-257).
-    if mode != 3 {
+    if mode != 3 && scales {
         heading(o, hdg_y, i.heading_deg, i.steerpoint.map(|s| s.bearing_deg));
         roll_indicator(o, i, f.bottom);
     }
     // The left column: ARM, Mach, max g, the mode / weapon.
     let (lx, ly) = (sc.left + 4.0, tape_y + TAPE_HALF + 12.0);
     let mut row = 0.0;
-    if mode > 0 {
-        o.push(text((lx, ly), "ARM", Align::Right));
+    // ALIGN while the INS aligns, flashing once it can navigate (inferred place: the left column's top).
+    if let Some(ready) = pn.align
+        && (!ready || flash_on(i.time_s))
+    {
+        o.push(text((lx, ly - ROW), "ALIGN", Align::Right));
+    }
+    if pn.sim || mode > 0 {
+        o.push(text((lx, ly), if pn.sim { "SIM" } else { "ARM" }, Align::Right));
         row += ROW;
     }
     o.push(text((lx, ly + row), format!("{:.2}", i.mach), Align::Right));
     o.push(text((lx, ly + row + ROW), format!("{max_g:.1}"), Align::Right));
-    o.push(text((lx, ly + row + 2.0 * ROW), mode_text(w), Align::Right));
+    let mode_s = match pn.over {
+        1 => "DGFT".to_string(),
+        2 => "MSL".to_string(),
+        _ => mode_text(w),
+    };
+    o.push(text((lx, ly + row + 2.0 * ROW), mode_s, Align::Right));
     // The right column: radar altitude, slant range, time, steerpoint.
     let (rx, ry) = (alt_x + 2.0, tape_y + TAPE_HALF + 12.0);
     let mut rows = Vec::new();
     if let Some(a) = i.agl_ft.filter(|a| *a < 50_000.0) {
         rows.push(format!("R {}", thousands(a)));
         // The ALOW setting under it (fig. 1-115 `AL 200`), flashing below it (p. 1-316; blank in the dark half).
-        let lit = !crate::gaaf::alow_hud(a, i.vs_fpm, i.kcas) || flash_on(i.time_s);
-        rows.push(if lit { format!("AL {}", crate::gaaf::ALOW_FT) } else { String::new() });
+        let alow = pn.alow_ft.unwrap_or(crate::gaaf::ALOW_FT);
+        let lit = !crate::gaaf::alow_hud(a, i.vs_fpm, i.kcas, alow) || flash_on(i.time_s);
+        rows.push(if lit { format!("AL {}", alow.round() as i64) } else { String::new() });
     }
     // The slant range: the FCR's target, else its AGR ranging (ours: the same F, inferred), else the steerpoint's.
     match (i.target, i.agr_m, i.steerpoint) {
@@ -100,16 +136,25 @@ pub(super) fn frame(f: Field, i: &Input, max_g: f64) -> Frame {
         o.push(text((rx, ry + n as f64 * ROW), r, Align::Left));
     }
     // The centre window: SHOOT (MLU) before FUEL.
-    if w.shoot || i.fuel_lbs < i.bingo_lbs {
+    // FUEL flashes (dash-34 fig. 1-115 window 6).
+    if w.shoot || (i.fuel_lbs < i.bingo_lbs && flash_on(i.time_s)) {
         let cue = if w.shoot { "SHOOT" } else { "FUEL" };
         o.push(text((0.0, i.gun_cross.1 + i.mr(70.0)), cue, Align::Centre));
+    }
+    // DED DATA: the DED's lines low in the HUD's centre (dash-34 "HUD remote control panel"; inferred place: under
+    // the roll indicator, inside the glass).
+    let n = pn.ded.len() as f64;
+    for (k, l) in pn.ded.iter().enumerate() {
+        o.push(text((0.0, f.bottom - (n - k as f64) * ROW + 6.0), l.trim_end(), Align::Centre));
     }
 
     // The field: boresight cross, ladder, marker, AoA bracket, steerpoint, target, weapon symbols.
     let p = &mut fr.field;
     let delayed = w.delay.and_then(|d| d.target.map(|t| (d, t))).filter(|_| !gps);
     boresight_cross(p, i);
-    if let Some(fpm) = i.fpm {
+    // The FP MARKER switch: ATT/FPM the ladder and the marker, FPM the marker alone, OFF neither.
+    let fpm_at = i.fpm.filter(|_| pn.fpm != FpmSwitch::Off);
+    if let Some(fpm) = fpm_at {
         let style = LadderStyle {
             gap: i.deg(1.4),
             len: i.deg(2.6),
@@ -124,7 +169,9 @@ pub(super) fn frame(f: Field, i: &Input, max_g: f64) -> Frame {
             zenith: Zenith::StarEarth,
             horizon_tabs: false,
         };
-        ladder(p, i, fpm, f, style);
+        if pn.fpm == FpmSwitch::AttFpm {
+            ladder(p, i, fpm, f, style);
+        }
         marker(p, fpm, i.mr(5.0), i.mr(10.0), i.mr(5.0));
         if i.gear_down {
             aoa_bracket(p, i, fpm);
@@ -188,6 +235,17 @@ pub(super) fn frame(f: Field, i: &Input, max_g: f64) -> Frame {
             }
         }
         _ => {}
+    }
+    // DGFT: the gun's EEGS funnel with the SRM's symbols (the trigger fires the gun, the pickle the missile).
+    if mode == 1 && pn.over == 1 {
+        eegs(p, i, f);
+    }
+    // DEPR RET at STBY: the standby reticle, a 50 mr ring with its 2 mr pipper, depressed from the gun cross by the
+    // RET DEPR wheel (dash-34 "Standby reticle"; ours: the ring's size as the CCIP reticle's, inferred).
+    if let Some(d) = pn.depr_mr {
+        let c = add(i.gun_cross, (0.0, i.mr(d)));
+        p.push(Prim::Circle { c, r: i.mr(25.0) });
+        p.push(Prim::Dot { c, r: i.mr(1.0).max(0.8) });
     }
     // The break X (p. 1-173, fig. 1-212): flashing at the GAAF advisory (every master mode); steady in the A-A missile
     // modes inside Rmin. Ours: half its size = 0.3 of the field, on the field's centre, flashing at 2 Hz.
@@ -356,9 +414,13 @@ fn slant(letter: char, m: f64) -> String {
 
 /// The airspeed scale (left edge): ticks inward, labels every 50 kt in tens outside, the boxed readout with its caret
 /// at the index and the "C" (calibrated) mnemonic beside it.
-fn airspeed(p: &mut Vec<Prim>, x: f64, y0: f64, kcas: f64) {
-    p.push(line((x, y0 - TAPE_HALF), (x, y0 + TAPE_HALF)));
-    for (t, dy) in ticks(kcas, 10.0, KT_PX, TAPE_HALF, true) {
+/// SCALES OFF leaves the box and the mnemonic (inferred).
+fn airspeed(p: &mut Vec<Prim>, x: f64, y0: f64, kcas: f64, letter: &str, scale: bool) {
+    let ticks_at = ticks(kcas, 10.0, KT_PX, TAPE_HALF, true).filter(|_| scale);
+    if scale {
+        p.push(line((x, y0 - TAPE_HALF), (x, y0 + TAPE_HALF)));
+    }
+    for (t, dy) in ticks_at {
         if t < 0.0 {
             continue;
         }
@@ -373,14 +435,17 @@ fn airspeed(p: &mut Vec<Prim>, x: f64, y0: f64, kcas: f64) {
     p.push(line((bx - 4.0, by - 5.0), (bx, by)));
     p.push(line((bx, by), (bx - 4.0, by + 5.0)));
     p.push(text((bx - 6.0, by + 3.0), format!("{}", kcas.max(0.0).round() as i64), Align::Right));
-    p.push(text((x + 7.0, y0 + 3.0), "C", Align::Left));
+    p.push(text((x + 7.0, y0 + 3.0), letter, Align::Left));
 }
 
 /// The altitude scale (right edge): ticks inward, labels every 500 ft ("20,5") outside, the boxed readout "20,000"
-/// with its caret.
-fn altitude(p: &mut Vec<Prim>, x: f64, y0: f64, alt_ft: f64) {
-    p.push(line((x, y0 - TAPE_HALF), (x, y0 + TAPE_HALF)));
-    for (t, dy) in ticks(alt_ft, 100.0, FT_PX, TAPE_HALF, true) {
+/// with its caret; `mnemonic` beside the box ("AR": the radar altitude). SCALES OFF leaves the box (inferred).
+fn altitude(p: &mut Vec<Prim>, x: f64, y0: f64, alt_ft: f64, scale: bool, mnemonic: &str) {
+    let ticks_at = ticks(alt_ft, 100.0, FT_PX, TAPE_HALF, true).filter(|_| scale);
+    if scale {
+        p.push(line((x, y0 - TAPE_HALF), (x, y0 + TAPE_HALF)));
+    }
+    for (t, dy) in ticks_at {
         let major = (t as i64).rem_euclid(500) == 0;
         p.push(line((x, y0 + dy), (x - if major { 5.0 } else { 3.0 }, y0 + dy)));
         if major && dy.abs() > 8.0 {
@@ -393,6 +458,50 @@ fn altitude(p: &mut Vec<Prim>, x: f64, y0: f64, alt_ft: f64) {
     p.push(line((bx + 4.0, by - 5.0), (bx, by)));
     p.push(line((bx, by), (bx + 4.0, by + 5.0)));
     p.push(text((bx + 32.0, by + 3.0), thousands(alt_ft), Align::Right));
+    if !mnemonic.is_empty() {
+        p.push(text((bx - 7.0, by + 3.0), mnemonic, Align::Right));
+    }
+}
+
+/// ALT AUTO below 1,200 ft: the radar altitude's thermometer in place of the scale (docs/real-hud.md "Scales"): 0 to
+/// 1,500 ft over the scale's height, ticks every 100 ft, labels 0 / 5 / 10 / 15 (hundreds), the bar filled up to the
+/// radar altitude, the box with `AR`.
+fn thermometer(p: &mut Vec<Prim>, x: f64, y0: f64, agl_ft: f64) {
+    let y = |ft: f64| y0 + TAPE_HALF - ft.clamp(0.0, 1500.0) / 1500.0 * 2.0 * TAPE_HALF;
+    p.push(line((x, y(0.0)), (x, y(1500.0))));
+    for k in 0..=15 {
+        let ft = f64::from(k) * 100.0;
+        p.push(line((x, y(ft)), (x - if k % 5 == 0 { 5.0 } else { 3.0 }, y(ft))));
+        if k % 5 == 0 {
+            p.push(text((x + 2.0, y(ft) + 3.0), format!("{k}"), Align::Left));
+        }
+    }
+    // The bar: a second line beside the scale up to the height.
+    p.push(line((x - 2.0, y(0.0)), (x - 2.0, y(agl_ft))));
+    p.push(line((x - 3.0, y(0.0)), (x - 3.0, y(agl_ft))));
+    let by = y0 + TAPE_HALF + 8.0;
+    p.extend(box_poly(x + 6.0, by - 5.0, x + 36.0, by + 5.0));
+    p.push(text((x + 34.0, by + 3.0), thousands(agl_ft), Align::Right));
+    p.push(text((x + 4.0, by + 3.0), "AR", Align::Right));
+}
+
+/// SCALES VV/VAH: the vertical velocity scale inboard of the altitude scale (docs/real-hud.md "Scales": a fixed
+/// scale, a moving triangle, ticks every 500 fpm). Ours: ±1,500 fpm over the scale's height with labels `1` / `0` /
+/// `-1` (thousands), the triangle held at the ends (inferred).
+fn vvi(p: &mut Vec<Prim>, x: f64, y0: f64, vs_fpm: f64) {
+    let y = |v: f64| y0 - v.clamp(-1500.0, 1500.0) / 1500.0 * TAPE_HALF;
+    p.push(line((x, y(1500.0)), (x, y(-1500.0))));
+    for k in -3..=3 {
+        let v = f64::from(k) * 500.0;
+        p.push(line((x, y(v)), (x + if k % 2 == 0 { 4.0 } else { 2.0 }, y(v))));
+        if k % 2 == 0 {
+            p.push(text((x + 6.0, y(v) + 3.0), format!("{}", k / 2), Align::Left));
+        }
+    }
+    let t = y(vs_fpm);
+    p.push(line((x - 1.0, t), (x - 5.0, t - 3.0)));
+    p.push(line((x - 5.0, t - 3.0), (x - 5.0, t + 3.0)));
+    p.push(line((x - 5.0, t + 3.0), (x - 1.0, t)));
 }
 
 /// The heading scale: 5° ticks, labels every 10° in tens either side of the boxed heading ("06 [070] 08"); the
@@ -620,6 +729,69 @@ mod tests {
             assert!(t.contains(&want), "{want} in {t:?}");
         }
         assert!(!t.contains(&"ARM"), "NAV: no ARM");
+    }
+
+    #[test]
+    fn the_hud_panel_switches() {
+        let mut i = input(Jet::F16);
+        i.fpm = Some((0.0, 0.0));
+        i.agl_ft = Some(800.0);
+        i.vs_fpm = 1000.0;
+        let all = |i: &Input| {
+            let fr = frame(FIELD, i, 1.0);
+            (texts(&fr.outer).into_iter().map(String::from).collect::<Vec<_>>(), fr.field.len(), fr.outer.len())
+        };
+        let (t0, field0, outer0) = all(&i);
+        assert!(t0.iter().any(|t| t == "C") && t0.iter().any(|t| t == "352"), "CAS: {t0:?}");
+        // VV/VAH: the vertical velocity scale's labels.
+        i.panel.scales = Scales::VvVah;
+        let (t, ..) = all(&i);
+        assert!(t.iter().any(|t| t == "-1") && t.iter().filter(|t| *t == "1").count() >= 1, "{t:?}");
+        // OFF: the scales go, the boxes stay.
+        i.panel.scales = Scales::Off;
+        let (t, _, outer) = all(&i);
+        assert!(outer < outer0 && t.iter().any(|t| t == "352") && !t.iter().any(|t| t == "35"), "{t:?}");
+        i.panel.scales = Scales::Vah;
+        // FPM alone: fewer field symbols (no ladder); OFF: fewer still.
+        i.panel.fpm = FpmSwitch::Fpm;
+        let (_, f1, _) = all(&i);
+        i.panel.fpm = FpmSwitch::Off;
+        let (_, f2, _) = all(&i);
+        assert!(f2 < f1 && f1 < field0, "{field0} {f1} {f2}");
+        i.panel.fpm = FpmSwitch::AttFpm;
+        // GND SPD; CAS again with the gear down.
+        i.panel.velocity = Velocity::Gnd;
+        let (t, ..) = all(&i);
+        assert!(t.iter().any(|t| t == "G") && t.iter().any(|t| t == "380"), "{t:?}");
+        i.gear_down = true;
+        assert!(all(&i).0.iter().any(|t| t == "C"));
+        i.gear_down = false;
+        // ALT AUTO below 1,200 ft: the thermometer's AR box; RADAR: the radar altitude with AR.
+        i.panel.alt = AltSwitch::Auto;
+        let (t, ..) = all(&i);
+        assert!(t.iter().any(|t| t == "AR") && t.iter().any(|t| t == "15") && t.iter().any(|t| t == "800"), "{t:?}");
+        i.panel.alt = AltSwitch::Radar;
+        assert!(all(&i).0.iter().any(|t| t == "AR"));
+        i.panel.alt = AltSwitch::Baro;
+        // ALIGN, SIM, DGFT, the SOI asterisk, DED DATA, the ALOW setting.
+        i.panel.align = Some(false);
+        i.panel.sim = true;
+        i.panel.over = 1;
+        i.panel.soi = true;
+        i.panel.ded = vec!["UHF  305.00  STPT   1".into()];
+        i.panel.alow_ft = Some(500.0);
+        let (t, ..) = all(&i);
+        for s in ["ALIGN", "SIM", "DGFT", "*", "UHF  305.00  STPT   1", "AL 500"] {
+            assert!(t.iter().any(|x| x == s), "{s}: {t:?}");
+        }
+        i.panel.align = Some(true);
+        i.time_s = 0.3;
+        assert!(!all(&i).0.iter().any(|t| t == "ALIGN"), "ready: ALIGN flashes");
+        // DEPR RET STBY: the standby reticle's ring, 100 mr down.
+        i.panel.depr_mr = Some(100.0);
+        let fr = frame(FIELD, &i, 1.0);
+        let c = add(i.gun_cross, (0.0, i.mr(100.0)));
+        assert!(fr.field.iter().any(|p| matches!(p, Prim::Circle { c: q, .. } if *q == c)));
     }
 
     #[test]

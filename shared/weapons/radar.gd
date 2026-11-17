@@ -213,6 +213,13 @@ func toggle_aa_ag(now: float) -> void:
 	_sync()
 
 
+## Ours, the DGFT / MSL OVRD switch (player_weapons.gd override_key): mode `m` at once (IafRadar.set_mode).
+func set_mode(m: int, now: float) -> void:
+	_feed()
+	_r.set_mode(m, now)
+	_sync()
+
+
 ## S (event 0x2c).
 func standby() -> void:
 	_r.standby()

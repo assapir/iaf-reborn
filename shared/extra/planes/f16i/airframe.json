@@ -16,6 +16,7 @@
   "mfd": "colour",
   "guide": "f16i",
   "radar": { "row": 9, "km": 104.0, "ai_nm": 52.0, "fcr": { "sam_tracks": 4 } },
+  "ews": { "aiff": true, "maw": true },
   "weapons": {
     "arm_art": "x_f16i",
     "modern": "always",
@@ -41,6 +42,7 @@
     "hud_tint": "Modern IAF: the Sufa's combiner tint, a fraction of the full one (0: untinted, as SIM_TINT; the user, 2026-11-13)",
     "mfd": "the real MFD formats, in colour (docs/mfd.md §9)",
     "guide": "the pilot guide, docs/guides/f16i.md",
+    "ews": "the AIFF interrogator (the AN/APX-113 class, docs/f16i.md §3) and the missile approach warning (PAWS: \"the direction, missile type, and time to impact\", Janes, 27 January 2025); shared/weapons/ews.gd, modern-iaf/docs/ews.md. The Barak has neither (modern-iaf/docs/avionics-plan.md B4, B8)",
     "radar.row": "iaf_avionics::radar::F16I, the AN/APG-68(V)9's row (docs/f16i.md §2)",
     "radar.km": "30 % more air-to-air range than the F-16's APG-68: 80 km x 1.3 (Lockheed Martin, docs/f16i.md §2)",
     "radar.ai_nm": "the AI's sensor range: the F-16's 40 NM x 1.3",

@@ -57,6 +57,8 @@ pub struct Airframe {
     pub sixdof: Option<bool>,
     /// The night-vision goggles' tube whatever the year (terrain_view.gd `TUBES`), its cockpit lit for them.
     pub goggles: Option<String>,
+    /// Modern IAF's F-16 EW and identification sets beyond every modern F-16's (`shared/weapons/ews.gd`).
+    pub ews: Option<Ews>,
     pub guide: Option<String>,
     /// Each value's source, by field (`"radar.km"`); read by no code.
     pub notes: Option<BTreeMap<String, String>>,
@@ -91,6 +93,14 @@ pub struct Radar {
     pub km: Option<f64>,
     pub ai_nm: Option<f64>,
     pub fcr: Option<Fcr>,
+}
+
+/// `ews`: the AIFF interrogator and the missile approach warning (modern-iaf/docs/ews.md).
+#[derive(Clone, Debug, PartialEq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct Ews {
+    pub aiff: Option<bool>,
+    pub maw: Option<bool>,
 }
 
 /// `radar.fcr`: the bugged targets its situation-awareness mode tracks while searching.

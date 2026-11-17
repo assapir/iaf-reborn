@@ -370,6 +370,11 @@ impl SixDof {
         self.start_seq.ins_knob()
     }
 
+    /// The INS alignment: seconds run, its length, done ([`Sequence::ins_status`]).
+    pub fn ins_status(&self) -> (f64, f64, bool) {
+        self.start_seq.ins_status(&self.jet.start)
+    }
+
     /// The electrical power: 0 none, 1 the battery, 2 the displays up ([`Sequence::power`]).
     pub fn power(&self) -> u8 {
         self.start_seq.power(&self.jet.start)

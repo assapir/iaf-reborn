@@ -77,7 +77,8 @@ func _draw() -> void:
 			_pfl()
 
 
-## The 2D panel's RWR symbols (cockpit.gd draw_rwr_symbols) about the scope's centre; none with RWR damage (14).
+## The 2D panel's RWR symbols (cockpit.gd draw_rwr_symbols) about the scope's centre; none with RWR damage (14). The
+## modern F-16s draw their threat display instead (_threats).
 func _rwr() -> void:
 	var c := size / 2.0
 	var r := size.x * 0.45
@@ -85,10 +86,77 @@ func _rwr() -> void:
 		draw_arc(c, r * k, 0.0, TAU, 64, RING, 2.0, true)
 	var flags: Array = cockpit.damage_flags
 	var n := 0
-	if not (flags.size() > 14 and flags[14]):
+	if flags.size() > 14 and flags[14]:
+		shown = {"symbols": 0}
+	elif not cockpit.ews.is_empty():
+		_threats(c, r)
+	else:
 		cockpit.draw_rwr_symbols(self, c, RWR_RADIUS, r / RWR_RADIUS)
 		n = cockpit.rwr.filter(func(e): return e.active).size()
-	shown = {"symbols": n}
+		shown = {"symbols": n}
+
+
+## Ours, the modern F-16s' threat display (ews.gd, iaf_avionics::ews; modern-iaf/docs/ews.md): 12 ticks at 30° on the
+## edge, the ownship "+", each threat's label in its frame (an aircraft's hat, AAA's box), the top threat in a diamond,
+## a lock in a square, a launch in a flashing circle, a new threat flashing; the MAW's warnings as an "M" on the edge
+## with the seconds to impact; SYS TEST's pattern.
+func _threats(c: Vector2, r: float) -> void:
+	var col := DED_GREEN
+	for i in 12:
+		var d := Vector2.from_angle(i * TAU / 12.0)
+		draw_line(c + d * r, c + d * r * 0.93, RING, 2.0, true)
+	var k := r * 0.06
+	draw_line(c - Vector2(k, 0), c + Vector2(k, 0), col, 2.0, true)
+	draw_line(c - Vector2(0, k), c + Vector2(0, k), col, 2.0, true)
+	var blink := int(Time.get_ticks_msec() / 167) % 2 == 0  # 3 Hz (the MLU's launch light)
+	var fs := int(size.x * 0.075)
+	var labels := []
+	for sy in cockpit.ews.get("symbols", []):
+		labels.append(String(sy.label))
+		if (sy.new or sy.launch) and not blink:
+			continue
+		var p: Vector2 = c + Vector2(sy.at.x, -sy.at.y) * r * 0.86
+		_text(p, String(sy.label), fs, col)
+		var h := fs * 0.75
+		match String(sy.kind):
+			"air":
+				draw_polyline(
+					PackedVector2Array([p + Vector2(-h, -h * 0.7), p + Vector2(0, -h * 1.2), p + Vector2(h, -h * 0.7)]),
+					col,
+					2.0,
+					true
+				)
+			"aaa":
+				draw_rect(Rect2(p - Vector2(h * 0.8, h * 0.6), Vector2(h * 1.6, h * 1.2)), col, false, 1.5)
+		if sy.launch:
+			draw_arc(p, h * 1.5, 0.0, TAU, 24, col, 2.0, true)
+		elif sy.lethal:
+			draw_rect(Rect2(p - Vector2(h, h) * 1.3, Vector2(h, h) * 2.6), col, false, 2.0)
+		if sy.diamond:
+			var q := h * 1.9
+			draw_polyline(
+				PackedVector2Array(
+					[p + Vector2(0, -q), p + Vector2(q, 0), p + Vector2(0, q), p + Vector2(-q, 0), p + Vector2(0, -q)]
+				),
+				col,
+				2.0,
+				true
+			)
+	var maw := []
+	for wn in cockpit.ews.get("maw", []):
+		var d := Vector2(sin(float(wn.bearing)), -cos(float(wn.bearing)))
+		var p := c + d * r * 0.86
+		var tti := "--" if is_inf(float(wn.tti)) else "%d" % mini(int(wn.tti), 99)
+		maw.append(tti)
+		if blink:
+			_text(p, "M", fs, PFL_GREEN)
+		_text(p + Vector2(0, fs * 1.1), tti, int(fs * 0.8), PFL_GREEN)
+	shown = {
+		"symbols": labels.size(),
+		"labels": labels,
+		"maw": maw,
+		"testing": cockpit.ews.get("twd", {}).get("testing", false)
+	}
 
 
 ## The EHSI's NAV page: the heading rose turning with the heading under the lubber line, the bearing pointer to the
@@ -112,8 +180,27 @@ func _ehsi() -> void:
 	draw_line(c + Vector2(-k, 0), c + Vector2(k, 0), WHITE, 2.0, true)
 	draw_line(c + Vector2(-k * 0.5, k * 1.2), c + Vector2(k * 0.5, k * 1.2), WHITE, 2.0, true)
 	var dist := -1.0
-	if not cockpit.waypoints.is_empty():
-		var nav := Hud.nav_cues(st, cockpit.waypoints, cockpit.current_waypoint)
+	# Modern IAF's F-16s: the steerpoints with the markpoints, none until the INS navigates; TCN (the M button) the
+	# TACAN station's bearing and range (IafUfc.tacan; no range in REC).
+	var route: Array = cockpit.steer_route() if cockpit.ins_nav() else []
+	var tcn: Dictionary = cockpit.ufc.tacan(cockpit.ufc_nav()) if cockpit.ufc != null and cockpit.ehsi_tcn else {}
+	if cockpit.ehsi_tcn and cockpit.ufc != null:
+		route = []
+		if not tcn.is_empty():
+			route = [
+				{
+					"world":
+					(
+						st.world
+						+ (
+							Vector2(sin(deg_to_rad(tcn.bearing)), cos(deg_to_rad(tcn.bearing)))
+							* maxf(float(tcn.range_m), 1.0)
+						)
+					)
+				}
+			]
+	if not route.is_empty():
+		var nav := Hud.nav_cues(st, route, 0 if cockpit.ehsi_tcn else cockpit.steer_index())
 		var b := deg_to_rad(float(nav.bearing_deg) - hdg)
 		var d := Vector2(sin(b), -cos(b))
 		var n := Vector2(-d.y, d.x)
@@ -122,20 +209,28 @@ func _ehsi() -> void:
 			PackedVector2Array([tip, tip - d * r * 0.16 + n * r * 0.07, tip - d * r * 0.16 - n * r * 0.07]), CYAN
 		)
 		draw_line(c - d * r * 0.98, c - d * r * 0.84, CYAN, 3.0, true)  # its tail
-		dist = float(nav.dist_nm)
-		_text(Vector2(size.x * 0.13, size.y * 0.1), "%03d" % mini(roundi(dist), 999), fs, WHITE)
-		_text(Vector2(size.x * 0.13, size.y * 0.18), "NM", int(fs * 0.7), WHITE)
-	_text(Vector2(size.x * 0.12, size.y * 0.92), "NAV", fs, WHITE)
-	shown = {"dist_nm": dist, "heading": hdg}
+		dist = float(nav.dist_nm) if not (cockpit.ehsi_tcn and float(tcn.range_m) <= 0.0) else -1.0
+		if dist >= 0.0:
+			_text(Vector2(size.x * 0.13, size.y * 0.1), "%03d" % mini(roundi(dist), 999), fs, WHITE)
+			_text(Vector2(size.x * 0.13, size.y * 0.18), "NM", int(fs * 0.7), WHITE)
+	_text(Vector2(size.x * 0.12, size.y * 0.92), "TCN" if cockpit.ehsi_tcn else "NAV", fs, WHITE)
+	shown = {"dist_nm": dist, "heading": hdg, "mode": "TCN" if cockpit.ehsi_tcn else "NAV"}
 
 
-## The DED's CNI page, 5 lines of 24 characters: the steerpoint on line 1, the time of day on line 3.
+## The DED, 5 lines of 24 characters. Modern IAF's F-16s: the up-front controls' pages (cockpit.gd ded_lines,
+## IafUfc; blank without the UFC's power); reborn's: the CNI page, the steerpoint on line 1, the time of day on line 3.
 func _ded() -> void:
-	var stpt := "STPT %2d" % (cockpit.current_waypoint + 1) if not cockpit.waypoints.is_empty() else ""
-	var t := int(float(cockpit.state.get("tod", 0.0))) % 86400
-	var lines := [
-		"%24s" % (stpt + "     "), "", "%24s" % ("%02d:%02d:%02d   " % [t / 3600, t / 60 % 60, t % 60]), "", ""
-	]
+	var lines := []
+	if cockpit.ufc != null:
+		lines = Array(cockpit.ded_lines())
+		lines.resize(5)
+		lines = lines.map(func(l): return "" if l == null else String(l))
+	else:
+		var stpt := "STPT %2d" % (cockpit.current_waypoint + 1) if not cockpit.waypoints.is_empty() else ""
+		var t := int(float(cockpit.state.get("tod", 0.0))) % 86400
+		lines = [
+			"%24s" % (stpt + "     "), "", "%24s" % ("%02d:%02d:%02d   " % [t / 3600, t / 60 % 60, t % 60]), "", ""
+		]
 	var lh := size.y / 5.0
 	var fs := int(minf(lh * 0.9, size.x / 24.0 / 0.6))
 	for i in 5:

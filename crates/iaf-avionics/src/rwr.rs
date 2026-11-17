@@ -149,6 +149,9 @@ pub struct Rwr {
     new_guy: bool,
     /// Real RWR: the radars searching the jet, from the last [`Rwr::search`].
     searching: Vec<Search>,
+    /// Ours, Modern IAF's F-16s: an aircraft's radar is heard from every side, not only more than 120° off the nose
+    /// (the real RWR covers all round; modern-iaf/docs/avionics-plan.md E1).
+    pub all_aspect: bool,
 }
 
 impl Default for Rwr {
@@ -164,6 +167,7 @@ impl Default for Rwr {
             next_refresh: 0.0,
             new_guy: false,
             searching: Vec::new(),
+            all_aspect: false,
         }
     }
 }
@@ -207,7 +211,7 @@ impl Rwr {
             return false;
         }
         let rel = wrap_pi(d.x.atan2(d.y) - w.yaw);
-        u.ground() || rel.abs() > REAR
+        u.ground() || self.all_aspect || rel.abs() > REAR
     }
 
     /// Add (`FUN_004518d0`): refused when full (count > 9) or listed; the first slot with type 0; the active flag from
@@ -435,19 +439,31 @@ impl Rwr {
     /// so after a removal an entry past `count` is not shown). With `compact` every listed slot is shown. Then the
     /// searching radars not listed (Real RWR), up to 15 in all.
     pub fn display(&self) -> Vec<Shown> {
-        let shown =
-            |s: &Slot| Shown { type_code: s.type_code, pos: s.pos, launch: s.launch, active: s.active, search: false };
-        let mut out: Vec<Shown> = if self.compact {
-            self.slots.iter().filter(|s| s.type_code != 0).take(DISPLAY_MAX).map(shown).collect()
-        } else {
-            self.slots.iter().take(self.count.min(DISPLAY_MAX)).map(shown).collect()
+        self.display_keyed().into_iter().map(|e| e.1).collect()
+    }
+
+    /// [`Rwr::display`] with each entry's emitter as a stable id (a hash of its unit key; a slot without one, its
+    /// index): the modern threat display tells its symbols apart by it (`ews`).
+    pub fn display_keyed(&self) -> Vec<(u64, Shown)> {
+        let id = |key: Option<&str>, i: usize| {
+            key.map_or(i as u64, |k| {
+                let mut h = std::collections::hash_map::DefaultHasher::new();
+                std::hash::Hash::hash(k, &mut h);
+                std::hash::Hasher::finish(&h)
+            })
         };
-        let searching = self.searching.iter().filter(|s| self.find(&s.key).is_none()).map(|s| Shown {
-            type_code: s.type_code,
-            pos: s.pos,
-            launch: false,
-            active: true,
-            search: true,
+        let shown = |(i, s): (usize, &Slot)| {
+            let e = Shown { type_code: s.type_code, pos: s.pos, launch: s.launch, active: s.active, search: false };
+            (id(s.unit.as_deref(), i), e)
+        };
+        let mut out: Vec<(u64, Shown)> = if self.compact {
+            self.slots.iter().enumerate().filter(|s| s.1.type_code != 0).take(DISPLAY_MAX).map(shown).collect()
+        } else {
+            self.slots.iter().enumerate().take(self.count.min(DISPLAY_MAX)).map(shown).collect()
+        };
+        let searching = self.searching.iter().filter(|s| self.find(&s.key).is_none()).map(|s| {
+            let e = Shown { type_code: s.type_code, pos: s.pos, launch: false, active: true, search: true };
+            (id(Some(&s.key), 0), e)
         });
         out.extend(searching.take(DISPLAY_MAX.saturating_sub(out.len())));
         out
@@ -562,6 +578,11 @@ mod tests {
         assert!(r.lamps.ai && !r.take_new_guy(), "gated 1 s");
         r.lock(&world(0.5), "heli");
         assert_eq!(r.count(), 3, "type 220 ignored");
+        r.all_aspect = true;
+        r.refresh(&world(0.5));
+        assert!(r.slots()[1].active, "all-aspect: ahead too");
+        let d = r.display_keyed();
+        assert!(d.len() == 3 && d[0].0 != d[1].0 && d[0].0 == r.display_keyed()[0].0, "stable, distinct ids");
         assert_eq!(r.nearest(&world(0.5)).as_deref(), Some("front"));
     }
 

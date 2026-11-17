@@ -5,7 +5,7 @@ use crate::world::{get, num, terrain, vec3, vector3};
 use godot::prelude::*;
 use iaf_avionics::bombs::{self, Bomb};
 use iaf_avionics::gps::{self, GpsBomb, Kit};
-use iaf_avionics::master::{Hud, Master, MasterKey, Modes};
+use iaf_avionics::master::{Hud, Master, MasterKey, Modes, Override};
 
 /// The falling store's state as a dictionary {t0, p0, v0, aim, acc, end, next_check, opened, done, beta, wind} (bombs.gd keeps
 /// it in a plain Dictionary).
@@ -169,6 +169,26 @@ impl IafModes {
     #[func]
     fn set_hud(&mut self, h: i64) {
         self.modes.hud = Hud::from_index(h);
+    }
+
+    /// The DGFT / MSL OVRD switch (`master::Override`): thrown from `from` (0 centred, 1 DGFT, 2 MSL OVRD) toward
+    /// `to`, over `stations` ([[type, count], ...]): {at (the new position), station (-1 none), radar (-1 none)}.
+    #[func]
+    fn override_throw(from: i64, to: i64, stations: VarArray) -> VarDictionary {
+        let st: Vec<(i64, i64)> = stations
+            .iter_shared()
+            .map(|v| {
+                let a = v.try_to::<VarArray>().unwrap_or_default();
+                let n = |i: usize| a.get(i).and_then(|x| x.try_to::<i64>().ok()).unwrap_or(0);
+                (n(0), n(1))
+            })
+            .collect();
+        let at = Override::from_index(from).throw(Override::from_index(to));
+        vdict! {
+            "at" => at as i64,
+            "station" => at.station(&st).map_or(-1, |i| i as i64),
+            "radar" => at.radar_mode().unwrap_or(-1),
+        }
     }
 
     /// `FUN_0044ec80`: [master, hud] of a store type, [] when the mode stays.

@@ -816,6 +816,22 @@ func _setup_weapons() -> void:
 		var g = terrain.height_at(world_to_scene(Vector3(x, y, 0.0)))
 		return g
 	cockpit.on_station_select = weapons.select_station
+	# Ours, Modern IAF's F-16 up-front controls (cockpit.gd ufc_press): the steerpoint through the autopilot, an edited
+	# route to the flight model's autopilot, the MODE page's master mode, the MARK page's sensor points.
+	cockpit.on_steer = func(i: int):
+		if autopilot != null:
+			autopilot.set_waypoint(i)
+		else:
+			cockpit.current_waypoint = i
+	cockpit.on_route_changed = func():
+		if flight != null:
+			flight.ap_set_route(_route_points())
+	cockpit.on_master = func(aa: bool):
+		if aa:
+			weapons.select_aa()
+		else:
+			weapons.select_ag()
+	cockpit.mark_points = mark_points
 	cockpit.on_ripple_event = weapons.ripple_event
 	weapons.bomb_burst_fix = Settings.better.get("fix_bomb_burst", false)
 	weapons.hud_clip = cockpit.hud.ccip_clip
@@ -2067,13 +2083,45 @@ func _setup_autopilot(install: String) -> void:
 	_start_autopilot(start_airborne)
 
 
-## The player's route on the flight model's autopilot, and the controller's autopilot (on in level mode after an
-## airborne start, @4483d7).
-func _start_autopilot(airborne: bool) -> void:
+## The route as the flight model's autopilot takes it: [X, Y, alt, T, action] per waypoint.
+func _route_points() -> PackedFloat64Array:
 	var pts := PackedFloat64Array()
 	for w in route:
 		pts.append_array([w.world.x, w.world.y, w.get("alt", 0.0), w.get("t", 0.0), w.get("action", 0)])
-	flight.ap_set_route(pts)
+	return pts
+
+
+## Ours, the DED's MARK page (cockpit.gd ufc_nav): the sensors' points in the mission world (x east, y north,
+## elevation ft): the FCR's designated ground point, the targeting pod's point on the ground, the HUD's: the ground
+## along the flight path within 10 NM (inferred: the HUD mark cue starts on the flight path marker).
+func mark_points() -> Dictionary:
+	var out := {"fcr_at": null, "tgp_at": null, "hud_at": null}
+	var to_ft := func(w: Vector3) -> Vector3: return Vector3(w.x, w.y, w.z / 0.3048)
+	var rd: Dictionary = cockpit.radar
+	if rd.get("designated", false) and rd.get("desig") is Vector3:
+		out.fcr_at = to_ft.call(rd.desig)
+	if weapons != null and weapons.flir_pod and weapons.eo.mode != 0:
+		var p: Vector3 = weapons.eo_centre
+		if p.distance_to(scene_to_world(rig.position)) < 1.0e5:
+			out.tgp_at = to_ft.call(p)
+	# The HUD's point only on the MARK and FIX pages (a ray march: the DED reads this every frame).
+	var page := String(cockpit.ufc.state().page) if cockpit.ufc != null else ""
+	var v = cockpit.hud.velocity_dir if page in ["MARK", "FIX"] else null
+	if v != null and rig != null:
+		var d: Vector3 = v
+		for k in range(1, 186):
+			var q: Vector3 = rig.position + d * 100.0 * k
+			var g = terrain.height_at(q)
+			if g != null and q.y <= float(g):
+				out.hud_at = to_ft.call(scene_to_world(Vector3(q.x, float(g), q.z)))
+				break
+	return out
+
+
+## The player's route on the flight model's autopilot, and the controller's autopilot (on in level mode after an
+## airborne start, @4483d7).
+func _start_autopilot(airborne: bool) -> void:
+	flight.ap_set_route(_route_points())
 	autopilot = preload("res://shared/controls/autopilot.gd").new(self)
 	autopilot.start(airborne)
 
@@ -2977,6 +3025,7 @@ func _command(cmd: Array) -> bool:
 			# (player_weapons.gd master_arm, modern-iaf/docs/weapons.md §3).
 			if weapons != null:
 				weapons.master_arm = not weapons.master_arm
+				weapons.master_sim = false
 				_on_subtitle("Master arm" if weapons.master_arm else "Master safe")
 		210, 211, 212, 213, 214, 215:
 			# Modern IAF's start-up checklist steps (its own keys.json; modern-iaf/docs/training.md §7.1): the flight add-on
@@ -3004,6 +3053,15 @@ func _command(cmd: Array) -> bool:
 						autopilot.set_waypoint(i)
 					else:
 						cockpit.current_waypoint = i
+			elif (
+				int(cmd[0]) == 221
+				and p1 == 3
+				and weapons != null
+				and weapons.ews != null
+				and weapons.ews.aiff
+				and int(weapons.radar.mode) in [2, 4, 5]
+			):
+				weapons.ews.interrogate(false)  # TMS left in CRM / STT: the AIFF's SCAN (ews.gd)
 			elif weapons != null and not weapons.radar.real.is_empty():
 				cockpit.radar_mfd()
 				var ev: int = [
@@ -3022,6 +3080,33 @@ func _command(cmd: Array) -> bool:
 			if weapons != null and not weapons.radar.real.is_empty():
 				cockpit.radar_mfd()
 				weapons.radar_event(weapons.RADAR_AG_OSB, p1)
+		250:
+			# Ours, Modern IAF's F-16 ICP (its keys.json Alt + digits and the rest, the 3D cockpit's ICP buttons): p1 the
+			# key (IafUfc.press's numbers; modern-iaf/docs/ufc.md).
+			if cockpit.ufc != null:
+				cockpit.ufc_press(p1)
+				sounds.play("SFX_BUTTON")
+		251:
+			# Ours, the throttle's DGFT / MSL OVRD switch (V / Shift + V): p1 1 DGFT, 2 MSL OVRD; the same again centres it
+			# (player_weapons.gd override_key).
+			if weapons != null and weapons.modern_f16:
+				var at: int = weapons.override_key(p1)
+				_on_subtitle(["Dogfight / missile override off", "Dogfight", "Missile override"][at])
+		252:
+			# Ours, the F-16's HUD control panel (the 3D cockpit's switches, Alt + D DED DATA, Alt + R DEPR RET): p1 the
+			# switch (cockpit.gd HUD_PANEL), p2 its position, -1 the next one round.
+			if cockpit.ufc != null and p1 >= 0 and p1 < cockpit.HUD_PANEL.size():
+				var k: String = cockpit.HUD_PANEL[p1]
+				var to := int(cmd[2])
+				cockpit.hud_panel[k] = (int(cockpit.hud_panel[k]) + 1) % 3 if to < 0 else clampi(to, 0, 2)
+		253:
+			# Ours, the EHSI's M button (Alt + N, the 3D cockpit's button): NAV / TCN.
+			if cockpit.ufc != null:
+				cockpit.ehsi_tcn = not cockpit.ehsi_tcn
+		254:
+			# Ours, the backup UHF panel's channel knob (Alt + U): one channel on, the UHF on BACKUP.
+			if cockpit.ufc != null:
+				cockpit.ufc.backup_channel()
 		240:
 			# Ours, the modern MFDs' DMS (Modern IAF's keys.json): p1 0 up, 1 down, 2 left, 3 right (cockpit.gd dms).
 			if Settings.modern_mfds():
@@ -3034,6 +3119,30 @@ func _command(cmd: Array) -> bool:
 				if not weapons.laser_arm and weapons.eo.laser:
 					weapons.eo.laser = false
 				_on_subtitle("Laser armed" if weapons.laser_arm else "Laser safe")
+		260, 261, 262, 263, 264, 265:
+			# Ours, the modern F-16s' EW and identification keys (Modern IAF's keys.json; modern-iaf/docs/ews.md): 260
+			# the AIFF (p1 0 SCAN, 1 LOS); 261 the CMS (p1 0 forward, 1 aft, 2 right); 262 the CMDS MODE knob, the next
+			# position; 263 the CMDS's next manual program; 264 the threat warning prime panel (p1 0 HANDOFF, 1 MODE PRI /
+			# OPEN, 2 UNKNOWN, 3 TGT SEP while held, 4 SYS TEST); 265 the DL switch.
+			if weapons == null or weapons.ews == null:
+				return true
+			var e: RefCounted = weapons.ews
+			match int(cmd[0]):
+				260:
+					e.interrogate(p1 == 1)
+				261:
+					e.cms(p1)
+				262:
+					e.cmds_mode()
+					_on_subtitle("CMDS " + String(e.cmds_state().mode_name))
+				263:
+					e.cmds_next_program()
+					_on_subtitle("CMDS program %d" % int(e.cmds_state().program))
+				264:
+					e.twd_button(p1, true)
+				265:
+					e.link_power(not e.link_on())
+					_on_subtitle("Data link on" if e.link_on() else "Data link off")
 		219:
 			# Ours, Modern IAF: one F-16 power switch (the 3D cockpit's AVIONIC POWER and SNSR PWR switches; no key sends
 			# it): p2 its index in sim_flight.gd SYSTEMS, p1 as 210-215's (modern-iaf/docs/cockpit.md §5.2).
@@ -3659,6 +3768,9 @@ func _release_command(cmd: Array) -> void:
 		225:
 			if weapons != null:
 				weapons.radar_event(weapons.RADAR_ELEVATION, 0.0)
+		264:
+			if weapons != null and weapons.ews != null and int(cmd[1]) == 3:
+				weapons.ews.twd_button(3, false)  # TGT SEP let go
 		20, 21, 23, 24, 26, 27:
 			views.pan(int(cmd[0]), false)
 			# The zoom keys' release (p1 0) zooms the EO camera (FUN_004cd630 cases 0x14 / 0x15, slot 1 type 0xb).
@@ -4000,6 +4112,13 @@ func _process(delta: float) -> void:
 		for k in ins:
 			cockpit.state[k] = ins[k]
 		cockpit.state["better"] = flight.better_instruments(player_damage.flags if player_damage != null else [])
+		if cockpit.ufc != null:
+			# Ours, the DED's CRUS and INS pages (cockpit.gd ufc_nav): the fuel flow (kg/s to lb/h), the INS alignment
+			# ([knob, seconds run, its length, done]), the mission's wind (from, kt).
+			cockpit.state["fuel_pph"] = flight.fuel_flow() * 3600.0 / 0.45359237
+			cockpit.state["ins"] = [flight.ins_knob()] + Array(flight.ins_status())
+			cockpit.state["wind"] = Vector2(wind_from, wind_kt)
+			cockpit.state["alow_ft"] = float(cockpit.ufc.state().alow_ft)
 		cockpit.power = int(st.get("power", 2))  # the 6-DoF's ground start (Modern IAF); always 2 in the original game
 		cockpit.systems = st.get("systems", {})
 		_record(st, delta)

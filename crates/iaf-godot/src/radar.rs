@@ -5,7 +5,7 @@
 
 use crate::world::{get, terrain, vec3, vector3};
 use godot::prelude::*;
-use iaf_avionics::radar::{Contact, Event, Fcr, GroundFrame, Input, Own, Radar, Runway, Tms, Unit};
+use iaf_avionics::radar::{Contact, Event, Fcr, GroundFrame, Input, Mode, Own, Radar, Runway, Tms, Unit};
 
 #[derive(GodotClass)]
 #[class(init, base = RefCounted)]
@@ -156,6 +156,14 @@ impl IafRadar {
     #[func]
     fn cycle_mode(&mut self, now: f64) {
         self.with(|r, i| r.cycle_mode(now, i));
+    }
+
+    /// The DGFT / MSL OVRD switch's radar mode (`radar::Mode` as its number; Radar::override_mode).
+    #[func]
+    fn set_mode(&mut self, mode: i64, now: f64) {
+        if let Some(&m) = Mode::ALL.get(usize::try_from(mode).unwrap_or(0)) {
+            self.with(|r, i| r.override_mode(m, now, i));
+        }
     }
 
     #[func]

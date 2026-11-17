@@ -448,6 +448,13 @@ impl IafFlight {
         self.aircraft.as_ref().map_or(3, |ac| i64::from(ac.ins_knob()))
     }
 
+    /// The INS alignment for the DED's INS page: [seconds run, its length, done] (start.rs `ins_status`).
+    #[func]
+    fn ins_status(&self) -> VarArray {
+        let (ran, need, done) = self.aircraft.as_ref().map_or((0.0, 0.0, true), |ac| ac.ins_status());
+        varray![ran, need, done]
+    }
+
     // --- AI (docs/ai.md) ------------------------------------------------------------------------------
 
     /// An AI jet: the FM's AI "team" test (not on the player's side) and the Preferences AI level (0..2).

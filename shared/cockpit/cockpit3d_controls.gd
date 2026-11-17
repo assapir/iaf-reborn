@@ -415,6 +415,10 @@ func put(r: Dictionary, v: float) -> void:
 				sw[e[1].prop] = float(e[1].safe)
 
 
+## The RET DEPR wheel's full travel: the standby reticle's depression, mr (inferred: the dash-34's manual reticle
+## range, 0 to 260 mr).
+const DEPR_MAX_MR := 260.0
+
 ## The start-up switches of three positions (f16_controls.json `system`) and their command [id, p2]: MAIN PWR 210,
 ## the JFS 211, RDR ALT 219 with its index in sim_flight.gd SYSTEMS.
 const START_CMD := {"main_power": [210, 0], "starter": [211, 0], "rdr_alt": [219, 5]}
@@ -444,12 +448,20 @@ func sync() -> void:
 ## System `name`'s state as its switch's position (`now` the switch's own); NAN: the switch keeps its own.
 static func _system_state(tv: Object, name: String, now: float) -> float:
 	match name:
-		"master_arm":  # SIMULATE / OFF / MASTER ARM: safe keeps SIMULATE (not modelled) or OFF
-			return 1.0 if tv.weapons.master_arm else minf(now, 0.0)
+		"master_arm":  # SIMULATE / OFF / MASTER ARM (SIMULATE: player_weapons.gd master_sim)
+			if not tv.weapons.modern_f16:  # the others keep SIMULATE as a position only
+				return 1.0 if tv.weapons.master_arm else minf(now, 0.0)
+			return 1.0 if tv.weapons.master_arm else (-1.0 if tv.weapons.master_sim else 0.0)
 		"laser_arm":  # OFF / ARM (the modern MFDs' LASER ARM, player_weapons.gd laser_arm)
 			return 1.0 if tv.weapons.laser_arm else 0.0
 		"mfd_brt":
 			return Settings.mfd_brightness
+		"hud_scales", "hud_fpm", "hud_alt":  # the HUD control panel (cockpit.gd hud_panel): the top position is the first
+			return 2.0 - float(tv.cockpit.hud_panel[name.trim_prefix("hud_")])
+		"hud_velocity":
+			return 1.0 - float(tv.cockpit.hud_panel.velocity)
+		"depr_ret":  # the RET DEPR wheel: 0 to DEPR_MAX_MR
+			return float(tv.cockpit.depr_mr) / DEPR_MAX_MR
 		"alt_flaps":
 			return 1.0 if float(tv.flaps) > 0.0 else 0.0
 		"stores_config":
@@ -461,6 +473,21 @@ static func _system_state(tv: Object, name: String, now: float) -> float:
 		"batt":  # the F-35I's BATT RESET (-1) / OFF / ON: off keeps RESET or OFF
 			if tv.flight != null:
 				return 1.0 if tv.flight.start_on("main_power") else minf(now, 0.0)
+		"twd_open", "twd_unknowns", "twd_sep":  # the threat warning prime panel's MODE, UNKNOWN, TGT SEP (ews.gd)
+			if tv.weapons.ews != null:
+				return 1.0 if bool(tv.weapons.ews.twd_state()[name.trim_prefix("twd_")]) else 0.0
+		"cmds_mode":  # the model's knob has OFF / STBY / MAN; SEMI, AUTO and BYP (the key) leave it at MAN
+			if tv.weapons.ews != null:
+				return minf(float(tv.weapons.ews.cmds_state().mode), 2.0)
+		"cmds_ch", "cmds_fl", "cmds_o1", "cmds_o2", "cmds_rwr", "cmds_jmr", "cmds_mws", "cmds_jett":
+			if tv.weapons.ews != null:
+				return 1.0 if bool(tv.weapons.ews.cmds_state()[name.trim_prefix("cmds_")]) else 0.0
+		"dl":
+			if tv.weapons.ews != null:
+				return 1.0 if tv.weapons.ews.link_on() else 0.0
+		"threat_vol", "msl_vol":  # the RWR's tones (rwr.gd), on the modern F-16s
+			if tv.weapons.ews != null:
+				return tv.weapons.rwr.threat_volume if name == "threat_vol" else tv.weapons.rwr.launch_volume
 		"eng":  # the F-35I's ENGINE OFF / MOTOR / NORM: not running keeps MOTOR or OFF
 			if tv.flight != null:
 				return 2.0 if tv.flight.start_on("engine") else (1.0 if is_equal_approx(now, 1.0) else 0.0)
@@ -486,18 +513,34 @@ func _system_put(name: String, v: float, was := NAN) -> void:
 		return
 	var on := v > 0.5
 	match name:
-		"master_arm":  # command 202 flips it
+		"master_arm":  # command 202 flips it (and clears SIMULATE); down (-1) is SIMULATE: safe, the HUD's SIM
 			if on != tv.weapons.master_arm:
 				tv._press([202, 0, 0])
+			tv.weapons.master_sim = v < -0.5 and tv.weapons.modern_f16
 		"laser_arm":  # command 241 flips it
 			if on != tv.weapons.laser_arm:
 				tv._press([241, 0, 0])
 		"emer_jett":  # the push: command 72
 			if on:
 				tv._press([72, 0, 0])
+		"hud_scales", "hud_fpm", "hud_alt", "hud_velocity":  # the HUD control panel: command 252
+			var k := name.trim_prefix("hud_")
+			var top := 1.0 if k == "velocity" else 2.0
+			tv._press([252, tv.cockpit.HUD_PANEL.find(k), roundi(top - v)])
+		"depr_ret":
+			tv.cockpit.depr_mr = v * DEPR_MAX_MR
+		"ehsi_mode":  # the EHSI's M button: command 253
+			if on:
+				tv._press([253, 0, 0])
 		"a_a", "a_g":  # the ICP's A-A / A-G: commands 62 / 60
 			if on:
 				tv._press([62 if name == "a_a" else 60, 0, 0])
+		"dcs_ud", "dcs_rs":  # the ICP's DCS rocker: up / down (16 / 17), RTN / SEQ (18 / 19) on one property each
+			if absf(v) > 0.5:
+				tv._press([250, (16 if v > 0.0 else 17) if name == "dcs_ud" else (19 if v > 0.0 else 18), 0])
+		_ when name.begins_with("icp_"):  # an ICP key: command 250 with its number (IafUfc.press)
+			if on:
+				tv._press([250, int(name.trim_prefix("icp_")), 0])
 		"mfd_brt":  # command 216: thousandths up or down
 			tv._press([216, roundi((v - Settings.mfd_brightness) * 1000.0), 0])
 		"hmd_brt", "mfd_step":  # the F-35I's spring-loaded BRT rockers: a step (2.5 %) up or down as they are pushed
@@ -512,6 +555,30 @@ func _system_put(name: String, v: float, was := NAN) -> void:
 		"alt_flaps":  # command 12 flips the flaps lever
 			if on != (float(tv.flaps) > 0.0):
 				tv._press([12, 0, 0])
+		"twd_open":
+			if tv.weapons.ews != null:
+				tv.weapons.ews.set_open(on)
+		"twd_unknowns":
+			if tv.weapons.ews != null:
+				tv.weapons.ews.set_unknowns(on)
+		"twd_sep":  # the push: held
+			if tv.weapons.ews != null:
+				tv.weapons.ews.twd_button(3, on)
+		"cmds_mode":
+			if tv.weapons.ews != null:
+				tv.weapons.ews.cmds_mode(roundi(v))
+		"cmds_ch", "cmds_fl", "cmds_o1", "cmds_o2", "cmds_rwr", "cmds_jmr", "cmds_mws", "cmds_jett":
+			if tv.weapons.ews != null:
+				tv.weapons.ews.cmds_switch(name.trim_prefix("cmds_"), on)
+		"dl":
+			if tv.weapons.ews != null:
+				tv.weapons.ews.link_power(on)
+		"threat_vol":
+			if tv.weapons.ews != null:
+				tv.weapons.rwr.threat_volume = v
+		"msl_vol":
+			if tv.weapons.ews != null:
+				tv.weapons.rwr.launch_volume = v
 		"stores_config":
 			tv.cat3 = on
 		"mpo":

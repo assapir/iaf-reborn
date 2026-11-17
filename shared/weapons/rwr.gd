@@ -29,6 +29,19 @@ var damaged := false:
 		_r.set_damaged(v)
 ## Betty fitted (ctl+0x964): "Missile" on every launch.
 var betty := false
+## Ours, Modern IAF's F-16s (ews.gd): their threat display plays the new-threat tone itself; the THREAT and MSL volume
+## knobs scale the new-threat tone and the launch tone (0..1).
+var new_guy_tone := true
+## ... and their RWR hears an aircraft's radar from every side (rwr.rs all_aspect).
+var all_aspect := false:
+	set(v):
+		all_aspect = v
+		_r.set_all_aspect(v)
+var threat_volume := 1.0
+var launch_volume := 1.0:
+	set(v):
+		launch_volume = v
+		scaled(_launch_loop, v)
 
 ## Owner callbacks: unit(key) -> {pos, klass, type, state} or {} (gone); own() -> {pos, yaw};
 ## play(code, sub1) -> Node; stop(Node); now() -> sim seconds.
@@ -81,6 +94,7 @@ func launch(key: String, missile := {}) -> void:
 		return
 	if _launch_loop == null or not is_instance_valid(_launch_loop):
 		_launch_loop = play.call("SFX_WARNING", "WRN_MISSILE_LAUNCH") if play.is_valid() else null
+		scaled(_launch_loop, launch_volume)
 	if betty and play.is_valid():
 		play.call("VOC_BBETTY", "BTY_MISS")
 
@@ -153,5 +167,11 @@ func _sync() -> void:
 	for id in _by_id.keys():
 		if not ids.has(id):
 			_by_id.erase(id)
-	if _r.take_new_guy() and play.is_valid():
-		play.call("SFX_WARNING", "WRN_NEW_GUY")
+	if _r.take_new_guy() and new_guy_tone and play.is_valid():
+		scaled(play.call("SFX_WARNING", "WRN_NEW_GUY"), threat_volume)
+
+
+## Ours: a played sound `p` (flight_sounds.gd play) at `k` of its own volume.
+static func scaled(p, k: float) -> void:
+	if is_instance_valid(p) and p is AudioStreamPlayer:
+		p.volume_db = linear_to_db(maxf(float(p.get_meta("base_volume", 1.0)) * k, 0.0001))

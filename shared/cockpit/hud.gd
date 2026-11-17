@@ -675,18 +675,20 @@ func real_hud() -> Dictionary:
 	var horizon := anchor - Vector2(-sin(roll_r), -cos(roll_r)) * e * px_deg
 	var fpm = _fpm_position()
 	var gun: Vector2 = (gun_cross() - position - _c) / _s
-	var nav := nav_cues(st, cockpit.waypoints, cockpit.current_waypoint)
+	# The steerpoints: the route and Modern IAF's markpoints (cockpit.gd steer_route), none until the INS navigates.
+	var route: Array = cockpit.steer_route() if cockpit.ins_nav() else []
+	var nav := nav_cues(st, route, cockpit.steer_index())
 	var steer := {}
-	if not cockpit.waypoints.is_empty():
-		var i := clampi(cockpit.current_waypoint, 0, cockpit.waypoints.size() - 1)
-		var wpt: Dictionary = cockpit.waypoints[i]
+	if not route.is_empty():
+		var i := clampi(cockpit.steer_index(), 0, route.size() - 1)
+		var wpt: Dictionary = route[i]
 		var z := 0.0
 		if host_ground.is_valid():
 			var g = host_ground.call(wpt.world.x, wpt.world.y)
 			z = float(g) if g != null else 0.0
 		var minutes := float(nav.minutes)
 		steer = {
-			"number": int(nav.index) + 1,
+			"number": int(wpt.get("number", i + 1)),
 			"bearing": nav.bearing_deg,
 			"dist_m": float(nav.dist_nm) / M_TO_NM,
 			"eta_s": minutes * 60.0 if minutes < 1000.0 / 60.0 else null,
@@ -782,6 +784,8 @@ func real_hud() -> Dictionary:
 		# Ours, the real FCR's AGR slant range (m; docs/radar.md §9.7), null without one.
 		"agr_m": _agr_m(rd),
 		"dlz": rd.get("dlz", []) if not target.is_empty() else [],
+		# Ours, Modern IAF's F-16s: the HUD control panel and the up-front controls (cockpit.gd hud_panel_input).
+		"panel": cockpit.hud_panel_input(),
 		"weapons":
 		{
 			"hud_mode": mode,

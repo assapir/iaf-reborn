@@ -11,6 +11,7 @@ mod city_lights;
 mod cockpit_sound;
 mod devices;
 mod emf;
+mod ews;
 #[cfg(target_os = "linux")]
 mod exit_wake;
 mod f16_mfd;
@@ -37,6 +38,7 @@ mod sight;
 mod stores;
 mod surface;
 mod training;
+mod ufc;
 mod world;
 
 struct IafExtension;

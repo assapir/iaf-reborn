@@ -826,9 +826,13 @@ its scale. The original HUD keeps the original layout.
   - The target-aspect triangle rides the AIM-9 reticle / ASEC.
   - The break X (GAAF and A-A inside Rmin), the pull-up anticipation cue and the ALOW readout ("Pull-up and break
     marks" above).
-  - Not drawn: the VVI (vertical velocity indicator) scale (ours: the VAH switch position), DTOS / CCRP (the game has
-    no such modes), BATR / FEDS, the AUTO altitude scale below 1,200 ft, the LOW mnemonic (the game has no fuze
-    arming height).
+  - Modern IAF's F-16s (2026-11-17, [../modern-iaf/docs/ufc.md](../modern-iaf/docs/ufc.md) §4): the HUD control
+    panel's switches (the VVI scale at VV/VAH, FPM alone, the scales off, CAS / TAS / ground speed, the radar
+    altitude and AUTO's thermometer, DED DATA, the standby reticle), ALIGN, SIM, DGFT / MSL, the DED's ALOW, `FUEL`
+    flashing and the SOI asterisk. Reborn's HUD keeps the VAH, ATT/FPM, CAS and BARO positions.
+  - `FUEL` below the bingo flashes in both games since 2026-11-17 (the dash-34's window 6; it was steady before).
+  - Not drawn: DTOS / CCRP (the game has no such modes), BATR / FEDS, the LOW mnemonic (the game has no fuze arming
+    height); in reborn the VVI and the AUTO scale (no HUD control panel).
 - F-15: tapes, heading, ladder with the zenith ⊖ "90" / nadir ⊗, velocity vector, -W-, gun cross when armed, G, Mach
   in A-A, NAV window, TD box, ASE circle + dot, range scale + IN RNG, breakaway X inside Rmin, LCOS reticle with the
   range arc, bomb fall line to the target square, AoA scale gear down (ours: degrees as units), NAV bank steering bar
