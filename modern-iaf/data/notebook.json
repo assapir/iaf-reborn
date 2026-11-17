@@ -24,6 +24,7 @@
       "weapons": [
         {"title": {"en": "ARMING", "he": "דריכה"}, "steps": [
           {"en": "ST STA power ON (with the avionics)", "he": "מתח ST STA מופעל (עם האוויוניקה)", "where": {"en": "AVIONIC POWER panel, right console", "he": "לוח AVIONIC POWER, הקונסולה הימנית"}, "key": 122},
+          {"en": "FCR and RDR ALT ON (with the avionics): the radar and the radar altimeter", "he": "FCR ו־RDR ALT מופעלים (עם האוויוניקה): המכ\"ם ומד הגובה המכ\"מי", "where": {"en": "SNSR PWR panel, right console", "he": "לוח SNSR PWR, הקונסולה הימנית"}, "key": 122},
           {"en": "MASTER ARM: ARM (every flight starts SAFE)", "he": "MASTER ARM: ARM (כל טיסה מתחילה ב־SAFE)", "where": {"en": "MISC panel, left of the front panel", "he": "לוח MISC, משמאל ללוח הקדמי"}, "key": 125},
           {"en": "Gear UP: nothing releases with the gear handle down", "he": "כן הנסע למעלה: אין שחרור כשידית כן הנסע למטה", "where": {"en": "gear handle, left of the front panel", "he": "ידית כן הנסע, משמאל ללוח הקדמי"}, "key": 20}
         ]},

@@ -342,7 +342,7 @@ impl Start {
     }
 
     /// One checklist step by its key (training.md §7.1): "main_power", "starter", "engine", "avionics" (the four
-    /// AVIONIC POWER switches), "ins", "canopy"; or one of `SYSTEMS`. Err: the fault of a step out of order, with its consequence applied (the switch does nothing; a hot
+    /// AVIONIC POWER switches and the SNSR PWR panel's two), "ins", "canopy"; or one of `SYSTEMS`. Err: the fault of a step out of order, with its consequence applied (the switch does nothing; a hot
     /// start stops the engine).
     pub fn press(&mut self, s: &StartSpec, step: &str) -> Result<(), &'static str> {
         match step {
@@ -390,8 +390,11 @@ impl Start {
             "avionics" | "mmc" | "st_sta" | "mfd" | "ufc" if self.displays_at.is_none() => {
                 return Err("avionics_early");
             }
+            // The key throws the SNSR PWR panel's FCR and RDR ALT on with the four (inferred: the checklist turns
+            // them on with the avionics; until 2026-11-17 they stayed off, the radar held dead and the GAAF without a
+            // radar altitude after a keyed start). Its release leaves them on: they have switches of their own.
             "avionics" => {
-                for at in &mut self.systems[..AVIONICS] {
+                for at in &mut self.systems {
                     *at = at.or(Some(self.t));
                 }
             }
@@ -606,6 +609,22 @@ mod tests {
         assert!(faults.is_empty(), "{faults:?}");
         // The INS aligned 90 s after its knob (at 46 s).
         assert!((av.unwrap() - 136.0).abs() < 0.2, "{av:?}");
+    }
+
+    /// The user, 15 Nov: "radar isn't working? can't move out of stby?": a keyed start left the FCR (and RDR ALT)
+    /// off. The avionics key turns the SNSR PWR panel's two on with the four; its release leaves them on.
+    #[test]
+    fn the_avionics_key_powers_the_fcr_and_rdr_alt() {
+        let mut st = Start::default();
+        st.press(&JFS, "main_power").unwrap();
+        st.displays_at = Some(0.0);
+        st.t = 10.0;
+        st.press(&JFS, "avionics").unwrap();
+        st.t = 20.0;
+        assert!(SYSTEMS.iter().all(|n| st.on(n) && st.system(&JFS, n)), "all six up");
+        assert_eq!(st.position("rdr_alt"), 2, "RDR ALT at RDR ALT");
+        st.release("avionics");
+        assert!(st.system(&JFS, "fcr") && st.system(&JFS, "rdr_alt") && !st.system(&JFS, "mmc"));
     }
 
     #[test]
