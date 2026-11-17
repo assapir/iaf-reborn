@@ -183,7 +183,119 @@ Damage cases 0xf / 0x13 / 0x15 (`FUN_004adb20`) turn the radar OFF, and every la
   F-15 APG-63 135 km, …; docs/real-weapons.md §1.3). The MiGs keep the table. The F-16I's is the F-16's × 1.3,
   104 km.
 
-## 9. Validation
+## 9. Ours: the real F-16 FCR (the Sufa)
+
+A jet whose aircraft definition has `radar.fcr` flies the real F-16 fire-control radar's controls on top of the
+game's modes (`crates/iaf-avionics/src/radar.rs` `Fcr`, `Real`; avionics-plan.md slice 2). Today that is the F-16I
+Sufa (`shared/extra/planes/f16i/airframe.json`: `{"sam_tracks": 4}`); the Barak becomes the same code with
+`{"sam_tracks": 1}` (slice 6). The FCR format's legends follow the dash-34 ([real-mfd.md](real-mfd.md) "FCR"); the
+jets without `radar.fcr` keep the original's radar unchanged. Only Modern IAF applies `radar.fcr`
+(`Settings.modern_radar()`): the 1998 game's Sufa (Extras "F-16 version") keeps the original's radar, whose keys it
+has.
+
+### 9.1 Power, STBY and weight on wheels
+Ours, in Modern IAF (`Settings.modern_radar()`; every sim jet: the Sufa, the Barak, the Adir):
+- The radar comes up in STBY: at its creation, and each time the FCR switch powers it again (`set_damaged(false)`).
+  The FCR format shows `STBY`.
+- With weight on wheels it does not radiate (no scan, no contacts). A mode chosen on the ground shows, and the radar
+  radiates from the first frame in the air. While a mode is chosen and nothing radiates (weight on wheels, OVRD) the
+  FCR reads `NO RAD` low on the scope (forums disagree on whether the real one shows it; inferred from simulators).
+- Q or R out of STBY gives the last A-A mode (CRM) without stepping on.
+- Airborne in STBY after power-on, the radar goes to CRM by itself (inferred), unless the pilot pressed S, Q, R or a
+  TMS key first.
+
+### 9.2 Scan volumes
+The original's 60° horizontal cone with no elevation limit becomes the real FCR's volume (the hit test also needs
+the target inside it):
+
+| mode | azimuth | elevation | about |
+|---|---|---|---|
+| CRM RWS / VSR | A6 ±60°, A3 ±30°, A1 ±10° (OSB 18) | B4, B1, B2 bars (OSB 17) of 3° each about the antenna elevation | the horizon and the heading; A3 / A1 centred on the cursor's azimuth |
+| CRM TWS | ±25° / 3 bars (first), ±10° / 4, ±60° / 2 (OSB 18 or 17 steps the pair) | as RWS | as RWS |
+| ACM 20 | ±15° | −5°..+15° | the jet's axes |
+| ACM 60 | ±5° | −5°..+55° | the jet's axes |
+| ACM SLEW | ±30° about the cursor's azimuth | ±10° about the antenna elevation | the horizon |
+| ACM BORE | ±2° | ±2° | the jet's axes |
+
+- The scan widths, bar counts and TWS pairs are the dash-34's (p. 1-122, p. 1-139). The bar height (3°), the scan
+  rate (60°/s: an A6 B4 frame takes 8 s, an A1 B1 frame 0.5 s at the least) and the ACM volumes are inferred. The ACM
+  shapes follow simulator forums[^bms-slew][^dcs-acm]: 30 × 20 about the HUD's field, 10 × 60 scanning up, a 60° ×
+  20° stabilised SLEW patch.
+- The ACM patterns scan once a second (inferred). ACM and BORE stay at 10 NM.
+- The antenna elevation moves 10°/s while its key is held, to ±60° (inferred). The carets on the FCR show the beam
+  sweeping the volume bar by bar.
+- The FCR draws the scan limits as two vertical lines, and beside the cursor the highest and lowest altitudes (kft)
+  the scan covers at the cursor's range (fig. 1-85).
+
+### 9.3 Submodes
+- **RWS:** the game's LRS. The real FCR's search bugs nothing by itself: the 1998 game's nearest-contact selection
+  (and its lock notice to the target's RWR) applies in ACM, BORE, GMT and MAP only.
+- **SAM (situation awareness):** in RWS, the first press on a target (TMS up, a click) bugs it; Return / Shift +
+  Return bug the next / previous contact in turn. The radar
+  keeps searching and revisits each bugged target every frame, inside the ±60° cone and the STT range, as STT's
+  track does. The Sufa keeps four bugs (the APG-68(V)9's four tracked targets, Lockheed Martin 2002); the oldest goes
+  when a fifth is bugged. The newest is the primary: it is the weapons' target, as TWS's bug is. A press on the
+  primary locks it (STT). TMS down, or Backspace, drops the bugs.
+- **TWS:** the track files stay 13 s without a return, moved on along their last velocity, and flash for their last
+  8 s; at most 10 (p. 1-140). TWS bugs nothing by itself.
+- **VSR:** a CRM submode on RWS's scan. It shows only closing targets, placed up the scope by closure, 0 to 1,200 kt
+  (the scale inferred), with velocity marks every 400 kt on the right edge.
+- **ACM:** OSB 2 shows the pattern (`20`, `60`, `SLEW`, `BORE`). No targets show until the lock; the first target
+  inside the pattern locks (STT), as the original's ACM.
+- **OVRD (OSB 4):** the radar stops radiating; the lock and the contacts go. TMS down on a lock taken in ACM goes back
+  to the 30 × 20, so the same target is not locked again at once.
+- **STT:** the mode row reads the mode the lock came from (`CRM RWS`, `CRM TWS`, `ACM 60` …; fig. 1-84).
+- **The bug centres the scan:** with a target bugged (SAM's primary, TWS's bug) the RWS / TWS scan is centred on it in
+  azimuth and elevation; without one, on the cursor's azimuth and the antenna elevation (p. 1-139; the elevation
+  centring inferred).
+- **EXP (OSB 3, the pinky switch):** in RWS and TWS a 4:1 expansion of the scope (p. 1-140) about the bugged target,
+  else about the cursor's place when EXP was pressed; that place sits mid-scope. OSB 3 reads `EXP`; the scan limits
+  and the steerpoint are not drawn over it; the cursor moves at its NORM speed over the expanded picture
+  (`radar.rs` `exp_centre`, inferred).
+- **CNTL page (OSB 5):** the dash-34's options by their OSBs (fig. 1-76, p. 1-116): CHAN 1–4 (6), MK INT 1–4 (7), BAND
+  WIDE / NARO (8), PM ON / OFF (10), MTR LO / HI (20), ALT TRK OFF / ON (19), TGT HIS 1–4 (18), LVL 1–4 (17); a press
+  steps the value, OSB 5 returns. TGT HIS n shows RWS's last n frames, the earlier returns as dimmer squares (p. 1-134;
+  default 3). MTR drops a search return whose speed along the line of sight is under 60 kt (LO) or 100 kt (HI), the
+  beam notch (thresholds inferred). The sim has no radar channels, marker intervals, band, pulse modes, altitude-line
+  tracker or levels to act on, so those options step and change nothing; BCN DLY (OSB 9) is left off: there is no BCN
+  mode (`radar.rs` `CNTL`).
+- **Range:** 10 to 160 NM in RWS / VSR, 10 to 80 NM in TWS (from 40 NM). The cursor bumps the scale: above 95 % up
+  one, below 5 % down one. STT steps down below 40 % and up above 95 %; TWS and SAM step up when the bug passes 90 %,
+  TWS down closer than 45 % (p. 1-131).
+
+### 9.4 Keys and the cursor
+The keyboard is the first-class input (the user, 17 November 2026: "I don't have hotas"). Modern IAF's key table
+(`modern-iaf/data/keys.json` records 132–142, commands 221–227; the Keys screen's Sensors group):
+
+| key | function (real switch) |
+|---|---|
+| `/` | TMS up: bug the target under the cursor, then lock it; ACM: BORE |
+| Shift + `/` | TMS down: drop the lock or the bugs; ACM, and a lock taken in ACM: back to the 30 × 20 |
+| `;` | TMS right: CRM's submode RWS → TWS → VSR (inferred: the real switch toggles RWS / TWS, VSR is on OSB 2); ACM: 10 × 60 |
+| Shift + `;` | TMS left: ACM SLEW (inferred); in CRM the AIFF later (avionics-plan.md G13) |
+| `'` | OSB 2: CRM's submode; ACM's pattern 20 → 60 → SLEW → BORE |
+| Shift + `'` | OSB 18: the azimuth scan |
+| Ctrl + `'` | OSB 17: the bars |
+| Alt + Up / Alt + Down (held) | the antenna elevation thumbwheel |
+| Ctrl + `/` | OSB 4: OVRD |
+| Ctrl + `;` | OSB 3 / the pinky switch: EXP |
+| Ctrl + arrows | the cursor control: the acquisition cursor while no EO picture runs, else the EO sensor (records 48–51; inferred until the SOI is built, G8) |
+
+The mouse over the FCR puts the cursor, and a click on a blip presses TMS up there. Q, R, S, the range keys, `\`,
+Return and Backspace keep their 1998 meaning. The FCR's OSBs 2, 3, 4, 17 and 18 do the same as their keys; the CNTL page's options are pressed on the MFD
+(a click), as the real jet's are.
+
+### 9.5 The HUD's ACM cues
+While nothing is locked the F-16's Real HUD draws the pattern (`real_hud/f16.rs` `acm_cue`; the shapes inferred from
+simulator forums[^bms-slew][^dcs-acm]): the 10 × 60 as a vertical line through the boresight from 5° below it up
+(two lines 5° out would sit on the airspeed and altitude scales);
+SLEW as a cross at its patch's centre, stabilised on the horizon; BORE as a cross on the boresight, larger than the
+boresight cross. The 30 × 20 draws nothing: it fills the HUD's field.
+
+### 9.6 Later slices
+AIFF on TMS left (G13, slice 5); the SOI and DMS (G8's rest, slice 4).
+
+## 10. Validation
 `tests/godot/test_radar.gd` checks:
 1. the F-16 table, the detection range, the kept selection and the 60° cone;
 2. in mission 221, an AI jet 20 km out at 20° right shows at that range and bearing;
@@ -194,3 +306,12 @@ Damage cases 0xf / 0x13 / 0x15 (`FUN_004adb20`) turn the radar OFF, and every la
 7. 5 km ahead, the SRM (short-range missile) shoot cue shows and the circle shrinks;
 8. the lock follows the moving unit every frame (STT and TWS; the TWS blip waits for the scan);
 9. Backspace returns to LRS; S goes to STBY.
+
+The real FCR: `crates/iaf-avionics/src/radar.rs` tests (power and weight on wheels, scan width / bars / elevation,
+VSR, SAM, the TMS and the cursor, the ACM patterns, TWS's files) and `modern-iaf/tests/test_sim_fcr.gd` against the
+weapons range's drones.
+
+[^bms-slew]: Falcon BMS forum, "How does ACM slew work?" (the slewable pattern about 60° wide and 20° high, the only
+    stabilised ACM pattern): https://forum.falcon-bms.com/post/336643
+[^dcs-acm]: DCS forum, "Questions about ACM modes" (the 30 × 20 about the HUD's field, the 10 × 60 scanning up):
+    https://forum.dcs.world/topic/302060-questions-about-acm-modes

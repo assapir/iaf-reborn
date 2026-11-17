@@ -38,6 +38,169 @@ const AIR_CLASSES: [i64; 4] = [0x1c, 3, 2, 1];
 const MAP_CLASSES: [i64; 11] = [10, 8, 9, 0xb, 0xd, 0x1d, 0x1e, 5, 6, 0xf, 0x10];
 const GMT_CLASSES: [i64; 8] = [5, 6, 0xf, 0x10, 8, 9, 10, 0xb];
 
+// Ours, the real F-16 fire-control radar (docs/radar.md §9; the dash-34's FCR, docs/real-mfd.md "FCR").
+/// The RWS azimuth scans (OSB 18 `A6` / `A3` / `A1`: ±60°, ±30°, ±10°) and bar counts (OSB 17 `B1` / `B2` / `B4`).
+const RWS_AZ: [f64; 3] = [60.0, 30.0, 10.0];
+const RWS_BARS: [u8; 3] = [4, 1, 2];
+/// The TWS scans (p. 1-139): ±25° / 3 bars (the first), ±10° / 4 bars, ±60° / 2 bars.
+const TWS_SCANS: [(f64, u8); 3] = [(25.0, 3), (10.0, 4), (60.0, 2)];
+/// One bar's height (deg) and the antenna's scan rate (deg/s): inferred (the dash-34's coverage figure 1-86 is not
+/// transcribed); an A6 B4 frame takes 8 s, an A1 B1 frame 0.5 s at the least (`MIN_FRAME`).
+const BAR_DEG: f64 = 3.0;
+const SCAN_RATE: f64 = 60.0;
+/// The shortest frame (s) and the ACM patterns' frame (inferred).
+const MIN_FRAME: f64 = 0.5;
+const ACM_FRAME: f64 = 1.0;
+/// The antenna elevation's limit and its thumbwheel rate (deg, deg/s; inferred), the cursor's slew rate (scope
+/// widths per second; inferred).
+const ELEV_MAX: f64 = 60.0;
+const ELEV_RATE: f64 = 10.0;
+const CURSOR_RATE: f64 = 0.5;
+/// A target is under the cursor within this much of the scope (≈ 4 MFD px, the mouse's tolerance).
+const CURSOR_NEAR: f64 = 0.04;
+/// The cursor bumps the range scale below 5 % / above 95 % (p. 1-122).
+const BUMP: (f64, f64) = (0.05, 0.95);
+/// The smallest A-A range index of the real FCR (10 NM; the 5 NM scale is the 1998 game's).
+const REAL_MIN_INDEX: u8 = 2;
+/// STT auto-range of the real FCR: down below 40 %, up above 95 % (p. 1-131); TWS and SAM: up beyond 90 %, TWS down
+/// closer than 45 %.
+const REAL_STT: (f64, f64) = (0.40, 0.95);
+const REAL_BUG: (f64, f64) = (0.45, 0.90);
+/// TWS track files: at most 10, extrapolated for 13 s without a return, flashing for the last 8 s (p. 1-140).
+const TWS_FILES: usize = 10;
+const TWS_KEEP: f64 = 13.0;
+/// VSR: the closure scale's top (kt; inferred).
+pub const VSR_MAX_KT: f64 = 1200.0;
+/// The real FCR's EXP: a 4:1 expansion about the bugged target or the cursor (p. 1-140).
+pub const EXP_K: f64 = 4.0;
+/// MTR LO / HI: the search drops a target whose speed along the line of sight is under these (kt; inferred).
+const MTR_KT: [f64; 2] = [60.0, 100.0];
+
+/// The CNTL page (fig. 1-76, p. 1-116): each option's OSB, legend and values, in `Real::cntl`'s order. TGT HIS (the
+/// search frames shown, the older dimmer) and MTR act on the search; the sim has no radar channels, marker
+/// intervals, band, pulse modes or levels to change, so those step as the real page's and change nothing. BCN DLY
+/// (OSB 9) is left off: the sim has no BCN mode.
+pub const CNTL: [(u8, &str, &[&str]); 8] = [
+    (6, "CHAN", &["1", "2", "3", "4"]),
+    (7, "MK INT", &["1", "2", "3", "4"]),
+    (8, "BAND", &["WIDE", "NARO"]),
+    (10, "PM", &["ON", "OFF"]),
+    (20, "MTR", &["LO", "HI"]),
+    (19, "ALT TRK", &["OFF", "ON"]),
+    (18, "TGT HIS", &["1", "2", "3", "4"]),
+    (17, "LVL", &["1", "2", "3", "4"]),
+];
+const CNTL_MTR: usize = 4;
+const CNTL_TGT_HIS: usize = 6;
+
+/// Ours: the real F-16 fire-control radar, from the aircraft definition's `radar.fcr` (docs/radar.md §9). The jets
+/// without one keep the original's radar.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Fcr {
+    /// The bugged targets the situation-awareness mode (SAM) tracks while it searches: the APG-68(V)9's four (Lockheed
+    /// Martin 2002), the APG-68's one.
+    pub sam_tracks: usize,
+}
+
+/// The ACM scan patterns (OSB 2 `20`, `60`, `SLEW`; `BORE` is [`Mode::Bore`]). Volumes inferred from simulator
+/// forums: 30° × 20° about the HUD's field, 10° × 60° scanning up, a 60° × 20° stabilised patch the cursor slews.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum Acm {
+    #[default]
+    Twenty,
+    Sixty,
+    Slew,
+}
+
+/// The target management switch (the keyboard's TMS keys).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Tms {
+    Up,
+    Down,
+    Right,
+    Left,
+}
+
+/// A scan volume (deg): azimuth centre and half width, elevation low and high; `body` about the jet's axes, else
+/// stabilised on the horizon and the heading.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Volume {
+    pub az: f64,
+    pub half: f64,
+    pub lo: f64,
+    pub hi: f64,
+    pub body: bool,
+}
+
+impl Volume {
+    fn holds(&self, az: f64, el: f64) -> bool {
+        (az - self.az).abs() <= self.half && (self.lo..=self.hi).contains(&el)
+    }
+}
+
+/// The real FCR's settings and state.
+#[derive(Clone, Debug)]
+pub struct Real {
+    pub fcr: Fcr,
+    /// RWS: indices into `RWS_AZ`, `RWS_BARS`; TWS: into `TWS_SCANS`.
+    pub rws_az: usize,
+    pub rws_bars: usize,
+    pub tws: usize,
+    /// Antenna elevation (deg, + up) and its thumbwheel (−1..1).
+    pub elevation: f64,
+    elev_rate: f64,
+    /// The acquisition cursor on the scope, 0..1 across (−60°..+60°) and up (range or VSR closure); its slew (−1..1).
+    pub cursor: (f64, f64),
+    slew: (f64, f64),
+    /// CRM's VSR submode (in [`Mode::Lrs`]).
+    pub vsr: bool,
+    /// SAM's bugged tracks, the primary last.
+    pub sam: Vec<String>,
+    pub acm: Acm,
+    /// OSB 4 OVRD: the radar stops radiating.
+    pub ovrd: bool,
+    /// OSB 3 EXP (CRM's RWS and TWS) and its centre on the NORM scope while nothing is bugged.
+    pub exp: bool,
+    exp_at: (f64, f64),
+    /// The CNTL page's options, indices into `CNTL`'s values (TGT HIS 3 by default, p. 1-134).
+    pub cntl: [usize; 8],
+    /// RWS's earlier search frames for TGT HIS, the newest first.
+    pub history: Vec<Vec<Contact>>,
+}
+
+impl Real {
+    fn new(fcr: Fcr) -> Self {
+        Real {
+            fcr,
+            rws_az: 0,
+            rws_bars: 0,
+            tws: 0,
+            elevation: 0.0,
+            elev_rate: 0.0,
+            cursor: (0.5, 0.5),
+            slew: (0.0, 0.0),
+            vsr: false,
+            sam: Vec::new(),
+            acm: Acm::Twenty,
+            ovrd: false,
+            exp: false,
+            exp_at: (0.5, 0.5),
+            cntl: [0, 0, 0, 0, 0, 0, 2, 0],
+            history: Vec::new(),
+        }
+    }
+
+    /// The azimuth half width and bars of the RWS / TWS scan.
+    pub fn scan(&self, tws: bool) -> (f64, u8) {
+        if tws { TWS_SCANS[self.tws] } else { (RWS_AZ[self.rws_az], RWS_BARS[self.rws_bars]) }
+    }
+
+    /// The cursor's azimuth off the nose (deg).
+    fn cursor_az(&self) -> f64 {
+        (self.cursor.0 - 0.5) * 120.0
+    }
+}
+
 /// The radar mode (+0x30); the discriminants are the original's.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Mode {
@@ -162,6 +325,16 @@ impl Ranges {
         Ranges(r)
     }
 
+    /// The real FCR's scales (docs/real-mfd.md "FCR"): RWS / VSR to 160 NM, TWS to 80 NM, from where they start.
+    fn real(mut self) -> Self {
+        for (mode, max) in [(Mode::Lrs, 6), (Mode::Tws, 5)] {
+            if let Some(r) = self.get_mut(mode) {
+                r.max = r.max.max(max);
+            }
+        }
+        self
+    }
+
     pub fn get(&self, mode: Mode) -> Option<&Range> {
         self.0[mode as usize].as_ref()
     }
@@ -198,12 +371,16 @@ impl Unit {
     }
 }
 
-/// The own jet: position, forward axis, yaw (rad, atan2(fwd.x, fwd.y)).
+/// The own jet: position, forward axis, yaw (rad, atan2(fwd.x, fwd.y)); ours: the up axis (zero: straight up), the
+/// velocity and the weight on wheels.
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Own {
     pub pos: Vec3,
     pub fwd: Vec3,
     pub yaw: f64,
+    pub up: Vec3,
+    pub vel: Vec3,
+    pub wow: bool,
 }
 
 /// What a call sees: the own jet, the units and the terrain height at a world point (None: no terrain there).
@@ -239,9 +416,22 @@ pub struct Contact {
     /// open).
     pub mach: f64,
     pub type_code: i64,
+    /// Ours: the closure (kt, + closing), the unit's velocity and when the scan last saw it (TWS track files).
+    pub closure_kt: f64,
+    pub vel: Vec3,
+    pub seen: f64,
 }
 
 impl Contact {
+    /// A TWS track file moved on along its velocity by `dt`, its geometry from the own jet again.
+    fn extrapolated(&self, dt: f64, own: &Own) -> Contact {
+        let pos = self.pos + self.vel * dt;
+        let d = pos - own.pos;
+        let right = Vec3::new(own.yaw.cos(), -own.yaw.sin(), 0.0);
+        let cos = d.flat_dir().dot(own.fwd.flat_dir()).clamp(-1.0, 1.0);
+        Contact { pos, dist: d.length(), az: cos.acos().copysign(right.dot(d.flat_dir())), ..self.clone() }
+    }
+
     /// The list priority: 100 / distance.
     pub fn priority(&self) -> f64 {
         100.0 / self.dist
@@ -343,15 +533,29 @@ pub struct Radar {
     expanded: bool,
     next_scan: f64,
     events: Vec<Event>,
+    /// Ours (Modern IAF's jets): powered, the radar comes up in STBY; it does not radiate with weight
+    /// on wheels and goes to the last A-A mode by itself once airborne (`auto_on`) unless the pilot chose a mode.
+    ours: bool,
+    wow: bool,
+    /// The own altitude at the last update (m): the bugged target's elevation for the scan's centre.
+    own_z: f64,
+    auto_on: bool,
+    /// Ours: the real F-16 FCR (None: the original's radar).
+    real: Option<Real>,
+    /// The last update's and the last scan's time.
+    now: f64,
+    last_scan: f64,
 }
 
 impl Radar {
     /// Create (`FUN_004ace60`) for cockpit index `cockpit` (`FUN_00447e70`); `lrs_nm`: the LRS / STT detection range
-    /// with Weapon data Real. The radar starts OFF in A-A.
-    pub fn new(cockpit: usize, lrs_nm: Option<f64>) -> Self {
+    /// with Weapon data Real; `fcr`: ours, the real F-16 FCR; `ours`: Modern IAF's power rules (STBY at power-on, no
+    /// radiating with weight on wheels). The radar starts OFF in A-A; ours in STBY.
+    pub fn new(cockpit: usize, lrs_nm: Option<f64>, fcr: Option<Fcr>, ours: bool) -> Self {
+        let ranges = Ranges::new(cockpit, lrs_nm);
         Radar {
-            ranges: Ranges::new(cockpit, lrs_nm),
-            mode: Mode::Off,
+            ranges: if fcr.is_some() { ranges.real() } else { ranges },
+            mode: if ours { Mode::Standby } else { Mode::Off },
             last_aa: Mode::Lrs,
             last_ag: Mode::Gmt,
             bore_return: Mode::Lrs,
@@ -371,7 +575,128 @@ impl Radar {
             expanded: false,
             next_scan: 0.0,
             events: Vec::new(),
+            ours,
+            wow: false,
+            own_z: 0.0,
+            auto_on: ours,
+            real: fcr.map(Real::new),
+            now: 0.0,
+            last_scan: 0.0,
         }
+    }
+
+    /// The last update's time.
+    pub fn now(&self) -> f64 {
+        self.now
+    }
+
+    pub fn real(&self) -> Option<&Real> {
+        self.real.as_ref()
+    }
+
+    /// The SAM primary's key.
+    fn sam_primary(&self) -> Option<&str> {
+        self.real.as_ref()?.sam.last().map(String::as_str)
+    }
+
+    /// The scan volume of the real FCR's mode; None: the original's cone (and the real FCR's STT / ground modes).
+    pub fn volume(&self) -> Option<Volume> {
+        let r = self.real.as_ref()?;
+        let stab = |half: f64, bars: u8, az: f64| {
+            let h = f64::from(bars) * BAR_DEG / 2.0;
+            let az = if half < 60.0 { az.clamp(half - 60.0, 60.0 - half) } else { 0.0 };
+            Volume { az, half, lo: r.elevation - h, hi: r.elevation + h, body: false }
+        };
+        let body = |half: f64, lo: f64, hi: f64| Volume { az: 0.0, half, lo, hi, body: true };
+        Some(match self.mode {
+            // The bugged target (SAM's primary, TWS's bug) centres the scan; else the cursor's azimuth and the
+            // antenna elevation (p. 1-139).
+            Mode::Lrs | Mode::Tws => {
+                let (half, bars) = r.scan(self.mode == Mode::Tws);
+                match self.bug() {
+                    Some(c) => {
+                        let el = ((c.pos.z - self.own_z) / c.dist.max(1.0)).clamp(-1.0, 1.0).asin().to_degrees();
+                        let h = f64::from(bars) * BAR_DEG / 2.0;
+                        Volume { lo: el - h, hi: el + h, ..stab(half, bars, c.az.to_degrees()) }
+                    }
+                    None => stab(half, bars, r.cursor_az()),
+                }
+            }
+            Mode::Acm => match r.acm {
+                Acm::Twenty => body(15.0, -5.0, 15.0),
+                Acm::Sixty => body(5.0, -5.0, 55.0),
+                Acm::Slew => Volume {
+                    az: r.cursor_az().clamp(-30.0, 30.0),
+                    half: 30.0,
+                    lo: r.elevation - 10.0,
+                    hi: r.elevation + 10.0,
+                    body: false,
+                },
+            },
+            // ACM BORE: the beam along the boresight (inferred ±2°).
+            Mode::Bore => body(2.0, -2.0, 2.0),
+            _ => return None,
+        })
+    }
+
+    /// The frame time (s): the original's 2 s; the real FCR's search the scan's sweep at `SCAN_RATE`, ACM `ACM_FRAME`.
+    fn frame_time(&self) -> f64 {
+        let Some(r) = &self.real else { return SCAN_PERIOD };
+        match self.mode {
+            Mode::Lrs | Mode::Tws => {
+                let (half, bars) = r.scan(self.mode == Mode::Tws);
+                (2.0 * half * f64::from(bars) / SCAN_RATE).max(MIN_FRAME)
+            }
+            Mode::Acm | Mode::Bore => ACM_FRAME,
+            _ => SCAN_PERIOD,
+        }
+    }
+
+    /// A contact's place on the real FCR's scope (0..1 across ±60°, up by range, VSR by closure; EXP about its
+    /// centre).
+    pub fn scope_xy(&self, c: &Contact) -> (f64, f64) {
+        self.display(self.norm_xy(c))
+    }
+
+    /// A contact's place on the NORM scope.
+    fn norm_xy(&self, c: &Contact) -> (f64, f64) {
+        let vsr = self.real.as_ref().is_some_and(|r| r.vsr) && self.mode == Mode::Lrs;
+        let y = if vsr { c.closure_kt / VSR_MAX_KT } else { c.dist / self.range_m() };
+        (0.5 + (c.az + self.heading_shift) / (2.0 * PI / 3.0), y)
+    }
+
+    /// EXP's centre on the NORM scope: the bugged target, else the cursor's place when EXP was pressed; None in
+    /// NORM, and outside CRM's RWS and TWS.
+    pub fn exp_centre(&self) -> Option<(f64, f64)> {
+        let r = self.real.as_ref()?;
+        if !r.exp || !matches!(self.mode, Mode::Lrs | Mode::Tws) || r.vsr {
+            return None;
+        }
+        Some(self.bug().map_or(r.exp_at, |c| self.norm_xy(c)))
+    }
+
+    /// A NORM scope place on the display (EXP: 4:1 about its centre, which sits mid-scope).
+    fn display(&self, p: (f64, f64)) -> (f64, f64) {
+        self.exp_centre().map_or(p, |c| (0.5 + EXP_K * (p.0 - c.0), 0.5 + EXP_K * (p.1 - c.1)))
+    }
+
+    /// The acquisition cursor's place on the display.
+    pub fn cursor_xy(&self) -> Option<(f64, f64)> {
+        Some(self.display(self.real.as_ref()?.cursor))
+    }
+
+    /// RWS's earlier search frames (TGT HIS), the newest first: each return's place on the display.
+    pub fn history_xy(&self) -> Vec<Vec<(f64, f64)>> {
+        let Some(r) = &self.real else { return Vec::new() };
+        r.history.iter().map(|f| f.iter().map(|c| self.scope_xy(c)).collect()).collect()
+    }
+
+    /// The search altitudes (ft, high and low) the stabilised scan covers at the cursor's range (fig. 1-85).
+    pub fn cursor_alt(&self, own_alt: f64) -> Option<(f64, f64)> {
+        let v = self.volume().filter(|v| !v.body)?;
+        let at = self.real.as_ref()?.cursor.1 * self.range_m();
+        let alt = |deg: f64| (own_alt + at * deg.to_radians().tan()) / 0.3048;
+        Some((alt(v.hi), alt(v.lo)))
     }
 
     // --- read-out ------------------------------------------------------------------------------------
@@ -421,8 +746,12 @@ impl Radar {
         std::mem::take(&mut self.events)
     }
 
-    fn radiating(&self) -> bool {
-        !self.damaged && self.mode.radiating()
+    /// Radiating: on, not damaged; ours not with weight on wheels; the real FCR not in OVRD.
+    pub fn radiating(&self) -> bool {
+        !self.damaged
+            && self.mode.radiating()
+            && !(self.ours && self.wow)
+            && !self.real.as_ref().is_some_and(|r| r.ovrd)
     }
 
     /// The current mode's range scale index (1 without one).
@@ -436,6 +765,9 @@ impl Radar {
 
     /// The B-scope width (`FUN_004ad300`: 2·acos(cone cos)): 2π/3, 24° in BORE.
     pub fn scope_width(&self) -> f64 {
+        if self.real.is_some() {
+            return 2.0 * CONE_COS.acos(); // the real FCR's scope is ±60° in every A-A mode
+        }
         2.0 * self.mode.cone_cos().acos()
     }
 
@@ -453,6 +785,8 @@ impl Radar {
             && self.selection.as_ref().is_some_and(|s| match self.mode {
                 Mode::Stt => self.stt.is_some(),
                 Mode::Tws => true,
+                // Ours: the SAM primary counts as TWS's bug does.
+                Mode::Lrs if self.sam_primary() == Some(s.key.as_str()) => true,
                 _ => s.locked,
             })
     }
@@ -472,6 +806,16 @@ impl Radar {
 
     pub fn contact(&self, key: &str) -> Option<&Contact> {
         self.contacts.iter().find(|c| c.key == key)
+    }
+
+    /// The real FCR's bugged target: SAM's primary in RWS, the bug in TWS (a selection left in RWS after a lock is
+    /// dropped is no bug).
+    fn bug(&self) -> Option<&Contact> {
+        match self.mode {
+            Mode::Lrs => self.contact(self.sam_primary()?),
+            Mode::Tws => self.selected_contact(),
+            _ => None,
+        }
     }
 
     fn selected_contact(&self) -> Option<&Contact> {
@@ -495,7 +839,20 @@ impl Radar {
     // --- per frame (FUN_004ad300 + the 2 s timer) -----------------------------------------------------
 
     pub fn update(&mut self, now: f64, input: &Input) {
+        let dt = (now - self.now).clamp(0.0, 0.5);
+        self.now = now;
+        self.wow = input.own.wow;
+        self.own_z = input.own.pos.z;
+        // Ours: airborne and powered in STBY, the radar goes to the last A-A mode by itself.
+        if self.auto_on && !self.wow && !self.damaged && self.mode == Mode::Standby {
+            self.toggle_aa_ag(now, input);
+        }
+        self.real_controls(dt, now, input);
         if !self.radiating() {
+            // Ours: touched down with returns listed, they go as in OVRD.
+            if self.ours && self.wow && (!self.contacts.is_empty() || self.selection.is_some()) {
+                self.silence();
+            }
             return;
         }
         let yaw = input.own.yaw;
@@ -503,6 +860,8 @@ impl Radar {
         self.heading_shift = wrap_pi(reference - yaw);
         if self.mode == Mode::Stt {
             self.antenna = (0.0, 0.0);
+        } else if let Some(v) = self.volume() {
+            self.antenna = self.real_antenna(now, &v);
         } else if let Some(a) = self.sweep.advance(now, if self.mode == Mode::Bore { SWEEP_BORE } else { SWEEP }) {
             self.antenna = a;
         }
@@ -513,11 +872,113 @@ impl Radar {
         if self.mode == Mode::Stt {
             self.track(input);
         }
+        self.sam_track(now, input);
         self.follow(input);
+        self.bug_range();
         if self.dirty || self.mode == Mode::Stt {
             self.heading_shift = 0.0;
             self.heading_ref = Some(yaw);
             self.dirty = false;
+        }
+    }
+
+    /// The real FCR per frame: the antenna elevation and the cursor follow their keys; the cursor bumps the range
+    /// scale; SAM lives in CRM's RWS only.
+    fn real_controls(&mut self, dt: f64, now: f64, input: &Input) {
+        let mode = self.mode;
+        let Some(r) = &mut self.real else { return };
+        if mode != Mode::Lrs {
+            r.sam.clear();
+        }
+        if mode != Mode::Lrs || r.vsr {
+            r.history.clear();
+        }
+        r.elevation = (r.elevation + r.elev_rate * ELEV_RATE * dt).clamp(-ELEV_MAX, ELEV_MAX);
+        // EXP: the cursor moves at the same speed over the expanded display.
+        let rate = CURSOR_RATE * dt / if r.exp && matches!(mode, Mode::Lrs | Mode::Tws) { EXP_K } else { 1.0 };
+        r.cursor.0 = (r.cursor.0 + r.slew.0 * rate).clamp(0.0, 1.0);
+        r.cursor.1 = (r.cursor.1 + r.slew.1 * rate).clamp(0.0, 1.0);
+        if !matches!(mode, Mode::Lrs | Mode::Tws) || r.vsr {
+            return;
+        }
+        let step = if r.cursor.1 > BUMP.1 {
+            1
+        } else if r.cursor.1 < BUMP.0 {
+            -1
+        } else {
+            return;
+        };
+        let Some(range) = self.ranges.get(mode) else { return };
+        if (step > 0 && range.index < range.max) || (step < 0 && range.index > REAL_MIN_INDEX) {
+            r.cursor.1 = (r.cursor.1 * if step > 0 { 0.5 } else { 2.0 }).clamp(BUMP.0, BUMP.1);
+            self.step_range(step, now, input);
+        } else {
+            r.cursor.1 = r.cursor.1.clamp(BUMP.0, BUMP.1);
+        }
+    }
+
+    /// The real FCR's antenna carets (0..1 across ±60°, down from +60°): the beam sweeps the volume bar by bar,
+    /// alternating, once per frame.
+    fn real_antenna(&self, now: f64, v: &Volume) -> (f64, f64) {
+        let bars = ((v.hi - v.lo) / BAR_DEG).round().max(1.0);
+        let k = (now / self.frame_time()).fract() * bars;
+        let bar = k.floor();
+        let x = if bar as i64 % 2 == 0 { k.fract() } else { 1.0 - k.fract() };
+        let az = v.az + v.half * (2.0 * x - 1.0);
+        let el = v.hi - (bar + 0.5) / bars * (v.hi - v.lo);
+        (((az + 60.0) / 120.0).clamp(0.0, 1.0), ((60.0 - el) / 120.0).clamp(0.0, 1.0))
+    }
+
+    /// SAM: each bugged track is revisited every frame (inside the ±60° cone and the STT range, as STT's track); a
+    /// lost one leaves the list, the next becomes the primary.
+    fn sam_track(&mut self, now: f64, input: &Input) {
+        if self.mode != Mode::Lrs || self.real.as_ref().is_none_or(|r| r.sam.is_empty()) {
+            return;
+        }
+        let reach = self.ranges.get(Mode::Stt).map_or(0.0, Range::detection_m);
+        let keys = self.real.as_ref().map(|r| r.sam.clone()).unwrap_or_default();
+        for key in keys {
+            let record = input
+                .unit(&key)
+                .filter(|u| u.alive() && u.pos.distance(input.own.pos) <= reach)
+                .and_then(|u| hit(u, &input.own, true, CONE_COS, None, input.terrain));
+            self.contacts.retain(|c| c.key != key);
+            match record {
+                Some(c) => {
+                    let i = self.contacts.partition_point(|o| o.priority() >= c.priority());
+                    self.contacts.insert(i, Contact { seen: now, ..c });
+                }
+                None => {
+                    if let Some(r) = &mut self.real {
+                        r.sam.retain(|k| *k != key);
+                    }
+                    self.notify(&key, false);
+                }
+            }
+        }
+        let primary = self.sam_primary().map(str::to_owned);
+        if self.selection.as_ref().map(|s| &s.key) != primary.as_ref() {
+            if let Some(key) = &primary {
+                self.notify(key, true);
+            }
+            self.selection = primary.map(|key| Selection { key, locked: false });
+        }
+    }
+
+    /// The real FCR's range follows the bugged target (p. 1-131): STT in `track`; TWS and SAM up beyond 90 % of the
+    /// scale, TWS down closer than 45 %.
+    fn bug_range(&mut self) {
+        if self.real.is_none() || !matches!(self.mode, Mode::Lrs | Mode::Tws) {
+            return;
+        }
+        let Some(dist) = self.locked().map(|c| c.dist) else { return };
+        let mode = self.mode;
+        if let Some(r) = self.ranges.get_mut(mode) {
+            if dist > REAL_BUG.1 * r.scale_m() && r.index < r.max {
+                r.index += 1;
+            } else if mode == Mode::Tws && dist < REAL_BUG.0 * r.scale_m() && r.index > REAL_MIN_INDEX {
+                r.index -= 1;
+            }
         }
     }
 
@@ -535,10 +996,9 @@ impl Radar {
     /// `FUN_004adde0` (every frame): an A-A lock outside TWS goes to STT; STT without a lock returns to BORE (key
     /// held) or the last A-A mode, and scans.
     fn stt_transitions(&mut self, now: f64, input: &Input) {
-        if self.mode != Mode::Tws && self.has_lock() && self.air_to_air {
-            if self.mode != Mode::Stt {
-                self.set_mode(Mode::Stt);
-            }
+        let locked = self.radiating() && self.selection.as_ref().is_some_and(|s| s.locked);
+        if !matches!(self.mode, Mode::Tws | Mode::Stt) && locked && self.air_to_air {
+            self.set_mode(Mode::Stt);
         } else if self.mode == Mode::Stt && !self.has_lock() {
             self.illumination_lost();
             self.set_mode(if self.bore_held { Mode::Bore } else { self.last_aa });
@@ -573,18 +1033,36 @@ impl Radar {
     // --- the scan (FUN_004af300) -------------------------------------------------------------------
 
     pub fn scan(&mut self, now: f64, input: &Input) {
-        self.next_scan = now + SCAN_PERIOD;
         self.dirty = true;
         self.live = None;
-        if !self.radiating() || self.mode == Mode::Stt {
+        if !self.radiating() {
+            return; // the first update that radiates scans
+        }
+        self.next_scan = now + self.frame_time();
+        let since = now - self.last_scan;
+        self.last_scan = now;
+        if self.mode == Mode::Stt {
             return; // STT's list is its track
         }
         let own = &input.own;
         let air = !self.mode.air_to_ground();
         let cone = self.mode.cone_cos();
+        let vol = self.volume();
+        let vsr = self.mode == Mode::Lrs && self.real.as_ref().is_some_and(|r| r.vsr);
+        // The real FCR's search drops the slow movers along the line of sight (CNTL's MTR).
+        let mtr = match (&self.real, self.mode) {
+            (Some(r), Mode::Lrs | Mode::Tws) => MTR_KT[r.cntl[CNTL_MTR]],
+            _ => 0.0,
+        };
         let scale = self.range_m();
         let centre = own.pos + own.fwd.flat_dir() * (scale / 2.0);
         let detection = self.ranges.get(self.mode).map_or(0.0, Range::detection_m);
+        let test = |u: &Unit| {
+            hit(u, own, air, cone, vol.as_ref(), input.terrain)
+                .filter(|c| !vsr || c.closure_kt > 0.0)
+                .filter(|c| mtr == 0.0 || (c.vel.dot(c.pos - own.pos) / c.dist.max(1.0)).abs() * KT >= mtr)
+                .map(|c| Contact { seen: now, ..c })
+        };
         let old = self.selection.take();
         let mut old_unit = None;
         let mut list = Vec::new();
@@ -599,26 +1077,56 @@ impl Radar {
             }
             // (ECM rules: no jammer on either side yet, docs/radar.md)
             if u.pos.distance(own.pos) <= detection {
-                let record = hit(u, own, air, cone, input.terrain);
+                let record = test(u);
                 self.detected(&record);
                 insert(&mut list, record);
             }
         }
         // The old selection is kept while its unit is in the query, re-tested without the range.
         if let Some(u) = old_unit.filter(|u| !list.iter().any(|c: &Contact| c.key == u.key)) {
-            let record = hit(u, own, air, cone, input.terrain);
+            let record = test(u);
             self.detected(&record);
             insert(&mut list, record);
         }
+        // Ours, the real FCR: SAM's tracks stay listed (sam_track revisits them); TWS keeps its track files 13 s
+        // without a return, extrapolated, at most 10.
+        let keep = |c: &Contact| match (self.mode, &self.real) {
+            (Mode::Lrs, Some(r)) => r.sam.contains(&c.key),
+            (Mode::Tws, Some(_)) => now - c.seen < TWS_KEEP,
+            _ => false,
+        };
+        let kept: Vec<Contact> = self
+            .contacts
+            .iter()
+            .filter(|c| keep(c) && !list.iter().any(|n| n.key == c.key))
+            .map(|c| if self.mode == Mode::Tws { c.extrapolated(since, own) } else { c.clone() })
+            .collect();
+        for c in kept {
+            insert(&mut list, Some(c));
+        }
+        if self.real.is_some() && self.mode == Mode::Tws {
+            list.truncate(TWS_FILES);
+        }
+        // TGT HIS: RWS keeps its last frames' search returns (TGT HIS n shows n frames, the current one included).
+        if let Some(r) = &mut self.real
+            && self.mode == Mode::Lrs
+            && !r.vsr
+        {
+            let old: Vec<Contact> = self.contacts.iter().filter(|c| !r.sam.contains(&c.key)).cloned().collect();
+            r.history.insert(0, old);
+            r.history.truncate(r.cntl[CNTL_TGT_HIS]);
+        }
         self.contacts = list;
-        // The cursor: the old selection if still listed, else the nearest (its RWR hears a lock).
+        // The cursor: the old selection if still listed, else the nearest (its RWR hears a lock); the real FCR's
+        // search waits for the pilot's bug.
+        let auto = self.real.is_none() || matches!(self.mode, Mode::Acm | Mode::Bore | Mode::Gmt | Mode::Map);
         self.selection = match old {
             Some(s) if self.contact(&s.key).is_some() => Some(s),
             old => {
                 if let Some(s) = old {
                     self.notify(&s.key, false);
                 }
-                let nearest = self.contacts.first().map(|c| c.key.clone());
+                let nearest = self.contacts.first().map(|c| c.key.clone()).filter(|_| auto);
                 nearest.map(|key| {
                     self.notify(&key, true);
                     Selection { key, locked: false }
@@ -641,17 +1149,19 @@ impl Radar {
         let record = input
             .unit(&key)
             .filter(|u| u.alive() && u.pos.distance(input.own.pos) <= range.detection_m())
-            .and_then(|u| hit(u, &input.own, true, CONE_COS, input.terrain));
+            .and_then(|u| hit(u, &input.own, true, CONE_COS, None, input.terrain));
         let Some(record) = record else {
             self.unlock();
             return;
         };
-        // Auto-range (FUN_004b1590).
+        // Auto-range (FUN_004b1590); the real FCR's at its own fractions, from 10 NM.
+        let ((down, up), min) =
+            if self.real.is_some() { (REAL_STT, REAL_MIN_INDEX) } else { ((AUTO_DOWN, AUTO_UP), 1) };
         if let Some(r) = self.ranges.get_mut(Mode::Stt) {
-            while r.index > 1 && record.dist < AUTO_DOWN * r.scale_m() {
+            while r.index > min && record.dist < down * r.scale_m() {
                 r.index -= 1;
             }
-            while r.index < r.max && record.dist > AUTO_UP * r.scale_m() {
+            while r.index < r.max && record.dist > up * r.scale_m() {
                 r.index += 1;
             }
         }
@@ -677,6 +1187,11 @@ impl Radar {
         if self.damaged {
             return;
         }
+        // Ours: the first mode press out of STBY gives the last A-A mode.
+        if self.ours && !self.mode.radiating() {
+            return self.toggle_aa_ag(now, input);
+        }
+        self.auto_on = false;
         let was_off = !self.mode.radiating();
         if self.air_to_air {
             if self.mode == Mode::Stt {
@@ -702,6 +1217,7 @@ impl Radar {
         if self.damaged {
             return;
         }
+        self.auto_on = false;
         let was_off = !self.mode.radiating();
         self.unlock();
         self.selection = None;
@@ -725,6 +1241,7 @@ impl Radar {
         if self.damaged {
             return;
         }
+        self.auto_on = false;
         if self.mode.radiating() {
             self.unlock();
             self.contacts.clear();
@@ -738,11 +1255,14 @@ impl Radar {
 
     /// '.' / ',' (events 0x21 / 0x22, `FUN_004adb70`): range index ±1 within [1, max] (STT: none), then a scan.
     pub fn step_range(&mut self, step: i8, now: f64, input: &Input) {
-        if !self.radiating() || self.mode == Mode::Stt {
+        let real = self.real.is_some();
+        // The real FCR's ACM and BORE stay at 10 NM.
+        if !self.radiating() || self.mode == Mode::Stt || (real && matches!(self.mode, Mode::Acm | Mode::Bore)) {
             return;
         }
+        let min = if real && !self.mode.air_to_ground() { REAL_MIN_INDEX } else { 1 };
         if let Some(r) = self.ranges.get_mut(self.mode) {
-            r.index = r.index.saturating_add_signed(step).clamp(1, r.max);
+            r.index = r.index.saturating_add_signed(step).clamp(min, r.max);
         }
         self.scan(now, input);
     }
@@ -818,6 +1338,25 @@ impl Radar {
         if self.contact(key).is_none() {
             return false;
         }
+        // Ours, the real FCR's RWS: the first press bugs the target (SAM), a press on the SAM primary locks it.
+        if self.mode == Mode::Lrs
+            && self.sam_primary() != Some(key)
+            && let Some(r) = &mut self.real
+        {
+            r.sam.retain(|k| k != key);
+            r.sam.push(key.to_owned());
+            if r.sam.len() > r.fcr.sam_tracks.max(1) {
+                let gone = r.sam.remove(0);
+                self.notify(&gone, false);
+            }
+            if let Some(s) = self.selection.take().filter(|s| s.key != key) {
+                self.notify(&s.key, false);
+            }
+            self.selection = Some(Selection { key: key.to_owned(), locked: false });
+            self.notify(key, true);
+            self.dirty = true;
+            return true;
+        }
         if let Some(s) = self.selection.take().filter(|s| s.key != key) {
             self.notify(&s.key, false);
         }
@@ -852,6 +1391,10 @@ impl Radar {
     /// Backspace (event 0x31, `FUN_004add60`): drop the lock (STT → the last A-A mode); without a lock it clears
     /// the designated point (the EXP flag stays).
     pub fn deselect(&mut self, now: f64, input: &Input) {
+        if self.mode == Mode::Lrs && self.real.as_ref().is_some_and(|r| !r.sam.is_empty()) {
+            self.drop_bugs();
+            return;
+        }
         if !self.has_lock() {
             self.designated = None;
             return;
@@ -871,12 +1414,196 @@ impl Radar {
         self.dirty = true;
     }
 
-    /// Event 0x30 (`FUN_004ade70`, MAP page OSB 3): NORM ↔ EXP, only with a designated point.
+    /// Event 0x30 (`FUN_004ade70`, MAP page OSB 3): NORM ↔ EXP, only with a designated point. Ours, the real FCR's
+    /// OSB 3 / the pinky switch in CRM's RWS and TWS: EXP about the bugged target, else about the cursor.
     pub fn toggle_exp(&mut self) {
+        if let Some(r) = &mut self.real
+            && matches!(self.mode, Mode::Lrs | Mode::Tws)
+            && !r.vsr
+        {
+            r.exp = !r.exp;
+            r.exp_at = r.cursor;
+            self.dirty = true;
+            return;
+        }
         if self.designated.is_some() {
             self.expanded = !self.expanded;
             self.dirty = true;
         }
+    }
+
+    // --- ours: the real FCR's controls (docs/radar.md §9) -------------------------------------------------
+
+    /// SAM's or TWS's bugs dropped (TMS down; Backspace in SAM).
+    fn drop_bugs(&mut self) {
+        if let Some(r) = &mut self.real {
+            for key in std::mem::take(&mut r.sam) {
+                self.events.push(Event::Lock { key, on: false });
+            }
+        }
+        if let Some(s) = self.selection.take() {
+            self.notify(&s.key, false);
+        }
+        self.dirty = true;
+    }
+
+    /// The target under the acquisition cursor, the nearest within `CURSOR_NEAR` of the scope.
+    pub fn under_cursor(&self) -> Option<&Contact> {
+        let (cx, cy) = self.cursor_xy()?;
+        let off = |c: &&Contact| {
+            let (x, y) = self.scope_xy(c);
+            (x - cx).abs().max((y - cy).abs())
+        };
+        self.contacts.iter().filter(|c| off(c) < CURSOR_NEAR).min_by(|a, b| off(a).total_cmp(&off(b)))
+    }
+
+    /// The TMS (keys; docs/radar.md §9.4). Up: in RWS / VSR bug the target under the cursor (SAM), on the bugged
+    /// one lock it (STT); in TWS bug, on the bug lock; in ACM go to BORE. Down: drop the lock (STT) or the bugs; ACM,
+    /// and a lock taken in ACM, back to the 30 × 20 pattern. Right: CRM's submode RWS → TWS → VSR (inferred: the real switch toggles RWS /
+    /// TWS, VSR is on OSB 2); ACM the 10 × 60 pattern. Left: ACM's SLEW pattern (inferred); in CRM the AIFF (G13,
+    /// later).
+    pub fn tms(&mut self, dir: Tms, now: f64, input: &Input) {
+        if self.real.is_none() || self.damaged || !self.mode.radiating() {
+            return;
+        }
+        self.auto_on = false;
+        let acm = matches!(self.mode, Mode::Acm | Mode::Bore);
+        match dir {
+            Tms::Up if self.mode == Mode::Acm => {
+                self.bore_return = Mode::Acm;
+                self.mode = Mode::Bore;
+                self.scan(now, input);
+            }
+            Tms::Up if matches!(self.mode, Mode::Lrs | Mode::Tws) => {
+                let Some(key) = self.under_cursor().map(|c| c.key.clone()) else { return };
+                if self.mode == Mode::Tws && !self.selection.as_ref().is_some_and(|s| s.key == key) {
+                    self.select_key(&key);
+                } else {
+                    self.lock_key(&key);
+                }
+            }
+            Tms::Down if self.mode == Mode::Stt && self.last_aa == Mode::Acm => {
+                self.acm_pattern(Acm::Twenty, now, input)
+            }
+            Tms::Down if self.mode == Mode::Stt => self.deselect(now, input),
+            Tms::Down if acm => self.acm_pattern(Acm::Twenty, now, input),
+            Tms::Down if matches!(self.mode, Mode::Lrs | Mode::Tws) => self.drop_bugs(),
+            Tms::Right if acm => self.acm_pattern(Acm::Sixty, now, input),
+            Tms::Left if acm => self.acm_pattern(Acm::Slew, now, input),
+            Tms::Right if matches!(self.mode, Mode::Lrs | Mode::Tws) => self.cycle_submode(now, input),
+            _ => {}
+        }
+    }
+
+    /// An ACM pattern (out of BORE, a lock dropped).
+    fn acm_pattern(&mut self, p: Acm, now: f64, input: &Input) {
+        if let Some(r) = &mut self.real {
+            r.acm = p;
+        }
+        self.unlock();
+        self.selection = None;
+        self.bore_held = false;
+        self.last_aa = Mode::Acm;
+        self.mode = Mode::Acm;
+        self.illumination_lost();
+        self.scan(now, input);
+    }
+
+    /// OSB 2: CRM's submode RWS → TWS → VSR → RWS; ACM's pattern 20 → 60 → SLEW → BORE → 20.
+    pub fn cycle_submode(&mut self, now: f64, input: &Input) {
+        let Some(r) = &mut self.real else { return };
+        if self.damaged || !self.mode.radiating() || !self.air_to_air {
+            return;
+        }
+        match self.mode {
+            Mode::Lrs if !r.vsr => self.mode = Mode::Tws,
+            Mode::Tws => {
+                r.vsr = true;
+                self.mode = Mode::Lrs;
+            }
+            Mode::Lrs => r.vsr = false,
+            Mode::Acm if r.acm == Acm::Slew => {
+                self.bore_return = Mode::Acm;
+                self.mode = Mode::Bore;
+            }
+            Mode::Acm => {
+                let next = if r.acm == Acm::Twenty { Acm::Sixty } else { Acm::Slew };
+                return self.acm_pattern(next, now, input);
+            }
+            Mode::Bore => return self.acm_pattern(Acm::Twenty, now, input),
+            _ => return,
+        }
+        self.drop_bugs();
+        if matches!(self.mode, Mode::Lrs | Mode::Tws) {
+            self.last_aa = self.mode;
+        }
+        self.illumination_lost();
+        self.scan(now, input);
+    }
+
+    /// OSB 18: the azimuth scan A6 → A3 → A1 (TWS: its three scans); OSB 17: the bars B4 → B1 → B2 (TWS: as OSB 18).
+    pub fn step_scan(&mut self, bars: bool) {
+        let mode = self.mode;
+        let Some(r) = &mut self.real else { return };
+        match mode {
+            Mode::Tws => r.tws = (r.tws + 1) % TWS_SCANS.len(),
+            Mode::Lrs if bars => r.rws_bars = (r.rws_bars + 1) % RWS_BARS.len(),
+            Mode::Lrs => r.rws_az = (r.rws_az + 1) % RWS_AZ.len(),
+            _ => return,
+        }
+        self.dirty = true;
+    }
+
+    /// The antenna elevation thumbwheel (−1 down … 1 up, 0 stops) and the cursor's slew (x right, y up, −1..1).
+    pub fn set_slews(&mut self, elevation: Option<f64>, cursor: Option<(f64, f64)>) {
+        let Some(r) = &mut self.real else { return };
+        if let Some(e) = elevation {
+            r.elev_rate = e.clamp(-1.0, 1.0);
+        }
+        if let Some((x, y)) = cursor {
+            r.slew = (x.clamp(-1.0, 1.0), y.clamp(-1.0, 1.0));
+        }
+    }
+
+    /// The cursor put at a place on the display (a mouse move over the FCR; EXP's display maps back to NORM).
+    pub fn set_cursor(&mut self, x: f64, y: f64) {
+        let (x, y) = self.exp_centre().map_or((x, y), |c| (c.0 + (x - 0.5) / EXP_K, c.1 + (y - 0.5) / EXP_K));
+        if let Some(r) = &mut self.real {
+            r.cursor = (x.clamp(0.0, 1.0), y.clamp(0.0, 1.0));
+        }
+    }
+
+    /// A press on the CNTL page's OSB `osb`: its option steps to the next value.
+    pub fn cntl_press(&mut self, osb: u8) {
+        let Some(r) = &mut self.real else { return };
+        if let Some(i) = CNTL.iter().position(|o| o.0 == osb) {
+            r.cntl[i] = (r.cntl[i] + 1) % CNTL[i].2.len();
+            if i == CNTL_TGT_HIS {
+                r.history.truncate(r.cntl[i]);
+            }
+        }
+    }
+
+    /// OSB 4 OVRD: radiating off and on again.
+    pub fn toggle_ovrd(&mut self) {
+        let Some(r) = &mut self.real else { return };
+        r.ovrd = !r.ovrd;
+        if r.ovrd {
+            self.silence();
+        }
+        self.dirty = true;
+    }
+
+    /// Radiating stopped (OVRD, weight on wheels): the bugs, the lock, the contacts and the target history go.
+    fn silence(&mut self) {
+        self.drop_bugs();
+        self.unlock();
+        self.contacts.clear();
+        self.selection = None;
+        if let Some(r) = &mut self.real {
+            r.history.clear();
+        }
+        self.illumination_lost();
     }
 
     /// Damage (cases 0xf / 0x13 / 0x15, `FUN_004adb20`): off, every call a no-op.
@@ -887,14 +1614,28 @@ impl Radar {
             self.selection = None;
             self.mode = Mode::Off;
         }
+        // Ours: powered again, the radar comes up in STBY (G1).
+        if !on && self.damaged && self.ours {
+            self.mode = Mode::Standby;
+            self.air_to_air = true;
+            self.auto_on = true;
+        }
         self.damaged = on;
         self.dirty = true;
     }
 }
 
 /// The hit test (`FUN_004aeb90`) and the record: air modes skip targets below 30 m AGL; the horizontal cone about
-/// the antenna only (no elevation limit); terrain line of sight (ends +1.5 m).
-fn hit(u: &Unit, own: &Own, air: bool, cone: f64, terrain: &dyn Fn(Vec3) -> Option<f64>) -> Option<Contact> {
+/// the antenna only (no elevation limit); terrain line of sight (ends +1.5 m). Ours: inside the real FCR's scan
+/// volume `vol` too.
+fn hit(
+    u: &Unit,
+    own: &Own,
+    air: bool,
+    cone: f64,
+    vol: Option<&Volume>,
+    terrain: &dyn Fn(Vec3) -> Option<f64>,
+) -> Option<Contact> {
     if air && terrain(u.pos).is_some_and(|g| u.pos.z < g + MIN_AGL) {
         return None;
     }
@@ -911,6 +1652,12 @@ fn hit(u: &Unit, own: &Own, air: bool, cone: f64, terrain: &dyn Fn(Vec3) -> Opti
     let right = Vec3::new(own.yaw.cos(), -own.yaw.sin(), 0.0);
     let az = cos.clamp(-1.0, 1.0).acos().copysign(right.dot(bearing));
     let el = (d.z / dist).clamp(-1.0, 1.0).asin() - own.fwd.z.clamp(-1.0, 1.0).asin();
+    if let Some(v) = vol {
+        let (a, e) = if v.body { body_angles(own, d) } else { (az.to_degrees(), (d.z / dist).asin().to_degrees()) };
+        if !v.holds(a, e) {
+            return None;
+        }
+    }
     if !line_of_sight(own.pos.raised(LOS_RAISE), u.pos.raised(LOS_RAISE), terrain) {
         return None;
     }
@@ -926,7 +1673,17 @@ fn hit(u: &Unit, own: &Own, air: bool, cone: f64, terrain: &dyn Fn(Vec3) -> Opti
         speed_kt: u.vel.length() * KT,
         mach: u.vel.length() / f64::from(iaf_flight::atmosphere::air(u.pos.z as f32).sound),
         type_code: u.type_code,
+        closure_kt: (own.vel - u.vel).dot(d / dist) * KT,
+        vel: u.vel,
+        seen: 0.0,
     })
+}
+
+/// Azimuth (+ right) and elevation (+ up) of `d` about the jet's own axes (deg).
+fn body_angles(own: &Own, d: Vec3) -> (f64, f64) {
+    let up = if own.up == Vec3::ZERO { Vec3::UP } else { own.up };
+    let (x, y, z) = (d.dot(own.fwd.cross(up)), d.dot(own.fwd), d.dot(up));
+    (x.atan2(y).to_degrees(), z.atan2(x.hypot(y)).to_degrees())
 }
 
 /// Line-of-sight sampling: the smallest step (m) and the steepest terrain assumed (rise per metre).
@@ -991,7 +1748,14 @@ mod tests {
         }
     }
 
-    const OWN: Own = Own { pos: Vec3::new(0.0, 0.0, 5000.0), fwd: Vec3::NORTH, yaw: 0.0 };
+    const OWN: Own = Own {
+        pos: Vec3::new(0.0, 0.0, 5000.0),
+        fwd: Vec3::NORTH,
+        yaw: 0.0,
+        up: Vec3::UP,
+        vel: Vec3::new(0.0, 250.0, 0.0),
+        wow: false,
+    };
 
     fn scene(units: &[Unit]) -> Input<'_> {
         Input { own: OWN, units, terrain: &flat }
@@ -1003,7 +1767,7 @@ mod tests {
 
     #[test]
     fn f16_table_range_and_cone() {
-        let mut r = Radar::new(1, None);
+        let mut r = Radar::new(1, None, None, false);
         assert_eq!(r.mode(), Mode::Off);
         assert_eq!(r.ranges().get(Mode::Lrs), Some(&Range { max: 5, nm: 45.0, index: 4 }));
         r.toggle_aa_ag(0.0, &scene(&[jet("t", 0.0, 30000.0), jet("u", 0.0, 50.0 * NM)]));
@@ -1023,7 +1787,7 @@ mod tests {
 
     #[test]
     fn f16i_row() {
-        let r = Radar::new(F16I, None);
+        let r = Radar::new(F16I, None, None, false);
         assert_eq!(r.ranges().get(Mode::Lrs), Some(&Range { max: 5, nm: 58.0, index: 5 }), "starts at 80 NM");
         assert_eq!(r.ranges().get(Mode::Tws).map(|t| t.nm), Some(45.0));
         assert_eq!(r.ranges().get(Mode::Stt).map(|t| t.nm), Some(58.0));
@@ -1034,11 +1798,15 @@ mod tests {
 
     #[test]
     fn f35i_row_starts_at_80_nm() {
-        let r = Radar::new(F35I, None);
+        let r = Radar::new(F35I, None, None, false);
         assert_eq!(r.ranges().get(Mode::Lrs), Some(&Range { max: 5, nm: 80.0, index: 5 }));
         assert_eq!(r.ranges().get(Mode::Tws).map(|t| (t.nm, t.index)), Some((60.0, 5)));
         assert_eq!(r.ranges().get(Mode::Stt).map(|t| t.index), Some(5));
-        assert_eq!(Radar::new(1, None).ranges().get(Mode::Lrs).map(|t| t.index), Some(4), "the originals at 40 NM");
+        assert_eq!(
+            Radar::new(1, None, None, false).ranges().get(Mode::Lrs).map(|t| t.index),
+            Some(4),
+            "the originals at 40 NM"
+        );
         // The F-35I's aircraft definition names this row (radar.gd setup).
         let def = iaf_flight::airframe::get("f35i").and_then(|a| a.radar.as_ref()?.row);
         assert_eq!(def, Some(F35I as u32));
@@ -1060,7 +1828,7 @@ mod tests {
 
     #[test]
     fn stt_auto_range_and_lost_lock() {
-        let mut r = Radar::new(1, None);
+        let mut r = Radar::new(1, None, None, false);
         let mut units = vec![jet("t", 0.0, 20000.0)];
         r.toggle_aa_ag(0.0, &scene(&units));
         assert!(r.lock_key("t"));
@@ -1086,7 +1854,7 @@ mod tests {
                 ..jet(&format!("t{i}"), 0.0, 0.0)
             })
             .collect();
-        let mut r = Radar::new(1, None);
+        let mut r = Radar::new(1, None, None, false);
         r.toggle_aa_ag(0.0, &scene(&units));
         r.toggle_aa_ag(0.0, &scene(&units));
         assert_eq!(r.mode(), Mode::Gmt);
@@ -1101,7 +1869,7 @@ mod tests {
 
     #[test]
     fn acm_locks_at_once() {
-        let mut r = Radar::new(1, None);
+        let mut r = Radar::new(1, None, None, false);
         let units = [jet("t", 0.0, 5000.0)];
         r.toggle_aa_ag(0.0, &scene(&units));
         r.cycle_mode(0.0, &scene(&units));
@@ -1114,7 +1882,7 @@ mod tests {
 
     #[test]
     fn tws_lock_follows_the_unit_between_scans() {
-        let mut r = Radar::new(1, None);
+        let mut r = Radar::new(1, None, None, false);
         let mut units = vec![jet("t", 0.0, 20000.0)];
         r.toggle_aa_ag(0.0, &scene(&units));
         r.cycle_mode(0.0, &scene(&units));
@@ -1129,7 +1897,7 @@ mod tests {
 
     #[test]
     fn tws_press_selects_without_a_lock() {
-        let mut r = Radar::new(1, None);
+        let mut r = Radar::new(1, None, None, false);
         let units = [jet("t", 0.0, 20000.0), jet("u", 1000.0, 25000.0)];
         r.toggle_aa_ag(0.0, &scene(&units));
         r.cycle_mode(0.0, &scene(&units));
@@ -1163,7 +1931,266 @@ mod tests {
         assert!(line_of_sight(Vec3::new(0.0, 0.0, 5000.0), Vec3::new(0.0, 70000.0, 5000.0), &count));
         assert!(n.get() < 40, "{} samples", n.get());
         let low = |_: Vec3| Some(4990.0);
-        assert!(hit(&jet("t", 0.0, 20000.0), &OWN, true, CONE_COS, &low).is_none(), "10 m AGL");
-        assert!(hit(&jet("t", 0.0, 20000.0), &OWN, false, CONE_COS, &low).is_some(), "ground modes see it");
+        assert!(hit(&jet("t", 0.0, 20000.0), &OWN, true, CONE_COS, None, &low).is_none(), "10 m AGL");
+        assert!(hit(&jet("t", 0.0, 20000.0), &OWN, false, CONE_COS, None, &low).is_some(), "ground modes see it");
+    }
+
+    // --- ours: the real FCR (docs/radar.md §9) ---
+
+    fn sufa() -> Radar {
+        Radar::new(F16I, None, Some(Fcr { sam_tracks: 4 }), true)
+    }
+
+    /// A jet `deg` right of the nose and `up` m above the own jet, `km` out.
+    fn at(key: &str, deg: f64, km: f64, up: f64) -> Unit {
+        let a = deg.to_radians();
+        Unit { pos: Vec3::new(km * 1000.0 * a.sin(), km * 1000.0 * a.cos(), 5000.0 + up), ..jet(key, 0.0, 0.0) }
+    }
+
+    fn ground(units: &[Unit]) -> Input<'_> {
+        Input { own: Own { wow: true, ..OWN }, units, terrain: &flat }
+    }
+
+    /// Airborne: the radar comes out of STBY into CRM by itself.
+    fn up(units: &[Unit]) -> Radar {
+        let mut r = sufa();
+        r.update(0.0, &scene(units));
+        assert_eq!(r.mode(), Mode::Lrs);
+        r
+    }
+
+    #[test]
+    fn power_on_standby_weight_on_wheels_and_take_off() {
+        let units = [at("t", 0.0, 20.0, 0.0)];
+        let mut r = sufa();
+        assert_eq!(r.mode(), Mode::Standby, "ours come up in STBY");
+        assert_eq!(Radar::new(1, None, None, false).mode(), Mode::Off, "the originals start OFF");
+        r.update(0.0, &ground(&units));
+        assert_eq!(r.mode(), Mode::Standby, "on the ground it stays in STBY");
+        r.cycle_mode(0.1, &ground(&units));
+        r.update(0.2, &ground(&units));
+        assert_eq!(r.mode(), Mode::Lrs, "a mode can be chosen on the ground");
+        assert!(!r.radiating() && r.contacts().is_empty(), "but it does not radiate with weight on wheels");
+        r.update(3.0, &scene(&units));
+        assert_eq!(keys(&r), ["t"], "airborne it radiates");
+        let mut r = sufa();
+        r.update(0.0, &ground(&units));
+        r.update(5.0, &scene(&units));
+        assert_eq!((r.mode(), keys(&r)), (Mode::Lrs, vec!["t"]), "after take-off: CRM by itself");
+        r.set_damaged(true);
+        assert_eq!(r.mode(), Mode::Off);
+        r.set_damaged(false);
+        assert_eq!(r.mode(), Mode::Standby, "powered again: STBY");
+        r.standby();
+        r.update(6.0, &scene(&units));
+        assert_eq!(r.mode(), Mode::Standby, "the pilot's STBY holds in the air");
+        let mut r = up(&units);
+        assert!(!r.contacts().is_empty());
+        r.update(0.1, &ground(&units));
+        assert!(r.contacts().is_empty() && r.selection().is_none(), "touched down: the returns go");
+    }
+
+    #[test]
+    fn scan_width_bars_and_elevation() {
+        let units = [at("wide", 40.0, 20.0, 0.0), at("low", 0.0, 20.0, -3500.0)];
+        let mut r = up(&units);
+        assert_eq!(keys(&r), ["wide"], "A6 B4: 40° right inside, 10° low outside the four bars");
+        assert!((r.frame_time() - 8.0).abs() < 1e-9, "A6 B4: an 8 s frame");
+        r.step_scan(false);
+        r.step_scan(false);
+        assert_eq!(r.real().map(|x| x.scan(false)), Some((10.0, 4)), "A1 B4");
+        r.scan(1.0, &scene(&units));
+        assert!(keys(&r).is_empty(), "A1: ±10° about the cursor");
+        r.set_cursor(0.5 + 40.0 / 120.0, 0.5);
+        r.scan(2.0, &scene(&units));
+        assert_eq!(keys(&r), ["wide"], "the narrow scan centres on the cursor");
+        r.set_cursor(0.5, 0.5);
+        r.set_slews(Some(-1.0), None);
+        r.update(2.2, &scene(&units));
+        r.update(2.7, &scene(&units));
+        r.update(3.2, &scene(&units));
+        r.set_slews(Some(0.0), None);
+        r.scan(4.0, &scene(&units));
+        assert_eq!(keys(&r), ["low"], "the antenna down 15°: the low target");
+        let (hi, lo) = r.cursor_alt(5000.0).unwrap();
+        assert!(hi < 5000.0 / 0.3048 && lo < hi, "the cursor's coverage below the jet: {hi:.0} / {lo:.0} ft");
+        r.step_scan(true);
+        assert_eq!(r.real().map(|x| x.scan(false).1), Some(1), "B4 → B1");
+    }
+
+    #[test]
+    fn vsr_shows_closing_targets_only() {
+        let mut units = [at("hot", 0.0, 30.0, 0.0), at("cold", 5.0, 30.0, 0.0)];
+        units[0].vel = Vec3::new(0.0, -250.0, 0.0);
+        units[1].vel = Vec3::new(0.0, 300.0, 0.0);
+        let mut r = up(&units);
+        assert_eq!(keys(&r).len(), 2);
+        r.cycle_submode(1.0, &scene(&units));
+        assert_eq!(r.mode(), Mode::Tws);
+        r.cycle_submode(2.0, &scene(&units));
+        assert!(r.mode() == Mode::Lrs && r.real().unwrap().vsr);
+        assert_eq!(keys(&r), ["hot"]);
+        let c = r.contact("hot").unwrap();
+        assert!((c.closure_kt - 500.0 * KT).abs() < 1.0);
+        assert!((r.scope_xy(c).1 - 500.0 * KT / VSR_MAX_KT).abs() < 1e-6, "VSR: up the scope by closure");
+        r.cycle_submode(3.0, &scene(&units));
+        assert!(!r.real().unwrap().vsr, "back to RWS");
+    }
+
+    #[test]
+    fn sam_tracks_four_while_searching_then_stt() {
+        let units: Vec<Unit> = (0..5).map(|i| at(&format!("t{i}"), -20.0 + 10.0 * f64::from(i), 20.0, 0.0)).collect();
+        let mut r = up(&units);
+        assert!(r.selection().is_none(), "the real FCR's search bugs nothing by itself");
+        for i in 0..5 {
+            assert!(r.lock_key(&format!("t{i}")));
+        }
+        let sam = &r.real().unwrap().sam;
+        assert_eq!(sam, &["t1", "t2", "t3", "t4"], "the (V)9's four, the oldest dropped");
+        r.update(0.1, &scene(&units));
+        assert_eq!(r.mode(), Mode::Lrs, "SAM keeps searching");
+        assert_eq!(r.locked().map(|c| c.key.as_str()), Some("t4"), "the primary is the weapons' target");
+        // A narrow scan away from them: the search loses them, SAM keeps them.
+        r.step_scan(false);
+        r.step_scan(false);
+        r.set_cursor(0.0, 0.5);
+        r.update(9.0, &scene(&units));
+        for k in ["t1", "t2", "t3", "t4"] {
+            assert!(r.contact(k).is_some(), "{k} tracked");
+        }
+        assert!(r.contact("t0").is_none());
+        assert!(r.lock_key("t4"));
+        r.update(9.1, &scene(&units));
+        assert_eq!(r.mode(), Mode::Stt, "a press on the primary locks it");
+        let mut barak = Radar::new(F16I, None, Some(Fcr { sam_tracks: 1 }), true);
+        barak.update(0.0, &scene(&units));
+        barak.lock_key("t0");
+        barak.lock_key("t1");
+        assert_eq!(barak.real().unwrap().sam, ["t1"], "the APG-68's one");
+    }
+
+    #[test]
+    fn tms_bugs_locks_and_drops_at_the_cursor() {
+        let units = [at("a", -10.0, 20.0, 0.0), at("b", 15.0, 30.0, 0.0)];
+        let mut r = up(&units);
+        let (x, y) = r.scope_xy(r.contact("b").unwrap());
+        r.set_cursor(x + 0.01, y - 0.01);
+        assert_eq!(r.under_cursor().map(|c| c.key.as_str()), Some("b"));
+        r.tms(Tms::Up, 0.1, &scene(&units));
+        assert_eq!(r.real().unwrap().sam, ["b"], "TMS up: bugged");
+        r.tms(Tms::Up, 0.2, &scene(&units));
+        r.update(0.3, &scene(&units));
+        assert_eq!((r.mode(), r.locked().map(|c| c.key.as_str())), (Mode::Stt, Some("b")), "again: STT");
+        r.tms(Tms::Down, 0.4, &scene(&units));
+        r.update(0.5, &scene(&units));
+        assert_eq!(r.mode(), Mode::Lrs, "TMS down: back to the search");
+        r.lock_key("a");
+        r.tms(Tms::Down, 0.6, &scene(&units));
+        assert!(r.real().unwrap().sam.is_empty() && r.selection().is_none(), "TMS down drops SAM");
+        // The cursor bumps the range scale.
+        let idx = r.range_index();
+        r.set_cursor(0.5, 0.99);
+        r.update(0.7, &scene(&units));
+        assert_eq!(r.range_index(), idx + 1);
+        r.set_cursor(0.5, 0.01);
+        r.update(0.8, &scene(&units));
+        assert_eq!(r.range_index(), idx);
+    }
+
+    #[test]
+    fn target_history_bug_centred_scan_exp_and_mtr() {
+        let beam = Unit { vel: Vec3::new(200.0, 0.0, 0.0), ..at("beam", -5.0, 30.0, 0.0) };
+        let units = [at("a", 20.0, 30.0, 0.0), at("b", 22.0, 32.0, 0.0), at("n", 0.0, 30.0, 0.0), beam];
+        let mut r = up(&units);
+        for t in [8.1, 16.2, 24.3] {
+            r.update(t, &scene(&units));
+        }
+        let sorted = |r: &Radar| {
+            let mut k = keys(r);
+            k.sort();
+            k.join(" ")
+        };
+        assert_eq!(sorted(&r), "a b n", "MTR LO drops the beaming target");
+        assert_eq!(r.history_xy().len(), 2, "TGT HIS 3: two earlier frames");
+        r.cntl_press(18);
+        r.update(32.4, &scene(&units));
+        assert_eq!((r.real().unwrap().cntl[6], r.history_xy().len()), (3, 3), "TGT HIS 4");
+        // SAM on a, then A1: the scan centred on the bug finds b beside it, not n on the nose.
+        let a = r.contact("a").unwrap().clone();
+        let (ax, ay) = r.scope_xy(&a);
+        r.set_cursor(ax, ay);
+        r.tms(Tms::Up, 32.5, &scene(&units));
+        r.update(32.6, &scene(&units));
+        r.step_scan(false);
+        r.step_scan(false);
+        let v = r.volume().unwrap();
+        assert!((v.half, (v.az - 20.0).abs() < 0.5) == (10.0, true), "A1 about the bug: {v:?}");
+        r.update(41.0, &scene(&units));
+        assert_eq!(sorted(&r), "a b");
+        // EXP: the bug mid-scope, b four times as far from it as on NORM; the cursor maps back.
+        let b = r.contact("b").unwrap().clone();
+        let (na, nb) = (r.scope_xy(r.contact("a").unwrap()), r.scope_xy(&b));
+        r.toggle_exp();
+        let (ea, eb) = (r.scope_xy(r.contact("a").unwrap()), r.scope_xy(&b));
+        assert!((ea.0 - 0.5).abs() < 1e-9 && (ea.1 - 0.5).abs() < 1e-9);
+        assert!((eb.0 - 0.5 - EXP_K * (nb.0 - na.0)).abs() < 1e-9 && (eb.1 - 0.5 - EXP_K * (nb.1 - na.1)).abs() < 1e-9);
+        r.set_cursor(eb.0, eb.1);
+        assert_eq!(r.under_cursor().map(|c| c.key.as_str()), Some("b"));
+        let c = r.real().unwrap().cursor;
+        assert!((c.0 - nb.0).abs() < 1e-9 && (c.1 - nb.1).abs() < 1e-9, "the cursor kept on NORM's scope");
+        r.toggle_exp();
+        assert_eq!(r.exp_centre(), None);
+        r.cntl_press(20);
+        assert_eq!(r.real().unwrap().cntl[4], 1, "MTR HI");
+    }
+
+    #[test]
+    fn acm_patterns_acquire_inside_their_volumes() {
+        let above = [at("above", 0.0, 4.0, 4.0 * 1000.0 * 30f64.to_radians().tan())];
+        let mut r = up(&above);
+        r.cycle_mode(0.0, &scene(&above));
+        r.cycle_mode(0.0, &scene(&above));
+        assert_eq!((r.mode(), r.range_index()), (Mode::Acm, 2), "ACM at 10 NM");
+        assert!(r.contacts().is_empty(), "30° up: outside the 30 × 20");
+        r.tms(Tms::Right, 0.1, &scene(&above));
+        assert_eq!(r.real().unwrap().acm, Acm::Sixty);
+        r.update(0.2, &scene(&above));
+        assert_eq!(r.mode(), Mode::Stt, "the 10 × 60 acquires it");
+        r.tms(Tms::Down, 0.25, &scene(&above));
+        r.update(0.3, &scene(&above));
+        assert_eq!((r.mode(), r.real().unwrap().acm), (Mode::Acm, Acm::Twenty), "TMS down: the 30 × 20, no re-lock");
+        let side = [at("side", 25.0, 4.0, 0.0)];
+        r.update(0.4, &scene(&side));
+        assert_eq!((r.mode(), r.real().unwrap().acm), (Mode::Acm, Acm::Twenty));
+        assert!(r.contacts().is_empty(), "25° right: outside the 30 × 20");
+        r.set_cursor(0.5 + 25.0 / 120.0, 0.5);
+        r.tms(Tms::Left, 0.6, &scene(&side));
+        r.update(0.7, &scene(&side));
+        assert_eq!(r.mode(), Mode::Stt, "SLEW onto it acquires");
+        let nose = [at("nose", 1.0, 3.0, 0.0), at("off", 6.0, 2.0, 0.0)];
+        r.tms(Tms::Down, 0.8, &scene(&nose));
+        r.tms(Tms::Down, 0.9, &scene(&nose));
+        r.tms(Tms::Up, 1.0, &scene(&nose));
+        assert_eq!(r.mode(), Mode::Bore);
+        assert_eq!(keys(&r), ["nose"], "BORE: the beam along the nose only");
+    }
+
+    #[test]
+    fn tws_keeps_its_files_13_s() {
+        let mut units = vec![at("t", 0.0, 20.0, 0.0)];
+        let mut r = up(&units);
+        r.cycle_mode(0.0, &scene(&units));
+        assert_eq!((r.mode(), keys(&r)), (Mode::Tws, vec!["t"]));
+        assert!(r.selection().is_none(), "TWS waits for the pilot's bug");
+        let p0 = r.contact("t").unwrap().pos;
+        units[0] = at("t", 50.0, 20.0, 0.0);
+        r.scan(5.0, &scene(&units));
+        let c = r.contact("t").expect("the file stays without a return");
+        assert!((c.pos.y - (p0.y + 200.0 * 5.0)).abs() < 1e-6, "extrapolated along its velocity");
+        r.scan(14.0, &scene(&units));
+        assert!(r.contact("t").is_none(), "dropped 13 s after its last return");
+        let many: Vec<Unit> = (0..12).map(|i| at(&format!("m{i}"), 0.0, 10.0 + f64::from(i), 0.0)).collect();
+        r.scan(15.0, &scene(&many));
+        assert_eq!(r.contacts().len(), 10, "ten track files");
     }
 }

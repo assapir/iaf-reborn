@@ -119,7 +119,8 @@ the gun.
 | release | the pickle held: the bombs leave as a pair once the pipper reaches the aim point | held: the bay doors open, the bombs leave, the doors close | Space | 69 |
 | jettison | the emergency jettison: every store and rack but the A-A missiles and the pods in one press; the SMS's S-J, then the pickle: the selected store's stations | every store but the A-A missiles and the pods, the bays' once the doors are open | Shift+C | 72 |
 | missiles | A-A: the AIM-9M's seeker circle | A-A: the AIM-120 (it waits for the bay doors) | `]` | 66 |
-| next target | the radar locks the next target | the same | Enter | 58 |
+| next target | the radar locks the next target (the Sufa: each press bugs the next target; TMS up or a click on the bug locks it) | the same | Enter | 58 |
+| the Sufa's radar | the real FCR's TMS, submodes, scan width and bars, antenna elevation, OVRD and EXP ([../../docs/radar.md](../../docs/radar.md) §9.4) | — | `/`, Shift+`/`, `;`, Shift+`;`, `'`, Shift+`'`, Ctrl+`'`, Alt+Up / Down, Ctrl+`/`, Ctrl+`;`; the cursor on Ctrl+arrows | 132–142, 48–51 |
 | gun | the trigger held | the same | Tab | 64 |
 
 **Every store drawn on its rack (2026-11-15).** A station that holds several stores shows each of them, on the Loadout

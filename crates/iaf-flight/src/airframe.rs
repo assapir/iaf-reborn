@@ -82,13 +82,22 @@ pub struct Voice {
     pub real_betty: Option<String>,
 }
 
-/// `radar`: the radar table row, the Real range (km), the AI's sensor range (NM).
+/// `radar`: the radar table row, the Real range (km), the AI's sensor range (NM); `fcr` the real F-16 fire-control
+/// radar's controls (`iaf_avionics::radar::Fcr`, docs/radar.md §9).
 #[derive(Clone, Debug, PartialEq, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct Radar {
     pub row: Option<u32>,
     pub km: Option<f64>,
     pub ai_nm: Option<f64>,
+    pub fcr: Option<Fcr>,
+}
+
+/// `radar.fcr`: the bugged targets its situation-awareness mode tracks while searching.
+#[derive(Clone, Debug, PartialEq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct Fcr {
+    pub sam_tracks: u32,
 }
 
 /// `gear_limit`: calibrated airspeed (kt) and Mach, whichever is reached first.

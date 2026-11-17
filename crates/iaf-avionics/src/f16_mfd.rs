@@ -220,6 +220,17 @@ pub fn fcr_mode(mode: i32) -> (&'static str, &'static str) {
     }
 }
 
+/// The real FCR's OSB 2 (ours, docs/radar.md §9): CRM's search `RWS` or `VSR` (the game's LRS), ACM's pattern `20`,
+/// `60`, `SLEW` (`acm` 0, 1, 2); else `fcr_mode`'s.
+pub fn fcr_real_submode(mode: i32, vsr: bool, acm: i64) -> &'static str {
+    match mode {
+        4 if vsr => "VSR",
+        4 => "RWS",
+        6 => ["20", "60", "SLEW"][acm.clamp(0, 2) as usize],
+        _ => fcr_mode(mode).1,
+    }
+}
+
 /// The FCR's azimuth scan mnemonic (OSB 18, p. 1-122): `A` and the half width in tens of degrees, 6 = ±60°, 3 = ±30°,
 /// 2 = ±25°, 1 = ±10°, from the scan's full width (radians).
 pub fn fcr_azimuth(width: f64) -> &'static str {
@@ -318,6 +329,8 @@ mod tests {
     fn labels_and_steps() {
         assert_eq!(fcr_mode(5), ("CRM", "TWS"));
         assert_eq!(fcr_mode(8), ("GM", "MAN"));
+        assert_eq!((fcr_real_submode(4, false, 0), fcr_real_submode(4, true, 0)), ("RWS", "VSR"));
+        assert_eq!((fcr_real_submode(6, false, 2), fcr_real_submode(3, false, 0)), ("SLEW", "BORE"));
         assert_eq!(fcr_azimuth(120f64.to_radians()), "A6");
         assert_eq!(fcr_azimuth(50f64.to_radians()), "A2");
         assert_eq!((hsd_step(80, true), hsd_step(10, false), hsd_step(20, true)), (80, 10, 40));

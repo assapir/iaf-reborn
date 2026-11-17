@@ -445,6 +445,11 @@ func starts_safe() -> bool:
 	return true
 
 
+## The radar's modern rules and the real F-16 FCR (docs/radar.md §9).
+func modern_radar() -> bool:
+	return true
+
+
 ## The sim's aircraft descriptors (`iaf-sim own`: the F-16's from our model) and its compiled missions.
 func planes_folder() -> String:
 	return "own/planes"

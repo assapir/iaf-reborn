@@ -14,6 +14,15 @@ const IrSeeker := preload("res://shared/weapons/ir_seeker.gd")
 const Missile := preload("res://shared/weapons/missile.gd")
 const Guided := preload("res://shared/weapons/guided.gd")
 const Radar := preload("res://shared/weapons/radar.gd")
+## Ours: the real F-16 FCR's events (radar.gd EV_*).
+const RADAR_TMS := Radar.EV_TMS
+const RADAR_SUBMODE := Radar.EV_SUBMODE
+const RADAR_AZIMUTH := Radar.EV_AZIMUTH
+const RADAR_BARS := Radar.EV_BARS
+const RADAR_ELEVATION := Radar.EV_ELEVATION
+const RADAR_OVRD := Radar.EV_OVRD
+const RADAR_CURSOR := Radar.EV_CURSOR
+const RADAR_CNTL := Radar.EV_CNTL
 const Rwr := preload("res://shared/weapons/rwr.gd")
 const WorldMap := preload("res://shared/util/world_map.gd")
 const EoSensor := preload("res://shared/weapons/eo_sensor.gd")
@@ -331,8 +340,11 @@ func to_world(p: Vector3) -> Vector3:
 func own() -> Dictionary:
 	var b: Basis = host.rig.global_basis
 	var vel := Vector3.ZERO
+	var wow := false
 	if host.flight != null:
-		vel = Terrain.dir_to_world(host.flight.state().velocity)
+		var st: Dictionary = host.flight.state()
+		vel = Terrain.dir_to_world(st.velocity)
+		wow = bool(st.get("on_ground", false))
 	var fwd := Terrain.dir_to_world(-b.z)
 	var o := {
 		"pos": to_world(host.rig.global_position),
@@ -340,7 +352,8 @@ func own() -> Dictionary:
 		"fwd": fwd,
 		"up": Terrain.dir_to_world(b.y),
 		"right": Terrain.dir_to_world(b.x),
-		"yaw": atan2(fwd.x, fwd.y)
+		"yaw": atan2(fwd.x, fwd.y),
+		"wow": wow
 	}
 	o.merge(seeker_view())
 	return o
@@ -531,7 +544,12 @@ func mfd_event(ev: int, arg = null) -> void:
 
 
 ## Event 0x8a(x, y): the EO slew / lock (docs/mfd.md); a TV camera locks only while its launched weapon flies.
+## Ours: with the real F-16 FCR and no EO picture running, the same keys slew the radar's acquisition cursor (the
+## cursor control moves the sensor of interest; inferred until the SOI is built, avionics-plan.md G8).
 func eo_pan(x: int, y: int) -> void:
+	if not radar.real.is_empty() and eo.mode == EoSensor.NONE:
+		radar.set_cursor_slew(x * 0.01, y * 0.01)
+		return
 	var o := own()
 	eo.pan(x, y, now, _eo_base(o), _eo_from(o), eo_centre, tv_flying())
 
@@ -2221,9 +2239,26 @@ func rocket_effect(pos: Vector3) -> void:
 
 ## Radar key events (FUN_0044a240): 0x21 / 0x22 range, 0x24 Q modes, 0x2b R A-A / A-G, 0x2c S standby,
 ## 0x2d / 0x2e boresight down / up, 0x26 / 0x27 next / previous target, 0x31 deselect, 0x2a lock (key),
-## 0x32 select (key, FUN_004add20: a TWS press).
+## 0x32 select (key, FUN_004add20: a TWS press). Ours, the real F-16 FCR (docs/radar.md §9): RADAR_TMS (arg the
+## direction), RADAR_SUBMODE (OSB 2), RADAR_AZIMUTH / RADAR_BARS (OSBs 18 / 17), RADAR_ELEVATION (arg −1..1),
+## RADAR_OVRD (OSB 4), RADAR_CURSOR (arg the scope place, a mouse move), RADAR_CNTL (arg the CNTL page's OSB); 0x30
+## is also the real FCR's EXP.
 func radar_event(ev: int, arg = null) -> void:
 	match ev:
+		RADAR_TMS:
+			radar.tms(int(arg), now)
+		RADAR_SUBMODE:
+			radar.cycle_submode(now)
+		RADAR_AZIMUTH, RADAR_BARS:
+			radar.step_scan(ev == RADAR_BARS)
+		RADAR_ELEVATION:
+			radar.set_elevation_rate(float(arg))
+		RADAR_OVRD:
+			radar.toggle_ovrd()
+		RADAR_CURSOR:
+			radar.set_cursor(arg.x, arg.y)
+		RADAR_CNTL:
+			radar.cntl_press(int(arg))
 		0x21:
 			radar.step_range(1, now)
 		0x22:
@@ -2314,6 +2349,7 @@ func radar_snapshot() -> Dictionary:
 		closure = (o.vel - (lk.unit.vel as Vector3)).dot(d) if lk.has("unit") else 0.0
 	return {
 		"mode": radar.mode,
+		"last_aa": radar.last_aa,
 		"idx": radar.range_index(),
 		"width": radar.scope_width(),
 		"shift": radar.heading_shift,
@@ -2325,7 +2361,9 @@ func radar_snapshot() -> Dictionary:
 		"exp": radar.exp,
 		"designated": radar.designated,
 		"desig": radar.desig,
-		"dlz": s348
+		"dlz": s348,
+		"emit": radar.emit,
+		"real": radar.real
 	}
 
 

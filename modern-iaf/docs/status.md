@@ -3,6 +3,13 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **The Sufa's radar, air to air (2026-11-17, avionics-plan.md slice 2, G1 and G5–G8;
+  [../../docs/radar.md](../../docs/radar.md) §9):** the real F-16 FCR on the game's modes: STBY at power-on, no
+  radiating with weight on wheels, CRM by itself once airborne; RWS with the A6 / A3 / A1 scans, B4 / B1 / B2 bars and
+  the antenna elevation; SAM keeping four bugged tracks while searching; TWS's track files kept 13 s; VSR; ACM's 20,
+  60, SLEW and BORE patterns with their HUD cues; the bug centring the scan; EXP (Ctrl + `;`); the CNTL page with
+  target history and MTR; NO RAD; the acquisition cursor and the TMS on keys (`/`, `;`, `'` with Shift / Ctrl, Alt +
+  Up / Down, Ctrl + arrows), listed on the Keys screen. Checked against the range's drones (`modern-iaf/tests/test_sim_fcr.gd`).
 - **A weapons range per jet (2026-11-17, avionics-plan.md slice 1, G3; [training.md](training.md) §3.4):** the
   Training list's third mission for the Sufa, the Barak and the Adir: a cold start, then five drones (the sim's own
   F-16 and F-35 on the shared AI under the sim's own brains: co-altitude, low, a manoeuvring one, a pair whose radars

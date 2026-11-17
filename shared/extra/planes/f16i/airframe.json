@@ -15,7 +15,7 @@
   "hud_tint": 0.0,
   "mfd": "colour",
   "guide": "f16i",
-  "radar": { "row": 9, "km": 104.0, "ai_nm": 52.0 },
+  "radar": { "row": 9, "km": 104.0, "ai_nm": 52.0, "fcr": { "sam_tracks": 4 } },
   "weapons": {
     "arm_art": "x_f16i",
     "modern": "always",
@@ -36,6 +36,7 @@
     "info_tag": "the flight info line's tag",
     "fm": "the flight-model type (iaf_flight::data_set TYPES / REAL): its real row on the F-16's section",
     "model": "every F-16's model, with Models on Original too (docs/f16i.md §8, tools/f16/sufa.py)",
+    "radar.fcr": "the real F-16 fire-control radar's controls (docs/radar.md §9): scan width and bars, VSR, SAM, the ACM patterns, the cursor and TMS; the APG-68(V)9's situation-awareness mode keeps four tracked targets while searching (Lockheed Martin, 25 June 2002)",
     "hud_3d": "the 3D cockpit's wide-angle HUD (its Elbit HUD's shape is open; inferred)",
     "hud_tint": "Modern IAF: the Sufa's combiner tint, a fraction of the full one (0: untinted, as SIM_TINT; the user, 2026-11-13)",
     "mfd": "the real MFD formats, in colour (docs/mfd.md §9)",

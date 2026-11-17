@@ -8,7 +8,7 @@ use godot::prelude::*;
 use iaf_avionics::gps::Lar;
 use iaf_avionics::missile::Dlz;
 use iaf_avionics::real_hud::{
-    Align, Delay, Field, GpsCue, Hobs, Input, Jet, P, Prim, RealHud, Steerpoint, Target, Weapons,
+    AcmCue, Align, Delay, Field, GpsCue, Hobs, Input, Jet, P, Prim, RealHud, Steerpoint, Target, Weapons,
 };
 
 fn prims(ps: &[Prim]) -> VarArray {
@@ -93,7 +93,8 @@ impl IafRealHud {
 
     /// One frame. `field` the symbology field (Rect2, HUD px from the HUD centre); `i` {cockpit (the cockpit dir), time, off_boresight, head_heading, head_view, head_rel ([az, el]),
     /// kcas, ground_kt, tas_ms, alt_ft, agl_ft (null), vs_fpm, heading, pitch, roll, mach, g, g_limit, aoa, gear_down, fuel_lbs, bingo_lbs, fpm
-    /// (null), boresight, gun_cross, horizon, px_per_deg, radar_mode, ils (the ILS bars' [x, y] or null), steerpoint ({number, bearing, dist_m, eta_s, at} or {}),
+    /// (null), boresight, gun_cross, horizon, px_per_deg, radar_mode, acm (the real FCR's
+    /// ACM pattern: 1 the 10 × 60, 2 SLEW at acm_at ([az, el] deg), 3 BORE; else none), ils (the ILS bars' [x, y] or null), steerpoint ({number, bearing, dist_m, eta_s, at} or {}),
     /// target ({range_m, closure, at, aspect} or {}), dlz ([max, min] or []), weapons {hud_mode, name, selected, srm, mrm, seeker,
     /// lcos, pipper, steering, circle, shoot, delay (the delayed CCIP's time to go, or null), delay_at
     /// (the target under its pipper), designated, gps ({pre, at, range, rmin, rmax, in_range, tmr} or {}), hobs ({cone, at (the seeker's target or null), loal} or {})}}. Returns {field, outer, colour (Color or null), sight (no HUD), mrm_inside (the MRM dot in the drawn circle, or null)}.
@@ -132,6 +133,12 @@ impl IafRealHud {
             horizon: pt(&i, "horizon").unwrap_or_default(),
             px_per_deg: f("px_per_deg"),
             radar_mode: f("radar_mode") as i64,
+            acm: match f("acm") as i64 {
+                1 => Some(AcmCue::Sixty),
+                2 => pt(&i, "acm_at").map(|(az, el)| AcmCue::Slew { az, el }),
+                3 => Some(AcmCue::Bore),
+                _ => None,
+            },
             ils: pt(&i, "ils"),
             steerpoint: dict("steerpoint").map(|s| Steerpoint {
                 number: num(&s, "number").unwrap_or_default() as i64,

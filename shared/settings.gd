@@ -1081,6 +1081,13 @@ func starts_safe() -> bool:
 	return false
 
 
+## Ours: the radar's modern rules (docs/radar.md §9): STBY at power-on, no radiating with weight on wheels, an aircraft
+## definition's radar.fcr (the real F-16 FCR and its keys). The 1998 game keeps the original's radar; Modern IAF says
+## yes.
+func modern_radar() -> bool:
+	return false
+
+
 ## The folders under assets/converted holding the aircraft descriptors (aircraft_model.gd: `<plane>/aircraft.json` and
 ## the index `aircraft.json`) and the menu missions (mission_runtime.gd: `missionlist.json` and the missions): the
 ## original's converted ones; Modern IAF's own (sim_settings.gd).

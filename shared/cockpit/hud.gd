@@ -611,6 +611,26 @@ func _draw_range_scale(f: Rect2, w: float) -> void:
 # --- the Real HUD (ours, Extras > HUD) ---------------------------------------------------------------------
 
 
+## The real FCR's ACM pattern for the Real HUD (docs/radar.md §9.3): 1 the 10 × 60, 2 SLEW, 3 BORE; -1 none (no
+## real FCR, a lock, not ACM).
+static func _acm_cue(rd: Dictionary) -> int:
+	var real: Dictionary = rd.get("real", {})
+	if real.is_empty() or not bool(rd.get("emit", false)):
+		return -1
+	match int(rd.get("mode", 0)):
+		6:
+			return int(real.acm) if int(real.acm) > 0 else -1
+		3:
+			return 3
+	return -1
+
+
+## SLEW's patch centre [az, el] (deg; the volume's middle).
+static func _acm_at(rd: Dictionary) -> Vector2:
+	var v: Vector4 = rd.get("real", {}).get("volume", Vector4.ZERO)
+	return Vector2((v.x + v.y) / 2.0, (v.z + v.w) / 2.0)
+
+
 ## The Real HUD's primitives of this frame ({field, outer, colour, sight}; {} with the original HUD or without a
 ## camera; on the helmet display only for the F-35, whose display is its helmet), computed once per frame for both
 ## layers. Inputs: the flight state, the view (horizon, scale, marker, boresight, gun cross), the steerpoint and the
@@ -741,6 +761,8 @@ func real_hud() -> Dictionary:
 		"horizon": (horizon - _c) / _s,
 		"px_per_deg": px_deg / _s,
 		"radar_mode": int(rd.get("mode", 0)),
+		"acm": _acm_cue(rd),
+		"acm_at": _acm_at(rd),
 		# null until the flight state has an ILS reading (a made-up zero would read as on the glide slope).
 		"ils":
 		(

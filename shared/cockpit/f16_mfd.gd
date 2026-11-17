@@ -8,6 +8,8 @@
 extends "res://shared/cockpit/pcd_formats.gd"
 
 const MfdNode := preload("res://shared/cockpit/mfd.gd")
+## The radar's event numbers (EV_*).
+const RadarEv := preload("res://shared/weapons/radar.gd")
 ## The monochrome MFD's green (the original pages' RGB(0,255,0)).
 const MONO := Color8(0, 255, 0)
 ## The colour MFD's inks, read off the MLU M1 guide's figures (p. 21): green, yellow, the blue it calls cyan, white.
@@ -68,6 +70,8 @@ static var _font_of: Script  # the Settings script that gave _font (a test swaps
 var m: Control  # the MFD node (mfd.gd)
 ## The SMS shows its inventory (OSB 4 INV) instead of the selected weapon's page.
 var sms_inv := false
+## Ours, the real FCR: its CNTL page shows (OSB 5; docs/radar.md §9.5).
+var fcr_cntl := false
 ## Tests: the colours drawn this frame.
 var used := {}
 
@@ -192,10 +196,17 @@ func format_menu(current: String) -> void:
 ## A contact's place on the B-scope: the game's geometry (mfd.gd: x by the azimuth across the scan's width, 112 px =
 ## the range), so the cursor and its clicks stay the original's.
 static func bscope(r: Dictionary, ct: Dictionary, nm: float) -> Vector2:
+	if ct.has("scope") and not r.get("real", {}).is_empty():
+		return scope_px(ct.scope)  # the real FCR's place (radar.rs scope_xy: VSR by closure)
 	return Vector2(
 		66.0 + (float(ct.az) + float(r.get("shift", 0.0))) * 112.0 / float(r.get("width", TAU / 3.0)),
 		115.0 - float(ct.dist) / (nm * 16.5446)
 	)
+
+
+## A place on the real FCR's scope (0..1 across ±60°, up) in MFD px.
+static func scope_px(q: Vector2) -> Vector2:
+	return Vector2(10.0 + 112.0 * q.x, 115.0 - 112.0 * q.y)
 
 
 ## The FCR (figs. 1-84, 1-85, 1-97; pp. 1-118..1-151): the mode row, the range with its triangles, the azimuth scan;
@@ -206,23 +217,47 @@ func fcr() -> void:
 	var r: Dictionary = cockpit.radar
 	var mode := int(r.get("mode", 0))
 	var nm: float = MfdNode.RADAR_RANGES[clampi(int(r.get("idx", 1)), 1, 6) - 1]
-	var names: PackedStringArray = ClassDB.class_call_static("IafF16Mfd", "fcr_mode", mode)
+	var real: Dictionary = r.get("real", {})
+	# The real FCR's STT reads the mode the lock came from (CRM RWS / TWS, ACM's pattern; fig. 1-84).
+	var named := int(r.get("last_aa", 4)) if not real.is_empty() and mode == 2 else mode
+	var names: PackedStringArray = ClassDB.class_call_static("IafF16Mfd", "fcr_mode", named)
+	if fcr_cntl and not real.is_empty():
+		_fcr_cntl(real)
+		return
 	label(1, names[0])
-	label(2, names[1])
-	label(3, "EXP" if mode == 8 and r.get("exp", false) else "NORM")
-	label(4, "OVRD")
+	if real.is_empty():
+		label(2, names[1])
+	else:
+		label(2, ClassDB.class_call_static("IafF16Mfd", "fcr_real_submode", named, real.vsr, real.acm))
+	label(3, "EXP" if (mode == 8 and r.get("exp", false)) or real.get("exp", false) else "NORM")
+	label(4, "OVRD", bool(real.get("ovrd", false)))
 	label(5, "CNTL")
 	if mode >= 2:
 		stepper("%d" % int(nm))
-	if mode >= 2 and mode <= 6:
+	if not real.is_empty() and mode in [4, 5]:
+		# OSB 18 / 17: the scan's azimuth and bars (p. 1-122).
+		label(18, ClassDB.class_call_static("IafF16Mfd", "fcr_azimuth", deg_to_rad(2.0 * float(real.half))))
+		label(17, "B%d" % int(real.bars))
+	elif real.is_empty() and mode >= 2 and mode <= 6:
 		label(18, ClassDB.class_call_static("IafF16Mfd", "fcr_azimuth", float(r.get("width", TAU / 3.0))))
-	if mode >= 7:
+	# Ours, the real FCR: a mode chosen but nothing radiated (weight on wheels, OVRD) reads NO RAD low on the scope
+	# (inferred from simulators; docs/radar.md §9.1).
+	if not real.is_empty() and mode >= 2 and not bool(r.get("emit", false)):
+		centred(66.0, 96.0, "NO RAD", c("text"))
+	if mode in [7, 8]:
 		_ground_map(r, mode, nm)
 		return
 	var sc := c("scale")
-	# Range marks: 3 on the right edge at the quarters (p. 1-122); azimuth tics every 10° to ±30° at the bottom.
-	for k in [1, 2, 3]:
-		line(Vector2(120, 115 - 28 * k), Vector2(124, 115 - 28 * k), sc, THIN)
+	var vsr: bool = mode == 4 and bool(real.get("vsr", false))
+	# Range marks: 3 on the right edge at the quarters (p. 1-122); azimuth tics every 10° to ±30° at the bottom. VSR:
+	# its velocity marks instead, every 400 kt of closure (fig. 1-92; the step inferred).
+	if vsr:
+		for k in [1, 2]:
+			var y: float = 115.0 - 112.0 * 400.0 * k / float(real.vsr_max)
+			line(Vector2(118, y), Vector2(124, y), sc, LINE)
+	else:
+		for k in [1, 2, 3]:
+			line(Vector2(120, 115 - 28 * k), Vector2(124, 115 - 28 * k), sc, THIN)
 	var deg := 112.0 / rad_to_deg(float(r.get("width", TAU / 3.0)))
 	for k in range(-3, 4):
 		line(Vector2(66 + 10 * k * deg, 116), Vector2(66 + 10 * k * deg, 118 if k != 0 else 119), sc, THIN)
@@ -238,16 +273,34 @@ func fcr() -> void:
 		line(Vector2(12, ay), Vector2(16, ay), sc, LINE)
 		line(Vector2(16, ay - 3), Vector2(16, ay + 3), sc, LINE)
 	_horizon(sc)
+	var expanded: bool = real.get("exp", false)
+	# TGT HIS: the earlier search frames' returns, dimmer the older (p. 1-134).
+	for q: Vector3 in real.get("history", PackedVector3Array()):
+		var hp := scope_px(Vector2(q.x, q.y))
+		if hp.x > 8 and hp.x < 124 and hp.y > 8 and hp.y < 118:
+			fill(Rect2(hp - Vector2(1.2, 1.2), Vector2(2.4, 2.4)), c("search") * Color(1, 1, 1, 0.6 / q.z))
+	# The real FCR's scan limits in search and TWS: two vertical lines (p. 1-125); not over EXP's display.
+	if not real.is_empty() and mode in [4, 5] and not expanded:
+		var vol: Vector4 = real.volume
+		for edge in [vol.x, vol.y]:
+			var x: float = 66.0 + edge * 112.0 / 120.0
+			line(Vector2(x, 12), Vector2(x, 114), sc, THIN)
 	var lock_p = null
 	var h := heading_rad()
+	var sam: Array = real.get("sam", [])
 	for ct in r.get("contacts", []):
 		if mode == 2 and not ct.locked:
+			continue
+		var bug: bool = ct.locked or ct.get("selected", false)
+		# The real FCR's ACM shows no targets until the lock (p. 1-136); a TWS file flashes its last 8 s (p. 1-140).
+		if not real.is_empty() and mode in [3, 6] and not bug:
+			continue
+		if mode == 5 and float(ct.get("age", 0.0)) > 5.0 and Time.get_ticks_msec() % 500 < 250:
 			continue
 		var p := bscope(r, ct, nm)
 		if p.x <= 8 or p.x >= 124 or p.y <= 8 or p.y >= 118:
 			continue
-		var bug: bool = ct.locked or ct.get("selected", false)
-		if mode in [3, 4, 6] and not bug:
+		if mode in [3, 4, 6] and not bug and not sam.has(ct.key):
 			fill(Rect2(p - Vector2(1.5, 1.5), Vector2(3, 3)), c("search"))
 		else:
 			var col := c("track") if ct.get("hostile", true) or m.real_look != "colour" else c("friend")
@@ -262,16 +315,35 @@ func fcr() -> void:
 				circle(p, 4.6, col, THIN)
 				lock_p = p
 			centred(p.x, p.y + 9.0, "%02d" % int(float(ct.get("alt", 0.0)) * 0.0032808398), col, SMALL)
-	_steerpoint_bscope(nm, r)
-	# The acquisition cursor: two short vertical lines (p. 1-124).
-	if m.mouse != null:
-		var q: Vector2 = m.mouse
+	if not vsr and not expanded:
+		_steerpoint_bscope(nm, r)
+	# The acquisition cursor: two short vertical lines (p. 1-124); the real FCR's from its cursor (the keys or the
+	# mouse) with the search altitudes it covers there in kft (fig. 1-85), none in ACM.
+	var cur = m.mouse
+	if not real.is_empty():
+		cur = scope_px(real.cursor) if mode in [4, 5] else null
+	if cur != null:
 		for dx in [-2.0, 2.0]:
-			line(q + Vector2(dx, -4), q + Vector2(dx, 4), c("cursor"), LINE)
+			line(cur + Vector2(dx, -4), cur + Vector2(dx, 4), c("cursor"), LINE)
+		var alt: Vector2 = real.get("cursor_alt", Vector2(NAN, NAN))
+		if not is_nan(alt.x) and not vsr:
+			text(cur + Vector2(4, -2), "%d" % clampi(roundi(alt.x / 1000.0), -99, 99), SMALL, c("cursor"))
+			text(cur + Vector2(4, 5), "%d" % clampi(roundi(alt.y / 1000.0), -99, 99), SMALL, c("cursor"))
 	var lk: Dictionary = r.get("lock", {})
 	if lock_p != null and not lk.is_empty():
 		_stt_line(lk, float(r.get("closure", 0.0)))
 		_dlz(r.get("dlz", []), float(lk.dist), nm)
+
+
+## The FCR's CNTL page (fig. 1-76, p. 1-116): each option's legend and value by its OSB, OSB 5 CNTL inverse to
+## return (radar.rs CNTL).
+func _fcr_cntl(real: Dictionary) -> void:
+	label(5, "CNTL", true)
+	var vals: PackedInt64Array = real.get("cntl", PackedInt64Array())
+	var table: Array = ClassDB.class_call_static("IafRadar", "cntl_table")
+	for i in mini(table.size(), vals.size()):
+		var o: Array = table[i]
+		label(int(o[0]), "%s %s" % [o[1], o[2 + vals[i]]])
 
 
 ## The horizon line (fig. 1-85): broken in the middle, with end ticks, rolled and moved 1 px per degree of pitch.
@@ -794,13 +866,31 @@ func _swap() -> void:
 func _own(f: String, osb: int) -> void:
 	match f:
 		"FCR":
+			var real: bool = not cockpit.radar.get("real", {}).is_empty()
+			if real and (osb == 5 or fcr_cntl):
+				# The CNTL page: OSB 5 opens and closes it; on it the options' OSBs step their values.
+				if osb == 5:
+					fcr_cntl = not fcr_cntl
+				else:
+					m._radar_event(RadarEv.EV_CNTL, osb)
+				return
 			match osb:
 				1:
 					m.cycle_radar_mode()
 				20, 19:
 					m.step_range(1 if osb == 20 else -1)
+				2, 4, 17, 18:
+					# The real FCR (docs/radar.md §9): OSB 2 the submode / pattern, 4 OVRD, 18 / 17 azimuth / bars.
+					if real:
+						(
+							m
+							. _radar_event(
+								{2: RadarEv.EV_SUBMODE, 4: RadarEv.EV_OVRD, 18: RadarEv.EV_AZIMUTH, 17: RadarEv.EV_BARS}[osb]
+							)
+						)
 				3:
-					if int(cockpit.radar.get("mode", 0)) == 8:
+					# MAP's EXP; the real FCR's NORM / EXP in CRM (radar.rs toggle_exp).
+					if int(cockpit.radar.get("mode", 0)) == 8 or real:
 						m._radar_event(0x30)
 		"HSD":
 			if osb in [20, 19]:

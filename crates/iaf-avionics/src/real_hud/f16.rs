@@ -151,6 +151,7 @@ pub(super) fn frame(f: Field, i: &Input, max_g: f64) -> Frame {
     {
         target_box(p, i, f, at, mode == 3, t);
     }
+    acm_cue(p, i);
     match mode {
         1 => {
             let c = add(i.gun_cross, (0.0, i.deg(3.0)));
@@ -450,6 +451,31 @@ fn boresight_cross(p: &mut Vec<Prim>, i: &Input) {
     p.push(line((x, y + g), (x, y + l)));
 }
 
+/// The real FCR's ACM pattern while nothing is locked (docs/radar.md §9.3; the shapes inferred from simulator
+/// forums): the 10 × 60's vertical line through the boresight from 5° below it up to the field's top (two lines ±5°
+/// out would sit on the airspeed and altitude scales); SLEW's cross at its
+/// patch's centre, stabilised on the horizon; BORE's cross on the boresight, larger than the boresight cross. The
+/// 30 × 20 shows nothing: it fills the HUD's field.
+fn acm_cue(p: &mut Vec<Prim>, i: &Input) {
+    let k = i.px_per_deg;
+    let (bx, by) = i.boresight;
+    let cross = |p: &mut Vec<Prim>, (x, y): P| {
+        let l = i.mr(12.0);
+        p.push(line((x - l, y), (x + l, y)));
+        p.push(line((x, y - l), (x, y + l)));
+    };
+    match i.acm {
+        Some(AcmCue::Sixty) => p.push(line((bx, by + 5.0 * k), (bx, by - 55.0 * k))),
+        Some(AcmCue::Slew { az, el }) => {
+            let (sn, cs) = i.roll_deg.to_radians().sin_cos();
+            let h = i.horizon;
+            cross(p, (h.0 + k * (az * cs - el * sn), h.1 + k * (-az * sn - el * cs)));
+        }
+        Some(AcmCue::Bore) => cross(p, i.boresight),
+        None => {}
+    }
+}
+
 /// The AoA bracket left of the marker (gear down): the marker at its top at 11°, centred at 13°, at its bottom at 15°.
 fn aoa_bracket(p: &mut Vec<Prim>, i: &Input, (x, y): P) {
     let bx = x - i.mr(5.0) - i.mr(10.0) - 3.0;
@@ -503,6 +529,28 @@ mod tests {
         };
         assert_eq!(spokes(90.0), (true, 8), "straight up: the star");
         assert_eq!(spokes(-90.0), (true, 2), "straight down: the earth's cross");
+    }
+
+    #[test]
+    fn acm_patterns_on_the_hud() {
+        let mut i = input(Jet::F16);
+        let k = i.px_per_deg;
+        let lines = |i: &Input| {
+            let fr = frame(FIELD, i, 1.0);
+            fr.field.into_iter().filter_map(|p| if let Prim::Line { a, b } = p { Some((a, b)) } else { None }).collect()
+        };
+        let base: Vec<(P, P)> = lines(&i);
+        let added = |i: &Input| lines(i).into_iter().filter(|l| !base.contains(l)).collect::<Vec<_>>();
+        i.acm = Some(AcmCue::Sixty);
+        let sixty = added(&i);
+        assert_eq!(sixty, [((0.0, 5.0 * k), (0.0, -55.0 * k))], "the 10 × 60: one line up through the boresight");
+        i.acm = Some(AcmCue::Bore);
+        let bore = added(&i);
+        assert!(bore.len() == 2 && bore.iter().all(|(a, b)| ((a.0 + b.0) / 2.0, (a.1 + b.1) / 2.0) == i.boresight));
+        i.acm = Some(AcmCue::Slew { az: 10.0, el: 5.0 });
+        let slew = added(&i);
+        let c = ((slew[0].0.0 + slew[0].1.0) / 2.0, (slew[0].0.1 + slew[0].1.1) / 2.0);
+        assert_eq!(c, (i.horizon.0 + 10.0 * k, i.horizon.1 - 5.0 * k), "SLEW: right and up of the horizon point");
     }
 
     #[test]

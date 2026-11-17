@@ -2986,6 +2986,23 @@ func _command(cmd: Array) -> bool:
 			# Ours, the 3D cockpit's lean (Modern IAF's keys.json, Shift + arrows / Page Up / Page Down): p1 the axis
 			# (0 right, 1 up, 2 aft), p2 the way (views.gd lean_key); the release stops it (_release_command).
 			views.lean_key(p1, int(cmd[2]))
+		221, 222, 223, 224, 225, 226, 227:
+			# Ours, the real F-16 FCR's keys (Modern IAF's keys.json; docs/radar.md §9.4): 221 the TMS (p1 0 up, 1 down,
+			# 2 right, 3 left), 222 OSB 2's submode, 223 / 224 the azimuth scan / bars, 225 the antenna elevation (p2 the
+			# way while held; its release stops it, _release_command), 226 OVRD, 227 EXP (the pinky switch). The FCR goes
+			# on an MFD first if none shows it, as for the 1998 radar keys.
+			if weapons != null and not weapons.radar.real.is_empty():
+				cockpit.radar_mfd()
+				var ev: int = [
+					weapons.RADAR_TMS,
+					weapons.RADAR_SUBMODE,
+					weapons.RADAR_AZIMUTH,
+					weapons.RADAR_BARS,
+					weapons.RADAR_ELEVATION,
+					weapons.RADAR_OVRD,
+					0x30
+				][int(cmd[0]) - 221]
+				weapons.radar_event(ev, p1 if int(cmd[0]) == 221 else float(cmd[2]))
 		219:
 			# Ours, Modern IAF: one F-16 power switch (the 3D cockpit's AVIONIC POWER and SNSR PWR switches; no key sends
 			# it): p2 its index in sim_flight.gd SYSTEMS, p1 as 210-215's (modern-iaf/docs/cockpit.md §5.2).
@@ -3608,6 +3625,9 @@ func _release_command(cmd: Array) -> void:
 			_snap_command(int(cmd[1]), int(cmd[2]))
 		204:
 			views.lean_key(int(cmd[1]), 0)
+		225:
+			if weapons != null:
+				weapons.radar_event(weapons.RADAR_ELEVATION, 0.0)
 		20, 21, 23, 24, 26, 27:
 			views.pan(int(cmd[0]), false)
 			# The zoom keys' release (p1 0) zooms the EO camera (FUN_004cd630 cases 0x14 / 0x15, slot 1 type 0xb).

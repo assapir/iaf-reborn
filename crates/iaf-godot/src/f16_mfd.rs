@@ -91,6 +91,12 @@ impl IafF16Mfd {
         [a, b].iter().map(|s| GString::from(*s)).collect()
     }
 
+    /// The real FCR's OSB 2 (`fcr_real_submode`).
+    #[func]
+    fn fcr_real_submode(mode: i64, vsr: bool, acm: i64) -> GString {
+        GString::from(f16_mfd::fcr_real_submode(mode as i32, vsr, acm))
+    }
+
     #[func]
     fn fcr_azimuth(width: f64) -> GString {
         GString::from(f16_mfd::fcr_azimuth(width))

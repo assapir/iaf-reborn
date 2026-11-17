@@ -303,6 +303,15 @@ pub struct Delay {
     pub designated: bool,
 }
 
+/// The real FCR's ACM pattern drawn on the F-16's HUD: the 10 × 60, SLEW at its patch's centre (deg right of the
+/// heading and up from the horizon), BORE.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum AcmCue {
+    Sixty,
+    Slew { az: f64, el: f64 },
+    Bore,
+}
+
 /// One frame's values.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Input {
@@ -347,6 +356,8 @@ pub struct Input {
     pub px_per_deg: f64,
     /// The radar mode (`radar::Mode` as its number: 3 BORE, 6 ACM, …).
     pub radar_mode: i64,
+    /// The real FCR's ACM pattern while nothing is locked (the F-16s in Modern IAF; docs/radar.md §9.2).
+    pub acm: Option<AcmCue>,
     /// The ILS bars drawn over the HUD (NAV, gear down): the localizer's x and the glide slope's y (HUD px).
     pub ils: Option<P>,
     pub steerpoint: Option<Steerpoint>,

@@ -4,6 +4,15 @@
 extends RefCounted
 
 enum { OFF, STBY, STT, BORE, LRS, TWS, ACM, GMT, MAP }
+## Ours: the real F-16 FCR's events (player_weapons.gd radar_event; no original event has these numbers).
+const EV_TMS := -20
+const EV_SUBMODE := -21
+const EV_AZIMUTH := -22
+const EV_BARS := -23
+const EV_ELEVATION := -24
+const EV_OVRD := -25
+const EV_CURSOR := -26
+const EV_CNTL := -27
 
 ## bdb type code → cockpit index (FUN_00447e70).
 const COCKPIT := preload("res://shared/aircraft/player_aircraft.gd").COCKPIT
@@ -25,6 +34,13 @@ var designated := false
 var desig := Vector3.ZERO
 var exp := false
 var heading_shift := 0.0
+## Radiating (ours: not with weight on wheels; the real FCR not in OVRD).
+var emit := false
+## Ours, the real F-16 FCR (docs/radar.md §9; {} the original's radar): half (scan's half width, deg), bars, elevation,
+## cursor (0..1 across ±60°, up), cursor_alt (ft high / low, NAN none), vsr, sam (keys, the primary last), acm (0
+## 20, 1 60, 2 SLEW), ovrd, volume (az from, az to, el low, el high; deg), vsr_max (kt), exp (EXP showing), cntl (the
+## CNTL page's value indices, IafRadar.cntl_table's order), history (TGT HIS: x, y on the scope, z the frames back).
+var real := {}
 
 ## Owner callbacks: units() -> [{key, pos, vel, ent, hostile}], ground(world) -> height or null,
 ## own() -> {pos, vel, fwd, up, right, yaw}, on_lock(key, on) (the target's RWR), illumination_lost()
@@ -44,10 +60,14 @@ var _by_key := {}
 
 ## Create (FUN_004ace60) for the aircraft of bdb type `type_code`; `lrs_nm` overrides the LRS / STT detection
 ## range (Weapon data Real). The radar starts OFF. Ours, with either Weapon data: a jet with an aircraft definition
-## takes its radar.row (the F-16I Sufa the APG-68(V)9's, the F-35I the APG-81's); both start at 80 NM.
+## takes its radar.row (the F-16I Sufa the APG-68(V)9's, the F-35I the APG-81's); both start at 80 NM (in Modern
+## IAF in STBY); its radar.fcr gives the real F-16 FCR's controls (the Sufa's) where Settings.modern_radar()
+## (Modern IAF), with its power rules: STBY at power-on, no radiating with weight on wheels (docs/radar.md §9.1).
 func setup(type_code: int, lrs_nm := 0.0) -> void:
-	var row := int(Settings.airframe(type_code).get("radar", {}).get("row", COCKPIT.get(type_code, 1)))
-	_r.setup(row, lrs_nm)
+	var def: Dictionary = Settings.airframe(type_code).get("radar", {})
+	var row := int(def.get("row", COCKPIT.get(type_code, 1)))
+	var modern: bool = Settings.modern_radar()
+	_r.setup(row, lrs_nm, int(def.get("fcr", {}).get("sam_tracks", 0)) if modern else 0, modern)
 	_sync()
 
 
@@ -88,6 +108,8 @@ func _sync() -> void:
 	desig = _st.desig
 	exp = _st.exp
 	heading_shift = _st.heading_shift
+	emit = _st.emit
+	real = _st.real
 	contacts = (_st.contacts as Array).map(_attach)
 	_st.locked = _attach(_st.locked)
 	for e in _r.events():
@@ -230,6 +252,56 @@ func toggle_exp() -> void:
 ## FUN_004ad880(2) from a semi-active (610) launch with a target: STT on the selection.
 func lock_stt() -> void:
 	_r.lock_stt()
+	_sync()
+
+
+# --- ours: the real FCR (docs/radar.md §9) ------------------------------------------------------
+
+
+## The TMS: 0 up (bug / lock; ACM BORE), 1 down (drop; ACM 30 × 20), 2 right (CRM submode; ACM 10 × 60), 3 left
+## (ACM SLEW).
+func tms(dir: int, now: float) -> void:
+	_feed()
+	_r.tms(dir, now)
+	_sync()
+
+
+## OSB 2: CRM's RWS / TWS / VSR, ACM's 20 / 60 / SLEW / BORE.
+func cycle_submode(now: float) -> void:
+	_feed()
+	_r.cycle_submode(now)
+	_sync()
+
+
+## OSB 18 (azimuth) or OSB 17 (bars).
+func step_scan(bars: bool) -> void:
+	_r.step_scan(bars)
+	_sync()
+
+
+## The antenna elevation thumbwheel (−1..1, 0 stops).
+func set_elevation_rate(rate: float) -> void:
+	_r.set_elevation_rate(rate)
+
+
+## The cursor's slew (x right, y up, −1..1) and its place on the scope (0..1 across, up).
+func set_cursor_slew(x: float, y: float) -> void:
+	_r.set_cursor_slew(x, y)
+
+
+func set_cursor(x: float, y: float) -> void:
+	_r.set_cursor(x, y)
+
+
+## A press on the CNTL page's OSB.
+func cntl_press(osb: int) -> void:
+	_r.cntl_press(osb)
+	_sync()
+
+
+## OSB 4 OVRD.
+func toggle_ovrd() -> void:
+	_r.toggle_ovrd()
 	_sync()
 
 

@@ -5,7 +5,7 @@
 
 use crate::world::{get, terrain, vec3, vector3};
 use godot::prelude::*;
-use iaf_avionics::radar::{Contact, Event, Input, Own, Radar, Unit};
+use iaf_avionics::radar::{Contact, Event, Fcr, Input, Own, Radar, Tms, Unit};
 
 #[derive(GodotClass)]
 #[class(init, base = RefCounted)]
@@ -42,6 +42,9 @@ fn contact(r: &Radar, c: &Contact) -> VarDictionary {
         "type" => c.type_code,
         "alt" => c.pos.z,
         "mach" => c.mach,
+        "closure" => c.closure_kt,
+        "age" => r.now() - c.seen,
+        "scope" => { let (x, y) = r.scope_xy(c); Vector2::new(x as f32, y as f32) },
     }
 }
 
@@ -66,10 +69,13 @@ fn unit(u: &VarDictionary) -> Unit {
 #[godot_api]
 impl IafRadar {
     /// Create (`FUN_004ace60`) for cockpit index `cockpit` (`FUN_00447e70`); `lrs_nm` > 0: the LRS / STT detection
-    /// range (Weapon data Real).
+    /// range (Weapon data Real); `sam_tracks` > 0: ours, the real F-16 FCR (the aircraft definition's `radar.fcr`);
+    /// `ours`: Modern IAF's power rules.
     #[func]
-    fn setup(&mut self, cockpit: i64, lrs_nm: f64) {
-        self.radar = Some(Radar::new(usize::try_from(cockpit).unwrap_or(1), (lrs_nm > 0.0).then_some(lrs_nm)));
+    fn setup(&mut self, cockpit: i64, lrs_nm: f64, sam_tracks: i64, ours: bool) {
+        let fcr = usize::try_from(sam_tracks).ok().filter(|&n| n > 0).map(|sam_tracks| Fcr { sam_tracks });
+        let lrs = (lrs_nm > 0.0).then_some(lrs_nm);
+        self.radar = Some(Radar::new(usize::try_from(cockpit).unwrap_or(1), lrs, fcr, ours));
     }
 
     /// The own jet {pos, fwd, yaw}, the units [{key, pos, vel, klass, state, coll_radius, heading, type, hostile}]
@@ -80,6 +86,9 @@ impl IafRadar {
             pos: vec3(get(&own, "pos").unwrap_or_default()),
             fwd: vec3(get(&own, "fwd").unwrap_or_default()),
             yaw: get(&own, "yaw").unwrap_or_default(),
+            up: vec3(get(&own, "up").unwrap_or_default()),
+            vel: vec3(get(&own, "vel").unwrap_or_default()),
+            wow: get(&own, "wow").unwrap_or_default(),
         };
         self.units = units.iter_shared().filter_map(|v| v.try_to::<VarDictionary>().ok()).map(|u| unit(&u)).collect();
         self.terrain = Some(terrain);
@@ -163,6 +172,75 @@ impl IafRadar {
         self.with(|r, _| r.toggle_exp());
     }
 
+    /// Ours, the real FCR: the TMS (0 up, 1 down, 2 right, 3 left).
+    #[func]
+    fn tms(&mut self, dir: i64, now: f64) {
+        let dir = match dir {
+            0 => Tms::Up,
+            1 => Tms::Down,
+            2 => Tms::Right,
+            _ => Tms::Left,
+        };
+        self.with(|r, i| r.tms(dir, now, i));
+    }
+
+    /// Ours, the real FCR: OSB 2's submode / pattern.
+    #[func]
+    fn cycle_submode(&mut self, now: f64) {
+        self.with(|r, i| r.cycle_submode(now, i));
+    }
+
+    /// Ours, the real FCR: OSB 18 (azimuth) or OSB 17 (`bars`).
+    #[func]
+    fn step_scan(&mut self, bars: bool) {
+        self.with(|r, _| r.step_scan(bars));
+    }
+
+    /// Ours, the real FCR: the antenna elevation thumbwheel (−1..1, 0 stops).
+    #[func]
+    fn set_elevation_rate(&mut self, rate: f64) {
+        self.with(|r, _| r.set_slews(Some(rate), None));
+    }
+
+    /// Ours, the real FCR: the cursor's slew (x right, y up, −1..1).
+    #[func]
+    fn set_cursor_slew(&mut self, x: f64, y: f64) {
+        self.with(|r, _| r.set_slews(None, Some((x, y))));
+    }
+
+    /// Ours, the real FCR: the cursor at a place on the scope (0..1 across, up).
+    #[func]
+    fn set_cursor(&mut self, x: f64, y: f64) {
+        self.with(|r, _| r.set_cursor(x, y));
+    }
+
+    /// Ours, the real FCR: a press on the CNTL page's OSB.
+    #[func]
+    fn cntl_press(&mut self, osb: i64) {
+        self.with(|r, _| r.cntl_press(osb as u8));
+    }
+
+    /// The CNTL page's options: [osb, legend, values…] each, in the `cntl` state's order.
+    #[func]
+    fn cntl_table() -> VarArray {
+        iaf_avionics::radar::CNTL
+            .iter()
+            .map(|(osb, name, vals)| {
+                let mut a = varray![*osb as i64, *name];
+                for v in vals.iter() {
+                    a.push(&v.to_variant());
+                }
+                a.to_variant()
+            })
+            .collect()
+    }
+
+    /// Ours, the real FCR: OSB 4 OVRD.
+    #[func]
+    fn toggle_ovrd(&mut self) {
+        self.with(|r, _| r.toggle_ovrd());
+    }
+
     #[func]
     fn set_damaged(&mut self, on: bool) {
         self.with(|r, _| r.set_damaged(on));
@@ -181,11 +259,43 @@ impl IafRadar {
         }
         let selection = r.selection();
         let (az, el) = r.antenna();
+        let real = r.real().map_or_else(VarDictionary::new, |x| {
+            let (half, bars) = x.scan(r.mode() == iaf_avionics::radar::Mode::Tws);
+            let v = r.volume();
+            let alt = r.cursor_alt(self.own.pos.z);
+            vdict! {
+                "half" => half,
+                "bars" => bars,
+                "elevation" => x.elevation,
+                "cursor" => r.cursor_xy().map_or(Vector2::ZERO, |(cx, cy)| Vector2::new(cx as f32, cy as f32)),
+                "cursor_alt" => alt.map_or(Vector2::new(f32::NAN, f32::NAN), |(h, l)| {
+                    Vector2::new(h as f32, l as f32)
+                }),
+                "vsr" => x.vsr,
+                "sam" => &x.sam.iter().map(|k| k.to_variant()).collect::<VarArray>(),
+                "acm" => x.acm as i64,
+                "ovrd" => x.ovrd,
+                "volume" => v.map_or(Vector4::ZERO, |v| {
+                    Vector4::new((v.az - v.half) as f32, (v.az + v.half) as f32, v.lo as f32, v.hi as f32)
+                }),
+                "vsr_max" => iaf_avionics::radar::VSR_MAX_KT,
+                "exp" => r.exp_centre().is_some(),
+                "cntl" => &x.cntl.iter().map(|&v| v as i64).collect::<PackedInt64Array>(),
+                "history" => &r
+                    .history_xy()
+                    .iter()
+                    .enumerate()
+                    .flat_map(|(age, f)| f.iter().map(move |&(hx, hy)| Vector3::new(hx as f32, hy as f32, age as f32 + 1.0)))
+                    .collect::<PackedVector3Array>(),
+            }
+        });
         vdict! {
             "mode" => r.mode() as i64,
             "last_aa" => r.last_aa() as i64,
             "aa" => r.air_to_air(),
             "off" => !r.mode().radiating(),
+            "emit" => r.radiating(),
+            "real" => &real,
             "damaged" => r.damaged(),
             "bore_held" => r.bore_held(),
             "sel_key" => selection.map_or("", |s| s.key.as_str()),

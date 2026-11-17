@@ -4,6 +4,9 @@
 # (cockpit.gd) supplies layout, textures and the flight state.
 extends Control
 
+## The radar's event numbers (EV_*).
+const RadarEv := preload("res://shared/weapons/radar.gd")
+
 const SIZE := 132.0
 ## Bezel strips reach 16 px outside the display.
 const BEZEL := 16.0
@@ -1336,6 +1339,9 @@ func _gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion:
 		var q: Vector2 = event.position / _s() - Vector2.ONE * _bezel()
 		mouse = q if Rect2(10, 10, 112, 112).has_point(q) else null
+		# Ours, the real F-16 FCR: the mouse puts the acquisition cursor (radar.rs set_cursor; docs/radar.md §9.4).
+		if mouse != null and page == RADAR and not cockpit.radar.get("real", {}).is_empty():
+			_radar_event(RadarEv.EV_CURSOR, Vector2((q.x - 10.0) / 112.0, (115.0 - q.y) / 112.0))
 		if _bezel() == 0.0:
 			hover_osb = touch_osb(q)
 		return
@@ -1381,11 +1387,14 @@ func _notification(what: int) -> void:
 func _click_blip(p: Vector2) -> void:
 	var r: Dictionary = cockpit.radar
 	var nm: float = RADAR_RANGES[clampi(int(r.get("idx", 1)), 1, 6) - 1]
+	var real: bool = not r.get("real", {}).is_empty()
 	for c in r.get("contacts", []):
 		var b := Vector2(
 			66.0 + (float(c.az) + float(r.get("shift", 0.0))) * 112.0 / float(r.get("width", TAU / 3.0)),
 			115.0 - float(c.dist) / (nm * 16.5446)
 		)
+		if real:  # the real FCR's place (radar.rs scope_xy; VSR by closure); the press bugs, then locks
+			b = Vector2(10.0 + 112.0 * c.scope.x, 115.0 - 112.0 * c.scope.y)
 		if b.distance_to(p) <= 4.0 and cockpit.on_radar_event.is_valid():
 			cockpit.on_radar_event.call(0x2a, c.key)
 			accept_event()
