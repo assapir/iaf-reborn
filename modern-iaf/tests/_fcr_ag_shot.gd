@@ -140,7 +140,8 @@ func run() -> void:
 		await frames(2)
 	await fly(tv, 1.0)
 	await _save("ag_agr")
-	# The HUD: 20 km south of Target 1, heading at it, 1200 m up; a point 4 km left of it designated (5 px aside at 40 NM), then FTT on it.
+	# The HUD: 20 km south of Target 1, heading at it, 1200 m up; a point 4 km left of it designated (5 px aside at
+	# 40 NM), then FTT on it.
 	_put(t1.world.x, t1.world.y - 20000.0, 0.0, 1200.0)
 	for i in 16:
 		if String(w.stores.current_name()).to_lower().contains("spice"):
