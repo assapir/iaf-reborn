@@ -1,8 +1,11 @@
 # Ours (the F-35I, docs/f35i.md §4.3, docs/real-mfd.md "F-35I"): the panoramic cockpit display (PCD) as the real one
 # lays it out, from the cockpit's [PCD] section (panel px, tools/f35i/cockpit3d.py): the black glass; the Function
 # Access Button strip along its top (engine, fuel, weapons, gear, ICAWS, autopilot, SWAP, radios, recorder, MENU, the
-# time and alerts); four portals, each a format (pcd_formats.gd) with its name and master mode, its option legends and
-# two sub-portal tabs that swap in; a portal's MENU grid; and the standby display (ESIS) under the glass. Layer 0 draws
+# time and alerts); under it the two halves, each either one large portal (its other formats as tabs along its foot) or
+# two portals over four small windows (LM's 5 x 5 in portals over 2.5 in windows; a window taps its format into the
+# portal above), the user's simulator photo's split by default: the left half one portal, the right two over windows;
+# each portal a format (pcd_formats.gd) with its name and master mode and its option legends; a portal's MENU grid;
+# and the standby display (ESIS) under the glass. Layer 0 draws
 # it all; layer 1, over it, only the glass's sheen. In the 3D cockpit (cockpit3d.gd) layer 0 draws the glass into its
 # screen's SubViewport (screen_px), the sheen is the glass's own and a layer 2 draws the ESIS into its own. Each portal
 # keeps an MFD node (mfd.gd, hidden) whose page follows the format, so the systems that read the pages (the EO camera,
@@ -15,9 +18,16 @@ const SKY := Color(0.16, 0.46, 0.86)
 const GROUND := Color(0.50, 0.30, 0.12)
 const WHITE := Color(0.94, 0.96, 0.98)
 const AMBER := Color(1.0, 0.74, 0.12)
-const FAB_H := 26.0  # the strip's height, panel px (about 0.9 in of the 8 in glass)
+## The strip's height, panel px: 0.53 in of the 8 in glass, as the user's simulator photo shows it (round 6 of the
+## F-35I cockpit, 2026-11-17; 0.9 in until then).
+const FAB_H := 15.0
 const TAB_H := 11.0
 const HEAD_H := 15.0
+## A window's height, of the glass's: 2.1 in of the 8 in glass, as the simulator photo (LM's layout: 2.5 in; 0.30 until
+## round 6).
+const WIN_FRAC := 0.26
+## A window's format drawn at this scale of a portal's.
+const MINI := 0.5
 ## The game page each format drives (the hidden MFD node's page; none: the page stays).
 const PAGE_OF := {"TSD-1": 3, "TSD-2": 3, "TSD-3": 3, "SRCH": 2, "SMS": 1, "TFLIR": 6, "TWD": 7, "EFI": 9, "ICAWS": 4}
 ## The format a game page shows when something else sets it (the M key, a weapon, the full-screen MFD).
@@ -29,9 +39,12 @@ var cockpit: Control
 var layer := 0
 var font: Font
 var fmt: Formats
-## Per portal: the main format, its two sub-portal tabs, the MENU grid open, the page last seen on its MFD node.
-var main := ["TSD-1", "SRCH", "SMS", "TWD"]
-var tabs := [["FUEL", "ENG"], ["TFLIR", "EFI"], ["TSD-2", "ICAWS"], ["TSD-3", "EFI"]]
+## Per portal: the main format, its two windows' formats (a full half: its tabs), the MENU grid open, the page last
+## seen on its MFD node. The halves' portals are 0-1 and 2-3; a full half shows its first portal only.
+var main := ["TSD-1", "SMS", "SRCH", "TFLIR"]
+var tabs := [["TSD-2", "ENG"], ["TSD-3", "ICAWS"], ["TWD", "FUEL"], ["EFI", "ENG"]]
+## Per half: one large portal (true) or two portals over windows (the user's simulator photo, 2026-11-17).
+var full := [true, false]
 var menu_open := [false, false, false, false]
 var _page_seen := [-1, -1, -1, -1]
 ## Clickable areas of the last frame: [Rect2 (screen px), Callable].
@@ -77,16 +90,39 @@ func glass() -> Rect2:
 	return _rect(cockpit.layout.PCD.Rect)
 
 
-## The four portals' screen rects, left to right (under the strip, to the glass's foot).
+## The four portals' screen rects, left to right under the strip: a full half's first portal over the whole half
+## (to the glass's foot), its second an empty rect (hidden); a split half's two over the windows.
 func portals() -> Array:
 	var g := glass()
-	var s: float = _s()
-	var top := g.position.y + FAB_H * s
+	var top := g.position.y + FAB_H * _s()
 	var w := g.size.x / 4.0
+	var foot := g.end.y - g.size.y * WIN_FRAC
+	var out := []
+	for h in 2:
+		var x := g.position.x + 2.0 * h * w
+		if full[h]:
+			out.append_array([Rect2(x, top, 2.0 * w, g.end.y - top), Rect2()])
+		else:
+			out.append_array([Rect2(x, top, w, foot - top), Rect2(x + w, top, w, foot - top)])
+	return out
+
+
+## The windows under the split halves' portals: [screen rect, portal, its tab].
+func windows() -> Array:
+	var g := glass()
+	var w := g.size.x / 8.0
+	var top := g.end.y - g.size.y * WIN_FRAC
 	var out := []
 	for i in 4:
-		out.append(Rect2(g.position.x + i * w, top, w, g.end.y - top))
+		if not full[i / 2]:
+			for t in 2:
+				out.append([Rect2(g.position.x + (2 * i + t) * w, top, w, g.end.y - top), i, t])
 	return out
+
+
+## Whether portal `i` shows (a full half hides its second).
+func shown(i: int) -> bool:
+	return not (full[i / 2] and i % 2 == 1)
 
 
 # --- portals and their pages ----------------------------------------------------------------------------------------
@@ -99,25 +135,47 @@ func _follow_pages() -> void:
 		var m = cockpit.mfds[i]
 		m.visible = false
 		if m.page != _page_seen[i]:
+			var was: int = _page_seen[i]
 			_page_seen[i] = m.page
 			var want: String = FORMAT_OF.get(int(m.page), main[i])
-			if PAGE_OF.get(main[i], -1) != int(m.page) and want != main[i]:
-				_show(i, want)
+			if was < 0 and PAGE_OF.has(main[i]):  # the first frame: the nodes take the default layout's pages
+				_set_page(i)
+			elif PAGE_OF.get(main[i], -1) != int(m.page) and want != main[i]:
+				if shown(i):
+					_show(i, want)
+				else:
+					# A page set on a hidden portal shows on its half's large one (on the other half's first when that
+					# one shows the radar); the hidden node keeps its page.
+					var to := i - 1 if main[i - 1] != "SRCH" else (i + 1) % 4
+					m.page = was
+					_page_seen[i] = was
+					_show(to, want)
 
 
-## Portal `i` shows format `f`: a tab holding it swaps with the main format; the MFD node's page follows.
+## Portal `i` shows format `f`: a tab holding it swaps with the main format (in a full half also the hidden portal's
+## format and tabs); the MFD nodes' pages follow.
 func _show(i: int, f: String) -> void:
 	if f == "MENU":
 		menu_open[i] = true
 		return
 	var t: int = tabs[i].find(f)
+	var j := i + 1 if i % 2 == 0 else i - 1
 	if t >= 0:
 		tabs[i][t] = main[i]
+	elif full[i / 2] and main[j] == f:
+		main[j] = main[i]
+		_set_page(j)
+	elif full[i / 2] and tabs[j].has(f):
+		tabs[j][tabs[j].find(f)] = main[i]
 	main[i] = f
 	menu_open[i] = false
-	if i < cockpit.mfds.size() and PAGE_OF.has(f):
-		cockpit.mfds[i].page = PAGE_OF[f]
-		_page_seen[i] = PAGE_OF[f]
+	_set_page(i)
+
+
+func _set_page(i: int) -> void:
+	if i < cockpit.mfds.size() and PAGE_OF.has(main[i]):
+		cockpit.mfds[i].page = PAGE_OF[main[i]]
+		_page_seen[i] = PAGE_OF[main[i]]
 
 
 func _gui_input(event: InputEvent) -> void:
@@ -161,7 +219,10 @@ func _draw() -> void:
 	_draw_fab(g)
 	var ps := portals()
 	for i in 4:
-		_draw_portal(i, ps[i])
+		if shown(i):
+			_draw_portal(i, ps[i])
+	for w in windows():
+		_draw_window(w[0], w[1], w[2])
 	# The two halves (each with its own power and processor): a dark seam down the middle.
 	var s: float = _s()
 	draw_line(
@@ -189,6 +250,9 @@ func _draw_portal(i: int, pr: Rect2) -> void:
 	# Frame lines between portals (grey, thin).
 	if i > 0:
 		fmt.line(Vector2(0, 0), Vector2(0, ph), F.DARK_GREY, F.THIN)
+	if not full[i / 2]:
+		fmt.line(Vector2(0, ph), Vector2(pw, ph), F.DARK_GREY, F.THIN)
+	var tab_row := TAB_H if full[i / 2] else 0.0
 	var name: String = main[i]
 	var shown := name
 	if name == "SRCH" and int(cockpit.radar.get("mode", 0)) >= 7:
@@ -198,26 +262,37 @@ func _draw_portal(i: int, pr: Rect2) -> void:
 	fmt.text(Vector2(3.0, 12.5), master_mode(), 4.6, F.GREEN)
 	fmt.legend(Vector2(pw - 3.0, 6.5), "CNTL>", true)
 	_hit(pr.position, Rect2(0, 0, 30, HEAD_H), func(): menu_open[i] = not menu_open[i])
-	var body := Rect2(2.0, HEAD_H + 1.0, pw - 4.0, ph - HEAD_H - TAB_H - 4.0)
+	var body := Rect2(2.0, HEAD_H + 1.0, pw - 4.0, ph - HEAD_H - tab_row - 4.0)
 	if menu_open[i]:
 		var buttons: Dictionary = fmt.menu(body, name)
 		for f in buttons:
 			_hit(pr.position, buttons[f], func(): _show(i, f))
 	else:
 		_draw_format(i, name, body, pr.position, pw)
-	# The two sub-portal tabs (cyan, swap in on a tap) and the corner arrows.
-	for t in 2:
-		var tr := Rect2(pw * (0.10 + 0.42 * t), ph - TAB_H - 1.0, pw * 0.36, TAB_H - 1.5)
+	if full[i / 2]:
+		_draw_tabs(i, pr, pw, ph)
+	fmt.end()
+
+
+## A full half's tabs along its portal's foot (cyan, swap in on a tap): its own two, the hidden portal's format and
+## its two; the corner arrows.
+func _draw_tabs(i: int, pr: Rect2, pw: float, ph: float) -> void:
+	var j := i + 1
+	var names: Array = tabs[i] + [main[j]] + tabs[j]
+	var tw := (pw - 20.0) / names.size()
+	for t in names.size():
+		var f: String = names[t]
+		var tr := Rect2(10.0 + tw * t + 1.0, ph - TAB_H - 1.0, tw - 2.0, TAB_H - 1.5)
 		fmt.box(tr, F.CYAN, F.THIN)
 		fmt.text(
 			Vector2(tr.position.x, tr.end.y - 2.6),
-			tabs[i][t].replace("-", ""),
+			f.replace("-", ""),
 			5.0,
 			F.CYAN,
 			HORIZONTAL_ALIGNMENT_CENTER,
 			tr.size.x
 		)
-		_hit(pr.position, tr, func(): _show(i, tabs[i][t]))
+		_hit(pr.position, tr, func(): _show(i, f))
 	for side: float in [0.0, 1.0]:
 		var x := 2.5 + side * (pw - 5.0)
 		var d := 1.0 if side == 0.0 else -1.0
@@ -227,27 +302,34 @@ func _draw_portal(i: int, pr: Rect2) -> void:
 			F.THIN,
 			true
 		)
+
+
+## A window under a split half's portal: its format's name and the format itself in miniature, as the simulator photo
+## shows them (a tap: into the portal above; until round 6 its name and one value).
+func _draw_window(r: Rect2, i: int, t: int) -> void:
+	var s: float = _s()
+	var pw := r.size.x / s
+	var ph := r.size.y / s
+	var f: String = tabs[i][t]
+	fmt.begin(r.position, s)
+	if t > 0 or i % 2 == 1:
+		fmt.line(Vector2(0, 0), Vector2(0, ph), F.DARK_GREY, F.THIN)
+	fmt.text(Vector2(2.0, 5.5), f.replace("-", ""), 4.2, F.CYAN)
+	_hit(r.position, Rect2(0, 0, pw, ph), func(): _show(i, f))
+	fmt.end()
+	fmt.begin(r.position + Vector2(0.0, 7.0 * s), s * MINI)
+	_draw_body(i, f, Rect2(1.0, 0.0, pw / MINI - 2.0, (ph - 7.0) / MINI - 1.0))
 	fmt.end()
 
 
-func _draw_format(i: int, name: String, body: Rect2, origin: Vector2, pw: float) -> void:
+## A format's picture in `body` (the portal's frame), without its legends.
+func _draw_body(i: int, name: String, body: Rect2) -> void:
 	var m = cockpit.mfds[i] if i < cockpit.mfds.size() else null
 	match name:
 		"TSD-1", "TSD-2", "TSD-3":
-			var scale: int = m.tsd_scale if m != null else 40
-			var map_on: bool = m.tsd_options[2] if m != null else true
-			fmt.tsd(body, scale, map_on)
-			_range_legends(origin, body, "%d" % scale, func(d): _tsd_range(m, d))
-			fmt.legend(Vector2(pw - 3.0, body.position.y + 26.0), "MAP", true, map_on)
-			_hit(origin, Rect2(pw - 18.0, body.position.y + 20.0, 16.0, 8.0), func(): _toggle_map(m))
+			fmt.tsd(body, m.tsd_scale if m != null else 40, m.tsd_options[2] if m != null else true)
 		"SRCH":
 			fmt.radar(body)
-			var rd: Dictionary = cockpit.radar
-			_range_legends(
-				origin, body, "%d" % F.RANGES[clampi(int(rd.get("idx", 1)), 1, 6) - 1], func(d): _radar_range(m, d)
-			)
-			fmt.legend(Vector2(pw - 3.0, body.position.y + 26.0), "MODE", true)
-			_hit(origin, Rect2(pw - 22.0, body.position.y + 20.0, 20.0, 8.0), func(): _radar_mode(m))
 		"SMS":
 			fmt.sms(body)
 		"TFLIR":
@@ -262,6 +344,25 @@ func _draw_format(i: int, name: String, body: Rect2, origin: Vector2, pw: float)
 			fmt.fuel(body)
 		"ENG":
 			fmt.engine(body)
+
+
+func _draw_format(i: int, name: String, body: Rect2, origin: Vector2, pw: float) -> void:
+	var m = cockpit.mfds[i] if i < cockpit.mfds.size() else null
+	_draw_body(i, name, body)
+	match name:
+		"TSD-1", "TSD-2", "TSD-3":
+			var scale: int = m.tsd_scale if m != null else 40
+			var map_on: bool = m.tsd_options[2] if m != null else true
+			_range_legends(origin, body, "%d" % scale, func(d): _tsd_range(m, d))
+			fmt.legend(Vector2(pw - 3.0, body.position.y + 26.0), "MAP", true, map_on)
+			_hit(origin, Rect2(pw - 18.0, body.position.y + 20.0, 16.0, 8.0), func(): _toggle_map(m))
+		"SRCH":
+			var rd: Dictionary = cockpit.radar
+			_range_legends(
+				origin, body, "%d" % F.RANGES[clampi(int(rd.get("idx", 1)), 1, 6) - 1], func(d): _radar_range(m, d)
+			)
+			fmt.legend(Vector2(pw - 3.0, body.position.y + 26.0), "MODE", true)
+			_hit(origin, Rect2(pw - 22.0, body.position.y + 20.0, 20.0, 8.0), func(): _radar_mode(m))
 
 
 ## The range legends down the left edge: ▲, the range, ▼ (taps step it).
@@ -327,42 +428,44 @@ func _draw_fab(g: Rect2) -> void:
 	var ph := FAB_H
 	var st: Dictionary = cockpit.state
 	var wp: Dictionary = cockpit.weapons
+	# Two rows of small legends (round 6: one 0.53 in strip as the simulator photo; three rows until then).
+	var r1 := 6.2
+	var r2 := 12.8
+	var fs := 3.9
 	fmt.begin(g.position, s)
 	fmt.line(Vector2(0, ph), Vector2(pw, ph), F.DARK_GREY, F.THIN)
-	# Engine: the RPM dial.
+	# Engine: the RPM dial and its value.
 	var rpm := float(st.get("rpm", 0.0))
 	var ab := float(st.get("afterburner", 0.0)) > 0.0
-	var ec := Vector2(14, 13)
-	draw_arc(ec, 9.0, deg_to_rad(135), deg_to_rad(405), 32, F.GREEN, F.THIN, true)
+	var ec := Vector2(8, 7.5)
+	draw_arc(ec, 5.5, deg_to_rad(135), deg_to_rad(405), 24, F.GREEN, F.THIN, true)
 	var a := deg_to_rad(135.0 + 270.0 * clampf(rpm / 1.1, 0.0, 1.0))
-	fmt.line(ec, ec + Vector2(cos(a), sin(a)) * 8.0, F.YELLOW if ab else F.GREEN, F.LINE)
-	fmt.text(Vector2(5, 24.5), "%d" % int(round(rpm * 100.0)), 4.2, F.WHITE)
+	fmt.line(ec, ec + Vector2(cos(a), sin(a)) * 5.0, F.YELLOW if ab else F.GREEN, F.LINE)
+	fmt.text(Vector2(15, r1), "%d" % int(round(rpm * 100.0)), fs, F.WHITE)
 	if ab:
-		fmt.box(Rect2(20, 19.5, 9, 6), F.YELLOW, F.THIN)
-		fmt.text(Vector2(21, 24.4), "AB", 4.0, F.YELLOW)
-	# Fuel: total / internal / external with light purple bars.
+		fmt.text(Vector2(15, r2), "AB", fs, F.YELLOW)
+	# Fuel: total and internal with light purple bars, external, joker.
 	var total := float(st.get("fuel_lbs", 0.0))
 	var internal := minf(total, float(st.get("internal_fuel_kg", total / 2.20462)) * 2.20462)
-	var rows := [["T", total, F.INTERNAL_LB + 5000.0], ["I", internal, F.INTERNAL_LB], ["E", total - internal, 5000.0]]
-	for k in 3:
-		var y := 7.5 + 7.0 * k
-		fmt.text(Vector2(30, y), rows[k][0], 4.4, F.GREEN)
-		fmt.text(Vector2(30, y), "%.1f" % (float(rows[k][1]) / 1000.0), 4.4, F.GREEN, HORIZONTAL_ALIGNMENT_RIGHT, 22.0)
-		fmt.fill(Rect2(54, y - 4.6, 8.0 * clampf(float(rows[k][1]) / float(rows[k][2]), 0.0, 1.0) + 0.6, 5.0), F.PURPLE)
-	fmt.text(Vector2(64, 24.5), "JKR %.1f" % (F.JOKER_LB / 1000.0), 3.6, F.WHITE if total > F.JOKER_LB else F.YELLOW)
-	# Weapons: the counts.
+	var rows := [["T", total, F.INTERNAL_LB + 5000.0], ["I", internal, F.INTERNAL_LB]]
+	for k in 2:
+		var y: float = [r1, r2][k]
+		fmt.text(Vector2(28, y), rows[k][0], fs, F.GREEN)
+		fmt.text(Vector2(28, y), "%.1f" % (float(rows[k][1]) / 1000.0), fs, F.GREEN, HORIZONTAL_ALIGNMENT_RIGHT, 22.0)
+		fmt.fill(Rect2(52, y - 3.6, 8.0 * clampf(float(rows[k][1]) / float(rows[k][2]), 0.0, 1.0) + 0.6, 4.0), F.PURPLE)
+	fmt.text(Vector2(63, r1), "E %.1f" % ((total - internal) / 1000.0), fs, F.GREEN)
+	fmt.text(Vector2(63, r2), "JKR %.1f" % (F.JOKER_LB / 1000.0), fs, F.WHITE if total > F.JOKER_LB else F.YELLOW)
+	# Weapons: the counts, then chaff, flares and rounds.
 	var bombs := 0
 	for st2 in wp.get("stations", []).slice(0, 9):
 		if int(st2.type) in [500, 510, 520, 530, 540, 650]:
 			bombs += int(st2.count)
-	var counts := [["MRM", int(wp.get("mrm", 0))], ["SRM", int(wp.get("srm", 0))], ["BOMB", bombs]]
-	for k in 3:
-		fmt.text(Vector2(80, 7.5 + 7.0 * k), "%d %s" % [counts[k][1], counts[k][0]], 4.4, F.GREEN)
-	fmt.text(Vector2(103, 7.5), "%d" % int(wp.get("chaff", 0)), 4.4, F.WHITE)
-	fmt.text(Vector2(103, 14.5), "%d" % int(wp.get("flares", 0)), 4.4, F.WHITE)
-	fmt.text(Vector2(103, 21.5), "%d" % int(wp.get("gun", 0)), 4.4, F.WHITE)
-	# The gear planform: green with the legs down, the legs' lights.
-	var gc := Vector2(126, 12)
+	fmt.text(Vector2(86, r1), "%d MRM  %d SRM" % [int(wp.get("mrm", 0)), int(wp.get("srm", 0))], fs, F.GREEN)
+	fmt.text(Vector2(86, r2), "%d BOMB" % bombs, fs, F.GREEN)
+	fmt.text(Vector2(118, r1), "CH %d  FL %d" % [int(wp.get("chaff", 0)), int(wp.get("flares", 0))], fs, F.WHITE)
+	fmt.text(Vector2(118, r2), "GUN %d" % int(wp.get("gun", 0)), fs, F.WHITE)
+	# The gear planform: green with the legs down, the legs' lights; the flaps beside it.
+	var gc := Vector2(156, 7.5)
 	var gpts := PackedVector2Array()
 	for p in [
 		Vector2(0, -9),
@@ -377,82 +480,73 @@ func _draw_fab(g: Rect2) -> void:
 		Vector2(-7, 3),
 		Vector2(-1.5, -3)
 	]:
-		gpts.append(gc + p)
+		gpts.append(gc + p * 0.62)
 	var legs: Array = cockpit.gear_legs
 	var down := legs.all(func(v): return v == 2)
-	fmt.poly(gpts, F.GREEN if down else F.GREY, F.LINE, true)
+	fmt.poly(gpts, F.GREEN if down else F.GREY, F.THIN, true)
 	for k in 3:
-		var at: Vector2 = gc + [Vector2(0, -6), Vector2(-4, 5), Vector2(4, 5)][k]
+		var at: Vector2 = gc + [Vector2(0, -6), Vector2(-4, 5), Vector2(4, 5)][k] * 0.62
 		var v: int = legs[k]
 		if v == 2:
-			fmt.fill(Rect2(at - Vector2(1.1, 1.1), Vector2(2.2, 2.2)), F.GREEN)
+			fmt.fill(Rect2(at - Vector2(0.8, 0.8), Vector2(1.6, 1.6)), F.GREEN)
 		elif v == 1:
-			fmt.fill(Rect2(at - Vector2(1.1, 1.1), Vector2(2.2, 2.2)), F.RED)
-	fmt.text(Vector2(116, 25), "FLAPS " + ["UP", "TR", "DN"][clampi(cockpit.flaps_state, 0, 2)], 3.4, F.GREEN)
+			fmt.fill(Rect2(at - Vector2(0.8, 0.8), Vector2(1.6, 1.6)), F.RED)
+	fmt.text(Vector2(164, r2), "FLAPS " + ["UP", "TR", "DN"][clampi(cockpit.flaps_state, 0, 2)], fs, F.GREEN)
 	# ICAWS: the worst line.
 	var lines: Array = fmt.icaws_lines(cautions())
-	fmt.text(Vector2(142, 10.5), "ICAWS", 5.6, F.CYAN if lines.is_empty() else fmt.level_colour(lines[0][1]))
+	fmt.text(Vector2(196, r1), "ICAWS", fs, F.CYAN if lines.is_empty() else fmt.level_colour(lines[0][1]))
 	if not lines.is_empty():
 		fmt.text(
-			Vector2(142, 19.5),
+			Vector2(196, r2),
 			lines[0][0] + ("  +%d" % (lines.size() - 1) if lines.size() > 1 else ""),
-			4.4,
+			fs,
 			fmt.level_colour(lines[0][1])
 		)
 	# AP / AT.
 	var ap_on: bool = cockpit.indicators[8]
 	var mode := int(st.get("ap_mode", 0))
-	fmt.text(
-		Vector2(200, 10.5),
-		"AP" + ([" ", " LVL", " NAV"][clampi(mode, 0, 2)] if ap_on else ""),
-		4.8,
-		F.GREEN if ap_on else F.GREY
-	)
-	fmt.text(Vector2(200, 19.5), "AT", 4.8, F.GREY)
+	var ap: String = "AP" + ([" ", " LVL", " NAV"][clampi(mode, 0, 2)] if ap_on else "")
+	fmt.text(Vector2(250, r1), ap, fs, F.GREEN if ap_on else F.GREY)
+	fmt.text(Vector2(250, r2), "AT", fs, F.GREY)
 	# SWAP across the seam.
 	var cx := pw / 2.0
-	fmt.poly(PackedVector2Array([Vector2(cx - 13, 13), Vector2(cx - 5, 5), Vector2(cx - 5, 21)]), F.CYAN, F.THIN, true)
-	fmt.poly(PackedVector2Array([Vector2(cx + 13, 13), Vector2(cx + 5, 5), Vector2(cx + 5, 21)]), F.CYAN, F.THIN, true)
-	fmt.text(Vector2(cx - 12, 15), "SW", 3.8, F.CYAN, HORIZONTAL_ALIGNMENT_CENTER, 7.0)
-	fmt.text(Vector2(cx + 5, 15), "AP", 3.8, F.CYAN, HORIZONTAL_ALIGNMENT_CENTER, 7.0)
-	# The radios: A / B / C on UHF.
-	for k in 3:
-		fmt.text(Vector2(cx + 20, 8.0 + 7.0 * k), "%s  U  1" % ["A", "B", "C"][k], 4.2, F.GREEN)
-	fmt.text(Vector2(cx + 46, 8.0), "NAV", 4.2, F.GREEN)
-	fmt.text(Vector2(cx + 46, 15.0), "RTE %d" % (cockpit.current_waypoint + 1), 4.2, F.WHITE)
+	fmt.poly(PackedVector2Array([Vector2(cx - 10, 7.5), Vector2(cx - 4, 2), Vector2(cx - 4, 13)]), F.CYAN, F.THIN, true)
+	fmt.poly(PackedVector2Array([Vector2(cx + 10, 7.5), Vector2(cx + 4, 2), Vector2(cx + 4, 13)]), F.CYAN, F.THIN, true)
+	# The radios (UHF), the steering.
+	fmt.text(Vector2(cx + 16, r1), "A U 1   B U 1", fs, F.GREEN)
+	fmt.text(Vector2(cx + 16, r2), "C U 1", fs, F.GREEN)
+	fmt.text(Vector2(cx + 50, r1), "NAV", fs, F.GREEN)
+	fmt.text(Vector2(cx + 50, r2), "RTE %d" % (cockpit.current_waypoint + 1), fs, F.WHITE)
 	# The recorder.
-	fmt.text(Vector2(cx + 70, 7.5), "RECORDER", 4.0, F.CYAN)
 	var rec := Settings.blackbox
-	fmt.circle(Vector2(cx + 79, 14.5), 2.6, F.GREEN if rec else F.GREY, F.THIN)
+	fmt.text(Vector2(cx + 74, r1), "RCDR", fs, F.CYAN)
+	fmt.circle(Vector2(cx + 77, r2 - 1.6), 1.8, F.GREEN if rec else F.GREY, F.THIN)
 	if rec:
-		fmt.circle(Vector2(cx + 79, 14.5), 1.1, F.RED, F.LINE)
+		fmt.circle(Vector2(cx + 77, r2 - 1.6), 0.8, F.RED, F.LINE)
 	var tod := int(st.get("tod", 0.0))
-	fmt.text(Vector2(cx + 70, 23.5), "%02d:%02d:%02d" % [(tod / 3600) % 24, (tod / 60) % 60, tod % 60], 4.0, F.GREEN)
+	fmt.text(Vector2(cx + 81, r2), "%02d:%02d:%02d" % [(tod / 3600) % 24, (tod / 60) % 60, tod % 60], fs, F.GREEN)
 	# MENU: the grid icon.
-	var mg := Rect2(cx + 104, 4, 18, 18)
+	var mg := Rect2(cx + 110, 1.5, 12, 12)
 	for k in 4:
 		fmt.line(
-			Vector2(mg.position.x, mg.position.y + 6.0 * k), Vector2(mg.end.x, mg.position.y + 6.0 * k), F.GREY, F.THIN
+			Vector2(mg.position.x, mg.position.y + 4.0 * k), Vector2(mg.end.x, mg.position.y + 4.0 * k), F.GREY, F.THIN
 		)
 		fmt.line(
-			Vector2(mg.position.x + 6.0 * k, mg.position.y), Vector2(mg.position.x + 6.0 * k, mg.end.y), F.GREY, F.THIN
+			Vector2(mg.position.x + 4.0 * k, mg.position.y), Vector2(mg.position.x + 4.0 * k, mg.end.y), F.GREY, F.THIN
 		)
-	fmt.text(
-		Vector2(mg.position.x, mg.get_center().y + 1.8), "MENU", 4.6, F.WHITE, HORIZONTAL_ALIGNMENT_CENTER, mg.size.x
-	)
-	# The right block: speed / altitude, the alerts (CABIN, GCAS, ALOW), the time.
-	var rx := cx + 128
-	fmt.text(Vector2(rx, 7.5), "CAS %d" % int(st.get("ias_kt", 0.0)), 4.2, F.WHITE)
-	fmt.text(Vector2(rx, 14.5), "ALT %d" % int(round(float(st.get("alt_ft", 0.0)) / 10.0) * 10), 4.2, F.WHITE)
-	fmt.text(Vector2(rx, 21.5), "M %.2f" % float(st.get("mach", 0.0)), 4.2, F.WHITE)
+	fmt.text(Vector2(mg.end.x + 2.0, r1), "MENU", fs, F.WHITE)
+	# The right block: speed / altitude / Mach, the alerts (CABIN, GCAS, ALOW), the time.
+	var rx := cx + 142
+	fmt.text(Vector2(rx, r1), "CAS %d" % int(st.get("ias_kt", 0.0)), fs, F.WHITE)
+	fmt.text(Vector2(rx, r2), "ALT %d" % int(round(float(st.get("alt_ft", 0.0)) / 10.0) * 10), fs, F.WHITE)
+	fmt.text(Vector2(rx + 32, r1), "M %.2f" % float(st.get("mach", 0.0)), fs, F.WHITE)
 	var low := float(st.get("agl_ft", 9999.0)) < 500.0 and not bool(st.get("on_ground", false))
-	fmt.text(Vector2(rx + 36, 7.5), "CABIN", 4.2, F.GREEN)
-	fmt.text(Vector2(rx + 36, 14.5), "GCAS", 4.2, F.GREEN)
-	fmt.text(Vector2(rx + 36, 21.5), "ALOW 500", 4.2, F.YELLOW if low else F.GREEN)
+	fmt.text(Vector2(rx + 56, r1), "CABIN  GCAS", fs, F.GREEN)
+	fmt.text(Vector2(rx + 56, r2), "ALOW 500", fs, F.YELLOW if low else F.GREEN)
 	fmt.text(
-		Vector2(rx, 7.5),
+		Vector2(rx, r2),
 		"%02d:%02d Z" % [(tod / 3600) % 24, (tod / 60) % 60],
-		4.2,
+		fs,
 		F.WHITE,
 		HORIZONTAL_ALIGNMENT_RIGHT,
 		pw - rx - 3.0

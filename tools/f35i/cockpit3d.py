@@ -36,7 +36,8 @@ OUT_DIR = sys.argv[sys.argv.index("--") + 1]
 # the standby display); the forward view shows its top PANEL_HEIGHT - MAIN_OFFSET_Y rows (140; the F-16's 162).
 # CENTRE_ROW is the projection centre's panel row for them, measured in the game (cockpit.projection_centre() -
 # panel_top(), original px): the original's viewport rule puts it half way down [0, D + MainOffsetY + 7), D the
-# art's lowest transparent row at panel x 640 / 1280 (the cheeks' tops, row 28; [PANEL] MaskOffsetY2 0 so nothing
+# art's lowest transparent row at panel x 640 / 1280 (the hood's flanks' tops, FLANK_TOP, row 22-23 since round 6; the
+# glareshield's ends, row 23, in round 5; the cheeks' tops, row 28, until then; [PANEL] MaskOffsetY2 0 so nothing
 # overrides it), so the art and the centre are rendered together. It leaves the projection centre 224 rows down the
 # 480-row screen and the glareshield at row 16 of the strip.
 MAIN_OFFSET_Y = float(os.environ.get("MAIN_OFFSET_Y", "260"))
@@ -52,6 +53,39 @@ FACE_Y, FACE_Z = 0.66, -0.25  # the face passes through (0, FACE_Y, FACE_Z)
 PCD = (0.508, 0.203)  # the panoramic display's active area (20 x 8 in)
 PCD_TOP = -0.135
 GLASS_D = 0.008  # the glass's height above the face
+# The display unit (round 6, 2026-11-17, measured on the user's simulator photo against the 20 in glass, the camera
+# fitted to the glass's corners: docs/f35i.md §4.1 "Display and hood"; inferred from a simulator photo): a dark frame
+# PCD_SIDE wide beside the glass (the photo 3.2 cm left, 5.9 cm right, about 4.5 cm on average; round 5 1.4 cm), its
+# top outer corners rounded PCD_EAR, its sides tapering in over the lower part (PCD_CHAMFER: across, up; round 5 a
+# 3.4 x 1.8 cm cut), PCD_BEZEL under the glass (photo 1.3 cm), PCD_BROW over it, under the hood's lip (photo about
+# 4 mm). The panel face behind it FACE_BACK deeper, so the unit stands FACE_BACK + GLASS_D proud of it; the face
+# reaches FACE_RIM past the unit's sides (the user: "the edge of the panel is almost cm from the edge of display or
+# so"; until round 6 0.40 m out, 12 cm past the unit).
+PCD_BEZEL = 0.013
+PCD_SIDE = 0.045
+PCD_BROW = 0.006
+PCD_EAR = 0.012
+PCD_CHAMFER = (0.016, 0.095)
+FACE_BACK = 0.030
+FACE_RIM = 0.010
+# The glareshield (round 6): a hood whose thin lip sits on the glass's top edge, flush with the unit's face (no
+# overhang toward the pilot), HOOD_LIP thick, HOOD_HALF out (the unit's top corners); from the lip a front chamfer
+# rises HOOD_CREASE (back, up) to a level deck HOOD_DEPTH deep, HOOD_DECK_HALF out at the crease and HOOD_FAR_HALF at
+# its far edge; side chamfers fall from the deck's edges to the lip's ends. Measured on the user's simulator photo
+# with the fitted camera (inferred from a simulator photo): the lip on the glass's top edge (overhang under 4 mm), a
+# thin dark line; the hood 0.60 m wide there; the crease 7 cm back and 2.3 cm up, 0.52 m wide; the deck level, its far
+# edge 0.18 m back of the lip, 0.36 m wide; the view over it 13.5 deg under the eye. Rounds 4-5: a 0.74 m wide box
+# with a 3 cm rear face standing 0.6-1.4 cm proud of the display, its lower edge 5 mm over the glass, its top falling
+# 1 in 4 (the view over it 16-17 deg).
+HOOD_LIP = 0.006
+HOOD_HALF = PCD[0] / 2 + PCD_SIDE + 0.002
+HOOD_CREASE = (0.070, 0.023)
+HOOD_DEPTH = 0.176
+HOOD_DECK_HALF = 0.26
+HOOD_FAR_HALF = 0.18
+# The flanks' outer top corner (x, y, z): 28 deg out from the eye and 18 deg under it, where the round 5 hood's ends
+# were, so the 2D art's D at panel x 640 / 1280 stays 23 (CENTRE_ROW); behind the simulator photo's canopy arch there.
+FLANK_TOP = (0.45, 0.80, -0.25)
 # The status bar's height (in, of the display's 8): LM's portal layout puts 4 portals of 5 x 5 in under it and 8
 # windows of 2.5 x 2.5 in under those (docs/f35i.md §4).
 BAR_IN = 0.5
@@ -59,29 +93,36 @@ BAR_IN = 0.5
 # photos, until then one flat face with the parts on it): the centre pedestal a grey housing standing PED_D proud of
 # the face from under the display down between the knees (PED_TOP .. PED_FOOT, face heights), its top strip (P1-P6)
 # leant back STRIP_PITCH toward the eye; black inserts with raised lips and screws on the housings (insert()).
-PED_TOP, PED_FOOT, PED_W, PED_D = -0.358, -0.62, 0.27, 0.050
+PED_TOP, PED_FOOT, PED_W, PED_D = -0.358, -0.62, 0.20, 0.050
 STRIP_Z, STRIP_PITCH = -0.372, 35.0
 # The consoles (round 3, 2026-11-17; docs/f35i.md §4.1 "Consoles"): each one solid from aft of the seat forward past
-# the throttle (left) or the side-stick (right), then rising as a ramp up to the cheek's foot under the display's end,
-# as the photos show (the left forward panel's column rising from the throttle's console to the display, the right
-# one from the stick's). CONSOLE_X: their inner and outer edges' |x| (the inner edge until round 3 0.305, the leg room
+# the throttle (left) or the side-stick (right), then rising as a ramp beside the display's end, as the photos show (the
+# left forward panel's column rising from the throttle's console to the display, the right one from the stick's). CONSOLE_X: their inner and outer edges' |x| (the inner edge until round 3 0.305, the leg room
 # between them 0.61 m; now 0.50 m, the seat filling it as in the user's simulator photo of 2026-11-17); RAMP_FOOT: each ramp's foot (y) at the deck, ahead of the throttle's trim plate and of the
-# stick's housing; RAMP_TOP: where the ramps meet the cheeks' feet (y, z). The left forward panel lies on the left
+# stick's housing; RAMP_TOP: where the ramps meet the panel (y, z), a little under the display's middle (round 5, the
+# user's simulator photo: the columns rise beside the display's lower half; until then 0.615, -0.395 at the feet of grey
+# cheeks beside the display, which the real jet does not have). The left forward panel lies on the left
 # ramp, its centre at LFWD_X (until round 3 a separate housing 0.21 m off the centre line inboard of the console,
 # hanging 0.15 m below the console's top, turned 25 deg to the pilot).
 CONSOLE_X = (0.25, 0.475)
 CONSOLE_AFT = -0.375
 RAMP_FOOT = {-1: 0.45, 1: 0.505}
-RAMP_TOP = (0.615, -0.395)
+RAMP_TOP = (0.628, -0.355)
 LFWD_X = -0.345
+# The right forward panel's two strips on the right ramp (round 4): each its centre's x and its control's place up the
+# ramp from the ramp's middle (m; AUTO RECOVERY, ZEROIZE), level with the display's bottom edge (0.44 m under the eye).
+RFWD = ((0.322, 0.045), (0.392, 0.035))
 TRIM_Y = 0.4125  # the left console's trim plate (y), between the throttle's track and the ramp
-ESIS = (0.060, -0.428, 0.084, 0.066)  # the standby display's centre x, z and size (m), on the pedestal's front
+ESIS = (0.044, -0.428, 0.062, 0.049)  # the standby display's centre x, z and size (m), on the pedestal's front
 ESIS_D = PED_D + 0.0085  # its glass's depth
 # Master caution, engine fire: centre x, z, on their housing LAMP_D proud of the face right of the pedestal.
 LAMPS = {"LIGHT000": (0.182, -0.394), "LIGHT001": (0.237, -0.394)}
 LAMP_W, LAMP_D = 0.040, 0.024
 GEAR_TRAVEL = 0.018  # the knob's travel either side of the slot's centre (m)
-STICK = (0.38, 0.44)  # the side-stick's x, y on the right console
+# The side-stick's x, y on the right console: by the seat cushion's front corner, its base measured on the user's
+# simulator photo with the fitted camera (round 6, 2026-11-17; inferred from a simulator photo). Round 4 (0.30, 0.26),
+# placed by eye after his "the stick is a bit too forward"; until round 4 (0.38, 0.44), near the display.
+STICK = (0.355, 0.19)
 
 
 def on_face(x, z, depth=0.0):
@@ -110,7 +151,10 @@ class Mats:
         # The inserts (the edge-lit panels): near black, satin.
         self.plate = m("insert", (0.011, 0.011, 0.012), roughness=0.5, wear=0.3)
         self.green = m("placard_green", (0.010, 0.20, 0.09), roughness=0.5)
-        self.rubber = m("glareshield", (0.013, 0.013, 0.015), roughness=0.92, grain=0.12, wear=0.25)
+        self.rubber = m("rubber", (0.013, 0.013, 0.015), roughness=0.92, grain=0.12, wear=0.25)
+        # The glareshield: a dark matte blue-grey, as the in-flight frames show it (docs/f35i.md §4.1; until round 6
+        # the rubber's near black, which read as a heavy slab from the seat).
+        self.hood = m("glareshield", (0.036, 0.040, 0.048), roughness=0.85, grain=0.10, wear=0.25)
         self.bezel = m("bezel", (0.026, 0.027, 0.030), roughness=0.38, wear=0.4)
         self.glass = m("pcd_glass", (0.004, 0.005, 0.008), roughness=0.05, coat=1.0)
         self.screen = m("esis_glass", (0.003, 0.004, 0.006), roughness=0.05, coat=1.0)
@@ -154,9 +198,24 @@ def face_box(name, x, z, w, h, depth, mat, d0=0.0, bevel=0.003):
     return kit.box(name, on_face(x, z, d0 + (depth - d0) / 2), (w, depth - d0, h), mat, rot=FACE_ROT, bevel=bevel)
 
 
+# The smallest label printed (m, the font's size): about 6 px tall from the seat at 1920 x 1080 (round 4; until then
+# down to 3 mm, 4-5 px).
+LABEL_MIN = 0.0046
+
+
+def prism(name, outline, m, d0, d1, mat, bevel=0.0):
+    """A flat block in frame `m` (x right, y up, z toward the pilot): `outline` [(x, y)] from depth d0 to d1."""
+    def make():
+        o = kit.sweep(name, mat, [(-x, y) for x, y in outline], [(0, 0, d0), (0, 0, d1)], bevel=bevel, smooth=False,
+                      ref=(0, 1, 0))
+        if bevel:
+            o.modifiers["bevel"].limit_method = 'ANGLE'
+    placed(m, make)
+
+
 def label(text, x, z, size, depth, mats, off=0.0006):
     return kit.text_decal("lbl_" + text.replace(" ", "_"), text, mats.label, on_face(x, z, depth + 0.05), INTO_FACE,
-                          size, (1, 0, 0), off=off)
+                          max(size, LABEL_MIN), (1, 0, 0), off=off)
 
 
 def screw_head(name, centre, r, rot, m):
@@ -170,12 +229,6 @@ def screw_head(name, centre, r, rot, m):
     bpy.ops.object.shade_smooth()
     o.data.materials.append(m)
     return o
-
-
-def screws(name, x, z, w, h, depth, mats, r=0.0022):
-    for i, (dx, dz) in enumerate(((-1, -1), (1, -1), (-1, 1), (1, 1))):
-        screw_head(f"{name}_scr{i}", on_face(x + dx * (w / 2 - 0.007), z + dz * (h / 2 - 0.007), depth), r,
-                   KNOB_ROT, mats.alu)
 
 
 def spline(pts, n):
@@ -192,57 +245,114 @@ def spline(pts, n):
     return out
 
 
+def _mesh(name, bm, mat):
+    me = bpy.data.meshes.new(name)
+    bm.to_mesh(me)
+    bm.free()
+    o = bpy.data.objects.new(name, me)
+    kit.scene().collection.objects.link(o)
+    o.data.materials.append(mat)
+    return o
+
+
+def hull(name, pts, mat, bevel=0.0):
+    """The convex hull of `pts` [(x, y, z)], flat-faced, its edges bevelled `bevel`."""
+    bm = bmesh.new()
+    for p in pts:
+        bm.verts.new(p)
+    bmesh.ops.convex_hull(bm, input=bm.verts)
+    bmesh.ops.dissolve_limit(bm, angle_limit=math.radians(1.0), verts=bm.verts, edges=bm.edges)
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    o = _mesh(name, bm, mat)
+    if bevel:
+        b = o.modifiers.new("bevel", 'BEVEL')
+        b.width, b.segments, b.limit_method, b.harden_normals = bevel, 3, 'ANGLE', True
+    return o
+
+
+def sheet(name, outline, mat, thickness=0.008):
+    """A plate through the polygon `outline` [(x, y, z)], `thickness` behind it (its front faces the side the
+    outline turns anticlockwise to)."""
+    bm = bmesh.new()
+    bm.faces.new([bm.verts.new(p) for p in outline])
+    bmesh.ops.triangulate(bm, faces=bm.faces)
+    o = _mesh(name, bm, mat)
+    m = o.modifiers.new("solid", 'SOLIDIFY')
+    m.thickness, m.offset = thickness, -1.0
+    return o
+
+
 def build(mats, rail_3d=False):
     box, cyl = kit.box, kit.cyl
-    # The panel face: one dark plate behind everything, from the glareshield down past the knees.
-    face_box("face", 0, -0.31, 0.80, 0.40, 0.0, mats.panel, d0=-0.03, bevel=0.006)
-    # The PCD: a frame of four rails around a well, the glass at its bottom.
-    pz = PCD_TOP - PCD[1] / 2
-    rim, deep = 0.016, 0.018
-    for n, (x, z, w, h) in {"top": (0, PCD_TOP + rim / 2, PCD[0] + 2 * rim, rim),
-                            "bottom": (0, PCD_TOP - PCD[1] - rim / 2, PCD[0] + 2 * rim, rim),
-                            "left": (-PCD[0] / 2 - rim / 2, pz, rim, PCD[1]),
-                            "right": (PCD[0] / 2 + rim / 2, pz, rim, PCD[1])}.items():
-        face_box(f"pcd_rim_{n}", x, z, w, h, deep, mats.bezel, bevel=0.004)
-    face_box("pcd_back", 0, pz, PCD[0] + 0.004, PCD[1] + 0.004, GLASS_D - 0.001, mats.bezel, bevel=0)
-    face_box("pcd_glass", 0, pz, PCD[0], PCD[1], GLASS_D, mats.glass, d0=GLASS_D - 0.002, bevel=0)
-    for side in (-1, 1):
-        screws(f"pcd_{side}", side * (PCD[0] / 2 + rim / 2), pz, rim * 2.2, PCD[1] + 2 * rim - 0.006, deep, mats, r=0.0016)
+    # The panel face: one dark plate behind everything, from the glareshield down past the knees, recessed FACE_BACK
+    # behind the face so the display's unit stands proud of it (round 5; until then flush with the face).
+    # Round 6: FACE_RIM past the display unit's sides (until then 0.40 m out, its upper corners cut down to the ramps'
+    # tops), its top inside the hood; beyond it the hood's flanks and the consoles' columns.
+    fz = -0.31
+    rim = PCD[0] / 2 + PCD_SIDE + FACE_RIM
+    face = [(-rim, -0.51), (rim, -0.51), (rim, -0.125), (-rim, -0.125)]
+    prism("face", [(x, (z - fz) * FZ) for x, z in face], face_m(0, fz, 0), -FACE_BACK - 0.03, -FACE_BACK, mats.panel,
+          bevel=0.006)
+    # The PCD (round 5, 2026-11-17, after the user's simulator photo: "pay attention to the shape of the display"): one
+    # wide unit standing proud of the recessed face like a slab, in a thin dark bezel (PCD_BEZEL round the glass), its
+    # lower outer corners cut off (PCD_CHAMFER: across, up), the glass flush in it with a thin raised lip. Until round 5
+    # a frame of four 16 mm rails round a well, with grey cheeks either side.
+    gz = PCD_TOP - PCD[1] / 2
+    hw, top, bot = PCD[0] / 2 + PCD_SIDE, PCD_TOP + PCD_BROW, PCD_TOP - PCD[1] - PCD_BEZEL
+    cu, cv = PCD_CHAMFER
+    e = PCD_EAR
+    ear = [(hw - e * (1 - math.sin(a)), top - e * (1 - math.cos(a))) for a in np.linspace(0, math.pi / 2, 6)]
+    right = ear + [(hw, bot + cv), (hw - cu * 0.7, bot + 0.012), (hw - cu, bot)]
+    outline = [(-x, z) for x, z in reversed(right)] + right
+    prism("pcd_unit", [(x, (z - gz) * FZ) for x, z in outline], face_m(0, gz, 0), -FACE_BACK, GLASS_D - 0.001,
+          mats.plate, bevel=0.004)
+    lip = 0.004
+    for n, (x, z, w, h) in {"top": (0, PCD_TOP + lip / 2, PCD[0] + 2 * lip, lip),
+                            "bottom": (0, PCD_TOP - PCD[1] - lip / 2, PCD[0] + 2 * lip, lip),
+                            "left": (-PCD[0] / 2 - lip / 2, gz, lip, PCD[1]),
+                            "right": (PCD[0] / 2 + lip / 2, gz, lip, PCD[1])}.items():
+        face_box(f"pcd_lip_{n}", x, z, w, h, GLASS_D + 0.0025, mats.bezel, d0=GLASS_D - 0.002, bevel=0.001)
+    face_box("pcd_glass", 0, gz, PCD[0], PCD[1], GLASS_D, mats.glass, d0=GLASS_D - 0.002, bevel=0)
 
-    # The glareshield: a thin rubberised coaming over the display, its rear lip just above the glass's top edge,
-    # domed across and falling at the ends into the cheeks that frame the display.
-    path = []
-    for x in np.linspace(-0.37, 0.37, 61):  # its ends fall inside the cheeks' tops
-        ax = abs(x)
-        z = -0.123 - 0.007 * (ax / 0.27) ** 2 if ax < 0.27 else -0.130 - 1.6 * (ax - 0.27) ** 2
-        path.append((float(x), 0.684 - 0.15 * max(0.0, ax - 0.30) ** 2, z - PANEL_DROP))
-    # The section (u toward the pilot, v up): a rounded rear lip, the top falling steeply to the windscreen, as the
-    # airframe's own coaming; past it the ground shows (the nose is not drawn, bc.py).
-    lip = [(0.0, -0.014), (0.006, -0.010), (0.008, -0.004), (0.006, 0.002), (0.0, 0.005), (-0.06, 0.0),
-           (-0.14, -0.04), (-0.22, -0.10), (-0.22, -0.112), (-0.14, -0.052), (-0.06, -0.012)]
-    kit.sweep("glareshield", mats.rubber, lip, path, bevel=0.003)
-    # The cheeks: grey housings down each side of the display (the cowl's sides in the photos), bolted, standing on the
-    # consoles' ramps (until round 3 5 cm longer, their feet in the air); the right one carries the right forward
-    # panel's insert (controls()).
+    # The glareshield (round 6; HOOD_*): a thin lip on the glass's top edge, flush with the unit's face, chamfers up
+    # to a level deck, a steep front under its far edge; past it the ground shows (the nose is not drawn, bc.py).
+    _, ly, lz = on_face(0, PCD_TOP + 0.004, GLASS_D + 0.003)
+    fy, cy, dz = ly + HOOD_DEPTH, ly + HOOD_CREASE[0], lz + HOOD_CREASE[1]
+    pts = []
     for s in (-1, 1):
-        face_box(f"cheek{s}", s * 0.322, -0.2075, 0.064, 0.185, 0.034, mats.housing, d0=-0.02, bevel=0.010)
-        for i, dz in enumerate((-0.080, 0.080)):
-            screw_head(f"cheek{s}_scr{i}", on_face(s * 0.322, -0.2075 + dz, 0.034), 0.0022, KNOB_ROT, mats.alu)
+        pts += [(s * HOOD_HALF, ly, lz), (s * HOOD_HALF, ly, lz + HOOD_LIP), (s * HOOD_DECK_HALF, cy, dz),
+                (s * HOOD_FAR_HALF, fy, dz), (s * (HOOD_FAR_HALF + 0.02), fy + 0.01, lz - 0.02),
+                (s * HOOD_HALF, ly + 0.05, lz - 0.02)]
+    hull("glareshield", pts, mats.hood, bevel=0.003)
+    # Its vent slots: two groups of six on the deck either side of the centre, each slot splayed 20 deg outward.
+    for s in (-1, 1):
+        for k in range(6):
+            kit.box(f"glare_vent{s}_{k}", (s * (0.095 + 0.014 * k), (cy + fy) / 2, dz + 0.0004),
+                    (0.004, 0.065, 0.0016), mats.seal, rot=(0, 0, -s * 20.0), bevel=0)
+    # The hood's flanks (round 6; the photo's light planes falling outboard from the hood's sides to the columns):
+    # from the hood's side edge down to the consoles' columns' tops and the canopy rails, set back behind the display
+    # unit, so beside the unit the face's rim shows and past it the flank, no flat panel. Until round 6 the face's
+    # upper corners stood there in the face's plane.
+    for s in (-1, 1):
+        flank = [(s * (HOOD_HALF - 0.004), ly + 0.004, lz + 0.002), (s * (rim + 0.002), ly + 0.012, -0.36),
+                 (s * 0.46, ly + 0.012, -0.36), (s * FLANK_TOP[0], FLANK_TOP[1], FLANK_TOP[2]),
+                 (s * (HOOD_FAR_HALF + 0.016), fy + 0.006, lz - 0.016)]
+        sheet(f"hood_flank{s}", flank if s > 0 else flank[::-1], mats.panel)
 
     # Under the display (modern-iaf/docs/research/f35-cockpit.md §2.1-2.3): the centre pedestal, the left forward panel
     # and the lamps' housing; the controls' parts and positions in controls() / REG.
     z0, z1 = PED_TOP - 0.014, -0.49
     pbox(pane(0, (z0 + z1) / 2, PED_D), "pedestal", 0, 0, PED_W, (z0 - z1) * FZ, -0.07, 0, mats.housing, bevel=0.006)
     # Its lower block between the knees, stepped back and narrower, an access plate on it.
-    pbox(pane(0, (z1 + PED_FOOT) / 2, PED_D), "pedestal_foot", 0, 0, 0.20, (z1 - PED_FOOT) * FZ, -0.08, -0.012,
+    pbox(pane(0, (z1 + PED_FOOT) / 2, PED_D), "pedestal_foot", 0, 0, 0.16, (z1 - PED_FOOT) * FZ, -0.08, -0.012,
          mats.housing, bevel=0.006)
-    insert(pane(0, -0.552, PED_D), "ped_foot", 0, 0, 0.15, 0.090, -0.012, mats)
+    insert(pane(0, -0.552, PED_D), "ped_foot", 0, 0, 0.12, 0.090, -0.012, mats)
     # The top strip, leant back toward the eye, its wedge filling down to the housing's front.
     sm = strip_m()
     pbox(sm, "ped_strip_back", 0, 0, PED_W, 0.040, -0.05, -0.002, mats.housing, bevel=0.004)
     insert(sm, "ped_strip", 0, 0, PED_W - 0.012, 0.032, 0.0, mats, screws=6)
     # The radios' insert (P7-P10) and the standby display's case (P11-P14) side by side on the front.
-    insert(pane(-0.0685, -0.432, PED_D), "radio_panel", 0, 0, 0.119, 0.100, 0.0, mats, screws=6)
+    insert(pane(-0.0505, -0.432, PED_D), "radio_panel", 0, 0, 0.088, 0.100, 0.0, mats, screws=6)
     ex, ez, ew, eh = ESIS
     em = pane(ex, ez - 0.006, PED_D)
     pbox(em, "esis_case", 0, 0, ew + 0.030, eh + 0.036, -0.002, ESIS_D - PED_D - 0.0005, mats.plate, bevel=0.003)
@@ -251,12 +361,13 @@ def build(mats, rail_3d=False):
         pscrew(em, f"esis_scr{i}", du * (ew / 2 + 0.010), dv * (eh / 2 + 0.013), ESIS_D - PED_D - 0.0005, mats)
 
     # The left forward panel (§2.1) on the left console's ramp: an insert for HOOK at the top and one for the rest; the
-    # gear handle's slot. A blanking insert on the right ramp (nothing sourced there).
+    # gear handle's slot. The right forward panel's two strips on the right ramp (round 4; until then a blanking insert).
     lm = lfwd_m()
     h = ramp_len(-1)
     insert(lm, "lfwd_hook", 0, h / 2 - 0.022, 0.098, 0.030, 0.0, mats)
     insert(lm, "lfwd_panel", 0, h / 2 - 0.041 - 0.100, 0.098, 0.200, 0.0, mats, screws=6)
-    insert(ramp_m(1, 0.38), "r_ramp", 0, 0, 0.120, ramp_len(1) - 0.035, 0.0, mats, screws=6)
+    for i, (x, _) in enumerate(RFWD):  # the right forward panel's two strips (controls())
+        insert(ramp_m(1, x), f"rfwd_strip{i}", 0, 0, 0.056, ramp_len(1) - 0.035, 0.0, mats, screws=6)
     placed(gear_m(), lambda: kit.box("gear_slot", (0, 0, 0.0005), (0.010, 2 * GEAR_TRAVEL + 0.016, 0.003), mats.seal,
                                    bevel=0.001))
 
@@ -298,8 +409,8 @@ def build(mats, rail_3d=False):
             kit.sweep(f"canopy_tipseal{s}", mats.seal, kit.rounded_rect(0.024, 0.010, 0.004),
                       [(x - s * 0.010, y, z + 0.024) for x, y, z in tip])
         # The console: one solid, its deck CZ high (its top 5 mm under it: the inserts stand on it) from aft of the seat
-        # to RAMP_FOOT, the ramp up to the cheek, its front buried behind the panel face (until round 3 a box to 0.575
-        # m ahead, the left forward panel a separate housing).
+        # to RAMP_FOOT, the ramp up beside the display, its front buried behind the panel face (until round 3 a box to
+        # 0.575 m ahead, the left forward panel a separate housing).
         top, (yt, zt) = CZ - 0.005, RAMP_TOP
         side = [(CONSOLE_AFT, CZ - 0.105), (CONSOLE_AFT, top), (RAMP_FOOT[s], top), (yt, zt), (0.72, zt),
                 (0.72, CZ - 0.105)]
@@ -441,7 +552,7 @@ def lab(m, text, lx, ly, mats, size=0.0045):
     r = m.to_3x3()
     n = (r @ Vector((0, 0, 1))).normalized()
     return kit.text_decal("lbl_" + text.replace(" ", "_"), text, mats.label, m @ Vector((lx, ly, 0.05)), tuple(-n),
-                          size, tuple(r @ Vector((1, 0, 0))), off=0.0008)
+                          max(size, LABEL_MIN), tuple(r @ Vector((1, 0, 0))), off=0.0008)
 
 
 def toggle(name, x, y, mats, guard=None, z0=CZ, bat=None, lean=20, length=0.014, nut=0.0045, tip=0.0023):
@@ -516,7 +627,7 @@ def put_toggle(node, m, mats, prop, lo=0.0, hi=1.0, modelled=None, rest=None, gu
           "offset": TOGGLE_DEG * hi / span}], c)
     for i, t in enumerate(labels):
         if t:
-            lab(m, t, lx + math.copysign(0.0011 * len(t), lx), -0.010 + 0.020 * i / max(1, len(labels) - 1), mats,
+            lab(m, t, lx + math.copysign(0.3 * max(label_size, LABEL_MIN) * len(t), lx), -0.010 + 0.020 * i / max(1, len(labels) - 1), mats,
                 size=label_size)
 
 
@@ -606,7 +717,7 @@ def controls(mats):
     # §2.2 the centre pedestal: the top strip P1-P6 (leant back), the radios P7-P9 and MASTER ARM P10 on their insert,
     # the standby display's P12-P14 on its case. Labels at least 4 mm (the seat's view at 1080p, round 2).
     sm = strip_m()
-    ux = (-0.104, -0.062, -0.020, 0.006, 0.054, 0.100)
+    ux = (-0.077, -0.046, -0.015, 0.004, 0.040, 0.074)
     up = INSERT_UP
 
     def sl(t, u, v, size=0.0044):
@@ -628,20 +739,20 @@ def controls(mats):
     sl("BRT", ux[5], 0.0100, 0.0046)
     d = PED_D + up
     for i, (z, t) in enumerate(((-0.411, "COM A"), (-0.438, "COM B"), (-0.465, "C/BUR"))):
-        put_rotary(("COM_A", "COM_B", "COM_C")[i], face_m(-0.111, z, d), mats, f"f35i/radio/com{i + 1}", [],
+        put_rotary(("COM_A", "COM_B", "COM_C")[i], face_m(-0.082, z, d), mats, f"f35i/radio/com{i + 1}", [],
                    r=0.0068, h=0.020, mat=mats.hub, ribs=12, slide=True)
-        label(t, -0.086, z, 0.0050, d, mats)
-    put_toggle("MASTER_ARM", face_m(-0.042, -0.446, d), mats, "f35i/weapons/master-arm", modelled=0.0, length=0.032,
+        label(t, -0.062, z, 0.0047, d, mats)
+    put_toggle("MASTER_ARM", face_m(-0.026, -0.446, d), mats, "f35i/weapons/master-arm", modelled=0.0, length=0.032,
                nut=0.0080, tip=0.0048)
-    label("MASTER", -0.042, -0.411, 0.0050, d, mats)
-    label("ARM", -0.042, -0.418, 0.0050, d, mats)
-    label("ARM", -0.021, -0.437, 0.0050, d, mats)
-    label("SAFE", -0.020, -0.456, 0.0050, d, mats)
+    label("MASTER", -0.026, -0.411, 0.0047, d, mats)
+    label("ARM", -0.026, -0.418, 0.0047, d, mats)
+    label("ARM", -0.0135, -0.437, 0.0046, d, mats)
+    label("SAFE", -0.013, -0.456, 0.0046, d, mats)
     ex, ez, ew, eh = ESIS
     ed = ESIS_D - 0.0005
     put_rotary("SFD_BARO", face_m(ex + ew / 2 + 0.0075, ez + eh / 2 + 0.002, ed), mats, "f35i/sfd/baro", [],
                r=0.0048, h=0.009, slide=True, ribs=10)
-    for x, t in ((ex - 0.030, "ALIGN"), (ex + 0.014, "BRT")):
+    for x, t in ((ex - 0.026, "ALIGN"), (ex + 0.010, "BRT")):
         put_push("SFD_" + t, face_m(x, ez - eh / 2 - 0.0105, ed), mats, f"f35i/sfd/{t.lower()}", w=0.008)
         label(t, x + 0.0066 + 0.0016 * len(t), ez - eh / 2 - 0.0105, 0.0046, ed, mats)
 
@@ -700,18 +811,20 @@ def controls(mats):
     for t, dv in (("LAND", 0.0095), ("TAXI", 0.0), ("OFF", -0.0095)):
         ll(t, 0.041, pv + dv, 0.0040)
 
-    # §2.3 the right forward panel: the red switch in its striped surround (AUTO RECOVERY, the name low) and the
-    # rotary under it (BYPASS / NORM / ZEROIZE), here on an insert on the cheek right of the display.
-    cd = 0.034 + up
-    insert(pane(0.322, -0.222, 0.034), "rfwd_panel", 0, 0, 0.052, 0.150, 0.0, mats)
-    placed(face_m(0.322, -0.190, cd), lambda: stripes("arec_plate", 0.028, mats))
-    put_toggle("AUTO_RECOVERY", face_m(0.322, -0.194, cd + 0.0015), mats, "f35i/fcs/auto-recovery", modelled=1.0,
-               bat=mats.red, length=0.013)
-    label("AUTO", 0.322, -0.162, 0.0046, cd, mats)
-    label("REC", 0.322, -0.169, 0.0046, cd, mats)
-    put_rotary("ZEROIZE", face_m(0.322, -0.248, cd), mats, "f35i/zeroize", ["BYP", "NORM", "ZERO"], deg=50.0,
-               modelled=1.0, r=0.0062, h=0.010, mat=mats.hub, size=0.0040, radius=0.0170)
-    label("ZEROIZE", 0.322, -0.273, 0.0046, cd, mats)
+    # §2.3 the right forward panel on the right console's ramp (round 4, as the user's simulator photo: the group low,
+    # about level with the display's bottom edge; until then high on the cheek beside the display's top, a blank
+    # insert on the ramp): on two strips (build(), RFWD) the red switch in its striped surround (AUTO RECOVERY, the
+    # name's confidence low) inboard and the rotary (BYPASS / NORM / ZEROIZE) outboard, a little lower.
+    am = at(ramp_m(1, RFWD[0][0]), 0, RFWD[0][1], up)
+    placed(am, lambda: stripes("arec_plate", 0.030, mats))
+    put_toggle("AUTO_RECOVERY", at(am, 0, -0.002, 0.0015), mats, "f35i/fcs/auto-recovery", modelled=1.0,
+               bat=mats.red, length=0.014)
+    lab(am, "AUTO", 0, 0.033, mats, size=0.0062)
+    lab(am, "REC", 0, 0.024, mats, size=0.0062)
+    zm = at(ramp_m(1, RFWD[1][0]), 0, RFWD[1][1], up)
+    put_rotary("ZEROIZE", zm, mats, "f35i/zeroize", ["BYP", "NORM", "ZERO"], deg=50.0, modelled=1.0, r=0.0068,
+               h=0.011, mat=mats.hub, size=0.0052, label_at=[(-0.0175, 0.0100), (0, 0.0190), (0.0175, 0.0100)])
+    lab(zm, "ZEROIZE", 0, 0.032, mats, size=0.0060)
 
     # §2.5 the left console: the trim plate ahead of the throttle (L1 rudder trim: geometry only, trim is the keys';
     # L2 FCS/ENG RESET), the ENGINE panel and the friction and THROTTLE ACTIVE aft of the throttle, the start panel aft;
@@ -760,28 +873,32 @@ def controls(mats):
                modelled=1.0, rest=1.0, spring=[2.0], r=0.0075, h=0.012, mat=mats.hub, size=0.0040, radius=0.0185)
     plate("aft", -0.392, -0.315, 0.150, 0.090)
 
+    # RUDDER aft of its switch and L / R beside it (round 4: ahead of it, its 16 mm wire loops hid it from the seat).
     for i, (t, x, y, sz) in enumerate((("IPP", -0.448, -0.095, 0.0046), ("ICC1", -0.448, -0.147, 0.0046),
                                        ("ICC2", -0.448, -0.199, 0.0046), ("CABIN PRESS", -0.385, -0.097, 0.0042),
                                        ("BATT", -0.390, -0.196, 0.0046), ("LOW", -0.390, -0.1865, 0.0036),
                                        ("IPP EMER OFF", -0.343, -0.119, 0.0038), ("IPP", -0.343, -0.192, 0.0046),
-                                       ("RUDDER", -0.385, TRIM_Y + 0.0225, 0.0046),
-                                       ("L   R", -0.385, TRIM_Y - 0.0175, 0.0040),
+                                       ("RUDDER", -0.385, TRIM_Y - 0.0185, 0.0046),
+                                       ("L", -0.405, TRIM_Y, 0.0050), ("R", -0.365, TRIM_Y, 0.0050),
                                        ("FCS/ENG", -0.340, TRIM_Y + 0.0225, 0.0040),
                                        ("RESET", -0.340, TRIM_Y - 0.0175, 0.0040),
                                        ("FRICTION", -0.355, THROTTLE_XY[1] - THROTTLE_AFT - 0.091, 0.0036),
                                        ("THR ACT", -0.324, THROTTLE_XY[1] - THROTTLE_AFT - 0.091, 0.0036))):
         top_label(f"lbl_c{i}", t, x, y, mats, size=sz)
 
-    # §2.6 the right console: the side-stick (hotas()), STICK ACTIVE aft of its base outboard (in its lee the stick's
-    # housing hid it from the seat), the arm rest behind it,
-    # blanking inserts aft of the arm rest (the one ahead of the stick on its ramp, build()).
-    plate("stick_act", 0.4475, STICK[1] - 0.085, 0.044, 0.056)
-    put_toggle("STICK_ACTIVE", top_m(0.4475, STICK[1] - 0.076), mats, "f35i/stick/active", bat=mats.red)
-    top_label("lbl_stick_active", "STICK ACTIVE", 0.4475, STICK[1] - 0.102, mats, size=0.0040)  # after its plate
-    plate("r_aft1", 0.39, -0.160, 0.150, 0.120)
-    plate("r_aft2", 0.39, -0.300, 0.150, 0.120)
-    kit.box("armrest_base", (0.39, 0.10, CZ + 0.012), (0.075, 0.30, 0.024), mats.housing, bevel=0.006)
-    kit.box("armrest", (0.39, 0.10, CZ + 0.040), (0.095, 0.36, 0.034), mats.grip, bevel=0.014)
+    # §2.6 the right console: the side-stick (hotas()) inboard by the seat, STICK ACTIVE beside its base outboard
+    # (round 4; until then aft of it, where the stick's housing hid it), the arm rest behind the stick and in line with
+    # it (round 4: 0.26 m, its front at the housing; until then 0.36 m, outboard, reaching 0.16 m ahead of the seat
+    # beside a stick far forward), blanking inserts aft of it.
+    sx, sy = STICK
+    plate("stick_act", 0.443, sy + 0.004, 0.050, 0.060)
+    put_toggle("STICK_ACTIVE", top_m(0.443, sy + 0.012), mats, "f35i/stick/active", bat=mats.red)
+    top_label("lbl_stick_active", "STICK", 0.443, sy - 0.010, mats, size=0.0046)
+    top_label("lbl_stick_active2", "ACTIVE", 0.443, sy - 0.018, mats, size=0.0046)
+    plate("r_aft1", 0.39, -0.205, 0.150, 0.100)
+    plate("r_aft2", 0.39, -0.315, 0.150, 0.100)
+    kit.box("armrest_base", (sx, sy - 0.20, CZ + 0.012), (0.070, 0.22, 0.024), mats.housing, bevel=0.006)
+    kit.box("armrest", (sx, sy - 0.20, CZ + 0.040), (0.085, 0.26, 0.034), mats.grip, bevel=0.014)
 
     # The side walls: DEFOG (L8) between the ENGINE panel and the throttle, the canopy's MDC handle (S4) on the right.
     wm = wall_m(-0.456, 0.15, CZ + 0.075, -1)
@@ -833,9 +950,11 @@ def canopy_lever(mats):
                         kit.box("canopy_slot", (0, 0.004, 0.0042), (0.055, 0.006, 0.0006), mats.seal, bevel=0)))
     for i, (du, dv) in enumerate(((-1, -1), (1, -1), (-1, 1), (1, 1))):
         pscrew(wm, f"canopy_quadrant_scr{i}", du * 0.036, dv * 0.024, 0.004, mats)
-    lab(wm, "CANOPY", 0, -0.016, mats, size=0.0060)
-    lab(wm, "CLOSE", 0.026, 0.020, mats, size=0.0044)
-    lab(wm, "OPEN", -0.028, 0.020, mats, size=0.0044)
+    # Round 4: CANOPY aft of the lever's arm, CLOSE and OPEN low either side of its boss (until then the lever hid CLOSE
+    # and the boss CANOPY from the seat).
+    lab(wm, "CANOPY", -0.022, 0.022, mats, size=0.0052)
+    lab(wm, "CLOSE", 0.022, -0.024, mats, size=0.0046)
+    lab(wm, "OPEN", -0.022, -0.024, mats, size=0.0046)
     kit.cyl("canopy_lever_boss", (x, y, z), 0.011, 0.018, mats.knob, rot=(0, 90, 0), verts=20)
     t = math.radians(20)
     arm = 0.070
@@ -854,7 +973,8 @@ def canopy_lever(mats):
 
 def top_label(name, text, x, y, mats, size=0.0088, z=CZ):
     """A label printed on the console under (x, y), reading from the seat (its top forward)."""
-    return kit.text_decal(name, text, mats.label, (x, y, z + 0.05), (0, 0, -1), size, (1, 0, 0), off=0.0008)
+    return kit.text_decal(name, text, mats.label, (x, y, z + 0.05), (0, 0, -1), max(size, LABEL_MIN), (1, 0, 0),
+                          off=0.0008)
 
 
 # The side-stick's grip after the mock-up's (docs/f35i.md §4.2): about three times as tall as wide, a slim stem with a
@@ -1192,7 +1312,7 @@ PRESENT_SCALE = 2.0  # as tools/f35i/bc.py: the game draws the cockpit-view mode
 # converging to the canopy's front 2 m ahead. The canopy's bow stands on it ARCH_Y ahead of the eye.
 RAIL = ((0.42, -1.1, -0.32), (0.46, -0.6, -0.35), (0.47, -0.05, -0.36), (0.47, 0.3, -0.37), (0.465, 0.6, -0.40),
            (0.45, 0.9, -0.45), (0.42, 1.2, -0.51), (0.36, 1.5, -0.56), (0.26, 1.8, -0.60), (0.12, 2.0, -0.62))
-# The canopy's bow: a dark band (ARCH_BAND: 3.5 cm deep, 7 cm wide fore and aft as on the photos, matte as the
+# The canopy's bow: a dark band (ARCH_BAND, matte as the
 # glareshield) standing on the rails ARCH_Y ahead of the eye and leaning forward ARCH_LEAN to its top ARCH_TOP over the
 # eye: on the seam of f35i.gltf's canopy (its two transparencies meet there, 0.57 m ahead of the eye at the sills,
 # 0.73 m at the top), where the photos show the bow ahead of the pilot's face, its top further forward (docs/f35i.md
@@ -1200,9 +1320,10 @@ RAIL = ((0.42, -1.1, -0.32), (0.46, -0.6, -0.35), (0.47, -0.05, -0.36), (0.47, 0
 # position"). Until 2026-11-13 it stood 0.42 m behind the eye, leaning forward over the head (until 2026-11-09 a light
 # grey 7 x 5 cm pipe upright 0.75 m behind it). bc.py's is the same.
 ARCH_Y, ARCH_TOP, ARCH_LEAN = 0.57, 0.325, 0.16
-# 3 cm deep and 4.5 cm fore and aft (until 2026-11-16 3.5 x 7 cm, until 2026-11-13 4.5 x 9 cm): from the seat the
-# real bow is a slim black arch over the display (the mock-ups' and the simulator's photos, docs/f35i.md §4.1).
-ARCH_BAND = kit.rounded_rect(0.030, 0.045, 0.010)
+# 4.5 cm deep and 6 cm fore and aft (round 4, 2026-11-17: the user's simulator photo shows a heavy black arch over the
+# glareshield; inferred from a simulator photo. Until then 3 x 4.5 cm, until 2026-11-16 3.5 x 7 cm, until 2026-11-13
+# 4.5 x 9 cm), docs/f35i.md §4.1.
+ARCH_BAND = kit.rounded_rect(0.045, 0.060, 0.012)
 # The canopy rails' section: 6 cm wide, 4.5 cm tall, in the canopy frame's near-black (until 2026-11-16 8.5 x 6 cm in
 # a lighter grey, which read from the seat as wide grey walls along the sills).
 RAIL_PROFILE = kit.rounded_rect(0.060, 0.045, 0.016)
@@ -1495,7 +1616,7 @@ def export_glb(out, eye_g, hinge_g):
     for o in objs:
         o.matrix_world = k @ o.matrix_world
     kit.bake_transforms(objs)
-    baked = [mats.panel, mats.housing, mats.rubber, mats.bezel, mats.frame, mats.grip, mats.seal, mats.floor]
+    baked = [mats.panel, mats.housing, mats.rubber, mats.hood, mats.bezel, mats.frame, mats.grip, mats.seal, mats.floor]
     if not os.environ.get("NO_BAKE"):  # NO_BAKE=1: plain colours only, a quick look (about a minute)
         bake_atlas([o for o in objs if o.data.materials and o.data.materials[0] in baked], baked)
     swap = {getattr(mats, a): getattr(flat, a) for a in vars(mats) if a != "lens"}

@@ -120,16 +120,16 @@ the field; docs/cockpit.md "The HUD on its glass": the Sufa's plate reaches +2.6
 draws its own layout (`real_hud/f35.rs`); its field bounds only the ILS and steerpoint cues.
 
 `[MFD]`: the F-16s' `LeftActive` / `RightActive` 1, `MiddleActive` 0, the offsets 0 (the screens are the model's,
-each its 512 px SubViewport). The F-35I's `Portals`: four, `[x, y, scale, page]`, x every 142 px, y 26 (under the
-display's strip, `pcd.gd` `FAB_H`), scale 142 / 132 (an MFD page across its portal), pages TSD, radar, stores, RWR.
+each its 512 px SubViewport). The F-35I's `Portals`: four, `[x, y, scale, page]`, x every 142 px, y under the
+display's strip, scale 142 / 132 (an MFD page across its portal), pages TSD, radar, stores, RWR.
 
-`[PCD]` (the F-35I, `pcd.gd`, `cockpit3d.gd`), in the display's px, 28.4 per inch of its glass (the strip's 26 px are
-0.9 in, `FAB_H`):
+`[PCD]` (the F-35I, `pcd.gd`, `cockpit3d.gd`), in the display's px, 28.4 per inch of its glass (the strip's 15 px are
+0.53 in, `FAB_H`; 26 px until 2026-11-17):
 
 | key | value | what it is |
 |---|---|---|
 | `Rect` | 0, 0, 568, 227 | the glass, 20 × 8 in (`tools/f35i/cockpit3d.py` `PCD`): a 1,704 × 681 px SubViewport at `PCD_PX` 3, the glass's own shape |
-| `Esis` | 321, 250, 94, 74 | the standby display, 84 × 66 mm, its centre 75 mm right of the glass's and 257 mm under its top (`cockpit3d.py` `ESIS`): a 282 × 222 px SubViewport |
+| `Esis` | written by `cockpit3d.py` | the standby display, 62 × 49 mm (84 × 66 mm until 2026-11-17), its centre 44 mm right of the glass's (`cockpit3d.py` `ESIS`): a SubViewport of its size × `PCD_PX` |
 
 `[PANELRWR]` `Active` 1 (the F-16s): the jet has an RWR scope (the 3D model's), so the right MFD starts on the TSD
 (`cockpit.gd` `_create_mfds`).

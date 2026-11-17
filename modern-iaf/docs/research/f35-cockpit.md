@@ -73,7 +73,9 @@ counter is not on the photos (open whether the real jet has one).
 ### 2.2 Centre pedestal (under the PCD, between the knees)
 
 A narrow stack under the PCD's centre: a strip of six controls across its top, then three radio knobs and a toggle on
-the left half and the SFD on the right half; a handle at its foot.
+the left half and the SFD on the right half; a handle at its foot. About 0.19 m wide (measured on a simulator photo
+with its camera solved, round 6, 2026-11-17; inferred from a simulator photo[^usersim]); ours 0.20 m (0.27 m until
+then), its standby display 62 × 49 mm (84 × 66 mm until then).
 
 | ID | Label as printed | Kind | Positions | Latch | What it does | Place | Conf. | Sources |
 |---|---|---|---|---|---|---|---|---|
@@ -97,13 +99,50 @@ the left half and the SFD on the right half; a handle at its foot.
 
 | ID | Label as printed | Kind | Positions | Latch | What it does | Place | Conf. | Sources |
 |---|---|---|---|---|---|---|---|---|
-| R1 | one word, unreadable; the simulator: AUTO RECOVERY | red lever-lock switch in a yellow-black striped U surround | 2 (open) | latched | the simulator: arms the automatic recovery (Auto-GCAS) function | top of the right panel, beside the PCD's right edge | high (switch, colours, place); low (name) | [^bsda][^cf1][^futenma][^ife] |
-| R2 | two lines, unreadable; the simulator: BYPASS / NORM / ZEROIZE | white or grey rotary | 3 | latched | the simulator: zeroizes the jet's classified data | a strip just outboard of R1 | medium (kind); low (labels) | [^bsda][^futenma][^ife] |
+| R1 | one word, unreadable; the simulator: AUTO RECOVERY | red lever-lock switch in a yellow-black striped U surround | 2 (open) | latched | the simulator: arms the automatic recovery (Auto-GCAS) function | the right column's inboard strip, about level with the PCD's bottom edge (inferred from a simulator photo[^usersim]) | high (switch, colours); medium (place); low (name) | [^bsda][^cf1][^futenma][^ife][^usersim] |
+| R2 | two lines, unreadable; the simulator: BYPASS / NORM / ZEROIZE | white or grey rotary | 3 | latched | the simulator: zeroizes the jet's classified data | a strip just outboard of R1, a little lower | medium (kind, place); low (labels) | [^bsda][^futenma][^ife][^usersim] |
+
+The right forward panel is the right console's column rising beside the PCD's right edge: two black strips
+from about the PCD's bottom edge down to the console, R1 near the top of the inboard one, R2 near the top of the
+outboard one (inferred from a simulator photo[^usersim]). Until round 4 (2026-11-17) ours had them high on the cheek
+beside the PCD's top and a blank insert on the column.
 
 ### 2.4 Glareshield
 
 A plain hood over the PCD with one small dome on top near its centre: no up-front controls, no HUD, no warning
-lamps[^cf1]. Cautions and warnings show on the PCD (ICAWS) and the helmet, with spoken cues[^lmpcd][^usmc]. No
+lamps[^cf1]. A simulator cab shows it as a deep dark box over the PCD, with two groups of vent slots on its top either
+side of the centre (inferred from a simulator photo[^usersim]). Measured on that photo with its camera solved
+(round 6, 2026-11-17; docs/f35i.md §4.1 "Display and hood"): a thin lip on the glass's top edge, flush with the
+display's face; a chamfer rising 2.3 cm over 7 cm, then a level deck to 0.18 m back; 0.60 m wide at the lip, 0.36 m at
+its far edge; light flanks falling from its sides to the columns. Ours since round 6 as measured, six slots each side,
+a dark matte blue-grey as the in-flight frames show it (docs/f35i.md §4.1); the view over it 13.3° under the eye. Rounds
+4–5: a 0.74 m box with a 3 cm rear face standing proud of the display, its top falling 1 in 4 (16–17°). Past the PCD's
+ends its sides fall outboard to the side panels' columns (the simulator photo and the real jet's photo from behind
+the seat[^cf1]); nothing stands beside the PCD (ours had grey cheeks there until round 5, 2026-11-17, removed after
+the user's "they don't exist").
+
+### 2.4a The PCD unit's shape
+
+What the references agree on (round 5, 2026-11-17): one wide display unit standing proud of the panel like a slab, in
+a thin dark bezel, its top tucked under the glareshield box's brow; it is wider than the knee panel under it, and the
+side panels' columns rise beside its lower half[^usersim][^cf1]. The simulator photo also shows its lower outer
+corners cut off at an angle, the unit leaning back toward the eye, and the pedestal's switch row (P1–P6) right under
+its bottom edge[^usersim]; the real jet's photo shows the slab and the brow but not the corners clearly, so the cut
+corners and the lean are inferred for the jet. Proportions from the simulator photo (inferred, the camera's angle
+foreshortens the height): the unit about 1.1 times the gap between the side panels' inner edges. Measured in round 6
+(2026-11-17) with the photo's camera solved from the glass's corners (docs/f35i.md §4.1 "Display and hood"; inferred
+from a simulator photo): the dark frame about 4.5 cm beside the glass (3.2 cm left, 5.9 cm right), its top outer
+corners rounded, its sides tapering in over the lower part, 1.3 cm under the glass, the hood's lip on the glass's top
+edge; past the frame no panel, only the hood's flanks and the columns. The lean cannot be read off the photo (every
+lean from 10° to 26° fits with the camera moved). Ours since round 6: the frame 4.5 cm beside the glass with 1.2 cm
+rounded top corners, tapering in 1.6 cm over its lower 9.5 cm, 1.3 cm under the glass, 3.8 cm proud of a face that
+reaches 1 cm past it, leaning with the panel at 18°. Round 5: a 14 mm bezel, the corners cut 3.4 × 1.8 cm, the face
+0.40 m out.
+
+The split of its glass in the simulator photo: a narrow bar along the top; the left half one large portal (the round
+tactical picture, its tabs along its foot); the right half two portals side by side over four small windows[^usersim].
+This matches LM's layouts of 4 portals over 8 secondary windows, a portal widened over its half and enlarged over its
+windows (docs/real-mfd.md "Layout"). Ours draws this split by default (since 2026-11-17). Cautions and warnings show on the PCD (ICAWS) and the helmet, with spoken cues[^lmpcd][^usmc]. No
 master caution or fire lamp was found on any photo (open whether one exists).
 
 ### 2.5 Left console and wall
@@ -137,9 +176,12 @@ The real right console carries only the side-stick, an arm rest and little else[
 
 | ID | Label as printed | Kind | Positions | Latch | What it does | Place | Conf. | Sources |
 |---|---|---|---|---|---|---|---|---|
-| C1 | — | side-stick (active), adjustable palm rest | — | — | pitch and roll | console front | high | [^c1][^bae][^essexs][^bsda] |
+| C1 | — | side-stick (active), adjustable palm rest | — | — | pitch and roll | the console's inboard part, by the seat cushion's front corner: its base 0.36 m right of and 0.19 m ahead of the eye, measured on a simulator photo with its camera solved (round 6; inferred from a simulator photo[^usersim]) | high (exists); medium (place) | [^c1][^bae][^essexs][^bsda][^usersim] |
 | C2 | (Stick Active) | red switch | 2 | latched | engages the stick's active feel | beside the stick's base, outboard | low | [^ife] |
 | C3 | — | arm rest | — | — | supports the forearm | behind the stick | low | [^ife] |
+
+Until round 4 (2026-11-17) ours stood the stick 0.18 m further forward and 8 cm further outboard (0.74 m from the
+throttle), near the PCD, with a 0.36 m arm rest behind it.
 
 ### 2.7 Seat and canopy
 

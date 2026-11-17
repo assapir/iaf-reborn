@@ -123,7 +123,7 @@ func _gpu_cost(node: Node3D, tag: String) -> void:
 
 ## C3D_JET=f35i C3D_ONLY=consoles: the consoles whole from the seat (ahead, the seat's look down, down left and right
 ## along each console), from above and behind the seat (the eye moved 0.32 m up and 0.30 m aft, the rig's frame) and
-## from over the headrest (0.22 m up, 0.40 m aft: the user's simulator photo's viewpoint).
+## from over the headrest (0.22 m up, 0.40 m aft: the user's simulator photo's viewpoint), and the display close up.
 func _f35i_consoles(c: Control, tag: String) -> void:
 	var src := GDScript.new()
 	src.source_code = (
@@ -144,7 +144,8 @@ func _f35i_consoles(c: Control, tag: String) -> void:
 		["down_left", -32.0, -38.0, 0.6, Vector3.ZERO],
 		["down_right", 32.0, -38.0, 0.6, Vector3.ZERO],
 		["above", 0.0, -52.0, 0.6, Vector3(0.0, 0.32, 0.30)],
-		["headrest", 0.0, -30.0, 0.6, Vector3(0.0, 0.22, 0.40)]
+		["headrest", 0.0, -30.0, 0.6, Vector3(0.0, 0.22, 0.40)],
+		["display", 0.0, -14.0, 0.72, Vector3.ZERO]
 	]:
 		c.zoom = v[3]
 		lift.by = v[4]
@@ -155,6 +156,63 @@ func _f35i_consoles(c: Control, tag: String) -> void:
 	tv.views.snap = null
 	settings().f35i_slot = -1
 	settings().jet_id = -1
+
+
+## C3D_JET=f35i C3D_ONLY=match: the 3D cockpit through a camera fitted to a photo (C1b round 6, the user's simulator
+## photo; the fit: docs/f35i.md §4.1 "Display and hood"). C3D_MATCH = "x y z pitch yaw roll vfov": the camera's place
+## from the eye in the model's metres (x right, y ahead, z up), its aim (deg; pitch + up, yaw + right, roll + right
+## wing down) and its vertical field of view (deg), the photo's frame upright. The camera turns 90° so the portrait
+## frame fills a landscape window (--resolution 1920x1067 for a 1104 x 1986 photo frame): turn the picture 90° back
+## (magick -rotate -90).
+func _f35i_match() -> void:
+	var m := MatchCam.new()
+	m.cam = tv.camera
+	m.rig = tv.cockpit_origin.rig if tv.cockpit_origin != null else tv.rig
+	m.root = tv.cockpit_3d.get_child(0)
+	var eye: Array = tv.cockpit_3d.meta.eye
+	m.eye = Vector3(eye[0], eye[1], eye[2])
+	m.spec = OS.get_environment("C3D_MATCH").split_floats(" ", false)
+	m.process_priority = 2  # after the flight scene placed the camera, before cockpit_origin.gd (5) copies it
+	tv.add_child(m)
+	tv.cockpit.hud.visible = false
+	await _settle()
+	await _shot("f35i_match", 0.0)
+	m.queue_free()
+	settings().f35i_slot = -1
+	settings().jet_id = -1
+
+
+## The fitted camera, set each frame (C3D_ONLY=match).
+class MatchCam:
+	extends Node
+	var cam: Camera3D
+	var rig: Node3D  ## the rig the cockpit model hangs in (the main world's or cockpit_origin.gd's)
+	var root: Node3D  ## the model's glb root
+	var eye: Vector3
+	var spec: PackedFloat64Array
+
+	## A model point (metres about the eye, x right, y ahead, z up), or a direction, in the rig's frame: the glb
+	## holds the model at half size about its eye, in glTF's axes.
+	func _rig(p: Vector3, point := true) -> Vector3:
+		var t := rig.global_transform.affine_inverse() * root.global_transform
+		var g := Vector3(p.x, p.z, -p.y)
+		return t * (eye + g / 2.0) if point else (t.basis * g).normalized()
+
+	func _process(_d: float) -> void:
+		var p := deg_to_rad(spec[3])
+		var yaw := deg_to_rad(spec[4])
+		var roll := deg_to_rad(spec[5])
+		var d := Vector3(sin(yaw) * cos(p), cos(yaw) * cos(p), sin(p))
+		var r0 := Vector3(cos(yaw), -sin(yaw), 0.0)
+		var u0 := r0.cross(d)
+		var r := r0 * cos(roll) + u0 * sin(roll)
+		var u := r.cross(d)
+		# Turned 90°: the picture's right is the photo's up.
+		cam.transform = Transform3D(
+			Basis(_rig(u, false), -_rig(r, false), -_rig(d, false)), _rig(Vector3(spec[0], spec[1], spec[2]))
+		)
+		cam.keep_aspect = Camera3D.KEEP_WIDTH
+		cam.set_perspective(spec[6], 0.02, cam.far)
 
 
 ## C3D_SIM=1: a free flight (the sim has none of the original's missions) over its own theatre, in UTM metres:
@@ -304,6 +362,9 @@ func _f35i(hour: float) -> void:
 	if OS.get_environment("C3D_ONLY") == "consoles":  # the consoles whole (C1b round 3)
 		await _f35i_consoles(c, "night" if hour >= 20.0 else "day")
 		return
+	if OS.get_environment("C3D_ONLY") == "match":  # the user's simulator photo's camera (C1b round 6)
+		await _f35i_match()
+		return
 	if OS.get_environment("C3D_ONLY") == "controls":  # the seat's view and each panel close up (C1b), [yaw, pitch, zoom]
 		var tag := "night" if hour >= 20.0 else "day"
 		# [name, the node aimed at (none: the head's yaw and pitch as given), yaw, pitch (deg, added), zoom]
@@ -313,7 +374,7 @@ func _f35i(hour: float) -> void:
 			["pedestal", "MASTER_ARM", 4.0, 0.0, 2.2],
 			["left_fwd", "PARK_BRAKE", 2.0, 2.5, 2.4],
 			["cheek_l", "HOOK", 0.0, 0.0, 3.0],
-			["cheek_r", "ZEROIZE", 0.0, 2.0, 3.0],
+			["right_fwd", "ZEROIZE", -3.0, 0.0, 2.4],
 			["console_l_fwd", "FCS_RESET", -2.0, 0.0, 2.0],
 			["console_l_eng", "VS_BIT", 0.0, 0.0, 2.2],
 			["console_l_start", "CABIN_PRESS", 0.0, -2.0, 2.2],

@@ -101,6 +101,8 @@ func jet(mission: String, unit: String, station: int, bomb: String, count: int) 
 		t in [500, 650] and w.hud_mode in [5, 6] and String(wp.name) == w.stores.current_name(),
 		"%s: '[' selects %s, CCIP (HUD mode %d), the same weapon on the SMS" % [unit, wp.name, w.hud_mode]
 	)
+	if tv.cockpit.pcd != null:  # the F-35I's default layout holds SMS on the large portal's tabs: the pilot's tap
+		tv.cockpit.pcd._show(0, "SMS")
 	check(_sms_shown(tv), "%s: the stores page is up" % unit)
 	check(_status(tv) == "", "%s: safe: the SMS shows no RDY (%s)" % [unit, _status(tv)])
 	_press(tv, KEY_A, true, true)
@@ -188,7 +190,7 @@ func _on(wp: Dictionary, i: int) -> Array:
 func _sms_shown(tv: Node) -> bool:
 	var c: Node = tv.cockpit
 	if c.pcd != null:
-		return "SMS" in c.pcd.main
+		return range(4).any(func(i): return c.pcd.shown(i) and c.pcd.main[i] == "SMS")  # a full half hides its second
 	return c.mfds.any(func(m): return m.real != null and String(m.real.state().shown) == "SMS")
 
 

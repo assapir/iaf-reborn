@@ -160,10 +160,10 @@
   "Bar": 14.2,
   "WindowTop": 181.2,
   "Esis": [
-   980.6,
-   365.6,
-   99.0,
-   91.8
+   974.9,
+   377.1,
+   72.7,
+   68.1
   ]
  },
  "LIGHTSON": {
@@ -217,10 +217,10 @@
   "Active": 1.0,
   "Left": 140.0,
   "Top": 0.0,
-  "Right": 223.0,
-  "Bottom": 52.0,
-  "OffsetX": 714.0,
-  "OffsetY": 348.0,
+  "Right": 263.0,
+  "Bottom": 112.0,
+  "OffsetX": 522.0,
+  "OffsetY": 220.0,
   "AnimFrames": 3.0,
   "AnimTime": 600.0
  },

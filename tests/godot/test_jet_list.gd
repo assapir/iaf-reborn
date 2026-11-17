@@ -84,42 +84,46 @@ func run() -> void:
 					% name
 				)
 			)
-			# The panoramic display (pcd.gd): the 4 portals in its glass under the strip, the MFD nodes hidden (they keep
-			# the pages); a tab swaps a format in and sets its node's page; a page set elsewhere picks the format; the
-			# night art and the cockpit-view model load.
+			# The panoramic display (pcd.gd): the portals in its glass under the strip (the left half one large portal,
+			# the right two over four windows), the MFD nodes hidden (they keep the pages); a window swaps a format in
+			# and sets its node's page; a page set elsewhere picks the format; the night art and the cockpit-view model
+			# load.
 			await process_frame
 			var pcd = tv.cockpit.pcd
 			var g: Rect2 = pcd.glass() if pcd != null else Rect2()
 			var ps: Array = pcd.portals() if pcd != null else []
-			var inside: bool = pcd != null and ps.size() == 4
+			var inside: bool = pcd != null and ps.size() == 4 and ps[1].size == Vector2.ZERO
 			for r in ps:
-				inside = inside and g.grow(1.0).encloses(r)
+				inside = inside and (r.size == Vector2.ZERO or g.grow(1.0).encloses(r))
+			for w in pcd.windows() if pcd != null else []:
+				inside = inside and g.grow(1.0).encloses(w[0])
+			inside = inside and pcd != null and pcd.windows().size() == 4
 			for m in tv.cockpit.mfds:
 				inside = inside and not m.visible
 			check(
 				(
 					inside
 					and pcd.visible
-					and pcd.main == ["TSD-1", "SRCH", "SMS", "TWD"]
+					and pcd.main == ["TSD-1", "SMS", "SRCH", "TFLIR"]
 					and tv.cockpit.tex.has("PANEL_NIGHT")
 					and tv.cockpit.tex.has("LIGHTS_NIGHT")
 					and tv.own_bc != null
 				),
 				(
 					(
-						"%s: the PCD's glass holds 4 portals (TSD, SRCH, SMS, TWD), the MFD nodes hidden; night art and "
-						+ "cockpit-view model (%s)"
+						"%s: the PCD's glass holds a large TSD portal left, SRCH and TFLIR over 4 windows right, the MFD "
+						+ "nodes hidden; night art and cockpit-view model (%s)"
 					)
 					% [name, g]
 				)
 			)
-			pcd._show(1, "TFLIR")
-			var swapped: bool = pcd.main[1] == "TFLIR" and pcd.tabs[1][0] == "SRCH" and tv.cockpit.mfds[1].page == 6
+			pcd._show(2, "TWD")
+			var swapped: bool = pcd.main[2] == "TWD" and pcd.tabs[2][0] == "SRCH" and tv.cockpit.mfds[2].page == 7
 			tv.cockpit.mfds[0].page = 4
 			await process_frame
 			check(
 				swapped and pcd.main[0] == "ICAWS",
-				"%s: a tab swaps TFLIR in (page 6); the damage page set elsewhere shows ICAWS" % name
+				"%s: a window swaps TWD in (page 7); the damage page set elsewhere shows ICAWS" % name
 			)
 			# The ESIS horizon grazing a corner (pitch 33°, roll −5° in a 141 × 118 box) leaves an untriangulable sliver
 			# ("Invalid polygon data"): ground_polys leaves it out, and a level horizon keeps the box's lower half.

@@ -242,7 +242,7 @@ func track_kind(c: Dictionary) -> String:
 ## sites with their threat rings (red, dashed). `range_nm` = the rose's radius.
 func tsd(r: Rect2, range_nm: float, show_map := true) -> void:
 	var c := Vector2(r.get_center().x, r.position.y + r.size.y * 0.54)
-	var rad := minf(r.size.x * 0.46, (c.y - r.position.y) * 0.95)
+	var rad := minf(r.size.x * 0.46, minf(c.y - r.position.y, r.end.y - c.y) * 0.95)  # inside a wide portal too
 	var mpp := range_nm * 1852.0 / rad
 	var clip := PackedVector2Array([r.position, Vector2(r.end.x, r.position.y), r.end, Vector2(r.position.x, r.end.y)])
 	if show_map:
@@ -437,7 +437,7 @@ const PLANFORM := [
 ## selected station boxed white), the selected weapon, the bays' doors, the gun, chaff and flares.
 func sms(r: Rect2) -> void:
 	var wp: Dictionary = cockpit.weapons
-	var k := minf(r.size.x / 104.0, r.size.y * 0.62 / 100.0)
+	var k := minf(r.size.x / 104.0, minf(r.size.y * 0.62, r.size.y - 47.0) / 100.0)  # the GUN line inside a short portal
 	var o := Vector2(r.get_center().x, r.position.y + 14.0)
 	var pts := PackedVector2Array()
 	for p in PLANFORM:
