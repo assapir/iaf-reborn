@@ -714,6 +714,38 @@ Iris Xe. Of the cockpit's, MSAA 4× (as the flight's) is about 3.2 ms, its shado
   pixels by more than one, 12 % by more than eight), the gauges by 3.1 levels (29 %, 7 %); the HUD glass 0.8 levels
   (4 %). Zoomed, FXAA leaves the keys' outlines stair-stepped and blurs their small labels.
 
+### 6.3 The cockpit sharp with Upscaling (2026-11-17, the Mac play test of 15 Nov)
+
+With Upscaling Quality or Balanced the flight's 3D view renders at 0.77 / 0.67 of the window and is scaled up; the
+composite (§6.2) lays the cockpit inside that view, so its labels, displays and lamps came out as soft as the world.
+While the view is upscaled, `cockpit_origin.gd` lays the cockpit's picture a second time, at the window's
+resolution, on a canvas layer under every other one (`cockpit_sharp.gdshader`, layer −2: the rain on the canopy, the
+cloud whiteout and the goggles at −1 stay over it):
+- the composite stays as it is: the flight's auto exposure still counts the cockpit, and at the cockpit's outline
+  the layer blends by the picture's alpha over the upscaled view, so the world seen past the canopy frame, the HUD
+  glass and the seat is the view's own;
+- the layer tone maps the picture itself: a minimal AgX taken as gamma 2.2 and encoded as sRGB, with the flight's
+  adjustments (brightness, contrast, saturation), fitted to 400 cockpit pixels of a day render at 0.015 rms;
+- the flight's exposure of each frame is measured: the composite draws a grey of known light (0.18) in the view's
+  top left 4 × 4 pixels, and the layer reads it back and looks its exposure up in a table (`exposure_lut`, the tone
+  map inverted for that grey); the layer fills that corner with the view's colour next to it;
+- Upscaling off draws neither the layer nor the grey: the view is as before. The original game's 3D cockpit (Extras
+  "Cockpit": 3D) is drawn in its own world too while Upscaling is on (`terrain_view.gd` `_spawn_cockpit`), so it gets
+  the same layer.
+
+The backlit labels' pass (`cockpit3d_backlight.gdshader`) lowered the picture's alpha (`blend_add`), so at night the
+ground showed through every backlit panel in the composite (the ICP and the gauges dark). It now adds its light as a
+premultiplied colour of no cover (alpha 0): the panels at night are whole with Upscaling off too.
+
+Measured with `modern-iaf/tests/_cockpit_sharp_shot.gd` (the Sufa on Ramon's final, 1920 × 994, Upscaling Quality,
+Iris Xe, 20 s each, two interleaved rounds): the flight's viewport 19.37 / 19.09 ms GPU without the layer and
+19.59 / 19.29 ms with it (+0.2 ms), the frame 27.72 / 27.35 ms and 27.95 / 27.52 ms.
+
+- Tried and dropped (2026-11-17): the picture's detail carried onto the upscaled view by the ratio of the two over a
+  small box (no exposure needed). By day it matched; at night the box's mix of bright labels and black panel gave the
+  labels a halo and a washed panel, and its 9 + 9 taps cost +3 ms. A bisection for the exposure in every pixel cost
+  +4.7 ms; the table does it once.
+
 ## 7. Open
 - The F-16s' HUD field (§4) is sized to fit the 3D combiners, smaller than the real HUDs' 20° × 13.5°.
 - The gun cross's place under the boresight (inferred).

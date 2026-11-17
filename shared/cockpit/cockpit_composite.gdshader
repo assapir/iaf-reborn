@@ -7,6 +7,11 @@ shader_type spatial;
 render_mode unshaded, fog_disabled, depth_test_disabled, depth_draw_never, blend_premul_alpha, cull_disabled, shadows_disabled;
 
 uniform sampler2D cockpit : filter_linear;
+// While the view is upscaled (cockpit_sharp.gdshader): a grey of known light in the view's top left corner, PROBE_PX
+// pixels of the 3D scene square, from which the sharp layer reads the flight's exposure.
+uniform bool probe = false;
+const float PROBE_L = 0.18;
+const float PROBE_PX = 4.0;
 
 void vertex() {
 	// A full-screen quad (QuadMesh 1 × 1), never culled (extra_cull_margin).
@@ -15,6 +20,9 @@ void vertex() {
 
 void fragment() {
 	vec4 c = textureLod(cockpit, SCREEN_UV, 0.0);
+	if (probe && FRAGCOORD.x < PROBE_PX && FRAGCOORD.y < PROBE_PX) {
+		c = vec4(vec3(PROBE_L), 1.0);
+	}
 	ALBEDO = c.rgb;
 	ALPHA = c.a;
 }

@@ -29,6 +29,12 @@ const ENV_OFF := {
 	"adjustment_enabled": false,
 }
 const ENV_SYNC_S := 1.0
+## The sharp layer's probe (cockpit_composite.gdshader PROBE_L), its exposure table's size and AgX's log range
+## (cockpit_sharp.gdshader).
+const PROBE_L := 0.18
+const LUT_N := 256
+const AGX_LO := -12.47393
+const AGX_HI := 4.026069
 
 var rig := Node3D.new()
 var camera := Camera3D.new()
@@ -43,6 +49,11 @@ var _sky := Sky.new()
 var _sync_t := INF
 var _quad := MeshInstance3D.new()
 var _shown: Node3D  # the node whose visibility switches the cockpit world on (own_bc)
+## While the 3D view is upscaled: the cockpit's picture again at the window's resolution (cockpit_sharp.gdshader), on a
+## canvas layer under all the others (the canopy's rain, the cloud whiteout and the goggles at -1 stay over it).
+var _sharp := CanvasLayer.new()
+var _sharp_mat := ShaderMaterial.new()
+var _bcs := Vector3.INF  # the adjustments the sharp layer's tone map was given
 
 
 ## Builds the cockpit world beside `world_camera` (a child of `world_rig`), lit by `sun` and `env`.
@@ -87,6 +98,46 @@ func setup(world_camera: Camera3D, world_rig: Node3D, sun: DirectionalLight3D, e
 	_quad.layers = preload("res://shared/terrain/volumetric_clouds.gd").LAYER
 	_quad.visible = false
 	world_camera.add_child(_quad)
+	_sharp_mat.shader = load("res://shared/cockpit/cockpit_sharp.gdshader")
+	_sharp_mat.set_shader_parameter("cockpit", viewport.get_texture())
+	var copy := BackBufferCopy.new()  # the probe's corner only (cockpit_sharp.gdshader FILL), not the whole screen
+	copy.copy_mode = BackBufferCopy.COPY_MODE_RECT
+	copy.rect = Rect2(0, 0, 32, 32)
+	var rect := ColorRect.new()
+	rect.material = _sharp_mat
+	rect.set_anchors_preset(Control.PRESET_FULL_RECT)
+	rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_sharp.layer = -2
+	_sharp.visible = false
+	_sharp.add_child(copy)
+	_sharp.add_child(rect)
+	add_child(_sharp)
+
+
+## The sharp layer's exposure by the probe's grey (cockpit_sharp.gdshader): texel i of LUT_N holds the exposure under
+## which its tone map (with the adjustments `bcs`) shows PROBE_L as i / (LUT_N - 1), found by bisection over 2^-4 … 2^4.
+static func exposure_lut(bcs: Vector3) -> ImageTexture:
+	var img := Image.create_empty(LUT_N, 1, false, Image.FORMAT_RF)
+	for i in LUT_N:
+		var a := -4.0
+		var b := 4.0
+		for _k in 20:
+			var m := 0.5 * (a + b)
+			if grey_tonemap(PROBE_L * pow(2.0, m), bcs) < float(i) / (LUT_N - 1):
+				a = m
+			else:
+				b = m
+		img.set_pixel(i, 0, Color(pow(2.0, 0.5 * (a + b)), 0.0, 0.0))
+	return ImageTexture.create_from_image(img)
+
+
+## cockpit_sharp.gdshader's tone map of a grey `v` (linear) -> display (the AgX matrices keep a grey grey).
+static func grey_tonemap(v: float, bcs: Vector3) -> float:
+	var x := clampf((log(maxf(v, 1e-10)) / log(2.0) - AGX_LO) / (AGX_HI - AGX_LO), 0.0, 1.0)
+	x = 15.5 * x ** 6 - 40.14 * x ** 5 + 31.96 * x ** 4 - 6.868 * x ** 3 + 0.4298 * x * x + 0.1191 * x - 0.00232
+	var l := clampf(x, 0.0, 1.0) ** 2.2
+	var s := 12.92 * l if l < 0.0031308 else 1.055 * l ** (1.0 / 2.4) - 0.055
+	return (s * bcs.x - 0.5) * bcs.y + 0.5
 
 
 ## The cockpit world is drawn while `node` (own_bc, a child of `rig`) is visible.
@@ -98,9 +149,23 @@ func _process(delta: float) -> void:
 	var on := is_instance_valid(_shown) and _shown.visible and _world_camera.current  # own_bc goes on a jet switch
 	_quad.visible = on
 	viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS if on else SubViewport.UPDATE_DISABLED
+	var main := get_viewport()
+	var sharp: bool = on and main.scaling_3d_scale < 1.0
+	if sharp != _sharp.visible:
+		_sharp.visible = sharp
+		_quad.material_override.set_shader_parameter("probe", sharp)
 	if not on:
 		return
-	var main := get_viewport()
+	if sharp:
+		_sharp_mat.set_shader_parameter("scale", main.scaling_3d_scale)
+		var env: Environment = _env.environment if _env != null else null
+		var bcs := Vector3.ONE
+		if env != null and env.adjustment_enabled:
+			bcs = Vector3(env.adjustment_brightness, env.adjustment_contrast, env.adjustment_saturation)
+		if bcs != _bcs:
+			_bcs = bcs
+			_sharp_mat.set_shader_parameter("bcs", bcs)
+			_sharp_mat.set_shader_parameter("exposure_lut", exposure_lut(bcs))
 	viewport.size = Vector2i(main.get_visible_rect().size)
 	# No upscaler and no TAA in the cockpit's picture: their output does not keep the picture's alpha, and an opaque
 	# cockpit picture lays black over the whole world (the Mac's MetalFX, 2026-11-11; on Linux / Vulkan TAA alone,

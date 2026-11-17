@@ -6,7 +6,7 @@
 // cut-outs; `blend` takes an alpha-blended part's glow × the texel's alpha (its clear texels dark); uv1_scale and
 // uv1_offset are the part's own (the AoA tape's scroll).
 shader_type spatial;
-render_mode blend_add, unshaded, fog_disabled, depth_draw_never, cull_back;
+render_mode blend_premul_alpha, unshaded, fog_disabled, depth_draw_never, cull_back;
 
 uniform sampler2D sheet : hint_default_black, filter_linear_mipmap_anisotropic;
 uniform bool clip = false;
@@ -28,4 +28,7 @@ void fragment() {
 		discard;
 	}
 	ALBEDO = glow * (blend ? t.a : 1.0) * (1.0 - smoothstep(low, high, length(t.rgb - tag)));
+	// Added as a premultiplied colour of no cover: the picture's alpha stays (blend_add lowered it in the cockpit's
+	// own picture, cockpit_origin.gd: the night ground showed through the backlit panels, 2026-11-17).
+	ALPHA = 0.0;
 }

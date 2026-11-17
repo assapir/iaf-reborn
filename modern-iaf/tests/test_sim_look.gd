@@ -95,6 +95,14 @@ func run() -> void:
 			co._quad.layers == load("res://shared/terrain/volumetric_clouds.gd").LAYER,
 			"its picture on the main view's layer only (not the EO camera's)"
 		)
+		# Upscaling off: no sharp layer and no exposure grey in the view (cockpit_origin.gd, docs/cockpit.md §6.3).
+		check(
+			not co._sharp.visible and not co._quad.material_override.get_shader_parameter("probe"),
+			"Upscaling off: the cockpit only in the view's composite"
+		)
+		var lut: Image = co.exposure_lut(Vector3.ONE).get_image()
+		var seen: float = co.grey_tonemap(co.PROBE_L * lut.get_pixel(128, 0).r, Vector3.ONE)
+		check(absf(seen - 128.0 / 255.0) < 0.002, "the exposure table inverts the layer's tone map (%.4f)" % seen)
 	var i: int = bases._current
 	var b: Dictionary = bases.bases()[i] if i >= 0 else {}
 	check(String(b.get("name", "")) == "Ramon", "Ramon: the nearest base drawn (%s)" % b.get("name", "none"))

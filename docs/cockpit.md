@@ -609,6 +609,9 @@ occlusion, 1.8 MB; built by
     read black again.
 
 **In the flight** (`cockpit3d.gd`, `terrain_view.gd` `_spawn_player`):
+* With Upscaling Quality or Balanced the cockpit-view model, the 3D cockpit in it, is drawn in its own world as
+  Modern IAF's and laid again at the window's resolution over the upscaled view, so its labels stay sharp
+  (modern-iaf/docs/cockpit.md §6.2, §6.3). Upscaling off: drawn in the flight's world as before.
 * The model hangs in the cockpit-view model (`own_bc`): with the 3D cockpit the F-16 always uses the detailed F-16's
   cut model (Models on Original too), kept whole ahead of the eye but for FlightGear's front tub (`aircraft_model.gd`
   `detailed_cockpit(path, whole)`), so the sills and forward fuselage show beside the panel. The model's tub ends at
