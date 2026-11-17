@@ -6,7 +6,10 @@
 //!   and `surface` events; the game's live check is `Watch`);
 //! - start-up (`"kind": "startup"`): pass when the engine reaches idle with the avionics up within the time budget;
 //! - take-off (`"kind": "takeoff"`): pass when airborne with the gear up on the runway heading ± the tolerance, from
-//!   the mission's runway, with no runway excursion, within the time budget.
+//!   the mission's runway, with no runway excursion, within the time budget;
+//! - weapons range (`"kind": "range"`): pass once the player has shot down `air_kills` of the range's drones and
+//!   destroyed `ground_kills` of its ground targets (the recorder's `kill` events, air or ground) within the time
+//!   budget.
 //!
 //! The record keeps every number; the rules' `goals` name the few the debrief sheet shows.
 //!
@@ -58,6 +61,7 @@ const STRINGS: &[(&str, &str, &str)] = &[
     ("fail", "Fail", "נכשל"),
     ("startup", "Start-up", "התנעה"),
     ("takeoff", "Take-off", "המראה"),
+    ("range", "Weapons range", "מטווח"),
     // Fail reasons.
     ("no_start", "The engine never started.", "המנוע לא הותנע."),
     ("over_time", "Not done within the time budget.", "לא הושלם בזמן שהוקצב."),
@@ -107,6 +111,12 @@ const STRINGS: &[(&str, &str, &str)] = &[
     ("excursion", "The jet left the runway during the take-off roll.", "המטוס יצא מהמסלול בזמן ריצת ההמראה."),
     ("gear_down", "The gear was never raised.", "כן הנסע לא נאסף."),
     ("off_heading", "Not on the runway heading with the gear up.", "לא בכיוון המסלול עם כן נסע אסוף."),
+    ("short_air_kills", "Fewer drones shot down than the range asks.", "הופלו פחות מל״טים ממה שהמטווח דורש."),
+    (
+        "short_ground_kills",
+        "Fewer ground targets destroyed than the range asks.",
+        "הושמדו פחות מטרות קרקע ממה שהמטווח דורש.",
+    ),
     // A take-off's goal still missing, shown live (sim_flight.gd); {} the designators.
     ("todo_wrong_runway", "Wrong runway: this is {}, the assigned one is {}.", "מסלול שגוי: זה {}, המסלול שהוקצה {}."),
     ("todo_gear_down", "To complete: raise the gear.", "להשלמה: איסוף כן הנסע."),
@@ -140,6 +150,8 @@ const STRINGS: &[(&str, &str, &str)] = &[
     ("roll_heading_deviation", "Heading deviation during the roll", "סטיית כיוון בזמן ריצת ההמראה"),
     ("max_centreline_offset", "Max offset from the centreline", "סטייה מרבית מקו המרכז"),
     ("tower_calls", "Tower calls", "קריאות למגדל"),
+    ("air_kills", "Drones shot down", "מל״טים שהופלו"),
+    ("ground_kills", "Ground targets destroyed", "מטרות קרקע שהושמדו"),
     ("cut_lines", "Lines cut off at the recording's end, skipped", "שורות קטועות בסוף ההקלטה, שהושמטו"),
     // The sheet's goals ({} the figures of the label).
     ("goal_runway", "Take off from runway {}", "המראה ממסלול {}"),
@@ -154,6 +166,9 @@ const STRINGS: &[(&str, &str, &str)] = &[
     ("goal_calls", "Tower calls", "קריאות למגדל"),
     ("goal_startup_time", "Idle with the avionics up within {} min", "סרק ואוויוניקה פועלת תוך {} דקות"),
     ("goal_checklist", "Checklist steps done", "שלבי הבד״ח שבוצעו"),
+    ("goal_air_kills", "Shoot down {} drones", "הפלת {} מל״טים"),
+    ("goal_ground_kills", "Destroy {} ground targets", "השמדת {} מטרות קרקע"),
+    ("goal_range_time", "Within {} min of the start", "תוך {} דקות מההתחלה"),
     // The "Next time" tips.
     ("next_runway", "Line up on runway {}, the one the tower names.", "להיכנס למסלול {}, המסלול שהמגדל מציין."),
     (
@@ -192,6 +207,21 @@ const STRINGS: &[(&str, &str, &str)] = &[
         "לעבור לשלב הבא מיד עם סיום הקודם: מוקצות {} דקות.",
     ),
     ("next_checklist", "Work the checklist from the top: every step counts.", "לבצע את הבד״ח מההתחלה: כל שלב נספר."),
+    (
+        "next_air_kills",
+        "Find a drone on the radar, lock it and close to the gun's range, or launch a missile once the HUD shows it in range.",
+        "לאתר מל״ט במכ״ם, לנעול עליו ולהתקרב לטווח התותח, או לשגר טיל כשהתצוגה העילית מראה שהוא בטווח.",
+    ),
+    (
+        "next_range_time",
+        "Fly to the range right after the take-off: {} min are allowed.",
+        "לטוס למטווח מיד אחרי ההמראה: מוקצות {} דקות.",
+    ),
+    (
+        "next_ground_kills",
+        "Select the bombs, set the master arm and release with the pipper on the target.",
+        "לבחור את הפצצות, להעביר את מתג החימוש הראשי לחמוש ולשחרר כשהכוונת על המטרה.",
+    ),
     (
         "next_pavement",
         "Keep the nosewheel on the taxiway's centreline and slow down before each turn.",
@@ -267,10 +297,15 @@ pub enum Kind {
         /// (gross weight kg, reference take-off speed kt), by weight; interpolated, held at the ends.
         takeoff_kt: Vec<[f64; 2]>,
     },
+    /// The kills the range asks for: drones, then ground targets.
+    Range {
+        air_kills: usize,
+        ground_kills: usize,
+    },
 }
 
 /// Every debrief item id a mission's `goals` may name.
-pub const ITEMS: [&str; 19] = [
+pub const ITEMS: [&str; 21] = [
     "time_to_idle",
     "time_to_avionics",
     "throttle_moves",
@@ -290,6 +325,8 @@ pub const ITEMS: [&str; 19] = [
     "roll_heading_deviation",
     "max_centreline_offset",
     "tower_calls",
+    "air_kills",
+    "ground_kills",
 ];
 
 /// The rules of a readable mission file, or None for a mission without `"training"`.
@@ -333,7 +370,15 @@ pub fn rules(mission: &Value) -> Result<Option<Rules>> {
                 takeoff_kt,
             }
         }
-        k => bail!("training: \"kind\" must be \"startup\" or \"takeoff\", not {k:?}"),
+        Some("range") => {
+            let kills = |k: &str| {
+                t[k].as_u64().map(|n| n as usize).with_context(|| format!("training: \"{k}\" must be a count"))
+            };
+            let (air_kills, ground_kills) = (kills("air_kills")?, kills("ground_kills")?);
+            ensure!(air_kills + ground_kills > 0, "training: a range asks for at least one kill");
+            Kind::Range { air_kills, ground_kills }
+        }
+        k => bail!("training: \"kind\" must be \"startup\", \"takeoff\" or \"range\", not {k:?}"),
     };
     let checklist = t["checklist"]
         .as_array()
@@ -366,7 +411,9 @@ pub fn rules(mission: &Value) -> Result<Option<Rules>> {
 }
 
 /// The rules' figures, each needing a source in the mission file (data-formats.md §1).
-pub const FIGURES: [&str; 5] = [
+pub const FIGURES: [&str; 7] = [
+    "training.air_kills",
+    "training.ground_kills",
     "training.time_budget_s",
     "training.end_hold_s",
     "training.heading_tolerance_deg",
@@ -730,6 +777,9 @@ impl Debrief {
             }
             "goal_calls" => ("next_calls", vec![]),
             "goal_startup_time" => ("next_startup_time", vec![minutes]),
+            "goal_air_kills" => ("next_air_kills", vec![]),
+            "goal_ground_kills" => ("next_ground_kills", vec![]),
+            "goal_range_time" => ("next_range_time", vec![minutes]),
             _ => ("next_checklist", vec![]),
         })
     }
@@ -813,6 +863,7 @@ pub fn score(flight: &Flight, mission: &Value, airbases: &[Value]) -> Result<Deb
             };
             takeoff(flight, id, &t, r.time_budget_s, failed.is_some())
         }
+        Kind::Range { air_kills, ground_kills } => range(flight, id, [*air_kills, *ground_kills], r.time_budget_s),
     };
     d.goals = r.goals;
     if let Some(reason) = failed {
@@ -898,7 +949,7 @@ pub struct Watch {
     pub rules: Rules,
     /// The mission's base (its pavement).
     pub base: Base,
-    /// A take-off mission's runway end: (its index in the base's runways, the end's index).
+    /// A take-off or range mission's runway end: (its index in the base's runways, the end's index).
     pub runway: Option<(usize, usize)>,
     /// Where the jet first stood on the ground (engine frame): its parking spot.
     pub spot: Option<[f64; 2]>,
@@ -914,7 +965,7 @@ impl Watch {
         let rules = rules(&m)?.with_context(|| format!("{}: no \"training\" rules", mission.display()))?;
         let base = sim_bases::base(airbase_of(&m, &bases)?, &mission.display().to_string())?;
         let runway = match m["runway"].as_str() {
-            Some(d) if matches!(rules.kind, Kind::Takeoff { .. }) => {
+            Some(d) if !matches!(rules.kind, Kind::Startup) => {
                 Some(base.end(d).with_context(|| format!("{}: no runway {d}", mission.display()))?)
             }
             _ => None,
@@ -1348,6 +1399,79 @@ fn startup(f: &Flight, mission: String, budget: f64) -> Debrief {
     }
 }
 
+/// A weapons range: the recorder's `kill` events by the player, air (`"air": true`) and ground, against `need` [air,
+/// ground]; the time the last kill it needs came, against the budget.
+fn range(f: &Flight, mission: String, need: [usize; 2], budget: f64) -> Debrief {
+    let t0 = f.samples[0].t;
+    let kills: Vec<(bool, f64)> = f
+        .events
+        .iter()
+        .filter(|e| e["event"] == "kill")
+        .map(|e| (e["air"].as_bool().unwrap_or(false), e["t"].as_f64().unwrap_or(0.0) - t0))
+        .collect();
+    let got = |air: bool| kills.iter().filter(|k| k.0 == air).count();
+    // When the kills it needs were made: the need-th kill of each kind.
+    let done_at = |air: bool, n: usize| {
+        if n == 0 { Some(0.0) } else { kills.iter().filter(|k| k.0 == air).nth(n - 1).map(|k| k.1) }
+    };
+    let done = done_at(true, need[0]).zip(done_at(false, need[1])).map(|(a, g)| a.max(g));
+    let mut reasons = vec![];
+    if !f.samples.iter().any(|s| !s.on_ground) {
+        reasons.push("no_liftoff");
+    }
+    let kill_check = |id, air: bool, n: usize, short| {
+        let mark = if got(air) >= n { Mark::Ok } else { Mark::Fail };
+        (n > 0).then(|| {
+            (
+                Check {
+                    id,
+                    args: vec![n.to_string()],
+                    target: Figure::value(n as f64, ""),
+                    bound: Bound::Exact,
+                    flown: Figure::value(got(air) as f64, ""),
+                    mark,
+                },
+                (mark == Mark::Fail).then_some(short),
+            )
+        })
+    };
+    let mut checks = vec![];
+    for (c, short) in [
+        kill_check("goal_air_kills", true, need[0], "short_air_kills"),
+        kill_check("goal_ground_kills", false, need[1], "short_ground_kills"),
+    ]
+    .into_iter()
+    .flatten()
+    {
+        checks.push(c);
+        reasons.extend(short);
+    }
+    if done.is_some_and(|d| d > budget) {
+        reasons.push("over_time");
+    }
+    checks.push(Check {
+        id: "goal_range_time",
+        args: vec![format!("{}", (budget / 60.0).round())],
+        target: Figure::value(budget, "s"),
+        bound: Bound::Max,
+        flown: Figure { value: done, ..Figure::none("s") },
+        mark: if done.is_some_and(|d| d <= budget) { Mark::Ok } else { Mark::Fail },
+    });
+    Debrief {
+        mission,
+        kind: "range",
+        pass: reasons.is_empty(),
+        reasons,
+        items: vec![
+            item("air_kills", Some(got(true) as f64), ""),
+            item("ground_kills", Some(got(false) as f64), ""),
+            item("tower_calls", Some(f.events.iter().filter(|e| e["event"] == "radio").count() as f64), ""),
+        ],
+        goals: vec![],
+        checks,
+    }
+}
+
 /// A take-off mission's runway, base and figures.
 struct Takeoff<'a> {
     rw: &'a Runway,
@@ -1727,6 +1851,30 @@ mod tests {
     /// A recording with `events` (JSON objects) appended.
     fn with(text: &str, events: &[Value]) -> String {
         events.iter().fold(text.to_string(), |t, e| t + &format!("{e}\n"))
+    }
+
+    /// The range (`ramon_range`): the take-off, then the recorder's kill events; passes once its kills are made,
+    /// within the budget, and names the kills still missing.
+    #[test]
+    fn a_range_passes_on_its_kills() {
+        let (text, _) = takeoff(CLEAN);
+        let m = mission("ramon_range");
+        let Some(Rules { kind: Kind::Range { air_kills, ground_kills }, .. }) = rules(&m).unwrap() else {
+            panic!("ramon_range is no range")
+        };
+        let kill = |air: bool, t: f64| format!("{}\n", json!({"event": "kill", "air": air, "t": t}));
+        let all: String = (0..air_kills).map(|i| kill(true, 200.0 + i as f64)).collect::<String>()
+            + &(0..ground_kills).map(|i| kill(false, 300.0 + i as f64)).collect::<String>();
+        let d = scored(&(text.clone() + &all), "ramon_range");
+        assert!(d.pass, "{:?}", d.reasons);
+        assert_eq!(value(&d, "air_kills"), air_kills as f64);
+        assert_eq!(value(&d, "ground_kills"), ground_kills as f64);
+        assert!(d.checks.iter().all(|c| c.mark == Mark::Ok));
+        // One drone short and no ground kill: both named, the drones' tip first.
+        let d = scored(&(text + &kill(true, 200.0).repeat(air_kills - 1)), "ramon_range");
+        assert!(!d.pass);
+        assert_eq!(d.reasons, ["short_air_kills", "short_ground_kills"]);
+        assert_eq!(d.next().unwrap().0, "next_air_kills");
     }
 
     #[test]

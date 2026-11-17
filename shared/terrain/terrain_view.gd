@@ -1246,10 +1246,13 @@ func _spawn_mission_objects() -> void:
 		ent["coll_radius"] = 0.25 * (box.size.x + box.size.y + box.size.z)
 		ent["max_extent"] = maxf(box.size.x, maxf(box.size.y, box.size.z))
 		if path.ends_with("_h.gltf"):
+			# A level the install lacks is none (Modern IAF's range targets: our model only, no _m / _l).
+			var lod := func(p: String):
+				return Gltf.object(p) if Gltf.detailed(p) != "" or Gltf.has_original(p) else null
 			_add_lods(
 				node,
-				Gltf.object(path.trim_suffix("_h.gltf") + "_m.gltf"),
-				Gltf.object(path.trim_suffix("_h.gltf") + "_l.gltf"),
+				lod.call(path.trim_suffix("_h.gltf") + "_m.gltf"),
+				lod.call(path.trim_suffix("_h.gltf") + "_l.gltf"),
 				ent.max_extent
 			)
 		ent["rig"] = VehicleParts.rig(node)
@@ -1579,7 +1582,7 @@ func mission_entity_state(ent: Dictionary) -> void:
 		if ent.player:
 			blackbox_event({"event": "shot_down", "key": String(killer.get("key", ""))})
 		elif not killer.is_empty() and killer.get("player", false):
-			blackbox_event({"event": "kill", "key": String(ent.key)})
+			blackbox_event({"event": "kill", "key": String(ent.key), "air": bool(ent.get("airborne_class", false))})
 	match ent.state:
 		3:
 			_fatal_hit_effect(ent)

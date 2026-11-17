@@ -1,0 +1,11 @@
+{
+  "id": "drone",
+  "number": 1,
+  "name": "Range drone: flies its route",
+  "rules": [
+    { "if": [["always"]], "then": ["navigate"] }
+  ],
+  "notes": {
+    "": "A target drone of the weapons range (avionics-plan.md §6 slice 1): it flies its route, its radar silent, and never shoots or turns away."
+  }
+}

@@ -43,6 +43,7 @@ Each figure has a source in the mission's `sources` (`"training.time_budget_s"` 
 | field | start-up | take-off | default | source |
 |---|---|---|---|---|
 | `kind` | `"startup"` | `"takeoff"` | — | — |
+| `air_kills`, `ground_kills` | — | — (a range's, §3.4) | 2 and 2 in the range missions | inferred |
 | `time_budget_s` | idle with avionics up by then | airborne, gear up, on heading by then | 120 s / 900 s | inferred |
 | `end_hold_s` | a fail shows its reason this long before the debrief (a pass: the flight pauses for Continue or Debrief, §9) | the same | 5 s | inferred: time to see the result before the debrief |
 | `goals` | the debrief items the sheet shows, in order (§4) | the same | `[]` / `["runway", "liftoff_speed", "reference_speed", "max_centreline_offset", "tower_calls"]` | — (not a figure) |
@@ -137,6 +138,36 @@ starts with the engine running holds the start, taxi and line-up clearances.
 says once per end "Alpha, you are on runway 7 left, the assigned runway is 25 right" ("Alpha, על מסלול 7 שמאלי,
 המסלול שהוקצה 25 ימני") and the panel shows "Wrong runway: this is 07L, the assigned one is 25R." while it lasts. Lining
 up there only warns; the roll there (faster than 30 kt) fails at once with `wrong_runway`.
+
+### 3.4 Weapons range: pass
+Since 2026-11-17 (avionics-plan.md §6 slice 1; the user: "avionics and playability is the next big thing") each
+flyable jet has a range mission: `ramon_range` (Sufa, menu 2013), `ramat_david_range` (Barak, 2023) and
+`nevatim_range` (Adir, 2033), `kind` `"range"`. Like every lesson it starts cold at the parking spot with the tower's
+clearances (§3.3; the user's rule of 12 Nov: every lesson starts cold). The route's first steerpoint is the air range,
+the second the ground targets ([data-formats.md](data-formats.md) §5.1):
+
+| range | air | ground |
+|---|---|---|
+| Ramon, Nevatim | over the open Negev between Ramon and Revivim (centre 31.05° N 34.72° E) | four retired airframes in the Halutza sands, 31.02° N 34.57° E |
+| Ramat David | over the sea west of Haifa (32.85° N 34.72° E) | four on the Golan plateau, 33.02° N 35.74° E |
+
+The places are inferred: open ground the theatre's scenery shows no building on within 1 km; a real range's place is
+not published. The five drones: Drone 1 on a 30 km racetrack at 15,000 ft (co-altitude with the route), Drone 2 low
+(about 500 m above the ground or the sea), Drone 3 weaving at 20,000 ft and breaking away from a jet inside 9 km
+(brain `drone_evade`), and Drones 4, a pair of F-35s on a 50 km box at 25,000 ft with their radars on (brain
+`drone_radar`: the player's RWR hears their lock). They are red for the exercise and never shoot.
+
+Pass, all of:
+- nothing failed (§3.0) to the mission's end;
+- the recorder's `kill` events (a unit the player destroyed; `"air": true` for an aircraft) count at least `air_kills`
+  aircraft and `ground_kills` ground units;
+- the last kill it needs within `time_budget_s` (45 min) of the start.
+
+Fail reasons: the §3.0 reason first; then `no_liftoff`, `short_air_kills`, `short_ground_kills`, `over_time`. The
+game scores the recording every 3 s once airborne (`sim_flight.gd`); a pass pauses the flight under the
+"accomplished" panel (§9). The debrief's goal rows: drones shot down, ground targets destroyed, the time; its items
+the two counts and the tower calls. The "Next time" tip names the radar lock and the gun or a missile for the
+drones, the bombs' release for the ground targets.
 
 ## 4. The debrief record
 `Debrief::to_json` (`iaf-training score … --json`): `mission`, `kind`, `pass`, `reasons` (ids), `items` (each `id`,

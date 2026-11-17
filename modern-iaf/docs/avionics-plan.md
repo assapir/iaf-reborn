@@ -49,10 +49,11 @@ Facts that hold for every jet (verified in the code, 17 November 2026):
   real).
 - The radar has the 1998 game's nine modes: OFF, STBY, STT, BORE, LRS, TWS, ACM, GMT, MAP
   ([../../docs/radar.md](../../docs/radar.md) §1). Every real mode below maps onto one of them or is new.
-- **The sim has no hostile units.** Its missions carry no targets (`modern-iaf/data/missions/*.json` `"targets": []`)
-  and the threat records are drafts awaiting the user (`modern-iaf/data/db/drafts/`, [threat-records.md](threat-records.md)).
-  So the radar, RWR, missiles and guided bombs have nothing to work on in a sim flight today. The plan's first slice
-  gives them a test range (§6; the user's decision in §8.1: the sim's own jets as drones and plain ground targets).
+- **The weapons range is the sim's only hostile set** (slice 1, built 17 Nov): each jet's range mission
+  (`<base>_range`, [training.md](training.md) §3.4) has five drones (the sim's own F-16 and F-35 flown by the shared
+  AI, red for the exercise, never shooting) and four ground targets (retired airframes). The threat records stay
+  drafts awaiting the user (`modern-iaf/data/db/drafts/`, [threat-records.md](threat-records.md)); the other
+  missions carry no targets.
 - The keys are the 1998 game's (`modern-iaf/data/keys.json`: Q radar mode, R A-A / A-G, S standby, `.` / `,` range,
   `\` boresight, Return / Shift+Return target, Backspace drop lock, M master mode, `[` / `]` weapons, Space release,
   Tab gun, L laser, I / T / U / D pages). K and Shift+K (GPS PRE / VIS, next PRE target) are hard-wired in
@@ -232,7 +233,7 @@ by the sim; **extend** = existing shared logic grown; **new** = new logic in a R
 
 | # | gap | size | kind | test |
 |---|---|---|---|---|
-| G3 | **Targets.** No hostile units exist in the sim, so the radar, RWR, TWD, jammer, missiles and guided bombs cannot be flown against anything. Needs a range: air targets (AI jets on a track) and ground targets (one SAM site with a radar, vehicles), from the sim's own jets as drones and plain ground targets (§8.1); the SAM site with a radar waits for approved records | M | wire (shared AI, mission runtime) + data | new modern-iaf/tests/test_sim_range.gd: the range mission loads, the drone flies its track, the ground targets stand |
+| G3 | **Targets.** **Built 17 Nov (slice 1):** a range mission per jet (`ramon_range`, `ramat_david_range`, `nevatim_range`; training.md §3.4): five drones (our F-16 and F-35 models on the shared AI under the sim's own brains, data-formats.md §5.1: co-altitude, low, a manoeuvring one, a pair with radars on) and four ground targets (F-16 and MiG-29 hulks); kills scored by the range's training kind. The SAM site with a radar waits for approved records | M | wire (shared AI, mission runtime) + data | modern-iaf/tests/test_sim_range.gd: per jet the drones fly, the radar finds one, a gun kill is scored |
 
 ### 5.3 Radar
 
@@ -289,7 +290,7 @@ renders through `tools/godot_window.sh`, with every graphics setting on, from th
 | slice | scope | gaps | size | files | headless test | pictures |
 |---|---|---|---|---|---|---|
 | 0 Bugs | radar standby, break X and HUD parity, SPICE / GPS targets, gun flash | G1, G2, G4, G23 | M | `radar.rs`, `player_weapons.gd`, `gaaf.rs`, `real_hud/f16.rs`, `gps.rs`, `iaf-reborn/menu/tsd_gps.gd` moved into `shared/`, the sim's briefing | the tests in §5.1 | FCR at STBY on the ground; the HUD in reborn and the sim side by side; the briefing map with a PRE target; the flash from the cockpit |
-| 1 Range | targets for every later slice: the sim's own jets as drones and plain ground targets (§8.1; no threat records) | G3 | M | `modern-iaf/data/missions/`, the sim's own unit records, the shared AI | new test_sim_range.gd | the range from above with the drones and ground targets |
+| 1 Range (built 17 Nov) | targets for every later slice: the sim's own jets as drones and plain ground targets (§8.1; no threat records); the briefing's PRE target pick waits for the user's yes on its own branch | G3 | M | `modern-iaf/data/missions/*_range.json`, `data/db/brains/`, the drone and target unit records, `sim.rs` (drones, brains), `training.rs` (kind `range`) | test_sim_range.gd | the range in the mission list, the drones on the radar and from the cockpit, the ground targets, the debrief after a kill |
 | 2 Sufa radar A-A | scan and bars, VSR, situation mode, ACM patterns, cursor and TMS (keyboard keys first, §8.3) | G5–G8 | L | `radar.rs`, `f16_mfd.rs` / `.gd`, `modern-iaf/data/keys.json` | new test_sim_radar.gd grows: each mode finds, bugs and locks a range target | the FCR in each mode with targets |
 | 3 Sufa radar A-G | GM DBS / FZ, SAR patch, SEA | G9–G11 | M–L | `radar.rs`, `heights.rs`, `f16_mfd.gd` | the same test, A-G part | GM, DBS, SAR and SEA pictures |
 | 4 Sufa MFDs | SOI and DMS (keys, §8.3), HSD CNTL / bullseye, SMS profiles and submode menu, the Litening pod, TGP and the GBU-10 / 12 / 16 (§8.2) | G8 (DMS), G14, G15, G24, G25 | M | `f16_mfd.rs` / `.gd`, the sim's pod and laser bomb records | `tests/godot/test_f16_mfd.gd`, a sim TGP run | each format, both MFDs |

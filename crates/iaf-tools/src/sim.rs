@@ -162,6 +162,30 @@ const CLASSES: &[(&str, i64, &str)] = &[
     ("ir_sam", 9, "Infra red sam"),
     ("aaa", 10, "Gundish"),
     ("ground_radar", 11, "Ground radar"),
+    ("vehicle", 6, "Vehicle"),
+];
+/// A brain rule's measures: readable name → condition code (docs/ai.md §4; `brain.gd measure`).
+const MEASURES: &[(&str, i64)] = &[
+    ("always", 0),
+    ("altitude_m", 4),
+    ("speed_kt", 6),
+    ("target_range_m", 13),
+    ("random", 15),
+    ("waypoint", 33),
+    ("damage_pct", 36),
+];
+/// A condition's operator → its code (docs/ai.md §4).
+const OPS: &[(&str, i64)] = &[("==", 0), (">", 1), ("<", 2), (">=", 3), ("<=", 4), ("!=", 5)];
+/// A brain rule's actions: readable name → action code (docs/ai.md §5). No weapon action: the range's drones never
+/// shoot (avionics-plan.md §6 slice 1).
+const ACTIONS: &[(&str, i64)] = &[
+    ("straight", 100),
+    ("horizontal", 150),
+    ("run_away", 160),
+    ("break_90", 170),
+    ("hold", 230),
+    ("navigate", 240),
+    ("select_air_target", 400),
 ];
 /// Weapon kinds: readable name → (sub type 0x780, kind 0x712, station: 9–11 for the gun / chaff / flare, -1 a pylon
 /// store; weapons.ibx's OST_* enum, docs/weapons.md §1).
@@ -277,16 +301,21 @@ fn check_sources(f: &File, figures: &[&str]) -> Result<()> {
     Ok(())
 }
 
-/// The units and weapons, each with its bdb number.
+/// The units, weapons and AI brains, each with its bdb number.
 pub struct Db {
     pub units: Vec<File>,
     pub weapons: Vec<File>,
+    pub brains: Vec<File>,
 }
 
 impl Db {
     pub fn read(data: &Path) -> Result<Self> {
-        let db = Db { units: read_dir(&data.join("db/units"))?, weapons: read_dir(&data.join("db/weapons"))? };
-        for (files, what) in [(&db.units, "unit"), (&db.weapons, "weapon")] {
+        let db = Db {
+            units: read_dir(&data.join("db/units"))?,
+            weapons: read_dir(&data.join("db/weapons"))?,
+            brains: read_dir(&data.join("db/brains"))?,
+        };
+        for (files, what) in [(&db.units, "unit"), (&db.weapons, "weapon"), (&db.brains, "brain")] {
             let (mut numbers, mut ids) = (HashSet::new(), HashSet::new());
             for f in files {
                 // An approved draft drops its "status" as it moves out of db/drafts.
@@ -308,6 +337,58 @@ impl Db {
     fn weapon(&self, id: &str) -> Result<&File> {
         self.weapons.iter().find(|w| w.v["id"] == id).with_context(|| format!("no weapon \"{id}\""))
     }
+
+    fn brain(&self, id: &str) -> Result<&File> {
+        self.brains.iter().find(|b| b.v["id"] == id).with_context(|| format!("no brain \"{id}\""))
+    }
+}
+
+/// A brain record's rules as the bdb's Brains and Actions rows (`brain.gd rules_of`, docs/ai.md §2): each rule
+/// `{"if": [[measure, op, value] | ["always"]], "then": [action]}`, evaluated in order every period; the first rule
+/// that fires per action type wins (the brain's gate), so a later "navigate" runs only when no manoeuvre fired before
+/// it. An action's row id is its code.
+fn brain_rows(b: &File, actions: &mut BTreeSet<i64>) -> Result<Value> {
+    let mut rules = vec![];
+    for (i, r) in b.v["rules"]
+        .as_array()
+        .filter(|r| !r.is_empty())
+        .context(format!("{}: no \"rules\"", b.name))?
+        .iter()
+        .enumerate()
+    {
+        let what = |k: &str| format!("{}: rules[{i}].{k}", b.name);
+        let mut conds = vec![];
+        for c in r["if"].as_array().filter(|c| !c.is_empty()).with_context(|| what("if"))? {
+            let name = c[0].as_str().unwrap_or("");
+            let code = MEASURES
+                .iter()
+                .find(|m| m.0 == name)
+                .with_context(|| format!("{}: no measure {name:?}", what("if")))?
+                .1;
+            let (op, value) = if code == 0 {
+                (0, 1.0)
+            } else {
+                let op = OPS
+                    .iter()
+                    .find(|o| c[1] == o.0)
+                    .with_context(|| format!("{}: no operator {}", what("if"), c[1]))?
+                    .1;
+                (op, c[2].as_f64().with_context(|| format!("{}: {name} needs a number", what("if")))?)
+            };
+            conds.push(json!([-1, code, op, value]));
+        }
+        let mut acts = vec![];
+        for a in r["then"].as_array().filter(|a| !a.is_empty()).with_context(|| what("then"))? {
+            let code = ACTIONS.iter().find(|x| a == x.0).with_context(|| format!("{}: no action {a}", what("then")))?.1;
+            actions.insert(code);
+            acts.push(json!([0, 0, code, -1, 0]));
+        }
+        rules.push(json!({"0x14": 0, "0x1ae": 1, "_class": "CDMEBrainRule", "list16": conds, "list20": acts}));
+    }
+    Ok(json!({
+        "0x14": 0, "0x1e": int(b, "number")?, "0x1f4": text(b, "name")?, "0x208": 1, "_class": "CDMEBrainItem",
+        "rules0": {"_class": "CObList", "items": rules}, "rules1": {"_class": "CObList", "items": []},
+    }))
 }
 
 // --- db -------------------------------------------------------------------------------------------------------------
@@ -430,11 +511,22 @@ pub fn compile_db(db: &Db) -> Result<(Value, Map<String, Value>, String)> {
         }
         objects.push(Value::Object(o));
     }
+    let (mut brains, mut codes) = (vec![], BTreeSet::new());
+    for b in &db.brains {
+        brains.push(brain_rows(b, &mut codes)?);
+    }
+    let actions = codes
+        .iter()
+        .map(|&c| {
+            let name = ACTIONS.iter().find(|a| a.1 == c).map_or("", |a| a.0);
+            json!({"0x14": 0, "0x1e": c, "0x64": name, "0xbe": c, "_class": "CDMEActionItem"})
+        })
+        .collect();
     let bdb = json!({
         "_file": BDB,
-        "actions": part("CDMEActionPart", "CDMEActionItem", "0x64", vec![]),
+        "actions": part("CDMEActionPart", "CDMEActionItem", "0x64", actions),
         "audio": part("CDMEAudioPart", "CDMEAudioItem", "0x12c", vec![]),
-        "brains": part("CDMEBrainPart", "CDMEBrainItem", "0x1f4", vec![]),
+        "brains": part("CDMEBrainPart", "CDMEBrainItem", "0x1f4", brains),
         "objects": part("CDMEObjectsPart", "CDMEObjectsItem", "0x514", objects),
         "present": part("CDMEPresentPart", "CDMEPresentItem", "0x640", present),
         "weapons": part("CDMEWeaponsPart", "CDMEWeaponsItem", "0x708", weapons),
@@ -627,9 +719,12 @@ pub fn compile_mission(
     training::rules(&f.v).with_context(|| f.name.clone())?;
     check_sources(f, &training::FIGURES)?;
     // Each flight and placed unit names its own sources (the mission's footnotes serve them).
-    for (list, figures) in
-        [("flights", &FLIGHT_FIGURES[..]), ("targets", &PLACED_FIGURES), ("sam_sites", &PLACED_FIGURES)]
-    {
+    for (list, figures) in [
+        ("flights", &FLIGHT_FIGURES[..]),
+        ("drones", &FLIGHT_FIGURES),
+        ("targets", &PLACED_FIGURES),
+        ("sam_sites", &PLACED_FIGURES),
+    ] {
         for (k, part) in f.v[list].as_array().into_iter().flatten().enumerate() {
             let mut v = part.clone();
             v["footnotes"] = f.v["footnotes"].clone();
@@ -731,9 +826,41 @@ pub fn compile_mission(
         }
         m = mission_edit::set_flight(m, k as i64 + 2, &spec);
     }
+    // The range's drones (ours, modern-iaf/docs/data-formats.md §5): red flights airborne at their start, each flying
+    // its route `laps` times under its brain (data/db/brains); no brain of ours shoots.
+    for (k, d) in f.v["drones"].as_array().into_iter().flatten().enumerate() {
+        let what = format!("{}: drones[{k}]", f.name);
+        let u = db.unit(d["unit"].as_str().unwrap_or("")).with_context(|| what.clone())?;
+        let brain = int(db.brain(d["brain"].as_str().unwrap_or("")).with_context(|| what.clone())?, "number")?;
+        let at = &d["start"];
+        let [dx, dy] = place(at, &what)?;
+        let alt = at["alt_m"].as_f64().with_context(|| format!("{what}: start needs \"alt_m\""))?;
+        let dh = sim_bases::grid_heading(
+            at["lon"].as_f64().unwrap_or(0.0),
+            at["lat"].as_f64().unwrap_or(0.0),
+            at["heading"].as_f64().unwrap_or(0.0),
+        );
+        let one = d["route"].as_array().filter(|r| !r.is_empty());
+        let one = one.with_context(|| format!("{what}: a drone needs its \"route\""))?;
+        let laps = d["laps"].as_u64().unwrap_or(1).max(1) as usize;
+        let all: Vec<Value> = one.iter().cycle().take(one.len() * laps).cloned().collect();
+        let spec = json!({"type": int(u, "number")?, "count": d["count"].as_i64().unwrap_or(1),
+            "name": d["name"].as_str().map_or(format!("Drone {}", k + 1), String::from),
+            "start": [dx.round(), dy.round(), alt, dh.round()], "brains": [brain, brain],
+            "points": route(&Value::Array(all), [dx, dy, alt])?});
+        let before: HashSet<i64> = mission_edit::spawned(&m).filter_map(|e| e["0x1e"].as_i64()).collect();
+        m = mission_edit::set_red_flight(m, &spec);
+        // Neutral (role 2): the range's scorer counts its kills; the runtime's role rules judge nothing of it.
+        let new: Vec<i64> =
+            mission_edit::spawned(&m).filter_map(|e| e["0x1e"].as_i64()).filter(|i| !before.contains(i)).collect();
+        m = mission_edit::set_role(m, &new, 2);
+    }
     // Targets (role 1) and SAM sites (red, neutral role), each optionally on a ground route.
     let template = skeleton()["entities"]["items"][0].clone();
-    for (list, default_side, role) in [("targets", "red", mission_edit::TARGET), ("sam_sites", "red", 2)] {
+    // A training mission's scorer judges its targets (training.rs): neutral to the runtime's role rules, whose pass
+    // box is the 1998 game's.
+    let target_role = if f.v["training"].is_null() { mission_edit::TARGET } else { 2 };
+    for (list, default_side, role) in [("targets", "red", target_role), ("sam_sites", "red", 2)] {
         for (k, t) in f.v[list].as_array().into_iter().flatten().enumerate() {
             let u = db.unit(t["unit"].as_str().unwrap_or("")).with_context(|| f.name.clone())?;
             let [tx, ty] = place(t, &f.name)?;
@@ -1323,6 +1450,51 @@ mod tests {
         File { name: "ramon".into(), v }
     }
 
+    /// The range's drones: red flights airborne at their start under their brain, the route flown `laps` times,
+    /// neutral to the role rules; the brains compile into rows `brain.gd` reads, each action once.
+    #[test]
+    fn the_range_drones_fly_their_brains() {
+        let (db, bases) = (Db::read(&data()).unwrap(), sim_bases::load(&data().join("airbases")).unwrap());
+        let f = read_dir(&data().join("missions")).unwrap().into_iter().find(|f| f.v["id"] == "ramon_range").unwrap();
+        let m = compile_mission(&f, &db, &bases, &mut |_, _| None).unwrap();
+        let drones = f.v["drones"].as_array().unwrap();
+        let red: Vec<&Value> =
+            m["formations"]["items"].as_array().unwrap().iter().filter(|r| r["0x3f2"] == 8).collect();
+        assert_eq!(red.len(), drones.len());
+        for (r, d) in red.iter().zip(drones) {
+            let n = d["route"].as_array().unwrap().len() * d["laps"].as_u64().unwrap() as usize;
+            assert_eq!(r["points"].as_array().unwrap().len(), n, "{}", d["name"]);
+            let brain = db.brain(d["brain"].as_str().unwrap()).unwrap().v["number"].clone();
+            for mm in r["members"].as_array().unwrap().iter().filter(|mm| mm["0x41a"].as_i64() >= Some(0)) {
+                let e = m["entities"]["items"].as_array().unwrap().iter().find(|e| e["0x1e"] == mm["0x41a"]).unwrap();
+                assert_eq!((e["0x2d0"].as_i64(), e["0x32a"].as_i64(), &e["0x2da"]), (Some(2), Some(2), &brain));
+                assert!(e["0x2f8"].as_f64().unwrap() > 800.0, "airborne at the start (docs/ai.md §7.1)");
+            }
+        }
+        let (bdb, _, _) = compile_db(&db).unwrap();
+        let evade = bdb["brains"]["items"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|b| b["0x1f4"].as_str().unwrap().contains("breaks"))
+            .unwrap();
+        let rules = evade["rules0"]["items"].as_array().unwrap();
+        assert_eq!(rules[1]["list16"], json!([[-1, 13, 2, 9000.0], [-1, 15, 2, 50.0]]));
+        assert_eq!(rules[3]["list20"], json!([[0, 0, 240, -1, 0]]));
+        let codes: Vec<i64> = bdb["actions"]["items"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|a| a["0x14"] == 0)
+            .map(|a| a["0xbe"].as_i64().unwrap())
+            .collect();
+        assert_eq!(codes, [160, 170, 240, 400]);
+        // An unknown measure or action is refused.
+        let mut bad = Db::read(&data()).unwrap();
+        bad.brains[0].v["rules"][0]["then"] = json!(["launch"]);
+        assert!(compile_db(&bad).unwrap_err().to_string().contains("no action"));
+    }
+
     #[test]
     fn placed_units_take_the_grid_heading() {
         let (db, bases) = (Db::read(&data()).unwrap(), sim_bases::load(&data().join("airbases")).unwrap());
@@ -1331,7 +1503,13 @@ mod tests {
         let m = compile_mission(&ramon(json!({"targets": [t]})), &db, &bases, &mut |_, _| None).unwrap();
         let e = m["entities"]["items"].as_array().unwrap().iter().find(|e| e["0x2bc"] == "T").unwrap().clone();
         assert_eq!(e["0x302"].as_f64().unwrap(), sim_bases::grid_heading(34.8, 30.9, 90.0).round());
-        assert_eq!(e["0x32a"], mission_edit::TARGET);
+        // A training mission's scorer judges its targets: neutral to the runtime's role rules; elsewhere role 1.
+        assert_eq!(e["0x32a"], 2);
+        let mut plain = ramon(json!({"targets": [t.clone()]}));
+        plain.v["training"] = Value::Null;
+        let m2 = compile_mission(&plain, &db, &bases, &mut |_, _| None).unwrap();
+        let e2 = m2["entities"]["items"].as_array().unwrap().iter().find(|e| e["0x2bc"] == "T").unwrap().clone();
+        assert_eq!(e2["0x32a"], mission_edit::TARGET);
         assert_eq!(m["sim"]["base"], "Ramon", "the loading screen's base");
         // A ground route of one point is refused (set_route needs two).
         let mut one = t.clone();

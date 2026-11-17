@@ -97,12 +97,12 @@ loadout screen) or Debrief.
   Hangar jet's missions of its `category` (the readable mission's: `training`, `campaign`, `single`). A card, 320 px
   high, the row of cards in the middle of the room under the title, shows its number and title and at its foot the
   pilot's progress ("2 of 2 passed" and a bar). A section without missions is greyed, marked "Coming later" / "יגיע
-  בהמשך", no click and no focus. Today Training holds each jet's start-up and take-off and the others are greyed.
+  בהמשך", no click and no focus. Today Training holds each jet's start-up, take-off and weapons range ([training.md](training.md) §3.4) and the others are greyed.
   Until 2026-11-16 a card also had a subtitle and a "What it holds" list (Training's missions and its lessons coming
   later, the greyed sections what they would hold); the user removed them ("remove the subtitles and what it holds").
 - **Each jet's own missions** (the user, 15 November 2026: "you should show only the same plane missions"): a
   section lists only the missions whose start is in the Hangar's jet (the readable mission's `start.unit`), numbered
-  1, 2 … after that filter; the Sufa's Training is Ramon's start-up and take-off. The statuses, Next, "N of M passed",
+  1, 2 … after that filter; the Sufa's Training is Ramon's start-up, take-off and weapons range. The statuses, Next, "N of M passed",
   the Hangar card's progress and the side panel count that jet's missions only. A mission is flown in its own jet
   (`flight/fly.gd` `start(menu id)`); the debrief's Next mission is the next one of the flown mission's jet.
 - **A section's list:** the missions in menu-id order with their last result (`IafPilotLog.summary`: Pass with the best
@@ -287,7 +287,7 @@ the Hangar (2026-11-13). The finish list's F8 deleted them with their Attributio
 - `modern-iaf/tests/test_front_end.gd` walks the Hangar → Missions → Training → the briefing → the debrief of a stored
   record (the sample flight scored, §13; then a record from before the goals) → Back to missions, Fly again, Next mission in English and Hebrew: the texts, each jet's card with its
   squadron, the four sections (Training open and focused with what it holds and the lessons coming later, the others greyed,
-  "Coming later", without focus or click), the footer's Back with Esc, the Sufa's two missions with their statuses, the
+  "Coming later", without focus or click), the footer's Back with Esc, the Sufa's three missions with their statuses (the range not flown: Next), the
   next one marked and focused, the side panel following the focus, the layout direction; each jet's own missions
   (numbered 1, 2, the Barak's own progress and Next, Next mission by the flown mission's jet);
   the plane pick; the Ra'am's and the Baz's rows greyed and not pickable; the Settings' controls and the live language switch; the Pilot log

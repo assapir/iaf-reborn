@@ -439,11 +439,23 @@ const RED_ROUTE_SPEED: f64 = 250.0;
 /// action]])}. It follows the originals' red flights: formation number 8, brains 13 / 15, the leader at the base's
 /// lineup on its runway heading, the wingman 50 m off its left; the route takes off 10 km ahead (action 2), flies
 /// 30 km on (3) and lands at the base (7). A waypoint's "speed" is its planned arrival time in sim seconds (docs/ai.md
-/// §7.2); the take-off waits for wp0's.
+/// §7.2); the take-off waits for wp0's. Ours: `start` [x, y, alt, heading] in place of `base` puts the flight there
+/// (airborne above 800 m, docs/ai.md §7.1), and `brains` [leader, wingman] replaces the originals' pair (Modern IAF's
+/// range drones, modern-iaf/docs/data-formats.md §5).
 pub fn set_red_flight(mut mission: Value, spec: &Value) -> Value {
-    let Some(b) = crate::mission_year::base(spec["base"].as_str().unwrap_or("")) else { return mission };
-    let [x, y, z, h] = b.start;
-    let name = spec["name"].as_str().filter(|n| !n.is_empty()).unwrap_or(b.name).to_string();
+    let given =
+        spec["start"].as_array().filter(|a| a.len() == 4).map(|a| [num(&a[0]), num(&a[1]), num(&a[2]), num(&a[3])]);
+    let base = crate::mission_year::base(spec["base"].as_str().unwrap_or(""));
+    let ([x, y, z, h], base_name) = match (given, base) {
+        (Some(s), _) => (s, ""),
+        (None, Some(b)) => (b.start, b.name),
+        (None, None) => return mission,
+    };
+    let brains = match spec["brains"].as_array() {
+        Some(b) if b.len() == 2 => [int(&b[0]), int(&b[1])],
+        _ => RED_BRAINS,
+    };
+    let name = spec["name"].as_str().filter(|n| !n.is_empty()).unwrap_or(base_name).to_string();
     let template = if spec["template"].is_object() {
         spec["template"].clone()
     } else {
@@ -460,7 +472,7 @@ pub fn set_red_flight(mut mission: Value, spec: &Value) -> Value {
             ("0x2bc", json!(format!("{name} {}", k + 1))),
             ("0x2c6", spec["type"].clone()),
             ("0x2d0", json!(2)),
-            ("0x2da", json!(RED_BRAINS[k])),
+            ("0x2da", json!(brains[k])),
             ("0x2e4", json!(px.round())),
             ("0x2ee", json!(py.round())),
             ("0x2f8", json!(z)),

@@ -1,0 +1,12 @@
+{
+  "id": "drone_radar",
+  "number": 2,
+  "name": "Range drone: radar on, flies its route",
+  "rules": [
+    { "if": [["always"]], "then": ["select_air_target"] },
+    { "if": [["always"]], "then": ["navigate"] }
+  ],
+  "notes": {
+    "": "A target drone with its radar on: every period it picks the best air contact of its sensor (docs/ai.md §13), which locks that jet: the player's RWR hears it (combat.gd on_lock). It keeps flying its route and never shoots."
+  }
+}

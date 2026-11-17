@@ -1,0 +1,398 @@
+{
+  "category": "training",
+  "time": "09:00",
+  "wind_kt": 0,
+  "wind_from": 0,
+  "start": {
+    "unit": "f16i",
+    "base": "Ramon",
+    "at": "parking",
+    "elevation_m": 648
+  },
+  "flights": [],
+  "drones": [
+    {
+      "name": "Drone 1",
+      "unit": "drone_f16",
+      "count": 1,
+      "brain": "drone",
+      "start": {
+        "lat": 30.91486,
+        "lon": 34.72,
+        "heading": 0,
+        "alt_m": 4600
+      },
+      "route": [
+        {
+          "lat": 31.18514,
+          "lon": 34.72,
+          "alt_m": 4600,
+          "speed_kmh": 800
+        },
+        {
+          "lat": 31.18514,
+          "lon": 34.80388,
+          "alt_m": 4600,
+          "speed_kmh": 800
+        },
+        {
+          "lat": 30.91486,
+          "lon": 34.80388,
+          "alt_m": 4600,
+          "speed_kmh": 800
+        },
+        {
+          "lat": 30.91486,
+          "lon": 34.72,
+          "alt_m": 4600,
+          "speed_kmh": 800
+        }
+      ],
+      "laps": 15,
+      "sources": {
+        "start.lat": "inferred",
+        "start.lon": "inferred",
+        "start.heading": "inferred",
+        "start.alt_m": "inferred",
+        "route": "inferred"
+      },
+      "notes": {
+        "route": "a racetrack of 30 km legs at 15,000 ft, co-altitude with the jet's route: the radar's first target"
+      }
+    },
+    {
+      "name": "Drone 2",
+      "unit": "drone_f16",
+      "count": 1,
+      "brain": "drone",
+      "start": {
+        "lat": 30.90586,
+        "lon": 34.59417,
+        "heading": 0,
+        "alt_m": 900
+      },
+      "route": [
+        {
+          "lat": 30.95991,
+          "lon": 34.59417,
+          "alt_m": 900,
+          "speed_kmh": 700
+        },
+        {
+          "lat": 30.95991,
+          "lon": 34.84583,
+          "alt_m": 900,
+          "speed_kmh": 700
+        },
+        {
+          "lat": 30.90586,
+          "lon": 34.84583,
+          "alt_m": 900,
+          "speed_kmh": 700
+        },
+        {
+          "lat": 30.90586,
+          "lon": 34.59417,
+          "alt_m": 900,
+          "speed_kmh": 700
+        }
+      ],
+      "laps": 15,
+      "sources": {
+        "start.lat": "inferred",
+        "start.lon": "inferred",
+        "start.heading": "inferred",
+        "start.alt_m": "inferred",
+        "route": "inferred"
+      },
+      "notes": {
+        "route": "a racetrack low over the ground (about 500 m above it): a look-down target"
+      }
+    },
+    {
+      "name": "Drone 3",
+      "unit": "drone_f16",
+      "count": 1,
+      "brain": "drone_evade",
+      "start": {
+        "lat": 31.19414,
+        "lon": 34.51029,
+        "heading": 0,
+        "alt_m": 6000
+      },
+      "route": [
+        {
+          "lat": 31.26622,
+          "lon": 34.51029,
+          "alt_m": 6000,
+          "speed_kmh": 850
+        },
+        {
+          "lat": 31.19414,
+          "lon": 34.61514,
+          "alt_m": 6000,
+          "speed_kmh": 850
+        },
+        {
+          "lat": 31.26622,
+          "lon": 34.72,
+          "alt_m": 6000,
+          "speed_kmh": 850
+        },
+        {
+          "lat": 31.19414,
+          "lon": 34.82486,
+          "alt_m": 6000,
+          "speed_kmh": 850
+        },
+        {
+          "lat": 31.26622,
+          "lon": 34.92971,
+          "alt_m": 6000,
+          "speed_kmh": 850
+        },
+        {
+          "lat": 31.19414,
+          "lon": 34.92971,
+          "alt_m": 6000,
+          "speed_kmh": 850
+        },
+        {
+          "lat": 31.26622,
+          "lon": 34.82486,
+          "alt_m": 6000,
+          "speed_kmh": 850
+        },
+        {
+          "lat": 31.19414,
+          "lon": 34.72,
+          "alt_m": 6000,
+          "speed_kmh": 850
+        },
+        {
+          "lat": 31.26622,
+          "lon": 34.61514,
+          "alt_m": 6000,
+          "speed_kmh": 850
+        },
+        {
+          "lat": 31.19414,
+          "lon": 34.51029,
+          "alt_m": 6000,
+          "speed_kmh": 850
+        }
+      ],
+      "laps": 12,
+      "sources": {
+        "start.lat": "inferred",
+        "start.lon": "inferred",
+        "start.heading": "inferred",
+        "start.alt_m": "inferred",
+        "route": "inferred"
+      },
+      "notes": {
+        "route": "a weave at 20,000 ft, 8 km side to side every 10 km; the brain breaks away from a fighter inside 9 km"
+      }
+    },
+    {
+      "name": "Drones 4",
+      "unit": "drone_f35",
+      "count": 2,
+      "brain": "drone_radar",
+      "start": {
+        "lat": 30.82477,
+        "lon": 34.45786,
+        "heading": 0,
+        "alt_m": 7600
+      },
+      "route": [
+        {
+          "lat": 31.27523,
+          "lon": 34.45786,
+          "alt_m": 7600,
+          "speed_kmh": 900
+        },
+        {
+          "lat": 31.27523,
+          "lon": 34.98214,
+          "alt_m": 7600,
+          "speed_kmh": 900
+        },
+        {
+          "lat": 30.82477,
+          "lon": 34.98214,
+          "alt_m": 7600,
+          "speed_kmh": 900
+        },
+        {
+          "lat": 30.82477,
+          "lon": 34.45786,
+          "alt_m": 7600,
+          "speed_kmh": 900
+        }
+      ],
+      "laps": 6,
+      "sources": {
+        "start.lat": "inferred",
+        "start.lon": "inferred",
+        "start.heading": "inferred",
+        "start.alt_m": "inferred",
+        "route": "inferred"
+      },
+      "notes": {
+        "route": "a pair on a 50 km box at 25,000 ft, radars on: the group, and the RWR's emitters"
+      }
+    }
+  ],
+  "targets": [
+    {
+      "unit": "target_f16",
+      "name": "Target 1",
+      "lat": 31.02,
+      "lon": 34.57,
+      "alt_m": 0,
+      "heading": 90,
+      "sources": {
+        "lat": "inferred",
+        "lon": "inferred",
+        "heading": "inferred",
+        "alt_m": "inferred"
+      }
+    },
+    {
+      "unit": "target_mig29",
+      "name": "Target 2",
+      "lat": 31.02315,
+      "lon": 34.57262,
+      "alt_m": 0,
+      "heading": 200,
+      "sources": {
+        "lat": "inferred",
+        "lon": "inferred",
+        "heading": "inferred",
+        "alt_m": "inferred"
+      }
+    },
+    {
+      "unit": "target_f16",
+      "name": "Target 3",
+      "lat": 31.0173,
+      "lon": 34.57472,
+      "alt_m": 0,
+      "heading": 330,
+      "sources": {
+        "lat": "inferred",
+        "lon": "inferred",
+        "heading": "inferred",
+        "alt_m": "inferred"
+      }
+    },
+    {
+      "unit": "target_mig29",
+      "name": "Target 4",
+      "lat": 31.0209,
+      "lon": 34.56476,
+      "alt_m": 0,
+      "heading": 45,
+      "sources": {
+        "lat": "inferred",
+        "lon": "inferred",
+        "heading": "inferred",
+        "alt_m": "inferred"
+      }
+    }
+  ],
+  "sam_sites": [],
+  "sources": {
+    "wind_kt": "inferred",
+    "wind_from": "inferred",
+    "start.elevation_m": "oa",
+    "time": "inferred",
+    "route": "inferred",
+    "training.air_kills": "inferred",
+    "training.ground_kills": "inferred",
+    "training.time_budget_s": "inferred",
+    "training.end_hold_s": "inferred"
+  },
+  "notes": {
+    "time": "a day flight; the range has no time of its own",
+    "start": "the base's parking spot for the unit (modern-iaf/data/airbases, airbases.md §5); the altitude: the terrain's ground there (elevation_m without the terrain)",
+    "route": "the air range over the open Negev between Ramon and Revivim, then the ground targets in the Halutza sands, 28 km north of Ramon",
+    "drones": "the range's drones (avionics-plan.md §6 slice 1; the user's decision of 17 Nov, §8.1): the sim's own F-16 and F-35 flown by the shared AI as targets, red for the exercise, never shooting",
+    "targets": "four retired airframes parked in the open in the Halutza sands, 28 km north of Ramon, clear of buildings (the theatre's scenery has none within 1 km): a real range's place is not published, this one is inferred",
+    "training.air_kills": "two of the five drones: one gun or missile kill and a second to show it was no luck (inferred)",
+    "training.ground_kills": "two of the four ground targets (inferred)",
+    "training.time_budget_s": "45 minutes: the start-up, the taxi and the take-off (about 15), the transit and both parts of the range",
+    "training.end_hold_s": "a fail shows its reason 5 s before the debrief"
+  },
+  "footnotes": {
+    "oa": "OurAirports, airports.csv (public domain; LLRM elevation 2126 ft), https://davidmegginson.github.io/ourairports-data/airports.csv"
+  },
+  "id": "ramon_range",
+  "menu_id": 2013,
+  "title": {
+    "en": "Weapons range",
+    "he": "מטווח"
+  },
+  "briefing": {
+    "purpose": {
+      "en": "To find drones on the radar and shoot them down, then bomb ground targets: the range's drones fly over the open Negev between Ramon and Revivim, the targets stand in the Halutza sands, 28 km north of Ramon.",
+      "he": "לאתר מל\"טים במכ\"ם ולהפיל אותם, ואחר כך להפציץ מטרות קרקע: מל\"טי המטווח טסים מעל הנגב הפתוח בין רמון לרביבים, המטרות עומדות בחולות חלוצה, 28 ק\"מ צפונית לרמון."
+    },
+    "how": [
+      {
+        "at": "start",
+        "en": "Start, taxi and take off from runway {runway} as in the Take-off lesson, with the tower's clearances.",
+        "he": "להתניע, להסיע ולהמריא ממסלול {runway} כמו בשיעור ההמראה, עם אישורי המגדל."
+      },
+      {
+        "en": "Fly the route's first steerpoint, the air range. Bring the radar up: {key:56} cycles its modes, {key:57} switches air and ground. Five drones fly there, red for the exercise: one at 15,000 ft, one low, one that breaks away when you close in, and a pair at 25,000 ft whose radars your RWR hears. None of them shoots.",
+        "he": "לטוס לנקודת הציון הראשונה, מטווח האוויר. להפעיל את המכ\"ם: {key:56} מחליף את מצביו, {key:57} עובר בין אוויר לקרקע. חמישה מל\"טים טסים שם, אדומים לצורך התרגיל: אחד ב־15,000 רגל, אחד נמוך, אחד שמתחמק כשמתקרבים אליו, וזוג ב־25,000 רגל שמקלט האזהרה שומע את המכ\"מים שלהם. אף אחד מהם אינו יורה."
+      },
+      {
+        "en": "Lock a drone ({key:58} steps the targets), arm with {key:125}, and shoot it down with the gun ({key:64}) or a missile ({key:66} selects, {key:69} launches). Shoot down 2 of them.",
+        "he": "לנעול על מל\"ט ({key:58} עובר בין המטרות), לחמש עם {key:125}, ולהפיל אותו בתותח ({key:64}) או בטיל ({key:66} בוחר, {key:69} משגר). להפיל 2 מהם."
+      },
+      {
+        "en": "Then fly the second steerpoint, the ground targets: four retired jets parked in the open. Select the bombs with {key:65}, put the pipper on a target and release with {key:69}. Destroy 2 of them, all within {minutes} minutes of the start.",
+        "he": "אחר כך לטוס לנקודת הציון השנייה, מטרות הקרקע: ארבעה מטוסים יצאי שירות שחונים בשטח פתוח. לבחור את הפצצות עם {key:65}, לשים את הכוונת על מטרה ולשחרר עם {key:69}. להשמיד 2 מהן, הכול תוך {minutes} דקות מההתחלה."
+      }
+    ]
+  },
+  "win": {
+    "en": "Mission - successful. The range's targets are down.",
+    "he": "המשימה הצליחה. מטרות המטווח הושמדו."
+  },
+  "lose": {
+    "en": "Mission - failed. Better try again.",
+    "he": "המשימה נכשלה. נסה שוב."
+  },
+  "runway": "25R",
+  "route": [
+    {
+      "lat": 31.05,
+      "lon": 34.72,
+      "alt_m": 4600,
+      "speed_kmh": 800
+    },
+    {
+      "lat": 31.02,
+      "lon": 34.57,
+      "alt_m": 3400,
+      "speed_kmh": 800
+    }
+  ],
+  "training": {
+    "kind": "range",
+    "clearances": [
+      "startup",
+      "taxi",
+      "takeoff"
+    ],
+    "air_kills": 2,
+    "ground_kills": 2,
+    "time_budget_s": 2700,
+    "end_hold_s": 5,
+    "goals": []
+  }
+}

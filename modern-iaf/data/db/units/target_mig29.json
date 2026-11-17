@@ -1,0 +1,31 @@
+{
+  "id": "target_mig29",
+  "number": 33,
+  "name": "MiG-29 hulk (range target)",
+  "label": "MiG-29 hulk",
+  "class": "vehicle",
+  "type": -1,
+  "model": "mig29/mig29_h.gltf",
+  "scale": 1.0,
+  "radius_m": 5.68,
+  "strength": 600,
+  "loadout": {},
+  "pylons": {},
+  "sources": {
+    "type": "inferred",
+    "scale": "inferred",
+    "radius_m": "w-mig29",
+    "strength": "inferred"
+  },
+  "notes": {
+    "": "A ground target of the weapons range: a retired MiG-29 airframe parked in the open (inferred), drawn with the detailed MiG-29 model already in the repo (shared/extra/models/mig29, GPL 3, docs/credits.md). Class \"vehicle\" (6), no brain.",
+    "type": "-1: no type code, as the original's static objects",
+    "model": "the original MiG-29's file name, which Models: Detailed (the sim's fixed setting) draws as shared/extra/models/mig29/mig29.glb (gltf.gd DETAILED); nothing of the original's is read",
+    "scale": "1: our models are built true size",
+    "radius_m": "half the span, 11.36 m",
+    "strength": "as the F-16 hulk's (inferred)"
+  },
+  "footnotes": {
+    "w-mig29": "Wikipedia, \"Mikoyan MiG-29\" (span 11.36 m), https://en.wikipedia.org/wiki/Mikoyan_MiG-29"
+  }
+}

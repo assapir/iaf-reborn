@@ -1,0 +1,15 @@
+{
+  "id": "drone_evade",
+  "number": 3,
+  "name": "Range drone: breaks away from a fighter that closes in",
+  "rules": [
+    { "if": [["always"]], "then": ["select_air_target"] },
+    { "if": [["target_range_m", "<", 9000], ["random", "<", 50]], "then": ["break_90"] },
+    { "if": [["target_range_m", "<", 9000]], "then": ["run_away"] },
+    { "if": [["always"]], "then": ["navigate"] }
+  ],
+  "notes": {
+    "": "The range's manoeuvring drone: it tracks the nearest air contact; inside 9 km of it, every period (2 s) it either breaks 90° or turns away from it, at random, so its flight path keeps changing; farther away it flies its route. It never shoots.",
+    "rules[1]": "9 km: a little beyond the gun's and the short-range missile's reach, so the drone is already manoeuvring when the shot comes (inferred)"
+  }
+}

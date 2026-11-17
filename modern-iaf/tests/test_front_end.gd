@@ -409,7 +409,7 @@ func two_flights(fe: Control, lang: String) -> void:
 ## its own jet (no other unit in the player's slot).
 func jet_missions(fe: Control) -> void:
 	var s := settings()
-	var want := {"f16i": [2011, 2012], "f16d": [2021, 2022], "f35i": [2031, 2032]}
+	var want := {"f16i": [2011, 2012, 2013], "f16d": [2021, 2022, 2023], "f35i": [2031, 2032, 2033]}
 	for unit in want:
 		s.sim_jet = unit
 		fe.section = "training"
@@ -419,15 +419,15 @@ func jet_missions(fe: Control) -> void:
 		check(ids == want[unit], "jets: the %s lists its own missions (%s)" % [unit, ids])
 		var rows: Array = fe.find_child("List", true, false).get_children()
 		check(
-			rows.size() == 2 and _has(rows[0], "1") and _has(rows[1], "2") and rows[1].name == "Mission2",
-			"jets: the %s's list numbered 1, 2" % unit
+			rows.size() == 3 and _has(rows[0], "1") and _has(rows[2], "3") and rows[2].name == "Mission3",
+			"jets: the %s's list numbered 1, 2, 3" % unit
 		)
-	# The Barak: nothing flown on it (the fixture's flights are the Sufa's): 0 of 2, its first one Next.
+	# The Barak: nothing flown on it (the fixture's flights are the Sufa's): 0 of 3, its first one Next.
 	s.sim_jet = "f16d"
 	fe.section = "training"
 	fe.show_page("section")
 	await frames(2)
-	check(_has_part(fe, "0 of 2 passed"), "jets: the Barak's own progress")
+	check(_has_part(fe, "0 of 3 passed"), "jets: the Barak's own progress")
 	var rows: Array = fe.find_child("List", true, false).get_children()
 	check(rows[0].find_child("NextUp", true, false) != null and rows[0].has_focus(), "jets: the Barak's first is Next")
 	var side: Control = fe.find_child("Side", true, false)
@@ -437,7 +437,7 @@ func jet_missions(fe: Control) -> void:
 	)
 	fe.show_page("hangar")
 	await frames(2)
-	check(_has(fe.find_child("JetCard", true, false), "0 of 2 passed"), "jets: the Hangar card: the Barak's progress")
+	check(_has(fe.find_child("JetCard", true, false), "0 of 3 passed"), "jets: the Hangar card: the Barak's progress")
 	# A mission flies in its own jet: the compiled data as it is, its unit picked.
 	check(fly_gd.prepare(2012), "jets: Ramon's take-off prepared")
 	check(s.sim_jet == "f16i" and not s.mission_files_override[0].data.has("readable"), "jets: flown in the Sufa")
@@ -648,7 +648,7 @@ func walk(fe: Control, ids: Dictionary, lang: String) -> void:
 	await frames(2)
 	check(s.sim_jet == "f16i" and s.f16_variant == "sufa", "%s: the Sufa picked (sim_jet, the F-16 switch)" % lang)
 	check(fe.find_child("Campaign", true, false) == null, "%s: hangar: no campaign button (Missions has it)" % lang)
-	check(_has(fe, "2 מתוך 2 עברו" if he else "2 of 2 passed"), "%s: hangar: the Sufa's own progress" % lang)
+	check(_has(fe, "2 מתוך 3 עברו" if he else "2 of 3 passed"), "%s: hangar: the Sufa's own progress" % lang)
 	fe.find_child("Fly", true, false).pressed.emit()
 	await frames(2)
 	await _missions_checks(fe, lang)
@@ -665,10 +665,10 @@ func walk(fe: Control, ids: Dictionary, lang: String) -> void:
 	await frames(2)
 	check(fe.page == "debrief", "%s: a flight's end opens its debrief" % lang)
 	await _debrief_checks(fe, lang, ids)
-	# The take-off is the Sufa's last mission: no Next mission, Fly again focused.
-	check(fe.find_child("NextMission", true, false) == null, "%s: debrief: no Next mission after the jet's last" % lang)
-	check(fe.find_child("FlyAgain", true, false).has_focus(), "%s: debrief: Fly again focused" % lang)
-	var order := ["BackMissions", "FlyAgain"]
+	# After the take-off the Sufa's weapons range: Next mission, focused.
+	var nm: Button = fe.find_child("NextMission", true, false)
+	check(nm != null and nm.has_focus(), "%s: debrief: Next mission (the range) focused" % lang)
+	var order := ["BackMissions", "FlyAgain", "NextMission"]
 	var foot: Array = fe.find_child("Footer", true, false).get_children().filter(func(c): return c.name in order)
 	check(foot.map(func(c): return str(c.name)) == order, "%s: debrief: the buttons' order" % lang)
 	fe.find_child("BackMissions", true, false).pressed.emit()
@@ -1571,7 +1571,7 @@ func _missions_checks(fe: Control, lang: String) -> void:
 		(row_x.call("training") > row_x.call("fly_now")) == he,
 		"%s: missions: the sections from the inline start" % lang
 	)
-	check(_has(fe, "2 מתוך 2 עברו" if he else "2 of 2 passed"), "%s: missions: Training's progress" % lang)
+	check(_has(fe, "2 מתוך 3 עברו" if he else "2 of 3 passed"), "%s: missions: Training's progress" % lang)
 	# A card: its number, title and progress (or Coming later); no subtitle, no list of what it holds (2026-11-16).
 	var tr: Control = fe.find_child("Section_training", true, false)
 	var texts := func(c: Control) -> Array: return _labels(c).filter(func(x): return x != "")
@@ -1601,17 +1601,20 @@ func _missions_checks(fe: Control, lang: String) -> void:
 	await frames(2)
 	(fe.find_child("Section_training", true, false) as Button).pressed.emit()
 	await frames(2)
-	check(fe.page == "section" and fe.missions.size() == 2, "%s: Training lists the Sufa's two missions" % lang)
+	check(fe.page == "section" and fe.missions.size() == 3, "%s: Training lists the Sufa's three missions" % lang)
 	var rows: Array = fe.find_child("List", true, false).get_children()
 	var status := func(i: int) -> String: return str(rows[i].find_child("Status", true, false).text)
 	check(status.call(0).begins_with("עבר" if he else "Pass"), "%s: list: the start-up passed" % lang)
 	check(status.call(1).begins_with("עבר" if he else "Pass"), "%s: list: the take-off passed (its last flight)" % lang)
-	# All passed: no Next, the first one focused.
+	# The two passed; the range not flown: it is Next, and focused.
 	check(
-		rows.all(func(r): return r.find_child("NextUp", true, false) == null and not r.button_pressed),
-		"%s: list: all passed, no Next" % lang
+		rows.slice(0, 2).all(func(r): return r.find_child("NextUp", true, false) == null),
+		"%s: list: no Next on the passed ones" % lang
 	)
-	check(rows[0].has_focus(), "%s: list: all passed, the first focused" % lang)
+	check(
+		rows[2].find_child("NextUp", true, false) != null and rows[2].has_focus(),
+		"%s: list: the range Next, focused" % lang
+	)
 	check(
 		_has(
 			rows[0],
@@ -1637,7 +1640,7 @@ func _missions_checks(fe: Control, lang: String) -> void:
 	var purpose: RichTextLabel = side.find_child("SidePurpose", true, false)
 	check(purpose != null and purpose.get_parsed_text().contains("25R"), "%s: list: the side panel's purpose" % lang)
 	back = fe.find_child("Back", true, false)
-	check(rows[1].get_node(rows[1].focus_next) == back, "%s: list: Tab to Back" % lang)
+	check(rows[2].get_node(rows[2].focus_next) == back, "%s: list: Tab to Back" % lang)
 	back.pressed.emit()
 	await frames(2)
 	check(fe.page == "missions", "%s: list: Back opens the Missions screen" % lang)

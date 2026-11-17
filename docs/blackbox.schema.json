@@ -105,6 +105,7 @@
         "kind": { "type": "string", "description": "hit: \"gun\", \"missile\", \"blast\", \"script\"." },
         "damage": { "type": "number", "description": "hit: the jet's damage after it, 0..1." },
         "kill": { "type": "boolean", "description": "hit: the hit was fatal (damage ≥ 0.8)." },
+        "air": { "type": "boolean", "description": "kill: the destroyed unit was an aircraft (Modern IAF's range scores air and ground kills apart, modern-iaf/docs/training.md)." },
         "system": { "type": "integer", "description": "system: the system number (docs/damage.md §5)." },
         "master": { "type": "integer", "description": "weapon: the master mode." },
         "store": { "type": "string", "description": "weapon: the selected store's name." },

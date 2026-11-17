@@ -1137,6 +1137,10 @@ func objectives(m: Dictionary, budget: String) -> Array:
 	if kind(m) == "takeoff":
 		out.append(s("obj_runway") % _ltr(str(m.get("runway", ""))))
 		out.append(s("obj_climb") % int(m.training.get("heading_tolerance_deg", 10)))
+	elif kind(m) == "range":
+		for k in ["air_kills", "ground_kills"]:
+			if int(m.training.get(k, 0)) > 0:
+				out.append(s("obj_" + k) % int(m.training[k]))
 	else:
 		out.append_array([s("obj_idle"), s("obj_avionics")])
 	out.append_array([s("obj_within") % budget, s("obj_safe")])

@@ -15,8 +15,8 @@ From the repo root:
 IAF_DEFAULT_SETTINGS=1 godot --headless --audio-driver Dummy --path modern-iaf -s ../modern-iaf/tests/test_m0_boot.gd --log-file <temp>
 ```
 
-Developers: `./start-modern-iaf -- --mission <id>` flies one mission at once, then shows its debrief (2011 / 2012 Ramon,
-2021 / 2022 Ramat David, 2031 / 2032 Nevatim; [training.md](docs/training.md) §10).
+Developers: `./start-modern-iaf -- --mission <id>` flies one mission at once, then shows its debrief (2011 / 2012 / 2013 Ramon,
+2021 / 2022 / 2023 Ramat David, 2031 / 2032 / 2033 Nevatim; the third is the weapons range; [training.md](docs/training.md) §10).
 
 On Windows: `.\modern-iaf-setup.ps1` and `.\start-modern-iaf.ps1`.
 

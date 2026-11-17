@@ -3,6 +3,12 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **A weapons range per jet (2026-11-17, avionics-plan.md slice 1, G3; [training.md](training.md) §3.4):** the
+  Training list's third mission for the Sufa, the Barak and the Adir: a cold start, then five drones (the sim's own
+  F-16 and F-35 on the shared AI under the sim's own brains: co-altitude, low, a manoeuvring one, a pair whose radars
+  the RWR hears; red for the exercise, never shooting) and four retired airframes on the ground. The radar finds the
+  drones, the gun, missiles and bombs destroy them, and the scorer counts air and ground kills on the debrief
+  (`modern-iaf/tests/test_sim_range.gd`).
 - **Every F-16 3D-cockpit control is seen to move (2026-11-16, finish list C4, [cockpit.md](cockpit.md) §5.2 "Every
   control"):** the parts FlightGear does not animate are pressed in or tilted; the proof renders every control through
   its positions (`modern-iaf/tests/_controls_shot.gd`).
@@ -598,7 +604,9 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 ## Open
 - **Avionics, missiles and bombs (2026-11-17):** the inventory per jet, the gap list and the build order are in
   [avionics-plan.md](avionics-plan.md); the 15 November bugs (radar standby, break X and the HUD against reborn,
-  SPICE / GPS targets, the gun flash) are its first slice.
+  SPICE / GPS targets, the gun flash) are its first slice; the range is slice 1. The briefing's PRE target pick for the
+  GPS bombs is built on its own branch and waits for the user's yes; until then a PRE bomb steps to the range's ground
+  steerpoint with Shift+K.
 - **The process staying alive after Quit on macOS**: reported once, on the user's Mac on 2026-11-15; it did not
   reproduce on Linux (headless or in a hidden real render) and is not being pursued unless it is seen again. The leak
   reported with it is fixed (docs/rendering.md §1.5; `modern-iaf/tests/test_exit.gd`).

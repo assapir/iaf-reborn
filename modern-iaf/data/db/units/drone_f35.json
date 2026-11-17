@@ -1,0 +1,31 @@
+{
+  "id": "drone_f35",
+  "number": 31,
+  "name": "F-35 target drone",
+  "label": "F-35",
+  "class": "fighter",
+  "type": 1000,
+  "model": "f35i/f35i.gltf",
+  "scale": 1.0,
+  "radius_m": 5.33,
+  "strength": 300,
+  "loadout": {},
+  "pylons": {},
+  "sources": {
+    "type": "inferred",
+    "scale": "inferred",
+    "radius_m": "w-f35",
+    "strength": "inferred"
+  },
+  "notes": {
+    "": "A target drone of the weapons range: the sim's own F-35I model flown by the shared AI under a range brain; clean, no gun. Not flyable (no \"airframe\").",
+    "type": "the F-35I's type code (1000)",
+    "model": "our F-35I model in shared/extra/planes/f35i (the aircraft index's extra planes)",
+    "scale": "1: our models are built true size",
+    "radius_m": "half the span, 35 ft (10.67 m)",
+    "strength": "our damage scale's fighter (modern-iaf/docs/data-formats.md §6)"
+  },
+  "footnotes": {
+    "w-f35": "Wikipedia, \"Lockheed Martin F-35 Lightning II\" (F-35A: span 35 ft), https://en.wikipedia.org/wiki/Lockheed_Martin_F-35_Lightning_II"
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "id": "drone_f16",
+  "number": 30,
+  "name": "F-16 target drone",
+  "label": "F-16",
+  "class": "fighter",
+  "type": 100,
+  "model": "f16/f16_h.gltf",
+  "scale": 1.0,
+  "radius_m": 4.98,
+  "strength": 300,
+  "loadout": {},
+  "pylons": {},
+  "sources": {
+    "type": "inferred",
+    "scale": "inferred",
+    "radius_m": "w-f16",
+    "strength": "inferred"
+  },
+  "notes": {
+    "": "A target drone of the weapons range (avionics-plan.md §6 slice 1): the sim's own F-16 flown by the shared AI under a range brain (data/db/brains); clean, no stores and no gun, so it never shoots. Not flyable (no \"airframe\"): the Hangar lists only the jets with one.",
+    "type": "the F-16's type code (100): its flight model and its look follow the F-16 switch the player's jet sets (Sufa or Barak)",
+    "model": "our F-16 model's file name in the sim's own aircraft index (iaf-sim own, converted/own/planes): the AI flies it as that plane",
+    "scale": "1: our models are built true size",
+    "radius_m": "half the span over the wingtip rails, 9.96 m",
+    "strength": "our damage scale's fighter (modern-iaf/docs/data-formats.md §6)"
+  },
+  "footnotes": {
+    "w-f16": "Wikipedia, \"General Dynamics F-16 Fighting Falcon\" (span 32 ft 8 in, 9.96 m), https://en.wikipedia.org/wiki/General_Dynamics_F-16_Fighting_Falcon"
+  }
+}

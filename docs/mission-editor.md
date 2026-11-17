@@ -168,7 +168,7 @@ Missions go in and come back as JSON strings. Positions are engine world metres:
 | `blank(mission)` | a mission from scratch: only flight 1 (Alpha) and its jets stay (New, §2) |
 | `set_role(mission, ids, role)` | role 0 must survive, 1 target, 2 neutral on the units `ids` (§13) |
 | `conditions(mission)` | what passes and fails the mission, with its summary (§13) |
-| `set_red_flight(mission, spec)` | a red flight taking off from a base (§12.5) |
+| `set_red_flight(mission, spec)` | a red flight taking off from a base (§12.5); Modern IAF's range drones give `start` [x, y, alt, heading] (airborne there) and `brains` [leader, wingman] in its place (modern-iaf/docs/data-formats.md §5.1) |
 | `flip_base(base)` | a base mission with blue and red swapped (§12.5) |
 | `years()`, `year_source(year)`, `default_year(source)` | the years; the original a year builds on; an original's year (§12) |
 | `year_bases(year, side)`, `base_owner(stem, year)` | the bases a side holds; a base's owner (§12.2) |

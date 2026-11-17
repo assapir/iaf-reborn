@@ -14,7 +14,7 @@ cargo run -p iaf-setup --bin iaf-sim -- all [assets]   # or db / own / fm / airb
 
 | step | reads | writes (under `assets/`) |
 |---|---|---|
-| `iaf-sim db` | `data/db/units/*.json`, `data/db/weapons/*.json` (not the drafts in `data/db/drafts/`, §11) | `converted/missions/sim.bdb.json`; the key `"sim.bdb"` of `converted/objects/objects.json` (the other keys stay); `converted/own/resource/weaponsmotion/weapons.ibx` |
+| `iaf-sim db` | `data/db/units/*.json`, `data/db/weapons/*.json`, `data/db/brains/*.json` (not the drafts in `data/db/drafts/`, §11) | `converted/missions/sim.bdb.json`; the key `"sim.bdb"` of `converted/objects/objects.json` (the other keys stay); `converted/own/resource/weaponsmotion/weapons.ibx` |
 | `iaf-sim missions` | `data/missions/*.json`, the units | `converted/modern-iaf/missions/<id>.json`, `converted/modern-iaf/missions/missionlist.json` (menu id → `[<id>]`) |
 | `iaf-sim airbases` | `data/airbases/*.json`, the terrain's heights (`converted/terrain/israel/`) | `converted/terrain/israel/airbases.json` and `airbases/<base>.png`, `converted/own/iaf.ibx`, `converted/own/terraintype.dat` (§12) |
 | `iaf-sim terrain` | `data/airbases/*.json` (the outlines); `source/dem/` (GLO-30), `source/imagery/sentinel2/` (WorldCover tiles and listings, shared with the original game's imagery setup), `source/imagery/mapi2015/` (the Survey sheets); what is missing in the first two is downloaded into them ([terrain.md](terrain.md) §1.1) | `converted/terrain/israel/` (`L<l>/c_*.jpg`, `L<l>/h_*.png`, `meta.json`, `.work/`) |
@@ -45,7 +45,7 @@ reader takes them.
 
 | record | readable | hex | named values |
 |---|---|---|---|
-| unit | `id`, `category` (from `class`), `label`, `brain`, `radius_m`, `strength`, `collider`, `class`, `type` | `0x514`, `0x51e`, `0x528`, `0x532`, `0x564`, `0x56e`, `0x58c`, `0x5aa`, `0x5b4` | class `fighter` 0x1c "Controlled aircraft", `radar_sam` 8 "Radar sam", `ir_sam` 9 "Infra red sam", `aaa` 10 "Gundish", `ground_radar` 11 "Ground radar" |
+| unit | `id`, `category` (from `class`), `label`, `brain`, `radius_m`, `strength`, `collider`, `class`, `type` | `0x514`, `0x51e`, `0x528`, `0x532`, `0x564`, `0x56e`, `0x58c`, `0x5aa`, `0x5b4` | class `fighter` 0x1c "Controlled aircraft", `radar_sam` 8 "Radar sam", `ir_sam` 9 "Infra red sam", `aaa` 10 "Gundish", `ground_radar` 11 "Ground radar", `vehicle` 6 "Vehicle" |
 | unit (model) | `id`, `model`, `scale` | Present `0x640`, `0x64a`, `0x65e`; the unit's `0x53c` = its number | — |
 | weapon | `name`, `kind`, `model`, `drag`, `power`, `blast_m`, `kg` (→ pounds), `generation`, type (from `kind`); a tank's `empty_kg` (→ pounds) | `0x708`, `0x712`, `0x730`, `0x73a`, `0x744`, `0x74e`, `0x758`, `0x762`, `0x780`; `empty_lb` (ours: the original's record has no such field; `weapon_db.gd` reads it) | `gun` 565, `chaff` 540, `flare` 550, `ir_missile` 570, `bomb` 500, `radar_missile` 600, `semi_radar_missile` 610, `ir_sam` 620, `radar_sam` 630, `tank` 660 |
 | mission | `title.en`, `time`, `wind_kt`, `wind_from`, `win.en`, `lose.en`, `category` | misc `0x44c`, `0x460`, `0x46a`, `0x474`, `0x47e`, `0x492`, `0x4d8` | — |
@@ -335,10 +335,11 @@ Example, `modern-iaf/data/db/weapons/aim-9m.json`:
 | `route` | the player's waypoints: `lat`, `lon`, `alt_m`, and `speed_kmh` or `t_s`. The compiled waypoint holds the planned arrival time in sim seconds (docs/ai.md §7.2): `t_s`, else the time from the flight's start along the legs at each point's speed. No route gives set_flight's one point 20 km ahead |
 | `runway` | the runway the mission's tower clears (kept in `sim` for item E3) |
 | `note` | a caveat the compiler prints and keeps in `sim` |
-| `training` | the pass / fail rules ([training.md](training.md) §3), kept in `sim`: `kind` (`"startup"` or `"takeoff"`), `time_budget_s`, `end_hold_s` (a fail shows its reason this long before the debrief), `goals` (the debrief items the sheet shows, in order; ids of `training::ITEMS`, refused otherwise); a start-up by keys `checklist` (`[{"step", "key", "en", "he", "where"}]`: the steps in order, ids of `training::STEPS`, with the key and the card's line in both languages; `where`, optional, `{"en", "he"}`: the step's switch and its place in the cockpit, shown under the line ([cockpit.md](cockpit.md) §5.2); `wait`, optional, `{"en", "he"}`: the state to wait for before the next step; training.md §7.1); `steps` (`[{"key", "pick", "en", "he", "wait"}]`: the pilot's sequence for the notebook, a take-off's on its TAXI / T-O page, a start-up's tower call first on its START-UP page, `key` a record of `data/keys.json`, `pick` the radio menu's number after it, `{runway}` and `{tolerance}` filled in; training.md §8); a take-off also `heading_tolerance_deg`, `empty_kg` and `takeoff_kt` (`[[kg, kt], …]`, rising in kg) and needs `runway`; `clearances`, optional, the phases that need the tower's clearance first (ids of `training::CLEARANCES`: `startup`, `taxi`, `takeoff`; `takeoff` needs `runway`; training.md §3.3). The compiler parses them and wants a source for each figure (`"training.time_budget_s"` …) |
+| `training` | the pass / fail rules ([training.md](training.md) §3), kept in `sim`: `kind` (`"startup"`, `"takeoff"` or `"range"`), `time_budget_s`, `end_hold_s` (a fail shows its reason this long before the debrief), `goals` (the debrief items the sheet shows, in order; ids of `training::ITEMS`, refused otherwise); a start-up by keys `checklist` (`[{"step", "key", "en", "he", "where"}]`: the steps in order, ids of `training::STEPS`, with the key and the card's line in both languages; `where`, optional, `{"en", "he"}`: the step's switch and its place in the cockpit, shown under the line ([cockpit.md](cockpit.md) §5.2); `wait`, optional, `{"en", "he"}`: the state to wait for before the next step; training.md §7.1); `steps` (`[{"key", "pick", "en", "he", "wait"}]`: the pilot's sequence for the notebook, a take-off's on its TAXI / T-O page, a start-up's tower call first on its START-UP page, `key` a record of `data/keys.json`, `pick` the radio menu's number after it, `{runway}` and `{tolerance}` filled in; training.md §8); a take-off also `heading_tolerance_deg`, `empty_kg` and `takeoff_kt` (`[[kg, kt], …]`, rising in kg) and needs `runway`; a range `air_kills` and `ground_kills` (the kills it asks for, at least one in all; training.md §3.4); `clearances`, optional, the phases that need the tower's clearance first (ids of `training::CLEARANCES`: `startup`, `taxi`, `takeoff`; `takeoff` needs `runway`; training.md §3.3). The compiler parses them and wants a source for each figure (`"training.time_budget_s"` …) |
 | `fixed_loadout` | optional, `true`: the mission flies the unit record's own loadout; the briefing's Arming page shows it read-only and the pilot's stored loadout is not loaded ([front-end.md](front-end.md) §10). Not compiled (the front end and `flight/fly.gd` read it from the readable file) |
 | `flights` | Bravo..Delta: `unit`, `count`, `task`, `start` {`lat`, `lon`, `heading`, `alt_m`}, `route`. A flight's `task` (Alpha's in `start`) is one of `training`, `cap`, `strike`, `escort` (`flights.rs` `TASKS`), `training` by default in a training mission and needed in any other. The briefing lists the flights ([front-end.md](front-end.md) §10), and the compiler writes them into the compiled file's `sim.flights`: [{`callsign`, `unit`, `count`, `task`, `player`, `start`, `route` (UTM 36N), `stores` (the unit record's pylon stores, [{`weapon`, `count`}])}]. A two-flight sample, test data and not a shipped mission: `modern-iaf/tests/data/two_flights.json` |
-| `targets`, `sam_sites` | placed units: `unit`, `name`, `side` (default red), `lat`, `lon`, `alt_m`, `heading`, optional `route` [{`lat`, `lon`}, at least two] and `speed_kmh`; a target takes role 1, a SAM site role 2 |
+| `drones` | the weapons range's target drones (§5.1): red flights already airborne. Each: `unit`, `count` (1 or 2), `name` (its members are "<name> 1", "<name> 2"), `brain` (a brain id of `data/db/brains`, §5.1), `start` {`lat`, `lon`, `heading`, `alt_m`}, `route` (as the player's, flown `laps` times, default 1). Their figures need sources as a flight's. Compiled with `set_red_flight` (formation 8, side red) and the role 2 |
+| `targets`, `sam_sites` | placed units: `unit`, `name`, `side` (default red), `lat`, `lon`, `alt_m`, `heading`, optional `route` [{`lat`, `lon`}, at least two] and `speed_kmh`; a target takes role 1 (role 2 in a training mission, whose scorer judges it: the runtime's role rules would open the 1998 game's pass box), a SAM site role 2 |
 
 How a mission compiles (`sim.rs compile_mission`): an empty mission with the seven parts (`skeleton`), then the
 mission editor's builders: `blank`, `set_flight` for Alpha (Player1 at the start, role 0 "must survive") and the
@@ -348,7 +349,37 @@ the start (`mission_edit::Heights`, as the game's `height_at`), `elevation_m` wi
 `"frame": "real"`: its units stand at the real bases already, so no base move touches it. A runway start stands on
 the lineup point of that runway end (§12: 100 m past the declared runway's start, inferred), on the runway's heading.
 
-Red flights (`set_red_flight`) wait for the threat set: that builder starts a flight at one of the 1998 game's bases.
+Red flights of the threat set wait for its records. The range's drones use `set_red_flight` with their own start
+(`start` [x, y, alt, heading] in place of a 1998 base) and brains (`brains` [leader, wingman]).
+
+### 5.1 The weapons range: drones, brains and ground targets
+
+The range missions (`<base>_range`, menu 2013 / 2023 / 2033; [training.md](training.md) §3.4) give the radar, the
+RWR, the missiles, the gun and the bombs something to work on (avionics-plan.md §6 slice 1). Their units are the
+sim's own (the user's decision of 17 Nov 2026, avionics-plan.md §8, item 1); no threat record is used.
+
+- **Drones** (`data/db/units/drone_f16.json`, `drone_f35.json`): our F-16 and F-35I models (`model`: the file name in
+  the sim's aircraft index, `f16/f16_h.gltf`, `f35i/f35i.gltf`), flown by the shared AI (`shared/ai/ai_flights.gd`) on
+  the flight model of their type code. Clean: no stores, no gun, and no `airframe`, so the Hangar does not list them.
+- **Ground targets** (`target_f16.json`, `target_mig29.json`): retired airframes parked in the open (class `vehicle`,
+  type −1, no brain, strength 600), drawn with our F-16 model and the detailed MiG-29 already in the repo
+  (`shared/extra/models/mig29`, GPL 3, [../../docs/credits.md](../../docs/credits.md)).
+- **Brains** (`data/db/brains/<id>.json`): `id`, `number` (the bdb brain id, 1..999), `name`, `rules`, `notes`. A
+  rule is `{"if": [[measure, op, value], …], "then": [action, …]}`; `["always"]` is a condition that always holds.
+  Measures (docs/ai.md §4): `always` 0, `altitude_m` 4, `speed_kt` 6, `target_range_m` 13, `random` 15 (0..100),
+  `waypoint` 33, `damage_pct` 36; ops `==`, `>`, `<`, `>=`, `<=`, `!=`. Actions (docs/ai.md §5): `straight` 100,
+  `horizontal` 150, `run_away` 160, `break_90` 170, `hold` 230, `navigate` 240 (fly the route), `select_air_target`
+  400 (pick the best air contact of the unit's sensor: a lock the player's RWR hears). No weapon action exists, so no
+  brain of ours shoots. The rules run in order every 2 s; per action type the first rule that fires wins
+  (`brain.gd`), so a later `navigate` runs only when no manoeuvre fired before it. `iaf-sim db` compiles them into the
+  bdb's Brains part (`rules0`: `list16` the conditions, `list20` the actions) and an Actions row per action used (its
+  id the action code).
+
+| brain | does |
+|---|---|
+| `drone` (1) | flies its route |
+| `drone_radar` (2) | its radar on (a lock on the nearest jet), flies its route |
+| `drone_evade` (3) | tracks the nearest jet; inside 9 km of it breaks 90° or turns away, at random every period; else flies its route |
 
 The first six missions, two per MVP base (plan.md, MVP): start-up (`<base>_startup`) and take-off (`<base>_takeoff`)
 at Ramon (Sufa, menu 2011 / 2012), Ramat David (Barak, 2021 / 2022) and Nevatim (F-35I, 2031 / 2032). Each jet

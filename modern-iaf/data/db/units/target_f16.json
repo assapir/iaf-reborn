@@ -1,0 +1,31 @@
+{
+  "id": "target_f16",
+  "number": 32,
+  "name": "F-16 hulk (range target)",
+  "label": "F-16 hulk",
+  "class": "vehicle",
+  "type": -1,
+  "model": "f16/f16_h.gltf",
+  "scale": 1.0,
+  "radius_m": 4.98,
+  "strength": 600,
+  "loadout": {},
+  "pylons": {},
+  "sources": {
+    "type": "inferred",
+    "scale": "inferred",
+    "radius_m": "w-f16",
+    "strength": "inferred"
+  },
+  "notes": {
+    "": "A ground target of the weapons range: a retired airframe parked in the open (real ranges use derelict jets as targets; inferred), drawn with our F-16 model. Class \"vehicle\" (6): the radar's ground modes and the bombs take it; it has no brain and never moves.",
+    "type": "-1: no type code, as the original's static objects; no shared table keys it",
+    "model": "our F-16 model (the Sufa or the Barak by the F-16 switch)",
+    "scale": "1: our models are built true size",
+    "radius_m": "half the span, 9.96 m",
+    "strength": "twice a flying fighter's: a direct bomb hit or a long strafing pass destroys it (our damage scale, modern-iaf/docs/data-formats.md §6; inferred)"
+  },
+  "footnotes": {
+    "w-f16": "Wikipedia, \"General Dynamics F-16 Fighting Falcon\" (span 32 ft 8 in, 9.96 m), https://en.wikipedia.org/wiki/General_Dynamics_F-16_Fighting_Falcon"
+  }
+}
