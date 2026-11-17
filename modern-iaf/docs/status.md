@@ -214,7 +214,8 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   warm-up: MMC the HUD, ST STA store release, MFD the MFDs, UFC the DED, FCR the radar, RDR ALT the HUD's radar
   altitude; the INS needs main power only. Each has its own command (219); Ctrl+A throws the four AVIONIC POWER
   switches, and since 2026-11-17 the FCR and RDR ALT on with them (a keyed start had left the radar held at STBY and
-  the HUD without the break X's radar altitude; `test_sim_radar.gd`); the avionics step is the four on
+  the HUD without the break X's radar altitude; `test_sim_radar.gd`); after a start by clicks the key powers the FCR
+  too, and the switches work after a lesson's pass (`test_radar_cold.gd`); the avionics step is the four on
   ([cockpit.md](cockpit.md) §5.2 "One by one"; `test_switches_both_ways.gd`).
   Open: the real consequences beyond the switches' names (sources), the CARA ALOW and GAAF voices without RDR ALT.
 - **Every checklist switch by the mouse (2026-11-13, the switches audit's M1):** the throttle takes no mouse since

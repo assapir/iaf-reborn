@@ -526,9 +526,15 @@ func _finish(d: Dictionary) -> void:
 ## A checklist switch (commands 210–215 → STEP_IDS[i]; `want` the command's p1: 1 on, -1 off, 0 (a key) the other
 ## way): the flight model sets it (IafFlight.start_switch decides its consequence and fault; modern-iaf/docs/cockpit.md
 ## §5.2); the recording gets a change ("on": false for a switch back off) or a fault; the notebook follows the switches.
+## The avionics key turns all six SYSTEMS on while any is off, and the four off only when all six are on: after the
+## four clicked on, the key once turned them off and never reached the FCR (the user, 17 Nov: "it seems I can't power
+## it").
 func start_step(i: int, want := 0) -> void:
-	if i >= 0 and i < STEP_IDS.size():
-		_set_switch(STEP_IDS[i], want, STEP_IDS[i])
+	if i < 0 or i >= STEP_IDS.size():
+		return
+	if STEP_IDS[i] == "avionics" and want == 0 and host.flight != null:
+		want = 0 if SYSTEMS.all(func(s): return host.flight.start_on(s)) else 1
+	_set_switch(STEP_IDS[i], want, STEP_IDS[i])
 
 
 ## One F-16 power switch (command 219, p2 → SYSTEMS[i], `want` as start_step's): an AVIONIC POWER switch's change
@@ -540,8 +546,9 @@ func system_switch(i: int, want: int) -> void:
 
 ## Switch `sw` set (IafFlight.start_switch; `want` 2: its in-between position, IN_BETWEEN), its checklist step `id`
 ## recorded when it changes or faults, with the position of a switch of more than two (the INS knob's, IN_BETWEEN's).
+## The switches work after a lesson's pass too: the flight goes on (until 17 Nov they froze there, the FCR unpowerable).
 func _set_switch(sw: String, want: int, id: String) -> void:
-	if host.flight == null or not result.is_empty():
+	if host.flight == null:
 		return
 	var was: bool = host.flight.start_on(id)
 	var pos := _position(sw)

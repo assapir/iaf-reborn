@@ -289,7 +289,7 @@ switches as FlightGear models them.
   below): each is its own `toggle` in `f16_controls.json`. A click flips that switch alone, with its click
   (`SFX_BUTTON`), and sends its own command, `[219, 1, i]` on and `[219, -1, i]` off (i: MMC 0, ST STA 1, MFD 2,
   UFC 3). Once all four are on the avionics step is done. A switch refused (before the generators) goes back off.
-  Ctrl+A throws all four together, both ways.
+  Ctrl+A throws all four together: on (with FCR and RDR ALT) while any of the six is off, off only when all six are on.
 - **FCR and RDR ALT** (2026-11-13, the switches audit's M1): FlightGear's right console has both as their own objects,
   `fcr-switch` and `rdr-alt-switch` on the SNSR PWR panel, turning on `f16/avionics/power-fcr` (OFF 0 / ON 1) and
   `f16/avionics/power-rdr-alt` (OFF 0 / STBY 1 / ON 2)[^fg-right]; `CONTROLS` makes them the nodes `FCR` and
@@ -418,7 +418,11 @@ switch (`sim_flight.gd` `SYSTEMS`); no key sends it, Ctrl+A throws the four AVIO
 2026-11-17 Ctrl+A on also turns the SNSR PWR panel's FCR and RDR ALT on (Ctrl+A off leaves them on; `start.rs`
 `press("avionics")`): a start by the keys had left them off, so the radar stayed held at STBY and the Real HUD had no
 radar altitude for its break X (the user, 15 Nov: "radar isn't working? can't move out of stby?", "no x on pull
-up?!"; `test_sim_radar.gd`). The avionics step is done while all four are on; one off undoes it, and the debrief
+up?!"; `test_sim_radar.gd`). Since the second fix of 17 Nov (the user: "it seems I can't power it", after a Training
+lesson by clicks) the key turns all six on while any is off (`sim_flight.gd` `start_step`; before, with the four
+clicked on, it turned them off and never reached the FCR), and every start-up and power switch keeps working after a
+lesson's pass (before, `_set_switch` refused them once the lesson was scored, so the FCR could not be powered in the
+flight that went on; `test_radar_cold.gd`: each jet's take-off lesson by clicks, then the radar radiates). The avionics step is done while all four are on; one off undoes it, and the debrief
 reads that change as the step's.
 
 | switch | its system off | where | source |
