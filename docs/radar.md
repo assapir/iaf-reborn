@@ -187,8 +187,8 @@ Damage cases 0xf / 0x13 / 0x15 (`FUN_004adb20`) turn the radar OFF, and every la
 
 A jet whose aircraft definition has `radar.fcr` flies the real F-16 fire-control radar's controls on top of the
 game's modes (`crates/iaf-avionics/src/radar.rs` `Fcr`, `Real`; avionics-plan.md slice 2). Today that is the F-16I
-Sufa (`shared/extra/planes/f16i/airframe.json`: `{"sam_tracks": 4}`); the Barak becomes the same code with
-`{"sam_tracks": 1}` (slice 6). The FCR format's legends follow the dash-34 ([real-mfd.md](real-mfd.md) "FCR"); the
+Sufa (`shared/extra/planes/f16i/airframe.json`: `{"sam_tracks": 4}`) and Modern IAF's Barak, the same code with
+`{"sam_tracks": 1}` on the F-16's row (`modern-iaf/data/planes/f16.json`; avionics-plan.md B1). The FCR format's legends follow the dash-34 ([real-mfd.md](real-mfd.md) "FCR"); the
 jets without `radar.fcr` keep the original's radar unchanged. Only Modern IAF applies `radar.fcr`
 (`Settings.modern_radar()`): the 1998 game's Sufa (Extras "F-16 version") keeps the original's radar, whose keys it
 has.

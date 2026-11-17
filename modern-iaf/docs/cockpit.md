@@ -12,7 +12,7 @@ draw from.
 | jet | 3D cockpit | HUD | head-down displays |
 |---|---|---|---|
 | F-16I Sufa (`f16i`) | the F-16's (FlightGear's Block 50/52 panel sheet) | the wide-angle HUD, the Real HUD symbology | both MFDs in the real formats, in colour; the RWR scope, EHSI, DED and fault list on their screens |
-| F-16D Barak (`f16`) | the F-16's (the Block 40 panel sheet) | the Block 50 HUD, the Real HUD symbology | both MFDs in the real formats, in green; the same small screens |
+| F-16D Barak (`f16`) | the F-16's (the Block 40 panel sheet) | the wide-angle HUD (Barak 2020's new HUD, [avionics-plan.md](avionics-plan.md) B9), the Real HUD symbology | both MFDs in the real formats, in colour (B2); the same small screens |
 | F-35I Adir (`f35i`) | ours (`f35i.glb`) | the helmet display over the whole view | the panoramic display with its four portals and the standby display |
 
 The model the 3D cockpit hangs in is ours, never the original's cockpit-view model: the detailed F-16's cut model (`shared/extra/models/f16/f16d.glb`)
@@ -685,7 +685,7 @@ What each view shows, against the cockpit photos the docs use (docs/f16i.md, doc
 The displays' maps and the RWR glyphs against their references (the RWR sheet beside the 1998 one, docs/rwr.md §4;
 the TSD map's reference picture in §8):
 
-![The Sufa's colour HSD with the OSM map (the Dead Sea ahead), the Barak's green HSD (no map, as the Block 40's), the F-35I's TSD (the coast and borders as lines)](pictures/cockpit/maps.jpg)
+![The Sufa's colour HSD with the OSM map (the Dead Sea ahead), the Barak's green HSD as it was before slice 6 (today's Barak draws the Sufa's colour HSD, [avionics-plan.md](avionics-plan.md) B3), the F-35I's TSD (the coast and borders as lines)](pictures/cockpit/maps.jpg)
 ![The RWR glyphs: the 1998 sheet and ours, slot by slot](pictures/cockpit/rwr_glyphs.png)
 
 ### 6.2 The cockpit at the origin (2026-11-09, the Mac play test's finding 25)

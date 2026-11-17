@@ -30,19 +30,21 @@ func _rolled(tv: Node, secs: float) -> float:
 
 func run() -> void:
 	await require_data()
+	for unit in sim_f16s():
+		print("-- %s" % unit)
+		await _jet(unit, sim_f16s()[unit])
+
+
+func _jet(unit: String, base: String) -> void:
 	var s := settings()
 	var db: String = s.records_db()
-	var rec := ProjectSettings.globalize_path("res://data/db/units/f16i.json")
-	IafPilotLog.set_loadout(db, s.pilot(), "f16i", IafBriefing.put(rec, "", 3, "mk-84", true))
-	var list: Dictionary = s.load_json(s.converted(s.missions_folder().path_join("missionlist.json")))
-	var id := -1
-	for k in list:
-		if str(list[k][0]) == "ramon_takeoff":
-			id = int(k)
-	check(load("res://flight/fly.gd").prepare(id), "ramon_takeoff prepared as the front end's Fly")
+	var rec := ProjectSettings.globalize_path("res://data/db/units/%s.json" % unit)
+	IafPilotLog.set_loadout(db, s.pilot(), unit, IafBriefing.put(rec, "", 3, "mk-84", true))
+	var id := sim_mission(base + "_takeoff")
+	check(load("res://flight/fly.gd").prepare(id), "%s_takeoff prepared as the front end's Fly" % base)
 	var tv: Node = await start_mission(id)
 	s.mission_files_override = []
-	IafPilotLog.set_loadout(db, s.pilot(), "f16i", "")
+	IafPilotLog.set_loadout(db, s.pilot(), unit, "")
 	tv.addon.result = {"pass": true}  # the training run checks no more (sim_flight.gd _finish)
 	var w = tv.weapons
 	var st0: Dictionary = tv.flight.state()

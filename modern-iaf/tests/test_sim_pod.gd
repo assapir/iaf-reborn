@@ -49,21 +49,23 @@ func icp(keys: Array) -> void:
 
 func run() -> void:
 	await require_data()
+	for unit in sim_f16s():
+		print("-- %s" % unit)
+		await _jet(unit, sim_f16s()[unit])
+
+
+func _jet(unit: String, base: String) -> void:
 	var s := settings()
 	var db: String = s.records_db()
-	var rec := ProjectSettings.globalize_path("res://data/db/units/f16i.json")
+	var rec := ProjectSettings.globalize_path("res://data/db/units/%s.json" % unit)
 	var lo: String = IafBriefing.put(rec, "", 5, "litening", false)
 	lo = IafBriefing.put(rec, lo, 3, "gbu-12", true)
-	IafPilotLog.set_loadout(db, s.pilot(), "f16i", lo)
-	var list: Dictionary = s.load_json(s.converted(s.missions_folder().path_join("missionlist.json")))
-	var id := -1
-	for k in list:
-		if str(list[k][0]) == "ramon_range":
-			id = int(k)
+	IafPilotLog.set_loadout(db, s.pilot(), unit, lo)
+	var id := sim_mission(base + "_range")
 	load("res://flight/fly.gd").prepare(id)
 	tv = await start_mission(id)
 	s.mission_files_override = []
-	IafPilotLog.set_loadout(db, s.pilot(), "f16i", "")
+	IafPilotLog.set_loadout(db, s.pilot(), unit, "")
 	tv.addon.out_dir = DirAccess.create_temp("modern-iaf-pod", false).get_current_dir()
 	tv.addon.result = {"pass": true}
 	w = tv.weapons

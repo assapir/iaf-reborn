@@ -6,7 +6,8 @@ extends "res://shared/settings.gd"
 
 ## The switches between the 1998 game and our replacements, fixed to ours (no preferences row in the sim; plan.md
 ## "physics", "options"). The F-16 switch follows the jet flown (set_jet). The cockpit (modern-iaf/docs/cockpit.md): the
-## 3D cockpit, the Real HUD and the real MFD formats (the Sufa's in colour by its definition, the Barak's green). No
+## 3D cockpit, the Real HUD and the real MFD formats (in colour by the jets' definitions, the Barak's in
+## data/planes/f16.json). No
 ## textured sky: its cloud layer is the original's art (Clouds Volumetric, ours, stays a choice). The look switches
 ## whose "original" is the 1998 art the sim does not have are ours too: the airbases (the sim's own runways, taxiways
 ## and aprons, airbases_file()), the water, the night lights, the effects (2026-11-08: "original" airbases drew no

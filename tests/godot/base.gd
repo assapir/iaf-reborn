@@ -30,6 +30,24 @@ func settings() -> Node:
 	return root.get_node("Settings")
 
 
+## Modern IAF's F-16s an avionics test flies, {unit: home base}: the Sufa, then the Barak (avionics-plan.md §6 slice
+## 6); IAF_SIM_JET=<unit> runs one.
+func sim_f16s() -> Dictionary:
+	var all := {"f16i": "ramon", "f16d": "ramat_david"}
+	var one := OS.get_environment("IAF_SIM_JET")
+	return {one: all[one]} if all.has(one) else all
+
+
+## The mission id of the sim's mission `name` in its mission list, -1 for none.
+func sim_mission(name: String) -> int:
+	var s := settings()
+	var list: Dictionary = s.load_json(s.converted(s.missions_folder().path_join("missionlist.json")))
+	for k in list:
+		if str(list[k][0]) == name:
+			return int(k)
+	return -1
+
+
 func check(ok: bool, what: String) -> void:
 	print(("PASS " if ok else "FAIL ") + what)
 	if not ok:

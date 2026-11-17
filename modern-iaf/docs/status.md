@@ -3,6 +3,12 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **The Barak's avionics (2026-11-17, avionics-plan.md slice 6, §3 B1–B11):** today's upgraded F-16D (Barak 2020,
+  the Sufa's avionics installed) as data merged over the F-16's definition (`modern-iaf/data/planes/f16.json`): the
+  real FCR's controls on the APG-68's row (CRM RWS to 43 NM, SAM with one bug), the colour MFDs with the HSD's map, the
+  AIFF, no MAW, the wide-angle HUD. Every Sufa avionics test now flies both jets (`base.gd` `sim_f16s`;
+  `IAF_SIM_JET=f16d` runs one). Found and fixed: the Barak had none of the real FCR (its definition had no
+  `radar.fcr`); the TACAN started on Ramon's channel on every jet (now the home base's station).
 - **The F-16s' 3D-cockpit lamps (2026-11-17, the lights audit, [cockpit.md](cockpit.md) §5.2):** every lamp of the
   model lights, the caution panel's 32 among them; each is wired to the state that lights it (the start-up's lamps on
   the battery, the ELEC panel, JFS RUN, the cautions and MASTER CAUTION with its reset and the ELEC panel's CAUTION

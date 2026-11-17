@@ -82,6 +82,8 @@ altitude and EDR's optimum Mach (the jet's cruise tables are not public: open).
 The radios' presets and the TACAN channels are ours: the IAF's frequencies and the bases' channels are not public.
 TACAN channels: Ramon 75X, Nevatim 83X, Hatzerim 62X, Ramat David 99X, Tel Nof 31X, at the airbases' reference points.
 A station is received within the line of sight, 1.23 · (√ft of the jet + √30) NM, and always within 5 NM (inferred).
+At the start the TACAN is tuned to the station nearest the jet (the home base on a ground start) (`ufc.rs` `tune_nearest`; inferred: the
+pilot's preset).
 The sim's radios have no frequency model: the tower and the AWACS answer on any preset; the ILS serves the home
 runway at any frequency (the bases' ILS frequencies are not in the data).
 

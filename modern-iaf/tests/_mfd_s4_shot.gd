@@ -1,6 +1,6 @@
-# Dev helper (not run by tools/test.sh): real-render pictures of the Sufa's MFD formats (avionics-plan.md slice 4,
-# docs/mfd.md §9 "Modern MFDs") on the weapons range, the Graphics preset "Everything on", 1920 wide, the Litening on
-# station 5 and a GBU-12 on 3 and 7:
+# Dev helper (not run by tools/test.sh): real-render pictures of the Sufa's (IAF_SIM_JET=f16d: the Barak's) MFD formats
+# (avionics-plan.md slice 4, docs/mfd.md §9 "Modern MFDs") on the weapons range, the Graphics preset "Everything on",
+# 1920 wide, the Litening on station 5 and a GBU-12 on 3 and 7:
 # - <name>.png: the cockpit with the format on its MFD; <name>_mfds.png: the two MFDs' screens side by side;
 # - mfd_pages.png: every format's MFD in a grid of 640 px cells;
 # - pod_chin.png: the Litening on the chin, from below and ahead of the right intake.
@@ -139,23 +139,22 @@ func run() -> void:
 	dir = OS.get_environment("SHOT_DIR")
 	DirAccess.make_dir_recursive_absolute(dir)
 	var s := settings()
+	# The jet: the Sufa, or IAF_SIM_JET=f16d the Barak (base.gd sim_f16s).
+	var unit: String = sim_f16s().keys()[0]
+	var base: String = sim_f16s()[unit]
 	var p: Dictionary = load("res://shared/util/pref_choices.gd").preset("everything")
 	for k in p:
 		s.set(k, p[k])
 	s.show_info = false
 	var db: String = s.records_db()
-	var rec := ProjectSettings.globalize_path("res://data/db/units/f16i.json")
+	var rec := ProjectSettings.globalize_path("res://data/db/units/%s.json" % unit)
 	var lo: String = IafBriefing.put(rec, IafBriefing.put(rec, "", 5, "litening", false), 3, "gbu-12", true)
-	IafPilotLog.set_loadout(db, s.pilot(), "f16i", lo)
-	var list: Dictionary = s.load_json(s.converted(s.missions_folder().path_join("missionlist.json")))
-	var id := -1
-	for k in list:
-		if str(list[k][0]) == "ramon_range":
-			id = int(k)
+	IafPilotLog.set_loadout(db, s.pilot(), unit, lo)
+	var id := sim_mission(base + "_range")
 	load("res://flight/fly.gd").prepare(id)
 	tv = await start_mission(id)
 	s.mission_files_override = []
-	IafPilotLog.set_loadout(db, s.pilot(), "f16i", "")
+	IafPilotLog.set_loadout(db, s.pilot(), unit, "")
 	tv.addon.out_dir = OS.get_temp_dir().path_join("modern-iaf-mfd-s4-shot-%d" % OS.get_process_id())
 	tv.addon.result = {"pass": true}
 	w = tv.weapons

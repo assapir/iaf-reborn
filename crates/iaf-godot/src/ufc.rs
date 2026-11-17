@@ -173,6 +173,12 @@ impl IafUfc {
         self.ufc.ident(tod);
     }
 
+    /// The TACAN tuned to the station nearest UTM 36N (e, n): the jet's home base at the start.
+    #[func]
+    fn tune_nearest(&mut self, e: f64, n: f64) {
+        self.ufc.tune_nearest(e, n);
+    }
+
     /// The backup UHF panel's channel knob one channel on (the UHF goes to BACKUP).
     #[func]
     fn backup_channel(&mut self) {

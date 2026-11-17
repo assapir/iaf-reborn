@@ -1,8 +1,9 @@
-# The Sufa's real fire-control radar air to ground on the weapons range (avionics-plan.md §6 slice 3, G9-G12;
-# docs/radar.md §9.7), headless, on ramon_range with a SPICE 1000 and an Mk 83 loaded:
+# The F-16s' real fire-control radar air to ground (the Sufa's, then the Barak's: base.gd sim_f16s) on the weapons range
+# (avionics-plan.md §6 slice 3, G9-G12; docs/radar.md §9.7), headless, on each jet's range mission with a SPICE 1000 and
+# an Mk 83 loaded:
 # - GM (R): the range's hulks drawn where they are on the PPI fan, the radar picture over the terrain;
-# - the field of view (Ctrl + ;): EXP, DBS1, DBS2 draw the ground 4, 8 and 64 times larger about the cursor; DBS1 on
-#   Ramon's runway shows it dark;
+# - the field of view (Ctrl + ;): EXP, DBS1, DBS2 draw the ground 4, 8 and 64 times larger about the cursor; DBS2 on
+#   the home base's runway shows it dark;
 # - FZ (Alt + ;) holds the picture while the jet flies on; GMT (Q) lists only the towed hulk; SEA (Q) only the barge;
 # - TMS up (/) off the returns designates the cursor's point, on a hulk tracks it (FTT): the HUD's TD box, and the
 #   SPICE 1000 in VIS aims at either; TMS down (Shift + /) drops it;
@@ -83,35 +84,44 @@ func _select(part: String) -> bool:
 
 func run() -> void:
 	await require_data()
+	for unit in sim_f16s():
+		print("-- %s" % unit)
+		await _jet(unit, sim_f16s()[unit])
+
+
+func _jet(unit: String, base: String) -> void:
 	mfd_gd = load("res://shared/cockpit/mfd.gd")
 	var s := settings()
 	var db: String = s.records_db()
-	var rec := ProjectSettings.globalize_path("res://data/db/units/f16i.json")
+	var rec := ProjectSettings.globalize_path("res://data/db/units/%s.json" % unit)
 	var load_out: String = IafBriefing.put(rec, IafBriefing.put(rec, "", 3, "spice-1000", true), 4, "mk-83", true)
-	IafPilotLog.set_loadout(db, s.pilot(), "f16i", load_out)
-	var list: Dictionary = s.load_json(s.converted(s.missions_folder().path_join("missionlist.json")))
-	var id := -1
-	for k in list:
-		if str(list[k][0]) == "ramon_range":
-			id = int(k)
+	IafPilotLog.set_loadout(db, s.pilot(), unit, load_out)
+	var id := sim_mission(base + "_range")
 	load("res://flight/fly.gd").prepare(id)
 	tv = await start_mission(id)
 	s.mission_files_override = []
-	IafPilotLog.set_loadout(db, s.pilot(), "f16i", "")
+	IafPilotLog.set_loadout(db, s.pilot(), unit, "")
 	tv.addon.out_dir = DirAccess.create_temp("modern-iaf-fcr-ag", false).get_current_dir()
 	tv.addon.result = {"pass": true}
 	w = tv.weapons
-	var ramon := {}
+	var home := {}
 	for b in load("res://shared/terrain/airbases.gd").bases():
-		if String(b.name).contains("Ramon"):
-			ramon = b
-	check(not ramon.is_empty(), "Ramon's runways known")
-	if ramon.is_empty():
+		if String(b.name).contains(base.capitalize().get_slice(" ", base.count("_"))):  # airbases.json: "Ramon", "David"
+			home = b
+	check(not home.is_empty(), "%s's runways known" % base.capitalize())
+	if home.is_empty():
 		return
-	var rw: Array = ramon.runways[0].ends
+	var rw: Array = home.runways[0].ends
 	var mid := Vector3((rw[0][0] + rw[1][0]) / 2.0, (rw[0][1] + rw[1][1]) / 2.0, 0.0)
-	# 12.7 km east and 8.6 km south of Ramon's runway: Ramon 56° left, the range's hulks about 30° left, 40 km out.
-	var at := Vector2(mid.x + 12700.0, mid.y - 8600.0)
+	var hulks := []
+	for n in ["Target 1", "Target 2", "Target 3", "Target 4", "Target 5"]:
+		hulks.append(_target(n))
+	check(hulks.all(func(e): return not e.is_empty()), "five ground targets on the range")
+	if not hulks.all(func(e): return not e.is_empty()):
+		return
+	# 22 km east and 35.7 km south of Target 1: the range's hulks about 30° left, 42 km out (each range's targets lie
+	# alike about their Target 1).
+	var at := Vector2(hulks[0].world.x + 22000.0, hulks[0].world.y - 35700.0)
 	_put(at.x, at.y)
 	tv._command([213, 0, 0])  # the avionics: the FCR up in STBY, CRM by itself in the air
 	await fly(tv, 3.0)
@@ -119,10 +129,6 @@ func run() -> void:
 	await fly(tv, 2.5)
 	check(_ag().get("name") == "GM", "R: GM (%s)" % _ag().get("name"))
 	# GM: every hulk where it is on the PPI fan (94 px = the 40 NM scale from the apex, heading-up).
-	var hulks := []
-	for n in ["Target 1", "Target 2", "Target 3", "Target 4", "Target 5"]:
-		hulks.append(_target(n))
-	check(hulks.all(func(e): return not e.is_empty()), "five ground targets on the range")
 	var fr: Dictionary = _ag().frame
 	var o: Dictionary = w.own()
 	var placed := 0
@@ -162,13 +168,16 @@ func run() -> void:
 			_ag().fov == want[0] and absf(k - want[1]) < want[1] * 0.02,
 			"Ctrl + ;: %s × %s (%s)" % [want[0], want[1], steps]
 		)
-	# DBS2 on Ramon's runway (12 m a px): the runway dark, the ground beside it lit.
+	# DBS2 on the home base's runway (12 m a px), from 12.7 km east and 8.6 km south of it (the base 56° left): the
+	# runway dark, the ground beside it lit.
+	_put(mid.x + 12700.0, mid.y - 8600.0)
+	await fly(tv, 2.5)
 	w.radar_event(w.RADAR_GROUND, mid)
 	for i in 3:
 		_tap(KEY_SEMICOLON, false, false, true)
 	await fly(tv, 2.5)
 	var dir := Vector2(rw[1][0] - rw[0][0], rw[1][1] - rw[0][1]).normalized()
-	var beside := mid + Vector3(-dir.y, dir.x, 0.0) * (float(ramon.runways[0].width) / 2.0 + 120.0)
+	var beside := mid + Vector3(-dir.y, dir.x, 0.0) * (float(home.runways[0].width) / 2.0 + 120.0)
 	var on := _pic_at(mid)
 	var off := _pic_at(beside)
 	check(
@@ -195,6 +204,8 @@ func run() -> void:
 	await fly(tv, 2.5)
 	check(not _ag().frozen and int(_ag().pic.serial) > serial, "Alt + ; again: a new picture")
 	# GMT: only the towed hulk; SEA: only the barge.
+	_put(at.x, at.y)
+	await fly(tv, 2.5)
 	_tap(KEY_Q)
 	await fly(tv, 2.5)
 	check(_ag().name == "GMT" and _keys() == [String(hulks[4].key)], "Q: GMT lists Target 5 only (%s)" % [_keys()])

@@ -65,25 +65,32 @@ func _put(pos: Vector3, vel: Vector3, hdg: float) -> void:
 
 func run() -> void:
 	await require_data()
+	for unit in sim_f16s():
+		print("-- %s" % unit)
+		await _jet(unit, sim_f16s()[unit])
+
+
+func _jet(unit: String, base: String) -> void:
 	var s := settings()
 	var db: String = s.records_db()
-	var rec := ProjectSettings.globalize_path("res://data/db/units/f16i.json")
+	var rec := ProjectSettings.globalize_path("res://data/db/units/%s.json" % unit)
 	var lo: String = IafBriefing.put(rec, "", 5, "litening", false)
 	lo = IafBriefing.put(rec, lo, 3, "gbu-12", true)
-	IafPilotLog.set_loadout(db, s.pilot(), "f16i", lo)
-	var list: Dictionary = s.load_json(s.converted(s.missions_folder().path_join("missionlist.json")))
-	var id := -1
-	for k in list:
-		if str(list[k][0]) == "ramon_range":
-			id = int(k)
+	IafPilotLog.set_loadout(db, s.pilot(), unit, lo)
+	var id := sim_mission(base + "_range")
 	load("res://flight/fly.gd").prepare(id)
 	tv = await start_mission(id)
 	s.mission_files_override = []
-	IafPilotLog.set_loadout(db, s.pilot(), "f16i", "")
+	IafPilotLog.set_loadout(db, s.pilot(), unit, "")
 	tv.addon.out_dir = DirAccess.create_temp("modern-iaf-mfd", false).get_current_dir()
 	tv.addon.result = {"pass": true}
 	w = tv.weapons
 	c = tv.cockpit
+	# Today's Barak as the Sufa (avionics-plan.md B2, B9): the colour formats and the wide-angle HUD in the 3D cockpit.
+	check(c.mfds[0].real_look == "colour", "%s: the MFDs in colour (%s)" % [unit, c.mfds[0].real_look])
+	var c3d = tv.get("cockpit_3d")
+	var wide: Node3D = c3d.find_child("HUD_wide", true, false) if c3d != null else null
+	check(wide != null and wide.visible, "%s: the 3D cockpit's wide-angle HUD" % unit)
 	check(w.flir_pod, "the Litening on station 5 is the targeting pod (its SMS name TGP)")
 	check(w.stores.name_of(4) == "TGP" and w.stores.name_of(2) == "GBU-12", "stations 5 / 3: TGP, GBU-12")
 	await _flcs_ground()

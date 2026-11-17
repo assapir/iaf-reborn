@@ -265,7 +265,7 @@ more. Kind: **wire** = existing logic reached; **extend** = existing logic grown
 |---|---|---|---|---|---|---|
 | P1 | The Litening and laser bombs | the pod on the loadout, the TGP page, lasing, GBU-10 / 12 / 16 hits | (merged 17 Nov) | wire | — | 4 (G15) |
 | P2 | Litening model: convert FlightGear's `AN-AAQ-28` in place of the AAQ-13 stand-in (approved and merged 17 Nov) | the right pod on the jet in the hangar, loadout and flight | S | art | FlightGear F-16 `LITENING_AT`, GPL-2.0-or-later, authors already credited | 4 |
-| P3 | Barak: fix row B5 in the plan (the Litening is already on its station 5, slice 4) | the plan as the IAF flew it | S | docs | — | 6 |
+| P3 | **Done 17 Nov** (slice 6). Barak: fix row B5 in the plan (the Litening is already on its station 5, slice 4) | the plan as the IAF flew it | S | docs | — | 6 |
 | P4 | **Built 17 Nov** ([../weapons.md](../weapons.md) §7.3; no centreline store: no sim store hangs there). **Pod stations: split the sim's station 5 into 5L / 5R** (and a centreline 5): the navigation pod on 5L, the Litening on 5R (§2.3); weight and drag per pod; jettison keeps the pods. Now needed: both F-16s carry two chin pods | the real two-pod load, its weight and picture | M | extend (`sim.rs` stations, unit records, the loadout screen) | — | 6 |
 | P5 | TGP cockpit procedure complete: pod power and cool-down, WIDE / NARO / expand, WHOT / BHOT, CCD TV, laser code, `L` flashing, the trigger's first detent as the laser key, masking by the jet | the real pod workflow | M | extend (`eo.rs`, `f16_mfd.rs` / `.gd`) | — | 4 (rest) or 9 |
 | P6 | Laser spot search: find a wingman's or a ground team's laser spot | buddy lasing in missions | M | new (`eo.rs`; a lasing wingman in the AI) | — | 9 |

@@ -457,6 +457,16 @@ var ehsi_tcn := false
 ## The markpoints' sensors' points (the host's, terrain_view.gd mark_points): {fcr_at, tgp_at, hud_at}.
 var mark_points: Callable
 
+## The TACAN tuned to the home base once the jet is placed (home_tacan).
+var _tacan_homed := false
+
+
+## Tunes the TACAN to the station nearest the jet, once, at the start (IafUfc.tune_nearest; modern-iaf/docs/ufc.md).
+func home_tacan() -> void:
+	if ufc != null and not _tacan_homed and state.world != Vector2.ZERO:
+		ufc.tune_nearest(state.world.x, state.world.y)
+		_tacan_homed = true
+
 
 func _create_ufc() -> void:
 	var f16 := Settings.modern_mfds() and Settings.real_mfd(Settings.cockpit_folder(cockpit_dir)) != ""

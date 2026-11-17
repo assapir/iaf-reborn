@@ -1,5 +1,5 @@
-# Dev helper (not run by tools/test.sh): real-render pictures of the Sufa's real FCR on the weapons range
-# (docs/radar.md §9, avionics-plan.md slice 2), the Graphics preset "Everything on", 1920 wide:
+# Dev helper (not run by tools/test.sh): real-render pictures of the Sufa's (IAF_SIM_JET=f16d: the Barak's) real FCR on
+# the weapons range (docs/radar.md §9, avionics-plan.md slice 2), the Graphics preset "Everything on", 1920 wide:
 # - fcr_modes.png: the left MFD's FCR in each mode, 3 x 2 at 640 px: RWS (A6 B4) with the drones, RWS A3 with the
 #   antenna down onto Drone 2, SAM with Drone 1 bugged, TWS with its files, VSR, ACM with the lock;
 # - fcr_<mode>.png: each of those as the whole cockpit view;
@@ -95,15 +95,13 @@ func run() -> void:
 	dir = OS.get_environment("SHOT_DIR")
 	DirAccess.make_dir_recursive_absolute(dir)
 	var s := settings()
+	# The jet: the Sufa, or IAF_SIM_JET=f16d the Barak (base.gd sim_f16s).
+	var base: String = sim_f16s().values()[0]
 	var p: Dictionary = load("res://shared/util/pref_choices.gd").preset("everything")
 	for k in p:
 		s.set(k, p[k])
 	s.show_info = false
-	var list: Dictionary = s.load_json(s.converted(s.missions_folder().path_join("missionlist.json")))
-	var id := -1
-	for k in list:
-		if str(list[k][0]) == "ramon_range":
-			id = int(k)
+	var id := sim_mission(base + "_range")
 	load("res://flight/fly.gd").prepare(id)
 	tv = await start_mission(id)
 	s.mission_files_override = []

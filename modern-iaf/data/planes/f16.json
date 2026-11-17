@@ -1,0 +1,14 @@
+{
+  "hud_3d": "HUD_wide",
+  "mfd": "colour",
+  "radar": { "fcr": { "sam_tracks": 1 } },
+  "ews": { "aiff": true, "maw": false },
+  "notes": {
+    "": "Modern IAF's Barak (merged over shared/extra/planes/f16/airframe.json by sim_settings.gd airframe_def): today's upgraded F-16D, Barak 2020 (the user, 17 Nov 2026, avionics-plan.md §8.4; the plan's §3 rows B1-B11). The original game's Barak is unchanged.",
+    "hud_3d": "Barak 2020 fitted a new head-up display (FlightGlobal, 5 Nov 2014); the Sufa's wide-angle frame (inferred: the upgrade fitted the Sufa's avionics, Hamichlol)",
+    "mfd": "the Sufa's avionics (Hamichlol) and new high-resolution screens (UPI, 12 Dec 2011): the colour formats with the HSD's map (colour inferred)",
+    "radar": "the Block 40's AN/APG-68, no radar change found for Barak 2020: the F-16's row (Weapon data Real's 80 km, 43 NM) with the real FCR's controls; SAM keeps one bug, not the (V)9's four (inferred)",
+    "ews.aiff": "the AIFF with the Sufa's avionics (Hamichlol; inferred: the interrogator is not named)",
+    "ews.maw": "none: an infrared missile warning is among the upgrades proposed for the Barak in September 2025 (defence-network.com, 25 Sep 2025; allisraelnews.com, 15 Sep 2025: under consideration)"
+  }
+}

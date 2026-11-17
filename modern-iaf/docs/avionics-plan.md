@@ -159,20 +159,25 @@ following[^sufa-at][^sufa-lm-radar]. The pilot's view of each is the dash-34's F
 
 ## 3. F-16D Barak: its differences
 
-The Barak in the sim is the Block 40 two-seater with the F-16 radar row, green MFDs and the Block 50 HUD frame
-([cockpit.md](cockpit.md) §1). Rows not listed here are the Sufa's, with the same status.
+The Barak in the sim is today's upgraded F-16D (§8.4): the Block 40 two-seater after Barak 2020, which "installed the
+avionic systems of the Sufa" (2010–2014)[^barak-hm][^barak-upi][^barak-fg]. Its definition is the F-16's
+(`shared/extra/planes/f16/airframe.json`, the original game's Barak, unchanged) with the sim's own file merged over it
+(`modern-iaf/data/planes/f16.json`, `sim_settings.gd` `airframe_def`). Rows not listed here are the Sufa's, with the
+same status; slice 6 flew every Sufa test on the Barak (§6).
 
-| # | function | real (Block 30/40) | today | status |
+| # | function | real (Barak 2020) | today | status |
 |---|---|---|---|---|
-| B1 | Radar | AN/APG-68 of the Block 30/40 tapes; no (V)9 situation mode | the F-16 row of `radar.rs` (LRS 45 NM) | Sim |
-| B2 | MFDs | monochrome green 4 × 4 in ([../../docs/real-mfd.md](../../docs/real-mfd.md) "Colours and font") | the green formats | Sim |
-| B3 | HSD map | none (monochrome) | no map under the Barak's HSD | Sim |
-| B4 | AIFF | none: the APX-101 is a transponder ([../../docs/real-hud.md](../../docs/real-hud.md) "IFF") | none | Sim |
-| B5 | Targeting pod | LANTIRN on the Block 40 (inferred: none on the Block 30) | the Litening and the laser bombs in its record too (§8.2) | Sim (17 Nov; checked with slice 6) |
-| B6 | Helmet | DASH III | `dash.rs` | Sim |
+| B1 | Radar | the Block 40's AN/APG-68; no source names a radar change in Barak 2020 (open); no (V)9 situation mode | the F-16 row of `radar.rs` (CRM RWS to 80 km, 43 NM, Weapon data Real's; the Sufa 104 km) with the real FCR's controls, SAM with one bug (`radar.fcr.sam_tracks` 1; inferred) | Sim (17 Nov) |
+| B2 | MFDs | the Sufa's avionics[^barak-hm] and new high-resolution screens[^barak-upi]; colour inferred | the colour formats (`mfd` "colour") | Sim (17 Nov) |
+| B3 | HSD map | with the colour displays (inferred) | the HSD's map, as the Sufa's | Sim (17 Nov) |
+| B4 | AIFF | with the Sufa's avionics (inferred: no source names the interrogator) | the Sufa's AIFF (`ews.aiff`) | Sim (17 Nov) |
+| B5 | Pods | the Sharpshooter, then the Litening; the Pathfinder navigation FLIR, without a TFR ([research/pods.md](research/pods.md) §1) | the Litening on 5R, the Pathfinder on 5L, the laser bombs (§8.2); no TF | Sim (17 Nov) |
+| B6 | Helmet | an Elbit helmet sight[^barak-upi] | `dash.rs` | Sim |
 | B7 | RWR | the set is open (the dash-34's display is the nearest) | as the Sufa's E1 | Partly (G3) |
-| B8 | MAW, SAM mode, SAR | none on the Block 30/40 (inferred) | — | Sim |
-| B9 | Today's Barak | later upgrades (tapes, AIFF, colour displays): open | — | decided: today's upgraded jet (§8.4); the upgrades' details open |
+| B8 | MAW, SAM mode, SAR | no MAW: an infrared missile warning is among the upgrades proposed for the Barak in 2025[^barak-dn]; SAM keeps one bug (B1); DBS as the APG-68's (dash-34) | no MAW (`ews.maw` false); DBS1 / DBS2 as the Sufa's | Sim (17 Nov) |
+| B9 | HUD | a new head-up display[^barak-fg]; the Sufa's wide-angle frame inferred | the 3D cockpit's wide HUD (`hud_3d` "HUD_wide"), the Real HUD | Sim (17 Nov) |
+| B10 | TACAN at the start | the home base's station (inferred: the pilot's preset) | tuned to the nearest station when the jet is placed (the home base on a ground start) (`ufc.rs` `tune_nearest`); before, every jet started on Ramon's 75X | Sim (17 Nov) |
+| B11 | Rear seat | the navigator works the pod; in the game the player does it (pods decision 4) | the front seat's keys and controls | Sim |
 
 ## 4. F-35I Adir
 
@@ -254,7 +259,7 @@ by the sim; **extend** = existing shared logic grown; **new** = new logic in a R
 | # | gap | size | kind | test |
 |---|---|---|---|---|
 | G14 | HSD CNTL, bullseye, data-link tracks. **Built 17 Nov (slice 4):** CNTL, bullseye, DEP / CEN, CPL, EXP, FRZ, the cursor; the data-link tracks come with G30 | S | extend | `tests/godot/test_f16_mfd.gd` |
-| G15 | Targeting pod (Litening on the Sufa, LANTIRN on the Barak) and laser bombs in the sim's data: a pod store and laser bomb records; the TGP format, laser and laser bombs are shared already. **Built 17 Nov (slice 4):** the Litening on both F-16s (§8.2), the GBU-10 / 12 / 16, the TGP's track modes and LASER ARM ([weapons.md](weapons.md) §7) | S (data) | wire | `tests/godot/test_laser_bombs.gd` and a sim run: the pod's laser guides a GBU-12 onto a range target |
+| G15 | Targeting pod (the Litening on both F-16s) and laser bombs in the sim's data: a pod store and laser bomb records; the TGP format, laser and laser bombs are shared already. **Built 17 Nov (slice 4):** the Litening on both F-16s (§8.2), the GBU-10 / 12 / 16, the TGP's track modes and LASER ARM ([weapons.md](weapons.md) §7) | S (data) | wire | `tests/godot/test_laser_bombs.gd` and a sim run: the pod's laser guides a GBU-12 onto a range target |
 | G16 | The low-value formats (DTE, FLCS, TFR; F-35 FCS, PHM, CHKLST, DIM). **The F-16's built 17 Nov (slice 4; the user: "All mfds"):** DTE, FLCS, BLANK, RESET; TFR waits for G12 | S each | new (drawing) | listed, built only on the user's word |
 | G17 | DGFT / MSL override. **Built 17 Nov (slice 5)** | S | extend (`master.rs`) | Rust: DGFT selects ACM, the gun and the SRM at once |
 | G18 | HUD VVI; INS ALIGN / RDY on the HUD and the DED INS page. **Built 17 Nov (slice 5)** | S | extend (`f16.rs`, `start.rs` state) | Rust snapshot of the HUD; `modern-iaf/tests/test_switches_both_ways.gd` sees ALIGN then RDY |
@@ -295,7 +300,7 @@ renders through `tools/godot_window.sh`, with every graphics setting on, from th
 | 3 Sufa radar A-G (built 17 Nov) | GM DBS / FZ / SP / CZ, the ground cursor, designation and FTT, SAR patch, SEA, AGR; a towed hulk and a barge on the range | G9–G12 (AGR) | M–L | `radar.rs`, `heights.rs`, `f16_mfd.gd` | the same test, A-G part | GM, DBS, SAR and SEA pictures |
 | 4 Sufa MFDs (built 17 Nov) | SOI and DMS (keys, §8.3), HSD CNTL / bullseye, SMS profiles and submode menu, the Litening pod, TGP and the GBU-10 / 12 / 16 (§8.2) | G8 (DMS), G14, G15, G24, G25 | M | `f16_mfd.rs` / `.gd`, the sim's pod and laser bomb records | `tests/godot/test_f16_mfd.gd`, a sim TGP run | each format, both MFDs |
 | 5 Sufa rest | DGFT, VVI, ALIGN / RDY, DED pages, TACAN, MAW, CMS programs, AIFF, data link, AWACS | G13, G17–G20, G28–G31 | L (two merges: HUD / nav first, EW / IFF / link second) | `master.rs`, `real_hud/f16.rs`, `start.rs`, `rwr.rs`, `fctrl.rs`, `cockpit3d_display.gd` | Rust tests per gap; a sim run per merge | HUD in DGFT, the DED pages, the MAW cue, AIFF symbols |
-| 6 Barak | its rows of §3 as today's upgraded jet (§8.4), with the Litening pod and laser bombs (§8.2) | B1–B9 | S | data and switches on `Settings.airframe` | the Sufa's tests with the Barak | the Barak's MFDs and HUD |
+| 6 Barak (built 17 Nov) | its rows of §3 as today's upgraded jet (§8.4), with the Litening pod and laser bombs (§8.2) | B1–B11 | S | data and switches on `Settings.airframe` | the Sufa's tests with the Barak | the Barak's MFDs and HUD |
 | 7 Adir | SRCH / ASR with the SAR picture, combat ID, TWD with emitters, WPN-A / WPN-S, CNI, portal management (widen a portal over its half, enlarge it over its windows, swap the halves, the 5 preset layouts; the default split is in since 2026-11-17), HOTAS cursor (keys, §8.3), GCAS mark, DAS warning, the SPICE 1000 (§8.6); last and low priority a simple DAS camera picture (§8.5); no electronic attack | A1–A7, P2, P5, P7–P12, H8, E5 | L (two merges: radar and PCD first, DAS second) | `pcd.gd`, `pcd_formats.gd`, `radar.rs`, `real_hud/f35.rs` | a PCD sim test against range targets | each portal format; the helmet with the GCAS mark |
 | 8 Missiles | the employment flow on all three jets against range targets: select, uncage, lock, SHOOT, launch, post-launch cues, the F-35's bay; values from the existing shared model | G26, G27 | M | `sight.rs`, `missile.rs` (cues only), `real_hud/f16.rs`, `real_hud/f35.rs` | new test_sim_missiles.gd: each jet kills an air target with each of its missiles | the HUD and FCR at SHOOT and after launch |
 | 9 Bombs | release modes, fuzing and LOW, the PRE target UI per bomb, the laser path | G21, G22 | L (two merges: CCRP / DTOS first, LADD / MAN / fuzing second) | `release.rs`, `bombs.rs`, `real_hud/f16.rs`, `f16_mfd.gd` | new test_sim_bombs.gd: each mode hits a range target within the bomb's spread | each mode's HUD cue through the release |
@@ -335,6 +340,20 @@ The user answered the six open questions on 17 November. His words in quotes; th
 6. **The F-35I's SPICE 1000:** "yes". It goes on the Adir's list; carriage as announced in 2026[^twz-spice]
    (integration announced; the stations and the bay or external carriage inferred until a source shows them).
 
+[^barak-hm]: Hamichlol, "ג'נרל דיינמיקס F-16 פייטינג פלקון" (all the Baraks upgraded to "Barak 2020", with the Sufa's
+    avionic systems installed), an encyclopedia, secondary:
+    https://www.hamichlol.org.il/F-16_%D7%A4%D7%99%D7%99%D7%98%D7%99%D7%A0%D7%92_%D7%A4%D7%90%D7%9C%D7%A7%D7%95%D7%9F
+[^barak-upi]: UPI, "Israel fears F-35 delay, upgrades F-16s", 12 December 2011 (new avionics from 2010, the flight
+    control system and the central display unit, new high-resolution screens, an Elbit helmet system):
+    https://www.upi.com/Business_News/Security-Industry/2011/12/12/Israel-fears-F-35-delay-upgrades-F-16s/UPI-11121323708656/
+[^barak-fg]: FlightGlobal, "Israel completes F-16 Barak upgrade", 5 November 2014 (new head-up display and digital
+    debriefing systems; through a search engine's quote, the page is paywalled: second-hand):
+    https://www.flightglobal.com/israel-completes-f-16-barak-upgrade/115034.article
+[^barak-dn]: defence-network.com, "Israel rüstet F-16C/D mit modernster Schutz- und Avioniktechnik auf", 25 September
+    2025 (proposed: new EW, infrared missile warning and launch detection, better dispensers and displays); All Israel
+    News, 15 September 2025 (the upgrade under consideration):
+    https://defence-network.com/israel-ruestet-f-16c-d-mit-modernster-technik/,
+    https://allisraelnews.com/israel-plans-to-upgrade-its-aging-f-16-fleet-after-excellent-performance-in-iran-war
 [^dash34]: T.O. GR1F-16CJ-34-1-1, Hellenic AF F-16C/D Block 50 avionics and weapons delivery (dash-34), 1997:
     https://falcon.blu3wolf.com/Docs/HAF-F16-34.pdf
 [^mlu1]: Lockheed Martin, F-16 A/B MLU Production Tape M1 pilot's guide (16PR14341, 15 Nov 1998):

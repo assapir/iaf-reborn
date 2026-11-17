@@ -12,7 +12,7 @@ G3's threat display, G13, G19, G20, G30, G31). The Sufa's and the Barak's electr
 `IafEws` (`crates/iaf-godot/src/ews.rs`); `shared/weapons/ews.gd` wires it to the game and `player_weapons.gd` runs it
 on the modern F-16s only (`modern_f16`), so reborn's own jets are unchanged. Every modern F-16 has the threat display,
 the CMDS and the data link; the aircraft definition adds the AIFF and the MAW (`airframe.json` `"ews": {"aiff": true,
-"maw": true}`, the Sufa's). The Barak has neither (avionics-plan.md B4, B8).
+"maw": true}`, the Sufa's). The Barak has the AIFF, not the MAW (`modern-iaf/data/planes/f16.json`; avionics-plan.md B4, B8).
 
 ## 1. Keys and controls
 

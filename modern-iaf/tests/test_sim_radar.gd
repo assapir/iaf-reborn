@@ -12,19 +12,21 @@ extends "res://../tests/godot/base.gd"
 
 func run() -> void:
 	await require_data()
+	for unit in sim_f16s():
+		print("-- %s" % unit)
+		await _jet(unit, sim_f16s()[unit])
+
+
+func _jet(unit: String, base: String) -> void:
 	var s := settings()
 	var db: String = s.records_db()
-	var rec := ProjectSettings.globalize_path("res://data/db/units/f16i.json")
-	IafPilotLog.set_loadout(db, s.pilot(), "f16i", IafBriefing.put(rec, "", 3, "spice-1000", true))
-	var list: Dictionary = s.load_json(s.converted(s.missions_folder().path_join("missionlist.json")))
-	var id := -1
-	for k in list:
-		if str(list[k][0]) == "ramon_takeoff":
-			id = int(k)
+	var rec := ProjectSettings.globalize_path("res://data/db/units/%s.json" % unit)
+	IafPilotLog.set_loadout(db, s.pilot(), unit, IafBriefing.put(rec, "", 3, "spice-1000", true))
+	var id := sim_mission(base + "_takeoff")
 	load("res://flight/fly.gd").prepare(id)
 	var tv: Node = await start_mission(id)
 	s.mission_files_override = []
-	IafPilotLog.set_loadout(db, s.pilot(), "f16i", "")
+	IafPilotLog.set_loadout(db, s.pilot(), unit, "")
 	tv.addon.rules = {}  # unscored: no pass or fail ends the flight (test_switches_both_ways.gd)
 	var st0: Dictionary = tv.flight.state()
 	var g = tv.terrain.height_at(st0.position)

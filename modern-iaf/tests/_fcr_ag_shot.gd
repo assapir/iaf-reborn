@@ -1,5 +1,6 @@
-# Dev helper (not run by tools/test.sh): real-render pictures of the Sufa's real FCR air to ground on the weapons range
-# (docs/radar.md §9.7, avionics-plan.md slice 3), the Graphics preset "Everything on", 1920 wide:
+# Dev helper (not run by tools/test.sh): real-render pictures of the Sufa's (IAF_SIM_JET=f16d: the Barak's) real FCR air
+# to ground on the weapons range (docs/radar.md §9.7, avionics-plan.md slice 3), the Graphics preset "Everything on",
+# 1920 wide:
 # - ag_modes.png: the left MFD, 3 x 3 at 640 px: GM NORM (the hulks 30° left, Ramon), EXP, DBS1 and DBS2 on the hulks,
 #   DBS2 on Ramon's runway, FZ, GMT (the towed hulk), SEA (the barge), AGR with the Mk 83; each also as the whole
 #   cockpit view (ag_<name>.png);
@@ -77,34 +78,33 @@ func run() -> void:
 	dir = OS.get_environment("SHOT_DIR")
 	DirAccess.make_dir_recursive_absolute(dir)
 	var s := settings()
+	# The jet: the Sufa, or IAF_SIM_JET=f16d the Barak (base.gd sim_f16s).
+	var unit: String = sim_f16s().keys()[0]
+	var base: String = sim_f16s()[unit]
 	var p: Dictionary = load("res://shared/util/pref_choices.gd").preset("everything")
 	for k in p:
 		s.set(k, p[k])
 	s.show_info = false
 	var db: String = s.records_db()
-	var rec := ProjectSettings.globalize_path("res://data/db/units/f16i.json")
+	var rec := ProjectSettings.globalize_path("res://data/db/units/%s.json" % unit)
 	var load_out: String = IafBriefing.put(rec, IafBriefing.put(rec, "", 3, "spice-1000", true), 4, "mk-83", true)
-	IafPilotLog.set_loadout(db, s.pilot(), "f16i", load_out)
-	var list: Dictionary = s.load_json(s.converted(s.missions_folder().path_join("missionlist.json")))
-	var id := -1
-	for k in list:
-		if str(list[k][0]) == "ramon_range":
-			id = int(k)
+	IafPilotLog.set_loadout(db, s.pilot(), unit, load_out)
+	var id := sim_mission(base + "_range")
 	load("res://flight/fly.gd").prepare(id)
 	tv = await start_mission(id)
 	s.mission_files_override = []
-	IafPilotLog.set_loadout(db, s.pilot(), "f16i", "")
+	IafPilotLog.set_loadout(db, s.pilot(), unit, "")
 	tv.addon.out_dir = OS.get_temp_dir().path_join("modern-iaf-fcr-ag-shot-%d" % OS.get_process_id())
 	tv.addon.result = {"pass": true}
 	w = tv.weapons
-	var ramon := {}
+	var home := {}
 	for b in load("res://shared/terrain/airbases.gd").bases():
-		if String(b.name).contains("Ramon"):
-			ramon = b
-	var rw: Array = ramon.runways[0].ends
+		if String(b.name).contains(base.capitalize().get_slice(" ", base.count("_"))):  # airbases.json: "Ramon", "David"
+			home = b
+	var rw: Array = home.runways[0].ends
 	var mid := Vector3((rw[0][0] + rw[1][0]) / 2.0, (rw[0][1] + rw[1][1]) / 2.0, 0.0)
 	var t1 := _target("Target 1")
-	var at := Vector2(mid.x + 12700.0, mid.y - 8600.0)
+	var at := Vector2(t1.world.x + 22000.0, t1.world.y - 35700.0)  # the hulks 30° left, 42 km out (test_sim_fcr_ag)
 	_put(at.x, at.y)
 	tv._command([213, 0, 0])
 	await fly(tv, 3.0)
@@ -115,10 +115,14 @@ func run() -> void:
 	for f in ["EXP", "DBS1", "DBS2"]:
 		await _fov(f)
 		await _save("ag_" + f.to_lower())
+	_put(mid.x + 12700.0, mid.y - 8600.0)  # the home base 56° left
+	await fly(tv, 2.5)
 	w.radar_event(w.RADAR_GROUND, mid)
 	await fly(tv, 2.2)
 	await _save("ag_dbs2_runway")
 	await _fov("NORM")
+	_put(at.x, at.y)
+	await fly(tv, 2.5)
 	_tap(KEY_SEMICOLON, false, true)  # FZ
 	await fly(tv, 8.0)
 	await _save("ag_fz")

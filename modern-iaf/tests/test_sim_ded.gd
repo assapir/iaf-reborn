@@ -1,10 +1,11 @@
-# The Sufa's up-front controls, HUD control panel and DGFT switch (avionics-plan.md §6 slice 5; modern-iaf/docs/
-# modern-iaf/docs/ufc.md) on the weapons range, headless: ramon_range as the front end's Fly sets it up.
+# The F-16s' up-front controls (the Sufa's, then the Barak's: base.gd sim_f16s), HUD control panel and DGFT switch
+# (avionics-plan.md §6 slice 5; modern-iaf/docs/ufc.md) on the weapons range, headless: each jet's range mission as the
+# front end's Fly sets it up.
 # - cold on the ramp: the DED is dark without the UFC's power;
-# - airborne 15 NM south of Ramon: the ICP keys (Ctrl + digits, Alt + Return …) call the pages; CNI, STPT, T-ILS
-#   (TACAN to Ramon's station, the EHSI's TCN), ALOW (the HUD's AL and the GAAF voice's height), BINGO (the HUD's
-#   FUEL), a steerpoint's elevation typed in, a markpoint over the jet steered to (the HUD's steerpoint 26), COM1's
-#   preset, the backup UHF;
+# - airborne 15 NM south of the home base: the ICP keys (Ctrl + digits, Alt + Return …) call the pages; CNI, STPT, T-ILS
+#   (TACAN to the home base's station, tuned at the start, the EHSI's TCN), ALOW (the HUD's AL and the GAAF voice's
+#   height), BINGO (the HUD's FUEL), a steerpoint's elevation typed in, a markpoint over the jet steered to (the HUD's
+#   steerpoint 26), COM1's preset, the backup UHF;
 # - the INS: off then STOR HDG, the HUD's ALIGN and no steerpoint until it can navigate;
 # - the HUD control panel: VV/VAH, FPM, GND SPD, DED DATA; MASTER ARM at SIMULATE (SIM, nothing fires); DGFT (V) and
 #   MSL OVRD (Shift + V): the radar's ACM / CRM, the HUD's DGFT, back as before.
@@ -47,12 +48,14 @@ func hud_texts() -> Array:
 
 func run() -> void:
 	await require_data()
+	for unit in sim_f16s():
+		print("-- %s" % unit)
+		await _jet(unit, sim_f16s()[unit])
+
+
+func _jet(_unit: String, base: String) -> void:
 	var s := settings()
-	var list: Dictionary = s.load_json(s.converted(s.missions_folder().path_join("missionlist.json")))
-	var id := -1
-	for k in list:
-		if str(list[k][0]) == "ramon_range":
-			id = int(k)
+	var id := sim_mission(base + "_range")
 	load("res://flight/fly.gd").prepare(id)
 	tv = await start_mission(id)
 	s.mission_files_override = []
@@ -64,36 +67,37 @@ func run() -> void:
 		return
 	await frames(2)
 	check(c.up("ufc") or ded().is_empty(), "cold: the DED dark without the UFC's power (%s)" % [ded()])
-	# Airborne 15 NM south of Ramon's station at 10,000 ft, heading north.
-	var ramon: Vector2 = Vector2(c.ufc_nav().e, c.ufc_nav().n)
-	var stn = ClassDB.class_call_static("IafUfc", "geo", ramon.x, ramon.y)
-	var at: Vector3 = tv.world_to_scene(Vector3(ramon.x, ramon.y - 15.0 * 1852.0, 3048.0))
+	# Airborne 15 NM south of the home base's station (the parking spot) at 10,000 ft, heading north.
+	var home: Vector2 = Vector2(c.ufc_nav().e, c.ufc_nav().n)
+	var stn = ClassDB.class_call_static("IafUfc", "geo", home.x, home.y)
+	var at: Vector3 = tv.world_to_scene(Vector3(home.x, home.y - 15.0 * 1852.0, 3048.0))
 	tv.rig.position = at
 	tv.flight.start(s.own_dir(), tv.player.fm_section, at, Vector3(0, 0, 0), Vector3(0, 0, -200), airborne_flags())
 	tv.gear_down = false
 	tv.throttle = 0.85
 	await fly(tv, 1.0)
 	check(c.up("ufc"), "airborne: the UFC powered")
-	await _pages(stn)
+	await _pages(stn, base.replace("_", " ").to_upper())
 	await _ins()
 	await _panel()
 	await _dgft()
 
 
-func _pages(stn) -> void:
+func _pages(stn, home: String) -> void:
 	# CNI: the steerpoint and the time.
 	_key(KEY_HOME, "alt")
 	await frames(1)
 	var l := ded()
 	check(l.size() == 5 and l[0].begins_with("UHF") and "STPT" in l[0], "CNI: UHF, STPT (%s)" % [l])
-	# Ctrl + 1: T-ILS, Ramon's TACAN (75X) in reach about 15 NM away; the EHSI's TCN.
+	# Ctrl + 1: T-ILS, the home base's TACAN (Ramon 75X, Ramat David 99X: tuned at the start) about 15 NM away; the EHSI's
+	# TCN.
 	_key(KEY_1, "ctrl")
 	await frames(1)
 	l = ded()
-	check(l[0].begins_with("TCN T/R") and "RAMON" in l[4], "T-ILS: TCN T/R, RAMON (%s, the jet near %s)" % [l, stn])
+	check(l[0].begins_with("TCN T/R") and home in l[4], "T-ILS: TCN T/R, %s (%s, the jet near %s)" % [home, l, stn])
 	var t: Dictionary = c.ufc.tacan(c.ufc_nav())
 	var nm := float(t.get("range_m", 0.0)) / 1852.0
-	check(t.get("name", "") == "RAMON" and nm > 13.0 and nm < 17.0, "TACAN range %.1f NM" % nm)
+	check(t.get("name", "") == home and nm > 13.0 and nm < 17.0, "TACAN range %.1f NM" % nm)
 	check(absf(wrapf(float(t.get("bearing", 0.0)), -180.0, 180.0)) < 3.0, "TACAN bearing north (%s)" % t)
 	_key(KEY_N, "alt")
 	await frames(2)

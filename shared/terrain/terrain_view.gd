@@ -4145,6 +4145,7 @@ func _process(delta: float) -> void:
 		cockpit.state["world"] = Vector2(
 			terrain.world_origin.x + rig.position.x, terrain.world_origin.y - rig.position.z
 		)
+		cockpit.home_tacan()
 		cockpit.hud.velocity_dir = st.velocity.normalized() if st.velocity.length() > 1.0 else null
 	if aircraft != null:
 		var parts_in := {

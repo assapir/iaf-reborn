@@ -1250,6 +1250,19 @@ impl Ufc {
         self.xpdr.ident_until = tod + IDENT_S;
     }
 
+    /// The TACAN tuned to the station nearest (e, n) (UTM 36N metres), X band: the jet's home base at the start
+    /// (ours: the pilot's preset, inferred). Without it every jet started on Ramon's channel.
+    pub fn tune_nearest(&mut self, e: f64, n: f64) {
+        let d = |s: &Station| {
+            let [se, sn] = utm36n(s.lon, s.lat);
+            (se - e).hypot(sn - n)
+        };
+        if let Some(s) = STATIONS.iter().min_by(|a, b| d(a).total_cmp(&d(b))) {
+            self.tcn_chan = s.channel;
+            self.tcn_y = s.y_band;
+        }
+    }
+
     /// The backup UHF panel's channel knob (the UHF goes to BACKUP on it), one channel on.
     pub fn backup_channel(&mut self) {
         self.uhf_backup = Some(self.uhf_backup.map_or(1, |c| c % 20 + 1));
@@ -1372,6 +1385,16 @@ mod tests {
         n.fcr_at = Some([1.0, 2.0, 300.0]);
         let Effect::Mark(m) = keys(&mut u, &n, &[10]) else { panic!() };
         assert_eq!((m.e, m.n, m.elev_ft), (1.0, 2.0, 300.0));
+    }
+
+    #[test]
+    fn tacan_tuned_to_the_home_base() {
+        let mut u = Ufc::default();
+        let [e, n] = utm36n(35.18, 32.66);
+        u.tune_nearest(e, n + 2000.0);
+        let mut v = nav();
+        (v.e, v.n, v.alt_ft) = (e, n - 15.0 * NM, 10_000.0);
+        assert_eq!((u.tcn_chan, u.tacan(&v).map(|t| t.0)), (99, Some("RAMAT DAVID")), "Ramat David's 99X");
     }
 
     #[test]

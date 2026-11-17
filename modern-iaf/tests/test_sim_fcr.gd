@@ -1,5 +1,6 @@
-# The Sufa's real fire-control radar against the weapons range's drones (avionics-plan.md §6 slice 2, G1 and G5-G8;
-# docs/radar.md §9), headless, on ramon_range set up as the front end's Fly does:
+# The F-16s' real fire-control radar (the Sufa's, then the Barak's: base.gd sim_f16s) against the weapons range's drones
+# (avionics-plan.md §6 slice 2, G1 and G5-G8; docs/radar.md §9), headless, on each jet's range mission set up as the
+# front end's Fly does:
 # - power and weight on wheels: the avionics key on the parking spot brings the FCR up in STBY; Q there picks CRM, which
 #   does not radiate on the ground;
 # - RWS: airborne, the search finds Drone 1 12 km ahead and not Drone 2 below the four bars; the antenna held down
@@ -79,19 +80,28 @@ func _drone(name: String):
 
 func run() -> void:
 	await require_data()
+	for unit in sim_f16s():
+		print("-- %s" % unit)
+		await _jet(unit, sim_f16s()[unit])
+
+
+func _jet(unit: String, base: String) -> void:
 	var s := settings()
-	var list: Dictionary = s.load_json(s.converted(s.missions_folder().path_join("missionlist.json")))
-	var id := -1
-	for k in list:
-		if str(list[k][0]) == "ramon_range":
-			id = int(k)
+	var id := sim_mission(base + "_range")
 	load("res://flight/fly.gd").prepare(id)
 	tv = await start_mission(id)
 	s.mission_files_override = []
 	tv.addon.out_dir = DirAccess.create_temp("modern-iaf-fcr", false).get_current_dir()
 	tv.addon.result = {"pass": true}
 	w = tv.weapons
-	check(not w.radar.real.is_empty(), "the Sufa's radar is the real FCR (airframe radar.fcr)")
+	check(not w.radar.real.is_empty(), "the radar is the real FCR (airframe radar.fcr)")
+	# The Barak's radar against the Sufa's (avionics-plan.md B1): Weapon data Real's search range, the APG-68's 80 km
+	# (43 NM), the (V)9's 104 km (56 NM);
+	# SAM keeps one bug on the APG-68, four on the (V)9 (radar.rs keeps the newest sam_tracks).
+	var want: Array = {"f16i": [56, 4], "f16d": [43, 1]}[unit]
+	var nm := roundi(float(w.radar.modes[w.radar.LRS].nm))
+	var sam := int(s.airframe(100).radar.fcr.sam_tracks)
+	check([nm, sam] == want, "%s: CRM RWS to %d NM, SAM keeps %d bugs (%s)" % [unit, nm, sam, want])
 	# Power and weight on wheels: the engine started (the developer shortcut), then the avionics key.
 	tv._command([200, 0, 0])
 	for i in 120:
@@ -261,7 +271,11 @@ func run() -> void:
 	st = d1.state()
 	_put(st.position - st.velocity.normalized() * 20000.0, st.velocity * 0.6, float(st.heading))
 	await fly(tv, 9.0)
-	check(not _seen(d1), "VSR: Drone 1 pulling away: not shown")
+	# Shown only if it closes by now (its racetrack may turn it back towards the jet within the 9 s).
+	check(
+		not _seen(d1) or float(_contact(d1).closure) > 0.0,
+		"VSR: Drone 1 pulling away: not shown (%s)" % [_contact(d1).get("closure", "-")]
+	)
 	_tap(KEY_APOSTROPHE)
 	# ACM: Q from RWS → TWS → ACM.
 	_tap(KEY_Q)
