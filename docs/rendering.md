@@ -23,7 +23,7 @@ TAA = temporal anti-aliasing, FSR = AMD FidelityFX Super Resolution.
 | Graphics → MORE row | choices (first = default) | what it sets |
 |---|---|---|
 | Anti-aliasing | MSAA 4x / + FXAA / TAA / FSR 2 | MSAA 4x: viewport `msaa_3d` 4× (the project's setting since the start). + FXAA: also `screen_space_aa` FXAA, which softens the shader / texture edges that MSAA misses. TAA: `use_taa` in place of MSAA; it resolves sub-pixel shimmer over time (thin runway lines, distant wires), is a little softer and may ghost in fast rolls. FSR 2 (MetalFX on Metal): the temporal upscaler anti-aliases the 3D scene, in place of MSAA and TAA, at the Upscaling row's scale (§1.7) |
-| Upscaling | Native / Quality / Balanced | the 3D scene's render scale: Native 1.0; Quality 0.77; Balanced 0.67 of the window. With Anti-aliasing MSAA 4x / + FXAA / TAA a spatial upscaler scales it up: MetalFX spatial on Metal, FSR 1 on other drivers (`render_options.gd upscale_mode()`), and the Anti-aliasing row still applies. With Anti-aliasing FSR 2 the temporal upscaler does it (FSR 2.2, MetalFX temporal on Metal), at Native as anti-aliasing only (§1.7). The 2D cockpit, HUD and MFDs are canvas items, drawn after the upscale at the window's resolution. The 3D cockpit is laid again at the window's resolution over the upscaled view (modern-iaf/docs/cockpit.md §6.3, +0.2 ms on the Iris Xe). Godot lowers the texture mip bias by log2(scale). Spatial saves 0.6 ms (Quality) / 1.4 ms (Balanced) at 4K today, 4.6 / 6.3 ms with SSAO + SSIL; Balanced breaks one-pixel 3D lines into dots (docs/graphics-research.md §3.10) |
+| Upscaling | Native / Quality / Balanced | the 3D scene's render scale: Native 1.0; Quality 0.77; Balanced 0.67 of the window. With Anti-aliasing MSAA 4x / + FXAA / TAA a spatial upscaler scales it up: MetalFX spatial on Metal, FSR 1 on other drivers (`render_options.gd upscale_mode()`), and the Anti-aliasing row still applies. With Anti-aliasing FSR 2 the temporal upscaler does it (FSR 2.2, MetalFX temporal on Metal), at Native as anti-aliasing only (§1.7). The 2D cockpit, HUD and MFDs are canvas items, drawn after the upscale at the window's resolution. The 3D cockpit is upscaled with the view (its sharp layer is off: modern-iaf/docs/cockpit.md §6.3). Godot lowers the texture mip bias by log2(scale). Spatial saves 0.6 ms (Quality) / 1.4 ms (Balanced) at 4K today, 4.6 / 6.3 ms with SSAO + SSIL; Balanced breaks one-pixel 3D lines into dots (docs/graphics-research.md §3.10) |
 | Terrain close up | Original / Detailed | 16× anisotropic filtering (default 4×) for the grazing view of the ground, and in `terrain.gdshader` detail that follows the imagery, with a weight k fading from 1 at 300 m to 0 at 1.5 km (§1.1) |
 | Sky | Original / Atmospheric / Levant | Original: our gradient sky (ProceduralSkyMaterial) with the fixed fog colour. Atmospheric (by day; at night the Original sky): `atmosphere.gdshader`, a clear-day sky computed from the sun's direction and the camera's altitude. The fog takes its colour from the sky (`fog_aerial_perspective` 1, `fog_sun_scatter` 0.1) and keeps its density (the original's fog distances). The ambient light is that sky's, and a bounded auto-exposure adapts the 3D view by at most 1.25× either way (§1.2). The cloud layer shows separate clouds (§1.2). Glow / bloom is off (it cost 3 ms). Levant: the Atmospheric sky toward a dusty Levant summer, a warm haze band low on the horizon (§1.2 "Sky Levant") |
 | Colour grading | Original / Natural | Natural: the imagery's albedo toward a real ground's reflectance (bright ground darkened most), a little contrast and saturation after the tone mapper, and with the Atmospheric sky an exposure target for the darker ground (§1.9). Modern IAF keeps Original |
@@ -1327,8 +1327,15 @@ same); pictures and the runs in [modern-iaf/docs/scenery.md](../modern-iaf/docs/
 ### 3.2 The 3D cockpit (Extras "Cockpit": 3D; cockpit.md "3D cockpit")
 
 Modern IAF draws the cockpit in a second viewport about the origin (modern-iaf/docs/cockpit.md §6.2: steady far from
-the flight's start): about +4 to +5 ms GPU a frame on the Iris Xe over the numbers below. The original game does so
-only with Upscaling on (modern-iaf/docs/cockpit.md §6.3).
+the flight's start): about +4 to +5 ms GPU a frame on the Iris Xe over the numbers below. The original game does not.
+
+- Tried and dropped (2026-11-17): the cockpit laid again at the window's resolution over the upscaled view, its
+  exposure read from a grey probe in the view's corner (modern-iaf/docs/cockpit.md §6.3). On the user's Mac
+  (Upscaling Quality, MetalFX) the cockpit flashed white at a Training lesson's start and while the head turned: a
+  probe read through the upscaler and the frame's history gives a wrong exposure for a frame. Not reproduced on the
+  Iris Xe (FSR 1 and FSR 2: the cockpit's mean brightness changed by at most 0.015 a frame,
+  `modern-iaf/tests/_cockpit_flash_shot.gd`). The layer is off (`cockpit_origin.gd` `SHARP`) until its exposure
+  comes from something other than the screen.
 
 `tests/godot/_flight_bench.gd` at 1920×1080 on the Iris Xe (2026-11-01, Settings at their defaults, mission 311's
 F-16, the GPU bench lock held), `BENCH_SET=cockpit_3d=3d` against the 2D panel, and the 2D panel with Models Detailed

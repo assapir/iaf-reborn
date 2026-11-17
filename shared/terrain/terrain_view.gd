@@ -2264,8 +2264,10 @@ func _spawn_cockpit() -> void:
 		own_bc.visible = false
 		_bc_rest = own_bc.position
 		# Modern IAF: the cockpit drawn in its own world about the origin (cockpit_origin.gd), steady far from the start.
-		# The original game's 3D cockpit too while the 3D view is upscaled: its picture is what keeps it sharp then.
-		var sharp: bool = c3d_model != "" and RenderOptions.UPSCALE.get(Settings.upscaling, 1.0) < 1.0
+		# The original game's 3D cockpit too while the 3D view is upscaled and the sharp layer is on (CockpitOrigin.SHARP).
+		var sharp: bool = (
+			CockpitOrigin.SHARP and c3d_model != "" and RenderOptions.UPSCALE.get(Settings.upscaling, 1.0) < 1.0
+		)
 		if (Settings.cockpit_at_origin() or sharp) and cockpit_origin == null:
 			cockpit_origin = CockpitOrigin.new()
 			cockpit_origin.setup(camera, rig, $Sun, $WorldEnvironment)

@@ -747,7 +747,12 @@ Iris Xe. Of the cockpit's, MSAA 4× (as the flight's) is about 3.2 ms, its shado
   pixels by more than one, 12 % by more than eight), the gauges by 3.1 levels (29 %, 7 %); the HUD glass 0.8 levels
   (4 %). Zoomed, FXAA leaves the keys' outlines stair-stepped and blurs their small labels.
 
-### 6.3 The cockpit sharp with Upscaling (2026-11-17, the Mac play test of 15 Nov)
+### 6.3 The cockpit sharp with Upscaling (2026-11-17, the Mac play test of 15 Nov; off since the evening)
+
+The layer below is off (`cockpit_origin.gd` `SHARP` false): with it the cockpit flashed white at a Training lesson's
+start and while the head turned (the user's Mac, Upscaling Quality, 17 Nov; docs/rendering.md §3.2). The cockpit is
+upscaled with the view, as before. What follows is the layer as built, kept for a later round whose exposure does not
+come from a probe on the screen.
 
 With Upscaling Quality or Balanced the flight's 3D view renders at 0.77 / 0.67 of the window and is scaled up; the
 composite (§6.2) lays the cockpit inside that view, so its labels, displays and lamps came out as soft as the world.

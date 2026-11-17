@@ -29,6 +29,11 @@ const ENV_OFF := {
 	"adjustment_enabled": false,
 }
 const ENV_SYNC_S := 1.0
+## The sharp layer (cockpit_sharp.gdshader) is off: its exposure, read from the probe in the view's corner, flashed the
+## cockpit white at a mission's start and while the head turned (the user's Mac play test, 17 Nov; docs/rendering.md
+## §3.2). With it off the cockpit is upscaled with the view, as before 17 Nov.
+# ponytail: off until the layer's exposure no longer comes from a screen probe; then true again.
+const SHARP := false
 ## The sharp layer's probe (cockpit_composite.gdshader PROBE_L), its exposure table's size and AgX's log range
 ## (cockpit_sharp.gdshader).
 const PROBE_L := 0.18
@@ -150,7 +155,7 @@ func _process(delta: float) -> void:
 	_quad.visible = on
 	viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS if on else SubViewport.UPDATE_DISABLED
 	var main := get_viewport()
-	var sharp: bool = on and main.scaling_3d_scale < 1.0
+	var sharp: bool = SHARP and on and main.scaling_3d_scale < 1.0
 	if sharp != _sharp.visible:
 		_sharp.visible = sharp
 		_quad.material_override.set_shader_parameter("probe", sharp)

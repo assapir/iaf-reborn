@@ -461,6 +461,10 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   picture. The 14 Nov switch to the monitor's own pixels (hiDPI off) was reverted on 15 Nov at the user's word: with
   Upscaling Quality the cockpit came out soft there. Open again: the HUD's thin stroke on that monitor, two half-lit
   pixels (real-hud.md "A 1× monitor beside a Retina screen").
+- **No white cockpit flashes with Upscaling (2026-11-17, the user: "the cockpit goes white, brighter for a sec when
+  it jumps for a sec when starting the first training", "also moving the view doing white flashs"):** the cockpit's
+  sharp layer is off; the cockpit is upscaled with the view as before ([cockpit.md](cockpit.md) §6.3). Open: a sharp
+  cockpit with Upscaling whose exposure does not come from a probe on the screen.
 - **Zoom toward the pointer and the lean (2026-11-15, the user's Mac play: "can't zoom in to see things under the
   throttle"):** the wheel zooms the 3D cockpit toward the point under the pointer; Shift + arrows / Page Up / Page Down
   lean the head (records 126–131, command 204) within a strapped-in pilot's reach and short of the cockpit's surfaces,
