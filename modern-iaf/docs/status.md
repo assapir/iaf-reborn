@@ -3,6 +3,14 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **The Adir's radar, sensors and helmet (2026-11-17, avionics-plan.md slice 7 part B, A2–A7, E5, H6–H8, N9, P5):**
+  the real FCR's controls on the APG-81's row (`radar.fcr`; the Sufa's keys): SRCH with CRM RWS / TWS / VSR, SAM's
+  four bugs, STT, ACM and BORE, the cursor with its altitude coverage; ASR with the ground map as a grey SAR picture
+  (GM, EXP, DBS1, DBS2, FZ, SP, CZ, GMT, SEA, AGR); the combat ID (friend green circle, unknown yellow square,
+  hostile red diamond) on SRCH, ASR, the TSD and the helmet's lock (`aiff.rs` `combat_id`, inferred); the TWD with the
+  range's radar drones; the DAS's MAW on the TWD and in the helmet; the data link's tracks on the TSD; the helmet's
+  break X and pull-up cue (the F-16's GAAF rule, inferred). `modern-iaf/tests/test_sim_adir_radar.gd`. Electronic
+  attack stays out (§8.5); the SRCH layout stays inferred (G32: no source).
 - **The Barak's avionics (2026-11-17, avionics-plan.md slice 6, §3 B1–B11):** today's upgraded F-16D (Barak 2020,
   the Sufa's avionics installed) as data merged over the F-16's definition (`modern-iaf/data/planes/f16.json`): the
   real FCR's controls on the APG-68's row (CRM RWS to 43 NM, SAM with one bug), the colour MFDs with the HSD's map, the

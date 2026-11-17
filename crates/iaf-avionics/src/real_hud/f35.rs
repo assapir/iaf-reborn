@@ -7,6 +7,7 @@
 //! (reconstruction). Green.
 
 use super::*;
+use crate::aiff::Ident;
 
 const ROW: f64 = 9.0;
 const HDG_PX: f64 = 2.0;
@@ -17,6 +18,8 @@ const GREEN: [f32; 3] = [0.45, 1.0, 0.55];
 /// 32° × 22° field centred on the boresight.
 const FIELD_W_DEG: f64 = 32.0;
 const FIELD_H_DEG: f64 = 22.0;
+/// The MAW's ring about the boresight (°): inside the heading tape, which sits 7.7° up (inferred).
+const MAW_RING_DEG: f64 = 6.0;
 
 pub(super) fn frame(_hud: Field, i: &Input, max_g: f64) -> Frame {
     if i.off_boresight {
@@ -133,10 +136,16 @@ pub(super) fn frame(_hud: Field, i: &Input, max_g: f64) -> Frame {
         && let Some(at) = t.at
     {
         let (q, _) = f.clamp_from(i.boresight, at);
-        let h = i.mr(12.0);
-        p.push(Prim::Circle { c: q, r: h * 0.6 });
-        x_over(p, q, h);
+        lock_symbol(p, q, i.mr(12.0), t.ident);
     }
+    // The break X and the pull-up cue: the F-16's GAAF rule (inferred: the F-35's Auto-GCAS graphics are not public).
+    super::f16::ground_cues(
+        p,
+        i,
+        f,
+        matches!(mode, 1 | 2) && i.target.zip(i.dlz).is_some_and(|(t, z)| t.range_m < z.min),
+    );
+    maw_cues(p, i, i.boresight, i.deg(MAW_RING_DEG));
     match mode {
         1 => {
             if let Some(s) = w.seeker {
@@ -204,10 +213,9 @@ fn off_boresight(i: &Input) -> Frame {
         && let Some(at) = t.at
     {
         let (q, _) = field.clamp_from((0.0, 0.0), at);
-        let s = i.mr(12.0);
-        o.push(Prim::Circle { c: q, r: s * 0.6 });
-        x_over(o, q, s);
+        lock_symbol(o, q, i.mr(12.0), t.ident);
     }
+    maw_cues(o, i, (0.0, 0.0), h * 0.8);
     // The AIM-9X's seeker, shoot and LOAL cues (as the DASH's).
     super::dash::hobs_cues(o, i, (0.0, 0.0), h);
     // A GPS bomb's aim: its TD box, held at the set's edge with an X over it when outside (as on the forward set).
@@ -222,6 +230,32 @@ fn off_boresight(i: &Input) -> Frame {
         }
     }
     fr
+}
+
+/// The target designator: an X over the target with its combat ID's shape (Code One: a friend a circle, an unknown a
+/// square, a hostile a diamond; the helmet's own shapes are not public, the PCD's stand in, inferred); a circle without
+/// one.
+fn lock_symbol(p: &mut Vec<Prim>, q: P, h: f64, ident: Option<Ident>) {
+    let r = h * 0.6;
+    match ident {
+        Some(Ident::Unknown) => p.extend(box_poly(q.0 - r, q.1 - r, q.0 + r, q.1 + r)),
+        Some(Ident::Hostile) => diamond(p, q, r * 1.3),
+        _ => p.push(Prim::Circle { c: q, r }),
+    }
+    x_over(p, q, h);
+}
+
+/// The DAS's missile warnings (modern-iaf/docs/avionics-plan.md E5, G19; the DAS gives "missile detection and
+/// tracking", its helmet graphics are not public): an "M" at each missile's bearing on a ring of radius `r` about `c`
+/// (ahead up, as the TWD's), the seconds to impact under it ("--" while it does not close). Inferred, after the RWR
+/// scope's MAW cue (modern-iaf/docs/ews.md §3).
+fn maw_cues(p: &mut Vec<Prim>, i: &Input, c: P, r: f64) {
+    for &(b, tti) in &i.maw {
+        let at = (c.0 + r * b.sin(), c.1 - r * b.cos());
+        p.push(text(at, "M", Align::Centre));
+        let t = if tti.is_finite() { format!("{}", tti.clamp(0.0, 99.0) as i64) } else { "--".into() };
+        p.push(text((at.0, at.1 + ROW), t, Align::Centre));
+    }
 }
 
 /// The master mode and the selected weapon ("AA1" / "2 AIM-A"); NAV without one.
@@ -351,6 +385,61 @@ mod tests {
         let n = frame(FIELD, &i, 1.9).outer.len();
         i.steerpoint.as_mut().unwrap().at = Some((30.0, 20.0));
         assert_eq!(frame(FIELD, &i, 1.9).outer.len(), n + 4);
+    }
+
+    #[test]
+    fn the_lock_carries_its_combat_id_and_the_maw_its_seconds() {
+        let mut i = input(Jet::F35);
+        i.weapons.hud_mode = 2;
+        let h = i.mr(12.0) * 0.6;
+        let shape = |i: &Input| {
+            let fr = frame(FIELD, i, 1.9);
+            let q = (10.0, 10.0);
+            let circle =
+                fr.outer.iter().any(|p| matches!(p, Prim::Circle { c, r } if *c == q && (*r - h).abs() < 1e-9));
+            let square = fr.outer.contains(&line((q.0 - h, q.1 - h), (q.0 + h, q.1 - h)));
+            let diamond = fr.outer.contains(&line((q.0, q.1 - h * 1.3), (q.0 + h * 1.3, q.1)));
+            (circle, square, diamond)
+        };
+        for (ident, want) in [
+            (None, (true, false, false)),
+            (Some(Ident::Friend), (true, false, false)),
+            (Some(Ident::Unknown), (false, true, false)),
+            (Some(Ident::Hostile), (false, false, true)),
+        ] {
+            i.target = Some(Target { range_m: 9000.0, at: Some((10.0, 10.0)), ident, ..Default::default() });
+            assert_eq!(shape(&i), want, "{ident:?}");
+        }
+        i.maw = vec![(std::f64::consts::FRAC_PI_2, 7.4), (0.0, f64::INFINITY)];
+        let fr = frame(FIELD, &i, 1.9);
+        let t = texts(&fr.outer);
+        assert!(t.iter().filter(|x| **x == "M").count() == 2 && t.contains(&"7") && t.contains(&"--"), "{t:?}");
+        let r = i.deg(MAW_RING_DEG);
+        let right = (i.boresight.0 + r, i.boresight.1);
+        assert!(fr.outer.iter().any(|p| matches!(p, Prim::Text { at, text, .. } if text == "M" && (at.0 - right.0).abs() < 1e-9 && (at.1 - right.1).abs() < 1e-9)), "a missile from the right on the ring's right");
+    }
+
+    #[test]
+    fn the_break_x_in_a_dive_as_the_f16s() {
+        let f = |i: &Input| {
+            frame(FIELD, i, 1.9)
+                .outer
+                .iter()
+                .filter(|p| matches!(p, Prim::Line { a, b } if (a.0 - b.0).abs() > 40.0 && (a.1 - b.1).abs() > 40.0))
+                .count()
+        };
+        let v = 413.0 * 0.514444;
+        let mut i = Input {
+            agl_ft: Some(2000.0),
+            tas_ms: v,
+            kcas: 413.0,
+            vs_fpm: -v * std::f64::consts::FRAC_1_SQRT_2 * 196.85,
+            ..input(Jet::F35)
+        };
+        i.weapons.hud_mode = 5;
+        assert_eq!(f(&i), 2, "a 45° dive 2,000 ft up: the break X");
+        i.agl_ft = Some(3000.0);
+        assert_eq!(f(&i), 0, "above the advisory height");
     }
 
     #[test]

@@ -122,6 +122,12 @@ impl IafRwr {
         self.rwr.take_new_guy()
     }
 
+    /// Ours, the F-35I's combat ID: the keys of the units whose radar is heard (`Rwr::heard`).
+    #[func]
+    fn heard(&self) -> PackedStringArray {
+        self.rwr.heard().into_iter().map(GString::from).collect()
+    }
+
     /// The cockpit copy: [{type, pos (world X / Y), launch, active, search, id (the emitter's, `display_keyed`)}].
     #[func]
     fn display(&self) -> VarArray {

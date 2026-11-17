@@ -794,7 +794,11 @@ var _ag_tex: ImageTexture
 var _ag_serial := -1
 
 
-func _draw_ag_picture(r: Dictionary, ag: Dictionary) -> void:
+## `on`: the canvas to draw on (the F-35I's ASR, pcd_formats.gd radar; its transform set by the caller), else the
+## picture canvas under the page; `grey` the F-35I's grey SAR picture (LM slide 8) instead of green.
+func _draw_ag_picture(r: Dictionary, ag: Dictionary, on: CanvasItem = null, grey := false) -> void:
+	var cv: CanvasItem = on if on != null else _under
+	var tint := Color.WHITE if grey else Color(0, 1, 0)
 	var fr: Dictionary = ag.frame
 	var pic: Dictionary = ag.pic
 	if fr.is_empty() or ag.name == "AGR":
@@ -803,14 +807,15 @@ func _draw_ag_picture(r: Dictionary, ag: Dictionary) -> void:
 	var rect := PackedVector2Array(
 		[win.position, Vector2(win.end.x, win.position.y), win.end, Vector2(win.position.x, win.end.y)]
 	)
-	var green := Color(0, GMT_MAP_DIM if ag.name == "GMT" else 1.0, 0)
+	var k := GMT_MAP_DIM if ag.name == "GMT" else 1.0
+	var green := Color(tint.r * k, tint.g * k, tint.b * k)
 	var t := _isr()
 	if t != null:
 		# The map's scale: its fan radius (94 px) = the range over the zoom.
 		var nm := float(fr.k) * 94.0 / 1853.0
 		var mf: Dictionary = cockpit.layout.get("MAPFRAME", MAPFRAME)
 		for piece in map_picture(Vector2(fr.centre.x, fr.centre.y), float(fr.yaw), nm, fr.sym, mf, rect):
-			_under.draw_colored_polygon(piece.points, green, piece.uvs, t)
+			cv.draw_colored_polygon(piece.points, green, piece.uvs, t)
 	if int(pic.serial) != _ag_serial:
 		_ag_serial = int(pic.serial)
 		var bytes: PackedByteArray = r.get("pic", PackedByteArray())
@@ -834,7 +839,7 @@ func _draw_ag_picture(r: Dictionary, ag: Dictionary) -> void:
 		var uvs := PackedVector2Array()
 		for p in piece:
 			uvs.append((ag_px(pf, ag_world(fr, p)) - win.position) / win.size)
-		_under.draw_colored_polygon(piece, Color(0, AG_GAIN, 0), uvs, _ag_tex)
+		cv.draw_colored_polygon(piece, Color(tint.r * AG_GAIN, tint.g * AG_GAIN, tint.b * AG_GAIN), uvs, _ag_tex)
 
 
 func _isr() -> Texture2D:

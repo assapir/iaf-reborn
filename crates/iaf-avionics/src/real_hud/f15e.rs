@@ -485,7 +485,8 @@ mod tests {
         i.weapons.hud_mode = 2;
         i.weapons.mrm = 4;
         i.weapons.name = "AMRAAM".into();
-        i.target = Some(Target { range_m: 15.0 * NM, closure: 300.0, at: Some((5.0, 5.0)), aspect: Some(-0.3) });
+        i.target =
+            Some(Target { range_m: 15.0 * NM, closure: 300.0, at: Some((5.0, 5.0)), aspect: Some(-0.3), ident: None });
         i.dlz = Some(Dlz { max: 20.0 * NM, min: 2.0 * NM });
         let fr = frame(FIELD, &i, false);
         let t = texts(&fr.outer);

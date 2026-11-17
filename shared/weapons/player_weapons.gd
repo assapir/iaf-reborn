@@ -141,7 +141,8 @@ var _override_from := {}
 var laser_arm := true
 ## The jet flies the F-16's modern MFDs (Settings.modern_mfds with the F-16's real MFDs in its cockpit; set by setup).
 var modern_f16 := false
-## Ours, the modern F-16s' threat display, MAW, CMDS, AIFF and data link (ews.gd; null on any other jet).
+## Ours, the modern F-16s' threat display, MAW, CMDS, AIFF and data link, Modern IAF's F-35I's with its combat ID
+## (ews.gd; null on any other jet).
 var ews: RefCounted = null
 var tgp_slaved := false
 ## Ours, the modern F-16s' pod procedure (modern-iaf/docs/weapons.md §7.2): when the pod got its power (with the
@@ -280,8 +281,10 @@ func setup(host_node: Node, entity: Dictionary, object: Dictionary, bdb: Diction
 		Settings.modern_mfds() and pit != null and Settings.real_mfd(Settings.cockpit_folder(pit.cockpit_dir)) != ""
 	)
 	laser_arm = not modern_f16  # its LASER ARM starts OFF
-	if modern_f16:
-		ews = Ews.new(self, Settings.airframe(jet_type).get("ews", {}))
+	# Ours, Modern IAF's F-35I: its EW set from its definition too (its TWD, MAW, data link and combat ID; ews.gd).
+	var ews_def: Dictionary = Settings.airframe(jet_type).get("ews", {})
+	if modern_f16 or (Settings.modern_radar() and ews_def.get("combat_id", false)):
+		ews = Ews.new(self, ews_def)
 		if pit != null:
 			pit.on_cmds = ews.ded_edit
 	_push_stores()
@@ -2836,6 +2839,8 @@ func update(t: float) -> void:
 	_last_t = t
 	if modern_f16:
 		_modern_update()
+	elif ews != null:
+		ews.update()  # ours, Modern IAF's F-35I: its EW set alone (ews.gd)
 	_eo_update()
 	_update_full_screen()
 	# FUN_00461680: an A-A radar lock slaves the IR seeker (any lock clears the seeker's own target).

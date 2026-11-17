@@ -5,7 +5,7 @@
 
 use crate::world::{get, num, vec3, vector3};
 use godot::prelude::*;
-use iaf_avionics::aiff::{Aiff, Answer, Own, Target};
+use iaf_avionics::aiff::{Aiff, Answer, Own, Target, combat_id};
 use iaf_avionics::cmds::{Cmds, Cms, Dispense, Expendable, Mode};
 use iaf_avionics::datalink::{Kind as LinkKind, Link, Unit};
 use iaf_avionics::ews::{Approach, Kind, Maw, Twd};
@@ -317,6 +317,24 @@ impl IafEws {
             })
             .collect();
         self.link.update(now, vec3(own), &units);
+    }
+
+    /// Ours, the F-35I's combat ID (`aiff::combat_id`) of `units` [{key, pos, hostile}] from the own position, with the
+    /// data link's hostile tracks and the keys whose radar is `heard`: {key: "friend" / "unknown" / "hostile"}.
+    #[func]
+    fn combat_id(&self, units: VarArray, own: Vector3, heard: PackedStringArray) -> VarDictionary {
+        let heard: Vec<String> = heard.as_slice().iter().map(GString::to_string).collect();
+        let link: Vec<&str> =
+            self.link.tracks().iter().filter(|t| t.kind == LinkKind::Hostile).map(|t| t.key.as_str()).collect();
+        let mut out = VarDictionary::new();
+        for d in dicts(&units) {
+            let key = string(&d, "key");
+            let pos = vec3(get(&d, "pos").unwrap_or_default());
+            let answer = if get(&d, "hostile").unwrap_or(true) { Answer::None } else { Answer::Friend };
+            let id = combat_id(answer, (pos - vec3(own)).length(), link.contains(&key.as_str()), heard.contains(&key));
+            out.set(key.as_str(), id.name());
+        }
+        out
     }
 
     /// [{key, pos, heading (deg), speed, kind: "team" / "friend" / "hostile", n (a member's number, else 0)}].

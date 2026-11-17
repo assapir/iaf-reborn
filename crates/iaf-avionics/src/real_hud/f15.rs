@@ -313,7 +313,7 @@ mod tests {
         assert!(t.contains(&"20".to_string()) && t.contains(&"40".to_string()), "the AoA scale: {t:?}");
         i.gear_down = false;
         i.weapons.hud_mode = 2;
-        i.target = Some(Target { range_m: 500.0, closure: 0.0, at: None, aspect: None });
+        i.target = Some(Target { range_m: 500.0, closure: 0.0, at: None, aspect: None, ident: None });
         i.dlz = Some(Dlz { max: 20_000.0, min: 1_000.0 });
         let fr = frame(FIELD, &i, false);
         let long = fr

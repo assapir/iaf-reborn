@@ -88,7 +88,7 @@ mod tests {
     fn the_phantom_range_bar_unwinds_from_6_oclock() {
         let mut i = input(Jet::Phantom);
         i.weapons.hud_mode = 3;
-        i.target = Some(Target { range_m: 4000.0 * FT, closure: 0.0, at: None, aspect: None });
+        i.target = Some(Target { range_m: 4000.0 * FT, closure: 0.0, at: None, aspect: None, ident: None });
         let fr = lcoss(&i);
         assert!(fr.sight && fr.colour == Some(RED) && fr.outer.is_empty());
         let arc = fr

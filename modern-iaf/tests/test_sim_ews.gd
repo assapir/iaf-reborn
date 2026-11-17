@@ -295,6 +295,8 @@ func _ded() -> void:
 func _awacs() -> void:
 	var r: Node = tv.radio
 	var call := func(p): return String(p.template).begins_with("ACFT_FCTRL")
+	# 3 km above the drones for the wait (head on with Drones 4 for up to two minutes the jet once flew into one).
+	_put(tv.rig.position + Vector3(0, 3000, 0), Vector3(0, 0, -200), 0.0)
 	var t0 := Time.get_ticks_msec()
 	while Time.get_ticks_msec() - t0 < 120000 and not r.said.any(call):
 		await fly(tv, 1.0)

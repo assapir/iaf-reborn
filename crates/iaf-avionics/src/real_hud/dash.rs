@@ -162,13 +162,13 @@ mod tests {
         let mut i = Input { off_boresight: true, ..input(Jet::F16) };
         i.weapons.hud_mode = 1;
         i.weapons.srm = 2;
-        i.target = Some(Target { range_m: 3000.0, closure: 0.0, at: Some((20.0, 0.0)), aspect: None });
+        i.target = Some(Target { range_m: 3000.0, closure: 0.0, at: Some((20.0, 0.0)), aspect: None, ident: None });
         i.weapons.seeker = Some((20.0, 0.0));
         let lines = |i: &Input| {
             RealHud::default().frame(FIELD, i).outer.iter().filter(|p| matches!(p, Prim::Line { .. })).count()
         };
         let near = lines(&i);
-        i.target = Some(Target { range_m: 3000.0, closure: 0.0, at: Some((500.0, 0.0)), aspect: None });
+        i.target = Some(Target { range_m: 3000.0, closure: 0.0, at: Some((500.0, 0.0)), aspect: None, ident: None });
         i.weapons.seeker = Some((500.0, 0.0));
         assert_eq!(near - lines(&i), 8, "box (4) and diamond (4) inside, none outside");
         assert!(texts(&RealHud::default().frame(FIELD, &i).outer).contains(&"2 SRM"));

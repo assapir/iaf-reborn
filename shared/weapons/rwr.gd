@@ -152,6 +152,11 @@ func display() -> Array:
 	return _r.display()
 
 
+## Ours, the F-35I's combat ID (ews.gd): the keys of the units whose radar is heard.
+func heard() -> PackedStringArray:
+	return _r.heard()
+
+
 func _sync() -> void:
 	var st: Dictionary = _r.state()
 	slots = st.slots

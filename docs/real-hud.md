@@ -696,7 +696,7 @@ game's rule (docs/cockpit.md "break X", docs/sound.md §4).
 | F-16 | the break X: flashing at the GAAF advisory in every master mode; steady in the A-A missile modes inside Rmin[^dash34brk]; the pull-up anticipation U rising to the flight path marker in the A-G modes[^dash34brk]; `AL` flashing below ALOW[^dash34alow] | "PULL UP – PULL UP" at the GAAF advisory[^dash34gaaf]; "ALTITUDE – ALTITUDE" below the ALOW height[^dash34alow], 300 ft by default[^betty] |
 | F-15 | the breakaway X inside Rmin (section F-15A/C above) | none: the sources list no pull-up or height call[^betty] |
 | F-15E (the F-15I Ra'am) | the break X in the A-G master mode: a dive of more than 3° whose 4 g pull-out (reached in 2 s; ours: one second at the present sink) would end below 200 ft of radar altitude; none in A-A, as the TO (section F-15E above) | none, as the F-15's (the F-15I's voice system is open) |
-| F-35I | open (none drawn) | "PULL UP" at the F-16's GAAF rule (inferred: Auto-GCAS lineage[^betty]); no height call |
+| F-35I | the F-16's break X and pull-up anticipation U in the helmet (`f16.rs` `ground_cues`; inferred: Auto-GCAS lineage, the F-35's own graphics are not public; 17 Nov 2026) | "PULL UP" at the F-16's GAAF rule (inferred: Auto-GCAS lineage[^betty]); no height call |
 | Lavi, Kurnass 2000 | open (none drawn) | the game's Betty rule (the jets' voice systems are open[^betty]) |
 | Kfir | open (none drawn) | none (no voice[^betty]) |
 | F-4E, Mirage | none: the optical sights have no such mark (inferred from the sight manuals above) | none (no voice[^betty]) |

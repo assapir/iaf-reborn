@@ -375,6 +375,8 @@ Each entry names the switch and where it lives, then the difference: "Original: 
     bays (a GBU-31 in each by default) and the GBU-31 / GBU-32 on its heavy pylons (weapons.md §13).
   - The F-35I's radar has no switch: it comes up in STBY, does not radiate with weight on wheels and searches by itself
     once airborne (radar.md §9.1).
+  - The F-35I's helmet (HUD Real) draws the F-16's break X and pull-up cue (real-hud.md "Pull-up and break marks").
+    Original: the F-35I's helmet had no break X.
     Original: every radar starts OFF until Q or R.
 - **"F-16 version" (Barak (F-16D) / Sufa (F-16I))** (ours, Extras; [f16i.md](f16i.md)). Original: the game's F-16D
   Barak. Ours, with Sufa: every F-16 (type 100: the player's, the AI's and the parked ones) is the IAF's F-16I Block

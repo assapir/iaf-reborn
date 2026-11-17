@@ -141,7 +141,7 @@ mod tests {
     #[test]
     fn missile_range_scale_in_km_launch_and_aiming_error() {
         let mut i = with(2);
-        i.target = Some(Target { range_m: 8000.0, closure: 100.0, at: Some((5.0, 0.0)), aspect: None });
+        i.target = Some(Target { range_m: 8000.0, closure: 100.0, at: Some((5.0, 0.0)), aspect: None, ident: None });
         i.dlz = Some(Dlz { max: 15_000.0, min: 1500.0 });
         i.weapons.shoot = true;
         let t = texts(&frame(FIELD, &i).outer).into_iter().map(String::from).collect::<Vec<_>>();
@@ -160,7 +160,7 @@ mod tests {
     fn gun_reticle_rides_the_lead_with_a_metre_range_bar() {
         let mut i = with(3);
         i.weapons.lcos = Some((4.0, 30.0));
-        i.target = Some(Target { range_m: 1000.0, closure: 0.0, at: None, aspect: None });
+        i.target = Some(Target { range_m: 1000.0, closure: 0.0, at: None, aspect: None, ident: None });
         let fr = frame(FIELD, &i);
         let arc =
             fr.field.iter().find_map(|p| if let Prim::Arc { c, sweep, .. } = p { Some((*c, *sweep)) } else { None });

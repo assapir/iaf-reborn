@@ -183,12 +183,16 @@ Damage cases 0xf / 0x13 / 0x15 (`FUN_004adb20`) turn the radar OFF, and every la
   F-15 APG-63 135 km, …; docs/real-weapons.md §1.3). The MiGs keep the table. The F-16I's is the F-16's × 1.3,
   104 km.
 
-## 9. Ours: the real F-16 FCR (the Sufa)
+## 9. Ours: the real F-16 FCR (the Sufa, the Barak, the Adir)
 
 A jet whose aircraft definition has `radar.fcr` flies the real F-16 fire-control radar's controls on top of the
 game's modes (`crates/iaf-avionics/src/radar.rs` `Fcr`, `Real`; avionics-plan.md slice 2). Today that is the F-16I
 Sufa (`shared/extra/planes/f16i/airframe.json`: `{"sam_tracks": 4}`) and Modern IAF's Barak, the same code with
-`{"sam_tracks": 1}` on the F-16's row (`modern-iaf/data/planes/f16.json`; avionics-plan.md B1). The FCR format's legends follow the dash-34 ([real-mfd.md](real-mfd.md) "FCR"); the
+`{"sam_tracks": 1}` on the F-16's row (`modern-iaf/data/planes/f16.json`; avionics-plan.md B1), and Modern IAF's
+F-35I Adir, the same code on the APG-81's row with `{"sam_tracks": 4}` (`shared/extra/planes/f35i/airframe.json`; the
+count inferred, the APG-81 does "multiple target track"; avionics-plan.md A2–A5): the same modes, keys, A-G ground map
+and picture, drawn on the PCD's SRCH and ASR ([f35i.md](f35i.md) §4.3; the ASR's picture grey, the SAR map of LM's
+slide). The FCR format's legends follow the dash-34 ([real-mfd.md](real-mfd.md) "FCR"); the
 jets without `radar.fcr` keep the original's radar unchanged. Only Modern IAF applies `radar.fcr`
 (`Settings.modern_radar()`): the 1998 game's Sufa (Extras "F-16 version") keeps the original's radar, whose keys it
 has.

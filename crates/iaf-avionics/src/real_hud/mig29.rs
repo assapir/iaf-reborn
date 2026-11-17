@@ -270,7 +270,8 @@ mod tests {
     #[test]
     fn long_range_scale_in_km_with_launch_and_breakaway() {
         let mut i = with(2);
-        i.target = Some(Target { range_m: 20_000.0, closure: 300.0, at: Some((10.0, -5.0)), aspect: None });
+        i.target =
+            Some(Target { range_m: 20_000.0, closure: 300.0, at: Some((10.0, -5.0)), aspect: None, ident: None });
         i.dlz = Some(Dlz { max: 30_000.0, min: 3000.0 });
         i.weapons.shoot = true;
         let fr = frame(FIELD, &i);
@@ -312,7 +313,7 @@ mod tests {
         assert!(ours.len() >= m61.len() && !m61.iter().all(|l| ours.contains(l)), "the slower GSh-30-1's funnel");
         let mut j = i.clone();
         j.weapons.lcos = Some((0.0, 25.0));
-        j.target = Some(Target { range_m: 600.0, closure: 0.0, at: Some((0.0, 25.0)), aspect: None });
+        j.target = Some(Target { range_m: 600.0, closure: 0.0, at: Some((0.0, 25.0)), aspect: None, ident: None });
         let fr = frame(FIELD, &j);
         assert!(fr.field.iter().any(|p| matches!(p, Prim::Arc { c, sweep, .. } if *c == (0.0, 25.0) && (*sweep - std::f64::consts::PI).abs() < 1e-9)));
     }

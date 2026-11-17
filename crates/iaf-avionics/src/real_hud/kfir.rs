@@ -231,7 +231,7 @@ mod tests {
         let mut i = input(Jet::Kfir);
         i.weapons.hud_mode = 3;
         i.weapons.lcos = Some((0.0, 20.0));
-        i.target = Some(Target { range_m: 600.0, closure: 50.0, at: Some((0.0, 15.0)), aspect: None });
+        i.target = Some(Target { range_m: 600.0, closure: 50.0, at: Some((0.0, 15.0)), aspect: None, ident: None });
         let fr = frame(FIELD, &i);
         assert!(texts(&fr.outer).contains(&"LCOS"));
         assert!(fr.field.iter().any(|p| matches!(p, Prim::Arc { .. })), "the LCOS reticle and its range arc");

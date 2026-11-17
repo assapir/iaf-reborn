@@ -5,6 +5,8 @@
 # manual for cyan and white). Everything shown comes from the cockpit's state (cockpit.gd).
 extends RefCounted
 
+const Mfd := preload("res://shared/cockpit/mfd.gd")
+
 const CYAN := Color(0.30, 0.85, 1.0)
 const GREEN := Color(0.30, 1.0, 0.38)
 const DARK_GREEN := Color(0.12, 0.45, 0.16)
@@ -52,6 +54,9 @@ const THREAT_CODE := {
 var ci: CanvasItem
 var cockpit: Control
 var font: Font
+## What the last draw of each format showed (tests): srch {mode, kinds, cursor, no_rad}, asr {name, fov, picture,
+## kinds}, tsd {link, tracks}, twd {labels, maw}.
+var shown := {}
 
 
 func _init(canvas: CanvasItem, c: Control, f: Font) -> void:
@@ -230,7 +235,12 @@ func scope_xform(centre: Vector2, m_per_px: float) -> Transform2D:
 	return Transform2D(x, y, centre - x * o.x - y * o.y)
 
 
+## A track's symbol: Modern IAF's combat ID (ews.gd state.ident, aiff.rs combat_id: a friend that answers, a hostile
+## named by the data link or heard on the threat warning, else unknown), else its side (the 1998 game's F-35I).
 func track_kind(c: Dictionary) -> String:
+	var ident: Dictionary = cockpit.ews.get("ident", {})
+	if ident.has(c.get("key", "")):
+		return String(ident[c.key])
 	return "hostile" if bool(c.get("hostile", true)) else "friend"
 
 
@@ -297,7 +307,25 @@ func tsd(r: Rect2, range_nm: float, show_map := true) -> void:
 				poly(seg, RED, THIN)
 		if r.has_point(p):
 			track(p, "hostile", null, true, 2.2)
-	# The radar's tracks (fused with the datalink on the real jet; here the radar's contacts).
+	# The data link's tracks (Modern IAF, ews.gd: the flight's jets with their number, the AWACS's picture by its combat
+	# ID; datalink.rs), under the radar's own.
+	# One symbol per unit: a unit the radar tracks shows as the radar's track (fused; inferred).
+	var radar_keys := {}
+	for ct in cockpit.radar.get("contacts", []):
+		radar_keys[ct.get("key", "")] = true
+	var shown_keys := {}
+	for t in cockpit.ews.get("link", []):
+		var lp := to_scope(Vector2(t.pos.x, t.pos.y), c, mpp)
+		if not r.has_point(lp) or radar_keys.has(t.key):
+			continue
+		var team: bool = t.kind == "team"
+		var kind := "friend" if t.kind != "hostile" else track_kind(t)
+		track(lp, kind, deg_to_rad(float(t.heading)) - h, false, 2.4)
+		if team:
+			text(lp + Vector2(-1.3, 1.6), "%d" % int(t.n), 3.6, GREEN)
+		shown_keys[t.key] = true
+	shown.tsd = {"link": shown_keys.size(), "tracks": 0}
+	# The radar's tracks (fused with the data link on the real jet).
 	var radar: Dictionary = cockpit.radar
 	for ct in radar.get("contacts", []):
 		var w: Vector3 = ct.pos
@@ -305,6 +333,7 @@ func tsd(r: Rect2, range_nm: float, show_map := true) -> void:
 		if r.has_point(p):
 			var hd = deg_to_rad(float(ct.heading)) - h if ct.has("heading") else null
 			track(p, track_kind(ct), hd, false, 2.4)
+			shown.tsd.tracks += 1
 			if ct.get("locked", false):
 				circle(p, 5.0, WHITE, THIN)
 	ownship(c, 4.0)
@@ -325,13 +354,17 @@ const RANGES := [5, 10, 20, 40, 80, 160]
 const MODE_NAMES := ["OFF", "STBY", "STT", "BORE", "LRS", "TWS", "ACM", "GMT", "MAP"]
 
 
-## The radar (SRCH air-to-air, ASR air-to-surface; the layout is open: inferred an azimuth / range fan like the
-## Driven Technologies picture's): the apex at the ownship, ±the scan's half width, range arcs at quarters; the
-## tracks as on the TSD with their direction lines; the lock ringed with its data on top.
+## The radar (SRCH air-to-air, ASR air-to-surface; the layout is open, inferred: an azimuth / range fan like the
+## Driven Technologies picture's, G32): the apex at the ownship, ±the scan's half width, range arcs at quarters; the
+## tracks by their combat ID with their direction lines; the lock ringed with its data on top. Modern IAF's real FCR
+## (radar.rs, airframe radar.fcr; docs/radar.md §9) adds the mode and submode, the scan, its limits, the acquisition
+## cursor with its altitude coverage, NO RAD; its air-to-surface modes draw the ASR (_asr).
 func radar(r: Rect2) -> void:
 	var rd: Dictionary = cockpit.radar
 	var mode := int(rd.get("mode", 0))
 	var nm: float = RANGES[clampi(int(rd.get("idx", 1)), 1, 6) - 1]
+	var real: Dictionary = rd.get("real", {})
+	var ag: Dictionary = real.get("ag", {})
 	var apex := Vector2(r.get_center().x, r.end.y - 4.0)
 	var half := float(rd.get("width", TAU / 3.0)) / 2.0
 	# As tall as the portal allows, the fan's edges inside its sides.
@@ -345,6 +378,10 @@ func radar(r: Rect2) -> void:
 			HORIZONTAL_ALIGNMENT_CENTER,
 			r.size.x
 		)
+		shown.srch = {"mode": MODE_NAMES[mode]}
+		return
+	if not ag.is_empty():
+		_asr(r, rd, ag, nm)
 		return
 	var ground := mode >= 7
 	var col := GREY if ground else DARK_GREEN.lightened(0.25)
@@ -353,30 +390,75 @@ func radar(r: Rect2) -> void:
 	for a in [-half, half]:
 		line(apex, apex + Vector2(sin(a), -cos(a)) * rad, col, THIN)
 	dashed_line(apex, apex + Vector2(0, -rad), DARK_GREY.lightened(0.2), THIN)
-	# The antenna's azimuth (a dotted spoke).
+	# The antenna's azimuth (a dotted spoke); the real FCR's scan limits in search and TWS (two spokes).
 	var ant: Vector2 = rd.get("antenna", Vector2.ZERO)
-	if not ground and mode != 2:
+	if not ground and mode != 2 and real.is_empty():
 		var aa := clampf(ant.x, -half, half)
 		dashed_line(apex, apex + Vector2(sin(aa), -cos(aa)) * rad, CYAN.darkened(0.3), THIN, 2.0)
+	if not real.is_empty() and mode in [4, 5] and not real.get("exp", false):
+		var vol: Vector4 = real.volume
+		for edge in [vol.x, vol.y]:
+			var e := deg_to_rad(edge)
+			dashed_line(apex, apex + Vector2(sin(e), -cos(e)) * rad, CYAN.darkened(0.3), THIN, 2.0)
 	var shift := float(rd.get("shift", 0.0))
 	var h := heading_rad()
 	var lock_p = null
+	var kinds := []
 	for ct in rd.get("contacts", []):
-		var az := float(ct.az) + shift
-		if absf(az) > half:
+		var bug: bool = ct.get("locked", false) or ct.get("selected", false)
+		# The real FCR's ACM and BORE show nothing until the lock; STT the lock only; a TWS file flashes its last 8 s.
+		if not real.is_empty() and (mode in [3, 6] or mode == 2) and not bug:
 			continue
-		var d := float(ct.dist) / (nm * 1852.0)
-		if d > 1.0:
+		if not real.is_empty() and mode == 5 and float(ct.get("age", 0.0)) > 5.0 and Time.get_ticks_msec() % 500 < 250:
 			continue
-		var p := apex + Vector2(sin(az), -cos(az)) * rad * d
-		if ground:
-			track(p, "hostile" if ct.get("hostile", true) else "friend", null, true, 2.2)
+		var p: Vector2
+		if not real.is_empty() and ct.has("scope"):
+			p = _fan_place(apex, rad, ct.scope)
 		else:
-			track(p, track_kind(ct), deg_to_rad(float(ct.get("heading", 0.0))) - h, false, 2.6)
-		if ct.get("locked", false) or ct.get("selected", false):
+			var az := float(ct.az) + shift
+			var d := float(ct.dist) / (nm * 1852.0)
+			if absf(az) > half or d > 1.0:
+				continue
+			p = apex + Vector2(sin(az), -cos(az)) * rad * d
+		if not real.is_empty() and not r.has_point(p):
+			continue
+		var kind := track_kind(ct)
+		kinds.append(kind)
+		if ground:
+			track(p, kind, null, true, 2.2)
+		else:
+			track(p, kind, deg_to_rad(float(ct.get("heading", 0.0))) - h, false, 2.6)
+		if bug:
 			circle(p, 5.2, WHITE, LINE)
 			lock_p = p
-	text(Vector2(r.position.x + 2.0, r.position.y + 6.0), MODE_NAMES[mode], 5.0, GREEN)
+		elif real.get("sam", []).has(ct.key):
+			dashed_circle(p, 5.2, WHITE, THIN, 12)
+	# The mode (the real FCR's names, inferred for the APG-81: its own are not public) and the scan.
+	var mode_text: String = MODE_NAMES[mode]
+	if not real.is_empty():
+		var named := int(rd.get("last_aa", 4)) if mode == 2 else mode
+		var names: PackedStringArray = ClassDB.class_call_static("IafF16Mfd", "fcr_mode", named)
+		var sub: String = ClassDB.class_call_static("IafF16Mfd", "fcr_real_submode", named, real.vsr, real.acm)
+		mode_text = "%s %s" % [names[0], sub] + (" STT" if mode == 2 else "")
+		if mode in [4, 5]:
+			var az: String = ClassDB.class_call_static("IafF16Mfd", "fcr_azimuth", deg_to_rad(2.0 * float(real.half)))
+			text(Vector2(r.position.x + 2.0, r.end.y - 2.0), "%s B%d" % [az, int(real.bars)], 4.4, CYAN)
+	text(Vector2(r.position.x + 2.0, r.position.y + 6.0), mode_text, 5.0, GREEN)
+	var no_rad: bool = not real.is_empty() and not bool(rd.get("emit", false))
+	if no_rad:
+		text(Vector2(r.position.x, apex.y - rad * 0.3), "NO RAD", 6.0, YELLOW, HORIZONTAL_ALIGNMENT_CENTER, r.size.x)
+	# The acquisition cursor (the real FCR's, search and TWS): two short bars, the altitudes it covers (kft).
+	var cursor := false
+	if not real.is_empty() and mode in [4, 5]:
+		var q := _fan_place(apex, rad, real.cursor)
+		cursor = true
+		for dx in [-1.6, 1.6]:
+			line(q + Vector2(dx, -3.0), q + Vector2(dx, 3.0), WHITE, LINE)
+		var alt: Vector2 = real.get("cursor_alt", Vector2(NAN, NAN))
+		if not is_nan(alt.x) and not real.vsr:
+			text(q + Vector2(3.0, -1.0), "%d" % clampi(roundi(alt.x / 1000.0), -99, 99), 3.8, WHITE)
+			text(q + Vector2(3.0, 4.0), "%d" % clampi(roundi(alt.y / 1000.0), -99, 99), 3.8, WHITE)
+	shown.srch = {"mode": mode_text, "kinds": kinds, "cursor": cursor, "no_rad": no_rad}
 	# The lock's data (STT / the TWS selection): range, aspect, closure, altitude.
 	var lk: Dictionary = rd.get("lock", {})
 	if lock_p != null and not lk.is_empty():
@@ -397,6 +479,121 @@ func radar(r: Rect2) -> void:
 		if absf(az) <= half and d <= 1.0:
 			circle(apex + Vector2(sin(az), -cos(az)) * rad * d, 2.0, WHITE, THIN)
 	ownship(apex + Vector2(0, -1.0), 3.0)
+
+
+## A place on the real FCR's scope (0..1 across ±60°, up the range; radar.rs scope_xy) on the fan.
+func _fan_place(apex: Vector2, rad: float, q: Vector2) -> Vector2:
+	var az := (q.x - 0.5) * TAU / 3.0
+	return apex + Vector2(sin(az), -cos(az)) * rad * q.y
+
+
+## The real FCR's MFD window (the F-16's A-G display, MFD px; f16_mfd.gd _real_ground_map) that the ASR scales into
+## its portal.
+const AG_WINDOW := Rect2(12, 12, 108, 106)
+
+
+## The ASR (the APG-81's air-to-surface format; LM slide 8 and a simulator manual show a grey SAR picture): the real
+## FCR's ground map from the shared radar code (radar.rs render: GM's map, EXP / DBS1 / DBS2 patches, FZ, SP, CZ,
+## STP / TGT, GMT's movers, SEA's ships, AGR) drawn grey and square in the portal; the fan in NORM; the ground
+## tracks by their combat ID, a lock or the designated point ringed; the steerpoint; the X-Y cursor; the mode and
+## the patch's name on top (the F-16's names stand in; the APG-81's own are not public, inferred).
+func _asr(r: Rect2, rd: Dictionary, ag: Dictionary, nm: float) -> void:
+	var side := minf(r.size.x - 6.0, r.size.y - 16.0)
+	var sq := Rect2(Vector2(r.get_center().x - side / 2.0, r.position.y + 10.0), Vector2(side, side * 106.0 / 108.0))
+	var k := side / AG_WINDOW.size.x
+	var xf := Transform2D(0.0, Vector2(k, k), 0.0, sq.position - AG_WINDOW.position * k)
+	var head := "%s %s" % [ag.name, ag.fov]
+	var flags := []
+	for f in [["FZ", ag.frozen], ["SP", ag.snowplow]]:
+		if f[1]:
+			flags.append(f[0])
+	flags.append("TGT" if ag.tgt else "STP")
+	text(Vector2(r.position.x + 2.0, r.position.y + 6.0), head, 5.0, GREEN)
+	text(
+		Vector2(r.position.x, r.position.y + 6.0),
+		" ".join(flags) + " ",
+		4.6,
+		CYAN,
+		HORIZONTAL_ALIGNMENT_RIGHT,
+		r.size.x
+	)
+	var fr: Dictionary = ag.frame
+	var picture := false
+	if ag.name == "AGR":
+		var m_agr := float(ag.agr)
+		text(
+			Vector2(sq.position.x, sq.get_center().y), "%.1f" % (m_agr / 1852.0) if m_agr >= 0.0 else "---", 7.0, WHITE
+		)
+	elif not fr.is_empty() and not cockpit.mfds.is_empty():
+		# The radar's picture, drawn by the MFD node's own picture code through the portal's transform.
+		ci.draw_set_transform_matrix(_base * xf)
+		cockpit.mfds[0]._draw_ag_picture(rd, ag, ci, true)
+		ci.draw_set_transform_matrix(_base)
+		picture = cockpit.mfds[0]._ag_tex != null
+	box(sq, GREY, THIN)
+	var kinds := []
+	if not fr.is_empty():
+		var clip := PackedVector2Array(
+			[sq.position, Vector2(sq.end.x, sq.position.y), sq.end, Vector2(sq.position.x, sq.end.y)]
+		)
+		if Vector2(fr.sym) == Vector2(66, 109):
+			# NORM: the fan's edges at ±60° and its range arcs (f16_mfd.gd _fan).
+			var apex: Vector2 = xf * Vector2(66, 109)
+			var fan := 94.0 * k
+			for a in [-PI / 3.0, PI / 3.0]:
+				for seg in Geometry2D.intersect_polyline_with_polygon(
+					PackedVector2Array([apex, apex + Vector2(sin(a), -cos(a)) * fan]), clip
+				):
+					poly(seg, GREY, THIN)
+			for f in [0.5] if nm <= 10 else [0.25, 0.5, 0.75]:
+				var pts := PackedVector2Array()
+				for i in 25:
+					var a := -PI / 3.0 + 2.0 * PI / 3.0 * i / 24.0
+					pts.append(apex + Vector2(sin(a), -cos(a)) * fan * f)
+				for seg in Geometry2D.intersect_polyline_with_polygon(pts, clip):
+					poly(seg, GREY, THIN)
+		var any_lock := false
+		for ct in rd.get("contacts", []):
+			var p: Vector2 = xf * Mfd.ag_px(fr, ct.pos)
+			if not sq.has_point(p):
+				continue
+			# Every ground return the mode lists is a fused track (GMT the movers, SEA the ships; inferred).
+			var kind := track_kind(ct)
+			kinds.append(kind)
+			track(p, kind, null, true, 2.2)
+			if ct.locked:
+				any_lock = true
+				circle(p, 5.0, WHITE, LINE)
+		if rd.get("designated", false) and not any_lock:
+			var dp: Vector2 = xf * Mfd.ag_px(fr, rd.desig)
+			if sq.has_point(dp):
+				poly(
+					PackedVector2Array(
+						[dp + Vector2(0, -3), dp + Vector2(3, 0), dp + Vector2(0, 3), dp + Vector2(-3, 0)]
+					),
+					WHITE,
+					LINE,
+					true
+				)
+		if not cockpit.waypoints.is_empty() and cockpit.current_waypoint < cockpit.waypoints.size():
+			var w: Vector2 = cockpit.waypoints[cockpit.current_waypoint].world
+			var sp: Vector2 = xf * Mfd.ag_px(fr, Vector3(w.x, w.y, 0.0))
+			if sq.has_point(sp):
+				circle(sp, 2.0, WHITE, THIN)
+		if ag.frozen:
+			var op: Vector2 = xf * Mfd.ag_px(fr, Vector3(own_world().x, own_world().y, 0.0))
+			if sq.has_point(op):
+				ownship(op, 3.0)
+	if ag.cursor != null:
+		var q: Vector2 = xf * Vector2(ag.cursor)
+		if sq.has_point(q):
+			line(Vector2(sq.position.x, q.y), Vector2(q.x - 2.5, q.y), WHITE, THIN)
+			line(Vector2(q.x + 2.5, q.y), Vector2(sq.end.x, q.y), WHITE, THIN)
+			line(Vector2(q.x, sq.position.y), Vector2(q.x, q.y - 2.5), WHITE, THIN)
+			line(Vector2(q.x, q.y + 2.5), Vector2(q.x, sq.end.y), WHITE, THIN)
+	if not bool(rd.get("emit", false)):
+		text(Vector2(r.position.x, sq.get_center().y), "NO RAD", 6.0, YELLOW, HORIZONTAL_ALIGNMENT_CENTER, r.size.x)
+	shown.asr = {"name": String(ag.name), "fov": String(ag.fov), "picture": picture, "kinds": kinds}
 
 
 # --- SMS ---------------------------------------------------------------------------------------------------------
@@ -525,8 +722,11 @@ func _store(at: Vector2, t: int, k: float) -> void:
 
 
 ## The TWD (threat warning display; its picture is open: inferred a heading-up threat circle like the F-16's RWR
-## azimuth indicator): every RWR entry at its bearing and distance (37 km at the rim), its code; a search radar
-## yellow (Extras RWR: Real), a lock red, a launch red in a flashing circle.
+## azimuth indicator). Modern IAF (ews.gd): the shared threat display's symbols (ews.rs Twd: each threat at its
+## bearing on the ring of its lethality, its label by class, the top one in a diamond, a lock in a square, a launch in
+## a flashing circle; the range's drones with their radars on show as "35" / "16"), yellow searching, red locking or
+## launching, and the DAS's missile warnings (ews.rs Maw: an "M" at the missile's bearing with the seconds to impact).
+## The 1998 game's F-35I: every RWR entry at its bearing and distance (37 km at the rim), its code.
 func twd(r: Rect2) -> void:
 	var c := Vector2(r.get_center().x, r.position.y + r.size.y * 0.48)
 	var rad := minf(r.size.x * 0.44, r.size.y * 0.40)
@@ -540,19 +740,61 @@ func twd(r: Rect2) -> void:
 	ownship(c, 3.5)
 	var blink := int(Time.get_ticks_msec() / 300) % 2 == 0
 	var n := 0
-	for e in cockpit.rwr:
-		if not e.get("active", false):
-			continue
-		var p := to_scope(e.pos, c, 37060.0 / rad)
-		if p.distance_to(c) > rad:
-			p = c + (p - c).normalized() * rad
-		var code: String = THREAT_CODE.get(int(e.type), "U")
-		var col := YELLOW if e.get("search", false) else RED
-		var w := text_width(code, 5.0)
-		text(p + Vector2(-w / 2.0, 1.8), code, 5.0, col)
-		if e.get("launch", false) and blink:
-			circle(p, 4.8, RED, LINE)
-		n += 1
+	var labels := []
+	if cockpit.ews.has("symbols"):
+		for sy in cockpit.ews.symbols:
+			var p: Vector2 = c + Vector2(sy.at.x, -sy.at.y) * rad * 0.86
+			var col := RED if sy.lethal or sy.launch else YELLOW
+			labels.append(String(sy.label))
+			n += 1
+			if (sy.new or sy.launch) and not blink:
+				continue
+			var lw := text_width(sy.label, 5.0)
+			text(p + Vector2(-lw / 2.0, 1.8), sy.label, 5.0, col)
+			if sy.kind == "air":
+				poly(
+					PackedVector2Array([p + Vector2(-2.6, -5.4), p + Vector2(0, -7.2), p + Vector2(2.6, -5.4)]),
+					col,
+					THIN
+				)
+			if sy.launch:
+				circle(p, 4.8, RED, LINE)
+			elif sy.lethal:
+				box(Rect2(p - Vector2(4.2, 4.6), Vector2(8.4, 8.4)), RED, THIN)
+			if sy.diamond:
+				poly(
+					PackedVector2Array(
+						[p + Vector2(0, -6.4), p + Vector2(6.0, 0), p + Vector2(0, 6.0), p + Vector2(-6.0, 0)]
+					),
+					col,
+					THIN,
+					true
+				)
+	else:
+		for e in cockpit.rwr:
+			if not e.get("active", false):
+				continue
+			var p := to_scope(e.pos, c, 37060.0 / rad)
+			if p.distance_to(c) > rad:
+				p = c + (p - c).normalized() * rad
+			var code: String = THREAT_CODE.get(int(e.type), "U")
+			var col := YELLOW if e.get("search", false) else RED
+			var w := text_width(code, 5.0)
+			text(p + Vector2(-w / 2.0, 1.8), code, 5.0, col)
+			labels.append(code)
+			if e.get("launch", false) and blink:
+				circle(p, 4.8, RED, LINE)
+			n += 1
+	var maw := []
+	for wn in cockpit.ews.get("maw", []):
+		var d := Vector2(sin(float(wn.bearing)), -cos(float(wn.bearing)))
+		var p := c + d * rad
+		var tti := "--" if is_inf(float(wn.tti)) else "%d" % mini(int(wn.tti), 99)
+		maw.append(tti)
+		if blink:
+			text(p + Vector2(-text_width("M", 6.0) / 2.0, 2.0), "M", 6.0, RED)
+		text(p + Vector2(-text_width(tti, 4.6) / 2.0, 8.0), tti, 4.6, RED)
+	shown.twd = {"labels": labels, "maw": maw}
 	text(
 		Vector2(r.position.x, r.end.y - 4.0),
 		"%d THREATS" % n if n > 0 else "NO THREATS",

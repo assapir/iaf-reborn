@@ -244,7 +244,7 @@ mod tests {
 
     #[test]
     fn weapon_modes() {
-        let tgt = Target { range_m: 3000.0, closure: 100.0, at: Some((10.0, -5.0)), aspect: None };
+        let tgt = Target { range_m: 3000.0, closure: 100.0, at: Some((10.0, -5.0)), aspect: None, ident: None };
         let mut gun = at(3);
         gun.weapons.lcos = Some((0.0, 20.0));
         gun.target = Some(tgt);

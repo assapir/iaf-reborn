@@ -5,6 +5,7 @@
 
 use crate::world::{get, num, v2};
 use godot::prelude::*;
+use iaf_avionics::aiff::Ident;
 use iaf_avionics::gps::Lar;
 use iaf_avionics::missile::Dlz;
 use iaf_avionics::real_hud::{
@@ -119,7 +120,7 @@ impl IafRealHud {
     /// kcas, ground_kt, tas_ms, alt_ft, agl_ft (null), vs_fpm, heading, pitch, roll, mach, g, g_limit, aoa, gear_down, fuel_lbs, bingo_lbs, fpm
     /// (null), boresight, gun_cross, horizon, px_per_deg, radar_mode, acm (the real FCR's
     /// ACM pattern: 1 the 10 × 60, 2 SLEW at acm_at ([az, el] deg), 3 BORE; else none), ils (the ILS bars' [x, y] or null), steerpoint ({number, bearing, dist_m, eta_s, at} or {}),
-    /// target ({range_m, closure, at, aspect} or {}), dlz ([max, min] or []), weapons {hud_mode, name, selected, srm, mrm, seeker,
+    /// target ({range_m, closure, at, aspect, ident ("friend" / "unknown" / "hostile", the F-35I's combat ID)} or {}), maw ([{bearing, tti}], the MAW's warnings), dlz ([max, min] or []), weapons {hud_mode, name, selected, srm, mrm, seeker,
     /// lcos, pipper, steering, circle, shoot, delay (the delayed CCIP's time to go, or null), delay_at
     /// (the target under its pipper), designated, gps ({pre, at, range, rmin, rmax, in_range, tmr} or {}), hobs ({cone, at (the seeker's target or null), loal} or {})}}. Returns {field, outer, colour (Color or null), sight (no HUD), mrm_inside (the MRM dot in the drawn circle, or null)}.
     #[func]
@@ -177,6 +178,8 @@ impl IafRealHud {
                 closure: num(&t, "closure").unwrap_or_default(),
                 at: pt(&t, "at"),
                 aspect: num(&t, "aspect"),
+                ident: get::<GString>(&t, "ident")
+                    .and_then(|n| [Ident::Friend, Ident::Unknown, Ident::Hostile].into_iter().find(|k| n == k.name())),
             }),
             dlz: get::<VarArray>(&i, "dlz").and_then(|a| {
                 let at = |k| a.get(k).and_then(|v| v.try_to::<f64>().ok());
@@ -217,6 +220,12 @@ impl IafRealHud {
                     loal: get(&h, "loal").unwrap_or(false),
                 }),
             },
+            maw: get::<VarArray>(&i, "maw")
+                .unwrap_or_default()
+                .iter_shared()
+                .filter_map(|v| v.try_to::<VarDictionary>().ok())
+                .map(|m| (num(&m, "bearing").unwrap_or_default(), num(&m, "tti").unwrap_or(f64::INFINITY)))
+                .collect(),
             panel: dict("panel").map(|p| panel(&p)).unwrap_or_default(),
         };
         let r = Field {

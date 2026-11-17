@@ -3,8 +3,9 @@
 # (crates/iaf-godot/src/ews.rs over iaf_avionics::ews, cmds, aiff, datalink); this gathers the inputs from its owner
 # (player_weapons.gd), plays the tones and the VMS calls, releases the CMDS's expendables through the game's own
 # dispense, and keeps `state` for the cockpit (cockpit.gd ews: the RWR scope, the FCR and the HSD). The aircraft
-# definition says what the jet has (airframe.json "ews": "aiff", "maw"); the threat display, the CMDS and the data
-# link are every modern F-16's.
+# definition says what the jet has (airframe.json "ews": "aiff", "maw", "combat_id"); the threat display, the CMDS and
+# the data link are every modern F-16's. Modern IAF's F-35I runs it too (its TWD, the DAS's MAW, the data link on the
+# TSD, its combat ID: "combat_id"; modern-iaf/docs/avionics-plan.md A7, E5, N9, P5).
 extends RefCounted
 
 const AIRCRAFT := [2, 3, 0x1c]
@@ -14,7 +15,11 @@ const SCOPE_AZ := TAU / 3.0
 var w: Object  # player_weapons.gd
 var aiff := false
 var maw := false
-## What the cockpit draws: {symbols, maw, twd, cmds, aiff, blank, link, own (the jet's world position)}.
+## The F-35I's combat ID (aiff.rs combat_id): every unit's identity in `state.ident`; its data link on from the start
+## (MADL / Link 16 run by the mission systems, inferred: no DL switch on the jet).
+var combat_id := false
+## What the cockpit draws: {symbols, maw, twd, cmds, aiff, blank, link, own (the jet's world position), ident ({key:
+## "friend" / "unknown" / "hostile"}, the combat ID's; {} without one)}.
 var state := {}
 var _e = ClassDB.instantiate("IafEws")
 var _launch_ids := {}
@@ -24,8 +29,11 @@ func _init(owner: Object, def: Dictionary) -> void:
 	w = owner
 	aiff = bool(def.get("aiff", false))
 	maw = bool(def.get("maw", false))
+	combat_id = bool(def.get("combat_id", false))
 	w.rwr.new_guy_tone = false
 	w.rwr.all_aspect = true
+	if combat_id:
+		_e.link_power(true)
 
 
 func _play(code: String, sub: String, volume := 1.0) -> void:
@@ -147,8 +155,17 @@ func update() -> void:
 		"blank": _e.aiff_blanking(w.now),
 		"link": _e.link_tracks(),
 		"own": o.pos,
+		"ident": _ident(o) if combat_id else {},
 	}
 	state.ded = _ded(state)
+
+
+## The combat ID of every unit (aiff.rs combat_id): {key: "friend" / "unknown" / "hostile"}.
+func _ident(o: Dictionary) -> Dictionary:
+	var units := []
+	for u in w._units():
+		units.append({"key": u.key, "pos": u.pos, "hostile": u.hostile})
+	return _e.combat_id(units, o.pos, w.rwr.heard())
 
 
 ## What the DED's EW pages show (IafUfc's nav.ews; modern-iaf/docs/ews.md §8).

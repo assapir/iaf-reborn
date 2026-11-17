@@ -14,6 +14,14 @@ on the modern F-16s only (`modern_f16`), so reborn's own jets are unchanged. Eve
 the CMDS and the data link; the aircraft definition adds the AIFF and the MAW (`airframe.json` `"ews": {"aiff": true,
 "maw": true}`, the Sufa's). The Barak has the AIFF, not the MAW (`modern-iaf/data/planes/f16.json`; avionics-plan.md B4, B8).
 
+The F-35I Adir runs the same set (slice 7, 17 Nov; `airframe.json` `"ews": {"maw": true, "combat_id": true}`): the
+threat display on its TWD ([../../docs/f35i.md](../../docs/f35i.md) §4.3) with the TWP keys of §1, the MAW as its DAS's
+warning on the TWD and in the helmet (§3), the data link on its TSD, on from the start (MADL / Link 16 run by the
+mission systems; inferred: no DL switch), and its combat ID instead of the AIFF's interrogations (§5): every unit's
+identity in `state.ident` (`aiff.rs` `combat_id`, inferred: a friend that answers the interrogator, which runs by
+itself, is a friend; a unit the AWACS's track names hostile or whose radar the threat warning hears is hostile; else
+unknown). The CMDS runs as the F-16s' (STBY at the start, its keys of §1); the jet has no CMDS panel.
+
 ## 1. Keys and controls
 
 The user has no HOTAS ([avionics-plan.md](avionics-plan.md) §8, decision 3), so each function has a key, a click in the 3D cockpit, or both.

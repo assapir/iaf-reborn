@@ -442,6 +442,13 @@ impl Rwr {
         self.display_keyed().into_iter().map(|e| e.1).collect()
     }
 
+    /// Ours, the F-35I's combat ID (`aiff::combat_id`): the units whose radar is heard, a listed slot's or a searching
+    /// radar's.
+    pub fn heard(&self) -> Vec<&str> {
+        let slots = self.slots.iter().filter(|s| s.type_code != 0 && s.active).filter_map(|s| s.unit.as_deref());
+        slots.chain(self.searching.iter().map(|s| s.key.as_str())).collect()
+    }
+
     /// [`Rwr::display`] with each entry's emitter as a stable id (a hash of its unit key; a slot without one, its
     /// index): the modern threat display tells its symbols apart by it (`ews`).
     pub fn display_keyed(&self) -> Vec<(u64, Shown)> {
@@ -581,6 +588,7 @@ mod tests {
         r.all_aspect = true;
         r.refresh(&world(0.5));
         assert!(r.slots()[1].active, "all-aspect: ahead too");
+        assert!(r.heard().contains(&"front") && !r.heard().contains(&"heli"), "the active slots heard");
         let d = r.display_keyed();
         assert!(d.len() == 3 && d[0].0 != d[1].0 && d[0].0 == r.display_keyed()[0].0, "stable, distinct ids");
         assert_eq!(r.nearest(&world(0.5)).as_deref(), Some("front"));
@@ -613,6 +621,7 @@ mod tests {
         assert!(r.take_new_guy());
         let d = r.display();
         assert!(d.len() == 1 && d[0].search && d[0].active && d[0].type_code == 300);
+        assert_eq!(r.heard(), ["sam"], "the searching radar heard");
         r.search(&world(3.0), &sites, &flat);
         assert!(!r.take_new_guy(), "only a new radar sounds");
         r.search(&world(5.0), &sites, &ridge);

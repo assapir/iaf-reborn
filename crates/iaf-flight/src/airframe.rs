@@ -97,12 +97,14 @@ pub struct Radar {
     pub auto: Option<bool>,
 }
 
-/// `ews`: the AIFF interrogator and the missile approach warning (modern-iaf/docs/ews.md).
+/// `ews`: the AIFF interrogator and the missile approach warning (modern-iaf/docs/ews.md); `combat_id` the F-35I's
+/// fused identity on every track with its data link on from the start (`iaf_avionics::aiff::combat_id`).
 #[derive(Clone, Debug, PartialEq, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct Ews {
     pub aiff: Option<bool>,
     pub maw: Option<bool>,
+    pub combat_id: Option<bool>,
 }
 
 /// `radar.fcr`: the bugged targets its situation-awareness mode tracks while searching.
@@ -295,6 +297,9 @@ mod tests {
         }
         let auto = |id| get(id).and_then(|a| a.radar.as_ref()).and_then(|r| r.auto);
         assert_eq!((auto("f35i"), auto("f16i")), (Some(true), None), "the F-35I's radar has no switch");
+        let f35 = get("f35i").unwrap();
+        assert_eq!(f35.radar.as_ref().and_then(|r| r.fcr.as_ref()).map(|f| f.sam_tracks), Some(4));
+        assert_eq!(f35.ews.as_ref().and_then(|e| e.combat_id), Some(true), "the F-35I's combat ID");
     }
 
     /// A misspelt or wrongly typed field fails, naming the file and the field.

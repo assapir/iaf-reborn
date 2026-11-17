@@ -701,7 +701,9 @@ func real_hud() -> Dictionary:
 			"range_m": float(lk.dist),
 			"closure": float(rd.get("closure", 0.0)),
 			"at": _hud_point(lk.pos, true),
-			"aspect": lk.get("aspect")
+			"aspect": lk.get("aspect"),
+			# Ours, Modern IAF's F-35I: the lock's combat ID (ews.gd state.ident) in its helmet.
+			"ident": cockpit.ews.get("ident", {}).get(lk.get("key", ""))
 		}
 	elif cockpit.eo.get("tgp_at") != null or (not rd.get("real", {}).is_empty() and rd.get("designated", false)):
 		# Ours, the real FCR's designated ground point (docs/radar.md §9.7), or the targeting pod's aim point once it
@@ -785,6 +787,8 @@ func real_hud() -> Dictionary:
 		# Ours, the real FCR's AGR slant range (m; docs/radar.md §9.7), null without one.
 		"agr_m": _agr_m(rd),
 		"dlz": rd.get("dlz", []) if not target.is_empty() else [],
+		# Ours, the MAW's warnings (ews.gd; the F-35I's DAS in its helmet): [{bearing, tti}].
+		"maw": cockpit.ews.get("maw", []),
 		# Ours, Modern IAF's F-16s: the HUD control panel and the up-front controls (cockpit.gd hud_panel_input).
 		"panel": cockpit.hud_panel_input(),
 		"weapons":

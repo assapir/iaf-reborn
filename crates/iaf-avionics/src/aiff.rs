@@ -93,9 +93,54 @@ impl Aiff {
     }
 }
 
+/// The F-35I's combat ID of a track (modern-iaf/docs/avionics-plan.md A7, G13): friend a green circle, unknown a yellow
+/// square, hostile a red diamond (Code One).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Ident {
+    Friend,
+    Unknown,
+    Hostile,
+}
+
+impl Ident {
+    pub fn name(self) -> &'static str {
+        match self {
+            Ident::Friend => "friend",
+            Ident::Unknown => "unknown",
+            Ident::Hostile => "hostile",
+        }
+    }
+}
+
+/// The F-35I's combat ID, the fused identity of a track (the APG-81's "combat identification"; how the jet fuses it is
+/// not public, the rule is inferred from the Sufa's sets): a unit that answers the interrogator as a friend within its
+/// reach (`range_m`, the interrogation running by itself) is a friend; one the data link's AWACS names hostile
+/// (`link_hostile`) or whose radar the threat warning hears (`heard`, the ESM's identification) is hostile; anything
+/// else stays unknown (the range's drones that neither radiate nor are on the AWACS's picture).
+pub fn combat_id(answer: Answer, range_m: f64, link_hostile: bool, heard: bool) -> Ident {
+    if answer == Answer::Friend && range_m <= RANGE_M {
+        Ident::Friend
+    } else if link_hostile || heard {
+        Ident::Hostile
+    } else {
+        Ident::Unknown
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn combat_id_friend_by_reply_hostile_by_link_or_emitter() {
+        let near = 20_000.0;
+        assert_eq!(combat_id(Answer::Friend, near, false, false), Ident::Friend);
+        assert_eq!(combat_id(Answer::Friend, RANGE_M * 1.1, false, false), Ident::Unknown, "beyond the reach");
+        assert_eq!(combat_id(Answer::None, near, false, false), Ident::Unknown, "no reply, nothing else: unknown");
+        assert_eq!(combat_id(Answer::None, near, true, false), Ident::Hostile, "the AWACS's hostile track");
+        assert_eq!(combat_id(Answer::None, near, false, true), Ident::Hostile, "its radar heard");
+        assert_eq!(combat_id(Answer::Unknown, near, false, false), Ident::Unknown);
+    }
 
     #[test]
     fn friends_reply_hostiles_do_not() {

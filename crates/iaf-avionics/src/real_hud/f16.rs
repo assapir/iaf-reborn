@@ -248,12 +248,19 @@ pub(super) fn frame(f: Field, i: &Input, max_g: f64) -> Frame {
         p.push(Prim::Circle { c, r: i.mr(25.0) });
         p.push(Prim::Dot { c, r: i.mr(1.0).max(0.8) });
     }
-    // The break X (p. 1-173, fig. 1-212): flashing at the GAAF advisory (every master mode); steady in the A-A missile
-    // modes inside Rmin. Ours: half its size = 0.3 of the field, on the field's centre, flashing at 2 Hz.
+    ground_cues(p, i, f, dlz.is_some_and(|(t, z)| t.range_m < z.min));
+    fr
+}
+
+/// The break X (p. 1-173, fig. 1-212): flashing at the GAAF advisory (every master mode); steady in the A-A missile
+/// modes inside Rmin (`rmin`). Ours: half its size = 0.3 of the field, on the field's centre, flashing at 2 Hz. With
+/// the pull-up anticipation cue in the A-G modes. The F-35's helmet takes the same rule (`f35`; inferred: its
+/// Auto-GCAS lineage, modern-iaf/docs/avionics-plan.md H8).
+pub(super) fn ground_cues(p: &mut Vec<Prim>, i: &Input, f: Field, rmin: bool) {
+    let mode = i.weapons.hud_mode;
     let gaaf = i.agl_ft.is_some_and(|h| {
         crate::gaaf::advisory(h, i.kcas, i.tas_ms, i.vs_fpm, i.roll_deg, i.gear_down, matches!(mode, 4..=7))
     });
-    let rmin = dlz.is_some_and(|(t, z)| t.range_m < z.min);
     if rmin || (gaaf && flash_on(i.time_s)) {
         x_over(p, (0.5 * (f.left + f.right), f.centre_y()), 0.3 * (f.right - f.left).min(f.bottom - f.top));
     }
@@ -263,7 +270,6 @@ pub(super) fn frame(f: Field, i: &Input, max_g: f64) -> Frame {
     {
         pullup_cue(p, i, fpm, s);
     }
-    fr
 }
 
 /// The pull-up anticipation cue's time to the GAAF advisory (s; p. 1-173): None when GAAF is off or the advisory is
@@ -941,7 +947,8 @@ mod tests {
     fn weapon_modes() {
         let mut i = input(Jet::F16);
         i.weapons = Weapons { hud_mode: 2, mrm: 3, circle: 4.0, ..Weapons::default() };
-        i.target = Some(Target { range_m: 15.0 * NM, closure: 200.0, at: Some((5.0, -5.0)), aspect: None });
+        i.target =
+            Some(Target { range_m: 15.0 * NM, closure: 200.0, at: Some((5.0, -5.0)), aspect: None, ident: None });
         i.dlz = Some(Dlz { max: 18.0 * NM, min: 2.0 * NM });
         let t = frame(FIELD, &i, 2.3);
         let tx = texts(&t.outer);
@@ -949,7 +956,7 @@ mod tests {
             assert!(tx.contains(&want), "{want} in {tx:?}");
         }
         i.weapons.hud_mode = 3;
-        i.target = Some(Target { range_m: 600.0, closure: 100.0, at: Some((5.0, -5.0)), aspect: None });
+        i.target = Some(Target { range_m: 600.0, closure: 100.0, at: Some((5.0, -5.0)), aspect: None, ident: None });
         let g = frame(FIELD, &i, 2.3);
         let gt = texts(&g.outer);
         assert!(gt.contains(&"EEGS") && gt.contains(&"F 020") && gt.contains(&"194"), "{gt:?}");
@@ -1003,7 +1010,8 @@ mod tests {
         };
         let l2 = frame(FIELD, &i, 2.3);
         assert_eq!(low(&l2), 5, "level 2: the five MRGS lines");
-        i.target = Some(Target { range_m: 1500.0 * FT, closure: 50.0, at: Some((0.0, 20.0)), aspect: None });
+        i.target =
+            Some(Target { range_m: 1500.0 * FT, closure: 50.0, at: Some((0.0, 20.0)), aspect: None, ident: None });
         i.weapons.lcos = Some((1.0, 18.0));
         let l5 = frame(FIELD, &i, 2.3);
         assert_eq!(low(&l5), 0, "with a track the MRGS lines go");

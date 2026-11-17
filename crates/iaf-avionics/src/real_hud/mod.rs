@@ -231,6 +231,8 @@ pub struct Target {
     pub at: Option<P>,
     /// Target aspect (rad): 0 its tail toward us, ±π nose-on, positive its left side toward us.
     pub aspect: Option<f64>,
+    /// The F-35I's combat ID of the target (`aiff::combat_id`; None: the jet has none).
+    pub ident: Option<crate::aiff::Ident>,
 }
 
 /// The current steerpoint: its number, bearing (°), distance (m), the time to it (s; None when not closing) and its HUD
@@ -367,6 +369,9 @@ pub struct Input {
     /// The selected store's launch zone at the target (m).
     pub dlz: Option<Dlz>,
     pub weapons: Weapons,
+    /// The MAW's warnings (`ews::Maw`; the F-35I's DAS): each missile's bearing off the nose (radians, right +) and its
+    /// time to impact (s; infinite while it does not close).
+    pub maw: Vec<(f64, f64)>,
     /// Modern IAF's F-16s: the HUD control panel and the up-front controls (modern-iaf/docs/ufc.md). The
     /// default draws the HUD as before (reborn's).
     pub panel: Panel,
@@ -1022,7 +1027,13 @@ mod tests {
                 i.weapons.seeker = Some((8.0, -4.0));
                 i.weapons.steering = Some((3.0, 3.0));
                 i.weapons.circle = 4.0;
-                i.target = Some(Target { range_m: 5000.0, closure: 150.0, at: Some((10.0, -5.0)), aspect: Some(1.0) });
+                i.target = Some(Target {
+                    range_m: 5000.0,
+                    closure: 150.0,
+                    at: Some((10.0, -5.0)),
+                    aspect: Some(1.0),
+                    ident: None,
+                });
                 i.dlz = Some(Dlz { max: 9000.0, min: 1500.0 });
                 snapshot(&RealHud::default().frame(FIELD, &i)).hash(&mut h);
             }
@@ -1145,7 +1156,13 @@ mod f16_snapshot {
                 i.weapons.seeker = Some((5.0, -4.0));
                 i.weapons.lcos = Some((2.0, 18.0));
                 i.weapons.pipper = Some((-3.0, 30.0));
-                i.target = Some(Target { range_m: 3000.0, closure: 120.0, at: Some((10.0, -8.0)), aspect: Some(0.5) });
+                i.target = Some(Target {
+                    range_m: 3000.0,
+                    closure: 120.0,
+                    at: Some((10.0, -8.0)),
+                    aspect: Some(0.5),
+                    ident: None,
+                });
                 i.dlz = Some(Dlz { max: 9000.0, min: 900.0 });
                 for b in snapshot(&RealHud::default().frame(FIELD, &i)).bytes() {
                     h = (h ^ u64::from(b)).wrapping_mul(0x0100_0000_01b3);
