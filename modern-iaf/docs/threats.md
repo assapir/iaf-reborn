@@ -156,6 +156,11 @@ content is CC BY 4.0[^tasnim].
 | R-73 | "R-73 Vympel", Jeyhun1985 (CC BY)[^sf-r73] | open |
 | R-27, AIM-54 | none found (open) | Commons "AIM-54 Phoenix in Iranian service", "Fakour-90"[^c-aim54] |
 
+Provenance check (2026-11-17, [research/models-catalogue.md](research/models-catalogue.md) §3.5): the uploader
+42manako marks one of its models "Model ripped from Squad", a commercial game, so its 3rd Khordad, Tor-M1, 1S91 and
+2T7 models above stay out until each one's provenance is shown. The catalogue lists the other target and airbase
+models found.
+
 ## 6. Recommendation
 
 Build in this order (inferred: the SAMs first, since every strike mission meets them; fighters second):
