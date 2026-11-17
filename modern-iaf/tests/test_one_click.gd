@@ -22,11 +22,15 @@ func run() -> void:
 	await _os_click(tv, "3")
 	check(_chan(tv) == "53", "ICP 3 clicked once: CHAN reads 53 (%s)" % _chan(tv))
 	check(_buttons(tv) - sounds_before == 2, "two ICP clicks: two click sounds (%d)" % (_buttons(tv) - sounds_before))
+	var power: int = tv.flight.start_position("main_power")
 	for node in ["AVIONICS_MMC", "MAIN_PWR"]:
 		var n0: int = _buttons(tv)
 		await _os_click(tv, node)
 		check(_buttons(tv) - n0 == 1, "%s clicked once: one click sound (%d)" % [node, _buttons(tv) - n0])
-	check(tv.flight.start_position("main_power") == 2, "MAIN PWR one position a click: BATT, then MAIN PWR")
+	# One position a click, round (OFF, BATT, MAIN PWR): from MAIN PWR to OFF. Until a43ac0ed the switch stood still
+	# here (the lesson, failed by the early MMC click, froze the switches) and this read MAIN PWR.
+	var now: int = tv.flight.start_position("main_power")
+	check(now == (power + 1) % 3, "MAIN PWR one position a click: %d, then %d" % [power, now])
 	var n1: int = _buttons(tv)
 	await _os_click(tv, "INS")
 	check(_buttons(tv) - n1 <= 1, "the INS knob: no doubled click sound (%d)" % (_buttons(tv) - n1))
