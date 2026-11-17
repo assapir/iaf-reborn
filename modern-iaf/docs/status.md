@@ -594,6 +594,9 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   string key had left every weight at the regular).
 
 ## Open
+- **Avionics, missiles and bombs (2026-11-17):** the inventory per jet, the gap list and the build order are in
+  [avionics-plan.md](avionics-plan.md); the 15 November bugs (radar standby, break X and the HUD against reborn,
+  SPICE / GPS targets, the gun flash) are its first slice.
 - **The process staying alive after Quit on macOS**: reported once, on the user's Mac on 2026-11-15; it did not
   reproduce on Linux (headless or in a hidden real render) and is not being pursued unless it is seen again. The leak
   reported with it is fixed (docs/rendering.md §1.5; `modern-iaf/tests/test_exit.gd`).
