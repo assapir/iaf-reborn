@@ -764,15 +764,15 @@ fn chamfer(seed: &[bool], w: usize, h: usize) -> Vec<f32> {
 
 impl BorderTone {
     /// From the Survey's VRT (`levels` its sheets' levels) and Sentinel-2's (the 10 m tiles), both warped to the
-    /// cells over `area` (UTM).
+    /// cells over `area` (UTM); the 8 m units listed only where `has` (their tiles on disk).
     fn new(
-        sv_vrt: &str,
-        levels: &[SheetLevels],
+        (sv_vrt, levels): (&str, &[SheetLevels]),
         s2_vrt: &str,
         f: &Frame,
         area: [f64; 4],
         work: &Path,
         bases: &[Vec<[f64; 2]>],
+        has: &dyn Fn(Key) -> bool,
     ) -> Result<Self> {
         let c = BORDER_CELL_M;
         let (w, h) = (((area[2] - area[0]) / c).ceil() as usize, ((area[3] - area[1]) / c).ceil() as usize);
@@ -851,16 +851,26 @@ impl BorderTone {
                 }
             }
         }
+        // A unit whose 10 m tiles are not all on disk (`has`) stays as it is: Sentinel-2's own colour.
+        bt.s2_units.retain(|&k| has(k));
         // A base whose 8 m units the tone touches gets all of them redone: its tone (BaseTone::new) reads Sentinel-2
-        // from the level-3 nodes within TONE_REACH_M, which hold the photo after a run (review, 2026-11-16).
+        // from the level-3 nodes within TONE_REACH_M, which hold the photo after a run (review, 2026-11-16). When one
+        // of them cannot be redone, none near the base is.
         for b in bases {
             let bb = crate::bbox(b.iter());
             let m = TONE_REACH_M + BASE_COVER_M + BASE_FEATHER_M;
             let near = f.nodes_in(5, [bb[0] - m, bb[1] - m, bb[2] + m, bb[3] + m]);
             if near.iter().any(|k| bt.s2_units.contains(k)) {
-                bt.s2_units.extend(near);
+                if near.iter().all(|&k| has(k)) {
+                    bt.s2_units.extend(near);
+                } else {
+                    near.iter().for_each(|k| _ = bt.s2_units.remove(k));
+                }
             }
         }
+        // A Survey unit is redone only over its 8 m unit's new Sentinel-2.
+        let s2 = &bt.s2_units;
+        bt.survey_units.retain(|k| s2.contains(&(5, k.1 >> 1, k.2 >> 1)));
         Ok(bt)
     }
 
@@ -1583,6 +1593,14 @@ fn s2_left(f: &Frame, detail: [f64; 4], bases: &[Vec<[f64; 2]>], work: &Path, zi
     s2_units(f, detail, bases, &s2).iter().any(|(what, list)| list.iter().any(|&u| !done(work, what, u).exists()))
 }
 
+/// Whether a Sentinel-2 unit other than the border's is still to do. When none is, the border's units are made from
+/// the 10 m tiles on disk alone (`sentinel`): the border tone never fetches a tile (2026-11-17: on the laptop it
+/// wanted 7 tiles, 4.6 GB, the theatre had read over the network before).
+fn s2_rest_left(f: &Frame, detail: [f64; 4], bases: &[Vec<[f64; 2]>], work: &Path) -> bool {
+    let [s2, _] = border_units(work).unwrap_or_default();
+    s2_units(f, detail, bases, &s2)[..3].iter().any(|(what, list)| list.iter().any(|&u| !done(work, what, u).exists()))
+}
+
 /// Whether the Sentinel-2 units still to do read only the cache: every 32 m unit done (the edge tiles' extracts read
 /// then), and every 10 m tile under the 8 m nodes listed and whole there. So a theatre made again for its bases' fill
 /// (BASE_FILL) fetches nothing.
@@ -1604,7 +1622,7 @@ fn s2_cached(r: &Run, f: &Frame, bases: &[Vec<[f64; 2]>]) -> bool {
 
 /// What a run of `r` would fetch over the network, by name: the DEM tiles missing from the cache (neither `.tif` nor
 /// `.none`), with the Survey sheets the OpenStreetMap extracts the shore's photo is cut by, and "sentinel-2" while a Sentinel-2 unit is still
-/// to do (`s2_left`). Empty: the run reads only local files (setup's "Nothing to download").
+/// to do besides the border's (`s2_rest_left`). Empty: the run reads only local files (setup's "Nothing to download").
 pub fn would_fetch(r: &Run) -> Result<Vec<String>> {
     let geo = crate::sim_bases::theatre_geo(r.area);
     let mut v = Vec::new();
@@ -1623,7 +1641,7 @@ pub fn would_fetch(r: &Run) -> Result<Vec<String>> {
         }
     }
     let (f, bases) = (Frame::new(r.area)?, base_outlines(&r.airbases)?);
-    if s2_left(&f, r.detail, &bases, &r.out.join(".work"), has_zips(&r.sheets)) && !s2_cached(r, &f, &bases) {
+    if s2_rest_left(&f, r.detail, &bases, &r.out.join(".work")) && !s2_cached(r, &f, &bases) {
         v.push("sentinel-2".into());
     }
     Ok(v)
@@ -1645,9 +1663,21 @@ fn sentinel(
     // Sentinel-2: one VRT over the WorldCover tiles (their overviews serve the 32 m nodes).
     log!(pr, "sentinel-2: WorldCover tiles from {}", r.s2_cache.display());
     let tiles = list_tiles(&r.s2_cache, BUCKET, geo[1].floor() as i32, geo[3].floor() as i32)?;
-    let names = tiles_in(&tiles, geo);
+    let whole = |n: &String| tile_whole(&r.s2_cache, &tiles, n);
+    // Only the border's units to do: the whole tiles on disk alone, nothing fetched or cut (`s2_rest_left`).
+    let local = has_zips && !s2_rest_left(&f, r.detail, &base_outlines(&r.airbases)?, work);
+    let mut names = tiles_in(&tiles, geo);
     // The tiles outside the 8 m nodes are read only at 32 m, from their 20 m overview: not downloaded whole.
-    let fine = tiles_in(&tiles, geo_bbox(fine_area(&f, r.detail))?);
+    let mut fine = tiles_in(&tiles, geo_bbox(fine_area(&f, r.detail))?);
+    if local {
+        fine.retain(whole);
+        names.clone_from(&fine);
+        if fine.is_empty() {
+            write_border_units(work, &BTreeSet::new(), &BTreeSet::new())?;
+            log!(pr, "sentinel-2: no 10 m tile on disk, the border left as it is");
+            return Ok((part_ends(0, has_zips), "no tile on disk".to_string()));
+        }
+    }
     let coarse: Vec<String> = names.iter().filter(|n| !fine.contains(n)).cloned().collect();
     // One bar over the colour branch, the longer of the two (the heights run beside it): its parts by their expected
     // seconds (`part_ends`).
@@ -1705,7 +1735,8 @@ fn sentinel(
                 (r.detail[3] + m).min(f.n1),
             ];
             let t1 = std::time::Instant::now();
-            let bt = BorderTone::new(vrt, levels, s2, &f, area, work, &base_outlines(&r.airbases)?)?;
+            let has = |k: Key| !local || geo_bbox(f.utm(k)).is_ok_and(|g| tiles_in(&tiles, g).iter().all(whole));
+            let bt = BorderTone::new((vrt, levels), s2, &f, area, work, &base_outlines(&r.airbases)?, &has)?;
             write_border_units(work, &bt.s2_units, &bt.survey_units)?;
             log!(
                 pr,
@@ -2334,11 +2365,11 @@ mod tests {
                 std::fs::write(done(&work, what, u), "").unwrap();
             }
         }
-        assert_eq!(would_fetch(&run).unwrap(), ["sentinel-2"], "the border's units not listed yet");
+        assert!(would_fetch(&run).unwrap().is_empty(), "the border's units not listed yet: from the tiles on disk");
         // The other 8 m unit at the border (BorderTone's list, written by `sentinel`), done.
         let east = units[1].1[0];
         write_border_units(&work, &[east].into(), &BTreeSet::new()).unwrap();
-        assert_eq!(would_fetch(&run).unwrap(), ["sentinel-2"], "the border's unit left");
+        assert!(would_fetch(&run).unwrap().is_empty(), "the border's unit left: from the tiles on disk");
         std::fs::write(done(&work, S2_8M_BORDER, east), "").unwrap();
         assert!(would_fetch(&run).unwrap().is_empty(), "every unit done, every source here: nothing to fetch");
         // And `colour` itself (without the sheet, no GDAL run) lists no tile: a listing would land in (or fail to
@@ -2361,7 +2392,7 @@ mod tests {
         assert!(would_fetch(&run).unwrap().is_empty(), "the base's unit left, every tile whole: nothing to fetch");
         std::fs::remove_file(done(&work, S2_8M_BORDER, east)).unwrap();
         std::fs::remove_file(run.s2_cache.join("ESA_WorldCover_10m_2021_v200_N30E034_S2RGBNIR.tif")).unwrap();
-        assert_eq!(would_fetch(&run).unwrap(), ["sentinel-2"], "one unit left, a tile missing");
+        assert_eq!(would_fetch(&run).unwrap(), ["sentinel-2"], "the base's unit left, a tile missing");
         std::fs::remove_dir_all(&out).unwrap();
     }
 

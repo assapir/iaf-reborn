@@ -368,7 +368,8 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   photo's colour and brightness along the border, fading out over 10 km, with the bases' colour map per 16 km block
   ([terrain.md](terrain.md) §4). A rebuild of the theatre's border units (setup's terrain step, then the scenery:
   nothing to download). Open: Sentinel-2 stays softer (10 m) than the photo (2 m) beside it; along the Egyptian border
-  stepped block edges and a lighter outlined patch.
+  stepped block edges and a lighter outlined patch; on a theatre built before, the border units over 10 m tiles not kept on disk
+  stay untoned (nothing is fetched for them).
 - **The airbases from the air (2026-11-14, built, awaiting the user's yes on the pictures):** the bases' Sentinel-2
   fill toned to the photo around (no tan block; one colour map per base from the medians of the ground around, an odd
   Survey sheet left out, Sentinel-2's brighter dry grass brought down to the earth tones around); the painted

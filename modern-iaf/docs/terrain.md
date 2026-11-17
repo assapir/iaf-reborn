@@ -206,6 +206,10 @@ left" over the tiles still to fetch, a DEM tile's MB so far.
      theatre built before redoes those (`stamp`'s `border_fill`), Sentinel-2's from the local tiles, nothing
      downloaded. A base within reach of the toned ground has all its 8 m units redone too: its own tone reads
      Sentinel-2 from them, which would otherwise mix the photo into its fit; the 100 m warps of the photo and Sentinel-2 run once per run that writes an 8 m unit.
+     A theatre built before reads only the 10 m tiles kept whole under `assets/source` for this: a border unit over a
+     tile not kept whole (a theatre built by reading tiles over the network) keeps Sentinel-2's own colour, and a base
+     with such a unit near it keeps all its units as they are. No tile is fetched (2026-11-17: the laptop's theatre
+     would have fetched 7 tiles, 4.6 GB). A new theatre fetches its tiles whole anyway and tones every border unit.
 5. **Coarser levels**: levels 2 and 4–11 from their four children (Triangle filter); level 3 too over the photo (§3).
 6. **`meta.json`**: the node lists per level, the georeference, `attribution` (§5) and `notice` (the DEM's liability
    sentence).
