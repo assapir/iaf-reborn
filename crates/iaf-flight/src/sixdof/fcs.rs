@@ -145,6 +145,9 @@ pub fn cat3_alpha_limit(weight_lb: f64, n: f64) -> f64 {
     a1 + (n - 1.0) / (g2 - 1.0) * (a2 - a1)
 }
 
+/// The speed brake's rate, deg/s (inferred: two seconds to open).
+pub const SB_RATE: f64 = 30.0;
+
 /// The α the F-16's limiter holds at 1 g, deg (T.O. 1F-16A-1 figure 1-44, TP-1538's limiter). A jet with another
 /// limit ([`Fcs::with_alpha_max`]) has the limiter, the α filter's range, the departure prevention and the pedals'
 /// fade moved by the difference (inferred: the F-35I's 50°, modern-iaf/docs/flight-model.md §9.19).
@@ -361,7 +364,7 @@ impl Fcs {
         let dlef = self.lef.step(1.0 / 0.136, 25.0, (0.0, 25.0), lef_cmd, dt);
 
         // Speed brake: to its command (0…60°) at 30 deg/s (inferred: two seconds to open).
-        let dsb = self.sb.step(100.0, 30.0, (0.0, 60.0), pilot.speed_brake, dt);
+        let dsb = self.sb.step(100.0, SB_RATE, (0.0, 60.0), pilot.speed_brake, dt);
 
         Surfaces { dh, da, dr, dlef, dsb, dtef: 0.0 }
     }

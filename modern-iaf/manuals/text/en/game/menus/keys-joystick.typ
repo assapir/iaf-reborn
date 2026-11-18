@@ -48,7 +48,7 @@ Every command with its key is listed on the key card, @keys.
 
 === The laptop key map <keys-joystick-laptop>
 
-#idx("Laptop key map")The default keys use the number pad for the rudder and for looking around. A laptop has no number pad, so on macOS the game starts from the #term("Laptop key map"): the same table with the commands below on other keys. A Mac with a full keyboard gets it too; there #scr("default") and #scr("reset_all") go back to the laptop key map. On Linux and Windows the game starts from the default keys.
+#idx("Laptop key map")The default keys use the number pad for the rudder and for looking around, and Page Up, Page Down, Home and End for a few more commands. A Mac laptop has none of these keys, so on macOS the game starts from the #term("Laptop key map"): the same table with the commands below on other keys. A Mac with a full keyboard gets it too; there #scr("default") and #scr("reset_all") go back to the laptop key map. On Linux and Windows the game starts from the default keys.
 
 In this manual a key cap with two lines shows the default key on top and the macOS key under it.
 
@@ -61,7 +61,11 @@ In this manual a key cap with two lines shows the default key on top and the mac
   [Look back-right], [#key("Look back-right (135 deg)")], [Look left], [#key("Look left (90 deg)")],
   [Look forward], [#key("Look forward")], [Look right], [#key("Look right (90 deg)")],
   [Look front-left], [#key("Look front-left (45 deg)")], [Look up], [#key("Look up (30 deg)")],
-  [Look front-right], [#key("Look front-right (45 deg)")], [], [],
+  [Look front-right], [#key("Look front-right (45 deg)")], [Raise the head], [#key("Raise the head")],
+  [Lower the head], [#key("Lower the head")], [DMS up], [#key("DMS up (SOI to the HUD)")],
+  [DMS down], [#key("DMS down (SOI to an MFD)")], [DED field up], [#key("DED field up (DCS up)")],
+  [DED field down], [#key("DED field down (DCS down)")], [DED back to CNI], [#key("DED back to CNI (DCS RTN)")],
+  [DED next sub-page], [#key("DED next sub-page (DCS SEQ)")], [], [],
 )
 
 The number pad's two zoom keys have no key on the laptop key map. The zoom's other pair works on every keyboard: #key("Zoom out (minus key)") and #key("Zoom in (equals key)").

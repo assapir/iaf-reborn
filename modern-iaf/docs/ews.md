@@ -97,7 +97,7 @@ for consent with the VMS's "Counter", and AUTO, enabled, run the program and say
 starts nothing (the sim has no jammer cues for the CMDS). CH and FL power each dispenser; O1 and O2 move only (the sim
 carries no other dispenser). JETT releases every flare, one each 0.1 s (inferred). Each release goes through the
 game's own dispense (`player_weapons.gd` `dispense`), so it is counted, refused with the gear down and limited by the
-decoy pool as Insert and Delete are.
+decoy pool as the Drop chaff and Drop flares keys are (Ctrl + Z and Ctrl + X).
 
 The programs (ours, inferred): burst quantity and interval, salvo quantity and interval per expendable.
 

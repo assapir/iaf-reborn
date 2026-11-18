@@ -25,7 +25,8 @@ func run() -> void:
 		"modifier names"
 	)
 	check(kt.button_name(kt.default_joystick(58)) == "Button 3", "joystick button names")
-	# macOS: Cmd stands for Ctrl (the system takes Ctrl + arrows); Ctrl still works, and the names say Cmd.
+	# macOS: Cmd stands for Ctrl (the system takes Ctrl + arrows); Ctrl still works, and the names say Cmd, but for
+	# Q, M and H: macOS takes Cmd + Q / M / H itself, so those names keep Ctrl.
 	KT.cmd_is_ctrl = true
 	var cmd_left := InputEventKey.new()
 	cmd_left.physical_keycode = KEY_LEFT
@@ -37,7 +38,11 @@ func run() -> void:
 		kt.key_of_event(cmd_left) == kt.key_of_event(ctrl_left) and (kt.key_of_event(cmd_left) >> 16) == KT.CTRL,
 		"Mac: Cmd + Left is Ctrl + Left"
 	)
-	check(kt.key_name(kt.default_key(1)) == "Cmd + Q", "Mac: Ctrl + Q named Cmd + Q")
+	check(kt.key_name(kt.default_key(2)) == "Cmd + P", "Mac: Ctrl + P named Cmd + P")
+	check(
+		kt.key_name(kt.default_key(1)) == "Ctrl + Q" and kt.key_name(kt.default_key(4)) == "Ctrl + M",
+		"Mac: Ctrl + Q and Ctrl + M keep Ctrl (the system takes Cmd + Q / M)"
+	)
 	KT.cmd_is_ctrl = false
 	check(kt.key_name(kt.default_key(1)) == "Ctrl + Q", "elsewhere: Ctrl + Q")
 	KT.cmd_is_ctrl = was

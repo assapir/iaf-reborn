@@ -40,7 +40,7 @@ lights and the lit labels at night); the panel's night art is not used.
   flight (records 192 / 193 of `data/keys.json`, command 205; the Keys screen's Views group); the body is shown at
   every flight's start. The body never takes the mouse (§5.3).
 - **Lean (2026-11-15; one hold control since 2026-11-18, approved):** hold Shift + Left / Right to lean the head 6 cm
-  left / right, Shift + Up 10 cm forward, Shift + Down 10 cm back, Shift + Page Up / Page Down 10 cm up / 15 cm down;
+  left / right, Shift + Up 10 cm forward, Shift + Down 10 cm back, Shift + Page Up / Page Down (the laptop map: Shift + = / Shift + −) 10 cm up / 15 cm down;
   the head eases there in about 0.2 s and back to the seat on the release (records 126–131 of `data/keys.json`,
   command 204; the Keys screen's Views group rebinds them; `views.gd` `lean`). Forward held longer than 0.8 s goes on
   at 0.3 m/s to 30 cm: with the head down, the F-16's MAX POWER switch behind the throttle's grip. The F-35I's
@@ -496,8 +496,8 @@ The controls of a system the game has work it (2026-11-16; `f16_controls.json` `
 | ICP A-A / A-G | the next air-to-air / air-to-ground store | `]` / `[` |
 | MFD BRT (each MFD) | the displays' brightness, at least 10 %: one setting, so the two rockers move together | - |
 | ALT FLAPS (NORM / EXTEND) | the flaps lever | F |
-| STORES CONFIG (CAT I / CAT III) | the 6-DoF's CAT III limits (flight-model.md §9.11) | Alt+S |
-| MANUAL PITCH (MPO, held) | the 6-DoF's manual pitch override | Alt+M held |
+| STORES CONFIG (CAT I / CAT III) | the 6-DoF's CAT III limits (flight-model.md §9.11) | Alt+S (record 205) |
+| MANUAL PITCH (MPO, held) | the 6-DoF's manual pitch override | Alt+M held (record 204) |
 | HMCS SYM INT | at OFF the helmet display (looking off the HUD) is dark | - |
 | MAL & IND LTS (held; a spring, inferred) | every lamp of the cockpit lit while there is power | - |
 | MASTER CAUTION | the lamp out until the next caution | - |

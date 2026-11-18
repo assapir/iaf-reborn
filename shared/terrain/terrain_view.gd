@@ -348,8 +348,11 @@ func _ready() -> void:
 	($Sun as DirectionalLight3D).shadow_enabled = Settings.shadows
 	_shadow_reach()
 	for i in keys.size():
-		if int(keys.records[i].press[0]) in [2, 3, 10, 139, 140]:
+		var c := int(keys.records[i].press[0])
+		# Our switch keys count as held where the record has a release (the SPD BRK switch's close key has none).
+		if c in [2, 3, 10, 139, 140] or (c in [206, 230, 231] and int(keys.records[i].release[0]) == c):
 			_held_records.append(i)
+		_own_keys_in_table = _own_keys_in_table or c == 206
 	terrain.focus = rig
 	terrain.view_range = camera.far
 	_loading = CanvasLayer.new()
@@ -2432,7 +2435,7 @@ func _update_indicators(delta: float) -> void:
 	cockpit.gear_legs = gear_legs
 	cockpit.flaps_state = flaps_state
 	cockpit.gear_handle_down = gear_down
-	cockpit.indicators[5] = brakes  # air brake light follows the brakes toggle
+	cockpit.indicators[5] = speed_brake_out()  # the air brake light
 
 
 ## The screen capture (SysRQ, command 0x88 → FUN_004dc8d0: the frame as IafJets%03d.bmp in the game folder, the
@@ -2980,6 +2983,12 @@ func _command(cmd: Array) -> bool:
 			_eject_key()
 		19:
 			_chute_key()
+		206, 230, 231:
+			_switch_key(cmd)
+		232:
+			cat3 = not cat3  # ours, the STORES CONFIG switch (Modern IAF's keys.json, record 205)
+		233, 234:
+			_gps_key(int(cmd[0]) == 234)  # ours, the GPS bomb's keys (Modern IAF's keys.json, records 206 / 207)
 		20, 21:
 			# Zoom (events 0x14 / 0x15, held): the orbit distance ±60 m/s in the external orbit views; in the
 			# cockpit our art zoom, one step per press (the original's z only sets the culling angle).
@@ -3565,6 +3574,7 @@ func _take_over(target: Dictionary, old: Dictionary) -> void:
 	gear_legs = [2, 2, 2] if gear_down else [0, 0, 0]
 	flaps_state = 2 if flaps > 0.0 else 0
 	drag_chute = 0
+	speed_brake_sw = 0
 	rig.position = st.position
 	rig.basis = Basis(st.right, st.up, -st.forward)
 	weapons.rearm(target, mission_object, mission_bdb, AircraftModel.load_descriptor(player.plane), new_load)
@@ -3851,6 +3861,8 @@ func _release_command(cmd: Array) -> void:
 		205:
 			if cockpit_3d != null:
 				cockpit_3d.body_held = false
+		206, 230, 231:
+			_switch_key(cmd)
 		225:
 			if weapons != null:
 				weapons.radar_event(weapons.RADAR_ELEVATION, 0.0)
@@ -3971,19 +3983,26 @@ func _own_key(event: InputEventKey) -> void:
 		KEY_V:
 			cockpit.toggle_panel()
 		KEY_K:
-			# Ours (docs/weapons.md §13.2): K the GPS bomb's PRE / VIS, Shift+K the next PRE target.
-			if event.shift_pressed:
-				var t: String = weapons.gps_step_key()
-				if t != "":
-					_on_subtitle(t)
-			elif weapons.gps_mode_key():
-				_on_subtitle("VIS" if weapons.gps_vis(weapons.gps_station()) else "PRE")
+			# Ours (docs/weapons.md §13.2): K the GPS bomb's PRE / VIS, Shift+K the next PRE target. Modern IAF's key
+			# table has both (commands 233 / 234), so there only the keys bound on the Keys screen work them.
+			if not _own_keys_in_table:
+				_gps_key(event.shift_pressed)
 		KEY_N:
 			if event.shift_pressed and Settings.night_vision:
 				if goggles_tube().is_empty():
 					_on_subtitle("no night-vision goggles in %d" % int(Settings.mission_year()))
 				else:
 					_toggle_goggles()
+
+
+## Ours (docs/weapons.md §13.2): the GPS bomb's PRE / VIS, or with `step` its next PRE target.
+func _gps_key(step: bool) -> void:
+	if step:
+		var t: String = weapons.gps_step_key()
+		if t != "":
+			_on_subtitle(t)
+	elif weapons.gps_mode_key():
+		_on_subtitle("VIS" if weapons.gps_vis(weapons.gps_station()) else "PRE")
 
 
 ## Ours (Graphics → MORE "Night vision", docs/rendering.md §8): the goggles on / off, a screen shader over the 3D
@@ -4234,7 +4253,7 @@ func _process(delta: float) -> void:
 			"rudder": rudder,
 			"flaps": flaps,
 			"gear_down": gear_down,
-			"brakes": brakes,
+			"brakes": speed_brake_out(),
 			"chute": drag_chute,
 			"ab_damage": [player_damage.flags[8], player_damage.flags[9]],
 			"bay_open": weapons != null and weapons.bay_open()
@@ -4385,6 +4404,40 @@ var _cat3_key := false
 ## model has it this frame (that switch or Alt + M).
 var mpo := false
 var mpo_on := false
+## Ours: the key table holds the switch keys (Modern IAF's keys.json, records 200–207: the SPD BRK switch, the roll
+## trim, MPO, STORES CONFIG, the GPS bomb's two), so the Keys screen lists and rebinds them. Without them (the 1998
+## game's table) the flight scene reads Alt + Left / Right / M / S and K itself (docs/controls.md "Own keys"), and the
+## brake key is the speed brakes too.
+var _own_keys_in_table := false
+## The SPD BRK switch (the 6-DoF, IafFlight.set_speed_brake_switch): 1 held aft, the speed brakes open while it is
+## held and stay where it is let go; 0 centred; -1 forward, a detent: closed. And their opening, deg.
+var speed_brake_sw := 0
+var _speed_brake_deg := 0.0
+## The roll trim key's way (-1 left, 1 right) and the MPO key held (commands 230 / 231).
+var _trim_key := 0.0
+var _mpo_key := false
+
+
+## Ours (Modern IAF's keys.json): a switch key pressed or let go, from a key (_read_controls polls it, so letting go
+## of the modifier first lets go of the switch) or a joystick button.
+func _switch_key(cmd: Array) -> void:
+	var p1 := int(cmd[1])
+	match int(cmd[0]):
+		206:
+			if p1 != 0 or speed_brake_sw > 0:  # forward is a detent: only "aft" springs back to the centre
+				speed_brake_sw = p1
+		230:
+			_trim_key = p1
+		231:
+			_mpo_key = p1 != 0
+
+
+## The speed brakes are out: the 6-DoF's with the SPD BRK switch; else the brake key's (the original model and the
+## 1998 game's table: one control).
+func speed_brake_out() -> bool:
+	return _speed_brake_deg > 1.0 if _own_keys_in_table and _sixdof else brakes
+
+
 var _eo_pan := Vector2i.ZERO
 
 
@@ -4424,20 +4477,29 @@ func _read_controls(delta: float) -> void:
 	var alt := (
 		Input.is_key_pressed(KEY_ALT) and not Input.is_key_pressed(KEY_CTRL) and not Input.is_key_pressed(KEY_SHIFT)
 	)
-	if alt:
+	if _own_keys_in_table:
+		trim += _trim_key
+	elif alt:
 		trim += float(Input.is_key_pressed(KEY_RIGHT)) - float(Input.is_key_pressed(KEY_LEFT))
 	var ap_on: bool = autopilot != null and autopilot.mode != 0
 	if trim != 0.0 and flight != null and not ap_on:
 		flight.trim_roll(trim, delta)
 	# Ours, the 6-DoF only (the original model has neither; modern-iaf/docs/flight-model.md §9.11): Alt + M held is the
-	# MANUAL PITCH override, Alt + S flips the STORES CONFIG switch CAT I / CAT III.
+	# MANUAL PITCH override, Alt + S flips the STORES CONFIG switch CAT I / CAT III. With the keys in the table
+	# (_own_keys_in_table) their records' keys do it, and the SPD BRK switch works the speed brakes (not while they
+	# are damaged, flag 5: they stay where they are).
 	if flight == null:
 		return
-	var s_down := alt and Input.is_key_pressed(KEY_S)
-	if s_down and not _cat3_key:
-		cat3 = not cat3
-	_cat3_key = s_down
-	mpo_on = mpo or (alt and Input.is_key_pressed(KEY_M))
+	if _own_keys_in_table:
+		mpo_on = mpo or _mpo_key
+		if _sixdof:
+			_speed_brake_deg = flight.set_speed_brake_switch(0 if player_damage.flags[5] else speed_brake_sw)
+	else:
+		var s_down := alt and Input.is_key_pressed(KEY_S)
+		if s_down and not _cat3_key:
+			cat3 = not cat3
+		_cat3_key = s_down
+		mpo_on = mpo or (alt and Input.is_key_pressed(KEY_M))
 	flight.set_fcs_switches(mpo_on, cat3)
 
 
@@ -4468,6 +4530,9 @@ func _joy_event(e: Array) -> void:
 func _apply_held(i: int, cmd: Array) -> void:
 	var kb: Vector2 = autopilot.kb_stick if autopilot != null else stick
 	match int(cmd[0]):
+		206, 230, 231:
+			_switch_key(cmd)  # ours: the SPD BRK switch, the roll trim, MPO (Modern IAF's keys.json)
+			return
 		139, 140:
 			# EO pan (FUN_004e0b80): 0x8b x / 0x8c y become 0x8a(x, y) with the other axis's last value
 			# (their own store DAT_008338f8 / 0x8338fc).

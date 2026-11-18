@@ -26,4 +26,4 @@ A jet that stands for long with the engine running in icing weather has its inta
 
 With the brakes lost on the ground the pilot lowers the hook: it is the signal to the ground crew#afi[paragraph 3.2.6]. A jet stopped with hot brakes goes to the airfield's hot-brake area#afi[paragraph 7.3.2]. The steps in the cockpit are open.
 
-#in-sim[Damage to the brakes #sym.arrow.r *BRAKES FAIL; #key("Wheel brakes") does nothing*, on the wheels and on the speedbrakes. #row("HOOK") and #row("PARK_BRAKE") move only.]
+#in-sim[Damage to the brakes #sym.arrow.r *BRAKES FAIL; #key("Wheel brakes") and the speedbrake keys do nothing.* #row("HOOK") and #row("PARK_BRAKE") move only.]

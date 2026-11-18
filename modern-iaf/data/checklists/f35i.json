@@ -56,7 +56,7 @@
 ]},
 {"id": "shutdown", "en": "ENGINE SHUTDOWN", "he": "כיבוי מנוע", "when": "landed", "items": [
   {"id": "park_brake_on", "en": "PARKING BRAKE – ON", "he": "PARKING BRAKE – ‏ON", "check": {"set": {"PARK_BRAKE": 1}}, "control": ["PARK_BRAKE"]},
-  {"id": "throttle_off", "en": "Throttle – OFF", "he": "מצערת – ‏OFF", "how": {"en": "over the idle detent: the Throttle OFF key", "he": "מעבר לעצירת הסרק: מקש Throttle OFF"}, "check": {"throttle_off": true, "state": {"engine_on": false}}},
+  {"id": "throttle_off", "en": "Throttle – OFF", "he": "מצערת – ‏OFF", "how": {"en": "over the idle detent: the Throttle OFF key", "he": "מעבר לעצירת הסרק: מקש Throttle OFF"}, "check": {"throttle_off": true, "state": {"engine_on": false}}, "key": 121},
   {"id": "batt_off", "en": "BATT – OFF", "he": "BATT – ‏OFF", "how": {"en": "the lamps and the display go dark", "he": "הנוריות והתצוגה כבות"}, "check": {"set": {"BATT": 0}}, "control": ["BATT"]},
   {"id": "walkaround", "en": "Post-flight walk-around – bird strikes, missing panels, over-G damage", "he": "בדיקה חיצונית אחרי הטיסה – פגיעות ציפורים, פנלים חסרים, נזקי עומס יתר"}
 ]}

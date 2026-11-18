@@ -14,6 +14,7 @@ const PITCH_DOWN := 25
 const GUN := 64
 const GEAR := 20
 const DIK_K := 0x25
+const DIK_F11 := 0x57
 const RUDDER_LEFT := 37
 const RUDDER_RIGHT := 38
 const DIK_Z := 0x2c
@@ -115,44 +116,52 @@ func keys(fe: Control) -> void:
 	# 125 until slice 5, then the up-front controls, HUD panel and DGFT keys (records 152-178, modern-iaf/docs/ufc.md)
 	# and the EW and identification keys (records 179-190, modern-iaf/docs/ews.md); 164 until the IFF IDENT (record 191).
 	# 167 until the hide-body keys and the HUD panel's four (records 192-197; the count stayed 167 here and failed);
-	# 171 until 2026-11-18, then the full MFD views (records 198 / 199, modern-iaf/docs/cockpit.md §2).
-	check(listed == 173, "keys: 173 commands listed, one head-look set (%d)" % listed)
+	# 171 until 2026-11-18, then the full MFD views (records 198 / 199, modern-iaf/docs/cockpit.md §2); 173 until the
+	# drag chute's row went (record 23: no jet has one) and the SPD BRK switch's two, the roll trim's two, MPO, STORES
+	# CONFIG and the GPS bomb's two came (records 200-207, until then keys with no row).
+	check(listed == 180, "keys: 180 commands listed, one head-look set (%d)" % listed)
+	check(
+		not ks.records_of("flight").has(23) and ks.records_of("flight").has(200) and ks.records_of("weapons").has(206),
+		"keys: no drag chute; the speedbrakes and the GPS bomb's keys listed"
+	)
 	check(
 		ks.GROUPS.all(func(g): return [74, 86, 89, 93].all(func(r): return not ks.records_of(g).has(r))),
 		"keys: no free look or F2 rear view (the snap views and the mouse look around)"
 	)
 	check(ks.records_of("flight").has(121), "keys: Throttle OFF listed (record 121, the engine shutdown)")
 	check(ks._rows[PITCH_UP].chip.text == "Up", "Pitch up shows Up (%s)" % ks._rows[PITCH_UP].chip.text)
-	# Bind: click the row, press K.
+	# Bind: click the row, press F11 (a key no command has; K was one until the GPS bomb's keys became records).
 	ks._rows[PITCH_UP].row.pressed.emit()
 	check(ks.waiting == PITCH_UP and ks._rows[PITCH_UP].chip.text == "Press a key…", "the row waits for its key")
-	root.push_input(key_event(KEY_K))
+	root.push_input(key_event(KEY_F11))
 	await frames(1)
 	var b: Dictionary = s.key_bindings
-	check(b.get(PITCH_UP, []) == [DIK_K, null], "the store has Pitch up on K, its button the default: %s" % b)
+	check(b.get(PITCH_UP, []) == [DIK_F11, null], "the store has Pitch up on F11, its button the default: %s" % b)
 	var flight_keys: RefCounted = kt.load_table()
-	check(flight_keys.find_key(DIK_K, b) == PITCH_UP, "the flight's key table has Pitch up on K")
+	check(flight_keys.find_key(DIK_F11, b) == PITCH_UP, "the flight's key table has Pitch up on F11")
 	check(flight_keys.find_key(0xc8, b) == -1, "and Up runs nothing now")
-	check(ks._rows[PITCH_UP].chip.text == "K" and not ks._rows[PITCH_UP].reset.disabled, "the row shows K and Default")
+	check(
+		ks._rows[PITCH_UP].chip.text == "F11" and not ks._rows[PITCH_UP].reset.disabled, "the row shows F11 and Default"
+	)
 	# Esc cancels.
 	ks._rows[PITCH_DOWN].row.pressed.emit()
 	root.push_input(key_event(KEY_ESCAPE))
 	await frames(1)
 	check(ks.waiting == -1 and fe.page == "keys", "Esc cancels the wait and stays on the screen")
-	# Conflict: Pitch down on K, which Pitch up has.
+	# Conflict: Pitch down on F11, which Pitch up has.
 	ks._rows[PITCH_DOWN].row.pressed.emit()
-	root.push_input(key_event(KEY_K))
+	root.push_input(key_event(KEY_F11))
 	await frames(1)
-	check(ks.pending == [PITCH_DOWN, DIK_K, PITCH_UP], "conflict: K is Pitch up's (%s)" % str(ks.pending))
+	check(ks.pending == [PITCH_DOWN, DIK_F11, PITCH_UP], "conflict: F11 is Pitch up's (%s)" % str(ks.pending))
 	var panel: Control = fe.find_child("Conflict", true, false)
 	var said: Label = panel.find_children("*", "Label", true, false)[0] if panel != null else null
-	check(said != null and said.text == fe.s("conflict") % ["K", "Pitch up"], "the conflict: %s" % said.text)
+	check(said != null and said.text == fe.s("conflict") % ["F11", "Pitch up"], "the conflict: %s" % said.text)
 	panel.find_child("Swap", true, false).pressed.emit()
 	await frames(1)
 	flight_keys = kt.load_table()
 	check(
-		flight_keys.find_key(DIK_K, b) == PITCH_DOWN and flight_keys.find_key(0xd0, b) == PITCH_UP,
-		"Swap: Pitch down on K, Pitch up on Down"
+		flight_keys.find_key(DIK_F11, b) == PITCH_DOWN and flight_keys.find_key(0xd0, b) == PITCH_UP,
+		"Swap: Pitch down on F11, Pitch up on Down"
 	)
 	# Default for one, Reset all.
 	ks._rows[PITCH_UP].reset.pressed.emit()
@@ -319,6 +328,12 @@ func laptop() -> void:
 			twice.append([seen[k], r])
 		seen[k] = r
 	check(twice.is_empty(), "laptop: no key on two records %s" % [twice])
+	# macOS takes Cmd + Q and Cmd + M: those rows say Ctrl, which the sim reads there too; the others say ⌘.
+	var was: bool = kt.cmd_is_ctrl
+	kt.cmd_is_ctrl = true
+	var names := [1, 4, 2].map(func(r): return t.key_name(t.default_key(r)))
+	check(names == ["Ctrl + Q", "Ctrl + M", "⌘ + P"], "macOS: Leave mission and Mute keep Ctrl %s" % [names])
+	kt.cmd_is_ctrl = was
 	check(numpad.is_empty(), "laptop: no numpad key %s" % [numpad])
 	t.set_column(s.key_bindings, RUDDER_LEFT, "key", DIK_K)
 	check(t.key_of(RUDDER_LEFT, s.key_bindings) == DIK_K and t.default_key(RUDDER_LEFT) == DIK_Z, "laptop: K wins")

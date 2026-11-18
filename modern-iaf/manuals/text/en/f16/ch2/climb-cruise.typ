@@ -41,4 +41,4 @@ At each fuel check, compare three numbers: the fuel left, the bingo, and the fue
 
 The real jet's checklist joins the descent and the landing in one section, "Descent/before landing"#fm[section II, "Descent/before landing", page 2-23]. Before the pattern it has the pilot check the fuel, work out the final approach speed (@landing-speed), clear the canopy of mist, turn the landing light on, compare the altimeter with the #term("HUD")'s height, check the attitude instruments against each other, and stow the targeting pod. The card keeps three of these lines as its BEFORE LANDING section, which is in @landing.
 
-#in-sim[Come down with the throttle at idle; hold #key("Wheel brakes") to open the speedbrakes, which the key does in the air. #sym.arrow.r *The speed falls faster.* Not modelled: canopy mist, the altimeter's two modes, the pod's stow position.]
+#in-sim[Come down with the throttle at idle; hold #key("Speedbrakes open (hold)") to open the speedbrakes; #key("Speedbrakes close") closes them. #sym.arrow.r *The speed falls faster.* Not modelled: canopy mist, the altimeter's two modes, the pod's stow position.]

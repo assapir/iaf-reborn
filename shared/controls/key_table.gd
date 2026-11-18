@@ -17,6 +17,9 @@ static var cmd_is_ctrl := OS.get_name() == "macOS"
 ## Ours (Modern IAF sets it, sim_settings.gd): with cmd_is_ctrl the key names say the Mac's own words, "⌘" for Cmd and
 ## "Option" for Alt. The 1998 game keeps "Cmd" and "Alt" (its Controls page draws the original's font).
 static var mac_symbols := false
+## macOS takes Cmd + Q (quit), Cmd + M (minimise) and Cmd + H (hide) before the game sees them: with these keys
+## (scancodes) the name keeps "Ctrl", which the game reads on a Mac as well.
+const MACOS_TAKES_CMD := [0x10, 0x32, 0x23]
 
 ## DirectInput scancode -> Godot key (US positions, like the scancodes themselves).
 const DIK_TO_KEY := {
@@ -213,7 +216,7 @@ func key_name(key: int) -> String:
 		if mods & int(m.bits):
 			prefix = m.prefix
 			break
-	if cmd_is_ctrl and mods & CTRL:
+	if cmd_is_ctrl and mods & CTRL and not (key & 0xffff) in MACOS_TAKES_CMD:
 		prefix = prefix.replace("Ctrl", "⌘" if mac_symbols else "Cmd")
 	if cmd_is_ctrl and mac_symbols:
 		prefix = prefix.replace("Alt", "Option")

@@ -24,7 +24,7 @@ The F-35A has a system that takes the controls and pulls the jet up when it is a
 #in-sim[
   - *Limiters.* +9 and −3 g, and 50° angle of attack.
   - *Flaps.* They move by themselves: down with the gear handle down, up as the speed rises between 240 and 370 knots.
-  - *Speedbrake.* In the air #key("Wheel brakes") turns it on and off.
+  - *Speedbrake.* #key("Speedbrakes open (hold)") opens it while held, and it stays where the key is let go; #key("Speedbrakes close") closes it.
   - *Autopilot.* #key("Autopilot: level / nav / off") steps through level flight, steering along the route, and off.
   - *Trim.* The sim trims roll only.
   - *#term("Not modelled").* Faults of the flight control system; FCS RESET, AUTO REC, #row("STICK_ACTIVE") and #row("THR_ACTIVE"), which move and do nothing; the automatic pull-up (the helmet shows a pull-up cue, @hmd).

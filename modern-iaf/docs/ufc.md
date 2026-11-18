@@ -31,8 +31,8 @@ The user has no HOTAS ([avionics-plan.md](avionics-plan.md) §8, decision 3): ev
 | Alt + Backspace | 250, 11 | RCL: the last digit, then all; on MISC: HMCS | RCL |
 | Alt + L | 250, 12 | LIST | LIST |
 | Alt + [ / Alt + ] | 250, 13 / 14 | COM1 (UHF) / COM2 (VHF) | COM1 / COM2 |
-| Alt + Page Up / Page Down | 250, 16 / 17 | DCS up / down: the previous / next field | the DCS rocker |
-| Alt + Home / Alt + End | 250, 18 / 19 | DCS RTN (back to CNI) / SEQ (the page's next sub-page or mode) | the DCS rocker |
+| Alt + Page Up / Page Down (the laptop map: Ctrl + = / Ctrl + −) | 250, 16 / 17 | DCS up / down: the previous / next field | the DCS rocker |
+| Alt + Home / Alt + End (the laptop map: Ctrl + , / Ctrl + .) | 250, 18 / 19 | DCS RTN (back to CNI) / SEQ (the page's next sub-page or mode) | the DCS rocker |
 | Alt + = / Alt + - | 250, 20 / 21 | INC / DEC: the steerpoint, the TACAN channel, the radio preset | the arrows rocker |
 | Alt + N | 253 | the EHSI's mode: NAV / TCN | the EHSI's M button |
 | Alt + U | 254 | the backup UHF panel's channel, one on (the UHF goes to BACKUP) | — (the model has no moving backup panel) |

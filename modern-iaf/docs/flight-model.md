@@ -513,7 +513,8 @@ budget, a real flight. Open:
   the original's landing limits while the autopilot lands, on both models (`set_ap_landing`). "No stalls" and "No
   spins" reach only reborn's model: the 6-DoF has no scripted stall or spin to block, and the sim fixes both off.
 * **Not modelled, one plain log line per run when the game asks** (`IafFlight`, no warning): the drag chute. No F-16
-  or F-35 has a drag chute: their definitions say `"drag_chute": false`, so the flight never asks for one
+  or F-35 has a drag chute: their definitions say `"drag_chute": false`, so the flight never asks for one, and the
+  sim's key table has no drag chute key (since 2026-11-18)
   (`terrain_view.gd`). Also not
   modelled: Better physics' flight-model options other than ground effect, the gusts, the stores' moment and the roll
   trim (§9.12): they change the original model, which the sim's player never flies (the sim sets `wind` and the
@@ -777,7 +778,7 @@ printed pp. 210–217), stepped with the rigid body (at most 1/120 s):
   over-g[^to-f16a]. At 440 KIAS, 10,000 ft (the top of the F-16A's "330 KIAS to 440 KIAS" corner[^plaehn]) the Barak
   pulls 9.3 g. On the limiter, TP-1538's integrator as before.
 * **STORES CONFIG, CAT I / CAT III** (F7): the pilot's switch, as in the jet ("The CAT III position shall be
-  selected when the aircraft is configured with a category III loading"[^to-f16a]); key Alt + S,
+  selected when the aircraft is configured with a category III loading"[^to-f16a]); key Alt + S (the key table's STORES CONFIG switch),
   `IafFlight.set_fcs_switches`; it starts at CAT I. CAT III adds a limiter on figure 1-44's CAT III line for the
   jet's weight (α at 1 g / where it meets CAT I: 25,000 lb 15.5° / 16.25° at 8.6 g, 30,000 lb 15.65° / 17.05° at 8.35
   g, 35,000 lb 15.8° / 18.0° at 8.0 g; "maximum AOA varies from approximately 16-18 degrees as a function of GW and
@@ -785,7 +786,7 @@ printed pp. 210–217), stepped with the rigid body (at most 1/120 s):
   approximately 40 percent of CAT I authority", `data_set::F16_CAT3_ROLL`, beside the F-16's other roll figures); pedal rudder
   faded out from 5° to none at 15° ("Zero rudder authority available at 15° AOA"; the 5° start inferred). Open: figure 1-43's CAT III "g command
   system until 7° AOA at 100 knots to 15° AOA at 420 knots" (the model keeps CAT I's 15° for that boundary).
-* **MANUAL PITCH override** (F15): held (key Alt + M), it removes figure 62(b)'s negative g limit (the jet's −3 g
+* **MANUAL PITCH override** (F15): held (key Alt + M, the key table's MANUAL PITCH override), it removes figure 62(b)'s negative g limit (the jet's −3 g
   stays, inferred); above α 29° the stick moves the stabilator directly (full stick ±25°, centred stick streamlines it) and the
   pedals the rudder without the α fade[^to-f16a]. `State.stalled` is set in the air outside α −5…29° (the manual's
   recovery is "AOA within −5 to +25 degrees", and above 29° the limiters give way to the yaw-rate limiter);
@@ -818,7 +819,20 @@ with weight on the wheels (the F-16's switch; TP-1538 flies no ground phase); th
 
 The game's controls map onto it: the stick (pull positive) is the g command, the throttle lever (0.74 military) is
 figure 66(b)'s travel (military at 77 %), the rudder is the pedal and, on the ground, the nose-wheel steering; the
-brake key is the wheel brakes on the ground and the speed brake in the air; the gear lever moves the gear in 3 s.
+gear lever moves the gear in 3 s.
+
+**The SPD BRK switch (2026-11-18; the user: the speedbrakes worked only through the wheel-brake key).** The real
+F-16's switch is on the throttle: aft is sprung and opens the speed brakes while it is held, so they stop where it is
+let go; forward is a detent and closes them[^to-f16a] (page 1-118). The player's jet has it (`SixDof::sb_switch`,
+`IafFlight.set_speed_brake_switch`): Speedbrakes open (hold), Shift + B, opens them at the surface's 30 deg/s up to
+the jet's limit (43° with the F-16's gear down); let go, they stay; Speedbrakes close, Shift + G, closes them. They
+work in the air and on the ground, so a landing roll can brake on the wheels alone or on the speed brakes alone. With
+the switch, the brake key (B) is the wheel brakes only. Brake damage (flag 5) leaves the speed brakes where they are.
+An autopilot loop that asks for the brakes in the air still opens them. A jet flown without the switch (the AI's, and
+the 1998 game's 6-DoF option) keeps one control: the wheel brakes on the ground, the speed brakes in the air. The
+F-35I's speedbrake function takes the same keys (inferred: its real control is open). The cockpit models have no
+SPD BRK switch to click (it sits on the throttle's grip, which takes no mouse). Tests:
+`speed_brake_switch_opens_while_held_and_closes` (iaf-flight), `modern-iaf/tests/test_switch_keys.gd`.
 
 ### 9.12 The flight (stage (c))
 

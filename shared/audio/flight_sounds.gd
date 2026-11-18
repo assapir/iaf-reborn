@@ -227,7 +227,7 @@ func _process(_delta: float) -> void:
 						"gear_down": host.gear_down,
 						"flaps": host.flaps,
 						"flaps_state": host.flaps_state,
-						"brakes": host.brakes,
+						"brakes": host.speed_brake_out(),
 						"in_cockpit": host.in_cockpit,
 						"agl_m": st.position.y - ground if ground != null else 1.0e6,
 						"pitch": float(st.get("pitch", 0.0)),

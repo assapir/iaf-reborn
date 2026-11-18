@@ -482,7 +482,8 @@ Flight, Weapons, Sensors and displays, Views, General. The tabs on the inline-st
 top of the list lights as the list scrolls (`front_end.gd spy`; the Joystick screen's Devices, Axes and Buttons too).
 Back in the bottom bar, as Esc, goes to the Settings on Devices; the top bar's breadcrumbs read Hangar · Settings ·
 Devices · Keys. A row shows the command and its key; on macOS a key with Ctrl shows as ⌘ and one with Alt as Option
-(`KeyTable.mac_symbols`, which the sim sets; the 1998 game keeps Cmd and Alt; docs/controls.md §2). The
+(`KeyTable.mac_symbols`, which the sim sets; the 1998 game keeps Cmd and Alt; docs/controls.md §2). Leave mission and
+Mute show Ctrl + Q and Ctrl + M there (since 2026-11-18): macOS takes ⌘ + Q and ⌘ + M itself, and Ctrl works. The
 table's records without a group are the commands the sim lacks (the chat, the wingman orders, the debug keys, the
 screen capture): no row.
 
@@ -495,7 +496,8 @@ screen capture): no row.
 - **Default** shows on a changed row and puts that command back to the table's key. **Reset all** in the bottom bar
   puts every key back.
 
-**The laptop map.** A laptop has no numpad, so on macOS the sim starts from the laptop map: the same table with the
+**The laptop map.** A Mac laptop has no numpad and no Insert, forward Delete, Home, End, Page Up or Page Down without
+Fn, and macOS takes F11 (Show Desktop). So on macOS the sim starts from the laptop map: the same table with the
 keys of `keys.json`'s `laptop` column (compiled into `converted/own/keys_laptop.json`; `Settings.laptop_keys`). A Mac
 with a full keyboard gets it too; Rebind puts any command back on the numpad. Default and Reset all go back to the
 laptop map there. The commands it moves:
@@ -509,13 +511,27 @@ laptop map there. The commands it moves:
 | Look left, forward, right | Numpad 4, 5, 6 | Alt + 4, 5, 6 |
 | Look front-left, up, front-right | Numpad 7, 8, 9 | Alt + 7, 8, 9 |
 | Zoom (numpad) | Numpad − / + | none: − / = |
+| Raise / lower the head | Shift + Page Up / Page Down | Shift + = / Shift + − |
+| DMS up / down | Ctrl + Page Up / Page Down | Ctrl + U / Ctrl + D |
+| DED field up / down (DCS up / down) | Alt + Page Up / Page Down | Ctrl + = / Ctrl + − |
+| DED back to CNI / next sub-page (DCS RTN / SEQ) | Alt + Home / Alt + End | Ctrl + , / Ctrl + . |
+
+Every listed command has a key on a Mac laptop's keyboard: iaf-tools' test
+`every_listed_command_has_a_key_on_a_mac_laptop` fails on a record whose key that keyboard lacks and that has no
+`laptop` key (nor another record for the same command). On every keyboard since 2026-11-18: Drop chaff on Ctrl + Z
+and Drop flares on Ctrl + X (were Insert and Delete), View from the weapon on F2 (was F11).
 
 **One head-look set.** The sim's head look is the snap views (records 28–36: the numpad, Option + 1–9 on the laptop
 map; the hat sends the same views in its eight directions) and the mouse (the right button held). The 1998 game's duplicates are empty slots in
 the sim's table: F2 rear view (record 74, the same as Look back) and the free look on Shift + the numpad and Shift + the
 arrows (records 86–93). The 1998 game keeps all of them.
 
-The key table has no trim command (the trim is the joystick's rocker), so trim needs no laptop key.
+**The switch keys (2026-11-18).** Commands that had a key and no row are records of the table now, listed and
+rebound as any other: Speedbrakes open (hold) and Speedbrakes close (Shift + B, Shift + G: the SPD BRK switch,
+[flight-model.md](flight-model.md) §9.11; Wheel brakes stays on B and brakes the wheels only), Roll trim left / right
+(Alt + Left / Right, held), MANUAL PITCH override (Alt + M, held), STORES CONFIG switch (Alt + S), GPS bomb PRE / VIS
+and GPS bomb next PRE target (K, Shift + K). The 1998 game's Drag chute has no row and no key: no Modern IAF jet has
+a drag chute (record 23 is an empty slot).
 
 **The mouse in the 3D cockpit.** The pointer works the cockpit's controls (`Settings.cockpit_controls()`,
 [cockpit.md](cockpit.md) §5.1): over a control it lights it, the wheel and a left drag turn a knob, a left click
@@ -531,6 +547,9 @@ no switch, points to its key on the Keys screen.
 |---|---|---|
 | Pitch up rebound to K | ![The Keys screen: the Flight group, Pitch up on K with its Default](pictures/front-end/keys_en.jpg) | ![The Keys screen in Hebrew, mirrored](pictures/front-end/keys_he.jpg) |
 | K pressed for Pitch down | ![The conflict line under Pitch down: Swap, Use it here, Cancel](pictures/front-end/keys_conflict_en.jpg) | ![The conflict line in Hebrew](pictures/front-end/keys_conflict_he.jpg) |
+
+The pictures date from before 2026-11-18, when K had no command; K is GPS bomb PRE / VIS since, so the first rebind
+asks the same question about it.
 
 ### 9.2 Joystick
 
@@ -647,17 +666,20 @@ How the flight reads it:
 
 ### 9.5 Checks
 
-- `modern-iaf/tests/test_devices.gd`: the Devices rows open both screens in English and Hebrew; Pitch up bound to K by a
-  synthetic key reaches the flight's key table; K for Pitch down shows the conflict, Swap trades them; Esc cancels;
+- `modern-iaf/tests/test_devices.gd`: the Devices rows open both screens in English and Hebrew; Pitch up bound to F11 by a
+  synthetic key reaches the flight's key table; F11 for Pitch down shows the conflict, Swap trades them; Esc cancels;
   Default and Reset all; with a fake joystick, axis 4 given the pitch inverted with a 10 % dead zone drives the
   poller's stick y (+100 at +1, 0 inside the dead zone, +50 at 0.55); a button and the hat bound by pressing them;
   the axis mapping against the 1998 game's table (with the Hotas X's defaults every role sends reborn's event at five
   positions, every bar has its event's sign and size, the lever forward is a full throttle bar); the hat through the
-  1998 game's poller (up then up-right sends the front-right view, centred releases it) and binds nothing; 105 commands listed (the six lean commands since 2026-11-15), one head-look set;
+  1998 game's poller (up then up-right sends the front-right view, centred releases it) and binds nothing; 180 commands listed (no drag chute, the eight switch keys since 2026-11-18), one head-look set;
   the Hotas X's map; with `Settings.laptop_keys` on, the laptop map: the rudder on Z / X, no key on two records, no
-  numpad key, a stored key wins over it; a `devices.json` from before 2026-11-14 and a settings file with reborn's
+  numpad key, Ctrl + Q and Ctrl + M named with Ctrl on macOS, a stored key wins over it; a `devices.json` from before 2026-11-14 and a settings file with reborn's
   `[keys]` entries both load into `Settings.key_bindings`. `iaf-sim own`'s unit test checks the laptop table compiles
   the same way.
+- `modern-iaf/tests/test_switch_keys.gd` flies the Barak: B in the air opens no speedbrake; Shift + B held opens them
+  and they stay when let go, Shift + G closes them; Alt + Right trims, Alt + M is MPO, Alt + S is STORES CONFIG; MPO
+  rebound to J works on J and no longer on Alt + M; no key for a drag chute.
 - `modern-iaf/tests/test_m0_boot.gd` connects a fake joystick: the probe's gate line stays at 0 refused paths.
 - `modern-iaf/tests/_devices_shot.gd` takes §9's pictures (its header).
 

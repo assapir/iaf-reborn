@@ -25,7 +25,7 @@ Do these steps once the jet is off the runway and slow.
   figs: ("test", "gear", "master_arm"),
   notes: (
     probe_heat_off: [On the ground no air cools the probes: their heaters fail if left on for long, and a probe can burn a hand#fm[section II, "After landing", the warning and the caution at item 2, pages 2-27 and 2-28].],
-    speedbrakes_closed: [In the sim they close when you let go of #key("Wheel brakes").],
+    speedbrakes_closed: [In the sim #key("Speedbrakes close") closes them.],
     seat_safe: [With the lever up the seat cannot fire. It is made safe before anyone comes near the cockpit.],
   ),
 )

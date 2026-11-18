@@ -43,7 +43,7 @@ Two switches engage the autopilot#fm[pages 1-134 to 1-136]: #row("pitch-hold-swi
 #in-sim[
   - *Limiters.* +9 and −3 g; 25° angle of attack in CAT I; 15.5° to 18°, by weight, with slower roll in CAT III. STORES CONFIG is read.
   - *Flaps.* The leading-edge flaps follow their schedule. The trailing-edge flaps go to 20° with the gear handle down and come up between 240 and 370 knots.
-  - *Speedbrakes.* In the air #key("Wheel brakes") opens and closes them: 60°, 43° with the gear down.
+  - *Speedbrakes.* #key("Speedbrakes open (hold)") opens them while held, and they stay where the key is let go; #key("Speedbrakes close") closes them. Fully open is 60°, 43° with the gear down.
   - *Manual pitch override.* OVRD removes the negative-g limit and gives the stick direct control of the tail above 29° angle of attack.
   - *Autopilot.* #key("Autopilot: level / nav / off") steps through level flight, steering along the route, and off.
   - #sym.arrow.r *RUN lights with BIT, FLCS PWR with FLCS PWR TEST, DBU ON with DIGITAL BACKUP, the LE FLAPS caution with LE FLAPS at LOCK.* The FLCS warning light comes on after battle damage to the flight controls.

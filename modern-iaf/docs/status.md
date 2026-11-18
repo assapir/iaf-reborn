@@ -3,6 +3,22 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **The key faults the manuals exposed (2026-11-18; the user plays on a Mac laptop's keyboard, no HOTAS;
+  [front-end.md](front-end.md) §9.1):** the speedbrakes have their own switch keys (Speedbrakes open (hold) on
+  Shift + B, Speedbrakes close on Shift + G: open while held, they stay when let go; [flight-model.md](flight-model.md)
+  §9.11) and Wheel brakes (B) brakes the wheels only; the Drag chute key and row are gone (no jet has one); the roll
+  trim, MANUAL PITCH, STORES CONFIG and the GPS bomb's keys are rows of the Keys screen and of the manuals' key card;
+  the cards' Throttle – OFF items carry their key (Shift + 1). For the Mac: chaff and flares on Ctrl + Z / Ctrl + X,
+  the weapon view on F2, laptop keys for the eight commands on Page Up / Page Down / Home / End, and Ctrl + Q /
+  Ctrl + M named with Ctrl. A test fails on a listed command with no key on a Mac laptop
+  (`every_listed_command_has_a_key_on_a_mac_laptop`); `modern-iaf/tests/test_switch_keys.gd`, `test_devices.gd`. Owed:
+  the run on the Mac. Not started (not in the user's words): records for the four keys still read outside the table
+  (Ctrl + F1 quit box, Ctrl + F2 cockpit / outside, Ctrl + F12 flight information line, Shift + N goggles); a
+  SPD BRK switch to click (the cockpit models have none); the speedbrakes' own line on the F-16's landing card; a
+  speedbrake button in the Hotas X's map (`data/devices/hotas_x.json`: its brake button is the wheel brakes now); a
+  laptop key for the notebook's page turn (Page Up / Page Down; the wheel, the trackpad and the tabs turn it too).
+  The notebook's card keeps naming no key (the user, 2026-11-13); the manuals' step tables show the throttle's keys.
+  With an autopilot mode flying, the brake control still opens the speedbrakes in the air.
 - **The F-16s' lighting controls (2026-11-17, the lights audit part B, [cockpit.md](cockpit.md) §5.5; approved
   17 Nov):** the lighting panel's dimmers, MAL & IND LTS, NVIS, INDV LTG CONT and DATA ENTRY DISPLAY,
   the ICP's BRT wheel, the exterior lights panel and LANDING / TAXI each do their job; LE FLAPS rests at AUTO and its

@@ -241,7 +241,7 @@ text right to left, and the checklist's lines come from the card's `he`. Only En
 | a control named in the text (`ctl("MAIN_PWR")`) with its figure and number; the numbers and arrows on a picture | the cockpit's control table, `shared/extra/models/cockpit3d/<cockpit>.json` `controls` under `<cockpit>_controls.json`; `numbers.json`; `pictures/<cockpit>/marks.json` |
 | a control's state in the sim | `shared/extra/models/cockpit3d/<cockpit>_status.json` |
 | appendix A Checklist, B Key card, C Controls | the same three |
-| the key card's keyboards (below) | the key table: the commands the Keys screen lists, each on its key's cap; and `own_keys.json`, the keys the flight scene reads by itself (`shared/terrain/terrain_view.gd` `_own_key`, the trim and switch keys) that work in Modern IAF. The build stops when the scene no longer has a name of a record's `code`, and when `_own_key` reads a key that no record names (`own_keys` in `tools/manuals.py`): an own key keeps its row and its key, and a new command takes a free key |
+| the key card's keyboards (below) | the key table: the commands the Keys screen lists, each on its key's cap; and `own_keys.json`, the keys the flight scene reads by itself (`shared/terrain/terrain_view.gd` `_own_key`) that work in Modern IAF and have no record in its key table. The build stops when the scene no longer has a name of a record's `code`, and when `_own_key` reads a key that no record names (`own_keys` in `tools/manuals.py`): an own key keeps its row and its key, and a new command takes a free key |
 | the game manual's Attributions | the game's record of credits, `shared/credits.json` `sim` and `made_with` (docs/credits.md), with each use's words from the setup's strings (`modern-iaf/setup/strings_<lang>.json`) |
 | the game manual's screen, option and step names (`scr`, `stp`, `settings-table`) | the front end's and the setup's strings, `modern-iaf/menu/strings_<lang>.json`, `modern-iaf/setup/strings_<lang>.json` |
 | a link to another manual (`other("game", "tower")`) | that manual's outline: the section's number and title |
@@ -274,13 +274,14 @@ November 2026: "No need to write (macos: key). Just have the other option writte
 map's key, Cmd for Ctrl (Ctrl kept for Q and M, `mac-keeps-ctrl`), Option for Alt. The cap takes one line's height in
 running text. "About this manual" explains it. The keyboards name both on the modifier caps (Win / Cmd, Alt / Option), darken Cmd
 with Ctrl, and each page says which modifier a Mac takes. The build stops on a key combination typed by hand in a
-text ("Ctrl +", `hand_keys` in `tools/manuals.py`). The keyboards draw the default map; the laptop map's 13 moved
+text ("Ctrl +", `hand_keys` in `tools/manuals.py`). The keyboards draw the default map; the laptop map's 21 moved
 commands show their macOS key in the tables.
 
-Faults of the game this found, for a Mac laptop's keyboard (listed, not fixed here): Drop chaff sits on Insert, a key
-that keyboard lacks, and the laptop map gives it no other; the Keys screen shows ⌘ + Q for Leave mission and ⌘ + M
-for Mute, which macOS takes (Ctrl + Q and Ctrl + M work); F11 (View from the weapon) is macOS's Show Desktop by
-default. Home, End, Page Up, Page Down and Delete need Fn with the arrows and Backspace there.
+Faults of the game this found, for a Mac laptop's keyboard, fixed 2026-11-18 ([front-end.md](front-end.md) §9.1):
+Drop chaff and Drop flares sat on Insert and Delete, keys that keyboard lacks (now Ctrl + Z and Ctrl + X); the Keys
+screen showed ⌘ + Q for Leave mission and ⌘ + M for Mute, which macOS takes (it shows Ctrl + Q and Ctrl + M, which
+work); F11 (View from the weapon) is macOS's Show Desktop (now F2); the eight commands on Home, End, Page Up and Page
+Down have laptop keys. A test of the key table fails on a listed command with no key on that keyboard.
 
 **Finding things in a PDF:** the contents, the bookmarks, every cross-reference, footnote and index entry are links.
 A link to another manual is a relative link to `<file>.pdf#<section id>` (Typst writes each section's label as a
@@ -424,8 +425,11 @@ Parts:
 - Fixed 2026-11-18 (group B, lamps): CABIN PRESS lights with AIR SOURCE at OFF, DUMP or RAM above 27,000 ft; MAIN
   GEN, STBY GEN and ELEC SYS light after generator damage (flags 19, 21); FLCS FAULT, ADC / CADC and FLCS BIT FAIL
   light from their modelled causes; the Adir's ICAWS writes FCS DEGD / FCS FAIL (`test_cockpit_lamps.gd`).
-- Found while writing chapter 1, the game's and listed, not changed here: MANUAL PITCH, CAT III and the roll trim have keys read by the flight scene with no record
-  in `keys.json`, so the manuals name their switches only; ALT FLAPS and the Flaps key move the game's flaps lever
+- Fixed 2026-11-18 (the key faults): MANUAL PITCH, CAT III, the roll trim and the GPS bomb's keys are records of
+  `keys.json` (202–207), on the Keys screen and the key card; the key table has no drag chute; the speedbrakes have
+  their own switch keys (records 200 / 201) and the Wheel brakes key brakes the wheels only; the cards'
+  "Throttle – OFF" and the F-16's "Throttle – IDLE" items carry their `key`, so the step tables show it.
+- Found while writing chapter 1, the game's and listed, not changed here: ALT FLAPS and the Flaps key move the game's flaps lever
   while the 6-DoF flaps follow the gear handle, so chapter 1 says nothing of ALT FLAPS in the sim; the Manuals screen
   names the game manual "Modern IAF".
 - The Adir's `p_seat` picture is the one taken before `HIDE` (its throttle shows); it is taken again with the next
@@ -436,13 +440,8 @@ Parts:
 - Open in chapter 1's sources: the AOA indexer's colours, the caution panel's count and the cabin pressure schedule
   (pictures in the flight manual); for the F-35 the tank layout, the gear and brake systems, the ICAWS categories'
   definitions and the cockpit switches' functions.
-- Found while writing chapter 2, the game's and listed, not changed here: the key table lists "Drag chute" (Shift + B)
-  with a group, so the Keys screen and the key cards show it, while no Modern IAF jet has a drag chute
-  (`airframe.json` `drag_chute: false`); the speedbrakes have no key or switch of their own (the Wheel brakes key
-  opens them in the air, [flight-model.md](flight-model.md)), so a landing roll cannot hold the nose up with the
-  speedbrakes shut, nor brake the wheels without them; the autopilot's PITCH and ROLL switches move only (the A key
-  is the only way); the cards' "Throttle – OFF" item names its key in words and carries no `key`, so the step tables'
-  Key column is empty there; the F-16's FUEL QTY SEL knob moves only, so the card's fuel check cannot be done as the
+- Found while writing chapter 2, the game's and listed, not changed here: the autopilot's PITCH and ROLL switches move only (the A key
+  is the only way); the F-16's FUEL QTY SEL knob moves only, so the card's fuel check cannot be done as the
   real one; the card has no line for the speedbrakes or the altimeter before landing, which the real "Descent/before
   landing" has.
 - Found while writing chapter 3, the game's and listed, not changed here:
@@ -499,8 +498,6 @@ Parts:
     has a target steerpoint.
   - The CMDS MODE knob of the cockpit has three positions; SEMI, AUTO and BYP are on the key alone.
   - DED DATA and DEPR RET have no switch in the cockpit, and IFF IDENT, HANDOFF and SYS TEST no button.
-  - The K and Shift + K keys (GPS bomb) are read by the flight scene and are not in the key table, so the Keys screen
-    does not list them.
   - The Adir: the function bar's SWAP and MENU and each portal's `CNTL>` draw and do nothing (`pcd.gd`); the TFLIR
     format has no clickable WIDE / SPOT; `systems.json` says EMER_JETT "drops the external stores" while the code
     drops the bays' too; JETT_SEL moves only.

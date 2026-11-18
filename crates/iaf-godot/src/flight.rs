@@ -159,6 +159,20 @@ impl IafFlight {
         }
     }
 
+    /// The 6-DoF's SPD BRK switch (`SixDof::sb_switch`): 1 held aft (opens while held), 0 centred, −1 forward (closes).
+    /// From its first call the brake control is the wheel brakes only. Returns the speed brake's opening, deg. The
+    /// original model's brake control stays both (0).
+    #[func]
+    fn set_speed_brake_switch(&mut self, sw: i64) -> f64 {
+        match self.aircraft.as_mut() {
+            Some(Fm::SixDof(s)) => {
+                s.sb_switch = Some(sw.signum() as i8);
+                s.surfaces().dsb
+            }
+            _ => 0.0,
+        }
+    }
+
     /// Stick x/y −1..1 (y: pull positive), rudder −1..1, throttle 0..1 (0.74 military, ≥0.75 AB).
     #[func]
     fn set_controls(&mut self, stick: Vector2, rudder: f64, throttle: f64, flaps: f64, gear_down: bool, brakes: bool) {

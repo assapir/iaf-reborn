@@ -96,6 +96,13 @@ pub struct SixDof {
     pub mpo: bool,
     /// The STORES CONFIG switch at CAT III (`fcs::Pilot`).
     pub cat3: bool,
+    /// The pilot's SPD BRK switch, the F-16's on the throttle (T.O. 1F-16A-1 p. 1-118: aft is sprung and opens the
+    /// speed brakes while held, so they stop where it is let go; forward is a detent and closes them): +1 held aft,
+    /// 0 centred, −1 forward. None: a jet flown without the switch (the AI, the tests), whose brake control opens
+    /// the speed brake in the air.
+    pub sb_switch: Option<i8>,
+    /// The opening the SPD BRK switch has asked for, deg.
+    sb_cmd: f64,
     /// The pilot's systems damage flags (bit n = flag n) and whether the jet has two engines, as the original's
     /// (`aircraft::damage_bits`, `aircraft::stick_authority`).
     damage: u32,
@@ -193,6 +200,8 @@ impl SixDof {
             roll_trim: 0.0,
             mpo: false,
             cat3: false,
+            sb_switch: None,
+            sb_cmd: 0.0,
             damage: 0,
             twin: false,
             empty_kg,
@@ -558,12 +567,28 @@ impl SixDof {
         let stick_k = crate::aircraft::stick_authority(self.damage) as f64;
         let bits = crate::aircraft::damage_bits(self.damage, self.twin);
         let (stick_x, stick_y) = (c.stick_x as f64 * stick_k, c.stick_y as f64 * stick_k);
+        // The speed brake: the jet's limit with the main gear down and locked (the ramp at 0). With the SPD BRK
+        // switch the opening grows at the surface's own rate while the switch is held aft and stays where it is let
+        // go; an autopilot loop keeps the brake control's speed brake in the air.
+        let sb = self.jet.speed_brake;
+        let gear_locked = self.gear <= 0.0;
+        let speed_brake = match self.sb_switch {
+            Some(sw) if !(self.ap_flying && c.brakes && !self.on_ground) => {
+                self.sb_cmd = match sw {
+                    1.. => self.sb_cmd + super::fcs::SB_RATE * dt,
+                    0 => self.sb_cmd,
+                    _ => 0.0,
+                }
+                .min(sb.command(true, gear_locked));
+                self.sb_cmd
+            }
+            _ => sb.command(c.brakes && !self.on_ground, gear_locked),
+        };
         let pilot = Pilot {
             stick_x,
             stick_y,
             pedal: c.rudder as f64,
-            // The jet's limit with the main gear down and locked (the ramp at 0).
-            speed_brake: self.jet.speed_brake.command(c.brakes && !self.on_ground, self.gear <= 0.0),
+            speed_brake,
             // The autopilot's stick is linear in g (its ApView: centre 1 g, full stick MaxG / MinG) and in roll rate
             // (full stick the flight data's MaxRollRate, the original's roll channel `p_cmd`).
             // The trim left out while an autopilot loop flies, as the original's (`Aircraft::roll_stick`).
@@ -1127,6 +1152,33 @@ mod tests {
             f.step(1.0 / 60.0);
         }
         assert!(f.state().gear > 0.4, "{}", f.state().gear);
+    }
+
+    /// The SPD BRK switch (the player's): held aft the speed brake opens at 30 deg/s and stays where the switch is
+    /// let go; forward closes it; with the switch the brake control opens nothing in the air, and the gear-down
+    /// limit holds.
+    #[test]
+    fn speed_brake_switch_opens_while_held_and_closes() {
+        let [barak, ..] = jets::all();
+        let mut f = airborne(barak);
+        f.sb_switch = Some(0);
+        f.set_controls(crate::aircraft::Controls { brakes: true, ..f.controls() });
+        let run = |f: &mut SixDof, sw: i8, s: f64| {
+            f.sb_switch = Some(sw);
+            for _ in 0..(s * 60.0) as usize {
+                f.step(1.0 / 60.0);
+            }
+            f.surfaces().dsb
+        };
+        assert!(run(&mut f, 0, 1.0) < 0.1, "the brake control alone");
+        let half = run(&mut f, 1, 1.0);
+        assert!((half - 30.0).abs() < 2.0, "{half}");
+        assert!((run(&mut f, 0, 1.0) - 30.0).abs() < 2.0, "let go: it stays");
+        assert!((run(&mut f, 1, 3.0) - 60.0).abs() < 0.1, "held: fully open");
+        assert!(run(&mut f, -1, 3.0) < 0.1, "forward: closed");
+        f.gear = 0.0;
+        f.set_controls(crate::aircraft::Controls { gear_down: true, ..f.controls() });
+        assert!((run(&mut f, 1, 3.0) - 43.0).abs() < 0.1, "the gear-down limit");
     }
 
     /// The F-16's speed brake opens to 60°, to 43° with the main gear down and locked (T.O. 1F-16A-1 p. 1-118); the

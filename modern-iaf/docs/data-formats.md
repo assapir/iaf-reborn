@@ -359,7 +359,8 @@ Red flights of the threat set wait for its records. The range's drones use `set_
 One card per cockpit, the same in every mission (training.md §12): `jets` (the jets that carry it: `f16i`, `f16d`;
 `f35i`), `about`, and `sections` in order, each `{"id", "en", "he", "when"?, "starts"?, "items"}`: `when` `"air"`,
 `"approach"` or `"landed"` (the section waits for that phase), `starts` `"hot"` or `"air"` (a jet that starts so opens the card there).
-An item is `{"id", "en", "he", "how"?, "where"?, "check"?, "control"?}`: `id` unique on the card (a start-up lesson's
+An item is `{"id", "en", "he", "how"?, "where"?, "check"?, "control"?, "key"?}` (`key`: the key table's record for
+a step whose control takes no click, the throttle; the manuals' step tables show it): `id` unique on the card (a start-up lesson's
 `training.checklist` names it; the flight model's step ids `main_power`, `starter`, `engine`, `avionics`, `ins`,
 `canopy` keep their own debrief lines); `how` and `where` `{"en", "he"}`; `control` the 3D cockpit's node names the
 training ring outlines; `check` the state that ticks it (`step`, `set`, `test`, `lamp_off`, `state`, `gear`,

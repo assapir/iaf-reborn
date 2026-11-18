@@ -964,8 +964,8 @@ inferred for the Sufa. The logic is `crates/iaf-avionics/src/f16_mfd.rs` (`Mfd::
 
 | key | function (real switch) |
 |---|---|
-| Ctrl + Page Up | DMS up: the SOI on the HUD |
-| Ctrl + Page Down | DMS down: the SOI on the left MFD (else the right), then from one MFD to the other |
+| Ctrl + Page Up (Modern IAF's laptop map: Ctrl + U) | DMS up: the SOI on the HUD |
+| Ctrl + Page Down (the laptop map: Ctrl + D) | DMS down: the SOI on the left MFD (else the right), then from one MFD to the other |
 | Ctrl + `[` | DMS left: the left MFD's next format |
 | Ctrl + `]` | DMS right: the right MFD's next format |
 | Shift + L | LASER ARM (the MISC panel's switch, also clickable in the 3D cockpit): the laser fires only armed; it starts OFF |

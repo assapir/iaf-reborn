@@ -573,7 +573,10 @@
   let row(i, it) = {
     let modelled = it.at("check", default: none) != none
     let nodes = it.at("control", default: ())
-    let ks = nodes.map(keys-of).flatten().dedup(key: r => r.index)
+    // The keys of the step's controls, and the step's own key (the card's `key`: a key-table record, for a control
+    // that takes no click, the throttle).
+    let own = if "key" in it { key-records.filter(r => r.index == it.key) } else { () }
+    let ks = (nodes.map(keys-of).flatten() + own).dedup(key: r => r.index)
     (
       text(weight: 700, fill: if modelled { navy } else { muted }, str(i + 1)),
       if not modelled { text(weight: 700, fill: muted, "○") },

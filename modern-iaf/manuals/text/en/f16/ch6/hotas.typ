@@ -21,4 +21,4 @@ The real jet's stick and throttle carry the switches that work the sensors and t
 
 The pointer also works the displays: on the radar's format it places the cursor, and a click on a target presses TMS up there.
 
-#in-sim[#term("Not modelled"): the missile's cage and uncage button (a short-range missile shot needs no uncage press), the paddle switch, the speedbrake switch (@handling-general) and the stick's trim hat as a switch (the trim has its keys).]
+#in-sim[#term("Not modelled"): the missile's cage and uncage button (a short-range missile shot needs no uncage press), the paddle switch and the stick's trim hat as a switch (the trim has its keys). The speedbrake switch has its keys (@handling-general).]

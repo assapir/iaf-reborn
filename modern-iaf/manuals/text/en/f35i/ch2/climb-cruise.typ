@@ -55,4 +55,4 @@ The F-35 has no head-up display on its glareshield. In cloud the pilot flies by 
 
 No descent checklist of the F-35 is public: open. Inferred from the rules above: check the fuel against the 2,500 lb of the final approach, read the cautions, and set the lights for the landing. The night-vision pictures in the helmet go off 5 minutes before the landing#afi[paragraph 3.19.2]. The card's BEFORE LANDING section is in @landing.
 
-#in-sim[Come down with the throttle at idle; hold #key("Wheel brakes") to open the speedbrake surfaces, which the key does in the air. #sym.arrow.r *The speed falls faster.*]
+#in-sim[Come down with the throttle at idle; hold #key("Speedbrakes open (hold)") to open the speedbrake surfaces; #key("Speedbrakes close") closes them. #sym.arrow.r *The speed falls faster.*]

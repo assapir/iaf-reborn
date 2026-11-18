@@ -89,11 +89,13 @@ Terms used on this page:
   Mac Cmd counts as Ctrl: for the table's keys, the held keys and our own Ctrl + F1 / F2 / F12. Ctrl still works.
   The Controls page and the Preferences labels say "Cmd" there (`key_table.gd` `cmd_is_ctrl`). The Win modifier
   has no Mac key. Modern IAF sets `KeyTable.mac_symbols`: its key names say "⌘" for Cmd and "Option" for Alt.
+  The names of Ctrl + Q, Ctrl + M and Ctrl + H keep "Ctrl" in both games (since 2026-11-18): macOS takes Cmd + Q
+  (quit), Cmd + M (minimise) and Cmd + H (hide) before the game sees them, and Ctrl works (`MACOS_TAKES_CMD`).
 * **macOS: F11 is Show Desktop.** macOS keeps F11 for Show Desktop, so the weapon view (record 84, F11) never reaches
   the game on a Mac with that shortcut on. Two ways: on Preferences → Controls select the "Weapon view" row and press
   another key (the page stores it as any rebind); or turn the shortcut off in System Settings → Keyboard → Keyboard
   Shortcuts → Mission Control → Show Desktop. Fn + F11 does not help: with the top row as media keys, Fn + F11 is the
-  F11 that Show Desktop takes.
+  F11 that Show Desktop takes. Modern IAF's table has the weapon view on F2 (modern-iaf/docs/front-end.md §9.1).
 * **One-shot commands** run on the key press.
 * **Held commands** (ids 2, 3, 10): the port polls them every frame for press / release edges (the record's key and
   exactly its modifier down).
@@ -121,6 +123,12 @@ Terms used on this page:
   | K | the selected GPS bomb's mode PRE ↔ VIS (weapons.md §13.2) | — |
   | Shift+K | the next PRE target of the selected GPS bomb: the stored targets, then the steerpoints (weapons.md §13.2) | — |
   | = / − / Numpad + / − | cockpit art zoom (cockpit views) | Zoom in / out (20 / 21): the orbit distance in the external views (views.md §4) |
+
+  Modern IAF's key table holds the roll trim, MANUAL PITCH, STORES CONFIG and the GPS bomb's two keys as records
+  (202–207, commands 230–234, since 2026-11-18), with the same default keys: its Keys screen lists and rebinds them,
+  and with them in the table the flight scene reads only the table (`terrain_view.gd` `_own_keys_in_table`; the held
+  ones are polled as the stick keys). The same table gives the speed brakes their own switch (records 200 / 201,
+  command 206; modern-iaf/docs/flight-model.md §9.11); in the 1998 game the brake key stays the speed brakes too.
 
   If the player binds one of these keys to a command we implement, the command wins. No table record uses
   Ctrl + F-keys. Moving our functions to Ctrl + F-keys once the original commands on their keys are built is a

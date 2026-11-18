@@ -50,7 +50,7 @@ You recognise the angle in three places:
 
 A straight-in approach is the same from step 4 on. On instruments it is flown along the ILS, whose two lines the HUD shows once the runway's frequency is set on the T-ILS page (@navigation).
 
-#in-sim[The speedbrakes open while #key("Wheel brakes") is held in the air. #sym.arrow.r *The speedbrakes stop at 43° with the gear down*, so that they clear the runway. #term("Not modelled"): the calls of the pattern (initial, base, final, the go-around call).]
+#in-sim[The speedbrakes open while #key("Speedbrakes open (hold)") is held and stay where it is let go; #key("Speedbrakes close") closes them. #sym.arrow.r *The speedbrakes stop at 43° with the gear down*, so that they clear the runway. #term("Not modelled"): the calls of the pattern (initial, base, final, the go-around call).]
 
 === Touchdown and the landing roll <landing-roll>
 
@@ -68,7 +68,7 @@ A straight-in approach is the same from step 4 on. On instruments it is flown al
 
 The real jet has a drag chute for short or wet runways, opened right after touchdown between 170 kt and 90 kt#fm[section II, "Normal landing", the cautions of page 2-24]. Not modelled: the sim's jets carry none.
 
-#in-sim[#key("Wheel brakes") brakes the wheels on the ground and holds the speedbrakes open. #sym.arrow.r *The jet slows; the nose drops by itself as the speed falls.* Steer with the rudder.]
+#in-sim[#key("Wheel brakes") brakes the wheels on the ground; the speedbrakes stay as their keys left them. #sym.arrow.r *The jet slows; the nose drops by itself as the speed falls.* Steer with the rudder.]
 
 === Crosswind <landing-crosswind>
 
@@ -76,7 +76,7 @@ With the wind across the runway, fly final with the wings level and the nose tur
 
 === Going around <landing-go-around>
 
-#idx("Go-around")A go-around is an approach given up: the runway is not clear, or the jet is not at its speed and on its path. It is always a correct choice. Set #key("Throttle military power"), let go of the brake key so that the speedbrakes close, climb, and raise the gear when the jet climbs. A touch-and-go is the same from the runway: after touchdown hold the landing attitude, add power, close the speedbrakes and take off#fm[section II, "Touch-and-go landing", page 2-27].
+#idx("Go-around")A go-around is an approach given up: the runway is not clear, or the jet is not at its speed and on its path. It is always a correct choice. Set #key("Throttle military power"), close the speedbrakes with #key("Speedbrakes close"), climb, and raise the gear when the jet climbs. A touch-and-go is the same from the runway: after touchdown hold the landing attitude, add power, close the speedbrakes and take off#fm[section II, "Touch-and-go landing", page 2-27].
 
 === If the landing goes wrong <landing-faults>
 

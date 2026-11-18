@@ -2012,7 +2012,7 @@ mod tests {
         }
         let keys: Value = serde_json::from_str(&std::fs::read_to_string(root.0.join(KEYS_FILE)).unwrap()).unwrap();
         let recs = keys["records"].as_array().unwrap();
-        assert_eq!(recs.len(), 200);
+        assert_eq!(recs.len(), 208);
         for r in recs {
             let labelled = r["label"].as_str().is_some_and(|l| !l.is_empty());
             assert!(labelled || r["shown"] == false, "{r}");
@@ -2032,7 +2032,7 @@ mod tests {
         let lap: Value =
             serde_json::from_str(&std::fs::read_to_string(root.0.join(KEYS_LAPTOP_FILE)).unwrap()).unwrap();
         let lrecs = lap["records"].as_array().unwrap();
-        assert_eq!((lrecs.len(), lrecs[37]["dik"].as_u64(), lrecs[38]["dik"].as_u64()), (200, Some(0x2c), Some(0x2d)));
+        assert_eq!((lrecs.len(), lrecs[37]["dik"].as_u64(), lrecs[38]["dik"].as_u64()), (208, Some(0x2c), Some(0x2d)));
         for r in lrecs {
             let dik = r["dik"].as_u64().unwrap();
             assert!(!matches!(dik, 0x37 | 0x47..=0x53 | 0x9c | 0xb5), "{r}");
@@ -2057,6 +2057,31 @@ mod tests {
         let mut lap = json!({"records": [rec(0, "Numpad 0", "a", true), rec(1, "Z", "b", true)]});
         lap["records"][0]["laptop"] = "Z".into();
         assert!(compile_keys(&lap, false).is_ok() && compile_keys(&lap, true).is_err());
+    }
+
+    /// Every command the Keys screen lists (a record with a group) can be pressed on a Mac laptop's keyboard, where
+    /// the sim starts from the laptop map (the user, 2026-11-18, plays on one): its key there, or another listed
+    /// record that sends the same command, is on that keyboard. It has no numpad, Insert, forward Delete, Home, End,
+    /// Page Up or Page Down without Fn, and macOS takes F11 (Show Desktop).
+    #[test]
+    fn every_listed_command_has_a_key_on_a_mac_laptop() {
+        const LACKS: &[&str] = &["Insert", "Delete", "Home", "End", "Page Up", "Page Down", "Decimal", "F11"];
+        const LACKS_MORE: &[&str] = &["SysRQ", "Num Lock", "Scroll Lock", "Apps", "F13", "F14", "F15"];
+        let src: Value = serde_json::from_str(&std::fs::read_to_string(data().join("keys.json")).unwrap()).unwrap();
+        let listed: Vec<&Value> =
+            src["records"].as_array().unwrap().iter().filter(|r| r.get("group").is_some()).collect();
+        let on_mac = |r: &Value| {
+            let key = r.get("laptop").unwrap_or(&r["key"]).as_str().unwrap();
+            let cap = key.rsplit(" + ").next().unwrap();
+            let lacks = cap.starts_with("Numpad") || LACKS.contains(&cap) || LACKS_MORE.contains(&cap);
+            !(key.is_empty() || lacks || key.starts_with("Win + "))
+        };
+        let lost: Vec<&Value> = listed
+            .iter()
+            .filter(|r| !listed.iter().any(|o| o["press"] == r["press"] && on_mac(o)))
+            .map(|r| &r["label"]["en"])
+            .collect();
+        assert!(lost.is_empty(), "no key on a Mac laptop (give the record a \"laptop\" key): {lost:?}");
     }
 
     /// KEY_CODES holds exactly the scancodes key_table.gd's DIK_TO_KEY can press (a key it cannot press would compile
