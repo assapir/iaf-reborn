@@ -30,7 +30,9 @@ func run() -> void:
 	check(kb._help != null, "the first start-up: the help line shows")
 	check(settings().notebook_help_seen, "the help line is marked seen")
 	var text: String = nb.page_text()
-	check("MAIN PWR" in text and not "Ctrl" in text, "START-UP names the switch, no key: %s" % text.left(80))
+	# Every page of the card (the page break before MAIN PWR moves with the font's line heights).
+	var card_text := "\n".join(nb.sections[nb.tab].blocks)
+	check("MAIN PWR" in card_text and not "Ctrl" in card_text, "CHECKLIST names the switch, no key: %s" % text.left(80))
 	# The tower's start-up call first (training.md §3.3): current, no switch ringed until the tower clears the start.
 	check(kb.call_pending() and "Call the tower" in text, "START-UP: the tower's start-up call first")
 	check(kb._marks().is_empty(), "START-UP: no switch ringed before the clearance")

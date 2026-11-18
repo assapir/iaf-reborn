@@ -12,13 +12,11 @@
 # the store's first open imports them.
 # IAF_DEFAULT_SETTINGS=1 godot --headless --audio-driver Dummy --path modern-iaf
 # \     -s ../modern-iaf/tests/test_front_end.gd --log-file <temp>
-extends "res://../tests/godot/base.gd"
+extends "res://tests/test_mvp.gd"
 
 const STAMP := "20261102-080000"
 ## The sample recording of the take-off (tests/data/sample_flight.py).
 const SAMPLE_FLIGHT := "res://tests/data/ramon_takeoff_flight.jsonl"
-## flight/fly.gd, loaded once the autoloads run (a preload here would compile it before Settings exists).
-var fly_gd: GDScript
 
 
 func run() -> void:
@@ -503,14 +501,11 @@ func fly_once(fe: Control) -> void:
 	tv._unhandled_input(_key_event(KEY_F1))
 	check(tv.in_cockpit, "fly: F1 is the cockpit")
 	Engine.time_scale = 6.0
-	# The tower's start-up clearance first (training.md §3.3), then the checklist by its keys (§7.1), each at its moment.
+	# The tower's start-up clearance first (training.md §3.3).
 	check(tv.addon.pick("startup") == "ACFT_CLEAR_TO_START", "fly: the tower clears the start-up")
+	# The lesson's items of the checklist card (training.md §12), by test_mvp's helper: the start-up steps by their keys.
+	await _fly_card(tv, func(it): return it.id in tv.addon.checklist, true)
 	var t0 := Time.get_ticks_msec()
-	for step in [1, 2, 3, 4, 5, 6]:
-		var rpm := {3: 0.2, 4: 0.55}.get(step, 0.0) as float
-		while float(tv.flight.state().rpm) < rpm and Time.get_ticks_msec() - t0 < 60000:
-			await process_frame
-		tv._command([209 + step, 0, 0])
 	while tv.addon.result.is_empty() and Time.get_ticks_msec() - t0 < 120000:
 		await process_frame
 	Engine.time_scale = 1.0
