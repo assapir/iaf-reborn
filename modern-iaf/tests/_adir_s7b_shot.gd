@@ -1,8 +1,8 @@
-# The F-35I Adir's radar, sensors and helmet pictures (avionics-plan.md slice 7 part B): SRCH searching and locked,
-# the TSD with the data link's tracks, the TWD with the range's radar drones and a MAW warning, ASR's GM and DBS1 SAR
+# The F-35I Adir's radar, sensors and helmet pictures (avionics-plan.md slice 7 part B): SRCH searching and locked, the
+# TSD with the data link's tracks, the TWD with the range's radar drones and a MAW warning, ASR's GM and DBS1 SAR
 # picture, the SMS and the MENU grid, the helmet with a lock, with the MAW and with the break X in a dive, the whole
-# display from the pilot's eye. Each portal picture is the PCD's glass cropped to portal 0, 1920 wide. A real render: run it hidden, one at a
-# time,
+# display from the pilot's eye. Each portal picture is the PCD's glass cropped to portal 0, 1920 wide. A real render:
+# run it hidden, one at a time,
 #   flock ~/.cache/iaf-gpu-bench.lock tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 SHOT_DIR=<dir> -- \
 #     --resolution 1920x1080 --path modern-iaf -s ../modern-iaf/tests/_adir_s7b_shot.gd --log-file <temp>
 extends "res://../tests/godot/base.gd"
