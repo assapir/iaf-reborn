@@ -19,6 +19,7 @@ The fuel states that come before an empty tank are public: "minimum fuel" is dec
 
 #in-sim[
   - An empty tank, a fire or a dead engine after a hit (*ENGINE FAIL*) #sym.arrow.r *no thrust.* Glide to a runway or eject.
+  - An empty tank flames the engine out: *the #term("RPM") runs down, and below 52~% the displays go dark.*
   - A leak after a hit (*FUEL LEAK*) #sym.arrow.r *the fuel falls fast.* The FUEL format marks #term("joker fuel") and bingo (@fuel).
   - The start on the ground works in the air as it does there (@cold-start). #term("Not modelled"): the real restart, and fuel dumping.
 ]

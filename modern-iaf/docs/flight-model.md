@@ -548,6 +548,10 @@ budget, a real flight. Open:
   winds down to idle and stays there, as a stopped engine's), and the RPM shown is the start sequence's run-down
   (`start.rs` `Phase::Rundown`): e^(−t / 15 s) from the RPM at the cut, stopped below 1 % (61 s from idle, inferred).
   In the air the RPM falls to 0 as on the ground (open: the windmill RPM).
+* **Flame-out.** An empty tank flames out an engine that is lit or running (`SixDof::step`, `Start::flame_out`,
+  2026-11-18): the same run-down as the fuel cut, with the throttle where it is, so the ENGINE light, the generators'
+  lamps and the dark displays follow as after a shutdown (training.md §7.2). A start with an empty tank cranks to
+  light-off and runs down again. Test: `sixdof.rs` `an_empty_tank_flames_the_engine_out`.
 * **Frames.** `Engine::step` follows the rigid body's frame rules: a frame time that is not a positive number changes
   nothing, a frame is cut to 0.25 s and taken in steps of at most 1/120 s, each step the lag's exact solution at its
   rate (no overshoot, even at the F100-PW-229's 6.8/s in the afterburner range).

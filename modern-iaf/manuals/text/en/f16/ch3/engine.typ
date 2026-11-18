@@ -38,7 +38,7 @@ The actions are the air start, below, or the flameout landing (@emergency-flameo
 
 #in-sim[
   - An empty tank, a fire or a dead engine after a hit #sym.arrow.r *no thrust.* After a hit *ENGINE lights and the voice says "Warning".*
-  - With an empty tank the RPM gauge stays near idle and the generators stay on line: the run-down is not modelled there. #key("Throttle OFF (engine shutdown)") in the air runs the engine down truly: *below 52~% the displays go dark and MAIN GEN, STBY GEN and #row("lamp_caution_elec_sys_0") light.*
+  - An empty tank flames the engine out: *the RPM runs down, #row("lamp_engine_0") lights, and below 52~% the displays go dark and MAIN GEN, STBY GEN and #row("lamp_caution_elec_sys_0") light.* #key("Throttle OFF (engine shutdown)") in the air runs the engine down the same way.
   - Not modelled: the EPU. Its switch moves, its lights come on in the lamp test only, and the flight controls keep working without it.
 ]
 

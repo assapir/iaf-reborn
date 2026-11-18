@@ -320,6 +320,8 @@ impl SixDof {
     /// The engine on or off at once (the original's meaning: any throttle command starts it, the ejection stops it),
     /// the electrical power unchanged. Modern IAF's start goes through [`SixDof::start_engine`] instead.
     pub fn set_engine_on(&mut self, on: bool) {
+        // An empty tank starts nothing (the throttle keys would light it again every press).
+        let on = on && (self.fuel_kg > 0.0 || self.unlimited_fuel);
         self.engine_on = on;
         if on {
             self.start_seq = Sequence::running();
@@ -499,6 +501,12 @@ impl SixDof {
         let af = self.airframe();
         if let Some(h) = self.wheel_height {
             self.jet.gear.set_static_height(h, self.mass() * G);
+        }
+        // An empty tank: the engine flames out, lit or running, and winds down with its generators (a stopped one,
+        // `engine_off`, has nothing to lose).
+        let lit = self.engine_on || self.start_seq.phase != Phase::Running;
+        if self.fuel_kg <= 0.0 && !self.unlimited_fuel && lit && self.start_seq.flame_out(self.rpm() as f64) {
+            self.engine_on = false;
         }
         if self.start_seq.step(&self.jet.start, dt) {
             self.engine_on = true; // the sequence reached idle

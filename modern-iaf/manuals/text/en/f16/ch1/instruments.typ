@@ -24,7 +24,7 @@ The #jet.short is flown down the approach at a fixed angle of attack, about 13°
 
 #in-sim[
   - Every instrument of the table is driven; the stopwatch button moves and does nothing.
-  - The airspeed dial shows true airspeed; the HUD shows the airspeed that #row("tas-switch") selects.
+  - The airspeed dial shows indicated airspeed, as the HUD does with #row("tas-switch") at CAS; the HUD shows the airspeed that the switch selects.
   - The angle-of-attack tape reads zero below 60 knots.
   - The indexer: the top light above 14°, the middle one from 12° to 14°, the bottom one below 12°.
   - The EHSI is a display: it needs the generator on line (@electrical).

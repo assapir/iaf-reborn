@@ -1163,7 +1163,7 @@ func _prop(p: String) -> float:
 	var s: Dictionary = cockpit.state
 	match p:
 		"instrumentation/airspeed-indicator/indicated-speed-kt":
-			return float(s.tas_kt)
+			return float(s.ias_kt)  # the dial reads indicated airspeed, as the HUD's CAS
 		"instrumentation/altimeter/indicated-altitude-ft":
 			return Gauges.altitude(cockpit)
 		"velocities/mach":

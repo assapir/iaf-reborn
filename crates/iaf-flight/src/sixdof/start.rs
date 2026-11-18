@@ -239,6 +239,17 @@ impl Start {
         Err(fault)
     }
 
+    /// The flame out (an empty tank) at the engine's RPM `rpm` (%): an engine lit or running winds down as after the
+    /// fuel cut, the throttle where it is. True when it flamed out.
+    pub fn flame_out(&mut self, rpm: f64) -> bool {
+        let lit = matches!(self.phase, Phase::LightOff | Phase::Accel | Phase::Running);
+        if lit {
+            self.rpm = rpm;
+            self.next(Phase::Rundown);
+        }
+        lit
+    }
+
     /// The engine stopped: no RPM, the displays and the avionics down, the switches as they are (a new command
     /// restarts).
     pub fn shutdown(&mut self) {

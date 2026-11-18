@@ -447,6 +447,12 @@ func _adi_and_gauges(c: Control, c3: Node3D, variant: String) -> void:
 	)
 	c.state.hyd_ab = PackedFloat32Array([0.0, 1.0])
 	check(c3._prop("fdm/jsbsim/systems/hydraulics/sysa-psi") == 0.0, "%s 3D: system A empty when damaged" % variant)
+	c.state.tas_kt = 486.0
+	c.state.ias_kt = 316.0
+	check(
+		c3._prop("instrumentation/airspeed-indicator/indicated-speed-kt") == 316.0,
+		"%s 3D: the airspeed dial reads indicated airspeed, not true" % variant
+	)
 	c.state.cabin_alt_ft = 8000.0
 	check(c3._prop("f16/cockpit/pressure-ft") == 8000.0, "%s 3D: the cabin altimeter" % variant)
 	# The ILS bars: shown with the gear handle down in NAV, at the HUD's deviations.

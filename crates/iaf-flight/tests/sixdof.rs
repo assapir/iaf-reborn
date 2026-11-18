@@ -616,6 +616,29 @@ fn fuel_tanks_and_a_dead_engine() {
 }
 
 #[test]
+fn an_empty_tank_flames_the_engine_out() {
+    // The last fuel burnt in flight: the engine flames out and winds down (no idle RPM), its generators leave the
+    // buses (the displays' power 2 falls to the battery's 1), and it stays stopped.
+    let mut f = flight(jets::all()[1], 3048.0, 300.0 * KT, true);
+    f.set_fuel(2.0);
+    let c = iaf_flight::Controls { throttle: 0.74, ..f.controls() };
+    assert_eq!((f.start_phase(), f.power()), ("running", 2));
+    fly_for(&mut f, 60.0, |_| c);
+    let s = f.state();
+    println!("empty tank, 60 s: {} RPM {:.1}, power {}, thrust {:.0} N", f.start_phase(), s.rpm, f.power(), s.thrust_n);
+    assert!(s.fuel_kg == 0.0 && s.thrust_n == 0.0);
+    f.set_engine_on(true); // the 1998 game's throttle keys: nothing to light
+    assert!(f.start_phase() != "running");
+    assert!(
+        f.start_phase() != "running" && s.rpm < 20.0 && f.power() == 1,
+        "{} {} {}",
+        f.start_phase(),
+        s.rpm,
+        f.power()
+    );
+}
+
+#[test]
 fn top_speeds_meet_the_published_figures() {
     // The wave-drag fit's pin (§9.15): each jet's level top speed at its reference weight within 5 % of the figure it
     // was fit to. Sea level: the F-16s' Mach 1.2. 40,000 ft: the F-16s' 2.0, the Adir's 1.6, the Ra'am's 2.0.

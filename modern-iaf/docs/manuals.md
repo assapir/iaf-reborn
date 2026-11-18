@@ -384,8 +384,10 @@ Parts:
   manual's figure does not name.
 - The RPM indicator's picture for "Starting engine": the gauge's needle node (`anim069`) has no mesh the shot script
   can box; the text names its place instead.
-- Found while writing chapter 1, the game's and listed, not changed here: the airspeed dial of the F-16 shows true
-  airspeed (`cockpit3d.gd`); MANUAL PITCH, CAT III and the roll trim have keys read by the flight scene with no record
+- Fixed 2026-11-18 (the faults the manuals exposed, group A): the F-16's airspeed dial reads indicated airspeed
+  (`cockpit3d.gd`, the HUD's and the Adir's displays already did); an empty tank flames the engine out
+  ([flight-model.md](flight-model.md) "Flame-out").
+- Found while writing chapter 1, the game's and listed, not changed here: MANUAL PITCH, CAT III and the roll trim have keys read by the flight scene with no record
   in `keys.json`, so the manuals name their switches only; ALT FLAPS and the Flaps key move the game's flaps lever
   while the 6-DoF flaps follow the gear handle, so chapter 1 says nothing of ALT FLAPS in the sim; the Manuals screen
   names the game manual "Modern IAF".
@@ -412,8 +414,6 @@ Parts:
   - Generator damage (flags 19, 21) lights none of MAIN GEN, STBY GEN, ELEC SYS; those follow the start only.
   - Lamps dark though their condition is modelled: FLCS FAULT (hydraulic or flight control damage), FLCS BIT FAIL
     (the MFD's BIT can fail), ADC / CADC (air data damage), STORES CONFIG.
-  - An empty tank leaves the RPM near idle with generators and displays on; only a commanded shutdown runs the engine
-    down. The ENGINE light does not come on.
   - The "engine cut out" damage (flag 2) is never picked, so its restart path is dead code.
   - An engine fire stops the thrust of a single-engine jet (`damage_bits`); the extinguisher (a 1998 function; the real
     jets have none in the cockpit procedure) restores the engine at once.
@@ -435,8 +435,10 @@ Parts:
     caution never lights. Nothing tells the pilot which loads are category III.
   - The yaw departure, the inverted deep stall and the centre of gravity (fuel and stores sit at it) are not
     modelled; open speedbrakes do not lower the departure resistance.
-  - The Adir's touchdown limits, gear limit, negative g limit, roll and control laws are the F-16's (inferred); it has
-    no asymmetric-load limit, so no warning.
+  - The Adir's limits (checked 2026-11-18): its sourced ones are its own data (`data_set::F35I`: +9 g, 50° angle of
+    attack, the approach; `jets.rs`: the top speeds' fit; `modern-iaf/data/db/units/f35i.json`: the 70,000 lb take-off weight). Open, no
+    public figure found, so the F-16's value stays (inferred): the touchdown limits, the gear limit (`gear_limit`),
+    the negative g limit, the roll and the control laws; it has no asymmetric-load limit, so no warning.
   - The JFS's time limits and the negative-g fuel limits are not there.
   - The low-speed warning tone follows the angle of attack alone (27°, the Adir 52°); the real F-16's tone has its own
     conditions (the flight manual's figure 1-50, a picture; not compared).
