@@ -614,7 +614,8 @@ func _lighting() -> void:
 const FQS := "controls/fuel/qty-selector"
 
 
-## The fuel quantity indicator at FUEL QTY SEL's position: (FWD pointer, AFT pointer, totalizer), lb (IafFlight.fuel_qty).
+## The fuel quantity indicator at FUEL QTY SEL's position: (FWD pointer, AFT pointer, totalizer), lb
+## (IafFlight.fuel_qty).
 func _fuel_qty() -> Vector3:
 	var s: Dictionary = cockpit.state
 	var fuel := float(s.get("fuel_lbs", 0.0))
