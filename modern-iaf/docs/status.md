@@ -6,7 +6,9 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 - **The key faults the manuals exposed (2026-11-18; the user plays on a Mac laptop's keyboard, no HOTAS;
   [front-end.md](front-end.md) §9.1):** the speedbrakes have their own switch keys (Speedbrakes open (hold) on
   B, Speedbrakes close on Shift + B: open while held, they stay when let go; [flight-model.md](flight-model.md)
-  §9.11) and Wheel brakes (Shift + G) brakes the wheels only; the Drag chute key and row are gone (no jet has one);
+  §9.11) and Wheel brakes (hold), on W, brakes the wheels only while it is held (a tap lets a ground start's brakes go),
+  with Next waypoint on Shift + W and Previous waypoint on Shift + Q (the user, 2026-11-18); the Drag chute key and row
+  are gone (no jet has one);
   the roll trim, MANUAL PITCH, STORES CONFIG and the GPS bomb's keys are rows of the Keys screen and of the manuals' key card;
   the cards' Throttle – OFF items carry their key (Shift + 1). For the Mac: chaff and flares on Ctrl + Z / Ctrl + X,
   the weapon view on F2, laptop keys for the eight commands on Page Up / Page Down / Home / End, and Ctrl + Q /

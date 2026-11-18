@@ -1,7 +1,8 @@
 # The switch keys of the sim's key table in a flight (modern-iaf/data/keys.json records 200-207; the user, 2026-11-18:
 # the speedbrakes worked only through the wheel-brake key, and MPO, CAT III, the roll trim and the GPS bomb's keys had
 # no row on the Keys screen). The Barak's take-off mission, the jet put in the air at 200 m/s:
-# - the wheel-brake key (Shift + G) in the air opens no speedbrake;
+# - the wheel-brake key (W, held: the user, 2026-11-18) in the air opens no speedbrake, and lets go with the key;
+#   the waypoints' keys are Shift + W (next) and Shift + Q (previous), and W under a Shift let go first brakes nothing;
 # - B held opens the speedbrakes at their own rate; let go, they stay; Shift + B closes them (the user, 2026-11-18:
 #   "B should be the airbrake");
 # - Alt + Right held moves the roll trim; Alt + M held is MPO; Alt + S flips STORES CONFIG;
@@ -60,12 +61,32 @@ func run() -> void:
 	var mac := [70, 71, 84].map(func(r): return _name(tv, r))
 	check(mac == ["Ctrl + Z", "Ctrl + X", "F2"], "chaff, flares and the weapon view on a Mac laptop's keys %s" % [mac])
 	# The wheel-brake key alone: the switch moves, no speedbrake.
-	_press(tv, KEY_G, kt.SHIFT)
+	var names := [22, 39, 40].map(func(r): return _name(tv, r))
+	check(names == ["W", "Shift + W", "Shift + Q"], "the brakes and the waypoints' keys %s" % [names])
+	set_key(KEY_W, true)
 	await fly(tv, 1.0)
-	check(tv.brakes and tv._speed_brake_deg < 0.1 and not tv.speed_brake_out(), "Shift + G in the air: no speedbrake")
-	check(not tv.gear_down, "Shift + G leaves the gear alone")
-	_press(tv, KEY_G, kt.SHIFT)
-	check(not tv.brakes, "Shift + G again: the wheel brakes off")
+	check(tv.brakes and tv._speed_brake_deg < 0.1 and not tv.speed_brake_out(), "W held in the air: no speedbrake")
+	set_key(KEY_W, false)
+	await frames(2)
+	check(not tv.brakes, "W let go: the wheel brakes off")
+	# Shift + W (the next waypoint; the mission has one), with Shift let go first: W alone, still down, brakes
+	# nothing. A ground start's brakes stay on through it (W's release there is no tap).
+	tv.brakes = true
+	set_key(KEY_SHIFT, true)
+	set_key(KEY_W, true)
+	_press(tv, KEY_W, kt.SHIFT)
+	await frames(2)
+	set_key(KEY_SHIFT, false)
+	await frames(3)
+	set_key(KEY_W, false)
+	await frames(2)
+	check(tv.brakes, "Shift + W leaves the brakes as they were")
+	# A tap lets a ground start's brakes go.
+	set_key(KEY_W, true)
+	await frames(2)
+	set_key(KEY_W, false)
+	await frames(2)
+	check(not tv.brakes, "a tap on W lets the brakes go")
 	# B held for a second: 30 deg/s; let go: they stay.
 	set_key(KEY_B, true)
 	await fly(tv, 1.0)

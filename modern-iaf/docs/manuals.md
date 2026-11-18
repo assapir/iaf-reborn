@@ -488,8 +488,9 @@ Parts:
   light from their modelled causes; the Adir's ICAWS writes FCS DEGD / FCS FAIL (`test_cockpit_lamps.gd`).
 - Fixed 2026-11-18 (the key faults): MANUAL PITCH, CAT III, the roll trim and the GPS bomb's keys are records of
   `keys.json` (202–207), on the Keys screen and the key card; the key table has no drag chute; the speedbrakes have
-  their own switch keys (records 200 / 201) and the Wheel brakes key brakes the wheels only; the cards'
-  "Throttle – OFF" and the F-16's "Throttle – IDLE" items carry their `key`, so the step tables show it.
+  their own switch keys (records 200 / 201) and the Wheel brakes (hold) key brakes the wheels only (on W, held, with the
+  waypoints on Shift + W / Shift + Q: the user, 2026-11-18; chapter 1's gear section and the cold starts say so); the
+  cards' "Throttle – OFF" and the F-16's "Throttle – IDLE" items carry their `key`, so the step tables show it.
 - Found while writing chapter 1, the game's and listed, not changed here: ALT FLAPS and the Flaps key move the game's flaps lever
   while the 6-DoF flaps follow the gear handle, so chapter 1 says nothing of ALT FLAPS in the sim; the Manuals screen
   names the game manual "Modern IAF".

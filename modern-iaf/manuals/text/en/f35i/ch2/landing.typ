@@ -33,7 +33,7 @@ At night the normal landing is a straight-in approach on instruments#afi[paragra
 
 + *Aim* to touch down 500 to 1,000 ft past the runway's threshold, on its centre#afi[paragraphs 3.21.1 and 3.21.3].
 + *Touch down* on the main wheels with your feet off the brakes (inferred).
-+ *Lower the nose* and hold #key("Wheel brakes") down to taxi speed. Steer with the rudder.
++ *Lower the nose* and hold #key("Wheel brakes (hold)") down to taxi speed. Steer with the rudder.
 
 #idx("Landing distance")The real pilot works out the landing roll before the flight. If it is more than 80~% of the runway, the jet lands elsewhere#afi[paragraph 3.21.4]. The sim gives no such figure.
 

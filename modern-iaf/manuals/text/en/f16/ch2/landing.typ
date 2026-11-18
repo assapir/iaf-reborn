@@ -68,7 +68,7 @@ A straight-in approach is the same from step 4 on. On instruments it is flown al
 
 The real jet has a drag chute for short or wet runways, opened right after touchdown between 170 kt and 90 kt#fm[section II, "Normal landing", the cautions of page 2-24]. Not modelled: the sim's jets carry none.
 
-#in-sim[#key("Wheel brakes") brakes the wheels on the ground; the speedbrakes stay as their keys left them. #sym.arrow.r *The jet slows; the nose drops by itself as the speed falls.* Steer with the rudder.]
+#in-sim[#key("Wheel brakes (hold)"), held, brakes the wheels on the ground; the speedbrakes stay as their keys left them. #sym.arrow.r *The jet slows; the nose drops by itself as the speed falls.* Steer with the rudder.]
 
 === Crosswind <landing-crosswind>
 

@@ -12,7 +12,7 @@
 
 #caution[Braking with the engine above idle heats the brakes far more and can start a wheel fire (@emergency-hot-brakes). A late rotation is no reason to abort: heavy stores and a nose strut serviced wrongly can delay it by up to 25 kt#fm[section III, "Delayed rotation", page 3-33].]
 
-#in-sim[#key("Throttle idle"), then #key("Wheel brakes") and hold #key("Speedbrakes open (hold)") #sym.arrow.r *the wheels brake and the speedbrakes open.* #term("Not modelled"): the hook, the cable and hot brakes. The sim's jets carry no drag chute.]
+#in-sim[#key("Throttle idle"), then hold #key("Wheel brakes (hold)") and #key("Speedbrakes open (hold)") #sym.arrow.r *the wheels brake and the speedbrakes open.* #term("Not modelled"): the hook, the cable and hot brakes. The sim's jets carry no drag chute.]
 
 === Engine failure on take-off <emergency-takeoff-engine>
 #state("none")

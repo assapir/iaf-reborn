@@ -350,8 +350,9 @@ func _ready() -> void:
 	_shadow_reach()
 	for i in keys.size():
 		var c := int(keys.records[i].press[0])
-		# Our switch keys count as held where the record has a release (the SPD BRK switch's close key has none).
-		if c in [2, 3, 10, 139, 140] or (c in [206, 230, 231] and int(keys.records[i].release[0]) == c):
+		# Our switch keys count as held where the record has a release (the SPD BRK switch's close key has none; the
+		# wheel brakes' in Modern IAF's table, held on W, where the 1998 game's key flips them).
+		if c in [2, 3, 10, 139, 140] or (c in [17, 206, 230, 231] and int(keys.records[i].release[0]) == c):
 			_held_records.append(i)
 		_own_keys_in_table = _own_keys_in_table or c == 206
 	terrain.focus = rig
@@ -2870,7 +2871,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			cockpit.release_panel()  # ours: a held V glances (cockpit.gd toggle_panel)
 		# Release commands of the table (Space up 0x41, Tab up 0x43).
 		var rel: int = keys.find_key(keys.key_of_event(event), Settings.key_bindings)
-		if rel >= 0:
+		if rel >= 0 and not rel in _held_records:  # a held record's release is _read_controls' (its exact modifier)
 			_release_command(keys.records[rel].release)
 	elif event is InputEventKey and event.pressed and addon != null and addon.key(event):
 		return  # the project's flight add-on took it (Modern IAF's radio menu, Settings.flight_addon)
@@ -2886,6 +2887,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		var rec: int = keys.find_key(keys.key_of_event(event), Settings.key_bindings)
 		if rec >= 0 and Joystick.drops_key(int(keys.records[rec].press[0])):
 			return  # RPM ± 5 / throttle presets while the throttle axis is used (FUN_004e0b80)
+		if rec in _held_records:
+			return  # polled in _read_controls, its press and its release (a tap within one frame is no press)
 		if rec >= 0 and _press(keys.records[rec].press):
 			return
 		_own_key(event)
@@ -2968,8 +2971,11 @@ func _command(cmd: Array) -> bool:
 			_toggle_gear()
 		17:
 			# GEV 0x11: refused while the air brakes are damaged (flag 5, @44c821).
-			if not player_damage.flags[5]:
-				brakes = not brakes
+			# Ours: p1 1 on / -1 off, the key held (Modern IAF's keys.json, record 22); the original's p1 0 flips them.
+			if p1 < 0:
+				brakes = false
+			elif not player_damage.flags[5]:
+				brakes = p1 > 0 or not brakes
 		73:
 			player_damage.extinguish()  # GEV 0x49, fire extinguisher (X)
 		31:
@@ -3829,7 +3835,7 @@ func _release_held_keys() -> void:
 		if _key_was_held.get(i, false):
 			_apply_held(i, keys.records[i].release)
 	for i in keys.size():
-		if keys.held(i, Settings.key_bindings):
+		if keys.held(i, Settings.key_bindings) and not i in _held_records:  # those: the loop above
 			_release_command(keys.records[i].release)
 	for b in _held_buttons:
 		var rec: int = keys.find_joystick(int(b), Settings.key_bindings)
@@ -3862,6 +3868,8 @@ func _release_command(cmd: Array) -> void:
 		205:
 			if cockpit_3d != null:
 				cockpit_3d.body_held = false
+		17:
+			_command(cmd)  # ours: the held wheel brakes let go (a joystick button; a key's is _apply_held)
 		206, 230, 231:
 			_switch_key(cmd)
 		225:
@@ -4461,8 +4469,11 @@ func _read_controls(delta: float) -> void:
 	for i in _held_records:
 		var now_held: bool = keys.held(i, Settings.key_bindings)
 		# Ours: a switch on a plain key starts by its own key going down, never by a modifier let go over it
-		# (Shift + B, the speed brakes' close, let go Shift first must not open them on B).
-		if int(keys.records[i].press[0]) >= 206 and (keys.key_of(i, Settings.key_bindings) >> 16) & 0xff == 0:
+		# (Shift + B, the speed brakes' close, let go Shift first must not open them on B; Shift + W and the brakes).
+		if (
+			(int(keys.records[i].press[0]) == 17 or int(keys.records[i].press[0]) >= 206)
+			and (keys.key_of(i, Settings.key_bindings) >> 16) & 0xff == 0
+		):
 			var cap: bool = keys.cap_down(i, Settings.key_bindings)
 			if now_held and not _key_was_held.get(i, false) and _cap_was_down.get(i, false):
 				now_held = false
@@ -4540,6 +4551,9 @@ func _apply_held(i: int, cmd: Array) -> void:
 	match int(cmd[0]):
 		206, 230, 231:
 			_switch_key(cmd)  # ours: the SPD BRK switch, the roll trim, MPO (Modern IAF's keys.json)
+			return
+		17:
+			_command(cmd)  # ours: the wheel brakes held (Modern IAF's keys.json)
 			return
 		139, 140:
 			# EO pan (FUN_004e0b80): 0x8b x / 0x8c y become 0x8a(x, y) with the other axis's last value

@@ -874,8 +874,9 @@ let go; forward is a detent and closes them[^to-f16a] (page 1-118). The player's
 the jet's limit (43° with the F-16's gear down); let go, they stay; Speedbrakes close, Shift + B, closes them. A switch
 key starts by its own key going down: Shift + B with Shift let go first leaves them closed (`terrain_view.gd`
 `_cap_was_down`). They work in the air and on the ground, so a landing roll can brake on the wheels alone or on the
-speed brakes alone. With the switch, the brake key (Wheel brakes, Shift + G) is the wheel brakes only. Brake damage
-(flag 5) leaves the speed brakes where they are.
+speed brakes alone. With the switch, the brake key (Wheel brakes (hold), W) is the wheel brakes only, on while
+the key is held (the user, 2026-11-18; command 17 with p1 1, its release -1). A ground start has the brakes on, and
+they stay on until the key's first tap. Brake damage (flag 5) leaves the speed brakes where they are.
 An autopilot loop that asks for the brakes in the air still opens them. A jet flown without the switch (the AI's, and
 the 1998 game's 6-DoF option) keeps one control: the wheel brakes on the ground, the speed brakes in the air. The
 F-35I's speedbrake function takes the same keys (inferred: its real control is open). The cockpit models have no

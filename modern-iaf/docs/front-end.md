@@ -526,14 +526,15 @@ map; the hat sends the same views in its eight directions) and the mouse (the ri
 the sim's table: F2 rear view (record 74, the same as Look back) and the free look on Shift + the numpad and Shift + the
 arrows (records 86–93). The 1998 game keeps all of them.
 
-**The switch keys (2026-11-18).** Commands that had a key and no row are records of the table now, listed and
-rebound as any other: Speedbrakes open (hold) and Speedbrakes close (B, Shift + B: the SPD BRK switch,
-[flight-model.md](flight-model.md) §9.11; Wheel brakes is on Shift + G, beside the gear's G, and brakes the wheels only:
-the user, 2026-11-18, "B should be the airbrake", and a Mac laptop's keyboard has no plain key left, W being Next
-waypoint), Roll trim left / right
+**The switch keys (2026-11-18).** Commands that had a key and no row are records of the table now, listed and rebound as
+any other: Speedbrakes open (hold) and Speedbrakes close (B, Shift + B: the SPD BRK switch,
+[flight-model.md](flight-model.md) §9.11; the user, 2026-11-18, "B should be the airbrake"), Wheel brakes (hold) (W: the
+wheels only, braking while the key is held; a ground start's brakes stay on until its first tap), Roll trim left / right
 (Alt + Left / Right, held), MANUAL PITCH override (Alt + M, held), STORES CONFIG switch (Alt + S), GPS bomb PRE / VIS
-and GPS bomb next PRE target (K, Shift + K). The 1998 game's Drag chute has no row and no key: no Modern IAF jet has
-a drag chute (record 23 is an empty slot).
+and GPS bomb next PRE target (K, Shift + K). The brakes took W from Next waypoint (the user, 2026-11-18, on a Mac
+laptop's keyboard, where no plain key was left): Next waypoint is on Shift + W, and Previous waypoint moved from there
+to Shift + Q, the key beside it (Alt + W is the wingman's "attack another target", Ctrl + W a debug key). The 1998
+game's Drag chute has no row and no key: no Modern IAF jet has a drag chute (record 23 is an empty slot).
 
 **The mouse in the 3D cockpit.** The pointer works the cockpit's controls (`Settings.cockpit_controls()`,
 [cockpit.md](cockpit.md) §5.1): over a control it lights it, the wheel and a left drag turn a knob, a left click
@@ -679,10 +680,12 @@ How the flight reads it:
   numpad key, Ctrl + Q and Ctrl + M named with Ctrl on macOS, a stored key wins over it; a `devices.json` from before 2026-11-14 and a settings file with reborn's
   `[keys]` entries both load into `Settings.key_bindings`. `iaf-sim own`'s unit test checks the laptop table compiles
   the same way.
-- `modern-iaf/tests/test_switch_keys.gd` flies the Barak: Shift + G (Wheel brakes) in the air opens no speedbrake; B
-  held opens them and they stay when let go, Shift + B closes them (also with Shift let go first); Alt + Right trims
-  (also with Right down before Alt), Alt + M is MPO, Alt + S is STORES CONFIG; MPO
-  rebound to J works on J and no longer on Alt + M; no key for a drag chute.
+- `modern-iaf/tests/test_switch_keys.gd` flies the Barak: W (Wheel brakes (hold)) held in the air brakes and opens no
+  speedbrake, and lets go with the key; the waypoints' keys are Shift + W and Shift + Q, and after Shift + W with Shift
+  let go first W brakes nothing and a ground start's brakes stay on; a tap on W lets the brakes go; B held opens them
+  and they stay when let go, Shift + B closes them (also with Shift let go first); Alt + Right trims (also with Right
+  down before Alt), Alt + M is MPO, Alt + S is STORES CONFIG; MPO rebound to J works on J and no longer on Alt + M; no
+  key for a drag chute.
 - `modern-iaf/tests/test_m0_boot.gd` connects a fake joystick: the probe's gate line stays at 0 refused paths.
 - `modern-iaf/tests/_devices_shot.gd` takes §9's pictures (its header).
 

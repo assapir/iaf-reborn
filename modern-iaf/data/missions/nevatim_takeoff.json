@@ -63,8 +63,8 @@
         "he": "להתניע לפי בד\"ח ההתנעה ({key:118}), כפי שנלמד: המצבר {key:119}, ה־IPP {key:120}, ואז המצערת מ־OFF ({key:7}); המנוע מאיץ לסרק בעצמו. לסגור את החופה עם {key:124}. האוויוניקה מדווחת מוכנה 90 שניות אחרי המצבר."
       },
       {
-        "en": "With the engine at idle and the avionics up, request taxi: {key:47:2}; the tower answers \"taxi to runway {runway}\". Moving more than a few metres before that fails the mission. Taxi along the dashed route on the map: add a little power if the jet does not roll ({key:16} raises the throttle 5 %, {key:15} lowers it), steer with the rudder ({key:37} / {key:38}, or the pedals) and brake with {key:22}. Keep on the pavement: the jet off it fails the mission.",
-        "he": "כשהמנוע בסרק והאוויוניקה פועלת, לבקש הסעה: {key:47:2}; המגדל עונה \"הסעה למסלול {runway}\". תזוזה של יותר מכמה מטרים לפני כן מכשילה את המשימה. להסיע לאורך המסלול המקווקו שבמפה: להוסיף מעט כוח אם המטוס אינו זז ({key:16} מגביר את המצערת ב־5%, {key:15} מפחית), לכוון בהגה הכיוון ({key:37} / {key:38}, או הדוושות) ולבלום עם {key:22}. להישאר על השטח הסלול: יציאה ממנו מכשילה את המשימה."
+        "en": "With the engine at idle and the avionics up, request taxi: {key:47:2}; the tower answers \"taxi to runway {runway}\". Moving more than a few metres before that fails the mission. Taxi along the dashed route on the map: add a little power if the jet does not roll ({key:16} raises the throttle 5 %, {key:15} lowers it), steer with the rudder ({key:37} / {key:38}, or the pedals) and hold {key:22} to brake (the jet starts with the brakes on: a tap on {key:22} lets them go). Keep on the pavement: the jet off it fails the mission.",
+        "he": "כשהמנוע בסרק והאוויוניקה פועלת, לבקש הסעה: {key:47:2}; המגדל עונה \"הסעה למסלול {runway}\". תזוזה של יותר מכמה מטרים לפני כן מכשילה את המשימה. להסיע לאורך המסלול המקווקו שבמפה: להוסיף מעט כוח אם המטוס אינו זז ({key:16} מגביר את המצערת ב־5%, {key:15} מפחית), לכוון בהגה הכיוון ({key:37} / {key:38}, או הדוושות) ולבלום בהחזקת {key:22} (המטוס מתחיל כשהבלמים לחוצים: לחיצה קצרה על {key:22} משחררת אותם). להישאר על השטח הסלול: יציאה ממנו מכשילה את המשימה."
       },
       {
         "at": "hold",
