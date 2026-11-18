@@ -113,12 +113,23 @@ its only one.
   - AP / AT, SWAP (mirrors the bar's halves), COM A / B / C, the NAV source (RTE / VOR / TACAN), MENU, IFF, BARO /
     cabin / GCAS / ALOW, the time (Z / L) and the wind.
   - Tapping an item opens its pop-up format in the portal below it, marked by a magenta "POP UP" in the corner.
+    Tapping the portal's upper left corner or the item again closes it[^ife] (pp. 34, 35).
+  - SWAP "will swap the left and right sides of the top bar. The status of the portals will not be changed"[^ife]
+    (p. 34). Built: a click trades the strip's halves (`pcd.gd` `swap_fab`).
+  - MENU opens "an additional MENU page" with CRUS ("will restore the PCD configuration to the default"), LITES (the
+    lights page) and HMD (the helmet's off-boresight symbology)[^ife] (pp. 34, 59). Built: the page as a pop-up on
+    the portal under MENU with CRUS (`pcd.gd` `fab_menu`, `restore_layout`). LITES and HMD are left out: the sim has
+    no switchable exterior or console lights and no helmet off-boresight switch.
   The Driven picture shows the same order up to MENU: a round engine dial, purple fuel bars, `2 MRM / … SRM /
   2 BOMB-C`, a green planform, `ICAWS`, `AP` over `AT`, a diamond `SW AP`, COM `A U 1 / B U 1 / C U 1`, `RECORDER`, a
   grid icon `MENU`, then the time, `CABIN`, `GCAS`, `ALOW`[^driven].
 - **Portal header** (a simulator manual)[^ife] (p. 35)[^driven]: the format name over the master mode at the upper
   left (`TSD1` / `NAV`, `SMS` / `NAV`); tapping it opens the MENU grid. `CNTL>` at the upper right. Option legends in
-  cyan down both edges.
+  cyan down both edges. The simulator manual's CNTL steps the navigation source on TSD, ASR, DAS and TFLIR[^ife]
+  (pp. 38, 40, 50, 52). What the real CNTL opens is open. Ours (inferred from the F-16's CNTL, the format's control page,
+  below): a click opens the format's control page with the format's own controls as buttons (TSD: MAP, RNG UP / DN;
+  SRCH: MODE, RNG UP / DN; TFLIR: ZOOM IN / OUT, WIDE / SPOT, LSR); a format without controls in the sim shows no
+  `CNTL>`. The Adir has one navigation source in the sim (the route), so there is nothing to step.
 - **Master modes:** NAV, A-A, A-S[^ife] (p. 36).
 - **ESIS:** a separate 480 × 480 px standby display under the PCD[^driven] (built, f35i.md §4.3).
 
@@ -181,7 +192,7 @@ called TFLIR on the cockpit displays"[^baseline]. The threat format is TWD. MENU
 1. The pilot's own layout changes: widening a portal over its half (LEFT / RIGHT), enlarging it over its windows
    (DOWN), and the 5 preset layouts. Ours draws one fixed layout (since 2026-11-17, after the user's simulator photo):
    the left half one large portal with tabs, the right half two portals over four windows ([f35i.md](f35i.md) §4.3).
-2. WPN-A / WPN-S, CNI, FCS, DAS, PHM, CHKLST, IFF and BARO pop-ups from the strip.
+2. WPN-A / WPN-S, CNI, FCS, DAS, PHM, CHKLST, IFF and BARO pop-ups from the strip; the MENU page's LITES and HMD.
 3. The radar MAP picture on ASR; the SRCH and TWD layouts once a source shows them (open).
 4. The datalink's tracks on the TSD (ours shows the radar's), and the unknown (yellow square) identity.
 
@@ -1039,7 +1050,7 @@ instrument), HARM, MENU.
     https://www.driven-technologies.com/portfolio-2-1/project-one-j6axm-fwwcg-gj2r2-b4k8y-z3954 (image:
     https://images.squarespace-cdn.com/content/v1/62a0d78809deef4f386d7706/b896b0f1-40a1-4f74-853c-0a53d92a682c/PCD.jpeg)
 [^ife]: IndiaFoxtEcho, *F-35 Lightning II for Microsoft Flight Simulator, User Manual* v1.2.2 (2023), a simulator
-    manual built from LM simulator footage, PDF pp. 32–53:
+    manual built from LM simulator footage, PDF pp. 32–59:
     https://orbx-user-guides.storage.googleapis.com/indiafoxtecho-f35-msfs-user-guide-3475b3.pdf
 [^f16net-pages]: f-16.net forum, "MFD pages details" (2015; the menu list from LM simulator videos):
     https://www.f-16.net/forum/viewtopic.php?t=27773

@@ -35,6 +35,13 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   the ICP's BRT wheel, the exterior lights panel and LANDING / TAXI each do their job; LE FLAPS rests at AUTO and its
   caution lights at LOCK (`modern-iaf/tests/test_cockpit_lights.gd`). ANTI SKID, STORES CONFIG and SEAT NOT ARMED stay
   test only: the anti-skid system, the load's category and the seat lever are not modelled.
+- **The Adir's TFLIR camera and display controls (2026-11-18, fixed):** the TFLIR picture starts when the pilot picks
+  TFLIR (a tab, a window, the MENU grid), presses the FLIR page key with TFLIR already shown, or clicks its picture;
+  it stayed at NO VIDEO before because the display set the page alone and the key refused a page already shown. The
+  function bar's SWAP trades the bar's halves; its MENU opens the MENU page as a pop-up (CRUS: the default layout); a
+  portal's `CNTL>` opens the format's control page (TSD, SRCH, TFLIR: zoom, WIDE / SPOT, the laser)
+  ([../../docs/real-mfd.md](../../docs/real-mfd.md) "F-35I", [../../docs/f35i.md](../../docs/f35i.md) §4.3;
+  `modern-iaf/tests/test_sim_adir_pcd.gd`). The MENU page's LITES and HMD are not built.
 - **The Adir's radar, sensors and helmet (2026-11-17, avionics-plan.md slice 7 part B, A2–A7, E5, H6–H8, N9, P5):**
   the real FCR's controls on the APG-81's row (`radar.fcr`; the Sufa's keys): SRCH with CRM RWS / TWS / VSR, SAM's
   four bugs, STT, ACM and BORE, the cursor with its altitude coverage; ASR with the ground map as a grey SAR picture

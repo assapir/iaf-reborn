@@ -5,11 +5,12 @@
 # two portals over four small windows (LM's 5 x 5 in portals over 2.5 in windows; a window taps its format into the
 # portal above), the user's simulator photo's split by default: the left half one portal, the right two over windows;
 # each portal a format (pcd_formats.gd) with its name and master mode and its option legends; a portal's MENU grid;
-# and the standby display (ESIS) under the glass. Layer 0 draws
-# it all; layer 1, over it, only the glass's sheen. In the 3D cockpit (cockpit3d.gd) layer 0 draws the glass into its
-# screen's SubViewport (screen_px), the sheen is the glass's own and a layer 2 draws the ESIS into its own. Each portal
-# keeps an MFD node (mfd.gd, hidden) whose page follows the format, so the systems that read the pages (the EO camera,
-# the M key, the full-screen MFD) work as before.
+# and the standby display (ESIS) under the glass. Layer 0 draws it all; layer 1, over it, only the glass's sheen. The
+# strip's SWAP trades its halves, its MENU opens the additional MENU page as a pop-up on the portal under it, a
+# portal's CNTL> its format's control page (docs/real-mfd.md "F-35I"). In the 3D cockpit (cockpit3d.gd) layer 0 draws
+# the glass into its screen's SubViewport (screen_px), the sheen is the glass's own and a layer 2 draws the ESIS into
+# its own. Each portal keeps an MFD node (mfd.gd, hidden) whose page follows the format, so the systems that read the
+# pages (the EO camera, the M key, the full-screen MFD) work as before.
 extends Control
 
 const Formats := preload("res://shared/cockpit/pcd_formats.gd")
@@ -28,6 +29,8 @@ const HEAD_H := 15.0
 const WIN_FRAC := 0.26
 ## A window's format drawn at this scale of a portal's.
 const MINI := 0.5
+## EoSensor's FLIR mode (shared/weapons/eo_sensor.gd).
+const FLIR_MODE := 2
 ## The game page each format drives (the hidden MFD node's page; none: the page stays).
 const PAGE_OF := {"TSD-1": 3, "TSD-2": 3, "TSD-3": 3, "SRCH": 2, "SMS": 1, "TFLIR": 6, "TWD": 7, "EFI": 9, "ICAWS": 4}
 ## The format a game page shows when something else sets it (the M key, a weapon, the full-screen MFD).
@@ -41,11 +44,30 @@ var font: Font
 var fmt: Formats
 ## Per portal: the main format, its two windows' formats (a full half: its tabs), the MENU grid open, the page last
 ## seen on its MFD node. The halves' portals are 0-1 and 2-3; a full half shows its first portal only.
-var main := ["TSD-1", "SMS", "SRCH", "TFLIR"]
-var tabs := [["TSD-2", "ENG"], ["TSD-3", "ICAWS"], ["TWD", "FUEL"], ["EFI", "ENG"]]
+const DEFAULT_MAIN := ["TSD-1", "SMS", "SRCH", "TFLIR"]
+const DEFAULT_TABS := [["TSD-2", "ENG"], ["TSD-3", "ICAWS"], ["TWD", "FUEL"], ["EFI", "ENG"]]
 ## Per half: one large portal (true) or two portals over windows (the user's simulator photo, 2026-11-17).
-var full := [true, false]
+const DEFAULT_FULL := [true, false]
+## The controls of a format's CNTL page (its portal's CNTL>); a format without one shows no CNTL>.
+const CNTL_OF := {
+	"TSD-1": ["MAP", "RNG UP", "RNG DN"],
+	"TSD-2": ["MAP", "RNG UP", "RNG DN"],
+	"TSD-3": ["MAP", "RNG UP", "RNG DN"],
+	"SRCH": ["MODE", "RNG UP", "RNG DN"],
+	"TFLIR": ["ZOOM IN", "ZOOM OUT", "WIDE", "LSR"],
+}
+## The left group of the strip's legends spans this many panel px from the glass's left edge (_draw_fab).
+const FAB_LEFT_W := 262.0
+var main := DEFAULT_MAIN.duplicate()
+var tabs := DEFAULT_TABS.duplicate(true)
+var full := DEFAULT_FULL.duplicate()
 var menu_open := [false, false, false, false]
+## Per portal: its CNTL page open.
+var cntl_open := [false, false, false, false]
+## The portal showing the strip's MENU page as a pop-up (-1 none).
+var popup := -1
+## SWAP: the strip's halves traded (the portals stay).
+var fab_swapped := false
 var _page_seen := [-1, -1, -1, -1]
 ## Clickable areas of the last frame: [Rect2 (screen px), Callable].
 var _hits: Array = []
@@ -169,13 +191,90 @@ func _show(i: int, f: String) -> void:
 		tabs[j][tabs[j].find(f)] = main[i]
 	main[i] = f
 	menu_open[i] = false
-	_set_page(i)
+	cntl_open[i] = false
+	if popup == i:
+		popup = -1
+	_set_page(i, true)
 
 
-func _set_page(i: int) -> void:
-	if i < cockpit.mfds.size() and PAGE_OF.has(main[i]):
-		cockpit.mfds[i].page = PAGE_OF[main[i]]
-		_page_seen[i] = PAGE_OF[main[i]]
+## The MFD node's page follows portal `i`'s format. With `pick` (the pilot chose the format: a tab, a window, the
+## MENU grid) TFLIR starts the camera the way the FLIR page key does (player_weapons.gd flir_on): the page alone
+## leaves the picture at NO VIDEO. The layout's own TFLIR waits for the pilot (flir_key, a tap on its picture), so
+## the cursor keys stay on the radar until then.
+func _set_page(i: int, pick := false) -> void:
+	if i >= cockpit.mfds.size() or not PAGE_OF.has(main[i]):
+		return
+	var m = cockpit.mfds[i]
+	if pick and main[i] == "TFLIR":
+		_start_flir(m)
+	m.page = PAGE_OF[main[i]]
+	_page_seen[i] = PAGE_OF[main[i]]
+
+
+## The camera on MFD node `m`, unless it already runs (cockpit.on_flir: player_weapons.gd flir_on).
+func _start_flir(m) -> bool:
+	if int(cockpit.eo.get("mode", 0)) == FLIR_MODE or not cockpit.on_flir.is_valid():
+		return false
+	return cockpit.on_flir.call(m)
+
+
+## The FLIR page key (terrain_view.gd command 90) while a shown portal already holds TFLIR: its camera starts there
+## (flir_on would bring a second TFLIR). True when it started.
+func flir_key() -> bool:
+	for i in 4:
+		if shown(i) and main[i] == "TFLIR" and i < cockpit.mfds.size():
+			return _start_flir(cockpit.mfds[i])
+	return false
+
+
+## The strip's MENU page's CRUS: the layout the display starts with, the strip unswapped, every page open closed.
+func restore_layout() -> void:
+	main = DEFAULT_MAIN.duplicate()
+	tabs = DEFAULT_TABS.duplicate(true)
+	full = DEFAULT_FULL.duplicate()
+	menu_open = [false, false, false, false]
+	cntl_open = [false, false, false, false]
+	popup = -1
+	fab_swapped = false
+	for i in 4:
+		_set_page(i)
+
+
+## The strip's SWAP: its two halves trade places.
+func swap_fab() -> void:
+	fab_swapped = not fab_swapped
+
+
+## The strip's MENU: its page as a pop-up on the shown portal under the MENU legend (at panel px `x` of the glass); a
+## second tap closes it.
+func fab_menu(x: float) -> void:
+	if popup >= 0:
+		popup = -1
+		return
+	var g := glass()
+	var at := g.position.x + x * _s()
+	var ps := portals()
+	for i in 4:
+		if shown(i) and at >= ps[i].position.x and at < ps[i].end.x:
+			popup = i
+			menu_open[i] = false
+			cntl_open[i] = false
+
+
+## A portal's header tapped: a pop-up there closes (the portal shows its format again), else the MENU grid opens or
+## closes.
+func _header(i: int) -> void:
+	if popup == i:
+		popup = -1
+	else:
+		menu_open[i] = not menu_open[i]
+		cntl_open[i] = false
+
+
+## A portal's CNTL> tapped: its format's control page opens or closes.
+func _cntl(i: int) -> void:
+	cntl_open[i] = not cntl_open[i]
+	menu_open[i] = false
 
 
 func _gui_input(event: InputEvent) -> void:
@@ -257,16 +356,26 @@ func _draw_portal(i: int, pr: Rect2) -> void:
 	var shown := name
 	if name == "SRCH" and int(cockpit.radar.get("mode", 0)) >= 7:
 		shown = "ASR"
-	# The header: the format name over the master mode (tap: the MENU grid); CNTL on the right.
-	fmt.text(Vector2(3.0, 6.5), shown.replace("-", ""), 5.6, F.GREEN)
+	# The header: the format name over the master mode (tap: the MENU grid, or a pop-up closed); CNTL> on the right
+	# (tap: the format's control page); a pop-up's magenta POP UP.
+	fmt.text(Vector2(3.0, 6.5), ("MENU" if popup == i else shown).replace("-", ""), 5.6, F.GREEN)
 	fmt.text(Vector2(3.0, 12.5), master_mode(), 4.6, F.GREEN)
-	fmt.legend(Vector2(pw - 3.0, 6.5), "CNTL>", true)
-	_hit(pr.position, Rect2(0, 0, 30, HEAD_H), func(): menu_open[i] = not menu_open[i])
+	if popup == i:
+		fmt.text(Vector2(30.0, 12.5), "POP UP", 4.4, F.MAGENTA)
+	_hit(pr.position, Rect2(0, 0, 30, HEAD_H), func(): _header(i))
+	if CNTL_OF.has(name) and popup != i:
+		fmt.legend(Vector2(pw - 3.0, 6.5), "CNTL>", true, cntl_open[i])
+		_hit(pr.position, Rect2(pw - 26.0, 0, 24.0, 10.0), func(): _cntl(i))
 	var body := Rect2(2.0, HEAD_H + 1.0, pw - 4.0, ph - HEAD_H - tab_row - 4.0)
-	if menu_open[i]:
+	if popup == i:
+		var buttons: Dictionary = fmt.menu(body, "", ["CRUS"])
+		_hit(pr.position, buttons.CRUS, restore_layout)
+	elif menu_open[i]:
 		var buttons: Dictionary = fmt.menu(body, name)
 		for f in buttons:
 			_hit(pr.position, buttons[f], func(): _show(i, f))
+	elif cntl_open[i] and CNTL_OF.has(name):
+		_draw_cntl(i, name, body, pr.position)
 	else:
 		_draw_format(i, name, body, pr.position, pw)
 	if full[i / 2]:
@@ -350,6 +459,10 @@ func _draw_format(i: int, name: String, body: Rect2, origin: Vector2, pw: float)
 	var m = cockpit.mfds[i] if i < cockpit.mfds.size() else null
 	_draw_body(i, name, body)
 	match name:
+		"TFLIR":
+			# A tap on the picture starts the camera (the pilot takes the sensor; inferred).
+			if m != null and int(cockpit.eo.get("mode", 0)) != FLIR_MODE:
+				_hit(origin, body, func(): _start_flir(m))
 		"TSD-1", "TSD-2", "TSD-3":
 			var scale: int = m.tsd_scale if m != null else 40
 			var map_on: bool = m.tsd_options[2] if m != null else true
@@ -363,6 +476,42 @@ func _draw_format(i: int, name: String, body: Rect2, origin: Vector2, pw: float)
 			)
 			fmt.legend(Vector2(pw - 3.0, body.position.y + 26.0), "MODE", true)
 			_hit(origin, Rect2(pw - 22.0, body.position.y + 20.0, 20.0, 8.0), func(): _radar_mode(m))
+
+
+## Portal `i`'s CNTL page for format `name`: its controls as buttons (the TFLIR's WIDE / SPOT reads the field of
+## view, white while on; MAP and LSR white while on).
+func _draw_cntl(i: int, name: String, body: Rect2, origin: Vector2) -> void:
+	var m = cockpit.mfds[i] if i < cockpit.mfds.size() else null
+	var flir: Dictionary = cockpit.eo.get("flir", {})
+	var names: Array = CNTL_OF[name].duplicate()
+	var on := ""
+	if name == "TFLIR":
+		names[2] = "SPOT" if flir.get("spot", false) else "WIDE"
+		on = "LSR" if flir.get("laser", false) else ""
+	elif name.begins_with("TSD") and m != null and m.tsd_options[2]:
+		on = "MAP"
+	var buttons: Dictionary = fmt.menu(body, on, names, "CNTL")
+	for b in buttons:
+		_hit(origin, buttons[b], func(): _control(m, name, b))
+
+
+## A CNTL page's button `b` of format `name` (the MFD node `m`'s page).
+func _control(m, name: String, b: String) -> void:
+	var ev: Callable = cockpit.on_mfd_event
+	match b:
+		"MAP":
+			_toggle_map(m)
+		"RNG UP", "RNG DN":
+			var d := 1 if b == "RNG UP" else -1
+			if name == "SRCH":
+				_radar_range(m, d)
+			else:
+				_tsd_range(m, d)
+		"MODE":
+			_radar_mode(m)
+		"ZOOM IN", "ZOOM OUT", "WIDE", "SPOT", "LSR":
+			if ev.is_valid():
+				ev.call({"ZOOM IN": 0x14, "ZOOM OUT": 0x15, "LSR": 0x6a}.get(b, 0x20))
 
 
 ## The range legends down the left edge: ▲, the range, ▼ (taps step it).
@@ -432,8 +581,13 @@ func _draw_fab(g: Rect2) -> void:
 	var r1 := 6.2
 	var r2 := 12.8
 	var fs := 3.9
+	var cx := pw / 2.0
+	# SWAP: the right group starts at the glass's left edge, the left group after the SWAP arrows, narrowed to fit.
+	var ro := -(cx + 13.0) if fab_swapped else 0.0
 	fmt.begin(g.position, s)
 	fmt.line(Vector2(0, ph), Vector2(pw, ph), F.DARK_GREY, F.THIN)
+	if fab_swapped:
+		fmt.begin(g.position + Vector2((cx + 11.0) * s, 0.0), s, minf(1.0, (pw - cx - 13.0) / FAB_LEFT_W))
 	# Engine: the RPM dial and its value.
 	var rpm := float(st.get("rpm", 0.0))
 	var ab := float(st.get("afterburner", 0.0)) > 0.0
@@ -508,10 +662,12 @@ func _draw_fab(g: Rect2) -> void:
 	var ap: String = "AP" + ([" ", " LVL", " NAV"][clampi(mode, 0, 2)] if ap_on else "")
 	fmt.text(Vector2(250, r1), ap, fs, F.GREEN if ap_on else F.GREY)
 	fmt.text(Vector2(250, r2), "AT", fs, F.GREY)
-	# SWAP across the seam.
-	var cx := pw / 2.0
+	# SWAP across the seam (tap: the halves trade places).
+	fmt.begin(g.position, s)
 	fmt.poly(PackedVector2Array([Vector2(cx - 10, 7.5), Vector2(cx - 4, 2), Vector2(cx - 4, 13)]), F.CYAN, F.THIN, true)
 	fmt.poly(PackedVector2Array([Vector2(cx + 10, 7.5), Vector2(cx + 4, 2), Vector2(cx + 4, 13)]), F.CYAN, F.THIN, true)
+	_hit(g.position, Rect2(cx - 11.0, 0.0, 22.0, ph), swap_fab)
+	fmt.begin(g.position + Vector2(ro * s, 0.0), s)
 	# The radios (UHF), the steering.
 	fmt.text(Vector2(cx + 16, r1), "A U 1   B U 1", fs, F.GREEN)
 	fmt.text(Vector2(cx + 16, r2), "C U 1", fs, F.GREEN)
@@ -535,6 +691,7 @@ func _draw_fab(g: Rect2) -> void:
 			Vector2(mg.position.x + 4.0 * k, mg.position.y), Vector2(mg.position.x + 4.0 * k, mg.end.y), F.GREY, F.THIN
 		)
 	fmt.text(Vector2(mg.end.x + 2.0, r1), "MENU", fs, F.WHITE)
+	_hit(g.position, Rect2(cx + 108.0 + ro, 0.0, 30.0, ph), func(): fab_menu(cx + 116.0 + ro))
 	# The right block: speed / altitude / Mach, the alerts (CABIN, GCAS, ALOW), the time.
 	var rx := cx + 142
 	fmt.text(Vector2(rx, r1), "CAS %d" % int(st.get("ias_kt", 0.0)), fs, F.WHITE)

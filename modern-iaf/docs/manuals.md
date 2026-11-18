@@ -412,7 +412,7 @@ figure has no size yet, so a digit drawn the same way is measured for it).
 real render with its command in its header, and then cut and joined with ImageMagick: `_fcr_shot.gd` (`d_fcr_modes`,
 `d_fcr_pages`, `d_hud_lock`), `_fcr_ag_shot.gd` (`d_fcr_ag`), `_mfd_s4_shot.gd` (`d_mfd_formats`, `d_mfd_menu_sms`),
 `_avionics_s5_shot.gd` (`d_ded_pages`, `d_ded_ins`, `d_hud_modes`, `d_hsd`, `d_fcr_aiff`, `d_threat`, `d_threat_radars`) and
-`_adir_s7b_shot.gd` (the Adir's). The Sufa's serve both F-16 manuals.
+`_adir_s7b_shot.gd` (the Adir's), `_adir_tflir_shot.gd` (`d_tflir`). The Sufa's serve both F-16 manuals.
 
 **The game manual's screens** (`pictures/game/`, 18 November 2026) are taken in English by the front end's own shot
 scripts, each a real render with its command in its header, and scaled to 1,600 px JPEGs with ImageMagick (the name
@@ -573,16 +573,16 @@ Parts:
     has a target steerpoint.
   - The CMDS MODE knob of the cockpit has three positions; SEMI, AUTO and BYP are on the key alone.
   - DED DATA and DEPR RET have no switch in the cockpit, and IFF IDENT, HANDOFF and SYS TEST no button.
-  - The Adir: the function bar's SWAP and MENU and each portal's `CNTL>` draw and do nothing (`pcd.gd`); the TFLIR
-    format has no clickable WIDE / SPOT; `systems.json` says EMER_JETT "drops the external stores" while the code
-    drops the bays' too; JETT_SEL moves only.
-- Owed after chapter 6, the Adir: pictures of the TFLIR with video and of a GPS bomb's helmet cues (no shot script).
+  - The Adir: `systems.json` says EMER_JETT "drops the external stores" while the code drops the bays' too; JETT_SEL
+    moves only. Fixed 2026-11-18: the function bar's SWAP and MENU and the portals' `CNTL>` work (the TFLIR's WIDE /
+    SPOT is on its CNTL page).
+- Owed after chapter 6, the Adir: a picture of a GPS bomb's helmet cues (no shot script). The TFLIR with video is taken
+  (`d_tflir`, `_adir_tflir_shot.gd`, 18 November 2026).
   The SMS and the MENU grid are taken (`d_sms`, `d_menu`); the default layout is `d_pcd`. Not verified in the game: how
   the gun is selected in A-A and A-G, the zoom keys and the cursor keys on the TFLIR, the dispenser's modes on the Adir.
-- Found while taking the Adir's pictures, the game's and listed, not changed here: the TFLIR stays at NO VIDEO. The
-  FLIR page key starts the camera only while no portal shows TFLIR (`player_weapons.gd` `flir_on`), and the default
-  layout holds TFLIR on the fourth portal. In the shot script the key started no camera with that portal freed either
-  (three tries, 18 November 2026): to check in the game. Section 6's "To use it" follows the key's intent.
+- Fixed 2026-11-18: the TFLIR stayed at NO VIDEO. The display set the TFLIR's page without starting the camera, and
+  the FLIR page key refused a page 6 already shown (`player_weapons.gd` `flir_on`). Now picking TFLIR, the key and a
+  click on the picture start it (`pcd.gd` `_start_flir`).
 - Owed after the game manual, pictures no shot script takes: a holding sign and a direction sign on a taxiway and the
   runway's markings from the threshold (section 5.2), the crash page (section 6.3). The full MFD view is taken
   (`flight_mfd_view`, `_mfd_view_shot.gd`). The review of 18 November 2026 checked the lessons, the

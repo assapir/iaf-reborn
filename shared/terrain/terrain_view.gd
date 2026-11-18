@@ -3036,7 +3036,8 @@ func _command(cmd: Array) -> bool:
 				if cockpit.show_mfd_page(p1) != null:
 					sounds.play("SFX_BUTTON")
 			elif p1 == 6:
-				if weapons != null and weapons.flir_on():
+				# Ours: the F-35I's panoramic display starts a TFLIR it already shows (pcd.gd flir_key).
+				if weapons != null and ((cockpit.pcd != null and cockpit.pcd.flir_key()) or weapons.flir_on()):
 					sounds.play("SFX_BUTTON")
 			else:
 				return false

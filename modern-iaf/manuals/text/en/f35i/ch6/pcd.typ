@@ -21,7 +21,14 @@ The strip along the top is the function bar. It always shows the state of the je
 - CABIN, GCAS and ALOW. ALOW turns yellow below 500 ft above the ground;
 - the time.
 
-#in-sim[The function bar shows only. Its SWAP and MENU legends, and a portal's CNTL legend, draw and do nothing: #nis.]
+Two of its legends are controls. In a simulator's manual SWAP trades the bar's left and right halves and leaves the portals as they are, and MENU opens an extra page with CRUS, which brings back the starting layout, and with the lights and the helmet's settings#ife. The real pages are not public.
+
++ *Click SWAP*, the two arrows at the middle of the bar. #sym.arrow.r *The bar's halves trade places. The portals stay.*
++ *Click MENU*, the grid at the right of the bar. #sym.arrow.r *The MENU page opens on the portal under it, with POP UP in magenta in its header.*
++ *Click CRUS.* #sym.arrow.r *The display goes back to the layout it starts with, the bar unswapped.*
++ *Or click the pop-up's header, or MENU again.* #sym.arrow.r *The portal shows its format again.*
+
+#in-sim[The MENU page has CRUS only. The lights and the helmet's settings are #nis. The bar's other legends show only.]
 
 === Portals, tabs and windows <pcd-portals>
 
@@ -50,6 +57,16 @@ The sim starts with the left half as one large portal and the right half as two 
 Three keys bring a format to a portal: #key("TSD page on MFD"), #key("FLIR page") and #key("Damage page"). Selecting a weapon brings the SMS.
 
 #display("menu", [The MENU grid on a portal: the 11 formats, the portal's own in white.], width: 60%)
+
+=== A format's controls <pcd-cntl>
+
+A portal's header has CNTL> at its right#ife. What the real CNTL opens is not public. The sim's control page is inferred from the F-16's CNTL page: it holds the format's controls.
+
++ *Click CNTL>* on a TSD, SRCH or TFLIR portal. #sym.arrow.r *The control page opens in the portal: a button for each control.*
++ *Click a button.* #sym.arrow.r *The control acts at once.* TSD: MAP, RNG UP, RNG DN. SRCH: MODE, RNG UP, RNG DN. TFLIR: ZOOM IN, ZOOM OUT, WIDE or SPOT, LSR (@tflir).
++ *Click CNTL> again.* #sym.arrow.r *The format shows again.*
+
+#in-sim[The other formats have no control page and show no CNTL>.]
 
 === The formats <pcd-formats>
 

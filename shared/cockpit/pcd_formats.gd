@@ -92,9 +92,10 @@ func text_width(t: String, size: float) -> float:
 var _base := Transform2D.IDENTITY
 
 
-## The portal's transform (set by pcd.gd before each format).
-func begin(origin: Vector2, scale: float) -> void:
-	_base = Transform2D(0.0, Vector2(scale, scale), 0.0, origin)
+## The portal's transform (set by pcd.gd before each format); `squeeze` narrows it across (the function bar's group of
+## legends in the other half, pcd.gd _draw_fab).
+func begin(origin: Vector2, scale: float, squeeze := 1.0) -> void:
+	_base = Transform2D(0.0, Vector2(scale * squeeze, scale), 0.0, origin)
 	ci.draw_set_transform_matrix(_base)
 
 
@@ -1064,27 +1065,28 @@ func tflir(r: Rect2) -> void:
 # --- MENU --------------------------------------------------------------------------------------------------------
 
 
-## The MENU grid: every format a button (3 columns), the current one white. Returns the buttons' rects by name.
-func menu(r: Rect2, current: String) -> Dictionary:
+## The MENU grid: every format a button (3 columns), the current one white. Returns the buttons' rects by name. The
+## same grid with other `names` under another `title`: the strip's MENU page, a CNTL page.
+func menu(r: Rect2, current: String, names: Array = FORMATS, title := "MENU") -> Dictionary:
 	var out := {}
 	var cols := 3
 	var bw := (r.size.x - 8.0) / cols
 	var bh := 13.0
-	text(Vector2(r.position.x, r.position.y + 8.0), "MENU", 6.0, WHITE, HORIZONTAL_ALIGNMENT_CENTER, r.size.x)
-	for i in FORMATS.size():
+	text(Vector2(r.position.x, r.position.y + 8.0), title, 6.0, WHITE, HORIZONTAL_ALIGNMENT_CENTER, r.size.x)
+	for i in names.size():
 		var b := Rect2(
 			Vector2(r.position.x + 4.0 + bw * (i % cols), r.position.y + 14.0 + (bh + 3.0) * (i / cols)),
 			Vector2(bw - 3.0, bh)
 		)
-		var on: bool = FORMATS[i] == current
+		var on: bool = names[i] == current
 		box(b, WHITE if on else CYAN, THIN)
 		text(
 			Vector2(b.position.x, b.end.y - 4.0),
-			FORMATS[i],
+			names[i],
 			5.2,
 			WHITE if on else CYAN,
 			HORIZONTAL_ALIGNMENT_CENTER,
 			b.size.x
 		)
-		out[FORMATS[i]] = b
+		out[names[i]] = b
 	return out

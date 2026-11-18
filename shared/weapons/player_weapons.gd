@@ -568,7 +568,8 @@ func flir_on(mfd = null) -> bool:
 	var c = host.cockpit
 	# Ours, the modern MFDs: the TGP shows beside the WPN (page 5), as on the real jet; only one TGP.
 	var busy := [6] if modern_f16 else [5, 6]
-	if not flir_pod or c == null or c.mfds.any(func(m): return m.page in busy):
+	# Ours: the F-35I's panoramic display keeps its own formats (pcd.gd), its nodes' pages 5 / 6 refuse nothing.
+	if not flir_pod or c == null or (c.pcd == null and c.mfds.any(func(m): return m.page in busy)):
 		return false
 	if mfd != null:
 		_replaced[6] = mfd.page
