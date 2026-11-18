@@ -3191,11 +3191,21 @@ func _command(cmd: Array) -> bool:
 				_on_subtitle(["Dogfight / missile override off", "Dogfight", "Missile override"][at])
 		252:
 			# Ours, the F-16's HUD control panel (the 3D cockpit's switches, Alt + D DED DATA, Alt + R DEPR RET): p1 the
-			# switch (cockpit.gd HUD_PANEL), p2 its position, -1 the next one round.
+			# switch (cockpit.gd HUD_PANEL), p2 its position, -1 the next one round. The ICP's DRIFT C/O switch (Shift + J
+			# DRIFT C/O and NORM, Ctrl + R WARN RESET): -1 flips NORM and DRIFT C/O; 0, WARN RESET, puts the HUD's FUEL
+			# cue out (IafRealHud.warn_reset) and the repeating "Altitude" call (flight_sounds.gd), and leaves the switch
+			# at NORM (modern-iaf/docs/cockpit.md §5.8).
 			if cockpit.ufc != null and p1 >= 0 and p1 < cockpit.HUD_PANEL.size():
 				var k: String = cockpit.HUD_PANEL[p1]
 				var to := int(cmd[2])
-				cockpit.hud_panel[k] = (int(cockpit.hud_panel[k]) + 1) % 3 if to < 0 else clampi(to, 0, 2)
+				if k == "drift":
+					if to == 0 and cockpit.hud._real_hud != null:
+						cockpit.hud._real_hud.warn_reset()
+					if to == 0 and sounds != null:
+						sounds.warn_reset()
+					cockpit.hud_panel.drift = (3 - int(cockpit.hud_panel.drift)) if to < 0 else clampi(to, 1, 2)
+				else:
+					cockpit.hud_panel[k] = (int(cockpit.hud_panel[k]) + 1) % 3 if to < 0 else clampi(to, 0, 2)
 		253:
 			# Ours, the EHSI's M button (Alt + N, the 3D cockpit's button): NAV / TCN.
 			if cockpit.ufc != null:
@@ -3261,6 +3271,13 @@ func _command(cmd: Array) -> bool:
 				if flight.set_switch(sw, to):
 					var shown: Array = [["off", "set"], ["OFF", "MASTER"], ["OFF", "NORM", "AFT", "FWD"]][p1]
 					_on_subtitle(["Parking brake ", "Master fuel ", "Engine feed "][p1] + shown[flight.switch(sw)])
+		271:
+			# Ours, Modern IAF's F-16s: the display knobs (keys Ctrl + H, Shift + 7 / 8 / 9 / 0; the 3D cockpit's own
+			# CONT wheel and CON / GAIN rockers set them directly): p1 cockpit3d.gd DISPLAY_KNOBS' index (0 the ICP's
+			# CONT, 1 / 2 the left / right MFD's CON, 3 / 4 their GAIN), p2 1 / -1 a step up / down, 0 a step down,
+			# from the bottom round to the top (modern-iaf/docs/cockpit.md §5.8).
+			if _own_keys_in_table and cockpit_3d != null:
+				cockpit_3d.step_knob(p1, int(cmd[2]))
 		219:
 			# Ours, Modern IAF: one F-16 power switch (the 3D cockpit's AVIONIC POWER and SNSR PWR switches; no key sends
 			# it): p2 its index in sim_flight.gd SYSTEMS, p1 as 210-215's (modern-iaf/docs/cockpit.md §5.2).

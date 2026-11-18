@@ -28,7 +28,19 @@ fn steer_limit(sc: Field, h: f64) -> Field {
     sc.inset(5.0 + h)
 }
 
-pub(super) fn frame(f: Field, i: &Input, max_g: f64) -> Frame {
+/// `fuel_reset`: WARN RESET has put the FUEL cue out (`RealHud::warn_reset`).
+pub(super) fn frame(f: Field, i: &Input, max_g: f64, fuel_reset: bool) -> Frame {
+    // DRIFT C/O: the flight path marker, and the ladder and cues drawn on it, centred laterally on the boresight
+    // (modern-iaf/docs/cockpit.md §5.8; inferred from the switch's name and FlightGear's F-16, which sets the
+    // marker's x to the centre).
+    let centred;
+    let i = match i.fpm {
+        Some(p) if i.panel.drift_co => {
+            centred = Input { fpm: Some((i.boresight.0, p.1)), ..i.clone() };
+            &centred
+        }
+        _ => i,
+    };
     let mut fr = Frame::default();
     let w = &i.weapons;
     let mode = w.hud_mode;
@@ -139,8 +151,9 @@ pub(super) fn frame(f: Field, i: &Input, max_g: f64) -> Frame {
         o.push(text((rx, ry + n as f64 * ROW), r, Align::Left));
     }
     // The centre window: SHOOT (MLU) before FUEL.
-    // FUEL flashes (dash-34 fig. 1-115 window 6).
-    if w.shoot || (i.fuel_lbs < i.bingo_lbs && flash_on(i.time_s)) {
+    // FUEL flashes (dash-34 fig. 1-115 window 6) until WARN RESET (dash-1 "FUEL" mnemonic: "may be manually reset by
+    // placing the WARN RESET switch to WARN RESET").
+    if w.shoot || (i.fuel_lbs < i.bingo_lbs && !fuel_reset && flash_on(i.time_s)) {
         let cue = if w.shoot { "SHOOT" } else { "FUEL" };
         o.push(text((0.0, i.gun_cross.1 + i.mr(70.0)), cue, Align::Centre));
     }
@@ -659,7 +672,7 @@ mod tests {
             let mut i = input(Jet::F16);
             i.fpm = Some((0.0, 0.0));
             i.horizon = (0.0, pitch * i.px_per_deg);
-            let fr = frame(FIELD, &i, 1.0);
+            let fr = frame(FIELD, &i, 1.0, false);
             let ring = fr
                 .field
                 .iter()
@@ -677,7 +690,7 @@ mod tests {
         let mut i = input(Jet::F16);
         let k = i.px_per_deg;
         let lines = |i: &Input| {
-            let fr = frame(FIELD, i, 1.0);
+            let fr = frame(FIELD, i, 1.0, false);
             fr.field.into_iter().filter_map(|p| if let Prim::Line { a, b } = p { Some((a, b)) } else { None }).collect()
         };
         let base: Vec<(P, P)> = lines(&i);
@@ -698,7 +711,7 @@ mod tests {
     fn the_roll_indicator_stays_above_the_field_bottom() {
         let mut i = input(Jet::F16);
         i.weapons.hud_mode = 0;
-        let fr = frame(FIELD, &i, 1.0);
+        let fr = frame(FIELD, &i, 1.0, false);
         let low = fr.outer.iter().filter_map(|p| match p {
             Prim::Line { a, b } => Some(a.1.max(b.1)),
             _ => None,
@@ -734,9 +747,9 @@ mod tests {
                 i.weapons.hud_mode = mode;
                 i.agl_ft = Some(800.0);
                 i.panel.scales = scales;
-                let plain = frame(f, &i, 1.0).outer;
+                let plain = frame(f, &i, 1.0, false).outer;
                 i.panel.ded = full.clone();
-                let with = frame(f, &i, 1.0).outer;
+                let with = frame(f, &i, 1.0, false).outer;
                 let (ded, rest): (Vec<&Prim>, Vec<&Prim>) = with.iter().partition(|p| !plain.contains(p));
                 assert_eq!(ded.len(), 120, "mode {mode}: every cell drawn");
                 for d in ded.iter().map(|p| bbox(p)) {
@@ -763,12 +776,12 @@ mod tests {
                 _ => None,
             })
         };
-        let at = label(&frame(FIELD, &i, 1.0)).unwrap();
+        let at = label(&frame(FIELD, &i, 1.0, false)).unwrap();
         // The steerpoint far right of a boresight level with the label's middle: held at the edge, with its X.
         let y = at.1 - 3.0;
         i.boresight = (0.0, y);
         i.steerpoint.as_mut().unwrap().at = Some((10.0 * FIELD.right, y));
-        let fr = frame(FIELD, &i, 1.0);
+        let fr = frame(FIELD, &i, 1.0, false);
         let right = fr
             .field
             .iter()
@@ -785,10 +798,10 @@ mod tests {
         let mut i = input(Jet::F16);
         i.weapons.hud_mode = 2;
         i.weapons.shoot = true;
-        let fr = frame(FIELD, &i, 1.0);
+        let fr = frame(FIELD, &i, 1.0, false);
         assert!(texts(&fr.outer).contains(&"SHOOT"));
         i.weapons.shoot = false;
-        let fr = frame(FIELD, &i, 1.0);
+        let fr = frame(FIELD, &i, 1.0, false);
         assert!(!texts(&fr.outer).contains(&"SHOOT"));
     }
 
@@ -796,7 +809,7 @@ mod tests {
     fn nav_windows_as_the_dash_34() {
         let mut i = input(Jet::F16);
         i.agl_ft = Some(19_500.0);
-        let fr = frame(FIELD, &i, 4.1);
+        let fr = frame(FIELD, &i, 4.1, false);
         let t = texts(&fr.outer);
         for want in [
             "352", "C", "10,450", "2.3", "0.85", "4.1", "NAV", "R 19,500", "AL 300", "B12.0", "05:23", "012>03", "333",
@@ -814,7 +827,7 @@ mod tests {
         i.agl_ft = Some(800.0);
         i.vs_fpm = 1000.0;
         let all = |i: &Input| {
-            let fr = frame(FIELD, i, 1.0);
+            let fr = frame(FIELD, i, 1.0, false);
             (texts(&fr.outer).into_iter().map(String::from).collect::<Vec<_>>(), fr.field.len(), fr.outer.len())
         };
         let (t0, field0, outer0) = all(&i);
@@ -858,7 +871,7 @@ mod tests {
         i.panel.alow_ft = Some(500.0);
         let (t, ..) = all(&i);
         // DED DATA: a character per cell, on the right column's second row (FIELD: -6 + 36 + 12 + 9).
-        let row: String = frame(FIELD, &i, 1.0)
+        let row: String = frame(FIELD, &i, 1.0, false)
             .outer
             .iter()
             .filter_map(|p| match p {
@@ -875,7 +888,7 @@ mod tests {
         assert!(!all(&i).0.iter().any(|t| t == "ALIGN"), "ready: ALIGN flashes");
         // DEPR RET STBY: the standby reticle's ring, 100 mr down.
         i.panel.depr_mr = Some(100.0);
-        let fr = frame(FIELD, &i, 1.0);
+        let fr = frame(FIELD, &i, 1.0, false);
         let c = add(i.gun_cross, (0.0, i.mr(100.0)));
         assert!(fr.field.iter().any(|p| matches!(p, Prim::Circle { c: q, .. } if *q == c)));
     }
@@ -890,24 +903,55 @@ mod tests {
                 _ => None,
             })
         };
-        let lit = frame(FIELD, &i, 1.0);
+        let lit = frame(FIELD, &i, 1.0, false);
         let (r, al) = (at(&lit, "R 250").unwrap(), at(&lit, "AL 300").unwrap());
         assert_eq!((al.0, al.1 - r.1), (r.0, ROW), "under the radar altitude");
         i.time_s = 0.3;
-        let dark = frame(FIELD, &i, 1.0);
+        let dark = frame(FIELD, &i, 1.0, false);
         assert!(at(&dark, "AL 300").is_none(), "flashing");
         assert_eq!(at(&dark, "B12.0").unwrap().1, at(&lit, "B12.0").unwrap().1, "the rows below stay");
         i.agl_ft = Some(400.0);
-        assert!(at(&frame(FIELD, &i, 1.0), "AL 300").is_some(), "steady above ALOW");
+        assert!(at(&frame(FIELD, &i, 1.0, false), "AL 300").is_some(), "steady above ALOW");
+    }
+
+    #[test]
+    fn drift_cut_out_centres_the_marker() {
+        let mut i = input(Jet::F16);
+        i.fpm = Some((12.0, 4.0));
+        let has_marker_at = |i: &Input, x: f64| {
+            frame(FIELD, i, 1.0, false)
+                .field
+                .iter()
+                .any(|p| matches!(p, Prim::Circle { c, r } if (c.0 - x).abs() < 1e-9 && (*r - i.mr(5.0)).abs() < 1e-9))
+        };
+        assert!(has_marker_at(&i, 12.0) && !has_marker_at(&i, i.boresight.0), "NORM: the marker shows the drift");
+        i.panel.drift_co = true;
+        assert!(has_marker_at(&i, i.boresight.0) && !has_marker_at(&i, 12.0), "DRIFT C/O: centred");
+    }
+
+    #[test]
+    fn warn_reset_puts_the_fuel_cue_out() {
+        let mut i = input(Jet::F16);
+        i.fuel_lbs = 2500.0;
+        i.bingo_lbs = 3000.0;
+        let mut h = crate::real_hud::RealHud::default();
+        let fuel = |h: &mut crate::real_hud::RealHud, i: &Input| texts(&h.frame(FIELD, i).outer).contains(&"FUEL");
+        assert!(fuel(&mut h, &i));
+        h.warn_reset();
+        assert!(!fuel(&mut h, &i), "reset");
+        i.fuel_lbs = 3500.0;
+        fuel(&mut h, &i);
+        i.fuel_lbs = 2500.0;
+        assert!(fuel(&mut h, &i), "back below the bingo: the cue again");
     }
 
     #[test]
     fn bingo_is_the_players() {
         let mut i = input(Jet::F16);
         i.fuel_lbs = 2500.0;
-        assert!(!texts(&frame(FIELD, &i, 1.0).outer).contains(&"FUEL"));
+        assert!(!texts(&frame(FIELD, &i, 1.0, false).outer).contains(&"FUEL"));
         i.bingo_lbs = 3000.0;
-        assert!(texts(&frame(FIELD, &i, 1.0).outer).contains(&"FUEL"));
+        assert!(texts(&frame(FIELD, &i, 1.0, false).outer).contains(&"FUEL"));
     }
 
     #[test]
@@ -924,7 +968,7 @@ mod tests {
         i.weapons.hud_mode = 5;
         let u = |i: &Input, agl: f64| {
             let i = Input { agl_ft: Some(agl), ..i.clone() };
-            frame(FIELD, &i, 1.0).field.into_iter().find_map(|p| match p {
+            frame(FIELD, &i, 1.0, false).field.into_iter().find_map(|p| match p {
                 Prim::Line { a, b }
                     if a.1 == b.1 && (b.0 + a.0).abs() < 1e-9 && (b.0 - a.0 - i.mr(24.0)).abs() < 1e-9 =>
                 {
@@ -950,14 +994,14 @@ mod tests {
         i.target =
             Some(Target { range_m: 15.0 * NM, closure: 200.0, at: Some((5.0, -5.0)), aspect: None, ident: None });
         i.dlz = Some(Dlz { max: 18.0 * NM, min: 2.0 * NM });
-        let t = frame(FIELD, &i, 2.3);
+        let t = frame(FIELD, &i, 2.3, false);
         let tx = texts(&t.outer);
         for want in ["ARM", "3 MRM", "F15.0", "390>", "20"] {
             assert!(tx.contains(&want), "{want} in {tx:?}");
         }
         i.weapons.hud_mode = 3;
         i.target = Some(Target { range_m: 600.0, closure: 100.0, at: Some((5.0, -5.0)), aspect: None, ident: None });
-        let g = frame(FIELD, &i, 2.3);
+        let g = frame(FIELD, &i, 2.3, false);
         let gt = texts(&g.outer);
         assert!(gt.contains(&"EEGS") && gt.contains(&"F 020") && gt.contains(&"194"), "{gt:?}");
         assert!(g.field.iter().any(|p| matches!(p, Prim::Arc { .. })), "the TD circle's range arc");
@@ -982,20 +1026,20 @@ mod tests {
             ..input(Jet::F16)
         };
         i.weapons.hud_mode = 5;
-        assert_eq!(long(&frame(f, &i, 1.0)), 2, "the break X");
+        assert_eq!(long(&frame(f, &i, 1.0, false)), 2, "the break X");
         i.time_s = 0.3;
-        assert_eq!(long(&frame(f, &i, 1.0)), 0, "flashing");
+        assert_eq!(long(&frame(f, &i, 1.0, false)), 0, "flashing");
         i.agl_ft = Some(3000.0);
         i.time_s = 0.0;
-        assert_eq!(long(&frame(f, &i, 1.0)), 0, "above the advisory height");
+        assert_eq!(long(&frame(f, &i, 1.0, false)), 0, "above the advisory height");
         // A-A: the target inside Rmin.
         let mut i = input(Jet::F16);
         i.weapons.hud_mode = 2;
         i.target = Some(Target { range_m: 1000.0, ..Default::default() });
         i.dlz = Some(Dlz { max: 20_000.0, min: 1500.0 });
-        assert_eq!(long(&frame(f, &i, 1.0)), 2, "inside Rmin");
+        assert_eq!(long(&frame(f, &i, 1.0, false)), 2, "inside Rmin");
         i.target = Some(Target { range_m: 5000.0, ..Default::default() });
-        assert_eq!(long(&frame(f, &i, 1.0)), 0, "inside the DLZ");
+        assert_eq!(long(&frame(f, &i, 1.0, false)), 0, "inside the DLZ");
     }
 
     #[test]
@@ -1008,12 +1052,12 @@ mod tests {
                 .filter(|p| matches!(p, Prim::Line { a, .. } if (a.1 - (FIELD.bottom - 30.0)).abs() < 1e-9))
                 .count()
         };
-        let l2 = frame(FIELD, &i, 2.3);
+        let l2 = frame(FIELD, &i, 2.3, false);
         assert_eq!(low(&l2), 5, "level 2: the five MRGS lines");
         i.target =
             Some(Target { range_m: 1500.0 * FT, closure: 50.0, at: Some((0.0, 20.0)), aspect: None, ident: None });
         i.weapons.lcos = Some((1.0, 18.0));
-        let l5 = frame(FIELD, &i, 2.3);
+        let l5 = frame(FIELD, &i, 2.3, false);
         assert_eq!(low(&l5), 0, "with a track the MRGS lines go");
         let long_bar = l5
             .field
@@ -1036,18 +1080,18 @@ mod tests {
             fr.field.iter().filter(|p| matches!(p, Prim::Line { a, b } if (a.1 - y).abs() < 1e-6 && (b.1 - y).abs() < 1e-6 && (a.0 + b.0).abs() < 1e-6 && ((a.0 - b.0).abs() - 2.0 * h).abs() < 1e-6)).count()
         };
         // CCIP: the pipper on the impact point (clipped by the field).
-        assert_eq!(pip(&frame(FIELD, &i, 1.0)), Some((0.0, 200.0)));
+        assert_eq!(pip(&frame(FIELD, &i, 1.0, false)), Some((0.0, 200.0)));
         // Delayed: the pipper on the target under the HUD-edge point, kept on the glass; the delay cue across the
         // fall line from the marker toward it (5 s to go: half way).
         i.weapons.delay = Some(Delay { ttg: 5.0, target: Some((0.0, 100.0)), designated: false });
-        let fr = frame(FIELD, &i, 1.0);
+        let fr = frame(FIELD, &i, 1.0, false);
         assert_eq!(pip(&fr), Some((0.0, FIELD.bottom)), "held on the glass");
         assert_eq!(ticks(&fr, 0.5 * FIELD.bottom), 1, "the time delay cue half way");
         i.weapons.delay = Some(Delay { ttg: 12.0, target: Some((0.0, 60.0)), designated: false });
-        assert_eq!(ticks(&frame(FIELD, &i, 1.0), 0.0), 1, "10 s or more: the cue at the marker");
+        assert_eq!(ticks(&frame(FIELD, &i, 1.0, false), 0.0), 1, "10 s or more: the cue at the marker");
         // Designated: no pipper; the steering line through the target, the solution cue above the marker.
         i.weapons.delay = Some(Delay { ttg: 4.9, target: Some((20.0, 60.0)), designated: true });
-        let fr = frame(FIELD, &i, 1.0);
+        let fr = frame(FIELD, &i, 1.0, false);
         assert_eq!(pip(&fr), None);
         let steer = fr.field.iter().any(
             |p| matches!(p, Prim::Line { a, b } if a.0 == 20.0 && b.0 == 20.0 && a.1 < FIELD.top && b.1 > FIELD.bottom),
@@ -1060,12 +1104,12 @@ mod tests {
         // Far out: pegged at the glass's top.
         i.weapons.delay = Some(Delay { ttg: 30.0, target: Some((20.0, 60.0)), designated: true });
         let low = Field { top: -40.0, ..FIELD };
-        let fr = frame(low, &i, 1.0);
+        let fr = frame(low, &i, 1.0, false);
         let pegged = |q: &P| (q.1 - low.top).abs() < 1e-9;
         assert!(fr.field.iter().any(|p| matches!(p, Prim::Line { a, b } if (a.0 - 20.0).abs() < 1e-9 && b.0 < 20.0 && pegged(a) && pegged(b))), "pegged");
         // At the release the cue reaches the marker's level; rolled 90° right the line runs across the HUD.
         i.weapons.delay = Some(Delay { ttg: 0.9, target: Some((20.0, 60.0)), designated: true });
-        let fr = frame(FIELD, &i, 1.0);
+        let fr = frame(FIELD, &i, 1.0, false);
         assert!(
             fr.field
                 .iter()
@@ -1073,7 +1117,7 @@ mod tests {
             "the cue on the marker"
         );
         i.roll_deg = 90.0;
-        let fr = frame(FIELD, &i, 1.0);
+        let fr = frame(FIELD, &i, 1.0, false);
         assert!(fr.field.iter().any(|p| matches!(p, Prim::Line { a, b } if (a.1 - 60.0).abs() < 1e-9 && (b.1 - 60.0).abs() < 1e-9 && a.0 < FIELD.left && b.0 > FIELD.right)));
     }
 
@@ -1085,7 +1129,7 @@ mod tests {
         // AGR's ranging replaces the steerpoint's (docs/radar.md §9.7).
         let mut i = input(Jet::F16);
         i.agr_m = Some(2.5 * NM);
-        let t = frame(FIELD, &i, 1.0);
+        let t = frame(FIELD, &i, 1.0, false);
         assert!(texts(&t.outer).contains(&"F02.5") && !texts(&t.outer).contains(&"B12.0"));
     }
 }

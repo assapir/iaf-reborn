@@ -274,6 +274,11 @@ const MIN_LEVEL := 0.125
 ## The halo drawn under every stroke: one physical px wider on each side, at HALO_ALPHA (a collimated stroke's faint
 ## glow).
 const HALO_ALPHA := 0.22
+## Ours, Modern IAF's F-16s: the ICP's CONT wheel (cockpit3d.gd DISPLAY_KNOBS), 1 at rest; turned down, the halo rises
+## toward the stroke, to CONT_HALO at 0: the symbols' edges wash out (a stand-in: the real CONT sets the contrast of the
+## HUD's infrared picture, which the sim does not draw; inferred).
+var contrast := 1.0
+const CONT_HALO := 0.6
 ## True with hud_daylight: the halo and the colour.
 var _glow := false
 
@@ -322,7 +327,7 @@ func _halo_side() -> float:
 
 
 func _halo(c: Color) -> Color:
-	return Color(c, c.a * HALO_ALPHA)
+	return Color(c, c.a * lerpf(CONT_HALO, HALO_ALPHA, contrast))
 
 
 func _pt(p: Vector2) -> Vector2:

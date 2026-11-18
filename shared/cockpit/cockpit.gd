@@ -447,9 +447,10 @@ var marks: Array = []
 var steer_mark := -1
 ## The HUD control panel's switches (the 3D cockpit's, command 252): scales 0 VV/VAH, 1 VAH, 2 OFF; fpm 0 ATT/FPM,
 ## 1 FPM, 2 OFF; velocity 0 CAS, 1 TAS, 2 GND SPD; alt 0 RADAR, 1 BARO, 2 AUTO; ded 0 DED, 1 PFL, 2 OFF; depr 0 STBY,
-## 1 PRI, 2 OFF. HUD_PANEL lists them in command 252's p1 order.
-const HUD_PANEL := ["scales", "fpm", "velocity", "alt", "ded", "depr"]
-var hud_panel := {"scales": 1, "fpm": 0, "velocity": 0, "alt": 1, "ded": 2, "depr": 1}
+## 1 PRI, 2 OFF; and the ICP's DRIFT C/O switch, drift 1 NORM, 2 DRIFT C/O (its WARN RESET, 0, springs back to NORM:
+## terrain_view.gd command 252). HUD_PANEL lists them in command 252's p1 order.
+const HUD_PANEL := ["scales", "fpm", "velocity", "alt", "ded", "depr", "drift"]
+var hud_panel := {"scales": 1, "fpm": 0, "velocity": 0, "alt": 1, "ded": 2, "depr": 1, "drift": 1}
 ## The RET DEPR wheel's depression of the standby reticle (mr).
 var depr_mr := 0.0
 ## The EHSI's mode (its M button): false NAV, true TCN (the TACAN station's bearing and range).
@@ -623,7 +624,8 @@ func hud_panel_input() -> Dictionary:
 		"align": align,
 		"over": int(weapons.get("override", 0)),
 		"sim": bool(weapons.get("sim", false)),
-		"soi": soi < 0
+		"soi": soi < 0,
+		"drift_co": int(hud_panel.drift) == 2
 	}
 
 

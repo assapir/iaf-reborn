@@ -2012,7 +2012,7 @@ mod tests {
         }
         let keys: Value = serde_json::from_str(&std::fs::read_to_string(root.0.join(KEYS_FILE)).unwrap()).unwrap();
         let recs = keys["records"].as_array().unwrap();
-        assert_eq!(recs.len(), 212);
+        assert_eq!(recs.len(), 219);
         for r in recs {
             let labelled = r["label"].as_str().is_some_and(|l| !l.is_empty());
             assert!(labelled || r["shown"] == false, "{r}");
@@ -2032,7 +2032,7 @@ mod tests {
         let lap: Value =
             serde_json::from_str(&std::fs::read_to_string(root.0.join(KEYS_LAPTOP_FILE)).unwrap()).unwrap();
         let lrecs = lap["records"].as_array().unwrap();
-        assert_eq!((lrecs.len(), lrecs[37]["dik"].as_u64(), lrecs[38]["dik"].as_u64()), (212, Some(0x2c), Some(0x2d)));
+        assert_eq!((lrecs.len(), lrecs[37]["dik"].as_u64(), lrecs[38]["dik"].as_u64()), (219, Some(0x2c), Some(0x2d)));
         for r in lrecs {
             let dik = r["dik"].as_u64().unwrap();
             assert!(!matches!(dik, 0x37 | 0x47..=0x53 | 0x9c | 0xb5), "{r}");

@@ -1704,7 +1704,8 @@
       "NORM",
       "WARN RESET"
      ],
-     "does": "DRIFT C/O centres the HUD's symbols against the wind's drift; WARN RESET stops a warning's voice and flash (inferred)."
+     "does": "DRIFT C/O centres the HUD's symbols against the wind's drift; WARN RESET stops a warning's voice and flash (inferred).",
+     "sim": "DRIFT C/O centres the flight path marker and the ladder; WARN RESET puts the flashing FUEL cue and the repeating ALTITUDE call out."
     },
     {
      "node": "SYM",
@@ -1739,7 +1740,8 @@
      "positions": [
       "Wheel"
      ],
-     "does": "Sets the contrast of the infrared picture on the HUD (inferred)."
+     "does": "Sets the contrast of the infrared picture on the HUD (inferred).",
+     "sim": "Washes out the symbols' edges as it turns down: the HUD shows no infrared picture."
     }
    ]
   },
@@ -2017,7 +2019,8 @@
      "positions": [
       "Rocker"
      ],
-     "does": "Sets the gain of the picture shown (inferred)."
+     "does": "Sets the gain of the picture shown (inferred).",
+     "sim": "Sets the gain of the radar's ground map and of the pod's video on this display."
     },
     {
      "node": "MFD1_MFDButtonBrightness",
@@ -2036,7 +2039,8 @@
      "positions": [
       "Rocker"
      ],
-     "does": "Sets the display's contrast (inferred)."
+     "does": "Sets the display's contrast (inferred).",
+     "sim": "Lifts this display's black toward grey as it turns down."
     }
    ]
   },
@@ -2182,7 +2186,8 @@
      "positions": [
       "Rocker"
      ],
-     "does": "Sets the gain of the picture shown (inferred)."
+     "does": "Sets the gain of the picture shown (inferred).",
+     "sim": "Sets the gain of the radar's ground map and of the pod's video on this display."
     },
     {
      "node": "MFD2_MFDButtonBrightness",
@@ -2201,7 +2206,8 @@
      "positions": [
       "Rocker"
      ],
-     "does": "Sets the display's contrast (inferred)."
+     "does": "Sets the display's contrast (inferred).",
+     "sim": "Lifts this display's black toward grey as it turns down."
     }
    ]
   },

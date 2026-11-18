@@ -6,8 +6,12 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 - **The F-16s' fuel and brake switches (2026-11-18, [cockpit.md](cockpit.md) §5.7):** PARKING BRAKE holds the jet
   (Shift + G; a ground start begins with it set; the F-35I's switch too), MASTER FUEL OFF and ENG FEED OFF flame the
   engine out (Ctrl + F, Shift + E), FUEL QTY SEL picks the fuel gauge's reading (Shift + U). Partly: ENG FEED's AFT
-  and FWD feed as NORM, and FUEL QTY SEL's RSVR and INT WING show NORM's reading (one fuel tank). Open: HUD CONT,
-  DRIFT C/O and the MFDs' CON and GAIN still only move.
+  and FWD feed as NORM, and FUEL QTY SEL's RSVR and INT WING show NORM's reading (one fuel tank).
+- **DRIFT C/O and the display knobs (2026-11-18, [cockpit.md](cockpit.md) §5.8):** DRIFT C/O centres the HUD's flight
+  path marker (Shift + J), WARN RESET puts the FUEL cue and the repeating "Altitude" call out (Ctrl + R), the MFDs'
+  CON and GAIN rockers set each display's contrast and sensor picture (Shift + 7 / 8 / 9 / 0). Partly: the HUD's CONT
+  wheel (Ctrl + H) washes out the symbols' edges, a stand-in: the HUD draws no infrared picture. The directions of
+  these and of the fuel and brake switches were checked: none reversed.
 - **The key faults the manuals exposed (2026-11-18; the user plays on a Mac laptop's keyboard, no HOTAS;
   [front-end.md](front-end.md) §9.1):** the speedbrakes have their own switch keys (Speedbrakes open (hold) on
   B, Speedbrakes close on Shift + B: open while held, they stay when let go; [flight-model.md](flight-model.md)

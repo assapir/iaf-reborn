@@ -831,6 +831,34 @@ MASTER FUEL flame the engine out, the gauge's readings), `test_switches_click.gd
 `crates/iaf-flight/tests/sixdof.rs` (`the_parking_brake_holds_the_jet`,
 `master_fuel_and_eng_feed_off_flame_the_engine_out`, `the_fuel_quantity_selector_picks_the_reading`).
 
+### 5.8 DRIFT C/O and the display knobs (2026-11-18)
+
+The ICP's DRIFT C/O switch, its CONT wheel and the two MFDs' CON and GAIN rockers of the F-16s' 3D cockpit work.
+
+| Control (node) | Key | What it does |
+| --- | --- | --- |
+| DRIFT C/O switch (`drift`: WARN RESET, NORM, DRIFT C/O) | Shift + J (DRIFT C/O and NORM), Ctrl + R (WARN RESET) | DRIFT C/O centres the HUD's flight path marker laterally on the boresight, and the pitch ladder and the cues drawn on the marker with it; NORM shows the marker where the jet goes, drift included[^fm-drift]. WARN RESET puts out the HUD's flashing FUEL cue (the fuel under the bingo) and silences the repeating "Altitude" voice warning[^fm-warn]; each comes back when its condition ends and comes again (the fuel above the bingo and under it again, the jet above ALOW and under it again; inferred). WARN RESET springs back to NORM, and a DRIFT C/O switch moved to WARN RESET passes NORM. The switch starts at NORM. |
+| CONT wheel (`cont`) | Ctrl + H (a step down, round from the bottom to the top) | Turned down, the glow round the HUD's symbols rises toward the symbols' own level (0.22 to 0.6 of it): the symbols' edges wash out. Full (its rest) the HUD as before. On the real jet the wheel sets the contrast of the HUD's infrared picture[^fm-icp], which the sim does not draw: this is a stand-in on the symbols (status: partly). |
+| CON rockers (`MFD1_MFDButtonCon` left, `MFD2_MFDButtonCon` right) | Shift + 7 (left), Shift + 8 (right) | That display's contrast on the 3D cockpit's screen (the full-MFD view shows the page as drawn): full at rest; turned down, the display's black lifts toward grey (up to a quarter of white added under the page, at the display's brightness; inferred), the other display unchanged. |
+| GAIN rockers (`MFD1_MFDButtonGain` left, `MFD2_MFDButtonGain` right) | Shift + 9 (left), Shift + 0 (right) | That display's sensor picture: the radar's ground map (the FCR's A-G picture) and the pod's or the weapon's video, at the rocker's position over its rest (FlightGear's range 1 to 2.5, rest 1.5: the picture as before; inferred), the other display unchanged. |
+
+A click moves the 3D control; the DRIFT C/O switch sends command 252 (p1 6, p2 the position), and its key the same
+(p2 -1 flips NORM and DRIFT C/O, 0 WARN RESET). The knobs' keys send command 271 (p1 0 CONT, 1 / 2 the left / right
+CON, 3 / 4 the left / right GAIN; p2 0 a step down, round from the bottom to the top, 1 / -1 a step up / down;
+`terrain_view.gd`), which steps the knob in the cockpit's one store of positions (`cockpit3d.gd` `DISPLAY_KNOBS`,
+`step_knob`). The marker and the FUEL cue are the Real HUD's (`crates/iaf-avionics` `real_hud` `Panel::drift_co`,
+`RealHud::warn_reset`; the voice in `flight_sounds.gd` `warn_reset`). The original game's optional 3D F-16 cockpit moves
+these controls only; its WARN RESET springs back to NORM as on the real switch.
+
+Test: `modern-iaf/tests/test_display_knobs.gd` (the Barak: DRIFT C/O by its key, WARN RESET puts the FUEL cue out, CONT,
+the left CON and GAIN, each display its own), `test_switches_click.gd` (the DRIFT C/O switch's click),
+`crates/iaf-avionics` `real_hud::f16` (`drift_cut_out_centres_the_marker`, `warn_reset_puts_the_fuel_cue_out`).
+
+The directions of these controls and of §5.7's four were checked from the pilot's eye (`_controls_shot.gd`, 18 Nov):
+PARKING BRAKE up at 1, MASTER FUEL up at MASTER, ENG FEED and FUEL QTY SEL turning clockwise through their labels in
+order, DRIFT C/O up at DRIFT C/O and down at WARN RESET, the rockers pressed at their arrow's end as they rise. None
+was reversed.
+
 ### 5.4 The AoA probe (2026-11-11, from the user's Mac)
 
 On the ground the AoA gauge and the indexer jumped about: the 6-DoF's α is the angle of the body's velocity, which
@@ -1174,3 +1202,6 @@ openstreetmap.org/copyright" (also in [docs/credits.md](../../docs/credits.md)).
 [^fm-fuel]: T.O. GR1F-16CJ-1, page 1-72 (the MASTER FUEL switch opens the main fuel shut-off valve to the engine).
 [^fm-feed]: T.O. GR1F-16CJ-1, figure 1-23, page 1-73 (ENG FEED: OFF, NORM, AFT, FWD).
 [^fm-fqs]: T.O. GR1F-16CJ-1, figure 1-24, pages 1-75 and 1-76 (the fuel quantity indicator and FUEL QTY SEL).
+[^fm-warn]: T.O. GR1F-16CJ-1, page 1-77 (the FUEL mnemonic "may be manually reset by placing the WARN RESET switch to WARN RESET"), page 1-145 (WARN RESET resets the voice warnings) and figure 3-1, sheet 5 (a flashing FUEL reset by WARN RESET on the ICP).
+[^fm-drift]: Inferred from the switch's name and FlightGear's F-16 (`Nasal/HUD/HUD_main.nas`: at DRIFT C/O the marker's x is the HUD's centre); T.O. GR1F-16CJ-1 does not describe the switch (open).
+[^fm-icp]: Inferred from the wheel's label and FlightGear's F-16 (`Nasal/HUD/HUD_main.nas`, the CONT and BRT wheels set the HUD's FLIR picture); T.O. GR1F-16CJ-1 does not describe the wheels (open).

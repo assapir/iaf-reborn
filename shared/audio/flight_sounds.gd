@@ -114,6 +114,9 @@ var _speed_brake_loop: Node = null  # ctl+0x8cc
 var _aoa_loop: Node = null  # ctl+0x8c4
 var _alt_timer := -1.0  # ctl+0x904: next Betty "altitude" time, < 0 = off
 var _pull_timer := -1.0  # ctl+0x908: next Betty "pull up" time, < 0 = off
+## Ours, Modern IAF's F-16s: the ICP's WARN RESET silenced the Real HUD's repeating "Altitude" (warn_reset) until the
+## ALOW condition ends and comes again.
+var _alt_reset := false
 var _gaaf_on := false  # Real: the GAAF advisory holds (one "Pull up" per advisory)
 var _real_voice := ""  # real_voice(type_code)
 var _betty_set := "original"  # Real Betty: betty_set(type_code) with Modern IAF's voices loaded
@@ -521,9 +524,11 @@ func _real_warning(voice: String, h_ft: float, st: Dictionary, inp: Dictionary, 
 	if voice == "f16" and ClassDB.class_call_static("IafRealHud", "alow", h_ft, vs, inp.gear_down, alow):
 		if _alt_timer < 0.0:
 			_alt_timer = now
-		_alt_timer = _betty_tick(_alt_timer, "BTY_ALT", now)
+		if not _alt_reset:
+			_alt_timer = _betty_tick(_alt_timer, "BTY_ALT", now)
 	else:
 		_alt_timer = -1.0
+		_alt_reset = false
 	var g: bool = (
 		voice != ""
 		and ClassDB.class_call_static(
@@ -541,6 +546,12 @@ func _real_warning(voice: String, h_ft: float, st: Dictionary, inp: Dictionary, 
 	if g and not _gaaf_on:
 		play("VOC_BBETTY", "BTY_PULL_UP")
 	_gaaf_on = g
+
+
+## The F-16 ICP's WARN RESET (terrain_view.gd command 252): the repeating "Altitude" stops until its condition comes
+## again (T.O. GR1F-16CJ-1 page 1-145: WARN RESET resets the voice warnings for subsequent activation).
+func warn_reset() -> void:
+	_alt_reset = _alt_timer >= 0.0
 
 
 ## MCockpitSoundEvent (vtbl 0x600ce8): plays the Betty call when its time `t` has come; returns the next time.

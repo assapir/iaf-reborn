@@ -44,7 +44,7 @@ fn pt(d: &VarDictionary, k: &str) -> Option<P> {
 
 /// Modern IAF's F-16 HUD panel {scales (0 VV/VAH, 1 VAH, 2 OFF), fpm (0 ATT/FPM, 1 FPM, 2 OFF), velocity (0 CAS,
 /// 1 TAS, 2 GND SPD), alt (0 RADAR, 1 BARO, 2 AUTO), ded (the DED's lines, [] OFF), depr_mr (or null), alow_ft, align
-/// (null, false aligning, true ready), over (1 DGFT, 2 MSL OVRD), sim, soi}.
+/// (null, false aligning, true ready), over (1 DGFT, 2 MSL OVRD), sim, soi, drift_co}.
 fn panel(p: &VarDictionary) -> Panel {
     let k = |key: &str, d: i64| num(p, key).map_or(d, |v| v as i64);
     Panel {
@@ -61,6 +61,7 @@ fn panel(p: &VarDictionary) -> Panel {
         over: k("over", 0).clamp(0, 2) as u8,
         sim: get(p, "sim").unwrap_or(false),
         soi: get(p, "soi").unwrap_or(false),
+        drift_co: get(p, "drift_co").unwrap_or(false),
     }
 }
 
@@ -114,6 +115,12 @@ impl IafRealHud {
     #[func]
     fn reset_max_g(&mut self) {
         self.hud.reset_max_g();
+    }
+
+    /// The F-16 ICP's WARN RESET (`RealHud::warn_reset`): the FUEL cue out until the fuel is above the bingo again.
+    #[func]
+    fn warn_reset(&mut self) {
+        self.hud.warn_reset();
     }
 
     /// One frame. `field` the symbology field (Rect2, HUD px from the HUD centre); `i` {cockpit (the cockpit dir), time, off_boresight, head_heading, head_view, head_rel ([az, el]),

@@ -450,6 +450,9 @@ static func _system_state(tv: Object, name: String, now: float) -> float:
 			return 1.0 if tv.weapons.laser_arm else 0.0
 		"mfd_brt":
 			return Settings.mfd_brightness
+		"hud_drift":  # the ICP's DRIFT C/O switch (cockpit.gd hud_panel drift: 1 NORM, 2 DRIFT C/O)
+			if tv.cockpit.ufc != null:
+				return float(tv.cockpit.hud_panel.drift)
 		"hud_scales", "hud_fpm", "hud_alt":  # the HUD control panel (cockpit.gd hud_panel): the top position is the first
 			return 2.0 - float(tv.cockpit.hud_panel[name.trim_prefix("hud_")])
 		"hud_velocity":
@@ -510,6 +513,11 @@ func _system_put(name: String, v: float, was := NAN) -> void:
 		return
 	if name in FUEL_SWITCHES:  # command 270: p1 the switch, p2 its position
 		cmd.call([270, FUEL_SWITCHES.find(name), roundi(v)])
+		return
+	# The ICP's DRIFT C/O switch: command 252 p1 6 (cockpit.gd HUD_PANEL's drift), p2 the position: 0 WARN RESET
+	# (springing back to NORM), 1 NORM, 2 DRIFT C/O.
+	if name == "hud_drift":
+		cmd.call([252, 6, roundi(v)])
 		return
 	if name == "canopy_lock":  # the F-16's lock lever down (p1 1) or up (-1): command 215; a canopy still up refuses it
 		cmd.call([215, -1 if v > 0.5 else 1, 0])

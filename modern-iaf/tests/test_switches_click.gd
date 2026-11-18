@@ -43,6 +43,7 @@ const F16 := [
 	["SW_PARKING_BRAKE", [270, 0, 0]],  # set on the ground start: off (cockpit.md §5.7)
 	["SW_MASTER_FUEL", [270, 1, 0]],  # MASTER to OFF
 	["SW_KNOB_ENG_FEED", [270, 2, 2]],  # NORM to AFT
+	["drift", [252, 6, 2]],  # NORM to DRIFT C/O (cockpit.md §5.8)
 ]
 
 

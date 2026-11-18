@@ -789,6 +789,9 @@ static func map_picture(
 const GMT_MAP_DIM := 0.35  # GMT's map under its movers, dimmed (radar.rs GMT_DIM)
 ## The picture's display gain (the GM format's gain; the value inferred): the radar's returns ×2.2, clipped at full.
 const AG_GAIN := 2.2
+## Ours, Modern IAF's F-16s: the MFD's GAIN rocker on that gain and on the pod's or weapon's video (cockpit3d.gd
+## DISPLAY_KNOBS: its position / 1.5; 1 at rest, the picture as before).
+var gain := 1.0
 
 var _ag_tex: ImageTexture
 var _ag_serial := -1
@@ -839,7 +842,8 @@ func _draw_ag_picture(r: Dictionary, ag: Dictionary, on: CanvasItem = null, grey
 		var uvs := PackedVector2Array()
 		for p in piece:
 			uvs.append((ag_px(pf, ag_world(fr, p)) - win.position) / win.size)
-		cv.draw_colored_polygon(piece, Color(tint.r * AG_GAIN, tint.g * AG_GAIN, tint.b * AG_GAIN), uvs, _ag_tex)
+		var g := AG_GAIN * gain
+		cv.draw_colored_polygon(piece, Color(tint.r * g, tint.g * g, tint.b * g), uvs, _ag_tex)
 
 
 func _isr() -> Texture2D:
@@ -940,7 +944,8 @@ func _draw_pictures() -> void:
 		_draw_map_picture(r, RADAR_RANGES[clampi(int(r.get("idx", 1)), 1, 6) - 1])
 	elif page == FLIR or (page == TV and int(cockpit.eo.get("tv", {}).get("status", 0)) != 0 and _video()):
 		if cockpit.eo_texture != null and cockpit.eo.get("camera", false):
-			_under.draw_texture_rect(cockpit.eo_texture, Rect2(10, 10, 112, 112), false)
+			# The video at the GAIN rocker's gain (gain: 1 at rest, the picture as before).
+			_under.draw_texture_rect(cockpit.eo_texture, Rect2(10, 10, 112, 112), false, Color(gain, gain, gain))
 
 
 ## The TV page's video: the real formats' WPN decides (f16_mfd.gd wpn_video), the original's always.

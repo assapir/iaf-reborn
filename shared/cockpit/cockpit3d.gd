@@ -173,6 +173,9 @@ func setup(c: Control, cam: Camera3D, type_code: int) -> bool:
 			_rest[meta.controls[k].prop] = float(meta.controls[k].modelled)
 	if _rest.has(FQS) and not switches.has(FQS):
 		switches[FQS] = 1.0  # FUEL QTY SEL at NORM (the model's own rest is TEST)
+	if _rest.has(HUD_BRT):  # the F-16's display knobs (DISPLAY_KNOBS)
+		for k in DISPLAY_KNOBS:
+			_rest[k] = DISPLAY_KNOBS[k][2]
 	_materials(n, path, Settings.airframe_id(type_code) == "f16")
 	var anims: Dictionary = meta.get("animations", {})
 	# The model's controls' properties (<model>.json `controls`): unset, a control shows as modelled.
@@ -408,6 +411,19 @@ const DIMMER_MAX := 2.5
 const CONSOLE_SHEETS := ["_console", "throttle", "rear-left", "temp.zKnob"]
 ## The ICP's BRT wheel: the HUD's brightness (FlightGear's hud.xml factor-prop), on the HUD's alpha.
 const HUD_BRT := "f16/avionics/hud-brt"
+## Ours, Modern IAF's F-16s: the display knobs in command 271's p1 order, each [min, max, rest, the key's step]: the
+## ICP's CONT wheel (hud.gd contrast), the left and right MFDs' CON rockers (a lifted black, MFD_CON_FLOOR) and GAIN
+## rockers (the sensor picture's gain, mfd.gd gain; FlightGear's range, its rest 1.5 the picture as before). CON's
+## range is the table's (f16_controls.json): full contrast at rest, the rocker turns it down (inferred).
+const DISPLAY_KNOBS := {
+	"f16/avionics/hud-cont": [0.0, 1.0, 1.0, 0.25],
+	"f16/avionics/mfd-l-con": [0.0, 1.0, 1.0, 0.25],
+	"f16/avionics/mfd-r-con": [0.0, 1.0, 1.0, 0.25],
+	"f16/avionics/mfd-l-gain": [1.0, 2.5, 1.5, 0.25],
+	"f16/avionics/mfd-r-gain": [1.0, 2.5, 1.5, 0.25],
+}
+## The black an MFD shows with its CON rocker fully down (the emission added under the page; inferred).
+const MFD_CON_FLOOR := 0.25
 var _rest := {}  # a control's property -> its rest (<model>.json controls' "modelled")
 var _console_mats := {}  # the lit materials of the consoles (CONSOLE_SHEETS)
 var _gains := Vector4(-1, -1, -1, -1)  # the dimmers shown: flood panel, flood consoles, primary panel, consoles
@@ -580,14 +596,20 @@ func _lighting() -> void:
 		for m: StandardMaterial3D in _screen_mats:
 			if not _screens.any(func(e): return e[2].material_override == m):
 				m.emission_energy_multiplier = ded if m == _ded_mat else (on * dk if m == _pfl_mat else on)
+	# The display knobs (DISPLAY_KNOBS) in Modern IAF's F-16s; the 1998 game's 3D F-16 cockpit moves them only.
+	var knobs := _rest.has(HUD_BRT) and _ours()
 	if _rest.has(HUD_BRT):
 		cockpit.hud.modulate.a = clampf(_knob(HUD_BRT), 0.0, 1.0)
+		cockpit.hud.contrast = _knob("f16/avionics/hud-cont") if knobs else 1.0
 	var mfd: float = on if cockpit.up("mfd") else 0.0
 	for e in _screens:  # the MFDs turned down at night (MFD_NIGHT), their map fill darker (MAP_NIGHT)
-		(e[2].material_override as StandardMaterial3D).emission_energy_multiplier = (
-			(MFD_NIGHT if cockpit.night else 1.0) * mfd
-		)
+		var m := e[2].material_override as StandardMaterial3D
+		m.emission_energy_multiplier = (MFD_NIGHT if cockpit.night else 1.0) * mfd
 		e[0].map_dim = Mfd.MAP_NIGHT if cockpit.night else 0.0
+		if knobs and e[0].index < 2:  # CON lifts the black (added under the page), GAIN the sensor picture's gain
+			var side: String = "lr"[e[0].index]
+			m.emission = Color.WHITE * (MFD_CON_FLOOR * (1.0 - _knob("f16/avionics/mfd-%s-con" % side)))
+			e[0].gain = _knob("f16/avionics/mfd-%s-gain" % side) / 1.5
 	if cockpit.night:
 		c = FLOOD * FLOOD_ENERGY
 	elif _sun != null:
@@ -623,9 +645,28 @@ func _fuel_qty() -> Vector3:
 	if not ClassDB.class_exists("IafFlight"):
 		return Vector3(minf(fuel, internal) / 2.0, minf(fuel, internal) / 2.0, fuel)
 	# The 1998 game's 3D F-16 cockpit: the knob moves only, the gauge at NORM.
-	var tv: Object = command.get_object() if command.is_valid() else null
-	var sel := int(switches.get(FQS, 1.0)) if tv != null and tv.get("_own_keys_in_table") else 1
+	var sel := int(switches.get(FQS, 1.0)) if _ours() else 1
 	return ClassDB.class_call_static("IafFlight", "fuel_qty", sel, fuel, internal)
+
+
+## Whether the cockpit flies in Modern IAF (its key table: terrain_view.gd _own_keys_in_table), where the F-16's fuel
+## and display knobs work; in the 1998 game's 3D F-16 cockpit they move only.
+func _ours() -> bool:
+	var tv: Object = command.get_object() if command.is_valid() else null
+	return tv != null and tv.get("_own_keys_in_table") == true
+
+
+## Command 271 (terrain_view.gd): display knob `i` (DISPLAY_KNOBS' order) a step up (`way` 1) or down (-1); `way` 0 a
+## step down, from the bottom round to the top (the keys').
+func step_knob(i: int, way: int) -> void:
+	if not _rest.has(HUD_BRT) or i < 0 or i >= DISPLAY_KNOBS.size():
+		return
+	var p: String = DISPLAY_KNOBS.keys()[i]
+	var k: Array = DISPLAY_KNOBS[p]
+	var v: float = _knob(p) + (float(k[3]) if way > 0 else -float(k[3]))
+	if way == 0 and v < k[0] - 0.001:
+		v = k[1]
+	switches[p] = clampf(v, k[0], k[1])
 
 
 ## Control `prop`'s position: as set, else its rest.

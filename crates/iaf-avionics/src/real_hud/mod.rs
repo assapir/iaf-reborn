@@ -399,6 +399,8 @@ pub struct Panel {
     pub sim: bool,
     /// The HUD is the sensor of interest.
     pub soi: bool,
+    /// The ICP's DRIFT C/O switch at DRIFT C/O: the flight path marker centred laterally.
+    pub drift_co: bool,
 }
 
 /// SCALES: VV/VAH (the vertical velocity scale too), VAH (airspeed, altitude, heading), OFF.
@@ -467,6 +469,8 @@ pub struct Frame {
 pub struct RealHud {
     max_g: f64,
     gs_captured: bool,
+    /// WARN RESET has put the F-16's FUEL cue out; it re-arms once the fuel is above the bingo again (inferred).
+    fuel_reset: bool,
 }
 
 impl RealHud {
@@ -479,8 +483,14 @@ impl RealHud {
         self.max_g = 0.0;
     }
 
+    /// The F-16 ICP's WARN RESET: the HUD's FUEL cue out until the fuel is above the bingo again.
+    pub fn warn_reset(&mut self) {
+        self.fuel_reset = true;
+    }
+
     pub fn frame(&mut self, f: Field, i: &Input) -> Frame {
         self.max_g = self.max_g.max(i.g);
+        self.fuel_reset &= i.fuel_lbs < i.bingo_lbs;
         let mut fr = self.jet_frame(f, i);
         if i.weapons.hud_mode == 2 && !i.off_boresight {
             fr.mrm_inside = mrm_circle(i)
@@ -494,7 +504,7 @@ impl RealHud {
         match i.jet {
             Jet::F16 | Jet::F15 | Jet::F15E if i.off_boresight => dash::frame(i),
             Jet::MiG29 if i.off_boresight => mig29::helmet(i),
-            Jet::F16 => f16::frame(f, i, self.max_g),
+            Jet::F16 => f16::frame(f, i, self.max_g, self.fuel_reset),
             Jet::F15 => {
                 self.gs_captured = f15::gs_capture(i, self.gs_captured);
                 f15::frame(f, i, self.gs_captured)
