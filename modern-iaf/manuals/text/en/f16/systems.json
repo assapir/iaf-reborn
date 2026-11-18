@@ -1705,7 +1705,7 @@
       "WARN RESET"
      ],
      "does": "DRIFT C/O centres the HUD's symbols against the wind's drift; WARN RESET stops a warning's voice and flash (inferred).",
-     "sim": "DRIFT C/O centres the flight path marker and the ladder; WARN RESET puts the flashing FUEL cue and the repeating ALTITUDE call out."
+     "sim": "DRIFT C/O centres the flight path marker and the ladder; WARN RESET puts the flashing FUEL cue and the repeating \"Altitude\" call out."
     },
     {
      "node": "SYM",
