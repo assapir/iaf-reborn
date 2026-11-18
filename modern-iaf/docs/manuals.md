@@ -582,7 +582,12 @@ Parts:
 - Owed after chapter 6, the F-16s' pictures: the gun's funnel with a lock and the helmet's symbols. The delayed CCIP
   and the GPS bomb's HUD cues were taken 19 November 2026 (`_f16_weapons_shot.gd`, no numbered arrows: they are `display`
   figures like `d_hud_lock`). The two owed ones: scripted runs got no radar lock on a drone after the jet was put behind
-  it (the HUD showed the funnel with no box) and a padlock on a drone turned the head to the wrong side. The black ones are taken (§4 "Black captures").
+  it (the HUD showed the funnel with no box) and a padlock on a drone turned the head to the wrong side. Checked
+  19 November 2026 in the range flight: the padlock turns the head to the target on either side and behind (the camera
+  within 12° of it). The drone was not where the script put it: `mission_entity_moved` moves its node, and the drone's
+  own flight model puts it back on its path, 17 km off. The missing lock has the same cause (inferred). A script for
+  these two pictures has to move the drone's flight model, or put the jet behind the drone where it flies. The black
+  ones are taken (§4 "Black captures").
 - Found by the black captures, the game's and listed, not changed here: the "start engine" command (213) sent in the
   air runs the start sequence again, so MMC, ST STA, MFD and UFC go off and the displays go dark until it ends.
 - Found while writing chapter 6, the game's and listed, not changed here:

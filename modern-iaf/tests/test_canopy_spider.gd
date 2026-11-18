@@ -6,7 +6,8 @@
 #   - the lever down guards the switch: a click on the switch lifts the lever (unlocked), the canopy stays;
 #   - the switch pressed and dragged up runs the canopy up while held;
 #   - the Canopy key (command 215) does the whole sequence each way: down then the lever, the lever then up;
-#   - a short tap's door sound stops with the canopy; in the air the lever stays down (key, lever, switch).
+#   - a short tap's door sound stops with the canopy; in the air the lever stays down (key, lever, switch);
+#   - an air restart (Start engine in the air) and a stop() on a door sound that freed itself print no error.
 # The F-35I keeps its one CANOPY switch: its key closes and locks at once.
 #   IAF_DEFAULT_SETTINGS=1 godot --headless --audio-driver Dummy --path modern-iaf \
 #     -s ../modern-iaf/tests/test_canopy_spider.gd --log-file <temp>
@@ -158,6 +159,17 @@ func _f16(tv: Node, id: String) -> void:
 		f.start_on("canopy") and float(sw.get(SPIDER)) == 0.0 and a.canopy_open == 0.0,
 		"%s: in the air: the lever stays down, the canopy shut" % id
 	)
+	# The Start engine command again in the air (an air restart, 19 Nov 2026): the door sound of a run ends and frees
+	# itself; stopping it after that is quiet (a typed stop() failed on the freed sound every frame).
+	tv._command([200, 0, 0])
+	await fly(tv, 10.0)
+	check(not bool(f.state().on_ground) and f.start_on("canopy"), "%s: air restart: airborne, the canopy locked" % id)
+	var once: Node = tv.sounds.play("SFX_DOOR_CLOSE")
+	check(once != null, "%s: a door sound plays" % id)
+	await create_timer(once.stream.get_length() + 1.0, true, false, true).timeout  # real time: the sound's own length
+	await frames(2)
+	check(not is_instance_valid(once), "%s: the door sound freed itself at its end" % id)
+	tv.sounds.stop(once)
 
 
 ## The F-35I: one CANOPY switch, the key closes and locks at once (as before).

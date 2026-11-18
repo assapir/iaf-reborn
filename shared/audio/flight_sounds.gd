@@ -739,12 +739,13 @@ func _on_finished(p: Node) -> void:
 	p.queue_free()
 
 
-## Stops a sound started by play() (loops: the gun, the IR tones).
-func stop(p: Node) -> void:
+## Stops a sound started by play() (loops: the gun, the IR tones). Untyped: a one-shot frees itself when it ends, and a
+## caller may still hold it; a typed Node argument would fail on the freed instance before the check below.
+func stop(p) -> void:
 	_stop(p)
 
 
-func _stop(p: Node) -> void:
+func _stop(p) -> void:
 	if p != null and is_instance_valid(p):
 		p.stop()
 		_players3d = _players3d.filter(func(e): return e[0] != p)

@@ -5,8 +5,8 @@
 #   steering line and the release cue;
 # - hud_gps.png, hud_gps_inrng.png: a GBU-31 on a point designated 20 km out: the box, steering line, range scale and
 #   caret with the time to release, then IN RNG.
-# The gun's funnel with a lock and the helmet's symbols are owed (manuals.md §7): no radar lock and no padlock on a drone
-# came out of a scripted run.
+# The gun's funnel with a lock and the helmet's symbols are owed (manuals.md §7): a drone moved by the script flies on
+# from where its own flight model is, so no radar lock and no padlock on it came out of a scripted run.
 #   flock ~/.cache/iaf-gpu-bench.lock tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 SHOT_DIR=<dir> -- \
 #     --resolution 1920x1080 --path modern-iaf -s ../modern-iaf/tests/_f16_weapons_shot.gd --log-file <temp>
 extends "res://../tests/godot/base.gd"
@@ -113,7 +113,8 @@ func run() -> void:
 	await _select("83", true)
 	_key(KEY_A, "s")  # master arm
 	await fly(tv, 1.0)
-	# The impact point under the HUD; the button held until the time to go is 2.5 s (the release cue just above the marker).
+	# The impact point under the HUD; the button held until the time to go is 2.5 s (the release cue just above the
+	# marker).
 	_put(t1.world.x, t1.world.y - 30000.0, 0.0, 900.0, 220.0)
 	tv.throttle = 0.6
 	await fly(tv, 1.5)
@@ -143,4 +144,3 @@ func run() -> void:
 	print("RESULT PASS")
 	tv.queue_free()
 	await frames(5)
-
