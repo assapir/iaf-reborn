@@ -39,7 +39,7 @@
 
 === מקשים שחסרים במחשב Mac נייד <mac-keys-missing>
 
-#idx("מקש Fn")במקלדת של Mac נייד אין מקשי Home, End, Page Up, Page Down, Delete קדימה או Insert, ו-macOS שומר את F11 לפעולה Show Desktop. אף מקש ברירת מחדל במפת המקשים למחשב נייד אינו אחד מאלה: לכל פקודה במסך #scr("keys_screen") יש מקש ב-Mac נייד (@keys-joystick-laptop). חמישה מהמקשים החסרים מוקלדים עם מקש Fn, לפקודה שהוצבה על אחד מהם ביוזמת המשתמש ולדפי ה#term("פנקס").
+#idx("מקש Fn")במקלדת של Mac נייד אין מקשי Home, End, Page Up, Page Down, Delete קדימה או Insert, ו-macOS שומר את F11 לפעולה Show Desktop. אף מקש ברירת מחדל במפת המקשים למחשב נייד אינו אחד מאלה: לכל פקודה במסך #scr("keys_screen") יש מקש ב-Mac נייד (@keys-joystick-laptop). חמישה מהמקשים החסרים מוקלדים עם מקש Fn, לפקודה שהוצבה על אחד מהם ביוזמת המשתמש.
 
 #grid-table(
   (auto, 1fr),

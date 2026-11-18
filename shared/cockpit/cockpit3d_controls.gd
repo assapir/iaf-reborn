@@ -410,8 +410,8 @@ func put(r: Dictionary, v: float) -> void:
 ## range, 0 to 260 mr).
 const DEPR_MAX_MR := 260.0
 
-## The F-16's fuel and brake switches in command 270's order (p1): PARKING BRAKE, MASTER FUEL, ENG FEED.
-const FUEL_SWITCHES := ["parking_brake", "master_fuel", "eng_feed"]
+## The F-16's fuel and brake switches in command 270's order (p1): PARKING BRAKE, MASTER FUEL, ENG FEED, FUEL QTY SEL.
+const FUEL_SWITCHES := ["parking_brake", "master_fuel", "eng_feed", "fuel_qty_sel"]
 
 ## The start-up switches of three positions (f16_controls.json `system`) and their command [id, p2]: MAIN PWR 210,
 ## the JFS 211, RDR ALT 219 with its index in sim_flight.gd SYSTEMS.
@@ -485,7 +485,7 @@ static func _system_state(tv: Object, name: String, now: float) -> float:
 		"threat_vol", "msl_vol":  # the RWR's tones (rwr.gd), on the modern F-16s
 			if tv.weapons.ews != null:
 				return tv.weapons.rwr.threat_volume if name == "threat_vol" else tv.weapons.rwr.launch_volume
-		"parking_brake", "master_fuel", "eng_feed":  # the flight model's (IafFlight.switch; -1: a jet without them)
+		"parking_brake", "master_fuel", "eng_feed", "fuel_qty_sel":  # the flight model's (IafFlight.switch; -1: none)
 			if tv.flight != null and tv.get("_own_keys_in_table") and int(tv.flight.switch(name)) >= 0:
 				return float(tv.flight.switch(name))
 		"canopy_lock":  # the F-16's lock lever: 0 down, the canopy closed and locked (the flight model's step); 1 up

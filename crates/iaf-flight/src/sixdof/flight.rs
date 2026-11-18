@@ -6,6 +6,7 @@ use super::aero::{Flow, Surfaces, add_drag, coefficients, compressibility, lef_s
 use super::body::{Body, MAX_FRAME, MAX_STEP, Quat};
 use super::engine::Engine;
 use super::fcs::{Fcs, Pilot, Sensors};
+use super::fuel::Tanks;
 use super::gear::Anchors;
 use super::jets::{self, Jet};
 use super::start::{Phase, Start as Sequence};
@@ -79,9 +80,8 @@ pub struct SixDof {
     surfaces: Surfaces,
     t: f64,
     controls: Controls,
-    /// Fuel and its capacity, stores, kg.
-    fuel_kg: f64,
-    capacity_kg: f64,
+    /// The fuel tanks ([`Tanks`], lb); the stores, kg.
+    tanks: Tanks,
     stores_kg: f64,
     stores_cd: f64,
     /// The stores' lateral moment, kg·m (+ right wing heavier: `stores.rs` `roll_moment`), and the fuel tanks' at
@@ -160,33 +160,17 @@ pub struct SixDof {
     /// The toe brakes' travel, 0…1, following the brake switch over [`BRAKE_RAMP_S`].
     brake: f64,
     /// The cockpit's fuel and brake switches ([`SixDof::set_switch`]): the parking brake set, MASTER FUEL at MASTER,
-    /// the ENG FEED knob (`ENG_FEED`'s index).
+    /// the ENG FEED knob (`ENG_FEED`'s index), the FUEL QTY SEL knob ([`Tanks::gauge`]'s `sel`).
     parking_brake: bool,
     master_fuel: bool,
     eng_feed: u8,
+    fuel_qty_sel: u8,
 }
 
-/// The F-16's ENG FEED knob's positions (flight manual figure 1-23): OFF, NORM, AFT, FWD. The fuel model has one tank,
-/// so AFT and FWD feed as NORM; OFF feeds nothing.
+/// The F-16's ENG FEED knob's positions (flight manual figure 1-23; [`Tanks::feed`]): OFF, NORM, AFT, FWD.
 pub const ENG_FEED: [&str; 4] = ["OFF", "NORM", "AFT", "FWD"];
-
-/// The F-16's fuel quantity indicator at FUEL QTY SEL position `sel` (0 TEST, 1 NORM, 2 RSVR, 3 INT WING, 4 EXT
-/// WING, 5 EXT CTR; flight manual figure 1-24, pages 1-75 and 1-76) with `fuel_lb` aboard, `internal_lb` of it the
-/// internal tanks' capacity: [the FWD pointer, the AFT pointer, the totalizer], lb. The fuel model has one tank, the
-/// external fuel used first (inferred): NORM, RSVR and INT WING show the internal fuel split in two (the reservoirs and
-/// the wing tanks are not modelled apart); EXT WING the external fuel, the wing tanks' (no centreline tank is carried),
-/// split in two; EXT CTR none. The totalizer shows all the fuel at every position but TEST. TEST: 2,000 lb on each
-/// pointer and 6,000 lb on the totalizer (inferred: the indicator's self test).
-pub fn fuel_qty(sel: u8, fuel_lb: f64, internal_lb: f64) -> [f64; 3] {
-    let fuel = fuel_lb.max(0.0);
-    let half = match sel {
-        0 => return [2000.0, 2000.0, 6000.0],
-        4 => (fuel - internal_lb).max(0.0) / 2.0,
-        5 => 0.0,
-        _ => fuel.min(internal_lb) / 2.0,
-    };
-    [half, half, fuel]
-}
+/// The F-16's FUEL QTY SEL knob's positions (flight manual figure 1-24; [`Tanks::gauge`]).
+pub const FUEL_QTY_SEL: [&str; 6] = ["TEST", "NORM", "RSVR", "INT WING", "EXT WING", "EXT CTR"];
 
 /// The indicated AoA one frame `dt` on from `shown` (deg): toward the flow's `alpha_deg` at `cas_kt` from
 /// [`PROBE_MIN_KT`] up, toward 0° below it, through a [`PROBE_TAU`] lag (modern-iaf/docs/cockpit.md §5.4).
@@ -221,8 +205,7 @@ impl SixDof {
             surfaces: Surfaces::default(),
             t: 0.0,
             controls: Controls { throttle: 0.0, ..Controls::default() },
-            fuel_kg,
-            capacity_kg: fuel_kg,
+            tanks: Tanks::new(jet.fuel_lb),
             stores_kg: 0.0,
             stores_cd: 0.0,
             stores_moment: 0.0,
@@ -268,6 +251,7 @@ impl SixDof {
             parking_brake: false,
             master_fuel: true,
             eng_feed: 1,
+            fuel_qty_sel: 1,
         };
         s.fcs = Fcs::new(jet.g_limits, jet.roll.map(|r| (r, jet.airframe.b))).with_alpha_max(jet.alpha_max);
         if st.airborne {
@@ -291,7 +275,7 @@ impl SixDof {
     }
 
     pub fn mass(&self) -> f64 {
-        self.empty_kg + self.fuel_kg + self.stores_kg
+        self.empty_kg + self.fuel_kg() + self.stores_kg
     }
 
     /// Level flight at `v` (m/s) here, wings banked `roll` (rad, the start's), heading `heading`: α and the
@@ -463,16 +447,16 @@ impl SixDof {
     /// Motion 0x18, as `Aircraft::set_fuel`: the fuel and its maximum := `kg` (the tank jettison).
     pub fn set_fuel(&mut self, kg: f32) {
         if kg >= 0.0 {
-            self.capacity_kg = kg as f64;
-            self.fuel_kg = kg as f64;
+            let lb = kg as f64 / LB;
+            self.tanks.set(lb - self.tanks.internal(), lb);
         }
     }
 
     /// External tanks at the start, as `Aircraft::set_fuel_capacity` (FUN_005a8980 then the start's fill): the
     /// maximum = the internal fuel + `extra_kg`, filled.
     pub fn set_fuel_capacity(&mut self, extra_kg: f32) {
-        self.capacity_kg = self.jet.fuel_lb * LB + extra_kg.max(0.0) as f64;
-        self.fuel_kg = self.capacity_kg;
+        let ext = extra_kg.max(0.0) as f64 / LB;
+        self.tanks.set(ext, self.tanks.internal() + ext);
     }
 
     /// The mission's wind: `knots` from `from_deg` (true), as the original's (`aircraft::wind`).
@@ -522,26 +506,50 @@ impl SixDof {
     }
 
     pub fn fuel_capacity_kg(&self) -> f32 {
-        self.capacity_kg as f32
+        (self.tanks.capacity() * LB) as f32
     }
 
-    /// Fuel reaches the engine: fuel in the tank (or unlimited), MASTER FUEL at MASTER and ENG FEED not at OFF
-    /// (flight manual page 1-72, figure 1-23).
+    fn fuel_kg(&self) -> f64 {
+        self.tanks.total() * LB
+    }
+
+    /// The tanks (lb).
+    pub fn tanks(&self) -> &Tanks {
+        &self.tanks
+    }
+
+    /// The fuel quantity indicator at the FUEL QTY SEL knob: [the FR pointer, the AL pointer, the totalizer], lb.
+    pub fn fuel_gauge(&self) -> [f64; 3] {
+        self.tanks.gauge(self.fuel_qty_sel)
+    }
+
+    /// The [AFT, FWD] FUEL LOW caution lights ([`Tanks::low`]).
+    pub fn fuel_low(&self) -> [bool; 2] {
+        self.tanks.low(self.fuel_qty_sel)
+    }
+
+    /// Fuel reaches the engine: fuel aboard (or unlimited) and MASTER FUEL at MASTER (flight manual page 1-72). ENG
+    /// FEED at OFF stops the electric pumps only: the fuel flow proportioner still feeds the engine (figure 1-23).
     pub fn fuel_feeds(&self) -> bool {
-        (self.fuel_kg > 0.0 || self.unlimited_fuel) && self.master_fuel && self.eng_feed != 0
+        (self.tanks.total() > 0.0 || self.unlimited_fuel) && self.master_fuel
     }
 
     /// A fuel or brake switch set (modern-iaf/docs/cockpit.md §5.7): "parking_brake" 0 off (ANTI-SKID), 1 set;
-    /// "master_fuel" 0 OFF, 1 MASTER; "eng_feed" `ENG_FEED`'s index. `pos` -1: the next position, the last going
+    /// "master_fuel" 0 OFF, 1 MASTER; "eng_feed" `ENG_FEED`'s index; "fuel_qty_sel" `FUEL_QTY_SEL`'s. `pos` -1: the next position, the last going
     /// round to the first; out of range: clamped. False for another name. Fuel cut off flames the engine out at the
     /// next step ([`SixDof::step`]).
     pub fn set_switch(&mut self, name: &str, pos: i8) -> bool {
-        let n = if name == "eng_feed" { ENG_FEED.len() as i8 } else { 2 };
+        let n = match name {
+            "eng_feed" => ENG_FEED.len(),
+            "fuel_qty_sel" => FUEL_QTY_SEL.len(),
+            _ => 2,
+        } as i8;
         let to = |now: i8| if pos < 0 { (now + 1) % n } else { pos.min(n - 1) };
         match name {
             "parking_brake" => self.parking_brake = to(i8::from(self.parking_brake)) == 1,
             "master_fuel" => self.master_fuel = to(i8::from(self.master_fuel)) == 1,
             "eng_feed" => self.eng_feed = to(self.eng_feed as i8) as u8,
+            "fuel_qty_sel" => self.fuel_qty_sel = to(self.fuel_qty_sel as i8) as u8,
             _ => return false,
         }
         true
@@ -553,6 +561,7 @@ impl SixDof {
             "parking_brake" => i8::from(self.parking_brake),
             "master_fuel" => i8::from(self.master_fuel),
             "eng_feed" => self.eng_feed as i8,
+            "fuel_qty_sel" => self.fuel_qty_sel as i8,
             _ => -1,
         }
     }
@@ -730,9 +739,9 @@ impl SixDof {
             stores_roll: (self.stores_moment
                 + self.tank_moment
                     * crate::aircraft::tank_share(
-                        self.fuel_kg as f32,
-                        (self.jet.fuel_lb * LB) as f32,
-                        self.capacity_kg as f32,
+                        self.fuel_kg() as f32,
+                        (self.tanks.internal() * LB) as f32,
+                        (self.tanks.capacity() * LB) as f32,
                     ) as f64)
                 * G
                 * -self.accel_g.z,
@@ -769,7 +778,7 @@ impl SixDof {
         let ff = ff * jc.thrust_k + if bits & 0x40 != 0 { 0.25 * self.params.fuel_flow_max as f64 } else { 0.0 };
         self.fuel_flow = ff as f32;
         if !self.unlimited_fuel {
-            self.fuel_kg = (self.fuel_kg - ff * dt).max(0.0);
+            self.tanks.feed(ff * dt / LB, dt / 3600.0, self.eng_feed, self.fuel_qty_sel == 1);
         }
         self.check_ground(was_on_ground, gear_down, ground_z);
     }
@@ -862,7 +871,7 @@ impl SixDof {
                 0
             },
             thrust_n: self.thrust_n as f32,
-            fuel_kg: self.fuel_kg as f32,
+            fuel_kg: self.fuel_kg() as f32,
             mass_kg: self.mass() as f32,
             // Out of the control system's range (T.O. 1F-16A-1: recovery is "AOA within −5 to +25 degrees"; above
             // 29° its limiters give way to the yaw-rate limiter): stalled above 29° or below −5° in the air.

@@ -15,8 +15,11 @@ extends Node
 
 const Notebook := preload("notebook.gd")
 const Look := preload("../menu/look.gd")
-## The sim's key record of the Checklist notebook key (modern-iaf/data/keys.json, command 203).
+## The sim's key records of the Checklist notebook (modern-iaf/data/keys.json, command 203): raise / stow, the previous
+## and the next page.
 const KEY := 118
+const KEY_PREV := 222
+const KEY_NEXT := 223
 const DATA := "res://data/notebook.json"
 ## The raised board's inset from the screen's inline-end and bottom edges (px at the 1080-high canvas).
 const MARGIN := Vector2(26, 18)
@@ -172,12 +175,10 @@ func refresh() -> void:
 		_help_line()
 
 
-## PgUp / PgDn turn the raised notebook's pages (true: taken).
-func key(event: InputEventKey) -> bool:
-	if not raised or not event.keycode in [KEY_PAGEUP, KEY_PAGEDOWN]:
-		return false
-	board.turn(1 if event.keycode == KEY_PAGEDOWN else -1)
-	return true
+## The previous (`way` -1) or next (1) page of the raised notebook (its keys, records 222 / 223 on Page Up / Page Down).
+func turn(way: int) -> void:
+	if raised:
+		board.turn(way)
 
 
 func _changed() -> void:
@@ -492,7 +493,8 @@ func _help_line() -> void:
 	_help.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_help.add_theme_stylebox_override("panel", Look.box(Color(Look.BG, 0.88), Look.LINE, 1, 6, Vector2(8, 4)))
 	var l := Label.new()
-	l.text = s("nb_help") % flight.host.keys.record_key_name(KEY, Settings.key_bindings)
+	var key_name := func(rec: int) -> String: return flight.host.keys.record_key_name(rec, Settings.key_bindings)
+	l.text = s("nb_help") % [key_name.call(KEY), key_name.call(KEY_PREV), key_name.call(KEY_NEXT)]
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	l.add_theme_font_size_override("font_size", 15)
 	l.add_theme_color_override("font_color", Look.MUTED)

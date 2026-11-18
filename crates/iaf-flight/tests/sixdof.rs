@@ -588,7 +588,7 @@ fn plot_data() {
 #[test]
 fn fuel_tanks_and_a_dead_engine() {
     // Drop tanks fill at the start (as the original's FUN_005a8980 and the start's fill); the jettison sets the fuel
-    // and its maximum. A dead engine gives no thrust at any Mach: gliding with neutral stick, the control system
+    // and drops the external tanks (the internal ones keep their size: the 6-DoF's tanks, sixdof/fuel.rs). A dead engine gives no thrust at any Mach: gliding with neutral stick, the control system
     // holds 1 g of specific force (no thrust in it).
     let mut f = flight(jets::all()[1], 0.0, 0.0, false);
     let internal = f.internal_fuel_kg();
@@ -598,7 +598,7 @@ fn fuel_tanks_and_a_dead_engine() {
             && (f.fuel_capacity_kg() - (internal + 1000.0)).abs() < 1e-3
     );
     f.set_fuel(500.0);
-    assert!((f.state().fuel_kg - 500.0).abs() < 1e-3 && (f.fuel_capacity_kg() - 500.0).abs() < 1e-3);
+    assert!((f.state().fuel_kg - 500.0).abs() < 1e-3 && (f.fuel_capacity_kg() - internal).abs() < 1e-2);
 
     let mut f = flight(jets::all()[0], 3048.0, 300.0 * KT, true);
     f.engine_off();
@@ -1191,41 +1191,54 @@ fn the_parking_brake_holds_the_jet() {
 }
 
 #[test]
-fn master_fuel_and_eng_feed_off_flame_the_engine_out() {
-    // MASTER FUEL OFF, or ENG FEED OFF, cuts the fuel: the engine flames out and winds down as on an empty tank, the
-    // fuel stays in the tank; back on, the throttle's idle step is refused until the fuel feeds again.
-    for (name, off) in [("master_fuel", 0), ("eng_feed", 0)] {
-        let mut f = flight(jets::all()[1], 3048.0, 300.0 * KT, true);
-        let c = iaf_flight::Controls { throttle: 0.74, ..f.controls() };
-        assert!(f.set_switch(name, off) && !f.fuel_feeds());
-        fly_for(&mut f, 60.0, |_| c);
-        let s = f.state();
-        println!("{name} off, 60 s: {} RPM {:.1}, thrust {:.0} N", f.start_phase(), s.rpm, s.thrust_n);
-        assert!(s.fuel_kg > 0.0 && s.thrust_n == 0.0 && s.rpm < 20.0 && f.start_phase() != "running");
-        assert_eq!(f.start_step("engine"), Err("no_fuel"));
-        f.set_switch(name, 1);
-        assert!(f.fuel_feeds());
-    }
-    // AFT and FWD feed as NORM (one tank); the knob's next position from FWD is OFF.
+fn master_fuel_off_flames_the_engine_out() {
+    // MASTER FUEL OFF cuts the fuel: the engine flames out and winds down as on an empty tank, the fuel stays in the
+    // tanks; back on, the throttle's idle step is refused until the fuel feeds again.
     let mut f = flight(jets::all()[1], 3048.0, 300.0 * KT, true);
-    for pos in [2, 3] {
-        f.set_switch("eng_feed", pos);
-        assert!(f.fuel_feeds());
-    }
+    let c = iaf_flight::Controls { throttle: 0.74, ..f.controls() };
+    assert!(f.set_switch("master_fuel", 0) && !f.fuel_feeds());
+    fly_for(&mut f, 60.0, |_| c);
+    let s = f.state();
+    println!("master fuel off, 60 s: {} RPM {:.1}, thrust {:.0} N", f.start_phase(), s.rpm, s.thrust_n);
+    assert!(s.fuel_kg > 0.0 && s.thrust_n == 0.0 && s.rpm < 20.0 && f.start_phase() != "running");
+    assert_eq!(f.start_step("engine"), Err("no_fuel"));
+    f.set_switch("master_fuel", 1);
+    assert!(f.fuel_feeds());
+    // ENG FEED OFF stops the electric pumps only: the fuel flow proportioner still feeds the engine (figure 1-23).
+    f.set_switch("eng_feed", -1);
+    f.set_switch("eng_feed", -1);
     f.set_switch("eng_feed", -1);
     assert_eq!(f.switch("eng_feed"), 0);
+    assert!(f.fuel_feeds());
     f.start_engine(); // the start engine command sets the fuel switches on
     assert!(f.fuel_feeds() && f.switch("eng_feed") == 1);
 }
 
 #[test]
-fn the_fuel_quantity_selector_picks_the_reading() {
-    use iaf_flight::sixdof::flight::fuel_qty;
-    // 8,000 lb aboard, 5,800 inside: NORM half the internal on each pointer; EXT WING half the external; EXT CTR none;
-    // TEST the indicator's test values; the totalizer the total.
-    assert_eq!(fuel_qty(1, 8000.0, 5800.0), [2900.0, 2900.0, 8000.0]);
-    assert_eq!(fuel_qty(4, 8000.0, 5800.0), [1100.0, 1100.0, 8000.0]);
-    assert_eq!(fuel_qty(5, 8000.0, 5800.0), [0.0, 0.0, 8000.0]);
-    assert_eq!(fuel_qty(0, 8000.0, 5800.0), [2000.0, 2000.0, 6000.0]);
-    assert_eq!(fuel_qty(4, 3000.0, 5800.0), [0.0, 0.0, 3000.0]);
+fn eng_feed_and_the_fuel_quantity_selector_work_over_the_tanks() {
+    // The Barak with two 370 gal tanks (4,840 lb): at FUEL QTY SEL NORM the fuselage pointers, at EXT WING the tanks.
+    use iaf_flight::sixdof::LB;
+    let near = |a: [f64; 3], b: [f64; 3]| a.iter().zip(b).all(|(x, y)| (x - y).abs() < 0.1);
+    let mut f = flight(jets::all()[0], 3048.0, 300.0 * KT, true);
+    f.set_fuel_capacity((4_840.0 * LB) as f32);
+    assert!(near(f.fuel_gauge(), [1_890.0, 2_810.0, 10_640.0]), "{:?}", f.fuel_gauge());
+    f.set_switch("fuel_qty_sel", 4);
+    assert!(near(f.fuel_gauge(), [2_420.0, 2_420.0, 10_640.0]), "{:?}", f.fuel_gauge());
+    f.set_switch("fuel_qty_sel", 0);
+    assert_eq!(f.fuel_gauge(), [2_000.0, 2_000.0, 6_000.0]);
+    assert_eq!(f.fuel_low(), [true, true]);
+    // Two minutes at NORM: the external tanks feed, the fuselage stays full.
+    f.set_switch("fuel_qty_sel", 1);
+    let c = iaf_flight::Controls { throttle: 0.9, ..f.controls() };
+    fly_for(&mut f, 120.0, |_| c);
+    let t = *f.tanks();
+    println!("after 120 s: {:?}", t.lb);
+    assert!(t.lb[3][0] < 2_400.0 && (t.lb[3][0] - t.lb[3][1]).abs() < 0.1 && (t.fuselage(0) - 2_810.0).abs() < 0.1);
+    // The tanks gone, ENG FEED at FWD: the forward system feeds the engine and the aft tanks.
+    f.set_fuel((3_000.0 * LB) as f32);
+    f.set_switch("eng_feed", 3);
+    let (aft, fwd) = (f.tanks().fuselage(0), f.tanks().fuselage(1));
+    fly_for(&mut f, 60.0, |_| c);
+    println!("FWD 60 s: aft {aft:.0} -> {:.0}, fwd {fwd:.0} -> {:.0}", f.tanks().fuselage(0), f.tanks().fuselage(1));
+    assert!(f.tanks().fuselage(0) > aft && f.tanks().fuselage(1) < fwd - 40.0);
 }

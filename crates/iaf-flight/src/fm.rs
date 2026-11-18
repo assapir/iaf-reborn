@@ -131,6 +131,32 @@ impl Fm {
         }
     }
 
+    /// The F-16's fuel quantity indicator at its FUEL QTY SEL knob: [the FR pointer, the AL pointer, the totalizer],
+    /// lb (the 6-DoF's tanks, `sixdof::fuel`). The original model has one tank and no knob: NORM, its internal fuel
+    /// split in two.
+    pub fn fuel_gauge(&self) -> [f64; 3] {
+        match self {
+            Fm::SixDof(s) => s.fuel_gauge(),
+            Fm::Original(a) => {
+                let total = a.state().fuel_kg as f64 / crate::units::LB;
+                let half = total.min(a.internal_fuel_kg() as f64 / crate::units::LB) / 2.0;
+                [half, half, total]
+            }
+        }
+    }
+
+    /// The F-16's [AFT, FWD] FUEL LOW caution lights: the 6-DoF's reservoirs; the original model's one tank under
+    /// 500 and 800 lb (inferred: the reservoirs drained alike).
+    pub fn fuel_low(&self) -> [bool; 2] {
+        match self {
+            Fm::SixDof(s) => s.fuel_low(),
+            Fm::Original(a) => {
+                let total = a.state().fuel_kg as f64 / crate::units::LB;
+                [total < 500.0, total < 800.0]
+            }
+        }
+    }
+
     pub fn fuel_capacity_kg(&self) -> f32 {
         match self {
             Fm::Original(a) => a.fuel_capacity_kg(),

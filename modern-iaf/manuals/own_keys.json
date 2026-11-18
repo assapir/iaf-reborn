@@ -1,9 +1,4 @@
 {
-"about": "The keys the flight scene reads by itself, outside the key table (shared/terrain/terrain_view.gd _own_key; docs/controls.md \"Own keys\"), that work in Modern IAF and have no record in its key table (the roll trim, MPO, STORES CONFIG and the GPS bomb's keys are records 202–207 of modern-iaf/data/keys.json since 2026-11-18): the key card draws them with the table's (modern-iaf/docs/manuals.md §3). code: the key's constants in that file; tools/manuals.py stops the build when the file no longer names one.",
-"records": [
-{"key": "Ctrl + F1", "code": ["KEY_F1", "_quit_key"], "group": "sim", "label": {"en": "Quit box", "he": "תיבת היציאה"}},
-{"key": "Ctrl + F12", "code": ["KEY_F12", "show_info"], "group": "sim", "label": {"en": "Flight information line", "he": "שורת נתוני הטיסה"}},
-{"key": "Ctrl + F2", "code": ["KEY_F2", "in_cockpit"], "group": "views", "label": {"en": "Cockpit / outside view", "he": "מבט תא טייס / מבט חוץ"}},
-{"key": "Shift + N", "code": ["KEY_N", "_toggle_goggles"], "group": "views", "label": {"en": "Night-vision goggles", "he": "משקפי ראיית לילה"}}
-]
+"about": "The keys the flight scene reads by itself, outside the key table (shared/terrain/terrain_view.gd _own_key; docs/controls.md \"Own keys\"), that work in Modern IAF and have no record in its key table (the roll trim, MPO, STORES CONFIG and the GPS bomb's keys are records 202–207 of modern-iaf/data/keys.json since 2026-11-18, and the quit box, the cockpit / outside view and the flight information line, Ctrl + F1 / F2 / F12, records 219–221 since the same day): the key card draws them with the table's (modern-iaf/docs/manuals.md §3). code: the key's constants in that file; tools/manuals.py stops the build when the file no longer names one. None left: the night-vision goggles' Shift + N does nothing in Modern IAF, which has no goggles.",
+"records": []
 }

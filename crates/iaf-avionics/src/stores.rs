@@ -412,6 +412,22 @@ impl Stores {
         self.moment(true)
     }
 
+    /// The F-16's loading category, 1 or 3, as its stores management set gives it to the STORES CONFIG caution light
+    /// (T.O. GR1F-16CJ-1 figure 3-2, sheet 6: the light shows the switch in the wrong position for the loading
+    /// category; modern-iaf/docs/cockpit.md §5.7). The manual's section V counts air-to-air missiles and 370 gal tanks
+    /// with suspension equipment on the wing as category I loadings; the full table is in the -1-2, not public.
+    /// Category III here (inferred): a pylon holding an air-to-ground store, or a tank of more than 3,000 lb of fuel
+    /// (the 600 gal tank).
+    pub fn loading_category(&self) -> u8 {
+        let mut pylons = self.stations.iter().enumerate().filter(|(i, _)| is_pylon(*i)).filter_map(|(_, s)| s.as_ref());
+        let heavy = pylons.any(|s| {
+            s.count > 0.0
+                && (Category::of(s.weapon.type_code) == Category::AirToGround
+                    || (s.weapon.is_tank() && s.weapon.weight_lb > 3_000.0))
+        });
+        if heavy { 3 } else { 1 }
+    }
+
     fn moment(&self, tanks: bool) -> f64 {
         let stores = self.stations.iter().enumerate().filter(|(i, _)| is_pylon(*i)).filter_map(|(_, s)| s.as_ref());
         stores
@@ -589,6 +605,22 @@ mod tests {
         s.fired(0);
         assert_eq!(s.fire_station(), Some(8));
         assert_eq!(s.total(570, "AIM-9L"), 1);
+    }
+
+    #[test]
+    fn the_loading_category_follows_the_air_to_ground_stores() {
+        let mut s = f16();
+        assert_eq!(s.loading_category(), 3);
+        for _ in 0..3 {
+            s.fired(2);
+            s.fired(6);
+        }
+        assert_eq!(s.loading_category(), 1, "the bombs gone: missiles and a small tank");
+        let mut stations: [Option<Station>; STATIONS] = Default::default();
+        stations[3] = st(SHELL, "4006LB", 1.0);
+        stations[3].as_mut().unwrap().weapon.weight_lb = 4006.0;
+        s.setup(stations);
+        assert_eq!(s.loading_category(), 3, "a 600 gal tank");
     }
 
     #[test]

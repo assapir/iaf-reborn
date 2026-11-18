@@ -315,10 +315,13 @@ func key(event: InputEventKey) -> bool:
 		return open and event.echo  # a lone modifier is part of the next key (Ctrl+T closes the menu)
 	var rec: int = host.keys.find_key(host.keys.key_of_event(event), Settings.key_bindings)
 	if rec >= 0 and int(host.keys.records[rec].press[0]) == 203:
-		# The Checklist notebook key (keys.json record 118, H; training.md §11).
-		kneeboard.toggle()
-		return true
-	if not open and kneeboard.key(event):
+		# The Checklist notebook (keys.json, training.md §11): p1 0 raise / stow (record 118, H), -1 / 1 the previous /
+		# next page while it is raised (records 222 / 223, Page Up / Page Down).
+		var way := int(host.keys.records[rec].press[1])
+		if way == 0:
+			kneeboard.toggle()
+		elif not open:
+			kneeboard.turn(way)
 		return true
 	if rec >= 0 and int(host.keys.records[rec].press[0]) == 107:
 		set_open(not open)

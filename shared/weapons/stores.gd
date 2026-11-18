@@ -272,6 +272,11 @@ func missile_counts() -> Array:
 	return _s.missile_counts()
 
 
+## The F-16's loading category for the STORES CONFIG caution light: 1 or 3 (IafStores.loading_category).
+func loading_category() -> int:
+	return _s.loading_category()
+
+
 ## The selection cycle (FUN_0053b8b0): kind 1 AA, 2 AG; the gun belongs to both when allowed.
 func cycle(kind: int, allow_gun := true) -> void:
 	_s.cycle(kind, allow_gun)

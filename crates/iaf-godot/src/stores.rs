@@ -180,6 +180,12 @@ impl IafStores {
         varray![srm, mrm]
     }
 
+    /// The F-16's loading category for the STORES CONFIG caution light: 1 or 3 (iaf-avionics `loading_category`).
+    #[func]
+    fn loading_category(&self) -> i64 {
+        i64::from(self.stores.loading_category())
+    }
+
     #[func]
     fn reload(&mut self) {
         self.stores.reload();

@@ -26,6 +26,7 @@
 "SW_PARKING_BRAKE": {"system": "parking_brake"},
 "SW_MASTER_FUEL": {"system": "master_fuel", "mode": "cycle", "min": 0, "max": 1, "step": 1, "wrap": true},
 "SW_KNOB_ENG_FEED": {"system": "eng_feed"},
+"FQS_sel-knob": {"system": "fuel_qty_sel"},
 "SW_STORES_CONFIG": {"system": "stores_config"},
 "SW_MPO": {"system": "mpo"},
 "HMCS_SYM_INT_KNOB": {"system": "hmcs"},

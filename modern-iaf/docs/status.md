@@ -3,10 +3,21 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **The F-16s' fuel tanks, the STORES CONFIG light and the last own keys (2026-11-18, [cockpit.md](cockpit.md) §5.7,
+  [front-end.md](front-end.md) §9.1):** the 6-DoF carries the F-16's tanks (two systems of reservoir, fuselage, wing
+  and external tank, emptying from the far end; `sixdof/fuel.rs`): ENG FEED's AFT and FWD feed the engine from one
+  system and move fuel into the other, OFF stops the electric pumps only (the engine runs on: until this day OFF cut
+  the fuel, a misreading of the flight manual); FUEL QTY SEL shows each position's tanks, NORM runs the automatic
+  forward transfer; the FUEL LOW lights read the reservoirs (and TEST). The STORES CONFIG caution lights while the
+  switch is off the load's category (CAT III with air-to-ground stores or a 600 gal tank, inferred; `stores.rs`
+  `loading_category`). Ctrl + F1 / F2 / F12 (quit box, cockpit / outside, flight information line) are key-table
+  records 219–221, and the notebook's pages records 222 / 223 (Page Up / Page Down, the laptop map's Option + Space /
+  Shift + Space). Shift + N, the 1998 game's night-vision goggles, does nothing in Modern IAF (no goggles), so it has
+  no record. Tests: `test_fuel_brake_switches.gd`, `test_switches_click.gd`, `test_notebook.gd`; the iaf-flight and
+  iaf-avionics tests. Owed: the run on the Mac.
 - **The F-16s' fuel and brake switches (2026-11-18, [cockpit.md](cockpit.md) §5.7):** PARKING BRAKE holds the jet
-  (Shift + G; a ground start begins with it set; the F-35I's switch too), MASTER FUEL OFF and ENG FEED OFF flame the
-  engine out (Ctrl + F, Shift + E), FUEL QTY SEL picks the fuel gauge's reading (Shift + U). Partly: ENG FEED's AFT
-  and FWD feed as NORM, and FUEL QTY SEL's RSVR and INT WING show NORM's reading (one fuel tank).
+  (Shift + G; a ground start begins with it set; the F-35I's switch too), MASTER FUEL OFF flames the engine out
+  (Ctrl + F), ENG FEED and FUEL QTY SEL work (Shift + E, Shift + U; over every tank since the entry above).
 - **DRIFT C/O and the display knobs (2026-11-18, [cockpit.md](cockpit.md) §5.8):** DRIFT C/O centres the HUD's flight
   path marker (Shift + J), WARN RESET puts the FUEL cue and the repeating "Altitude" call out (Ctrl + R), the MFDs'
   CON and GAIN rockers set each display's contrast and sensor picture (Shift + 7 / 8 / 9 / 0). Partly: the HUD's CONT
@@ -23,18 +34,18 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   the weapon view on F2, laptop keys for the eight commands on Page Up / Page Down / Home / End, and Ctrl + Q /
   Ctrl + M named with Ctrl. A test fails on a listed command with no key on a Mac laptop
   (`every_listed_command_has_a_key_on_a_mac_laptop`); `modern-iaf/tests/test_switch_keys.gd`, `test_devices.gd`. Owed:
-  the run on the Mac. Not started (not in the user's words): records for the four keys still read outside the table
-  (Ctrl + F1 quit box, Ctrl + F2 cockpit / outside, Ctrl + F12 flight information line, Shift + N goggles); a
+  the run on the Mac. Not started (not in the user's words): a
   SPD BRK switch to click (the cockpit models have none); the speedbrakes' own line on the F-16's landing card; a
-  speedbrake button in the Hotas X's map (`data/devices/hotas_x.json`: its brake button is the wheel brakes now); a
-  laptop key for the notebook's page turn (Page Up / Page Down; the wheel, the trackpad and the tabs turn it too).
+  speedbrake button in the Hotas X's map (`data/devices/hotas_x.json`: its brake button is the wheel brakes now).
+  The own keys' records and the notebook's laptop keys were done later the same day (the entry above).
   The notebook's card keeps naming no key (the user, 2026-11-13); the manuals' step tables show the throttle's keys.
   With an autopilot mode flying, the brake control still opens the speedbrakes in the air.
 - **The F-16s' lighting controls (2026-11-17, the lights audit part B, [cockpit.md](cockpit.md) §5.5; approved
   17 Nov):** the lighting panel's dimmers, MAL & IND LTS, NVIS, INDV LTG CONT and DATA ENTRY DISPLAY,
   the ICP's BRT wheel, the exterior lights panel and LANDING / TAXI each do their job; LE FLAPS rests at AUTO and its
-  caution lights at LOCK (`modern-iaf/tests/test_cockpit_lights.gd`). ANTI SKID, STORES CONFIG and SEAT NOT ARMED stay
-  test only: the anti-skid system, the load's category and the seat lever are not modelled.
+  caution lights at LOCK (`modern-iaf/tests/test_cockpit_lights.gd`). ANTI SKID and SEAT NOT ARMED stay
+  test only: the anti-skid system and the seat lever are not modelled (STORES CONFIG lights since 2026-11-18, the first
+  entry).
 - **The Adir's TFLIR camera and display controls (2026-11-18, fixed):** the TFLIR picture starts when the pilot picks
   TFLIR (a tab, a window, the MENU grid), presses the FLIR page key with TFLIR already shown, or clicks its picture;
   it stayed at NO VIDEO before because the display set the page alone and the key refused a page already shown. The

@@ -13,6 +13,7 @@ pub mod body;
 pub mod engine;
 pub mod fcs;
 pub mod flight;
+pub mod fuel;
 pub mod gear;
 pub mod jets;
 pub mod start;

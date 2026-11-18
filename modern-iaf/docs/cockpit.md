@@ -812,7 +812,7 @@ Test: `modern-iaf/tests/test_canopy_spider.gd` (both F-16s by the mouse and the 
 ### 5.7 The fuel and brake switches (2026-11-18)
 
 Four switches of the F-16s' 3D cockpit that only moved now work. Their state is the flight model's (`crates/iaf-flight`
-`sixdof/flight.rs` `SixDof::set_switch` / `switch`, `fuel_qty`); a click and a key both send command 270 (p1 the
+`sixdof/flight.rs` `SixDof::set_switch` / `switch`; the tanks in `sixdof/fuel.rs`); a click and a key both send command 270 (p1 the
 switch, p2 its position, -1 the next one round; `terrain_view.gd`), and each frame the switch shows the flight model's
 state (`cockpit3d_controls.gd` `FUEL_SWITCHES`).
 
@@ -820,16 +820,39 @@ state (`cockpit3d_controls.gd` `FUEL_SWITCHES`).
 | --- | --- | --- |
 | PARKING BRAKE / ANTI-SKID (`SW_PARKING_BRAKE`; the F-35I's `PARK_BRAKE`) | Shift + G | At PARKING BRAKE the wheel brakes are held on the ground with no brake key held, as with the pedals[^fm-brakes]. A ground start begins with it set (the brake key free); the checklist card's BEFORE TAXI releases it. The autopilot releases it when it takes over (inferred). The real jet has no lamp for it: the switch shows it. |
 | MASTER FUEL (`SW_MASTER_FUEL`, its guard `anim048` following it) | Ctrl + F | OFF closes the engine's fuel shut-off valve[^fm-fuel]: the engine flames out and winds down as on an empty tank (its generators off line). The throttle's idle step is refused while it is OFF (fault `no_fuel`). The Start engine command sets it to MASTER. |
-| ENG FEED (`SW_KNOB_ENG_FEED`: OFF, NORM, AFT, FWD) | Shift + E (next position) | OFF feeds nothing, as MASTER FUEL OFF; NORM feeds[^fm-feed]. The fuel model has one tank, so AFT and FWD feed as NORM (status: partly). |
-| FUEL QTY SEL (`FQS_sel-knob`: TEST, NORM, RSVR, INT WING, EXT WING, EXT CTR) | Shift + U (next position) | The FUEL QTY gauge's two pointers and totalizer at the selected reading[^fm-fqs]: NORM half the internal fuel on each pointer; EXT WING half the external fuel (the wing tanks are the only external tanks carried); EXT CTR none (no centreline tank is carried); TEST 2,000 lb on each pointer and 6,000 lb on the totalizer (inferred: the indicator's self test). RSVR and INT WING show NORM's reading (status: partly): the reservoirs and the wing tanks are not modelled apart. The totalizer shows all the fuel at every position but TEST. The knob starts at NORM. |
+| ENG FEED (`SW_KNOB_ENG_FEED`: OFF, NORM, AFT, FWD) | Shift + E (next position) | NORM: the fuel flow proportioner takes half the engine's fuel from each system[^fm-transfer]. AFT / FWD: that system's pumps feed the engine and pump fuel into the other system ("CG moves forward" / "aft")[^fm-feed], here 4,300 lb/h into its reservoir and fuselage tanks (inferred from the timings of the manual's blown-tire landing: FWD empties the forward system in about 9 minutes on the D at 4,000 lb/h from 3,000 lb remaining, leaving about 2,400 lb in the aft[^fm-fwd]; these tanks do it in 9.0 minutes with 2,400 lb left at that rate). OFF: the electric pumps stop and the proportioner still feeds the engine[^fm-feed], so the engine runs on as at NORM (until 2026-11-18 OFF cut the fuel, a misreading). A system that runs dry leaves the rest of the flow to the other (inferred). |
+| FUEL QTY SEL (`FQS_sel-knob`: TEST, NORM, RSVR, INT WING, EXT WING, EXT CTR) | Shift + U (next position) | The FUEL QTY gauge's AL and FR pointers and totalizer at the selected tanks[^fm-fqs]: NORM the aft and forward fuselage fuel with their reservoirs; RSVR the reservoirs; INT WING the wing tanks (with the Sufa's conformal tanks: the "INT WING & CFT" position); EXT WING the external wing tanks; EXT CTR the centreline tank on FR, none here (no sim jet carries one), AL at zero; TEST 2,000 lb on each pointer, 6,000 lb on the totalizer and both FUEL LOW lights on. The totalizer shows all the fuel at every position but TEST. NORM also runs the automatic forward fuel transfer[^fm-transfer]; the knob starts at NORM. Since 2026-11-18 the knob is the flight model's switch `fuel_qty_sel` (command 270 p1 3), as the other three. |
+
+**The tanks** (`sixdof/fuel.rs` `Tanks`, every 6-DoF jet). Two systems, aft (left) and forward (right), each a chain
+from the engine out: the reservoir (480 lb), the fuselage tanks (A-1: 2,330 lb; F-1 / F-2: 1,410 lb), the internal
+wing tank (the jet's internal fuel past the fuselage's 4,700 lb, half each: the Barak's 550 lb, the Sufa's 2,075 lb
+with its conformal tank) and the external wing tank (half the external fuel; `set_fuel_capacity`)[^fm-tanks]. Fuel
+moves down each chain toward its reservoir, so a chain empties from its far end, the reservoir last[^fm-transfer]. The
+F-16D's automatic forward transfer, at NORM: on with the forward fuselage fuel under 1,500 lb and the aft heavier by
+more than 900 lb, off at 750 lb[^fm-transfer]. The FWD and AFT FUEL LOW lights: the reservoir under 250 and 400 lb (the
+D's figures)[^fm-low], or the knob at TEST. The tank jettison (`set_fuel`) leaves the internal tanks as they are and
+drops the external ones. Bingo stays on the total: the real jet's NORM counts the fuselage fuel, the same here since the
+fuselage tanks empty last. The original game's model keeps its one tank: the gauge at NORM shows half its internal fuel
+on each pointer, FWD FUEL LOW below 800 lb and AFT below 500 lb in all (`fm.rs` `fuel_gauge`, `fuel_low`).
+
+**The STORES CONFIG caution light** (`cockpit3d.gd` `_lamp_on`, `caution_stores_config`) lights while the STORES CONFIG
+switch is off the load's category: the light shows "STORES CONFIG switch is in incorrect position or loading category
+in SMS software disagrees with actual GP/STORE/LINE loading category"[^fm-stores]. The category is the stores', as the
+stores management set counts them (`crates/iaf-avionics` `stores.rs` `Stores::loading_category`): CAT III with an
+air-to-ground store or a 600 gal tank on a pylon, else CAT I, and it follows the stores as they are released or
+jettisoned. The real list is in the -1-2 stores supplement, which is not public; the flight manual counts air-to-air
+missiles and 370 gal tanks with their pylons as category I[^fm-cat]; the rest is inferred. The light, as the other
+cautions, lights MASTER CAUTION. Modern IAF's F-16s only: the 1998 game's 3D F-16 cockpit keeps it dark.
 
 The original game's optional 3D F-16 cockpit shares the table: its flight model has none of these switches, so they
 move only, as before.
 
-Test: `modern-iaf/tests/test_fuel_brake_switches.gd` (the Barak: the parking brake holds and releases, ENG FEED and
-MASTER FUEL flame the engine out, the gauge's readings), `test_switches_click.gd` (the clicks' commands),
-`crates/iaf-flight/tests/sixdof.rs` (`the_parking_brake_holds_the_jet`,
-`master_fuel_and_eng_feed_off_flame_the_engine_out`, `the_fuel_quantity_selector_picks_the_reading`).
+Test: `modern-iaf/tests/test_fuel_brake_switches.gd` (the Barak: the parking brake holds and releases, ENG FEED OFF
+keeps the engine running and FWD moves fuel aft, MASTER FUEL flames the engine out, the gauge's readings at NORM, RSVR,
+INT WING, TEST and EXT CTR, the FUEL LOW lights, the STORES CONFIG light), `test_switches_click.gd` (the clicks'
+commands), `crates/iaf-flight/tests/sixdof.rs` (`the_parking_brake_holds_the_jet`, `master_fuel_off_flames_the_engine_out`,
+`eng_feed_and_the_fuel_quantity_selector_work_over_the_tanks`), `sixdof/fuel.rs`'s own tests and `crates/iaf-avionics`
+`stores.rs` `the_loading_category_follows_the_air_to_ground_stores`.
 
 ### 5.8 DRIFT C/O and the display knobs (2026-11-18)
 
@@ -1200,7 +1223,13 @@ openstreetmap.org/copyright" (also in [docs/credits.md](../../docs/credits.md)).
 [^f16c-photo]: US Air Force, "F-16C cockpit" (the front cockpit from about the seat, public domain), Wikimedia Commons, https://commons.wikimedia.org/wiki/File:F-16C_cockpit_m02006112700032.jpg
 [^fm-brakes]: T.O. GR1F-16CJ-1 (the HAF F-16C/D flight manual, public copy https://archive.org/details/haf-f-16), pages 1-110, 1-111, 1-116 and 1-117 (the wheel brakes, the ANTI-SKID switch's PARKING BRAKE position), and section II "After landing", the caution of page 2-27 (the parking brake holds the jet before a flight, with cold brakes).
 [^fm-fuel]: T.O. GR1F-16CJ-1, page 1-72 (the MASTER FUEL switch opens the main fuel shut-off valve to the engine).
-[^fm-feed]: T.O. GR1F-16CJ-1, figure 1-23, page 1-73 (ENG FEED: OFF, NORM, AFT, FWD).
+[^fm-feed]: T.O. GR1F-16CJ-1, figure 1-23, page 1-73 (ENG FEED: OFF "Deenergizes all electric-driven pumps. Engine supplied by FFP"; NORM "Energizes all pumps. CG maintained automatically"; AFT and FWD "Energizes pumps in aft [forward] tanks and opens crossfeed valve. Fuel is transferred from aft [forward] tanks to the engine and forward [aft] tanks").
+[^fm-transfer]: T.O. GR1F-16CJ-1, page 1-61 (the forward and aft tank systems, the order of transfer, the fuel flow proportioner's equal flow from each reservoir, the automatic forward fuel transfer and its thresholds).
+[^fm-fwd]: T.O. GR1F-16CJ-1, section III, "Landing with a blown nose gear tire", page 3-136 ("At 3000 pounds fuel remaining, place ENG FEED knob to FWD … Emptying forward tank system takes approximately C 15 minutes, D 9 minutes if fuel flow is 4000 pph").
+[^fm-tanks]: T.O. GR1F-16CJ-1, figure 1-22, sheets 1 and 2, pages 1-70 and 1-71 (each tank's quantity and the FUEL QTY SEL position that shows it; the F-16D with JP-5/8: NORM AL 2,810 lb, FR 1,890 lb, RSVR 480 lb each, INT WING 550 lb each, 2,080 lb with the CFTs).
+[^fm-low]: T.O. GR1F-16CJ-1, page 1-74 (FWD FUEL LOW below 400 lb, D 250 lb; AFT FUEL LOW below 250 lb, D 400 lb).
+[^fm-stores]: T.O. GR1F-16CJ-1, figure 3-2, sheet 6 (the caution light analysis: STORES CONFIG).
+[^fm-cat]: T.O. GR1F-16CJ-1, section V, "Prohibited maneuvers", page 5-3 (symmetric category I loadings with missiles or suspension equipment at stations 3, 4, 6 or 7), and the note on the bank angle change limit before "AOA and rolling limitations", page 5-4 (category I loadings with 370-gallon tanks plus suspension equipment on stations 3 and 7).
 [^fm-fqs]: T.O. GR1F-16CJ-1, figure 1-24, pages 1-75 and 1-76 (the fuel quantity indicator and FUEL QTY SEL).
 [^fm-warn]: T.O. GR1F-16CJ-1, page 1-77 (the FUEL mnemonic "may be manually reset by placing the WARN RESET switch to WARN RESET"), page 1-145 (WARN RESET resets the voice warnings) and figure 3-1, sheet 5 (a flashing FUEL reset by WARN RESET on the ICP).
 [^fm-drift]: Inferred from the switch's name and FlightGear's F-16 (`Nasal/HUD/HUD_main.nas`: at DRIFT C/O the marker's x is the HUD's centre); T.O. GR1F-16CJ-1 does not describe the switch (open).

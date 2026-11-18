@@ -10,7 +10,7 @@ The computer limits what the pilot can ask for, so that full stick does not brea
 - *Angle of attack, CAT I.* About 25°.
 - *Angle of attack, #term("CAT III").* About 16° to 18°, with slower roll, for a jet with heavy or large stores (the reason, an earlier loss of control with such stores, is inferred).
 
-#row("SW_STORES_CONFIG") chooses CAT I or CAT III#fm[page 1-130]. The #row("lamp_caution_stores_config_0") caution light means that the switch does not match the stores the jet carries (inferred from its name).
+#row("SW_STORES_CONFIG") chooses CAT I or CAT III#fm[page 1-130]. The #row("lamp_caution_stores_config_0") caution light means that the switch is in the wrong position for the loading category, or that the stores management set's category disagrees with the load#fm[figure 3-2, sheet 6].
 
 === Flaps
 
@@ -41,11 +41,11 @@ Two switches engage the autopilot#fm[pages 1-134 to 1-136]: #row("pitch-hold-swi
 - The red #row("lamp_flcs_0") warning light and the #row("lamp_caution_flt_cont_sys_0") caution light show faults of the system (@emergency-systems).
 
 #in-sim[
-  - *Limiters.* +9 and −3 g; 25° angle of attack in CAT I; 15.5° to 18°, by weight, with slower roll in CAT III. STORES CONFIG is read.
+  - *Limiters.* +9 and −3 g; 25° angle of attack in CAT I; 15.5° to 18°, by weight, with slower roll in CAT III. STORES CONFIG is read. #sym.arrow.r *The STORES CONFIG caution lights while the switch is off the load's category* (@limits-g).
   - *Flaps.* The leading-edge flaps follow their schedule. The trailing-edge flaps go to 20° with the gear handle down and come up between 240 and 370 knots.
   - *Speedbrakes.* #key("Speedbrakes open (hold)") opens them while held, and they stay where the key is let go; #key("Speedbrakes close") closes them. Fully open is 60°, 43° with the gear down.
   - *Manual pitch override.* OVRD removes the negative-g limit and gives the stick direct control of the tail above 29° angle of attack.
   - *Autopilot.* #key("Autopilot: level / nav / off") steps through level flight, steering along the route, and off.
   - #sym.arrow.r *RUN lights with BIT, FLCS PWR with FLCS PWR TEST, DBU ON with DIGITAL BACKUP, the LE FLAPS caution with LE FLAPS at LOCK.* The FLCS warning light comes on after battle damage to the flight controls.
-  - *#term("Not modelled").* Faults of the computer and the results of its tests; the digital backup's control laws; LE FLAPS LOCK; pitch and yaw trim, the MANUAL TRIM panel and TRIM/AP DISC (the sim trims roll only); the PITCH and ROLL autopilot switches, which move and do nothing; the STORES CONFIG caution.
+  - *#term("Not modelled").* Faults of the computer and the results of its tests; the digital backup's control laws; LE FLAPS LOCK; pitch and yaw trim, the MANUAL TRIM panel and TRIM/AP DISC (the sim trims roll only); the PITCH and ROLL autopilot switches, which move and do nothing.
 ]

@@ -632,21 +632,20 @@ func _lighting() -> void:
 
 
 ## The F-16's FUEL QTY SEL knob (its FlightGear property: 0 TEST, 1 NORM, 2 RSVR, 3 INT WING, 4 EXT WING, 5 EXT CTR;
-## command 270 p1 3, modern-iaf/docs/cockpit.md §5.7).
+## the flight model's switch "fuel_qty_sel", command 270 p1 3, modern-iaf/docs/cockpit.md §5.7).
 const FQS := "controls/fuel/qty-selector"
 
 
 ## The fuel quantity indicator at FUEL QTY SEL's position: (FWD pointer, AFT pointer, totalizer), lb
-## (IafFlight.fuel_qty).
+## (IafFlight.fuel_gauge: the 6-DoF's tanks; the 1998 game's model, whose knob moves only, at NORM).
 func _fuel_qty() -> Vector3:
+	var tv := _tv()
+	if tv != null and tv.get("flight") != null:
+		return tv.flight.fuel_gauge()
 	var s: Dictionary = cockpit.state
 	var fuel := float(s.get("fuel_lbs", 0.0))
-	var internal := float(s.get("internal_fuel_kg", 0.0)) / 0.45359
-	if not ClassDB.class_exists("IafFlight"):
-		return Vector3(minf(fuel, internal) / 2.0, minf(fuel, internal) / 2.0, fuel)
-	# The 1998 game's 3D F-16 cockpit: the knob moves only, the gauge at NORM.
-	var sel := int(switches.get(FQS, 1.0)) if _ours() else 1
-	return ClassDB.class_call_static("IafFlight", "fuel_qty", sel, fuel, internal)
+	var internal := minf(fuel, float(s.get("internal_fuel_kg", 0.0)) / 0.45359)
+	return Vector3(internal / 2.0, internal / 2.0, fuel)
 
 
 ## Whether the cockpit flies in Modern IAF (its key table: terrain_view.gd _own_keys_in_table), where the F-16's fuel
@@ -1586,10 +1585,16 @@ func _lamp_on(key: String) -> bool:
 			return _sw("f16/cockpit/tailhook-handle")
 		"caution_cabin_press":  # the cabin above 27,000 ft (FlightGear's)
 			return _cabin_alt_ft() > 27000.0
-		"caution_fwd_fuel_low", "caution_aft_fuel_low":
-			# FlightGear's: the forward reservoir below 400 lb, the aft below 250 lb; the game keeps one total, the two
-			# reservoirs drained alike: below 800 and 500 lb (inferred).
-			return float(cockpit.state.get("fuel_lbs", 1e9)) < (800.0 if key == "caution_fwd_fuel_low" else 500.0)
+		"caution_fwd_fuel_low", "caution_aft_fuel_low":  # the reservoirs low, or FUEL QTY SEL at TEST (IafFlight.fuel_low)
+			var tv := _tv()
+			if tv == null or tv.get("flight") == null:
+				return false
+			return bool(tv.flight.fuel_low()[1 if key == "caution_fwd_fuel_low" else 0])
+		"caution_stores_config":  # the STORES CONFIG switch off the loading's category (stores.gd loading_category)
+			var tv := _tv()
+			if not _ours() or tv.get("weapons") == null:
+				return false
+			return bool(tv.cat3) != (tv.weapons.stores.loading_category() == 3)
 		"caution_overheat":  # a fire (damage 16, 17) or the FIRE & OHEAT DETECT test (FlightGear's)
 			return flag.call(16) or flag.call(17) or _sw("controls/test/test-panel/fire-ovht-test")
 		"caution_probe_heat":  # the PROBE HEAT switch at TEST: the caution flashes (FlightGear's, 0.15 s)

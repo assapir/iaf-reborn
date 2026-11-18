@@ -111,13 +111,13 @@ Terms used on this page:
 
   | key | ours | the original's command on that key |
   |---|---|---|
-  | Ctrl+F1 | quit-mission box (msg 8) | — (was on Esc, now the TSD toggle 122) |
-  | Ctrl+F2 | cockpit ↔ external | — (was on C, now time compression 119, and F2, now the back view) |
-  | Ctrl+F12 | flight-info line on / off | — (was on F12, now I-mode 124) |
+  | Ctrl+F1 | quit-mission box (msg 8); in Modern IAF a key-table record (219, command 134) | — (was on Esc, now the TSD toggle 122) |
+  | Ctrl+F2 | cockpit ↔ external; in Modern IAF a key-table record (220, command 272) | — (was on C, now time compression 119, and F2, now the back view) |
+  | Ctrl+F12 | flight-info line on / off; in Modern IAF a key-table record (221, command 273) | — (was on F12, now I-mode 124) |
   | F1 | cockpit | Cockpit / HUD view (28,1) — the same, runs through the table |
   | V | the whole panel, or from there none; held (≥ 0.3 s), its release returns the panel (a glance down) | — |
   | PgUp / PgDn | slide the panel | — |
-  | Shift+N | night-vision goggles on / off, with Graphics → MORE "Night vision" = Goggles (rendering.md §8) | — |
+  | Shift+N | night-vision goggles on / off, with Graphics → MORE "Night vision" = Goggles (rendering.md §8); nothing in Modern IAF, which has no goggles | — |
   | Alt + Left / Right | roll trim left / right while held (§5.2 "Throttle rocker") | — |
   | Alt + M (held), Alt + S | Modern IAF's 6-DoF: the MANUAL PITCH override, the STORES CONFIG switch CAT I / CAT III (modern-iaf/docs/flight-model.md §9.11); nothing on the original model | — |
   | K | the selected GPS bomb's mode PRE ↔ VIS (weapons.md §13.2) | — |

@@ -2906,7 +2906,7 @@ func _press(cmd: Array) -> bool:
 		return true
 	if window_key(int(cmd[0])):
 		return true
-	if (ejected or fatal_hit) and not int(cmd[0]) in [18, 20, 21, 28, 134]:
+	if (ejected or fatal_hit) and not int(cmd[0]) in [18, 20, 21, 28, 134, 272, 273]:
 		return true  # control mode 0: the jet no longer takes the player's commands
 	return _command(cmd)
 
@@ -3259,19 +3259,22 @@ func _command(cmd: Array) -> bool:
 					_on_subtitle("Data link on" if e.link_on() else "Data link off")
 		270:
 			# Ours, Modern IAF: the fuel and brake switches (keys Shift + G, Ctrl + F, Shift + E / U; the 3D cockpit's switches;
-			# modern-iaf/docs/cockpit.md §5.7): p1 0 PARKING BRAKE, 1 MASTER FUEL, 2 ENG FEED (the flight model's,
-			# IafFlight.set_switch), 3 FUEL QTY SEL (the 3D cockpit's gauge); p2 the position, -1 the next one round.
+			# modern-iaf/docs/cockpit.md §5.7): p1 0 PARKING BRAKE, 1 MASTER FUEL, 2 ENG FEED, 3 FUEL QTY SEL (the flight
+			# model's, IafFlight.set_switch); p2 the position, -1 the next one round.
 			var to := int(cmd[2])
 			if not _own_keys_in_table:  # the 1998 game's 3D F-16 cockpit: its switches move only
 				return true
-			if p1 == 3 and cockpit_3d != null:
-				var sel: float = cockpit_3d.switches.get(cockpit_3d.FQS, 1.0)
-				cockpit_3d.switches[cockpit_3d.FQS] = float((int(sel) + 1) % 6 if to < 0 else clampi(to, 0, 5))
-			elif p1 >= 0 and p1 < 3 and flight != null:
-				var sw: String = ["parking_brake", "master_fuel", "eng_feed"][p1]  # cockpit3d_controls.gd FUEL_SWITCHES
+			if p1 >= 0 and p1 < 4 and flight != null:
+				var sw: String = ["parking_brake", "master_fuel", "eng_feed", "fuel_qty_sel"][p1]  # FUEL_SWITCHES
 				if flight.set_switch(sw, to):
-					var shown: Array = [["off", "set"], ["OFF", "MASTER"], ["OFF", "NORM", "AFT", "FWD"]][p1]
-					_on_subtitle(["Parking brake ", "Master fuel ", "Engine feed "][p1] + shown[flight.switch(sw)])
+					var shown: Array = [
+						["off", "set"],
+						["OFF", "MASTER"],
+						["OFF", "NORM", "AFT", "FWD"],
+						["TEST", "NORM", "RSVR", "INT WING", "EXT WING", "EXT CTR"],
+					][p1]
+					var label: String = ["Parking brake ", "Master fuel ", "Engine feed ", "Fuel quantity "][p1]
+					_on_subtitle(label + shown[flight.switch(sw)])
 		271:
 			# Ours, Modern IAF's F-16s: the display knobs (keys Ctrl + H, Shift + 7 / 8 / 9 / 0; the 3D cockpit's own
 			# CONT wheel and CON / GAIN rockers set them directly): p1 cockpit3d.gd DISPLAY_KNOBS' index (0 the ICP's
@@ -3279,6 +3282,12 @@ func _command(cmd: Array) -> bool:
 			# from the bottom round to the top (modern-iaf/docs/cockpit.md §5.8).
 			if _own_keys_in_table and cockpit_3d != null:
 				cockpit_3d.step_knob(p1, int(cmd[2]))
+		272:
+			in_cockpit = not in_cockpit  # ours, Modern IAF's Ctrl + F2 (keys.json record 220; _own_key in the 1998 game)
+		273:
+			# Ours, Modern IAF's Ctrl + F12 (keys.json record 221; _own_key in the 1998 game): the flight-info line.
+			Settings.show_info = not Settings.show_info
+			Settings.save()
 		219:
 			# Ours, Modern IAF: one F-16 power switch (the 3D cockpit's AVIONIC POWER and SNSR PWR switches; no key sends
 			# it): p2 its index in sim_flight.gd SYSTEMS, p1 as 210-215's (modern-iaf/docs/cockpit.md §5.2).
@@ -4003,9 +4012,13 @@ func _set_time_factor(f: int) -> void:
 
 ## Our own keys (not in the original table; docs/controls.md "Own keys"). The ones that sat on original
 ## keys moved to Ctrl + F-keys when those commands were built (user decision): Ctrl+F1 the quit box
-## (was Esc), Ctrl+F2 cockpit / external (was C and F2), Ctrl+F12 the flight-info line (was F12).
+## (was Esc), Ctrl+F2 cockpit / external (was C and F2), Ctrl+F12 the flight-info line (was F12). Modern IAF's key
+## table has the three (records 219–221, commands 134, 272, 273), so there only the keys bound on the Keys screen work
+## them.
 func _own_key(event: InputEventKey) -> void:
 	if KeyTable.ctrl(event):
+		if _own_keys_in_table:
+			return
 		match event.keycode:
 			KEY_F1:
 				_quit_key()

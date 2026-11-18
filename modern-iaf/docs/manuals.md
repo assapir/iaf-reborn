@@ -522,12 +522,12 @@ Parts:
   (pictures in the flight manual); for the F-35 the tank layout, the gear and brake systems, the ICAWS categories'
   definitions and the cockpit switches' functions.
 - Found while writing chapter 2, the game's and listed, not changed here: the autopilot's PITCH and ROLL switches move only (the A key
-  is the only way); the F-16's FUEL QTY SEL knob shows RSVR and INT WING as NORM (one fuel tank), so the card's
-  fuel check cannot be done as the real one; the card has no line for the speedbrakes or the altimeter before landing, which the real "Descent/before
+  is the only way); the F-16's FUEL QTY SEL knob showed RSVR and INT WING as NORM (one fuel tank; every position shows its tanks since
+  2026-11-18, cockpit.md §5.7); the card has no line for the speedbrakes or the altimeter before landing, which the real "Descent/before
   landing" has.
 - Found while writing chapter 3, the game's and listed, not changed here:
-  - STORES CONFIG stays dark: the sim has no data on which loads are category III (open; with the CAT III handling,
-    not started). FLCS BIT FAIL lights from the MFD's BIT only.
+  - STORES CONFIG stayed dark: the sim had no data on which loads are category III (lights since 2026-11-18 on an
+    inferred rule, cockpit.md §5.7). FLCS BIT FAIL lights from the MFD's BIT only.
   - The "engine cut out" damage (flag 2) is never picked, so its restart path is dead code.
   - An engine fire stops the thrust of a single-engine jet (`damage_bits`); the extinguisher (a 1998 function; the real
     jets have none in the cockpit procedure) restores the engine at once.
@@ -546,8 +546,8 @@ Parts:
   - The limits with the gear down (g, 15° angle of attack with stores, roll) and the rolling g limits are not there.
   - The control laws do not change with the gear handle down (read from flight-model.md §9.11, not from the code): the stick commands g on the approach, where the real
     F-16 commands pitch rate up to 10° angle of attack.
-  - A category III load flown at CAT I flies as a clean jet: stores change no stability, and the STORES CONFIG
-    caution never lights. Nothing tells the pilot which loads are category III.
+  - A category III load flown at CAT I flies as a clean jet: stores change no stability. (The STORES CONFIG caution
+    lights since 2026-11-18, cockpit.md §5.7.)
   - The yaw departure, the inverted deep stall and the centre of gravity (fuel and stores sit at it) are not
     modelled; open speedbrakes do not lower the departure resistance.
   - The Adir's limits (checked 2026-11-18): its sourced ones are its own data (`data_set::F35I`: +9 g, 50° angle of

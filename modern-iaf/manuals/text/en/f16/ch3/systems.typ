@@ -38,9 +38,10 @@ A fault of the #term("FLCS") (@flight-controls) shows as *#row("lamp_flcs_0")* o
 - *Trapped external fuel.* *The external tanks stay full while the internal fuel falls*; a regular look at the tanks' quantities finds it. Cut the fuel flow. Check that #row("SW_AIR_REFUEL") is at CLOSE and #row("AirSource_knob") at NORM or DUMP. Set the cabin temperature to manual, which usually raises the air pressure that moves the fuel, and select the wing tanks first. Pitch the jet up and down a few times. Last, open AIR REFUEL for one second and close it (@air-refuelling). The fuel may take from 1 to 12 minutes to move. Until it does, only the fuselage fuel counts as usable#fm[section III, "Trapped external fuel", page 3-121].
 
 #in-sim[
-  - *FWD FUEL LOW* lights below 800 lb of total fuel and *AFT FUEL LOW* below 500 lb; the voice says "Bingo" at 1,000 lb and at 500 lb; *FUEL flashes on the HUD* below the #term("bingo fuel") you set.
+  - *FWD FUEL LOW* lights below 250 lb in the forward reservoir and *AFT FUEL LOW* below 400 lb in the aft one; the voice says "Bingo" at 1,000 lb and at 500 lb; *FUEL flashes on the HUD* below the #term("bingo fuel") you set.
   - A leak after a hit #sym.arrow.r *the fuel falls fast.* Pull the throttle back and land.
-  - Not modelled: fuel that does not transfer, imbalance, the reservoirs as separate tanks.
+  - An imbalance, made with #row("SW_KNOB_ENG_FEED") at AFT or FWD, shows on the pointers at NORM; the same knob corrects it (@fuel).
+  - Not modelled: fuel that does not transfer, a failed fuel flow proportioner.
 ]
 
 === Jettison <emergency-jettison>

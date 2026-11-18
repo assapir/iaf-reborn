@@ -360,7 +360,7 @@
 	"nb_calm": "calm",
 	"nb_jet": "Jet",
 	"nb_route": "Point 1",
-	"nb_help": "%s stow  ·  PgUp / PgDn or wheel: page  ·  click a tab",
+	"nb_help": "%s stow  ·  %s / %s or wheel: page  ·  click a tab",
 	"fl_complete": "Mission accomplished",
 	"fl_kept": "The pass is kept. Continue the flight, or end it now for the debrief.",
 	"fl_radio": "Radio: %s tower",

@@ -515,6 +515,7 @@ laptop map there. The commands it moves:
 | DMS up / down | Ctrl + Page Up / Page Down | Ctrl + U / Ctrl + D |
 | DED field up / down (DCS up / down) | Alt + Page Up / Page Down | Ctrl + = / Ctrl + − |
 | DED back to CNI / next sub-page (DCS RTN / SEQ) | Alt + Home / Alt + End | Ctrl + , / Ctrl + . |
+| Checklist notebook: previous / next page | Page Up / Page Down | Alt + Space / Shift + Space |
 
 Every listed command has a key on a Mac laptop's keyboard: iaf-tools' test
 `every_listed_command_has_a_key_on_a_mac_laptop` fails on a record whose key that keyboard lacks and that has no
@@ -534,7 +535,11 @@ FUEL, ENG FEED and FUEL QTY SEL (Ctrl + F, Shift + E, Shift + U; [cockpit.md](co
 RESET (Shift + J, Ctrl + R), HUD CONT and the left and right MFDs' CON and GAIN (Ctrl + H, Shift + 7 / 8 / 9 / 0, a
 step down each press, round from the bottom to the top; [cockpit.md](cockpit.md) §5.8), Roll trim left / right
 (Alt + Left / Right, held), MANUAL PITCH override (Alt + M, held), STORES CONFIG switch (Alt + S), GPS bomb PRE / VIS
-and GPS bomb next PRE target (K, Shift + K). The brakes took W from Next waypoint (the user, 2026-11-18, on a Mac
+and GPS bomb next PRE target (K, Shift + K); and later the same day the flight scene's own Ctrl + F-keys, Leave mission
+(second key) on Ctrl + F1, Cockpit / outside view on Ctrl + F2 and Flight information line on Ctrl + F12 (records
+219–221; the 1998 game keeps them as its own keys, docs/controls.md §2), and the Checklist notebook's previous and next
+page on Page Up / Page Down (records 222 / 223, while the notebook is raised; [training.md](training.md) §11). Shift + N,
+the 1998 game's night-vision goggles, has no record: Modern IAF has no goggles, and the key does nothing there. The brakes took W from Next waypoint (the user, 2026-11-18, on a Mac
 laptop's keyboard, where no plain key was left): Next waypoint is on Shift + W, and Previous waypoint moved from there
 to Shift + Q, the key beside it (Alt + W is the wingman's "attack another target", Ctrl + W a debug key). The 1998
 game's Drag chute has no row and no key: no Modern IAF jet has a drag chute (record 23 is an empty slot).

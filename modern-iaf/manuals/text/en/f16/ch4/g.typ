@@ -14,7 +14,7 @@ The #term("FLCS") holds the jet inside most of these limits by itself (@flight-c
 
 === Angle of attack and the stores categories
 
-A load is of category I or category III. Category I loads leave the jet its full manoeuvring; category III loads are heavy or large stores with which the jet departs more easily (@handling-stores). Which category a load has is listed in the stores supplement: open. #row("SW_STORES_CONFIG") is set to match the load.
+A load is of category I or category III. Category I loads leave the jet its full manoeuvring; category III loads are heavy or large stores with which the jet departs more easily (@handling-stores). Which category a load has is listed in the stores supplement, which is not public; the flight manual counts air-to-air missiles and 370-gallon tanks with their pylons as category I#fm[section V, "Prohibited maneuvers", page 5-3, and the note on the bank angle change limit, page 5-4]. #row("SW_STORES_CONFIG") is set to match the load.
 
 #table(
   columns: (auto, 1fr, 1fr),
@@ -46,6 +46,7 @@ The list is from the flight manual's#fm[section V, "Prohibited maneuvers", page 
 #in-sim[
   - *Load factor.* The limiter holds +9 and −3 g; a full pull at high speed peaks near 9.3 g. Nothing breaks from g, and no inspection follows.
   - *Angle of attack.* CAT I: 25°. CAT III: 15.5° to 18°, by weight, with the roll reduced to about 60~% and the pedals faded out by 15°. #row("SW_STORES_CONFIG") is read; it starts at CAT I.
+  - *The load's category* (inferred): CAT III with an air-to-ground store or a 600-gallon tank on a wing pylon, else CAT I; it follows the stores as they go. #sym.arrow.r *#row("lamp_caution_stores_config_0") lights while the switch is off that category.*
   - A category III load flown at CAT I has the CAT I limits: the sim does not make it depart more easily.
-  - #term("Not modelled"): the rolling g limits, the g limits with the gear down, the bank-change limit, the stores' categories as a list, the STORES CONFIG caution, damage from any prohibited manoeuvre.
+  - #term("Not modelled"): the rolling g limits, the g limits with the gear down, the bank-change limit, the supplement's list of stores categories, damage from any prohibited manoeuvre.
 ]

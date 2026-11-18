@@ -463,7 +463,7 @@ impl IafFlight {
     }
 
     /// A 6-DoF jet's fuel or brake switch set (command 270, modern-iaf/docs/cockpit.md §5.7): "parking_brake",
-    /// "master_fuel", "eng_feed"; `pos` its position, -1 the next one round. False when the jet has none.
+    /// "master_fuel", "eng_feed", "fuel_qty_sel"; `pos` its position, -1 the next one round. False when the jet has none.
     #[func]
     fn set_switch(&mut self, name: GString, pos: i64) -> bool {
         let pos = pos.clamp(-1, 9) as i8;
@@ -476,12 +476,19 @@ impl IafFlight {
         self.aircraft.as_ref().map_or(-1, |ac| i64::from(ac.switch(&name.to_string())))
     }
 
-    /// The F-16's fuel quantity indicator at FUEL QTY SEL position `sel` with `fuel_lb` aboard, `internal_lb` the
-    /// internal capacity: (the FWD pointer, the AFT pointer, the totalizer), lb (iaf-flight `fuel_qty`).
+    /// The F-16's fuel quantity indicator at its FUEL QTY SEL knob (the switch "fuel_qty_sel"): (the FR pointer, the
+    /// AL pointer, the totalizer), lb (iaf-flight `Fm::fuel_gauge`).
     #[func]
-    fn fuel_qty(sel: i64, fuel_lb: f64, internal_lb: f64) -> Vector3 {
-        let [f, a, t] = iaf_flight::sixdof::flight::fuel_qty(sel.clamp(0, 5) as u8, fuel_lb, internal_lb);
+    fn fuel_gauge(&self) -> Vector3 {
+        let [f, a, t] = self.aircraft.as_ref().map_or([0.0; 3], |ac| ac.fuel_gauge());
         Vector3::new(f as f32, a as f32, t as f32)
+    }
+
+    /// The F-16's AFT and FWD FUEL LOW caution lights: the reservoirs low or FUEL QTY SEL at TEST (`Fm::fuel_low`).
+    #[func]
+    fn fuel_low(&self) -> VarArray {
+        let [a, f] = self.aircraft.as_ref().map_or([false; 2], |ac| ac.fuel_low());
+        varray![a, f]
     }
 
     /// The INS alignment for the DED's INS page: [seconds run, its length, done] (start.rs `ins_status`).

@@ -39,7 +39,7 @@ On macOS the game starts from the #term("Laptop key map"), which uses only the k
 
 === Keys that a Mac laptop lacks <mac-keys-missing>
 
-#idx("Fn key")A Mac laptop's keyboard has no Home, End, Page Up, Page Down, forward Delete or Insert key, and macOS keeps F11 for Show Desktop. No default key of the laptop key map is one of these: every command of the #scr("keys_screen") screen has a key on a Mac laptop (@keys-joystick-laptop). Five of the missing keys are typed with the Fn key, for a command you put on one yourself and for the pages of the #term("Notebook").
+#idx("Fn key")A Mac laptop's keyboard has no Home, End, Page Up, Page Down, forward Delete or Insert key, and macOS keeps F11 for Show Desktop. No default key of the laptop key map is one of these: every command of the #scr("keys_screen") screen has a key on a Mac laptop (@keys-joystick-laptop). Five of the missing keys are typed with the Fn key, for a command you put on one yourself.
 
 #grid-table(
   (auto, 1fr),

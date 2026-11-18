@@ -527,14 +527,16 @@ width and the page breaks between them. The pages turn by:
 - a click on a tab: that section's first page;
 - the page's own ‹ and › at its foot, with the section's page count between them ("1 / 2"; the user's "a clear way
   to move to the next page in the same section");
-- the mouse wheel over the notebook, and PgUp / PgDn while it is raised.
+- the mouse wheel over the notebook, and the notebook's page keys while it is raised (key-table records 222 / 223,
+  command 203 p1 -1 / 1: Page Up / Page Down, the laptop map's Option + Space / Shift + Space; since 2026-11-18, before
+  that keys `kneeboard.gd` read by itself).
 
 Past a section's last page the next section's first page opens; back from its first page, the previous section's
 last. ‹ dims on the notebook's first page, › on its last. On the CHECKLIST tab the page follows the item to do now.
 
 **No key hints, no title, no clip** (the user, 2026-11-13: "lets remove the kb hints"): the steps name the switch and
-its place. In the pilot's first start-up mission only a help line stands over the raised notebook ("H stow · PgUp /
-PgDn or wheel: page · click a tab", the key as bound); `notebook_help_seen` in the settings file's `[sim]` section
+its place. In the pilot's first start-up mission only a help line stands over the raised notebook ("H stow · Page Up /
+Page Down or wheel: page · click a tab", the keys as bound); `notebook_help_seen` in the settings file's `[sim]` section
 remembers it.
 
 **The training highlight.** In a start-up training mission an outline (the sim's sky blue, 2 px on a dark 4.5 px edge)

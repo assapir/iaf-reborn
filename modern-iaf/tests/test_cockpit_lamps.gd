@@ -167,12 +167,13 @@ func _states(tv: Node, id: String) -> void:
 	check(_lit_now("ecm_enbl") and not _c3d._lamps["ecm_enbl_unlit"][0][0].visible, "%s: ECM ENBL lit" % id)
 	c.indicators[6] = false
 	check(not _lit_now("ecm_enbl") and _c3d._lamps["ecm_enbl_unlit"][0][0].visible, "%s: ECM ENBL dark" % id)
+	# The reservoirs (sixdof/fuel.rs): 700 lb aboard leaves 350 lb in each, under the D's AFT 400 lb, over its FWD 250 lb.
 	var fuel: float = c.state.fuel_lbs
-	c.state.fuel_lbs = 600.0
-	check(_lit_now("caution_fwd_fuel_low") and not _lit_now("caution_aft_fuel_low"), "%s: 600 lb, FWD FUEL LOW" % id)
-	c.state.fuel_lbs = 400.0
-	check(_lit_now("caution_aft_fuel_low"), "%s: 400 lb, AFT FUEL LOW too" % id)
-	c.state.fuel_lbs = fuel
+	tv.flight.set_fuel(700.0 * 0.45359)
+	check(_lit_now("caution_aft_fuel_low") and not _lit_now("caution_fwd_fuel_low"), "%s: 700 lb, AFT FUEL LOW" % id)
+	tv.flight.set_fuel(400.0 * 0.45359)
+	check(_lit_now("caution_fwd_fuel_low"), "%s: 400 lb, FWD FUEL LOW too" % id)
+	tv.flight.set_fuel(fuel * 0.45359)
 	c.state["cabin_alt_ft"] = 30000.0
 	check(_lit_now("caution_cabin_press"), "%s: the cabin at 30,000 ft, CABIN PRESS" % id)
 	c.state["cabin_alt_ft"] = 0.0

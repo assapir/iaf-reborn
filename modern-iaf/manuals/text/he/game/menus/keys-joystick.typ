@@ -65,7 +65,8 @@
   [הורדת הראש], [#key("Lower the head")], [DMS למעלה], [#key("DMS up (SOI to the HUD)")],
   [DMS למטה], [#key("DMS down (SOI to an MFD)")], [שדה קודם ב-DED], [#key("DED field up (DCS up)")],
   [שדה הבא ב-DED], [#key("DED field down (DCS down)")], [חזרה לדף CNI], [#key("DED back to CNI (DCS RTN)")],
-  [תת-הדף הבא ב-DED], [#key("DED next sub-page (DCS SEQ)")], [], [],
+  [תת-הדף הבא ב-DED], [#key("DED next sub-page (DCS SEQ)")], [בד"ח: הדף הקודם], [#key("Checklist notebook: previous page")],
+  [בד"ח: הדף הבא], [#key("Checklist notebook: next page")], [], [],
 )
 
 לשני מקשי ההתקרבות וההתרחקות של מקלדת המספרים אין מקש במפת המקשים למחשב נייד. הזוג האחר פועל בכל מקלדת: #key("Zoom out (minus key)") ו#key("Zoom in (equals key)").

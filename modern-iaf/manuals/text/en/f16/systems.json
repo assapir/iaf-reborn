@@ -554,8 +554,8 @@
       "AFT",
       "FWD"
      ],
-     "does": "Chooses the tank pumps that feed the engine: all of them at NORM; the aft or the forward tanks only, to correct a fuel imbalance; none at OFF.",
-     "sim": "OFF cuts the fuel to the engine; AFT and FWD feed as NORM: the fuel model has one tank."
+     "does": "Chooses the tank pumps that feed the engine: all of them at NORM; the aft or the forward tanks only, which also pump fuel into the other tanks, to correct a fuel imbalance; none at OFF, where the fuel flow proportioner still feeds the engine.",
+     "sim": "AFT and FWD feed the engine from that system and move about 4,300 lb an hour into the other; OFF and NORM feed from both systems alike."
     },
     {
      "node": "SW_AIR_REFUEL",
@@ -2369,7 +2369,8 @@
       "EXT WING",
       "EXT CTR"
      ],
-     "does": "Chooses the tanks whose fuel the quantity indicator's two pointers show."
+     "does": "Chooses the tanks whose fuel the quantity indicator's two pointers show.",
+     "sim": "Each position shows its tanks; out of NORM the automatic forward fuel transfer stops."
     },
     {
      "node": "FQS_fuel-trans-switch",
@@ -2599,7 +2600,8 @@
      "positions": [
       "Light"
      ],
-     "does": "The STORES CONFIG switch does not agree with the stores carried (inferred)."
+     "does": "The STORES CONFIG switch is in the wrong position for the stores' loading category.",
+     "sim": "On while the switch is off the load's category: CAT III with an air-to-ground store or a 600-gallon tank on a wing pylon (inferred), else CAT I."
     },
     {
      "node": "lamp_caution_overheat_0",
@@ -2665,7 +2667,7 @@
       "Light"
      ],
      "does": "The forward reservoir holds less than 250 lb (400 lb in the single-seat jet).",
-     "sim": "On below 800 lb of fuel in all; the sim keeps one total."
+     "sim": "On below 250 lb in the forward reservoir, and with FUEL QTY SEL at TEST."
     },
     {
      "node": "lamp_caution_buc_0",
@@ -2684,7 +2686,7 @@
       "Light"
      ],
      "does": "The aft reservoir holds less than 400 lb (250 lb in the single-seat jet).",
-     "sim": "On below 500 lb of fuel in all; the sim keeps one total."
+     "sim": "On below 400 lb in the aft reservoir, and with FUEL QTY SEL at TEST."
     },
     {
      "node": "lamp_caution_le_flaps_0",

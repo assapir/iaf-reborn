@@ -36,7 +36,7 @@ The pages name each switch and its place in the cockpit. Only the #scr("nb_weapo
 - Click a tab: its first page opens.
 - Click ‹ or › at the foot of the page. The count between them, for example 1 / 2, is the page within the tab.
 - Turn the mouse wheel over the notebook.
-- Press #keycap("Page Up") or #keycap("Page Down") while the notebook is raised.
+- Press #key("Checklist notebook: previous page") or #key("Checklist notebook: next page") while the notebook is raised.
 
 Past a tab's last page the next tab's first page opens.
 
