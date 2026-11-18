@@ -216,9 +216,16 @@ def hand_keys() -> int:
     return found
 
 
+# The keys of terrain_view.gd _own_key that own_keys.json leaves out: the key table has their commands in Modern IAF
+# (F1's own record, the zoom, V the dogfight switch), and Page Up / Page Down slide the 1998 game's flat panel.
+OWN_ELSEWHERE = {"KEY_PAGEUP", "KEY_PAGEDOWN", "KEY_EQUAL", "KEY_PLUS", "KEY_KP_ADD", "KEY_MINUS", "KEY_KP_SUBTRACT", "KEY_V"}
+
+
 def own_keys() -> int:
     """The keys of own_keys.json that the flight scene no longer reads (a name of the record's `code` gone from
-    shared/terrain/terrain_view.gd), each printed; their count."""
+    shared/terrain/terrain_view.gd), and the keys _own_key reads that no record of own_keys.json names (a row
+    removed, as the night-vision goggles' Shift + N was on 2026-11-18 when a new command took its key), each printed;
+    their count."""
     with open(os.path.join(ROOT, "shared/terrain/terrain_view.gd"), encoding="utf-8") as f:
         scene = f.read()
     with open(os.path.join(DIR, "own_keys.json"), encoding="utf-8") as f:
@@ -229,6 +236,11 @@ def own_keys() -> int:
             if not re.search(r"\b" + name + r"\b", scene):
                 print(f"manuals: own_keys.json \"{r['key']}\": shared/terrain/terrain_view.gd no longer has {name}")
                 found += 1
+    listed = {name for r in records for name in r["code"]}
+    body = scene.split("\nfunc _own_key(", 1)[1].split("\n\n\n", 1)[0]
+    for name in sorted(set(re.findall(r"\bKEY_\w+", body)) - listed - OWN_ELSEWHERE):
+        print(f"manuals: own_keys.json has no record for {name}, which terrain_view.gd _own_key reads: an own key keeps its row and its key; a new command takes a free key")
+        found += 1
     return found
 
 

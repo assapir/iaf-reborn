@@ -55,8 +55,10 @@ lights and the lit labels at night); the panel's night art is not used.
   10 cm back, 10 cm up and 15 cm down, and it stayed where the release left it until Look forward; a second set of
   hold keys (Shift + Q / E / K) was built beside them and dropped the same day (the user: "Why need lean in arrows
   and also in other keys?"). Pictures: `modern-iaf/tests/_lean_shot.gd`, `_mfd_view_shot.gd`.
-- **Full MFD view (2026-11-18, approved):** Shift + N shows the left MFD close up, Shift + M the right one (records 198 / 199,
-  command 207); in the F-35I either key shows the panoramic display. The eye goes 40 cm out on the display's normal
+- **Full MFD view (2026-11-18, approved):** Shift + , shows the left MFD close up, Shift + . the right one (the caps
+  marked < and >: left and right; records 198 / 199, command 207; on Shift + N / M for some hours, where Shift + N
+  is the night-vision goggles' key, `terrain_view.gd` `_own_key`); in the F-35I either key shows the panoramic
+  display. The eye goes 40 cm out on the display's normal
   and the view narrows until the display with its push buttons fills nine tenths of the screen's height (the F-35I's:
   of its width), in a quarter of a second; every button is clicked with the mouse there. The same key or Esc goes
   back to the seat's view; the other display's key cuts to that display. The HUD's look-down readout and the
@@ -573,7 +575,7 @@ shows there only as a thin lit strip beside the ICP's corner. Bringing them into
 photo does not show, or lowering the eye, which cuts the HUD's picture (tested and dropped, 2026-11-18). The user,
 2026-11-18: "Ok hud is more important. So have a lean button + full MFD view". Each of the five is seen and clicked
 from the lean toward its MFD (Shift + Left / Shift + Right held, the head 6 cm aside) and from the full MFD view
-(Shift + N / Shift + M), both in §2.
+(Shift + , / Shift + .), both in §2.
 
 The push buttons' functions on keys: the FCR's (mode, range, EXP, submode, OVRD, scan, FZ / SP / CZ / STP), the
 formats in turn by DMS left / right, the next station by `[` / `]`, LASR by L. Mouse only: SWAP, DCLT and S-J, the

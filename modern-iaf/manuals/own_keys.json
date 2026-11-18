@@ -4,6 +4,7 @@
 {"key": "Ctrl + F1", "code": ["KEY_F1", "_quit_key"], "group": "sim", "label": {"en": "Quit box"}},
 {"key": "Ctrl + F12", "code": ["KEY_F12", "show_info"], "group": "sim", "label": {"en": "Flight information line"}},
 {"key": "Ctrl + F2", "code": ["KEY_F2", "in_cockpit"], "group": "views", "label": {"en": "Cockpit / outside view"}},
+{"key": "Shift + N", "code": ["KEY_N", "_toggle_goggles"], "group": "views", "label": {"en": "Night-vision goggles"}},
 {"key": "Alt + Left", "code": ["KEY_LEFT", "trim_roll"], "group": "flight", "label": {"en": "Roll trim left"}},
 {"key": "Alt + Right", "code": ["KEY_RIGHT", "trim_roll"], "group": "flight", "label": {"en": "Roll trim right"}},
 {"key": "Alt + M", "code": ["KEY_M", "mpo_on"], "group": "flight", "label": {"en": "MANUAL PITCH override (hold)"}},

@@ -2712,7 +2712,7 @@ func _lean_off(eye: Vector3) -> Vector3:
 	return off
 
 
-## Ours, the full MFD view (Modern IAF's keys.json, command 207: Shift + N the left display, Shift + M the right one;
+## Ours, the full MFD view (Modern IAF's keys.json, command 207: Shift + , the left display, Shift + . the right one;
 ## the user, 2026-11-18: "have a lean button + full MFD view"): the eye MFD_VIEW_M out on display `mfd_view`'s normal
 ## (cockpit3d.gd display_frame), looking at its centre, the focal length such that the display with its push buttons
 ## fills MFD_VIEW_FILL of the screen's width or height; eased there and back in MFD_VIEW_S. The same key, Esc or a
@@ -3111,7 +3111,7 @@ func _command(cmd: Array) -> bool:
 			# (0 right, 1 up, 2 aft), p2 the way (views.gd lean_key); the release brings the head back (_release_command).
 			views.lean_key(p1, int(cmd[2]))
 		207:
-			# Ours, the full MFD view (Shift + N / M): p1 the display, 0 left, 1 right (mfd_view_key).
+			# Ours, the full MFD view (Shift + , / .): p1 the display, 0 left, 1 right (mfd_view_key).
 			mfd_view_key(p1)
 		221, 222, 223, 224, 225, 226, 227:
 			# Ours, the real F-16 FCR's keys (Modern IAF's keys.json; docs/radar.md §9.4): 221 the TMS (p1 0 up, 1 down,

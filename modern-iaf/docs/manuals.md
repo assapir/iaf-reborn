@@ -171,7 +171,7 @@ text right to left, and the checklist's lines come from the card's `he`. Only En
 | a control named in the text (`ctl("MAIN_PWR")`) with its figure and number; the numbers and arrows on a picture | the cockpit's control table, `shared/extra/models/cockpit3d/<cockpit>.json` `controls` under `<cockpit>_controls.json`; `numbers.json`; `pictures/<cockpit>/marks.json` |
 | a control's state in the sim | `shared/extra/models/cockpit3d/<cockpit>_status.json` |
 | appendix A Checklist, B Key card, C Controls | the same three |
-| the key card's keyboards (below) | the key table: the commands the Keys screen lists, each on its key's cap; and `own_keys.json`, the keys the flight scene reads by itself (`shared/terrain/terrain_view.gd` `_own_key`, the trim and switch keys) that work in Modern IAF. The build stops when that file no longer names a listed key (`own_keys` in `tools/manuals.py`) |
+| the key card's keyboards (below) | the key table: the commands the Keys screen lists, each on its key's cap; and `own_keys.json`, the keys the flight scene reads by itself (`shared/terrain/terrain_view.gd` `_own_key`, the trim and switch keys) that work in Modern IAF. The build stops when the scene no longer has a name of a record's `code`, and when `_own_key` reads a key that no record names (`own_keys` in `tools/manuals.py`): an own key keeps its row and its key, and a new command takes a free key |
 | the game manual's Attributions | the game's record of credits, `shared/credits.json` `sim` and `made_with` (docs/credits.md), with each use's words from the setup's strings (`modern-iaf/setup/strings_<lang>.json`) |
 | a link to another manual (`other("game", "tower")`) | that manual's outline: the section's number and title |
 
