@@ -54,21 +54,15 @@ func run() -> void:
 		tv._command([270, sw[0], 0])
 		await fly(tv, 30.0)
 		var st: Dictionary = f.state()
-		check(
-			(
-				not st.engine_on
-				and String(st.start_phase) in ["rundown", "off"]
-				and float(c3d.switches.get(sw[1], -1.0)) == 0.0
-			),
-			(
-				"%s OFF: the engine flamed out (%s, %.0f %% RPM), the switch shown at OFF"
-				% [sw[2], st.start_phase, 100.0 * float(st.rpm)]
-			)
-		)
+		var off := float(c3d.switches.get(sw[1], -1.0)) == 0.0
+		var flamed: bool = not st.engine_on and String(st.start_phase) in ["rundown", "off"]
+		var rpm := 100.0 * float(st.rpm)
+		check(flamed and off, "%s OFF: flamed out (%s, %.0f %% RPM), shown at OFF" % [sw[2], st.start_phase, rpm])
 		check(f.start_step("engine") == "no_fuel", "%s OFF: the idle step refused (no_fuel)" % sw[2])
 		tv._command([270, sw[0], 1])
 		tv._command([200, 0, 0])
-		check(await _until(tv, func(): return f.state().engine_on, 120.0), "%s back on: the engine starts again" % sw[2])
+		var running: bool = await _until(tv, func(): return f.state().engine_on, 120.0)
+		check(running, "%s back on: the engine starts again" % sw[2])
 	# FUEL QTY SEL.
 	check(int(c3d.switches.get(c3d.FQS, -1)) == 1, "FUEL QTY SEL starts at NORM")
 	var cs: Dictionary = c3d.cockpit.state
