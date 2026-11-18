@@ -159,6 +159,33 @@ pub struct SixDof {
     pivot: Option<f64>,
     /// The toe brakes' travel, 0…1, following the brake switch over [`BRAKE_RAMP_S`].
     brake: f64,
+    /// The cockpit's fuel and brake switches ([`SixDof::set_switch`]): the parking brake set, MASTER FUEL at MASTER,
+    /// the ENG FEED knob (`ENG_FEED`'s index).
+    parking_brake: bool,
+    master_fuel: bool,
+    eng_feed: u8,
+}
+
+/// The F-16's ENG FEED knob's positions (flight manual figure 1-23): OFF, NORM, AFT, FWD. The fuel model has one tank,
+/// so AFT and FWD feed as NORM; OFF feeds nothing.
+pub const ENG_FEED: [&str; 4] = ["OFF", "NORM", "AFT", "FWD"];
+
+/// The F-16's fuel quantity indicator at FUEL QTY SEL position `sel` (0 TEST, 1 NORM, 2 RSVR, 3 INT WING, 4 EXT
+/// WING, 5 EXT CTR; flight manual figure 1-24, pages 1-75 and 1-76) with `fuel_lb` aboard, `internal_lb` of it the
+/// internal tanks' capacity: [the FWD pointer, the AFT pointer, the totalizer], lb. The fuel model has one tank, the
+/// external fuel used first (inferred): NORM, RSVR and INT WING show the internal fuel split in two (the reservoirs and
+/// the wing tanks are not modelled apart); EXT WING the external fuel, the wing tanks' (no centreline tank is carried),
+/// split in two; EXT CTR none. The totalizer shows all the fuel at every position but TEST. TEST: 2,000 lb on each
+/// pointer and 6,000 lb on the totalizer (inferred: the indicator's self test).
+pub fn fuel_qty(sel: u8, fuel_lb: f64, internal_lb: f64) -> [f64; 3] {
+    let fuel = fuel_lb.max(0.0);
+    let half = match sel {
+        0 => return [2000.0, 2000.0, 6000.0],
+        4 => (fuel - internal_lb).max(0.0) / 2.0,
+        5 => 0.0,
+        _ => fuel.min(internal_lb) / 2.0,
+    };
+    [half, half, fuel]
 }
 
 /// The indicated AoA one frame `dt` on from `shown` (deg): toward the flow's `alpha_deg` at `cas_kt` from
@@ -238,6 +265,9 @@ impl SixDof {
             tef: if st.airborne { 0.0 } else { jet.tef_deg },
             pivot: None,
             brake: if st.airborne { 0.0 } else { 1.0 },
+            parking_brake: false,
+            master_fuel: true,
+            eng_feed: 1,
         };
         s.fcs = Fcs::new(jet.g_limits, jet.roll.map(|r| (r, jet.airframe.b))).with_alpha_max(jet.alpha_max);
         if st.airborne {
@@ -335,7 +365,7 @@ impl SixDof {
     /// the electrical power unchanged. Modern IAF's start goes through [`SixDof::start_engine`] instead.
     pub fn set_engine_on(&mut self, on: bool) {
         // An empty tank starts nothing (the throttle keys would light it again every press).
-        let on = on && (self.fuel_kg > 0.0 || self.unlimited_fuel);
+        let on = on && self.fuel_feeds();
         self.engine_on = on;
         if on {
             self.start_seq = Sequence::running();
@@ -345,6 +375,9 @@ impl SixDof {
     /// The "start engine" command: a cold engine runs its jet's start sequence ([`super::start`]); it runs (gives
     /// thrust) once the sequence reaches idle.
     pub fn start_engine(&mut self) {
+        // The command flies the whole checklist: the fuel to the engine first.
+        self.master_fuel = true;
+        self.eng_feed = self.eng_feed.max(1);
         if !self.engine_on {
             if self.start_seq.phase == Phase::Running {
                 self.start_seq.shutdown(); // stopped since its last start: from the beginning
@@ -363,6 +396,9 @@ impl SixDof {
             let rpm = self.rpm() as f64;
             self.engine_on = false;
             return self.start_seq.cut_off(rpm);
+        }
+        if step == "engine" && !self.fuel_feeds() {
+            return Err("no_fuel"); // MASTER FUEL or ENG FEED off, or an empty tank: nothing to light
         }
         self.start_seq.press(&self.jet.start, step)
     }
@@ -489,6 +525,38 @@ impl SixDof {
         self.capacity_kg as f32
     }
 
+    /// Fuel reaches the engine: fuel in the tank (or unlimited), MASTER FUEL at MASTER and ENG FEED not at OFF
+    /// (flight manual page 1-72, figure 1-23).
+    pub fn fuel_feeds(&self) -> bool {
+        (self.fuel_kg > 0.0 || self.unlimited_fuel) && self.master_fuel && self.eng_feed != 0
+    }
+
+    /// A fuel or brake switch set (modern-iaf/docs/cockpit.md §5.7): "parking_brake" 0 off (ANTI-SKID), 1 set;
+    /// "master_fuel" 0 OFF, 1 MASTER; "eng_feed" `ENG_FEED`'s index. `pos` -1: the next position, the last going
+    /// round to the first; out of range: clamped. False for another name. Fuel cut off flames the engine out at the
+    /// next step ([`SixDof::step`]).
+    pub fn set_switch(&mut self, name: &str, pos: i8) -> bool {
+        let n = if name == "eng_feed" { ENG_FEED.len() as i8 } else { 2 };
+        let to = |now: i8| if pos < 0 { (now + 1) % n } else { pos.min(n - 1) };
+        match name {
+            "parking_brake" => self.parking_brake = to(i8::from(self.parking_brake)) == 1,
+            "master_fuel" => self.master_fuel = to(i8::from(self.master_fuel)) == 1,
+            "eng_feed" => self.eng_feed = to(self.eng_feed as i8) as u8,
+            _ => return false,
+        }
+        true
+    }
+
+    /// A fuel or brake switch's position ([`SixDof::set_switch`]'s values), -1 for another name.
+    pub fn switch(&self, name: &str) -> i8 {
+        match name {
+            "parking_brake" => i8::from(self.parking_brake),
+            "master_fuel" => i8::from(self.master_fuel),
+            "eng_feed" => self.eng_feed as i8,
+            _ => -1,
+        }
+    }
+
     pub fn engine_off(&mut self) {
         self.engine_on = false;
     }
@@ -516,10 +584,10 @@ impl SixDof {
         if let Some(h) = self.wheel_height {
             self.jet.gear.set_static_height(h, self.mass() * G);
         }
-        // An empty tank: the engine flames out, lit or running, and winds down with its generators (a stopped one,
-        // `engine_off`, has nothing to lose).
+        // No fuel to the engine (an empty tank, MASTER FUEL or ENG FEED off): the engine flames out, lit or running,
+        // and winds down with its generators (a stopped one, `engine_off`, has nothing to lose).
         let lit = self.engine_on || self.start_seq.phase != Phase::Running;
-        if self.fuel_kg <= 0.0 && !self.unlimited_fuel && lit && self.start_seq.flame_out(self.rpm() as f64) {
+        if !self.fuel_feeds() && lit && self.start_seq.flame_out(self.rpm() as f64) {
             self.engine_on = false;
         }
         if self.start_seq.step(&self.jet.start, dt) {
@@ -557,7 +625,8 @@ impl SixDof {
     fn substep(&mut self, dt: f64, af: &super::body::Airframe) {
         let c = self.controls;
         self.t += dt;
-        let target = if c.brakes && self.on_ground { 1.0 } else { 0.0 };
+        // The parking brake holds them on as the pedals do (flight manual pages 1-116, 1-117).
+        let target = if (c.brakes || self.parking_brake) && self.on_ground { 1.0 } else { 0.0 };
         self.brake += (target - self.brake).clamp(-dt / BRAKE_RAMP_S, dt / BRAKE_RAMP_S);
         // Gear lever ramp; gear damage (7) holds the gear where it is, as the game's legs (docs/damage.md §5.2).
         if self.damage & (1 << 7) == 0 {
@@ -643,7 +712,7 @@ impl SixDof {
         self.surfaces.dtef = self.tef;
         // Both engines dead (a single-engine jet: its one) stop it like an empty tank; both afterburners dead stop the
         // throttle at military (as `Aircraft::thrust_at`).
-        let fuel_left = (self.fuel_kg > 0.0 || self.unlimited_fuel) && bits & 0xc != 0xc;
+        let fuel_left = self.fuel_feeds() && bits & 0xc != 0xc;
         let throttle = if bits & 0x180 == 0x180 { c.throttle.min(MILITARY) } else { c.throttle };
         let travel = if self.engine_on && fuel_left { lever_to_travel(throttle) } else { 0.0 };
         if self.engine_on && fuel_left {
@@ -871,6 +940,9 @@ impl SixDof {
     /// stick is a linear g and roll-rate command, as the autopilot reads [`SixDof::ap_view`].
     pub fn set_ap_flying(&mut self, on: bool) {
         self.ap_flying = on;
+        if on {
+            self.parking_brake = false; // the autopilot taxies: the pilot's hand releases it (inferred)
+        }
     }
 
     /// The autopilot's taxi pivot turn (motion 0x16) to the heading `target` (rad), None to end it: the 6-DoF turns

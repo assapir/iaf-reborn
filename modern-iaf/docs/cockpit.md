@@ -522,8 +522,8 @@ eight side buttons. Its systems:
 | IPP knob (`START`) at START | the engine start (above) | - |
 | MASTER CAUTION push-light | the lamp out until the next caution (no source shows the lamp on the real jet: kept for the game's cautions) | - |
 
-The rest move and keep their position with no system behind them: JETTISON's ALL / EXT / SEL, PARKING BRAKE,
-LAND/TAXI LIGHTS, HOOK, the VIDEO BRT and CONT rockers, the MFD NIGHT / DAY knob, the three radio knobs, the standby
+The PARKING BRAKE switch is the flight model's (§5.7). The rest move and keep their position with no system behind
+them: JETTISON's ALL / EXT / SEL, LAND/TAXI LIGHTS, HOOK, the VIDEO BRT and CONT rockers, the MFD NIGHT / DAY knob, the three radio knobs, the standby
 display's knob, ALIGN and BRT, PEDAL ADJ, AUTO RECOVERY, the BYPASS / NORM / ZEROIZE knob, FCS/ENG RESET, VS BIT, the
 throttle's friction and THROTTLE ACTIVE, ICC1, ICC2, CABIN PRESSURE, IPP EMER OFF (guarded), STICK ACTIVE, DEFOG, the
 seat's firing handle (pulled while held; ejection stays its key's, so a stray click never fires the seat), SAFE /
@@ -808,6 +808,28 @@ which still takes its canopy step over an open canopy when asked directly.
 
 Test: `modern-iaf/tests/test_canopy_spider.gd` (both F-16s by the mouse and the key; the F-35I unchanged). Pictures:
 `_canopy_spider_shot.gd` (the photo's camera, the seat's view, lever up and down).
+
+### 5.7 The fuel and brake switches (2026-11-18)
+
+Four switches of the F-16s' 3D cockpit that only moved now work. Their state is the flight model's (`crates/iaf-flight`
+`sixdof/flight.rs` `SixDof::set_switch` / `switch`, `fuel_qty`); a click and a key both send command 270 (p1 the
+switch, p2 its position, -1 the next one round; `terrain_view.gd`), and each frame the switch shows the flight model's
+state (`cockpit3d_controls.gd` `FUEL_SWITCHES`).
+
+| Switch (node) | Key | What it does |
+| --- | --- | --- |
+| PARKING BRAKE / ANTI-SKID (`SW_PARKING_BRAKE`; the F-35I's `PARK_BRAKE`) | Shift + G | At PARKING BRAKE the wheel brakes are held on the ground with no brake key held, as with the pedals[^fm-brakes]. A ground start begins with it set (the brake key free); the checklist card's BEFORE TAXI releases it. The autopilot releases it when it takes over (inferred). The real jet has no lamp for it: the switch shows it. |
+| MASTER FUEL (`SW_MASTER_FUEL`, its guard `anim048` following it) | Ctrl + F | OFF closes the engine's fuel shut-off valve[^fm-fuel]: the engine flames out and winds down as on an empty tank (its generators off line). The throttle's idle step is refused while it is OFF (fault `no_fuel`). The Start engine command sets it to MASTER. |
+| ENG FEED (`SW_KNOB_ENG_FEED`: OFF, NORM, AFT, FWD) | Shift + E (next position) | OFF feeds nothing, as MASTER FUEL OFF; NORM feeds[^fm-feed]. The fuel model has one tank, so AFT and FWD feed as NORM (status: partly). |
+| FUEL QTY SEL (`FQS_sel-knob`: TEST, NORM, RSVR, INT WING, EXT WING, EXT CTR) | Shift + U (next position) | The FUEL QTY gauge's two pointers and totalizer at the selected reading[^fm-fqs]: NORM half the internal fuel on each pointer; EXT WING half the external fuel (the wing tanks are the only external tanks carried); EXT CTR none (no centreline tank is carried); TEST 2,000 lb on each pointer and 6,000 lb on the totalizer (inferred: the indicator's self test). RSVR and INT WING show NORM's reading (status: partly): the reservoirs and the wing tanks are not modelled apart. The totalizer shows all the fuel at every position but TEST. The knob starts at NORM. |
+
+The original game's optional 3D F-16 cockpit shares the table: its flight model has none of these switches, so they
+move only, as before.
+
+Test: `modern-iaf/tests/test_fuel_brake_switches.gd` (the Barak: the parking brake holds and releases, ENG FEED and
+MASTER FUEL flame the engine out, the gauge's readings), `test_switches_click.gd` (the clicks' commands),
+`crates/iaf-flight/tests/sixdof.rs` (`the_parking_brake_holds_the_jet`,
+`master_fuel_and_eng_feed_off_flame_the_engine_out`, `the_fuel_quantity_selector_picks_the_reading`).
 
 ### 5.4 The AoA probe (2026-11-11, from the user's Mac)
 
@@ -1148,3 +1170,7 @@ openstreetmap.org/copyright" (also in [docs/credits.md](../../docs/credits.md)).
     left side, item 8 "Canopy control lever"),
     https://orbx-user-guides.storage.googleapis.com/indiafoxtecho-f35-msfs-user-guide-96295d.pdf
 [^f16c-photo]: US Air Force, "F-16C cockpit" (the front cockpit from about the seat, public domain), Wikimedia Commons, https://commons.wikimedia.org/wiki/File:F-16C_cockpit_m02006112700032.jpg
+[^fm-brakes]: T.O. GR1F-16CJ-1 (the HAF F-16C/D flight manual, public copy https://archive.org/details/haf-f-16), pages 1-110, 1-111, 1-116 and 1-117 (the wheel brakes, the ANTI-SKID switch's PARKING BRAKE position), and section II "After landing", the caution of page 2-27 (the parking brake holds the jet before a flight, with cold brakes).
+[^fm-fuel]: T.O. GR1F-16CJ-1, page 1-72 (the MASTER FUEL switch opens the main fuel shut-off valve to the engine).
+[^fm-feed]: T.O. GR1F-16CJ-1, figure 1-23, page 1-73 (ENG FEED: OFF, NORM, AFT, FWD).
+[^fm-fqs]: T.O. GR1F-16CJ-1, figure 1-24, pages 1-75 and 1-76 (the fuel quantity indicator and FUEL QTY SEL).

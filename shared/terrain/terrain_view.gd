@@ -2016,6 +2016,10 @@ func _start_flight() -> void:
 		flight = null
 		return
 	_sixdof = flight.state().get("model", "") == "6dof"
+	# Ours, Modern IAF: a ground start is held by the parking brake (IafFlight.set_switch), the wheel brakes' key free
+	# (modern-iaf/docs/cockpit.md §5.7); the 1998 game's keeps its brakes on until the key.
+	if _sixdof and _own_keys_in_table and not start_airborne and flight.set_switch("parking_brake", 1):
+		brakes = false
 	print("Flight model: %s (%s)" % [flight.state().get("model", ""), player.fm_section])
 	_apply_player_prefs()
 	_setup_autopilot(install)
@@ -3242,6 +3246,21 @@ func _command(cmd: Array) -> bool:
 				265:
 					e.link_power(not e.link_on())
 					_on_subtitle("Data link on" if e.link_on() else "Data link off")
+		270:
+			# Ours, Modern IAF: the fuel and brake switches (keys Shift + G, Ctrl + F, Shift + E / U; the 3D cockpit's switches;
+			# modern-iaf/docs/cockpit.md §5.7): p1 0 PARKING BRAKE, 1 MASTER FUEL, 2 ENG FEED (the flight model's,
+			# IafFlight.set_switch), 3 FUEL QTY SEL (the 3D cockpit's gauge); p2 the position, -1 the next one round.
+			var to := int(cmd[2])
+			if not _own_keys_in_table:  # the 1998 game's 3D F-16 cockpit: its switches move only
+				return true
+			if p1 == 3 and cockpit_3d != null:
+				var sel: float = cockpit_3d.switches.get(cockpit_3d.FQS, 1.0)
+				cockpit_3d.switches[cockpit_3d.FQS] = float((int(sel) + 1) % 6 if to < 0 else clampi(to, 0, 5))
+			elif p1 >= 0 and p1 < 3 and flight != null:
+				var sw: String = ["parking_brake", "master_fuel", "eng_feed"][p1]  # cockpit3d_controls.gd FUEL_SWITCHES
+				if flight.set_switch(sw, to):
+					var shown: Array = [["off", "set"], ["OFF", "MASTER"], ["OFF", "NORM", "AFT", "FWD"]][p1]
+					_on_subtitle(["Parking brake ", "Master fuel ", "Engine feed "][p1] + shown[flight.switch(sw)])
 		219:
 			# Ours, Modern IAF: one F-16 power switch (the 3D cockpit's AVIONIC POWER and SNSR PWR switches; no key sends
 			# it): p2 its index in sim_flight.gd SYSTEMS, p1 as 210-215's (modern-iaf/docs/cockpit.md §5.2).

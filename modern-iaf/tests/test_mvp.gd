@@ -573,6 +573,7 @@ func _card_flight(id: String, pod := false) -> Node:
 		path.append(Vector2(float(s["FromTaxiPtX%d" % i]), float(s["FromTaxiPtY%d" % i])))
 	var hdg := float(s.RunwayNumber)
 	tv.brakes = false
+	tv.flight.set_switch("parking_brake", 0)  # a ground start is held by it
 	tv.scripted_stick = Vector2.ZERO
 	check(await _taxi(tv, path.slice(0, -1), hdg, false), "%s: taxied" % id)
 	await _fly_card(tv, sec.call(["before_takeoff"]))
@@ -850,6 +851,7 @@ func takeoff(id: String) -> void:
 		path.append(Vector2(float(s["FromTaxiPtX%d" % i]), float(s["FromTaxiPtY%d" % i])))
 	var hdg := float(s.RunwayNumber)
 	tv.brakes = false
+	tv.flight.set_switch("parking_brake", 0)  # a ground start is held by it
 	tv.scripted_stick = Vector2.ZERO
 	# At the spot after taxi: every ground call listed, none marked; take-off (4) out of order: "negative, hold
 	# position, request line-up first", no clearance and no fail.
@@ -935,12 +937,14 @@ func clearance() -> void:
 		await _violation([], "no_start_clearance", by_switches, m)
 	var go := func(tv: Node) -> void:
 		tv.brakes = false
+		tv.flight.set_switch("parking_brake", 0)  # a ground start is held by it
 		tv.scripted_stick = Vector2.ZERO
 		await _taxi(tv, path, hdg)
 	await _violation(["startup", "start"], "no_taxi_clearance", go)
 	await _violation(["startup", "start", "taxi"], "no_runway_clearance", go)
 	var roll := func(tv: Node) -> void:
 		tv.brakes = false
+		tv.flight.set_switch("parking_brake", 0)  # a ground start is held by it
 		tv.scripted_stick = Vector2.ZERO
 		await _taxi(tv, path.slice(0, -1), hdg, false)
 		await _call(tv, "lineup")
@@ -1219,6 +1223,7 @@ func _taxi(tv: Node, path: Array, hdg: float, line_up := true) -> bool:
 func _roll(tv: Node, id: String, lineup: Vector2, hdg: float) -> void:
 	var dir := Vector2(sin(deg_to_rad(hdg)), cos(deg_to_rad(hdg)))
 	tv.brakes = false
+	tv.flight.set_switch("parking_brake", 0)  # a ground start is held by it
 	tv.throttle = 1.0
 	tv._throttle_event()
 	var t0: float = tv._sim_time

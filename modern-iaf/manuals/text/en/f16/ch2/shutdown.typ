@@ -30,7 +30,7 @@ Do these steps once the jet is off the runway and slow.
   ),
 )
 
-#idx("Parking brake, after landing")#caution[After a landing the real jet is held with the pedals or with chocks, not with the parking brake. The brakes are hot from the stop; the parking brake clamps them, the heat stays in, the brakes are damaged and a brake fire becomes more likely#fm[section II, "After landing", the caution of page 2-27]. Before a flight, with cold brakes, the parking brake is the normal way to hold the jet. In the sim #row("SW_PARKING_BRAKE") moves only.]
+#idx("Parking brake, after landing")#caution[After a landing the real jet is held with the pedals or with chocks, not with the parking brake. The brakes are hot from the stop; the parking brake clamps them, the heat stays in, the brakes are damaged and a brake fire becomes more likely#fm[section II, "After landing", the caution of page 2-27]. Before a flight, with cold brakes, the parking brake is the normal way to hold the jet. In the sim the brakes do not heat.]
 
 Taxi back as you taxied out: a little throttle, hold #key("Wheel brakes (hold)") to slow down.
 

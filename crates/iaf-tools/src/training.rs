@@ -84,6 +84,11 @@ const STRINGS: &[(&str, &str, &str)] = &[
         "אין הצתה: המצערת הועברה לסרק כשהמנוע לא הסתובב.",
     ),
     (
+        "no_fuel",
+        "No light-off: the throttle went to idle with no fuel to the engine (MASTER FUEL or ENG FEED off).",
+        "אין הצתה: המצערת הועברה לסרק בלי דלק למנוע (MASTER FUEL או ENG FEED כבויים).",
+    ),
+    (
         "shutdown",
         "Engine shutdown: the throttle went to OFF with the engine running.",
         "כיבוי מנוע: המצערת הועברה ל־OFF כשהמנוע פעל.",

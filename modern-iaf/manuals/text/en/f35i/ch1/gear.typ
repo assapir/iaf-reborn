@@ -15,7 +15,7 @@ The F-35A has an arresting hook for emergencies: it catches a cable across the r
 #in-sim[
   - *Gear.* #key("Landing gear up / down") moves the handle; the gear takes about 3 seconds. ALT GEAR lowers the gear. #sym.arrow.r *Above 300 knots or Mach 0.65 with the gear down, the gear is damaged.* The real jet's limit is not public; the sim uses this one.
   - *Touchdown.* A sink rate above 10 ft a second damages the gear; above 13 ft a second, or with the gear moving, the jet is lost.
-  - *Brakes.* #key("Wheel brakes (hold)") brakes both wheels on the ground while it is held. The jet starts on the ground with the brakes on: a tap on the key lets them go. The speedbrake has its own keys (@flight-controls).
+  - *Brakes.* #key("Wheel brakes (hold)") brakes both wheels on the ground while it is held. #row("PARK_BRAKE") holds them on with no key held; #key("Parking brake (set / off)") moves it too. The jet starts on the ground with the parking brake set. #sym.arrow.r *Release it before the taxi.* The speedbrake has its own keys (@flight-controls).
   - *Steering.* The rudder pedals steer the nosewheel on the ground.
-  - *#term("Not modelled").* The parking brake and the hook: both switches move and do nothing. The jet has no drag chute.
+  - *#term("Not modelled").* The hook: its switch moves and does nothing. The jet has no drag chute.
 ]

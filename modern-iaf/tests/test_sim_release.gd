@@ -57,6 +57,7 @@ func _jet(unit: String, base: String) -> void:
 	tv.gear_down = false
 	tv.throttle = 0.8
 	tv.brakes = false
+	tv.flight.set_switch("parking_brake", 0)  # a ground start is held by it
 	await frames(10)
 	check(tv.flight.state().model == "6dof", "the Sufa flies the 6-DoF")
 	w._push_stores()  # the restart above dropped the stores the mission's start gave the flight model

@@ -410,6 +410,9 @@ func put(r: Dictionary, v: float) -> void:
 ## range, 0 to 260 mr).
 const DEPR_MAX_MR := 260.0
 
+## The F-16's fuel and brake switches in command 270's order (p1): PARKING BRAKE, MASTER FUEL, ENG FEED.
+const FUEL_SWITCHES := ["parking_brake", "master_fuel", "eng_feed"]
+
 ## The start-up switches of three positions (f16_controls.json `system`) and their command [id, p2]: MAIN PWR 210,
 ## the JFS 211, RDR ALT 219 with its index in sim_flight.gd SYSTEMS.
 const START_CMD := {"main_power": [210, 0], "starter": [211, 0], "rdr_alt": [219, 5]}
@@ -479,6 +482,9 @@ static func _system_state(tv: Object, name: String, now: float) -> float:
 		"threat_vol", "msl_vol":  # the RWR's tones (rwr.gd), on the modern F-16s
 			if tv.weapons.ews != null:
 				return tv.weapons.rwr.threat_volume if name == "threat_vol" else tv.weapons.rwr.launch_volume
+		"parking_brake", "master_fuel", "eng_feed":  # the flight model's (IafFlight.switch; -1: a jet without them)
+			if tv.flight != null and tv.get("_own_keys_in_table") and int(tv.flight.switch(name)) >= 0:
+				return float(tv.flight.switch(name))
 		"canopy_lock":  # the F-16's lock lever: 0 down, the canopy closed and locked (the flight model's step); 1 up
 			if tv.flight != null:
 				return 0.0 if tv.flight.start_on("canopy") else 1.0
@@ -501,6 +507,9 @@ func _system_put(name: String, v: float, was := NAN) -> void:
 		var p := roundi(v)
 		var mid := -1 if name == "starter" else 1  # START 1, BATT, STBY
 		cmd.call([START_CMD[name][0], -1 if p == 0 else (2 if p == mid else 1), START_CMD[name][1]])
+		return
+	if name in FUEL_SWITCHES:  # command 270: p1 the switch, p2 its position
+		cmd.call([270, FUEL_SWITCHES.find(name), roundi(v)])
 		return
 	if name == "canopy_lock":  # the F-16's lock lever down (p1 1) or up (-1): command 215; a canopy still up refuses it
 		cmd.call([215, -1 if v > 0.5 else 1, 0])

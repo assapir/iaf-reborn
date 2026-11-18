@@ -100,6 +100,7 @@ func jet_flight(id: String) -> void:
 		path.append(Vector2(float(s["FromTaxiPtX%d" % i]), float(s["FromTaxiPtY%d" % i])))
 	var hdg := float(s.RunwayNumber)
 	tv.brakes = false
+	tv.flight.set_switch("parking_brake", 0)  # a ground start is held by it
 	tv.scripted_stick = Vector2.ZERO
 	await _taxi(tv, path.slice(0, -1), hdg, false)
 	await _call(tv, "lineup")

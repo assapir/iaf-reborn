@@ -199,6 +199,22 @@ impl Fm {
         }
     }
 
+    /// A fuel or brake switch set (the 6-DoF's `set_switch`); the original model has none (false).
+    pub fn set_switch(&mut self, name: &str, pos: i8) -> bool {
+        match self {
+            Fm::SixDof(s) => s.set_switch(name, pos),
+            Fm::Original(_) => false,
+        }
+    }
+
+    /// A fuel or brake switch's position (the 6-DoF's `switch`); -1 in the original model.
+    pub fn switch(&self, name: &str) -> i8 {
+        match self {
+            Fm::SixDof(s) => s.switch(name),
+            Fm::Original(_) => -1,
+        }
+    }
+
     /// The INS knob's position (the 6-DoF's, 0 OFF .. 5 ATT): NAV (3) in the original model.
     pub fn ins_knob(&self) -> u8 {
         match self {

@@ -96,7 +96,7 @@ The integrated power pack (IPP) is a small turbine. It powers the jet on the gro
 
 === Taxi <cold-start-taxi>
 
-Get the taxi clearance; it names the runway. Release the brakes (a tap on #key("Wheel brakes (hold)")), add a little throttle and follow the taxiway signs to that runway's holding point. Hold #key("Wheel brakes (hold)") to slow down.
+Get the taxi clearance; it names the runway. Release the parking brake (#key("Parking brake (set / off)")), add a little throttle and follow the taxiway signs to that runway's holding point. Hold #key("Wheel brakes (hold)") to slow down.
 
 #steps(
   "taxi",

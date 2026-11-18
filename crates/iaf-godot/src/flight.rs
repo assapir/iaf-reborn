@@ -462,6 +462,28 @@ impl IafFlight {
         self.aircraft.as_ref().map_or(3, |ac| i64::from(ac.ins_knob()))
     }
 
+    /// A 6-DoF jet's fuel or brake switch set (command 270, modern-iaf/docs/cockpit.md §5.7): "parking_brake",
+    /// "master_fuel", "eng_feed"; `pos` its position, -1 the next one round. False when the jet has none.
+    #[func]
+    fn set_switch(&mut self, name: GString, pos: i64) -> bool {
+        let pos = pos.clamp(-1, 9) as i8;
+        self.aircraft.as_mut().is_some_and(|ac| ac.set_switch(&name.to_string(), pos))
+    }
+
+    /// A fuel or brake switch's position (`set_switch`'s values), -1 when the jet has none.
+    #[func]
+    fn switch(&self, name: GString) -> i64 {
+        self.aircraft.as_ref().map_or(-1, |ac| i64::from(ac.switch(&name.to_string())))
+    }
+
+    /// The F-16's fuel quantity indicator at FUEL QTY SEL position `sel` with `fuel_lb` aboard, `internal_lb` the
+    /// internal capacity: (the FWD pointer, the AFT pointer, the totalizer), lb (iaf-flight `fuel_qty`).
+    #[func]
+    fn fuel_qty(sel: i64, fuel_lb: f64, internal_lb: f64) -> Vector3 {
+        let [f, a, t] = iaf_flight::sixdof::flight::fuel_qty(sel.clamp(0, 5) as u8, fuel_lb, internal_lb);
+        Vector3::new(f as f32, a as f32, t as f32)
+    }
+
     /// The INS alignment for the DED's INS page: [seconds run, its length, done] (start.rs `ins_status`).
     #[func]
     fn ins_status(&self) -> VarArray {

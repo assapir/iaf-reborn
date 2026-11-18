@@ -1172,3 +1172,60 @@ fn adir_flies_the_f35_figures() {
     println!("Adir: 1 g stall {stall:.0} kt (inferred {:.0})", fig.stall_kt);
     assert!((stall / fig.stall_kt - 1.0).abs() <= 0.10, "{stall}");
 }
+
+#[test]
+fn the_parking_brake_holds_the_jet() {
+    // Set: the wheels stay braked with no brake key held, above idle on the ground; released: the jet rolls.
+    let mut f = flight(jets::tp1538().at_weight(29_253.0), 0.0, 0.0, false);
+    assert!(f.set_switch("parking_brake", 1) && f.switch("parking_brake") == 1);
+    let x0 = f.state().position.y;
+    let power = |f: &SixDof| iaf_flight::Controls { throttle: 0.3, brakes: false, gear_down: true, ..f.controls() };
+    fly_for(&mut f, 10.0, power);
+    let held = (f.state().position.y - x0).abs();
+    f.set_switch("parking_brake", -1); // the next position round: released
+    assert_eq!(f.switch("parking_brake"), 0);
+    fly_for(&mut f, 10.0, power);
+    let rolled = (f.state().position.y - x0).abs();
+    println!("parking brake: {held:.2} m held, {rolled:.1} m released");
+    assert!(held < 1.0 && rolled > 50.0, "{held} {rolled}");
+}
+
+#[test]
+fn master_fuel_and_eng_feed_off_flame_the_engine_out() {
+    // MASTER FUEL OFF, or ENG FEED OFF, cuts the fuel: the engine flames out and winds down as on an empty tank, the
+    // fuel stays in the tank; back on, the throttle's idle step is refused until the fuel feeds again.
+    for (name, off) in [("master_fuel", 0), ("eng_feed", 0)] {
+        let mut f = flight(jets::all()[1], 3048.0, 300.0 * KT, true);
+        let c = iaf_flight::Controls { throttle: 0.74, ..f.controls() };
+        assert!(f.set_switch(name, off) && !f.fuel_feeds());
+        fly_for(&mut f, 60.0, |_| c);
+        let s = f.state();
+        println!("{name} off, 60 s: {} RPM {:.1}, thrust {:.0} N", f.start_phase(), s.rpm, s.thrust_n);
+        assert!(s.fuel_kg > 0.0 && s.thrust_n == 0.0 && s.rpm < 20.0 && f.start_phase() != "running");
+        assert_eq!(f.start_step("engine"), Err("no_fuel"));
+        f.set_switch(name, 1);
+        assert!(f.fuel_feeds());
+    }
+    // AFT and FWD feed as NORM (one tank); the knob's next position from FWD is OFF.
+    let mut f = flight(jets::all()[1], 3048.0, 300.0 * KT, true);
+    for pos in [2, 3] {
+        f.set_switch("eng_feed", pos);
+        assert!(f.fuel_feeds());
+    }
+    f.set_switch("eng_feed", -1);
+    assert_eq!(f.switch("eng_feed"), 0);
+    f.start_engine(); // the start engine command sets the fuel switches on
+    assert!(f.fuel_feeds() && f.switch("eng_feed") == 1);
+}
+
+#[test]
+fn the_fuel_quantity_selector_picks_the_reading() {
+    use iaf_flight::sixdof::flight::fuel_qty;
+    // 8,000 lb aboard, 5,800 inside: NORM half the internal on each pointer; EXT WING half the external; EXT CTR none;
+    // TEST the indicator's test values; the totalizer the total.
+    assert_eq!(fuel_qty(1, 8000.0, 5800.0), [2900.0, 2900.0, 8000.0]);
+    assert_eq!(fuel_qty(4, 8000.0, 5800.0), [1100.0, 1100.0, 8000.0]);
+    assert_eq!(fuel_qty(5, 8000.0, 5800.0), [0.0, 0.0, 8000.0]);
+    assert_eq!(fuel_qty(0, 8000.0, 5800.0), [2000.0, 2000.0, 6000.0]);
+    assert_eq!(fuel_qty(4, 3000.0, 5800.0), [0.0, 0.0, 3000.0]);
+}

@@ -40,6 +40,9 @@ const F16 := [
 	["GEAR_LEVER", [14, 0, 0]],
 	["CANOPY_SWITCH", []],  # held at CLOSE, sprung back: the canopy runs meanwhile (test_canopy_spider.gd), no command
 	["CANOPY_SPIDER", [215, 1, 0]],  # the lock lever, up on the cold jet: down
+	["SW_PARKING_BRAKE", [270, 0, 0]],  # set on the ground start: off (cockpit.md §5.7)
+	["SW_MASTER_FUEL", [270, 1, 0]],  # MASTER to OFF
+	["SW_KNOB_ENG_FEED", [270, 2, 2]],  # NORM to AFT
 ]
 
 

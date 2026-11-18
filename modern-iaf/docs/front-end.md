@@ -529,7 +529,8 @@ arrows (records 86–93). The 1998 game keeps all of them.
 **The switch keys (2026-11-18).** Commands that had a key and no row are records of the table now, listed and rebound as
 any other: Speedbrakes open (hold) and Speedbrakes close (B, Shift + B: the SPD BRK switch,
 [flight-model.md](flight-model.md) §9.11; the user, 2026-11-18, "B should be the airbrake"), Wheel brakes (hold) (W: the
-wheels only, braking while the key is held; a ground start's brakes stay on until its first tap), Roll trim left / right
+wheels only, braking while the key is held), Parking brake (Shift + G; a ground start begins with it set), MASTER
+FUEL, ENG FEED and FUEL QTY SEL (Ctrl + F, Shift + E, Shift + U; [cockpit.md](cockpit.md) §5.7), Roll trim left / right
 (Alt + Left / Right, held), MANUAL PITCH override (Alt + M, held), STORES CONFIG switch (Alt + S), GPS bomb PRE / VIS
 and GPS bomb next PRE target (K, Shift + K). The brakes took W from Next waypoint (the user, 2026-11-18, on a Mac
 laptop's keyboard, where no plain key was left): Next waypoint is on Shift + W, and Previous waypoint moved from there
@@ -681,7 +682,7 @@ How the flight reads it:
   the same way.
 - `modern-iaf/tests/test_switch_keys.gd` flies the Barak: W (Wheel brakes (hold)) held in the air brakes and opens no
   speedbrake, and lets go with the key; the waypoints' keys are Shift + W and Shift + Q, and after Shift + W with Shift
-  let go first W brakes nothing and a ground start's brakes stay on; a tap on W lets the brakes go; B held opens them
+  let go first W brakes nothing; B held opens them
   and they stay when let go, Shift + B closes them (also with Shift let go first); Alt + Right trims (also with Right
   down before Alt), Alt + M is MPO, Alt + S is STORES CONFIG; MPO rebound to J works on J and no longer on Alt + M; no
   key for a drag chute.

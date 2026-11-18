@@ -3,10 +3,15 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **The F-16s' fuel and brake switches (2026-11-18, [cockpit.md](cockpit.md) §5.7):** PARKING BRAKE holds the jet
+  (Shift + G; a ground start begins with it set; the F-35I's switch too), MASTER FUEL OFF and ENG FEED OFF flame the
+  engine out (Ctrl + F, Shift + E), FUEL QTY SEL picks the fuel gauge's reading (Shift + U). Partly: ENG FEED's AFT
+  and FWD feed as NORM, and FUEL QTY SEL's RSVR and INT WING show NORM's reading (one fuel tank). Open: HUD CONT,
+  DRIFT C/O and the MFDs' CON and GAIN still only move.
 - **The key faults the manuals exposed (2026-11-18; the user plays on a Mac laptop's keyboard, no HOTAS;
   [front-end.md](front-end.md) §9.1):** the speedbrakes have their own switch keys (Speedbrakes open (hold) on
   B, Speedbrakes close on Shift + B: open while held, they stay when let go; [flight-model.md](flight-model.md)
-  §9.11) and Wheel brakes (hold), on W, brakes the wheels only while it is held (a tap lets a ground start's brakes go),
+  §9.11) and Wheel brakes (hold), on W, brakes the wheels only while it is held (a ground start is held by the parking brake, Shift + G; 18 Nov),
   with Next waypoint on Shift + W and Previous waypoint on Shift + Q (the user, 2026-11-18); the Drag chute key and row
   are gone (no jet has one);
   the roll trim, MANUAL PITCH, STORES CONFIG and the GPS bomb's keys are rows of the Keys screen and of the manuals' key card;

@@ -85,6 +85,7 @@ func jet(mission: String, unit: String, station: int, bomb: String, count: int) 
 	# Part power: at military the Sufa passes the bombs' 600 KCAS release limit before the delayed release below.
 	tv.throttle = 0.7
 	tv.brakes = false
+	tv.flight.set_switch("parking_brake", 0)  # a ground start is held by it
 	await frames(10)
 	var wp: Dictionary = tv.cockpit.weapons
 	var name := bomb.to_upper()

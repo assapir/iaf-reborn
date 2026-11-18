@@ -171,6 +171,8 @@ func setup(c: Control, cam: Camera3D, type_code: int) -> bool:
 	for k in meta.get("controls", {}):  # the lighting panel's rests (_knob)
 		if meta.controls[k].has("modelled"):
 			_rest[meta.controls[k].prop] = float(meta.controls[k].modelled)
+	if _rest.has(FQS) and not switches.has(FQS):
+		switches[FQS] = 1.0  # FUEL QTY SEL at NORM (the model's own rest is TEST)
 	_materials(n, path, Settings.airframe_id(type_code) == "f16")
 	var anims: Dictionary = meta.get("animations", {})
 	# The model's controls' properties (<model>.json `controls`): unset, a control shows as modelled.
@@ -605,6 +607,24 @@ func _lighting() -> void:
 	var day := c * (float(meta.get("day_fill", 0.0)) / FILL)
 	for mat: BaseMaterial3D in _night_mats:
 		mat.emission = _night_mats[mat][0] if cockpit.night else _night_mats[mat][1] * day
+
+
+## The F-16's FUEL QTY SEL knob (its FlightGear property: 0 TEST, 1 NORM, 2 RSVR, 3 INT WING, 4 EXT WING, 5 EXT CTR;
+## command 270 p1 3, modern-iaf/docs/cockpit.md §5.7).
+const FQS := "controls/fuel/qty-selector"
+
+
+## The fuel quantity indicator at FUEL QTY SEL's position: (FWD pointer, AFT pointer, totalizer), lb (IafFlight.fuel_qty).
+func _fuel_qty() -> Vector3:
+	var s: Dictionary = cockpit.state
+	var fuel := float(s.get("fuel_lbs", 0.0))
+	var internal := float(s.get("internal_fuel_kg", 0.0)) / 0.45359
+	if not ClassDB.class_exists("IafFlight"):
+		return Vector3(minf(fuel, internal) / 2.0, minf(fuel, internal) / 2.0, fuel)
+	# The 1998 game's 3D F-16 cockpit: the knob moves only, the gauge at NORM.
+	var tv: Object = command.get_object() if command.is_valid() else null
+	var sel := int(switches.get(FQS, 1.0)) if tv != null and tv.get("_own_keys_in_table") else 1
+	return ClassDB.class_call_static("IafFlight", "fuel_qty", sel, fuel, internal)
 
 
 ## Control `prop`'s position: as set, else its rest.
@@ -1207,7 +1227,7 @@ func _prop(p: String) -> float:
 	if p.begins_with("consumables/fuel/total-fuel-lbs-"):
 		# The drum of that digit: the units' turning, the others stepping.
 		var k := float(p.get_slice("-", 3))
-		var lbs := fmod(float(s.fuel_lbs), k * 10.0)
+		var lbs := fmod(_fuel_qty().z, k * 10.0)
 		return lbs if k == 1.0 else floorf(lbs / k) * k
 	return _instrument_prop(p)
 
@@ -1662,8 +1682,9 @@ func _instrument_prop(p: String) -> float:
 		"fdm/jsbsim/fcs/fly-by-wire/pitch/alpha-indicated":
 			return float(s.aoa)
 		"f16/fuel/hand-fwd-lag", "f16/fuel/hand-aft-lag":
-			# FWD / AFT (the FQI's NORM: fwd + right wing, aft + left wing): half the internal fuel each (inferred).
-			return minf(float(s.fuel_lbs), float(s.internal_fuel_kg) / 0.45359) / 2.0
+			# FWD / AFT at FUEL QTY SEL's position (_fuel_qty).
+			var q := _fuel_qty()
+			return q.x if p == "f16/fuel/hand-fwd-lag" else q.y
 	if p.begins_with("f16/cockpit/fuel-flow-digit-"):
 		# Digit n of the fuel flow (lb/h): 3 the hundreds, 4 the thousands, 5 the ten thousands.
 		var k := pow(10.0, float(p.right(1)) - 1.0)

@@ -52,6 +52,7 @@ func _fly(mission: String, unit: String, lo: String, speed := 200.0) -> Node:
 	tv.gear_down = false
 	tv.throttle = 0.8
 	tv.brakes = false
+	tv.flight.set_switch("parking_brake", 0)  # a ground start is held by it
 	await frames(10)
 	tv.weapons._push_stores()  # the restart dropped the stores the mission's start gave the flight model
 	_press(tv, KEY_A, true, true)  # master arm

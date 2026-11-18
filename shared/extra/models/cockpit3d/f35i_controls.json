@@ -10,6 +10,7 @@
 "MASTER_ARM": {"system": "master_arm"},
 "EMER_JETT": {"system": "emer_jett"},
 "ALT_GEAR": {"system": "alt_gear"},
+"PARK_BRAKE": {"system": "parking_brake"},
 "lamp_master_caution_0": {"system": "master_caution"},
 "gear_handle": {"click": [14, 0, 0]}
 }

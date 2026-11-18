@@ -18,7 +18,7 @@
 "HOOK": {"status": "moves"},
 "JETT_SEL": {"status": "moves"},
 "EMER_JETT": {"status": "works"},
-"PARK_BRAKE": {"status": "moves"},
+"PARK_BRAKE": {"status": "works"},
 "ALT_GEAR_GUARD": {"status": "partly", "note": "Only gates its switch."},
 "ALT_GEAR": {"status": "works"},
 "LAND_TAXI": {"status": "moves", "note": "The exterior lights are always on."},

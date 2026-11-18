@@ -875,8 +875,9 @@ the jet's limit (43° with the F-16's gear down); let go, they stay; Speedbrakes
 key starts by its own key going down: Shift + B with Shift let go first leaves them closed (`terrain_view.gd`
 `_cap_was_down`). They work in the air and on the ground, so a landing roll can brake on the wheels alone or on the
 speed brakes alone. With the switch, the brake key (Wheel brakes (hold), W) is the wheel brakes only, on while
-the key is held (the user, 2026-11-18; command 17 with p1 1, its release -1). A ground start has the brakes on, and
-they stay on until the key's first tap. Brake damage (flag 5) leaves the speed brakes where they are.
+the key is held (the user, 2026-11-18; command 17 with p1 1, its release -1). A Modern IAF ground start is held by the
+parking brake instead (`SixDof::set_switch`, [cockpit.md](cockpit.md) §5.7), released by its switch or key. MASTER
+FUEL or ENG FEED at OFF cuts the fuel to the engine as an empty tank does (`SixDof::fuel_feeds`). Brake damage (flag 5) leaves the speed brakes where they are.
 An autopilot loop that asks for the brakes in the air still opens them. A jet flown without the switch (the AI's, and
 the 1998 game's 6-DoF option) keeps one control: the wheel brakes on the ground, the speed brakes in the air. The
 F-35I's speedbrake function takes the same keys (inferred: its real control is open). The cockpit models have no

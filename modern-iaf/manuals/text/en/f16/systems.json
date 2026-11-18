@@ -555,7 +555,7 @@
       "FWD"
      ],
      "does": "Chooses the tank pumps that feed the engine: all of them at NORM; the aft or the forward tanks only, to correct a fuel imbalance; none at OFF.",
-     "sim": "Not modelled: the knob turns, the fuel feeds the same at every position."
+     "sim": "OFF cuts the fuel to the engine; AFT and FWD feed as NORM: the fuel model has one tank."
     },
     {
      "node": "SW_AIR_REFUEL",

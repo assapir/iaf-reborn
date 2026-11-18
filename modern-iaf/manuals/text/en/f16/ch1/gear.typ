@@ -27,8 +27,8 @@ The pedals steer the nosewheel up to 32° to each side once the steering is enga
 #in-sim[
   - *Gear.* #key("Landing gear up / down") moves the handle; the gear takes about 3 seconds. The three green lights and the handle's red light work as above. #sym.arrow.r *Above 300 knots or Mach 0.65 with the gear down, the gear is damaged.*
   - *Touchdown.* A sink rate above 10 ft a second damages the gear; above 13 ft a second, or with the gear moving, the jet is lost. A pitch of more than 15° at touchdown strikes the tail.
-  - *Brakes.* #key("Wheel brakes (hold)") brakes both wheels on the ground while it is held. The jet starts on the ground with the brakes on: a tap on the key lets them go. The speedbrakes have their own keys (@flight-controls). Anti-skid is always on.
+  - *Brakes.* #key("Wheel brakes (hold)") brakes both wheels on the ground while it is held. #row("SW_PARKING_BRAKE") at PARKING BRAKE holds them on with no key held; #key("Parking brake (set / off)") moves it too. The jet starts on the ground with the parking brake set. #sym.arrow.r *Release it before the taxi.* The speedbrakes have their own keys (@flight-controls). Anti-skid is always on.
   - *Steering.* The rudder pedals always steer the nosewheel on the ground, up to 32°; no button is needed. #sym.arrow.r *AR/NWS is on while the jet is on the ground.*
   - *TO/LDG CONFIG* works as above; the horn is silent.
-  - *#term("Not modelled").* ALT GEAR, the parking brake, the brake channels and DN LOCK REL; the HOOK switch only lights the #row("lamp_caution_hook_0") caution; the jet has no drag chute.
+  - *#term("Not modelled").* ALT GEAR, the brake channels and DN LOCK REL; the HOOK switch only lights the #row("lamp_caution_hook_0") caution; the jet has no drag chute.
 ]
