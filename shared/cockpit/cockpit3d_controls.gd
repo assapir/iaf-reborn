@@ -1,11 +1,9 @@
 # Ours (Settings.cockpit_controls, Modern IAF; modern-iaf/docs/cockpit.md §5.1): the 3D cockpit's clickable controls. A
 # cockpit's table, <model>_controls.json beside its model, binds the model's nodes to key commands:
 #   {"<node>": {"click": [id, p1, p2], "turn": [id, p1, p2], "drag_px": 10, "prop": "<FlightGear property>",
-#    "on": 2, "off": 0, "box": [x, y, z, w, h, d]}, ...}
+#    "on": 2, "off": 0}, ...}
 #   - the node: a mesh of the model (its own surface is the hit area: the pointer finds the part its ray meets first,
-#     never a neighbour's); a part merged into the model's body has no node of its own: "box" (the model's frame, m:
-#     centre and size, fitted tight round the part) is its hit area, lit when hovered; a box
-#     with "grip": a part the model lacks, drawn as a grey rod along the box's length (_area);
+#     never a neighbour's);
 #   - "click": sent on a left click (a switch);
 #   - "prop", "on", "off": the switch's FlightGear property (its animation in <model>.json) and its two positions,
 #     set by set_switch (cockpit3d.gd switches);
@@ -94,16 +92,10 @@ func setup(model: Node3D, table: Dictionary, generic := {}) -> void:
 		if r.has("modelled") and not r.has("on") and not sw.has(r.prop):
 			sw[r.prop] = float(r.modelled)  # a switch the flight model does not hold starts as the model shows it
 		var mi := model.find_child(name, true, false) as MeshInstance3D
-		if mi == null and r.has("box"):
-			mi = _area(name, r.box, r.get("grip", false))
-			model.add_child(mi)
 		if mi != null:
 			_controls.append([mi, r])
 			var faces := mi.mesh.get_faces()
 			var xf := Transform3D.IDENTITY.scaled(Vector3.ONE * MM)
-			if mi.get_child_count() > 0 and mi.get_child(0) is MeshInstance3D:  # a box's grip: the rod alone (_area)
-				faces = mi.get_child(0).mesh.get_faces()
-				xf = xf * mi.get_child(0).transform
 			for i in faces.size():
 				faces[i] = xf * faces[i]
 			_shapes[mi] = TriangleMesh.new()
@@ -230,40 +222,6 @@ func set_switch(id: int, on: bool, p2 := -1, value := NAN) -> void:
 			get_parent().switches[r.prop] = value if not is_nan(value) else float(r.on if on else r.off)
 			if on and r.has("guard"):  # thrown by its key or the throttle: its guard up too, not shut over the bat
 				get_parent().switches[r.guard] = 1.0
-
-
-## A hit area of `box` [centre, size] (m, the model's frame): a box drawn clear, lit by the hover's overlay. With
-## `grip` it holds a grey metal rod, as thick as the box is narrow, along its depth (z): the F-16's canopy handle,
-## which FlightGear's model lacks (the Mac play test's finding 11: the clear box alone showed nothing). Grey, not
-## black, so it shows on the black canopy sill (its finish is inferred). The box around a rod is drawn on no layer:
-## the hover lights the rod's rim, not the box's faces.
-static func _area(name: String, box: Array, grip := false) -> MeshInstance3D:
-	var mi := MeshInstance3D.new()
-	mi.name = name
-	var mesh := BoxMesh.new()
-	mesh.size = Vector3(box[3], box[4], box[5])
-	mi.mesh = mesh
-	mi.position = Vector3(box[0], box[1], box[2])
-	var clear := StandardMaterial3D.new()
-	clear.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	clear.albedo_color = Color(0, 0, 0, 0)
-	mi.material_override = clear
-	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	if grip:
-		var rod := MeshInstance3D.new()
-		var cap := CapsuleMesh.new()
-		cap.radius = minf(box[3], box[4]) / 2.0
-		cap.height = box[5]
-		rod.mesh = cap
-		rod.rotation = Vector3(PI / 2.0, 0.0, 0.0)  # the capsule's length (y) along z
-		var metal := StandardMaterial3D.new()
-		metal.albedo_color = Color(0.45, 0.45, 0.45)
-		metal.metallic = 0.6
-		metal.roughness = 0.4
-		rod.material_override = metal
-		mi.add_child(rod)
-		mi.layers = 0
-	return mi
 
 
 ## Flips toggle `r` alone (a switch FlightGear models unset counts as on: a hot jet's) and sends its command with p1 1
@@ -631,9 +589,6 @@ func _highlight(mi: MeshInstance3D) -> void:
 		_overlay(mi, _light)
 
 
-## Lays `m` over `mi` and its child meshes (the canopy handle's rod, drawn by _area; no model control has any).
+## Lays `m` over `mi`.
 static func _overlay(mi: MeshInstance3D, m: Material) -> void:
 	mi.material_overlay = m
-	for c in mi.get_children():
-		if c is MeshInstance3D:
-			c.material_overlay = m

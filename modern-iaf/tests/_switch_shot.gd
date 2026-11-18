@@ -90,7 +90,7 @@ func _shoot(tv: Node, node: String) -> void:
 	hover.position = Vector2.ZERO
 	Input.parse_input_event(hover)
 	await frames(10)
-	if not node in ["CANOPY_HANDLE", "HMD_BRT", "MFD_BRT"]:  # a hit area or a knob: a click turns nothing
+	if not node in ["HMD_BRT", "MFD_BRT"]:  # a knob: a click turns nothing
 		check(not mi.transform.is_equal_approx(rest), "%s: clicked, the switch turned" % node)
 	await _save(node + "_on")
 

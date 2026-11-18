@@ -198,16 +198,16 @@ docs/f35i.md §4.5); a control's hit area is its mesh's own surface: the pointer
 meets nearest the eye, so the area is never bigger than the part and never a neighbour's (the user, 2026-11-15:
 "smaller circles … on the exact shape of the instrument"; until then the mesh's box grown by 4 mm, of the boxes crossed
 the nearest centre, which reached past small switches into their neighbours). The surfaces are kept in millimetres:
-Godot's ray-triangle test takes a triangle a few millimetres across as parallel to every ray. The canopy handle's hit
-area is its rod. The flight controls take no mouse: the throttle and the stick move by the keys and the joystick's stick and
+Godot's ray-triangle test takes a triangle a few millimetres across as parallel to every ray. The flight controls take
+no mouse: the throttle and the stick move by the keys and the joystick's stick and
 throttle axes only, and animate with them (the user, 2026-11-15: "shouldn't be able to move the throttle or stick from
 the mouse"; from 2026-11-13 the throttle grip took clicks, the wheel and drags). The
 pointer over a control lights its rim (`material_overlay`, the shader `RIM`): a faint cool white, thin where the part faces
 the eye and thicker where its surface turns away, so its own colour and texture still show (2026-11-11; it was a warm
 yellow fill, which the user found "too yellowish" and hiding the SYM wheel's texture). The overlay is a mix of low
 alpha, not an add: the cockpit's picture is composited by its alpha (`cockpit_composite.gdshader`), and an add pushed
-that alpha past 1 and darkened the part (tried 2026-11-11, dropped). The canopy handle's hit box is drawn on no layer,
-so the rim lights its rod only. The pointer's moves reach the layer in `_input`, before
+that alpha past 1 and darkened the part (tried 2026-11-11, dropped). The pointer's moves reach the layer in `_input`,
+before
 the flight's full-view Controls take them, and `cockpit_origin.gd` passes them into the cockpit's own world with the
 clicks. The start-up switches are on the same layer (§5.2).
 
@@ -305,7 +305,7 @@ switches as FlightGear models them.
 | 3 | throttle (`THROTTLE`, not clickable) | the throttle, left console | its keys (Throttle up, 1) and the throttle lever | Throttle up | the throttle's own animation: out of OFF |
 | 4 | MMC, ST STA, MFD, UFC switches (`AVIONICS_MMC`, `AVIONICS_ST_STA`, `AVIONICS_MFD`, `AVIONICS_UFC`) | AVIONIC POWER panel, right console[^bms-ramp][^fg-right] | a click `[219, ±1, 0..3]`, each its own; Ctrl+A `[213, 0, 0]` all four | Ctrl+A | ON (1) / OFF (0): the key all four, a click its own switch |
 | 5 | INS knob (`INS`) | AVIONIC POWER panel, right console[^bms-ramp][^fg-right] | `[214, 0, 0]`; the wheel and a drag `[214, ±1, 0]` | Ctrl+N | six positions: OFF (0), STOR HDG (1), NORM (2), NAV (3), IN FLT ALIGN (4), ATT (5); the step done at STOR HDG to IN FLT ALIGN |
-| 6 | canopy handle (`CANOPY_HANDLE`, a hit area) | left side, aft of the left console, by the canopy switch[^dcs-canopy] | `[215, 0, 0]` | Ctrl+K | none |
+| 6 | canopy (its key; the model has no canopy switch) | the real switch: left side, aft of the left console[^dcs-canopy] | `[215, 0, 0]` | Ctrl+K | none |
 | take-off, landing | landing gear handle (`GEAR_LEVER`) | left auxiliary console (FlightGear's `LeftAuxConsole` `gear_lever`) | `[14, 0, 0]` | G | the handle's own animation (`controls/gear/gear-down`) |
 | (sensors) | FCR, RDR ALT switches (`FCR`, `RDR_ALT`) | SNSR PWR panel, right console[^fg-right] | `[219, ±1, 4]`, `[219, -1 / 2 / 1, 5]`; Ctrl+A turns both on with the avionics | Ctrl+A (on only) | ON (1) / OFF (0); RDR ALT ON (2) / STBY (1) / OFF (0) |
 | (pods) | LEFT HDPT, RIGHT HDPT switches (`l-hdpt-switch`, `r-hdpt-switch`; since 2026-11-17) | SNSR PWR panel, right console[^fg-right] | `[219, ±1, 6]`, `[219, ±1, 7]`: the chin stations' power, RIGHT HDPT the targeting pod's ([weapons.md](weapons.md) §7.2); Ctrl+A turns both on with the avionics | Ctrl+A (on only) | ON (1) / OFF (0) |
@@ -314,13 +314,14 @@ switches as FlightGear models them.
   the throttle or stick from the mouse"): a click and the wheel stepped it 5 %, a drag moved it, a drag down from idle
   went over the detent to OFF. The throttle now moves by its keys and the lever only; OFF is Throttle OFF (Shift + 1).
 
-- **The canopy handle** has no part in FlightGear's model, so its row is a `box` with `grip`: a grey metal rod, 3 cm
-  thick and 14 cm long, along the left canopy sill's inner face 10 cm aft of the throttle, lit under the pointer
-  (`cockpit3d_controls.gd` `_area`). Until 2026-11-11 the box was drawn clear, and it sat under the pilot's left
-  shoulder, where no head turn could see it (the Mac play test's finding 11). Its exact place and finish are
-  inferred: the sources put the handle on the left side, not where on it. Looked for again on 2026-11-13 with the
-  canopy's hinge: no flight-manual text could be read (the Falcon BMS Dash-1 is too large to fetch, the DCS forum
-  refuses automated reading), so its place stays the forum's (open).
+- **The canopy** closes and opens by its key, Ctrl+K (key record 124), on both F-16s: FlightGear's model has no canopy
+  switch, so the step has no control in the 3D cockpit, and the notebook's line says so and points to the Canopy key
+  on the Keys screen (the card item's `where`). **Tried and dropped (2026-11-11 to 2026-11-18):** a canopy handle of our
+  own, a grey metal rod 3 cm
+  thick and 14 cm long drawn along the left canopy sill's inner face 10 cm aft of the throttle and clicked as the
+  step's control (`f16_controls.json` `CANOPY_HANDLE`, a `box` row with `grip`). Its place and shape were inferred
+  from a forum's line[^dcs-canopy]; the user on 2026-11-18: "remove the f16 cockpit handle. It isn't right for sure".
+  The rod, its click area, the `box` rows' code and the briefing's two canopy pictures went with it.
 - **The INS knob** (since 2026-11-15, the user: "Ins prod can't move to all places") turns through FlightGear's six
   positions, 0–5 (its knob animation's range; its HUD shows ALIGN at 2 and 4, NAV at 3)[^fg-right]: OFF, STOR HDG,
   NORM, NAV, IN FLT ALIGN, ATT. The names of 1, 4 and 5 are inferred from the real knob's order (FlightGear names

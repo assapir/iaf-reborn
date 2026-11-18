@@ -191,7 +191,7 @@ static func _box(c3d: Node, mi: MeshInstance3D, r: Dictionary) -> AABB:
 
 
 ## The positions control `r` (node `node`) is pictured at; none for the hand-only parts (the throttle, the stick, the
-## canopy handle, the gear lever) and the MFDs' flat OSBs.
+## gear lever) and the MFDs' flat OSBs.
 func _values(r: Dictionary, node: String) -> Array:
 	if node == "HUD_MODE":
 		return [0.0, 1.0, 2.0]

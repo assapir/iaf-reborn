@@ -3,7 +3,7 @@
 # shown on the throttle only) and each step of its checklist (sim_flight.gd STEP_IDS) the head turns to the step's
 # controls in the 3D cockpit (the clickable controls whose "click" is the step's command, 210 + its index; none: the
 # throttle's, command 5), zoomed in, and the view around them is cropped with a ring round them, a dark view
-# brightened: data/switches/<unit>/<step>.webp, 300 × 200, the switches as a cold jet has them (HIDDEN: none).
+# brightened: data/switches/<unit>/<step>.webp, 300 × 200, the switches as a cold jet has them (HIDDEN: no picture).
 # SHOT_OUT: another folder; SHOT_MISSIONS: other missions (comma-separated menu ids).
 #   flock -o ~/.cache/iaf-gpu-bench.lock tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 -- --log-file <t> \
 #     --resolution 1920x1080 --path modern-iaf -s ../modern-iaf/tests/_switch_crops.gd
@@ -15,9 +15,9 @@ const SIZE := Vector2i(300, 200)
 const MIN_VIEW := Vector2(450, 300)
 ## The parts' size on the screen (px) past which they are pictured in the wide view.
 const BIG := Vector2(700, 450)
-## The steps whose switch the eye cannot see, left to their `where` text: the F-35I's CANOPY switch (tools/f35i
-## cockpit3d.py panel L4, 0.31 m aft) sits behind the seat's side.
-const HIDDEN := {"f35i": ["canopy"]}
+## The steps with no picture: the F-35I's CANOPY switch (tools/f35i cockpit3d.py panel L4, 0.31 m aft) sits behind the
+## seat's side, left to its `where` text; the F-16s' canopy has its key alone (no switch in the model).
+const HIDDEN := {"f35i": ["canopy"], "f16i": ["canopy"], "f16d": ["canopy"]}
 
 
 func run() -> void:
@@ -51,11 +51,10 @@ func run() -> void:
 			# The pilot's body hides the consoles' switches; his glove shows the throttle's grip.
 			if tv.cockpit_3d._pilot != null:
 				tv.cockpit_3d._pilot.visible = throttle
+			if step in HIDDEN.get(unit, []):
+				continue
 			check(not parts.is_empty(), "%s %s: a control" % [unit, step])
-			if not parts.is_empty() and not step in HIDDEN.get(unit, []):
-				# A drawn grip (the F-16's canopy handle, beside its throttle) hidden from the other steps' pictures.
-				for x in controls:
-					x[0].visible = not x[1].has("box") or x in parts
+			if not parts.is_empty():
 				await _crop(tv, parts.map(func(x): return x[0]), dir.path_join(unit).path_join(step + ".webp"))
 
 

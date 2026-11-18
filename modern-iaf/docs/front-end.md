@@ -522,9 +522,10 @@ The key table has no trim command (the trim is the joystick's rocker), so trim n
 works a switch, each through the key's own command. The F-16s' controls: the SYM wheel, the HUD's brightness, which
 Shift + H also steps (its position kept in the sim's settings file, not in the device store), the HUD's DAY / AUTO
 BRT / NIGHT switch (kept there too), and the start-up
-checklist's switches (MAIN PWR, JFS, the throttle, the AVIONIC POWER switches, the INS knob, the canopy handle;
+checklist's switches (MAIN PWR, JFS, the throttle, the AVIONIC POWER switches, the INS knob;
 [cockpit.md](cockpit.md) §5.2). The pilot's notebook names each step's
-switch and its place under its line, and no key ([training.md](training.md) §11).
+switch and its place under its line, and no key ([training.md](training.md) §11); the F-16s' canopy, which has
+no switch, points to its key on the Keys screen.
 
 | | English | Hebrew |
 |---|---|---|
@@ -722,7 +723,8 @@ jet's start-up mission: for each step the head turns to the clickable controls w
 ([cockpit.md](cockpit.md) §5.2; the F-16's four AVIONIC POWER switches in one ring, the F-35I's engine step its ENGINE
 switch, the F-16's its throttle with the pilot's glove on it; the pilot's body hidden for the rest).
 A step without a picture has none under its paragraph: the F-35I's canopy, whose switch our model puts behind the
-seat's side (status.md, Open). Run the tool again when a cockpit model or a control's place changes. From 2026-11-10
+seat's side (status.md, Open), and the F-16s' canopy, which has its key alone ([cockpit.md](cockpit.md) §5.2). Run the
+tool again when a cockpit model or a control's place changes. From 2026-11-10
 to 2026-11-15 the ORDER OF ACTIONS card listed the steps (a start-up's checklist, a take-off's `steps`) with their keys,
 a step with the focus opening to its wait and picture; the user found a checklist the wrong thing to read before the
 flight (2026-11-15).

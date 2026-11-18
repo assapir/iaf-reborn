@@ -483,7 +483,7 @@ func _do_item(tv: Node, it: Dictionary, keys: bool) -> void:
 		await _target(tv, String(open[0]))
 	match step:
 		"main_power", "starter", "canopy":
-			if keys:
+			if keys or ctl.is_empty():  # the F-16's canopy: its key alone, no switch in the model
 				# MAIN PWR at BATT (the card's item before): the key turned the other way would put it OFF; p1 1 goes on
 				var on := 1 if step == "main_power" and tv.flight.start_position(step) == 1 else 0
 				tv._command([210 + tv.addon.STEP_IDS.find(step), on, 0])
@@ -634,7 +634,7 @@ func _click_control(tv: Node, node: String, moves := true) -> void:
 	vp.push_input(_click(at, MOUSE_BUTTON_LEFT, true))
 	vp.push_input(_click(at, MOUSE_BUTTON_LEFT, false))
 	await frames(2)
-	if moves and not node in ["THROTTLE", "CANOPY_HANDLE"]:  # the throttle: its own animation; the handle: a hit area
+	if moves and node != "THROTTLE":  # the throttle: its own animation
 		check(not mi.transform.is_equal_approx(rest), "%s: the switch turned" % node)
 	hover.position = Vector2.ZERO
 	vp.push_input(hover)

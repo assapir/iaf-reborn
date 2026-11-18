@@ -37,7 +37,6 @@ const F16 := [
 	["FCR", [219, 1, 4]],
 	["RDR_ALT", [219, 2, 5]],  # OFF to STBY
 	["INS", [214, 0, 0]],
-	["CANOPY_HANDLE", [215, 0, 0]],
 	["GEAR_LEVER", [14, 0, 0]],
 ]
 

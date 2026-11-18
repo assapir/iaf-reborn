@@ -293,8 +293,10 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 - **The HUD stays on its glass (2026-11-11, the Mac play test's finding 10):** looking down or aside at the dash the
   HUD's symbols stay on the combiner glass while any of it is on the screen; the DASH takes over only once the glass
   is out of view ([cockpit.md](cockpit.md) §4, docs/cockpit.md "3D cockpit").
-- **The canopy handle shows (2026-11-11, the Mac play test's finding 11):** a grey rod on the left canopy sill, aft of
-  the throttle; it was a clear hit box under the pilot's shoulder ([cockpit.md](cockpit.md) §5.2).
+- **The F-16s' canopy by its key (2026-11-18, the user: "remove the f16 cockpit handle. It isn't right for sure"):**
+  the grey rod drawn on the left canopy sill since 2026-11-11 is removed with its click area; Ctrl+K closes and opens
+  the canopy, and the notebook's canopy line points to the Canopy key on the Keys screen ([cockpit.md](cockpit.md)
+  §5.2).
 - **The hands on the stick and the throttle (2026-11-11, the Mac play test's finding 12):** the left glove holds the
   throttle's grip and follows it over its travel (two shape keys in `f16_pilot.glb`); the right glove holds the stick
   ([cockpit.md](cockpit.md) §5.3).
@@ -521,13 +523,14 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   nozzle now follows with a 0.8 s lag (`iaf_flight::instruments::NozzleLag`); OIL, RPM and FTIT were already smooth
   (measured per frame). The F-35I has no round engine gauges (its engine page is on the panoramic display).
 - **Click areas and the training outline by shape (2026-11-15, the user's Mac play):** a 3D cockpit control's hit area
-  is its mesh's own surface (the nearest along the pointer's ray: never bigger than the part, never a neighbour's), the
-  canopy handle's its rod; the training highlight outlines the switch's own shape and the RPM dial as the ellipse it
+  is its mesh's own surface (the nearest along the pointer's ray: never bigger than the part, never a neighbour's);
+  the training highlight outlines the switch's own shape and the RPM dial as the ellipse it
   shows (it had circled the NOZ POS gauge). Every control of the three jets checked at 1,280 x 720 and 2,560 x 1,440
   (`_click_areas_shot.gd`; [cockpit.md](cockpit.md) §5.1, [training.md](training.md) §11). `test_switches_click.gd`.
 - **The start-up switches (2026-11-09):** the F-16s' start-up checklist by the mouse in the 3D cockpit: MAIN PWR, the
   JFS switch, the throttle, the AVIONIC POWER switches, the INS knob (their own nodes of `f16.glb`, each turning to its
-  on position) and the canopy handle (a hit area), each sending its key's command; the card names each switch and its
+  on position), each sending its key's command (the canopy its key alone since 2026-11-18); the card names each switch
+  and its
   place ([cockpit.md](cockpit.md) §5.2). The F-35I's the same on its own panels: BATT, IPP, ENG (or START, or the
   throttle) and CANOPY, new nodes of `f35i.glb` at inferred places. `test_mvp.gd` (the Sufa's and the F-35I's
   start-up by clicks). Open: the JFS switch's spring back to OFF, the INS knob mostly hidden by the right sill from

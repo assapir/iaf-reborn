@@ -2073,8 +2073,11 @@ func _briefing_checks(fe: Control, lang: String) -> void:
 	check(first.contains("tower") or first.contains("מגדל"), "%s: briefing: the tower's start-up call first" % lang)
 	var pics: Array = how.find_children("Switch_*", "TextureRect", true, false)
 	check(
-		pics.size() == 6 and pics.all(func(p): return p.texture != null),
-		"%s: briefing: each step's switch pictured from the 3D cockpit (%d)" % [lang, pics.size()]
+		pics.size() == 5 and pics.all(func(p): return p.texture != null),
+		(
+			"%s: briefing: each step's switch pictured from the 3D cockpit, the canopy its key alone (%d)"
+			% [lang, pics.size()]
+		)
 	)
 	check(
 		pics.size() > 0 and "MAIN PWR" in pics[0].tooltip_text, "%s: briefing: the switch named on its picture" % lang

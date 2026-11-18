@@ -278,7 +278,9 @@ real start by keys, step by step. The pilot's notebook (§11) shows the steps am
 page (§12; START-UP until 2026-11-17), in English and
 Hebrew: each step with its switch's name and place and the state to wait for, the steps taken ticked, the step to take
 now marked, and a fault in red under it. Since 2026-11-13 it names no key (the user: "lets remove the kb hints"): the
-briefing's How and the Keys screen list the keys. Each step but the idle is a key of the sim's own `keys.json` (records 119–124,
+briefing's How and the Keys screen list the keys. One step has no switch in the cockpit, the F-16s' canopy (since
+2026-11-18), and its line points to the Canopy key on the Keys screen. Each step but the idle is a key of the sim's own
+`keys.json` (records 119–124,
 commands 210–215; `iaf-sim own` refuses a key bound twice) and a click on its switch in the 3D cockpit
 ([cockpit.md](cockpit.md) §5.2). The flight model takes each step
 (`Start::press` in `crates/iaf-flight/src/sixdof/start.rs`, `IafFlight.start_step`); a step out of order has its
@@ -544,7 +546,7 @@ the body is hidden ([cockpit.md](cockpit.md) §5.3). Pictures: `modern-iaf/tests
 
 | page | step | clickable |
 |---|---|---|
-| CHECKLIST | every start-up step of the Sufa, the Barak and the Adir: MAIN PWR, JFS, the four AVIONIC POWER switches, the INS knob, the canopy handle; BATT, IPP, ENG / START, CANOPY; the throttle out of OFF by its keys or lever (no mouse since 2026-11-15) | yes, except the throttle ([cockpit.md](cockpit.md) §5.2; `test_mvp.gd` clicks each, the F-35I's CANOPY included) |
+| CHECKLIST | every start-up step of the Sufa, the Barak and the Adir: MAIN PWR, JFS, the four AVIONIC POWER switches, the INS knob; BATT, IPP, ENG / START, CANOPY; the throttle out of OFF by its keys or lever (no mouse since 2026-11-15); the F-16s' canopy by its key (since 2026-11-18) | yes, except the throttle and the F-16s' canopy ([cockpit.md](cockpit.md) §5.2; `test_mvp.gd` clicks each, the F-35I's CANOPY included) |
 | LANDING | the landing gear handle (both cockpits) | yes since 2026-11-13: the G key's command, refused on the ground |
 | LANDING, EMERGENCY | the throttle to OFF over the idle detent | no: the throttle takes no mouse; OFF is Throttle OFF (Shift + 1) |
 | LANDING | the wheel brakes (the rudder pedals) | no: no pedal part answers the mouse (open) |
