@@ -1,59 +1,65 @@
-# The game manual's outline. sim: info (it describes the game itself); covers: the plan of a section still to write;
-# see: links to the jets' manuals, [manual, section id].
+# The game manual's outline. sim: info (it describes the game itself); file: a section's text under text/en/;
+# see: links to the jets' manuals, [manual, section id]. The jets' manuals link to these ids: keep them.
 title: "Modern IAF"
 subtitle: Game manual
 tagline: "Setup, menus, missions, air bases and the tower. Each jet has its own flight manual."
 scope: "It describes the game around the jets: installing and setting it up, the menus, the missions and how they are scored, the air bases, the tower and the radio. Each jet's own manual describes that jet completely."
 chapters:
 - id: start
-  title: Getting started
-  intro: From a fresh copy to the first flight.
+  title: "Getting started"
+  intro: "From a fresh copy to the first flight."
   sections:
-  - {id: requirements, title: What you need, covers: "The computers and systems the game runs on, the disk space, and that its data is downloaded by the setup under open licences."}
-  - {id: setup, title: Setup, covers: "The setup wizard step by step: what each step fetches or builds, how long it takes, how to run it again, the credits."}
-  - {id: first-flight, title: Your first flight, covers: "Starting the game, choosing a jet in the Hangar, flying the first Training lesson, reading the debrief.", see: [[f16i, cold-start], [f16d, cold-start], [f35i, cold-start]]}
-  - id: manuals
-    title: The manuals
-    covers: "The four manuals and where the main menu's Manuals entry opens them."
-    see: [[f16i, description], [f16d, description], [f35i, description]]
+  - {id: requirements, title: "What you need", file: game/start/requirements.typ}
+  - {id: setup, title: "Setup", file: game/start/setup.typ}
+  - {id: start-game, title: "Starting the game", file: game/start/start-game.typ}
+  - {id: first-flight, title: "Your first flight", file: game/start/first-flight.typ}
+  - {id: manuals, title: "The manuals", file: game/start/manuals.typ}
 - id: menus
-  title: The menus
-  intro: Every screen of the front end.
+  title: "The menus"
+  intro: "Every screen of the front end."
   sections:
-  - {id: main-menu, title: The main menu, covers: "Each entry of the main menu and where it leads; the language switch between English and Hebrew."}
-  - {id: pilots, title: Pilots and the pilot log, covers: "Creating a pilot, the log of flights and scores."}
-  - {id: hangar, title: The Hangar, covers: "The three jets, their squadrons and bases, choosing the jet to fly."}
-  - {id: settings, title: Settings, covers: "Every setting with what it changes and what it costs in frame time; the measured frame time on this computer."}
-  - {id: keys-joystick, title: Keys and joystick, covers: "Changing a key, the laptop key map, joystick axes and buttons, device maps for known sticks and throttles."}
-- id: missions
-  title: Missions
-  intro: From the briefing to the debrief.
-  sections:
-  - {id: mission-list, title: Choosing a mission, covers: "The Training lessons of each jet (start-up, take-off, weapons range) and what each teaches; where a flight starts: parked and cold at the jet's home base (the Sufa at Ramon, the Barak at Ramat David, the Adir at Nevatim)."}
-  - {id: briefing, title: The briefing, covers: "The briefing's parts: purpose, how, the map with the route and the departure, the switch pictures."}
-  - {id: loadout, title: The Loadout screen, covers: "Choosing stores per station, presets, fuel, and why the screen refuses a load: a store that needs another, a station's limit.", see: [[f16i, stores], [f16d, stores], [f35i, stores]]}
-  - {id: missions-training, title: Missions and training, proposed: true, covers: "The game's side of flying a jet: what passes and what fails each Training lesson and each mission, what the instructor says and when, and how the game answers each mistake that a jet's manual describes by its effect on the aircraft (a hot start, a move without its clearance, leaving the runway on the take-off roll)."}
-  - {id: scoring, title: Pass and fail, covers: "What passes each Training lesson, what fails any mission at once (a move without its clearance, a hot start, leaving the runway on the take-off roll, the wrong runway), the time budgets."}
-  - {id: debrief, title: The debrief, covers: "The result, the reasons, the flight's track on the map, the tower calls counted."}
+  - {id: main-menu, title: "The Hangar: the main menu", file: game/menus/main-menu.typ}
+  - {id: pilots, title: "Pilots and the pilot log", file: game/menus/pilots.typ}
+  - {id: hangar, title: "Choosing a jet and its base", file: game/menus/hangar.typ}
+  - {id: mission-list, title: "The Missions screen", file: game/menus/mission-list.typ}
+  - {id: briefing, title: "The briefing", file: game/menus/briefing.typ}
+  - {id: loadout, title: "The Loadout screen", file: game/menus/loadout.typ}
+  - {id: settings, title: "Settings", file: game/menus/settings.typ}
+  - {id: keys-joystick, title: "Keys and joystick", file: game/menus/keys-joystick.typ}
+  - {id: language, title: "Language", file: game/menus/language.typ}
 - id: flying
-  title: In the cockpit
-  intro: What is the same in every jet. Each jet's own procedures are in its flight manual.
+  title: "Flying a mission"
+  intro: "What is the same in every jet. Each jet's own procedures are in its flight manual."
   sections:
-  - {id: views, title: Views and looking around, covers: "The 3D cockpit, mouse look, zoom, the snap views, leaning, hiding the pilot's body, the outside views."}
-  - {id: clicking, title: Working the cockpit with the pointer, covers: "The rule every control follows: a click moves a switch one position, a drag steps it, the wheel turns a knob, a push button is down while held, a guard lifts on the first click."}
-  - {id: notebook, title: The notebook and the checklist, covers: "The pilot's notebook: its CHECKLIST tab that ticks the jet's card, the yellow band on the current item, the ring round its control in Training, the other tabs.", see: [[f16i, cold-start], [f16d, cold-start], [f35i, cold-start]]}
-  - {id: time-pause, title: "Pause, time and the map", covers: "Pause, the time speeds, the map view, leaving a mission."}
+  - {id: loading, title: "The loading screen", file: game/flying/loading.typ}
+  - {id: views, title: "Views and looking around", file: game/flying/views.typ}
+  - {id: clicking, title: "Working the cockpit with the pointer", file: game/flying/clicking.typ}
+  - {id: notebook, title: "The notebook and the checklist", file: game/flying/notebook.typ}
+  - {id: tower, title: "The tower and the radio flow", file: game/flying/tower.typ}
+  - {id: awacs, title: "The AWACS", file: game/flying/awacs.typ}
+  - {id: time-pause, title: "Pause, time and leaving a flight", file: game/flying/time-pause.typ}
+  - {id: debrief, title: "The debrief", file: game/flying/debrief.typ}
+- id: missions-training
+  title: "Missions and training"
+  intro: "The game's side of flying a jet: the lessons in order, what each teaches, and what passes or fails it."
+  sections:
+  - {id: lessons, title: "The lessons in order", file: game/missions-training/lessons.typ}
+  - {id: lesson-startup, title: "Start-up", file: game/missions-training/lesson-startup.typ}
+  - {id: lesson-takeoff, title: "Take-off", file: game/missions-training/lesson-takeoff.typ}
+  - {id: lesson-range, title: "Weapons range", file: game/missions-training/lesson-range.typ}
+  - {id: scoring, title: "Pass and fail", file: game/missions-training/scoring.typ}
 - id: bases
-  title: Air bases and the tower
-  intro: The ground the jets work from, and the voices on the radio.
+  title: "Air bases"
+  intro: "The ground the jets work from."
   sections:
-  - {id: airbases, title: The air bases, covers: "Ramon, Ramat David, Nevatim and Hatzerim: runways, parking, the taxiway signs and how to read them."}
-  - {id: tower, title: The tower and the radio flow, covers: "The Call the tower key and its menu; the four ground calls in order (start-up, taxi, line-up, take-off) with the tower's answers; hold position; the landing call; what happens when a phase is started without its clearance.", see: [[f16i, cold-start], [f16d, cold-start], [f35i, cold-start], [f16i, landing], [f16d, landing], [f35i, landing]]}
-  - {id: awacs, title: The AWACS, covers: "The AWACS's contact calls on the weapons range and how to read them.", see: [[f16i, radios], [f16d, radios], [f35i, radios]]}
+  - {id: airbases, title: "The air bases", file: game/bases/airbases.typ}
+  - {id: ground-signs, title: "Runways, taxiways and signs", file: game/bases/ground-signs.typ}
 - id: trouble
-  title: Troubleshooting
-  intro: When something goes wrong with the game itself.
+  title: "Troubleshooting"
+  intro: "When something goes wrong with the game itself."
   sections:
-  - {id: crash-page, title: The crash page, covers: "What the crash page shows, where the logs are, how to report a fault."}
-  - {id: performance, title: Slow or stuttering flight, covers: "Which settings to lower first, by their cost chips."}
-  - {id: setup-faults, title: Setup faults, covers: "A step that fails or stops: what to check, how to run one step again."}
+  - {id: setup-faults, title: "Setup faults", file: game/trouble/setup-faults.typ}
+  - {id: after-update, title: "After an update", file: game/trouble/after-update.typ}
+  - {id: crash-page, title: "The crash page", file: game/trouble/crash-page.typ}
+  - {id: performance, title: "Slow or stuttering flight", file: game/trouble/performance.typ}
+  - {id: mac-keys, title: "Keys on a Mac", file: game/trouble/mac-keys.typ}

@@ -13,6 +13,7 @@ on:
       - "shared/extra/models/cockpit3d/*.json"
       - "shared/credits.json"
       - "modern-iaf/setup/strings_*.json"
+      - "modern-iaf/menu/strings_*.json" # the game manual names the screens by them
       - "tools/manuals.py"
       - "shared/terrain/terrain_view.gd" # the keys it reads by itself are on the key card
       - ".github/workflows/manuals.yml"

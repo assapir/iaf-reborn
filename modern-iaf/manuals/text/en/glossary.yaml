@@ -11,7 +11,7 @@
 - {term: FTIT, means: "Fan turbine inlet temperature: the engine's temperature gauge.", in: [f16i, f16d]}
 - {term: HDPT, means: "Hardpoint: the chin stations under the intake that carry the navigation and targeting pods.", in: [f16i, f16d]}
 - {term: HMD, means: "Helmet-mounted display: the F-35's flight and weapon symbols, drawn in the helmet's visor.", in: [f35i]}
-- {term: Hot start, means: "An engine start in which fuel reaches an engine that turns too slowly: too little air flows through it, and the turbine's temperature passes its limit.", in: [f16i, f16d]}
+- {term: Hot start, means: "An engine start in which fuel reaches an engine that turns too slowly: too little air flows through it, and the turbine's temperature passes its limit.", in: [f16i, f16d, game]}
 - {term: HUD, means: "Head-up display: flight and weapon symbols on the glass in front of the pilot.", in: [f16i, f16d]}
 - {term: ICP, means: "Integrated control panel: the keypad under the HUD.", in: [f16i, f16d]}
 - {term: INS, means: "Inertial navigation system. It must be aligned on the ground before it can navigate."}
@@ -25,5 +25,25 @@
 - {term: PCD, means: "Panoramic cockpit display: the F-35's one large touch display.", in: [f35i]}
 - {term: RPM, means: "Engine speed, in percent."}
 - {term: SNSR PWR, means: "Sensor power: the right console's panel that powers the radar, the radar altimeter and the pods.", in: [f16i, f16d]}
+- {term: Afterburner detent, means: "The click in a throttle lever's travel where the afterburner starts. The Settings store where it is on your lever.", in: [game]}
+- {term: Cost chip, means: "The small label on a graphics setting's row that says how much frame time the setting's choice adds.", in: [game]}
+- {term: Crash page, means: "The page the game shows when it cannot go on: what failed, the log's place and a button to report it.", in: [game]}
+- {term: Dead zone, means: "The part of a joystick axis' travel around its centre that the game reads as the centre.", in: [game]}
+- {term: Device map, means: "The game's ready-made axes and buttons for a joystick it knows by name.", in: [game]}
+- {term: Frame time, means: "The time the computer takes to draw one picture of the flight, in milliseconds. A lower frame time is a smoother flight.", in: [game]}
+- {term: Hangar, means: "The game's main menu: the jets, the picked jet's card and the way to every other screen.", in: [game]}
+- {term: Laptop key map, means: "The key table for a keyboard without a number pad. The game starts from it on macOS.", in: [game]}
+- {term: Pilot log, means: "The list of every flight a pilot has flown, each with its debrief.", in: [game]}
+- {term: Preset, means: "A named set of graphics settings that the Settings screen sets in one click.", in: [game]}
+- {term: Setup wizard, means: "The program that downloads the open data and builds the game's data, page by page.", in: [game]}
+- {term: Setup step, means: "One part of the setup wizard's work, with its own row, progress bar and state on the Install page.", in: [game]}
 - {term: STOR HDG, means: "Stored heading: the INS's quick alignment, 90 seconds.", in: [f16i, f16d]}
 - {term: Tower, means: "The air base's controller. In Training missions each phase on the ground waits for the tower's clearance.", in: [game]}
+- {term: AWACS, means: "Airborne warning and control system: an aircraft with a large radar whose controller tells pilots by radio where other aircraft are.", in: [game]}
+- {term: Clearance, means: "The tower's permission for one phase of a flight: the engine start, the taxi, entering the runway, the take-off.", in: [game]}
+- {term: Debrief, means: "The screen after a flight: the result, each goal against what was flown, and the flight on a map and graphs.", in: [game]}
+- {term: Holding point, means: "The place on a taxiway, short of the runway, where a jet stops and waits for the tower's line-up clearance.", in: [game]}
+- {term: Lesson, means: "A Training mission. Each jet has three: Start-up, Take-off and Weapons range.", in: [game]}
+- {term: Loadout, means: "The stores a jet carries on a mission, station by station.", in: [game]}
+- {term: Station, means: "A place under the jet's wing or body, or in a weapon bay, where one store or one rack hangs.", in: [game]}
+- {term: Time allowed, means: "The time from the start of a flight within which a mission's goals must be reached.", in: [game]}

@@ -7,7 +7,7 @@ Four PDFs, built by one command from text, the game's data and pictures taken fr
 | F-16I Sufa flight manual | `f16i-sufa-flight-manual.pdf` | `f16i/outline.yaml`, `f16/` |
 | F-16D Barak flight manual | `f16d-barak-flight-manual.pdf` | `f16d/outline.yaml`, `f16/` |
 | F-35I Adir flight manual | `f35i-adir-flight-manual.pdf` | `f35i/` |
-| Modern IAF game manual | `game-manual.pdf` | `game/outline.yaml` |
+| Modern IAF game manual | `game-manual.pdf` | `game/outline.yaml`, `game/<chapter>/<section>.typ` |
 
 The plan is the user's (17 November 2026): each jet has a full flight manual in the real manual's order, complete
 about its jet; the game manual holds what is not about a jet and links to the jets' manuals; PDF is the only
@@ -21,16 +21,19 @@ arrangement with every panel and item numbered, 1.3 to 1.12 the systems; §2) an
 (2.1 Preflight and cockpit entry, 2.2 Cold start to take-off, 2.3 Climb, cruise and descent, 2.4 Approach and landing,
 2.5 After landing and engine shutdown, 2.6 Air refuelling; §2 "Chapter 2") and chapter 3 "Emergency procedures" whole
 (3.1 to 3.8; §2 "Chapter 3"), chapter 4 "Limits" whole (4.1 to 4.4) and chapter 5 "Flight characteristics" whole (5.1 to
-5.5; §2 "Chapters 4 and 5"); in the game manual the key card and Attributions. Every other section is a plan in the outline. The
+5.5; §2 "Chapters 4 and 5"). The
 appendices (checklist, key card, controls, abbreviations, attributions, index) are drawn from the game's data, so they
 are whole. The Hangar's Manuals entry opens the four PDFs ([front-end.md](front-end.md) §1).
 
 Chapter 6 "Weapons and avionics" is written whole in the three jet manuals (§2 "Chapter 6"), with the pictures listed
 as owed in §7.
 
+The game manual is written whole (§2 "The game manual"): six chapters, 34 sections, with the screens' pictures; no
+outline holds a planned section any more.
+
 **Next, in this order.**
 
-1. The game manual, with "Missions and training"; chapter 6's owed pictures (§7).
+1. Chapter 6's owed pictures and the game manual's four (§7).
 2. Each row of section 1.2's F-16 tables against the flight manual's section I (§7); its text is now searchable
    (§2 "Chapter 1's system sections").
 
@@ -160,6 +163,27 @@ no electronic attack and no naming of a missile by the missile warning. The Adir
 A display's picture is `display("<name>", [caption])`: `pictures/<cockpit>/d_<name>.jpg`, a figure labelled
 `fig-d-<name>` (§4).
 
+**The game manual** (`text/en/game/`, a folder a chapter, a file a section). Its chapters: 1 Getting started
+(what you need, setup, starting the game, the first flight, the manuals), 2 The menus (the Hangar, pilots and the
+pilot log, jet and base, the Missions screen, the briefing, the Loadout screen and its rules, Settings with every
+option, keys and joystick, language), 3 Flying a mission (loading, views, the pointer, the notebook, the tower and
+the radio flow, the AWACS, pause / time / leaving, the debrief), 4 Missions and training (the lessons in order, one
+section a lesson, "Pass and fail": the game's consequences, which the jets' procedures link to as
+`other("game", "missions-training")`), 5 Air bases, 6 Troubleshooting (setup faults, after an update, the crash
+page, slow flight, keys on a Mac). It is written from the game as built: the code, the data and the docs named in
+each section's brief.
+
+| part | rule |
+|---|---|
+| a screen's, button's, option's or tab's name | `scr("<key>")`, drawn from the front end's strings (`modern-iaf/menu/strings_<lang>.json`); the setup wizard's with `stp("<key>")` (`modern-iaf/setup/strings_<lang>.json`). A key a table no longer has stops the build, so a renamed screen renames itself in the manual and a removed one is found. |
+| the Settings' options | `settings-table((keys…))`: each option's name and the game's own description (`<key>_about`) |
+| a screen's picture | `screen("<name>", [caption])`: `pictures/game/<name>.jpg` (§4), a figure labelled `fig-s-<name>` |
+| a task | a numbered list, one instruction a step, its reaction after `then[…]`; a safety box stands before its step |
+| a glossary term | linked at its first use in a section; the build checks it for the game manual too (`glossary_links`) |
+
+The text files hold no layout beyond these calls, so a Hebrew edition is a `text/he/game/` folder with the same
+calls: the names then come from the Hebrew string tables by themselves.
+
 **References.** Every mention of a control carries its figure and number as a link to its row, in one form: "MAIN PWR
 (1-8, 1)" (`ctl-ref`): a procedure's steps, the checklist card, the Controls appendix, and `ctl("…")` in a text. Figures
 are numbered chapter-figure ("1-8").
@@ -219,6 +243,7 @@ text right to left, and the checklist's lines come from the card's `he`. Only En
 | appendix A Checklist, B Key card, C Controls | the same three |
 | the key card's keyboards (below) | the key table: the commands the Keys screen lists, each on its key's cap; and `own_keys.json`, the keys the flight scene reads by itself (`shared/terrain/terrain_view.gd` `_own_key`, the trim and switch keys) that work in Modern IAF. The build stops when the scene no longer has a name of a record's `code`, and when `_own_key` reads a key that no record names (`own_keys` in `tools/manuals.py`): an own key keeps its row and its key, and a new command takes a free key |
 | the game manual's Attributions | the game's record of credits, `shared/credits.json` `sim` and `made_with` (docs/credits.md), with each use's words from the setup's strings (`modern-iaf/setup/strings_<lang>.json`) |
+| the game manual's screen, option and step names (`scr`, `stp`, `settings-table`) | the front end's and the setup's strings, `modern-iaf/menu/strings_<lang>.json`, `modern-iaf/setup/strings_<lang>.json` |
 | a link to another manual (`other("game", "tower")`) | that manual's outline: the section's number and title |
 
 **The build stops**, naming the file and the name, when a text names a key command the key table lacks, a control
@@ -269,7 +294,7 @@ The user's decision (18 November 2026): "Yes, ci to build manuals and update the
 [The Manuals workflow](../../.github/workflows/manuals.yml) runs when a push or a pull request changes an input of the
 build: `modern-iaf/manuals/` (text, layout, pictures, lists), `modern-iaf/data/checklists/`, `modern-iaf/data/keys.json`,
 `modern-iaf/data/fonts/`, the control tables `shared/extra/models/cockpit3d/*.json`, the credits `shared/credits.json`, the setup's strings
-`modern-iaf/setup/strings_*.json`, `tools/manuals.py`, `shared/terrain/terrain_view.gd` (its own keys are on the key card), or the
+`modern-iaf/setup/strings_*.json`, the front end's `modern-iaf/menu/strings_*.json`, `tools/manuals.py`, `shared/terrain/terrain_view.gd` (its own keys are on the key card), or the
 workflow.
 
 | where | what it does |
@@ -334,6 +359,15 @@ real render with its command in its header, and then cut and joined with ImageMa
 `d_fcr_pages`, `d_hud_lock`), `_fcr_ag_shot.gd` (`d_fcr_ag`), `_mfd_s4_shot.gd` (`d_mfd_formats`),
 `_avionics_s5_shot.gd` (`d_ded_pages`, `d_hud_modes`, `d_hsd`, `d_fcr_aiff`, `d_threat`) and `_adir_s7b_shot.gd` (the
 Adir's). The Sufa's serve both F-16 manuals.
+
+**The game manual's screens** (`pictures/game/`, 18 November 2026) are taken in English by the front end's own shot
+scripts, each a real render with its command in its header, and scaled to 1,600 px JPEGs with ImageMagick (the name
+without `_en`; a prefix per script): `_front_end_shot.gd` (no prefix), `_loadout_shot.gd` (`loadout_`),
+`_briefing_shot.gd` (no prefix), `_notebook_shot.gd` (`notebook_`), `_flight_ui_shot.gd` (`flight_`),
+`_devices_shot.gd` (`devices_`). The setup wizard's (`setup_*`) and the loading screen's are the pictures of
+`_setup_wizard_shot.gd` (`setup_welcome`, `setup_imagery`, `setup_install`) and, converted, the pictures of
+`modern-iaf/docs/pictures/setup/` (the skipped step, the remove dialog) and `front-end/loading_en.webp`. Only the pictures a section uses are
+kept. The pilot on them is the shot scripts' sample pilot.
 
 `SHOT_ONLY=p_` (or `overview`) takes only those and keeps the others' pictures and marks. A picture is taken again
 when the cockpit's model, the shot list or a panel's rows change.
@@ -475,3 +509,26 @@ Parts:
   and A-G, the zoom keys and the cursor keys on the TFLIR, the dispenser's modes on the Adir.
 - Chapter 6's footnotes to the dash-34, the MLU guide, Janes and the simulator manual are taken from the project's
   docs and marked "not read again for this chapter": each is to be read at its source.
+- Owed after the game manual, pictures no shot script takes: a holding sign and a direction sign on a taxiway and the
+  runway's markings from the threshold (section 5.2), a full MFD view (section 3.2), the crash page (section 6.3). The review of 18 November 2026 checked the lessons, the
+  tower, the Settings, the Loadout rules, setup and the bases against the code; the pilots, Hangar, keys and joystick
+  and troubleshooting sections were read with few code checks, and the one-instruction-a-step rule was sampled.
+- Found while writing the game manual, the game's and listed, not changed here (read from the code, not run):
+  - The Quick-command menu key opens a menu of six blank items in Modern IAF, and the Leave mission key a box with
+    no text and blank buttons: `sim_settings.gd` `msgs()` is empty (`shared/terrain/flight_overlay.gd`,
+    `shared/mission/render_box.gd`). The manual leaves both out.
+  - `keys.json`: record 0 is labelled "Toggle map / cockpit" while Esc opens the pause menu; "Look forward" sends
+    the F1 command, so in the cockpit it toggles the HUD-only view; "Drag chute" has a group and no jet a chute.
+  - A range lesson's own loadout has no bombs, and the lesson asks for two ground kills; the manual tells the reader
+    to hang bombs first.
+  - `strings_en.json` `shadow_reach_about` says "Far draws…" while the row is an Off / On switch; the fourth
+    Antialiasing choice (FSR 2 / MetalFX) has no string key.
+  - The Hangar's greyed Ra'am and Baz rows carry no "Coming later" text; the Keys screen's "Reset all" asks no
+    confirmation.
+  - A range lesson's briefing and mission notes say "four" ground targets while targets 5 and 6 count too
+    (`modern-iaf/data/missions/*_range.json`).
+  - Docs behind the code: [setup.md](setup.md) §3 says "the four bases" (`data/airbases/` has five files);
+    `modern-iaf/README.md` says `./start-modern-iaf` opens "Home"; [cockpit.md](cockpit.md) §5.3 says the take-off
+    lessons ring nothing (`kneeboard.gd` rings in every cold-start lesson); [front-end.md](front-end.md) §8 gives
+    F12 as the info line (`keys.json`: I-mode); [training.md](training.md) §3's table gives the start-up's time as 120 s
+    (the missions: 600).

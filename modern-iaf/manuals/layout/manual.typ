@@ -199,6 +199,46 @@
 /// What the sim does with what a section describes: a paragraph led by the layout's words.
 #let in-sim(body) = block(width: 100%, inset: (x: 9pt, y: 7pt), radius: 2pt, fill: paper, stroke: 0.5pt + rule-c, [#strong(ui.in_sim)#h(0.6em)#body])
 
+// ---- The game's own words (the game manual) ----
+// A screen's, a button's or an option's name is drawn from the game's string tables, so the manual writes it as the
+// screen does; a key that a table no longer has stops the build.
+#let game-strings = json("/modern-iaf/menu/strings_" + lang + ".json")
+#let setup-strings = json("/modern-iaf/setup/strings_" + lang + ".json")
+#let string-of(table, file, k) = {
+  assert(k in table, message: "modern-iaf/" + file + "/strings_" + lang + ".json has no \"" + k + "\"")
+  table.at(k).replace("\u{200e}", "")
+}
+/// A name on a screen of the front end or of the flight (menu/strings), bold, as the game writes it.
+#let scr(k) = strong(string-of(game-strings, "menu", k))
+/// The same as plain text: a whole sentence of the game.
+#let scr-text(k) = string-of(game-strings, "menu", k)
+/// A name on the setup wizard (setup/strings), bold; and as plain text.
+#let stp(k) = strong(string-of(setup-strings, "setup", k))
+#let stp-text(k) = string-of(setup-strings, "setup", k)
+/// A table of settings: each key's name and the game's own description of it (the string `<key>_about`); `notes`
+/// adds a text's own words under a key's description.
+#let settings-table(keys, notes: (:)) = table(
+  columns: (auto, 1fr),
+  stroke: none,
+  inset: (x: 5pt, y: 5pt),
+  fill: (_, y) => if calc.odd(y) { paper },
+  ..keys.map(k => ([#idx(scr-text(k))#scr(k)], [#scr-text(k + "_about")#if k in notes [ #notes.at(k)]])).flatten(),
+)
+/// A plain table with a header row: `cols` the columns' widths, `head` the header's cells, then the cells.
+#let grid-table(cols, head, ..cells) = table(
+  columns: cols,
+  stroke: none,
+  inset: (x: 5pt, y: 5pt),
+  fill: (_, y) => if y > 0 and calc.even(y) { paper },
+  table.header(..head.map(t => text(fill: muted, weight: 600, t))),
+  ..cells,
+)
+/// A picture of a screen, taken from the game by a shot script (pictures/game/<name>.jpg), as a figure; a text
+/// refers to it as @fig-s-<name>.
+#let screen(name, caption, width: 100%) = [#figure(kind: image, placement: none, caption: caption, box(stroke: 0.5pt + rule-c, image(base + "pictures/game/" + name + ".jpg", width: width))) #label("fig-s-" + name)]
+/// The reaction to an action, on its own after an arrow, bold.
+#let then(body) = [#text(fill: accent, weight: 700, sym.arrow.r) *#body*]
+
 #let signal(word, colour, body) = block(
   width: 100%,
   breakable: false,
