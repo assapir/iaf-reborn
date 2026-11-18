@@ -355,9 +355,6 @@ Parts:
 ## 7. Open
 
 - Cross-manual links in macOS Preview: to check on the Mac.
-- The F-35I card's place for the HMD knob (`modern-iaf/data/checklists/f35i.json` `hmd`: "right of the front panel")
-  differs from the cockpit, where the knob sits under the display, left of centre (Figure 2.2 of the Adir's manual).
-  The step shows the card's text; the card is the game's data and is corrected there.
 - Section 1.2's F-16 rows ("what it does") were written from memory of the public flight manual's section I, and
   each is to be checked against it. The rows marked "inferred" are parts the cockpit model draws and the flight
   manual's figure does not name.

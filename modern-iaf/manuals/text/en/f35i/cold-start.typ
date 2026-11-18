@@ -47,7 +47,7 @@ Get the start-up clearance first.
 
 The integrated power pack (IPP) is a small turbine. It powers the jet on the ground and turns the engine. Three switches start the jet: BATT, IPP, ENG.
 
-#idx("IPP")#caution[Wait 10 seconds after IPP – START before you set the ENG switch to NORM. The IPP is what turns the engine: until it is up to speed it cannot crank it, and the start stops. Start again from the IPP.]
+#idx("IPP")#caution[Wait 10 seconds after IPP – ON before you set the ENG switch to NORM. The IPP is what turns the engine: until it is up to speed it cannot crank it, and the start stops. Start again from the IPP.]
 
 #steps(
   "start",

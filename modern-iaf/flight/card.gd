@@ -5,8 +5,8 @@
 #   acknowledged (its system is not modelled): shown, never the current item.
 # - The sections run in order. The first with an item still open is the current section; the sections before it stay
 #   done. A section with "when" waits for its phase ("air": airborne; "approach": descending below 3,000 ft above the
-#   ground; "landed": on the ground after flying). Once airborne (or landed) the card goes on at that phase's first
-#   section even with an earlier item left open.
+#   ground, until the jet lands or climbs above it; "landed": on the ground after flying). Once airborne (or landed)
+#   the card goes on at that phase's first section even with an earlier item left open.
 # - A hot start (the engine running on the ground) begins at the first section with "starts": "hot", an airborne start
 #   at the first with "starts": "air".
 # - Each item ticked, or unticked by a switch put back, is a `checklist` event in the recording ({"item": <its id>},
@@ -69,9 +69,12 @@ func update() -> bool:
 	record("")  # the 3D cockpit's controls known and their moves heard (a test switch's moment)
 	var air := not bool(st.get("on_ground", true))
 	_flown = _flown or air
-	# The approach: airborne, descending below APPROACH_FT above the ground; held until the wheels touch.
-	var agl = st.get("agl_ft")
-	_approach = (air and (_approach or float(st.get("vs_fpm", 0.0)) < 0.0 and agl != null and float(agl) < APPROACH_FT))
+	# The approach: airborne, descending below APPROACH_FT above the ground under the jet (the flight's state holds no
+	# height above the ground); held while the jet stays below it, until the wheels touch.
+	var at_y: Vector3 = flight.host.rig.position
+	var ground = flight.host.terrain.height_at(at_y)
+	var low: bool = ground != null and (at_y.y - float(ground)) / 0.3048 < APPROACH_FT
+	_approach = air and low and (_approach or float(st.get("vs_fpm", 0.0)) < 0.0)
 	var changed := false
 	# The flight's phase moved past an open section (an item skipped): the card goes on at the phase's first section.
 	var at := _first("when", "air" if air else ("landed" if _flown else "-"))

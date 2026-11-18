@@ -225,10 +225,17 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   Open: the real consequences beyond the switches' names (sources), the CARA ALOW and GAAF voices without RDR ALT.
 - **The jet's checklist card (2026-11-17):** one real checklist per jet in every mission, the notebook's CHECKLIST tab:
   the F-16s' after the real F-16C/D normal procedures (67 items, 49 checked by the sim, 18 read and acknowledged), the
-  F-35I's from the public start flow and inferred (32 items, 26 and 6); each checked item ticks from the cockpit's
+  F-35I's from the public start flow and inferred (38 items, 26 and 12); each checked item ticks from the cockpit's
   state, the current one ringed in a lesson; the start-up lessons ask for its items through BEFORE TAXI; LEFT HDPT and
-  RIGHT HDPT power the chin pods ([training.md](training.md) §12; `test_checklist_card.gd`). Open: the systems behind
-  the read-and-acknowledge items (oxygen, IFF, trim, the ejection seat's lever, the speedbrakes' check).
+  RIGHT HDPT power the chin pods ([training.md](training.md) §12; `test_checklist_card.gd`). Since 2026-11-18: the
+  F-35I's card holds the items a public US Air Force instruction requires (the survival kit switch, loose items, the
+  helmet display's preflight, the ops check, the "gear down" report, the post-flight walk-around, the taxi speeds and
+  the fuel calls); both cards name each control as its panel does and state the reaction the cockpit shows; BEFORE
+  LANDING opens on the approach (it never did: the rule read a height above the ground the flight's state does not
+  hold); `test_card_landing.gd` flies the card home to a cold jet. Open: the systems behind the read-and-acknowledge
+  items (oxygen, IFF, trim, the ejection seat's lever, the speedbrakes' check); the autopilot's landing circuit with
+  the 6-DoF jets (NAV to a landing waypoint slowed the Sufa to 151 kt at idle with the gear up and sank it into the
+  ground at "landing step 5", 2026-11-18, laptop, headless; Modern IAF's missions have no landing waypoint).
 - **Every checklist switch by the mouse (2026-11-13, the switches audit's M1):** the throttle takes no mouse since
   2026-11-15 (the user: "shouldn't be able to move the throttle or stick from the mouse"; it took the wheel and drags);
   the landing gear handles (both F-16s, the F-35I) send the G key's

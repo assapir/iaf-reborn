@@ -614,10 +614,30 @@ checked with a checklist card derived from the real one for Falcon BMS[^bmscl]. 
 the switch, then its position. Radio calls, ground-crew items (chocks, pins, the fireguard) and the "as required" items
 of systems the sim lacks are left off; the radio calls and the ground flow around the checklist are a manual topic
 (planned separately). The F-35 card holds the one public start flow: the battery, the IPP, the engine and the 90 s self
-test[^ayton]; every other item and its section are inferred from the F-16's and from our cockpit (no public F-35
-checklist was found). The Hebrew section names are the field's: the checklist is בד״ח (בדיקות חיוניות), its parts
+test[^ayton], and the items a public US Air Force instruction requires of an F-35A pilot[^afi]. That instruction holds
+no switch-by-switch checklist (it leaves the checklists to the jet's flight manual); it sets scattered requirements,
+and the card takes these, each where its phase is: the ejection seat's survival kit switch at AUTO (its paragraph
+3.1.3) and loose items stowed before the start (3.1.2, 3.3.1), the helmet display tested and adjusted by the pilot
+before the flight (3.19.2), the ops check in the climb or at level-off with its six items (3.14.1, 3.14.2), the "gear
+down" report before the runway's threshold (3.15.4.2) and the walk-around after the shutdown (3.28). All six are read
+and acknowledged: the sim has no control or radio call for them. Its figures stand in the "how" line of the matching
+item: the taxi speed, 30 kt and 10 kt in turns (3.4.1), with the brakes and steering check; the normal recovery fuel,
+2,500 lb at the final approach fix (3.20.3), with the joker and bingo fuel; the "minimum fuel" call at 1,800 lb and
+the "emergency fuel" call at 1,200 lb (3.20.4), with the ops check. Every other item and its section are inferred
+from the F-16's and from our cockpit (no public F-35 checklist was found). The Hebrew section names are the field's:
+the checklist is בד״ח (בדיקות חיוניות), its parts
 "בדיקות לפני המראה", "אחרי המראה", "לפני נחיתה", "אחרי נחיתה"[^bdh]; the switches keep their English labels, as
-painted in the cockpit.
+painted in the cockpit. Hebrew terms found in use: תצוגת קסדה (the helmet display)[^hmdhe], מעצורי אוויר (the
+speedbrakes)[^airbrake], פגיעת ציפור (a bird strike)[^birdhe]. Open, no source found in the search of 2026-11-18 and
+written as plain descriptions: ערכת הישרדות (the survival kit), חליפת ג'י (the G-suit), גובה תא (the cabin
+altitude), בדיקה חיצונית אחרי הטיסה (the post-flight walk-around), the Hebrew wording of the radio reports.
+
+**The wording** (the user's rules for the manuals, 18 November 2026, hold for the card). An item names its control as
+the panel does (IPP – ON, DIGITAL BACKUP – BACKUP, SEAT – ARMED, in Hebrew text too), with the panel's position
+names. Where the cockpit's data holds the reaction to an action (a lamp, a readout: the `sim` notes of
+`modern-iaf/manuals/text/en/<cockpit>/systems.json`), the "how" line states it: the RUN light with the JFS, the DBU
+ON lights, the radar altitude on the HUD, the F-35I's handle light and its display 3 s after the IPP. A card line
+describes the jet; what a lesson asks and how it is marked is the lesson's text (§7, §10).
 
 **Where ours differs from the source** (all inferred):
 - The INS: the source aligns at NORM (about 8 minutes); the card aligns at STOR HDG (90 s), the source's quick-response
@@ -633,8 +653,8 @@ painted in the cockpit.
 
 **The sections and items.** F-16: BEFORE STARTING ENGINE, STARTING ENGINE, AFTER ENGINE START, BEFORE TAXI, TAXI,
 BEFORE TAKEOFF, AFTER TAKEOFF, BEFORE LANDING, AFTER LANDING, PRIOR TO ENGINE SHUTDOWN, ENGINE SHUTDOWN: 67 items, 49
-checked by the sim and 18 read and acknowledged. F-35I: the same sections less PRIOR TO ENGINE SHUTDOWN: 32 items, 26
-checked and 6 read and acknowledged.
+checked by the sim and 18 read and acknowledged. F-35I: the same sections less PRIOR TO ENGINE SHUTDOWN: 38 items, 26
+checked and 12 read and acknowledged.
 
 **An item** (`data/checklists/*.json`, [data-formats.md](data-formats.md) §5) has its line (`en`, `he`), how to do it
 when that is more than one action or a wait (`how`: "two clicks …", "WAIT for 20 % RPM"), the switch's place (`where`),
@@ -659,7 +679,8 @@ the current item.
 first open item is the current one: on a yellow band in the notebook and, in a Training lesson that starts cold, ringed
 in the 3D cockpit (§11). In the current section a switch put back unticks its item; the sections before it stay done.
 AFTER TAKEOFF waits for the air, BEFORE LANDING for the approach (airborne, descending below 3,000 ft above the ground,
-inferred), AFTER LANDING and the shutdown for the ground after a flight. Once airborne (or landed) the card goes on at
+and on until the jet lands or climbs above 3,000 ft again; inferred), AFTER LANDING and the shutdown for the ground
+after a flight. Once airborne (or landed) the card goes on at
 that phase's first section even with an earlier item left open. A jet
 that starts hot opens the card at BEFORE TAXI, one that starts in the air at AFTER TAKEOFF. Each item ticked or
 unticked is a `checklist` event in the recording (`item`: its id; `"on": false` unticked), which the start-up
@@ -679,6 +700,21 @@ is lit. Then the Sufa's weapons range as an ordinary sortie: the card opens on t
 page in English and Hebrew, and a click ticks it. `test_mvp.gd`, `test_lesson_steps.gd`, `test_notebook.gd` and
 `test_radar_cold.gd` fly the lessons by the card.
 
+`modern-iaf/tests/test_card_landing.gd` (headless, each jet) proves the rest of the card in the same flight. After
+AFTER TAKEOFF a scripted pilot (stick, throttle, rudder and brakes; no autopilot) climbs above 3,000 ft, flies 24 km
+back along the runway's line, descends to 750 m, turns onto the final, follows a 2.5° path at 13° angle of attack,
+flares and stops on the runway. BEFORE LANDING is done by clicks in that descent, then AFTER LANDING, PRIOR TO ENGINE
+SHUTDOWN (the F-16s) and ENGINE SHUTDOWN on the runway. It checks
+that BEFORE LANDING waits above 3,000 ft and opens on the descent, that each section's items tick in the card's order
+(an item whose control is already in place, as MASTER ARM at OFF, is ticked as its section opens), that every checked
+item of the card is ticked, and that the jet ends cold: the engine off, no electrical power, the displays dark. Its
+first runs found that BEFORE LANDING never opened in the air: the rule read a height above the ground from the flight's
+state, which holds none; `card.gd` now takes the ground under the jet from the terrain. With that mended, one dip
+after the take-off opened it for the rest of the flight; a climb above 3,000 ft closes it again. Tried and dropped
+(2026-11-18): the autopilot's NAV to a landing waypoint as the test's pilot. With the Sufa it slowed to 151 kt at idle
+with the gear up and sank into the ground at "landing step 5" (the 1998 landing circuit with the 6-DoF jets is open,
+[status.md](status.md)).
+
 [^ins]: F-16.net forum, "INS alignment time and time to takeoff from cold start" (a normal alignment about 8 minutes, a stored-heading alignment about 90 s), https://www.f-16.net/forum/viewtopic.php?p=7943; Eagle Dynamics forum, "What is the difference between stored INS align and normal INS align in the F-16C Viper", https://forum.dcs.world/topic/267433-what-is-the-difference-between-stored-ins-align-and-normal-ins-align-in-the-f-16c-viper (both weak: forums)
 [^w-f16]: Wikipedia, "General Dynamics F-16 Fighting Falcon", Specifications (F-16C Block 50 / 52): empty weight 18,900 lb (8,573 kg), https://en.wikipedia.org/wiki/General_Dynamics_F-16_Fighting_Falcon
 [^w-f35]: Wikipedia, "Lockheed Martin F-35 Lightning II", Specifications (F-35A): empty weight 29,300 lb (13,290 kg), https://en.wikipedia.org/wiki/Lockheed_Martin_F-35_Lightning_II
@@ -696,4 +732,8 @@ page in English and Hebrew, and a click ticks it. `test_mvp.gd`, `test_lesson_st
 [^oa-llnv]: OurAirports, Nevatim Airbase (LLNV), frequencies: APP 120.9 MHz, https://ourairports.com/airports/LLNV/
 [^haf]: Lockheed Martin, T.O. GR1F-16CJ-1, Flight Manual, Hellenic Air Force F-16C/D Block 50/52+, 15 October 2002, change 1 of 15 June 2003, section II "Normal Procedures" (the parent text of the -1CL-1 checklist), pp. 2-3 to 2-30; the scramble's STOR HDG alignment p. 2-30; a public copy, https://archive.org/details/haf-f-16
 [^bmscl]: Combat sim checklists, Falcon BMS "Main Volume" (derived from the -1CL-1; weak: a simulation's), http://www.ravico.com/ST/Download/Checklists/BMS/Checklists/1107_02_main.pdf
+[^afi]: US Air Force, Air Force Instruction 11-2F-35A, Volume 3, "F-35A Operations Procedures", 7 June 2012 (OPR ACC/A3TO; its cover: "RELEASABILITY: There are no releasability restrictions on this publication"; a text of the jet's development years, which leaves limits and checklists to the flight manual), published on the Air Force's e-Publishing site, https://www.e-publishing.af.mil
+[^hmdhe]: Hebrew Wikipedia, "תצוגת קסדה עילית", through its mirror https://www.hamichlol.org.il/תצוגת_קסדה_עילית
+[^airbrake]: Hebrew Wikipedia, "ספוילר (תעופה)" ("מעצורי אוויר, המגדילים משמעותית את כוח הגרר"; second-hand: read in a search engine's quote of the mirror's page), https://www.hamichlol.org.il/מחבלי_זרימה
+[^birdhe]: Maariv, "הפחד הגדול של כל טייס: ציפורים במסלול ההמראה והנחיתה" (the press's term, "פגיעת ציפור"; second-hand: a search engine's listing), https://www.maariv.co.il/lifestyle/travel/article-1169648
 [^bdh]: Hebrew Wikipedia, "בדיקות חיוניות" (בד״ח: the checklist booklet; its sections before and after the take-off and the landing), through its mirror https://www.hamichlol.org.il/בדיקות_חיוניות
