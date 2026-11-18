@@ -544,6 +544,17 @@ laptop's keyboard, where no plain key was left): Next waypoint is on Shift + W, 
 to Shift + Q, the key beside it (Alt + W is the wingman's "attack another target", Ctrl + W a debug key). The 1998
 game's Drag chute has no row and no key: no Modern IAF jet has a drag chute (record 23 is an empty slot).
 
+**The missile seeker's keys (2026-11-18).** Two records in the Weapons group work the seeker head of the air-to-air
+missiles on every Modern IAF jet ([weapons.md](weapons.md) §8.1): Missile seeker: UNCAGE / CAGE on Shift + M (record
+224) and Missile seeker: SPOT / SCAN on Ctrl + S (record 225; on the F-16s also OSB 2 of the SMS's AAM page). Both
+send command 280 (p1 0 / 1).
+
+**The bombs' keys (2026-11-18).** Five records in the Weapons group work the F-16s' bomb release
+([weapons.md](weapons.md) §9): A-G release submode: next on Ctrl + G (record 226; CCIP → DTOS → CCRP, as the missile
+step switch), Bomb fuze: next on Alt + Q (227), Bomb arming delay: next on Alt + 0 (228), all command 290 (p1 0 / 1
+/ 2), and the RET DEPR wheel's reticle down / up on Ctrl + V / Alt + V (229 / 230, command 291, p1 1 / -1, 5 mr a
+press); the SMS's OSBs 2, 17 and 18 and the 3D cockpit's wheel do the same.
+
 **The mouse in the 3D cockpit.** The pointer works the cockpit's controls (`Settings.cockpit_controls()`,
 [cockpit.md](cockpit.md) §5.1): over a control it lights it, the wheel and a left drag turn a knob, a left click
 works a switch, each through the key's own command. The F-16s' controls: the SYM wheel, the HUD's brightness, which

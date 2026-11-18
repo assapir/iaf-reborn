@@ -179,7 +179,9 @@
   "WIDE",
   "OUT",
   "POP",
-  "ZOOM"
+  "ZOOM",
+  "SCAN",
+  "SHOOT"
  ],
  "panels": [
   {

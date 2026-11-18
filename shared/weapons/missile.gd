@@ -96,6 +96,12 @@ func time_left(now: float) -> float:
 	return _m.time_left(now)
 
 
+## Ours, the post-launch cues (modern-iaf/docs/weapons.md §8.2): {active, impact} seconds at the target {t_pos, t_vel},
+## the seeker going active at `active_range` m (0 none); each null when none.
+func times(now: float, t_pos: Vector3, t_vel: Vector3, active_range: float) -> Dictionary:
+	return _m.times(now, t_pos, t_vel, active_range)
+
+
 ## FUN_005627b0: the distance flown in t seconds from speed s.
 static func flown(m: Dictionary, s: float, t: float) -> float:
 	return ClassDB.class_call_static("IafMissile", "flown", m, s, t)

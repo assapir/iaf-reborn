@@ -716,11 +716,13 @@ F-16 ground avoidance advisory (GAAF, `crates/iaf-avionics/src/gaaf.rs`)[^dash34
 - The break X: ours is 0.6 of the field across, on the field's centre, flashing at 2 Hz (inferred from fig. 1-212).
 - The pull-up anticipation cue[^dash34brk] (`f16.rs` `pullup_cue`): a U under the flight path marker in the A-G
   modes. It rises toward the marker as the jet dives and cups it at the GAAF advisory, with the break X (fig. 1-212).
-  The real cue also rises for the weapon release's minimum (fuze arming) height, with `LOW` beside the marker; the
-  game has no fuze arming height, so ours follows the GAAF advisory only. Inferred (the manual gives no scale): 10 mr
+  The real cue also rises for the weapon release's minimum (fuze arming) height, with `LOW` beside the marker. The 1998
+  game has no fuze arming height, so there ours follows the GAAF advisory only; Modern IAF's F-16s have one (the
+  arming delay, [../modern-iaf/docs/weapons.md](../modern-iaf/docs/weapons.md) §9): there the cue rises for the
+  higher of the two and `LOW` shows right of the marker while a bomb released now would hit before it arms. Inferred (the manual gives no scale): 10 mr
   below the marker's circle per second to the advisory, shown over the last 10 s (the delayed CCIP solution cue's
   scale); 24 mr wide with 3 mr ends, about the marker's span in fig. 1-212; level on the HUD.
-- Not built: the LOW mnemonic; the MFD break X.
+- Not built: the MFD break X; the LOW mnemonic in the 1998 game (it has no fuze arming height).
 
 CARA ALOW (`gaaf::alow`)[^dash34alow]: below the ALOW height; it stops above it, climbing faster than 1,200 fpm, with
 the gear handle down, or below 15 ft. Ours repeats the call every 4 s (the game's Betty period; inferred).
@@ -792,6 +794,15 @@ inferred.
 The CCIP pipper and the fall line are not drawn while the bomb has an aim. Open: the impact-angle in-zone bar and the
 GBU-39's attack-azimuth LAR2 (no setting built).
 
+## Air-to-air missiles' seeker and post-launch cues (Modern IAF; ours)
+
+Modern IAF's jets only (modern-iaf/docs/weapons.md §8); the 1998 game draws as before:
+
+| symbol | what it shows | F-16 | F-35I helmet |
+|---|---|---|---|
+| missile diamond | the IR seeker: small while caged or not tracking (5 mr), large uncaged and tracking (8 mr; the DCS F-16C guide's two sizes, the sizes inferred) | yes | its circle 6 / 9 mr |
+| `A12` / `T07` | after a launch, the seconds to the AIM-120's seeker going active (A), then to impact (T), of the missile with the longest time (`real_hud/mod.rs` `MslTime`) | the right column's time row, before a GPS bomb's TTI | under the DLZ's place; looking aside under the airspeed |
+
 ## What ours draws (status)
 
 This section lists, per jet, what the code draws and what it leaves out.
@@ -834,8 +845,15 @@ its scale. The original HUD keeps the original layout.
     right column's second row down (inferred place), and no roll indicator meanwhile ("not displayed [when] DED or
     PFLD data is displayed on the HUD", a simulator forum quoting the jet's manual[^dcs-roll]).
   - `FUEL` below the bingo flashes in both games since 2026-11-17 (the dash-34's window 6; it was steady before).
-  - Not drawn: DTOS / CCRP (the game has no such modes), BATR / FEDS, the LOW mnemonic (the game has no fuze arming
-    height); in reborn the VVI and the AUTO scale (no HUD control panel).
+  - Modern IAF's F-16s (2026-11-18, [../modern-iaf/docs/weapons.md](../modern-iaf/docs/weapons.md) §9; the MLU
+    pilot's guide, figs. 6-8..6-16 and 6-33): CCRP's and LADD's TD box, azimuth steering line, time to the pull-up and
+    to the release in the timer row, the pull-up anticipation cue above the marker and the bar below it over the last
+    10 s, the solution cue (the delayed CCIP's) after the pull-up, LADD's bar at the 45° climb; DTOS's TD box on the
+    marker, then CCRP's cues on the designated point; MAN's primary reticle (a 2 mr pipper, a dashed 50 mr circle in
+    a 100 mr one) on the RET DEPR wheel at DEPR RET PRI with its depression in mr; `LOW`; the mode window's submode.
+    Inferred: the scales (the delayed CCIP's 10 mr a second), the TD box 10 mr across, the readout's place.
+  - Not drawn: DTOS / CCRP / LADD / MAN and LOW in reborn (the 1998 game has no such modes and no fuze arming
+    height), BATR / FEDS; in reborn the VVI and the AUTO scale (no HUD control panel).
 - F-15: tapes, heading, ladder with the zenith ⊖ "90" / nadir ⊗, velocity vector, -W-, gun cross when armed, G, Mach
   in A-A, NAV window, TD box, ASE circle + dot, range scale + IN RNG, breakaway X inside Rmin, LCOS reticle with the
   range arc, bomb fall line to the target square, AoA scale gear down (ours: degrees as units), NAV bank steering bar

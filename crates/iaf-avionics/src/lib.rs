@@ -7,6 +7,7 @@ pub mod bombs;
 pub mod city_lights;
 pub mod cmds;
 pub mod datalink;
+pub mod delivery;
 pub mod eo;
 pub mod ews;
 pub mod f16_mfd;

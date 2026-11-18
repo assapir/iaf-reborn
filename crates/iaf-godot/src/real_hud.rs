@@ -65,6 +65,23 @@ fn panel(p: &VarDictionary) -> Panel {
     }
 }
 
+/// Modern IAF's F-16 release submode {submode ("CCIP" … "MAN"), td (the TD box, HUD px, or null), designated, ttr,
+/// pull_up (s or null), low, min_release_ft (or null), man_mr (or null)} (`DeliveryCue`).
+fn delivery(d: &VarDictionary) -> iaf_avionics::real_hud::DeliveryCue {
+    iaf_avionics::real_hud::DeliveryCue {
+        submode: iaf_avionics::delivery::Submode::from_name(
+            &get::<GString>(d, "submode").unwrap_or_default().to_string(),
+        ),
+        td: pt(d, "td"),
+        designated: get(d, "designated").unwrap_or(false),
+        ttr: num(d, "ttr"),
+        pull_up: num(d, "pull_up"),
+        low: get(d, "low").unwrap_or(false),
+        min_release_ft: num(d, "min_release_ft"),
+        man_mr: num(d, "man_mr"),
+    }
+}
+
 #[derive(GodotClass)]
 #[class(init, base = RefCounted)]
 pub struct IafRealHud {
@@ -129,7 +146,7 @@ impl IafRealHud {
     /// ACM pattern: 1 the 10 × 60, 2 SLEW at acm_at ([az, el] deg), 3 BORE; else none), ils (the ILS bars' [x, y] or null), steerpoint ({number, bearing, dist_m, eta_s, at} or {}),
     /// target ({range_m, closure, at, aspect, ident ("friend" / "unknown" / "hostile", the F-35I's combat ID)} or {}), maw ([{bearing, tti}], the MAW's warnings), dlz ([max, min] or []), weapons {hud_mode, name, selected, srm, mrm, seeker,
     /// lcos, pipper, steering, circle, shoot, delay (the delayed CCIP's time to go, or null), delay_at
-    /// (the target under its pipper), designated, gps ({pre, at, range, rmin, rmax, in_range, tmr} or {}), hobs ({cone, at (the seeker's target or null), loal} or {})}}. Returns {field, outer, colour (Color or null), sight (no HUD), mrm_inside (the MRM dot in the drawn circle, or null)}.
+    /// (the target under its pipper), designated, gps ({pre, at, range, rmin, rmax, in_range, tmr} or {}), hobs ({cone, at (the seeker's target or null), loal} or {}), delivery (`delivery`, or {})}}. Returns {field, outer, colour (Color or null), sight (no HUD), mrm_inside (the MRM dot in the drawn circle, or null)}.
     #[func]
     fn frame(&mut self, field: Rect2, i: VarDictionary) -> VarDictionary {
         let f = |k: &str| num(&i, k).unwrap_or_default();
@@ -225,6 +242,15 @@ impl IafRealHud {
                     cone_deg: num(&h, "cone").unwrap_or_default(),
                     target: pt(&h, "at"),
                     loal: get(&h, "loal").unwrap_or(false),
+                }),
+                delivery: get::<VarDictionary>(&w, "delivery").filter(|d| !d.is_empty()).map(|d| delivery(&d)),
+                srm_track: get(&w, "srm_track").unwrap_or(false),
+                // {active, s}; absent or null: no missile flying.
+                msl_time: get::<VarDictionary>(&w, "msl_time").filter(|m| !m.is_empty()).map(|m| {
+                    iaf_avionics::real_hud::MslTime {
+                        active: get(&m, "active").unwrap_or(false),
+                        s: num(&m, "s").unwrap_or_default(),
+                    }
                 }),
             },
             maw: get::<VarArray>(&i, "maw")

@@ -8,7 +8,7 @@ The GBU-31, the GBU-32 and the GBU-39 steer themselves to a point on the ground 
 
 A bomb takes its point in one of two modes. #key("GPS bomb PRE / VIS") changes the selected bomb's mode; the helmet's weapon line reads PRE or VIS.
 
-- *PRE, planned:* the point is known before the release. The sim gives each bomb the target point of the route. #key("GPS bomb next PRE target") steps the next bomb's point through the route's steerpoints; a line of text shows which, as "PRE 2/5".
+- *PRE, planned:* the point is known before the release. The sim gives each bomb the route's target steerpoint; on the weapons range it is the steerpoint on the targets. #key("GPS bomb next PRE target") steps the next bomb's point through the route's steerpoints; a line of text shows which, as "PRE 2/5".
 - *VIS, by eye:* the point is the one you designate in flight: the point under the TFLIR's cross while its laser fires (@tflir), or else the point designated on the radar's ground map (@radar-ag).
 
 #in-sim[Setting each bomb's own PRE target before the flight, and the WPN-S format that programs the weapons, are #nis.]

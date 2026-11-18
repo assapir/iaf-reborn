@@ -27,6 +27,7 @@ What each switch does in each format of the display is not public: open.
   [Master mode], [#key("Cycle master mode")], [Steps navigation, air-to-air and air-to-surface.],
   [Weapon choice], [#key("Next air-to-air weapon") #key("Next air-to-ground weapon")], [Selects the next weapon of that kind and its master mode.],
   [Expand], [#key("Radar expand (EXP)")], [Enlarges the radar's picture.],
+  [Cage / uncage], [#key("Missile seeker: UNCAGE / CAGE")], [Uncages the AIM-9X's seeker so that it follows the target it hears; a second press cages it (@aa-short).],
   [CMS], [#key("CMS forward: run the CMDS program") #key("CMS aft: stop dispensing") #key("CMS right: consent (SEMI) / enable AUTO")], [Works the countermeasures dispenser (@ew).],
   [Trim], [#key("Roll trim left") #key("Roll trim right")], [Trims the roll.],
   [Autopilot], [#key("Autopilot: level / nav / off")], [Steps the autopilot; the last press disconnects it.],
@@ -36,4 +37,4 @@ What each switch does in each format of the display is not public: open.
 
 - *The DMS.* On the real jet it manages the display (inferred from its name). In the sim you choose a format with the pointer (@pcd). The DMS is #nis.
 - *The pointer.* A click on the display works its legends and tabs. The pointer does not move the radar's cursor.
-- *The mark point switch and the cage switch.* #term("Not modelled").
+- *The mark point switch.* #term("Not modelled").

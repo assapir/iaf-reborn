@@ -240,6 +240,8 @@ func setup(host_node: Node, entity: Dictionary, object: Dictionary, bdb: Diction
 	gun.detonate = _gun_detonate
 	seeker = IrSeeker.new()
 	seeker.tone = _tone
+	# Ours, Modern IAF's jets: cage / uncage, SPOT / SCAN (modern-iaf/docs/weapons.md §8.1).
+	seeker.set_head(Settings.modern_radar())
 	radar = Radar.new()
 	radar.units = _units
 	radar.ground = host.mission_ground
@@ -384,6 +386,11 @@ func to_world(p: Vector3) -> Vector3:
 	return host.scene_to_world(p)
 
 
+## A scripted path's velocity (world) in place of the flight model's, null none: a test flies the frozen jet through
+## dives and pulls the 6-DoF's airborne start cannot take (it starts level; modern-iaf/tests/test_sim_bombs.gd).
+var scripted_vel = null
+
+
 ## The own jet in the world frame: {pos, vel, fwd, up, right, yaw, wow, steer (the steerpoint; absent: none)}.
 func own() -> Dictionary:
 	var b: Basis = host.rig.global_basis
@@ -393,6 +400,8 @@ func own() -> Dictionary:
 		var st: Dictionary = host.flight.state()
 		vel = Terrain.dir_to_world(st.velocity)
 		wow = bool(st.get("on_ground", false))
+	if scripted_vel != null:
+		vel = scripted_vel
 	var fwd := Terrain.dir_to_world(-b.z)
 	var o := {
 		"pos": to_world(host.rig.global_position),
@@ -594,6 +603,8 @@ func mfd_event(ev: int, arg = null) -> void:
 				laser_fire = flir_pod and laser_arm and not laser_fire  # it fires through IafEo.lasing (_update_pod)
 			else:
 				eo.laser_key(flir_pod and (laser_arm or eo.laser))  # ours: lasing needs LASER ARM (always on in 1998)
+		-20:
+			seeker_key(1)  # ours, Modern IAF's jets: the F-16 SMS's SPOT / SCAN (OSB 2 of the AAM page; f16_mfd.gd)
 		-4:
 			tgp_stby = not tgp_stby  # ours, the modern MFDs: the TGP's OSB 1, STBY / A-G
 		-5:
@@ -605,6 +616,10 @@ func mfd_event(ev: int, arg = null) -> void:
 		-3:
 			# Ours, the modern MFDs: the SMS's PROF1 / PROF2 (IafRipple toggle_profile).
 			release_pairs = _ripple.toggle_profile(stores.current_name(), release_pairs)
+		-30:
+			set_ag_submode(String(arg))  # ours: the SMS A-G submode menu's pick (cockpit/f16_mfd.gd)
+		-31, -32:
+			delivery_key(-30 - ev)  # ours: the SMS's fuze (OSB 18) and arming delay (OSB 17)
 		0x37:
 			if String(arg) != harm.selected:  # FUN_005358b0: the selected entry sends nothing
 				harm.select(String(arg))
@@ -1092,6 +1107,7 @@ func fire_selected() -> void:
 ## Space up (event 0x41, FUN_00456100): bomb types stop the ripple timer and unfreeze the HUD.
 func release_selected() -> void:
 	releasing = false
+	_await_solution = false
 	if stores.current_type() == Stores.GUN:
 		gun_stop()
 	if stores.current_type() in BOMB_TYPES:
@@ -1520,7 +1536,13 @@ func _update_guided() -> void:
 		_place_sound(g.get_meta("sound"), p)
 		if gone:
 			guided.erase(g)
-			_bomb_detonate({"w": g.weapon, "node": node, "sound": g.get_meta("sound")}, p)
+			if _fuze_armed(g.get_meta("arm", {}), now):
+				_bomb_detonate({"w": g.weapon, "node": node, "sound": g.get_meta("sound")}, p)
+			else:  # ours: a laser bomb that hit before its fuze armed (modern-iaf/docs/weapons.md §9)
+				duds += 1
+				if node != null:
+					node.queue_free()
+				host.sounds.stop(g.get_meta("sound"))
 
 
 ## FUN_00457f70 with the HUD mode's object: [target unit {} none, q]. Without Easy aiming the object's target
@@ -1906,6 +1928,14 @@ func _bomb_space() -> void:
 		return
 	if _ripple_next != INF:
 		return
+	# Ours, Modern IAF's F-16 submodes (modern-iaf/docs/weapons.md §9): CCRP / DTOS / LADD wait, WPN REL held, for the
+	# solution (update); DTOS's press first designates the point under its TD box.
+	var sub := ag_submode()
+	if ClassDB.class_call_static("IafDelivery", "automatic", sub):
+		if sub == "DTOS" and dtos_point == null:
+			dtos_designate()
+		_await_solution = true
+		return
 	ripple_left = _pulses()
 	_update_ag()
 	ag.frozen = true
@@ -1927,7 +1957,11 @@ func _ripple_tick() -> void:
 	if t == 560 and not _rockets().next_free():
 		return  # the station's pool object is still flying: wait for the next tick
 	# FUN_00454b70: the aim = the HUD target (off the HUD) or the impact, spread on the ripple line.
-	var p: Vector3 = ag.target if ag.off else ag.impact
+	# Ours, Modern IAF's F-16 submodes: MAN at the bombs' own fall, CCRP / DTOS / LADD at their target.
+	var sub := ag_submode()
+	var p: Vector3 = ag.target if ag.off and sub == "CCIP" else ag.impact
+	if ClassDB.class_call_static("IafDelivery", "automatic", sub) and ag.get("delivery", {}).get("target") != null:
+		p = ag.delivery.target
 	var n := _pulses()
 	if ripple_left == n or _ripple_line.size() != n:
 		_ripple_line = ClassDB.class_call_static(
@@ -1940,7 +1974,10 @@ func _ripple_tick() -> void:
 	# FUN_0045ee10 and the delayed release (the first bomb waits for time-to-go ≤ 0.9 s; a GPS bomb goes at once).
 	if not release_allowed(t) or _bay_wait(i):
 		return
-	if not gps and ClassDB.class_call_static("IafRelease", "first_bomb_waits", ag.off, ripple_left == n, float(ag.ttg)):
+	var waits: bool = ClassDB.class_call_static(
+		"IafRelease", "first_bomb_waits", ag.off, ripple_left == n, float(ag.ttg)
+	)
+	if not gps and sub == "CCIP" and waits:
 		return
 	ripple_left -= 1
 	if ripple_left <= 0:
@@ -1949,6 +1986,8 @@ func _ripple_tick() -> void:
 	# Each GPS bomb of a pair gets its own coordinates (PRE: its own target, else its station's).
 	for k in pulse:
 		_drop_store(k, gps_aim(aim, k)[0] if gps else aim)
+		if delivery_on():
+			_arm_fuze(t)
 		stores.fired(k)
 		_released[k] = int(_released.get(k, 0)) + 1
 		if t == 650 and not gps:
@@ -2012,6 +2051,133 @@ func gps_aim(ripple: Vector3, station := -1) -> Array:
 ## step key's index (0: each bomb's own target; back to 0 when a release ends).
 var gps_modes := {}
 var pre_index := 0
+
+## Ours, Modern IAF's F-16 release submodes and fuzing (modern-iaf/docs/weapons.md §9, iaf_avionics::delivery): per
+## weapon and SMS profile ("name/profile") {sub, fuze, ad (s)}; a profile never set starts as the other one's copy.
+var _delivery_set := {}
+## DTOS: the designated ground point (null: the TD box rides the flight path marker).
+var dtos_point = null
+## WPN REL held in CCRP / DTOS / LADD: the release waits for the solution (update).
+var _await_solution := false
+## The bombs that hit before their fuze armed (no burst), for the tests and the log.
+var duds := 0
+const DELIVERY_TYPES := [500, 510, 650]
+
+
+## The modern F-16's release submodes apply: a bomb, not a GPS one, selected on a modern F-16 (the 1998 jets: CCIP).
+func delivery_on() -> bool:
+	var w: Dictionary = stores.station(stores.cur).get("w", {})
+	return modern_f16 and int(w.get("type", 0)) in DELIVERY_TYPES and not w.has("gps")
+
+
+## The selected weapon's release settings {sub, fuze, ad}: its active SMS profile's.
+func delivery_set() -> Dictionary:
+	var name: String = stores.current_name()
+	var p: int = _ripple.profile(name)
+	var key := "%s/%d" % [name, p]
+	if not _delivery_set.has(key):
+		var other = _delivery_set.get("%s/%d" % [name, 1 - p])
+		var start := {"sub": "CCIP", "fuze": "NSTL", "ad": ClassDB.class_call_static("IafDelivery", "arm_delay")}
+		_delivery_set[key] = other.duplicate() if other != null else start
+	return _delivery_set[key]
+
+
+## The A-G submode in use: the selected bomb's on a modern F-16, else CCIP.
+func ag_submode() -> String:
+	return String(delivery_set().sub) if delivery_on() else "CCIP"
+
+
+## The SMS menu's pick or the missile step key: DTOS starts undesignated with the HUD the SOI (MLU p. 173).
+func set_ag_submode(sub: String) -> void:
+	if not delivery_on():
+		return
+	delivery_set().sub = sub
+	dtos_point = null
+	_await_solution = false
+	if sub == "DTOS" and host.cockpit != null and host.cockpit.get("soi") != null:
+		host.cockpit.soi = -1
+	_update_ag()
+
+
+## Our keys (modern-iaf/data/keys.json command 290): p1 0 the missile step's next submode, 1 the next fuze option, 2 the
+## next arming delay. Returns the subtitle ("CCRP", "NOSE", "AD 6.00SEC"); "" without a bomb on a modern F-16.
+func delivery_key(p1: int) -> String:
+	if not delivery_on():
+		return ""
+	var d := delivery_set()
+	match p1:
+		0:
+			set_ag_submode(String(ClassDB.class_call_static("IafDelivery", "step", String(d.sub))))
+			return String(d.sub)
+		1:
+			d.fuze = String(ClassDB.class_call_static("IafDelivery", "next_fuze", String(d.fuze)))
+			return String(d.fuze)
+		2:
+			d.ad = float(ClassDB.class_call_static("IafDelivery", "next_arm_delay", float(d.ad)))
+			return "AD %.2fSEC" % float(d.ad)
+	return ""
+
+
+## DTOS: designate the ground point under the TD box, on the flight path marker (MLU p. 173): WPN REL or TMS up.
+func dtos_designate() -> void:
+	var o := own()
+	var g = _ray_ground(to_scene(o.pos), Terrain.dir_to_scene(o.vel))
+	if g != null:
+		dtos_point = g
+
+
+## TMS in DTOS (A-G, the HUD the SOI): up designates, down rejects (the TD box back on the marker, MLU p. 173). False
+## when not in DTOS: the TMS goes on to the radar.
+func dtos_tms(dir: int) -> bool:
+	if ag_submode() != "DTOS" or not hud_mode in [5, 6] or not dir in [0, 1]:
+		return false
+	if dir == 0:
+		dtos_designate()
+	else:
+		dtos_point = null
+	return true
+
+
+## The release computer this frame (IafDelivery.solve) with the settings for the SMS and the HUD. The target: CCRP and
+## LADD the targeting pod's tracked point, else the SPI (the radar's designated point, else the steerpoint); DTOS its
+## designated point.
+func _delivery_state(o: Dictionary, w: Dictionary) -> Dictionary:
+	var d := delivery_set()
+	var sub := String(d.sub)
+	var target = null
+	if sub == "DTOS":
+		target = dtos_point
+	elif sub in ["CCRP", "LADD"]:
+		var pod: bool = flir_pod and eo.mode == EoSensor.FLIR and pod_state() == 3 and not tgp_slaved
+		target = eo_centre if pod else spi()
+	var g = host.mission_ground(o.pos)
+	var shot := {
+		"submode": sub,
+		"p": o.pos,
+		"v": o.vel,
+		"beta": Bombs.real_beta(w, true),
+		"wind": Bombs.wind,
+		"target": target,
+		"ground": float(g) if g != null else 0.0,
+		"arm_delay": float(d.ad)
+	}
+	var s: Dictionary = ClassDB.class_call_static("IafDelivery", "solve", shot)
+	s.merge({"submode": sub, "fuze": d.fuze, "ad": d.ad, "target": target, "designated": target != null}, true)
+	return s
+
+
+## The store just released (type `type`) arms its arming delay later; one that hits sooner is a dud (_fuze_armed).
+func _arm_fuze(type: int) -> void:
+	var arm := {"t": now, "ad": float(delivery_set().ad)}
+	if type == 650 and last_launched != null:
+		last_launched.set_meta("arm", arm)
+	elif type != 650 and not bombs.is_empty():
+		bombs[-1].arm = arm
+
+
+## A store's fuze has armed by `at` (IafDelivery.armed); one without an arming record (the 1998 jets) always.
+func _fuze_armed(arm: Dictionary, at: float) -> bool:
+	return arm.is_empty() or ClassDB.class_call_static("IafDelivery", "armed", float(arm.t), at, float(arm.ad))
 
 
 ## The station whose bomb goes next (the selected store's), -1 none.
@@ -2235,8 +2401,10 @@ func hobs_cue() -> Dictionary:
 		func(m): return is_same(m.get_meta("owner", {}), me) and m.weapon.get("loal", false) and not m.has_target
 	)
 	var tgt: Dictionary = seeker.current(_units()) if seeker.target_key != "" else {}
-	if not tgt.is_empty() and not seeker.in_view(own(), tgt):
-		tgt = {}  # kept by the search, but outside the seeker's view: the seeker does not look at it
+	# Kept by the search, but outside the seeker's view: the seeker does not look at it. The modern head (weapons.md
+	# §8.1) holds only a target it looks at.
+	if not tgt.is_empty() and seeker.head.is_empty() and not seeker.in_view(own(), tgt):
+		tgt = {}
 	return {"cone": float(w.get("cone_deg", 90.0)), "pos": tgt.get("pos"), "loal": searching}
 
 
@@ -2323,6 +2491,8 @@ func _update_ag() -> void:
 			"dist": lar.range,
 			"lar": lar
 		}
+	# Ours, Modern IAF's F-16 release submodes and fuzing (modern-iaf/docs/weapons.md §9): the release computer.
+	ag.delivery = _delivery_state(o, w) if delivery_on() else {}
 
 
 static func _hdist(a: Vector3, b: Vector3) -> float:
@@ -2367,9 +2537,11 @@ func _update_bombs() -> void:
 		_place_bomb(bm)
 		if not hit.is_empty():
 			bombs.erase(bm)
-			if not bm.get("safe", false):
+			var armed := _fuze_armed(bm.get("arm", {}), float(hit.t))
+			duds += 0 if armed or bm.get("safe", false) else 1
+			if not bm.get("safe", false) and armed:
 				_bomb_detonate(bm, hit.pos)
-			else:  # an unarmed jettisoned store: no burst
+			else:  # an unarmed jettisoned store, or a dud (its fuze not armed yet): no burst
 				if bm.node != null:
 					bm.node.queue_free()
 				if bm.sound != null:
@@ -2808,6 +2980,11 @@ func update(t: float) -> void:
 	gun.update(now)
 	if hud_mode in [5, 6]:
 		_update_ag()
+		# Ours: the computed release goes when the solution comes, WPN REL held (modern-iaf/docs/weapons.md §9).
+		if _await_solution and releasing and bool(ag.get("delivery", {}).get("release", false)):
+			_await_solution = false
+			ripple_left = _pulses()
+			_ripple_next = now
 	while _ripple_next <= now:
 		_ripple_next += ripple_period
 		_ripple_tick()
@@ -2959,6 +3136,7 @@ func _publish() -> void:
 	var srm: int = counts[0]
 	var mrm: int = counts[1]
 	var o := own()
+	var cues := msl_cues()
 	# The MRM / HARM HUD objects (FUN_00460ee0 / FUN_00460ac0): the circle, the predicted point (with a radar
 	# lock), the shoot cue (state+0x1010: inside the circle, rounds left, the radar in A-A, min ≤ dist ≤ max) and
 	# the HARM's "In Range" (dist < the DLZ max) and its target point (state+0xe6c, the HUD diamond).
@@ -3103,11 +3281,74 @@ func _publish() -> void:
 			"target": ag.target,
 			"ttg": ClassDB.class_call_static("IafRelease", "ttg_shown", float(ag.ttg)),
 			"blink": now < float(ag.blink_until),
-			"gps": ag.get("gps", {}) if hud_mode in [5, 6] else {}
+			"gps": ag.get("gps", {}) if hud_mode in [5, 6] else {},
+			# Ours, Modern IAF's F-16 release submodes (_delivery_state) for the HUD.
+			"delivery": ag.get("delivery", {}) if hud_mode in [5, 6] else {}
 		},
+		# Ours: the selected bomb's release settings {sub, fuze, ad} for the SMS ({} none).
+		"delivery_set": delivery_set() if delivery_on() else {},
 		"gps_tti": gps_tti(),
 		"hobs": hobs_cue(),
+		# Ours, Modern IAF's jets (modern-iaf/docs/weapons.md §8): the seeker head {uncaged, scan, tracking} ({} none) and
+		# the post-launch cues (msl_cues).
+		"srm_head": seeker.head,
+		"msl_time": cues.moi,
+		"msl_targets": cues.targets,
 	}
+
+
+## Ours, Modern IAF's jets: the SRM seeker head's keys (modern-iaf/docs/weapons.md §8.1): `what` 0 the uncage button (in
+## the SRM mode), 1 SPOT / SCAN. The subtitle to show ("" none).
+func seeker_key(what: int) -> String:
+	if seeker.head.is_empty():
+		return ""
+	if what == 1:
+		seeker.toggle_scan()
+		return "Seeker SCAN" if seeker.head.scan else "Seeker SPOT"
+	if hud_mode != 1:
+		return ""
+	seeker.uncage()
+	return "Seeker uncaged" if seeker.head.uncaged else "Seeker caged"
+
+
+## Ours, Modern IAF's jets: the post-launch cues (modern-iaf/docs/weapons.md §8.2) of the player's air-to-air missiles
+## flying at a target, from the shared model (Missile.times): `moi` the one with the longest time left (the DCS F-16C
+## guide's missile of interest) as {active (the time counts to its seeker going active, the AIM-120 only), s}, null
+## none; `targets` {target key: {active (its radar seeker is on), final (8 s or less to impact)}} for the FCR's marks.
+func msl_cues() -> Dictionary:
+	var out := {"moi": null, "targets": {}}
+	if not Settings.modern_radar() or missiles.is_empty():
+		return out
+	var units := {}
+	for u in _units():
+		units[u.key] = u
+	var me := _me()
+	for mis in missiles:
+		var w: Dictionary = mis.weapon
+		if not mis.has_target or not int(w.get("type", 0)) in AA_TYPES or not is_same(mis.get_meta("owner", {}), me):
+			continue
+		var t := target_state(mis.target_key, units)
+		if t.is_empty():
+			continue
+		var reach: float = (
+			ClassDB.class_call_static("IafSeeker", "active_range", int(w.get("generation", 0)))
+			if int(w.type) == 600
+			else 0.0
+		)
+		var tm: Dictionary = mis.times(now, t.pos, t.get("vel", Vector3.ZERO), reach)
+		var to_active = tm.get("active")
+		var to_impact = tm.get("impact")
+		out.targets[String(mis.target_key)] = {
+			"active": reach > 0.0 and to_active == null, "final": to_impact != null and float(to_impact) <= MSL_FINAL_S
+		}
+		var s = to_active if to_active != null else to_impact
+		if s != null and (out.moi == null or float(s) > float(out.moi.s)):
+			out.moi = {"active": to_active != null, "s": float(s)}
+	return out
+
+
+## The FCR's X over a missile's target for its last seconds (the DCS F-16C guide: 8 s).
+const MSL_FINAL_S := 8.0
 
 
 ## The TSD's SAM sites (FUN_00446270, every frame from the TSD table FUN_004d2900): the class-8 units alive

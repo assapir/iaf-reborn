@@ -308,6 +308,136 @@ navigation pod beneath its intake[^iaf-f16i], the F-16's navigation pod hangs on
   `crates/iaf-tools/src/loadout.rs` `chin_stations_take_their_own_pods`, `modern-iaf/tests/test_sim_chin_pods.gd`
   (load, draw, weight, jettison, the SMS inventory), `modern-iaf/tests/test_front_end.gd` (5R / 5L, the pod drawn).
 
+## 8. The air-to-air missiles
+
+The employment flow is the same on the Sufa, the Barak and the Adir (avionics-plan.md §6 slice 8, built 18 Nov 2026):
+select the missile, lock the target with the radar, uncage the IR missile's seeker, wait for SHOOT, launch, then
+watch the post-launch cues until the hit. The missiles fly the shared model unchanged (the original's chase motion
+and the sim's records, [../../docs/weapons.md](../../docs/weapons.md) §5, §11); real missile performance stays parked
+(avionics-plan.md §7). Everything here is for Modern IAF's jets only (`Settings.modern_radar()`): the 1998 game's
+seeker, HUD and FCR are as before.
+
+| step | the Sufa / the Barak | the Adir | key (default) | key record |
+|---|---|---|---|---|
+| select | `]` steps the air-to-air stores: AIM-9M or Python 5 (the SRM HUD mode), AIM-120 (the MRM mode) | AIM-9X (SRM), AIM-120 (MRM) | `]` | 66 |
+| arm | MASTER ARM to ARM, ST STA on (§5) | the master arm | Shift + A | 125 |
+| lock | the radar on, the target bugged and locked (TMS up) | the same on SRCH | Q, Enter, `/` | 56, 58, 132 |
+| SPOT / SCAN | the SMS's AAM page, OSB 2 | the SMS portal shows it beside the weapon | Ctrl + S | 225 |
+| uncage | the IR missile's seeker tracks the target it hears | the same | Shift + M | 224 |
+| launch | SHOOT on the HUD, then the pickle | the same; the AIM-120 leaves once its bay doors are open (the bay door logic of §5) | Space | 69 |
+| after the launch | A or T and the seconds in the HUD's timer row; the FCR marks the target | the same in the helmet under the DLZ and on SRCH | — | — |
+
+### 8.1 The seeker head: cage, uncage, SPOT and SCAN
+
+An IR missile's seeker head (Hebrew ראש ביות) is caged until the pilot uncages it[^dcs-f16][^mlu1]:
+
+- **Caged**, the seeker looks along its axis: toward the radar's locked target when that is inside the missile's gimbal
+  cone, else along the helmet's line of sight (the free-look and padlock views), else along the nose (the boresight).
+  It hears the trackable target nearest that axis: the lock tone, and the HUD's small missile diamond on the axis.
+- **Uncaged** (Shift + M with the lock tone), the seeker tracks that target anywhere inside its gimbal cone while the
+  existing lock rule holds (`sight.rs` `can_track`): the diamond follows the target and grows (DCS: "a large Missile
+  Diamond symbol" when "uncaged and tracking"[^dcs-f16]). A second press cages it. When the target leaves the cone or
+  the lock rule, the seeker cages again (inferred).
+- **SPOT / SCAN** (the MLU M1's AAM page shows SPOT by OSB 2[^mlu1]): SPOT hears within the seeker's narrow field (the
+  original's 6°), SCAN within the original's search circle about the axis (6.45°). Both numbers are the existing model's
+  (`sight.rs` `FOV_DEG`, `CIRCLE_PX2`); the real scan pattern is seeker behaviour and stays parked, so the two differ
+  little. A new flight starts in SPOT (inferred).
+- A launch takes the target the seeker hears or tracks, anywhere in its cone (the original takes it only inside the HUD's
+  centre circle).
+
+The logic is `crates/iaf-avionics/src/sight.rs` `Head` / `Seeker::uncage`, `toggle_scan`, `update_head`; the keys
+reach it through `player_weapons.gd` `seeker_key` (command 280). The Rust tests:
+`caged_holds_the_boresight_uncaged_tracks`, `uncaged_track_lost_cages_again`,
+`caged_on_the_radar_lock_and_scan_widens_the_field`.
+
+### 8.2 The post-launch cues
+
+After a launch the pilot sees how long each missile still flies[^dcs-f16]:
+
+- **The time.** "A" and the seconds to the AIM-120's seeker going active, then "T" and the seconds to impact; an IR
+  missile shows only "T". With several missiles in the air the one with the longest time is shown (the DCS guide's
+  missile of interest). The F-16s' HUD shows it in the right column's timer row (the DCS guide puts it under the DLZ;
+  ours inferred, where a GPS bomb's time goes); the Adir's helmet under its DLZ; the FCR and SRCH at the top right.
+- **The target's marks on the FCR and SRCH.** From the launch a rectangular tail behind the target's symbol, flashing
+  once the AIM-120's seeker is active, and an X over the symbol for the last 8 s (the DCS guide's AIM-120 target; ours
+  for every air-to-air missile, inferred). The real FCR shows the target, not the missile itself.
+- **The numbers come from the shared model.** `missile.rs` `Missile::times`: the missile flies straight on from where it
+  is at its speed now on its own motion (`ChaseMotion::travelled`, the DLZ's), while the target goes on at its velocity.
+  The AIM-120 goes active at half its generation's seeker lock range (`sight.rs` `active_range`: 7.5 NM for the AIM-120's
+  generation 4; inferred: the reach of the original's seeker without the target's afterburner).
+
+The Rust tests: `missile.rs` `post_launch_times_count_down_to_the_real_flight`, `real_hud/f16.rs`
+`after_a_launch_the_time_to_active_then_to_impact`, `the_srm_diamond_grows_when_uncaged_and_tracking`. The headless
+test `modern-iaf/tests/test_sim_missiles.gd` flies each jet on its range with every missile it carries, at a drone
+each, through the keys above, and sees the drone go down.
+
+## 9. The bombs: release submodes and fuzing
+
+The Sufa's and the Barak's unguided and laser-guided bombs (MK-82, MK-83, MK-84, GBU-10 / 12 / 16) have the real
+SMS's five release submodes and its fuzing (avionics-plan.md §6 slice 9, G21, G22, G25; built 18 Nov 2026). The GPS
+bombs keep PRE / VIS ([../../docs/weapons.md](../../docs/weapons.md) §13.2). The logic is
+`crates/iaf-avionics/src/delivery.rs` (`IafDelivery`, wired in `player_weapons.gd`), the HUD's cues `real_hud/f16.rs`
+`delivery_cues`. Every
+solution runs the bomb's own fall (`bombs.rs` `real_fall` / `real_impact`, the fall the released bomb flies), so a
+release at the solution lands on the target. The 1998 game and the Adir (GPS bombs only) are unchanged.
+
+| submode | what the pilot does | what the jet does |
+|---|---|---|
+| CCIP | the impact point onto the target, then WPN REL (Space); off the HUD's bottom the delayed CCIP | as before ([../../docs/weapons.md](../../docs/weapons.md) §9) |
+| CCRP | selects the target: the radar's designated point, the targeting pod's track, else the steerpoint; flies the flight path marker onto the azimuth steering line; holds WPN REL | the TD box on the target, the time to release in the HUD's timer row, the solution cue down the steering line; the bomb leaves by itself when its impact reaches the target[^mlu-ag] |
+| DTOS | dives with the TD box (on the flight path marker) on the target, presses WPN REL (or TMS up) to designate; keeps it held through a dive or a pull-out | the box stays on the designated ground point; CCRP's steering and automatic release[^mlu-ag]; TMS down rejects the point |
+| LADD | runs in low (the guide plans 200 ft at 550 KTAS) on CCRP's steering, WPN REL held; pulls up at 4 g to a 45° climb when the cues meet the marker | over the last 10 s the pull-up anticipation cue above the marker and a bar below it; after the pull-up the bar at the 45° climb and the solution cue; the release by itself in the climb[^mlu-ag] |
+| MAN | sets the RET DEPR wheel and DEPR RET to PRI, presses with the reticle on the target | the primary reticle (a 2 mr pipper, a dashed 50 mr circle in a 100 mr one) depressed from the gun cross, its depression in mr beside it; the bomb leaves at once; nothing is computed[^mlu-man] |
+
+**The SMS.** OSB 2 opens the submode menu (CCIP CCRP DTOS LADD MAN down the left, the current one boxed); OSB 18 steps
+the fuze option NSTL → NOSE → TAIL; OSB 17 (AD/BA) steps the arming delay, shown as `AD 4.80SEC` on OSB 19's
+row[^mlu-ag][^dcs-bombs]. Each weapon keeps its submode, fuze and arming delay in each of its two profiles (PROF1 /
+PROF2, as the guide's profiles hold them[^dcs-bombs]); a profile never set starts as the other's copy.
+
+**Fuzing.** A bomb arms its arming delay after the release: 4.80 s at the start (the MLU's SMS figure[^mlu-ag]);
+the steps 2, 3, 4.8, 6, 8 and 10 s are ours (inferred). A bomb that hits sooner is a dud: no burst, no damage ("will
+not give the bomb time to arm and result in a dud"[^dcs-bombs]). The three fuze options arm alike on the sim's slick
+bombs (inferred: the guide's differences are for retarded and cluster bombs the sim does not carry); the burst stays
+instant on impact.
+
+**LOW.** `LOW` beside the flight path marker while a bomb released now would hit before its fuze arms; the pull-up
+anticipation cue also rises for that minimum release height (the height a bomb falls during the arming delay), as
+the real cue does[^dash34-low], besides the GAAF advisory.
+
+**Keys** (keys.json records 226–230; a click on the SMS's OSBs does the same):
+
+| function | key | record |
+|---|---|---|
+| next submode, as the missile step switch: CCIP → DTOS → CCRP → CCIP (LADD and MAN from the SMS)[^mlu-ag] | Ctrl + G | 226 |
+| next fuze option | Alt + Q | 227 |
+| next arming delay | Alt + 0 | 228 |
+| RET DEPR wheel: the reticle 5 mr down / up (0–260 mr) | Ctrl + V / Alt + V | 229 / 230 |
+| designate / reject in DTOS (the HUD the SOI) | `/` / Shift + `/` (TMS up / down) | 132 / 133 |
+| WPN REL, held | Space | 69 |
+
+**Ours (inferred where the guides give no figure):** the cue scales (10 mr a second, as the delayed CCIP's), the TD box
+10 mr across, LADD's release only above a 10° climb, the pull-up time from a 4 g arc of radius V² / (g·3), the
+RET DEPR keys' 5 mr step, the reticle's depression readout beside it. The CCRP and LADD CNTL pages (the release angle
+and LADD's pull-up range typed in) are not started: the sim computes the pull-up from the bomb's fall. RBS, ULOFT and
+the AD/BA keypad entry are not started.
+
+**The target steerpoint.** The range missions' second steerpoint, on Target 1, is the target steerpoint (`"target":
+true`, [data-formats.md](data-formats.md)): CCRP aims at it when selected, and a GPS bomb's PRE takes it when no
+target was set before the flight (`gps.rs` `default_target`). A PRE target per bomb set on the briefing map needs a
+new panel there, a new look that waits for the user's yes (avionics-plan.md G4).
+
+**Tests.** `cargo test -p iaf-avionics delivery`: CCRP, DTOS (a toss), LADD and MAN each land within the MK-82's
+spread of the target (its blast radius, 50 m); a release at 150 ft shows LOW and is a dud; `real_hud::f16`
+`release_submodes_on_the_hud`. `modern-iaf/tests/test_sim_bombs.gd`: on each F-16's range the SMS menu, the fuze and
+delay OSBs and keys; CCRP, DTOS, LADD and MAN each burst within the blast radius of Target 1; MAN at 150 ft is LOW and
+a dud; a GBU-12 in CCRP with the Litening slaved and LASER ARM leaves by itself and hits on the spot.
+
+[^dcs-f16]: Eagle Dynamics, *DCS: F-16C Viper Early Access Guide* (EN, 2026), a simulator manual of a Block 50 M4
+    tape, "AIM-9 Missile Seeker Cueing", "SRM HUD Symbology" and "MRM MFD Symbology" (pp. 571–598):
+    https://www.digitalcombatsimulator.com/en/downloads/documentation/dcs-viper_early_access_manual_en/
+[^mlu1]: Lockheed Martin, F-16 A/B MLU Production Tape M1 pilot's guide (16PR14341, 15 Nov 1998): the HOTAS's
+    uncage switch ("cages and uncages missile seeker heads") and fig. 1-35, the Air-to-Air Missile SMS page (SPOT by
+    OSB 2): https://falcon.blu3wolf.com/Docs/MLU_M1.pdf
 [^gdots]: General Dynamics OTS, "F-16 20mm Gatling gun system" (511 rounds), https://www.gd-ots.com/wp-content/uploads/2017/11/F-16.pdf
 [^w-f35]: Wikipedia, "Lockheed Martin F-35 Lightning II" (GAU-22/A, 180 rounds in the F-35A), https://en.wikipedia.org/wiki/Lockheed_Martin_F-35_Lightning_II
 [^w-m61]: Wikipedia, "M61 Vulcan" (6,000 rounds per minute), https://en.wikipedia.org/wiki/M61_Vulcan
@@ -328,3 +458,15 @@ navigation pod beneath its intake[^iaf-f16i], the F-16's navigation pod hangs on
 [^twz-litening]: The War Zone, "We talk new features on the Litening large aperture targeting pod" (a Litening on the
     usual chin station of an F-16C):
     https://www.twz.com/news-features/we-talk-new-features-on-the-litening-large-aperture-targeting-pod
+[^mlu-ag]: Lockheed Martin, F-16 A/B MLU Production Tape M1 pilot's guide (16PR14341, 15 Nov 1998), "Air-to-Ground
+    Page" (figs. 1-38, 1-39: the submode menu, NOSE, AD 4.80SEC) and "Air-to-Ground Submodes" pp. 169–181 (CCRP, DTOS,
+    LADD: the 4 g pull-up to 45°, the run-in at 200 ft and 550 KTAS; the missile step's cycle):
+    https://falcon.blu3wolf.com/Docs/MLU_M1.pdf
+[^mlu-man]: the same guide, "Manual Weapon Delivery" p. 191 and fig. 6-33 (the primary reticle; the depression set
+    by the RET DEPR thumbwheel and shown in the HUD): https://falcon.blu3wolf.com/Docs/MLU_M1.pdf
+[^dcs-bombs]: Eagle Dynamics, *DCS: F-16C Viper Early Access Guide* (EN, 2026), a simulator manual, "Unguided bombs"
+    pp. 618–630 (the profiles, the submode menu, OSB 18's NOSE / TAIL / NSTL, the pull-up anticipation cue and the
+    dud below the fuze's arming height):
+    https://www.digitalcombatsimulator.com/en/downloads/documentation/dcs-viper_early_access_manual_en/
+[^dash34-low]: T.O. GR1F-16CJ-34-1-1 (Hellenic AF, 1997), p. 1-173 "Pullup Anticipation and Breakaway Cue (Break X)",
+    https://falcon.blu3wolf.com/Docs/HAF-F16-34.pdf (PDF page 189), as docs/real-hud.md reads it

@@ -46,6 +46,8 @@ const SMALL := 4.8
 const STATION_OSB := {0: 18, 1: 19, 2: 20, 3: 1, 4: 3, 5: 5, 6: 6, 7: 7, 8: 8, 12: 3}
 ## Air-to-air missile types (the AAM page); 590 is the HARM (WPN: HAS).
 const AAM_TYPES := [570, 580, 600, 610]
+## The IR missiles (the SRM HUD mode).
+const SRM_TYPES := [570, 580]
 ## The damage flags (docs/damage.md §5.2) as fault-list lines (inferred: the MFL's layout is open), each once.
 const FAULTS := [
 	[[22, 16, 2, 23, 17, 3], "ENG FAIL", "warning"],
@@ -367,6 +369,7 @@ func fcr() -> void:
 			if bug:
 				circle(p, 4.6, col, THIN)
 				lock_p = p
+			_fcr_msl_mark(p, fw, rt, String(ct.key), col)
 			centred(p.x, p.y + 9.0, "%02d" % int(float(ct.get("alt", 0.0)) * 0.0032808398), col, SMALL)
 	if not vsr and not expanded:
 		_steerpoint_bscope(nm, r)
@@ -388,6 +391,26 @@ func fcr() -> void:
 	if lock_p != null and not lk.is_empty():
 		_stt_line(lk, float(r.get("closure", 0.0)))
 		_dlz(r.get("dlz", []), float(lk.dist), nm)
+	# Ours, Modern IAF's jets: the post-launch time to active / to impact (modern-iaf/docs/weapons.md §8.2; inferred
+	# place: under the STT data line, at the right).
+	var mt = cockpit.weapons.get("msl_time")
+	if mt != null:
+		centred(110, 26, ("A%02d" if mt.active else "T%02d") % mini(ceili(float(mt.s)), 99), c("text"), SMALL)
+
+
+## Ours, Modern IAF's jets (modern-iaf/docs/weapons.md §8.2): a target the player's missile flies at carries a
+## rectangular tail behind its symbol from the launch, flashing once the missile's radar seeker is active, and an X for
+## its last 8 s (the DCS F-16C guide's AIM-120 target; `fw` / `rt` the symbol's nose and right).
+func _fcr_msl_mark(p: Vector2, fw: Vector2, rt: Vector2, key: String, col: Color) -> void:
+	var mk: Dictionary = cockpit.weapons.get("msl_targets", {}).get(key, {})
+	if mk.is_empty():
+		return
+	if not mk.active or Time.get_ticks_msec() % 500 < 250:
+		var b := p - fw * 2.0
+		poly(PackedVector2Array([b + rt, b - fw * 5.0 + rt, b - fw * 5.0 - rt, b - rt]), col, THIN, true)
+	if mk.final:
+		line(p + Vector2(-4, -4), p + Vector2(4, 4), col, THIN)
+		line(p + Vector2(-4, 4), p + Vector2(4, -4), col, THIN)
 
 
 ## The FCR's CNTL page (fig. 1-76, p. 1-116): each option's legend and value by its OSB, OSB 5 CNTL inverse to
@@ -823,6 +846,10 @@ func sms_format() -> void:
 			centred(66, 66, _status(wp), c("text"))
 		"AAM":
 			label(1, "AAM")
+			# Ours, Modern IAF's jets: the SRM's SPOT / SCAN on OSB 2 (MLU M1 fig. 1-35; modern-iaf/docs/weapons.md §8.1).
+			var head: Dictionary = wp.get("srm_head", {})
+			if not head.is_empty() and t in SRM_TYPES:
+				label(2, "SCAN" if head.scan else "SPOT")
 			label(6, _weapon_name(wp))
 			centred(66, 66, _status(wp), c("text"))
 			_station_row(wp)
@@ -894,12 +921,14 @@ func _station_row(wp: Dictionary) -> void:
 func _ag_page(wp: Dictionary) -> void:
 	var gps: Dictionary = wp.get("ag", {}).get("gps", {})
 	label(1, "A-G")
-	var sub: String = ("PRE" if gps.get("pre", true) else "VIS") if _gps(wp) else "CCIP"
+	# Ours, Modern IAF: a bomb's release submode (player_weapons.gd delivery_set; modern-iaf/docs/weapons.md §9).
+	var ds: Dictionary = wp.get("delivery_set", {})
+	var sub: String = ("PRE" if gps.get("pre", true) else "VIS") if _gps(wp) else String(ds.get("sub", "CCIP"))
 	label(2, sub, sms_sub)
 	if modern and sms_sub:
 		# Ours, the modern MFDs: the submode menu (fig. 1-70's list; IafF16Mfd.ag_submodes: those the release has),
 		# down the left from OSB 20, the current one boxed.
-		var subs: PackedStringArray = ClassDB.class_call_static("IafF16Mfd", "ag_submodes", _gps(wp))
+		var subs := _ag_subs(wp)
 		for i in subs.size():
 			label(20 - i, subs[i], subs[i] == sub)
 		return
@@ -910,9 +939,23 @@ func _ag_page(wp: Dictionary) -> void:
 		label(8, String(wp.release))
 	label(9, "%d INT" % int(wp.get("interval", 10)))
 	label(10, "RP %d" % int(wp.get("quantity", 2)))
+	if modern and not ds.is_empty():
+		# The fuzing (MLU fig. 1-38, DCS p. 620): OSB 18 the fuze option, OSB 17 the arming delay's step (the real
+		# AD/BA entry; ours steps it), the delay on OSB 19's row.
+		label(18, String(ds.fuze))
+		label(17, "AD/BA")
+		centred(52, osb_at(19).y, "AD %.2fSEC" % float(ds.ad), c("text"), SMALL)
 	centred(66, 40, _status(wp), c("text"))
 	if _gps(wp):
 		_gps_block(wp, 58)
+
+
+## The A-G submode menu's entries (IafF16Mfd.ag_submodes): a GPS bomb's PRE / VIS; the release submodes only for a
+## store that has them (player_weapons.gd delivery_on: its delivery_set), else CCIP alone (rockets).
+func _ag_subs(wp: Dictionary) -> PackedStringArray:
+	if not _gps(wp) and wp.get("delivery_set", {}).is_empty():
+		return PackedStringArray(["CCIP"])
+	return ClassDB.class_call_static("IafF16Mfd", "ag_submodes", _gps(wp))
 
 
 ## A GPS bomb is selected: its name (the A-G page's gps block needs HUD mode 5 / 6) or its time to impact.
@@ -1307,17 +1350,26 @@ const PROFILE_EVENT := -3
 ## Ours, the modern MFDs: the TGP's STBY / A-G (OSB 1) and CZ (OSB 7) (player_weapons.gd mfd_event).
 const TGP_STBY_EVENT := -4
 const TGP_CZ_EVENT := -5
+## Ours, Modern IAF's bombs: the A-G submode menu's pick, OSB 18 the fuze, OSB 17 the arming delay (player_weapons.gd
+## mfd_event; modern-iaf/docs/weapons.md §9).
+const SUBMODE_EVENT := -30
+const FUZE_EVENT := -31
+const ARM_DELAY_EVENT := -32
+## Ours, Modern IAF's jets: the AAM page's SPOT / SCAN (OSB 2; player_weapons.gd mfd_event, seeker_key).
+const SPOT_SCAN_EVENT := -20
 
 
 func _own_sms(osb: int) -> void:
 	var wp: Dictionary = cockpit.weapons
 	if modern and sms_sub and not wp.is_empty():
 		# The submode menu: a submode's OSB picks it (a GPS bomb's PRE / VIS), any press closes the menu.
-		var subs: PackedStringArray = ClassDB.class_call_static("IafF16Mfd", "ag_submodes", _gps(wp))
+		var subs := _ag_subs(wp)
 		var i := 20 - osb
 		var now := "VIS" if not wp.get("ag", {}).get("gps", {}).get("pre", true) else "PRE"
 		if _gps(wp) and i >= 0 and i < subs.size() and subs[i] != now:
 			m._mfd_event(GPS_MODE_EVENT)
+		elif not _gps(wp) and i >= 0 and i < subs.size():
+			m._mfd_event(SUBMODE_EVENT, subs[i])  # ours: the bomb's release submode (player_weapons.gd)
 		sms_sub = false
 		return
 	if osb == 11:
@@ -1341,13 +1393,18 @@ func _own_sms(osb: int) -> void:
 			_next_weapon(wp)
 		2:
 			var ag: bool = int(wp.selected) != 9 and not int(wp.get("type", 0)) in AAM_TYPES
-			if modern and ag:
+			if int(wp.selected) != 9 and int(wp.get("type", 0)) in SRM_TYPES:
+				m._mfd_event(SPOT_SCAN_EVENT)
+			elif modern and ag:
 				sms_sub = true  # the submode menu
 			elif _gps(wp):
 				m._mfd_event(GPS_MODE_EVENT)
 		7:
 			if modern:
 				m._mfd_event(PROFILE_EVENT)
+		17, 18:
+			if modern and not wp.get("delivery_set", {}).is_empty():
+				m._mfd_event(FUZE_EVENT if osb == 18 else ARM_DELAY_EVENT)
 		8:
 			if String(wp.get("release", "")) != "" and cockpit.on_ripple_event.is_valid():
 				cockpit.on_ripple_event.call(-1, true)

@@ -97,6 +97,11 @@ pub(super) fn frame(_hud: Field, i: &Input, max_g: f64) -> Frame {
         dlz_scale(o, x, y0, 18.0, t, z);
         o.push(text((x, y0 + 30.0), format!("{:.1}", t.range_m / NM), Align::Centre));
     }
+    // An air-to-air missile in flight: its time to active / to impact under the DLZ's place (the F-16's post-launch
+    // cue; inferred for the helmet, whose own is not public).
+    if let Some(m) = w.msl_time {
+        o.push(text((0.5 * f.right, y0 + 30.0 + ROW), m.text(), Align::Centre));
+    }
 
     // The field: waterline, ladder, marker, targets, weapon symbols.
     let p = &mut fr.field;
@@ -148,8 +153,9 @@ pub(super) fn frame(_hud: Field, i: &Input, max_g: f64) -> Frame {
     maw_cues(p, i, i.boresight, i.deg(MAW_RING_DEG));
     match mode {
         1 => {
+            // Larger uncaged and tracking (the F-16's rule; inferred for the helmet).
             if let Some(s) = w.seeker {
-                p.push(Prim::Circle { c: s, r: i.mr(6.0) });
+                p.push(Prim::Circle { c: s, r: i.mr(if w.srm_track { 9.0 } else { 6.0 }) });
             }
         }
         2 => {
@@ -207,6 +213,10 @@ fn off_boresight(i: &Input) -> Frame {
     }
     if let Some(t) = i.weapons.tti {
         o.push(text((w, h * 0.6 + 3.0 * ROW), tti_text(t), Align::Right));
+    }
+    // A missile in flight: its time to active / to impact under the airspeed (inferred).
+    if let Some(m) = i.weapons.msl_time {
+        o.push(text((-w, h * 0.6 + ROW), m.text(), Align::Left));
     }
     let field = Field { left: -w, right: w, top: -h, bottom: h };
     if let Some(t) = i.target

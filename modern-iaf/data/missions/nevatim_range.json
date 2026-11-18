@@ -470,7 +470,7 @@
   "notes": {
     "time": "a day flight; the range has no time of its own",
     "start": "the base's parking spot for the unit (modern-iaf/data/airbases, airbases.md §5); the altitude: the terrain's ground there (elevation_m without the terrain)",
-    "route": "the air range over the open Negev between Ramon and Revivim, then the ground targets in the Halutza sands, 50 km south-west of Nevatim",
+    "route": "the air range over the open Negev between Ramon and Revivim, then the ground targets in the Halutza sands, 50 km south-west of Nevatim; the second steerpoint, on Target 1, is the target steerpoint (\"target\": true: a GPS bomb's PRE target, CCRP's target when selected)",
     "drones": "the range's drones (avionics-plan.md §6 slice 1; the user's decision of 17 Nov, §8.1): the sim's own F-16 and F-35 flown by the shared AI as targets, red for the exercise, never shooting",
     "targets": "four retired airframes parked in the open in the Halutza sands, 50 km south-west of Nevatim, clear of buildings (the theatre's scenery has none within 1 km): a real range's place is not published, this one is inferred; Target 5, the MiG-29 hulk towed on a loop beside them, moves for the radar's GMT; Target 6, a target barge off the coast, is the radar's SEA target (both inferred, docs/radar.md §9.7)",
     "training.air_kills": "two of the five drones: one gun or missile kill and a second to show it was no luck (inferred)",
@@ -532,6 +532,7 @@
     {
       "lat": 31.02,
       "lon": 34.57,
+      "target": true,
       "alt_m": 3400,
       "speed_kmh": 800
     }

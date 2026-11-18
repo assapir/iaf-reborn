@@ -100,6 +100,17 @@ impl IafMissile {
         self.get(|m| m.time_left(now))
     }
 
+    /// The post-launch cues' times (`Missile::times`) at the target {pos, vel} now, the seeker going active at
+    /// `active_range` m (0: none): {active, impact} in seconds, each null when none.
+    #[func]
+    fn times(&self, now: f64, t_pos: Vector3, t_vel: Vector3, active_range: f64) -> VarDictionary {
+        let Some(m) = &self.missile else { return VarDictionary::new() };
+        let target = Kinematics { pos: vec3(t_pos), vel: vec3(t_vel) };
+        let t = m.times(now, target, (active_range > 0.0).then_some(active_range));
+        let v = |s: Option<f64>| s.map_or(Variant::nil(), |s| s.to_variant());
+        vdict! { "active" => &v(t.active), "impact" => &v(t.impact) }
+    }
+
     #[func]
     fn retarget(&mut self, key: GString) {
         if let Some(m) = &mut self.missile {

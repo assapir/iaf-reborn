@@ -118,8 +118,11 @@ func keys(fe: Control) -> void:
 	# 167 until the hide-body keys and the HUD panel's four (records 192-197; the count stayed 167 here and failed);
 	# 171 until 2026-11-18, then the full MFD views (records 198 / 199, modern-iaf/docs/cockpit.md §2); 173 until the
 	# drag chute's row went (record 23: no jet has one) and the SPD BRK switch's two, the roll trim's two, MPO, STORES
-	# CONFIG and the GPS bomb's two came (records 200-207, until then keys with no row).
-	check(listed == 180, "keys: 180 commands listed, one head-look set (%d)" % listed)
+	# CONFIG and the GPS bomb's two came (records 200-207, until then keys with no row); 180 until the fuel switches,
+	# DRIFT C/O, the display knobs, the Ctrl + F-keys and the notebook's pages (records 208-223; the count stayed 180
+	# here), 196 until avionics slices 8 (the seeker's two, records 224 / 225) and 9 (the bombs' submode, fuze, arming
+	# delay and RET DEPR, 226-230).
+	check(listed == 203, "keys: 203 commands listed, one head-look set (%d)" % listed)
 	check(
 		not ks.records_of("flight").has(23) and ks.records_of("flight").has(200) and ks.records_of("weapons").has(206),
 		"keys: no drag chute; the speedbrakes and the GPS bomb's keys listed"

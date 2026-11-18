@@ -155,6 +155,37 @@ impl IafSeeker {
         .into()
     }
 
+    /// The modern jets' seeker head (cage / uncage, SPOT / SCAN; modern-iaf/docs/weapons.md §8.1) on or off.
+    #[func]
+    fn set_head(&mut self, on: bool) {
+        self.seeker.set_head(on);
+    }
+
+    /// The uncage button: uncages on a heard target, cages when uncaged.
+    #[func]
+    fn uncage(&mut self) {
+        self.seeker.uncage();
+    }
+
+    #[func]
+    fn toggle_scan(&mut self) {
+        self.seeker.toggle_scan();
+    }
+
+    /// {uncaged, scan, tracking}; {} without the head.
+    #[func]
+    fn head(&self) -> VarDictionary {
+        self.seeker.head().map_or_else(VarDictionary::new, |h| {
+            vdict! { "uncaged" => h.uncaged, "scan" => h.scan, "tracking" => self.seeker.tracking() }
+        })
+    }
+
+    /// The distance (m) at which a radar missile of `generation` goes active (`sight::active_range`); 0 none.
+    #[func]
+    fn active_range(generation: i64) -> f64 {
+        sight::active_range(generation).unwrap_or_default()
+    }
+
     #[func]
     fn start_empty_chirp(&mut self) {
         self.seeker.start_empty_chirp();

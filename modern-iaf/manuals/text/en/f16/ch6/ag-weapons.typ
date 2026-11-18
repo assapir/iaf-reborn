@@ -18,6 +18,61 @@ CCIP, the continuously computed impact point, shows on the #term("HUD") where a 
 
 #display("hud_ccip_delayed", [A delayed release with the button held: the steering line down the HUD through the point, and the cue, the short bar above the flight path marker, coming down onto it.], width: 90%)
 
+=== The release modes
+
+A bomb has five release modes; #osb(2) on the SMS format's air-to-ground page opens their list, and a press on one picks it#mlu["Air-to-Ground Page", figures 1-38 and 1-39]. #key("A-G release submode: next (CCIP, DTOS, CCRP)") steps CCIP, DTOS and CCRP, as the stick's missile step switch does in the real jet. The HUD's mode window names the mode. Each bomb keeps its mode in each of its two profiles (@stores).
+
+- *CCIP:* you put the impact point on the target and release (above).
+- *CCRP*, the continuously computed release point: you pick the target before the attack; the jet works out where to release and releases the bomb by itself.
+- *DTOS*, dive toss: you mark the target in a dive; then the release goes by itself, as in CCRP.
+- *LADD*, low-altitude drogue delivery: CCRP from a low run-in with a pull-up into a climb; the bomb is thrown up and forward.
+- *MAN*, manual: a fixed sight on the HUD; nothing is worked out.
+
+=== CCRP
+
++ Arm. Select the bomb. Pick CCRP.
++ Give the jet the target, one of: designate it with the ground map (@radar-ag); track it with the targeting pod (@tgp); or make the target steerpoint the current steerpoint. #then[A box on the target, the TD box, and a vertical steering line through it; the timer row counts down to the release.]
++ Fly the flight path marker onto the steering line, wings level#mlu["Continuously Computed Release Point", pages 175-177].
++ Hold #key("Release selected weapon"). #then[About 10 seconds before the release a short line, the solution cue, comes down the steering line. The bomb leaves by itself when the cue reaches the marker.]
++ Keep holding until the bomb is gone. Release the key early and nothing leaves.
+
+To throw the bomb from farther out, pull up when the pull-up cues meet the marker, as in LADD below; the release still waits for the cue.
+
+=== DTOS
+
++ Arm. Select the bomb. Pick DTOS. #then[The TD box sits on the flight path marker; the HUD is the sensor of interest.]
++ Dive so that the box is on the target.
++ Press and hold #key("Release selected weapon"), or press #key("Radar: bug / lock (TMS up)"). #then[The box stays on that ground point#mlu["Dive Toss", page 173]; the steering line and the time to release show.]
++ Keep the release key held. Keep diving, or pull out: the bomb leaves by itself when the cue reaches the marker, often during the pull-out.
++ To mark another point, press #key("Radar: drop bug / lock (TMS down)") #then[the box goes back to the marker.]
+
+=== LADD
+
++ Arm. Select the bomb. Pick LADD. Give the jet the target as in CCRP.
++ Fly low and fast toward the target on the steering line. The guide plans the run-in at 200 ft above the target and 550 knots#mlu["Low Altitude Drogue Delivery", pages 178-180]. #then[The timer row counts down to the pull-up.]
++ Hold #key("Release selected weapon").
++ 10 seconds before the pull-up a short line shows above the marker and a bar below it; both move toward the marker.
++ When they meet the marker, pull up at about 4 g. #then[A bar shows where a 45° climb puts the marker; the solution cue comes down the steering line.]
++ Hold the marker on the bar. The bomb leaves by itself in the climb. Then turn away.
+
+=== MAN
+
+The manual mode gives a fixed sight, the reticle: a dot in a dashed ring inside a larger ring, lowered below the gun cross by the RET DEPR wheel#mlu["Manual Weapon Delivery", page 191]. The HUD shows how far it is lowered, in milliradians.
+
++ Arm. Select the bomb. Pick MAN.
++ Set #row("depr_ret") with #key("RET DEPR wheel: reticle down") and #key("RET DEPR wheel: reticle up"), and the DEPR RET switch to PRI with #key("HUD DEPR RET (STBY / PRI / OFF)"). #then[The reticle shows.]
++ Fly the planned dive, speed and height. Release with #key("Release selected weapon") when the reticle's dot is on the target. #then[The bomb leaves at once.]
+
+To find the setting, fly the same pass in CCIP with DEPR RET at STBY and turn the wheel until the reticle's dot sits on the impact point; the setting is then the one for that dive, speed and height.
+
+=== Fuzes and the arming delay
+
+A bomb's fuze arms some seconds after the release, the arming delay. A bomb that hits sooner does not go off#dcs["Unguided bombs CCIP attack", page 625].
+
+- #osb(18) on the SMS format, or #key("Bomb fuze: next (NSTL / NOSE / TAIL)"), steps the fuze: NSTL (nose and tail), NOSE, TAIL. On the sim's bombs all three act the same.
+- #osb(17), or #key("Bomb arming delay: next"), steps the arming delay; the page shows it as AD 4.80SEC, the delay at the start#mlu["Air-to-Ground Page", figure 1-38].
+- *LOW* beside the flight path marker means a bomb released now would hit before it arms. Climb, or release higher. The pull-up cue under the marker also rises for this height#d34[section I, "Pullup anticipation and breakaway cue", page 1-173].
+
 === Laser-guided bombs
 
 + Before the flight, load the targeting pod with the bombs (@stores).
@@ -47,7 +102,8 @@ The WPN format (@mfd) shows the selected GPS-guided bomb's status, and #osb(1) t
 + Dive, put the dot on the target, hold #key("Gun trigger").
 
 #in-sim[
-  - A bomb in PRE takes the route's target steerpoint, if it has one.
+  - A bomb in PRE takes the route's target steerpoint, if it has one; on the weapons range it is the steerpoint on the targets.
   - The layout of the GPS-guided bomb's HUD symbols is inferred from simulators' manuals.
-  - #term("Not modelled"): a PRE target set before the flight; the release modes CCRP, DTOS, LADD and MAN; fuze and arming settings and the LOW cue; a laser from another aircraft or from the ground.
+  - The release modes' cue scales, the arming delay's steps and the reticle's readout place are inferred; the pull-up time is worked out from the bomb's own fall.
+  - #term("Not modelled"): a PRE target set for each bomb before the flight; the CCRP and LADD control pages (the release angle and the pull-up range typed in); the fuzes' different effects; a laser from another aircraft or from the ground.
 ]

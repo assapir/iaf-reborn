@@ -165,6 +165,16 @@ impl Dlz {
     pub const NONE: Dlz = Dlz { max: 0.0, min: 0.0 };
 }
 
+/// The post-launch cues' times in seconds (`Missile::times`).
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub struct Times {
+    pub active: Option<f64>,
+    pub impact: Option<f64>,
+}
+
+/// The post-launch cues' search step along the flight (s).
+const CUE_STEP: f64 = 0.5;
+
 /// A point mass: position and velocity.
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct Kinematics {
@@ -340,6 +350,45 @@ impl Missile {
     /// The motion's time left (vfunc +0x80, `FUN_00468db0`): burn − age.
     pub fn time_left(&self, now: f64) -> f64 {
         self.motion.burn - (now - self.t_start)
+    }
+
+    /// Seconds until the missile is `left` metres from `target` (ours, the post-launch cues; modern-iaf/docs/weapons.md
+    /// §8.2): it flies straight from where it is at its speed now on its motion (`ChaseMotion::travelled`) while the
+    /// target goes on at its velocity along the line of sight. 0 when already that close; None when its flight ends
+    /// first.
+    pub fn time_to(&self, now: f64, target: Kinematics, left: f64) -> Option<f64> {
+        let d = target.pos - self.position(now);
+        let r = d.length();
+        if r <= left {
+            return Some(0.0);
+        }
+        let away = target.vel.dot(d) / r;
+        let s = self.velocity(now).length();
+        let flight_left = self.motion.burn + END_AFTER_BURN - (now - self.t_start);
+        let short = |t: f64| self.motion.travelled(s, t) - away * t - (r - left);
+        let mut t = 0.0;
+        while t < flight_left {
+            let next = (t + CUE_STEP).min(flight_left);
+            if short(next) >= 0.0 {
+                let (mut lo, mut hi) = (t, next);
+                for _ in 0..20 {
+                    let mid = 0.5 * (lo + hi);
+                    if short(mid) >= 0.0 { hi = mid } else { lo = mid }
+                }
+                return Some(hi);
+            }
+            t = next;
+        }
+        None
+    }
+
+    /// The post-launch cues' times (G27): to the seeker going active at `active_range` metres from the target (None:
+    /// a missile without one, or already active) and to impact (None: the flight ends first).
+    pub fn times(&self, now: f64, target: Kinematics, active_range: Option<f64>) -> Times {
+        Times {
+            active: active_range.and_then(|a| self.time_to(now, target, a)).filter(|t| *t > 0.0),
+            impact: self.time_to(now, target, HIT_DIST),
+        }
     }
 
     /// One update (`FUN_005627e0`) with the target now (ignored when aiming at a point). True when the weapon ends:
@@ -549,6 +598,31 @@ mod tests {
             assert!(t < 60.0, "never ended");
         }
         assert!(mi.last_pos().distance(target.pos) < 50.0, "burst {:?}", mi.last_pos());
+    }
+
+    #[test]
+    fn post_launch_times_count_down_to_the_real_flight() {
+        // At 3 km: below NO_TERRAIN_Z the flight ends as a ground hit at tCO.
+        let jet = Launcher { pos: Vec3::new(0.0, 0.0, 3000.0), ..JET };
+        let target = Kinematics { pos: Vec3::new(0.0, 8000.0, 3000.0), vel: Vec3::ZERO };
+        let mut mi = Missile::launch(amraam(), Tuning::default(), 0.0, jet.pos, &jet, Aim::Unit("t".into()), 1.0);
+        let at_launch = mi.times(0.0, target, Some(4000.0));
+        let (active, impact) = (at_launch.active.unwrap(), at_launch.impact.unwrap());
+        assert!(active > 0.0 && active < impact, "{at_launch:?}");
+        let mut t = 0.0;
+        let mut went_active = None;
+        while !mi.update(t, target, &|_| None) {
+            if went_active.is_none() && mi.position(t).distance(target.pos) <= 4000.0 {
+                went_active = Some(t);
+            }
+            t = mi.next_update();
+        }
+        assert!((impact - t).abs() < 1.0, "impact predicted {impact:.1} s, flown {t:.1} s");
+        assert!((active - went_active.unwrap()).abs() < 1.0, "active predicted {active:.1} s, {went_active:?}");
+        // Inside the active range only the time to impact remains; none when the flight cannot reach.
+        assert_eq!(mi.times(t, target, Some(1.0e6)).active, None);
+        let far = Kinematics { pos: Vec3::new(0.0, 1.0e6, 3000.0), vel: Vec3::ZERO };
+        assert_eq!(mi.times(t, far, None), Times::default());
     }
 
     #[test]

@@ -2,6 +2,7 @@
 //! "F-16C/D"). Drawn for the F-16 only: the F-35, Lavi, Kurnass 2000 and Kfir have their own layouts (mod.rs `frame`).
 
 use super::*;
+use crate::delivery::Submode;
 
 /// Scales: airspeed 0.6 px per kt (10 kt ticks, labels every 50 kt in tens), altitude 0.06 px per ft (100 ft ticks,
 /// labels every 500 ft in hundreds with a thousands comma), heading 2 px per degree (5° ticks, labels every 10° in
@@ -50,6 +51,9 @@ pub(super) fn frame(f: Field, i: &Input, max_g: f64, fuel_reset: bool) -> Frame 
     let dlz = matches!(mode, 1 | 2).then_some(()).and(i.target.zip(i.dlz));
     // A GPS bomb's coordinates: its cues replace the CCIP's (docs/weapons.md §13.3).
     let gps = w.gps.is_some() && matches!(mode, 5 | 6);
+    // Modern IAF's release submodes (modern-iaf/docs/weapons.md §9): CCRP, DTOS, LADD and MAN replace the CCIP cues.
+    let dv = w.delivery.filter(|_| matches!(mode, 5 | 6) && !gps);
+    let computed = dv.is_some_and(|d| d.submode != Submode::Ccip);
     let pn = &i.panel;
     let scales = pn.scales != Scales::Off;
     // Scales. The airspeed by the VELOCITY switch, CAS with the gear down or in DGFT (window 1's C / T / G).
@@ -133,9 +137,17 @@ pub(super) fn frame(f: Field, i: &Input, max_g: f64, fuel_reset: bool) -> Frame 
         && let Some(t) = i.target
     {
         rows.push(format!("{}", (t.closure * MS_TO_KT).round() as i64));
+    } else if let Some(m) = w.msl_time {
+        // An air-to-air missile in flight: its time to active / to impact (the DCS F-16C guide's post-launch time,
+        // there under the DLZ; ours in the timer's row, inferred, as the GPS bomb's).
+        rows.push(m.text());
     } else if let Some(t) = w.tti {
         // A released GPS bomb's time to impact (ours, inferred: the timer's row, docs/real-hud.md "GPS bombs").
         rows.push(tti_text(t));
+    } else if let Some(t) = dv.filter(|d| d.submode.automatic()).and_then(|d| d.pull_up.or(d.ttr)) {
+        // A computed release: the time to the loft's pull-up, then to the release (MLU figs. 6-11..6-16).
+        let t = t.clamp(0.0, 5999.0).ceil() as i64;
+        rows.push(format!("{:02}:{:02}", t / 60, t % 60));
     } else if let Some(d) = w.delay.filter(|d| d.designated && matches!(mode, 5 | 6)) {
         // Designated delayed CCIP: the time to release (fig. 1-283 "TIME DELAY") in place of the steerpoint's.
         let t = (d.ttg - RELEASE_TTG).clamp(0.0, 5999.0).ceil() as i64;
@@ -164,7 +176,7 @@ pub(super) fn frame(f: Field, i: &Input, max_g: f64, fuel_reset: bool) -> Frame 
 
     // The field: boresight cross, ladder, marker, AoA bracket, steerpoint, target, weapon symbols.
     let p = &mut fr.field;
-    let delayed = w.delay.and_then(|d| d.target.map(|t| (d, t))).filter(|_| !gps);
+    let delayed = w.delay.and_then(|d| d.target.map(|t| (d, t))).filter(|_| !gps && !computed);
     boresight_cross(p, i);
     // The FP MARKER switch: ATT/FPM the ladder and the marker, FPM the marker alone, OFF neither.
     let fpm_at = i.fpm.filter(|_| pn.fpm != FpmSwitch::Off);
@@ -187,12 +199,17 @@ pub(super) fn frame(f: Field, i: &Input, max_g: f64, fuel_reset: bool) -> Frame 
             ladder(p, i, fpm, f, style);
         }
         marker(p, fpm, i.mr(5.0), i.mr(10.0), i.mr(5.0));
+        // LOW beside the marker: a bomb released now hits before its fuze arms (dash-34 p. 1-173; ours right of it).
+        if dv.is_some_and(|d| d.low) {
+            p.push(text((fpm.0 + i.mr(14.0), fpm.1 + 3.0), "LOW", Align::Left));
+        }
         if i.gear_down {
             aoa_bracket(p, i, fpm);
         }
         if matches!(mode, 5 | 6)
             && delayed.is_none()
             && !gps
+            && !computed
             && let Some(c) = w.pipper
         {
             p.push(line(fpm, c));
@@ -222,8 +239,10 @@ pub(super) fn frame(f: Field, i: &Input, max_g: f64, fuel_reset: bool) -> Frame 
             if let Some(a) = i.target.and_then(|t| t.aspect) {
                 aspect_triangle(p, c, i.mr(32.5), a, i.mr(5.0));
             }
+            // The missile diamond: small while caged or not tracking, large uncaged and tracking (the DCS F-16C guide;
+            // ours 8 mr, inferred).
             if let Some(s) = w.seeker {
-                diamond(p, s, i.mr(5.0));
+                diamond(p, s, i.mr(if w.srm_track { 8.0 } else { 5.0 }));
             }
         }
         2 => {
@@ -242,6 +261,7 @@ pub(super) fn frame(f: Field, i: &Input, max_g: f64, fuel_reset: bool) -> Frame 
         }
         3 => eegs(p, i, f),
         5 | 6 if gps => gps_cues(p, o, i, f, (sc.right - DLZ_IN, tape_y, DLZ_HALF), i.mr(4.0), true),
+        5 | 6 if let Some(d) = dv.filter(|_| computed) => delivery_cues(p, i, f, d),
         5 | 6 if let Some((d, t)) = delayed => delayed_ccip(p, i, f, d, t),
         4..=6 => {
             if let Some(c) = w.pipper {
@@ -289,7 +309,14 @@ pub(super) fn ground_cues(p: &mut Vec<Prim>, i: &Input, f: Field, rmin: bool) {
 /// further than the cue's travel (ours: CUE_MAX_S, the solution cue's).
 fn pullup_cue_s(i: &Input) -> Option<f64> {
     let agl = i.agl_ft.filter(|h| *h > 50.0)?;
-    let h = crate::gaaf::advisory_height(i.kcas, i.tas_ms, i.vs_fpm, i.roll_deg, i.gear_down, true)?;
+    let gaaf = crate::gaaf::advisory_height(i.kcas, i.tas_ms, i.vs_fpm, i.roll_deg, i.gear_down, true);
+    // Ours, Modern IAF's F-16s: also the fuze's arming height, whichever comes first (the cue rises for the release's
+    // minimum height too, p. 1-173).
+    let arm = i.weapons.delivery.and_then(|d| d.min_release_ft).filter(|_| i.vs_fpm < 0.0);
+    let h = match (gaaf, arm) {
+        (Some(a), Some(b)) => a.max(b),
+        (a, b) => a.or(b)?,
+    };
     let s = (agl - h).max(0.0) / (-i.vs_fpm / 60.0);
     (s <= CUE_MAX_S).then_some(s)
 }
@@ -329,10 +356,7 @@ const CUE_MAX_S: f64 = 10.0;
 fn delayed_ccip(p: &mut Vec<Prim>, i: &Input, f: Field, d: Delay, t: P) {
     let from = i.fpm.unwrap_or(i.gun_cross);
     if d.designated {
-        let roll = i.roll_deg.to_radians();
-        let down = (roll.sin(), roll.cos());
-        let long = (f.right - f.left).hypot(f.bottom - f.top);
-        p.push(line((t.0 - down.0 * long, t.1 - down.1 * long), (t.0 + down.0 * long, t.1 + down.1 * long)));
+        let down = steering_line(p, i, f, t);
         if let Some(fpm) = i.fpm {
             let along = (fpm.0 - t.0) * down.0 + (fpm.1 - t.1) * down.1;
             let l = along - i.mr(CUE_MR_PER_S) * (d.ttg - RELEASE_TTG).clamp(0.0, CUE_MAX_S);
@@ -356,6 +380,89 @@ fn delayed_ccip(p: &mut Vec<Prim>, i: &Input, f: Field, d: Delay, t: P) {
         p.push(line((m.0 - u.1 * h, m.1 + u.0 * h), (m.0 + u.1 * h, m.1 - u.0 * h)));
     }
     pipper(p, c, i.mr(0.5).max(0.8), ring);
+}
+
+/// The azimuth steering line through the target `t` along the rolled vertical (its offset from the marker is the
+/// azimuth error) across the glass; its unit vector down.
+fn steering_line(p: &mut Vec<Prim>, i: &Input, f: Field, t: P) -> P {
+    let roll = i.roll_deg.to_radians();
+    let down = (roll.sin(), roll.cos());
+    let long = (f.right - f.left).hypot(f.bottom - f.top);
+    p.push(line((t.0 - down.0 * long, t.1 - down.1 * long), (t.0 + down.0 * long, t.1 + down.1 * long)));
+    down
+}
+
+/// The release submodes' cues (MLU pp. 172–181, figs. 6-8..6-16 and 6-33; ours where the guide gives no scale: the
+/// delayed CCIP's 10 mr per second, a 10 mr TD box as the dash-34's DTOS box):
+/// - CCRP and LADD: the TD box on the target and the azimuth steering line through it; over the last 10 s before the
+///   loft's pull-up the pull-up anticipation cue above the marker and the horizontal bar below it, meeting at the
+///   marker at the pull-up; then the solution cue down the steering line to the marker at the release (the delayed
+///   CCIP's cue); LADD's vertical steering bar at the 45° climb;
+/// - DTOS: before designation the TD box on the flight path marker; designated, CCRP's box, line and solution cue;
+/// - MAN: no computed symbol; at DEPR RET PRI the primary reticle depressed from the gun cross.
+fn delivery_cues(p: &mut Vec<Prim>, i: &Input, f: Field, d: DeliveryCue) {
+    let box_h = i.mr(5.0);
+    if d.submode == Submode::Man {
+        if let Some(mr) = d.man_mr {
+            primary_reticle(p, i, mr);
+        }
+        return;
+    }
+    if d.submode == Submode::Dtos && !d.designated {
+        if let Some(fpm) = i.fpm {
+            td_box(p, fpm, box_h);
+        }
+        return;
+    }
+    let Some(t) = d.td else { return };
+    // The radar's designated point has its own TD box (`target_box`).
+    let (q, outside) = f.clamp_from(i.boresight, t);
+    if !outside && i.target.is_none() {
+        td_box(p, q, box_h);
+    }
+    if let Some(s) = d.pull_up {
+        steering_line(p, i, f, t);
+        if let Some(fpm) = i.fpm.filter(|_| s <= CUE_MAX_S) {
+            let (w, off) = (i.mr(6.0), i.mr(CUE_MR_PER_S) * s);
+            let (up, down) = (fpm.1 - i.mr(5.0) - off, fpm.1 + i.mr(5.0) + off);
+            p.push(line((fpm.0 - w, up), (fpm.0 + w, up)));
+            p.push(line((fpm.0 - 2.0 * w, down), (fpm.0 + 2.0 * w, down)));
+        }
+        return;
+    }
+    if d.submode == Submode::Ladd
+        && let Some(fpm) = i.fpm
+    {
+        let climb = (i.vs_fpm * FT / 60.0 / i.tas_ms.max(1.0)).clamp(-1.0, 1.0).asin().to_degrees();
+        if climb < crate::delivery::LOFT_DEG {
+            let y = (fpm.1 - (crate::delivery::LOFT_DEG - climb) * i.px_per_deg).max(f.top);
+            p.push(line((fpm.0 - i.mr(12.0), y), (fpm.0 + i.mr(12.0), y)));
+        }
+    }
+    match d.ttr {
+        Some(ttr) => delayed_ccip(p, i, f, Delay { ttg: ttr + RELEASE_TTG, target: Some(t), designated: true }, t),
+        None => {
+            steering_line(p, i, f, t);
+        }
+    }
+}
+
+/// A TD box of half size `h` about `c`.
+fn td_box(p: &mut Vec<Prim>, c: P, h: f64) {
+    p.extend(box_poly(c.0 - h, c.1 - h, c.0 + h, c.1 + h));
+}
+
+/// MAN's primary reticle (MLU fig. 6-33): a 2 mr pipper, a dashed 50 mr circle inside a 100 mr one, depressed `mr`
+/// below the gun cross, the depression beside it ("displayed in the HUD", p. 191; ours right of the ring).
+fn primary_reticle(p: &mut Vec<Prim>, i: &Input, mr: f64) {
+    let c = add(i.gun_cross, (0.0, i.mr(mr)));
+    p.push(Prim::Circle { c, r: i.mr(50.0) });
+    let seg = std::f64::consts::TAU / 16.0;
+    for k in 0..16 {
+        p.push(Prim::Arc { c, r: i.mr(25.0), from: f64::from(k) * seg, sweep: 0.5 * seg });
+    }
+    p.push(Prim::Dot { c, r: i.mr(1.0).max(0.8) });
+    p.push(text((c.0 + i.mr(52.0), c.1 + 3.0), format!("{mr:.0}"), Align::Left));
 }
 
 /// EEGS (dash-34 pp. 1-387..1-390, fig. 1-257). Without a lock, level 2: the funnel (600-3,000 ft) and the MRGS lines
@@ -412,7 +519,7 @@ fn mode_text(w: &Weapons) -> String {
         5 | 6 => match w.gps {
             Some(g) if g.pre => "PRE".into(),
             Some(_) => "VIS".into(),
-            None => "CCIP".into(),
+            None => w.delivery.map_or("CCIP", |d| d.submode.name()).into(),
         },
         7 => "PRE".into(),
         8 => "HARM".into(),
@@ -806,6 +913,35 @@ mod tests {
     }
 
     #[test]
+    fn after_a_launch_the_time_to_active_then_to_impact() {
+        let mut i = input(Jet::F16);
+        i.weapons.hud_mode = 2;
+        let before = frame(FIELD, &i, 1.0, false);
+        assert!(!texts(&before.outer).contains(&"A12"), "no missile flying");
+        i.weapons.msl_time = Some(MslTime { active: true, s: 11.2 });
+        let fr = frame(FIELD, &i, 1.0, false);
+        assert!(texts(&fr.outer).contains(&"A12"), "{:?}", texts(&fr.outer));
+        i.weapons.msl_time = Some(MslTime { active: false, s: 6.5 });
+        let fr = frame(FIELD, &i, 1.0, false);
+        assert!(texts(&fr.outer).contains(&"T07") && !texts(&fr.outer).contains(&"A12"));
+    }
+
+    #[test]
+    fn the_srm_diamond_grows_when_uncaged_and_tracking() {
+        let mut i = input(Jet::F16);
+        i.weapons.hud_mode = 1;
+        i.weapons.seeker = Some((20.0, 10.0));
+        let top = |i: &Input| {
+            frame(FIELD, i, 1.0, false).field.iter().any(|p| {
+                matches!(p, Prim::Line { a, b } if *a == (20.0, 10.0 - i.mr(8.0)) && *b == (20.0 + i.mr(8.0), 10.0))
+            })
+        };
+        assert!(!top(&i), "caged: the small diamond");
+        i.weapons.srm_track = true;
+        assert!(top(&i), "uncaged and tracking: the large one");
+    }
+
+    #[test]
     fn nav_windows_as_the_dash_34() {
         let mut i = input(Jet::F16);
         i.agl_ft = Some(19_500.0);
@@ -1065,6 +1201,56 @@ mod tests {
             .any(|p| matches!(p, Prim::Line { a, b } if (a.1 - b.1).abs() < 1e-9 && (b.0 - a.0) > i.mr(30.0)));
         assert!(long_bar, "the T-symbol's bars");
         assert!(l5.field.iter().any(|p| matches!(p, Prim::Dot { .. })), "the maximum-effective-range dot");
+    }
+
+    #[test]
+    fn release_submodes_on_the_hud() {
+        let mut i = input(Jet::F16);
+        i.weapons.hud_mode = 5;
+        i.fpm = Some((0.0, 0.0));
+        i.weapons.pipper = Some((0.0, 30.0));
+        let h = i.mr(5.0);
+        let has_box = |fr: &Frame, c: P| {
+            fr.field
+                .iter()
+                .any(|p| matches!(p, Prim::Line { a, b } if *a == (c.0 - h, c.1 - h) && *b == (c.0 + h, c.1 - h)))
+        };
+        let cue = |s| DeliveryCue { submode: s, td: Some((10.0, -20.0)), ttr: Some(4.0), ..DeliveryCue::default() };
+        // CCRP: the mode, the time to release, the TD box and the steering line through it; no CCIP pipper.
+        i.weapons.delivery = Some(cue(Submode::Ccrp));
+        let fr = frame(FIELD, &i, 1.0, false);
+        let t = texts(&fr.outer);
+        assert!(t.contains(&"CCRP") && t.contains(&"00:04"), "{t:?}");
+        assert!(!fr.field.iter().any(|p| matches!(p, Prim::Dot { .. })), "no CCIP pipper");
+        assert!(has_box(&fr, (10.0, -20.0)), "the TD box");
+        let asl = fr.field.iter().any(
+            |p| matches!(p, Prim::Line { a, b } if a.0 == 10.0 && b.0 == 10.0 && a.1 < FIELD.top && b.1 > FIELD.bottom),
+        );
+        assert!(asl, "the azimuth steering line");
+        // LADD 4 s before the pull-up: the time to it, the anticipation cue 40 mr above the marker's top.
+        i.weapons.delivery = Some(DeliveryCue { pull_up: Some(4.0), ..cue(Submode::Ladd) });
+        let fr = frame(FIELD, &i, 1.0, false);
+        let up = -i.mr(5.0) - i.mr(CUE_MR_PER_S) * 4.0;
+        let anticipation = fr.field.iter().any(|p| {
+            matches!(p, Prim::Line { a, b } if (a.1 - up).abs() < 1e-9 && (b.1 - up).abs() < 1e-9 && a.0 < 0.0 && b.0 > 0.0)
+        });
+        assert!(anticipation && texts(&fr.outer).contains(&"LADD"), "the pull-up anticipation cue");
+        // DTOS before designation: the TD box rides the marker.
+        i.weapons.delivery = Some(DeliveryCue { submode: Submode::Dtos, ..DeliveryCue::default() });
+        let fr = frame(FIELD, &i, 1.0, false);
+        assert!(has_box(&fr, (0.0, 0.0)) && texts(&fr.outer).contains(&"DTOS"));
+        // MAN at PRI: the primary reticle and its depression, no pipper.
+        i.weapons.delivery = Some(DeliveryCue { submode: Submode::Man, man_mr: Some(120.0), ..DeliveryCue::default() });
+        let fr = frame(FIELD, &i, 1.0, false);
+        assert!(texts(&fr.field).contains(&"120") && texts(&fr.outer).contains(&"MAN"));
+        let c = add(i.gun_cross, (0.0, i.mr(120.0)));
+        let ring = |p: &Prim| matches!(p, Prim::Circle { c: k, r } if *k == c && (*r - i.mr(50.0)).abs() < 1e-9);
+        assert!(fr.field.iter().any(ring), "the 100 mr circle");
+        // LOW beside the marker, in CCIP too, which keeps its pipper.
+        i.weapons.delivery = Some(DeliveryCue { low: true, ..DeliveryCue::default() });
+        let fr = frame(FIELD, &i, 1.0, false);
+        assert!(texts(&fr.field).contains(&"LOW") && texts(&fr.outer).contains(&"CCIP"));
+        assert!(fr.field.iter().any(|p| matches!(p, Prim::Dot { .. })), "the CCIP pipper");
     }
 
     #[test]

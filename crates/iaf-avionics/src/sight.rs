@@ -113,6 +113,8 @@ const EASE: f64 = 0.3;
 const SNAP_PX: f64 = 5.0;
 /// Weapon data Real: the rear sector, the target's tail within 60° of the line of sight (inferred).
 const REAR_SECTOR_DEG: f64 = 60.0;
+/// The modern head's diamond on its axis: the screen point of the axis this far out (m).
+const AXIS_M: f64 = 1000.0;
 
 /// Weapon data Real lock ranges in metres (docs/real-weapons.md §1.2): in the rear sector, and from the front
 /// without / with the target's afterburner (0 = no front lock: a rear-aspect missile).
@@ -123,12 +125,38 @@ pub struct RealLock {
     pub front_ab: f64,
 }
 
+/// The distance at which a radar missile of `generation` goes active after launch (m; modern-iaf/docs/weapons.md §8.2,
+/// inferred): the reach of the generation's seeker without the target's afterburner, half its lock range (`can_track`'s
+/// R/2). The time to active of the post-launch cue counts down to it (`missile::Missile::times`).
+pub fn active_range(generation: i64) -> Option<f64> {
+    self::generation(generation).map(|(_, nm)| nm * NM / 2.0)
+}
+
+/// The modern jets' seeker head (modern-iaf/docs/weapons.md §8.1, G26): caged it looks along its axis (the radar's
+/// line of sight to an A-A lock inside its gimbal cone, else the helmet's line of sight, else the nose) and hears a
+/// target there; uncaged on a heard target it tracks that target anywhere inside its gimbal cone. SPOT hears within the
+/// seeker's narrow field (`FOV_DEG`), SCAN within the original's search circle about the axis (`CIRCLE_PX2`).
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct Head {
+    pub uncaged: bool,
+    pub scan: bool,
+}
+
+impl Head {
+    /// The half angle (°) about the axis in which the caged seeker hears a target.
+    pub fn field_deg(self) -> f64 {
+        if self.scan { CIRCLE_PX2.sqrt() / PX_PER_DEG } else { FOV_DEG }
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct Seeker {
     cone_cos: f64,
     lock_range: f64,
     /// Weapon data Real: lock ranges by aspect and afterburner, in place of the generation's range.
     pub real_lock: Option<RealLock>,
+    /// The modern jets' cage / uncage and SPOT / SCAN (`set_head`); None: the original's seeker.
+    head: Option<Head>,
     /// The radar's lock, set by the host each frame.
     pub radar: Option<RadarLock>,
     /// this+0x14.
@@ -150,6 +178,7 @@ impl Default for Seeker {
             cone_cos: cone.to_radians().cos(),
             lock_range: nm * NM,
             real_lock: None,
+            head: None,
             radar: None,
             target: None,
             lock: false,
@@ -199,6 +228,92 @@ impl Seeker {
     }
     pub fn tone(&self) -> Tone {
         self.tone
+    }
+
+    /// The modern jets' seeker head (`Head`) on, caged in SPOT, or off (the original's seeker); turning it on again
+    /// keeps its state.
+    pub fn set_head(&mut self, on: bool) {
+        if on != self.head.is_some() {
+            self.head = on.then_some(Head::default());
+        }
+    }
+    pub fn head(&self) -> Option<Head> {
+        self.head
+    }
+
+    /// The uncage button: caged and hearing a target (the lock tone), the seeker uncages and tracks it; uncaged, it
+    /// cages again. Nothing without the head.
+    pub fn uncage(&mut self) {
+        let heard = self.target.is_some() && self.lock;
+        if let Some(h) = &mut self.head {
+            h.uncaged = !h.uncaged && heard;
+        }
+    }
+
+    /// SPOT / SCAN (the SMS's option). Nothing without the head.
+    pub fn toggle_scan(&mut self) {
+        if let Some(h) = &mut self.head {
+            h.scan = !h.scan;
+        }
+    }
+
+    /// Uncaged and tracking its target: the HUD's large diamond.
+    pub fn tracking(&self) -> bool {
+        self.head.is_some_and(|h| h.uncaged) && self.target.is_some()
+    }
+
+    /// The point `p` inside the seeker's gimbal cone about the nose.
+    fn within_cone(&self, eye: &Eye, p: Vec3) -> bool {
+        (p - eye.pos).try_normalize().is_some_and(|d| eye.nose.fwd.dot(d) >= self.cone_cos)
+    }
+
+    /// The caged head's axis: toward the radar's A-A lock inside the gimbal cone, else the helmet's line of sight inside
+    /// it, else the nose (the boresight).
+    fn axis(&self, eye: &Eye, units: &[Heat]) -> Vec3 {
+        let radar = find(units, self.radar_aa()).and_then(|u| (u.pos - eye.pos).try_normalize());
+        radar
+            .into_iter()
+            .chain(eye.helmet_axis.and_then(Vec3::try_normalize))
+            .find(|d| eye.nose.fwd.dot(*d) >= self.cone_cos)
+            .unwrap_or(eye.nose.fwd)
+    }
+
+    /// One update of the modern head: uncaged, it keeps tracking its target while that stays inside the gimbal cone
+    /// and its lock rule (`can_track`), the diamond on it; losing it, it cages (inferred). Caged, it hears the trackable
+    /// unit nearest its axis within the SPOT / SCAN field (the lock tone; the seek tone without one), the diamond on the
+    /// axis.
+    fn update_head(&mut self, h: Head, eye: &Eye, units: &[Heat], limited: bool, have_rounds: bool) {
+        if h.uncaged {
+            let held = find(units, self.target.as_deref())
+                .filter(|t| self.within_cone(eye, t.pos) && self.can_track(eye, t, limited));
+            if let Some(t) = held {
+                self.set_tone(true, have_rounds);
+                self.ease_to(eye.screen_offset(t.pos));
+                return;
+            }
+            self.head = Some(Head { uncaged: false, ..h });
+        }
+        let axis = self.axis(eye, units);
+        let field = h.field_deg().to_radians().cos();
+        let heard = units
+            .iter()
+            .filter_map(|u| Some(((u.pos - eye.pos).try_normalize()?.dot(axis), u)))
+            .filter(|&(c, u)| c >= field && self.can_track(eye, u, limited))
+            .max_by(|a, b| a.0.total_cmp(&b.0))
+            .map(|(_, u)| u);
+        self.target = heard.map(|u| u.key.clone());
+        self.set_tone(heard.is_some(), have_rounds);
+        self.ease_to(eye.screen_offset(eye.pos + axis * AXIS_M));
+    }
+
+    /// The symbol eases toward `goal` (pos = 0.3·goal + 0.7·pos), snapping within 5 px; None (behind) leaves it.
+    fn ease_to(&mut self, goal: Option<Px>) {
+        let Some(goal) = goal else { return };
+        let s = self.symbol;
+        self.symbol = Px { x: EASE * goal.x + (1.0 - EASE) * s.x, y: EASE * goal.y + (1.0 - EASE) * s.y };
+        if (self.symbol.x - goal.x).abs() < SNAP_PX && (self.symbol.y - goal.y).abs() < SNAP_PX {
+            self.symbol = goal;
+        }
     }
 
     fn radar_aa(&self) -> Option<&str> {
@@ -284,23 +399,25 @@ impl Seeker {
             return;
         }
         self.next_update = now + UPDATE_PERIOD;
+        if let Some(h) = self.head {
+            self.update_head(h, eye, units, limited, have_rounds);
+            return;
+        }
         let Some(t) = self.search(now, eye, units, limited).filter(|t| self.in_view(eye, t)) else {
             self.set_tone(false, have_rounds);
             self.symbol = Px { x: self.symbol.x * (1.0 - EASE), y: self.symbol.y * (1.0 - EASE) };
             return;
         };
         self.set_tone(self.can_track(eye, t, limited), have_rounds);
-        if let Some(goal) = eye.screen_offset(t.pos) {
-            let s = self.symbol;
-            self.symbol = Px { x: EASE * goal.x + (1.0 - EASE) * s.x, y: EASE * goal.y + (1.0 - EASE) * s.y };
-            if (self.symbol.x - goal.x).abs() < SNAP_PX && (self.symbol.y - goal.y).abs() < SNAP_PX {
-                self.symbol = goal;
-            }
-        }
+        self.ease_to(eye.screen_offset(t.pos));
     }
 
-    /// The target a launch takes (`FUN_00462ad0`): the seeker's target when inside the HUD-centre circle.
+    /// The target a launch takes (`FUN_00462ad0`): the seeker's target when inside the HUD-centre circle. With the
+    /// modern head: the target it hears or tracks, anywhere in its cone.
     pub fn target_in_circle<'a>(&self, eye: &Eye, units: &'a [Heat]) -> Option<&'a Heat> {
+        if self.head.is_some() {
+            return find(units, self.target.as_deref()).filter(|_| self.lock);
+        }
         find(units, self.target.as_deref())
             .filter(|t| eye.screen_offset(t.pos).is_some_and(|o| o.length_squared() < CIRCLE_PX2))
     }
@@ -336,6 +453,9 @@ impl Seeker {
 
     /// Leaving the IR mode (`FUN_00461bb0`): both tones stop.
     pub fn exit(&mut self) {
+        if let Some(h) = &mut self.head {
+            h.uncaged = false;
+        }
         self.tone = Tone::Off;
         self.lock = false;
         self.target = None;
@@ -505,6 +625,71 @@ mod tests {
         let units = [heat("r", Vec3::new(3000.0, 3000.0, 0.0), Vec3::ZERO)];
         assert_eq!(s.search(0.0, &eye(), &units, false).map(|u| u.key.as_str()), Some("r"));
         assert!(s.slaved() && s.in_view(&eye(), &units[0]), "45° inside the 70° cone");
+    }
+
+    fn bearing(deg: f64, m: f64) -> Vec3 {
+        Vec3::new(m * deg.to_radians().sin(), m * deg.to_radians().cos(), 0.0)
+    }
+
+    #[test]
+    fn caged_holds_the_boresight_uncaged_tracks() {
+        let mut s = Seeker::default();
+        s.set_head(true);
+        s.uncage();
+        assert!(!s.head().unwrap().uncaged, "nothing heard: the button leaves it caged");
+        // A target 3° right of the nose: the caged SPOT seeker hears it, its diamond stays on the boresight.
+        let mut units = [heat("t", bearing(3.0, 3000.0), Vec3::ZERO)];
+        let run = |s: &mut Seeker, units: &[Heat], from: i32| {
+            for k in from..from + 30 {
+                s.update(f64::from(k) * 0.1, &eye(), units, false, true);
+            }
+        };
+        run(&mut s, &units, 0);
+        assert!(s.locked() && s.tone() == Tone::Lock && !s.tracking());
+        assert_eq!(s.symbol(), Px::default(), "caged: the diamond on the boresight");
+        // Uncaged it tracks the target out to 20°: the diamond on it, a launch takes it.
+        s.uncage();
+        assert!(s.tracking());
+        units[0].pos = bearing(20.0, 3000.0);
+        run(&mut s, &units, 30);
+        assert_eq!(s.symbol(), eye().screen_offset(units[0].pos).unwrap(), "uncaged: the diamond on the target");
+        assert!(s.tracking() && s.locked());
+        assert_eq!(s.target_in_circle(&eye(), &units).map(|u| u.key.as_str()), Some("t"));
+        // Caged again: back on the boresight, the target outside its field.
+        s.uncage();
+        run(&mut s, &units, 60);
+        assert_eq!(s.symbol(), Px::default());
+        assert!(!s.locked() && s.tone() == Tone::Seek && s.target_in_circle(&eye(), &units).is_none());
+    }
+
+    #[test]
+    fn uncaged_track_lost_cages_again() {
+        let mut s = Seeker::default();
+        s.set_head(true);
+        let mut units = [heat("t", bearing(2.0, 3000.0), Vec3::ZERO)];
+        s.update(0.0, &eye(), &units, false, true);
+        s.uncage();
+        units[0].pos = bearing(100.0, 3000.0); // beyond the 70° gimbal cone
+        s.update(1.0, &eye(), &units, false, true);
+        assert!(!s.tracking() && !s.head().unwrap().uncaged && !s.locked());
+    }
+
+    #[test]
+    fn caged_on_the_radar_lock_and_scan_widens_the_field() {
+        let mut s = Seeker { radar: Some(RadarLock { key: "r".into(), air_to_air: true }), ..Seeker::default() };
+        s.set_head(true);
+        let units = [heat("r", bearing(18.0, 3000.0), Vec3::ZERO), heat("n", bearing(1.0, 3000.0), Vec3::ZERO)];
+        s.update(0.0, &eye(), &units, false, true);
+        assert_eq!(s.target(), Some("r"), "caged on the radar's line of sight, not the boresight");
+        let mut s = Seeker::default();
+        s.set_head(true);
+        let off = [heat("o", bearing(6.2, 3000.0), Vec3::ZERO)];
+        s.update(0.0, &eye(), &off, false, true);
+        assert!(!s.locked(), "SPOT: 6.2° is outside its 6°");
+        s.toggle_scan();
+        s.update(1.0, &eye(), &off, false, true);
+        assert!(s.locked(), "SCAN: inside the search circle's 6.45°");
+        assert!((active_range(4).unwrap() - 7.5 * NM).abs() < 1e-9 && active_range(0).is_none());
     }
 
     #[test]

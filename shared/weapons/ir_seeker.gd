@@ -33,6 +33,25 @@ var lock_range: float:
 	get:
 		return _s.lock_range()
 
+## The modern jets' seeker head (cage / uncage, SPOT / SCAN; modern-iaf/docs/weapons.md §8.1): {uncaged, scan,
+## tracking}, {} without it.
+var head: Dictionary:
+	get:
+		return _s.head()
+
+
+func set_head(on: bool) -> void:
+	_s.set_head(on)
+
+
+## The uncage button: uncages on a heard target (the lock tone), cages when uncaged.
+func uncage() -> void:
+	_s.uncage()
+
+
+func toggle_scan() -> void:
+	_s.toggle_scan()
+
 
 func set_generation(gen: int) -> void:
 	_s.set_generation(gen)

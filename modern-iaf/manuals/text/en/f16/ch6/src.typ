@@ -10,5 +10,7 @@
 #let osb-nodes = range(1, 6).map(i => "T" + str(i)) + range(1, 6).map(i => "R" + str(i)) + range(5, 0, step: -1).map(i => "B" + str(i)) + range(5, 0, step: -1).map(i => "L" + str(i))
 /// Button `n` of an MFD, with its figure and number (the left MFD's; the right MFD's buttons carry the same numbers).
 #let osb(n) = row("MFD_L_" + osb-nodes.at(n - 1))
+/// The F-16 MLU pilot's guide (Lockheed Martin), with the place.
+#let mlu(place) = footnote[Lockheed Martin, "F-16 A/B Mid-Life Update Production Tape M1 Pilot's Guide" (16PR14341, 15 November 1998), #place: #link("https://falcon.blu3wolf.com/Docs/MLU_M1.pdf"). Checked 18 November 2026.]
 /// The reaction to an action.
 #let then(body) = [#sym.arrow.r *#body*]

@@ -734,7 +734,27 @@ func real_hud() -> Dictionary:
 		gps_cue = gps.lar.duplicate()
 		gps_cue.pre = gps.pre
 		gps_cue.at = _hud_point(gps.aim, true)
-	var delay_on: bool = mode in [5, 6] and ag.get("pipper") != null and ag.get("off", false)
+	# Ours, Modern IAF's F-16 release submodes (modern-iaf/docs/weapons.md §9): CCRP / DTOS / LADD / MAN's cues and LOW
+	# replace the delayed CCIP's; the TD box at the target, MAN's primary reticle at DEPR RET PRI.
+	var dl: Dictionary = ag.get("delivery", {}) if mode in [5, 6] and gps.is_empty() else {}
+	var delivery := {}
+	if not dl.is_empty():
+		delivery = {
+			"submode": dl.submode,
+			"td": _hud_point(dl.target, true) if dl.get("target") != null else null,
+			"designated": dl.get("designated", false),
+			"ttr": dl.get("ttr"),
+			"pull_up": dl.get("pull_up"),
+			"low": dl.get("low", false),
+			"min_release_ft": float(dl.get("min_release_m", 0.0)) / 0.3048,
+			"man_mr": cockpit.depr_mr if int(cockpit.hud_panel.get("depr", 2)) == 1 else null
+		}
+	var delay_on: bool = (
+		mode in [5, 6]
+		and ag.get("pipper") != null
+		and ag.get("off", false)
+		and String(dl.get("submode", "CCIP")) == "CCIP"
+	)
 	var lcos = null
 	if mode == 3 and wp.get("pipper") != null:
 		lcos = gun + Vector2(wp.pipper.x, wp.pipper.y)
@@ -815,7 +835,12 @@ func real_hud() -> Dictionary:
 			"gps": gps_cue,
 			# Ours: the player's last released GPS bomb's time to impact (docs/weapons.md §13.3).
 			"tti": wp.get("gps_tti"),
-			"hobs": hobs
+			"hobs": hobs,
+			"delivery": delivery,
+			# Ours, Modern IAF's jets (modern-iaf/docs/weapons.md §8): the uncaged seeker's large diamond, the post-launch
+			# time to active / to impact.
+			"srm_track": mode == 1 and bool(wp.get("srm_head", {}).get("tracking", false)),
+			"msl_time": wp.get("msl_time")
 		}
 	}
 	_real = _real_hud.frame(_field(), _real_in)

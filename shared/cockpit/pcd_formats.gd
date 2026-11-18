@@ -434,6 +434,8 @@ func radar(r: Rect2) -> void:
 			lock_p = p
 		elif real.get("sam", []).has(ct.key):
 			dashed_circle(p, 5.2, WHITE, THIN, 12)
+		if not ground:
+			_msl_mark(p, deg_to_rad(float(ct.get("heading", 0.0))) - h, String(ct.key))
 	# The mode (the real FCR's names, inferred for the APG-81: its own are not public) and the scan.
 	var mode_text: String = MODE_NAMES[mode]
 	if not real.is_empty():
@@ -470,6 +472,12 @@ func radar(r: Rect2) -> void:
 		var alt := float(Vector3(lk.pos).z) * 3.28084 / 1000.0
 		var row := "%.1f  %dK  Vc %d" % [dist / 1852.0, int(round(alt)), int(float(rd.get("closure", 0.0)) * 1.944)]
 		text(Vector2(r.position.x, r.position.y + 12.0), row, 5.0, WHITE, HORIZONTAL_ALIGNMENT_CENTER, r.size.x)
+	# Ours: the post-launch time to active / to impact (modern-iaf/docs/weapons.md §8.2; the F-16 FCR's, inferred place).
+	var mt = cockpit.weapons.get("msl_time")
+	if mt != null:
+		var tt := ("A%02d" if mt.active else "T%02d") % mini(ceili(float(mt.s)), 99)
+		text(Vector2(r.position.x, r.position.y + 18.0), tt, 5.0, WHITE, HORIZONTAL_ALIGNMENT_RIGHT, r.size.x - 2.0)
+		shown.srch["msl_time"] = tt
 	# The steerpoint (a white circle on the fan when inside it).
 	if not cockpit.waypoints.is_empty() and cockpit.current_waypoint < cockpit.waypoints.size():
 		var w: Vector2 = cockpit.waypoints[cockpit.current_waypoint].world
@@ -480,6 +488,23 @@ func radar(r: Rect2) -> void:
 		if absf(az) <= half and d <= 1.0:
 			circle(apex + Vector2(sin(az), -cos(az)) * rad * d, 2.0, WHITE, THIN)
 	ownship(apex + Vector2(0, -1.0), 3.0)
+
+
+## Ours (modern-iaf/docs/weapons.md §8.2): a target the player's missile flies at carries a tail behind its symbol
+## (heading `hd` on the fan), flashing once the missile's radar seeker is active, and an X for its last 8 s (the F-16
+## FCR's marks; the APG-81's own are not public).
+func _msl_mark(p: Vector2, hd: float, key: String) -> void:
+	var mk: Dictionary = cockpit.weapons.get("msl_targets", {}).get(key, {})
+	if mk.is_empty():
+		return
+	var fw := Vector2(sin(hd), -cos(hd))
+	var rt := Vector2(-fw.y, fw.x)
+	if not mk.active or Time.get_ticks_msec() % 500 < 250:
+		var b := p - fw * 2.6
+		poly(PackedVector2Array([b + rt, b - fw * 5.0 + rt, b - fw * 5.0 - rt, b - rt]), WHITE, THIN, true)
+	if mk.final:
+		line(p + Vector2(-4, -4), p + Vector2(4, 4), WHITE, THIN)
+		line(p + Vector2(-4, 4), p + Vector2(4, -4), WHITE, THIN)
 
 
 ## A place on the real FCR's scope (0..1 across ±60°, up the range; radar.rs scope_xy) on the fan.
@@ -689,6 +714,17 @@ func sms(r: Rect2) -> void:
 			GREEN if arm else YELLOW,
 			HORIZONTAL_ALIGNMENT_CENTER,
 			lw
+		)
+	# Ours: the IR missile's seeker SPOT / SCAN (Ctrl + S; modern-iaf/docs/weapons.md §8.1), at the right of the weapon.
+	var head: Dictionary = wp.get("srm_head", {})
+	if not head.is_empty() and int(wp.get("type", 0)) in [570, 580]:
+		text(
+			Vector2(r.position.x, lb.end.y - 2.0),
+			"SCAN" if head.scan else "SPOT",
+			4.6,
+			GREEN,
+			HORIZONTAL_ALIGNMENT_RIGHT,
+			r.size.x - 2.0
 		)
 	var cm := Rect2(Vector2(r.get_center().x - 16.0, y + 11.0), Vector2(32.0, 15.0))
 	box(cm, GREY, THIN)

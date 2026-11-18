@@ -15,10 +15,11 @@ The real jet's stick and throttle carry the switches that work the sensors and t
   [Expand (the stick's pinky switch)], [Expands the radar's picture.], [#key("Radar expand (EXP)")],
   [Countermeasures management switch (CMS) forward, aft, right], [Runs the dispenser's program, stops it, gives consent (@ew).], [#key("CMS forward: run the CMDS program") #key("CMS aft: stop dispensing") #key("CMS right: consent (SEMI) / enable AUTO")],
   [Dogfight and missile override switch], [Dogfight: a short-range missile, the gun's sight and the dogfight radar patterns at once. Missile override: a radar missile and the search radar. The same key again centres the switch, and the weapon and radar mode from before come back; a lock is kept.], [#key("Dogfight (DGFT)") #key("Missile override (MSL OVRD)")],
+  [MAN RNG / UNCAGE (the throttle's knob, pressed)], [Uncages a short-range missile's seeker so that it follows the target it hears; a second press cages it (@aa-weapons).], [#key("Missile seeker: UNCAGE / CAGE")],
   [Trigger], [Fires the gun.], [#key("Gun trigger")],
   [Weapon release button], [Releases the selected weapon while held.], [#key("Release selected weapon")],
 )
 
 The pointer also works the displays: on the radar's format it places the cursor, and a click on a target presses TMS up there.
 
-#in-sim[#term("Not modelled"): the missile's cage and uncage button (a short-range missile shot needs no uncage press), the paddle switch and the stick's trim hat as a switch (the trim has its keys). The speedbrake switch has its keys (@handling-general).]
+#in-sim[#term("Not modelled"): the paddle switch and the stick's trim hat as a switch (the trim has its keys). The speedbrake switch has its keys (@handling-general).]

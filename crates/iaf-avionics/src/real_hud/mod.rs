@@ -276,6 +276,28 @@ pub struct Weapons {
     pub tti: Option<f64>,
     /// A high off-boresight IR missile selected in mode 1 (AIM-9X, Python 5; docs/weapons.md §13.1): the helmet's cues.
     pub hobs: Option<Hobs>,
+    /// Modern IAF's F-16s, a bomb selected (modes 5 / 6, no GPS bomb): its release submode's cues and LOW
+    /// (`DeliveryCue`; modern-iaf/docs/weapons.md §9).
+    pub delivery: Option<DeliveryCue>,
+    /// The modern jets' SRM seeker uncaged and tracking its target (modern-iaf/docs/weapons.md §8.1): the large diamond.
+    pub srm_track: bool,
+    /// The post-launch cue of the player's air-to-air missile in flight (modern-iaf/docs/weapons.md §8.2).
+    pub msl_time: Option<MslTime>,
+}
+
+/// The post-launch cue: the seconds until the missile's seeker goes active (`active`, "A") or until it reaches its
+/// target ("T").
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub struct MslTime {
+    pub active: bool,
+    pub s: f64,
+}
+
+impl MslTime {
+    /// "A12" / "T07" (the DCS F-16C guide's post-launch "Time Until Active/Termination"; whole seconds, at most 99).
+    pub fn text(self) -> String {
+        format!("{}{:02}", if self.active { 'A' } else { 'T' }, self.s.clamp(0.0, 99.0).ceil() as i64)
+    }
 }
 
 /// The high off-boresight missile's state for the helmet (docs/real-hud.md "DASH helmet"): its seeker cone (°), the
@@ -286,6 +308,26 @@ pub struct Hobs {
     pub cone_deg: f64,
     pub target: Option<P>,
     pub loal: bool,
+}
+
+/// The release submode's state for the HUD (`crate::delivery`; MLU pp. 172–181, docs/real-hud.md "F-16C/D").
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub struct DeliveryCue {
+    pub submode: crate::delivery::Submode,
+    /// The TD box on the target (CCRP, LADD; DTOS once designated) in HUD px, far along its direction off the view;
+    /// None without a target.
+    pub td: Option<P>,
+    /// DTOS: the TD box is ground-stabilized on its designated point (before, it rides the flight path marker).
+    pub designated: bool,
+    /// Seconds to the automatic release and to the loft's pull-up (CCRP, LADD).
+    pub ttr: Option<f64>,
+    pub pull_up: Option<f64>,
+    /// LOW: a bomb released now hits before its fuze arms (dash-34 p. 1-173).
+    pub low: bool,
+    /// The lowest release height above the ground below (ft): the fuze's arming, for the pull-up anticipation cue.
+    pub min_release_ft: Option<f64>,
+    /// MAN with DEPR RET at PRI: the primary reticle, depressed this far (mr) by the RET DEPR wheel.
+    pub man_mr: Option<f64>,
 }
 
 /// A GPS bomb's cues: its mode (PRE or VIS), the aim's HUD point (far along its direction when outside the view) and

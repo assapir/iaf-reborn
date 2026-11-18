@@ -29,7 +29,7 @@ Terms used in this doc:
 | AA / AG   | air-to-air / air-to-ground                                                                      |
 | bdb       | the game's binary database (the Weapons and Objects tables)                                     |
 | CCIP      | continuously computed impact point: the bomb pipper shows where a store released now lands      |
-| CCRP      | continuously computed release point: release on a designated target (the game has none)         |
+| CCRP      | continuously computed release point: release on a designated target (the 1998 game has none; Modern IAF's F-16s, ../modern-iaf/docs/weapons.md §9) |
 | DLZ       | dynamic launch zone: the missile's minimum and maximum range against the current target         |
 | ECM       | electronic countermeasures (the jammer)                                                         |
 | EO        | electro-optical (the TV camera of the TV weapons)                                               |
@@ -599,7 +599,8 @@ terrain. Store n aims at aim[qty − remaining].
 
 **The radar's GMT (ground moving target) / MAP designation (radar.gd `designate`) plays no part**: the mode-5 update
 and the aim ignore it. Only the MAP cross and the HUD's TD box read the designated point (docs/radar.md §8), so the
-game has no CCRP.
+game has no CCRP. Modern IAF's F-16s add CCRP, DTOS, LADD and MAN and the bombs' fuzing on the same fall
+([../modern-iaf/docs/weapons.md](../modern-iaf/docs/weapons.md) §9); the 1998 game's release stays as here.
 
 ### 9.4 The mode-5 HUD object (`FUN_0045d0a0`, update vtable +0x10 `FUN_0045d470` → `FUN_0045d1d0`)
 This object predicts the impact point, draws the CCIP / delayed-release symbols and feeds the release cue.

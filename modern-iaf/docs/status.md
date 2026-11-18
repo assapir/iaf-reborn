@@ -53,6 +53,23 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   portal's `CNTL>` opens the format's control page (TSD, SRCH, TFLIR: zoom, WIDE / SPOT, the laser)
   ([../../docs/real-mfd.md](../../docs/real-mfd.md) "F-35I", [../../docs/f35i.md](../../docs/f35i.md) §4.3;
   `modern-iaf/tests/test_sim_adir_pcd.gd`). The MENU page's LITES and HMD are not built.
+- **The bombs' release submodes and fuzing (2026-11-18, avionics-plan.md slice 9, S3–S6, S8, M4; G21, G22, G25):**
+  on the Sufa and the Barak the SMS's A-G menu has CCIP, CCRP, DTOS, LADD and MAN; CCRP and LADD aim at the radar's
+  designated point, the pod's track or the steerpoint and release by themselves with WPN REL held, DTOS designates
+  under its TD box in the dive, LADD gives the pull-up cues for a 4 g loft to 45°, MAN shows the primary reticle on the
+  RET DEPR wheel; OSB 18 the fuze, OSB 17 the arming delay; a bomb hitting before it arms is a dud, with `LOW` on the
+  HUD ([weapons.md](weapons.md) §9; keys Ctrl + G, Alt + Q, Alt + 0, Ctrl + V / Alt + V;
+  `modern-iaf/tests/test_sim_bombs.gd`, the laser path included). The range missions' second steerpoint is their
+  target steerpoint, every GPS bomb's PRE target. Open: the per-bomb PRE target pick on the briefing map, a new panel
+  waiting for the user's yes (G4). Not started (outside the plan's rows): RBS, ULOFT, the CNTL pages. The Adir carries
+  only GPS bombs: its share is the PRE target.
+- **The air-to-air missiles' employment flow (2026-11-18, avionics-plan.md slice 8, W1, W4, N7, P12, S13; G26,
+  G27):** on the Sufa, the Barak and the Adir: `]` selects, the radar locks, the IR missile's seeker caged on the lock,
+  the helmet or the boresight hears the target; Shift + M uncages it to track (the HUD's large diamond), Ctrl + S or
+  the F-16 SMS's OSB 2 steps SPOT / SCAN; SHOOT, the launch (the Adir's AIM-120 from its bays); after it the time to
+  active (A) and to impact (T) on the HUD, the helmet, the FCR and SRCH, the target's tail and its X for the last 8 s
+  ([weapons.md](weapons.md) §8; `modern-iaf/tests/test_sim_missiles.gd`). Not started (outside the plan's rows): the
+  pre-launch time of flight, the M-pole / F-pole ranges, the SLAVE / BORE and COOL options.
 - **The Adir's radar, sensors and helmet (2026-11-17, avionics-plan.md slice 7 part B, A2–A7, E5, H6–H8, N9, P5):**
   the real FCR's controls on the APG-81's row (`radar.fcr`; the Sufa's keys): SRCH with CRM RWS / TWS / VSR, SAM's
   four bugs, STT, ACM and BORE, the cursor with its altitude coverage; ASR with the ground map as a grey SAR picture

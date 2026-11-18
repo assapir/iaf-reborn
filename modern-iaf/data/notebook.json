@@ -37,6 +37,7 @@
         {"title": {"en": "AIR-TO-AIR", "he": "אוויר-אוויר"}, "steps": [
           {"en": "Missiles: A-A, the HUD shows the seeker circle", "he": "טילים: A-A, ב־HUD מוצג מעגל המחפש", "where": {"en": "ICP, under the HUD", "he": "לוח ICP, מתחת ל־HUD"}, "key": 66},
           {"en": "Next target: the radar locks it", "he": "המטרה הבאה: המכ\"ם ננעל עליה", "where": {"en": "stick grip, target designate", "he": "ידית ההיגוי, מתג סימון המטרה"}, "key": 58},
+          {"en": "IR missile: UNCAGE once the tone is heard, the seeker tracks the target; SHOOT on the HUD", "he": "טיל מונחה חום: UNCAGE כשנשמע הצליל, ראש הביות עוקב אחר המטרה; SHOOT ב־HUD", "where": {"en": "throttle grip, MAN RNG / UNCAGE", "he": "ידית המצערת, MAN RNG / UNCAGE"}, "key": 224},
           {"en": "Fire: the pickle button", "he": "שיגור: כפתור השחרור", "where": {"en": "stick grip, under the thumb", "he": "ידית ההיגוי, מתחת לאגודל"}, "key": 69},
           {"en": "Gun: the trigger, held", "he": "תותח: ההדק, לחוץ", "where": {"en": "stick grip, under the index finger", "he": "ידית ההיגוי, מתחת לאצבע"}, "key": 64}
         ]}
@@ -80,6 +81,7 @@
         {"title": {"en": "AIR-TO-AIR", "he": "אוויר-אוויר"}, "steps": [
           {"en": "Missiles: A-A (the AIM-120 in the bays)", "he": "טילים: A-A (ה־AIM-120 בתאים)", "where": {"en": "the panoramic display", "he": "התצוגה הפנורמית"}, "key": 66},
           {"en": "Next target: the radar locks it", "he": "המטרה הבאה: המכ\"ם ננעל עליה", "where": {"en": "stick grip, target designate", "he": "ידית ההיגוי, מתג סימון המטרה"}, "key": 58},
+          {"en": "IR missile: UNCAGE once the tone is heard, the seeker tracks the target; SHOOT on the helmet display", "he": "טיל מונחה חום: UNCAGE כשנשמע הצליל, ראש הביות עוקב אחר המטרה; SHOOT בתצוגת הקסדה", "where": {"en": "throttle grip", "he": "ידית המצערת"}, "key": 224},
           {"en": "Fire: weapon release", "he": "שיגור: שחרור חימוש", "where": {"en": "stick grip, under the thumb", "he": "ידית ההיגוי, מתחת לאגודל"}, "key": 69},
           {"en": "Gun: the trigger, held", "he": "תותח: ההדק, לחוץ", "where": {"en": "stick grip, under the index finger", "he": "ידית ההיגוי, מתחת לאצבע"}, "key": 64}
         ]}

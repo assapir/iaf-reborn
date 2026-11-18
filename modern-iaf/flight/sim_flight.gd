@@ -695,7 +695,8 @@ func _canopy(delta: float) -> void:
 			_canopy_run = 0
 		if dir != _canopy_dir and host.sounds != null:
 			# One door sound per run (sound.md §1.7): short taps of the switch stop it, never stack it.
-			host.sounds.stop(_canopy_snd)
+			if is_instance_valid(_canopy_snd):  # a door sound that finished is freed
+				host.sounds.stop(_canopy_snd)
 			_canopy_snd = null
 			if dir != 0.0:
 				_canopy_snd = host.sounds.play("SFX_DOOR_CLOSE" if dir < 0.0 else "SFX_DOOR_OPEN")

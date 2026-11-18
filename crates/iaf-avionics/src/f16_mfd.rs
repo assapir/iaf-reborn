@@ -497,10 +497,10 @@ impl Hsd {
     }
 }
 
-/// The SMS A-G page's submodes offered for the selected bomb (dash-34 fig. 1-70's list; ours: only those the release
-/// code has, avionics-plan.md G21 adds CCRP, DTOS, LADD and MAN): a GPS bomb's PRE / VIS, else CCIP.
+/// The SMS A-G page's submodes offered for the selected bomb (dash-34 fig. 1-70's list, MLU fig. 1-39): a GPS bomb's
+/// PRE / VIS, else the release submodes (`delivery::Submode`: CCIP, CCRP, DTOS, LADD, MAN).
 pub fn ag_submodes(gps: bool) -> &'static [&'static str] {
-    if gps { &["PRE", "VIS"] } else { &["CCIP"] }
+    if gps { &["PRE", "VIS"] } else { &["CCIP", "CCRP", "DTOS", "LADD", "MAN"] }
 }
 
 /// The FLCS format's BIT (ours, inferred: the real BIT runs on the ground for about 45 s; the DCS F-16 manual, a
@@ -746,7 +746,7 @@ mod tests {
     #[test]
     fn sms_flcs_and_tgp_legends() {
         assert_eq!(ag_submodes(true), ["PRE", "VIS"]);
-        assert_eq!(ag_submodes(false), ["CCIP"]);
+        assert_eq!(ag_submodes(false), crate::delivery::Submode::ALL.map(crate::delivery::Submode::name));
         assert_eq!(flcs_bit(None, 5.0, false), "");
         assert_eq!(flcs_bit(Some(0.0), 10.0, false), "RUN");
         assert_eq!((flcs_bit(Some(0.0), 50.0, false), flcs_bit(Some(0.0), 50.0, true)), ("PASS", "FAIL"));

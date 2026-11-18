@@ -9,6 +9,7 @@ mod bombs;
 mod briefing;
 mod city_lights;
 mod cockpit_sound;
+mod delivery;
 mod devices;
 mod emf;
 mod ews;

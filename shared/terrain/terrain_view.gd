@@ -3000,6 +3000,17 @@ func _command(cmd: Array) -> bool:
 			cat3 = not cat3  # ours, the STORES CONFIG switch (Modern IAF's keys.json, record 205)
 		233, 234:
 			_gps_key(int(cmd[0]) == 234)  # ours, the GPS bomb's keys (Modern IAF's keys.json, records 206 / 207)
+		290:
+			# Ours, the bombs' release submode, fuze and arming delay (Modern IAF's keys.json, records 226-228;
+			# modern-iaf/docs/weapons.md §9): the new setting as a subtitle.
+			if weapons != null:
+				var t: String = weapons.delivery_key(p1)
+				if t != "":
+					_on_subtitle(t)
+		291:
+			# Ours, the RET DEPR wheel (records 229 / 230): the reticle 5 mr down (p1 1) or up, over the wheel's travel
+			# (cockpit3d_controls.gd DEPR_MAX_MR, 260 mr).
+			cockpit.depr_mr = clampf(float(cockpit.depr_mr) + 5.0 * p1, 0.0, 260.0)
 		20, 21:
 			# Zoom (events 0x14 / 0x15, held): the orbit distance ±60 m/s in the external orbit views; in the
 			# cockpit our art zoom, one step per press (the original's z only sets the culling angle).
@@ -3144,6 +3155,8 @@ func _command(cmd: Array) -> bool:
 			var soi: String = cockpit.soi_format() if Settings.modern_mfds() and int(cmd[0]) == 221 else ""
 			if soi in ["TGP", "WPN"] and weapons != null:
 				weapons.tgp_tms(p1)
+			elif soi == "" and int(cmd[0]) == 221 and weapons != null and weapons.dtos_tms(p1):
+				pass  # ours: DTOS's TMS up / down with the HUD the SOI (modern-iaf/docs/weapons.md §9)
 			elif soi == "HSD":
 				var i: int = cockpit.mfds[cockpit.soi].real_fmt.hsd_pick() if p1 == 0 else -1
 				if i >= 0:
@@ -3282,6 +3295,13 @@ func _command(cmd: Array) -> bool:
 			# from the bottom round to the top (modern-iaf/docs/cockpit.md §5.8).
 			if _own_keys_in_table and cockpit_3d != null:
 				cockpit_3d.step_knob(p1, int(cmd[2]))
+		280:
+			# Ours, Modern IAF's jets: the SRM seeker head (keys.json records 224 Shift + M, 225 Ctrl + S; the F-16 SMS's
+			# OSB 2; modern-iaf/docs/weapons.md §8.1): p1 0 the uncage button, 1 SPOT / SCAN.
+			if weapons != null:
+				var said: String = weapons.seeker_key(p1)
+				if said != "":
+					_on_subtitle(said)
 		272:
 			in_cockpit = not in_cockpit  # ours, Modern IAF's Ctrl + F2 (keys.json record 220; _own_key in the 1998 game)
 		273:
