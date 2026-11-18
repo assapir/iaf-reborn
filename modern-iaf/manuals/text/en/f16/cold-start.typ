@@ -18,10 +18,11 @@
   cmds: [The #term("CMDS") panel, left console.],
 )
 // The sources, each a footnote at its first use.
-#let haf = [#footnote[The Hellenic Air Force's flight manual for the F-16C/D Block 50/52+, a public copy dated 15 June 2003: #link("https://archive.org/details/haf-f-16"). Checked 18 November 2026: the copy and its date. The file is too large to read through, so its document number (T.O. GR1F-16CJ-1), its section II "Normal Procedures" and what this manual takes from them are inferred.]<haf>]
+#let haf = [#footnote[Flight manual of the Hellenic Air Force's F-16C/D Blocks 50 and 52+, T.O. GR1F-16CJ-1, 15 October 2002 with Change 1 of 15 June 2003, section II "Normal procedures", pages 2-2 to 2-30. A public copy: #link("https://archive.org/details/haf-f-16"). Checked 18 November 2026.]<haf>]
+#let fmp(place) = footnote[The same flight manual, #place.]
 #let ins = [#footnote[F-16.net forum, "INS alignment time and time to takeoff from cold start", posts of 16 and 18 February 2004 and 25 April 2005: "a minimum of 8 minutes is the normal spin-up time"; a stored-heading alignment "takes approx 90sec" (a forum: a weak source; other posts give 4 minutes for newer units), #link("https://www.f-16.net/forum/viewtopic.php?p=7943").]<ins>]
-#let gen = [#footnote[F-16.net forum, "Main PWR on the F-16", post of 7 December 2010: the engine reaches "self sustained rpms (approximately 52%)" and the JFS lets go; the jet goes from the battery to the main generator once that turns fast enough (a forum: a weak source). That the generator comes on line at the same 52~% is inferred. #link("https://www.f-16.net/forum/viewtopic.php?p=186672").]<gen>]
-#let hot = [#footnote[The F-16's ground procedure for a hot start as a public set of study cards gives it: throttle OFF, monitor the FTIT, motor the engine with the JFS if the FTIT stays high (Brainscape, "Emergency Procedures", read through a search engine's quote: second-hand), #link("https://brainscape.com/flashcards/emergency-procedures-15101749/packs/21879099"). The flight manual's own text was not checked; why the start runs hot is inferred.]<hot>]
+#let gen = fmp[section II, "Starting engine", page 2-10: the JFS shuts down by itself at about 55~% RPM and the standby generator comes on line at about 60~% (the text for the General Electric engine)]
+#let hot = fmp[section III, "Hot start (ground)", page 3-26: a hot start is an FTIT over 800~°C with the Pratt & Whitney engine and over 935~°C with the General Electric engine; throttle OFF, watch the FTIT, and above 500~°C turn the engine with the JFS until 200~°C or for four minutes. Why the start runs hot is inferred]
 #let rot = [#footnote[Falcon BMS forum, "Rotation speed": "70 knots plus 3x GW in thousands of pounds", a member's fit to the take-off charts, within a couple of knots (a forum: a weak source), #link("https://forum.falcon-bms.com/post/314659").]<rot>]
 
 This procedure takes the #jet.name from a cold, dark jet on its parking spot to a climb with the gear up. It follows the jet's checklist card, which keeps the sections and the order of the real F-16C/D normal procedures#haf. The start takes about four minutes; most of that is the #term("INS") alignment.
@@ -68,7 +69,7 @@ Get the start-up clearance first.
 
 The jet fuel starter (JFS) turns the engine. At 20~% #term("RPM") you move the throttle from OFF to idle, which lets fuel in. The engine lights about 5 seconds later and reaches idle about 15 seconds after that.
 
-#idx("Hot start")#caution[Keep the throttle at OFF until the RPM reaches 20~%. Below that the engine turns too slowly to move enough air through itself; fuel let in then burns too hot, and the turbine's temperature passes its limit. This is a #term("hot start"), and it can damage the turbine#hot. In the real jet you see it on the #term("FTIT") indicator, which climbs fast towards its limit; you put the throttle back to OFF and watch the FTIT, and the JFS turns the engine again to cool it if it stays high. In the sim: #sym.arrow.r *the engine shuts down* by itself; the FTIT's limit and the damage are not modelled. No procedure on the ground uses an early throttle; an engine start in the air is a different procedure with its own conditions (@emergency-engine, not modelled). The ground case is in @emergency-ground.]
+#idx("Hot start")#caution[Keep the throttle at OFF until the RPM reaches 20~%. Below that the engine turns too slowly to move enough air through itself; fuel let in then burns too hot, and the turbine's temperature passes its limit. This is a #term("hot start"), and it can damage the turbine#hot. In the real jet you see it on the #term("FTIT") indicator, which climbs fast towards its limit; you put the throttle back to OFF and watch the FTIT, and if it stays above 500~°C the JFS turns the engine again to cool it. In the sim: #sym.arrow.r *the engine shuts down* by itself; the FTIT's limit and the damage are not modelled. No procedure on the ground uses an early throttle; an engine start in the air is a different procedure with its own conditions (@emergency-engine, not modelled). The ground case is in @emergency-ground.]
 
 #steps(
   "start",
@@ -82,7 +83,7 @@ The jet fuel starter (JFS) turns the engine. At 20~% #term("RPM") you move the t
   figs: ("jfs",),
   notes: (
     engine: [Use the throttle lever, or #key("Throttle idle"). With the throttle at OFF, the key takes the step.],
-    jfs_off: [At about 52~% RPM the engine sustains itself and the main generator comes on line#gen.],
+    jfs_off: [The real JFS shuts down by itself at about 55~% RPM, and the generators come on line a little above that#gen. The sim does both at 52~%.],
     engine_gauges: [The gauges show the engine's values. The sim sets no limits on them, so there is nothing to tick.],
   ),
 )
@@ -115,7 +116,7 @@ With the generator on line, test the warning systems, power the avionics and sta
   ),
 )
 
-#idx("INS alignment")#idx("Checklist card, differences from the real one")#note[The sim's card differs from the real checklist#footnote(<haf>) in three places (inferred: the flight manual's text was not checked). The real card aligns the INS at NORM, which takes about 8 minutes#ins, while the sim's card uses #term("STOR HDG"), the real jet's quick alignment, which takes 90 seconds. The real card turns the hardpoints on "as required"; the sim's card always turns both on, for the pods these jets carry. The real #term("EPU") check runs the unit with the engine above idle; the sim has no EPU, so its card only moves the switch to OFF and back to NORM.]
+#idx("INS alignment")#idx("Checklist card, differences from the real one")#note[The sim's card differs from the real checklist#footnote(<haf>) in three places. The real card aligns the INS at NORM, which takes about 8 minutes#ins, while the sim's card uses #term("STOR HDG"), the alignment of the real jet's quick-response start#fmp[section II, "Scramble", item 8, page 2-30], which takes 90 seconds. The real card has the left hardpoint off unless its pod is needed and the right one "as required"#fmp[section II, "After engine start", item 5, page 2-12]; the sim's card always turns both on, for the pods these jets carry. The real #term("EPU") check runs the unit with the engine a little above idle#fmp[section II, the EPU check, page 2-19]; the sim has no EPU, so its card only moves the switch to OFF and back to NORM.]
 
 === Before taxi <cold-start-before-taxi>
 
@@ -161,8 +162,8 @@ The take-off is flown from memory. It is not on the card.
 + Line up on the runway's centreline and stop.
 + Get the take-off clearance.
 + Set full power: #key("Throttle military power"), or #key("Afterburner stage 2") with a heavy load.
-+ Keep the jet on the centreline with the rudder.
-+ #idx("Rotation speed")At the rotation speed, ease the stick back and hold the nose about 10° up (the attitude is inferred). The rotation speed is 70 kt plus 3 kt for each 1,000 lb of the jet's weight#rot: about 145 kt at 25,000 lb, about 175 kt at 35,000 lb.
++ Keep the jet on the centreline with the rudder. The real jet is steered with the nosewheel until the rudder takes hold, at about 70 kt#fmp[figure 2-2 "Normal takeoff", page 2-21].
++ #idx("Rotation speed")At the rotation speed, ease the stick back and hold the nose 8° to 12° up#fmp[section II, "Normal takeoff", page 2-21: the rotation starts 10 kt below the take-off speed, 15 kt with afterburner; an earlier pull lengthens the take-off run]. The rotation speed is 70 kt plus 3 kt for each 1,000 lb of the jet's weight#rot: about 145 kt at 25,000 lb, about 175 kt at 35,000 lb.
 + When the jet climbs, go on with the next phase.
 
 === After take-off <cold-start-after-takeoff>

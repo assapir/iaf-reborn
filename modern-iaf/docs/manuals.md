@@ -17,18 +17,17 @@ published form.
 
 **State.** The user approved the manuals on 18 November 2026 ("Ok with manauals, finish them"); they are on `main`.
 Written in the three jet manuals: chapter 1 "Description and systems" whole (1.1 The aircraft, 1.2 Cockpit
-arrangement with every panel and item numbered, 1.3 to 1.12 the systems; §2) and section 2.2 "Cold start to
-take-off"; in the game manual the key card and Attributions. Every other section is a plan in the outline. The
+arrangement with every panel and item numbered, 1.3 to 1.12 the systems; §2) and chapter 2 "Normal procedures" whole
+(2.1 Preflight and cockpit entry, 2.2 Cold start to take-off, 2.3 Climb, cruise and descent, 2.4 Approach and landing,
+2.5 After landing and engine shutdown, 2.6 Air refuelling; §2 "Chapter 2"); in the game manual the key card and Attributions. Every other section is a plan in the outline. The
 appendices (checklist, key card, controls, abbreviations, attributions, index) are drawn from the game's data, so they
 are whole. The Hangar's Manuals entry opens the four PDFs ([front-end.md](front-end.md) §1).
 
 **Next, in this order.**
 
-1. Chapter 2 "Normal procedures" (preflight, climb and cruise, landing, shutdown, air refuelling), the three jets
-   together, on one branch merged after its review.
-2. The other chapters the same way, a chapter a branch: 3 Emergency procedures, 4 Limits, 5 Flight characteristics, 6
-   Weapons and avionics; then the game manual, with "Missions and training".
-3. Each row of section 1.2's F-16 tables against the flight manual's section I (§7); its text is now searchable
+1. The other chapters, a chapter a branch, the three jets together: 3 Emergency procedures, 4 Limits, 5 Flight
+   characteristics, 6 Weapons and avionics; then the game manual, with "Missions and training".
+2. Each row of section 1.2's F-16 tables against the flight manual's section I (§7); its text is now searchable
    (§2 "Chapter 1's system sections").
 
 ## 2. The outline
@@ -103,6 +102,17 @@ that differ (engine, fuel, weights).
 
 Sites that refused automated access and were left alone (18 November 2026): af.mil, e-publishing.af.mil,
 prattwhitney.com, keymilitary.com.
+
+**Chapter 2** (`text/en/f16/ch2/`, `text/en/f35i/ch2/`, and `cold-start.typ`). Every step table is drawn from the
+checklist card (`steps("<card section>")`); the text files hold only the reactions and notes by item id, so a change of
+the card's wording or items shows in the next build, and a note for an item the card no longer has stops it. The
+pictures are the cold start's, drawn again with each section's step numbers. Section 2.1 and 2.6 give the real jet's
+content only (`sim: none`).
+
+| jet | chapter 2's sources |
+|---|---|
+| F-16 | the flight manual's section II, pages 2-2 to 2-30 (take-off 2-20 and 2-21, the checks in flight 2-22 and 2-23, the landing 2-23 to 2-27 with figure 2-3's approach speeds, the shutdown 2-27 to 2-30), the hot start on the ground page 3-26, air refuelling page 8-34. Section 2.2's footnotes now name these pages; its JFS and generator figures are the manual's (55 % and 60 %), with the sim's 52 % said beside them. |
+| F-35I | US Air Force Instruction 11-2F-35A Volume 3 (7 June 2012, no releasability restrictions), by paragraph: flying rules of the jet's development period (taxi speeds, the checks in flight, the fuel calls, the pattern, the approach category). It holds no checklist, and the manual says so; a copy and notes are kept outside the repo. The footnotes carry no link: the publisher's site refuses automated access. Climb schedule, approach speeds and the landing technique are "open". |
 
 **References.** Every mention of a control carries its figure and number as a link to its row, in one form: "MAIN PWR
 (1-8, 1)" (`ctl-ref`): a procedure's steps, the checklist card, the Controls appendix, and `ctl("…")` in a text. Figures
@@ -338,3 +348,15 @@ Parts:
 - Open in chapter 1's sources: the AOA indexer's colours, the caution panel's count and the cabin pressure schedule
   (pictures in the flight manual); for the F-35 the tank layout, the gear and brake systems, the ICAWS categories'
   definitions and the cockpit switches' functions.
+- Found while writing chapter 2, the game's and listed, not changed here: the key table lists "Drag chute" (Shift + B)
+  with a group, so the Keys screen and the key cards show it, while no Modern IAF jet has a drag chute
+  (`airframe.json` `drag_chute: false`); the speedbrakes have no key or switch of their own (the Wheel brakes key
+  opens them in the air, [flight-model.md](flight-model.md)), so a landing roll cannot hold the nose up with the
+  speedbrakes shut, nor brake the wheels without them; the autopilot's PITCH and ROLL switches move only (the A key
+  is the only way); the cards' "Throttle – OFF" item names its key in words and carries no `key`, so the step tables'
+  Key column is empty there; the F-16's FUEL QTY SEL knob moves only, so the card's fuel check cannot be done as the
+  real one; the card has no line for the speedbrakes or the altimeter before landing, which the real "Descent/before
+  landing" has.
+- Open in chapter 2's sources: the F-16's climb schedules (the performance manual, not public); for the F-35 the climb
+  schedule, the approach speeds, the landing technique and the air-refuelling cockpit procedure; the footnote for the
+  F-16's exterior inspection names figure 2-4 without its page.

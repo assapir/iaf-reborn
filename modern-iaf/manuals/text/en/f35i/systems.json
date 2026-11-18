@@ -2,6 +2,7 @@
  "about": "A jet's cockpit as chapter 1 describes it (modern-iaf/docs/manuals.md §2): per panel its controls, each by its node in the cockpit's control table (shared/extra/models/cockpit3d/<cockpit>.json): label as on the panel, name (the words behind the initials), positions (optional; their count is checked against the control table, which gives the count when they are left out), does (the real jet, from the panel's source), sim (what the sim does with it and what stops working while it is off; modern-iaf/docs/cockpit.md §5.2; none: the layout says whether the control works a system, from the control table). abbreviations: every abbreviation the manual uses, with its full name: the Abbreviations appendix, and the brackets at an abbreviation's first use in a chapter's steps. short: everyday shortenings, listed in the appendix only. words: plain words the panels write in capitals. tools/manuals.py stops the build on a capital token that is in none of the three.",
  "source": "ayton",
  "abbreviations": {
+"ILS": "Instrument landing system",
   "FCS": "Flight control system",
   "HMD": "Helmet-mounted display",
   "IPP": "Integrated power pack",

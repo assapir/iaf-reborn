@@ -26,12 +26,12 @@ chapters:
   title: Normal procedures
   intro: Each phase of a flight as a procedure, in the order of the jet's checklist card.
   sections:
-  - {id: preflight, title: Preflight and cockpit entry, sim: none, covers: "What a pilot checks around the jet and on climbing in, in outline.", not: "All of it: a flight in the sim starts seated, with the canopy open."}
+  - {id: preflight, title: Preflight and cockpit entry, sim: none, file: f16/ch2/preflight.typ}
   - {id: cold-start, title: Cold start to take-off, sim: part, file: f16/cold-start.typ}
-  - {id: climb-cruise, title: "Climb, cruise and descent", sim: full, covers: "The climb schedule, cruise checks, fuel checks against bingo, the autopilot's modes, the descent and its checks."}
-  - {id: landing, title: Approach and landing, sim: part, covers: "The BEFORE LANDING items, the landing clearance, the overhead and straight-in patterns, the ILS approach, the on-speed angle of attack, touchdown, aerobraking, the drag chute and the brakes.", not: "Pattern calls (initial, base, final, go-around)."}
-  - {id: shutdown, title: After landing and engine shutdown, sim: full, covers: "The AFTER LANDING items, the taxi back, PRIOR TO ENGINE SHUTDOWN and ENGINE SHUTDOWN: the throttle to OFF and MAIN PWR off."}
-  - {id: air-refuelling, title: Air refuelling, sim: none, covers: "The real procedure in outline: the AIR REFUEL switch, the door, the lights, the contact.", not: "All of it: the sim has no tanker."}
+  - {id: climb-cruise, title: "Climb, cruise and descent", sim: full, file: f16/ch2/climb-cruise.typ}
+  - {id: landing, title: Approach and landing, sim: part, file: f16/ch2/landing.typ}
+  - {id: shutdown, title: After landing and engine shutdown, sim: full, file: f16/ch2/shutdown.typ}
+  - {id: air-refuelling, title: Air refuelling, sim: none, file: f16/ch2/air-refuelling.typ}
 - id: emergency
   title: Emergency procedures
   intro: The real jet's emergencies by phase of flight. Each item says whether the sim can produce it.
