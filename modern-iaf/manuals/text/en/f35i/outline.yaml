@@ -65,15 +65,15 @@ chapters:
   title: Weapons and avionics
   intro: Every display and mode, then each weapon's employment procedure. This chapter describes cockpit procedure only. The real formats are public only in part; inferred layouts are marked.
   sections:
-  - {id: hotas, title: The stick and throttle switches, sim: part, covers: "The cursor, TMS, DMS, the weapon release and the trigger, each with its key or the pointer.", not: "The real grip's full switch set: the sim works the display with the pointer and the keys."}
-  - {id: pcd, title: The panoramic display, sim: part, covers: "The function bar, portals and windows, the MENU grid, touch with the pointer, and the EFI, ICAWS, FUEL, ENG and ESIS formats.", not: "The CNI, WPN-A / WPN-S, DAS, FCS, PHM, CHKLST and DIM formats, double-width formats and the preset layouts."}
-  - {id: hmd, title: The helmet display, sim: part, covers: "The HMD knob, the virtual HUD, the off-boresight symbols, the ground-avoidance cues.", not: "The NIGHT, AUTO and DAY difference, and the DAS's imagery in the visor."}
-  - {id: navigation, title: Navigation, sim: part, covers: "The self test and the INS's readiness, steerpoints and the route, the TSD formats, the ILS.", not: "TACAN."}
-  - {id: radios, title: "Radios, identification and data link", sim: part, covers: "The calls to air traffic control and the AWACS, combat identification's three shapes, the data link's tracks.", not: "The radios' own pages (CNI)."}
-  - {id: radar-aa, title: "Radar: air-to-air", sim: full, covers: "The SRCH format: search, track-while-scan, the four tracked targets, single-target track, the ACM patterns; the cursor, scan width and bars. The layout is inferred."}
-  - {id: radar-ag, title: "Radar: air-to-ground", sim: full, covers: "The ASR format: the ground map with EXP and DBS, freeze, the ground cursor, GMT, SEA and air-to-ground ranging. The layout is inferred."}
-  - {id: tflir, title: The TFLIR, sim: full, covers: "The built-in electro-optical sensor's format: its tracks, zoom and the laser."}
-  - {id: ew, title: "Threat warning and countermeasures", sim: part, covers: "The TWD format, the missile warning's marks on the display and in the helmet, releasing chaff and flares.", not: "The DAS format. Electronic attack is outside this manual. The manual gives the switches and counts only, never how well a countermeasure works."}
-  - {id: stores, title: "Stores management, master arm and jettison", sim: full, covers: "MASTER ARM, the SMS format, the bay doors, selecting a weapon, selective and emergency jettison."}
-  - {id: aa-weapons, title: "Air-to-air employment: missiles and gun", sim: part, covers: "The procedure for a missile shot from the bay, a short-range missile shot and a gun attack: the switches, the helmet's cues, the release.", not: "The cues after launch. The manual gives no missile performance."}
-  - {id: ag-weapons, title: "Air-to-ground employment: bombs and gun", sim: part, covers: "GPS-guided bombs from the bays, each with its own target, in PRE and VIS; strafing.", not: "Setting PRE targets before the flight, and the WPN-S programming format."}
+  - {id: hotas, title: The stick and throttle switches, sim: part, file: f35i/ch6/hotas.typ}
+  - {id: pcd, title: The panoramic display, sim: part, file: f35i/ch6/pcd.typ}
+  - {id: hmd, title: The helmet display, sim: part, file: f35i/ch6/hmd.typ}
+  - {id: navigation, title: Navigation, sim: part, file: f35i/ch6/navigation.typ}
+  - {id: radios, title: "Radios, identification and data link", sim: part, file: f35i/ch6/radios.typ}
+  - {id: radar-aa, title: "Radar: air-to-air", sim: full, file: f35i/ch6/radar-aa.typ}
+  - {id: radar-ag, title: "Radar: air-to-ground", sim: full, file: f35i/ch6/radar-ag.typ}
+  - {id: tflir, title: The TFLIR, sim: part, file: f35i/ch6/tflir.typ}
+  - {id: ew, title: "Threat warning and countermeasures", sim: part, file: f35i/ch6/ew.typ}
+  - {id: stores, title: "Stores management, master arm and jettison", sim: part, file: f35i/ch6/stores.typ}
+  - {id: aa-weapons, title: "Air-to-air employment: missiles and gun", sim: part, file: f35i/ch6/aa-weapons.typ}
+  - {id: ag-weapons, title: "Air-to-ground employment: bombs and gun", sim: part, file: f35i/ch6/ag-weapons.typ}

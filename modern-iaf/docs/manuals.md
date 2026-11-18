@@ -25,9 +25,12 @@ arrangement with every panel and item numbered, 1.3 to 1.12 the systems; §2) an
 appendices (checklist, key card, controls, abbreviations, attributions, index) are drawn from the game's data, so they
 are whole. The Hangar's Manuals entry opens the four PDFs ([front-end.md](front-end.md) §1).
 
+Chapter 6 "Weapons and avionics" is written whole in the three jet manuals (§2 "Chapter 6"), with the pictures listed
+as owed in §7.
+
 **Next, in this order.**
 
-1. Chapter 6 "Weapons and avionics", the three jets together; then the game manual, with "Missions and training".
+1. The game manual, with "Missions and training"; chapter 6's owed pictures (§7).
 2. Each row of section 1.2's F-16 tables against the flight manual's section I (§7); its text is now searchable
    (§2 "Chapter 1's system sections").
 
@@ -141,6 +144,21 @@ in supplements that are not public.
 | F-16 | the flight manual's section V (pages 5-1 to 5-5, figures 5-1 to 5-8 on pages 5-6 to 5-15) and section VI (pages 6-1 to 6-9), section I page 1-121 (the limiters) and 1-135 (the gains with the gear down), section II pages 2-21, 2-24, 2-26 and 2-27. Open, because they are in the supplements T.O. GR1F-16CJ-1-1 (performance), -1-2 (stores) and -5-2 (centre of gravity): the stores' categories as a list and every store's limits, the rolling g limits, the centre-of-gravity limits, the crosswind limits, the brake speeds, the take-off speeds and every performance chart; also the service ceiling, a landing weight, the touchdown sink rate, the nose tyre's limit for the Israeli builds and the arresting speeds (figure 5-5's first sheet is a picture in this copy). |
 | F-16D Barak | The sim's Barak is an F-16D Block 40 with the F110-GE-100 (`crates/iaf-flight/src/sixdof/jets.rs` `f110_100`, [flight-model.md](flight-model.md) §9.7; F-16.net for the Israeli F-16Ds). The public flight manual covers Blocks 50 and 52 with the F100-PW-229 and the F110-GE-129. The Barak's engine limits are therefore the manual's F110-GE-129 figures, each marked "inferred" for the F110-GE-100, whose own limits are open; the figures of the airframe are marked "inferred" for its blocks. Chapter 3 was corrected the same way: its engine section says that its signs and actions are the F100-PW-229's pages (inferred for the Barak), the hot start's 935 °C and the 10 s light-off are the F110-GE-129's, and the Barak's own air start is open. |
 | F-35I | The maker's product card (9 g), the 50° angle-of-attack limit (Second Line of Defense), US Air Force Instruction 11-2F-35A Volume 3 by paragraph. Every other limit, the control laws and the handling with stores are "open". Five footnotes (the top speeds, the Eglin accident's approach figures, a pilot's account of the handling, the lowered turn specification, the F135's response) carry sources taken from `docs/f35i.md` and [flight-model.md](flight-model.md) with the words "not read again for this chapter"; the F-16's Block 40 weight and NASA TM-4320 the same. |
+
+**Chapter 6** (`text/en/f16/ch6/`, `text/en/f35i/ch6/`, a file a section; `ch6/src.typ` holds the sources and the
+chapter's parts). It describes the sim's avionics as built and how the pilot works them: each display's pages button
+by button (`osb(n)`: an MFD button with its figure and number), each switch with its key, and each weapon's
+employment as numbered steps with the reaction in bold (`then[…]`). It is written from the avionics docs
+([avionics-plan.md](avionics-plan.md) §2 to §4, [ufc.md](ufc.md), [ews.md](ews.md), [weapons.md](weapons.md),
+`docs/radar.md` §9, `docs/mfd.md` §9), not from the outline's plan. A real-jet statement carries a footnote to the
+public Block 50 manuals those docs cite (marked "not read again for this chapter") or the word "inferred"; each
+F-16 section opens with the line that the jet's own pages are not public. The user's safety rule holds in every
+section: cockpit procedure and the sim's display only, with no missile performance, no countermeasure effectiveness,
+no electronic attack and no naming of a missile by the missile warning. The Adir's sections describe what is on
+`main` and mark the rest "not in the sim yet".
+
+A display's picture is `display("<name>", [caption])`: `pictures/<cockpit>/d_<name>.jpg`, a figure labelled
+`fig-d-<name>` (§4).
 
 **References.** Every mention of a control carries its figure and number as a link to its row, in one form: "MAIN PWR
 (1-8, 1)" (`ctl-ref`): a procedure's steps, the checklist card, the Controls appendix, and `ctl("…")` in a text. Figures
@@ -311,6 +329,12 @@ leader, in 6 pt. The build stops when two numbers' boxes overlap or a number is 
 height is measured against a 6 pt digit's (`checked` in `callouts`, `layout/manual.typ`; a number that is a link to a
 figure has no size yet, so a digit drawn the same way is measured for it).
 
+**The displays' pictures** (`d_<name>.jpg`, chapter 6) are taken by the avionics slices' own shot scripts, each a
+real render with its command in its header, and then cut and joined with ImageMagick: `_fcr_shot.gd` (`d_fcr_modes`,
+`d_fcr_pages`, `d_hud_lock`), `_fcr_ag_shot.gd` (`d_fcr_ag`), `_mfd_s4_shot.gd` (`d_mfd_formats`),
+`_avionics_s5_shot.gd` (`d_ded_pages`, `d_hud_modes`, `d_hsd`, `d_fcr_aiff`, `d_threat`) and `_adir_s7b_shot.gd` (the
+Adir's). The Sufa's serve both F-16 manuals.
+
 `SHOT_ONLY=p_` (or `overview`) takes only those and keeps the others' pictures and marks. A picture is taken again
 when the cockpit's model, the shot list or a panel's rows change.
 
@@ -425,3 +449,28 @@ Parts:
 - Open in chapter 2's sources: the F-16's climb schedules (the performance manual, not public); for the F-35 the climb
   schedule, the approach speeds, the landing technique and the air-refuelling cockpit procedure; the footnote for the
   F-16's exterior inspection names figure 2-4 without its page.
+- Owed after chapter 6, the F-16s' pictures (18 November 2026; each was taken once more at most, then left):
+  - The format menu, the HSD's control page and the SMS pages (INV, A-G, its submode list, AAM, GUN):
+    `_mfd_s4_shot.gd` saves both MFDs' screens black for every picture before its TGP ones, with the cockpit's MFDs lit
+    and empty. A wait of 20 s, the screens set to draw always, and the radar switched to air to ground first changed
+    nothing. To check whether the MFDs of an air start stay empty in the game too.
+  - GM without FZ, EXP, DBS1 and DBS2 on the hulks: the first four pictures of `_fcr_ag_shot.gd` are black.
+  - The threat warning display with threats: `_avionics_s5_shot.gd`'s `rwr_scope` shows the empty scope (its header
+    says the range's radar drones show). The DED's INS page: `ded_ins` is empty.
+  - The delayed CCIP's cues, the gun's funnel with a lock, a GPS bomb's HUD cues and the helmet's symbols have no
+    shot script.
+- Found while writing chapter 6, the game's and listed, not changed here:
+  - A GPS bomb's PRE target cannot be set in Modern IAF (avionics-plan.md G4): PRE has a target only when the route
+    has a target steerpoint.
+  - The CMDS MODE knob of the cockpit has three positions; SEMI, AUTO and BYP are on the key alone.
+  - DED DATA and DEPR RET have no switch in the cockpit, and IFF IDENT, HANDOFF and SYS TEST no button.
+  - The K and Shift + K keys (GPS bomb) are read by the flight scene and are not in the key table, so the Keys screen
+    does not list them.
+  - The Adir: the function bar's SWAP and MENU and each portal's `CNTL>` draw and do nothing (`pcd.gd`); the TFLIR
+    format has no clickable WIDE / SPOT; `systems.json` says EMER_JETT "drops the external stores" while the code
+    drops the bays' too; JETT_SEL moves only.
+- Owed after chapter 6, the Adir: pictures of the SMS, the TFLIR with video (the shots show NO VIDEO), the MENU
+  grid, the default layout and a GPS bomb's helmet cues. Not verified in the game: how the gun is selected in A-A
+  and A-G, the zoom keys and the cursor keys on the TFLIR, the dispenser's modes on the Adir.
+- Chapter 6's footnotes to the dash-34, the MLU guide, Janes and the simulator manual are taken from the project's
+  docs and marked "not read again for this chapter": each is to be read at its source.

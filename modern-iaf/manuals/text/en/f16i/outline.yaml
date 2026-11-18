@@ -65,16 +65,16 @@ chapters:
   title: Weapons and avionics
   intro: Every display and mode, then each weapon's employment procedure. This chapter describes cockpit procedure only.
   sections:
-  - {id: hotas, title: The stick and throttle switches, sim: part, covers: "TMS, DMS, CMS, the cursor, the dogfight and missile-override switch, the trigger and the weapon release button, each with its key.", not: "The missile's cage and uncage button."}
-  - {id: ufc, title: "The up-front controls and the DED", sim: full, covers: "The ICP's keys and every DED page with its data entry: steerpoints, markpoints, radios, TACAN and ILS, bingo, ALOW, time, bullseye, INS, EWS, IFF, data link."}
-  - {id: hud, title: The HUD and the helmet display, sim: full, covers: "The HUD in NAV, air-to-air and air-to-ground, the HUD control panel's switches, the ground-avoidance cues, the helmet display."}
-  - {id: mfd, title: The multifunction displays, sim: part, covers: "The MFD frame, the format menu, the sensor of interest, and the FCR, HSD, SMS, WPN, TGP, TEST, DTE and FLCS formats.", not: "The FLIR and TFR formats."}
-  - {id: navigation, title: Navigation, sim: full, covers: "The INS alignment, steerpoints and the route, TACAN, the ILS, the EHSI's modes, the autopilot's steering."}
-  - {id: radios, title: "Radios, IFF and data link", sim: part, covers: "COM1 and COM2 presets, the calls to air traffic control and the AWACS, the AIFF interrogator, the data link's tracks on the HSD and the FCR.", not: "Tuning that changes who answers. The IFF transponder's modes."}
-  - {id: radar-aa, title: "Radar: air-to-air", sim: full, covers: "The FCR format with the AN/APG-68(V)9's modes: CRM (RWS, TWS, VSR), the situation-awareness mode with four tracked targets, single-target track and the four ACM patterns; the cursor, scan width, bars and elevation."}
-  - {id: radar-ag, title: "Radar: air-to-ground", sim: part, covers: "Ground map with EXP and DBS, freeze, snowplow, the ground cursor, fixed-target track, GMT, SEA and air-to-ground ranging.", not: "The beacon and terrain-following modes."}
-  - {id: tgp, title: The targeting pod, sim: full, covers: "The pod's power on RIGHT HDPT, the TGP format, its tracks and zoom, slaving it, LASER ARM and firing the laser."}
-  - {id: ew, title: "Threat warning and countermeasures", sim: part, covers: "The threat warning display and its buttons, the missile approach warning, the CMDS panel and its programs, the CMS keys, the jammer's key.", not: "The jammer's own controls and modes. The manual gives the switches and counts only, never how well a countermeasure works."}
-  - {id: stores, title: "Stores management, master arm and jettison", sim: full, covers: "MASTER ARM and SIMULATE, the SMS pages, selecting a weapon, the release rules, selective and emergency jettison."}
-  - {id: aa-weapons, title: "Air-to-air employment: missiles and gun", sim: part, covers: "The procedure for a short-range missile shot, a helmet-cued shot, a radar missile shot and a gun attack: the switches, the HUD cues, the release.", not: "The missile's cage and uncage, and the cues after launch. The manual gives no missile performance."}
-  - {id: ag-weapons, title: "Air-to-ground employment: bombs and gun", sim: part, covers: "CCIP and delayed CCIP, ripple settings, laser-guided bombs with the pod, GPS-guided bombs in PRE and VIS, strafing.", not: "CCRP, DTOS, LADD and manual release; fuze and arming settings."}
+  - {id: hotas, title: The stick and throttle switches, sim: part, file: f16/ch6/hotas.typ}
+  - {id: ufc, title: "The up-front controls and the DED", sim: part, file: f16/ch6/ufc.typ}
+  - {id: hud, title: The HUD and the helmet display, sim: part, file: f16/ch6/hud.typ}
+  - {id: mfd, title: The multifunction displays, sim: part, file: f16/ch6/mfd.typ}
+  - {id: navigation, title: Navigation, sim: part, file: f16/ch6/navigation.typ}
+  - {id: radios, title: "Radios, IFF and data link", sim: part, file: f16/ch6/radios.typ}
+  - {id: radar-aa, title: "Radar: air-to-air", sim: part, file: f16/ch6/radar-aa.typ}
+  - {id: radar-ag, title: "Radar: air-to-ground", sim: part, file: f16/ch6/radar-ag.typ}
+  - {id: tgp, title: The targeting pod, sim: part, file: f16/ch6/tgp.typ}
+  - {id: ew, title: "Threat warning and countermeasures", sim: part, file: f16/ch6/ew.typ}
+  - {id: stores, title: "Stores management, master arm and jettison", sim: part, file: f16/ch6/stores.typ}
+  - {id: aa-weapons, title: "Air-to-air employment: missiles and gun", sim: part, file: f16/ch6/aa-weapons.typ}
+  - {id: ag-weapons, title: "Air-to-ground employment: bombs and gun", sim: part, file: f16/ch6/ag-weapons.typ}
