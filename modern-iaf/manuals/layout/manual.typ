@@ -186,6 +186,19 @@
   if node in described { [ #ctl-ref(node)] }
 }
 
+/// A row of chapter 1's panels in the text (a control, light, gauge or display of systems.json), by its label on the
+/// panel, with its figure and number. The build stops on a node that no panel has.
+#let row(node) = {
+  assert(node in described, message: "row " + node + ": no panel of systems.json has it")
+  let d = described.at(node)
+  let c = systems.panels.find(p => p.id == d.panel).controls.find(c => c.node == d.row)
+  idx(c.label)
+  strong(c.label)
+  [ #ctl-ref(node)]
+}
+/// What the sim does with what a section describes: a paragraph led by the layout's words.
+#let in-sim(body) = block(width: 100%, inset: (x: 9pt, y: 7pt), radius: 2pt, fill: paper, stroke: 0.5pt + rule-c, [#strong(ui.in_sim)#h(0.6em)#body])
+
 #let signal(word, colour, body) = block(
   width: 100%,
   breakable: false,
@@ -322,9 +335,19 @@
       let k = m.at(n)
       ((calc.max(k.at(1), y0) + calc.min(k.at(3), y1)) / 2 - y0) * scale * ratio
     })
-    // The numbers' text sizes: beside the picture, and on a mark's edge. No label of a figure is under 6 pt.
+    // The numbers as drawn: beside the picture (7 pt), and on a mark's edge (6 pt). No label of a figure is under
+    // 6 pt: each drawn number's height is measured against a 6 pt digit's.
     let (fs, fs-in) = (7pt, 6pt)
-    assert(calc.min(fs, fs-in) >= 6pt, message: "picture " + name + ": a number's text is under 6 pt")
+    let number(tag, on-edge) = text(size: if on-edge { fs-in } else { fs }, weight: 700, fill: white, tag)
+    let least = measure(text(size: 6pt, weight: 700, "0")).height
+    // Number `n` as drawn. A tag that is a link to a figure's number has no size before the figures are counted:
+    // a digit drawn the same way is measured in its place.
+    let checked(n, on-edge) = {
+      let tag = tags.at(n)
+      let high = measure(number(if type(tag) == str { tag } else { "0" }, on-edge)).height
+      assert(high >= least - 0.01pt, message: "picture " + name + ": the number of " + n + " is drawn under 6 pt (" + repr(high) + " high, a 6 pt digit " + repr(least) + ")")
+      number(tag, on-edge)
+    }
     let rin = 4.6
     // Each mark's box in the drawing.
     let rects = nodes.map(n => {
@@ -413,7 +436,7 @@
       for (i, n) in nodes.enumerate() {
         if str(i) in on-edge {
           let (x, y, hw) = on-edge.at(str(i))
-          place(dx: (x - hw) * 1pt, dy: (y - rin) * 1pt, rect(width: 2 * hw * 1pt, height: 2 * rin * 1pt, radius: rin * 1pt, inset: 0pt, fill: navy, stroke: 0.6pt + white, align(center + horizon, text(size: fs-in, weight: 700, fill: white, tags.at(n)))))
+          place(dx: (x - hw) * 1pt, dy: (y - rin) * 1pt, rect(width: 2 * hw * 1pt, height: 2 * rin * 1pt, radius: rin * 1pt, inset: 0pt, fill: navy, stroke: 0.6pt + white, align(center + horizon, checked(n, true))))
           continue
         }
         let (side, y) = spots.at(str(i))
@@ -442,7 +465,7 @@
         head(2.8, white)
         shaft(0.7, navy)
         head(2, navy)
-        let body = text(size: fs, weight: 700, fill: white, tags.at(n))
+        let body = checked(n, false)
         place(dx: if side == 0 { 0pt } else { (b + w + 1) * 1pt }, dy: (y - r) * 1pt, box(width: (b - 1) * 1pt, height: 2 * r * 1pt, align(
           if side == 0 { end } else { start } + horizon,
           box(height: 2 * r * 1pt, radius: r * 1pt, inset: (x: 3pt), fill: navy, align(horizon, box(width: calc.max(measure(body).width, (2 * r - 6) * 1pt), align(center, body)))),

@@ -1,6 +1,9 @@
 # The glossary: term, means, and `in` (the manuals that carry it; none: all).
 - {term: AVIONIC POWER, means: "The right console's panel that powers the mission computer, the stores stations, the displays and the up-front controls.", in: [f16i, f16d]}
+- {term: Bingo fuel, means: "A fuel quantity set by the pilot: the fuel needed to fly home and land with a reserve. Below it the jet warns."}
+- {term: CAT III, means: "The flight control system's setting for heavy or large stores: a lower angle-of-attack limit and slower roll than CAT I.", in: [f16i, f16d]}
 - {term: CMDS, means: "Countermeasures dispenser set: releases chaff and flares.", in: [f16i, f16d]}
+- {term: Deep stall, means: "A stable, stalled fall at an angle of attack far past the limiter, from which the tail alone cannot lower the nose.", in: [f16i, f16d]}
 - {term: DED, means: "Data entry display: the small text display right of the ICP.", in: [f16i, f16d]}
 - {term: EPU, means: "Emergency power unit: gives electrical and hydraulic power when the engine cannot.", in: [f16i, f16d]}
 - {term: FCR, means: "Fire control radar.", in: [f16i, f16d]}
@@ -14,6 +17,7 @@
 - {term: INS, means: "Inertial navigation system. It must be aligned on the ground before it can navigate."}
 - {term: IPP, means: "Integrated power pack: the F-35's small turbine that gives power on the ground and starts the engine.", in: [f35i]}
 - {term: JFS, means: "Jet fuel starter: the small turbine that cranks the F-16's engine.", in: [f16i, f16d]}
+- {term: Joker fuel, means: "A fuel quantity above bingo: the fuel at which the pilot ends what the flight is doing and starts for home.", in: [f35i]}
 - {term: MFD, means: "Multifunction display.", in: [f16i, f16d]}
 - {term: MMC, means: "Modular mission computer.", in: [f16i, f16d]}
 - {term: Not modelled, means: "A function of the real jet that the sim does not have. Its switch may still move."}

@@ -80,7 +80,10 @@
   "VHF": "Very high frequency",
   "VV": "Vertical velocity",
   "VVI": "Vertical velocity indicator",
-  "ADC": "Air data converter"
+  "ADC": "Air data converter",
+  "DEEC": "Digital electronic engine control",
+  "ACES": "Advanced concept ejection seat",
+  "AP": "Autopilot"
  },
  "short": {
   "ALT": "Alternate; altitude",
@@ -167,9 +170,13 @@
   "TGT": "Target",
   "TRANS": "Transfer",
   "WARN": "Warning",
-  "WX": "Weather"
+  "WX": "Weather",
+  "PRI": "Primary",
+  "CHAN": "Channel",
+  "BRK": "Brake"
  },
  "words": [
+  "A1",
   "ACTIVE",
   "AERIAL",
   "AFT",
@@ -189,6 +196,7 @@
   "BARO",
   "BEFORE",
   "BRAKE",
+  "BRAKES",
   "CABIN",
   "CANOPY",
   "CAUTION",
@@ -211,6 +219,10 @@
   "ENGINE",
   "ENTRY",
   "EXTEND",
+  "F1",
+  "F100",
+  "F110",
+  "F2",
   "FAIL",
   "FAULT",
   "FEED",
@@ -320,9 +332,12 @@
   "TIME",
   "TIMED",
   "TO",
+  "TRIM",
   "UNKNOWN",
   "UP",
   "UPPER",
+  "US",
+  "VELOCITY",
   "VOICE",
   "VOLUME",
   "WAIT",
@@ -565,14 +580,14 @@
      "label": "MASTER",
      "name": "Exterior lights master",
      "does": "Lets the exterior lights come on; off, all of them are dark.",
-     "sim": "Not modelled: the switch moves."
+     "sim": "The exterior lights need it on, and the generator on line."
     },
     {
      "node": "SW_ANTI_COLLISION_50",
      "label": "ANTI COLLISION",
      "name": "Anti-collision light",
      "does": "Turns on the flashing white light on the fin.",
-     "sim": "Not modelled: the switch moves."
+     "sim": "The strobe follows the switch."
     },
     {
      "node": "SW_POS_LIGHTS_50",
@@ -595,7 +610,7 @@
       "DIM"
      ],
      "does": "Sets the position lights on the wings and the tail bright or dim.",
-     "sim": "Not modelled: the switch moves."
+     "sim": "The wing, intake and tail lights follow the switch."
     },
     {
      "node": "SW_FUSELAGE_50",
@@ -3122,7 +3137,7 @@
       "RAM"
      ],
      "does": "Chooses the air for the cockpit's pressure and cooling: engine bleed air at NORM; DUMP lets the cabin pressure out; RAM takes outside air; OFF shuts the bleed air.",
-     "sim": "Not modelled: the knob turns; the cockpit has no pressure or temperature."
+     "sim": "Only the EQUIP HOT caution: at OFF, or at RAM below 70 knots. The cockpit has no pressure or temperature."
     },
     {
      "node": "voice-msg-switch",

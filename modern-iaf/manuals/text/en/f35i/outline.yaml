@@ -10,18 +10,18 @@ chapters:
   title: Description and systems
   intro: What the jet is and how each system works, with every control and indicator of the cockpit.
   sections:
-  - {id: aircraft, title: The aircraft, sim: full, covers: "The F-35I Adir: a single-seat, single-engine stealth fighter; dimensions, weights, the two weapon bays and the wing stations."}
+  - {id: aircraft, title: The aircraft, sim: full, file: f35i/ch1/aircraft.typ}
   - {id: cockpit, title: Cockpit arrangement, sim: part, file: f35i/cockpit.typ}
-  - {id: engine, title: Engine and integrated power pack, sim: part, covers: "The engine, the IPP that starts it, the BATT, IPP and ENG switches, the throttle, the ENG format's readings, military power and afterburner.", not: "Engine faults and the IPP's emergency modes; their switches move."}
-  - {id: fuel, title: Fuel system, sim: part, covers: "Internal fuel, the FUEL format, joker and bingo fuel.", not: "Tank sequencing, fuel dump and air refuelling."}
-  - {id: electrical, title: Electrical system, sim: part, covers: "The battery, the IPP's power on the ground, the engine's generator, the 90-second self test after BATT.", not: "The ICC switches' effect and electrical failures."}
-  - {id: hydraulic, title: Hydraulic and actuation systems, sim: none, covers: "The electro-hydrostatic actuators in outline.", not: "The whole system."}
-  - {id: gear, title: "Landing gear, brakes and steering", sim: part, covers: "The gear handle, the ALT GEAR handle that lowers the gear, wheel brakes, nosewheel steering, hard-landing damage.", not: "The hook and the parking brake's hold: the switches move."}
-  - {id: flight-controls, title: Flight control system, sim: part, covers: "The fly-by-wire system and its limiters, the flaps that move by themselves, speedbrake by the surfaces, trim, the autopilot.", not: "FCS faults, FCS/ENG RESET's effect and AUTO RECOVERY."}
-  - {id: instruments, title: Flight instruments, sim: full, covers: "The helmet's flight symbols, the EFI format, the standby display."}
-  - {id: canopy-seat, title: "Canopy, ejection seat and life support", sim: part, covers: "The CANOPY switch, the ejection (three presses of its key).", not: "The seat's SAFE and ARM lever, oxygen, cabin pressure and the canopy's emergency handle."}
-  - {id: lighting, title: Lighting, sim: part, covers: "The LAND/TAXI LIGHTS switch, the exterior lights, the displays' day and night brightness.", not: "The interior lighting pages of the display."}
-  - {id: warnings, title: "Warnings, cautions and advisories", sim: part, covers: "The ICAWS format, the MASTER CAUTION light, the ENG FIRE light, the voice messages.", not: "Messages of systems that are not modelled."}
+  - {id: engine, title: Engine and integrated power pack, sim: part, file: f35i/ch1/engine.typ}
+  - {id: fuel, title: Fuel system, sim: part, file: f35i/ch1/fuel.typ}
+  - {id: electrical, title: Electrical system, sim: part, file: f35i/ch1/electrical.typ}
+  - {id: hydraulic, title: Hydraulic and actuation systems, sim: none, file: f35i/ch1/hydraulic.typ}
+  - {id: gear, title: "Landing gear, brakes and steering", sim: part, file: f35i/ch1/gear.typ}
+  - {id: flight-controls, title: Flight control system, sim: part, file: f35i/ch1/flight-controls.typ}
+  - {id: instruments, title: Flight instruments, sim: full, file: f35i/ch1/instruments.typ}
+  - {id: canopy-seat, title: "Canopy, ejection seat and life support", sim: part, file: f35i/ch1/canopy-seat.typ}
+  - {id: lighting, title: Lighting, sim: part, file: f35i/ch1/lighting.typ}
+  - {id: warnings, title: "Warnings, cautions and advisories", sim: part, file: f35i/ch1/warnings.typ}
 - id: normal
   title: Normal procedures
   intro: Each phase of a flight as a procedure, in the order of the jet's checklist card.

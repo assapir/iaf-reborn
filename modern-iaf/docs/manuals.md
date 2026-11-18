@@ -16,19 +16,20 @@ published form.
 ## 1. State and next (18 November 2026)
 
 **State.** The user approved the manuals on 18 November 2026 ("Ok with manauals, finish them"); they are on `main`.
-Written: section 1.2 "Cockpit arrangement" (every panel, every item numbered, §2) and section 2.2 "Cold start to
-take-off" in the three jet manuals; the game manual's key card and Attributions. Every other section is a plan in the
-outline. The appendices (checklist, key card, controls, abbreviations, attributions, index) are drawn from the game's
-data, so they are whole. The Hangar's Manuals entry opens the four PDFs ([front-end.md](front-end.md) §1).
+Written in the three jet manuals: chapter 1 "Description and systems" whole (1.1 The aircraft, 1.2 Cockpit
+arrangement with every panel and item numbered, 1.3 to 1.12 the systems; §2) and section 2.2 "Cold start to
+take-off"; in the game manual the key card and Attributions. Every other section is a plan in the outline. The
+appendices (checklist, key card, controls, abbreviations, attributions, index) are drawn from the game's data, so they
+are whole. The Hangar's Manuals entry opens the four PDFs ([front-end.md](front-end.md) §1).
 
 **Next, in this order.**
 
-1. Chapter 1 "Description and systems", sections 1.1 and 1.3 onward, the three jets together, on one branch merged
-   after its review.
-2. The other chapters the same way, a chapter a branch: 2 Normal procedures (landing and shutdown included), 3
-   Emergency procedures, 4 Limits, 5 Flight characteristics, 6 Weapons and avionics; then the game manual, with
-   "Missions and training".
-3. Each F-16 row of chapter 1 against the flight manual's section I (§7).
+1. Chapter 2 "Normal procedures" (preflight, climb and cruise, landing, shutdown, air refuelling), the three jets
+   together, on one branch merged after its review.
+2. The other chapters the same way, a chapter a branch: 3 Emergency procedures, 4 Limits, 5 Flight characteristics, 6
+   Weapons and avionics; then the game manual, with "Missions and training".
+3. Each row of section 1.2's F-16 tables against the flight manual's section I (§7); its text is now searchable
+   (§2 "Chapter 1's system sections").
 
 ## 2. The outline
 
@@ -87,6 +88,21 @@ panel its figure and its table: number, label and full name, positions, what it 
 as a chip. A figure shows the part of the picture that holds the panel; the numbers stand in a column on each side with
 a leader line to each item (`callouts`), so no number covers a control or another number, and the build stops when a
 column has no room ("split the panel"). The numbers are 7 pt, the tables 8 pt.
+
+**Chapter 1's system sections** (1.1 and 1.3 to 1.12; `text/en/f16/ch1/`, `text/en/f35i/ch1/`, a file a section).
+Each describes the real system first, every statement with a footnote that names the exact place of its source, or the
+word "inferred"; then a box "In the sim:" (`in-sim`) with what the sim does, each reaction in bold after an arrow, and
+last what is not modelled, from the status data. A control, light or gauge is named with `row("<node>")`: its label on
+the panel with its figure and number. The Sufa and the Barak share the F-16's files; `sufa` chooses the sentences
+that differ (engine, fuel, weights).
+
+| jet | sources |
+|---|---|
+| F-16 | the Hellenic Air Force's flight manual T.O. GR1F-16CJ-1 (F-16C/D Blocks 50 and 52+, 15 October 2002, Change 1 of 15 June 2003), a public copy at https://archive.org/details/haf-f-16. The PDF has a text layer (`pdftotext`), so a statement is checked by a search; the footnotes give the manual's page. F-16.net and Airforce Technology for the Israeli jets. |
+| F-35I | Lockheed Martin's AIAA papers on the air vehicle and the mission systems, its F-35A product card, a US Air Force accident report (the engine start), Martin-Baker, and Wikipedia where no first source was found. The F-35's flight manual is not public: what this cockpit's switches do in the real jet is "inferred from their names". |
+
+Sites that refused automated access and were left alone (18 November 2026): af.mil, e-publishing.af.mil,
+prattwhitney.com, keymilitary.com.
 
 **References.** Every mention of a control carries its figure and number as a link to its row, in one form: "MAIN PWR
 (1-8, 1)" (`ctl-ref`): a procedure's steps, the checklist card, the Controls appendix, and `ctl("…")` in a text. Figures
@@ -243,13 +259,19 @@ November 2026), with the battery on and the lamp test held, so every lamp and le
   is nearer to the top of the pilot's view of it from the seat, as the F-16's console legends are turned. The Adir's
   console legends all read toward the nose (`"legends": "nose"` in `shots.json`).
 - The marks are projected through the camera that drew the picture, in the same frame, so picture and marks agree.
+- A panel that stands turned about its own normal to the jet's axes (the caution light panel, about 15°; `GRID` in
+  the script) has its picture's top turned to the grid of its marks, so its rows lie level.
+- The stick and the throttle are hidden in every picture but their own, the whole cockpit's and a panel's that
+  marks them (the Adir's seat panel shows its stick) (`HIDE`): from the seat they stand before the panels beside
+  them (the AIR SOURCE knob was behind the stick).
 - The stick, the throttle, the HUD and the DED's group are no flat panel: their pictures stay
   from the pilot's eye (`EYE` in the script; the stick's with a lamp at the eye and the head leant, `LAMP`, `LEAN`).
 
 **The numbers on a panel's picture** stand in a column at each side with a leader to their mark. A number whose
 leader would run over another mark (the ICP's inner keys, an MFD's top buttons) sits on its own mark's edge without a
-leader, in 6 pt. The build stops when a number's text is under 6 pt or two numbers' boxes overlap (`callouts` in
-`layout/manual.typ`).
+leader, in 6 pt. The build stops when two numbers' boxes overlap or a number is drawn under 6 pt: each number's drawn
+height is measured against a 6 pt digit's (`checked` in `callouts`, `layout/manual.typ`; a number that is a link to a
+figure has no size yet, so a digit drawn the same way is measured for it).
 
 `SHOT_ONLY=p_` (or `overview`) takes only those and keeps the others' pictures and marks. A picture is taken again
 when the cockpit's model, the shot list or a panel's rows change.
@@ -298,10 +320,21 @@ Parts:
 - The F-35I card's place for the HMD knob (`modern-iaf/data/checklists/f35i.json` `hmd`: "right of the front panel")
   differs from the cockpit, where the knob sits under the display, left of centre (Figure 2.2 of the Adir's manual).
   The step shows the card's text; the card is the game's data and is corrected there.
-- Chapter 1's F-16 texts ("what it does") are written from memory of the public flight manual's section I: the
-  public copy is a 16 MB scan too large to read through, so its footnote says so and each row is to be checked against
-  it. The rows marked "inferred" are parts the cockpit model draws and the flight manual's figure does not name.
+- Section 1.2's F-16 rows ("what it does") were written from memory of the public flight manual's section I, and
+  each is to be checked against it. The rows marked "inferred" are parts the cockpit model draws and the flight
+  manual's figure does not name.
 - The RPM indicator's picture for "Starting engine": the gauge's needle node (`anim069`) has no mesh the shot script
   can box; the text names its place instead.
-- The Manuals screen's pictures in [front-end.md](front-end.md) §1, English and Hebrew.
-- The caution light panel stands at an angle to the jet's axes, so its picture is turned about 15°.
+- Found while writing chapter 1, the game's and listed, not changed here: the airspeed dial of the F-16 shows true
+  airspeed (`cockpit3d.gd`); MANUAL PITCH, CAT III and the roll trim have keys read by the flight scene with no record
+  in `keys.json`, so the manuals name their switches only; ALT FLAPS and the Flaps key move the game's flaps lever
+  while the 6-DoF flaps follow the gear handle, so chapter 1 says nothing of ALT FLAPS in the sim; the Manuals screen
+  names the game manual "Modern IAF".
+- The Adir's `p_seat` picture is the one taken before `HIDE` (its throttle shows); it is taken again with the next
+  pictures (`SHOT_ONLY=p_seat`).
+- The Adir's displays in a start by keys: the manual and [training.md](training.md) §7 say they light 3 s after the
+  IPP is up; in `start.rs` a keyed start holds the `Starter` phase until ENG, and `displays_on_starter` powers them
+  only after that phase. To check in the game; the manual follows training.md.
+- Open in chapter 1's sources: the AOA indexer's colours, the caution panel's count and the cabin pressure schedule
+  (pictures in the flight manual); for the F-35 the tank layout, the gear and brake systems, the ICAWS categories'
+  definitions and the cockpit switches' functions.

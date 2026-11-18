@@ -2,7 +2,8 @@
 # of
 # modern-iaf/manuals/shots.json (its cold start-up mission, 2 s after the start, the pilot's body and the game's
 # overlays hidden) and each shot, the head turns to the shot's controls, as close as shows them all inside the
-# picture's middle (a procedure's pictures, the stick's, the throttle's). A panel's picture (p_<panel>) is taken square
+# picture's middle (a procedure's pictures, the stick's, the throttle's; the stick and the throttle hidden in the
+# others'). A panel's picture (p_<panel>) is taken square
 # from in front of the panel instead, what stands before the panel cut away, the battery on and every lamp lit (the
 # lamp test), so every control and legend shows. The marks are projected through the camera that took the picture.
 # pictures/<cockpit>/<shot>.jpg, and pictures/<cockpit>/marks.json: each control's box in its picture
@@ -43,6 +44,14 @@ const CLEAR := 0.04
 ## The least half height (m) a square picture shows: a panel of one switch keeps its surroundings.
 const LEAST := 0.07
 
+## The throttle and the stick of the two cockpits (control-table nodes), hidden in every picture but their own, the
+## whole cockpit's and one that marks them.
+const HIDE := ["THROTTLE", "anim000", "throttle", "side_stick"]
+## The panels that stand turned about their own normal to the jet's axes (the caution light panel, about 15°): the
+## picture's top follows the grid of their marks, so their rows lie level in the picture.
+const GRID := ["p_caution"]
+
+var _grid := false  # the next square picture's top follows its marks' grid (GRID)
 var _pose = null  # a square picture's camera, [Transform3D, the near plane (m)]; null the game's
 var _near := 0.05  # the game's near plane
 var _fwd := Vector3.FORWARD  # the jet's nose and up, from the head at rest (a lesson starts with the head turned)
@@ -126,11 +135,21 @@ func run() -> void:
 			if parts.is_empty():
 				continue
 			var file := out.path_join(jet).path_join(String(shot) + ".jpg")
-			# A panel's picture: the throttle hidden, as it covers the panels beside it (its own picture keeps it).
-			var throttle: Array = kneeboard._part(c3d, "THROTTLE")
+			# The throttle and the stick hidden: from the seat they stand before the panels beside them, and a marked
+			# control behind one would not show (their own pictures and the whole cockpit's keep them).
 			var panel := String(shot).begins_with("p_")
-			if panel and shot != "p_throttle" and not throttle.is_empty() and throttle[0] is Node3D:
-				throttle[0].visible = false
+			var hidden := []
+			var own := []  # the shot's own nodes: a picture never hides what it marks (the Adir's seat panel, its stick)
+			for item in [] if overview else shots[shot]:
+				own.append_array(item if item is Array else [item])
+			for node in HIDE if not overview and not shot in ["p_throttle", "p_stick"] else []:
+				if node in own:
+					continue
+				var e: Array = kneeboard._part(c3d, node)
+				var n3: Node3D = e[0] as Node3D if not e.is_empty() else c3d.find_child(node, true, false) as Node3D
+				if n3 != null and n3.visible:
+					n3.visible = false
+					hidden.append(n3)
 			tv.views.lean = LEAN.get(shot, Vector3.ZERO)
 			_fov = ALL_FOV if shot == "overview_all" else 0.0
 			if panel and not c3d.lamp_test:  # the panels' pictures: the battery on, every lamp lit
@@ -150,11 +169,12 @@ func run() -> void:
 				_fwd = -_cam.global_basis.z  # the head at rest looks along the nose
 				_up = _cam.global_basis.y
 				_eye = _cam.global_position
+				_grid = shot in GRID
 				_pose = _square(parts)
 			marks[shot] = await _shot(tv, parts, names, file, overview or panel)
 			_pose = null
-			if not throttle.is_empty() and throttle[0] is Node3D:
-				throttle[0].visible = true
+			for n3 in hidden:
+				n3.visible = true
 		tv.views.lean = Vector3.ZERO
 		_fov = 0.0
 		var f := FileAccess.open(marks_file, FileAccess.WRITE)
@@ -241,6 +261,19 @@ func _square(parts: Array) -> Array:
 			if axis.dot(seen) > top.dot(seen):
 				top = axis
 	var basis := Basis.looking_at(-n, top)
+	if _grid:
+		# The marks' main axis in the picture (the grid's rows or columns), from their middles' spread; the picture is
+		# turned by its angle to the nearer of the picture's two axes (under 45°).
+		var sxx := 0.0
+		var syy := 0.0
+		var sxy := 0.0
+		for m in mids:
+			var d := (m - c) * basis
+			sxx += d.x * d.x
+			syy += d.y * d.y
+			sxy += d.x * d.y
+		var turn := wrapf(0.5 * atan2(2.0 * sxy, sxx - syy), -PI / 4.0, PI / 4.0)
+		basis = Basis.looking_at(-n, top.rotated(n, turn))
 	var half := Vector2(LEAST, LEAST)
 	var front := 0.0
 	for p in corners:
