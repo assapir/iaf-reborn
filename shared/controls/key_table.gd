@@ -300,11 +300,13 @@ func find_joystick(button: int, overrides: Dictionary, exclude := -1) -> int:
 ## True while record i's key is held with exactly its modifier (polled every frame for the
 ## held commands: stick, rudder).
 func held(i: int, overrides: Dictionary) -> bool:
-	var key := key_of(i, overrides)
-	var k := godot_key(key & 0xffff)
-	if k == KEY_NONE or not (Input.is_physical_key_pressed(k) or Input.is_key_pressed(k)):
-		return false
-	return _held_modifiers() == (key >> 16) & 0xff
+	return cap_down(i, overrides) and _held_modifiers() == (key_of(i, overrides) >> 16) & 0xff
+
+
+## Record i's key is down, whatever the modifiers.
+func cap_down(i: int, overrides: Dictionary) -> bool:
+	var k := godot_key(key_of(i, overrides) & 0xffff)
+	return k != KEY_NONE and (Input.is_physical_key_pressed(k) or Input.is_key_pressed(k))
 
 
 static func _held_modifiers() -> int:

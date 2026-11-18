@@ -527,8 +527,10 @@ the sim's table: F2 rear view (record 74, the same as Look back) and the free lo
 arrows (records 86–93). The 1998 game keeps all of them.
 
 **The switch keys (2026-11-18).** Commands that had a key and no row are records of the table now, listed and
-rebound as any other: Speedbrakes open (hold) and Speedbrakes close (Shift + B, Shift + G: the SPD BRK switch,
-[flight-model.md](flight-model.md) §9.11; Wheel brakes stays on B and brakes the wheels only), Roll trim left / right
+rebound as any other: Speedbrakes open (hold) and Speedbrakes close (B, Shift + B: the SPD BRK switch,
+[flight-model.md](flight-model.md) §9.11; Wheel brakes is on Shift + G, beside the gear's G, and brakes the wheels only:
+the user, 2026-11-18, "B should be the airbrake", and a Mac laptop's keyboard has no plain key left, W being Next
+waypoint), Roll trim left / right
 (Alt + Left / Right, held), MANUAL PITCH override (Alt + M, held), STORES CONFIG switch (Alt + S), GPS bomb PRE / VIS
 and GPS bomb next PRE target (K, Shift + K). The 1998 game's Drag chute has no row and no key: no Modern IAF jet has
 a drag chute (record 23 is an empty slot).
@@ -677,8 +679,9 @@ How the flight reads it:
   numpad key, Ctrl + Q and Ctrl + M named with Ctrl on macOS, a stored key wins over it; a `devices.json` from before 2026-11-14 and a settings file with reborn's
   `[keys]` entries both load into `Settings.key_bindings`. `iaf-sim own`'s unit test checks the laptop table compiles
   the same way.
-- `modern-iaf/tests/test_switch_keys.gd` flies the Barak: B in the air opens no speedbrake; Shift + B held opens them
-  and they stay when let go, Shift + G closes them; Alt + Right trims, Alt + M is MPO, Alt + S is STORES CONFIG; MPO
+- `modern-iaf/tests/test_switch_keys.gd` flies the Barak: Shift + G (Wheel brakes) in the air opens no speedbrake; B
+  held opens them and they stay when let go, Shift + B closes them (also with Shift let go first); Alt + Right trims
+  (also with Right down before Alt), Alt + M is MPO, Alt + S is STORES CONFIG; MPO
   rebound to J works on J and no longer on Alt + M; no key for a drag chute.
 - `modern-iaf/tests/test_m0_boot.gd` connects a fake joystick: the probe's gate line stays at 0 refused paths.
 - `modern-iaf/tests/_devices_shot.gd` takes §9's pictures (its header).

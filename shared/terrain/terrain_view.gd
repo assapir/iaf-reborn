@@ -36,6 +36,7 @@ const KeyTable := preload("res://shared/controls/key_table.gd")
 const SoundTable := preload("res://shared/audio/sound_table.gd")
 var keys: RefCounted = KeyTable.load_table()
 var _held_records: Array = []
+var _cap_was_down: Dictionary = {}
 ## Joystick buttons down (the poller's held list, FUN_004e0a60 releases them): button → true.
 var _held_buttons := {}
 var _dishes: Array = []  # the units with a Radar part or rotors (vehicle_parts.gd step_radar / step_rotors)
@@ -4459,6 +4460,13 @@ func _read_controls(delta: float) -> void:
 	# records send 0. Original y +100 (Up arrow, "Pitch up") = our stick forward (−1).
 	for i in _held_records:
 		var now_held: bool = keys.held(i, Settings.key_bindings)
+		# Ours: a switch on a plain key starts by its own key going down, never by a modifier let go over it
+		# (Shift + B, the speed brakes' close, let go Shift first must not open them on B).
+		if int(keys.records[i].press[0]) >= 206 and (keys.key_of(i, Settings.key_bindings) >> 16) & 0xff == 0:
+			var cap: bool = keys.cap_down(i, Settings.key_bindings)
+			if now_held and not _key_was_held.get(i, false) and _cap_was_down.get(i, false):
+				now_held = false
+			_cap_was_down[i] = cap
 		if now_held == _key_was_held.get(i, false):
 			continue
 		_key_was_held[i] = now_held

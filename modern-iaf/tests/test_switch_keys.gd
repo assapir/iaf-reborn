@@ -1,8 +1,9 @@
 # The switch keys of the sim's key table in a flight (modern-iaf/data/keys.json records 200-207; the user, 2026-11-18:
 # the speedbrakes worked only through the wheel-brake key, and MPO, CAT III, the roll trim and the GPS bomb's keys had
 # no row on the Keys screen). The Barak's take-off mission, the jet put in the air at 200 m/s:
-# - the wheel-brake key (B) in the air opens no speedbrake;
-# - Shift + B held opens the speedbrakes at their own rate; let go, they stay; Shift + G closes them;
+# - the wheel-brake key (Shift + G) in the air opens no speedbrake;
+# - B held opens the speedbrakes at their own rate; let go, they stay; Shift + B closes them (the user, 2026-11-18:
+#   "B should be the airbrake");
 # - Alt + Right held moves the roll trim; Alt + M held is MPO; Alt + S flips STORES CONFIG;
 # - a key bound to one of them on the Keys screen works it, and its old key no longer does;
 # - no command of the table is the drag chute's; chaff, flares and the weapon view are on keys a Mac laptop has.
@@ -59,25 +60,32 @@ func run() -> void:
 	var mac := [70, 71, 84].map(func(r): return _name(tv, r))
 	check(mac == ["Ctrl + Z", "Ctrl + X", "F2"], "chaff, flares and the weapon view on a Mac laptop's keys %s" % [mac])
 	# The wheel-brake key alone: the switch moves, no speedbrake.
-	_press(tv, KEY_B)
+	_press(tv, KEY_G, kt.SHIFT)
 	await fly(tv, 1.0)
-	check(tv.brakes and tv._speed_brake_deg < 0.1 and not tv.speed_brake_out(), "B in the air: no speedbrake")
-	_press(tv, KEY_B)
-	# Shift + B held for a second: 30 deg/s; let go: they stay.
-	set_key(KEY_SHIFT, true)
+	check(tv.brakes and tv._speed_brake_deg < 0.1 and not tv.speed_brake_out(), "Shift + G in the air: no speedbrake")
+	check(not tv.gear_down, "Shift + G leaves the gear alone")
+	_press(tv, KEY_G, kt.SHIFT)
+	check(not tv.brakes, "Shift + G again: the wheel brakes off")
+	# B held for a second: 30 deg/s; let go: they stay.
 	set_key(KEY_B, true)
 	await fly(tv, 1.0)
-	set_key(KEY_SHIFT, false)  # the modifier first, as a hand does
-	await frames(2)
 	set_key(KEY_B, false)
+	await frames(2)
 	var half: float = tv._speed_brake_deg
-	check(half > 20.0 and half < 40.0 and tv.speed_brake_out(), "Shift + B held 1 s: half open (%.1f)" % half)
+	check(half > 20.0 and half < 40.0 and tv.speed_brake_out(), "B held 1 s: half open (%.1f)" % half)
 	await fly(tv, 1.0)
 	var stays: float = tv._speed_brake_deg
 	check(absf(stays - half) < 3.0, "let go: the speedbrakes stay (%.1f)" % stays)
-	_press(tv, KEY_G, kt.SHIFT)
+	# Shift + B, with Shift let go first (as a hand does): B alone, still down, opens nothing.
+	set_key(KEY_SHIFT, true)
+	set_key(KEY_B, true)
+	_press(tv, KEY_B, kt.SHIFT)
+	await frames(2)
+	set_key(KEY_SHIFT, false)
 	await fly(tv, 3.0)
-	check(tv._speed_brake_deg < 0.1 and not tv.speed_brake_out(), "Shift + G: closed (%.1f)" % tv._speed_brake_deg)
+	set_key(KEY_B, false)
+	await frames(2)
+	check(tv._speed_brake_deg < 0.1 and not tv.speed_brake_out(), "Shift + B: closed (%.1f)" % tv._speed_brake_deg)
 	# The roll trim, MPO and STORES CONFIG by their records' keys.
 	set_key(KEY_ALT, true)
 	set_key(KEY_RIGHT, true)
@@ -90,6 +98,16 @@ func run() -> void:
 	set_key(KEY_ALT, false)
 	await fly(tv, 0.5)
 	check(tv.flight.roll_trim() == trim and not tv.mpo_on, "let go: the trim stays, MPO off")
+	# The arrow down before Alt: a key with a modifier still starts when the modifier comes second.
+	set_key(KEY_RIGHT, true)
+	await frames(2)
+	set_key(KEY_ALT, true)
+	await fly(tv, 0.5)
+	set_key(KEY_RIGHT, false)
+	set_key(KEY_ALT, false)
+	await frames(2)
+	check(tv.flight.roll_trim() > trim, "Right, then Alt: the trim moves (%.3f)" % tv.flight.roll_trim())
+	trim = tv.flight.roll_trim()
 	_press(tv, KEY_S, kt.ALT)
 	check(tv.cat3, "Alt + S: STORES CONFIG at CAT III")
 	_press(tv, KEY_S, kt.ALT)

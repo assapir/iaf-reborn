@@ -128,7 +128,8 @@ Terms used on this page:
   (202–207, commands 230–234, since 2026-11-18), with the same default keys: its Keys screen lists and rebinds them,
   and with them in the table the flight scene reads only the table (`terrain_view.gd` `_own_keys_in_table`; the held
   ones are polled as the stick keys). The same table gives the speed brakes their own switch (records 200 / 201,
-  command 206; modern-iaf/docs/flight-model.md §9.11); in the 1998 game the brake key stays the speed brakes too.
+  command 206, on B / Shift + B there, with its Wheel brakes on Shift + G; modern-iaf/docs/flight-model.md §9.11); in
+  the 1998 game the brake key stays the speed brakes too.
 
   If the player binds one of these keys to a command we implement, the command wins. No table record uses
   Ctrl + F-keys. Moving our functions to Ctrl + F-keys once the original commands on their keys are built is a
