@@ -1122,6 +1122,146 @@ def sills(b):
         print("sills: %d wall faces" % n)
 
 
+# The canopy switch and its yellow lock lever, the "spider" (2026-11-18; the user: "bring it back with the right
+# switch and yellow thingy"), our own geometry: FlightGear's cockpit has neither. On the left side wall under the
+# canopy sill, just aft of the left auxiliary console and above the throttle's forward travel, as on a Portuguese
+# F-16A seen from inside over the left sill, the lever down (milavia.net walk-around, picture 30); the lever's
+# outline (a bar hanging from its hinge block under the sill to a foot, a finger paddle on an arm aft of it, a long
+# leg aft to a T end) from that picture and two cockpit builders' replicas of the part, which also show the toggle
+# standing between the arm and the leg, and the lever up standing level into the cockpit (the pictures and their
+# sources: modern-iaf/docs/cockpit.md §5.6). Its station, drop and size are fitted to picture 30 from the photo's own
+# camera (tools/f16d/fit_photo.py ... canopy). FlightGear's wall falls away outboard under the sill's lip, out of the
+# seat's sight; the lever hangs from under the lip, SPIDER_LEAN off the vertical toward the wall, where the eye and
+# the photo's camera see its face.
+#   CANOPY_SPIDER  the lever, hinged along the sill: 0 down against the wall (the canopy locked), 1 up, standing level
+#                  into the cockpit (unlocked);
+#   CANOPY_SWITCH  the toggle: 1 up OPEN, -1 down CLOSE, sprung to 0.
+SPIDER_Y = 4.455  # the hinge bar's aft edge, FlightGear's station (m): just aft of the left auxiliary console
+SPIDER_DROP = 0.05  # the hinge below the sill's top edge, under the lip
+SPIDER_LEAN = -15.0  # the lever down: deg off the vertical, its lower end outboard
+SPIDER_T = 0.006  # the plate's thickness
+SPIDER_OFF = 0.004  # the plate's back off the wall
+# The plate's outline: u forward along the sill, v down the wall from the hinge, times SPIDER_K (m).
+SPIDER = [(0.0, 0.0), (0.028, 0.0), (0.028, 0.045), (0.05, 0.045), (0.05, 0.068), (0.028, 0.068), (0.028, 0.105),
+          (0.062, 0.105), (0.062, 0.185), (0.012, 0.185), (0.012, 0.125), (0.0, 0.105), (0.0, 0.095),
+          (-0.125, 0.1), (-0.125, 0.113), (-0.138, 0.113), (-0.138, 0.063), (-0.125, 0.063), (-0.125, 0.075),
+          (0.0, 0.07), (0.0, 0.03), (-0.075, 0.0), (-0.075, -0.025), (0.0, 0.004)]
+PADDLE = [(-0.147, -0.05), (-0.072, -0.05), (-0.072, 0.025), (-0.147, 0.025)]  # the finger paddle at the arm's end
+SPIDER_K = 0.45  # the lever 9 cm long, its bar and foot 8 cm
+PADDLE_DEG = 90.0  # standing off the plate toward the pilot, its face aft
+SWITCH_AT = (-0.022, 0.022)  # the toggle (m), between the arm and the leg
+SWITCH_DEG = 22.0  # its throw each way
+SPIDER_YELLOW = (0.85, 0.5, 0.015)
+
+
+def slab(name, outline, w0, w1, at, mat, uv_name):
+    """A plate of `outline` ((u, v) points) from depth w0 to w1, placed by `at` (u, v, w -> a Vector)."""
+    bm = bmesh.new()
+    lo = [bm.verts.new(at(u, v, w0)) for u, v in outline]
+    hi = [bm.verts.new(at(u, v, w1)) for u, v in outline]
+    n = len(outline)
+    bm.faces.new(lo)
+    bm.faces.new(hi)
+    for i in range(n):
+        bm.faces.new((lo[i], lo[(i + 1) % n], hi[(i + 1) % n], hi[i]))
+    bm.normal_update()  # the outline's plane, for the concave fill
+    bmesh.ops.triangulate(bm, faces=bm.faces[:])
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces[:])
+    me = bpy.data.meshes.new(name)
+    bm.to_mesh(me)
+    bm.free()
+    me.uv_layers.new(name=uv_name)
+    me.materials.append(mat)
+    o = bpy.data.objects.new(name, me)
+    kit.scene().collection.objects.link(o)
+    return o
+
+
+def rect(u0, v0, u1, v1):
+    return [(u0, v0), (u1, v0), (u1, v1), (u0, v1)]
+
+
+def ngon(u, v, r, n=8):
+    return [(u + r * math.cos(2 * math.pi * i / n), v + r * math.sin(2 * math.pi * i / n)) for i in range(n)]
+
+
+def canopy_controls(b):
+    tub = next((o for o in b.parts.get("Tub", []) if o.name == "Tub/COCKPIT"), None)
+    border = next((o for o in b.parts.get("Tub", []) if o.name == "Tub/cockpit_border"), None)
+    if tub is None or border is None:
+        raise SystemExit("canopy_controls: no tub")
+    uv_name = border.data.uv_layers[0].name if border.data.uv_layers else "UVMap"
+    vs = [v.co.copy() for v in border.data.vertices if v.co.x < 0]
+    aft = max((v for v in vs if v.y < min(v.y for v in vs) + 0.01), key=lambda v: v.z)  # the sill's top edge (sills)
+    fore = max((v for v in vs if v.y > max(v.y for v in vs) - 0.01), key=lambda v: v.z)
+    f = (fore - aft).normalized()
+    edge = aft + f * ((SPIDER_Y - aft.y) / f.y)
+
+    def wall(p):  # the side wall's face outboard of `p`
+        hit, at, _n, _i = tub.ray_cast(Vector((-0.2, p.y, p.z)), Vector((-1, 0, 0)))
+        if not hit:
+            raise SystemExit("canopy_controls: no wall at %s" % (tuple(p),))
+        return at
+
+    hinge = wall(edge - Vector((0, 0, SPIDER_DROP))) + Vector((0.003, 0, 0))
+    lean = math.radians(SPIDER_LEAN)
+    d = Vector((math.sin(lean), 0, -math.cos(lean)))
+    d = (d - f * d.dot(f)).normalized()  # down, square to the sill
+    n = f.cross(d) if f.cross(d).x > 0 else d.cross(f)  # the plate's face, into the cockpit
+    turn = 1.0 if f.cross(d).dot(n) > 0 else -1.0  # a turn about f this way swings d toward n
+
+    def at(u, v, w):
+        return hinge + f * u + d * v + n * w
+
+    yellow = kit.material("spider_yellow", SPIDER_YELLOW, roughness=0.45)
+    grey = kit.material("spider_fitting", (0.3, 0.31, 0.32), roughness=0.5)
+    black = kit.material("canopy_switch", (0.02, 0.02, 0.022), roughness=0.5)
+    steel = kit.material("canopy_switch_bat", (0.6, 0.6, 0.6), roughness=0.35)
+    w0, w1 = SPIDER_OFF, SPIDER_OFF + SPIDER_T
+    axis_w = (w0 + w1) / 2
+    # The lever: the plate, its hinge lugs, the paddle bent toward the pilot.
+    k = SPIDER_K
+    plate, paddle = [(u * k, v * k) for u, v in SPIDER], [(u * k, v * k) for u, v in PADDLE]
+    fu, bend = paddle[1][0], math.radians(PADDLE_DEG)
+
+    def bent(u, v, w):  # about the paddle's forward edge
+        r = fu - u
+        return at(fu - r * math.cos(bend) + (w - w0) * math.sin(bend), v, w0 + r * math.sin(bend)
+                  + (w - w0) * math.cos(bend))
+
+    spider = kit.join([slab("spider_plate", plate, w0, w1, at, yellow, uv_name),
+                       slab("spider_lug", rect(-0.006, -0.008, 0.022, 0.014), w0 - 0.002, w1 + 0.016, at, yellow,
+                            uv_name),
+                       slab("spider_paddle", paddle, w0, w0 + 0.006, bent, yellow, uv_name)], "CANOPY_SPIDER")
+    # Up: the plate level, standing into the cockpit square to the sill.
+    level = Vector((1, 0, 0))
+    level = (level - f * level.dot(f)).normalized()
+    up_deg = math.degrees(d.angle(level))
+    b.anims[spider] = [{"prop": "f16/canopy/spider", "factor": turn * up_deg, "offset": 0.0,
+                        "centre": list(at(0, 0, axis_w)), "axis": list(f)}]
+    b.controls[spider] = ("Canopy", "CANOPY_SPIDER", {"prop": "f16/canopy/spider", "mode": "cycle", "min": 0.0,
+                                                      "max": 1.0, "step": 1.0, "wrap": True})
+    # The toggle: its lever on a pivot at the wall.
+    su, sv = SWITCH_AT
+    lever = kit.join([slab("switch_bat", ngon(su, sv, 0.0022), 0.004, 0.02, at, steel, uv_name),
+                      slab("switch_tip", ngon(su, sv, 0.003), 0.02, 0.027, at, steel, uv_name)], "CANOPY_SWITCH")
+    b.anims[lever] = [{"prop": "f16/canopy/switch", "factor": turn * SWITCH_DEG, "offset": 0.0,
+                       "centre": list(at(su, sv, 0.003)), "axis": list(f)}]
+    b.controls[lever] = ("Canopy", "CANOPY_SWITCH", {"prop": "f16/canopy/switch", "mode": "cycle", "min": -1.0,
+                                                     "max": 1.0, "step": 1.0, "wrap": True, "rest": 0.0})
+    # The fittings on the wall: the hinge's bracket and ears under the sill, the toggle's box and nut
+    # (they reach back to the wall, which falls away behind the lever: w down to -0.03)
+    fixed = [slab("Canopy/hinge_bracket", rect(-0.02, -0.03, 0.036, -0.012), -0.01, 0.012, at, grey, uv_name),
+             slab("Canopy/hinge_ear_a", rect(-0.014, -0.02, -0.008, 0.008), -0.01, 0.02, at, grey, uv_name),
+             slab("Canopy/hinge_ear_f", rect(0.024, -0.02, 0.03, 0.008), -0.01, 0.02, at, grey, uv_name),
+             slab("Canopy/switch_plate", rect(su - 0.011, sv - 0.011, su + 0.011, sv + 0.011), -0.03, 0.002, at, black,
+                  uv_name),
+             slab("Canopy/switch_nut", ngon(su, sv, 0.0055, 6), 0.002, 0.006, at, grey, uv_name)]
+    b.parts["Canopy"] = [spider, lever] + fixed
+    print("canopy_controls: hinge %s, up %.1f deg, f %s d %s n %s" % (
+        tuple(round(x, 3) for x in hinge), turn * up_deg, *(tuple(round(x, 2) for x in v) for v in (f, d, n))))
+
+
 # The cockpit's baked light (bake_light): one atlas over a second UV set ("light", glTF TEXCOORD_1, Godot's UV2) of
 # every part but the glasses and screens; its size (px), Cycles samples, and the occlusion's reach (m): a switch's
 # contact shadow and the glareshield's shade over the panel both show, the tub's far walls not.
@@ -1273,6 +1413,7 @@ def main():
     hud_posts(b, hud_black)
     coaming(b)
     hud_glass_fit(b)
+    canopy_controls(b)
     everything = [o for o in kit.scene().objects if o.type == 'MESH']  # the new posts and coaming too
     for o in b.parts.get("HUDc", []):
         part = o.name.split("/", 1)[1]

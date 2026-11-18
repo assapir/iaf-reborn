@@ -42,7 +42,7 @@
   {"id": "oxygen", "en": "Oxygen – check", "he": "חמצן – בדיקה"}
 ]},
 {"id": "before_taxi", "en": "BEFORE TAXI", "he": "לפני הסעה", "starts": "hot", "items": [
-  {"id": "canopy", "en": "Canopy – close and lock", "he": "חופה – סגירה ונעילה", "where": {"en": "the Canopy key (the Keys screen): the cockpit has no canopy switch", "he": "מקש החופה (מסך המקשים): בתא הטייס אין מתג חופה"}, "check": {"step": "canopy"}},
+  {"id": "canopy", "en": "Canopy – close and lock", "he": "חופה – סגירה ונעילה", "how": {"en": "hold the click on the canopy switch until the canopy is down (10 s), then one click on the yellow handle: down; the Canopy key does both", "he": "להחזיק לחיצה על מתג החופה עד שהחופה למטה (10 שניות), ואז לחיצה אחת על הידית הצהובה: למטה; מקש החופה עושה את שניהם"}, "where": {"en": "canopy switch and yellow canopy handle: left side wall under the canopy sill, ahead of the throttle", "he": "מתג החופה וידית החופה הצהובה: הדופן השמאלית מתחת לשפת החופה, לפני המצערת"}, "check": {"step": "canopy"}, "control": ["CANOPY_SWITCH", "CANOPY_SPIDER"]},
   {"id": "altimeters", "en": "Altimeters – set and check", "he": "מדי גובה – כיוון ובדיקה"},
   {"id": "ext_lights", "en": "Exterior lights – MASTER, ANTI COLLISION ON; WING/TAIL BRT", "he": "אורות חיצוניים – ‏MASTER, ‏ANTI COLLISION ‏ON; ‏WING/TAIL ‏BRT", "where": {"en": "EXT LIGHTING panel, left console", "he": "לוח EXT LIGHTING, הקונסולה השמאלית"}, "check": {"set": {"SW_MASTER_50": 1, "SW_ANTI_COLLISION_50": 1, "SW_WING-TAIL_50": 1}}, "control": ["SW_MASTER_50", "SW_ANTI_COLLISION_50", "SW_WING-TAIL_50"]},
   {"id": "cmds", "en": "CMDS – RWR, JMR, MWS, O1, O2, CH, FL ON; MODE STBY or MAN", "he": "CMDS – ‏RWR, JMR, MWS, O1, O2, CH, FL ‏ON; ‏MODE ‏STBY או MAN", "how": {"en": "one click each switch", "he": "לחיצה אחת לכל מתג"}, "where": {"en": "CMDS panel, left console, aft", "he": "לוח CMDS, הקונסולה השמאלית, מאחור"}, "check": {"set": {"RWR_50_switch": 1, "JMR_50_switch": 1, "MWS_50_switch": 1, "01_50_switch": 1, "02_50_switch": 1, "CH_50_switch": 1, "FL_50_switch": 1, "MODE_50_knob": [1, 2]}}, "control": ["RWR_50_switch", "JMR_50_switch", "MWS_50_switch", "01_50_switch", "02_50_switch", "CH_50_switch", "FL_50_switch", "MODE_50_knob"]},
@@ -56,7 +56,7 @@
 {"id": "before_takeoff", "en": "BEFORE TAKEOFF", "he": "לפני המראה", "items": [
   {"id": "alt_flaps", "en": "ALT FLAPS – NORM", "he": "ALT FLAPS – ‏NORM", "where": {"en": "FLT CONTROL panel, left console", "he": "לוח FLT CONTROL, הקונסולה השמאלית"}, "check": {"set": {"SW_ALT_FLAPS_50": 0}}, "control": ["SW_ALT_FLAPS_50"]},
   {"id": "trim", "en": "Trim – pitch and yaw centred", "he": "טרים – גובה וכיוון במרכז"},
-  {"id": "canopy_light", "en": "Canopy – CANOPY light out", "he": "חופה – נורית CANOPY כבויה", "check": {"lamp_off": "canopy"}},
+  {"id": "canopy_light", "en": "Canopy – CANOPY light out", "he": "חופה – נורית CANOPY כבויה", "how": {"en": "out with the yellow canopy handle down", "he": "כבויה כשידית החופה הצהובה למטה"}, "check": {"lamp_off": "canopy"}, "control": ["CANOPY_SPIDER"]},
   {"id": "iff", "en": "IFF – set and check", "he": "IFF – כיוון ובדיקה"},
   {"id": "stores_config", "en": "STORES CONFIG – as loaded", "he": "STORES CONFIG – לפי החימוש"},
   {"id": "probe_heat", "en": "PROBE HEAT – PROBE HEAT (on)", "he": "PROBE HEAT – ‏PROBE HEAT (פועל)", "how": {"en": "one click from OFF", "he": "לחיצה אחת מ־OFF"}, "where": {"en": "TEST panel, left console", "he": "לוח TEST, הקונסולה השמאלית"}, "check": {"set": {"SW_PROBE_HEAT": 1}}, "control": ["SW_PROBE_HEAT"]},
@@ -89,7 +89,7 @@
 {"id": "shutdown", "en": "ENGINE SHUTDOWN", "he": "כיבוי מנוע", "when": "landed", "items": [
   {"id": "throttle_off", "en": "Throttle – OFF", "he": "מצערת – ‏OFF", "how": {"en": "over the idle detent: the Throttle OFF key; the engine winds down", "he": "מעבר לעצירת הסרק: מקש Throttle OFF; המנוע דועך"}, "check": {"throttle_off": true, "state": {"engine_on": false}}, "control": ["THROTTLE"], "key": 121},
   {"id": "main_power_off", "en": "MAIN PWR – OFF, below 20 % RPM", "he": "MAIN PWR – ‏OFF, מתחת ל־20% סל\"ד", "how": {"en": "click round to OFF; the lamps go dark", "he": "ללחוץ עד OFF; הנוריות כבות"}, "check": {"set": {"MAIN_PWR": 0}}, "control": ["MAIN_PWR"]},
-  {"id": "canopy_open", "en": "Canopy – open", "he": "חופה – פתיחה"}
+  {"id": "canopy_open", "en": "Canopy – open", "he": "חופה – פתיחה", "how": {"en": "one click on the yellow handle: up; then press the canopy switch, drag up and hold until the canopy is up; the Canopy key does both", "he": "לחיצה אחת על הידית הצהובה: למעלה; ואז ללחוץ על מתג החופה, לגרור למעלה ולהחזיק עד שהחופה למעלה; מקש החופה עושה את שניהם"}, "where": {"en": "canopy switch and yellow canopy handle: left side wall under the canopy sill, ahead of the throttle", "he": "מתג החופה וידית החופה הצהובה: הדופן השמאלית מתחת לשפת החופה, לפני המצערת"}, "control": ["CANOPY_SPIDER", "CANOPY_SWITCH"]}
 ]}
 ]
 }

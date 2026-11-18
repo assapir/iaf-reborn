@@ -763,7 +763,7 @@ occlusion, 1.8 MB; built by
   | FLCS, TO/LDG CONFIG | `better` `flcs`, `to_ldg_config` (as the 2D panel's warning lamps) |
   | ENGINE | damage flag 2 or 22 (engine cut out, permanent engine damage; inferred), or the engine not running (the start's phase, FlightGear's) |
   | HYD/OIL PRESS | damage flag 18 (hydraulics; inferred), or the engine not running and the hydraulic pressure below 1000 psi (FlightGear's) |
-  | CANOPY (right eyebrow) | the canopy not shut (`aircraft_model.gd` `canopy_open`) |
+  | CANOPY (right eyebrow) | the canopy not shut (`aircraft_model.gd` `canopy_open`), or Modern IAF's lock lever up (modern-iaf/docs/cockpit.md §5.6). The model carries that yellow lever and the canopy switch on the left side wall since 2026-11-18; here they are parts that do not move, the lever down |
   | DBU ON (right eyebrow) | the DBU switch on |
   | MAIN GEN, STBY GEN (ELEC panel) | on the battery (power 1: the generators off the buses; FlightGear's `jsb-electrical.xml`) |
   | FLCS PMG, FLCS RLY (ELEC panel) | on the battery before the JFS turns (the start's phase `off`) |

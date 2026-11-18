@@ -63,7 +63,7 @@ Stop on the parking spot. Turn off what the generator feeds while it still runs,
   notes: (
     throttle_off: [The throttle stops at idle; OFF takes its own key, as the real lever's stop at idle takes a deliberate lift.],
     main_power_off: [With the General Electric engine the real pilot waits until the RPM is under 20~%: the nozzle then stays open, which makes the inspection after the flight easier#fm[section II, "Engine shutdown", the note at item 4, page 2-29]. The card keeps the wait for both jets.],
-    canopy_open: [#key("Canopy") opens it.],
+    canopy_open: [Lift the handle, then hold the switch at OPEN; #key("Canopy") does both.],
   ),
 )
 

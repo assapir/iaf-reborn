@@ -17,6 +17,8 @@ f16:
   SW_MPO: {name: MANUAL PITCH switch, where: "left console, outboard of the FLT CONTROL panel"}
   master-arm-switch: {name: MASTER ARM switch, where: "MISC panel, under the glareshield"}
   GEAR_LEVER: {name: Landing gear handle, where: "gear panel, left of the front panel"}
+  CANOPY_SWITCH: {name: Canopy switch, where: "left side wall, under the canopy sill"}
+  CANOPY_SPIDER: {name: Canopy handle, where: "left side wall, under the canopy sill"}
   light-land-switch: {name: LANDING TAXI LIGHTS switch, where: "gear panel, left of the front panel"}
   master_reset: {name: MASTER CAUTION light, where: "glareshield, left of the HUD"}
   AVIONICS_MMC: {name: MMC switch, where: "AVIONIC POWER panel, right console"}

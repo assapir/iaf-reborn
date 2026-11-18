@@ -129,6 +129,15 @@ const RECORDED_S := 0.25
 ## F-35I's inferred the same.
 const CANOPY_S := 10.0
 var _canopy_set := false
+## A jet with a canopy switch and a lock lever (the F-16s' 3D cockpit; cockpit.md §5.6), and the cockpit it was read
+## from: the canopy runs while the switch is held (`_canopy_drive`: 1 OPEN, -1 CLOSE) or the Canopy key's sequence is
+## under way (`_canopy_run`: 1 down then the lever down, -1 up); the flight model's canopy step is the lever down.
+var _spider := false
+var _spider_c3d: Node = null
+var _canopy_drive := 0.0
+var _canopy_run := 0
+var _canopy_dir := 0.0
+var _canopy_snd: Node = null  # the door sound of the canopy's current run: stopped when the run stops or turns
 ## The cockpit view's canopy frames (own_bc's: the F-16's cut model, the F-35I's 3D cockpit) -> their shut transform;
 ## the 3D cockpit they were found with.
 var _frames := {}
@@ -540,6 +549,9 @@ func _finish(d: Dictionary) -> void:
 func start_step(i: int, want := 0) -> void:
 	if i < 0 or i >= STEP_IDS.size():
 		return
+	if STEP_IDS[i] == "canopy" and _spider and host.flight != null:
+		_canopy_step(want)
+		return
 	if STEP_IDS[i] == "avionics" and want == 0 and host.flight != null:
 		want = 0 if SYSTEMS.all(func(s): return host.flight.start_on(s)) else 1
 	_set_switch(STEP_IDS[i], want, STEP_IDS[i])
@@ -574,8 +586,8 @@ func _set_switch(sw: String, want: int, id: String) -> void:
 		e["on"] = false
 	if fault != "" or on != was or turned:
 		host._log_event(host._log_st, e)
-	if on != was and id == "canopy" and host.sounds != null:
-		# The canopy runs down and locks, or opens (modern-iaf/docs/sound.md §1.7).
+	if on != was and id == "canopy" and host.sounds != null and not _spider:
+		# The canopy runs down and locks, or opens (modern-iaf/docs/sound.md §1.7); with a canopy switch: _canopy.
 		host.sounds.play("SFX_DOOR_CLOSE" if on else "SFX_DOOR_OPEN")
 	_shown.erase(sw)  # shown again from the flight model: a click it refused goes back
 	_sync_switches()
@@ -627,17 +639,68 @@ func ins_ready() -> bool:
 	return host.flight.ins_knob() == INS_NAV and bool(host.flight.ins_status()[2])
 
 
+## The F-16's canopy switch held at `v` (1 OPEN, -1 CLOSE) or let go (0): cockpit3d_controls.gd "canopy_switch".
+func canopy_switch(v: float) -> void:
+	_canopy_drive = signf(v)
+	_canopy_run = 0  # the hand on the switch ends the key's sequence
+
+
+## The canopy step on a jet with a canopy switch and a lock lever (cockpit.md §5.6). `want` 0, the Canopy key: the
+## whole sequence, the other way from now (locked or closing: the lever up, then the canopy up; else the canopy down,
+## then the lever down). 1 / -1, the lever itself: down only over a canopy fully down (else it stays up), up at any
+## time on the ground. A click on the lever ends the key's sequence, as a hand on the switch does. In the air the
+## lever stays down, by the key too.
+func _canopy_step(want: int) -> void:
+	var a = host.get("aircraft")
+	var locked: bool = host.flight.start_on("canopy")
+	if locked and want <= 0 and not bool(host.flight.state().get("on_ground", true)):
+		return  # airborne: the lever stays down
+	if want == 0:
+		_canopy_run = -1 if (locked if _canopy_run == 0 else _canopy_run > 0) else 1
+	else:
+		_canopy_run = 0
+	if want < 0 or (want == 0 and locked):
+		_set_switch("canopy", -1, "canopy")
+	elif want > 0 and a != null and a.canopy_open <= 0.0:
+		_set_switch("canopy", 1, "canopy")
+
+
 ## The canopy (training.md §7.1): up on a cold jet until its step, then down over CANOPY_S; shut on a hot or airborne
 ## start. The outside model (aircraft_model.gd canopy_open) and the cockpit view's frame turn alike.
 func _canopy(delta: float) -> void:
 	var a = host.get("aircraft")
 	if a == null:
 		return
+	var c3d = host.get("cockpit_3d")
+	if c3d != _spider_c3d:
+		_spider_c3d = c3d
+		_spider = is_instance_valid(c3d) and c3d.clickable != null and c3d.clickable.has_system("canopy_lock")
 	var up := 0.0 if host.start_engine_on or "canopy" in done else 1.0
-	a.canopy_open = move_toward(a.canopy_open, up, delta / CANOPY_S) if _canopy_set else up
+	if _spider and _canopy_set and host.flight != null:
+		# The lever up: the key's sequence or the held switch runs the canopy. Down over an open canopy (the Start engine
+		# command takes every step at once): the canopy comes down.
+		var dir := -1.0
+		if not host.flight.start_on("canopy"):
+			dir = float(-_canopy_run) if _canopy_run != 0 else _canopy_drive
+		else:
+			_canopy_run = 0
+		a.canopy_open = clampf(a.canopy_open + dir * delta / CANOPY_S, 0.0, 1.0)
+		if (a.canopy_open <= 0.0 and dir < 0.0) or (a.canopy_open >= 1.0 and dir > 0.0):
+			dir = 0.0  # at its stop
+			if _canopy_run > 0:
+				_set_switch("canopy", 1, "canopy")  # the sequence's end: the lever down
+			_canopy_run = 0
+		if dir != _canopy_dir and host.sounds != null:
+			# One door sound per run (sound.md §1.7): short taps of the switch stop it, never stack it.
+			host.sounds.stop(_canopy_snd)
+			_canopy_snd = null
+			if dir != 0.0:
+				_canopy_snd = host.sounds.play("SFX_DOOR_CLOSE" if dir < 0.0 else "SFX_DOOR_OPEN")
+		_canopy_dir = dir
+	else:
+		a.canopy_open = move_toward(a.canopy_open, up, delta / CANOPY_S) if _canopy_set else up
 	_canopy_set = true
 	var bc = host.get("own_bc")
-	var c3d = host.get("cockpit_3d")
 	if is_instance_valid(bc) and (_frames.is_empty() or c3d != _frames_c3d or bc != _frames_bc):
 		_frames_c3d = c3d
 		_frames_bc = bc

@@ -16,8 +16,8 @@ const MIN_VIEW := Vector2(450, 300)
 ## The parts' size on the screen (px) past which they are pictured in the wide view.
 const BIG := Vector2(700, 450)
 ## The steps with no picture: the F-35I's CANOPY switch (tools/f35i cockpit3d.py panel L4, 0.31 m aft) sits behind the
-## seat's side, left to its `where` text; the F-16s' canopy has its key alone (no switch in the model).
-const HIDDEN := {"f35i": ["canopy"], "f16i": ["canopy"], "f16d": ["canopy"]}
+## seat's side, left to its `where` text.
+const HIDDEN := {"f35i": ["canopy"]}
 
 
 func run() -> void:

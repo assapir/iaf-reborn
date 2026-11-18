@@ -5,6 +5,8 @@
 # roll and vertical field of view on the FIT points (least squares, the principal point at the photo's centre), then
 # prints each point's residual (px), the CHECK points' too, and the SHOT_CAM line for the helper's fit render.
 #   python3 -I tools/f16d/fit_photo.py <the helper's output> [jet]
+# A third word `canopy`: the left side wall's photo (CANOPY, modern-iaf/docs/cockpit.md §5.6) against the NODE lines of
+# modern-iaf/tests/_canopy_spider_shot.gd.
 import sys
 
 import numpy as np
@@ -28,6 +30,20 @@ PHOTO = {
     "anim089@pivot": (163.5, 190.0), "anim202@pivot": (195.0, 190.0), "anim096@pivot": (180.0, 222.5),
     "DED_screen": (245.0, 117.0),
 }
+# milavia.net's Portuguese F-16A walk-around, picture 30 (900 x 600 px; a reference only, never in the repo): the left
+# auxiliary console over the left sill, the canopy lock lever up. An F-16A's gear panel against the model's Block 50
+# one: the switches both have, each at its base or centre read at 3.5x zoom (±1 px).
+CANOPY = {
+    "EMER_JETT": (457.1, 188.6), "SW_GND_JETT": (385.7, 234.3), "SW_BRAKES_CHAN": (420.9, 244.3),
+    "SW_PARKING_BRAKE": (460.0, 250.0), "SW_STORES_CONFIG": (352.9, 301.4), "horn_silencer": (406.6, 316.3),
+    "lamp_gear_nose_0": (530.0, 157.1), "lamp_gear_left_0": (504.3, 179.1), "lamp_gear_right_0": (544.3, 187.1),
+    "SW_HOOK": (587.1, 184.3), "pitch-hold-switch": (572.5, 97.5), "roll-hold-switch": (617.0, 102.5),
+}
+# Its lens: 18 mm on a Canon EOS 350D (the file's EXIF; the sensor 14.8 mm high, the frame uncropped): the vertical
+# field of view is known, so the fit solves the camera's place and turn only.
+FOV = None
+if sys.argv[3:4] == ["canopy"]:
+    SIZE, PHOTO, FOV = (900, 600), CANOPY, 2 * np.arctan(14.8 / 2 / 18)
 # The groups the residuals are given by.
 GROUPS = {"MFDs": "MFD_", "ICP": ("com", "ICP_", "list", "a-"), "dials": "anim", "DED": "DED"}
 
@@ -57,7 +73,7 @@ def rot(yaw, pitch, roll):
 
 
 def project(p, P):
-    c, (yaw, pitch, roll, fov) = p[:3], p[3:]
+    c, (yaw, pitch, roll), fov = p[:3], p[3:6], FOV or p[6]
     q = (P - c) @ rot(yaw, pitch, roll)  # each row R^T (P - c)
     f = SIZE[1] / 2 / np.tan(fov / 2)
     return np.stack([SIZE[0] / 2 + f * q[:, 0] / -q[:, 2], SIZE[1] / 2 - f * q[:, 1] / -q[:, 2]], 1)
@@ -91,7 +107,11 @@ def main():
     names = [k for k in PHOTO if k in pts]
     P = np.array([pts[k] for k in names])
     uv = np.array([PHOTO[k] for k in names])
-    p = solve(P, uv, np.array([*eye, 0.0, np.radians(-25), 0.0, np.radians(60)]))
+    start = [*eye, 0.0, np.radians(-25), 0.0, np.radians(60)]
+    if PHOTO is CANOPY:  # from over the left sill, looking forward, right and down
+        start = [eye[0] - 0.5, eye[1] + 0.1, eye[2], np.radians(40), np.radians(-45), 0.0, np.radians(40)]
+    p = solve(P, uv, np.array(start[:6] if FOV else start))
+    p = np.array([*p[:6], FOV or p[6]])
     d = project(p, P) - uv
     res = np.linalg.norm(d, axis=1)
     print("camera %s: %.3f %.3f %.3f m, yaw %.2f pitch %.2f roll %.2f deg, vfov %.1f deg; off the seat's eye %s m" % (

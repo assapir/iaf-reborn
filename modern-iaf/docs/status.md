@@ -328,10 +328,12 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 - **The HUD stays on its glass (2026-11-11, the Mac play test's finding 10):** looking down or aside at the dash the
   HUD's symbols stay on the combiner glass while any of it is on the screen; the DASH takes over only once the glass
   is out of view ([cockpit.md](cockpit.md) §4, docs/cockpit.md "3D cockpit").
-- **The F-16s' canopy by its key (2026-11-18, the user: "remove the f16 cockpit handle. It isn't right for sure"):**
-  the grey rod drawn on the left canopy sill since 2026-11-11 is removed with its click area; Ctrl+K closes and opens
-  the canopy, and the notebook's canopy line points to the Canopy key on the Keys screen ([cockpit.md](cockpit.md)
-  §5.2).
+- **The F-16s' canopy switch and yellow lock lever (2026-11-18, the user: "bring it back with the right switch and
+  yellow thingy"):** on the left side wall under the canopy sill, modelled after a photo of the real jet and fitted to
+  it from the photo's camera. The switch held runs the canopy, the lever down locks it and puts the CANOPY light out;
+  Ctrl+K does the whole sequence ([cockpit.md](cockpit.md) §5.6). The grey rod drawn on the sill from 2026-11-11 was
+  removed the same day (the user: "remove the f16 cockpit handle. It isn't right for sure"). Open: no marking, the
+  jettison T-handle and a two-seater's own wall, for want of a picture.
 - **The hands on the stick and the throttle (2026-11-11, the Mac play test's finding 12):** the left glove holds the
   throttle's grip and follows it over its travel (two shape keys in `f16_pilot.glb`); the right glove holds the stick
   ([cockpit.md](cockpit.md) §5.3).
@@ -577,7 +579,7 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   (`_click_areas_shot.gd`; [cockpit.md](cockpit.md) §5.1, [training.md](training.md) §11). `test_switches_click.gd`.
 - **The start-up switches (2026-11-09):** the F-16s' start-up checklist by the mouse in the 3D cockpit: MAIN PWR, the
   JFS switch, the throttle, the AVIONIC POWER switches, the INS knob (their own nodes of `f16.glb`, each turning to its
-  on position), each sending its key's command (the canopy its key alone since 2026-11-18); the card names each switch
+  on position), each sending its key's command (the canopy its switch and lock lever since 2026-11-18); the card names each switch
   and its
   place ([cockpit.md](cockpit.md) §5.2). The F-35I's the same on its own panels: BATT, IPP, ENG (or START, or the
   throttle) and CANOPY, new nodes of `f35i.glb` at inferred places. `test_mvp.gd` (the Sufa's and the F-35I's

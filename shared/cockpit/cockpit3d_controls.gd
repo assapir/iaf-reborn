@@ -25,7 +25,8 @@
 #     knob); the wheel and a drag a step on or back, stopping at the ends; with "rest" it springs: held at the
 #     position the press chose (the next from rest) and back to rest when let go, the wheel's step back after SPRING_S;
 #     with "spring" too (a list of positions) only those spring back, the others latch (the F-35I's IPP knob: START
-#     springs back to AUTO, OFF stays);
+#     springs back to AUTO, OFF stays); with "click_to" (a table row's) the press goes to that position, not the next
+#     (the F-16's canopy switch: the click holds CLOSE, a drag up OPEN);
 #   - slide (a continuous knob, a wheel): the wheel and a drag a step either way, round past the ends only with "wrap";
 #   - add (a button stepping a value, the ASI's bugs): a click adds its step;
 #   - push (a push button): "press" while held, "rest" when let go;
@@ -153,7 +154,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	match event.button_index:
 		MOUSE_BUTTON_LEFT:
 			if r.has("guard") and float(get_parent().switches.get(r.guard, 0.0)) < 0.5:
-				get_parent().switches[r.guard] = 1.0  # the guard lifts; the switch moves on the next click
+				_lift(r.guard)  # the guard lifts; the switch moves on the next click
 			elif _generic(r) or r.get("mode", "") == "push":
 				press(r)
 			elif r.get("toggle", false):
@@ -273,7 +274,7 @@ static func _wheeled(r: Dictionary) -> bool:
 ## held; any other is held for a drag, its release with no turn its click. Under a shut cover: the cover lifts.
 func press(r: Dictionary) -> void:
 	if r.has("guard") and float(get_parent().switches.get(r.guard, 0.0)) < 0.5:
-		get_parent().switches[r.guard] = 1.0  # its cover lifts; the switch moves on the next press
+		_lift(r.guard)  # its cover lifts; the switch moves on the next press
 		return
 	_held = r
 	_drag = 0.0
@@ -282,8 +283,25 @@ func press(r: Dictionary) -> void:
 		put(r, float(r.press))
 	elif r.has("rest") and r.get("mode", "") == "cycle":
 		var n := _next(r, value(r) if r.has("spring") else float(r.rest))
+		if r.has("click_to"):
+			n = float(r.click_to)
 		if _springs(r, n):  # else a latched position: the release's click moves it
 			put(r, n)
+
+
+## Guard `prop` lifted (to 1): through its own control when it is one with a system (the F-16's canopy lock lever, which
+## the flight model holds), else in the store.
+func _lift(prop: String) -> void:
+	for e in _controls:
+		if e[1].get("prop", "") == prop and e[1].has("system"):
+			put(e[1], 1.0)
+			return
+	get_parent().switches[prop] = 1.0
+
+
+## Whether a control works system `name` (sim_flight.gd: a jet with a canopy lock lever).
+func has_system(name: String) -> bool:
+	return _controls.any(func(e): return e[1].get("system", "") == name)
 
 
 ## The left button let go over the held control: a push button or a spring back to rest; a press with no turn clicks.
@@ -461,6 +479,9 @@ static func _system_state(tv: Object, name: String, now: float) -> float:
 		"threat_vol", "msl_vol":  # the RWR's tones (rwr.gd), on the modern F-16s
 			if tv.weapons.ews != null:
 				return tv.weapons.rwr.threat_volume if name == "threat_vol" else tv.weapons.rwr.launch_volume
+		"canopy_lock":  # the F-16's lock lever: 0 down, the canopy closed and locked (the flight model's step); 1 up
+			if tv.flight != null:
+				return 0.0 if tv.flight.start_on("canopy") else 1.0
 		"eng":  # the F-35I's ENGINE OFF / MOTOR / NORM: not running keeps MOTOR or OFF
 			if tv.flight != null:
 				return 2.0 if tv.flight.start_on("engine") else (1.0 if is_equal_approx(now, 1.0) else 0.0)
@@ -481,11 +502,17 @@ func _system_put(name: String, v: float, was := NAN) -> void:
 		var mid := -1 if name == "starter" else 1  # START 1, BATT, STBY
 		cmd.call([START_CMD[name][0], -1 if p == 0 else (2 if p == mid else 1), START_CMD[name][1]])
 		return
+	if name == "canopy_lock":  # the F-16's lock lever down (p1 1) or up (-1): command 215; a canopy still up refuses it
+		cmd.call([215, -1 if v > 0.5 else 1, 0])
+		return
 	var tv: Object = cmd.get_object() if cmd.is_valid() else null
 	if tv == null or tv.get("weapons") == null:
 		return
 	var on := v > 0.5
 	match name:
+		"canopy_switch":  # held at OPEN (1) or CLOSE (-1): the canopy runs while it is (sim_flight.gd)
+			if tv.get("addon") != null and tv.addon.has_method("canopy_switch"):
+				tv.addon.canopy_switch(v)
 		"master_arm":  # command 202 flips it (and clears SIMULATE); down (-1) is SIMULATE: safe, the HUD's SIM
 			if on != tv.weapons.master_arm:
 				tv._press([202, 0, 0])

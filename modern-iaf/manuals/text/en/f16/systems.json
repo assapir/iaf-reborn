@@ -1817,7 +1817,7 @@
       "Light"
      ],
      "does": "The canopy is not down and locked.",
-     "sim": "On until the canopy is closed and locked."
+     "sim": "On until the canopy is down and the canopy handle is down."
     },
     {
      "node": "lamp_eyebrow_blank_0",
@@ -3384,6 +3384,37 @@
      ],
      "does": "The pressure of the oxygen at the regulator.",
      "sim": "Always normal."
+    }
+   ]
+  },
+  {
+   "id": "canopy",
+   "area": "left",
+   "title": "Canopy controls",
+   "where": "left side wall, under the canopy sill",
+   "controls": [
+    {
+     "node": "CANOPY_SWITCH",
+     "label": "Canopy switch",
+     "name": "Canopy switch",
+     "positions": [
+      "OPEN",
+      "centre",
+      "CLOSE"
+     ],
+     "does": "Runs the canopy up or down while it is held; let go, it springs back to the centre and the canopy stops.",
+     "sim": "Hold the click for CLOSE; press and drag up for OPEN. The canopy handle down holds it centred: a click then lifts the handle first."
+    },
+    {
+     "node": "CANOPY_SPIDER",
+     "label": "Canopy handle",
+     "name": "Canopy lock handle (yellow)",
+     "positions": [
+      "Up",
+      "Down"
+     ],
+     "does": "Down, over a closed canopy, it locks the canopy and inflates its seal; the CANOPY light goes out. Down, it also guards the canopy switch.",
+     "sim": "A click puts it down or up. It goes down only when the canopy is fully down. The seal and the cabin pressure do not follow it."
     }
    ]
   }

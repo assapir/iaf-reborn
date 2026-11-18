@@ -69,6 +69,9 @@ func _jet(tv: Node, id: String, f35: bool) -> void:
 	if canopy != "":
 		check(float(sw.get(canopy)) == 0.0, "%s: the canopy switch shown open" % id)
 	await _cmd(tv, 215)
+	# The F-16s: the key runs the canopy down first, then the lock lever (test_canopy_spider.gd).
+	await _until(tv, func(): return f.start_on("canopy"), 15.0)
+	await frames(2)
 	check(f.start_on("canopy") and "canopy" in tv.addon.done, "%s: the canopy closed again" % id)
 	if f35:
 		# The ENG switch off: the engine shut down (a fault of the start-up), its switch shown off.

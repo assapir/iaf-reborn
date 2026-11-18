@@ -101,3 +101,6 @@ Made by `tools/f16d/cockpit3d.py` (re-runnable; docs/cockpit.md "3D cockpit"):
     as the cockpit; its materials matte (roughness 0.85), the suit's sheet halved to 1024 x 2048, both sheets as JPEG.
     Ours (2026-11-11): the left forearm and glove turned and moved onto the throttle's grip, and two shape keys
     (`throttle_idle`, `throttle_full`) that turn them with the grip over its travel.
+20. Ours (2026-11-18, `canopy_controls`): the canopy switch (`CANOPY_SWITCH`) and the yellow canopy lock lever
+    (`CANOPY_SPIDER`) with their fittings on the left side wall under the sill, our own geometry after photos of the
+    real jet (modern-iaf/docs/cockpit.md §5.6); no FlightGear data.

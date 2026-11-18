@@ -63,7 +63,7 @@ func run() -> void:
 		_lamp_test(id)
 		_resets(tv, id)
 		await _switches(tv, id)
-		_states(tv, id)
+		await _states(tv, id)
 		await _start(tv, id)
 
 
@@ -190,8 +190,14 @@ func _states(tv: Node, id: String) -> void:
 	check(_lit_now("caution_ecm"), "%s: ECM failed, its caution" % id)
 	c.damage_flags = flags
 	tv.aircraft.canopy_open = 0.0
-	check(not _lit_now("canopy"), "%s: the canopy shut, CANOPY dark" % id)
+	await frames(2)
+	check(_lit_now("canopy"), "%s: the canopy down, the lock lever up: CANOPY lit" % id)
+	tv._command([215, 1, 0])  # the lock lever down
+	await frames(2)
+	check(not _lit_now("canopy"), "%s: the canopy shut and locked, CANOPY dark" % id)
+	tv._command([215, -1, 0])
 	tv.aircraft.canopy_open = 1.0
+	await frames(2)
 
 
 ## The start: JFS RUN lit past the JFS's spool-up, ACFT BATT TO FLCS below 44 %; at idle on the generators every
@@ -216,6 +222,8 @@ func _start(tv: Node, id: String) -> void:
 	Engine.time_scale = 1.0
 	await frames(3)
 	tv.aircraft.canopy_open = 0.0
+	tv._command([215, 1, 0])  # shut and locked
+	await frames(2)
 	var still: Array = ON_BATTERY.filter(func(k): return k != "master_caution" and _lit_now(k))
 	check(still.is_empty(), "%s: running on the generators, the start-up's lamps dark (lit: %s)" % [id, still])
 	check(not _lit_now("jfs_run") and not _lit_now("to_flcs"), "%s: JFS RUN, BATT TO FLCS out" % id)

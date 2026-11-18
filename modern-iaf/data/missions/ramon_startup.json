@@ -53,8 +53,8 @@
         "switches": [
           "main_power"
         ],
-        "en": "The jet stands cold at its parking spot: no power, the screens dark, the canopy up. Each step is a key, and each but the canopy also a click on its switch in the 3D cockpit, and the checklist notebook ({key:118}) lists the steps and ticks them off. Begin with main power: {key:119} sets the MAIN PWR switch (ELEC panel, left console, by the throttle) to MAIN PWR; a click on it moves it one position, so two clicks: OFF, BATT, MAIN PWR. The lamps and the engine gauges come alive.",
-        "he": "המטוס עומד קר בחניה: אין מתח, המסכים כבויים והחופה פתוחה. כל שלב הוא מקש, וכל שלב מלבד החופה הוא גם לחיצה על המתג שלו בתא הטייס התלת־ממדי, והבד\"ח ({key:118}) מציג את השלבים ומסמן את מה שבוצע. להתחיל במתח הראשי: {key:119} מעביר את מתג MAIN PWR (לוח ELEC, בקונסולה השמאלית ליד המצערת) ל־MAIN PWR; כל לחיצה מעבירה אותו מצב אחד, ולכן שתי לחיצות: OFF, ‏BATT, ‏MAIN PWR. הנוריות ומדי המנוע נדלקים."
+        "en": "The jet stands cold at its parking spot: no power, the screens dark, the canopy up. Each step is a key or a click on its switch in the 3D cockpit, and the checklist notebook ({key:118}) lists the steps and ticks them off. Begin with main power: {key:119} sets the MAIN PWR switch (ELEC panel, left console, by the throttle) to MAIN PWR; a click on it moves it one position, so two clicks: OFF, BATT, MAIN PWR. The lamps and the engine gauges come alive.",
+        "he": "המטוס עומד קר בחניה: אין מתח, המסכים כבויים והחופה פתוחה. כל שלב הוא מקש או לחיצה על המתג שלו בתא הטייס התלת־ממדי, והבד\"ח ({key:118}) מציג את השלבים ומסמן את מה שבוצע. להתחיל במתח הראשי: {key:119} מעביר את מתג MAIN PWR (לוח ELEC, בקונסולה השמאלית ליד המצערת) ל־MAIN PWR; כל לחיצה מעבירה אותו מצב אחד, ולכן שתי לחיצות: OFF, ‏BATT, ‏MAIN PWR. הנוריות ומדי המנוע נדלקים."
       },
       {
         "switches": [
@@ -79,8 +79,11 @@
         "he": "כשהגנרטורים פועלים, להדליק את האוויוניקה: {key:122} מעביר את ארבעת מתגי AVIONIC POWER (MMC, ST STA, MFD, UFC; בקונסולה הימנית) ל־ON, והתצוגות וה־HUD עולים כעבור 3 שניות. אחר כך ה־INS: ‏{key:123} או לחיצה מעבירים את הבורר שלו (לוח AVIONIC POWER) מצב אחד, קודם ל־STOR HDG; יישור STOR HDG נמשך 90 שניות, ALIGN מופיע ב־HUD ומהבהב כשהיישור הושלם (דף ה־INS ב־DED, ‏LIST ואז 6, מציג את הזמן). אחר כך עוד שני מצבים, דרך NORM, ל־NAV: ה־INS מנווט וההיגוי פועל. הדלקת האוויוניקה לפני הגנרטורים אינה מקבלת מתח, והמשימה נכשלת."
       },
       {
-        "en": "Close and lock the canopy with {key:124}; it comes down over 10 s. The mission passes when every step is done, the engine idles and the avionics are up within {minutes} minutes. A step out of order fails it at once, with the reason first in the debrief.",
-        "he": "לסגור ולנעול את החופה עם {key:124}; היא יורדת במשך 10 שניות. המשימה מצליחה כשכל השלבים בוצעו, המנוע בסרק והאוויוניקה פועלת בתוך {minutes} דקות. שלב שבוצע שלא לפי הסדר מכשיל אותה מיד, והסיבה מופיעה ראשונה בתחקיר."
+        "switches": [
+          "canopy"
+        ],
+        "en": "Close and lock the canopy: {key:124} does it all, or hold the click on the canopy switch (left side wall under the canopy sill, ahead of the throttle) until the canopy is down, about 10 s, then click the yellow handle beside it down. The mission passes when every step is done, the engine idles and the avionics are up within {minutes} minutes. A step out of order fails it at once, with the reason first in the debrief.",
+        "he": "לסגור ולנעול את החופה: {key:124} עושה הכול, או להחזיק לחיצה על מתג החופה (בדופן השמאלית מתחת לשפת החופה, לפני המצערת) עד שהחופה למטה, כ־10 שניות, ואז ללחוץ על הידית הצהובה שלידו כדי להורידה. המשימה מצליחה כשכל השלבים בוצעו, המנוע בסרק והאוויוניקה פועלת בתוך {minutes} דקות. שלב שבוצע שלא לפי הסדר מכשיל אותה מיד, והסיבה מופיעה ראשונה בתחקיר."
       }
     ]
   },

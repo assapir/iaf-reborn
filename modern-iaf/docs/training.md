@@ -290,8 +290,8 @@ real start by keys, step by step. The pilot's notebook (§11) shows the steps am
 page (§12; START-UP until 2026-11-17), in English and
 Hebrew: each step with its switch's name and place and the state to wait for, the steps taken ticked, the step to take
 now marked, and a fault in red under it. Since 2026-11-13 it names no key (the user: "lets remove the kb hints"): the
-briefing's How and the Keys screen list the keys. One step has no switch in the cockpit, the F-16s' canopy (since
-2026-11-18), and its line points to the Canopy key on the Keys screen. Each step but the idle is a key of the sim's own
+briefing's How and the Keys screen list the keys. The F-16s' canopy step is its switch and its lock lever
+([cockpit.md](cockpit.md) §5.6). Each step but the idle is a key of the sim's own
 `keys.json` (records 119–124,
 commands 210–215; `iaf-sim own` refuses a key bound twice) and a click on its switch in the 3D cockpit
 ([cockpit.md](cockpit.md) §5.2). The flight model takes each step
@@ -311,7 +311,7 @@ reads the same `checklist` event. The throttle goes back to OFF by its own key, 
 | 3 | Throttle to idle at 20 % RPM | the throttle up from OFF | light-off 5 s later, idle 15 s after it; the main generator at 52 %, the JFS off | below 20 %: a hot start, the engine shut down, `hot_start`; no rotation: no light-off, `no_rotation`; never: the JFS holds at 20 % | 20 % minimum[^chk]; 52 %[^f16net]; the times inferred |
 | 4 | Avionics power: the four AVIONIC POWER switches ON, after the generators | Ctrl+A (or a click on each; the key also turns the SNSR PWR panel's FCR and RDR ALT on; it turns the four off only with all six on) | each switch's system 3 s later ([cockpit.md](cockpit.md) §5.2 "One by one") | before the generators: no power, `avionics_early` | inferred (the avionics go on after the engine start in the checklist[^chk]) |
 | 5 | INS: STOR HDG, wait, then NAV | Ctrl+N or a click: the knob one position on (OFF, STOR HDG, NORM, NAV, …) | aligned 90 s after STOR HDG (ALIGN on the HUD, flashing when done; the DED's INS page, LIST then 6, counts it); the step is done at NAV once aligned (since 2026-11-17: until then the lesson's pass waited 90 s in silence after the last step) | without main power: `ins_no_power` | 90 s[^ins] (a full alignment takes about 8 minutes[^ins]) |
-| 6 | Canopy: close and lock | Ctrl+K | at once; the canopy, up 30° at the cold start, comes down over 10 s | any time; taxiing with it up has no consequence | [^chk]; 30° and 10 s[^fgcanopy] |
+| 6 | Canopy: close and lock | Ctrl+K, or the canopy switch held and then the lock lever ([cockpit.md](cockpit.md) §5.6) | when the canopy is down and the lever goes down; the canopy, up 30° at the cold start, comes down over 10 s | any time; taxiing with it up has no consequence | [^chk]; 30° and 10 s[^fgcanopy] |
 
 | # | F-35I Adir | key | timing | out of order | source |
 |---|---|---|---|---|---|
@@ -558,7 +558,7 @@ the body is hidden ([cockpit.md](cockpit.md) §5.3). Pictures: `modern-iaf/tests
 
 | page | step | clickable |
 |---|---|---|
-| CHECKLIST | every start-up step of the Sufa, the Barak and the Adir: MAIN PWR, JFS, the four AVIONIC POWER switches, the INS knob; BATT, IPP, ENG / START, CANOPY; the throttle out of OFF by its keys or lever (no mouse since 2026-11-15); the F-16s' canopy by its key (since 2026-11-18) | yes, except the throttle and the F-16s' canopy ([cockpit.md](cockpit.md) §5.2; `test_mvp.gd` clicks each, the F-35I's CANOPY included) |
+| CHECKLIST | every start-up step of the Sufa, the Barak and the Adir: MAIN PWR, JFS, the four AVIONIC POWER switches, the INS knob; BATT, IPP, ENG / START, CANOPY; the throttle out of OFF by its keys or lever (no mouse since 2026-11-15); the F-16s' canopy switch and lock lever (since 2026-11-18) | yes, except the throttle ([cockpit.md](cockpit.md) §5.2, §5.6; `test_mvp.gd` clicks each, the F-35I's CANOPY included) |
 | LANDING | the landing gear handle (both cockpits) | yes since 2026-11-13: the G key's command, refused on the ground |
 | LANDING, EMERGENCY | the throttle to OFF over the idle detent | no: the throttle takes no mouse; OFF is Throttle OFF (Shift + 1) |
 | LANDING | the wheel brakes (the rudder pedals) | no: no pedal part answers the mouse (open) |

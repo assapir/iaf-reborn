@@ -4071,6 +4071,40 @@
     ]
    }
   ],
+  "CANOPY_SPIDER": [
+   {
+    "prop": "f16/canopy/spider",
+    "factor": -105.23235571217127,
+    "offset": 0.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     0.05047,
+     -0.07688,
+     -0.99576
+    ]
+   }
+  ],
+  "CANOPY_SWITCH": [
+   {
+    "prop": "f16/canopy/switch",
+    "factor": -22.0,
+    "offset": 0.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     0.05047,
+     -0.07688,
+     -0.99576
+    ]
+   }
+  ],
   "HUD_MODE": [
    {
     "prop": "f16/avionics/hud-brt-switch",
@@ -6814,6 +6848,25 @@
    "prop": "f16/avionics/ded-up-down",
    "mode": "push",
    "press": -1.0,
+   "rest": 0.0,
+   "modelled": 0.0
+  },
+  "CANOPY_SPIDER": {
+   "prop": "f16/canopy/spider",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 0.0
+  },
+  "CANOPY_SWITCH": {
+   "prop": "f16/canopy/switch",
+   "mode": "cycle",
+   "min": -1.0,
+   "max": 1.0,
+   "step": 1.0,
+   "wrap": true,
    "rest": 0.0,
    "modelled": 0.0
   }

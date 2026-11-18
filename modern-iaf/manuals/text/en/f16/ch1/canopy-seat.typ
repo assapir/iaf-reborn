@@ -2,7 +2,7 @@
 
 === Canopy
 
-One canopy covers both seats. It is hinged at its aft end; a switch opens and closes it and a handle locks it. The red #row("lamp_canopy_0") warning light is on while the canopy is not locked#fm[pages 1-157 and 1-160]. The light must be out before the take-off roll: the air can tear an unlocked canopy off (inferred). A T-handle jettisons the canopy#fm[page 1-161].
+One canopy covers both seats. It is hinged at its aft end; #row("CANOPY_SWITCH") opens and closes it and the yellow #row("CANOPY_SPIDER") locks it. The red #row("lamp_canopy_0") warning light is on while the canopy is not locked#fm[pages 1-157 and 1-160]. The light must be out before the take-off roll: the air can tear an unlocked canopy off (inferred). A T-handle jettisons the canopy#fm[page 1-161].
 
 === Ejection seat
 
@@ -30,8 +30,8 @@ Air bled from the engine pressurises and cools the cockpit and cools the avionic
 #row("anim104") shows the cabin's own altitude. The #row("lamp_caution_cabin_press_0") caution light comes on when it passes 27,000 ft#fm[page 1-82]: descend, and check the oxygen. The #row("lamp_caution_equip_hot_0") caution light means that the avionics get too little cooling air; without cooling they overheat (inferred).
 
 #in-sim[
-  - *Canopy.* #key("Canopy") closes and opens it; it takes 10 seconds. #sym.arrow.r *CANOPY is on while it is open.*
+  - *Canopy.* Hold #row("CANOPY_SWITCH") at CLOSE until the canopy is down (10 seconds for the whole travel), then put #row("CANOPY_SPIDER") down. #sym.arrow.r *CANOPY goes out.* To open, lift the handle and hold the switch at OPEN. #key("Canopy") does the whole sequence either way.
   - *Ejection.* #key("Eject (press 3 times)"), pressed three times within a second, ejects.
   - *Cabin.* CABIN PRESS ALT follows the jet up to 8,000 ft, stays there up to about 23,000 ft and rises above that. With AIR SOURCE at OFF, DUMP or RAM it follows the jet all the way. #sym.arrow.r *CABIN PRESS lights above a cabin altitude of 27,000 ft.* *EQUIP HOT lights* with AIR SOURCE at OFF, or at RAM below 70 knots, once the avionics have power.
-  - *#term("Not modelled").* The canopy's switch and handle and the seat's safety lever, which the cockpit does not have, and SEAT NOT ARMED; the canopy's jettison and its loss in flight; the oxygen system (the levers move, LIQUID OXYGEN shows a fixed value); the cabin's pressure and temperature have no effect on the pilot; the avionics do not fail from heat.
+  - *#term("Not modelled").* The seat's safety lever, which the cockpit does not have, and SEAT NOT ARMED; the canopy's seal; the canopy's jettison and its loss in flight; the oxygen system (the levers move, LIQUID OXYGEN shows a fixed value); the cabin's pressure and temperature have no effect on the pilot; the avionics do not fail from heat.
 ]

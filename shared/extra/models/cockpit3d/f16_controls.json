@@ -8,6 +8,8 @@
 "AVIONICS_MFD": {"click": [219, 0, 2], "prop": "f16/avionics/power-mfd", "on": 1, "off": 0, "toggle": true},
 "AVIONICS_UFC": {"click": [219, 0, 3], "prop": "f16/avionics/power-ufc", "on": 1, "off": 0, "toggle": true},
 "INS": {"click": [214, 0, 0], "turn": [214, 1, 0], "drag_px": 20, "prop": "f16/avionics/ins-knob", "on": 1, "off": 0},
+"CANOPY_SPIDER": {"system": "canopy_lock", "click": [215, 0, 0]},
+"CANOPY_SWITCH": {"system": "canopy_switch", "click": [215, 0, 0], "guard": "f16/canopy/spider", "click_to": -1},
 "GEAR_LEVER": {"click": [14, 0, 0]},
 "FCR": {"click": [219, 0, 4], "prop": "f16/avionics/power-fcr", "on": 1, "off": 0, "modelled": 0, "toggle": true},
 "RDR_ALT": {"system": "rdr_alt", "click": [219, 0, 5], "prop": "f16/avionics/power-rdr-alt", "on": 2, "off": 0, "modelled": 0, "toggle": true},

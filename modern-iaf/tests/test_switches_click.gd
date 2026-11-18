@@ -38,6 +38,8 @@ const F16 := [
 	["RDR_ALT", [219, 2, 5]],  # OFF to STBY
 	["INS", [214, 0, 0]],
 	["GEAR_LEVER", [14, 0, 0]],
+	["CANOPY_SWITCH", []],  # held at CLOSE, sprung back: the canopy runs meanwhile (test_canopy_spider.gd), no command
+	["CANOPY_SPIDER", [215, 1, 0]],  # the lock lever, up on the cold jet: down
 ]
 
 

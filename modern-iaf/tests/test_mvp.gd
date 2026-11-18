@@ -483,7 +483,11 @@ func _do_item(tv: Node, it: Dictionary, keys: bool) -> void:
 		await _target(tv, String(open[0]))
 	match step:
 		"main_power", "starter", "canopy":
-			if keys or ctl.is_empty():  # the F-16's canopy: its key alone, no switch in the model
+			if step == "canopy" and not keys and "CANOPY_SPIDER" in ctl:
+				# The F-16's: the canopy switch held at CLOSE until the canopy is down, then the lock lever clicked down.
+				await _hold_control(tv, "CANOPY_SWITCH", func(): return tv.aircraft.canopy_open <= 0.0, 15.0)
+				await _click_control(tv, "CANOPY_SPIDER")
+			elif keys or ctl.is_empty():
 				# MAIN PWR at BATT (the card's item before): the key turned the other way would put it OFF; p1 1 goes on
 				var on := 1 if step == "main_power" and tv.flight.start_position(step) == 1 else 0
 				tv._command([210 + tv.addon.STEP_IDS.find(step), on, 0])
@@ -636,6 +640,25 @@ func _click_control(tv: Node, node: String, moves := true) -> void:
 	await frames(2)
 	if moves and node != "THROTTLE":  # the throttle: its own animation
 		check(not mi.transform.is_equal_approx(rest), "%s: the switch turned" % node)
+	hover.position = Vector2.ZERO
+	vp.push_input(hover)
+
+
+## The left button held on the 3D cockpit's control `node` until `done` holds (at most `limit` sim s), then let go.
+func _hold_control(tv: Node, node: String, done: Callable, limit: float) -> void:
+	var mi: MeshInstance3D = tv.cockpit_3d.find_child(node, true, false)
+	check(mi != null, "the 3D cockpit's control %s" % node)
+	if mi == null:
+		return
+	var vp: Viewport = tv.get_viewport()
+	var at := await _aim(tv, func() -> Vector3: return mi.global_transform * mi.get_aabb().get_center(), 0.0)
+	var hover := InputEventMouseMotion.new()
+	hover.position = at
+	vp.push_input(hover)
+	vp.push_input(_click(at, MOUSE_BUTTON_LEFT, true))
+	check(await _until(tv, done, limit), "%s held: done" % node)
+	vp.push_input(_click(at, MOUSE_BUTTON_LEFT, false))
+	await frames(2)
 	hover.position = Vector2.ZERO
 	vp.push_input(hover)
 

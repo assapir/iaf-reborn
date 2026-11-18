@@ -2,6 +2,8 @@
 "about": "Each control's state in the sim (modern-iaf/docs/manuals.md \u00a72): per node of the cockpit's control table, and per lamp, gauge and display that chapter 1 of the manuals numbers, status (works: does its real job; partly: only lights a lamp or caution, or only one position does anything; moves: the control moves, nothing else happens; none: a lamp, gauge or display the sim does not drive) and a short note. From the controls audit of 18 November 2026 and a trace of each lamp, gauge and display to the reader of its state (shared/cockpit/cockpit3d.gd). tools/manuals.py stops the manuals' build on a control without a status.",
 "controls": {
 "CAUTION_RESET": {"status": "works"},
+"CANOPY_SWITCH": {"status": "works"},
+"CANOPY_SPIDER": {"status": "partly", "note": "Locks the canopy and puts the CANOPY light out; the seal and the cabin pressure do not follow it."},
 "SW_FLCS_BIT": {"status": "partly", "note": "Lights the RUN lamp only; the self test is not modelled."},
 "AVTR_TEST": {"status": "works"},
 "SW_KNOB_ENG_FEED": {"status": "moves"},

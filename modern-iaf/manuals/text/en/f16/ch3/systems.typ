@@ -57,4 +57,4 @@ A fault of the #term("FLCS") (@flight-controls) shows as *#row("lamp_flcs_0")* o
 - *Cabin pressure lost or too hot:* oxygen to 100~%, below 25,000 ft and 500 kt, AIR SOURCE to OFF for 10 to 15 seconds and back to NORM#fm[section III, "Cockpit pressure/temperature malfunction", page 3-39].
 - *Smoke or fumes:* any unknown smell is taken as toxic. Oxygen on, 100~% and EMER#fm[section III, "Smoke or fumes", page 3-131].
 
-#in-sim[The CANOPY light shows an open canopy on the ground. With #row("AirSource_knob") at NORM the cabin altitude stays under 27,000 ft. At OFF, DUMP or RAM the cabin has the jet's own altitude #sym.arrow.r *#row("lamp_caution_cabin_press_0") lights above 27,000 ft.*]
+#in-sim[The CANOPY light shows a canopy that is open or not locked on the ground. With #row("AirSource_knob") at NORM the cabin altitude stays under 27,000 ft. At OFF, DUMP or RAM the cabin has the jet's own altitude #sym.arrow.r *#row("lamp_caution_cabin_press_0") lights above 27,000 ft.*]

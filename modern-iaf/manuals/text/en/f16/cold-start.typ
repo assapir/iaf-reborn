@@ -126,7 +126,7 @@ Close the canopy, set the lights and the countermeasures panel, and put the INS 
   "before_taxi",
   captions: caps,
   seen: (
-    canopy: [Canopy down in about 10 seconds; CANOPY light out when it is locked],
+    canopy: [Canopy down in about 10 seconds while the switch is held; CANOPY light out when the handle is down],
     ins: [ALIGN flashes on the HUD when the alignment is done; at NAV, ALIGN goes out and the HUD shows steering],
   ),
   figs: ("ext_lights", "cmds", "avionic_power", "gear"),

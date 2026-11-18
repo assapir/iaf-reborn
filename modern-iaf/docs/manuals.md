@@ -490,6 +490,11 @@ Parts:
 ## 7. Open
 
 - Cross-manual links in macOS Preview: to check on the Mac.
+- The F-16's `overview_all` picture is owed a retake on the Mac (2026-11-18): it predates the canopy switch and lock
+  lever ([cockpit.md](cockpit.md) §5.6), whose panel "Canopy controls" stands last in section 1.2 so that no other
+  panel's section or figure number moved. Its box in the overview is placed from its neighbours' boxes. On the Linux
+  laptop the overview comes out turned 25° to the left, with or without the new panel (main's own retake differs from
+  the committed marks by the same amount), so it was not retaken there; `p_canopy`, `gear` and `cmds` were.
 - The RPM indicator's picture for "Starting engine": the gauge's needle node (`anim069`) has no mesh the shot script
   can box; the text names its place instead.
 - Fixed 2026-11-18 (the faults the manuals exposed, group A): the F-16's airspeed dial reads indicated airspeed

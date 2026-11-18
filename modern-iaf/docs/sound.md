@@ -169,7 +169,7 @@ figures are in the review folder (`~/.claude/iaf-2026-pages/sound/core/`, notes.
 | the start (§1.4) | from the first crank the idle loop at pitch 1.13–1.18, at full level; no JFS, no light-off | the JFS whine: partials at 2126, 3252, 4247, 5259, 6401 Hz, 20–30 dB over the broadband, rising from half that pitch over about 15 s[^start] | the JFS whine, the engine's pitch and level by its RPM, a light-off thump, the JFS winding down at the generators |
 | the gun (§1.5) | 48 rounds a second (the recording's own rate) | 105 rounds a second, two F-16 firing videos[^gun1][^gun2]; the M61A1 fires 6,000 a minute | 100 rounds a second |
 | the wind (§1.6) | silent (no caller) | open: the cockpit videos' sound is the intercom | the KC-135 wind loop, its amplitude as the dynamic pressure |
-| the canopy (§1.7) | silent (no caller); the opening clip was the library's spoken slate | — | the closing plays at the checklist's canopy step; the opening clip is the motor |
+| the canopy (§1.7) | silent (no caller); the opening clip was the library's spoken slate | — | the closing plays at the checklist's canopy step (the F-16s: as the canopy starts down, [cockpit.md](cockpit.md) §5.6); the opening clip is the motor |
 | the touchdown (§1.8) | a bicycle brake's squeal: two tones at 1.6 and 3.3 kHz, 0.55 s | an airplane tyre skid (CC0[^skid]): broadband 0.2–4 kHz, 0.35 s | that skid with a 60 Hz thump under it, 0.45 s |
 | gear and flaps | the gear clip (a flight-sim recording) runs 3.5 s against the sim's 3 s gear travel; the flaps clip is a steady motor whine, its centroid at 3.8 kHz | open: no usable recording | unchanged (open) |
 | the tower's key clicks | none: a call's particles played alone | a tower frequency on a scanner[^mco] | the radio's keyed quiet, §5.2 |
@@ -220,7 +220,8 @@ spectrum, and the air brake's loop over it. The cockpit's level: §1.9.
 `SFX_DOOR_CLOSE` (craigsmith's USC recording of a jet's canopy closing, its 4 s motor run to the lock) now plays at
 the start-up checklist's canopy step (`sim_flight.gd`). `sfx_door_open.ogg` was the recording's first 4 s, the
 library's spoken slate (speech formants every 0.3 s); it is now the motor's second run (21.25–25 s), still with no
-caller. Open: a real F-16 canopy's run time (the references could not separate it from the ground power).
+caller. On the F-16s each run of the canopy plays one door sound; the sound stops when the run stops or turns, so
+short taps of the canopy switch never stack it (§5.6 of [cockpit.md](cockpit.md)). Open: a real F-16 canopy's run time (the references could not separate it from the ground power).
 
 ### 1.8 The touchdown
 `flight_sounds.gd` plays `SFX_TOUCHDOWN` when the wheels touch with the gear down. The clip was a bicycle tyre's

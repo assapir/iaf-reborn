@@ -320,7 +320,7 @@ switches as FlightGear models them.
 | 3 | throttle (`THROTTLE`, not clickable) | the throttle, left console | its keys (Throttle up, 1) and the throttle lever | Throttle up | the throttle's own animation: out of OFF |
 | 4 | MMC, ST STA, MFD, UFC switches (`AVIONICS_MMC`, `AVIONICS_ST_STA`, `AVIONICS_MFD`, `AVIONICS_UFC`) | AVIONIC POWER panel, right console[^bms-ramp][^fg-right] | a click `[219, ±1, 0..3]`, each its own; Ctrl+A `[213, 0, 0]` all four | Ctrl+A | ON (1) / OFF (0): the key all four, a click its own switch |
 | 5 | INS knob (`INS`) | AVIONIC POWER panel, right console[^bms-ramp][^fg-right] | `[214, 0, 0]`; the wheel and a drag `[214, ±1, 0]` | Ctrl+N | six positions: OFF (0), STOR HDG (1), NORM (2), NAV (3), IN FLT ALIGN (4), ATT (5); the step done at STOR HDG to IN FLT ALIGN |
-| 6 | canopy (its key; the model has no canopy switch) | the real switch: left side, aft of the left console[^dcs-canopy] | `[215, 0, 0]` | Ctrl+K | none |
+| 6 | canopy switch and lock lever (`CANOPY_SWITCH`, `CANOPY_SPIDER`; §5.6) | left side wall under the canopy sill, ahead of the throttle[^milavia-canopy] | the lever `[215, ±1, 0]`; the switch runs the canopy while held | Ctrl+K (the whole sequence) | the switch 22° up (OPEN) / down (CLOSE); the lever 105° up |
 | take-off, landing | landing gear handle (`GEAR_LEVER`) | left auxiliary console (FlightGear's `LeftAuxConsole` `gear_lever`) | `[14, 0, 0]` | G | the handle's own animation (`controls/gear/gear-down`) |
 | (sensors) | FCR, RDR ALT switches (`FCR`, `RDR_ALT`) | SNSR PWR panel, right console[^fg-right] | `[219, ±1, 4]`, `[219, -1 / 2 / 1, 5]`; Ctrl+A turns both on with the avionics | Ctrl+A (on only) | ON (1) / OFF (0); RDR ALT ON (2) / STBY (1) / OFF (0) |
 | (pods) | LEFT HDPT, RIGHT HDPT switches (`l-hdpt-switch`, `r-hdpt-switch`; since 2026-11-17) | SNSR PWR panel, right console[^fg-right] | `[219, ±1, 6]`, `[219, ±1, 7]`: the chin stations' power, RIGHT HDPT the targeting pod's ([weapons.md](weapons.md) §7.2); Ctrl+A turns both on with the avionics | Ctrl+A (on only) | ON (1) / OFF (0) |
@@ -329,10 +329,9 @@ switches as FlightGear models them.
   the throttle or stick from the mouse"): a click and the wheel stepped it 5 %, a drag moved it, a drag down from idle
   went over the detent to OFF. The throttle now moves by its keys and the lever only; OFF is Throttle OFF (Shift + 1).
 
-- **The canopy** closes and opens by its key, Ctrl+K (key record 124), on both F-16s: FlightGear's model has no canopy
-  switch, so the step has no control in the 3D cockpit, and the notebook's line says so and points to the Canopy key
-  on the Keys screen (the card item's `where`). **Tried and dropped (2026-11-11 to 2026-11-18):** a canopy handle of our
-  own, a grey metal rod 3 cm
+- **The canopy** closes with its switch and locks with its yellow lever on both F-16s (§5.6, since 2026-11-18); its
+  key, Ctrl+K (key record 124), does the whole sequence. **Tried and dropped (2026-11-11 to 2026-11-18):** a canopy
+  handle of our own, a grey metal rod 3 cm
   thick and 14 cm long drawn along the left canopy sill's inner face 10 cm aft of the throttle and clicked as the
   step's control (`f16_controls.json` `CANOPY_HANDLE`, a `box` row with `grip`). Its place and shape were inferred
   from a forum's line[^dcs-canopy]; the user on 2026-11-18: "remove the f16 cockpit handle. It isn't right for sure".
@@ -401,7 +400,7 @@ on (`iaf-tools` `training.rs`).
 | throttle (F-16), ENG (F-35I) | the fuel cut: the engine winds down ([training.md](training.md) §7.2) | the start again from the starter |
 | AVIONIC POWER (the step) | the four switches off: each one's system down ("One by one" below) | each system after its 3 s warm-up |
 | INS knob | OFF: the alignment lost; ATT (attitude only): lost too | STOR HDG: the stored-heading alignment, 90 s; NORM: the gyrocompass alignment, 8 min; NAV and IN FLT ALIGN go on with the alignment and keep it once done; on main power (inferred) |
-| canopy | open (the door sound, `SFX_DOOR_OPEN`) | closed and locked (`SFX_DOOR_CLOSE`) |
+| canopy | open (the door sound, `SFX_DOOR_OPEN`) | closed and locked (`SFX_DOOR_CLOSE`); the F-16s' sounds play as the canopy starts to move (§5.6) |
 
 - **The INS** needs main power only (the INS knob refused before it, `ins_no_power`): it aligns on the battery with
   the engine stopped, and a shutdown keeps its alignment; main power off loses it (inferred). The Start engine
@@ -751,6 +750,65 @@ The LE FLAPS switch rests at AUTO (it rested at LOCK, while the jet flies AUTO);
 
 Test: `modern-iaf/tests/test_cockpit_lights.gd` (both jets). Pictures: `modern-iaf/tests/_lights_shot.gd`.
 
+### 5.6 The F-16s' canopy switch and lock lever (2026-11-18)
+
+The user, 18 Nov 2026: "what about the fix of the canopy handle (bring it back with the right switch and yellow
+thingy?)". Both F-16s' 3D cockpit has the canopy switch and the yellow canopy lock lever (the "spider") on the left
+side wall under the canopy sill, just aft of the left auxiliary console and above the throttle's forward travel. They
+are our own geometry, made by the model builder (`tools/f16d/cockpit3d.py` `canopy_controls`: the nodes
+`CANOPY_SWITCH` and `CANOPY_SPIDER` of `f16.glb`, their fittings in the body); FlightGear's cockpit has neither.
+
+**What the pictures show.** Pictures looked at on 2026-11-18; none is in the repo.
+
+| picture | what it is | what it gives |
+|---|---|---|
+| a Portuguese F-16A, the left auxiliary console seen from inside over the left sill[^milavia-canopy] | the real jet | the lever's place (under the sill's inner edge, outboard of the gear panel's aft corner), its yellow colour, its parts: a block at the hinge, a bar down to a foot, a finger paddle aft of the block, a long leg aft to a T end; grey fittings on the sill. The lever lies down there with the canopy open (a parked display jet) |
+| the same jet's throttle from above[^milavia-canopy] | the real jet | the lever's footprint beside the throttle |
+| a home cockpit with the lever up, and the part on a bench[^ravico-canopy] | a builder's replica | the lever up stands level into the cockpit over the throttle's forward travel; a toggle switch under it on the wall |
+| a printed replica down, half up and up[^dcs-spider] | a builder's replica | the outline seen square on; the toggle stands between the paddle's arm and the long leg, so the lever down holds it centred |
+
+No picture shows a marking on the switch or the lever, so ours carry none. The canopy jettison T-handle is in none of
+the pictures and is not modelled. No picture of a two-seater's front cockpit wall was found; the Sufa's and the
+Barak's are taken to be the single-seater's (inferred, open). The switch's positions (OPEN up, CLOSE down, sprung to
+the centre) and the lever's work (down: the canopy locked and sealed, the CANOPY light out) are the builders' and a
+maintainer forum's account[^f16net-canopy], second-hand; the real switch may latch at OPEN (the same builder).
+
+**Fitted to the photo.** `modern-iaf/tests/_canopy_spider_shot.gd` renders the cockpit from the photo's own camera:
+`tools/f16d/fit_photo.py <its output> <jet> canopy` solves the camera's place and turn from eleven points of the gear
+and MISC panels that both the F-16A and our Block 50 panel have, with the lens known from the picture's data (18 mm
+on an APS-C camera: 44.7° high); the points agree within 4.9 px rms on a picture 900 px wide. The lever's station,
+its drop under the sill and its size were then fitted to the photo's lever. FlightGear's tub differs from the real one
+here: its wall falls away outboard under the sill's lip, out of the seat's sight, and stands nearer the photo's camera
+than the real wall. So the lever hangs from under the lip, 15° off the vertical toward the wall, where the seat's eye
+sees it, and is 9 cm long with a bar and foot of 8 cm (the replicas suggest about 14 cm; inferred, ±2 cm).
+
+**How it works** (`modern-iaf/flight/sim_flight.gd` `_canopy`, `_canopy_step`; `cockpit3d_controls.gd` systems
+`canopy_switch`, `canopy_lock`):
+
+| control | by the mouse | what happens |
+|---|---|---|
+| canopy switch | hold the click: CLOSE; press and drag up: OPEN; let go: back to the centre | the canopy runs while the switch is held (10 s for the whole travel) and stops when it is let go |
+| lock lever | one click: down, the next: up | down only over a canopy fully down (else it stays up): the flight model's canopy step is done and the CANOPY light goes out. Up: unlocked, the light on |
+| the lever down over the switch | a click on the switch | lifts the lever first, as a guard |
+| Canopy key (Ctrl+K) | | the whole sequence, the other way from now: the canopy down, then the lever down; or the lever up, then the canopy up. A hand on the switch or a click on the lever ends it; a canopy stopped part open closes |
+
+In the air the lever stays down, by the mouse and by the key; on the ground it lifts at any time, a hot start
+included (the after-landing card opens the canopy). The door sounds play each time the canopy starts to move, whole
+(4 s), so short taps of the switch overlap them; the lever makes the switches' click. The manuals and the checklist
+card call the lever the canopy handle, the real jet's name for it.
+
+The CANOPY light (`cockpit3d.gd` lamp `canopy`) is on while the canopy is off its seat or the lever is up. The Start
+engine command takes every step at once: the lever goes down and the canopy follows. The F-35I keeps its one CANOPY
+switch. The 1998 game's optional 3D F-16 cockpit (Extras "Cockpit": 3D) shares the model and shows the lever down and
+the switch; it loads no controls, and its CANOPY light is as before.
+
+Open, for the next Rust slot: the canopy's position, the switch's drive and the lever's interlock live in
+`sim_flight.gd` beside the canopy's motion, which was there before; they belong in `crates/iaf-flight` `start.rs`,
+which still takes its canopy step over an open canopy when asked directly.
+
+Test: `modern-iaf/tests/test_canopy_spider.gd` (both F-16s by the mouse and the key; the F-35I unchanged). Pictures:
+`_canopy_spider_shot.gd` (the photo's camera, the seat's view, lever up and down).
+
 ### 5.4 The AoA probe (2026-11-11, from the user's Mac)
 
 On the ground the AoA gauge and the indexer jumped about: the 6-DoF's α is the angle of the body's velocity, which
@@ -1076,6 +1134,10 @@ openstreetmap.org/copyright" (also in [docs/credits.md](../../docs/credits.md)).
 [^fg-left]: FlightGear F-16 at ef4f192, `Models/Cockpit/Main/panels_mlu_left-console.xml`: `SW_MAIN_POWER` (knob on `fdm/jsbsim/elec/switches/main-pwr`, 0–2) and `SW_JET_FUEL` (knob on `f16/engine/jfs-start-switch`, −1–1; `Nasal/states_and_autostart.nas`: 1 is START 2), https://github.com/NikolaiVChr/f16
 [^fg-right]: FlightGear F-16 at ef4f192, `Models/Cockpit/Main/panels_mlu_right-console.xml`: `mmc-switch`, `st-sta-switch`, `mfd-switch`, `ufc-switch` (knobs on `f16/avionics/power-*`, 0–1) and `INS_knob` (`f16/avionics/ins-knob`; `states_and_autostart.nas`: 2 ALIGN NORM, 3 NAV); `fcr-switch` (knob on `f16/avionics/power-fcr`, 0–1, line 638) and `rdr-alt-switch` (`f16/avionics/power-rdr-alt`, 0–2, line 670), https://github.com/NikolaiVChr/f16
 [^dash34alow]: T.O. GR1F-16CJ-34-1-1, p. 1-316 "CARA Altitude Low (CARA ALOW)" (the ALOW cue from the combined altitude radar altimeter), https://falcon.blu3wolf.com/Docs/HAF-F16-34.pdf
+[^milavia-canopy]: MILAVIA, "F-16A Walk-Around & Cockpit" (a Portuguese Air Force F-16A; photos by Filipe André Vales Chaves, 2008), pictures 30 and 31, https://milavia.net/specials/walk-around-portuguese-f-16a/
+[^ravico-canopy]: Red Dog's cockpit blog, "Canopy motor and spider" (2021; a home cockpit, not the jet), http://www.ravico.com/reddog_sim/2021/01/26/canopy-motor-and-spider/
+[^dcs-spider]: Eagle Dynamics forum, "Spider switch design" (a printed replica, not the jet), https://forum.dcs.world/topic/285796-spider-switch-design
+[^f16net-canopy]: F-16.net forum, "Canopy switches" (maintainers on the lock hooks and the yellow handle that inflates the seal and puts the canopy light out; a forum), https://www.f-16.net/forum/viewtopic.php?t=4818
 [^dcs-canopy]: Eagle Dynamics forum, "Canopy won't lock if I open it and close" (DCS F-16C: the canopy switch on the left, where the canopy handle is; weak: a forum, read through a search summary), https://forum.dcs.world/topic/333905-canopy-wont-lock-if-i-open-it-and-close
 [^hoggit-icp]: Hoggit wiki, "Instrument Panel" (DCS F-16C): the HUD's DAY / AUTO / NIGHT symbology brightness
   switch. https://wiki.hoggitworld.com/view/Instrument_Panel

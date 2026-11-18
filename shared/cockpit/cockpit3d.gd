@@ -1475,9 +1475,9 @@ func _lamp_on(key: String) -> bool:
 			return legs.any(func(v): return int(v) != (2 if cockpit.gear_handle_down else 0))
 		"adv_stby":  # ADV MODE selected stands by: the terrain following it engages is not modelled (inferred)
 			return _sw("f16/fcs/adv-mode-sel")
-		"canopy":  # not closed and locked (FlightGear's canopy-pos-norm > 0)
+		"canopy":  # not closed and locked (FlightGear's canopy-pos-norm > 0); the F-16's lock lever up
 			var a = _tv().get("aircraft") if _tv() != null else null
-			return a != null and float(a.get("canopy_open")) > 0.01
+			return (a != null and float(a.get("canopy_open")) > 0.01) or _sw("f16/canopy/spider")
 		"dbu_on":  # the DBU switch on (the digital backup itself is not modelled)
 			return _sw("f16/fcs/digital-backup")
 		# The generators not on the buses: on the battery (FlightGear's jsb-electrical), or failed (damage 19 the main
