@@ -48,19 +48,19 @@ chapters:
   title: Limits
   intro: The real jet's operating limits as far as they are public. A limit the sim does not enforce is marked.
   sections:
-  - {id: limits-engine, title: Engine limits, sim: part, covers: "The start sequence's waits, idle, military and afterburner settings.", not: "Temperature limits."}
-  - {id: limits-airspeed, title: "Airspeed, Mach and altitude limits", sim: part, covers: "The gear's speed limit, the flight model's maximum speed and ceiling.", not: "Bay-door and store carriage speed limits."}
-  - {id: limits-g, title: "Load factor and angle-of-attack limits", sim: full, covers: "The limiter's g and angle-of-attack limits and what the pilot feels at the limit."}
-  - {id: limits-weight, title: "Weight, stores and landing limits", sim: part, covers: "Maximum take-off weight, what each bay and wing station may carry, the touchdown sink rate that damages the gear.", not: "Centre-of-gravity and asymmetric-load limits."}
+  - {id: limits-engine, title: "Engine and fuel limits", sim: part, file: f35i/ch4/engine.typ}
+  - {id: limits-airspeed, title: "Airspeed, Mach and altitude limits", sim: part, file: f35i/ch4/airspeed.typ}
+  - {id: limits-g, title: "Load factor and angle-of-attack limits", sim: part, file: f35i/ch4/g.typ}
+  - {id: limits-weight, title: "Weight, stores and landing limits", sim: part, file: f35i/ch4/weight.typ}
 - id: handling
   title: Flight characteristics
   intro: How the jet behaves through its envelope.
   sections:
-  - {id: handling-general, title: Handling with the fly-by-wire system, sim: full, covers: "What the side stick commands, how the jet holds its flight path, the change with the gear down."}
-  - {id: handling-takeoff-landing, title: Take-off and landing characteristics, sim: full, covers: "Rotation and lift-off speeds, the take-off roll, the approach, crosswind."}
-  - {id: handling-high-aoa, title: High angle of attack, sim: part, covers: "Behaviour at high angle of attack, to the limit of the sim's own aerodynamic data.", not: "Behaviour outside that data."}
-  - {id: handling-stores, title: Flight with stores, sim: full, covers: "Internal carriage, the open bay doors' drag, wing stations and their drag."}
-  - {id: handling-performance, title: Performance, sim: full, covers: "Climb, level acceleration, turn, range and endurance, as the sim's flight model flies them."}
+  - {id: handling-general, title: "Handling with the fly-by-wire system", sim: part, file: f35i/ch5/general.typ}
+  - {id: handling-takeoff-landing, title: "Take-off and landing characteristics", sim: part, file: f35i/ch5/takeoff-landing.typ}
+  - {id: handling-high-aoa, title: "High angle of attack", sim: part, file: f35i/ch5/high-aoa.typ}
+  - {id: handling-stores, title: "Flight with stores", sim: part, file: f35i/ch5/stores.typ}
+  - {id: handling-performance, title: "Performance", sim: part, file: f35i/ch5/performance.typ}
 - id: avionics
   title: Weapons and avionics
   intro: Every display and mode, then each weapon's employment procedure. This chapter describes cockpit procedure only. The real formats are public only in part; inferred layouts are marked.

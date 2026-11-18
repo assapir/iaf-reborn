@@ -2,6 +2,8 @@
 
 For any engine fault the first move is the same: trade speed for height. Above 350 kt, pull up at 3 g into a 30° climb; below it, hold the height and let the speed fall to the one you want. Avoid turns unless a runway is within gliding distance: height is time#fm[section III, "Engine malfunctions", page 3-61].
 
+#if not sufa [The signs and actions of this section are read from the manual's pages for the F100-PW-229, except where a footnote names its General Electric engine, the F110-GE-129. That the #jet.short's F110-GE-100 shows the same signs and takes the same actions is inferred.]
+
 === Engine fire <emergency-fire>
 #state("part")
 
@@ -49,7 +51,7 @@ The actions are the air start, below, or the flameout landing (@emergency-flameo
 + Speed: above 30,000 ft dive at 400 kt; below it hold about 250 kt.
 + Below 20,000 ft and below 400 kt: #row("JFS") to START 2. The #term("JFS") helps to turn the engine; above 20,000 ft it is not allowed, since it is unlikely to start and empties its accumulators.
 + Jettison the stores if needed.
-+ No light, a #term("hot start") or a hung start: throttle to OFF, the engine's secondary control (ENG CONT at SEC) below 30,000 ft, and throttle to midrange again#fm[section III, "Airstart procedures", page 3-80#if not sufa [; the steps read here are the Pratt & Whitney engine's, and for the #jet.short's engine they are inferred]].
++ No light, a #term("hot start") or a hung start: throttle to OFF, the engine's secondary control (ENG CONT at SEC) below 30,000 ft, and throttle to midrange again#fm[section III, "Airstart procedures", page 3-80#if not sufa [; the steps read here are the Pratt & Whitney engine's. The manual gives its General Electric engine, the F110-GE-129, an air start of its own on pages 3-96 to 3-98, which differs in detail: it selects SEC when the RPM keeps falling below 50~%, and waits for the FTIT to fall below 700~°C before the throttle is advanced again. The procedure of the #jet.short's F110-GE-100 is open]].
 + When the engine runs: JFS off, #row("CAUTION_RESET") and check the generator lights out, EPU switch to OFF and back to NORM#fm[section III, "Airstart procedures", page 3-98].
 
 With #row("lamp_jfs_run_0") on, the speed may come down to the best glide (about 200 kt, more with weight)#fm[section III, "Airstart procedures", page 3-80].

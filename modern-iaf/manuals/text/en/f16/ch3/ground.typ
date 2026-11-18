@@ -3,7 +3,7 @@
 === Hot start <emergency-hot-start>
 #state("part")
 
-#idx("Hot start, procedure")A #term("hot start") is an engine start in which the turbine's temperature passes its limit: #hot-limit on the #term("FTIT") indicator#fm[section III, "Hot start (ground)", page 3-26#if not sufa [: the figure of the General Electric engine the manual covers; for the #jet.short's own engine it is inferred]]. It matters because a few seconds above the limit damage the turbine. Its usual cause is fuel let in too early (@cold-start).
+#idx("Hot start, procedure")A #term("hot start") is an engine start in which the turbine's temperature passes its limit: #hot-limit on the #term("FTIT") indicator#fm[section III, "Hot start (ground)", page 3-26#if not sufa [: the figure of the manual's General Electric engine, the F110-GE-129; for the #jet.short's F110-GE-100 it is inferred]]. It matters because a few seconds above the limit damage the turbine. Its usual cause is fuel let in too early (@cold-start).
 
 *You recognise it by* the *FTIT climbing fast through 750~°C* during the start; the manual tells the pilot to expect a hot start then.
 
@@ -18,7 +18,7 @@
 === Hung start and no start <emergency-hung-start>
 #state("part")
 
-In a hung start the *RPM stops rising below idle* while the *FTIT stays under its limit*. In a no start the engine does not light: *no rise of FTIT within #light-off seconds* of the throttle reaching idle#fm[section III, "Hung start/no start", page 3-26]. Fuel that does not burn collects in the engine, so neither is waited out.
+In a hung start the *RPM stops rising below idle* while the *FTIT stays under its limit*. In a no start the engine does not light: *no rise of FTIT within #light-off seconds* of the throttle reaching idle#fm[section III, "Hung start/no start", page 3-26#if not sufa [: the figure of the manual's General Electric engine, the F110-GE-129; for the #jet.short's F110-GE-100 it is inferred]]. Fuel that does not burn collects in the engine, so neither is waited out.
 
 + Throttle to OFF.
 + Report it to the ground crew.

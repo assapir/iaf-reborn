@@ -20,14 +20,14 @@ Written in the three jet manuals: chapter 1 "Description and systems" whole (1.1
 arrangement with every panel and item numbered, 1.3 to 1.12 the systems; §2) and chapter 2 "Normal procedures" whole
 (2.1 Preflight and cockpit entry, 2.2 Cold start to take-off, 2.3 Climb, cruise and descent, 2.4 Approach and landing,
 2.5 After landing and engine shutdown, 2.6 Air refuelling; §2 "Chapter 2") and chapter 3 "Emergency procedures" whole
-(3.1 to 3.8; §2 "Chapter 3"); in the game manual the key card and Attributions. Every other section is a plan in the outline. The
+(3.1 to 3.8; §2 "Chapter 3"), chapter 4 "Limits" whole (4.1 to 4.4) and chapter 5 "Flight characteristics" whole (5.1 to
+5.5; §2 "Chapters 4 and 5"); in the game manual the key card and Attributions. Every other section is a plan in the outline. The
 appendices (checklist, key card, controls, abbreviations, attributions, index) are drawn from the game's data, so they
 are whole. The Hangar's Manuals entry opens the four PDFs ([front-end.md](front-end.md) §1).
 
 **Next, in this order.**
 
-1. The other chapters, a chapter a branch, the three jets together: 4 Limits, 5 Flight
-   characteristics, 6 Weapons and avionics; then the game manual, with "Missions and training".
+1. Chapter 6 "Weapons and avionics", the three jets together; then the game manual, with "Missions and training".
 2. Each row of section 1.2's F-16 tables against the flight manual's section I (§7); its text is now searchable
    (§2 "Chapter 1's system sections").
 
@@ -127,6 +127,20 @@ sim:" box. The sim's side was written from an inventory of the code (the damage 
 |---|---|
 | F-16 | the flight manual's section III, by page: 3-3, 3-26 to 3-29, 3-33 to 3-41, 3-43 to 3-45, 3-61, 3-62, 3-70, 3-79, 3-80, 3-98, 3-99, 3-105, 3-108, 3-117, 3-118, 3-121, 3-123, 3-124, 3-128 to 3-131, 3-134, 3-136, 3-139, 3-140. Where the steps read are the Pratt & Whitney engine's, the Barak's text says "inferred". The single FLCS procedures (pages 3-108 to 3-116) are named, not repeated. |
 | F-35I | US Air Force Instruction 11-2F-35A Volume 3, chapter 7 and the paragraphs named in the footnotes. No emergency checklist of the F-35 is public: every procedure it would hold is "open", and the manual gives no invented steps. |
+
+**Chapters 4 and 5** (`text/en/f16/ch4/`, `ch5/`, `text/en/f35i/ch4/`, `ch5/`, a file a section; `ch4/src.typ` holds
+both chapters' sources). Each section gives the real jet's limit or behaviour with its footnote, the word "open" where
+no public source gives the figure, and an "In the sim:" box with the sim's own value and what is not modelled. The
+sim's side is written from [flight-model.md](flight-model.md) §9.7 to §9.19, `docs/damage.md` §5.2 (the gear's limits),
+the aircraft definitions (`gear_limit`) and the units' records (`max_takeoff_kg`, `lateral_limit_kgm`,
+`crates/iaf-tools/src/briefing.rs`). Section 5.5 "Performance" holds the sim's own figures only: the real charts are
+in supplements that are not public.
+
+| jet | chapters 4 and 5's sources |
+|---|---|
+| F-16 | the flight manual's section V (pages 5-1 to 5-5, figures 5-1 to 5-8 on pages 5-6 to 5-15) and section VI (pages 6-1 to 6-9), section I page 1-121 (the limiters) and 1-135 (the gains with the gear down), section II pages 2-21, 2-24, 2-26 and 2-27. Open, because they are in the supplements T.O. GR1F-16CJ-1-1 (performance), -1-2 (stores) and -5-2 (centre of gravity): the stores' categories as a list and every store's limits, the rolling g limits, the centre-of-gravity limits, the crosswind limits, the brake speeds, the take-off speeds and every performance chart; also the service ceiling, a landing weight, the touchdown sink rate, the nose tyre's limit for the Israeli builds and the arresting speeds (figure 5-5's first sheet is a picture in this copy). |
+| F-16D Barak | The sim's Barak is an F-16D Block 40 with the F110-GE-100 (`crates/iaf-flight/src/sixdof/jets.rs` `f110_100`, [flight-model.md](flight-model.md) §9.7; F-16.net for the Israeli F-16Ds). The public flight manual covers Blocks 50 and 52 with the F100-PW-229 and the F110-GE-129. The Barak's engine limits are therefore the manual's F110-GE-129 figures, each marked "inferred" for the F110-GE-100, whose own limits are open; the figures of the airframe are marked "inferred" for its blocks. Chapter 3 was corrected the same way: its engine section says that its signs and actions are the F100-PW-229's pages (inferred for the Barak), the hot start's 935 °C and the 10 s light-off are the F110-GE-129's, and the Barak's own air start is open. |
+| F-35I | The maker's product card (9 g), the 50° angle-of-attack limit (Second Line of Defense), US Air Force Instruction 11-2F-35A Volume 3 by paragraph. Every other limit, the control laws and the handling with stores are "open". Five footnotes (the top speeds, the Eglin accident's approach figures, a pilot's account of the handling, the lowered turn specification, the F135's response) carry sources taken from `docs/f35i.md` and [flight-model.md](flight-model.md) with the words "not read again for this chapter"; the F-16's Block 40 weight and NASA TM-4320 the same. |
 
 **References.** Every mention of a control carries its figure and number as a link to its row, in one form: "MAIN PWR
 (1-8, 1)" (`ctl-ref`): a procedure's steps, the checklist card, the Controls appendix, and `ctl("…")` in a text. Figures
@@ -391,6 +405,24 @@ Parts:
   - The notebook's EMERGENCY pages (`modern-iaf/data/notebook.json`) hold steps the sim cannot do: motoring after a
     hot start, an engine fire on the ground, the ejection handle.
   - No horn or light warns of a low speed or of the gear up beyond TO/LDG CONFIG; `horn_silencer` moves only.
+- Found while writing chapters 4 and 5, the game's and listed, not changed here:
+  - Nothing happens above the jet's speed limit (800 kt, Mach 2.05) or g limit: only the gear's limit damages.
+  - The limits with the gear down (g, 15° angle of attack with stores, roll) and the rolling g limits are not there.
+  - The control laws do not change with the gear handle down (read from flight-model.md §9.11, not from the code): the stick commands g on the approach, where the real
+    F-16 commands pitch rate up to 10° angle of attack.
+  - A category III load flown at CAT I flies as a clean jet: stores change no stability, and the STORES CONFIG
+    caution never lights. Nothing tells the pilot which loads are category III.
+  - The yaw departure, the inverted deep stall and the centre of gravity (fuel and stores sit at it) are not
+    modelled; open speedbrakes do not lower the departure resistance.
+  - The Adir's touchdown limits, gear limit, negative g limit, roll and control laws are the F-16's (inferred); it has
+    no asymmetric-load limit, so no warning.
+  - The JFS's time limits and the negative-g fuel limits are not there.
+  - The low-speed warning tone follows the angle of attack alone (27°, the Adir 52°); the real F-16's tone has its own
+    conditions (the flight manual's figure 1-50, a picture; not compared).
+- Owed after chapters 4 and 5: the seven footnotes marked "not read again for this chapter" are to be read at their
+  sources; chapter 3's Barak step "Throttle to idle" in the out-of-control recovery was marked as the F110-GE-129's
+  and inferred, and its place on page 3-130 was not read again; the Barak's own engine limits and air start
+  (F110-GE-100, a Block 40 manual) have no public source found.
 - Open in chapter 3's sources: for the F-35 every emergency procedure (fire, engine failure and restart, electrical
   and flight control failures, out-of-control recovery, alternate gear, ejection envelope).
 - Open in chapter 2's sources: the F-16's climb schedules (the performance manual, not public); for the F-35 the climb
