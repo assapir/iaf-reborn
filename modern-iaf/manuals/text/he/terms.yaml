@@ -129,3 +129,8 @@
 - {en: greyed (a button or option that cannot be chosen), he: מעומעם, from: plain}
 - {en: gauge / meter (in the cockpit or on a screen), he: מד, from: plain}
 - {en: home base, he: בסיס האם, from: field, not: [בסיס הבית, בסיסי הבית]}
+# Added in the slices 8 and 9 check (19 November 2026): UNCAGE / CAGE, SPOT / SCAN, CCIP / CCRP / DTOS / LADD / MAN, NSTL / NOSE / TAIL, LOW stay English as printed on the jet's displays.
+- {en: fuze, he: מרעום, from: field, not: [פתיל]}
+- {en: arming delay, he: השהיית הדריכה, from: field}
+- {en: seeker head, he: ראש ביות, from: field}
+- {en: release mode (CCIP, CCRP, DTOS), he: מצב הטלה, from: plain, not: [אופן הטלה]}
