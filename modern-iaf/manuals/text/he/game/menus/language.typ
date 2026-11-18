@@ -5,13 +5,13 @@
 === החלפת השפה <language-switch>
 
 + ב#term("דת״ק"), לבחור #scr("preferences").
-+ לבחור את המדור #scr("language").
++ לבחור את החלק #scr("language").
 + בשורה #scr("language"), לבחור #scr("language_en") או #scr("language_he").
   #then[כל המסכים משתנים מיד, גם המסך הנוכחי.]
 
 אותה שורה נמצאת בהגדרות שתפריט ההשהיה פותח, ולכן אפשר להחליף שפה בזמן טיסה.
 
-#screen("prefs_language", [המדור #scr("language").], width: 80%)
+#screen("prefs_language", [החלק #scr("language").], width: 80%)
 
 === מה משתנה <language-changes>
 

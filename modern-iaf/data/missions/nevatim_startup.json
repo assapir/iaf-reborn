@@ -54,7 +54,7 @@
           "main_power"
         ],
         "en": "The jet stands cold at its parking spot: no power, the screens dark, the canopy up. Each step is a key or a click on its switch in the 3D cockpit, and the checklist notebook ({key:118}) lists the steps and ticks them off. Begin with the battery: {key:119} sets the BATT switch (start panel, left console, aft of the throttle) on.",
-        "he": "המטוס עומד קר בחניה: אין מתח, המסכים כבויים והחופה פתוחה. כל שלב הוא מקש או לחיצה על המתג שלו בתא הטייס התלת־ממדי, והבד\"ח ({key:118}) מציג את השלבים ומסמן את מה שבוצע. להתחיל במצבר: {key:119} מדליק את מתג BATT (לוח ההתנעה, בקונסולה השמאלית מאחורי המצערת)."
+        "he": "המטוס עומד קר בחניה: אין מתח, המסכים כבויים והחופה פתוחה. כל שלב הוא מקש או לחיצה על המתג שלו בתא הטייס התלת־ממדי, והבד״ח ({key:118}) מציג את השלבים ומסמן את מה שבוצע. להתחיל במצבר: {key:119} מדליק את מתג BATT (לוח ההתנעה, בקונסולה השמאלית מאחורי המצערת)."
       },
       {
         "switches": [

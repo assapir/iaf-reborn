@@ -492,7 +492,7 @@
   "briefing": {
     "purpose": {
       "en": "To find drones on the radar and shoot them down, then bomb ground targets: the range's drones fly over the sea west of Haifa, the targets stand in the Golan plateau, 65 km north-east of Ramat David.",
-      "he": "לאתר מל\"טים במכ\"ם ולהפיל אותם, ואחר כך להפציץ מטרות קרקע: מל\"טי המטווח טסים מעל הים מערבית לחיפה, המטרות עומדות ברמת הגולן, 65 ק\"מ צפונית־מזרחית לרמת דוד."
+      "he": "לאתר מל״טים במכ״ם ולהפיל אותם, ואחר כך להפציץ מטרות קרקע: מל״טי המטווח טסים מעל הים מערבית לחיפה, המטרות עומדות ברמת הגולן, 65 ק״מ צפונית־מזרחית לרמת דוד."
     },
     "how": [
       {
@@ -502,11 +502,11 @@
       },
       {
         "en": "Fly the route's first steerpoint, the air range. Bring the radar up: {key:56} cycles its modes, {key:57} switches air and ground. Five drones fly there, red for the exercise: one at 15,000 ft, one low, one that breaks away when you close in, and a pair at 25,000 ft whose radars your RWR hears. None of them shoots.",
-        "he": "לטוס לנקודת הציון הראשונה, מטווח האוויר. להפעיל את המכ\"ם: {key:56} מחליף את מצביו, {key:57} עובר בין אוויר לקרקע. חמישה מל\"טים טסים שם, אדומים לצורך התרגיל: אחד ב־15,000 רגל, אחד נמוך, אחד שמתחמק כשמתקרבים אליו, וזוג ב־25,000 רגל שמקלט האזהרה שומע את המכ\"מים שלהם. אף אחד מהם אינו יורה."
+        "he": "לטוס לנקודת הציון הראשונה, מטווח האוויר. להפעיל את המכ״ם: {key:56} מחליף את מצביו, {key:57} עובר בין אוויר לקרקע. חמישה מל״טים טסים שם, אדומים לצורך התרגיל: אחד ב־15,000 רגל, אחד נמוך, אחד שמתחמק כשמתקרבים אליו, וזוג ב־25,000 רגל שמקלט האזהרה שומע את המכ״מים שלהם. אף אחד מהם אינו יורה."
       },
       {
         "en": "Lock a drone ({key:58} steps the targets), arm with {key:125}, and shoot it down with the gun ({key:64}) or a missile ({key:66} selects, {key:69} launches). Shoot down 2 of them.",
-        "he": "לנעול על מל\"ט ({key:58} עובר בין המטרות), לחמש עם {key:125}, ולהפיל אותו בתותח ({key:64}) או בטיל ({key:66} בוחר, {key:69} משגר). להפיל 2 מהם."
+        "he": "לנעול על מל״ט ({key:58} עובר בין המטרות), לחמש עם {key:125}, ולהפיל אותו בתותח ({key:64}) או בטיל ({key:66} בוחר, {key:69} משגר). להפיל 2 מהם."
       },
       {
         "en": "Then fly the second steerpoint, the ground targets: four retired jets parked in the open, a fifth towed on a loop beside them and a target barge at sea. The mission's loadout carries bombs for them. Select the bombs with {key:65}, put the pipper on a target and release with {key:69}. Destroy 2 of the six, all within {minutes} minutes of the start.",

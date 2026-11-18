@@ -54,7 +54,7 @@
           "main_power"
         ],
         "en": "The jet stands cold at its parking spot: no power, the screens dark, the canopy up. Each step is a key, and each but the canopy also a click on its switch in the 3D cockpit, and the checklist notebook ({key:118}) lists the steps and ticks them off. Begin with main power: {key:119} sets the MAIN PWR switch (ELEC panel, left console, by the throttle) to MAIN PWR; a click on it moves it one position, so two clicks: OFF, BATT, MAIN PWR. The lamps and the engine gauges come alive.",
-        "he": "המטוס עומד קר בחניה: אין מתח, המסכים כבויים והחופה פתוחה. כל שלב הוא מקש, וכל שלב מלבד החופה הוא גם לחיצה על המתג שלו בתא הטייס התלת־ממדי, והבד\"ח ({key:118}) מציג את השלבים ומסמן את מה שבוצע. להתחיל במתח הראשי: {key:119} מעביר את מתג MAIN PWR (לוח ELEC, בקונסולה השמאלית ליד המצערת) ל־MAIN PWR; כל לחיצה מעבירה אותו מצב אחד, ולכן שתי לחיצות: OFF, ‏BATT, ‏MAIN PWR. הנוריות ומדי המנוע נדלקים."
+        "he": "המטוס עומד קר בחניה: אין מתח, המסכים כבויים והחופה פתוחה. כל שלב הוא מקש, וכל שלב מלבד החופה הוא גם לחיצה על המתג שלו בתא הטייס התלת־ממדי, והבד״ח ({key:118}) מציג את השלבים ומסמן את מה שבוצע. להתחיל במתח הראשי: {key:119} מעביר את מתג MAIN PWR (לוח ELEC, בקונסולה השמאלית ליד המצערת) ל־MAIN PWR; כל לחיצה מעבירה אותו מצב אחד, ולכן שתי לחיצות: OFF, ‏BATT, ‏MAIN PWR. הנוריות ומדי המנוע נדלקים."
       },
       {
         "switches": [
@@ -68,7 +68,7 @@
           "engine"
         ],
         "en": "Wait until the RPM reaches 20 %, then bring the throttle up from OFF to idle: {key:7} or the throttle axis. The engine lights about 5 s later and runs up to idle; at 52 % RPM the main generator comes on line and the JFS stops. The throttle moved below 20 % RPM is a hot start: the engine shuts down and the mission fails.",
-        "he": "להמתין עד שהסל״ד מגיע ל־20%, ואז להעביר את המצערת מ־OFF לסרק: {key:7} או ציר המצערת. המנוע ניצת כעבור כ־5 שניות ומאיץ לסרק; ב־52% סל״ד הגנרטור הראשי נכנס לפעולה והמתנע נכבה. הזזת המצערת מתחת ל־20% סל״ד היא התנעה חמה: המנוע נכבה והמשימה נכשלת."
+        "he": "להמתין עד שהסל״ד מגיע ל־20%, ואז להעביר את המצערת מ־OFF לסרק: {key:7} או ציר המצערת. המנוע ניצת כעבור כ־5 שניות ומאיץ לסרק; ב־52% סל״ד הגנרטור הראשי נכנס לפעולה והמתנע נכבה. הזזת המצערת מתחת ל־20% סל״ד היא Hot start: המנוע נכבה והמשימה נכשלת."
       },
       {
         "switches": [

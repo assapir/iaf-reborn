@@ -43,7 +43,7 @@
 - {en: radio, he: קשר, from: game, not: [רדיו]}
 - {en: callsign, he: אות קריאה, from: game}
 - {en: start-up / engine start, he: התנעה, from: game}
-- {en: hot start, he: התנעה חמה, from: field}
+- {en: hot start, he: Hot start, from: english, not: [התנעה חמה]}
 - {en: idle, he: סרק, from: game}
 - {en: taxi, he: הסעה, from: game}
 - {en: taxiway, he: מסלול הסעה, from: field}
@@ -83,7 +83,7 @@
 - {en: crash page, he: דף התקלה, from: game}
 - {en: log (the file), he: קובץ היומן, from: game}
 - {en: satellite imagery, he: תצלומי לוויין, from: game}
-- {en: CPU threads, he: תרדים, from: game, not: [תהליכונים]}
+- {en: CPU threads, he: ת׳רדים, from: game, not: [תהליכונים, תרדים]}
 - {en: air base, he: בסיס, from: game}
 - {en: squadron, he: טייסת, from: game}
 - {en: flight (a formation), he: מבנה, from: game}
@@ -96,7 +96,7 @@
 - {en: pin (on a map), he: סיכה, from: plain, not: [נעץ]}
 - {en: modifier key, he: מקש צירוף, from: plain}
 - {en: key cap, he: ציור המקש, from: plain}
-- {en: section (of the Missions screen or the Settings), he: מדור, from: plain}
+- {en: section (of the Missions screen, the Settings or the card), he: חלק, from: plain, not: [מדור]}
 - {en: callout (a station's box on the Loadout screen), he: תיבה, from: plain}
 - {en: badge, he: תג, from: plain}
 - {en: breadcrumbs, he: נתיב הניווט, from: plain}
@@ -117,13 +117,13 @@
 - {en: touchdown, he: נגיעה, from: game}
 - {en: final approach, he: גישה סופית, from: game}
 - {en: traffic pattern, he: הקפה, from: field}
-- {en: go-around, he: הליכה סביב, from: field}
+- {en: go-around, he: הליכה סביב, from: field, not: [סיבוב נוסף]}
 - {en: sortie, he: גיחה, from: field}
 - {en: threshold, he: סף, from: field}
 - {en: line-up, he: התיישרות על המסלול, from: plain}
 - {en: direction sign / holding sign, he: שלט הכוונה / שלט המתנה, from: plain}
-- {en: overrun, he: הארכה סלולה, from: plain}
-- {en: Survey of Israel, he: המדידות לישראל, from: game, not: [המרכז למיפוי ישראל]}
+- {en: overrun, he: Overrun, from: english, not: [הארכה סלולה, הארכות סלולות]}
+- {en: Survey of Israel, he: המרכז למיפוי ישראל, from: game, not: [המדידות לישראל]}
 - {en: RWR / shader / issue (GitHub), he: RWR / shader / issue, from: english}
 # Added in the review (18 November 2026): the two halves named these differently.
 - {en: greyed (a button or option that cannot be chosen), he: מעומעם, from: plain}

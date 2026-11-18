@@ -24,7 +24,7 @@
       "weapons": [
         {"title": {"en": "ARMING", "he": "דריכה"}, "steps": [
           {"en": "ST STA power ON (with the avionics)", "he": "מתח ST STA מופעל (עם האוויוניקה)", "where": {"en": "AVIONIC POWER panel, right console", "he": "לוח AVIONIC POWER, הקונסולה הימנית"}, "key": 122},
-          {"en": "FCR and RDR ALT ON (with the avionics): the radar and the radar altimeter", "he": "FCR ו־RDR ALT מופעלים (עם האוויוניקה): המכ\"ם ומד הגובה המכ\"מי", "where": {"en": "SNSR PWR panel, right console", "he": "לוח SNSR PWR, הקונסולה הימנית"}, "key": 122},
+          {"en": "FCR and RDR ALT ON (with the avionics): the radar and the radar altimeter", "he": "FCR ו־RDR ALT מופעלים (עם האוויוניקה): המכ״ם ומד הגובה המכ״מי", "where": {"en": "SNSR PWR panel, right console", "he": "לוח SNSR PWR, הקונסולה הימנית"}, "key": 122},
           {"en": "MASTER ARM: ARM (every flight starts SAFE)", "he": "MASTER ARM: ARM (כל טיסה מתחילה ב־SAFE)", "where": {"en": "MISC panel, left of the front panel", "he": "לוח MISC, משמאל ללוח הקדמי"}, "key": 125},
           {"en": "Gear UP: nothing releases with the gear handle down", "he": "כן הנסע למעלה: אין שחרור כשידית כן הנסע למטה", "where": {"en": "gear handle, left of the front panel", "he": "ידית כן הנסע, משמאל ללוח הקדמי"}, "key": 20}
         ]},
@@ -36,13 +36,13 @@
         ]},
         {"title": {"en": "AIR-TO-AIR", "he": "אוויר-אוויר"}, "steps": [
           {"en": "Missiles: A-A, the HUD shows the seeker circle", "he": "טילים: A-A, ב־HUD מוצג מעגל המחפש", "where": {"en": "ICP, under the HUD", "he": "לוח ICP, מתחת ל־HUD"}, "key": 66},
-          {"en": "Next target: the radar locks it", "he": "המטרה הבאה: המכ\"ם ננעל עליה", "where": {"en": "stick grip, target designate", "he": "ידית ההיגוי, מתג סימון המטרה"}, "key": 58},
+          {"en": "Next target: the radar locks it", "he": "המטרה הבאה: המכ״ם ננעל עליה", "where": {"en": "stick grip, target designate", "he": "ידית ההיגוי, מתג סימון המטרה"}, "key": 58},
           {"en": "Fire: the pickle button", "he": "שיגור: כפתור השחרור", "where": {"en": "stick grip, under the thumb", "he": "ידית ההיגוי, מתחת לאגודל"}, "key": 69},
           {"en": "Gun: the trigger, held", "he": "תותח: ההדק, לחוץ", "where": {"en": "stick grip, under the index finger", "he": "ידית ההיגוי, מתחת לאצבע"}, "key": 64}
         ]}
       ],
       "emergency": [
-        {"title": {"en": "HOT START", "he": "התנעה חמה"}, "steps": [
+        {"title": {"en": "HOT START", "he": "Hot start"}, "steps": [
           {"en": "THROTTLE — OFF", "he": "מצערת — OFF"},
           {"en": "FTIT — MONITOR", "he": "FTIT — מעקב"},
           {"en": "FTIT stays above 500 °C: MOTOR the engine with the JFS until below 200 °C", "he": "FTIT נשאר מעל 500°C: סיבוב המנוע במתנע JFS עד מתחת ל־200°C"}
@@ -79,7 +79,7 @@
         ]},
         {"title": {"en": "AIR-TO-AIR", "he": "אוויר-אוויר"}, "steps": [
           {"en": "Missiles: A-A (the AIM-120 in the bays)", "he": "טילים: A-A (ה־AIM-120 בתאים)", "where": {"en": "the panoramic display", "he": "התצוגה הפנורמית"}, "key": 66},
-          {"en": "Next target: the radar locks it", "he": "המטרה הבאה: המכ\"ם ננעל עליה", "where": {"en": "stick grip, target designate", "he": "ידית ההיגוי, מתג סימון המטרה"}, "key": 58},
+          {"en": "Next target: the radar locks it", "he": "המטרה הבאה: המכ״ם ננעל עליה", "where": {"en": "stick grip, target designate", "he": "ידית ההיגוי, מתג סימון המטרה"}, "key": 58},
           {"en": "Fire: weapon release", "he": "שיגור: שחרור חימוש", "where": {"en": "stick grip, under the thumb", "he": "ידית ההיגוי, מתחת לאגודל"}, "key": 69},
           {"en": "Gun: the trigger, held", "he": "תותח: ההדק, לחוץ", "where": {"en": "stick grip, under the index finger", "he": "ידית ההיגוי, מתחת לאצבע"}, "key": 64}
         ]}

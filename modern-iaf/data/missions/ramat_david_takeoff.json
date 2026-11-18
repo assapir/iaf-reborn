@@ -60,7 +60,7 @@
       },
       {
         "en": "Start the jet by its start-up checklist (the notebook, {key:118}), as you learned it: main power {key:119}, the JFS {key:120}, the throttle to idle at 20 % RPM ({key:7}), then at idle the avionics {key:122} and the INS alignment {key:123} (90 s). Close the canopy with {key:124}.",
-        "he": "להתניע לפי בד\"ח ההתנעה ({key:118}), כפי שנלמד: מתח ראשי {key:119}, המתנע {key:120}, המצערת לסרק ב־20% סל״ד ({key:7}), ובסרק את האוויוניקה {key:122} ויישור ה־INS {key:123} (90 שניות). לסגור את החופה עם {key:124}."
+        "he": "להתניע לפי בד״ח ההתנעה ({key:118}), כפי שנלמד: מתח ראשי {key:119}, המתנע {key:120}, המצערת לסרק ב־20% סל״ד ({key:7}), ובסרק את האוויוניקה {key:122} ויישור ה־INS {key:123} (90 שניות). לסגור את החופה עם {key:124}."
       },
       {
         "en": "With the engine at idle and the avionics up, request taxi: {key:47:2}; the tower answers \"taxi to runway {runway}\". Moving more than a few metres before that fails the mission. Taxi along the dashed route on the map: add a little power if the jet does not roll ({key:16} raises the throttle 5 %, {key:15} lowers it), steer with the rudder ({key:37} / {key:38}, or the pedals) and brake with {key:22}. Keep on the pavement: the jet off it fails the mission.",

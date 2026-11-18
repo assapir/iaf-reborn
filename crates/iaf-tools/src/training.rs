@@ -66,7 +66,7 @@ const STRINGS: &[(&str, &str, &str)] = &[
     ("no_start", "The engine never started.", "המנוע לא הותנע."),
     ("over_time", "Not done within the time budget.", "לא הושלם בזמן שהוקצב."),
     ("no_liftoff", "The jet never left the ground.", "המטוס לא המריא."),
-    ("ejected", "The pilot ejected.", "בוצע מילוט מהמטוס."),
+    ("ejected", "The pilot ejected.", "בוצעה נטישה מהמטוס."),
     ("crash", "The jet crashed.", "המטוס התרסק."),
     ("damage", "The jet was damaged.", "המטוס נפגע."),
     ("off_pavement", "The jet left the pavement.", "המטוס ירד מהמשטח הסלול."),
@@ -76,7 +76,7 @@ const STRINGS: &[(&str, &str, &str)] = &[
     (
         "hot_start",
         "Hot start: the throttle went to idle below 20 % RPM; the engine was shut down.",
-        "התנעה חמה: המצערת הועברה לסרק מתחת ל־20% סל״ד; המנוע כובה.",
+        "המצערת הועברה לסרק מתחת ל־20% סל״ד (Hot start); המנוע כובה.",
     ),
     (
         "no_rotation",
@@ -252,7 +252,7 @@ const STRINGS: &[(&str, &str, &str)] = &[
     ("ev_touchdown", "touchdown", "נגיעה"),
     ("ev_crash", "crash", "התרסקות"),
     ("ev_hit", "hit", "פגיעה"),
-    ("ev_eject", "ejection", "מילוט"),
+    ("ev_eject", "ejection", "נטישה"),
     // Notes in place of a value.
     ("none_modelled", "none modelled", "לא ממודל"),
     ("from_spool", "from the engine start and the model's wind-up", "מהתנעת המנוע וזמן ההאצה של המודל"),

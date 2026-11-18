@@ -1,6 +1,6 @@
 #import "/modern-iaf/manuals/layout/manual.typ": *
 
-#idx("מקשים")#idx("ג׳ויסטיק")המקלדת מטיסה את המטוס כולו: לכל פקודה יש מקש, וג׳ויסטיק הוא תוספת. שני מסכים קובעים אותם, #scr("keys_screen") ו#scr("joystick_screen"). שניהם נפתחים מהמסך #scr("preferences"), מדור #scr("devices"), בלחצן #scr("change") שבשורות שלהם (@settings-devices). #scr("back") או #keycap("Esc") בכל אחד מהם חוזרים למדור #scr("devices").
+#idx("מקשים")#idx("ג׳ויסטיק")המקלדת מטיסה את המטוס כולו: לכל פקודה יש מקש, וג׳ויסטיק הוא תוספת. שני מסכים קובעים אותם, #scr("keys_screen") ו#scr("joystick_screen"). שניהם נפתחים מהמסך #scr("preferences"), חלק #scr("devices"), בלחצן #scr("change") שבשורות שלהם (@settings-devices). #scr("back") או #keycap("Esc") בכל אחד מהם חוזרים לחלק #scr("devices").
 
 שינוי חל מיד. בזמן טיסה הוא חל כשסוגרים את ההגדרות.
 
@@ -150,7 +150,7 @@
 
 #idx("נקודת המבער")לידיות מצערת רבות יש נקישה סמוך לסוף המהלך שלהן. ההגדרה #scr("throttle_detent") מודיעה למשחק היכן הנקישה, כך שהידית בנקישה נותנת עוצמה מלאה בלי מבער, והמהלך שאחריה מדליק את המבער. #term("נקודת המבער") דורשת ג׳ויסטיק מחובר שהתפקיד #scr("role_throttle") נמצא על אחד מהצירים שלו.
 
-+ לפתוח את המסך #scr("preferences"), מדור #scr("devices").
++ לפתוח את המסך #scr("preferences"), חלק #scr("devices").
 + להזיז את ידית המצערת אל הנקישה שלה ולהשאיר אותה שם.
 + בשורה #scr("throttle_detent"), לבחור #scr("set_at_lever").
   #then[האפשרות מציגה את מקום הידית באחוזים.]
@@ -161,4 +161,4 @@
 
 === הגדרות הבקרה <keys-joystick-settings>
 
-חמש ההגדרות שקובעות מה מטיס את המטוס הן שורות במדור #scr("devices") שבהגדרות: #scr("flight_controls"), #scr("rudder"), #scr("throttle"), #scr("throttle_detent") ו#scr("stick_response"). כל אחת מתוארת, עם הערכים וברירת המחדל שלה, ב@settings-devices.
+חמש ההגדרות שקובעות מה מטיס את המטוס הן שורות בחלק #scr("devices") שבהגדרות: #scr("flight_controls"), #scr("rudder"), #scr("throttle"), #scr("throttle_detent") ו#scr("stick_response"). כל אחת מתוארת, עם הערכים וברירת המחדל שלה, ב@settings-devices.
