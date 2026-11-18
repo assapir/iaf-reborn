@@ -3,8 +3,8 @@
 #     -s ../modern-iaf/tests/_devices_shot.gd
 # Writes SHOT_DIR/<shot>_<lang>.png at 1920×1080: keys (Pitch up rebound to K), keys_wait (Pitch down waiting for its
 # key), keys_conflict (K pressed for Pitch down), joystick (a fake stick, its axes moved, the throttle lever forward:
-# a full bar), joystick_buttons, prefs_detent (the afterburner detent set), keys_mac (English: the Views as on a
-# Mac). The store is a temporary file.
+# a full bar), joystick_buttons, prefs_detent (the afterburner detent set), keys_mac (English, or
+# SHOT_LANG=he: the Views as on a Mac). The store is a temporary file.
 extends "res://../tests/godot/base.gd"
 
 ## The key table script, loaded once the autoloads exist (it reads Settings).
@@ -76,7 +76,7 @@ func run() -> void:
 		await frames(5)
 		await shot(vp, dir, "prefs_detent", lang)
 		s.throttle_detent = -1
-	s.language = "en"
+	s.language = _env("SHOT_LANG", "en")
 	# keys_mac: the Views group as a Mac shows it (the laptop map, Option and ⌘).
 	var kt: GDScript = key_table
 	var was: bool = kt.cmd_is_ctrl
@@ -88,7 +88,8 @@ func run() -> void:
 	var km: Node = fe.get_node("Keys")
 	km.scroll.scroll_vertical = int(km._heads["views"].position.y)
 	await frames(5)
-	await shot(vp, dir, "keys_mac", "en")
+	await shot(vp, dir, "keys_mac", s.language)
+	s.language = "en"
 	kt.cmd_is_ctrl = was
 	s.laptop_keys = OS.get_name() == "macOS"
 	s.pilot_name = ""

@@ -720,6 +720,9 @@ func walk(fe: Control, ids: Dictionary, lang: String) -> void:
 		var row: Button = fe.find_child("Manual_" + str(m[0]), true, false)
 		check(FileAccess.file_exists(m[1]), "%s: manuals: %s is on the disk" % [lang, m[1].get_file()])
 		check(row != null and not row.disabled, "%s: manuals: a row opens %s" % [lang, m[0]])
+		if m[0] == "game":
+			var pdf := "game-manual-he.pdf" if he else "game-manual.pdf"
+			check(m[1].get_file() == pdf, "%s: manuals: the game manual in the game's language (%s)" % [lang, pdf])
 	key(fe, KEY_ESCAPE)
 	await frames(2)
 	check(fe.page == "hangar", "%s: Esc from the manuals: the Hangar" % lang)

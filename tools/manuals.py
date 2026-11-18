@@ -51,14 +51,15 @@ def game_flow(manual: str) -> int:
     return found
 
 # What is no prose in a section's text: the layout's calls by name, labels, references, links, strings.
-NO_PROSE = r'(?:key|ctl|idx|other|other-manual|term|steps|shot|label)\("[^"]*"(?:, "[^"]*")?\)?|<[\w-]+>|@[\w-]+|https?://\S+|"[^"\n]*"'
+NO_PROSE = r'(?:key|ctl|idx|other|other-manual|term|steps|shot|label|scr|scr-text|stp|stp-text|screen)\("[^"]*"(?:, (?:shown: )?"[^"]*")?\)?|<[\w-]+>|@[\w-]+|https?://\S+|"[^"\n]*"'
 
 
-def glossary_links(manual: str) -> int:
+def glossary_links(manual: str, lang: str = "en") -> int:
     """The glossary terms of `manual` whose first use in a written section is no link to the glossary (the layout's
     term("...")), each printed with its file; their count. Headings, comments and the footnotes' definitions (#let)
-    do not count as a use."""
-    text = os.path.join(DIR, "text", "en")
+    do not count as a use. In Hebrew a term counts with its one-letter prefixes too ("במגדל")."""
+    text = os.path.join(DIR, "text", lang)
+    prefix = "[והבלמשכ]{0,3}" if lang == "he" else ""
     terms = []
     with open(os.path.join(text, "glossary.yaml"), encoding="utf-8") as f:
         for line in f:
@@ -71,14 +72,14 @@ def glossary_links(manual: str) -> int:
     for name in files:
         with open(os.path.join(text, name), encoding="utf-8") as f:
             body = f.read()
-        linked = {m.group(1).lower(): m.start() for m in reversed(list(re.finditer(r'term\("([^"]*)"\)', body)))}
+        linked = {m.group(1).lower(): m.start() for m in reversed(list(re.finditer(r'term\("([^"]*)"', body)))}
         plain = re.sub(NO_PROSE, lambda m: "\0" * len(m.group(0)), body)
         plain = re.sub(r"(?m)^(=|//|#let ).*$", lambda m: "\0" * len(m.group(0)), plain)
         for term in terms:
-            use = re.search(r"(?<![\w-])" + re.escape(term) + r"(?![\w-])", plain, 0 if term.isupper() else re.I)
+            use = re.search(r"(?<![\w-])" + prefix + re.escape(term) + r"(?![\w-])", plain, 0 if term.isupper() else re.I)
             if use and linked.get(term.lower(), len(body)) > use.start():
                 line = body.count("\n", 0, use.start()) + 1
-                print(f"manuals: {manual}: text/en/{name}:{line}: the first \"{term}\" of the section is no term(\"{term}\") link to the glossary")
+                print(f"manuals: {manual}: text/{lang}/{name}:{line}: the first \"{term}\" of the section is no term(\"{term}\") link to the glossary")
                 found += 1
     return found
 
@@ -130,6 +131,74 @@ def abbreviations(manual: str, entry: dict) -> int:
             print(f"manuals: {manual}: {where}: \"{word}\" is in no list of text/en/{entry['cockpit']}/systems.json (abbreviations, short, words)")
             found += 1
     return found
+
+
+# What a section draws from the game's data or links to: an edition in another language makes the same calls.
+CALLS = r'\b(scr|scr-text|stp|stp-text|screen|key|keycap|other|other-manual)\("([^"]*)"(?:, "([^"]*)")?'
+
+
+def edition(manual: str, entry: dict) -> int:
+    """What the edition `manual` (manuals.json `of`, `lang`) lacks against its English manual, each printed; the
+    count. The outlines hold the same chapters and sections in the same order; each section's text names the same
+    screens, options, pictures, keys and links (CALLS, and the keys of each settings-table), so every English name has
+    its Hebrew one from the game's string tables and the two editions cannot drift. In Hebrew an abbreviation is
+    written with gershayim (״): a straight quote between two Hebrew letters would be set as a quotation mark."""
+    of, lang = entry["of"], entry["lang"]
+    lacks = []
+
+    def sections(l: str) -> list:
+        with open(os.path.join(DIR, "text", l, of, "outline.yaml"), encoding="utf-8") as f:
+            return re.findall(r"\bid: ([\w-]+)(?:.*?\bfile: ([\w/.-]+\.typ))?", f.read())
+
+    def calls(l: str, name: str) -> set:
+        path = os.path.join(DIR, "text", l, name)
+        if not os.path.exists(path):
+            return set()
+        with open(path, encoding="utf-8") as f:
+            body = re.sub(r"(?m)^//.*$", "", f.read())
+        found = set(re.findall(CALLS, body))
+        for block in re.findall(r"(?s)settings-table\(\((.*?)\)", body):
+            found |= {("settings-table", k, "") for k in re.findall(r'"([^"]*)"', block)}
+        return found
+
+    en, own = sections("en"), sections(lang)
+    if en != own:
+        lacks.append(f"text/{lang}/{of}/outline.yaml: its chapters and sections (ids, files, order) differ from text/en/{of}/outline.yaml")
+    for name in ["about.typ"] + [f for _, f in en if f]:
+        path = os.path.join(DIR, "text", lang, name)
+        if not os.path.exists(path):
+            lacks.append(f"text/{lang}/{name}: not written (text/en/{name} is)")
+            continue
+        with open(path, encoding="utf-8") as f:
+            if name != "about.typ" and not re.search("[\u05d0-\u05ea]{3}", re.sub(r"(?m)^//.*$", "", f.read())):
+                lacks.append(f"text/{lang}/{name}: still the English text")
+                continue
+        if name == "about.typ":  # its jet-only parts have no edition
+            continue
+        a, b = calls("en", name), calls(lang, name)
+        for c in sorted(a - b):
+            lacks.append(f"text/{lang}/{name}: no {c[0]}(\"{c[1]}\"{', \"' + c[2] + '\"' if c[2] else ''}), which text/en/{name} has")
+        for c in sorted(b - a):
+            lacks.append(f"text/{lang}/{name}: {c[0]}(\"{c[1]}\"{', \"' + c[2] + '\"' if c[2] else ''}) is not in text/en/{name}")
+    for folder, _, names in sorted(os.walk(os.path.join(DIR, "text", lang))):
+        for name in sorted(names):
+            with open(os.path.join(folder, name), encoding="utf-8") as f:
+                for n, line in enumerate(f, 1):
+                    if re.search('[\u05d0-\u05ea]"[\u05d0-\u05ea]', line):
+                        lacks.append(f"{os.path.relpath(os.path.join(folder, name), DIR)}:{n}: a straight quote inside a Hebrew word; write gershayim (״)")
+    # One thing, one term: the term table's other words for a thing (text/<lang>/terms.yaml `not`).
+    with open(os.path.join(DIR, "text", lang, "terms.yaml"), encoding="utf-8") as f:
+        banned = [w.strip() for group in re.findall(r"\bnot: \[([^\]]*)\]", f.read()) for w in group.split(",")]
+    for folder, _, names in sorted(os.walk(os.path.join(DIR, "text", lang))):
+        for name in sorted(n for n in names if n != "terms.yaml"):
+            with open(os.path.join(folder, name), encoding="utf-8") as f:
+                for n, line in enumerate(f, 1):
+                    for word in banned:
+                        if re.search(r"(?<![\u05d0-\u05ea])[והבלמשכ]{0,3}" + re.escape(word) + r"(?![\u05d0-\u05ea])", line):
+                            lacks.append(f"{os.path.relpath(os.path.join(folder, name), DIR)}:{n}: \"{word}\" is another word for a term of text/{lang}/terms.yaml; use the table's term")
+    for line in lacks:
+        print(f"manuals: {manual}: {line}")
+    return len(lacks)
 
 
 STATUSES = ("works", "partly", "moves", "none")
@@ -296,17 +365,23 @@ def main() -> int:
         return 1
     failed = 0
     for m in wanted:
+        of, lang = manuals[m].get("of", m), manuals[m].get("lang", "en")
+        # IAF_MANUAL_DRAFT=1: an edition still being translated builds anyway, for a look at its pages.
+        if "of" in manuals[m] and edition(m, manuals[m]) + glossary_links(of, lang) and not os.environ.get("IAF_MANUAL_DRAFT"):
+            failed += 1
+            print("FAILED " + manuals[m]["file"])
+            continue
         if "cockpit" in manuals[m] and cockpit_data(m, manuals[m]) + game_flow(m) + glossary_links(m) + abbreviations(m, manuals[m]):
             failed += 1
             print("FAILED " + manuals[m]["file"])
             continue
-        if "cockpit" not in manuals[m] and glossary_links(m):
+        if "cockpit" not in manuals[m] and "of" not in manuals[m] and glossary_links(m):
             failed += 1
             print("FAILED " + manuals[m]["file"])
             continue
         out = os.path.join(DIR, "pdf", manuals[m]["file"])
         cmd = [typst, "compile", "--root", ROOT, "--ignore-system-fonts", "--font-path", os.path.join(ROOT, "modern-iaf/data/fonts")]
-        cmd += ["--creation-timestamp", str(stamp), "--input", "manual=" + m, "--input", "date=" + date]
+        cmd += ["--creation-timestamp", str(stamp), "--input", "manual=" + of, "--input", "lang=" + lang, "--input", "date=" + date]
         cmd += [os.path.join(DIR, "main.typ"), out]
         ok = subprocess.run(cmd).returncode == 0
         failed += not ok

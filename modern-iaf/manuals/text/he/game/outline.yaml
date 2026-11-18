@@ -1,0 +1,65 @@
+# The Hebrew game manual's outline: the same chapters, sections and ids as text/en/game/outline.yaml (the build
+# checks it); file: a section's text under text/he/.
+title: "הזרוע הארוכה"
+subtitle: "מדריך המשחק"
+tagline: "התקנה, תפריטים, משימות, בסיסים ומגדל הפיקוח. לכל מטוס יש מדריך טיסה משלו, באנגלית."
+scope: "הוא מתאר את המשחק שסביב המטוסים: ההתקנה, התפריטים, המשימות והאופן שבו הן נבחנות, הבסיסים, המגדל והקשר. את כל מה ששייך למטוס עצמו מתאר מדריך הטיסה של אותו מטוס."
+chapters:
+- id: start
+  title: "צעדים ראשונים"
+  intro: "מעותק חדש ועד הטיסה הראשונה."
+  sections:
+  - {id: requirements, title: "מה נדרש", file: game/start/requirements.typ}
+  - {id: setup, title: "התקנה", file: game/start/setup.typ}
+  - {id: start-game, title: "הפעלת המשחק", file: game/start/start-game.typ}
+  - {id: first-flight, title: "הטיסה הראשונה", file: game/start/first-flight.typ}
+  - {id: manuals, title: "המדריכים", file: game/start/manuals.typ}
+- id: menus
+  title: "התפריטים"
+  intro: "כל המסכים שלפני הטיסה ואחריה."
+  sections:
+  - {id: main-menu, title: "הדת״ק: התפריט הראשי", file: game/menus/main-menu.typ}
+  - {id: pilots, title: "פרופילים ויומן הטיסות", file: game/menus/pilots.typ}
+  - {id: hangar, title: "בחירת מטוס ובסיס", file: game/menus/hangar.typ}
+  - {id: mission-list, title: "מסך המשימות", file: game/menus/mission-list.typ}
+  - {id: briefing, title: "התדריך", file: game/menus/briefing.typ}
+  - {id: loadout, title: "מסך החימוש", file: game/menus/loadout.typ}
+  - {id: settings, title: "הגדרות", file: game/menus/settings.typ}
+  - {id: keys-joystick, title: "מקשים וג׳ויסטיק", file: game/menus/keys-joystick.typ}
+  - {id: language, title: "שפה", file: game/menus/language.typ}
+- id: flying
+  title: "טיסת משימה"
+  intro: "מה שזהה בכל המטוסים. הנהלים של כל מטוס נמצאים במדריך הטיסה שלו."
+  sections:
+  - {id: loading, title: "מסך הטעינה", file: game/flying/loading.typ}
+  - {id: views, title: "מבטים והסתכלות סביב", file: game/flying/views.typ}
+  - {id: clicking, title: "הפעלת תא הטייס בסמן", file: game/flying/clicking.typ}
+  - {id: notebook, title: "הפנקס והבד״ח", file: game/flying/notebook.typ}
+  - {id: tower, title: "המגדל ומהלך הקשר", file: game/flying/tower.typ}
+  - {id: awacs, title: "ה-AWACS", file: game/flying/awacs.typ}
+  - {id: time-pause, title: "השהיה, זמן ויציאה מטיסה", file: game/flying/time-pause.typ}
+  - {id: debrief, title: "התחקיר", file: game/flying/debrief.typ}
+- id: missions-training
+  title: "משימות ואימון"
+  intro: "הצד של המשחק בהטסת מטוס: השיעורים לפי הסדר, מה כל אחד מלמד, ומה נחשב בו הצלחה או כישלון."
+  sections:
+  - {id: lessons, title: "השיעורים לפי הסדר", file: game/missions-training/lessons.typ}
+  - {id: lesson-startup, title: "התנעה", file: game/missions-training/lesson-startup.typ}
+  - {id: lesson-takeoff, title: "המראה", file: game/missions-training/lesson-takeoff.typ}
+  - {id: lesson-range, title: "מטווח חימוש", file: game/missions-training/lesson-range.typ}
+  - {id: scoring, title: "הצלחה וכישלון", file: game/missions-training/scoring.typ}
+- id: bases
+  title: "בסיסים"
+  intro: "הקרקע שממנה המטוסים פועלים."
+  sections:
+  - {id: airbases, title: "הבסיסים", file: game/bases/airbases.typ}
+  - {id: ground-signs, title: "מסלולים, מסלולי הסעה ושילוט", file: game/bases/ground-signs.typ}
+- id: trouble
+  title: "פתרון תקלות"
+  intro: "כשמשהו משתבש במשחק עצמו."
+  sections:
+  - {id: setup-faults, title: "תקלות בהתקנה", file: game/trouble/setup-faults.typ}
+  - {id: after-update, title: "אחרי עדכון", file: game/trouble/after-update.typ}
+  - {id: crash-page, title: "דף התקלה", file: game/trouble/crash-page.typ}
+  - {id: performance, title: "טיסה איטית או מקוטעת", file: game/trouble/performance.typ}
+  - {id: mac-keys, title: "מקשים ב-Mac", file: game/trouble/mac-keys.typ}

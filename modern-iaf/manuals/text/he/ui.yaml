@@ -1,0 +1,63 @@
+# The layout's own words (modern-iaf/manuals/layout/manual.typ) in Hebrew. Only the game manual has a Hebrew edition,
+# so the words that only a jet's manual draws stay as short as the layout needs.
+product: הזרוע הארוכה
+contents: תוכן העניינים
+chapter: פרק
+section: סעיף
+figure: איור
+table: טבלה
+appendix: נספח
+page: עמוד
+edition: מהדורה
+about: על המדריך
+planned: סעיף מתוכנן. הוא ייכתב אחרי אישור מבנה המדריך.
+proposed: סעיף מוצע. הוא יצורף למבנה המדריך כשיאושר.
+covers: "מה הסעיף כולל:"
+not_modelled_list: "לא ממודל בסימולטור:"
+sim:
+  full: ממודל
+  part: ממודל חלקית
+  none: לא ממודל
+  info: מידע
+step: שלב
+action: פעולה
+how: איך ואיפה
+status: בסימולטור
+checked: מסומן על ידי הסימולטור
+ack: "לא נבדק על ידי הסימולטור: לקרוא ולהמשיך"
+key: מקש
+warning: אזהרה
+caution: זהירות
+note: הערה
+checklist: בד״ח
+checklist_intro: כרטיס הבד״ח המלא של המטוס, כפי שהפנקס מציג אותו בטיסה. עיגול ריק מסמן פריט שהסימולטור אינו בודק; יש לקרוא אותו ולהמשיך.
+keys: כרטיס מקשים
+keys_intro: "כל המקשים שבטבלת המקשים של הסימולטור: תחילה על מקלדת מצוירת, אחת למקשים לבדם ואחת לכל מקש צירוף לחוץ, ואחר כך בטבלאות לפי הקבוצות שבמסך המקשים. אפשר לשנות מקש במסך הזה; הכרטיס מציג את ברירות המחדל."
+key_layers: {"": המקשים לבדם, Shift: מקשים עם Shift לחוץ, Ctrl: מקשים עם Ctrl לחוץ, Alt: מקשים עם Alt לחוץ}
+keyboard_number: "פקודה ששמה ארוך מהמקש: הרשימה שמתחת למקלדת מפרטת אותה."
+keyboard_note: "הסימולטור קורא מקש לפי מקומו במקלדת, ולכן הציור נכון למקלדת בכל שפה. על המקשים מופיעים הסימונים האמריקאיים בפריסת ISO."
+key_layers_mac:
+  "": "macOS: אותם מקשים. שם הסימולטור מתחיל ממפת המקשים למחשב נייד, שמעבירה את הפקודות של מקלדת המספרים ועוד כמה פקודות: הטבלאות שאחרי המקלדות נותנות את מקש ה-macOS של כל פקודה."
+  Shift: "macOS: להחזיק את Shift."
+  Ctrl: "macOS: להחזיק את Cmd (המקש הכהה Win / Cmd); גם Ctrl פועל. עם Q ועם M להחזיק את Ctrl: את Cmd עם שני המקשים האלה macOS שומר לעצמו (יציאה, מזעור). עם החיצים להחזיק את Cmd: את Ctrl עם החיצים macOS שומר לשולחנות העבודה שלו."
+  Alt: "macOS: להחזיק את Option."
+key_tables: טבלאות המקשים
+attributions: קרדיטים ורישיונות
+attributions_intro: "כל מקור של צד שלישי שהמשחק משתמש בו, עם הרישיון שלו. הרשימה נלקחת מרשומת הקרדיטים של המשחק עצמו, זו שההתקנה ומסך הקרדיטים והרישיונות מציגים."
+attribution_lists: {sim: "נתונים, תצלומים, דגמים, צלילים, קולות וגופנים", made_with: נבנה בעזרת}
+attributions_cols: [המקור והשימוש בו, רישיון, קרדיט]
+keys_cols: [פקודה, מקש]
+key_groups: {sim: כללי, flight: טיסה, views: מבטים, sensors: חיישנים ותצוגות, weapons: חימוש}
+controls: הבקרים בתא הטייס התלת־ממדי
+controls_intro: "כל בקר שהסמן מפעיל בתא הטייס התלת־ממדי של המטוס."
+controls_cols: [בקר, "איור, מס׳", סוג, בסימולטור, מקש]
+kinds: {push: לחצן, switch: "{} מצבים", slide: בורר או מחוון, hit: ידית}
+statuses: {works: פועל, partly: חלקית, moves: זז בלבד, none: לא ממודל}
+overview_caption: "תא הטייס מעל המושב: כל לוח עם מספר האיור שלו."
+abbreviations: קיצורים
+abbreviations_intro: הקיצורים שבלוחות, בתצוגות ובמדריך.
+systems_cols: ["מס׳", בקר, מצבים, מה הוא עושה, בסימולטור]
+in_sim: "בסימולטור:"
+glossary: מילון מונחים
+index: מפתח
+see_manual: "להרחבה: {}"

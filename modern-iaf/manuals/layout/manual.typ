@@ -85,15 +85,17 @@
 #let green = rgb("1f6f43")
 #let font = "Heebo"
 #let rtl = lang == "he"
+/// Manual `mid`'s PDF: its edition in this language (manuals.json `of`, `lang`) when there is one.
+#let file-of(mid) = registry.values().filter(m => m.at("of", default: none) == mid and m.at("lang", default: "en") == lang).at(0, default: registry.at(mid)).file
 
 // ---- The glossary's terms ----
 #let terms = yaml(text-dir + "glossary.yaml").filter(t => id in t.at("in", default: (id,)))
-#let term-label(name) = "gl-" + lower(name).replace(regex("[^a-z0-9]+"), "-")
+#let term-label(name) = "gl-" + str(terms.position(t => lower(t.term) == lower(name)))
 /// A glossary term in the text, as written there (`name`), linked to its entry. The first use of a term in a section
-/// is written this way (tools/manuals.py checks it).
-#let term(name) = {
+/// is written this way (tools/manuals.py checks it). `shown`: the term as the sentence inflects it (Hebrew).
+#let term(name, shown: none) = {
   assert(terms.any(t => lower(t.term) == lower(name)), message: "term \"" + name + "\": glossary.yaml has no such term for this manual")
-  link(label(term-label(name)), name)
+  link(label(term-label(name)), if shown == none { name } else { shown })
 }
 
 // ---- Small parts ----
@@ -111,14 +113,17 @@
 #let sim-colours = (full: green, part: amber, "none": muted, info: accent)
 #let sim-chip(state) = chip(ui.sim.at(state), colour: sim-colours.at(state), filled: state == "full")
 
-#let keycap(k) = box(k.split(" + ").map(p => box(
+#let keycap(k) = box({
+  set text(dir: ltr)
+  k.split(" + ").map(p => box(
   inset: (x: 3.5pt, y: 1pt),
   outset: (y: 1.5pt),
   radius: 2.5pt,
   fill: white,
   stroke: (top: 0.5pt + muted, left: 0.5pt + muted, right: 0.5pt + muted, bottom: 1.2pt + muted),
   text(size: 8pt, weight: 600, fill: ink, p),
-)).join(text(size: 8pt, fill: muted, " + ")))
+)).join(text(size: 8pt, fill: muted, " + "))
+})
 
 // macOS (shared/controls/key_table.gd, modern-iaf/docs/front-end.md §9.1): the sim starts from the laptop map (the
 // record's `laptop` key), reads Cmd as Ctrl and names Alt Option. macOS itself takes Cmd + Q (quit) and Cmd + M
@@ -133,6 +138,7 @@
 /// macOS key under it, smaller. The cap takes a line's height in running text, so the lines keep their spacing.
 #let key-of(r) = context {
   if key-mac(r) == r.key { return keycap(r.key) }
+  set text(dir: ltr) // a key's name reads left to right in every language ("Cmd + =")
   let main = text(size: 7.5pt, weight: 600, fill: ink, r.key)
   let under = text(size: 6pt, weight: 600, fill: muted, key-mac(r))
   let (a, b) = (measure(main), measure(under))
@@ -206,7 +212,8 @@
 #let setup-strings = json("/modern-iaf/setup/strings_" + lang + ".json")
 #let string-of(table, file, k) = {
   assert(k in table, message: "modern-iaf/" + file + "/strings_" + lang + ".json has no \"" + k + "\"")
-  table.at(k).replace("\u{200e}", "")
+  // The game's left-to-right marks keep a Latin name's order inside Hebrew ("MSAA 4×"); English needs none.
+  if rtl { table.at(k) } else { table.at(k).replace("\u{200e}", "") }
 }
 /// A name on a screen of the front end or of the flight (menu/strings), bold, as the game writes it.
 #let scr(k) = strong(string-of(game-strings, "menu", k))
@@ -235,9 +242,10 @@
 )
 /// A picture of a screen, taken from the game by a shot script (pictures/game/<name>.jpg), as a figure; a text
 /// refers to it as @fig-s-<name>.
-#let screen(name, caption, width: 100%) = [#figure(kind: image, placement: none, caption: caption, box(stroke: 0.5pt + rule-c, image(base + "pictures/game/" + name + ".jpg", width: width))) #label("fig-s-" + name)]
+#let screen(name, caption, width: 100%) = [#figure(kind: image, placement: none, caption: caption, box(stroke: 0.5pt + rule-c, image(base + "pictures/game" + (if rtl { "-he" } else { "" }) + "/" + name + ".jpg", width: width))) #label("fig-s-" + name)]
 /// The reaction to an action, on its own after an arrow, bold.
-#let then(body) = [#text(fill: accent, weight: 700, sym.arrow.r) *#body*]
+#let arrow = if rtl { sym.arrow.l } else { sym.arrow.r }
+#let then(body) = [#text(fill: accent, weight: 700, arrow) *#body*]
 
 #let signal(word, colour, body) = block(
   width: 100%,
@@ -604,7 +612,7 @@
           linebreak() + text(fill: muted, upper(w.first()) + w.slice(1))
         }
         set text(size: 9pt)
-        if it.id in seen { block(above: 4pt, below: 0pt, [#text(fill: accent, weight: 700, sym.arrow.r)#h(0.4em)#strong(seen.at(it.id))]) }
+        if it.id in seen { block(above: 4pt, below: 0pt, [#text(fill: accent, weight: 700, if lang == "he" { sym.arrow.l } else { sym.arrow.r })#h(0.4em)#strong(seen.at(it.id))]) }
         if it.id in notes { block(above: 4pt, below: 0pt, notes.at(it.id)) }
       }),
       ks.map(key-of).join(linebreak()),
@@ -663,9 +671,14 @@
 ))
 
 // ---- Links to the other manuals ----
+/// Manual `mid`'s outline: a jet's manual is written in English only, so every edition links to that one.
+#let outline-of(mid) = base + "text/" + (if "cockpit" in registry.at(mid) { "en" } else { lang }) + "/" + mid + "/outline.yaml"
+/// An English manual's name inside a right-to-left text: one left-to-right run (Unicode isolates), so its words and
+/// numbers keep their order.
+#let latin-in(mid, body) = if rtl and "cockpit" in registry.at(mid) [\u{2066}#body\u{2069}] else { body }
 /// Section `sid` of manual `mid`, by its number and title in that manual's outline: a link into the PDF beside this one.
 #let other(mid, sid) = {
-  let ob = yaml(text-dir + mid + "/outline.yaml")
+  let ob = yaml(outline-of(mid))
   let hit = none
   for (c, ch) in ob.chapters.enumerate() {
     if ch.id == sid { hit = [#(c + 1) #ch.title] }
@@ -674,12 +687,12 @@
     }
   }
   assert(hit != none, message: "link to " + mid + " " + sid + ": that manual's outline has no such section")
-  link(registry.at(mid).file + "#" + sid, [#ob.title #ob.subtitle, #hit])
+  link(file-of(mid) + "#" + sid, latin-in(mid, [#ob.title #ob.subtitle, #hit]))
 }
 /// Manual `mid` as a whole.
 #let other-manual(mid) = {
-  let ob = yaml(text-dir + mid + "/outline.yaml")
-  link(registry.at(mid).file, [#ob.title #ob.subtitle])
+  let ob = yaml(outline-of(mid))
+  link(file-of(mid), latin-in(mid, [#ob.title #ob.subtitle]))
 }
 
 // ---- Generated appendices ----
@@ -817,9 +830,9 @@
     if enter {
       // The ISO Enter: one cap over two rows, narrower below.
       let pt(x, y) = (x * kb-u + (if x < 14 { 1pt } else { -1pt }), y * kb-v + (if y < 3 { 1pt } else { -1pt }))
-      caps.push(place(polygon(fill: fill, stroke: edge, pt(13.5, 2.25), pt(15, 2.25), pt(15, 4.25), pt(13.75, 4.25), (13.75 * kb-u + 1pt, 3.25 * kb-v - 1pt), (13.5 * kb-u + 1pt, 3.25 * kb-v - 1pt))))
+      caps.push(place(top + left, polygon(fill: fill, stroke: edge, pt(13.5, 2.25), pt(15, 2.25), pt(15, 4.25), pt(13.75, 4.25), (13.75 * kb-u + 1pt, 3.25 * kb-v - 1pt), (13.5 * kb-u + 1pt, 3.25 * kb-v - 1pt))))
     }
-    caps.push(place(dx: c.x * kb-u + 1pt, dy: c.y * kb-v + 1pt, rect(
+    caps.push(place(top + left, dx: c.x * kb-u + 1pt, dy: c.y * kb-v + 1pt, rect(
       width: w,
       height: h,
       radius: 2.5pt,
@@ -885,6 +898,9 @@
 /// is used for, its licence, its link and its credit lines.
 #let attributions() = {
   let record = json("/shared/credits.json")
+  // The licences and credit lines are English: in the Hebrew edition they read left to right at the cell's own side
+  // ("© Survey of Israel", a link's last slash).
+  let latin-cell(body) = if rtl { align(right, text(dir: ltr, body)) } else { body }
   let uses = json("/modern-iaf/setup/strings_" + lang + ".json")
   for (list, title) in ui.attribution_lists {
     heading(level: 2, title)
@@ -904,8 +920,8 @@
           assert(c.use in uses, message: "shared/credits.json \"" + c.name + "\": the setup's strings have no " + c.use)
           (
             [#idx(c.name)#strong(c.name)\ #text(fill: muted, uses.at(c.use))],
-            c.licence,
-            [#c.lines.join(linebreak())\ #link(c.link)],
+            latin-cell(c.licence),
+            latin-cell[#c.lines.join(linebreak())\ #link(c.link)],
           )
         })
         .flatten(),
@@ -1038,11 +1054,13 @@
     entries.insert(m.value, at)
   }
   set text(size: 9pt)
+  // Right to left the page numbers stand in a box: after an entry that ends in Latin letters they keep their own end.
+  let pages(body) = if rtl { box(body) } else { body }
   columns(2, gutter: 18pt, for term in entries.keys().sorted(key: lower) {
     block(above: 0pt, below: 5pt, [#term#h(0.6em)#box(width: 1fr, line(length: 100%, stroke: (
         paint: rule-c,
         dash: "dotted",
-      )))#h(0.4em)#entries.at(term).map(l => link(l, str(l.page()))).join(", ")])
+      )))#h(0.4em)#pages(entries.at(term).map(l => link(l, str(l.page()))).join(", "))])
   })
 }
 
@@ -1081,6 +1099,10 @@
 #let manual(doc) = {
   set document(title: book.title + " " + book.subtitle, author: ui.product)
   set text(font: font, size: 10.5pt, lang: lang, fill: ink)
+  // Code, file paths and commands read left to right inside a right-to-left line.
+  show raw.where(block: false): it => if rtl { box(text(dir: ltr, it)) } else { it }
+  show raw.where(block: true): set text(dir: ltr) if rtl
+  show raw.where(block: true): set align(left) if rtl
   set par(justify: false, leading: 0.62em, spacing: 0.95em)
   set page(
     paper: "a4",

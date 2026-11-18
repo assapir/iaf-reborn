@@ -1,6 +1,7 @@
 # Modern IAF's manuals
 
-Four PDFs, built by one command from text, the game's data and pictures taken from the game:
+Four manuals and one Hebrew edition, five PDFs, built by one command from text, the game's data and pictures taken
+from the game:
 
 | manual | PDF (`modern-iaf/manuals/pdf/`) | text (`modern-iaf/manuals/text/en/`) |
 |---|---|---|
@@ -8,6 +9,7 @@ Four PDFs, built by one command from text, the game's data and pictures taken fr
 | F-16D Barak flight manual | `f16d-barak-flight-manual.pdf` | `f16d/outline.yaml`, `f16/` |
 | F-35I Adir flight manual | `f35i-adir-flight-manual.pdf` | `f35i/` |
 | Modern IAF game manual | `game-manual.pdf` | `game/outline.yaml`, `game/<chapter>/<section>.typ` |
+| the game manual in Hebrew (§2.1) | `game-manual-he.pdf` | `text/he/game/`, the same files |
 
 The plan is the user's (17 November 2026): each jet has a full flight manual in the real manual's order, complete
 about its jet; the game manual holds what is not about a jet and links to the jets' manuals; PDF is the only
@@ -23,13 +25,17 @@ arrangement with every panel and item numbered, 1.3 to 1.12 the systems; §2) an
 (3.1 to 3.8; §2 "Chapter 3"), chapter 4 "Limits" whole (4.1 to 4.4) and chapter 5 "Flight characteristics" whole (5.1 to
 5.5; §2 "Chapters 4 and 5"). The
 appendices (checklist, key card, controls, abbreviations, attributions, index) are drawn from the game's data, so they
-are whole. The Hangar's Manuals entry opens the four PDFs ([front-end.md](front-end.md) §1).
+are whole. The Hangar's Manuals entry opens the four manuals, the game manual in the game's language
+([front-end.md](front-end.md) §1).
 
 Chapter 6 "Weapons and avionics" is written whole in the three jet manuals (§2 "Chapter 6"), with the pictures listed
 as owed in §7.
 
 The game manual is written whole (§2 "The game manual"): six chapters, 34 sections, with the screens' pictures; no
 outline holds a planned section any more.
+
+The game manual has a Hebrew edition (§2.1), written whole on 18 November 2026. The user reads it before it counts as
+final: no agent is a native reviewer.
 
 **Next, in this order.**
 
@@ -181,8 +187,46 @@ each section's brief.
 | a task | a numbered list, one instruction a step, its reaction after `then[…]`; a safety box stands before its step |
 | a glossary term | linked at its first use in a section; the build checks it for the game manual too (`glossary_links`) |
 
-The text files hold no layout beyond these calls, so a Hebrew edition is a `text/he/game/` folder with the same
+The text files hold no layout beyond these calls, so the Hebrew edition is a `text/he/game/` folder with the same
 calls: the names then come from the Hebrew string tables by themselves.
+
+### 2.1 The Hebrew edition of the game manual
+
+The user's decision (18 November 2026: "wdyt with translating only the game manual to hebrew? but keep initials and
+techincal terms in english?", and "yes" to the plan): only the game manual has a Hebrew edition; the three jets'
+manuals stay English. The Hebrew manual links to the English jets' manuals and says so once, in "על המדריך".
+
+| part | rule |
+|---|---|
+| the registry | `manuals.json` `"game-he": {"file": "game-manual-he.pdf", "of": "game", "lang": "he"}`: an edition names its manual and its language; the build passes `lang=he` and reads `text/he/` |
+| initials, a panel's or a display's text | English, exactly as shown |
+| a technical term | the Hebrew term the field uses, English where Hebrew speakers say it in English, never a coined word. One thing has one term: `text/he/terms.yaml` is the term table (the English term, the Hebrew one, where it comes from, and `not`: other words for the same thing) |
+| a screen's, button's or option's name | `scr`, `stp`, `settings-table`: the game's own Hebrew strings, so the manual says what the screen says |
+| the wording | gender-neutral and formal, as the front end's strings: the infinitive or "יש ל…" for an instruction |
+| an abbreviation in Hebrew | gershayim (״) and geresh (׳), never a straight quote |
+| the glossary | `text/he/glossary.yaml`: the Hebrew terms; an inflected form in a text is `term("מגדל", shown: "המגדל")` |
+| the pictures | `pictures/game-he/`, the same names as `pictures/game/`, taken with the game in Hebrew (§4) |
+| the key card, the Attributions | drawn from the same data: the key table's `he` labels, `own_keys.json`'s `he`, the setup's Hebrew strings; the fixed labels are `text/he/ui.yaml` |
+
+**Right to left.** Typst sets the text right to left from `lang: he`; tables, step columns, the header and the footer
+mirror with it. The layout mirrors what has a side of its own: the title page's edge, a safety box's bar, the
+reaction's arrow. Code, file paths, commands and key caps are set left to right in their own box, and the keyboard's
+drawing keeps its places (it is a picture of a physical keyboard). The Attributions' licences and credit lines are
+English, so their cells read left to right; the index's page numbers stand in a box, so they keep their end of the
+line after an entry that ends in Latin letters.
+
+**The build stops** for the Hebrew edition (`edition` in `tools/manuals.py`) when:
+
+- its outline's chapters, sections, ids or files differ from the English outline's;
+- a section's file is missing or still holds English text;
+- a section names a screen, option, picture, key or link (`scr`, `stp`, `screen`, `key`, `other`, a `settings-table`
+  key) that its English section lacks, or lacks one the English has: the two editions hold the same keys, and a key
+  without a Hebrew string stops Typst, so the editions cannot drift;
+- a Hebrew word holds a straight quote;
+- a text holds a `not` word of the term table;
+- the first use of a glossary term in a section is no link (as in English; a one-letter prefix counts).
+
+`IAF_MANUAL_DRAFT=1` builds the edition anyway, for a look at its pages while a chapter is translated.
 
 **References.** Every mention of a control carries its figure and number as a link to its row, in one form: "MAIN PWR
 (1-8, 1)" (`ctl-ref`): a procedure's steps, the checklist card, the Controls appendix, and `ctl("…")` in a text. Figures
@@ -209,7 +253,8 @@ countermeasure works and electronic attack stay out.
 ## 3. The build
 
 ```sh
-python3 -I tools/manuals.py            # all four PDFs
+python3 -I tools/manuals.py            # all five PDFs
+python3 -I tools/manuals.py game-he    # the game manual's Hebrew edition
 python3 -I tools/manuals.py f35i       # one
 ```
 
@@ -230,7 +275,7 @@ build reads no system font and fetches nothing.
 | `shots.json`, `pictures/<cockpit>/` | the pictures' list; the pictures and `marks.json` (§4) |
 
 Text and layout are apart, so a Hebrew edition is a `text/he/` folder: `--input lang=he` reads it, Typst sets the
-text right to left, and the checklist's lines come from the card's `he`. Only English is written.
+text right to left, and the checklist's lines come from the card's `he`. The game manual has one (§2.1).
 
 **Drawn from the game's data** at every build:
 
@@ -285,7 +330,7 @@ Down have laptop keys. A test of the key table fails on a listed command with no
 
 **Finding things in a PDF:** the contents, the bookmarks, every cross-reference, footnote and index entry are links.
 A link to another manual is a relative link to `<file>.pdf#<section id>` (Typst writes each section's label as a
-named destination), so it works while the four PDFs sit in one folder. Whether a viewer opens the other file at that
+named destination), so it works while the PDFs sit in one folder. Whether a viewer opens the other file at that
 section is the viewer's: checked 18 November 2026 only that the destinations are in the files (`pdfinfo -dests`);
 macOS Preview is open.
 
@@ -300,7 +345,7 @@ workflow.
 
 | where | what it does |
 |---|---|
-| a branch, a pull request | installs the same Typst release (0.15.1, the official asset, checked against its SHA-256), runs the build, and keeps the four PDFs for 7 days as the run's `manuals` artifact. A stop of the build (the list above) fails the run. |
+| a branch, a pull request | installs the same Typst release (0.15.1, the official asset, checked against its SHA-256), runs the build, and keeps the PDFs for 7 days as the run's `manuals` artifact. A stop of the build (the list above) fails the run. |
 | `main` | the same; then, when a built PDF differs from the committed one, the `publish` job commits the PDFs to `main` as `github-actions[bot]`: `Manuals: the PDFs rebuilt by CI from <commit> [skip ci]`. |
 
 - The commit is a normal new commit on top of `main`. When `main` moved during the run, the job rebases its commit (its own PDFs win over an earlier run's)
@@ -314,7 +359,7 @@ workflow.
   (§4) and committed with the change.
 - The same inputs give the same bytes: Typst gets a fixed creation time and the edition date, both from the last
   commit to the manuals' sources (the PDFs themselves do not count; sources edited and not yet committed count as
-  today). Checked 18 November 2026: two builds in a row gave the same SHA-256 for all four PDFs.
+  today). Checked 18 November 2026: two builds in a row gave the same SHA-256 for all four PDFs, and the same day for the Hebrew edition.
 
 ## 4. The pictures
 
@@ -369,6 +414,12 @@ without `_en`; a prefix per script): `_front_end_shot.gd` (no prefix), `_loadout
 `_setup_wizard_shot.gd` (`setup_welcome`, `setup_imagery`, `setup_install`) and, converted, the pictures of
 `modern-iaf/docs/pictures/setup/` (the skipped step, the remove dialog) and `front-end/loading_en.webp`. Only the pictures a section uses are
 kept. The pilot on them is the shot scripts' sample pilot.
+
+**The Hebrew edition's screens** (`pictures/game-he/`, 18 November 2026) are the same scripts' Hebrew pictures
+(`<name>_he.png`), scaled the same way. Three pictures have no language in their script: `notebook_radio` and
+`notebook_training` are taken with `SHOT_LANG=he NB_SHOTS=radio,training` (`_notebook_shot.gd`), `devices_keys_mac`
+with `SHOT_LANG=he` (`_devices_shot.gd`). `flight_mfd_view` shows a display of the jet, which is English in both.
+`setup_install_remove` and `setup_install_skipped` are converted from `modern-iaf/docs/pictures/setup/*_he.webp`.
 
 **Black captures** (found 18 November 2026). `_mfd_s4_shot.gd`, `_fcr_ag_shot.gd` and `_avionics_s5_shot.gd` put the
 jet in the air and then sent the "start engine" command (213). An air start has every system running; the command ran

@@ -7,8 +7,9 @@
 // The title page.
 #page(margin: 0pt, fill: navy, {
   set text(fill: white)
-  place(top + start, dx: 21mm, dy: 30mm, text(size: 11pt, weight: 600, tracking: 2pt, fill: rgb("a8c3ff"), upper(ui.product)))
-  place(horizon + start, dx: 21mm, block(width: 165mm, {
+  let edge = if rtl { -21mm } else { 21mm }
+  place(top + start, dx: edge, dy: 30mm, text(size: 11pt, weight: 600, tracking: 2pt, fill: rgb("a8c3ff"), upper(ui.product)))
+  place(horizon + start, dx: edge, block(width: 165mm, {
     text(size: 46pt, weight: 800, book.title)
     v(-22pt)
     text(size: 22pt, weight: 300, book.subtitle)
@@ -17,7 +18,7 @@
     v(8pt)
     text(size: 11pt, fill: rgb("a9b8d4"), book.tagline)
   }))
-  place(bottom + start, dx: 21mm, dy: -22mm, text(size: 9pt, fill: rgb("a9b8d4"), [#ui.edition #edition]))
+  place(bottom + start, dx: edge, dy: -22mm, text(size: 9pt, fill: rgb("a9b8d4"), [#ui.edition #edition]))
 })
 
 #heading(numbering: none, outlined: false, ui.contents)

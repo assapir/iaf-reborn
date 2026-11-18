@@ -1,9 +1,10 @@
 {
-"about": "The manuals (modern-iaf/docs/manuals.md): each PDF's file name under pdf/, and for a jet its checklist card (modern-iaf/data/checklists/<checklist>.json), its cockpit's control table (shared/extra/models/cockpit3d/<cockpit>.json \"controls\" under <cockpit>_controls.json) and that cockpit's pictures (pictures/<cockpit>/). tools/manuals.py builds them all.",
+"about": "The manuals (modern-iaf/docs/manuals.md): each PDF's file name under pdf/, and for a jet its checklist card (modern-iaf/data/checklists/<checklist>.json), its cockpit's control table (shared/extra/models/cockpit3d/<cockpit>.json \"controls\" under <cockpit>_controls.json) and that cockpit's pictures (pictures/<cockpit>/). An edition in another language names its manual (of) and its language (lang): its text is text/<lang>/<of>/. tools/manuals.py builds them all.",
 "manuals": {
 "f16i": {"file": "f16i-sufa-flight-manual.pdf", "checklist": "f16", "cockpit": "f16"},
 "f16d": {"file": "f16d-barak-flight-manual.pdf", "checklist": "f16", "cockpit": "f16"},
 "f35i": {"file": "f35i-adir-flight-manual.pdf", "checklist": "f35i", "cockpit": "f35i"},
-"game": {"file": "game-manual.pdf"}
+"game": {"file": "game-manual.pdf"},
+"game-he": {"file": "game-manual-he.pdf", "of": "game", "lang": "he"}
 }
 }

@@ -1,7 +1,8 @@
 # Dev helper (not run by tools/test.sh): the pilot's checklist notebook in a real render (modern-iaf/docs/training.md
 # §11): stowed on the right thigh, raised in English and Hebrew, the training ring with the board slid off it, the
 # edge pointer, the RADIO page, the page control (a section's second page, else the last page) and the first
-# start-up's help line. NB_SHOTS picks some (comma-separated names).
+# start-up's help line. NB_SHOTS picks some (comma-separated names); SHOT_LANG=he takes the pictures that have no
+# language of their own in Hebrew (the Hebrew game manual's).
 #   flock -o ~/.cache/iaf-gpu-bench.lock timeout -k 10 900 tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 \
 #     SHOW_OUT=<dir> [NB_SHOTS=raised_en,radio] [NB_SIZE=2560x1440] -- --log-file <temp> --display-driver x11 \
 #     --path modern-iaf -s ../modern-iaf/tests/_notebook_shot.gd
@@ -25,6 +26,7 @@ func run() -> void:
 		root.content_scale_aspect = Window.CONTENT_SCALE_ASPECT_KEEP
 		root.content_scale_size = Vector2i(int(size[0]), int(size[1]))
 	only = Array(OS.get_environment("NB_SHOTS").split(",", false))
+	settings().language = _env("SHOT_LANG", "en")
 	DirAccess.make_dir_recursive_absolute(shots)
 	fly_gd = load("res://flight/fly.gd")
 	out = OS.get_temp_dir().path_join("iaf2026-shots-%d" % OS.get_process_id())
@@ -70,7 +72,7 @@ func run() -> void:
 			settings().language = lang
 			await fly(tv, 0.3)
 			await _shot("raised_" + lang)
-	settings().language = "en"
+	settings().language = _env("SHOT_LANG", "en")
 	await fly(tv, 0.3)
 	if _want("radio"):
 		kb.board.open("radio")

@@ -2744,17 +2744,28 @@ func _page_credits() -> void:
 
 ## The manuals (modern-iaf/docs/manuals.md): [[id, the PDF's path on the disk], ...] of
 ## modern-iaf/manuals/manuals.json, the PDFs the build keeps under modern-iaf/manuals/pdf/ of a source checkout.
+## A manual's edition in the game's language (`of`: its manual, `lang`) takes that manual's row: in Hebrew the game
+## manual's row opens the Hebrew PDF; the jets' manuals are English in both.
 static func manuals() -> Array:
 	var dir := ProjectSettings.globalize_path("res://manuals")
 	var list: Dictionary = Settings.load_json(dir.path_join("manuals.json")).get("manuals", {})
-	return list.keys().map(func(id): return [id, dir.path_join("pdf").path_join(str(list[id].file))])
+	var out := []
+	for id in list:
+		if list[id].has("of"):
+			continue
+		var file := str(list[id].file)
+		for e in list.values():
+			if e.get("of", "") == id and e.get("lang", "") == Settings.language:
+				file = str(e.file)
+		out.append([id, dir.path_join("pdf").path_join(file)])
+	return out
 
 
 ## The list of the manuals; a row opens its PDF in the system's viewer.
 func _page_manuals() -> void:
 	_header(["hangar", "manuals"])
 	var v := _vbox(_body(), 24)
-	_title(v, s("manuals"), s("manuals_sub"))
+	_title(v, s("manuals"), s("manuals_sub"))  # in Hebrew: which of them is in Hebrew
 	var rows := []
 	for m in manuals():
 		var of: Array = JETS.filter(func(j): return j.unit == m[0])

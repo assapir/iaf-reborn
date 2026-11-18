@@ -1,4 +1,4 @@
-# Modern IAF's manuals (modern-iaf/docs/manuals.md §3.1): builds the four PDFs from the repo's text, data and committed
+# Modern IAF's manuals (modern-iaf/docs/manuals.md §3.1): builds the PDFs (the four manuals and the game manual's Hebrew edition) from the repo's text, data and committed
 # pictures when one of those inputs changes. On main it commits the rebuilt PDFs back when they differ.
 name: Manuals
 
