@@ -275,10 +275,12 @@ func _on_choice() -> void:
 	survey = survey_check.button_pressed and not survey_check.disabled
 
 
-## Every source the sim is built from, with its licence lines: shared/credits.json "sim" (both games' credits,
-## docs/credits.md "Modern IAF data"), each {name, use (the strings key of its use), lines}.
+## Every source the sim is built from and every tool it is made with, with its licence lines: shared/credits.json
+## "sim", then "made_with" (both games' credits, docs/credits.md "Modern IAF data" and "Modern IAF's tools"), each
+## {name, use (the strings key of its use), lines}. The game manual's Attributions appendix lists the same records.
 static func credits() -> Array:
-	return Settings.load_json("res://shared/credits.json").get("sim", [])
+	var all: Dictionary = Settings.load_json("res://shared/credits.json")
+	return all.get("sim", []) + all.get("made_with", [])
 
 
 ## The Attributions dialog: every source and its licence lines, scrolling; mirrored in Hebrew.

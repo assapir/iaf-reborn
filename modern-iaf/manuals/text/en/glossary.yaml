@@ -1,0 +1,25 @@
+# The glossary: term, means, and `in` (the manuals that carry it; none: all).
+- {term: AVIONIC POWER, means: "The right console's panel that powers the mission computer, the stores stations, the displays and the up-front controls.", in: [f16i, f16d]}
+- {term: CMDS, means: "Countermeasures dispenser set: releases chaff and flares.", in: [f16i, f16d]}
+- {term: DED, means: "Data entry display: the small text display right of the ICP.", in: [f16i, f16d]}
+- {term: EPU, means: "Emergency power unit: gives electrical and hydraulic power when the engine cannot.", in: [f16i, f16d]}
+- {term: FCR, means: "Fire control radar.", in: [f16i, f16d]}
+- {term: FLCS, means: "Flight control system: the computer between the stick and the control surfaces.", in: [f16i, f16d]}
+- {term: FTIT, means: "Fan turbine inlet temperature: the engine's temperature gauge.", in: [f16i, f16d]}
+- {term: HDPT, means: "Hardpoint: the chin stations under the intake that carry the navigation and targeting pods.", in: [f16i, f16d]}
+- {term: HMD, means: "Helmet-mounted display: the F-35's flight and weapon symbols, drawn in the helmet's visor.", in: [f35i]}
+- {term: Hot start, means: "An engine start in which fuel reaches an engine that turns too slowly: too little air flows through it, and the turbine's temperature passes its limit.", in: [f16i, f16d]}
+- {term: HUD, means: "Head-up display: flight and weapon symbols on the glass in front of the pilot.", in: [f16i, f16d]}
+- {term: ICP, means: "Integrated control panel: the keypad under the HUD.", in: [f16i, f16d]}
+- {term: INS, means: "Inertial navigation system. It must be aligned on the ground before it can navigate."}
+- {term: IPP, means: "Integrated power pack: the F-35's small turbine that gives power on the ground and starts the engine.", in: [f35i]}
+- {term: JFS, means: "Jet fuel starter: the small turbine that cranks the F-16's engine.", in: [f16i, f16d]}
+- {term: MFD, means: "Multifunction display.", in: [f16i, f16d]}
+- {term: MMC, means: "Modular mission computer.", in: [f16i, f16d]}
+- {term: Not modelled, means: "A function of the real jet that the sim does not have. Its switch may still move."}
+- {term: Notebook, means: "The pilot's kneeboard in the sim. Its CHECKLIST tab shows the jet's checklist card and ticks it."}
+- {term: PCD, means: "Panoramic cockpit display: the F-35's one large touch display.", in: [f35i]}
+- {term: RPM, means: "Engine speed, in percent."}
+- {term: SNSR PWR, means: "Sensor power: the right console's panel that powers the radar, the radar altimeter and the pods.", in: [f16i, f16d]}
+- {term: STOR HDG, means: "Stored heading: the INS's quick alignment, 90 seconds.", in: [f16i, f16d]}
+- {term: Tower, means: "The air base's controller. In Training missions each phase on the ground waits for the tower's clearance.", in: [game]}

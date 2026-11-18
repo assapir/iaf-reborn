@@ -1,0 +1,62 @@
+# The layout's own words (modern-iaf/manuals/layout/manual.typ), one file per language.
+product: Modern IAF
+contents: Contents
+chapter: Chapter
+section: Section
+figure: Figure
+table: Table
+appendix: Appendix
+page: page
+edition: Edition
+about: About this manual
+planned: Planned section. It is written after the outline is approved.
+proposed: Proposed section. It joins the outline when it is approved.
+covers: "What it covers:"
+not_modelled_list: "Not modelled in the sim:"
+sim:
+  full: Modelled
+  part: Partly modelled
+  none: Not modelled
+  info: Reference
+step: Step
+action: Action
+how: How, and where
+status: In the sim
+checked: Ticked by the sim
+ack: "Not checked by the sim: read and acknowledge"
+key: Key
+warning: WARNING
+caution: CAUTION
+note: NOTE
+checklist: Checklist
+checklist_intro: The jet's full checklist card, as the notebook shows it in flight. An open circle marks an item the sim does not check; read it and go on.
+keys: Key card
+keys_intro: "Every key of the sim's key table: first on a drawn keyboard, one for the keys alone and one for each modifier key held, then in tables by the groups of the Keys screen. A key can be changed on that screen; this card shows the defaults."
+key_layers: {"": Keys alone, Shift: Keys with Shift held, Ctrl: Keys with Ctrl held, Alt: Keys with Alt held}
+keyboard_number: "A function too long for its cap: see the list under the keyboard."
+keyboard_note: "The sim reads a key by its place on the keyboard, so the drawing holds for every language's keyboard. The caps show the US legends on the ISO layout."
+key_layers_mac:
+  "": "macOS: the same keys. The sim starts from the laptop map there, which moves the numpad's commands and a few others: the tables after the keyboards give each command's macOS key."
+  Shift: "macOS: hold Shift."
+  Ctrl: "macOS: hold Cmd (the dark Win / Cmd key); Ctrl works as well. With Q and with M hold Ctrl: macOS keeps Cmd with those two keys for itself (quit, minimise). With the arrows hold Cmd: macOS keeps Ctrl with the arrows for its desktops."
+  Alt: "macOS: hold Option."
+key_tables: Key tables
+attributions: Attributions
+attributions_intro: "Every third-party source the game uses, with its licence. The list is drawn from the game's own record of credits, the one its setup and its Attributions screen show."
+attribution_lists: {sim: "Data, imagery, models, sounds, voices and fonts", made_with: Made with}
+attributions_cols: [Source and use, Licence, Credit]
+keys_cols: [Command, Key]
+key_groups: {sim: Game, flight: Flight, views: Views, sensors: Sensors and displays, weapons: Weapons}
+controls: Controls of the 3D cockpit
+controls_intro: "Every control the pointer can work in this jet's 3D cockpit, from the cockpit's control table, by its label. Figure, No. is the control's figure in chapter 1 and its number there, a link to its description."
+controls_cols: [Control, "Figure, No.", Kind, In the sim, Key]
+kinds: {push: Push button, switch: "{} positions", slide: Knob or slider, hit: Handle}
+statuses: {works: Works, partly: Partly, moves: Moves only, none: Not modelled}
+overview_caption: "The cockpit from above the seat: each panel with the number of its figure."
+abbreviations: Abbreviations
+abbreviations_intro: The abbreviations of the panels, the displays and this manual, with the words behind them.
+systems_cols: ["No.", Control, Positions, What it does, In the sim]
+in_sim: "In the sim:"
+glossary: Glossary
+index: Index
+see_manual: "See the {}"

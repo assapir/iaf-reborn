@@ -1,0 +1,621 @@
+{
+ "about": "A jet's cockpit as chapter 1 describes it (modern-iaf/docs/manuals.md §2): per panel its controls, each by its node in the cockpit's control table (shared/extra/models/cockpit3d/<cockpit>.json): label as on the panel, name (the words behind the initials), positions (optional; their count is checked against the control table, which gives the count when they are left out), does (the real jet, from the panel's source), sim (what the sim does with it and what stops working while it is off; modern-iaf/docs/cockpit.md §5.2; none: the layout says whether the control works a system, from the control table). abbreviations: every abbreviation the manual uses, with its full name: the Abbreviations appendix, and the brackets at an abbreviation's first use in a chapter's steps. short: everyday shortenings, listed in the appendix only. words: plain words the panels write in capitals. tools/manuals.py stops the build on a capital token that is in none of the three.",
+ "source": "ayton",
+ "abbreviations": {
+  "FCS": "Flight control system",
+  "HMD": "Helmet-mounted display",
+  "IPP": "Integrated power pack",
+  "IAF": "Israeli Air Force",
+  "PDF": "Portable document format",
+  "INS": "Inertial navigation system",
+  "RPM": "Revolutions per minute, shown in percent",
+  "PCD": "Panoramic cockpit display",
+  "AB": "Afterburner",
+  "BIT": "Built-in test",
+  "ICC": "Inverter converter controller",
+  "MDC": "Miniature detonating cord",
+  "MFD": "Multifunction display",
+  "VS": "Vehicle systems"
+ },
+ "short": {
+  "ALT": "Alternate",
+  "BATT": "Battery",
+  "DN": "Down",
+  "ENG": "Engine",
+  "NORM": "Normal",
+  "PWR": "Power",
+  "ADJ": "Adjust",
+  "ALTN": "Alternate",
+  "BRT": "Bright; brightness",
+  "BYP": "Bypass",
+  "COM": "Communication (a radio)",
+  "CONT": "Contrast",
+  "EMER": "Emergency",
+  "EXT": "External",
+  "MIL": "Military power, full power without the afterburner",
+  "PRESS": "Pressure",
+  "REC": "Recovery"
+ },
+ "words": [
+  "ACTIVE",
+  "AFTER",
+  "AIR",
+  "ALIGN",
+  "ALL",
+  "ARM",
+  "ARMED",
+  "AUTO",
+  "BACKUP",
+  "BARO",
+  "BEFORE",
+  "BRAKE",
+  "CABIN",
+  "CANOPY",
+  "CAUTION",
+  "CHECKLIST",
+  "DAY",
+  "DEFOG",
+  "DUMP",
+  "ENGINE",
+  "FIRE",
+  "FRICTION",
+  "GEAR",
+  "HOOK",
+  "ICC1",
+  "ICC2",
+  "IDLE",
+  "JETTISON",
+  "LAND",
+  "LANDING",
+  "LIGHTS",
+  "MAIN",
+  "MASTER",
+  "MAX",
+  "MOTOR",
+  "NIGHT",
+  "OFF",
+  "ON",
+  "PARKING",
+  "PEDAL",
+  "RESET",
+  "SAFE",
+  "SEAT",
+  "SHUTDOWN",
+  "START",
+  "STICK",
+  "TAKEOFF",
+  "TAXI",
+  "THROTTLE",
+  "UP",
+  "VIDEO",
+  "WAIT",
+  "WION",
+  "ZERO",
+  "ZEROIZE"
+ ],
+ "panels": [
+  {
+   "id": "start_panel",
+   "area": "left",
+   "title": "Start panel",
+   "where": "left console, aft",
+   "controls": [
+    {
+     "node": "BATT",
+     "label": "BATT",
+     "name": "Battery",
+     "positions": [
+      "RESET",
+      "OFF",
+      "ON"
+     ],
+     "does": "Connects the battery: the first of the start's three switch selections.",
+     "sim": "OFF and RESET: no power; the lamps and the display are dark. ON: the lamps come alive and the 90-second self test starts. RESET moves the switch and counts as off."
+    },
+    {
+     "node": "IPP",
+     "label": "IPP",
+     "name": "Integrated power pack",
+     "positions": [
+      "OFF/RESET",
+      "ON"
+     ],
+     "does": "Starts the IPP, the small turbine that powers the jet on the ground and turns the engine: the second selection.",
+     "sim": "Up to speed 10 seconds after ON; the display lights 3 seconds later on its power. Off during a crank: the crank stops."
+    },
+    {
+     "node": "START",
+     "label": "START",
+     "name": "Start mode",
+     "positions": [
+      "IPP",
+      "AUTO",
+      "START"
+     ],
+     "does": "The start system's mode knob.",
+     "sim": "Works the start's crank of the engine by the IPP."
+    },
+    {
+     "node": "ICC1",
+     "label": "ICC1",
+     "name": "Inverter converter controller 1",
+     "positions": [
+      "OFF/RESET",
+      "ON"
+     ],
+     "does": "Connects the first of the two units that turn the engine's starter-generator into the jet's electrical power."
+    },
+    {
+     "node": "ICC2",
+     "label": "ICC2",
+     "name": "Inverter converter controller 2",
+     "positions": [
+      "OFF/RESET",
+      "ON"
+     ],
+     "does": "Connects the second of the two units."
+    },
+    {
+     "node": "CABIN_PRESS",
+     "label": "CABIN PRESS",
+     "name": "Cabin pressure",
+     "positions": [
+      "DUMP",
+      "NORM",
+      "ALTN"
+     ],
+     "does": "Sets the cabin's pressure: let out, held by the system, or held by the alternate control."
+    },
+    {
+     "node": "IPP_EMER_OFF_GUARD",
+     "label": "Guard",
+     "name": "IPP emergency off guard",
+     "positions": [
+      "closed",
+      "open"
+     ],
+     "does": "Covers the IPP EMER OFF button."
+    },
+    {
+     "node": "IPP_EMER_OFF",
+     "label": "IPP EMER OFF",
+     "name": "IPP emergency off",
+     "does": "Stops the IPP at once."
+    }
+   ]
+  },
+  {
+   "id": "throttle",
+   "area": "left",
+   "title": "Throttle quadrant",
+   "where": "left console",
+   "controls": [
+    {
+     "node": "ENG_GUARD",
+     "label": "Guard",
+     "name": "Engine switch guard",
+     "positions": [
+      "closed",
+      "open"
+     ],
+     "does": "Covers the ENG switch.",
+     "sim": "The ENG switch moves only with the guard open."
+    },
+    {
+     "node": "ENG",
+     "label": "ENG",
+     "name": "Engine",
+     "positions": [
+      "OFF",
+      "MOTOR",
+      "NORM"
+     ],
+     "does": "Starts the engine: the third selection. The engine control runs the start by itself. A guard covers the switch.",
+     "sim": "NORM with the IPP up to speed: the engine runs up to idle in about 35 seconds. OFF: the fuel is cut and the engine winds down. MOTOR moves the switch and counts as off (dry motoring is not modelled)."
+    },
+    {
+     "node": "VS_BIT",
+     "label": "VS BIT",
+     "name": "Vehicle systems built-in test",
+     "does": "Starts the self test of the jet's systems."
+    },
+    {
+     "node": "THR_FRICTION",
+     "label": "FRICTION",
+     "name": "Throttle friction",
+     "positions": [
+      "Slider"
+     ],
+     "does": "Sets how stiffly the throttle moves."
+    },
+    {
+     "node": "THR_ACTIVE",
+     "label": "THROTTLE",
+     "name": "Throttle active or backup",
+     "positions": [
+      "ACTIVE",
+      "BACKUP"
+     ],
+     "does": "Chooses the throttle's normal or backup channel."
+    },
+    {
+     "node": "throttle",
+     "label": "Throttle",
+     "name": "Throttle",
+     "positions": [
+      "OFF",
+      "IDLE",
+      "MIL",
+      "MAX AB"
+     ],
+     "does": "Sets the engine's thrust.",
+     "sim": "Moves with the throttle keys and a throttle lever; the pointer does not move it."
+    },
+    {
+     "node": "FCS_RESET",
+     "label": "FCS RESET",
+     "name": "Flight control system reset",
+     "does": "Pressed, clears the flight control system's stored faults before take-off.",
+     "sim": "The button moves; no fault is stored to clear."
+    },
+    {
+     "node": "CANOPY",
+     "label": "CANOPY",
+     "name": "Canopy lever",
+     "does": "Forward lowers and locks the canopy; aft opens it.",
+     "sim": "One click, or its key, moves the lever; the canopy takes about 10 seconds. The lever's place and shape are inferred."
+    },
+    {
+     "node": "DEFOG",
+     "label": "DEFOG",
+     "name": "Canopy defog",
+     "positions": [
+      "Slider"
+     ],
+     "does": "Blows warm air onto the canopy."
+    }
+   ]
+  },
+  {
+   "id": "gear_panel",
+   "area": "left",
+   "title": "Gear panel",
+   "where": "left of the display",
+   "controls": [
+    {
+     "node": "gear_handle",
+     "label": "Landing gear handle",
+     "name": "Landing gear handle",
+     "does": "DN lowers the landing gear, UP raises it."
+    },
+    {
+     "node": "lamp_gear_transit_0",
+     "label": "Handle light",
+     "name": "Gear handle warning light",
+     "positions": [
+      "Light"
+     ],
+     "does": "Red while the gear is moving or does not agree with the handle.",
+     "sim": "On while a leg is not where the handle is."
+    },
+    {
+     "node": "ALT_GEAR_GUARD",
+     "label": "Guard",
+     "name": "Alternate gear guard",
+     "positions": [
+      "closed",
+      "open"
+     ],
+     "does": "Covers the ALT GEAR handle.",
+     "sim": "The handle moves only with the guard open."
+    },
+    {
+     "node": "ALT_GEAR",
+     "label": "ALT GEAR",
+     "name": "Alternate gear extension",
+     "does": "A guarded handle that lowers the landing gear when the normal system cannot.",
+     "sim": "Not modelled: the guard and the handle move."
+    },
+    {
+     "node": "PARK_BRAKE",
+     "label": "PARKING BRAKE",
+     "name": "Parking brake",
+     "positions": [
+      "OFF",
+      "ON"
+     ],
+     "does": "Holds the wheel brakes on while the jet is parked."
+    },
+    {
+     "node": "LAND_TAXI",
+     "label": "LAND/TAXI LIGHTS",
+     "name": "Landing and taxi lights",
+     "positions": [
+      "OFF",
+      "TAXI",
+      "LAND"
+     ],
+     "does": "Turns on the taxi light or the landing light."
+    },
+    {
+     "node": "JETT_SEL",
+     "label": "JETTISON",
+     "name": "Jettison select",
+     "does": "Chooses what the jettison button drops: ALL the stores or the external ones (EXT)."
+    },
+    {
+     "node": "EMER_JETT",
+     "label": "Jettison button",
+     "name": "Emergency jettison",
+     "does": "Drops the stores the knob around it selects.",
+     "sim": "Drops the external stores."
+    },
+    {
+     "node": "HOOK",
+     "label": "HOOK",
+     "name": "Arresting hook",
+     "does": "Lowers the hook that catches a runway's arresting cable."
+    }
+   ]
+  },
+  {
+   "id": "display",
+   "area": "front",
+   "title": "Display and warning lights",
+   "where": "front panel",
+   "controls": [
+    {
+     "node": "PCD",
+     "label": "PCD",
+     "name": "Panoramic cockpit display",
+     "positions": [
+      "Display"
+     ],
+     "does": "One touch screen across the panel: the flight data, the sensors, the stores, the engine and the fuel, in windows."
+    },
+    {
+     "node": "lamp_master_caution_0",
+     "label": "MASTER CAUTION",
+     "name": "Master caution light and reset",
+     "does": "Lights with any caution. Pressed, it goes out and is ready for the next one."
+    },
+    {
+     "node": "lamp_eng_fire_0",
+     "label": "ENG FIRE",
+     "name": "Engine fire light",
+     "positions": [
+      "Light and button"
+     ],
+     "does": "Red with a fire in the engine bay; pushed, it arms the fire extinguisher."
+    },
+    {
+     "node": "AUTO_RECOVERY",
+     "label": "AUTO REC",
+     "name": "Automatic recovery",
+     "positions": [
+      "off",
+      "on"
+     ],
+     "does": "Lets the flight control system bring the jet back to level flight by itself."
+    },
+    {
+     "node": "ZEROIZE",
+     "label": "ZEROIZE",
+     "name": "Zeroize",
+     "positions": [
+      "BYP",
+      "NORM",
+      "ZERO"
+     ],
+     "does": "Erases the jet's secret data."
+    }
+   ]
+  },
+  {
+   "id": "front",
+   "area": "front",
+   "title": "Under the display",
+   "where": "front panel, centre",
+   "controls": [
+    {
+     "node": "HMD_BRT",
+     "label": "HMD BRT",
+     "name": "Helmet display brightness",
+     "positions": [
+      "down",
+      "centre",
+      "up"
+     ],
+     "does": "Steps the helmet display's brightness.",
+     "sim": "Steps the helmet display's brightness."
+    },
+    {
+     "node": "HMD_MODE",
+     "label": "HMD",
+     "name": "Helmet-mounted display",
+     "does": "Turns the helmet's display on and sets it for day or night. The F-35 has no head-up display: the helmet shows the flight and weapon symbols.",
+     "sim": "OFF: the helmet shows nothing."
+    },
+    {
+     "node": "VIDEO_BRT",
+     "label": "VIDEO BRT",
+     "name": "Helmet video brightness",
+     "positions": [
+      "down",
+      "centre",
+      "up"
+     ],
+     "does": "Steps the brightness of the helmet's night picture."
+    },
+    {
+     "node": "VIDEO_CONT",
+     "label": "VIDEO CONT",
+     "name": "Helmet video contrast",
+     "positions": [
+      "down",
+      "centre",
+      "up"
+     ],
+     "does": "Steps the contrast of the helmet's night picture."
+    },
+    {
+     "node": "MFD_MODE",
+     "label": "DAY / NIGHT",
+     "name": "Display mode",
+     "positions": [
+      "DAY",
+      "NIGHT"
+     ],
+     "does": "Sets the display for day or night."
+    },
+    {
+     "node": "MFD_BRT",
+     "label": "MFD BRT",
+     "name": "Display brightness",
+     "positions": [
+      "down",
+      "centre",
+      "up"
+     ],
+     "does": "Steps the panoramic display's brightness.",
+     "sim": "Steps the display's brightness."
+    },
+    {
+     "node": "COM_A",
+     "label": "COM A",
+     "name": "Radio A volume",
+     "positions": [
+      "Knob"
+     ],
+     "does": "Sets the first radio's volume."
+    },
+    {
+     "node": "COM_B",
+     "label": "COM B",
+     "name": "Radio B volume",
+     "positions": [
+      "Knob"
+     ],
+     "does": "Sets the second radio's volume."
+    },
+    {
+     "node": "COM_C",
+     "label": "COM C",
+     "name": "Radio C volume",
+     "positions": [
+      "Knob"
+     ],
+     "does": "Sets the third audio channel's volume."
+    },
+    {
+     "node": "MASTER_ARM",
+     "label": "MASTER ARM",
+     "name": "Master arm",
+     "positions": [
+      "SAFE",
+      "ARM"
+     ],
+     "does": "ARM lets weapons leave the jet; SAFE holds them."
+    },
+    {
+     "node": "ESIS",
+     "label": "Standby display",
+     "name": "Electronic standby instrument",
+     "positions": [
+      "Display"
+     ],
+     "does": "A small display with its own sensors: attitude, speed, altitude and heading when the main display fails."
+    },
+    {
+     "node": "SFD_ALIGN",
+     "label": "ALIGN",
+     "name": "Standby display align",
+     "does": "Starts the standby display's alignment."
+    },
+    {
+     "node": "SFD_BRT",
+     "label": "BRT",
+     "name": "Standby display brightness",
+     "does": "Steps the standby display's brightness."
+    },
+    {
+     "node": "SFD_BARO",
+     "label": "BARO",
+     "name": "Standby display pressure setting",
+     "positions": [
+      "Knob"
+     ],
+     "does": "Sets the pressure the standby altitude is measured from."
+    }
+   ]
+  },
+  {
+   "id": "seat",
+   "area": "right",
+   "title": "Seat, stick and right console",
+   "where": "seat and right console",
+   "controls": [
+    {
+     "node": "side_stick",
+     "label": "Stick",
+     "name": "Side stick",
+     "positions": [
+      "Grip"
+     ],
+     "does": "Commands pitch and roll through the flight control system.",
+     "sim": "Moves with the flight controls; its buttons have keys, the pointer does not work them."
+    },
+    {
+     "node": "STICK_ACTIVE",
+     "label": "STICK",
+     "name": "Stick active or backup",
+     "positions": [
+      "ACTIVE",
+      "BACKUP"
+     ],
+     "does": "Chooses the stick's normal or backup channel."
+    },
+    {
+     "node": "MDC",
+     "label": "MDC",
+     "name": "Miniature detonating cord handle",
+     "does": "Shatters the canopy from inside, to leave the jet on the ground."
+    },
+    {
+     "node": "EJECT_HANDLE",
+     "label": "Ejection handle",
+     "name": "Ejection handle",
+     "does": "Pulled, fires the seat."
+    },
+    {
+     "node": "SEAT_SAFE",
+     "label": "SEAT",
+     "name": "Seat safe and arm",
+     "positions": [
+      "SAFE",
+      "centre",
+      "ARMED"
+     ],
+     "does": "SAFE keeps the seat from firing."
+    },
+    {
+     "node": "SEAT_HEIGHT",
+     "label": "Seat height",
+     "name": "Seat height",
+     "positions": [
+      "down",
+      "centre",
+      "up"
+     ],
+     "does": "Raises and lowers the seat."
+    },
+    {
+     "node": "PEDAL_ADJ",
+     "label": "PEDAL ADJ",
+     "name": "Pedal adjust",
+     "does": "Frees the pedals to move nearer or farther."
+    }
+   ]
+  }
+ ]
+}

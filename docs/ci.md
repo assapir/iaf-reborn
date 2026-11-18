@@ -21,6 +21,10 @@ and parse check. A push to a branch takes about 5 minutes.
 The godot job keeps the built extension (`libiaf_godot.so`, `libiaf_godot.dylib`, `iaf_godot.dll`) as a workflow
 artifact for 7 days. The godot-sweep job uses that artifact instead of building again.
 
+[The Manuals workflow](../.github/workflows/manuals.yml) is apart: it builds Modern IAF's manuals when their inputs
+change and, on `main`, commits the rebuilt PDFs ([manuals.md](../modern-iaf/docs/manuals.md) §3.1). Its Typst version
+and SHA-256 are `TYPST_VERSION` and `TYPST_SHA256` at its top.
+
 ## Godot tests without data
 
 `tools/ci_godot_tests.sh [tests…]` runs the given tests (default: every `tests/godot/test_*.gd` and

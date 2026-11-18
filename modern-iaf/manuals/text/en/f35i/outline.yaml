@@ -1,0 +1,79 @@
+# The F-35I Adir flight manual's outline: the chapters and sections in the real manual's order. sim: full | part |
+# none (what the sim models); covers / not: the plan of a section still to write; file: a written section's text.
+title: "F-35I Adir"
+subtitle: Flight manual
+tagline: "The Israeli Air Force's stealth fighter, as flown in Modern IAF."
+scope: "It is the complete flight manual of the F-35I Adir as Modern IAF models it: the jet's systems, its normal and emergency procedures, its limits, how it flies, and its avionics and weapons. Little of the real jet's cockpit procedure is public; the manual says which parts are inferred."
+jet: {name: "F-35I Adir", short: "Adir"}
+chapters:
+- id: description
+  title: Description and systems
+  intro: What the jet is and how each system works, with every control and indicator of the cockpit.
+  sections:
+  - {id: aircraft, title: The aircraft, sim: full, covers: "The F-35I Adir: a single-seat, single-engine stealth fighter; dimensions, weights, the two weapon bays and the wing stations."}
+  - {id: cockpit, title: Cockpit arrangement, sim: part, file: f35i/cockpit.typ}
+  - {id: engine, title: Engine and integrated power pack, sim: part, covers: "The engine, the IPP that starts it, the BATT, IPP and ENG switches, the throttle, the ENG format's readings, military power and afterburner.", not: "Engine faults and the IPP's emergency modes; their switches move."}
+  - {id: fuel, title: Fuel system, sim: part, covers: "Internal fuel, the FUEL format, joker and bingo fuel.", not: "Tank sequencing, fuel dump and air refuelling."}
+  - {id: electrical, title: Electrical system, sim: part, covers: "The battery, the IPP's power on the ground, the engine's generator, the 90-second self test after BATT.", not: "The ICC switches' effect and electrical failures."}
+  - {id: hydraulic, title: Hydraulic and actuation systems, sim: none, covers: "The electro-hydrostatic actuators in outline.", not: "The whole system."}
+  - {id: gear, title: "Landing gear, brakes and steering", sim: part, covers: "The gear handle, the ALT GEAR handle that lowers the gear, wheel brakes, nosewheel steering, hard-landing damage.", not: "The hook and the parking brake's hold: the switches move."}
+  - {id: flight-controls, title: Flight control system, sim: part, covers: "The fly-by-wire system and its limiters, the flaps that move by themselves, speedbrake by the surfaces, trim, the autopilot.", not: "FCS faults, FCS/ENG RESET's effect and AUTO RECOVERY."}
+  - {id: instruments, title: Flight instruments, sim: full, covers: "The helmet's flight symbols, the EFI format, the standby display."}
+  - {id: canopy-seat, title: "Canopy, ejection seat and life support", sim: part, covers: "The CANOPY switch, the ejection (three presses of its key).", not: "The seat's SAFE and ARM lever, oxygen, cabin pressure and the canopy's emergency handle."}
+  - {id: lighting, title: Lighting, sim: part, covers: "The LAND/TAXI LIGHTS switch, the exterior lights, the displays' day and night brightness.", not: "The interior lighting pages of the display."}
+  - {id: warnings, title: "Warnings, cautions and advisories", sim: part, covers: "The ICAWS format, the MASTER CAUTION light, the ENG FIRE light, the voice messages.", not: "Messages of systems that are not modelled."}
+- id: normal
+  title: Normal procedures
+  intro: Each phase of a flight as a procedure, in the order of the jet's checklist card.
+  sections:
+  - {id: preflight, title: Preflight and cockpit entry, sim: none, covers: "What a pilot checks around the jet and on climbing in, in outline.", not: "All of it: a flight in the sim starts seated, with the canopy open."}
+  - {id: cold-start, title: Cold start to take-off, sim: part, file: f35i/cold-start.typ}
+  - {id: climb-cruise, title: "Climb, cruise and descent", sim: full, covers: "The climb, cruise checks, fuel checks against joker and bingo, the autopilot's modes, the descent."}
+  - {id: landing, title: Approach and landing, sim: part, covers: "The BEFORE LANDING items, the landing clearance, the pattern, the ILS approach, touchdown and the brakes.", not: "Pattern calls."}
+  - {id: shutdown, title: After landing and engine shutdown, sim: full, covers: "The AFTER LANDING items, the taxi back and ENGINE SHUTDOWN: the parking brake, the throttle to OFF and BATT off."}
+  - {id: air-refuelling, title: Air refuelling, sim: none, covers: "The real procedure in outline.", not: "All of it: the sim has no tanker."}
+- id: emergency
+  title: Emergency procedures
+  intro: The real jet's emergencies by phase of flight, as far as public sources give them. Each item says whether the sim can produce it.
+  sections:
+  - {id: emergency-general, title: How an emergency shows, sim: part, covers: "The ICAWS messages, the lights, the voice, damage from hits and from a hard landing, and what ends the flight at once.", not: "Random system failures: a fault comes only from damage or from a wrong action."}
+  - {id: emergency-ground, title: Ground emergencies, sim: part, covers: "A start out of order: ENG before the IPP is up to speed, a start with no power.", not: "Fire on the ground and emergency egress."}
+  - {id: emergency-takeoff, title: Take-off emergencies, sim: part, covers: "The aborted take-off, leaving the runway.", not: "Engine failure on take-off and tyre failures."}
+  - {id: emergency-engine, title: Engine emergencies in flight, sim: part, covers: "Engine fire after a hit and the extinguisher, fuel exhaustion.", not: "The air start and engine faults."}
+  - {id: emergency-systems, title: "Electrical and flight control failures", sim: none, covers: "The real procedures in outline, where public.", not: "All of it."}
+  - {id: emergency-control, title: Out-of-control recovery, sim: part, covers: "Behaviour past the limiter and the recovery.", not: "The automatic recovery modes."}
+  - {id: emergency-landing, title: Landing emergencies, sim: part, covers: "Landing with damage, the ALT GEAR handle, the hard landing, the overrun.", not: "The hook's cable arrestment."}
+  - {id: ejection, title: Ejection, sim: full, covers: "When to eject and how: the ejection key pressed three times, and what follows."}
+- id: limits
+  title: Limits
+  intro: The real jet's operating limits as far as they are public. A limit the sim does not enforce is marked.
+  sections:
+  - {id: limits-engine, title: Engine limits, sim: part, covers: "The start sequence's waits, idle, military and afterburner settings.", not: "Temperature limits."}
+  - {id: limits-airspeed, title: "Airspeed, Mach and altitude limits", sim: part, covers: "The gear's speed limit, the flight model's maximum speed and ceiling.", not: "Bay-door and store carriage speed limits."}
+  - {id: limits-g, title: "Load factor and angle-of-attack limits", sim: full, covers: "The limiter's g and angle-of-attack limits and what the pilot feels at the limit."}
+  - {id: limits-weight, title: "Weight, stores and landing limits", sim: part, covers: "Maximum take-off weight, what each bay and wing station may carry, the touchdown sink rate that damages the gear.", not: "Centre-of-gravity and asymmetric-load limits."}
+- id: handling
+  title: Flight characteristics
+  intro: How the jet behaves through its envelope.
+  sections:
+  - {id: handling-general, title: Handling with the fly-by-wire system, sim: full, covers: "What the side stick commands, how the jet holds its flight path, the change with the gear down."}
+  - {id: handling-takeoff-landing, title: Take-off and landing characteristics, sim: full, covers: "Rotation and lift-off speeds, the take-off roll, the approach, crosswind."}
+  - {id: handling-high-aoa, title: High angle of attack, sim: part, covers: "Behaviour at high angle of attack, to the limit of the sim's own aerodynamic data.", not: "Behaviour outside that data."}
+  - {id: handling-stores, title: Flight with stores, sim: full, covers: "Internal carriage, the open bay doors' drag, wing stations and their drag."}
+  - {id: handling-performance, title: Performance, sim: full, covers: "Climb, level acceleration, turn, range and endurance, as the sim's flight model flies them."}
+- id: avionics
+  title: Weapons and avionics
+  intro: Every display and mode, then each weapon's employment procedure. This chapter describes cockpit procedure only. The real formats are public only in part; inferred layouts are marked.
+  sections:
+  - {id: hotas, title: The stick and throttle switches, sim: part, covers: "The cursor, TMS, DMS, the weapon release and the trigger, each with its key or the pointer.", not: "The real grip's full switch set: the sim works the display with the pointer and the keys."}
+  - {id: pcd, title: The panoramic display, sim: part, covers: "The function bar, portals and windows, the MENU grid, touch with the pointer, and the EFI, ICAWS, FUEL, ENG and ESIS formats.", not: "The CNI, WPN-A / WPN-S, DAS, FCS, PHM, CHKLST and DIM formats, double-width formats and the preset layouts."}
+  - {id: hmd, title: The helmet display, sim: part, covers: "The HMD knob, the virtual HUD, the off-boresight symbols, the ground-avoidance cues.", not: "The NIGHT, AUTO and DAY difference, and the DAS's imagery in the visor."}
+  - {id: navigation, title: Navigation, sim: part, covers: "The self test and the INS's readiness, steerpoints and the route, the TSD formats, the ILS.", not: "TACAN."}
+  - {id: radios, title: "Radios, identification and data link", sim: part, covers: "The calls to air traffic control and the AWACS, combat identification's three shapes, the data link's tracks.", not: "The radios' own pages (CNI)."}
+  - {id: radar-aa, title: "Radar: air-to-air", sim: full, covers: "The SRCH format: search, track-while-scan, the four tracked targets, single-target track, the ACM patterns; the cursor, scan width and bars. The layout is inferred."}
+  - {id: radar-ag, title: "Radar: air-to-ground", sim: full, covers: "The ASR format: the ground map with EXP and DBS, freeze, the ground cursor, GMT, SEA and air-to-ground ranging. The layout is inferred."}
+  - {id: tflir, title: The TFLIR, sim: full, covers: "The built-in electro-optical sensor's format: its tracks, zoom and the laser."}
+  - {id: ew, title: "Threat warning and countermeasures", sim: part, covers: "The TWD format, the missile warning's marks on the display and in the helmet, releasing chaff and flares.", not: "The DAS format. Electronic attack is outside this manual. The manual gives the switches and counts only, never how well a countermeasure works."}
+  - {id: stores, title: "Stores management, master arm and jettison", sim: full, covers: "MASTER ARM, the SMS format, the bay doors, selecting a weapon, selective and emergency jettison."}
+  - {id: aa-weapons, title: "Air-to-air employment: missiles and gun", sim: part, covers: "The procedure for a missile shot from the bay, a short-range missile shot and a gun attack: the switches, the helmet's cues, the release.", not: "The cues after launch. The manual gives no missile performance."}
+  - {id: ag-weapons, title: "Air-to-ground employment: bombs and gun", sim: part, covers: "GPS-guided bombs from the bays, each with its own target, in PRE and VIS; strafing.", not: "Setting PRE targets before the flight, and the WPN-S programming format."}

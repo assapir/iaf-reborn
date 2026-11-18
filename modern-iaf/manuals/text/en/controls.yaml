@@ -1,0 +1,59 @@
+# The names of the 3D cockpit's controls, as painted in the cockpit, and where each sits: per cockpit, the node of the
+# control table (shared/extra/models/cockpit3d/<cockpit>.json, <cockpit>_controls.json) -> name, where. The build
+# stops on a node the table no longer has. `part: true`: a part that is no control (a gauge, the throttle's grip).
+f16:
+  MAIN_PWR: {name: MAIN PWR switch, where: "ELEC panel, left console"}
+  SW_FLCS_TEST: {name: FLCS PWR TEST switch, where: "TEST panel, left console"}
+  SW_EPU: {name: EPU switch, where: "ELEC panel, left console"}
+  JFS: {name: JFS switch, where: "ENG & JET START panel, left console"}
+  SW_KNOB_ENG_FEED: {name: ENG FEED knob, where: "FUEL panel, left console"}
+  SW_PROBE_HEAT: {name: PROBE HEAT switch, where: "TEST panel, left console"}
+  FIRE_OHEAT_DETECT: {name: FIRE & OHEAT DETECT button, where: "TEST panel, left console"}
+  MAL_IND_LTS: {name: MAL & IND LTS button, where: "TEST panel, left console"}
+  SW_LE_FLAPS_50: {name: LE FLAPS switch, where: "FLT CONTROL panel, left console"}
+  SW_ALT_FLAPS_50: {name: ALT FLAPS switch, where: "FLT CONTROL panel, left console"}
+  SW_FLCS_BIT: {name: FLCS BIT switch, where: "FLT CONTROL panel, left console"}
+  SW_DBU: {name: DIGITAL BACKUP switch, where: "FLT CONTROL panel, left console"}
+  SW_MPO: {name: MANUAL PITCH switch, where: "left console, outboard of the FLT CONTROL panel"}
+  master-arm-switch: {name: MASTER ARM switch, where: "MISC panel, under the glareshield"}
+  GEAR_LEVER: {name: Landing gear handle, where: "gear panel, left of the front panel"}
+  light-land-switch: {name: LANDING TAXI LIGHTS switch, where: "gear panel, left of the front panel"}
+  master_reset: {name: MASTER CAUTION light, where: "glareshield, left of the HUD"}
+  AVIONICS_MMC: {name: MMC switch, where: "AVIONIC POWER panel, right console"}
+  AVIONICS_ST_STA: {name: ST STA switch, where: "AVIONIC POWER panel, right console"}
+  AVIONICS_MFD: {name: MFD switch, where: "AVIONIC POWER panel, right console"}
+  AVIONICS_UFC: {name: UFC switch, where: "AVIONIC POWER panel, right console"}
+  gps-switch: {name: GPS switch, where: "AVIONIC POWER panel, right console"}
+  dl-switch: {name: DL switch, where: "AVIONIC POWER panel, right console"}
+  INS: {name: INS knob, where: "AVIONIC POWER panel, right console"}
+  l-hdpt-switch: {name: LEFT HDPT switch, where: "SNSR PWR panel, right console"}
+  r-hdpt-switch: {name: RIGHT HDPT switch, where: "SNSR PWR panel, right console"}
+  FCR: {name: FCR switch, where: "SNSR PWR panel, right console"}
+  RDR_ALT: {name: RDR ALT switch, where: "SNSR PWR panel, right console"}
+  AirSource_knob: {name: AIR SOURCE knob, where: "AIR COND panel, right console"}
+  SYM: {name: SYM wheel, where: "ICP, under the HUD"}
+  CANOPY_HANDLE: {name: Canopy handle, where: "left canopy sill, aft"}
+  SW_MASTER_50: {name: MASTER lights switch, where: "EXT LIGHTING panel, left console"}
+  SW_ANTI_COLLISION_50: {name: ANTI COLLISION switch, where: "EXT LIGHTING panel, left console"}
+  SW_WING-TAIL_50: {name: WING/TAIL switch, where: "EXT LIGHTING panel, left console"}
+  RWR_50_switch: {name: CMDS RWR switch, where: "CMDS panel, left console"}
+  JMR_50_switch: {name: CMDS JMR switch, where: "CMDS panel, left console"}
+  MWS_50_switch: {name: CMDS MWS switch, where: "CMDS panel, left console"}
+  01_50_switch: {name: CMDS O1 switch, where: "CMDS panel, left console"}
+  02_50_switch: {name: CMDS O2 switch, where: "CMDS panel, left console"}
+  CH_50_switch: {name: CMDS CH switch, where: "CMDS panel, left console"}
+  FL_50_switch: {name: CMDS FL switch, where: "CMDS panel, left console"}
+  MODE_50_knob: {name: CMDS MODE knob, where: "CMDS panel, left console"}
+f35i:
+  BATT: {name: BATT switch, where: "start panel, left console"}
+  IPP: {name: IPP switch, where: "start panel, left console"}
+  ENG: {name: ENG switch, where: "start panel, left console, under its guard"}
+  PARK_BRAKE: {name: PARKING BRAKE switch, where: "gear panel, left of the front panel"}
+  MASTER_ARM: {name: MASTER ARM switch, where: "front panel, under the display"}
+  ALT_GEAR: {name: ALT GEAR handle, where: "gear panel, under its guard"}
+  LAND_TAXI: {name: LAND/TAXI LIGHTS switch, where: "gear panel, left of the front panel"}
+  gear_handle: {name: Landing gear handle, where: "gear panel, left of the front panel"}
+  HMD_MODE: {name: HMD knob, where: "front panel, under the display"}
+  lamp_master_caution_0: {name: MASTER CAUTION light, where: "front panel, right of the standby display"}
+  FCS_RESET: {name: FCS/ENG RESET button, where: "left console, beside the throttle"}
+  CANOPY: {name: CANOPY switch, where: "left console, aft"}

@@ -118,7 +118,8 @@ const CRUMB_PAGES := {
 	"pilot_log": "log",
 	"pilot": "pilot",
 	"pilots": "pilots",
-	"credits": "credits"
+	"credits": "credits",
+	"manuals": "manuals"
 }
 ## The screens that show the picked jet: the Hangar opens in their place before the first pick.
 const NEEDS_JET := ["missions", "section", "mission", "arming"]
@@ -132,6 +133,7 @@ const BACK := {
 	"debrief": "section",
 	"log": "pilot",
 	"credits": "hangar",
+	"manuals": "hangar",
 	"pilot": "hangar",
 	"pilots": "pilot",
 	"keys": "prefs",
@@ -539,13 +541,19 @@ func _page_hangar() -> void:
 	var q := _button(self, s("quit"), "CrumbLink", back)
 	q.name = "quit"
 	q.add_theme_font_size_override("font_size", 17)
-	_place(q, 60 + int(cr.get_combined_minimum_size().x) + 36, -1, -66, 0)
+	# The manuals (modern-iaf/docs/manuals.md), between the two.
+	var mn := _button(self, s("manuals"), "CrumbLink", func(): show_page("manuals"))
+	mn.name = "manuals"
+	mn.add_theme_font_size_override("font_size", 17)
+	var at := 60 + int(cr.get_combined_minimum_size().x) + 36
+	_place(mn, at, -1, -66, 0)
+	_place(q, at + int(mn.get_combined_minimum_size().x) + 36, -1, -66, 0)
 	_hangar_focus()
 
 
 ## The Hangar's focus order (F1), by Tab and by the arrows: the top bar (Settings, the pilot), the jets, the jet's view
-## (Tab only: with the focus its arrows orbit the jet), Fly, Attributions, Quit. Down from the top bar goes to the
-## picked jet, Down from the last jet to Attributions; Down from Fly stays (the foot is the list's, not the card's).
+## (Tab only: with the focus its arrows orbit the jet), Fly, Attributions, Manuals, Quit. Down from the top bar goes to
+## the picked jet, Down from the last jet to Attributions; Down from Fly stays (the foot is the list's, not the card's).
 ## Without missions Fly takes no focus.
 func _hangar_focus() -> void:
 	var gear: Control = find_child("Settings", true, false)
@@ -560,7 +568,8 @@ func _hangar_focus() -> void:
 	var view: Control = find_child("Turntable", true, false)
 	var views := [view] if view != null and not view.is_queued_for_deletion() else []
 	var quit_b: Control = find_child("quit", true, false)
-	_chain([gear, block] + jets + views + ([card] if card != null else []) + [cr, quit_b])
+	var mn: Control = find_child("manuals", true, false)
+	_chain([gear, block] + jets + views + ([card] if card != null else []) + [cr, mn, quit_b])
 	# The sides on the screen: the inline start is the right in Hebrew.
 	var start := "right" if he() else "left"
 	var end := "left" if he() else "right"
@@ -572,8 +581,9 @@ func _hangar_focus() -> void:
 		_nb(b, {start: b, end: card if card != null else b})
 	if card != null:
 		_nb(card, {"top": gear, start: picked, end: card, "bottom": card})
-	_nb(cr, {"top": jets[-1], start: cr, end: quit_b, "bottom": cr})
-	_nb(quit_b, {"top": jets[-1], start: cr, end: card if card != null else quit_b, "bottom": quit_b})
+	_nb(cr, {"top": jets[-1], start: cr, end: mn, "bottom": cr})
+	_nb(mn, {"top": jets[-1], start: cr, end: quit_b, "bottom": mn})
+	_nb(quit_b, {"top": jets[-1], start: mn, end: card if card != null else quit_b, "bottom": quit_b})
 
 
 ## Tab and Shift + Tab through `controls` in that order, round.
@@ -2720,6 +2730,38 @@ func _page_credits() -> void:
 			var l := _text(box, line, "Small")
 			l.text_direction = Control.TEXT_DIRECTION_LTR
 		_rule(list, Look.LINE)
+
+
+# --- Manuals ----------------------------------------------------------------------------------------------------------
+
+
+## The manuals (modern-iaf/docs/manuals.md): [[id, the PDF's path on the disk], ...] of
+## modern-iaf/manuals/manuals.json, the PDFs the build keeps under modern-iaf/manuals/pdf/ of a source checkout.
+static func manuals() -> Array:
+	var dir := ProjectSettings.globalize_path("res://manuals")
+	var list: Dictionary = Settings.load_json(dir.path_join("manuals.json")).get("manuals", {})
+	return list.keys().map(func(id): return [id, dir.path_join("pdf").path_join(str(list[id].file))])
+
+
+## The list of the manuals; a row opens its PDF in the system's viewer.
+func _page_manuals() -> void:
+	_header(["hangar", "manuals"])
+	var v := _vbox(_body(), 24)
+	_title(v, s("manuals"), s("manuals_sub"))
+	var rows := []
+	for m in manuals():
+		var of: Array = JETS.filter(func(j): return j.unit == m[0])
+		var t: String = full_name(of[0]) if not of.is_empty() else str(setup_strings.get("name", ""))
+		var b := _button(v, t, "Secondary", func(): OS.shell_open(m[1]))
+		b.name = "Manual_" + str(m[0])
+		b.disabled = not FileAccess.file_exists(m[1])
+		b.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+		b.custom_minimum_size.x = 520
+		rows.append(b)
+	var back := back_button()
+	_footer("", [back])
+	_chain(rows + [back])
+	_focus = rows[0] if not rows.is_empty() else back
 
 
 # --- Over a flight: the pause menu ------------------------------------------------------------------------------------

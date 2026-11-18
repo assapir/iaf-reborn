@@ -34,6 +34,7 @@ tools/doclint.py                                              # lint the docs (l
 tools/mission_sweep.sh OUT [ids…]                             # headless run of every playable mission, one log each
 tools/guide_shots.sh [jet] && python3 -I tools/guide_pdf.py   # pilot guides' pictures (hidden window) and PDFs
 python3 -I tools/flight_timeline.py <flight.jsonl> [--html f.html] # a recorded flight (blackbox) as a timeline + summary
+python3 -I tools/manuals.py [f16i|f16d|f35i|game]             # Modern IAF's manuals as PDFs, with Typst (modern-iaf/docs/manuals.md §3)
 ```
 
 - Windows (docs/windows.md): `.\setup.ps1`, `.\iafjets.ps1 [--mission 311]`, `.\mission-editor.ps1`, `.\start-modern-iaf.ps1`, `.\modern-iaf-setup.ps1`,

@@ -128,9 +128,10 @@ def main() -> int:
             report(f, fence_at, "code fence never closed")
     # docs/credits.md, the human copy of shared/credits.json, names every source the sim credits.
     doc = (ROOT / "docs/credits.md").read_text(encoding="utf-8")
-    for c in json.loads((ROOT / "shared/credits.json").read_text(encoding="utf-8"))["sim"]:
+    credits = json.loads((ROOT / "shared/credits.json").read_text(encoding="utf-8"))
+    for c in credits["sim"] + credits["made_with"]:
         if c["name"] not in doc:
-            report(ROOT / "docs/credits.md", 1, f"no credit for {c['name']} (shared/credits.json \"sim\")")
+            report(ROOT / "docs/credits.md", 1, f"no credit for {c['name']} (shared/credits.json)")
     return 1 if problems else 0
 
 

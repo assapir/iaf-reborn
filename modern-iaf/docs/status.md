@@ -718,6 +718,9 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   string key had left every weight at the regular).
 
 ## Open
+- **The manuals** ([manuals.md](manuals.md)): the Typst build, the page design, each manual's outline and one written
+  section per jet (Cold start to take-off) wait for the user's approval (18 November 2026); every other section is
+  planned in the outlines. The main menu's Manuals entry is not built.
 - **Avionics, missiles and bombs (2026-11-17):** the inventory per jet, the gap list and the build order are in
   [avionics-plan.md](avionics-plan.md); the 15 November bugs (radar standby, break X and the HUD against reborn,
   SPICE / GPS targets, the gun flash) are its first slice; the range is slice 1. The briefing's PRE target pick for the

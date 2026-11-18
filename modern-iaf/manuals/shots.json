@@ -1,0 +1,32 @@
+{
+"about": "The manuals' cockpit pictures (modern-iaf/docs/manuals.md §4): per cockpit (the Sufa and the Barak share the F-16's, so one set of pictures serves both manuals) a cold start-up mission (and legends: nose where every console's legends read toward the nose, so a console's picture has the nose on top) and the shots, each the 3D cockpit's controls (node names of the cockpit's control table) the head turns to. modern-iaf/tests/_manual_shots.gd takes pictures/<cockpit>/<shot>.jpg and writes pictures/<cockpit>/marks.json, where each control sits in its picture; the Typst build draws the numbers and arrows from that.",
+"jets": {
+"f16": {"mission": 2011, "shots": "f16"},
+"f35i": {"mission": 2031, "shots": "f35i", "legends": "nose"}
+},
+"shots": {
+"f16": {
+"elec": ["MAIN_PWR", "SW_EPU", "SW_KNOB_ENG_FEED"],
+"jfs": ["JFS"],
+"test": ["SW_FLCS_TEST", "SW_PROBE_HEAT", "FIRE_OHEAT_DETECT", "MAL_IND_LTS"],
+"flt_control": ["SW_LE_FLAPS_50", "SW_ALT_FLAPS_50", "SW_FLCS_BIT", "SW_DBU"],
+"mpo": ["SW_MPO"],
+"master_arm": ["master-arm-switch"],
+"gear": ["GEAR_LEVER", "light-land-switch"],
+"master_caution": ["master_reset"],
+"avionic_power": ["AVIONICS_MMC", "AVIONICS_ST_STA", "AVIONICS_MFD", "AVIONICS_UFC", "gps-switch", "dl-switch", "INS"],
+"snsr_pwr": ["l-hdpt-switch", "r-hdpt-switch", "FCR", "RDR_ALT"],
+"air_source": ["AirSource_knob"],
+"sym": ["SYM"],
+"canopy": ["CANOPY_HANDLE"],
+"ext_lights": ["SW_MASTER_50", "SW_ANTI_COLLISION_50", "SW_WING-TAIL_50"],
+"cmds": ["RWR_50_switch", "JMR_50_switch", "MWS_50_switch", "01_50_switch", "02_50_switch", "CH_50_switch", "FL_50_switch", "MODE_50_knob"]
+},
+"f35i": {
+"start_panel": ["BATT", "IPP", "ENG"],
+"gear_panel": ["PARK_BRAKE", "ALT_GEAR", "LAND_TAXI", "gear_handle"],
+"front": ["MASTER_ARM", "HMD_MODE", "lamp_master_caution_0"],
+"fcs_reset": ["FCS_RESET"]
+}
+}
+}

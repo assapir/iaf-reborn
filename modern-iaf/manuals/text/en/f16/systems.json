@@ -1,0 +1,3390 @@
+{
+ "about": "A jet's cockpit as chapter 1 describes it (modern-iaf/docs/manuals.md §2): per panel its controls, each by its node in the cockpit's control table (shared/extra/models/cockpit3d/<cockpit>.json): label as on the panel, name (the words behind the initials), positions (optional; their count is checked against the control table, which gives the count when they are left out), does (the real jet, from the panel's source), sim (what the sim does with it and what stops working while it is off; modern-iaf/docs/cockpit.md §5.2; none: the layout says whether the control works a system, from the control table). abbreviations: every abbreviation the manual uses, with its full name: the Abbreviations appendix, and the brackets at an abbreviation's first use in a chapter's steps. short: everyday shortenings, listed in the appendix only. words: plain words the panels write in capitals. tools/manuals.py stops the build on a capital token that is in none of the three.",
+ "source": "haf",
+ "abbreviations": {
+  "BIT": "Built-in test",
+  "CMDS": "Countermeasures dispenser set",
+  "DBU": "Digital backup",
+  "DED": "Data entry display",
+  "DL": "Data link",
+  "EPU": "Emergency power unit",
+  "FCR": "Fire control radar",
+  "FLCS": "Flight control system",
+  "FTIT": "Fan turbine inlet temperature",
+  "GPS": "Global positioning system",
+  "HDPT": "Hardpoint",
+  "HUD": "Head-up display",
+  "ICP": "Integrated control panel",
+  "IFF": "Identification friend or foe",
+  "INS": "Inertial navigation system",
+  "JFS": "Jet fuel starter",
+  "JMR": "Jammer",
+  "LE": "Leading edge",
+  "MFD": "Multifunction display",
+  "MMC": "Modular mission computer",
+  "MWS": "Missile warning system",
+  "RDR ALT": "Radar altimeter",
+  "RLY": "Relay",
+  "RPM": "Revolutions per minute, shown in percent",
+  "RWR": "Radar warning receiver",
+  "ST STA": "Stores stations",
+  "STOR HDG": "Stored heading",
+  "SYM": "Symbology",
+  "UFC": "Upfront controls",
+  "O1": "Other 1 (an expendable type)",
+  "O2": "Other 2 (an expendable type)",
+  "CH": "Chaff",
+  "FL": "Flare",
+  "OVRD": "Override",
+  "MAL & IND LTS": "Malfunction and indicator lights",
+  "FIRE & OHEAT DETECT": "Fire and overheat detection",
+  "SNSR PWR": "Sensor power",
+  "IAF": "Israeli Air Force",
+  "PDF": "Portable document format",
+  "AB": "Afterburner",
+  "ADI": "Attitude director indicator",
+  "AL": "Aft and left (tanks)",
+  "ALOW": "Altitude low (warning)",
+  "AOA": "Angle of attack",
+  "AR": "Air refuelling",
+  "ATF": "Automatic terrain following",
+  "AVTR": "Airborne video tape recorder",
+  "BMS": "Falcon BMS, a flight simulator whose forum is a source",
+  "BUC": "Backup fuel control",
+  "CADC": "Central air data computer",
+  "CAS": "Calibrated airspeed",
+  "CRAD": "Cipher radio (inferred)",
+  "DCS": "Data control switch",
+  "ECM": "Electronic countermeasures",
+  "EEC": "Engine electronic control",
+  "EHSI": "Electronic horizontal situation indicator",
+  "FLIR": "Forward-looking infrared",
+  "FPM": "Flight path marker",
+  "FR": "Forward and right (tanks)",
+  "HMCS": "Helmet-mounted cueing system",
+  "ILS": "Instrument landing system",
+  "KY": "KY-58, a secure voice set",
+  "NVIS": "Night vision imaging system",
+  "NWS": "Nosewheel steering",
+  "OSB": "Option select button",
+  "PBG": "Pressure breathing for g",
+  "PFLD": "Pilot fault list display",
+  "PMG": "Permanent magnet generator",
+  "RF": "Radio frequency",
+  "SEC": "Secondary engine control",
+  "TACAN": "Tactical air navigation",
+  "TAS": "True airspeed",
+  "TF": "Terrain following",
+  "UHF": "Ultra high frequency",
+  "VAH": "Velocity, altitude and heading (scales)",
+  "VHF": "Very high frequency",
+  "VV": "Vertical velocity",
+  "VVI": "Vertical velocity indicator",
+  "ADC": "Air data converter"
+ },
+ "short": {
+  "ALT": "Alternate; altitude",
+  "BATT": "Battery",
+  "BRT": "Bright",
+  "COND": "Conditioning",
+  "DN": "Down",
+  "ELEC": "Electrical",
+  "ENG": "Engine",
+  "EXT": "Exterior",
+  "FLT": "Flight",
+  "HYD": "Hydraulic",
+  "MAN": "Manual",
+  "MISC": "Miscellaneous",
+  "NAV": "Navigation",
+  "NORM": "Normal",
+  "PRESS": "Pressure",
+  "PWR": "Power",
+  "STBY": "Standby",
+  "HDG": "Heading",
+  "STOR": "Stored",
+  "RDR": "Radar",
+  "STA": "Station",
+  "ST": "Stores",
+  "SNSR": "Sensor",
+  "IND": "Indicator",
+  "LTS": "Lights",
+  "MAL": "Malfunction",
+  "OHEAT": "Overheat",
+  "DETECT": "Detection",
+  "ACFT": "Aircraft",
+  "ADV": "Advanced",
+  "ANT": "Antenna",
+  "BCN": "Beacon",
+  "CAT": "Category",
+  "COM": "Communication (a radio)",
+  "COMM": "Communication (a radio)",
+  "CON": "Contrast",
+  "CONT": "Contrast",
+  "CRS": "Course",
+  "CRUS": "Cruise",
+  "CTR": "Centre",
+  "DEPR": "Depression",
+  "DISC": "Disconnect",
+  "EMER": "Emergency",
+  "ENTR": "Enter",
+  "EQUIP": "Equipment",
+  "FRM": "Formation",
+  "GEN": "Generator",
+  "GND": "Ground",
+  "HYDRAZN": "Hydrazine",
+  "INDV": "Individual",
+  "INST": "Instrument",
+  "INT": "Intensity; internal",
+  "JETT": "Jettison",
+  "LD": "Load",
+  "LDG": "Landing",
+  "LTG": "Lighting",
+  "MIL": "Military power, full power without the afterburner",
+  "MRK": "Marker",
+  "MSL": "Missile",
+  "NOZ": "Nozzle",
+  "OXY": "Oxygen",
+  "PNL": "Panel",
+  "POS": "Position",
+  "QTY": "Quantity",
+  "RCL": "Recall",
+  "RDY": "Ready",
+  "REL": "Release",
+  "RET": "Reticle",
+  "RSVR": "Reservoir",
+  "RTN": "Return",
+  "RV": "Receive variable",
+  "SEL": "Select",
+  "SEP": "Separate",
+  "SEQ": "Sequence",
+  "SPD": "Speed",
+  "SPL": "Special",
+  "STPT": "Steerpoint",
+  "STRG": "Steering",
+  "SYS": "System",
+  "TD": "Time delay",
+  "TEMP": "Temperature",
+  "TGT": "Target",
+  "TRANS": "Transfer",
+  "WARN": "Warning",
+  "WX": "Weather"
+ },
+ "words": [
+  "ACTIVE",
+  "AERIAL",
+  "AFT",
+  "AFTER",
+  "AIR",
+  "ALIGN",
+  "ALL",
+  "ANTI",
+  "ARM",
+  "ARMED",
+  "ATT",
+  "AUDIO",
+  "AUTO",
+  "AVIONIC",
+  "AVIONICS",
+  "BACKUP",
+  "BARO",
+  "BEFORE",
+  "BRAKE",
+  "CABIN",
+  "CANOPY",
+  "CAUTION",
+  "CHECKLIST",
+  "CLOSE",
+  "COLLISION",
+  "CONFIG",
+  "CONSENT",
+  "CONSOLES",
+  "CONTROL",
+  "DATA",
+  "DAY",
+  "DIGITAL",
+  "DIM",
+  "DISPLAY",
+  "DRIFT",
+  "DUMP",
+  "ENABLE",
+  "ENGAGED",
+  "ENGINE",
+  "ENTRY",
+  "EXTEND",
+  "FAIL",
+  "FAULT",
+  "FEED",
+  "FIRE",
+  "FIRST",
+  "FIX",
+  "FLAPS",
+  "FLASH",
+  "FLOOD",
+  "FLOW",
+  "FORM",
+  "FUEL",
+  "FUSELAGE",
+  "FWD",
+  "GAIN",
+  "GEAR",
+  "GR1F",
+  "HANDOFF",
+  "HEAT",
+  "HOLD",
+  "HOOK",
+  "HORN",
+  "HOT",
+  "ICE",
+  "ICING",
+  "IDENT",
+  "IDLE",
+  "II",
+  "III",
+  "IN",
+  "INERTING",
+  "INHIBIT",
+  "INLET",
+  "INTERCOM",
+  "JET",
+  "JETTISON",
+  "LANDING",
+  "LASER",
+  "LAUNCH",
+  "LEFT",
+  "LIGHTING",
+  "LIGHTS",
+  "LIQUID",
+  "LIST",
+  "LOCK",
+  "LOW",
+  "LOWER",
+  "MAIN",
+  "MANUAL",
+  "MARK",
+  "MASK",
+  "MASTER",
+  "MAX",
+  "MESSAGE",
+  "MISSILE",
+  "MODE",
+  "NIGHT",
+  "NORMAL",
+  "NOT",
+  "NUCLEAR",
+  "OFF",
+  "OIL",
+  "ON",
+  "ONLY",
+  "OPEN",
+  "OUT",
+  "OVERHEAT",
+  "OXYGEN",
+  "PARKING",
+  "PITCH",
+  "PLAIN",
+  "POSITION",
+  "POWER",
+  "PRIMARY",
+  "PRIOR",
+  "PRIORITY",
+  "PROBE",
+  "QUIET",
+  "RADAR",
+  "RAM",
+  "REFUEL",
+  "REFUELING",
+  "RESET",
+  "RIGHT",
+  "ROLL",
+  "RUN",
+  "SAFE",
+  "SEAT",
+  "SHUTDOWN",
+  "SILENCER",
+  "SILENT",
+  "SIMULATE",
+  "SKID",
+  "SOURCE",
+  "START",
+  "STARTING",
+  "STEADY",
+  "STEP",
+  "STORES",
+  "SYMBOLOGY",
+  "TAIL",
+  "TAKEOFF",
+  "TANK",
+  "TAXI",
+  "TEST",
+  "THREAT",
+  "TIME",
+  "TIMED",
+  "TO",
+  "UNKNOWN",
+  "UP",
+  "UPPER",
+  "VOICE",
+  "VOLUME",
+  "WAIT",
+  "WING"
+ ],
+ "panels": [
+  {
+   "id": "test",
+   "area": "left",
+   "title": "TEST panel",
+   "where": "left console, aft",
+   "controls": [
+    {
+     "node": "MAL_IND_LTS",
+     "label": "MAL & IND LTS",
+     "name": "Malfunction and indicator lights test",
+     "does": "Pressed, lights every malfunction and indicator light of the cockpit, to find a failed lamp.",
+     "sim": "Every lamp lights while it is held."
+    },
+    {
+     "node": "FIRE_OHEAT_DETECT",
+     "label": "FIRE & OHEAT DETECT",
+     "name": "Fire and overheat detection test",
+     "does": "Pressed, tests the engine's fire and overheat detection loops: the ENG FIRE and OVERHEAT lights come on.",
+     "sim": "The ENG FIRE and OVERHEAT lights come on while it is pressed."
+    },
+    {
+     "node": "SW_TEST_OXY",
+     "label": "OXY QTY",
+     "name": "Oxygen quantity test",
+     "positions": [
+      "TEST",
+      "off"
+     ],
+     "does": "Held, drives the liquid oxygen quantity indicator down to check it and the OXY LOW caution."
+    },
+    {
+     "node": "SW_TEST_EPU",
+     "label": "EPU/GEN",
+     "name": "Emergency power unit and generator test",
+     "does": "Held on the ground, checks the EPU's generator and the FLCS's power sources without running the EPU.",
+     "sim": "Lights the FLCS PWR lights while held."
+    },
+    {
+     "node": "SW_PROBE_HEAT",
+     "label": "PROBE HEAT",
+     "name": "Probe heat",
+     "positions": [
+      "PROBE HEAT",
+      "OFF",
+      "TEST"
+     ],
+     "does": "Heats the air data probes against ice. TEST checks the heaters' monitor: the PROBE HEAT caution flashes.",
+     "sim": "The caution flashes at TEST. Icing and the heaters are not modelled."
+    },
+    {
+     "node": "SW_FLCS_TEST",
+     "label": "FLCS PWR TEST",
+     "name": "Flight control system power test",
+     "does": "Held at TEST on the ground, checks the power sources of the flight control system; the FLCS PWR lights show them.",
+     "sim": "The FLCS PWR lights are on while the switch is held. No power source is tested."
+    },
+    {
+     "node": "lamp_flcs_pwr_0",
+     "label": "FLCS PWR",
+     "name": "Flight control system power lights",
+     "positions": [
+      "Light"
+     ],
+     "does": "Four lights, A to D: each of the flight control computer's four branches has good power during the test.",
+     "sim": "On while FLCS PWR TEST or EPU/GEN is held."
+    },
+    {
+     "node": "HF-PBG_TEST",
+     "label": "TEST",
+     "name": "Test switch (inboard panel)",
+     "positions": [
+      "off",
+      "TEST"
+     ],
+     "does": "A test switch of the inboard panel beside the TEST panel (inferred from the cockpit model: the flight manual's figure names no such switch)."
+    }
+   ]
+  },
+  {
+   "id": "flt_control",
+   "area": "left",
+   "title": "FLT CONTROL panel",
+   "where": "left console",
+   "controls": [
+    {
+     "node": "SW_DBU",
+     "label": "DIGITAL BACKUP",
+     "name": "Digital backup (DBU)",
+     "positions": [
+      "OFF",
+      "BACKUP"
+     ],
+     "does": "Puts the flight control computer on its backup software; the DBU ON light shows it.",
+     "sim": "The DBU ON lights come on. The flight control laws stay the same."
+    },
+    {
+     "node": "SW_LE_FLAPS_50",
+     "label": "LE FLAPS",
+     "name": "Leading-edge flaps",
+     "positions": [
+      "AUTO",
+      "LOCK"
+     ],
+     "does": "AUTO: the flight control system moves the leading-edge flaps with speed and angle of attack. LOCK holds them where they are.",
+     "sim": "Not modelled: the flaps always follow the flight control system."
+    },
+    {
+     "node": "SW_ALT_FLAPS_50",
+     "label": "ALT FLAPS",
+     "name": "Alternate flaps",
+     "positions": [
+      "NORM",
+      "EXTEND"
+     ],
+     "does": "NORM: the trailing-edge flaps come down with the landing gear handle. EXTEND lowers them whatever the handle's position."
+    },
+    {
+     "node": "SW_FLCS_BIT",
+     "label": "BIT",
+     "name": "Flight control system built-in test",
+     "positions": [
+      "OFF",
+      "BIT"
+     ],
+     "does": "Runs the flight control system's self test on the ground; the RUN light is on while it runs, the FAIL light shows a fault.",
+     "sim": "The RUN lights come on at BIT. No test runs and none fails."
+    },
+    {
+     "node": "lamp_flcs_bit_run_0",
+     "label": "RUN",
+     "name": "Built-in test running",
+     "positions": [
+      "Light"
+     ],
+     "does": "On while the flight control system's self test runs.",
+     "sim": "On while the BIT switch is at BIT."
+    },
+    {
+     "node": "lamp_flcs_bit_fail_0",
+     "label": "FAIL",
+     "name": "Built-in test failed",
+     "positions": [
+      "Light"
+     ],
+     "does": "The self test found a fault."
+    },
+    {
+     "node": "lamp_stby_gains_0",
+     "nodes": [
+      "lamp_stby_gains_0",
+      "lamp_stby_gains_1",
+      "lamp_stby_gains_2",
+      "lamp_stby_gains_3"
+     ],
+     "label": "Status lights",
+     "name": "Flight control status lights",
+     "positions": [
+      "Light"
+     ],
+     "does": "A block of four status lights on the cockpit model's panel (inferred: the model draws them, the Block 50 flight manual's figure has none here)."
+    },
+    {
+     "node": "lamp_ecm_panel_9",
+     "nodes": [
+      "lamp_ecm_panel_9",
+      "lamp_ecm_panel_0",
+      "lamp_ecm_panel_10"
+     ],
+     "label": "Panel lights",
+     "name": "Panel legend lights",
+     "positions": [
+      "Light"
+     ],
+     "does": "Three legend lights of the cockpit model beside the LE FLAPS switch (inferred)."
+    }
+   ]
+  },
+  {
+   "id": "fuel",
+   "area": "left",
+   "title": "FUEL panel",
+   "where": "left console",
+   "controls": [
+    {
+     "node": "SW_MASTER_FUEL",
+     "label": "MASTER",
+     "name": "Master fuel switch",
+     "does": "Opens the main fuel shut-off valve; OFF cuts the fuel to the engine. A guard holds it at MASTER."
+    },
+    {
+     "node": "SW_TANK_INERTING",
+     "label": "TANK INERTING",
+     "name": "Tank inerting",
+     "positions": [
+      "OFF",
+      "TANK INERTING"
+     ],
+     "does": "Lowers the tanks' pressure and puts Halon into them, to keep a hit tank from exploding."
+    },
+    {
+     "node": "SW_KNOB_ENG_FEED",
+     "label": "ENG FEED",
+     "name": "Engine feed",
+     "positions": [
+      "OFF",
+      "NORM",
+      "AFT",
+      "FWD"
+     ],
+     "does": "Chooses the tank pumps that feed the engine: all of them at NORM; the aft or the forward tanks only, to correct a fuel imbalance; none at OFF.",
+     "sim": "Not modelled: the knob turns, the fuel feeds the same at every position."
+    },
+    {
+     "node": "SW_AIR_REFUEL",
+     "label": "AIR REFUEL",
+     "name": "Air refuelling door",
+     "positions": [
+      "CLOSE",
+      "OPEN"
+     ],
+     "does": "Opens the refuelling receptacle's door and lowers the tanks' pressure; the flight control system changes to its take-off and landing gains.",
+     "sim": "OPEN lets the AR status light work; the door, the tanks and the gains do not change."
+    }
+   ]
+  },
+  {
+   "id": "ext_lights",
+   "area": "left",
+   "title": "EXT LIGHTING panel",
+   "where": "left console",
+   "controls": [
+    {
+     "node": "SW_MASTER_50",
+     "label": "MASTER",
+     "name": "Exterior lights master",
+     "does": "Lets the exterior lights come on; off, all of them are dark.",
+     "sim": "Not modelled: the switch moves."
+    },
+    {
+     "node": "SW_ANTI_COLLISION_50",
+     "label": "ANTI COLLISION",
+     "name": "Anti-collision light",
+     "does": "Turns on the flashing white light on the fin.",
+     "sim": "Not modelled: the switch moves."
+    },
+    {
+     "node": "SW_POS_LIGHTS_50",
+     "label": "POSITION FLASH / STEADY",
+     "name": "Position lights flash",
+     "positions": [
+      "STEADY",
+      "FLASH"
+     ],
+     "does": "Makes the position lights flash or burn steadily.",
+     "sim": "FLASH blinks the wing and tail lights."
+    },
+    {
+     "node": "SW_WING-TAIL_50",
+     "label": "WING/TAIL",
+     "name": "Wing and tail position lights",
+     "positions": [
+      "BRT",
+      "OFF",
+      "DIM"
+     ],
+     "does": "Sets the position lights on the wings and the tail bright or dim.",
+     "sim": "Not modelled: the switch moves."
+    },
+    {
+     "node": "SW_FUSELAGE_50",
+     "label": "FUSELAGE",
+     "name": "Fuselage position lights",
+     "positions": [
+      "DIM",
+      "OFF",
+      "BRT"
+     ],
+     "does": "Sets the fuselage's position lights.",
+     "sim": "The fuselage lights follow the switch."
+    },
+    {
+     "node": "SW_KNOB_EXT_FORM_LIGHT_50",
+     "label": "FORM",
+     "name": "Formation lights",
+     "positions": [
+      "Knob"
+     ],
+     "does": "Sets the brightness of the formation lights, the strips on the fuselage and fin.",
+     "sim": "The strips follow the knob; with WING/TAIL at OFF they also light the wingtips."
+    },
+    {
+     "node": "SW_KNOB_REFUEL_50",
+     "label": "AERIAL REFUELING",
+     "name": "Air refuelling light",
+     "positions": [
+      "Knob"
+     ],
+     "does": "Sets the brightness of the light that shows the receptacle to the tanker.",
+     "sim": "The light follows the knob."
+    }
+   ]
+  },
+  {
+   "id": "elec",
+   "area": "left",
+   "title": "ELEC panel",
+   "where": "left console",
+   "controls": [
+    {
+     "node": "MAIN_PWR",
+     "label": "MAIN PWR",
+     "name": "Main power",
+     "positions": [
+      "OFF",
+      "BATT",
+      "MAIN PWR"
+     ],
+     "does": "Connects the jet's electrical buses to their sources: at BATT the aircraft battery, at MAIN PWR the battery and the generators.",
+     "sim": "OFF: no power; the displays, the HUD and the lamps are dark, and the INS loses its alignment. BATT: the lamps, the engine gauges and the INS's alignment only. The displays need MAIN PWR and a running engine."
+    },
+    {
+     "node": "CAUTION_RESET",
+     "label": "CAUTION RESET",
+     "name": "Electrical caution reset",
+     "does": "Resets the electrical system's cautions and the ELEC SYS caution light.",
+     "sim": "Acknowledges the ELEC SYS caution, so MASTER CAUTION goes out."
+    },
+    {
+     "node": "lamp_main_gen_0",
+     "label": "MAIN GEN",
+     "name": "Main generator light",
+     "positions": [
+      "Light"
+     ],
+     "does": "The main generator is off the buses.",
+     "sim": "On while the jet is on the battery."
+    },
+    {
+     "node": "lamp_stby_gen_0",
+     "label": "STBY GEN",
+     "name": "Standby generator light",
+     "positions": [
+      "Light"
+     ],
+     "does": "The standby generator is off the buses.",
+     "sim": "On while the jet is on the battery."
+    },
+    {
+     "node": "lamp_flcs_pmg_0",
+     "label": "FLCS PMG",
+     "name": "Flight control permanent magnet generator light",
+     "positions": [
+      "Light"
+     ],
+     "does": "The flight control system's own generator gives no power.",
+     "sim": "On until the JFS turns the engine."
+    },
+    {
+     "node": "lamp_epu_gen_0",
+     "label": "EPU GEN",
+     "name": "EPU generator light",
+     "positions": [
+      "Light"
+     ],
+     "does": "The EPU runs and its generator gives no power."
+    },
+    {
+     "node": "lamp_epu_pmg_0",
+     "label": "EPU PMG",
+     "name": "EPU permanent magnet generator light",
+     "positions": [
+      "Light"
+     ],
+     "does": "The EPU runs and its second generator gives no power."
+    },
+    {
+     "node": "lamp_to_flcs_0",
+     "label": "ACFT BATT TO FLCS",
+     "name": "Battery to flight controls light",
+     "positions": [
+      "Light"
+     ],
+     "does": "The aircraft battery feeds the flight control system.",
+     "sim": "On while the engine turns below 44 % RPM in a start or a run-down."
+    },
+    {
+     "node": "lamp_flcs_rly_0",
+     "label": "ACFT BATT FLCS RLY",
+     "name": "Flight control relay light",
+     "positions": [
+      "Light"
+     ],
+     "does": "A relay that connects the flight control system to the battery is not closed.",
+     "sim": "On until the JFS turns the engine."
+    },
+    {
+     "node": "lamp_flcs_fail_0",
+     "nodes": [
+      "lamp_flcs_fail_0",
+      "lamp_flcs_fail_1",
+      "lamp_flcs_fail_2",
+      "lamp_flcs_fail_3"
+     ],
+     "label": "ACFT BATT FAIL",
+     "name": "Battery fail light",
+     "positions": [
+      "Light"
+     ],
+     "does": "The aircraft battery has failed or its voltage is low."
+    }
+   ]
+  },
+  {
+   "id": "epu",
+   "area": "left",
+   "title": "EPU panel",
+   "where": "left console",
+   "controls": [
+    {
+     "node": "SW_EPU",
+     "label": "EPU",
+     "name": "Emergency power unit",
+     "positions": [
+      "OFF",
+      "NORM",
+      "ON"
+     ],
+     "does": "The EPU gives emergency electrical and hydraulic power when the engine's generators or pumps stop. NORM lets it start by itself, ON runs it, OFF keeps it from running on the ground. A guard holds the switch at NORM.",
+     "sim": "Not modelled: the sim has no EPU. The guard and the switch move."
+    },
+    {
+     "node": "SW_EPU_COVER",
+     "label": "Guard",
+     "name": "EPU switch guard",
+     "positions": [
+      "closed",
+      "open"
+     ],
+     "does": "Holds the EPU switch at NORM; lifted, it lets the switch go to ON or OFF."
+    },
+    {
+     "node": "lamp_epu_run_0",
+     "label": "EPU run light",
+     "name": "EPU run light",
+     "positions": [
+      "Light"
+     ],
+     "does": "Green while the EPU turns fast enough to give power."
+    },
+    {
+     "node": "lamp_epu_hydrazine_0",
+     "label": "HYDRAZN",
+     "name": "Hydrazine light",
+     "positions": [
+      "Light"
+     ],
+     "does": "The EPU burns its hydrazine fuel."
+    },
+    {
+     "node": "lamp_epu_air_0",
+     "label": "AIR",
+     "name": "Air light",
+     "positions": [
+      "Light"
+     ],
+     "does": "The EPU runs on engine bleed air."
+    }
+   ]
+  },
+  {
+   "id": "avtr",
+   "area": "left",
+   "title": "AVTR and ECM panels",
+   "where": "left console",
+   "controls": [
+    {
+     "node": "AVTR_TEST",
+     "label": "TEST",
+     "name": "Video recorder test",
+     "positions": [
+      "off",
+      "TEST"
+     ],
+     "does": "Tests the airborne video tape recorder's lights.",
+     "sim": "Lights the two AVTR lights."
+    },
+    {
+     "node": "lamp_avtr_0",
+     "nodes": [
+      "lamp_avtr_0",
+      "lamp_avtr_1"
+     ],
+     "label": "AVTR",
+     "name": "Video recorder lights",
+     "positions": [
+      "Light"
+     ],
+     "does": "The recorder runs; its tape is near its end.",
+     "sim": "On while the TEST button is in."
+    },
+    {
+     "node": "lamp_ecm_panel_1",
+     "nodes": [
+      "lamp_ecm_panel_1",
+      "lamp_ecm_panel_2",
+      "lamp_ecm_panel_3",
+      "lamp_ecm_panel_4"
+     ],
+     "label": "1 to 4",
+     "name": "ECM band buttons",
+     "positions": [
+      "Light"
+     ],
+     "does": "Lit buttons that turn on the jamming pod's bands."
+    },
+    {
+     "node": "lamp_ecm_panel_5",
+     "nodes": [
+      "lamp_ecm_panel_5",
+      "lamp_ecm_panel_7",
+      "lamp_ecm_panel_6",
+      "lamp_ecm_panel_8"
+     ],
+     "label": "5, FRM, SPL",
+     "name": "ECM band and mode buttons",
+     "positions": [
+      "Light"
+     ],
+     "does": "Lit buttons for the fifth band and the pod's formation and special modes."
+    }
+   ]
+  },
+  {
+   "id": "jfs",
+   "area": "left",
+   "title": "ENG & JET START panel",
+   "where": "left console",
+   "controls": [
+    {
+     "node": "JFS",
+     "label": "JFS",
+     "name": "Jet fuel starter",
+     "positions": [
+      "START 1",
+      "OFF",
+      "START 2"
+     ],
+     "does": "Starts the JFS, the small turbine that cranks the engine. START 1 uses one of the two brake and JFS accumulators, START 2 both. The JFS cuts out by itself once the engine runs.",
+     "sim": "START 1 and START 2 start the engine alike. The switch springs back to OFF at about 52 % RPM. Without electrical power it does nothing."
+    },
+    {
+     "node": "lamp_jfs_run_0",
+     "label": "RUN",
+     "name": "JFS run light",
+     "positions": [
+      "Light"
+     ],
+     "does": "Green while the jet fuel starter runs at speed.",
+     "sim": "On from the JFS's spool-up until the JFS switch goes back to OFF."
+    },
+    {
+     "node": "SW_MAX_POWER",
+     "label": "MAX POWER",
+     "name": "Maximum power",
+     "positions": [
+      "OFF",
+      "MAX POWER"
+     ],
+     "does": "Lets the engine run above its normal limits for a short time in war."
+    },
+    {
+     "node": "SW_STARTING_FUEL",
+     "label": "AB RESET",
+     "name": "Afterburner reset",
+     "positions": [
+      "AB RESET",
+      "NORM",
+      "ENG DATA"
+     ],
+     "does": "AB RESET clears an afterburner fault of the engine control; ENG DATA records the engine's data."
+    },
+    {
+     "node": "SW_MPO",
+     "label": "MANUAL PITCH",
+     "name": "Manual pitch override",
+     "positions": [
+      "NORM",
+      "OVRD"
+     ],
+     "does": "Held at OVRD, removes the flight control system's limit on the stabilators so the pilot can rock the jet out of a deep stall."
+    }
+   ]
+  },
+  {
+   "id": "audio",
+   "area": "left",
+   "title": "AUDIO panels",
+   "where": "left console",
+   "controls": [
+    {
+     "node": "COMM1_KNOB",
+     "label": "COMM 1",
+     "name": "Radio 1 (UHF) volume",
+     "positions": [
+      "Knob"
+     ],
+     "does": "Turns radio 1 on and sets its volume."
+    },
+    {
+     "node": "COMM2_KNOB",
+     "label": "COMM 2",
+     "name": "Radio 2 (VHF) volume",
+     "positions": [
+      "Knob"
+     ],
+     "does": "Turns radio 2 on and sets its volume."
+    },
+    {
+     "node": "msl-vol-knob",
+     "label": "MSL",
+     "name": "Missile tone volume",
+     "positions": [
+      "Knob"
+     ],
+     "does": "Sets the volume of the missile seeker's tone.",
+     "sim": "Sets the seeker tone's volume."
+    },
+    {
+     "node": "threat-vol-knob",
+     "label": "THREAT",
+     "name": "Threat tone volume",
+     "positions": [
+      "Knob"
+     ],
+     "does": "Sets the volume of the radar warning receiver's tones.",
+     "sim": "Sets the warning tones' volume."
+    },
+    {
+     "node": "intercom-knob",
+     "label": "INTERCOM",
+     "name": "Intercom volume",
+     "positions": [
+      "Knob"
+     ],
+     "does": "Sets the volume of everything in the headset."
+    },
+    {
+     "node": "tacan-vol-knob",
+     "label": "TACAN",
+     "name": "TACAN volume",
+     "positions": [
+      "Knob"
+     ],
+     "does": "Sets the volume of the TACAN station's identifier."
+    },
+    {
+     "node": "ils-vol-knob",
+     "label": "ILS",
+     "name": "ILS volume",
+     "positions": [
+      "Knob"
+     ],
+     "does": "Turns the instrument landing system on and sets the volume of its identifier."
+    }
+   ]
+  },
+  {
+   "id": "throttle",
+   "area": "left",
+   "title": "Throttle",
+   "where": "left console",
+   "controls": [
+    {
+     "node": "THROTTLE",
+     "label": "Throttle",
+     "name": "Throttle",
+     "positions": [
+      "OFF",
+      "IDLE",
+      "MIL",
+      "MAX AB"
+     ],
+     "does": "Sets the engine's thrust. OFF cuts the fuel; a detent holds IDLE; past MIL the afterburner lights.",
+     "sim": "Moves with the throttle keys and a throttle lever; the pointer does not move it."
+    }
+   ]
+  },
+  {
+   "id": "canopy",
+   "area": "left",
+   "title": "Canopy handle",
+   "where": "left canopy sill, aft",
+   "controls": [
+    {
+     "node": "CANOPY_HANDLE",
+     "label": "Canopy handle",
+     "name": "Canopy handle",
+     "does": "Lowers and locks the canopy; the CANOPY light goes out when it is locked.",
+     "sim": "One click closes and locks the canopy in about 10 seconds. Its place in the cockpit is inferred."
+    }
+   ]
+  },
+  {
+   "id": "cmds",
+   "area": "left",
+   "title": "CMDS panel",
+   "where": "left auxiliary console",
+   "controls": [
+    {
+     "node": "RWR_50_switch",
+     "label": "RWR",
+     "name": "Radar warning receiver source",
+     "does": "Lets the dispenser act on the radar warning receiver's threats."
+    },
+    {
+     "node": "JMR_50_switch",
+     "label": "JMR",
+     "name": "Jammer source",
+     "does": "Lets the dispenser work together with the jammer."
+    },
+    {
+     "node": "MWS_50_switch",
+     "label": "MWS",
+     "name": "Missile warning system source",
+     "does": "Lets the dispenser act on the missile warning system's alarms."
+    },
+    {
+     "node": "JETT_50_switch",
+     "label": "JETT",
+     "name": "Jettison",
+     "positions": [
+      "OFF",
+      "JETT"
+     ],
+     "does": "Throws out all the flares at once.",
+     "sim": "Releases every flare."
+    },
+    {
+     "node": "01_50_switch",
+     "label": "O1",
+     "name": "Other 1",
+     "does": "Arms the first spare expendable type."
+    },
+    {
+     "node": "02_50_switch",
+     "label": "O2",
+     "name": "Other 2",
+     "does": "Arms the second spare expendable type."
+    },
+    {
+     "node": "CH_50_switch",
+     "label": "CH",
+     "name": "Chaff",
+     "does": "Arms the chaff."
+    },
+    {
+     "node": "FL_50_switch",
+     "label": "FL",
+     "name": "Flare",
+     "does": "Arms the flares."
+    },
+    {
+     "node": "MODE_50_knob",
+     "label": "MODE",
+     "name": "Dispenser mode",
+     "does": "Sets how the dispenser releases: held ready (STBY), by the pilot's switch (MAN), or with the sensors' consent or by itself."
+    },
+    {
+     "node": "HMCS_SYM_INT_KNOB",
+     "label": "HMCS SYMBOLOGY INT",
+     "name": "Helmet-mounted cueing system brightness",
+     "positions": [
+      "Knob"
+     ],
+     "does": "Turns the helmet display on and sets its brightness."
+    },
+    {
+     "node": "alt-gear",
+     "label": "ALT GEAR",
+     "name": "Alternate gear extension",
+     "positions": [
+      "in",
+      "pulled"
+     ],
+     "does": "Pulled, lowers the landing gear with stored air when the hydraulics cannot."
+    }
+   ]
+  },
+  {
+   "id": "gear",
+   "area": "left",
+   "title": "Landing gear panel",
+   "where": "left auxiliary console",
+   "controls": [
+    {
+     "node": "GEAR_LEVER",
+     "label": "Landing gear handle",
+     "name": "Landing gear handle",
+     "does": "DN lowers the landing gear, UP raises it."
+    },
+    {
+     "node": "lamp_gear_transit_0",
+     "label": "Handle light",
+     "name": "Gear handle warning light",
+     "positions": [
+      "Light"
+     ],
+     "does": "Red while the gear is moving or does not agree with the handle.",
+     "sim": "On while a leg is not where the handle is."
+    },
+    {
+     "node": "lamp_gear_nose_0",
+     "label": "Nose gear light",
+     "name": "Nose gear down light",
+     "positions": [
+      "Light"
+     ],
+     "does": "Green: the nose gear is down and locked.",
+     "sim": "On with the leg down."
+    },
+    {
+     "node": "lamp_gear_left_0",
+     "label": "Left gear light",
+     "name": "Left gear down light",
+     "positions": [
+      "Light"
+     ],
+     "does": "Green: the left main gear is down and locked.",
+     "sim": "On with the leg down."
+    },
+    {
+     "node": "lamp_gear_right_0",
+     "label": "Right gear light",
+     "name": "Right gear down light",
+     "positions": [
+      "Light"
+     ],
+     "does": "Green: the right main gear is down and locked.",
+     "sim": "On with the leg down."
+    },
+    {
+     "node": "SW_HOOK",
+     "label": "HOOK",
+     "name": "Arresting hook",
+     "positions": [
+      "UP",
+      "DN"
+     ],
+     "does": "Lowers the hook that catches a runway's arresting cable."
+    },
+    {
+     "node": "SW_PARKING_BRAKE",
+     "label": "PARKING BRAKE / ANTI-SKID",
+     "name": "Parking brake and anti-skid",
+     "positions": [
+      "ANTI-SKID",
+      "PARKING BRAKE"
+     ],
+     "does": "Holds the wheel brakes on while parked; ANTI-SKID keeps the wheels from locking."
+    },
+    {
+     "node": "light-land-switch",
+     "nodes": [
+      "light-land-switch",
+      "light-land-switch_01"
+     ],
+     "label": "LANDING TAXI LIGHTS",
+     "name": "Landing and taxi lights",
+     "positions": [
+      "TAXI",
+      "OFF",
+      "LANDING"
+     ],
+     "does": "Turns on the taxi light or the landing light on the nose gear."
+    },
+    {
+     "node": "horn_silencer",
+     "label": "HORN SILENCER",
+     "name": "Gear warning horn silencer",
+     "does": "Silences the horn that warns of a low, slow jet with the gear up."
+    },
+    {
+     "node": "SW_STORES_CONFIG",
+     "label": "STORES CONFIG",
+     "name": "Stores configuration",
+     "positions": [
+      "CAT I",
+      "CAT III"
+     ],
+     "does": "Tells the flight control system what the jet carries: CAT III limits the angle of attack and the roll rate for heavy loads.",
+     "sim": "CAT III applies the heavy-load limits."
+    },
+    {
+     "node": "SW_GND_JETT",
+     "label": "GND JETT ENABLE",
+     "name": "Ground jettison enable",
+     "positions": [
+      "OFF",
+      "ENABLE"
+     ],
+     "does": "Lets stores be jettisoned with the jet on its wheels."
+    },
+    {
+     "node": "EMER_JETT",
+     "label": "EMER STORES JETTISON",
+     "name": "Emergency stores jettison",
+     "does": "Held, drops every jettisonable store at once.",
+     "sim": "Drops the tanks and the air-to-ground stores."
+    }
+   ]
+  },
+  {
+   "id": "misc",
+   "area": "front",
+   "title": "MISC panel",
+   "where": "left of the left MFD",
+   "controls": [
+    {
+     "node": "master-arm-switch",
+     "label": "MASTER ARM",
+     "name": "Master arm",
+     "positions": [
+      "SIMULATE",
+      "OFF",
+      "MASTER ARM"
+     ],
+     "does": "MASTER ARM lets weapons leave the jet. OFF holds them. SIMULATE shows the weapon symbols for practice and holds the weapons."
+    },
+    {
+     "node": "laser-arm-switch",
+     "label": "LASER ARM",
+     "name": "Laser arm",
+     "positions": [
+      "OFF",
+      "LASER ARM"
+     ],
+     "does": "Lets the targeting pod's laser fire.",
+     "sim": "The pod's laser fires only with the switch at LASER ARM."
+    },
+    {
+     "node": "alt-rel-button",
+     "label": "ALT REL",
+     "name": "Alternate release",
+     "does": "A second weapon release button, the same as the stick's."
+    },
+    {
+     "node": "quiet-switch",
+     "label": "RF",
+     "name": "Radio frequency emissions",
+     "positions": [
+      "NORM",
+      "QUIET",
+      "SILENT"
+     ],
+     "does": "QUIET lowers the jet's radio emissions, SILENT stops them."
+    },
+    {
+     "node": "lamp_ecm_enbl_0",
+     "label": "ECM",
+     "name": "ECM enabled light",
+     "positions": [
+      "Light"
+     ],
+     "does": "The jamming pod is allowed to transmit.",
+     "sim": "On while the jamming pod is on."
+    },
+    {
+     "node": "roll-hold-switch",
+     "label": "ROLL",
+     "name": "Autopilot roll mode",
+     "positions": [
+      "HDG SEL",
+      "ATT HOLD",
+      "STRG SEL"
+     ],
+     "does": "Chooses what the autopilot holds in roll: the selected heading, the attitude, or the steering to the steerpoint."
+    },
+    {
+     "node": "pitch-hold-switch",
+     "label": "PITCH",
+     "name": "Autopilot pitch mode",
+     "positions": [
+      "ALT HOLD",
+      "A/P OFF",
+      "ATT HOLD"
+     ],
+     "does": "Engages the autopilot: it holds the altitude or the pitch attitude."
+    },
+    {
+     "node": "adv-mode-button",
+     "nodes": [
+      "adv-mode-button",
+      "active-off",
+      "stby-off"
+     ],
+     "label": "ADV MODE",
+     "name": "Advanced mode",
+     "positions": [
+      "off",
+      "on"
+     ],
+     "does": "Engages terrain following; its two halves light ACTIVE and STBY."
+    }
+   ]
+  },
+  {
+   "id": "eyebrow_left",
+   "area": "front",
+   "title": "Left eyebrow",
+   "where": "glareshield, left of the HUD",
+   "controls": [
+    {
+     "node": "master_reset",
+     "nodes": [
+      "master_reset",
+      "lamp_master_caution_0"
+     ],
+     "label": "MASTER CAUTION",
+     "name": "Master caution light and reset",
+     "does": "Lights when any caution light comes on. Pressed, it goes out and is ready for the next caution; the caution's own light stays."
+    },
+    {
+     "node": "lamp_tf_fail_0",
+     "label": "TF FAIL",
+     "name": "Terrain following fail light",
+     "positions": [
+      "Light"
+     ],
+     "does": "The terrain following system has failed."
+    },
+    {
+     "node": "lamp_eyebrow_blank_1",
+     "nodes": [
+      "lamp_eyebrow_blank_1",
+      "lamp_eyebrow_blank_2",
+      "lamp_eyebrow_blank_3"
+     ],
+     "label": "Spare lights",
+     "name": "Spare warning lights",
+     "positions": [
+      "Light"
+     ],
+     "does": "Three positions without a legend."
+    },
+    {
+     "node": "EYEBROW_LEFT_iff",
+     "label": "IFF IDENT",
+     "name": "IFF identification",
+     "does": "Sends the identification pulse a controller asks for."
+    },
+    {
+     "node": "f-ack",
+     "label": "F-ACK",
+     "name": "Fault acknowledge",
+     "does": "Shows the pilot fault list and acknowledges its faults."
+    }
+   ]
+  },
+  {
+   "id": "twp",
+   "area": "front",
+   "title": "Threat warning",
+   "where": "above the left MFD",
+   "controls": [
+    {
+     "node": "RWR_scope",
+     "label": "Threat warning display",
+     "name": "Threat warning display",
+     "positions": [
+      "Display"
+     ],
+     "does": "Shows each radar that looks at the jet as a symbol at its bearing."
+    },
+    {
+     "node": "IFF_button",
+     "label": "INT",
+     "name": "Display intensity",
+     "positions": [
+      "Knob"
+     ],
+     "does": "Sets the brightness of the threat warning display."
+    },
+    {
+     "node": "lamp_twd_handoff_0",
+     "label": "HANDOFF",
+     "name": "Handoff",
+     "positions": [
+      "Light"
+     ],
+     "does": "A lit button: chooses which threat's tone the headset plays."
+    },
+    {
+     "node": "lamp_rwr_launch_0",
+     "label": "MISSILE LAUNCH",
+     "name": "Missile launch light",
+     "positions": [
+      "Light"
+     ],
+     "does": "Flashes red when a radar guides a missile at the jet.",
+     "sim": "Flashes at a launch."
+    },
+    {
+     "node": "pri",
+     "label": "PRIORITY",
+     "name": "Priority mode",
+     "positions": [
+      "OPEN",
+      "PRIORITY"
+     ],
+     "does": "PRIORITY shows only the five most dangerous threats."
+    },
+    {
+     "node": "unk",
+     "label": "UNKNOWN",
+     "name": "Unknown threats",
+     "positions": [
+      "off",
+      "on"
+     ],
+     "does": "Shows the radars the system cannot name."
+    },
+    {
+     "node": "sep",
+     "label": "TGT SEP",
+     "name": "Target separate",
+     "does": "Held, spreads symbols that lie on top of each other."
+    },
+    {
+     "node": "lamp_twd_test_0",
+     "label": "SYS TEST",
+     "name": "System test",
+     "positions": [
+      "Light"
+     ],
+     "does": "A lit button: runs the receiver's self test.",
+     "sim": "On during the display's test."
+    }
+   ]
+  },
+  {
+   "id": "hud",
+   "area": "front",
+   "title": "HUD and indexers",
+   "where": "top of the front panel",
+   "controls": [
+    {
+     "node": "HUD_std",
+     "label": "HUD",
+     "name": "Head-up display",
+     "positions": [
+      "Display"
+     ],
+     "does": "Shows the flight path, the speed, the altitude, the steering and the weapon symbols on a glass in the line of sight."
+    },
+    {
+     "node": "lamp_aoa_slow_0",
+     "label": "AOA indexer, top",
+     "name": "Angle of attack high",
+     "positions": [
+      "Light"
+     ],
+     "does": "A red chevron: the angle of attack is above the approach value, the jet is slow."
+    },
+    {
+     "node": "lamp_aoa_on_speed_0",
+     "label": "AOA indexer, middle",
+     "name": "Angle of attack on speed",
+     "positions": [
+      "Light"
+     ],
+     "does": "A green circle: the angle of attack is right for the approach."
+    },
+    {
+     "node": "lamp_aoa_fast_0",
+     "label": "AOA indexer, bottom",
+     "name": "Angle of attack low",
+     "positions": [
+      "Light"
+     ],
+     "does": "A yellow chevron: the angle of attack is below the approach value, the jet is fast."
+    },
+    {
+     "node": "lamp_ar_rdy_0",
+     "label": "RDY",
+     "name": "Air refuelling ready",
+     "positions": [
+      "Light"
+     ],
+     "does": "The refuelling door is open and the jet is ready for the boom."
+    },
+    {
+     "node": "lamp_ar_nws_0",
+     "label": "AR/NWS",
+     "name": "Air refuelling contact / nosewheel steering",
+     "positions": [
+      "Light"
+     ],
+     "does": "In the air: the boom is latched. On the ground: the nosewheel steering is on.",
+     "sim": "On with the jet on its wheels."
+    },
+    {
+     "node": "lamp_ar_disc_0",
+     "label": "DISC",
+     "name": "Air refuelling disconnect",
+     "positions": [
+      "Light"
+     ],
+     "does": "The boom has let go."
+    }
+   ]
+  },
+  {
+   "id": "icp",
+   "area": "front",
+   "title": "ICP",
+   "where": "under the HUD",
+   "controls": [
+    {
+     "node": "com1",
+     "label": "COM 1",
+     "name": "Radio 1 override",
+     "does": "Shows radio 1's page on the DED."
+    },
+    {
+     "node": "com2",
+     "label": "COM 2",
+     "name": "Radio 2 override",
+     "does": "Shows radio 2's page on the DED."
+    },
+    {
+     "node": "ICP_iff",
+     "label": "IFF",
+     "name": "IFF override",
+     "does": "Shows the IFF page on the DED."
+    },
+    {
+     "node": "list",
+     "label": "LIST",
+     "name": "List",
+     "does": "Shows the list of the DED's pages."
+    },
+    {
+     "node": "a-a",
+     "label": "A-A",
+     "name": "Air-to-air master mode",
+     "does": "Puts the avionics in the air-to-air master mode; pressed again, back to navigation."
+    },
+    {
+     "node": "a-g",
+     "label": "A-G",
+     "name": "Air-to-ground master mode",
+     "does": "Puts the avionics in the air-to-ground master mode; pressed again, back to navigation."
+    },
+    {
+     "node": "1",
+     "label": "1 T-ILS",
+     "name": "Key 1; TACAN and ILS page",
+     "does": "Enters 1; from the main page, shows the TACAN and ILS page."
+    },
+    {
+     "node": "2",
+     "label": "2 ALOW",
+     "name": "Key 2; low altitude warning page",
+     "does": "Enters 2 (N); from the main page, shows the altitude warning page."
+    },
+    {
+     "node": "3",
+     "label": "3",
+     "name": "Key 3",
+     "does": "Enters 3."
+    },
+    {
+     "node": "4",
+     "label": "4 STPT",
+     "name": "Key 4; steerpoint page",
+     "does": "Enters 4 (W); from the main page, shows the steerpoint page."
+    },
+    {
+     "node": "5",
+     "label": "5 CRUS",
+     "name": "Key 5; cruise page",
+     "does": "Enters 5; from the main page, shows the cruise page."
+    },
+    {
+     "node": "6",
+     "label": "6 TIME",
+     "name": "Key 6; time page",
+     "does": "Enters 6 (E); from the main page, shows the time page."
+    },
+    {
+     "node": "7",
+     "label": "7 MARK",
+     "name": "Key 7; mark page",
+     "does": "Enters 7; from the main page, stores a mark point."
+    },
+    {
+     "node": "8",
+     "label": "8 FIX",
+     "name": "Key 8; fix page",
+     "does": "Enters 8 (S); from the main page, shows the position fix page."
+    },
+    {
+     "node": "9",
+     "label": "9 A-CAL",
+     "name": "Key 9; altitude calibration page",
+     "does": "Enters 9; from the main page, shows the altitude calibration page."
+    },
+    {
+     "node": "0",
+     "label": "0 M-SEL",
+     "name": "Key 0; mode select",
+     "does": "Enters 0; on a page with choices, selects the one under the asterisks."
+    },
+    {
+     "node": "rcl",
+     "label": "RCL",
+     "name": "Recall",
+     "does": "Clears the last digit; pressed again, the whole entry."
+    },
+    {
+     "node": "entr",
+     "label": "ENTR",
+     "name": "Enter",
+     "does": "Stores the entry."
+    },
+    {
+     "node": "wx",
+     "label": "WX",
+     "name": "Weather",
+     "does": "Chooses the weather mode of the forward-looking infrared's picture."
+    },
+    {
+     "node": "flir_ud",
+     "label": "FLIR rocker",
+     "name": "Forward-looking infrared rocker",
+     "does": "Steps the infrared picture's level or gain up and down."
+    },
+    {
+     "node": "cursor-up",
+     "nodes": [
+      "cursor-up",
+      "cursor-down"
+     ],
+     "label": "Increment / decrement rocker",
+     "name": "Increment and decrement",
+     "does": "Steps the value under the DED's arrows up or down: the steerpoint on the main page."
+    },
+    {
+     "node": "switchSquareUp",
+     "nodes": [
+      "switchSquareUp",
+      "switchSquareDown",
+      "switchSquareLeft",
+      "switchSquareRight"
+     ],
+     "label": "DCS",
+     "name": "Data control switch",
+     "positions": [
+      "up",
+      "down",
+      "RTN",
+      "SEQ"
+     ],
+     "does": "Up and down move between a page's fields; RTN goes back to the main page; SEQ steps through a page's choices."
+    },
+    {
+     "node": "drift",
+     "label": "DRIFT C/O",
+     "name": "Drift cut-out",
+     "positions": [
+      "DRIFT C/O",
+      "NORM",
+      "WARN RESET"
+     ],
+     "does": "DRIFT C/O centres the HUD's symbols against the wind's drift; WARN RESET stops a warning's voice and flash."
+    },
+    {
+     "node": "SYM",
+     "label": "SYM",
+     "name": "HUD symbology brightness",
+     "does": "A wheel that sets the brightness of the HUD's symbols; fully down, the HUD is off.",
+     "sim": "Works as on the jet: at its lowest the HUD is dark."
+    },
+    {
+     "node": "brt",
+     "label": "BRT",
+     "name": "Brightness",
+     "positions": [
+      "Wheel"
+     ],
+     "does": "Sets the brightness of the infrared picture on the HUD.",
+     "sim": "Dims the whole HUD."
+    },
+    {
+     "node": "depr_ret",
+     "label": "RET DEPR",
+     "name": "Reticle depression",
+     "positions": [
+      "Wheel"
+     ],
+     "does": "Lowers the HUD's standby aiming reticle."
+    },
+    {
+     "node": "cont",
+     "label": "CONT",
+     "name": "Contrast",
+     "positions": [
+      "Wheel"
+     ],
+     "does": "Sets the contrast of the infrared picture on the HUD."
+    }
+   ]
+  },
+  {
+   "id": "eyebrow_right",
+   "area": "front",
+   "title": "Right eyebrow",
+   "where": "glareshield, right of the HUD",
+   "controls": [
+    {
+     "node": "lamp_eng_fire_0",
+     "label": "ENG FIRE",
+     "name": "Engine fire",
+     "positions": [
+      "Light"
+     ],
+     "does": "Fire in the engine bay.",
+     "sim": "On with a fire, and in the FIRE & OHEAT DETECT test."
+    },
+    {
+     "node": "lamp_engine_0",
+     "label": "ENGINE",
+     "name": "Engine",
+     "positions": [
+      "Light"
+     ],
+     "does": "The engine's RPM or temperature is outside its range.",
+     "sim": "On while the engine is not running or has failed."
+    },
+    {
+     "node": "lamp_hyd_oil_press_0",
+     "label": "HYD/OIL PRESS",
+     "name": "Hydraulic or oil pressure",
+     "positions": [
+      "Light"
+     ],
+     "does": "A hydraulic system's or the engine oil's pressure is low.",
+     "sim": "On with a failed system, and before the start while the pressure is below 1,000 psi."
+    },
+    {
+     "node": "lamp_flcs_0",
+     "label": "FLCS",
+     "name": "Flight control system",
+     "positions": [
+      "Light"
+     ],
+     "does": "The flight control system has a fault that needs action.",
+     "sim": "On with a flight control fault."
+    },
+    {
+     "node": "lamp_dbu_on_0",
+     "label": "DBU ON",
+     "name": "Digital backup on",
+     "positions": [
+      "Light"
+     ],
+     "does": "The flight control computer runs its backup software.",
+     "sim": "On while the DIGITAL BACKUP switch is at BACKUP."
+    },
+    {
+     "node": "lamp_to_ldg_config_0",
+     "label": "TO/LDG CONFIG",
+     "name": "Take-off and landing configuration",
+     "positions": [
+      "Light"
+     ],
+     "does": "Low and slow with the gear or the flaps not set for landing.",
+     "sim": "On when the jet is low and slow with the gear up."
+    },
+    {
+     "node": "lamp_canopy_0",
+     "label": "CANOPY",
+     "name": "Canopy",
+     "positions": [
+      "Light"
+     ],
+     "does": "The canopy is not down and locked.",
+     "sim": "On until the canopy is closed and locked."
+    },
+    {
+     "node": "lamp_eyebrow_blank_0",
+     "label": "Spare light",
+     "name": "Spare warning light",
+     "positions": [
+      "Light"
+     ],
+     "does": "A position without a legend."
+    }
+   ]
+  },
+  {
+   "id": "ded",
+   "area": "front",
+   "title": "DED and standby instruments",
+   "where": "right of the ICP",
+   "controls": [
+    {
+     "node": "DED_screen",
+     "label": "DED",
+     "name": "Data entry display",
+     "positions": [
+      "Display"
+     ],
+     "does": "Five lines of text: the radios, the steerpoint, the time, and each page the ICP calls."
+    },
+    {
+     "node": "anim165",
+     "nodes": [
+      "anim165",
+      "anim163",
+      "anim164"
+     ],
+     "label": "Standby attitude indicator",
+     "name": "Standby attitude indicator",
+     "positions": [
+      "Gauge"
+     ],
+     "does": "A self-contained gyro horizon for when the main attitude display fails."
+    },
+    {
+     "node": "anim160",
+     "nodes": [
+      "anim160",
+      "anim161",
+      "anim162"
+     ],
+     "label": "FUEL FLOW",
+     "name": "Fuel flow indicator",
+     "positions": [
+      "Gauge"
+     ],
+     "does": "The engine's fuel flow in pounds an hour."
+    }
+   ]
+  },
+  {
+   "id": "mfd_left",
+   "area": "front",
+   "title": "Left MFD",
+   "where": "front panel, left",
+   "controls": [
+    {
+     "node": "MFD_L",
+     "label": "Left MFD",
+     "name": "Left multifunction display",
+     "positions": [
+      "Display"
+     ],
+     "does": "Shows a chosen format: the radar, the stores, the map, a pod's picture. The words along its edges name what each button does."
+    },
+    {
+     "node": "MFD_L_T1",
+     "label": "OSB 1",
+     "name": "Option select button 1",
+     "does": "Does what the display writes beside it."
+    },
+    {
+     "node": "MFD_L_T2",
+     "label": "OSB 2",
+     "name": "Option select button 2",
+     "does": "Does what the display writes beside it."
+    },
+    {
+     "node": "MFD_L_T3",
+     "label": "OSB 3",
+     "name": "Option select button 3",
+     "does": "Does what the display writes beside it."
+    },
+    {
+     "node": "MFD_L_T4",
+     "label": "OSB 4",
+     "name": "Option select button 4",
+     "does": "Does what the display writes beside it."
+    },
+    {
+     "node": "MFD_L_T5",
+     "label": "OSB 5",
+     "name": "Option select button 5",
+     "does": "Does what the display writes beside it."
+    },
+    {
+     "node": "MFD_L_R1",
+     "label": "OSB 6",
+     "name": "Option select button 6",
+     "does": "Does what the display writes beside it."
+    },
+    {
+     "node": "MFD_L_R2",
+     "label": "OSB 7",
+     "name": "Option select button 7",
+     "does": "Does what the display writes beside it."
+    },
+    {
+     "node": "MFD_L_R3",
+     "label": "OSB 8",
+     "name": "Option select button 8",
+     "does": "Does what the display writes beside it."
+    },
+    {
+     "node": "MFD_L_R4",
+     "label": "OSB 9",
+     "name": "Option select button 9",
+     "does": "Does what the display writes beside it."
+    },
+    {
+     "node": "MFD_L_R5",
+     "label": "OSB 10",
+     "name": "Option select button 10",
+     "does": "Does what the display writes beside it."
+    },
+    {
+     "node": "MFD_L_B5",
+     "label": "OSB 11",
+     "name": "Option select button 11",
+     "does": "Does what the display writes beside it."
+    },
+    {
+     "node": "MFD_L_B4",
+     "label": "OSB 12",
+     "name": "Option select button 12",
+     "does": "Chooses the format written above it."
+    },
+    {
+     "node": "MFD_L_B3",
+     "label": "OSB 13",
+     "name": "Option select button 13",
+     "does": "Chooses the format written above it."
+    },
+    {
+     "node": "MFD_L_B2",
+     "label": "OSB 14",
+     "name": "Option select button 14",
+     "does": "Chooses the format written above it."
+    },
+    {
+     "node": "MFD_L_B1",
+     "label": "OSB 15",
+     "name": "Option select button 15",
+     "does": "Does what the display writes beside it."
+    },
+    {
+     "node": "MFD_L_L5",
+     "label": "OSB 16",
+     "name": "Option select button 16",
+     "does": "Does what the display writes beside it."
+    },
+    {
+     "node": "MFD_L_L4",
+     "label": "OSB 17",
+     "name": "Option select button 17",
+     "does": "Does what the display writes beside it."
+    },
+    {
+     "node": "MFD_L_L3",
+     "label": "OSB 18",
+     "name": "Option select button 18",
+     "does": "Does what the display writes beside it."
+    },
+    {
+     "node": "MFD_L_L2",
+     "label": "OSB 19",
+     "name": "Option select button 19",
+     "does": "Does what the display writes beside it."
+    },
+    {
+     "node": "MFD_L_L1",
+     "label": "OSB 20",
+     "name": "Option select button 20",
+     "does": "Does what the display writes beside it."
+    },
+    {
+     "node": "MFD1_MFDButtonGain",
+     "label": "GAIN",
+     "name": "Gain rocker",
+     "positions": [
+      "Rocker"
+     ],
+     "does": "Sets the gain of the picture shown."
+    },
+    {
+     "node": "MFD1_MFDButtonBrightness",
+     "label": "BRT",
+     "name": "Brightness rocker",
+     "positions": [
+      "Rocker"
+     ],
+     "does": "Sets the display's brightness.",
+     "sim": "Steps the display's brightness."
+    },
+    {
+     "node": "MFD1_MFDButtonCon",
+     "label": "CON",
+     "name": "Contrast rocker",
+     "positions": [
+      "Rocker"
+     ],
+     "does": "Sets the display's contrast."
+    }
+   ]
+  },
+  {
+   "id": "mfd_right",
+   "area": "front",
+   "title": "Right MFD",
+   "where": "front panel, right",
+   "controls": [
+    {
+     "node": "MFD_R",
+     "label": "Right MFD",
+     "name": "Right multifunction display",
+     "positions": [
+      "Display"
+     ],
+     "does": "Shows a chosen format: the radar, the stores, the map, a pod's picture. The words along its edges name what each button does."
+    },
+    {
+     "node": "MFD_R_T1",
+     "label": "OSB 1",
+     "name": "Option select button 1",
+     "does": "Does what the display writes beside it."
+    },
+    {
+     "node": "MFD_R_T2",
+     "label": "OSB 2",
+     "name": "Option select button 2",
+     "does": "Does what the display writes beside it."
+    },
+    {
+     "node": "MFD_R_T3",
+     "label": "OSB 3",
+     "name": "Option select button 3",
+     "does": "Does what the display writes beside it."
+    },
+    {
+     "node": "MFD_R_T4",
+     "label": "OSB 4",
+     "name": "Option select button 4",
+     "does": "Does what the display writes beside it."
+    },
+    {
+     "node": "MFD_R_T5",
+     "label": "OSB 5",
+     "name": "Option select button 5",
+     "does": "Does what the display writes beside it."
+    },
+    {
+     "node": "MFD_R_R1",
+     "label": "OSB 6",
+     "name": "Option select button 6",
+     "does": "Does what the display writes beside it."
+    },
+    {
+     "node": "MFD_R_R2",
+     "label": "OSB 7",
+     "name": "Option select button 7",
+     "does": "Does what the display writes beside it."
+    },
+    {
+     "node": "MFD_R_R3",
+     "label": "OSB 8",
+     "name": "Option select button 8",
+     "does": "Does what the display writes beside it."
+    },
+    {
+     "node": "MFD_R_R4",
+     "label": "OSB 9",
+     "name": "Option select button 9",
+     "does": "Does what the display writes beside it."
+    },
+    {
+     "node": "MFD_R_R5",
+     "label": "OSB 10",
+     "name": "Option select button 10",
+     "does": "Does what the display writes beside it."
+    },
+    {
+     "node": "MFD_R_B5",
+     "label": "OSB 11",
+     "name": "Option select button 11",
+     "does": "Does what the display writes beside it."
+    },
+    {
+     "node": "MFD_R_B4",
+     "label": "OSB 12",
+     "name": "Option select button 12",
+     "does": "Chooses the format written above it."
+    },
+    {
+     "node": "MFD_R_B3",
+     "label": "OSB 13",
+     "name": "Option select button 13",
+     "does": "Chooses the format written above it."
+    },
+    {
+     "node": "MFD_R_B2",
+     "label": "OSB 14",
+     "name": "Option select button 14",
+     "does": "Chooses the format written above it."
+    },
+    {
+     "node": "MFD_R_B1",
+     "label": "OSB 15",
+     "name": "Option select button 15",
+     "does": "Does what the display writes beside it."
+    },
+    {
+     "node": "MFD_R_L5",
+     "label": "OSB 16",
+     "name": "Option select button 16",
+     "does": "Does what the display writes beside it."
+    },
+    {
+     "node": "MFD_R_L4",
+     "label": "OSB 17",
+     "name": "Option select button 17",
+     "does": "Does what the display writes beside it."
+    },
+    {
+     "node": "MFD_R_L3",
+     "label": "OSB 18",
+     "name": "Option select button 18",
+     "does": "Does what the display writes beside it."
+    },
+    {
+     "node": "MFD_R_L2",
+     "label": "OSB 19",
+     "name": "Option select button 19",
+     "does": "Does what the display writes beside it."
+    },
+    {
+     "node": "MFD_R_L1",
+     "label": "OSB 20",
+     "name": "Option select button 20",
+     "does": "Does what the display writes beside it."
+    },
+    {
+     "node": "MFD2_MFDButtonGain",
+     "label": "GAIN",
+     "name": "Gain rocker",
+     "positions": [
+      "Rocker"
+     ],
+     "does": "Sets the gain of the picture shown."
+    },
+    {
+     "node": "MFD2_MFDButtonBrightness",
+     "label": "BRT",
+     "name": "Brightness rocker",
+     "positions": [
+      "Rocker"
+     ],
+     "does": "Sets the display's brightness.",
+     "sim": "Steps the display's brightness."
+    },
+    {
+     "node": "MFD2_MFDButtonCon",
+     "label": "CON",
+     "name": "Contrast rocker",
+     "positions": [
+      "Rocker"
+     ],
+     "does": "Sets the display's contrast."
+    }
+   ]
+  },
+  {
+   "id": "flight_inst",
+   "area": "front",
+   "title": "Flight instruments",
+   "where": "centre pedestal",
+   "controls": [
+    {
+     "node": "anim089",
+     "nodes": [
+      "anim089",
+      "anim090"
+     ],
+     "label": "Airspeed and Mach indicator",
+     "name": "Airspeed and Mach indicator",
+     "positions": [
+      "Gauge"
+     ],
+     "does": "The indicated airspeed in knots on the dial, the Mach number in its window."
+    },
+    {
+     "node": "ASI_bug-left",
+     "nodes": [
+      "ASI_bug-left",
+      "ASI_bug-right",
+      "anim091"
+     ],
+     "label": "Airspeed bug knob",
+     "name": "Airspeed reference bug",
+     "positions": [
+      "Knob"
+     ],
+     "does": "Turns a marker around the airspeed dial to a speed to remember.",
+     "sim": "A click on the knob's left or right half moves the bug."
+    },
+    {
+     "node": "AOA_tape",
+     "label": "AOA",
+     "name": "Angle of attack indicator",
+     "positions": [
+      "Gauge"
+     ],
+     "does": "A moving tape: the angle of attack in degrees."
+    },
+    {
+     "node": "anim096",
+     "nodes": [
+      "anim096",
+      "anim092"
+     ],
+     "label": "ADI",
+     "name": "Attitude director indicator",
+     "positions": [
+      "Gauge"
+     ],
+     "does": "A ball that shows pitch and roll."
+    },
+    {
+     "node": "ADI_glide-slope-index",
+     "nodes": [
+      "ADI_glide-slope-index",
+      "ADI_pitch-strg-bar",
+      "ADI_yaw-steering-bar"
+     ],
+     "label": "ILS bars",
+     "name": "ILS steering bars and glide slope index",
+     "positions": [
+      "Gauge"
+     ],
+     "does": "On an ILS approach the two bars and the index show where the localizer and the glide slope lie.",
+     "sim": "Shown in the navigation mode with the gear handle down."
+    },
+    {
+     "node": "anim095",
+     "nodes": [
+      "anim095",
+      "anim097"
+     ],
+     "label": "Turn and slip indicator",
+     "name": "Turn and slip indicator",
+     "positions": [
+      "Gauge"
+     ],
+     "does": "The needle shows the rate of turn, the ball a slip or a skid."
+    },
+    {
+     "node": "anim202",
+     "label": "ALT",
+     "name": "Altimeter",
+     "positions": [
+      "Gauge"
+     ],
+     "does": "The barometric altitude in feet."
+    },
+    {
+     "node": "anim099",
+     "label": "VVI",
+     "name": "Vertical velocity indicator",
+     "positions": [
+      "Gauge"
+     ],
+     "does": "The rate of climb or descent."
+    },
+    {
+     "node": "EHSI_screen",
+     "label": "EHSI",
+     "name": "Electronic horizontal situation indicator",
+     "positions": [
+      "Display"
+     ],
+     "does": "A compass rose with the course, the heading bug, and the bearing and range to the steerpoint or station."
+    },
+    {
+     "node": "HSI_hdg-knob",
+     "label": "HDG",
+     "name": "Heading set knob",
+     "positions": [
+      "Knob"
+     ],
+     "does": "Turns the heading bug on the EHSI.",
+     "sim": "Turns the bug."
+    },
+    {
+     "node": "HSI_course-knob",
+     "label": "CRS",
+     "name": "Course set knob",
+     "positions": [
+      "Knob"
+     ],
+     "does": "Turns the course arrow on the EHSI."
+    },
+    {
+     "node": "EHSI_button",
+     "label": "M",
+     "name": "Mode button",
+     "does": "Steps the EHSI through its modes: navigation, TACAN, and each with the ILS.",
+     "sim": "Steps the EHSI's mode."
+    },
+    {
+     "node": "lamp_marker_beacon_0",
+     "label": "MRK BCN",
+     "name": "Marker beacon light",
+     "positions": [
+      "Light"
+     ],
+     "does": "Flashes when the jet passes over an ILS marker beacon."
+    },
+    {
+     "node": "FQS_sel-knob",
+     "label": "FUEL QTY SEL",
+     "name": "Fuel quantity select",
+     "positions": [
+      "TEST",
+      "NORM",
+      "RSVR",
+      "INT WING",
+      "EXT WING",
+      "EXT CTR"
+     ],
+     "does": "Chooses the tanks whose fuel the quantity indicator's two pointers show."
+    },
+    {
+     "node": "FQS_fuel-trans-switch",
+     "label": "EXT FUEL TRANS",
+     "name": "External fuel transfer",
+     "positions": [
+      "NORM",
+      "WING FIRST"
+     ],
+     "does": "Chooses which external tanks empty first."
+    }
+   ]
+  },
+  {
+   "id": "engine_inst",
+   "area": "front",
+   "title": "Engine instruments",
+   "where": "front panel, right",
+   "controls": [
+    {
+     "node": "anim168",
+     "label": "OIL",
+     "name": "Oil pressure indicator",
+     "positions": [
+      "Gauge"
+     ],
+     "does": "The engine oil's pressure in psi."
+    },
+    {
+     "node": "anim167",
+     "label": "NOZ POS",
+     "name": "Nozzle position indicator",
+     "positions": [
+      "Gauge"
+     ],
+     "does": "How far the exhaust nozzle is open, in percent."
+    },
+    {
+     "node": "anim169",
+     "label": "RPM",
+     "name": "RPM indicator",
+     "positions": [
+      "Gauge"
+     ],
+     "does": "The engine's speed in percent."
+    },
+    {
+     "node": "anim166",
+     "label": "FTIT",
+     "name": "Fan turbine inlet temperature indicator",
+     "positions": [
+      "Gauge"
+     ],
+     "does": "The temperature of the gas that enters the fan turbine, in °C."
+    },
+    {
+     "node": "anim170",
+     "label": "Standby compass",
+     "name": "Standby magnetic compass",
+     "positions": [
+      "Gauge"
+     ],
+     "does": "A magnetic compass that needs no power."
+    }
+   ]
+  },
+  {
+   "id": "caution",
+   "area": "right",
+   "title": "Caution light panel",
+   "where": "right auxiliary console",
+   "controls": [
+    {
+     "node": "lamp_caution_flt_cont_sys_0",
+     "label": "FLCS FAULT",
+     "name": "Flight control system fault",
+     "positions": [
+      "Light"
+     ],
+     "does": "The flight control system reports a fault; the pilot fault list names it."
+    },
+    {
+     "node": "lamp_caution_engine_fault_0",
+     "label": "ENGINE FAULT",
+     "name": "Engine fault",
+     "positions": [
+      "Light"
+     ],
+     "does": "The engine control reports a fault; the pilot fault list names it.",
+     "sim": "On with an engine fault in the pilot fault list."
+    },
+    {
+     "node": "lamp_caution_avionics_0",
+     "label": "AVIONICS FAULT",
+     "name": "Avionics fault",
+     "positions": [
+      "Light"
+     ],
+     "does": "An avionics system reports a fault; the pilot fault list names it.",
+     "sim": "On with an avionics fault in the pilot fault list."
+    },
+    {
+     "node": "lamp_caution_seat_not_armed_0",
+     "label": "SEAT NOT ARMED",
+     "name": "Seat not armed",
+     "positions": [
+      "Light"
+     ],
+     "does": "The ejection seat's safety lever is up: the seat will not fire."
+    },
+    {
+     "node": "lamp_caution_elec_sys_0",
+     "label": "ELEC SYS",
+     "name": "Electrical system",
+     "positions": [
+      "Light"
+     ],
+     "does": "A light of the ELEC panel is on.",
+     "sim": "On with any of the ELEC panel's lights."
+    },
+    {
+     "node": "lamp_caution_sec_0",
+     "label": "SEC",
+     "name": "Secondary engine control",
+     "positions": [
+      "Light"
+     ],
+     "does": "The engine runs on its backup control."
+    },
+    {
+     "node": "lamp_caution_equip_hot_0",
+     "label": "EQUIP HOT",
+     "name": "Equipment hot",
+     "positions": [
+      "Light"
+     ],
+     "does": "The avionics get too little cooling air.",
+     "sim": "On with the avionics up and AIR SOURCE at OFF, or at RAM below 70 kt."
+    },
+    {
+     "node": "lamp_caution_nws_fail_0",
+     "label": "NWS FAIL",
+     "name": "Nosewheel steering fail",
+     "positions": [
+      "Light"
+     ],
+     "does": "The nosewheel steering has failed."
+    },
+    {
+     "node": "lamp_caution_probe_heat_0",
+     "label": "PROBE HEAT",
+     "name": "Probe heat",
+     "positions": [
+      "Light"
+     ],
+     "does": "A probe heater has failed; flashes in the PROBE HEAT test.",
+     "sim": "Flashes with the PROBE HEAT switch at TEST."
+    },
+    {
+     "node": "lamp_caution_fuel_oil_hot_0",
+     "label": "FUEL/OIL HOT",
+     "name": "Fuel or oil hot",
+     "positions": [
+      "Light"
+     ],
+     "does": "The fuel that enters the engine or the engine oil is too hot."
+    },
+    {
+     "node": "lamp_caution_radar_alt_0",
+     "label": "RADAR ALT",
+     "name": "Radar altimeter",
+     "positions": [
+      "Light"
+     ],
+     "does": "The radar altimeter has failed."
+    },
+    {
+     "node": "lamp_caution_anti_skid_0",
+     "label": "ANTI SKID",
+     "name": "Anti-skid",
+     "positions": [
+      "Light"
+     ],
+     "does": "The anti-skid has failed, or the parking brake is on with the gear up."
+    },
+    {
+     "node": "lamp_caution_c_adc_0",
+     "label": "CADC",
+     "name": "Central air data computer",
+     "positions": [
+      "Light"
+     ],
+     "does": "The air data computer has failed."
+    },
+    {
+     "node": "lamp_caution_inlet_icing_0",
+     "label": "INLET ICING",
+     "name": "Inlet icing",
+     "positions": [
+      "Light"
+     ],
+     "does": "Ice builds in the engine's inlet."
+    },
+    {
+     "node": "lamp_caution_iff_0",
+     "label": "IFF",
+     "name": "IFF",
+     "positions": [
+      "Light"
+     ],
+     "does": "The IFF's mode 4 does not answer."
+    },
+    {
+     "node": "lamp_caution_hook_0",
+     "label": "HOOK",
+     "name": "Hook",
+     "positions": [
+      "Light"
+     ],
+     "does": "The arresting hook is not up and locked.",
+     "sim": "On with the HOOK switch at DN."
+    },
+    {
+     "node": "lamp_caution_stores_config_0",
+     "label": "STORES CONFIG",
+     "name": "Stores configuration",
+     "positions": [
+      "Light"
+     ],
+     "does": "The STORES CONFIG switch does not agree with the stores carried."
+    },
+    {
+     "node": "lamp_caution_overheat_0",
+     "label": "OVERHEAT",
+     "name": "Overheat",
+     "positions": [
+      "Light"
+     ],
+     "does": "Overheat in the engine bay, the EPU bay or the cooling system.",
+     "sim": "On with a fire, and in the FIRE & OHEAT DETECT test."
+    },
+    {
+     "node": "lamp_caution_nuclear_0",
+     "label": "NUCLEAR",
+     "name": "Nuclear",
+     "positions": [
+      "Light"
+     ],
+     "does": "A fault in the nuclear store's circuits."
+    },
+    {
+     "node": "lamp_caution_oxy_low_0",
+     "label": "OXY LOW",
+     "name": "Oxygen low",
+     "positions": [
+      "Light"
+     ],
+     "does": "Little liquid oxygen is left, or its pressure is low."
+    },
+    {
+     "node": "lamp_caution_adc_0",
+     "label": "ADC",
+     "name": "Air data converter",
+     "positions": [
+      "Light"
+     ],
+     "does": "An air data converter has failed."
+    },
+    {
+     "node": "lamp_caution_eec_0",
+     "label": "EEC",
+     "name": "Engine electronic control",
+     "positions": [
+      "Light"
+     ],
+     "does": "The engine's electronic control has a fault."
+    },
+    {
+     "node": "lamp_caution_cabin_press_0",
+     "label": "CABIN PRESS",
+     "name": "Cabin pressure",
+     "positions": [
+      "Light"
+     ],
+     "does": "The cabin's altitude is above 27,000 ft.",
+     "sim": "On with the cabin above 27,000 ft."
+    },
+    {
+     "node": "lamp_caution_fwd_fuel_low_0",
+     "label": "FWD FUEL LOW",
+     "name": "Forward fuel low",
+     "positions": [
+      "Light"
+     ],
+     "does": "The forward reservoir holds less than 400 lb.",
+     "sim": "On below 800 lb of fuel in all; the sim keeps one total."
+    },
+    {
+     "node": "lamp_caution_buc_0",
+     "label": "BUC",
+     "name": "Backup fuel control",
+     "positions": [
+      "Light"
+     ],
+     "does": "The engine runs on its backup fuel control."
+    },
+    {
+     "node": "lamp_caution_aft_fuel_low_0",
+     "label": "AFT FUEL LOW",
+     "name": "Aft fuel low",
+     "positions": [
+      "Light"
+     ],
+     "does": "The aft reservoir holds less than 250 lb.",
+     "sim": "On below 500 lb of fuel in all; the sim keeps one total."
+    },
+    {
+     "node": "lamp_caution_le_flaps_0",
+     "label": "LE FLAPS",
+     "name": "Leading-edge flaps",
+     "positions": [
+      "Light"
+     ],
+     "does": "The leading-edge flaps are locked or have failed.",
+     "sim": "On with the LE FLAPS switch at LOCK."
+    },
+    {
+     "node": "lamp_caution_aft_not_engaged_0",
+     "label": "ATF NOT ENGAGED",
+     "name": "Terrain following not engaged",
+     "positions": [
+      "Light"
+     ],
+     "does": "Terrain following is selected and is not flying the jet."
+    },
+    {
+     "node": "lamp_caution_ecm_0",
+     "label": "ECM",
+     "name": "ECM",
+     "positions": [
+      "Light"
+     ],
+     "does": "The jamming pod has failed.",
+     "sim": "On with a failed pod."
+    },
+    {
+     "node": "lamp_caution_blank_0",
+     "nodes": [
+      "lamp_caution_blank_0",
+      "lamp_caution_blank_1",
+      "lamp_caution_blank_2"
+     ],
+     "label": "Spare lights",
+     "name": "Spare caution lights",
+     "positions": [
+      "Light"
+     ],
+     "does": "Three positions without a legend."
+    }
+   ]
+  },
+  {
+   "id": "right_aux",
+   "area": "right",
+   "title": "Right auxiliary console instruments",
+   "where": "right auxiliary console",
+   "controls": [
+    {
+     "node": "anim110",
+     "nodes": [
+      "anim110",
+      "anim116",
+      "anim109",
+      "anim117",
+      "anim111",
+      "anim112",
+      "anim113",
+      "anim114",
+      "anim115"
+     ],
+     "label": "FUEL QTY",
+     "name": "Fuel quantity indicator",
+     "positions": [
+      "Gauge"
+     ],
+     "does": "Two pointers, AL and FR, show the fuel of the aft and forward tank groups; the counter shows all the fuel in pounds.",
+     "sim": "Each pointer shows half the internal fuel; the counter the total."
+    },
+    {
+     "node": "PFD_screen",
+     "label": "PFLD",
+     "name": "Pilot fault list display",
+     "positions": [
+      "Display"
+     ],
+     "does": "Lists the faults the systems report."
+    },
+    {
+     "node": "anim118",
+     "label": "HYD PRESS A",
+     "name": "Hydraulic pressure, system A",
+     "positions": [
+      "Gauge"
+     ],
+     "does": "System A's pressure in psi; normal is about 3,000."
+    },
+    {
+     "node": "anim119",
+     "label": "HYD PRESS B",
+     "name": "Hydraulic pressure, system B",
+     "positions": [
+      "Gauge"
+     ],
+     "does": "System B's pressure in psi; normal is about 3,000."
+    },
+    {
+     "node": "anim120",
+     "label": "LIQUID OXYGEN",
+     "name": "Liquid oxygen quantity",
+     "positions": [
+      "Gauge"
+     ],
+     "does": "The liquid oxygen left, in litres.",
+     "sim": "Always full."
+    },
+    {
+     "node": "anim108",
+     "label": "EPU FUEL",
+     "name": "EPU fuel quantity",
+     "positions": [
+      "Gauge"
+     ],
+     "does": "The hydrazine left for the EPU, in percent.",
+     "sim": "Always full."
+    },
+    {
+     "node": "anim104",
+     "label": "CABIN PRESS ALT",
+     "name": "Cabin pressure altitude",
+     "positions": [
+      "Gauge"
+     ],
+     "does": "The altitude the cabin's pressure equals."
+    },
+    {
+     "node": "anim105",
+     "nodes": [
+      "anim105",
+      "anim106",
+      "anim107"
+     ],
+     "label": "Clock",
+     "name": "Clock",
+     "positions": [
+      "Gauge"
+     ],
+     "does": "The time of day."
+    },
+    {
+     "node": "time-offset-left",
+     "nodes": [
+      "time-offset-left",
+      "time-offset-right"
+     ],
+     "label": "Clock knob",
+     "name": "Clock setting knob",
+     "positions": [
+      "Knob"
+     ],
+     "does": "Sets the clock's hands.",
+     "sim": "A click on its left or right half moves the hands."
+    },
+    {
+     "node": "chronometer-button",
+     "label": "Stopwatch button",
+     "name": "Clock stopwatch button",
+     "does": "Starts, stops and resets the clock's stopwatch hand."
+    }
+   ]
+  },
+  {
+   "id": "stick",
+   "area": "right",
+   "title": "Stick",
+   "where": "right console, forward",
+   "controls": [
+    {
+     "node": "anim000",
+     "label": "Stick",
+     "name": "Side stick",
+     "positions": [
+      "Grip"
+     ],
+     "does": "Commands pitch and roll through the flight control system; it moves only a few millimetres.",
+     "sim": "Moves with the flight controls; its buttons have keys, the pointer does not work them."
+    }
+   ]
+  },
+  {
+   "id": "snsr_pwr",
+   "area": "right",
+   "title": "SNSR PWR panel",
+   "where": "right console",
+   "controls": [
+    {
+     "node": "l-hdpt-switch",
+     "label": "LEFT HDPT",
+     "name": "Left hardpoint",
+     "positions": [
+      "OFF",
+      "LEFT HDPT"
+     ],
+     "does": "Powers the left chin station under the intake, where the navigation pod hangs."
+    },
+    {
+     "node": "r-hdpt-switch",
+     "label": "RIGHT HDPT",
+     "name": "Right hardpoint",
+     "positions": [
+      "OFF",
+      "RIGHT HDPT"
+     ],
+     "does": "Powers the right chin station under the intake, where the targeting pod hangs.",
+     "sim": "Off: the targeting pod has no power. It also needs the MMC."
+    },
+    {
+     "node": "FCR",
+     "label": "FCR",
+     "name": "Fire control radar",
+     "positions": [
+      "OFF",
+      "FCR"
+     ],
+     "does": "Powers the radar.",
+     "sim": "Off: no radar picture, no contacts, no lock, and the radar's keys do nothing. Back on, the radar waits for its mode key."
+    },
+    {
+     "node": "RDR_ALT",
+     "label": "RDR ALT",
+     "name": "Radar altimeter",
+     "positions": [
+      "OFF",
+      "STBY",
+      "RDR ALT"
+     ],
+     "does": "Powers the radar altimeter, which measures the height above the ground under the jet. STBY keeps it warm without measuring.",
+     "sim": "OFF and STBY: no radar altitude on the HUD, and none for the cues that read it."
+    }
+   ]
+  },
+  {
+   "id": "hud_remote",
+   "area": "right",
+   "title": "HUD remote control panel",
+   "where": "right console",
+   "controls": [
+    {
+     "node": "w_vah-switch",
+     "label": "VV/VAH",
+     "name": "HUD scales",
+     "positions": [
+      "VV/VAH",
+      "VAH",
+      "OFF"
+     ],
+     "does": "Chooses the HUD's scales: with the vertical velocity scale, without it, or the numbers alone."
+    },
+    {
+     "node": "att_fpm-switch",
+     "label": "ATT/FPM",
+     "name": "Attitude and flight path marker",
+     "positions": [
+      "ATT/FPM",
+      "FPM",
+      "OFF"
+     ],
+     "does": "Shows the flight path marker with the pitch ladder, the marker alone, or neither."
+    },
+    {
+     "node": "tas-switch",
+     "label": "Velocity switch",
+     "name": "HUD velocity",
+     "positions": [
+      "CAS",
+      "TAS",
+      "GND SPD"
+     ],
+     "does": "Chooses the speed the HUD shows: calibrated, true, or over the ground."
+    },
+    {
+     "node": "altrad-switch",
+     "label": "Altitude switch",
+     "name": "HUD altitude",
+     "positions": [
+      "ALT RADAR",
+      "BARO",
+      "AUTO"
+     ],
+     "does": "Chooses the altitude the HUD shows: by radar, by pressure, or radar below 1,500 ft."
+    },
+    {
+     "node": "HUD_MODE",
+     "label": "Brightness switch",
+     "name": "HUD brightness range",
+     "positions": [
+      "DAY",
+      "AUTO BRT",
+      "NIGHT"
+     ],
+     "does": "Sets the range of the HUD's brightness."
+    },
+    {
+     "node": "test-step-switch",
+     "label": "TEST STEP",
+     "name": "HUD test",
+     "positions": [
+      "TEST STEP",
+      "ON",
+      "OFF"
+     ],
+     "does": "Shows the HUD's test patterns one by one."
+    }
+   ]
+  },
+  {
+   "id": "nuclear",
+   "area": "right",
+   "title": "NUCLEAR CONSENT and PLAIN switches",
+   "where": "right console, outboard",
+   "controls": [
+    {
+     "node": "nuke-consent-cover",
+     "label": "Guard",
+     "name": "Nuclear consent guard",
+     "does": "Covers the NUCLEAR CONSENT switch."
+    },
+    {
+     "node": "nuke-consent-switch",
+     "label": "NUCLEAR CONSENT",
+     "name": "Nuclear consent",
+     "does": "The pilot's consent to arm or release a nuclear store: ARM/REL, OFF, REL ONLY."
+    },
+    {
+     "node": "plain-switch",
+     "label": "PLAIN",
+     "name": "Plain or cipher voice",
+     "positions": [
+      "CRAD 1",
+      "PLAIN",
+      "CRAD 2"
+     ],
+     "does": "Sends a radio's voice plain or through the KY-58's cipher."
+    }
+   ]
+  },
+  {
+   "id": "lighting",
+   "area": "right",
+   "title": "LIGHTING panel",
+   "where": "right console",
+   "controls": [
+    {
+     "node": "console-primary-knob",
+     "label": "PRIMARY CONSOLES",
+     "name": "Console primary lighting",
+     "positions": [
+      "Knob"
+     ],
+     "does": "Sets the brightness of the consoles' panel lighting.",
+     "sim": "Lights the consoles' legends at night."
+    },
+    {
+     "node": "inst-pnl-primary-knob",
+     "label": "PRIMARY INST PNL",
+     "name": "Instrument panel primary lighting",
+     "positions": [
+      "Knob"
+     ],
+     "does": "Sets the brightness of the instrument panel's lighting.",
+     "sim": "Lights the instruments at night."
+    },
+    {
+     "node": "data-entry-display-knob",
+     "label": "DATA ENTRY DISPLAY",
+     "name": "DED brightness",
+     "positions": [
+      "Knob"
+     ],
+     "does": "Sets the brightness of the DED and the pilot fault list display.",
+     "sim": "Dims both displays."
+    },
+    {
+     "node": "console-flood-knob",
+     "label": "FLOOD CONSOLES",
+     "name": "Console flood lighting",
+     "positions": [
+      "Knob"
+     ],
+     "does": "Sets the flood lights over the consoles.",
+     "sim": "Floods the consoles at night."
+    },
+    {
+     "node": "inst-pnl-flood-knob",
+     "label": "FLOOD INST PNL",
+     "name": "Instrument panel flood lighting",
+     "positions": [
+      "Knob"
+     ],
+     "does": "Sets the flood lights over the instrument panel.",
+     "sim": "Floods the panel at night."
+    },
+    {
+     "node": "mal-ind-lts-switch",
+     "label": "MAL & IND LTS",
+     "name": "Malfunction and indicator lights brightness",
+     "positions": [
+      "BRT",
+      "centre",
+      "DIM"
+     ],
+     "does": "Makes the warning, caution and indicator lights bright or dim.",
+     "sim": "Dims the lamps."
+    },
+    {
+     "node": "indv-lgt-cont",
+     "label": "INDV LTG CONT",
+     "name": "Individual lighting control",
+     "positions": [
+      "BRT",
+      "DIM"
+     ],
+     "does": "Sets the brightness of the angle-of-attack indexer and the AR status lights.",
+     "sim": "Dims the indexers."
+    },
+    {
+     "node": "mms-switch",
+     "label": "NVIS",
+     "name": "Night vision lighting",
+     "positions": [
+      "NORMAL",
+      "NVIS"
+     ],
+     "does": "Changes the cockpit's lights to ones night-vision goggles can bear.",
+     "sim": "Dims the lamps for goggles."
+    }
+   ]
+  },
+  {
+   "id": "air_cond",
+   "area": "right",
+   "title": "AIR COND panel",
+   "where": "right console",
+   "controls": [
+    {
+     "node": "TEMP_knob",
+     "label": "TEMP",
+     "name": "Cabin temperature",
+     "positions": [
+      "AUTO",
+      "MAN"
+     ],
+     "does": "Sets the cabin's temperature, by itself or by hand."
+    },
+    {
+     "node": "AirSource_knob",
+     "label": "AIR SOURCE",
+     "name": "Air source",
+     "positions": [
+      "OFF",
+      "NORM",
+      "DUMP",
+      "RAM"
+     ],
+     "does": "Chooses the air for the cockpit's pressure and cooling: engine bleed air at NORM; DUMP lets the cabin pressure out; RAM takes outside air; OFF shuts the bleed air.",
+     "sim": "Not modelled: the knob turns; the cockpit has no pressure or temperature."
+    },
+    {
+     "node": "voice-msg-switch",
+     "label": "VOICE MESSAGE",
+     "name": "Voice message inhibit",
+     "positions": [
+      "off",
+      "INHIBIT"
+     ],
+     "does": "Silences the voice warnings."
+    }
+   ]
+  },
+  {
+   "id": "ky58",
+   "area": "right",
+   "title": "KY-58 panel",
+   "where": "right console",
+   "controls": [
+    {
+     "node": "KY_58_KNOB_MODE",
+     "label": "MODE",
+     "name": "Cipher mode",
+     "positions": [
+      "P",
+      "C",
+      "LD",
+      "RV"
+     ],
+     "does": "Chooses the secure voice set's mode: plain, cipher, load a key, receive a key."
+    },
+    {
+     "node": "KY_58_VOL_KNOB",
+     "label": "VOLUME",
+     "name": "Cipher volume",
+     "positions": [
+      "Knob"
+     ],
+     "does": "Sets the secure voice set's volume."
+    },
+    {
+     "node": "KY_58_KNOB_PULL",
+     "label": "Fill knob",
+     "name": "Cipher key select",
+     "positions": [
+      "Z 1-5",
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "Z ALL"
+     ],
+     "does": "Chooses one of six stored keys, or erases them."
+    },
+    {
+     "node": "TD_knob",
+     "label": "Power knob",
+     "name": "Cipher power",
+     "positions": [
+      "OFF",
+      "ON",
+      "TD"
+     ],
+     "does": "Turns the secure voice set on; TD adds a time delay."
+    }
+   ]
+  },
+  {
+   "id": "avionic_power",
+   "area": "right",
+   "title": "AVIONIC POWER panel",
+   "where": "right console",
+   "controls": [
+    {
+     "node": "AVIONICS_MMC",
+     "label": "MMC",
+     "name": "Modular mission computer",
+     "positions": [
+      "OFF",
+      "MMC"
+     ],
+     "does": "Powers the mission computer, which works out navigation and weapon delivery and draws the symbols of the HUD and the displays.",
+     "sim": "Off: the HUD shows no symbols, and the targeting pod has no power. On: up after 3 seconds. Needs the generator."
+    },
+    {
+     "node": "AVIONICS_ST_STA",
+     "label": "ST STA",
+     "name": "Stores stations",
+     "positions": [
+      "OFF",
+      "ST STA"
+     ],
+     "does": "Powers the weapon stations under the wings and the fuselage.",
+     "sim": "Off: no store leaves the jet; the gun fires and the jettison works (inferred). On: up after 3 seconds."
+    },
+    {
+     "node": "AVIONICS_MFD",
+     "label": "MFD",
+     "name": "Multifunction displays",
+     "positions": [
+      "OFF",
+      "MFD"
+     ],
+     "does": "Powers the two multifunction displays of the front panel.",
+     "sim": "Off: both displays are dark. On: up after 3 seconds."
+    },
+    {
+     "node": "AVIONICS_UFC",
+     "label": "UFC",
+     "name": "Upfront controls",
+     "positions": [
+      "OFF",
+      "UFC"
+     ],
+     "does": "Powers the upfront controls: the ICP's keypad and the DED.",
+     "sim": "Off: the DED is dark. On: up after 3 seconds."
+    },
+    {
+     "node": "gps-switch",
+     "label": "GPS",
+     "name": "Global positioning system",
+     "positions": [
+      "OFF",
+      "GPS"
+     ],
+     "does": "Powers the GPS receiver, which keeps the navigation system's position exact.",
+     "sim": "Not modelled: the switch moves; navigation is the same either way."
+    },
+    {
+     "node": "dl-switch",
+     "label": "DL",
+     "name": "Data link",
+     "positions": [
+      "OFF",
+      "DL"
+     ],
+     "does": "Powers the data link, which shares tracks and positions between aircraft."
+    },
+    {
+     "node": "INS",
+     "label": "INS",
+     "name": "Inertial navigation system",
+     "positions": [
+      "OFF",
+      "STOR HDG",
+      "NORM",
+      "NAV",
+      "IN FLT ALIGN",
+      "ATT"
+     ],
+     "does": "Sets the inertial navigation system's mode. NORM aligns it on the ground in about 8 minutes; STOR HDG aligns it in about 90 seconds from a heading stored at the last shutdown; NAV navigates; IN FLT ALIGN aligns in the air; ATT gives attitude only.",
+     "sim": "Needs MAIN PWR at BATT or MAIN PWR. OFF and ATT lose the alignment. STOR HDG takes 90 seconds, NORM 8 minutes; without an alignment the HUD gives no steering. IN FLT ALIGN goes on with the alignment as NAV does (inferred)."
+    }
+   ]
+  },
+  {
+   "id": "ant_sel",
+   "area": "right",
+   "title": "ANT SEL and ANTI ICE switches",
+   "where": "right console, outboard",
+   "controls": [
+    {
+     "node": "ant-sel-iff-switch",
+     "label": "ANT SEL IFF",
+     "name": "IFF antenna select",
+     "positions": [
+      "LOWER",
+      "NORM",
+      "UPPER"
+     ],
+     "does": "Chooses the IFF's antenna."
+    },
+    {
+     "node": "ant-sel-uhf-switch",
+     "label": "ANT SEL UHF",
+     "name": "UHF antenna select",
+     "positions": [
+      "LOWER",
+      "NORM",
+      "UPPER"
+     ],
+     "does": "Chooses the UHF radio's antenna."
+    },
+    {
+     "node": "anti-ice-switch",
+     "label": "ENGINE ANTI ICE",
+     "name": "Engine anti-ice",
+     "positions": [
+      "OFF",
+      "AUTO",
+      "ON"
+     ],
+     "does": "Heats the engine's inlet parts against ice."
+    }
+   ]
+  },
+  {
+   "id": "oxygen",
+   "area": "right",
+   "title": "Oxygen panel",
+   "where": "right console, aft",
+   "controls": [
+    {
+     "node": "PBG",
+     "label": "PBG",
+     "name": "Pressure breathing for g",
+     "positions": [
+      "off",
+      "ON",
+      "OFF"
+     ],
+     "does": "Raises the mask's pressure under g."
+    },
+    {
+     "node": "O2",
+     "label": "Diluter lever",
+     "name": "Oxygen diluter",
+     "positions": [
+      "NORM",
+      "100%"
+     ],
+     "does": "Gives oxygen mixed with cabin air, or pure oxygen."
+    },
+    {
+     "node": "EM-NO-TE",
+     "label": "Emergency lever",
+     "name": "Oxygen emergency",
+     "positions": [
+      "EMER",
+      "NORM",
+      "TEST MASK"
+     ],
+     "does": "EMER gives pure oxygen under pressure; TEST MASK checks the mask for leaks."
+    },
+    {
+     "node": "anim149",
+     "label": "Oxygen pressure",
+     "name": "Oxygen regulator pressure",
+     "positions": [
+      "Gauge"
+     ],
+     "does": "The pressure of the oxygen at the regulator.",
+     "sim": "Always normal."
+    }
+   ]
+  }
+ ]
+}

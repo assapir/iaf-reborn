@@ -25,6 +25,8 @@
 	"pilot_log": "Pilot log",
 	"preferences": "Settings",
 	"credits": "Attributions",
+	"manuals": "Manuals",
+	"manuals_sub": "PDF files in English. A manual opens in the system's PDF viewer.",
 	"quit": "Quit",
 	"flights": "flights",
 	"flight_time": "flight time",

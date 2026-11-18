@@ -17,7 +17,8 @@ scripts. This page is its human copy: `tools/doclint.py` checks that it names ev
 |---|---|
 | `roll` | the original game's credits roll on Quit (`iaf-reborn/menu/credits_roll.gd`) |
 | `attributions` | the original game's setup wizard: Attributions (`iaf-reborn/setup/wizard.gd`), one BBCode bullet each |
-| `sim` | Modern IAF's setup wizard: Credits, and its front end's Credits page: `name`, `use` (the strings key of what it is for), `lines` (the licence lines) |
+| `sim` | Modern IAF's setup wizard: Credits, and its front end's Credits page: `name`, `use` (the strings key of what it is for), `lines` (the licence lines); the game manual's Attributions appendix (modern-iaf/docs/manuals.md §3), which also shows each source's `licence` (its short name) and `link` |
+| `made_with` | the tools the game and its manuals are made with, the same fields: Modern IAF's setup wizard and Credits page after `sim`, and the game manual's Attributions appendix |
 
 Each `roll` entry is one line:
 
@@ -193,6 +194,13 @@ Mostafa's `futural.jhf`[^hershey] (`tools/iaf-2026/fonts/`). Its terms ask for t
 (`modern-iaf/data/fonts/HERSHEY.txt`) and on the wizard's Attributions page and the credits: "The Hershey Fonts were
 originally created by Dr. A. V. Hershey while working at the U. S. National Bureau of Standards" and "The format of
 the Font data in this distribution was originally created by James Hurt, Cognition, Inc."
+
+## Modern IAF's tools
+
+`shared/credits.json` `made_with` names the tools the game and its manuals are made with; the sim's setup
+wizard, its Credits page and the game manual's Attributions appendix list them after the sources: Godot Engine (MIT), godot-rust (gdext) (MPL-2.0), Typst
+(Apache-2.0), which sets the manuals, and DejaVu Sans Mono (the Bitstream Vera Fonts licence; the DejaVu changes are
+public domain), the manuals' fixed-width font, which Typst carries and the PDFs embed. Each record holds its link.
 
 ## Modern IAF's pictures
 
