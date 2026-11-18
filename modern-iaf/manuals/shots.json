@@ -6,7 +6,7 @@
 },
 "shots": {
 "f16": {
-"elec": ["MAIN_PWR", "SW_EPU", "SW_KNOB_ENG_FEED"],
+"elec": ["MAIN_PWR", "SW_EPU", "SW_KNOB_ENG_FEED", "SW_MASTER_FUEL"],
 "jfs": ["JFS"],
 "test": ["SW_FLCS_TEST", "SW_PROBE_HEAT", "FIRE_OHEAT_DETECT", "MAL_IND_LTS"],
 "flt_control": ["SW_LE_FLAPS_50", "SW_ALT_FLAPS_50", "SW_FLCS_BIT", "SW_DBU"],

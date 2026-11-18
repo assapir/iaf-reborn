@@ -50,7 +50,11 @@ const HIDE := ["THROTTLE", "anim000", "throttle", "side_stick"]
 ## The panels that stand turned about their own normal to the jet's axes (the caution light panel, about 15°): the
 ## picture's top follows the grid of their marks, so their rows lie level in the picture.
 const GRID := ["p_caution"]
+## The panels whose far rows the model's own side wall hides from the square view (the landing gear panel's GND JETT and
+## EMER JETT): the camera turns about the picture's top by these degrees, to look past it.
+const TURN := {"p_gear": 25.0}
 
+var _turn := 0.0  # the next square picture's camera is turned about its top by this many degrees (TURN)
 var _grid := false  # the next square picture's top follows its marks' grid (GRID)
 var _pose = null  # a square picture's camera, [Transform3D, the near plane (m)]; null the game's
 var _near := 0.05  # the game's near plane
@@ -170,6 +174,7 @@ func run() -> void:
 				_up = _cam.global_basis.y
 				_eye = _cam.global_position
 				_grid = shot in GRID
+				_turn = TURN.get(shot, 0.0)
 				_pose = _square(parts)
 			marks[shot] = await _shot(tv, parts, names, file, overview or panel)
 			_pose = null
@@ -260,6 +265,7 @@ func _square(parts: Array) -> Array:
 		for axis in [_fwd, _fwd.cross(_up), _up.cross(_fwd)]:
 			if axis.dot(seen) > top.dot(seen):
 				top = axis
+	n = n.rotated(top, deg_to_rad(_turn))  # the jet's own structure hides a panel's far rows from the square view (TURN)
 	var basis := Basis.looking_at(-n, top)
 	if _grid:
 		# The marks' main axis in the picture (the grid's rows or columns), from their middles' spread; the picture is

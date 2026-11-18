@@ -39,7 +39,7 @@ final: no agent is a native reviewer.
 
 **Next, in this order.**
 
-1. Chapter 6's owed pictures and the game manual's four (§7).
+1. Chapter 6's owed pictures (§7): the F-16s' delayed CCIP, gun funnel with a lock, GPS bomb and helmet cues, and the Adir's GPS bomb helmet cues.
 2. Each row of section 1.2's F-16 tables against the flight manual's section I (§7); its text is now searchable
    (§2 "Chapter 1's system sections").
 
@@ -396,6 +396,8 @@ November 2026), with the battery on and the lamp test held, so every lamp and le
 - The marks are projected through the camera that drew the picture, in the same frame, so picture and marks agree.
 - A panel that stands turned about its own normal to the jet's axes (the caution light panel, about 15°; `GRID` in
   the script) has its picture's top turned to the grid of its marks, so its rows lie level.
+- A panel whose far rows the model's own side wall hides from the square view (the landing gear panel's GND JETT and
+  EMER JETT behind the cockpit's left wall) has its camera turned about the picture's top (`TURN`, 25° for `p_gear`).
 - The stick and the throttle are hidden in every picture but their own, the whole cockpit's and a panel's that
   marks them (the Adir's seat panel shows its stick) (`HIDE`): from the seat they stand before the panels beside
   them (the AIR SOURCE knob was behind the stick).
@@ -432,6 +434,16 @@ mirrored). The parts are numbered in reading order, by lines from the top and in
 in Hebrew. Each number stands outside its part, in the first free place beside it with a short leader to its edge
 (`callouts` with `src`, `layout/manual.typ`): on no other part and no busy box, apart from the other numbers; the build
 stops when a part has no such place. Numbered: the Hangar (`_front_end_shot.gd`, `hangar`).
+
+**The ground's pictures** (`ground_signs`, `runway_markings`, `runway_aiming`; `pictures/game/` and `game-he/`, 18
+November 2026) are taken by `_ground_shot.gd` (header: the command), a free camera over Ramon on the chase camera's
+node, the lesson's boxes and the jet hidden (`SHOT_POSE="x y up heading pitch fov"`, UTM metres). The signs are from
+`airbases.json`: Ramon's 07R / 07L direction sign (`658554 3404946`, 12 m from it) and its 07R holding sign
+(`658864 3405388`); the markings from 14 m over the 25R threshold (`660664 3406682`) and 22 m over the runway 330 m in.
+Each is cropped or joined with ImageMagick; its numbers' boxes are written by hand beside it (`<name>.json`, no
+`busy`), as the build reads them (`screen`, `numbered`). The Ramon runway has no yellow chevrons before its start, so
+the text names them without a number. The crash page (`crash_page`) is `_crash_page_shot.gd` (a sample loading fault,
+English and Hebrew, cropped to 1,520 x 380 px).
 
 **The Hebrew edition's screens** (`pictures/game-he/`, 18 November 2026) are the same scripts' Hebrew pictures
 (`<name>_he.png`), scaled the same way. Three pictures have no language in their script: `notebook_radio` and
@@ -495,6 +507,9 @@ Parts:
   and `p_right_aux` (the fuel indicator). The overview had come out turned 25° to the left since the lean control
   (414a77af): the shot script set `views.lean`, which the lean keys' update pulls back to the seat each frame; it sets
   `views.lean_to` now, which holds. The Adir's pictures were taken again and showed no change, so they stay.
+- Arrows checked at full size on 18 November 2026 (`elec`, `flt_control`, `gear`, `p_fuel`, `p_gear`, `p_right_aux`): all
+  pointed at their control but `p_gear`'s GND JETT and EMER JETT, which the cockpit's left wall hid (retaken with `TURN`), and
+  `elec` lacked FUEL MASTER's (step 3; `SW_MASTER_FUEL` is in its shot now).
 - The manuals' marks checked against the status data and the code on 2026-11-18: the F-16's CMDS O1, O2 and JMR
   switches only move (`cmds.rs` keeps their state and nothing reads it), so their status is `moves`.
 - The RPM indicator's picture for "Starting engine": the gauge's needle node (`anim069`) has no mesh the shot script
@@ -576,15 +591,15 @@ Parts:
   - The Adir: `systems.json` says EMER_JETT "drops the external stores" while the code drops the bays' too; JETT_SEL
     moves only. Fixed 2026-11-18: the function bar's SWAP and MENU and the portals' `CNTL>` work (the TFLIR's WIDE /
     SPOT is on its CNTL page).
-- Owed after chapter 6, the Adir: a picture of a GPS bomb's helmet cues (no shot script). The TFLIR with video is taken
+- Owed after chapter 6, the Adir: a picture of a GPS bomb's helmet cues. Tried on 18 November 2026 (the range at Nevatim, a GBU-31 in bay station 4, the A-G master mode, a point designated on the radar's ground map, the jet held in a dive to it): the lesson's boxes and toasts hide with `tv.addon.ui.visible = false`, but the helmet showed the steering line and a circle on the point while the bomb's box stood off the line and no `TMR` / `IN RNG` text and no staple's caret showed, so the picture did not match the text; the cause (the aim's box, the LAR's values in a held dive) needs a look at `IafModes` / `gps.rs`, which is Rust. No script was kept.
+- The Adir's pictures taken: the TFLIR with video
   (`d_tflir`, `_adir_tflir_shot.gd`, 18 November 2026).
   The SMS and the MENU grid are taken (`d_sms`, `d_menu`); the default layout is `d_pcd`. Not verified in the game: how
   the gun is selected in A-A and A-G, the zoom keys and the cursor keys on the TFLIR, the dispenser's modes on the Adir.
 - Fixed 2026-11-18: the TFLIR stayed at NO VIDEO. The display set the TFLIR's page without starting the camera, and
   the FLIR page key refused a page 6 already shown (`player_weapons.gd` `flir_on`). Now picking TFLIR, the key and a
   click on the picture start it (`pcd.gd` `_start_flir`).
-- Owed after the game manual, pictures no shot script takes: a holding sign and a direction sign on a taxiway and the
-  runway's markings from the threshold (section 5.2), the crash page (section 6.3). The full MFD view is taken
+- Owed after the game manual: nothing in pictures. The taxiway signs, the runway's markings (section 5.2) and the crash page (section 6.3) were taken on 18 November 2026 (§4). The full MFD view is taken
   (`flight_mfd_view`, `_mfd_view_shot.gd`). The review of 18 November 2026 checked the lessons, the
   tower, the Settings, the Loadout rules, setup and the bases against the code; the pilots, Hangar, keys and joystick
   and troubleshooting sections were read with few code checks, and the one-instruction-a-step rule was sampled.

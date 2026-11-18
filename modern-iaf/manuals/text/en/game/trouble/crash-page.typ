@@ -4,15 +4,18 @@
 
 === What the page shows <crash-page-shows>
 
-#grid-table(
+#screen("crash_page", [The Crash page, with a fault found while the ground around the base was loading.], numbered: true)
+
+#screen-table(
+  "crash_page",
   (auto, 1fr),
-  ([Part], [What it is]),
-  [#scr("crash_title")], [The page's title.],
-  [What failed], [One line that names the fault.],
-  [The loading step], [When the fault happened while a flight was loading: the step, by the name the loading screen shows for it (@loading).],
-  [The log], [The full path of the game's log file on your computer.],
-  [#scr("crash_report")], [Opens a new, filled-in report in your web browser (@crash-page-report).],
-  [#scr("crash_quit")], [Closes the game.],
+  ([No.], [Part], [What it is]),
+  ("Title", [#scr("crash_title")], [The page's title.]),
+  ("What", [What failed], [One line that names the fault.]),
+  ("Step", [The loading step], [When the fault happened while a flight was loading: the step, by the name the loading screen shows for it (@loading).]),
+  ("Log", [The log], [The full path of the game's log file on your computer.]),
+  ("Report", [#scr("crash_report")], [Opens a new, filled-in report in your web browser (@crash-page-report).]),
+  ("Quit", [#scr("crash_quit")], [Closes the game.]),
 )
 
 === What opens it <crash-page-causes>
