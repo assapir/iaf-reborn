@@ -65,7 +65,7 @@ In this manual a key cap with two lines shows the default key on top and the mac
   [Lower the head], [#key("Lower the head")], [DMS up], [#key("DMS up (SOI to the HUD)")],
   [DMS down], [#key("DMS down (SOI to an MFD)")], [DED field up], [#key("DED field up (DCS up)")],
   [DED field down], [#key("DED field down (DCS down)")], [DED back to CNI], [#key("DED back to CNI (DCS RTN)")],
-  [DED next sub-page], [#key("DED next sub-page (DCS SEQ)")], [Notebook: previous page], [#key("Checklist notebook: previous page")],
+  [DED next sub-page], [#key("DED next sub-page (DCS SEQ)")], [#term("Notebook"): previous page], [#key("Checklist notebook: previous page")],
   [Notebook: next page], [#key("Checklist notebook: next page")], [], [],
 )
 
