@@ -88,7 +88,7 @@ def plain_words(manual: str, lang: str = "en") -> int:
 
 
 # What is no prose in a section's text: the layout's calls by name, labels, references, links, strings.
-NO_PROSE = r'(?:key|ctl|idx|other|other-manual|term|steps|shot|label|scr|scr-text|stp|stp-text|screen)\("[^"]*"(?:, (?:shown: )?"[^"]*")?\)?|<[\w-]+>|@[\w-]+|https?://\S+|"[^"\n]*"'
+NO_PROSE = r'(?:key|ctl|idx|other|other-manual|term|steps|shot|label|scr|scr-text|stp|stp-text|screen|screen-table)\(\s*"[^"]*"(?:, (?:shown: )?"[^"]*")?\)?|<[\w-]+>|@[\w-]+|https?://\S+|"[^"\n]*"'
 
 
 def glossary_links(manual: str, lang: str = "en") -> int:
@@ -171,7 +171,7 @@ def abbreviations(manual: str, entry: dict) -> int:
 
 
 # What a section draws from the game's data or links to: an edition in another language makes the same calls.
-CALLS = r'\b(scr|scr-text|stp|stp-text|screen|key|keycap|other|other-manual)\("([^"]*)"(?:, "([^"]*)")?'
+CALLS = r'\b(scr|scr-text|stp|stp-text|screen|screen-table|key|keycap|other|other-manual)\(\s*"([^"]*)"(?:, "([^"]*)")?'
 
 
 def edition(manual: str, entry: dict) -> int:
@@ -362,6 +362,25 @@ def own_keys() -> int:
 DARK = 0.005
 
 
+def screen_tables(manual: str, lang: str) -> int:
+    """Each numbered screen picture (`screen("x", …, numbered: true)`) and its table of parts (`screen-table("x"`) stand
+    in the same section, one for the other (docs/manuals.md §4); each unpaired one printed; their count. The layout
+    checks each row against the picture's numbers."""
+    bad = 0
+    for f, _, ns in os.walk(os.path.join(DIR, "text", lang, manual)):
+        for n in sorted(ns):
+            if n.endswith(".typ"):
+                with open(os.path.join(f, n), encoding="utf-8") as t:
+                    text = t.read()
+                pics = set(re.findall(r'#screen\("([^"]+)"[^\n]*numbered: true', text))
+                tables = set(re.findall(r'#screen-table\(\s*"([^"]+)"', text))
+                for x in sorted(pics ^ tables):
+                    bad += 1
+                    has, lacks = ("numbers", "table") if x in pics else ("table", "numbered picture")
+                    print(f"manuals: {os.path.relpath(os.path.join(f, n), DIR)}: screen {x} has its {has} and no {lacks}")
+    return bad
+
+
 def dark_pictures() -> int:
     """The pictures under pictures/ whose mean brightness (0 to 1) is under DARK, each printed; their count.
     ImageMagick measures them (`magick`, or version 6's `convert`); without it the build stops."""
@@ -417,6 +436,10 @@ def main() -> int:
             print("FAILED " + manuals[m]["file"])
             continue
         if "cockpit" in manuals[m] and cockpit_data(m, manuals[m]) + game_flow(m) + glossary_links(m) + abbreviations(m, manuals[m]):
+            failed += 1
+            print("FAILED " + manuals[m]["file"])
+            continue
+        if "cockpit" not in manuals[m] and screen_tables(of, lang):
             failed += 1
             print("FAILED " + manuals[m]["file"])
             continue

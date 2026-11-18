@@ -6,14 +6,20 @@
 # front end in a viewport of that size, whatever the window's) with the sample pilot log and debrief of
 # test_front_end.gd (debrief: the sample flight; debrief_fail: a record from before the goals and the recording, its
 # take-off with the gear never raised; fly_again: the debrief's Fly again; log_filtered: the Pilot log filtered to one
-# mission). SHOT_ONLY=<screens> takes those alone (comma-separated, e.g. SHOT_ONLY=missions,section); SHOT_SIZE=1280x720
-# renders at that size (the 1920 × 1080 canvas scaled to it). nodata_hangar / nodata_missions: a fresh install
-# (IAF_ASSETS_DIR an empty folder for those two).
+# mission; hangar_<lang>.json: the boxes of MARKS, the manual's numbers). SHOT_ONLY=<screens> takes those alone
+# (comma-separated, e.g. SHOT_ONLY=missions,section); SHOT_SIZE=1280x720 renders at that size (the 1920 × 1080
+# canvas scaled to it). nodata_hangar / nodata_missions: a fresh install (IAF_ASSETS_DIR an empty folder for those two).
 extends "res://../tests/godot/base.gd"
 
 const SCREENS := [
 	"hangar", "missions", "section", "mission", "debrief", "debrief_fail", "fly_again", "log", "log_filtered", "credits"
 ]
+
+# The game manual's numbered parts of a screen (modern-iaf/docs/manuals.md §4): screen -> the nodes whose boxes are
+# written to SHOT_DIR/<screen>_<lang>.json.
+const MARKS := {
+	"hangar": ["CrumbOn", "Settings", "PilotBlock", "Jets", "Turntable", "JetCard", "Fly", "credits", "manuals", "quit"]
+}
 
 
 func run() -> void:
@@ -73,6 +79,8 @@ func run() -> void:
 			await frames(10)
 			var path: String = dir.path_join("%s_%s.png" % [p, lang])
 			check(vp.get_texture().get_image().save_png(path) == OK, "saved " + path)
+			if p in MARKS:
+				_marks(fe, dir.path_join("%s_%s.json" % [p, lang]), MARKS[p])
 		if only == "":
 			await _pilot(fe, vp, dir, lang)
 			await _no_data(fe, vp, dir, lang)
@@ -129,6 +137,47 @@ func _no_data(fe: Control, vp: SubViewport, dir: String, lang: String) -> void:
 		OS.unset_environment("IAF_ASSETS_DIR")
 	DirAccess.remove_absolute(empty)
 	settings().pilot_name = ""
+
+
+## The boxes on the 1920 × 1080 canvas, as fractions of the picture ([left, top, right, bottom]): `parts`, each node of
+## `nodes` (a picture's drawn part only: the turntable's jet, not its empty frame); `busy`, every other text, button and
+## picture shown, where the manual draws no number.
+func _marks(fe: Control, path: String, nodes: Array) -> void:
+	var parts := {}
+	for n in nodes:
+		var c: Control = fe.find_child(n, true, false)
+		check(c != null, "node " + n)
+		parts[n] = _box(_drawn(c))
+	var busy := []
+	for c in fe.find_children("*", "Control", true, false):
+		if c.name in nodes or not c.is_visible_in_tree() or not (c is Label or c is BaseButton or c is TextureRect):
+			continue
+		if c is Label and c.get_theme_color("font_color").a < 0.2:
+			continue  # a faint backdrop text (the Hangar's jet name)
+		var r := _drawn(c)
+		if r.get_area() > 0 and r.size.x < 960 and r.size.y < 540:  # not a backdrop (the top bar's shade)
+			busy.append(_box(r))
+	var f := FileAccess.open(path, FileAccess.WRITE)
+	f.store_string(JSON.stringify({"parts": parts, "busy": busy}, "", false))
+	f.close()
+
+
+## `c`'s box on the canvas; a picture with a transparent ground (the turntable) only where it draws.
+func _drawn(c: Control) -> Rect2:
+	var r := c.get_global_rect()
+	if c is TextureRect and c.texture != null:
+		var img: Image = c.texture.get_image()
+		if img != null and img.detect_alpha() != Image.ALPHA_NONE:
+			var u := img.get_used_rect()
+			var k := r.size / Vector2(img.get_size())
+			r = Rect2(r.position + Vector2(u.position) * k, Vector2(u.size) * k)
+	return r
+
+
+static func _box(r: Rect2) -> Array:
+	return [r.position.x / 1920.0, r.position.y / 1080.0, r.end.x / 1920.0, r.end.y / 1080.0].map(
+		func(v): return snappedf(v, 0.0001)
+	)
 
 
 func _shot(vp: SubViewport, dir: String, name: String) -> void:

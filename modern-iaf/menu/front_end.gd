@@ -366,6 +366,7 @@ func _header(crumbs: Array) -> void:
 		var c: Control
 		if i == crumbs.size() - 1:
 			c = _label(h, t, "CrumbOn")
+			c.name = "CrumbOn"
 		else:
 			c = _button(h, t, "CrumbLink", _crumb.bind(to))
 			c.name = "Crumb_" + (to if cr is Array or strings.has(cr) else "jet")

@@ -240,9 +240,6 @@
   table.header(..head.map(t => text(fill: muted, weight: 600, t))),
   ..cells,
 )
-/// A picture of a screen, taken from the game by a shot script (pictures/game/<name>.jpg), as a figure; a text
-/// refers to it as @fig-s-<name>.
-#let screen(name, caption, width: 100%) = [#figure(kind: image, placement: none, caption: caption, box(stroke: 0.5pt + rule-c, image(base + "pictures/game" + (if rtl { "-he" } else { "" }) + "/" + name + ".jpg", width: width))) #label("fig-s-" + name)]
 /// The reaction to an action, on its own after an arrow, bold.
 #let arrow = if rtl { sym.arrow.l } else { sym.arrow.r }
 #let then(body) = [#text(fill: accent, weight: 700, arrow) *#body*]
@@ -348,12 +345,20 @@
 /// covers a control or another number. A number whose leader would run over another mark sits on its own mark's edge,
 /// without a leader. The build stops when two numbers overlap. `band`: a column's width; `outline`: each mark's box drawn (the overview's
 /// panels); `narrow`: the least width of the part shown, in its heights. The build stops when a column has no room for its numbers.
-#let callouts(name, tags, band: 20pt, outline: false, narrow: 1.3) = {
-  assert(name in marks, message: "picture " + name + ": pictures/" + me.cockpit + "/marks.json has no such shot")
+/// `src`: (the picture's path, its marks, the boxes where no number may stand) of a picture that is no cockpit's (a
+/// screen's): the whole picture is shown, and each number stands near its mark, outside it, with a short leader to its
+/// edge, on no mark and no box of `src` (`near`).
+#let callouts(name, tags, band: 20pt, outline: false, narrow: 1.3, src: none) = {
+  let near = src != none
+  let (path, boxes, busy-boxes) = if near { src } else {
+    assert(name in marks, message: "picture " + name + ": pictures/" + me.cockpit + "/marks.json has no such shot")
+    (base + "pictures/" + me.cockpit + "/" + name + ".jpg", marks.at(name), ())
+  }
   // A mark that reaches past the picture's edge is cut at the edge.
-  let m = marks.at(name).pairs().map(((k, v)) => (k, v.map(c => calc.clamp(c, 0, 1)))).to-dict()
+  let m = boxes.pairs().map(((k, v)) => (k, v.map(c => calc.clamp(c, 0, 1)))).to-dict()
   let nodes = tags.keys()
-  let path = base + "pictures/" + me.cockpit + "/" + name + ".jpg"
+  // The drawing is placed by its own coordinates, left to right in either language.
+  set text(dir: ltr)
   layout(size => {
     let shape = measure(image(path, width: 100pt))
     let ratio = shape.height / shape.width
@@ -371,6 +376,7 @@
     }
     (x0, x1) = grow(x0, x1, calc.max(x1 - x0, (y1 - y0) * ratio * narrow))
     (y0, y1) = grow(y0, y1, calc.max(y1 - y0, (x1 - x0) / ratio / 2))
+    if near { (x0, y0, x1, y1) = (0, 0, 1, 1) }
     let b = band.pt()
     let w = size.width.pt() - 2 * b
     let scale = w / (x1 - x0)
@@ -408,6 +414,73 @@
       (b + (calc.max(k.at(0), x0) - x0) * scale, (calc.max(k.at(1), y0) - y0) * scale * ratio, b + (calc.min(k.at(2), x1) - x0) * scale, (calc.min(k.at(3), y1) - y0) * scale * ratio)
     })
     let inside(q, x, y, by) = x > q.at(0) + by and x < q.at(2) - by and y > q.at(1) + by and y < q.at(3) - by
+    // A leader from (sx, sy) to the mark's point (tx, ty): white under navy, an arrow's head at the mark.
+    let leader(sx, sy, tx, ty) = {
+      let len = calc.sqrt(calc.pow(tx - sx, 2) + calc.pow(ty - sy, 2))
+      let (ux, uy) = ((tx - sx) / len, (ty - sy) / len)
+      let shaft(width, colour) = place(line(start: (sx * 1pt, sy * 1pt), end: ((tx - ux * 3) * 1pt, (ty - uy * 3) * 1pt), stroke: (paint: colour, thickness: width * 1pt, cap: "round")))
+      let head(size, colour) = place(polygon(
+        fill: colour,
+        (tx * 1pt, ty * 1pt),
+        ((tx - ux * size * 2.4 - uy * size) * 1pt, (ty - uy * size * 2.4 + ux * size) * 1pt),
+        ((tx - ux * size * 2.4 + uy * size) * 1pt, (ty - uy * size * 2.4 - ux * size) * 1pt),
+      ))
+      shaft(2, white)
+      head(2.8, white)
+      shaft(0.7, navy)
+      head(2, navy)
+    }
+    // The build stops when two numbers' boxes overlap.
+    let apart(boxes) = for i in range(nodes.len()) {
+      for j in range(i) {
+        let (p, q) = (boxes.at(i), boxes.at(j))
+        assert(p.at(0) >= q.at(2) or q.at(0) >= p.at(2) or p.at(1) >= q.at(3) or q.at(1) >= p.at(3), message: "picture " + name + ": the numbers of " + nodes.at(i) + " and " + nodes.at(j) + " overlap")
+      }
+    }
+    let picture = place(dx: b * 1pt, block(width: w * 1pt, height: h * 1pt, clip: true, radius: 2pt, place(
+      dx: -x0 * scale * 1pt,
+      dy: -y0 * scale * ratio * 1pt,
+      image(path, width: scale * 1pt, height: scale * ratio * 1pt),
+    )))
+    if near {
+      // A screen: each number in the first free place beside its mark, nearest first, on the sides, then below and
+      // above, then at the corners. A mark that holds this one (the card round its button) is no obstacle.
+      let busy = busy-boxes.map(k => (b + (k.at(0) - x0) * scale, (k.at(1) - y0) * scale * ratio, b + (k.at(2) - x0) * scale, (k.at(3) - y0) * scale * ratio))
+      let meets(p, q) = p.at(0) < q.at(2) + 1 and q.at(0) < p.at(2) + 1 and p.at(1) < q.at(3) + 1 and q.at(1) < p.at(3) + 1
+      let holds(q, p) = q.at(0) <= p.at(0) and q.at(1) <= p.at(1) and q.at(2) >= p.at(2) and q.at(3) >= p.at(3)
+      let placed = ()
+      for (i, n) in nodes.enumerate() {
+        let q = rects.at(i)
+        let others = (rects.enumerate().filter(((j, p)) => j != i).map(((j, p)) => p) + busy).filter(p => not holds(p, q))
+        let hw = calc.max(measure(text(size: fs, weight: 700, tags.at(n))).width.pt() + 6, 2 * r) / 2
+        let (mx, my) = ((q.at(0) + q.at(2)) / 2, (q.at(1) + q.at(3)) / 2)
+        let best = none
+        for d in (12, 16, 22, 32, 46) {
+          let (l, rt, up, dn) = (q.at(0) - d - hw, q.at(2) + d + hw, q.at(1) - d * 0.7 - r, q.at(3) + d * 0.7 + r)
+          for (cx, cy) in ((l, my), (rt, my), (mx, dn), (mx, up), (l, dn), (rt, dn), (l, up), (rt, up)) {
+            let bx = (cx - hw, cy - r, cx + hw, cy + r)
+            if bx.at(0) < 0 or bx.at(2) > 2 * b + w or bx.at(1) < 0 or bx.at(3) > h { continue }
+            if meets(bx, q) or others.any(p => meets(bx, p)) or placed.any(o => meets(bx, o.at(0))) { continue }
+            let (tx, ty) = (calc.clamp(cx, q.at(0), q.at(2)), calc.clamp(cy, q.at(1), q.at(3)))
+            if range(1, 20).any(t => others.any(p => inside(p, cx + (tx - cx) * t / 20, cy + (ty - cy) * t / 20, 0))) { continue }
+            best = (bx, cx, cy, tx, ty)
+            break
+          }
+          if best != none { break }
+        }
+        assert(best != none, message: "picture " + name + ": no free place beside " + n + " for its number")
+        placed.push(best)
+      }
+      apart(placed.map(o => o.at(0)))
+      return block(width: size.width, height: h * 1pt, {
+        picture
+        for (i, n) in nodes.enumerate() {
+          let (bx, cx, cy, tx, ty) = placed.at(i)
+          leader(cx, cy, tx, ty)
+          place(dx: bx.at(0) * 1pt, dy: bx.at(1) * 1pt, rect(width: (bx.at(2) - bx.at(0)) * 1pt, height: 2 * r * 1pt, radius: r * 1pt, inset: 0pt, fill: navy, stroke: 0.8pt + white, align(center + horizon, checked(n, false))))
+        }
+      })
+    }
     // The marks `ids` numbered in the two columns: mark -> (side, y).
     let columns-of(ids) = {
       let spots = (:)
@@ -474,18 +547,9 @@
         if side == 0 { (b - 1 - bw, y - r, b - 1, y + r) } else { (b + w + 1, y - r, b + w + 1 + bw, y + r) }
       }
     })
-    for i in range(nodes.len()) {
-      for j in range(i) {
-        let (p, q) = (number-boxes.at(i), number-boxes.at(j))
-        assert(p.at(0) >= q.at(2) or q.at(0) >= p.at(2) or p.at(1) >= q.at(3) or q.at(1) >= p.at(3), message: "picture " + name + ": the numbers of " + nodes.at(i) + " and " + nodes.at(j) + " overlap")
-      }
-    }
+    apart(number-boxes)
     block(width: size.width, height: h * 1pt, {
-      place(dx: b * 1pt, block(width: w * 1pt, height: h * 1pt, clip: true, radius: 2pt, place(
-        dx: -x0 * scale * 1pt,
-        dy: -y0 * scale * ratio * 1pt,
-        image(path, width: scale * 1pt, height: scale * ratio * 1pt),
-      )))
+      picture
       for (i, n) in nodes.enumerate() {
         if str(i) in on-edge {
           let (x, y, hw) = on-edge.at(str(i))
@@ -495,8 +559,6 @@
         let (side, y) = spots.at(str(i))
         let (tx, ty) = (b + at.at(i), ys.at(i))
         let sx = if side == 0 { b - 1 } else { b + w + 1 }
-        let len = calc.sqrt(calc.pow(tx - sx, 2) + calc.pow(ty - y, 2))
-        let (ux, uy) = ((tx - sx) / len, (ty - y) / len)
         if outline {
           let k = m.at(n)
           let k = (calc.max(k.at(0), x0), calc.max(k.at(1), y0), calc.min(k.at(2), x1), calc.min(k.at(3), y1))
@@ -507,17 +569,7 @@
             stroke: 0.8pt + white,
           ))
         }
-        let shaft(width, colour) = place(line(start: (sx * 1pt, y * 1pt), end: ((tx - ux * 3) * 1pt, (ty - uy * 3) * 1pt), stroke: (paint: colour, thickness: width * 1pt, cap: "round")))
-        let head(size, colour) = place(polygon(
-          fill: colour,
-          (tx * 1pt, ty * 1pt),
-          ((tx - ux * size * 2.4 - uy * size) * 1pt, (ty - uy * size * 2.4 + ux * size) * 1pt),
-          ((tx - ux * size * 2.4 + uy * size) * 1pt, (ty - uy * size * 2.4 - ux * size) * 1pt),
-        ))
-        shaft(2, white)
-        head(2.8, white)
-        shaft(0.7, navy)
-        head(2, navy)
+        leader(sx, y, tx, ty)
         let body = checked(n, false)
         place(dx: if side == 0 { 0pt } else { (b + w + 1) * 1pt }, dy: (y - r) * 1pt, box(width: (b - 1) * 1pt, height: 2 * r * 1pt, align(
           if side == 0 { end } else { start } + horizon,
@@ -526,6 +578,40 @@
       }
     })
   })
+}
+
+/// A screen's picture and its marks, taken from the game by a shot script (pictures/game/<name>.jpg; the Hebrew
+/// edition's in pictures/game-he/): <name>.json holds each numbered part's box, `parts`: {node: [left, top, right, bottom]}, and
+/// `busy`: the boxes of the screen's other texts, buttons and pictures, where no number stands.
+#let screen-path(name, ext) = base + "pictures/game" + (if rtl { "-he" } else { "" }) + "/" + name + ext
+/// The numbers of screen `name`'s parts in reading order: by lines from the top (a part whose middle stands within the
+/// line's first part's height joins it), in a line from the reading side (the left in English, the right in Hebrew).
+#let screen-numbers(name) = {
+  let m = json(screen-path(name, ".json")).parts
+  let lines = ()
+  for k in m.keys().sorted(key: k => m.at(k).at(1) + m.at(k).at(3)) {
+    if lines.len() > 0 and (m.at(k).at(1) + m.at(k).at(3)) / 2 <= m.at(lines.last().first()).at(3) { lines.at(-1).push(k) } else { lines.push((k,)) }
+  }
+  lines.map(l => l.sorted(key: k => if rtl { -m.at(k).at(2) } else { m.at(k).at(0) })).flatten().enumerate().map(((i, k)) => (k, i + 1)).to-dict()
+}
+/// A picture of a screen as a figure; a text refers to it as @fig-s-<name>. `numbered`: each part of <name>.json
+/// carries its number (screen-numbers) at its edge with a leader, as a cockpit panel's figure; screen-table lists them.
+#let screen(name, caption, width: 100%, numbered: false) = {
+  let body = if numbered {
+    let tags = screen-numbers(name).pairs().map(((k, n)) => (k, str(n))).to-dict()
+    let marks = json(screen-path(name, ".json"))
+    block(width: width, callouts(name, tags, src: (screen-path(name, ".jpg"), marks.parts, marks.busy)))
+  } else { box(stroke: 0.5pt + rule-c, image(screen-path(name, ".jpg"), width: width)) }
+  [#figure(kind: image, placement: none, caption: caption, body) #label("fig-s-" + name)]
+}
+/// The table of screen `name`'s numbered parts: `rows` are (node, cells…), drawn in the numbers' order with the number
+/// first. The build stops on a row without a number on the picture and on a number without a row.
+#let screen-table(name, cols, head, ..rows) = {
+  let nos = screen-numbers(name)
+  let rows = rows.pos()
+  for r in rows { assert(r.first() in nos, message: "screen " + name + ": the row " + r.first() + " has no number on the picture (" + screen-path(name, ".json") + ")") }
+  for k in nos.keys() { assert(rows.filter(r => r.first() == k).len() == 1, message: "screen " + name + ": the number of " + k + " needs one row in its table") }
+  grid-table((auto,) + cols, head, ..rows.sorted(key: r => nos.at(r.first())).map(r => ([#nos.at(r.first())],) + r.slice(1)).flatten())
 }
 
 // ---- The checklist as steps ----

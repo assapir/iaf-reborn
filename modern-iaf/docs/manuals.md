@@ -191,6 +191,7 @@ each section's brief.
 | a screen's, button's, option's or tab's name | `scr("<key>")`, drawn from the front end's strings (`modern-iaf/menu/strings_<lang>.json`); the setup wizard's with `stp("<key>")` (`modern-iaf/setup/strings_<lang>.json`). A key a table no longer has stops the build, so a renamed screen renames itself in the manual and a removed one is found. |
 | the Settings' options | `settings-table((keys…))`: each option's name and the game's own description (`<key>_about`) |
 | a screen's picture | `screen("<name>", [caption])`: `pictures/game/<name>.jpg` (§4), a figure labelled `fig-s-<name>` |
+| a screen's parts | `screen("<name>", [caption], numbered: true)` draws a number beside each part of `<name>.json` (§4), and `screen-table("<name>", cols, head, ("<node>", cells…), …)` is its table: one row a part, by its node, drawn in the numbers' order with the number first ("No."). A text names a part by its name, or by its number where that finds it faster: "(2)". The build stops on a row without a number, a number without a row, and a numbered picture without its table in the same file (`screen_tables` in `tools/manuals.py`) |
 | a task | a numbered list, one instruction a step, its reaction after `then[…]`; a safety box stands before its step |
 | a glossary term | linked at its first use in a section; the build checks it for the game manual too (`glossary_links`) |
 
@@ -421,6 +422,16 @@ without `_en`; a prefix per script): `_front_end_shot.gd` (no prefix), `_loadout
 `_setup_wizard_shot.gd` (`setup_welcome`, `setup_imagery`, `setup_install`) and, converted, the pictures of
 `modern-iaf/docs/pictures/setup/` (the skipped step, the remove dialog) and `front-end/loading_en.webp`. Only the pictures a section uses are
 kept. The pilot on them is the shot scripts' sample pilot.
+
+**A screen's numbered parts** (the user, 18 November 2026: "in game manual: use numbers on the screen shot instead
+of where coulmn in the table"). The shot script writes beside a screen's picture `<screen>_<lang>.json`: `parts`, the
+box of each node its `MARKS` lists (`get_global_rect()`, as fractions of the picture; a picture with a transparent
+ground, the Hangar's jet, only where it draws), and `busy`, the boxes of the screen's other texts, buttons and
+pictures. It is copied to `pictures/game/<name>.json` (`pictures/game-he/` from the Hebrew picture, whose layout is
+mirrored). The parts are numbered in reading order, by lines from the top and in a line from the left, or from the right
+in Hebrew. Each number stands outside its part, in the first free place beside it with a short leader to its edge
+(`callouts` with `src`, `layout/manual.typ`): on no other part and no busy box, apart from the other numbers; the build
+stops when a part has no such place. Numbered: the Hangar (`_front_end_shot.gd`, `hangar`).
 
 **The Hebrew edition's screens** (`pictures/game-he/`, 18 November 2026) are the same scripts' Hebrew pictures
 (`<name>_he.png`), scaled the same way. Three pictures have no language in their script: `notebook_radio` and

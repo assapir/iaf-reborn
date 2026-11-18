@@ -2,23 +2,24 @@
 
 #idx("Hangar")#idx("Main menu")The #term("Hangar") is the game's first screen and its main menu. Every start opens it with the jet you picked last. From it you reach every other screen.
 
-#screen("hangar", [The Hangar: the jets, the picked jet and its card.])
+#screen("hangar", [The Hangar: the jets, the picked jet and its card.], numbered: true)
 
 === What the Hangar holds <main-menu-entries>
 
-#grid-table(
-  (auto, auto, 1fr),
-  ([Entry], [Where], [What it does]),
-  [#scr("hangar")], [Top bar], [The first breadcrumb on every screen. It opens the Hangar.],
-  [#scr("preferences")], [Top bar], [Opens the settings: graphics, language, sound and devices (@settings).],
-  [The pilot], [Top bar], [Your nickname, your name and your picture, as one button. It opens the #scr("pilot") screen, and from there the #scr("pilot_log") (@pilots).],
-  [#scr("aircraft")], [Side list], [The jets. Selecting one picks it for every later screen (@hangar). The jets that come in a later version are greyed.],
-  [The jet], [Middle], [The picked jet, with the stores of its #term("loadout"). You can look at it from any side (@main-menu-jet).],
-  [The card], [Side panel], [The picked jet's #scr("squadron_l"), #scr("base_l") and #scr("tail_number"); then #scr("training"): how many of the jet's lessons are passed, and the last flight on the jet with its result.],
-  [#scr("fly")], [The card], [Opens the #scr("missions") screen for the picked jet: Training and the other sections (@mission-list). It is picked when the Hangar opens, so #keycap("Enter") goes straight on.],
-  [#scr("credits")], [Foot], [Opens the list of the game's sources and their licences. The arrow keys scroll it. The same list is in @attributions.],
-  [#scr("manuals")], [Foot], [Opens the list of the four manuals (@manuals-screen).],
-  [#scr("quit")], [Foot], [Asks #scr("quit_q"), then closes the game (@start-game-quit).],
+#screen-table(
+  "hangar",
+  (auto, 1fr),
+  ([No.], [Entry], [What it does]),
+  ("CrumbOn", [#scr("hangar")], [The first breadcrumb on every screen. It opens the Hangar.]),
+  ("Settings", [#scr("preferences")], [Opens the settings: graphics, language, sound and devices (@settings).]),
+  ("PilotBlock", [The pilot], [Your nickname, your name and your picture, as one button. It opens the #scr("pilot") screen, and from there the #scr("pilot_log") (@pilots).]),
+  ("Jets", [#scr("aircraft")], [The jets. Selecting one picks it for every later screen (@hangar). The jets that come in a later version are greyed.]),
+  ("Turntable", [The jet], [The picked jet, with the stores of its #term("loadout"). You can look at it from any side (@main-menu-jet).]),
+  ("JetCard", [The card], [The picked jet's #scr("squadron_l"), #scr("base_l") and #scr("tail_number"); then #scr("training"): how many of the jet's lessons are passed, and the last flight on the jet with its result.]),
+  ("Fly", [#scr("fly")], [Opens the #scr("missions") screen for the picked jet: Training and the other sections (@mission-list). It is picked when the Hangar opens, so #keycap("Enter") goes straight on.]),
+  ("credits", [#scr("credits")], [Opens the list of the game's sources and their licences. The arrow keys scroll it. The same list is in @attributions.]),
+  ("manuals", [#scr("manuals")], [Opens the list of the four manuals (@manuals-screen).]),
+  ("quit", [#scr("quit")], [Asks #scr("quit_q"), then closes the game (@start-game-quit).]),
 )
 
 When the game's data is not built, the card says so in place of the training's progress, names the setup command, and #scr("fly") is greyed (@after-update-no-missions).
