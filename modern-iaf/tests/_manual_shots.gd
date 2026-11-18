@@ -150,7 +150,7 @@ func run() -> void:
 				if n3 != null and n3.visible:
 					n3.visible = false
 					hidden.append(n3)
-			tv.views.lean = LEAN.get(shot, Vector3.ZERO)
+			tv.views.lean_to = LEAN.get(shot, Vector3.ZERO)  # held: no lean key pulls it back to the seat (views.gd)
 			_fov = ALL_FOV if shot == "overview_all" else 0.0
 			if panel and not c3d.lamp_test:  # the panels' pictures: the battery on, every lamp lit
 				tv._command([210, 1, 0])
@@ -175,7 +175,7 @@ func run() -> void:
 			_pose = null
 			for n3 in hidden:
 				n3.visible = true
-		tv.views.lean = Vector3.ZERO
+		tv.views.lean_to = null
 		_fov = 0.0
 		var f := FileAccess.open(marks_file, FileAccess.WRITE)
 		f.store_string(JSON.stringify(marks, "", false) + "\n")

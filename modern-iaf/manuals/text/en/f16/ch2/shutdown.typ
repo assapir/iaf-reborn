@@ -58,17 +58,18 @@ Stop on the parking spot. Turn off what the generator feeds while it still runs,
   seen: (
     throttle_off: [#term("RPM") falls: under 20~% after about 16 seconds, stopped after about a minute; the generator lets go at about 52~%],
     main_power_off: [Every lamp and gauge dark],
+    canopy_open: [The canopy rises in about 10 seconds while the switch is held],
   ),
   figs: ("elec",),
   notes: (
     throttle_off: [The throttle stops at idle; OFF takes its own key, as the real lever's stop at idle takes a deliberate lift.],
     main_power_off: [With the General Electric engine the real pilot waits until the RPM is under 20~%: the nozzle then stays open, which makes the inspection after the flight easier#fm[section II, "Engine shutdown", the note at item 4, page 2-29]. The card keeps the wait for both jets.],
-    canopy_open: [Lift the handle, then hold the switch at OPEN; #key("Canopy") does both.],
+    canopy_open: [Lift the handle, then hold the switch at OPEN; #key("Canopy") does both. The sim does not check it.],
   ),
 )
 
-#idx("Throttle OFF")#caution[The throttle at OFF cuts the engine's fuel at once, wherever the jet is. On the ground after a flight that is the shutdown. In the air it stops the engine: the jet glides, and the generator lets go as the RPM falls. The only use of OFF in the air is as a step of an engine restart (@emergency-engine, #term("not modelled")). The key is apart from the other throttle keys for this reason.]
+#idx("Throttle OFF")#caution[The throttle at OFF cuts the engine's fuel at once, wherever the jet is. On the ground after a flight that is the shutdown. In the air it stops the engine: the jet glides, and the generator lets go as the RPM falls. The only use of OFF in the air is as a step of an engine restart (@emergency-engine; the sim restarts the engine with the ground start only). The key is apart from the other throttle keys for this reason.]
 
-#idx("Tailpipe fire")#note[After the shutdown, fuel left in the hot engine can light: a mild bang, then smoke or a small fire at the tailpipe. It does no damage to the engine. The real pilot turns the engine with the #term("JFS") for about a minute to blow it out; without the JFS it goes out by itself in a few minutes. The ground crew keeps clear of the intake and the tailpipe for some minutes after every shutdown#fm[section II, "Engine shutdown", the warning before item 1, page 2-29]. Not modelled.]
+#idx("Tailpipe fire")#note[After the shutdown, fuel left in the hot engine can light: a mild bang, then smoke or a small fire at the tailpipe. It does no damage to the engine. The real pilot turns the engine with the #term("JFS") for about a minute to blow it out; without the JFS it goes out by itself in a few minutes. The ground crew keeps clear of the intake and the tailpipe for some minutes after every shutdown#fm[section II, "Engine shutdown", the warning before item 1, page 2-29]. #term("Not modelled").]
 
 #in-sim[A jet shut down can be started again with the card from its first section, once the RPM is under 20~%. #sym.arrow.r *The JFS switch does nothing above 20~% RPM.*]

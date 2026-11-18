@@ -27,7 +27,7 @@ The signs of a fire that goes on are the light staying on, flight control faults
 
 *#row("lamp_caution_overheat_0")* means hot air in the engine bay, the air-conditioning bay, the main wheel wells or the #term("EPU")'s bay. Throttle to the least practical power; press FIRE & OHEAT DETECT to check the detector; if the light stays on, come down below 25,000 ft, slow below 500 kt and set #row("AirSource_knob") to RAM. Land as soon as possible#fm[section III, "OVERHEAT caution light", page 3-62].
 
-#in-sim[The light comes on with an engine fire only. AIR SOURCE at OFF, or at RAM below 70 kt, lights #row("lamp_caution_equip_hot_0") and does nothing else.]
+#in-sim[The light comes on with an engine fire only. AIR SOURCE at OFF, or at RAM below 70 kt, lights #row("lamp_caution_equip_hot_0"); at OFF, DUMP or RAM the cabin also climbs with the jet (@emergency-cockpit).]
 
 === Engine failure and flameout <emergency-flameout>
 #state("part")

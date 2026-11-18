@@ -19,6 +19,7 @@ Leave the runway to its cold side#afi[paragraph 3.21.3]: the side that the jets 
 #steps(
   "after_landing",
   captions: caps,
+  notes: (taxi_light_in: [The switch moves only: the landing and taxi lights are #term("not modelled"); the navigation lights and the strobe are always on.]),
   figs: ("gear_panel", "front"),
 )
 
@@ -40,8 +41,8 @@ Stop on the parking spot.
   ),
 )
 
-#idx("Throttle OFF")#caution[The throttle at OFF cuts the engine's fuel at once, wherever the jet is. On the ground after a flight that is the shutdown. In the air it stops the engine: the jet glides. The only use of OFF in the air is as a step of an engine restart (@emergency-engine, #term("not modelled")). The key is apart from the other throttle keys for this reason.]
+#idx("Throttle OFF")#caution[The throttle at OFF cuts the engine's fuel at once, wherever the jet is. On the ground after a flight that is the shutdown. In the air it stops the engine: the jet glides. The only use of OFF in the air is as a step of an engine restart (@emergency-engine; the sim restarts the engine with the ground start only). The key is apart from the other throttle keys for this reason.]
 
-After the flight the real pilot walks around the jet once more and looks for bird strikes, lost panels and damage from too much g#afi[paragraph 3.28]. Not modelled.
+After the flight the real pilot walks around the jet once more and looks for bird strikes, lost panels and damage from too much g#afi[paragraph 3.28]. #term("Not modelled").
 
 #in-sim[A jet shut down can be started again with the card from its first section, once the RPM is under 20~%.]

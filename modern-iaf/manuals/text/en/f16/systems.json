@@ -3144,7 +3144,7 @@
       "RAM"
      ],
      "does": "Chooses the air for the cockpit's pressure and cooling: engine bleed air at NORM; DUMP lets the cabin pressure out; RAM takes outside air; OFF shuts the bleed air.",
-     "sim": "Only the EQUIP HOT caution: at OFF, or at RAM below 70 knots. The cockpit has no pressure or temperature."
+     "sim": "The EQUIP HOT caution at OFF, or at RAM below 70 knots. At OFF, DUMP and RAM the cabin altitude is the jet's, so CABIN PRESS lights above 27,000 ft. The pilot feels no pressure or temperature."
     },
     {
      "node": "voice-msg-switch",

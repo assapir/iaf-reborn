@@ -398,7 +398,7 @@
      "label": "ALT GEAR",
      "name": "Alternate gear extension",
      "does": "A guarded handle that lowers the landing gear when the normal system cannot.",
-     "sim": "Not modelled: the guard and the handle move."
+     "sim": "With its guard open it lowers the gear as the handle does. A second extension system is not modelled."
     },
     {
      "node": "PARK_BRAKE",

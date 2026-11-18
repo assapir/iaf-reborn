@@ -21,7 +21,7 @@
 "PARK_BRAKE": {"status": "works"},
 "ALT_GEAR_GUARD": {"status": "partly", "note": "Only gates its switch."},
 "ALT_GEAR": {"status": "works"},
-"LAND_TAXI": {"status": "moves", "note": "The exterior lights are always on."},
+"LAND_TAXI": {"status": "moves", "note": "The landing and taxi lights are not modelled; the navigation lights and the strobe are always on."},
 "AUTO_RECOVERY": {"status": "moves"},
 "ZEROIZE": {"status": "moves"},
 "FCS_RESET": {"status": "moves"},

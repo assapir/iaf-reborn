@@ -23,7 +23,7 @@ The cockpit has few lit panels: most of what the pilot reads is on the #term("PC
 )
 
 #in-sim[
-  - *Exterior.* The exterior lights are always on; no switch controls them.
+  - *Exterior.* The navigation lights and the strobe are always on; no switch controls them. The landing and taxi lights are not drawn.
   - *Displays.* MFD BRT and HMD BRT change the brightness in steps of 2.5~%. #sym.arrow.r *HMD at OFF removes the helmet's symbols.*
   - *#term("Not modelled").* LAND/TAXI LIGHTS, DAY / NIGHT, VIDEO BRT and VIDEO CONT move and do nothing; NIGHT, AUTO and DAY of the HMD knob act alike.
 ]

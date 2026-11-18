@@ -59,7 +59,7 @@ These steps check that the cockpit is safe to power, then bring the battery and 
   notes: (
     batt: [The displays stay dark until the engine drives the generator.],
     flcs_pwr_test: [Hold the switch for a moment. The sim ticks the step once the switch has been at TEST.],
-    fuel_master: [The cockpit model has this switch, but the sim has no fuel shut-off behind it.],
+    fuel_master: [At OFF the engine gets no fuel: it does not light, or it flames out (@fuel).],
   ),
 )
 
@@ -69,7 +69,7 @@ Get the start-up clearance first.
 
 The jet fuel starter (JFS) turns the engine. At 20~% #term("RPM") you move the throttle from OFF to idle, which lets fuel in. The engine lights about 5 seconds later and reaches idle about 15 seconds after that.
 
-#idx("Hot start")#caution[Keep the throttle at OFF until the RPM reaches 20~%. Below that the engine turns too slowly to move enough air through itself; fuel let in then burns too hot, and the turbine's temperature passes its limit. This is a #term("hot start"), and it can damage the turbine#hot. In the real jet you see it on the #term("FTIT") indicator, which climbs fast towards its limit; you put the throttle back to OFF and watch the FTIT, and if it stays above 500~°C the JFS turns the engine again to cool it. In the sim: #sym.arrow.r *the engine shuts down* by itself; the FTIT's limit and the damage are not modelled. No procedure on the ground uses an early throttle; an engine start in the air is a different procedure with its own conditions (@emergency-engine, not modelled). The ground case is in @emergency-ground.]
+#idx("Hot start")#caution[Keep the throttle at OFF until the RPM reaches 20~%. Below that the engine turns too slowly to move enough air through itself; fuel let in then burns too hot, and the turbine's temperature passes its limit. This is a #term("hot start"), and it can damage the turbine#hot. In the real jet you see it on the #term("FTIT") indicator, which climbs fast towards its limit; you put the throttle back to OFF and watch the FTIT, and if it stays above 500~°C the JFS turns the engine again to cool it. In the sim: #sym.arrow.r *the engine shuts down* by itself; the FTIT's limit and the damage are not modelled. No procedure on the ground uses an early throttle; an engine start in the air is a different procedure with its own conditions (@emergency-engine; the sim has the ground start only). The ground case is in @emergency-ground.]
 
 #steps(
   "start",
@@ -105,14 +105,18 @@ With the generator on line, test the warning systems, power the avionics and sta
     master_caution: [MASTER CAUTION light out],
     flcs_bit: [RUN lights at BIT],
     dbu: [DBU ON lights],
+    speedbrakes: [The speedbrakes open while the key is held, and close (an outside view shows them)],
   ),
   figs: ("test", "avionic_power", "snsr_pwr", "sym", "master_caution", "flt_control", "mpo", "elec"),
   notes: (
     avionics: [The key turns on all four, and the #term("FCR") and RDR ALT switches of the SNSR PWR panel with them.],
     ins_align: [Go on with the next steps; the INS needs 90 seconds.],
     hdpt: [The targeting pod has power only with RIGHT #term("HDPT") on.],
+    gps_dl: [GPS moves only; DL powers the data link.],
+    flcs_bit: [The self test behind the lamp is not modelled.],
     master_caution: [The step is ticked while the MASTER CAUTION light is out.],
     flight_controls: [Move the stick and the pedals and watch the surfaces from an outside view if you wish. The sim does not check it.],
+    speedbrakes: [Hold #key("Speedbrakes open (hold)"), then press #key("Speedbrakes close"). The sim does not check it.],
   ),
 )
 
@@ -127,6 +131,8 @@ Close the canopy, set the lights and the countermeasures panel, and put the INS 
   captions: caps,
   seen: (
     canopy: [Canopy down in about 10 seconds while the switch is held; CANOPY light out when the handle is down],
+    ext_lights: [The position lights on the wingtips, inlets and tail, and the fin's anti-collision strobe, come on (an outside view shows them)],
+    taxi_light: [The taxi light comes on],
     ins: [ALIGN flashes on the HUD when the alignment is done; at NAV, ALIGN goes out and the HUD shows steering],
   ),
   figs: ("ext_lights", "cmds", "avionic_power", "gear"),
@@ -141,6 +147,8 @@ Get the taxi clearance; it names the runway. Release the parking brake (#key("Pa
 #steps(
   "taxi",
   captions: caps,
+  seen: (brakes_nws: [The jet stops while the key is held; AR/NWS is on while the jet is on the ground]),
+  notes: (brakes_nws: [Hold #key("Wheel brakes (hold)"); the rudder pedals steer the nosewheel. The sim does not check it.]),
 )
 
 At the holding point, stop and get the line-up clearance.
@@ -152,6 +160,8 @@ Do these steps at the holding point or lined up, before the take-off clearance.
 #steps(
   "before_takeoff",
   captions: caps,
+  seen: (landing_light: [The landing light comes on: it lights the runway ahead]),
+  notes: (probe_heat: [Only TEST does anything in the sim: the probes' heaters are #term("not modelled").]),
   figs: ("flt_control", "test", "master_caution", "gear"),
 )
 
@@ -171,6 +181,7 @@ The take-off is flown from memory. It is not on the card.
 #steps(
   "after_takeoff",
   captions: caps,
+  seen: (gear_up: [The handle's red light on while the gear moves; the three green lights out in about 3 seconds]),
   figs: ("gear",),
 )
 

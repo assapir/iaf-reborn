@@ -490,11 +490,13 @@ Parts:
 ## 7. Open
 
 - Cross-manual links in macOS Preview: to check on the Mac.
-- The F-16's `overview_all` picture is owed a retake on the Mac (2026-11-18): it predates the canopy switch and lock
-  lever ([cockpit.md](cockpit.md) §5.6), whose panel "Canopy controls" stands last in section 1.2 so that no other
-  panel's section or figure number moved. Its box in the overview is placed from its neighbours' boxes. On the Linux
-  laptop the overview comes out turned 25° to the left, with or without the new panel (main's own retake differs from
-  the committed marks by the same amount), so it was not retaken there; `p_canopy`, `gear` and `cmds` were.
+- Retaken 2026-11-18 on the Linux laptop, for the switches that now work: the F-16's `overview_all` (with the canopy
+  panel's own box), `elec`, `flt_control`, `p_fuel` (MASTER FUEL's guard down), `gear`, `p_gear` (PARKING BRAKE set)
+  and `p_right_aux` (the fuel indicator). The overview had come out turned 25° to the left since the lean control
+  (414a77af): the shot script set `views.lean`, which the lean keys' update pulls back to the seat each frame; it sets
+  `views.lean_to` now, which holds. The Adir's pictures were taken again and showed no change, so they stay.
+- The manuals' marks checked against the status data and the code on 2026-11-18: the F-16's CMDS O1, O2 and JMR
+  switches only move (`cmds.rs` keeps their state and nothing reads it), so their status is `moves`.
 - The RPM indicator's picture for "Starting engine": the gauge's needle node (`anim069`) has no mesh the shot script
   can box; the text names its place instead.
 - Fixed 2026-11-18 (the faults the manuals exposed, group A): the F-16's airspeed dial reads indicated airspeed
@@ -520,8 +522,8 @@ Parts:
   (pictures in the flight manual); for the F-35 the tank layout, the gear and brake systems, the ICAWS categories'
   definitions and the cockpit switches' functions.
 - Found while writing chapter 2, the game's and listed, not changed here: the autopilot's PITCH and ROLL switches move only (the A key
-  is the only way); the F-16's FUEL QTY SEL knob moves only, so the card's fuel check cannot be done as the
-  real one; the card has no line for the speedbrakes or the altimeter before landing, which the real "Descent/before
+  is the only way); the F-16's FUEL QTY SEL knob shows RSVR and INT WING as NORM (one fuel tank), so the card's
+  fuel check cannot be done as the real one; the card has no line for the speedbrakes or the altimeter before landing, which the real "Descent/before
   landing" has.
 - Found while writing chapter 3, the game's and listed, not changed here:
   - STORES CONFIG stays dark: the sim has no data on which loads are category III (open; with the CAT III handling,
@@ -532,8 +534,10 @@ Parts:
   - An ejection works at any height: the low limits (50 m, 200 m inverted) only mark the recording's `eject` event
     `short` (`Settings.eject_ends_sortie`).
   - "Bingo" is spoken at a fixed 1,000 lb and 500 lb; the HUD's FUEL cue uses the pilot's bingo.
-  - The F-16's `alt-gear` handle moves only while the F-35I's ALT GEAR works; the hook, the EPU, the parking brake and
-    the F-35I's ENG FIRE push, FCS RESET, AUTO RECOVERY and ejection handle move only.
+  - The F-16's `alt-gear` handle moves only while the F-35I's ALT GEAR works; the hook, the EPU and the F-35I's ENG
+    FIRE push, FCS RESET, AUTO RECOVERY and ejection handle move only.
+  - With the brakes damaged (flag 5) the wheel brake key does nothing, but the parking brake still holds the wheels
+    (`flight.rs` reads it apart from the key; found 2026-11-18, the manuals say so).
   - The notebook's EMERGENCY pages (`modern-iaf/data/notebook.json`) hold steps the sim cannot do: motoring after a
     hot start, an engine fire on the ground, the ejection handle.
   - No horn or light warns of a low speed or of the gear up beyond TO/LDG CONFIG; `horn_silencer` moves only.

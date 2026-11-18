@@ -47,5 +47,5 @@ The up-front controls are the #term("ICP"), the keyboard under the #term("HUD"),
   - Every page above works as described.
   - The radios have no frequency model: every station answers on any preset, and the ILS serves the runway at any frequency. The TACAN channels are the sim's own.
   - #term("Not modelled"): the list's VIP, MAN and VRP pages and the remaining MISC pages; they are not offered.
-  - #row("wx"), #row("flir_ud") and #row("drift") move only.
+  - #row("drift") works: DRIFT C/O and WARN RESET as in @hud. #row("wx") and #row("flir_ud") move only.
 ]

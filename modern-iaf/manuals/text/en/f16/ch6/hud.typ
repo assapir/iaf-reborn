@@ -41,5 +41,7 @@ The helmet sight puts an aiming cross on the visor. Look at a target to point a 
 
 #in-sim[
   - The two switches DED DATA and DEPR RET work by their keys only.
+  - #row("drift") at DRIFT C/O (#key("DRIFT C/O (DRIFT C/O / NORM)")) #then[centres the flight path marker and the ladder.] At WARN RESET (#key("WARN RESET")) #then[the flashing FUEL cue and the repeating "Altitude" call stop.]
+  - #row("cont") (#key("HUD CONT (contrast): next step")) is partly modelled: #then[the symbols' edges wash out as it turns down.] The HUD draws no infrared picture for it to set.
   - #term("Not modelled"): the HUD's cues of the release modes that the sim lacks (@ag-weapons).
 ]
