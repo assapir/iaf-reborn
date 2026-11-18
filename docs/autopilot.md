@@ -219,6 +219,11 @@ approach and the float before touchdown steer to the centreline with a damped la
     `player_landing_312_heavy_jets_hold_the_glide_path` (on flat ground the original lands the F-4 at 33 t 570 m
     short and the Mirage at 17.5 t 2.8 km short; off it, both on the runway).
 
+- **The circuit on Modern IAF's 6-DoF** (ours, `autopilot::REAL_CIRCUIT`): the legs before the final fly their own
+  path, bank and speed laws there, and the final starts where the base turn ends
+  ([modern-iaf/docs/flight-model.md](../modern-iaf/docs/flight-model.md) §9.6). The original model's circuit is the
+  one above, with every switch.
+
 ### 2.4 Runway into the wind (ours, Better physics "Wind and turbulence")
 **The original** flies every base one way, whatever the wind:
 - Each iaf.ibx base has one lineup point and one `RunwayNumber` (`54eda0`). The AI's take-off taxi ends at that lineup

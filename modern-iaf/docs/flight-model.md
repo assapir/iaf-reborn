@@ -509,6 +509,52 @@ budget, a real flight. Open:
   real final (2026-11-16, Barak / Sufa / Adir, the diag flight of the test): the flare's time 2–5 s gave 2.7–4.1 m/s,
   6 s 1.9–2.2, 7–8 s ballooned the Adir 300 m short; the original's path gains (0.3 above / 0.03 below, damping 0.5)
   cycled ±2 m/s about the path and touched at 3.4–9 m/s; damping 0.5 with a symmetric gain 3.3–6.8 m/s.
+  **The circuit's legs** (2026-11-18, `autopilot::REAL_CIRCUIT`, test `landing_circuit_on_the_sixdof`): on the 6-DoF
+  the legs before the final fly their own laws; the original model keeps the original's circuit.
+  * The path law asks the load factor that closes its flight-path error in 5 s (`PATH_TAU`), ticks every 0.1 s as
+    the final does, and never asks less than 0 g (inferred). The 6-DoF's g takes 0.8–0.9 s (450 kt) to 2.0–2.3 s
+    (220 kt, gear down) to reach 63 % of a commanded step (test `sixdof_g_follows_a_command`); a path error through
+    such a lag is damped at 0.7 when it closes in twice that time (inferred: the second-order loop of an integrator
+    and a first-order lag). The original's law asks 20 g per radian of error and holds its stick for 0.2–3 s.
+  * The bank and the g stay inside the lift the wing gives at 15° α at the jet's speed and weight: below 15° the
+    F-16's control system commands g, above it its limiter takes over[^to-f16a]. The original's turns bank to 80°
+    and 60° (5.8 g and 2 g).
+  * The gear-down legs fly no slower than the level speed of 11° α, the faster of the manual's two approach
+    αs[^to-f16cj]: the turn to the final then has the lift of 15° over 11° α, a bank near 40°. The original's
+    140 kt for that turn is below the 15° speed of every jet at full internal fuel (the Barak's 158 kt to the
+    Ra'am's 200 kt).
+  * The speed law sums its error (0.2 /s, as the final's, while its lever is inside its travel), and ChangeAlt
+    holds the next leg's speed. The original's law rests at a 0.7 lever, where the 6-DoF flew 30–45 kt fast, and
+    its ChangeAlt sends no throttle: the lever stayed at the 0.1 the turn before it ends with.
+  * The final starts where the base turn ends, about 7 km out at 300 m, on World scale Real's centreline law
+    (`align_bank`), and flies level until the 3° path comes down to it. The original's CH5 leg ends about 1 km before
+    the lineup, where the 3° path is 50 m up.
+
+  Before (2026-11-18, a sweep of 24 flights at Modern IAF's Ramat David: the four jets, three weights, entries from
+  55 km at 2,000 m and from 20 km at 300 m): 12 crashed and 8 more touched at 5–30 m/s. On the legs the path swung ±20° at −1.2 to +3.6 g every 5–8 s from 230 kt down; the Adir at
+  21.6 t left CH1's 80° bank in a deep stall (α 43–50°, 150 kt) and fell from 2,000 m; the Sufa at 13.3 t came to
+  the final at 173 kt, 108 m up and sinking 13 m/s, and hit at 22 m/s. Now all land on the runway and stop on it:
+
+  | jet | weight | touchdown | sink | pitch | stops past the lineup |
+  |-----|--------|-----------|------|-------|-----------------------|
+  | Barak | 9.5 t / 11.3 t / 14.3 t | 128 / 139 / 154 kt | 2.6 / 2.6 / 2.7 m/s | 13.5° / 14.2° / 14.9° | 683 / 791 / 929 m |
+  | Sufa | 10.5 t / 13.3 t / 16.3 t | 134 / 150 / 165 kt | 2.5 / 2.5 / 2.9 m/s | 13.9° / 14.7° / 15.0° | 751 / 920 / 1,062 m |
+  | Adir | 15.8 t / 21.6 t / 24.6 t | 132 / 152 / 159 kt | 2.4 / 1.5 / 0.8 m/s | 14.2° / 17.4° / 19.2° | 717 / 985 / 1,087 m |
+  | Ra'am | 19.9 t / 27.1 t / 30.1 t | 134 / 156 / 162 kt | 2.5 / 2.4 / 2.5 m/s | 13.8° / 14.9° / 15.2° | 715 / 948 / 1,013 m |
+
+  The 1998 game reaches these laws only with Physics "Flight model" on 6-DoF, for the player's Sufa, Ra'am and
+  F-35I ([deviations.md](../../docs/deviations.md) §2); its AI jets and every jet on the original model fly the
+  original's circuit. The test lands those three jets at the 1998 Ramat David too: 132–163 kt, 1.4–2.7 m/s of sink,
+  except the Adir with 3 t of stores (24.6 t): its flare floats it 0.2 m over the runway at 20° α, balloons it to
+  2.8 m and drops it 400 m on at 136 kt and 4.05 m/s (a hard landing under the original's limits the autopilot's
+  landing keeps). Open: the flare (§2.3 of docs/autopilot.md, `Landing::flare`) with the heaviest loads.
+
+  The weights: 30 % of the internal fuel (a landing weight), full internal fuel, full fuel with 3 t of stores. The
+  limits the test holds: a sink under the gear's design 10 ft/s (3.05 m/s, [damage.md](../../docs/damage.md) §5.2),
+  a touchdown no faster than the final's speed, a stop on Ramat David's 2,934 m runway within its 44 m width (all
+  on the centreline), and at the landing weight a pitch under the tail strike's 15°. Open: above the landing weights
+  the flare ends at 15–19° of pitch (the Adir at full fuel), past the 15° of the tail strike; the game keeps the
+  original's landing limits while the autopilot lands, so the landing counts.
   That touchdown passes because the game keeps
   the original's landing limits while the autopilot lands, on both models (`set_ap_landing`). "No stalls" and "No
   spins" reach only reborn's model: the 6-DoF has no scripted stall or spin to block, and the sim fixes both off.

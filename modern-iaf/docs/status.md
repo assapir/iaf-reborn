@@ -119,6 +119,14 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   renders), its description and the frame time measured during the player's last flight; Defaults and Back to the
   hangar in the footer. Devices: Keyboard with no joystick connected; the Joystick screen without axis rows then; the
   Keys and Joystick screens in the Settings' frame.
+- **The autopilot's landing circuit lands every jet (2026-11-18, [flight-model.md](flight-model.md) §9.6):** NAV to a
+  landing waypoint flies the 1998 circuit with laws of its own on the 6-DoF: the turns bank and pull inside the lift of
+  15° α, the gear-down legs fly no slower than the speed of 11° α, the path law is as slow as the jet's g answers, and
+  the final starts 7 km out, level, until the 3° path comes down. The Barak, the Sufa, the Adir and the Ra'am land at
+  Ramat David from a landing weight to full fuel with 3 t of stores: 128–165 kt, 0.8–2.9 m/s of sink, stopped 0.7–1.1 km
+  down the runway (were: 12 of a sweep of 24 flights crashed). Open: above the landing weights the flare ends at 15–19°
+  of pitch (the tail strike's limit is 15°; the autopilot's landing keeps the original's limits), and in the 1998 game's
+  Ramat David it floats the Adir with 3 t of stores and drops it at 4.05 m/s.
 - **The autopilot lands softly; the roll starts faster (2026-11-16, finish list: autopilot touchdown, roll onset,
   [flight-model.md](flight-model.md) §9.6, §9.13):** on the 6-DoF the autopilot flies a real final, 3° (inferred) at
   the speed of the F-16 manual's 13° α (about 145 kt), with a flare from about 15 m: touchdowns at 2.0–2.6 m/s (were
@@ -251,9 +259,9 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   the fuel calls); both cards name each control as its panel does and state the reaction the cockpit shows; BEFORE
   LANDING opens on the approach (it never did: the rule read a height above the ground the flight's state does not
   hold); `test_card_landing.gd` flies the card home to a cold jet. Open: the systems behind the read-and-acknowledge
-  items (oxygen, IFF, trim, the ejection seat's lever, the speedbrakes' check); the autopilot's landing circuit with
-  the 6-DoF jets (NAV to a landing waypoint slowed the Sufa to 151 kt at idle with the gear up and sank it into the
-  ground at "landing step 5", 2026-11-18, laptop, headless; Modern IAF's missions have no landing waypoint).
+  items (oxygen, IFF, trim, the ejection seat's lever, the speedbrakes' check). The autopilot's landing circuit
+  with the 6-DoF jets, which sank the Sufa into the ground here, lands since 2026-11-18 (the entry above on the
+  autopilot's circuit).
 - **Every checklist switch by the mouse (2026-11-13, the switches audit's M1):** the throttle takes no mouse since
   2026-11-15 (the user: "shouldn't be able to move the throttle or stick from the mouse"; it took the wheel and drags);
   the landing gear handles (both F-16s, the F-35I) send the G key's

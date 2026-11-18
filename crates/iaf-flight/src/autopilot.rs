@@ -194,6 +194,16 @@ const FLARE_I_MAX: f32 = 3.0;
 /// too (the Eglin F-35A accident report); the glide path the usual 3° of an ILS (inferred: the F-16 manual gives
 /// none). modern-iaf/docs/flight-model.md §9.6.
 pub const REAL_FINAL: (f32, f32) = (13.0, 3.0);
+/// Ours, the landing circuit on Modern IAF's 6-DoF ([`ApView::circuit`], modern-iaf/docs/flight-model.md §9.6), deg:
+/// the α where the F-16's control system leaves its g command for its limiter (T.O. 1F-16A-1: "g increments per
+/// stick force for AOA below 15 degrees"): the circuit asks no more lift than the wing gives there; and the faster
+/// of the manual's two approach αs ("11 or 13 degrees AOA", T.O. GR1F-16CJ-1 figure 2-3): the gear-down legs fly no
+/// slower than its level speed, so the turn to the final has the lift of 15° over 11° α, a bank near 40°.
+pub const REAL_CIRCUIT: (f32, f32) = (15.0, 11.0);
+/// The time the circuit's path law takes to close a flight-path error on the 6-DoF, s: twice the slowest time the
+/// jet's g takes to follow a g command (63 % in 0.8–0.9 s at 450 kt, 2.0–2.3 s at 220 kt with the gear down, test
+/// `sixdof_g_follows_a_command`), which damps the loop of a path error through such a lag at 0.7.
+const PATH_TAU: f32 = 5.0;
 /// Ours, the real final's laws on the 6-DoF (swept 2026-11-16, modern-iaf/docs/flight-model.md §9.6): the path's
 /// gain, deg of flight path per m off the glide path, the same both sides (the original's 0.3 above / 0.03 below
 /// cycled ±2 m/s about the path at 150 kt); its damping, deg per deg/s of path rate (the original's 0.5); the flare's
@@ -276,6 +286,15 @@ struct Laws<'a> {
     ground: Ground<'a>,
     out: Out,
     period: Option<f64>,
+    /// The landing circuit's legs before the final on Modern IAF's 6-DoF ([`REAL_CIRCUIT`]): the path law asks the
+    /// g that closes its error over [`PATH_TAU`], the bank and that g stay inside the wing's lift, the speed law
+    /// sums its error and the gear-down legs keep the turn's speed.
+    real: Option<(f32, f32)>,
+    /// The speed law's summed error (m/s, [`Landing::thr_i`]); the last speed law's lever and error; this tick's
+    /// error, kept only when the lever sent is that law's and inside its travel (no sum while a cap holds it).
+    thr_i: f32,
+    thr_last: std::cell::Cell<Option<(f32, f32)>>,
+    thr_err: Option<f32>,
 }
 
 impl<'a> Laws<'a> {
@@ -288,6 +307,11 @@ impl<'a> Laws<'a> {
 
     /// Roll law `5c9bc0`.
     fn roll(&self, target: f32) -> f32 {
+        // The 6-DoF's circuit: no more bank than the wing holds level.
+        let target = match self.real {
+            Some((g, _)) => target.clamp(-(1.0 / g.max(1.0)).acos(), (1.0 / g.max(1.0)).acos()),
+            None => target,
+        };
         let rmax = self.v.max_roll_rate;
         let r = self.v.rates[1];
         let d = if r.abs() <= PI { r * rmax } else { 0.5 * rmax * r };
@@ -312,6 +336,13 @@ impl<'a> Laws<'a> {
     /// Pitch law A `5ca010` (pitch attitude target).
     fn pitch(&mut self, target: f32) -> f32 {
         self.clean();
+        if let Some((avail, _)) = self.real {
+            // The load factor that turns the path at e / PATH_TAU, at this bank; never a push below 0 g (inferred).
+            let v = self.v;
+            let n =
+                (v.att.pitch.cos() + v.speed / G * wrap(target - v.att.pitch) / PATH_TAU) / v.att.roll.cos().max(0.2);
+            return self.inv_g(n.clamp(0.0, avail.max(1.0)));
+        }
         let roll = self.v.att.roll;
         if (roll.abs() - PI / 2.0).abs() < 1e-5 {
             return 0.0;
@@ -368,7 +399,14 @@ impl<'a> Laws<'a> {
     fn thr_k(&self, vt: f32, k: f32, beta: f32) -> f32 {
         let (f, _, _) = self.v.att.basis();
         let a_long = (f[0] * self.v.acc[0] + f[1] * self.v.acc[1] + f[2] * self.v.acc[2]) as f32;
-        (0.7 + 0.005 * k * (vt - self.v.speed) - 0.02 * beta * a_long).clamp(0.0, 1.0)
+        let lever = |vt: f32| 0.7 + 0.005 * k * (vt - self.v.speed) - 0.02 * beta * a_long;
+        let Some((_, turn)) = self.real else { return lever(vt).clamp(0.0, 1.0) };
+        // The 6-DoF's circuit: the law's fixed 0.7 lever at no error holds the jet 30–50 kt fast, so the error is
+        // summed (0.2 /s, as the real final's) while the lever is inside its travel.
+        let vt = if self.v.gear_down { vt.max(turn) } else { vt };
+        let u = lever(vt + self.thr_i).clamp(0.0, 1.0);
+        self.thr_last.set(Some((u, vt - self.v.speed)));
+        u
     }
 
     /// Watch-ground `5ca480`: 1 = override (wings level, climb over the terrain ahead, ≥ 250 m/s throttle).
@@ -406,6 +444,7 @@ impl<'a> Laws<'a> {
     }
     fn throttle(&mut self, t: f32) {
         self.out.thr = Some(t);
+        self.thr_err = self.thr_last.take().filter(|&(u, _)| u == t && t > 0.0 && t < 1.0).map(|(_, e)| e);
     }
     fn gear(&mut self, down: bool) {
         self.out.gear = Some(down);
@@ -1466,6 +1505,8 @@ struct Landing {
     flare_i: f32,
     /// The real final's speed error summed, m/s ([`Landing::final_approach`]).
     final_i: f32,
+    /// The 6-DoF circuit's speed error summed, m/s ([`REAL_CIRCUIT`]; 0.2 /s at its 0.1 s tick).
+    thr_i: f32,
     /// The player's flare: the wheels have touched (a bounce flares to [`FLARE_SINK`] only).
     touched: bool,
 }
@@ -1849,8 +1890,19 @@ impl Autopilot {
         let vmin25 = ac.vmin(v.pos[2] as f32, 2.5);
         let vmin1 = ac.vmin(v.pos[2] as f32, 1.0);
         let cfg = self.cfg;
-        let mut l =
-            Laws { c: &cfg, v: &v, mode: self.mode, watch: self.watch, ground, out: Out::default(), period: None };
+        let mut l = Laws {
+            c: &cfg,
+            v: &v,
+            mode: self.mode,
+            watch: self.watch,
+            ground,
+            out: Out::default(),
+            period: None,
+            real: None,
+            thr_i: 0.0,
+            thr_last: Default::default(),
+            thr_err: None,
+        };
         let mut lp = std::mem::replace(&mut self.lp, Loop::None);
         let mut period = self.period;
         match &mut lp {
@@ -2004,10 +2056,15 @@ impl Autopilot {
             period = p;
         }
         let out = l.out;
+        let real = l.real.is_some();
         if !matches!(self.lp, Loop::None) {
             // A loop was replaced from inside (not used).
         } else {
             self.lp = lp;
+        }
+        // The 6-DoF's circuit ticks as the final does: a stick held for the legs' 0.2–3 s outlasts the jet's answer.
+        if real {
+            period = period.min(0.1);
         }
         self.period = period;
         self.next_tick = v.t + period;
@@ -2360,6 +2417,7 @@ impl Landing {
             flare: false,
             flare_i: 0.0,
             final_i: 0.0,
+            thr_i: 0.0,
             touched: false,
         })
     }
@@ -2409,6 +2467,12 @@ impl Landing {
         };
         let pos = l.v.pos;
         let pt = self.pts;
+        // Modern IAF's 6-DoF: the legs' own laws ([`REAL_CIRCUIT`]), and the final starts where the base turn ends,
+        // on the centreline law (as World scale Real's, `align`): CH5 ends about 1 km before the lineup, where the
+        // 3° path is 50 m up and the circuit 250–300 m.
+        l.real = l.v.circuit.filter(|_| self.step < 13);
+        l.thr_i = self.thr_i;
+        self.align |= l.real.is_some();
         let r = match leg {
             // World scale Real: CH5's pursuit of P5 is not a line capture on a runway off the axes (CH4 can leave
             // the jet 700 m off the centreline, and CH5 then flew level over the runway, so the final began
@@ -2426,6 +2490,11 @@ impl Landing {
                     Leaf::Done
                 } else {
                     change_alt(l, pt[i][2]);
+                    // ChangeAlt sends no throttle: the lever stays where CH's end left it (0.1). The 6-DoF climbs
+                    // or descends at the next leg's speed.
+                    if let (Some(_), Some(Leg::Lw(s) | Leg::Ka(_, s, _))) = (l.real, legs.get(self.step + 1)) {
+                        l.throttle(l.thr(*s));
+                    }
                     Leaf::Run
                 }
             }
@@ -2492,6 +2561,9 @@ impl Landing {
                 self.park_step(l, ap)
             }
         };
+        if l.real.is_some() {
+            self.thr_i = (self.thr_i + 0.2 * 0.1 * l.thr_err.unwrap_or(0.0)).clamp(-40.0, 40.0);
+        }
         if r == Leaf::Done {
             if !matches!(leg, Leg::Ch(..)) {
                 l.stick(0.0, 0.0);
@@ -2567,7 +2639,11 @@ impl Landing {
         };
         let bias = if v.final_speed.is_some() || along < -1000.0 { glide } else { glide * 2.0 / 3.0 };
         let kd = if v.final_speed.is_some() { REAL_FINAL_LAWS.1 } else { 0.5 };
-        let pitch_deg = -kz * above - kd * v.rates[0].to_degrees() - bias;
+        let mut pitch_deg = -kz * above - kd * v.rates[0].to_degrees() - bias;
+        // The real final is met from below in level flight: it never climbs to its path.
+        if v.final_speed.is_some() {
+            pitch_deg = pitch_deg.min(0.0);
+        }
         let y = l.pitch(pitch_deg.to_radians());
         let x = l.roll(bank);
         l.stick(y, x);

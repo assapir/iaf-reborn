@@ -147,6 +147,10 @@ pub struct SixDof {
     pub ap_landing: bool,
     /// An autopilot loop flies: its stick is a linear g command ([`SixDof::ap_view`]).
     ap_flying: bool,
+    /// While it flies, taken twice a second at the jet's weight and height (m/s): the level speeds of the two αs of
+    /// `autopilot::REAL_CIRCUIT` with the flaps and the speed brake as they are ([`ApView::circuit`]), and the real
+    /// final's speed ([`ApView::final_speed`]).
+    ap_speeds: Option<(f32, f32, f32)>,
     /// The AoA the probe gives the gauge, the indexer and the HUD, deg ([`probe_aoa`]).
     aoa_ind: f64,
     /// The trailing-edge flaps, deg down ([`jets::tef_schedule`]).
@@ -229,6 +233,7 @@ impl SixDof {
             easy_landing: false,
             ap_landing: false,
             ap_flying: false,
+            ap_speeds: None,
             aoa_ind: 0.0,
             tef: if st.airborne { 0.0 } else { jet.tef_deg },
             pivot: None,
@@ -531,6 +536,17 @@ impl SixDof {
         let (rho, _, _) = atmosphere(-b.pos.z);
         let cas_kt = flow.v * (rho / 1.225).sqrt() * 1.943844;
         self.aoa_ind = probe_aoa(self.aoa_ind, flow.alpha, cas_kt, dt);
+        if !self.ap_flying {
+            self.ap_speeds = None;
+        } else if self.ap_speeds.is_none() || (2.0 * self.t).floor() != (2.0 * (self.t - dt)).floor() {
+            let jet = self.jet.at_weight(self.mass() / LB);
+            let level = |alpha: f32| approach_speed(&jet, -b.pos.z, alpha as f64, 0.0, self.tef, self.surfaces.dsb).0;
+            let (limiter, turn) = crate::autopilot::REAL_CIRCUIT;
+            let (alpha, glide) = crate::autopilot::REAL_FINAL;
+            let dsb = self.jet.speed_brake.gear_down_deg;
+            let fin = approach_speed(&jet, -b.pos.z, alpha as f64, glide as f64, self.jet.tef_deg, dsb).0;
+            self.ap_speeds = Some((level(limiter) as f32, level(turn) as f32, fin as f32));
+        }
     }
 
     /// The indicated AoA, deg ([`probe_aoa`]).
@@ -846,12 +862,8 @@ impl SixDof {
             gear_speed_wait: p.gear_speed_wait,
             stick_centre: [0.0, 0.0, 1.0],
             lift_factor: 1.0,
-            final_speed: (self.controls.gear_down && !s.on_ground).then(|| {
-                let (alpha, glide) = crate::autopilot::REAL_FINAL;
-                let jet = self.jet.at_weight(self.mass() / LB);
-                let dsb = self.jet.speed_brake.gear_down_deg;
-                approach_speed(&jet, s.position.z, alpha as f64, glide as f64, self.jet.tef_deg, dsb).0 as f32
-            }),
+            final_speed: self.ap_speeds.filter(|_| self.controls.gear_down && !s.on_ground).map(|v| v.2),
+            circuit: self.ap_speeds.filter(|_| !s.on_ground).map(|v| ((s.speed / v.0).powi(2), v.1)),
         }
     }
 

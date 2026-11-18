@@ -284,3 +284,139 @@ fn player_autopilot_flies_the_sims_three_jets() {
         assert!(sink < 3.0, "{name}: touchdown sink {sink}");
     }
 }
+
+/// The own data's four jets, or None with a note when the sim's data is not built.
+fn own() -> Option<PathBuf> {
+    let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../assets/converted/own");
+    (dir.join("resource/md/bd.ibx").is_file() && dir.join("iaf.ibx").is_file()).then_some(dir)
+}
+
+#[test]
+fn sixdof_g_follows_a_command() {
+    // The lag the circuit's path law is made for (`autopilot::PATH_TAU` = twice the slowest): the time the 6-DoF's g
+    // takes to reach 63 % of a 0.3 g step of the autopilot's g command, at full internal fuel.
+    let Some(dir) = own() else { return println!("skipped: no assets/converted/own") };
+    for name in ["F-16", "F-16I", "F-35I", "F-15I"] {
+        let (p, e) = iaf_flight::load_with(&dir, name, DataSet::Original).unwrap();
+        for (kt, gear) in [(220.0, true), (300.0, false), (450.0, false)] {
+            let st =
+                Start { velocity: Vec3::new(0.0, kt * 0.5144, 0.0), position: Vec3::new(0.0, 0.0, 600.0), ..start() };
+            let mut fm = Fm::start(name, p.clone(), e.clone(), st);
+            fm.set_stores_trim(true);
+            let mut c = Controls { gear_down: gear, ..fm.controls() };
+            let fly = |c: Controls, fm: &mut Fm, until: &dyn Fn(f32) -> bool| {
+                (0..600).find(|_| {
+                    fm.set_controls(c);
+                    fm.step(1.0 / 60.0);
+                    until(fm.state().g)
+                })
+            };
+            fly(c, &mut fm, &|_| false);
+            let g0 = fm.state().g;
+            c.stick_y = 0.3 / (fm.ap_view().max_g - 1.0);
+            let t63 = fly(c, &mut fm, &|g| g - g0 >= 0.63 * 0.3).map(|i| i as f32 / 60.0);
+            println!("{name} {kt} kt, gear down {gear}: 63 % of the g step in {t63:?} s");
+            assert!(t63.is_some_and(|t| (0.5..=2.5).contains(&t)), "{name} {kt}: {t63:?}");
+        }
+    }
+}
+
+#[test]
+fn landing_circuit_on_the_sixdof() {
+    // The autopilot's landing circuit (NAV to a landing waypoint, GoHomeCL) on the 6-DoF's four jets at Ramat David
+    // (the own iaf.ibx, and the 1998 game's with its three modern jets), calm: at a landing weight (30 % of the
+    // internal fuel) from 55 km out at 2,000 m, at full internal fuel from 3 km out at 300 m, and at full fuel with 3 t
+    // of stores (drag index 60 a side). Each lands on the runway and stops on it; the first two touch at less than the
+    // gear's design sink of 10 ft/s (3.05 m/s, docs/damage.md §5.2), no faster than its final's speed (13° α at its
+    // weight) and, at the landing weight, under the 15° of the tail strike (`aircraft::landing_limits`). Before: 12 of
+    // a 24-flight sweep (these weights, entries from 55 km at 2,000 m and 20 km at 300 m) crashed (the Sufa at full
+    // fuel on the final at 22 m/s, the Adir in CH1's 80° bank in a deep stall at α 43–50°).
+    use iaf_flight::airbase::Airbase;
+    use iaf_flight::autopilot::{Autopilot, Config, Waypoint};
+    let Some(dir) = own() else { return println!("skipped: no assets/converted/own") };
+    // Modern IAF: its own bases and the default laws; runway 09/27 is 2,934 m by 44 m (`data/real_runways.csv`) and
+    // the lineup stands 100 m past its start (`sim_bases::LINEUP_IN_M`). The 1998 game with Physics "Flight model" on
+    // 6-DoF (docs/deviations.md §2): the player's modern jet on the same 6-DoF data, the install's bases and
+    // [Autopilot]; its runway 27 starts 672 m behind the lineup and ends 3,592 m past it (`autopilot.rs` RD_ENDS).
+    // Each world: (name, iaf.ibx, the laws, the jets, the runway's start and end from the lineup in m).
+    let all = &["F-16", "F-16I", "F-35I", "F-15I"][..];
+    let mut worlds = vec![("Modern IAF", dir.join("iaf.ibx"), Config::default(), all, (-100.0, 2834.0))];
+    match install() {
+        Some(i) => worlds.push(("1998", i.join("iaf.ibx"), Config::load(&i), &all[1..], (-672.0, 3592.0))),
+        None => println!("the 1998 game's bases skipped: no assets/install"),
+    }
+    for (world, ibx, cfg, names, runway) in worlds {
+        let bases = Airbase::load_all(&std::fs::read(ibx).unwrap());
+        let rd = bases.iter().find(|b| b.name == "David").unwrap().clone();
+        let z = rd.lineup[2] as f64;
+        let (rs, rc) = (rd.runway_deg as f64).to_radians().sin_cos();
+        // (fuel share, stores kg, their ΔCD a side, start height above the field m, speed m/s, km west of the waypoint)
+        let cases = [
+            (0.3, 0.0, 0.0, 2000.0, 180.0, 55.0),
+            (1.0, 0.0, 0.0, 300.0, 130.0, 3.0),
+            (1.0, 3000.0, 0.006, 2000.0, 180.0, 55.0),
+        ];
+        for name in names {
+            let (p, e) = iaf_flight::load_with(&dir, name, DataSet::Original).unwrap();
+            let name = &format!("{world} {name}");
+            for (ci, &(fuel, stores, dcd, h0, v0, west)) in cases.iter().enumerate() {
+                let home =
+                    Waypoint { x: rd.lineup[0] as f64 - 15000.0, y: rd.lineup[1] as f64, z: z + h0, t: 0.0, action: 7 };
+                let st = Start {
+                    position: Vec3::new(home.x - west * 1000.0, home.y + 5000.0, z + h0),
+                    heading: 90f32.to_radians(),
+                    velocity: Vec3::new(v0, 0.0, 0.0),
+                    ..start()
+                };
+                let mut fm = Fm::start(name.rsplit(' ').next().unwrap(), p.clone(), e.clone(), st);
+                let Fm::SixDof(s) = &mut fm else { panic!("{name}: the 6-DoF") };
+                s.set_fuel(s.fuel_capacity_kg() * fuel);
+                s.set_stores(stores, dcd, dcd);
+                let mass = s.mass();
+                let mut ap = Autopilot::new(cfg);
+                ap.bases = bases.clone();
+                ap.route = vec![home];
+                ap.player_flare = true;
+                ap.player_mode(&mut fm, 2, 0);
+                // At the touchdown: (speed kt, sink m/s, pitch deg, m along the runway from the lineup); the final's speed.
+                let (mut last, mut touch, mut final_kt, mut stop) = ((0.0, 0.0, 0.0), None, 0.0, None);
+                let on_runway = |p: Vec3| {
+                    let (dx, dy) = (p.x - rd.lineup[0] as f64, p.y - rd.lineup[1] as f64);
+                    (dx * rs + dy * rc, dx * rc - dy * rs)
+                };
+                for _ in 0..1500 * 60 {
+                    let landing = ap.stage().starts_with("landing");
+                    if let Fm::SixDof(s) = &mut fm {
+                        s.set_ground_height(z as f32);
+                        s.ap_landing = landing;
+                    }
+                    ap.step(&mut fm, &|_: f64, _: f64| z as f32);
+                    fm.step(1.0 / 60.0);
+                    let s = fm.state();
+                    assert!(s.crashed.is_none(), "{name} case {ci}: crashed ({:?}) in {}", s.crashed, ap.stage());
+                    if touch.is_none() && s.on_ground {
+                        touch = Some((last.0, last.1, last.2, on_runway(s.position).0));
+                    } else if touch.is_none() {
+                        last = (s.speed * 1.943_844, -s.velocity[2], s.pitch.to_degrees());
+                        final_kt = fm.ap_view().final_speed.map_or(final_kt, |v| v * 1.943_844);
+                    } else if s.speed < 2.0 {
+                        stop = Some(on_runway(s.position));
+                        break;
+                    }
+                }
+                let (kt, sink, pitch, at) = touch.unwrap_or_else(|| panic!("{name} case {ci}: touched down"));
+                let (along, cross) = stop.unwrap_or_else(|| panic!("{name} case {ci}: stopped"));
+                println!(
+                    "{name} case {ci} ({mass:.0} kg): touchdown {kt:.0} kt (final {final_kt:.0}), sink {sink:.2} m/s, pitch \
+                 {pitch:.1}°, {at:.0} m past the lineup; stopped at {along:.0} m, {cross:.1} m off the centreline"
+                );
+                // With 3 t of stores (case 2) the flare can float the heavy Adir: it is held to the runway only.
+                assert!(ci == 2 || sink < 3.05, "{name} case {ci}: sink {sink}");
+                assert!(kt <= final_kt, "{name} case {ci}: {kt} kt, final {final_kt}");
+                assert!(ci != 0 || pitch < 15.0, "{name} case {ci}: pitch {pitch}");
+                let on = at > runway.0 && along < runway.1 && cross.abs() < 22.0;
+                assert!(on, "{name} case {ci}: {at} {along} {cross}");
+            }
+        }
+    }
+}

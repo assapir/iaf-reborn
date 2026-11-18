@@ -724,8 +724,8 @@ first runs found that BEFORE LANDING never opened in the air: the rule read a he
 state, which holds none; `card.gd` now takes the ground under the jet from the terrain. With that mended, one dip
 after the take-off opened it for the rest of the flight; a climb above 3,000 ft closes it again. Tried and dropped
 (2026-11-18): the autopilot's NAV to a landing waypoint as the test's pilot. With the Sufa it slowed to 151 kt at idle
-with the gear up and sank into the ground at "landing step 5" (the 1998 landing circuit with the 6-DoF jets is open,
-[status.md](status.md)).
+with the gear up and sank into the ground at "landing step 5" (the 1998 landing circuit lands the 6-DoF jets since
+2026-11-18, [flight-model.md](flight-model.md) §9.6; the test keeps its own pilot).
 
 [^ins]: F-16.net forum, "INS alignment time and time to takeoff from cold start" (a normal alignment about 8 minutes, a stored-heading alignment about 90 s), https://www.f-16.net/forum/viewtopic.php?p=7943; Eagle Dynamics forum, "What is the difference between stored INS align and normal INS align in the F-16C Viper", https://forum.dcs.world/topic/267433-what-is-the-difference-between-stored-ins-align-and-normal-ins-align-in-the-f-16c-viper (both weak: forums)
 [^w-f16]: Wikipedia, "General Dynamics F-16 Fighting Falcon", Specifications (F-16C Block 50 / 52): empty weight 18,900 lb (8,573 kg), https://en.wikipedia.org/wiki/General_Dynamics_F-16_Fighting_Falcon
