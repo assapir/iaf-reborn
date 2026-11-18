@@ -66,18 +66,31 @@ var pitch_min := HEAD_PITCH_MIN
 const HEAD_PITCH_MIN_3D := -1.0471976  # −60°
 ## Ours, the 3D cockpit: the head moved off the seat's eye by the lean keys (Modern IAF's keys.json, command 204: Shift
 ## + arrows lean left / right / forward / back, Shift + Page Up / Page Down raise / lower the head), m in the jet's
-## frame (x right, y up, z aft), held within LEAN_MIN..LEAN_MAX (a strapped-in pilot's reach of the head, inferred: 0.2
-## m aside took the eye out over the open canopy's sill, the console seen through the fuselage's side) and short of the
-## cockpit's surfaces (terrain_view.gd _lean_off: the canopy, the sill, the seat, the panel). The user, 2026-11-15:
-## "can't zoom in to see things under the throttle": leaning over the left console shows its panels past the throttle
-## and the glove. Back to the seat's eye with the head (set_cockpit: Look forward, the right button's double click).
+## frame (x right, y up, z aft). While a key is held the head eases to that side's LEAN_MIN / LEAN_MAX in about LEAN_S
+## and back to the seat's eye on the release (the user, 2026-11-18: "have a lean button"; until then the keys moved it
+## at 0.3 m/s within 15 cm aside, 30 cm forward, 10 cm back, 10 cm up and 15 cm down, and it stayed where the release
+## left it). 6 cm aside shows the F-16s' MFD buttons that stand behind the ICP's lower corners
+## (modern-iaf/docs/cockpit.md "The MFDs from the seat"). Forward held longer than LEAN_FAR_AFTER goes on at
+## LEAN_FAR_SPEED to lean_forward's far end: with the head down, the F-16's MAX POWER switch behind the throttle's
+## grip (the user, 2026-11-15: "can't zoom in to see things under the throttle"). Held short of the cockpit's surfaces
+## (terrain_view.gd _lean_off).
 var lean := Vector3.ZERO
-const LEAN_MIN := Vector3(-0.15, -0.15, -0.3)
-const LEAN_MAX := Vector3(0.15, 0.1, 0.1)
-## The lean's speed while a lean key is held, and back to the seat's eye (m/s; inferred: about a second across).
-const LEAN_SPEED := 0.3
+const LEAN_MIN := Vector3(-0.06, -0.15, -0.1)
+const LEAN_MAX := Vector3(0.06, 0.1, 0.1)
+const LEAN_S := 0.2
+const LEAN_FAR_AFTER := 0.8
+const LEAN_FAR_SPEED := 0.3
+## The forward lean's first stop and far end (m, z aft): the cockpit's own where its model's data has them
+## (<model>.json "lean_forward"; the F-35I's display stands close under the eye).
+const LEAN_FORWARD := Vector2(-0.1, -0.3)
+var lean_forward := LEAN_FORWARD
+## A lean held in place of the keys' (the tests, the picture helpers), there at once; null: the keys', from the seat.
+var lean_to = null:
+	set(v):
+		lean_to = v
+		lean = v if v != null else Vector3.ZERO
 var _lean_keys := Vector3.ZERO  # −1, 0 or 1 per axis while its key is held
-var _lean_home := false  # easing back to the seat's eye
+var _lean_fwd_s := 0.0  # how long the forward key is held
 ## Slot 2: the snap view's head while its key is held (null = slot 0).
 var snap = null
 var _ret: Dictionary = {}  # head return to (0, 0) (FUN_0057fa10): from, t0, dur
@@ -135,31 +148,33 @@ func set_cockpit(t: int) -> void:
 	type = t
 	pos_mode = Pos.JET
 	target = null
-	_lean_home = true
 	_lean_keys = Vector3.ZERO
 
 
 ## Command 204 (ours, the 3D cockpit): a lean key's press (`way` −1 / 1 along `axis`: 0 x, 1 y, 2 z) or release (0).
 func lean_key(axis: int, way: int) -> void:
-	if axis < 0 or axis > 2:
-		return
-	_lean_keys[axis] = clampi(way, -1, 1)
-	if way != 0:
-		_lean_home = false
+	if axis >= 0 and axis <= 2:
+		_lean_keys[axis] = clampi(way, -1, 1)
 
 
-## True while a lean key moves the head along `axis`.
+## True while a lean key holds the head along `axis`.
 func lean_moving(axis: int) -> bool:
 	return _lean_keys[axis] != 0
 
 
-## The lean after `dt` s: along the held keys within the limits, or eased back to the seat's eye.
+## The lean after `dt` s: 95 % of the way to the held keys' side in LEAN_S (the seat's eye with none held), the last
+## half millimetre at once.
 func _update_lean(dt: float) -> void:
-	if _lean_home:
-		lean = lean.move_toward(Vector3.ZERO, LEAN_SPEED * dt)
-		_lean_home = lean != Vector3.ZERO
-	else:
-		lean = (lean + _lean_keys * LEAN_SPEED * dt).clamp(LEAN_MIN, LEAN_MAX)
+	var to := Vector3.ZERO
+	for axis in 3:
+		to[axis] = LEAN_MIN[axis] if _lean_keys[axis] < 0.0 else (LEAN_MAX[axis] if _lean_keys[axis] > 0.0 else 0.0)
+	_lean_fwd_s = _lean_fwd_s + dt if _lean_keys.z < 0.0 else 0.0
+	if _lean_keys.z < 0.0:
+		var far := maxf(_lean_fwd_s - LEAN_FAR_AFTER, 0.0) * LEAN_FAR_SPEED
+		to.z = maxf(lean_forward.x - far, minf(lean_forward.x, lean_forward.y))
+	if lean_to != null:
+		to = lean_to
+	lean = to if lean.distance_to(to) < 0.0005 else lean.lerp(to, 1.0 - exp(-3.0 * dt / LEAN_S))
 
 
 ## FUN_005808c0: the orbit / path-follow camera on `ent`: offs = {x, y, z, pitch, ·, heading}, `scale` for
@@ -270,6 +285,20 @@ func pan(cmd: int, down: bool) -> void:
 			_pan_rate.x = PAN_RATE * sign
 		elif axis == 0:
 			_pan_rate.y = PAN_RATE * sign
+
+
+## Ours, the full MFD view's end (terrain_view.gd _mfd_step): the head at `h`, any pan or return dropped.
+func set_head(h: Vector2) -> void:
+	_ret = {}
+	_pan_rate = Vector2.ZERO
+	_pan_from = h
+	_pan_t0 = now
+	head = h
+
+
+## The head a return to straight ahead (set_cockpit) is on its way to, else where it is.
+func head_goal() -> Vector2:
+	return head if _ret.is_empty() else Vector2.ZERO
 
 
 ## Ours (Settings.cockpit_mouse_look): the mouse turns the head by `d` (rad: yaw right +, pitch up +) in free look,

@@ -210,14 +210,14 @@ func _c4b(tv: Node, c3d: Node, ctl: Node, id: String) -> void:
 		c3d.switches[r.prop] = lo  # at rest while seen (a pressed button sinks into its bezel)
 		var seen := Vector3.INF
 		for lean in [Vector3.ZERO] + Array(Shot.LEANS):
-			tv.views.lean = lean
+			tv.views.lean_to = lean
 			var at: Vector2 = await _aim(tv, mi)
 			if Shot.first_hit(meshes, c3d.camera.global_position, mi) in parts:  # ADV MODE's legends on its button
 				var hit = ctl.at(at)
 				if hit != null and hit[0] in parts:
 					seen = lean
 					break
-		tv.views.lean = Vector3.ZERO
+		tv.views.lean_to = null
 		check(seen != Vector3.INF, "%s: %s seen and clicked (from the lean %s)" % [id, name, seen])
 		if was == null:
 			c3d.switches.erase(r.prop)

@@ -507,9 +507,18 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   it jumps for a sec when starting the first training", "also moving the view doing white flashs"):** the sharp
   layer's exposure grey is solid geometry that holds still, so the Mac's temporal upscaler keeps it whole; the cockpit
   is sharp with Upscaling again (2026-11-18, [cockpit.md](cockpit.md) §6.3). `_cockpit_flash_shot.gd` (real render).
+- **One lean control and the full MFD view (2026-11-18, the user: "Ok hud is more important. So have a lean button +
+  full MFD view", "Why need lean in arrows and also in other keys?"; approved):** Shift + arrows / Page Up / Page Down
+  held lean the head (6 cm aside, 10 cm forward and on to 30 cm, the F-35I 2 cm) and the release brings it back
+  (records 126–131, command 204); Shift + N / M show the left / right MFD close up with every push button on the
+  screen, the F-35I's panoramic display from either key, and the same key or Esc goes back (records 198 / 199,
+  command 207). From the seat the F-16s' two top inboard buttons of each MFD and the right MFD's GAIN rocker stay
+  behind the ICP's corners, as in the real jet; the lean and the full view show and click them
+  ([cockpit.md](cockpit.md) §2, "The MFDs from the seat"). `test_mfd_buttons_seen.gd`, `test_cockpit_view.gd`.
+  Owed: the real-window run of the test on the Mac.
 - **Zoom toward the pointer and the lean (2026-11-15, the user's Mac play: "can't zoom in to see things under the
   throttle"):** the wheel zooms the 3D cockpit toward the point under the pointer; Shift + arrows / Page Up / Page Down
-  lean the head (records 126–131, command 204) within a strapped-in pilot's reach and short of the cockpit's surfaces,
+  lean the head (records 126–131, command 204; held since 2026-11-18, the entry above) short of the cockpit's surfaces,
   the pilot's body hidden while leaning, so the ELEC panel under the left glove, the consoles and the lower pedestal
   show close up; a switch under the pointer leaves the wheel to the zoom ([cockpit.md](cockpit.md) §2).
   `test_cockpit_view.gd`.

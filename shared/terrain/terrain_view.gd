@@ -2351,6 +2351,7 @@ func _apply_view() -> void:
 		# position (type 0x15, +600 m) and go back to the cockpit 6 s later.
 		_followed_destroyed()
 		pose = views.external_pose(dt)
+	_mfd_step(dt / Engine.time_scale if Engine.time_scale > 0.0 else 0.0)  # in real time, as the lean
 	cockpit.view_mode = 0 if views.cockpit_drawn() else (1 if views.hud_only() else 2)
 	cockpit.head = views.head_angles() if views.cockpit_drawn() else Vector2.ZERO
 	cockpit.visible = fs_mfd == null
@@ -2691,19 +2692,74 @@ func _toggle_gear() -> void:
 
 
 ## Ours, the 3D cockpit: the lean (views.gd lean, m in the jet's frame) from the eye at `eye` (the cockpit-view model's
-## frame), cut short of the cockpit's surfaces (cockpit3d.gd lean_clear; what is cut is dropped from the lean, so a key
-## held against the canopy stops there); the pilot's body hidden while leaning.
+## frame), cut short of the cockpit's surfaces (cockpit3d.gd lean_clear), then the way to the full MFD view's eye
+## (_mfd_step); the pilot's body hidden while the eye is off the seat.
 func _lean_off(eye: Vector3) -> Vector3:
 	if cockpit_3d == null:
 		return Vector3.ZERO
+	var fwd: Array = cockpit_3d.meta.get("lean_forward", [])
+	views.lean_forward = Vector2(fwd[0], fwd[1]) if fwd.size() == 2 else views.LEAN_FORWARD
 	# A lean key let go after its Shift reads as another key's release (or none): an axis whose keys are all up stops.
 	for axis in 3 if not _lean_keys.is_empty() else 0:  # no lean records: the command alone moves it (a test)
 		if views.lean_moving(axis) and not _lean_keys.any(func(i): return _lean_axis(i) == axis and _held_key(i)):
 			views.lean_key(axis, 0)
-	if views.lean != Vector3.ZERO:
-		views.lean *= cockpit_3d.lean_clear(eye, eye + views.lean)
-	cockpit_3d.show_body(views.lean.length() < 0.01)
-	return views.lean
+	var off: Vector3 = views.lean
+	if off != Vector3.ZERO:
+		off *= cockpit_3d.lean_clear(eye, eye + off)
+	if _mfd_t > 0.0:
+		off = off.lerp(_mfd_pose[0] - eye, smoothstep(0.0, 1.0, _mfd_t))
+	cockpit_3d.show_body(off.length() < 0.01)
+	return off
+
+
+## Ours, the full MFD view (Modern IAF's keys.json, command 207: Shift + N the left display, Shift + M the right one;
+## the user, 2026-11-18: "have a lean button + full MFD view"): the eye MFD_VIEW_M out on display `mfd_view`'s normal
+## (cockpit3d.gd display_frame), looking at its centre, the focal length such that the display with its push buttons
+## fills MFD_VIEW_FILL of the screen's width or height; eased there and back in MFD_VIEW_S. The same key, Esc or a
+## view that leaves the cockpit ends it. The jet flies on and every other key works as from the seat.
+const MFD_VIEW_M := 0.4
+const MFD_VIEW_FILL := 0.9
+const MFD_VIEW_S := 0.25
+var mfd_view := -1  # the display seen close up: 0 left, 1 right
+var _mfd_t := 0.0  # 0 the seat .. 1 the close-up
+var _mfd_pose := []  # [eye (the cockpit-view model's frame), head (views.gd head), focal length (px)]
+var _mfd_head := Vector2.ZERO  # the head to go back to
+
+
+## Command 207: display `i` close up, or back to the seat from it.
+func mfd_view_key(i: int) -> void:
+	var d: Array = cockpit_3d.display_frame(i) if cockpit_3d != null and views.cockpit_drawn() else []
+	if d.is_empty() or mfd_view == i:
+		mfd_view = -1
+		return
+	var focal: float = MFD_VIEW_FILL * MFD_VIEW_M * minf(cockpit.size.x / d[2], cockpit.size.y / d[3]) / 2.0
+	var n: Vector3 = d[1]
+	# The view's axis meets the screen at the projection's centre (_apply_view): the head aims that far off the
+	# display's centre, so the display sits in the screen's middle.
+	var dy: float = cockpit.projection_centre().y - cockpit.size.y / 2.0
+	var pitch := asin(-n.y) + deg_to_rad(cockpit.VIEW_3D_LOOK_DOWN_DEG) - atan(dy / focal)
+	if mfd_view < 0 and _mfd_t == 0.0:
+		_mfd_head = views.head_goal()
+	# ponytail: from one display straight to the other the view cuts; ease between the two if that reads badly.
+	_mfd_pose = [d[0] + n * MFD_VIEW_M, Vector2(atan2(-n.x, n.z), pitch), focal]
+	mfd_view = i
+
+
+## The full MFD view's step: the head and the focal length on their way (the eye's: _lean_off).
+func _mfd_step(dt: float) -> void:
+	if _mfd_t == 0.0 and mfd_view < 0:
+		return
+	var inside: bool = cockpit_3d != null and views.cockpit_drawn()
+	if not inside:
+		mfd_view = -1
+	_mfd_t = move_toward(_mfd_t, 1.0 if mfd_view >= 0 else 0.0, dt / MFD_VIEW_S) if inside else 0.0
+	var s := smoothstep(0.0, 1.0, _mfd_t)
+	var seat: float = cockpit.view_3d_focal(true)
+	if _mfd_t > 0.0:
+		views.head = _mfd_head.lerp(_mfd_pose[1], s)
+	else:
+		views.set_head(_mfd_head)  # a mouse look made in the close-up is dropped with it
+	cockpit.focal_3d = seat * pow(_mfd_pose[2] / seat, s) if _mfd_t > 0.0 else 0.0
 
 
 ## The key table's lean records (command 204), found once.
@@ -2727,6 +2783,8 @@ func _held_key(i: int) -> bool:
 ## pointer `at` (viewport px) under it, the head turning toward it as the view narrows (the user, 2026-11-15: "can't
 ## zoom in to see things under the throttle"), as an image viewer zooms; the keys zoom about the view's centre.
 func _zoom_cockpit(step: float, at = null) -> void:
+	if mfd_view >= 0 or _mfd_t > 0.0:
+		return  # the full MFD view has its own focal length; the seat's zoom is kept for the way back
 	var ray := Vector3.ZERO
 	if (
 		at != null
@@ -2832,6 +2890,9 @@ func _unhandled_input(event: InputEvent) -> void:
 ## A record's press command from a key or a joystick button; false for the commands not implemented yet.
 func _press(cmd: Array) -> bool:
 	# The flight window's own commands (CFlightWnd::OnGameEvent 0x4dc280): Esc, Ctrl+P, Ctrl+O.
+	if int(cmd[0]) == 122 and mfd_view >= 0 and not paused and not menu_open and _msgbox == null:
+		mfd_view = -1  # Esc: back from the full MFD view to the seat
+		return true
 	if window_key(int(cmd[0])):
 		return true
 	if (ejected or fatal_hit) and not int(cmd[0]) in [18, 20, 21, 28, 134]:
@@ -3047,8 +3108,11 @@ func _command(cmd: Array) -> bool:
 					cockpit_3d.body_held = true
 		204:
 			# Ours, the 3D cockpit's lean (Modern IAF's keys.json, Shift + arrows / Page Up / Page Down): p1 the axis
-			# (0 right, 1 up, 2 aft), p2 the way (views.gd lean_key); the release stops it (_release_command).
+			# (0 right, 1 up, 2 aft), p2 the way (views.gd lean_key); the release brings the head back (_release_command).
 			views.lean_key(p1, int(cmd[2]))
+		207:
+			# Ours, the full MFD view (Shift + N / M): p1 the display, 0 left, 1 right (mfd_view_key).
+			mfd_view_key(p1)
 		221, 222, 223, 224, 225, 226, 227:
 			# Ours, the real F-16 FCR's keys (Modern IAF's keys.json; docs/radar.md §9.4): 221 the TMS (p1 0 up, 1 down,
 			# 2 right, 3 left), 222 OSB 2's submode, 223 / 224 the azimuth scan / bars, 225 the antenna elevation (p2 the

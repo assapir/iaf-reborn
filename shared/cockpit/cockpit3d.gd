@@ -784,6 +784,47 @@ func _uv(entry: Array, world: Vector3) -> Vector2:
 	return Vector2(a, b)
 
 
+## Ours, the full MFD view (terrain_view.gd _mfd_step): display `i` (0 the left MFD, 1 the right one; the panoramic
+## display for both) with its push buttons, in the cockpit-view model's frame (this node's parent's): [centre, normal
+## toward the seat, half its width, half its height] (m); [] with no such display.
+func display_frame(i: int) -> Array:
+	var e := _pcd
+	if e.is_empty():
+		var by_x := _screens.duplicate()
+		by_x.sort_custom(func(a, b): return _centre_l(a).x < _centre_l(b).x)
+		if i < 0 or i >= by_x.size():
+			return []
+		e = by_x[i]
+	var box := Rect2(0, 0, 1, 1)
+	for osb in e[6] if e.size() > 6 else {}:
+		box = box.expand(e[6][osb] / Mfd.SIZE)
+	box = box.grow(DISPLAY_EDGE)
+	var t := _to_top(e[2])
+	var u: Vector3 = t.basis * e[4]
+	var v: Vector3 = t.basis * e[5]
+	var n := u.cross(v).normalized()
+	var c := box.get_center()
+	return [
+		t * (e[3] + e[4] * c.x + e[5] * c.y),
+		n if n.z > 0.0 else -n,  # the seat is aft of every display
+		u.length() * box.size.x / 2.0,
+		v.length() * box.size.y / 2.0
+	]
+
+
+## A display's rim past its outermost push buttons' centres (their caps, the rockers at the corners), of its screen.
+const DISPLAY_EDGE := 0.08
+
+
+func _to_top(n: Node3D) -> Transform3D:
+	var top: Node3D = get_parent() if get_parent() is Node3D else self
+	return top.global_transform.affine_inverse() * n.global_transform
+
+
+func _centre_l(e: Array) -> Vector3:
+	return _to_top(e[2]) * (e[3] + e[4] * 0.5 + e[5] * 0.5)
+
+
 ## The MFD nodes back on the 2D panel (the jet changed): they outlive this node.
 func release() -> void:
 	for e in _screens:

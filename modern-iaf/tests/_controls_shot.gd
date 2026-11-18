@@ -18,17 +18,18 @@ extends "res://tests/_switch_shot.gd"
 const TILE := 180
 ## The least view round a part (px at 1920 x 1080).
 const MIN_VIEW := 140.0
-## The heads leaned (views.gd `lean`, m: x right, y up, z aft; within its LEAN_MIN..LEAN_MAX) a hidden or pressed
-## part is pictured from, nearest first.
+## The heads leaned (views.gd `lean`, m: x right, y up, z aft; what the lean keys reach: LEAN_MIN..LEAN_MAX, forward
+## to its far end) a hidden or pressed part is pictured from, nearest first.
 const LEANS: Array[Vector3] = [
-	Vector3(-0.1, 0.0, 0.0),
-	Vector3(0.1, 0.0, 0.0),
-	Vector3(-0.15, -0.05, 0.0),
-	Vector3(0.15, -0.05, 0.0),
-	Vector3(-0.1, -0.1, -0.2),
-	Vector3(0.1, -0.1, -0.2),
-	Vector3(-0.15, -0.15, -0.3),
-	Vector3(0.15, -0.15, -0.3),
+	Vector3(-0.06, 0.0, 0.0),
+	Vector3(0.06, 0.0, 0.0),
+	Vector3(-0.06, -0.15, 0.0),
+	Vector3(0.06, -0.15, 0.0),
+	Vector3(-0.06, -0.15, -0.1),
+	Vector3(0.06, -0.15, -0.1),
+	Vector3(0.0, -0.15, -0.1),
+	Vector3(-0.06, -0.15, -0.3),
+	Vector3(0.06, -0.15, -0.3),
 	Vector3(0.0, -0.15, -0.3),
 ]
 ## A crop differs where more than this share of its pixels changed (at least DIFF_MIN of them).
@@ -76,14 +77,14 @@ func run() -> void:
 			var moved := await _pictures(tv, e[0], r, vals, out.path_join(tag))
 			if not moved:
 				for lean in LEANS:
-					tv.views.lean = lean
+					tv.views.lean_to = lean
 					await frames(3)
 					if await _seen(tv, e[0], r):
 						moved = await _pictures(tv, e[0], r, vals, out.path_join(tag))
 						if moved:
 							print("LEAN %s %s %s" % [unit, e[0].name, tv.views.lean])
 							break
-			tv.views.lean = Vector3.ZERO
+			tv.views.lean_to = null
 			if not moved:
 				print("STILL %s %s" % [unit, e[0].name])
 		var f := FileAccess.open(out.path_join("index.txt"), FileAccess.WRITE)

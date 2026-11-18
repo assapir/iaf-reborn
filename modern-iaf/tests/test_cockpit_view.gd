@@ -4,8 +4,8 @@
 # Sufa's: the Mac play test's P1 of 2026-11-11). The wheel: each step up narrows the view to the narrow end and stops
 # there; a step the other way within the scroll is dropped (macOS's end-of-scroll and momentum events), after a pause it
 # zooms out; the trackpad's pan zooms the same way. The wheel zooms toward the pointer: the cockpit's point under it
-# stays under it. The lean keys (command 204) move the eye within the lean's limits, the release stops it, Look forward
-# brings it back to the seat. The F-16s' pilot body: the right glove on the stick's grip.
+# stays under it. The lean keys (command 204), held, ease the eye to their side, the release brings it back to the
+# seat. The F-16s' pilot body: the right glove on the stick's grip.
 #   IAF_DEFAULT_SETTINGS=1 godot --headless --audio-driver Dummy --path modern-iaf \
 #     -s ../modern-iaf/tests/test_cockpit_view.gd --log-file <temp>
 extends "res://../tests/godot/base.gd"
@@ -159,8 +159,9 @@ func _zoom_at_pointer(tv: Node) -> void:
 	await frames(30)
 
 
-## The lean keys: left held 1.5 s leans and stops short of the canopy's side (the eye LEAN_MARGIN off every surface),
-## the pilot's body hidden; the release holds it; Look forward eases back to the seat, the body shown again.
+## The lean keys (held: the head eases to that side and back on the release): Shift + Left to LEAN_MIN.x, the pilot's
+## body hidden; Shift let go before the arrow still brings it back; forward goes to its first stop, then on to its far
+## end (the F-35I's: 2 cm for both); the eye stays LEAN_MARGIN off every surface.
 func _lean(tv: Node, jet: String) -> void:
 	var v = tv.views
 	var c3d = tv.cockpit_3d
@@ -171,24 +172,17 @@ func _lean(tv: Node, jet: String) -> void:
 				{"press": [204, r[1], r[2]], "release": [204, r[1], 0], "dik": r[0], "modifiers": 0x22, "joystick": -1}
 			)
 		tv._lean_rec = []
-	# Held as the keys are (Shift + Left): an axis whose keys are all up stops.
 	_hold(KEY_SHIFT, true, false)
 	_hold(KEY_LEFT, true, true)
 	tv._press([204, 0, -1])
-	await create_timer(1.5).timeout
-	var x: float = v.lean.x
-	await create_timer(0.3).timeout
-	check(x < -0.04 and v.lean.x == x, "%s: Shift + Left leans and stops (%.3f, %.3f)" % [jet, x, v.lean.x])
+	await create_timer(0.6).timeout
+	check(is_equal_approx(v.lean.x, v.LEAN_MIN.x), "%s: Shift + Left held: the head 6 cm left (%.3f)" % [jet, v.lean.x])
 	check(
 		tv.own_bc.position.x > at0.x + 0.03, "%s: the cockpit moves right of the eye (%s)" % [jet, tv.own_bc.position]
 	)
-	var eye: Vector3 = c3d.get_parent().global_transform.affine_inverse() * c3d.camera.global_position
-	check(
-		v.lean.x <= v.LEAN_MIN.x + 0.001 or c3d.lean_clear(eye, eye + Vector3.LEFT * 0.01) < 1.0,
-		"%s: stopped at the lean's limit or a surface's margin (%.3f)" % [jet, v.lean.x]
-	)
 	check(c3d.pilot_body == null or not c3d.pilot_body.visible, "%s: the pilot's body hidden while leaning" % jet)
-	# The test's cost (a lean key held: one call a frame): printed for the record.
+	# The test's cost (a lean on its way: one call a frame): printed for the record.
+	var eye: Vector3 = c3d.get_parent().global_transform.affine_inverse() * c3d.camera.global_position
 	c3d._clear_for = [Vector3.INF, Vector3.INF, 1.0]
 	var t0 := Time.get_ticks_usec()
 	c3d.lean_clear(eye, eye + Vector3(-0.1, -0.05, -0.2))
@@ -205,32 +199,38 @@ func _lean(tv: Node, jet: String) -> void:
 	tv._release_command([204, 0, 0])
 	_hold(KEY_LEFT, false, true)
 	_hold(KEY_SHIFT, false, false)
-	# Shift let go before the arrow: the arrow's release reads as Left's (the roll), and the lean still stops.
+	await create_timer(0.6).timeout
+	check(v.lean == Vector3.ZERO, "%s: the release: back at the seat's eye (%s)" % [jet, v.lean])
+	check(c3d.pilot_body == null or c3d.pilot_body.visible, "%s: the pilot's body back" % jet)
+	# Shift let go before the arrow: the arrow's release reads as Right's (the roll), and the head still comes back.
 	_hold(KEY_SHIFT, true, false)
 	_hold(KEY_RIGHT, true, true)
 	tv._press([204, 0, 1])
-	await frames(10)
-	_hold(KEY_SHIFT, false, false)
-	await frames(2)
+	await create_timer(0.4).timeout
 	var x2: float = v.lean.x
-	await frames(10)
-	check(v.lean.x == x2, "%s: Shift up first: the lean stops (%.3f, %.3f)" % [jet, x2, v.lean.x])
+	_hold(KEY_SHIFT, false, false)
+	await create_timer(0.6).timeout
+	check(x2 > 0.05 and v.lean == Vector3.ZERO, "%s: Shift up first: back at the seat (%.3f, %s)" % [jet, x2, v.lean])
 	_hold(KEY_RIGHT, false, false)
+	# Forward: the first stop, then on to the far end.
 	_hold(KEY_SHIFT, true, false)
 	_hold(KEY_UP, true, true)
 	tv._press([204, 2, -1])
-	await create_timer(0.3).timeout
+	await create_timer(0.6).timeout
+	var stop: float = v.lean.z
+	await create_timer(1.2).timeout
+	var far: float = v.lean.z
 	tv._release_command([204, 2, 0])
 	_hold(KEY_UP, false, true)
 	_hold(KEY_SHIFT, false, false)
-	var held: Vector3 = v.lean
-	await create_timer(0.3).timeout
-	check(held.z < -0.05 and v.lean == held, "%s: forward, and the release holds it (%s)" % [jet, v.lean])
-	tv._press([28, 1, 0])  # Look forward
-	await create_timer(2.0).timeout
-	await frames(2)
-	check(v.lean == Vector3.ZERO, "%s: Look forward: back at the seat's eye (%s)" % [jet, v.lean])
-	check(c3d.pilot_body == null or c3d.pilot_body.visible, "%s: the pilot's body back" % jet)
+	var fwd: Vector2 = Vector2(-0.02, -0.02) if jet == "f35i" else v.LEAN_FORWARD
+	check(v.lean_forward == fwd, "%s: the forward lean's stop and far end (%s)" % [jet, v.lean_forward])
+	check(
+		absf(stop - fwd.x) < 0.005 and (far < stop - 0.05 if fwd.y < fwd.x else absf(far - stop) < 0.001),
+		"%s: forward to its first stop, then on (%.3f, %.3f)" % [jet, stop, far]
+	)
+	await create_timer(0.8).timeout
+	check(v.lean == Vector3.ZERO, "%s: forward let go: back at the seat's eye (%s)" % [jet, v.lean])
 
 
 ## The pilot body's right glove around the stick's grip (tools/f16d/pilot.py STICK_NUDGE; the user, 2026-11-13): at

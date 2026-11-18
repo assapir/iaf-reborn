@@ -1685,6 +1685,9 @@ def export_glb(out, eye_g, hinge_g):
     # and the labels'
     # night_glow (their backlight, Mats.night).
     meta = {"source": "ours, tools/f35i/cockpit3d.py --glb", "eye": [round(v, 5) for v in eye_g],
+            # The forward lean's first stop and far end (m, z aft; shared/terrain/views.gd lean_forward): 2 cm keeps
+            # the display's bottom edge on a 16:9 screen (3 cm puts it 7 px under).
+            "lean_forward": [-0.02, -0.02],
             "day_fill": DAY_FILL, "night_flood": [round(c * NIGHT_FLOOD, 3) for c in FLOOD_RGB],
             "night_atlas": NIGHT_ATLAS,
             "night_glow": {"label": [0.18, 0.6, 0.25]},

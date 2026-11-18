@@ -1038,6 +1038,30 @@ def coaming(b):
     print("coaming: %d edges, %.2f m bevelled" % (len(edges), n))
 
 
+# The centre pedestal between the MFDs (2026-11-17, the MFDs' inboard push buttons): FlightGear's ICP housing
+# (`cockpit.ac` `center_console`, ±8 cm) stands 1 cm out past the ICP's face on each side and the instruments' hood
+# under it (`object.002`) 2 cm, both 20 cm proud of the MFDs; from the seat's eye they hid the MFDs' inboard column of
+# buttons and rockers. The F-16C front-seat photo (Wikimedia Commons `File:F-16C_cockpit_m02006112700032.jpg`, the
+# camera fitted to the MFDs' and the ICP's buttons, tools/f16d/fit_photo.py) shows the ICP's outline ending at its
+# thumbwheels (the ICP's face, ±7 cm) and under the ICP's face the housing and the hood 5 px (9 mm) inside it, so each
+# is narrowed to its half-width here (m either side of the centre line; their faces beyond it moved in, the rest as
+# drawn): the housing beside the ICP's face to PEDESTAL_ICP, everything under the face's bottom (PEDESTAL_ICP_LOW, m
+# up) to PEDESTAL_HOOD, down to the hood's lip over the ASI and the altimeter (PEDESTAL_LIP; under it the hood's sides
+# frame the dials as drawn).
+PEDESTAL = ("Tub/center_console", "Tub/object.002")
+PEDESTAL_ICP, PEDESTAL_HOOD, PEDESTAL_ICP_LOW, PEDESTAL_LIP = 0.070, 0.061, 0.598, 0.49
+
+
+def narrow_pedestal(b):
+    for o in b.parts.get("Tub", []):
+        for v in o.data.vertices if o.name in PEDESTAL else []:
+            if v.co.z < PEDESTAL_LIP:
+                continue
+            half = PEDESTAL_ICP if v.co.z >= PEDESTAL_ICP_LOW and o.name == PEDESTAL[0] else PEDESTAL_HOOD
+            if abs(v.co.x) > half:
+                v.co.x = math.copysign(half, v.co.x)
+
+
 # The canopy sills (sills, 2026-11-02): FlightGear's sill is the tub's flat border strip (`cockpit_border`) under the
 # canopy frame's skirt; from the eye a bare slab along each side. The F-16's (the photos, docs/cockpit.md) has the
 # canopy's black rubber seal along the frame's foot and under it the sill's inner face, a grey lip (lighter than
@@ -1216,6 +1240,7 @@ def main():
         bm.to_mesh(o.data)
         bm.free()
     sills(b)  # along the border as cut: they end with it
+    narrow_pedestal(b)
     # The gear handle (8.6 k triangles) and the throttle turn but are decimated with their consoles; the other turning
     # parts are kept whole.
     decimate_turning = {"controls/gear/gear-down", "controls/engines/engine/throttle-movement"}

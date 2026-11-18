@@ -39,17 +39,30 @@ lights and the lit labels at night); the panel's night art is not used.
 - **Hide pilot's body (2026-11-17):** Alt + H hides the pilot's body while held, Alt + G hides or shows it for the
   flight (records 192 / 193 of `data/keys.json`, command 205; the Keys screen's Views group); the body is shown at
   every flight's start. The body never takes the mouse (§5.3).
-- **Lean (2026-11-15):** Shift + Left / Right lean the head left / right, Shift + Up / Down forward / back, Shift +
-  Page Up / Page Down raise / lower it, at 0.3 m/s while held (records 126–131 of `data/keys.json`, command 204; the
-  Keys screen's Views group rebinds them). The head moves within 15 cm aside (a strapped-in pilot's; at 20 cm the eye
-  went out over the open canopy's sill and saw the console through the fuselage's side), 30 cm forward, 10 cm back,
-  10 cm up and 15 cm down, and keeps 13 cm (past the camera's 10 cm near plane) from every surface of the cockpit in
-  14 directions, nor passes through one (`cockpit3d.gd` `lean_clear`: the move tested against the cockpit's meshes
-  within 60 cm of the eye, the answer kept while the head holds still), so leaning over a console or toward a panel
-  shows it close up, with the zoom toward the pointer. The pilot's body hides while the head is off the seat: it does
-  not move with the head, and from the seat the left glove covers the ELEC panel's MAIN PWR and the legs the lower
-  pedestal. Look forward (Numpad 5, Alt + 5) and the double right-click bring the head back to the seat (`views.gd`
-  `lean`). Pictures: `modern-iaf/tests/_lean_shot.gd`.
+- **Lean (2026-11-15; one hold control since 2026-11-18, approved):** hold Shift + Left / Right to lean the head 6 cm
+  left / right, Shift + Up 10 cm forward, Shift + Down 10 cm back, Shift + Page Up / Page Down 10 cm up / 15 cm down;
+  the head eases there in about 0.2 s and back to the seat on the release (records 126–131 of `data/keys.json`,
+  command 204; the Keys screen's Views group rebinds them; `views.gd` `lean`). Forward held longer than 0.8 s goes on
+  at 0.3 m/s to 30 cm: with the head down, the F-16's MAX POWER switch behind the throttle's grip. The F-35I's
+  forward lean is 2 cm, where its display's bottom edge stays on the screen (`f35i.json` `lean_forward`). The cockpit
+  and the HUD glass move against the eye; the HUD's symbols stay on the world, as a collimated HUD's do. From the
+  lean toward an F-16's MFD every one of its push buttons and rockers is seen and clicked ("The MFDs from the seat",
+  §5.2). The head keeps 13 cm (past the camera's 10 cm near plane) from every surface of the cockpit in 14
+  directions, nor passes through one (`cockpit3d.gd` `lean_clear`: the move tested against the cockpit's meshes
+  within 60 cm of the eye, the answer kept while the head holds still). The pilot's body hides while the head is off
+  the seat: it does not move with the head, and from the seat the left glove covers the ELEC panel's MAIN PWR and the
+  legs the lower pedestal. Until 2026-11-18 the keys moved the head at 0.3 m/s within 15 cm aside, 30 cm forward,
+  10 cm back, 10 cm up and 15 cm down, and it stayed where the release left it until Look forward; a second set of
+  hold keys (Shift + Q / E / K) was built beside them and dropped the same day (the user: "Why need lean in arrows
+  and also in other keys?"). Pictures: `modern-iaf/tests/_lean_shot.gd`, `_mfd_view_shot.gd`.
+- **Full MFD view (2026-11-18, approved):** Shift + N shows the left MFD close up, Shift + M the right one (records 198 / 199,
+  command 207); in the F-35I either key shows the panoramic display. The eye goes 40 cm out on the display's normal
+  and the view narrows until the display with its push buttons fills nine tenths of the screen's height (the F-35I's:
+  of its width), in a quarter of a second; every button is clicked with the mouse there. The same key or Esc goes
+  back to the seat's view; the other display's key cuts to that display. The HUD's look-down readout and the
+  helmet's symbols are left out of the close-up: they lay over the display's push buttons. The jet flies on and every other key works
+  as from the seat; a view that leaves the cockpit ends it (`terrain_view.gd` `mfd_view_key`, `_mfd_step`;
+  `cockpit3d.gd` `display_frame`). Pictures: `modern-iaf/tests/_mfd_view_shot.gd`.
 - **Mouse look (2026-11-11, the Mac play test's finding 9):** hold the right mouse button and move the mouse to turn
   the head; it stays where the mouse leaves it. A double right-click turns the head back to straight ahead at 45°/s.
   The pointer turns the head twice its angle on the screen (`terrain_view.gd` `MOUSE_LOOK_GAIN`): one screen's width
@@ -535,9 +548,43 @@ Finish list C4b (2026-11-17), the parts that proof still found alike:
   (`cockpit3d.gd` `controls_props`). Until then the M button and the right MFD's GAIN rocker, the two rows whose property is not the model's,
   did not move at all.
 - The MFDs' inboard rockers (the left MFD's CON, the right MFD's GAIN and BRT) sit on their bezels as the outboard
-  ones do. From the seat's eye FlightGear's ICP (23 cm proud of the MFDs) and the centre instruments' housing (8 cm
-  proud) stand in front of them, and the throttle's grip stands over MAX POWER. Each one is seen and clicked with the
-  head leaned 10 to 15 cm aside (Shift + the arrows).
+  ones do. The throttle's grip stands over MAX POWER from the eye. The MFDs' inboard buttons: "The MFDs from the seat"
+  below.
+
+**The MFDs from the seat (2026-11-17).** Until then the centre pedestal between the MFDs hid each MFD's inboard column
+of push buttons and its inboard rockers from the seat's eye; they were seen only with the head leaned 10 to 15 cm.
+Measured: the cockpit rendered with a camera fitted to a seat-level photo of an F-16C's front cockpit[^f16c-photo]
+(`tools/f16d/fit_photo.py`: the camera's place, aim and field of view solved from 30 buttons of both MFDs, the ICP's
+six round buttons, the ASI's, altimeter's and ADI's hubs and the DED; residuals 2.0 px rms on the MFDs and 1.6 px on
+the ICP of the photo's 360, 4 to 6 px on the dials and the DED). The photo's camera sits 13 cm aft of and 5 cm above
+the seat's eye; the MFDs and the ICP stand where the model has them, to about 2 px (5 mm). Off: FlightGear's ICP
+housing (`center_console`) stands 1 cm out past the ICP's face on each side and the instruments' hood under it
+(`object.002`) 2 cm; on the photo the ICP's outline ends at its thumbwheels and, under the ICP's face, the housing's
+and the hood's edges lie 5 px (9 mm) inside it. `tools/f16d/cockpit3d.py` `narrow_pedestal` brings both in to the
+photo's: ±7.0 cm beside the ICP's face, ±6.1 cm under it down to the hood's lip over the ASI and the altimeter (the
+hood's sides below frame the dials as drawn). Not changed: the seat's eye (the HUD's fit, §4), the MFDs'
+and the ICP's places, the AoA indexers.
+
+From the seat's eye, in the view the flight opens with, every push button and rocker of both MFDs is now seen and
+clicked but for five: the top two inboard buttons of each MFD (the left MFD's OSBs 6 and 7, the right MFD's 20 and 19)
+and the right MFD's GAIN rocker beside them (and the left MFD's SYM rocker, drawn, not a control) stand behind the
+ICP's lower corners and its CONT wheel. The photo shows the same: from its camera, further back, the inboard column
+shows there only as a thin lit strip beside the ICP's corner. Bringing them into view from the seat would mean lowering the MFDs 2 to 3.5 cm, cutting the ICP's corners, which the
+photo does not show, or lowering the eye, which cuts the HUD's picture (tested and dropped, 2026-11-18). The user,
+2026-11-18: "Ok hud is more important. So have a lean button + full MFD view". Each of the five is seen and clicked
+from the lean toward its MFD (Shift + Left / Shift + Right held, the head 6 cm aside) and from the full MFD view
+(Shift + N / Shift + M), both in §2.
+
+The push buttons' functions on keys: the FCR's (mode, range, EXP, submode, OVRD, scan, FZ / SP / CZ / STP), the
+formats in turn by DMS left / right, the next station by `[` / `]`, LASR by L. Mouse only: SWAP, DCLT and S-J, the
+format menu, the FCR's and HSD's CNTL, the HSD's range and options, the SMS's INV, stations, SGL / PAIR, interval,
+pulses, PROF and PRE / VIS, the WPN's and TGP's zoom and WIDE / NARO, the TGP's STBY and CZ, RESET, DTE LOAD and FLCS
+BIT.
+
+Test: `modern-iaf/tests/test_mfd_buttons_seen.gd` (both jets: each button and rocker the first surface toward it from
+the eye, and pressed by the pointer there: from the seat all but exactly the five, from the lean and from the
+full MFD view every one of that MFD's; the full view's return by its key and by Esc; the F-35I's full view). Pictures and the photo overlay:
+`modern-iaf/tests/_mfd_osb_shot.gd`.
 - The ASI's bug, the M button and MASTER CAUTION move a few pixels at the proof's zoom: the proof compares its crops
   at full size.
 - The EHSI's HDG and CRS knobs are plain round knobs: their turn shows on the EHSI, which draws the heading bug and
@@ -1036,3 +1083,4 @@ openstreetmap.org/copyright" (also in [docs/credits.md](../../docs/credits.md)).
 [^ife-canopy]: IndiaFoxtEcho, "F-35 Lightning II aircraft for Microsoft Flight Simulator, user manual" (the cockpit's
     left side, item 8 "Canopy control lever"),
     https://orbx-user-guides.storage.googleapis.com/indiafoxtecho-f35-msfs-user-guide-96295d.pdf
+[^f16c-photo]: US Air Force, "F-16C cockpit" (the front cockpit from about the seat, public domain), Wikimedia Commons, https://commons.wikimedia.org/wiki/File:F-16C_cockpit_m02006112700032.jpg

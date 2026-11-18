@@ -7,7 +7,8 @@
 extends "res://../tests/godot/base.gd"
 
 const JETS := {"f16i": 2011, "f35i": 2031}
-## [name, lean (m: x right, y up, z aft; LEAN_MIN / LEAN_MAX by sign), head yaw, head pitch (deg), zoom]
+## [name, lean (m: x right, y up, z aft; LEAN_MIN / LEAN_MAX by sign, forward its far end), head yaw, head pitch
+## (deg), zoom]
 const POSES := [
 	["left_seat", Vector3.ZERO, -40.0, -50.0, 0.6],
 	["left_lean", Vector3(-1, 0, -1), -20.0, -60.0, 0.6],
@@ -45,10 +46,10 @@ func run() -> void:
 		var v = tv.views
 		for p in POSES:
 			var l: Vector3 = p[1]
-			v.lean = Vector3(
+			v.lean_to = Vector3(
 				v.LEAN_MIN.x if l.x < 0 else v.LEAN_MAX.x if l.x > 0 else 0.0,
 				v.LEAN_MIN.y if l.y < 0 else v.LEAN_MAX.y if l.y > 0 else 0.0,
-				v.LEAN_MIN.z if l.z < 0 else v.LEAN_MAX.z if l.z > 0 else 0.0
+				v.lean_forward.y if l.z < 0 else v.LEAN_MAX.z if l.z > 0 else 0.0
 			)
 			v.snap = Vector2(deg_to_rad(p[2]), deg_to_rad(p[3]))
 			tv.cockpit.zoom = p[4]
@@ -57,5 +58,5 @@ func run() -> void:
 			var img := root.get_texture().get_image()
 			img.save_png(out.path_join("%s_%s_%d.png" % [jet, p[0], img.get_height()]))
 		v.snap = null
-		v.lean = Vector3.ZERO
+		v.lean_to = null
 	check(true, "shots in %s" % out)

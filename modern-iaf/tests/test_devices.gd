@@ -114,7 +114,9 @@ func keys(fe: Control) -> void:
 	# 147-151, docs/mfd.md §9 "Modern MFDs").
 	# 125 until slice 5, then the up-front controls, HUD panel and DGFT keys (records 152-178, modern-iaf/docs/ufc.md)
 	# and the EW and identification keys (records 179-190, modern-iaf/docs/ews.md); 164 until the IFF IDENT (record 191).
-	check(listed == 167, "keys: 167 commands listed, one head-look set (%d)" % listed)
+	# 167 until the hide-body keys and the HUD panel's four (records 192-197; the count stayed 167 here and failed);
+	# 171 until 2026-11-18, then the full MFD views (records 198 / 199, modern-iaf/docs/cockpit.md §2).
+	check(listed == 173, "keys: 173 commands listed, one head-look set (%d)" % listed)
 	check(
 		ks.GROUPS.all(func(g): return [74, 86, 89, 93].all(func(r): return not ks.records_of(g).has(r))),
 		"keys: no free look or F2 rear view (the snap views and the mouse look around)"

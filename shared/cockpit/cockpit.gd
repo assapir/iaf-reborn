@@ -681,6 +681,9 @@ func focal_length() -> float:
 	return f0
 
 
+## Ours, the full MFD view (terrain_view.gd _mfd_step): the 3D cockpit's focal length (px) while above 0, in place of
+## the zoom's (view_3d_focal).
+var focal_3d := 0.0
 ## Ours, the 3D cockpit's widest view (zoom at ZOOM_MIN, the default): this many degrees across the viewport, so the
 ## HUD and the whole front panel show looking ahead (the user's pick of 2026-11-08 from 75 / 85 / 90°; DCS's F-16C
 ## shows about 78°, docs/cockpit.md).
@@ -703,7 +706,9 @@ func zoom_limit() -> float:
 ## The 3D cockpit's focal length (px): the zoom keys / wheel (zoom, ZOOM_MIN..ZOOM_MAX) step from the wide view
 ## (VIEW_3D_WIDE_DEG) to the true-size one (true_scale_focal), evenly in the focal length's ratio; beyond ZOOM_MAX
 ## (zoom_limit) on to the narrow view (VIEW_3D_NARROW_DEG) the same way.
-func view_3d_focal() -> float:
+func view_3d_focal(seat := false) -> float:
+	if focal_3d > 0.0 and not seat:
+		return focal_3d
 	var w := get_viewport_rect().size.x / 2.0
 	var wide := w / tan(deg_to_rad(VIEW_3D_WIDE_DEG) / 2.0)
 	var narrow := w / tan(deg_to_rad(VIEW_3D_NARROW_DEG) / 2.0)
@@ -892,7 +897,9 @@ func _process(delta: float) -> void:
 	_lag_dt = delta
 	panel_shift = move_toward(panel_shift, panel_target, PANEL_SLIDE_SPEED * delta)
 	position = (view_shift if three_d() else head_pan() * ui_scale()) if view_mode == 0 else Vector2.ZERO
-	hud.visible = view_mode != 2 and up("mmc")  # the mission computer draws the HUD's symbology
+	# The mission computer draws the HUD's symbology. Ours, the full MFD view (focal_3d): the display alone, without the
+	# look-down readout or the helmet's symbols over its buttons.
+	hud.visible = view_mode != 2 and up("mmc") and focal_3d == 0.0
 	for m in mfds + [pcd, _pcd_sheen]:
 		if m != null:
 			# The PCD's portal nodes keep the pages only; unpowered, the screens stay dark (their black ground).
