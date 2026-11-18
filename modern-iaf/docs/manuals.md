@@ -177,7 +177,7 @@ A display's picture is `display("<name>", [caption])`: `pictures/<cockpit>/d_<na
 `fig-d-<name>` (§4).
 
 **The game manual** (`text/en/game/`, a folder a chapter, a file a section). Its chapters: 1 Getting started
-(what you need, setup, starting the game, the first flight, the manuals), 2 The menus (the Hangar, pilots and the
+(what you need, setup, starting the game, flying a mission in five steps, the manuals), 2 The menus (the Hangar, pilots and the
 pilot log, jet and base, the Missions screen, the briefing, the Loadout screen and its rules, Settings with every
 option, keys and joystick, language), 3 Flying a mission (loading, views, the pointer, the notebook, the tower and
 the radio flow, the AWACS, pause / time / leaving, the debrief), 4 Missions and training (the lessons in order, one

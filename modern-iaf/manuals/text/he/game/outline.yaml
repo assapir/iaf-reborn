@@ -11,7 +11,7 @@ chapters:
   - {id: requirements, title: "מה נדרש", file: game/start/requirements.typ}
   - {id: setup, title: "התקנה", file: game/start/setup.typ}
   - {id: start-game, title: "הפעלת המשחק", file: game/start/start-game.typ}
-  - {id: first-flight, title: "הטיסה הראשונה", file: game/start/first-flight.typ}
+  - {id: first-flight, title: "טיסה במשימה", file: game/start/first-flight.typ}
   - {id: manuals, title: "המדריכים", file: game/start/manuals.typ}
 - id: menus
   title: "התפריטים"

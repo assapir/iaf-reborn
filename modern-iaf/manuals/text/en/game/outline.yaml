@@ -11,7 +11,7 @@ chapters:
   - {id: requirements, title: "What you need", file: game/start/requirements.typ}
   - {id: setup, title: "Setup", file: game/start/setup.typ}
   - {id: start-game, title: "Starting the game", file: game/start/start-game.typ}
-  - {id: first-flight, title: "Your first flight", file: game/start/first-flight.typ}
+  - {id: first-flight, title: "Flying a mission", file: game/start/first-flight.typ}
   - {id: manuals, title: "The manuals", file: game/start/manuals.typ}
 - id: menus
   title: "The menus"
