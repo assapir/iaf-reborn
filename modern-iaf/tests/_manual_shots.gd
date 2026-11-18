@@ -35,7 +35,7 @@ const ALL_UP := 0.25
 const LAMP := ["p_stick"]
 
 ## The panels' pictures taken from the pilot's eye: parts that are no flat panel.
-const EYE := ["p_stick", "p_throttle", "p_hud", "p_canopy", "p_ded"]
+const EYE := ["p_stick", "p_throttle", "p_hud", "p_ded"]
 ## A square picture's view (degrees): narrow, so a panel's far rows are seen as square as its near ones.
 const SQUARE_FOV := 30.0
 ## A square picture cuts away what is nearer to the camera than this (m) before the panel's nearest marked part.

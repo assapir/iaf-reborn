@@ -243,7 +243,7 @@ November 2026), with the battery on and the lamp test held, so every lamp and le
   is nearer to the top of the pilot's view of it from the seat, as the F-16's console legends are turned. The Adir's
   console legends all read toward the nose (`"legends": "nose"` in `shots.json`).
 - The marks are projected through the camera that drew the picture, in the same frame, so picture and marks agree.
-- The stick, the throttle, the HUD, the canopy handle and the DED's group are no flat panel: their pictures stay
+- The stick, the throttle, the HUD and the DED's group are no flat panel: their pictures stay
   from the pilot's eye (`EYE` in the script; the stick's with a lamp at the eye and the head leant, `LAMP`, `LEAN`).
 
 **The numbers on a panel's picture** stand in a column at each side with a leader to their mark. A number whose

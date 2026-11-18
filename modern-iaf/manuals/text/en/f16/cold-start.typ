@@ -14,7 +14,6 @@
   sym: [The SYM wheel on the #term("ICP"), under the #term("HUD").],
   mpo: [The MANUAL PITCH switch, left console.],
   master_caution: [The MASTER CAUTION light, on the glareshield.],
-  canopy: [The canopy handle, on the left canopy sill.],
   ext_lights: [The EXT LIGHTING panel, left console.],
   cmds: [The #term("CMDS") panel, left console.],
 )
@@ -129,7 +128,7 @@ Close the canopy, set the lights and the countermeasures panel, and put the INS 
     canopy: [Canopy down in about 10 seconds; CANOPY light out when it is locked],
     ins: [ALIGN flashes on the HUD when the alignment is done; at NAV, ALIGN goes out and the HUD shows steering],
   ),
-  figs: ("canopy", "ext_lights", "cmds", "avionic_power", "gear"),
+  figs: ("ext_lights", "cmds", "avionic_power", "gear"),
 )
 
 #idx("INS alignment")#caution[The INS knob turned to NAV before ALIGN flashes leaves the INS without an alignment: the HUD gives no steering. Wait for the flashing ALIGN.]
@@ -152,7 +151,7 @@ Do these steps at the holding point or lined up, before the take-off clearance.
 #steps(
   "before_takeoff",
   captions: caps,
-  figs: ("flt_control", "test", "master_caution", "gear", "canopy"),
+  figs: ("flt_control", "test", "master_caution", "gear"),
 )
 
 === Take-off <cold-start-takeoff>

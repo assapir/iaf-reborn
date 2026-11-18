@@ -32,7 +32,6 @@ f16:
   RDR_ALT: {name: RDR ALT switch, where: "SNSR PWR panel, right console"}
   AirSource_knob: {name: AIR SOURCE knob, where: "AIR COND panel, right console"}
   SYM: {name: SYM wheel, where: "ICP, under the HUD"}
-  CANOPY_HANDLE: {name: Canopy handle, where: "left canopy sill, aft"}
   SW_MASTER_50: {name: MASTER lights switch, where: "EXT LIGHTING panel, left console"}
   SW_ANTI_COLLISION_50: {name: ANTI COLLISION switch, where: "EXT LIGHTING panel, left console"}
   SW_WING-TAIL_50: {name: WING/TAIL switch, where: "EXT LIGHTING panel, left console"}

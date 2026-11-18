@@ -1017,21 +1017,6 @@
    ]
   },
   {
-   "id": "canopy",
-   "area": "left",
-   "title": "Canopy handle",
-   "where": "left canopy sill, aft",
-   "controls": [
-    {
-     "node": "CANOPY_HANDLE",
-     "label": "Canopy handle",
-     "name": "Canopy handle",
-     "does": "Lowers and locks the canopy; the CANOPY light goes out when it is locked.",
-     "sim": "One click closes and locks the canopy in about 10 seconds. Its place in the cockpit is inferred."
-    }
-   ]
-  },
-  {
    "id": "cmds",
    "area": "left",
    "title": "CMDS panel",

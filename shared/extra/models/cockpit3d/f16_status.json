@@ -162,7 +162,6 @@
 "switchSquareUp": {"status": "works"},
 "switchSquareDown": {"status": "works"},
 "HUD_MODE": {"status": "works"},
-"CANOPY_HANDLE": {"status": "works"},
 "GEAR_LEVER": {"status": "works"},
 "lamp_flcs_pwr_0": {"status": "works"},
 "lamp_flcs_bit_run_0": {"status": "works"},
