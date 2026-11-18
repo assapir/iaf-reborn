@@ -16,6 +16,8 @@ CCIP, the continuously computed impact point, shows on the #term("HUD") where a 
 
 *Delayed release.* When the impact point is below the HUD's view, the point stays at the HUD's lower edge. Put it on the target and hold the release button #then[a steering line and a cue show.] Keep holding and fly the flight path marker along the line #then[the bombs leave when the cue reaches the marker.]
 
+#display("hud_ccip_delayed", [A delayed release with the button held: the steering line down the HUD through the point, and the cue, the short bar above the flight path marker, coming down onto it.], width: 90%)
+
 === Laser-guided bombs
 
 + Before the flight, load the targeting pod with the bombs (@stores).
@@ -33,6 +35,9 @@ A GPS-guided bomb flies to coordinates. It takes them in one of two modes: PRE, 
 + In VIS, designate the point with the ground map (@radar-ag).
 + #then[The HUD shows a box on the target, a steering line through it, and on the right a range scale with a bracket and a caret.] Fly the flight path marker onto the steering line.
 + Under the scale a time counts down, then *IN RNG* shows. Hold #key("Release selected weapon"). #then[The bomb leaves; the HUD shows its time to impact.]
+
+#display("hud_gps", [A GPS-guided bomb in PRE with a point designated: the box on the line, the range scale on the right with its bracket and caret, and the time under it (TMR).], width: 90%)
+#display("hud_gps_inrng", [The same bomb inside its range: the bracket round the caret and IN RNG under the scale.], width: 90%)
 
 The WPN format (@mfd) shows the selected GPS-guided bomb's status, and #osb(1) there also changes PRE and VIS.
 

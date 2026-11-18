@@ -39,7 +39,7 @@ final: no agent is a native reviewer.
 
 **Next, in this order.**
 
-1. Chapter 6's owed pictures (§7): the F-16s' delayed CCIP, gun funnel with a lock, GPS bomb and helmet cues, and the Adir's GPS bomb helmet cues.
+1. Chapter 6's owed pictures (§7): the F-16s' gun funnel with a lock and helmet cues, and the Adir's GPS bomb helmet cues.
 2. Each row of section 1.2's F-16 tables against the flight manual's section I (§7); its text is now searchable
    (§2 "Chapter 1's system sections").
 
@@ -414,7 +414,7 @@ figure has no size yet, so a digit drawn the same way is measured for it).
 real render with its command in its header, and then cut and joined with ImageMagick: `_fcr_shot.gd` (`d_fcr_modes`,
 `d_fcr_pages`, `d_hud_lock`), `_fcr_ag_shot.gd` (`d_fcr_ag`), `_mfd_s4_shot.gd` (`d_mfd_formats`, `d_mfd_menu_sms`),
 `_avionics_s5_shot.gd` (`d_ded_pages`, `d_ded_ins`, `d_hud_modes`, `d_hsd`, `d_fcr_aiff`, `d_threat`, `d_threat_radars`) and
-`_adir_s7b_shot.gd` (the Adir's), `_adir_tflir_shot.gd` (`d_tflir`). The Sufa's serve both F-16 manuals.
+`_adir_s7b_shot.gd` (the Adir's), `_adir_tflir_shot.gd` (`d_tflir`), `_f16_weapons_shot.gd` (`d_hud_ccip_delayed`, `d_hud_gps`, `d_hud_gps_inrng`; the HUD's part of the frame, 19 November 2026). The Sufa's serve both F-16 manuals.
 
 **The game manual's screens** (`pictures/game/`, 18 November 2026) are taken in English by the front end's own shot
 scripts, each a real render with its command in its header, and scaled to 1,600 px JPEGs with ImageMagick (the name
@@ -579,8 +579,10 @@ Parts:
 - Open in chapter 2's sources: the F-16's climb schedules (the performance manual, not public); for the F-35 the climb
   schedule, the approach speeds, the landing technique and the air-refuelling cockpit procedure; the footnote for the
   F-16's exterior inspection names figure 2-4 without its page.
-- Owed after chapter 6, the F-16s' pictures: the delayed CCIP's cues, the gun's funnel with a lock, a GPS bomb's HUD
-  cues and the helmet's symbols have no shot script. The black ones are taken (§4 "Black captures").
+- Owed after chapter 6, the F-16s' pictures: the gun's funnel with a lock and the helmet's symbols. The delayed CCIP
+  and the GPS bomb's HUD cues were taken 19 November 2026 (`_f16_weapons_shot.gd`, no numbered arrows: they are `display`
+  figures like `d_hud_lock`). The two owed ones: scripted runs got no radar lock on a drone after the jet was put behind
+  it (the HUD showed the funnel with no box) and a padlock on a drone turned the head to the wrong side. The black ones are taken (§4 "Black captures").
 - Found by the black captures, the game's and listed, not changed here: the "start engine" command (213) sent in the
   air runs the start sequence again, so MMC, ST STA, MFD and UFC go off and the displays go dark until it ends.
 - Found while writing chapter 6, the game's and listed, not changed here:
