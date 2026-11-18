@@ -9,6 +9,9 @@
 # reads 5,120 x 2,880 (DisplayServer.screen_get_size; the user's Dell U2719DC, 2026-11-13). A 5,120 x 2,880 picture
 # made there is what that monitor shows fullscreen, halved by macOS (docs/real-hud.md "A 1× monitor beside a Retina
 # screen"), not a 5K screen.
+# Sound in the hidden Mac app (seen 2026-11-18): a player's position stayed frozen, so the radio's phrase queue held
+# every call and what waits on it (a subtitle, a lesson's pass panel) never came. A test that waits on speech passes
+# --audio-driver Dummy, which plays in real time.
 #   tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 GUIDE_SHOTS=hud_nav -- --log-file /tmp/g.log --path iaf-reborn -s ../tests/godot/_guide_shots.gd
 set -euo pipefail
 envs=()

@@ -1210,7 +1210,11 @@ func _roll(tv: Node, id: String, lineup: Vector2, hdg: float) -> void:
 	var going := func():
 		return tv.addon.result.is_empty() or tv.addon.result.get("pass", false) and fast_aoa.size() < 60
 	var continued := false
+	var scale := Engine.time_scale
 	while tv._sim_time - t0 < 120.0:
+		# The pass's panel waits for the radio's queued speech, which plays in real time (about 11 s): the wait for it
+		# runs on the real clock, or a real window's fast clock spends the 120 s before the panel comes.
+		Engine.time_scale = 1.0 if not continued and tv.addon.result.get("pass", false) else scale
 		# The climb is probed until 8 s after gear up (gear_up_at: a local, not seen by a lambda's copy).
 		var climbing: bool = tv.addon.result.get("pass", false) and tv._sim_time < gear_up_at + 8.0
 		if not (going.call() or not continued and tv.addon.result.get("pass", false) or climbing):
@@ -1251,6 +1255,7 @@ func _roll(tv: Node, id: String, lineup: Vector2, hdg: float) -> void:
 			var roll_cmd := clampf((clampf(herr * 2.0, -15.0, 15.0) - float(st.roll)) * 0.03, -0.5, 0.5)
 			tv.scripted_stick = Vector2(roll_cmd, pitch_cmd)
 		await process_frame
+	Engine.time_scale = scale
 	check(
 		lift_kt >= ROTATE_KT[id] and not resettled,
 		(
