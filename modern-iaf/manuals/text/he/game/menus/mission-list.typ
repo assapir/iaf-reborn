@@ -1,6 +1,6 @@
 #import "/modern-iaf/manuals/layout/manual.typ": *
 
-#idx("מסך המשימות")המסך #scr("missions") נפתח מהלחצן #scr("fly") שב#term("דת״ק"). יש בו המשימות של המטוס שנבחר, לפי חלקים.
+#idx("מסך המשימות")המסך #scr("missions") נפתח מהלחצן #scr("fly") שב#term("דת\"ק"). יש בו המשימות של המטוס שנבחר, לפי חלקים.
 
 #screen("missions", [המסך #scr("missions"): כרטיס לכל חלק.])
 
@@ -46,7 +46,7 @@
 + לבחור #scr("fly") בתדריך.
   #then[המשימה נטענת (@loading).]
 
-#scr("back") או #keycap("Esc") חוזרים מסך אחד אחורה: מהרשימה למסך #scr("missions"), וממנו לדת״ק.
+#scr("back") או #keycap("Esc") חוזרים מסך אחד אחורה: מהרשימה למסך #scr("missions"), וממנו לדת"ק.
 
 === המסך בלי משימות <mission-list-nodata>
 

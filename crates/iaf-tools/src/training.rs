@@ -76,7 +76,7 @@ const STRINGS: &[(&str, &str, &str)] = &[
     (
         "hot_start",
         "Hot start: the throttle went to idle below 20 % RPM; the engine was shut down.",
-        "המצערת הועברה לסרק מתחת ל־20% סל״ד (Hot start); המנוע כובה.",
+        "המצערת הועברה לסרק מתחת ל־20% סל\"ד (Hot start); המנוע כובה.",
     ),
     (
         "no_rotation",
@@ -91,7 +91,7 @@ const STRINGS: &[(&str, &str, &str)] = &[
     (
         "starter_high",
         "Starter while the engine wound down above 20 % RPM: it did not engage.",
-        "מתנע בזמן שהמנוע האט מעל 20% סל״ד: הוא לא הופעל.",
+        "מתנע בזמן שהמנוע האט מעל 20% סל\"ד: הוא לא הופעל.",
     ),
     ("no_ipp", "Engine start without the IPP running.", "התנעת מנוע בלי שה־IPP פועל."),
     ("ipp_not_ready", "Engine start before the IPP was up to speed.", "התנעת מנוע לפני שה־IPP הגיע למהירות."),
@@ -110,13 +110,13 @@ const STRINGS: &[(&str, &str, &str)] = &[
     (
         "skip_item",
         "Skipped: a checklist item (the notebook's CHECKLIST page shows which).",
-        "לא בוצע: פריט בבד״ח (עמוד הבד״ח במחברת מראה איזה).",
+        "לא בוצע: פריט בבד\"ח (עמוד הבד\"ח במחברת מראה איזה).",
     ),
     ("wrong_runway", "The take-off was not from the assigned runway.", "ההמראה לא הייתה מהמסלול שהוקצה."),
     ("excursion", "The jet left the runway during the take-off roll.", "המטוס יצא מהמסלול בזמן ריצת ההמראה."),
     ("gear_down", "The gear was never raised.", "כן הנסע לא נאסף."),
     ("off_heading", "Not on the runway heading with the gear up.", "לא בכיוון המסלול עם כן נסע אסוף."),
-    ("short_air_kills", "Fewer drones shot down than the range asks.", "הופלו פחות מל״טים ממה שהמטווח דורש."),
+    ("short_air_kills", "Fewer drones shot down than the range asks.", "הופלו פחות מל\"טים ממה שהמטווח דורש."),
     (
         "short_ground_kills",
         "Fewer ground targets destroyed than the range asks.",
@@ -155,7 +155,7 @@ const STRINGS: &[(&str, &str, &str)] = &[
     ("roll_heading_deviation", "Heading deviation during the roll", "סטיית כיוון בזמן ריצת ההמראה"),
     ("max_centreline_offset", "Max offset from the centreline", "סטייה מרבית מקו המרכז"),
     ("tower_calls", "Tower calls", "קריאות למגדל"),
-    ("air_kills", "Drones shot down", "מל״טים שהופלו"),
+    ("air_kills", "Drones shot down", "מל\"טים שהופלו"),
     ("ground_kills", "Ground targets destroyed", "מטרות קרקע שהושמדו"),
     ("cut_lines", "Lines cut off at the recording's end, skipped", "שורות קטועות בסוף ההקלטה, שהושמטו"),
     // The sheet's goals ({} the figures of the label).
@@ -170,8 +170,8 @@ const STRINGS: &[(&str, &str, &str)] = &[
     ),
     ("goal_calls", "Tower calls", "קריאות למגדל"),
     ("goal_startup_time", "Idle with the avionics up within {} min", "סרק ואוויוניקה פועלת תוך {} דקות"),
-    ("goal_checklist", "Checklist steps done", "שלבי הבד״ח שבוצעו"),
-    ("goal_air_kills", "Shoot down {} drones", "הפלת {} מל״טים"),
+    ("goal_checklist", "Checklist steps done", "שלבי הבד\"ח שבוצעו"),
+    ("goal_air_kills", "Shoot down {} drones", "הפלת {} מל\"טים"),
     ("goal_ground_kills", "Destroy {} ground targets", "השמדת {} מטרות קרקע"),
     ("goal_range_time", "Within {} min of the start", "תוך {} דקות מההתחלה"),
     // The "Next time" tips.
@@ -211,11 +211,11 @@ const STRINGS: &[(&str, &str, &str)] = &[
         "Go on to the next step as soon as the last one is done: {} min are allowed.",
         "לעבור לשלב הבא מיד עם סיום הקודם: מוקצות {} דקות.",
     ),
-    ("next_checklist", "Work the checklist from the top: every step counts.", "לבצע את הבד״ח מההתחלה: כל שלב נספר."),
+    ("next_checklist", "Work the checklist from the top: every step counts.", "לבצע את הבד\"ח מההתחלה: כל שלב נספר."),
     (
         "next_air_kills",
         "Find a drone on the radar, lock it and close to the gun's range, or launch a missile once the HUD shows it in range.",
-        "לאתר מל״ט במכ״ם, לנעול עליו ולהתקרב לטווח התותח, או לשגר טיל כשהתצוגה העילית מראה שהוא בטווח.",
+        "לאתר מל\"ט במכ\"ם, לנעול עליו ולהתקרב לטווח התותח, או לשגר טיל כשהתצוגה העילית מראה שהוא בטווח.",
     ),
     (
         "next_range_time",

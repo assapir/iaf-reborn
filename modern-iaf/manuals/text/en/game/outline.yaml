@@ -2,7 +2,6 @@
 # see: links to the jets' manuals, [manual, section id]. The jets' manuals link to these ids: keep them.
 title: "Modern IAF"
 subtitle: Game manual
-tagline: "Setup, menus, missions, air bases and the tower. Each jet has its own flight manual."
 scope: "It describes the game around the jets: installing and setting it up, the menus, the missions and how they are scored, the air bases, the tower and the radio. Each jet's own manual describes that jet completely."
 chapters:
 - id: start

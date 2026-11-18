@@ -7,15 +7,15 @@
     "Hatzerim": [["GND", 268.7], ["TWR", 256.9], ["APP", 122.15]]
   },
   "calls": [
-    {"call": "startup", "on": "GND", "en": "“{cs}, cleared to start”", "he": "״{cs}, אישור התנעה״"},
-    {"call": "taxi", "on": "GND", "en": "“{cs}, taxi to runway {runway}”", "he": "״{cs}, הסעה למסלול {runway}״"},
-    {"call": "takeoff", "on": "TWR", "en": "“line up runway {runway}” · “cleared for take-off”", "he": "״כניסה למסלול {runway}״ · ״מאושר להמריא״"},
-    {"call": "landing", "on": "TWR", "en": "“proceed to runway …”", "he": "״המשך למסלול …״"}
+    {"call": "startup", "on": "GND", "en": "“{cs}, cleared to start”", "he": "\"{cs}, אישור התנעה\""},
+    {"call": "taxi", "on": "GND", "en": "“{cs}, taxi to runway {runway}”", "he": "\"{cs}, הסעה למסלול {runway}\""},
+    {"call": "takeoff", "on": "TWR", "en": "“line up runway {runway}” · “cleared for take-off”", "he": "\"כניסה למסלול {runway}\" · \"מאושר להמריא\""},
+    {"call": "landing", "on": "TWR", "en": "“proceed to runway …”", "he": "\"המשך למסלול …\""}
   ],
   "pages": {
     "f16": {
       "landing": [
-        {"en": "Tower: contact for landing", "he": "מגדל: קריאה לנחיתה", "wait": {"en": "then wait for “proceed to runway …”", "he": "ואז המתנה ל״המשך למסלול …״"}},
+        {"en": "Tower: contact for landing", "he": "מגדל: קריאה לנחיתה", "wait": {"en": "then wait for “proceed to runway …”", "he": "ואז המתנה ל\"המשך למסלול …\""}},
         {"en": "Landing gear: DOWN, three green", "he": "כן הנסע: למטה, שלוש ירוקות", "where": {"en": "gear handle, left of the front panel", "he": "ידית כן הנסע, משמאל ללוח הקדמי"}},
         {"en": "Final: on-speed AOA 13°", "he": "גמר: זווית התקפה 13°", "where": {"en": "AOA indexer, left of the HUD", "he": "מחוון זווית ההתקפה, משמאל ל־HUD"}},
         {"en": "Touchdown: throttle IDLE, wheel brakes", "he": "נגיעה: מצערת לסרק, בלמי גלגלים", "where": {"en": "throttle grip, left console; brakes on the rudder pedals", "he": "ידית המצערת, הקונסולה השמאלית; בלמים בדוושות"}},
@@ -24,7 +24,7 @@
       "weapons": [
         {"title": {"en": "ARMING", "he": "דריכה"}, "steps": [
           {"en": "ST STA power ON (with the avionics)", "he": "מתח ST STA מופעל (עם האוויוניקה)", "where": {"en": "AVIONIC POWER panel, right console", "he": "לוח AVIONIC POWER, הקונסולה הימנית"}, "key": 122},
-          {"en": "FCR and RDR ALT ON (with the avionics): the radar and the radar altimeter", "he": "FCR ו־RDR ALT מופעלים (עם האוויוניקה): המכ״ם ומד הגובה המכ״מי", "where": {"en": "SNSR PWR panel, right console", "he": "לוח SNSR PWR, הקונסולה הימנית"}, "key": 122},
+          {"en": "FCR and RDR ALT ON (with the avionics): the radar and the radar altimeter", "he": "FCR ו־RDR ALT מופעלים (עם האוויוניקה): המכ\"ם ומד הגובה המכ\"מי", "where": {"en": "SNSR PWR panel, right console", "he": "לוח SNSR PWR, הקונסולה הימנית"}, "key": 122},
           {"en": "MASTER ARM: ARM (every flight starts SAFE)", "he": "MASTER ARM: ARM (כל טיסה מתחילה ב־SAFE)", "where": {"en": "MISC panel, left of the front panel", "he": "לוח MISC, משמאל ללוח הקדמי"}, "key": 125},
           {"en": "Gear UP: nothing releases with the gear handle down", "he": "כן הנסע למעלה: אין שחרור כשידית כן הנסע למטה", "where": {"en": "gear handle, left of the front panel", "he": "ידית כן הנסע, משמאל ללוח הקדמי"}, "key": 20}
         ]},
@@ -36,7 +36,7 @@
         ]},
         {"title": {"en": "AIR-TO-AIR", "he": "אוויר-אוויר"}, "steps": [
           {"en": "Missiles: A-A, the HUD shows the seeker circle", "he": "טילים: A-A, ב־HUD מוצג מעגל המחפש", "where": {"en": "ICP, under the HUD", "he": "לוח ICP, מתחת ל־HUD"}, "key": 66},
-          {"en": "Next target: the radar locks it", "he": "המטרה הבאה: המכ״ם ננעל עליה", "where": {"en": "stick grip, target designate", "he": "ידית ההיגוי, מתג סימון המטרה"}, "key": 58},
+          {"en": "Next target: the radar locks it", "he": "המטרה הבאה: המכ\"ם ננעל עליה", "where": {"en": "stick grip, target designate", "he": "ידית ההיגוי, מתג סימון המטרה"}, "key": 58},
           {"en": "Fire: the pickle button", "he": "שיגור: כפתור השחרור", "where": {"en": "stick grip, under the thumb", "he": "ידית ההיגוי, מתחת לאגודל"}, "key": 69},
           {"en": "Gun: the trigger, held", "he": "תותח: ההדק, לחוץ", "where": {"en": "stick grip, under the index finger", "he": "ידית ההיגוי, מתחת לאצבע"}, "key": 64}
         ]}
@@ -60,7 +60,7 @@
     },
     "f35i": {
       "landing": [
-        {"en": "Tower: contact for landing", "he": "מגדל: קריאה לנחיתה", "wait": {"en": "then wait for “proceed to runway …”", "he": "ואז המתנה ל״המשך למסלול …״"}},
+        {"en": "Tower: contact for landing", "he": "מגדל: קריאה לנחיתה", "wait": {"en": "then wait for “proceed to runway …”", "he": "ואז המתנה ל\"המשך למסלול …\""}},
         {"en": "Landing gear: DOWN", "he": "כן הנסע: למטה", "where": {"en": "gear handle, left of the panoramic display", "he": "ידית כן הנסע, משמאל לתצוגה הפנורמית"}},
         {"en": "Final: on-speed AOA", "he": "גמר: זווית התקפה לנחיתה", "where": {"en": "the helmet display", "he": "תצוגת הקסדה"}},
         {"en": "Touchdown: throttle IDLE, wheel brakes", "he": "נגיעה: מצערת לסרק, בלמי גלגלים", "where": {"en": "throttle, left console; brakes on the rudder pedals", "he": "המצערת, הקונסולה השמאלית; בלמים בדוושות"}},
@@ -79,7 +79,7 @@
         ]},
         {"title": {"en": "AIR-TO-AIR", "he": "אוויר-אוויר"}, "steps": [
           {"en": "Missiles: A-A (the AIM-120 in the bays)", "he": "טילים: A-A (ה־AIM-120 בתאים)", "where": {"en": "the panoramic display", "he": "התצוגה הפנורמית"}, "key": 66},
-          {"en": "Next target: the radar locks it", "he": "המטרה הבאה: המכ״ם ננעל עליה", "where": {"en": "stick grip, target designate", "he": "ידית ההיגוי, מתג סימון המטרה"}, "key": 58},
+          {"en": "Next target: the radar locks it", "he": "המטרה הבאה: המכ\"ם ננעל עליה", "where": {"en": "stick grip, target designate", "he": "ידית ההיגוי, מתג סימון המטרה"}, "key": 58},
           {"en": "Fire: weapon release", "he": "שיגור: שחרור חימוש", "where": {"en": "stick grip, under the thumb", "he": "ידית ההיגוי, מתחת לאגודל"}, "key": 69},
           {"en": "Gun: the trigger, held", "he": "תותח: ההדק, לחוץ", "where": {"en": "stick grip, under the index finger", "he": "ידית ההיגוי, מתחת לאצבע"}, "key": 64}
         ]}
@@ -101,7 +101,7 @@
     "f35i": {"position": [0.145, 0.66, -5.52], "rotation_deg": [-58, 0, 0], "width_m": 0.13}
   },
   "gauges": {
-    "f16": {"engine": {"node": "anim069", "radius_m": 0.021, "label": {"en": "RPM · watch 20 %", "he": "סל״ד · 20%"}}}
+    "f16": {"engine": {"node": "anim069", "radius_m": 0.021, "label": {"en": "RPM · watch 20 %", "he": "סל\"ד · 20%"}}}
   },
   "sources": {
     "radio.Ramon.APP": "oa_llrm",

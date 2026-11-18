@@ -132,6 +132,8 @@ python3 -I tools/manuals.py [f16i|f16d|f35i|game]             # Modern IAF's man
   flight call. It applies everywhere the thing can be stored or started from: the screen, a saved preset (old ones
   too), a mission's default.
 - Every screen has Hebrew and English. Hebrew is gender-neutral and formal.
+- Hebrew abbreviations and quotations use the straight ASCII `"` and `'` (בד"ח, מכ"ם, ת'רדים), never the Hebrew gershayim or geresh
+  (the user, 18 Nov 2026); the manuals build stops on one in the Hebrew strings or sources.
 - Before writing a Hebrew term for an aviation or weapon-system thing, search for the term Hebrew speakers in the field
   use (the air force's own publications, Israeli aviation press) and use that, a transliterated loanword included
   where that is what is used; do not coin a translation. One thing has one term across the whole front end.

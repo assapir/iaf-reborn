@@ -1065,7 +1065,7 @@ func _debrief_checks(fe: Control, lang: String, ids: Dictionary) -> void:
 	fe.open_debrief(ids.fail)
 	await frames(2)
 	check(
-		_has(fe, "3.1 מ׳" if he else "3.1 m") and _has(fe, "172 קשר" if he else "172 kt"),
+		_has(fe, "3.1 מ'" if he else "3.1 m") and _has(fe, "172 קשר" if he else "172 kt"),
 		"%s: an old record's numbers" % lang
 	)
 	check(fe.find_children("NoRecording", "", true, false).size() == 2, "%s: an old record: the empty state" % lang)
@@ -1260,7 +1260,7 @@ func _loadout_checks(fe: Control, lang: String) -> void:
 		"%s: loadout: a callout per station that takes a store (%s)" % [lang, c.keys()]
 	)
 	check(
-		c["4"].head == ("4 · פנימית" if he else "4 · INBOARD") and c["4"].sub == "1,321 " + ("ק״ג" if he else "kg"),
+		c["4"].head == ("4 · פנימית" if he else "4 · INBOARD") and c["4"].sub == "1,321 " + ("ק\"ג" if he else "kg"),
 		"%s: loadout: the callout's number, place and weight (%s, %s)" % [lang, c["4"].head, c["4"].sub]
 	)
 	check(c["1"].store[1] == "AIM-9M" and c["1"].tooltip_text == "AIM-9M", "%s: loadout: 1 an AIM-9M" % lang)

@@ -514,7 +514,7 @@ edge, the text right to left.
 
 | tab (English / Hebrew) | the page | from |
 |---|---|---|
-| CHECKLIST / בד״ח (START-UP / התנעה until 2026-11-17) | the jet's checklist card (§12), section by section: each item's line, how to do it (`how`: the clicks, the waits), its switch and place (`where`); the items whose check holds ticked (a switch back off unticks its item, [cockpit.md](cockpit.md) "Both ways"), ○ on an item read and acknowledged, the item to do now on a yellow band with ▶ (◀ in Hebrew), a refused step's fault in red under it | the jet's card, `data/checklists` (§12); a start-up lesson's tower call above it |
+| CHECKLIST / בד"ח (START-UP / התנעה until 2026-11-17) | the jet's checklist card (§12), section by section: each item's line, how to do it (`how`: the clicks, the waits), its switch and place (`where`); the items whose check holds ticked (a switch back off unticks its item, [cockpit.md](cockpit.md) "Both ways"), ○ on an item read and acknowledged, the item to do now on a yellow band with ▶ (◀ in Hebrew), a refused step's fault in red under it | the jet's card, `data/checklists` (§12); a start-up lesson's tower call above it |
 | TAXI / T-O / הסעה / המראה | the radio calls, the taxi and the take-off as numbered steps, the runway's designator, heading, length and elevation | the take-off mission's `training.steps` (§8) of the flight's base (else its jet); the base's airbase file |
 | RADIO / קשר | the callsign, the base's frequencies (name, MHz, VHF / UHF), the four calls with the frequency to call on and the tower's answer | `data/notebook.json` `radio` and `calls`; the call names are the radio menu's (`sim_flight.gd` `ITEMS`) |
 | LANDING / נחיתה | the call, the gear, the final's AOA, the touchdown, the throttle to OFF on the spot | `data/notebook.json` `pages.<f16 / f35i>.landing` |
@@ -617,7 +617,7 @@ brakes, the ejection handle and the switches' OFF positions by the mouse.
 Since 2026-11-17 (the user: "the checklist isn't clear enough. we also need to make the checklist full", "try to find a
 real checklist and use it", "right now the checklist is very training specfic", "ok so all of this should be part of
 the checklist, ya? turning radar on etc") each jet carries one real checklist, the same card in every mission: the
-notebook's first tab, CHECKLIST / בד״ח (§11). The card is the jet's data, not a lesson's:
+notebook's first tab, CHECKLIST / בד"ח (§11). The card is the jet's data, not a lesson's:
 `modern-iaf/data/checklists/f16.json` (the F-16I Sufa and the F-16D Barak, one cockpit) and `f35i.json` (the F-35I
 Adir); `modern-iaf/flight/card.gd` ticks it.
 
@@ -637,7 +637,7 @@ item: the taxi speed, 30 kt and 10 kt in turns (3.4.1), with the brakes and stee
 2,500 lb at the final approach fix (3.20.3), with the joker and bingo fuel; the "minimum fuel" call at 1,800 lb and
 the "emergency fuel" call at 1,200 lb (3.20.4), with the ops check. Every other item and its section are inferred
 from the F-16's and from our cockpit (no public F-35 checklist was found). The Hebrew section names are the field's:
-the checklist is בד״ח (בדיקות חיוניות), its parts
+the checklist is בד"ח (בדיקות חיוניות), its parts
 "בדיקות לפני המראה", "אחרי המראה", "לפני נחיתה", "אחרי נחיתה"[^bdh]; the switches keep their English labels, as
 painted in the cockpit. Hebrew terms found in use: תצוגת קסדה (the helmet display)[^hmdhe], מעצורי אוויר (the
 speedbrakes)[^airbrake], פגיעת ציפור (a bird strike)[^birdhe]. Open, no source found in the search of 2026-11-18 and
@@ -748,4 +748,4 @@ with the gear up and sank into the ground at "landing step 5" (the 1998 landing 
 [^hmdhe]: Hebrew Wikipedia, "תצוגת קסדה עילית", through its mirror https://www.hamichlol.org.il/תצוגת_קסדה_עילית
 [^airbrake]: Hebrew Wikipedia, "ספוילר (תעופה)" ("מעצורי אוויר, המגדילים משמעותית את כוח הגרר"; second-hand: read in a search engine's quote of the mirror's page), https://www.hamichlol.org.il/מחבלי_זרימה
 [^birdhe]: Maariv, "הפחד הגדול של כל טייס: ציפורים במסלול ההמראה והנחיתה" (the press's term, "פגיעת ציפור"; second-hand: a search engine's listing), https://www.maariv.co.il/lifestyle/travel/article-1169648
-[^bdh]: Hebrew Wikipedia, "בדיקות חיוניות" (בד״ח: the checklist booklet; its sections before and after the take-off and the landing), through its mirror https://www.hamichlol.org.il/בדיקות_חיוניות
+[^bdh]: Hebrew Wikipedia, "בדיקות חיוניות" (בד"ח: the checklist booklet; its sections before and after the take-off and the landing), through its mirror https://www.hamichlol.org.il/בדיקות_חיוניות

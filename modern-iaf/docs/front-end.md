@@ -720,7 +720,7 @@ over it sit two cards and the map's chips (`menu/briefing_page.gd` lays them out
   the brief page"). It has no key of its own: its key A and key cap were removed the same day (the user: "remove the
   key shortcut for arming"); the mouse, Tab / the arrows and a gamepad reach it.
 - **The facts' figures:** each value's figures are a label of their own, left to right, and its unit a label beside
-  them, so "16,471 ק״ג", "000° / 0 קשר" and "25R · 246°" keep their order in a Hebrew line.
+  them, so "16,471 ק"ג", "000° / 0 קשר" and "25R · 246°" keep their order in a Hebrew line.
 
 **The mission's text** at the inline end, from under the chips to the bottom, 640 px wide (since 2026-11-15, the
 user's note after playing: "it should have a short summary of the purpose (in training: what would you learn) and a
@@ -1085,7 +1085,7 @@ run. `test_start_watch.gd` checks that each name turns its feature off and that 
 ## 12. The Hangar
 
 The Hangar is the sim's first screen (the user's A25, 2026-11-13: "hanger is great idea"; "home should be replaced with
-hangar everywhere", Hebrew דת״ק). It replaces Home, Pick a plane and the jet's Training page. The mock-ups it follows:
+hangar everywhere", Hebrew דת"ק). It replaces Home, Pick a plane and the jet's Training page. The mock-ups it follows:
 round 3 of the menu ideas (`r3_hangar_en.png`, `r3_hangar_he.png`, outside the repo).
 
 | what | where, from what |
@@ -1238,7 +1238,7 @@ points (50 %, 75 %, 100 %).
 The measurement of 2026-11-16, evening (High's median 30.1 ms, noise 3.3 ms; other sessions'
 jobs ran on the laptop between the runs, so the noise stayed high, as at the first measurement that morning: 31.6 ms,
 noise 2.9 ms). A choice other than its row's plain one whose difference is smaller than the noise reads "under
-3.3 ms" ("פחות מ־3.3 מ״ש"): no cost found, at most that much; the plain choice reads none.
+3.3 ms" ("פחות מ־3.3 מ"ש"): no cost found, at most that much; the plain choice reads none.
 
 | setting | choice | GPU time against High (ms) | chip |
 |---|---|---|---|

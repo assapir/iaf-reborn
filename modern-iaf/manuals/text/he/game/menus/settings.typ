@@ -1,6 +1,6 @@
 #import "/modern-iaf/manuals/layout/manual.typ": *
 
-#idx("הגדרות")המסך #scr("preferences") מכיל את כל האפשרויות של המשחק. פותחים אותו מהסרגל העליון של ה#term("דת״ק"), או בזמן טיסה מתפריט ההשהיה (@time-pause). שינוי חל מיד ונשמר מיד; במסך אין לחצן שמירה.
+#idx("הגדרות")המסך #scr("preferences") מכיל את כל האפשרויות של המשחק. פותחים אותו מהסרגל העליון של ה#term("דת\"ק"), או בזמן טיסה מתפריט ההשהיה (@time-pause). שינוי חל מיד ונשמר מיד; במסך אין לחצן שמירה.
 
 #screen("prefs_graphics", [המסך #scr("preferences") בחלק #scr("graphics").])
 
@@ -15,7 +15,7 @@
   [החלונית], [מסבירה את ההגדרה שמתחת לסמן או במיקוד: השם שלה ומה היא עושה. להגדרת גרפיקה היא מציגה גם תמונה (@settings-pictures) ואת #term("זמן תמונה", shown: "זמן התמונה") שנמדד במחשב הזה (@settings-frame).],
   [#scr("defaults")], [מחזיר את ההגדרות של החלק המוצג לברירות המחדל שלהן (@settings-defaults).],
   [#scr("export_settings"), #scr("import_settings")], [כותבים את ההגדרות לקובץ וקוראים אותן מקובץ (@settings-file).],
-  [#scr("back_hangar")], [חוזר לדת״ק. #keycap("Esc") עושה אותו דבר.],
+  [#scr("back_hangar")], [חוזר לדת"ק. #keycap("Esc") עושה אותו דבר.],
 )
 
 הגדרה שאי אפשר להשתמש בה במחשב הזה מעומעמת, ושורה מתחת לשם שלה מציינת את הסיבה.
@@ -76,10 +76,10 @@
   (auto, 1fr),
   ([תווית], [עלות הבחירה]),
   [#scr("cost_saves")], [הבחירה מקצרת את זמן התמונה.],
-  [#scr("cost_none")], [פחות מ-0.3 מ״ש.],
-  [#scr("cost_low")], [פחות מ-1.5 מ״ש.],
-  [#scr("cost_medium")], [פחות מ-4 מ״ש.],
-  [#scr("cost_high")], [4 מ״ש או יותר. התווית כתומה.],
+  [#scr("cost_none")], [פחות מ-0.3 מ"ש.],
+  [#scr("cost_low")], [פחות מ-1.5 מ"ש.],
+  [#scr("cost_medium")], [פחות מ-4 מ"ש.],
+  [#scr("cost_high")], [4 מ"ש או יותר. התווית כתומה.],
   [תווית שמתחילה במילים פחות מ, ואחריהן זמן], [לא נמצאה עלות: ההפרש קטן ממה שהמדידה יכולה להבחין בו. העלות היא לכל היותר הזמן שצוין.],
 )
 
@@ -88,13 +88,13 @@
 #grid-table(
   (auto, 1fr),
   ([הגדרה], [התווית של כל בחירה]),
-  [#scr("antialiasing")], [#scr-text("antialiasing_msaa4")\u{200E}: #scr-text("cost_none"). #scr-text("antialiasing_msaa4_fxaa"): פחות מ-3.3 מ״ש. #scr-text("antialiasing_taa"): #scr-text("cost_saves"). FSR 2: פחות מ-3.3 מ״ש.],
-  [#scr("upscaling")], [#scr-text("upscaling_off"): #scr-text("cost_none"). #scr-text("upscaling_quality"): פחות מ-3.3 מ״ש. #scr-text("upscaling_balanced"): #scr-text("cost_saves").],
-  [#scr("shadows")], [#scr-text("off"): #scr-text("cost_none"). #scr-text("on"): פחות מ-3.3 מ״ש.],
-  [#scr("shadow_reach")], [#scr-text("off"): #scr-text("cost_none"). #scr-text("on"): פחות מ-3.3 מ״ש.],
-  [#scr("terrain_detail")], [50%: #scr-text("cost_none"). 75% ו-100%: פחות מ-3.3 מ״ש.],
+  [#scr("antialiasing")], [#scr-text("antialiasing_msaa4")\u{200E}: #scr-text("cost_none"). #scr-text("antialiasing_msaa4_fxaa"): פחות מ-3.3 מ"ש. #scr-text("antialiasing_taa"): #scr-text("cost_saves"). FSR 2: פחות מ-3.3 מ"ש.],
+  [#scr("upscaling")], [#scr-text("upscaling_off"): #scr-text("cost_none"). #scr-text("upscaling_quality"): פחות מ-3.3 מ"ש. #scr-text("upscaling_balanced"): #scr-text("cost_saves").],
+  [#scr("shadows")], [#scr-text("off"): #scr-text("cost_none"). #scr-text("on"): פחות מ-3.3 מ"ש.],
+  [#scr("shadow_reach")], [#scr-text("off"): #scr-text("cost_none"). #scr-text("on"): פחות מ-3.3 מ"ש.],
+  [#scr("terrain_detail")], [50%: #scr-text("cost_none"). 75% ו-100%: פחות מ-3.3 מ"ש.],
   [#scr("clouds")], [#scr-text("clouds_original"): #scr-text("cost_none"). #scr-text("clouds_volumetric"): #scr-text("cost_medium").],
-  [#scr("scenery")], [#scr-text("off"): #scr-text("cost_none"). #scr-text("on"): פחות מ-3.3 מ״ש. #scr-text("scenery_detailed"): #scr-text("cost_high").],
+  [#scr("scenery")], [#scr-text("off"): #scr-text("cost_none"). #scr-text("on"): פחות מ-3.3 מ"ש. #scr-text("scenery_detailed"): #scr-text("cost_high").],
   [#scr("fullscreen"), #scr("vsync")], [#scr-text("cost_none"): הן אינן עולות זמן ציור.],
 )
 
@@ -109,7 +109,7 @@
 #idx("זמן תמונה")כל טיסה מודדת את זמן התמונה שלה בין השנייה ה-10 לשנייה ה-30. החלונית מציגה את המדידה האחרונה תחת #scr("frame_measured_none_head"):
 
 - הזמן באלפיות שנייה, ומספר התמונות בשנייה שהוא נותן.
-- מד עד 33 מ״ש, עם קו ב-60 תמונות בשנייה (16.7 מ״ש). מד שמסתיים לפני הקו פירושו טיסה חלקה.
+- מד עד 33 מ"ש, עם קו ב-60 תמונות בשנייה (16.7 מ"ש). מד שמסתיים לפני הקו פירושו טיסה חלקה.
 - גודל החלון בזמן המדידה.
 - כשהגדרות הגרפיקה שונות עכשיו מאלה של המדידה: הערכה להגדרות הנוכחיות, מחושבת מהעלויות שנמדדו.
 
@@ -167,7 +167,7 @@
   [#scr("stick_response")], [#scr("linear"), #scr("soft")], [#scr("linear")],
 )
 
-כשאין ג׳ויסטיק מחובר, שלוש השורות הראשונות מציגות #scr("keyboard") והאפשרות האחרת שלהן מעומעמת; #scr("throttle_detent") ו#scr("joystick_screen") מעומעמות ומציגות #scr("joy_none") הבחירות השמורות חוזרות כשמחברים ג׳ויסטיק.
+כשאין ג'ויסטיק מחובר, שלוש השורות הראשונות מציגות #scr("keyboard") והאפשרות האחרת שלהן מעומעמת; #scr("throttle_detent") ו#scr("joystick_screen") מעומעמות ומציגות #scr("joy_none") הבחירות השמורות חוזרות כשמחברים ג'ויסטיק.
 
 #screen("prefs_devices", [החלק #scr("devices").], width: 80%)
 
@@ -191,7 +191,7 @@
 + לבחור #scr("defaults").
   #then[שורות החלק, או תוצאות החיפוש, חוזרות לברירות המחדל שלהן. השפה נשארת כפי שהיא.]
 
-למקשים ולג׳ויסטיק יש #scr("reset_all") משלהם במסכים שלהם (@keys-joystick).
+למקשים ולג'ויסטיק יש #scr("reset_all") משלהם במסכים שלהם (@keys-joystick).
 
 === קובץ ההגדרות <settings-file>
 
@@ -201,4 +201,4 @@
 + כדי לקרוא הגדרות מקובץ כזה, לבחור #scr("import_settings") ולבחור את הקובץ.
   #then[ההגדרות נקלטות, מוחלות ונשמרות מיד.]
 
-הפרופיל שבשימוש והמטוס שנבחר נשארים של המחשב הזה. שני הלחצנים נמצאים במסך שנפתח מהדת״ק; במסך שנפתח מתפריט ההשהיה יש רק #scr("defaults") ו#scr("back").
+הפרופיל שבשימוש והמטוס שנבחר נשארים של המחשב הזה. שני הלחצנים נמצאים במסך שנפתח מהדת"ק; במסך שנפתח מתפריט ההשהיה יש רק #scr("defaults") ו#scr("back").

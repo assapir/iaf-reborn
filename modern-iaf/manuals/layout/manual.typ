@@ -1099,6 +1099,7 @@
 #let manual(doc) = {
   set document(title: book.title + " " + book.subtitle, author: ui.product)
   set text(font: font, size: 10.5pt, lang: lang, fill: ink)
+  set smartquote(enabled: lang != "he") // Hebrew keeps the straight " and ' (abbreviations: בד"ח)
   // Code, file paths and commands read left to right inside a right-to-left line.
   show raw.where(block: false): it => if rtl { box(text(dir: ltr, it)) } else { it }
   show raw.where(block: true): set text(dir: ltr) if rtl

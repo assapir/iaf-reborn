@@ -75,7 +75,7 @@ The stores are those in `modern-iaf/data/db/weapons/`.
 | GBU-10 / 12 / 16 Paveway II (`gbu-10`, `gbu-12`, `gbu-16`) | none found | — | — | — | not found | "GBU-1x פייבוויי II": no IAF name found |
 | Mk 82 / 83 / 84 (`mk-82`, `mk-83`, `mk-84`) | none found | — | — | — | not found | "פצצת Mk 8x": no IAF name found |
 | 370 / 600 gal tanks (`tank-370`, `tank-600`) | none found. Generic terms: **מכל דלק נתיק** (drop fuel tank) or **בידון** (from French *bidon*)[^hm-tank] | bidon | can, container | — | secondary | "בידון 370 גלון": same (generic term) |
-| 20 mm gun (`20mm`) | none found; the generic **תותח** (gun) | — | — | — | — | "פגזי 20 מ״מ": generic, no IAF name |
+| 20 mm gun (`20mm`) | none found; the generic **תותח** (gun) | — | — | — | — | "פגזי 20 מ"מ": generic, no IAF name |
 | chaff, flares (`chaff`, `flare`) | generic **מוץ** (chaff) and **נורים** / **נורי הטעיה** (flares, decoy flares)[^calcalist-flares] | mots, norim | — | — | press | "מוץ", "נורים": same |
 
 Older names, for reference only (not stores of the sim): the Sidewinder's earlier versions ברקן (AIM-9B), דקר

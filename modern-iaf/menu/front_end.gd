@@ -1167,7 +1167,7 @@ func wind_text(m: Dictionary) -> String:
 
 
 ## A fact's value: its figures left to right (a label of their own, so "16,069 / 23,582" keeps its order inside a
-## Hebrew line) and its unit beside them at the inline end ("ק״ג" to their left in Hebrew).
+## Hebrew line) and its unit beside them at the inline end ("ק"ג" to their left in Hebrew).
 func _fact(parent: Control, figures: String, unit: String) -> HBoxContainer:
 	var h := _hbox(parent, 7)
 	h.name = "Fact"
@@ -1472,7 +1472,8 @@ func _pref_matches(row: Array) -> bool:
 	return Array(_plain(pref_search).split(" ", false)).all(func(w): return hay.contains(w))
 
 
-## `t` lower-cased, the Hebrew geresh and gershayim (׳ ״) as the keyboard's ' and " (a Hebrew keyboard types those).
+## `t` lower-cased, the Hebrew geresh and gershayim (U+05F3, U+05F4) as the keyboard's ' and "
+## (a Hebrew keyboard types those).
 static func _plain(t: String) -> String:
 	return t.to_lower().replace("\u05f3", "'").replace("\u05f4", '"')
 

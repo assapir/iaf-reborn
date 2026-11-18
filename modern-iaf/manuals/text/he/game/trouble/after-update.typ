@@ -34,9 +34,9 @@
 
 כשבשורה כתוב #stp("state_up_to_date") והתקלה נשארת, יש לסמן #stp("row_redo") בשורה ולבחור #stp("install") (@setup-faults-again).
 
-=== הדת״ק מודיע שאין משימות אימון <after-update-no-missions>
+=== הדת"ק מודיע שאין משימות אימון <after-update-no-missions>
 
-#idx("אין משימות אימון")בכרטיס שב#term("דת״ק"), או במסך #scr("missions"), כתוב: #scr-text("no_missions") מתחתיו מופיעה פקודת ההתקנה. #scr("fly") והחלקים של המסך מעומעמים.
+#idx("אין משימות אימון")בכרטיס שב#term("דת\"ק"), או במסך #scr("missions"), כתוב: #scr-text("no_missions") מתחתיו מופיעה פקודת ההתקנה. #scr("fly") והחלקים של המסך מעומעמים.
 
 #screen("nodata_missions", [המסך #scr("missions") בלי נתוני המשחק.], width: 80%)
 
@@ -46,7 +46,7 @@
 + להריץ את הפקודה שהמסך מציין: `./modern-iaf-setup`, וב-Windows `.\modern-iaf-setup.ps1`.
 + לבחור #stp("install") בעמוד #stp("page_install") ולהמתין לעמוד #stp("page_done").
 + לבחור #stp("start_game").
-  #then[הכרטיס שבדת״ק מציג את ההתקדמות באימון, והלחצן #scr("fly") פעיל.]
+  #then[הכרטיס שבדת"ק מציג את ההתקדמות באימון, והלחצן #scr("fly") פעיל.]
 
 === הטיסה הראשונה אחרי עדכון נטענת לאט <after-update-slow>
 

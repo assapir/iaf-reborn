@@ -253,7 +253,7 @@ static func target_lines(main: Dictionary, lang: String) -> Array:
 		var n := int(e.get("scenery_count", 0))
 		var line := (
 			(
-				"%s: בניין בגובה %d מ'; %d בניינים בטווח ק״מ."
+				"%s: בניין בגובה %d מ'; %d בניינים בטווח ק\"מ."
 				if he
 				else "%s: a building %d m high; %d building%s within 1 km."
 			)

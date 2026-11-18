@@ -106,7 +106,7 @@ def glossary_links(manual: str, lang: str = "en") -> int:
     for name in files:
         with open(os.path.join(text, name), encoding="utf-8") as f:
             body = f.read()
-        linked = {m.group(1).lower(): m.start() for m in reversed(list(re.finditer(r'term\("([^"]*)"', body)))}
+        linked = {m.group(1).replace('\\"', '"').lower(): m.start() for m in reversed(list(re.finditer(r'term\("((?:[^"\\]|\\.)*)"', body)))}
         plain = re.sub(NO_PROSE, lambda m: "\0" * len(m.group(0)), body)
         plain = re.sub(r"(?m)^(=|//|#let ).*$", lambda m: "\0" * len(m.group(0)), plain)
         for term in terms:
@@ -175,8 +175,8 @@ def edition(manual: str, entry: dict) -> int:
     """What the edition `manual` (manuals.json `of`, `lang`) lacks against its English manual, each printed; the
     count. The outlines hold the same chapters and sections in the same order; each section's text names the same
     screens, options, pictures, keys and links (CALLS, and the keys of each settings-table), so every English name has
-    its Hebrew one from the game's string tables and the two editions cannot drift. In Hebrew an abbreviation is
-    written with gershayim (״): a straight quote between two Hebrew letters would be set as a quotation mark."""
+    its Hebrew one from the game's string tables and the two editions cannot drift. A Hebrew abbreviation is
+    written with the straight " and ' (never the Hebrew gershayim and geresh), which the Hebrew files must not hold."""
     of, lang = entry["of"], entry["lang"]
     lacks = []
 
@@ -218,8 +218,12 @@ def edition(manual: str, entry: dict) -> int:
         for name in sorted(names):
             with open(os.path.join(folder, name), encoding="utf-8") as f:
                 for n, line in enumerate(f, 1):
-                    if re.search('[\u05d0-\u05ea]"[\u05d0-\u05ea]', line):
-                        lacks.append(f"{os.path.relpath(os.path.join(folder, name), DIR)}:{n}: a straight quote inside a Hebrew word; write gershayim (״)")
+                    if re.search("[\u05f3\u05f4]", line):
+                        lacks.append(f"{os.path.relpath(os.path.join(folder, name), DIR)}:{n}: Hebrew gershayim or geresh; write the straight \" or '")
+    for rel in ["menu/strings_he.json", "setup/strings_he.json", "data/keys.json", "data/notebook.json"]:
+        with open(os.path.join(ROOT, "modern-iaf", rel), encoding="utf-8") as f:
+            if re.search("[\u05f3\u05f4]", f.read()):
+                lacks.append(f"modern-iaf/{rel}: Hebrew gershayim or geresh; write the straight \" or '")
     # One thing, one term: the term table's other words for a thing (text/<lang>/terms.yaml `not`).
     with open(os.path.join(DIR, "text", lang, "terms.yaml"), encoding="utf-8") as f:
         banned = [w.strip() for group in re.findall(r"\bnot: \[([^\]]*)\]", f.read()) for w in group.split(",")]

@@ -15,8 +15,10 @@
     text(size: 22pt, weight: 300, book.subtitle)
     v(8pt)
     line(length: 40mm, stroke: 3pt + rgb("5b8cff"))
-    v(8pt)
-    text(size: 11pt, fill: rgb("a9b8d4"), book.tagline)
+    if "tagline" in book {
+      v(8pt)
+      text(size: 11pt, fill: rgb("a9b8d4"), book.tagline)
+    }
   }))
   place(bottom + start, dx: edge, dy: -22mm, text(size: 9pt, fill: rgb("a9b8d4"), [#ui.edition #edition]))
 })

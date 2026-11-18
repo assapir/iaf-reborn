@@ -5,7 +5,7 @@
 # Initials and anything printed on a panel or a display stay in English as shown and need no row.
 - {en: Modern IAF, he: הזרוע הארוכה, from: game}
 - {en: the sim / the game, he: הסימולטור / המשחק, from: game}
-- {en: Hangar (the main menu), he: דת״ק, from: game, not: [האנגר, ההאנגר]}
+- {en: Hangar (the main menu), he: דת"ק, from: game, not: [האנגר, ההאנגר]}
 - {en: pilot (the saved profile), he: פרופיל, from: game}
 - {en: Pilot log, he: יומן טיסות, from: game, not: [יומן הטייס, יומן טייס]}
 - {en: Settings, he: הגדרות, from: game, not: [העדפות]}
@@ -32,12 +32,12 @@
 - {en: gun, he: תותח, from: game}
 - {en: chaff, he: מוץ, from: game}
 - {en: flares, he: נורים, from: game}
-- {en: radar, he: מכ״ם, from: game, not: [ראדאר, רדאר]}
-- {en: drone, he: מל״ט, from: game, not: [רחפן]}
+- {en: radar, he: מכ"ם, from: game, not: [ראדאר, רדאר]}
+- {en: drone, he: מל"ט, from: game, not: [רחפן]}
 - {en: weapons range, he: מטווח, from: game}
 - {en: cockpit, he: תא הטייס, from: game, not: [קוקפיט]}
 - {en: notebook (the kneeboard), he: פנקס, from: plain}
-- {en: checklist, he: בד״ח, from: game, not: [צ׳קליסט, רשימת תיוג]}
+- {en: checklist, he: בד"ח, from: game, not: [צ'קליסט, רשימת תיוג]}
 - {en: tower, he: מגדל, from: game}
 - {en: clearance, he: אישור, from: field}
 - {en: radio, he: קשר, from: game, not: [רדיו]}
@@ -70,7 +70,7 @@
 - {en: waypoint, he: נקודת ציון, from: game}
 - {en: view, he: מבט, from: game}
 - {en: pointer (the mouse's), he: סמן, from: plain}
-- {en: joystick, he: ג׳ויסטיק, from: game}
+- {en: joystick, he: ג'ויסטיק, from: game}
 - {en: axis, he: ציר, from: game}
 - {en: dead zone, he: שטח מת, from: game}
 - {en: device map, he: מיפוי התקן, from: plain}
@@ -83,7 +83,7 @@
 - {en: crash page, he: דף התקלה, from: game}
 - {en: log (the file), he: קובץ היומן, from: game}
 - {en: satellite imagery, he: תצלומי לוויין, from: game}
-- {en: CPU threads, he: ת׳רדים, from: game, not: [תהליכונים, תרדים]}
+- {en: CPU threads, he: ת'רדים, from: game, not: [תהליכונים, תרדים]}
 - {en: air base, he: בסיס, from: game}
 - {en: squadron, he: טייסת, from: game}
 - {en: flight (a formation), he: מבנה, from: game}
@@ -110,7 +110,7 @@
 - {en: route, he: נתיב, from: plain}
 - {en: parking spot, he: עמדת חניה, from: plain}
 - {en: apron, he: רחבה, from: plain}
-- {en: shelter, he: דת״ק, from: field}
+- {en: shelter, he: דת"ק, from: field}
 - {en: take-off roll, he: ריצת ההמראה, from: game}
 - {en: centreline, he: קו המרכז, from: game}
 - {en: rotation, he: הרמת האף, from: game}

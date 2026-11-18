@@ -209,7 +209,7 @@ manuals stay English. The Hebrew manual links to the English jets' manuals and s
 | a technical term | the Hebrew term the field uses, English where Hebrew speakers say it in English, never a coined word. One thing has one term: `text/he/terms.yaml` is the term table (the English term, the Hebrew one, where it comes from, and `not`: other words for the same thing) |
 | a screen's, button's or option's name | `scr`, `stp`, `settings-table`: the game's own Hebrew strings, so the manual says what the screen says |
 | the wording | gender-neutral and formal, as the front end's strings: the infinitive or "יש ל…" for an instruction |
-| an abbreviation in Hebrew | gershayim (״) and geresh (׳), never a straight quote |
+| an abbreviation in Hebrew | the straight " and ' (בד"ח, ת'רדים), never the Hebrew gershayim and geresh (the user, 18 November 2026: "no one really use the hebrew quotes"); the build stops on one (`edition` in `tools/manuals.py`) |
 | the glossary | `text/he/glossary.yaml`: the Hebrew terms; an inflected form in a text is `term("מגדל", shown: "המגדל")` |
 | the pictures | `pictures/game-he/`, the same names as `pictures/game/`, taken with the game in Hebrew (§4) |
 | the key card, the Attributions | drawn from the same data: the key table's `he` labels, `own_keys.json`'s `he`, the setup's Hebrew strings; the fixed labels are `text/he/ui.yaml` |

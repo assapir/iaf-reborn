@@ -70,7 +70,7 @@ func walk(fe: Control, lang: String) -> void:
 	fe.show_page("hangar")
 	await frames(3)
 	check(fe.layout_direction == (Control.LAYOUT_DIRECTION_RTL if he else Control.LAYOUT_DIRECTION_LTR), lang + ": dir")
-	check(_has(fe, "דת״ק" if he else "Hangar"), "%s: the crumb is the Hangar" % lang)
+	check(_has(fe, "דת\"ק" if he else "Hangar"), "%s: the crumb is the Hangar" % lang)
 	var names := ["F-16I סופה", "F-16D ברק", "F-35I אדיר", "F-15I רעם", "F-15C בז"]
 	if not he:
 		names = ["F-16I Sufa", "F-16D Barak", "F-35I Adir", "F-15I Ra'am", "F-15C Baz"]
