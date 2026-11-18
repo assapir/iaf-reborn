@@ -10,7 +10,7 @@ The seat is the Martin-Baker US16E. It works from the ground at rest ("zero-zero
 
 === Life support
 
-An on-board system makes the pilot's oxygen from engine air#wiki[Cockpit]. #row("CABIN_PRESS") controls the cabin's pressure (inferred from its name).
+An on-board system makes the pilot's oxygen, and the #term("IPP") (@engine) powers it#wiki[Cockpit]. #row("CABIN_PRESS") controls the cabin's pressure (inferred from its name).
 
 #in-sim[
   - *Canopy.* #key("Canopy") is the CANOPY switch; the canopy takes 10 seconds.

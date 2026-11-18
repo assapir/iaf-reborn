@@ -1,6 +1,6 @@
 #import "src.typ": *
 
-The radar's air-to-air picture is the SRCH format of the #term("PCD"). The real radar finds and tracks several aircraft at once and identifies them#apg81. The real format's layout is open: no public source shows it. The sim's layout is inferred, and its modes and controls are those of the F-16's radar, which stand in. The names CRM, RWS, TWS, VSR and ACM are the F-16's.
+The radar's air-to-air picture is the SRCH format of the #term("PCD"). The real radar has air-to-air modes and a combat identification function#apg81. The real format's layout is open: no public source shows it. The sim's layout is inferred, and its modes and controls are those of the F-16's radar, which stand in. The names CRM, RWS, TWS, VSR and ACM are the F-16's.
 
 === Power <radar-aa-power>
 

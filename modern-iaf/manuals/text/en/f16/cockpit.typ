@@ -1,6 +1,6 @@
 #import "/modern-iaf/manuals/layout/manual.typ": *
 #let jet = book.jet
-#let src = [#footnote[The Hellenic Air Force's flight manual for the F-16C/D Block 50/52+, a public copy dated 15 June 2003: #link("https://archive.org/details/haf-f-16"). Checked 18 November 2026: the copy and its date. The file is too large to read through, so each control's function is given as its section I "Description and Operation" is remembered: inferred, to be checked row by row. The labels and positions are those of the cockpit model, which is derived from the FlightGear F-16.]<cockpit-src>]
+#let src = [#footnote[The Hellenic Air Force's flight manual for the F-16C/D Block 50/52+, a public copy dated 15 June 2003: #link("https://archive.org/details/haf-f-16"). Each control's function was checked against the manual's section I "Description and Operation" on 18 November 2026; a row whose control section I does not describe says "inferred". The labels and positions are those of the cockpit model, which is derived from the FlightGear F-16.]<cockpit-src>]
 
 This section shows every panel of the #jet.name's cockpit and names everything on it: each control, light, gauge and display.
 

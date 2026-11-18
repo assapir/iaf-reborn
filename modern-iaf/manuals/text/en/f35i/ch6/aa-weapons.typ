@@ -1,6 +1,6 @@
 #import "src.typ": *
 
-This section gives the cockpit steps for a missile from the bay, a missile from the wing and the gun. It gives no figures for what a missile can do. The real helmet's weapon symbols are not public#gun-cues; the sim's are the F-16's, which stand in (inferred).
+This section gives the cockpit steps for a missile from the bay, a missile from the wing and the gun. It gives no figures for what a missile can do. The real jet draws its gun's aiming symbols in the helmet#gun-cues. What the weapon symbols look like is open; the sim's are the F-16's, which stand in (inferred).
 
 === Before any shot <aa-before>
 

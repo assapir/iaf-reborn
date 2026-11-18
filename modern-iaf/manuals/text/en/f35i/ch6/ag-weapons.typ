@@ -4,7 +4,7 @@ This section gives the cockpit steps for the bombs that fly to coordinates, and 
 
 === The bombs <ag-bombs>
 
-The GBU-31, the GBU-32 and the GBU-39 steer themselves to a point on the ground that the jet gives them at the release. They do not follow the laser. A bay holds one large bomb, or four GBU-39 on one rack, each with its own target#sdb.
+The GBU-31, the GBU-32 and the GBU-39 steer themselves to a point on the ground that the jet gives them at the release. They do not follow the laser. Where the jet carries one large bomb it can carry four GBU-39 instead#sdb. In the sim the four hang on one rack in the bay, and each takes its own target.
 
 A bomb takes its point in one of two modes. #key("GPS bomb PRE / VIS") changes the selected bomb's mode; the helmet's weapon line reads PRE or VIS.
 

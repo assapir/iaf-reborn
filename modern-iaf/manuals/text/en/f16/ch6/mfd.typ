@@ -2,7 +2,7 @@
 
 #layout-head
 
-Each #term("MFD") has 20 buttons round its screen, the option select buttons (OSB), numbered clockwise from the top left: 1 to 5 across the top, 6 to 10 down the right, 11 to 15 along the bottom from right to left, 16 to 20 up the left#d34[section 1, the multifunction displays]. A legend on the screen beside a button says what the button does now. This chapter names a button as #osb(1): the reference shows it on the left MFD's figure, and the right MFD's buttons carry the same numbers. Press a button with the pointer. The screens are dark until #row("AVIONICS_MFD") is on.
+Each #term("MFD") has 20 buttons round its screen, the option select buttons (OSB), numbered clockwise from the top left: 1 to 5 across the top, 6 to 10 down the right, 11 to 15 along the bottom from right to left, 16 to 20 up the left#d34[section I, "MFDS switches", pages 1-59 and 1-60, with figure 1-26]. A legend on the screen beside a button says what the button does now. This chapter names a button as #osb(1): the reference shows it on the left MFD's figure, and the right MFD's buttons carry the same numbers. Press a button with the pointer. The screens are dark until #row("AVIONICS_MFD") is on.
 
 === The bottom row, on every format
 
@@ -53,6 +53,8 @@ With the HSD the SOI the cursor control's keys (@hotas) move a cross over it, an
 === TEST, DTE, FLCS, BLANK, RESET
 
 #display("mfd_formats", [Top: the TGP format slaved and with the laser firing; the WPN format with no guided bomb selected. Middle: DTE, FLCS, TEST. Bottom: BLANK and the reset menu.], width: 90%)
+
+#display("mfd_menu_sms", [Top: the format menu; the HSD's control page; the SMS inventory. Bottom: the SMS in air-to-ground with a laser-guided bomb; the same page with the delivery mode chosen; the SMS in air-to-air.], width: 100%)
 
 - *TEST* lists the faults, or NO FAULTS.
 - *DTE:* #osb(3), LOAD, loads the data cartridge #then[LOAD IN PROG for 3 s, then LOAD COMPLETE.] The data is loaded at the start of a flight in any case.

@@ -4,7 +4,7 @@
 
 === Take-off
 
-- *Steering.* The nose-wheel steering holds the jet straight until the rudder works, at about 70 kt#fm[section II, the take-off figure, page 2-21].
+- *Steering.* The nose-wheel steering holds the jet straight until the rudder works, at about 70 kt#fm[section II, figure 2-2, page 2-21].
 - *Rotation.* Start the pull about 10 kt below the computed take-off speed without afterburner, 15 kt with it, and set 8° to 12° of pitch. An earlier pull can over-rotate the jet, make it skip or wallow, and lengthens the roll#fm[section II, "Takeoff", page 2-21].
 - *Speeds.* The take-off speed depends on the weight; the charts are in the performance supplement, which is not public: open.
 - *After lift-off.* The gear and the trailing-edge flaps come up together when the handle is raised, and the computer changes to its cruise gains (@handling-general). Until the wheels stop spinning the computer adds no rudder to a roll; a jet held with roll trim against a heavy wing yaws a little at that moment#fm[section VI, "Asymmetric loadings", page 6-7].

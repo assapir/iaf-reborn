@@ -1,6 +1,6 @@
 #import "src.typ": *
 
-The #term("PCD") is the one large touch display across the front panel, #row("PCD"). It shows the flight data, the sensors, the stores, the engine and the fuel in areas that you arrange. The real display has a strip of small legends along its top and two halves under it. Each half shows one large area, or two smaller areas called portals over four small windows#codeone. The real pilot works it by touch, with the cursor of the throttle, or by voice#sld.
+The #term("PCD") is the one large touch display across the front panel, #row("PCD"). It shows the flight data, the sensors, the stores, the engine and the fuel in areas that you arrange. The real display is two screens of 8 by 10 inches side by side that work as one. The pilot divides it into as many as four large windows, called portals, over a row of small windows#sld, or gives a whole half to one window#codeone. The strip of small legends along the top is inferred. The real pilot works the display by touch, with a cursor, or by voice#sld.
 
 #in-sim[The display has the same parts (@fig-d-pcd). The pointer stands for your finger: a click is a touch. The layout of several formats is inferred, because the real ones are public only in part; each section of this chapter says which.]
 
@@ -48,6 +48,8 @@ The sim starts with the left half as one large portal and the right half as two 
 + *Click a button.* #sym.arrow.r *The format shows in the portal and the grid closes.* A second click on the header closes the grid without a change.
 
 Three keys bring a format to a portal: #key("TSD page on MFD"), #key("FLIR page") and #key("Damage page"). Selecting a weapon brings the SMS.
+
+#display("menu", [The MENU grid on a portal: the 11 formats, the portal's own in white.], width: 60%)
 
 === The formats <pcd-formats>
 

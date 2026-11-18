@@ -6,7 +6,7 @@ This section gives the cockpit procedure for each air-to-ground weapon. The sim 
 
 === Unguided bombs: CCIP
 
-CCIP, the continuously computed impact point, shows on the #term("HUD") where a bomb released now would hit#d34[section 1, "CCIP"].
+CCIP, the continuously computed impact point, shows on the #term("HUD") where a bomb released now would hit#d34[section I, "CCIP pipper and inrange cue", page 1-173].
 
 + Arm (@stores).
 + Select the bomb: #key("Next air-to-ground weapon"). #then[The HUD shows the impact point, a dot in a circle, at the end of the bomb fall line, and CCIP in the mode window; the radar goes to AGR (@radar-ag).]
@@ -27,7 +27,7 @@ CCIP, the continuously computed impact point, shows on the #term("HUD") where a 
 
 === GPS-guided bombs
 
-A GPS-guided bomb flies to coordinates. It takes them in one of two modes: PRE, a target planned before the flight, and VIS, a point designated in flight#dcs["JDAM"]. #key("GPS bomb PRE / VIS") changes the mode, and #osb(2) on the SMS format opens the list of modes (@stores); #key("GPS bomb next PRE target") steps the planned targets.
+A GPS-guided bomb flies to coordinates. It takes them in one of two modes: PRE, a target planned before the flight, and VIS, a point designated in flight#dcs["JDAM SMS format", page 639]. #key("GPS bomb PRE / VIS") changes the mode, and #osb(2) on the SMS format opens the list of modes (@stores); #key("GPS bomb next PRE target") steps the planned targets.
 
 + Arm. Select the bomb. #then[The HUD's mode window shows PRE or VIS.]
 + In VIS, designate the point with the ground map (@radar-ag).

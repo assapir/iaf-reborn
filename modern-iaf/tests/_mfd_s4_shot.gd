@@ -166,7 +166,6 @@ func run() -> void:
 	var t1: Vector3 = hulk.world
 	t1.z = float(tv.mission_ground(t1))
 	_put(t1 - Vector3(9000.0, 0, 0), 90.0, 1500.0)
-	tv._command([213, 0, 0])
 	await fly(tv, 3.0)
 	tv.views.set_cockpit(tv.views.COCKPIT)
 	tv.in_cockpit = true

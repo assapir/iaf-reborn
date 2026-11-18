@@ -1,6 +1,6 @@
 #import "src.typ": *
 
-The real jet's stick and throttle carry the switches that work the sensors and the weapons, so the pilot's hands stay on them#d34[section 1, the hands-on controls]. The sim's #row("anim000") and #row("THROTTLE") are drawn and move; their switches are keys. Each switch acts on the _sensor of interest_ (SOI): the one display, of the #term("HUD") and the two #term("MFD")s, that the cursor and the target switch work on (@mfd).
+The real jet's stick and throttle carry the switches that work the sensors and the weapons, so the pilot's hands stay on them#d34[section I, "Hands-on control", page 1-43]. The sim's #row("anim000") and #row("THROTTLE") are drawn and move; their switches are keys. Each switch acts on the _sensor of interest_ (SOI): the one display, of the #term("HUD") and the two #term("MFD")s, that the cursor and the target switch work on (@mfd).
 
 #table(columns: (27%, 1fr, 22%), table.header[*Switch*][*What it does in the sim*][*Key*],
   [Target management switch (TMS) up], [Radar: bugs the target under the cursor (marks it as the one to follow while the search goes on), then locks it. Ground map: tracks or designates. Targeting pod: tracks. HSD: picks the steerpoint under the cursor.], [#key("Radar: bug / lock (TMS up)")],

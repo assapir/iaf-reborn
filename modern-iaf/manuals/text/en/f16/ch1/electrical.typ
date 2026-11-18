@@ -11,7 +11,7 @@ The real jet has four sources of electrical power#fm[pages 1-82 and 1-83]:
 
 #row("MAIN_PWR") has three positions#fm[figure 1-30, page 1-87]: OFF; BATT, which connects the battery alone; and MAIN PWR, which also lets the generators on line once the engine turns them.
 
-The lights of the ELEC panel are amber and each names what has failed or is not on line#fm[page 1-88]: #row("lamp_main_gen_0"), #row("lamp_stby_gen_0"), #row("lamp_flcs_pmg_0"), #row("lamp_epu_gen_0"), #row("lamp_epu_pmg_0"), and three for the battery: #row("lamp_to_flcs_0") (the battery is feeding the flight controls), #row("lamp_flcs_rly_0") and #row("lamp_flcs_fail_0"). Any of them also lights the #row("lamp_caution_elec_sys_0") caution. #row("CAUTION_RESET") puts the caution out and resets a tripped generator#fm[page 1-83].
+The lights of the ELEC panel are amber and each names what has failed or is not on line#fm[figure 1-30, pages 1-88 and 1-89]: #row("lamp_main_gen_0"), #row("lamp_stby_gen_0"), #row("lamp_flcs_pmg_0"), #row("lamp_epu_gen_0"), #row("lamp_epu_pmg_0"), and three for the battery: #row("lamp_to_flcs_0") (the battery is feeding the flight controls), #row("lamp_flcs_rly_0") and #row("lamp_flcs_fail_0"). Any of them also lights the #row("lamp_caution_elec_sys_0") caution. #row("CAUTION_RESET") puts the caution out and resets a tripped generator#fm[figure 1-30, page 1-89].
 
 With the engine off, MAIN GEN and STBY GEN are on, as no generator turns (inferred). In flight either light means a lost generator; the procedure is in @emergency-systems.
 

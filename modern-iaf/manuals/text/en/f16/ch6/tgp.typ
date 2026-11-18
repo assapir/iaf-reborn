@@ -2,7 +2,7 @@
 
 #layout-head
 
-The targeting pod is a camera with a laser, hung under the right side of the intake. It shows a picture of the ground, holds its aim on a point or a vehicle, and marks the target with its laser for the laser-guided bombs#dcs["TGP"]. In this two-seat jet the rear crew member works the pod; in the sim you do. The pod is a store: it must be loaded (@stores).
+The targeting pod is a camera with a laser, hung under the right side of the intake. It shows a picture of the ground, holds its aim on a point or a vehicle, and marks the target with its laser for the laser-guided bombs#dcs["Targeting/sensor pods", page 41]. In this two-seat jet the rear crew member works the pod; in the sim you do. The pod is a store: it must be loaded (@stores).
 
 === Power
 

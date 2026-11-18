@@ -12,7 +12,7 @@ The real jet has no radio panel. The radios are set on the CNI format of the #te
 
 === Combat identification <radios-id>
 
-The jet joins what its sensors know about another aircraft into one identity. The display draws it as one of three shapes#codeone:
+The jet joins what its sensors know about another aircraft into one identity. The real display draws it in one of three colours, green for a friend, yellow for an unknown and red for a possible enemy, and in different shapes#codeone. Which shape goes with which identity is inferred:
 
 #table(
   columns: (1fr, 1fr, 2.4fr),

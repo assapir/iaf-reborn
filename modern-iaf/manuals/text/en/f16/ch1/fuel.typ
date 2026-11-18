@@ -1,6 +1,6 @@
 #import "src.typ": *
 
-The real jet's fuel is in seven internal tanks: one in each wing, three in the fuselage (F1 and F2 ahead of the wing, A1 behind it) and two reservoirs, forward and aft, from which the engine is fed#fm[page 1-58]. The system keeps the forward and the aft fuel in step so that the jet stays in balance (inferred). The F-16D holds about 5,800 lb of fuel inside#fm[figure 1-22, page 1-70]#if sufa [; the #jet.short's two conformal tanks add about 3,000 lb#fm[page 1-7].] else [.]
+The real jet's fuel is in seven internal tanks: one in each wing, three in the fuselage (F1 and F2 forward, A1 aft) and two reservoirs, forward and aft, from which the engine is fed#fm[page 1-58]. The system keeps the forward and the aft fuel in step so that the jet stays in balance (inferred). The F-16D holds about 5,800 lb of fuel inside#fm[figure 1-22, page 1-70]#if sufa [; the #jet.short's two conformal tanks add about 3,000 lb#fm[page 1-7].] else [.]
 
 External tanks hang under the inboard wing stations, 370 or 600 US gallons each, and under the centreline, 300 US gallons#fm[figure 1-22, page 1-70, and page 2-22].
 
@@ -23,7 +23,7 @@ External tanks hang under the inboard wing stations, 370 or 600 US gallons each,
 
 The #row("lamp_caution_fwd_fuel_low_0") and #row("lamp_caution_aft_fuel_low_0") caution lights come on when a reservoir runs low; in the F-16D below 250 lb in the forward one and 400 lb in the aft one#fm[page 1-74]. The reservoirs are the last fuel the engine gets, so the lights mean: land as soon as possible (inferred).
 
-#term("Bingo fuel") is a quantity the pilot sets before the flight: the fuel needed to fly home and land with a reserve. When the total falls below it the voice says "Bingo" and the #term("HUD") flashes FUEL#fm[page 1-74]. The action is to turn for home. Bingo is a plan, not a fault: a pilot may also set it higher, as a reminder to leave a fight (inferred).
+#term("Bingo fuel") is a quantity the pilot sets before the flight: the fuel needed to fly home and land with a reserve. When the total falls below it the voice says "Bingo" and the #term("HUD") shows FUEL#fm[page 1-74]. The action is to turn for home. Bingo is a plan, not a fault: a pilot may also set it higher, as a reminder to leave a fight (inferred).
 
 #in-sim[
   - *Quantity.* The jet starts with #if sufa [8,850 lb inside, the conformal tanks included] else [5,800 lb inside]. A 370-gallon tank adds about 2,470 lb and a 600-gallon tank about 4,000 lb; each also adds weight and drag (@handling-stores).

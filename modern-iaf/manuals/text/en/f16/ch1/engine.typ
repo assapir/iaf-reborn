@@ -39,7 +39,7 @@ The red #row("lamp_engine_0") warning light comes on when the RPM falls below 55
 
 === Engine fire <engine-fire>
 
-A fire in the engine bay shows as the red #row("lamp_eng_fire_0") warning light; hot air leaking in the bay shows as the #row("lamp_caution_overheat_0") caution light. Both come from the fire and overheat detection system, tested with #row("FIRE_OHEAT_DETECT")#fm[page 1-58]. A fire in the bay can spread to the fuel and the flight controls around the engine (inferred), so it is acted on at once: the first action is to pull the throttle back to the least power that keeps the jet flying#fm[page 3-61, "Engine fire"]. The whole procedure is in @emergency-engine.
+A fire in the engine bay shows as the red #row("lamp_eng_fire_0") warning light; an overheat in the engine bay, the wheel wells or the equipment bays shows as the #row("lamp_caution_overheat_0") caution light. Both come from the fire and overheat detection system, tested with #row("FIRE_OHEAT_DETECT")#fm[page 1-58]. A fire in the bay can spread to the fuel and the flight controls around the engine (inferred), so it is acted on at once: the first action is to pull the throttle back to the least power that keeps the jet flying#fm[page 3-61, "Engine fire"]. The whole procedure is in @emergency-engine.
 
 #in-sim[
   - *The start.* The JFS turns the engine to 20~% RPM in 15 seconds and holds it there. With the throttle moved to idle (#key("Throttle idle")), the engine lights 5 seconds later and reaches its idle, 60~%, 15 seconds after that. #sym.arrow.r *At 52~% the generator comes on line and the JFS switch goes back to OFF.* #key("Throttle OFF (engine shutdown)") shuts the engine down.

@@ -37,7 +37,7 @@ Weigh the airfield, the hook's limits, the crosswind and the runway; if they are
 === Blown tyre <emergency-tyre>
 #state("none")
 
-Before landing with a tyre known to be blown: jettison the stores but keep empty tanks, reduce the weight, and take the pressure off the external tanks with #row("SW_AIR_REFUEL") at OPEN, since a pressurised tank that breaks on the runway can explode#fm[section III, "Landing with a blown tire", page 3-136]. With a blown nose tyre hold the stick fully back on the roll, keep off the centreline lights, stop straight ahead and do not taxi#fm[section III, the cautions printed on page 3-38].
+Before landing with a tyre known to be blown: jettison the stores but keep empty tanks, reduce the weight, and take the pressure off the external tanks with #row("SW_AIR_REFUEL") at OPEN, since a pressurised tank that breaks on the runway can explode#fm[section III, "Landing with a blown tire", page 3-136]. With a blown nose tyre hold the stick fully back on the roll, keep off the centreline lights, stop straight ahead and do not taxi#fm[section III, "Blown tire on takeoff", page 3-38, and "Landing with a blown tire", page 3-135].
 
 === Cable arrestment <emergency-cable>
 #state("none")
@@ -49,6 +49,6 @@ Before landing with a tyre known to be blown: jettison the stores but keep empty
 === Landing with damage <emergency-damage-landing>
 #state("part")
 
-After damage to the structure or the controls, the real pilot tries the jet at a safe height in the landing configuration, slowing only as far as it still handles well; if it cannot be controlled down to a reasonable landing speed, ejection is advised#fm[section III, "Controllability check", page 3-134].
+After damage to the structure or the controls, the real pilot tries the jet at a safe height in the landing configuration, slowing only as far as it still handles well; if it cannot be controlled down to a reasonable landing speed, ejection is advised#fm[section III, "Controllability check", pages 3-133 and 3-134].
 
 #in-sim[Do the same check. With hydraulic damage (@emergency-hydraulic) fly a long, flat, straight-in approach. With brake damage use the whole runway and aerodynamic braking (@landing-roll).]

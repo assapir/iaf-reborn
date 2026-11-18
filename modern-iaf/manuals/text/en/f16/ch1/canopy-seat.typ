@@ -10,11 +10,11 @@ Each seat is an ACES II ejection seat. Pulling the ejection handle jettisons the
 
 === Oxygen
 
-The pilot breathes through a mask from a regulator. This cockpit has the #row("anim120") quantity indicator of the jets that carry liquid oxygen#fm[page 1-173 and figure 1-3]. The regulator has three levers#fm[page 1-175]: #row("PBG"), the supply lever (PBG, pressure breathing during high g; ON; OFF), #row("O2") (NORM mixes cabin air with oxygen, 100~% gives pure oxygen) and #row("EM-NO-TE") (EMER gives oxygen under pressure and TEST MASK checks the mask; both inferred from the names). The #row("lamp_caution_oxy_low_0") caution light warns of a low quantity or pressure (inferred from its name).
+The pilot breathes through a mask from a regulator. This cockpit has the #row("anim120") quantity indicator of the jets that carry liquid oxygen#fm[page 1-177 and figure 1-71, pages 1-177 to 1-179]. The regulator has three levers#fm[figure 1-71, page 1-178]: #row("PBG"), the supply lever (PBG, pressure breathing during high g; ON; OFF), #row("O2") (NORM mixes cabin air with oxygen, 100~% gives pure oxygen) and #row("EM-NO-TE") (EMER gives pure oxygen under pressure, also for the pilot's leak check of the mask; TEST MASK does the same for the ground crew's test). The #row("lamp_caution_oxy_low_0") caution light comes on with less than half a litre of oxygen left or a low pressure in the system#fm[figure 1-71, page 1-179].
 
 === Cabin air
 
-Air bled from the engine pressurises and cools the cockpit and cools the avionics. #row("AirSource_knob") has four positions#fm[page 1-181]\; what each is for is given in our words and is inferred beyond the names:
+Air bled from the engine pressurises and cools the cockpit and cools the avionics. #row("AirSource_knob") has four positions#fm[page 1-81]\; what DUMP and RAM are used for is inferred:
 
 #table(
   columns: (auto, 1fr),

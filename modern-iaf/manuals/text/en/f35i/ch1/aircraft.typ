@@ -13,7 +13,7 @@ The #jet.name is Israel's F-35A: a single-seat, single-engine stealth fighter th
   [Engine], [One F135-PW-100, 40,000 lb of thrust],
   [Internal fuel], [18,250 lb],
   [Empty weight], [29,300 lb],
-  [Maximum take-off weight], [70,000 lb class],
+  [Maximum take-off weight], [65,918 lb],
   [Load factor], [9 g],
 )
 The span, the length, the engine, the fuel and the load factor are the maker's#card-a\; the height and the weights are an encyclopedia's#wiki[Specifications (F-35A)].

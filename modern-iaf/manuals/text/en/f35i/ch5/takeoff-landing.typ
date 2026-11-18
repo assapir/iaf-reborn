@@ -6,11 +6,11 @@ The rotation and take-off speeds, and the technique, are open. The public rules 
 
 === Approach and landing
 
-The F-35A flies its final approach at 13° angle of attack. In an accident in 2020 a jet held 202 kt instead, about 50 kt too fast, at 5.2°; it bounced at touchdown and was lost#eglin. A normal approach speed is therefore near 150 kt at a light weight (inferred from those figures). The flare, the landing roll and the braking technique are open.
+In an accident in 2020 a jet held 202 kt on its approach, about 50 kt too fast, and touched down at 5.2° angle of attack, about 8° less than it should have had; it bounced and was lost#eglin. The normal final approach is therefore flown at about 13° angle of attack and near 150 kt at a light weight (both inferred from those figures). The flare, the landing roll and the braking technique are open.
 
 === Crosswind
 
-The technique and the limits are open. In formation the wingman flies on the upwind side when the crosswind is above 5 kt#afi[paragraph 3.27].
+The technique and the limits are open. In formation the wingman flies on the upwind side when the crosswind is above 5 kt#afi[paragraph 3.27.1.2].
 
 #in-sim[
   - *Take-off.* The pedals steer the nose wheel. Ease the stick back at about 165 kt (@cold-start-takeoff).

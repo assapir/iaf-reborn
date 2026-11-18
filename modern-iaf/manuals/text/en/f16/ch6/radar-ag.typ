@@ -2,9 +2,9 @@
 
 #layout-head
 
-In air-to-ground the #term("FCR") draws a map of the ground ahead from its own returns, finds vehicles and ships, and measures the range to the aim point#d34[section 1, the air-to-ground radar modes, pages 1-141 to 1-151]. Press #key("Radar air / ground") to change between air-to-air and air-to-ground; #key("Cycle radar mode") or #osb(1) steps the ground modes.
+In air-to-ground the #term("FCR") draws a map of the ground ahead from its own returns, finds vehicles and ships, and measures the range to the aim point#d34[section I, "Air-to-ground modes", pages 1-142 to 1-151]. Press #key("Radar air / ground") to change between air-to-air and air-to-ground; #key("Cycle radar mode") or #osb(1) steps the ground modes.
 
-#display("fcr_ag", [The FCR in air-to-ground. Top: the ground map with FZ on, the steerpoint as a triangle; DBS2 on a runway; GMT. Bottom: SEA; AGR with the slant range.], width: 100%)
+#display("fcr_ag", [The FCR in air-to-ground. Top: the ground map (GM), EXP, DBS1. Middle: DBS2 on the same targets, DBS2 on a runway, the ground map with FZ on. Bottom: GMT, SEA, AGR with the slant range.], width: 100%)
 
 #table(columns: (auto, 1fr), table.header[*Mode*][*Shows*],
   [GM, ground map], [A fan-shaped map, the jet at its point: slopes facing the radar are bright, water and runways dark, and ground hidden behind a ridge is in shadow. Every ground return is a bright mark. Scales 10 to 80 NM.],

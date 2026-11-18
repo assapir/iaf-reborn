@@ -4,7 +4,7 @@ This section covers what the jet carries, how you arm it, how you select a weapo
 
 === The stations <stores-stations>
 
-The real jet has 11 stations, numbered from the left wing tip to the right#wiki("Armament"). Stations 4, 5, 7 and 8 are inside the two weapon bays; the others are under the wings and the body. With the bays only, the jet keeps its clean shape.
+The real jet has two weapon bays with two stations each, and six stations under the wings#wiki[Armament]. The sim numbers 11 stations from the left wing tip to the right (the numbering is inferred). Stations 4, 5, 7 and 8 are inside the two weapon bays; the others are under the wings and the body. With the bays only, the jet keeps its clean shape.
 
 #table(
   columns: (0.6fr, 1.4fr, 2fr),
@@ -33,6 +33,8 @@ The stores management system format, SMS, of the #term("PCD") shows the jet from
 
 The counts fall with each release, and a jettison empties its stations.
 
+#display("sms", [The SMS format: the jet's outline with a missile in each bay, the selected one in a box, the weapon's name and count, the chaff and flare counts and the gun's rounds.], width: 60%)
+
 === Master arm <stores-arm>
 
 #row("MASTER_ARM") holds every weapon at SAFE. The jet starts each flight at SAFE.
@@ -53,7 +55,7 @@ At SAFE the weapon release and the trigger do nothing.
 
 === The bay doors <stores-doors>
 
-The bay doors are closed in flight. You do not open them yourself: a release from a bay opens them, lets the store go and shuts them. A press report gives under two seconds for the whole sequence#doors.
+The bay doors are closed in flight. You do not open them yourself: a release from a bay opens them, lets the store go and shuts them.
 
 #in-sim[Hold the release until the store leaves: the doors take about half a second to open, and they shut half a second after the release. While they are open the jet has more drag.]
 

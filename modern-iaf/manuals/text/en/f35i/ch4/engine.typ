@@ -5,7 +5,7 @@ The #jet.short's engine limits (temperatures, speeds, oil pressure, the limits o
 === Fuel
 
 - The rules of flying the F-35A set the fuel states by quantity: "minimum fuel" is declared at 1,800 lb or less and "emergency fuel" at 1,200 lb or less; the normal fuel at the final approach fix is 2,500 lb or more#afi[paragraphs 3.20.3 and 3.20.4].
-- Fuel is dumped only above 10,000 ft above the ground#afi[paragraph 7.14].
+- Fuel is dumped above 10,000 ft above the ground when the situation allows#afi[paragraph 7.14.2].
 - Limits of negative g, of fuel temperature and of the kinds of fuel: open.
 
 #in-sim[

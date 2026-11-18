@@ -5,12 +5,12 @@ No public source gives the #jet.short's procedures for electrical or flight cont
 === Loss of the displays or of orientation <emergency-displays>
 #state("none")
 
-A pilot who loses the sense of attitude looks at the instruments more often, calls up the full flight instrument format, flies straight and level for about a minute, and considers the autopilot#afi[paragraph 7.9]. If the helmet's night picture fails, the first move is to the instruments#afi[paragraph 3.19.8].
+A pilot who loses the sense of attitude looks at the instruments more often, calls up the full flight instrument format, flies straight and level for about a minute, and considers the autopilot#afi[paragraph 7.9]. If the helmet's night picture fails, the first move is to the instruments#afi[paragraph 3.19.8.2].
 
 === Radio failure <emergency-radio>
 #state("none")
 
-Without a radio the pilot joins another jet, sets the transponder to 7600 (7700 with an emergency as well), lowers the hook to ask for a cable, and flashes the landing light on final#afi[paragraphs 7.6, 7.6.6.3 and 7.8.5].
+Without a radio the pilot joins another jet, sets the transponder to 7600 (7700 with an emergency as well), lowers the hook to ask for a cable, and flashes the landing light on final#afi[paragraphs 7.6.2.2, 7.6.6.3 and 7.8.5].
 
 === Jettison <emergency-jettison>
 #state("full")

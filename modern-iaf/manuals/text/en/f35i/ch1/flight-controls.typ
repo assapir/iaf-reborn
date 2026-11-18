@@ -1,6 +1,6 @@
 #import "src.typ": *
 
-The #jet.short is flown through a computer: the stick, the pedals and the throttle send electrical signals, and the flight control system moves the surfaces. The #row("side_stick") is an active stick: motors in it set the forces the hand feels#footnote[BAE Systems, "Active sticks: meeting the needs of tomorrow's pilots today", #link("https://www.baesystems.com/en/insight/active-sticks-meeting-the-needs-of-tomorrows-pilots-today"). #checked].
+The #jet.short is flown through a computer: the stick, the pedals and the throttle send electrical signals, and the flight control system moves the surfaces. The #row("side_stick") is an active stick: its forces and its travel can be programmed#footnote[Code One magazine, John Kent, "The New Front Office", 15 June 2006: "The side stick is also an active controller", #link("https://www.codeonemagazine.com/u2_article.html?item_id=35"). #checked].
 
 === Control surfaces
 

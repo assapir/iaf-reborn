@@ -4,7 +4,7 @@
 
 === Master modes
 
-A master mode sets the #term("HUD"), the radar and the MFDs' formats for one task#d34[section 1, the master modes].
+A master mode sets the #term("HUD"), the radar and the MFDs' formats for one task#d34[section I, "Master mode buttons", page 1-48].
 
 #table(columns: (27%, 1fr, 22%), table.header[*Master mode*][*Chosen by*][*Key*],
   [Navigation], [The start; stepping the master mode.], [#key("Cycle master mode")],
@@ -47,7 +47,7 @@ A laser-guided bomb needs the targeting pod on the jet to mark its target. The s
 
 === Jettison
 
-- *Emergency jettison:* #key("Emergency jettison"). One press drops every bomb, tank and rack; the air-to-air missiles and the pods stay#fm[section III, "Jettison"]. The stores fall unarmed. It is refused on the ground.
+- *Emergency jettison:* #key("Emergency jettison"). One press drops every bomb, tank and rack; the air-to-air missiles stay#fm[section III, "Emergency jettison", page 3-108]. In the sim the pods stay too; that the real jet keeps them is inferred. The stores fall unarmed. It is refused on the ground.
 - *Selective jettison:* press #osb(11), S-J, on the SMS format #then[the legend turns inverse.] Select the store. Hold #key("Release selected weapon") #then[every station that holds that store drops it with its rack, unarmed.] Press S-J again to leave the mode.
 
 #in-sim[

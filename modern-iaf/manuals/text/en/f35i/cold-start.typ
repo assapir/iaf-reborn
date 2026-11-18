@@ -7,8 +7,7 @@
   start_panel: [The start panel on the left console.],
   fcs_reset: [The FCS/ENG RESET button, left console.],
 )
-#let ayton = [#footnote[Mark Ayton, "Blue Sky OPS", AIR International, 26 April 2012, quoted on F-16.net, "Engine start up procedure": three switch selections (battery, IPP, engine), and "After 90 seconds, if there are no problems, the aircraft declares itself ready for flight", #link("https://www.f-16.net/forum/viewtopic.php?p=317934").]<ayton>]
-#let lift = [#footnote[WION, "How does the F-35 fighter jet stand out in takeoff speed and design": a lift-off speed of about 165 kt (a news site: a weak source), #link("https://www.wionews.com/photos/how-does-the-f-35-fighter-jet-stand-out-in-takeoff-speed-and-design-here-s-its-minimum-lift-off-speed-1752767093279").]<lift>]
+#let ayton = [#footnote[Mark Ayton, "Blue Sky OPS", AIR International, 26 April 2012, quoted on F-16.net, "Engine start up procedure": three switch selections (battery, IPP, engine), and "After 90 seconds, if there are no problems, the aircraft declares itself ready for flight" (checked 18 November 2026), #link("https://www.f-16.net/forum/viewtopic.php?p=317934").]<ayton>]
 
 This procedure takes the #jet.name from a cold, dark jet on its parking spot to a climb with the gear up. It follows the jet's checklist card. The start takes about a minute and a half: the jet tests itself for 90 seconds from the moment the battery is on.
 
@@ -124,7 +123,7 @@ The take-off is flown from memory. It is not on the card.
 + Get the take-off clearance.
 + Set full power: #key("Throttle military power"), or #key("Afterburner stage 2") with a heavy load.
 + Keep the jet on the centreline with the rudder.
-+ #idx("Lift-off speed")At about 165 kt#lift, ease the stick back and let the jet fly off.
++ #idx("Lift-off speed")At about 165 kt (the sim's figure; the real jet's lift-off speed is open), ease the stick back and let the jet fly off.
 + When the jet climbs, go on with the next phase.
 
 === After take-off <cold-start-after-takeoff>

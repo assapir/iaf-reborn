@@ -12,9 +12,9 @@ The EXT LIGHTING panel controls the lights that let others see the jet#fm[figure
   [#row("SW_MASTER_50")], [The master switch of all exterior lights but the landing and taxi lights.],
   [#row("SW_ANTI_COLLISION_50")], [The white anticollision strobe light.],
   [#row("SW_WING-TAIL_50")], [The position lights on the wing tips, the intake and the tail. BRT, OFF, DIM.],
-  [#row("SW_FUSELAGE_50")], [The position lights on the fuselage. BRT, OFF, DIM.],
+  [#row("SW_FUSELAGE_50")], [The white flood lights at the base of the fin. BRT, OFF, DIM.],
   [#row("SW_POS_LIGHTS_50")], [The position lights steady or flashing.],
-  [#row("SW_KNOB_EXT_FORM_LIGHT_50")], [The brightness of the formation lights: strips that a wingman flies on at night (inferred).],
+  [#row("SW_KNOB_EXT_FORM_LIGHT_50")], [The brightness of the white formation lights on the top and the bottom of the fuselage. That a wingman flies on them at night is inferred.],
   [#row("SW_KNOB_REFUEL_50")], [The brightness of the light that shows the refuelling door to the tanker.],
 )
 
@@ -22,7 +22,7 @@ The EXT LIGHTING panel controls the lights that let others see the jet#fm[figure
 
 === Interior lights
 
-The LIGHTING panel#fm[figure 1-61, page 1-155]:
+The LIGHTING panel#fm[page 1-155 and figure 1-61, page 1-156]:
 
 #table(
   columns: (auto, 1fr),

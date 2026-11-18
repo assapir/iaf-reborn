@@ -4,7 +4,7 @@ The jet tells the pilot of a fault in three ways: a red warning light, an amber 
 
 === Warning lights
 
-The warning lights are red and stand on the glareshield, at eye level#fm[page 1-140 and figure 1-55]. A warning is a fault that needs action now.
+The warning lights are red and stand on the glareshield, at eye level#fm[page 1-140 and figure 1-55, pages 1-142 to 1-144]. A warning is a fault that needs action now.
 
 #table(
   columns: (auto, 1fr),

@@ -13,9 +13,9 @@
 === Engine failure and fuel exhaustion <emergency-flameout>
 #state("part")
 
-With one engine, a failure makes the jet a glider. The public rules cover only the practice of it: the engine-out pattern is practised in the simulator alone, and its radio calls are "High key", "Low key", "Base key" and "Gear"#afi[paragraph 7.12], which shows that the pattern has the same shape as other single-engine fighters' (inferred). The heights, the speeds and the restart in the air are open.
+With one engine, a failure makes the jet a glider. The public rules cover only the practice of it: the engine-out pattern is practised in the simulator alone, and its radio calls are "High key", "Low key", "Base key" and "Gear"#afi[paragraphs 7.12.4 and 7.12.5], which shows that the pattern has the same shape as other single-engine fighters' (inferred). The heights, the speeds and the restart in the air are open.
 
-The fuel states that come before an empty tank are public: "minimum fuel" is declared at 1,800 lb or less, and "emergency fuel" at 1,200 lb or less#afi[paragraphs 3.20.4.1 and 3.20.4.2]. Fuel is dumped only above 10,000 ft above the ground, and the dump switch is set back to normal before landing#afi[paragraph 7.14].
+The fuel states that come before an empty tank are public: "minimum fuel" is declared at 1,800 lb or less, and "emergency fuel" at 1,200 lb or less#afi[paragraphs 3.20.4.1 and 3.20.4.2]. Fuel is dumped above 10,000 ft above the ground when the situation allows, and the dump switch is set back to normal before landing#afi[paragraph 7.14].
 
 #in-sim[
   - An empty tank, a fire or a dead engine after a hit (*ENGINE FAIL*) #sym.arrow.r *no thrust.* Glide to a runway or eject.

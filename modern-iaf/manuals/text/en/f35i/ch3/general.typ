@@ -8,7 +8,7 @@ The one public source is a United States Air Force flying instruction from the j
 
 - A jet with a fault that touches the safety of flight is not flown, and is not taxied with a steering or brake fault. In the air, fault-finding stops when the checklist's steps are done and the jet can be brought home safely#afi[paragraph 7.1].
 - Land from a straight-in approach with a cooling caution, after a bird strike, with a flight control fault, with an engine caution that does not clear, or with a fault of the oxygen system#afi[paragraph 7.4.3]. After too much g: land, have the jet checked, and write it up#afi[paragraph 7.4.4].
-- At the time of the instruction the F-35A had no memory items: no steps the pilot must know by heart#afi[attachment 4, its first paragraph].
+- At the time of the instruction the F-35A had no memory items: no steps the pilot must know by heart#afi[attachment 4, its paragraph 1].
 
 === How the jet tells you <emergency-signs>
 

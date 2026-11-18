@@ -2,7 +2,7 @@
 
 #layout-head
 
-The #term("FCR") searches the air ahead and tracks targets for the weapons. Its picture is the FCR format (@mfd): a B-scope, where left and right are azimuth and up is range#d34[section 1, the fire control radar, pages 1-116 to 1-140].
+The #term("FCR") searches the air ahead and tracks targets for the weapons. Its picture is the FCR format (@mfd): a B-scope, where left and right are azimuth and up is range#d34[section I, "Fire control radar (FCR) format" and "Air-to-air modes", pages 1-118 to 1-125].
 
 === Power and standby
 

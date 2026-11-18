@@ -2,7 +2,7 @@
 
 === Weight
 
-The F-35A's maximum take-off weight is of the 70,000 lb class#wiki[Specifications (F-35A)]. The #jet.short's own figure, a landing weight and the centre-of-gravity limits are open.
+The F-35A's maximum take-off weight is 65,918 lb#wiki[Specifications (F-35A)]. The #jet.short's own figure, a landing weight and the centre-of-gravity limits are open.
 
 === Stores and asymmetric loads
 

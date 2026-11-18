@@ -6,9 +6,11 @@ This section gives the displays, the switches and the counts. It says nothing of
 
 === The threat warning display
 
-The round display left of the #term("HUD") shows the radars that look at the jet#d34[section 1, the threat warning system, figures 1-133 and 1-134]. The jet is the cross in the middle and the top of the display is the nose.
+The round display left of the #term("HUD") shows the radars that look at the jet#d34[section I, "RWR display", page 1-199, with figure 1-132]. The jet is the cross in the middle and the top of the display is the nose.
 
 #display("threat", [The threat warning display with no radar heard: the jet's cross, the inner ring, the marks every 30°.], width: 40%)
+
+#display("threat_radars", [The threat warning display with three radars heard: each symbol stands on its radar's bearing.], width: 40%)
 
 #table(columns: (auto, 1fr), table.header[*Symbol*][*Means*],
   [A number under a hat], [An aircraft's radar, by type.],
@@ -34,7 +36,7 @@ A symbol stands at the radar's bearing. A search radar is at the edge, a lock on
 #if sufa [
 === The missile approach warning
 
-The #jet.short's warning system also watches for a missile in flight toward the jet#footnote[Janes, "Elbit Systems to equip Israel's F-16Is with self-protection suite", 27 January 2025, #link("https://www.janes.com/defence-intelligence-insights/defence-news/defence/elbit-systems-to-equip-israels-f-16is-with-self-protection-suite"). Taken from the project's research record; not read again for this chapter.]. #then[A flashing M shows at the edge of the threat warning display at the missile's direction, with a count of seconds under it, and the launch tone sounds.] The display does not name the missile. #row("MWS_50_switch") passes the warning to the dispenser.
+The #jet.short's warning system also watches for a missile in flight toward the jet#footnote[Janes, "Elbit Systems to equip Israel's F-16Is with self-protection suite", 27 January 2025, #link("https://www.janes.com/defence-intelligence-insights/defence-news/defence/elbit-systems-to-equip-israels-f-16is-with-self-protection-suite"): the suite ordered for the jet holds an infrared missile warning system. Checked 18 November 2026.]. #then[A flashing M shows at the edge of the threat warning display at the missile's direction, with a count of seconds under it, and the launch tone sounds.] The display does not name the missile. #row("MWS_50_switch") passes the warning to the dispenser.
 ] else [
 === The missile approach warning
 

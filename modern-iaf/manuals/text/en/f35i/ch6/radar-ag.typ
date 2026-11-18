@@ -1,6 +1,6 @@
 #import "src.typ": *
 
-When the radar looks at the ground, the SRCH portal of the #term("PCD") reads ASR in its header. The real radar makes a grey picture of the ground that looks like a photograph, and tracks moving vehicles#apg81#sld. The sim's picture is grey in a square, as the maker's slide shows it; its modes, legends and controls are those of the F-16's radar, which stand in (inferred). The names GM, GMT, SEA, EXP and DBS are the F-16's.
+When the radar looks at the ground, the SRCH portal of the #term("PCD") reads ASR in its header. The real radar maps the ground in fine detail and tracks moving vehicles#apg81, and the map can fill a portal of the display#sld. The sim's picture is grey in a square (inferred); its modes, legends and controls are those of the F-16's radar, which stand in (inferred). The names GM, GMT, SEA, EXP and DBS are the F-16's.
 
 === The modes <radar-ag-modes>
 

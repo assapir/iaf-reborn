@@ -6,7 +6,7 @@
   The #jet.name is Israel's two-seat F-16D. Israel received F-16Ds of Block 30 and of Block 40, with the F110-GE-100 engine and a dorsal spine behind the canopy for avionics#f16net.
 ]
 
-The F-16D is the two-seat version of the F-16: the seats stand one behind the other under one canopy. It has one engine, fed by an intake under the fuselage, a mid wing and one fin#fm-full[page 1-6].
+The F-16D is the two-seat version of the F-16: the seats stand one behind the other under one canopy. It has one engine, fed by an intake under the fuselage, a thin, moderately swept wing and one fin#fm-full[page 1-6].
 
 #table(
   columns: (auto, auto),

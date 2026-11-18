@@ -379,7 +379,7 @@
      "node": "SW_TEST_EPU",
      "label": "EPU/GEN",
      "name": "Emergency power unit and generator test",
-     "does": "Held on the ground, checks the EPU's generator and the FLCS's power sources without running the EPU.",
+     "does": "Held on the ground, tests the EPU's generator and its power to the flight control system without using hydrazine.",
      "sim": "Lights the FLCS PWR lights while held."
     },
     {
@@ -391,7 +391,7 @@
       "OFF",
       "TEST"
      ],
-     "does": "Heats the air data probes against ice. TEST checks the heaters' monitor: the PROBE HEAT caution flashes.",
+     "does": "On the ground, turns on the heaters of the air data probes and their monitor; in flight the heaters are on in any position. TEST checks the monitor: the PROBE HEAT caution flashes.",
      "sim": "The caution flashes at TEST. Icing and the heaters are not modelled."
     },
     {
@@ -542,7 +542,7 @@
       "OFF",
       "TANK INERTING"
      ],
-     "does": "Lowers the tanks' pressure and puts Halon into them, to keep a hit tank from exploding."
+     "does": "Lowers the tanks' pressure and puts Halon into them, which keeps the fuel vapour from burning."
     },
     {
      "node": "SW_KNOB_ENG_FEED",
@@ -580,7 +580,7 @@
      "node": "SW_MASTER_50",
      "label": "MASTER",
      "name": "Exterior lights master",
-     "does": "Lets the exterior lights come on; off, all of them are dark.",
+     "does": "Lets every exterior light but the landing and taxi lights come on; off, they are dark.",
      "sim": "The exterior lights need it on, and the generator on line."
     },
     {
@@ -598,7 +598,7 @@
       "STEADY",
       "FLASH"
      ],
-     "does": "Makes the position lights flash or burn steadily.",
+     "does": "Makes the lights of the WING/TAIL switch flash or burn steadily.",
      "sim": "FLASH blinks the wing and tail lights."
     },
     {
@@ -610,7 +610,7 @@
       "OFF",
       "DIM"
      ],
-     "does": "Sets the position lights on the wings and the tail bright or dim.",
+     "does": "Sets the red and green lights on the wing tips and the intake and the white light on the fin bright or dim.",
      "sim": "The wing, intake and tail lights follow the switch."
     },
     {
@@ -622,7 +622,7 @@
       "OFF",
       "BRT"
      ],
-     "does": "Sets the fuselage's position lights.",
+     "does": "Sets the white flood lights at the base of the fin.",
      "sim": "The fuselage lights follow the switch."
     },
     {
@@ -632,7 +632,7 @@
      "positions": [
       "Knob"
      ],
-     "does": "Sets the brightness of the formation lights, the strips on the fuselage and fin.",
+     "does": "Sets the brightness of the white formation lights on the top and the bottom of the fuselage; with WING/TAIL at OFF, of the wing tip lights too.",
      "sim": "The strips follow the knob; with WING/TAIL at OFF they also light the wingtips."
     },
     {
@@ -642,7 +642,7 @@
      "positions": [
       "Knob"
      ],
-     "does": "Sets the brightness of the light that shows the receptacle to the tanker.",
+     "does": "Sets the brightness of the lights of the refuelling receptacle's slipway, with AIR REFUEL at OPEN.",
      "sim": "The light follows the knob."
     }
    ]
@@ -669,7 +669,7 @@
      "node": "CAUTION_RESET",
      "label": "CAUTION RESET",
      "name": "Electrical caution reset",
-     "does": "Resets the electrical system's cautions and the ELEC SYS caution light.",
+     "does": "Resets the ELEC SYS caution light, the main and standby generators and the overcurrent protection that can be reset.",
      "sim": "Acknowledges the ELEC SYS caution, so MASTER CAUTION goes out."
     },
     {
@@ -718,7 +718,7 @@
      "positions": [
       "Light"
      ],
-     "does": "The EPU runs and its second generator gives no power."
+     "does": "The EPU runs and its own small generator gives no power to some branch of the flight control system."
     },
     {
      "node": "lamp_to_flcs_0",
@@ -792,7 +792,7 @@
      "positions": [
       "Light"
      ],
-     "does": "Green while the EPU turns fast enough to give power."
+     "does": "On while the EPU's turbine turns at its speed and its hydraulic pump gives pressure."
     },
     {
      "node": "lamp_epu_hydrazine_0",
@@ -810,7 +810,7 @@
      "positions": [
       "Light"
      ],
-     "does": "The EPU runs on engine bleed air."
+     "does": "On whenever the EPU is told to run; it stays on when hydrazine is added to the bleed air."
     }
    ]
   },
@@ -828,7 +828,7 @@
       "off",
       "TEST"
      ],
-     "does": "Tests the airborne video tape recorder's lights.",
+     "does": "Tests the airborne video tape recorder's lights (inferred).",
      "sim": "Lights the two AVTR lights."
     },
     {
@@ -842,7 +842,7 @@
      "positions": [
       "Light"
      ],
-     "does": "The recorder runs; its tape is near its end.",
+     "does": "The recorder runs; its tape is near its end (inferred).",
      "sim": "On while the TEST button is in."
     },
     {
@@ -858,7 +858,7 @@
      "positions": [
       "Light"
      ],
-     "does": "Lit buttons that turn on the jamming pod's bands."
+     "does": "Lit buttons that turn on the jamming pod's bands (inferred)."
     },
     {
      "node": "lamp_ecm_panel_5",
@@ -873,7 +873,7 @@
      "positions": [
       "Light"
      ],
-     "does": "Lit buttons for the fifth band and the pod's formation and special modes."
+     "does": "Lit buttons for the fifth band and the pod's formation and special modes (inferred)."
     }
    ]
   },
@@ -913,7 +913,7 @@
       "OFF",
       "MAX POWER"
      ],
-     "does": "Lets the engine run above its normal limits for a short time in war."
+     "does": "Inoperative: the flight manual says the switch does nothing."
     },
     {
      "node": "SW_STARTING_FUEL",
@@ -924,7 +924,7 @@
       "NORM",
       "ENG DATA"
      ],
-     "does": "AB RESET clears an afterburner fault of the engine control; ENG DATA records the engine's data."
+     "does": "AB RESET tries to clear the engine control's faults; ENG DATA records the engine's data."
     },
     {
      "node": "SW_MPO",
@@ -998,7 +998,7 @@
      "positions": [
       "Knob"
      ],
-     "does": "Sets the volume of the TACAN station's identifier."
+     "does": "Turns the TACAN on and sets the volume of its station's identifier."
     },
     {
      "node": "ils-vol-knob",
@@ -1042,19 +1042,19 @@
      "node": "RWR_50_switch",
      "label": "RWR",
      "name": "Radar warning receiver source",
-     "does": "Lets the dispenser act on the radar warning receiver's threats."
+     "does": "Lets the dispenser act on the radar warning receiver's threats (inferred)."
     },
     {
      "node": "JMR_50_switch",
      "label": "JMR",
      "name": "Jammer source",
-     "does": "Lets the dispenser work together with the jammer."
+     "does": "Lets the dispenser work together with the jammer (inferred)."
     },
     {
      "node": "MWS_50_switch",
      "label": "MWS",
      "name": "Missile warning system source",
-     "does": "Lets the dispenser act on the missile warning system's alarms."
+     "does": "Lets the dispenser act on the missile warning system's alarms (inferred)."
     },
     {
      "node": "JETT_50_switch",
@@ -1064,38 +1064,38 @@
       "OFF",
       "JETT"
      ],
-     "does": "Throws out all the flares at once.",
+     "does": "Throws out all the flares at once (inferred).",
      "sim": "Releases every flare."
     },
     {
      "node": "01_50_switch",
      "label": "O1",
      "name": "Other 1",
-     "does": "Arms the first spare expendable type."
+     "does": "Arms the first spare expendable type (inferred)."
     },
     {
      "node": "02_50_switch",
      "label": "O2",
      "name": "Other 2",
-     "does": "Arms the second spare expendable type."
+     "does": "Arms the second spare expendable type (inferred)."
     },
     {
      "node": "CH_50_switch",
      "label": "CH",
      "name": "Chaff",
-     "does": "Arms the chaff."
+     "does": "Arms the chaff (inferred)."
     },
     {
      "node": "FL_50_switch",
      "label": "FL",
      "name": "Flare",
-     "does": "Arms the flares."
+     "does": "Arms the flares (inferred)."
     },
     {
      "node": "MODE_50_knob",
      "label": "MODE",
      "name": "Dispenser mode",
-     "does": "Sets how the dispenser releases: held ready (STBY), by the pilot's switch (MAN), or with the sensors' consent or by itself."
+     "does": "Sets how the dispenser releases: held ready (STBY), by the pilot's switch (MAN), or with the sensors' consent or by itself (inferred)."
     },
     {
      "node": "HMCS_SYM_INT_KNOB",
@@ -1104,7 +1104,7 @@
      "positions": [
       "Knob"
      ],
-     "does": "Turns the helmet display on and sets its brightness."
+     "does": "Turns the helmet display on and sets its brightness (inferred)."
     },
     {
      "node": "alt-gear",
@@ -1236,7 +1236,7 @@
      "node": "EMER_JETT",
      "label": "EMER STORES JETTISON",
      "name": "Emergency stores jettison",
-     "does": "Held, drops every jettisonable store at once.",
+     "does": "Held, drops every jettisonable store at once (inferred).",
      "sim": "Drops the tanks and the air-to-ground stores."
     }
    ]
@@ -1256,7 +1256,7 @@
       "OFF",
       "MASTER ARM"
      ],
-     "does": "MASTER ARM lets weapons leave the jet. OFF holds them. SIMULATE shows the weapon symbols for practice and holds the weapons."
+     "does": "MASTER ARM lets weapons leave the jet. OFF holds them. SIMULATE shows the weapon symbols for practice and holds the weapons (inferred)."
     },
     {
      "node": "laser-arm-switch",
@@ -1266,14 +1266,14 @@
       "OFF",
       "LASER ARM"
      ],
-     "does": "Lets the targeting pod's laser fire.",
+     "does": "Lets the targeting pod's laser fire (inferred).",
      "sim": "The pod's laser fires only with the switch at LASER ARM."
     },
     {
      "node": "alt-rel-button",
      "label": "ALT REL",
      "name": "Alternate release",
-     "does": "A second weapon release button, the same as the stick's."
+     "does": "A second weapon release button, the same as the stick's (inferred)."
     },
     {
      "node": "quiet-switch",
@@ -1284,7 +1284,7 @@
       "QUIET",
       "SILENT"
      ],
-     "does": "QUIET lowers the jet's radio emissions, SILENT stops them."
+     "does": "QUIET lowers the jet's radio emissions, SILENT stops them (inferred)."
     },
     {
      "node": "lamp_ecm_enbl_0",
@@ -1293,7 +1293,7 @@
      "positions": [
       "Light"
      ],
-     "does": "The jamming pod is allowed to transmit.",
+     "does": "The jamming pod is allowed to transmit (inferred).",
      "sim": "On while the jamming pod is on."
     },
     {
@@ -1358,7 +1358,7 @@
      "positions": [
       "Light"
      ],
-     "does": "The terrain following system has failed."
+     "does": "The terrain following system has failed (inferred)."
     },
     {
      "node": "lamp_eyebrow_blank_1",
@@ -1372,7 +1372,7 @@
      "positions": [
       "Light"
      ],
-     "does": "Three positions without a legend."
+     "does": "Three positions without a legend (inferred)."
     },
     {
      "node": "EYEBROW_LEFT_iff",
@@ -1401,7 +1401,7 @@
      "positions": [
       "Display"
      ],
-     "does": "Shows each radar that looks at the jet as a symbol at its bearing."
+     "does": "Shows each radar that looks at the jet as a symbol at its bearing (inferred)."
     },
     {
      "node": "IFF_button",
@@ -1410,7 +1410,7 @@
      "positions": [
       "Knob"
      ],
-     "does": "Sets the brightness of the threat warning display."
+     "does": "Sets the brightness of the threat warning display (inferred)."
     },
     {
      "node": "lamp_twd_handoff_0",
@@ -1419,7 +1419,7 @@
      "positions": [
       "Light"
      ],
-     "does": "A lit button: chooses which threat's tone the headset plays."
+     "does": "A lit button: chooses which threat's tone the headset plays (inferred)."
     },
     {
      "node": "lamp_rwr_launch_0",
@@ -1428,7 +1428,7 @@
      "positions": [
       "Light"
      ],
-     "does": "Flashes red when a radar guides a missile at the jet.",
+     "does": "Flashes red when a radar guides a missile at the jet (inferred).",
      "sim": "Flashes at a launch."
     },
     {
@@ -1439,7 +1439,7 @@
       "OPEN",
       "PRIORITY"
      ],
-     "does": "PRIORITY shows only the five most dangerous threats."
+     "does": "PRIORITY shows only the five most dangerous threats (inferred)."
     },
     {
      "node": "unk",
@@ -1449,13 +1449,13 @@
       "off",
       "on"
      ],
-     "does": "Shows the radars the system cannot name."
+     "does": "Shows the radars the system cannot name (inferred)."
     },
     {
      "node": "sep",
      "label": "TGT SEP",
      "name": "Target separate",
-     "does": "Held, spreads symbols that lie on top of each other."
+     "does": "Held, spreads symbols that lie on top of each other (inferred)."
     },
     {
      "node": "lamp_twd_test_0",
@@ -1464,7 +1464,7 @@
      "positions": [
       "Light"
      ],
-     "does": "A lit button: runs the receiver's self test.",
+     "does": "A lit button: runs the receiver's self test (inferred).",
      "sim": "On during the display's test."
     }
    ]
@@ -1482,7 +1482,7 @@
      "positions": [
       "Display"
      ],
-     "does": "Shows the flight path, the speed, the altitude, the steering and the weapon symbols on a glass in the line of sight."
+     "does": "Shows the flight path, the speed, the altitude, the steering and the weapon symbols on a glass in the line of sight (inferred)."
     },
     {
      "node": "lamp_aoa_slow_0",
@@ -1491,7 +1491,7 @@
      "positions": [
       "Light"
      ],
-     "does": "A red chevron: the angle of attack is above the approach value, the jet is slow."
+     "does": "The top symbol: the angle of attack is above the approach value, the jet is slow (its red colour is inferred)."
     },
     {
      "node": "lamp_aoa_on_speed_0",
@@ -1500,7 +1500,7 @@
      "positions": [
       "Light"
      ],
-     "does": "A green circle: the angle of attack is right for the approach."
+     "does": "The middle symbol: the angle of attack is right for the approach, about 13° (its green colour is inferred)."
     },
     {
      "node": "lamp_aoa_fast_0",
@@ -1509,7 +1509,7 @@
      "positions": [
       "Light"
      ],
-     "does": "A yellow chevron: the angle of attack is below the approach value, the jet is fast."
+     "does": "The bottom symbol: the angle of attack is below the approach value, the jet is fast (its yellow colour is inferred)."
     },
     {
      "node": "lamp_ar_rdy_0",
@@ -1551,121 +1551,121 @@
      "node": "com1",
      "label": "COM 1",
      "name": "Radio 1 override",
-     "does": "Shows radio 1's page on the DED."
+     "does": "Shows radio 1's page on the DED (inferred)."
     },
     {
      "node": "com2",
      "label": "COM 2",
      "name": "Radio 2 override",
-     "does": "Shows radio 2's page on the DED."
+     "does": "Shows radio 2's page on the DED (inferred)."
     },
     {
      "node": "ICP_iff",
      "label": "IFF",
      "name": "IFF override",
-     "does": "Shows the IFF page on the DED."
+     "does": "Shows the IFF page on the DED (inferred)."
     },
     {
      "node": "list",
      "label": "LIST",
      "name": "List",
-     "does": "Shows the list of the DED's pages."
+     "does": "Shows the list of the DED's pages (inferred)."
     },
     {
      "node": "a-a",
      "label": "A-A",
      "name": "Air-to-air master mode",
-     "does": "Puts the avionics in the air-to-air master mode; pressed again, back to navigation."
+     "does": "Puts the avionics in the air-to-air master mode; pressed again, back to navigation (inferred)."
     },
     {
      "node": "a-g",
      "label": "A-G",
      "name": "Air-to-ground master mode",
-     "does": "Puts the avionics in the air-to-ground master mode; pressed again, back to navigation."
+     "does": "Puts the avionics in the air-to-ground master mode; pressed again, back to navigation (inferred)."
     },
     {
      "node": "1",
      "label": "1 T-ILS",
      "name": "Key 1; TACAN and ILS page",
-     "does": "Enters 1; from the main page, shows the TACAN and ILS page."
+     "does": "Enters 1; from the main page, shows the TACAN and ILS page (inferred)."
     },
     {
      "node": "2",
      "label": "2 ALOW",
      "name": "Key 2; low altitude warning page",
-     "does": "Enters 2 (N); from the main page, shows the altitude warning page."
+     "does": "Enters 2 (N); from the main page, shows the altitude warning page (inferred)."
     },
     {
      "node": "3",
      "label": "3",
      "name": "Key 3",
-     "does": "Enters 3."
+     "does": "Enters 3 (inferred)."
     },
     {
      "node": "4",
      "label": "4 STPT",
      "name": "Key 4; steerpoint page",
-     "does": "Enters 4 (W); from the main page, shows the steerpoint page."
+     "does": "Enters 4 (W); from the main page, shows the steerpoint page (inferred)."
     },
     {
      "node": "5",
      "label": "5 CRUS",
      "name": "Key 5; cruise page",
-     "does": "Enters 5; from the main page, shows the cruise page."
+     "does": "Enters 5; from the main page, shows the cruise page (inferred)."
     },
     {
      "node": "6",
      "label": "6 TIME",
      "name": "Key 6; time page",
-     "does": "Enters 6 (E); from the main page, shows the time page."
+     "does": "Enters 6 (E); from the main page, shows the time page (inferred)."
     },
     {
      "node": "7",
      "label": "7 MARK",
      "name": "Key 7; mark page",
-     "does": "Enters 7; from the main page, stores a mark point."
+     "does": "Enters 7; from the main page, stores a mark point (inferred)."
     },
     {
      "node": "8",
      "label": "8 FIX",
      "name": "Key 8; fix page",
-     "does": "Enters 8 (S); from the main page, shows the position fix page."
+     "does": "Enters 8 (S); from the main page, shows the position fix page (inferred)."
     },
     {
      "node": "9",
      "label": "9 A-CAL",
      "name": "Key 9; altitude calibration page",
-     "does": "Enters 9; from the main page, shows the altitude calibration page."
+     "does": "Enters 9; from the main page, shows the altitude calibration page (inferred)."
     },
     {
      "node": "0",
      "label": "0 M-SEL",
      "name": "Key 0; mode select",
-     "does": "Enters 0; on a page with choices, selects the one under the asterisks."
+     "does": "Enters 0; on a page with choices, selects the one under the asterisks (inferred)."
     },
     {
      "node": "rcl",
      "label": "RCL",
      "name": "Recall",
-     "does": "Clears the last digit; pressed again, the whole entry."
+     "does": "Clears the last digit; pressed again, the whole entry (inferred)."
     },
     {
      "node": "entr",
      "label": "ENTR",
      "name": "Enter",
-     "does": "Stores the entry."
+     "does": "Stores the entry (inferred)."
     },
     {
      "node": "wx",
      "label": "WX",
      "name": "Weather",
-     "does": "Chooses the weather mode of the forward-looking infrared's picture."
+     "does": "Chooses the weather mode of the forward-looking infrared's picture (inferred)."
     },
     {
      "node": "flir_ud",
      "label": "FLIR rocker",
      "name": "Forward-looking infrared rocker",
-     "does": "Steps the infrared picture's level or gain up and down."
+     "does": "Steps the infrared picture's level or gain up and down (inferred)."
     },
     {
      "node": "cursor-up",
@@ -1675,7 +1675,7 @@
      ],
      "label": "Increment / decrement rocker",
      "name": "Increment and decrement",
-     "does": "Steps the value under the DED's arrows up or down: the steerpoint on the main page."
+     "does": "Steps the value under the DED's arrows up or down: the steerpoint on the main page (inferred)."
     },
     {
      "node": "switchSquareUp",
@@ -1693,7 +1693,7 @@
       "RTN",
       "SEQ"
      ],
-     "does": "Up and down move between a page's fields; RTN goes back to the main page; SEQ steps through a page's choices."
+     "does": "Up and down move between a page's fields; RTN goes back to the main page; SEQ steps through a page's choices (inferred)."
     },
     {
      "node": "drift",
@@ -1704,13 +1704,13 @@
       "NORM",
       "WARN RESET"
      ],
-     "does": "DRIFT C/O centres the HUD's symbols against the wind's drift; WARN RESET stops a warning's voice and flash."
+     "does": "DRIFT C/O centres the HUD's symbols against the wind's drift; WARN RESET stops a warning's voice and flash (inferred)."
     },
     {
      "node": "SYM",
      "label": "SYM",
      "name": "HUD symbology brightness",
-     "does": "A wheel that sets the brightness of the HUD's symbols; fully down, the HUD is off.",
+     "does": "A wheel that sets the brightness of the HUD's symbols; fully down, the HUD is off (inferred).",
      "sim": "Works as on the jet: at its lowest the HUD is dark."
     },
     {
@@ -1720,7 +1720,7 @@
      "positions": [
       "Wheel"
      ],
-     "does": "Sets the brightness of the infrared picture on the HUD.",
+     "does": "Sets the brightness of the infrared picture on the HUD (inferred).",
      "sim": "Dims the whole HUD."
     },
     {
@@ -1730,7 +1730,7 @@
      "positions": [
       "Wheel"
      ],
-     "does": "Lowers the HUD's standby aiming reticle."
+     "does": "Lowers the HUD's standby aiming reticle (inferred)."
     },
     {
      "node": "cont",
@@ -1739,7 +1739,7 @@
      "positions": [
       "Wheel"
      ],
-     "does": "Sets the contrast of the infrared picture on the HUD."
+     "does": "Sets the contrast of the infrared picture on the HUD (inferred)."
     }
    ]
   },
@@ -1826,7 +1826,7 @@
      "positions": [
       "Light"
      ],
-     "does": "A position without a legend."
+     "does": "A position without a legend (inferred)."
     }
    ]
   },
@@ -1843,7 +1843,7 @@
      "positions": [
       "Display"
      ],
-     "does": "Five lines of text: the radios, the steerpoint, the time, and each page the ICP calls."
+     "does": "Five lines of text: the radios, the steerpoint, the time, and each page the ICP calls (inferred)."
     },
     {
      "node": "anim165",
@@ -1888,127 +1888,127 @@
      "positions": [
       "Display"
      ],
-     "does": "Shows a chosen format: the radar, the stores, the map, a pod's picture. The words along its edges name what each button does."
+     "does": "Shows a chosen format: the radar, the stores, the map, a pod's picture. The words along its edges name what each button does (inferred)."
     },
     {
      "node": "MFD_L_T1",
      "label": "OSB 1",
      "name": "Option select button 1",
-     "does": "Does what the display writes beside it."
+     "does": "Does what the display writes beside it (inferred)."
     },
     {
      "node": "MFD_L_T2",
      "label": "OSB 2",
      "name": "Option select button 2",
-     "does": "Does what the display writes beside it."
+     "does": "Does what the display writes beside it (inferred)."
     },
     {
      "node": "MFD_L_T3",
      "label": "OSB 3",
      "name": "Option select button 3",
-     "does": "Does what the display writes beside it."
+     "does": "Does what the display writes beside it (inferred)."
     },
     {
      "node": "MFD_L_T4",
      "label": "OSB 4",
      "name": "Option select button 4",
-     "does": "Does what the display writes beside it."
+     "does": "Does what the display writes beside it (inferred)."
     },
     {
      "node": "MFD_L_T5",
      "label": "OSB 5",
      "name": "Option select button 5",
-     "does": "Does what the display writes beside it."
+     "does": "Does what the display writes beside it (inferred)."
     },
     {
      "node": "MFD_L_R1",
      "label": "OSB 6",
      "name": "Option select button 6",
-     "does": "Does what the display writes beside it."
+     "does": "Does what the display writes beside it (inferred)."
     },
     {
      "node": "MFD_L_R2",
      "label": "OSB 7",
      "name": "Option select button 7",
-     "does": "Does what the display writes beside it."
+     "does": "Does what the display writes beside it (inferred)."
     },
     {
      "node": "MFD_L_R3",
      "label": "OSB 8",
      "name": "Option select button 8",
-     "does": "Does what the display writes beside it."
+     "does": "Does what the display writes beside it (inferred)."
     },
     {
      "node": "MFD_L_R4",
      "label": "OSB 9",
      "name": "Option select button 9",
-     "does": "Does what the display writes beside it."
+     "does": "Does what the display writes beside it (inferred)."
     },
     {
      "node": "MFD_L_R5",
      "label": "OSB 10",
      "name": "Option select button 10",
-     "does": "Does what the display writes beside it."
+     "does": "Does what the display writes beside it (inferred)."
     },
     {
      "node": "MFD_L_B5",
      "label": "OSB 11",
      "name": "Option select button 11",
-     "does": "Does what the display writes beside it."
+     "does": "Does what the display writes beside it (inferred)."
     },
     {
      "node": "MFD_L_B4",
      "label": "OSB 12",
      "name": "Option select button 12",
-     "does": "Chooses the format written above it."
+     "does": "Chooses the format written above it (inferred)."
     },
     {
      "node": "MFD_L_B3",
      "label": "OSB 13",
      "name": "Option select button 13",
-     "does": "Chooses the format written above it."
+     "does": "Chooses the format written above it (inferred)."
     },
     {
      "node": "MFD_L_B2",
      "label": "OSB 14",
      "name": "Option select button 14",
-     "does": "Chooses the format written above it."
+     "does": "Chooses the format written above it (inferred)."
     },
     {
      "node": "MFD_L_B1",
      "label": "OSB 15",
      "name": "Option select button 15",
-     "does": "Does what the display writes beside it."
+     "does": "Does what the display writes beside it (inferred)."
     },
     {
      "node": "MFD_L_L5",
      "label": "OSB 16",
      "name": "Option select button 16",
-     "does": "Does what the display writes beside it."
+     "does": "Does what the display writes beside it (inferred)."
     },
     {
      "node": "MFD_L_L4",
      "label": "OSB 17",
      "name": "Option select button 17",
-     "does": "Does what the display writes beside it."
+     "does": "Does what the display writes beside it (inferred)."
     },
     {
      "node": "MFD_L_L3",
      "label": "OSB 18",
      "name": "Option select button 18",
-     "does": "Does what the display writes beside it."
+     "does": "Does what the display writes beside it (inferred)."
     },
     {
      "node": "MFD_L_L2",
      "label": "OSB 19",
      "name": "Option select button 19",
-     "does": "Does what the display writes beside it."
+     "does": "Does what the display writes beside it (inferred)."
     },
     {
      "node": "MFD_L_L1",
      "label": "OSB 20",
      "name": "Option select button 20",
-     "does": "Does what the display writes beside it."
+     "does": "Does what the display writes beside it (inferred)."
     },
     {
      "node": "MFD1_MFDButtonGain",
@@ -2017,7 +2017,7 @@
      "positions": [
       "Rocker"
      ],
-     "does": "Sets the gain of the picture shown."
+     "does": "Sets the gain of the picture shown (inferred)."
     },
     {
      "node": "MFD1_MFDButtonBrightness",
@@ -2026,7 +2026,7 @@
      "positions": [
       "Rocker"
      ],
-     "does": "Sets the display's brightness.",
+     "does": "Sets the display's brightness (inferred).",
      "sim": "Steps the display's brightness."
     },
     {
@@ -2036,7 +2036,7 @@
      "positions": [
       "Rocker"
      ],
-     "does": "Sets the display's contrast."
+     "does": "Sets the display's contrast (inferred)."
     }
    ]
   },
@@ -2053,127 +2053,127 @@
      "positions": [
       "Display"
      ],
-     "does": "Shows a chosen format: the radar, the stores, the map, a pod's picture. The words along its edges name what each button does."
+     "does": "Shows a chosen format: the radar, the stores, the map, a pod's picture. The words along its edges name what each button does (inferred)."
     },
     {
      "node": "MFD_R_T1",
      "label": "OSB 1",
      "name": "Option select button 1",
-     "does": "Does what the display writes beside it."
+     "does": "Does what the display writes beside it (inferred)."
     },
     {
      "node": "MFD_R_T2",
      "label": "OSB 2",
      "name": "Option select button 2",
-     "does": "Does what the display writes beside it."
+     "does": "Does what the display writes beside it (inferred)."
     },
     {
      "node": "MFD_R_T3",
      "label": "OSB 3",
      "name": "Option select button 3",
-     "does": "Does what the display writes beside it."
+     "does": "Does what the display writes beside it (inferred)."
     },
     {
      "node": "MFD_R_T4",
      "label": "OSB 4",
      "name": "Option select button 4",
-     "does": "Does what the display writes beside it."
+     "does": "Does what the display writes beside it (inferred)."
     },
     {
      "node": "MFD_R_T5",
      "label": "OSB 5",
      "name": "Option select button 5",
-     "does": "Does what the display writes beside it."
+     "does": "Does what the display writes beside it (inferred)."
     },
     {
      "node": "MFD_R_R1",
      "label": "OSB 6",
      "name": "Option select button 6",
-     "does": "Does what the display writes beside it."
+     "does": "Does what the display writes beside it (inferred)."
     },
     {
      "node": "MFD_R_R2",
      "label": "OSB 7",
      "name": "Option select button 7",
-     "does": "Does what the display writes beside it."
+     "does": "Does what the display writes beside it (inferred)."
     },
     {
      "node": "MFD_R_R3",
      "label": "OSB 8",
      "name": "Option select button 8",
-     "does": "Does what the display writes beside it."
+     "does": "Does what the display writes beside it (inferred)."
     },
     {
      "node": "MFD_R_R4",
      "label": "OSB 9",
      "name": "Option select button 9",
-     "does": "Does what the display writes beside it."
+     "does": "Does what the display writes beside it (inferred)."
     },
     {
      "node": "MFD_R_R5",
      "label": "OSB 10",
      "name": "Option select button 10",
-     "does": "Does what the display writes beside it."
+     "does": "Does what the display writes beside it (inferred)."
     },
     {
      "node": "MFD_R_B5",
      "label": "OSB 11",
      "name": "Option select button 11",
-     "does": "Does what the display writes beside it."
+     "does": "Does what the display writes beside it (inferred)."
     },
     {
      "node": "MFD_R_B4",
      "label": "OSB 12",
      "name": "Option select button 12",
-     "does": "Chooses the format written above it."
+     "does": "Chooses the format written above it (inferred)."
     },
     {
      "node": "MFD_R_B3",
      "label": "OSB 13",
      "name": "Option select button 13",
-     "does": "Chooses the format written above it."
+     "does": "Chooses the format written above it (inferred)."
     },
     {
      "node": "MFD_R_B2",
      "label": "OSB 14",
      "name": "Option select button 14",
-     "does": "Chooses the format written above it."
+     "does": "Chooses the format written above it (inferred)."
     },
     {
      "node": "MFD_R_B1",
      "label": "OSB 15",
      "name": "Option select button 15",
-     "does": "Does what the display writes beside it."
+     "does": "Does what the display writes beside it (inferred)."
     },
     {
      "node": "MFD_R_L5",
      "label": "OSB 16",
      "name": "Option select button 16",
-     "does": "Does what the display writes beside it."
+     "does": "Does what the display writes beside it (inferred)."
     },
     {
      "node": "MFD_R_L4",
      "label": "OSB 17",
      "name": "Option select button 17",
-     "does": "Does what the display writes beside it."
+     "does": "Does what the display writes beside it (inferred)."
     },
     {
      "node": "MFD_R_L3",
      "label": "OSB 18",
      "name": "Option select button 18",
-     "does": "Does what the display writes beside it."
+     "does": "Does what the display writes beside it (inferred)."
     },
     {
      "node": "MFD_R_L2",
      "label": "OSB 19",
      "name": "Option select button 19",
-     "does": "Does what the display writes beside it."
+     "does": "Does what the display writes beside it (inferred)."
     },
     {
      "node": "MFD_R_L1",
      "label": "OSB 20",
      "name": "Option select button 20",
-     "does": "Does what the display writes beside it."
+     "does": "Does what the display writes beside it (inferred)."
     },
     {
      "node": "MFD2_MFDButtonGain",
@@ -2182,7 +2182,7 @@
      "positions": [
       "Rocker"
      ],
-     "does": "Sets the gain of the picture shown."
+     "does": "Sets the gain of the picture shown (inferred)."
     },
     {
      "node": "MFD2_MFDButtonBrightness",
@@ -2191,7 +2191,7 @@
      "positions": [
       "Rocker"
      ],
-     "does": "Sets the display's brightness.",
+     "does": "Sets the display's brightness (inferred).",
      "sim": "Steps the display's brightness."
     },
     {
@@ -2201,7 +2201,7 @@
      "positions": [
       "Rocker"
      ],
-     "does": "Sets the display's contrast."
+     "does": "Sets the display's contrast (inferred)."
     }
    ]
   },
@@ -2314,7 +2314,7 @@
      "positions": [
       "Display"
      ],
-     "does": "A compass rose with the course, the heading bug, and the bearing and range to the steerpoint or station."
+     "does": "A compass rose with the course, the heading bug, and the bearing and range to the steerpoint or station (inferred)."
     },
     {
      "node": "HSI_hdg-knob",
@@ -2339,7 +2339,7 @@
      "node": "EHSI_button",
      "label": "M",
      "name": "Mode button",
-     "does": "Steps the EHSI through its modes: navigation, TACAN, and each with the ILS.",
+     "does": "Steps the EHSI through its modes: navigation, TACAN, and each with the ILS (inferred).",
      "sim": "Steps the EHSI's mode."
     },
     {
@@ -2462,7 +2462,7 @@
      "positions": [
       "Light"
      ],
-     "does": "An avionics system reports a fault; the pilot fault list names it.",
+     "does": "An avionics system reports a fault; the pilot fault list names it (inferred).",
      "sim": "On with an avionics fault in the pilot fault list."
     },
     {
@@ -2491,7 +2491,7 @@
      "positions": [
       "Light"
      ],
-     "does": "The engine runs on its backup control."
+     "does": "The engine runs on its backup control, or the main fuel pump's pressure is low."
     },
     {
      "node": "lamp_caution_equip_hot_0",
@@ -2529,7 +2529,7 @@
      "positions": [
       "Light"
      ],
-     "does": "The fuel that enters the engine or the engine oil is too hot."
+     "does": "The fuel that enters the engine is too hot (inferred from the name); the flight manual says the light's oil part does not work."
     },
     {
      "node": "lamp_caution_radar_alt_0",
@@ -2538,7 +2538,7 @@
      "positions": [
       "Light"
      ],
-     "does": "The radar altimeter has failed."
+     "does": "The radar altimeter has failed (inferred)."
     },
     {
      "node": "lamp_caution_anti_skid_0",
@@ -2547,7 +2547,7 @@
      "positions": [
       "Light"
      ],
-     "does": "The anti-skid has failed, or the parking brake is on with the gear up."
+     "does": "The anti-skid has a fault that affects braking."
     },
     {
      "node": "lamp_caution_c_adc_0",
@@ -2593,7 +2593,7 @@
      "positions": [
       "Light"
      ],
-     "does": "The STORES CONFIG switch does not agree with the stores carried."
+     "does": "The STORES CONFIG switch does not agree with the stores carried (inferred)."
     },
     {
      "node": "lamp_caution_overheat_0",
@@ -2602,7 +2602,7 @@
      "positions": [
       "Light"
      ],
-     "does": "Overheat in the engine bay, the EPU bay or the cooling system.",
+     "does": "Overheat in the engine bay, the main wheel wells, the cooling system's bay or the EPU bay.",
      "sim": "On with a fire, and in the FIRE & OHEAT DETECT test."
     },
     {
@@ -2612,7 +2612,7 @@
      "positions": [
       "Light"
      ],
-     "does": "A fault in the nuclear store's circuits."
+     "does": "A fault in the nuclear store's circuits (inferred)."
     },
     {
      "node": "lamp_caution_oxy_low_0",
@@ -2630,7 +2630,7 @@
      "positions": [
       "Light"
      ],
-     "does": "An air data converter has failed."
+     "does": "An air data converter has failed (inferred)."
     },
     {
      "node": "lamp_caution_eec_0",
@@ -2639,7 +2639,7 @@
      "positions": [
       "Light"
      ],
-     "does": "The engine's electronic control has a fault."
+     "does": "Deactivated: the flight manual says the light does nothing."
     },
     {
      "node": "lamp_caution_cabin_press_0",
@@ -2658,7 +2658,7 @@
      "positions": [
       "Light"
      ],
-     "does": "The forward reservoir holds less than 400 lb.",
+     "does": "The forward reservoir holds less than 250 lb (400 lb in the single-seat jet).",
      "sim": "On below 800 lb of fuel in all; the sim keeps one total."
     },
     {
@@ -2668,7 +2668,7 @@
      "positions": [
       "Light"
      ],
-     "does": "The engine runs on its backup fuel control."
+     "does": "Deactivated: the flight manual says the light does nothing."
     },
     {
      "node": "lamp_caution_aft_fuel_low_0",
@@ -2677,7 +2677,7 @@
      "positions": [
       "Light"
      ],
-     "does": "The aft reservoir holds less than 250 lb.",
+     "does": "The aft reservoir holds less than 400 lb (250 lb in the single-seat jet).",
      "sim": "On below 500 lb of fuel in all; the sim keeps one total."
     },
     {
@@ -2687,7 +2687,7 @@
      "positions": [
       "Light"
      ],
-     "does": "The leading-edge flaps are locked or have failed.",
+     "does": "The leading-edge flaps are locked or have failed (inferred).",
      "sim": "On with the LE FLAPS switch at LOCK."
     },
     {
@@ -2697,7 +2697,7 @@
      "positions": [
       "Light"
      ],
-     "does": "Terrain following is selected and is not flying the jet."
+     "does": "Terrain following was asked for with ADV MODE and the system cannot fly it."
     },
     {
      "node": "lamp_caution_ecm_0",
@@ -2706,7 +2706,7 @@
      "positions": [
       "Light"
      ],
-     "does": "The jamming pod has failed.",
+     "does": "The jamming pod has failed (inferred).",
      "sim": "On with a failed pod."
     },
     {
@@ -2721,7 +2721,7 @@
      "positions": [
       "Light"
      ],
-     "does": "Three positions without a legend."
+     "does": "Three positions without a legend (inferred)."
     }
    ]
   },
@@ -2833,7 +2833,7 @@
      "positions": [
       "Knob"
      ],
-     "does": "Sets the clock's hands.",
+     "does": "Sets the clock's hands (inferred).",
      "sim": "A click on its left or right half moves the hands."
     },
     {
@@ -2876,7 +2876,7 @@
       "OFF",
       "LEFT HDPT"
      ],
-     "does": "Powers the left chin station under the intake, where the navigation pod hangs."
+     "does": "Powers the left chin station under the intake, where the navigation pod hangs (inferred)."
     },
     {
      "node": "r-hdpt-switch",
@@ -2886,7 +2886,7 @@
       "OFF",
       "RIGHT HDPT"
      ],
-     "does": "Powers the right chin station under the intake, where the targeting pod hangs.",
+     "does": "Powers the right chin station under the intake, where the targeting pod hangs (inferred).",
      "sim": "Off: the targeting pod has no power. It also needs the MMC."
     },
     {
@@ -2897,7 +2897,7 @@
       "OFF",
       "FCR"
      ],
-     "does": "Powers the radar.",
+     "does": "Powers the radar (inferred).",
      "sim": "Off: no radar picture, no contacts, no lock, and the radar's keys do nothing. Back on, the radar waits for its mode key."
     },
     {
@@ -2909,7 +2909,7 @@
       "STBY",
       "RDR ALT"
      ],
-     "does": "Powers the radar altimeter, which measures the height above the ground under the jet. STBY keeps it warm without measuring.",
+     "does": "Powers the radar altimeter, which measures the height above the ground under the jet. STBY keeps it warm without measuring (inferred).",
      "sim": "OFF and STBY: no radar altitude on the HUD, and none for the cues that read it."
     }
    ]
@@ -2929,7 +2929,7 @@
       "VAH",
       "OFF"
      ],
-     "does": "Chooses the HUD's scales: with the vertical velocity scale, without it, or the numbers alone."
+     "does": "Chooses the HUD's scales: with the vertical velocity scale, without it, or the numbers alone (inferred)."
     },
     {
      "node": "att_fpm-switch",
@@ -2940,7 +2940,7 @@
       "FPM",
       "OFF"
      ],
-     "does": "Shows the flight path marker with the pitch ladder, the marker alone, or neither."
+     "does": "Shows the flight path marker with the pitch ladder, the marker alone, or neither (inferred)."
     },
     {
      "node": "tas-switch",
@@ -2951,7 +2951,7 @@
       "TAS",
       "GND SPD"
      ],
-     "does": "Chooses the speed the HUD shows: calibrated, true, or over the ground."
+     "does": "Chooses the speed the HUD shows: calibrated, true, or over the ground (inferred)."
     },
     {
      "node": "altrad-switch",
@@ -2962,7 +2962,7 @@
       "BARO",
       "AUTO"
      ],
-     "does": "Chooses the altitude the HUD shows: by radar, by pressure, or radar below 1,500 ft."
+     "does": "Chooses the altitude the HUD shows: by radar, by pressure, or radar below 1,500 ft (inferred)."
     },
     {
      "node": "HUD_MODE",
@@ -2973,7 +2973,7 @@
       "AUTO BRT",
       "NIGHT"
      ],
-     "does": "Sets the range of the HUD's brightness."
+     "does": "Sets the range of the HUD's brightness (inferred)."
     },
     {
      "node": "test-step-switch",
@@ -2984,7 +2984,7 @@
       "ON",
       "OFF"
      ],
-     "does": "Shows the HUD's test patterns one by one."
+     "does": "Shows the HUD's test patterns one by one (inferred)."
     }
    ]
   },
@@ -2998,13 +2998,13 @@
      "node": "nuke-consent-cover",
      "label": "Guard",
      "name": "Nuclear consent guard",
-     "does": "Covers the NUCLEAR CONSENT switch."
+     "does": "Covers the NUCLEAR CONSENT switch (inferred)."
     },
     {
      "node": "nuke-consent-switch",
      "label": "NUCLEAR CONSENT",
      "name": "Nuclear consent",
-     "does": "The pilot's consent to arm or release a nuclear store: ARM/REL, OFF, REL ONLY."
+     "does": "The pilot's consent to arm or release a nuclear store: ARM/REL, OFF, REL ONLY (inferred)."
     },
     {
      "node": "plain-switch",
@@ -3015,7 +3015,7 @@
       "PLAIN",
       "CRAD 2"
      ],
-     "does": "Sends a radio's voice plain or through the KY-58's cipher."
+     "does": "Sends a radio's voice plain or through the KY-58's cipher (inferred)."
     }
    ]
   },
@@ -3095,7 +3095,7 @@
       "BRT",
       "DIM"
      ],
-     "does": "Sets the brightness of the angle-of-attack indexer and the AR status lights.",
+     "does": "Sets the brightness of the angle-of-attack indexer and the AR status lights (inferred).",
      "sim": "Dims the indexers."
     },
     {
@@ -3168,7 +3168,7 @@
       "LD",
       "RV"
      ],
-     "does": "Chooses the secure voice set's mode: plain, cipher, load a key, receive a key."
+     "does": "Chooses the secure voice set's mode: plain, cipher, load a key, receive a key (inferred)."
     },
     {
      "node": "KY_58_VOL_KNOB",
@@ -3177,7 +3177,7 @@
      "positions": [
       "Knob"
      ],
-     "does": "Sets the secure voice set's volume."
+     "does": "Sets the secure voice set's volume (inferred)."
     },
     {
      "node": "KY_58_KNOB_PULL",
@@ -3193,7 +3193,7 @@
       "6",
       "Z ALL"
      ],
-     "does": "Chooses one of six stored keys, or erases them."
+     "does": "Chooses one of six stored keys, or erases them (inferred)."
     },
     {
      "node": "TD_knob",
@@ -3204,7 +3204,7 @@
       "ON",
       "TD"
      ],
-     "does": "Turns the secure voice set on; TD adds a time delay."
+     "does": "Turns the secure voice set on; TD adds a time delay (inferred)."
     }
    ]
   },
@@ -3222,7 +3222,7 @@
       "OFF",
       "MMC"
      ],
-     "does": "Powers the mission computer, which works out navigation and weapon delivery and draws the symbols of the HUD and the displays.",
+     "does": "Powers the mission computer, which works out navigation and weapon delivery and draws the symbols of the HUD and the displays (inferred).",
      "sim": "Off: the HUD shows no symbols, and the targeting pod has no power. On: up after 3 seconds. Needs the generator."
     },
     {
@@ -3233,7 +3233,7 @@
       "OFF",
       "ST STA"
      ],
-     "does": "Powers the weapon stations under the wings and the fuselage.",
+     "does": "Powers the weapon stations under the wings and the fuselage (inferred).",
      "sim": "Off: no store leaves the jet; the gun fires and the jettison works (inferred). On: up after 3 seconds."
     },
     {
@@ -3244,7 +3244,7 @@
       "OFF",
       "MFD"
      ],
-     "does": "Powers the two multifunction displays of the front panel.",
+     "does": "Powers the two multifunction displays of the front panel (inferred).",
      "sim": "Off: both displays are dark. On: up after 3 seconds."
     },
     {
@@ -3255,7 +3255,7 @@
       "OFF",
       "UFC"
      ],
-     "does": "Powers the upfront controls: the ICP's keypad and the DED.",
+     "does": "Powers the upfront controls: the ICP's keypad and the DED (inferred).",
      "sim": "Off: the DED is dark. On: up after 3 seconds."
     },
     {
@@ -3266,7 +3266,7 @@
       "OFF",
       "GPS"
      ],
-     "does": "Powers the GPS receiver, which keeps the navigation system's position exact.",
+     "does": "Powers the GPS receiver, which keeps the navigation system's position exact (inferred).",
      "sim": "Not modelled: the switch moves; navigation is the same either way."
     },
     {
@@ -3277,7 +3277,7 @@
       "OFF",
       "DL"
      ],
-     "does": "Powers the data link, which shares tracks and positions between aircraft."
+     "does": "Powers the data link, which shares tracks and positions between aircraft (inferred)."
     },
     {
      "node": "INS",
@@ -3291,7 +3291,7 @@
       "IN FLT ALIGN",
       "ATT"
      ],
-     "does": "Sets the inertial navigation system's mode. NORM aligns it on the ground in about 8 minutes; STOR HDG aligns it in about 90 seconds from a heading stored at the last shutdown; NAV navigates; IN FLT ALIGN aligns in the air; ATT gives attitude only.",
+     "does": "Sets the inertial navigation system's mode. NORM aligns it on the ground in about 8 minutes; STOR HDG aligns it in about 90 seconds from a heading stored at the last shutdown; NAV navigates; IN FLT ALIGN aligns in the air; ATT gives attitude only (inferred).",
      "sim": "Needs MAIN PWR at BATT or MAIN PWR. OFF and ATT lose the alignment. STOR HDG takes 90 seconds, NORM 8 minutes; without an alignment the HUD gives no steering. IN FLT ALIGN goes on with the alignment as NAV does (inferred)."
     }
    ]
@@ -3373,7 +3373,7 @@
       "NORM",
       "TEST MASK"
      ],
-     "does": "EMER gives pure oxygen under pressure; TEST MASK checks the mask for leaks."
+     "does": "EMER gives pure oxygen under pressure, also for the pilot's leak check of the mask; TEST MASK does the same for the mask's test by the ground crew."
     },
     {
      "node": "anim149",

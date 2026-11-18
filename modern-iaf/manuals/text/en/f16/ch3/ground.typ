@@ -5,7 +5,7 @@
 
 #idx("Hot start, procedure")A #term("hot start") is an engine start in which the turbine's temperature passes its limit: #hot-limit on the #term("FTIT") indicator#fm[section III, "Hot start (ground)", page 3-26#if not sufa [: the figure of the manual's General Electric engine, the F110-GE-129; for the #jet.short's F110-GE-100 it is inferred]]. It matters because a few seconds above the limit damage the turbine. Its usual cause is fuel let in too early (@cold-start).
 
-*You recognise it by* the *FTIT climbing fast through 750~°C* during the start; the manual tells the pilot to expect a hot start then.
+*You recognise it by* the *FTIT #if sufa [climbing fast through 750~°C] else [passing 750~°C with the #term("RPM") below 40~%]* during the start; the manual tells the pilot to expect a hot start then.
 
 + Throttle to OFF.
 + Watch the FTIT.
@@ -43,7 +43,7 @@ The fastest way out keeps the canopy: start it opening and get ready while it mo
 === Brake failure <emergency-brakes>
 #state("part")
 
-The brakes can fail in three ways: one of two circuits (both brakes work but need far more pedal force), one or both brakes lost, or a leak in one brake#fm[section III, "Brake failure", page 3-27]. You recognise it by *pedals that do not slow the jet*.
+The brakes can fail in three ways: one of two circuits (both brakes work but need far more pedal force), one or both brakes lost, or a leak in one brake#fm[section III, "Brake failure", pages 3-27 and 3-28]. You recognise it by *pedals that do not slow the jet*.
 
 + Release the pedals, then change the brake channel, and press again.
 + Steer with the nosewheel steering if the jet turns.
@@ -55,7 +55,7 @@ The brakes can fail in three ways: one of two circuits (both brakes work but nee
 === Hot brakes <emergency-hot-brakes>
 #state("none")
 
-Brakes that have absorbed a lot of energy, after an aborted take-off or a heavy landing, can set leaking hydraulic fluid on fire, and the wheels' fuse plugs may let the tyres down within 15 minutes of the stop. The pilot keeps the engine running until the fire crew is there and leaves the parking brake off#fm[section III, "Abort", the cautions, page 3-34]. Normal braking technique is in @landing-roll.
+Brakes that have absorbed a lot of energy, after an aborted take-off or a heavy landing, can set leaking hydraulic fluid on fire, and the wheels' fuse plugs may let the tyres down within 15 minutes of the stop. The pilot keeps the engine running until the fire crew is there and leaves the parking brake off#fm[section III, "Abort", page 3-34]. Normal braking technique is in @landing-roll.
 
 === Nosewheel steering failure <emergency-nws>
 #state("none")

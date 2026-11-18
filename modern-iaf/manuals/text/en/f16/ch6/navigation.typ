@@ -4,7 +4,7 @@
 
 === The INS
 
-The #term("INS") gives the jet its position, heading and attitude. It must align before it can navigate: the full alignment at NORM takes 8 minutes, the stored-heading alignment (#term("STOR HDG")) 90 seconds#fm[section I, "Inertial navigation system"]. Then #row("INS") goes to NAV. The steps are in @cold-start.
+The #term("INS") gives the jet its position, heading and attitude. It must align before it can navigate: the full alignment at NORM takes about 8 minutes, the stored-heading alignment (#term("STOR HDG")) about 90 seconds#dcs["INS alignment", page 169]. Then #row("INS") goes to NAV. The steps are in @cold-start.
 
 #in-sim[
   - While it aligns #then[the #term("HUD") shows ALIGN; the #term("DED")'s INS page (LIST, 6) counts its status down from 99 to 10 and then shows RDY; ALIGN flashes.]

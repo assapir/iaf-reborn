@@ -2,7 +2,7 @@
 
 #layout-head
 
-The #term("HUD") shows the flight data and the aiming symbols over the view ahead#d34[section 1, the head-up display]. Its symbols follow the master mode (@stores).
+The #term("HUD") shows the flight data and the aiming symbols over the view ahead#d34[section I, "Head-up display (HUD)", page 1-156]. Its symbols follow the master mode (@stores).
 
 #display("hud_modes", [The HUD with the #term("DED")'s lines repeated on it. Top: navigation, air-to-air. Bottom: air-to-ground with the bomb's impact point, dogfight.], width: 100%)
 

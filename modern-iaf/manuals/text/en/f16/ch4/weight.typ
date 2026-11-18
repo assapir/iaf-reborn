@@ -28,7 +28,7 @@ What each station may carry, and each store's limits of speed, g and release, ar
 - *Pitch.* Above 15° of pitch on the runway the nozzle, the speedbrakes and the ventral fins can touch it (@landing-roll)#fm[section II, "Normal landing", the caution, page 2-24].
 - *Brakes.* Each brake can take up a fixed amount of energy; a stop from too high a speed loses the brakes before the jet stands. The speeds are in the performance supplement: open#fm[section V, "Brake energy limits", page 5-2].
 - *Crosswind.* The limits for take-off and landing are in the performance supplement: open#fm[section V, "Crosswind limits", page 5-5]. The technique is in @handling-takeoff-landing.
-- *Arresting gear.* The hook takes the cable systems and the nets take the jet as the manual lists them#fm[section V, "Net arrestment limitations", page 5-5]; the engagement speeds are in a figure this copy shows as a picture: open.
+- *Arresting gear.* The manual lists the cable systems the hook takes and the nets that take the jet. An emergency engagement of a cable is limited to 160 kt; one of the manual's two builds is limited to 140 kt above 42,300 lb#fm[section V, figure 5-5, pages 5-13 and 5-14, and "Net arrestment limitations", page 5-5]. Which build's limit holds for the #jet.short is open.
 
 #in-sim[
   - *Weight.* The #jet.short's maximum take-off weight is #if sufa [52,000 lb (23,582 kg)] else [42,300 lb (19,187 kg)]. A load that passes it is refused when the jet is loaded.

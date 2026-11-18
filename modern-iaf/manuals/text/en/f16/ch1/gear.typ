@@ -6,7 +6,7 @@ The gear has three legs: a nose leg and two main legs in the fuselage. Hydraulic
 
 #row("GEAR_LEVER") is up or down. Three green lights, #row("lamp_gear_nose_0"), #row("lamp_gear_left_0") and #row("lamp_gear_right_0"), are on when that leg is down and locked#fm[page 1-106]. The red #row("lamp_gear_transit_0") in the handle is on while any leg is not where the handle asks#fm[page 1-104]: in transit, or failed.
 
-The gear may be down or moving up to 300 knots or Mach 0.65#fm[figure 5-6, "LG Extended or in Transit"]. Above that the air load can damage the gear (inferred).
+The gear may be down or moving up to 300 knots or Mach 0.65#fm[figure 5-6, "LG Extended or in Transit", page 5-15]. Above that the air load can damage the gear (inferred).
 
 When system B fails, the #row("alt-gear") handle lowers the gear with stored air pressure#fm[page 1-106]. The DN LOCK REL button beside the gear handle unlocks the handle mechanically#fm[page 1-104].
 
@@ -14,7 +14,7 @@ The #row("lamp_to_ldg_config_0") warning light and a horn warn of an approach wi
 
 === Brakes
 
-The main wheels are braked with the toes of the rudder pedals. The BRAKES switch chooses one of two channels, CHAN 1 in normal use. #row("SW_PARKING_BRAKE") has three positions: PARKING BRAKE, ANTI-SKID and OFF. The anti-skid keeps a braked wheel from locking (inferred)#fm[pages 1-110, 1-111 and 1-117].
+The main wheels are braked with the toes of the rudder pedals. The BRAKES switch chooses one of two channels, CHAN 1 in normal use. #row("SW_PARKING_BRAKE") has three positions: PARKING BRAKE, ANTI-SKID and OFF. The anti-skid keeps a braked wheel from skidding#fm[pages 1-110, 1-111, 1-116 and 1-117].
 
 === Nosewheel steering
 

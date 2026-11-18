@@ -1,6 +1,6 @@
 #import "src.typ": *
 
-The pilot flies and fights with both hands on the controls: the switches for the sensors and the weapons are on the grips of #row("side_stick") and #row("throttle"). A public tender of the United States Air Force names them#grip:
+The pilot flies and fights with both hands on the controls: the switches for the sensors and the weapons are on the grips of #row("side_stick") and #row("throttle"). The list below is the sim's. The real grips' switch list is open.
 
 - On the stick: the weapon release button, the trigger, the trim switch, the target management switch (TMS), the display management switch (DMS), the countermeasures management switch (CMS), a switch that marks a point, a switch that zooms a sensor, the paddle that disconnects the autopilot, and the nose wheel steering button.
 - On the throttle: the cursor control, which moves the display's cursor and selects when pushed; the master mode switch; and the switch that cages or uncages a seeker.

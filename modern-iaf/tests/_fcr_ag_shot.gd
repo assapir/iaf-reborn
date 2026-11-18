@@ -106,7 +106,6 @@ func run() -> void:
 	var t1 := _target("Target 1")
 	var at := Vector2(t1.world.x + 22000.0, t1.world.y - 35700.0)  # the hulks 30° left, 42 km out (test_sim_fcr_ag)
 	_put(at.x, at.y)
-	tv._command([213, 0, 0])
 	await fly(tv, 3.0)
 	_tap(KEY_R)
 	await fly(tv, 6.0)

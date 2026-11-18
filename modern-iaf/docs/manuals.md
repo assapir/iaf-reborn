@@ -249,7 +249,7 @@ text right to left, and the checklist's lines come from the card's `he`. Only En
 **The build stops**, naming the file and the name, when a text names a key command the key table lacks, a control
 the control table lacks, a checklist section or item the card lacks, a picture or pictured control without a name, a
 section another manual's outline lacks, a listed key that the keyboard drawing has no cap for (or a modifier without a
-keyboard, or two commands on one key), a credit without its use, licence, link or lines, or a jet manual's text with one of the game's words (§2). A change to a key, a control, the card or a procedure therefore updates the
+keyboard, or two commands on one key), a credit without its use, licence, link or lines, a jet manual's text with one of the game's words (§2), or a picture that is black (§4 "Black captures"). A change to a key, a control, the card or a procedure therefore updates the
 manuals' text and PDFs in the same merge: run the build.
 
 **The keyboards** (the key card of every manual): landscape pages, one keyboard for the keys alone and one for each
@@ -357,9 +357,9 @@ figure has no size yet, so a digit drawn the same way is measured for it).
 
 **The displays' pictures** (`d_<name>.jpg`, chapter 6) are taken by the avionics slices' own shot scripts, each a
 real render with its command in its header, and then cut and joined with ImageMagick: `_fcr_shot.gd` (`d_fcr_modes`,
-`d_fcr_pages`, `d_hud_lock`), `_fcr_ag_shot.gd` (`d_fcr_ag`), `_mfd_s4_shot.gd` (`d_mfd_formats`),
-`_avionics_s5_shot.gd` (`d_ded_pages`, `d_hud_modes`, `d_hsd`, `d_fcr_aiff`, `d_threat`) and `_adir_s7b_shot.gd` (the
-Adir's). The Sufa's serve both F-16 manuals.
+`d_fcr_pages`, `d_hud_lock`), `_fcr_ag_shot.gd` (`d_fcr_ag`), `_mfd_s4_shot.gd` (`d_mfd_formats`, `d_mfd_menu_sms`),
+`_avionics_s5_shot.gd` (`d_ded_pages`, `d_ded_ins`, `d_hud_modes`, `d_hsd`, `d_fcr_aiff`, `d_threat`, `d_threat_radars`) and
+`_adir_s7b_shot.gd` (the Adir's). The Sufa's serve both F-16 manuals.
 
 **The game manual's screens** (`pictures/game/`, 18 November 2026) are taken in English by the front end's own shot
 scripts, each a real render with its command in its header, and scaled to 1,600 px JPEGs with ImageMagick (the name
@@ -369,6 +369,13 @@ without `_en`; a prefix per script): `_front_end_shot.gd` (no prefix), `_loadout
 `_setup_wizard_shot.gd` (`setup_welcome`, `setup_imagery`, `setup_install`) and, converted, the pictures of
 `modern-iaf/docs/pictures/setup/` (the skipped step, the remove dialog) and `front-end/loading_en.webp`. Only the pictures a section uses are
 kept. The pilot on them is the shot scripts' sample pilot.
+
+**Black captures** (found 18 November 2026). `_mfd_s4_shot.gd`, `_fcr_ag_shot.gd` and `_avionics_s5_shot.gd` put the
+jet in the air and then sent the "start engine" command (213). An air start has every system running; the command ran
+the start sequence again, so the AVIONIC POWER systems (MMC, ST STA, MFD, UFC) were off and the MFDs and the DED drew
+nothing until the script's next air start. The command is removed from the three scripts. The build stops on a picture
+under `pictures/` whose mean brightness is under 0.005 of white (`dark_pictures` in `tools/manuals.py`, measured with
+ImageMagick; the darkest good picture, the Adir's threat display with a missile warning, has 0.011).
 
 `SHOT_ONLY=p_` (or `overview`) takes only those and keeps the others' pictures and marks. A picture is taken again
 when the cockpit's model, the shot list or a panel's rows change.
@@ -414,9 +421,6 @@ Parts:
 ## 7. Open
 
 - Cross-manual links in macOS Preview: to check on the Mac.
-- Section 1.2's F-16 rows ("what it does") were written from memory of the public flight manual's section I, and
-  each is to be checked against it. The rows marked "inferred" are parts the cockpit model draws and the flight
-  manual's figure does not name.
 - The RPM indicator's picture for "Starting engine": the gauge's needle node (`anim069`) has no mesh the shot script
   can box; the text names its place instead.
 - Fixed 2026-11-18 (the faults the manuals exposed, group A): the F-16's airspeed dial reads indicated airspeed
@@ -474,25 +478,17 @@ Parts:
   - The JFS's time limits and the negative-g fuel limits are not there.
   - The low-speed warning tone follows the angle of attack alone (27°, the Adir 52°); the real F-16's tone has its own
     conditions (the flight manual's figure 1-50, a picture; not compared).
-- Owed after chapters 4 and 5: the seven footnotes marked "not read again for this chapter" are to be read at their
-  sources; chapter 3's Barak step "Throttle to idle" in the out-of-control recovery was marked as the F110-GE-129's
-  and inferred, and its place on page 3-130 was not read again; the Barak's own engine limits and air start
-  (F110-GE-100, a Block 40 manual) have no public source found.
+- Open after the footnote check (§8): the Barak's own engine limits and air start (F110-GE-100, a Block 40 manual) have
+  no public source found.
 - Open in chapter 3's sources: for the F-35 every emergency procedure (fire, engine failure and restart, electrical
   and flight control failures, out-of-control recovery, alternate gear, ejection envelope).
 - Open in chapter 2's sources: the F-16's climb schedules (the performance manual, not public); for the F-35 the climb
   schedule, the approach speeds, the landing technique and the air-refuelling cockpit procedure; the footnote for the
   F-16's exterior inspection names figure 2-4 without its page.
-- Owed after chapter 6, the F-16s' pictures (18 November 2026; each was taken once more at most, then left):
-  - The format menu, the HSD's control page and the SMS pages (INV, A-G, its submode list, AAM, GUN):
-    `_mfd_s4_shot.gd` saves both MFDs' screens black for every picture before its TGP ones, with the cockpit's MFDs lit
-    and empty. A wait of 20 s, the screens set to draw always, and the radar switched to air to ground first changed
-    nothing. To check whether the MFDs of an air start stay empty in the game too.
-  - GM without FZ, EXP, DBS1 and DBS2 on the hulks: the first four pictures of `_fcr_ag_shot.gd` are black.
-  - The threat warning display with threats: `_avionics_s5_shot.gd`'s `rwr_scope` shows the empty scope (its header
-    says the range's radar drones show). The DED's INS page: `ded_ins` is empty.
-  - The delayed CCIP's cues, the gun's funnel with a lock, a GPS bomb's HUD cues and the helmet's symbols have no
-    shot script.
+- Owed after chapter 6, the F-16s' pictures: the delayed CCIP's cues, the gun's funnel with a lock, a GPS bomb's HUD
+  cues and the helmet's symbols have no shot script. The black ones are taken (§4 "Black captures").
+- Found by the black captures, the game's and listed, not changed here: the "start engine" command (213) sent in the
+  air runs the start sequence again, so MMC, ST STA, MFD and UFC go off and the displays go dark until it ends.
 - Found while writing chapter 6, the game's and listed, not changed here:
   - A GPS bomb's PRE target cannot be set in Modern IAF (avionics-plan.md G4): PRE has a target only when the route
     has a target steerpoint.
@@ -501,13 +497,16 @@ Parts:
   - The Adir: the function bar's SWAP and MENU and each portal's `CNTL>` draw and do nothing (`pcd.gd`); the TFLIR
     format has no clickable WIDE / SPOT; `systems.json` says EMER_JETT "drops the external stores" while the code
     drops the bays' too; JETT_SEL moves only.
-- Owed after chapter 6, the Adir: pictures of the SMS, the TFLIR with video (the shots show NO VIDEO), the MENU
-  grid, the default layout and a GPS bomb's helmet cues. Not verified in the game: how the gun is selected in A-A
-  and A-G, the zoom keys and the cursor keys on the TFLIR, the dispenser's modes on the Adir.
-- Chapter 6's footnotes to the dash-34, the MLU guide, Janes and the simulator manual are taken from the project's
-  docs and marked "not read again for this chapter": each is to be read at its source.
+- Owed after chapter 6, the Adir: pictures of the TFLIR with video and of a GPS bomb's helmet cues (no shot script).
+  The SMS and the MENU grid are taken (`d_sms`, `d_menu`); the default layout is `d_pcd`. Not verified in the game: how
+  the gun is selected in A-A and A-G, the zoom keys and the cursor keys on the TFLIR, the dispenser's modes on the Adir.
+- Found while taking the Adir's pictures, the game's and listed, not changed here: the TFLIR stays at NO VIDEO. The
+  FLIR page key starts the camera only while no portal shows TFLIR (`player_weapons.gd` `flir_on`), and the default
+  layout holds TFLIR on the fourth portal. In the shot script the key started no camera with that portal freed either
+  (three tries, 18 November 2026): to check in the game. Section 6's "To use it" follows the key's intent.
 - Owed after the game manual, pictures no shot script takes: a holding sign and a direction sign on a taxiway and the
-  runway's markings from the threshold (section 5.2), a full MFD view (section 3.2), the crash page (section 6.3). The review of 18 November 2026 checked the lessons, the
+  runway's markings from the threshold (section 5.2), the crash page (section 6.3). The full MFD view is taken
+  (`flight_mfd_view`, `_mfd_view_shot.gd`). The review of 18 November 2026 checked the lessons, the
   tower, the Settings, the Loadout rules, setup and the bases against the code; the pilots, Hangar, keys and joystick
   and troubleshooting sections were read with few code checks, and the one-instruction-a-step rule was sampled.
 - Found while writing the game manual, the game's and listed, not changed here (read from the code, not run):
@@ -529,3 +528,26 @@ Parts:
     lessons ring nothing (`kneeboard.gd` rings in every cold-start lesson); [front-end.md](front-end.md) §8 gives
     F12 as the info line (`keys.json`: I-mode); [training.md](training.md) §3's table gives the start-up's time as 120 s
     (the missions: 600).
+
+## 8. The footnotes checked at their sources
+
+Checked 18 November 2026: every footnote of the three jet manuals was read at its cited place. The F-16 flight manual
+(T.O. GR1F-16CJ-1) and the avionics manual (T.O. GR1F-16CJ-34-1-1, page scans) were read from their public copies; web
+pages were fetched once each. A citation stays only where the source was seen to support the statement.
+
+| manual | uses | confirmed (place fixed) | corrected to the source | downgraded to inferred / open | removed |
+|---|---|---|---|---|---|
+| F-16I Sufa and F-16D Barak (one text, `f16/`) | 284 | 260 (28) | 24 | 0 | 0 |
+| F-35I Adir (`f35i/`) | 130 | 104 (5) | 19 | 6 | 1 |
+
+- The F-16's section 1.2 rows (`f16/systems.json` "does"): 299 checked against the flight manual's section I; 29
+  corrected, 144 marked inferred (avionics the section does not describe: the MFD's buttons, the ICP, the CMDS, the
+  threat warning, the HUD's remote panel, AVIONIC POWER, the KY-58), 126 agree.
+- Corrected in the F-16s, the larger ones: the thrust in SEC (70 to 80 % for the Sufa's engine), the Barak's zoom
+  speed, the air start's wording, the trapped fuel's AIR SOURCE positions, the roll rate in CAT III, the arresting
+  speeds, the oxygen levers and OXY LOW, the FUSELAGE and FORM lights, the bingo cue; the INS alignment times are the
+  simulator manual's.
+- The Adir's downgraded: the grips' switch list (sam.gov), the helmet's frames (slideshare, four uses), a lift-off
+  speed (WION). Removed: the bay doors' timing. One footnote stays second-hand and says so (Pratt & Whitney's page
+  returned no text). The real maximum take-off weight is now 65,918 lb; the sim's own 70,000 lb stays in its data.
+- Of the Adir's 104 confirmed, one is the second-hand footnote.

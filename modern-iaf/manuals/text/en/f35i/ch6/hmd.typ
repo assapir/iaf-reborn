@@ -1,6 +1,6 @@
 #import "src.typ": *
 
-The #jet.short has no head-up display. The #term("HMD") draws the flight and weapon symbols in the helmet's visor, in green. Looking forward you see a set of symbols that stays with the jet's nose, the virtual head-up display. Looking aside you see a smaller set that stays with your head#frames. The real symbols are public only through two of the maker's frames and flight-test videos; what comes from elsewhere is marked inferred.
+The #jet.short has no head-up display. The #term("HMD") draws the flight and weapon symbols in the helmet's visor, in green. Looking forward you see a set of symbols that stays with the jet's nose, the virtual head-up display. Looking aside you see a smaller set that stays with your head#sld. The real symbols are public only through the maker's slides and flight-test videos. The places of the symbols below are inferred.
 
 === The controls <hmd-controls>
 
@@ -21,11 +21,11 @@ The #jet.short has no head-up display. The #term("HMD") draws the flight and wea
 - *Lower left:* the master mode, the selected weapon with its count, and ARM while the master arm is on.
 - *Lower right:* the steerpoint's number, bearing and distance, and the time.
 
-The real frame also shows a navigation aid's channel and distance at the lower right#frames. The sim has no such aid (@navigation).
+Whether the real helmet also shows a navigation aid's channel and distance there is open. The sim has no such aid (@navigation).
 
 === Looking aside <hmd-aside>
 
-When you look away from the nose, the virtual head-up display stays behind and the head's set shows about the centre of your view (inferred from the maker's frame of the pilot looking behind#frames):
+When you look away from the nose, the virtual head-up display stays behind and the head's set shows about the centre of your view (inferred; the maker says only that the main flight data and the tactical symbols are shown off the nose#sld):
 
 - a cross on your line of sight;
 - a heading tape for where your head points, with the steerpoint's caret;

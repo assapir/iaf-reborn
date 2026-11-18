@@ -4,7 +4,7 @@
 
 === At the limiter
 
-With a category I load and the stick fully back the jet holds about 25° angle of attack #fm[section I, "AOA/g limiter", page 1-121]. It does not stall with a break as a jet without a limiter does, and the speed falls fast instead (inferred). Roll is reduced there, so that pitch and roll together do not throw the jet#fm[section VI, "Category I loadings", page 6-3].
+With a category I load and the stick fully back the jet holds about 25° angle of attack#fm[section I, "AOA/g limiter", page 1-121]. It does not stall with a break as a jet without a limiter does, and the speed falls fast instead (inferred). Roll is reduced there, so that pitch and roll together do not throw the jet#fm[section VI, "Category I loadings", page 6-3].
 
 === How the limiter is defeated
 
@@ -27,7 +27,7 @@ Release the back pressure first. Roll smoothly, inverted, to the nearest horizon
 
 === Category III loads
 
-With the switch at #term("CAT III") the limiter stops at 16° to 18°#fm[section I, "AOA/g limiter", page 1-121] and the jet resists departure with these loads as it does clean#fm[section VI, "Category III loadings", page 6-3]. A departure with an asymmetric category III load can end in a fast, flat spin that may not be recoverable#fm[section V, "Low airspeed operating limitations", the warning, page 5-3].
+With the switch at #term("CAT III") the limiter stops at 16° to 18°#fm[section I, "AOA/g limiter", page 1-121] and the limiter then resists departure with every load#fm[section VI, "Category III loadings", page 6-3]. A departure with an asymmetric category III load can end in a fast, flat spin that may not be recoverable#fm[section V, "Low airspeed operating limitations", the warning, page 5-3].
 
 #in-sim[
   - *At the limiter.* Full back stick holds about 25° in CAT I, 15.5° to 18° in CAT III; the speed falls and the jet stays under control. A full pull at 200 kt peaks near 27°.

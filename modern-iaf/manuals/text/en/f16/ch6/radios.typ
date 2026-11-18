@@ -12,7 +12,7 @@ The IFF page (#row("ICP_iff")) sets the transponder: modes 1, 2, 3/A and C, each
 
 === The interrogator
 
-#if sufa [The interrogator asks the aircraft ahead to identify themselves#footnote[Lockheed Martin, F-16 A/B Mid-Life Update Production Tape M1 pilot's guide (16PR14341, 1998), "AIFF", pages 49 to 55. Taken from the project's research record; not read again for this chapter.].] else [The interrogator asks the aircraft ahead to identify themselves. That the #jet.short carries one is inferred.]
+#if sufa [The interrogator asks the aircraft ahead to identify themselves#d34[section I, "Interrogator operation", page 1-191].] else [The interrogator asks the aircraft ahead to identify themselves. That the #jet.short carries one is inferred.]
 
 + Scan: #key("AIFF: scan interrogation (TMS left)"). It covers 60° each side of the nose. #then[The radar's own targets blank for a second; each friend's reply shows as a green circle on the #term("FCR") and the HSD for 3 seconds.]
 + Line of sight: #key("AIFF: line-of-sight interrogation (TMS left held)"). It covers 15° each side of the radar's cursor.

@@ -10,7 +10,7 @@ No climb schedule of the F-35 is public: open. Two public rules shape the first 
 
 === The checks in the climb and the cruise <cruise-checks>
 
-#idx("Operational checks")The pilot checks the jet in the climb or at the level-off, and again at intervals; the systems are checked above 10,000 ft when that is practical#afi[paragraphs 3.8.5 and 3.14.1]. The check has at least six items#afi[paragraph 3.14.2]:
+#idx("Operational checks")The pilot checks the jet in the climb or at the level-off, again before each practice engagement and after an air refuelling#afi[paragraph 3.14.1]; the air-to-air systems are checked above 10,000 ft when that is practical#afi[paragraph 3.8.5]. The check has at least six items#afi[paragraph 3.14.2]:
 
 #table(
   columns: (auto, 1.2fr, 1.2fr),

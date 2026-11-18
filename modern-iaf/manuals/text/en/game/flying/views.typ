@@ -76,6 +76,8 @@ The head stops short of the canopy and the panels. The pilot's body hides while 
 
 The jet flies on, and every other key works as from the seat. Click the display's buttons with the mouse. To go back to the seat, press the same key again or #keycap("Esc"). The other display's key cuts straight to that display.
 
+#screen("flight_mfd_view", [The full view of the Sufa's left display.], width: 70%)
+
 === The pilot's body <views-body>
 
 #idx("Pilot's body, hiding")You see the pilot's legs, arms and hands when you look down. The left glove on the throttle covers some switches of the left console. A click still reaches a switch under the body. To see the switch:

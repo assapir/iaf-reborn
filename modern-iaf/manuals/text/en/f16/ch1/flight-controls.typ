@@ -19,7 +19,7 @@ The computer limits what the pilot can ask for, so that full stick does not brea
 
 === Speedbrakes
 
-Two pairs of surfaces beside the engine nozzle open to 60°. With the right main gear down they stop at 43°, which keeps them clear of the runway at touchdown (the reason is inferred)#fm[page 1-117]. The SPD BRK switch is on the throttle.
+Two pairs of surfaces beside the engine nozzle open to 60°. With the right main gear down they stop at 43°, which keeps them clear of the runway at touchdown#fm[page 1-117]. The SPD BRK switch is on the throttle.
 
 === Trim
 

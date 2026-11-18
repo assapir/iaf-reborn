@@ -23,7 +23,7 @@ An engine that fails just after lift-off leaves no time to analyse. Before lift-
 + Jettison the stores, if there is time.
 + Eject before the jet starts to sink.
 
-With low thrust that still flies the jet, select the afterburner; if that does not light, the engine's secondary control (ENG CONT at SEC), which gives 70 to 95~% of military thrust and no afterburner#fm[section III, "Low thrust on takeoff or at low altitude", page 3-36].
+With low thrust that still flies the jet, select the afterburner; if that does not light, the engine's secondary control (ENG CONT at SEC), which gives #if sufa [70 to 80~%] else [70 to 95~%] of military thrust and no afterburner#fm[section III, "Low thrust on takeoff or at low altitude", #if sufa [page 3-35] else [page 3-36: the figure of the manual's General Electric engine, the F110-GE-129; for the #jet.short's F110-GE-100 it is inferred]].
 
 === Engine fire on take-off <emergency-takeoff-fire>
 #state("none")

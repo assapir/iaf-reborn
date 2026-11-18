@@ -34,7 +34,7 @@ These are the functions of the F-16's threat warning panel. The #jet.short's own
 
 === The missile warning <ew-maw>
 
-The real jet's cameras detect a missile in flight and warn the pilot#das-wiki. How the warning looks is not public.
+The real jet's cameras detect and track a missile in flight#das-wiki. How the pilot is warned is not public: open.
 
 #in-sim[A missile launched at you shows as a red M at its bearing, with the seconds to its arrival under it, or two dashes while it does not close:
   - on the TWD, on the outer ring (@fig-d-twd_maw);

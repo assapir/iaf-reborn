@@ -1,6 +1,6 @@
 #import "src.typ": *
 
-The #jet.short reports its faults through one system, the integrated caution, advisory and warning system (ICAWS): it puts a message on the display and sounds an alert in the pilot's headset#ms[page 10].
+The #jet.short reports its faults through one system, the integrated caution, advisory and warning system (ICAWS): it puts a message on the display#wiki[Cockpit] and sounds an alert in the pilot's headset#ms[page 10].
 
 The three kinds of message, by urgency (the order is in the name; what each asks of the pilot is inferred):
 

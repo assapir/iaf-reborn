@@ -1,7 +1,7 @@
 # The F-35I Adir's radar, sensors and helmet pictures (avionics-plan.md slice 7 part B): SRCH searching and locked,
 # the TSD with the data link's tracks, the TWD with the range's radar drones and a MAW warning, ASR's GM and DBS1 SAR
-# picture, the helmet with a lock, with the MAW and with the break X in a dive, the whole display from the pilot's
-# eye. Each portal picture is the PCD's glass cropped to portal 0, 1920 wide. A real render: run it hidden, one at a
+# picture, the SMS and the MENU grid, the helmet with a lock, with the MAW and with the break X in a dive, the whole
+# display from the pilot's eye. Each portal picture is the PCD's glass cropped to portal 0, 1920 wide. A real render: run it hidden, one at a
 # time,
 #   flock ~/.cache/iaf-gpu-bench.lock tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 SHOT_DIR=<dir> -- \
 #     --resolution 1920x1080 --path modern-iaf -s ../modern-iaf/tests/_adir_s7b_shot.gd --log-file <temp>
@@ -184,6 +184,11 @@ func run() -> void:
 	await portal_shot("asr_dbs1", "SRCH")
 	await _look(true)
 	await cockpit_shot("pcd_pilot_eye_asr")
+	# The stores and the MENU grid.
+	await _look(false)
+	await portal_shot("sms", "SMS")
+	await portal_shot("menu", "MENU")
+	pcd.menu_open[0] = false
 	# The break X: a 45° dive from 6,000 ft; saved on the first frame that shows it.
 	await _look(false)
 	o = w.own()

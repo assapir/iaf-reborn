@@ -18,7 +18,7 @@ Eject when the jet is out of control and not recovering, when a fire goes on, wh
 + Sit with the head on the headrest, the back and hips against the seat, the feet on the pedals.
 + Pull the handle.
 
-If the canopy does not go, it is jettisoned by its own handle; if the seat does not fire after the canopy has gone, there is no other way out#fm[section III, "Ejection seat failure", page 3-43].
+If the canopy does not go, it is jettisoned by its own handle; if the seat does not fire after the canopy has gone, there is no other way out#fm[section III, "Failure of canopy to separate" and "Ejection seat failure", pages 3-41 and 3-43].
 
 #in-sim[
   - #key("Eject (press 3 times)"): three presses, each within a second of the one before. #sym.arrow.r *The canopy goes, the seat fires and the parachute opens.* The engine stops and the controls are dead.

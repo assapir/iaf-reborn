@@ -2,7 +2,7 @@
 
 #layout-head
 
-The up-front controls are the #term("ICP"), the keyboard under the #term("HUD"), and the #term("DED"), the small display right of it. The pilot enters navigation, radio and system data there#d34[section 1, the up-front controls]. The DED is dark until #row("AVIONICS_UFC") is on.
+The up-front controls are the #term("ICP"), the keyboard under the #term("HUD"), and the #term("DED"), the small display right of it. The pilot reaches the radio, navigation and identification data and the weapon delivery data there#d34[section I, "Upfront controls (UFC)", page 1-48]. The DED is dark until #row("AVIONICS_UFC") is on.
 
 === The keys
 
@@ -25,6 +25,8 @@ The up-front controls are the #term("ICP"), the keyboard under the #term("HUD"),
 === The pages
 
 #display("ded_pages", [The DED's pages. Left, from the top: the main page (CNI), STPT, MARK, IFF. Right: T-ILS, LIST, EWS, DLNK.], width: 80%)
+
+#display("ded_ins", [The DED's #term("INS") page: the alignment's time and state, the jet's position, the altitude, the heading and the ground speed.], width: 60%)
 
 #table(columns: (22%, 20%, 1fr), table.header[*Page*][*Opened by*][*Shows and sets*],
   [CNI, the main page], [DCS to RTN], [The UHF frequency, the steerpoint (the rocker steps it), the VHF preset, the time, the stopwatch while it runs, the transponder's modes that are on, the TACAN channel.],

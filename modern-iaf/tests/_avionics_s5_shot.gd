@@ -127,7 +127,6 @@ func run() -> void:
 	var ramon: Vector2 = Vector2(c.ufc_nav().e, c.ufc_nav().n)
 	var at: Vector3 = tv.world_to_scene(Vector3(ramon.x, ramon.y - 15.0 * 1852.0, 3048.0))
 	_put(at, Vector3(0, 0, -200), 0.0)
-	tv._command([213, 0, 0])
 	await fly(tv, 3.0)
 	tv.views.set_cockpit(tv.views.COCKPIT)
 	tv.in_cockpit = true

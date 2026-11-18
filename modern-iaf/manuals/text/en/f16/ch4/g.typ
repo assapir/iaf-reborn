@@ -23,10 +23,10 @@ A load is of category I or category III. Category I loads leave the jet its full
   fill: (_, y) => if calc.even(y) { paper },
   table.header([], [*CAT I*], [*#term("CAT III")*]),
   [Greatest angle of attack], [About 25°: the g allowed falls to 1 g at 25°], [About 16° to 18°, by weight and g],
-  [Roll], [Full], [Reduced],
+  [Roll], [Full], [Reduced by about 40~%],
   [Greatest change of bank in one roll at full stick], [360°], [360°],
 )
-The limits are the flight manual's#fm[section I, "AOA/g limiter", page 1-121, and section V, figure 5-8, page 5-15].#block-note
+The limits are the flight manual's#fm[section I, "AOA/g limiter", page 1-121, and figure 1-44, page 1-124; section V, figure 5-8, page 5-15].#block-note
 
 #warning[Do not fly a category III load with the switch at CAT I, except in an emergency. The limiter then gives no protection against a departure, and rolling can damage the wing's structure#fm[section V, "AOA and rolling limitations" and its warnings, page 5-4].]
 

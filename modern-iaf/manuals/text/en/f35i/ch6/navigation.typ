@@ -4,7 +4,7 @@ This section covers how the jet knows where it is, the route and its steerpoints
 
 === The self test and the inertial system <nav-ins>
 
-The real jet tests itself after the battery comes on and is ready about 90 seconds later#ayton. The pilot does not align the #term("INS") by hand (inferred).
+After the engine start the real pilot starts a self test of the jet's systems with one button, and about 90 seconds later the jet reports itself ready#ayton. The pilot does not align the #term("INS") by hand (inferred).
 
 #in-sim[The 90 seconds start when the battery switch goes to ON (@cold-start).]
 
@@ -17,7 +17,7 @@ A steerpoint is a point of the planned route. The jet steers to one steerpoint a
 - #sym.arrow.r *The helmet shows its number, bearing and distance at the lower right.* A caret under the heading tape marks its bearing; at the tape's end the caret means "turn further". A small square lies on the steerpoint's place on the ground; outside the display's field it waits at the edge.
 - #key("Autopilot: level / nav / off") at NAV flies the jet along the route. The function bar shows NAV as the autopilot's mode.
 
-The caret and the square are the sim's reading of the maker's two frames of the helmet#frames. No public source says how they behave: inferred.
+The caret and the square are inferred. No public source says how the symbols behave.
 
 === The TSD format <nav-tsd>
 
@@ -46,4 +46,4 @@ With the master mode at NAV and the landing gear handle down, the helmet shows t
 
 === What the sim lacks <nav-missing>
 
-The radio navigation aid that the real helmet shows as a channel and a distance#frames, and the navigation pages of the CNI format, are #nis.
+A radio navigation aid and the navigation pages of the CNI format are #nis. Whether the real helmet shows such an aid's channel and distance is open.

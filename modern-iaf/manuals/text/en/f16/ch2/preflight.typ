@@ -5,7 +5,7 @@ Before the first switch of the checklist card, the pilot of the real jet checks 
 === The forms and the walk-around <preflight-exterior>
 
 + *The aircraft's forms.* The pilot reads the jet's maintenance forms: that the jet is released for flight, and which stores it carries#fm[section II, "Preflight check", page 2-2].
-+ *The exterior inspection.* The pilot walks around the jet along a fixed route and looks at each part of it on the way#fm[section II, "Exterior inspection", page 2-2, which refers to the manual's figure 2-4 for the route]. What is checked at each stop is in the figure, which this manual does not repeat. Inferred, as on any jet: no leaks, no damage, the covers and safety pins removed, the stores as the forms say.
++ *The exterior inspection.* The pilot walks around the jet along a fixed route and looks at each part of it on the way#fm[section II, "Exterior inspection", page 2-2, which refers to the manual's figure 2-4, page 2-33, for the route]. What is checked at each stop is in the figure, which this manual does not repeat. Inferred, as on any jet: no leaks, no damage, the covers and safety pins removed, the stores as the forms say.
 
 === Cockpit entry <preflight-entry>
 

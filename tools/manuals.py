@@ -245,6 +245,35 @@ def own_keys() -> int:
     return found
 
 
+# A capture of an unpowered display is all black (2026-11-18: the shot scripts sent "start engine" after an air start,
+# which ran the start sequence again with the avionics off). The darkest good picture, the Adir's threat display with a
+# missile warning, has a mean of 0.011.
+# ponytail: the whole picture's mean; a grid with some black cells passes. Per-cell means if that happens.
+DARK = 0.005
+
+
+def dark_pictures() -> int:
+    """The pictures under pictures/ whose mean brightness (0 to 1) is under DARK, each printed; their count.
+    ImageMagick measures them (`magick`, or version 6's `convert`); without it the build stops."""
+    tool = shutil.which("magick") or shutil.which("convert")
+    if not tool:
+        print("manuals: ImageMagick not found (magick or convert): it checks that no picture is black")
+        return 1
+    paths = sorted(os.path.join(f, n) for f, _, ns in os.walk(os.path.join(DIR, "pictures")) for n in ns if n.endswith(".jpg"))
+    means = []
+    for p in paths:  # one picture a call: version 6 holds a whole list in memory and can measure the first for all
+        out = subprocess.run([tool, p, "-colorspace", "Gray", "-format", "%[fx:mean]", "info:"], capture_output=True, text=True)
+        try:
+            means.append(float(out.stdout))
+        except ValueError:
+            print(f"manuals: ImageMagick could not measure {os.path.relpath(p, DIR)}: " + out.stderr.strip()[:300])
+            return 1
+    dark = [(p, m) for p, m in zip(paths, means) if m < DARK]
+    for p, m in dark:
+        print(f"manuals: {os.path.relpath(p, DIR)} is black (mean brightness {m:.4f}, under {DARK}): the display was not powered or its page not shown at the capture; take it again")
+    return len(dark)
+
+
 def main() -> int:
     typst = os.environ.get("IAF_TYPST") or shutil.which("typst") or os.path.expanduser("~/.local/share/iaf-typst/typst")
     if not os.path.exists(typst):
@@ -263,7 +292,7 @@ def main() -> int:
     date = (not git("status", "--porcelain") and git("log", "-1", "--format=%cs")) or datetime.date.today().isoformat()
     stamp = int(datetime.datetime.fromisoformat(date).replace(tzinfo=datetime.timezone.utc).timestamp())
     os.makedirs(os.path.join(DIR, "pdf"), exist_ok=True)
-    if hand_keys() + own_keys():
+    if hand_keys() + own_keys() + dark_pictures():
         return 1
     failed = 0
     for m in wanted:
