@@ -57,6 +57,7 @@
   "VSR": "Velocity search with ranging"
  },
  "short": {
+  "CRUS": "Cruise (the simulator manual's: the default layout)",
   "ALT": "Alternate",
   "BATT": "Battery",
   "DN": "Down",
@@ -175,7 +176,10 @@
   "SLEW",
   "SPOT",
   "SWAP",
-  "WIDE"
+  "WIDE",
+  "OUT",
+  "POP",
+  "ZOOM"
  ],
  "panels": [
   {
