@@ -29,14 +29,14 @@ const ENV_OFF := {
 	"adjustment_enabled": false,
 }
 const ENV_SYNC_S := 1.0
-## The sharp layer (cockpit_sharp.gdshader) is off: its exposure, read from the probe in the view's corner, flashed the
-## cockpit white at a mission's start and while the head turned (the user's Mac play test, 17 Nov; docs/rendering.md
-## §3.2). With it off the cockpit is upscaled with the view, as before 17 Nov.
-# ponytail: off until the layer's exposure no longer comes from a screen probe; then true again.
-const SHARP := false
-## The sharp layer's probe (cockpit_composite.gdshader PROBE_L), its exposure table's size and AgX's log range
+## The sharp layer (cockpit_sharp.gdshader): the cockpit at the window's resolution while the view is upscaled.
+const SHARP := true
+## The sharp layer's probe (cockpit_probe.gdshader PROBE_L, PROBE_PX), its exposure table's size and AgX's log range
 ## (cockpit_sharp.gdshader).
 const PROBE_L := 0.18
+const PROBE_PX := 8.0
+## Frames from the grey's first to the sharp layer's (the upscaler's history of the corner).
+const SETTLE := 4
 const LUT_N := 256
 const AGX_LO := -12.47393
 const AGX_HI := 4.026069
@@ -53,11 +53,13 @@ var _cockpit_env := Environment.new()
 var _sky := Sky.new()
 var _sync_t := INF
 var _quad := MeshInstance3D.new()
+var _probe := MeshInstance3D.new()  # the sharp layer's exposure grey (cockpit_probe.gdshader)
 var _shown: Node3D  # the node whose visibility switches the cockpit world on (own_bc)
 ## While the 3D view is upscaled: the cockpit's picture again at the window's resolution (cockpit_sharp.gdshader), on a
 ## canvas layer under all the others (the canopy's rain, the cloud whiteout and the goggles at -1 stay over it).
 var _sharp := CanvasLayer.new()
 var _sharp_mat := ShaderMaterial.new()
+var _settle := 0
 var _bcs := Vector3.INF  # the adjustments the sharp layer's tone map was given
 
 
@@ -103,11 +105,20 @@ func setup(world_camera: Camera3D, world_rig: Node3D, sun: DirectionalLight3D, e
 	_quad.layers = preload("res://shared/terrain/volumetric_clouds.gd").LAYER
 	_quad.visible = false
 	world_camera.add_child(_quad)
+	var probe_mat := ShaderMaterial.new()
+	probe_mat.shader = load("res://shared/cockpit/cockpit_probe.gdshader")
+	_probe.mesh = _quad.mesh
+	_probe.material_override = probe_mat
+	_probe.extra_cull_margin = _quad.extra_cull_margin
+	_probe.cast_shadow = _quad.cast_shadow
+	_probe.layers = _quad.layers
+	_probe.visible = false
+	world_camera.add_child(_probe)
 	_sharp_mat.shader = load("res://shared/cockpit/cockpit_sharp.gdshader")
 	_sharp_mat.set_shader_parameter("cockpit", viewport.get_texture())
 	var copy := BackBufferCopy.new()  # the probe's corner only (cockpit_sharp.gdshader FILL), not the whole screen
 	copy.copy_mode = BackBufferCopy.COPY_MODE_RECT
-	copy.rect = Rect2(0, 0, 32, 32)
+	copy.rect = Rect2(0, 0, 32, 32)  # FILL and the pixel next to it
 	var rect := ColorRect.new()
 	rect.material = _sharp_mat
 	rect.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -156,9 +167,13 @@ func _process(delta: float) -> void:
 	viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS if on else SubViewport.UPDATE_DISABLED
 	var main := get_viewport()
 	var sharp: bool = SHARP and on and main.scaling_3d_scale < 1.0
-	if sharp != _sharp.visible:
-		_sharp.visible = sharp
+	if sharp != _probe.visible:
+		_probe.visible = sharp
 		_quad.material_override.set_shader_parameter("probe", sharp)
+		_settle = SETTLE
+	# The layer follows the grey SETTLE frames later: a temporal upscaler's history of the corner is the grey's by then.
+	_settle = maxi(_settle - 1, 0)
+	_sharp.visible = sharp and _settle == 0
 	if not on:
 		return
 	if sharp:

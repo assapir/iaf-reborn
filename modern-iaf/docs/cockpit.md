@@ -818,12 +818,7 @@ Iris Xe. Of the cockpit's, MSAA 4× (as the flight's) is about 3.2 ms, its shado
   pixels by more than one, 12 % by more than eight), the gauges by 3.1 levels (29 %, 7 %); the HUD glass 0.8 levels
   (4 %). Zoomed, FXAA leaves the keys' outlines stair-stepped and blurs their small labels.
 
-### 6.3 The cockpit sharp with Upscaling (2026-11-17, the Mac play test of 15 Nov; off since the evening)
-
-The layer below is off (`cockpit_origin.gd` `SHARP` false): with it the cockpit flashed white at a Training lesson's
-start and while the head turned (the user's Mac, Upscaling Quality, 17 Nov; docs/rendering.md §3.2). The cockpit is
-upscaled with the view, as before. What follows is the layer as built, kept for a later round whose exposure does not
-come from a probe on the screen.
+### 6.3 The cockpit sharp with Upscaling (2026-11-17, the Mac play test of 15 Nov; the steady grey 2026-11-18)
 
 With Upscaling Quality or Balanced the flight's 3D view renders at 0.77 / 0.67 of the window and is scaled up; the
 composite (§6.2) lays the cockpit inside that view, so its labels, displays and lamps came out as soft as the world.
@@ -835,9 +830,15 @@ cloud whiteout and the goggles at −1 stay over it):
   glass and the seat is the view's own;
 - the layer tone maps the picture itself: a minimal AgX taken as gamma 2.2 and encoded as sRGB, with the flight's
   adjustments (brightness, contrast, saturation), fitted to 400 cockpit pixels of a day render at 0.015 rms;
-- the flight's exposure of each frame is measured: the composite draws a grey of known light (0.18) in the view's
-  top left 4 × 4 pixels, and the layer reads it back and looks its exposure up in a table (`exposure_lut`, the tone
-  map inverted for that grey); the layer fills that corner with the view's colour next to it;
+- the flight's exposure of each frame is measured: a grey of known light (0.18) stands in the view's top left 8 × 8
+  pixels, and the layer reads its middle back and looks its exposure up in a table (`exposure_lut`, the tone map
+  inverted for that grey); the layer fills that corner (16 pixels of the window) with the view's colour next to it;
+- the grey is solid geometry at the near plane that holds still on the screen (`cockpit_probe.gdshader`), so it
+  writes the corner's depth and motion vectors and a temporal upscaler keeps the corner's own history; the composite
+  draws the same grey over it as the view's last thing. Drawn by the composite's transparent quad alone (17 Nov) the
+  grey had the motion of the world behind it: MetalFX temporal mixed the sky into it while the head turned, and the
+  cockpit flashed white (docs/rendering.md §3.2). The layer appears 4 frames after the grey (`SETTLE`: on a switch
+  into the cockpit the corner's history is the grey's by then);
 - Upscaling off draws neither the layer nor the grey: the view is as before. The original game's 3D cockpit (Extras
   "Cockpit": 3D) is drawn in its own world too while Upscaling is on (`terrain_view.gd` `_spawn_cockpit`), so it gets
   the same layer.
@@ -849,6 +850,21 @@ premultiplied colour of no cover (alpha 0): the panels at night are whole with U
 Measured with `modern-iaf/tests/_cockpit_sharp_shot.gd` (the Sufa on Ramon's final, 1920 × 994, Upscaling Quality,
 Iris Xe, 20 s each, two interleaved rounds): the flight's viewport 19.37 / 19.09 ms GPU without the layer and
 19.59 / 19.29 ms with it (+0.2 ms), the frame 27.72 / 27.35 ms and 27.95 / 27.52 ms.
+
+Measured with `modern-iaf/tests/_cockpit_flash_shot.gd` on the user's Mac (M4 Pro, 2026-11-18, a real window of
+1920 × 1080, the Sufa, a 15 s head pan from the lesson's start, then the layer taken away for 20 frames and back): the largest change of the cockpit's mean brightness
+from one frame to the next, and the frames over 0.04.
+
+| lesson | Quality, MetalFX temporal | Quality, MetalFX spatial | Upscaling off |
+|---|---|---|---|
+| 1 (`ramon_startup`) | 0.0136, 0 | 0.0151, 0 | 0.0128, 0 |
+| 2 (`ramon_takeoff`) | 0.0149, 0 | 0.0175, 0 | 0.0136, 0 |
+
+With the transparent grey of 17 Nov the first lesson under MetalFX temporal gave 0.158 and 7 frames; the grey as the
+window showed it ran from 0.38 to 0.78 then and runs from 0.42 to 0.51 now (the auto exposure's own travel). Frame
+cost: the Mac holds its 60 Hz with and without the layer (the hidden window is capped there, so a difference under
+the cap is not measured); the Iris Xe at Quality, 10 s each, two interleaved rounds: 15.67 / 14.21 ms GPU without the
+layer, 14.29 / 14.17 ms with it.
 
 - Tried and dropped (2026-11-17): the picture's detail carried onto the upscaled view by the ratio of the two over a
   small box (no exposure needed). By day it matched; at night the box's mix of bright labels and black panel gave the

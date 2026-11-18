@@ -8,10 +8,11 @@ render_mode unshaded, fog_disabled, depth_test_disabled, depth_draw_never, blend
 
 uniform sampler2D cockpit : filter_linear;
 // While the view is upscaled (cockpit_sharp.gdshader): a grey of known light in the view's top left corner, PROBE_PX
-// pixels of the 3D scene square, from which the sharp layer reads the flight's exposure.
+// pixels of the 3D scene square, from which the sharp layer reads the flight's exposure. Drawn here as the view's last
+// thing, over the same grey as solid geometry (cockpit_probe.gdshader: the corner's depth and motion vectors).
 uniform bool probe = false;
 const float PROBE_L = 0.18;
-const float PROBE_PX = 4.0;
+const float PROBE_PX = 8.0;
 
 void vertex() {
 	// A full-screen quad (QuadMesh 1 × 1), never culled (extra_cull_margin).

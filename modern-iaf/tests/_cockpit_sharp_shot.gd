@@ -32,6 +32,7 @@ func run() -> void:
 	if OS.get_environment("SHOT_SOFT") == "1" and tv.cockpit_origin != null:
 		tv.cockpit_origin._sharp.get_child(1).visible = false  # the sharp layer and its probe left out
 		tv.cockpit_origin._quad.material_override.set_shader_parameter("probe", false)
+		tv.cockpit_origin._probe.visible = false
 	await create_timer(2.0).timeout
 	tv.frozen = true  # the same picture and load in every run
 	tv.fm_stopped = true

@@ -502,9 +502,9 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   traininig"):** Alt + H hides the body while held, Alt + G for the flight; the first lesson hides it while it covers
   the ringed switch; the body never took the click ([cockpit.md](cockpit.md) §5.3). `test_lesson_clicks.gd`.
 - **No white cockpit flashes with Upscaling (2026-11-17, the user: "the cockpit goes white, brighter for a sec when
-  it jumps for a sec when starting the first training", "also moving the view doing white flashs"):** the cockpit's
-  sharp layer is off; the cockpit is upscaled with the view as before ([cockpit.md](cockpit.md) §6.3). Open: a sharp
-  cockpit with Upscaling whose exposure does not come from a probe on the screen.
+  it jumps for a sec when starting the first training", "also moving the view doing white flashs"):** the sharp
+  layer's exposure grey is solid geometry that holds still, so the Mac's temporal upscaler keeps it whole; the cockpit
+  is sharp with Upscaling again (2026-11-18, [cockpit.md](cockpit.md) §6.3). `_cockpit_flash_shot.gd` (real render).
 - **Zoom toward the pointer and the lean (2026-11-15, the user's Mac play: "can't zoom in to see things under the
   throttle"):** the wheel zooms the 3D cockpit toward the point under the pointer; Shift + arrows / Page Up / Page Down
   lean the head (records 126–131, command 204) within a strapped-in pilot's reach and short of the cockpit's surfaces,

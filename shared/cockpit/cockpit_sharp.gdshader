@@ -3,10 +3,10 @@
 // 3D view: the flight's auto exposure counts it there, and the view is then upscaled, the cockpit's labels with it. On a
 // canvas layer under every other one, this shader lays the cockpit's own picture (native size, linear, premultiplied)
 // over that, through a stand-in of the flight's tone map (AgX) at the flight's exposure of this frame. The exposure is
-// measured: the composite draws a grey of known light (PROBE_L) in the view's top left corner (PROBE_PX pixels of the 3D
-// scene), and the exposure that gives the grey seen there through the stand-in is read from a table (cockpit_origin.gd
-// exposure_lut). The corner itself
-// is filled with the view's colour next to it.
+// measured: a grey of known light (PROBE_L) stands in the view's top left corner (PROBE_PX pixels of the 3D scene:
+// solid geometry that holds still, cockpit_probe.gdshader, so a temporal upscaler keeps it whole), and the exposure
+// that gives the grey seen at its middle through the stand-in is read from a table (cockpit_origin.gd exposure_lut).
+// The corner itself is filled with the view's colour next to it.
 shader_type canvas_item;
 
 uniform sampler2D screen : hint_screen_texture, filter_nearest;
@@ -18,10 +18,10 @@ uniform vec3 bcs = vec3(1.0);
 // The exposure by the probe's grey as seen (cockpit_origin.gd exposure_lut: this tone map inverted for PROBE_L).
 uniform sampler2D exposure_lut : filter_linear, repeat_disable;
 
-// The probe's size (3D pixels), as cockpit_composite.gdshader draws it.
-const float PROBE_PX = 4.0;
+// The probe's size (3D pixels), as cockpit_probe.gdshader and cockpit_composite.gdshader draw it.
+const float PROBE_PX = 8.0;
 // The corner the probe changes (window pixels): the probe and the upscaler's ringing about it.
-const float FILL = 12.0;
+const float FILL = 16.0;
 
 // A minimal AgX (Troy Sobotka's; the polynomial fit by Benjamin Wrensch), its output taken as gamma 2.2 and encoded as
 // sRGB, then the adjustments: linear Rec. 709 -> display. A stand-in for the flight's tone map, fitted 2026-11-17 to 400

@@ -95,9 +95,13 @@ func run() -> void:
 			co._quad.layers == load("res://shared/terrain/volumetric_clouds.gd").LAYER,
 			"its picture on the main view's layer only (not the EO camera's)"
 		)
-		# Upscaling off: no sharp layer and no exposure grey in the view (cockpit_origin.gd, docs/modern-iaf/docs/ufc.md.3).
+		# Upscaling off: no sharp layer and no exposure grey in the view (cockpit_origin.gd, modern-iaf/docs/cockpit.md §6.3).
 		check(
-			not co._sharp.visible and not co._quad.material_override.get_shader_parameter("probe"),
+			(
+				not co._sharp.visible
+				and not co._probe.visible
+				and not co._quad.material_override.get_shader_parameter("probe")
+			),
 			"Upscaling off: the cockpit only in the view's composite"
 		)
 		var lut: Image = co.exposure_lut(Vector3.ONE).get_image()

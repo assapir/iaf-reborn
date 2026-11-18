@@ -24,8 +24,8 @@ const AA := {
 ## resolution. With anti-aliasing "temporal" it is the temporal upscaler (FSR 2.2; MetalFX temporal on Metal), which
 ## also anti-aliases, at every scale (at native it is anti-aliasing only). Temporal needs motion vectors, the pass TAA
 ## pays too (about 4 ms at 4K, docs/graphics-research.md §3.10). The 2D cockpit, HUD and MFDs are canvas items:
-## Godot draws them after the upscale, at the window's resolution. The 3D cockpit is upscaled with the view (its
-## sharp layer is off: cockpit_origin.gd SHARP). Godot lowers the texture mip bias itself.
+## Godot draws them after the upscale, at the window's resolution. The 3D cockpit is laid again at the window's
+## resolution over the upscaled view (cockpit_origin.gd SHARP). Godot lowers the texture mip bias itself.
 const UPSCALE := {"off": 1.0, "quality": 0.77, "balanced": 0.67}
 
 ## Terrain close up: the detail texture's strength (0 = off; global shader parameter, terrain.gdshader).
