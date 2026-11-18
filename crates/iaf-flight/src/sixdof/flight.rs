@@ -304,10 +304,11 @@ impl SixDof {
         self.jet.gear.ground_slope = [-north as f64, -east as f64];
     }
 
-    /// The terrain height under the jet (ENU z). The first one after a ground start sets the jet on its gear,
-    /// the struts at their static sag.
+    /// The terrain height under the jet where it is now (ENU z; `gear.rs` `Gear::ground_at`). The first one after a
+    /// ground start sets the jet on its gear, the struts at their static sag.
     pub fn set_ground_height(&mut self, h: f32) {
         self.ground_height = h;
+        self.jet.gear.ground_at = [self.body.pos.x, self.body.pos.y];
         if self.place_on_gear && h > -1.0e8 {
             self.place_on_gear = false;
             // At the drawn wheels' height once the game gave it, else the struts' extended length less the sag.
@@ -480,6 +481,8 @@ impl SixDof {
     pub fn replace_on_ground(&mut self, x: f64, y: f64, heading: f32) {
         let z = self.body.pos.z;
         self.body = Body::new(Vec3::new(y, x, z), Vec3::ZERO, Quat::from_euler(0.0, 0.0, heading as f64));
+        // The ground height in hand is taken as the new spot's until the next reading.
+        self.jet.gear.ground_at = [y, x];
         self.anchors = Anchors::default();
         self.controls.throttle = 0.0;
     }
@@ -629,14 +632,16 @@ impl SixDof {
         };
         let v0 = self.body.att.rotate(self.body.vel);
         self.body.rk4(af, dt, &mut { forces });
-        let (f, _, loads) = jet.forces(&self.body, &jc, &engine, ground_z, &self.anchors);
+        let (f, _, _) = jet.forces(&self.body, &jc, &engine, ground_z, &self.anchors);
         self.accel_g = f * (1.0 / (af.mass * G));
         self.acc = enu((self.body.att.rotate(self.body.vel) - v0) * (1.0 / dt));
         if gear_down {
             self.jet.update_gear(&self.body, &jc, ground_z, &mut self.anchors);
         }
         let was_on_ground = self.on_ground;
-        self.on_ground = loads.iter().any(|&l| l > 0.0);
+        // Weight on wheels from the struts' compression, not their load: the damper takes the load off an extending
+        // strut before its wheel leaves the runway.
+        self.on_ground = gear_down && self.jet.gear.on_ground(&self.body, ground_z);
         // Fuel.
         let thrust = if running { engine.thrust(&self.jet.engine, flow.v / sound, alt) } else { 0.0 };
         self.thrust_n = thrust * self.jet.engines as f64 * jc.thrust_k;
@@ -1156,6 +1161,16 @@ mod tests {
         f
     }
 
+    /// [`on_runway`] with `stores_kg` hung, settled on its struts.
+    fn settled(jet: jets::Jet, stores_kg: f32) -> SixDof {
+        let mut f = on_runway(jet);
+        f.set_stores(stores_kg, 0.0, 0.0);
+        for _ in 0..120 {
+            f.step(1.0 / 60.0);
+        }
+        f
+    }
+
     /// A pilot keeping the jet on the centreline with the pedals (rudder and nose-wheel steering) and the wings
     /// level with the stick: the controls for one frame (heading north, x = 0).
     fn centreline(f: &SixDof, throttle: f32, brakes: bool, pull: f32) -> crate::aircraft::Controls {
@@ -1295,6 +1310,68 @@ mod tests {
         assert!(s.position.x > 15.0 && s.position.x < 60.0, "{}", s.position.x);
     }
 
+    /// A maximum-power take-off as the game's take-off lesson flies it: half back stick from the rotation speed on
+    /// the wheels, then a 10° pitch hold. The runway rises `slope` m per metre north, and the game's frame gives the
+    /// ground under the jet once per `dt`, as `terrain_view.gd` does. Returns the frames in which the
+    /// weight-on-wheels state changed (s, kt, the new state) and the landings counted.
+    fn rotation(jet: jets::Jet, stores_kg: f32, rotate_kt: f64, slope: f64, dt: f64) -> (Vec<(f64, f64, bool)>, u32) {
+        let mut f = settled(jet, stores_kg);
+        let (mut changes, mut was, mut t, mut off_at) = (Vec::new(), true, 0.0, None);
+        while t < 90.0 && off_at.is_none_or(|o| t < o + 10.0) {
+            let s = f.state();
+            let kt = s.speed as f64 / 0.514444;
+            let pull = if s.on_ground {
+                if kt > rotate_kt { 0.5 } else { 0.0 }
+            } else {
+                (0.1 * (10.0 - s.pitch.to_degrees())).clamp(-0.3, 0.5)
+            };
+            f.set_controls(centreline(&f, 1.0, false, pull));
+            f.set_ground_height((slope * f.body.pos.x) as f32);
+            f.set_ground_slope(0.0, slope as f32);
+            f.step(dt);
+            t += dt;
+            let on = f.state().on_ground;
+            if on != was {
+                changes.push((t, f.state().speed as f64 / 0.514444, on));
+                off_at = off_at.or(Some(t));
+            }
+            was = on;
+        }
+        assert!(f.crashed.is_none(), "{}: crashed", jet.name);
+        (changes, f.landings)
+    }
+
+    /// Weight on wheels changes once at lift-off (the Mac's `test_mvp`, 2026-11-18: the Adir's on-ground state
+    /// dropped and came back during the roll and the rotation on Nevatim's runway, which falls 1.3 m in 100 m).
+    /// Every jet, at its reference weight and with a mission's stores (the Sufa's 16.5 t: + 24 %), on a runway that
+    /// is level, falls and rises 1.3 %, at 24 (the headless probe's) and 60 frames a second: one change, to
+    /// airborne, past the rotation speed, and no landing counted.
+    #[test]
+    fn weight_on_wheels_changes_once_at_lift_off() {
+        let mut bad = Vec::new();
+        for (jet, rotate_kt) in jets::all().into_iter().zip([140.0, 155.0, 160.0, 150.0]) {
+            for (heavy, slope, hz) in [false, true]
+                .into_iter()
+                .flat_map(|h| [0.0, -0.013, 0.013].map(|s| (h, s)))
+                .flat_map(|(h, s)| [24.0, 60.0].map(|hz| (h, s, hz)))
+            {
+                let stores = if heavy { 0.24 * jet.airframe.mass } else { 0.0 };
+                let (changes, landings) = rotation(jet, stores as f32, rotate_kt, slope, 1.0 / hz);
+                let once = matches!(changes[..], [(_, kt, false)] if kt >= rotate_kt);
+                println!(
+                    "{} +{stores:.0} kg, slope {slope}, {hz} Hz: {} changes, first {:.1?}, landings {landings}",
+                    jet.name,
+                    changes.len(),
+                    changes.first()
+                );
+                if !once || landings != 0 {
+                    bad.push((jet.name, stores, slope, hz, changes.len(), landings));
+                }
+            }
+        }
+        assert!(bad.is_empty(), "{bad:.1?}");
+    }
+
     #[test]
     fn probe_rests_at_taxi_speed_and_follows_in_flight() {
         let mut a = 0.0;
@@ -1313,15 +1390,16 @@ mod tests {
     /// Ground steering released (the user, 2026-11-17: after a turn on the pedals the jet "keeps moving after I
     /// release", turning). Taxiing at 10 and 20 kt, full pedal for 2 s, then the pedals centred: the nose wheel is
     /// straight at once (not castoring), and the yaw rate falls as fast as the tyres' side grip turns the jet's yaw
-    /// momentum: under 20 % of its value 2 s later at 10 kt, under 35 % at 20 kt, and under 0.5 deg/s 5 s later.
+    /// momentum: under 20 % of its value 2 s later at 10 kt, under 35 % at 20 kt, and under 0.5 deg/s 5 s later; the
+    /// same with a mission's stores (+ 24 % weight: it stops a little sooner).
     /// Before, a castoring nose wheel let the Sufa still turn at 13 deg/s 2 s after release at 10 kt (2.6 deg/s 6 s
     /// after).
     #[test]
     fn centred_pedals_stop_the_ground_turn() {
         let dt = 1.0 / 60.0;
         for jet in jets::all() {
-            for (kt, share) in [(10.0, 0.2), (20.0, 0.35)] {
-                let mut f = on_runway(jet);
+            for (kt, share, stores) in [(10.0, 0.2, 0.0), (20.0, 0.35, 0.0), (10.0, 0.2, 0.24), (20.0, 0.35, 0.24)] {
+                let mut f = settled(jet, (stores * jet.airframe.mass) as f32);
                 f.body.vel = Vec3::new(kt * 0.514444, 0.0, 0.0);
                 let mut at = [0.0f64; 4];
                 for i in 0..7 * 60 {
@@ -1336,7 +1414,7 @@ mod tests {
                         at[k] = f.body.omega.z.to_degrees();
                     }
                 }
-                println!("{} at {kt} kt: yaw at release, +1, +2, +5 s: {at:.2?} deg/s", jet.name);
+                println!("{} + {stores} at {kt} kt: yaw at release, +1, +2, +5 s: {at:.2?} deg/s", jet.name);
                 assert!(at[2].abs() < share * at[0].abs() && at[3].abs() < 0.5, "{} at {kt} kt: {at:?}", jet.name);
             }
         }
@@ -1346,14 +1424,15 @@ mod tests {
     /// the breaks"). From 10, 20 and 40 kt at idle, the brake switch on to a full stop: every jet's nose dips at most
     /// 1.1° (the static braked attitude 0.9° for the F-16s), comes back up no more than 0.1° past the standing
     /// attitude when the stop takes the braking force away, is within 0.1° of it 1 s after the stop, and the jet runs
-    /// straight.
+    /// straight. With a mission's stores (+ 24 % weight, the Sufa's 16.5 t) the same struts dip in proportion: at
+    /// most 1.1° × 1.24 (the F-16s 1.3°; the Mac's window run of 2026-11-18 measured 1.24–1.31°).
     /// Before (a brake that stepped to full, struts damped alike both ways): 1.24° down, 0.4° back up, three rocks.
     #[test]
     fn braking_dips_the_nose_and_settles_without_rocking() {
         let dt = 1.0 / 60.0;
         for jet in jets::all() {
-            for kt in [10.0, 20.0, 40.0] {
-                let mut f = on_runway(jet);
+            for (kt, stores) in [10.0, 20.0, 40.0].into_iter().flat_map(|kt| [(kt, 0.0), (kt, 0.24)]) {
+                let mut f = settled(jet, (stores * jet.airframe.mass) as f32);
                 let p0 = f.body.att.euler().1.to_degrees();
                 f.set_controls(crate::aircraft::Controls { throttle: 0.0, brakes: false, ..f.controls() });
                 f.body.vel = Vec3::new(kt * 0.514444, 0.0, 0.0);
@@ -1379,14 +1458,14 @@ mod tests {
                     }
                 }
                 println!(
-                    "{} braking from {kt} kt: nose down {down:.2}°, back up {up:.2}°, after the stop's first second \
-                     within {late:.2}°, heading {hdg:.1}°, stopped at {:.1} s",
+                    "{} + {stores} braking from {kt} kt: nose down {down:.2}°, back up {up:.2}°, after the stop's \
+                     first second within {late:.2}°, heading {hdg:.1}°, stopped at {:.1} s",
                     jet.name,
                     stop.unwrap_or(0) as f64 * dt
                 );
                 assert!(
-                    stop.is_some() && down > -1.1 && up < 0.1 && late < 0.1 && hdg < 2.0,
-                    "{} from {kt} kt",
+                    stop.is_some() && down > -1.1 * (1.0 + stores) && up < 0.1 && late < 0.1 && hdg < 2.0,
+                    "{} + {stores} from {kt} kt",
                     jet.name
                 );
             }

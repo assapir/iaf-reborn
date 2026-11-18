@@ -667,6 +667,27 @@ under the c.g. (`IafFlight.set_ground_slope`, the height's rise per metre east a
 F-35I at Nevatim stood 14 cm off the ground on one wheel). Guard: `modern-iaf/tests/test_wheels.gd`, each jet at its
 base, parked, taxiing and lined up on the runway, every tyre within 6 cm of the ground.
 
+**Weight on wheels** (2026-11-18, the Mac's headless `test_mvp`: the Adir's take-off check "off once" failed every run,
+the Barak's once; the on-ground state dropped and came back during the roll). Cause: the game gives the ground height
+under the c.g. once a frame, and the gear kept that height under the c.g. as the jet rolled on until the next frame.
+On a sloping runway the ground then moved in steps: at 130 kt on Nevatim's runway (falling 1.3 %) it dropped 2 cm
+each frame, more than the struts' compression there, so every frame the wheels left the runway and fell back on it;
+the damper also read the jet's sink along the slope as the strut compressing. One roll counted up to 168 touchdowns.
+The extension damping of 2026-11-17 (`REBOUND`) plays no part: at × 1 the same roll counts 167. Fixed in `gear.rs`:
+* the ground is a plane through the spot where its height was taken (`Gear::ground_at`), so it stays in place between
+  two readings;
+* a strut's damper works on the strut's own compression rate, the wheel's sink against the sloping ground;
+* weight on wheels is a compressed strut (`Gear::on_ground`), not a strut load above zero: the damper takes the load
+  off an extending strut before its wheel leaves the runway.
+
+Test `weight_on_wheels_changes_once_at_lift_off`: every jet at its reference weight and with a mission's stores
+(+ 24 %), on a level, a falling and a rising 1.3 % runway, at 24 and 60 frames a second, leaves the runway once and
+counts no touchdown. The ground-handling tests above also run at the mission weight: the released turn stops a
+little sooner (the Sufa 1.3 deg/s at 10 kt and 4.1 at 20 kt, 2 s after release), and the nose dips in proportion to
+the weight on the same struts (the F-16s 1.3°; a window run on the Mac at 16.5 t measured 1.24–1.31°). That run's
+yaw rates (1.8 and 4.9 deg/s) are higher than the test's because the rudder keys take 0.25 s to centre
+(`PEDAL_CENTRE_S`), where the test centres the pedals at once (inferred from the test's decay between 1 s and 2 s).
+
 **Tyre friction and the antiskid (2026-11-15).** No public figure gives the F-16's or the F-35's tyre friction; the
 model takes NASA's antiskid tests on a DC-9 main-gear tyre (inferred for a fighter's): on the dry runway the tyre's
 peak drag-force friction coefficient is about 0.55, and the antiskid holds the braked tyre near that peak, averaging

@@ -1,6 +1,6 @@
-//! Landing gear on a flat runway: per strut a spring and damper along the world vertical, and tyre forces in the
-//! runway plane (rolling friction, braking, side grip, nose-wheel steering). All forces go through the rigid
-//! body's force closure (modern-iaf/docs/flight-model.md §9.8).
+//! Landing gear on a runway, a plane that may slope: per strut a spring and damper along the world vertical, and
+//! tyre forces in the runway plane (rolling friction, braking, side grip, nose-wheel steering). All forces go
+//! through the rigid body's force closure (modern-iaf/docs/flight-model.md §9.8).
 
 use super::body::Body;
 use crate::Vec3;
@@ -61,6 +61,11 @@ pub struct Gear {
     /// The ground's slope under the jet (NED): how much its height `z` grows per metre north and per metre east, so
     /// each wheel meets the ground under itself (a sloping apron), not the height under the c.g.
     pub ground_slope: [f64; 2],
+    /// Where the ground height given to the gear was taken (NED north, east): the sloping ground is a plane through
+    /// that spot, so it stays in place while the jet rolls on between two readings. (Until 2026-11-18 the height
+    /// moved along under the c.g. until the next reading: at 130 kt on a runway falling 1.3 % the ground dropped
+    /// 2 cm each frame, the wheels left it and fell back on it every frame.)
+    pub ground_at: [f64; 2],
 }
 
 /// Where each braked tyre sticks to the runway (world, NED), if it does: a held brake pins the tyre to its spot
@@ -104,6 +109,7 @@ impl Gear {
                 strut(main_x, track / 2.0, main, false),
             ],
             ground_slope: [0.0; 2],
+            ground_at: [0.0; 2],
         }
     }
 
@@ -122,21 +128,30 @@ impl Gear {
         }
     }
 
-    /// A strut's wheel on the runway at `ground_z` (under the c.g.; under the wheel by `ground_slope`): the compressed
+    /// A strut's wheel on the runway at `ground_z` (at `ground_at`; under the wheel by `ground_slope`): the compressed
     /// wheel's position in body axes (the strut gives along its body z axis, inferred), its world position and
-    /// velocity, and its normal load (N); None in the air.
+    /// velocity, and its normal load (N); None in the air. The wheel is on the runway while its strut is compressed;
+    /// the load is 0 while the damper holds an extending strut back.
     fn contact(&self, s: &Strut, b: &Body, ground_z: f64) -> Option<(Vec3, Vec3, Vec3, f64)> {
         let w = b.pos + b.att.rotate(s.pos);
-        let [north, east] = self.ground_slope;
-        let depth = w.z - (ground_z + north * (w.x - b.pos.x) + east * (w.y - b.pos.y));
+        let ([north, east], [x, y]) = (self.ground_slope, self.ground_at);
+        let depth = w.z - (ground_z + north * (w.x - x) + east * (w.y - y));
         if depth <= 0.0 {
             return None;
         }
         let r = s.pos - Vec3::new(0.0, 0.0, depth);
         let v = b.att.rotate(b.vel + b.omega.cross(r));
+        // The strut's compression rate: the wheel's sink against the ground it rolls over (down a slope the wheel
+        // sinks with the runway and the strut stands still).
+        let rate = v.z - north * v.x - east * v.y;
         // An extending strut damps harder (`REBOUND`).
-        let c = if v.z < 0.0 { s.c * REBOUND } else { s.c };
-        Some((r, b.pos + b.att.rotate(r), v, (s.k * depth + c * v.z).max(0.0)))
+        let c = if rate < 0.0 { s.c * REBOUND } else { s.c };
+        Some((r, b.pos + b.att.rotate(r), v, (s.k * depth + c * rate).max(0.0)))
+    }
+
+    /// Weight on wheels: a strut is compressed (a wheel on the runway at `ground_z`).
+    pub fn on_ground(&self, b: &Body, ground_z: f64) -> bool {
+        self.struts.iter().any(|s| self.contact(s, b, ground_z).is_some())
     }
 
     /// Each strut's normal load (N) on a runway at `ground_z`.
