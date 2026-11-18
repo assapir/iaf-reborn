@@ -54,12 +54,14 @@ static func prepare(id: int) -> bool:
 ## The pilot's loadout for the mission's jet (IafPilotLog.loadout, the briefing's Arming page) on the player's flight
 ## (`Settings.arm_loadouts`, player_weapons.gd `_armed`: pylons A..I, IafBriefing.sim_load); the gun rounds, chaff and
 ## flares stay the record's. None stored, or a mission with `fixed_loadout` (its readable file `readable`): the
-## record's own pylons.
+## mission's own load (own_loadout), else the record's own pylons.
 static func arm(m: Dictionary, readable: Dictionary) -> void:
 	Settings.arm_loadouts = {}
 	var unit := str(readable.get("start", {}).get("unit", ""))
 	var lo := IafPilotLog.loadout(Settings.records_db(), Settings.pilot(), unit)
 	if lo == "" or bool(readable.get("fixed_loadout", false)):
+		lo = own_loadout(readable)
+	if lo == "":
 		return
 	var load = JSON.parse_string(
 		IafBriefing.sim_load(
@@ -71,6 +73,13 @@ static func arm(m: Dictionary, readable: Dictionary) -> void:
 	var pf: Dictionary = MissionRuntime.player_flight(m, Settings.player_flight)
 	if load is Array and not pf.is_empty():
 		Settings.arm_loadouts = {int(pf.flight): load}
+
+
+## The load the readable mission gives its player's jet (its "loadout", station -> store, the shape of a pilot's
+## loadout; modern-iaf/docs/data-formats.md §5) as JSON text; "": the unit record's own pylons.
+static func own_loadout(readable: Dictionary) -> String:
+	var lo = readable.get("loadout")
+	return JSON.stringify(lo) if lo is Dictionary and not lo.is_empty() else ""
 
 
 ## The F-16 switch from the mission's player unit (its Objects row's "airframe", as the M0 probe).

@@ -157,6 +157,18 @@ not published. The five drones: Drone 1 on a 30 km racetrack at 15,000 ft (co-al
 (brain `drone_evade`), and Drones 4, a pair of F-35s on a 50 km box at 25,000 ft with their radars on (brain
 `drone_radar`: the player's RWR hears their lock). They are red for the exercise and never shoot.
 
+The ground targets are six: the four parked airframes, Target 5 (a hulk towed on a loop beside them, the radar's GMT
+target) and Target 6 (a target barge at sea, the radar's SEA target); any two pass.
+
+**The range's load (2026-11-18; the user: the lesson could not be passed as briefed, its load had no bombs).** A
+range mission carries its own `loadout` ([data-formats.md](data-formats.md) §5): the Sufa and the Barak four AIM-9M,
+two 370 gal tanks and six Mk 82 on two triple racks (stations 3 and 7); the Adir four AIM-120 and two GBU-31 in the
+bays (stations 4 and 8), which fall on the CCIP mark without a planned target ([docs/weapons.md](../../docs/weapons.md)
+§13.2). The loads are inferred. A pilot's own loadout for the jet still takes the mission's place; the Loadout
+screen's Mission row brings it back. `iaf-tools`' test `every_lesson_load_can_pass_its_lesson` holds every range
+mission's load to its pass rule: no unmet need, a gun or a missile for each air kill it asks for, a bomb for each
+ground kill.
+
 Pass, all of:
 - nothing failed (§3.0) to the mission's end;
 - the recorder's `kill` events (a unit the player destroyed; `"air": true` for an aircraft) count at least `air_kills`

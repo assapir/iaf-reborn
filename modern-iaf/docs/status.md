@@ -100,7 +100,9 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 - **A weapons range per jet (2026-11-17, avionics-plan.md slice 1, G3; [training.md](training.md) §3.4):** the
   Training list's third mission for the Sufa, the Barak and the Adir: a cold start, then five drones (the sim's own
   F-16 and F-35 on the shared AI under the sim's own brains: co-altitude, low, a manoeuvring one, a pair whose radars
-  the RWR hears; red for the exercise, never shooting) and four retired airframes on the ground. The radar finds the
+  the RWR hears; red for the exercise, never shooting) and six ground targets (four retired airframes parked, a fifth
+  towed, a target barge at sea); the mission's own load carries the bombs for them (2026-11-18, [training.md](training.md)
+  §3.4: until then the load had none and the lesson could not be passed as briefed). The radar finds the
   drones, the gun, missiles and bombs destroy them, and the scorer counts air and ground kills on the debrief
   (`modern-iaf/tests/test_sim_range.gd`).
 - **Every F-16 3D-cockpit control is seen to move (2026-11-16, finish list C4, [cockpit.md](cockpit.md) §5.2 "Every

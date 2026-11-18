@@ -15,7 +15,9 @@ The weapons' procedures are in each jet's manual:
 
 === Before you fly: the loadout <lesson-range-loadout>
 
-#idx("Range lesson, loadout")#caution[The mission's own #term("loadout") carries missiles and the gun only: the Sufa and the Barak six AIM-9M and two drop tanks, the Adir two AIM-120. It has no bombs for the ground targets. Hang bombs on the Loadout screen before you select #scr("fly") (@loadout-hang).]
+#idx("Range lesson, loadout")The mission's own #term("loadout") carries what the range asks for: the Sufa and the Barak four AIM-9M, six Mk 82 bombs and two drop tanks, the Adir four AIM-120 and two GBU-31 bombs.
+
+#caution[A loadout you made for the jet takes the place of the mission's. If it has no bombs, the ground targets cannot be destroyed: select the mission's loadout on the Loadout screen, or hang bombs, before you select #scr("fly") (@loadout-hang).]
 
 A bomb that needs a targeting pod needs the pod on the jet too (@loadout-rules). The game keeps your last loadout for each jet, so check the #scr("tab_arming") line of the briefing before every flight to the range.
 
@@ -40,7 +42,7 @@ The route has two points. The first is the air range, the second the ground targ
 
 The #term("AWACS") calls out the drones' positions (@awacs-calls).
 
-*On the ground* four retired jets stand parked in the open. A fifth is towed round a loop beside them: a moving target for the radar.
+*On the ground* four retired jets stand parked in the open. A fifth is towed round a loop beside them: a moving target for the radar. A target barge moves slowly at sea: the radar's sea target. All six count as ground targets.
 
 === What the game checks <lesson-range-objectives>
 
@@ -53,7 +55,7 @@ The lesson passes when all of these are true:
   ([Check], [Exactly]),
   [Each phase had its #term("clearance")], [The start, the taxi, the runway entry and the take-off roll each came after the #term("tower")'s answer, as in the Take-off lesson (@scoring-clearances).],
   [Two drones down], [You destroyed at least two of the five drones. Any weapon counts: the gun or a missile.],
-  [Two ground targets destroyed], [You destroyed at least two of the ground targets. The towed one counts too.],
+  [Two ground targets destroyed], [You destroyed at least two of the six ground targets. The towed one and the barge count too.],
   [In time], [The last of these four kills came within 45 minutes of the start of the flight.],
   [Nothing failed], [None of the things that fail any mission at once happened (@scoring-at-once).],
 )
@@ -84,7 +86,7 @@ The order is free: the game counts the kills, whichever come first. It checks th
 
 === The usual reasons for a fail <lesson-range-usual>
 
-- *No bombs on the jet.* See @lesson-range-loadout.
+- *No bombs on the jet.* Your own loadout for the jet has none. See @lesson-range-loadout.
 - *Nothing releases.* Every flight starts with the master arm safe, and nothing releases with the gear handle down. The #term("notebook")'s #scr("nb_weapons") tab lists the arming steps with their keys (@notebook-tabs).
 - *Out of weapons.* Count before you shoot: two drones and two ground targets need at least four good shots. Take more than you need.
 - *Time.* The range is far from the base and 45 minutes include the cold start. Do not linger over the checklist.

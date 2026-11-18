@@ -111,7 +111,7 @@ the gun.
 
 | step | the Sufa / the Barak | the F-35I | key (default) | key record |
 |---|---|---|---|---|
-| the stores | hung on the Arming page before Fly (the record's default carries no bombs) | the same | — | — |
+| the stores | the range lesson's own load has them; elsewhere hung on the Arming page before Fly (the record's default carries no bombs) | the same | — | — |
 | power | ST STA on (with the avionics: Ctrl+A, or the start-up's four AVIONIC POWER switches) | — | Ctrl+A | 122 |
 | master arm | MASTER ARM to ARM: every flight starts SAFE (§3) | the same | Shift+A | 125 |
 | gear | up: nothing releases with the gear handle down | the same | G | 20 |
@@ -247,8 +247,8 @@ to use without them" ([research/pods.md](research/pods.md) §8, items P12–P14,
   unguided, as before.
 - **Buddy lasing** (a wingman's or a ground team's laser) does not exist in the sim, so the jet's own pod is the only
   designator.
-- **The 1998 game** names no needs, so reborn is unchanged. Every unit's own load meets its needs (no mission sets a
-  load of its own): `crates/iaf-tools/src/loadout.rs` `every_default_load_can_be_employed`.
+- **The 1998 game** names no needs, so reborn is unchanged. Every unit's own load and every mission's own load (the range lessons') meets its needs:
+  `crates/iaf-tools/src/loadout.rs` `every_default_load_can_be_employed`, `every_lesson_load_can_pass_its_lesson`.
 
 ### 7.2 The pod's cockpit steps
 The Litening's cockpit procedure on the Sufa and the Barak ([research/pods.md](research/pods.md) §3.1, item P5). The

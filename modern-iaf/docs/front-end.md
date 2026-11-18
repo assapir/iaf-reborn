@@ -943,7 +943,8 @@ The Sufa's take-off, its own loadout beside a saved one, the Adir's with its bay
   take-off weight reads in the warning colour and Fly is off (no sourced loadout reaches a jet's maximum:
   `loadout::tests` hangs the heaviest store on every station of the Sufa and the Adir and stays under it).
 - **Kept per pilot per jet** in the records database (`loadouts`, [storage.md](storage.md) §5), stored at each change;
-  the Hangar's jet carries it too (§12). Reset to the mission's brings back the record's default. The saved
+  the Hangar's jet carries it too (§12). Reset to the mission's brings back the mission's own load
+  (its `loadout`, [data-formats.md](data-formats.md) §5: the range lessons'), else the record's default. The saved
   loadouts are the pilot's per jet (`saved_loadouts`, the same database).
 - **In flight.** Fly hands the stored loadout to the mission start (`flight/fly.gd` `arm`): pylons A..I as the engine
   holds them (`IafBriefing.sim_load`: each store's weapon record number and count, or the record's `sim`, the
@@ -952,7 +953,7 @@ The Sufa's take-off, its own loadout beside a saved one, the Adir's with its bay
   (`player_weapons.gd` `_armed`): their mass and drag through the stores weight path, the tanks' fuel, their models
   on the jet. The gun rounds, chaff and flares stay the record's.
 - **A mission that fixes the loadout** (`fixed_loadout: true` in its readable file, [data-formats.md](data-formats.md)
-  §5) shows the record's default read-only: no drag, no Reset, no saved loadouts, nothing said about it. No training mission fixes it.
+  §5) shows the mission's own load (else the record's default) read-only: no drag, no Reset, no saved loadouts, nothing said about it. No training mission fixes it.
 - **The rules are Rust's:** `iaf_tools::loadout` (`crates/iaf-tools/src/loadout.rs`: `allowed`, `mirror`, `put`,
   `take`, `shift`, `sim_load`) behind `IafBriefing.put / take / shift / sim_load`; the weights `briefing::arming`;
   the store `pilot_log::loadout / set_loadout / saved_loadouts / save_loadout / delete_saved_loadout` behind

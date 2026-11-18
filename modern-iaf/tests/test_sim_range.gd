@@ -1,5 +1,6 @@
 # The weapons range (avionics-plan.md §6 slice 1, G3; modern-iaf/docs/training.md §3.4), headless, per jet: its range
 # mission set up as the front end's Fly does (fly.gd prepare), then
+# - the mission's own load is on the jet, with bombs for its ground kills;
 # - the range's drones fly: the sim's own jets as red AI flights under their brains, airborne and moving, none armed;
 #   its ground targets stand on the ground, drawn;
 # - the radar finds them: the jet put 12 km behind a drone at its height, Q in the air (CRM) lists it as a contact;
@@ -9,7 +10,8 @@
 #     -s ../modern-iaf/tests/test_sim_range.gd --log-file <temp>
 extends "res://../tests/godot/base.gd"
 
-const JETS := [["ramon_range", "f16i"], ["ramat_david_range", "f16d"], ["nevatim_range", "f35i"]]
+## The range mission, its jet and the bombs of its own load (six Mk 82, two GBU-31).
+const JETS := [["ramon_range", "f16i", 6], ["ramat_david_range", "f16d", 6], ["nevatim_range", "f35i", 2]]
 
 var out := ""
 
@@ -27,7 +29,7 @@ func run() -> void:
 	await require_data()
 	out = DirAccess.create_temp("modern-iaf-range", false).get_current_dir()
 	for j in JETS:
-		await jet(j[0], j[1])
+		await jet(j[0], j[1], j[2])
 
 
 ## The jet's flight model restarted airborne at scene `pos` with scene velocity `vel`, heading `hdg`.
@@ -38,7 +40,7 @@ func _put(tv: Node, pos: Vector3, vel: Vector3, hdg: float) -> void:
 	tv.throttle = 0.85
 
 
-func jet(mission: String, unit: String) -> void:
+func jet(mission: String, unit: String, load: int) -> void:
 	var s := settings()
 	var list: Dictionary = s.load_json(s.converted(s.missions_folder().path_join("missionlist.json")))
 	var id := -1
@@ -46,8 +48,21 @@ func jet(mission: String, unit: String) -> void:
 		if str(list[k][0]) == mission:
 			id = int(k)
 	check(load("res://flight/fly.gd").prepare(id), "%s: mission %d prepared as the front end's Fly" % [unit, id])
+	# The mission's own load (its "loadout") is on the jet: bombs for the two ground kills it asks for (the Mk 82 is
+	# weapon record 4, the GBU-31 flies as 1003).
+	var bombs := 0
+	for p in s.arm_loadouts.values()[0] if s.arm_loadouts.size() == 1 else []:
+		if int(p[0]) in [4, 1003]:
+			bombs += int(p[1])
+	check(bombs == load, "%s: the range's own load carries its %d bombs (%d)" % [unit, load, bombs])
 	var tv: Node = await start_mission(id)
 	s.mission_files_override = []
+	var held := 0
+	var stores = tv.weapons.stores
+	for st in stores.stations.values():
+		if int(st.w.type) in stores.BOMBS or st.w.has("gps"):
+			held += int(st.count)
+	check(held == bombs, "%s: the stores hold the %d bombs (%d)" % [unit, bombs, held])
 	tv.addon.out_dir = out
 	# The live check off (the jet is put in the air without the tower's clearances); the scorer stays.
 	tv.addon.result = {"pass": true}

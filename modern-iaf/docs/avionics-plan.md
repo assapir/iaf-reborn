@@ -51,7 +51,8 @@ Facts that hold for every jet (verified in the code, 17 November 2026):
   ([../../docs/radar.md](../../docs/radar.md) §1). Every real mode below maps onto one of them or is new.
 - **The weapons range is the sim's only hostile set** (slice 1, built 17 Nov): each jet's range mission
   (`<base>_range`, [training.md](training.md) §3.4) has five drones (the sim's own F-16 and F-35 flown by the shared
-  AI, red for the exercise, never shooting) and four ground targets (retired airframes). The threat records stay
+  AI, red for the exercise, never shooting) and six ground targets (four retired airframes parked, a fifth towed, a
+  target barge). The threat records stay
   drafts awaiting the user (`modern-iaf/data/db/drafts/`, [threat-records.md](threat-records.md)); the other
   missions carry no targets.
 - The keys are the 1998 game's (`modern-iaf/data/keys.json`: Q radar mode, R A-A / A-G, S standby, `.` / `,` range,

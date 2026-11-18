@@ -515,14 +515,14 @@ Parts:
     `shared/mission/render_box.gd`). The manual leaves both out.
   - `keys.json`: record 0 is labelled "Toggle map / cockpit" while Esc opens the pause menu; "Look forward" sends
     the F1 command, so in the cockpit it toggles the HUD-only view; "Drag chute" has a group and no jet a chute.
-  - A range lesson's own loadout has no bombs, and the lesson asks for two ground kills; the manual tells the reader
-    to hang bombs first.
+  - Fixed 2026-11-18: a range lesson's own loadout had no bombs while the lesson asks for two ground kills. Each
+    range mission carries its load now ([training.md](training.md) §3.4).
   - `strings_en.json` `shadow_reach_about` says "Far draws…" while the row is an Off / On switch; the fourth
     Antialiasing choice (FSR 2 / MetalFX) has no string key.
   - The Hangar's greyed Ra'am and Baz rows carry no "Coming later" text; the Keys screen's "Reset all" asks no
     confirmation.
-  - A range lesson's briefing and mission notes say "four" ground targets while targets 5 and 6 count too
-    (`modern-iaf/data/missions/*_range.json`).
+  - Fixed 2026-11-18: a range lesson's briefing said "four" ground targets while targets 5 and 6 count too; it
+    names the six (`modern-iaf/data/missions/*_range.json`).
   - Docs behind the code: [setup.md](setup.md) §3 says "the four bases" (`data/airbases/` has five files);
     `modern-iaf/README.md` says `./start-modern-iaf` opens "Home"; [cockpit.md](cockpit.md) §5.3 says the take-off
     lessons ring nothing (`kneeboard.gd` rings in every cold-start lesson); [front-end.md](front-end.md) §8 gives

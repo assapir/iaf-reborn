@@ -1579,6 +1579,16 @@ func _loadout_checks(fe: Control, lang: String) -> void:
 		"%s: loadout: Reset, the mission's again" % lang
 	)
 	check(fe.find_child("ArmReset", true, false).disabled, "%s: loadout: Reset off on the mission's own" % lang)
+	# A mission with its own load (the range lessons'): the mission's is that load, on the screen's jet too.
+	var own := {"start": {"unit": "f16i"}, "loadout": {"3": {"id": "mk-82", "count": 3}}}
+	var own_lo: String = fly_gd.own_loadout(own)
+	check(
+		(
+			fe.arming(own).slots["3"].id == "mk-82"
+			and fe.jet_stores({"unit": "f16i"}, own_lo).get(2, {}).get("count") == 3
+		),
+		"%s: loadout: a mission's own load is the mission's" % lang
+	)
 	# The Adir: its bays' callouts, two AIM-120 inside.
 	var adir: Dictionary = fe.arming({"start": {"unit": "f35i"}})
 	check(

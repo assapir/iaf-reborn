@@ -3,6 +3,7 @@
   "time": "09:00",
   "wind_kt": 0,
   "wind_from": 0,
+  "loadout": {"1": "aim-9m", "2": "aim-9m", "3": {"id": "mk-82", "count": 3}, "4": "tank-370", "6": "tank-370", "7": {"id": "mk-82", "count": 3}, "8": "aim-9m", "9": "aim-9m"},
   "start": {
     "unit": "f16i",
     "base": "Ramon",
@@ -473,7 +474,8 @@
     "drones": "the range's drones (avionics-plan.md §6 slice 1; the user's decision of 17 Nov, §8.1): the sim's own F-16 and F-35 flown by the shared AI as targets, red for the exercise, never shooting",
     "targets": "four retired airframes parked in the open in the Halutza sands, 28 km north of Ramon, clear of buildings (the theatre's scenery has none within 1 km): a real range's place is not published, this one is inferred; Target 5, the MiG-29 hulk towed on a loop beside them, moves for the radar's GMT; Target 6, a target barge off the coast, is the radar's SEA target (both inferred, docs/radar.md §9.7)",
     "training.air_kills": "two of the five drones: one gun or missile kill and a second to show it was no luck (inferred)",
-    "training.ground_kills": "two of the four ground targets (inferred)",
+    "training.ground_kills": "two of the six ground targets: the four parked airframes, the towed hulk and the barge (inferred)",
+    "loadout": "the range's load (inferred): the jet's own with bombs for the ground targets, six Mk 82s on two triple racks (stations 3 and 7) in place of two AIM-9Ms; the lesson asks for two ground kills (the user, 2026-11-18: the load had no bombs)",
     "training.time_budget_s": "45 minutes: the start-up, the taxi and the take-off (about 15), the transit and both parts of the range",
     "training.end_hold_s": "a fail shows its reason 5 s before the debrief"
   },
@@ -506,8 +508,8 @@
         "he": "לנעול על מל\"ט ({key:58} עובר בין המטרות), לחמש עם {key:125}, ולהפיל אותו בתותח ({key:64}) או בטיל ({key:66} בוחר, {key:69} משגר). להפיל 2 מהם."
       },
       {
-        "en": "Then fly the second steerpoint, the ground targets: four retired jets parked in the open. Select the bombs with {key:65}, put the pipper on a target and release with {key:69}. Destroy 2 of them, all within {minutes} minutes of the start.",
-        "he": "אחר כך לטוס לנקודת הציון השנייה, מטרות הקרקע: ארבעה מטוסים יצאי שירות שחונים בשטח פתוח. לבחור את הפצצות עם {key:65}, לשים את הכוונת על מטרה ולשחרר עם {key:69}. להשמיד 2 מהן, הכול תוך {minutes} דקות מההתחלה."
+        "en": "Then fly the second steerpoint, the ground targets: four retired jets parked in the open, a fifth towed on a loop beside them and a target barge at sea. The mission's loadout carries bombs for them. Select the bombs with {key:65}, put the pipper on a target and release with {key:69}. Destroy 2 of the six, all within {minutes} minutes of the start.",
+        "he": "אחר כך לטוס לנקודת הציון השנייה, מטרות הקרקע: ארבעה מטוסים יצאי שירות שחונים בשטח פתוח, חמישי שנגרר במסלול לידם ודוברת מטרה בים. מערך החימוש של המשימה כולל פצצות עבורן. לבחור את הפצצות עם {key:65}, לשים את הכוונת על מטרה ולשחרר עם {key:69}. להשמיד 2 מתוך שש המטרות, הכול תוך {minutes} דקות מההתחלה."
       }
     ]
   },

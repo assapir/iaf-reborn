@@ -138,7 +138,7 @@ func _stage(j: Dictionary) -> void:
 		tt.name = "Jet"
 		tt.below = true
 		stage.add_child(tt)
-		if not tt.show_jet(plane, fe.jet_stores(j, now)):
+		if not tt.show_jet(plane, fe.jet_stores(j, _shown())):
 			tt.queue_free()
 			tt = null
 	lines = Control.new()
@@ -593,17 +593,22 @@ func drop(data: Dictionary, to: String) -> bool:
 	var from := str(data.get("from", ""))
 	var lo := ""
 	if to == "":
-		lo = IafBriefing.take(u, now, int(from), pair) if from != "" else ""
+		lo = IafBriefing.take(u, _shown(), int(from), pair) if from != "" else ""
 	elif from == "":
-		lo = IafBriefing.put(u, now, int(to), str(data.store), pair)
+		lo = IafBriefing.put(u, _shown(), int(to), str(data.store), pair)
 	elif from != to:
-		lo = IafBriefing.shift(u, now, int(from), int(to), pair)
+		lo = IafBriefing.shift(u, _shown(), int(from), int(to), pair)
 	if lo == "":
 		return from == to and from != ""  # dropped where it was: nothing to refuse
 	var fo := get_viewport().gui_get_focus_owner()
 	_refocus = ("Slot" + pick) if pick != "" else (str(fo.name) if fo != null else "")
 	set_loadout.call_deferred(lo)
 	return true
+
+
+## The loadout on the screen as JSON text: the pilot's, else the mission's own ("" the record's).
+func _shown() -> String:
+	return now if now != "" else fe.Fly.own_loadout(m)
 
 
 ## Stores the loadout `lo` ("" the mission's) as the pilot's for the jet and makes the screen again with it.
@@ -617,7 +622,7 @@ func set_loadout(lo: String) -> void:
 
 ## A click on a rack's "×n" badge: one store fewer, from one back to full (its mirror's too while `mirror` is on).
 func cycle(st: String) -> void:
-	var lo: String = IafBriefing.cycle(fe._unit_file(m), now, int(st), mirror)
+	var lo: String = IafBriefing.cycle(fe._unit_file(m), _shown(), int(st), mirror)
 	if lo != "":
 		_refocus = "Slot" + st
 		set_loadout(lo)

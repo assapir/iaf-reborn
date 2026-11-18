@@ -94,7 +94,8 @@ pub fn parse(unit: &Value, v: &Value) -> Loadout {
     for (k, e) in v.as_object().into_iter().flatten() {
         let (id, n) = match e.as_str() {
             Some(id) => (id, 1),
-            None => (e["id"].as_str().unwrap_or(""), e["count"].as_u64().unwrap_or(1) as u32),
+            // A count written by Godot's JSON is a float (3.0).
+            None => (e["id"].as_str().unwrap_or(""), e["count"].as_f64().unwrap_or(1.0) as u32),
         };
         if let Ok(st) = k.parse::<u32>() {
             let max = holds(unit, st, id);
@@ -426,18 +427,60 @@ mod tests {
 
     #[test]
     fn every_default_load_can_be_employed() {
-        // Every unit's own load (the missions' and the AI's: no mission sets a load of its own) meets its needs.
+        // Every unit's own load (the AI's, and a mission's without a load of its own) meets its needs.
         let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../modern-iaf/data/db/units");
         for f in std::fs::read_dir(dir).unwrap() {
             let u: Value = serde_json::from_slice(&std::fs::read(f.unwrap().path()).unwrap()).unwrap();
             let a = crate::briefing::arming(&u, &weapons(), &default(&u));
             assert_eq!(a["unmet"], json!([]), "{}", u["id"]);
         }
+    }
+
+    /// Every mission's load for its player's jet (its own `loadout`, else the unit record's) hangs as written, can
+    /// be employed and flown, and a range lesson's can pass the lesson (the user, 2026-11-18: the range asked for
+    /// two ground kills with no bomb aboard): a gun or a missile for each air kill, a bomb for each ground kill.
+    #[test]
+    fn every_lesson_load_can_pass_its_lesson() {
+        let kind = |w: &str| -> String {
+            let v: Value =
+                serde_json::from_slice(&std::fs::read(weapons().join(format!("{w}.json"))).unwrap()).unwrap();
+            v["kind"].as_str().unwrap().to_string()
+        };
         let missions = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../modern-iaf/data/missions");
+        let mut ranges = 0;
         for f in std::fs::read_dir(missions).unwrap() {
-            let text = std::fs::read_to_string(f.unwrap().path()).unwrap();
-            assert!(!text.contains("\"pylons\"") && !text.contains("\"loadout\""), "a mission load: check its needs");
+            let m: Value = serde_json::from_slice(&std::fs::read(f.unwrap().path()).unwrap()).unwrap();
+            let (id, u) = (&m["id"], unit(m["start"]["unit"].as_str().unwrap()));
+            let lo = match m["loadout"].as_object() {
+                Some(own) => {
+                    let lo = parse(&u, &m["loadout"]);
+                    assert_eq!(lo.len(), own.len(), "{id}: a store its station does not take");
+                    let godot = json!({"3": {"id": "mk-82", "count": 3.0}});
+                    assert_eq!(parse(&unit("f16i"), &godot)[&3].1, 3, "a count as Godot's JSON writes it");
+                    for (st, e) in own {
+                        let n = e["count"].as_u64().unwrap_or(1) as u32;
+                        assert_eq!(lo[&st.parse().unwrap()].1, n, "{id}: station {st} holds fewer");
+                    }
+                    lo
+                }
+                None => default(&u),
+            };
+            let a = crate::briefing::arming(&u, &weapons(), &lo);
+            assert_eq!((&a["unmet"], &a["blocked"], &a["over"]), (&json!([]), &json!(false), &json!(false)), "{id}");
+            let count = |want: &dyn Fn(&str) -> bool| -> u64 {
+                lo.values().filter(|(w, _)| want(&kind(w))).map(|(_, n)| u64::from(*n)).sum()
+            };
+            let rounds =
+                u["loadout"].as_object().unwrap().iter().any(|(w, n)| kind(w) == "gun" && n.as_i64() > Some(0));
+            let t = &m["training"];
+            if t["kind"] == "range" {
+                ranges += 1;
+                let (air, ground) = (t["air_kills"].as_u64().unwrap_or(0), t["ground_kills"].as_u64().unwrap_or(0));
+                assert!(rounds || count(&|k| k.ends_with("missile")) >= air, "{id}: {air} air kills");
+                assert!(count(&|k| k.ends_with("bomb")) >= ground, "{id}: {ground} ground kills, no bombs for them");
+            }
         }
+        assert_eq!(ranges, 3, "the three jets' range lessons");
     }
 
     #[test]

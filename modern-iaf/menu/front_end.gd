@@ -687,8 +687,9 @@ func _jet_view(j: Dictionary) -> void:
 
 
 ## The jet's stores for the turntable: {engine station (A..I 0..8, J 12): {path, count, lugged, bomb}} from loadout
-## `lo` (JSON text, "" the unit record's; null: the pilot's now, as the Loadout screen shows it; IafBriefing.arming;
-## each slot's `pylon` maps the real station number to the engine's pylon, the F-35I's 5 to D, the F-16's 10 to J).
+## `lo` (JSON text, "" the unit record's: a caller with a mission passes its own load; null: the pilot's now, as the
+## Loadout screen shows it; IafBriefing.arming; each slot's `pylon` maps the real station number to the engine's
+## pylon, the F-35I's 5 to D, the F-16's 10 to J).
 func jet_stores(j: Dictionary, lo = null) -> Dictionary:
 	var m := {"start": {"unit": j.unit}}
 	var out := {}
@@ -1101,11 +1102,16 @@ func short_store(id: String) -> String:
 	return s("short_" + id) if strings.has("short_" + id) else s("store_" + id)
 
 
-## The unit's Arming figures (IafBriefing.arming of its record with the loadout `lo`, JSON text; "" the record's
-## default): {stores, slots, loadout, fuel_kg, tank_fuel_kg, takeoff_kg, over, allowed, inventory, …}.
+## The unit's Arming figures (IafBriefing.arming of its record with the loadout `lo`, JSON text; "" the mission's
+## own, Fly.own_loadout, else the record's default): {stores, slots, loadout, fuel_kg, tank_fuel_kg, takeoff_kg, over,
+## allowed, inventory, …}.
 func arming(m: Dictionary, lo := "") -> Dictionary:
 	var a = JSON.parse_string(
-		IafBriefing.arming(_unit_file(m), ProjectSettings.globalize_path("res://data/db/weapons"), lo)
+		IafBriefing.arming(
+			_unit_file(m),
+			ProjectSettings.globalize_path("res://data/db/weapons"),
+			lo if lo != "" else Fly.own_loadout(m)
+		)
 	)
 	return a if a is Dictionary else {}
 
@@ -1133,12 +1139,13 @@ func _unit_file(m: Dictionary) -> String:
 	return ProjectSettings.globalize_path(units_dir.path_join("%s.json" % str(m.get("start", {}).get("unit", ""))))
 
 
-## The loadout mission `m` flies with: the pilot's for its jet, "" (the record's) where the mission fixes it.
+## The loadout mission `m` flies with: the pilot's for its jet, "" (the mission's own, else the record's) where the
+## mission fixes it.
 func mission_loadout(m: Dictionary) -> String:
 	return "" if bool(m.get("fixed_loadout", false)) else _arm_now(m)
 
 
-## The pilot's loadout for the mission's jet now (JSON text; "" the record's default).
+## The pilot's loadout for the mission's jet now (JSON text; "": none stored, the mission's own or the record's flies).
 func _arm_now(m: Dictionary) -> String:
 	return IafPilotLog.loadout(Settings.records_db(), Settings.pilot(), str(jet_of(m).get("unit", "")))
 
