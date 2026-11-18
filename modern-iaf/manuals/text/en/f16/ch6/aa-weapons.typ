@@ -11,7 +11,7 @@ This section gives the cockpit procedure for each air-to-air weapon. It gives no
 + Put the target inside the circle. #then[The missile's tone rises and a diamond shows on the target.] The sim asks for no uncage press.
 + Hold #key("Release selected weapon"). #then[The missile leaves and the station's count goes down.]
 
-With a radar lock (@radar-aa) the HUD also shows the box on the target and the range scale. A missile that can be aimed off the nose follows the helmet's cross: look at the target instead of pointing the nose (@hud).
+With a radar lock (@radar-aa) the HUD also shows the box on the target and the range scale. A missile that can be aimed off the nose follows the helmet's cross: aim it by looking at the target (@hud).
 
 === Radar missile
 

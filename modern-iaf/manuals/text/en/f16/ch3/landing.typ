@@ -16,12 +16,12 @@
 === The gear does not come down <emergency-alt-gear>
 #state("none")
 
-*One or more of the three green lights stays dark*, or *the red light in the handle stays on*. The alternate extension lowers the gear with stored air instead of hydraulic pressure#fm[section III, "Alternate LG extension", page 3-139].
+*One or more of the three green lights stays dark*, or *the red light in the handle stays on*. The alternate extension lowers the gear with stored air, for a jet whose hydraulic pressure is lost#fm[section III, "Alternate LG extension", page 3-139].
 
 + Gear handle down (with the down-lock release if it does not move).
 + Slow, to 190 kt if practical: the system works up to 300 kt, but the nose gear may not lock above 190 kt.
 + Pull #row("alt-gear").
-+ Three green: land normally and stop straight ahead; the nosewheel steering no longer works. Not three green: below.
++ Three green: land normally and stop straight ahead; the nosewheel steering is lost. Not three green: below.
 
 === Landing with the gear unsafe or up <emergency-gear-unsafe>
 #state("part")

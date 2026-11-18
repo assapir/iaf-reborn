@@ -12,7 +12,7 @@
   [#scr("hangar")], [Top bar], [The first breadcrumb on every screen. It opens the Hangar.],
   [#scr("preferences")], [Top bar], [Opens the settings: graphics, language, sound and devices (@settings).],
   [The pilot], [Top bar], [Your nickname, your name and your picture, as one button. It opens the #scr("pilot") screen, and from there the #scr("pilot_log") (@pilots).],
-  [#scr("aircraft")], [Side list], [The jets. Selecting one picks it for every later screen (@hangar). The jets the game does not fly yet are greyed.],
+  [#scr("aircraft")], [Side list], [The jets. Selecting one picks it for every later screen (@hangar). The jets that come in a later version are greyed.],
   [The jet], [Middle], [The picked jet, with the stores of its #term("loadout"). You can look at it from any side (@main-menu-jet).],
   [The card], [Side panel], [The picked jet's #scr("squadron_l"), #scr("base_l") and #scr("tail_number"); then #scr("training"): how many of the jet's lessons are passed, and the last flight on the jet with its result.],
   [#scr("fly")], [The card], [Opens the #scr("missions") screen for the picked jet: Training and the other sections (@mission-list). It is picked when the Hangar opens, so #keycap("Enter") goes straight on.],

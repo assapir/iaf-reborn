@@ -40,8 +40,8 @@ A fail at once shows a banner with #scr("fail") and the reason. Five seconds lat
 
 - "hold position" clears nothing. Call again.
 - A clearance, once given, stays yours for the rest of the flight.
-- The game does not ask you to read a clearance back.
-- A call made out of order, or made twice, never fails the mission. Only the act without its clearance does.
+- The tower's answer is the clearance: act on it.
+- Only an act without its clearance fails the mission. A call made out of order, or made twice, costs nothing.
 
 The Start-up lessons check the first two phases. The Take-off and Weapons range lessons check all four.
 

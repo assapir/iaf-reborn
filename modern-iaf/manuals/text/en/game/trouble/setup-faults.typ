@@ -52,7 +52,7 @@ Two choices lower what setup needs:
 - On the #stp("page_imagery") page, #stp("s2") takes about 3 GB less than the choice with the Survey of Israel photo.
 - On the #stp("page_install") page, untick the optional steps (@setup-leave-out).
 
-When only the downloaded imagery files do not fit, the first page says how much of them setup reads online instead of keeping, and #stp("next") does not wait.
+When only the downloaded imagery files do not fit, the first page says how much of them setup reads online straight into the build, and #stp("next") does not wait.
 
 === A cancelled setup <setup-faults-cancelled>
 

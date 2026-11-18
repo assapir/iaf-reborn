@@ -10,8 +10,8 @@
   [#idx("Ramon")#scr("base_ramon")], [LLRM], [648 m (2,126 ft)], [The F-16I #scr("sufa"), 201 Squadron "The One".], [The Sufa's three],
   [#idx("Ramat David")#scr("base_ramat_david")], [LLRD], [56 m (185 ft)], [The F-16D #scr("barak"), 101 Squadron "First Fighter".], [The Barak's three],
   [#idx("Nevatim")#scr("base_nevatim")], [LLNV], [405 m (1,330 ft)], [The F-35I #scr("adir"), 116 Squadron "Lions of the South".], [The Adir's three],
-  [#idx("Hatzerim")#scr("base_hatzerim")], [LLHB], [221 m], [The F-15I #scr("raam"), 69 Squadron "The Hammers". This jet is not in the sim yet.], [None],
-  [#idx("Tel Nof")#scr("base_tel_nof")], [LLEK], [59 m], [The F-15 #scr("baz"), 133 Squadron "Knights of the Twin Tail". This jet is not in the sim yet.], [None],
+  [#idx("Hatzerim")#scr("base_hatzerim")], [LLHB], [221 m], [The F-15I #scr("raam"), 69 Squadron "The Hammers". This jet comes in a later version.], [None],
+  [#idx("Tel Nof")#scr("base_tel_nof")], [LLEK], [59 m], [The F-15 #scr("baz"), 133 Squadron "Knights of the Twin Tail". This jet comes in a later version.], [None],
 )
 
 The code is the base's four-letter ICAO code, as the #term("notebook")'s #scr("nb_data") tab shows it. The lessons are listed in @lessons-list.

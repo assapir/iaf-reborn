@@ -9,7 +9,7 @@
 + Open #scr("preferences"), section #scr("graphics"), and point at any graphics row.
   #then[The pane shows the measured frame time on a bar, with a line at 60 frames a second (@settings-frame).]
 
-A bar that ends before the line needs no change. A bar past the line is a flight under 60 frames a second; at the bar's end, 33 ms, it is about 30.
+A bar that ends before the line is fast enough. A bar past the line is a flight under 60 frames a second; at the bar's end, 33 ms, it is about 30.
 
 #note[The first flight after an update loads slowly while the game prepares its graphics once (@after-update-slow). Measure on a second flight.]
 
@@ -41,9 +41,9 @@ Each graphics row carries a #term("Cost chip") (@settings-cost). Lower the setti
 
 #scr("upscaling") is the setting with the largest saving that leaves every effect on. On the measuring laptop #scr("upscaling_quality") saved about 3 ms a frame and #scr("upscaling_balanced") about 6.6 ms, of 30 ms.
 
-=== What does not help <performance-not>
+=== Settings that cost no frame time <performance-not>
 
-- #scr("fullscreen") and #scr("vsync") cost no drawing time; their chips read #scr("cost_none"). #scr("vsync") holds the game to the screen's own rate; it does not make a slow flight slower to draw.
-- The sound and the device settings do not change the frame time.
+- #scr("fullscreen") and #scr("vsync") cost no drawing time; their chips read #scr("cost_none"). #scr("vsync") holds the game to the screen's own rate.
+- The sound and the device settings cost no frame time either.
 
 When the flight is slow with #scr("preset_laptop") too, report it with the measured frame time and the log (@crash-page-report).

@@ -21,7 +21,7 @@ The game reads a key by its place on the keyboard. The characters that Option ty
 
 === The laptop key map <mac-keys-laptop>
 
-On macOS the game starts from the #term("Laptop key map"), which needs no number pad: the rudder is on #key("Rudder left") and #key("Rudder right"), and the looks to the sides are on Option with the digits 1 to 9. The whole list is in @keys-joystick-laptop. On a Mac with a number pad you can put any command back on it on the #scr("keys_screen") screen (@keys-joystick-change).
+On macOS the game starts from the #term("Laptop key map"), which uses only the keys of a Mac laptop: the rudder is on #key("Rudder left") and #key("Rudder right"), and the looks to the sides are on Option with the digits 1 to 9. The whole list is in @keys-joystick-laptop. On a Mac with a number pad you can put any command back on it on the #scr("keys_screen") screen (@keys-joystick-change).
 
 === Keys that macOS keeps <mac-keys-system>
 

@@ -12,9 +12,9 @@ Each section is a card with its number, its title and, at its foot, your progres
   (auto, 1fr),
   ([Section], [What it holds]),
   [#scr("sec_training")#idx("Training")], [Each jet's three lessons from its home base: #scr("kind_startup"), #scr("kind_takeoff") and the weapons range (@lessons).],
-  [#scr("sec_campaign")#idx("Campaign")], [Not in the sim yet. The card is greyed and marked #scr("coming_later").],
-  [#scr("sec_single")#idx("Single missions")], [Not in the sim yet. The card is greyed and marked #scr("coming_later").],
-  [#scr("sec_fly_now")#idx("Fly now")], [Not in the sim yet. The card is greyed and marked #scr("coming_later").],
+  [#scr("sec_campaign")#idx("Campaign")], [Comes in a later version. The card is greyed and marked #scr("coming_later").],
+  [#scr("sec_single")#idx("Single missions")], [Comes in a later version. The card is greyed and marked #scr("coming_later").],
+  [#scr("sec_fly_now")#idx("Fly now")], [Comes in a later version. The card is greyed and marked #scr("coming_later").],
 )
 
 A greyed card takes no click and no focus.

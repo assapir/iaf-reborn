@@ -1,6 +1,6 @@
 #import "src.typ": *
 
-The #jet.short has a targeting sensor built in under its nose: an infrared camera with a laser. The displays call it TFLIR. The jet needs no pod for it. The real format works the infrared camera, which identifies and designates targets#ife; its details are open.
+The #jet.short has a targeting sensor built in under its nose: an infrared camera with a laser. The displays call it TFLIR. The real format works the infrared camera, which identifies and designates targets#ife; its details are open.
 
 === The format <tflir-format>
 

@@ -13,7 +13,7 @@ This section lists what the computer needs before you start setup (@setup).
   [The game], [`./start-modern-iaf`], [`.\start-modern-iaf.ps1`],
 )
 
-The game needs no data from any other game. Setup downloads all its data once, under open licences. The sources and their licences are listed in @attributions.
+Setup downloads all its data once, under open licences. The sources and their licences are listed in @attributions.
 
 === The programs <requirements-programs>
 

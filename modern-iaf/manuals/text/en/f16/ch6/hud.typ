@@ -40,6 +40,6 @@ A large *X* flashes when the radar altitude and the dive call for an immediate p
 The helmet sight puts an aiming cross on the visor. Look at a target to point a short-range missile's seeker at it; a diamond shows where the seeker tracks. #row("HMCS_SYM_INT_KNOB") dims it to off. That the real helmet's symbols look the same is inferred: no figure of them is public.
 
 #in-sim[
-  - The two switches DED DATA and DEPR RET are not on the cockpit model: they are keys only.
+  - The two switches DED DATA and DEPR RET work by their keys only.
   - #term("Not modelled"): the HUD's cues of the release modes that the sim lacks (@ag-weapons).
 ]

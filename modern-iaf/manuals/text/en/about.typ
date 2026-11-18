@@ -1,6 +1,6 @@
 #import "/modern-iaf/manuals/layout/manual.typ": *
 
-*Who it is for.* This manual is for the pilot who flies Modern IAF. It needs no earlier knowledge of the jet.
+*Who it is for.* This manual is for the pilot who flies Modern IAF. It starts from the basics and explains each term where it is first used.
 
 *What it describes.* #book.scope #if is-jet [Everything around the jet is in the #other-manual("game"). ]
 

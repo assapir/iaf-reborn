@@ -4,9 +4,9 @@ The #jet.short is flown through its computer (@flight-controls): the stick asks 
 
 What pilots have said in public#hanche:
 
-- The jet flies at a much higher angle of attack than the F-16, and at its limit it still answers the pedals quickly, where the F-16 at its limit is slow to turn its nose.
+- The jet flies at a much higher angle of attack than the F-16, and at its limit it still answers the pedals quickly.
 - It slows down very fast when the pilot asks for it.
-- It shakes at high g and at high angle of attack; the buffet is a cue the F-16 pilot does not always have.
+- It shakes at high g and at high angle of attack; the buffet is a cue of high g and high angle of attack.
 
 === Engine response
 

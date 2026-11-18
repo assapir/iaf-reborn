@@ -1,6 +1,6 @@
 #import "/modern-iaf/manuals/layout/manual.typ": *
 
-#idx("AWACS")The #term("AWACS") is the airborne controller. It watches the sky with its own radar and tells you by radio where other aircraft are. You do not call it: it calls you.
+#idx("AWACS")The #term("AWACS") is the airborne controller. It watches the sky with its own radar and tells you by radio where other aircraft are. It calls you by itself.
 
 === The contact calls <awacs-calls>
 

@@ -11,7 +11,7 @@ This section takes the #jet.name from the pattern to the end of the landing roll
 
 === The final approach speed <landing-speed>
 
-#idx("Final approach speed")#idx("Angle of attack, on speed")The F-16 is not flown down final at a fixed speed but at a fixed angle of attack: 13°, or 11° for a faster and flatter approach#fm[section II, "Normal landing", page 2-23]. At that angle the wing gives the same lift margin at any weight; the speed that goes with it rises with the weight. A higher angle than 13° brings the tail close to the runway at touchdown; a lower one lands fast and long.
+#idx("Final approach speed")#idx("Angle of attack, on speed")The F-16 is flown down final at a fixed angle of attack: 13°, or 11° for a faster and flatter approach#fm[section II, "Normal landing", page 2-23]. At that angle the wing gives the same lift margin at any weight; the speed that goes with it rises with the weight. A higher angle than 13° brings the tail close to the runway at touchdown; a lower one lands fast and long.
 
 The speed is worked out before the pattern, as a cross-check of the angle: #base-speed kt, plus 4 kt for each 1,000 lb of fuel and stores on board, at 13°; 8 kt more at 11°#fm[figure 2-3 "Normal landing pattern", its notes, page 2-25: 137 kt for the two-seat jet with the Pratt & Whitney engine, 138 kt with the General Electric engine, at the basic weight with full ammunition; the real speed may differ by 5 kt with the centre of gravity. For the #jet.short's own weight and engine the figure is inferred]. With 2,000 lb of fuel left and no stores that is about #(base-speed + 8) kt.
 

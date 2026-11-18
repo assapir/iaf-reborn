@@ -1,6 +1,6 @@
 #import "/modern-iaf/manuals/layout/manual.typ": *
 
-#idx("Crash page")When the game meets a fault that it cannot go on from, it stops on one page, the #term("Crash page"), titled #scr("crash_title"). The page opens over everything and the game under it is paused. It appears in place of an empty world or a loading screen that never ends.
+#idx("Crash page")When the game meets a fault that it cannot go on from, it stops on one page, the #term("Crash page"), titled #scr("crash_title"). The page opens over everything and the game under it is paused.
 
 === What the page shows <crash-page-shows>
 

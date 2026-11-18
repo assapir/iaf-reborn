@@ -12,7 +12,7 @@ What each jet may carry on each #term("station"), and what each store is for, is
 - *The callouts,* in a column on each side of the jet: one for each station that takes a store. A callout shows the station's number and place (for example #scr("pos_inboard")), the store on it and the weight of that store with its rack. A line joins the callout to the station on the jet. A station with nothing on it has a dashed frame and reads #scr("arm_empty").
 - *#scr("lo_loadouts"),* at one side: the mission's own loadout and the ones you saved (@loadout-saved).
 - *#scr("takeoff_weight"),* at the other side: the weight, the wings' balance and three figures (@loadout-figures).
-- *#scr("lo_stores"),* under the weight: every store this jet may carry. A greyed store is not in the sim yet.
+- *#scr("lo_stores"),* under the weight: every store this jet may carry. A greyed store comes in a later version.
 - *The buttons* at the bottom: #scr("lo_reset"), #scr("lo_briefing") and #scr("fly").
 
 === To hang a store on a station <loadout-hang>
@@ -103,7 +103,7 @@ The game keeps your last loadout for each jet with your pilot (@pilots). The jet
   [You hung a store that needs a pod, and the pod is not on the jet. A laser-guided bomb needs the Litening targeting pod.], [One line in the warning colour at the bottom names the store and the pod it needs. #scr("fly") and #scr("lo_save") are off. The briefing shows the same line.], [Hang the pod on its station, or take the store off.],
   [The stores bring the jet over its maximum take-off weight.], [The weight, its bar and the share of the maximum show in the warning colour. #scr("fly") is off.], [Take stores off until the weight is under the maximum.],
   [One wing is much heavier than the other.], [The balance marker and the line under it turn amber and name the heavier wing. #scr("fly") stays on.], [Hang the same weight on both wings, or fly with the uneven load. The jet's handling with stores is in its manual.],
-  [You picked a greyed store.], [Nothing: a greyed store cannot be picked.], [Choose another store. The greyed store is not in the sim yet.],
+  [You picked a greyed store.], [Nothing: a greyed store cannot be picked.], [Choose another store. The greyed store comes in a later version.],
 )
 
 #screen("loadout_f16i_need", [A bomb that needs a pod: the reason at the bottom, and Fly off.])

@@ -2426,7 +2426,7 @@
      "positions": [
       "Gauge"
      ],
-     "does": "A magnetic compass that needs no power."
+     "does": "A magnetic compass, working on the earth's field alone."
     }
    ]
   },

@@ -12,7 +12,7 @@
   [F-35I #scr("adir")#idx("Adir")], [116 Squadron, "Lions of the South"], [#scr("base_nevatim")], [#other("f35i", "description")],
 )
 
-Two more jets stand in the list, greyed. They are not in the sim yet: they cannot be picked and have no missions.
+Two more jets stand in the list, greyed. They come in a later version; until then they cannot be picked.
 
 #grid-table(
   (auto, auto, 1fr),

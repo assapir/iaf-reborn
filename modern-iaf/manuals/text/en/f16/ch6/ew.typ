@@ -2,7 +2,7 @@
 
 #layout-head
 
-This section gives the displays, the switches and the counts. It says nothing of how well a countermeasure works.
+This section gives the displays, the switches and the counts.
 
 === The threat warning display
 

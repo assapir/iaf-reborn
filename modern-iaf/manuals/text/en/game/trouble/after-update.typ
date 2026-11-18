@@ -9,8 +9,8 @@
   ([Part], [What brings it up to date]),
   [The game's program], [The start script builds what changed each time it starts the game (@start-game). The first start after an update takes longer for that.],
   [The game's data], [The #term("setup wizard"). Each step remembers what it was built from. A step whose inputs changed with the update reads #stp("state_will_run"); the others read #stp("state_up_to_date") and are passed over.],
-  [The downloads], [Nothing. Setup keeps every downloaded file by its name and uses it again. An update of the game downloads nothing a second time.],
-  [Your pilots, flights and settings], [Nothing. They are kept in your user folder, outside the game's folder (@start-game-files).],
+  [The downloads], [They stay. Setup keeps every downloaded file by its name and uses it again, so each file is downloaded once.],
+  [Your pilots, flights and settings], [They stay as they are, in your user folder, outside the game's folder (@start-game-files).],
 )
 
 === Bringing the data up to date <after-update-data>

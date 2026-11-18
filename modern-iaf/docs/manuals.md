@@ -72,6 +72,12 @@ radio flow, what fails a lesson) is the game manual's, and the jet's manual link
 word list is `GAME_FLOW` in `tools/manuals.py`, read against each jet manual's outline, section files, the About
 text, its glossary entries and the controls' names; a link to the game manual is exempt.
 
+Every manual, in each language, follows ISO 24495-1 plain language (the user, 18 November 2026: "do iso sweep on all
+guides"). Modern IAF stands alone: a manual names no other game, its data or the sim's history, and says what a thing
+is and does. The build checks it: the word list is `PLAIN` in `tools/manuals.py` (another game and history words, and
+the commonest "what it isn't" phrasings), read against each manual's outline, section files, About text and glossary.
+A line that marks what is not modelled, a warning or a caution is exempt, and so are comments and quoted sources.
+
 A jet's manual states the aircraft's consequence of an action, never the game's (the user, 18 November 2026: "When
 you talk about hot start … don't mention it fails the mission. This is game side"): what happens to the engine or the
 system, the limit passed, the damage, and what the pilot does. An abnormal condition is explained where it first

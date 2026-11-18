@@ -42,7 +42,7 @@ The WPN format (@mfd) shows the selected GPS-guided bomb's status, and #osb(1) t
 + Dive, put the dot on the target, hold #key("Gun trigger").
 
 #in-sim[
-  - PRE targets cannot be set before a flight yet: a bomb in PRE takes the route's target steerpoint, if it has one. This is not in the sim yet.
+  - A bomb in PRE takes the route's target steerpoint, if it has one.
   - The layout of the GPS-guided bomb's HUD symbols is inferred from simulators' manuals.
-  - #term("Not modelled"): the release modes CCRP, DTOS, LADD and MAN; fuze and arming settings and the LOW cue; a laser from another aircraft or from the ground.
+  - #term("Not modelled"): a PRE target set before the flight; the release modes CCRP, DTOS, LADD and MAN; fuze and arming settings and the LOW cue; a laser from another aircraft or from the ground.
 ]

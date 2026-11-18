@@ -21,7 +21,7 @@
 
 === מפת המקשים למחשב נייד <mac-keys-laptop>
 
-ב-macOS המשחק מתחיל מ#term("מפת המקשים למחשב נייד"), שאינה דורשת מקלדת מספרים: הגה הכיוון נמצא על #key("Rudder left") ועל #key("Rudder right"), והמבטים לצדדים נמצאים על Option עם הספרות 1 עד 9. הרשימה המלאה נמצאת ב@keys-joystick-laptop. ב-Mac עם מקלדת מספרים אפשר להחזיר אליה כל פקודה במסך #scr("keys_screen") (@keys-joystick-change).
+ב-macOS המשחק מתחיל מ#term("מפת המקשים למחשב נייד"), שמשתמשת רק במקשים של Mac נייד: הגה הכיוון נמצא על #key("Rudder left") ועל #key("Rudder right"), והמבטים לצדדים נמצאים על Option עם הספרות 1 עד 9. הרשימה המלאה נמצאת ב@keys-joystick-laptop. ב-Mac עם מקלדת מספרים אפשר להחזיר אליה כל פקודה במסך #scr("keys_screen") (@keys-joystick-change).
 
 === מקשים ש-macOS שומר לעצמו <mac-keys-system>
 

@@ -20,7 +20,7 @@ The limiters of g, angle of attack, roll rate and rudder make full stick safe in
 
 === With the gear down
 
-With the gear handle down the trailing-edge flaps come down and the computer changes its gains: the stick commands a pitch rate up to 10° angle of attack, and the jet no longer holds 1 g by itself#fm[section I, "Trim", page 1-135, and section VI, "Flight with LG down", page 6-3]. STORES CONFIG has no effect#fm[section I, "AOA/g limiter", page 1-121].
+With the gear handle down the trailing-edge flaps come down and the computer changes its gains: the stick commands a pitch rate up to 10° angle of attack, and the pilot holds 1 g with the stick and trim#fm[section I, "Trim", page 1-135, and section VI, "Flight with LG down", page 6-3]. STORES CONFIG has no effect#fm[section I, "AOA/g limiter", page 1-121].
 
 === Speedbrakes, thrust and trim
 

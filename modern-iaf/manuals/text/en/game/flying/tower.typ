@@ -46,7 +46,7 @@ The tower that answers is the base nearest to you, within about 18 km.
 + Press #key("Call the tower"), then #keycap("4").
   #then[The tower answers "cleared for take-off". You may start the take-off roll.]
 
-Once you have a clearance, you keep it: an engine you shut down and start again needs no second start-up call.
+Once you have a clearance, you keep it, also when you shut the engine down and start it again.
 
 === The tower's other answers <tower-answers>
 
@@ -60,7 +60,7 @@ Once you have a clearance, you keep it: an engine you shut down and start again 
   ["engine start without clearance", "taxi without clearance", "runway entry without clearance", "take-off without clearance"], [You did the thing before its clearance. In a Training mission the mission has failed.],
 )
 
-A wrong or repeated call never fails a mission by itself. A repeated call gets its answer again.
+A wrong or repeated call costs nothing. A repeated call gets its answer again.
 
 === The landing call <tower-landing>
 

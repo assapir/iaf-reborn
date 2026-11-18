@@ -13,4 +13,4 @@
 /// A real format or procedure no public source gives.
 #let open-fmt = [The real jet's procedure is not public: open.]
 /// The words of a function the sim lacks.
-#let nis = [not in the sim yet]
+#let nis = [not modelled]

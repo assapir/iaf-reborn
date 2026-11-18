@@ -50,6 +50,40 @@ def game_flow(manual: str) -> int:
                     found += 1
     return found
 
+# Plain language (ISO 24495-1; the user, 18 November 2026): Modern IAF stands alone, and a manual says what a thing
+# is and does. These words stop the build in any manual's text: another game and the sim's history, then the
+# commonest "what it isn't" phrasings. A line that marks what is not modelled, a warning or a caution is exempt (the
+# user's kept marks), and so are comments and quoted strings (a source's own words).
+PLAIN = {
+    "en": r"original game|the original|1998|Jane's|reborn|other game|another game|disc image|ISO image|not required"
+    r"|needs? no|does not need|do not need|doesn't|no longer|unlike|instead of|rather than|without needing"
+    r"|not in the sim yet",
+    "he": r"המשחק המקורי|המקורי\w*|משחק אחר|1998|ג'יין|אינו זקוק|אינה זקוקה|אינו דורש|אינה דורשת|אין צורך|לא נדרש|אינו נדרש|כבר אינ\w*|כבר לא"
+    r"|בניגוד ל|עדיין אינ\w* בסימולטור",
+}
+PLAIN_EXEMPT = r"[Nn]ot modelled|#nis\b|לא ממודל|#(?:warning|caution)\["
+
+
+def plain_words(manual: str, lang: str = "en") -> int:
+    """The PLAIN words in manual `manual`'s text in `lang` (its outline, its sections' files, the About text, the
+    glossary), each printed with its file and line; their count."""
+    text = os.path.join(DIR, "text", lang)
+    with open(os.path.join(text, manual, "outline.yaml"), encoding="utf-8") as f:
+        files = [manual + "/outline.yaml", "about.typ", "glossary.yaml"]
+        files += sorted(set(re.findall(r"\bfile:\s*\"?([\w/.-]+\.typ)", f.read())))
+    prefix = "[והבלמשכ]{0,3}" if lang == "he" else ""
+    found = 0
+    for name in files:
+        with open(os.path.join(text, name), encoding="utf-8") as f:
+            for n, line in enumerate(f, 1):
+                if re.match(r"\s*(?://|#(?![a-z]))", line) or re.search(PLAIN_EXEMPT, line):
+                    continue
+                for word in re.findall(r"(?<!\w)" + prefix + r"(?:" + PLAIN[lang] + r")(?!\w)", re.sub(NO_PROSE, " ", line), re.I):
+                    print(f"manuals: {manual}: text/{lang}/{name}:{n}: \"{word}\": say what the thing is and does (ISO 24495-1)")
+                    found += 1
+    return found
+
+
 # What is no prose in a section's text: the layout's calls by name, labels, references, links, strings.
 NO_PROSE = r'(?:key|ctl|idx|other|other-manual|term|steps|shot|label|scr|scr-text|stp|stp-text|screen)\("[^"]*"(?:, (?:shown: )?"[^"]*")?\)?|<[\w-]+>|@[\w-]+|https?://\S+|"[^"\n]*"'
 
@@ -366,6 +400,10 @@ def main() -> int:
     failed = 0
     for m in wanted:
         of, lang = manuals[m].get("of", m), manuals[m].get("lang", "en")
+        if plain_words(of, lang):
+            failed += 1
+            print("FAILED " + manuals[m]["file"])
+            continue
         # IAF_MANUAL_DRAFT=1: an edition still being translated builds anyway, for a look at its pages.
         if "of" in manuals[m] and edition(m, manuals[m]) + glossary_links(of, lang) and not os.environ.get("IAF_MANUAL_DRAFT"):
             failed += 1

@@ -1,6 +1,6 @@
 #import "/modern-iaf/manuals/layout/manual.typ": *
 
-הסעיף הזה מוביל מה#term("דת״ק") אל ה#term("תחקיר") של #term("שיעור") האימון הראשון, #scr("kind_startup"): #scr-text("desc_startup") המטוס עומד כבוי בבסיס שלו ונשאר על הקרקע, ולכן אין מה להפסיד בניסיון.
+הסעיף הזה מוביל מה#term("דת״ק") אל ה#term("תחקיר") של #term("שיעור") האימון הראשון, #scr("kind_startup"): #scr-text("desc_startup") המטוס עומד כבוי בבסיס שלו ונשאר על הקרקע, ולכן הניסיון בטוח.
 
 === לפני שמתחילים <first-flight-before>
 

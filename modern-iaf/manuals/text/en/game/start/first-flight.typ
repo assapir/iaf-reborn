@@ -1,6 +1,6 @@
 #import "/modern-iaf/manuals/layout/manual.typ": *
 
-This task takes you from the #term("Hangar") to the #term("debrief") of the first Training #term("lesson"), #scr("kind_startup"): #scr-text("desc_startup") The jet stands cold on its base and stays on the ground, so nothing can be lost by trying.
+This task takes you from the #term("Hangar") to the #term("debrief") of the first Training #term("lesson"), #scr("kind_startup"): #scr-text("desc_startup") The jet stands cold on its base and stays on the ground, so trying is safe.
 
 === Before you begin <first-flight-before>
 

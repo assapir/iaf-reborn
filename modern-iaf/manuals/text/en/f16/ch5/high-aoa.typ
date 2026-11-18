@@ -4,7 +4,7 @@
 
 === At the limiter
 
-With a category I load and the stick fully back the jet holds about 25° angle of attack#fm[section I, "AOA/g limiter", page 1-121]. It does not stall with a break as a jet without a limiter does, and the speed falls fast instead (inferred). Roll is reduced there, so that pitch and roll together do not throw the jet#fm[section VI, "Category I loadings", page 6-3].
+With a category I load and the stick fully back the jet holds about 25° angle of attack#fm[section I, "AOA/g limiter", page 1-121]. There the speed falls fast while the jet holds that angle (inferred). Roll is reduced there, so that pitch and roll together do not throw the jet#fm[section VI, "Category I loadings", page 6-3].
 
 === How the limiter is defeated
 

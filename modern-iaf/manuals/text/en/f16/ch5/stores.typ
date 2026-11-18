@@ -6,7 +6,7 @@ Stores add weight, inertia and drag. The jet answers more slowly and damps its m
 
 === Category III loads
 
-Large stores add much drag and take performance, and the jet otherwise answers like a clean one. A light buffet can come near Mach 0.92 in level flight and needs no action#fm[section VI, "Category III loadings", page 6-3]. Stop a roll before 360° of bank; letting go of the stick is not always enough, and opposite stick may be needed#fm[section VI, "Flight with stores", page 6-6].
+Large stores add much drag and take performance, and the jet otherwise answers like a clean one. A light buffet near Mach 0.92 in level flight is normal#fm[section VI, "Category III loadings", page 6-3]. Stop a roll before 360° of bank; letting go of the stick is not always enough, and opposite stick may be needed#fm[section VI, "Flight with stores", page 6-6].
 
 #if sufa [
 === Conformal tanks
