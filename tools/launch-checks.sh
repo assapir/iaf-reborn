@@ -29,7 +29,7 @@ if [[ $(uname) == Darwin ]]; then
 		export PATH="/Applications/Godot.app/Contents/MacOS:$PATH" # the guides' scripts call `godot` (APFS: any case)
 	fi
 else
-	install='sudo pacman -S rustup godot, then: rustup default stable (other systems: rustup.rs and godotengine.org, Godot 4.7)'
+	install="with your distribution's package manager (rustup and Godot 4.7; or rustup.rs and godotengine.org), then: rustup default stable"
 fi
 command -v cargo >/dev/null || { tell "$who needs Rust (cargo) to build the game. Install it: $install"; exit 1; }
 command -v "$godot" >/dev/null || { tell "$who needs Godot 4.7. Install it: $install"; exit 1; }

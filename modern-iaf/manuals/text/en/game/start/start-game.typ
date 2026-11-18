@@ -22,28 +22,6 @@ The pilot, its picture and its log are described in @pilots.
 
 #screen("pilot_first", [The first start: #scr("first_pilot").])
 
-=== Flying one mission at once <start-game-mission>
-
-#idx("Mission, start from the terminal")The start script can fly one mission directly, past the menus. Give it the mission's number after two dashes:
-
-```
-./start-modern-iaf -- --mission 2011
-```
-
-On Windows: `.\start-modern-iaf.ps1 --mission 2011`.
-
-The mission loads at once. When the flight ends, the game shows its #term("debrief").
-
-#grid-table(
-  (1fr, auto, auto, auto),
-  ([Jet and base], [#scr("kind_startup")], [#scr("kind_takeoff")], [Weapons range]),
-  [#scr("sufa"), #scr("base_ramon")], [2011], [2012], [2013],
-  [#scr("barak"), #scr("base_ramat_david")], [2021], [2022], [2023],
-  [#scr("adir"), #scr("base_nevatim")], [2031], [2032], [2033],
-)
-
-The missions themselves are described in @lessons.
-
 === Where the game keeps your files <start-game-files>
 
 #idx("Settings file")#idx("User folder")The game keeps what you make in one folder of your user account, named "Modern IAF":
@@ -61,7 +39,7 @@ The missions themselves are described in @lessons.
   ([File or folder], [What it holds]),
   [`settings.cfg`], [The settings, the changed keys and joystick buttons, the picked jet and the active pilot.],
   [`devices.json`], [The joystick's axes, where you changed them.],
-  [`modern-iaf.sqlite`], [The pilots, every flight with its debrief, and the pilots' loadouts.],
+  [`modern-iaf.sqlite`], [The pilots, every flight with its #term("debrief"), and the pilots' loadouts.],
   [`pictures/`], [The pilots' pictures.],
   [`flights/`], [The flight recordings, one file a flight; the newest 10 are kept.],
   [`logs/`], [The game's logs; the newest 30 are kept (@crash-page).],

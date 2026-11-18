@@ -145,15 +145,3 @@
 === היומן <setup-log>
 
 #idx("התקנה, יומן")#stp("show_log") בעמוד #stp("page_install") פותח את יומן ההרצה בחלון; #stp("hide_log") סוגר אותו. כל הרצה גם כותבת את היומן המלא לקובץ משלה בתיקיית המשחק: `assets/logs/modern-iaf-setup-<date>-<time>.log`.
-
-=== התקנה ממסוף <setup-terminal>
-
-#idx("iaf-sim")אותם שלבים רצים ממסוף בעזרת התוכנה `iaf-sim`, מתיקיית המשחק. שלב שנבנה כך מעודכן גם באשף.
-
-```
-cargo build --release -p iaf-setup --bin iaf-sim
-target/release/iaf-sim terrain
-target/release/iaf-sim all
-```
-
-שמות השלבים הם `terrain`, `db`, `fm`, `own`, `airbases`, `missions`, `scenery` וכן `textures`; `all` מריץ את כל שלבי האשף. שלב מריץ קודם את השלבים שהוא ממתין להם, כשאינם מעודכנים. התוספת `--redo` מריצה את השלבים שצוינו אף שהם מעודכנים.

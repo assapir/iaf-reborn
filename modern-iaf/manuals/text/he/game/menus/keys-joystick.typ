@@ -128,7 +128,7 @@
 
 לחצן שכבר שייך לפקודה אחרת פותח את אותן שלוש אפשרויות כמו מקש (@keys-joystick-conflict), והלחצן #scr("default") פועל כמו במסך #scr("keys_screen").
 
-הכובע אינו ברשימה. #scr-text("joy_buttons_note")
+#scr-text("joy_buttons_note")
 
 #screen("devices_joystick_buttons", [החלק #scr("joy_buttons").], width: 80%)
 

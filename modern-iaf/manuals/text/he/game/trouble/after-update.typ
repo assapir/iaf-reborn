@@ -43,7 +43,7 @@
 הסיבה: השלב #stp("step_sim-missions") לא נבנה, או שהנתונים שלו הוסרו.
 
 + לסגור את המשחק.
-+ להריץ את הפקודה שהמסך מציין: `./modern-iaf-setup`, וב-Windows `.\modern-iaf-setup.ps1`.
++ להפעיל את אשף ההתקנה (@setup-start).
 + לבחור #stp("install") בעמוד #stp("page_install") ולהמתין לעמוד #stp("page_done").
 + לבחור #stp("start_game").
   #then[הכרטיס שבדת"ק מציג את ההתקדמות באימון, והלחצן #scr("fly") פעיל.]

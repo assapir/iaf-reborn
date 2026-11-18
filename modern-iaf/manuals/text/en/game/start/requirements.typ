@@ -4,14 +4,7 @@ This section lists what the computer needs before you start setup (@setup).
 
 === The computer <requirements-computer>
 
-#idx("Linux")#idx("macOS")#idx("Windows")The game runs on Linux, on macOS and on Windows 10 or 11 (64-bit). It is started from its folder with a script; the scripts' names are in the table.
-
-#grid-table(
-  (auto, 1fr, 1fr),
-  ([], [Linux and macOS], [Windows (PowerShell)]),
-  [Setup], [`./modern-iaf-setup`], [`.\modern-iaf-setup.ps1`],
-  [The game], [`./start-modern-iaf`], [`.\start-modern-iaf.ps1`],
-)
+#idx("Linux")#idx("macOS")#idx("Windows")The game runs on Linux, on macOS and on Windows 10 or 11 (64-bit). The game and its setup are started from the game's folder (@setup-start, @start-game-start).
 
 Setup downloads all its data once, under open licences. The sources and their licences are listed in @attributions.
 
@@ -22,21 +15,13 @@ Setup downloads all its data once, under open licences. The sources and their li
 #grid-table(
   (auto, 1fr, 1.4fr),
   ([Program], [What it is for], [How to install it]),
-  [Rust (cargo)], [Builds the game's program.], [Linux: rustup.rs. macOS: `brew install rustup`, then `"$(brew --prefix rustup)/bin/rustup" default stable`. Windows: `winget install Rustlang.Rustup`.],
-  [Godot 4.7], [Runs the game and the setup wizard.], [Linux: godotengine.org. macOS: `brew install godot`. Windows: `winget install GodotEngine.GodotEngine`.],
-  [GDAL], [Reads the terrain heights and the imagery. Cuts the inland water, the buildings and the roads from the map data.], [Linux: `sudo apt install gdal-bin` (Arch: `sudo pacman -S gdal`). macOS: `brew install gdal`. Windows: `winget install GISInternals.GDAL`.],
-  [curl], [Downloads the data.], [Linux: `sudo apt install curl`. macOS and Windows 10 or later have it.],
+  [Rust (cargo)], [Builds the game's program.], [Linux: with your distribution's package manager, or rustup.rs. macOS: Homebrew. Windows: winget.],
+  [Godot 4.7], [Runs the game and the setup wizard.], [Linux: with your distribution's package manager, or godotengine.org. macOS: Homebrew. Windows: winget.],
+  [GDAL], [Reads the terrain heights and the imagery. Cuts the inland water, the buildings and the roads from the map data.], [Linux: with your distribution's package manager (GDAL's command-line tools). macOS: Homebrew. Windows: the GISInternals installer.],
+  [curl], [Downloads the data.], [Linux: with your distribution's package manager. macOS and Windows 10 or later have it.],
 )
 
-On Windows, Rust also needs the C++ workload of Microsoft's Visual Studio Build Tools, and PowerShell must be allowed to run your own scripts:
-
-```
-winget install Git.Git Rustlang.Rustup GodotEngine.GodotEngine
-winget install Microsoft.VisualStudio.BuildTools --override "--wait --passive --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended"
-Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
-```
-
-Open a new terminal after these commands, so that it finds the new programs.
+On Windows, Rust also needs the C++ workload of Microsoft's Visual Studio Build Tools. Windows must also allow your own scripts to run.
 
 #note[On Windows the setup steps that use GDAL (the imagery and the buildings, trees and roads) are not yet tested.]
 

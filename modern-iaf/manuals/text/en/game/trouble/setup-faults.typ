@@ -7,8 +7,8 @@
 #grid-table(
   (1.2fr, 1.2fr, 1.4fr),
   ([Symptom], [Cause], [What to do]),
-  [The start script stops before the wizard's window opens and names Rust or Godot.], [The program is not installed, or the terminal does not find it.], [Install it as the script says (@requirements-programs). Open a new terminal and run the script again.],
-  [On the first page GDAL or curl reads #stp("missing"), and #stp("next") stays greyed.], [The program is not installed.], [Install it with the command the page names, then start setup again.],
+  [The start script stops before the wizard's window opens and names Rust or Godot.], [The program is not installed, or the terminal does not find it.], [Install it as the script says (@requirements-programs). Open a new terminal and start the game again.],
+  [On the first page GDAL or curl reads #stp("missing"), and #stp("next") stays greyed.], [The program is not installed.], [Install it with your distribution's package manager, then start setup again.],
   [The first page shows the free disk space with the space that the build needs, and #stp("next") stays greyed.], [The disk has too little free space.], [Free space on the disk (@setup-faults-disk).],
   [On the #stp("page_imagery") page the choice with the Survey of Israel photo is greyed.], [The Survey's sheet files are not in the folder that the page names.], [Go on with #stp("s2"), or put the sheet files there and start setup again (@setup-imagery).],
   [A step reads #stp("state_skipped"). Under it: #stp-text("why_gdal")], [The step needs GDAL and did not find it.], [Install GDAL, then select #stp("retry").],

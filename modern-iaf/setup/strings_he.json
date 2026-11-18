@@ -34,7 +34,7 @@
 	"free": "מקום פנוי בדיסק: %s",
 	"free_online": "אין די מקום בדיסק לכל אריחי Sentinel-2: כ-%s מהם נקראים ברשת בזמן הבנייה.",
 	"free_low": "מקום פנוי בדיסק: %s. הבנייה דורשת כ-%s.",
-	"hint_linux": "להתקנה: sudo apt install gdal-bin curl (ב-Arch: sudo pacman -S gdal curl), ואחר כך להפעיל את ההתקנה מחדש.",
+	"hint_linux": "להתקנה: באמצעות מנהל החבילות של ההפצה (gdal ו-curl), ואחר כך להפעיל את ההתקנה מחדש.",
 	"hint_mac": "להתקנה: brew install gdal curl, ואחר כך להפעיל את ההתקנה מחדש.",
 	"hint_windows": "להתקנה: winget install GISInternals.GDAL, ואחר כך להפעיל את ההתקנה מחדש.",
 	"s2": "Sentinel-2 בכל האזור",

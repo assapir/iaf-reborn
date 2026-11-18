@@ -449,7 +449,9 @@ func _fill_requirements() -> void:
 			"converts the terrain imagery",
 			"found",
 			by_os(
-				"sudo pacman -S gdal", "brew install gdal", "winget install GISInternals.GDAL, then start setup again"
+				"with your distribution's package manager",
+				"brew install gdal",
+				"winget install GISInternals.GDAL, then start setup again"
 			)
 		],
 		[
@@ -458,7 +460,7 @@ func _fill_requirements() -> void:
 			"curl",
 			"downloads the Survey of Israel sheets",
 			"found",
-			by_os("sudo pacman -S curl", "brew install curl", "winget install cURL.cURL")
+			by_os("with your distribution's package manager", "brew install curl", "winget install cURL.cURL")
 		],
 		[
 			false,
@@ -467,7 +469,7 @@ func _fill_requirements() -> void:
 			"builds the pilot guide PDFs",
 			"found",
 			by_os(
-				"sudo pacman -S python",
+				"with your distribution's package manager",
 				"brew install python",
 				"winget install Python.Python.3.14 (the guides: not on Windows yet)"
 			)
@@ -479,7 +481,7 @@ func _fill_requirements() -> void:
 			"holds the Survey's download token; prints the pilot guide PDFs",
 			"found",
 			by_os(
-				"sudo pacman -S firefox",
+				"with your distribution's package manager",
 				"brew install --cask firefox",
 				"winget install Mozilla.Firefox (the guides: not on Windows yet)"
 			)

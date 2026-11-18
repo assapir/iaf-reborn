@@ -34,7 +34,7 @@
 	"free": "Free disk space: %s",
 	"free_online": "Too little disk space for every Sentinel-2 tile: about %s of them are read online during the build.",
 	"free_low": "Free disk space: %s. The build needs about %s.",
-	"hint_linux": "Install it: sudo apt install gdal-bin curl (Arch: sudo pacman -S gdal curl), then start setup again.",
+	"hint_linux": "Install it: with your distribution's package manager (gdal and curl), then start setup again.",
 	"hint_mac": "Install it: brew install gdal curl, then start setup again.",
 	"hint_windows": "Install it: winget install GISInternals.GDAL, then start setup again.",
 	"s2": "Sentinel-2 everywhere",

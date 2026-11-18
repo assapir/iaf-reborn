@@ -128,7 +128,7 @@ An axis is read only when its setting says so: #scr("flight_controls") on #scr("
 
 A button that another command has opens the same three choices as a key (@keys-joystick-conflict), and #scr("default") works as on the #scr("keys_screen") screen.
 
-The hat is not in the list. #scr-text("joy_buttons_note")
+#scr-text("joy_buttons_note")
 
 #screen("devices_joystick_buttons", [The #scr("joy_buttons") part.], width: 80%)
 

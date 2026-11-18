@@ -575,7 +575,7 @@ side list (Devices, Axes, Buttons) follows the scroll.
   lever or stick pushed forward is −1, so the throttle's bar was empty at full power while the flight (and the 1998
   game) read it right. The one sense now lives in `joystick.gd` (`SENSE`, `shaped`), which the poller and the bars both
   read.
-- **Buttons:** the Keys screen's list with the joystick's buttons. Click a row, then press a button. Conflicts, Default and Reset all work as on the Keys screen. The hat is not a button here: it is the
+- **Buttons:** the Keys screen's list with the joystick's buttons. Click a row, then press a button. Conflicts, Default and Reset all work as on the Keys screen. The hat is the
   1998 game's POV, read by the same code (`Joystick.poll`), its eight directions the snap views (up, right, back, left
   and the corner views front-right, back-right, back-left, front-left). Tested on the Mac 2026-11-11: the sim had
   turned the hat into four buttons of its own, so the diagonals did nothing; reborn's hat had them all along.

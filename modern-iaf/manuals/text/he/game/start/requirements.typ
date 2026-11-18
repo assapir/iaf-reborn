@@ -4,14 +4,7 @@
 
 === המחשב <requirements-computer>
 
-#idx("Linux")#idx("macOS")#idx("Windows")המשחק פועל ב-Linux, ב-macOS וב-Windows 10 או 11 (64 סיביות). מפעילים אותו מהתיקייה שלו בעזרת סקריפט; שמות הסקריפטים מופיעים בטבלה.
-
-#grid-table(
-  (auto, 1fr, 1fr),
-  ([], [Linux ו-macOS], [Windows (PowerShell)]),
-  [התקנה], [`./modern-iaf-setup`], [`.\modern-iaf-setup.ps1`],
-  [המשחק], [`./start-modern-iaf`], [`.\start-modern-iaf.ps1`],
-)
+#idx("Linux")#idx("macOS")#idx("Windows")המשחק פועל ב-Linux, ב-macOS וב-Windows 10 או 11 (64 סיביות). את המשחק ואת ההתקנה שלו מפעילים מהתיקייה של המשחק (@setup-start, @start-game-start).
 
 ההתקנה מורידה את כל הנתונים שלו פעם אחת, ברישיונות פתוחים. המקורות והרישיונות שלהם מפורטים ב@attributions.
 
@@ -22,21 +15,13 @@
 #grid-table(
   (auto, 1fr, 1.4fr),
   ([תוכנה], [למה היא משמשת], [איך להתקין]),
-  [Rust (cargo)], [בונה את תוכנת המשחק.], [ב-Linux: rustup.rs. ב-macOS: `brew install rustup`, ואחר כך `"$(brew --prefix rustup)/bin/rustup" default stable`. ב-Windows: `winget install Rustlang.Rustup`.],
-  [Godot 4.7], [מריץ את המשחק ואת אשף ההתקנה.], [ב-Linux: godotengine.org. ב-macOS: `brew install godot`. ב-Windows: `winget install GodotEngine.GodotEngine`.],
-  [GDAL], [קורא את גבהי הקרקע ואת תצלומי הלוויין. גוזר מנתוני המפה את מקווי המים, המבנים והכבישים.], [ב-Linux: `sudo apt install gdal-bin` (ב-Arch: `sudo pacman -S gdal`). ב-macOS: `brew install gdal`. ב-Windows: `winget install GISInternals.GDAL`.],
-  [curl], [מוריד את הנתונים.], [ב-Linux: `sudo apt install curl`. ב-macOS וב-Windows 10 ואילך הוא כבר קיים.],
+  [Rust (cargo)], [בונה את תוכנת המשחק.], [ב-Linux: באמצעות מנהל החבילות של ההפצה, או מ-rustup.rs. ב-macOS: Homebrew. ב-Windows: winget.],
+  [Godot 4.7], [מריץ את המשחק ואת אשף ההתקנה.], [ב-Linux: באמצעות מנהל החבילות של ההפצה, או מ-godotengine.org. ב-macOS: Homebrew. ב-Windows: winget.],
+  [GDAL], [קורא את גבהי הקרקע ואת תצלומי הלוויין. גוזר מנתוני המפה את מקווי המים, המבנים והכבישים.], [ב-Linux: באמצעות מנהל החבילות של ההפצה (כלי שורת הפקודה של GDAL). ב-macOS: Homebrew. ב-Windows: מתקין GISInternals.],
+  [curl], [מוריד את הנתונים.], [ב-Linux: באמצעות מנהל החבילות של ההפצה. ב-macOS וב-Windows 10 ואילך הוא כבר קיים.],
 )
 
-ב-Windows, Rust זקוק גם לרכיב ה-C++\u{200E} של Visual Studio Build Tools מבית Microsoft, ויש להתיר ל-PowerShell להריץ סקריפטים מקומיים:
-
-```
-winget install Git.Git Rustlang.Rustup GodotEngine.GodotEngine
-winget install Microsoft.VisualStudio.BuildTools --override "--wait --passive --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended"
-Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
-```
-
-אחרי הפקודות האלה יש לפתוח מסוף חדש, כדי שימצא את התוכנות החדשות.
+ב-Windows, Rust זקוק גם לרכיב ה-C++\u{200E} של Visual Studio Build Tools מבית Microsoft. יש להתיר ל-Windows להריץ סקריפטים מקומיים.
 
 #note[ב-Windows, שלבי ההתקנה שמשתמשים ב-GDAL (תצלומי הלוויין, וכן המבנים, העצים והכבישים) עדיין לא נבדקו.]
 

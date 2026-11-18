@@ -23,7 +23,7 @@
 - A mission that the built data does not hold.
 - The terrain's data missing.
 
-For the last two, run setup again (@after-update-data). For a graphics fault, see @crash-page-graphics.
+For the last two, run setup again (@after-update-data).
 
 === Where the logs are <crash-page-logs>
 
@@ -50,31 +50,3 @@ For the last two, run setup again (@after-update-data). For a graphics fault, se
 #note[The report's text is sent only when you send the issue in the browser. The log's lines can hold folder names of your computer; read them before you send.]
 
 For a fault without a crash page, write an issue on the same GitHub page and attach the run's log file.
-
-=== Finding a graphics fault <crash-page-graphics>
-
-#idx("Safe start")The start script can switch graphics features off for one run, whatever the settings say. Your settings stay as they are.
-
-```
-./start-modern-iaf --safe all
-./start-modern-iaf --safe sky,water,clouds
-```
-
-On Windows: `.\start-modern-iaf.ps1 --safe all`.
-
-#grid-table(
-  (auto, 1fr, auto, 1fr),
-  ([Name], [What it switches off], [Name], [What it switches off]),
-  [`sky`], [The atmospheric sky.], [`shadows`], [The sun's shadows.],
-  [`grading`], [The colour grading.], [`taa`], [TAA and the upscaler's own smoothing.],
-  [`closeup`], [The terrain's close-up detail.], [`upscaling`], [Upscaling.],
-  [`textures`], [The ground textures.], [`cockpit_origin`], [The cockpit's separate drawing over the view.],
-  [`water`], [The moving water.], [`patches`], [The close-up terrain's colour patches.],
-  [`clouds`], [The volumetric clouds.], [`glass`], [The HUD's glass.],
-  [`scenery`], [The buildings and trees.], [`hudglow`], [The HUD's glow.],
-)
-
-+ Start the game with `--safe all` and fly the mission that failed.
-+ When it flies, start again with half of the names.
-  #then[The run that fails holds the feature at fault.]
-+ Halve the list again until one name is left, and name it in your report.

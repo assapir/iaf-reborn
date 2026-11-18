@@ -271,7 +271,7 @@ func _log_to_end() -> void:
 	log_view.scroll_vertical = log_view.get_v_scroll_bar().max_value
 
 
-## The text for this system: Linux (Arch's pacman), macOS (Homebrew) or Windows (winget).
+## The text for this system: Linux (the distribution's package manager), macOS (Homebrew) or Windows (winget).
 static func by_os(linux: String, mac: String, windows: String) -> String:
 	match OS.get_name():
 		"macOS":

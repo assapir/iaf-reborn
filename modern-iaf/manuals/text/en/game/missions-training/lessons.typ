@@ -12,7 +12,7 @@
   [3. Weapons range], [Mission 2013, runway 25R], [Mission 2023, runway 27], [Mission 2033, runway 26L],
 )
 
-The mission number starts a lesson directly from the command line (@start-game). The bases are described in @airbases.
+The bases are described in @airbases.
 
 === What each lesson teaches <lessons-teach>
 

@@ -43,7 +43,7 @@ When the row reads #stp("state_up_to_date") and the fault stays, tick #stp("row_
 The cause: the step #stp("step_sim-missions") has not been built, or its data was removed.
 
 + Close the game.
-+ Run the command that the screen names: `./modern-iaf-setup`, on Windows `.\modern-iaf-setup.ps1`.
++ Start the setup wizard (@setup-start).
 + Select #stp("install") on the #stp("page_install") page and wait for the #stp("page_done") page.
 + Select #stp("start_game").
   #then[The Hangar's card shows the training's progress, and #scr("fly") is alive.]

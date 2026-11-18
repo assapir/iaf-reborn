@@ -57,10 +57,13 @@ def game_flow(manual: str) -> int:
 PLAIN = {
     "en": r"original game|the original|1998|Jane's|reborn|other game|another game|disc image|ISO image|not required"
     r"|needs? no|does not need|do not need|doesn't|no longer|unlike|instead of|rather than|without needing"
-    r"|not in the sim yet",
+    r"|not in the sim yet|\b(?:sudo|apt(?:-get)? install|dpkg|dnf|pacman|zypper|yum|Ubuntu|Debian|Fedora|Arch Linux)\b|\./[\w-]+|\.\\[\w-]+|[\w-]+\.ps1|--[a-z]+|iaf-sim|cargo build|(?:brew|winget) install|IAF_\w+|tools/\w+|Set-ExecutionPolicy|PowerShell|environment variables?|command line|```\w*",
     "he": r"המשחק המקורי|המקורי\w*|משחק אחר|1998|ג'יין|אינו זקוק|אינה זקוקה|אינו דורש|אינה דורשת|אין צורך|לא נדרש|אינו נדרש|כבר אינ\w*|כבר לא"
-    r"|בניגוד ל|עדיין אינ\w* בסימולטור",
+    r"|\b(?:sudo|apt(?:-get)? install|dpkg|dnf|pacman|zypper|Ubuntu|Debian|Fedora|Arch Linux)\b|\./[\w-]+|\.\\[\w-]+|[\w-]+\.ps1|--[a-z]+|iaf-sim|cargo build|(?:brew|winget) install|IAF_\w+|tools/\w+|Set-ExecutionPolicy|PowerShell|environment variables?|command line|```\w*|בניגוד ל|עדיין אינ\w* בסימולטור",
 }
+# The player starts the game and its setup with these four and nothing else: no scripts, options or commands (the
+# user, 18 November 2026: "we should not encourage script usage"). They are removed from a line before the check.
+START_STEP = r"(?:\./|\.\\)(?:start-modern-iaf|modern-iaf-setup)(?:\.ps1)?(?![\w.-]|\s+--)"
 PLAIN_EXEMPT = r"[Nn]ot modelled|#nis\b|לא ממודל|#(?:warning|caution)\["
 
 
@@ -78,7 +81,7 @@ def plain_words(manual: str, lang: str = "en") -> int:
             for n, line in enumerate(f, 1):
                 if re.match(r"\s*(?://|#(?![a-z]))", line) or re.search(PLAIN_EXEMPT, line):
                     continue
-                for word in re.findall(r"(?<!\w)" + prefix + r"(?:" + PLAIN[lang] + r")(?!\w)", re.sub(NO_PROSE, " ", line), re.I):
+                for word in re.findall(r"(?<!\w)" + prefix + r"(?:" + PLAIN[lang] + r")(?!\w)", re.sub(NO_PROSE, " ", re.sub(START_STEP, " ", line)), re.I):
                     print(f"manuals: {manual}: text/{lang}/{name}:{n}: \"{word}\": say what the thing is and does (ISO 24495-1)")
                     found += 1
     return found

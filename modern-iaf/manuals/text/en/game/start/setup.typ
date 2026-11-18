@@ -145,15 +145,3 @@ To add the step later, tick it again and select #stp("install").
 === The log <setup-log>
 
 #idx("Setup, log")#stp("show_log") on the #stp("page_install") page opens the run's log in the window; #stp("hide_log") closes it. Each run also writes the whole log to a file of its own in the game's folder: `assets/logs/modern-iaf-setup-<date>-<time>.log`.
-
-=== Setup from a terminal <setup-terminal>
-
-#idx("iaf-sim")The same steps run from a terminal with the program `iaf-sim`, from the game's folder. A step built this way is up to date in the wizard.
-
-```
-cargo build --release -p iaf-setup --bin iaf-sim
-target/release/iaf-sim terrain
-target/release/iaf-sim all
-```
-
-The step names are `terrain`, `db`, `fm`, `own`, `airbases`, `missions`, `scenery` and `textures`; `all` runs every step of the wizard. A step first runs the steps it waits for when they are not up to date. Add `--redo` to run the named steps although they are up to date.

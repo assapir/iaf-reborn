@@ -77,6 +77,7 @@ guides"). Modern IAF stands alone: a manual names no other game, its data or the
 is and does. The build checks it: the word list is `PLAIN` in `tools/manuals.py` (another game and history words, and
 the commonest "what it isn't" phrasings), read against each manual's outline, section files, About text and glossary.
 A line that marks what is not modelled, a warning or a caution is exempt, and so are comments and quoted sources.
+The same check stops scripts, options and commands (the user, 18 November 2026: "we should not encourage script usage"): the player starts the game and the setup with `./start-modern-iaf` and `./modern-iaf-setup` (`.ps1` on Windows) and nothing else; installing a program is said by its package manager (the distribution's, Homebrew, winget), never as a command.
 
 A jet's manual states the aircraft's consequence of an action, never the game's (the user, 18 November 2026: "When
 you talk about hot start … don't mention it fails the mission. This is game side"): what happens to the engine or the

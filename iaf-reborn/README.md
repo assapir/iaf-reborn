@@ -32,19 +32,21 @@ The game plays as the original v1.1 by default; every improvement is an opt-in s
 
 If you do not have them, search the web for the ISO and the Hebrew packs. I trust you.
 
-### Arch Linux packages
+### Linux packages
 
-| package | source | needed for |
-|---|---|---|
-| `rustup` (then `rustup default stable`) | extra | building the tools (`crates/`) |
-| `godot` (4.7) | extra | running the game (`iaf-reborn/`) |
-| `vulkan-intel` / `vulkan-radeon` / `nvidia-utils` (match your GPU) | extra | Vulkan rendering |
-| `ttf-liberation` (or `ttf-ms-fonts` from AUR for real Arial) | extra | menu text (the original uses Arial; Liberation Sans is metric-compatible, [docs/macos.md](../docs/macos.md#platform-differences)) |
-| `gdal` _(optional)_ | extra | modern terrain imagery |
+Install these with your distribution's package manager:
+
+| tool | needed for |
+|---|---|
+| `rustup` (then `rustup default stable`) | building the tools (`crates/`) |
+| Godot 4.7 | running the game (`iaf-reborn/`) |
+| the Vulkan driver for your GPU (Intel, AMD or NVIDIA) | Vulkan rendering |
+| Liberation fonts (or Microsoft's core fonts for real Arial) | menu text (the original uses Arial; Liberation Sans is metric-compatible, [docs/macos.md](../docs/macos.md#platform-differences)) |
+| GDAL _(optional)_ | modern terrain imagery |
+
+Then:
 
 ```sh
-sudo pacman -S --needed rustup godot vulkan-intel
-sudo pacman -S --needed gdal          # optional: modern terrain imagery
 rustup default stable
 ```
 

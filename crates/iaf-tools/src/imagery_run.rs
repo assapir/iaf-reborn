@@ -551,7 +551,7 @@ pub(crate) fn gdal_output(cmd: &str, args: &[&str]) -> Result<String> {
         .env("GDAL_HTTP_RETRY_DELAY", "2")
         .env("VSI_CACHE", "TRUE")
         .output()
-        .with_context(|| format!("running {cmd} (install GDAL: sudo pacman -S gdal)"))?;
+        .with_context(|| format!("running {cmd} (install GDAL with your distribution's package manager)"))?;
     if !o.status.success() {
         // GDAL prints plugin-loading noise on some installs; show only the real errors.
         let err: Vec<String> = String::from_utf8_lossy(&o.stderr)
