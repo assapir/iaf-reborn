@@ -2,7 +2,7 @@
 
 *Who it is for.* This manual is for the pilot who flies Modern IAF. It needs no earlier knowledge of the jet.
 
-*What it describes.* #book.scope #if is-jet [Everything around the jet is in the #other-manual("game"). ]A chapter that the outline lists as planned is written once the outline is approved.
+*What it describes.* #book.scope #if is-jet [Everything around the jet is in the #other-manual("game"). ]
 
 *Real jet and sim.* The manual follows the order of a real flight manual and describes the real jet from public sources, in our own words. Each source is a footnote. Where the sim does less than the real jet, the text says *not modelled*:
 
