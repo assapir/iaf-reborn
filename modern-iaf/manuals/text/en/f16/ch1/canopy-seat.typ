@@ -32,6 +32,6 @@ Air bled from the engine pressurises and cools the cockpit and cools the avionic
 #in-sim[
   - *Canopy.* #key("Canopy") closes and opens it; it takes 10 seconds. #sym.arrow.r *CANOPY is on while it is open.*
   - *Ejection.* #key("Eject (press 3 times)"), pressed three times within a second, ejects.
-  - *Cabin.* CABIN PRESS ALT follows the jet up to 8,000 ft, stays there up to about 23,000 ft and rises above that. #sym.arrow.r *CABIN PRESS lights above a cabin altitude of 27,000 ft.* *EQUIP HOT lights* with AIR SOURCE at OFF, or at RAM below 70 knots, once the avionics have power.
+  - *Cabin.* CABIN PRESS ALT follows the jet up to 8,000 ft, stays there up to about 23,000 ft and rises above that. With AIR SOURCE at OFF, DUMP or RAM it follows the jet all the way. #sym.arrow.r *CABIN PRESS lights above a cabin altitude of 27,000 ft.* *EQUIP HOT lights* with AIR SOURCE at OFF, or at RAM below 70 knots, once the avionics have power.
   - *#term("Not modelled").* The canopy's switch and handle and the seat's safety lever, which the cockpit does not have, and SEAT NOT ARMED; the canopy's jettison and its loss in flight; the oxygen system (the levers move, LIQUID OXYGEN shows a fixed value); the cabin's pressure and temperature have no effect on the pilot; the avionics do not fail from heat.
 ]

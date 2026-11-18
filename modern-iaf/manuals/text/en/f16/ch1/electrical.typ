@@ -26,7 +26,7 @@ With the engine off, MAIN GEN and STBY GEN are on, as no generator turns (inferr
     [BATT, or MAIN PWR before the generator is on line], [The lights work and the #term("INS") can align. The displays are dark.],
     [The generator on line: 52~% #term("RPM") in the start, and 3 seconds], [The #term("MFD")s, the #term("DED"), the EHSI, the threat warning display and the exterior lights have power. The #term("HUD") also needs #row("AVIONICS_MMC").],
   )
-  - #sym.arrow.r *MAIN GEN and STBY GEN are on* until the generator is on line. *FLCS PMG and FLCS RLY are on* until the #term("JFS") turns the engine. *TO FLCS is on* while the engine is below 44~% in a start or a shutdown. *ELEC SYS is on* with any of them; CAUTION RESET acknowledges it.
+  - #sym.arrow.r *MAIN GEN and STBY GEN are on* until the generator is on line. *FLCS PMG and FLCS RLY are on* until the #term("JFS") turns the engine. *TO FLCS is on* while the engine is below 44~% in a start or a shutdown. *ELEC SYS is on* with any of them; CAUTION RESET acknowledges it. *MAIN GEN lights after damage to the main generator, MAIN GEN and STBY GEN after total damage* (@emergency-systems).
   - The engine gauges' needles move without electrical power.
-  - *#term("Not modelled").* The standby generator and the EPU as separate sources, generator and bus failures; EPU GEN, EPU PMG and ACFT BATT FAIL light in the lamp test only.
+  - *#term("Not modelled").* The standby generator and the EPU as separate sources, bus failures; EPU GEN, EPU PMG and ACFT BATT FAIL light in the lamp test only.
 ]

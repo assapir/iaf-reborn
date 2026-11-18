@@ -680,7 +680,7 @@
       "Light"
      ],
      "does": "The main generator is off the buses.",
-     "sim": "On while the jet is on the battery."
+     "sim": "On while the jet is on the battery, and after damage to a generator."
     },
     {
      "node": "lamp_stby_gen_0",
@@ -690,7 +690,7 @@
       "Light"
      ],
      "does": "The standby generator is off the buses.",
-     "sim": "On while the jet is on the battery."
+     "sim": "On while the jet is on the battery, and after total damage to the generators."
     },
     {
      "node": "lamp_flcs_pmg_0",
@@ -2649,7 +2649,7 @@
       "Light"
      ],
      "does": "The cabin's altitude is above 27,000 ft.",
-     "sim": "On with the cabin above 27,000 ft."
+     "sim": "On with the cabin above 27,000 ft: AIR SOURCE at OFF, DUMP or RAM."
     },
     {
      "node": "lamp_caution_fwd_fuel_low_0",

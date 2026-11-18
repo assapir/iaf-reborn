@@ -9,7 +9,7 @@ An electrical fault lights *#row("lamp_caution_elec_sys_0")* and one or more lig
 - *Both generators:* the #term("EPU") starts by itself (*#row("lamp_epu_run_0")*) and powers the emergency buses; much of the avionics is lost. CAUTION RESET may bring a generator back. Check the attitude indicator for warning flags, switch off what is not needed, and land as soon as possible, since the EPU runs on a limited store of fuel (@electrical)#fm[section III, "Main and standby generator failure (in flight)", pages 3-44 and 3-45; the reason given for the urgency is inferred].
 - *#row("lamp_flcs_pmg_0"):* the flight controls' own generator has failed; they take power from the other sources. Land as soon as practical#fm[section III, "FLCS PMG failure", page 3-43].
 
-#in-sim[Damage to the generators takes the radar and the warning receiver; total damage also takes the weapons, the instruments and the #term("HUD"). The #term("DED")'s fault list and the TEST format show it. The ELEC panel's lights follow the start and the shutdown only, so they stay dark after such damage. #term("Not modelled"): the EPU, the reset of a generator.]
+#in-sim[Damage to the generators takes the radar and the warning receiver; total damage also takes the weapons, the instruments and the #term("HUD"). The #term("DED")'s fault list and the TEST format show it. *MAIN GEN lights after damage to the main generator, MAIN GEN and STBY GEN after total damage, and #row("lamp_caution_elec_sys_0") with them.* #term("Not modelled"): the EPU, the reset of a generator.]
 
 === Hydraulic failures <emergency-hydraulic>
 #state("part")
@@ -27,7 +27,7 @@ The jet has two hydraulic systems, A and B (@hydraulic). A failure lights *#row(
 
 A fault of the #term("FLCS") (@flight-controls) shows as *#row("lamp_flcs_0")* or *#row("lamp_caution_flt_cont_sys_0")* with a line in the fault list. The pilot reads the fault, acknowledges it, does the fault's own procedure, which often ends in a reset with the FLCS RESET switch, and recalls the faults to see what stays#fm[section III, "FLCS failures", page 3-108]. *#row("lamp_dbu_on_0")* means the computers run their backup software; *#row("lamp_caution_le_flaps_0")* a fault of the leading-edge flaps. Each asks for gentle flying and a landing as soon as practical; the single procedures are on the manual's pages 3-108 to 3-116 and are not repeated here.
 
-#in-sim[Total damage to the flight controls #sym.arrow.r *the FLCS light comes on and the surfaces stop: the stick does nothing.* Eject. Not modelled: single faults, the reset, the backup software (its switch lights DBU ON only).]
+#in-sim[Total damage to the flight controls #sym.arrow.r *the FLCS light comes on and the surfaces stop: the stick does nothing.* Eject. *#row("lamp_caution_flt_cont_sys_0") lights with every fault of the fault list's FLCS class and with total damage.* Not modelled: single faults, the reset, the backup software (its switch lights DBU ON only).]
 
 === Fuel emergencies <emergency-fuel>
 #state("part")
@@ -51,10 +51,10 @@ A fault of the #term("FLCS") (@flight-controls) shows as *#row("lamp_flcs_0")* o
 #in-sim[#key("Emergency jettison") or the button #sym.arrow.r *the stores and racks fall; the missiles and the pods stay; the fuel in the tanks goes with them.* On the ground nothing is dropped; GND JETT ENABLE moves only.]
 
 === Canopy, cabin pressure and smoke <emergency-cockpit>
-#state("none")
+#state("part")
 
 - *#row("lamp_canopy_0") in flight:* push the canopy handle outboard. If the canopy is lost, slow to 180 kt or less and lean forward behind the glareshield; at high speed the blast may leave only ejection#fm[section III, "Canopy loss/penetration in flight", page 3-38].
 - *Cabin pressure lost or too hot:* oxygen to 100~%, below 25,000 ft and 500 kt, AIR SOURCE to OFF for 10 to 15 seconds and back to NORM#fm[section III, "Cockpit pressure/temperature malfunction", page 3-39].
 - *Smoke or fumes:* any unknown smell is taken as toxic. Oxygen on, 100~% and EMER#fm[section III, "Smoke or fumes", page 3-131].
 
-#in-sim[The CANOPY light shows an open canopy on the ground. #row("lamp_caution_cabin_press_0") is wired to the cabin altitude, which stays under its threshold in flight.]
+#in-sim[The CANOPY light shows an open canopy on the ground. With #row("AirSource_knob") at NORM the cabin altitude stays under 27,000 ft. At OFF, DUMP or RAM the cabin has the jet's own altitude #sym.arrow.r *#row("lamp_caution_cabin_press_0") lights above 27,000 ft.*]

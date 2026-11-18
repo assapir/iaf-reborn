@@ -17,6 +17,6 @@ Every fault is a message of the ICAWS on the #term("PCD"), with a tone or the vo
 #in-sim[
   - A fault comes from two causes only: damage (a hit, the gear down at too high a speed, a hard touchdown) and a wrong action in the start. Systems do not fail by chance.
   - Every piece of damage #sym.arrow.r *lights MASTER CAUTION and speaks "Caution" (with "Warning" for a fire or a dead engine).* A missile's hit also shakes the jet.
-  - #key("Damage page") shows the ICAWS format. Its lines: *ENG FIRE, ENGINE FAIL, AB FAIL, FUEL LEAK, ELEC FAIL, FLCS DEGD, FLCS FAIL, FLAPS FAIL, GEAR FAIL, BRAKES FAIL, AP FAIL, #term("INS") FAIL, RADAR FAIL, RWR FAIL, ECM FAIL, #term("HMD") FAIL, WPN FAIL* and *GUN FAIL*.
+  - #key("Damage page") shows the ICAWS format. Its lines: *ENG FIRE, ENGINE FAIL, AB FAIL, FUEL LEAK, ELEC FAIL, FCS DEGD, FCS FAIL, FLAPS FAIL, GEAR FAIL, BRAKES FAIL, AP FAIL, #term("INS") FAIL, RADAR FAIL, RWR FAIL, ECM FAIL, #term("HMD") FAIL, WPN FAIL* and *GUN FAIL*.
   - A crash destroys the jet: a touchdown that sinks faster than about 13 ft/s (4 m/s), with the gear up, banked more than 10°, with the tail lower than 15° or the nose lower than 5°; water; or rough ground at speed.
 ]

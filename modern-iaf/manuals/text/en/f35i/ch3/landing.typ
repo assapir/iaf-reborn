@@ -16,7 +16,7 @@
 
 The public rules: land elsewhere if the landing roll worked out for the runway is more than 80~% of its length, and never land over a raised barrier#afi[paragraph 3.21.4]; land straight in with a flight control fault#afi[paragraph 7.4.3]. The rest is open.
 
-#in-sim[With *FLCS DEGD* fly a long, flat, straight-in approach. With *BRAKES FAIL* use the whole runway and hold the nose up to slow down (@landing).]
+#in-sim[With *FCS DEGD* fly a long, flat, straight-in approach. With *BRAKES FAIL* use the whole runway and hold the nose up to slow down (@landing).]
 
 === Cable arrestment <emergency-cable>
 #state("none")

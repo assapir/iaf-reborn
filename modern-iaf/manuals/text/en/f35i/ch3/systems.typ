@@ -19,4 +19,4 @@ Without a radio the pilot joins another jet, sets the transponder to 7600 (7700 
 
 #in-sim[#key("Emergency jettison") or the button #sym.arrow.r *the bay doors open and the bombs and the wing stores fall, unarmed; the air-to-air missiles stay.* On the ground nothing is dropped. #row("JETT_SEL") moves only.]
 
-#in-sim[What damage does: *ELEC FAIL* takes the radar and the warning receiver, and when total the weapons and the displays' flight data too; *FLCS DEGD* leaves the stick a quarter of its authority: fly gently and land straight in; *FLCS FAIL* stops the surfaces: eject. #row("FCS_RESET") moves only.]
+#in-sim[What damage does: *ELEC FAIL* takes the radar and the warning receiver, and when total the weapons and the displays' flight data too; *FCS DEGD* leaves the stick a quarter of its authority: fly gently and land straight in; *FCS FAIL* stops the surfaces: eject. #row("FCS_RESET") moves only.]

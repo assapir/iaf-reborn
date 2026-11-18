@@ -771,9 +771,10 @@ occlusion, 1.8 MB; built by
   | FLCS PWR (test panel) | FLCS PWR TEST or the EPU test held |
   | JFS RUN | the JFS switch at START and past its spool-up |
   | FLCS BIT RUN, AVTR | their switch on |
+  | FLCS BIT FAIL | the MFD's FLCS format's BIT ended in FAIL (`IafF16Mfd.flcs_bit`) |
   | ECM ENBL (MISC panel) | the ECM pod jamming (`indicators[6]`, the J key) |
   | PRI, UNK, TGT SEP, SYS TEST (threat warning prime panel) | with the UFC's power: priority mode, UNKNOWN, TGT SEP held, the system test (`ews.gd`) |
-  | caution panel | ELEC SYS: an ELEC panel lamp; ENGINE FAULT, AVIONICS: the pilot fault list's ENG, AV classes; HOOK: the hook handle down; CABIN PRESS: the cabin above 27,000 ft; FWD / AFT FUEL LOW: below 800 / 500 lb (FlightGear's reservoirs, 400 / 250 lb, inferred from one total); OVERHEAT: a fire or the FIRE & OHEAT DETECT test; PROBE HEAT: flashing with the switch at TEST; ECM: damage flag 1; EQUIP HOT: the avionics up with AIR SOURCE at OFF, or RAM below 70 kt (FlightGear's) |
+  | caution panel | ELEC SYS: an ELEC panel lamp; ENGINE FAULT, AVIONICS: the pilot fault list's ENG, AV classes; HOOK: the hook handle down; FLCS FAULT: the fault list's FLCS class or damage flag 24 (inferred); ADC, CADC: damage flag 11 (inferred); CABIN PRESS: the cabin above 27,000 ft, reached with AIR SOURCE at OFF, DUMP or RAM (the cabin then has the jet's altitude, as its gauge); FWD / AFT FUEL LOW: below 800 / 500 lb (FlightGear's reservoirs, 400 / 250 lb, inferred from one total); OVERHEAT: a fire or the FIRE & OHEAT DETECT test; PROBE HEAT: flashing with the switch at TEST; ECM: damage flag 1; EQUIP HOT: the avionics up with AIR SOURCE at OFF, or RAM below 70 kt (FlightGear's) |
   | AoA indexer (left of the HUD) | `better` `aoa_index`: 1 the slow chevron (red), 2 the donut (green), 3 the fast chevron (yellow) |
   | AR/NWS (right of the HUD) | `better` `ar_nws` (on the ground) |
   | the three gear lamps | that leg down and locked (`gear_legs[i]` = 2: nose, left, right) |

@@ -387,6 +387,9 @@ Parts:
 - Fixed 2026-11-18 (the faults the manuals exposed, group A): the F-16's airspeed dial reads indicated airspeed
   (`cockpit3d.gd`, the HUD's and the Adir's displays already did); an empty tank flames the engine out
   ([flight-model.md](flight-model.md) "Flame-out").
+- Fixed 2026-11-18 (group B, lamps): CABIN PRESS lights with AIR SOURCE at OFF, DUMP or RAM above 27,000 ft; MAIN
+  GEN, STBY GEN and ELEC SYS light after generator damage (flags 19, 21); FLCS FAULT, ADC / CADC and FLCS BIT FAIL
+  light from their modelled causes; the Adir's ICAWS writes FCS DEGD / FCS FAIL (`test_cockpit_lamps.gd`).
 - Found while writing chapter 1, the game's and listed, not changed here: MANUAL PITCH, CAT III and the roll trim have keys read by the flight scene with no record
   in `keys.json`, so the manuals name their switches only; ALT FLAPS and the Flaps key move the game's flaps lever
   while the 6-DoF flaps follow the gear handle, so chapter 1 says nothing of ALT FLAPS in the sim; the Manuals screen
@@ -409,18 +412,14 @@ Parts:
   real one; the card has no line for the speedbrakes or the altimeter before landing, which the real "Descent/before
   landing" has.
 - Found while writing chapter 3, the game's and listed, not changed here:
-  - CABIN PRESS cannot light in flight: the cabin altitude holds a 5 psi differential and stays under the lamp's
-    27,000 ft threshold (`instruments.rs`, `cockpit3d.gd`).
-  - Generator damage (flags 19, 21) lights none of MAIN GEN, STBY GEN, ELEC SYS; those follow the start only.
-  - Lamps dark though their condition is modelled: FLCS FAULT (hydraulic or flight control damage), FLCS BIT FAIL
-    (the MFD's BIT can fail), ADC / CADC (air data damage), STORES CONFIG.
+  - STORES CONFIG stays dark: the sim has no data on which loads are category III (open; with the CAT III handling,
+    not started). FLCS BIT FAIL lights from the MFD's BIT only.
   - The "engine cut out" damage (flag 2) is never picked, so its restart path is dead code.
   - An engine fire stops the thrust of a single-engine jet (`damage_bits`); the extinguisher (a 1998 function; the real
     jets have none in the cockpit procedure) restores the engine at once.
   - An ejection works at any height: the low limits (50 m, 200 m inverted) only mark the recording's `eject` event
     `short` (`Settings.eject_ends_sortie`).
   - "Bingo" is spoken at a fixed 1,000 lb and 500 lb; the HUD's FUEL cue uses the pilot's bingo.
-  - The F-35I's ICAWS writes FLCS DEGD / FLCS FAIL; the jet's term is FCS.
   - The F-16's `alt-gear` handle moves only while the F-35I's ALT GEAR works; the hook, the EPU, the parking brake and
     the F-35I's ENG FIRE push, FCS RESET, AUTO RECOVERY and ejection handle move only.
   - The notebook's EMERGENCY pages (`modern-iaf/data/notebook.json`) hold steps the sim cannot do: motoring after a

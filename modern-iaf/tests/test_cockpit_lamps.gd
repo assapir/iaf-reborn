@@ -28,6 +28,8 @@ var _id := ""
 
 
 func run() -> void:
+	var icaws: Array = load("res://shared/cockpit/pcd_formats.gd").DAMAGE_CAUTIONS.map(func(r): return r[1])
+	check(icaws.has("FCS FAIL") and not icaws.any(func(t): return "FLCS" in t), "the Adir's ICAWS says FCS")
 	await require_data()
 	var fly_gd: GDScript = load("res://flight/fly.gd")
 	for id in JETS:
@@ -234,3 +236,39 @@ func _start(tv: Node, id: String) -> void:
 	check(_lit_now("caution_equip_hot"), "%s: AIR SOURCE OFF, EQUIP HOT" % id)
 	_ctl.put(air, 1.0)
 	check(not _lit_now("caution_equip_hot"), "%s: AIR SOURCE NORM, EQUIP HOT dark" % id)
+	_faults(tv, id, air)
+
+
+## On the generators: the lamps whose cause is damage or the unpressurised cabin (manuals.md §7, group B).
+func _faults(tv: Node, id: String, air: Dictionary) -> void:
+	var c: Control = tv.cockpit
+	var st: Dictionary = c.state.duplicate()
+	c.state["alt_ft"] = 30000.0
+	c.state["cabin_alt_ft"] = 13000.0
+	check(not _lit_now("caution_cabin_press"), "%s: 30,000 ft at NORM, CABIN PRESS dark" % id)
+	for pos in [0.0, 2.0, 3.0]:
+		_ctl.put(air, pos)
+		var gauge: float = _c3d._prop("f16/cockpit/pressure-ft")
+		check(_lit_now("caution_cabin_press") and gauge == 30000.0, "%s: AIR SOURCE at %d, CABIN PRESS" % [id, pos])
+	_ctl.put(air, 1.0)
+	c.state = st
+	var flags: Array = c.damage_flags
+	var lit := func(flag: int, keys: Array) -> bool:
+		c.damage_flags = []
+		c.damage_flags.resize(25)
+		c.damage_flags.fill(false)
+		var before: bool = keys.any(_lit_now)
+		c.damage_flags[flag] = true
+		return not before and keys.all(_lit_now)
+	check(lit.call(19, ["main_gen", "caution_elec_sys"]) and not _lit_now("stby_gen"), "%s: damage 19, MAIN GEN" % id)
+	check(lit.call(21, ["main_gen", "stby_gen", "caution_elec_sys"]), "%s: damage 21, both generators' lamps" % id)
+	check(lit.call(18, ["caution_flt_cont_sys"]), "%s: hydraulics damage, FLCS FAULT" % id)
+	check(lit.call(24, ["caution_flt_cont_sys"]), "%s: total flight control damage, FLCS FAULT" % id)
+	check(lit.call(11, ["caution_adc", "caution_c_adc"]), "%s: air data damage, ADC and CADC" % id)
+	var bits: Array = c.mfds.filter(func(m): return m.get("real_fmt") != null)
+	for m in bits:
+		m.real_fmt.bit_t = m.real_fmt._clock() - 60.0  # the FLCS format's BIT, run to its end
+	check(not bits.is_empty() and lit.call(24, ["flcs_bit_fail"]), "%s: the BIT failed, FLCS BIT FAIL" % id)
+	for m in bits:
+		m.real_fmt.bit_t = -1.0
+	c.damage_flags = flags

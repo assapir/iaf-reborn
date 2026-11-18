@@ -1480,8 +1480,12 @@ func _lamp_on(key: String) -> bool:
 			return a != null and float(a.get("canopy_open")) > 0.01
 		"dbu_on":  # the DBU switch on (the digital backup itself is not modelled)
 			return _sw("f16/fcs/digital-backup")
-		"main_gen", "stby_gen":  # the generators not on the buses: on the battery (FlightGear's jsb-electrical)
-			return cockpit.power == 1
+		# The generators not on the buses: on the battery (FlightGear's jsb-electrical), or failed (damage 19 the main
+		# generator, 21 both: the pilot fault list's GEN MAIN / GEN STBY FAIL).
+		"main_gen":
+			return cockpit.power == 1 or flag.call(19) or flag.call(21)
+		"stby_gen":
+			return cockpit.power == 1 or flag.call(21)
 		"flcs_pmg", "flcs_rly":  # on the battery until the JFS turns (FlightGear's jsb-electrical)
 			return _phase() == "off"
 		"to_flcs":  # the battery feeding the FLCS while the engine turns below 44 % (start or run-down)
@@ -1493,6 +1497,8 @@ func _lamp_on(key: String) -> bool:
 				absf(float(switches.get("f16/engine/jfs-start-switch", 0.0))) > 0.5
 				and _phase() not in ["off", "starter"]
 			)
+		"flcs_bit_fail":  # the MFD's FLCS BIT ended in FAIL (f16_mfd.gd)
+			return cockpit.mfds.any(func(m): return m.get("real_fmt") != null and m.real_fmt._bit() == "FAIL")
 		"flcs_bit_run":  # the BIT switch at BIT (the self test itself is not modelled)
 			return _sw("f16/fcs/bit")
 		"avtr":
@@ -1508,12 +1514,16 @@ func _lamp_on(key: String) -> bool:
 			return ["main_gen", "stby_gen", "flcs_pmg", "to_flcs", "flcs_rly"].any(_lamp_on)
 		"caution_engine_fault", "caution_avionics":  # the pilot fault list's ENG and AV classes (the damage flags)
 			return _fault_class(2 if key == "caution_engine_fault" else 3)
+		"caution_flt_cont_sys":  # FLCS FAULT: the pilot fault list's FLCS class, or the total failure (inferred)
+			return _fault_class(1) or flag.call(24)
+		"caution_adc", "caution_c_adc":  # the air data failed (damage 11, the fault list's AIR DATA FAIL; inferred)
+			return flag.call(11)
 		"caution_le_flaps":  # the LE FLAPS switch at LOCK (FlightGear's failures.nas; the jet flies at AUTO, its rest)
 			return float(switches.get("f16/fcs/le-flaps-switch", 1.0)) < 0.5
 		"caution_hook":  # the hook handle down (the hook itself is not modelled)
 			return _sw("f16/cockpit/tailhook-handle")
 		"caution_cabin_press":  # the cabin above 27,000 ft (FlightGear's)
-			return float(cockpit.state.get("cabin_alt_ft", 0.0)) > 27000.0
+			return _cabin_alt_ft() > 27000.0
 		"caution_fwd_fuel_low", "caution_aft_fuel_low":
 			# FlightGear's: the forward reservoir below 400 lb, the aft below 250 lb; the game keeps one total, the two
 			# reservoirs drained alike: below 800 and 500 lb (inferred).
@@ -1533,6 +1543,13 @@ func _lamp_on(key: String) -> bool:
 			var launch: bool = cockpit.rwr.any(func(e): return e.active and e.launch)
 			return launch and int(Time.get_ticks_msec() / BLINK_MS) % 2 == 0
 	return false
+
+
+## The cabin's altitude, ft: the pressure schedule's with AIR SOURCE at NORM (1); the jet's own at OFF, DUMP and RAM,
+## which give the cabin no pressure (T.O. GR1F-16CJ-1 p. 1-181, modern-iaf/manuals ch. 1 "Canopy and seat").
+func _cabin_alt_ft() -> float:
+	var norm := roundi(float(switches.get("controls/ventilation/airconditioning-source", 1.0))) == 1
+	return float(cockpit.state.get("cabin_alt_ft" if norm else "alt_ft", 0.0))
 
 
 ## HYD / OIL PRESS's threshold: 1000 psi in the game's pressure (bar, iaf_flight::instruments::hydraulic_pressure).
@@ -1633,7 +1650,7 @@ func _instrument_prop(p: String) -> float:
 			var ab: PackedFloat32Array = s.get("hyd_ab", PackedFloat32Array([0.0, 0.0]))
 			return HYD_PSI * ab[0 if p.ends_with("sysa-psi") else 1]
 		"f16/cockpit/pressure-ft":
-			return float(s.get("cabin_alt_ft", 0.0))
+			return _cabin_alt_ft()
 		"f16/cockpit/hydrazine-minutes":
 			return EPU_FULL_MIN
 		"f16/cockpit/oxygen-liters-output":
