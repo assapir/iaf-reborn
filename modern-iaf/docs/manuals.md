@@ -19,13 +19,14 @@ published form.
 Written in the three jet manuals: chapter 1 "Description and systems" whole (1.1 The aircraft, 1.2 Cockpit
 arrangement with every panel and item numbered, 1.3 to 1.12 the systems; §2) and chapter 2 "Normal procedures" whole
 (2.1 Preflight and cockpit entry, 2.2 Cold start to take-off, 2.3 Climb, cruise and descent, 2.4 Approach and landing,
-2.5 After landing and engine shutdown, 2.6 Air refuelling; §2 "Chapter 2"); in the game manual the key card and Attributions. Every other section is a plan in the outline. The
+2.5 After landing and engine shutdown, 2.6 Air refuelling; §2 "Chapter 2") and chapter 3 "Emergency procedures" whole
+(3.1 to 3.8; §2 "Chapter 3"); in the game manual the key card and Attributions. Every other section is a plan in the outline. The
 appendices (checklist, key card, controls, abbreviations, attributions, index) are drawn from the game's data, so they
 are whole. The Hangar's Manuals entry opens the four PDFs ([front-end.md](front-end.md) §1).
 
 **Next, in this order.**
 
-1. The other chapters, a chapter a branch, the three jets together: 3 Emergency procedures, 4 Limits, 5 Flight
+1. The other chapters, a chapter a branch, the three jets together: 4 Limits, 5 Flight
    characteristics, 6 Weapons and avionics; then the game manual, with "Missions and training".
 2. Each row of section 1.2's F-16 tables against the flight manual's section I (§7); its text is now searchable
    (§2 "Chapter 1's system sections").
@@ -113,6 +114,19 @@ content only (`sim: none`).
 |---|---|
 | F-16 | the flight manual's section II, pages 2-2 to 2-30 (take-off 2-20 and 2-21, the checks in flight 2-22 and 2-23, the landing 2-23 to 2-27 with figure 2-3's approach speeds, the shutdown 2-27 to 2-30), the hot start on the ground page 3-26, air refuelling page 8-34. Section 2.2's footnotes now name these pages; its JFS and generator figures are the manual's (55 % and 60 %), with the sim's 52 % said beside them. |
 | F-35I | US Air Force Instruction 11-2F-35A Volume 3 (7 June 2012, no releasability restrictions), by paragraph: flying rules of the jet's development period (taxi speeds, the checks in flight, the fuel calls, the pattern, the approach category). It holds no checklist, and the manual says so; a copy and notes are kept outside the repo. The footnotes carry no link: the publisher's site refuses automated access. Climb schedule, approach speeds and the landing technique are "open". |
+
+**Chapter 3** (`text/en/f16/ch3/`, `text/en/f35i/ch3/`, a file a section, in the order of a flight: how an emergency
+shows, ground, take-off, engine, systems, out-of-control, landing, ejection). Each emergency is a heading with its
+own state chip under it (`state("full" | "part" | "none")` in `ch3/src.typ`): what it is, why it matters, the
+indications in bold with each light by figure and number (`row`), the actions in order, what follows, and an "In the
+sim:" box. The sim's side was written from an inventory of the code (the damage flags of
+`shared/mission/player_damage.gd`, the lamps of `shared/cockpit/cockpit3d.gd`, the start's faults in
+`crates/iaf-flight/src/sixdof/start.rs`, the status data), not from the outline's plan.
+
+| jet | chapter 3's sources |
+|---|---|
+| F-16 | the flight manual's section III, by page: 3-3, 3-26 to 3-29, 3-33 to 3-41, 3-43 to 3-45, 3-61, 3-62, 3-70, 3-79, 3-80, 3-98, 3-99, 3-105, 3-108, 3-117, 3-118, 3-121, 3-123, 3-124, 3-128 to 3-131, 3-134, 3-136, 3-139, 3-140. Where the steps read are the Pratt & Whitney engine's, the Barak's text says "inferred". The single FLCS procedures (pages 3-108 to 3-116) are named, not repeated. |
+| F-35I | US Air Force Instruction 11-2F-35A Volume 3, chapter 7 and the paragraphs named in the footnotes. No emergency checklist of the F-35 is public: every procedure it would hold is "open", and the manual gives no invented steps. |
 
 **References.** Every mention of a control carries its figure and number as a link to its row, in one form: "MAIN PWR
 (1-8, 1)" (`ctl-ref`): a procedure's steps, the checklist card, the Controls appendix, and `ctl("…")` in a text. Figures
@@ -357,6 +371,28 @@ Parts:
   Key column is empty there; the F-16's FUEL QTY SEL knob moves only, so the card's fuel check cannot be done as the
   real one; the card has no line for the speedbrakes or the altimeter before landing, which the real "Descent/before
   landing" has.
+- Found while writing chapter 3, the game's and listed, not changed here:
+  - CABIN PRESS cannot light in flight: the cabin altitude holds a 5 psi differential and stays under the lamp's
+    27,000 ft threshold (`instruments.rs`, `cockpit3d.gd`).
+  - Generator damage (flags 19, 21) lights none of MAIN GEN, STBY GEN, ELEC SYS; those follow the start only.
+  - Lamps dark though their condition is modelled: FLCS FAULT (hydraulic or flight control damage), FLCS BIT FAIL
+    (the MFD's BIT can fail), ADC / CADC (air data damage), STORES CONFIG.
+  - An empty tank leaves the RPM near idle with generators and displays on; only a commanded shutdown runs the engine
+    down. The ENGINE light does not come on.
+  - The "engine cut out" damage (flag 2) is never picked, so its restart path is dead code.
+  - An engine fire stops the thrust of a single-engine jet (`damage_bits`); the extinguisher (a 1998 function; the real
+    jets have none in the cockpit procedure) restores the engine at once.
+  - An ejection works at any height: the low limits (50 m, 200 m inverted) only mark the recording's `eject` event
+    `short` (`Settings.eject_ends_sortie`).
+  - "Bingo" is spoken at a fixed 1,000 lb and 500 lb; the HUD's FUEL cue uses the pilot's bingo.
+  - The F-35I's ICAWS writes FLCS DEGD / FLCS FAIL; the jet's term is FCS.
+  - The F-16's `alt-gear` handle moves only while the F-35I's ALT GEAR works; the hook, the EPU, the parking brake and
+    the F-35I's ENG FIRE push, FCS RESET, AUTO RECOVERY and ejection handle move only.
+  - The notebook's EMERGENCY pages (`modern-iaf/data/notebook.json`) hold steps the sim cannot do: motoring after a
+    hot start, an engine fire on the ground, the ejection handle.
+  - No horn or light warns of a low speed or of the gear up beyond TO/LDG CONFIG; `horn_silencer` moves only.
+- Open in chapter 3's sources: for the F-35 every emergency procedure (fire, engine failure and restart, electrical
+  and flight control failures, out-of-control recovery, alternate gear, ejection envelope).
 - Open in chapter 2's sources: the F-16's climb schedules (the performance manual, not public); for the F-35 the climb
   schedule, the approach speeds, the landing technique and the air-refuelling cockpit procedure; the footnote for the
   F-16's exterior inspection names figure 2-4 without its page.

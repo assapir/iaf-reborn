@@ -3,7 +3,7 @@
  "source": "ayton",
  "abbreviations": {
 "ILS": "Instrument landing system",
-  "FCS": "Flight control system",
+  "FCS": "Flight control system", "FLCS": "Flight control system, as the sim's ICAWS format writes it", "AP": "Autopilot",
   "HMD": "Helmet-mounted display",
   "IPP": "Integrated power pack",
   "IAF": "Israeli Air Force",
@@ -44,6 +44,7 @@
   "REC": "Recovery"
  },
  "words": [
+  "BRAKES", "DEGD", "ELEC", "FAIL", "FLAPS", "GUN", "LEAK", "RADAR", "RECOVERY", "WPN",
   "ACTIVE",
   "AFTER",
   "AIR",

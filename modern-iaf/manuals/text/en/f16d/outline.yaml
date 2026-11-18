@@ -36,14 +36,14 @@ chapters:
   title: Emergency procedures
   intro: The real jet's emergencies by phase of flight. Each item says whether the sim can produce it.
   sections:
-  - {id: emergency-general, title: How an emergency shows, sim: part, covers: "The warning and caution lights, the voice messages, damage from hits and from a hard landing, and what ends the flight at once.", not: "Random system failures: a fault comes only from damage or from a wrong action."}
-  - {id: emergency-ground, title: Ground emergencies, sim: part, covers: "Hot start (the throttle to idle below 20 % RPM), no light-off, a start with no power, the aborted start.", not: "Engine fire on the ground, brake failure and emergency ground egress."}
-  - {id: emergency-takeoff, title: Take-off emergencies, sim: part, covers: "The aborted take-off with brakes and drag chute, leaving the runway.", not: "Engine failure on take-off, a blown tyre and a gear that does not retract."}
-  - {id: emergency-engine, title: Engine emergencies in flight, sim: part, covers: "Engine fire after a hit and the extinguisher, fuel exhaustion.", not: "The air start, compressor stall, oil and nozzle failures and the EPU's run."}
-  - {id: emergency-systems, title: "Electrical, hydraulic and flight control failures", sim: none, covers: "The real procedures in outline: generator failures, hydraulic failures, FLCS faults.", not: "All of it; battle damage to the systems is described in the section before it."}
-  - {id: emergency-control, title: Out-of-control recovery, sim: part, covers: "The departure and the deep stall, and the recovery with the MANUAL PITCH override.", not: "Inverted deep stalls and spins beyond what the flight model's data covers."}
-  - {id: emergency-landing, title: Landing emergencies, sim: part, covers: "Landing with damage, the gear that stays up after damage, the hard landing, the overrun.", not: "The flameout landing pattern, the alternate gear extension and the hook's cable arrestment."}
-  - {id: ejection, title: Ejection, sim: full, covers: "When to eject and how: the ejection key pressed three times, and what follows."}
+  - {id: emergency-general, title: How an emergency shows, sim: part, file: f16/ch3/general.typ}
+  - {id: emergency-ground, title: Ground emergencies, sim: part, file: f16/ch3/ground.typ}
+  - {id: emergency-takeoff, title: Take-off emergencies, sim: part, file: f16/ch3/takeoff.typ}
+  - {id: emergency-engine, title: Engine emergencies in flight, sim: part, file: f16/ch3/engine.typ}
+  - {id: emergency-systems, title: "Electrical, hydraulic and flight control failures", sim: none, file: f16/ch3/systems.typ}
+  - {id: emergency-control, title: Out-of-control recovery, sim: part, file: f16/ch3/control.typ}
+  - {id: emergency-landing, title: Landing emergencies, sim: part, file: f16/ch3/landing.typ}
+  - {id: ejection, title: Ejection, sim: full, file: f16/ch3/ejection.typ}
 - id: limits
   title: Limits
   intro: The real jet's operating limits. A limit the sim does not enforce is marked.
