@@ -39,7 +39,7 @@ final: no agent is a native reviewer.
 
 **Next, in this order.**
 
-1. Chapter 6's owed pictures (§7): the F-16s' gun funnel with a lock and helmet cues, and the Adir's GPS bomb helmet cues.
+1. Chapter 6's owed pictures (§7): the F-16s' gun funnel with a lock and helmet cues.
 2. Each row of section 1.2's F-16 tables against the flight manual's section I (§7); its text is now searchable
    (§2 "Chapter 1's system sections").
 
@@ -414,7 +414,7 @@ figure has no size yet, so a digit drawn the same way is measured for it).
 real render with its command in its header, and then cut and joined with ImageMagick: `_fcr_shot.gd` (`d_fcr_modes`,
 `d_fcr_pages`, `d_hud_lock`), `_fcr_ag_shot.gd` (`d_fcr_ag`), `_mfd_s4_shot.gd` (`d_mfd_formats`, `d_mfd_menu_sms`),
 `_avionics_s5_shot.gd` (`d_ded_pages`, `d_ded_ins`, `d_hud_modes`, `d_hsd`, `d_fcr_aiff`, `d_threat`, `d_threat_radars`) and
-`_adir_s7b_shot.gd` (the Adir's), `_adir_tflir_shot.gd` (`d_tflir`), `_f16_weapons_shot.gd` (`d_hud_ccip_delayed`, `d_hud_gps`, `d_hud_gps_inrng`; the HUD's part of the frame, 19 November 2026). The Sufa's serve both F-16 manuals.
+`_adir_s7b_shot.gd` (the Adir's), `_adir_tflir_shot.gd` (`d_tflir`), `_adir_gps_shot.gd` (`d_helmet_gps`), `_f16_weapons_shot.gd` (`d_hud_ccip_delayed`, `d_hud_gps`, `d_hud_gps_inrng`; the HUD's part of the frame, 19 November 2026). The Sufa's serve both F-16 manuals.
 
 **The game manual's screens** (`pictures/game/`, 18 November 2026) are taken in English by the front end's own shot
 scripts, each a real render with its command in its header, and scaled to 1,600 px JPEGs with ImageMagick (the name
@@ -598,7 +598,7 @@ Parts:
   - The Adir: `systems.json` says EMER_JETT "drops the external stores" while the code drops the bays' too; JETT_SEL
     moves only. Fixed 2026-11-18: the function bar's SWAP and MENU and the portals' `CNTL>` work (the TFLIR's WIDE /
     SPOT is on its CNTL page).
-- Owed after chapter 6, the Adir: a picture of a GPS bomb's helmet cues. Tried on 18 November 2026 (the range at Nevatim, a GBU-31 in bay station 4, the A-G master mode, a point designated on the radar's ground map, the jet held in a dive to it): the lesson's boxes and toasts hide with `tv.addon.ui.visible = false`, but the helmet showed the steering line and a circle on the point while the bomb's box stood off the line and no `TMR` / `IN RNG` text and no staple's caret showed, so the picture did not match the text; the cause (the aim's box, the LAR's values in a held dive) needs a look at `IafModes` / `gps.rs`, which is Rust. No script was kept.
+- The Adir's GPS bomb helmet picture (`d_helmet_gps`, `_adir_gps_shot.gd`, 19 November 2026) is taken level, inside the release range and outside the minimum range. The 18 November try dived inside the minimum range (so no TMR / IN RNG) and its box sat on Target 1, not on the radar's point: PRE aims at the route's Target 1 and the radar point gets its own circle, as designed.
 - The Adir's pictures taken: the TFLIR with video
   (`d_tflir`, `_adir_tflir_shot.gd`, 18 November 2026).
   The SMS and the MENU grid are taken (`d_sms`, `d_menu`); the default layout is `d_pcd`. Not verified in the game: how

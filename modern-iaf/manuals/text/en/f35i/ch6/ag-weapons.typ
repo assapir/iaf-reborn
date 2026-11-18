@@ -17,6 +17,8 @@ A bomb takes its point in one of two modes. #key("GPS bomb PRE / VIS") changes t
 
 With one of these bombs selected and a point to aim at, the helmet shows:
 
+#display("helmet_gps", [A GBU-31 in PRE, level, 18 km from Target 1: the steering line through the centre, the bracket and its caret, and TMR 0:45 under the bracket.], width: 100%)
+
 - *a box* on the point. Outside the display's field it waits at the edge with an X over it. It shows when you look aside too;
 - *a steering line* through the point. #sym.arrow.r *Put the flight path marker on it;*
 - *a bracket* right of the centre, with a caret beside it. The caret is the distance to the point; the bracket is the span of distances from which the bomb can be released;
