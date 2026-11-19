@@ -3068,8 +3068,8 @@ func _command(cmd: Array) -> bool:
 			cockpit.radar_mfd()
 			weapons.radar_event(int(cmd[0]))
 		43:
-			# R (event 0x2b): shows the radar page if no MFD shows it, else A-A / A-G (and on).
-			if cockpit.mfds.any(func(m): return m.page == 2):
+			# R (event 0x2b): shows the radar page if no display shows it, else A-A / A-G (and on).
+			if cockpit.radar_shown():
 				weapons.radar_event(0x2b)
 			else:
 				cockpit.radar_mfd()

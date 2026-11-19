@@ -179,6 +179,17 @@ func windows() -> Array:
 	return st.windows.map(func(w): return [_on_area(w[0]), int(w[1]), int(w[2])])
 
 
+## Whether format `f` is on the glass: in a shown portal without its MENU grid over it (a pop-up's format in its
+## place), or drawn in miniature in a window along the foot (_draw_window); a tab shows only its name.
+func on_glass(f: String) -> bool:
+	var m := main
+	var grid := menu_open
+	for i in m.size():
+		if m[i] == f and shown(i) and not (i < grid.size() and grid[i]):
+			return true
+	return st.get("windows", []).any(func(w): return tabs[int(w[1])][int(w[2])] == f)
+
+
 ## Whether portal `i` shows (a widened half hides its second).
 func shown(i: int) -> bool:
 	return Rect2(st.portals[i]).size != Vector2.ZERO

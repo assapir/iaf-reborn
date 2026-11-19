@@ -656,8 +656,19 @@ func hud_panel_input() -> Dictionary:
 	}
 
 
-## The MFD showing the radar (radar keys first put the radar on the Left MFD if none shows it).
+## Whether a display shows the radar: an MFD's radar page; on the F-35I's panoramic display SRCH on the glass, in a
+## shown portal or a window (pcd.gd on_glass; its hidden MFD nodes do not count).
+func radar_shown() -> bool:
+	return pcd.on_glass("SRCH") if pcd != null else mfds.any(func(m): return m.page == 2)
+
+
+## The MFD showing the radar (radar keys first put the radar on the Left MFD if none shows it). On the panoramic
+## display: SRCH into its left portal (an open pop-up closed) unless the glass shows it; null.
 func radar_mfd() -> Node:
+	if pcd != null:
+		if not radar_shown():
+			pcd._show(0, "SRCH")
+		return null
 	for m in mfds:
 		if m.page == 2:
 			return m
