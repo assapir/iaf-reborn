@@ -4,9 +4,14 @@
 # - hud_ccip_delayed.png: a Mk 83 in CCIP, the impact point below the HUD's view, the release button held: the
 #   steering line and the release cue;
 # - hud_gps.png, hud_gps_inrng.png: a GBU-31 on a point designated 20 km out: the box, steering line, range scale and
-#   caret with the time to release, then IN RNG.
-# The gun's funnel with a lock and the helmet's symbols are owed (manuals.md §7): a drone moved by the script flies on
-# from where its own flight model is, so no radar lock and no padlock on it came out of a scripted run.
+#   caret with the time to release, then IN RNG;
+# - helmet.png: the Python 5 selected, Drone 1 locked 54° left of the nose and 15° up, the head turned to it: the
+#   helmet's cross, the radar's box and the seeker's diamond on the drone (the helmet's part of the frame);
+# - hud_gun_lock.png: the gun (EEGS) with Drone 1 locked 600 m ahead, the jet pulling: the funnel, the drone in it
+#   under the T-symbol and the 1 g pipper, the range arc and the 9 g pipper.
+# A drone flies where its own flight model is (moving its node does not move it), so the jet is put behind the drone
+# where it flies (`_behind`, as _fcr_shot.gd). SHOT_ONLY=aa takes the last two only; SHOT_DRY=1 runs headless, no
+# pictures.
 #   flock ~/.cache/iaf-gpu-bench.lock tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 SHOT_DIR=<dir> -- \
 #     --resolution 1920x1080 --path modern-iaf -s ../modern-iaf/tests/_f16_weapons_shot.gd --log-file <temp>
 extends "res://../tests/godot/base.gd"
@@ -60,20 +65,22 @@ func _select(part: String, ag: bool) -> void:
 ## `name`.png: the frame's `r` (in 1920 x 1080 units) scaled to 1600 wide.
 func _crop(name: String, r: Rect2) -> void:
 	await fly(tv, 0.4)
+	print("shot ", name, " hud: ", w.hud_mode, " ", w.stores.current_name())
+	if DisplayServer.get_name() == "headless":
+		return
 	await RenderingServer.frame_post_draw
 	var img: Image = root.get_texture().get_image()
 	var s := img.get_width() / 1920.0
 	var c := img.get_region(Rect2i(Vector2i(r.position * s), Vector2i(r.size * s)))
 	c.resize(1600, int(1600.0 * r.size.y / r.size.x), Image.INTERPOLATE_LANCZOS)
 	c.save_png(dir.path_join(name + ".png"))
-	print("shot ", name, " hud: ", w.hud_mode, " ", w.stores.current_name())
 
 
 const HUD := Rect2(760, 210, 400, 280)
 
 
 func run() -> void:
-	if DisplayServer.get_name() == "headless":
+	if DisplayServer.get_name() == "headless" and OS.get_environment("SHOT_DRY") == "":
 		check(false, "needs a window")
 		return
 	await require_data()
@@ -108,6 +115,15 @@ func run() -> void:
 	tv._apply_view()
 	tv.views.snap = Vector2.ZERO
 	await fly(tv, 2.0)
+	if OS.get_environment("SHOT_ONLY") != "aa":
+		await _ag(t1)
+	await _aa()
+	print("RESULT PASS")
+	tv.queue_free()
+	await frames(5)
+
+
+func _ag(t1: Dictionary) -> void:
 	# 1. Delayed CCIP: the Mk 83, level, the impact point well below the view; the button held.
 	w.select_ag()
 	await _select("83", true)
@@ -141,6 +157,66 @@ func run() -> void:
 		await fly(tv, 0.1)
 	print("gps in_range=", w.ag.gps.get("in_range"))
 	await _crop("hud_gps_inrng", HUD)
-	print("RESULT PASS")
-	tv.queue_free()
-	await frames(5)
+
+
+## The jet `dist` m behind drone `d` where its flight model has it, at its velocity and pitch; `side` m to its right,
+## `up` m above it.
+func _behind(d, dist: float, side := 0.0, up := 0.0) -> void:
+	var st: Dictionary = d.state()
+	var fw: Vector3 = st.velocity.normalized()
+	var pos: Vector3 = st.position - fw * dist + fw.cross(Vector3.UP).normalized() * side + Vector3(0, up, 0)
+	var att := Vector3(st.pitch, 0, st.heading)
+	tv.rig.position = pos
+	tv.flight.start(settings().own_dir(), tv.player.fm_section, pos, att, st.velocity, airborne_flags())
+	tv.gear_down = false
+	tv.throttle = 0.85
+
+
+## Locks drone `d` once the radar lists it (up to 10 s).
+func _lock(d) -> bool:
+	for i in 40:
+		if w.radar.lock_key(String(d.ent.key)) or String(w.radar.locked().get("key", "")) == String(d.ent.key):
+			return true
+		await fly(tv, 0.25)
+	print("no lock on ", d.ent.name)
+	return false
+
+
+func _aa() -> void:
+	var d = tv.ai.pilots.filter(func(p): return String(p.ent.name).begins_with("Drone 1"))[0]
+	if not w.master_arm:
+		_key(KEY_A, "s")
+	# 3. The helmet: the Python 5, the drone locked 54° left and 15° up at 500 m (the HUD's glass out of view).
+	w.select_aa()
+	await _select("pyth", false)
+	# Locked ahead (the search's bars do not reach 15° up), then the jet moved under it; the track holds.
+	_behind(d, 1000.0)
+	await fly(tv, 1.0)
+	var locked := await _lock(d)
+	_behind(d, 285.0, 390.0, -130.0)
+	# The head on the drone: the 3D cockpit's camera, the helmet's line of sight, is VIEW_3D_LOOK_DOWN_DEG below the
+	# head (terrain_view.gd _apply_view), so a padlock leaves the drone that far above the helmet's cross.
+	tv.views.snap = null  # a snap holds the head
+	for i in 5:
+		var b: Basis = tv.views.player.global_basis.orthonormalized()
+		var v: Vector3 = b.inverse() * (d.node.global_position - tv.camera.global_position)
+		var up := atan2(v.y, Vector2(v.x, v.z).length()) + deg_to_rad(tv.cockpit.VIEW_3D_LOOK_DOWN_DEG)
+		tv.views.set_head(Vector2(atan2(v.x, -v.z), up))
+		await fly(tv, 0.1)
+	print("helmet lock=", w.radar.has_lock(), " dash=", tv.cockpit.dash(), " seeker=", w.hobs_cue().get("pos") != null)
+	await _crop("helmet", Rect2(600, 300, 720, 420))
+	# 4. The gun with the lock, the drone 600 m ahead and 90 m above; the jet pulls 3.4 g for 0.8 s (the funnel
+	# lengthens with the g) and the drone comes down into the funnel, under the T-symbol.
+	tv.views.set_cockpit(tv.views.COCKPIT)
+	tv._apply_view()
+	tv.views.snap = Vector2.ZERO
+	await _select("20 mm", false)
+	_behind(d, 1000.0)
+	await fly(tv, 0.5)
+	locked = await _lock(d)
+	_behind(d, 600.0, 0.0, -90.0)
+	tv.scripted_stick = Vector2(0.0, 0.5)
+	await fly(tv, 0.8)
+	print("gun lock=", locked and w.radar.has_lock(), " g=", tv.flight.state().get("g"))
+	await _crop("hud_gun_lock", HUD)
+	tv.scripted_stick = null

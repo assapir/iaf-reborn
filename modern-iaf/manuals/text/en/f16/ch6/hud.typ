@@ -39,6 +39,8 @@ A large *X* flashes when the radar altitude and the dive call for an immediate p
 
 The helmet sight puts an aiming cross on the visor. Look at a target to point a short-range missile's seeker at it; a diamond shows where the seeker tracks. #row("HMCS_SYM_INT_KNOB") dims it to off. That the real helmet's symbols look the same is inferred: no figure of them is public.
 
+#display("helmet", [The helmet looking 54° left at a locked target, a short-range missile selected: the aiming cross, the radar's box and the seeker's diamond on the target, the circle whose gap shows where the head looks from the nose, the head's heading above, the g and speed at the left, the altitude and steerpoint at the right.], width: 90%)
+
 #in-sim[
   - The two switches DED DATA and DEPR RET work by their keys only.
   - #row("test-step-switch") moves only: the HUD's four test patterns#d34[page 1-158] are not drawn.

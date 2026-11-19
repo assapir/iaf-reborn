@@ -39,6 +39,8 @@ The HUD's right column (the sim's place) shows how long the missile still flies#
 + Fly the target between the funnel's two lines so that its wing tips touch them. With a radar lock #then[an aiming dot shows]: put the dot on the target.
 + Hold #key("Gun trigger"). #then[The gun fires and the rounds count goes down.]
 
+#display("hud_gun_lock", [The gun with a target locked, the jet pulling 4.6 g: the funnel, the target in it under the long bar across it, and the range arc beside the target.], width: 90%)
+
 #in-sim[
   - With the gear handle down the gun does not fire.
   - #term("Not modelled"): the time of flight before the launch, and the target's range at those moments; the seeker's SLAVE and BORE options and its cooling.

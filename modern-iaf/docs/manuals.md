@@ -28,8 +28,8 @@ appendices (checklist, key card, controls, abbreviations, attributions, index) a
 are whole. The Hangar's Manuals entry opens the four manuals, the game manual in the game's language
 ([front-end.md](front-end.md) §1).
 
-Chapter 6 "Weapons and avionics" is written whole in the three jet manuals (§2 "Chapter 6"), with the pictures listed
-as owed in §7.
+Chapter 6 "Weapons and avionics" is written whole in the three jet manuals (§2 "Chapter 6"), with its pictures (the
+last two, the F-16s' gun funnel with a lock and the helmet, taken 19 November 2026).
 
 The game manual is written whole (§2 "The game manual"): six chapters, 34 sections, with the screens' pictures; no
 outline holds a planned section any more.
@@ -39,8 +39,7 @@ final: no agent is a native reviewer.
 
 **Next, in this order.**
 
-1. Chapter 6's owed pictures (§7): the F-16s' gun funnel with a lock and helmet cues.
-2. Each row of section 1.2's F-16 tables against the flight manual's section I (§7); its text is now searchable
+1. Each row of section 1.2's F-16 tables against the flight manual's section I (§7); its text is now searchable
    (§2 "Chapter 1's system sections").
 
 ## 2. The outline
@@ -414,7 +413,7 @@ figure has no size yet, so a digit drawn the same way is measured for it).
 real render with its command in its header, and then cut and joined with ImageMagick: `_fcr_shot.gd` (`d_fcr_modes`,
 `d_fcr_pages`, `d_hud_lock`), `_fcr_ag_shot.gd` (`d_fcr_ag`), `_mfd_s4_shot.gd` (`d_mfd_formats`, `d_mfd_menu_sms`),
 `_avionics_s5_shot.gd` (`d_ded_pages`, `d_ded_ins`, `d_hud_modes`, `d_hsd`, `d_fcr_aiff`, `d_threat`, `d_threat_radars`) and
-`_adir_s7b_shot.gd` (the Adir's), `_adir_tflir_shot.gd` (`d_tflir`), `_adir_gps_shot.gd` (`d_helmet_gps`), `_f16_weapons_shot.gd` (`d_hud_ccip_delayed`, `d_hud_gps`, `d_hud_gps_inrng`; the HUD's part of the frame, 19 November 2026). The Sufa's serve both F-16 manuals.
+`_adir_s7b_shot.gd` (the Adir's), `_adir_tflir_shot.gd` (`d_tflir`), `_adir_gps_shot.gd` (`d_helmet_gps`), `_f16_weapons_shot.gd` (`d_hud_ccip_delayed`, `d_hud_gps`, `d_hud_gps_inrng`, `d_hud_gun_lock`; the HUD's part of the frame; `d_helmet`, the helmet's; 19 November 2026). The Sufa's serve both F-16 manuals.
 
 **The game manual's screens** (`pictures/game/`, 18 November 2026) are taken in English by the front end's own shot
 scripts, each a real render with its command in its header, and scaled to 1,600 px JPEGs with ImageMagick (the name
@@ -457,6 +456,18 @@ the start sequence again, so the AVIONIC POWER systems (MMC, ST STA, MFD, UFC) w
 nothing until the script's next air start. The command is removed from the three scripts. The build stops on a picture
 under `pictures/` whose mean brightness is under 0.005 of white (`dark_pictures` in `tools/manuals.py`, measured with
 ImageMagick; the darkest good picture, the Adir's threat display with a missile warning, has 0.011).
+
+**A drone in a picture** flies where its own flight model is: moving its node (`mission_entity_moved`) does not move
+it, and it is back on its path the next frame. A script puts the jet behind the drone where it flies (`_behind` in
+`_fcr_shot.gd` and `_f16_weapons_shot.gd`: the drone's flight model state, the jet at its velocity and pitch).
+
+**A night picture** (checked 19 November 2026). Modern IAF's front end has no hour setting: a mission's hour is its
+`time` in `modern-iaf/data/missions/<name>.json`, compiled into the start time (misc `0x460`). A flight that starts at
+night has a night sky and a night cockpit, as the player gets. A script sets the hour with `-- --hour H` on the command
+line (`terrain_view.gd` `_spawn_mission_objects`), which is the same start time. Setting `runtime.misc["0x460"]` in
+flight darkens the world at the next second but not the cockpit: its night is set once at the start, as in the
+original (`FUN_004d8eb0`); such a script also sets `cockpit.night` (`_cockpit_sharp_shot.gd`). `SHOT_HOUR` of
+`_imagery_shot.gd` changes only a flight with no mission.
 
 `SHOT_ONLY=p_` (or `overview`) takes only those and keeps the others' pictures and marks. A picture is taken again
 when the cockpit's model, the shot list or a panel's rows change.
@@ -579,15 +590,12 @@ Parts:
 - Open in chapter 2's sources: the F-16's climb schedules (the performance manual, not public); for the F-35 the climb
   schedule, the approach speeds, the landing technique and the air-refuelling cockpit procedure; the footnote for the
   F-16's exterior inspection names figure 2-4 without its page.
-- Owed after chapter 6, the F-16s' pictures: the gun's funnel with a lock and the helmet's symbols. The delayed CCIP
-  and the GPS bomb's HUD cues were taken 19 November 2026 (`_f16_weapons_shot.gd`, no numbered arrows: they are `display`
-  figures like `d_hud_lock`). The two owed ones: scripted runs got no radar lock on a drone after the jet was put behind
-  it (the HUD showed the funnel with no box) and a padlock on a drone turned the head to the wrong side. Checked
-  19 November 2026 in the range flight: the padlock turns the head to the target on either side and behind (the camera
-  within 12° of it). The drone was not where the script put it: `mission_entity_moved` moves its node, and the drone's
-  own flight model puts it back on its path, 17 km off. The missing lock has the same cause (inferred). A script for
-  these two pictures has to move the drone's flight model, or put the jet behind the drone where it flies. The black
-  ones are taken (§4 "Black captures").
+- Chapter 6's F-16 pictures are all taken. The last two, the gun's funnel with a lock (`d_hud_gun_lock`) and the
+  helmet (`d_helmet`), on 19 November 2026 (`_f16_weapons_shot.gd`, `display` figures without numbered arrows): the jet
+  is put behind the drone where its flight model has it (§4 "A drone in a picture"), the lock taken ahead, then the jet
+  moved. In the 3D cockpit a padlock leaves its target 12° above the helmet's cross (the camera looks
+  `VIEW_3D_LOOK_DOWN_DEG` below the head), so the script turns the head itself. The black ones are taken (§4 "Black
+  captures").
 - Found by the black captures, the game's and listed, not changed here: the "start engine" command (213) sent in the
   air runs the start sequence again, so MMC, ST STA, MFD and UFC go off and the displays go dark until it ends.
 - Found while writing chapter 6, the game's and listed, not changed here:
