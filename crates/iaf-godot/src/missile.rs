@@ -43,7 +43,7 @@ fn chase_motion(m: &VarDictionary, launch: bool) -> ChaseMotion {
 
 /// The physical missile of a record with a motor (ours, Modern IAF's data and modern_weapons.gd; docs/real-weapons.md
 /// §2.1): "_motorThrust" (N), "_motorBurn" (s), "_launchKg", "_propellantKg", "_diameterM", "_dragScale",
-/// "_maxTime" (s), "_maxG", "_navConstant", "_thrustVector" (1: thrust-vector control).
+/// "_maxTime" (s), "_loft" (1: lofts on long shots), "_maxG", "_navConstant", "_thrustVector" (1: thrust-vector control).
 fn physics(m: &VarDictionary) -> Option<Physics> {
     let thrust = num(m, "_motorThrust")?;
     let f = |k: &str, d: f64| num(m, k).unwrap_or(d);
@@ -58,6 +58,7 @@ fn physics(m: &VarDictionary) -> Option<Physics> {
         max_g: f("_maxG", 30.0),
         nav: f("_navConstant", 4.0),
         tvc: f("_thrustVector", 0.0) != 0.0,
+        loft: f("_loft", 0.0) != 0.0,
     })
 }
 

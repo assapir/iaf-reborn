@@ -75,6 +75,13 @@ const TARGET_G_MAX: f64 = 12.0;
 const PURSUIT_TURN_S: f64 = 0.5;
 /// The straight fly-out's step (s): the DLZ and the post-launch times.
 const FLY_STEP: f64 = 0.1;
+/// The loft (§2.3; inferred): beyond `LOFT_FROM_M` to the target (horizontally) the missile aims above it, by an angle
+/// growing to `LOFT_MAX_DEG` at `LOFT_FULL_M`.
+const LOFT_FROM_M: f64 = 15_000.0;
+const LOFT_FULL_M: f64 = 55_000.0;
+const LOFT_MAX_DEG: f64 = 30.0;
+/// The lofted fly-out's step (s).
+const LOFT_STEP: f64 = 0.2;
 
 /// The physical missile (ours; docs/real-weapons.md §2.1): a motor of steady thrust that burns its propellant at a
 /// steady rate, the drag of its body, gravity, and proportional navigation within its g limit.
@@ -99,6 +106,8 @@ pub struct Physics {
     pub nav: f64,
     /// Thrust-vector control: while the motor burns the structural limit holds at any dynamic pressure.
     pub tvc: bool,
+    /// Lofts on a long shot (the AIM-120; §2.3): it climbs toward a point above the target, then dives on it.
+    pub loft: bool,
 }
 
 /// ISA density (kg/m³) and speed of sound (m/s) at height `z`.
@@ -167,6 +176,39 @@ impl Physics {
         false
     }
 
+    /// The loft angle above the target at `d` m from it horizontally (0: none).
+    pub fn loft_angle(&self, d: f64) -> f64 {
+        if !self.loft {
+            return 0.0;
+        }
+        LOFT_MAX_DEG.to_radians() * ((d - LOFT_FROM_M) / (LOFT_FULL_M - LOFT_FROM_M)).clamp(0.0, 1.0)
+    }
+
+    /// The lofted fly-out (§2.3): from speed `s` at height `z`, a target `r` m ahead at the same height moving
+    /// `away` m/s away: the missile climbs toward the point above it at the loft angle and dives on it, turning within
+    /// its limit. True when it reaches the target with 2 s of flight to spare (the DLZ's margin).
+    fn reaches(&self, s: f64, z: f64, r: f64, away: f64) -> bool {
+        let (mut t, mut x, mut h, mut v, mut gam) = (0.0, 0.0, 0.0, s, 0.0f64);
+        while self.alive(t, v) {
+            let dx = r + away * t - x;
+            let m = self.mass_at(t);
+            let (sin, cos) = gam.sin_cos();
+            let a = (self.thrust_at(t) - self.drag(v, z + h, m, G * cos)) / m - G * sin;
+            if dx <= 0.0 || dx.hypot(h) <= v * LOFT_STEP {
+                return self.alive(t + DLZ_BURN_CUT, v + a * DLZ_BURN_CUT) && h.abs() < 200.0;
+            }
+            let aim = (dx * self.loft_angle(dx).tan() - h).atan2(dx);
+            let turn = self.max_lateral(v, z + h, m, t) / v.max(1.0) * LOFT_STEP;
+            gam += (aim - gam).clamp(-turn, turn);
+            let v1 = (v + a * LOFT_STEP).max(0.0);
+            x += 0.5 * (v + v1) * gam.cos() * LOFT_STEP;
+            h += 0.5 * (v + v1) * gam.sin() * LOFT_STEP;
+            v = v1;
+            t += LOFT_STEP;
+        }
+        false
+    }
+
     /// The DLZ from speed `s` at height `z` at a target `away` m/s away from the launcher (§2.1): the most the
     /// missile gains on it in a straight flight less its last 2 s (the original's margin), and the original's minimum
     /// (the distance flown in `min_t`).
@@ -177,7 +219,16 @@ impl Physics {
             false
         });
         let end = gained.last().map_or(0.0, |g| g.0) - DLZ_BURN_CUT;
-        let max = gained.iter().filter(|g| g.0 <= end).map(|&(t, d)| d - away * t).fold(0.0, f64::max);
+        let mut max = gained.iter().filter(|g| g.0 <= end).map(|&(t, d)| d - away * t).fold(0.0, f64::max);
+        if self.loft && max > LOFT_FROM_M {
+            // The lofted zone: the farthest target the lofted flight reaches (§2.3).
+            let (mut lo, mut hi) = (max * 0.8, max * 2.5);
+            for _ in 0..20 {
+                let r = 0.5 * (lo + hi);
+                if self.reaches(s, z, r, away) { lo = r } else { hi = r }
+            }
+            max = max.max(lo);
+        }
         match gained.iter().find(|g| g.0 >= min_t) {
             Some(&(_, min)) if min <= max => Dlz { max, min },
             _ => Dlz::NONE,
@@ -692,6 +743,9 @@ impl Missile {
                         Sees::Inertial(kp, kv) => (kp - p, kv, Vec3::ZERO),
                         Sees::Lost => (los, tv, at),
                     };
+                    // The loft: aim above the target by the loft angle (§2.3).
+                    let flat = gl.x.hypot(gl.y);
+                    let gl = gl + Vec3::UP * (flat * ph.loft_angle(flat).tan());
                     let steering = steering && !self.lost;
                     self.phys_acc(&ph, age, p, v, (gl, gv, at), steering)
                 }
@@ -1027,12 +1081,13 @@ mod tests {
             max_g,
             nav: 4.0,
             tvc,
+            loft: false,
         };
         [
             ("AIM-9M", ph(86.0, 27.2, 5.0, 12810.0, 0.127, 24.7, 40.0, false), 17.7, false),
             ("AIM-9X", ph(85.0, 27.2, 5.0, 12810.0, 0.127, 24.7, 60.0, true), 17.7, false),
             ("PYTH-5", ph(105.0, 34.0, 5.0, 16671.0, 0.16, 31.1, 60.0, false), 20.0, false),
-            ("AIM-120", ph(161.5, 51.3, 7.75, 17188.0, 0.178, 120.0, 35.0, false), 90.0, true),
+            ("AIM-120", Physics { loft: true, ..ph(161.5, 51.3, 7.75, 17188.0, 0.178, 120.0, 35.0, false) }, 90.0, true),
         ]
     }
 
@@ -1257,5 +1312,29 @@ mod tests {
         let still = |_| Kinematics { pos: Vec3::new(off.sin(), off.cos(), 2.0) * 3000.0, vel: Vec3::ZERO };
         let (miss, lost) = fly_seeker(x, 90.0, 0.0, f64::MAX, &still);
         assert!(miss < 9.0 && !lost, "{miss:.1} m, lost {lost}");
+    }
+
+    #[test]
+    fn zz_fit() {
+        let [m9, _, p5, a120] = modern();
+        let (mut lo, mut hi) = (0.5f64, 4.0f64);
+        for _ in 0..40 {
+            let k = 0.5 * (lo + hi);
+            if reference(&Physics { drag_scale: k, ..a120.1 }, true).max > 90e3 { lo = k } else { hi = k }
+        }
+        let p = Physics { drag_scale: lo, ..a120.1 };
+        let at = |h: f64, away: f64| p.dlz(0.9 * air(h).1, h, away * 0.9 * air(h).1, 2.5).max / 1e3;
+        println!("ZZ AIM-120 drag {lo:.4}: SL still {:.1} tail {:.1} head {:.1}; 6km still {:.1} tail {:.1} head {:.1}; 12km still {:.1}; study 5km {:.1}",
+            at(0.0, 0.0), at(0.0, 1.0), at(0.0, -1.0), at(6000.0, 0.0), at(6000.0, 1.0), at(6000.0, -1.0), at(12000.0, 0.0),
+            p.dlz(0.83 * air(5000.0).1, 5000.0, 0.0, 2.5).max / 1e3);
+        for (name, p, km, h) in [m9, p5] {
+            let p = Physics { drag_scale: lo, ..p };
+            let (mut a, mut b) = (1.0f64, 120.0f64);
+            for _ in 0..50 {
+                let k = 0.5 * (a + b);
+                if reference(&Physics { max_time: k, ..p }, h).max > km * 1e3 { b = k } else { a = k }
+            }
+            println!("ZZ {name} time {b:.2}");
+        }
     }
 }
