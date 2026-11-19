@@ -1,7 +1,7 @@
 //! `IafRealHud`: the Real HUD's layout (`iaf_avionics::real_hud`, docs/real-hud.md) for `shared/cockpit/hud.gd`. The
 //! primitives come back as dictionaries in HUD pixels from the HUD centre: {k: "line", a, b}, {k: "circle", c, r},
 //! {k: "dot", c, r}, {k: "arc", c, r, from, sweep (radians clockwise from 12 o'clock)}, {k: "text", at, text, align
-//! (0 left, 1 centre, 2 right)}.
+//! (0 left, 1 centre, 2 right), size (times the HUD's text size)}.
 
 use crate::world::{get, num, v2};
 use godot::prelude::*;
@@ -23,13 +23,13 @@ fn prims(ps: &[Prim]) -> VarArray {
                 Prim::Arc { c, r, from, sweep } => {
                     vdict! { "k" => "arc", "c" => v2(*c), "r" => *r, "from" => *from, "sweep" => *sweep }
                 }
-                Prim::Text { at, text, align } => {
+                Prim::Text { at, text, align, size } => {
                     let align: i64 = match align {
                         Align::Left => 0,
                         Align::Centre => 1,
                         Align::Right => 2,
                     };
-                    vdict! { "k" => "text", "at" => v2(*at), "text" => text.as_str(), "align" => align }
+                    vdict! { "k" => "text", "at" => v2(*at), "text" => text.as_str(), "align" => align, "size" => *size }
                 }
             }
             .to_variant()

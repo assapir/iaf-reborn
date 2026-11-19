@@ -424,18 +424,23 @@ func _glyph_strokes(x: int) -> Array:
 	return _strokes[x]
 
 
-## GDI text in Arial h10 w5 at baseline `p` (TA_BASELINE; TA_RIGHT when `right`).
-func _gdi(ci: CanvasItem, p: Vector2, text: String, right := false, colour = null) -> void:
-	var box := gdi_box(p, text, right)
+## GDI text in Arial h10 w5 at baseline `p` (TA_BASELINE; TA_RIGHT when `right`), `size` times that (a Real HUD text's).
+func _gdi(ci: CanvasItem, p: Vector2, text: String, right := false, colour = null, size := 1.0) -> void:
+	var box := gdi_box(p, text, right, size)
 	if box.size.y <= 0.0:
 		return
-	ci.draw_set_transform(Vector2(box.position.x, _pt(p).y), 0.0, Vector2(_arial_squeeze, 1.0) * _dot)
+	ci.draw_set_transform(Vector2(box.position.x, _pt(p).y), 0.0, Vector2(_arial_squeeze, 1.0) * _dot * size)
 	var col: Color = colour if colour != null else _hc()
 	if _glow:
-		var o := maxi(2, roundi(2.0 * _halo_side() / _dot))  # the font's raster px: the halo's reach outside the glyph
+		# The font's raster px: the halo's reach outside the glyph, at any size.
+		var o := maxi(2, roundi(2.0 * _halo_side() / _dot / size))
 		ci.draw_string_outline(_arial, Vector2.ZERO, text, HORIZONTAL_ALIGNMENT_LEFT, -1, _gdi_size(), o, _halo(col))
 	ci.draw_string(_arial, Vector2.ZERO, text, HORIZONTAL_ALIGNMENT_LEFT, -1, _gdi_size(), col)
 	ci.draw_set_transform(Vector2.ZERO)
+
+
+## The characters whose average width is the text's 5 px cell (_gdi_size).
+const AVG_CHARS := "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 
 func _gdi_size() -> int:
@@ -443,41 +448,33 @@ func _gdi_size() -> int:
 	if _arial == null:
 		_arial = Settings.display_font("hud")
 		var avg := (
-			(
-				_arial
-				. get_string_size(
-					"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ", HORIZONTAL_ALIGNMENT_LEFT, -1, 100
-				)
-				. x
-			)
-			/ 52.0
-			/ 100.0
-			* em
+			(_arial.get_string_size(AVG_CHARS, HORIZONTAL_ALIGNMENT_LEFT, -1, 100).x) / AVG_CHARS.length() / 100.0 * em
 		)
 		_arial_squeeze = 5.0 / avg
 	return int(round(em * _s / _dot))  # physical px: _gdi draws it scaled by _dot
 
 
-## The box `_gdi` fills with `text` (the layer's pixels): its drawn width, from the baseline up a capital's height
-## (Arial's 0.716 em); empty when too small to draw. The guide pictures aim their arrows at it.
-func gdi_box(p: Vector2, text: String, right := false) -> Rect2:
+## The box `_gdi` fills with `text` at `size` (the layer's pixels): its drawn width, from the baseline up a capital's
+## height (Arial's 0.716 em); empty when too small to draw. The guide pictures aim their arrows at it.
+func gdi_box(p: Vector2, text: String, right := false, size := 1.0) -> Rect2:
 	var fs := _gdi_size()
 	if fs < 1:
 		return Rect2()
 	var at := _pt(p)
-	var wd: float = _arial.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x * _arial_squeeze * _dot
+	var wd: float = _arial.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x * _arial_squeeze * _dot * size
 	if right:
 		at.x -= wd
-	var cap := 0.716 * fs * _dot
+	var cap := 0.716 * fs * _dot * size
 	return Rect2(at - Vector2(0, cap), Vector2(wd, cap))
 
 
 ## The box a Real HUD text primitive is drawn in (as _draw_prims places it).
 func prim_text_box(q: Dictionary) -> Rect2:
 	var at: Vector2 = q.at
+	var size := float(q.get("size", 1.0))
 	if int(q.align) == 1:
-		at.x += 2.5 * String(q.text).length()
-	return gdi_box(at, q.text, int(q.align) != 0)
+		at.x += 2.5 * size * String(q.text).length()
+	return gdi_box(at, q.text, int(q.align) != 0, size)
 
 
 # --- the unclipped layer -----------------------------------------------------------------------------
@@ -921,9 +918,10 @@ func _draw_prims(ci: CanvasItem, prims: Array, w: float, colour = null) -> void:
 				ci.draw_arc(_pt(p.c), float(p.r) * _s, a0, a0 + float(p.sweep), 24, col, w * 1.6, true)
 			"text":
 				var at: Vector2 = p.at
+				var size := float(p.get("size", 1.0))
 				if int(p.align) == 1:
-					at.x += 2.5 * String(p.text).length()
-				_gdi(ci, at, p.text, int(p.align) != 0, col)
+					at.x += 2.5 * size * String(p.text).length()
+				_gdi(ci, at, p.text, int(p.align) != 0, col, size)
 
 
 ## The halo under the Real HUD's lines, circles and arcs (hud_daylight; its texts get theirs in _gdi).

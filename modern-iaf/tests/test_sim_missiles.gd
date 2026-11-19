@@ -323,6 +323,12 @@ func _shot(unit: String, d, name: String, dist: float, armed: bool) -> void:
 			]
 		)
 	)
+	if tv.cockpit.hud_on_glass:  # the F-16s' combiners (avionics-plan.md B9): the widest layout, the DLZ's
+		var was: Vector2i = await project_window()  # a text measured at a real size (base.gd project_window)
+		var off := off_glass(tv.cockpit)
+		check(off.is_empty(), "%s: the combiner holds the HUD (outside %s of %s)" % [tag, off, tv.cockpit.hud_clip])
+		root.size = was
+		await frames(2)
 	var before: int = w.missiles.size()
 	_press(KEY_SPACE)
 	var gone := await _until(func(): return w.missiles.size() > before, 3.0)  # the F-35I's bay doors open first

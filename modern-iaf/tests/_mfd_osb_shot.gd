@@ -56,18 +56,8 @@ func run() -> void:
 		await _aim(tv, mid)
 		await create_timer(0.5).timeout
 		await _save("%s_mfds" % id)
-		var cam_env := OS.get_environment("SHOT_CAM").split(" ", false)
-		if cam_env.size() == 7:
-			var v := Array(cam_env).map(func(x): return float(x))
-			var cam := Camera3D.new()
-			c3d.camera.get_parent().add_child(cam)
-			cam.cull_mask = c3d.camera.cull_mask
-			cam.near = 0.05
-			cam.fov = v[6]
-			var b := Basis.from_euler(Vector3(deg_to_rad(v[4]), deg_to_rad(-v[3]), deg_to_rad(v[5])), EULER_ORDER_YXZ)
-			var rb := root.global_transform.basis.orthonormalized()
-			cam.global_transform = Transform3D(rb * b, root.global_transform * Vector3(v[0], v[1], v[2]))
-			cam.current = true
+		var cam := photo_camera(c3d, root)
+		if cam != null:
 			await create_timer(0.5).timeout
 			await _save("%s_fit" % id)
 			cam.current = false

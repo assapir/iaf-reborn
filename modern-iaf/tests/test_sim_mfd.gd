@@ -17,6 +17,7 @@ extends "res://../tests/godot/base.gd"
 var tv: Node
 var w
 var c
+var jet := ""  # the unit flown (_jet)
 
 
 func _press(k: Key, shift := false, ctrl := false, down := true) -> void:
@@ -70,7 +71,29 @@ func run() -> void:
 		await _jet(unit, sim_f16s()[unit])
 
 
+## The HUD on its glass (avionics-plan.md B9): the field and every Real HUD symbol inside the combiner seen from the
+## eye, at the wide view and zoomed in, also with every readout at its widest in each master mode (base.gd
+## widest_real_hud_points; A-A at SHOOT as flown in test_sim_missiles.gd), in the project's window size; DED DATA's
+## characters there at the text's own spacing (base.gd ded_packed).
+func _on_glass(tag: String) -> void:
+	var was: Vector2i = await project_window()
+	for zoom in [c.ZOOM_MIN, c.ZOOM_MAX]:
+		c.zoom = zoom
+		await frames(5)
+		var off := off_glass(c, true)
+		check(
+			off.is_empty(),
+			"%s: the combiner holds the HUD, its readouts at their widest (outside %s of %s)" % [tag, off, c.hud_clip]
+		)
+		var packed := ded_packed(c.hud, c.hud._field())
+		check(packed.is_empty(), "%s: DED DATA at the text's own character spacing (packed: %s)" % [tag, packed])
+	root.size = was
+	c.zoom = c.ZOOM_MIN
+	await frames(2)
+
+
 func _jet(unit: String, base: String) -> void:
+	jet = unit
 	var s := settings()
 	var db: String = s.records_db()
 	var rec := ProjectSettings.globalize_path("res://data/db/units/%s.json" % unit)
@@ -86,11 +109,18 @@ func _jet(unit: String, base: String) -> void:
 	tv.addon.result = {"pass": true}
 	w = tv.weapons
 	c = tv.cockpit
-	# Today's Barak as the Sufa (avionics-plan.md B2, B9): the colour formats and the wide-angle HUD in the 3D cockpit.
+	# Today's Barak as the Sufa (avionics-plan.md B2): the colour formats; each its own HUD in the 3D cockpit (B9): the
+	# Sufa's wide-angle plate, the Barak's arched combiner.
 	check(c.mfds[0].real_look == "colour", "%s: the MFDs in colour (%s)" % [unit, c.mfds[0].real_look])
 	var c3d = tv.get("cockpit_3d")
-	var wide: Node3D = c3d.find_child("HUD_wide", true, false) if c3d != null else null
-	check(wide != null and wide.visible, "%s: the 3D cockpit's wide-angle HUD" % unit)
+	var own := "HUD_wide" if unit == "f16i" else "HUD_arch"
+	check(c3d != null, "%s: the 3D cockpit" % unit)
+	for h in c3d.F16_HUDS if c3d != null else []:
+		var node: Node3D = c3d.find_child(h, true, false)
+		check(
+			node != null and node.visible == (h == own),
+			"%s: the 3D cockpit's %s %s" % [unit, h, "shown" if h == own else "hidden"]
+		)
 	check(w.flir_pod, "the Litening on station 5 is the targeting pod (its SMS name TGP)")
 	check(w.stores.name_of(4) == "TGP" and w.stores.name_of(2) == "GBU-12", "stations 5 / 3: TGP, GBU-12")
 	await _flcs_ground()
@@ -102,6 +132,7 @@ func _jet(unit: String, base: String) -> void:
 	var pos: Vector3 = tv.world_to_scene(Vector3(at.x - 8000.0, at.y, float(g if g != null else 0.0) + 1000.0))
 	_put(pos, Vector3(200, 0, 0), 90.0)
 	await fly(tv, 1.0)
+	await _on_glass("%s NAV" % unit)
 	await _frame()
 	await _sms()
 	await _hsd()
@@ -143,6 +174,7 @@ func _frame() -> void:
 	# The master modes keep their own: A-G shows its own set, NAV comes back with HSD.
 	w.select_ag()
 	await frames(3)
+	await _on_glass("%s A-G" % jet)
 	check(int(c.mfds[1].real.state().group) == 2, "A-G: the A-G set (group %d)" % c.mfds[1].real.state().group)
 	check(shown(1) == "SMS", "A-G's own primary on the right: SMS (%s)" % shown(1))
 	await osb(1, 12)

@@ -177,7 +177,7 @@ same status; slice 6 flew every Sufa test on the Barak (§6).
 | B6 | Helmet | an Elbit helmet sight[^barak-upi] | `dash.rs`; dark while the goggles are down (B12) | Sim |
 | B7 | RWR | the set is open (the dash-34's display is the nearest) | as the Sufa's E1 | Partly (G3) |
 | B8 | MAW, SAM mode, SAR | no MAW: an infrared missile warning is among the upgrades proposed for the Barak in 2025[^barak-dn]; SAM keeps one bug (B1); DBS as the APG-68's (dash-34) | no MAW (`ews.maw` false): an infrared missile at the jet gives no warning, the RWR cannot hear it ([ews.md](ews.md) §3); DBS1 / DBS2 as the Sufa's | Sim (17 Nov) |
-| B9 | HUD | a new head-up display[^barak-fg]; the Sufa's wide-angle frame inferred | the 3D cockpit's wide HUD (`hud_3d` "HUD_wide"), the Real HUD | Sim (17 Nov) |
+| B9 | HUD | its own: the sim's Barak, a Block 40, came with the LANTIRN wide-angle diffractive HUD[^b40-hud] (30° × 18°[^roch-lantirn]); Barak 2020 fitted a new head-up display[^barak-fg], its maker, optics and look not public (open). The US Air Force replaces its Block 40/42s' diffractive HUDs with a wide-angle conventional one[^wachud], and Elbit's F-16 HUD of today (I-HUD2) has a 28° total field[^ihud2]: the Barak's inferred a conventional F-16 HUD; its symbology the Sufa's, with the Sufa's avionics[^barak-hm] (inferred) | its own frame (the user, 19 Nov: "on it's own"): the F-16C/D's combiner as the US Air Force's front-seat photo of a colour-display F-16C shows it, two slender grey posts joined by an arched bar over the glass (`hud_3d` "HUD_arch"), untinted, matched to the photo from its fitted camera, side by side and overlaid ([../../docs/cockpit.md](../../docs/cockpit.md) "3D cockpit"; its depth and lean inferred); the Real HUD's F-16 symbology, as the Sufa's, in a field narrowed to fit that glass by the least inset ([cockpit.md](cockpit.md) §4: ±4.0°, 1.6° over the boresight; the real HUD's 20° × 13.5°, the new one's open) (the Sufa's wide-angle plate before, 17–19 Nov) | Sim (19 Nov) |
 | B10 | TACAN at the start | the home base's station (inferred: the pilot's preset) | tuned to the nearest station when the jet is placed (the home base on a ground start) (`ufc.rs` `tune_nearest`); before, every jet started on Ramon's 75X | Sim (17 Nov) |
 | B11 | Rear seat | the navigator works the pod; in the game the player does it (pods decision 4) | the front seat's keys and controls | Sim |
 | B12 | Night-vision goggles | open: no source names goggles on the Barak ([research/nvg.md](research/nvg.md) §1) | the Sufa's H9 (the user's pick, 19 Nov: "night googles: as suggested") | Sim (19 Nov) |
@@ -392,6 +392,18 @@ The user answered the six open questions on 17 November. His words in quotes; th
 [^barak-f16net]: f-16.net, "Israel launches program to upgrade its F-16 fleet", 25 January 2006 (the announced C/D
     upgrade: the command and control systems as in the F-16I, "and a replacement of the cockpit displays with more
     advanced color versions"): https://www.f-16.net/f-16-news-article1608.html
+[^b40-hud]: F-16.net, "F-16 Versions: Block 40/42" (introduced "the LANTIRN navigation and targeting pods and the
+    associated holographic HUD", "a diffractive optics heads-up display"; Block 40s delivered to Israel):
+    https://www.f-16.net/f-16_versions_article7.html
+[^roch-lantirn]: Rochester Avionic Archives, "F-16 LANTIRN Diffractive HUD Pilot's Display Unit" (18° vertically, 30°
+    horizontally; through docs/real-hud.md, not read again: the page did not load for us on 19 Nov 2026):
+    https://rochesteravionicarchives.co.uk/items/f-16-lantirn-diffractive-hud-pilot-s-display-unit
+[^wachud]: Defence Industry Europe, "Elbit Systems to provide modernised wide-angle head-up display for F-16 fleet",
+    22 November 2024 (WACHUD replacements for the USAF's Block 40/42 fleet, replacing "older Diffractive Optic Head-Up
+    Displays"): https://defence-industry.eu/elbit-systems-to-provide-modernised-wide-angle-head-up-display-for-f-16-fleet/
+[^ihud2]: Elbit Systems, "F-16 Head-Up Display (I-HUD2)" data sheet, 2021 ("based on the F-16 head-up display (HUD) in
+    use by the US Air Force"; total FOV 28°; stroke on raster; combiner transmission 80 %):
+    https://www.elbitsystems-uk.com/what-we-do/air-space/aircraft-systems/head-up-displays/f-16-head-up-display-i-hud2.pdf
 [^barak-dn]: defence-network.com, "Israel rüstet F-16C/D mit modernster Schutz- und Avioniktechnik auf", 25 September
     2025 (proposed: new EW, infrared missile warning and launch detection, better dispensers and displays); All Israel
     News, 15 September 2025 (the upgrade under consideration):

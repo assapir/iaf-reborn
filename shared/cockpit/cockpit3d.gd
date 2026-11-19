@@ -21,16 +21,18 @@ const Mfd := preload("res://shared/cockpit/mfd.gd")
 ## A 3D cockpit's model (the aircraft definition's `cockpit_3d`) has beside it <model>.json (its animations, its MFD
 ## push buttons' centres MFD_<side>_<T|B|L|R><n> in the root's frame, its lamps) and optional art. The model's nodes
 ## the game reads: MFD_L / MFD_R / MFD_M (screens drawn by the MFD of that index), PCD / ESIS (the panoramic display's
-## glass and its standby display) and HUD_glass (the combiner; the F-16's two HUDs: HUD_std / HUD_wide, picked by the
-## definition's `hud_3d`, and their glasses).
+## glass and its standby display) and HUD_glass (the combiner; the F-16's HUDs F16_HUDS, picked by the definition's
+## `hud_3d`, and their glasses).
 const Pcd := preload("res://shared/cockpit/pcd.gd")
 const Img := preload("res://shared/util/img.gd")
 const Gauges := preload("res://shared/cockpit/gauges.gd")
 ## The block panel sheet the model's materials carry (FlightGear's Block 50: the Sufa's).
 const BLOCK_SHEET := "blck50-panels1"
-## The F-16 model's own satin black parts (tools/f16d/cockpit3d.py: the HUD posts and the wide-angle HUD's box):
-## their roughness kept, a sheen along their rounded edges.
-const SATIN := ["hud_black"]
+## The F-16 model's HUDs, one shown by the aircraft definition's `hud_3d` (tools/f16d/cockpit3d.py HUDS).
+const F16_HUDS := ["HUD_std", "HUD_wide", "HUD_arch"]
+## The F-16 model's own satin parts (tools/f16d/cockpit3d.py: the HUD posts, the wide-angle HUD's box, Modern IAF's
+## Barak's grey HUD frame): their roughness kept, a sheen along their rounded edges.
+const SATIN := ["hud_black", "hud_frame"]
 ## Modern IAF's combiner tint, a fraction of the earlier one, on the glass and on the plate's rim and back face: none
 ## (the user, 2026-11-13: "realistic model ftw, no tint"; a quarter before, and the full 14 % read as a pale pane),
 ## unless the jet's definition sets its own `hud_tint`.
@@ -196,9 +198,9 @@ func setup(c: Control, cam: Camera3D, type_code: int) -> bool:
 	var glass := "HUD_glass"
 	var hud: String = Settings.airframe(type_code).get("hud_3d", "")
 	if hud != "":
-		# The F-16's two HUDs (tools/f16d/cockpit3d.py HUDS): the Block 50's for the Barak, the wide-angle one for
-		# the Sufa.
-		for h in ["HUD_std", "HUD_wide"]:
+		# The F-16's HUDs (tools/f16d/cockpit3d.py HUDS): the Block 50's (the original game's Barak), the wide-angle one
+		# (the Sufa's), Modern IAF's Barak's own.
+		for h in F16_HUDS:
 			for node in [n.find_child(h, true, false), n.find_child(h + "_glass", true, false)]:
 				if node != null:
 					node.visible = h == hud

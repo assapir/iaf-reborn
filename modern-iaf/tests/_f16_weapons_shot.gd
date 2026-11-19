@@ -1,5 +1,6 @@
-# Dev helper (not run by tools/test.sh): the F-16 manual's chapter 6 weapon pictures from the Sufa's HUD and helmet on
-# the weapons range, the Graphics preset "Everything on", 1920 wide (modern-iaf/docs/manuals.md §4). Each picture is
+# Dev helper (not run by tools/test.sh): the F-16 manual's chapter 6 weapon pictures from the Sufa's (IAF_SIM_JET=f16d:
+# the Barak's, on its own frame) HUD and helmet on the weapons range, the Graphics preset "Everything on", 1920 wide
+# (modern-iaf/docs/manuals.md §4). Each picture is
 # the HUD's part of the frame (or the helmet's, looking aside), scaled to 1600 px wide:
 # - hud_ccip_delayed.png: a Mk 83 in CCIP, the impact point below the HUD's view, the release button held: the
 #   steering line and the release cue;

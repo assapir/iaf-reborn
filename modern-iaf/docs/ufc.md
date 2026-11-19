@@ -113,7 +113,9 @@ What `real_hud/f16.rs` draws from the panel ([../../docs/real-hud.md](../../docs
 - ALT: RADAR the radar altitude on the scale (`AR`), BARO, AUTO the radar altitude's thermometer below 1,200 ft.
 - DED DATA: at DED the DED's five lines, at PFL the pilot fault list's, low in the HUD, one character per 5 px cell
   so the DED's columns line up, in the gap between the left and the right data column, from the right column's
-  second row down (inferred place: under the heading scale's lower position); the roll indicator is not drawn
+  second row down (inferred place: under the heading scale's lower position). Where the gap is narrower than the
+  block (the F-16s' fitted fields, [cockpit.md](cockpit.md) §4) the block is drawn smaller as a whole, its
+  characters, cells and rows, so the characters keep their spacing (2026-11-19). The roll indicator is not drawn
   meanwhile (the dash-34 as a simulator forum quotes it, [../../docs/real-hud.md](../../docs/real-hud.md) "F-16C/D").
   `f16.rs` `ded_data_overlaps_nothing_in_any_mode` checks that no cell touches another symbol in any HUD mode.
 - DEPR RET at STBY: the standby reticle, a 50 mr ring with its pipper, depressed by RET DEPR.

@@ -153,10 +153,12 @@ pub enum Prim {
         from: f64,
         sweep: f64,
     },
+    /// A text at `size` times the HUD's own text size (1; DED DATA's block smaller where it would not fit).
     Text {
         at: P,
         text: String,
         align: Align,
+        size: f64,
     },
 }
 
@@ -165,7 +167,7 @@ fn line(a: P, b: P) -> Prim {
 }
 
 fn text(at: P, t: impl Into<String>, align: Align) -> Prim {
-    Prim::Text { at, text: t.into(), align }
+    Prim::Text { at, text: t.into(), align, size: 1.0 }
 }
 
 fn add(a: P, b: P) -> P {
@@ -1113,9 +1115,12 @@ mod tests {
     }
 
     /// The F-16's frames for fixed inputs in every mode, hashed: other jets' displays must leave them unchanged.
-    /// A frame as the snapshot hashes it: what it draws (mrm_inside, a value for the shoot cue, left out).
+    /// A frame as the snapshot hashes it: what it draws (mrm_inside, a value for the shoot cue, left out; a text at
+    /// the HUD's own size without its size).
     pub(super) fn snapshot(fr: &Frame) -> String {
-        format!("{:?}", Frame { mrm_inside: None, ..fr.clone() }).replace(", mrm_inside: None", "")
+        format!("{:?}", Frame { mrm_inside: None, ..fr.clone() })
+            .replace(", mrm_inside: None", "")
+            .replace(", size: 1.0", "")
     }
 
     fn f16_fingerprint() -> u64 {

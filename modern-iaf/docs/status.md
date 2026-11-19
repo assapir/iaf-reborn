@@ -41,6 +41,16 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   "AAM 12" or "SAM 12", on the RWR scope, the TWD, the DAS format and the Adir's helmet, its launch tone also for an
   infrared missile; the Barak gets no warning of an infrared missile. Tests: `rwr.rs`, `ews.rs`, `real_hud/f35.rs`,
   `test_sim_ews.gd`.
+- **The Barak's own HUD (2026-11-19, the user's "on it's own", avionics-plan.md B9):** the Barak's 3D cockpit shows the
+  F-16C/D's combiner, two slender grey posts joined by an arched bar, untinted (`hud_3d` "HUD_arch", its own node in
+  `f16.glb`; the original game keeps the Block 50 frame), in place of the Sufa's wide-angle plate it drew from 17 Nov;
+  the symbols on it are the Sufa's Real HUD, in a field narrowed to fit the glass (cockpit.md §4). The Block 40 came with
+  the LANTIRN diffractive HUD; Barak 2020's new HUD is not named or pictured in public, so the frame is matched to the
+  US Air Force's front-seat photo of a colour-display F-16C from that photo's fitted camera (its depth inferred).
+  `test_sim_mfd.gd` checks each F-16's HUD node and, with `test_sim_missiles.gd`, that the combiner holds the field and
+  every Real HUD symbol, in `test_sim_mfd.gd` also with every readout at its widest, in the project's window size: the
+  Barak's field ±4.0°, the Sufa's ±5.6° (moved in 5 px, so that its five-digit rows beside the DLZ stay on its plate).
+  The F-16D manual's HUD pictures show its own frame. Open: the new HUD's maker, field of view and look.
 - **Real missile performance, the core (2026-11-19, the user's "ok so finish the missile works", avionics-plan.md
   §7):** the AIM-9M, AIM-9X, Python 5 and AIM-120 fly a physical missile: the motor's real thrust and burn, drag by Mach
   and height, gravity, proportional navigation within the g limit, turns bleeding speed, the flight's end when too
@@ -180,7 +190,7 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 - **The Barak's avionics (2026-11-17, avionics-plan.md slice 6, §3 B1–B11):** today's upgraded F-16D (Barak 2020,
   the Sufa's avionics installed) as data merged over the F-16's definition (`modern-iaf/data/planes/f16.json`): the
   real FCR's controls on the APG-68's row (CRM RWS to 43 NM, SAM with one bug), the colour MFDs with the HSD's map, the
-  AIFF, no MAW, the wide-angle HUD. Every Sufa avionics test now flies both jets (`base.gd` `sim_f16s`;
+  AIFF, no MAW, the wide-angle HUD (its own HUD since 19 Nov, above). Every Sufa avionics test now flies both jets (`base.gd` `sim_f16s`;
   `IAF_SIM_JET=f16d` runs one). Found and fixed: the Barak had none of the real FCR (its definition had no
   `radar.fcr`); the TACAN started on Ramon's channel on every jet (now the home base's station).
 - **The F-16s' 3D-cockpit lamps (2026-11-17, the lights audit, [cockpit.md](cockpit.md) §5.2):** every lamp of the

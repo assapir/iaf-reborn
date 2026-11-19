@@ -376,7 +376,8 @@ cockpit it starts a cold start-up lesson and hides the pilot's body and the over
 the part's own mesh as the picture shows it, so a turned lever's box ends at the lever (19 November 2026: the box of the
 mesh's turned bounding box reached the next row, and the ATT/FPM switch's number stood on another switch). A panel's
 table lists its rows in their numbers' order. The Sufa and the
-Barak share the F-16's cockpit, so both manuals draw the one set `pictures/f16/`.
+Barak share the F-16's cockpit, so both manuals draw the one set `pictures/f16/`, but for the Barak's HUD pictures:
+`manuals.json` `displays` lists them, and the F-16D manual takes them from `pictures/f16d/` (its own frame).
 
 | shots | from | camera | marks |
 |---|---|---|---|
@@ -416,7 +417,8 @@ figure has no size yet, so a digit drawn the same way is measured for it).
 real render with its command in its header, and then cut and joined with ImageMagick: `_fcr_shot.gd` (`d_fcr_modes`,
 `d_fcr_pages`, `d_hud_lock`), `_fcr_ag_shot.gd` (`d_fcr_ag`), `_mfd_s4_shot.gd` (`d_mfd_formats`, `d_mfd_menu_sms`),
 `_avionics_s5_shot.gd` (`d_ded_pages`, `d_ded_ins`, `d_hud_modes`, `d_hsd`, `d_fcr_aiff`, `d_threat`, `d_threat_radars`) and
-`_adir_s7b_shot.gd` (the Adir's), `_adir_tflir_shot.gd` (`d_tflir`), `_adir_gps_shot.gd` (`d_helmet_gps`), `_f16_weapons_shot.gd` (`d_hud_ccip_delayed`, `d_hud_gps`, `d_hud_gps_inrng`, `d_hud_gun_lock`; the HUD's part of the frame; `d_helmet`, the helmet's; 19 November 2026). The Sufa's serve both F-16 manuals.
+`_adir_s7b_shot.gd` (the Adir's), `_adir_tflir_shot.gd` (`d_tflir`), `_adir_gps_shot.gd` (`d_helmet_gps`), `_f16_weapons_shot.gd` (`d_hud_ccip_delayed`, `d_hud_gps`, `d_hud_gps_inrng`, `d_hud_gun_lock`; the HUD's part of the frame; `d_helmet`, the helmet's; 19 November 2026). The Sufa's serve both F-16 manuals, but for the six `d_hud_*`: the
+Barak's, taken with `IAF_SIM_JET=f16d`, are in `pictures/f16d/` (19 November 2026).
 
 **The game manual's screens** (`pictures/game/`, 18 November 2026) are taken in English by the front end's own shot
 scripts, each a real render with its command in its header, and scaled to 1,600 px JPEGs with ImageMagick (the name

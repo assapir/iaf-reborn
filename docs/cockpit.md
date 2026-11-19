@@ -421,8 +421,8 @@ docs/f35i.md §4.5); other jets keep their panels. The plumbing (`shared/cockpit
 aircraft definition names a model in `cockpit_3d` (docs/adding-a-plane.md "Modern planes"); the F-16's HUD by the
 definition's `hud_3d`.
 
-**The model** (`shared/extra/models/cockpit3d/f16.glb`, 5.6 MB with KTX2 textures, and `f16_light.png`, its baked
-occlusion, 1.8 MB; built by
+**The model** (`shared/extra/models/cockpit3d/f16.glb`, 6.8 MB with KTX2 textures, and `f16_light.png`, its baked
+occlusion, 2.0 MB; built by
 `tools/f16d/cockpit3d.py` from the FlightGear F-16 at commit ef4f192, GPL-2.0-or-later; credits and changes in
 `shared/extra/models/cockpit3d/SOURCES.md`):
 * FlightGear's `Models/Cockpit/Main/cockpit.xml` and the parts it includes, each placed by its `<offsets>`, as its
@@ -441,8 +441,9 @@ occlusion, 1.8 MB; built by
   and after, at 4× size:
 
   ![The ICP's top buttons as lumpy polygons and as round caps](img/f16_icp_buttons.jpg)
-* Two HUDs, one shown per jet: the Barak the Block 50's (`hud.xml`: two posts, a small combiner), the Sufa
-  FlightGear's wide-angle HUD (`f16_war.xml`) remodelled after the F-16I's El-Op wide-angle HUD (2026-11-18). The
+* Three HUDs, one shown per jet (`cockpit3d.gd` `F16_HUDS`): the original game's Barak the Block 50's (`hud.xml`: two
+  posts, a small combiner), Modern IAF's Barak its own (`HUD_arch`, below), the Sufa FlightGear's wide-angle HUD
+  (`f16_war.xml`) remodelled after the F-16I's El-Op wide-angle HUD (2026-11-18). The
   photos (references only, kept outside the repo): an F-16I seen from the side with its canopy open (IDF
   Spokesperson's Unit, CC BY-SA 3.0, `File:Israeli_attacks_on_Yemen,_January_2025._XV.jpg` on Wikimedia Commons), an
   F-16I seen from above and ahead through its canopy (the user's photo), and Elbit's I-HUD2 data sheet (the F-16
@@ -492,10 +493,34 @@ occlusion, 1.8 MB; built by
     at 8 heights the plate's side cut 35 % of the way into a post seen from the eye), after its tinted corners showed
     past the posts as a pale rectangle around the HUD (the user's "rectangle around the HUD"). The F-16I's plate is a
     rectangle with straight posts (above), so nothing shows past them.
-  68.5 k triangles in the file (66.9 k before the ICP's whole thumbwheels and the
-  start-up switches' own nodes, 57.3 k before the whole knobs and throttle and the sills, 56.2 k before the Barak's new
-  HUD posts and the bevelled coaming, 54.8 k before the rounded HUD frames), about 67.5 k drawn (one HUD); 124
-  materials (FlightGear's duplicates merged), 205 surfaces.
+  89.6 k triangles in the file, 129 materials (FlightGear's duplicates merged) and 478 surfaces, about 86 k triangles
+  drawn (one HUD; counted in the glTF, 2026-11-19: 87.3 k, 128 and 475 before Modern IAF's Barak's HUD, 2.3 k
+  triangles). Earlier counts: 68.5 k triangles (66.9 k before the ICP's whole thumbwheels and the start-up switches'
+  own nodes, 57.3 k before the whole knobs and throttle and the sills, 56.2 k before the Barak's new HUD posts and the
+  bevelled coaming, 54.8 k before the rounded HUD frames), 124 materials, 205 surfaces.
+* Modern IAF's Barak's HUD (`HUD_arch`, 2026-11-19; the user: its own HUD, "on it's own";
+  modern-iaf/docs/avionics-plan.md B9): the F-16C/D's combiner as the US Air Force's front-seat photo of a
+  colour-display F-16C[^f16-photos] shows it, two slender grey posts, nearly parallel from the seat, joined at their
+  tops by a thin bar arching over the glass. `cockpit3d.py` copies the Block 50 HUD (`hud_copy`) and remodels the copy
+  (`hud_arch`, `POSTS`):
+  - The camera: the photo's place, aim and field of view solved from the panel (`tools/f16d/fit_photo.py`, 2.4 px rms
+    of its 360: 13 cm aft of and 5 cm above the seat's eye, 26.7° down, a 53° field). The frame's edges were measured
+    on the photo to a pixel (1 to 2 mm there) and laid in the Block 50 glass's plane, its foot line and its 42° lean
+    (the photo shows the frame's outline, not its depth: inferred).
+  - The glass is the frame's inside: 16.4 cm wide at its foot, its sides leaning in to 13.1 cm at its top corners
+    (`ARCH_FOOT`, `ARCH_IN`), its top the bar's lower edge, 1.1 cm higher in the middle than at the corners
+    (`ARCH_PEAK`, `ARCH_BOW`). The posts are 1.9 cm wide at the foot and 1.1 cm at the top (the photo's), 3.0 cm deep
+    at the foot and 1.2 cm at the top (inferred: deeper tops stood out over the bar from the photo's camera), their
+    inner sides the glass's edges, so the HUD's mask is the glass the eye sees; the bar is 4 × 4 mm (the photo's
+    3 px). The posts' domed tops end at the bar's top, as the photo's corners do.
+  - Grey (`hud_frame`, linear 0.18, inferred): the photo's posts and bar are grey metal, their lit faces 2 to 4 times
+    as bright as the MFD bezels beside them. No tint (Modern IAF's `SIM_TINT`): inside the frame the photo's sky has
+    the colour it has outside it, to one level in 255.
+  - Tried and dropped (2026-11-19, never merged): the Block 50 frame on Modern IAF's Barak. Against the photo from its
+    camera its posts' tops stood 2.2 cm further out each side and 2 cm higher up the glass, with no bar.
+  - The Barak's HUD field fits this glass from the eye, with every Real HUD symbol and every readout at its widest, the
+    A-A layout's with the DLZ included: its `[HUD]` borders 48 / 61 (modern-iaf/docs/cockpit.md §4; `test_sim_mfd.gd`,
+    `test_sim_missiles.gd`).
 * The HUDs' posts and frames rounded (`cockpit3d.py` `smooth`, 2026-11-02): FlightGear's are boxes with hard edges
   and flat faces, which read as blocky beside the glass. Every edge sharper than 35° is bevelled 3 mm in two segments
   and the faces shaded smooth across the rest (`hud.ac` `hud_sides`, `f16_war_hud.ac` `HUDFrame`), as the cast frames
@@ -514,7 +539,8 @@ occlusion, 1.8 MB; built by
       the box cut under the glass, the plate left upright. From the eye they read as one thick "U" with small fins of
       the box beside them, worse than FlightGear's curved posts, which then stayed until 2026-11-18.
   * The posts and the wide-angle HUD's frame and box are satin black (`hud_black`, roughness 0.6; `cockpit3d.gd`
-    `SATIN` keeps it), so a soft sheen runs along their round edges; FlightGear's own materials stay matte.
+    `SATIN` keeps it, and the Barak's grey `hud_frame`), so a soft sheen runs along their round edges; FlightGear's
+    own materials stay matte.
   * The glareshield's aft top edge. FlightGear's glareshield (`cockpit.ac` `poly`) meets its aft face at a hard edge,
     a straight dark line across the view under the HUD; the F-16's is a moulded coaming with a rounded lip (the IDF
     photo). That edge (the hood's edges sharper than 40° at its aft end, within 1.5 cm of its top) is bevelled 1 cm

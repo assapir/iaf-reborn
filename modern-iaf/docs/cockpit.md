@@ -12,7 +12,7 @@ draw from.
 | jet | 3D cockpit | HUD | head-down displays |
 |---|---|---|---|
 | F-16I Sufa (`f16i`) | the F-16's (FlightGear's Block 50/52 panel sheet) | the wide-angle HUD, the Real HUD symbology | both MFDs in the real formats, in colour; the RWR scope, EHSI, DED and fault list on their screens |
-| F-16D Barak (`f16`) | the F-16's (the Block 40 panel sheet) | the wide-angle HUD (Barak 2020's new HUD, [avionics-plan.md](avionics-plan.md) B9), the Real HUD symbology | both MFDs in the real formats, in colour (B2); the same small screens |
+| F-16D Barak (`f16`) | the F-16's (the Block 40 panel sheet) | its own HUD: the F-16C/D's combiner, two slender grey posts joined by an arched bar, untinted ([avionics-plan.md](avionics-plan.md) B9), the Real HUD symbology in a field narrowed to it (§4) | both MFDs in the real formats, in colour (B2); the same small screens |
 | F-35I Adir (`f35i`) | ours (`f35i.glb`) | the helmet display over the whole view | the panoramic display with its four portals and the standby display |
 
 The model the 3D cockpit hangs in is ours, never the original's cockpit-view model: the detailed F-16's cut model (`shared/extra/models/f16/f16d.glb`)
@@ -128,12 +128,34 @@ layout that borrows (`"Shared"`) or names art. The units:
 | `BorePositionY` | 16 | 16 | the boresight: the nose, which the 3D camera sees 5.5° over the view's centre (`VIEW_LOOK_DOWN_DEG`): 686.2 · tan 5.5° = 66 px, less the 50; the 3D cockpit looks 12° down (`VIEW_3D_LOOK_DOWN_DEG`), so `view_shift` puts the HUD on the nose |
 | `GunRetPositionY` | 11 | 11 | the gun cross, 5 px (0.4°) under the boresight (inferred, as the F-35I's 2D cockpit) |
 | `CenterY` | −26 | 16 | the HUD's centre: the F-16s' 3.5° (42 px) under the boresight, the middle of their field; the F-35I's on the boresight |
-| `LeftBorder`, `RightBorder` | 72 | 250 | the field's half width: the F-16s' ±6°, the F-35I's ±20° (its helmet's 40° field) |
-| `TopBorder`, `BottomBorder` | 66, 67 | 184, 184 | the F-16s' field from 2° over the boresight to 9° under it; the F-35I's ±15° (the helmet's 30°) |
+| `LeftBorder`, `RightBorder` | 67 (the Barak 48) | 250 | the field's half width: the Sufa's ±5.6°, the Barak's ±4.0°, the F-35I's ±20° (its helmet's 40° field) |
+| `TopBorder`, `BottomBorder` | 66, 67 (the Barak 61, 67) | 184, 184 | the F-16s' field from 2° (the Barak's 1.6°) over the boresight to 9° under it; the F-35I's ±15° (the helmet's 30°) |
 | `Dash` | 1 | 1 | the helmet display once the combiner glass is off the screen (the DASH, the F-35I's helmet); while any of the glass shows, the HUD stays on it (2026-11-11, the Mac play test's finding 10: looking down-left at the dash the HUD jumped off its glass to the DASH) |
 
-The F-16s' field is what fits their combiners from the eye with the Real HUD's data blocks beside it (1.8° outside
-the field; docs/cockpit.md "The HUD on its glass": the Sufa's plate reaches +2.6° to −12.8°). The real F-16 HUD shows
+The F-16s' field is what fits their combiners from the eye with the Real HUD's data blocks beside it (docs/cockpit.md
+"The HUD on its glass": the Sufa's plate reaches +2.6° to −12.8°). The Barak's arched combiner (2026-11-19,
+[avionics-plan.md](avionics-plan.md) B9) is narrower toward its top: from the eye ±7.4° at its foot, ±7.9° at its top
+corners (+0.9°), its bar +2.1° over the eye's level in the middle. Each field is moved in from the original's 72 px by
+the least that holds every symbol with every readout at its widest (the rule of docs/real-hud.md "What ours draws": the
+scales and their blocks in together, nothing rearranged): the Sufa's 5 px off each side, the Barak's 24 px off each
+side and 5 px off the top, where the field's top corners met the bar.
+
+The right side sets the sides' inset. The right-hand column's readouts start at the altitude scale and grow outward
+with their values, and they move out with the scale for the DLZ and for a GPS bomb's cues. The left-hand column grows
+outward too, but its texts have five characters at most, and the airspeed box has a fixed width. The widest rows are a
+five-digit radar altitude and ALOW ("R 49,990", "AL 10000") beside the A-A layout's DLZ. With one px less inset they
+cross the glass's edge, zoomed to the true size, in every window from 1280 × 720 to 3840 × 2160 (the HUD's font size is
+rounded to whole pixels, so the wide view needs 1 or 2 px less at some sizes). The glass is centred on the field to
+1.2 px (0.1°, left of the centre), so both sides take the same inset.
+
+The first fit of the Barak's field (14 px off, 2026-11-19) and the Sufa's 72 px held the short values the checks saw
+("R 660"). Those checks ran in a headless window of 64 × 64 px, where the HUD's font is rounded to 0 to 2 px: they
+measured no text at the wide view and too narrow a text zoomed in. `test_sim_mfd.gd` (NAV and A-G, each also with every
+readout at its widest in each master mode: `tests/godot/base.gd` `widest_real_hud_points`) now sizes the window as the
+project's 1,920 × 1,080 first (`project_window`). With `test_sim_missiles.gd` (A-A at SHOOT) it checks that the field's
+corners and every Real HUD symbol lie inside the glass seen from the eye, and `test_sim_mfd.gd` that DED DATA's
+characters keep the text's own spacing there (`base.gd` `ded_packed`): the fitted fields leave less room between the
+data columns than the DED's 24 characters need, so the block is drawn smaller as a whole ([ufc.md](ufc.md) §4). The real F-16 HUD shows
 20° × 13.5° (`real_hud/mod.rs` `fov_deg`); the 3D combiners are smaller from the eye (inferred). The F-35I's helmet
 draws its own layout (`real_hud/f35.rs`); its field bounds only the ILS and steerpoint cues.
 

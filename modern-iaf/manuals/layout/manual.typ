@@ -259,9 +259,14 @@
 #let note(body) = signal(ui.note, accent, body)
 
 // ---- A display's picture ----
-/// The picture of a display in one mode, taken from the game by a shot script (pictures/<cockpit>/d_<name>.jpg;
-/// modern-iaf/docs/manuals.md §4), as a figure with its caption; a text refers to it as @fig-d-<name>.
-#let display(name, caption, width: 62%) = [#figure(kind: image, placement: none, caption: caption, image(base + "pictures/" + me.cockpit + "/d_" + name + ".jpg", width: width)) #label("fig-d-" + name)]
+/// The picture of a display in one mode, taken from the game by a shot script (pictures/<cockpit>/d_<name>.jpg, or
+/// pictures/<folder>/ when manuals.json `displays` lists the name under that folder; modern-iaf/docs/manuals.md §4), as a
+/// figure with its caption; a text refers to it as @fig-d-<name>.
+#let display(name, caption, width: 62%) = {
+  let own = me.at("displays", default: (:)).pairs().find(p => name in p.at(1))
+  let dir = if own == none { me.cockpit } else { own.at(0) }
+  [#figure(kind: image, placement: none, caption: caption, image(base + "pictures/" + dir + "/d_" + name + ".jpg", width: width)) #label("fig-d-" + name)]
+}
 
 // ---- Pictures with numbered arrows ----
 /// The drawing of picture `name`: an arrow to each control of `tags` (node -> the number on its arrow, text), at

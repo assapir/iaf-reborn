@@ -54,7 +54,12 @@ Terms used throughout:
 ## F-16C/D (Block 30/40/50)
 
 The Block 50 dash-34 manual documents this HUD in full[^dash34]. The D is the two-seater with the same HUD (a repeater
-in the rear cockpit). Barak-specific differences: none public.
+in the rear cockpit). Barak-specific symbology: none public. The game's Barak is a Block 40, which came with the LANTIRN
+wide-angle diffractive HUD (30° × 18°[^roch-lantirn]); Barak 2020 fitted a new head-up display[^barak-fg], whose maker
+and look are not public (open). Modern IAF's Barak draws the same symbology as the Sufa in its own frame, the F-16C/D's
+combiner on two slender posts joined by an arched bar, its field narrowed to fit that glass (the sources and what is
+inferred: modern-iaf/docs/avionics-plan.md B9; the frame: docs/cockpit.md "3D cockpit"; the field:
+modern-iaf/docs/cockpit.md §4).
 
 Sources: the dash-34[^dash34] and dash-1[^dash1]; the Lockheed MLU (Mid-Life Update) pilot's guides
 M1-M3[^mlu1][^mlu2][^mlu3]; the RoKAF Basic Employment Manual[^rokaf]; the MCH 11-F16 handbook[^mch]; f-16.net pilot /
@@ -847,7 +852,8 @@ its scale. The original HUD keeps the original layout.
     altitude and AUTO's thermometer, DED DATA, the standby reticle), ALIGN, SIM, DGFT / MSL, the DED's ALOW, `FUEL`
     flashing and the SOI asterisk. Reborn's HUD keeps the VAH, ATT/FPM, CAS and BARO positions.
   - DED DATA (DED or PFL): the five lines one character per cell, between the left and the right data column from the
-    right column's second row down (inferred place), and no roll indicator meanwhile ("not displayed [when] DED or
+    right column's second row down (inferred place), the block smaller as a whole where the gap is narrower than it
+    (the characters never closer than the text's own spacing), and no roll indicator meanwhile ("not displayed [when] DED or
     PFLD data is displayed on the HUD", a simulator forum quoting the jet's manual[^dcs-roll]).
   - `FUEL` below the bingo flashes in both games since 2026-11-17 (the dash-34's window 6; it was steady before).
   - Modern IAF's F-16s (2026-11-18, [../modern-iaf/docs/weapons.md](../modern-iaf/docs/weapons.md) §9; the MLU
@@ -1101,6 +1107,9 @@ The F-35I's helmet display over the Negev, before and after, by day and at 22:00
     https://falcon.blu3wolf.com/Docs/HAF-F16-34.pdf
 [^roch-lantirn]: Rochester Avionic Archives, "F-16 LANTIRN Diffractive HUD Pilot's Display Unit" (18° vertically,
     30° horizontally): https://rochesteravionicarchives.co.uk/items/f-16-lantirn-diffractive-hud-pilot-s-display-unit
+[^barak-fg]: FlightGlobal, "Israel completes F-16 Barak upgrade", 5 November 2014 (new head-up display and digital
+    debriefing systems; through a search engine's quote, the page is paywalled: second-hand):
+    https://www.flightglobal.com/israel-completes-f-16-barak-upgrade/115034.article
 [^fisher85]: J. F. Fisher, "Wide Angle Raster Head Up Display", GEC Avionics, 1985 (refractive limit about 20° × 15°;
     diffractive 30° × 18°): https://rochesteravionicarchives.co.uk/items/wide-angle-raster-head-up-display
 [^avhandbook-hud]: R. B. Wood, P. J. Howells, The Avionics Handbook, ch. 4 "Head-Up Displays", table 4.1 (CRC 2001):

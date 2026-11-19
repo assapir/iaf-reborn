@@ -448,7 +448,7 @@ mod tests {
         let fr = frame(FIELD, &i, false);
         let at = |s: &str| {
             fr.outer.iter().find_map(|p| match p {
-                Prim::Text { at, text, align } if text.starts_with(s) => Some((*at, *align)),
+                Prim::Text { at, text, align, .. } if text.starts_with(s) => Some((*at, *align)),
                 _ => None,
             })
         };

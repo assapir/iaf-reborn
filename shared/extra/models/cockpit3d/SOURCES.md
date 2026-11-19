@@ -59,7 +59,10 @@ Made by `tools/f16d/cockpit3d.py` (re-runnable; docs/cockpit.md "3D cockpit"):
    script.
 8. FlightGear's duplicate materials merged; the MFD push buttons joined into the body, their centres listed in
    `f16.json`.
-9. Two HUDs kept as separate nodes: `hud.xml` (the Barak's) and `f16_war.xml` (the Sufa's).
+9. Two HUDs kept as separate nodes: `hud.xml` (the Barak's) and `f16_war.xml` (the Sufa's); a third, Modern IAF's
+   Barak's (`HUD_arch`, 2026-11-19, `hud_copy`, `hud_arch`), a copy of `hud.xml`'s remodelled after the US Air
+   Force's F-16C front-seat photo: its combiner glass reshaped (narrower toward its arched top), its thick top
+   (`HUDedge`) left out, its posts ours (as in 14, grey) and a bar of ours over the glass.
    The wide-angle HUD (`f16_war_hud.ac`): its frame and box made black; its top left out, so the combiner plate
    stands free between the two side posts as on the F-16I: the lid (`HUDtop`, `screws`, `tissue`), the second glass
    ahead of the combiner and its cover (`BackGlass`, `BackGlassCover`) and `HUDFrame`'s bar over the combiner glass

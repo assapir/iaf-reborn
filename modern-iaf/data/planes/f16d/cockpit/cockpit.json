@@ -5,9 +5,9 @@
   "BorePositionY": 16,
   "GunRetPositionY": 11,
   "CenterY": -26,
-  "LeftBorder": 72,
-  "RightBorder": 72,
-  "TopBorder": 66,
+  "LeftBorder": 48,
+  "RightBorder": 48,
+  "TopBorder": 61,
   "BottomBorder": 67,
   "Dash": 1
  },

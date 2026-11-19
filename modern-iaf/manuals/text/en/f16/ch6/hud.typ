@@ -4,6 +4,10 @@
 
 The #term("HUD") shows the flight data and the aiming symbols over the view ahead#d34[section I, "Head-up display (HUD)", page 1-156]. Its symbols follow the master mode (@stores).
 
+#if not sufa [
+The sim's #jet.short is a Block 40, which came with the wide-angle HUD made for the LANTIRN pods, whose combiner works by diffraction#footnote[F-16.net, "F-16 Versions: Block 40/42": "the associated holographic HUD", "a diffractive optics heads-up display"; Block 40s went to Israel. #link("https://www.f-16.net/f-16_versions_article7.html"). Checked 19 November 2026.]. The Barak 2020 upgrade fitted a new HUD#footnote[FlightGlobal, "Israel completes F-16 Barak upgrade", 5 November 2014: "a new head-up display". Paywalled: read through a search engine's quote, second-hand. #link("https://www.flightglobal.com/israel-completes-f-16-barak-upgrade/115034.article").], whose maker and field of view are not public, and the Sufa's avionics#footnote[Hamichlol (a Hebrew encyclopedia), "F-16 Fighting Falcon": by 2018 every Barak was upgraded to "Barak 2020", with the Sufa's avionic systems installed. A secondary source. #link("https://www.hamichlol.org.il/F-16_%D7%A4%D7%99%D7%99%D7%98%D7%99%D7%A0%D7%92_%D7%A4%D7%90%D7%9C%D7%A7%D7%95%D7%9F"). Checked 19 November 2026.]. The sim draws the F-16C/D's combiner, two slender posts joined by an arched bar, and on it the Sufa's symbols, in a slightly narrower field: that the #jet.short's are the same is inferred. The HUD's pictures in this chapter show the #jet.short's frame. The cockpit's panel pictures are the Sufa's: its HUD is a flat rectangular plate, and the controls are the same.
+]
+
 #display("hud_modes", [The HUD with the #term("DED")'s lines repeated on it. Top: navigation, air-to-air. Bottom: air-to-ground with the bomb's impact point, dogfight.], width: 100%)
 
 === What every mode shows

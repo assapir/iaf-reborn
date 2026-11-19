@@ -694,20 +694,22 @@ const CHAR_W: f64 = 5.0;
 
 /// DED DATA's lines, one character per cell, centred in the gap `(left, right)` between the two data columns: a cell
 /// clear of the left column's right-aligned text, 3 px of the right column's left-aligned text (its letters start at
-/// their place); the cells narrowed to fit a narrow field. The first row's baseline at `y`, the others `ROW` apart.
+/// their place). A cell is the text's own spacing (`CHAR_W`); a block wider than the gap (a narrow field) is drawn
+/// smaller as a whole, its characters, cells and rows, so its characters never pack. The first row's baseline at
+/// `y`, the others `ROW` apart at that size.
 fn ded_block(o: &mut Vec<Prim>, lines: &[String], (left, right): (f64, f64), y: f64) {
     let w = lines.iter().map(|l| l.chars().count()).max().unwrap_or(0);
     if w == 0 {
         return;
     }
     let (left, right) = (left + CHAR_W, right - 3.0);
-    // The glyphs' centres `cell` apart, the first and last glyphs (a cell wide each) inside the gap.
-    let n = (w.max(2) - 1) as f64;
-    let cell = ((right - left - CHAR_W) / n).min(CHAR_W);
+    let size = ((right - left) / (w as f64 * CHAR_W)).clamp(0.0, 1.0);
+    let cell = CHAR_W * size;
     let c0 = (left + right) / 2.0 - cell * (w - 1) as f64 / 2.0;
     for (k, l) in lines.iter().enumerate() {
         for (j, ch) in l.chars().enumerate().filter(|(_, c)| *c != ' ') {
-            o.push(text((c0 + j as f64 * cell, y + k as f64 * ROW), ch.to_string(), Align::Centre));
+            let at = (c0 + j as f64 * cell, y + k as f64 * ROW * size);
+            o.push(Prim::Text { at, text: ch.to_string(), align: Align::Centre, size });
         }
     }
 }
@@ -858,17 +860,17 @@ mod tests {
         assert!(low.fold(f64::MIN, f64::max) <= FIELD.bottom, "a line below the glass");
     }
 
-    /// A primitive's box (x0, y0, x1, y1): a text by its 5 px cells and 7 px capitals above the baseline.
+    /// A primitive's box (x0, y0, x1, y1): a text by its 5 px cells and 7 px capitals above the baseline, at its size.
     fn bbox(p: &Prim) -> (f64, f64, f64, f64) {
         match p {
-            Prim::Text { at, text, align } => {
-                let w = CHAR_W * text.chars().count() as f64;
+            Prim::Text { at, text, align, size } => {
+                let w = CHAR_W * size * text.chars().count() as f64;
                 let x0 = match align {
                     Align::Left => at.0,
                     Align::Centre => at.0 - w / 2.0,
                     Align::Right => at.0 - w,
                 };
-                (x0, at.1 - 7.0, x0 + w, at.1)
+                (x0, at.1 - 7.0 * size, x0 + w, at.1)
             }
             Prim::Line { a, b } => (a.0.min(b.0), a.1.min(b.1), a.0.max(b.0), a.1.max(b.1)),
             Prim::Circle { c, r } | Prim::Dot { c, r } | Prim::Arc { c, r, .. } => (c.0 - r, c.1 - r, c.0 + r, c.1 + r),
@@ -878,9 +880,11 @@ mod tests {
     #[test]
     fn ded_data_overlaps_nothing_in_any_mode() {
         let full: Vec<String> = (0..5).map(|_| "8".repeat(24)).collect();
-        // FIELD, and the sim's narrower field (125 px between the columns, the Sufa's glass from the default eye).
+        // FIELD, a narrower field (125 px between the columns), and the Sufa's and the Barak's fields (cockpit.json).
         let narrow = Field { left: -77.5, right: 77.5, ..FIELD };
-        for (f, mode) in [FIELD, narrow].into_iter().flat_map(|f| [0, 1, 2, 3, 5, 6, 7].map(|m| (f, m))) {
+        let (sufa, barak) = (Field { left: -67.0, right: 67.0, ..FIELD }, Field { left: -48.0, right: 48.0, ..FIELD });
+        let fields = [FIELD, narrow, sufa, barak];
+        for (f, mode) in fields.into_iter().flat_map(|f| [0, 1, 2, 3, 5, 6, 7].map(|m| (f, m))) {
             for scales in [Scales::Vah, Scales::VvVah] {
                 let mut i = input(Jet::F16);
                 i.weapons.hud_mode = mode;
@@ -891,6 +895,15 @@ mod tests {
                 let with = frame(f, &i, 1.0, false).outer;
                 let (ded, rest): (Vec<&Prim>, Vec<&Prim>) = with.iter().partition(|p| !plain.contains(p));
                 assert_eq!(ded.len(), 120, "mode {mode}: every cell drawn");
+                // The cells never closer than the text's own spacing at their size: a narrow field shrinks the block
+                // as a whole.
+                for d in ded.windows(2) {
+                    if let [Prim::Text { at: a, size, .. }, Prim::Text { at: b, .. }] = d
+                        && a.1 == b.1
+                    {
+                        assert!(b.0 - a.0 >= CHAR_W * size - 1e-9, "mode {mode} {f:?}: cells {a:?} {b:?} packed");
+                    }
+                }
                 for d in ded.iter().map(|p| bbox(p)) {
                     assert!(d.0 >= f.left && d.2 <= f.right, "mode {mode}: {d:?} off the field");
                     for (p, r) in rest.iter().map(|p| (p, bbox(p))) {

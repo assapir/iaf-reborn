@@ -41,7 +41,7 @@ Keep the lock until _A_ runs out: until then a radar missile steers on your rada
 + Fly the target between the funnel's two lines so that its wing tips touch them. With a radar lock #then[an aiming dot shows]: put the dot on the target.
 + Hold #key("Gun trigger"). #then[The gun fires and the rounds count goes down.]
 
-#display("hud_gun_lock", [The gun with a target locked, the jet pulling 4.6 g: the funnel, the target in it under the long bar across it, and the range arc beside the target.], width: 90%)
+#display("hud_gun_lock", [The gun with a target locked, the jet in a turn: the funnel, the target in it under the long bar across it, and the range arc beside the target.], width: 90%)
 
 #in-sim[
   - With the gear handle down the gun does not fire.

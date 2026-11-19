@@ -244,6 +244,139 @@ func remove_dir(dir: String) -> void:
 	DirAccess.remove_absolute(dir)
 
 
+## The extreme points (HUD node px) of what the Real HUD draws (its frame `real`, else this frame's): its lines' ends,
+## its circles' four extremes and its texts' box corners (hud.gd _draw_prims, prim_text_box).
+func real_hud_points(hud: Control, real := {}) -> Array:
+	if real.is_empty():
+		real = hud.real_hud()
+	var pts := []
+	for p in real.get("field", []) + real.get("outer", []):
+		match p.k:
+			"line":
+				pts.append_array([hud._pt(p.a), hud._pt(p.b)])
+			"circle", "dot", "arc":
+				var r: float = float(p.r) * hud._s
+				for d in [Vector2(r, 0.0), Vector2(0.0, r)]:
+					pts.append_array([hud._pt(p.c) - d, hud._pt(p.c) + d])
+			"text":
+				var box: Rect2 = hud.prim_text_box(p)
+				if box.size.y > 0.0:
+					pts.append_array(
+						[box.position, box.end, Vector2(box.end.x, box.position.y), Vector2(box.position.x, box.end.y)]
+					)
+	return pts
+
+
+## The Real HUD's outer layer's points (real_hud_points; the field's layer is cut to the field) in field `field`
+## (hud.gd _field) with every readout at its widest, so a field fitted to its glass (modern-iaf/docs/cockpit.md §4)
+## holds them whatever the values: the HUD's last input with five-digit altitude, radar altitude and ALOW, a 100 NM
+## slant range, the steerpoint 999 NM out, a GPS bomb's time to impact and five full DED DATA lines, in NAV, A-A with a
+## lock and its DLZ (the altitude scale moved out), the gun with a lock, and A-G with a GPS bomb's cues (the scale moved
+## out too).
+func widest_real_hud_points(hud: Control, field: Rect2) -> Array:
+	var rh = ClassDB.instantiate("IafRealHud")
+	var pts := []
+	for i in widest_real_hud_inputs(hud):
+		pts.append_array(real_hud_points(hud, {"outer": rh.frame(field, i).outer}))
+	return pts
+
+
+## The HUD's last input with every readout at its widest, one per master mode (widest_real_hud_points).
+func widest_real_hud_inputs(hud: Control) -> Array:
+	var ded := PackedStringArray()
+	for k in 5:
+		ded.append("0".repeat(24))
+	var nm := 1852.0
+	var ins := []
+	for mode in [0, 1, 2, 3, 5]:
+		var i: Dictionary = hud._real_in.duplicate(true)
+		i.merge({"alt_ft": 49990.0, "agl_ft": 49990.0, "kcas": 800.0, "mach": 1.95, "dlz": [30000.0, 5000.0]}, true)
+		i.steerpoint = {"number": 30, "bearing": 0.0, "dist_m": 999.0 * nm, "eta_s": 5999.0, "at": null}
+		i.target = {"range_m": 100.0 * nm, "closure": -771.7, "at": Vector2.ZERO}
+		i.panel.merge({"ded": ded, "alow_ft": 10000.0, "align": false}, true)
+		var gps := {"pre": false, "at": Vector2.ZERO, "range": 20000.0, "rmin": 5000.0, "rmax": 25000.0, "tmr": 119.0}
+		i.weapons.merge({"hud_mode": mode, "tti": 119.0, "gps": gps if mode == 5 else {}}, true)
+		ins.append(i)
+	return ins
+
+
+## DED DATA's neighbouring cells closer together than the HUD font's own spacing at their drawn size (its average
+## character's advance, as hud.gd's 5 px cell, less the rounding of the font to whole pixels), in field `field` with
+## every readout at its widest (widest_real_hud_inputs), as "mode: x -> x", and a mode without its five rows of 24
+## cells as "mode: rows". A narrow field draws the block smaller as a whole (real_hud/f16.rs ded_block), never with
+## its characters packed.
+func ded_packed(hud: Control, field: Rect2) -> Array:
+	var rh = ClassDB.instantiate("IafRealHud")
+	var fs: int = hud._gdi_size()
+	var packed := []
+	for i in widest_real_hud_inputs(hud):
+		var with: Array = rh.frame(field, i).outer
+		var lines: PackedStringArray = i.panel.ded
+		i.panel.ded = PackedStringArray()
+		var plain: Array = rh.frame(field, i).outer
+		var rows := {}
+		for p in with.filter(func(q): return q.k == "text" and not plain.has(q)):
+			rows.get_or_add(p.at.y, []).append(p)
+		var sizes: Array = rows.values().map(func(r): return r.size())
+		if sizes != Array(lines).map(func(l): return l.length()):
+			packed.append("%d: rows %s" % [i.weapons.hud_mode, sizes])
+		for row in rows.values():
+			row.sort_custom(func(a, b): return a.at.x < b.at.x)
+			for k in row.size() - 1:
+				var size := float(row[k].get("size", 1.0))
+				var own: float = hud.gdi_box(Vector2.ZERO, hud.AVG_CHARS, false, size).size.x / hud.AVG_CHARS.length()
+				var pitch: float = hud._pt(row[k + 1].at).x - hud._pt(row[k].at).x
+				if pitch < own * (fs - 0.5) / fs:
+					packed.append("%d: %.1f -> %.1f" % [i.weapons.hud_mode, row[k].at.x, row[k + 1].at.x])
+	return packed
+
+
+## Sizes the window as the project's (1,920 x 1,080) and returns its size before, for the caller to put back. A
+## headless run's window is 64 x 64 px, where the HUD's font is rounded to 0 to 2 px: a glass check there measures no
+## text, or too narrow a text (modern-iaf/docs/cockpit.md §4).
+func project_window() -> Vector2i:
+	var was := root.size
+	root.size = Vector2i(
+		ProjectSettings.get_setting("display/window/size/viewport_width"),
+		ProjectSettings.get_setting("display/window/size/viewport_height")
+	)
+	await frames(5)
+	return was
+
+
+## What of the HUD leaves the 3D cockpit's combiner glass seen from the eye (cockpit `c`'s hud_clip, cockpit px): the
+## symbology field's corners and the Real HUD's symbols (its outer layer's past the field too) outside it; `widest`
+## also its readouts at their widest (widest_real_hud_points).
+func off_glass(c: Control, widest := false) -> Array:
+	var f := Rect2(c.hud.position, c.hud.size)
+	var pts := [f.position, Vector2(f.end.x, f.position.y), f.end, Vector2(f.position.x, f.end.y)]
+	var syms := real_hud_points(c.hud)
+	if widest:
+		syms.append_array(widest_real_hud_points(c.hud, c.hud._field()))
+	pts.append_array(syms.map(func(p): return c.hud.position + p))
+	return pts.filter(func(p): return not Geometry2D.is_point_in_polygon(p, c.hud_clip))
+
+
+## A reference photo's camera in the F-16 3D cockpit (Modern IAF's shot helpers): SHOT_CAM="x y z yaw pitch roll fov"
+## (m in the model's frame `root`, deg, the vertical field of view; tools/f16d/fit_photo.py prints it), made current
+## beside the cockpit's own; null without SHOT_CAM. The caller frees it and makes the cockpit's camera current again.
+func photo_camera(c3d: Node, root: Node3D) -> Camera3D:
+	var v := Array(OS.get_environment("SHOT_CAM").split(" ", false)).map(func(x): return float(x))
+	if v.size() != 7:
+		return null
+	var cam := Camera3D.new()
+	c3d.camera.get_parent().add_child(cam)
+	cam.cull_mask = c3d.camera.cull_mask
+	cam.near = 0.05
+	cam.fov = v[6]
+	var b := Basis.from_euler(Vector3(deg_to_rad(v[4]), deg_to_rad(-v[3]), deg_to_rad(v[5])), EULER_ORDER_YXZ)
+	cam.global_transform = Transform3D(
+		root.global_transform.basis.orthonormalized() * b, root.global_transform * Vector3(v[0], v[1], v[2])
+	)
+	cam.current = true
+	return cam
+
+
 ## A real-render capture of the window to `path`, printed as "saved <path>".
 func save_shot(path: String) -> void:
 	await RenderingServer.frame_post_draw

@@ -216,10 +216,9 @@ func _three_d(variant: String, pages_2d: Array) -> void:
 					sheet = sheet and m.albedo_texture is ImageTexture  # swapped in from barak_panels.webp
 	check(sheet, "%s 3D: its block panel sheet" % variant)
 	var hud := "HUD_wide" if variant == "sufa" else "HUD_std"
-	var other := "HUD_std" if variant == "sufa" else "HUD_wide"
 	check(
-		c3.find_child(hud, true, false).visible and not c3.find_child(other, true, false).visible,
-		"%s 3D: its HUD (%s) and not the other" % [variant, hud]
+		c3.F16_HUDS.all(func(h): return c3.find_child(h, true, false).visible == (h == hud)),
+		"%s 3D: its HUD (%s) and not the others" % [variant, hud]
 	)
 	check(String(c3._glass.name) == hud + "_glass", "%s 3D: its HUD's glass masks the HUD" % variant)
 	check(c.three_d() and (c.hud_clip as PackedVector2Array).size() >= 3, "%s 3D: the combiner's outline" % variant)
@@ -235,19 +234,16 @@ func _three_d(variant: String, pages_2d: Array) -> void:
 	for zoom in [c.ZOOM_MIN, c.ZOOM_MAX]:
 		c.zoom = zoom
 		await frames(5)  # the view's shift, the HUD's layout and the glass's outline settled at the new focal length
-		var f := Rect2(c.hud.position, c.hud.size)
-		var out := [f.position, Vector2(f.end.x, f.position.y), f.end, Vector2(f.position.x, f.end.y)].filter(
-			func(p): return not Geometry2D.is_point_in_polygon(p, c.hud_clip)
-		)
+		# The field's corners and the Real HUD's symbols, those past the field too (its outer layer: the altitude box,
+		# the data columns).
+		var out := off_glass(c)
 		check(
 			out.is_empty(),
-			"%s 3D: the combiner holds the HUD field %s (corners outside %s of %s)" % [variant, f, out, c.hud_clip]
+			(
+				"%s 3D: the combiner holds the HUD field and every Real HUD symbol (outside %s of %s)"
+				% [variant, out, c.hud_clip]
+			)
 		)
-		# The Real HUD's symbols, those past the field too (its outer layer: the altitude box, the data columns).
-		var cut := _real_hud_points(c.hud).filter(
-			func(p): return not Geometry2D.is_point_in_polygon(c.hud.position + p, c.hud_clip)
-		)
-		check(cut.is_empty(), "%s 3D: the combiner holds every Real HUD symbol (outside: %s)" % [variant, cut])
 	c.zoom = c.ZOOM_MIN
 	await frames(2)
 	# The wide view by default (VIEW_3D_WIDE_DEG across); zoomed fully in, the true size: the viewing distance in px.
@@ -473,25 +469,6 @@ func _adi_and_gauges(c: Control, c3: Node3D, variant: String) -> void:
 	c3._process(0.0)
 	check(bar != null and not bar.visible, "%s 3D: the ILS bars hidden with the gear handle up" % variant)
 	c.gear_handle_down = down
-
-
-## The extreme points (HUD node px) of what the Real HUD draws: its lines' ends, its circles' sides and its texts' boxes
-## (hud.gd _draw_prims, prim_text_box).
-func _real_hud_points(hud: Control) -> Array:
-	var real: Dictionary = hud.real_hud()
-	var pts := []
-	for p in real.get("field", []) + real.get("outer", []):
-		match p.k:
-			"line":
-				pts.append_array([hud._pt(p.a), hud._pt(p.b)])
-			"circle", "dot", "arc":
-				var r := Vector2(float(p.r) * hud._s, 0.0)
-				pts.append_array([hud._pt(p.c) - r, hud._pt(p.c) + r])
-			"text":
-				var box: Rect2 = hud.prim_text_box(p)
-				if box.size.y > 0.0:
-					pts.append_array([box.position, box.end])
-	return pts
 
 
 ## The texture a 3D screen shows: its material's emission (the F-35I's screen shader's `screen`).
