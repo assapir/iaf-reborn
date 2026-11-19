@@ -602,7 +602,8 @@ Parts:
   - A GPS bomb's PRE target cannot be set in Modern IAF (avionics-plan.md G4): PRE has a target only when the route
     has a target steerpoint.
   - The CMDS MODE knob of the cockpit has three positions; SEMI, AUTO and BYP are on the key alone.
-  - DED DATA and DEPR RET have no switch in the cockpit, and IFF IDENT, HANDOFF and SYS TEST no button.
+  - IFF IDENT, HANDOFF and SYS TEST have no button in the cockpit. DED DATA and DEPR RET got their switches on
+    19 November 2026 (cockpit.md §5.11).
   - The Adir: `systems.json` says EMER_JETT "drops the external stores" while the code drops the bays' too; JETT_SEL
     moves only. Fixed 2026-11-18: the function bar's SWAP and MENU and the portals' `CNTL>` work (the TFLIR's WIDE /
     SPOT is on its CNTL page).

@@ -66,8 +66,8 @@ func _cold(id: String) -> void:
 ## The HUD control panel by clicks (the user, 17 Nov: "why I don't have R altitude in the hud?"): each of SCALES, FP
 ## MARKER, VELOCITY and ALT moves its setting through every position and changes the HUD; with RDR ALT powered (the
 ## avionics key) ALT RADAR shows the radar altitude (AR), AUTO the same below 1,200 ft; the altitude box with its
-## thousands comma. Every panel switch by its key: Alt + D DED DATA, Alt + R DEPR RET (neither on the model's panel),
-## Alt + X SCALES, Alt + F FP MARKER, Alt + Z VELOCITY, Alt + A ALT.
+## thousands comma; DED DATA and DEPR RET the same (on the model since 2026-11-19). Every panel switch by its key:
+## Alt + D DED DATA, Alt + R DEPR RET, Alt + X SCALES, Alt + F FP MARKER, Alt + Z VELOCITY, Alt + A ALT.
 func _hud_panel(tv: Node, id: String) -> void:
 	var c = tv.cockpit
 	var h = c.hud
@@ -80,7 +80,12 @@ func _hud_panel(tv: Node, id: String) -> void:
 	var texts := func() -> Array:
 		return prims.call().filter(func(p): return p.k == "text").map(func(p): return String(p.text))
 	for sw in [
-		["w_vah-switch", "scales"], ["att_fpm-switch", "fpm"], ["tas-switch", "velocity"], ["altrad-switch", "alt"]
+		["w_vah-switch", "scales"],
+		["att_fpm-switch", "fpm"],
+		["tas-switch", "velocity"],
+		["altrad-switch", "alt"],
+		["deddata-switch", "ded"],
+		["depr-ret-switch", "depr"],
 	]:
 		var seen := {}
 		for k in 3:
@@ -92,10 +97,12 @@ func _hud_panel(tv: Node, id: String) -> void:
 			await frames(3)
 			seen[int(c.hud_panel[sw[1]])] = true
 			check(int(c.hud_panel[sw[1]]) != pos, "%s: a click on %s moves %s" % [id, sw[0], sw[1]])
-			# ALT AUTO above 1,200 ft draws as BARO (ufc.md §4): that move alone leaves the HUD.
+			# ALT AUTO above 1,200 ft draws as BARO, DEPR RET draws only at STBY (ufc.md §4): those moves leave the HUD.
 			var agl_now = h._real_in.get("agl_ft")
+			var now := int(c.hud_panel[sw[1]])
 			var same: bool = (
-				sw[1] == "alt" and pos + int(c.hud_panel.alt) == 3 and (agl_now == null or float(agl_now) >= 1200.0)
+				sw[1] == "alt" and pos + now == 3 and (agl_now == null or float(agl_now) >= 1200.0)
+				or sw[1] == "depr" and pos != 0 and now != 0
 			)
 			check(
 				(str(prims.call()) == was) == same,

@@ -72,6 +72,8 @@
 "att_fpm-switch": {"system": "hud_fpm"},
 "tas-switch": {"system": "hud_velocity"},
 "altrad-switch": {"system": "hud_alt"},
+"deddata-switch": {"system": "hud_ded"},
+"depr-ret-switch": {"system": "hud_depr"},
 "drift": {"system": "hud_drift", "rest": 1, "spring": [0]},
 "MFD1_MFDButtonCon": {"max": 1},
 "MFD2_MFDButtonCon": {"max": 1},

@@ -71,6 +71,7 @@
   "NWS": "Nosewheel steering",
   "OSB": "Option select button",
   "PBG": "Pressure breathing for g",
+  "PFL": "Pilot fault list",
   "PFLD": "Pilot fault list display",
   "PMG": "Permanent magnet generator",
   "RF": "Radio frequency",
@@ -2961,6 +2962,28 @@
       "OFF"
      ],
      "does": "Shows the flight path marker with the pitch ladder, the marker alone, or neither (inferred)."
+    },
+    {
+     "node": "deddata-switch",
+     "label": "DED DATA",
+     "name": "HUD DED data",
+     "positions": [
+      "DED",
+      "PFL",
+      "OFF"
+     ],
+     "does": "Repeats the DED's lines low in the HUD (DED), the pilot fault list's lines (PFL), or neither (OFF)."
+    },
+    {
+     "node": "depr-ret-switch",
+     "label": "DEPR RET",
+     "name": "Depressible reticle",
+     "positions": [
+      "STBY",
+      "PRI",
+      "OFF"
+     ],
+     "does": "STBY shows the standby reticle, PRI the primary reticle of the manual bombing mode, each lowered by the ICP's RET DEPR wheel; OFF neither."
     },
     {
      "node": "tas-switch",

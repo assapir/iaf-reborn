@@ -88,6 +88,8 @@
 "AirSource_knob": {"status": "partly", "note": "The EQUIP HOT caution, at OFF or at RAM below 70 kt; at OFF, DUMP and RAM the cabin altitude is the jet's."},
 "tas-switch": {"status": "works"},
 "altrad-switch": {"status": "works"},
+"deddata-switch": {"status": "works"},
+"depr-ret-switch": {"status": "works"},
 "w_vah-switch": {"status": "works"},
 "att_fpm-switch": {"status": "works"},
 "test-step-switch": {"status": "moves", "note": "The HUD's four test patterns are not drawn: no picture of them is public."},

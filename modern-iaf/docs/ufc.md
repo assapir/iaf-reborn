@@ -37,8 +37,8 @@ The user has no HOTAS ([avionics-plan.md](avionics-plan.md) §8, decision 3): ev
 | Alt + N | 253 | the EHSI's mode: NAV / TCN | the EHSI's M button |
 | Alt + U | 254 | the backup UHF panel's channel, one on (the UHF goes to BACKUP) | — (the model has no moving backup panel) |
 | Alt + K | 255 | IFF IDENT: the transponder's IDENT for 18 s ([ews.md](ews.md) §8) | — (the model has no IDENT button) |
-| Alt + D | 252, 4 | HUD DED DATA: DED / PFL / OFF | — (not in the model) |
-| Alt + R | 252, 5 | HUD DEPR RET: STBY / PRI / OFF | — (not in the model) |
+| Alt + D | 252, 4 | HUD DED DATA: DED / PFL / OFF | the HUD control panel's DED DATA switch |
+| Alt + R | 252, 5 | HUD DEPR RET: STBY / PRI / OFF | the HUD control panel's DEPR RET switch |
 | Alt + X | 252, 0 | HUD SCALES: VV/VAH / VAH / OFF | the HUD control panel's SCALES switch |
 | Alt + F | 252, 1 | HUD FP MARKER: ATT/FPM / FPM / OFF | the HUD control panel's FP MARKER switch |
 | Alt + Z | 252, 2 | HUD VELOCITY: CAS / TAS / GND SPD | the HUD control panel's VELOCITY switch |

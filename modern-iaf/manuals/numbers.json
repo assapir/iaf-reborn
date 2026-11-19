@@ -26,7 +26,7 @@
  "right_aux":{"anim110":1,"PFD_screen":2,"anim118":3,"anim119":4,"anim120":5,"anim108":6,"anim104":7,"anim105":8,"time-offset-left":9,"chronometer-button":10},
  "stick":{"anim000":1},
  "snsr_pwr":{"l-hdpt-switch":1,"r-hdpt-switch":2,"FCR":3,"RDR_ALT":4},
- "hud_remote":{"w_vah-switch":1,"att_fpm-switch":2,"tas-switch":3,"altrad-switch":4,"HUD_MODE":5,"test-step-switch":6},
+ "hud_remote":{"w_vah-switch":1,"att_fpm-switch":2,"tas-switch":3,"altrad-switch":4,"HUD_MODE":5,"test-step-switch":6,"deddata-switch":7,"depr-ret-switch":8},
  "nuclear":{"nuke-consent-cover":1,"nuke-consent-switch":2,"plain-switch":3},
  "lighting":{"console-primary-knob":1,"inst-pnl-primary-knob":2,"data-entry-display-knob":3,"console-flood-knob":4,"inst-pnl-flood-knob":5,"mal-ind-lts-switch":6,"indv-lgt-cont":7,"mms-switch":8},
  "air_cond":{"TEMP_knob":1,"AirSource_knob":2,"voice-msg-switch":3},

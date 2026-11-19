@@ -30,8 +30,8 @@ A large *X* flashes when the radar altitude and the dive call for an immediate p
   [#row("att_fpm-switch")], [ATT/FPM: the ladder and the flight path marker. FPM: the marker alone. OFF: neither.], [#key("HUD FP MARKER (ATT/FPM / FPM / OFF)")],
   [#row("tas-switch")], [Calibrated airspeed (C), true airspeed (T) or ground speed (G). With the gear down or in dogfight the scale is calibrated airspeed.], [#key("HUD VELOCITY (CAS / TAS / GND SPD)")],
   [#row("altrad-switch")], [RADAR: the radar altitude on the scale. BARO. AUTO: the radar altitude's own scale below 1,200 ft.], [#key("HUD ALT (RADAR / BARO / AUTO)")],
-  [DED DATA], [Repeats the DED's five lines, or the fault list's, low in the HUD.], [#key("HUD DED DATA (DED / PFL / OFF)")],
-  [DEPR RET], [STBY shows the standby reticle, a ring with its dot; #row("depr_ret") lowers it.], [#key("HUD DEPR RET (STBY / PRI / OFF)")],
+  [#row("deddata-switch")], [Repeats the DED's five lines, or the fault list's, low in the HUD.], [#key("HUD DED DATA (DED / PFL / OFF)")],
+  [#row("depr-ret-switch")], [STBY shows the standby reticle, a ring with its dot; PRI the manual bombing mode's reticle. #row("depr_ret") lowers either.], [#key("HUD DEPR RET (STBY / PRI / OFF)")],
   [#row("SYM")], [The symbols' brightness.], [#key("Step HUD brightness")],
 )
 
@@ -42,7 +42,6 @@ The helmet sight puts an aiming cross on the visor. Look at a target to point a 
 #display("helmet", [The helmet looking 54° left at a locked target, a short-range missile selected: the aiming cross, the radar's box and the seeker's diamond on the target, the circle whose gap shows where the head looks from the nose, the head's heading above, the g and speed at the left, the altitude and steerpoint at the right.], width: 90%)
 
 #in-sim[
-  - The two switches DED DATA and DEPR RET work by their keys only.
   - #row("test-step-switch") moves only: the HUD's four test patterns#d34[page 1-158] are not drawn.
   - #row("drift") at DRIFT C/O (#key("DRIFT C/O (DRIFT C/O / NORM)")) #then[centres the flight path marker and the ladder.] At WARN RESET (#key("WARN RESET")) #then[the flashing FUEL cue and the repeating "Altitude" call stop.]
   - #row("cont") (#key("HUD CONT (contrast): next step")) is partly modelled: #then[the symbols' edges wash out as it turns down.] The HUD draws no infrared picture for it to set.

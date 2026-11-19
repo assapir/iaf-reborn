@@ -422,6 +422,9 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   Ctrl+K does the whole sequence ([cockpit.md](cockpit.md) §5.6). The grey rod drawn on the sill from 2026-11-11 was
   removed the same day (the user: "remove the f16 cockpit handle. It isn't right for sure"). Open: no marking, the
   jettison T-handle and a two-seater's own wall, for want of a picture.
+- **The F-16s' DED DATA and DEPR RET switches (2026-11-19, waiting for the user's yes, A62):** the HUD remote control
+  panel's third and fourth switch move and are clicked as its other four; each a click or its key (Alt + D, Alt + R)
+  ([cockpit.md](cockpit.md) §5.11).
 - **The hands on the stick and the throttle (2026-11-11, the Mac play test's finding 12):** the left glove holds the
   throttle's grip and follows it over its travel (two shape keys in `f16_pilot.glb`); the right glove holds the stick
   ([cockpit.md](cockpit.md) §5.3).

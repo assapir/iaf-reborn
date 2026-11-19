@@ -946,6 +946,30 @@ the damage flags: `cockpit.gd` `pfl_flags`), so they light FLCS FAULT and MASTER
 
 Test: `modern-iaf/tests/test_f16_autopilot.gd`.
 
+### 5.11 DED DATA and DEPR RET (2026-11-19)
+
+The HUD remote control panel on the right console has eight switches in two rows: VV/VAH, ATT/FPM, DED DATA and DEPR
+RET on top; VELOCITY, ALT, DAY / AUTO BRT / NIGHT and TEST below. FlightGear's console models all eight in those places,
+but it turns DED DATA by a script and DEPR RET not at all, so `tools/f16d/cockpit3d.py` leaves both in the console's
+body and until 2026-11-19 they worked by their keys only. After a build `tools/f16d/split_control.py` (its header has
+the commands) cuts each lever out of the body, as the DAY / AUTO BRT / NIGHT switch (`HUD_MODE`): the nodes
+`deddata-switch` and `depr-ret-switch` of `f16.glb`, each turning 35° a step about its base like its neighbours, the
+top position forward. Their records (property, three positions, modelled at the middle) are in `f16.json` `controls`
+beside their neighbours'; `split_control.py` writes only the turn, so a rebuild needs both records added again.
+
+| Control (node) | Key | What it does |
+| --- | --- | --- |
+| DED DATA (`deddata-switch`: DED, PFL, OFF) | Alt + D (the next position, round) | DED repeats the DED's five lines low in the HUD, PFL the pilot fault list's, OFF neither ([ufc.md](ufc.md) §4) |
+| DEPR RET (`depr-ret-switch`: STBY, PRI, OFF) | Alt + R (the next position, round) | STBY shows the standby reticle, PRI the manual bombing mode's primary reticle, each lowered by the RET DEPR wheel ([weapons.md](weapons.md) §9) |
+
+Both are rows of `f16_controls.json` with a `system` (`hud_ded`, `hud_depr`): a click sends command 252 as the key does
+(p1 4 or 5, p2 the position), and each frame the switch shows `cockpit.gd` `hud_panel`, so a key moves the switch too.
+They start where `hud_panel` starts: DED DATA at OFF, DEPR RET at PRI. The original game's optional 3D F-16 cockpit
+shows them on the same model; there, as its other HUD panel switches, they stay as modelled (no clickable controls,
+and command 252 needs the UFC).
+
+Test: `modern-iaf/tests/test_radar_cold.gd` `_hud_panel` (a click on each moves its setting and changes the HUD).
+
 ### 5.4 The AoA probe (2026-11-11, from the user's Mac)
 
 On the ground the AoA gauge and the indexer jumped about: the 6-DoF's α is the angle of the body's velocity, which

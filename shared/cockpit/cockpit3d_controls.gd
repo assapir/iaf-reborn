@@ -453,7 +453,8 @@ static func _system_state(tv: Object, name: String, now: float) -> float:
 		"hud_drift":  # the ICP's DRIFT C/O switch (cockpit.gd hud_panel drift: 1 NORM, 2 DRIFT C/O)
 			if tv.cockpit.ufc != null:
 				return float(tv.cockpit.hud_panel.drift)
-		"hud_scales", "hud_fpm", "hud_alt":  # the HUD control panel (cockpit.gd hud_panel): the top position is the first
+		"hud_scales", "hud_fpm", "hud_alt", "hud_ded", "hud_depr":  # the HUD control panel (cockpit.gd hud_panel): the top
+			# position is the first
 			return 2.0 - float(tv.cockpit.hud_panel[name.trim_prefix("hud_")])
 		"hud_velocity":
 			return 1.0 - float(tv.cockpit.hud_panel.velocity)
@@ -551,7 +552,7 @@ func _system_put(name: String, v: float, was := NAN) -> void:
 				tv._press([64, 0, 0])
 			elif not is_nan(was) and was > 0.5:
 				tv._release_command([65, 0, 0])
-		"hud_scales", "hud_fpm", "hud_alt", "hud_velocity":  # the HUD control panel: command 252
+		"hud_scales", "hud_fpm", "hud_alt", "hud_velocity", "hud_ded", "hud_depr":  # the HUD control panel: command 252
 			var k := name.trim_prefix("hud_")
 			var top := 1.0 if k == "velocity" else 2.0
 			tv._press([252, tv.cockpit.HUD_PANEL.find(k), roundi(top - v)])

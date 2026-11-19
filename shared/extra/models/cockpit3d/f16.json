@@ -4121,6 +4121,40 @@
      -0.0
     ]
    }
+  ],
+  "deddata-switch": [
+   {
+    "prop": "f16/avionics/hud-ded",
+    "factor": -35.0,
+    "offset": 35.0,
+    "centre": [
+     0.42697,
+     0.14535,
+     -3.36381
+    ],
+    "axis": [
+     0.98313,
+     0.18289,
+     -0.0
+    ]
+   }
+  ],
+  "depr-ret-switch": [
+   {
+    "prop": "f16/avionics/hud-depr",
+    "factor": -35.0,
+    "offset": 35.0,
+    "centre": [
+     0.4544,
+     0.15036,
+     -3.36388
+    ],
+    "axis": [
+     0.98313,
+     0.18292,
+     -0.0
+    ]
+   }
   ]
  },
  "buttons": {
@@ -6241,6 +6275,24 @@
   },
   "altrad-switch": {
    "prop": "f16/avionics/hud-alt",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 2.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 1.0
+  },
+  "deddata-switch": {
+   "prop": "f16/avionics/hud-ded",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 2.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 1.0
+  },
+  "depr-ret-switch": {
+   "prop": "f16/avionics/hud-depr",
    "mode": "cycle",
    "min": 0.0,
    "max": 2.0,

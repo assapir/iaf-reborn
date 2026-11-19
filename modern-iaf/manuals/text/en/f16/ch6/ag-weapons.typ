@@ -60,7 +60,7 @@ To throw the bomb from farther out, pull up when the pull-up cues meet the marke
 The manual mode gives a fixed sight, the reticle: a dot in a dashed ring inside a larger ring, lowered below the gun cross by the RET DEPR wheel#mlu["Manual Weapon Delivery", page 191]. The HUD shows how far it is lowered, in milliradians.
 
 + Arm. Select the bomb. Pick MAN.
-+ Set #row("depr_ret") with #key("RET DEPR wheel: reticle down") and #key("RET DEPR wheel: reticle up"), and the DEPR RET switch to PRI with #key("HUD DEPR RET (STBY / PRI / OFF)"). #then[The reticle shows.]
++ Set #row("depr_ret") with #key("RET DEPR wheel: reticle down") and #key("RET DEPR wheel: reticle up"), and #row("depr-ret-switch") to PRI with #key("HUD DEPR RET (STBY / PRI / OFF)"). #then[The reticle shows.]
 + Fly the planned dive, speed and height. Release with #key("Release selected weapon") when the reticle's dot is on the target. #then[The bomb leaves at once.]
 
 To find the setting, fly the same pass in CCIP with DEPR RET at STBY and turn the wheel until the reticle's dot sits on the impact point; the setting is then the one for that dive, speed and height.

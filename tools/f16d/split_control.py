@@ -5,7 +5,16 @@
 #   python3 -I tools/f16d/split_control.py shared/extra/models/cockpit3d/f16.glb HUD_MODE \
 #       0.420,0.140,-3.332,0.430,0.160,-3.323 f16/avionics/hud-brt-switch 25 -25
 # (the HUD remote control panel's DAY / AUTO BRT / NIGHT switch: 0 DAY 25° forward, 1 AUTO as modelled, 2 NIGHT 25°
-# aft.) Needs numpy.
+# aft.) The same panel's DED DATA and DEPR RET switches (FlightGear turns the first by a script, the second not at all,
+# so cockpit3d.py leaves both in the body; the top position, DED and STBY, is 2 and 35° forward, 1 as modelled, 0 OFF
+# 35° aft; their boxes the FlightGear objects' bounds in the body's frame, 0.5 mm out):
+#   python3 -I tools/f16d/split_control.py shared/extra/models/cockpit3d/f16.glb deddata-switch \
+#       0.4200,0.1444,-3.3667,0.4298,0.1635,-3.3598 f16/avionics/hud-ded -35 35
+#   python3 -I tools/f16d/split_control.py shared/extra/models/cockpit3d/f16.glb depr-ret-switch \
+#       0.4469,0.1492,-3.3666,0.4576,0.1701,-3.3580 f16/avionics/hud-depr -35 35
+# (cockpit3d.py writes no `controls` record for these two: add theirs to <model>.json `controls` again after a build,
+# as w_vah-switch's with "modelled": 1.0, so the original game, which loads no control table, shows them at the middle.)
+# Needs numpy.
 import json
 import struct
 import sys
