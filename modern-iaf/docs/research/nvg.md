@@ -126,6 +126,18 @@ Every row is the US practice; the IAF's own procedure is open.
 | Weight | on the front of the helmet: one vendor's AN/AVS-9-class binocular 500 g, its mount 150 g (secondary)[^agm-a9] | built into the helmet; the helmet's own weight open (seat and helmet under 136 lb)[^d1-helmet] |
 | Other limits | less depth perception; less reliable in high humidity or thick cloud[^sp-nvg] | the canopy bow in the camera's view[^ain-gen3] |
 
+**Two tubes, one circle** (added 19 November 2026). Aviation goggles of the ANVIS class (AN/AVS-9, F4949) are
+binocular: one image-intensifier tube for each eye. The two tubes are parallel[^tnvc-wfov] and aligned so that both
+show the same picture: their 40° fields overlap 100%, and the pilot sees one 40° circle.
+- A binocular night-vision device must line up its two tubes' images exactly; the AN/AVS-9 is aligned by turning its
+  eyepieces[^itt-collim]. With the tubes set to the wearer's eyes, the two images merge into a single sharp
+  image[^lumi-ipd].
+- A night-vision goggle's field is 40° with one tube or with two. A "double" image, overlapping in the middle, comes
+  from goggles whose tubes are angled outward; four-tube panoramic goggles such as the AN/AVS-10 widen the view to
+  about 100°[^tnvc-wfov].
+- The tubes' spacing follows the pilot's eye spacing: each tube adjusts on its own, together 51–72 mm (the F4949;
+  second-hand)[^f4949-ipd].
+
 ## 5. Hebrew terms
 
 Found in Israeli use; none coined here.
@@ -176,6 +188,10 @@ NVIS / NORMAL glare. The shader's gain, halos, grain and P43 green are unchanged
 Adir's helmet are unchanged. At NVIS the F-16s' cockpit is lit NVIS green (§3). O3 stays as built (the user, 19
 November 2026: "no keep as is"): the helmet's symbols are off while the goggles are down; the Digital Eyepiece (§2.2)
 is the known alternative.
+
+As built, the user's "binoculars, not mono" (19 November 2026): the sim draws one 40° circle, as the binocular
+goggles' fully overlapping tubes show it (§4, "Two tubes, one circle") and as the user chose the same day ("Keep one
+circle").
 
 | # | jet | option | what it needs |
 |---|---|---|---|
@@ -291,3 +307,17 @@ is the known alternative.
     humidity and cloud): https://www.strategypage.com/htmw/htairfo/articles/20030306.aspx
 [^michlol]: Hamichlol, "אמצעי ראיית לילה":
     https://www.hamichlol.org.il/%D7%90%D7%9E%D7%A6%D7%A2%D7%99_%D7%A8%D7%90%D7%99%D7%99%D7%AA_%D7%9C%D7%99%D7%9C%D7%94
+[^itt-collim]: US patent 6,687,053, "Binocular device and method utilizing monocular devices", ITT Manufacturing
+    Enterprises, 3 February 2004 (a binocular night vision device needs its two intensified images collimated in
+    image space; images that do not coincide hinder binocular fusion; the AN/AVS-9 collimated by rotating its
+    eyepieces): https://patents.google.com/patent/US6687053
+[^lumi-ipd]: US patent 11,914,135, "Interpupillary distance adjustment mechanism for binocular optical device",
+    Lumiworx, 27 February 2024 (with the IPD correct the monoculars' images overlap to form a single sharp image):
+    https://patents.google.com/patent/US11914135
+[^tnvc-wfov]: Secondary (vendor). A. Kim, TNVC, "WFOV (wide field of view) night vision goggle overview", TNV21-07,
+    17 July 2021 (the 40° field the same with one tube or two; conventional binoculars' tubes parallel; tubes angled
+    outward give a "double" image overlapping in the centre; panoramic goggles such as the AN/AVS-10 about 95–104°
+    wide with four tubes): https://tnvc.com/wp-content/uploads/2025/04/TNVC_WFOV_NVG_WHITE_PAPER_REV4_DU_20210717.pdf
+[^f4949-ipd]: Second-hand. A reseller's F4949 (ANVIS-9) specification sheet (interpupillary distance: independent,
+    51 to 72 mm; the page refused automated access, as the search engine quoted it):
+    https://punisher.com.ua/en/prylad-nichnoho-bachennia-harris-anvis-9-f4949-series/
