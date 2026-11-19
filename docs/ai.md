@@ -1006,6 +1006,101 @@ locks, 430, condition 26).
   no range check.
 - **Op 1** (0x5c4160 → `FUN_004aad10`): `FUN_004ab810(pose, 1)` at a point. UNCERTAIN: the trigger fields → args.
 
+## 15. Modern IAF's air-defence sites (ours)
+
+Modern IAF's sites run on the Rust site (`crates/iaf-ai/src/site.rs`, gdext `IafSite`), not on the 1998 brain; the
+1998 game keeps §14 as it is. No mission places a site yet. `shared/ai/air_defence.gd` is the dev and test hook:
+`AirDefence.of(host).spawn(kind, pos, heading, alternates)` (kind `s300`, `tor` or `zsu`) adds each part as a
+mission entity (`ad:N`) with its stand-in shape and arms each firing part as a combat.gd unit without a brain
+(`add_ground_unit`). The test is `modern-iaf/tests/test_enemy_sites.gd`; the Rust tests are
+`crates/iaf-ai/tests/sites.rs`. The procedure and its sources: [modern-iaf/docs/research/enemies.md](../modern-iaf/docs/research/enemies.md)
+§2.3–§2.6, §3.1 and §5.2. Timings no source gives are inferred, each with a comment in `site.rs`.
+
+### 15.1 The procedure
+
+| | S-300PMU-2 | Tor-M1 | ZSU-23-4 |
+|---|---|---|---|
+| parts | 96L6E search radar, 30N6E2 track radar, four 5P85TE2 launchers of four rounds | one vehicle: search and track radars, eight rounds | one vehicle: the RPK-2 radar, an optical sight, 2,000 rounds |
+| radar reach against 5 m² | search 300 km[^mis-96l6e], track 200 km (the record's, held) | search 25 km, track 20 km | 20 km; the sight 5 km (inferred) |
+| targets at once | 6 | 2 | 1 (stays on one target) |
+| per target | 2 missiles, 3 s apart across the battery | 2 missiles, 4 s apart | bursts of 10 rounds (2–3 per barrel × 4), 3 s apart (inferred) |
+| acquisition (inferred) | 5 s | 3 s | 2 s |
+| moving | searches and fires only in place; march order 5 min (inferred), set-up 5 min after the halt | searches and tracks on the move; stops 5 s (inferred) to fire | searches and fires on the move |
+| RWR type code | 310 | 330 | 360 |
+
+The state machine (one fixed procedure needs no behaviour tree): the site is Ready, silent or searching by its EMCON.
+Each channel takes one target through Acquire (the track radar on, no lock yet), Track (a lock on the RWR, combat.gd
+`on_lock` from the track radar), the launches inside the envelope, and Guide (the track held while its missiles fly).
+When they have ended, the crew assesses: a target still alive is engaged again (shoot-look-shoot). A track lost (the
+target gone, out of reach or masked) frees its channel.
+- **The pick:** the most dangerous target first, measured by its time to arrive at the site (inferred).
+- **EMCON** (§5.2, the caller's choice per site): `radiate` searches all the time; `silent` never radiates (the ZSU
+  lays optically); `cue` keeps the radars off until a cued target (the caller's `cued`, the network's track) is
+  seconds from the envelope (its edge plus the acquisition time at its closing speed), then the track radar comes on
+  to acquire it and fire (§11-134).
+- **Relocation** (§11-121): after an engagement, 20 s without a track (inferred), the site takes its march order
+  (radars off), drives straight to its next position (the placed one and its alternates in turn), sets up and searches
+  again. A single site moves whole (inferred from §11-119's one third), its layout kept, each vehicle facing its course;
+  a destroyed part stays where it is.
+- **Parts destroyed** (a part hit fatally, state 3 or more): no search radar, no search; no track radar, no
+  engagement; a launcher's rounds go with it. With no rounds left the site drops its tracks once its missiles have
+  ended, and moves on after the quiet time.
+- **The Tor's duty limits:** 10 min radiating forces 10 min off; after three engagements (salvos fired, whatever
+  became of the target) an hour off, in which a cued target in reach switches it on once for one minute (its salvos
+  there count toward no further break).
+- **The fire** goes through combat.gd: a missile through `_release` (the launcher turned to the target, no truce, the
+  site counting its own missiles in the air instead of the 1998 one per unit; a launch the release refuses gives its
+  round back and counts neither toward the relocation nor toward the Tor's break), the gun's rounds through `fire_at`
+  (the fire tick's lead) one per `GUN_PERIOD`. The launch envelope is `Missile.dlz` from the first launcher toward
+  the target; the gun's is its range. The weapon records are stand-ins:
+  the AIM-120's for the SAMs and the 20 mm's for the ZSU, the existing missile and round models unchanged (the sites'
+  own records await the user, modern-iaf/docs/threat-records.md).
+- **The RWR and the HARM:** each track is a lock. A site's radar is on the RWR's search list (docs/rwr.md §7) and in
+  the HARM sensor's scan only while it radiates (the part's `radiating`), heard to the radar's reach (`radar_km`).
+  Modern IAF has the search list on.
+
+### 15.2 Radar cross-section
+
+A radar's range against a jet: R = reach × (σ / 5 m²)^¼ (the radar equation; each reach is taken against a 5 m²
+fighter, inferred). The jet's σ (m²) from its definition's `rcs` (docs/adding-a-plane.md):
+σ = front · max(cos θ, 0)² + side · sin² θ + rear · max(−cos θ, 0)², θ the angle between its nose and the line to the
+radar (the blend inferred; an aircraft's largest returns come from the side[^aerospaceweb]), plus `bays_open_m2` while
+the player's bay doors are open (`player_weapons.gd bay_open`) and `store_m2` for each loaded external station
+(`stores.gd external`; bay stations add none).
+
+| jet | front | side | rear | bays open | per store | source |
+|---|---|---|---|---|---|---|
+| F-16 (the Barak; the Sufa by its base) | 1.2 | 6 | 3 | — | 0.5 | front: the F-16's average with Have Glass[^ni-f16]; the rest inferred |
+| F-35I Adir | 0.0015 | 0.05 | 0.01 | 1.0 | 0.5 | front: the low end of 0.0015–0.005[^migflug]; the rest inferred (external stores "drastically increase" it[^ni-beast]) |
+| any other (1998 types, drones) | 5 | 25 | 12.5 | — | 0.5 | inferred (`site::FIGHTER`) |
+
+Public figures are rough and disputed. Head on, the 96L6E's 300 km gives about 210 km against an F-16, 39 km against
+a clean Adir and 200 km against an Adir with its bays open.
+
+### 15.3 Terrain and the radar horizon
+
+A radar sees a jet only over the terrain and the earth's curvature: the radar's `line_of_sight` (§14) with the ground
+lifted by the bulge s · (L − s) / (2 · k · R) at each sample, k = 4/3 (the standard refraction, inferred), R = 6,371
+km; sea level where the terrain has none. The terrain is the mission ground (roofs and trees included). The antennas
+(inferred): the 96L6E 6 m, the 30N6E2 8 m (25 m on its 40V6M tower, `set_mast`), the Tor 5 m, the ZSU 3.5 m. The
+site tests sight only at its decision tick (0.5 s) and only for jets inside the range for their σ.
+
+### 15.4 Stand-in shapes
+
+Ours (`air_defence.gd _shape`), built like the bases' furniture (`base_furniture.gd`, vertex colours, olive): a radar
+cabin on a truck with its flat array on a post, a semi-trailer with four canisters upright, the Tor's tracked hull and
+turret with its two antennas, the ZSU's hull and turret with four barrels and its dish. They stand in until a model is
+approved.
+
+### 15.5 Later
+
+- Ground clutter for the search radars (the radar code has none).
+- The network (ai-plan K6): an early-warning radar cueing the sites; today the caller marks a jet cued.
+- The sites' own missile and gun records (drafts, threat-records.md) and the site's guidance of its missiles: the
+  stand-in missile homes by itself and flies on when the track radar dies.
+- Roads for the move; §11-121's other moves (after a reconnaissance overflight, after 4–6 hours in place); a battery
+  of several sites moving a third at a time.
+
 ## UNCERTAIN
 Open questions in this document:
 - The RWR field names behind conditions 19, 26, 27, 38, 39 (§13.2); what else writes brain+0x7c.
@@ -1014,3 +1109,8 @@ Open questions in this document:
 - The leader flag gating the wingman's take-off roll; the taxi re-placement's 60 m sign; what happens after parking
   (the root timer keeps running ParkInHangar).
 
+[^mis-96l6e]: Missilery.info, "All Altitude Detector (VO) 96L6E", https://en.missilery.info/node/13476 (target detection range 5–300 km; read as quoted by a search engine on 2026-11-19, second-hand).
+[^aerospaceweb]: Jeff Scott, Aerospaceweb.org, "Radar Cross Section", 21 March 2004, https://aerospaceweb.org/question/electronics/q0168.shtml (the head-on view most important; the largest returns from the sides; read 2026-11-19).
+[^ni-f16]: The National Interest, on the F-16's Have Glass V paint, https://nationalinterest.org/node/112436 and https://nationalinterest.org/node/168141 ("the F-16 on average has a 1.2-square-meter radar cross-section, according to Globalsecurity"; second-hand: as quoted by a search engine on 2026-11-19; the site refuses automated reading).
+[^migflug]: Max Grünwald, MiGFlug Afterburner, "F-22 Marble, F-35 Golf Ball: Where RCS Figures Come From", 8 November 2026, https://migflug.com/afterburner/?p=31823215 (GlobalSecurity's table: the F-35 at 0.0015–0.005 m²; GlobalSecurity itself refuses automated reading; read 2026-11-19).
+[^ni-beast]: The National Interest, "The F-35 Has a 'Beast Mode' (But There's a Catch)", https://nationalinterest.org/node/180849 (external hardpoints "drastically increase" the radar cross-section; second-hand: as quoted by a search engine on 2026-11-19).

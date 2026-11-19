@@ -45,6 +45,8 @@ const PROFILE := {
 	# No town labels: the 1998 game's (shared/terrain/town_labels.gd); the sim draws no names over the view (the Mac
 	# play test, 2026-11-11).
 	"town_labels": false,
+	# The threat display shows the SAM and AAA radars searching the jet, not only their locks (docs/rwr.md §7, ai.md §15).
+	"rwr_search": true,
 }
 ## No aids (the user, 2026-11-08): the original's Gameplay page's switches, all off (easy_landing's default is on).
 ## Applied with PROFILE; never logged (has_setting): the sim has no such switch.

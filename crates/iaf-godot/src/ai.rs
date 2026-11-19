@@ -1,12 +1,17 @@
 //! `IafAi`: Modern IAF's flight AI (`iaf_ai`, modern-iaf/docs/ai-plan.md §6) for one flight of up to four `IafFlight`
 //! jets. Each frame, after every jet's `step` (one instant), `step` reads every jet's flight model and autopilot and
 //! sets the AI jets' autopilot for their next `ap_step` (mode, leader, slot, engine start); the player's jet is read
-//! only but for its home hangar (`add_member`).
+//! only but for its home hangar (`add_member`). `IafSite`: an air-defence site (`iaf_ai::site`, docs/ai.md §15)
+//! for `shared/ai/air_defence.gd`.
 
 use godot::prelude::*;
 use iaf_ai::Flight;
+use iaf_ai::site::{self, Emcon, Kind, Site, Target};
+use iaf_flight::Vec3;
+use iaf_flight::airframe::Rcs;
 
 use crate::flight::IafFlight;
+use crate::world::{get, num, terrain, vec3, vector3};
 
 #[derive(GodotClass)]
 #[class(init, base = RefCounted)]
@@ -104,5 +109,138 @@ impl IafAi {
         d.set("bingo_kg", m.bingo_kg);
         d.set("released", m.released);
         d
+    }
+}
+
+#[derive(GodotClass)]
+#[class(no_init, base = RefCounted)]
+pub struct IafSite {
+    site: Site,
+}
+
+/// A target dictionary: {id, pos, vel, nose (world), rcs (an airframe's `rcs`, else a fighter's), bays, stores,
+/// cued, dlz (Vector2: max, min m), in_air}.
+fn target(d: &VarDictionary) -> Target {
+    let rcs = get::<VarDictionary>(d, "rcs").and_then(|r| {
+        Some(Rcs {
+            front_m2: num(&r, "front_m2")?,
+            side_m2: num(&r, "side_m2")?,
+            rear_m2: num(&r, "rear_m2")?,
+            bays_open_m2: num(&r, "bays_open_m2").unwrap_or(0.0),
+            store_m2: num(&r, "store_m2")?,
+        })
+    });
+    let dlz: Vector2 = get(d, "dlz").unwrap_or_default();
+    Target {
+        id: get::<GString>(d, "id").unwrap_or_default().to_string(),
+        pos: vec3(get(d, "pos").unwrap_or_default()),
+        vel: vec3(get(d, "vel").unwrap_or_default()),
+        nose: vec3(get(d, "nose").unwrap_or_default()),
+        rcs: rcs.unwrap_or(site::FIGHTER),
+        bays_open: get(d, "bays").unwrap_or(false),
+        stores: num(d, "stores").unwrap_or(0.0) as u32,
+        cued: get(d, "cued").unwrap_or(false),
+        dlz: (dlz.x.into(), dlz.y.into()),
+        in_air: num(d, "in_air").unwrap_or(0.0) as u32,
+    }
+}
+
+#[godot_api]
+impl IafSite {
+    /// A site of `kind` (s300, tor, zsu) centred at `pos` (world), facing `heading` (degrees), with its alternate
+    /// positions (Vector3s); null for an unknown kind.
+    #[func]
+    fn create(kind: GString, pos: Vector3, heading: f64, alternates: VarArray) -> Option<Gd<Self>> {
+        let kind = Kind::from_name(&kind.to_string())?;
+        let alt: Vec<Vec3> = alternates.iter_shared().filter_map(|v| v.try_to::<Vector3>().ok()).map(vec3).collect();
+        Some(Gd::from_object(Self { site: Site::new(kind, vec3(pos), heading, &alt) }))
+    }
+
+    /// Its parts in order: [{name, type_code, klass, search, track, rounds, reach_km (a radar's reach, else 0)}].
+    #[func]
+    fn parts(&self) -> VarArray {
+        let spec = self.site.spec();
+        spec.parts
+            .iter()
+            .map(|p| {
+                let reach = if p.search {
+                    spec.search_reach
+                } else if p.track {
+                    spec.track_reach
+                } else {
+                    0.0
+                };
+                vdict! {
+                    "name" => p.name, "type_code" => spec.type_code, "klass" => spec.class, "search" => p.search,
+                    "track" => p.track, "rounds" => i64::from(p.rounds), "reach_km" => reach / 1000.0,
+                }
+                .to_variant()
+            })
+            .collect()
+    }
+
+    /// Each part's ground position (world) on the terrain `ground` (Callable(Vector3) -> float or null).
+    #[func]
+    fn positions(&self, ground: Callable) -> VarArray {
+        let ground = terrain(Some(ground));
+        (0..self.site.spec().parts.len()).map(|i| vector3(self.site.part_pos(i, &ground)).to_variant()).collect()
+    }
+
+    /// Emission control: radiate, silent or cue; false for an unknown one.
+    #[func]
+    fn set_emcon(&mut self, mode: GString) -> bool {
+        let e = match mode.to_string().as_str() {
+            "radiate" => Emcon::Radiate,
+            "silent" => Emcon::Silent,
+            "cue" => Emcon::Cue,
+            _ => return false,
+        };
+        self.site.emcon = e;
+        true
+    }
+
+    /// The 30N6E2 on its 40V6M tower.
+    #[func]
+    fn set_mast(&mut self, on: bool) {
+        self.site.mast = on;
+    }
+
+    /// One decision at `now` (s): `alive` per part, the hostile jets alive (target dictionaries), the terrain
+    /// (Callable(Vector3) -> float or null). {search, track, tracks, launches: [[part, id]], bursts: [[part, id,
+    /// rounds]], parts: [each part's ground position], heading (the vehicles', their course on the move), phase}.
+    #[func]
+    fn tick(&mut self, now: f64, alive: VarArray, targets: VarArray, ground: Callable) -> VarDictionary {
+        let alive: Vec<bool> = alive.iter_shared().map(|v| v.try_to::<bool>().unwrap_or(true)).collect();
+        let targets: Vec<Target> =
+            targets.iter_shared().filter_map(|v| v.try_to::<VarDictionary>().ok()).map(|d| target(&d)).collect();
+        let ground = terrain(Some(ground));
+        let out = self.site.tick(now, &alive, &targets, &ground);
+        let tracks: PackedStringArray = out.tracks.iter().map(|s| GString::from(s.as_str())).collect();
+        let launches: VarArray =
+            out.launches.iter().map(|(p, id)| varray![*p as i64, id.as_str()].to_variant()).collect();
+        let bursts: VarArray =
+            out.bursts.iter().map(|(p, id, n)| varray![*p as i64, id.as_str(), i64::from(*n)].to_variant()).collect();
+        let parts: VarArray =
+            (0..self.site.spec().parts.len()).map(|i| vector3(self.site.part_pos(i, &ground)).to_variant()).collect();
+        vdict! {
+            "search" => out.search, "track" => out.track, "tracks" => &tracks, "launches" => &launches,
+            "bursts" => &bursts, "parts" => &parts, "heading" => self.site.course, "phase" => self.site.phase(now),
+        }
+    }
+
+    /// A launch the caller could not make: its round back to `part`.
+    #[func]
+    fn refund(&mut self, part: i64, target: GString) {
+        self.site.refund(part.max(0) as usize, &target.to_string());
+    }
+
+    /// For tests and logs: {phase, rounds (per part), engagements, at (the position index)}.
+    #[func]
+    fn state(&self, now: f64) -> VarDictionary {
+        let rounds: PackedInt64Array = self.site.rounds.iter().map(|&r| i64::from(r)).collect();
+        vdict! {
+            "phase" => self.site.phase(now), "rounds" => &rounds, "engagements" => i64::from(self.site.engagements),
+            "at" => self.site.at as i64,
+        }
     }
 }

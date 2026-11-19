@@ -100,6 +100,7 @@ the §1 type-code tables stay for the 1998 jets.
 | `sixdof` (bool) | `data_set.rs` `sixdof` | Physics "Flight model" on 6-DoF flies it on Modern IAF's 6-DoF from the sim's data (deviations.md §2) |
 | `engine_spool` [4 numbers] | `spool.rs` `of_type` (via `lib.rs` `load_section`) | Better physics engine spool, before the type code's row: idle → military, military → idle, afterburner light-off, light-off → full (s) |
 | `goggles` | `terrain_view.gd` `goggles_tube`, `goggles_lit` | the night goggles' tube whatever the year (`TUBES`), the cockpit lit for them |
+| `rcs` (`front_m2`, `side_m2`, `rear_m2`, `bays_open_m2`, `store_m2`) | `iaf_ai::site` (via `air_defence.gd`) | the radar cross-section (m²) Modern IAF's enemy radars see: from ahead, the side and behind, what the open bays add, what each loaded external station adds; without it an untreated fighter's (ai.md §15.2) |
 | `ews` | `shared/weapons/ews.gd` | the modern F-16s' AIFF (`aiff`) and missile approach warning (`maw`), [modern-iaf/docs/ews.md](../modern-iaf/docs/ews.md) |
 | `mfd` | `settings.gd` `real_mfd` | the F-16's real MFD formats |
 | `guide` | `reference.gd` `guide_name` | the pilot guide (`docs/guides/<guide>.md`) |

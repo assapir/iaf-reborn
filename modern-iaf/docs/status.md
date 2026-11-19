@@ -3,6 +3,19 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **Enemy AI step 1: the air-defence sites (2026-11-19, the user: "we need to have the code for ai enemies. Just isn't
+  reachable by mission yet", "They should take into consideration the stealth of the adir", "Also terrain shape etc.";
+  [ai-plan.md](ai-plan.md) K5, K7; [../../docs/ai.md](../../docs/ai.md) §15):** the S-300PMU-2 battery (96L6E search,
+  30N6E2 track, four launchers of four), the Tor-M1 and the ZSU-23-4 run their crews' procedure in Rust (`iaf_ai::site`):
+  search, acquisition, track (a lock on the RWR), two missiles per target 3 s (S-300) or 4 s (the Tor, at a halt) apart,
+  six or two targets at once, shoot-look-shoot; EMCON radiate / silent / cue; relocation after the engagement; the Tor's
+  duty limits; the ZSU's radar or optical laying and bursts on the move. Detection and track ranges follow the jet's
+  radar cross-section (the new `rcs` on each aircraft definition: the clean Adir is found head on at about a fifth of an
+  F-16's range; its open bays or external stores bring it back) and need sight over the terrain and the earth's
+  curvature. They fire the existing missile and gun-round models with the AIM-120's and the 20 mm's records standing
+  in; the shapes are our own stand-ins. The threat display now lists the radars searching the jet. No mission places a
+  site: a dev hook (`shared/ai/air_defence.gd`) and the tests (`crates/iaf-ai/tests/sites.rs`,
+  `modern-iaf/tests/test_enemy_sites.gd`). Later: ground clutter, the network (K6), the sites' own records.
 - **Modern IAF in the applications menu (2026-11-19, the user: "also as game icon in windows/linux/mac? deskop files
   etc?"; [setup.md](setup.md) "Applications menu"):** the setup wizard's Done page has the tick "Add Modern IAF to
   the applications menu" (the Start menu on Windows, the Applications folder on macOS), on by default. It adds "Modern

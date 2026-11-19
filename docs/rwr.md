@@ -135,5 +135,7 @@ search or acquisition radar that paints the jet, and loses it when terrain masks
   AI's view of the list (count, the nearest threat) stay the locks'.
 - **SPO-15** (Better cockpit `spo15`): a searching radar lights its sector and type lamps, not the lock lamp.
 - **Damage 14:** the search list is cleared and nothing is heard.
+- **Modern IAF:** the search list is always on (`sim_settings.gd` PROFILE). Its air-defence sites (ai.md §15) are on
+  it only while their radar radiates (the part's `radiating`; EMCON), heard to the radar's own reach (`radar_km`).
 - **Code:** `rwr.rs` `Rwr::search`, `IafRwr.search`, `rwr.gd` `search`, `player_weapons.gd` `_rwr_search`; tests in
   `rwr.rs` and `tests/godot/test_rwr.gd`.

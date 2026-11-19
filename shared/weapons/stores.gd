@@ -149,6 +149,7 @@ func setup(load: Array, db: RefCounted, descriptor: Dictionary, pilon_of: Callab
 			"drawn": w.type in DRAWN and i in PYLONS and p is Array,
 			"rack_kg": float(load[i][2]) if load[i].size() > 2 else 0.0,  # Modern IAF's rack (its jettison: Real)
 			"rack_drag": float(load[i][3]) if load[i].size() > 3 else 0.0,
+			"bay": load[i].size() > 4 and int(load[i][4]) == 1,
 		}  # no Station helper: nowhere to hang it
 		if st.drawn:
 			var pilon = pilon_of.call(w.model_path) if pilon_of.is_valid() else null
@@ -239,6 +240,12 @@ static func _box(full: String) -> AABB:
 
 func station(i: int) -> Dictionary:
 	return stations.get(i, {})
+
+
+## The pylons loaded outside a weapons bay (the chin pod's included): each adds to the jet's radar cross-section
+## (docs/ai.md §15.2).
+func external() -> int:
+	return PYLONS.filter(func(i): return stations.has(i) and stations[i].count > 0 and not stations[i].bay).size()
 
 
 func type_of(i: int) -> int:

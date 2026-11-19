@@ -312,45 +312,51 @@ func setup(host_node: Node, mission_files: Array, bdb: Dictionary, player_id := 
 			var unplaced := float(e.get("0x2e4", -1)) < 0 and float(e.get("0x2ee", -1)) < 0
 			if unplaced and name.to_lower().begins_with("player") and not is_player:
 				continue
-			var ent := {
-				"key": "%d:%d" % [fi, int(e["0x1e"])],
-				"name": name,
-				"file": fi,
-				"id": int(e["0x1e"]),
-				"world": Vector3(float(e["0x2e4"]), float(e["0x2ee"]), float(e.get("0x2f8", 0))),
-				"role": int(e.get("0x32a", 2)),
-				"mission_ctl": int(e.get("0x320", 0)) & 1 == 1,
-				"slots": e.get("slots", []),
-				"watched": int(e.get("0xac", -1)),
-				"sensor": true,
-				"alive_scenario": true,
-				"state": 1,
-				"visible": true,
-				"node": null,
-				"player": is_player,
-				"lists": [_list(e.get("scripts0", {})), _list(e.get("scripts1", {}))],
-				"current": [-1, -1],
-				"path": null,
-				"type": int(e.get("0x2c6", -1)),
-				"control": 3 if is_player else (2 if int(e.get("0x320", 0)) & 1 == 1 else 1),
-				"side": int(e.get("0x2d0", 0)),
-				"heading": float(e.get("0x302", 0)),
-				"vel": Vector3.ZERO,
-				"fall": null,
-				"combat": true,
-				"brain": _brain_of(e),
-				"armament": e.get("armament"),
-				# State +0x44, known to the player (entity 0x35c; the player's radar sets it too): the TSDs show the unit.
-				"known": int(e.get("0x35c", 0)) != 0,
-				# World scale Real: the scale its base took (move_with_bases; 1 elsewhere).
-				"base_scale": float(e.get("base_scale", 1.0)),
-			}
+			var ent := entity(e, "%d:%d" % [fi, int(e["0x1e"])], fi, is_player)
 			_init_damage(ent, objects.get(ent.type, {}))
 			if e.has("scenery"):
 				_scenery_target(ent, e)
 			entities[ent.key] = ent
 			if ent.role == ROLE_TARGET:
 				targets_left += 1
+
+
+## An entity's run-time record from its mission file record `e` (the loader's fields; a site of air_defence.gd passes
+## its own), keyed `key`, of file `fi`.
+static func entity(e: Dictionary, key: String, fi: int, is_player: bool) -> Dictionary:
+	return {
+		"key": key,
+		"name": String(e.get("0x2bc", "")),
+		"file": fi,
+		"id": int(e["0x1e"]),
+		"world": Vector3(float(e["0x2e4"]), float(e["0x2ee"]), float(e.get("0x2f8", 0))),
+		"role": int(e.get("0x32a", 2)),
+		"mission_ctl": int(e.get("0x320", 0)) & 1 == 1,
+		"slots": e.get("slots", []),
+		"watched": int(e.get("0xac", -1)),
+		"sensor": true,
+		"alive_scenario": true,
+		"state": 1,
+		"visible": true,
+		"node": null,
+		"player": is_player,
+		"lists": [_list(e.get("scripts0", {})), _list(e.get("scripts1", {}))],
+		"current": [-1, -1],
+		"path": null,
+		"type": int(e.get("0x2c6", -1)),
+		"control": 3 if is_player else (2 if int(e.get("0x320", 0)) & 1 == 1 else 1),
+		"side": int(e.get("0x2d0", 0)),
+		"heading": float(e.get("0x302", 0)),
+		"vel": Vector3.ZERO,
+		"fall": null,
+		"combat": true,
+		"brain": _brain_of(e),
+		"armament": e.get("armament"),
+		# State +0x44, known to the player (entity 0x35c; the player's radar sets it too): the TSDs show the unit.
+		"known": int(e.get("0x35c", 0)) != 0,
+		# World scale Real: the scale its base took (move_with_bases; 1 elsewhere).
+		"base_scale": float(e.get("base_scale", 1.0)),
+	}
 
 
 ## The entity's brain id (0x2da): the loader copies it to the spawn descriptor as is (FUN_0058f110 @58f1e6) and the

@@ -6,7 +6,9 @@
   "cockpit_3d": "res://shared/extra/models/cockpit3d/f16.glb",
   "drag_chute": false,
   "gear_limit": { "kcas": 300, "mach": 0.65 },
+  "rcs": { "front_m2": 1.2, "side_m2": 6.0, "rear_m2": 3.0, "store_m2": 0.5 },
   "notes": {
+    "rcs": "front 1.2 m2: the F-16's average with Have Glass (National Interest quoting GlobalSecurity; public figures rough and disputed); side 5x and rear 2.5x the front (inferred: an aircraft's largest returns are from the side, Aerospaceweb); 0.5 m2 per loaded external station (inferred); docs/ai.md 15.2",
     "gear_limit": "Flight data Real: gear damage above 300 KIAS / Mach 0.65 with the gear extended (T.O. 1F-16A-1 fig. 5-7; KIAS taken as KCAS), docs/damage.md 5.2",
     "drag_chute": "no F-16 or F-35 has a drag chute: the flight never asks the flight model for one",
     "": "The F-16 family's base and the Barak itself (the 1998 type 100): everything else of the Barak is the original's type-code tables.",

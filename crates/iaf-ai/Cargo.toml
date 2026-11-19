@@ -3,7 +3,8 @@ name = "iaf-ai"
 version = "0.1.0"
 edition.workspace = true
 license.workspace = true
-description = "Modern IAF's AI: behaviour trees and the flight lead over the autopilot's loops (modern-iaf/docs/ai-plan.md)"
+description = "Modern IAF's AI: behaviour trees and the flight lead over the autopilot's loops, the air-defence sites (modern-iaf/docs/ai-plan.md)"
 
 [dependencies]
+iaf-avionics = { path = "../iaf-avionics" }
 iaf-flight = { path = "../iaf-flight" }

@@ -158,26 +158,7 @@ func setup(h: Node, flights: Node, bdb: Dictionary) -> void:
 		var w := _weapon(ent, objects.get(ent.type, {}), db)
 		if w.is_empty():
 			continue  # "Entity with no weapon handler" (FUN_00444b20)
-		var u := Unit.new()
-		u.ent = ent
-		u.w = w
-		u.sensor_r = sensor_nm(int(ent.type_code), float(ent.get("radar_km", 0.0))) * NM
-		var m: Dictionary = db.motion_for(int(w.type), int(w.generation))
-		u.reaction = float(m.get("_reactionTime", 10.0))
-		u.interval = float(m.get("_fireReleaseInterval", 0.5))
-		if int(w.type) in [560, 565]:
-			u.rounds = GunRounds.new()
-			if int(w.type) == 560:
-				m = {"_spiralAccel": 0.0}  # as the player's rockets: no hit sphere, they burst on the ground
-				m.merge(db.motion_for(560, int(w.generation)), true)
-			u.rounds.configure(m, int(w.type), db.real)
-			u.rounds.units = _units_of
-			u.rounds.ground = host.mission_ground
-			u.rounds.detonate = _detonate.bind(String(ent.key))  # the key, not u: u holds the rounds (a cycle never freed)
-			u.limit_vel = float(m.get("_limitVel", 1200.0))
-			# 565: half _limitDist (2250 m)
-			u.range_m = float(m.get("_limitDist", 4500.0)) * (0.5 if int(w.type) == 565 else 1.0)
-			_round_nodes(u, w)
+		var u := add_ground_unit(ent, w)
 		var rules: Array = ai.brain_rules(int(ent.brain)) if ent.brain >= 0 else []
 		if ent.control in [1, 2] and ent.klass in SENSOR_CLASSES and not rules.is_empty():
 			var p := GroundPilot.new()
@@ -186,10 +167,37 @@ func setup(h: Node, flights: Node, bdb: Dictionary) -> void:
 			u.brain = Brain.new()
 			u.brain.setup(ai, ent, p, rules, false)
 			u.brain.reset(rt.now)
-		u.next_scan = rt.now + randf() * SCAN_PERIOD  # staggered: not every unit's scan in one frame
-		units[ent.key] = u
 	if not units.is_empty() or Settings.has_setting("ai_level"):  # a game with AI (not IAF 2026's training)
 		print("Ground units armed: %d" % units.size())
+
+
+## A ground unit's weapon handler with weapon `w` (FUN_004b7ea3): its sensor, its motion's reaction and interval, the
+## rounds of a gun or rocket. Without a brain it neither scans nor fires by itself (Modern IAF's sites,
+## air_defence.gd, fire it).
+func add_ground_unit(ent: Dictionary, w: Dictionary) -> Unit:
+	var u := Unit.new()
+	u.ent = ent
+	u.w = w
+	u.sensor_r = sensor_nm(int(ent.type_code), float(ent.get("radar_km", 0.0))) * NM
+	var m: Dictionary = _db.motion_for(int(w.type), int(w.generation))
+	u.reaction = float(m.get("_reactionTime", 10.0))
+	u.interval = float(m.get("_fireReleaseInterval", 0.5))
+	if int(w.type) in [560, 565]:
+		u.rounds = GunRounds.new()
+		if int(w.type) == 560:
+			m = {"_spiralAccel": 0.0}  # as the player's rockets: no hit sphere, they burst on the ground
+			m.merge(_db.motion_for(560, int(w.generation)), true)
+		u.rounds.configure(m, int(w.type), _db.real)
+		u.rounds.units = _units_of
+		u.rounds.ground = host.mission_ground
+		u.rounds.detonate = _detonate.bind(String(ent.key))  # the key, not u: u holds the rounds (a cycle never freed)
+		u.limit_vel = float(m.get("_limitVel", 1200.0))
+		# 565: half _limitDist (2250 m)
+		u.range_m = float(m.get("_limitDist", 4500.0)) * (0.5 if int(w.type) == 565 else 1.0)
+		_round_nodes(u, w)
+	u.next_scan = ai.runtime.now + randf() * SCAN_PERIOD  # staggered: not every unit's scan in one frame
+	units[ent.key] = u
+	return u
 
 
 ## The weapon database and the bdb objects by id (for the jets handed over in flight).
@@ -884,7 +892,11 @@ func set_combat(ent: Dictionary, on: bool) -> void:
 ## (taken even when the shot is skipped next), a busy pool object, the terrain line of sight. The ring's 3–4 steps
 ## per gun shot (pool quirk) are not reproduced.
 func _fire_tick(u: Unit, now: float) -> void:
-	var t: Dictionary = u.brain.target
+	fire_at(u, u.brain.target, now)
+
+
+## The fire tick's shot at `t` (a site's gun, air_defence.gd, passes its own target and no truce).
+func fire_at(u: Unit, t: Dictionary, now: float, truce := true) -> void:
 	if t.is_empty() or int(t.state) >= 4:
 		u.fire_next = INF
 		return
@@ -920,7 +932,7 @@ func _fire_tick(u: Unit, now: float) -> void:
 			return
 	else:
 		return
-	_release(u, t, aim, now, true)
+	_release(u, t, aim, now, truce)
 
 
 ## Script trigger op 2 Launch at target (FUN_005c42f0 → FUN_004aae40, target = entity 0x8ac): the unit's weapon at

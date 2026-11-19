@@ -906,8 +906,8 @@ func _harm_capture() -> void:
 	var cb = host.ai.combat if host.get("ai") != null else null
 	for u in _units():
 		var e: Dictionary = u.ent
-		if int(e.state) >= 4:
-			continue  # the scan skips units in state 4 / 5
+		if int(e.state) >= 4 or not e.get("radiating", true):
+			continue  # the scan skips units in state 4 / 5; Modern IAF's sites while their radar is off (ai.md §15)
 		# search: a hostile site without a brain never locks (docs/ai.md §14); the RWR source lists it (harm.rs).
 		list.append(
 			{
@@ -2861,14 +2861,15 @@ func _rwr_unit(key: String) -> Dictionary:
 
 
 ## Real RWR (docs/rwr.md §7): the hostile units, each with its name and its radar's range (the AI sensor's, combat.gd
-## sensor_nm); rwr.rs keeps the search radars in range and in sight.
+## sensor_nm); rwr.rs keeps the search radars in range and in sight. Modern IAF's sites (air_defence.gd) only while
+## their radar radiates.
 func _rwr_search() -> void:
 	var cb = host.ai.combat if host.get("ai") != null else null
 	if cb == null:
 		return
 	var sites := []
 	for u in _units():
-		if u.hostile:
+		if u.hostile and u.ent.get("radiating", true):
 			var reach: float = cb.sensor_nm(int(u.ent.get("type_code", 0)), float(u.ent.get("radar_km", 0.0))) * cb.NM
 			sites.append({"key": u.key, "name": String(u.ent.get("name", "")), "reach": reach})
 	rwr.search(sites, host.mission_ground)

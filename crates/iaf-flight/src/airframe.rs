@@ -59,6 +59,8 @@ pub struct Airframe {
     pub goggles: Option<String>,
     /// Modern IAF's F-16 EW and identification sets beyond every modern F-16's (`shared/weapons/ews.gd`).
     pub ews: Option<Ews>,
+    /// The radar cross-section an enemy radar sees (`iaf_ai::site`); a jet without one takes `site::FIGHTER`.
+    pub rcs: Option<Rcs>,
     pub guide: Option<String>,
     /// Each value's source, by field (`"radar.km"`); read by no code.
     pub notes: Option<BTreeMap<String, String>>,
@@ -120,6 +122,19 @@ pub struct Fcr {
 pub struct GearLimit {
     pub kcas: f64,
     pub mach: Option<f64>,
+}
+
+/// `rcs`: the radar cross-section (m²) seen from ahead, from the side and from behind; what the open weapon bays add;
+/// what each loaded external station adds (docs/ai.md §15.2).
+#[derive(Clone, Copy, Debug, PartialEq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct Rcs {
+    pub front_m2: f64,
+    pub side_m2: f64,
+    pub rear_m2: f64,
+    #[serde(default)]
+    pub bays_open_m2: f64,
+    pub store_m2: f64,
 }
 
 /// `gun`: rounds a minute (all barrels), muzzle velocity m/s, guns per jet.
@@ -333,7 +348,8 @@ mod tests {
     /// With every switch off a 1998 jet's definition holds no value its type-code tables decide, so the game reads
     /// exactly the 1998 values; only what the original has no table for (the model file it is, the 3D cockpit and
     /// its HUD) and `drag_chute: false`, as the 1998 F-16 (its model has no `Parach` part, docs/part-animation.md),
-    /// and `gear_limit`, which only Flight data Real and the 6-DoF read.
+    /// and `gear_limit`, which only Flight data Real and the 6-DoF read, and `rcs`, which only Modern IAF's enemy
+    /// radars read (`iaf_ai::site`).
     #[test]
     fn switches_off_give_the_1998_values() {
         let off = Switches { f16: "barak", f15: "baz" };
@@ -344,8 +360,18 @@ mod tests {
             let keys: Vec<&str> = a.keys().map(String::as_str).collect();
             assert!(
                 keys.iter().all(|k| {
-                    ["name", "doc", "notes", "original_model", "hud_3d", "cockpit_3d", "drag_chute", "gear_limit"]
-                        .contains(k)
+                    [
+                        "name",
+                        "doc",
+                        "notes",
+                        "original_model",
+                        "hud_3d",
+                        "cockpit_3d",
+                        "drag_chute",
+                        "gear_limit",
+                        "rcs",
+                    ]
+                    .contains(k)
                 }),
                 "{code}: {keys:?}"
             );
