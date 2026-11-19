@@ -29,5 +29,5 @@ The data link shows other aircraft's knowledge on your displays. Turn #row("dl-s
 #in-sim[
   - Nothing interrogates your transponder: its page is a cockpit procedure only.
   - Every unit of your side replies as a friend; no unit replies as unknown.
-  - #term("Not modelled"): frequencies that change who answers, the secure modes of the transponder, #row("IFF_button").
+  - #term("Not modelled"): frequencies that change who answers, the secure modes of the transponder.
 ]

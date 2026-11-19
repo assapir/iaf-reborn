@@ -4,6 +4,7 @@
 #   - EPU at ON on the ground at idle: commanded, on hydrazine, running, the hydrazine falling; NORM: off;
 #   - GND JETT ENABLE, VOICE MESSAGE INHIBIT (no Betty call), COMM 1 / INTERCOM / ILS at OFF reach their systems;
 #   - F-ACK: a fault's caution out and its message off the list; the next push recalls it;
+#   - the threat display's BRT knob sets its light; ALT REL fires as the stick's WPN REL;
 #   - the LG warning horn's loop starts and stops.
 #   IAF_DEFAULT_SETTINGS=1 godot --headless --audio-driver Dummy --path modern-iaf \
 #     -s ../modern-iaf/tests/test_move_only_wired.gd --log-file <temp>
@@ -83,6 +84,31 @@ func run() -> void:
 		"F-ACK again: the fault recalled to the list, its lamp still out (%s)" % [lines]
 	)
 	flags[15] = false
+	# The threat display's BRT knob: its light times the knob (1 at the start, as before).
+	var on: float = c3d._rwr_mat.emission_energy_multiplier
+	sw[c3d.RWR_INT] = 0.5
+	await frames(2)
+	check(
+		is_equal_approx(c3d._rwr_mat.emission_energy_multiplier, on * 0.5) and on > 0.0,
+		"threat display BRT at 0.5: its light halved (%.3f of %.3f)" % [c3d._rwr_mat.emission_energy_multiplier, on]
+	)
+	sw[c3d.RWR_INT] = 1.0
+	# ALT REL: the stick's WPN REL (commands 64 / 65), here the gun's trigger.
+	var w = tv.weapons
+	w.master_arm = true
+	w.safety_off = true
+	for i in 8:  # the A-A key round to the gun
+		if w.stores.current_type() == w.Stores.GUN:
+			break
+		tv._press([62, 0, 0])
+		await frames(1)
+	var ctl = c3d.clickable
+	var alt: Dictionary = ctl._controls.filter(func(x): return x[0].name == "alt-rel-button")[0][1]
+	ctl.press(alt)
+	check(w.releasing, "ALT REL pressed: the gun fires (%s, mode %d)" % [w.stores.current_name(), w.hud_mode])
+	ctl.release()
+	check(not w.releasing, "ALT REL let go: it stops")
+	w.master_arm = false
 	# The LG warning horn.
 	tv.sounds.gear_horn(true)
 	check(tv.sounds._horn != null and tv.sounds._horn.playing, "the horn sounds")

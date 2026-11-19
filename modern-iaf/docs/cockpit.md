@@ -903,6 +903,8 @@ the switches each frame; F-ACK and ALT GEAR are table rows with a `system` (`f16
 | TACAN knob (`tacan-vol-knob`) | at OFF the TACAN is off: no TCN bearing or range on the EHSI[^fm-audio] (partly: no station identification) |
 | INTERCOM knob (`intercom-knob`) | the threat warning tones' level, over their own THREAT and MSL knobs[^fm-audio] (partly: the AIM-9's tone keeps its own) |
 | MAX POWER (`SW_MAX_POWER`) | nothing: the switch is inoperative on the real jet too[^fm-maxpwr] |
+| ALT REL (`alt-rel-button`) | the alternate to the stick's WPN REL button[^d34-altrel]: its press and release are the release key's (commands 64 and 65), so it releases the selected weapon, and in selective jettison the selected store |
+| threat display's BRT (`IFF_button`, FlightGear's `f16/ews/rwr-int`, 0.2 to 2) | the azimuth display's light times its position (FlightGear's contrast on its display; inferred); it starts at FlightGear's 1, the light as before |
 
 The lamps and gauges they drive work too: EPU run, AIR, HYDRAZN, EPU GEN, EPU PMG, OXY LOW, EPU FUEL and LIQUID
 OXYGEN.
@@ -910,12 +912,15 @@ OXYGEN.
 These stay "moves only", each with its reason in the status data: AB RESET / ENG DATA, PBG test, TANK INERTING, COMM
 2, the clock's elapsed-time button, TEMP, LEFT HDPT, ENGINE ANTI-ICE, the two ANT SEL switches, the oxygen
 regulator's three levers, the KY-58's four knobs and PLAIN / CIPHER, the nuclear consent switch and its cover, IFF
-IDENT, the ICP's WX and FLIR rocker, EXT FUEL TRANS, and the CMDS's JMR, O1 and O2 (parked, or no system behind them).
-Still to wire: ALT REL, the RF switch, the autopilot's PITCH and ROLL switches, the HUD's TEST switch, GPS power and
-the threat display's brightness knob.
+IDENT, the ICP's WX and FLIR rocker, EXT FUEL TRANS, and the CMDS's JMR, O1 and O2 (parked, or no system behind them);
+the HUD's TEST switch (ON the first of four test patterns, STEP the others, OFF the normal symbology[^d34-hudtest]: no
+picture of the patterns is public, so none is drawn) and GPS power (the GPS corrects the INS's errors[^fm-gps]; the
+sim's INS has none, and the GPS bombs take their own fix). Still to wire: the RF switch and the autopilot's PITCH and
+ROLL switches.
 
 Test: `modern-iaf/tests/test_move_only_wired.gd` (the Barak on the ground: OXY QTY, the EPU at ON, GND JETT, VOICE
-MESSAGE, COMM 1, INTERCOM and ILS at OFF, F-ACK and recall, the horn's loop).
+MESSAGE, COMM 1, INTERCOM and ILS at OFF, F-ACK and recall, the horn's loop, ALT REL's release, the threat display's
+BRT).
 
 ### 5.4 The AoA probe (2026-11-11, from the user's Mac)
 
@@ -1275,6 +1280,9 @@ openstreetmap.org/copyright" (also in [docs/credits.md](../../docs/credits.md)).
 [^fm-horn]: T.O. GR1F-16CJ-1, page 1-106 (the ALT GEAR handle; the LG warning horn, "an intermittent fixed volume signal which sounds in the headset", and its conditions; HORN SILENCER: "If the warning condition is eliminated, the horn resets").
 [^fm-wow]: T.O. GR1F-16CJ-1, figure 1-38, page 1-107 (the WOW switches: on the ground stores are emergency jettisoned only with GND JETT ENABLE in ENABLE).
 [^fm-vms]: T.O. GR1F-16CJ-1, page 1-146 ("Placing the switch to INHIBIT disables all voice messages").
+[^d34-altrel]: T.O. GR1F-16CJ-34-1-1 (https://falcon.blu3wolf.com/Docs/HAF-F16-34.pdf), page 1-33 ("The ALT REL button ... provides an alternate to the WPN REL button on the stick"); T.O. GR1F-16CJ-1, selective jettison, "WPN REL or ALT REL button - Depress".
+[^d34-hudtest]: T.O. GR1F-16CJ-34-1-1, page 1-158 ("The TEST switch controls selection of the four HUD test patterns. The ON position selects the first test pattern, the STEP position selects the other test patterns, and the OFF position returns the HUD to normal symbology").
+[^fm-gps]: T.O. GR1F-16CJ-1, page 1-200 ("The FCC uses this data to reduce inertial navigation errors and enable accurate weapon delivery solutions").
 [^fm-pfld]: T.O. GR1F-16CJ-1, pages 1-146 and 1-147 (the PFLD; F-ACK acknowledges a caution level fault, clearing it from the PFLD and putting out its caution light and MASTER CAUTION; later presses recall the faults still reported).
 [^fm-audio]: T.O. GR1F-16CJ-1, figure 1-79, pages 1-188 to 1-190 (COMM 1: "The OFF position removes power from the UHF radio"; ILS and TACAN: OFF removes power from the receiver, clockwise the identification's volume; INTERCOM: the volume of the AIM-9 tone and the threat warning tones).
 [^fm-maxpwr]: T.O. GR1F-16CJ-1, pages 1-39 (PW 229) and 1-53 (GE 129): "The MAX POWER switch … is inoperative".

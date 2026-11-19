@@ -105,10 +105,20 @@ func _positions(c3d: Node, ctl: Node, id: String, mi: MeshInstance3D, r: Diction
 				"%s: a click adds its step" % what
 			)
 		"cycle" when r.has("rest"):
-			ctl.press(r)
-			check(ctl.value(r) == ctl._next(r, float(r.rest)), "%s: held off rest" % what)
-			ctl.release()
-			check(ctl.value(r) == float(r.rest), "%s: springs back to rest" % what)
+			# A press goes to "click_to", or the next position (from where it is with a "spring" list, else from
+			# rest); a position that springs is held and back to rest when let go, a latched one (DRIFT C/O's NORM)
+			# taken by the click. Round all positions so both kinds are met.
+			for i in int(round((float(r.max) - float(r.min)) / float(r.step))) + 1:
+				var v: float = ctl.value(r) if r.has("spring") else float(r.rest)
+				var to: float = float(r.click_to) if r.has("click_to") else ctl._next(r, v)
+				ctl.press(r)
+				if ctl._springs(r, to):
+					check(ctl.value(r) == to, "%s: held at %s" % [what, to])
+					ctl.release()
+					check(ctl.value(r) == float(r.rest), "%s: springs back to rest" % what)
+				else:
+					ctl.release()
+					check(ctl.value(r) == to, "%s: a click latches it at %s" % [what, to])
 		"cycle":
 			var steps := int(round((float(r.max) - float(r.min)) / float(r.step)))
 			var seen := {}
@@ -123,7 +133,7 @@ func _positions(c3d: Node, ctl: Node, id: String, mi: MeshInstance3D, r: Diction
 			check(shown.size() == seen.size() or not _animated(c3d, mi), "%s: each position shown" % what)
 		"slide":
 			_ends(ctl, r, what, int(ceil((float(r.max) - float(r.min)) / float(r.step))))
-	if r.has("guard"):  # its cover shut again: back to its safe place
+	if r.has("guard") and r.has("safe"):  # its cover shut again: back to its safe place (the canopy switch: none)
 		ctl.put({"prop": r.guard}, 0.0)
 		check(ctl.value(r) == float(r.safe), "%s: the cover shut puts it at %s" % [what, r.safe])
 

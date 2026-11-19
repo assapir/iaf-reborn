@@ -73,6 +73,7 @@ A program is, for chaff and for flares, a burst quantity and interval and a salv
   - The cockpit's MODE knob has three positions; SEMI, AUTO and BYP are on the key, with the knob left at MAN.
   - The programs' starting values are the sim's own.
   - #row("01_50_switch"), #row("02_50_switch") and #row("JMR_50_switch") move only.
+  - #row("IFF_button") #then[dims the threat warning display turned down and brightens it turned up.]
   - No picture of the display with threats is in this edition.
   - #term("Not modelled"): the jammer's own controls and modes.
 ]

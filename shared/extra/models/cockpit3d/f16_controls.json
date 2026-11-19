@@ -20,6 +20,7 @@
 "master-arm-switch": {"system": "master_arm"},
 "laser-arm-switch": {"system": "laser_arm"},
 "EMER_JETT": {"system": "emer_jett"},
+"alt-rel-button": {"system": "alt_rel"},
 "a-a": {"system": "a_a"},
 "a-g": {"system": "a_g"},
 "MFD1_MFDButtonBrightness": {"system": "mfd_brt"},

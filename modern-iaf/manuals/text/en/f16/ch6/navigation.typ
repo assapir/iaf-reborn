@@ -9,7 +9,7 @@ The #term("INS") gives the jet its position, heading and attitude. It must align
 #in-sim[
   - While it aligns #then[the #term("HUD") shows ALIGN; the #term("DED")'s INS page (LIST, 6) counts its status down from 99 to 10 and then shows RDY; ALIGN flashes.]
   - Until the INS navigates, the HUD, the EHSI and the DED show no steerpoint, and the NAV page reads LOW.
-  - The INS does not drift.
+  - The INS does not drift, so #row("gps-switch") moves only: the GPS has no error to correct.
 ]
 
 === Steerpoints

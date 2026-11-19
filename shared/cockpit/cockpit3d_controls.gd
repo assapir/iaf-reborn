@@ -540,6 +540,12 @@ func _system_put(name: String, v: float, was := NAN) -> void:
 		"emer_jett":  # the push: command 72
 			if on:
 				tv._press([72, 0, 0])
+		"alt_rel":  # the F-16's ALT REL push, the alternate to the stick's WPN REL (T.O. GR1F-16CJ-34-1-1 p. 1-33):
+			# its press and release commands, 64 and 65
+			if on:
+				tv._press([64, 0, 0])
+			elif not is_nan(was) and was > 0.5:
+				tv._release_command([65, 0, 0])
 		"hud_scales", "hud_fpm", "hud_alt", "hud_velocity":  # the HUD control panel: command 252
 			var k := name.trim_prefix("hud_")
 			var top := 1.0 if k == "velocity" else 2.0

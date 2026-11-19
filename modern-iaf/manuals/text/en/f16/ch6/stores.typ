@@ -53,7 +53,7 @@ A laser-guided bomb needs the targeting pod on the jet to mark its target. The s
 
 #in-sim[
   - The SMS pages work as described. The entry of the spacing and the count by steps is the sim's: the real page takes typed values (inferred).
-  - #row("alt-rel-button") moves only.
+  - #row("alt-rel-button") #then[releases the selected weapon, and in selective jettison the selected store, as the stick's release button does]#d34[page 1-33].
   - No picture of the SMS pages is in this edition.
   - #term("Not modelled"): the release modes CCRP, DTOS, LADD and MAN, the fuze and arming settings, a station-by-station choice in selective jettison, and the ground jettison switch.
 ]

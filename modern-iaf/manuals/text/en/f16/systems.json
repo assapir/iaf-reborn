@@ -1281,7 +1281,8 @@
      "node": "alt-rel-button",
      "label": "ALT REL",
      "name": "Alternate release",
-     "does": "A second weapon release button, the same as the stick's (inferred)."
+     "does": "The alternate to the stick's weapon release button.",
+     "sim": "Releases the selected weapon as the stick's button does."
     },
     {
      "node": "quiet-switch",
@@ -1418,7 +1419,8 @@
      "positions": [
       "Knob"
      ],
-     "does": "Sets the brightness of the threat warning display (inferred)."
+     "does": "Sets the brightness of the threat warning display (inferred).",
+     "sim": "Turned down, the display dims; turned up, it brightens."
     },
     {
      "node": "lamp_twd_handoff_0",
@@ -3000,7 +3002,8 @@
       "ON",
       "OFF"
      ],
-     "does": "Shows the HUD's test patterns one by one (inferred)."
+     "does": "ON shows the first of the HUD's four test patterns, TEST STEP the others; OFF returns the normal symbology.",
+     "sim": "Not modelled: the switch moves; the test patterns are not drawn."
     }
    ]
   },

@@ -95,10 +95,13 @@ var _sun: DirectionalLight3D  # _lighting
 var _lit_mats := []
 var _lit := Color(-1, -1, -1)  # the fill colour set
 var _screen_mats := []  # every screen's material (_screen_viewport)
-## The screens', the DED's levels and the DED knob's shown (_lighting): unpowered 0, else MFD BRT.
-var _on_shown := Vector3.ONE
+## The screens', the DED's levels, the DED knob's and the threat display's BRT shown (_lighting): unpowered 0, else
+## MFD BRT.
+var _on_shown := Vector4.ONE
 var _ded_mat: StandardMaterial3D  # the F-16's DED screen (_attach_display): dark with its UFC switch off
 var _pfl_mat: StandardMaterial3D  # the F-16's pilot fault list (_attach_display)
+var _rwr_mat: StandardMaterial3D  # the F-16's threat warning azimuth display (_attach_display)
+var _rwr_seeded := false  # its BRT knob set to its start (_lighting)
 var _split := -1.0  # the scene's first shadow split (_sun_split)
 ## The pilot's body whose left glove follows the throttle's grip (_pilot_throttle); null without one.
 var _pilot: MeshInstance3D
@@ -406,6 +409,9 @@ const PRI_PANEL := "controls/lighting/lighting-panel/pri-inst-pnl-knob"
 const FLOOD_CONSOLE := "controls/lighting/lighting-panel/console-flood-knob"
 const FLOOD_PANEL := "controls/lighting/lighting-panel/flood-inst-pnl-knob"
 const DED_KNOB := "controls/lighting/lighting-panel/data-entry-display"
+## The threat warning azimuth display's BRT knob (FlightGear's rwr-int, its display's contrast: 0.2 to 2, 1 normal;
+## modern-iaf/docs/cockpit.md §5.9): the display's light times its position.
+const RWR_INT := "f16/ews/rwr-int"
 const DIMMER_MAX := 2.5
 ## The consoles' sheets (material names; not the auxiliary consoles beside the instrument panel).
 const CONSOLE_SHEETS := ["_console", "throttle", "rear-left", "temp.zKnob"]
@@ -591,11 +597,19 @@ func _lighting() -> void:
 	var on: float = Settings.mfd_brightness if cockpit.power == 2 else 0.0
 	var dk := _dimmer(DED_KNOB)
 	var ded: float = on * dk if cockpit.up("ufc") else 0.0
-	if Vector3(on, ded, dk) != _on_shown:
-		_on_shown = Vector3(on, ded, dk)
+	var twd := 1.0
+	if _rest.has(RWR_INT) and _ours():  # Modern IAF's F-16s; the 1998 game's 3D F-16 cockpit moves the knob only
+		if not _rwr_seeded:  # once: the threat display's BRT at FlightGear's 1 (the model's own rest is its low stop)
+			_rwr_seeded = true
+			switches[RWR_INT] = 1.0
+		twd = _knob(RWR_INT)
+	if Vector4(on, ded, dk, twd) != _on_shown:
+		_on_shown = Vector4(on, ded, dk, twd)
 		for m: StandardMaterial3D in _screen_mats:
 			if not _screens.any(func(e): return e[2].material_override == m):
-				m.emission_energy_multiplier = ded if m == _ded_mat else (on * dk if m == _pfl_mat else on)
+				m.emission_energy_multiplier = (
+					ded if m == _ded_mat else (on * dk if m == _pfl_mat else (on * twd if m == _rwr_mat else on))
+				)
 	# The display knobs (DISPLAY_KNOBS) in Modern IAF's F-16s; the 1998 game's 3D F-16 cockpit moves them only.
 	var knobs := _rest.has(HUD_BRT) and _ours()
 	if _rest.has(HUD_BRT):
@@ -1404,6 +1418,8 @@ func _attach_display(screen: MeshInstance3D, kind: int, px: Vector2i) -> void:
 		_ded_mat = screen.material_override
 	if screen.name == "PFD_screen":
 		_pfl_mat = screen.material_override
+	if screen.name == "RWR_scope":
+		_rwr_mat = screen.material_override
 
 
 ## The largest UV a mesh's surfaces use.
