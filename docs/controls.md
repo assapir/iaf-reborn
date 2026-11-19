@@ -117,7 +117,7 @@ Terms used on this page:
   | F1 | cockpit | Cockpit / HUD view (28,1) — the same, runs through the table |
   | V | the whole panel, or from there none; held (≥ 0.3 s), its release returns the panel (a glance down) | — |
   | PgUp / PgDn | slide the panel | — |
-  | Shift+N | night-vision goggles on / off, with Graphics → MORE "Night vision" = Goggles (rendering.md §8); nothing in Modern IAF, which has no goggles | — |
+  | Shift+N | night-vision goggles on / off, with Graphics → MORE "Night vision" = Goggles (rendering.md §8); in Modern IAF a key-table record (255, command 303): the F-16s' goggles flipped down / up (modern-iaf/docs/cockpit.md §5.5) | — |
   | Alt + Left / Right | roll trim left / right while held (§5.2 "Throttle rocker") | — |
   | Alt + M (held), Alt + S | Modern IAF's 6-DoF: the MANUAL PITCH override, the STORES CONFIG switch CAT I / CAT III (modern-iaf/docs/flight-model.md §9.11); nothing on the original model | — |
   | K | the selected GPS bomb's mode PRE ↔ VIS (weapons.md §13.2) | — |
@@ -144,7 +144,8 @@ Terms used on this page:
   (no Home / End / Delete): Shift + F5 MENU, Shift + F6 select, Shift + F7 the next window, Ctrl + F3 widen, Ctrl + F4
   enlarge, Shift + `\` SWAP, Ctrl + F5 the bay doors. Records 251–254 (command 302): Alt + F9 / Alt + F10 the throttle's FLC
   turned (the cursor portal's previous / next format), Alt + F8 the FLC pushed (the TSD's next layers), Alt + F7 the
-  helmet's picture (night camera, DAS, off). DMS left / right (records 149 / 150, Ctrl + `[` / `]`) move the cursor between its
+  helmet's picture (night camera, DAS, off). Record 255 (command 303), Shift + N: the F-16s' night-vision goggles
+  flipped down / up; the F-35I has none (a notice). DMS left / right (records 149 / 150, Ctrl + `[` / `]`) move the cursor between its
   portals; DMS up / down give the sensor of interest to the helmet and back. The F-16's ICP keys (records 152–174)
   work the CNI.
 * Joystick buttons, axes and the hat: §5.

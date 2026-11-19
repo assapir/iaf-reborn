@@ -38,5 +38,5 @@ The LIGHTING panel#fm[page 1-155 and figure 1-61, page 1-156]:
 #in-sim[
   - *Exterior.* Every switch of the panel works. The lights need the generator on line (@electrical) and MASTER on. With WING/TAIL at OFF the FORM knob also lights the wing tips. The refuelling light also needs #row("SW_AIR_REFUEL") at OPEN.
   - *Landing and taxi lights.* They shine with the gear down and the generator on line.
-  - *Interior.* The four console and panel knobs work at night; by day they change nothing. The DED knob dims the DED. MAL & IND LTS sets the lights bright or dim; #row("indv-lgt-cont") dims the angle-of-attack indexer, and #row("mms-switch") dims the lights for night-vision goggles.
+  - *Interior.* The four console and panel knobs work at night; by day they change nothing. The DED knob dims the DED. MAL & IND LTS sets the lights bright or dim; #row("indv-lgt-cont") dims the angle-of-attack indexer, and #row("mms-switch") dims the lights for night-vision goggles. With the goggles down (@hud-goggles), NVIS keeps the cockpit's own light out of their picture; at NORMAL the cockpit glares in them and washes out the lower part of the picture.
 ]

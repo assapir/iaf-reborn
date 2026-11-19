@@ -224,6 +224,21 @@ func _das() -> void:
 		if want == 2:
 			var tint: Vector3 = tv._goggles.get_child(0).material.get_shader_parameter("tint")
 			check(tint == tv.DAS_VIDEO.tint, "the DAS video is grey (%s)" % tint)
+	# The F-35I has no goggles: their key (record 255, Shift + N) leaves the helmet's night camera on and says so.
+	tv._command([302, 3, 0])
+	tv._command([303, 0, 0])
+	await frames(1)
+	check(
+		(
+			tv.cockpit.goggles == null
+			and tv._goggles.visible
+			and tv._helmet_mode == 1
+			and tv.addon.ui._lines.back()[0].get_child(0).text == "No goggles: use the helmet's night camera"
+		),
+		"the F-35I: no goggles, a notice, the night camera stays"
+	)
+	tv._command([302, 3, 0])
+	tv._command([302, 3, 0])  # back to off
 	# The helmet's steps and the master arm switch put no line in the band: the view and the switch show the change
 	# (Settings.cockpit_notes, modern-iaf/docs/front-end.md §8); the original game's console keeps them
 	# (tests/godot/test_cockpit_notes.gd).

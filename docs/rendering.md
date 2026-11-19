@@ -2121,7 +2121,9 @@ noon and 22:00 (with Night lights = Detailed: the base's light set lines up with
 ## 8. Night vision (built: shared/terrain/night_vision.gdshader)
 
 Preferences → Graphics → MORE → **Night vision = Goggles** (ours, docs/deviations.md §2). In flight, **Shift+N** puts
-the goggles on and takes them off (`terrain_view.gd _toggle_goggles`). The original has no night vision.
+the goggles on and takes them off (`terrain_view.gd _toggle_goggles`). The original has no night vision. Modern IAF has
+no such row: its Sufa and Barak carry goggles that Shift + N flips down and up (key record 255; the NVIS switch sets
+their glare, §8.3; the helmet display goes dark while they are down; modern-iaf/docs/cockpit.md §5.5).
 
 The goggles are a full-screen shader on canvas layer −1: over the 3D view and the cloud layer, under the cockpit,
 HUD and MFDs. The pilot sees the outside through the goggles and the panel below them, so the panel keeps its own
@@ -2200,7 +2202,9 @@ original's by its id (`mission_year.rs default_year`: 111–117 1967, 121–127 
   the jet's lighting does not suit them (`terrain_view.gd goggles_lit`), the shader's `glare` (0.15) adds to the
   mean, which lowers the gain, and veils the picture toward the panel below (from 30 % of the height down). Suited:
   the F-15 and F-16 from 1996 (inferred from the USAF's F-16 retrofit[^f16nvg] and the F-15I[^f15i]) and the F-35I
-  (its helmet camera). Every other jet and year glares. The original itself lights the F-4E's night cockpit red, the
+  (its helmet camera). Every other jet and year glares. Modern IAF's F-16s: the lighting panel's NVIS / NORMAL switch
+  decides instead, none at NVIS, 0.15 at NORMAL (`iaf_avionics::nvg::Goggles::glare`, set every frame while the
+  goggles are down). The original itself lights the F-4E's night cockpit red, the
   colour a Gen III tube sees best.
 - **Bright-source protection.** When the view's mean (linear, through the tube's weights) passes 0.35, the picture
   darkens, down to 10 % at 0.6: a close blast filling the view, or daylight. The picture comes back as soon as the

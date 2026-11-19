@@ -366,6 +366,12 @@ pub struct Input {
     /// heading (°); the helmet's line of sight on the view (HUD px) and its direction from the nose (azimuth right +,
     /// elevation up +, °).
     pub off_boresight: bool,
+    /// The F-16's helmet display dark: its HMCS SYM INT knob at OFF (`cockpit.gd` `helmet_power`).
+    pub helmet_off: bool,
+    /// Modern IAF's F-16s: the night-vision goggles down (`nvg::Goggles`). The helmet display then shows no symbols:
+    /// the first JHMCS gives the pilot the helmet display or the goggles, never both (modern-iaf/docs/research/nvg.md
+    /// §2.2; inferred for the IAF's DASH).
+    pub goggles_down: bool,
     pub head_heading_deg: f64,
     pub head_view: P,
     pub head_rel_deg: (f64, f64),
@@ -559,6 +565,11 @@ impl RealHud {
 
     fn jet_frame(&mut self, f: Field, i: &Input) -> Frame {
         match i.jet {
+            // The helmet display dark (the HMCS off, the goggles down): nothing, drawn as a jet without a HUD
+            // (`sight`), so no other symbol takes its place.
+            Jet::F16 | Jet::F15 | Jet::F15E if i.off_boresight && (i.helmet_off || i.goggles_down) => {
+                Frame { sight: true, ..Frame::default() }
+            }
             Jet::F16 | Jet::F15 | Jet::F15E if i.off_boresight => dash::frame(i),
             Jet::MiG29 if i.off_boresight => mig29::helmet(i),
             Jet::F16 => f16::frame(f, i, self.max_g, self.fuel_reset),
@@ -1065,6 +1076,20 @@ mod tests {
             let t = texts(&all);
             assert!(t.contains(&"IN RNG") && t.iter().any(|s| s.contains("VIS")), "{jet:?}: {t:?}");
         }
+    }
+
+    #[test]
+    fn the_helmet_display_is_dark_with_the_hmcs_off_or_the_goggles_down() {
+        let mut i = Input { off_boresight: true, ..input(Jet::F16) };
+        assert!(!RealHud::default().frame(FIELD, &i).outer.is_empty(), "the DASH's symbols");
+        for (off, down) in [(true, false), (false, true)] {
+            (i.helmet_off, i.goggles_down) = (off, down);
+            let fr = RealHud::default().frame(FIELD, &i);
+            assert!(fr.sight && fr.field.is_empty() && fr.outer.is_empty(), "HMCS off {off}, goggles down {down}");
+        }
+        // Looking ahead the HUD on the glass stays.
+        i.off_boresight = false;
+        assert!(!RealHud::default().frame(FIELD, &i).field.is_empty(), "the HUD with the goggles down");
     }
 
     #[test]

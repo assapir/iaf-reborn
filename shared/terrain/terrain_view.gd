@@ -3285,6 +3285,9 @@ func _command(cmd: Array) -> bool:
 					_helmet_video_step()
 				elif not cockpit.pcd.flc(p1):
 					_on_subtitle("FLC: no layers on this format")
+		303:
+			# Ours, Modern IAF's F-16s: the night-vision goggles flipped down / up (Shift + N; _goggles_key).
+			_goggles_key()
 		241:
 			# Ours, the modern MFDs' LASER ARM switch (key Shift + L, the 3D cockpit's switch): the laser fires only
 			# armed; disarming stops it (player_weapons.gd laser_arm).
@@ -4178,6 +4181,31 @@ var _goggles: CanvasLayer
 var _hud_level := 0
 
 
+## Ours, Modern IAF's F-16s (their definition's `nvg`; modern-iaf/docs/cockpit.md §5.5): the night-vision goggles
+## flipped down or up at any height (cockpit.goggles, IafGoggles); down, the tubes' picture (_toggle_goggles) with the
+## cockpit's glare by the NVIS / NORMAL switch (_goggles_glare). The F-35I, the sim's one other jet, has none: its
+## helmet has a night camera.
+func _goggles_key() -> void:
+	if not Settings.airframe(player.get("type", 0)).get("nvg", false):
+		_on_subtitle("No goggles: use the helmet's night camera")
+		return
+	if cockpit.goggles == null:
+		cockpit.goggles = ClassDB.instantiate("IafGoggles")
+	var down: bool = cockpit.goggles.flip()
+	if down != (_goggles != null and _goggles.visible):
+		_toggle_goggles()
+	_goggles_glare()
+	_cockpit_note("Goggles down" if down else "Goggles up")
+
+
+## The cockpit's glare in the goggles' tubes (IafGoggles.glare) by the lighting panel's NVIS / NORMAL switch, set
+## every frame while they are down.
+func _goggles_glare() -> void:
+	if cockpit.goggles != null and _goggles != null and _goggles.visible:
+		var nvis: bool = cockpit_3d != null and cockpit_3d.nvis()
+		_goggles.get_child(0).material.set_shader_parameter("glare", cockpit.goggles.glare(nvis))
+
+
 ## A full-view rect drawing the screen through the night-vision shader with `params` (its uniforms).
 static func _video_rect(params: Dictionary) -> ColorRect:
 	var mat := ShaderMaterial.new()
@@ -4484,6 +4512,7 @@ func _process(delta: float) -> void:
 				weapons.update(_sim_time)
 		_update_eo_view()
 		_update_das_view()
+		_goggles_glare()
 		_update_looks()
 		_update_full_screen()
 		g_effects.g = st.g

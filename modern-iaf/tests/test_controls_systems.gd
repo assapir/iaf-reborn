@@ -116,6 +116,9 @@ func _ground(tv: Node, id: String) -> void:
 	# HMCS SYM INT: OFF takes the helmet display's power.
 	_ctl.put(_r("HMCS_SYM_INT_KNOB"), 0.0)
 	check(not tv.cockpit.helmet_power, "%s: HMCS SYM INT OFF, the helmet display dark" % id)
+	tv.cockpit.hud._real_frame = -1
+	tv.cockpit.hud.real_hud()
+	check(bool(tv.cockpit.hud._real_in.get("helmet_off", false)), "%s: ... the Real HUD told (IafRealHud)" % id)
 	_ctl.put(_r("HMCS_SYM_INT_KNOB"), 0.5)
 	check(tv.cockpit.helmet_power, "%s: HMCS SYM INT on" % id)
 	# MAL & IND LTS with main power (on since the start): every lamp lit while held.

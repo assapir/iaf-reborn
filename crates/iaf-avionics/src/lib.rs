@@ -24,6 +24,7 @@ pub mod imode;
 pub mod master;
 pub mod missile;
 pub mod nav_pod;
+pub mod nvg;
 pub mod pcd;
 pub mod radar;
 pub mod real_hud;

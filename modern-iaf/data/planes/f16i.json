@@ -1,0 +1,7 @@
+{
+  "nvg": true,
+  "notes": {
+    "": "Modern IAF's Sufa (merged over shared/extra/planes/f16i/airframe.json by sim_settings.gd airframe_def): what the sim adds to it. The original game's F-16I is unchanged.",
+    "nvg": "night-vision goggles on the helmet, flipped down / up by Shift + N (modern-iaf/docs/cockpit.md §5.5): the Sufa's cockpit and exterior lighting suit them (Airforce Technology, \"F-16I Soufa\"; modern-iaf/docs/research/nvg.md §1); the goggle model open"
+  }
+}

@@ -566,7 +566,8 @@ and GPS bomb next PRE target (K, Shift + K); and later the same day the flight s
 (second key) on Ctrl + F1, Cockpit / outside view on Ctrl + F2 and Flight information line on Ctrl + F12 (records
 219–221; the 1998 game keeps them as its own keys, docs/controls.md §2), and the Checklist notebook's previous and next
 page on Page Up / Page Down (records 222 / 223, while the notebook is raised; [training.md](training.md) §11). Shift + N,
-the 1998 game's night-vision goggles, has no record: Modern IAF has no goggles, and the key does nothing there. The brakes took W from Next waypoint (the user, 2026-11-18, on a Mac
+the 1998 game's night-vision goggles' key, is record 255 since 2026-11-19 (command 303): the F-16s' goggles flipped
+down / up ([cockpit.md](cockpit.md) §5.5). The brakes took W from Next waypoint (the user, 2026-11-18, on a Mac
 laptop's keyboard, where no plain key was left): Next waypoint is on Shift + W, and Previous waypoint moved from there
 to Shift + Q, the key beside it (Alt + W is the wingman's "attack another target", Ctrl + W a debug key). The 1998
 game's Drag chute has no row and no key: no Modern IAF jet has a drag chute (record 23 is an empty slot).

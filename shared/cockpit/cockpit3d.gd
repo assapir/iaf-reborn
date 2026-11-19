@@ -1473,6 +1473,11 @@ const INDEXER_DIM := 0.25
 var lamp_level := 1.0
 
 
+## The NVIS / NORMAL switch at NVIS (the goggles' glare, terrain_view.gd _goggles_glare).
+func nvis() -> bool:
+	return _knob(NVIS) > 0.5
+
+
 func _lamp_level() -> float:
 	if not _rest.has(MAL_IND):
 		return 1.0
@@ -1482,7 +1487,7 @@ func _lamp_level() -> float:
 		lamp_level = LAMP_DIM
 	if s > 0.5 or pri <= 0.0 or _knob(FLOOD_CONSOLE) >= 1.0 or cockpit.power < 1:
 		lamp_level = 1.0
-	return minf(lamp_level, LAMP_DIM if _knob(NVIS) > 0.5 else 1.0)
+	return minf(lamp_level, LAMP_DIM if nvis() else 1.0)
 
 
 func _update_instruments() -> void:

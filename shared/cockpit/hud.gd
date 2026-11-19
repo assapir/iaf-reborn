@@ -771,6 +771,9 @@ func real_hud() -> Dictionary:
 		"cockpit": dir,
 		"time": st.get("time", 0.0),
 		"off_boresight": helmet and cockpit.dash(),
+		# The helmet display dark (IafRealHud): the HMCS off, Modern IAF's night-vision goggles down.
+		"helmet_off": not cockpit.helmet_power,
+		"goggles_down": cockpit.goggles != null and cockpit.goggles.down(),
 		"head_view": (centre - _c) / _s,
 		"head_rel":
 		Vector2(

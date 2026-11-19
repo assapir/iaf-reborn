@@ -134,17 +134,23 @@ Open: the term the fighter squadrons use for their goggles in speech (משקפו
   A full-screen shader over the 3D view and under the cockpit: the tube's spectrum, automatic gain, blur, halos,
   grain, the P43 green and a 40° vignette; the tube by the mission's year; cockpit glare where the jet's lighting does
   not suit the goggles (`goggles_lit`); the HUD in its brightest green while they are on.
-- **Modern IAF**: Shift + N does nothing, because it needs `Settings.night_vision` and Modern IAF has no Preferences
-  row for it ([../status.md](../status.md); [../front-end.md](../front-end.md) "Shift + N"). The key has no record in
-  the sim's key table.
+- **Modern IAF** (until 19 November 2026): Shift + N did nothing, because it needs `Settings.night_vision` and Modern
+  IAF has no Preferences row for it. Since then the Sufa and the Barak have goggles on a key-table record of their own
+  (O1–O4 below).
 - **The F-35I** in Modern IAF: Alt + F7 steps the helmet's night camera, the DAS's video and off
   (`_helmet_video_step`, record 254; [../avionics-plan.md](../avionics-plan.md) P9). The night camera uses the same
   shader as the late Gen III tube; the DAS video the shader in grey. The DAS format's picture costs 1.83 ms GPU a frame
   on the Iris Xe while drawn ([../../../docs/rendering.md](../../../docs/rendering.md) §8.1).
 - **The F-16s**: the lighting panel's NVIS / NORMAL switch and the exterior lights panel work
-  ([../cockpit.md](../cockpit.md) §5.5); nothing reads them for goggles.
+  ([../cockpit.md](../cockpit.md) §5.5); since 19 November 2026 the NVIS switch also sets the goggles' glare (§7).
 
-## 7. Options to build (no decision)
+## 7. Options to build
+
+The user's pick, 19 November 2026 (Approvals A66): "night googles: as suggested". Built the same day
+([../cockpit.md](../cockpit.md) §5.5): O1 (the Sufa and the Barak, Shift + N, record 255), O2 (the NVIS / NORMAL
+switch sets the glare), O3 (the helmet display's symbols off while the goggles are down, the JHMCS rule) and O4 as flip
+down / up on the same key with no minimum height. O7: the Adir keeps its helmet's night camera and gets no goggles.
+Not started: O5 (later, with the AI wingmen), O6 and O8.
 
 | # | jet | option | what it needs |
 |---|---|---|---|

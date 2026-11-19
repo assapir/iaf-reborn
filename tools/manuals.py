@@ -328,8 +328,8 @@ def hand_keys() -> int:
 
 # The keys of terrain_view.gd _own_key that own_keys.json leaves out: the key table has their commands in Modern IAF
 # (F1's own record, Ctrl + F1 / F2 / F12's records 219–221, the zoom, V the dogfight switch, K the GPS bomb's two),
-# Page Up / Page Down slide the 1998 game's flat panel, and Shift + N's night-vision goggles are the 1998 game's only
-# (Modern IAF has none: Settings.night_vision is off there).
+# Page Up / Page Down slide the 1998 game's flat panel, and Shift + N's night-vision goggles are a key-table record in
+# Modern IAF (255, command 303; the 1998 game's own key needs Settings.night_vision, off there).
 OWN_ELSEWHERE = {
     "KEY_F1", "KEY_F2", "KEY_F12", "KEY_N",
     "KEY_PAGEUP", "KEY_PAGEDOWN", "KEY_EQUAL", "KEY_PLUS", "KEY_KP_ADD", "KEY_MINUS", "KEY_KP_SUBTRACT", "KEY_V", "KEY_K",

@@ -143,7 +143,7 @@ impl IafRealHud {
         self.hud.warn_reset();
     }
 
-    /// One frame. `field` the symbology field (Rect2, HUD px from the HUD centre); `i` {cockpit (the cockpit dir), time, off_boresight, head_heading, head_view, head_rel ([az, el]),
+    /// One frame. `field` the symbology field (Rect2, HUD px from the HUD centre); `i` {cockpit (the cockpit dir), time, off_boresight, helmet_off (the HMCS off), goggles_down (the night-vision goggles), head_heading, head_view, head_rel ([az, el]),
     /// kcas, ground_kt, tas_ms, alt_ft, agl_ft (null), vs_fpm, heading, pitch, roll, mach, g, g_limit, aoa, gear_down, fuel_lbs, bingo_lbs, fpm
     /// (null), boresight, gun_cross, horizon, px_per_deg, radar_mode, acm (the real FCR's
     /// ACM pattern: 1 the 10 × 60, 2 SLEW at acm_at ([az, el] deg), 3 BORE; else none), ils (the ILS bars' [x, y] or null), steerpoint ({number, bearing, dist_m, eta_s, at} or {}),
@@ -160,6 +160,8 @@ impl IafRealHud {
             jet: Jet::of_cockpit(&get::<GString>(&i, "cockpit").unwrap_or_default().to_string()),
             time_s: f("time"),
             off_boresight: get(&i, "off_boresight").unwrap_or(false),
+            helmet_off: get(&i, "helmet_off").unwrap_or(false),
+            goggles_down: get(&i, "goggles_down").unwrap_or(false),
             head_heading_deg: f("head_heading"),
             head_view: pt(&i, "head_view").unwrap_or_default(),
             head_rel_deg: pt(&i, "head_rel").unwrap_or_default(),

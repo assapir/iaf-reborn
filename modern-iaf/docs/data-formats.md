@@ -55,7 +55,9 @@ reader takes them.
 A unit record holds what a mission needs of a unit. A flyable jet's behaviour stays in its aircraft definition
 (`shared/extra/planes/<id>/airframe.json`); the record names it in `airframe`. Where the sim's jet differs from the
 original game's of the same definition, `data/planes/<id>.json` holds the sim's fields, merged over the definition (`sim_settings.gd`
-`airframe_def`: each top-level field replaces the definition's whole field): today's Barak's (`f16.json`; [avionics-plan.md](avionics-plan.md) §3).
+`airframe_def`: each top-level field replaces the definition's whole field): today's Barak's (`f16.json`; [avionics-plan.md](avionics-plan.md) §3),
+and the Sufa's (`f16i.json`). The sim's own field: `nvg` true, night-vision goggles on the pilot's helmet, flipped down
+and up by their key ([cockpit.md](cockpit.md) §5.5).
 
 | field | meaning |
 |---|---|

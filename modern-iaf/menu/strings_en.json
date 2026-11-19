@@ -435,5 +435,6 @@
 	"pre_footer": "Without a pick: the mission's target (%s). In flight %s steps through all of them.",
 	"pre_refused": "That pick cannot be used: choose a target of this mission.",
 	"pre_footer_none": "Without a pick a bomb has no target before you step one. In flight %s steps through the targets.",
-	"msg:Structural damage": "Structural damage"
+	"msg:Structural damage": "Structural damage",
+	"msg:No goggles: use the helmet's night camera": "No goggles: use the helmet's night camera"
 }

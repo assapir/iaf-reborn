@@ -124,8 +124,8 @@ func keys(fe: Control) -> void:
 	# delay and RET DEPR, 226-230); 203 until the autopilot and later key merges (210), then the navigation pod's
 	# ADV MODE and MANUAL TF FLYUP (records 238-239; 212), then avionics slice 7: the F-35I's panoramic display keys
 	# and bay doors (records 241-250, docs/f35i.md §4.3; record 240 an empty slot): 222; then its FLC and helmet
-	# picture (records 251-254): 226.
-	check(listed == 226, "keys: 226 commands listed, one head-look set (%d)" % listed)
+	# picture (records 251-254): 226; then the F-16s' night-vision goggles (record 255): 227.
+	check(listed == 227, "keys: 227 commands listed, one head-look set (%d)" % listed)
 	check(
 		not ks.records_of("flight").has(23) and ks.records_of("flight").has(200) and ks.records_of("weapons").has(206),
 		"keys: no drag chute; the speedbrakes and the GPS bomb's keys listed"

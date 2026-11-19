@@ -951,6 +951,9 @@ var hud_clip = null
 var hud_on_glass := false
 ## Ours, the 3D F-16's HMCS SYM INT knob (cockpit3d_controls.gd): off, the helmet display (dash) shows nothing.
 var helmet_power := true
+## Ours, Modern IAF's F-16s: the night-vision goggles (IafGoggles, terrain_view.gd _goggles_key; modern-iaf/docs/
+## cockpit.md §5.5), null until their key is first pressed; while down the helmet display shows no symbols.
+var goggles: RefCounted
 ## The 3D cockpit's shift of the HUD with the head (px): where the nose is on the screen against where it is with the
 ## head straight ahead, so the HUD stays on its glass (the 2D panel pans by head_pan instead).
 var view_shift := Vector2.ZERO

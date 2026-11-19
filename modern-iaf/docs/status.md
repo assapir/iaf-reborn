@@ -3,6 +3,16 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **The F-16s' night-vision goggles (2026-11-19, the user on Approvals A66: "night googles: as suggested";
+  [research/nvg.md](research/nvg.md) options O1–O4, [cockpit.md](cockpit.md) §5.5):** in the Sufa and the Barak
+  Shift + N (record 255, command 303) flips the goggles down and up, at any height; down, the 3D view shows the late
+  Gen III tubes' picture ([../../docs/rendering.md](../../docs/rendering.md) §8). The lighting panel's NVIS / NORMAL
+  switch keeps the cockpit's own light out of the tubes at NVIS; at NORMAL it glares and washes out the picture's lower
+  part. While they are down the helmet display shows no symbols. The F-35I has none (a notice): its helmet keeps the
+  night camera (Alt + F7). Also fixed: the HMCS SYM INT knob at OFF now darkens the helmet display with the Real HUD
+  (its symbols drew on). Not started (the user's pick): the exterior lights' covert mode (with the AI wingmen), white
+  phosphor, ejection with goggles. Tests: `nvg.rs`, `real_hud::tests::the_helmet_display_is_dark_with_the_hmcs_off_or_the_goggles_down`,
+  `test_cockpit_lights.gd`, `test_sim_adir_pcd.gd`.
 - **Real missile performance, the core (2026-11-19, the user's "ok so finish the missile works", avionics-plan.md
   §7):** the AIM-9M, AIM-9X, Python 5 and AIM-120 fly a physical missile: the motor's real thrust and burn, drag by Mach
   and height, gravity, proportional navigation within the g limit, turns bleeding speed, the flight's end when too
@@ -49,8 +59,8 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   switch is off the load's category (CAT III with air-to-ground stores or a 600 gal tank, inferred; `stores.rs`
   `loading_category`). Ctrl + F1 / F2 / F12 (quit box, cockpit / outside, flight information line) are key-table
   records 219–221, and the notebook's pages records 222 / 223 (Page Up / Page Down, the laptop map's Option + Space /
-  Shift + Space). Shift + N, the 1998 game's night-vision goggles, does nothing in Modern IAF (no goggles), so it has
-  no record. Tests: `test_fuel_brake_switches.gd`, `test_switches_click.gd`, `test_notebook.gd`; the iaf-flight and
+  Shift + Space). Shift + N, the 1998 game's night-vision goggles' key, is record 255 since 2026-11-19 (the F-16s'
+  goggles, the entry above). Tests: `test_fuel_brake_switches.gd`, `test_switches_click.gd`, `test_notebook.gd`; the iaf-flight and
   iaf-avionics tests. Owed: the run on the Mac.
 - **The F-16s' fuel and brake switches (2026-11-18, [cockpit.md](cockpit.md) §5.7):** PARKING BRAKE holds the jet
   (Shift + G; a ground start begins with it set; the F-35I's switch too), MASTER FUEL OFF flames the engine out
@@ -686,9 +696,8 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   ([cockpit.md](cockpit.md) §2, "The MFDs from the seat"). `test_mfd_buttons_seen.gd`, `test_cockpit_view.gd`.
   Owed: the real-window run of the test on the Mac. The views moved from Shift + N / M to Shift + , / . the same day:
   Shift + N is the night-vision goggles' key (`terrain_view.gd` `_own_key`), and the manuals' build now stops when a
-  key `_own_key` reads has no row in `modern-iaf/manuals/own_keys.json`. Open, the user's decision (a visible
-  change): the goggles need `Settings.night_vision`, which Modern IAF has no Preferences row for, so Shift + N
-  does nothing in the sim yet.
+  key `_own_key` reads has no row in `modern-iaf/manuals/own_keys.json`. The goggles got their own record on
+  2026-11-19 (record 255, command 303; the F-16s' goggles entry above).
 - **Zoom toward the pointer and the lean (2026-11-15, the user's Mac play: "can't zoom in to see things under the
   throttle"):** the wheel zooms the 3D cockpit toward the point under the pointer; Shift + arrows / Page Up / Page Down
   lean the head (records 126–131, command 204; held since 2026-11-18, the entry above) short of the cockpit's surfaces,

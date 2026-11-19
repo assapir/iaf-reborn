@@ -3,9 +3,11 @@
 # panel dimmer turns its own light (consoles or instrument panel, flood or backlit labels) off at OFF and up at full,
 # by day none moves the sun's fill; DATA ENTRY DISPLAY dims the DED and the fault list, the ICP's BRT wheel the HUD;
 # MAL & IND LTS sets the lamps dim and bright (the level stays when it springs back), NVIS holds them dim, INDV LTG CONT
-# dims the indexers; LE FLAPS at LOCK lights its caution. Outside: the exterior lights panel shows each light on the
-# jet's model (none without MASTER or the generators), WING / TAIL bright and dim and flashing, the strobe by
-# ANTI-COLL, and the gear panel's LANDING / TAXI light a spot light ahead of the jet.
+# dims the indexers; LE FLAPS at LOCK lights its caution. The night-vision goggles: their key flips them down (NVIS
+# keeps the cockpit's glare out of the tubes, NORMAL lets it in; the helmet display goes dark) and up. Outside: the
+# exterior lights panel shows each light on the jet's model (none without MASTER or the generators), WING / TAIL bright
+# and dim and flashing, the strobe by ANTI-COLL, and the gear panel's LANDING / TAXI light a spot light ahead of the
+# jet.
 #   IAF_DEFAULT_SETTINGS=1 godot --headless --audio-driver Dummy --path modern-iaf \
 #     -s ../modern-iaf/tests/test_cockpit_lights.gd --log-file <temp>
 extends "res://../tests/godot/base.gd"
@@ -43,6 +45,7 @@ func run() -> void:
 		_dimmers(tv)
 		_screens(tv)
 		_lamps()
+		_goggles(tv)
 		_exterior(tv)
 		tv.cockpit.night = false
 
@@ -181,6 +184,30 @@ func _lamps() -> void:
 	_light()
 	check(_c3d.lamps_lit.get("caution_le_flaps", false), "%s: LE FLAPS at LOCK: its caution" % _id)
 	_ctl.put(_r("SW_LE_FLAPS_50"), 1.0)
+
+
+## The night-vision goggles (Shift + N, command 303; modern-iaf/docs/cockpit.md §5.5): down, the tubes' picture with the
+## cockpit's glare by NVIS / NORMAL and the helmet display told they are down; the same key flips them up.
+func _goggles(tv: Node) -> void:
+	tv._command([303, 0, 0])
+	var g: RefCounted = tv.cockpit.goggles
+	check(g != null and g.down() and tv._goggles != null and tv._goggles.visible, "%s: the goggles down" % _id)
+	if g == null or tv._goggles == null:
+		return
+	var mat: ShaderMaterial = tv._goggles.get_child(0).material
+	var sw := _r("mms-switch")
+	_ctl.put(sw, 1.0)
+	tv._goggles_glare()
+	check(is_zero_approx(float(mat.get_shader_parameter("glare"))), "%s: NVIS: no glare in the tubes" % _id)
+	_ctl.put(sw, 0.0)
+	tv._goggles_glare()
+	check(float(mat.get_shader_parameter("glare")) > 0.1, "%s: NORMAL: the cockpit glares in the tubes" % _id)
+	var hud: Control = tv.cockpit.hud
+	hud._real_frame = -1
+	hud.real_hud()
+	check(bool(hud._real_in.get("goggles_down", false)), "%s: the helmet display told the goggles are down" % _id)
+	tv._command([303, 0, 0])
+	check(not g.down() and not tv._goggles.visible, "%s: the same key flips them up" % _id)
 
 
 ## The exterior lights on the jet's model as the panel sets them (on the generators).

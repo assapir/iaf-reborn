@@ -114,7 +114,8 @@ following[^sufa-at][^sufa-lm-radar]. The pilot's view of each is the dash-34's F
 | H2 | Break X, GAAF, pull-up cue, ALOW | flashing X at the GAAF advisory, steady inside Rmin; the U; `AL` below ALOW[^dash34gaaf] | `crates/iaf-avionics/src/gaaf.rs`, `f16.rs` `pullup_cue`; the original's own break X rule also runs (`player_weapons.gd` `_break_x_cue`); RDR ALT gates the radar altitude; ALOW set on the DED | Sim (17 Nov; G2) |
 | H3 | DGFT / MSL override | the throttle's switch: the dogfight radar, gun and SRM at once | V / Shift + V: the radar's ACM / CRM, the SRM / MRM, the HUD's DGFT with the EEGS funnel ([ufc.md](ufc.md) §5) | Sim (17 Nov) |
 | H4 | VVI, ALIGN / RDY, SIM | the vertical velocity scale; the INS alignment cue; SIM training mode | VV/VAH's scale, ALIGN steady / flashing, MASTER ARM's SIMULATE with `SIM` ([ufc.md](ufc.md) §3–4) | Sim (17 Nov) |
-| H5 | DASH IV helmet | the aiming cross, the seeker diamond, HOBS cues | `crates/iaf-avionics/src/real_hud/dash.rs`; the HMCS SYM INT switch darkens it ([cockpit.md](cockpit.md) §5.2) | Sim |
+| H5 | DASH IV helmet | the aiming cross, the seeker diamond, HOBS cues | `crates/iaf-avionics/src/real_hud/dash.rs`; the HMCS SYM INT switch darkens it ([cockpit.md](cockpit.md) §5.2), and so do the goggles down (H9) | Sim |
+| H9 | Night-vision goggles | NVG-compatible cockpit and exterior lighting ([research/nvg.md](research/nvg.md) §1); the goggle model open; the helmet display or the goggles, never both (the first JHMCS; research §2.2) | Shift + N flips them down / up at any height (`nvg.rs` `Goggles`, record 255); the NVIS / NORMAL switch keeps the cockpit's glare out of the tubes or lets it in; the helmet display dark while they are down ([cockpit.md](cockpit.md) §5.5). Not started: the covert exterior lights (with the AI wingmen), white phosphor, ejection with goggles (research O5, O6, O8) | Sim (19 Nov) |
 
 ### 2.4 RWR and EW
 
@@ -173,12 +174,13 @@ same status; slice 6 flew every Sufa test on the Barak (§6).
 | B3 | HSD map | with the colour displays (inferred) | the HSD's map, as the Sufa's | Sim (17 Nov) |
 | B4 | AIFF | with the Sufa's avionics (inferred: no source names the interrogator) | the Sufa's AIFF (`ews.aiff`) | Sim (17 Nov) |
 | B5 | Pods | the Sharpshooter, then the Litening; the Pathfinder navigation FLIR, without a TFR ([research/pods.md](research/pods.md) §1) | the Litening on 5R, the Pathfinder on 5L with its FLIR on the HUD ([weapons.md](weapons.md) §7.4), the laser bombs (§8.2); no TF | Sim (17 Nov; FLIR 19 Nov) |
-| B6 | Helmet | an Elbit helmet sight[^barak-upi] | `dash.rs` | Sim |
+| B6 | Helmet | an Elbit helmet sight[^barak-upi] | `dash.rs`; dark while the goggles are down (B12) | Sim |
 | B7 | RWR | the set is open (the dash-34's display is the nearest) | as the Sufa's E1 | Partly (G3) |
 | B8 | MAW, SAM mode, SAR | no MAW: an infrared missile warning is among the upgrades proposed for the Barak in 2025[^barak-dn]; SAM keeps one bug (B1); DBS as the APG-68's (dash-34) | no MAW (`ews.maw` false); DBS1 / DBS2 as the Sufa's | Sim (17 Nov) |
 | B9 | HUD | a new head-up display[^barak-fg]; the Sufa's wide-angle frame inferred | the 3D cockpit's wide HUD (`hud_3d` "HUD_wide"), the Real HUD | Sim (17 Nov) |
 | B10 | TACAN at the start | the home base's station (inferred: the pilot's preset) | tuned to the nearest station when the jet is placed (the home base on a ground start) (`ufc.rs` `tune_nearest`); before, every jet started on Ramon's 75X | Sim (17 Nov) |
 | B11 | Rear seat | the navigator works the pod; in the game the player does it (pods decision 4) | the front seat's keys and controls | Sim |
+| B12 | Night-vision goggles | open: no source names goggles on the Barak ([research/nvg.md](research/nvg.md) §1) | the Sufa's H9 (the user's pick, 19 Nov: "night googles: as suggested") | Sim (19 Nov) |
 
 ## 4. F-35I Adir
 

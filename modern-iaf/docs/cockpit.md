@@ -717,7 +717,7 @@ that (linear either side; inferred).
 | FLOOD CONSOLES / INST PNL | the warm flood on the consoles / on the instrument panel |
 | DATA ENTRY DISPLAY | the DED's and the pilot fault list's brightness |
 | MAL & IND LTS | BRT / DIM, sprung to its middle: every lamp but the indexers dim (half) or bright; the level stays. DIM takes only with PRIMARY INST PNL on; PRIMARY INST PNL off, FLOOD CONSOLES at full or the power off make them bright (T.O. 1F-16A-1 p. 1-155 through FlightGear) |
-| NVIS / NORMAL | NVIS holds the lamps dim (inferred) |
+| NVIS / NORMAL | NVIS holds the lamps dim (inferred). With the night-vision goggles down: NVIS keeps the cockpit's own light out of the tubes, NORMAL lets it glare (below) |
 | INDV LTG CONT | dims the AoA indexer and the AR / NWS light, BRT to a quarter at DIM (inferred) |
 
 The cockpit's own light (the flood and the labels) shows at the cockpit's night (`cockpit.night`); by day the sun's fill
@@ -748,7 +748,32 @@ starts dark until the pilot sets the lights.
 
 The LE FLAPS switch rests at AUTO (it rested at LOCK, while the jet flies AUTO); at LOCK its caution lights.
 
-Test: `modern-iaf/tests/test_cockpit_lights.gd` (both jets). Pictures: `modern-iaf/tests/_lights_shot.gd`.
+**The night-vision goggles** (2026-11-19, the user on Approvals A66: "night googles: as suggested"; the options O1–O4
+of [research/nvg.md](research/nvg.md) §7). The Sufa and the Barak (their definitions' `nvg`, `data/planes/*.json`)
+carry goggles on the pilot's helmet:
+
+- **Down and up.** Shift + N (record 255, command 303; `terrain_view.gd` `_goggles_key`) flips them down before the
+  eyes and up again, at any height. A flight starts with them up. The state is Rust's (`iaf_avionics::nvg::Goggles`,
+  `IafGoggles`, held by `cockpit.gd` `goggles`). Down, the whole view is the tubes' picture: the night-vision shader of
+  [../../docs/rendering.md](../../docs/rendering.md) §8 with the late Gen III tube of today's missions. The US practice
+  takes off unaided and flips the goggles down above about 2,000 ft (research §3, second-hand); the sim leaves it to the
+  pilot.
+- **NVIS / NORMAL.** Down, the switch decides the cockpit's glare in the tubes (`Goggles::glare`, set every frame):
+  at NVIS none, the lighting the goggles suit; at NORMAL the shader's `glare` (0.15), which lowers the tubes' gain and
+  washes out the picture's lower part, as one light the goggles do not suit degrades their picture (research §3). The
+  glare is the same whatever the lighting panel's dimmers and the power (inferred: one level for the cockpit's light). The
+  switch's place is the model's (the lighting panel, right console; FlightGear's F-16); NVIS also holds the lamps dim.
+- **The helmet display.** While they are down it shows no symbols (`real_hud::Input::goggles_down`): the first JHMCS
+  gives the pilot the helmet display or the goggles, never both (research §2.2; inferred for the DASH). The HUD on its
+  glass stays, in the tubes' green. The HMCS SYM INT knob at OFF darkens the helmet display the same way.
+- **The F-35I** has none: its helmet shows the night camera instead (Alt + F7, [../../docs/f35i.md](../../docs/f35i.md)
+  §4.3). Shift + N there says so in the band.
+
+Not started (the user's pick): the exterior lights' covert mode (with the AI wingmen), white phosphor tubes and
+ejection with goggles on (O5, O6, O8).
+
+Test: `modern-iaf/tests/test_cockpit_lights.gd` (both jets). Pictures: `modern-iaf/tests/_lights_shot.gd`; the goggles
+`modern-iaf/tests/_nvg_shot.gd`.
 
 ### 5.6 The F-16s' canopy switch and lock lever (2026-11-18)
 

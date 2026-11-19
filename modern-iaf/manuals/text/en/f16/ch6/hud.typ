@@ -47,3 +47,13 @@ The helmet sight puts an aiming cross on the visor. Look at a target to point a 
   - #row("cont") (#key("HUD CONT (contrast): next step")) is partly modelled: #then[the symbols' edges wash out as it turns down.] The HUD draws no infrared picture for it to set.
   - The release modes' cues (TD box, steering line, solution and pull-up cues, the manual reticle, LOW) are described with the modes (@ag-weapons).
 ]
+
+=== Night-vision goggles <hud-goggles>
+
+At night the pilot can wear night-vision goggles on the helmet: two image tubes that amplify the faint light of the night and show it in green. The F-16I's cockpit and outside lights are built to suit them#footnote[Airforce Technology, "F-16I Soufa" (a trade page; a secondary source): #link("https://www.airforce-technology.com/projects/f-16i-soufa/"). Checked 19 November 2026.]. Which goggles the Israeli Air Force's fighter pilots wear is not public: open. For the F-16D Barak no source names goggles: open. The first US helmet display of the F-16 could not be worn with goggles: the pilot had the helmet display or the goggles, never both#footnote[T. Rogoway, "New 'Digital Eye Piece' will allow U.S. fighter pilots to own the night like never before", The War Zone, 8 February 2018: #link("https://www.twz.com/18358/new-digital-eyepiece-will-allow-u-s-fighter-pilots-to-own-the-night-like-never-before"). Checked 19 November 2026.]. How the #jet.short's helmet works with goggles is open.
+
+#in-sim[
+  - #key("Night-vision goggles: down / up (F-16)") flips the goggles down before the eyes. #then[The whole view shows the goggles' green picture.] The same key flips them up again. A flight starts with them up; they work at any height.
+  - With the goggles down the helmet display shows no symbols, as the US helmet's (inferred). The HUD stays.
+  - #row("mms-switch") at NVIS keeps the cockpit's own light out of the goggles' picture. At NORMAL the cockpit glares in them and washes out the lower part of the picture (@lighting).
+]

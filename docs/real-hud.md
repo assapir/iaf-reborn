@@ -566,6 +566,11 @@ Helmet-Mounted Cueing System, its descendant), whose F-16 set is documented in a
   - **LOAL** flashing under it (1 Hz) while a missile launched without a lock still searches.
 
   The F-35I's head-stabilised set draws the same cues for its AIM-9X, around its line-of-sight cross.
+- **Dark**: the 3D F-16's HMCS SYM INT knob at OFF, and Modern IAF's night-vision goggles down
+  (modern-iaf/docs/cockpit.md §5.5), leave the helmet display empty (`real_hud::Input` `helmet_off`, `goggles_down`).
+  The goggles' rule follows the first JHMCS, which gives the pilot the helmet display or the goggles, never both
+  (modern-iaf/docs/research/nvg.md §2.2; inferred for the DASH). Until 2026-11-19 the knob's OFF hid only the original
+  HUD's helmet repeater, and the Real HUD's DASH symbols stayed on.
 - Not public: the DASH's own fonts / positions, its horizon symbol, the Python-specific symbols, declutter levels.
   Ours leaves them out.
 
