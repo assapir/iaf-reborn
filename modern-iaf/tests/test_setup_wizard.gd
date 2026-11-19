@@ -50,6 +50,11 @@ func run() -> void:
 			"%s: stays on Welcome, the picker shows it" % lang
 		)
 		check(w.next_button.text == ("הבא" if lang == "he" else "Next"), "%s: Next's label" % lang)
+		var logo := w.find_child("Logo", true, false) as TextureRect
+		check(
+			logo != null and logo.texture != null and logo.accessibility_name == w.s("name"),
+			"%s: the logo in the top bar" % lang
+		)
 		check(w.PAGES.size() == 4, "%s: four pages" % lang)
 		var all_text := ""
 		for p in w.PAGES.size():

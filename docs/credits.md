@@ -213,6 +213,16 @@ models (`modern-iaf/data/drawings/`, `modern-iaf/data/stores/`, `SOURCES.md` in 
 F-16 (GPL 2.0 or later), the F-35I's from andertan's model (CC BY 4.0), the stores from the FlightGear stores (GPL
 2.0 or later), each credited where its model is (§ Model credits, `shared/credits.json`) and in the page's footer.
 
+## Modern IAF's logo
+
+The logo (`modern-iaf/branding/`, drawn by `tools/iaf-2026/logo.py`; the user's pick of 19 November 2026) is our own
+drawing: four F-35s over the two names, with a faint roundel behind them. The jets' outline is traced from the F-35I
+model, so the logo carries that model's credit: "Lockheed Martin F35 Lightning II" by andertan, CC BY 4.0 (§ Model
+credits). The F-35I record of `shared/credits.json` `sim` holds the line "The Modern IAF logo's aircraft outline is
+traced from this model", and its use reads "the F-35I model and the logo's aircraft outline": the setup wizard's
+Attributions, the front end's Attributions page and the game manual's Attributions appendix show both. The letters
+are Heebo (§ Modern IAF's font) set as paths; the roundel is a ring and a six-pointed star drawn from simple geometry.
+
 ## Testing
 
 * `tests/godot/test_credits.gd` checks:

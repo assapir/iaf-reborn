@@ -825,7 +825,8 @@ func hebrew_available() -> bool:
 	return true
 
 
-## The original's splash and icon are not the sim's (its own come with the front end, item E2).
+## The original's splash and icon are not the sim's: its icon is project.godot's (modern-iaf/branding/), and it shows no
+## splash image (the user, 2026-11-10: "remove the Godot flash").
 func _update_splash() -> void:
 	pass
 

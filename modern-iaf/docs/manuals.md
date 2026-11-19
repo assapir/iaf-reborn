@@ -346,7 +346,7 @@ macOS Preview is open.
 The user's decision (18 November 2026): "Yes, ci to build manuals and update the repo on change".
 [The Manuals workflow](../../.github/workflows/manuals.yml) runs when a push or a pull request changes an input of the
 build: `modern-iaf/manuals/` (text, layout, pictures, lists), `modern-iaf/data/checklists/`, `modern-iaf/data/keys.json`,
-`modern-iaf/data/fonts/`, the control tables `shared/extra/models/cockpit3d/*.json`, the credits `shared/credits.json`, the setup's strings
+`modern-iaf/data/fonts/`, the logo `modern-iaf/branding/`, the control tables `shared/extra/models/cockpit3d/*.json`, the credits `shared/credits.json`, the setup's strings
 `modern-iaf/setup/strings_*.json`, the front end's `modern-iaf/menu/strings_*.json`, `tools/manuals.py`, `shared/terrain/terrain_view.gd` (its own keys are on the key card), or the
 workflow.
 
@@ -480,8 +480,11 @@ The F-16's cockpit model is derived from the FlightGear F-16 (GPL-2.0-or-later,
 
 ## 5. The page design
 
-A4, one column, Heebo 10.5 pt, the front end's navy and blue. A title page; a header with the manual and the chapter;
-a footer with the edition (the date of the last commit to the manual's sources) and the page. Chapters start a page.
+A4, one column, Heebo 10.5 pt, the front end's navy and blue. A title page (navy: the sim's logo at the top, 36 mm
+tall, the lockup of the edition's language from `modern-iaf/branding/`, aligned with the title's edge; the title and
+the subtitle in the middle; the edition at the foot); a header with the manual and the chapter;
+a footer with the edition (the date of the last commit to the manual's sources, `modern-iaf/branding/` among them)
+and the page. Chapters start a page.
 Parts:
 
 - **Status chips** on the contents page and on each planned section: Modelled, Partly modelled, Not modelled.

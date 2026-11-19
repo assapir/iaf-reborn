@@ -7,8 +7,11 @@
 extends "res://shared/util/setup_wizard.gd"
 
 const WizardTheme := preload("res://setup/wizard_theme.gd")
+const Img := preload("res://shared/util/img.gd")
 
 const TITLE := "Modern IAF"
+## The logo's height in the top bar (px at a UI scale of 1).
+const LOGO_H := 64.0
 const PAGES := ["welcome", "imagery", "install", "done"]
 const DEM_GB := 0.627
 ## The Sentinel-2 / WorldCover tiles under the 8 m nodes (14 of the theatre's 21), downloaded once into
@@ -68,6 +71,23 @@ func _ready() -> void:
 	show_page(0)
 
 
+## The logo (modern-iaf/branding/, tools/iaf-2026/logo.py): the lockup for a dark background whose big name is in
+## language `lang` ("en": MODERN IAF, "he": הזרוע הארוכה), `h` px tall, mipmapped so it stays smooth at every
+## window size, `name` its accessible name. The wizard's top bar and the front end's (front_end.gd _mark) show it.
+static func logo(lang: String, h: float, name: String) -> TextureRect:
+	var t := TextureRect.new()
+	t.name = "Logo"
+	t.texture = Img.load_texture(ProjectSettings.globalize_path("res://branding/lockup_%s_dark.png" % lang), true)
+	t.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	t.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	t.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+	t.custom_minimum_size = Vector2(h * t.texture.get_width() / t.texture.get_height(), h)
+	t.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	t.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	t.accessibility_name = name
+	return t
+
+
 ## The current language's string `key` (English when the Hebrew table lacks it).
 func s(key: String) -> String:
 	return strings.get(key, key)
@@ -100,11 +120,11 @@ func _build() -> void:
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 14)
 	margin.add_child(v)
-	# The top bar: the name, "Setup", the language (first page).
+	# The top bar: the logo in the wizard's language, "Setup", the language (first page).
 	var top := HBoxContainer.new()
 	top.add_theme_constant_override("separation", 14)
 	v.add_child(top)
-	_label(top, s("name"), "Title")
+	top.add_child(logo(Settings.language, LOGO_H, s("name")))
 	_label(top, s("setup"), "Muted")
 	var gap := Control.new()
 	gap.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -148,7 +168,7 @@ func _build() -> void:
 	add_child(remove_dialog)
 
 
-## A label in one of the theme's text kinds (wizard_theme.gd: "", "Title", "Heading", "Muted", "Note", "Readout").
+## A label in one of the theme's text kinds (wizard_theme.gd: "", "Heading", "Muted", "Note", "Readout").
 func _label(parent: Control, t: String, kind := "") -> Label:
 	var l := Label.new()
 	l.text = t

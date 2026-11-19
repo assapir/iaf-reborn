@@ -10,6 +10,7 @@ on:
       - "modern-iaf/data/checklists/**"
       - "modern-iaf/data/keys.json"
       - "modern-iaf/data/fonts/**"
+      - "modern-iaf/branding/**" # the logo on the title pages
       - "shared/extra/models/cockpit3d/*.json"
       - "shared/credits.json"
       - "modern-iaf/setup/strings_*.json"

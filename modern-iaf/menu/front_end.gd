@@ -35,6 +35,8 @@ const SETTINGS_DATA := "res://data/settings"
 const NAV_W := 280
 const NAV_GAP := 52
 const LIST_W := 820
+## The logo's height in the top bar (canvas px; the bar is 97 tall).
+const MARK_H := 88.0
 ## The Devices rows a joystick works (keyboard = 0): Keyboard with none connected (_pref_row).
 const JOY_ROWS := ["flight_controls", "rudder", "throttle"]
 ## The start-up steps' switches cropped from each jet's 3D cockpit: <unit>/<step>.webp (tests/_switch_crops.gd).
@@ -343,7 +345,16 @@ func show_page(p: String) -> void:
 		_grab.call_deferred(_focus)
 
 
-## The top bar: the name and where you are (`crumbs`, the last one current), the pilot with the jet.
+## The logo in the screen's language (Wizard.logo: its big name the screen's, "Modern IAF" or "הזרוע הארוכה"),
+## `h` canvas px tall, at the inline start of `parent`: the top bar's, the pause menu's.
+func _mark(parent: Control, h: float) -> TextureRect:
+	var t := Wizard.logo("he" if he() else "en", h, str(setup_strings.get("name", "")))
+	t.name = "Mark"
+	parent.add_child(t)
+	return t
+
+
+## The top bar: the logo and where you are (`crumbs`, the last one current), the pilot with the jet.
 func _header(crumbs: Array) -> void:
 	var shade := _shade(true)
 	shade.offset_bottom = 120
@@ -351,9 +362,7 @@ func _header(crumbs: Array) -> void:
 	bar.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
 	bar.offset_bottom = 97
 	var h := _hbox(bar, 10)
-	# The sim's name in the screen's language, two titles (the wizard's strings: "Modern IAF", "הזרוע הארוכה").
-	var mark := _label(h, str(setup_strings.get("name", "")), "Mark")
-	mark.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_mark(h, MARK_H)
 	_spacer_px(h, 0).custom_minimum_size.x = 16
 	for i in crumbs.size():
 		if i > 0:
@@ -2801,7 +2810,7 @@ func _page_pause() -> void:
 	center.add_child(panel)
 	panel.custom_minimum_size = Vector2(560, 0)
 	var v := _vbox(_margin(panel, 48, 40), 22)
-	_label(v, str(setup_strings.get("name", "")), "Mark")
+	_mark(v, MARK_H)
 	_label(v, s("paused"), "H2")
 	# What is flown: the mission and the jet.
 	var id = flight.get("mission_id")
@@ -2832,7 +2841,7 @@ func _page_accomplished() -> void:
 	center.add_child(panel)
 	panel.custom_minimum_size = Vector2(560, 0)
 	var v := _vbox(_margin(panel, 48, 40), 22)
-	_label(v, str(setup_strings.get("name", "")), "Mark")
+	_mark(v, MARK_H)
 	_label(v, s("fl_complete"), "H2")
 	_text(v, s("fl_kept"), "Muted").custom_minimum_size.x = 464
 	var go := _button(v, s("resume"), "Primary", func(): flight.close_front_end())

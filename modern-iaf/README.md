@@ -1,5 +1,10 @@
 # Modern IAF
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="branding/lockup_en_dark.svg">
+  <img src="branding/lockup_en_light.svg" alt="Modern IAF, הזרוע הארוכה: four F-35s over the two names" height="160">
+</picture>
+
 Modern IAF (in Hebrew: הזרוע הארוכה) is a modern-day Israeli Air Force flight sim. It runs on this repo's engine, beside the original game, and
 reads only our own or openly licensed data: nothing from the original game's CDs. It needs no original game data: setup downloads open data once (the table under "Run it on a Mac") and builds the sim's data
 into `assets/`. What it needs installed (Rust, Godot, GDAL): [docs/setup.md](docs/setup.md). The plan, the decisions and the

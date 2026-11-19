@@ -21,6 +21,11 @@ open: [docs/status.md](docs/status.md).
 
 ## Modern IAF: the present-day sim
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="modern-iaf/branding/lockup_en_dark.svg">
+  <img src="modern-iaf/branding/lockup_en_light.svg" alt="Modern IAF, הזרוע הארוכה: four F-35s over the two names" height="120">
+</picture>
+
 Modern IAF (in Hebrew: הזרוע הארוכה) is a flight sim of today's Israeli Air Force: three jets (F-16I Sufa, F-16D
 Barak, F-35I Adir), 3D cockpits, Israel at full scale, training missions, in Hebrew and English.
 

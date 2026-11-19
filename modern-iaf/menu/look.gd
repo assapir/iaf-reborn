@@ -39,7 +39,6 @@ const TIGHT := {"Jet": 0.2, "H1": 0.1, "Name": 0.1}
 
 ## Type variations: [name, base type, weight, size, colour].
 const TYPES := [
-	["Mark", "Label", 800, 28, TEXT],
 	["Crumb", "Label", 400, 22, MUTED],
 	["CrumbLink", "Button", 400, 22, MUTED],
 	["PilotLink", "Button", 600, 22, TEXT],

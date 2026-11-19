@@ -222,6 +222,14 @@ centreline in the roll.
   (`setup/wizard_theme.gd`); every sim screen (the front end, the loading screen, the pause menu, the flight's
   overlays) takes its colours from there. The setup wizard keeps Godot's default dark theme (`wizard_theme.gd`). Until
   2026-11-13: the round-3 slate (`#1d2025`, `#262a31`, accent `#6699ff`).
+- **The logo** (the user's pick of 2026-11-19, concept 4 with the roundel E3, medium disc: four F-35s over the two
+  names, a faint roundel behind the jets and the big name; `modern-iaf/branding/`, drawn by `tools/iaf-2026/logo.py`,
+  credits in docs/credits.md "Modern IAF's logo"): at the inline start of every screen's top bar, 88 px tall, and at
+  the top of the pause menu and the Mission accomplished panel (`front_end.gd` `_mark`, the wizard's
+  `Wizard.logo`). The lockup is the screen's language: in English MODERN IAF big with הזרוע הארוכה under it, in
+  Hebrew the other way round; its accessible name is the sim's name. It replaced the name in letters (`Mark`, Heebo
+  800 at 28 px). The project's icon is the four-ship and the disc on the navy tile (`icon_256.png`: the window's and
+  the Dock's icon). The start shows no splash image (the user, 2026-11-10: "remove the Godot flash").
 - **A list that picks one** (the Hangar's jets): the picked row filled in the accent's tint, the focus a 2 px accent
   ring; no bar at the row's side (the user, 2026-11-13).
 - **Sizes:** every screen lays out on a 1920 × 1080 canvas that the window shows scaled to its height (stretch mode
@@ -1182,7 +1190,7 @@ round 3 of the menu ideas (`r3_hangar_en.png`, `r3_hangar_he.png`, outside the r
 
 | what | where, from what |
 |---|---|
-| the top bar | the sim's name and the Hangar crumb; Settings (the gear and the word; "הגדרות") and the pilot (the nickname, the name under it, the picture or initials: one button to the Pilot screen) at the inline end |
+| the top bar | the logo (§4) and the Hangar crumb; Settings (the gear and the word; "הגדרות") and the pilot (the nickname, the name under it, the picture or initials: one button to the Pilot screen) at the inline end |
 | the jets | at the inline start under "Aircraft" / "מטוסים": the full name ("F-16I Sufa"), the squadron's number and the base; the Ra'am and the Baz greyed (§2). A click, or Enter on the focused row, picks the jet; the arrows move between the rows and on to the card |
 | the jet | in the middle, standing still in its start view; the player looks at it from any side (below); its full name in large faint letters behind it; no help line (the user: "it should be obvious you can use the mouse") |
 | the card | at the inline end: the full name, then this jet's own data, the same three for every jet (the user, A31: "Just the specific plane data"): Squadron (its number and name, the airbase file's), Base and Tail number (the unit record's, the number painted on the model); no type figures (weight, gun rounds, radar range: tried 13 November and dropped by the user). Then the training (passed of all, the bar, the last flight on the jet), Fly (focused on entry; opens the Missions screen, §2; the greyed Missions and campaign button went with it). Without missions (the sim's data not built) the training's box says so with the command `./modern-iaf-setup` on a line of its own (Windows: `.\modern-iaf-setup.ps1`) and Fly is greyed, out of the focus |

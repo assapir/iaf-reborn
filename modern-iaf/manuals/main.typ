@@ -8,7 +8,10 @@
 #page(margin: 0pt, fill: navy, {
   set text(fill: white)
   let edge = if rtl { -21mm } else { 21mm }
-  place(top + start, dx: edge, dy: 30mm, text(size: 11pt, weight: 600, tracking: 2pt, fill: rgb("a8c3ff"), upper(ui.product)))
+  // The logo (modern-iaf/branding/): the lockup whose big name is in the edition's language, its own margin (12 of
+  // its 326 units, 1.3 mm here) outside the title's edge.
+  let out = if rtl { 1.3mm } else { -1.3mm }
+  place(top + start, dx: edge + out, dy: 22mm, image("/modern-iaf/branding/lockup_" + lang + "_dark.svg", height: 36mm, alt: ui.product))
   place(horizon + start, dx: edge, block(width: 165mm, {
     text(size: 46pt, weight: 800, book.title)
     v(-22pt)

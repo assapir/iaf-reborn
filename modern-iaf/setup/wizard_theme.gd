@@ -18,7 +18,6 @@ static func make() -> Theme:
 	var dim := ThemeDB.get_default_theme().get_color("font_color", "Label")
 	dim.a = 0.7
 	_variation(t, "Heading", "Label", {"font": _weight(heebo, 600), "font_size": BASE_SIZE + 6})
-	_variation(t, "Title", "Label", {"font": _weight(heebo, 700), "font_size": BASE_SIZE + 10})
 	_variation(t, "Muted", "Label", {"font_color": dim})
 	_variation(t, "Note", "Label", {"font_color": dim, "font_size": BASE_SIZE - 2})
 	_variation(t, "Readout", "Label", {"font": _weight(heebo, 600), "font_size": BASE_SIZE + 6})

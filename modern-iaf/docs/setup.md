@@ -131,6 +131,10 @@ The look is one file, `modern-iaf/setup/wizard_theme.gd`: Godot's default dark t
 `strings_he.json` (formal, gender-neutral Hebrew). The page frame and the run are the one both games' wizards use,
 `shared/util/setup_wizard.gd` (docs/setup.md "The wizard").
 
+The top bar starts with the sim's logo, 64 px tall, in the wizard's language (`wizard.gd` `logo`: the lockup with
+MODERN IAF big in English, הזרוע הארוכה big in Hebrew; the user's pick of 2026-11-19, `modern-iaf/branding/`,
+[front-end.md](front-end.md) §4), then "Setup". The window's icon is the project's (the four-ship on the navy tile).
+
 ## 3. The steps
 
 The wizard runs `iaf_setup::sim_plan` through `iaf_setup::sim_run` (`crates/iaf-setup/src/sim.rs`), the same
