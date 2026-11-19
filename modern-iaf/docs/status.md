@@ -3,6 +3,10 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **A lesson's load needs its bombs (2026-11-19, fixed, [weapons.md](weapons.md) §7.1):** a load with fewer
+  air-to-ground stores than the mission's ground kills is refused on the Loadout screen and the briefing ("The mission
+  needs bombs: add a Mk 82 bomb"), and a `--mission` run flies the mission's own load instead. Before, a saved load
+  with no bombs flew the range lesson.
 - **The F-16s' fuel tanks, the STORES CONFIG light and the last own keys (2026-11-18, [cockpit.md](cockpit.md) §5.7,
   [front-end.md](front-end.md) §9.1):** the 6-DoF carries the F-16's tanks (two systems of reservoir, fuselage, wing
   and external tank, emptying from the far end; `sixdof/fuel.rs`): ENG FEED's AFT and FWD feed the engine from one
@@ -171,8 +175,9 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   the final starts 7 km out, level, until the 3° path comes down. The Barak, the Sufa, the Adir and the Ra'am land at
   Ramat David from a landing weight to full fuel with 3 t of stores: 128–165 kt, 0.8–2.9 m/s of sink, stopped 0.7–1.1 km
   down the runway (were: 12 of a sweep of 24 flights crashed). Open: above the landing weights the flare ends at 15–19°
-  of pitch (the tail strike's limit is 15°; the autopilot's landing keeps the original's limits), and in the 1998 game's
-  Ramat David it floats the Adir with 3 t of stores and drops it at 4.05 m/s.
+  of pitch (the tail strike's limit is 15°; the autopilot's landing keeps the original's limits). Since 2026-11-19 the
+  flare's sum on the 6-DoF allows for the jet's g lag: the 1998 game's Adir with 3 t of stores touches at 1.5 m/s
+  (was a balloon to 2.8 m and 4.05 m/s).
 - **The autopilot lands softly; the roll starts faster (2026-11-16, finish list: autopilot touchdown, roll onset,
   [flight-model.md](flight-model.md) §9.6, §9.13):** on the 6-DoF the autopilot flies a real final, 3° (inferred) at
   the speed of the F-16 manual's 13° α (about 145 kt), with a flare from about 15 m: touchdowns at 2.0–2.6 m/s (were

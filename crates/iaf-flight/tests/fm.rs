@@ -326,7 +326,7 @@ fn landing_circuit_on_the_sixdof() {
     // The autopilot's landing circuit (NAV to a landing waypoint, GoHomeCL) on the 6-DoF's four jets at Ramat David
     // (the own iaf.ibx, and the 1998 game's with its three modern jets), calm: at a landing weight (30 % of the
     // internal fuel) from 55 km out at 2,000 m, at full internal fuel from 3 km out at 300 m, and at full fuel with 3 t
-    // of stores (drag index 60 a side). Each lands on the runway and stops on it; the first two touch at less than the
+    // of stores (drag index 60 a side). Each lands on the runway and stops on it, touches at less than the
     // gear's design sink of 10 ft/s (3.05 m/s, docs/damage.md §5.2), no faster than its final's speed (13° α at its
     // weight) and, at the landing weight, under the 15° of the tail strike (`aircraft::landing_limits`). Before: 12 of
     // a 24-flight sweep (these weights, entries from 55 km at 2,000 m and 20 km at 300 m) crashed (the Sufa at full
@@ -410,8 +410,9 @@ fn landing_circuit_on_the_sixdof() {
                     "{name} case {ci} ({mass:.0} kg): touchdown {kt:.0} kt (final {final_kt:.0}), sink {sink:.2} m/s, pitch \
                  {pitch:.1}°, {at:.0} m past the lineup; stopped at {along:.0} m, {cross:.1} m off the centreline"
                 );
-                // With 3 t of stores (case 2) the flare can float the heavy Adir: it is held to the runway only.
-                assert!(ci == 2 || sink < 3.05, "{name} case {ci}: sink {sink}");
+                // Case 2 too (2026-11-19): the flare's sum wound up over the 6-DoF's g lag, and the 1998 game's Adir
+                // with 3 t of stores ballooned 2.6 m and touched at 4.05 m/s (`autopilot::FLARE_LAG_6DOF`).
+                assert!(sink < 3.05, "{name} case {ci}: sink {sink}");
                 assert!(kt <= final_kt, "{name} case {ci}: {kt} kt, final {final_kt}");
                 assert!(ci != 0 || pitch < 15.0, "{name} case {ci}: pitch {pitch}");
                 let on = at > runway.0 && along < runway.1 && cross.abs() < 22.0;

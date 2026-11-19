@@ -637,6 +637,36 @@ pub fn arming(unit: &Value, weapons: &Path, lo: &loadout::Loadout) -> Value {
     })
 }
 
+/// [`arming`] for the readable mission `mission` (null: none): a lesson that counts ground kills (its `training`'s
+/// `ground_kills`) needs that many air-to-ground stores aboard (the inventory's group "ground"); fewer adds the unmet
+/// need {weapon: null, need: "ground", store, station} (store: the inventory's first ground store that needs nothing
+/// else) and blocks the load. Every screen and the flight call ask this one rule (weapons.md §7.1; the user,
+/// 2026-11-18: a saved load with no bombs flew the range lesson).
+pub fn mission_arming(unit: &Value, weapons: &Path, lo: &loadout::Loadout, mission: &Value) -> Value {
+    let mut a = arming(unit, weapons, lo);
+    let want = mission["training"]["ground_kills"].as_u64().unwrap_or(0);
+    let inv: Vec<Value> = a["inventory"].as_array().cloned().unwrap_or_default();
+    let ground = || inv.iter().filter(|e| e["group"] == "ground");
+    if ground().map(|e| e["used"].as_u64().unwrap_or(0)).sum::<u64>() >= want {
+        return a;
+    }
+    let free = |e: &&Value| -> bool {
+        let r = e["id"].as_str().and_then(|id| std::fs::read(weapons.join(format!("{id}.json"))).ok());
+        let r: Value = r.and_then(|b| serde_json::from_slice(&b).ok()).unwrap_or_default();
+        r["needs"].as_array().is_none_or(Vec::is_empty)
+    };
+    let store = ground().find(free).and_then(|e| e["id"].as_str());
+    let station = store.and_then(|s| {
+        loadout::stations(unit).into_iter().find(|&st| loadout::allowed(unit, st).iter().any(|x| x.0 == s))
+    });
+    let need = json!({"weapon": null, "need": "ground", "store": store, "station": station});
+    if let Some(u) = a["unmet"].as_array_mut() {
+        u.push(need);
+    }
+    a["blocked"] = json!(true);
+    a
+}
+
 /// The loadout's unmet needs (modern-iaf/docs/weapons.md §7.1, `iaf_avionics::stores::unmet`): for each store on the jet
 /// whose record `needs` what no store on the jet `gives` (nor the jet's built-in pod, its aircraft definition's `flir`,
 /// which gives the laser), {weapon, need, store, station}: the store the record's inventory holds that gives it and the

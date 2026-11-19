@@ -189,6 +189,10 @@ const FLARE_SINK: f32 = 1.5;
 const FLARE_KV: f32 = 2.0;
 const FLARE_KI: f32 = 0.5;
 const FLARE_I_MAX: f32 = 3.0;
+/// Ours, the flare on the 6-DoF ([`ApView::final_speed`] set), s: the time its g takes to follow a command with the
+/// gear down (63 % in 2.0–2.3 s at 220 kt, test `sixdof_g_follows_a_command`). The flare's sum takes the sink the
+/// jet's present vertical acceleration leaves after it (modern-iaf/docs/flight-model.md §9.6).
+const FLARE_LAG_6DOF: f32 = 2.0;
 /// Ours, Modern IAF's 6-DoF ([`ApView::final_speed`] set): the real final's α and glide path, deg. The α is the F-16
 /// manual's 13° (T.O. GR1F-16CJ-1 p. 2-23, "arrive on final at 11 or 13 degrees AOA", and figure 2-3), the F-35's
 /// too (the Eglin F-35A accident report); the glide path the usual 3° of an ILS (inferred: the F-16 manual gives
@@ -2710,7 +2714,12 @@ impl Landing {
         let vz = v.vel[2] as f32;
         let tau = flare_tau(v);
         let e = -(h / tau + FLARE_SINK) - vz;
-        self.flare_i = (self.flare_i + e * 0.2 * FLARE_KI).clamp(-FLARE_I_MAX, FLARE_I_MAX);
+        // On the 6-DoF the sum learns the sink's error left once the jet's vertical acceleration has acted over its
+        // g lag (`FLARE_LAG_6DOF`): summing the error the lag still holds wound it to its limit in a long flare, the
+        // Adir with 3 t of stores ballooned 2.6 m off the runway and dropped onto it at 4.05 m/s.
+        let lag = if v.final_speed.is_some() { FLARE_LAG_6DOF } else { 0.0 };
+        let e_sum = e - v.acc[2] as f32 * lag;
+        self.flare_i = (self.flare_i + e_sum * 0.2 * FLARE_KI).clamp(-FLARE_I_MAX, FLARE_I_MAX);
         let a = FLARE_KV * e + self.flare_i;
         // The load factor for that vertical acceleration on the flight path, at the bank.
         let cos_path = (1.0 - (vz / v.speed.max(1.0)).powi(2)).max(0.0).sqrt();

@@ -54,22 +54,26 @@ static func prepare(id: int) -> bool:
 ## The pilot's loadout for the mission's jet (IafPilotLog.loadout, the briefing's Arming page) on the player's flight
 ## (`Settings.arm_loadouts`, player_weapons.gd `_armed`: pylons A..I, IafBriefing.sim_load); the gun rounds, chaff and
 ## flares stay the record's. None stored, or a mission with `fixed_loadout` (its readable file `readable`): the
-## mission's own load (own_loadout), else the record's own pylons.
+## mission's own load (own_loadout), else the record's own pylons. A stored load the one load rule blocks on this
+## mission (IafBriefing.arming: a laser bomb with no pod, no bombs for a lesson's ground kills; a `--mission` run, the
+## front end never flies one) gives way to the mission's own.
 static func arm(m: Dictionary, readable: Dictionary) -> void:
 	Settings.arm_loadouts = {}
 	var unit := str(readable.get("start", {}).get("unit", ""))
+	var unit_file := ProjectSettings.globalize_path("res://data/db/units/%s.json" % unit)
+	var weapons := ProjectSettings.globalize_path("res://data/db/weapons")
+	var mission := ProjectSettings.globalize_path("res://data/missions/%s.json" % str(readable.get("id", "")))
 	var lo := IafPilotLog.loadout(Settings.records_db(), Settings.pilot(), unit)
+	if lo != "":
+		var a = JSON.parse_string(IafBriefing.arming(unit_file, weapons, lo, mission))
+		if a is Dictionary and bool(a.get("blocked", false)):
+			push_warning("the stored loadout cannot fly this mission (%s): the mission's own flies" % [a.get("unmet")])
+			lo = ""
 	if lo == "" or bool(readable.get("fixed_loadout", false)):
 		lo = own_loadout(readable)
 	if lo == "":
 		return
-	var load = JSON.parse_string(
-		IafBriefing.sim_load(
-			ProjectSettings.globalize_path("res://data/db/units/%s.json" % unit),
-			ProjectSettings.globalize_path("res://data/db/weapons"),
-			lo
-		)
-	)
+	var load = JSON.parse_string(IafBriefing.sim_load(unit_file, weapons, lo))
 	var pf: Dictionary = MissionRuntime.player_flight(m, Settings.player_flight)
 	if load is Array and not pf.is_empty():
 		Settings.arm_loadouts = {int(pf.flight): load}

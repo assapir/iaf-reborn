@@ -106,11 +106,13 @@ impl IafBriefing {
 
     /// The Arming page of the unit record `unit` with the weapon records in `weapons` (absolute paths) and the loadout
     /// `lo` (JSON text, {"3": {"id": "mk-82", "count": 3}, …}; "" the record's default; `briefing::arming`) as JSON
-    /// text, `{}` when the record is unreadable.
+    /// text, `{}` when the record is unreadable. `mission`: the readable mission file it is flown on (absolute path;
+    /// "" or unreadable: none), whose lesson's needs count too (`briefing::mission_arming`).
     #[func]
-    fn arming(unit: GString, weapons: GString, lo: GString) -> GString {
-        let v =
-            read(&unit).map_or(json!({}), |u| briefing::arming(&u, Path::new(&weapons.to_string()), &given(&u, &lo)));
+    fn arming(unit: GString, weapons: GString, lo: GString, mission: GString) -> GString {
+        let m = read(&mission).unwrap_or(Value::Null);
+        let v = read(&unit)
+            .map_or(json!({}), |u| briefing::mission_arming(&u, Path::new(&weapons.to_string()), &given(&u, &lo), &m));
         text(&v)
     }
 

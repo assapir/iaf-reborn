@@ -544,10 +544,18 @@ budget, a real flight. Open:
 
   The 1998 game reaches these laws only with Physics "Flight model" on 6-DoF, for the player's Sufa, Ra'am and
   F-35I ([deviations.md](../../docs/deviations.md) §2); its AI jets and every jet on the original model fly the
-  original's circuit. The test lands those three jets at the 1998 Ramat David too: 132–163 kt, 1.4–2.7 m/s of sink,
-  except the Adir with 3 t of stores (24.6 t): its flare floats it 0.2 m over the runway at 20° α, balloons it to
-  2.8 m and drops it 400 m on at 136 kt and 4.05 m/s (a hard landing under the original's limits the autopilot's
-  landing keeps). Open: the flare (§2.3 of docs/autopilot.md, `Landing::flare`) with the heaviest loads.
+  original's circuit. The test lands those three jets at the 1998 Ramat David too: 132–164 kt, 1.5–2.7 m/s of sink.
+  **The flare's sum on the 6-DoF** (2026-11-19, `autopilot::FLARE_LAG_6DOF`): the flare (§2.3 of
+  docs/autopilot.md, `Landing::flare`) sums the sink's error left once the jet's present vertical acceleration has
+  acted for 2 s, the 6-DoF's g lag with the gear down (test `sixdof_g_follows_a_command`). Before, it summed the
+  whole error: the 1998 game's Adir with 3 t of stores (24.6 t) entered the flare at 173 kt sinking 4.7 m/s, its g
+  followed the pull slowly, and the sum reached its 3 m/s² limit. The jet arrested its sink 0.2 m over the runway at
+  20° α, the sum still pulling, ballooned to 2.8 m, and dropped 400 m on at 136 kt and 4.05 m/s. Now it touches at
+  160 kt and 1.5 m/s with no rise, and every case of the test lands under 3.05 m/s (the Sufa with 3 t at 2.7–2.8 m/s,
+  was 2.7–2.9). Tried and dropped then (the test's 21 landings): no sum (the Sufa with 3 t at 3.3 m/s), a sum of
+  0.2 /s² (3.1), a sum only while the error is under 0.5–1 m/s (3.2–3.3), the pull's sum dropped once climbing
+  (the Adir still at 3.6–3.9), a lower gain of 0.5–1 /s (2.8–4.2 for the Adir). The original model's flare is
+  unchanged.
 
   The weights: 30 % of the internal fuel (a landing weight), full internal fuel, full fuel with 3 t of stores. The
   limits the test holds: a sink under the gear's design 10 ft/s (3.05 m/s, [damage.md](../../docs/damage.md) §5.2),

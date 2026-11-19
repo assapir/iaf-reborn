@@ -1592,6 +1592,25 @@ func _loadout_checks(fe: Control, lang: String) -> void:
 		),
 		"%s: loadout: a mission's own load is the mission's" % lang
 	)
+	# A lesson's ground kills need bombs (briefing::mission_arming; the user, 18 Nov: a stored load with no bombs flew
+	# the range lesson): the screens' line, Fly off; the flight call flies the mission's own load.
+	var range_m: Dictionary = s.load_json("res://data/missions/ramon_range.json")
+	var air := JSON.stringify({"1": "aim-9m", "2": "aim-9m", "8": "aim-9m", "9": "aim-9m"})
+	var ra: Dictionary = fe.arming(range_m, air)
+	var line: String = fe.need_text(ra)
+	check(
+		bool(ra.get("blocked", false)) and line.contains("Mk 82") and line.length() < 45,
+		"%s: loadout: the range lesson with no bombs: the line, Fly off (%s)" % [lang, line]
+	)
+	var range_c: Dictionary = s.load_json(s.converted(s.missions_folder()).path_join("ramon_range.json"))
+	if not range_c.is_empty():
+		var keep_lo: String = stored.call()
+		IafPilotLog.set_loadout(db, s.pilot(), "f16i", air)
+		fly_gd.arm(range_c, range_m)
+		var py: Array = s.arm_loadouts.values()[0] if s.arm_loadouts.size() == 1 else []
+		check(py.size() > 2 and int(py[2][0]) > 0, "%s: the range flown with the mission's bombs (%s)" % [lang, py])
+		s.arm_loadouts = {}
+		IafPilotLog.set_loadout(db, s.pilot(), "f16i", keep_lo)
 	# The Adir: its bays' callouts, two AIM-120 inside.
 	var adir: Dictionary = fe.arming({"start": {"unit": "f35i"}})
 	check(

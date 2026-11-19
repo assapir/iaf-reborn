@@ -133,7 +133,7 @@ func changed_loadout() -> void:
 	var kg := 4.0 * 86.0 + 2.0 * 925.0 + 6.0 * 241.0 + 2.0 * 47.6
 	check(absf(st.fm_mass - kg) < 3.0, "loadout: the stores' mass %.0f kg" % st.fm_mass)
 	var weapons := ProjectSettings.globalize_path("res://data/db/weapons")
-	var a = JSON.parse_string(IafBriefing.arming(unit, weapons, lo))
+	var a = JSON.parse_string(IafBriefing.arming(unit, weapons, lo, ""))
 	var skg = a.get("stores_kg") if a is Dictionary else null
 	check(
 		skg != null and absf(float(skg) - st.fm_mass) < 3.0, "loadout: the briefing's stores %s kg = the flight's" % skg

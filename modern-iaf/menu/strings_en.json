@@ -127,6 +127,7 @@
 	"lo_mirror": "Mirror to the other wing",
 	"lo_balanced": "Wings balanced",
 	"lo_heavier_left": "Left wing heavier by %s kg",
+	"need_ground": "The mission needs bombs: add a %s",
 	"need_laser": "%s needs the %s pod",
 	"lo_heavier_right": "Right wing heavier by %s kg",
 	"lo_chaff_flares": "Chaff / flares",

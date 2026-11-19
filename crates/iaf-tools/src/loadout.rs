@@ -426,6 +426,23 @@ mod tests {
     }
 
     #[test]
+    fn a_range_lesson_refuses_a_load_without_bombs() {
+        // The user, 2026-11-18: a saved load with no bombs flew the range lesson (two ground kills).
+        let read = |p: &str| -> Value {
+            let p = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../modern-iaf/data").join(p);
+            serde_json::from_slice(&std::fs::read(p).unwrap()).unwrap()
+        };
+        let (u, m) = (unit("f16i"), read("missions/ramon_range.json"));
+        let air = parse(&u, &json!({"1": "aim-9m", "2": "aim-9m", "8": "aim-9m", "9": "aim-9m"}));
+        let a = crate::briefing::mission_arming(&u, &weapons(), &air, &m);
+        assert_eq!(a["blocked"], true, "no bombs on the range: Fly off");
+        assert_eq!(a["unmet"], json!([{"weapon": null, "need": "ground", "store": "mk-82", "station": 3}]));
+        assert_eq!(crate::briefing::mission_arming(&u, &weapons(), &air, &Value::Null)["blocked"], false);
+        let own = parse(&u, &m["loadout"]);
+        assert_eq!(crate::briefing::mission_arming(&u, &weapons(), &own, &m)["unmet"], json!([]));
+    }
+
+    #[test]
     fn every_default_load_can_be_employed() {
         // Every unit's own load (the AI's, and a mission's without a load of its own) meets its needs.
         let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../modern-iaf/data/db/units");

@@ -127,6 +127,7 @@
 	"lo_mirror": "שיקוף לכנף הנגדית",
 	"lo_balanced": "הכנפיים מאוזנות",
 	"lo_heavier_left": "הכנף השמאלית כבדה ב־%s ק\"ג",
+	"need_ground": "המשימה דורשת פצצות: יש להוסיף %s",
 	"need_laser": "ל־%s נדרש פוד %s",
 	"lo_heavier_right": "הכנף הימנית כבדה ב־%s ק\"ג",
 	"lo_chaff_flares": "מוץ / נורים",

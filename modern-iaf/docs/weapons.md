@@ -237,9 +237,16 @@ to use without them" ([research/pods.md](research/pods.md) §8, items P12–P14,
 - **Presets.** Such a load is never saved as a preset: "+ Save this loadout" is off and the save stores nothing (the
   user, 17 November 2026: "don't allow to save presetting with laser that doesn't have it"). A preset saved before the
   rule loads with all its stores, shows the line, and keeps Fly and Save off until the pod is on.
+- **The mission's needs.** A lesson that counts ground kills (its `training.ground_kills`, the range lessons' two)
+  needs that many air-to-ground stores aboard (the inventory's group "ground": bombs, laser bombs, air-to-ground
+  missiles). With fewer, `briefing::mission_arming` (the rule `IafBriefing.arming` asks with the mission's file) adds
+  the unmet need `ground` and blocks the load; the line reads "The mission needs bombs: add a Mk 82 bomb" (Hebrew:
+  "המשימה דורשת פצצות: יש להוסיף פצצת Mk 82"). A stored load or preset fit for one mission can be unfit for
+  another, so the check runs per mission on the Loadout screen, the briefing and Fly. Until 19 November 2026 the rule
+  saw only the stores, and a saved load with no bombs flew the range lesson (the user, 18 November 2026).
 - **Fly.** `front_end.gd` `fly_mission`, which every Fly button calls, refuses a `blocked` load, so no screen flies one.
-  A `--mission` run (`modern-iaf/flight/fly.gd`, a development path past the front end) flies the stored load, and
-  the in-flight rule below holds its laser bombs.
+  A `--mission` run (`modern-iaf/flight/fly.gd` `arm`, a development path past the front end) asks the same rule and
+  flies the mission's own load in place of a blocked stored one.
 - **The briefing.** The Arming summary shows the same line under the stores in the small text, and its Fly is off.
 - **In flight.** A selected store whose need is unmet shows `NO LASER` on the SMS in RDY's place (ours: the public
   dash-34 legend for this case was not found) and the pickle releases nothing (`player_weapons.gd` `unmet_need`).

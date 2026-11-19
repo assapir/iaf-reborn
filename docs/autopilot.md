@@ -148,6 +148,8 @@ approach and the float before touchdown steer to the centreline with a damped la
   - Modern IAF's 6-DoF only (`ApView::final_speed` set; reborn never reaches it): FinalApproach flies a 3° path at the
     speed of 13° α, its path gain the same both sides (0.1°/m, damping 1.0), its speed law's error summed, and the
     flare's profile is 6 s instead of 2 s (`REAL_FINAL`, `REAL_FINAL_LAWS`; modern-iaf/docs/flight-model.md §9.6).
+    The flare's sum there takes the sink's error left after the jet's present vertical acceleration acts for 2 s,
+    the 6-DoF's g lag (`FLARE_LAG_6DOF`): summing the whole error ballooned the Adir with 3 t of stores.
   - For the player, StopPlane counts as "rolling" once the wheels touch, not on the original's test (flight-path
     pitch within 0.2° and within 5 m of the ground). The flare's path passes that test above the runway. Rolling,
     the player's StopPlane sets the ground law's stick (pitch law B, target 0) on every tick. The original sets it

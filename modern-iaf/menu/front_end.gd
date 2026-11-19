@@ -1104,14 +1104,15 @@ func short_store(id: String) -> String:
 
 
 ## The unit's Arming figures (IafBriefing.arming of its record with the loadout `lo`, JSON text; "" the mission's
-## own, Fly.own_loadout, else the record's default): {stores, slots, loadout, fuel_kg, tank_fuel_kg, takeoff_kg, over,
-## allowed, inventory, …}.
+## own, Fly.own_loadout, else the record's default; on mission `m`, its lesson's needs too): {stores, slots, loadout,
+## fuel_kg, tank_fuel_kg, takeoff_kg, over, blocked, unmet, allowed, inventory, …}.
 func arming(m: Dictionary, lo := "") -> Dictionary:
 	var a = JSON.parse_string(
 		IafBriefing.arming(
 			_unit_file(m),
 			ProjectSettings.globalize_path("res://data/db/weapons"),
-			lo if lo != "" else Fly.own_loadout(m)
+			lo if lo != "" else Fly.own_loadout(m),
+			mission_file(m)
 		)
 	)
 	return a if a is Dictionary else {}
@@ -1124,6 +1125,8 @@ func need_text(a: Dictionary) -> String:
 	if un.is_empty():
 		return ""
 	var u: Dictionary = un[0]
+	if str(u.need) == "ground":  # the lesson's ground kills (briefing::mission_arming)
+		return s("need_ground") % short_store(str(u.store))
 	var w := short_store(str(u.weapon))
 	var giver := short_store(str(u.store)) if u.get("store") != null else ""
 	return s("need_" + str(u.need)) % [w, giver]
