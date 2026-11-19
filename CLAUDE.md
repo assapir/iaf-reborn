@@ -147,9 +147,6 @@ python3 -I tools/manuals.py [f16i|f16d|f35i|game]             # Modern IAF's man
 - A request to an outside site carries no name or email, also not in a User-Agent. A site that refuses automated
   access is left alone and another source is used; evidence taken from a search engine's quote of such a page is
   marked as second-hand.
-- Parked, not to be researched, modelled or tuned: countermeasure effectiveness, electronic attack. Cockpit procedure
-  for these systems (switches, pages, counts) is in scope. Real missile performance (motors, range envelopes, guidance
-  and seeker behaviour, fuzing) is in scope (the user, 19 Nov 2026: "ok so finish the missile works").
 
 ## Architecture
 
