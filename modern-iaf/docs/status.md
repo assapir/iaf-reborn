@@ -1005,7 +1005,12 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   lock or a launch (the call, the beam or the break into an infrared missile, chaff or flares by the existing decoy
   rule, the mate's break call, the rejoin) and the report of an AWACS contact; in the game a scripted ground radar's
   lock on Alpha 2 is called, defended with chaff and left for its slot again (`test_four_ship.gd`).
-  Open: the radio page with voices and subtitles (slice 3), with the split and regroup orders and the new calls.
+  Built (19 Nov, slice 3's logic, ai-plan F5, F8, F13, F14): every call of the flight said in the wingmen's own voice
+  (Kokoro `am_eric`) with its subtitle in the game's language (the words in
+  [research/radio-terms.md](research/radio-terms.md): IAF terms where a source has one, else NATO brevity);
+  `IafAi.engage` ("engage my target": the jets fly at the radar's locked enemy aircraft and fire through combat.gd,
+  then rejoin); a real S-300PMU-2 locking and launching at the wingmen in `test_four_ship.gd`.
+  Open: the radio menu's flight pages (slice 3's screen, waiting for the user's approval).
 - **Missiles (avionics-plan.md §7.2):** next steps 2, 3 and 5: the AIM-120's loft, the proximity fuzes, the threat
   missiles once their records are approved; step 4 (the missile warning's type) awaits the user's approval.
 - **The missile warning, not started (outside the user's words):** an active radar missile's own seeker as an "M" on

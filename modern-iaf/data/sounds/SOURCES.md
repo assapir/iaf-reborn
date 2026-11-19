@@ -64,3 +64,4 @@ hiss) are computed.
 | tower | [am_michael](https://huggingface.co/hexgrad/Kokoro-82M) | Kokoro-82M v1.0 model and voice packs, Apache-2.0 | the tower (radio chain) |
 | pilot | [am_puck](https://huggingface.co/hexgrad/Kokoro-82M) | Kokoro-82M v1.0 model and voice packs, Apache-2.0 | the player, wingmen and other pilots (radio chain) |
 | awacs | [am_fenrir](https://huggingface.co/hexgrad/Kokoro-82M) | Kokoro-82M v1.0 model and voice packs, Apache-2.0 | the AWACS controller (radio chain); no call has its clips yet |
+| wingman | [am_eric](https://huggingface.co/hexgrad/Kokoro-82M) | Kokoro-82M v1.0 model and voice packs, Apache-2.0 | the four-ship's wingmen (radio chain): `flt_wng_*` |

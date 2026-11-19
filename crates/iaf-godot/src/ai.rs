@@ -73,6 +73,21 @@ impl IafAi {
         self.flight.split(now, to_enu(at))
     }
 
+    /// The lead's "engage my target" at `now` to `to` (0 the flight, 5 the element #3–#4, 2..4 one wingman) on the
+    /// target at the scene position `at`; `has` false: no target to engage (each answers "unable"). 1: a jet took it;
+    /// 0: each answered "unable" (a jet already engaging keeps its target); -1: nobody to take it. The engaging jets
+    /// fly at it; the host fires their weapons.
+    #[func]
+    fn engage(&mut self, now: f64, to: i64, has: bool, at: Vector3) -> i64 {
+        self.flight.engage(now, to.clamp(0, 5) as u8, has.then(|| to_enu(at))).map_or(-1, i64::from)
+    }
+
+    /// The engaged target this frame at the scene position `at`; `alive` false: gone, the engaging jets rejoin.
+    #[func]
+    fn set_target(&mut self, alive: bool, at: Vector3) {
+        self.flight.target(alive.then(|| to_enu(at)));
+    }
+
     /// The threat jet `number`'s RWR and MAW show this frame, at the scene position `at`: `kind` 0 none, 1 a radar
     /// locked on it from the air, 2 from the ground, 3 a radar missile flying at it, 4 an infrared one.
     #[func]
@@ -135,7 +150,8 @@ impl IafAi {
 
     /// Jet `number` for tests and logs: role (lead / wingman), leader (the number it flies on, 0 none), stage (its
     /// control loop), slot_error (m), avoiding (it pulls away from another jet), task (element 2's lead on its split
-    /// task), defending, fuel_kg, bingo_kg, released (sent home); empty for an unknown number.
+    /// task), defending, engaging (it engages the player's target), fuel_kg, bingo_kg, released (sent home); empty for
+    /// an unknown number.
     #[func]
     fn state(&self, number: i64) -> VarDictionary {
         let mut d = VarDictionary::new();
@@ -149,6 +165,7 @@ impl IafAi {
         d.set("avoiding", m.order.avoid.is_some());
         d.set("task", m.task.is_some());
         d.set("defending", m.defending);
+        d.set("engaging", m.engaging);
         d.set("fuel_kg", m.fuel_kg);
         d.set("bingo_kg", m.bingo_kg);
         d.set("released", m.released);

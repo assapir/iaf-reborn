@@ -30,6 +30,8 @@ var _formations: Array = []  # [{id, kind, members: [entity], targets: [entity],
 var flight_ai: RefCounted
 var _ai_members: Array = []
 var flight_calls: Array = []
+## The target the flight engages (the radio menu's "engage my target", engage), {} none.
+var engage_ent := {}
 ## The CPU time the AI jets took (this node's _process: flight model, autopilot, AI, model and sound), µs, over
 ## `cost_frames` frames (modern-iaf/docs/ai-plan.md X5); a test resets both.
 var cost_us := 0
@@ -323,14 +325,58 @@ func _step_flight_ai(now: float) -> void:
 		flight_ai.set_alive(m[0], int(ent.state) < 3 and not (ent.player and host.ejected))
 		var th := _threat_of(ent)
 		flight_ai.set_threat(m[0], th[0], th[1])
+	if not engage_ent.is_empty():
+		# Gone: destroyed, or out of the world (a drone at its end point, a unit removed).
+		var gone: bool = int(engage_ent.state) >= 3 or not runtime.entities.has(engage_ent.key)
+		flight_ai.set_target(not gone, Vector3.ZERO if gone else host.world_to_scene(world_of(engage_ent)))
+		if gone:
+			engage_ent = {}
 	for c in flight_ai.step(now):
 		c["t"] = now
 		flight_calls.append(c)
+		if host.get("radio") != null:
+			host.radio.flight_call(int(c.from), String(c.id), float(flight_ai.state(c.from).get("fuel_kg", 0.0)))
+	# The engaging jets' weapons (combat.gd's air-to-air pick and launch: its envelope, cone and fire gate), one missile
+	# of each jet in the air at the target at a time (shoot, look, shoot again; inferred).
+	var w = host.get("weapons")
+	for m in _ai_members:
+		if engage_ent.is_empty() or m[1].player or not flight_ai.state(m[0]).get("engaging", false):
+			continue
+		var own := func(mis): return not mis.ended and is_same(mis.get_meta("owner", {}), m[1])
+		if w != null and w.missiles.any(func(mis): return own.call(mis) and mis.target_key == engage_ent.key):
+			continue
+		var u = combat.units.get(m[1].key)
+		if (
+			u != null
+			and (u.cur < 0 or int(u.stations[u.cur].count) <= 0 or not int(u.w.get("type", 0)) in Combat.AA_TYPES)
+		):
+			combat.combat(m[1], "330", {})
+		combat.combat(m[1], "300", engage_ent)
 	# The decoys the AI jets release (combat.gd's release path: their stores, the 4 s busy time, the decoy rule).
 	for m in _ai_members:
 		var d: int = flight_ai.decoy(m[0])
 		if d > 0 and not m[1].player:
 			combat.combat(m[1], "320" if d == 1 else "310", {})
+
+
+## Ours (Modern IAF, the radio menu's "engage my target", modern-iaf/docs/ai-plan.md F5): the flight's jets `to` (0
+## the flight, 5 the element, 2..4 one wingman) engage the radar's locked target. False: no flight AI or nobody to
+## take it.
+func engage_target(to: int) -> bool:
+	return engage(to, host.radio._radar_target() if host.get("radio") != null else {})
+
+
+## The flight's jets `to` engage `t`, an enemy aircraft alive; else each answers "unable".
+func engage(to: int, t: Dictionary) -> bool:
+	if flight_ai == null:
+		return false
+	var ok: bool = not t.is_empty() and host.enemy_of_player(t) and int(t.get("klass", 0)) in host.radio.AIRCRAFT
+	ok = ok and int(t.state) < 3
+	# Taken by nobody (each "unable"): a jet already engaging keeps its target.
+	var r: int = flight_ai.engage(runtime.now, to, ok, host.world_to_scene(world_of(t)) if ok else Vector3.ZERO)
+	if r > 0:
+		engage_ent = t
+	return r >= 0
 
 
 ## The threat jet `ent`'s RWR and MAW show IafAi: the nearest missile flying at it (3 radar, 4 infrared), else the

@@ -59,6 +59,16 @@ const TASK_G: f32 = 1.5;
 const DEFEND_G: (f32, f32) = (4.0, 6.5);
 const DEFEND_SPEED: f32 = 260.0;
 const CLEAR_S: f64 = 5.0;
+/// An engage ([`Flight::engage`]): the turn's load factor and the speed to the target, m/s (inferred: a hard turn at
+/// about 0.85 Mach at altitude).
+const ENGAGE_G: f32 = 4.0;
+const ENGAGE_SPEED: f32 = 280.0;
+/// The far rejoin: a wingman in the air farther than `.0` m from its slot flies at the slot point (the steer loop, at
+/// `.2` g and its leader's speed plus `.3` m/s, at least [`DEFEND_SPEED`]) until nearer than `.1` m, then the slot
+/// loop. The slot loop's capped
+/// spring only matches the leader's velocity that far out: on a lead circling at 30° of bank, wingmen 17 km off flew
+/// a parallel circle for ten minutes (test_four_ship, 20 Nov 2026; inferred figures).
+const REJOIN: (f32, f32, f32, f32) = (6_000.0, 3_000.0, 3.0, 60.0);
 /// An AI jet reports an AWACS contact inside its radar's reach, m, and this far off its nose, deg (a fighter radar's
 /// 40 NM and ±60°).
 const RADAR: (f64, f64) = (74_000.0, 60.0);
@@ -171,6 +181,8 @@ pub struct Member {
     pub(crate) transit: bool,
     /// Calls "in position" once in its slot: armed by a join-up or a command.
     pub(crate) report: bool,
+    /// Flying the far rejoin ([`REJOIN`]) this decision.
+    pub(crate) rejoining: bool,
     /// Pulling away from a jet ([`AVOID_CLEAR_M`]).
     avoiding: bool,
     /// The lead is low with the gear down, or on the ground again: no slot to keep on it.
@@ -183,8 +195,10 @@ pub struct Member {
     mate_called: bool,
     pub defending: bool,
     pub(crate) clear_since: Option<f64>,
-    /// Element 2's lead while split: its task ([`Flight::split`]).
+    /// Element 2's lead while split, or a jet engaging: its task ([`Flight::split`], [`Flight::engage`]).
     pub task: Option<Steer>,
+    /// Engages the player's target ([`Flight::engage`]).
+    pub engaging: bool,
 }
 
 /// The flight.
@@ -202,6 +216,8 @@ pub struct Flight {
     calls: Vec<(f64, Call)>,
     /// Element 2's task while split.
     split: Option<Steer>,
+    /// The target the engaging jets fly at ([`Flight::engage`], [`Flight::target`]).
+    target: Option<Vec3>,
     wingman: Node<Member>,
     lead_tree: Node<Member>,
 }
@@ -219,6 +235,7 @@ impl Default for Flight {
             last_release: f64::MIN,
             calls: Vec::new(),
             split: None,
+            target: None,
             wingman: wingman::wingman(),
             lead_tree: wingman::lead(),
         }
@@ -283,6 +300,7 @@ impl Flight {
             spot: v.pos,
             transit: false,
             report: false,
+            rejoining: false,
             avoiding: false,
             lead_low: false,
             threat: None,
@@ -292,6 +310,7 @@ impl Flight {
             defending: false,
             clear_since: None,
             task: None,
+            engaging: false,
         });
         self.members.sort_by_key(|m| m.number);
         self.lead = 0;
@@ -311,14 +330,16 @@ impl Flight {
     }
 
     /// Whom member `i` flies on in the air: #2 on #1 and #4 on #3, its element lead, while that one flies on its own
-    /// (alive, in the air, not sent home, off the slot loop: the split's task, a defence); else the flight lead, with
-    /// its slot in the shape relative to its element lead's slot. (Flown on #3 itself also in the shape, #4 amplified
-    /// #3's corrections: 385 m off in a change of shape, 632 m in a join-up in a turn; tested and dropped 19 Nov.)
+    /// (alive, in the air, not sent home, off the slot loop: the split's task, a defence; not the far rejoin, where each
+    /// flies at its own slot); else the flight lead, with its slot in the shape relative to its element lead's slot.
+    /// (Flown on #3 itself also in the shape, #4 amplified #3's corrections: 385 m off in a change of shape, 632 m in a
+    /// join-up in a turn; tested and dropped 19 Nov.)
     fn leader_index(&self, i: usize) -> usize {
         let n = self.members[i].number;
         let el = n.is_multiple_of(2).then(|| self.index(n - 1)).flatten().filter(|&j| {
             let e = &self.members[j];
-            j != self.lead && e.alive && e.airborne && !e.landed && !e.released && !e.v.on_ground && e.mode != MODE_SLOT
+            let off = e.mode != MODE_SLOT && !e.rejoining;
+            j != self.lead && e.alive && e.airborne && !e.landed && !e.released && !e.v.on_ground && off
         });
         el.unwrap_or(self.lead)
     }
@@ -359,6 +380,45 @@ impl Flight {
             self.calls.push((now + m.skill.reaction_s, Call { from: m.number, id: if ok { "ack" } else { "unable" } }));
         }
         true
+    }
+
+    /// The lead's "engage my target" at `now` to `to` (0 the flight, 5 the element, 2..4 one wingman): each AI jet
+    /// addressed in the air leaves its slot and flies at the target `at` (the host's radar lock, kept fresh by
+    /// [`Flight::target`]) for the host's weapons to fire; #4 stays on #3 when #3 engages too. `at` None (no target
+    /// to engage) or a jet not flying: "unable". Some(true): a jet took it; Some(false): each answered "unable" (a jet
+    /// already engaging keeps its target); None: nobody to take it.
+    pub fn engage(&mut self, now: f64, to: u8, at: Option<Vec3>) -> Option<bool> {
+        let lead = self.lead;
+        let takes = |m: &Member| m.ai && m.alive && (to == 0 || m.number == to || to == 5 && m.number >= 3);
+        let who: Vec<usize> = (0..self.members.len()).filter(|&i| i != lead && takes(&self.members[i])).collect();
+        if who.is_empty() {
+            return None;
+        }
+        let can = |m: &Member| at.is_some() && m.airborne && !m.landed && !m.rtb && !m.released;
+        let with_three = to != 4 && who.iter().any(|&i| self.members[i].number == 3 && can(&self.members[i]));
+        let mut took = false;
+        for &i in &who {
+            let ok = can(&self.members[i]);
+            let m = &mut self.members[i];
+            if ok && !(with_three && m.number == 4) {
+                (m.engaging, took) = (true, true);
+            }
+            self.calls.push((now + m.skill.reaction_s, Call { from: m.number, id: if ok { "ack" } else { "unable" } }));
+        }
+        if took {
+            self.target = at;
+        }
+        Some(took)
+    }
+
+    /// The engaged target this frame (the host's): None, it is gone (destroyed, lost): the engaging jets rejoin.
+    pub fn target(&mut self, at: Option<Vec3>) {
+        self.target = at;
+        if at.is_none() {
+            for m in self.members.iter_mut().filter(|m| m.engaging) {
+                (m.engaging, m.transit, m.report) = (false, true, true);
+            }
+        }
     }
 
     /// An AWACS contact call (fctrl.rs) at `now`: the contact's compass bearing (deg) and range (NM) from the player's
@@ -448,14 +508,14 @@ impl Flight {
                 }
                 // Once in its landing pattern (the gear down), a jet sent home lands.
                 "rejoin" if flying && !(m.released && m.v.gear_down) => {
-                    (m.rtb, m.released, m.transit, m.report) = (false, false, true, true);
+                    (m.rtb, m.released, m.transit, m.report, m.engaging) = (false, false, true, true, false);
                     if m.number == 3 {
                         self.split = None;
                     }
                     "ack"
                 }
                 "rtb" if flying => {
-                    m.rtb = true;
+                    (m.rtb, m.engaging) = (true, false);
                     "ack"
                 }
                 "rejoin" | "rtb" => "unable",
@@ -573,6 +633,7 @@ impl Flight {
             let m = &mut self.members[i];
             let t = table(m.number);
             m.slot = [t[0] - lead_slot[0], t[1] - lead_slot[1], t[2] - lead_slot[2]];
+            let mut rejoin = None;
             if i != self.lead {
                 let s = autopilot::slot_point(&ld, m.slot);
                 let flat_err = flat(s, m.v.pos) as f32;
@@ -588,6 +649,11 @@ impl Flight {
                     m.report = false;
                     m.calls.push("in_position");
                 }
+                let far = if m.rejoining { REJOIN.1 } else { REJOIN.0 };
+                if m.slot_error > far && m.airborne && !m.v.on_ground && !m.v.gear_down {
+                    let speed = (ld.vel.length() as f32 + REJOIN.3).max(DEFEND_SPEED);
+                    rejoin = Some(Steer { to: s, g: REJOIN.2, speed, thr_max: 1.0 });
+                }
             }
             if !m.ai {
                 continue;
@@ -597,7 +663,12 @@ impl Flight {
             m.cleared = self.cleared;
             m.ahead_moved = ahead_moved;
             m.bingo_kg = RESERVE_KG + KG_PER_KM * home.map_or(0.0, |h| flat(h, m.v.pos) as f32 / 1000.0);
-            m.task = if m.number == 3 { self.split } else { None };
+            m.engaging &= m.alive && !m.rtb && !m.released;
+            let engage = self.target.filter(|_| m.engaging);
+            let engage = engage.map(|to| Steer { to, g: ENGAGE_G, speed: ENGAGE_SPEED, thr_max: 1.0 });
+            let own = engage.or(if m.number == 3 { self.split } else { None });
+            m.rejoining = own.is_none() && rejoin.is_some();
+            m.task = own.or(rejoin);
             (m.order.mode, m.order.decoy) = (None, None);
             if i == self.lead {
                 self.lead_tree.tick(m)

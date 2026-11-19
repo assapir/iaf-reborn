@@ -159,7 +159,7 @@ also the canopy and the touchdown's tyre skid), LilMati, Rudmer_Rotteveel (also 
 an RNLAF F-16 take-off), pushkin, xkeril, elliott.klein, DeqstersLab, SoundDesignForYou and tranzfusion. The JFS
 whine is a tone we computed. Each clip's source page, licence and processing: `modern-iaf/data/sounds/SOURCES.md`.
 The sim's voices are Kokoro text to speech[^kokoro] (Kokoro-82M v1.0 by hexgrad, Apache-2.0; its voice packs ship in
-the same repository under the same licence) in the American voices af_heart, am_michael, am_puck and am_fenrir. Its
+the same repository under the same licence) in the American voices af_heart, am_michael, am_puck, am_fenrir and am_eric. Its
 training data is public-domain, permissively licensed and synthetic speech, plus two CC BY sets it names: Koniwa
 `tnc` (CC BY 3.0) and SIWIS (CC BY 4.0). Their texts and voices: `modern-iaf/data/sounds/voices.json`; made by
 `iaf-sim voices` (modern-iaf/docs/sound.md §5). The Hebrew voice waits for a licence decision (modern-iaf/docs/sound.md

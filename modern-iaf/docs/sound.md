@@ -360,12 +360,13 @@ licence:
 | tower | `am_michael`, 1.1 | the tower's phrases, the friendly-fire call, the map edge |
 | pilot | `am_puck`, 1.1 | the player's radio-menu calls (helmet chain, §5.2), "Roger", eject, the friendly-fire calls of the target and the wingman |
 | AWACS | `am_fenrir`, 1.1 | the contact calls `ACFT_FCTRL_LONG` / `_SHORT` ([ews.md](ews.md) §7) |
+| wingman | `am_eric`, 1.1 | the four-ship's wingmen Alpha 2–4: their answers and calls (`WNG_*`, `radio.gd flight_call`; the words in [research/radio-terms.md](research/radio-terms.md)); the player's commands to them (`CMD_*`) are the pilot's |
 
 **Choice** (9 November 2026; the user on 3 November: "less British", American or neutral voices). Kokoro's
 American voices graded best by its own VOICES.md[^kokoro]: `af_heart` (A) and `af_bella` (A−) among the women,
 `am_michael`, `am_puck` and `am_fenrir` (C+, the best men's grade) among the men. For Betty eleven female voices said
 "Pull up! Pull up!"; `af_heart` and `af_sarah` had the highest pitch (232 and 226 Hz), `af_heart` the higher grade.
-The tower and the pilot are two different men so a call and its answer are told apart; the AWACS a third.
+The tower and the pilot are two different men so a call and its answer are told apart; the AWACS a third; the wingmen a fourth (`am_eric`, 19 November 2026: the remaining best-graded American man not yet used, D in VOICES.md; one voice for Alpha 2–4, inferred).
 
 **Betty** follows the F-16 VMS, as [real-betty.md](../../docs/real-betty.md) §5 proposes for all three jets (the
 Sufa and the Barak are F-16s; the F-35I's set is open, so it takes the same):
@@ -445,7 +446,7 @@ their press command (the doc's names for them look swapped).
 3. ffmpeg writes it as 22050 Hz mono Ogg Vorbis, quality 4, into `modern-iaf/data/sounds/`, which ships the clips;
 4. `sim::own_sounds` compiles the sound folder into `assets/converted/own/resource/soundfiles/`, as `iaf-sim own`
    (the wizard's "sounds, voices, keys and effects art" step) does.
-The set is 318 clips (the AWACS's 97 `awx_*` since 17 November) plus four computed ones (`kch2`, `key_on`, `key_off`,
+The set is 361 clips (the AWACS's 97 `awx_*` since 17 November; the four-ship's 43 `flt_*` since 19 November, `--only flt_`) plus four computed ones (`kch2`, `key_on`, `key_off`,
 `twr_pause`). `iaf-sim voices --only <name part>` remakes some clips (`--only awx` the AWACS's, about 1 minute); with
 the model and voice packs in the cache, `HF_HUB_OFFLINE=1` and `IAF_KOKORO_PYTHON` set to the venv's Python, the step
 runs without the network; `iaf-sim voices --say <role>
@@ -553,7 +554,7 @@ The setup wizard (item A3) and the credits roll live outside this branch's folde
 - **Sound effects** (freesound.org, CC0): ikbenraar, pillwave, 77Pacer, nuckan, qubodup, Seidhepriest,
   Jetrod, craigsmith (the USC Gold / Red / Sunset Editorial libraries), LilMati, Rudmer_Rotteveel, pushkin, xkeril,
   elliott.klein, DeqstersLab, SoundDesignForYou, tranzfusion.
-- **Voices:** Kokoro-82M v1.0 by hexgrad (Apache-2.0), the voices af_heart, am_michael, am_puck and am_fenrir;
+- **Voices:** Kokoro-82M v1.0 by hexgrad (Apache-2.0), the voices af_heart, am_michael, am_puck, am_fenrir and am_eric;
   trained on public-domain, permissively licensed and synthetic speech and on Koniwa tnc (CC BY 3.0) and SIWIS
   (CC BY 4.0).
 - **Hebrew voice:** only if option 1 of §5 is chosen: SASPEECH, © Kan, the Israeli Public Broadcasting Corporation,

@@ -28,6 +28,13 @@
       "url": "https://huggingface.co/hexgrad/Kokoro-82M",
       "licence": "Kokoro-82M v1.0 model and voice packs, Apache-2.0",
       "use": "the AWACS controller (radio chain): the contact calls ACFT_FCTRL_LONG / _SHORT (docs/radio.md §4)"
+    },
+    "wingman": {
+      "model": "am_eric",
+      "speed": 1.1,
+      "url": "https://huggingface.co/hexgrad/Kokoro-82M",
+      "licence": "Kokoro-82M v1.0 model and voice packs, Apache-2.0",
+      "use": "the player's wingmen Alpha 2–4 (radio chain): their answers and calls WNG_* (modern-iaf/docs/research/radio-terms.md)"
     }
   },
   "clips": [
@@ -2071,6 +2078,264 @@
       "voice": "awacs",
       "say": "please identify",
       "mode": "particle"
+    },
+    {
+      "file": "flt_wng_one.ogg",
+      "voice": "wingman",
+      "say": "One.",
+      "mode": "particle"
+    },
+    {
+      "file": "flt_wng_two.ogg",
+      "voice": "wingman",
+      "say": "Two.",
+      "mode": "particle"
+    },
+    {
+      "file": "flt_wng_three.ogg",
+      "voice": "wingman",
+      "say": "Three.",
+      "mode": "particle"
+    },
+    {
+      "file": "flt_wng_four.ogg",
+      "voice": "wingman",
+      "say": "Four.",
+      "mode": "particle"
+    },
+    {
+      "file": "flt_wng_unable.ogg",
+      "voice": "wingman",
+      "say": "Unable.",
+      "mode": "particle"
+    },
+    {
+      "file": "flt_wng_in_position.ogg",
+      "voice": "wingman",
+      "say": "In position.",
+      "mode": "particle"
+    },
+    {
+      "file": "flt_wng_joker.ogg",
+      "voice": "wingman",
+      "say": "Joker.",
+      "mode": "particle"
+    },
+    {
+      "file": "flt_wng_bingo.ogg",
+      "voice": "wingman",
+      "say": "Bingo.",
+      "mode": "particle"
+    },
+    {
+      "file": "flt_wng_rtb.ogg",
+      "voice": "wingman",
+      "say": "R T B.",
+      "mode": "particle"
+    },
+    {
+      "file": "flt_wng_spike.ogg",
+      "voice": "wingman",
+      "say": "Spike!",
+      "mode": "particle"
+    },
+    {
+      "file": "flt_wng_mud.ogg",
+      "voice": "wingman",
+      "say": "Mud!",
+      "mode": "particle"
+    },
+    {
+      "file": "flt_wng_defending.ogg",
+      "voice": "wingman",
+      "say": "Defending!",
+      "mode": "particle"
+    },
+    {
+      "file": "flt_wng_break_left.ogg",
+      "voice": "wingman",
+      "say": "Break left!",
+      "mode": "particle"
+    },
+    {
+      "file": "flt_wng_break_right.ogg",
+      "voice": "wingman",
+      "say": "Break right!",
+      "mode": "particle"
+    },
+    {
+      "file": "flt_wng_contact.ogg",
+      "voice": "wingman",
+      "say": "Contact.",
+      "mode": "particle"
+    },
+    {
+      "file": "flt_wng_has_lead.ogg",
+      "voice": "wingman",
+      "say": "has the lead.",
+      "mode": "particle"
+    },
+    {
+      "file": "flt_wng_point.ogg",
+      "voice": "wingman",
+      "say": "point",
+      "mode": "particle"
+    },
+    {
+      "file": "flt_wng_d0.ogg",
+      "voice": "wingman",
+      "say": "Zero.",
+      "mode": "particle"
+    },
+    {
+      "file": "flt_wng_d1.ogg",
+      "voice": "wingman",
+      "say": "One.",
+      "mode": "particle"
+    },
+    {
+      "file": "flt_wng_d2.ogg",
+      "voice": "wingman",
+      "say": "Two.",
+      "mode": "particle"
+    },
+    {
+      "file": "flt_wng_d3.ogg",
+      "voice": "wingman",
+      "say": "Three.",
+      "mode": "particle"
+    },
+    {
+      "file": "flt_wng_d4.ogg",
+      "voice": "wingman",
+      "say": "Four.",
+      "mode": "particle"
+    },
+    {
+      "file": "flt_wng_d5.ogg",
+      "voice": "wingman",
+      "say": "Five.",
+      "mode": "particle"
+    },
+    {
+      "file": "flt_wng_d6.ogg",
+      "voice": "wingman",
+      "say": "Six.",
+      "mode": "particle"
+    },
+    {
+      "file": "flt_wng_d7.ogg",
+      "voice": "wingman",
+      "say": "Seven.",
+      "mode": "particle"
+    },
+    {
+      "file": "flt_wng_d8.ogg",
+      "voice": "wingman",
+      "say": "Eight.",
+      "mode": "particle"
+    },
+    {
+      "file": "flt_wng_d9.ogg",
+      "voice": "wingman",
+      "say": "Niner.",
+      "mode": "particle"
+    },
+    {
+      "file": "flt_cmd_alpha_2.ogg",
+      "voice": "pilot",
+      "say": "Alpha Two.",
+      "mode": "helmet"
+    },
+    {
+      "file": "flt_cmd_alpha_3.ogg",
+      "voice": "pilot",
+      "say": "Alpha Three.",
+      "mode": "helmet"
+    },
+    {
+      "file": "flt_cmd_alpha_4.ogg",
+      "voice": "pilot",
+      "say": "Alpha Four.",
+      "mode": "helmet"
+    },
+    {
+      "file": "flt_cmd_alpha_34.ogg",
+      "voice": "pilot",
+      "say": "Alpha Three and Four.",
+      "mode": "helmet"
+    },
+    {
+      "file": "flt_cmd_fingertip.ogg",
+      "voice": "pilot",
+      "say": "Fingertip.",
+      "mode": "helmet"
+    },
+    {
+      "file": "flt_cmd_echelon_right.ogg",
+      "voice": "pilot",
+      "say": "Echelon right.",
+      "mode": "helmet"
+    },
+    {
+      "file": "flt_cmd_echelon_left.ogg",
+      "voice": "pilot",
+      "say": "Echelon left.",
+      "mode": "helmet"
+    },
+    {
+      "file": "flt_cmd_line_abreast.ogg",
+      "voice": "pilot",
+      "say": "Line abreast.",
+      "mode": "helmet"
+    },
+    {
+      "file": "flt_cmd_wedge.ogg",
+      "voice": "pilot",
+      "say": "Wedge.",
+      "mode": "helmet"
+    },
+    {
+      "file": "flt_cmd_trail.ogg",
+      "voice": "pilot",
+      "say": "Trail.",
+      "mode": "helmet"
+    },
+    {
+      "file": "flt_cmd_rejoin.ogg",
+      "voice": "pilot",
+      "say": "Rejoin.",
+      "mode": "helmet"
+    },
+    {
+      "file": "flt_cmd_split.ogg",
+      "voice": "pilot",
+      "say": "Split.",
+      "mode": "helmet"
+    },
+    {
+      "file": "flt_cmd_engage.ogg",
+      "voice": "pilot",
+      "say": "Engage my target.",
+      "mode": "helmet"
+    },
+    {
+      "file": "flt_cmd_rtb.ogg",
+      "voice": "pilot",
+      "say": "R T B.",
+      "mode": "helmet"
+    },
+    {
+      "file": "flt_cmd_check.ogg",
+      "voice": "pilot",
+      "say": "Check.",
+      "mode": "helmet"
+    },
+    {
+      "file": "flt_cmd_ops_check.ogg",
+      "voice": "pilot",
+      "say": "Ops check.",
+      "mode": "helmet"
     }
   ],
   "particles": {
@@ -3578,6 +3843,221 @@
       "file": "awx_please_identify.ogg",
       "text": "please identify",
       "text_he": "נא לזהות"
+    },
+    "WNG_ONE": {
+      "file": "flt_wng_one.ogg",
+      "text": "One",
+      "text_he": "אחת"
+    },
+    "WNG_TWO": {
+      "file": "flt_wng_two.ogg",
+      "text": "Two",
+      "text_he": "שתיים"
+    },
+    "WNG_THREE": {
+      "file": "flt_wng_three.ogg",
+      "text": "Three",
+      "text_he": "שלוש"
+    },
+    "WNG_FOUR": {
+      "file": "flt_wng_four.ogg",
+      "text": "Four",
+      "text_he": "ארבע"
+    },
+    "WNG_UNABLE": {
+      "file": "flt_wng_unable.ogg",
+      "text": "unable",
+      "text_he": "אין אפשרות"
+    },
+    "WNG_IN_POSITION": {
+      "file": "flt_wng_in_position.ogg",
+      "text": "in position",
+      "text_he": "במקום"
+    },
+    "WNG_JOKER": {
+      "file": "flt_wng_joker.ogg",
+      "text": "joker",
+      "text_he": "ג'וקר"
+    },
+    "WNG_BINGO": {
+      "file": "flt_wng_bingo.ogg",
+      "text": "bingo",
+      "text_he": "בינגו"
+    },
+    "WNG_RTB": {
+      "file": "flt_wng_rtb.ogg",
+      "text": "RTB",
+      "text_he": "חזרה לבסיס"
+    },
+    "WNG_SPIKE": {
+      "file": "flt_wng_spike.ogg",
+      "text": "spike",
+      "text_he": "נעילה"
+    },
+    "WNG_MUD": {
+      "file": "flt_wng_mud.ogg",
+      "text": "mud",
+      "text_he": "נעילה מהקרקע"
+    },
+    "WNG_DEFENDING": {
+      "file": "flt_wng_defending.ogg",
+      "text": "defending",
+      "text_he": "בהתחמקות"
+    },
+    "WNG_BREAK_LEFT": {
+      "file": "flt_wng_break_left.ogg",
+      "text": "break left",
+      "text_he": "שבירה שמאלה"
+    },
+    "WNG_BREAK_RIGHT": {
+      "file": "flt_wng_break_right.ogg",
+      "text": "break right",
+      "text_he": "שבירה ימינה"
+    },
+    "WNG_CONTACT": {
+      "file": "flt_wng_contact.ogg",
+      "text": "contact",
+      "text_he": "יש מגע"
+    },
+    "WNG_HAS_LEAD": {
+      "file": "flt_wng_has_lead.ogg",
+      "text": "has the lead",
+      "text_he": "בהובלה"
+    },
+    "WNG_POINT": {
+      "file": "flt_wng_point.ogg",
+      "text": "point",
+      "text_he": "נקודה"
+    },
+    "WNG_D0": {
+      "file": "flt_wng_d0.ogg",
+      "text": "zero",
+      "text_he": "אפס"
+    },
+    "WNG_D1": {
+      "file": "flt_wng_d1.ogg",
+      "text": "one",
+      "text_he": "אחת"
+    },
+    "WNG_D2": {
+      "file": "flt_wng_d2.ogg",
+      "text": "two",
+      "text_he": "שתיים"
+    },
+    "WNG_D3": {
+      "file": "flt_wng_d3.ogg",
+      "text": "three",
+      "text_he": "שלוש"
+    },
+    "WNG_D4": {
+      "file": "flt_wng_d4.ogg",
+      "text": "four",
+      "text_he": "ארבע"
+    },
+    "WNG_D5": {
+      "file": "flt_wng_d5.ogg",
+      "text": "five",
+      "text_he": "חמש"
+    },
+    "WNG_D6": {
+      "file": "flt_wng_d6.ogg",
+      "text": "six",
+      "text_he": "שש"
+    },
+    "WNG_D7": {
+      "file": "flt_wng_d7.ogg",
+      "text": "seven",
+      "text_he": "שבע"
+    },
+    "WNG_D8": {
+      "file": "flt_wng_d8.ogg",
+      "text": "eight",
+      "text_he": "שמונה"
+    },
+    "WNG_D9": {
+      "file": "flt_wng_d9.ogg",
+      "text": "nine",
+      "text_he": "תשע"
+    },
+    "CMD_ALPHA_2": {
+      "file": "flt_cmd_alpha_2.ogg",
+      "text": "Alpha Two",
+      "text_he": "Alpha שתיים"
+    },
+    "CMD_ALPHA_3": {
+      "file": "flt_cmd_alpha_3.ogg",
+      "text": "Alpha Three",
+      "text_he": "Alpha שלוש"
+    },
+    "CMD_ALPHA_4": {
+      "file": "flt_cmd_alpha_4.ogg",
+      "text": "Alpha Four",
+      "text_he": "Alpha ארבע"
+    },
+    "CMD_ALPHA_34": {
+      "file": "flt_cmd_alpha_34.ogg",
+      "text": "Alpha Three and Four",
+      "text_he": "Alpha שלוש וארבע"
+    },
+    "CMD_FINGERTIP": {
+      "file": "flt_cmd_fingertip.ogg",
+      "text": "fingertip",
+      "text_he": "מבנה ארבע אצבעות"
+    },
+    "CMD_ECHELON_RIGHT": {
+      "file": "flt_cmd_echelon_right.ogg",
+      "text": "echelon right",
+      "text_he": "מדרג ימין"
+    },
+    "CMD_ECHELON_LEFT": {
+      "file": "flt_cmd_echelon_left.ogg",
+      "text": "echelon left",
+      "text_he": "מדרג שמאל"
+    },
+    "CMD_LINE_ABREAST": {
+      "file": "flt_cmd_line_abreast.ogg",
+      "text": "line abreast",
+      "text_he": "מבנה מקבילי"
+    },
+    "CMD_WEDGE": {
+      "file": "flt_cmd_wedge.ogg",
+      "text": "wedge",
+      "text_he": "wedge"
+    },
+    "CMD_TRAIL": {
+      "file": "flt_cmd_trail.ogg",
+      "text": "trail",
+      "text_he": "מבנה טור"
+    },
+    "CMD_REJOIN": {
+      "file": "flt_cmd_rejoin.ogg",
+      "text": "rejoin",
+      "text_he": "הצטרפות"
+    },
+    "CMD_SPLIT": {
+      "file": "flt_cmd_split.ogg",
+      "text": "split",
+      "text_he": "פיצול"
+    },
+    "CMD_ENGAGE": {
+      "file": "flt_cmd_engage.ogg",
+      "text": "engage my target",
+      "text_he": "תקיפת המטרה שלי"
+    },
+    "CMD_RTB": {
+      "file": "flt_cmd_rtb.ogg",
+      "text": "RTB",
+      "text_he": "חזרה לבסיס"
+    },
+    "CMD_CHECK": {
+      "file": "flt_cmd_check.ogg",
+      "text": "check",
+      "text_he": "בדיקת קשר"
+    },
+    "CMD_OPS_CHECK": {
+      "file": "flt_cmd_ops_check.ogg",
+      "text": "ops check",
+      "text_he": "בדיקת מערכות ודלק"
     }
   },
   "templates": {
@@ -3602,7 +4082,13 @@
     "ACFT_ROGER": "ROGER",
     "PILOT_CALL": "%S1 , %S2 , %S3",
     "ACFT_FCTRL_LONG": "%S1 , %S2 , %S3 , %S4 , %S5 , %S6",
-    "ACFT_FCTRL_SHORT": "%S1 , %S2 , %S3"
+    "ACFT_FCTRL_SHORT": "%S1 , %S2 , %S3",
+    "FLT_CMD": "%S1 , %S2",
+    "WNG_ACK": "%S1",
+    "WNG_CALL": "%S1 , %S2",
+    "WNG_LEAD": "%S1 WNG_HAS_LEAD",
+    "WNG_FUEL": "%S1 , %S2 WNG_POINT %S3",
+    "WNG_FUEL2": "%S1 , %S2 %S3 WNG_POINT %S4"
   },
   "he": {
     "voice": "he_IL-saspeech-medium (pending: its dataset's licence is non-commercial; the user decides)",

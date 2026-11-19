@@ -910,6 +910,50 @@ func _awacs() -> void:
 			fa.awacs(host.runtime.now, c[2].bearing, c[2].miles, int(c[2].code) != 0)
 
 
+## Ours (Modern IAF, modern-iaf/docs/research/radio-terms.md): the flight AI's numbers and call words (voices.json's
+## WNG_* particles, the wingmen's voice).
+const WING_NUMBERS := ["", "WNG_ONE", "WNG_TWO", "WNG_THREE", "WNG_FOUR"]
+const WING_WORDS := {
+	"unable": "WNG_UNABLE",
+	"in_position": "WNG_IN_POSITION",
+	"joker": "WNG_JOKER",
+	"bingo": "WNG_BINGO",
+	"rtb": "WNG_RTB",
+	"spike": "WNG_SPIKE",
+	"mud": "WNG_MUD",
+	"defending": "WNG_DEFENDING",
+	"contact": "WNG_CONTACT",
+	"break_left": "WNG_BREAK_LEFT",
+	"break_right": "WNG_BREAK_RIGHT",
+}
+
+
+## Ours (Modern IAF): the flight AI's call `id` from jet `from` (IafAi.step) said and subtitled: "Two." (ack), "Two,
+## unable", "Three has the lead", "Two, six point two" (an ops check's fuel state, `fuel_kg` in thousands of pounds);
+## a break is called to the element mate (#2 calls "One, break left" when a missile flies at #1).
+func flight_call(from: int, id: String, fuel_kg := 0.0) -> void:
+	var n: String = WING_NUMBERS[clampi(from, 0, 4)]
+	match id:
+		"ack":
+			say("WNG_ACK", [n])
+		"lead_change":
+			say("WNG_LEAD", [n])
+		"fuel_state":
+			var tenths := clampi(roundi(fuel_kg * 2.20462 / 100.0), 0, 999)
+			var whole := str(floori(tenths / 10.0))
+			var parts := [n]
+			for ch in whole:
+				parts.append("WNG_D" + ch)
+			parts.append("WNG_D%d" % (tenths % 10))
+			say("WNG_FUEL" if whole.length() == 1 else "WNG_FUEL2", parts)
+		"break_left", "break_right":
+			var mate := from + 1 if from % 2 == 1 else from - 1
+			say("WNG_CALL", [WING_NUMBERS[clampi(mate, 0, 4)], WING_WORDS[id]])
+		_:
+			if WING_WORDS.has(id):
+				say("WNG_CALL", [n, WING_WORDS[id]])
+
+
 ## A report of a unit on the player's side (FUN_004a4cf0) with a callsign.
 func _report(ent: Dictionary, template: String, more: Array, ok: bool) -> void:
 	if not ok or ent.is_empty() or host.enemy_of_player(ent):

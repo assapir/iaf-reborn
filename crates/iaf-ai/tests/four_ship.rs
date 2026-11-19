@@ -381,7 +381,9 @@ fn fuel_calls_and_rtb() {
     // Rejoin cancels the RTB: back to the slot, and in it.
     let t0 = w.t;
     assert!(w.flight.command(w.t, 0, "rejoin"));
-    let back = w.until(10.0, &|w| w.jets[1..].iter().all(|(_, ap)| ap.mode() == iaf_flight::autopilot::MODE_SLOT));
+    // (Beyond 6 km the far rejoin: the steer loop at the slot.)
+    let to_slot = |m: u8| m == iaf_flight::autopilot::MODE_SLOT || m == MODE_STEER;
+    let back = w.until(10.0, &|w| w.jets[1..].iter().all(|(_, ap)| to_slot(ap.mode())));
     let there = w.until(1500.0, &|w| (2..=4).all(|n| w.said(n, "in_position").is_some_and(|t| t > t0)));
     println!("rejoin after the RTB: back in the slot after {back:?} s, in position after {there:?} s more");
     assert!(back.is_some() && there.is_some(), "rejoin after the RTB");
@@ -463,11 +465,12 @@ fn rtb_turn(at: f64, dt: f64) {
 #[test]
 fn join_up_in_a_turn_round_ramon() {
     // test_four_ship's case: the lead circles right round Ramon at 30° of bank (201 m/s: 7.1 km, 1500 m up) while the
-    // wingmen start in their shelters, take off in a stream and join it in fingertip; and a rejoin from 4 km behind,
-    // all three arriving together.
+    // wingmen start in their shelters, take off in a stream and join it in fingertip; and rejoins from 4 km and from
+    // 17 km behind (the far rejoin: test_four_ship's wingmen 17 km off after a SAM defence), all three arriving
+    // together.
     let Some(dir) = own() else { return println!("skipped: no assets/converted/own (iaf-sim fm, airbases)") };
     let _turn = HANGARS.lock().unwrap_or_else(|e| e.into_inner());
-    for behind in [None, Some(4000.0)] {
+    for behind in [None, Some(4000.0), Some(17_000.0)] {
         join_turn(&dir, behind);
     }
 }
@@ -872,5 +875,41 @@ fn reactions_to_locks_launches_and_awacs() {
     let back = w.until(400.0, &|w| [2, 3].iter().all(|&n| w.said(n, "in_position").is_some_and(|t| t > t2)));
     println!("clear: in position after {back:?} s; separation {:.1} m", w.sep_air);
     assert!(back.is_some(), "rejoined");
+    assert!(w.sep_air > 30.0, "separation {}", w.sep_air);
+}
+
+#[test]
+fn engage_my_target_and_rejoin() {
+    // "Engage my target" to the flight: #2 and #3 fly at the target, #4 stays on #3; with no target each says
+    // "unable"; the target gone, they rejoin and call "in position".
+    let Some(dir) = own() else { return println!("skipped: no assets/converted/own (iaf-sim fm, airbases)") };
+    let mut w = airborne(&dir, 0.0);
+    w.run(30.0);
+    let t0 = w.t;
+    assert_eq!(w.flight.engage(w.t, 2, None), Some(false));
+    w.run(2.0);
+    assert!(w.said(2, "unable").is_some_and(|t| t >= t0) && !w.flight.member(2).unwrap().engaging);
+    // A target 20 km ahead and 5 km left of the lead.
+    let p = w.jets[0].0.ap_view().pos;
+    let at = p + Vec3::new(-5_000.0, 20_000.0, 0.0);
+    let t0 = w.t;
+    assert_eq!(w.flight.engage(w.t, 0, Some(at)), Some(true));
+    let flat = |w: &World, j: usize| {
+        let q = w.jets[j].0.ap_view().pos;
+        (q[0] - at[0]).hypot(q[1] - at[1])
+    };
+    let (d2, d3) = (flat(&w, 1), flat(&w, 2));
+    w.run(30.0);
+    println!("engage: #2 {d2:.0} → {:.0} m, #3 {d3:.0} → {:.0} m from the target", flat(&w, 1), flat(&w, 2));
+    assert!([2, 3, 4].iter().all(|&n| w.said(n, "ack").is_some_and(|t| t >= t0)));
+    assert!(w.flight.member(2).unwrap().engaging && w.flight.member(3).unwrap().engaging);
+    assert!(!w.flight.member(4).unwrap().engaging && w.flight.leader(4) == 3, "#4 on #3");
+    assert!(flat(&w, 1) < d2 - 3_000.0 && flat(&w, 2) < d3 - 3_000.0, "both close on the target");
+    // The target gone: back in the shape.
+    let t0 = w.t;
+    w.flight.target(None);
+    let back = w.until(600.0, &|w| [2, 3].iter().all(|&n| w.said(n, "in_position").is_some_and(|t| t > t0)));
+    println!("engage: rejoined after {back:?} s; separation {:.1} m", w.sep_air);
+    assert!(back.is_some() && w.flight.member(2).unwrap().task.is_none());
     assert!(w.sep_air > 30.0, "separation {}", w.sep_air);
 }

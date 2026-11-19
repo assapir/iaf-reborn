@@ -582,7 +582,12 @@ model, where none of the 6-DoF cases applies. Every figure here is inferred, tun
     throttle (0.03 per m/s, 0.01 per m/s·s); the speed brake opens when 10 m/s fast. The ground watch stays on. A
     leader 20 m off where its last tick's position and velocity put it (a new leader after a promotion) gives no
     acceleration that tick.
-  - A far slot is the same law (the rejoin): it closes sideways at about 28 m/s and along the track at up to 60 m/s.
+  - A wingman in the air more than 6 km from its slot flies at the slot point instead (the flight layer's steer, 3 g,
+    its leader's speed plus 60 m/s, at least 260 m/s; `REJOIN` in `flight.rs`) until within 3 km, each jet at its own
+    slot (#4 does not fly on a rejoining #3). Far out, the slot loop's capped spring
+    only matches the leader's velocity: on a lead circling at 30° of bank, wingmen 17 km off after a SAM defence flew a
+    parallel circle for ten minutes (test_four_ship, 20 Nov 2026).
+  - A nearer slot is the same law (the rejoin): it closes sideways at about 28 m/s and along the track at up to 60 m/s.
     While a far slot flies more than 60° off the jet's path, the jet flies no slower than the slot's speed less 30
     m/s: without that floor a slot flying the other way asked a speed below zero along the path, and the jet climbed
     to it at idle with the speed brake out into a stall.
@@ -659,8 +664,8 @@ F12–F14). The 1998 game sets none of it. Every figure is inferred, tuned on th
   a 4 km circle) with #4 on it, until a regroup. The flight stays one flight: one route and landing sequence, the
   threats and the calls. The target must be within 40 km of the flight lead, or #3 and #4 answer "unable". The split
   ends when #3 is lost, is sent home, becomes the flight lead, or the landing sequence starts.
-- **The regroup** (command `regroup`, to anyone): element 2 rejoins its slots ("in position" each). From 20–30 km it
-  takes 7–8 minutes at the slot loop's 60 m/s overtake.
+- **The regroup** (command `regroup`, to anyone): element 2 rejoins its slots ("in position" each), from beyond 6 km
+  by the far rejoin (§8.7): from 20–30 km in about 7 minutes.
 - **The reactions** (each AI jet in the air with the gear up, the flight lead after a promotion too). The host feeds
   each jet's threat every frame (`Flight::threat`, `IafAi.set_threat`). `ai_flights.gd` gives the nearest missile
   flying at the jet (the MAW sees every missile, whatever its seeker), else the nearest radar locked on it
@@ -686,19 +691,31 @@ F12–F14). The 1998 game sets none of it. Every figure is inferred, tuned on th
   that holds the called point within 74 km and ±60° of its nose (a fighter radar's 40 NM) reports `contact` after its
   reaction time.
 
-The calls' words (the radio menu and voices are slice 3). The IAF's own radio words are not public. The Hebrew
+- **Engage my target** (`Flight::engage(now, to, at)`, `IafAi.engage`, slice 3; the radio menu's command): each AI jet
+  addressed (the flight, the element or one wingman) in the air leaves its slot and flies the steer loop at the
+  target at 4 g and 280 m/s; #4 stays on #3 when #3 engages too. The target is the player's radar lock, an enemy
+  aircraft alive (`ai_flights.gd engage_target`, `engage`); without one each answers "unable", and a jet already engaging keeps its target. Each jet keeps one missile in the air at the target at a time (inferred). The pursuit is the steer loop (slice 4's, every 0.1 s at the target's point as of the flight's last decision, every 0.5 s), not the 1998 Dogchase (mode 0x11): the 1998 combat loops are not flown on the 6-DoF AI jets yet (§8.7 lists the loops they fly). `ai_flights.gd` keeps its
+  position fresh every frame (`IafAi.set_target`) and fires the engaging jets' weapons through `combat.gd`: the next
+  air-to-air station with rounds (action 330), then the launch (action 300: its envelope, its 30° cone, its fire gate).
+  When the target is gone (destroyed, or out of the world: a drone at its end point) the engaging jets rejoin ("in position"); a rejoin or an RTB ends the
+  engage too. Ground targets are not engaged (the AI's air-to-ground deliveries are milestone 3's rows).
+
+The calls' words (slice 3: said in the wingmen's voice, Kokoro `am_eric`, with Hebrew subtitles; every call with its
+source in [../modern-iaf/docs/research/radio-terms.md](../modern-iaf/docs/research/radio-terms.md)). The IAF's own
+radio words are not public. The Hebrew
 writing on the subject uses נעילה for a lock[^hamichlol-rwr] and the verb מתחמק for evading SAMs[^mako-102]. The
 English is NATO brevity[^brevity]:
 
 | id | English | Hebrew subtitle | source |
 |---|---|---|---|
-| `spike` | "Two, spike." | "שתיים, נעילה" | NATO SPIKE, "RWR indication of an air interceptor threat in track or launch"; Hebrew: נעילה[^hamichlol-rwr] |
-| `mud` | "Two, mud." | "שתיים, נעילה מהקרקע" (ours around נעילה) | NATO MUD, "RWR ground threat displayed with no launch indication" |
-| `defending` | "Two, defending." | "שתיים, בהתחמקות" (ours around מתחמק) | NATO DEFENDING, "in a defensive position and maneuvering with reference to a radar threat"; Hebrew: מתחמק[^mako-102] |
+| `spike` | "Two, spike" | "שתיים, נעילה" | NATO SPIKE, "RWR indication of an air interceptor threat in track or launch"; Hebrew: נעילה[^hamichlol-rwr] |
+| `mud` | "Two, mud" | "שתיים, נעילה מהקרקע" (ours around נעילה) | NATO MUD, "RWR ground threat displayed with no launch indication" |
+| `defending` | "Two, defending" | "שתיים, בהתחמקות" (ours around מתחמק) | NATO DEFENDING, "in a defensive position and maneuvering with reference to a radar threat"; Hebrew: מתחמק[^mako-102] |
 | `break_left` / `break_right` | "Three, break left!" | none found. Ours: "שלוש, שבירה שמאלה" | NATO BREAK (direction), "an immediate maximum performance turn"; Hebrew open |
 | `contact` | "Two, contact." | none found. Ours: "שתיים, יש מגע" | NATO CONTACT, "sensor information at the stated position"; Hebrew open |
-| split | "Alpha, split." | none found. Ours: "אלפא, פיצול" (the pair: זוג) | NATO SPLIT, "flight member is leaving formation to pursue a separate attack"; Hebrew open |
-| regroup | "Alpha, rejoin." | "אלפא, הצטרפות" | the four-ship's rejoin term (slice 3's research) |
+| split | "Alpha Three and Four, split." | none found. Ours: "Alpha שלוש וארבע, פיצול" (the pair: זוג) | NATO SPLIT, "flight member is leaving formation to pursue a separate attack"; Hebrew open |
+| regroup | "Alpha Three and Four, rejoin." | "Alpha שלוש וארבע, הצטרפות" | the four-ship's rejoin term (slice 3's research) |
+| engage | "Alpha Two, engage my target." | none found. Ours: "Alpha שתיים, תקיפת המטרה שלי" | NATO ENGAGE, "a fire control order used to direct or authorize units to fire on a designated target"; Hebrew open |
 
 Later (outside this slice): a commit on the AWACS's call (the element turns to the contact); the controller's answers
 to requests (picture, bogey dope, declare, vectors: ai-plan Q12); a memory of contacts already reported (each call is

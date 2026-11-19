@@ -8,7 +8,11 @@
 #     each back within 60 m of its slot in 60 s (a real wingman drifts in a turn too; inferred);
 #   - F5's commands through IafAi.command: check and ops check answered, echelon right flown;
 #   - F12: the split (element 2 to its own target, #4 on #3, #2 on the lead) and the regroup;
-#   - F13: a scripted ground radar's lock on Alpha 2: its call, its defence with chaff, its rejoin;
+#   - F13: a scripted ground radar's lock on Alpha 2: its call, its defence with chaff, its rejoin; then a real
+#     S-300PMU-2 (shared/ai/air_defence.gd) 15 km away locks and launches at the wingmen: the calls said with their
+#     subtitles, the defence with chaff, the rejoin once the site is silent;
+#   - F5's engage my target: Alpha 2 on an enemy drone (shared/ai/drones.gd): it flies at it and fires through
+#     combat.gd, one missile in the air at a time, and rejoins once the target is gone;
 #   - F7: sent home, each lands and parks at its own shelter, engine off;
 #   - all along at least 30 m between any two jets in the air; F10: the AI's CPU time per jet per frame at time
 #     scale 1.
@@ -63,6 +67,10 @@ func run() -> void:
 		await _split(tv)
 		_phase = "lock"
 		await _lock(tv)
+		_phase = "site"
+		await _site(tv)
+		_phase = "engage"
+		await _engage(tv)
 		_phase = "home"
 		await _home(tv)
 	process_frame.disconnect(_watch)
@@ -233,6 +241,111 @@ func _lock(tv: Node) -> void:
 	tv.ai.combat.on_lock(radar, ent, false)
 	var back := func(): return _said(2, "in_position", t0)
 	check(await _until(tv, back, 600.0), "Alpha 2 rejoins (%s;%s)" % [_calls(), _wing_states(tv)])
+
+
+## F13 against a real site (docs/ai.md §15): an S-300PMU-2 15 km from the flight locks and launches at the wingmen;
+## each locked one calls "mud" (said, with its subtitle), defends and drops chaff, a launch at one is called
+## "defending"; the site silent and its missiles gone, each rejoins. The jets are shielded: the stand-in missiles hit.
+## (At 25 km the envelope's edge: the beaming wingmen were out of it and the site fired only at the lead, 1 run in 2.)
+func _site(tv: Node) -> void:
+	settings().invulnerable = true
+	for e in _wing:
+		e.shield = true
+	var chaff := _wing.map(func(e): return _chaff(tv, e))
+	var ad: Node = load("res://shared/ai/air_defence.gd").of(tv)
+	var j: Vector3 = tv.player_world()
+	var parts: Array = ad.spawn("s300", j + Vector3(0, 15000, 0), 180.0)
+	check(parts.size() == 6, "the S-300 spawned (%d parts)" % parts.size())
+	if parts.is_empty():
+		return
+	var site: Dictionary = ad.site_of(parts[0])
+	var t0: float = tv.runtime.now
+	var by_site := func(k: int) -> bool:
+		return _wing[k].get("locked_by", {}).keys().any(func(key): return String(key).begins_with("ad:"))
+	var locked := []
+	var any_locked := func():
+		for k in 3:
+			if by_site.call(k) and not k in locked:
+				locked.append(k)
+		return not locked.is_empty()
+	check(await _until(tv, any_locked, 60.0), "the S-300 locks a wingman (%s)" % _calls())
+	var k0: int = locked[0] if not locked.is_empty() else 0
+	var fa = tv.ai.flight_ai
+	var reacts := func(): return _said(k0 + 2, "mud", t0) and fa.state(k0 + 2).get("defending", false)
+	check(await _until(tv, reacts, 10.0), "Alpha %d calls the lock and defends (%s)" % [k0 + 2, _calls()])
+	var heard := func(p): return String(p.template) == "WNG_CALL" and String(p.text).ends_with("mud")
+	check(tv.radio.said.any(heard), "the call said with its subtitle (%s)" % [tv.radio.said.slice(-3)])
+	var shot := []
+	var at_wing := func():
+		for f in site.flying:
+			for k in 3:
+				if String(f[1]) == String(_wing[k].key) and not k in shot:
+					shot.append(k)
+		return not shot.is_empty()
+	check(await _until(tv, at_wing, 150.0), "the S-300 launches at a wingman (%s)" % [site.site.state(tv.runtime.now)])
+	var k1: int = shot[0] if not shot.is_empty() else k0
+	check(await _until(tv, func(): return _said(k1 + 2, "defending", t0), 10.0), "Alpha %d calls the launch" % (k1 + 2))
+	var dropped := func(): return locked.all(func(k): return _chaff(tv, _wing[k]) < chaff[k])
+	check(
+		await _until(tv, dropped, 10.0),
+		"each locked wingman drops chaff (%s of %s)" % [_wing.map(func(e): return _chaff(tv, e)), chaff]
+	)
+	site.site.set_emcon("silent")
+	t0 = tv.runtime.now
+	var gone := func(): return site.flying.is_empty() and range(3).all(func(k): return not by_site.call(k))
+	check(await _until(tv, gone, 120.0), "the site silent, its missiles gone")
+	var back := func(): return (locked + shot).all(func(k): return _said(k + 2, "in_position", t0))
+	check(await _until(tv, back, 600.0), "the locked wingmen rejoin (%s;%s)" % [_calls(), _wing_states(tv)])
+	for e in _wing:
+		e.shield = false
+	settings().invulnerable = false
+
+
+## F5's engage my target (ai_flights.gd engage, the menu's path after the radar lock): an enemy drone 15 km away;
+## Alpha 2 acknowledges, flies at it and fires (combat.gd's pick and launch), never two of its missiles at it at once;
+## the drone gone, it rejoins. The S-300 above stays silent.
+func _engage(tv: Node) -> void:
+	var j: Vector3 = tv.player_world()
+	var end := j + Vector3(0, -60000, 0)
+	var g = tv.mission_ground(end)
+	var salvo: Dictionary = load("res://shared/ai/drones.gd").of(tv).spawn(
+		[j + Vector3(0, 15000, 0), Vector3(end.x, end.y, float(g if g != null else 0.0))]
+	)
+	check(not salvo.is_empty() and await _until(tv, func(): return salvo.ents[0] != null, 30.0), "a drone in the air")
+	if salvo.is_empty() or salvo.ents[0] == null:
+		return
+	var d: Dictionary = salvo.ents[0]
+	var t0: float = tv.runtime.now
+	check(tv.ai.engage(2, d), "engage taken")
+	var fa = tv.ai.flight_ai
+	check(
+		await _until(tv, func(): return _said(2, "ack", t0) and fa.state(2).get("engaging", false), 5.0),
+		"Alpha 2 acknowledges and engages (%s)" % _calls()
+	)
+	var most := [0, 0]  # the most of Alpha 2's missiles at the drone at once, launches seen
+	var seen := {}
+	var shoot := func():
+		var mine: Array = tv.weapons.missiles.filter(
+			func(m): return is_same(m.get_meta("owner", {}), _wing[0]) and m.target_key == d.key
+		)
+		for m in mine:
+			seen[m.get_instance_id()] = true
+		most[0] = maxi(most[0], mine.filter(func(m): return not m.ended).size())
+		most[1] = seen.size()
+		return int(d.state) >= 3 or not tv.runtime.entities.has(d.key)
+	check(await _until(tv, shoot, 240.0), "the drone destroyed or gone (%d launches, %s)" % [most[1], _wing_states(tv)])
+	check(
+		most[1] >= 1 and most[0] == 1,
+		"Alpha 2 fires, one missile in the air at a time (%d launches, %d at once)" % [most[1], most[0]]
+	)
+	t0 = tv.runtime.now
+	var back := func(): return _said(2, "in_position", t0) and not fa.state(2).get("engaging", true)
+	check(await _until(tv, back, 600.0), "Alpha 2 rejoins (%s;%s)" % [_calls(), _wing_states(tv)])
+
+
+func _chaff(tv: Node, ent: Dictionary) -> int:
+	var u = tv.ai.combat.units.get(ent.key)
+	return int(u.stations[10].count) if u != null and u.stations.size() > 10 else 0
 
 
 ## F7: sent home, each lands and parks at its own shelter, engine off.
