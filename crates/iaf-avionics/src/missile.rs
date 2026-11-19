@@ -83,6 +83,17 @@ const LOFT_MAX_DEG: f64 = 30.0;
 /// The lofted fly-out's step (s).
 const LOFT_STEP: f64 = 0.2;
 
+/// The time to an intercept `d` m ahead horizontally, closing at `closing` m/s, the missile at `v` m/s horizontally
+/// (inferred: the closing speed taken as at least half the missile's, so one still slow off the rail sees no endless
+/// chase).
+fn time_to_go(d: f64, v: f64, closing: f64) -> f64 {
+    d / closing.max(0.5 * v).max(1.0)
+}
+
+/// What the physical missile steers at: the line of sight to it, its velocity and acceleration, and whether it turns
+/// straight at it (the loft) in place of the proportional navigation.
+type Steer = (Vec3, Vec3, Vec3, bool);
+
 /// The physical missile (ours; docs/real-weapons.md §2.1): a motor of steady thrust that burns its propellant at a
 /// steady rate, the drag of its body, gravity, and proportional navigation within its g limit.
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -147,11 +158,11 @@ impl Physics {
         qs * (self.cd0(sp / air(z).1) + K_INDUCED * cn * cn)
     }
 
-    /// The most acceleration across the velocity (m/s²): the fins' at `CN_MAX`, at most the structural limit; with
-    /// thrust-vector control the structural limit while the motor burns.
+    /// The most acceleration across the velocity (m/s²): the fins' at `CN_MAX`, with thrust-vector control plus the
+    /// motor's thrust while it burns, at most the structural limit.
     pub fn max_lateral(&self, sp: f64, z: f64, m: f64, age: f64) -> f64 {
-        let lim = self.max_g * G;
-        if self.tvc && self.thrust_at(age) > 0.0 { lim } else { (self.q_s(sp, z) * CN_MAX / m).min(lim) }
+        let vector = if self.tvc { self.thrust_at(age) } else { 0.0 };
+        ((self.q_s(sp, z) * CN_MAX + vector) / m).min(self.max_g * G)
     }
 
     /// The flight goes on: before `max_time` and, once the motor is out, above `MIN_SPEED`.
@@ -176,12 +187,12 @@ impl Physics {
         false
     }
 
-    /// The loft angle above the target at `d` m from it horizontally (0: none).
-    pub fn loft_angle(&self, d: f64) -> f64 {
+    /// The loft angle above the intercept `go` m ahead horizontally (0: none).
+    pub fn loft_angle(&self, go: f64) -> f64 {
         if !self.loft {
             return 0.0;
         }
-        LOFT_MAX_DEG.to_radians() * ((d - LOFT_FROM_M) / (LOFT_FULL_M - LOFT_FROM_M)).clamp(0.0, 1.0)
+        LOFT_MAX_DEG.to_radians() * ((go - LOFT_FROM_M) / (LOFT_FULL_M - LOFT_FROM_M)).clamp(0.0, 1.0)
     }
 
     /// The lofted fly-out (§2.3): from speed `s` at height `z`, a target `r` m ahead at the same height moving
@@ -197,7 +208,9 @@ impl Physics {
             if dx <= 0.0 || dx.hypot(h) <= v * LOFT_STEP {
                 return self.alive(t + DLZ_BURN_CUT, v + a * DLZ_BURN_CUT) && h.abs() < 200.0;
             }
-            let aim = (dx * self.loft_angle(dx).tan() - h).atan2(dx);
+            // Straight at the point above the intercept.
+            let go = v * cos * time_to_go(dx, v * cos, v * cos - away);
+            let aim = (go * self.loft_angle(go).tan() - h).atan2(go);
             let turn = self.max_lateral(v, z + h, m, t) / v.max(1.0) * LOFT_STEP;
             gam += (aim - gam).clamp(-turn, turn);
             let v1 = (v + a * LOFT_STEP).max(0.0);
@@ -743,11 +756,14 @@ impl Missile {
                         Sees::Inertial(kp, kv) => (kp - p, kv, Vec3::ZERO),
                         Sees::Lost => (los, tv, at),
                     };
-                    // The loft: aim above the target by the loft angle (§2.3).
-                    let flat = gl.x.hypot(gl.y);
-                    let gl = gl + Vec3::UP * (flat * ph.loft_angle(flat).tan());
+                    // The loft (§2.3): straight at the point above the predicted intercept while the loft angle holds.
+                    let flat = Vec3::new(gl.x, gl.y, 0.0);
+                    let (vh, closing) = (v.x.hypot(v.y), flat.try_normalize().map_or(0.0, |f| (v - gv).dot(f)));
+                    let t_go = time_to_go(flat.length(), vh, closing);
+                    let loft = ph.loft_angle(vh * t_go);
+                    let gl = if loft > 0.0 { gl + gv * t_go + Vec3::UP * (vh * t_go * loft.tan()) } else { gl };
                     let steering = steering && !self.lost;
-                    self.phys_acc(&ph, age, p, v, (gl, gv, at), steering)
+                    self.phys_acc(&ph, age, p, v, (gl, gv, at, loft > 0.0), steering)
                 }
                 None => self.thrust(age, if steering { self.steer(u, v, dist, tv) } else { uv }, uv, sp),
             };
@@ -798,10 +814,10 @@ impl Missile {
 
     /// The physical missile's acceleration (§2.1) at `p` with velocity `v`, the target at `los` from it moving at `tv`
     /// and turning at `at`: the release push on the rail; then the thrust less the drag along the velocity, gravity,
-    /// and when `steering` augmented proportional navigation (pursuit far off the line of sight or opening) with
+    /// and when `steering` augmented proportional navigation (pursuit far off the line of sight, opening or lofting) with
     /// gravity held off, across the velocity within the g limit.
-    fn phys_acc(&self, ph: &Physics, age: f64, p: Vec3, v: Vec3, target: (Vec3, Vec3, Vec3), steering: bool) -> Vec3 {
-        let (los, tv, at) = target;
+    fn phys_acc(&self, ph: &Physics, age: f64, p: Vec3, v: Vec3, target: Steer, steering: bool) -> Vec3 {
+        let (los, tv, at, lofting) = target;
         let gravity = Vec3::UP * -G;
         if age < self.motion.release_time {
             return self.release_dir * self.motion.release_accel + gravity;
@@ -815,7 +831,7 @@ impl Missile {
             let u = los * (1.0 / dist);
             let vr = tv - v;
             let vc = -vr.dot(u);
-            let cmd = if uv.dot(u) < PURSUIT_COS || vc <= 0.0 {
+            let cmd = if lofting || uv.dot(u) < PURSUIT_COS || vc <= 0.0 {
                 // Turn the velocity onto the line of sight within about 0.5 s, at most the limit.
                 let off = uv.dot(u).clamp(-1.0, 1.0).acos();
                 (u - uv * u.dot(uv)).try_normalize().map_or(Vec3::ZERO, |d| d * (sp * off / PURSUIT_TURN_S))
@@ -1228,10 +1244,11 @@ mod tests {
         assert!(p.drag(800.0, 6000.0, m, 20.0 * G) > 2.0 * p.drag(800.0, 6000.0, m, 0.0), "induced drag");
         let (low, high) = (p.max_lateral(800.0, 0.0, m, 10.0), p.max_lateral(800.0, 12000.0, m, 10.0));
         assert!(low == 35.0 * G && high < 0.5 * low, "{low} {high}");
-        // Thrust-vector control: the AIM-9X's 60 g at any height while the motor burns, the fins' after.
+        // Thrust-vector control: the AIM-9X's motor adds its thrust to the fins' turn while it burns.
         let (_, x, _, _) = modern()[1];
-        assert_eq!(x.max_lateral(300.0, 12000.0, 80.0, 1.0), 60.0 * G);
-        assert!(x.max_lateral(300.0, 12000.0, 60.0, 6.0) < 10.0 * G);
+        let (burning, out) = (x.max_lateral(300.0, 12000.0, 80.0, 1.0), x.max_lateral(300.0, 12000.0, 80.0, 6.0));
+        assert!((burning - out - 12810.0 / 80.0).abs() < 1e-6 && out < 10.0 * G, "{burning} {out}");
+        assert_eq!(x.max_lateral(900.0, 0.0, 80.0, 1.0), 60.0 * G);
     }
 
     /// Flies `p` with an in-flight seeker at `path`, the link holding until `link_until` s: the miss, whether the
