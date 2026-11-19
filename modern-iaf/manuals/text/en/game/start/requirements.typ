@@ -4,13 +4,13 @@ This section lists what the computer needs before you start setup (@setup).
 
 === The computer <requirements-computer>
 
-#idx("Linux")#idx("macOS")#idx("Windows")The game runs on Linux, on macOS and on Windows 10 or 11 (64-bit). The game and its setup are started from the game's folder (@setup-start, @start-game-start).
+#idx("Linux")#idx("macOS")#idx("Windows")The game runs on Linux, on macOS and on Windows 10 or 11 (64-bit). The first setup is started from the game's folder (@setup-start); after it, the game and its setup start from the system's menu (@start-game-start).
 
 Setup downloads all its data once, under open licences. The sources and their licences are listed in @attributions.
 
 === The programs <requirements-programs>
 
-#idx("GDAL")#idx("curl")#idx("Godot")#idx("Rust")The scripts build the game from its source, so the computer needs four programs. The scripts check the first two when they start and say how to install a missing one. The #term("Setup wizard")'s first page checks the other two under #stp("needs"), shows each as #stp("found") or #stp("missing"), and names the command that installs a missing one.
+#idx("GDAL")#idx("curl")#idx("Godot")#idx("Rust")The game is built from its source, so the computer needs four programs. The first step checks the first two when it starts and says which one is missing; install it with your system's package manager. The #term("Setup wizard")'s first page checks the other two under #stp("needs"), shows each as #stp("found") or #stp("missing"), and names the command that installs a missing one.
 
 #grid-table(
   (auto, 1fr, 1.4fr),
@@ -21,7 +21,7 @@ Setup downloads all its data once, under open licences. The sources and their li
   [curl], [Downloads the data.], [Linux: with your distribution's package manager. macOS and Windows 10 or later have it.],
 )
 
-On Windows, Rust also needs the C++ workload of Microsoft's Visual Studio Build Tools. Windows must also allow your own scripts to run.
+On Windows, Rust also needs the C++ workload of Microsoft's Visual Studio Build Tools. Windows must also allow the first step's script to run.
 
 #note[On Windows the setup steps that use GDAL (the imagery and the buildings, trees and roads) are not yet tested.]
 
@@ -37,7 +37,7 @@ On Windows, Rust also needs the C++ workload of Microsoft's Visual Studio Build 
   [Time of the first setup], [About 17 minutes, of which the download is about 14 minutes at 14 MB a second], [About 1 hour 42 minutes],
 )
 
-The times were measured on a laptop with 8 processor threads. Before the first setup, the script builds the game's program once; that took about 6.5 minutes on the same laptop.
+The times were measured on a laptop with 8 processor threads. Before the first setup, the game's program is built once; that took about 6.5 minutes on the same laptop.
 
 The optional step #stp("step_sim-textures") downloads about 310 MB more. The wizard shows each optional step's download and disk use under the step's name (@setup-steps).
 

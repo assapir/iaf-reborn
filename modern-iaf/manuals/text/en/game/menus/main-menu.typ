@@ -22,7 +22,7 @@
   ("quit", [#scr("quit")], [Asks #scr("quit_q"), then closes the game (@start-game-quit).]),
 )
 
-When the game's data is not built, the card says so in place of the training's progress, names the setup command, and #scr("fly") is greyed (@after-update-no-missions).
+When the game's data is not built, the card says so in place of the training's progress, names a setup command (use the setup entry instead, @setup-start), and #scr("fly") is greyed (@after-update-no-missions).
 
 === Looking at the jet <main-menu-jet>
 

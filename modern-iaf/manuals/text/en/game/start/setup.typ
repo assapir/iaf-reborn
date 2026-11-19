@@ -10,11 +10,9 @@
 
 === Starting the wizard <setup-start>
 
-+ Open a terminal in the game's folder.
-+ Run `./modern-iaf-setup`. On Windows run `.\modern-iaf-setup.ps1`.
-  #then[The script builds the game's program when it is new or changed, then the wizard's window opens on its first page, #stp("page_welcome").]
+The first time, the wizard has no menu entry yet, and one step starts it: open a terminal in the game's folder and run `./modern-iaf-setup` (on Windows `.\modern-iaf-setup.ps1`). The wizard's window opens on its first page, #stp("page_welcome"). This is the only step of the game that is taken in a terminal.
 
-The game's own start script opens the wizard too, as long as the game's data is missing (@start-game).
+The wizard's last page adds the game's entries to the system's menu (@setup-menu). From then on, to run setup again, select "Modern IAF — Setup" in the applications menu, in Launchpad or the Applications folder, or in the Start menu.
 
 === The wizard's pages <setup-pages>
 
@@ -91,7 +89,7 @@ Steps that do not wait for each other run at the same time. A failed step stops 
   [Windows], [#stp("menu_windows")], [The Start menu, in the folder "Modern IAF".],
 )
 
-Two entries appear: "Modern IAF" starts the game (@start-game-start), and "Modern IAF — Setup" opens this wizard.
+Two entries appear: "Modern IAF" starts the game (@start-game-start), and "Modern IAF — Setup" opens this wizard again.
 
 + To take them away, untick the tick.
   #then[The entries go at once. The wizard remembers the choice.]

@@ -3,13 +3,11 @@
 === Starting <start-game-start>
 
 #idx("Starting the game")
-+ Open a terminal in the game's folder.
-+ Run `./start-modern-iaf`. On Windows run `.\start-modern-iaf.ps1`.
-  #then[The script builds what changed in the game's program, then the game's window opens on the #term("Hangar") (@main-menu).]
++ Open the system's menu: the applications menu on Linux, Launchpad or the Applications folder (`~/Applications`) on macOS, the Start menu on Windows.
++ Select "Modern IAF".
+  #then[The game's window opens on the #term("Hangar") (@main-menu). After an update the first start takes longer, because the game's program is built again.]
 
-While the game's data is missing, the same script opens the #term("setup wizard") instead (@setup). The wizard's last page starts the game with #stp("start_game").
-
-After setup the game is also in the system's menu (@setup-menu): select "Modern IAF" there, in the applications menu, in Launchpad or the Applications folder on macOS, or in the Start menu on Windows. It does what the script does.
+The entries are there once the #term("setup wizard") has run and its last page's tick was on (@setup-menu). Before that, the first start is the wizard's own (@setup-start). The wizard's last page starts the game as well, with #stp("start_game").
 
 === The first start <start-game-first>
 

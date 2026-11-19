@@ -7,10 +7,10 @@
 #grid-table(
   (1.2fr, 1.2fr, 1.4fr),
   ([Symptom], [Cause], [What to do]),
-  [The start script stops before the wizard's window opens and names Rust or Godot.], [The program is not installed, or the terminal does not find it.], [Install it as the script says (@requirements-programs). Open a new terminal and start the game again.],
-  [On the first page GDAL or curl reads #stp("missing"), and #stp("next") stays greyed.], [The program is not installed.], [Install it with your distribution's package manager, then start setup again.],
+  [The first step stops before the wizard's window opens and names Rust or Godot.], [The program is not installed, or the terminal does not find it.], [Install it with your system's package manager (@requirements-programs). Open a new terminal and take the first step again (@setup-start).],
+  [On the first page GDAL or curl reads #stp("missing"), and #stp("next") stays greyed.], [The program is not installed.], [Install it with your distribution's package manager, then open setup again (@setup-start).],
   [The first page shows the free disk space with the space that the build needs, and #stp("next") stays greyed.], [The disk has too little free space.], [Free space on the disk (@setup-faults-disk).],
-  [On the #stp("page_imagery") page the choice with the Survey of Israel photo is greyed.], [The Survey's sheet files are not in the folder that the page names.], [Go on with #stp("s2"), or put the sheet files there and start setup again (@setup-imagery).],
+  [On the #stp("page_imagery") page the choice with the Survey of Israel photo is greyed.], [The Survey's sheet files are not in the folder that the page names.], [Go on with #stp("s2"), or put the sheet files there and open setup again (@setup-imagery).],
   [A step reads #stp("state_skipped"). Under it: #stp-text("why_gdal")], [The step needs GDAL and did not find it.], [Install GDAL, then select #stp("retry").],
   [A step reads #stp("state_skipped"). Under it: #stp-text("why_offline")], [The computer is offline, or the source's server does not answer.], [Check the internet connection, then select #stp("retry").],
   [A step reads #stp("state_skipped"). Under it a line starts with "Built, incomplete" and counts sources.], [Some of the step's files could not be downloaded. The step is built without their areas.], [Select #stp("retry") later. It downloads only the missing files and builds the step again.],
@@ -44,7 +44,7 @@ When the step fails again in the same way, report it with the run's log file (@s
 #idx("Disk space, too little")The first page compares the free space with what the build needs for the imagery you chose.
 
 + Free space on the disk that holds the game's folder. The sizes are in @requirements-disk.
-+ Start setup again.
++ Open setup again (@setup-start).
   #then[The first page shows the new free space, and #stp("next") is alive.]
 
 Two choices lower what setup needs:
@@ -58,7 +58,7 @@ When only the downloaded imagery files do not fit, the first page says how much 
 
 #idx("Setup, cancelled")A cancelled run loses nothing that was finished. The same holds for a run that ended because the wizard's window was closed or the computer was switched off.
 
-+ Start setup again (@setup-start).
++ Open "Modern IAF — Setup" (@setup-start).
 + Go on to the #stp("page_install") page.
   #then[The finished steps read #stp("state_up_to_date"). The others read #stp("state_will_run").]
 + Select #stp("install").

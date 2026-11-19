@@ -50,4 +50,4 @@ The panel beside the list tells more about the mission under the focus or the po
 
 === The screen without missions <mission-list-nodata>
 
-When the game's data is not built, every section is greyed and a note under the title says so and names the setup command. What to do is in @after-update-no-missions.
+When the game's data is not built, every section is greyed and a note under the title says so and names a setup command. What to do is in @after-update-no-missions.

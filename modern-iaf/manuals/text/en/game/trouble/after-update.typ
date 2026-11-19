@@ -1,13 +1,13 @@
 #import "/modern-iaf/manuals/layout/manual.typ": *
 
-#idx("Update")An update is a newer version of the game's folder. It can change the game's program and the files that the game's data is built from. This section says what to run after one.
+#idx("Update")An update is a newer version of the game's folder. It can change the game's program and the files that the game's data is built from. This section says what to do after one.
 
 === What an update needs <after-update-what>
 
 #grid-table(
   (auto, 1fr),
   ([Part], [What brings it up to date]),
-  [The game's program], [The start script builds what changed each time it starts the game (@start-game). The first start after an update takes longer for that.],
+  [The game's program], [The game builds what changed each time it starts (@start-game). The first start after an update takes longer for that.],
   [The game's data], [The #term("setup wizard"). Each step remembers what it was built from. A step whose inputs changed with the update reads #stp("state_will_run"); the others read #stp("state_up_to_date") and are passed over.],
   [The downloads], [They stay. Setup keeps every downloaded file by its name and uses it again, so each file is downloaded once.],
   [Your pilots, flights and settings], [They stay as they are, in your user folder, outside the game's folder (@start-game-files).],
@@ -16,34 +16,34 @@
 === Bringing the data up to date <after-update-data>
 
 #idx("Setup, after an update")
-+ Run the setup script (@setup-start).
++ Open "Modern IAF — Setup" (@setup-start).
 + Go on to the #stp("page_install") page.
   #then[After a short check, each row shows whether its step is up to date or will run.]
 + Select #stp("install").
   #then[Only the steps whose inputs changed run. Most of them take seconds. The terrain step rebuilds from the downloaded files when its own inputs changed.]
 + Select #stp("start_game") on the #stp("page_done") page.
 
-#note[The start script does not run setup's steps by itself as long as the training missions exist. Run setup after every update, so that no step is left behind.]
+#note[The game does not run setup's steps by itself as long as the training missions exist. Open setup after every update, so that no step is left behind.]
 
 === New keys, sounds or voices that are missing <after-update-own>
 
 #idx("Keys, missing after an update")The step #stp("step_sim-own") builds the key table, the sounds and the radio voices that the game reads. After an update that adds a command, a sound or a radio line, the game has it only when this step has run again: until then a new command can be without its key, and a new sound or voice line can be silent.
 
-+ Run setup as in @after-update-data.
++ Open setup as in @after-update-data.
   #then[The row #stp("step_sim-own") reads #stp("state_will_run"), runs for a few seconds and reads #stp("state_done").]
 
 When the row reads #stp("state_up_to_date") and the fault stays, tick #stp("row_redo") on the row and select #stp("install") (@setup-faults-again).
 
 === The Hangar says that there are no training missions <after-update-no-missions>
 
-#idx("No training missions")The #term("Hangar")'s card, or the #scr("missions") screen, reads: #scr-text("no_missions") Under it stands the setup command. #scr("fly") and the sections are greyed.
+#idx("No training missions")The #term("Hangar")'s card, or the #scr("missions") screen, reads: #scr-text("no_missions") Under it the screen names a setup command; use the setup entry instead (@setup-start). #scr("fly") and the sections are greyed.
 
 #screen("nodata_missions", [The #scr("missions") screen without the game's data.], width: 80%)
 
 The cause: the step #stp("step_sim-missions") has not been built, or its data was removed.
 
 + Close the game.
-+ Start the setup wizard (@setup-start).
++ Open "Modern IAF — Setup" (@setup-start).
 + Select #stp("install") on the #stp("page_install") page and wait for the #stp("page_done") page.
 + Select #stp("start_game").
   #then[The Hangar's card shows the training's progress, and #scr("fly") is alive.]
