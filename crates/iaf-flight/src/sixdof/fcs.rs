@@ -135,6 +135,10 @@ const CAT3_GAIN: f64 = 20.0;
 /// The integrator's gain in the g command region (below the α limiter), per s (inferred: TP-1538's 5 on the g error
 /// alone overshoots to 10 g; 2.5 meets the onset source, modern-iaf/docs/flight-model.md §9.11).
 const G_INTEGRATOR: f64 = 2.5;
+/// The negative g limiter's relief, deg/s of the integrator per g past the negative limit (inferred: swept 2026-11-19
+/// so a full push below Mach 1, 100–350 m/s at 500–10,000 m, stays short of the damage load on the Barak, the Sufa
+/// and the Adir; 30 left −3.5 g).
+const G_RELIEF: f64 = 120.0;
 
 /// CAT III's α limit (deg) at load factor `n` (g) for a jet of `weight_lb`: figure 1-44's line for that weight,
 /// interpolated between the chart's weights and held outside them.
@@ -271,8 +275,19 @@ impl Fcs {
         // AOA below 15 degrees", T.O. 1F-16A-1): there the integrator takes the g error alone (`G_INTEGRATOR`), so
         // the jet holds the commanded g while its speed and pitch rate change; TP-1538's integrator (5/s on the whole
         // shaped error, its washed-out pitch rate included) stopped 0.5 g short and reached it slowly. On the
-        // limiter, TP-1538's.
-        let ui = if l1 + l2 + l3 > 0.0 { 5.0 * u } else { G_INTEGRATOR * 1.5 * table(&LOOP_GAIN, qbar_k) * (n_f - an) };
+        // limiter, TP-1538's; and on a push at negative α that commands more than half the negative increment the
+        // limit allows (below −1 g at −3 g), where the g error alone wound the integrator up and overshot the −3 g
+        // limit to −3.9 g (modern-iaf/docs/flight-model.md §9.11).
+        let push = n_f < 0.5 * neg && alpha_f < 0.0;
+        let ui = if l1 + l2 + l3 > 0.0 || push {
+            5.0 * u
+        } else {
+            G_INTEGRATOR * 1.5 * table(&LOOP_GAIN, qbar_k) * (n_f - an)
+        };
+        // The negative g limiter (the "AOA/g limiter"'s negative g, T.O. GR1F-16CJ-1 p. 1-121): past the negative
+        // limit the integrator is driven back (`G_RELIEF`), so a speed that grows in the dive does not carry the jet
+        // past it. The pull keeps its tuning (§9.11: 9.3 g at most).
+        let over = (an - neg).min(0.0);
         // MPO above α 29° (T.O. 1F-16A-1: "enable manual control of the horizontal tails"): full stick is full
         // stabilator, centred stick streamlines it; the integrator follows (the proportional path returns at once
         // when the MPO lets go; the actuator's 60 deg/s limits the step).
@@ -283,7 +298,7 @@ impl Fcs {
             self.integ = (0.5 * alpha_f.min(30.0) - dh).clamp(-25.0, 25.0);
             dh
         } else {
-            self.integ = if s.on_ground { 0.0 } else { (self.integ + ui * dt).clamp(-25.0, 25.0) };
+            self.integ = if s.on_ground { 0.0 } else { (self.integ + (ui - G_RELIEF * over) * dt).clamp(-25.0, 25.0) };
             -(self.integ + (5.0 * u).clamp(-25.0, 25.0)) + 0.5 * alpha_f.min(30.0)
         };
         let dh = self.dh.step(20.2, 60.0, (-25.0, 25.0), dh_cmd, dt);

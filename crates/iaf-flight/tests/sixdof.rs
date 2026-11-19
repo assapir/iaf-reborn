@@ -1368,6 +1368,27 @@ fn over_g_damages_then_breaks_the_airframe() {
 }
 
 #[test]
+fn a_full_push_holds_the_negative_limit() {
+    // The control system's full push at full throttle holds the −3 g limit: the Barak, the Sufa and the Adir never
+    // reach the damage load (1.15 × −3 g). Past −3.2 g on the limiter the manual asks for an over-g report (T.O.
+    // GR1F-16CJ-1 p. 5-3); the slow pushes here touch −3.3 g. Before 2026-11-19 the Barak pushed to −3.9 g at 430 kt
+    // and its structure failed.
+    for (i, jet) in jets::all()[..3].iter().enumerate() {
+        for (alt, kt) in [(3048.0, 200.0), (3048.0, 300.0), (3048.0, 430.0), (3048.0, 550.0), (6096.0, 400.0)] {
+            let mut f = flight(*jet, alt, kt * KT, true);
+            let push = iaf_flight::Controls { stick_y: -1.0, throttle: 1.0, ..f.controls() };
+            let mut low: f64 = 0.0;
+            fly_for(&mut f, 8.0, |s| {
+                low = low.min(s.state().g as f64);
+                push
+            });
+            println!("jet {i}, {kt} kt at {alt} m: full push {low:.2} g");
+            assert!(f.limits().structure < 2 && low > -3.45, "jet {i}, {kt} kt: {low:.2} g, {:?}", f.limits());
+        }
+    }
+}
+
+#[test]
 fn overspeed_and_flutter() {
     // The Barak level at sea level: 820 KCAS is past the 800 KCAS limit (counted), 950 KCAS past the flutter margin
     // (1.15 × 800 = 920): the airframe fails. The Adir's limit is 700 KCAS.

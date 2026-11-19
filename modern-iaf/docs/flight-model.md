@@ -831,6 +831,28 @@ printed pp. 210–217), stepped with the rigid body (at most 1/120 s):
   about one and a half seconds"[^vanpatten], and on the limiter the F-16 stays under the 9.5 g the manual counts as an
   over-g[^to-f16a]. At 440 KIAS, 10,000 ft (the top of the F-16A's "330 KIAS to 440 KIAS" corner[^plaehn]) the Barak
   pulls 9.3 g. On the limiter, TP-1538's integrator as before.
+* **The push and the g limiter** (2026-11-19): the g error alone overshot a full push: the jet's speed grows in the
+  dive while the integrator, wound up on the way down, follows slowly, so the Barak held −3.9 g for seconds at 430 kt
+  (−3.4 to −4.6 g at 150–350 m/s, 2,000 m) against the −3 g command, and since §9.20 its structure failed. The
+  manual counts −3.2 g on the limiter as an over-g (p. 5-3)[^to-f16cj], and the negative g available above about
+  250 kt is −3 g (p. 1-121)[^to-f16cj]. Now a push at negative α that commands more than half the negative
+  increment the limit allows (below −1 g at −3 g) flies TP-1538's integrator (its pitch-rate term damps the onset; a
+  push from high α keeps the g error's until α is negative, so the Adir still leaves its 50° within 6 s), and the
+  negative g limiter (the "AOA/g limiter"'s negative g, p. 1-121[^to-f16cj]) drives the integrator back at 120
+  deg/s per g past the negative limit (inferred). The pull is unchanged. A full push now settles near −2.9 g at
+  speed; at full throttle, 200–550 kt at 10,000 ft, it peaks at −2.3 to −3.32 g on the Barak, the Sufa and the
+  Adir (`a_full_push_holds_the_negative_limit`), and below Mach 1 at 100–350 m/s and 500–10,000 m at most
+  −3.41 g, so the slow full-throttle pushes pass −3.2 g: an over-g is counted, nothing is damaged. Tested and
+  dropped (2026-11-19): TP-1538's integrator on every push (the Adir's push from 50° α stayed above 15° past 6 s);
+  a proportional g-limit feedback (1–8 × the excess: it oscillated at 350 m/s); the relief alone at 10–100 (−3.3 to
+  −3.7 g left: the onset's windup); the relief starting 0.15 or 0.3 g inside the limit (the push then held only
+  −2.7 or −2.5 g, short of the manual's −3 g, and at 0.3 the Adir's push from 50° failed); the α filter's floor at
+  −15° instead of TP-1538's −5° (no gain). The Ra'am still passes its −2 g on a slow full-throttle push (−2.3 to
+  −2.46 g at 100–150 m/s: its α runs past −15°, where the α signal stays at −5°), and so does the real F-15, which
+  "can easily maneuver beyond the load factor limits defined in the flight manuals"[^usaf-ows]: the pilot's to
+  avoid. Open, blocked by the pitch oscillation near Mach 1 low down (status.md, Open): a full push there still
+  passes −3.45 g (the Barak −3.6 g at Mach 1.04, 500 m and −4.0 g at Mach 1.27, 3,000 m; the Sufa −3.57 g at
+  Mach 1.24, 500 m).
 * **STORES CONFIG, CAT I / CAT III** (F7): the pilot's switch, as in the jet ("The CAT III position shall be
   selected when the aircraft is configured with a category III loading"[^to-f16a]); key Alt + S (the key table's STORES CONFIG switch),
   `IafFlight.set_fcs_switches`; it starts at CAT I. CAT III adds a limiter on figure 1-44's CAT III line for the
@@ -1287,8 +1309,9 @@ original model never reaches these rules.
 The structure carries its limit load "without detrimental permanent deformation"[^cfr25-305] and its ultimate load,
 1.5 × the limit, without failure[^cfr25-303]; taking the same 1.5 for the military jets, the 15 % to damage and the
 15 % flutter margin on the speed are inferred. The airframe is checked in the air only: a touchdown's loads are the
-landing limits' (§9.12). The F-16's control system holds the jet near 9.3 g at most (§9.13), so a normal full pull
-never damages it; the MANUAL PITCH override, a dive past the limit speed or a category III load rolling do.
+landing limits' (§9.12). The F-16's control system holds the jet near 9.3 g at most (§9.13) and a full push near
+−3 g (§9.11, the push and the g limiter), so below Mach 1 a normal full pull or push never damages it; the MANUAL PITCH override,
+a dive past the limit speed or a category III load rolling do.
 
 **Category III loads.** A category III load (`stores.gd` `loading_category`) has a rolling limit of 0.8 × the
 symmetric one while the roll rate passes 20°/s (the manual's definition of a rolling manoeuvre, p. 5-4[^to-f16cj];
@@ -1405,6 +1428,9 @@ The tests: unit tests in `limits.rs`; `crates/iaf-flight/tests/sixdof.rs` flies 
     No T.O. 1F-15E-1 figure is public, so the F-16's 300 KCAS stands; the earlier 250 KCAS had no source at all.
 [^bms]: Falcon BMS forum, "Rotation speed" (rotate at 170 kt with an air-to-air load, 180 kt heavy; the take-off
   speed 70 kt plus 3 kt per 1,000 lb of gross weight), https://forum.falcon-bms.com/post/314659
+[^usaf-ows]: J. T. Johnston, G. W. Venorsky (United States Air Force), "Aircraft load factor overload warning
+system", US patent 4,302,745, 1981 (the F-15's overload warning; its background: the jet "can easily maneuver beyond
+the load factor limits defined in the flight manuals"), https://patents.google.com/patent/US4302745
 [^cfr25-303]: 14 CFR 25.303, "Factor of safety": "a factor of safety of 1.5 must be applied to the prescribed limit
 load", https://www.ecfr.gov/current/title-14/section-25.303
 [^cfr25-305]: 14 CFR 25.305, "Strength and deformation": "The structure must be able to support limit loads without
