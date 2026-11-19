@@ -323,8 +323,8 @@ in scope; countermeasure effectiveness and electronic attack stayed parked until
 **Built 19 November (the core):** Modern IAF's four air-to-air missiles (AIM-9M, AIM-9X, Python 5, AIM-120) fly the
 physical missile of [../../docs/real-weapons.md](../../docs/real-weapons.md) §2.1 (`missile.rs` `Physics`): a motor
 of real thrust and burn, the propellant burnt off, the body's drag by Mach and height, gravity, proportional
-navigation within the g limit (the fins' lift falls with height, the AIM-9X's thrust vectoring holds while the motor
-burns), turns bleeding speed, and the flight's end when it is too slow. The DLZ, the AI's launch range and the
+navigation within the g limit (the fins' lift falls with height, the AIM-9X's thrust vectoring adds its thrust while
+the motor burns), turns bleeding speed, and the flight's end when it is too slow. The DLZ, the AI's launch range and the
 post-launch times come from the same fly-out, so the zone shrinks low and in a tail chase. The player's and the AI's
 missiles fly the same Rust model. Fuzing stays the existing burst at the closest pass with the record's blast.
 
@@ -333,8 +333,11 @@ missiles fly the same Rust model. Fuzing stays the existing burst at the closest
 AIM-120 flies on the jet's radar track until its seeker goes active, on the last known track when the lock drops,
 and alone once active.
 
+**Built 19 November (step 2):** the AIM-120's loft ([../../docs/real-weapons.md](../../docs/real-weapons.md) §2.3):
+beyond 15 km to the intercept it climbs toward a point above it and dives on it; its zone and post-launch times come
+from the same lofted fly-out. The drag stays fitted on the straight shot (the lofted fit, tried, broke the CFD check).
+
 **Next steps**, each its own merge:
-2. **Loft:** the AIM-120's climb on long shots, which the published ranges assume.
 3. **Fuzing:** each missile's proximity fuze (the AIM-9M's DSU-15 laser fuze, the AIM-120's radio fuze): its arming
    time and detection range in place of the burst at the closest pass.
 4. **The MAW's missile type** (E2): the warning names the missile from its record.

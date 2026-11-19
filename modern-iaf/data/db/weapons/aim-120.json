@@ -30,7 +30,8 @@
     "_dragScale": 1.217,
     "_maxTime": 120.0,
     "_maxG": 35.0,
-    "_navConstant": 4.0
+    "_navConstant": 4.0,
+    "_loft": 1
   },
   "sources": {
     "kg": "w-aim120",
@@ -57,7 +58,8 @@
     "motion._dragScale": "inferred, w-aim120",
     "motion._maxTime": "inferred",
     "motion._maxG": "wt-aim120",
-    "motion._navConstant": "inferred"
+    "motion._navConstant": "inferred",
+    "motion._loft": "inferred"
   },
   "notes": {
     "number": "ours",
