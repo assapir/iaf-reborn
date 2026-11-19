@@ -5,10 +5,11 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 ## Works
 - **The logo (2026-11-19, the user on Approvals A67: "e3 is selected. apply it everywhere"; [front-end.md](front-end.md)
   §4):** concept 4, the four-ship, with the medium faint roundel behind it, in `modern-iaf/branding/` (SVG masters, the
-  lockups' PNGs, the app icon at 1024 to 16 px; `tools/iaf-2026/logo.py`). It is the front end's top bar (every
-  screen), the pause menu's and the Mission accomplished panel's head, the setup wizard's top bar, the manuals' title
-  pages, the project's window and Dock icon and the READMEs; Hebrew screens and the Hebrew game
-  manual show the Hebrew lockup. Its F-35 outline is traced from the F-35I model: the F-35I credit carries it
+  lockups' PNGs, the app icon at 1024 to 16 px; `tools/iaf-2026/logo.py`). Its horizontal lockup (the mark beside
+  the name in one line) is the front end's top bar (every screen), the pause menu's and the Mission accomplished
+  panel's head and the setup wizard's top bar; the stacked lockup is on the manuals' title pages and the READMEs; the
+  four-ship on the navy tile is the project's window and Dock icon. Hebrew screens and the Hebrew game manual show the
+  Hebrew name. Its F-35 outline is traced from the F-35I model: the F-35I credit carries it
   (docs/credits.md "Modern IAF's logo"). No desktop launcher, .ico or .icns: the sim has none to fill.
 - **The F-16s' night-vision goggles (2026-11-19, the user on Approvals A66: "night googles: as suggested";
   [research/nvg.md](research/nvg.md) options O1–O4, [cockpit.md](cockpit.md) §5.5):** in the Sufa and the Barak

@@ -224,12 +224,15 @@ centreline in the roll.
   2026-11-13: the round-3 slate (`#1d2025`, `#262a31`, accent `#6699ff`).
 - **The logo** (the user's pick of 2026-11-19, concept 4 with the roundel E3, medium disc: four F-35s over the two
   names, a faint roundel behind the jets and the big name; `modern-iaf/branding/`, drawn by `tools/iaf-2026/logo.py`,
-  credits in docs/credits.md "Modern IAF's logo"): at the inline start of every screen's top bar, 88 px tall, and at
-  the top of the pause menu and the Mission accomplished panel (`front_end.gd` `_mark`, the wizard's
-  `Wizard.logo`). The lockup is the screen's language: in English MODERN IAF big with הזרוע הארוכה under it, in
-  Hebrew the other way round; its accessible name is the sim's name. It replaced the name in letters (`Mark`, Heebo
-  800 at 28 px). The project's icon is the four-ship and the disc on the navy tile (`icon_256.png`: the window's and
-  the Dock's icon). The start shows no splash image (the user, 2026-11-10: "remove the Godot flash").
+  credits in docs/credits.md "Modern IAF's logo"). The screens show its horizontal lockup (`bar_<lang>_dark`, the
+  layout fix of 2026-11-19: the stacked one was too small to read in the bar): the mark (the four-ship over the faint
+  disc, as in the app icon) on the inline start of the name in one line, MODERN IAF in English, הזרוע הארוכה in
+  Hebrew. It is at the inline start of every screen's top bar, 64 px tall, and at the top of the pause menu and the
+  Mission accomplished panel (`front_end.gd` `_mark`, the wizard's `Wizard.logo`); its accessible name is the sim's
+  name. The stacked lockup (`lockup_<lang>_<mode>`: in English MODERN IAF big with הזרוע הארוכה under it, in Hebrew
+  the other way round) is on the manuals' title pages and the READMEs. The logo replaced the name in letters
+  (`Mark`, Heebo 800 at 28 px). The project's icon is the four-ship and the disc on the navy tile (`icon_256.png`: the
+  window's and the Dock's icon). The start shows no splash image (the user, 2026-11-10: "remove the Godot flash").
 - **A list that picks one** (the Hangar's jets): the picked row filled in the accent's tint, the focus a 2 px accent
   ring; no bar at the row's side (the user, 2026-11-13).
 - **Sizes:** every screen lays out on a 1920 × 1080 canvas that the window shows scaled to its height (stretch mode

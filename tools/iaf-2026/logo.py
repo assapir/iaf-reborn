@@ -5,6 +5,9 @@ behind the jets and the big name. Writes into modern-iaf/branding/:
 
 - lockup_<lang>_<mode>.svg and .png (240 px tall): en = MODERN IAF big, הזרוע הארוכה small; he = the other way
   round; light = for a light background, dark = for a dark one. Transparent, cropped to the drawing.
+- bar_<lang>_<mode>.svg and .png (240 px tall): the compact horizontal lockup for a top bar or a small panel: the
+  mark (the four-ship over the faint disc, as in the app icon) on the language's leading side (en: left, he: right)
+  and the one name beside it in one line (en: MODERN IAF, he: הזרוע הארוכה).
 - icon.svg (64 px and up) and icon_small.svg (32 and 16 px: bigger jets), icon_<px>.png at 1024 … 16 px: the
   four-ship and the disc on the navy tile, no text.
 
@@ -27,7 +30,7 @@ OUT = os.path.join(ROOT, "modern-iaf/branding")
 FONT = os.path.join(ROOT, "modern-iaf/data/fonts/Heebo-VariableFont_wght.ttf")
 NAVY, ACCENT, WHITE, MUTED, EDGE = "#001e50", "#5b8cff", "#f2f5fa", "#a9b8d4", "#5a73a3"
 HE_SCALE = 1456 / 1178  # Heebo's Hebrew letters are 0.575 em tall, its capitals 0.711 em
-LOCKUP_PX = 240  # the lockups' PNG height: the front end's top bar (88 canvas px) on a 4K screen, with room
+LOCKUP_PX = 240  # the lockups' PNG height: the front end's top bar (64 canvas px) on a 4K screen, with room
 ICON_PX = (1024, 512, 256, 128, 64, 32, 16)
 
 # The F-35 planform from straight above, traced from shared/extra/planes/f35i/f35i.gltf: nose up, 100 long (y -50..50).
@@ -155,6 +158,19 @@ def lockup(lang, mode):
             + tp(small[0], small[1], small[2], cx, 264 + dy, sub, small[3]))
 
 
+def bar(lang, mode):
+    """The horizontal lockup's drawing (uncropped): the mark (the disc, 100 across, and the four-ship as in the app
+    icon) on the leading side and the name, its letters 0.44 of the disc tall, centred on the disc."""
+    ink = WHITE if mode == "dark" else NAVY
+    r, gap, cap = 50, 20, 44
+    name = ("הזרוע הארוכה", 800, cap / 0.575, 0) if lang == "he" else ("MODERN IAF", 800, cap / 0.711, 2)
+    wn = width(*name)
+    cy = 100
+    mx, tx = (100 + wn + gap + r, 100 + wn / 2) if lang == "he" else (100, 100 + r + gap + wn / 2)
+    return (faint(mx, cy, r, mode == "dark") + formation(mx, cy, r * 66 / 93.6, ACCENT)
+            + tp(name[0], name[1], name[2], tx, cy + cap / 2, ink, name[3]))
+
+
 def icon(small):
     """The app icon on 256 × 256: the navy tile, lit a little from the top so it keeps its edge on a dark desktop, the
     disc and the white four-ship (bigger jets for 32 px and under)."""
@@ -193,12 +209,13 @@ def write(name, text):
 def main():
     os.makedirs(OUT, exist_ok=True)
     for lang in ("en", "he"):
-        for mode in ("light", "dark"):
-            body = lockup(lang, mode)
-            name = f"lockup_{lang}_{mode}"
-            write(name + ".svg", svg(crop(body), body))
-            subprocess.run(["rsvg-convert", "-h", str(LOCKUP_PX), os.path.join(OUT, name + ".svg"), "-o",
-                            os.path.join(OUT, name + ".png")], check=True)
+        for kind, draw, pad in (("lockup", lockup, 12), ("bar", bar, 4)):
+            for mode in ("light", "dark"):
+                body = draw(lang, mode)
+                name = f"{kind}_{lang}_{mode}"
+                write(name + ".svg", svg(crop(body, pad), body))
+                subprocess.run(["rsvg-convert", "-h", str(LOCKUP_PX), os.path.join(OUT, name + ".svg"), "-o",
+                                os.path.join(OUT, name + ".png")], check=True)
     for small in (False, True):
         write("icon_small.svg" if small else "icon.svg", svg((0, 0, 256, 256), icon(small)))
     for px in ICON_PX:

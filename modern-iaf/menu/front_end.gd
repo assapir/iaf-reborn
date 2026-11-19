@@ -36,7 +36,7 @@ const NAV_W := 280
 const NAV_GAP := 52
 const LIST_W := 820
 ## The logo's height in the top bar (canvas px; the bar is 97 tall).
-const MARK_H := 88.0
+const MARK_H := 64.0
 ## The Devices rows a joystick works (keyboard = 0): Keyboard with none connected (_pref_row).
 const JOY_ROWS := ["flight_controls", "rudder", "throttle"]
 ## The start-up steps' switches cropped from each jet's 3D cockpit: <unit>/<step>.webp (tests/_switch_crops.gd).
@@ -345,7 +345,7 @@ func show_page(p: String) -> void:
 		_grab.call_deferred(_focus)
 
 
-## The logo in the screen's language (Wizard.logo: its big name the screen's, "Modern IAF" or "הזרוע הארוכה"),
+## The logo in the screen's language (Wizard.logo: the mark beside the screen's name, "Modern IAF" or "הזרוע הארוכה"),
 ## `h` canvas px tall, at the inline start of `parent`: the top bar's, the pause menu's.
 func _mark(parent: Control, h: float) -> TextureRect:
 	var t := Wizard.logo("he" if he() else "en", h, str(setup_strings.get("name", "")))

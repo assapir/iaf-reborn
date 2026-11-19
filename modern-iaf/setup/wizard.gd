@@ -11,7 +11,7 @@ const Img := preload("res://shared/util/img.gd")
 
 const TITLE := "Modern IAF"
 ## The logo's height in the top bar (px at a UI scale of 1).
-const LOGO_H := 64.0
+const LOGO_H := 52.0
 const PAGES := ["welcome", "imagery", "install", "done"]
 const DEM_GB := 0.627
 ## The Sentinel-2 / WorldCover tiles under the 8 m nodes (14 of the theatre's 21), downloaded once into
@@ -71,13 +71,14 @@ func _ready() -> void:
 	show_page(0)
 
 
-## The logo (modern-iaf/branding/, tools/iaf-2026/logo.py): the lockup for a dark background whose big name is in
-## language `lang` ("en": MODERN IAF, "he": הזרוע הארוכה), `h` px tall, mipmapped so it stays smooth at every
-## window size, `name` its accessible name. The wizard's top bar and the front end's (front_end.gd _mark) show it.
+## The logo (modern-iaf/branding/, tools/iaf-2026/logo.py): the horizontal lockup for a dark background, the mark
+## on the leading side of the name in language `lang` ("en": MODERN IAF, "he": הזרוע הארוכה), `h` px tall,
+## mipmapped so it stays smooth at every window size, `name` its accessible name. The wizard's top bar and the front
+## end's (front_end.gd _mark: its top bar, the pause menu, the Mission accomplished panel) show it.
 static func logo(lang: String, h: float, name: String) -> TextureRect:
 	var t := TextureRect.new()
 	t.name = "Logo"
-	t.texture = Img.load_texture(ProjectSettings.globalize_path("res://branding/lockup_%s_dark.png" % lang), true)
+	t.texture = Img.load_texture(ProjectSettings.globalize_path("res://branding/bar_%s_dark.png" % lang), true)
 	t.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	t.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	t.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS

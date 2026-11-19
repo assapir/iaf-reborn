@@ -620,9 +620,9 @@ func walk(fe: Control, ids: Dictionary, lang: String) -> void:
 		mark != null and mark.texture != null and mark.accessibility_name == ("הזרוע הארוכה" if he else "Modern IAF"),
 		"%s: the logo in the header" % lang
 	)
-	# The language's lockup: the Hebrew one is the wider (its big name is the Hebrew one).
+	# The language's horizontal lockup: the Hebrew one is the wider (its name is the Hebrew one).
 	var ratio := float(mark.texture.get_width()) / mark.texture.get_height() if mark != null and mark.texture else 0.0
-	check((ratio > 2.1) == he and ratio > 1.7, "%s: the lockup of the screen's language (%.2f)" % [lang, ratio])
+	check((ratio > 5.1) == he and ratio > 4.4, "%s: the lockup of the screen's language (%.2f)" % [lang, ratio])
 	# Each jet's card: its squadron and base (no wing: the wing is the base).
 	var subs := (
 		[["201 האחת", "רמון"], ["101 הקרב הראשונה", "רמת דוד"], ["116 אריות הדרום", "נבטים"]]
