@@ -1,15 +1,13 @@
 {
   "number": "547",
-  "others": ["034", "027", "039", "601"],
-  "ranges": [[601, 699], [20, 99]],
+  "others": ["603", "610", "615", "619", "624", "628", "630", "633", "637", "638", "642", "647", "648", "651", "652", "656", "664", "666", "667", "673", "676", "678", "682", "684", "687", "022", "023", "027", "034", "036", "039", "041", "045", "046", "050", "055", "057", "061", "063", "069", "072", "074", "075", "079", "083", "088", "612"],
   "marks": [
     { "foot": [0.92, 4.78], "height": 0.39, "pitch": 0.3, "x": [0.0, 0.6], "colour": [0.07, 0.07, 0.08] }
   ],
   "notes": {
     "": "The Barak's tail numbers (shared/aircraft/tail_number.gd, docs/aircraft-models.md §1.6): f16d.glb holds none (tools/f16/barak.py paints the livery's over).",
-    "number": "547, the number of FlightGear's IAF livery the model wears (SOURCES.md); the sim's unit record shows the same (modern-iaf/data/db/units/f16d.json `tail`)",
-    "others": "real IAF F-16Ds in our sources: 034 of 109 Squadron (modern-iaf/data/db/units/f16d.json, ize-034), 027 and 601 (the photos the Barak's colours were set against, tools/f16/barak.py), 039 (docs/aircraft-models.md, its pylons)",
-    "ranges": "inferred: the hundreds the real F-16D numbers in our sources fall in, the Block 40's 6xx first",
+    "number": "547, the number of FlightGear's IAF livery the model wears (SOURCES.md); the sim's unit record shows the same (modern-iaf/data/db/units/f16d.json `tail`). A real Barak's, but a single-seat F-16C's (Block 40, USAF 90-0874, f-16.net): no F-16D wears it (docs/aircraft-models.md §1.6)",
+    "others": "the other F-16Ds in service in f-16.net's airframe database (docs/aircraft-models.md §1.6, checked 19 Nov 2026), each squadron's in number order: Ramat David's two F-16D squadrons, 105 (Block 40) then 109 (Block 30; 074 in a Commons photo there), then 612, its squadron open (f-16.net's last unit for it, 110 Squadron, closed in 2017). Not listed: written off (031, 077, 606, 621, 660) and the test centre's 020 and 601",
     "marks": "where the livery's 547 was, in black: foot 0.92 m up the fin, centred 4.78 m aft (tools/f16/barak.py prints the place it paints over)"
   }
 }

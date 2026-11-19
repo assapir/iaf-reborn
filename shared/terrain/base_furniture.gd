@@ -48,8 +48,9 @@ static var _jet_frames := {}  # kind -> the flying model's frame in its parked m
 
 
 ## The base's furniture but the fence (fence()) under one node, or null while the ground under any of it is still
-## loading. `o`: the world origin (engine metres), `terrain` answers height_at().
-static func build(items: Array, o: Vector2, terrain: Node) -> Node3D:
+## loading. `o`: the world origin (engine metres), `terrain` answers height_at(), `base` the base's ICAO (the parked
+## jets' tail numbers).
+static func build(items: Array, o: Vector2, terrain: Node, base := "") -> Node3D:
 	var placed := {}
 	for f: Dictionary in items:
 		if f.has("line"):
@@ -93,7 +94,7 @@ static func build(items: Array, o: Vector2, terrain: Node) -> Node3D:
 		mmi.visibility_range_end = NEAR if _is_jet(kind) or kind in SMALL else FAR
 		if _is_jet(kind):
 			mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF  # in the shelters' shade
-			_tail_numbers(mmi, kind, placed[kind], o)
+			_tail_numbers(mmi, kind, placed[kind], o, base)
 		root.add_child(mmi)
 	return root
 
@@ -110,15 +111,16 @@ static func fence(line: Array, o: Vector2, terrain: Node) -> MeshInstance3D:
 	return _fence(pts) if pts.size() >= 2 else null
 
 
-## Each parked jet's own tail number (TailNumber, docs/aircraft-models.md §1.6): the next of the flight's, so no two
-## on the base and none of the flying jets show the same; kept by its place (`o` the world origin) when the base's
-## furniture is built again.
-static func _tail_numbers(parent: Node3D, kind: String, at: Array, o: Vector2) -> void:
+## Each parked jet's own tail number (TailNumber, docs/aircraft-models.md §1.6): the next of the flight's (or of the
+## base's own list), so no two on the base and none of the flying jets show the same; kept by its place (`o` the world
+## origin) when the base's furniture is built again.
+static func _tail_numbers(parent: Node3D, kind: String, at: Array, o: Vector2, base: String) -> void:
 	var model := jet_model(kind)
 	for xf: Transform3D in at:
 		var jet := Node3D.new()
 		jet.transform = xf * _jet_frames[kind]
-		TailNumber.mark(jet, model, TailNumber.next(model, "%.0f %.0f" % [xf.origin.x + o.x, o.y - xf.origin.z]))
+		var id := "%.0f %.0f" % [xf.origin.x + o.x, o.y - xf.origin.z]
+		TailNumber.mark(jet, model, TailNumber.next(model, id, base))
 		if jet.get_child_count() > 0:
 			parent.add_child(jet)
 		else:

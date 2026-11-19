@@ -3,8 +3,8 @@
 # number, every other jet its own from the list, never the player's (the user, 19 Nov 2026: "other planes shouold
 # have different tale numbers").
 #
-# <model>.tail.json: {number: the livery's (the player's jet), others: [the other jets', real ones, in order], ranges:
-# [[first, last]] more numbers in order (inferred: the type's real series), skipping the ones above, marks: [{foot:
+# <model>.tail.json: {number: the livery's (the player's jet), others: [the other jets', real ones, in order], bases:
+# {ICAO: [the numbers of the jets parked at that base, real ones of its own squadrons, in order]}, marks: [{foot:
 # [y, z] the middle of the number's foot in the model's frame (m; y up, z aft), height: a digit's (m), pitch: from one
 # digit to the next (m), x: [inner, outer] the decal's reach out from the centre plane on each side (m), colour:
 # [r, g, b], digits: how many of the number's last digits (all if absent)}]}; each mark is drawn on both sides,
@@ -18,7 +18,7 @@ const FADE := 1200.0
 static var _atlas: Image
 static var _specs := {}  # model path -> its tail.json ({} none), with "pool": the other jets' numbers
 static var _textures := {}  # "number pitch/height" -> ImageTexture
-static var _taken := {}  # model path -> the other jets numbered so far in this flight (next())
+static var _taken := {}  # model path (or "model path ICAO": a base's own list) -> the jets numbered so far (next())
 static var _ids := {}  # "model path id" -> its k: a jet numbered once keeps its number for the flight (next())
 
 
@@ -30,17 +30,23 @@ static func reset() -> void:
 
 
 ## The next other jet's k on `model` in this flight (1, 2, … in the order the jets are made: the AI's, the mission's
-## other units' and the parked ones alike), so no two jets show the same number while the list lasts. A jet made
+## other units' and the parked ones alike), so no two jets show the same number while the list lasts. A jet parked at
+## a base with its own list (`bases`, by ICAO `base`) takes that list's next instead, counted per base. A jet made
 ## again (a parked one when its base's furniture is built again) passes the same `id` and keeps its k.
-static func next(model: String, id := "") -> int:
+static func next(model: String, id := "", base := "") -> int:
 	var key := model.get_basename()
 	var known := "%s %s" % [key, id]
 	if id != "" and _ids.has(known):
 		return _ids[known]
-	_taken[key] = int(_taken.get(key, 0)) + 1
+	var spec := _spec(model)
+	var own: Array = spec.get("bases", {}).get(base, [])
+	var count := key if own.is_empty() else "%s %s" % [key, base]
+	var n := int(_taken.get(count, 0))
+	_taken[count] = n + 1
+	var k: int = n + 1 if own.is_empty() else spec.pool.find(String(own[n % own.size()])) + 1
 	if id != "":
-		_ids[known] = _taken[key]
-	return _taken[key]
+		_ids[known] = k
+	return k
 
 
 ## The number of jet `k` on `model`: 0 the player's (the livery's), k ≥ 1 the k-th other jet's ("" none).
@@ -49,7 +55,7 @@ static func number(model: String, k: int) -> String:
 	if spec.is_empty():
 		return ""
 	var pool: Array = spec.pool
-	# ponytail: past the list the numbers repeat; add numbers (or a range) when a flight shows more jets.
+	# Past the list the numbers repeat: only real numbers are drawn (docs/aircraft-models.md §1.6).
 	return String(spec.number) if k <= 0 or pool.is_empty() else String(pool[(k - 1) % pool.size()])
 
 
@@ -125,10 +131,9 @@ static func _spec(model: String) -> Dictionary:
 		var spec: Dictionary = v if v is Dictionary else {}
 		if not spec.is_empty():
 			var pool: Array = spec.get("others", []).duplicate()
-			for r: Array in spec.get("ranges", []):
-				for n in range(int(r[0]), int(r[1]) + 1):
-					var s := "%03d" % n
-					if s != String(spec.number) and not s in pool:
+			for own: Array in spec.get("bases", {}).values():
+				for s in own:
+					if not s in pool:
 						pool.append(s)
 			spec.pool = pool
 		_specs[key] = spec

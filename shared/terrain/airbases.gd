@@ -187,7 +187,7 @@ static func _update_signs(best: int, o: Vector2, terrain: Node) -> void:
 			terrain.add_child(_signs)
 			_signs_waiting = _bases[best].signs.duplicate()
 	if not _furniture_waiting.is_empty():
-		_furniture = BaseFurniture.build(_furniture_waiting, o, terrain)
+		_furniture = BaseFurniture.build(_furniture_waiting, o, terrain, String(_bases[best].get("icao", "")))
 		if _furniture != null:
 			terrain.add_child(_furniture)
 			_furniture_waiting = []

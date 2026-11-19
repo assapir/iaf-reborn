@@ -170,8 +170,8 @@ same status; slice 6 flew every Sufa test on the Barak (§6).
 | # | function | real (Barak 2020) | today | status |
 |---|---|---|---|---|
 | B1 | Radar | the Block 40's AN/APG-68; no source names a radar change in Barak 2020 (open); no (V)9 situation mode | the F-16 row of `radar.rs` (CRM RWS to 80 km, 43 NM, Weapon data Real's; the Sufa 104 km) with the real FCR's controls, SAM with one bug (`radar.fcr.sam_tracks` 1; inferred) | Sim (17 Nov) |
-| B2 | MFDs | the Sufa's avionics[^barak-hm] and new high-resolution screens[^barak-upi]; colour inferred | the colour formats (`mfd` "colour") | Sim (17 Nov) |
-| B3 | HSD map | with the colour displays (inferred) | the HSD's map, as the Sufa's | Sim (17 Nov) |
+| B2 | MFDs | colour cockpit displays like the F-16I's[^barak-die] (announced in 2006 as "more advanced color versions"[^barak-f16net]), new high-resolution screens[^barak-upi]; no public photo of the upgraded cockpit found (checked 19 Nov 2026) | the colour formats (`mfd` "colour") | Sim (17 Nov) |
+| B3 | HSD map | on the colour displays (B2); the moving map itself inferred | the HSD's map, as the Sufa's | Sim (17 Nov) |
 | B4 | AIFF | with the Sufa's avionics (inferred: no source names the interrogator) | the Sufa's AIFF (`ews.aiff`) | Sim (17 Nov) |
 | B5 | Pods | the Sharpshooter, then the Litening; the Pathfinder navigation FLIR, without a TFR ([research/pods.md](research/pods.md) §1) | the Litening on 5R, the Pathfinder on 5L with its FLIR on the HUD ([weapons.md](weapons.md) §7.4), the laser bombs (§8.2); no TF | Sim (17 Nov; FLIR 19 Nov) |
 | B6 | Helmet | an Elbit helmet sight[^barak-upi] | `dash.rs`; dark while the goggles are down (B12) | Sim |
@@ -384,6 +384,14 @@ The user answered the six open questions on 17 November. His words in quotes; th
 [^barak-fg]: FlightGlobal, "Israel completes F-16 Barak upgrade", 5 November 2014 (new head-up display and digital
     debriefing systems; through a search engine's quote, the page is paywalled: second-hand):
     https://www.flightglobal.com/israel-completes-f-16-barak-upgrade/115034.article
+[^barak-die]: Defence Industry Europe, "Israeli Air Force image shows F-16I Sufa fighter armed with four RAMPAGE
+    stand-off missiles", 8 March 2026 ("Between 2010 and 2012, all F-16C/D aircraft remaining in service were upgraded
+    to the Barak 2020 standard. The upgrade introduced Israeli mission computers and colour cockpit displays similar to
+    those used in the F-16I"), secondary:
+    https://defence-industry.eu/israeli-air-force-image-shows-f-16i-sufa-fighter-armed-with-four-rampage-stand-off-missiles/
+[^barak-f16net]: f-16.net, "Israel launches program to upgrade its F-16 fleet", 25 January 2006 (the announced C/D
+    upgrade: the command and control systems as in the F-16I, "and a replacement of the cockpit displays with more
+    advanced color versions"): https://www.f-16.net/f-16-news-article1608.html
 [^barak-dn]: defence-network.com, "Israel rüstet F-16C/D mit modernster Schutz- und Avioniktechnik auf", 25 September
     2025 (proposed: new EW, infrared missile warning and launch detection, better dispensers and displays); All Israel
     News, 15 September 2025 (the upgrade under consideration):

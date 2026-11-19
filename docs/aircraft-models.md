@@ -344,7 +344,7 @@ one of its own, never the player's, and no two the same. The model's texture hol
 |---|---|
 | `number` | the livery's number: the player's jet's (Modern IAF's unit record shows the same, its `tail`) |
 | `others` | the other jets' numbers, real ones from the sources, in the order the jets take them |
-| `ranges` | more numbers, `[first, last]` each, taken in order after `others` (skipping those): inferred from the type's real series |
+| `bases` | per base (its ICAO), the numbers its parked jets take when its squadrons are not the player's: real ones of its own squadrons, in order |
 | `marks` | each place a number is painted: `foot` (y, z of the middle of the number's foot in the model's frame, m), `height` of a digit, `pitch` from one digit to the next, `x` (how far in and out from the centre plane the decal reaches on each side), `colour`, `digits` (how many of the number's last digits; all if absent); a mark on a surface seen from both sides (a thin fin) has instead `foot` [x, y, z] on the left side and `normal` [x, y], the face's outward normal there |
 
 Each mark is two decals (Godot `Decal`), one a side, projected onto the faces looking out on that side
@@ -360,15 +360,29 @@ flight scene, the hangar's turntable, the front end's model view), k ≥ 1 the k
 `NEXT` the next one in this flight (`TailNumber.next`, one count per model, started again at each flight). The AI's
 jets (`ai_flights.gd`), the mission's other units of a model with a tail file (`terrain_view.gd`) and the jets parked
 at the bases (`base_furniture.gd`, decals over the parked jets' merged mesh; each keeps its number by its place when
-its base is drawn again) each take the next, in the order the flight makes them; the TSD target window numbers its units in their order. An AI jet keeps its k on its entity
+its base is drawn again) each take the next, in the order the flight makes them; the TSD target window numbers its units in their order. A base with its own list (`bases`, the ICAO `airbases.gd`
+passes) numbers its parked jets from that list instead, with its own count. An AI jet keeps its k on its entity
 (`tail`): after the FlyTSD's Fly the jet taken over keeps its number in the player's hands, and the player's old jet,
-given to its brain or left falling, keeps the livery's. Past the list (`others` and `ranges`) the numbers repeat.
+given to its brain or left falling, keeps the livery's.
 
-| jet | the player's | the others' (real, then inferred) |
-|---|---|---|
-| F-16I Sufa (`f16i.tail.json`) | 846 of 201 Squadron | 201 Squadron's 844, 849, 851, 869 (the same fin art), 253 Squadron's 466, 476, 482, then 421, 459, 494, 848, 868, 803, 827, 890 (docs/f16i.md §8); then 401 to 499 and 801 to 899, inferred |
-| F-16D Barak (`f16d.tail.json`) | 547, the FlightGear livery's | 034 of 109 Squadron, 027, 039, 601 (the photos the model was set against); then 601 to 699 and 020 to 099, inferred |
-| F-35I Adir (`f35i.tail.json`) | 937 of 116 Squadron | 951 and 921 of 140 Squadron; then 901 to 975, inferred |
+Only real numbers are drawn (the user, 19 November 2026: "make sure the planes numbers you choose are real"): the
+numbers of jets of that type in service, with their squadrons, from f-16.net's airframe
+databases[^f16net-idfaf][^f16net-f35i], checked against photographs where Commons has one. Written-off, stored and test-centre jets are left
+out. The rule for which number a jet takes:
+
+1. the player's squadron's numbers, in number order;
+2. then the base's other squadrons' numbers of the same type;
+3. then the type's other real numbers (other bases, or the squadron open in the source);
+4. past the end of all of them the list starts again (`number()`): no number is made up.
+
+A base whose parked jets belong to another squadron (Hatzerim's Sufas, 107 Squadron) has its own list in `bases`; its
+parked jets take that list from the start, and the flying jets reach those numbers only after step 3.
+
+| jet | the player's | the others' (real; how many known) | drawn today |
+|---|---|---|---|
+| F-16I Sufa (`f16i.tail.json`) | 846 of 201 Squadron, Ramon | Ramon: 201 Squadron's 22 others (201, 808 to 892)[^c-sufa201], then 253 Squadron's 27 (253, 404 to 488)[^c-sufa253], then 119 Squadron's 20 (403 to 499, 839)[^c-sufa119]; Hatzerim (`bases` LLHB): 107 Squadron's 25 (803 to 898)[^c-sufa107] | Ramon's parked (up to 12) and the AI's: 201 Squadron's numbers alone cover them; Hatzerim's parked (up to 6): 107's |
+| F-16D Barak (`f16d.tail.json`) | 547, the FlightGear livery's: a real Barak's number, but a single-seat F-16C's (Block 40, USAF 90-0874), worn by no F-16D[^f16net-idfaf] | Ramat David's two F-16D squadrons: 105 Squadron's 25 (603 to 687, Block 40), then 109 Squadron's 21 (022 to 088, Block 30)[^c-barak109]; then 612, its squadron open (f-16.net's last unit for it, 110 Squadron, closed in 2017[^w110]). The player's squadron, 101, flies F-16Cs only[^w101]: no F-16D number of its own is known | Ramat David's parked (up to 4) and the AI's: 105's numbers |
+| F-35I Adir (`f35i.tail.json`) | 937 of 116 Squadron, Nevatim | 116 Squadron's 13 others (930 to 967), then 140 Squadron's 23 (901 to 983)[^c-adir], then 117 Squadron's 2 (904, 909), then 10 delivered jets whose squadron is open (947 to 992); all three squadrons at Nevatim | Nevatim's parked (up to 5) and the AI's: 116's numbers alone cover them |
 
 The Sufa's number stands on the fin in black and on each intake in dark blue, as on 846; the decal on the intakes
 reaches out 0.7 m at most, short of the chin pylon and the pod on it. The Barak's stands where the livery's 547 was,
@@ -378,7 +392,8 @@ nose and its last two digits on each fin's outer face (quads: the fins are one s
 drew it until 2026-11-19.
 
 Check: `tests/godot/test_sufa_model.gd` (the player's jet 846, the AI's other numbers, none twice; the FlyTSD's Fly;
-60 other numbers per tail file; the Barak and the Adir draw theirs), `modern-iaf/tests/test_sim_look.gd` (Ramon's
+every listed number drawn once, then the first again, no ranges; Hatzerim's parked jets take its list; the Barak and
+the Adir draw theirs), `modern-iaf/tests/test_sim_look.gd` (Ramon's
 parked Sufas, each its own number) and `modern-iaf/tests/test_hangar.gd` (each unit record's tail the number drawn on
 the player's jet).
 
@@ -887,6 +902,32 @@ three pylons under each wing and the centre line tank between the engines. What 
 
 ## Sources
 
+[^f16net-idfaf]: f-16.net, "F-16 Aircraft Database: Israel Defense Force / Air Force F-16s" and each jet's airframe
+    page (local serial, status, unit history), checked 19 November 2026:
+    https://www.f-16.net/aircraft-database/F-16/serials-and-inventory/airforce/IDFAF/
+[^f16net-f35i]: f-16.net, "F-35 Aircraft Database: Israel Defense Force / Air Force" and each jet's airframe page,
+    checked 19 November 2026: https://www.f-16.net/aircraft-database/F-35/serials-and-inventory/airforce/IDFAF/
+[^c-sufa201]: Wikimedia Commons, "F-16I Soufa 1.jpg" and "F-16I Soufa 2.jpg" (882 and 871 of "The One" squadron from
+    Ramon, Kecskemét, August 2010); 844, 846, 849, 851 and 869 in 2025 photos (docs/f16i.md §8):
+    https://commons.wikimedia.org/wiki/File:F-16I_Soufa_1.jpg, https://commons.wikimedia.org/wiki/File:F-16I_Soufa_2.jpg
+[^c-sufa253]: Wikimedia Commons, 253 Squadron's F-16I 415 and 466 at Red Flag 16-4, August 2016:
+    https://commons.wikimedia.org/wiki/Category:F-16I_(Israeli_Air_Force) (files "253 Squadron of the Israeli Air
+    Force, also known as the Negev Squadron, is an F-16I (415) …" and "… (466) …")
+[^c-sufa119]: Wikimedia Commons, "2024-10-26 Israeli strikes on Iran, F-16I -494 before the attack.jpg" (494 of 119
+    Squadron at Ramon) and "Israeli Air Force F-16I 469 Tayeset 119 (IDFAF) "Bat (Ha' Atalef)" (28627003594).jpg":
+    https://commons.wikimedia.org/wiki/File:2024-10-26_Israeli_strikes_on_Iran,_F-16I_-494_before_the_attack.jpg
+[^c-sufa107]: Wikimedia Commons, "F-16I Sufa(896) 107 Squadron "Knights of the Orange Tail" (29223012136).jpg"
+    (Hatzerim, August 2016); 803 and 827 in docs/f16i.md §8:
+    https://commons.wikimedia.org/wiki/Category:F-16I_(Israeli_Air_Force)
+[^c-barak109]: Oren Rozen, "RamatDavid 020517 Barak 03.jpg", Wikimedia Commons (109 Squadron's F-16D 074 at Ramat
+    David, 2 May 2017): https://commons.wikimedia.org/wiki/File:RamatDavid_020517_Barak_03.jpg
+[^w101]: Wikipedia, "101 Squadron (Israel)" ("operates F-16C Fighting Falcon Barak II out of Ramat David Airbase",
+    there since 2021 "alongside the 105 Squadron"): https://en.wikipedia.org/wiki/101_Squadron_(Israel)
+[^w110]: Wikipedia, "110 Squadron (Israel)" ("deactivated in 2017"): https://en.wikipedia.org/wiki/110_Squadron_(Israel)
+[^c-adir]: Wikimedia Commons, "121266 adir 951 PikiWiki Israel.jpg" (951 of the Golden Eagle squadron, 140) and
+    "2016-12-12 First two F-35s in Israel.jpg" (901 and 902 at Nevatim):
+    https://commons.wikimedia.org/wiki/File:121266_adir_951_PikiWiki_Israel.jpg,
+    https://commons.wikimedia.org/wiki/File:2016-12-12_First_two_F-35s_in_Israel.jpg
 [^f16net]: F-16.net forum, "F-16 B/D two seater version canopy" (a canopy shop's account: two transparencies in
     one frame, the centre strip part of the frame, the actuator's support yoke on it),
     https://www.f-16.net/forum/viewtopic.php?p=27770

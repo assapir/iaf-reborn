@@ -226,7 +226,8 @@ live play while recording at 4K. Two ways:
 - Built for the F-16I Sufa, the F-16D Barak and the F-35I Adir (2026-11-19; the user, 19 November 2026: "other
   planes shouold have different tale numbers"): the game draws each jet's number, the player's the livery's, every
   other jet (the AI's, the mission's other units, the jets parked at the bases) its own (docs/aircraft-models.md
-  §1.6). Not started: the detailed F-15C Baz's and F-15I Ra'am's numbers (802 and 269, painted by setup,
+  §1.6); since the same day only real numbers, by squadron and base, from f-16.net's airframe databases. Not
+  started: the detailed F-15C Baz's and F-15I Ra'am's numbers (802 and 269, painted by setup,
   `crates/iaf-tools/src/f15.rs`; neither is parked at a base nor flown in Modern IAF; in the original game every F-15
   shows the same one); they take a tail file the same way.
 

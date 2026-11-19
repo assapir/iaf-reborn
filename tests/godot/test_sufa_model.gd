@@ -90,24 +90,49 @@ func run() -> void:
 	)
 	check(old.get("node") != null and _number(old.node) == "846", "Fly: the old jet, now the AI's, still shows 846")
 
-	# Every model with a tail file: the player's number, then 60 other jets' all different, none the player's; the
-	# Barak's and the Adir's models draw them (docs/aircraft-models.md §1.6).
+	# Every model with a tail file: the player's number, then every other number of its lists (only real ones, no
+	# ranges), all different, none the player's, then the first again; the Barak's and the Adir's models draw them
+	# (docs/aircraft-models.md §1.6).
 	var tails := {
 		"res://shared/extra/models/f16/f16i.glb": ["846", 4],
 		"res://shared/extra/models/f16/f16d.glb": ["547", 2],
 		"res://shared/extra/planes/f35i/f35i.gltf": ["937", 4],
 	}
 	for path: String in tails:
+		var spec: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(path.get_basename() + ".tail.json"))
+		var listed := {}
+		for s in spec.others:
+			listed[s] = true
+		for own: Array in spec.get("bases", {}).values():
+			for s in own:
+				listed[s] = true
 		var seen := {}
-		for k in 61:
+		for k in listed.size() + 1:
 			seen[TailNumber.number(path, k)] = true
 		check(TailNumber.number(path, 0) == tails[path][0], "%s: the player's %s" % [path.get_file(), tails[path][0]])
-		check(seen.size() == 61 and not seen.has(""), "%s: 60 other jets, 60 other numbers" % path.get_file())
-	# A parked jet built again (its base's furniture) keeps its number; a new flight starts the count again.
+		check(
+			not spec.has("ranges") and seen.size() == listed.size() + 1 and not seen.has(""),
+			"%s: %d other jets, %d other numbers, all listed" % [path.get_file(), listed.size(), seen.size() - 1]
+		)
+		check(
+			TailNumber.number(path, listed.size() + 1) == TailNumber.number(path, 1),
+			"%s: past the list the numbers repeat" % path.get_file()
+		)
+	# A parked jet built again (its base's furniture) keeps its number; a base with its own list numbers its parked
+	# jets from it; a new flight starts the count again.
 	var f16i := "res://shared/extra/models/f16/f16i.glb"
 	var parked := TailNumber.next(f16i, "1200 -340")
 	var other := TailNumber.next(f16i)
 	check(TailNumber.next(f16i, "1200 -340") == parked and other != parked, "a parked jet keeps its number")
+	var hatzerim: Array = (
+		JSON.parse_string(FileAccess.get_file_as_string(f16i.get_basename() + ".tail.json")).bases.LLHB
+	)
+	var first := TailNumber.number(f16i, TailNumber.next(f16i, "900 -100", "LLHB"))
+	var second := TailNumber.number(f16i, TailNumber.next(f16i, "", "LLHB"))
+	check(
+		[first, second] == hatzerim.slice(0, 2) and TailNumber.next(f16i) == other + 1,
+		"Hatzerim's parked Sufas: its own squadron's numbers (%s, %s), the flight's count untouched" % [first, second]
+	)
 	TailNumber.reset()
 	check(TailNumber.next(f16i) == 1, "a new flight: the count starts again")
 	settings().f16_variant = "barak"
