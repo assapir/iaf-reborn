@@ -596,8 +596,8 @@ full MFD view every one of that MFD's; the full view's return by its key and by 
   (`tools/f16d/cockpit3d.py`; the Block 15 panel face and autopilot switch base, the only meshes it left). The button
   goes 3.5 mm in and stays in while selected (FlightGear's), and STBY lights: FlightGear's sheet paints each legend lit
   beside its unlit one, and the cockpit shows the lit one (`f16_controls.json` `lamp`, `lit_uv`; `cockpit3d.gd`
-  `_setup_legend_lamps`). ACTIVE stays dark: the terrain following ADV MODE engages is not modelled (inferred). MAL &
-  IND LTS lights both.
+  `_setup_legend_lamps`). With the Sufa's LANTIRN navigation pod, ACTIVE lights instead while automatic TF flies the jet
+  ([weapons.md](weapons.md) §7.4). MAL & IND LTS lights both.
 - The clock's two knobs set its time a minute a click (FlightGear's `offset-sec`, added to the time of day; the proof
   had seen only its seconds hand run).
 - The proof starts each jet first (MAIN PWR, the JFS, idle): the lamps and the EHSI powered.
@@ -937,7 +937,7 @@ holds the autopilot off.
 |---|---|
 | Shift + 2 / Shift + 3 | PITCH a step up (toward ALT HOLD) / down (toward ATT HOLD) |
 | Shift + 4 / Shift + 5 | ROLL a step up (toward HDG SEL) / down (toward STRG SEL) |
-| Shift + I (held) | the stick's paddle switch: the autopilot interrupted |
+| Shift + I (held) | the stick's paddle switch: the autopilot interrupted, a TF fly-up held off |
 | Shift + 6 | TRIM/AP DISC, NORM / DISC (the model has no MANUAL TRIM panel) |
 | Ctrl + L | FLCS RESET (the model has no FLCS RESET switch) |
 

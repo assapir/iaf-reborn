@@ -18,7 +18,7 @@ The warning lights are red and stand on the glareshield, at eye level#fm[page 1-
   [#row("lamp_dbu_on_0")], [The flight controls are on their backup software.],
   [#row("lamp_to_ldg_config_0")], [The gear is not down on an approach, or the jet is not set for take-off (@gear).],
   [#row("lamp_canopy_0")], [The canopy is not locked (@canopy-seat).],
-  [#row("lamp_tf_fail_0")], [A fault of terrain following (inferred from its name).],
+  [#row("lamp_tf_fail_0")], [The TFR failed under automatic TF: TF FAIL (@nav-pod).],
 )
 
 === Caution lights

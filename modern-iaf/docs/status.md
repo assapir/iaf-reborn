@@ -146,8 +146,12 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   the LANTIRN navigation pod (AN/AAQ-13) on the Sufa's 5L and the Pathfinder on the Barak's, carried, drawn (their
   own model, `lantirn.glb`), weighed and kept by the jettisons, on the SMS inventory under 5R (weapons.md §7.3;
   `modern-iaf/tests/test_sim_chin_pods.gd`); a load with a laser bomb and no pod is not saved as a preset, and the
-  Loadout screen's line is one short line, the front end's Hebrew saying פוד. The navigation pods' HUD picture and
-  terrain following come in pods part 2.
+  Loadout screen's line is one short line, the front end's Hebrew saying פוד. Pods part 2 (2026-11-19, weapons.md
+  §7.4): the navigation pod's FLIR picture on the HUD (both F-16s: warm-up, STBY / OPER, WHOT / BHOT, gain, level,
+  snap-look, look-into-turn) and the Sufa's terrain following from the LANTIRN's TFR (the FLIR and TFR formats, SCP,
+  ride, manual TF box, ADV MODE automatic TF, fly-ups, the paddle, MANUAL TF FLYUP, the RF switch, TF FAIL and its
+  lamp; `modern-iaf/tests/test_sim_nav_pod.gd`). Open: LO TF's meaning and the formats' real layouts (no source).
+  Not started (outside pods part 2): laser spot search (P6), the Ra'am's pods (P10), Litening page polish (P11).
 - **The Sufa's radar, air to ground (2026-11-17, avionics-plan.md slice 3, G9–G12;
   [../../docs/radar.md](../../docs/radar.md) §9.7):** R gives GM, Q steps GMT and SEA; NORM's fan and the EXP, DBS1
   and DBS2 patches (Ctrl + `;`) over a radar picture made from the terrain (slopes, shadows, dark water and runways,

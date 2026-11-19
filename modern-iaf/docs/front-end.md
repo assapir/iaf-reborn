@@ -558,6 +558,13 @@ step switch), Bomb fuze: next on Alt + Q (227), Bomb arming delay: next on Alt +
 / 2), and the RET DEPR wheel's reticle down / up on Ctrl + V / Alt + V (229 / 230, command 291, p1 1 / -1, 5 mr a
 press); the SMS's OSBs 2, 17 and 18 and the 3D cockpit's wheel do the same.
 
+**The navigation pod's TFR keys (2026-11-19).** Two records in the Sensors group work the Sufa's terrain-following
+radar ([weapons.md](weapons.md) §7.4), both command 242: ADV MODE (automatic TF) on Shift + F8 (record 238, p1 0; the 3D
+cockpit's ADV MODE button does the same) and the MANUAL TF FLYUP switch on Shift + F9 (239, p1 1). The paddle switch
+(Shift + I, held, record 235, command 293) is the autopilot's and the TFR's: one switch on the stick, so it also holds
+a TF fly-up off (2026-11-19). With the navigation FLIR's picture
+on the HUD and the HUD the SOI, the cursor keys (records 48–51) shift the picture (snap-look).
+
 **The mouse in the 3D cockpit.** The pointer works the cockpit's controls (`Settings.cockpit_controls()`,
 [cockpit.md](cockpit.md) §5.1): over a control it lights it, the wheel and a left drag turn a knob, a left click
 works a switch, each through the key's own command. The F-16s' controls: the SYM wheel, the HUD's brightness, which

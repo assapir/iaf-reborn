@@ -23,7 +23,7 @@
   "notes": {
     "number": "ours",
     "name": "NVP, the navigation pod as the SMS lists it (ours, inferred: the dash-34's mnemonic was not found)",
-    "kind": "the LANTIRN navigation pod, AN/AAQ-13: a terrain-following radar and a forward-looking infrared camera whose picture shows on the HUD (fas-lantirn); the F-16I Sufa's (iaf-f16i). Carried, drawn and weighed only: its HUD picture and terrain following come later (modern-iaf/docs/research/pods.md P7, P8), so it gives nothing yet",
+    "kind": "the LANTIRN navigation pod, AN/AAQ-13: a terrain-following radar and a forward-looking infrared camera whose picture shows on the HUD (fas-lantirn); the F-16I Sufa's (iaf-f16i). Its FLIR picture on the HUD and its TFR's terrain following (automatic and manual TF, the fly-ups) are shared/weapons/nav_pod.gd (modern-iaf/docs/weapons.md §7.4)",
     "kg": "204.6 kg (w-lantirn; FAS gives 211.5 kg, fas-lantirn)",
     "drag": "carriage drag index (flight-model.md §9.18): 0.15 x its 0.305 m across (w-lantirn) frontal area, 0.15 the drag of a streamlined pod on its pylon on that area (inferred, as the tanks' and the Litening's)",
     "motion": "the reader's defaults (never released)",

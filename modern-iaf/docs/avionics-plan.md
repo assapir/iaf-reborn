@@ -89,7 +89,7 @@ following[^sufa-at][^sufa-lm-radar]. The pilot's view of each is the dash-34's F
 | R11 | SAR, 2 ft | a still high-resolution patch around the cursor | DBS2's patch (64:1) held by FZ, from the terrain's heights; the (V)9's own SAR format is not public (inferred) | Sim (17 Nov) |
 | R12 | GMT | bright movers on a dimmed map | `Mode::Gmt`; the real FCR's to 40 NM, its map dimmed, EXP; the range's towed hulk moves for it | Sim |
 | R13 | SEA | GM tuned for ships, no DBS | GM listing ships only, no DBS; the range's barge off the coast | Sim (17 Nov) |
-| R14 | AGR, BCN, TF | ranging for the A-G solution; beacon; terrain following[^sufa-at] | AGR with a CCIP bomb or the A-G gun: the slant range along the pipper's line on the FCR and the HUD; BCN and TF parked by G12 (no beacons in the sim) | AGR Sim (17 Nov); BCN, TF parked (G12) |
+| R14 | AGR, BCN, TF | ranging for the A-G solution; beacon; terrain following[^sufa-at] | AGR with a CCIP bomb or the A-G gun: the slant range along the pipper's line on the FCR and the HUD; BCN parked by G12 (no beacons in the sim); TF from the LANTIRN navigation pod's TFR, not the radar ([weapons.md](weapons.md) §7.4) | AGR Sim (17 Nov); TF Sim (19 Nov, the pod); BCN parked (G12) |
 | R15 | AIFF interrogation | TMS left; a green circle (friend) or yellow square (unknown) at the reply on the FCR[^mlu1] | O (SCAN), Shift + O (LOS) and TMS left in CRM; green circles / yellow squares on the FCR and the HSD for 3 s, SCAN blanking the FCR; the DED's IFF and INTG pages ([ews.md](ews.md) §5, §8; `aiff.rs`); the transponder's modes, codes and IDENT (Alt + K) on the IFF and CNI pages, a cockpit procedure only ([ews.md](ews.md) §8) | Sim (17 Nov) |
 
 ### 2.2 MFD formats (colour)
@@ -104,7 +104,7 @@ following[^sufa-at][^sufa-lm-radar]. The pilot's view of each is the dash-34's F
 | M6 | TGP | the Litening picture, WIDE / NARO, laser, polarity, range | `f16_mfd.gd` `tgp`, `shared/weapons/eo_sensor.gd`; the Litening on station 5 (the chin; [weapons.md](weapons.md) §7); POINT / AREA / INR track, slaved to the radar's designation or the steerpoint (TMS down), the zoom, LASER ARM and the laser | Sim (17 Nov) |
 | M7 | TEST | the fault list | `f16_mfd.gd` `test` | Sim |
 | M8 | SOI | the SOI box, NOT SOI, the DMS moving it | the SOI box and NOT SOI on the MFDs, DMS on keys, the cursor and TMS keys acting on the SOI (`f16_mfd.rs` `dms`, `cockpit.gd` `soi_format`); the HUD's asterisk as the SOI ([ufc.md](ufc.md) §4) | Sim (17 Nov) |
-| M9 | DTE, FLCS, FLIR, TFR, BLANK, RESET | data transfer, flight controls, navigation FLIR, terrain following | DTE (LOAD), FLCS (branches, BIT on the ground), BLANK, RESET MENU (inferred layouts); FLIR and TFR not offered: no navigation FLIR pod on the Sufa (inferred), TF parked with G12 | Sim (17 Nov) |
+| M9 | DTE, FLCS, FLIR, TFR, BLANK, RESET | data transfer, flight controls, navigation FLIR, terrain following | DTE (LOAD), FLCS (branches, BIT on the ground), BLANK, RESET MENU (inferred layouts); FLIR (OSB 16, with a navigation pod) and TFR (OSB 17, the Sufa's LANTIRN): [weapons.md](weapons.md) §7.4 | Sim (17 Nov; FLIR, TFR 19 Nov) |
 
 ### 2.3 HUD and helmet
 
@@ -172,7 +172,7 @@ same status; slice 6 flew every Sufa test on the Barak (§6).
 | B2 | MFDs | the Sufa's avionics[^barak-hm] and new high-resolution screens[^barak-upi]; colour inferred | the colour formats (`mfd` "colour") | Sim (17 Nov) |
 | B3 | HSD map | with the colour displays (inferred) | the HSD's map, as the Sufa's | Sim (17 Nov) |
 | B4 | AIFF | with the Sufa's avionics (inferred: no source names the interrogator) | the Sufa's AIFF (`ews.aiff`) | Sim (17 Nov) |
-| B5 | Pods | the Sharpshooter, then the Litening; the Pathfinder navigation FLIR, without a TFR ([research/pods.md](research/pods.md) §1) | the Litening on 5R, the Pathfinder on 5L, the laser bombs (§8.2); no TF | Sim (17 Nov) |
+| B5 | Pods | the Sharpshooter, then the Litening; the Pathfinder navigation FLIR, without a TFR ([research/pods.md](research/pods.md) §1) | the Litening on 5R, the Pathfinder on 5L with its FLIR on the HUD ([weapons.md](weapons.md) §7.4), the laser bombs (§8.2); no TF | Sim (17 Nov; FLIR 19 Nov) |
 | B6 | Helmet | an Elbit helmet sight[^barak-upi] | `dash.rs` | Sim |
 | B7 | RWR | the set is open (the dash-34's display is the nearest) | as the Sufa's E1 | Partly (G3) |
 | B8 | MAW, SAM mode, SAR | no MAW: an infrared missile warning is among the upgrades proposed for the Barak in 2025[^barak-dn]; SAM keeps one bug (B1); DBS as the APG-68's (dash-34) | no MAW (`ews.maw` false); DBS1 / DBS2 as the Sufa's | Sim (17 Nov) |
@@ -252,7 +252,7 @@ by the sim; **extend** = existing shared logic grown; **new** = new logic in a R
 | G9 | GM: DBS1 / DBS2, FZ, CZ, SP. **Built 17 Nov (slice 3)** with STP / TGT, the ground cursor, designation and FTT | S | extend (`radar.rs`, `f16_mfd.gd` `_ground_map`) | Rust: freeze holds the picture; the FCR test reads the legends |
 | G10 | SAR / DBS patch picture (F-16 GM DBS, F-35I ASR) from the terrain and the sim's imagery. **Built 17 Nov (slice 3)** for the F-16 (`radar.rs` `render`); the F-35I's ASR takes it, grey (slice 7, 17 Nov) | M–L | new (picture from the height field, `crates/iaf-avionics/src/heights.rs`) | a picture test: the patch shows the runway of the base under the cursor |
 | G11 | SEA mode: ships as returns over water. **Built 17 Nov (slice 3)**, with the range's barge | S | extend | Rust: a ship shows, land returns do not |
-| G12 | AGR (ranging for the A-G solution), BCN, TF. **AGR built 17 Nov (slice 3)**; BCN and TF stay parked | S each | new | parked as low value unless the user asks |
+| G12 | AGR (ranging for the A-G solution), BCN, TF. **AGR built 17 Nov (slice 3)**; **TF built 19 Nov from the navigation pod (pods part 2)**; BCN stays parked | S each | new | parked as low value unless the user asks |
 | G13 | AIFF (Sufa) and combat ID (Adir): replies and identity on the FCR, HSD, SRCH and TSD; unknown = yellow square. **The Sufa's AIFF built 17 Nov (slice 5, [ews.md](ews.md) §5)**; the Adir's combat ID built 17 Nov (slice 7, `aiff.rs` `combat_id`) | M | new (`fctrl.rs` or a new `iff.rs`) | Rust: a friend replies, a hostile does not; the PCD and FCR draw the symbols |
 
 ### 5.4 Displays, HUD, navigation, EW
@@ -261,7 +261,7 @@ by the sim; **extend** = existing shared logic grown; **new** = new logic in a R
 |---|---|---|---|---|
 | G14 | HSD CNTL, bullseye, data-link tracks. **Built 17 Nov (slice 4):** CNTL, bullseye, DEP / CEN, CPL, EXP, FRZ, the cursor; the data-link tracks come with G30 | S | extend | `tests/godot/test_f16_mfd.gd` |
 | G15 | Targeting pod (the Litening on both F-16s) and laser bombs in the sim's data: a pod store and laser bomb records; the TGP format, laser and laser bombs are shared already. **Built 17 Nov (slice 4):** the Litening on both F-16s (§8.2), the GBU-10 / 12 / 16, the TGP's track modes and LASER ARM ([weapons.md](weapons.md) §7) | S (data) | wire | `tests/godot/test_laser_bombs.gd` and a sim run: the pod's laser guides a GBU-12 onto a range target |
-| G16 | The low-value formats (DTE, FLCS, TFR; F-35 FCS, PHM, CHKLST, DIM). **The F-16's built 17 Nov (slice 4; the user: "All mfds"):** DTE, FLCS, BLANK, RESET; TFR waits for G12 | S each | new (drawing) | listed, built only on the user's word |
+| G16 | The low-value formats (DTE, FLCS, TFR; F-35 FCS, PHM, CHKLST, DIM). **The F-16's built 17 Nov (slice 4; the user: "All mfds"):** DTE, FLCS, BLANK, RESET; FLIR and TFR built 19 Nov (pods part 2) | S each | new (drawing) | listed, built only on the user's word |
 | G17 | DGFT / MSL override. **Built 17 Nov (slice 5)** | S | extend (`master.rs`) | Rust: DGFT selects ACM, the gun and the SRM at once |
 | G18 | HUD VVI; INS ALIGN / RDY on the HUD and the DED INS page. **Built 17 Nov (slice 5)** | S | extend (`f16.rs`, `start.rs` state) | Rust snapshot of the HUD; `modern-iaf/tests/test_switches_both_ways.gd` sees ALIGN then RDY |
 | G19 | MAW (Sufa PAWS, Adir DAS): direction and time to impact of a missile launched at the jet, from the RWR's missile list. **The Sufa's built 17 Nov (slice 5, [ews.md](ews.md) §3)**; the Adir's DAS built 17 Nov (slice 7: the TWD and the helmet) | M | new (`rwr.rs`) | Rust: a launch shows its bearing and a falling time; voice and symbol in the sim |

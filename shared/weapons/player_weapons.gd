@@ -145,6 +145,8 @@ var modern_f16 := false
 ## (ews.gd; null on any other jet).
 var ews: RefCounted = null
 var tgp_slaved := false
+## Ours, Modern IAF's F-16s: the navigation pod on 5L (nav_pod.gd; modern-iaf/docs/weapons.md §7.4), null without one.
+var nav: RefCounted = null
 ## Ours, the modern F-16s' pod procedure (modern-iaf/docs/weapons.md §7.2): when the pod got its power (with the
 ## avionics, NAN none; IafEo.pod_state times its cool-down), STBY (the TGP's OSB 1), the player's laser key (L: on
 ## until pressed again; the laser fires only through IafEo.lasing), the line of sight through the jet (the masking
@@ -283,6 +285,13 @@ func setup(host_node: Node, entity: Dictionary, object: Dictionary, bdb: Diction
 		Settings.modern_mfds() and pit != null and Settings.real_mfd(Settings.cockpit_folder(pit.cockpit_dir)) != ""
 	)
 	laser_arm = not modern_f16  # its LASER ARM starts OFF
+	if modern_f16:
+		var names := []
+		for i in Stores.PYLONS:
+			names.append(stores.name_of(i))
+		nav = preload("res://shared/weapons/nav_pod.gd").new(self, names)
+		if nav.kind == 0:
+			nav = null
 	# Ours, Modern IAF's F-35I: its EW set from its definition too (its TWD, MAW, data link and combat ID; ews.gd).
 	var ews_def: Dictionary = Settings.airframe(jet_type).get("ews", {})
 	if modern_f16 or (Settings.modern_radar() and ews_def.get("combat_id", false)):
@@ -616,6 +625,9 @@ func mfd_event(ev: int, arg = null) -> void:
 		-3:
 			# Ours, the modern MFDs: the SMS's PROF1 / PROF2 (IafRipple toggle_profile).
 			release_pairs = _ripple.toggle_profile(stores.current_name(), release_pairs)
+		-40:
+			if nav != null:
+				nav.osb(String(arg))  # ours: the FLIR and TFR formats' OSBs (cockpit/f16_mfd.gd NAV_EVENT)
 		-30:
 			set_ag_submode(String(arg))  # ours: the SMS A-G submode menu's pick (cockpit/f16_mfd.gd)
 		-31, -32:
@@ -634,6 +646,11 @@ func eo_pan(x: int, y: int) -> void:
 	# FCR's, the pod; with the HUD the SOI the 1998 rule below.
 	var soi: String = host.cockpit.soi_format() if modern_f16 and host.cockpit != null else ""
 	hsd_rate = Vector2(x, -y) * HSD_SLEW if soi == "HSD" else Vector2.ZERO
+	# Ours: with the HUD the SOI and the navigation FLIR's picture on it, the cursor is snap-look (held; nav_pod.gd).
+	if nav != null:
+		nav.snap = Vector2(signf(x), signf(y)) if soi == "" and nav.picture_on() else Vector2.ZERO
+		if nav.snap != Vector2.ZERO:
+			return
 	if soi == "HSD":
 		return
 	if soi == "FCR" and not radar.real.is_empty():
@@ -704,6 +721,8 @@ func _modern_update() -> void:
 			eo.start(EoSensor.FLIR, true, p, now)
 	if flir_pod:
 		_update_pod()
+	if nav != null:
+		nav.update()
 	var c = host.cockpit
 	if hsd_rate != Vector2.ZERO and c != null and c.soi_format() == "HSD":
 		c.mfds[c.soi].real.hsd_slew(hsd_rate.x * _dt, hsd_rate.y * _dt)
@@ -3222,6 +3241,7 @@ func _publish() -> void:
 	c.sam_sites = _sam_sites()
 	c.indicators[Rwr.LAMP_AI] = rwr.lamps[Rwr.LAMP_AI]
 	c.indicators[Rwr.LAMP_SAM] = rwr.lamps[Rwr.LAMP_SAM]
+	c.nav = nav.state() if nav != null else {}
 	c.weapons = {
 		"override": override,
 		"sim": master_sim,

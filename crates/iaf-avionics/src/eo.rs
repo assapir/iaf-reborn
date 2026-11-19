@@ -351,9 +351,14 @@ pub enum Pod {
 
 /// The pod's state from how long it has had power (None: none) and the TGP page's STBY.
 pub fn pod_state(powered_s: Option<f64>, standby: bool) -> Pod {
+    pod_state_after(powered_s, standby, POD_COOL_S)
+}
+
+/// `pod_state` for a pod that needs `cool_s` with power before it works (the navigation pod's FLIR, `nav_pod`).
+pub fn pod_state_after(powered_s: Option<f64>, standby: bool, cool_s: f64) -> Pod {
     match powered_s {
         None => Pod::Off,
-        Some(t) if t < POD_COOL_S => Pod::Cooling,
+        Some(t) if t < cool_s => Pod::Cooling,
         _ if standby => Pod::Standby,
         _ => Pod::Operate,
     }

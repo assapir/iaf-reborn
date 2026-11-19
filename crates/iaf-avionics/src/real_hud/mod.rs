@@ -443,6 +443,21 @@ pub struct Panel {
     pub soi: bool,
     /// The ICP's DRIFT C/O switch at DRIFT C/O: the flight path marker centred laterally.
     pub drift_co: bool,
+    /// The navigation pod's TFR (`nav_pod`): its HUD cues while it works (modern-iaf/docs/weapons.md §7.4).
+    pub tf: Option<TfCue>,
+    /// The navigation FLIR's picture shifted by snap-look or look-into-turn: the flight path marker dashed.
+    pub flir_shift: bool,
+}
+
+/// The TFR's HUD cues (research/pods.md §3.3, secondary; places ours): the TF box this far above the flight path marker
+/// (degrees), LIMIT, the fly-up's legend, NO TER, and the airspeed scale flashing outside the TF speed band.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct TfCue {
+    pub above_deg: f64,
+    pub limit: bool,
+    pub fly_up: Option<&'static str>,
+    pub no_ter: bool,
+    pub speed_out: bool,
 }
 
 /// SCALES: VV/VAH (the vertical velocity scale too), VAH (airspeed, altitude, heading), OFF.
@@ -726,6 +741,18 @@ fn zenith_nadir(p: &mut Vec<Prim>, (x, y): P, r: f64, zenith: bool, style: Zenit
 /// The flight path marker: a circle of radius `r` with wings `wing` long and a fin `fin` long (px).
 fn marker(p: &mut Vec<Prim>, (x, y): P, r: f64, wing: f64, fin: f64) {
     p.push(Prim::Circle { c: (x, y), r });
+    marker_wings(p, (x, y), r, wing, fin);
+}
+
+/// The flight path marker drawn dashed: its circle in eight arcs (the navigation FLIR's picture shifted).
+fn dashed_marker(p: &mut Vec<Prim>, c: P, r: f64, wing: f64, fin: f64) {
+    for k in 0..8 {
+        p.push(Prim::Arc { c, r, from: k as f64 * std::f64::consts::FRAC_PI_4, sweep: std::f64::consts::PI / 8.0 });
+    }
+    marker_wings(p, c, r, wing, fin);
+}
+
+fn marker_wings(p: &mut Vec<Prim>, (x, y): P, r: f64, wing: f64, fin: f64) {
     p.push(line((x - r, y), (x - r - wing, y)));
     p.push(line((x + r, y), (x + r + wing, y)));
     p.push(line((x, y - r), (x, y - r - fin)));

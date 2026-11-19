@@ -3260,6 +3260,19 @@ func _command(cmd: Array) -> bool:
 					weapons.laser_fire = false
 					weapons.eo.laser = false
 				_on_subtitle("Laser armed" if weapons.laser_arm else "Laser safe")
+		242:
+			# Ours, Modern IAF's F-16s: the navigation pod's TFR switches (nav_pod.gd; modern-iaf/docs/weapons.md §7.4):
+			# p1 0 ADV MODE, 1 MANUAL TF FLYUP (the paddle is command 293's).
+			var nav = weapons.nav if weapons != null else null
+			if nav == null or not nav.tfr():
+				return true
+			match p1:
+				0:
+					nav.adv_key()
+					_on_subtitle("ADV MODE on" if nav.adv_on() else "ADV MODE off")
+				1:
+					nav.man_flyup = not nav.man_flyup
+					_on_subtitle("Manual TF fly-up " + ("enabled" if nav.man_flyup else "disabled"))
 		260, 261, 262, 263, 264, 265:
 			# Ours, the modern F-16s' EW and identification keys (Modern IAF's keys.json; modern-iaf/docs/ews.md): 260
 			# the AIFF (p1 0 SCAN, 1 LOS); 261 the CMS (p1 0 forward, 1 aft, 2 right); 262 the CMDS MODE knob, the next
@@ -4199,7 +4212,10 @@ func _process(delta: float) -> void:
 		sounds.on_runway = (surface & terrain.SURFACE_ANY_RUNWAY) != 0  # the belly screech (f & 0x30)
 		# The systems damage the flight model reads (docs/damage.md §5.3): thrust, stick, spin.
 		flight.set_damage(player_damage.flags, player_damage.twin)
-		flight.set_controls(stick, rudder, throttle, flaps, gear_down, brakes)
+		var s := stick
+		if weapons != null and weapons.nav != null:
+			s = weapons.nav.fly(stick, delta, float(flight.state().get("g", 1.0)))  # the TFR's pitch (nav_pod.gd)
+		flight.set_controls(s, rudder, throttle, flaps, gear_down, brakes)
 		# The flight starts once the ground around the jet is loaded at full detail (behind the
 		# loading screen).
 		if _loading != null:

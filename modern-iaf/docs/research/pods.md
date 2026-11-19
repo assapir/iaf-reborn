@@ -246,9 +246,9 @@ the Sharpshooter (§1). The plan's decided §8.2 (the Litening on both F-16s) ma
   the same checkout and commit, the same GPL-2.0-or-later and credited authors, at the real 2.20 m by 0.406
   m[^w-litening] ([../../../docs/aircraft-models.md](../../../docs/aircraft-models.md) §5.1). `ecmpod.glb` is an
   AN/ALQ-131. The same repository also holds `LANTIRN/AN-AAQ-14.ac` and `SniperATP`.
-- **Missing everywhere:** a navigation FLIR picture on the HUD, terrain following for the player's jet (the AI's
-  autopilot has a terrain-following leg, `crates/iaf-flight/src/autopilot.rs`, not a TFR), the TFR and FLIR formats
-  (gap G16), laser spot search, the laser code, the pod's own power and cool-down.
+- **Missing everywhere:** laser spot search (P6). The navigation FLIR on the HUD, terrain following and the FLIR and
+  TFR formats were built in pods part 2 (19 November 2026, [../weapons.md](../weapons.md) §7.4); the laser code and
+  the pod's power and cool-down in pods part 1.
 - **Conditions:** every sim mission flies by day (`modern-iaf/data/missions/`, "the MVP's conditions: day"); the
   goggles (Shift+N, `shared/settings.gd`) exist. Night missions do not come first (decided, §7).
 - **The chin stations (pods part 1, step B, 17 November 2026):** the Litening on 5R (the sim's 5), the navigation
@@ -268,12 +268,12 @@ more. Kind: **wire** = existing logic reached; **extend** = existing logic grown
 | P3 | **Done 17 Nov** (slice 6). Barak: fix row B5 in the plan (the Litening is already on its station 5, slice 4) | the plan as the IAF flew it | S | docs | — | 6 |
 | P4 | **Built 17 Nov** ([../weapons.md](../weapons.md) §7.3; no centreline store: no sim store hangs there). **Pod stations: split the sim's station 5 into 5L / 5R** (and a centreline 5): the navigation pod on 5L, the Litening on 5R (§2.3); weight and drag per pod; jettison keeps the pods. Now needed: both F-16s carry two chin pods | the real two-pod load, its weight and picture | M | extend (`sim.rs` stations, unit records, the loadout screen) | — | 6 |
 | P5 | TGP cockpit procedure complete: pod power and cool-down, WIDE / NARO / expand, WHOT / BHOT, CCD TV, laser code, `L` flashing, the trigger's first detent as the laser key, masking by the jet | the real pod workflow | M | extend (`eo.rs`, `f16_mfd.rs` / `.gd`) | — | 4 (rest) or 9 |
-| P6 | Laser spot search: find a wingman's or a ground team's laser spot | buddy lasing in missions | M | new (`eo.rs`; a lasing wingman in the AI) | — | 9 |
+| P6 | Not started (outside pods part 2). Laser spot search: find a wingman's or a ground team's laser spot | buddy lasing in missions | M | new (`eo.rs`; a lasing wingman in the AI) | — | 9 |
 | P9 | **Built 17 Nov** (the Pathfinder's shape the AN/AAQ-13's, inferred). **Navigation pods as stores on 5L:** the AN/AAQ-13 on the Sufa (204.6 kg[^w-lantirn]); the Pathfinder on the Barak (84 kg, 198 cm[^fi-pathfinder]) | the pod on the jet, its weight and drag; the FLIR and TF items need it | S | wire (data) | the AAQ-13: `flrpod.glb` (already ours); the Pathfinder: none found (the AAQ-13 shape is a stand-in, inferred) | 6, with P4 |
-| P7 | **Navigation FLIR on the HUD** with the navigation pod (both jets): the FLIR format's STBY / OPER and warm-up, a thermal-look picture drawn inside the HUD, gain / level, snap-look; usable by day and at night (the user's "no" to night missions first) | the HUD picture of the terrain ahead | M–L | new (render; GPU budget on the Iris Xe) | none (a shader) | 6, after P9 |
-| P8 | **Terrain following, Sufa only** (the AN/AAQ-13's TFR; the Barak's Pathfinder has none): the TFR format, SCP, ride, automatic TF on the pitch channel, manual TF box, fly-ups, TF FAIL, the HUD cues | low-level flight hands-off | L | new (`crates/iaf-flight` pitch command from `heights.rs`; `real_hud/f16.rs` cues) | none | low priority (the user's "yes, not in priority"); G12's TF row moves from the radar to the pod |
-| P10 | Ra'am pods when the F-15I flies: Litening on the left intake, LANTIRN navigation pod | the strike eagle's night kit | M | wire + P7 / P8 | `flrpod.glb`, P2's model | Ra'am (not planned) |
-| P11 | TGP page polish against the Litening (its own legends, not LANTIRN's) | closer look | S | extend | — | open: no public Litening page |
+| P7 | **Built 19 Nov** (pods part 2, [../weapons.md](../weapons.md) §7.4). **Navigation FLIR on the HUD** with the navigation pod (both jets): the FLIR format's STBY / OPER and warm-up, a thermal-look picture drawn inside the HUD, gain / level, snap-look; usable by day and at night (the user's "no" to night missions first) | the HUD picture of the terrain ahead | M–L | new (render; GPU budget on the Iris Xe) | none (a shader) | 6, after P9 |
+| P8 | **Built 19 Nov** (pods part 2, [../weapons.md](../weapons.md) §7.4). **Terrain following, Sufa only** (the AN/AAQ-13's TFR; the Barak's Pathfinder has none): the TFR format, SCP, ride, automatic TF on the pitch channel, manual TF box, fly-ups, TF FAIL, the HUD cues | low-level flight hands-off | L | new (`crates/iaf-flight` pitch command from `heights.rs`; `real_hud/f16.rs` cues) | none | low priority (the user's "yes, not in priority"); G12's TF row moves from the radar to the pod |
+| P10 | Not started (outside pods part 2). Ra'am pods when the F-15I flies: Litening on the left intake, LANTIRN navigation pod | the strike eagle's night kit | M | wire + P7 / P8 | `flrpod.glb`, P2's model | Ra'am (not planned) |
+| P11 | Not started (outside pods part 2). TGP page polish against the Litening (its own legends, not LANTIRN's) | closer look | S | extend | — | open: no public Litening page |
 
 Left out: a reconnaissance pod (no source ties one to IAF fighters), an external ECM pod (none shown; and the parked
 countermeasure rows), the Litening's SAR mode (one 2026 report; parked as sensor performance).

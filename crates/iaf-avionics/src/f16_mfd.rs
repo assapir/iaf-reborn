@@ -34,10 +34,13 @@ pub enum Format {
     Flcs,
     Blank,
     Reset,
+    /// The navigation pod's FLIR and TFR formats (modern-iaf/docs/weapons.md §7.4), offered with that pod.
+    Flir,
+    Tfr,
 }
 
 impl Format {
-    pub const ALL: [Format; 10] = [
+    pub const ALL: [Format; 12] = [
         Format::Fcr,
         Format::Sms,
         Format::Hsd,
@@ -48,6 +51,8 @@ impl Format {
         Format::Flcs,
         Format::Blank,
         Format::Reset,
+        Format::Flir,
+        Format::Tfr,
     ];
 
     pub fn label(self) -> &'static str {
@@ -62,12 +67,14 @@ impl Format {
             Format::Flcs => "FLCS",
             Format::Blank => "BLANK",
             Format::Reset => "RESET",
+            Format::Flir => "FLIR",
+            Format::Tfr => "TFR",
         }
     }
 
     /// Ours (Modern IAF, the modern MFDs): the formats with no game page, offered only there.
     pub fn modern_only(self) -> bool {
-        matches!(self, Format::Dte | Format::Flcs | Format::Blank | Format::Reset)
+        matches!(self, Format::Dte | Format::Flcs | Format::Blank | Format::Reset | Format::Flir | Format::Tfr)
     }
 
     /// The formats that can be the sensor of interest (the FCR, HSD, TGP and WPN; the DCS F-16 manual, a simulator
@@ -109,9 +116,9 @@ impl Format {
     }
 
     /// Its OSB on the format menu (fig. 1-29: FCR, TGP, WPN down the left from OSB 20; SMS, HSD, DTE, TEST, FLCS by
-    /// OSBs 6..10 on the right; BLANK by OSB 1 and RESET (the RESET MENU) by OSB 5 on the top. HAD, RCCE, TFR and FLIR
-    /// are not offered: the sim has no HARM targeting system, recce pod, terrain-following radar mode (avionics-plan.md
-    /// G12) or navigation FLIR pod).
+    /// OSBs 6..10 on the right; BLANK by OSB 1 and RESET (the RESET MENU) by OSB 5 on the top; TFR and FLIR by OSBs 17
+    /// and 16 (the DCS F-16 manual's menu, a simulator manual), shown with a navigation pod (f16_mfd.gd). HAD and RCCE
+    /// are not offered: the sim has no HARM targeting system or recce pod).
     pub fn menu_osb(self) -> i32 {
         match self {
             Format::Fcr => 20,
@@ -124,6 +131,8 @@ impl Format {
             Format::Flcs => 10,
             Format::Blank => 1,
             Format::Reset => 5,
+            Format::Tfr => 17,
+            Format::Flir => 16,
         }
     }
 }
@@ -674,7 +683,7 @@ mod tests {
         assert_eq!(m.shown(), Some(Format::Dte), "the own page keeps the format");
         assert!(offered(page::OWN));
         assert_eq!(menu(false).len(), 6);
-        assert_eq!(menu(true).len(), 10);
+        assert_eq!(menu(true).len(), 12);
         let osbs: Vec<i32> = menu(true).iter().map(|f| f.menu_osb()).collect();
         let mut sorted = osbs.clone();
         sorted.sort_unstable();

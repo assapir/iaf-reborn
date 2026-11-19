@@ -90,6 +90,8 @@ var on_radar_event: Callable
 var eo := {}
 var eo_texture: Texture2D
 var harm := {}
+## Ours, Modern IAF's F-16s: the navigation pod (nav_pod.gd state(): the FLIR and the TFR; {} without one).
+var nav := {}
 var on_mfd_event: Callable
 var on_flir: Callable
 ## The RWR copy (FUN_00446200 → state+0xe80..: the first `count` slots): [{type, pos: Vector2, launch, active}].
@@ -638,7 +640,10 @@ func hud_panel_input() -> Dictionary:
 		"over": int(weapons.get("override", 0)),
 		"sim": bool(weapons.get("sim", false)),
 		"soi": soi < 0,
-		"drift_co": int(hud_panel.drift) == 2
+		"drift_co": int(hud_panel.drift) == 2,
+		# Ours: the navigation pod's TFR cues and the FLIR picture shifted (nav_pod.gd; modern-iaf/docs/weapons.md §7.4).
+		"tf": nav.get("hud_tf"),
+		"flir_shift": bool(nav.get("shifted", false))
 	}
 
 

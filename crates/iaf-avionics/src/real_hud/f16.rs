@@ -63,7 +63,9 @@ pub(super) fn frame(f: Field, i: &Input, max_g: f64, fuel_reset: bool) -> Frame 
         Velocity::Tas => (i.tas_ms * MS_TO_KT, "T"),
         Velocity::Gnd => (i.ground_kt, "G"),
     };
-    airspeed(o, sc.left, tape_y, kt, letter, scales);
+    // The TFR's speed band: outside it the scale flashes (research/pods.md §3.3).
+    let flash = pn.tf.as_ref().is_some_and(|t| t.speed_out) && !flash_on(i.time_s);
+    airspeed(o, sc.left, tape_y, kt, letter, scales && !flash);
     o.push(text((sc.left + 3.0, tape_y - TAPE_HALF - 4.0), format!("{:.1}", i.g), Align::Left));
     // The HUD as the SOI: an asterisk at the upper left (the dash-34 as simulator forums quote it, docs/real-hud.md;
     // inferred place: left of the g readout).
@@ -198,7 +200,14 @@ pub(super) fn frame(f: Field, i: &Input, max_g: f64, fuel_reset: bool) -> Frame 
         if pn.fpm == FpmSwitch::AttFpm {
             ladder(p, i, fpm, f, style);
         }
-        marker(p, fpm, i.mr(5.0), i.mr(10.0), i.mr(5.0));
+        if pn.flir_shift {
+            dashed_marker(p, fpm, i.mr(5.0), i.mr(10.0), i.mr(5.0));
+        } else {
+            marker(p, fpm, i.mr(5.0), i.mr(10.0), i.mr(5.0));
+        }
+        if let Some(tf) = &pn.tf {
+            tf_cues(p, i, f, fpm, tf);
+        }
         // LOW beside the marker: a bomb released now hits before its fuze arms (dash-34 p. 1-173; ours right of it).
         if dv.is_some_and(|d| d.low) {
             p.push(text((fpm.0 + i.mr(14.0), fpm.1 + 3.0), "LOW", Align::Left));
@@ -283,6 +292,29 @@ pub(super) fn frame(f: Field, i: &Input, max_g: f64, fuel_reset: bool) -> Frame 
     }
     ground_cues(p, i, f, dlz.is_some_and(|(t, z)| t.range_m < z.min));
     fr
+}
+
+/// The TFR's cues (modern-iaf/docs/weapons.md §7.4; research/pods.md §3.3, secondary; sizes and places ours): the TF
+/// box, which the pilot flies the flight path marker into, held inside the field; LIMIT left of it and NO TER right of
+/// it; the fly-up's legend flashing under the field's centre.
+fn tf_cues(p: &mut Vec<Prim>, i: &Input, f: Field, fpm: P, tf: &TfCue) {
+    let h = i.mr(7.0);
+    let (c, _) = f.clamp_from(fpm, add(fpm, (0.0, -i.deg(tf.above_deg))));
+    p.push(line((c.0 - h, c.1 - h), (c.0 + h, c.1 - h)));
+    p.push(line((c.0 + h, c.1 - h), (c.0 + h, c.1 + h)));
+    p.push(line((c.0 + h, c.1 + h), (c.0 - h, c.1 + h)));
+    p.push(line((c.0 - h, c.1 + h), (c.0 - h, c.1 - h)));
+    if tf.limit {
+        p.push(text((c.0 - h - 4.0, c.1 + 3.0), "LIMIT", Align::Right));
+    }
+    if tf.no_ter {
+        p.push(text((c.0 + h + 4.0, c.1 + 3.0), "NO TER", Align::Left));
+    }
+    if let Some(s) = tf.fly_up
+        && flash_on(i.time_s)
+    {
+        p.push(text((0.5 * (f.left + f.right), f.centre_y() + i.mr(40.0)), s, Align::Centre));
+    }
 }
 
 /// The break X (p. 1-173, fig. 1-212): flashing at the GAAF advisory (every master mode); steady in the A-A missile

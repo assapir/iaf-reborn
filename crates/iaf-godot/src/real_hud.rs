@@ -44,7 +44,8 @@ fn pt(d: &VarDictionary, k: &str) -> Option<P> {
 
 /// Modern IAF's F-16 HUD panel {scales (0 VV/VAH, 1 VAH, 2 OFF), fpm (0 ATT/FPM, 1 FPM, 2 OFF), velocity (0 CAS,
 /// 1 TAS, 2 GND SPD), alt (0 RADAR, 1 BARO, 2 AUTO), ded (the DED's lines, [] OFF), depr_mr (or null), alow_ft, align
-/// (null, false aligning, true ready), over (1 DGFT, 2 MSL OVRD), sim, soi, drift_co}.
+/// (null, false aligning, true ready), over (1 DGFT, 2 MSL OVRD), sim, soi, drift_co, tf (the TFR's cues, IafNavPod.step,
+/// or none), flir_shift}.
 fn panel(p: &VarDictionary) -> Panel {
     let k = |key: &str, d: i64| num(p, key).map_or(d, |v| v as i64);
     Panel {
@@ -62,6 +63,8 @@ fn panel(p: &VarDictionary) -> Panel {
         sim: get(p, "sim").unwrap_or(false),
         soi: get(p, "soi").unwrap_or(false),
         drift_co: get(p, "drift_co").unwrap_or(false),
+        tf: get::<VarDictionary>(p, "tf").map(|t| crate::nav_pod::tf_cue(&t)),
+        flir_shift: get(p, "flir_shift").unwrap_or(false),
     }
 }
 

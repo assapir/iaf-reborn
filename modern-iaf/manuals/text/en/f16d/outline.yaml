@@ -74,6 +74,7 @@ chapters:
   - {id: radar-aa, title: "Radar: air-to-air", sim: part, file: f16/ch6/radar-aa.typ}
   - {id: radar-ag, title: "Radar: air-to-ground", sim: part, file: f16/ch6/radar-ag.typ}
   - {id: tgp, title: The targeting pod, sim: part, file: f16/ch6/tgp.typ}
+  - {id: nav-pod, title: The navigation pod and terrain following, sim: part, file: f16/ch6/nav-pod.typ}
   - {id: ew, title: "Threat warning and countermeasures", sim: part, file: f16/ch6/ew.typ}
   - {id: stores, title: "Stores management, master arm and jettison", sim: part, file: f16/ch6/stores.typ}
   - {id: aa-weapons, title: "Air-to-air employment: missiles and gun", sim: part, file: f16/ch6/aa-weapons.typ}

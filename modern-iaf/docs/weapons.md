@@ -308,12 +308,48 @@ navigation pod beneath its intake[^iaf-f16i], the F-16's navigation pod hangs on
   flags) keep their file format's nine.
 - **Jettison.** The emergency and selective jettisons keep every pod: the 1998 game's by name (FLIR, ECM) and Modern
   IAF's by its record (`kind: pod`, compiled as `"pod": true`). Until now the Litening, named TGP, was jettisoned.
-- **The functions come later.** The navigation pods are carried, drawn and weighed only: they give nothing (no
-  `gives`). The FLIR picture on the HUD (research/pods.md P7) and the Sufa's terrain following (P8, low priority) come
-  in pods part 2.
+- **The functions:** the FLIR picture on the HUD and the Sufa's terrain following, §7.4 (pods part 2).
 - **Tests:** `crates/iaf-avionics/src/stores.rs` `left_chin_station_loads_weighs_and_drags_both_sides`,
   `crates/iaf-tools/src/loadout.rs` `chin_stations_take_their_own_pods`, `modern-iaf/tests/test_sim_chin_pods.gd`
   (load, draw, weight, jettison, the SMS inventory), `modern-iaf/tests/test_front_end.gd` (5R / 5L, the pod drawn).
+
+### 7.4 The navigation pod's FLIR and terrain following
+
+Pods part 2 (19 November 2026; [research/pods.md](research/pods.md) P7, P8). The procedure follows a Falcon BMS
+community page that follows the dash-34, a secondary source[^bms-tfr]; every number it does not give is ours, inferred.
+The logic is `crates/iaf-avionics/src/nav_pod.rs` through `IafNavPod`; `shared/weapons/nav_pod.gd` wires it (Modern
+IAF's F-16s, a navigation pod on 5L).
+
+**The FLIR (both F-16s: the LANTIRN AN/AAQ-13 on the Sufa, the Pathfinder on the Barak).**
+
+| step | what happens | control |
+|---|---|---|
+| Power | LEFT HDPT and the MMC on: the FLIR format shows NOT TIMED OUT for 7 minutes (the shortest of the source's 7 to 15), then STBY. A jet powered in the air, or from its start, is warm. | the SNSR PWR panel |
+| Format | FLIR by OSB 16 on the format menu, offered with a navigation pod (dash-34 menu as the DCS guide shows it[^dcs-f16]) | the MFD's OSBs |
+| OPER | OSB 1 STBY / OPER: OPER draws the picture on the HUD | OSB 1 |
+| Picture | under the HUD's symbols, in the HUD's green, inside the combiner glass (`shared/cockpit/hud_flir.gdshader`); the heat is inferred from the view: its brightness, the sky's and the water's blue cold, the local contrast lifted. Its cost on this laptop's Iris Xe (1,600 x 900, measured 2026-11-19 by `modern-iaf/tests/_nav_pod_shot.gd`): 0.3 to 0.7 ms of GPU time a frame, no extra memory beyond the screen copy Godot keeps | — |
+| Polarity, gain, level | OSB 6 WHOT / BHOT; OSBs 20 / 19 GAIN+ / GAIN-, 18 / 17 LVL+ / LVL- (ours: the format's layout is not traced) | OSBs |
+| Snap-look | with the HUD the SOI (DMS up), a held cursor key shifts the picture 20° aside or 10° up / down (ours); look-into-turn leans it 0.15 of the bank, at most 10° (ours); while shifted the flight path marker is dashed | the cursor keys (records 48–51) |
+
+The ICP's FLIR rocker moves only: the format's OSBs set the gain.
+
+**The TFR (the Sufa's LANTIRN; the Pathfinder has none).**
+
+| item | the sim | control |
+|---|---|---|
+| Format | TFR by OSB 17 on the format menu; OSB 1 the mode NORM / WX / LPI / VLC, OSB 2 the SCP (1,000 / 500 / 300 / 200 ft; VLC 100 ft, ours), OSB 3 the ride HARD / SOFT / SMTH; the TF state at the top, an E-scope of the 6 km ahead with the clearance line, the fly-up's name, an X over the format for OBSTACLE and G-LIMIT (layout ours) | OSBs |
+| RF switch | QUIET keeps the TFR in LPI, SILENT stops it (FlightGear's positions 0 NORM, 1 QUIET, 2 SILENT; the model rests at QUIET, the cockpit starts it at NORM). WX and LPI change nothing else: the sim has no rain, and emissions are parked (avionics-plan.md §7) | the MISC panel's switch |
+| Command | the clearance under the jet closed over twice the ride's time (HARD 1.5 s, SOFT 2.5, SMOOTH 3.5: a level-off at the SCP from a 15° dive within the ride's g), then the ski toe: the climb over that path that 24 points every 250 m ahead need for their clearance (the jet levelled at the SCP over the ground under it); the g to fly it within the ride's limits (HARD 0 to 3 g, SOFT 0.5 to 2.5, SMOOTH 0.75 to 2), more in a bank (ours) | — |
+| Manual TF | the HUD's TF box at the commanded flight path: the pilot flies the marker into it | — |
+| Automatic TF | ADV MODE selected: STBY lit, ACTIVE while the TFR flies the pitch (gear up); the pilot keeps the roll and the speed, and his pitch adds to the TFR's | ADV MODE (Shift + F8, or the button) |
+| Cues | LIMIT left of the TF box (the climb needed past the ride), NO TER right of it (terrain unknown ahead), the airspeed scale flashing outside 300–600 KCAS (ours) | — |
+| Fly-ups | 2 g (the source's "about 2 g"): FLY UP below half the SCP (ours), OBSTACLE when the path needed is 10° above the jet's, G-LIMIT past the ride for 1 s (ours); over once above the SCP with nothing ahead. The name flashes on the HUD and the voice calls "Pull up" (the GAAF's call). With automatic TF always; in manual TF with MANUAL TF FLYUP at ENABLE (DISABLE at the start, ours: no fly-up after take-off) | MANUAL TF FLYUP (Shift + 3) |
+| Paddle | held: no fly-up (the autopilot's paddle, one switch) | Shift + I (held) |
+| TF FAIL | the TFR stops (SILENT, the power lost) under automatic TF: wings level and a 2 g pull until ADV MODE is let go; the eyebrow's TF FAIL lamp lights | — |
+
+Open (no source found): LO TF's meaning; the dash-34's FLIR and TFR format layouts. **Tests:**
+`crates/iaf-avionics/src/nav_pod.rs` (the warm-up, the command, the fly-ups, TF FAIL, the stick law),
+`modern-iaf/tests/test_sim_nav_pod.gd` (both jets in flight).
 
 ## 8. The air-to-air missiles
 
@@ -477,3 +513,4 @@ a dud; a GBU-12 in CCRP with the Litening slaved and LASER ARM leaves by itself 
     https://www.digitalcombatsimulator.com/en/downloads/documentation/dcs-viper_early_access_manual_en/
 [^dash34-low]: T.O. GR1F-16CJ-34-1-1 (Hellenic AF, 1997), p. 1-173 "Pullup Anticipation and Breakaway Cue (Break X)",
     https://falcon.blu3wolf.com/Docs/HAF-F16-34.pdf (PDF page 189), as docs/real-hud.md reads it
+[^bms-tfr]: Falcon BMS community, the LANTIRN navigation pod's FLIR and TFR as the dash-34 gives them (a simulator community page, secondary), as cited in [research/pods.md](research/pods.md) §3.2–3.3.

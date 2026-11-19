@@ -193,6 +193,10 @@ func draw_format(s: float) -> void:
 			flcs()
 		"RESET":
 			reset_menu()
+		"FLIR":
+			flir_format()
+		"TFR":
+			tfr_format()
 		"MENU":
 			format_menu(String(st.shown))
 	bottom_row(f)
@@ -220,6 +224,9 @@ func _soi_mark(st: Dictionary) -> void:
 func format_menu(current: String) -> void:
 	for e in ClassDB.class_call_static("IafF16Mfd", "menu_modern" if modern else "menu"):
 		if e[1] == "TGP" and not m._flir_menu():
+			continue
+		# Ours: FLIR with a navigation pod, TFR with the LANTIRN's (nav_pod.gd).
+		if e[1] == "FLIR" and cockpit.nav.is_empty() or e[1] == "TFR" and int(cockpit.nav.get("kind", 0)) != 2:
 			continue
 		label(int(e[0]), String(e[1]), e[1] == current)
 
@@ -1143,6 +1150,83 @@ func tgp() -> void:
 			centred(66, 90, "MASK", col)
 
 
+# --- FLIR, TFR (ours, Modern IAF's F-16s: the navigation pod, nav_pod.gd; modern-iaf/docs/weapons.md §7.4) --------
+
+
+## FLIR (inferred layout: the dash-34's FLIR format is not traced, research/pods.md §3.2): OSB 1 STBY / OPER, OSB 6
+## WHOT / BHOT, the gain and level by OSBs 20..17; the picture itself is on the HUD. NOT TIMED OUT while it warms up.
+func flir_format() -> void:
+	var n: Dictionary = cockpit.nav
+	if n.is_empty():
+		centred(66, 66, "NO POD", c("text"))
+		return
+	var st := int(n.flir)
+	label(1, "STBY" if n.get("flir_stby", true) else "OPER", st == 3)
+	label(6, "BHOT" if n.black_hot else "WHOT")
+	label(20, "GAIN+")
+	label(19, "GAIN-")
+	label(18, "LVL+")
+	label(17, "LVL-")
+	var col := c("text")
+	match st:
+		0:
+			centred(66, 62, "NO POWER", col)
+		1:
+			centred(66, 62, "NOT TIMED OUT", col)
+		2:
+			centred(66, 62, "STBY", col)
+		_:
+			centred(66, 62, "FLIR ON HUD", col)
+	centred(66, 76, "GAIN %.2f  LVL %+.1f" % [float(n.gain), float(n.level)], col, SMALL)
+
+
+## The E-scope's span: the terrain ahead (m) across 104 px, ±600 m about the jet's altitude up and down (ours).
+const ESCOPE_M := Vector2(6000.0, 600.0)
+
+
+## TFR (inferred layout: the format is not traced, research/pods.md §3.3): OSB 1 the mode (LPI under the RF switch's
+## QUIET), OSB 2 the SCP, OSB 3 the ride; the TF state at the top; an E-scope of the terrain ahead with the clearance
+## line under the jet; the fly-up's legend, with an X over the format for OBSTACLE and G-LIMIT.
+func tfr_format() -> void:
+	var n: Dictionary = cockpit.nav
+	if int(n.get("kind", 0)) != 2:
+		centred(66, 66, "NO TFR", c("text"))
+		return
+	var col := c("text")
+	label(1, String(n.get("mode", "NORM")))
+	# OSB 2: the SCP's value, its name small under it (the three top labels side by side).
+	label(2, "%d" % int(n.get("scp_ft", 1000.0)) if n.get("mode", "") != "VLC" else "VLC")
+	centred(osb_at(2).x, osb_at(2).y + 8.0, "SCP", col, SMALL)
+	label(3, String(n.get("ride", "HARD")))
+	var state := "SILENT" if int(n.get("rf", 0)) == 2 else "OFF"
+	if n.get("operating", false):
+		state = "ATF ACTIVE" if n.get("active", false) else ("ATF STBY" if n.get("adv", false) else "MAN TF")
+	centred(66, 26, state, col)
+	if not n.get("man_flyup", true):
+		centred(66, 34, "MAN FLYUP OFF", col, SMALL)
+	# The E-scope: the jet on the left at the middle height, the terrain ahead, the clearance under the jet.
+	var x0 := 14.0
+	var y0 := 66.0
+	var px := Vector2(104.0 / ESCOPE_M.x, 30.0 / ESCOPE_M.y)
+	var prof: Array = n.get("profile", [])
+	var pts := PackedVector2Array()
+	for k in prof.size():
+		if prof[k] != null:
+			var d := (k + 1) * float(ClassDB.class_call_static("IafNavPod", "profile_step"))
+			pts.append(Vector2(x0 + d * px.x, clampf(y0 - float(prof[k]) * px.y, 36.0, 100.0)))
+	if pts.size() > 1:
+		poly(pts, col, LINE)
+	var scp_y := y0 + float(n.get("scp_ft", 1000.0)) * 0.3048 * px.y
+	line(Vector2(x0, scp_y), Vector2(118, scp_y), c("scale"), THIN)
+	poly(PackedVector2Array([Vector2(x0 - 4, y0 - 3), Vector2(x0 + 4, y0), Vector2(x0 - 4, y0 + 3)]), col, LINE, true)
+	var fly := String(n.get("fly_up", ""))
+	if fly != "":
+		centred(66, 112, fly, c("warning"))
+		if fly in ["OBSTACLE", "G-LIMIT"]:
+			line(Vector2(10, 10), Vector2(122, 122), c("warning"), LINE)
+			line(Vector2(10, 122), Vector2(122, 10), c("warning"), LINE)
+
+
 # --- DTE, FLCS, RESET (ours, the modern MFDs) ---------------------------------------------------------------------
 
 
@@ -1321,6 +1405,10 @@ func _own(f: String, osb: int) -> void:
 						n.real.clear_declutter()
 		"SMS":
 			_own_sms(osb)
+		"FLIR", "TFR":
+			var act: String = {"FLIR": FLIR_OSBS, "TFR": TFR_OSBS}[f].get(osb, "")
+			if act != "":
+				m._mfd_event(NAV_EVENT, act)
 		"WPN", "TGP":
 			match osb:
 				20, 19:
@@ -1347,6 +1435,11 @@ const GPS_MODE_EVENT := -1
 const SEL_JETT_EVENT := -2
 ## Ours, the modern MFDs: the SMS's PROF1 / PROF2 (player_weapons.gd mfd_event, IafRipple toggle_profile).
 const PROFILE_EVENT := -3
+## Ours, Modern IAF's F-16s: the FLIR and TFR formats' OSBs (player_weapons.gd mfd_event, nav_pod.gd), the action by
+## OSB.
+const NAV_EVENT := -40
+const FLIR_OSBS := {1: "stby", 6: "polarity", 20: "gain_up", 19: "gain_down", 18: "level_up", 17: "level_down"}
+const TFR_OSBS := {1: "mode", 2: "scp", 3: "ride"}
 ## Ours, the modern MFDs: the TGP's STBY / A-G (OSB 1) and CZ (OSB 7) (player_weapons.gd mfd_event).
 const TGP_STBY_EVENT := -4
 const TGP_CZ_EVENT := -5

@@ -22,7 +22,7 @@
   "notes": {
     "number": "ours",
     "name": "PATH, the Pathfinder as the SMS lists it (ours, inferred: no SMS mnemonic was found)",
-    "kind": "the Pathfinder (AN/AAQ-20), the AN/AAQ-13 navigation pod's export version without the terrain-following radar: a forward-looking infrared camera whose picture shows on the HUD (fi-pathfinder, w-lantirn); the F-16C/D Barak's from 1992 (fi-pathfinder; which IAF jets carried it is inferred, modern-iaf/docs/research/pods.md §1). Carried, drawn and weighed only: its HUD picture comes later (pods.md P7), so it gives nothing yet",
+    "kind": "the Pathfinder (AN/AAQ-20), the AN/AAQ-13 navigation pod's export version without the terrain-following radar: a forward-looking infrared camera whose picture shows on the HUD (fi-pathfinder, w-lantirn); the F-16C/D Barak's from 1992 (fi-pathfinder; which IAF jets carried it is inferred, modern-iaf/docs/research/pods.md §1). Its FLIR picture on the HUD is shared/weapons/nav_pod.gd (modern-iaf/docs/weapons.md §7.4); it has no TFR",
     "kg": "84 kg (fi-pathfinder)",
     "drag": "as the AN/AAQ-13's (lantirn-nav.json, 0.305 m across, w-lantirn): the Pathfinder's diameter was not found (inferred)",
     "motion": "the reader's defaults (never released)",

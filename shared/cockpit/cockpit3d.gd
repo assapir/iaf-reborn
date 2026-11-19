@@ -178,6 +178,8 @@ func setup(c: Control, cam: Camera3D, type_code: int) -> bool:
 			_rest[meta.controls[k].prop] = float(meta.controls[k].modelled)
 	if _rest.has(FQS) and not switches.has(FQS):
 		switches[FQS] = 1.0  # FUEL QTY SEL at NORM (the model's own rest is TEST)
+	if _rest.has(RF_SW) and not switches.has(RF_SW):
+		switches[RF_SW] = 0.0  # the RF switch at NORM (the model's own rest is QUIET; nav_pod.gd)
 	if _rest.has(HUD_BRT):  # the F-16's display knobs (DISPLAY_KNOBS)
 		for k in DISPLAY_KNOBS:
 			_rest[k] = DISPLAY_KNOBS[k][2]
@@ -654,6 +656,7 @@ func _lighting() -> void:
 ## The F-16's FUEL QTY SEL knob (its FlightGear property: 0 TEST, 1 NORM, 2 RSVR, 3 INT WING, 4 EXT WING, 5 EXT CTR;
 ## the flight model's switch "fuel_qty_sel", command 270 p1 3, modern-iaf/docs/cockpit.md §5.7).
 const FQS := "controls/fuel/qty-selector"
+const RF_SW := "f16/avionics/rf/rf-switch"
 
 
 ## The fuel quantity indicator at FUEL QTY SEL's position: (FWD pointer, AFT pointer, totalizer), lb
@@ -1556,8 +1559,13 @@ func _lamp_on(key: String) -> bool:
 			return int(legs[["gear_nose", "gear_left", "gear_right"].find(key)]) == 2
 		"gear_transit":
 			return legs.any(func(v): return int(v) != (2 if cockpit.gear_handle_down else 0))
-		"adv_stby":  # ADV MODE selected stands by: the terrain following it engages is not modelled (inferred)
-			return _sw("f16/fcs/adv-mode-sel")
+		"tf_fail":  # the eyebrow's TF FAIL: the navigation pod's TFR failed under automatic TF (nav_pod.gd)
+			return String(cockpit.nav.get("fly_up", "")) == "TF FAIL"
+		"adv_stby", "adv_active":
+			# ADV MODE selected: ACTIVE while automatic TF flies the jet, else STBY (the navigation pod's TFR, nav_pod.gd;
+			# modern-iaf/docs/weapons.md §7.4).
+			var active := bool(cockpit.nav.get("active", false)) and bool(cockpit.nav.get("operating", false))
+			return _sw("f16/fcs/adv-mode-sel") and (active == (key == "adv_active"))
 		"canopy":  # not closed and locked (FlightGear's canopy-pos-norm > 0); the F-16's lock lever up
 			var a = _tv().get("aircraft") if _tv() != null else null
 			return (a != null and float(a.get("canopy_open")) > 0.01) or _sw("f16/canopy/spider")
