@@ -3264,6 +3264,14 @@ func _command(cmd: Array) -> bool:
 			if weapons != null and cockpit.pcd != null and Settings.modern_mfds():
 				weapons.mfd_event(cockpit.pcd.DOORS_EVENT)
 				_on_subtitle("Bay doors open" if weapons.bay_doors_manual else "Bay doors closed")
+		302:
+			# Ours, the F-35I's FLC on the throttle (Modern IAF's keys.json; pcd.gd flc): p1 0 / 1 turned on / back, 2
+			# pushed; 3 the helmet's picture (_helmet_video_step).
+			if Settings.modern_mfds() and cockpit.pcd != null:
+				if p1 == 3:
+					_helmet_video_step()
+				elif not cockpit.pcd.flc(p1):
+					_on_subtitle("FLC: no layers on this format")
 		241:
 			# Ours, the modern MFDs' LASER ARM switch (key Shift + L, the 3D cockpit's switch): the laser fires only
 			# armed; disarming stops it (player_weapons.gd laser_arm).
@@ -4128,21 +4136,20 @@ func _gps_key(step: bool) -> void:
 ## view and under the cockpit (canvas layer -1, after the cloud layer's); the HUD in its brightest green.
 func _toggle_goggles() -> void:
 	if _goggles == null:
-		var mat := ShaderMaterial.new()
-		mat.shader = load("res://shared/terrain/night_vision.gdshader")
-		for k in goggles_tube():
-			mat.set_shader_parameter(k, goggles_tube()[k])
-		mat.set_shader_parameter("glare", 0.0 if goggles_lit(player.get("type", 0), Settings.mission_year()) else 0.15)
-		var rect := ColorRect.new()
-		rect.material = mat
-		rect.set_anchors_preset(Control.PRESET_FULL_RECT)
-		rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var rect := _video_rect(goggles_tube())
+		rect.material.set_shader_parameter(
+			"glare", 0.0 if goggles_lit(player.get("type", 0), Settings.mission_year()) else 0.15
+		)
 		_goggles = CanvasLayer.new()
 		_goggles.layer = -1
 		_goggles.visible = false
 		_goggles.add_child(rect)
 		add_child(_goggles)
 	_goggles.visible = not _goggles.visible
+	if _goggles.visible:  # the tubes' look, after the F-35I's DAS video (_helmet_video_step)
+		for k in NVC_LOOK:
+			_goggles.get_child(0).material.set_shader_parameter(k, NVC_LOOK[k])
+		_helmet_mode = 1
 	# The HUD's light is far stronger than the night outside: through the tubes it shows as the brightest green (index 7
 	# of the H key's levels; inferred), the player's level back when the goggles come off.
 	if _goggles.visible:
@@ -4154,6 +4161,101 @@ func _toggle_goggles() -> void:
 
 var _goggles: CanvasLayer
 var _hud_level := 0
+
+
+## A full-view rect drawing the screen through the night-vision shader with `params` (its uniforms).
+static func _video_rect(params: Dictionary) -> ColorRect:
+	var mat := ShaderMaterial.new()
+	mat.shader = load("res://shared/terrain/night_vision.gdshader")
+	for k in params:
+		mat.set_shader_parameter(k, params[k])
+	var rect := ColorRect.new()
+	rect.material = mat
+	rect.set_anchors_preset(Control.PRESET_FULL_RECT)
+	rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return rect
+
+
+## Ours (Modern IAF, the F-35I; modern-iaf/docs/avionics-plan.md P9, G35): the DAS's infrared video as the
+## night-vision shader draws it, grey (white-hot), without the tubes' bright-source protection, edge or grain: a
+## simple stand-in, the scene's light amplified (inferred; no heat in the scene).
+const DAS_VIDEO := {
+	"cathode": Vector3(0.3, 0.45, 0.25),
+	"grain_k": 0.02,
+	"blur": 0.0,
+	"halo_k": 0.15,
+	"max_gain": 8.0,
+	"tint": Vector3(0.92, 0.94, 0.96),
+	"protect": 0.0,
+	"vignette": 0.0,
+	"glare": 0.0,
+	"curve": 1.0,
+}
+## The tubes' own look (the shader's defaults) for the night camera after the DAS video.
+const NVC_LOOK := {"tint": Vector3(0.42, 1.0, 0.36), "protect": 0.9, "vignette": 0.7, "curve": 0.5}
+## The helmet's picture (command 302, p1 3): 0 none, 1 the night camera (the goggles, goggles_tube), 2 the DAS video.
+var _helmet_mode := 0
+
+
+## The F-35I helmet's picture source, one step: off, the night vision camera, the DAS's video ("the pilot picks
+## 360-degree DAS infrared video or the near-infrared Night Vision Camera", AFI 11-2F-35 vol. 3 §3.19.1.1).
+func _helmet_video_step() -> void:
+	var on := _goggles != null and _goggles.visible
+	_helmet_mode = ((_helmet_mode if on else 0) + 1) % 3
+	if on != (_helmet_mode > 0):
+		_toggle_goggles()
+	if _helmet_mode > 0:
+		var mat: ShaderMaterial = _goggles.get_child(0).material
+		var lit := goggles_lit(player.get("type", 0), Settings.mission_year())
+		var look: Dictionary = (
+			DAS_VIDEO if _helmet_mode == 2 else goggles_tube().merged(NVC_LOOK).merged({"glare": 0.0 if lit else 0.15})
+		)
+		for k in look:
+			mat.set_shader_parameter(k, look[k])
+	_on_subtitle(["Helmet video off", "Helmet night camera", "Helmet DAS video"][_helmet_mode])
+
+
+## Ours (Modern IAF, the F-35I's DAS format; avionics-plan.md P9): the forward aperture's picture, a camera on the jet
+## along its nose DAS_FOV_DEG across (inferred: one of the six apertures, the forward one, as a simulator shows it),
+## drawn through DAS_VIDEO, DAS_PX wide; rendered only while the panoramic display draws the format
+## (cockpit.das_drawn_ms).
+const DAS_PX := 320
+const DAS_FOV_DEG := 90.0
+var das_viewport: SubViewport
+var das_camera: Camera3D
+
+
+func _update_das_view() -> void:
+	var show: bool = (
+		Settings.modern_mfds()
+		and cockpit.pcd != null
+		and Time.get_ticks_msec() - cockpit.das_drawn_ms < 500
+		and views.cockpit_drawn()
+	)
+	if das_viewport == null:
+		if not show:
+			return
+		das_viewport = SubViewport.new()
+		das_viewport.world_3d = get_viewport().world_3d
+		das_camera = Camera3D.new()
+		das_camera.keep_aspect = Camera3D.KEEP_WIDTH
+		das_camera.cull_mask &= ~VolumetricClouds.LAYER  # the clouds' quad shows the main view's clouds
+		das_viewport.add_child(das_camera)
+		var video := CanvasLayer.new()
+		video.add_child(_video_rect(DAS_VIDEO))
+		das_viewport.add_child(video)
+		add_child(das_viewport)
+		cockpit.das_texture = das_viewport.get_texture()
+	das_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS if show else SubViewport.UPDATE_DISABLED
+	if not show:
+		return
+	das_viewport.size = Vector2i(DAS_PX, int(DAS_PX / clampf(cockpit.das_aspect, 0.5, 4.0)))
+	das_camera.near = camera.near
+	das_camera.far = camera.far
+	das_camera.fov = DAS_FOV_DEG
+	das_camera.current = true
+	das_camera.global_transform = rig.global_transform
+
 
 ## The image tubes by generation (rendering.md §8.1): the photocathode's colour weights, the grain at ×2 gain, the
 ## blur (screen mip level), the halo's strength and the top gain. Gen II: AN/PVS-5 (1972); Gen III: ANVIS-6, Omnibus
@@ -4360,6 +4462,7 @@ func _process(delta: float) -> void:
 			if weapons != null:
 				weapons.update(_sim_time)
 		_update_eo_view()
+		_update_das_view()
 		_update_looks()
 		_update_full_screen()
 		g_effects.g = st.g

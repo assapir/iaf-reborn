@@ -317,6 +317,19 @@ func key(p1: int) -> void:
 			_do(func(): lay.apply(int(st.preset) + 1))
 
 
+## The throttle's FLC (command 302's p1: 0 / 1 turned on / back, 2 pushed; pcd.rs flc_turn / flc_push): turned, the
+## cursor's portal steps through the MENU grid's formats (a pick, as the grid's); pushed, its TSD's next layer setting.
+## False when the push found a format without layers.
+func flc(p1: int) -> bool:
+	if p1 == 2:
+		var ok: bool = lay.flc_push()
+		_refresh()
+		return ok
+	var i := int(st.focus)
+	_do(func(): lay.flc_turn(1 if p1 == 0 else -1), i)
+	return true
+
+
 ## DMS (command 240's p1: 0 up the helmet, 1 down the display, 2 / 3 the cursor's portal left / right).
 func dms(dir: int) -> void:
 	_do(func(): lay.dms(dir))
@@ -530,7 +543,8 @@ func _draw_body(i: int, name: String, body: Rect2) -> Dictionary:
 	var m = cockpit.mfds[i] if i < cockpit.mfds.size() else null
 	match name:
 		"TSD-1", "TSD-2", "TSD-3":
-			fmt.tsd(body, m.tsd_scale if m != null else 40, m.tsd_options[2] if m != null else true)
+			var lyr := int(st.get("layers", [0, 0, 0])[int(name.right(1)) - 1])
+			fmt.tsd(body, m.tsd_scale if m != null else 40, m.tsd_options[2] if m != null else true, lyr)
 		"SRCH":
 			fmt.radar(body)
 		"SMS":

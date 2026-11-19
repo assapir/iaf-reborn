@@ -39,7 +39,7 @@ The real jet's cameras detect and track a missile in flight#das-wiki. How the pi
 #in-sim[A missile launched at you shows as a red M at its bearing, with the seconds to its arrival under it, or two dashes while it does not close:
   - on the TWD, on the outer ring (@fig-d-twd_maw);
   - in the helmet, on a ring about the nose mark (@hmd).
-  The launch tone sounds. The warning does not name the missile. The DAS format shows the six cameras' frame with the same marks; the cameras' own picture is #nis.]
+  The launch tone sounds. The warning does not name the missile. The DAS format shows the same marks under the forward camera's picture (@pcd).]
 
 === Chaff and flares <ew-cmds>
 

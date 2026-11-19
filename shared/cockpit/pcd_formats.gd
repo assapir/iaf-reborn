@@ -248,12 +248,12 @@ func track_kind(c: Dictionary) -> String:
 ## The TSD (tactical situation display, the plan view): the compass rose about the ownship, heading-up, its radius
 ## = the range; the map's outlines grey; the route white with the steerpoint; the radar's tracks and the known SAM
 ## sites with their threat rings (red, dashed). `range_nm` = the rose's radius.
-func tsd(r: Rect2, range_nm: float, show_map := true) -> void:
+func tsd(r: Rect2, range_nm: float, show_map := true, layer := 0) -> void:
 	var c := Vector2(r.get_center().x, r.position.y + r.size.y * 0.54)
 	var rad := minf(r.size.x * 0.46, minf(c.y - r.position.y, r.end.y - c.y) * 0.95)  # inside a wide portal too
 	var mpp := range_nm * 1852.0 / rad
 	var clip := PackedVector2Array([r.position, Vector2(r.end.x, r.position.y), r.end, Vector2(r.position.x, r.end.y)])
-	if show_map:
+	if show_map and layer == 0:
 		# The map's outlines (grey), cut at the portal's edge (the cut itself not drawn).
 		# One transform per frame, applied natively: the own TSD map (OpenStreetMap) holds some 10,000 points, which
 		# point by point took 64 ms a frame (measured 2026-11-08) and slowed the F-35I's flight.
@@ -279,8 +279,11 @@ func tsd(r: Rect2, range_nm: float, show_map := true) -> void:
 			text(q + Vector2(-text_width(lab, 4.2) / 2.0, 1.6), lab, 4.2, GREY)
 	text(c + Vector2(rad * 0.72, -rad * 0.72), "%d" % int(range_nm), 4.5, CYAN)
 	text(c + Vector2(rad * 0.37, -rad * 0.37), "%d" % int(range_nm / 2.0), 4.0, DARK_GREY.lightened(0.4))
+	# The FLC's layer setting (pcd.rs layers): 1 without the map and the route, 2 the tracks only.
+	if layer > 0:
+		text(Vector2(r.position.x + 2.0, r.position.y + 6.0), "LYR %d" % layer, 4.2, CYAN)
 	# The route (white), its steerpoints (circles; the current one larger with its number).
-	var wps: Array = cockpit.waypoints
+	var wps: Array = cockpit.waypoints if layer == 0 else []
 	var prev = null
 	for i in wps.size():
 		var p := to_scope(wps[i].world, c, mpp)
@@ -295,7 +298,8 @@ func tsd(r: Rect2, range_nm: float, show_map := true) -> void:
 			else:
 				circle(p, 1.4, WHITE, THIN)
 	# The SAM sites (state+0x1148, the TSD table) and their engagement rings.
-	for site in cockpit.sam_sites:
+	var sites: Array = cockpit.sam_sites if layer < 2 else []
+	for site in sites:
 		var p := to_scope(site.pos, c, mpp)
 		if not r.grow(rad).has_point(p):
 			continue
@@ -1575,14 +1579,23 @@ func hud_repeat(r: Rect2) -> void:
 	text(Vector2(r.position.x, r.end.y - 2.0), bottom, 4.4, GREEN, HORIZONTAL_ALIGNMENT_CENTER, r.size.x)
 
 
-## DAS (the distributed aperture system's format; its camera picture is a later item, avionics-plan.md §8.5): the
-## picture's frame with NO VIDEO, under it the six apertures' sectors about the ownship (heading up) with each missile
-## warning (the threat warning's MAW list, cockpit.ews "maw": bearing, time to impact) as a red M on its bearing.
+## DAS (the distributed aperture system's format, avionics-plan.md P9): the forward aperture's picture (the DAS camera,
+## terrain_view.gd _update_das_view, which renders while this draws; NO VIDEO until its first frame), under it the six
+## apertures' sectors about the ownship (heading up) with each missile warning (the threat warning's MAW list,
+## cockpit.ews "maw": bearing, time to impact) as a red M on its bearing.
 func das(r: Rect2) -> void:
 	var v := Rect2(r.position + Vector2(2, 2), Vector2(r.size.x - 4.0, r.size.y * 0.42))
-	fill(v, Color(0.06, 0.07, 0.08))
+	cockpit.das_drawn_ms = Time.get_ticks_msec()
+	cockpit.das_aspect = v.size.aspect()
+	if cockpit.das_texture != null:
+		ci.draw_texture_rect(cockpit.das_texture, v, false)
+		text(v.position + Vector2(2.0, 6.0), "FWD", 4.4, GREEN)
+	else:
+		fill(v, Color(0.06, 0.07, 0.08))
+		text(
+			Vector2(v.position.x, v.get_center().y + 2.0), "NO VIDEO", 6.0, GREY, HORIZONTAL_ALIGNMENT_CENTER, v.size.x
+		)
 	box(v, GREY, THIN)
-	text(Vector2(v.position.x, v.get_center().y + 2.0), "NO VIDEO", 6.0, GREY, HORIZONTAL_ALIGNMENT_CENTER, v.size.x)
 	var c := Vector2(r.get_center().x, v.end.y + (r.end.y - v.end.y) / 2.0)
 	var rad := minf(r.size.x * 0.4, (r.end.y - v.end.y) * 0.42)
 	circle(c, rad, GREY, THIN)

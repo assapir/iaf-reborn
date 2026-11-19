@@ -3,7 +3,7 @@
 The pilot flies and fights with both hands on the controls: the switches for the sensors and the weapons are on the grips of #row("side_stick") and #row("throttle"). The list below is the sim's. The real grips' switch list is open.
 
 - On the stick: the weapon release button, the trigger, the trim switch, the target management switch (TMS), the display management switch (DMS), the countermeasures management switch (CMS), a switch that marks a point, a switch that zooms a sensor, the paddle that disconnects the autopilot, and the nose wheel steering button.
-- On the throttle: the cursor control, which moves the display's cursor and selects when pushed; the master mode switch; and the switch that cages or uncages a seeker.
+- On the throttle: the cursor control, which moves the display's cursor and selects when pushed; the master mode switch; the switch that cages or uncages a seeker; and the FLC, "Format Layer Control"#footnote[United States Air Force Test Center, solicitation "F-35 HOTAS Throttle and Side Stick", 25 July 2019, its list of the grips' switches, #link("https://sam.gov/opp/6481842093ca4c35c0461b221c26cb0b/view").]. Only its name is public.
 
 What each switch does in each format of the display is not public: open.
 
@@ -31,6 +31,8 @@ What each switch does in each format of the display is not public: open.
   [CMS], [#key("CMS forward: run the CMDS program") #key("CMS aft: stop dispensing") #key("CMS right: consent (SEMI) / enable AUTO")], [Works the countermeasures dispenser (@ew).],
   [Trim], [#key("Roll trim left") #key("Roll trim right")], [Trims the roll.],
   [Autopilot], [#key("Autopilot: level / nav / off")], [Steps the autopilot; the last press disconnects it.],
+  [FLC turned], [#key("FLC: previous format in the cursor's portal") #key("FLC: next format in the cursor's portal")], [Steps the format of the portal with the cursor through the MENU grid's formats (@pcd). Inferred from the switch's name.],
+  [FLC pushed], [#key("FLC push: the TSD's next layers")], [On a TSD, steps its layers: all; without the map and the route (LYR 1); the tracks only (LYR 2). On another format a notice says it has no layers. Inferred from the switch's name.],
 )
 
 === What the sim does differently <hotas-differences>

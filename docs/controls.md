@@ -142,7 +142,9 @@ Terms used on this page:
   Home the next window into the portal, Ctrl + End widen, Shift + Home enlarge, Shift + End the function bar's SWAP
   (its halves trade places; the portals stay), Alt + `,` the next preset, Ctrl + Delete the bay doors. The laptop map
   (no Home / End / Delete): Shift + F5 MENU, Shift + F6 select, Shift + F7 the next window, Ctrl + F3 widen, Ctrl + F4
-  enlarge, Shift + `\` SWAP, Ctrl + F5 the bay doors. DMS left / right (records 149 / 150, Ctrl + `[` / `]`) move the cursor between its
+  enlarge, Shift + `\` SWAP, Ctrl + F5 the bay doors. Records 251–254 (command 302): Alt + F9 / Alt + F10 the throttle's FLC
+  turned (the cursor portal's previous / next format), Alt + F8 the FLC pushed (the TSD's next layers), Alt + F7 the
+  helmet's picture (night camera, DAS, off). DMS left / right (records 149 / 150, Ctrl + `[` / `]`) move the cursor between its
   portals; DMS up / down give the sensor of interest to the helmet and back. The F-16's ICP keys (records 152–174)
   work the CNI.
 * Joystick buttons, axes and the hat: §5.

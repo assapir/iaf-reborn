@@ -93,6 +93,9 @@ pub struct Pcd {
     pub popup: Option<(usize, &'static str)>,
     /// The function bar's SWAP: its two halves traded (the portals stay).
     pub bar_swapped: bool,
+    /// The TSD-1 / 2 / 3's layer setting (the FLC's push, `flc_push`): 0 every layer, 1 without the map and the route,
+    /// 2 the tracks only (the SAM sites off too; inferred).
+    pub layers: [u8; 3],
 }
 
 impl Default for Pcd {
@@ -106,6 +109,7 @@ impl Default for Pcd {
             hud_soi: false,
             popup: None,
             bar_swapped: false,
+            layers: [0; 3],
         }
     }
 }
@@ -339,6 +343,25 @@ impl Pcd {
         if self.layout.wide[h / 2] || x - h as f64 * 0.25 < 0.25 { h } else { h + 1 }
     }
 
+    /// The throttle's FLC ("Format Layer Control", switch T8 of the USAF's HOTAS list) turned `d` places: the cursor's
+    /// portal steps through the MENU grid's formats (inferred: the switch's name only is public).
+    pub fn flc_turn(&mut self, d: i32) {
+        let i = self.focus;
+        let n = FORMATS.len() as i32;
+        let at = FORMATS.iter().position(|f| *f == self.layout.main[i]).unwrap_or(0) as i32;
+        self.show(i, FORMATS[(at + d).rem_euclid(n) as usize]);
+    }
+
+    /// The FLC pushed: the cursor portal's TSD steps to its next layer setting (`layers`); false when the portal shows
+    /// a format without layers (inferred, as `flc_turn`).
+    pub fn flc_push(&mut self) -> bool {
+        let Some(k) = ["TSD-1", "TSD-2", "TSD-3"].iter().position(|f| *f == self.layout.main[self.focus]) else {
+            return false;
+        };
+        self.layers[k] = (self.layers[k] + 1) % 3;
+        true
+    }
+
     /// The sensor of interest's format, None on the helmet.
     pub fn soi(&self) -> Option<&'static str> {
         (!self.hud_soi).then(|| self.layout.main[self.focus])
@@ -472,6 +495,26 @@ mod tests {
         p.popup(2, "FUEL");
         p.enlarge(2);
         assert_eq!((all(&p), p.popup), (want, None));
+    }
+
+    #[test]
+    fn flc_turns_formats_and_steps_the_tsd_layers() {
+        let mut p = Pcd { focus: 0, ..Default::default() };
+        assert_eq!(p.layout.main[0], "TSD-1");
+        assert!(p.flc_push());
+        assert!(p.flc_push());
+        assert_eq!(p.layers, [2, 0, 0]);
+        assert!(p.flc_push());
+        assert_eq!(p.layers[0], 0);
+        p.flc_turn(1);
+        assert_eq!(p.layout.main[0], "TSD-2");
+        p.flc_turn(-2);
+        assert_eq!(p.layout.main[0], "HUD", "wraps back past the grid's first");
+        assert!(!p.flc_push(), "the HUD repeat has no layers");
+        p.flc_turn(1);
+        assert_eq!(p.layout.main[0], "TSD-1");
+        let n = p.layout.main.iter().chain(p.layout.tabs.iter().flatten()).filter(|f| **f == "TSD-1").count();
+        assert_eq!(n, 1, "the format turned to stays in one place");
     }
 
     #[test]

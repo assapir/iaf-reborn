@@ -17,8 +17,14 @@ uniform float halo_k = 0.4;
 // lowers the gain and veils the picture, most toward the panel below.
 uniform float glare = 0.0;
 
-// P43 phosphor green.
-const vec3 PHOSPHOR = vec3(0.42, 1.0, 0.36);
+// The picture's colour: the tubes' P43 phosphor green; the F-35I's DAS video grey (terrain_view.gd DAS_VIDEO).
+uniform vec3 tint = vec3(0.42, 1.0, 0.36);
+// The tube's bright-source protection and its dark edge (0 for the DAS's camera, which has neither; inferred).
+uniform float protect = 0.9;
+uniform float vignette = 0.7;
+// The brightness curve's exponent: 0.5 (the square root) keeps the dim ground's detail beside the sky; the DAS's 1.0
+// keeps the picture's contrast by day (inferred).
+uniform float curve = 0.5;
 
 
 float hash(vec2 p) {
@@ -29,13 +35,13 @@ float hash(vec2 p) {
 void fragment() {
 	// On the square root of the brightness: the dim ground keeps its detail beside the sky (inferred).
 	vec3 avg = textureLod(screen, vec2(0.5), 12.0).rgb;
-	float mean = sqrt(dot(avg, cathode)) + glare;
+	float mean = pow(dot(avg, cathode), curve) + glare;
 	float gain = clamp(target / max(mean, 1e-3), 1.0, max_gain);
-	float l = sqrt(dot(textureLod(screen, SCREEN_UV, blur).rgb, cathode)) * gain;
+	float l = pow(dot(textureLod(screen, SCREEN_UV, blur).rgb, cathode), curve) * gain;
 	// Halos: a light far brighter than the scene blooms into a disc around itself.
 	float halo = 0.0;
 	for (float lod = 2.0; lod <= 5.0; lod += 1.0) {
-		halo += max(sqrt(dot(textureLod(screen, SCREEN_UV, lod).rgb, cathode)) * gain - 0.9, 0.0);
+		halo += max(pow(dot(textureLod(screen, SCREEN_UV, lod).rgb, cathode), curve) * gain - 0.9, 0.0);
 	}
 	l += halo_k * halo;
 	// Scintillation: the more gain, the more grain (photon noise), changing every frame.
@@ -46,8 +52,8 @@ void fragment() {
 	l = 1.0 - exp(-1.6 * max(l, 0.0));
 	// Bright-source protection: a view full of light (a close blast, daylight) darkens the tube (inferred limits).
 	// ponytail: no hold time, the picture comes back as soon as the light goes; a CPU-side timer if it should linger.
-	l *= 1.0 - 0.9 * smoothstep(0.35, 0.6, dot(avg, cathode));
+	l *= 1.0 - protect * smoothstep(0.35, 0.6, dot(avg, cathode));
 	vec2 d = SCREEN_UV - 0.5;
-	l *= 1.0 - 0.7 * smoothstep(0.4, 0.85, length(d * vec2(SCREEN_PIXEL_SIZE.y / SCREEN_PIXEL_SIZE.x, 1.0)));
-	COLOR = vec4(PHOSPHOR * l, 1.0);
+	l *= 1.0 - vignette * smoothstep(0.4, 0.85, length(d * vec2(SCREEN_PIXEL_SIZE.y / SCREEN_PIXEL_SIZE.x, 1.0)));
+	COLOR = vec4(tint * l, 1.0);
 }

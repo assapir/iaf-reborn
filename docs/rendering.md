@@ -2172,7 +2172,12 @@ original's by its id (`mission_year.rs default_year`: 111–117 1967, 121–127 
   MiGs get a Gen II at most (inferred).
 - The F-35I: the F-35 has no goggles. Its helmet shows a night camera's picture (ISIE-10, then ISIE-11, whose
   acuity comes close to the 20/20 of goggles), and the alternative goggle helmet was dropped in 2013[^f35][^f35alt].
-  Here it is drawn as the late Gen III (inferred); its camera's own look (latency, colour) is open.
+  Here it is drawn as the late Gen III (inferred); its camera's own look (latency, colour) is open. In Modern IAF its
+  helmet also shows the DAS's video (Alt + F7 steps the night camera, the DAS and off; the DAS format's picture on the
+  panoramic display is the same look): the shader with grey `tint`, no `protect` or `vignette`
+  (`terrain_view.gd` `DAS_VIDEO`, docs/f35i.md §4.3). The DAS format's camera costs 1.83 ms of GPU time a frame
+  while the format is drawn (320 px wide, every graphics option on, the Linux laptop's Iris Xe, 19 Nov 2026,
+  `modern-iaf/tests/_adir_s7d_shot.gd`); it does not render otherwise.
 - Not modelled: the P20 phosphor's long afterglow (55 ms) on the Gen II and early Gen III tubes[^phosphor], and the
   autogating of late-1990s tubes[^autogate].
 

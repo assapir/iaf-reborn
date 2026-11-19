@@ -109,7 +109,7 @@ A portal's header has CNTL> at its right#ife. What the real CNTL opens is not pu
   [WPN-A], [The air-to-air stores, the selected one, and the lock's range. NEXT selects the next air-to-air store. Layout inferred.], [@aa-weapons],
   [WPN-S], [The air-to-surface store: its status, mode, release profile (PROF, SGL or PAIR, the count and the interval) and, for a GPS bomb, each bomb's target. Layout inferred.], [@ag-weapons],
   [CNI], [The radios' presets and frequencies, the navigation source (RTE or TCN) and the TACAN, the transponder's modes and code, IDENT, with a keypad. Layout inferred.], [@radios],
-  [DAS], [The frame of the six cameras round the jet with the missile warnings. The picture reads NO VIDEO.], [@ew],
+  [DAS], [The forward camera's picture, grey (FWD), over the frame of the six cameras round the jet with the missile warnings. Which camera it shows and the picture's look are inferred.], [@ew, @hmd],
   [FCS], [The flight controls: the jet's outline, the gear and the flaps, the four channels and BIT on the ground. Layout inferred.], [],
   [PHM], [The fault list. Layout inferred.], [],
   [CHKLST], [The start-up checklist's steps. Layout inferred.], [],
@@ -123,6 +123,5 @@ The standby display under the glass, #row("ESIS"), is no format of the PCD: it h
 
 All of these are #nis:
 
-- the DAS format's picture of the cameras round the jet#das-wiki;
 - the MENU page's lights and helmet settings#ife;
 - voice commands.

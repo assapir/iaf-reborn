@@ -3,6 +3,13 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **The Adir's DAS picture and FLC (2026-11-19, avionics-plan.md slice 7 parts D and E, P9, P12, G35):** the DAS
+  format shows the forward aperture's picture, grey, from a camera on the nose that renders only while the format is
+  drawn; in the helmet Alt + F7 steps the night camera, the DAS's video and off (the pilot picks one, as the AFI
+  says). The throttle's FLC turned (Alt + F9 / F10) steps the cursor portal's format, pushed (Alt + F8) steps the
+  TSD's layers (all, without the map and route, the tracks only; inferred from the switch's name). Keys records
+  251–254 ([../../docs/f35i.md](../../docs/f35i.md) §4.3). Rust test `pcd::tests::flc_turns_formats_and_steps_the_tsd_layers`.
+  Open: the per-bomb PRE pick on the briefing map (part F, G4) waits for the user's yes.
 - **The Adir's panoramic display and stores (2026-11-19, avionics-plan.md slice 7 part C, P1, P3, P4, P6–P11, S13,
   S15, N8; G16, G29, G34):** the pilot lays out the display ([../../docs/f35i.md](../../docs/f35i.md) §4.3): the MENU
   grid's 20 formats, widening a portal over its half, enlarging it over its windows, a window or tab into its portal,
@@ -13,8 +20,8 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   HUD repeat and the DAS format's frame. The SMS draws the bays and their doors with DOORS (Ctrl + Delete); the TFLIR
   has the TGP's track modes, zoom, WIDE / NARO, laser and CZ; the TMS keys act on the cursor's portal. The SPICE 1000
   goes in the bays on 4 / 8 ([weapons.md](weapons.md) §5). Tests: `modern-iaf/tests/test_sim_pcd.gd`,
-  `test_sim_adir_pcd.gd`. Open: the DAS camera picture (avionics-plan.md §8 item 5, the slice's last part), the
-  per-bomb PRE pick in the sim (G4: waits for the user's yes), FLC on the grip (P12: no source names its function).
+  `test_sim_adir_pcd.gd`. Open: the per-bomb PRE pick in the sim (G4: waits for the user's yes); the DAS picture and
+  the FLC came with parts D and E (above).
 - **A lesson's load needs its bombs (2026-11-19, fixed, [weapons.md](weapons.md) §7.1):** a load with fewer
   air-to-ground stores than the mission's ground kills is refused on the Loadout screen and the briefing ("The mission
   needs bombs: add a Mk 82 bomb"), and a `--mission` run flies the mission's own load instead. Before, a saved load

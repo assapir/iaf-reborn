@@ -22,8 +22,9 @@ impl IafPcd {
     }
 
     /// {main [4], tabs [4 × 2], wide [2], big [4], menu [4], menu_cur, focus, hud_soi, popup (portal, -1 none),
-    /// preset, bar_swapped, portals [4 Rect2, an empty one hidden], windows [[Rect2, portal, window]], tab_rows [4 × the enlarged
-    /// portals' tabs]} with the windows' row `win` tall (of the glass under the function bar).
+    /// preset, bar_swapped, layers [the TSD-1 / 2 / 3's FLC layers], portals [4 Rect2, an empty one hidden], windows
+    /// [[Rect2, portal, window]], tab_rows [4 × the enlarged portals' tabs]} with the windows' row `win` tall (of the
+    /// glass under the function bar).
     #[func]
     fn state(&self, win: f64) -> VarDictionary {
         let p = &self.pcd;
@@ -41,6 +42,7 @@ impl IafPcd {
             "popup" => p.popup.map_or(-1, |q| q.0 as i64), "preset" => p.preset as i64,
             "bar_swapped" => p.bar_swapped, "portals" => &portals,
             "windows" => &windows, "tab_rows" => &tab_rows,
+            "layers" => &p.layers.iter().map(|x| i64::from(*x)).collect::<PackedInt64Array>(),
         }
     }
 
@@ -121,6 +123,18 @@ impl IafPcd {
             let i = self.pcd.portal_at(x);
             self.pcd.popup(i, f);
         }
+    }
+
+    /// The FLC turned `d` places: the cursor's portal steps through the MENU grid's formats.
+    #[func]
+    fn flc_turn(&mut self, d: i64) {
+        self.pcd.flc_turn(d as i32);
+    }
+
+    /// The FLC pushed: the cursor portal's TSD to its next layer setting; false on a format without layers.
+    #[func]
+    fn flc_push(&mut self) -> bool {
+        self.pcd.flc_push()
     }
 
     /// The sensor of interest's format, "" the helmet.

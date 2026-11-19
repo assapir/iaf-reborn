@@ -89,6 +89,11 @@ var on_radar_event: Callable
 ## in_range}); MFD events for them (mfd_event(ev, arg)) and MENU "FLIR" (flir_on(mfd) -> bool).
 var eo := {}
 var eo_texture: Texture2D
+## Ours (Modern IAF, the F-35I's DAS format; pcd_formats.gd das): the DAS camera's picture (terrain_view.gd
+## _update_das_view), when the format last drew (ms; the camera renders only while it does) and its picture's aspect.
+var das_texture: Texture2D
+var das_drawn_ms := -100000
+var das_aspect := 2.0
 var harm := {}
 ## Ours, Modern IAF's F-16s: the navigation pod (nav_pod.gd state(): the FLIR and the TFR; {} without one).
 var nav := {}

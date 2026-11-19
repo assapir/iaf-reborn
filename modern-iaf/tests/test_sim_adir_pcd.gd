@@ -5,6 +5,8 @@
 # - SWAP on the function bar trades the bar's halves, the portals stay;
 # - MENU on the function bar opens its page as a pop-up on the portal under it; CRUS restores the default layout;
 # - CNTL> opens the format's control page: the TFLIR's ZOOM IN, WIDE / SPOT and LSR act; SMS has no CNTL>.
+# - the FLC (command 302): turned steps the cursor portal's format, pushed the TSD's layers, a notice on SRCH;
+# - DAS: its camera renders only while the format is drawn; Alt + F7 steps the helmet's picture.
 #   IAF_DEFAULT_SETTINGS=1 godot --headless --audio-driver Dummy --path modern-iaf \
 #     -s ../modern-iaf/tests/test_sim_adir_pcd.gd --log-file <temp>
 extends "res://../tests/godot/base.gd"
@@ -71,6 +73,8 @@ func run() -> void:
 	await _swap()
 	await _menu()
 	await _cntl()
+	await _flc()
+	await _das()
 	tv.queue_free()
 	await frames(5)
 
@@ -171,3 +175,51 @@ func _cntl() -> void:
 	var pw0: float = pcd.portals()[0].size.x / pcd._s()
 	await _click(0, Vector2(pw0 - 10.0, 5.0))
 	check(not pcd.cntl_open[0], "SMS has no CNTL page")
+
+
+func _flc() -> void:
+	pcd.restore_layout()
+	pcd.lay.set_focus(0)
+	pcd._refresh()
+	for want in [1, 2, 0]:
+		tv._command([302, 2, 0])
+		await frames(1)
+		check(int(pcd.st.layers[0]) == want, "FLC pushed: TSD-1's layers %d (%d)" % [want, int(pcd.st.layers[0])])
+	tv._command([302, 0, 0])
+	await frames(2)
+	check(pcd.main[0] == "TSD-2", "FLC turned on: the next format (%s)" % pcd.main[0])
+	tv._command([302, 1, 0])
+	await frames(2)
+	check(pcd.main[0] == "TSD-1", "FLC turned back: TSD-1 again (%s)" % pcd.main[0])
+	pcd.lay.set_focus(2)
+	pcd._refresh()
+	check(pcd.main[2] == "SRCH" and not pcd.flc(2), "FLC pushed on SRCH: no layers")
+
+
+func _das() -> void:
+	pcd.restore_layout()
+	check(tv.das_viewport == null, "no DAS camera before the format shows")
+	pcd._show(2, "DAS")
+	await frames(3)
+	check(
+		(
+			tv.das_viewport != null
+			and tv.das_viewport.render_target_update_mode == SubViewport.UPDATE_ALWAYS
+			and c.das_texture != null
+		),
+		"the DAS format's picture is rendered"
+	)
+	pcd._show(2, "SRCH")
+	await fly(tv, 1.0)
+	check(
+		tv.das_viewport.render_target_update_mode == SubViewport.UPDATE_DISABLED,
+		"the DAS camera stops when the format goes"
+	)
+	for want in [1, 2, 0]:
+		tv._command([302, 3, 0])
+		await frames(1)
+		var on: bool = tv._goggles != null and tv._goggles.visible
+		check(on == (want > 0) and tv._helmet_mode == want, "the helmet's picture steps to %d" % want)
+		if want == 2:
+			var tint: Vector3 = tv._goggles.get_child(0).material.get_shader_parameter("tint")
+			check(tint == tv.DAS_VIDEO.tint, "the DAS video is grey (%s)" % tint)

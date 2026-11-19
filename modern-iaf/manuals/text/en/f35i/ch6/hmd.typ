@@ -7,7 +7,7 @@ The #jet.short has no head-up display. The #term("HMD") draws the flight and wea
 - #row("HMD_MODE") turns the helmet's display on and sets it for the night or the day.
 - #row("HMD_BRT") steps its brightness. Its key is #key("Step HUD brightness").
 
-#in-sim[OFF: the helmet shows nothing. NIGHT, AUTO and DAY show the same picture: their difference is #term("Not modelled"). The real helmet also shows the picture of the cameras round the jet, by day and by night#das-wiki: #nis.]
+#in-sim[OFF: the helmet shows nothing. NIGHT, AUTO and DAY show the same picture: their difference is #term("Not modelled"). The helmet also shows a picture of the world: #key("Helmet picture: night camera / DAS / off (F-35I)") steps the night camera (green), the DAS's video (grey) and off. On the real jet the pilot picks one of the two#afi[paragraph 3.19.1.1]. The DAS video's look is inferred: the sim's world has no heat, so the picture is its light, amplified.]
 
 === Looking forward: the virtual head-up display <hmd-forward>
 

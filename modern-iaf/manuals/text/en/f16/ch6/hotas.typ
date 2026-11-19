@@ -9,7 +9,7 @@ The real jet's stick and throttle carry the switches that work the sensors and t
   [TMS left], [Radar: interrogates (@radios); in the dogfight patterns the slewable scan.], [#key("Radar: ACM slew (TMS left)")],
   [Display management switch (DMS) up], [Makes the HUD the SOI.], [#key("DMS up (SOI to the HUD)")],
   [DMS down], [Moves the SOI to an MFD, then from one MFD to the other.], [#key("DMS down (SOI to an MFD)")],
-  [DMS left, right], [Shows the next format of the left or the right MFD.], [#key("DMS left (left MFD's next format)") #key("DMS right (right MFD's next format)")],
+  [DMS left, right], [Shows the next format of the left or the right MFD.], [#key("DMS left (left MFD's next format; F-35I: the cursor to the portal on the left)") #key("DMS right (right MFD's next format; F-35I: the cursor to the portal on the right)")],
   [Cursor control], [Moves the SOI's cursor, or slews the targeting pod.], [#key("Slew EO sensor / radar cursor up") #key("Slew EO sensor / radar cursor down") #key("Slew EO sensor / radar cursor left") #key("Slew EO sensor / radar cursor right")],
   [Antenna elevation wheel], [Tilts the radar's scan while held.], [#key("Radar antenna up (hold)") #key("Radar antenna down (hold)")],
   [Expand (the stick's pinky switch)], [Expands the radar's picture.], [#key("Radar expand (EXP)")],
