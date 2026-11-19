@@ -242,13 +242,24 @@ What each of the sim's five bases lacks today:
 
 | base | what the sim has | lacks |
 |---|---|---|
-| Ramon | runways, taxiways, 7 aprons, a Sufa spot | the loop-end shelters, 7 hangars, the tower, parked Sufas, Apaches, vehicles |
+| Ramon | runways, taxiways, 7 aprons, a Sufa spot; since 2026-11-19 shelters, hangars, buildings, the tower, parked Sufas, vehicles ([base-furniture.md](../base-furniture.md), our own shapes) | Apaches |
 | Hatzerim | runways, 89 taxiways, 9 aprons, F-15I and Sufa spots | the sunshade rows, 21 hangars, the tower, parked F-15Is and Sufas, trainers, vehicles |
 | Nevatim | runways, 16 aprons, the tower point, an F-35I spot | 11 shelters, 19 hangars, the tower building, parked F-35Is, transports and tankers, vehicles |
 | Ramat David | runways, 52 taxiways, 1 apron, a Barak spot | 25 shelters, 15 hangars, the tower, parked Baraks, vehicles |
 | Tel Nof | runways, 26 taxiways, 1 apron placed by eye, a Baz spot | every building (OSM maps none), the tower, parked Baz jets, CH-53s, vehicles |
 
-## 7. Open questions for the user
+## 7. Decisions (the user, 17 November 2026)
+
+- **The bases**: "fill the base with hangers and building and other airplanes"; "for bases, look on air photos of
+  the bases and try to put hings as in reality".
+- **Sketchfab account** (question 1): "yes".
+- **GPL v2 models fetched at setup time** (question 2): "yes".
+- **Ask the project with no licence file for a licence** (question 3, OPRF assets): "yes".
+- **Parked-aircraft detail** (question 4): "why not just use the same models": parked aircraft use the flying jets'
+  models.
+- **Which base first** (question 5): "pick". The orchestrator picked Ramon, the Sufa's home base.
+
+## 8. Open questions for the user (asked before the decisions)
 
 1. **Sketchfab downloads** need a free account (the F-35I's did). Is that acceptable for the CC BY vehicles and the
    mgg8 CC0 aircraft, or should the first round use only sources without an account?

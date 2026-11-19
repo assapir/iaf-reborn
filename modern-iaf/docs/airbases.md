@@ -133,9 +133,10 @@ a 20 × 14 m footprint on the apron. The leader takes the first spot and its win
 | Ramat David | Barak parking | the base's one OSM apron (1328724315, north of 09/27; OSM buildings on its north half): a row along its south half, noses south to the taxiway along it | 32.6678273, 35.1762686, 177° |
 
 Which squadron uses which apron or row is open at every base. The start spots move into the shelters when the bases
-have shelter models (the user, 2026-11-17: "if there are shelters then start inside one"): today the sim draws a
-shelter's pad only (§9), and Ramon's shelters at the ends of the loop taxiways are a few pixels in the 10 m picture,
-so the jets start on the apron rows.
+have shelter models (the user, 2026-11-17: "if there are shelters then start inside one"). Ramon has its shelters since
+2026-11-19 ([base-furniture.md](base-furniture.md)), but its jets still start on the apron row: the AI taxis from every
+spot straight to one hub, and Ramon has one shelter per loop taxiway, 200–400 m apart (open,
+[base-furniture.md](base-furniture.md) §7).
 
 ## 6. The check pictures
 
@@ -287,7 +288,8 @@ first frames draw Ramon's runways and its paved mask.
 
 Open: the towers of Ramon, Hatzerim and Ramat David (their reference points stand in); the taxiways' names (no
 location signs until a source names them); Hatzerim's 10/28 (no taxiway joins it in OpenStreetMap, so no sign or
-route leads there); the shelters' models (§5); one hub per base where every parking spot meets the taxiways (the
+route leads there); the shelters, hangars, tower building and parked jets of every base but Ramon
+([base-furniture.md](base-furniture.md)); one hub per base where every parking spot meets the taxiways (the
 AI of a second spot at Hatzerim taxis from the first spot's hub); the radio's tower list (`radio.gd BASES`) holds
 the original's ten names, so Hatzerim and Nevatim had no talking tower; since item E3b every base of the own
 `iaf.ibx` talks (`Settings.tower_bases`, [training.md](training.md) §8).

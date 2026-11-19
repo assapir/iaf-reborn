@@ -14,6 +14,7 @@ extends Node3D
 
 const NightLights := preload("res://shared/terrain/night_lights.gd")
 const Airbases := preload("res://shared/terrain/airbases.gd")
+const BaseFurniture := preload("res://shared/terrain/base_furniture.gd")
 
 const EDGE_STEP := 60.0
 const CAUTION := 600.0
@@ -210,11 +211,19 @@ func _built(i: int, mast_spots: Array) -> void:
 		var gh = _tv.terrain.height_at(p)
 		p.y = (float(gh) if gh != null else base_h) + (MAST_H if k >= n_ground else 0.0)
 		_v[k] = p
+	var n_masts := _v.size()
+	# The furniture's lamps (base_furniture.gd lights): over the shelters' doors, on the tower and the hangars.
+	for l: Array in BaseFurniture.lights(b):
+		var q := _scene(l[0], o)
+		var gh = _tv.terrain.height_at(q)
+		q.y = (float(gh) if gh != null else base_h) + float(l[1])
+		_v.append(q)
+		_c.append(l[2])
 	if _v.is_empty():
 		return
 	e.mesh.mesh = NightLights.point_mesh(_v, _c)
 	e.mesh.visible = true
-	for k in range(n_ground, _v.size()):
+	for k in range(n_ground, n_masts):
 		var s := SpotLight3D.new()
 		s.position = _v[k] + Vector3(0, -0.5, 0)
 		s.rotation = Vector3(-PI / 2.0, 0, 0)  # straight down

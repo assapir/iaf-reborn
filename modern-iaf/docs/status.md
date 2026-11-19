@@ -518,6 +518,11 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   nothing to download). Open: Sentinel-2 stays softer (10 m) than the photo (2 m) beside it; along the Egyptian border
   stepped block edges and a lighter outlined patch; on a theatre built before, the border units over 10 m tiles not kept on disk
   stay untoned (nothing is fetched for them).
+- **Ramon filled (2026-11-19, approved by the user the same day):** 40 hardened shelters (12 with a parked
+  Sufa), 10 hangars, 14 buildings, the tower, a sunshade, the fence and ramp vehicles beside the player's spot, placed
+  from Sentinel-2 and OpenStreetMap; door lamps and obstruction lights at night ([base-furniture.md](base-furniture.md)).
+  Our own simple shapes, no download; GPU +1 ms over the base on the Iris Xe; a rebuild of the terrain and airbases steps (nothing to download). Open: the jets start on the apron row, not in a
+  shelter (§7 there); the other four bases.
 - **The airbases from the air (2026-11-14, built, awaiting the user's yes on the pictures):** the bases' Sentinel-2
   fill toned to the photo around (no tan block; one colour map per base from the medians of the ground around, an odd
   Survey sheet left out, Sentinel-2's brighter dry grass brought down to the earth tones around); the painted

@@ -390,7 +390,8 @@ pub(crate) fn sim_of(step: &Step, ctx: &SimCtx) -> Result<Option<Stamp>> {
 pub(crate) fn sim_io(id: &str, ctx: &SimCtx) -> Option<(PathBuf, Vec<PathBuf>)> {
     let (a, data) = (&ctx.assets, ctx.data());
     Some(match id {
-        "sim-terrain" => (a.join(THEATRE).join("meta.json"), vec![data.join("airbases")]),
+        // The furniture's shelter pads are graded into the bases' ground (`sim_terrain::grade_base`).
+        "sim-terrain" => (a.join(THEATRE).join("meta.json"), vec![data.join("airbases"), data.join("furniture")]),
         "sim-db" => (a.join("converted/missions/sim.bdb.json"), vec![data.join("db")]),
         "sim-own" => (
             a.join("converted/own/keys.json"),
@@ -401,7 +402,10 @@ pub(crate) fn sim_io(id: &str, ctx: &SimCtx) -> Option<(PathBuf, Vec<PathBuf>)> 
                 ctx.repo.join(iaf_tools::sim::F16_GLB),
             ],
         ),
-        "sim-airbases" => (a.join("converted/own/iaf.ibx"), vec![data.join("airbases"), data.join("parking.json")]),
+        "sim-airbases" => (
+            a.join("converted/own/iaf.ibx"),
+            vec![data.join("airbases"), data.join("parking.json"), data.join("furniture")],
+        ),
         "sim-fm" => (a.join(iaf_tools::sim_fm0::MD_DIR).join("bd.ibx"), vec![]),
         "sim-scenery" => (a.join(THEATRE).join("scenery/manifest.json"), vec![data.join("airbases")]),
         // The ambientCG materials and the trees' foliage, composed last (`steps::textures_into`).

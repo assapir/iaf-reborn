@@ -1219,6 +1219,22 @@ fn units(
     })
 }
 
+/// GRADE_FILE's text: GRADE and a hash of the bases' furniture files (`data/furniture/*.json`, beside the airbases:
+/// the shelters' pads are graded with the pavement), so a furniture change re-grades the height nodes only.
+fn grade_text(r: &Run) -> String {
+    let mut files: Vec<_> = std::fs::read_dir(r.airbases.with_file_name("furniture"))
+        .map(|d| {
+            d.filter_map(|e| e.ok().map(|e| e.path())).filter(|p| p.extension().is_some_and(|x| x == "json")).collect()
+        })
+        .unwrap_or_default();
+    files.sort();
+    let h = files
+        .iter()
+        .flat_map(|p| std::fs::read(p).unwrap_or_default())
+        .fold(0xcbf29ce484222325u64, |h, b| (h ^ u64::from(b)).wrapping_mul(0x100000001b3));
+    if files.is_empty() { GRADE.to_string() } else { format!("{GRADE}; furniture {h:016x}") }
+}
+
 /// What a finished run was built from (`meta.json` "built_from"): the box, the detail area, the sheet ZIPs (name and
 /// size) and the airbases' layouts (name and a hash of the content: their outlines mask the Survey photo). A run whose
 /// inputs are the same as the stamp's has nothing to do.
@@ -1917,7 +1933,8 @@ pub fn terrain(r: &Run, pr: &dyn Progress, cancel: &AtomicBool) -> Result<()> {
     if let Some(o) = was.as_object_mut() {
         o.remove("grade");
     }
-    let graded = std::fs::read_to_string(out.join(GRADE_FILE)).is_ok_and(|g| g == GRADE);
+    let grade = grade_text(r);
+    let graded = std::fs::read_to_string(out.join(GRADE_FILE)).is_ok_and(|g| g == grade);
     if was == built_from && graded {
         log!(pr, "{}: up to date (same box, detail area and sheets)", out.display());
         return Ok(());
@@ -1926,7 +1943,7 @@ pub fn terrain(r: &Run, pr: &dyn Progress, cancel: &AtomicBool) -> Result<()> {
     if was == built_from {
         log!(pr, "{}: the bases' grading changed: their height nodes only", out.display());
         heights(r, &f, geo_bbox(r.area)?, &work, true, pr, cancel)?;
-        return Ok(std::fs::write(out.join(GRADE_FILE), GRADE)?);
+        return Ok(std::fs::write(out.join(GRADE_FILE), grade)?);
     }
     for l in 0..=ROOT_LEVEL {
         std::fs::create_dir_all(out.join(format!("L{l}")))?;
@@ -1961,7 +1978,7 @@ pub fn terrain(r: &Run, pr: &dyn Progress, cancel: &AtomicBool) -> Result<()> {
         parents(out, l, None, r.threads, cancel)?;
     }
     write_meta(&f, out, built_from)?;
-    std::fs::write(out.join(GRADE_FILE), GRADE)?;
+    std::fs::write(out.join(GRADE_FILE), grade)?;
     let mut bytes = 0u64;
     let mut counts = String::new();
     for l in 0..=ROOT_LEVEL {
@@ -2301,7 +2318,7 @@ mod tests {
         };
         let f = Frame::new(run.area).unwrap();
         write_meta(&f, &out, stamp(&run)).unwrap();
-        std::fs::write(out.join(GRADE_FILE), GRADE).unwrap();
+        std::fs::write(out.join(GRADE_FILE), grade_text(&run)).unwrap();
         terrain(&run, &crate::progress::Stdout, &AtomicBool::new(false)).unwrap();
         assert!(!out.join(".work").exists(), "returned before any work");
         std::fs::remove_dir_all(&out).unwrap();

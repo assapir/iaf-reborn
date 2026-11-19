@@ -1,0 +1,1089 @@
+{
+ "icao": "LLRM",
+ "survey": "2026-11-17",
+ "frame": "WGS-84 lat / lon, true headings, metres (as data/airbases, data-formats.md §10)",
+ "rows": [
+  {
+   "ref": "S1",
+   "kind": "shelter",
+   "lat": 30.779129,
+   "lon": 34.6869411,
+   "heading": 15,
+   "size_m": [
+    30,
+    24
+   ],
+   "id": "s2:30",
+   "source": "s2",
+   "note": "at the end of a loop taxiway; a bright roof of 5 Sentinel-2 pixels (object s2:30); door toward the loop, 29 m (inferred)"
+  },
+  {
+   "ref": "S2",
+   "kind": "shelter",
+   "lat": 30.7743545,
+   "lon": 34.6811917,
+   "heading": 138,
+   "size_m": [
+    30,
+    24
+   ],
+   "id": "s2:31",
+   "source": "s2",
+   "note": "at the end of a loop taxiway; a bright roof of 4 Sentinel-2 pixels (object s2:31); door toward the loop, 22 m (inferred)"
+  },
+  {
+   "ref": "S3",
+   "kind": "shelter",
+   "lat": 30.7737449,
+   "lon": 34.6863122,
+   "heading": 231,
+   "size_m": [
+    30,
+    24
+   ],
+   "osm": "way/1082924581",
+   "id": "s2:32",
+   "source": "s2",
+   "note": "at the end of a loop taxiway; a bright roof of 4 Sentinel-2 pixels (object s2:32); door toward the loop, 34 m (inferred); OSM way/1082924581 maps it 25 × 19 m"
+  },
+  {
+   "ref": "S4",
+   "kind": "shelter",
+   "lat": 30.771539,
+   "lon": 34.6747005,
+   "heading": 138,
+   "size_m": [
+    30,
+    24
+   ],
+   "osm": "way/1082924569",
+   "id": "s2:41",
+   "source": "s2",
+   "note": "at the end of a loop taxiway; a bright roof of 3 Sentinel-2 pixels (object s2:41); door toward the loop, 23 m (inferred); OSM way/1082924569 maps it 24 × 22 m"
+  },
+  {
+   "ref": "S5",
+   "kind": "shelter",
+   "lat": 30.7713929,
+   "lon": 34.6795751,
+   "heading": 247,
+   "size_m": [
+    30,
+    24
+   ],
+   "id": "s2:42",
+   "source": "s2",
+   "note": "at the end of a loop taxiway; a bright roof of 4 Sentinel-2 pixels (object s2:42); door toward the loop, 33 m (inferred)"
+  },
+  {
+   "ref": "S6",
+   "kind": "shelter",
+   "lat": 30.7658453,
+   "lon": 34.6580648,
+   "heading": 142,
+   "size_m": [
+    30,
+    24
+   ],
+   "id": "s2:59",
+   "source": "s2",
+   "note": "at the end of a loop taxiway; a bright roof of 4 Sentinel-2 pixels (object s2:59); door toward the loop, 32 m (inferred)"
+  },
+  {
+   "ref": "S7",
+   "kind": "shelter",
+   "lat": 30.765611,
+   "lon": 34.6504791,
+   "heading": 304,
+   "size_m": [
+    30,
+    24
+   ],
+   "id": "s2:61",
+   "source": "s2",
+   "note": "at the end of a loop taxiway; a bright roof of 4 Sentinel-2 pixels (object s2:61); door toward the loop, 39 m (inferred)"
+  },
+  {
+   "ref": "S8",
+   "kind": "shelter",
+   "lat": 30.7648741,
+   "lon": 34.6632467,
+   "heading": 239,
+   "size_m": [
+    30,
+    24
+   ],
+   "id": "s2:63",
+   "source": "s2",
+   "note": "at the end of a loop taxiway; a bright roof of 6 Sentinel-2 pixels (object s2:63); door toward the loop, 34 m (inferred)"
+  },
+  {
+   "ref": "S9",
+   "kind": "shelter",
+   "lat": 30.7635853,
+   "lon": 34.6524148,
+   "heading": 141,
+   "size_m": [
+    30,
+    24
+   ],
+   "id": "s2:73",
+   "source": "s2",
+   "note": "at the end of a loop taxiway; a bright roof of 3 Sentinel-2 pixels (object s2:73); door toward the loop, 30 m (inferred)"
+  },
+  {
+   "ref": "S10",
+   "kind": "shelter",
+   "lat": 30.7623637,
+   "lon": 34.6570189,
+   "heading": 247,
+   "size_m": [
+    30,
+    24
+   ],
+   "id": "s2:79",
+   "source": "s2",
+   "note": "at the end of a loop taxiway; a bright roof of 4 Sentinel-2 pixels (object s2:79); door toward the loop, 33 m (inferred)"
+  },
+  {
+   "ref": "S11",
+   "kind": "shelter",
+   "lat": 30.7647966,
+   "lon": 34.6483998,
+   "heading": 248,
+   "size_m": [
+    30,
+    24
+   ],
+   "id": "s2:66",
+   "source": "s2",
+   "note": "a bright roof of 9 Sentinel-2 pixels off the mapped taxiways (object s2:66); kind inferred (a shelter or a small store); door toward the nearest track, 69 m (inferred)"
+  },
+  {
+   "ref": "S12",
+   "kind": "shelter",
+   "lat": 30.7644552,
+   "lon": 34.6598922,
+   "heading": 276,
+   "size_m": [
+    30,
+    24
+   ],
+   "id": "s2:68",
+   "source": "s2",
+   "note": "a bright roof of 9 Sentinel-2 pixels off the mapped taxiways (object s2:68); kind inferred (a shelter or a small store); door toward the nearest track, 135 m (inferred)"
+  },
+  {
+   "ref": "S13",
+   "kind": "shelter",
+   "lat": 30.7629347,
+   "lon": 34.6620276,
+   "heading": 136,
+   "size_m": [
+    30,
+    24
+   ],
+   "id": "s2:74",
+   "source": "s2",
+   "note": "a bright roof of 8 Sentinel-2 pixels off the mapped taxiways (object s2:74); kind inferred (a shelter or a small store); door toward the nearest track, 118 m (inferred)"
+  },
+  {
+   "ref": "S14",
+   "kind": "shelter",
+   "lat": 30.762943,
+   "lon": 34.6599717,
+   "heading": 257,
+   "size_m": [
+    30,
+    24
+   ],
+   "id": "s2:75",
+   "source": "s2",
+   "note": "a bright roof of 3 Sentinel-2 pixels off the mapped taxiways (object s2:75); kind inferred (a shelter or a small store); door toward the nearest track, 116 m (inferred)"
+  },
+  {
+   "ref": "S15",
+   "kind": "shelter",
+   "lat": 30.76175,
+   "lon": 34.6534271,
+   "heading": 208,
+   "size_m": [
+    30,
+    24
+   ],
+   "id": "s2:81",
+   "source": "s2",
+   "note": "a bright roof of 8 Sentinel-2 pixels off the mapped taxiways (object s2:81); kind inferred (a shelter or a small store); door toward the nearest track, 81 m (inferred)"
+  },
+  {
+   "ref": "S16",
+   "kind": "shelter",
+   "lat": 30.7614074,
+   "lon": 34.6549006,
+   "heading": 90,
+   "size_m": [
+    30,
+    24
+   ],
+   "id": "s2:86",
+   "source": "s2",
+   "note": "a bright roof of 4 Sentinel-2 pixels off the mapped taxiways (object s2:86); kind inferred (a shelter or a small store); door toward the nearest track, 103 m (inferred)"
+  },
+  {
+   "ref": "S17",
+   "kind": "shelter",
+   "lat": 30.7608828,
+   "lon": 34.6569841,
+   "heading": 265,
+   "size_m": [
+    30,
+    24
+   ],
+   "id": "s2:89",
+   "source": "s2",
+   "note": "a bright roof of 8 Sentinel-2 pixels off the mapped taxiways (object s2:89); kind inferred (a shelter or a small store); door toward the nearest track, 88 m (inferred)"
+  },
+  {
+   "ref": "S18",
+   "kind": "shelter",
+   "lat": 30.7607217,
+   "lon": 34.6586424,
+   "heading": 61,
+   "size_m": [
+    30,
+    24
+   ],
+   "id": "s2:90",
+   "source": "s2",
+   "note": "a bright roof of 4 Sentinel-2 pixels off the mapped taxiways (object s2:90); kind inferred (a shelter or a small store); door toward the nearest track, 96 m (inferred)"
+  },
+  {
+   "ref": "S19",
+   "kind": "shelter",
+   "lat": 30.7614593,
+   "lon": 34.6610662,
+   "heading": 144,
+   "size_m": [
+    30,
+    24
+   ],
+   "id": "s2:85",
+   "source": "s2",
+   "note": "a bright roof of 2 Sentinel-2 pixels off the mapped taxiways (object s2:85); kind inferred (a shelter or a small store); door toward the nearest track, 59 m (inferred)"
+  },
+  {
+   "ref": "S20",
+   "kind": "shelter",
+   "lat": 30.7799562,
+   "lon": 34.6884037,
+   "heading": 244,
+   "size_m": [
+    30,
+    24
+   ],
+   "id": "s2:27",
+   "source": "s2",
+   "note": "a bright roof of 11 Sentinel-2 pixels off the mapped taxiways (object s2:27); kind inferred (a shelter or a small store); door toward the nearest track, 50 m (inferred)"
+  },
+  {
+   "ref": "S21",
+   "kind": "shelter",
+   "lat": 30.7710167,
+   "lon": 34.6784621,
+   "heading": 114,
+   "size_m": [
+    22,
+    20
+   ],
+   "osm": "way/1082924563",
+   "source": "osm",
+   "note": "OSM building 22 × 20 m in the NE dispersal; not bright in Sentinel-2 (an earth-covered roof, inferred); kind inferred from the size and place; door toward the nearest track, 14 m (inferred)"
+  },
+  {
+   "ref": "S22",
+   "kind": "shelter",
+   "lat": 30.7708603,
+   "lon": 34.6822446,
+   "heading": 267,
+   "size_m": [
+    22,
+    20
+   ],
+   "osm": "way/1082924565",
+   "source": "osm",
+   "note": "OSM building 22 × 20 m in the NE dispersal; not bright in Sentinel-2 (an earth-covered roof, inferred); kind inferred from the size and place; door toward the nearest track, 62 m (inferred)"
+  },
+  {
+   "ref": "S23",
+   "kind": "shelter",
+   "lat": 30.7709602,
+   "lon": 34.6827489,
+   "heading": 267,
+   "size_m": [
+    21,
+    21
+   ],
+   "osm": "way/1082924566",
+   "source": "osm",
+   "note": "OSM building 21 × 21 m in the NE dispersal; not bright in Sentinel-2 (an earth-covered roof, inferred); kind inferred from the size and place; door toward the nearest track, 111 m (inferred)"
+  },
+  {
+   "ref": "S24",
+   "kind": "shelter",
+   "lat": 30.7710501,
+   "lon": 34.6832624,
+   "heading": 172,
+   "size_m": [
+    21,
+    20
+   ],
+   "osm": "way/1082924567",
+   "source": "osm",
+   "note": "OSM building 21 × 20 m in the NE dispersal; not bright in Sentinel-2 (an earth-covered roof, inferred); kind inferred from the size and place; door toward the nearest track, 116 m (inferred)"
+  },
+  {
+   "ref": "S25",
+   "kind": "shelter",
+   "lat": 30.7711418,
+   "lon": 34.6837749,
+   "heading": 170,
+   "size_m": [
+    21,
+    21
+   ],
+   "osm": "way/1082924568",
+   "source": "osm",
+   "note": "OSM building 21 × 21 m in the NE dispersal; a bright roof there (s2:43); kind inferred from the size and place; door toward the nearest track, 119 m (inferred)"
+  },
+  {
+   "ref": "S26",
+   "kind": "shelter",
+   "lat": 30.770825,
+   "lon": 34.6754247,
+   "heading": 273,
+   "size_m": [
+    22,
+    20
+   ],
+   "osm": "way/1082924570",
+   "source": "osm",
+   "note": "OSM building 22 × 20 m in the NE dispersal; not bright in Sentinel-2 (an earth-covered roof, inferred); kind inferred from the size and place; door toward the nearest track, 16 m (inferred)"
+  },
+  {
+   "ref": "S27",
+   "kind": "shelter",
+   "lat": 30.7698156,
+   "lon": 34.6759077,
+   "heading": 273,
+   "size_m": [
+    21,
+    21
+   ],
+   "osm": "way/1082924572",
+   "source": "osm",
+   "note": "OSM building 21 × 21 m in the NE dispersal; not bright in Sentinel-2 (an earth-covered roof, inferred); kind inferred from the size and place; door toward the nearest track, 67 m (inferred)"
+  },
+  {
+   "ref": "S28",
+   "kind": "shelter",
+   "lat": 30.7697738,
+   "lon": 34.6764189,
+   "heading": 168,
+   "size_m": [
+    21,
+    20
+   ],
+   "osm": "way/1082924573",
+   "source": "osm",
+   "note": "OSM building 21 × 20 m in the NE dispersal; not bright in Sentinel-2 (an earth-covered roof, inferred); kind inferred from the size and place; door toward the nearest track, 111 m (inferred)"
+  },
+  {
+   "ref": "S29",
+   "kind": "shelter",
+   "lat": 30.7691367,
+   "lon": 34.6727992,
+   "heading": 151,
+   "size_m": [
+    21,
+    21
+   ],
+   "osm": "way/1082924574",
+   "source": "osm",
+   "note": "OSM building 21 × 21 m in the NE dispersal; not bright in Sentinel-2 (an earth-covered roof, inferred); kind inferred from the size and place; door toward the nearest track, 101 m (inferred)"
+  },
+  {
+   "ref": "S30",
+   "kind": "shelter",
+   "lat": 30.769554,
+   "lon": 34.6726194,
+   "heading": 3,
+   "size_m": [
+    22,
+    21
+   ],
+   "osm": "way/1082924575",
+   "source": "osm",
+   "note": "OSM building 22 × 21 m in the NE dispersal; a bright roof there (s2:49); kind inferred from the size and place; door toward the nearest track, 89 m (inferred)"
+  },
+  {
+   "ref": "S31",
+   "kind": "shelter",
+   "lat": 30.7731356,
+   "lon": 34.6853696,
+   "heading": 96,
+   "size_m": [
+    23,
+    21
+   ],
+   "osm": "way/1082924580",
+   "source": "osm",
+   "note": "OSM building 23 × 21 m in the NE dispersal; not bright in Sentinel-2 (an earth-covered roof, inferred); kind inferred from the size and place; door toward the nearest track, 16 m (inferred)"
+  },
+  {
+   "ref": "S32",
+   "kind": "shelter",
+   "lat": 30.7758806,
+   "lon": 34.6898956,
+   "heading": 79,
+   "size_m": [
+    22,
+    21
+   ],
+   "osm": "way/1082924582",
+   "source": "osm",
+   "note": "OSM building 22 × 21 m in the NE dispersal; not bright in Sentinel-2 (an earth-covered roof, inferred); kind inferred from the size and place; door toward the nearest track, 71 m (inferred)"
+  },
+  {
+   "ref": "S33",
+   "kind": "shelter",
+   "lat": 30.7757019,
+   "lon": 34.6894139,
+   "heading": 79,
+   "size_m": [
+    21,
+    20
+   ],
+   "osm": "way/1082924583",
+   "source": "osm",
+   "note": "OSM building 21 × 20 m in the NE dispersal; not bright in Sentinel-2 (an earth-covered roof, inferred); kind inferred from the size and place; door toward the nearest track, 120 m (inferred)"
+  },
+  {
+   "ref": "S34",
+   "kind": "shelter",
+   "lat": 30.7811771,
+   "lon": 34.6707631,
+   "heading": 204,
+   "size_m": [
+    21,
+    19
+   ],
+   "osm": "way/1385950362",
+   "source": "osm",
+   "note": "OSM hangar 21 × 19 m in the fenced compound north of 07L/25R with its own link to the runway: alert shelters (inferred); door toward the link, 16 m (inferred)"
+  },
+  {
+   "ref": "S35",
+   "kind": "shelter",
+   "lat": 30.7818239,
+   "lon": 34.6705591,
+   "heading": 171,
+   "size_m": [
+    26,
+    20
+   ],
+   "osm": "way/1385950363",
+   "source": "osm",
+   "note": "OSM hangar 26 × 20 m in the fenced compound north of 07L/25R with its own link to the runway: alert shelters (inferred); door toward the link, 87 m (inferred)"
+  },
+  {
+   "ref": "S36",
+   "kind": "shelter",
+   "lat": 30.7819361,
+   "lon": 34.670816,
+   "heading": 187,
+   "size_m": [
+    25,
+    20
+   ],
+   "osm": "way/1385950364",
+   "source": "osm",
+   "note": "OSM hangar 25 × 20 m in the fenced compound north of 07L/25R with its own link to the runway: alert shelters (inferred); door toward the link, 99 m (inferred)"
+  },
+  {
+   "ref": "S37",
+   "kind": "shelter",
+   "lat": 30.781712,
+   "lon": 34.6712593,
+   "heading": 157,
+   "size_m": [
+    24,
+    22
+   ],
+   "osm": "way/1385950365",
+   "source": "osm",
+   "note": "OSM hangar 24 × 22 m in the fenced compound north of 07L/25R with its own link to the runway: alert shelters (inferred); door toward the link, 69 m (inferred)"
+  },
+  {
+   "ref": "S38",
+   "kind": "shelter",
+   "lat": 30.7815268,
+   "lon": 34.6726103,
+   "heading": 247,
+   "size_m": [
+    21,
+    20
+   ],
+   "osm": "way/1385950367",
+   "source": "osm",
+   "note": "OSM hangar 21 × 20 m in the fenced compound north of 07L/25R with its own link to the runway: alert shelters (inferred); door toward the link, 39 m (inferred)"
+  },
+  {
+   "ref": "S39",
+   "kind": "shelter",
+   "lat": 30.7821335,
+   "lon": 34.6723679,
+   "heading": 189,
+   "size_m": [
+    26,
+    20
+   ],
+   "osm": "way/1385950368",
+   "source": "osm",
+   "note": "OSM hangar 26 × 20 m in the fenced compound north of 07L/25R with its own link to the runway: alert shelters (inferred); door toward the link, 84 m (inferred)"
+  },
+  {
+   "ref": "S40",
+   "kind": "shelter",
+   "lat": 30.7822295,
+   "lon": 34.6726193,
+   "heading": 202,
+   "size_m": [
+    27,
+    20
+   ],
+   "osm": "way/1385950369",
+   "source": "osm",
+   "note": "OSM hangar 27 × 20 m in the fenced compound north of 07L/25R with its own link to the runway: alert shelters (inferred); door toward the link, 100 m (inferred)"
+  },
+  {
+   "ref": "H1",
+   "kind": "hangar",
+   "lat": 30.7708834,
+   "lon": 34.6772593,
+   "heading": 107,
+   "size_m": [
+    51,
+    21
+   ],
+   "osm": "way/1082924562",
+   "source": "osm",
+   "note": "OSM building 51 × 21 m; a hangar or workshop (inferred from the size); heading = the long side"
+  },
+  {
+   "ref": "H2",
+   "kind": "hangar",
+   "lat": 30.7698336,
+   "lon": 34.674229,
+   "heading": 70,
+   "size_m": [
+    52,
+    20
+   ],
+   "osm": "way/1082924571",
+   "source": "osm",
+   "note": "OSM building 52 × 20 m; a hangar or workshop (inferred from the size); heading = the long side"
+  },
+  {
+   "ref": "H3",
+   "kind": "hangar",
+   "lat": 30.7682652,
+   "lon": 34.6767761,
+   "heading": 78,
+   "size_m": [
+    72,
+    21
+   ],
+   "osm": "way/1082924576",
+   "source": "osm",
+   "note": "OSM building 72 × 21 m; a hangar or workshop (inferred from the size); heading = the long side"
+  },
+  {
+   "ref": "H4",
+   "kind": "hangar",
+   "lat": 30.7682434,
+   "lon": 34.6782562,
+   "heading": 169,
+   "size_m": [
+    72,
+    23
+   ],
+   "osm": "way/1082924578",
+   "source": "osm",
+   "note": "OSM building 72 × 23 m; a hangar or workshop (inferred from the size); heading = the long side"
+  },
+  {
+   "ref": "H5",
+   "kind": "hangar",
+   "lat": 30.7723382,
+   "lon": 34.684525,
+   "heading": 99,
+   "size_m": [
+    52,
+    21
+   ],
+   "osm": "way/1082924579",
+   "source": "osm",
+   "note": "OSM building 52 × 21 m; a hangar or workshop (inferred from the size); heading = the long side"
+  },
+  {
+   "ref": "H6",
+   "kind": "hangar",
+   "lat": 30.7723243,
+   "lon": 34.6823276,
+   "heading": 180,
+   "size_m": [
+    52,
+    21
+   ],
+   "osm": "way/1082924564",
+   "source": "osm",
+   "note": "OSM building 52 × 21 m; a hangar or workshop (inferred from the size); heading = the long side"
+  },
+  {
+   "ref": "H7",
+   "kind": "hangar",
+   "lat": 30.7636716,
+   "lon": 34.6717289,
+   "heading": 173,
+   "size_m": [
+    41,
+    25
+   ],
+   "id": "s2:71",
+   "source": "s2",
+   "note": "a large bright roof in the technical area, 10 Sentinel-2 pixels (object s2:71, about 41 × 25 m with the 10 m blur); a maintenance hangar (inferred); heading = the long side"
+  },
+  {
+   "ref": "H8",
+   "kind": "hangar",
+   "lat": 30.7633107,
+   "lon": 34.6730599,
+   "heading": 66,
+   "size_m": [
+    50,
+    26
+   ],
+   "id": "s2:72",
+   "source": "s2",
+   "note": "a large bright roof in the technical area, 13 Sentinel-2 pixels (object s2:72, about 50 × 26 m with the 10 m blur); a maintenance hangar (inferred); heading = the long side"
+  },
+  {
+   "ref": "H9",
+   "kind": "hangar",
+   "lat": 30.7625971,
+   "lon": 34.6707523,
+   "heading": 70,
+   "size_m": [
+    65,
+    38
+   ],
+   "id": "s2:76",
+   "source": "s2",
+   "note": "a large bright roof in the technical area, 25 Sentinel-2 pixels (object s2:76, about 65 × 38 m with the 10 m blur); a maintenance hangar (inferred); heading = the long side"
+  },
+  {
+   "ref": "H10",
+   "kind": "hangar",
+   "lat": 30.7623271,
+   "lon": 34.6735663,
+   "heading": 160,
+   "size_m": [
+    57,
+    37
+   ],
+   "id": "s2:77",
+   "source": "s2",
+   "note": "a large bright roof in the technical area, 21 Sentinel-2 pixels (object s2:77, about 57 × 37 m with the 10 m blur); a maintenance hangar (inferred); heading = the long side"
+  },
+  {
+   "ref": "T1",
+   "kind": "tower",
+   "lat": 30.7727223,
+   "lon": 34.6682191,
+   "heading": 337,
+   "size_m": [
+    20,
+    12
+   ],
+   "id": "s2:37",
+   "source": "s2",
+   "note": "a walled compound midfield between 07R/25L and the parallel taxiway with a bright 9-pixel roof (s2:37): the usual place of a tower (inferred; airbases.md §7: Ramon's tower is open); faces the runway"
+  },
+  {
+   "ref": "B1",
+   "kind": "building",
+   "lat": 30.7683703,
+   "lon": 34.6773683,
+   "heading": 169,
+   "size_m": [
+    33,
+    14
+   ],
+   "osm": "way/1082924577",
+   "source": "osm",
+   "note": "OSM building 33 × 14 m"
+  },
+  {
+   "ref": "B2",
+   "kind": "building",
+   "lat": 30.7815122,
+   "lon": 34.6714293,
+   "heading": 69,
+   "size_m": [
+    35,
+    22
+   ],
+   "osm": "way/1385950366",
+   "source": "osm",
+   "note": "OSM building 35 × 22 m"
+  },
+  {
+   "ref": "B3",
+   "kind": "building",
+   "lat": 30.7823403,
+   "lon": 34.6728365,
+   "heading": 157,
+   "size_m": [
+    17,
+    12
+   ],
+   "osm": "way/1385950370",
+   "source": "osm",
+   "note": "OSM building 17 × 12 m"
+  },
+  {
+   "ref": "B4",
+   "kind": "building",
+   "lat": 30.7820696,
+   "lon": 34.6729833,
+   "heading": 156,
+   "size_m": [
+    23,
+    19
+   ],
+   "osm": "way/1385950371",
+   "source": "osm",
+   "note": "OSM building 23 × 19 m"
+  },
+  {
+   "ref": "B5",
+   "kind": "building",
+   "lat": 30.7658249,
+   "lon": 34.6769104,
+   "heading": 163,
+   "size_m": [
+    29,
+    17
+   ],
+   "id": "s2:58",
+   "source": "s2",
+   "note": "a bright roof, 5 Sentinel-2 pixels (object s2:58); kind inferred; size from the blurred roof"
+  },
+  {
+   "ref": "B6",
+   "kind": "building",
+   "lat": 30.7646813,
+   "lon": 34.6738838,
+   "heading": 73,
+   "size_m": [
+    30,
+    23
+   ],
+   "id": "s2:64",
+   "source": "s2",
+   "note": "a bright roof, 7 Sentinel-2 pixels (object s2:64); kind inferred; size from the blurred roof"
+  },
+  {
+   "ref": "B7",
+   "kind": "building",
+   "lat": 30.7646347,
+   "lon": 34.6774163,
+   "heading": 73,
+   "size_m": [
+    38,
+    16
+   ],
+   "id": "s2:65",
+   "source": "s2",
+   "note": "a bright roof, 6 Sentinel-2 pixels (object s2:65); kind inferred; size from the blurred roof"
+  },
+  {
+   "ref": "B8",
+   "kind": "building",
+   "lat": 30.7614351,
+   "lon": 34.6711721,
+   "heading": 46,
+   "size_m": [
+    28,
+    21
+   ],
+   "id": "s2:83",
+   "source": "s2",
+   "note": "a bright roof, 6 Sentinel-2 pixels (object s2:83); kind inferred; size from the blurred roof"
+  },
+  {
+   "ref": "B9",
+   "kind": "building",
+   "lat": 30.7608589,
+   "lon": 34.6696766,
+   "heading": 1,
+   "size_m": [
+    41,
+    30
+   ],
+   "id": "s2:87",
+   "source": "s2",
+   "note": "a bright roof, 12 Sentinel-2 pixels (object s2:87); kind inferred; size from the blurred roof"
+  },
+  {
+   "ref": "B10",
+   "kind": "building",
+   "lat": 30.7608922,
+   "lon": 34.6702455,
+   "heading": 149,
+   "size_m": [
+    32,
+    12
+   ],
+   "id": "s2:88",
+   "source": "s2",
+   "note": "a bright roof, 4 Sentinel-2 pixels (object s2:88); kind inferred; size from the blurred roof"
+  },
+  {
+   "ref": "B11",
+   "kind": "building",
+   "lat": 30.7603346,
+   "lon": 34.6708093,
+   "heading": 1,
+   "size_m": [
+    22,
+    22
+   ],
+   "id": "s2:91",
+   "source": "s2",
+   "note": "a bright roof, 5 Sentinel-2 pixels (object s2:91); kind inferred; size from the blurred roof"
+  },
+  {
+   "ref": "B12",
+   "kind": "building",
+   "lat": 30.7593923,
+   "lon": 34.6689461,
+   "heading": 161,
+   "size_m": [
+    35,
+    25
+   ],
+   "id": "s2:93",
+   "source": "s2",
+   "note": "a bright roof, 9 Sentinel-2 pixels (object s2:93); kind inferred; size from the blurred roof"
+  },
+  {
+   "ref": "B13",
+   "kind": "building",
+   "lat": 30.7583517,
+   "lon": 34.6683515,
+   "heading": 73,
+   "size_m": [
+    29,
+    17
+   ],
+   "id": "s2:97",
+   "source": "s2",
+   "note": "a bright roof, 5 Sentinel-2 pixels (object s2:97); kind inferred; size from the blurred roof"
+  },
+  {
+   "ref": "B14",
+   "kind": "building",
+   "lat": 30.7578361,
+   "lon": 34.6685233,
+   "heading": 64,
+   "size_m": [
+    44,
+    18
+   ],
+   "id": "s2:99",
+   "source": "s2",
+   "note": "a bright roof, 8 Sentinel-2 pixels (object s2:99); kind inferred; size from the blurred roof"
+  },
+  {
+   "ref": "U1",
+   "kind": "sunshade",
+   "lat": 30.7658457,
+   "lon": 34.6812265,
+   "heading": 42,
+   "size_m": [
+    371,
+    15
+   ],
+   "source": "s2",
+   "note": "a straight dark line 370 m long in Sentinel-2 beside the NE row of OSM helipads: the shadow of a long roof on posts (inferred); heading = the line's; repeat the module along it"
+  },
+  {
+   "ref": "J1",
+   "kind": "f16i",
+   "lat": 30.779129,
+   "lon": 34.6869411,
+   "heading": 15,
+   "source": "inferred",
+   "note": "in the shelter S1, nose out at the door (the imagery cannot show a jet: inferred)"
+  },
+  {
+   "ref": "J2",
+   "kind": "f16i",
+   "lat": 30.7743545,
+   "lon": 34.6811917,
+   "heading": 138,
+   "source": "inferred",
+   "note": "in the shelter S2, nose out at the door (the imagery cannot show a jet: inferred)"
+  },
+  {
+   "ref": "J3",
+   "kind": "f16i",
+   "lat": 30.7737449,
+   "lon": 34.6863122,
+   "heading": 231,
+   "source": "inferred",
+   "note": "in the shelter S3, nose out at the door (the imagery cannot show a jet: inferred)"
+  },
+  {
+   "ref": "J4",
+   "kind": "f16i",
+   "lat": 30.771539,
+   "lon": 34.6747005,
+   "heading": 138,
+   "source": "inferred",
+   "note": "in the shelter S4, nose out at the door (the imagery cannot show a jet: inferred)"
+  },
+  {
+   "ref": "J5",
+   "kind": "f16i",
+   "lat": 30.7713929,
+   "lon": 34.6795751,
+   "heading": 247,
+   "source": "inferred",
+   "note": "in the shelter S5, nose out at the door (the imagery cannot show a jet: inferred)"
+  },
+  {
+   "ref": "J6",
+   "kind": "f16i",
+   "lat": 30.7658453,
+   "lon": 34.6580648,
+   "heading": 142,
+   "source": "inferred",
+   "note": "in the shelter S6, nose out at the door (the imagery cannot show a jet: inferred)"
+  },
+  {
+   "ref": "J7",
+   "kind": "f16i",
+   "lat": 30.765611,
+   "lon": 34.6504791,
+   "heading": 304,
+   "source": "inferred",
+   "note": "in the shelter S7, nose out at the door (the imagery cannot show a jet: inferred)"
+  },
+  {
+   "ref": "J8",
+   "kind": "f16i",
+   "lat": 30.7648741,
+   "lon": 34.6632467,
+   "heading": 239,
+   "source": "inferred",
+   "note": "in the shelter S8, nose out at the door (the imagery cannot show a jet: inferred)"
+  },
+  {
+   "ref": "J9",
+   "kind": "f16i",
+   "lat": 30.7635853,
+   "lon": 34.6524148,
+   "heading": 141,
+   "source": "inferred",
+   "note": "in the shelter S9, nose out at the door (the imagery cannot show a jet: inferred)"
+  },
+  {
+   "ref": "J10",
+   "kind": "f16i",
+   "lat": 30.7623637,
+   "lon": 34.6570189,
+   "heading": 247,
+   "source": "inferred",
+   "note": "in the shelter S10, nose out at the door (the imagery cannot show a jet: inferred)"
+  },
+  {
+   "ref": "J11",
+   "kind": "f16i",
+   "lat": 30.7818239,
+   "lon": 34.6705591,
+   "heading": 171,
+   "source": "inferred",
+   "note": "alert jet in the shelter S35 (way/1385950363), nose out (inferred)"
+  },
+  {
+   "ref": "J12",
+   "kind": "f16i",
+   "lat": 30.7811771,
+   "lon": 34.6707631,
+   "heading": 204,
+   "source": "inferred",
+   "note": "alert jet in the shelter S34 (way/1385950362), nose out (inferred)"
+  },
+  {
+   "ref": "G1",
+   "kind": "gpu",
+   "lat": 30.7698566,
+   "lon": 34.6593915,
+   "heading": 335,
+   "source": "inferred",
+   "note": "beside the player's jet, left of the cockpit (inferred)"
+  },
+  {
+   "ref": "FT1",
+   "kind": "fuel_truck",
+   "lat": 30.7697206,
+   "lon": 34.6593034,
+   "heading": 335,
+   "source": "inferred",
+   "note": "parked left and behind the player's jet, clear of its way out (inferred)"
+  },
+  {
+   "ref": "X1",
+   "kind": "extinguisher",
+   "lat": 30.7699208,
+   "lon": 34.659379,
+   "heading": 335,
+   "source": "inferred",
+   "note": "off the left wingtip, as on a flight line (inferred)"
+  },
+  {
+   "ref": "TG1",
+   "kind": "tug",
+   "lat": 30.7817179,
+   "lon": 34.6704517,
+   "heading": 171,
+   "source": "inferred",
+   "note": "outside the alert shelter S35 (inferred)"
+  },
+  {
+   "ref": "FN1",
+   "kind": "fence",
+   "along": "boundary",
+   "osm": "way/292211017",
+   "source": "osm",
+   "note": "along the base's outline (`boundary` of airbases/llrm.json): OSM tags the aerodrome way barrier=fence"
+  }
+ ],
+ "footnotes": {
+  "s2": "ESA WorldCover 2021 Sentinel-2 RGBNIR composite, 10 m (CC BY 4.0), tile N30E034 in assets/source/imagery/sentinel2/: bright objects against the ground within 90 m (s2:<n> = the survey's object number, modern-iaf/docs/base-furniture.md §2)",
+  "osm": "OpenStreetMap contributors (ODbL 1.0), the scenery step's extract israel-and-palestine-260101.osm.pbf and the airbases step's Overpass answer (assets/source/osm/airbases/LLRM.json)",
+  "inferred": "our own reasoning"
+ }
+}

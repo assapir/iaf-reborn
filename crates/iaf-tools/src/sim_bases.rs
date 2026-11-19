@@ -161,6 +161,20 @@ pub struct Spot {
     pub heading: f64,
 }
 
+/// One thing standing on a base (base-furniture.md §3): its kind, place, grid heading and footprint (m, along the
+/// heading × across), or for a fence the line it runs along.
+#[derive(Debug, Clone)]
+pub struct Item {
+    pub kind: String,
+    pub at: [f64; 2],
+    pub heading: f64,
+    pub size: Option<[f64; 2]>,
+    pub line: Vec<[f64; 2]>,
+}
+
+/// The concrete before a shelter's door (m, inferred: the door's apron reaches the loop taxiway 20–35 m out).
+const SHELTER_APRON_M: f64 = 20.0;
+
 #[derive(Debug, Clone)]
 pub struct Base {
     pub icao: String,
@@ -178,6 +192,9 @@ pub struct Base {
     pub aprons: Vec<Vec<[f64; 2]>>,
     pub shelters: Vec<Vec<[f64; 2]>>,
     pub parking: Vec<Spot>,
+    /// What stands on the base (`data/furniture/<icao>.json`, base-furniture.md): shelters, hangars, buildings, the
+    /// tower, parked jets, ramp props, the fence.
+    pub furniture: Vec<Item>,
     /// The take-off end: (runway index, end index).
     pub main: (usize, usize),
 }
@@ -244,6 +261,7 @@ pub fn files(dir: &Path) -> Result<Vec<Value>> {
     };
     let spots = dir.with_file_name("parking.json");
     let spots = if spots.exists() { read(&spots)? } else { Value::Null };
+    let furniture = dir.with_file_name("furniture");
     let mut paths: Vec<_> = std::fs::read_dir(dir)
         .with_context(|| format!("{}", dir.display()))?
         .filter_map(|e| e.ok().map(|e| e.path()))
@@ -257,6 +275,10 @@ pub fn files(dir: &Path) -> Result<Vec<Value>> {
             let icao = v["icao"].as_str().unwrap_or("");
             ensure!(spots[icao].is_array(), "parking.json: no spots for {icao:?} ({})", p.display());
             v["parking"] = spots[icao].clone();
+        }
+        let f = furniture.join(format!("{}.json", v["icao"].as_str().unwrap_or("").to_lowercase()));
+        if f.exists() {
+            v["furniture"] = read(&f)?["rows"].clone();
         }
         out.push(v);
     }
@@ -311,6 +333,30 @@ pub fn base(v: &Value, what: &str) -> Result<Base> {
             })
         })
         .collect::<Result<Vec<_>>>()?;
+    let mut furniture = Vec::new();
+    for r in v["furniture"].as_array().into_iter().flatten() {
+        let kind = r["kind"].as_str().with_context(|| format!("{what}: a furniture row needs a kind"))?.to_string();
+        if r["along"] == "boundary" {
+            furniture.push(Item { kind, at: [0.0; 2], heading: 0.0, size: None, line: line(&v["boundary"]) });
+            continue;
+        }
+        let (lat, lon) = (r["lat"].as_f64(), r["lon"].as_f64());
+        let ((Some(lat), Some(lon)), Some(h)) = ((lat, lon), r["heading"].as_f64()) else {
+            anyhow::bail!("{what}: furniture {} needs lat, lon and heading", r["ref"]);
+        };
+        let size = r["size_m"].as_array().and_then(|a| Some([a.first()?.as_f64()?, a.get(1)?.as_f64()?]));
+        furniture.push(Item { kind, at: utm36n(lon, lat), heading: grid_heading(lon, lat, h), size, line: vec![] });
+    }
+    // A shelter's pad and the concrete before its door are paved (the mask draws them as an apron).
+    let mut shelters = polys("shelters");
+    for f in furniture.iter().filter(|f| f.kind == "shelter") {
+        let [l, w] = f.size.unwrap_or([30.0, 24.0]);
+        let d = [f.heading.to_radians().sin(), f.heading.to_radians().cos()];
+        let n = [d[1], -d[0]];
+        let at = |a: f64, c: f64| [f.at[0] + d[0] * a + n[0] * c, f.at[1] + d[1] * a + n[1] * c];
+        let (back, front) = (-l / 2.0, l / 2.0 + SHELTER_APRON_M);
+        shelters.push(vec![at(back, -w / 2.0), at(front, -w / 2.0), at(front, w / 2.0), at(back, w / 2.0)]);
+    }
     let mut b = Base {
         icao: v["icao"].as_str().unwrap_or("").to_string(),
         section: section.to_string(),
@@ -335,8 +381,9 @@ pub fn base(v: &Value, what: &str) -> Result<Base> {
             .filter(|p| p.len() >= 2)
             .collect(),
         aprons: polys("aprons"),
-        shelters: polys("shelters"),
+        shelters,
         parking,
+        furniture,
         main: (0, 0),
     };
     b.main = b.end(main).with_context(|| format!("{what}: no runway end {main}"))?;
@@ -1696,6 +1743,16 @@ pub fn airbases(data: &Path, assets: &Path, pr: &dyn Progress, cancel: &AtomicBo
                 "panels": s.panels.iter().map(|p| json!({"style": p.style, "text": p.text, "arrow": p.arrow})).collect::<Vec<_>>(),
             })).collect::<Vec<_>>(),
             "mask": {"file": file, "origin": pt(m.origin), "px_m": MASK_PX_M, "w": m.w, "h": m.h},
+            "furniture": b.furniture.iter().map(|f| {
+                let mut o = json!({"kind": f.kind, "at": pt(f.at), "heading": (f.heading * 10.0).round() / 10.0});
+                if let Some(s) = f.size {
+                    o["size"] = json!(s);
+                }
+                if !f.line.is_empty() {
+                    o["line"] = f.line.iter().map(|p| pt(*p)).collect();
+                }
+                o
+            }).collect::<Vec<_>>(),
         }));
         log!(
             pr,
@@ -2562,6 +2619,37 @@ mod tests {
                         );
                     }
                 }
+            }
+        }
+    }
+
+    /// Ramon's furniture (base-furniture.md §4) loads into the frame, stands clear of the runways (a footprint's
+    /// corner over 40 m from a runway's edge, Annex 14's strip for a building, inferred) and of the departure from each
+    /// parking spot (25 m: an F-16's half span and margin, inferred), and its shelters' pads are paved.
+    #[test]
+    fn the_furniture_stands_clear() {
+        let bases = load(&data()).unwrap();
+        let b = bases.iter().find(|b| b.icao == "LLRM").unwrap();
+        assert!(b.furniture.iter().filter(|f| f.kind == "shelter").count() >= 40, "Ramon's shelters");
+        let rt = routes(b).unwrap();
+        for f in b.furniture.iter().filter(|f| f.line.is_empty()) {
+            let [l, w] = f.size.unwrap_or([0.0, 0.0]);
+            let r = (l * l + w * w).sqrt() / 2.0;
+            assert!(b.runway_dist(f.at) - r > 40.0, "{} at {:?} is on a runway's strip", f.kind, f.at);
+            if f.kind == "shelter" {
+                assert!(b.paved(f.at, 0.0), "the shelter at {:?} has no pad", f.at);
+            }
+            for s in &b.parking {
+                let mut path = vec![s.at];
+                path.extend(&rt.from);
+                let near = path.windows(2).map(|q| seg_dist(f.at, q[0], q[1])).fold(f64::MAX, f64::min);
+                let props = ["gpu", "fuel_truck", "extinguisher"].contains(&f.kind.as_str());
+                assert!(
+                    near - r > if props { 5.0 } else { 25.0 },
+                    "{} at {:?} is {near:.0} m from the departure",
+                    f.kind,
+                    f.at
+                );
             }
         }
     }

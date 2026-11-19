@@ -119,6 +119,20 @@ func run() -> void:
 		for p in range(0, data.size(), 3 * 7):
 			paved += 1 if data[p] > 0 or data[p + 1] > 0 or data[p + 2] > 0 else 0
 	check(paved > 0, "Ramon: the paved mask (taxiways, aprons) has paved texels (%d sampled)" % paved)
+	# What stands on the base (base_furniture.gd): the shelters as one MultiMesh, the parked Sufas, the fence.
+	var fur: Node3D = null
+	for _k in 300:
+		fur = bases._furniture
+		if is_instance_valid(fur) and fur.get_node_or_null("fence") != null:
+			break
+		await process_frame
+	check(is_instance_valid(fur), "Ramon: its furniture stands on the ground")
+	if is_instance_valid(fur):
+		var sh := fur.get_node_or_null("shelter") as MultiMeshInstance3D
+		var jets := fur.get_node_or_null("f16i") as MultiMeshInstance3D
+		check(sh != null and sh.multimesh.instance_count == 40, "Ramon: 40 shelters in one MultiMesh")
+		check(jets != null and jets.multimesh.mesh.get_surface_count() == 1, "Ramon: the parked Sufas, one surface")
+		check(fur.get_node_or_null("fence") != null, "Ramon: the fence")
 	await _mouse_look(tv)
 	check(s.rejected.is_empty(), "no original data read (%s)" % [s.rejected])
 

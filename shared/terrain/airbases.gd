@@ -8,6 +8,7 @@
 extends RefCounted
 
 const SignBoards := preload("res://shared/terrain/sign_boards.gd")
+const BaseFurniture := preload("res://shared/terrain/base_furniture.gd")
 
 ## The nearest base within this distance of the camera (m, to its runways' middle) is drawn.
 const RANGE := 32000.0  # the shader's paint fades out by 28 km; a base's paint reaches ≈ 4 km from its middle
@@ -29,6 +30,10 @@ static var _on := false
 static var _signs: Node3D
 static var _signs_key := ""
 static var _signs_waiting := []
+## The nearest base's furniture (base_furniture.gd), and its rows while the ground under them loads.
+static var _furniture: Node3D
+static var _furniture_waiting := []
+static var _fence_waiting := []
 
 
 ## The bases (airbases.json's list; [] when it was not converted).
@@ -155,7 +160,7 @@ static func _godot(p: Array, o: Vector2) -> Vector2:
 
 
 static func _has_signs() -> bool:
-	return bases().any(func(b): return not b.get("signs", []).is_empty())
+	return bases().any(func(b): return not b.get("signs", []).is_empty() or not b.get("furniture", []).is_empty())
 
 
 ## The signs of base `best` (−1: none) under `terrain`, placed again when the base or the world origin changes; each
@@ -168,11 +173,29 @@ static func _update_signs(best: int, o: Vector2, terrain: Node) -> void:
 			_signs.queue_free()
 		_signs = null
 		_signs_waiting = []
+		if is_instance_valid(_furniture):
+			_furniture.queue_free()
+		_furniture = null
+		_furniture_waiting = _bases[best].get("furniture", []) if best >= 0 else []
+		_fence_waiting = []
+		for f: Dictionary in _furniture_waiting:
+			if f.has("line"):
+				_fence_waiting = f.line
 		if best >= 0 and not _bases[best].get("signs", []).is_empty():
 			_signs = Node3D.new()
 			_signs.name = "TaxiSigns"
 			terrain.add_child(_signs)
 			_signs_waiting = _bases[best].signs.duplicate()
+	if not _furniture_waiting.is_empty():
+		_furniture = BaseFurniture.build(_furniture_waiting, o, terrain)
+		if _furniture != null:
+			terrain.add_child(_furniture)
+			_furniture_waiting = []
+	if is_instance_valid(_furniture) and not _fence_waiting.is_empty():
+		var fence := BaseFurniture.fence(_fence_waiting, o, terrain)
+		if fence != null:
+			_furniture.add_child(fence)
+			_fence_waiting = []
 	if _signs_waiting.is_empty() or not is_instance_valid(_signs):
 		return
 	var left := []

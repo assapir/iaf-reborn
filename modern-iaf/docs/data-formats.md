@@ -664,7 +664,9 @@ per end), `taxi` (the OSM taxiway centrelines), `mask` {`file` (under `converted
 corner), `px_m` 2, `w`, `h`}; ours also `icao`, `tower`, `parking` [{`unit`, `at`, `heading`}] and `signs`
 [{`at`, `facing` (grid degrees: the way the face looks, toward the taxiing jet), `panels` [{`style` "mandatory" or
 "direction", `text`, `arrow` (the turn in degrees, positive right; null on a mandatory board)}, left to right]}]: the
-taxiway signs ([airbases.md](airbases.md) §9).
+taxiway signs ([airbases.md](airbases.md) §9); and `furniture` [{`kind`, `at`, `heading` (grid degrees), `size`
+[along, across] m} or a fence's {`kind`, `line`}]: what stands on the base, from `data/furniture/<icao>.json`
+([base-furniture.md](base-furniture.md) §3, §4).
 
 **The masks** (`israel/airbases/<name>.png`, 2 m pixels over the base's outline and runways plus 300 m): red = paved
 (runways and stopways at the runway's width, taxiways at their OSM width or 23 m, aprons and shelters), green =
