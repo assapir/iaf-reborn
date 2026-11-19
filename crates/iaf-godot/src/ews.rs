@@ -126,8 +126,9 @@ impl IafEws {
 
     // --- the MAW ---------------------------------------------------------------------------------------------------
 
-    /// The missile warnings for `missiles` [{id, pos, vel}] from the own position, velocity and heading:
-    /// [{id, bearing (radians off the nose, right +), tti (s, INF not closing), new}].
+    /// The missile warnings for `missiles` [{id, pos, vel, launcher (its unit class; absent -1)}] from the own
+    /// position, velocity and heading: [{id, bearing (radians off the nose, right +), tti (s, INF not closing), class
+    /// ("AAM" / "SAM"), label (the text under the "M", "AAM 12"), new}].
     #[func]
     fn maw(&mut self, missiles: VarArray, pos: Vector3, vel: Vector3, heading: f64) -> VarArray {
         let list: Vec<Approach> = dicts(&missiles)
@@ -135,12 +136,20 @@ impl IafEws {
                 id: num(&d, "id").unwrap_or_default() as i64,
                 pos: vec3(get(&d, "pos").unwrap_or_default()),
                 vel: vec3(get(&d, "vel").unwrap_or_default()),
+                launcher: num(&d, "launcher").map_or(-1, |c| c as i64),
             })
             .collect();
         self.maw
             .update(&list, vec3(pos), vec3(vel), heading)
             .iter()
-            .map(|w| vdict! { "id" => w.id, "bearing" => w.bearing, "tti" => w.tti, "new" => w.new }.to_variant())
+            .map(|w| {
+                let label = w.label();
+                vdict! {
+                    "id" => w.id, "bearing" => w.bearing, "tti" => w.tti, "class" => w.class, "label" => label.as_str(),
+                    "new" => w.new,
+                }
+                .to_variant()
+            })
             .collect()
     }
 

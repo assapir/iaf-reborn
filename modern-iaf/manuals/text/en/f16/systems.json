@@ -1418,7 +1418,8 @@
      "positions": [
       "Display"
      ],
-     "does": "Shows each radar that looks at the jet as a symbol at its bearing (inferred)."
+     "does": "Shows each radar that looks at the jet as a symbol at its bearing (inferred).",
+     "sim": "Each radar by type at its bearing, a radar-guided missile's launch in a circle; on the Sufa also each missile warning as an M with the missile's class and seconds (AAM 12)."
     },
     {
      "node": "IFF_button",
@@ -1447,7 +1448,7 @@
       "Light"
      ],
      "does": "Flashes red when a radar guides a missile at the jet (inferred).",
-     "sim": "Flashes at a launch."
+     "sim": "Flashes at a radar-guided missile's launch; a heat-seeking missile's launch does not light it."
     },
     {
      "node": "pri",

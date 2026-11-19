@@ -10,7 +10,7 @@
 //! one already placed moves along its ring, either way in turn. The MLU's ALR-69 adds PRI (the 5 highest-priority
 //! threats) and OPEN (up to 16), and the UNKNOWN and TGT SEP buttons. World frame X east, Y north, Z up, metres.
 
-use crate::rwr::Shown;
+use crate::rwr::{Shown, ground_class};
 use crate::vec3::{Vec3, wrap_pi};
 use std::collections::HashMap;
 
@@ -244,20 +244,40 @@ pub struct Approach {
     pub id: i64,
     pub pos: Vec3,
     pub vel: Vec3,
+    /// The launcher's unit class (-1 unknown): where it was launched from, [`launch_class`].
+    pub launcher: i64,
 }
 
-/// One missile warning: the direction off the nose (radians, right +) and the time to impact (s; infinite while it
-/// does not close).
+/// The missile's class an infrared MAW gives from the launch point it sees (modern-iaf/docs/ews.md §3; inferred: the
+/// PAWS gives "the direction, missile type, and time to impact" and the launch point, the DAS the launch point; how
+/// finely it names the type is open): "SAM" launched from the ground or the sea, "AAM" from the air.
+pub fn launch_class(launcher: i64) -> &'static str {
+    if ground_class(launcher) { "SAM" } else { "AAM" }
+}
+
+/// One missile warning: the direction off the nose (radians, right +), the time to impact (s; infinite while it
+/// does not close) and the missile's class ([`launch_class`]).
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Warning {
     pub id: i64,
     pub bearing: f64,
     pub tti: f64,
+    pub class: &'static str,
     /// Not warned of before (its tone and voice).
     pub new: bool,
 }
 
-/// The missile approach warning (the Sufa's PAWS: "the direction, missile type, and time to impact", Janes 2025).
+impl Warning {
+    /// The text under the warning's "M": the class and the whole seconds to impact, at most 99 ("AAM 12"; "AAM --"
+    /// while it does not close).
+    pub fn label(&self) -> String {
+        let t = if self.tti.is_finite() { format!("{}", self.tti.clamp(0.0, 99.0) as i64) } else { "--".into() };
+        format!("{} {t}", self.class)
+    }
+}
+
+/// The missile approach warning from the infrared plume of every missile launched at the jet, whatever its seeker
+/// (the Sufa's PAWS: "the direction, missile type, and time to impact", Janes 2025; the Adir's DAS).
 #[derive(Clone, Debug, Default)]
 pub struct Maw {
     known: Vec<i64>,
@@ -277,6 +297,7 @@ impl Maw {
                     id: m.id,
                     bearing: wrap_pi(d.x.atan2(d.y) - heading),
                     tti: if closing > 1.0 { range / closing } else { f64::INFINITY },
+                    class: launch_class(m.launcher),
                     new: !self.known.contains(&m.id),
                 }
             })
@@ -376,14 +397,18 @@ mod tests {
     fn maw_direction_and_time_to_impact() {
         let mut m = Maw::default();
         // A missile 6 km behind, closing at 600 m/s on a jet flying north at 200 m/s: 6000 / 400 = 15 s.
-        let a = Approach { id: 7, pos: Vec3::new(0.0, -6000.0, 0.0), vel: Vec3::new(0.0, 600.0, 0.0) };
+        let a = Approach { id: 7, pos: Vec3::new(0.0, -6000.0, 0.0), vel: Vec3::new(0.0, 600.0, 0.0), launcher: 0x1c };
         let w = m.update(&[a], Vec3::ZERO, Vec3::new(0.0, 200.0, 0.0), 0.0);
         assert!((w[0].tti - 15.0).abs() < 1e-9 && (w[0].bearing.abs() - std::f64::consts::PI).abs() < 1e-9);
-        assert!(w[0].new);
+        assert!(w[0].new && w[0].label() == "AAM 15", "fired from an aircraft: {:?}", w[0]);
         let w = m.update(&[a], Vec3::ZERO, Vec3::new(0.0, 200.0, 0.0), std::f64::consts::FRAC_PI_2);
         assert!(!w[0].new && (w[0].bearing - std::f64::consts::FRAC_PI_2).abs() < 1e-9, "heading east: on the right");
         let slow = Approach { vel: Vec3::new(0.0, 100.0, 0.0), ..a };
-        assert!(m.update(&[slow], Vec3::ZERO, Vec3::new(0.0, 200.0, 0.0), 0.0)[0].tti.is_infinite());
+        let w = m.update(&[slow], Vec3::ZERO, Vec3::new(0.0, 200.0, 0.0), 0.0);
+        assert!(w[0].tti.is_infinite() && w[0].label() == "AAM --");
         assert!(m.update(&[], Vec3::ZERO, Vec3::ZERO, 0.0).is_empty());
+        let sam = Approach { id: 8, launcher: 8, ..a };
+        assert_eq!(m.update(&[sam], Vec3::ZERO, Vec3::ZERO, 0.0)[0].class, "SAM", "from a ground launcher");
+        assert_eq!(launch_class(-1), "AAM", "unknown: the air");
     }
 }

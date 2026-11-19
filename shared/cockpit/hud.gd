@@ -817,7 +817,7 @@ func real_hud() -> Dictionary:
 		# Ours, the real FCR's AGR slant range (m; docs/radar.md §9.7), null without one.
 		"agr_m": _agr_m(rd),
 		"dlz": rd.get("dlz", []) if not target.is_empty() else [],
-		# Ours, the MAW's warnings (ews.gd; the F-35I's DAS in its helmet): [{bearing, tti}].
+		# Ours, the MAW's warnings (ews.gd; the F-35I's DAS in its helmet): [{bearing, label}].
 		"maw": cockpit.ews.get("maw", []),
 		# Ours, Modern IAF's F-16s: the HUD control panel and the up-front controls (cockpit.gd hud_panel_input).
 		"panel": cockpit.hud_panel_input(),

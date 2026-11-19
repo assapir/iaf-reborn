@@ -20,8 +20,10 @@ The round display left of the #term("HUD") shows the radars that look at the jet
   [U], [An unknown radar; shown only with UNKNOWN on.],
   [A diamond round a symbol], [The highest-priority threat.],
   [A square round a symbol], [A radar locked on the jet.],
-  [A flashing circle round a symbol], [A launch. #then[#row("lamp_rwr_launch_0") lights and the launch tone sounds.]],
+  [A flashing circle round a symbol], [A launch of a radar-guided missile. The symbol is the radar that guides it. #then[#row("lamp_rwr_launch_0") lights and the launch tone sounds.]],
 )
+
+The display hears radars only. A missile that homes on heat sends no radar signal, so its launch does not show here.
 
 A symbol stands at the radar's bearing. A search radar is at the edge, a lock on the inner ring, a launch nearest the centre. A new symbol flashes for 4 seconds with a tone.
 
@@ -36,11 +38,11 @@ A symbol stands at the radar's bearing. A search radar is at the edge, a lock on
 #if sufa [
 === The missile approach warning
 
-The #jet.short's warning system also watches for a missile in flight toward the jet#footnote[Janes, "Elbit Systems to equip Israel's F-16Is with self-protection suite", 27 January 2025, #link("https://www.janes.com/defence-intelligence-insights/defence-news/defence/elbit-systems-to-equip-israels-f-16is-with-self-protection-suite"): the suite ordered for the jet holds an infrared missile warning system. Checked 18 November 2026.]. #then[A flashing M shows at the edge of the threat warning display at the missile's direction, with a count of seconds under it, and the launch tone sounds.] The display does not name the missile. #row("MWS_50_switch") passes the warning to the dispenser.
+The #jet.short's warning system also watches for a missile in flight toward the jet#footnote[Janes, "Elbit Systems to equip Israel's F-16Is with self-protection suite", 28 January 2025, #link("https://www.janes.com/defence-intelligence-insights/defence-news/defence/elbit-systems-to-equip-israels-f-16is-with-self-protection-suite"): the suite ordered for the jet holds an infrared missile warning system. Checked 18 November 2026.]. It sees the motor of every missile, radar-guided or heat-seeking. #then[A flashing M shows at the edge of the threat warning display at the missile's direction. Under it are the missile's class and a count of seconds: AAM for a missile fired from the air, SAM for one fired from the ground. The launch tone sounds.] The display does not name the missile itself; the class from where the missile was fired is inferred. #row("MWS_50_switch") passes the warning to the dispenser.
 ] else [
 === The missile approach warning
 
-The #jet.short has no missile approach warning; #row("MWS_50_switch") has no effect.
+The #jet.short has no missile approach warning: a heat-seeking missile fired at the jet gives no warning. #row("MWS_50_switch") has no effect.
 ]
 
 === The countermeasures dispenser

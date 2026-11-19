@@ -417,9 +417,9 @@ pub struct Input {
     /// The selected store's launch zone at the target (m).
     pub dlz: Option<Dlz>,
     pub weapons: Weapons,
-    /// The MAW's warnings (`ews::Maw`; the F-35I's DAS): each missile's bearing off the nose (radians, right +) and its
-    /// time to impact (s; infinite while it does not close).
-    pub maw: Vec<(f64, f64)>,
+    /// The MAW's warnings (`ews::Maw`; the F-35I's DAS): each missile's bearing off the nose (radians, right +) and the
+    /// text under its "M" (`ews::Warning::label`: the class and the seconds to impact, "AAM 12").
+    pub maw: Vec<(f64, String)>,
     /// Modern IAF's F-16s: the HUD control panel and the up-front controls (modern-iaf/docs/ufc.md). The
     /// default draws the HUD as before (reborn's).
     pub panel: Panel,

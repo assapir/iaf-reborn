@@ -1710,12 +1710,16 @@ func launch_homing(
 	return mis
 
 
+## The RWR's record of a missile launched at the jet; "weapon" its kind (rwr.rs ir_guided), "launcher" its launcher's
+## unit class (ews.rs launch_class).
 func _rwr_missile(mis: RefCounted) -> Dictionary:
 	return {
 		"id": mis.get_meta("id"),
 		"pos": mis.position(now),
 		"decoy": String(mis.target_key).begins_with("decoy:"),
-		"m": mis
+		"m": mis,
+		"weapon": int(mis.weapon.get("type", 0)),
+		"launcher": int(mis.get_meta("owner", {}).get("klass", -1))
 	}
 
 

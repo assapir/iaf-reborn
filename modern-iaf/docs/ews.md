@@ -66,6 +66,11 @@ indicator") and the MLU's ALR-69[^mlu1]:
   "U", shown only with UNKNOWN on;
 - priority: a launch, then a lock, then the nearest; the top one in a diamond (HANDOFF moves it); a lock in a square,
   a launch in a circle flashing at 3 Hz (the MLU's launch light);
+- a launch shows on its launcher's symbol, so the type the scope names for a missile is the radar that guides it ("35"
+  in the circle: an F-35's radar). Only a radar-guided missile's launch is heard (`rwr.rs` `radar_only`, the weapon's
+  kind: 600, 610, 630); an infrared one (570, 580, 620) sends no radar signal, so it lights no circle, no launch lamp and
+  no launch tone, and it does not start the CMDS's RWR program. It stays on the list of missiles at the jet (the
+  decoys', the MAW's). Sources and reasoning: [research/missile-warning.md](research/missile-warning.md) §2;
 - PRI shows 5, OPEN up to 16 (MLU fig. 7-3); PRI at power-up (inferred);
 - a new threat flashes for 4 s with the new-threat tone (WRN_NEW_GUY; the time inferred); HANDOFF plays the same tone
   (inferred: the real set plays the handed-off threat's own tone, which the sim does not have);
@@ -81,18 +86,32 @@ change their lock was listed but neither active from ahead nor drawn (the 1998 g
 
 ## 3. The MAW (E2)
 
-The Sufa's PAWS gives "the direction, missile type, and time to impact"[^janes]. `ews.rs` `Maw` reads the RWR's list
-of missiles launched at the jet: for each, its direction off the nose and the range over the closing speed (TTI;
-inferred), "--" while it does not close. The RWR scope shows an "M" on the edge at that direction, flashing, with the
-seconds under it. The tone is the RWR's launch tone (the same list). The warning names no missile type yet: next step 4
-of the missile work ([avionics-plan.md](avionics-plan.md) §7).
+The Sufa's PAWS gives "the direction, missile type, and time to impact"[^janes]; it sees every missile's motor, whatever
+its seeker. `ews.rs` `Maw` reads the list of missiles launched at the jet, radar-guided and infrared: for each, its
+direction off the nose, the range over the closing speed (TTI; inferred), "--" while it does not close, and its class.
+The RWR scope shows an "M" on the edge at that direction, flashing, with the class and the seconds under it: "AAM 12".
+
+- The class (`ews.rs` `launch_class`, inferred): "SAM" for a missile launched from the ground or the sea, "AAM" from the
+  air. The PAWS reports where a missile was launched from and names air-to-air missiles, SAMs and MANPADS among what it
+  detects; how finely its "missile type" goes is open, and no source shows a warning that writes a missile's
+  designation (AIM-9X, R-73), so the sim names the class only. The sim takes the launch point from the launcher's
+  unit class (`rwr.rs` `ground_class`, the same classes as the RWR's SAM light). Sources:
+  [research/missile-warning.md](research/missile-warning.md) §3. The text under the "M" is made in Rust
+  (`ews.rs` `Warning::label`) for every display that draws it.
+- The tone: the launch tone runs while the MAW warns, so an infrared missile, which the RWR does not hear, sounds it
+  too (`rwr.gd` `maw_warning`; inferred: the PAWS gives "audio-visual warning signals", their sound on the Sufa is open).
+  No voice: the F-16's voice message system has no missile call.
+- The Barak has no MAW: an infrared missile at it gives no warning at all.
+
+The F-35I's DAS gives the same warning, with the same class, on the TWD, the DAS format and the helmet
+([../../docs/f35i.md](../../docs/f35i.md) §4.3). Whether the real DAS names a type is open.
 
 ## 4. The CMDS (E4)
 
 A cockpit procedure only (avionics-plan.md §7: what a decoy does stays the game's decoy rule, docs/weapons.md §10).
 After the simulator manual the plan cites[^dcs]: MODE OFF / STBY / MAN / SEMI / AUTO / BYP; CMS forward runs the
 selected program in MAN, SEMI and AUTO (BYP one chaff and one flare); CMS aft stops it; CMS right gives consent in SEMI
-and enables AUTO. A missile launch heard by the RWR (RWR switch on) or seen by the MAW (MWS switch on) makes SEMI ask
+and enables AUTO. A missile launch heard by the RWR (RWR switch on; a radar-guided one, §2) or seen by the MAW (MWS switch on) makes SEMI ask
 for consent with the VMS's "Counter", and AUTO, enabled, run the program and say "Counter". The JMR switch's input
 starts nothing (the sim has no jammer cues for the CMDS). CH and FL power each dispenser; O1 and O2 move only (the sim
 carries no other dispenser). JETT releases every flare, one each 0.1 s (inferred). Each release goes through the
@@ -163,12 +182,13 @@ the DCS guide's CNI page). The real jet's crypto modes (4 and 5) are open.
 
 ## 9. Tests
 
-- Rust: `ews.rs` (symbols, priority, PRI / OPEN, separation, HANDOFF, SYS TEST, the MAW's direction and TTI),
+- Rust: `ews.rs` (symbols, priority, PRI / OPEN, separation, HANDOFF, SYS TEST, the MAW's direction, TTI and class),
   `cmds.rs` (a program's count at its interval, SEMI / AUTO, low / out, JETT), `aiff.rs` (a friend replies, a hostile
   does not; SCAN and LOS volumes), `datalink.rs` (members, AWACS tracks, the switch), `rwr.rs` (all-aspect, stable
-  ids), `betty.rs` (the CMDS calls).
+  ids, `radar_only_hears_no_infrared_launch`), `betty.rs` (the CMDS calls).
 - Headless: `modern-iaf/tests/test_sim_ews.gd` on the range: the drones' lock as "35", each symbol on its ring and
-  apart from the others, each TWP key, the MAW, the CMDS in MAN and SEMI, the AIFF by O and by TMS left (its circle on
+  apart from the others, each TWP key, a radar-guided launch in the launch circle and an infrared one off the RWR, the
+  MAW's "AAM" warning and its tone (none on the Barak), the CMDS in MAN and SEMI, the AIFF by O and by TMS left (its circle on
   its FCR contact), the data link, the DED's EWS, transponder (a mode 3/A code, IDENT on Alt + K), IFF, DLNK and INTG
   pages, the DED's texture over its screen, an AWACS contact call heard in its voice. `ufc.rs`
   `ews_pages_edit_the_cmds`, `iff_dlnk_and_intg_pages`, `the_transponder_page_and_ident`; `cmds.rs`
@@ -180,7 +200,7 @@ the DCS guide's CNI page). The real jet's crypto modes (4 and 5) are open.
 
 [^mlu1]: Lockheed Martin, F-16 A/B MLU Production Tape M1 pilot's guide (16PR14341, 15 Nov 1998): AIFF pp. 49–55, the
     EWPI (ALR-69) fig. 7-3 p. 209: https://falcon.blu3wolf.com/Docs/MLU_M1.pdf
-[^janes]: Janes, "Elbit Systems to equip Israel's F-16Is with self-protection suite", 27 January 2025:
+[^janes]: Janes, "Elbit Systems to equip Israel's F-16Is with self-protection suite", 28 January 2025:
     https://www.janes.com/defence-intelligence-insights/defence-news/defence/elbit-systems-to-equip-israels-f-16is-with-self-protection-suite
 [^dcs]: Eagle Dynamics, *DCS: F-16C Viper Early Access Guide* (EN, 2026), "CMDS", a simulator manual of a Block 50 M4
     tape: https://www.digitalcombatsimulator.com/en/downloads/documentation/dcs-viper_early_access_manual_en/

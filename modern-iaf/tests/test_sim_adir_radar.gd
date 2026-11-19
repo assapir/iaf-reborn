@@ -7,7 +7,8 @@
 # - combat ID (aiff.rs combat_id): the data link on from the start names the drones hostile (the AWACS's picture);
 #   with the link off a drone with its radar off is unknown, SRCH draws a yellow square; a drone of Drones 4 (radars
 #   on) stays hostile, heard on the TWD;
-# - TWD: Drones 4's radars show as "35"; the DAS's MAW warns of a missile with its seconds on the TWD and the helmet;
+# - TWD: Drones 4's radars show as "35"; the DAS's MAW warns of an infrared missile (no launch circle) with its class
+#   and seconds ("AAM 9") on the TWD and the helmet;
 # - TSD: the data link's tracks;
 # - ASR: R gives GM with its SAR picture (grey) and the hulks as tracks; Ctrl + ; steps EXP, DBS1, DBS2; Q GMT; the
 #   helmet's break X in a 45° dive 2,000 ft over the ground (the F-16's GAAF rule, f35.rs).
@@ -205,18 +206,23 @@ func _twd() -> void:
 	check(c.ews.ident.get(key) == "hostile", "Drones 4 heard on the TWD: hostile (%s)" % c.ews.ident.get(key))
 	await _show("TWD")
 	check("35" in pcd.fmt.shown.twd.labels, "TWD: the drones' radars as '35' (%s)" % [pcd.fmt.shown.twd])
-	# The DAS's MAW: a missile 8 km ahead closing at 700 m/s.
+	# The DAS's MAW: an infrared missile (an AIM-9X's kind) 8 km ahead closing at 700 m/s: off the TWD's radar symbols,
+	# on its MAW as "AAM" with the seconds (ews.md §2, §3).
 	var o: Dictionary = w.own()
 	var m := FakeMissile.new()
 	m.p0 = o.pos + o.fwd * 8000.0
 	m.v = -o.fwd * 700.0
 	m.t0 = w.now
-	w.rwr.launch(key, {"id": 9101, "pos": m.p0, "decoy": false, "m": m})
+	w.rwr.launch(key, {"id": 9101, "pos": m.p0, "decoy": false, "m": m, "weapon": 570})
 	await fly(tv, 0.3)
 	var wn: Array = c.ews.get("maw", [])
 	check(wn.size() == 1 and absf(float(wn[0].bearing)) < 0.3, "MAW: the missile ahead (%s)" % [wn])
 	await _show("TWD")
-	check(pcd.fmt.shown.twd.maw.size() == 1, "TWD: the MAW's M with its seconds (%s)" % [pcd.fmt.shown.twd.maw])
+	var tm: Array = pcd.fmt.shown.twd.maw
+	check(
+		tm.size() == 1 and String(tm[0]).begins_with("AAM "), "TWD: the MAW's M with its class and seconds (%s)" % [tm]
+	)
+	check(not c.ews.symbols.any(func(x): return x.launch), "TWD: no launch circle for an infrared missile")
 	c.hud.real_hud()
 	check(c.hud._real_in.get("maw", []).size() == 1, "the helmet has the MAW's warning")
 	w.rwr.missile_end(key, {"id": 9101, "m": m})

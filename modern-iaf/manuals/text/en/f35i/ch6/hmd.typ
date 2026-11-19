@@ -38,9 +38,9 @@ Look with the pointer or the view keys (#other("game", "views")).
 === The target and the threat symbols <hmd-symbols>
 
 - *A locked target* carries the designator: an X with the shape of its identity, a circle for a friend, a square for an unknown, a diamond for a hostile (@radios). Outside the display's field the designator waits at the field's edge. The shapes in the helmet are inferred from the display's.
-- *A missile that the jet's sensors see coming* shows as an M on a ring about the nose mark, at its bearing, with the seconds to its arrival under it (@fig-d-helmet_maw, @ew). Inferred: the real helmet's warning is not public.
+- *A missile that the jet's sensors see coming* shows as an M on a ring about the nose mark, at its bearing, with its class (AAM or SAM) and the seconds to its arrival under it (@fig-d-helmet_maw, @ew). Inferred: the real helmet's warning is not public.
 
-#display("helmet_maw", [A missile warning in the helmet: the M with 10 seconds, right of the heading box. The helmet is in navigation, with the steerpoint's line at the lower right.], width: 100%)
+#display("helmet_maw", [A missile warning in the helmet: the M with "AAM 6" under it, right of the heading box. The helmet is in navigation.], width: 100%)
 
 === The ground-avoidance cues <hmd-ground>
 

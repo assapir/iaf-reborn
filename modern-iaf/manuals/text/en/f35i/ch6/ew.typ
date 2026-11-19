@@ -6,10 +6,10 @@ This section covers what warns you of a threat and how you release chaff and fla
 
 The threat warning display, TWD, is a format of the #term("PCD"). It shows the radars that the jet hears. The real format's layout is open; the sim's circle is inferred, and its symbols are those of the F-16s' threat display.
 
-#display("twd_maw", [The TWD: one fighter radar locked on the jet, in the square, and one that has launched, in the circle and the diamond; a missile warning at the upper right with 10 seconds.])
+#display("twd_maw", [The TWD: one fighter radar locked on the jet, in the square, and one that has launched a radar-guided missile, in the circle and the diamond; a missile warning at the upper right, "AAM" with 7 seconds.])
 
 - *Your jet* is at the centre, its nose up.
-- *Each radar* shows at its bearing. Its ring tells what it does: the outer ring while it searches, the inner ring when it locks on you, close to the centre when it launches.
+- *Each radar* shows at its bearing. Its ring tells what it does: the outer ring while it searches, the inner ring when it locks on you, close to the centre when it launches a radar-guided missile. A missile that homes on heat sends no radar signal, so its launch does not show here.
 - *The colour:* yellow while it searches, red when it locks or launches.
 - *The label* tells its kind: an aircraft by a number under a small roof, a ground site by a digit or a letter, a gun by an A in a box, a ship by an S. A radar that the jet cannot name is a U.
 - *The diamond* is on the threat that matters most: a launch before a lock, a lock before a search. *A square* marks a lock. *A flashing circle* marks a launch.
@@ -36,10 +36,10 @@ These are the functions of the F-16's threat warning panel. The #jet.short's own
 
 The real jet's cameras detect and track a missile in flight#das-wiki. How the pilot is warned is not public: open.
 
-#in-sim[A missile launched at you shows as a red M at its bearing, with the seconds to its arrival under it, or two dashes while it does not close:
+#in-sim[A missile launched at you, radar-guided or heat-seeking, shows as a red M at its bearing. Under it are its class, AAM for a missile fired from the air or SAM for one fired from the ground (inferred), and the seconds to its arrival, or two dashes while it does not close:
   - on the TWD, on the outer ring (@fig-d-twd_maw);
   - in the helmet, on a ring about the nose mark (@hmd).
-  The launch tone sounds. The warning does not name the missile. The DAS format shows the same marks under the forward camera's picture (@pcd).]
+  The launch tone sounds. The warning does not name the missile itself. The DAS format shows the same marks under the forward camera's picture (@pcd).]
 
 === Chaff and flares <ew-cmds>
 

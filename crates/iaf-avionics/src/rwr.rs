@@ -35,6 +35,12 @@ pub fn search_radar(type_code: i64) -> bool {
     matches!(type_code, 290 | 300 | 310 | 320 | 330 | 340 | 350 | 360 | 380 | 390)
 }
 
+/// An infrared-homing weapon by its kind (weapons.ibx's OST_* enum, docs/weapons.md §1): the heat missile 570, the
+/// limited heat missile 580, the heat SAM 620. It sends no radar signal, so an RWR cannot hear its launch.
+pub fn ir_guided(weapon: i64) -> bool {
+    matches!(weapon, 570 | 580 | 620)
+}
+
 /// A hostile ground unit offered to the search test: its key, its mission name and its radar's range (m).
 #[derive(Clone, Debug)]
 pub struct Site {
@@ -63,8 +69,13 @@ pub struct Emitter {
 
 impl Emitter {
     pub fn ground(&self) -> bool {
-        matches!(self.class, 5 | 8 | 9 | 10 | 0x10)
+        ground_class(self.class)
     }
+}
+
+/// A unit class on the ground or the sea (the lights' 'sam', the MAW's launch point).
+pub fn ground_class(class: i64) -> bool {
+    matches!(class, 5 | 8 | 9 | 10 | 0x10)
 }
 
 /// The host: the own jet now and the units by key.
@@ -109,6 +120,8 @@ impl Lamps {
 pub struct Threat {
     pub id: i64,
     pub dist: f64,
+    /// Its launch was heard: it marked its emitter's entry (always, unless [`Rwr::radar_only`] and infrared).
+    pub heard: bool,
 }
 
 /// A missile launched at the jet as the host reports it.
@@ -118,6 +131,8 @@ pub struct Launched {
     pub pos: Vec3,
     /// It chases a decoy: not listed.
     pub decoy: bool,
+    /// The weapon's kind (570 heat missile, 600 radar missile…; 0 unknown): [`ir_guided`].
+    pub weapon: i64,
 }
 
 /// One entry of the cockpit copy.
@@ -152,6 +167,10 @@ pub struct Rwr {
     /// Ours, Modern IAF's F-16s: an aircraft's radar is heard from every side, not only more than 120° off the nose
     /// (the real RWR covers all round; modern-iaf/docs/avionics-plan.md E1).
     pub all_aspect: bool,
+    /// Ours, Modern IAF's jets: only a radar-guided missile's launch is heard. An infrared missile sends no radar
+    /// signal (modern-iaf/docs/ews.md §3): it joins the list of missiles at the jet (the decoys', the MAW's) without
+    /// marking its launcher or sounding the launch.
+    pub radar_only: bool,
 }
 
 impl Default for Rwr {
@@ -168,6 +187,7 @@ impl Default for Rwr {
             new_guy: false,
             searching: Vec::new(),
             all_aspect: false,
+            radar_only: false,
         }
     }
 }
@@ -272,42 +292,48 @@ impl Rwr {
 
     /// A missile was launched at the jet by `key` (`FUN_0044e160` → `FUN_00451be0`): the entry (added if new) gets the
     /// launch flag, one more missile in flight and active; the missile joins the list unless it chases a decoy.
-    /// False when ignored (damage, no key): no launch sounds.
+    /// False when ignored (damage, no key) or not heard ([`Rwr::radar_only`]: an infrared missile, listed only): no
+    /// launch sounds.
     pub fn launch(&mut self, w: &World, key: &str, missile: Option<Launched>) -> bool {
         if self.damaged || key.is_empty() {
             return false;
         }
-        let i = match self.find(key) {
-            Some(i) => Some(i),
-            None => {
-                self.add(w, key);
-                if self.count > 9 {
-                    return true; // original quirk: the add that filled the list leaves the launch unmarked
+        let heard = !(self.radar_only && missile.is_some_and(|m| ir_guided(m.weapon)));
+        if heard {
+            let i = match self.find(key) {
+                Some(i) => Some(i),
+                None => {
+                    self.add(w, key);
+                    if self.count > 9 {
+                        return true; // original quirk: the add that filled the list leaves the launch unmarked
+                    }
+                    self.find(key)
                 }
-                self.find(key)
+            };
+            if let Some(i) = i {
+                let s = &mut self.slots[i];
+                s.launch = true;
+                s.missiles += 1;
+                s.active = true;
             }
-        };
-        if let Some(i) = i {
-            let s = &mut self.slots[i];
-            s.launch = true;
-            s.missiles += 1;
-            s.active = true;
         }
         if let Some(m) = missile.filter(|m| !m.decoy)
             && !self.threats.iter().any(|t| t.id == m.id)
         {
-            self.threats.push(Threat { id: m.id, dist: m.pos.distance(w.pos) });
+            self.threats.push(Threat { id: m.id, dist: m.pos.distance(w.pos), heard });
         }
-        true
+        heard
     }
 
     /// That missile is gone (`FUN_0044e1d0` → `FUN_00451e30`): one missile less; at none the launch flag drops (and a
-    /// pending drop removes the entry); the missile leaves the list. False when ignored.
+    /// pending drop removes the entry); the missile leaves the list. A missile whose launch was not heard only leaves
+    /// the list. False when ignored.
     pub fn missile_end(&mut self, key: &str, missile: Option<i64>) -> bool {
         if self.damaged || key.is_empty() {
             return false;
         }
-        if let Some(i) = self.find(key) {
+        let unheard = missile.is_some_and(|id| self.threats.iter().any(|t| t.id == id && !t.heard));
+        if !unheard && let Some(i) = self.find(key) {
             let s = &mut self.slots[i];
             s.missiles -= 1;
             if s.missiles == 0 {
@@ -598,12 +624,35 @@ mod tests {
     fn a_drop_waits_for_the_missile() {
         let mut r = Rwr::default();
         r.lock(&world(0.0), "sam");
-        r.launch(&world(0.0), "sam", Some(Launched { id: 1, pos: Vec3::new(14000.0, 14000.0, 50.0), decoy: false }));
+        r.launch(
+            &world(0.0),
+            "sam",
+            Some(Launched { id: 1, pos: Vec3::new(14000.0, 14000.0, 50.0), decoy: false, weapon: 0 }),
+        );
         assert!(r.any_launch() && r.threats().len() == 1);
         r.unlock(&world(0.0), "sam");
         assert!(r.count() == 1 && r.slots()[0].drop);
         r.missile_end("sam", Some(1));
         assert!(r.count() == 0 && r.slots()[0].unit.is_none() && !r.any_launch() && r.threats().is_empty());
+    }
+
+    #[test]
+    fn radar_only_hears_no_infrared_launch() {
+        let m = |id, weapon| Some(Launched { id, pos: Vec3::new(0.0, 9000.0, 3000.0), decoy: false, weapon });
+        for radar_only in [false, true] {
+            let mut r = Rwr { radar_only, ..Rwr::default() };
+            // An AIM-9X (570) from the aircraft ahead: the 1998 rule hears every launch; radar_only lists it unheard.
+            assert_eq!(r.launch(&world(0.0), "front", m(1, 570)), !radar_only);
+            assert_eq!(r.any_launch(), !radar_only, "radar_only {radar_only}: the launcher marked");
+            assert!(r.threats().len() == 1 && r.threats()[0].heard == !radar_only, "listed for the decoys and the MAW");
+            // An AIM-120 (600) from it: heard either way; the infrared one's end leaves the launch flag up.
+            assert!(r.launch(&world(0.0), "front", m(2, 600)));
+            assert!(r.missile_end("front", Some(1)));
+            let s = &r.slots()[0];
+            assert!(s.launch && s.missiles == 1 && r.threats().len() == 1, "the radar missile's launch stays: {s:?}");
+            r.missile_end("front", Some(2));
+            assert!(!r.any_launch() && r.threats().is_empty());
+        }
     }
 
     #[test]

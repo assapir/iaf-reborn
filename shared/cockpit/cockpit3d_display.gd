@@ -110,7 +110,7 @@ func _rwr() -> void:
 ## Ours, the modern F-16s' threat display (ews.gd, iaf_avionics::ews; modern-iaf/docs/ews.md): 12 ticks at 30° on the
 ## edge, the ownship "+", each threat's label in its frame (an aircraft's hat, AAA's box), the top threat in a diamond,
 ## a lock in a square, a launch in a flashing circle, a new threat flashing; the MAW's warnings as an "M" on the edge
-## with the seconds to impact; SYS TEST's pattern.
+## with the missile's class and the seconds to impact under it ("AAM 12", ews.rs launch_class); SYS TEST's pattern.
 func _threats(c: Vector2, r: float) -> void:
 	var col := DED_GREEN
 	for i in 12:
@@ -158,11 +158,11 @@ func _threats(c: Vector2, r: float) -> void:
 	for wn in cockpit.ews.get("maw", []):
 		var d := Vector2(sin(float(wn.bearing)), -cos(float(wn.bearing)))
 		var p := c + d * r * 0.86
-		var tti := "--" if is_inf(float(wn.tti)) else "%d" % mini(int(wn.tti), 99)
-		maw.append(tti)
+		var label := String(wn.label)
+		maw.append(label)
 		if blink:
 			_text(p, "M", fs, PFL_GREEN)
-		_text(p + Vector2(0, fs * 1.1), tti, int(fs * 0.8), PFL_GREEN)
+		_text(p + Vector2(0, fs * 1.1), label, int(fs * 0.8), PFL_GREEN)
 	shown = {
 		"symbols": labels.size(),
 		"labels": labels,

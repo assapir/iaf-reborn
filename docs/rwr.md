@@ -111,8 +111,10 @@ view (`@4ce003`), AI action 430 and condition 38 (for a unit with a controller) 
 - Modern IAF's F-16s (ours, [../modern-iaf/docs/ews.md](../modern-iaf/docs/ews.md)): `all_aspect` hears an
   aircraft's radar from every side (§1's emitter test without the 120° rule); `display_keyed` gives each cockpit-copy
   entry a stable id for their threat display; `rwr.gd`'s `new_guy_tone`, `threat_volume` and `launch_volume` let that
-  display play the new-threat tone and the cockpit's THREAT and MSL knobs scale the tones. Reborn's jets keep the
-  original rules.
+  display play the new-threat tone and the cockpit's THREAT and MSL knobs scale the tones; `radar_only` hears only a
+  radar-guided missile's launch (an infrared one, kinds 570 / 580 / 620, is listed for the decoys and the MAW without
+  marking its launcher or sounding the launch; the record's `weapon`, `Threat::heard`), and `maw_warning` keeps the
+  launch tone running while the MAW warns. Reborn's jets keep the original rules.
 - Not ported: the network messages; the restart path of the launch loop in `FUN_00448120` (@4482ee, a flight
   restored with launch flags).
 

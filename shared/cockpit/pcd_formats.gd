@@ -792,7 +792,8 @@ func _store(at: Vector2, t: int, k: float) -> void:
 ## azimuth indicator). Modern IAF (ews.gd): the shared threat display's symbols (ews.rs Twd: each threat at its
 ## bearing on the ring of its lethality, its label by class, the top one in a diamond, a lock in a square, a launch in
 ## a flashing circle; the range's drones with their radars on show as "35" / "16"), yellow searching, red locking or
-## launching, and the DAS's missile warnings (ews.rs Maw: an "M" at the missile's bearing with the seconds to impact).
+## launching, and the DAS's missile warnings (ews.rs Maw: an "M" at the missile's bearing, its class and the seconds to
+## impact under it, "AAM 12").
 ## The 1998 game's F-35I: every RWR entry at its bearing and distance (37 km at the rim), its code.
 func twd(r: Rect2) -> void:
 	var c := Vector2(r.get_center().x, r.position.y + r.size.y * 0.48)
@@ -856,11 +857,11 @@ func twd(r: Rect2) -> void:
 	for wn in cockpit.ews.get("maw", []):
 		var d := Vector2(sin(float(wn.bearing)), -cos(float(wn.bearing)))
 		var p := c + d * rad
-		var tti := "--" if is_inf(float(wn.tti)) else "%d" % mini(int(wn.tti), 99)
-		maw.append(tti)
+		var label := String(wn.label)
+		maw.append(label)
 		if blink:
 			text(p + Vector2(-text_width("M", 6.0) / 2.0, 2.0), "M", 6.0, RED)
-		text(p + Vector2(-text_width(tti, 4.6) / 2.0, 8.0), tti, 4.6, RED)
+		text(p + Vector2(-text_width(label, 4.6) / 2.0, 8.0), label, 4.6, RED)
 	shown.twd = {"labels": labels, "maw": maw}
 	text(
 		Vector2(r.position.x, r.end.y - 4.0),
@@ -1586,7 +1587,7 @@ func hud_repeat(r: Rect2) -> void:
 ## DAS (the distributed aperture system's format, avionics-plan.md P9): the forward aperture's picture (the DAS camera,
 ## terrain_view.gd _update_das_view, which renders while this draws; NO VIDEO until its first frame), under it the six
 ## apertures' sectors about the ownship (heading up) with each missile warning (the threat warning's MAW list,
-## cockpit.ews "maw": bearing, time to impact) as a red M on its bearing.
+## cockpit.ews "maw": bearing, label) as a red M on its bearing, its class and seconds under it.
 func das(r: Rect2) -> void:
 	var v := Rect2(r.position + Vector2(2, 2), Vector2(r.size.x - 4.0, r.size.y * 0.42))
 	cockpit.das_drawn_ms = Time.get_ticks_msec()
@@ -1618,5 +1619,5 @@ func das(r: Rect2) -> void:
 		var p := c + d * rad * 0.8
 		if blink:
 			text(p + Vector2(-1.8, 1.8), "M", 5.0, RED)
-		var tti := "--" if is_inf(float(wn.tti)) else "%d" % mini(int(wn.tti), 99)
-		text(p + Vector2(-2.0, 7.0), tti, 4.0, RED)
+		var label := String(wn.label)
+		text(p + Vector2(-text_width(label, 4.0) / 2.0, 7.0), label, 4.0, RED)

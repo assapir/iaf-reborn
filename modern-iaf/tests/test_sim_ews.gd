@@ -4,8 +4,9 @@
 # - E1 the threat display: a drone's lock is heard (all round, not only from behind) and shows as "35" on the RWR
 #   scope's symbols, a lock in its square and the top threat in the diamond; the threat warning keys: Alt + I OPEN,
 #   Alt + O UNKNOWN, Alt + Y HANDOFF, Alt + J TGT SEP held, Ctrl + I SYS TEST's pattern;
-# - E2 the MAW (the Sufa's; the Barak has none): a missile launched at the jet warns from its direction with a falling
-#   time to impact;
+# - E2 the missile warnings: a radar-guided launch (an AIM-120's kind) puts the drone's "35" in the launch circle; an
+#   infrared one (an AIM-9X's) is not on the RWR (listed for the decoys, unheard); the MAW (the Sufa's; the Barak has
+#   none) warns of both from their direction as "AAM" with a falling time to impact and the launch tone;
 # - E4 the CMDS: Shift + Y to MAN, P runs program 1 (a chaff and a flare counted off through the game's dispense);
 #   SEMI asks "Counter" on a launch and Y gives consent; Ctrl + Y the next program; the panel's switches;
 # - R15 the AIFF: O (SCAN) and TMS left in CRM: a friendly drone replies (a green circle), a hostile one does not;
@@ -140,34 +141,75 @@ func _threats() -> void:
 	check(not c.ews.twd.testing, "SYS TEST ends")
 
 
-func _launch(from: Dictionary, id: int, dist: float) -> FakeMissile:
+## A missile of the weapon kind `weapon` (600 radar, 570 heat) launched at the jet by `from`, `dist` m ahead.
+func _launch(from: Dictionary, id: int, dist: float, weapon: int) -> FakeMissile:
 	var o: Dictionary = w.own()
 	var m := FakeMissile.new()
 	var d: Vector3 = o.fwd
 	m.p0 = o.pos + d * dist
 	m.v = -d * 700.0
 	m.t0 = w.now
-	w.rwr.launch(String(from.key), {"id": id, "pos": m.p0, "decoy": false, "m": m})
+	var rec := {"id": id, "pos": m.p0, "decoy": false, "m": m, "weapon": weapon, "launcher": int(from.klass)}
+	w.rwr.launch(String(from.key), rec)
 	return m
 
 
 func _maw(drone: Dictionary) -> void:
-	var m := _launch(drone, 9001, 8000.0)
+	# A radar-guided missile: the RWR hears its launch (the drone's symbol in the launch circle); the MAW sees it too.
+	var m := _launch(drone, 9001, 8000.0, 600)
 	await fly(tv, 0.3)
+	check(
+		w.rwr.any_launch() and c.ews.symbols.any(func(x): return x.launch and x.label == "35"),
+		"E1: a radar-guided launch: '35' in the launch circle (%s)" % [c.ews.symbols]
+	)
 	var wn: Array = c.ews.get("maw", [])
+	check(wn.size() == (1 if w.ews.maw else 0), "E2: the MAW sees the radar-guided missile too: %s" % [wn])
+	w.rwr.missile_end(String(drone.key), {"id": 9001, "m": m})
+	await fly(tv, 0.3)
+	# An infrared one: no radar signal, so not on the RWR; only the MAW warns, with the launch tone.
+	var played: Array = tv.sounds.played
+	var p0 := played.size()
+	m = _launch(drone, 9003, 8000.0, 570)
+	await fly(tv, 0.3)
+	check(
+		not w.rwr.any_launch() and not c.ews.symbols.any(func(x): return x.launch),
+		"E1: an infrared launch is not on the RWR (%s)" % [c.ews.symbols]
+	)
+	check(
+		w.rwr.missiles.size() == 1 and not w.rwr.missiles[0].heard,
+		"E2: the infrared missile listed unheard, for the decoys and the MAW"
+	)
+	var tone: bool = played.slice(p0).has("SFX_WARNING/WRN_MISSILE_LAUNCH")
+	wn = c.ews.get("maw", [])
 	if not w.ews.maw:
-		check(wn.is_empty(), "E2: no MAW on the Barak: a launch gives no warning (%s)" % [wn])
-		w.rwr.missile_end(String(drone.key), {"id": 9001, "m": m})
+		check(wn.is_empty() and not tone, "E2: no MAW on the Barak: an infrared launch gives no warning (%s)" % [wn])
+		w.rwr.missile_end(String(drone.key), {"id": 9003, "m": m})
 		return
 	check(wn.size() == 1 and absf(float(wn[0].bearing)) < 0.3, "E2: the MAW warns from ahead: %s" % [wn])
+	check(
+		wn.size() == 1 and wn[0].get("class") == "AAM" and String(wn[0].label).begins_with("AAM "),
+		"E2: the MAW names a missile fired from the air 'AAM': %s" % [wn]
+	)
+	check(tone, "E2: the MAW's launch tone: %s" % [played.slice(p0)])
+	var scope = tv.cockpit_3d.displays.get("RWR_scope") if tv.get("cockpit_3d") != null else null
+	if scope == null:
+		print("no 3D cockpit: the RWR scope's MAW text not checked")
+	else:
+		scope.queue_redraw()
+		await frames(2)
+		var shown: Array = scope.shown.get("maw", [])
+		check(
+			shown.size() == 1 and String(shown[0]).begins_with("AAM "), "E2: the scope writes 'AAM <s>': %s" % [shown]
+		)
 	var t1: float = wn[0].tti if wn.size() > 0 else 0.0
 	check(t1 > 0.0 and t1 < 12.0, "E2: a time to impact (%.1f s)" % t1)
 	await fly(tv, 1.0)
 	wn = c.ews.get("maw", [])
 	check(wn.size() == 1 and float(wn[0].tti) < t1, "E2: the time falls")
-	w.rwr.missile_end(String(drone.key), {"id": 9001, "m": m})
+	w.rwr.missile_end(String(drone.key), {"id": 9003, "m": m})
 	await fly(tv, 0.2)
 	check(c.ews.get("maw", []).is_empty(), "E2: the missile gone, no warning")
+	check(w.rwr._launch_loop == null, "E2: the missile gone, the launch tone stops")
 
 
 func _counts() -> Vector2i:
@@ -188,7 +230,7 @@ func _cmds() -> void:
 	var played: Array = tv.sounds.played
 	var p0 := played.size()
 	var drone: Dictionary = tv.ai.pilots[0].ent
-	var m := _launch(drone, 9002, 9000.0)
+	var m := _launch(drone, 9002, 9000.0, 600)
 	await fly(tv, 0.3)
 	check(bool(e.cmds_state().pending), "E4: SEMI waits for consent on a launch")
 	check(played.slice(p0).has("VOC_BBETTY/BTY_COUNTER"), "E4: 'Counter' said: %s" % [played.slice(p0)])

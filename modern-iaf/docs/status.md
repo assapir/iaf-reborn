@@ -33,12 +33,20 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   (its symbols drew on). Not started (the user's pick): the exterior lights' covert mode (with the AI wingmen), white
   phosphor, ejection with goggles. Tests: `nvg.rs`, `real_hud::tests::the_helmet_display_is_dark_with_the_hmcs_off_or_the_goggles_down`,
   `test_cockpit_lights.gd` (the field, NVIS green), `test_sim_adir_pcd.gd`.
+- **The missile warning's type (2026-11-19, missile step 4, avionics-plan.md E1, E2, E5 and §7.2; [ews.md](ews.md) §2,
+  §3; the research, the F-15s' included, in [research/missile-warning.md](research/missile-warning.md)); a visible
+  change on `wt/missile-warning`, awaiting the user's approval:** the RWR names a radar-guided missile by its launcher's
+  radar (its symbol in the launch circle) and no longer hears an infrared one (no circle, launch lamp, tone or CMDS
+  start from the RWR); the MAW (the Sufa's PAWS, the Adir's DAS) warns of every missile with its class and seconds,
+  "AAM 12" or "SAM 12", on the RWR scope, the TWD, the DAS format and the Adir's helmet, its launch tone also for an
+  infrared missile; the Barak gets no warning of an infrared missile. Tests: `rwr.rs`, `ews.rs`, `real_hud/f35.rs`,
+  `test_sim_ews.gd`.
 - **Real missile performance, the core (2026-11-19, the user's "ok so finish the missile works", avionics-plan.md
   §7):** the AIM-9M, AIM-9X, Python 5 and AIM-120 fly a physical missile: the motor's real thrust and burn, drag by Mach
   and height, gravity, proportional navigation within the g limit, turns bleeding speed, the flight's end when too
   slow; the DLZ, the AI's launch range and the post-launch times from the same fly-out
   ([../../docs/real-weapons.md](../../docs/real-weapons.md) §2.1). Next steps 1–5 (seekers in flight, loft, fuzes, the
-  MAW's missile type, the threat missiles) in avionics-plan.md §7.2. Tests: `missile.rs`, `test_sim_missiles.gd`.
+  missile warning's type, the threat missiles) in avionics-plan.md §7.2. Tests: `missile.rs`, `test_sim_missiles.gd`.
   Step 1 the same day: the seekers in flight (a target outside the cone is lost) and the AIM-120's data link until its
   seeker goes active (real-weapons.md §2.2); the AIM-9X's thrust-vectored turn no longer brakes it to a stop, and the
   guidance acts across the missile's velocity, so the 70° off-boresight shot hits. The burst is the same at any frame
@@ -197,7 +205,7 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   same day: the HUD's DED DATA overlapped its right column (now a block of character cells between the columns, the
   roll indicator off meanwhile), the threat symbols piled on the centre (now on rings by lethality, apart), the AIFF's
   circle sat below its FCR contact (now by slant range), the 3D DED showed 3 of its 5 lines and its columns did not
-  line up. The MAW names no missile type (avionics-plan.md §7, next step 4).
+  line up.
 - **The Sufa's MFDs (2026-11-17, avionics-plan.md slice 4, G8 DMS, G14–G16, G24, G25;
   [../../docs/mfd.md](../../docs/mfd.md) §9 "Modern MFDs"):** each MFD keeps three formats per master mode (NAV,
   A-A, A-G); the menu adds DTE, FLCS, BLANK and the RESET MENU; the sensor of interest with its box and NOT SOI, DMS on
@@ -955,8 +963,11 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   6-DoF cases and the flight's collision avoidance ([../../docs/ai.md](../../docs/ai.md) §8.7), tested from Ramon's
   shelters to parked again and with a lead landing away from home. Open: the
   four-ship mission and its wiring (slice 2), the radio page with voices and subtitles (slice 3).
-- **Missiles (avionics-plan.md §7.2):** next steps 2–5: the AIM-120's loft, the proximity fuzes, the MAW's missile
-  type, the threat missiles once their records are approved.
+- **Missiles (avionics-plan.md §7.2):** next steps 2, 3 and 5: the AIM-120's loft, the proximity fuzes, the threat
+  missiles once their records are approved; step 4 (the missile warning's type) awaits the user's approval.
+- **The missile warning, not started (outside the user's words):** an active radar missile's own seeker as an "M" on
+  the threat display (the F-15C's ALR-56C shows one, a simulator manual; the dash-34's F-16 list has none;
+  [research/missile-warning.md](research/missile-warning.md) §2, §6).
 - **The manuals** ([manuals.md](manuals.md)): the Typst build, the page design, each manual's outline and one written
   section per jet (Cold start to take-off) wait for the user's approval (18 November 2026); every other section is
   planned in the outlines. The main menu's Manuals entry is not built.

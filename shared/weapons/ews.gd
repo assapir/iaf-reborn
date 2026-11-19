@@ -18,8 +18,9 @@ var maw := false
 ## The F-35I's combat ID (aiff.rs combat_id): every unit's identity in `state.ident`; its data link on from the start
 ## (MADL / Link 16 run by the mission systems, inferred: no DL switch on the jet).
 var combat_id := false
-## What the cockpit draws: {symbols, maw, twd, cmds, aiff, blank, link, own (the jet's world position), ident ({key:
-## "friend" / "unknown" / "hostile"}, the combat ID's; {} without one)}.
+## What the cockpit draws: {symbols, maw ([{id, bearing, tti, class ("AAM" / "SAM"), label ("AAM 12"), new}]), twd,
+## cmds, aiff, blank, link, own (the jet's world position), ident ({key: "friend" / "unknown" / "hostile"}, the combat
+## ID's; {} without one)}.
 var state := {}
 var _e = ClassDB.instantiate("IafEws")
 var _launch_ids := {}
@@ -32,6 +33,7 @@ func _init(owner: Object, def: Dictionary) -> void:
 	combat_id = bool(def.get("combat_id", false))
 	w.rwr.new_guy_tone = false
 	w.rwr.all_aspect = true
+	w.rwr.radar_only = true
 	if combat_id:
 		_e.link_power(true)
 
@@ -128,15 +130,23 @@ func update() -> void:
 	var symbols: Array = _e.threats(w.rwr.display(), own_xy, o.yaw, w.now)
 	if _e.take_new_guy() or _e.take_handoff():
 		_play("SFX_WARNING", "WRN_NEW_GUY", w.rwr.threat_volume)
-	# The missiles launched at the jet: the RWR's launch for the CMDS, the MAW's warnings.
+	# The missiles launched at the jet: the RWR's launch for the CMDS (a radar-guided one, heard), the MAW's warnings
+	# (every one: it sees the motor and where it was launched from, the launcher's unit class).
 	var list := []
 	for e in w.rwr.missiles:
 		var m = e.missile.get("m")
 		var id = e.missile.id
-		if not _launch_ids.has(id):
+		if e.get("heard", true) and not _launch_ids.has(id):
 			_e.cmds_threat(true, w.now)
 		if m != null:
-			list.append({"id": id, "pos": m.position(w.now), "vel": m.velocity(w.now)})
+			list.append(
+				{
+					"id": id,
+					"pos": m.position(w.now),
+					"vel": m.velocity(w.now),
+					"launcher": e.missile.get("launcher", -1)
+				}
+			)
 	_launch_ids = {}
 	for e in w.rwr.missiles:
 		_launch_ids[e.missile.id] = true
@@ -144,6 +154,7 @@ func update() -> void:
 	for wn in warnings:
 		if wn.new:
 			_e.cmds_threat(false, w.now)
+	w.rwr.maw_warning = not warnings.is_empty()
 	_cmds_step()
 	link_update(o)
 	state = {

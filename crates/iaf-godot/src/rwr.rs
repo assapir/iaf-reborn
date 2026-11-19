@@ -51,6 +51,12 @@ impl IafRwr {
         self.rwr.all_aspect = on;
     }
 
+    /// Ours, Modern IAF's jets: only a radar-guided missile's launch is heard (`Rwr::radar_only`).
+    #[func]
+    fn set_radar_only(&mut self, on: bool) {
+        self.rwr.radar_only = on;
+    }
+
     #[func]
     fn lock(&mut self, key: GString, unit: Callable, own: VarDictionary, now: f64) {
         with_world(&unit, &own, now, |w| self.rwr.lock(w, &key.to_string()));
@@ -61,13 +67,15 @@ impl IafRwr {
         with_world(&unit, &own, now, |w| self.rwr.unlock(w, &key.to_string()));
     }
 
-    /// `missile` {id, pos, decoy} or {}; false when ignored (no sounds).
+    /// `missile` {id, pos, decoy, weapon (the weapon's kind, 570 heat missile…; absent 0)} or {}; false when ignored
+    /// or not heard (no sounds).
     #[func]
     fn launch(&mut self, key: GString, missile: VarDictionary, unit: Callable, own: VarDictionary, now: f64) -> bool {
         let m = (!missile.is_empty()).then(|| Launched {
             id: num(&missile, "id").unwrap_or_default() as i64,
             pos: vec3(get(&missile, "pos").unwrap_or_default()),
             decoy: get(&missile, "decoy").unwrap_or(false),
+            weapon: num(&missile, "weapon").unwrap_or_default() as i64,
         });
         with_world(&unit, &own, now, |w| self.rwr.launch(w, &key.to_string(), m))
     }
@@ -184,8 +192,11 @@ impl IafRwr {
                 .to_variant()
             })
             .collect();
-        let threats: VarArray =
-            r.threats().iter().map(|t| vdict! { "id" => t.id, "dist" => t.dist }.to_variant()).collect();
+        let threats: VarArray = r
+            .threats()
+            .iter()
+            .map(|t| vdict! { "id" => t.id, "dist" => t.dist, "heard" => t.heard }.to_variant())
+            .collect();
         vdict! {
             "slots" => &slots, "count" => r.count() as i64, "ai" => r.lamps.ai, "sam" => r.lamps.sam,
             "threats" => &threats, "next_refresh" => r.next_refresh(),

@@ -11,7 +11,7 @@ const LAMP_AI := 3
 const LAMP_SAM := 4
 
 ## Mirrors of the Rust state: slots [{unit ("" free), type, pos, launch, missiles, drop, active}], count,
-## the missiles launched at the jet [{dist, missile}], the lights.
+## the missiles launched at the jet [{dist, missile, heard (its launch marked its emitter)}], the lights.
 var slots: Array = []
 var count := 0
 var missiles: Array = []
@@ -37,6 +37,22 @@ var all_aspect := false:
 	set(v):
 		all_aspect = v
 		_r.set_all_aspect(v)
+## ... and only a radar-guided missile's launch: an infrared one is listed, unheard (rwr.rs radar_only).
+var radar_only := false:
+	set(v):
+		radar_only = v
+		_r.set_radar_only(v)
+## ... and their MAW (ews.gd) warns of a missile: the launch tone runs while it does, also for a missile the RWR did not
+## hear (inferred: the MAW's own audio is open; modern-iaf/docs/ews.md §3).
+var maw_warning := false:
+	set(v):
+		if v == maw_warning:
+			return
+		maw_warning = v
+		if v:
+			_start_launch_loop()
+		elif not any_launch():
+			_stop_launch_loop()
 var threat_volume := 1.0
 var launch_volume := 1.0:
 	set(v):
@@ -90,7 +106,7 @@ func unlock(key: String) -> void:
 
 
 ## A missile was launched at the jet by `key` (FUN_0044e160): the entry's launch flag, the missile list, the
-## WRN_MISSILE_LAUNCH loop, Betty "Missile". `missile` = {id, pos, decoy} or {}.
+## WRN_MISSILE_LAUNCH loop, Betty "Missile". `missile` = {id, pos, decoy, weapon (its kind)} or {}.
 func launch(key: String, missile := {}) -> void:
 	if not missile.is_empty():
 		_by_id[missile.id] = missile
@@ -98,9 +114,7 @@ func launch(key: String, missile := {}) -> void:
 	_sync()
 	if not heard:
 		return
-	if _launch_loop == null or not is_instance_valid(_launch_loop):
-		_launch_loop = play.call("SFX_WARNING", "WRN_MISSILE_LAUNCH") if play.is_valid() else null
-		scaled(_launch_loop, launch_volume * intercom)
+	_start_launch_loop()
 	if betty and play.is_valid():
 		play.call("VOC_BBETTY", "BTY_MISS")
 
@@ -110,7 +124,19 @@ func missile_end(key: String, missile := {}) -> void:
 	if not _r.missile_end(key, missile.get("id")):
 		return
 	_sync()
-	if not any_launch() and _launch_loop != null:
+	if not any_launch() and not maw_warning:
+		_stop_launch_loop()
+
+
+## The WRN_MISSILE_LAUNCH loop, unless it runs.
+func _start_launch_loop() -> void:
+	if _launch_loop == null or not is_instance_valid(_launch_loop):
+		_launch_loop = play.call("SFX_WARNING", "WRN_MISSILE_LAUNCH") if play.is_valid() else null
+		scaled(_launch_loop, launch_volume * intercom)
+
+
+func _stop_launch_loop() -> void:
+	if _launch_loop != null:
 		if stop.is_valid():
 			stop.call(_launch_loop)
 		_launch_loop = null
@@ -174,7 +200,7 @@ func _sync() -> void:
 	var ids := {}
 	for th in st.threats:
 		ids[th.id] = true
-		missiles.append({"dist": th.dist, "missile": _by_id.get(th.id, {"id": th.id})})
+		missiles.append({"dist": th.dist, "missile": _by_id.get(th.id, {"id": th.id}), "heard": th.heard})
 	for id in _by_id.keys():
 		if not ids.has(id):
 			_by_id.erase(id)

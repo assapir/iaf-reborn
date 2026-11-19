@@ -256,15 +256,14 @@ fn lock_symbol(p: &mut Vec<Prim>, q: P, h: f64, ident: Option<Ident>) {
 }
 
 /// The DAS's missile warnings (modern-iaf/docs/avionics-plan.md E5, G19; the DAS gives "missile detection and
-/// tracking", its helmet graphics are not public): an "M" at each missile's bearing on a ring of radius `r` about `c`
-/// (ahead up, as the TWD's), the seconds to impact under it ("--" while it does not close). Inferred, after the RWR
-/// scope's MAW cue (modern-iaf/docs/ews.md §3).
+/// tracking" and the launch point, its helmet graphics are not public): an "M" at each missile's bearing on a ring of
+/// radius `r` about `c` (ahead up, as the TWD's), its class and the seconds to impact under it ("AAM 7"). Inferred,
+/// after the RWR scope's MAW cue (modern-iaf/docs/ews.md §3).
 fn maw_cues(p: &mut Vec<Prim>, i: &Input, c: P, r: f64) {
-    for &(b, tti) in &i.maw {
+    for (b, label) in &i.maw {
         let at = (c.0 + r * b.sin(), c.1 - r * b.cos());
         p.push(text(at, "M", Align::Centre));
-        let t = if tti.is_finite() { format!("{}", tti.clamp(0.0, 99.0) as i64) } else { "--".into() };
-        p.push(text((at.0, at.1 + ROW), t, Align::Centre));
+        p.push(text((at.0, at.1 + ROW), label.as_str(), Align::Centre));
     }
 }
 
@@ -420,10 +419,10 @@ mod tests {
             i.target = Some(Target { range_m: 9000.0, at: Some((10.0, 10.0)), ident, ..Default::default() });
             assert_eq!(shape(&i), want, "{ident:?}");
         }
-        i.maw = vec![(std::f64::consts::FRAC_PI_2, 7.4), (0.0, f64::INFINITY)];
+        i.maw = vec![(std::f64::consts::FRAC_PI_2, "AAM 7".into()), (0.0, "SAM --".into())];
         let fr = frame(FIELD, &i, 1.9);
         let t = texts(&fr.outer);
-        assert!(t.iter().filter(|x| **x == "M").count() == 2 && t.contains(&"7") && t.contains(&"--"), "{t:?}");
+        assert!(t.iter().filter(|x| **x == "M").count() == 2 && t.contains(&"AAM 7") && t.contains(&"SAM --"), "{t:?}");
         let r = i.deg(MAW_RING_DEG);
         let right = (i.boresight.0 + r, i.boresight.1);
         assert!(fr.outer.iter().any(|p| matches!(p, Prim::Text { at, text, .. } if text == "M" && (at.0 - right.0).abs() < 1e-9 && (at.1 - right.1).abs() < 1e-9)), "a missile from the right on the ring's right");
