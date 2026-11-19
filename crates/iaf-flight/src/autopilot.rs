@@ -2234,13 +2234,12 @@ impl Taxi {
             }
             if !self.park {
                 let h = base.hangar_near(pos[0] as f32, pos[1] as f32);
-                let mut path = Vec::new();
                 if let Some(h) = h {
                     occupy(bi, h, true);
                     self.hangar = Some((bi, h));
-                    path.push(base.from_hangar_turn[h]);
                 }
-                path.extend(base.from_taxi.iter().copied());
+                // The hangar's turn point and the shared path, or the hangar's own path (Modern IAF's bases).
+                let mut path = base.departure(h);
                 // Drop the points before the one nearest in 2-D.
                 if let Some((n, _)) = path.iter().enumerate().min_by(|a, b| {
                     dist2(pos, a.1.x as f64, a.1.y as f64).total_cmp(&dist2(pos, b.1.x as f64, b.1.y as f64))
@@ -2273,12 +2272,7 @@ impl Taxi {
                     occupy(bi, h, true);
                     self.hangar = Some((bi, h));
                 }
-                let mut path: Vec<TaxiPt> = base.to_taxi.clone();
-                if n > 0 {
-                    path.push(base.to_hangar_turn[h]);
-                    path.push(base.hangars[h]);
-                }
-                self.path = path;
+                self.path = base.arrival((n > 0).then_some(h));
             }
             return Leaf::Run;
         }

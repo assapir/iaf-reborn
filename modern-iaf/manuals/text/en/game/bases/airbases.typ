@@ -61,9 +61,11 @@ The headings in the table are true headings. The jet's compass reads about 1° l
 
 === Where a flight starts <airbases-parking>
 
-#idx("Parking spot")Every #term("lesson") starts with the jet on its parking spot: a marked place on an apron of its home base, in a row of four spots for its type. The jet stands cold, with its wheels on the concrete (@lessons-start).
+#idx("Parking spot")Every #term("lesson") starts with the jet on its parking spot at its home base. The jet stands cold, with its wheels on the concrete (@lessons-start).
 
-From the spot a taxi route leads over the taxiways to the take-off runway. The briefing's map draws it as a dashed line (@briefing-map). The signs along it are explained in @ground-signs-signs.
+#idx("Shelter")At Ramon, Ramat David, Nevatim and Tel Nof the spot is inside a hardened shelter: the jet stands in the middle of the shelter with its nose to the open door. Each type has four shelters, one for each jet of a flight. At Ramon the Sufas start at the ends of the loop taxiways in the north-east of the base. At Hatzerim the spots are two rows of four on an apron by the taxiway.
+
+From the spot a taxi route leads over the taxiways to the take-off runway. Out of a shelter it runs straight out of the door, across the shelter's concrete apron to its loop taxiway, then along the taxiways. The briefing's map draws it as a dashed line (@briefing-map). The signs along it are explained in @ground-signs-signs.
 
 #caution[In a lesson, a jet whose middle leaves the paved surface fails the mission (@scoring-at-once). The aprons, the taxiways, the shelters' pads and the runways are paved. The sand between them is not.]
 

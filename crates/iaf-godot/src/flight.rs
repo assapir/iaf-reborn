@@ -606,8 +606,11 @@ impl IafFlight {
                 p[0] -= ox;
                 p[1] -= oy;
             }
+            let own = b.from_hangar_path.iter_mut().chain(&mut b.to_hangar_path);
             for list in
                 [&mut b.to_taxi, &mut b.from_taxi, &mut b.hangars, &mut b.to_hangar_turn, &mut b.from_hangar_turn]
+                    .into_iter()
+                    .chain(own)
             {
                 for p in list.iter_mut() {
                     p.x -= ox;

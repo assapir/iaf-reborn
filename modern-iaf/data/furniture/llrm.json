@@ -1039,29 +1039,29 @@
   {
    "ref": "G1",
    "kind": "gpu",
-   "lat": 30.7698566,
-   "lon": 34.6593915,
-   "heading": 335,
+   "lat": 30.7743772,
+   "lon": 34.6812523,
+   "heading": 138,
    "source": "inferred",
-   "note": "beside the player's jet, left of the cockpit (inferred)"
+   "note": "beside the player's jet in the shelter S2, left of the cockpit (inferred)"
   },
   {
    "ref": "FT1",
    "kind": "fuel_truck",
-   "lat": 30.7697206,
-   "lon": 34.6593034,
-   "heading": 335,
+   "lat": 30.7744747,
+   "lon": 34.6813471,
+   "heading": 138,
    "source": "inferred",
-   "note": "parked left and behind the player's jet, clear of its way out (inferred)"
+   "note": "parked beside the shelter S2, off its left wall, clear of the way out (inferred)"
   },
   {
    "ref": "X1",
    "kind": "extinguisher",
-   "lat": 30.7699208,
-   "lon": 34.659379,
-   "heading": 335,
+   "lat": 30.7743285,
+   "lon": 34.6813456,
+   "heading": 138,
    "source": "inferred",
-   "note": "off the left wingtip, as on a flight line (inferred)"
+   "note": "inside the shelter S2 by its door, off the left wingtip (inferred)"
   },
   {
    "ref": "TG1",

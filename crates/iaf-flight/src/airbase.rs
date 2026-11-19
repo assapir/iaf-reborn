@@ -27,6 +27,12 @@ pub struct Airbase {
     pub hangars: Vec<TaxiPt>,
     pub to_hangar_turn: Vec<TaxiPt>,
     pub from_hangar_turn: Vec<TaxiPt>,
+    /// Ours (Modern IAF's iaf.ibx, modern-iaf/docs/data-formats.md §12): each hangar's own departure, from its turn
+    /// point to the lineup (`HangarPtsFrom<h>`, `FromHangar<h>Pt…`), and arrival, from the landing roll's end to its
+    /// turn point (`HangarPtsTo<h>`, `ToHangar<h>Pt…`); empty in the original's file, where every hangar takes the
+    /// shared paths.
+    pub from_hangar_path: Vec<Vec<TaxiPt>>,
+    pub to_hangar_path: Vec<Vec<TaxiPt>>,
 }
 
 /// The sections, in the TowersManager's record order; Modern IAF's own iaf.ibx adds Hatzerim and Nevatim after them
@@ -84,7 +90,33 @@ impl Airbase {
             hangars: pts(s, "HangarPt", nh),
             to_hangar_turn: pts(s, "ToHangarTurnPt", nh),
             from_hangar_turn: pts(s, "FromHangarTurnPt", nh),
+            from_hangar_path: (0..nh)
+                .map(|h| pts(s, &format!("FromHangar{h}Pt"), n(&format!("HangarPtsFrom{h}"))))
+                .collect(),
+            to_hangar_path: (0..nh).map(|h| pts(s, &format!("ToHangar{h}Pt"), n(&format!("HangarPtsTo{h}")))).collect(),
         }
+    }
+
+    /// The departure from hangar `h` (None: from no hangar): its own path, else its turn point and the shared path.
+    pub fn departure(&self, h: Option<usize>) -> Vec<TaxiPt> {
+        match h.and_then(|h| self.from_hangar_path.get(h)).filter(|p| !p.is_empty()) {
+            Some(p) => p.clone(),
+            None => h.map(|h| self.from_hangar_turn[h]).into_iter().chain(self.from_taxi.iter().copied()).collect(),
+        }
+    }
+
+    /// The arrival to hangar `h` (None: to no hangar): its own path or the shared one, then its turn point and the
+    /// hangar.
+    pub fn arrival(&self, h: Option<usize>) -> Vec<TaxiPt> {
+        let own = h.and_then(|h| self.to_hangar_path.get(h)).filter(|p| !p.is_empty());
+        let mut path = own.unwrap_or(&self.to_taxi).clone();
+        if let Some(h) = h {
+            if own.is_none() {
+                path.push(self.to_hangar_turn[h]);
+            }
+            path.push(self.hangars[h]);
+        }
+        path
     }
 
     /// Every airbase of an `iaf.ibx`.
@@ -123,6 +155,22 @@ pub fn wind_reverses(rwy_deg: f32, knots: f32, from_deg: f32) -> bool {
     knots >= INTO_WIND_KT && d > 90.0 && d < 270.0
 }
 
+/// Path `p` backwards, each point's heading toward the next, the last's toward `last` (None: as it was).
+fn backwards(p: &[TaxiPt], last: Option<[f32; 2]>) -> Vec<TaxiPt> {
+    let mut out: Vec<TaxiPt> = p.iter().rev().copied().collect();
+    for i in 0..out.len() {
+        let next = match out.get(i + 1) {
+            Some(q) => [q.x, q.y],
+            None => match last {
+                Some(l) => l,
+                None => break,
+            },
+        };
+        out[i].hdg = bearing(next[0] - out[i].x, next[1] - out[i].y);
+    }
+    out
+}
+
 /// The heading of (dx, dy) (rad, clockwise from north).
 fn bearing(dx: f32, dy: f32) -> f32 {
     dx.atan2(dy)
@@ -157,28 +205,39 @@ impl Airbase {
         let s = ends.map_or(DEFAULT_RUNWAY_M, |e| along(e[0]) + along(e[1]));
         let lineup = [l[0] + s * d[0], l[1] + s * d[1], l[2]];
         let runway_deg = (self.runway_deg + 180.0).rem_euclid(360.0);
+        let new_lineup = TaxiPt { x: lineup[0], y: lineup[1], hdg: hdg(runway_deg) };
         let mut from_taxi = self.from_taxi.clone();
-        from_taxi.push(TaxiPt { x: lineup[0], y: lineup[1], hdg: hdg(runway_deg) });
+        from_taxi.push(new_lineup);
         // The arrival: the departure's points backwards, each heading toward the next; the last toward the hangar
         // turn points' middle (one heading for every hangar, as the original's to-taxi path).
-        let mut to_taxi: Vec<TaxiPt> = self.from_taxi.iter().rev().copied().collect();
         let n = self.from_hangar_turn.len().max(1) as f32;
         let mid = self.from_hangar_turn.iter().fold([0.0, 0.0], |a, t| [a[0] + t.x / n, a[1] + t.y / n]);
-        for i in 0..to_taxi.len() {
-            let next = match to_taxi.get(i + 1) {
-                Some(q) => [q.x, q.y],
-                None if !self.from_hangar_turn.is_empty() => mid,
-                None => break,
-            };
-            to_taxi[i].hdg = bearing(next[0] - to_taxi[i].x, next[1] - to_taxi[i].y);
-        }
+        let to_taxi = backwards(&self.from_taxi, (!self.from_hangar_turn.is_empty()).then_some(mid));
         let to_hangar_turn = self
             .from_hangar_turn
             .iter()
             .zip(&self.hangars)
             .map(|(t, g)| TaxiPt { hdg: bearing(g.x - t.x, g.y - t.y), ..*t })
             .collect();
-        Airbase { lineup, runway_deg, from_taxi, to_taxi, to_hangar_turn, ..self.clone() }
+        // A hangar's own paths the same way: its departure on to the new lineup, its arrival that backwards to the
+        // turn point, the last leg toward the hangar.
+        let from_hangar_path = self
+            .from_hangar_path
+            .iter()
+            .map(|p| p.iter().copied().chain((!p.is_empty()).then_some(new_lineup)).collect())
+            .collect();
+        let to_hangar_path =
+            self.from_hangar_path.iter().zip(&self.hangars).map(|(p, g)| backwards(p, Some([g.x, g.y]))).collect();
+        Airbase {
+            lineup,
+            runway_deg,
+            from_taxi,
+            to_taxi,
+            to_hangar_turn,
+            from_hangar_path,
+            to_hangar_path,
+            ..self.clone()
+        }
     }
 
     /// An aircraft placed at this base's lineup (within `LINEUP_ZONE_M` of it, on the ground, within 45° of the

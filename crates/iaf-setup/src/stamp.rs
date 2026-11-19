@@ -412,7 +412,14 @@ pub(crate) fn sim_io(id: &str, ctx: &SimCtx) -> Option<(PathBuf, Vec<PathBuf>)> 
         "sim-textures" => (a.join("thirdparty/ambientcg/trees/foliage.json"), vec![]),
         "sim-missions" => (
             a.join("converted/modern-iaf/missions"),
-            vec![data.join("missions"), data.join("db"), data.join("airbases"), data.join("parking.json")],
+            // The furniture too: a parking spot in a shelter takes the shelter's place (airbases.md §5).
+            vec![
+                data.join("missions"),
+                data.join("db"),
+                data.join("airbases"),
+                data.join("parking.json"),
+                data.join("furniture"),
+            ],
         ),
         _ => return None,
     })

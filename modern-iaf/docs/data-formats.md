@@ -551,7 +551,7 @@ item also holds `"osm"`, its element (`"way/188475529"`).
 | `aprons`, `shelters` | `osm`, `polygon`; a shelter's `kind` is `hangar` (OSM hangar) or `shelter` (OSM bunker) |
 | `tower` | `lat`, `lon`, or null (`sources.tower` "open") |
 | `lights` | PAPI / approach lights: `kind`, `osm`, `lat`, `lon` (none in OSM at the four bases) |
-| `parking` (in `modern-iaf/data/parking.json`, by ICAO code) | the start-up spots, a unit's leader first, then its wingmen: `unit` (a unit id, `f15i` for the F-15I), `lat`, `lon`, `heading` (the nose), `source`. Their own file since 2026-11-17: the theatre's stamp hashes the airbase files, and a moved spot leaves the theatre as built. An airbase file written before then holds the spot of that time under `parking`; `sim_bases::load` takes parking.json's |
+| `parking` (in `modern-iaf/data/parking.json`, by ICAO code) | the start-up spots, a unit's leader first, then its wingmen: `unit` (a unit id, `f15i` for the F-15I), `lat`, `lon`, `heading` (the nose), `source`; or instead of the place `shelter`, the `ref` of a shelter row of the base's furniture file (`data/furniture/<icao>.json`): the jet starts at the shelter's middle, nose to its door, and the furniture's parked jet there is left out ([airbases.md](airbases.md) §5). The missions step reads the furniture files for that. Their own file since 2026-11-17: the theatre's stamp hashes the airbase files, and a moved spot leaves the theatre as built. An airbase file written before then holds the spot of that time under `parking`; `sim_bases::load` takes parking.json's |
 | `sources`, `footnotes` | the base's own sources and the full citations |
 
 Example (parts of `llrm.json`):
@@ -593,8 +593,11 @@ Example (parts of `llrm.json`):
 ```json
 {
  "LLRM": [
-  {"unit": "f16i", "lat": 30.7699351, "lon": 34.6594869, "heading": 67, "source": "inferred"},
-  {"unit": "f16i", "lat": 30.7697271, "lon": 34.6595901, "heading": 67, "source": "inferred"}
+  {"unit": "f16i", "shelter": "S2", "source": "inferred"},
+  {"unit": "f16i", "shelter": "S3", "source": "inferred"}
+ ],
+ "LLRD": [
+  {"unit": "f16d", "lat": 32.6678273, "lon": 35.1762686, "heading": 177, "source": "inferred"}
  ]
 }
 ```
@@ -644,10 +647,12 @@ their defaults without one). Nothing in it comes from the original's file: its k
 | `LineupLocX`, `LineupLocY`, `LineupLocZ` | the take-off end's lineup point; its ground height. A start within 100 m of it starts with the engine running |
 | `RunwayNumber` | the take-off grid heading, whole degrees (the reader truncates; written rounded) |
 | `RunwayDesignator`, `RunwayDesignatorOpposite` | ours: the take-off end's designator ("26L") and the other end's, the ones painted on the runway and on the signs (§10 `designators`). The tower says these (the opposite one when it turns the runway into the wind); without them it says RunwayNumber / 10, which at Nevatim (256°) gave "25" for the runway marked "26L" (fixed 2026-11-13) |
-| `TaxiWayPtsFrom`, `FromTaxiPtX<i>`, `FromTaxiPtY<i>`, `FromTaxiPtHdg<i>` | departure: from the hub (below) along the taxiways to the take-off end's runway start, then the lineup; each point's heading is its leg's |
-| `TaxiWayPtsTo`, `ToTaxiPtX<i>`, `ToTaxiPtY<i>`, `ToTaxiPtHdg<i>` | arrival: from 100 m past the other end's runway start (where a jet that landed rolls out) along the taxiways to the hub |
+| `TaxiWayPtsFrom`, `FromTaxiPtX<i>`, `FromTaxiPtY<i>`, `FromTaxiPtHdg<i>` | departure of the first spot: from its way out (the hub) along the taxiways to the take-off end's runway start, then the lineup; each point's heading is its leg's. The readers of one path take it (the radio's holding point, the tests) |
+| `TaxiWayPtsTo`, `ToTaxiPtX<i>`, `ToTaxiPtY<i>`, `ToTaxiPtHdg<i>` | arrival of the first spot: from 100 m past the other end's runway start (where a jet that landed rolls out) along the taxiways to its way out |
 | `HangarsNum`, `HangarPtX<i>`, `HangarPtY<i>`, `HangarPtHdg<i>` | the parking spots (§10 `parking`, in the file's order), the nose's heading |
-| `ToHangarTurnPt…<i>`, `FromHangarTurnPt…<i>` | the hub: the taxiway point nearest the first spot, where every spot joins the paths; headings toward the spot / along the departure's first leg |
+| `ToHangarTurnPt…<i>`, `FromHangarTurnPt…<i>` | spot i's way out: where the way along its nose meets its lane (`taxi_lines`); headings toward the spot / along its departure's first leg |
+| `HangarPtsFrom<i>`, `FromHangar<i>PtX<j>`, `…Y<j>`, `…Hdg<j>` | ours: spot i's own departure, from its way out along the taxiways to the lineup (the first spot's is `FromTaxiPt…`). The AI takes it in place of the turn point and the shared path (`iaf_flight::airbase::Airbase::departure`); the original's file has none |
+| `HangarPtsTo<i>`, `ToHangar<i>PtX<j>`, `…Y<j>`, `…Hdg<j>` | ours: spot i's own arrival, from the landing roll's end to its way out, the last heading toward the spot (`Airbase::arrival` adds the spot) |
 
 The taxi paths follow the shortest way on the OSM taxiway network (Dijkstra; ways joined where they share a point,
 and along each runway between the taxiway points that lie on it: at Ramat David the taxiways meet only through the
@@ -679,8 +684,8 @@ concrete (aprons and shelters, blurred over one pixel), blue = the distance to t
 §12); inland water (0x2) inside OpenStreetMap's lakes, reservoirs and salt ponds of 10 ha or more
 ([terrain.md](terrain.md) §11); runways (0x10, the original's runway flag) on each runway's rectangle at its width;
 the rest of each base's paved surface (taxiways, aprons, shelters' pads, stopways: the mask's red at half or more, on
-an 8 m grid, a cell paved when any of its pixels is; and the AI's taxi paths from every parking spot, 23 m wide, where
-OpenStreetMap maps no taxiway along them, as the 140 m from Hatzerim's Sufa spot to its hub) with no flag (0x0: not land, so not the rough ground that
+an 8 m grid, a cell paved when any of its pixels is; and the AI's taxi paths of every parking spot, 23 m wide, where
+OpenStreetMap maps no taxiway along them, as a spot's way out to its lane) with no flag (0x0: not land, so not the rough ground that
 destroys a jet rolling faster than 25.7 m/s; not runway, which the runways alone carry); land (0x1) elsewhere. Two
 equal sibling leaves are written as one. 13.4 MB, 429,000 nodes (the reader stops at a million; 3.7 MB before the
 coastline and the paved surface). GLO-30's missing tiles (open sea) are 0 m in the terrain's height nodes, so they

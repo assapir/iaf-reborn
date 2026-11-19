@@ -521,13 +521,19 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 - **Ramon filled (2026-11-19, approved by the user the same day):** 40 hardened shelters (12 with a parked
   Sufa), 10 hangars, 14 buildings, the tower, a sunshade, the fence and ramp vehicles beside the player's spot, placed
   from Sentinel-2 and OpenStreetMap; door lamps and obstruction lights at night ([base-furniture.md](base-furniture.md)).
-  Our own simple shapes, no download; GPU +1 ms over the base on the Iris Xe; a rebuild of the terrain and airbases steps (nothing to download). Open: the jets start on the apron row, not in a
-  shelter (§7 there).
+  Our own simple shapes, no download; GPU +1 ms over the base on the Iris Xe; a rebuild of the terrain and airbases steps (nothing to download).
 - **Hatzerim, Nevatim, Ramat David and Tel Nof filled (2026-11-19, the user's order "do it for all air bases"):** the
   same method and shapes as Ramon's: shelters, hangars, sunshades and buildings from OpenStreetMap, Sentinel-2 (the
   2015 photo at Nevatim) and roofs placed by eye; parked Sufas at Hatzerim, F-35Is at Nevatim, Baraks at Ramat David;
   door lamps and obstruction lights; GPU up to +1 ms on the Iris Xe ([base-furniture.md](base-furniture.md) §2.1, §6). Open: no parked F-15 (no F-15 model
   of our own), so Tel Nof's shelters stand empty.
+- **Start in a shelter (2026-11-19, the user's order of 17 Nov: "if there are shelters then start inside one"):** at Ramon,
+  Nevatim, Ramat David and Tel Nof the jets start cold inside shelters, nose to the door, four per unit (Ramon's Sufas in the loop-end
+  shelters S2, S3, S1 and S5, the ground power unit and the extinguisher beside the leader's jet). Each parking spot has its own taxi route out of its door along the
+  taxiways to the runway and back; the AI, the briefing map's taxi line, the tower's flow and the paved surface follow
+  it ([airbases.md](airbases.md) §5). A base names its start shelters in `data/parking.json`. Nevatim's taxi
+  is now about 3 km (from 0.3 km). Open: Hatzerim stays on its sunshade rows (its shelters' taxis break the sign
+  rules, [airbases.md](airbases.md) §5). A rebuild of the airbases and missions steps (nothing to download).
 - **The airbases from the air (2026-11-14, built, awaiting the user's yes on the pictures):** the bases' Sentinel-2
   fill toned to the photo around (no tan block; one colour map per base from the medians of the ground around, an odd
   Survey sheet left out, Sentinel-2's brighter dry grass brought down to the earth tones around); the painted

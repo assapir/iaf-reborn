@@ -115,7 +115,7 @@ airbase files (`sim_terrain::stamp`), so a moved spot leaves the theatre's groun
 and the missions are compiled again, and the scenery after them (the spots' taxi paths are paved ground in
 `terraintype.dat`, which the scenery reads).
 
-Each unit has four spots in a row beside the taxi lane the jets leave by (2026-11-17, the user: "the plane, when
+Each unit has four spots: in four shelters where the base has them (below), else in a row beside the taxi lane the jets leave by (2026-11-17, the user: "the plane, when
 cold and dark, looking on the runway. it should be 90 degrees on the apron"). The spots stand 25 m apart (inferred:
 an F-15's 13 m span and Annex 14's 7.5 m stand clearance), each nose square to the lane, 20–30 m from its centreline,
 a 20 × 14 m footprint on the apron. The leader takes the first spot and its wingman the second
@@ -123,20 +123,41 @@ a 20 × 14 m footprint on the apron. The leader takes the first spot and its win
 
 | base | point | where | first spot: lat, lon, heading |
 |---|---|---|---|
-| Ramon | Sufa parking | the narrow pad along the loop taxiway by 07R/25L's western link (OSM apron 1496591869): a row along the pad, noses east to the taxiway (until 2026-11-17 one spot, nose along the pad at the runway) | 30.7699351, 34.6594869, 67° |
+| Ramon | Sufa shelters | four loop-end shelters of the north-east dispersal, S2, S3, S1, S5 ([base-furniture.md](base-furniture.md) §2), the shortest taxi to 25R (1.4–1.7 km); until 2026-11-19 a row on the narrow pad along the loop taxiway by 07R/25L's western link (OSM apron 1496591869) | S2: 30.7743545, 34.6811917, 138° |
 | Hatzerim | F-15I parking | the western of two sunshade rows by the parallel taxiway (OSM apron 1157437942): down the row's middle from the south end, noses east to the row's eastern lane | 31.2405291, 34.6611625, 105° |
 | Hatzerim | Sufa parking | the same in the eastern row (OSM apron 1157437936) | 31.2402288, 34.6623126, 105° |
-| Nevatim | F-35I parking | the apron north of 08R/26L (OSM apron 1089049618, paved in the 2021 picture, bare in 2015): a row north of its southern lane, noses south to it | 31.2083748, 35.0264948, 165° |
+| Nevatim | F-35I shelters | S8, S7, S9, S6 (taxi about 3.0 km to 26L); until 2026-11-19 a row on the apron north of 08R/26L (OSM apron 1089049618), 337 m from the lineup | S8: 31.2047489, 35.0054906, 192° |
 | Nevatim | tower | the compound midfield between 08L/26R and 08R/26L (2015 photo) | 31.2058009, 35.0125383 |
 | Tel Nof | apron | OSM maps no apron at Tel Nof: a ring round the pale paved pad west of 18/36's middle, out to the end of the taxiway stub from the south-east (Sentinel-2, 10 m: which squadron uses it, or whether it is an apron at all, is open) | 6 points, about 200 × 200 m |
-| Tel Nof | Baz parking | in that pad, a row beside the taxiway stub along its south-west side, noses south-west to the stub | 31.8383348, 34.8126877, 226° |
-| Ramat David | Barak parking | the base's one OSM apron (1328724315, north of 09/27; OSM buildings on its north half): a row along its south half, noses south to the taxiway along it | 32.6678273, 35.1762686, 177° |
+| Tel Nof | Baz shelters | S5, S8, S6, S7 (taxi 0.5–2.7 km to 33L); until 2026-11-19 a row in that pad | S5: 31.8258363, 34.8330913, 327° |
+| Ramat David | Barak shelters | S52, S50, S53, S48 (taxi 1.1–2.4 km to 27); until 2026-11-19 a row on the base's one OSM apron (1328724315) | S52: 32.6714234, 35.1835853, 160° |
 
-Which squadron uses which apron or row is open at every base. The start spots move into the shelters when the bases
-have shelter models (the user, 2026-11-17: "if there are shelters then start inside one"). Ramon has its shelters since
-2026-11-19 ([base-furniture.md](base-furniture.md)), but its jets still start on the apron row: the AI taxis from every
-spot straight to one hub, and Ramon has one shelter per loop taxiway, 200–400 m apart (open,
-[base-furniture.md](base-furniture.md) §7).
+Which squadron uses which apron, row or shelters is open at every base.
+
+**Starts in shelters** (the user, 2026-11-17: "if there are shelters then start inside one"). A spot in parking.json
+may name a shelter of the base's furniture file instead of a place: `{"unit": "f16i", "shelter": "S2"}`
+([data-formats.md](data-formats.md) §10). The jet then starts at the shelter's middle, nose to the door, cold; the
+parked jet the furniture file puts there gives way to it (`sim_bases::base`: any furniture row but the shelter within
+5 m of a spot). A base whose furniture file has shelters names four of them per unit in parking.json; a base without
+one keeps its apron row. Since 2026-11-19 the units of Ramon, Nevatim, Ramat David and Tel Nof start in shelters:
+per unit the four whose door leads straight (within 10°) onto a taxiway 15–60 m ahead, whose taxi has no unpaved
+metre and room past everything standing (`the_furniture_stands_clear`), with the shortest taxi to the take-off end;
+the shelter must hold the jet (Ramat David's 11 m deep S19 does not). `sim_bases::tests::dump_shelter_starts` lists
+every shelter's figures.
+
+Open: Hatzerim's jets stay on the sunshade rows. Five of its shelters leave with room to spare (S1, S2, S4, S5, S6),
+but four of them stand south-east of the runways, and their taxis to 28R make the sign builder (§9) put a board on a
+shelter's apron and two boards for 28R that disagree at one junction (`signs_guide_the_taxi_to_the_runway`,
+`following_the_signs_reaches_every_runway_start` fail). No lesson flies from Hatzerim. At Ramon the ground power unit,
+the fuel truck and the fire extinguisher stand by the leader's shelter S2.
+
+**Each spot's own taxi route** (2026-11-19). Every spot leaves along its nose to the first taxiway within 60 m (its
+"way out": out of a shelter's door, across its apron to the loop taxiway) and from there takes the shortest way along
+the taxiways to the take-off end, and back the same way after landing (`sim_bases::routes`, the per-spot keys of
+iaf.ibx, [data-formats.md](data-formats.md) §12). The AI, the briefing map's dashed taxi line and the paved surface
+of `terraintype.dat` (§9) follow it. Ramon's shelters stand one per loop taxiway, 200–400 m apart, so the four jets
+of a flight leave by four loops and join on the way to the runway. Before, every spot joined one hub (the first
+spot's way out) in a straight line, across the sand at Hatzerim's Sufa row.
 
 ## 6. The check pictures
 
@@ -264,9 +285,8 @@ code reads ([data-formats.md](data-formats.md) §12):
 
 The training missions fail a jet on the ground off the pavement (training.md §3.0); `sim_bases::Base::paved` tests
 the same shapes as the mask. `sim_bases::tests::the_departure_is_paved` checks every metre of the departure from each
-parking spot at Ramon, Ramat David, Nevatim and Tel Nof. At Hatzerim the Sufa spot's first leg to the taxiways crosses about
-140 m that OSM does not mark paved (2026-11-08; open: an apron missing in OSM, or the spot to move; no mission flies
-from Hatzerim yet).
+parking spot at every base (since 2026-11-19, when each spot got its own way to the taxiways; before, Hatzerim's
+Sufa row joined the hub across 140 m that OSM does not mark paved).
 
 The take-off ends and the lineup rule are inferred (data-formats.md §12); Tel Nof's 33L, into the prevailing
 westerly wind, is inferred too. `iaf-sim terrain` and `iaf-sim scenery` read the bases' outlines, so a theatre built
@@ -289,8 +309,7 @@ first frames draw Ramon's runways and its paved mask.
 Open: the towers of Ramon, Hatzerim and Ramat David (their reference points stand in); the taxiways' names (no
 location signs until a source names them); Hatzerim's 10/28 (no taxiway joins it in OpenStreetMap, so no sign or
 route leads there); the shelters, hangars, tower building and parked jets of every base but Ramon
-([base-furniture.md](base-furniture.md)); one hub per base where every parking spot meets the taxiways (the
-AI of a second spot at Hatzerim taxis from the first spot's hub); the radio's tower list (`radio.gd BASES`) holds
+([base-furniture.md](base-furniture.md)); the radio's tower list (`radio.gd BASES`) holds
 the original's ten names, so Hatzerim and Nevatim had no talking tower; since item E3b every base of the own
 `iaf.ibx` talks (`Settings.tower_bases`, [training.md](training.md) §8).
 

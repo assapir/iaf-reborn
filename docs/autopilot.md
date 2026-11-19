@@ -252,6 +252,8 @@ approach and the float before touchdown steer to the centreline with a damped la
 - **Departure:** the hangars' path to the old lineup, then down the runway to the new lineup (a backtrack), where the
   jet turns round.
 - **Arrival:** the departure path backwards, from the old lineup's end to the hangar turn point and the hangar.
+- A hangar with its own paths (Modern IAF's bases, modern-iaf/docs/data-formats.md §12) gets the same: its own
+  departure on to the new lineup, and that backwards as its arrival, the last leg toward the hangar.
 - **Ground starts:** a mission jet lined up on a turned runway (within 400 m of the lineup, within 45° of its heading,
   on the ground) starts at the other end's lineup, its offset turned 180° (a wingman behind the leader stays behind
   it), heading + 180° (`Airbase::to_reversed_lineup`, `MissionRuntime._into_wind`). The original puts lined-up starts

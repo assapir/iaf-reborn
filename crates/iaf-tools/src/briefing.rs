@@ -161,8 +161,8 @@ pub fn briefing(
         let lineup = r.lineup(k);
         // The departure route is the main runway end's (the AI's, airbases.md §9): the taxi only there.
         if (ri, k) == base.main && at != lineup {
-            let rt = sim_bases::routes(base)?;
-            taxi = [vec![at], rt.from].concat();
+            // From the spot along its own way (a shelter's: airbases.md §5).
+            taxi = sim_bases::routes(base)?.departure_from(base, at);
         }
         route.push(lineup);
         for p in mission["route"].as_array().into_iter().flatten() {

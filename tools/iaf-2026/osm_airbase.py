@@ -69,33 +69,33 @@ AS_TAXIWAY = {
 # (lat, lon) where OSM maps no apron.
 # The spots (2026-11-17, the user: "it should be 90 degrees on the apron"): four in a row beside the taxi lane the jets
 # leave by, 25 m apart (inferred: an F-15's 13 m span and Annex 14's 7.5 m stand clearance), each nose square to the
-# lane, the centre 20-30 m from its centreline; a 20 x 14 m footprint on the apron and clear of the shelters. The
-# spots move into the shelters once the base has shelter models (airbases.md §5).
+# lane, the centre 20-30 m from its centreline; a 20 x 14 m footprint on the apron and clear of the shelters.
+# A spot written as a string is a shelter of the base's furniture file (modern-iaf/data/furniture/<icao>.json, its
+# ref): the jet starts in it, nose to the door (the user, 2026-11-17: "if there are shelters then start inside one";
+# airbases.md §5).
 PLACED = {
-    # The narrow pad along the loop taxiway by 07R/25L's western link (OSM apron 1496591869): the row along the pad,
-    # noses east to the taxiway (until 2026-11-17 one spot, nose along the pad at the runway).
-    "LLRM": {"parking": {"f16i": [(30.7699351, 34.6594869, 67), (30.7697271, 34.6595901, 67),
-                                  (30.7695191, 34.6596933, 67), (30.7693111, 34.6597964, 67)]}, "tower": None},
-    # The two sunshade rows by the parallel taxiway (OSM aprons 1157437942, 1157437936): each row down its middle from
-    # the south end, noses east to the row's eastern lane; which squadron uses which row is open.
+    # The loop-end shelters of the north-east dispersal with the shortest taxi to 25R (1.4-1.7 km; inferred: which
+    # squadron uses which shelters is open). Until 2026-11-19 a row on the narrow pad along the loop taxiway by
+    # 07R/25L's western link (OSM apron 1496591869).
+    "LLRM": {"parking": {"f16i": ["S2", "S3", "S1", "S5"]}, "tower": None},
+    # Since 2026-11-19 every base starts in shelters: per unit the four whose door leads straight to a taxiway with the
+    # shortest taxi to the take-off end and room past everything standing (sim_bases::tests::dump_shelter_starts;
+    # inferred: which squadron uses which shelters is open). Hatzerim keeps its two sunshade rows by the parallel
+    # taxiway (OSM aprons 1157437942, 1157437936; airbases.md §5: its shelters' taxis break the signs' rules).
     "LLHB": {"parking": {"f15i": [(31.2405291, 34.6611625, 105), (31.2407476, 34.6612307, 105),
                                   (31.240966, 34.6612989, 105), (31.2411844, 34.6613671, 105)],
                          "f16i": [(31.2402288, 34.6623126, 105), (31.2404472, 34.6623812, 105),
                                   (31.2406655, 34.6624498, 105), (31.2408839, 34.6625183, 105)]},
              "tower": None},
-    # The apron north of 08R/26L (OSM apron 1089049618, paved by 2021): a row north of its southern lane, noses south
-    # to it. Tower: the compound between 08L/26R and 08R/26L midfield (2015 photo).
-    "LLNV": {"parking": {"f35i": [(31.2083748, 35.0264948, 165), (31.2083176, 35.0262391, 165),
-                                  (31.2082604, 35.0259833, 165), (31.2082032, 35.0257276, 165)]},
+    # Until 2026-11-19 the apron north of 08R/26L (OSM apron 1089049618). Tower: the compound between 08L/26R and
+    # 08R/26L midfield (2015 photo).
+    "LLNV": {"parking": {"f35i": ["S8", "S7", "S9", "S6"]},
              "tower": (31.2058009, 35.0125383)},
-    # The base's one OSM apron (1328724315, north of 09/27; OSM buildings on its north half): a row along its south
-    # half, noses south to the taxiway along it.
-    "LLRD": {"parking": {"f16d": [(32.6678273, 35.1762686, 177), (32.6678398, 35.1765367, 177),
-                                  (32.6678522, 35.1768049, 177), (32.6678647, 35.1770731, 177)]}, "tower": None},
-    # OSM maps no apron at Tel Nof: the pale paved pad west of 18/36's middle, drawn by eye on the Sentinel-2 picture;
-    # a row beside the taxiway stub that runs along its south-west side, noses south-west to the stub.
-    "LLEK": {"parking": {"f15c": [(31.8383348, 34.8126877, 226), (31.8384975, 34.8125029, 226),
-                                  (31.8386602, 34.8123181, 226), (31.8388229, 34.8121333, 226)]}, "tower": None,
+    # Until 2026-11-19 the base's one OSM apron (1328724315, north of 09/27).
+    "LLRD": {"parking": {"f16d": ["S52", "S50", "S53", "S48"]}, "tower": None},
+    # OSM maps no apron at Tel Nof: the pale paved pad west of 18/36's middle, drawn by eye on the Sentinel-2 picture
+    # (the spots stood there until 2026-11-19).
+    "LLEK": {"parking": {"f15c": ["S5", "S8", "S6", "S7"]}, "tower": None,
              "aprons": [[(31.8397814, 34.8122581), (31.8399611, 34.8137385), (31.8390627, 34.8142672),
                          (31.8381643, 34.81395), (31.8381643, 34.8126811), (31.838838, 34.811465),
                          (31.8397814, 34.8122581)]]},
@@ -380,7 +380,8 @@ def extract(icao, data, oa_airports, oa_runways):
         "shelters": shelters,
         "tower": tower,
         "lights": lights,
-        "parking": [{"unit": u, "lat": p[0], "lon": p[1], "heading": p[2], "source": "inferred"}
+        "parking": [{"unit": u, "shelter": p, "source": "inferred"} if isinstance(p, str)
+                    else {"unit": u, "lat": p[0], "lon": p[1], "heading": p[2], "source": "inferred"}
                     for u, row in placed["parking"].items() for p in row],
         **({"squadrons": [{"unit": u, "number": s[0], "name": {"en": s[1], "he": s[2]}, "source": s[3]}
                           for u, s in SQUADRONS[icao].items()]} if icao in SQUADRONS else {}),
@@ -447,6 +448,11 @@ def overlay(icao, outdir, mapi):
     """The picture on the Survey of Israel photo (mapi) or on Sentinel-2; written as <icao>[_2015].png / .jpg."""
     base = json.load(open(os.path.join(OUT, icao.lower() + ".json")))
     base["parking"] = json.load(open(PARKING, encoding="utf-8"))[icao]
+    # A spot in a shelter takes the shelter's place and door.
+    furniture = os.path.join(ROOT, "modern-iaf/data/furniture", icao.lower() + ".json")
+    rows = {r.get("ref"): r for r in json.load(open(furniture))["rows"]} if os.path.exists(furniture) else {}
+    base["parking"] = [{**p, **{k: rows[p["shelter"]][k] for k in ("lat", "lon", "heading")}} if "shelter" in p else p
+                       for p in base["parking"]]
     every = [[e["lat"], e["lon"]] for r in base["runways"] for e in r["ends"]]
     every += [p for t in base["taxiways"] for p in t["points"]]
     every += [p for a in base["aprons"] + base["shelters"] for p in a["polygon"]]

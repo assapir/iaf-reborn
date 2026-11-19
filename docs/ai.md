@@ -412,9 +412,13 @@ FirstRun: base B = 551280(pos); L = B.Lineup; leader = the route's member 0
   if atLineup: return
   departure: h = hangar near pos (5521c0), marked occupied
      path = [FromHangarTurn[h], FromTaxi[0..]] minus the points before the one nearest in 2-D
+       (ours: a hangar with its own path in Modern IAF's iaf.ibx, FromHangar<h>Pt…, takes that instead;
+        `Airbase::departure`, modern-iaf/docs/data-formats.md §12)
      not within 100 m of Hangar[h]: re-placed 60 m before path[0] on its heading, at rest (5a4d40) (UNCERTAIN sign)
      path[0] within 100 m of L: atLineup = 1
   to park: h = first free hangar (552190; C-130: the last), occupied; path = [ToTaxi[0..], ToHangarTurn[h], Hangar[h]]
+     (ours: a hangar's own ToHangar<h>Pt… path, ending at its turn point, takes the place of ToTaxi and the turn point;
+      `Airbase::arrival`)
   timer 0.2 s
 Run:
   free = leader dead or leader control mode 0;  leaderMoving = leader V > 1.0

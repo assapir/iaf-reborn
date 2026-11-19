@@ -107,9 +107,14 @@ into the bases' ground, `sim_terrain::grade_base`) and of the `sim-airbases` sta
 the files' hash is in its `grade.txt` (`sim_terrain::grade_text`).
 
 Ramon's 83 rows: 40 shelters, 12 parked Sufas (10 in the loop-end shelters, 2 in the alert compound, each at its
-shelter's middle, nose out), 10 hangars, 14 buildings, the tower, the sunshade, the fence, and beside the player's
-parking spot a ground power unit, a fuel truck and a fire extinguisher (inferred, as on a flight line); a tug stands
-outside the alert shelter S35.
+shelter's middle, nose out), 10 hangars, 14 buildings, the tower, the sunshade, the fence, and by the player's
+shelter S2 a ground power unit and a fire extinguisher inside, a fuel truck off its left wall (inferred; until
+2026-11-19 beside the apron row the jets started on); a tug stands outside the alert shelter S35.
+
+A start spot in a shelter (parking.json `shelter`, [airbases.md](airbases.md) §5) takes the shelter's place: the
+parked jet of that shelter is left out when the base is compiled (`sim_bases::base`). At Ramon the Sufas start in
+S2, S3, S1 and S5, so their parked jets J2, J3, J1 and J5 do not stand; the other eight do. The same holds at
+Nevatim, Ramat David and Tel Nof for their start shelters ([airbases.md](airbases.md) §5).
 
 ## 4. Compiled: `iaf-sim airbases`
 
@@ -179,9 +184,6 @@ copy of about 6,000 triangles and cast no shadow (they stand in the shelters' sh
 
 ## 7. Open
 
-- The start spots stay on the apron row ([airbases.md](airbases.md) §5). The user's rule "if there are shelters then
-  start inside one" (2026-11-17) needs each spot's own taxi route: the AI taxis from every spot straight to one hub,
-  and Ramon has one shelter per loop taxiway, 200–400 m apart.
 - Parked F-15s at Tel Nof and Hatzerim: they need an F-15 model of Modern IAF's own (§2.1).
 - Nevatim's places come from OSM and the 2015 photo: the newer north-east hangars stand as OSM maps them; Sentinel-2's
   tile `N31E035` would show them as they are in 2021.

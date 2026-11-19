@@ -86,8 +86,15 @@ impl GameBase {
     /// From an iaf.ibx base and its measured runways.
     pub fn new(b: &Airbase, runways: Vec<[[f64; 2]; 2]>) -> Self {
         let mut points = vec![[b.tower[0] as f64, b.tower[1] as f64]];
-        for t in
-            b.to_taxi.iter().chain(&b.from_taxi).chain(&b.hangars).chain(&b.to_hangar_turn).chain(&b.from_hangar_turn)
+        let own = b.from_hangar_path.iter().chain(&b.to_hangar_path).flatten();
+        for t in b
+            .to_taxi
+            .iter()
+            .chain(&b.from_taxi)
+            .chain(&b.hangars)
+            .chain(&b.to_hangar_turn)
+            .chain(&b.from_hangar_turn)
+            .chain(own)
         {
             points.push([t.x as f64, t.y as f64]);
         }
@@ -592,7 +599,10 @@ impl BaseMove {
             }
         };
         for v in [&mut b.to_taxi, &mut b.from_taxi, &mut b.hangars, &mut b.to_hangar_turn, &mut b.from_hangar_turn] {
-            v.iter_mut().for_each(tp);
+            v.iter_mut().for_each(&tp);
+        }
+        for v in b.from_hangar_path.iter_mut().chain(&mut b.to_hangar_path) {
+            v.iter_mut().for_each(&tp);
         }
         // The real runway's heading; a base the tower turned into the wind (airbase::Airbase::reversed) its other end.
         let reversed = wrap180(b.runway_deg as f64 - (self.heading - self.turn)).abs() > 90.0;

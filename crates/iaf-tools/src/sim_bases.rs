@@ -175,6 +175,10 @@ pub struct Item {
 /// The concrete before a shelter's door (m, inferred: the door's apron reaches the loop taxiway 20–35 m out).
 const SHELTER_APRON_M: f64 = 20.0;
 
+/// A furniture row this near a parking spot (m) is the parked jet of the spot's shelter: it gives way to the jet that
+/// starts there (inferred: the survey puts a shelter's jet at its middle, as the spot).
+const SPOT_CLEAR_M: f64 = 5.0;
+
 #[derive(Debug, Clone)]
 pub struct Base {
     pub icao: String,
@@ -320,16 +324,27 @@ pub fn base(v: &Value, what: &str) -> Result<Base> {
     let polys = |k: &str| -> Vec<Vec<[f64; 2]>> {
         v[k].as_array().into_iter().flatten().map(|a| line(&a["polygon"])).filter(|p| p.len() >= 3).collect()
     };
+    // A spot in a shelter (`shelter`: the ref of a furniture row of kind shelter) stands at its middle, nose to the door
+    // (airbases.md §5).
+    let rows = v["furniture"].as_array().map_or(&[][..], |a| a.as_slice());
     let parking = v["parking"]
         .as_array()
         .into_iter()
         .flatten()
         .map(|p| -> Result<Spot> {
-            let (lat, lon) = (p["lat"].as_f64().context("parking lat")?, p["lon"].as_f64().context("parking lon")?);
+            let place = match p["shelter"].as_str() {
+                Some(s) => rows
+                    .iter()
+                    .find(|r| r["ref"] == s && r["kind"] == "shelter")
+                    .with_context(|| format!("{what}: the parking spot's shelter {s:?} is no shelter of the base"))?,
+                None => p,
+            };
+            let (lat, lon) =
+                (place["lat"].as_f64().context("parking lat")?, place["lon"].as_f64().context("parking lon")?);
             Ok(Spot {
                 unit: p["unit"].as_str().unwrap_or("").to_string(),
                 at: utm36n(lon, lat),
-                heading: grid_heading(lon, lat, p["heading"].as_f64().context("parking heading")?),
+                heading: grid_heading(lon, lat, place["heading"].as_f64().context("parking heading")?),
             })
         })
         .collect::<Result<Vec<_>>>()?;
@@ -345,7 +360,12 @@ pub fn base(v: &Value, what: &str) -> Result<Base> {
             anyhow::bail!("{what}: furniture {} needs lat, lon and heading", r["ref"]);
         };
         let size = r["size_m"].as_array().and_then(|a| Some([a.first()?.as_f64()?, a.get(1)?.as_f64()?]));
-        furniture.push(Item { kind, at: utm36n(lon, lat), heading: grid_heading(lon, lat, h), size, line: vec![] });
+        let at = utm36n(lon, lat);
+        // A parked jet in a start spot's shelter gives way to the jet that starts there.
+        if kind != "shelter" && parking.iter().any(|s| dist(s.at, at) < SPOT_CLEAR_M) {
+            continue;
+        }
+        furniture.push(Item { kind, at, heading: grid_heading(lon, lat, h), size, line: vec![] });
     }
     // A shelter's pad and the concrete before its door are paved (the mask draws them as an apron).
     let mut shelters = polys("shelters");
@@ -559,13 +579,26 @@ fn simplify(p: &[[f64; 2]], tol: f64) -> Vec<[f64; 2]> {
     out
 }
 
-/// The AI's routes of a base (iaf.ibx): `hub` is where every parking spot meets the taxiways (the first spot's
-/// nearest taxiway point); `from` the hub → the take-off lineup (departure), `to` the landing roll's end → the hub
-/// (arrival, from the far end's runway start, where a jet that landed on the take-off runway leaves it).
+/// The AI's routes of a base (iaf.ibx): `hub` is where the first parking spot's way out meets its lane; `from` the
+/// hub → the take-off lineup (departure), `to` the landing roll's end → the hub (arrival, from the far end's runway
+/// start, where a jet that landed on the take-off runway leaves it). `out` and `back` are the same for each parking
+/// spot from and to its own way out (its point on its lane): a spot in a shelter has its own way along the taxiways
+/// (airbases.md §5); `out[0]` is `from`, `back[0]` is `to`.
 pub struct Routes {
     pub hub: [f64; 2],
     pub from: Vec<[f64; 2]>,
     pub to: Vec<[f64; 2]>,
+    pub out: Vec<Vec<[f64; 2]>>,
+    pub back: Vec<Vec<[f64; 2]>>,
+}
+
+impl Routes {
+    /// The taxi from the parking spot at `at` to the lineup: the spot, then its departure (the first spot's for a
+    /// place that is no spot).
+    pub fn departure_from(&self, b: &Base, at: [f64; 2]) -> Vec<[f64; 2]> {
+        let i = b.parking.iter().position(|p| dist(p.at, at) < 0.5);
+        std::iter::once(at).chain(i.map_or(&self.from, |i| &self.out[i]).iter().copied()).collect()
+    }
 }
 
 /// The taxiways with each parking spot joined to them: a way from the spot along its nose to the first taxiway it meets
@@ -632,39 +665,45 @@ pub fn routes(b: &Base) -> Result<Routes> {
     let (ri, k) = b.main;
     let r = &b.runways[ri];
     let node = |p: [f64; 2]| g.nearest(p).with_context(|| format!("{}: no taxiways", b.icao));
-    // The hub: where the first spot's way out meets its lane.
-    let hub = g.adj[node(b.parking[0].at)?][0].0;
     // The arrival leaves the runway at the other end's start.
     let exit = node(r.at(1 - k, r.starts[1 - k]))?;
-    let mut from = taxi_out(b, &g, ri, k)?;
-    from.push(r.lineup(k));
-    let mut to = vec![r.at(1 - k, r.starts[1 - k] + LINEUP_IN_M)];
-    to.extend(
-        g.path(exit, hub).with_context(|| format!("{}: the taxiways do not join {:?} and the hub", b.icao, r.ends))?,
-    );
-    Ok(Routes { hub: g.pts[hub], from: simplify(&from, 8.0), to: simplify(&to, 8.0) })
+    let (mut out, mut back) = (Vec::new(), Vec::new());
+    for s in &b.parking {
+        // Where the spot's way out meets its lane.
+        let way = g.adj[node(s.at)?][0].0;
+        let mut from = taxi_out(b, &g, ri, k, way)?;
+        from.push(r.lineup(k));
+        let mut to = vec![r.at(1 - k, r.starts[1 - k] + LINEUP_IN_M)];
+        to.extend(
+            g.path(exit, way).with_context(|| {
+                format!("{}: the taxiways do not join {:?} and the {} spot", b.icao, r.ends, s.unit)
+            })?,
+        );
+        out.push(simplify(&from, 8.0));
+        back.push(simplify(&to, 8.0));
+    }
+    Ok(Routes { hub: out[0][0], from: out[0].clone(), to: back[0].clone(), out, back })
 }
 
 /// The departure from the first parking spot to end k of runway ri as a jet taxis it: the spot, taxi_out, the lineup;
 /// None where the taxiways do not join them.
 #[cfg(test)]
 fn departure(b: &Base, g: &Graph, ri: usize, k: usize) -> Option<Vec<[f64; 2]>> {
-    let out = taxi_out(b, g, ri, k).ok()?;
+    let out = taxi_out(b, g, ri, k, g.adj[g.nearest(b.parking[0].at)?][0].0).ok()?;
     let r = &b.runways[ri];
     // At an intersection take-off (`takeoff`) the jet lines up where it joins.
     let lineup = if r.entry_end(*out.last()?) == Some(k) { r.lineup(k) } else { *out.last()? };
     Some(std::iter::once(b.parking[0].at).chain(out).chain([lineup]).collect())
 }
 
-/// The departure's taxi from the hub (where the first parking spot's way out meets its lane) to end k of runway ri,
-/// joining the runway at its declared start (the first taxiway entry, airbases.md §4): the points of `g` (a Graph of
-/// taxi_lines with the runways), unsimplified.
-fn taxi_out(b: &Base, g: &Graph, ri: usize, k: usize) -> Result<Vec<[f64; 2]>> {
+/// The departure's taxi from node `from` of `g` (where a parking spot's way out meets its lane) to end k of runway
+/// ri, joining the runway at its declared start (the first taxiway entry, airbases.md §4): the points of `g` (a Graph
+/// of taxi_lines with the runways), unsimplified.
+fn taxi_out(b: &Base, g: &Graph, ri: usize, k: usize, from: usize) -> Result<Vec<[f64; 2]>> {
     let r = &b.runways[ri];
-    let node = |p: [f64; 2]| g.nearest(p).with_context(|| format!("{}: no taxiways", b.icao));
-    let hub = g.adj[node(b.parking[0].at)?][0].0;
     let entry = takeoff(b, g, ri, k).with_context(|| format!("{}: no taxiway joins {}", b.icao, r.designators[k]))?;
-    g.path(hub, entry).with_context(|| format!("{}: the taxiways do not join the hub and {}", b.icao, r.designators[k]))
+    g.path(from, entry)
+        .with_context(|| format!("{}: the taxiways do not join a parking spot and {}", b.icao, r.designators[k]))
 }
 
 // --- taxiway signs --------------------------------------------------------------------------------------------------
@@ -1447,16 +1486,14 @@ impl Paved {
         Self { origin: m.origin, nx, ny, cells }
     }
 
-    /// The mask's paved surface and the AI's taxi paths of `rt` from every parking spot of `b` (each spot to the hub,
-    /// the hub to the lineup, the landing roll's end to the hub) at TAXIWAY_WIDTH_M: where OpenStreetMap maps no
-    /// taxiway along a computed path (Hatzerim's Sufa spot to its hub, 140 m of sand), the jet still rolls on paved
-    /// ground.
+    /// The mask's paved surface and the AI's taxi paths of `rt` for every parking spot of `b` (each spot to the
+    /// lineup, the landing roll's end to each spot's way out) at TAXIWAY_WIDTH_M: where OpenStreetMap maps no taxiway
+    /// along a computed path (a spot's way out to its lane), the jet still rolls on paved ground.
     pub fn with_paths(m: &Mask, b: &Base, rt: &Routes) -> Self {
         let mut p = Self::new(m);
         let half = TAXIWAY_WIDTH_M / 2.0;
-        let mut lines: Vec<Vec<[f64; 2]>> = b.parking.iter().map(|s| vec![s.at, rt.hub]).collect();
-        lines.push(rt.from.clone());
-        lines.push(rt.to.clone());
+        let mut lines: Vec<Vec<[f64; 2]>> = b.parking.iter().map(|s| rt.departure_from(b, s.at)).collect();
+        lines.extend(rt.back.iter().cloned());
         for l in &lines {
             for s in l.windows(2) {
                 let (lo, hi) = (
@@ -1658,18 +1695,20 @@ fn ibx_section(b: &Base, rt: &Routes, z: &mut dyn FnMut([f64; 2]) -> f64) -> Str
             *s += &format!("{prefix}X{i}={:.1}\n{prefix}Y{i}={:.1}\n{prefix}Hdg{i}={:.0}\n", q[0], q[1], h.round());
         }
     };
-    // The arrival ends at the hub, its last leg toward the first spot.
+    // The first spot's paths, for the readers of one path (the original's keys): the arrival ends at its way out (the
+    // hub), its last leg toward the spot.
     path(&mut s, "ToTaxiPt", "TaxiWayPtsTo", &rt.to, bearing(rt.hub, b.parking[0].at));
     path(&mut s, "FromTaxiPt", "TaxiWayPtsFrom", &rt.from, r.heading(k));
     s += &format!("HangarsNum={}\n", b.parking.len());
     for (i, p) in b.parking.iter().enumerate() {
-        let to_spot = bearing(rt.hub, p.at);
-        // The departure's first point is the hub itself: leave it toward the next one.
-        let from_spot = rt.from.get(1).map_or(to_spot, |f| bearing(rt.hub, *f));
+        // The spot's way out: where it meets its lane; the departure leaves it along its first leg.
+        let way = rt.out[i][0];
+        let to_spot = bearing(way, p.at);
+        let from_spot = rt.out[i].get(1).map_or(to_spot, |f| bearing(way, *f));
         s += &format!(
             "ToHangarTurnPtX{i}={:.1}\nToHangarTurnPtY{i}={:.1}\nToHangarTurnPtHdg{i}={:.0}\n",
-            rt.hub[0],
-            rt.hub[1],
+            way[0],
+            way[1],
             to_spot.round()
         );
         s += &format!(
@@ -1680,10 +1719,13 @@ fn ibx_section(b: &Base, rt: &Routes, z: &mut dyn FnMut([f64; 2]) -> f64) -> Str
         );
         s += &format!(
             "FromHangarTurnPtX{i}={:.1}\nFromHangarTurnPtY{i}={:.1}\nFromHangarTurnPtHdg{i}={:.0}\n",
-            rt.hub[0],
-            rt.hub[1],
+            way[0],
+            way[1],
             from_spot.round()
         );
+        // Ours: the spot's own departure and arrival along the taxiways (data-formats.md §12).
+        path(&mut s, &format!("FromHangar{i}Pt"), &format!("HangarPtsFrom{i}"), &rt.out[i], r.heading(k));
+        path(&mut s, &format!("ToHangar{i}Pt"), &format!("HangarPtsTo{i}"), &rt.back[i], to_spot);
     }
     s + "\n"
 }
@@ -2127,8 +2169,8 @@ mod tests {
             let rt = routes(&b).unwrap();
             for p in &b.parking {
                 assert!(!rough(p.at), "{} {}: the parking spot is rough ground", b.icao, p.unit);
-                // Every spot reaches the lineup on pavement: to the hub, then the departure.
-                let path: Vec<[f64; 2]> = [p.at, rt.hub].into_iter().chain(rt.from.iter().copied()).collect();
+                // Every spot reaches the lineup on pavement along its own departure.
+                let path = rt.departure_from(&b, p.at);
                 for s in path.windows(2) {
                     let d = dist(s[0], s[1]);
                     for k in 0..=(d / 2.0) as usize {
@@ -2514,6 +2556,52 @@ mod tests {
         }
     }
 
+    /// Prints each shelter of each base as a start spot for its unit (parking.json `shelter`, airbases.md §5): its
+    /// way out (the angle off its nose, the distance), its taxi to the lineup (m), the metres of it off the pavement and
+    /// the least room to spare between it and anything else standing (m, `room_needed` taken off): `cargo test -p iaf-tools --lib sim_bases::tests::dump_shelter_starts -- --ignored --nocapture`.
+    #[test]
+    #[ignore]
+    fn dump_shelter_starts() {
+        for b in load(&data()).unwrap() {
+            for f in b.furniture.iter().filter(|f| f.kind == "shelter") {
+                let mut t = b.clone();
+                t.parking = vec![Spot { unit: String::new(), at: f.at, heading: f.heading }];
+                let g = utm36n_geo(f.at[0], f.at[1]);
+                let Ok(rt) = routes(&t) else {
+                    println!("SHELTER {} {:.7},{:.7} no route", b.icao, g[1], g[0]);
+                    continue;
+                };
+                let way = rt.out[0][0];
+                let off = (bearing(f.at, way) - f.heading + 540.0).rem_euclid(360.0) - 180.0;
+                let path = rt.departure_from(&t, f.at);
+                let len: f64 = path.windows(2).map(|w| dist(w[0], w[1])).sum();
+                let mut rough = 0;
+                for w in path.windows(2) {
+                    for k in 0..dist(w[0], w[1]) as usize {
+                        let u = k as f64 / dist(w[0], w[1]);
+                        let p = [w[0][0] + (w[1][0] - w[0][0]) * u, w[0][1] + (w[1][1] - w[0][1]) * u];
+                        rough += usize::from(!b.paved(p, PAVEMENT_MARGIN_M));
+                    }
+                }
+                // The least room to spare between the taxi and anything else standing (the_furniture_stands_clear's
+                // room_needed); below 0 the shelter cannot be a start spot.
+                let spare = b
+                    .furniture
+                    .iter()
+                    .filter(|o| o.line.is_empty() && dist(o.at, f.at) >= SPOT_CLEAR_M)
+                    .map(|o| room(o, &path) - room_needed(o))
+                    .fold(f64::MAX, f64::min);
+                println!(
+                    "SHELTER {} {:.7},{:.7} off {off:.0} way {:.0} m taxi {len:.0} m unpaved {rough} m room {spare:.0} m",
+                    b.icao,
+                    g[1],
+                    g[0],
+                    dist(f.at, way)
+                );
+            }
+        }
+    }
+
     /// One designator per runway end for the paint, the signs, the tower and the missions: the tower's iaf.ibx
     /// RunwayDesignator is the base's take-off end, and every mission's "runway" is an end of its own base (Nevatim's
     /// tower said "25" for the runway painted and signed "26L", 2026-11-13).
@@ -2541,12 +2629,12 @@ mod tests {
         }
     }
 
-    /// Every parking spot stands on an apron of its base.
+    /// Every parking spot stands on an apron or a shelter's pad of its base.
     #[test]
     fn parking_spots_are_on_aprons() {
         for b in load(&data()).unwrap() {
             for p in &b.parking {
-                let on = b.aprons.iter().any(|a| {
+                let on = b.aprons.iter().chain(&b.shelters).any(|a| {
                     let mut m = vec![0f32; 1];
                     fill_polygon(&mut m, 1, 1, [p.at[0] - 0.5, p.at[1] + 0.5], 1.0, a);
                     m[0] > 0.0
@@ -2586,24 +2674,32 @@ mod tests {
                 "departure ends at the lineup"
             );
             assert_eq!(f64::from(a.tower[2]), b.elevation);
-            // The jet leaves its spot along the departure's first taxiway leg (not north: a heading of 0).
-            for t in &a.from_hangar_turn {
-                assert_eq!(t.hdg, a.from_taxi[0].hdg, "{}: the turn point's heading", b.icao);
+            // Each spot has its own departure, which ends at the lineup; the jet leaves its way out along the
+            // departure's first taxiway leg (not north: a heading of 0). The first spot's is the shared one.
+            assert_eq!(a.from_hangar_path.len(), b.parking.len());
+            assert_eq!(a.from_hangar_path[0], a.from_taxi, "{}", b.icao);
+            assert_eq!(a.to_hangar_path[0], a.to_taxi, "{}", b.icao);
+            for (h, t) in a.from_hangar_turn.iter().enumerate() {
+                let own = &a.from_hangar_path[h];
+                assert_eq!(t.hdg, own[0].hdg, "{}: the turn point's heading", b.icao);
                 assert!(t.hdg != 0.0, "{}", b.icao);
+                let end = own.last().unwrap();
+                assert!((f64::from(end.x) - l[0]).abs() < 0.1 && (f64::from(end.y) - l[1]).abs() < 0.1, "{}", b.icao);
+                let back = a.arrival(Some(h));
+                assert_eq!(back.last(), Some(&a.hangars[h]), "{}: the arrival ends at the spot", b.icao);
+                assert_eq!((back[back.len() - 2].x, back[back.len() - 2].y), (t.x, t.y), "{}", b.icao);
             }
         }
     }
 
-    /// The departure taxi (each parking spot → the hub → the taxi path → the lineup) runs on the pavement (`paved`
-    /// with the training missions' margin): every metre of it, at the bases the training missions fly from
-    /// (Hatzerim's Sufa spot joins the taxiways across 140 m that OSM does not mark paved: airbases.md §9).
+    /// The departure taxi (each parking spot → its way out → its taxi path → the lineup) runs on the pavement (`paved`
+    /// with the training missions' margin): every metre of it, at every base.
     #[test]
     fn the_departure_is_paved() {
-        for b in load(&data()).unwrap().into_iter().filter(|b| b.icao != "LLHB") {
+        for b in load(&data()).unwrap() {
             let rt = routes(&b).unwrap();
             for spot in &b.parking {
-                let mut path = vec![spot.at];
-                path.extend(&rt.from);
+                let path = rt.departure_from(&b, spot.at);
                 for w in path.windows(2) {
                     let n = dist(w[0], w[1]).ceil() as usize;
                     for i in 0..=n {
@@ -2623,9 +2719,53 @@ mod tests {
         }
     }
 
+    /// The room between a taxi `path` and furniture `f` (m): to its footprint where it has a size, else to its place.
+    fn room(f: &Item, path: &[[f64; 2]]) -> f64 {
+        let Some([l, w]) = f.size else {
+            return path.windows(2).map(|q| seg_dist(f.at, q[0], q[1])).fold(f64::MAX, f64::min);
+        };
+        let d = [f.heading.to_radians().sin(), f.heading.to_radians().cos()];
+        let n = [d[1], -d[0]];
+        let at = |a: f64, c: f64| [f.at[0] + d[0] * a + n[0] * c, f.at[1] + d[1] * a + n[1] * c];
+        let box_ = [at(-l / 2.0, -w / 2.0), at(l / 2.0, -w / 2.0), at(l / 2.0, w / 2.0), at(-l / 2.0, w / 2.0)];
+        let mut best = f64::MAX;
+        for q in path.windows(2) {
+            for k in 0..4 {
+                let (a, b) = (box_[k], box_[(k + 1) % 4]);
+                let gap = if cross_at(q[0], q[1], a, b).is_some() {
+                    0.0
+                } else {
+                    [seg_dist(a, q[0], q[1]), seg_dist(b, q[0], q[1]), seg_dist(q[0], a, b), seg_dist(q[1], a, b)]
+                        .into_iter()
+                        .fold(f64::MAX, f64::min)
+                };
+                best = best.min(gap);
+            }
+        }
+        best
+    }
+
+    /// The least room between a taxi and a building's footprint (m; inferred: an F-15's 6.5 m half span and Annex 14's
+    /// 7.5 m stand clearance), between a taxi and a parked jet or vehicle's middle (m; inferred: a span and margin), and
+    /// between a taxi and a ramp prop (m).
+    const ROOM_FOOTPRINT_M: f64 = 14.0;
+    const ROOM_POINT_M: f64 = 25.0;
+    const ROOM_PROP_M: f64 = 5.0;
+
+    fn room_needed(f: &Item) -> f64 {
+        if ["gpu", "fuel_truck", "extinguisher"].contains(&f.kind.as_str()) {
+            ROOM_PROP_M
+        } else if f.size.is_some() {
+            ROOM_FOOTPRINT_M
+        } else {
+            ROOM_POINT_M
+        }
+    }
+
     /// Every base's furniture (base-furniture.md §4) loads into the frame, stands clear of the runways (a footprint's
     /// corner over 40 m from a runway's edge, Annex 14's strip for a building, inferred) and of the departure from each
-    /// parking spot (25 m: an F-16's half span and margin, inferred), and its shelters' pads are paved.
+    /// parking spot (`room_needed`: until 2026-11-19 25 m from a circle round the footprint, which barred the taxi past a
+    /// row of shelters' doors), and its shelters' pads are paved.
     #[test]
     fn the_furniture_stands_clear() {
         let bases = load(&data()).unwrap();
@@ -2640,13 +2780,11 @@ mod tests {
                 if f.kind == "shelter" {
                     assert!(b.paved(f.at, 0.0), "{icao}: the shelter at {:?} has no pad", f.at);
                 }
-                for s in &b.parking {
-                    let mut path = vec![s.at];
-                    path.extend(&rt.from);
-                    let near = path.windows(2).map(|q| seg_dist(f.at, q[0], q[1])).fold(f64::MAX, f64::min);
-                    let props = ["gpu", "fuel_truck", "extinguisher"].contains(&f.kind.as_str());
+                // The spot's own shelter stands round its jet.
+                for s in b.parking.iter().filter(|s| dist(s.at, f.at) >= SPOT_CLEAR_M) {
+                    let near = room(f, &rt.departure_from(b, s.at));
                     assert!(
-                        near - r > if props { 5.0 } else { 25.0 },
+                        near > room_needed(f),
                         "{icao}: {} at {:?} is {near:.0} m from the departure",
                         f.kind,
                         f.at
@@ -2654,6 +2792,44 @@ mod tests {
                 }
             }
         }
+    }
+
+    /// A spot in a shelter (parking.json `shelter`, airbases.md §5) stands at the shelter's middle, nose to its door, the
+    /// shelter's parked jet gone; the jet leaves straight out of the door to its way out on the taxiway (within 10° of
+    /// the nose, 15–60 m ahead: the door's apron, inferred). Every base with shelters starts its jets in them.
+    #[test]
+    fn a_shelter_start_leaves_by_its_door() {
+        let bases = load(&data()).unwrap();
+        let mut n = 0;
+        for b in &bases {
+            let rt = routes(b).unwrap();
+            for (i, s) in b.parking.iter().enumerate() {
+                let Some(f) = b.furniture.iter().find(|f| f.kind == "shelter" && dist(f.at, s.at) < 0.5) else {
+                    continue;
+                };
+                n += 1;
+                assert!((s.heading - f.heading).abs() < 0.5, "{} spot {i}: not nose to the door", b.icao);
+                let near = b.furniture.iter().filter(|g| g.kind != "shelter" && dist(g.at, s.at) < SPOT_CLEAR_M);
+                assert_eq!(near.count(), 0, "{} spot {i}: a parked jet in its shelter", b.icao);
+                let way = rt.out[i][0];
+                let off = (bearing(s.at, way) - s.heading + 540.0).rem_euclid(360.0) - 180.0;
+                assert!(off.abs() < 10.0, "{} spot {i}: the way out {off:.0}° off the nose", b.icao);
+                assert!(
+                    (15.0..60.0).contains(&dist(s.at, way)),
+                    "{} spot {i}: way out {:.0} m",
+                    b.icao,
+                    dist(s.at, way)
+                );
+            }
+        }
+        // The user's rule (2026-11-17): every spot of a base with shelters is in one, but Hatzerim's (open,
+        // airbases.md §5: the taxis from its shelters break the signs' rules).
+        let want: usize = bases
+            .iter()
+            .filter(|b| b.icao != "LLHB" && b.furniture.iter().any(|f| f.kind == "shelter"))
+            .map(|b| b.parking.len())
+            .sum();
+        assert_eq!(n, want, "a base with shelters has a spot outside them");
     }
 
     /// terraintype.dat flags a runway's centre RUNWAY, the sea SEA, a lake INLAND_WATER and other ground LAND, through
