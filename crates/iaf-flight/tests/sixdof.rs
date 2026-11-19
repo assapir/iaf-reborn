@@ -1389,6 +1389,36 @@ fn a_full_push_holds_the_negative_limit() {
 }
 
 #[test]
+fn the_pitch_loop_is_stable_low_down_at_high_speed() {
+    // 400 m/s at 500 m (Mach 1.2, past figure 62(d)'s last q̄): the stick centred holds 1 g steadily, a full pull stays
+    // under the 9.5 g over-g report and a full push near −3 g (T.O. GR1F-16CJ-1 p. 5-3). Before 2026-11-19 the loop
+    // gain was held past 43.4 kN/m² and the Barak's g swung −0.1 to 2.1 g with the stick centred.
+    for (i, jet) in jets::all().iter().enumerate() {
+        let (max_g, min_g) = jet.g_limits;
+        for y in [0.0, 1.0, -1.0] {
+            let mut f = flight(*jet, 500.0, 400.0, true);
+            f.set_ground_height(-5000.0);
+            let c = iaf_flight::Controls { stick_y: y, throttle: 1.0, ..f.controls() };
+            // The pull and the push from the start (their onset's peak); the centred stick after 2 s to settle.
+            let (mut lo, mut hi, mut t) = (f64::MAX, f64::MIN, 0.0);
+            fly_for(&mut f, 6.0, |s| {
+                t += 1.0 / 60.0;
+                if y != 0.0 || t > 2.0 {
+                    (lo, hi) = (lo.min(s.state().g as f64), hi.max(s.state().g as f64));
+                }
+                c
+            });
+            println!("jet {i}, stick {y}: g {lo:.2} to {hi:.2}");
+            match y {
+                0.0 => assert!(lo > 0.9 && hi < 1.1, "jet {i}, centred: {lo:.2} to {hi:.2}"),
+                1.0 => assert!(hi < max_g * 9.5 / 9.0, "jet {i}, pull: {hi:.2}"),
+                _ => assert!(lo > min_g * 3.2 / 3.0, "jet {i}, push: {lo:.2}"),
+            }
+        }
+    }
+}
+
+#[test]
 fn overspeed_and_flutter() {
     // The Barak level at sea level: 820 KCAS is past the 800 KCAS limit (counted), 950 KCAS past the flutter margin
     // (1.15 × 800 = 920): the airframe fails. The Adir's limit is 700 KCAS.

@@ -883,8 +883,9 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   limits. A full push holds about −3 g (the control system's push and negative g limiter, 2026-11-19,
   [flight-model.md](flight-model.md) §9.11; before it a full push or the autopilot's descent broke the airframe at
   −3.9 g); a slow push at full throttle still counts an over-g (to −3.41 g), and the Ra'am passes its −2 g there as the
-  real F-15 can. Open: near Mach 1 low down a full push still damages the Barak and the Sufa (Open, the pitch
-  oscillation).
+  real F-15 can. The pitch loop's gain continues past the last q̄ of its schedule (2026-11-19, §9.11): low down at
+  high speed the jets now fly steadily (before it the Barak's g swung −0.1 to 2.1 g with the stick centred at
+  400 m/s, 500 m, and a full pull reached 11.5 g), a full pull peaks at 9.51 g and a full push at −3.07 g.
 - **[C2](plan.md#c2-the-6-dof) stage (c), the 6-DoF flies the sim's jets (2026-11-03):** TP-1538's control system (g command, α limiter, roll
   and yaw), `Fm { Original, SixDof }` behind `IafFlight` chosen by `Model = 6dof` in the own data (the original game's
   data never reaches it, tested), fuel burn, Mach effects (inferred), the validation rows on the 6-DoF, a real Sufa
@@ -946,10 +947,6 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   string key had left every weight at the regular).
 
 ## Open
-- **The F-16s' pitch oscillates near Mach 1 low down (found 2026-11-19):** at 500 m and 400 m/s (Mach 1.09) the
-  Barak's g swings −0.1 to 2.1 g with the stick centred, the Sufa's −1.2 to 0.3 g with half push; the Adir is steady.
-  So a full push there still passes the damage load (−3.6 to −4.0 g, [flight-model.md](flight-model.md) §9.11) and a
-  full pull reaches 11 g at 420 m/s, 500 m. It was there before the push fix too. Not yet looked into.
 - **AI for allies and enemies (2026-11-19, the user's plan session):** the plan is in [ai-plan.md](ai-plan.md): a new
   Rust AI (a behaviour tree per role, a flight and a package lead) over the existing autopilot loops and combat engine;
   milestones in his order: the four-ship of Sufas (F1–F11), the intercept lesson with a controller and the Eitam

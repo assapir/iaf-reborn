@@ -850,9 +850,20 @@ printed pp. 210–217), stepped with the rigid body (at most 1/120 s):
   −15° instead of TP-1538's −5° (no gain). The Ra'am still passes its −2 g on a slow full-throttle push (−2.3 to
   −2.46 g at 100–150 m/s: its α runs past −15°, where the α signal stays at −5°), and so does the real F-15, which
   "can easily maneuver beyond the load factor limits defined in the flight manuals"[^usaf-ows]: the pilot's to
-  avoid. Open, blocked by the pitch oscillation near Mach 1 low down (status.md, Open): a full push there still
-  passes −3.45 g (the Barak −3.6 g at Mach 1.04, 500 m and −4.0 g at Mach 1.27, 3,000 m; the Sufa −3.57 g at
-  Mach 1.24, 500 m).
+  avoid. Low down near and above Mach 1 a full push still passed −3.45 g (the Barak −3.6 g at Mach 1.04, 500 m and
+  −4.0 g at Mach 1.27, 3,000 m) until the pitch loop's gain was continued past figure 62(d) (next item).
+* **The pitch loop at high q̄** (2026-11-19): figure 62(d) schedules the loop gain from 1.0 at 12.3 kN/m² to 0.5 at
+  43.4 kN/m², the end of TP-1538's envelope. Held at 0.5 above it, the gain times the stabilator's moment grew with
+  q̄ and the loop went unstable low down at high speed: the Barak's g swung −0.1 to 2.1 g with the stick centred at
+  400 m/s, 500 m, a full pull reached 11.5 g and a full push −4.7 g at sea level, and the Sufa, the Adir and the
+  Ra'am oscillated too from about 330–400 m/s at sea level. The F-16's gains give "relatively constant aircraft
+  response for a given stick input, regardless of altitude or airspeed" (p. 1-121)[^to-f16cj]; now the gain
+  continues past 43.4 kN/m² as 1/q̄, which keeps the loop's stabilator moment constant (inferred). At 0–6,000 m and
+  250–420 m/s, inside each jet's limit speed, the four jets fly steadily with the stick centred, a full pull peaks at
+  9.51 g at most (the Barak at
+  sea level, 330 m/s: an over-g is counted) and a full push at −3.07 g
+  (`the_pitch_loop_is_stable_low_down_at_high_speed`). Tested and dropped (2026-11-19): the table's own slope
+  continued (q̄^−0.55): the Barak still oscillated at sea level from 360 m/s.
 * **STORES CONFIG, CAT I / CAT III** (F7): the pilot's switch, as in the jet ("The CAT III position shall be
   selected when the aircraft is configured with a category III loading"[^to-f16a]); key Alt + S (the key table's STORES CONFIG switch),
   `IafFlight.set_fcs_switches`; it starts at CAT I. CAT III adds a limiter on figure 1-44's CAT III line for the
@@ -1309,9 +1320,10 @@ original model never reaches these rules.
 The structure carries its limit load "without detrimental permanent deformation"[^cfr25-305] and its ultimate load,
 1.5 × the limit, without failure[^cfr25-303]; taking the same 1.5 for the military jets, the 15 % to damage and the
 15 % flutter margin on the speed are inferred. The airframe is checked in the air only: a touchdown's loads are the
-landing limits' (§9.12). The F-16's control system holds the jet near 9.3 g at most (§9.13) and a full push near
-−3 g (§9.11, the push and the g limiter), so below Mach 1 a normal full pull or push never damages it; the MANUAL PITCH override,
-a dive past the limit speed or a category III load rolling do.
+landing limits' (§9.12). The F-16's control system holds the jet near 9.3 g at most (§9.13; 9.51 g low down at high
+speed) and a full push near −3 g (§9.11, the push and the g limiter, the pitch loop at high q̄), so a normal full
+pull or push never damages it; the MANUAL PITCH override, a dive past the limit speed or a category III load rolling
+do.
 
 **Category III loads.** A category III load (`stores.gd` `loading_category`) has a rolling limit of 0.8 × the
 symmetric one while the roll rate passes 20°/s (the manual's definition of a rolling manoeuvre, p. 5-4[^to-f16cj];

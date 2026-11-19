@@ -125,6 +125,17 @@ const Q_GAIN: [(f64, f64); 2] = [(4.4, 1.0), (15.5, 0.37)];
 /// Figure 62(d): pitch-loop gain by q̄ (kN/m²).
 const LOOP_GAIN: [(f64, f64); 2] = [(12.3, 1.0), (43.4, 0.5)];
 
+/// Figure 62(d)'s pitch-loop gain at `qbar_k` (kN/m²), continued past its last point as 1/q̄. TP-1538's schedule
+/// ends at 43.4 kN/m²; held there, the gain times the stabilator's moment (which grows with q̄) made the pitch loop
+/// unstable low down at high speed (the Barak's g swung −0.1 to 2.1 g with the stick centred at 400 m/s, 500 m). The
+/// F-16's gains give "relatively constant aircraft response for a given stick input, regardless of altitude or
+/// airspeed" (T.O. GR1F-16CJ-1 p. 1-121); the 1/q̄ that keeps the loop's stabilator moment constant is inferred
+/// (modern-iaf/docs/flight-model.md §9.11).
+fn loop_gain(qbar_k: f64) -> f64 {
+    let (q_end, k_end) = LOOP_GAIN[LOOP_GAIN.len() - 1];
+    if qbar_k > q_end { k_end * q_end / qbar_k } else { table(&LOOP_GAIN, qbar_k) }
+}
+
 /// T.O. 1F-16A-1 figure 1-44, CAT III: per gross weight (lb), the α limit at 1 g and the point (α, g) where the CAT III
 /// line meets the CAT I limit (read off the chart, ±0.1°).
 const CAT3_LIMIT: [(f64, f64, f64, f64); 3] =
@@ -268,7 +279,7 @@ impl Fcs {
         // (3s + 12)/(s + 12) = 3 − 24/(s + 12): x' = u − 12 x, y = 3u − 24x.
         self.lead_x += (fb_in / 12.0 - self.lead_x) * (1.0 - (-12.0 * dt).exp());
         let fb = 3.0 * fb_in - 24.0 * self.lead_x;
-        let u = 1.5 * table(&LOOP_GAIN, qbar_k) * (n_f - fb - l2);
+        let u = 1.5 * loop_gain(qbar_k) * (n_f - fb - l2);
         // The integrator (±25°), held at zero with weight on the wheels (inferred: the F-16's weight-on-wheels
         // switch; TP-1538 flies no ground phase), and the proportional path (5, ±25°). Below the α limiter the
         // production F-16 is a g command system ("Commanded pitch responses are in g increments per stick force for
@@ -279,14 +290,10 @@ impl Fcs {
         // limit allows (below −1 g at −3 g), where the g error alone wound the integrator up and overshot the −3 g
         // limit to −3.9 g (modern-iaf/docs/flight-model.md §9.11).
         let push = n_f < 0.5 * neg && alpha_f < 0.0;
-        let ui = if l1 + l2 + l3 > 0.0 || push {
-            5.0 * u
-        } else {
-            G_INTEGRATOR * 1.5 * table(&LOOP_GAIN, qbar_k) * (n_f - an)
-        };
+        let ui = if l1 + l2 + l3 > 0.0 || push { 5.0 * u } else { G_INTEGRATOR * 1.5 * loop_gain(qbar_k) * (n_f - an) };
         // The negative g limiter (the "AOA/g limiter"'s negative g, T.O. GR1F-16CJ-1 p. 1-121): past the negative
         // limit the integrator is driven back (`G_RELIEF`), so a speed that grows in the dive does not carry the jet
-        // past it. The pull keeps its tuning (§9.11: 9.3 g at most).
+        // past it. The pull keeps its tuning (§9.11: 9.3 g at most, 9.51 g low down at high speed).
         let over = (an - neg).min(0.0);
         // MPO above α 29° (T.O. 1F-16A-1: "enable manual control of the horizontal tails"): full stick is full
         // stabilator, centred stick streamlines it; the integrator follows (the proportional path returns at once
