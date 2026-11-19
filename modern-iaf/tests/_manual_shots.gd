@@ -292,15 +292,31 @@ func _square(parts: Array) -> Array:
 	return [Transform3D(basis, c + n * dist), dist - front - CLEAR]
 
 
+## The world points that bound one of _parts' parts in a picture: a mesh's own vertices, so a turned lever's box is
+## its outline's, not its turned bounding box's (that reached over the neighbour row: the ATT/FPM switch, 19 Nov
+## 2026); else its box's corners.
+func _points(part) -> PackedVector3Array:
+	var out := PackedVector3Array()
+	if part is MeshInstance3D and part.mesh != null:
+		var xf: Transform3D = part.global_transform
+		for v in part.mesh.get_faces():
+			out.append(xf * v)
+	if out.is_empty():
+		var b := _box(part)
+		for k in 8:
+			out.append(b.get_endpoint(k))
+	return out
+
+
 ## Each mark's box in the picture the camera now takes: {name: [x0, y0, x1, y1]}, parts of the picture.
 func _boxes(parts: Array, names: Array) -> Dictionary:
 	var screen: Vector2 = _cam.get_viewport().get_visible_rect().size
 	var boxes := {}
 	for j in parts.size():
-		var r := Rect2(_cam.unproject_position(_box(parts[j][0]).position), Vector2.ZERO)
+		var r := Rect2(_cam.unproject_position(_points(parts[j][0])[0]), Vector2.ZERO)
 		for part in parts[j]:
-			for k in 8:
-				r = r.expand(_cam.unproject_position(_box(part).get_endpoint(k)))
+			for p in _points(part):
+				r = r.expand(_cam.unproject_position(p))
 		boxes[names[j]] = [
 			snappedf(r.position.x / screen.x, 0.0001),
 			snappedf(r.position.y / screen.y, 0.0001),

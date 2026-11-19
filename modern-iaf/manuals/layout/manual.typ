@@ -1079,8 +1079,10 @@
       inset: (x: 4pt, y: 4.5pt),
       fill: (_, y) => if y == 0 { navy } else if calc.even(y) { paper },
       table.header(..ui.systems_cols.map(t => text(fill: white, weight: 600, t))),
+      // The rows in their numbers' order: a row added later keeps its next number (numbers.json) and comes last.
       ..p
         .controls
+        .sorted(key: c => numbers.at(p.id).at(c.node))
         .map(c => {
           let what = "systems.json " + p.id + " " + c.node + ": "
           let row = controls.at(c.node, default: (:))

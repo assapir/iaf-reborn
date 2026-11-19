@@ -372,7 +372,10 @@ workflow.
 
 `modern-iaf/tests/_manual_shots.gd` (a real render; its header has the command) takes them from the game. For each
 cockpit it starts a cold start-up lesson and hides the pilot's body and the overlays. It saves
-`pictures/<cockpit>/<shot>.jpg` (1,600 px wide) and, in `marks.json`, each part's box in its picture. The Sufa and the
+`pictures/<cockpit>/<shot>.jpg` (1,600 px wide) and, in `marks.json`, each part's box in its picture: the box round
+the part's own mesh as the picture shows it, so a turned lever's box ends at the lever (19 November 2026: the box of the
+mesh's turned bounding box reached the next row, and the ATT/FPM switch's number stood on another switch). A panel's
+table lists its rows in their numbers' order. The Sufa and the
 Barak share the F-16's cockpit, so both manuals draw the one set `pictures/f16/`.
 
 | shots | from | camera | marks |
