@@ -1716,6 +1716,7 @@ mod tests {
                 release_accel: 0.0,
                 real: true,
                 off_boresight: false,
+                phys: None,
             };
             use iaf_avionics::{Vec3, missile};
             let site = missile::Launcher { pos: Vec3::ZERO, vel: Vec3::ZERO, fwd: Vec3::NORTH, up: Vec3::UP };

@@ -16,7 +16,16 @@
     "_timeAcceleration": 19.7,
     "_timeConstVel": 0.0,
     "_timeDecceleration": 0.0,
-    "_timeConstOrientation": 0.5
+    "_timeConstOrientation": 0.5,
+    "_motorThrust": 12810.0,
+    "_motorBurn": 5.0,
+    "_launchKg": 86.0,
+    "_propellantKg": 27.2,
+    "_diameterM": 0.127,
+    "_dragScale": 1.217,
+    "_maxTime": 24.7,
+    "_maxG": 40.0,
+    "_navConstant": 4.0
   },
   "sources": {
     "kg": "ds-aim9",
@@ -29,7 +38,16 @@
     "motion._timeAcceleration": "inferred, f16net",
     "motion._timeConstVel": "inferred",
     "motion._timeDecceleration": "inferred",
-    "motion._timeConstOrientation": "inferred"
+    "motion._timeConstOrientation": "inferred",
+    "motion._motorThrust": "navy-mk36",
+    "motion._motorBurn": "navy-mk36",
+    "motion._launchKg": "ds-aim9",
+    "motion._propellantKg": "inferred, navy-mk36",
+    "motion._diameterM": "w-aim9",
+    "motion._dragScale": "inferred",
+    "motion._maxTime": "inferred, f16net",
+    "motion._maxG": "inferred",
+    "motion._navConstant": "inferred"
   },
   "notes": {
     "model": "the original's file name, which Models: Detailed draws as our AIM-9 (shared/util/gltf.gd STORES: shared/extra/models/stores/aim9.glb); the sim has no install, so nothing else draws it",
@@ -43,11 +61,21 @@
     "motion._absAcceleration": "Mach 0.7 to Mach 2.5 in about 5 s of motor burn (the burn time is open)",
     "motion._spiralAccelBeta": "top speed a / beta = Mach 2.5 (851 m/s): 120 / 851",
     "motion._timeAcceleration": "the burn with which the missile flies 17.7 km from 250 m/s before its flight ends 6 s after the burn (real_weapons.gd's rule)",
-    "motion._timeConstOrientation": "flies straight 0.5 s off the rail"
+    "motion._timeConstOrientation": "flies straight 0.5 s off the rail",
+    "motion._dragScale": "times the generic missile drag curve (missile.rs CD0): fitted so the AIM-120 flies its 90 km head-on 12,000 m up, the same for every body (docs/real-weapons.md §2.1)",
+    "motion._navConstant": "proportional navigation's constant, the textbook 3-5 (inferred: 4)",
+    "motion._motorThrust": "the Mk 36's 2,880 lb (12,810 N); the US Navy manual's figure as a search engine quotes it (second-hand: the page refuses automated access)",
+    "motion._motorBurn": "the Mk 36's 5.0 s (second-hand, as the thrust)",
+    "motion._launchKg": "the record's 86 kg",
+    "motion._propellantKg": "the motor's impulse (12,810 N x 5.0 s) at 240 s specific impulse, a reduced-smoke propellant's (inferred)",
+    "motion._diameterM": "the Sidewinder's 0.127 m body",
+    "motion._maxTime": "the flight's end, fitted so the missile flies 17.7 km (f16net) at a still target 6,000 m up from Mach 0.9 (docs/real-weapons.md §2.1)",
+    "motion._maxG": "no public figure: 40 g, one forum's figure for an AIM-9 (inferred, weak)"
   },
   "footnotes": {
     "ds-aim9": "designation-systems.net, \"Raytheon AIM-9 Sidewinder\" (AIM-9L / M 86 kg, Mach 2.5+; AIM-9A / B effective kill radius about 9 m), https://www.designation-systems.net/dusrm/m-9.html",
     "f16net": "F-16.net, \"AIM-9 Sidewinder\" (AIM-9L / M / P 17.7 km), https://www.f-16.net/f-16_armament_article1.html",
-    "w-aim9": "Wikipedia, \"AIM-9 Sidewinder\" (0.127 m body diameter), https://en.wikipedia.org/wiki/AIM-9_Sidewinder"
+    "w-aim9": "Wikipedia, \"AIM-9 Sidewinder\" (0.127 m body diameter), https://en.wikipedia.org/wiki/AIM-9_Sidewinder",
+    "navy-mk36": "US Navy flight manual P-825 (navyflightmanuals.tpub.com/P-825/Fuse-105.htm), as a search engine quotes it: the Mk 36 rocket motor gives 2,880 lb of thrust for a 5.0 s burn (second-hand; the site refuses automated access)"
   }
 }

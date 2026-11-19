@@ -168,8 +168,8 @@ employment as numbered steps with the reaction in bold (`then[…]`). It is writ
 `docs/radar.md` §9, `docs/mfd.md` §9), not from the outline's plan. A real-jet statement carries a footnote to the
 public Block 50 manuals those docs cite (marked "not read again for this chapter") or the word "inferred"; each
 F-16 section opens with the line that the jet's own pages are not public. The user's safety rule holds in every
-section: cockpit procedure and the sim's display only, with no missile performance, no countermeasure effectiveness,
-no electronic attack and no naming of a missile by the missile warning. The Adir's sections describe what is on
+section: no countermeasure effectiveness and no electronic attack (still parked, avionics-plan.md §7.3); missile
+performance is in scope since 19 November 2026 (§7.1), and the missile warning names no missile (the sim's does not). The Adir's sections describe what is on
 `main` and mark the rest "not in the sim yet".
 
 A display's picture is `display("<name>", [caption])`: `pictures/<cockpit>/d_<name>.jpg`, a figure labelled
@@ -254,8 +254,8 @@ text of the manual: the sections with their footnotes, the About text, the check
 notes, the glossary's entries, the outline's titles and introductions, and `systems.json` itself. The planned
 sections' plans join when they are written. The game manual has no such list yet.
 
-Weapons sections give the employment procedure only: switches, pages, cues, counts. Missile performance, how well a
-countermeasure works and electronic attack stay out.
+Weapons sections give the employment procedure: switches, pages, cues, counts. Missile performance may be written
+since 19 November 2026 (avionics-plan.md §7.1); how well a countermeasure works and electronic attack stay out.
 
 ## 3. The build
 

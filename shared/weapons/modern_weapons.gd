@@ -39,6 +39,34 @@ const SPICE2 := {"glide": 4.1, "min_speed": 150.0, "max_speed": 300.0, "max_g": 
 const DELILAH := {"glide": 23.0, "min_speed": 0.3 * MACH_M_S, "max_speed": 0.85 * MACH_M_S, "max_g": 3.0}
 ## The high off-boresight missiles' motion (inferred): jet-vane / thrust-vector control turns them from the rail.
 const AGILE := {"_absAcceleration": 600.0, "_timeConstOrientation": 0.05, "_offBoresight": 1.0, "_timeRelease": 0.0}
+## The physical missiles' motor, body and guidance (missile.rs Physics; values and sources docs/real-weapons.md §2.1).
+## The AIM-9X keeps the AIM-9M's Mk 36 motor and adds jet-vane steering (thrust-vector control) for 60 g; its range is
+## the AIM-9M's (the flight time fitted for 17.7 km). The Python 5: its motor unpublished, the propellant set for its
+## Mach 4, the flight time for its 20 km (inferred).
+const AIM9X_PHYS := {
+	"_motorThrust": 12810.0,
+	"_motorBurn": 5.0,
+	"_launchKg": 85.0,
+	"_propellantKg": 27.2,
+	"_diameterM": 0.127,
+	"_dragScale": 1.217,
+	"_maxTime": 24.7,
+	"_maxG": 60.0,
+	"_navConstant": 4.0,
+	"_thrustVector": 1.0
+}
+const PYTHON5_PHYS := {
+	"_motorThrust": 16671.0,
+	"_motorBurn": 5.0,
+	"_launchKg": 105.0,
+	"_propellantKg": 34.0,
+	"_diameterM": 0.16,
+	"_dragScale": 1.217,
+	"_maxTime": 31.1,
+	"_maxG": 60.0,
+	"_navConstant": 4.0,
+	"_thrustVector": 0.0
+}
 
 ## id (above every bdb's), name (as the Arming screen shows it: 6 characters at most, as the original's weapon names,
 ## so a station box's "%dx%s" fits its 8 characters; arming.gd `_key_text`), type, generation, base (blast,
@@ -65,7 +93,8 @@ const RECORDS := [
 		"front_km": 4.5,
 		"front_ab_km": 12.7,
 		"max_g": 60.0,
-		"loal": true
+		"loal": true,
+		"phys": AIM9X_PHYS
 	},
 	{
 		"id": 1002,
@@ -84,7 +113,8 @@ const RECORDS := [
 		"rear_km": 20.0,
 		"front_km": 6.0,
 		"front_ab_km": 16.0,
-		"loal": true
+		"loal": true,
+		"phys": PYTHON5_PHYS
 	},
 	{
 		"id": 1003,
@@ -241,7 +271,7 @@ static func add_to(db: RefCounted) -> void:
 
 
 ## A missile's motion and seeker from its real data (as real_weapons.gd apply): β = a / top speed, the burn that flies
-## the range from 250 m/s, the cone and lock ranges, the turn limit.
+## the range from 250 m/s, the cone and lock ranges, the turn limit; with "phys" its motor, body and guidance.
 static func _missile(db: RefCounted, w: Dictionary, spec: Dictionary) -> void:
 	var m: Dictionary = db.motion_for(int(w.type), int(w.generation)).duplicate()
 	m.merge(AGILE, true)
@@ -250,6 +280,7 @@ static func _missile(db: RefCounted, w: Dictionary, spec: Dictionary) -> void:
 	var mo := AGILE.duplicate()
 	mo["_spiralAccelBeta"] = m._spiralAccelBeta
 	mo["burn"] = ClassDB.class_call_static("IafMissile", "real_burn", m, float(spec.range_km) * 1000.0)
+	mo.merge(spec.get("phys", {}), true)  # the physical missile in place of the chase motion
 	w.motion = mo
 	for k in ["max_g", "cone_deg", "rear_km", "front_km", "front_ab_km"]:
 		if spec.has(k):

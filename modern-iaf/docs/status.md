@@ -3,6 +3,12 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **Real missile performance, the core (2026-11-19, the user's "ok so finish the missile works", avionics-plan.md
+  §7):** the AIM-9M, AIM-9X, Python 5 and AIM-120 fly a physical missile: the motor's real thrust and burn, drag by Mach
+  and height, gravity, proportional navigation within the g limit, turns bleeding speed, the flight's end when too
+  slow; the DLZ, the AI's launch range and the post-launch times from the same fly-out
+  ([../../docs/real-weapons.md](../../docs/real-weapons.md) §2.1). Next steps 1–5 (seekers in flight, loft, fuzes, the
+  MAW's missile type, the threat missiles) in avionics-plan.md §7.2. Tests: `missile.rs`, `test_sim_missiles.gd`.
 - **No band line for a change the cockpit shows (2026-11-19, the user's "Do it"):** the master arm switch, the
   helmet's picture, the DGFT / MSL OVRD switch, LASER ARM, DL, ADV MODE, the fuel switches, IFF IDENT, the bay doors,
   the bombs' submode, fuze and delay, PRE / VIS, SPOT / SCAN and the autopilot switches put no line in the top strip;
@@ -157,7 +163,7 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   same day: the HUD's DED DATA overlapped its right column (now a block of character cells between the columns, the
   roll indicator off meanwhile), the threat symbols piled on the centre (now on rings by lethality, apart), the AIFF's
   circle sat below its FCR contact (now by slant range), the 3D DED showed 3 of its 5 lines and its columns did not
-  line up. The MAW names no missile type (the parked rows of missile performance).
+  line up. The MAW names no missile type (avionics-plan.md §7, next step 4).
 - **The Sufa's MFDs (2026-11-17, avionics-plan.md slice 4, G8 DMS, G14–G16, G24, G25;
   [../../docs/mfd.md](../../docs/mfd.md) §9 "Modern MFDs"):** each MFD keeps three formats per master mode (NAV,
   A-A, A-G); the menu adds DTE, FLCS, BLANK and the RESET MENU; the sensor of interest with its box and NOT SOI, DMS on
@@ -900,6 +906,8 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   string key had left every weight at the regular).
 
 ## Open
+- **Missiles (avionics-plan.md §7.2):** next steps 1–5: seekers in flight and the AIM-120's mid-course, its loft, the
+  proximity fuzes, the MAW's missile type, the threat missiles once their records are approved.
 - **The manuals** ([manuals.md](manuals.md)): the Typst build, the page design, each manual's outline and one written
   section per jet (Cold start to take-off) wait for the user's approval (18 November 2026); every other section is
   planned in the outlines. The main menu's Manuals entry is not built.

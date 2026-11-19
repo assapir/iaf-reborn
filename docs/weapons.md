@@ -1178,12 +1178,16 @@ Arming lists keep the 1998 IR missiles, also on the Sufa and the F-35I. Both are
 - **Seeker cone** 90° (AIM-9X) / 100° (Python 5) instead of the generation's 70°: the helmet (§5.4) and a radar lock
   slave the seeker that far off the nose. The lock ranges are the Real ones of the record (`real_*`), used with either
   Weapon data.
-- **Agility** (`_offBoresight`, `missile.rs` `ChaseMotion::off_boresight`): the motor's acceleration is 600 m/s² and
-  the missile steers after 0.05 s (the original's IR missiles: 100–150 m/s², 1–2 s straight). The original ends a
+- **Flight** (since 2026-11-19): the physical missile of docs/real-weapons.md §2.1 (`missile.rs` `Physics`, the
+  record's `phys`) in place of the chase motion: the AIM-9M's Mk 36 motor (the AIM-9X's, with thrust-vector control
+  for 60 g while it burns), the Python 5's motor sized for its Mach 4, drag, gravity and proportional navigation.
+- **Agility** (`_offBoresight`, `missile.rs` `ChaseMotion::off_boresight`): the missile steers after 0.05 s (the
+  original's IR missiles: 1–2 s straight); far off the line of sight it turns straight at the target before
+  proportional navigation takes over. The original ends a
   flight when the target falls behind the missile's beam (the overshoot, §5.3); these missiles end that way only after
   the target has been ahead of them once, so a missile fired at a target beside or behind the wing line turns to it.
-  The AIM-9X's turn is held to 60 g.
-- **Launch zone** (`missile.rs` `ChaseMotion::dlz`): both ends from the distance the missile really flies
+- **Launch zone** (`missile.rs` `ChaseMotion::dlz`): the physical missile's straight fly-out (docs/real-weapons.md
+  §2.1). Before 2026-11-19: both ends from the distance the chase motion really flies
   (`travelled`, as Weapon data Real), with either Weapon data. The original's `flown`, s·t + ½·a·(1 − 4β)·t², goes
   negative for β > ¼: with these missiles' agility it gave a minimum range of −1.78 km and, with Weapon data Original,
   no zone at all (fixed 2026-10-29). The min stays the original's rule, the distance flown in tCO + 2 s.

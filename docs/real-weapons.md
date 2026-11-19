@@ -190,9 +190,8 @@ Python 5: docs/f16i.md §5; the F-16I has carried the SDB since August 2015 (107
 | GBU-28 (BLU-113) | 2,130 kg | – | the laser bombs' glide (inferred) | laser (Paveway III, the GBU-27's kit) | [^gbu28kopp], [^gbu28fas], [^gbu28wp] |
 
 - **Weights** are the records' bdb weight (0x758) in whole pounds.
-- **Missiles**: speed and range set β and the burn as §2 does. Inferred: the motor's acceleration 600 m/s² (so a
-  steady 61 g across the velocity; the AIM-9X is held to its published 60 g) and 0.05 s before it steers, for the
-  thrust-vector control; the lock ranges (§1.2) the Python 4's for the AIM-9X (rear 16 km, front 4.5 / 12.7 km), and
+- **Missiles**: they fly the physical missile of §2.1 (since 2026-11-19; before, speed and range set β and the burn
+  as §2 does), steering 0.05 s after the launch (inferred). The lock ranges (§1.2) the Python 4's for the AIM-9X (rear 16 km, front 4.5 / 12.7 km), and
   1.25 × that for the Python 5 (20 / 6 / 16 km), as no seeker range is published. The blast is the AIM-9M's (the AIM-9X
   keeps its 9.4 kg WDU-17/B warhead[^ds9x]); the Python 5's is the Python 4's (its warhead 11 kg[^3]; inferred: the
   same class).
@@ -500,6 +499,56 @@ Each real value lands in one field or rule of the original model:
   The hit test is §1.4's.
 - **Blast radius:** bdb `0x74e` from the lethal radius (§1.4).
 
+### 2.1 The physical missile (Modern IAF's, 2026-11-19)
+
+Modern IAF's air-to-air missiles (the AIM-9M and AIM-120 records of modern-iaf/data/db/weapons, the AIM-9X and
+Python 5 of `modern_weapons.gd`, also with Extras Weapons on Modern in the 1998 game) fly a physical model in place of
+the chase motion (`missile.rs` `Physics`). The record's motion holds its fields (modern-iaf/docs/data-formats.md §3).
+The player's and the AI's missiles fly the same code.
+
+**The model**, every 0.1 s update:
+- **Motor:** a steady thrust for its burn, its propellant burnt off at a steady rate.
+- **Drag:** q·S·(Cd0(M) + K·CN²) on the body's cross-section S, with the ISA density and speed of sound at the
+  missile's height. Cd0(M) is one generic curve (0.30 subsonic, 0.70 at Mach 1.2, 0.38 at Mach 4; inferred) times the
+  record's drag scale; CN is the normal force needed for the turn, K = 0.1. A turn bleeds speed.
+- **Turn limit:** the fins give at most CN = 7 (inferred), so the limit falls with the air's density and the speed; at
+  most the structural g. With thrust-vector control (the AIM-9X's jet vanes[^ds9x]) the structural g holds while the
+  motor burns.
+- **Guidance:** augmented proportional navigation, N = 4 (the usual 3–5[^pn]): the line of sight's turn plus half N
+  times the target's acceleration across it (taken from its velocity between updates, at most 12 g; inferred), with
+  gravity held off. More than 60° off the line
+  of sight, or opening, the missile turns its velocity onto the line of sight within about 0.5 s, within its limit,
+  first (inferred). Gravity acts on the whole flight.
+- **End:** the flight ends at its time limit, or once the motor is out below 200 m/s (inferred: too slow to steer).
+  The burst stays the original's: on a hit, at the closest pass, or on the ground.
+- **DLZ:** a straight level fly-out at the mean height of the jet and the target, from the jet's speed: the maximum
+  is the most the missile gains on the target in its flight less the last 2 s (the original's margin), the minimum the
+  original's (the distance flown in tCO + 2 s). The post-launch times (modern-iaf/docs/weapons.md §8.2) run the same
+  fly-out from the missile's state, and the AI's launch range reads the same zone.
+
+**The values:**
+
+| missile | launch kg | motor | propellant | body | g limit | flight time | sources |
+|---|---|---|---|---|---|---|---|
+| AIM-9M | 86 | Mk 36: 12,810 N (2,880 lb) for 5.0 s | 27.2 kg (inferred: the impulse at 240 s specific impulse) | 0.127 m | 40 (inferred; one forum's AIM-9 figure) | 24.7 s (fitted) | [^navymk36] (second-hand), [^1] |
+| AIM-9X | 85 | the AIM-9M's Mk 36[^ds9x] | the same | the same | 60, thrust-vector control[^2] | the AIM-9M's (inferred) | [^ds9x], [^2] |
+| Python 5 | 105 | 16,671 N for 5.0 s (inferred: sized for Mach 4) | 34 kg (inferred) | 0.16 m | 60 (inferred: the AIM-9X's) | 31.1 s (fitted) | [^3] |
+| AIM-120 | 161.5 | 17,188 N for 7.75 s (51.3 kg at 265 s) | 51.3 kg | 0.178 m | 35 (weak: a forum's table; 28–40 quoted) | 120 s (inferred) | [^iasg], [^wt120] |
+
+- **The drag scale** (1.217 for all four, inferred): fitted so the AIM-120 flies its published 90 km head-on, both
+  jets at Mach 0.9 12,000 m up. A check against the CFD study[^iasg]: from Mach 0.83 5 km up at a still point it flies
+  about 35 km in both. One scale for every body is inferred: no public drag figure for the Sidewinder or the Python
+  was found.
+- **The flight times** (fitted): the AIM-9M's 24.7 s makes its 17.7 km at a still target from Mach 0.9 6,000 m up
+  (the medium-altitude reading of §1.1); the Python 5's 31.1 s its 20 km. No missile's battery life is published.
+- **The Python 5's motor**: Rafael keeps the Python 4's motor[^p5bro], whose figures are not published; its propellant
+  is set so it reaches Mach 4[^3] from Mach 0.9 12,000 m up (inferred).
+- **What the model gives** (Mach 0.9 launches, test `physical_missiles_fly_their_published_figures`; the model's
+  results, not published figures): the AIM-9M reaches Mach 3.8 12,000 m up (published: "Mach 2.5+"[^1]); at sea level it reaches 14 km at a still target, 7 km chasing a Mach 0.9 target; the
+  AIM-120 36 km at a still target 6,000 m up, 16 km in a tail chase.
+- **Open:** each missile's real drag, flight time and g limit; the motors' thrust curves (one steady thrust here; the
+  AIM-120's boost and sustain are disputed[^iasg]).
+
 ## 3. Validation
 | test | checks |
 |---|---|
@@ -508,6 +557,7 @@ Each real value lands in one field or rule of the original model:
 | `tests/godot/test_radar.gd` | the F-16's 80 km |
 | `tests/godot/test_radar_missiles.gd` | the AMRAAM's 157 kg, a/β = Mach 4 and the distance flown in burn + 6 s from 250 m/s = 70 km; the AIM-7B's DLZ against a still target about 5.7 km (not empty) |
 | `crates/iaf-avionics/src/sight.rs` `real_rear_sector`, `real_front_mil_ab_and_none`, `original_range_and_aspect` | the §1.2 rules: rear range and its R/2 afterburner rule, the 60° sector, front with / without afterburner, no front lock, the original unchanged |
+| `crates/iaf-avionics/src/missile.rs` `physical_missiles_fly_their_published_figures`, `a_physical_missile_reaches_its_dlz_and_no_further`, `turning_bleeds_speed_and_height_takes_the_turn`, `physical_post_launch_times_match_the_flight`, `a_short_shot_hits_a_breaking_target`; `modern-iaf/tests/test_sim_missiles.gd` (each jet kills a range drone with each missile: the IR missiles from 2.5 km behind, the AIM-120 head-on from 20 km) | §2.1: the published ranges and speeds, the CFD study's 35 km, the zone shrinking low and in a tail chase; a launch inside the zone hits, past it misses (still, closing, opening), a crossing target is led, a 6 g break from 2.5 km is hit; induced drag, the fins' limit falling with height, the AIM-9X's thrust vectoring; the post-launch time to impact within 10 % of the flight |
 | `crates/iaf-avionics/src/missile.rs` `dlz_per_missile_original_and_real` | the original DLZ of each air-to-air missile; with Real: the burn flies the published range, the zone is not empty, a launch at its maximum reaches a still target and none flies past 1.05 × its range |
 
 ## Sources
@@ -686,3 +736,18 @@ Each real value lands in one field or rule of the original model:
     "4,100 GBU–39"; "50 BLU–113 bombs"), https://www.govinfo.gov/content/pkg/FR-2015-06-03/pdf/2015-13478.pdf
 [^m50]: General Dynamics OTS, "20mm M50 Series (M53 API, M55 TP, M56 HEI)" data sheet, velocity vs. range chart and
     muzzle velocity 3,450 ft/s at 78 ft: https://www.gd-ots.com/wp-content/uploads/2024/04/400002555-20mm-M50-Series-MED-CAL.pdf
+[^navymk36]: US Navy flight manual P-825, "Fuse" (the Sidewinder's Mk 36 rocket motor: 2,880 lb of thrust for a 5.0 s
+    burn), https://navyflightmanuals.tpub.com/P-825/Fuse-105.htm; second-hand: a search engine's quote, the site refuses
+    automated access.
+[^iasg]: T. Tyrell, C. Funk, N. Marton, "AIM-120C-5 Performance Assessment for Digital Combat Simulation Enhancement",
+    revision 2, September 2014 (a hobbyist CFD study: 51.26 kg of propellant, 265 s specific impulse, a 7.75 s burn;
+    the AIM-120A's boost 6 s and sustain 5 s in other estimates; a straight shot from Mach 0.83 5 km up at a stationary
+    point about 35 km), https://www.generalstaff.org/BBOW/Progs/FlySIM/AIM120C5-Performance-Assessment-rev2.pdf
+[^wt120]: War Thunder forum, "The AIM-120 'AMRAAM' - History, Design, Performance & Discussion" (a Korean comparison
+    table: G-limit 35 for the AIM-120B; other posts 28–40 g, the real figure classified), a forum, weak:
+    https://forum.warthunder.com/t/the-aim-120-amraam-history-design-performance-discussion/2584
+[^pn]: Wikipedia, "Proportional navigation" (N "generally having an integer value 3-5"),
+    https://en.wikipedia.org/wiki/Proportional_navigation
+[^p5bro]: Rafael, "Python-5" brochure, as a document-sharing copy shows it (the Python 5 keeps "Python-4s unique
+    aerodynamic airframe, INS, powerful rocket motor, warhead and proximity fuze"; second-hand: a search engine's quote),
+    https://www.scribd.com/document/230260894/Python-5-Rafael

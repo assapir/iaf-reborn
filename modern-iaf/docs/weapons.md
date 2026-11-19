@@ -364,9 +364,9 @@ Open (no source found): LO TF's meaning; the dash-34's FLIR and TFR format layou
 
 The employment flow is the same on the Sufa, the Barak and the Adir (avionics-plan.md §6 slice 8, built 18 Nov 2026):
 select the missile, lock the target with the radar, uncage the IR missile's seeker, wait for SHOOT, launch, then
-watch the post-launch cues until the hit. The missiles fly the shared model unchanged (the original's chase motion
-and the sim's records, [../../docs/weapons.md](../../docs/weapons.md) §5, §11); real missile performance stays parked
-(avionics-plan.md §7). Everything here is for Modern IAF's jets only (`Settings.modern_radar()`): the 1998 game's
+watch the post-launch cues until the hit. The missiles fly the physical missile (motor, drag, gravity, proportional
+navigation; [../../docs/real-weapons.md](../../docs/real-weapons.md) §2.1, avionics-plan.md §7), launched through the
+shared flow ([../../docs/weapons.md](../../docs/weapons.md) §5, §11). Everything here is for Modern IAF's jets only (`Settings.modern_radar()`): the 1998 game's
 seeker, HUD and FCR are as before.
 
 | step | the Sufa / the Barak | the Adir | key (default) | key record |
@@ -392,8 +392,8 @@ An IR missile's seeker head (Hebrew ראש ביות) is caged until the pilot un
   the lock rule, the seeker cages again (inferred).
 - **SPOT / SCAN** (the MLU M1's AAM page shows SPOT by OSB 2[^mlu1]): SPOT hears within the seeker's narrow field (the
   original's 6°), SCAN within the original's search circle about the axis (6.45°). Both numbers are the existing model's
-  (`sight.rs` `FOV_DEG`, `CIRCLE_PX2`); the real scan pattern is seeker behaviour and stays parked, so the two differ
-  little. A new flight starts in SPOT (inferred).
+  (`sight.rs` `FOV_DEG`, `CIRCLE_PX2`); the real scan pattern is open (seekers in flight: avionics-plan.md §7 next
+  step 1), so the two differ little. A new flight starts in SPOT (inferred).
 - A launch takes the target the seeker hears or tracks, anywhere in its cone (the original takes it only inside the HUD's
   centre circle).
 
@@ -413,8 +413,9 @@ After a launch the pilot sees how long each missile still flies[^dcs-f16]:
 - **The target's marks on the FCR and SRCH.** From the launch a rectangular tail behind the target's symbol, flashing
   once the AIM-120's seeker is active, and an X over the symbol for the last 8 s (the DCS guide's AIM-120 target; ours
   for every air-to-air missile, inferred). The real FCR shows the target, not the missile itself.
-- **The numbers come from the shared model.** `missile.rs` `Missile::times`: the missile flies straight on from where it
-  is at its speed now on its own motion (`ChaseMotion::travelled`, the DLZ's), while the target goes on at its velocity.
+- **The numbers come from the missile's own flight.** `missile.rs` `Missile::times`: the missile flies straight on from
+  where it is at its speed now with its motor and drag (`Physics::fly_straight`, the DLZ's fly-out), while the target
+  goes on at its velocity.
   The AIM-120 goes active at half its generation's seeker lock range (`sight.rs` `active_range`: 7.5 NM for the AIM-120's
   generation 4; inferred: the reach of the original's seeker without the target's afterburner).
 

@@ -1769,7 +1769,7 @@ func _update_missiles() -> void:
 				)
 		_place_sound(mis.get_meta("sound"), p)
 		if not gone:
-			_trail(mis, node, MissileFx.burning(String(mis.weapon.get("name", "")), now - mis.t0, mis.time_left(now)))
+			_trail(mis, node, MissileFx.burning(String(mis.weapon.get("name", "")), now - mis.t0, mis.motor_left(now)))
 		if gone:
 			_missile_detonate(mis)
 

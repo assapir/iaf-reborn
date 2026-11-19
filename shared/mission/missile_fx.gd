@@ -29,7 +29,8 @@ const FLAME_W := 0.55
 const GLOW_D := 5.0
 
 ## The real motor's burn (s, boost + sustain) by bdb weapon name, where a public source gives one (docs/rendering.md
-## §6): the smoke and flame stop then. Any other homing weapon burns its motion's burn (Missile.time_left).
+## §6): the smoke and flame stop then. Any other homing weapon burns its motor's (Missile.motor_left: the physical
+## missile's burn, else its motion's burn).
 const MOTOR_BURN := {"AA-8": 4.0, "SA2": 26.5, "SA3": 23.0, "SA5": 104.5, "SA8": 17.0, "Hawk": 26.0}
 ## A rocket (560) burns the Hydra 70's Mk 66 time: 1.07 s.
 const ROCKET_BURN := 1.07

@@ -4,7 +4,7 @@
 use crate::world::{get, num, terrain, vec3, vector3};
 use godot::prelude::*;
 use iaf_avionics::guided::{Guided, GuidedMotion, Phase};
-use iaf_avionics::missile::{Aim, Chase, ChaseMotion, Dlz, Kinematics, Launcher, Missile, Tuning};
+use iaf_avionics::missile::{Aim, Chase, ChaseMotion, Dlz, Kinematics, Launcher, Missile, Physics, Tuning};
 
 /// A `_debugParam` value through `db.debug_param(i, default)`.
 fn debug(f: &Callable, i: i64, default: f64) -> f64 {
@@ -36,7 +36,28 @@ fn chase_motion(m: &VarDictionary, launch: bool) -> ChaseMotion {
         real: num(m, "burn").is_some(),
         // Ours (the AIM-9X / Python 5, modern_weapons.gd).
         off_boresight: part("_offBoresight") != 0.0,
+        phys: physics(m),
     }
+}
+
+/// The physical missile of a record with a motor (ours, Modern IAF's data and modern_weapons.gd; docs/real-weapons.md
+/// §2.1): "_motorThrust" (N), "_motorBurn" (s), "_launchKg", "_propellantKg", "_diameterM", "_dragScale",
+/// "_maxTime" (s), "_maxG", "_navConstant", "_thrustVector" (1: thrust-vector control).
+fn physics(m: &VarDictionary) -> Option<Physics> {
+    let thrust = num(m, "_motorThrust")?;
+    let f = |k: &str, d: f64| num(m, k).unwrap_or(d);
+    Some(Physics {
+        mass: f("_launchKg", 100.0),
+        propellant: f("_propellantKg", 0.0),
+        burn: f("_motorBurn", 1.0).max(0.1),
+        thrust,
+        diameter: f("_diameterM", 0.127),
+        drag_scale: f("_dragScale", 1.0),
+        max_time: f("_maxTime", 60.0),
+        max_g: f("_maxG", 30.0),
+        nav: f("_navConstant", 4.0),
+        tvc: f("_thrustVector", 0.0) != 0.0,
+    })
 }
 
 #[derive(GodotClass)]
@@ -98,6 +119,12 @@ impl IafMissile {
     #[func]
     fn time_left(&self, now: f64) -> f64 {
         self.get(|m| m.time_left(now))
+    }
+
+    /// The motor's time left (`Missile::motor_left`): the smoke trail.
+    #[func]
+    fn motor_left(&self, now: f64) -> f64 {
+        self.get(|m| m.motor_left(now))
     }
 
     /// The post-launch cues' times (`Missile::times`) at the target {pos, vel} now, the seeker going active at

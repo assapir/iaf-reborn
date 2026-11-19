@@ -22,7 +22,7 @@ This document is the inventory and the plan only. It changes no code. It holds:
 1. per jet, the real jet's avionics as far as public sources go, each row with what exists today and where (§2–§4);
 2. the gap list with sizes and tests (§5);
 3. the build order in slices, each ending playable and testable (§6);
-4. the parked rows (§7) and the user's decisions of 17 November (§8).
+4. the missile performance work and the rows still parked (§7), and the user's decisions of 17 November (§8).
 
 The Ra'am (F-15I) gets no column: Modern IAF does not fly it yet (`modern-iaf/menu/front_end.gd` `SOON`). Its Real
 HUD (`crates/iaf-avionics/src/real_hud/f15e.rs`) and SPICE 1000 test (`tests/godot/test_raam.gd`) exist in reborn
@@ -121,7 +121,7 @@ following[^sufa-at][^sufa-lm-radar]. The pilot's view of each is the dash-34's F
 | # | function | real | today | status |
 |---|---|---|---|---|
 | E1 | RWR display | Elisra RWR[^sufa-at]; the threat azimuth indicator's symbols (real-mfd.md "The threat azimuth indicator") | `rwr.rs` (all-aspect on the modern F-16s) and `ews.rs` on the 3D RWR scope: labels by class, the diamond, lock square, launch circle, new-threat flash, PRI / OPEN, UNKNOWN, TGT SEP, HANDOFF, SYS TEST, the THREAT / MSL knobs; the range's radar drones show as "35" ([ews.md](ews.md) §2) | Sim (17 Nov) |
-| E2 | MAW | PAWS: "the direction, missile type, and time to impact"[^sufa-janes] | `ews.rs` `Maw` from the RWR's missile list: an "M" on the RWR scope at the missile's direction with the seconds to impact, the launch tone ([ews.md](ews.md) §3); no missile type: a missile's type and performance belong to the parked rows (§7) | Sim (17 Nov) |
+| E2 | MAW | PAWS: "the direction, missile type, and time to impact"[^sufa-janes] | `ews.rs` `Maw` from the RWR's missile list: an "M" on the RWR scope at the missile's direction with the seconds to impact, the launch tone ([ews.md](ews.md) §3); no missile type (§7, next step 4) | Sim (17 Nov) |
 | E3 | Jammer | SPS-3000 / internal jammer[^sufa-at][^sufa-periscope] | the shared ECM (J; [../../docs/weapons.md](../../docs/weapons.md) §10) | Partly (G3) |
 | E4 | Chaff / flares, programs | dispenser programs from the CMS | `cmds.rs`: the CMDS panel (MODE, CH, FL, O1, O2, RWR, JMR, MWS, JETT), programs 1–4, the CMS keys (P, Shift + P, Y), SEMI / AUTO on a launch, "Counter", "Chaff flare low / out"; releases through the game's dispense ([ews.md](ews.md) §4); the DED's EWS pages: programs, BINGO, options ([ews.md](ews.md) §8) | Sim (17 Nov) |
 
@@ -310,18 +310,44 @@ Slice 0 goes first by the standing rule that open bugs take every slot. Its GPS 
 against; until slice 1 lands, its test places a ground unit in the test itself, as `tests/godot/test_modern_weapons.gd`
 does.
 
-## 7. Parked: real missile performance
+## 7. Real missile performance
 
-A safety check stopped the rows on real missile performance. They stay parked: no research, design or plan here.
-The missiles fly the existing shared model and data, which the user called good enough for gameplay. Parked rows:
-- motors (thrust, burn time, impulse);
-- range envelopes (Rmax, Rmin, no-escape zones) from real data;
-- guidance laws, seeker acquisition and tracking behaviour, datalink mid-course updates;
-- fuzing and warhead lethality of missiles;
-- countermeasure effectiveness against seekers.
+### 7.1 Unparked (19 November 2026)
+
+The user, 19 November 2026, told that AI combat touches real missile performance: "ok so finish the missile works",
+then "I don't think you need to re-investigate". Motors, range envelopes, guidance and seeker behaviour and fuzing are
+in scope; countermeasure effectiveness and electronic attack stay parked (§7.3).
+
+### 7.2 Built and next
+
+**Built 19 November (the core):** Modern IAF's four air-to-air missiles (AIM-9M, AIM-9X, Python 5, AIM-120) fly the
+physical missile of [../../docs/real-weapons.md](../../docs/real-weapons.md) §2.1 (`missile.rs` `Physics`): a motor
+of real thrust and burn, the propellant burnt off, the body's drag by Mach and height, gravity, proportional
+navigation within the g limit (the fins' lift falls with height, the AIM-9X's thrust vectoring holds while the motor
+burns), turns bleeding speed, and the flight's end when it is too slow. The DLZ, the AI's launch range and the
+post-launch times come from the same fly-out, so the zone shrinks low and in a tail chase. The player's and the AI's
+missiles fly the same Rust model. Fuzing stays the existing burst at the closest pass with the record's blast.
+
+**Next steps**, each its own merge:
+1. **Seekers in flight:** the seeker's gimbal and field of view during the flight (a target that leaves them is lost),
+   the AIM-120's mid-course on the jet's data link until its seeker goes active, and its flight on alone once active.
+2. **Loft:** the AIM-120's climb on long shots, which the published ranges assume.
+3. **Fuzing:** each missile's proximity fuze (the AIM-9M's DSU-15 laser fuze, the AIM-120's radio fuze): its arming
+   time and detection range in place of the burst at the closest pass.
+4. **The MAW's missile type** (E2): the warning names the missile from its record.
+5. **The threat missiles:** the R-73, R-27R, AIM-54A and the SAMs of [threat-records.md](threat-records.md) on the
+   same physical model, once their records are approved.
+
+Not started (outside the user's words): the 1998 game's Real weapons (AIM-9L, Python 3 / 4, AMRAAM, the SAMs) on the
+physical model; they keep the chase motion.
+
+### 7.3 Still parked
+
+- countermeasure effectiveness against seekers;
+- electronic attack.
 
 In scope and planned above: bomb ballistics and release computation (G21, G22), the GPS bombs' targeting (G4), and
-every cue, display and control the employment flow needs, driven by the existing model's numbers (G26, G27).
+every cue, display and control the employment flow needs (G26, G27).
 
 ## 8. Decisions (17 November 2026)
 
@@ -337,7 +363,7 @@ The user answered the six open questions on 17 November. His words in quotes; th
 4. **Which Barak:** "yes". Today's upgraded jet (the sim is set in 2026), not the Block 40 as delivered.
 5. **The F-35I's DAS picture and electronic attack:** "yes, less in priority". A simple DAS camera picture, at low
    priority, after the rest of the Adir's slice. Orchestrator's reading: electronic attack stays out; it also falls
-   under the parked countermeasure-effectiveness rows (§7).
+   under the parked countermeasure-effectiveness rows (§7.3).
 6. **The F-35I's SPICE 1000:** "yes". It goes on the Adir's list; carriage as announced in 2026[^twz-spice]
    (integration announced; the stations and the bay or external carriage inferred until a source shows them).
 

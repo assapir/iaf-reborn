@@ -84,8 +84,8 @@ change their lock was listed but neither active from ahead nor drawn (the 1998 g
 The Sufa's PAWS gives "the direction, missile type, and time to impact"[^janes]. `ews.rs` `Maw` reads the RWR's list
 of missiles launched at the jet: for each, its direction off the nose and the range over the closing speed (TTI;
 inferred), "--" while it does not close. The RWR scope shows an "M" on the edge at that direction, flashing, with the
-seconds under it. The tone is the RWR's launch tone (the same list). The warning names no missile type: a missile's
-type and performance belong to the parked rows of real missile performance ([avionics-plan.md](avionics-plan.md) §7).
+seconds under it. The tone is the RWR's launch tone (the same list). The warning names no missile type yet: next step 4
+of the missile work ([avionics-plan.md](avionics-plan.md) §7).
 
 ## 4. The CMDS (E4)
 

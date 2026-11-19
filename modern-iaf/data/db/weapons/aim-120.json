@@ -21,7 +21,16 @@
     "_timeAcceleration": 68.9,
     "_timeConstVel": 0.0,
     "_timeDecceleration": 0.0,
-    "_timeConstOrientation": 0.5
+    "_timeConstOrientation": 0.5,
+    "_motorThrust": 17188.0,
+    "_motorBurn": 7.75,
+    "_launchKg": 161.5,
+    "_propellantKg": 51.3,
+    "_diameterM": 0.178,
+    "_dragScale": 1.217,
+    "_maxTime": 120.0,
+    "_maxG": 35.0,
+    "_navConstant": 4.0
   },
   "sources": {
     "kg": "w-aim120",
@@ -39,7 +48,16 @@
     "motion._timeAcceleration": "inferred, w-aim120",
     "motion._timeConstVel": "inferred",
     "motion._timeDecceleration": "inferred",
-    "motion._timeConstOrientation": "inferred"
+    "motion._timeConstOrientation": "inferred",
+    "motion._motorThrust": "iasg-aim120, inferred",
+    "motion._motorBurn": "iasg-aim120",
+    "motion._launchKg": "w-aim120",
+    "motion._propellantKg": "iasg-aim120",
+    "motion._diameterM": "w-aim120",
+    "motion._dragScale": "inferred, w-aim120",
+    "motion._maxTime": "inferred",
+    "motion._maxG": "wt-aim120",
+    "motion._navConstant": "inferred"
   },
   "notes": {
     "number": "ours",
@@ -58,10 +76,21 @@
     "motion._spiralAccelBeta": "top speed a / beta: 120 / 1372 m/s (Mach 4)",
     "motion.burn": "the burn with which the motion flies the published range from 250 m/s before its flight ends 6 s after the burn (missile.rs real_burn)",
     "motion._timeAcceleration": "the burn, so the original's reading of the section flies as long",
-    "motion._timeConstOrientation": "flies straight 0.5 s after launch (the AIM-9M record's)"
+    "motion._timeConstOrientation": "flies straight 0.5 s after launch (the AIM-9M record's)",
+    "motion._dragScale": "times the generic missile drag curve (missile.rs CD0): fitted so the AIM-120 flies its 90 km head-on 12,000 m up, the same for every body (docs/real-weapons.md §2.1)",
+    "motion._navConstant": "proportional navigation's constant, the textbook 3-5 (inferred: 4)",
+    "motion._motorThrust": "51.3 kg of propellant at 265 s specific impulse over 7.75 s (iasg-aim120's figures)",
+    "motion._motorBurn": "one boost of 7.75 s (iasg-aim120's assumption)",
+    "motion._launchKg": "the record's 161.5 kg",
+    "motion._propellantKg": "51.26 kg (iasg-aim120's amendment)",
+    "motion._diameterM": "the 0.178 m body",
+    "motion._maxTime": "no public figure; the flight ends by its speed first (inferred: 120 s)",
+    "motion._maxG": "35 g, a Korean comparison table quoted in a forum (weak; other posts 28-40 g)"
   },
   "footnotes": {
     "w-aim120": "Wikipedia, \"AIM-120 AMRAAM\" (AIM-120C-5/6/7: 356 lb, 161.5 kg; 12 ft, 3.65 m; 7 in, 0.178 m across; warhead 44 lb, 20 kg; Mach 4; AIM-120C 49 nmi, 90 km) (read 2026-11-10), https://en.wikipedia.org/wiki/AIM-120_AMRAAM",
-    "ds-aim9": "designation-systems.net, \"Raytheon AIM-9 Sidewinder\" (AIM-9A / B effective kill radius about 9 m), https://www.designation-systems.net/dusrm/m-9.html"
+    "ds-aim9": "designation-systems.net, \"Raytheon AIM-9 Sidewinder\" (AIM-9A / B effective kill radius about 9 m), https://www.designation-systems.net/dusrm/m-9.html",
+    "iasg-aim120": "T. Tyrell, C. Funk, N. Marton, \"AIM-120C-5 Performance Assessment for Digital Combat Simulation Enhancement\", revision 2, September 2014 (a hobbyist CFD study: 51.26 kg propellant, 265 s specific impulse, 7.75 s burn; a straight shot from Mach 0.83 5 km up reaches about 35 km), https://www.generalstaff.org/BBOW/Progs/FlySIM/AIM120C5-Performance-Assessment-rev2.pdf",
+    "wt-aim120": "War Thunder forum, \"The AIM-120 'AMRAAM' - History, Design, Performance & Discussion\" (a Korean comparison table: G-limit 35 for the AIM-120B; others 28-40 g), https://forum.warthunder.com/t/the-aim-120-amraam-history-design-performance-discussion/2584"
   }
 }

@@ -7,8 +7,8 @@
 # - the IR missiles: the seeker caged on the radar's lock hears the drone (the lock tone, the small diamond); Ctrl + S
 #   steps SPOT / SCAN and back; the uncage key (Shift + M) uncages it: it tracks (the HUD's large diamond);
 # - SHOOT on the HUD; Space launches (the F-35I's AIM-120 once its bay doors are open);
-# - the post-launch cues: the time to active ("A", the AIM-120 from 20 km) or to impact ("T") on the HUD and the FCR's
-#   / SRCH's target marked;
+# - the post-launch cues: the time to active ("A", the AIM-120 head-on from 20 km) or to impact
+#   ("T") on the HUD and the FCR's / SRCH's target marked;
 # - the drone goes down.
 #   IAF_DEFAULT_SETTINGS=1 godot --headless --audio-driver Dummy --path modern-iaf \
 #     -s ../modern-iaf/tests/test_sim_missiles.gd --log-file <temp>
@@ -64,6 +64,27 @@ func _behind(d, dist: float) -> void:
 	tv.rig.position = pos
 	tv.flight.start(
 		settings().own_dir(), tv.player.fm_section, pos, Vector3(0, 0, float(st.heading)), st.velocity, airborne_flags()
+	)
+	tv.gear_down = false
+	tv.throttle = 0.85
+
+
+## The jet put for the shot: the IR missiles from behind the drone, the AIM-120 head-on (its zone from behind, about
+## 18 km, leaves its launch circle at the smallest inside its seeker's 14 km; real-weapons.md §2.1).
+func _set_up_shot(d, dist: float, behind: bool) -> void:
+	if behind:
+		_behind(d, dist)
+		return
+	var st: Dictionary = d.state()
+	var pos: Vector3 = st.position + st.velocity.normalized() * dist
+	tv.rig.position = pos
+	tv.flight.start(
+		settings().own_dir(),
+		tv.player.fm_section,
+		pos,
+		Vector3(0, 0, float(st.heading) + 180.0),
+		-st.velocity,
+		airborne_flags()
 	)
 	tv.gear_down = false
 	tv.throttle = 0.85
@@ -212,7 +233,7 @@ func _jet(mission: String, unit: String, hung: Dictionary, flown: Array) -> void
 func _shot(unit: String, d, name: String, dist: float, armed: bool) -> void:
 	var tag := "%s %s" % [unit, name]
 	var key := String(d.ent.key)
-	_behind(d, dist)
+	_set_up_shot(d, dist, name != "AIM-120")
 	await frames(3)
 	if not armed:
 		_tap(KEY_A, true)  # Shift + A, the master arm
@@ -242,7 +263,7 @@ func _shot(unit: String, d, name: String, dist: float, armed: bool) -> void:
 			d = lk
 			key = String(d.ent.key)
 			break
-		_behind(d, dist)
+		_set_up_shot(d, dist, srm)
 		if w.radar.has_lock():
 			_tap(KEY_SLASH, true)  # TMS down (Shift + /): the lock on a drone already down is dropped
 			await fly(tv, 0.5)
@@ -265,7 +286,7 @@ func _shot(unit: String, d, name: String, dist: float, armed: bool) -> void:
 			% [tag, key, w.radar.mode, w.radar.locked().get("key", ""), w.radar.contacts.size()]
 		)
 	)
-	_behind(d, dist)
+	_set_up_shot(d, dist, srm)
 	await fly(tv, 1.0)
 	if srm:
 		# Caged on the radar's line of sight: the seeker hears the drone (the lock tone), the small diamond.
@@ -332,11 +353,13 @@ func _shot(unit: String, d, name: String, dist: float, armed: bool) -> void:
 		check(t_seen, "%s: the cue turns to the time to impact once the seeker is active" % tag)
 	var killed := await _until(func(): return int(d.ent.state) >= 3 or not mis in w.missiles, 60.0, d)
 	killed = killed and int(d.ent.state) >= 3
+	if not killed and mis != null and not mis in w.missiles and _alive(d):
+		print("%s: the missile burst %.0f m from the drone" % [tag, mis.last_pos.distance_to(w._rwr_unit(key).pos)])
 	var second := false
 	if not killed and _alive(d):
 		# A miss (the shared model's chase): the second missile of the pair, the same steps.
 		second = true
-		_behind(d, dist)
+		_set_up_shot(d, dist, srm)
 		await fly(tv, 1.0)
 		if srm and not w.seeker.head.uncaged:
 			_tap(KEY_M, true)
