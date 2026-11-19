@@ -442,18 +442,34 @@ occlusion, 1.8 MB; built by
 
   ![The ICP's top buttons as lumpy polygons and as round caps](img/f16_icp_buttons.jpg)
 * Two HUDs, one shown per jet: the Barak the Block 50's (`hud.xml`: two posts, a small combiner), the Sufa
-  FlightGear's wide-angle HUD (`f16_war.xml`). An F-16I seen from the side shows one large combiner plate over a deep
-  box (IDF Spokesperson's Unit, CC BY-SA 3.0, `File:Israeli_attacks_on_Yemen,_January_2025._XV.jpg` on Wikimedia
-  Commons; a reference only); the wide-angle HUD is the closer of FlightGear's two (inferred), the Elbit HUD's own
-  shape and field are open. The photo's combiner plate stands free between two black side posts, with nothing over
-  its top. So the wide-angle HUD's top is left out (`cockpit3d.py` `hud_wide_top`): the lid (`HUDtop` with its
-  screws), the second glass ahead of the combiner with its black cover (`BackGlass`, `BackGlassCover`: a 4 cm strip
-  at the eye's height, 8 to 16 cm ahead of the combiner) and the frame's bar over the combiner (`HUDFrame`'s faces
-  above the glass that reach in over it; the posts' tops stay). The plate's 2 cm rim (`HUDedge`, opaque in the
-  source) is a faint amber glass (25 % opaque). The plate has no separate edge strip: the light strip added down
-  each side on 2026-11-09 (`hud_wide_edges`, 2.5 mm, pale grey) was straight and stood off FlightGear's curved posts, so
-  it read as two white bars beside the HUD; it was removed from `f16.glb` (both games) on 2026-11-12, after the user's
-  third report. The real photos show no such line. The two boxes beside the posts' feet (`cockpit.ac`
+  FlightGear's wide-angle HUD (`f16_war.xml`) remodelled after the F-16I's El-Op wide-angle HUD (2026-11-18). The
+  photos (references only, kept outside the repo): an F-16I seen from the side with its canopy open (IDF
+  Spokesperson's Unit, CC BY-SA 3.0, `File:Israeli_attacks_on_Yemen,_January_2025._XV.jpg` on Wikimedia Commons), an
+  F-16I seen from above and ahead through its canopy (the user's photo), and Elbit's I-HUD2 data sheet (the F-16
+  wide-angle HUD unit, the ICP its front face). They show one flat rectangular combiner plate with straight sides and
+  square corners, green tinted, leaning aft between two straight thin black side plates, nothing over its top.
+  FlightGear's plate is rounded (its sides bowed out, its corners cut) and nearly upright (10°), between two posts
+  curving in like a lyre. In `cockpit3d.py`:
+  - `hud_wide_top` leaves out the HUD's top: the lid (`HUDtop` with its screws) and the second glass ahead of the
+    combiner with its black cover (`BackGlass`, `BackGlassCover`: a 4 cm strip at the eye's height, 8 to 16 cm ahead
+    of the combiner).
+  - `hud_wide_glass` makes the plate: FlightGear's rounded plate and its rim (`HUDImage2.back`, `HUDedge`) are left
+    out and the image glass (`HUDImage2`, the outline the game masks the HUD to) is the whole plate, a rectangle
+    17.6 cm wide (FlightGear's widest, × 1.12, below), its top FlightGear's, its foot 2 cm lower in the HUD's box,
+    leaning aft 42° (`HUD_WIDE_LEAN`, a shear that keeps its height). The IDF photo's plate edges fit a lean of 40 to
+    50° better than 30° (its camera solved on the plate's four corners); 42° is the Block 50 combiner's in `hud.ac`,
+    both HUDs standing at the same design eye (inferred).
+  - `hud_posts` cuts FlightGear's curved posts off under the glass's foot and stands a black side plate along each
+    edge: 7 mm thick, 4.5 cm deep at its foot tapering to 3.5 cm, wholly aft of the glass (its front edge holds the
+    glass), from the box to the glass's top, its aft edge's last 3.5 cm rounded off into the glass's top corner (the IDF
+    photo; the thickness inferred). From the eye they are seen almost edge on, two thin dark lines converging
+    downward.
+  - The glass's green tint (Modern IAF): docs/real-hud.md "Combiner glass".
+  The plate has no separate edge strip: the light strip added down each side on 2026-11-09 (`hud_wide_edges`, 2.5 mm,
+  pale grey) was straight and stood off FlightGear's curved posts, so it read as two white bars beside the HUD; it
+  was removed from `f16.glb` (both games) on 2026-11-12, after the user's third report. The real photos show no such
+  line. The 1998 game's optional F-16I 3D cockpit (Extras "Cockpit": 3D) draws the same model, so it has this HUD
+  too. The two boxes beside the posts' feet (`cockpit.ac`
   `box_left` / `box_right`) are the bodies of the AoA indexer (left) and the AR / NWS indicator (right), their lamps
   on their aft faces; their size and height are FlightGear's. In the F-16C front-seat photo[^f16-photos] both units
   stand on the glareshield outboard of the HUD posts with a clear gap to each, near black; FlightGear's stood against
@@ -468,15 +484,15 @@ occlusion, 1.8 MB; built by
   donut as a C and the AR / NWS letters cut (the user, 2026-11-16: "you only see half of chevrons"). Since then each
   unit with its lamps is turned to aim at the eye, and the lamps sit at the hood's open end, 1 mm aft of its rim
   (`INDEXER_LIP`): the unit's aft face. `test_cockpit_view.gd` `_indexers_whole` checks that no opaque part of the
-  cockpit cuts any of the four lamps from the eye, at rest and 4 cm aside either way. The Sufa keeps them whole with
-  the head up to 9 cm left and 5 cm right (then its wide HUD's posts cover them), the Barak up to 15 cm and 14 cm.
+  cockpit cuts any of the four lamps from the eye, at rest and 4 cm aside either way. The Barak keeps them whole with
+  the head up to 15 cm left and 14 cm right.
   The units are lifted 3 mm (`INDEXER_UP`): with the lamps at the mouth, the glareshield's aft edge hid the lowest
-  1 to 2 mm of the fast chevron. The plate (its image glass `HUDImage2`, back face and rim) is fitted inside the curved
-  posts (`cockpit3d.py` `hud_glass_fit`, 2026-11-12): FlightGear's plate is a rectangle wider than the posts' curve,
-  so from the eye its tinted corners and straight sides showed past the posts as a pale rectangle around the HUD (the
-  user's "rectangle around the HUD"). At 8 heights over the plate the posts' points are seen from the eye on the
-  plate's plane, and the plate's side is cut 35 % of the way from a post's inner edge to its outer edge, so the edge
-  lies behind the post. The HUD's mask follows the same outline. 68.5 k triangles in the file (66.9 k before the ICP's whole thumbwheels and the
+  1 to 2 mm of the fast chevron.
+  - Replaced (2026-11-12 to 2026-11-18): the Sufa's plate fitted inside FlightGear's curved posts (`hud_glass_fit`:
+    at 8 heights the plate's side cut 35 % of the way into a post seen from the eye), after its tinted corners showed
+    past the posts as a pale rectangle around the HUD (the user's "rectangle around the HUD"). The F-16I's plate is a
+    rectangle with straight posts (above), so nothing shows past them.
+  68.5 k triangles in the file (66.9 k before the ICP's whole thumbwheels and the
   start-up switches' own nodes, 57.3 k before the whole knobs and throttle and the sills, 56.2 k before the Barak's new
   HUD posts and the bevelled coaming, 54.8 k before the rounded HUD frames), about 67.5 k drawn (one HUD); 124
   materials (FlightGear's duplicates merged), 205 surfaces.
@@ -493,11 +509,10 @@ occlusion, 1.8 MB; built by
     edge: a rounded rectangle (a superellipse) 2.0 cm wide and 3.4 cm deep at its foot, tapering to 1.3 × 2.2 cm,
     from the glass's foot to 8 mm over its top, the top domed. The sizes are inferred from the photos. Nothing of the
     HUD's field moves: the posts stand outside the glass, which keeps its outline (`test_cockpit3d.gd`).
-  * The wide-angle HUD (the Sufa's) keeps FlightGear's curved posts, bevelled and smooth (above); the F-16I's arms
-    are thin and lean with the plate (the IDF photo above), as FlightGear's do.
-    - Tried and dropped (2026-11-02): posts of ours there too, straight tubes curving in onto the HUD's box, the
-      box cut under the glass. From the eye they read as one thick "U" with small fins of the box beside them,
-      worse than FlightGear's.
+  * The wide-angle HUD's (the Sufa's) side plates: above (2026-11-18).
+    - Tried and dropped (2026-11-02): straight tubes of the Block 50's shape there, curving in onto the HUD's box,
+      the box cut under the glass, the plate left upright. From the eye they read as one thick "U" with small fins of
+      the box beside them, worse than FlightGear's curved posts, which then stayed until 2026-11-18.
   * The posts and the wide-angle HUD's frame and box are satin black (`hud_black`, roughness 0.6; `cockpit3d.gd`
     `SATIN` keeps it), so a soft sheen runs along their round edges; FlightGear's own materials stay matte.
   * The glareshield's aft top edge. FlightGear's glareshield (`cockpit.ac` `poly`) meets its aft face at a hard edge,
@@ -513,8 +528,8 @@ occlusion, 1.8 MB; built by
   2026-11-02). The game's HUDs reach past FlightGear's combiners as the eye sees them: the original HUD's altitude box
   with its "R" to 9.3° right of the boresight, the Real HUD's altitude box and right data column to 7.6°, against
   8.6° where the Block 50's posts lean in, and 7.2° for the wide-angle plate's image glass. So the wide-angle plate's
-  image glass (`HUDImage2`, the outline the game masks the HUD to) spans the whole plate, its 2 cm clear rim
-  (`HUDedge`) included: the F-16I's combiner is one piece of glass, the HUD shows across all of it. And each HUD, box,
+  image glass (`HUDImage2`, the outline the game masks the HUD to) is the whole plate (`hud_wide_glass`): the F-16I's
+  combiner is one piece of glass, the HUD shows across all of it. And each HUD, box,
   posts and glass, is widened about its centre line: the Block 50's ×1.15 (its glass 18.2 cm), the wide-angle one's
   ×1.12 (its plate 17.7 cm). Nothing either HUD draws is cut, at the wide view and at the true size (inferred: the
   F-16's standard combiner shows a 20° wide field, the wide-angle ones more; `test_cockpit3d.gd` checks the field's
@@ -715,7 +730,7 @@ occlusion, 1.8 MB; built by
     under FlightGear's view. With the boresight on the nose there the Sufa's plate still cut the field's top 1.1°.
     The F-16's seat moves up and down so the pilot sits at the cockpit's design eye[^aces-seat]: the 3D cockpit
     sits 1.1 cm lower (`F16_3D_SEAT_DOWN`), set so the Sufa's plate holds the field (inferred). From that eye the
-    Sufa's plate reaches +2.6° to −12.8°, the Barak's combiner +4.0° to −14.4° (their widths above). The field sits
+    Sufa's plate reaches +2.6° to −12.3° (−12.8° before it leaned, 2026-11-18), the Barak's combiner +4.0° to −14.4° (their widths above). The field sits
     near the top of each glass, as on the F-16, whose boresight cross stands high in its combiner.
 * **Needles** (FlightGear's own value tables, `f16.json`): the altimeter (the 2D panel's altitude), the airspeed card
   and Mach scale, the ADI ball (roll,

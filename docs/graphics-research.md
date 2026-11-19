@@ -409,8 +409,9 @@ drawn: one of its two HUDs; 59.4 k before the wide-angle HUD's top was left out)
 tub cut at the eye; without the seat, kneeboards and pilot), KTX2 textures (4.2 MB), 37 animated parts. The Barak
 takes FlightGear's Block 40 panel sheet, the Sufa the Block 50 one. The MFDs draw into 512 px SubViewports, the HUD is masked to the combiner glass in a canvas shader, the
 view is at its true size (the screen's density and a 0.6 m viewing distance). C (the Sufa's own parts): the Sufa shows
-FlightGear's wide-angle HUD (one large combiner plate, as an F-16I seen from the side shows; inferred); its panel, the
-Elbit HUD's exact frame and its labels stay open: no source shows them (f16i.md §4). Iris Xe cost: rendering.md §3.2.
+FlightGear's wide-angle HUD remodelled after F-16I photos (one flat rectangular combiner plate leaning aft between two
+straight side plates, docs/cockpit.md "3D cockpit"); its panel and its labels stay open: no source shows them
+(f16i.md §4). Iris Xe cost: rendering.md §3.2.
 
 ### 3.9 Atmosphere, clouds, fog — payoff 3, effort M
 - **Built:** the atmospheric sky and the cloud layer (docs/rendering.md).

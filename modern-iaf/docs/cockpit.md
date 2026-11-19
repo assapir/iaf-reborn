@@ -187,9 +187,9 @@ the sources and the values):
 - the HUD in the P43 green, 40 / 255 / 50, at the day level by day, falling to the night floor (136 / 255 of it) as
   the sun sets;
 - the symbols drawn over the scene in the original game's thin pen, a faint one-pixel halo around each;
-- the combiner glass untinted on both F-16s (`SIM_TINT` 0, 2026-11-13; a definition's `hud_tint` sets a jet's own),
-  with no separate edge line, the Sufa's plate fitted inside its curved posts (2026-11-12,
-  [docs/cockpit.md](../../docs/cockpit.md) "3D cockpit");
+- the combiner glass: the Barak's untinted (`SIM_TINT` 0, 2026-11-13), the Sufa's green as the F-16I photos show it
+  (its definition's `hud_tint` 1, 2026-11-18), with no separate edge line; the Sufa's plate a flat rectangle leaning
+  aft between straight side plates ([docs/cockpit.md](../../docs/cockpit.md) "3D cockpit");
 - the day level is the cockpit's SYM wheel (below), kept in the sim's settings file like a knob's position, with no
   Preferences row (the user, 2026-11-09: "the HUD colour should be adjustable like in the plane, not in
   Preferences!"); Shift + H ("Step HUD brightness", `data/keys.json` record 46, the laptop map the same) steps it in

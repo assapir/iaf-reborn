@@ -587,7 +587,8 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   paint (they drew flat black) and stand 2.5 cm outboard of them, clear of the posts as in the F-16C photo
   (2026-11-13). Their lamps are seen whole from the eye (their hoods aim at it), glow bright enough to read by day and stay
   dark when off (2026-11-16,
-  [cockpit.md](../../docs/cockpit.md) "3D cockpit" lamps). The combiner plate is fitted inside the curved posts.
+  [cockpit.md](../../docs/cockpit.md) "3D cockpit" lamps). The Sufa's combiner is the F-16I's: a flat rectangular plate, green tinted, leaning
+  aft 42° between two straight thin side plates (2026-11-18, waiting on the user's approval).
   A 1× monitor beside a Retina screen (the user's Dell): Godot renders it at twice its pixels and the system halves the
   picture. The 14 Nov switch to the monitor's own pixels (hiDPI off) was reverted on 15 Nov at the user's word: with
   Upscaling Quality the cockpit came out soft there. Open again: the HUD's thin stroke on that monitor, two half-lit

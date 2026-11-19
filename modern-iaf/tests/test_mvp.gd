@@ -1008,9 +1008,11 @@ func _hud_light(tv: Node, jet: String) -> void:
 		"%s: the HUD drawn over the scene, not added (no white core over the sky)" % jet
 	)
 	var glass = tv.cockpit_3d._glass if tv.cockpit_3d != null else null
+	# The Barak's glass untinted, the Sufa's green at its definition's hud_tint (docs/real-hud.md "Combiner glass").
+	var tint := float(settings().airframe(tv.player.type).get("hud_tint", 0.0))
 	check(
-		own != null or glass != null and is_zero_approx(glass.material_override.albedo_color.a),
-		"%s: the combiner glass untinted (the F-35I: none)" % jet
+		own != null or glass != null and is_equal_approx(glass.material_override.albedo_color.a, 0.14 * tint),
+		"%s: the combiner glass at its tint %s (the F-35I: none)" % [jet, tint]
 	)
 	var mfd: float = settings().mfd_brightness
 	# The F-16s' SYM wheel; the F-35I's HMD and MFD BRT rockers on the pedestal (f35i_controls.json).

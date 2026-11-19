@@ -965,20 +965,22 @@ games draw over the scene with the same pen. The study behind it: the look study
   rest of the file kept) and restarts (`settings.gd` `drop_hidpi_line`, a clean-up dated for removal). Open again: the
   HUD's thin stroke on a 1× monitor beside a Retina screen (two half-lit monitor pixels). `test_hud.gd` checks the
   widths in mrad at 1,920, 2,560 and 5,120 px and the clean-up.
-- **Combiner glass.** Untinted on both F-16s since 2026-11-13 (`SIM_TINT` 0, the plate's rim and back face too;
-  the user: "realistic model ftw, no tint"); a jet's definition can set its own fraction (`hud_tint`) of the full
-  tint, 14 % opaque in a faint cool magenta (0.62 / 0.56 / 0.72) with specular 0.8. Tried and dropped: the full 14 %
-  (2026-11-12: from the seat the plate read as a pale pane) and a quarter of it (2026-11-12 to 13, the user then chose
-  none). The F-16C photo from the front seat[^f16c-front] shows the combiner almost clear. The original
-  game's glass stays 7 %. The combiner has no separate edge line: a 1.5 mm pale line at 10 % along the glass's
-  own outline was tried and dropped on 2026-11-12 (beside the quarter tint it drew a visible outline inside the posts
-  and an arc over the Barak's glass). And the Sufa's plate is
-  fitted inside its curved posts, so no part of its tint shows outside them (2026-11-12, `hud_glass_fit`;
-  docs/cockpit.md "3D cockpit"). Before, the rectangular plate's corners and sides showed past the posts as a pale
-  rectangle around the HUD.
+- **Combiner glass.** The Sufa's is green tinted (2026-11-18, `hud_tint` 1 in its definition): the F-16I photos
+  (docs/cockpit.md "3D cockpit") show its El-Op plate clearly green. The full tint is 14 % opaque, green (0.55 / 0.75 /
+  0.60, the original game's glass colour) with specular 0.8, and the green is emitted by day (`cockpit3d.gd`): lit by
+  the sun alone, the 14 % only darkened the view behind the plate by about 4 %, with no green. At night the plate
+  emits nothing. The Barak's stays untinted (`SIM_TINT` 0; the user, 2026-11-13: "realistic model ftw, no tint"): the
+  F-16C photo from the front seat[^f16c-front] shows its combiner almost clear. Tried and dropped: the full 14 % in a
+  faint cool magenta (0.62 / 0.56 / 0.72, inferred: the green the coating reflects missing from what passes through;
+  2026-11-12: from the seat the plate read as a pale pane) and a quarter of it (2026-11-12 to 13, the user then chose
+  none). The original game's glass stays 7 %. The combiner has no separate edge line: a 1.5 mm pale line at 10 % along
+  the glass's own outline was tried and dropped on 2026-11-12 (beside the quarter tint it drew a visible outline
+  inside the posts and an arc over the Barak's glass). The Sufa's plate is a rectangle between straight side plates,
+  so no part of its tint shows outside them; from 2026-11-12 to 18 FlightGear's plate was cut to fit inside its
+  curved posts instead (`hud_glass_fit`), after its corners showed past them as a pale rectangle around the HUD.
   Tried and dropped (2026-11-09 to 2026-11-12): a thin light strip down each side of the Sufa's plate
   (`hud_wide_edges` in `tools/f16d/cockpit3d.py`, 60 % then 20 % opaque). It was a straight quad along the plate's
-  side, so it stood off the curved posts as two bright bars; the real photos show no line there. It is removed from
+  side, so it stood off the then curved posts as two bright bars; the real photos show no line there. It is removed from
   `f16.glb`, so neither game draws it. The F-35I has no combiner (its HUD is the helmet's).
 - **Helmet displays.** The F-35I's Gen III helmet display and the DASH light the same way (2026-11-09): their frame's
   own green (0.45 / 1.0 / 0.55 in `real_hud/f35.rs`, `dash.rs`) becomes the P43 green at the same level and night

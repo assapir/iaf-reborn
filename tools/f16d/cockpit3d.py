@@ -46,10 +46,12 @@ SHIFT = Vector((0.0, -1.05, 0.0))  # base.py's: FlightGear's model -> the origin
 # kneeboards and helmet are the pilot's; the B10 stick and the other HUDs are other blocks' (their conditions).
 SKIP = {"chair", "knee1", "knee2", "HMCS-basic", "HMCS-norm", "HUDb", "HUDd"}
 # The two HUDs, each its own node the game shows per jet: the Block 50's (HUDa, hud.xml: two posts and a small
-# combiner) for the Barak, FlightGear's wide-angle HUD (HUDc, f16_war.xml) for the Sufa. The Sufa's Elbit wide-angle
-# HUD: one large combiner plate over a deep box (an F-16I seen from the side, IDF Spokesperson's Unit, CC BY-SA 3.0,
-# commons.wikimedia.org/wiki/File:Israeli_attacks_on_Yemen,_January_2025._XV.jpg, a reference only); its shape
-# beyond that is open, the wide-angle HUD inferred the closer of FlightGear's two.
+# combiner) for the Barak, FlightGear's wide-angle HUD (HUDc, f16_war.xml) remodelled for the Sufa. The photos (HUDS) of
+# the F-16I's El-Op wide-angle HUD (references only): an F-16I seen from the side (IDF Spokesperson's Unit, CC BY-SA
+# 3.0, commons.wikimedia.org/wiki/File:Israeli_attacks_on_Yemen,_January_2025._XV.jpg), a top view through its canopy
+# (the user's, 2026-11-18) and Elbit's I-HUD2 data sheet (elbitsystems-uk.com, the F-16 wide-angle HUD unit): one flat
+# rectangular combiner plate, green tinted, leaning aft between two straight thin side plates (hud_wide_glass,
+# hud_posts), on the up-front panel (the ICP is the unit's front face).
 HUDS = {"HUDa": "HUD_std", "HUDc": "HUD_wide"}
 # The Block 50/52 jet FlightGear's conditions see: powered, its instruments serviceable, every lamp and test off.
 PROPS = {"sim/variant-id": 5, "sim/current-view/internal": 1, "systems/static/serviceable": 1}
@@ -741,29 +743,12 @@ def fix_materials(objs):
 
 def hud_wide_top(objs):
     """The wide-angle HUD's top left out, so its combiner plate stands free between its two side posts as on the
-    F-16I (the HUDS photo): the lid (HUDtop with its screws and tissue); the second glass ahead of the combiner
-    (BackGlass, a 4 cm strip at the eye's height in a black cover, BackGlassCover); and HUDFrame's bar over the
-    combiner, its faces above the glass that reach in over it (the posts' tops stay). From the eye these drew a dark
-    bar across the top of the view, closing the posts into a loop."""
+    F-16I (the HUDS photos): the lid (HUDtop with its screws and tissue) and the second glass ahead of the combiner
+    (BackGlass, a 4 cm strip at the eye's height in a black cover, BackGlassCover). From the eye these drew a dark
+    bar across the top of the view. FlightGear's curved posts with their bar over the combiner go in hud_posts."""
     for o in objs:
         if o.name.split("/", 1)[1] in ("HUDtop", "screws", "tissue", "BackGlass", "BackGlassCover"):
             o.data.clear_geometry()
-    glass = next((o for o in objs if o.name.endswith("/HUDImage2")), None)
-    frame = next((o for o in objs if o.name.endswith("/HUDFrame")), None)
-    if glass is None or frame is None:
-        return
-    vs = [v.co for v in glass.data.vertices]
-    top = max(v.z for v in vs)
-    cx = (min(v.x for v in vs) + max(v.x for v in vs)) / 2
-    half = (max(v.x for v in vs) - min(v.x for v in vs)) / 2
-    bm = bmesh.new()
-    bm.from_mesh(frame.data)
-    gone = [f for f in bm.faces
-            if all(v.co.z > top for v in f.verts) and min(abs(v.co.x - cx) for v in f.verts) < half]
-    bmesh.ops.delete(bm, geom=gone, context='FACES')
-    bm.to_mesh(frame.data)
-    bm.free()
-    print("hud_wide_top: %d faces left out" % len(gone))
 
 
 # The parts the eye sees most, rounded (smooth): FlightGear's are boxes with hard 90-degree edges and flat-shaded
@@ -780,6 +765,12 @@ SMOOTH_BEVEL = 0.003
 # to 7.6. Each combiner widened until nothing the HUD draws is cut (inferred: the F-16's standard combiner shows a
 # 20-degree wide field, its wide-angle ones more).
 HUD_WIDEN = {"HUDa": 1.15, "HUDc": 1.12}
+# The Sufa's combiner plate's lean aft from the vertical (deg; FlightGear's wide-angle plate leans 10). The IDF photo's
+# plate edges fit 40 to 50 degrees better than 30 (its camera solved on the plate's corners: 6.9 px rms at 42, 10.8 at
+# 30); 42 is the Block 50 combiner's (hud.ac), both HUDs standing at the same design eye (inferred).
+HUD_WIDE_LEAN = 42.0
+# Its foot lowered this much (m) into the HUD's box, where the side plates stand (FlightGear's stood 2 cm over it).
+HUD_WIDE_DROP = 0.02
 
 
 def widen(objs, k):
@@ -790,21 +781,31 @@ def widen(objs, k):
 
 
 def hud_wide_glass(objs):
-    """The wide-angle HUD's image glass (HUDImage2, the outline the game masks the HUD to) made the plate's whole width:
-    in f16_war_hud.ac it is 11.6 cm wide inside a 2 cm clear rim (HUDedge) of the same plate. The F-16I's combiner is
-    one piece of glass and the HUD shows across all of it; the image glass's 7.2 degrees from the eye cut the Real
-    HUD's altitude box and right data column (7.6 degrees). Its sides moved out to the plate's (HUDImage2.back's)
-    edges, its height and place FlightGear's."""
+    """The Sufa's combiner: one flat rectangular plate, its whole face the image glass (HUDImage2, the outline the
+    game masks the HUD to), leaning aft HUD_WIDE_LEAN. FlightGear's plate (HUDImage2.back with its clear rim HUDedge)
+    is rounded, its sides bowed out and its corners cut, inside two posts curving in like a lyre; the F-16I's
+    (the HUDS photos) is a rectangle with straight sides and square corners between two straight posts (hud_posts). The
+    rounded plate is left out; the image glass (an 11.6 cm wide strip of it) widened to the plate's widest
+    (HUDImage2.back's), its top FlightGear's, its foot HUD_WIDE_DROP lower (into the HUD's box, where the posts then
+    stand) and moved forward to the lean (a shear)."""
     parts = {o.name.split("/", 1)[1]: o for o in objs}
     glass, back = parts.get("HUDImage2"), parts.get("HUDImage2.back")
     if glass is None or back is None:
         return
     half = max(abs(v.co.x) for v in back.data.vertices)
+    for name in ("HUDImage2.back", "HUDedge"):
+        if name in parts:
+            parts[name].data.clear_geometry()
+    top = max(glass.data.vertices, key=lambda v: v.co.z).co.copy()
+    foot = min(v.co.z for v in glass.data.vertices)
     for v in glass.data.vertices:
         if abs(v.co.x) > 0.01:
             v.co.x = math.copysign(half, v.co.x)
+        if v.co.z < foot + 1e-4:
+            v.co.z -= HUD_WIDE_DROP
+        v.co.y = top.y + (top.z - v.co.z) * math.tan(math.radians(HUD_WIDE_LEAN))  # +y forward
     glass.data.update()
-    print("hud_wide_glass: the image glass to +-%.3f m" % half)
+    print("hud_wide_glass: the plate +-%.3f m, leaning %.0f deg" % (half, HUD_WIDE_LEAN))
 
 
 def smooth(b):
@@ -824,18 +825,24 @@ def smooth(b):
         print("smooth %s: %d faces" % (o.name, len(o.data.polygons)))
 
 
-# The Block 50 HUD's posts remodelled (hud_posts, 2026-11-02): FlightGear's are flat side plates (`hud_sides`, 19 cm
-# deep), which from the eye read as broad black bands; the F-16 photos (docs/cockpit.md) show slender, tapered posts
-# holding the glass's sides. FlightGear's posts are cut off POST_CUT under the glass's foot (the cut capped) and each
-# side gets a post of ours along the glass's edge: a rounded rectangle (a superellipse of exponent POST_ROUND) POST_W
-# wide and POST_D deep at its foot, tapering to POST_W_TOP x POST_D_TOP, from the glass's foot to POST_TOP above it,
-# its top domed, the glass's edge POST_GRIP inside it (inferred sizes, m). The wide-angle HUD keeps FlightGear's curved
-# posts (bevelled, smooth): straight tubes of ours there, curving onto its box, read as a thick "U" (tried and dropped
-# 2026-11-02). By HUD: its frame object.
-POSTS = {"HUDa": "hud_sides"}
+# The HUDs' posts remodelled (hud_posts): FlightGear's posts are cut off POST_CUT under the glass's foot (the cut
+# capped) and each side gets a post of ours along the glass's edge, from the glass's foot to `over` above its top:
+# a rounded rectangle (a superellipse of exponent POST_ROUND) `w` wide and `d` deep at its foot, tapering to `w_top` x
+# `d_top`, the glass's edge POST_GRIP inside it, its centre `aft` of the way back from the glass to standing wholly
+# behind it (sizes in m). By HUD: its frame object and its post.
+# - The Block 50's (the Barak's, 2026-11-02): FlightGear's are flat side plates (`hud_sides`, 19 cm deep), which from
+#   the eye read as broad black bands; the F-16 photos (docs/cockpit.md) show slender, tapered posts holding the glass's
+#   sides (inferred sizes), their tops domed.
+# - The wide-angle one's (the Sufa's, 2026-11-18): FlightGear's posts curve in like a lyre; the F-16I's (the HUDS
+#   photos) are two straight, thin black side plates about 4 cm deep standing aft of the glass, their aft top corner
+#   rounded off over its top d_top into the glass's top corner (the IDF photo, measured against the glass's 17.6 cm width; inferred
+#   thickness). From the eye they are seen almost edge on.
+POSTS = {
+    "HUDa": ("hud_sides", dict(w=0.020, d=0.034, w_top=0.013, d_top=0.022, over=0.008, aft=0.0)),
+    "HUDc": ("HUDFrame", dict(w=0.007, d=0.045, w_top=0.007, d_top=0.035, over=-0.035, aft=1.0)),
+}
 POST_CUT = 0.004
-POST_W, POST_D, POST_W_TOP, POST_D_TOP = 0.020, 0.034, 0.013, 0.022
-POST_TOP, POST_GRIP = 0.008, 0.003
+POST_GRIP = 0.003
 POST_ROUND = 4.0
 POST_RINGS, POST_SIDES = 14, 20
 
@@ -877,7 +884,7 @@ def sweep(name, rings, mat, uv_name):
 
 
 def hud_posts(b, mat):
-    for part, frame_name in POSTS.items():
+    for part, (frame_name, k) in POSTS.items():
         objs = {o.name.split("/", 1)[1]: o for o in b.parts.get(part, [])}
         glass, frame = objs.get("HUDImage2"), objs.get(frame_name)
         if glass is None or frame is None:
@@ -898,6 +905,10 @@ def hud_posts(b, mat):
         if n.y > 0:
             n = -n  # toward the pilot
         uv_name = frame.data.uv_layers[0].name if frame.data.uv_layers else "UVMap"
+        if k["aft"] > 0:  # the aft corner rounded into the glass's top corner: a quarter circle d_top high
+            top = [(math.cos(math.radians(a)), k["d_top"] * math.sin(math.radians(a))) for a in (25, 45, 65, 80)]
+        else:  # domed
+            top = [(0.8, 0.003), (0.45, 0.0055)]
         for s in (-1, 1):
             side = [v for v in vs if v.x * s > 0.8 * half]
             lo, hi = min(side, key=lambda v: v.z), max(side, key=lambda v: v.z)
@@ -905,103 +916,21 @@ def hud_posts(b, mat):
             u = e.cross(n).normalized()
             if u.x * s < 0:
                 u = -u
-            end = hi + e * POST_TOP
+            end = hi + e * k["over"]
+
+            def ring(c, w, d, wo):  # wo: the width its centre is set by (the dome's, the post's top)
+                c = c + u * (wo / 2 - POST_GRIP) + n * (k["aft"] * (d / 2 - POST_GRIP))
+                return [c + u * x + n * y for x, y in superellipse(w / 2, d / 2)]
+
             rings = []
-            for k in range(POST_RINGS):
-                t = k / (POST_RINGS - 1)
-                w, d = POST_W + (POST_W_TOP - POST_W) * t, POST_D + (POST_D_TOP - POST_D) * t
-                c = lo.lerp(end, t) + u * (w / 2 - POST_GRIP)
-                rings.append([c + u * x + n * y for x, y in superellipse(w / 2, d / 2)])
-            c = end + u * (POST_W_TOP / 2 - POST_GRIP)
-            for r, h in ((0.8, 0.003), (0.45, 0.0055)):  # the dome
-                dome = superellipse(POST_W_TOP / 2 * r, POST_D_TOP / 2 * r)
-                rings.append([c + e * h + u * x + n * y for x, y in dome])
+            for i in range(POST_RINGS):
+                t = i / (POST_RINGS - 1)
+                w = k["w"] + (k["w_top"] - k["w"]) * t
+                rings.append(ring(lo.lerp(end, t), w, k["d"] + (k["d_top"] - k["d"]) * t, w))
+            for r, h in top:
+                rings.append(ring(end + e * h, k["w_top"] * (r if k["aft"] == 0 else 1), k["d_top"] * r, k["w_top"]))
             b.parts[part].append(sweep("%s/post_%s" % (part, "LR"[s > 0]), rings, mat, uv_name))
         print("hud_posts %s: glass +-%.3f m, its foot at %.3f m" % (part, half, foot))
-
-
-# The wide-angle combiner's glass fitted inside its posts (hud_glass_fit, 2026-11-12): FlightGear's plate (the image
-# glass HUDImage2, its back face and its rim HUDedge) is a rectangle and the posts (HUDFrame) curve in, so from the eye
-# the tinted plate's corners and straight sides showed past the posts as a pale rectangle around the HUD (the user,
-# 2026-11-12). Each layer is cut to the posts' outline as the eye sees it: in FIT_BANDS heights over the plate, the
-# posts' points seen from the eye (FG_EYE) on the plate's plane, the plate's side FIT_INTO of the way from a post's
-# inner edge to its outer edge, so its edge lies behind the post. The image glass is the HUD's clip (cockpit3d.gd
-# _glass_outline), so the symbology follows the same outline.
-FIT_BANDS = 8
-FIT_INTO = 0.35
-
-
-def hud_glass_fit(b):
-    objs = {o.name.split("/", 1)[1]: o for o in b.parts.get("HUDc", [])}
-    glass, frame = objs.get("HUDImage2"), objs.get("HUDFrame")
-    if glass is None or frame is None or not glass.data.polygons:
-        return
-    mw = glass.matrix_world
-    gv = [mw @ v.co for v in glass.data.vertices]
-    n = (glass.matrix_world.to_3x3() @ glass.data.polygons[0].normal).normalized()
-    p0, half = gv[0], max(abs(v.x) for v in gv)
-    zlo, zhi = min(v.z for v in gv), max(v.z for v in gv)
-    eye = C @ Vector(FG_EYE)
-    seen = []  # the posts' points on the plate's plane, as the eye sees them: (x, z)
-    for v in frame.data.vertices:
-        w = frame.matrix_world @ v.co
-        d = n.dot(w - eye)
-        if abs(d) < 1e-9:
-            continue
-        t = n.dot(p0 - eye) / d
-        if t > 0:
-            q = eye + (w - eye) * t
-            seen.append((q.x, q.z))
-    levels = [zlo + (zhi - zlo) * k / FIT_BANDS for k in range(FIT_BANDS + 1)]
-    band = (zhi - zlo) / FIT_BANDS
-    edge = {}  # side -> the plate's half width at each level
-    for s in (-1, 1):
-        xs = []
-        for h in levels:
-            near = [s * x for x, z in seen if s * x > 0.5 * half and abs(z - h) <= band]
-            xs.append(min(half, min(near) + FIT_INTO * (max(near) - min(near))) if near else half)
-        edge[s] = xs
-
-    def limit(s, z):
-        k = min(max(int((z - zlo) / band), 0), FIT_BANDS - 1)
-        t = (z - levels[k]) / band
-        return edge[s][k] + (edge[s][k + 1] - edge[s][k]) * t
-
-    for name in ("HUDImage2", "HUDImage2.back", "HUDedge"):
-        o = objs.get(name)
-        if o is None or not o.data.polygons:
-            continue
-        inv = o.matrix_world.inverted()
-        bm = bmesh.new()
-        bm.from_mesh(o.data)
-        for h in levels[1:-1]:  # the bands
-            g = bm.verts[:] + bm.edges[:] + bm.faces[:]
-            bmesh.ops.bisect_plane(bm, geom=g, dist=1e-6, plane_co=inv @ Vector((0, 0, h)),
-                                   plane_no=(inv.to_3x3() @ Vector((0, 0, 1))).normalized())
-        for k in range(FIT_BANDS):
-            for s in (-1, 1):
-                a = Vector((s * edge[s][k], 0, levels[k]))
-                c = Vector((s * edge[s][k + 1], 0, levels[k + 1]))
-                side = (c - a).cross(Vector((0, 1, 0))).normalized()
-                if side.x * s < 0:
-                    side = -side  # outward
-                faces = [f for f in bm.faces
-                         if levels[k] <= (o.matrix_world @ f.calc_center_median()).z <= levels[k + 1]]
-                if not faces:
-                    continue
-                g = list({v for f in faces for v in f.verts}) + list({e for f in faces for e in f.edges}) + faces
-                bmesh.ops.bisect_plane(bm, geom=g, dist=1e-6, plane_co=inv @ a,
-                                       plane_no=(inv.to_3x3() @ side).normalized())
-        out = []
-        for f in bm.faces:
-            w = o.matrix_world @ f.calc_center_median()
-            if abs(w.x) > limit(1 if w.x > 0 else -1, w.z) + 1e-5:
-                out.append(f)
-        bmesh.ops.delete(bm, geom=out, context='FACES')
-        bm.to_mesh(o.data)
-        bm.free()
-    print("hud_glass_fit: the plate's half width per level, left %s right %s" % (
-        [round(x, 4) for x in edge[-1]], [round(x, 4) for x in edge[1]]))
 
 
 # The glareshield's aft top edge rounded (coaming, 2026-11-02): FlightGear's glareshield (`Tub/poly`) meets its aft face
@@ -1399,10 +1328,10 @@ def main():
     merge_materials(everything)
     # The rudder pedals are untextured and white in rudder_pedals.ac (FlightGear's effects shade them); black rubber
     # and metal on the jet (the F-16C panel photo, docs/graphics-research.md §3.8).
-    # The wide-angle HUD's box is untextured light grey in f16_war_hud.ac; black on the F-16I (the HUDS photo).
+    # The wide-angle HUD's box is untextured light grey in f16_war_hud.ac; black on the F-16I (the HUDS photos).
     hud_black = kit.material("hud_black", (0.03, 0.03, 0.032), roughness=0.6)
-    # The combiner plate's 2 cm rim around the image (HUDedge, opaque "hudGlassEdge" in the .ac): glass, its edge a
-    # faint tint as on the photo (a frameless plate), not a black frame.
+    # The Block 50 combiner's thick top edge (HUDedge, opaque light grey in hud.ac): the glass's edge, a faint tint (an
+    # F-16C seen from the pilot's seat: a thin frame at the sides, the glass's top free).
     hud_edge = kit.material("hud_edge", (0.325, 0.251, 0.075), roughness=0.1, alpha=0.25)
     hud_edge.use_backface_culling = False
     hud_wide_top(b.parts.get("HUDc", []))
@@ -1412,19 +1341,13 @@ def main():
     smooth(b)
     hud_posts(b, hud_black)
     coaming(b)
-    hud_glass_fit(b)
     canopy_controls(b)
     everything = [o for o in kit.scene().objects if o.type == 'MESH']  # the new posts and coaming too
     for o in b.parts.get("HUDc", []):
         part = o.name.split("/", 1)[1]
-        if part == "HUDedge":
-            for i in range(len(o.data.materials)):
-                o.data.materials[i] = hud_edge
-        elif part not in ("HUDImage2", "HUDImage2.back"):  # all but the glass
+        if part != "HUDImage2":  # all but the glass
             for i in range(len(o.data.materials)):
                 o.data.materials[i] = hud_black
-    # The Block 50 combiner's thick top edge (HUDedge, opaque light grey in hud.ac): the glass's edge, as the
-    # wide-angle plate's (an F-16C seen from the pilot's seat: a thin frame at the sides, the glass's top free).
     for o in b.parts.get("HUDa", []):
         if o.name.split("/", 1)[1] == "HUDedge":
             for i in range(len(o.data.materials)):

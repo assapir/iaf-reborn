@@ -79,6 +79,8 @@ var controls := {}
 var meta := {}
 var _anims := []  # [node, rest transform, records (outermost first)]
 var _glass: MeshInstance3D
+## The combiner glass is tinted (Modern IAF, the definition's hud_tint): its green emitted by day (_lighting).
+var _tinted := false
 ## The pilot body's throttle shape keys (throttle_idle, throttle_full), found once.
 var _pilot_keys := [-1, -1]
 var _dir := ""  # the model's folder
@@ -193,7 +195,7 @@ func setup(c: Control, cam: Camera3D, type_code: int) -> bool:
 	var hud: String = Settings.airframe(type_code).get("hud_3d", "")
 	if hud != "":
 		# The F-16's two HUDs (tools/f16d/cockpit3d.py HUDS): the Block 50's for the Barak, the wide-angle one for
-		# the Sufa (its Elbit wide-angle HUD's shape is open; inferred).
+		# the Sufa.
 		for h in ["HUD_std", "HUD_wide"]:
 			for node in [n.find_child(h, true, false), n.find_child(h + "_glass", true, false)]:
 				if node != null:
@@ -207,11 +209,13 @@ func setup(c: Control, cam: Camera3D, type_code: int) -> bool:
 		var g := StandardMaterial3D.new()
 		g.albedo_color = Color(0.55, 0.75, 0.6, 0.07)
 		if Settings.hud_daylight():
-			# Ours, Modern IAF: the combiner seen from the seat, slightly darker than the sky around it, the green its
-			# coating reflects missing from what passes through (a faint cool magenta, inferred), and a little of the
-			# sky in it (docs/real-hud.md "Modern IAF's HUD light").
+			# Ours, Modern IAF: the combiner seen from the seat, green as the F-16I photos show it by day (its green
+			# emitted: lit by the sun alone it only darkened the view behind it), and a little of the sky in it
+			# (docs/real-hud.md "Modern IAF's HUD light").
 			var tint := float(Settings.airframe(type_code).get("hud_tint", SIM_TINT))
-			g.albedo_color = Color(0.62, 0.56, 0.72, 0.14 * tint)
+			g.albedo_color.a = 0.14 * tint
+			_tinted = tint > 0.0
+			g.emission = Color(g.albedo_color, 1.0)
 			g.metallic_specular = 0.8
 			_tint_plate(n, tint)
 		g.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
@@ -588,6 +592,8 @@ func _backlight_on(on: bool) -> void:
 
 func _lighting() -> void:
 	_sun_split()
+	if _tinted:  # the plate's own green by day only (cockpit.night is set after setup)
+		(_glass.material_override as StandardMaterial3D).emission_enabled = not cockpit.night
 	var c := Color.BLACK
 	_backlight_on(cockpit.night)
 	# Unpowered (cockpit.power below 2: Modern IAF's cold jet) every screen is dark, powered at the displays' brightness
@@ -1083,8 +1089,7 @@ func _glass_outline() -> PackedVector2Array:
 		return PackedVector2Array([r.position, Vector2(r.end.x, 0), r.end, Vector2(0, r.end.y)])
 	# The glass's outline cut at the camera's near plane: its part in front of the eye (looking down at the dash the
 	# glass's top passes behind the eye; dropping the whole outline then took the HUD off its glass, the Mac play
-	# test's finding 10). The outline is the glass's own, not its hull: the Sufa's plate is fitted inside its curved
-	# posts (tools/f16d/cockpit3d.py hud_glass_fit).
+	# test's finding 10). The outline is the glass's own.
 	var pts := PackedVector2Array()
 	var xf := _glass.global_transform
 	var eye := camera.global_transform
