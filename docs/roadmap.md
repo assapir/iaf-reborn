@@ -223,8 +223,12 @@ live play while recording at 4K. Two ways:
 - Each jet in a flight, the wingmen and the other flights, shows its own tail number, not the one painted on the
   model (today every detailed F-16 / F-16I carries the same number). Real numbers of the squadron the jet
   represents, picked per flight so a mission keeps them.
-- Today (2026-10-29) the F-16I model carries one real jet's number, 846 of 201 Squadron, drawn by `tools/f16/sufa.py`
-  (`SUFA_NUMBER`, its own digits in `GLYPHS`: 4, 6 and 8 so far) on the fin and the intakes (docs/f16i.md §8.1).
+- Built for the F-16I Sufa, the F-16D Barak and the F-35I Adir (2026-11-19; the user, 19 November 2026: "other
+  planes shouold have different tale numbers"): the game draws each jet's number, the player's the livery's, every
+  other jet (the AI's, the mission's other units, the jets parked at the bases) its own (docs/aircraft-models.md
+  §1.6). Not started: the detailed F-15C Baz's and F-15I Ra'am's numbers (802 and 269, painted by setup,
+  `crates/iaf-tools/src/f15.rs`; neither is parked at a base nor flown in Modern IAF; in the original game every F-15
+  shows the same one); they take a tail file the same way.
 
 ## F-16I Sufa option (Extras switch, wishlist; decided 2026-10-17, F-16I chosen 2026-10-19)
 - **Switch:** "F-16: Barak (F-16D) / Sufa (F-16I)". The default is the game's early-1990s F-16D Barak.

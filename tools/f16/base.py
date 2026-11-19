@@ -830,6 +830,9 @@ FG_RADOME = (0.337, 0.337, 0.337)
 BLOTCH_M, CAMO_SEED = 1.5, 16
 # Places in the 2048 px livery (pixels from the top left). The radome's top and bottom halves (x0, y0, x1, y1).
 RADOME = [(1340, 420, 1600, 560), (390, 990, 670, 1130)]
+# The livery's tail number "547" on each side of the fin (x0, y0, x1, y1), painted over by both layers: the game draws
+# each jet's own (shared/aircraft/tail_number.gd, docs/aircraft-models.md §1.6).
+DIGITS = [(1640, 245, 1757, 312), (1640, 468, 1759, 537)]
 
 
 def recolour(albedo, pairs, reach, where):

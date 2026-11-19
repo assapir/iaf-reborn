@@ -340,6 +340,7 @@ var time_factor := 1
 
 func _ready() -> void:
 	Bombs.wind = Vector3.ZERO  # apply_wind sets it for this mission
+	AircraftModel.TailNumber.reset()  # the other jets' tail numbers start again (docs/aircraft-models.md §1.6)
 	Scenery.night = false  # _night_detailed sets it at night
 	GpuFx.wind = Vector3.ZERO
 	Joystick.consumer = self
@@ -1240,6 +1241,9 @@ func _spawn_mission_objects() -> void:
 		if model == null:
 			continue
 		var node: Node3D = Gltf.instance(model)
+		var hd := Gltf.detailed(path)
+		if hd != "":  # a jet of ours draws the next of the flight's tail numbers (docs/aircraft-models.md §1.6)
+			AircraftModel.TailNumber.mark(node, hd, AircraftModel.TailNumber.next(hd))
 		ent.node = node
 		_real_sign(node, path, ent)
 		ent["airborne_class"] = int(obj.get("0x5aa", -1)) in [2, 3, 0x1c]
@@ -2235,7 +2239,9 @@ func _ground_gradient(p: Vector3) -> Vector2:
 
 func _spawn_player() -> void:
 	# Generic aircraft model (docs/aircraft.md): the player's plane and type; ground-start ramps on the ground.
-	aircraft = AircraftModel.create(player.plane, player.type, not start_airborne)
+	# Its tail number: the livery's, or after the FlyTSD's Fly the number of the jet taken over (ai_flights.gd).
+	var me: Dictionary = runtime.player_entity() if runtime != null else {}
+	aircraft = AircraftModel.create(player.plane, player.type, not start_airborne, int(me.get("tail", 0)))
 	_lap("jet model")
 	if aircraft == null:
 		return
@@ -3661,6 +3667,7 @@ func _take_over(target: Dictionary, old: Dictionary) -> void:
 		old_flight.set_no_crashes(false)
 		old_flight.set_unlimited_fuel(false)
 		old_flight.ap_player_mode(0, 0)  # the player's autopilot loop ends; the brain sets the modes now
+		old["tail"] = int(old.get("tail", 0))  # it keeps its tail number (the first jet: the livery's)
 		ai.adopt(old, old_flight, old_plane, old_scale, old_systems, old_load, start_airborne)
 	# The new jet's type: cockpit, sounds, systems, model and weapons. Its brain's autopilot mode ends (FM mode 0:
 	# the flight model's AI rules no longer apply), its AI settings back to a player's.

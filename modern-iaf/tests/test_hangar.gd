@@ -358,19 +358,22 @@ func _code_first(fe: Control, where: String) -> void:
 	check(n >= 1, "he, %s: jet names found (%d)" % [where, n])
 
 
-## Each jet's unit record's tail number is the number painted on its model (the user, A31), and its squadron (its base
-## file's `squadrons`) the one whose art the model wears (the user, 2026-11-13: "change the string"): as the model's
-## sources record them.
+## Each jet's unit record's tail number is the number the game draws on the player's jet (its model's tail file,
+## docs/aircraft-models.md §1.6; the user, A31), and its squadron (its base file's `squadrons`) the one whose art the
+## model wears (the user, 2026-11-13: "change the string"): as the model's sources record them.
 func _tails_painted() -> void:
 	var srcs := {
-		"f16i": ["res://shared/extra/models/f16/SOURCES.md", "F-16I %s", "llrm", "%d Squadron's art"],
-		"f16d": ["res://shared/extra/models/f16/SOURCES.md", "tail %s", "llrd", "(%d Squadron, tail"],
-		"f35i": ["res://../docs/f35i.md", "tail number %s", "llnv", "%d Sqn badge"],
+		"f16i": ["res://shared/extra/models/f16/SOURCES.md", "models/f16/f16i", "llrm", "%d Squadron's art"],
+		"f16d": ["res://shared/extra/models/f16/SOURCES.md", "models/f16/f16d", "llrd", "(%d Squadron, tail"],
+		"f35i": ["res://../docs/f35i.md", "planes/f35i/f35i", "llnv", "%d Sqn badge"],
 	}
 	for u in srcs:
 		var tail := str(settings().load_json("res://data/db/units/%s.json" % u).get("tail", ""))
 		var text := FileAccess.get_file_as_string(srcs[u][0])
-		check(tail != "" and text.contains(srcs[u][1] % tail), "%s: tail %s is the model's painted number" % [u, tail])
+		var drawn := str(settings().load_json("res://shared/extra/%s.tail.json" % srcs[u][1]).get("number", ""))
+		check(
+			tail != "" and tail == drawn, "%s: tail %s is the number drawn on the player's jet (%s)" % [u, tail, drawn]
+		)
 		var sq: Array = settings().load_json("res://data/airbases/%s.json" % srcs[u][2]).get("squadrons", [])
 		sq = sq.filter(func(q): return q.unit == u)
 		var n := int(sq[0].number) if sq.size() == 1 else 0

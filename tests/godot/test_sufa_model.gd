@@ -1,11 +1,13 @@
 # The F-16I Sufa's look (docs/f16i.md §8.1): with the Extras switch "F-16 version" on Sufa every F-16 model is
 # f16i.glb, with Models on Original as on Detailed; it keeps every helper of the original within 1 cm (stations, eye,
-# wheels: what arms and animates the F-16D works unchanged); the player's and the AI's F-16s in a mission use it; the
-# Arming screen shows the Sufa's art and weights. With Barak, everything is as before.
+# wheels: what arms and animates the F-16D works unchanged); the player's and the AI's F-16s in a mission use it, each
+# with its own tail number, the player's 846 (docs/aircraft-models.md §1.6); the Arming screen shows the Sufa's art and
+# weights. With Barak, everything is as before.
 #   IAF_DEFAULT_SETTINGS=1 godot --headless --audio-driver Dummy --path iaf-reborn -s ../tests/godot/test_sufa_model.gd
 extends "res://../tests/godot/base.gd"
 
 const Gltf := preload("res://shared/util/gltf.gd")
+const TailNumber := preload("res://shared/aircraft/tail_number.gd")
 const F16 := "controllableplanes/f16/f16_h.gltf"
 const HELPER_M := 0.01
 
@@ -70,8 +72,67 @@ func run() -> void:
 	check(_meshes(tv.aircraft).any(func(m): return m in meshes), "the player's F-16 is the Sufa")
 	var ai_f16: Array = tv.ai.pilots.filter(func(p): return int(p.ent.type_code) == 100 and p.node != null)
 	check(not ai_f16.is_empty(), "an AI F-16 flies")
+	var numbers := [_number(tv.aircraft)]
+	check(numbers[0] == "846", "the player's jet: 846 (%s)" % numbers[0])
 	for p in ai_f16:
 		check(_meshes(p.node).any(func(m): return m in meshes), "AI %s is the Sufa" % p.ent.name)
+		var n := _number(p.node)
+		check(n != "" and not n in numbers, "AI %s: its own tail number (%s; %s)" % [p.ent.name, n, numbers])
+		numbers.append(n)
+	# The FlyTSD's Fly: the jet taken over keeps its number in the player's hands, the old jet keeps 846.
+	var old: Dictionary = tv.runtime.player_entity()
+	var target: Dictionary = ai_f16[0].ent
+	var theirs := _number(target.node)
+	tv.fly_unit(tv.runtime.entities.find_key(target))
+	await frames(3)
+	check(
+		_number(tv.aircraft) == theirs, "Fly: the jet taken over still shows %s (%s)" % [theirs, _number(tv.aircraft)]
+	)
+	check(old.get("node") != null and _number(old.node) == "846", "Fly: the old jet, now the AI's, still shows 846")
+
+	# Every model with a tail file: the player's number, then 60 other jets' all different, none the player's; the
+	# Barak's and the Adir's models draw them (docs/aircraft-models.md §1.6).
+	var tails := {
+		"res://shared/extra/models/f16/f16i.glb": ["846", 4],
+		"res://shared/extra/models/f16/f16d.glb": ["547", 2],
+		"res://shared/extra/planes/f35i/f35i.gltf": ["937", 4],
+	}
+	for path: String in tails:
+		var seen := {}
+		for k in 61:
+			seen[TailNumber.number(path, k)] = true
+		check(TailNumber.number(path, 0) == tails[path][0], "%s: the player's %s" % [path.get_file(), tails[path][0]])
+		check(seen.size() == 61 and not seen.has(""), "%s: 60 other jets, 60 other numbers" % path.get_file())
+	# A parked jet built again (its base's furniture) keeps its number; a new flight starts the count again.
+	var f16i := "res://shared/extra/models/f16/f16i.glb"
+	var parked := TailNumber.next(f16i, "1200 -340")
+	var other := TailNumber.next(f16i)
+	check(TailNumber.next(f16i, "1200 -340") == parked and other != parked, "a parked jet keeps its number")
+	TailNumber.reset()
+	check(TailNumber.next(f16i) == 1, "a new flight: the count starts again")
+	settings().f16_variant = "barak"
+	settings().models = "detailed"
+	for plane in ["f16", "f35i"]:
+		var path: String = ["res://shared/extra/models/f16/f16d.glb", "res://shared/extra/planes/f35i/f35i.gltf"][int(
+			plane == "f35i"
+		)]
+		var m: Node3D = aircraft_model.create(plane, -1, false, 3)
+		var n := _number(m)
+		var decals := m.find_children("tail_number*", "", true, false).size()
+		check(
+			n == TailNumber.number(path, 3) and decals == tails[path][1],
+			"%s: draws %s (%d decals)" % [plane, n, decals]
+		)
+		m.free()
+
+
+## The tail number a model's decals draw (TailNumber: a decal a side for each mark), "" none or mixed.
+func _number(model: Node) -> String:
+	var seen := {}
+	var decals := model.find_children("tail_number*", "", true, false)
+	for d in decals:
+		seen[d.get_meta("tail", "")] = true
+	return String(seen.keys()[0]) if decals.size() >= 2 and seen.size() == 1 else ""
 
 
 func _meshes(n: Node) -> Array:

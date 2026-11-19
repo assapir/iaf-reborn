@@ -8,6 +8,7 @@
 extends Control
 
 const Gltf := preload("res://shared/util/gltf.gd")
+const TailNumber := preload("res://shared/aircraft/tail_number.gd")
 const NightLights := preload("res://shared/terrain/night_lights.gd")
 ## Clear colour bytes c9 e4 e4 (FUN_00407ee0; RGB(201,228,228) taken, UNCERTAIN vs its BGR swap).
 const CLEAR := Color8(201, 228, 228)
@@ -62,6 +63,7 @@ func setup(front_end: Control, path: String, cp) -> bool:
 	sun.rotation_degrees = Vector3(-45, 150, 0)
 	vp.add_child(sun)
 	var node := Gltf.instance(model)
+	TailNumber.mark(node, Gltf.detailed(path), 0)  # a jet of ours: the livery's number (docs/aircraft-models.md §1.6)
 	node.scale = Vector3.ONE * SCALE
 	vp.add_child(node)
 	if cp is Array and cp.size() >= 2:
@@ -117,11 +119,13 @@ func setup_target(front_end: Control, world: Vector3, units: Array) -> void:
 	_terrain.focus = _cam
 	_terrain.view_range = _cam.far
 	_vp.add_child(_terrain)
-	for u in units:
+	for k in units.size():
+		var u = units[k]
 		var model = Gltf.object(u.path)
 		if model == null:
 			continue
 		var node := Gltf.instance(model)
+		TailNumber.mark(node, Gltf.detailed(u.path), k + 1)  # the mission's other jets: each its own number
 		# LT_ light sets draw as points (night_lights.gd); the airbases' flat underlays are hidden (the imagery shows
 		# the base, terrain_view.gd UNDERLAY_MAX_HEIGHT).
 		var raw := Gltf.model_aabb(node, Gltf.MESH_SPACE)

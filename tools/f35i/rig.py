@@ -20,9 +20,9 @@ ORIGIN = Vector((0.0, -1.0, 1.85))  # the aircraft origin (≈ centre of gravity
 EYE = Vector((0.0, 4.1, 3.0))  # in the seat, at seated head height under the canopy (the helmet clears the rim)
 SKIN_GREY = (0.37, 0.39, 0.41)  # F-35 low-observable grey, matte (sRGB, before the baked shading)
 DOOR_GREY = (0.27, 0.285, 0.30)  # the shut nose doors: the belly's grey after its baked shading
-TAIL_NUMBER = "937"  # 116 Sqn "Lions of the South" (F-35I tails run 901-9xx)
-# Low-visibility markings as on the IAF's F-35Is (photos, docs/f35i.md §5).
-STAR_GREY, DISC_GREY, NUMBER_GREY = (0.17, 0.18, 0.19), (0.46, 0.48, 0.50), (0.16, 0.17, 0.18)
+# Low-visibility markings as on the IAF's F-35Is (photos, docs/f35i.md §5). The tail number is the game's: each jet
+# its own, drawn from f35i.tail.json beside the model (shared/aircraft/tail_number.gd, docs/aircraft-models.md §1.6).
+STAR_GREY, DISC_GREY = (0.17, 0.18, 0.19), (0.46, 0.48, 0.50)
 
 
 def skin(m):
@@ -40,7 +40,6 @@ def markings():
                        image=kit.image("iaf_roundel", kit.roundel(STAR_GREY, DISC_GREY)), clip=True)
     badge = kit.material("sqn116", (1, 1, 1), metallic=0.15, roughness=0.75,
                          image=kit.image("sqn116_lowvis", kit.low_vis(os.path.join(ASSETS, "sqn116.png"))), clip=True)
-    number = kit.material("tail_number", NUMBER_GREY, metallic=0.15, roughness=0.75)
     # One roundel on each upper wing, outboard near the tip and ahead of the flaperon (the USAF tanker-boom photo
     # of an F-35I from above, 2 Aug 2020); one under the right wing.
     for s in (1, -1):
@@ -48,11 +47,9 @@ def markings():
                   0.8, (0, 1, 0))
     kit.decal("roundel_wing_lower_right", rnd, (3.6, -2.7, -10), (0, 0, 1), 0.8, 0.8, (0, -1, 0))
     for s in (1, -1):
-        # The big roundel on the intake flank behind the lip, the full number on the nose, the last two digits at
-        # the fin tip, the badge on the fin (outer faces, forward of the rudder hinge).
+        # The big roundel on the intake flank behind the lip, the badge on the fin (outer faces, forward of the
+        # rudder hinge).
         kit.decal(f"roundel_side_{s}", rnd, (8 * s, 2.3, 1.95), (-s, 0, 0), 0.8, 0.8, (0, s, 0))
-        kit.text_decal(f"nose_number_{s}", TAIL_NUMBER, number, (8 * s, 5.55, 2.3), (-s, 0, 0), 0.3, (0, s, 0))
-        kit.text_decal(f"fin_number_{s}", TAIL_NUMBER[-2:], number, (8 * s, -6.0, 4.15), (-s, 0, 0), 0.26, (0, s, 0))
         kit.decal(f"badge_{s}", badge, (8 * s, -5.5, 3.4), (-s, 0, 0), 0.7, 0.7, (0, s, 0))
 
 

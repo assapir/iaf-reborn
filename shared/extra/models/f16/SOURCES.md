@@ -91,6 +91,8 @@ Made by `tools/f16/rig.py ... barak`: the F-16 base (`tools/f16/base.py`) with t
 11. The wing pylons' open tops capped, and the wingtip rails and wing pylons given their own UVs on a free grey
     part of the livery, painted a warm grey that renders as FS 36375, with the paint's material and occlusion (both
     models; docs/aircraft-models.md §1.5).
+12. The livery's tail number, 547 on the fin, painted over in the camouflage round it (`barak.py` `erase_number`):
+    the game draws each jet's own number in our digits (`../tail_digits.png`; docs/aircraft-models.md §1.6).
 
 The model contains about 60 helper positions measured from the original game model (where the game hangs stores,
 draws the afterburner and puts the wheels). They are coordinates only. Every mesh and texture comes from the
@@ -115,9 +117,10 @@ Made by `tools/f16/rig.py ... sufa`, the F-16 base with the Sufa layer (`tools/f
    green (measured in its photographs), on the fuselage, CFTs, spine and tail box in 846's blotches (polygons we
    traced from the photos), on the wings in our own noise pattern; the livery's panel lines kept; 101 Squadron's
    fin badge, red disc, stripes and number painted over; the fin tan with our own drawing of 201 Squadron's art
-   (sand band, blue and orange swooshes, swift, round badge) and the number 846 in our own digits, and 846 in blue
-   on the intakes. References, not copied (no pixel is in the model): F-16I 846 in flight, 10 January 2025, by the
-   IDF Spokesperson's Unit (CC BY-SA 3.0,
+   (sand band, blue and orange swooshes, swift, round badge). The tail number is not in the model: the game draws
+   each jet's in our own digits (`tools/f16/digits.py`, `../tail_digits.png`; docs/aircraft-models.md §1.6).
+   References, not copied (no pixel is in the model): F-16I 846 in flight, 10 January 2025, by the IDF
+   Spokesperson's Unit (CC BY-SA 3.0,
    https://commons.wikimedia.org/wiki/File:Israeli_attacks_on_Yemen,_January_2025._III.jpg, ._IV.jpg and
    ._V.jpg); F-16I 851 (same set, ._VI.jpg) for the colours in a second light.
 4. Our own nose fairings (meshes made by the script): the AIFF antenna row ahead of the windscreen and a sensor

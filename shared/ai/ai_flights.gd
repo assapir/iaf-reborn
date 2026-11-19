@@ -149,8 +149,10 @@ func setup(h: Node, rt: Node, bdb: Dictionary, files: Array) -> void:
 ## and its brain; then it flies.
 func _attach(p: Pilot, scale: float, on_ground: bool) -> void:
 	var ent := p.ent
-	var model := AircraftModel.create(p.plane, ent.type_code, on_ground)
+	# Its tail number: the next of the flight's, kept on the entity (a jet the player leaves keeps the player's).
+	var model := AircraftModel.create(p.plane, ent.type_code, on_ground, int(ent.get("tail", AircraftModel.NEXT)))
 	if model != null:
+		ent["tail"] = model.tail
 		model.scale = Vector3.ONE * scale
 		host.add_child(model)
 		# As the player's jet: the model's `height` helper (how far the wheels reach below the

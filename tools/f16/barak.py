@@ -8,11 +8,12 @@ import numpy as np
 from mathutils import Matrix
 
 import base
-from base import CAMO, FG_PAINT, FG_RADOME, FS, RADOME, camo_weights, fg, recolour, skin_bvh, texels, window
+from base import CAMO, DIGITS, FG_PAINT, FG_RADOME, FS, RADOME, camo_weights, fg, recolour, skin_bvh, texels, window
 
 # The vents on each side of the dorsal spine ahead of the fin (centre y, width; below the spine's top; height; m).
 SPINE_VENTS = ([(-2.80, 0.12), (-3.03, 0.12), (-3.26, 0.12)], 0.18, 0.14)
 MATTE = 0.0  # added to the paint's roughness
+NUMBER_LUM = 0.25  # the livery's black number: darker than any paint and panel line
 
 
 def nozzle():
@@ -74,5 +75,32 @@ def livery(albedo, skin):
     yy, xx = np.mgrid[h - 1:-1:-1, 0:w]
     for x0, y0, x1, y1 in RADOME:
         recolour(albedo, [(FG_RADOME, FS["36270"])], 0.12, (xx >= x0) & (xx < x1) & (yy >= y0) & (yy < y1))
+    erase_number(albedo, xx, yy, pos)
     return albedo
 
+
+def erase_number(albedo, xx, yy, pos):
+    """The livery's 547 on the fin (DIGITS) painted over: the game draws each jet's own number there (f16d.tail.json,
+    docs/aircraft-models.md §1.6). Its dark strokes and the pixels round them are filled in from round them, each
+    then the nearest of the Barak's camouflage colours."""
+    box = np.zeros(albedo.shape[:2], dtype=bool)
+    for x0, y0, x1, y1 in DIGITS:
+        box |= (xx >= x0) & (xx < x1) & (yy >= y0) & (yy < y1)
+    lum = albedo[..., :3] @ np.array([0.30, 0.59, 0.11], dtype=np.float32)
+    hole = box & (window(np.where(lum < NUMBER_LUM, 1.0, 0.0), 5, np.maximum) > 0)
+    for x0, y0, x1, y1 in DIGITS:  # where the number was, for its tail file's mark (world, m)
+        b = (xx >= x0) & (xx < x1) & (yy >= y0) & (yy < y1) & hole
+        print("barak: the livery's number", (x0, y0), "from", np.nanmin(pos[b], axis=0), "to",
+              np.nanmax(pos[b], axis=0))
+    done = ~hole
+    while not done.all():
+        p = np.pad(np.where(done[..., None], albedo[..., :3], 0), ((1, 1), (1, 1), (0, 0)))
+        c = np.pad(done.astype(np.float32), 1)
+        n = c[:-2, 1:-1] + c[2:, 1:-1] + c[1:-1, :-2] + c[1:-1, 2:]
+        s = p[:-2, 1:-1] + p[2:, 1:-1] + p[1:-1, :-2] + p[1:-1, 2:]
+        grow = ~done & (n > 0)
+        albedo[grow, :3] = s[grow] / n[grow][:, None]
+        done |= grow
+    camo = np.array([BARAK[c] for c in CAMO], dtype=np.float32)
+    albedo[hole, :3] = camo[np.linalg.norm(albedo[hole, None, :3] - camo[None], axis=2).argmin(axis=1)]
+    print("barak: the livery's number painted over, texels", int(hole.sum()))

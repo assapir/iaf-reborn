@@ -1,0 +1,16 @@
+{
+  "number": "846",
+  "others": ["844", "849", "851", "869", "466", "476", "482", "421", "459", "494", "848", "868", "803", "827", "890"],
+  "ranges": [[401, 499], [801, 899]],
+  "marks": [
+    { "foot": [0.89, 5.03], "height": 0.37, "pitch": 0.24, "x": [0.0, 0.6], "colour": [0.07, 0.07, 0.08] },
+    { "foot": [-0.8, -1.05], "height": 0.2, "pitch": 0.135, "x": [0.15, 0.7], "colour": [0.17, 0.30, 0.55] }
+  ],
+  "notes": {
+    "": "The Sufa's tail numbers (shared/aircraft/tail_number.gd, docs/aircraft-models.md §1.6): f16i.glb holds none (tools/f16/sufa.py).",
+    "number": "F-16I 846 of 201 Squadron, whose paint and fin art f16i.glb wears (docs/f16i.md §8.1)",
+    "others": "real F-16I numbers (docs/f16i.md §8): first 201 Squadron's (844, 849, 851, 869: the same fin art), then 253 Squadron's (466, 476, 482: modern-iaf/data/db/units/f16i.json, jp-482), the IsraDecals sheet's (421, 459, 494, 848, 868), 803, 827 and 890",
+    "ranges": "inferred: the hundreds every real F-16I number in our sources falls in (docs/f16i.md §8)",
+    "marks": "the fin's number in black, digits 0.37 m tall, foot level with the fin's leading-edge root; the intakes' in dark blue, 0.2 m tall, reaching out no farther than 0.7 m, short of the chin pylon and its pod (docs/f16i.md §8.1, measured on 846's photos)"
+  }
+}

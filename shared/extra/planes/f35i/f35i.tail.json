@@ -1,0 +1,16 @@
+{
+  "number": "937",
+  "others": ["951", "921"],
+  "ranges": [[901, 975]],
+  "marks": [
+    { "foot": [0.37, -6.55], "height": 0.19, "pitch": 0.13, "x": [0.3, 0.8], "colour": [0.16, 0.17, 0.18] },
+    { "foot": [-2.167, 2.225, 5.0], "normal": [-0.94, -0.34], "height": 0.18, "pitch": 0.12, "colour": [0.16, 0.17, 0.18], "digits": 2 }
+  ],
+  "notes": {
+    "": "The Adir's tail numbers (shared/aircraft/tail_number.gd, docs/aircraft-models.md §1.6): f35i.gltf holds none (tools/f35i/rig.py).",
+    "number": "937 of 116 Squadron, whose badge the model wears (docs/f35i.md §1, the model row); the sim's unit record shows the same (modern-iaf/data/db/units/f35i.json `tail`)",
+    "others": "real F-35I numbers in our sources: 951 of 140 Squadron (docs/f35i.md §5, its photo), 921 of 140 Squadron (modern-iaf/data/db/units/f35i.json, isradecal-921)",
+    "ranges": "inferred: the F-35I's numbers are three digits from 901 (docs/f35i.md §7), one for each of the 75 jets ordered",
+    "marks": "where rig.py drew the number until 2026-11-19, low-visibility dark grey: the whole number on each side of the nose (decals), its last two digits on each fin's outer face (quads: the fins are one surface seen from both sides; their outward normal measured on f35i.gltf, the fin canted 20 degrees) (docs/f35i.md §5, the photos)"
+  }
+}

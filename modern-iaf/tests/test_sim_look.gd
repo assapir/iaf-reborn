@@ -132,6 +132,14 @@ func run() -> void:
 		var jets := fur.get_node_or_null("f16i") as MultiMeshInstance3D
 		check(sh != null and sh.multimesh.instance_count == 40, "Ramon: 40 shelters in one MultiMesh")
 		check(jets != null and jets.multimesh.mesh.get_surface_count() == 1, "Ramon: the parked Sufas, one surface")
+		# Each its own tail number, never the player's (docs/aircraft-models.md §1.6).
+		var tails := {}
+		for d: Decal in jets.find_children("tail_number_0L", "Decal", true, false) if jets != null else []:
+			tails[d.get_meta("tail")] = true
+		check(
+			jets != null and tails.size() == jets.multimesh.instance_count and not tails.has("846"),
+			"Ramon: each parked Sufa its own tail number (%s)" % [tails.keys()]
+		)
 		check(fur.get_node_or_null("fence") != null, "Ramon: the fence")
 	await _mouse_look(tv)
 	check(s.rejected.is_empty(), "no original data read (%s)" % [s.rejected])

@@ -13,6 +13,8 @@ extends Node3D
 
 const NightLights := preload("res://shared/terrain/night_lights.gd")
 const Gltf := preload("res://shared/util/gltf.gd")
+const TailNumber := preload("res://shared/aircraft/tail_number.gd")
+const NEXT := -1  # create()'s `tail`: the next other jet's number in this flight
 
 ## Ramp limits (rad) and rates (rad/s), constructor FUN_005ba430 / FUN_005a5820.
 const FLAPS_MAX := 0.29275  # 16.8°
@@ -39,6 +41,7 @@ const SIT_TIME := 0.6
 ## The descriptor (aircraft.json) and the type code whose rules apply.
 var desc: Dictionary = {}
 var type_code := 100
+var tail := 0  # whose tail number it shows (create())
 ## The glTF scene and its root frame (parts are its direct children).
 var scene: Node3D
 var root_frame: Node3D
@@ -99,13 +102,16 @@ var _time := 0.0
 
 
 ## Loads `<planes>/<plane>/aircraft.json` and its glTF. `type` < 0 takes the descriptor's type.
-## `on_ground`: the ground-start ramps (gear down, full flaps, speed brake open; FUN_005a5820).
-static func create(plane: String, type := -1, on_ground := false) -> Node3D:
+## `on_ground`: the ground-start ramps (gear down, full flaps, speed brake open; FUN_005a5820). `tail`: whose tail
+## number it shows (TailNumber, a model with a tail.json): 0 the player's jet's, k ≥ 1 the k-th other jet's, NEXT the
+## next other jet's in this flight; the model's `tail` keeps the k.
+static func create(plane: String, type := -1, on_ground := false, tail := 0) -> Node3D:
 	var d: Dictionary = load_descriptor(plane)
 	if d.is_empty():
 		return null
 	var hd: String = Gltf.detailed(String(d.model))
-	var model = Gltf.model(hd if hd != "" else plane_file(plane, d.model))
+	var path: String = hd if hd != "" else plane_file(plane, d.model)
+	var model = Gltf.model(path)
 	if model == null:
 		return null
 	var node: Node3D = Gltf.instance(model)
@@ -114,6 +120,8 @@ static func create(plane: String, type := -1, on_ground := false) -> Node3D:
 	var m: Node3D = load("res://shared/aircraft/aircraft_model.gd").new()
 	m.name = plane
 	m.setup(node, d, type, on_ground)
+	m.tail = TailNumber.next(path) if tail == NEXT else tail
+	TailNumber.mark(node, path, m.tail)
 	return m
 
 

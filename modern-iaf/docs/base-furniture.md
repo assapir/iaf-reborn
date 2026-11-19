@@ -139,7 +139,7 @@ stands on its pad.
 - the tower: a low building, a shaft and a glass cab at about 18 m (inferred);
 - the sunshade: a 5.5 m roof on posts every 15 m; the fence: 2.4 m of grey mesh on posts every 6 m, see-through;
 - the ramp vehicles: a yellow power-unit trailer, an olive fuel truck, a red extinguisher trolley, a yellow tug;
-- a parked jet (kind = an aircraft definition's id): the flying jet's model (`jet_model`: the definition's `model`, else its detailed model, else `<id>.gltf` in its folder) standing on its gear, every surface merged
+- a parked jet (kind = an aircraft definition's id): the flying jet's model (`jet_model`: the definition's `model`, else its detailed model, else `<id>.gltf` in its folder) standing on its gear, each with its own tail number (docs/aircraft-models.md §1.6), every surface merged
   into one in its material's colour (the texture's average), simplified to about 6,000 triangles, no shadow (§6).
 
 One MultiMesh per kind: the whole base is about a dozen draw calls. The buildings show out to 15 km, the jets and
