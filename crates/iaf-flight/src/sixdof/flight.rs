@@ -946,6 +946,11 @@ impl SixDof {
         self.brakes.step(watts, dt);
     }
 
+    /// The jet's gear speed limit from its aircraft definition's `gear_limit`: calibrated airspeed kt and Mach.
+    pub fn set_gear_limit(&mut self, kcas: f64, mach: f64) {
+        self.jet.limits.gear = (kcas, mach);
+    }
+
     /// What the limits have done so far.
     pub fn limits(&self) -> LimitsState {
         let x = self.xcg();

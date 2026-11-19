@@ -366,7 +366,8 @@ ENG at +0x560 / +0x598 / +0x5b0 = flags 2 / 16 / 22, so the copy starts at +0x55
 - **Gear overspeed**: the jet's aircraft definition's `gear_limit` replaces the 450 kt true airspeed: the F-16's 300
   KIAS / Mach 0.65 with the gear extended or in transit[^to-f16a-gear] (KIAS taken as calibrated airspeed, ISA, no
   position error: inferred; the flight state's `cas_kt`), the F-35I the same (inferred: no public F-35 figure, open).
-  A jet without `gear_limit` (the F-15I, every 1998 jet) keeps 450 kt true.
+  A jet without `gear_limit` (every 1998 jet) keeps 450 kt true. The F-15I's is the F-16's (inferred;
+  modern-iaf/docs/flight-model.md §9.20); on the 6-DoF the same record sets the flight's own gear limit.
 - **Hard landing**: a touchdown that passes the landing limits (sink 4 m/s, docs/flight-model.md) but sinks faster
   than 10 ft/s (3.05 m/s) damages the gear (7). 10 ft/s is the limit descent velocity a gear is designed for at the
   design landing weight[^far25-473]; for the F-16 "10 fps at low weight" is quoted on the Falcon BMS forum

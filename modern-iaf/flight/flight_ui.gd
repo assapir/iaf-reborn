@@ -92,10 +92,13 @@ func _apply_language() -> void:
 	language_changed.emit()
 
 
-## A radio line in the game's language (radio.gd `subtitles`: the line in both), else `text` as given.
+## A radio line in the game's language (radio.gd `subtitles`: the line in both), a message with a Hebrew string
+## ("msg:" + its English text in menu/strings_he.json), else `text` as given.
 func _in_language(text: String) -> String:
 	var pair = host.radio.subtitles.get(text) if host.get("radio") != null else null
-	return String(pair[1 if he() else 0]) if pair != null else text
+	if pair != null:
+		return String(pair[1 if he() else 0])
+	return s("msg:" + text) if he() and strings.has("msg:" + text) else text
 
 
 ## The front end's canvas, scaled to the window's height (the original's sizes stay the flight's).

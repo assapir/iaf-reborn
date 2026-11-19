@@ -333,7 +333,7 @@ mod tests {
     /// With every switch off a 1998 jet's definition holds no value its type-code tables decide, so the game reads
     /// exactly the 1998 values; only what the original has no table for (the model file it is, the 3D cockpit and
     /// its HUD) and `drag_chute: false`, as the 1998 F-16 (its model has no `Parach` part, docs/part-animation.md),
-    /// and `gear_limit`, which only Flight data Real reads.
+    /// and `gear_limit`, which only Flight data Real and the 6-DoF read.
     #[test]
     fn switches_off_give_the_1998_values() {
         let off = Switches { f16: "barak", f15: "baz" };

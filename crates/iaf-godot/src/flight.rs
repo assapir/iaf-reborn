@@ -413,6 +413,14 @@ impl IafFlight {
         }
     }
 
+    /// The jet's `gear_limit` (its aircraft definition): the 6-DoF's gear speed limit, KCAS and Mach.
+    #[func]
+    fn set_gear_limit(&mut self, kcas: f64, mach: f64) {
+        if let Some(Fm::SixDof(s)) = self.aircraft.as_mut() {
+            s.set_gear_limit(kcas, mach);
+        }
+    }
+
     #[func]
     fn set_no_crashes(&mut self, on: bool) {
         match self.aircraft.as_mut() {

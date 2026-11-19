@@ -12,6 +12,7 @@
   "fm": "F-15I",
   "sixdof": true,
   "engine_spool": [3.0, 5.0, 0.0, 0.9],
+  "gear_limit": { "kcas": 300, "mach": 0.65 },
   "model": "converted/models/f15/f15i.glb",
   "guide": "f15i",
   "hud": "f15e",
@@ -31,6 +32,7 @@
     }
   },
   "notes": {
+    "gear_limit": "Flight data Real and the 6-DoF: the F-16's 300 KCAS / Mach 0.65 (inferred: no public F-15 limit; the Falcon BMS F-15 training manual keeps the gear lever's 300 kt), modern-iaf/docs/flight-model.md 9.20",
     "sixdof": "Physics Flight model on 6-DoF: Modern IAF's 6-DoF from its own data (modern-iaf/docs/flight-model.md §9; docs/deviations.md §2)",
     "": "Every F-15 (type 110) with Extras \"F-15 version\" on Ra'am, the player's and the AI's (docs/f15i.md). Today's upgraded F-15I (the user's decision 2026-11-02); the F-15E's figures where the F-15I has none, labelled F-15E.",
     "label": "the TSD's selected-unit label",

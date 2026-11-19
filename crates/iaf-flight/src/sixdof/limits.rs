@@ -62,9 +62,10 @@ pub const F16: Limits =
 /// The F-35A's 700 KCAS placard (inferred: `jets.rs`) and Mach 1.6 (Lockheed Martin's top speed); the gear, the
 /// tyres and the brakes the F-16's (inferred: no public figure); no load categories.
 pub const F35: Limits = Limits { kcas: 700.0, mach: 1.6, categories: false, ..F16 };
-/// The F-15E's 800 KCAS and Mach 2.5, its gear 250 KCAS (inferred: no public flight manual read); tyres and brakes
-/// the F-16's (inferred); no load categories.
-pub const F15: Limits = Limits { kcas: 800.0, mach: 2.5, gear: (250.0, 0.65), categories: false, ..F16 };
+/// The F-15E's 800 KCAS and Mach 2.5; the gear, the tyres and the brakes the F-16's (inferred); no load categories.
+/// A jet's aircraft definition `gear_limit` is the gear's one source: the flight sets it over the `gear` here
+/// ([`crate::sixdof::flight::SixDof::set_gear_limit`]).
+pub const F15: Limits = Limits { kcas: 800.0, mach: 2.5, categories: false, ..F16 };
 
 /// How hard a load or a speed has used the structure.
 #[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd)]
@@ -208,7 +209,7 @@ mod tests {
         assert!(!gear_over(290.0, 0.5, &F16));
         assert!(gear_over(310.0, 0.5, &F16));
         assert!(gear_over(280.0, 0.7, &F16));
-        assert!(gear_over(260.0, 0.5, &F15));
+        assert!(gear_over(310.0, 0.5, &F15));
     }
 
     #[test]

@@ -1271,7 +1271,7 @@ original model never reaches these rules.
 |---|---|---|---|---|
 | g, symmetric | +9 / −3 | +9 / −3 | +8.1 / −2 | `Jet::g_limits` (§9.11) |
 | speed | 800 KCAS, Mach 2.05 | 700 KCAS, Mach 1.6 | 800 KCAS, Mach 2.5 | F-16: the flight manual p. 5-2[^to-f16cj]; Adir: the F-35A placard (inferred, §9.9) and Lockheed Martin's top speed[^lm-f35]; Ra'am: inferred |
-| gear down or moving | 300 KCAS, Mach 0.65 | the F-16's | 250 KCAS, Mach 0.65 | F-16: figure 5-6[^to-f16cj]; others inferred |
+| gear down or moving | 300 KCAS, Mach 0.65 | the F-16's | the F-16's | F-16: figure 5-6[^to-f16cj]; Ra'am: the F-16's (inferred, below)[^bms-f15]; the one source is the aircraft definition's `gear_limit` (`airframe.json`), which the 6-DoF and the game's gear damage both read |
 | main tyres | 225 kt ground speed | the F-16's | the F-16's | F-16: p. 5-2[^to-f16cj]; others inferred |
 | brakes | a stop from 150 kt at 1.4 × the reference weight | the F-16's | the F-16's | inferred: the brake energy charts are in a supplement, not public |
 | load categories | CAT I / CAT III | none | none | the F-16's STORES CONFIG switch |
@@ -1400,6 +1400,9 @@ The tests: unit tests in `limits.rs`; `crates/iaf-flight/tests/sixdof.rs` flies 
   https://ntrs.nasa.gov/citations/19800003834
 [^bms-xwind]: Falcon BMS forum, "Crosswind landings" thread (25 kt, the limit Joe Bill Dryden's tests reached,
   as recalled there by a forum member; secondary): https://forum.falcon-bms.com/post/21564
+[^bms-f15]: Falcon BMS F-15 Training Manual (a simulator manual, second-hand): the gear extended below 300 kt (the
+    emergency extension "certainly below 300 knots"), <https://cdn.falcon-bms.com/docs/4.38/BMS-F-15-Training-Manual.pdf>.
+    No T.O. 1F-15E-1 figure is public, so the F-16's 300 KCAS stands; the earlier 250 KCAS had no source at all.
 [^bms]: Falcon BMS forum, "Rotation speed" (rotate at 170 kt with an air-to-air load, 180 kt heavy; the take-off
   speed 70 kt plus 3 kt per 1,000 lb of gross weight), https://forum.falcon-bms.com/post/314659
 [^cfr25-303]: 14 CFR 25.303, "Factor of safety": "a factor of safety of 1.5 must be applied to the prescribed limit

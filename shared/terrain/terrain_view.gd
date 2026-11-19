@@ -2052,6 +2052,9 @@ func _apply_player_prefs() -> void:
 	flight.set_easy_landing(Settings.easy_landing)
 	flight.set_invulnerable(Settings.invulnerable)
 	flight.set_no_crashes(Settings.no_crashes)
+	var gear_limit: Dictionary = Settings.airframe(player.type).get("gear_limit", {})
+	if not gear_limit.is_empty():
+		flight.set_gear_limit(float(gear_limit.kcas), float(gear_limit.get("mach", INF)))
 	flight.set_unlimited_fuel(Settings.unlimited_fuel)
 	apply_wind()
 
@@ -3667,9 +3670,9 @@ func _take_over(target: Dictionary, old: Dictionary) -> void:
 	var st: Dictionary = flight.state()
 	_landings = int(st.get("landings", 0))  # the new jet's own landings are not new ones
 	_hard_landings = int(st.get("hard_landings", 0))
+	player = PlayerAircraft.profile(int(target.type_code))  # before the prefs: the gear limit is the new jet's
 	_apply_player_prefs()
 	start_airborne = airborne_start
-	player = PlayerAircraft.profile(int(target.type_code))
 	if cockpit.cockpit_dir != player.cockpit_dir:
 		cockpit.load_cockpit(player.cockpit_dir)
 	cockpit.hud_key = Settings.airframe(player.type).get("hud", "")
