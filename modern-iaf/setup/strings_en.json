@@ -112,6 +112,10 @@
 	"set_up": "Modern IAF is set up.",
 	"not_set_up": "Setup did not finish: %s",
 	"start_game": "Start the game",
+	"menu_linux": "Add Modern IAF to the applications menu",
+	"menu_mac": "Add Modern IAF to the Applications folder",
+	"menu_windows": "Add Modern IAF to the Start menu",
+	"menu_failed": "The menu did not change: %s. Try the tick again.",
 	"all_left": "All steps: about %s left",
 	"step_of": "All steps: step %d of %d"
 }

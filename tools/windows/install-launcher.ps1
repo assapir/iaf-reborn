@@ -1,14 +1,39 @@
-# Windows: tools/install-launcher.sh's launchers as Start Menu shortcuts. "Jane's IAF (reborn)" runs iafjets.ps1 with
-# the original icon (assets/converted/icon.png, extracted from iafjets.exe); "Jane's IAF (reborn) - Setup" runs
-# setup.ps1 with ours (iaf-reborn/setup/icon.png). A shortcut's icon must be an .ico: each PNG is wrapped in one (an .ico
-# entry may hold a PNG) in assets/converted. Run by setup; safe to re-run. ASCII only: Windows PowerShell 5.1 reads a script
-# without a BOM as ANSI.
-# -Menu: the folder the shortcuts' folder goes into (default: the user's Start Menu programs; setup's scratch runs
-# give one under their XDG_DATA_HOME).
-param([string]$Menu = [Environment]::GetFolderPath('Programs'))
+# Windows: tools/install-launcher.sh's launchers as Start Menu shortcuts, for one game. -Game iaf-reborn (the
+# default; run by setup): "Jane's IAF (reborn)" runs iafjets.ps1 with the original icon (assets/converted/icon.png,
+# extracted from iafjets.exe); "Jane's IAF (reborn) - Setup" runs setup.ps1 with ours (iaf-reborn/setup/icon.png). A
+# shortcut's icon must be an .ico: each PNG is wrapped in one (an .ico entry may hold a PNG) in assets/converted.
+# -Game modern-iaf (Modern IAF's setup wizard, its Done page): "Modern IAF" runs start-modern-iaf.ps1 and
+# "Modern IAF - Setup" runs modern-iaf-setup.ps1, both with modern-iaf/branding/icon.ico (tools/iaf-2026/logo.py).
+# -Remove takes the game's shortcuts away. Safe to re-run. ASCII only: Windows PowerShell 5.1 reads a script without a
+# BOM as ANSI.
+# -Menu: the folder the shortcuts' folder goes into (default: the user's Start Menu programs; with IAF_LAUNCHER_ROOT
+# set, as in the tests, its "Start Menu" folder; setup's scratch runs give one under their XDG_DATA_HOME). A failure
+# prints its message as the last line (Modern IAF's wizard shows that line).
+param(
+	[string]$Menu = $(if ($env:IAF_LAUNCHER_ROOT) { Join-Path $env:IAF_LAUNCHER_ROOT 'Start Menu' } else { [Environment]::GetFolderPath('Programs') }),
+	[ValidateSet('iaf-reborn', 'modern-iaf')][string]$Game = 'iaf-reborn',
+	[switch]$Remove
+)
 $ErrorActionPreference = 'Stop'
+trap { [Console]::Error.WriteLine($_.Exception.Message); exit 1 }
 $root = (Resolve-Path "$PSScriptRoot\..\..").Path
-$menu = Join-Path $Menu "Jane's IAF (reborn)"
+$dash = [char]0x2014
+if ($Game -eq 'modern-iaf') {
+	$menu = Join-Path $Menu 'Modern IAF'
+	$entries = @(
+		@{ Name = 'Modern IAF'; Script = 'start-modern-iaf.ps1'; Ico = 'modern-iaf\branding\icon.ico' },
+		@{ Name = "Modern IAF $dash Setup"; Script = 'modern-iaf-setup.ps1'; Ico = 'modern-iaf\branding\icon.ico' })
+} else {
+	$menu = Join-Path $Menu "Jane's IAF (reborn)"
+	$entries = @(
+		@{ Name = "Jane's IAF (reborn)"; Script = 'iafjets.ps1'; Icon = 'assets\converted\icon.png' },
+		@{ Name = "Jane's IAF (reborn) $dash Setup"; Script = 'setup.ps1'; Icon = 'iaf-reborn\setup\icon.png' })
+}
+if ($Remove) {
+	if (Test-Path $menu) { Remove-Item -Recurse -Force $menu }
+	Write-Output "removed: $menu"
+	exit 0
+}
 New-Item -ItemType Directory -Force $menu | Out-Null
 
 function Ico([string]$png, [string]$ico) {
@@ -26,11 +51,13 @@ function Ico([string]$png, [string]$ico) {
 }
 
 $shell = New-Object -ComObject WScript.Shell
-foreach ($e in @(
-		@{ Name = "Jane's IAF (reborn)"; Script = 'iafjets.ps1'; Icon = 'assets\converted\icon.png' },
-		@{ Name = "Jane's IAF (reborn) $([char]0x2014) Setup"; Script = 'setup.ps1'; Icon = 'iaf-reborn\setup\icon.png' })) {
-	$ico = Join-Path $root "assets\converted\$($e.Script -replace '\.ps1$', '').ico"
-	Ico (Join-Path $root $e.Icon) $ico
+foreach ($e in $entries) {
+	if ($e.Ico) {
+		$ico = Join-Path $root $e.Ico
+	} else {
+		$ico = Join-Path $root "assets\converted\$($e.Script -replace '\.ps1$', '').ico"
+		Ico (Join-Path $root $e.Icon) $ico
+	}
 	$lnk = $shell.CreateShortcut((Join-Path $menu "$($e.Name).lnk"))
 	$lnk.TargetPath = Join-Path $PSHOME 'powershell.exe'
 	$lnk.Arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$(Join-Path $root $e.Script)`""

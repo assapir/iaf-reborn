@@ -79,7 +79,36 @@ large screen by its UI scale (the containers stretch; nothing has a fixed page s
    end in the same process, as `./start-modern-iaf` starts it: the project's own window size (the wizard's 1100×720 at the
    UI scale goes), the player's full-screen choice, the joystick and keys from the files the run just built
    (`Settings.apply_devices()`), then `Settings.front_end_scene()`. The extension is built and the project imported
-   already, because the wizard runs in the same project. **Close** ("סגירה") quits.
+   already, because the wizard runs in the same project. **Close** ("סגירה") quits. Above the buttons, the tick
+   **Add Modern IAF to the applications menu** ("הוספת הזרוע הארוכה לתפריט היישומים"; "the Start menu" on Windows,
+   "the Applications folder" on macOS), on by default (see "Applications menu" below).
+
+### Applications menu
+The Done page adds Modern IAF to the system's own way of starting programs, with the app icon (the four-ship on the
+navy tile, `modern-iaf/branding/`), so the player never opens a terminal again after the first setup. Each time the
+page shows with its tick on, it writes the launchers anew (a moved repo gets new paths); unticking removes them at
+once, and the choice is remembered (settings.cfg `[sim] menu_entry`, `Settings.menu_entry`). Ticking again adds them
+again. When the script fails, one line under the tick says why ("The menu did not change: …").
+
+| system | what the tick adds | the icon |
+|---|---|---|
+| Linux | `~/.local/share/applications/modern-iaf.desktop` ("Modern IAF", Hebrew name הזרוע הארוכה, runs `./start-modern-iaf`) and `modern-iaf-setup.desktop` ("Modern IAF — Setup", runs `./modern-iaf-setup`), Categories `Game;Simulation;` | `~/.local/share/icons/hicolor/<16…512>/apps/modern-iaf.png` and `scalable/apps/modern-iaf.svg` |
+| macOS | `~/Applications/Modern IAF.app` and `Modern IAF — Setup.app`: bundles whose executable runs the launcher, so the Dock shows the icon from the start, during the build too | `icon.icns` in each bundle |
+| Windows | the Start Menu folder "Modern IAF" with the shortcuts "Modern IAF" (`start-modern-iaf.ps1`) and "Modern IAF — Setup" (`modern-iaf-setup.ps1`), each a minimized PowerShell that shows the build | `modern-iaf/branding/icon.ico` |
+
+The window matches its launcher: the game's window has the app id "Modern IAF" (`config/name`), which GNOME and KDE read
+as `modern-iaf`, the `.desktop` file's name; `StartupWMClass=Modern IAF` covers X11.
+
+The tick runs `tools/install-launcher.sh modern-iaf` (with `--remove` to take them away) or, on Windows,
+`tools/windows/install-launcher.ps1 -Game modern-iaf` (`-Remove`): the scripts the original game's setup uses for its
+own launchers (docs/setup.md). On Linux they follow `XDG_DATA_HOME`. `IAF_LAUNCHER_ROOT` puts every system's
+launchers under one folder instead (its `applications/` and `icons/`, `Applications/`, `Start Menu/`): the tests set
+it. A scripted run (`IAF_DEFAULT_SETTINGS=1`) changes the menu only under an `IAF_LAUNCHER_ROOT` it was given, never
+the player's own.
+
+The icon files are drawn by `tools/iaf-2026/logo.py`: `icon.ico` holds the 16 to 256 px PNGs, `icon.icns` the 16 to
+1024 px ones, and the 48 px and larger PNGs use `icon.svg`, the smaller ones `icon_small.svg` (bigger jets). The repo
+has no Godot export preset; the project's `config/icon` is `icon_256.png`.
 
 ### Time left
 The Install page has two estimates, labelled so they are not mixed up:
@@ -225,8 +254,9 @@ The other five steps take seconds together. The first page shows these figures.
   both languages, the mirrored layout, the approved Hebrew words, the Attributions dialog (opens from Welcome,
   mirrored, the Copernicus lines word for word, every attribution, closes with Esc and with Close),
   no other game named, the Survey choice off without sheets, the Install rows and their preview, abandoned preview
-  checks fetched, a finished run kept through a language change and forgotten by Back. `tools/test.sh` gives it a
-  scratch folder.
+  checks fetched, a finished run kept through a language change and forgotten by Back; Done's menu tick on by
+  default, the launchers and the icon written into a scratch `IAF_LAUNCHER_ROOT` (the `.desktop` file's lines on Linux),
+  removed when unticked, the choice kept, added again when ticked. `tools/test.sh` gives it a scratch folder.
 - The pictures: `tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 SHOT_DIR=<dir> -- --log-file <log> --path modern-iaf
   --resolution 1100x720 -s ../modern-iaf/tests/_setup_wizard_shot.gd`.
 - A real run, 3 November 2026: §6; a run from nothing, 8 November 2026: §7.

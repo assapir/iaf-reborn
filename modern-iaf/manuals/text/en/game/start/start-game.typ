@@ -9,6 +9,8 @@
 
 While the game's data is missing, the same script opens the #term("setup wizard") instead (@setup). The wizard's last page starts the game with #stp("start_game").
 
+After setup the game is also in the system's menu (@setup-menu): select "Modern IAF" there, in the applications menu, in Launchpad or the Applications folder on macOS, or in the Start menu on Windows. It does what the script does.
+
 === The first start <start-game-first>
 
 #idx("First start")On the first start the game has no pilot yet, so it opens the screen #scr("first_pilot") in the Hangar's place.

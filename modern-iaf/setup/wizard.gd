@@ -55,6 +55,9 @@ var total_label: Label
 var credits_dialog: AcceptDialog
 var rows_box: VBoxContainer
 var done_label: Label
+## The Done page's "Add Modern IAF to the applications menu" tick (Settings.menu_entry) and its notice line.
+var menu_check: CheckBox
+var menu_note: Label
 
 
 func _ready() -> void:
@@ -359,6 +362,14 @@ func _page_install() -> Control:
 func _page_done() -> Control:
 	var v := _vbox(8)
 	done_label = _text(v, "", "Heading")
+	menu_check = CheckBox.new()
+	menu_check.name = "MenuEntry"
+	menu_check.text = s(by_os("menu_linux", "menu_mac", "menu_windows"))
+	menu_check.button_pressed = Settings.menu_entry
+	menu_check.toggled.connect(set_menu_entry)
+	v.add_child(menu_check)
+	menu_note = _text(v, "", "Note")
+	menu_note.name = "MenuNote"
 	return v
 
 
@@ -391,6 +402,9 @@ func _on_page(id: String) -> void:
 		_fill_rows(IafSetup.sim_plan(survey))
 		_note("")
 		_preview_sim()
+	if id == "done" and Settings.menu_entry:
+		await get_tree().process_frame  # the page first: the script takes a moment
+		add_to_menu(true)
 
 
 func _update() -> void:
@@ -416,6 +430,38 @@ func _update() -> void:
 
 func _finish() -> void:
 	start_game()
+
+
+## The Done page's tick: remembered at once (Settings.menu_entry), the menu entries added or removed.
+func set_menu_entry(on: bool) -> void:
+	Settings.menu_entry = on
+	Settings.save()
+	add_to_menu(on)
+
+
+## Adds Modern IAF and its setup to the system's applications menu with the app icon, or with `on` false removes them
+## (tools/install-launcher.sh modern-iaf: the .desktop files and the hicolor icon on Linux, the app bundles in
+## ~/Applications on macOS; tools/windows/install-launcher.ps1 -Game modern-iaf: Start Menu shortcuts). A failure
+## shows one line under the tick. A scripted run (Settings.isolated()) changes only the folder IAF_LAUNCHER_ROOT names,
+## never the player's menu: without one it changes nothing.
+func add_to_menu(on: bool) -> void:
+	if Settings.isolated() and OS.get_environment("IAF_LAUNCHER_ROOT") == "":
+		return
+	var cmd := repo.path_join("tools/install-launcher.sh")
+	var args := ["modern-iaf"] + ([] if on else ["--remove"])
+	if OS.get_name() == "Windows":
+		cmd = "powershell"
+		var ps1 := repo.path_join("tools/windows/install-launcher.ps1").replace("/", "\\")
+		args = ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", ps1, "-Game", "modern-iaf"]
+		args += [] if on else ["-Remove"]
+	var out := []
+	# ponytail: blocks the page while the script runs (PowerShell's start takes about a second); a pipe to poll if
+	# that ever shows.
+	var code := OS.execute(cmd, PackedStringArray(args), out, true)
+	var text := "".join(out).strip_edges()
+	print("setup: menu entry %s: exit %d\n%s" % ["added" if on else "removed", code, text])
+	var last: String = text.split("\n")[-1] if text != "" else "exit %d" % code
+	menu_note.text = "" if code == 0 else s("menu_failed") % last
 
 
 ## Opens the sim's front end in this process, as ./start-modern-iaf starts it: the project's own window (not the

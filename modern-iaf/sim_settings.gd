@@ -118,6 +118,9 @@ var flown_sortie := 0
 ## The checklist notebook's help line was shown (flight/kneeboard.gd: once, in the pilot's first start-up mission;
 ## settings.cfg [sim] notebook_help_seen).
 var notebook_help_seen := false
+## Setup's Done page adds Modern IAF to the system's applications menu (setup/wizard.gd menu_entry; settings.cfg [sim]
+## menu_entry): on until the player unticks it.
+var menu_entry := true
 ## The frame time measured during the last flight on this computer (flight/frame_meter.gd; settings.cfg [sim]
 ## frame_measured): {"ms", "size" [w, h], "settings" (the Preset row's settings then)}; {} before the first flight.
 var frame_measured := {}
@@ -153,6 +156,7 @@ func read_config(cfg: ConfigFile) -> void:
 	var pid = cfg.get_value("sim", "pilot", -1)
 	pilot_id = pid if pid is int else -1
 	notebook_help_seen = cfg.get_value("sim", "notebook_help_seen", false) == true
+	menu_entry = cfg.get_value("sim", "menu_entry", true) != false
 	var fm = cfg.get_value("sim", "frame_measured", {})
 	frame_measured = fm if fm is Dictionary else {}
 	_apply_profile()
@@ -169,6 +173,7 @@ func write_config(values := {}) -> ConfigFile:
 	cfg.set_value("sim", "jet", sim_jet)
 	cfg.set_value("sim", "pilot", pilot_id)
 	cfg.set_value("sim", "notebook_help_seen", notebook_help_seen)
+	cfg.set_value("sim", "menu_entry", menu_entry)
 	if not frame_measured.is_empty():
 		cfg.set_value("sim", "frame_measured", frame_measured)
 	return cfg

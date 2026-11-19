@@ -48,7 +48,7 @@ Godot renders with Metal on macOS, so terrain shaders may look slightly differen
 
 | area | macOS | Linux |
 |---|---|---|
-| launcher | setup installs `~/Applications/Jane's IAF (reborn).app` | setup installs a `.desktop` file |
+| launcher | setup installs `~/Applications/Jane's IAF (reborn).app`; Modern IAF's setup installs `~/Applications/Modern IAF.app` and its Setup, with `modern-iaf/branding/icon.icns` (its Done page's tick, modern-iaf/docs/setup.md "Applications menu") | setup installs `.desktop` files |
 | fonts | Arial is installed and used directly | Liberation Sans is the fallback for Arial |
 | joystick | `./iafjets` sets `SDL_JOYSTICK_MFI=0` (controls.md §5.2) | — |
 | keys | Cmd stands for Ctrl (macOS takes Ctrl + arrows for its desktops); the key names say Cmd (controls.md §2) | Ctrl |

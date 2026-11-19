@@ -86,7 +86,7 @@ em dash in one breaks its parsing.
 | area | Windows | Linux |
 |---|---|---|
 | scripts | `.\setup.ps1`, `.\iafjets.ps1`, `.\mission-editor.ps1`, `.\start-modern-iaf.ps1`, `.\modern-iaf-setup.ps1` | `./setup`, `./iafjets`, `./mission-editor`, `./start-modern-iaf`, `./modern-iaf-setup` |
-| launcher | setup adds "Jane's IAF (reborn)" and its Setup to the Start Menu (`tools/windows/install-launcher.ps1`) | setup installs a `.desktop` file |
+| launcher | setup adds "Jane's IAF (reborn)" and its Setup to the Start Menu (`tools/windows/install-launcher.ps1`); Modern IAF's setup adds "Modern IAF" and its Setup, with `modern-iaf/branding/icon.ico` (its Done page's tick, modern-iaf/docs/setup.md "Applications menu") | setup installs `.desktop` files; Modern IAF's also its icon in the user's hicolor theme |
 | fonts | Arial ships with Windows | Liberation Sans is the fallback for Arial |
 | user data | `%APPDATA%\Godot\app_userdata\iaf-reborn\` | `~/.local/share/godot/app_userdata/iaf-reborn/` |
 

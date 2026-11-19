@@ -5,7 +5,8 @@
 # Attributions dialog from Welcome (opens, mirrored, the exact Copernicus lines, closes with Esc and with Close); the
 # Install page's rows from the sim's plan and their preview; no other game named on any page; abandoned preview
 # checks are fetched; a finished run survives a language change, and Back from Install forgets it; the time left's two
-# forms; Done's Start the game opens the front end in the same process. It runs no step
+# forms; Done's menu tick adds and removes the launchers (in a scratch IAF_LAUNCHER_ROOT); Done's Start the game opens
+# the front end in the same process. It runs no step
 # (the real run: modern-iaf/docs/setup.md "Checks"). It needs IAF_ASSETS_DIR (tools/test.sh gives it a scratch
 # folder): without it the first check fails and nothing else runs.
 extends "res://../tests/godot/base.gd"
@@ -26,6 +27,8 @@ func run() -> void:
 	check(assets != "", "IAF_ASSETS_DIR is set (a scratch folder)")
 	if assets == "":
 		return
+	# Done's menu tick writes here, never into the player's menu.
+	OS.set_environment("IAF_LAUNCHER_ROOT", assets.path_join("xdg"))
 	# A fresh choice: nothing left out (an earlier run's choice file goes).
 	DirAccess.remove_absolute(assets.path_join("converted/modern-iaf/setup.json"))
 	change_scene_to_file("res://setup/wizard.tscn")
@@ -208,6 +211,7 @@ func run() -> void:
 		"never less than a running step's own time left"
 	)
 	w.rows["sim-terrain"].left = -1.0
+	await _menu_entry(w, assets.path_join("xdg"))
 	# Done: Start the game (primary) and Close; no instructions; Start opens the sim's front end in this process.
 	w.show_page(3)
 	for lang in ["he", "en"]:
@@ -277,6 +281,56 @@ func _include(w: Control, assets: String) -> void:
 	check(not w.optional["sim-scenery"].built and "התפנו" in w.install_note.text, "the note says what it freed")
 	w.rows["sim-scenery"].include.button_pressed = true
 	check(IafSetup.sim_excluded(assets).is_empty(), "everything included again")
+
+
+## Done's menu tick, on by default: showing the page adds the launchers with the icon (here in a scratch
+## IAF_LAUNCHER_ROOT, never the player's menu), unticking removes them and is remembered, ticking adds them again.
+func _menu_entry(w: Control, xdg: String) -> void:
+	var files: Array = (
+		{
+			"macOS":
+			["Applications/Modern IAF.app/Contents/Resources/icon.icns", "Applications/Modern IAF — Setup.app"],
+			"Windows": ["Start Menu/Modern IAF/Modern IAF.lnk", "Start Menu/Modern IAF/Modern IAF — Setup.lnk"],
+		}
+		. get(
+			OS.get_name(),
+			[
+				"applications/modern-iaf.desktop",
+				"applications/modern-iaf-setup.desktop",
+				"icons/hicolor/scalable/apps/modern-iaf.svg",
+				"icons/hicolor/48x48/apps/modern-iaf.png"
+			]
+		)
+	)
+	files = files.map(func(f): return xdg.path_join(f))
+	var there := func():
+		return files.filter(func(f): return FileAccess.file_exists(f) or DirAccess.dir_exists_absolute(f)).size()
+	var settings := get_root().get_node("Settings")
+	w.show_page(3)
+	await frames(3)
+	var tick: CheckBox = w.find_child("MenuEntry", true, false)
+	check(tick != null and tick.button_pressed and tick.is_visible_in_tree(), "Done: the menu tick, on by default")
+	check(tick.text == w.s(w.by_os("menu_linux", "menu_mac", "menu_windows")), "the tick names this system's menu")
+	check(there.call() == files.size(), "Done adds the launchers and the icon (%s)" % xdg)
+	check(w.menu_note.text == "", "no notice when it worked")
+	if OS.get_name() == "Linux":
+		var d := FileAccess.get_file_as_string(files[0])
+		for line in [
+			"Name=Modern IAF",
+			"Name[he]=הזרוע הארוכה",
+			'Exec="%s"' % w.repo.path_join("start-modern-iaf"),
+			"Icon=modern-iaf",
+			"Categories=Game;Simulation;",
+			"StartupWMClass=Modern IAF"
+		]:
+			check(line in d.split("\n"), "the game's .desktop: %s" % line)
+	tick.button_pressed = false
+	check(there.call() == 0 and not settings.menu_entry, "unticked: removed, remembered")
+	w.show_page(3)
+	await frames(3)
+	check(there.call() == 0 and not w.menu_check.button_pressed, "an unticked choice stays off on the page")
+	w.menu_check.button_pressed = true
+	check(there.call() == files.size() and settings.menu_entry, "ticked again: added again")
 
 
 ## Every visible text under `n` (labels, buttons, check boxes), one per line.

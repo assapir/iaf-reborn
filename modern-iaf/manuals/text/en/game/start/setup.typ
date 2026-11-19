@@ -28,7 +28,7 @@ The wizard has four pages. #stp("next") goes to the next page and #stp("back") t
   [#stp("page_welcome")], [#stp("language"): English or Hebrew, for the wizard and the game. What setup downloads and builds. #stp("download"), #stp("disk") and #stp("time"). #stp("needs"): GDAL and curl, each #stp("found") or #stp("missing"), and the free disk space. The #stp("credits") button opens the list of every source with its licence; #stp("close") or #keycap("Esc") closes it. #stp("next") waits until GDAL, curl and the disk space are there.],
   [#stp("page_imagery")], [The choice of the ground's picture (@setup-imagery).],
   [#stp("page_install")], [One row for each #term("setup step"), with its progress bar and its state (@setup-steps). The #stp("install") button starts the run.],
-  [#stp("page_done")], [Whether the game is set up. #stp("start_game") opens the game's first screen. #stp("close") ends the wizard.],
+  [#stp("page_done")], [Whether the game is set up. The tick that adds the game to the system's menu (@setup-menu). #stp("start_game") opens the game's first screen. #stp("close") ends the wizard.],
 )
 
 === The imagery choice <setup-imagery>
@@ -78,6 +78,26 @@ Steps that do not wait for each other run at the same time. A failed step stops 
   #then[The status line says how many steps ran and how many were up to date. The wizard opens the #stp("page_done") page with #stp-text("set_up")]
 + Select #stp("start_game").
   #then[The game opens (@start-game).]
+
+=== The applications menu <setup-menu>
+
+#idx("Applications menu")#idx("Start menu")The #stp("page_done") page adds the game to the system's menu, with the game's icon, so that you start it from there like any other program. Its tick is on at first, and its name follows the system:
+
+#grid-table(
+  (auto, auto, 1fr),
+  ([System], [The tick], [Where the game appears]),
+  [Linux], [#stp("menu_linux")], [The applications menu. With the desktop in Hebrew the entries show the game's Hebrew name.],
+  [macOS], [#stp("menu_mac")], [The Applications folder of your user account: Launchpad and Spotlight find the game there. The Dock shows its icon from the start.],
+  [Windows], [#stp("menu_windows")], [The Start menu, in the folder "Modern IAF".],
+)
+
+Two entries appear: "Modern IAF" starts the game (@start-game-start), and "Modern IAF — Setup" opens this wizard.
+
++ To take them away, untick the tick.
+  #then[The entries go at once. The wizard remembers the choice.]
++ To add them again, tick it.
+
+When a change does not work, a line under the tick says why.
 
 === The states of a step <setup-states>
 

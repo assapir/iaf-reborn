@@ -3,6 +3,16 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **Modern IAF in the applications menu (2026-11-19, the user: "also as game icon in windows/linux/mac? deskop files
+  etc?"; [setup.md](setup.md) "Applications menu"):** the setup wizard's Done page has the tick "Add Modern IAF to
+  the applications menu" (the Start menu on Windows, the Applications folder on macOS), on by default. It adds "Modern
+  IAF" and "Modern IAF — Setup" with the app icon: on Linux `.desktop` files (Hebrew name הזרוע הארוכה) and the icon in
+  the user's hicolor theme, on macOS app bundles in `~/Applications` (the Dock shows the icon from the start), on
+  Windows Start Menu shortcuts with `icon.ico`. Unticking removes them; the choice is remembered. `logo.py` also writes
+  `icon.ico`, `icon.icns` and the 24 and 48 px PNGs. One script per system for both games
+  (`tools/install-launcher.sh`, `tools/windows/install-launcher.ps1`, now with `modern-iaf` and a remove switch). Tested
+  on Linux (headless wizard test, `desktop-file-validate`, the entry and its icon found by GLib / GTK) and on the Mac
+  (a bundle in a temporary folder); Windows is the user's test.
 - **The logo (2026-11-19, the user on Approvals A67: "e3 is selected. apply it everywhere"; [front-end.md](front-end.md)
   §4):** concept 4, the four-ship, with the medium faint roundel behind it, in `modern-iaf/branding/` (SVG masters, the
   lockups' PNGs, the app icon at 1024 to 16 px; `tools/iaf-2026/logo.py`). Its horizontal lockup (the mark beside
@@ -10,7 +20,7 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   panel's head and the setup wizard's top bar; the stacked lockup is on the manuals' title pages and the READMEs; the
   four-ship on the navy tile is the project's window and Dock icon. Hebrew screens and the Hebrew game manual show the
   Hebrew name. Its F-35 outline is traced from the F-35I model: the F-35I credit carries it
-  (docs/credits.md "Modern IAF's logo"). No desktop launcher, .ico or .icns: the sim has none to fill.
+  (docs/credits.md "Modern IAF's logo"). The desktop launchers with the icon came the same day (above).
 - **The F-16s' night-vision goggles (2026-11-19, the user on Approvals A66: "night googles: as suggested";
   [research/nvg.md](research/nvg.md) options O1–O4, [cockpit.md](cockpit.md) §5.5):** in the Sufa and the Barak
   Shift + N (record 255, command 303) flips the goggles down and up, at any height; down, the late Gen III tubes'

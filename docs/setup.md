@@ -194,7 +194,10 @@ game then quits; `./setup` installs again. The launcher's INSTALL button opens t
   sheets (imagery.md §8).
 - `tools/install-launcher.sh`: the desktop launcher (its `XDG_DATA_HOME` can be set). Windows:
   `tools/windows/install-launcher.ps1`, two Start Menu shortcuts (`-Menu` puts them under another folder; setup gives
-  `<XDG_DATA_HOME>/Start Menu` when it has one).
+  `<XDG_DATA_HOME>/Start Menu` when it has one). With `IAF_LAUNCHER_ROOT` set (the tests), both put every system's
+  launchers under that folder. Both take Modern IAF's launchers too (`modern-iaf` / `-Game modern-iaf`, from its
+  wizard's Done page, modern-iaf/docs/setup.md "Applications menu") and take a game's away (`--remove` /
+  `-Remove`).
 - The guides: `tools/guide_shots.sh` and `tools/guide_pdf.py` (both front ends; not on Windows yet: the step fails
   with a message).
 

@@ -8,8 +8,9 @@ behind the jets and the big name. Writes into modern-iaf/branding/:
 - bar_<lang>_<mode>.svg and .png (240 px tall): the compact horizontal lockup for a top bar or a small panel: the
   mark (the four-ship over the faint disc, as in the app icon) on the language's leading side (en: left, he: right)
   and the one name beside it in one line (en: MODERN IAF, he: הזרוע הארוכה).
-- icon.svg (64 px and up) and icon_small.svg (32 and 16 px: bigger jets), icon_<px>.png at 1024 … 16 px: the
-  four-ship and the disc on the navy tile, no text.
+- icon.svg (48 px and up) and icon_small.svg (32 px and under: bigger jets), icon_<px>.png at 1024 … 16 px: the
+  four-ship and the disc on the navy tile, no text. The same picture for the desktop (tools/install-launcher.sh):
+  icon.ico (Windows, 16 … 256 px) and icon.icns (macOS, 16 … 1024 px); Linux takes the PNGs and icon.svg.
 
 Our own drawing: the jets' outline is traced from the game's F-35I model, which is based on andertan's CC BY 4.0
 model (docs/credits.md); the letters are the repo's Heebo (OFL) as paths; the roundel is a ring and a six-pointed
@@ -17,6 +18,7 @@ star. The colours are the front end's (modern-iaf/menu/look.gd).
 Run: python3 -I tools/iaf-2026/logo.py   (needs fontTools, rsvg-convert, ImageMagick)"""
 import math
 import os
+import struct
 import subprocess
 import tempfile
 
@@ -31,7 +33,12 @@ FONT = os.path.join(ROOT, "modern-iaf/data/fonts/Heebo-VariableFont_wght.ttf")
 NAVY, ACCENT, WHITE, MUTED, EDGE = "#001e50", "#5b8cff", "#f2f5fa", "#a9b8d4", "#5a73a3"
 HE_SCALE = 1456 / 1178  # Heebo's Hebrew letters are 0.575 em tall, its capitals 0.711 em
 LOCKUP_PX = 240  # the lockups' PNG height: the front end's top bar (64 canvas px) on a 4K screen, with room
-ICON_PX = (1024, 512, 256, 128, 64, 32, 16)
+ICON_PX = (1024, 512, 256, 128, 64, 48, 32, 24, 16)
+ICO_PX = (16, 24, 32, 48, 64, 128, 256)
+# The .icns entries, each a PNG, by size: iconutil's set (16 to 512 px at 1x and 2x: ic11 is 16 px at 2x …), with
+# the 1x 16 and 32 px as PNG (icp4, icp5) in place of its ARGB ones.
+ICNS = (("icp4", 16), ("icp5", 32), ("ic11", 32), ("ic12", 64), ("ic07", 128), ("ic13", 256), ("ic08", 256),
+        ("ic14", 512), ("ic09", 512), ("ic10", 1024))
 
 # The F-35 planform from straight above, traced from shared/extra/planes/f35i/f35i.gltf: nose up, 100 long (y -50..50).
 JET = [(-0.14, -49.86), (-0.97, -48.47), (-2.14, -45.8), (-3.17, -42.21), (-3.95, -37.4), (-5.78, -22.87),
@@ -201,6 +208,25 @@ def crop(body, pad=12):
     return float(x) / k - pad, float(y) / k - pad, float(w) / k + 2 * pad, float(h) / k + 2 * pad
 
 
+def ico(path, pngs):
+    """An .ico of PNG entries (Windows Vista and later): the header, one 16-byte entry per size (256 stored as 0), the
+    PNGs."""
+    head = struct.pack("<HHH", 0, 1, len(pngs))
+    off, dirs = 6 + 16 * len(pngs), b""
+    for px, d in pngs:
+        dirs += struct.pack("<BBBBHHII", px % 256, px % 256, 0, 0, 1, 32, len(d), off)
+        off += len(d)
+    with open(path, "wb") as f:
+        f.write(head + dirs + b"".join(d for _, d in pngs))
+
+
+def icns(path, pngs):
+    """An .icns of PNG entries: "icns", the file's length, then each entry's type, length and PNG."""
+    body = b"".join(struct.pack(">4sI", t.encode(), 8 + len(d)) + d for t, d in pngs)
+    with open(path, "wb") as f:
+        f.write(struct.pack(">4sI", b"icns", 8 + len(body)) + body)
+
+
 def write(name, text):
     with open(os.path.join(OUT, name), "w", encoding="utf-8") as f:
         f.write(text)
@@ -221,6 +247,9 @@ def main():
     for px in ICON_PX:
         subprocess.run(["rsvg-convert", "-w", str(px), "-h", str(px), os.path.join(OUT, "icon_small.svg" if px <= 32 else "icon.svg"),
                         "-o", os.path.join(OUT, f"icon_{px}.png")], check=True)
+    png = {px: open(os.path.join(OUT, f"icon_{px}.png"), "rb").read() for px in ICON_PX}
+    ico(os.path.join(OUT, "icon.ico"), [(px, png[px]) for px in ICO_PX])
+    icns(os.path.join(OUT, "icon.icns"), [(t, png[px]) for t, px in ICNS])
 
 
 if __name__ == "__main__":
