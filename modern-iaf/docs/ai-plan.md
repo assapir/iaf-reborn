@@ -165,9 +165,11 @@ the sky.
 
 One strike of the Epic Fury campaign (Iran) against the smaller enemy set: one long-range SAM, one short-range SAM,
 AAA and the MiG-29. The draft records hold the candidates: the S-300PMU-2 for the long range, the Tor-M1 for the short
-range, the ZSU-23-4 for the AAA ([threats.md](threats.md) §6, [threat-records.md](threat-records.md)); which systems
-fill the set is the user's (§9, question 3). The rest of the draft list (3rd Khordad, Kub, Misagh-2, F-14A) follows
-after this milestone, as he decided.
+range, the ZSU-23-4 for the AAA ([threats.md](threats.md) §6, [threat-records.md](threat-records.md)). The SAM pair
+was left to the sources ("Let the agent pick by sources", 19 November): the research picks the S-300PMU-2 and the
+Tor-M1, and holds the models on disk and to download, the MiG-29's flight data, the sites' make-up and procedure and
+the behaviour sources ([research/enemies.md](research/enemies.md)). The rest of the draft list (3rd Khordad, Kub,
+Misagh-2, F-14A) follows after this milestone, as he decided.
 
 | # | row | what it needs | status |
 |---|---|---|---|
@@ -192,7 +194,8 @@ after this milestone, as he decided.
 2. **The wingmen's callsigns and the radio words:** the brevity set (picture, bogey dope, declare, judy and the
    flight's answers) in English as in NATO use, or the IAF's own words where a source shows them.
 3. **The enemy set's systems:** which long-range SAM (S-300PMU-2, Bavar-373, 3rd Khordad) and which short-range one
-   (Tor-M1, others) fill milestone 3; the draft records wait for his approval.
+   (Tor-M1, others) fill milestone 3. Answered 19 November: "Let the agent pick by sources"; picked: the S-300PMU-2
+   and the Tor-M1 ([research/enemies.md](research/enemies.md) §2.2). The draft records still wait for his approval.
 4. **BFM's milestone:** the BFM in milestone 3 for the MiG-29 (as planned here), or the MiG-29 BVR-only first and the
    BFM after.
 5. **Skill levels:** how many and their names; whether the player picks them per mission.
