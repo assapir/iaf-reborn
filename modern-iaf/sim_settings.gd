@@ -575,6 +575,11 @@ func info_line_full() -> bool:
 	return false
 
 
+## No band line for a change the cockpit shows (the user, 2026-11-19; modern-iaf/docs/front-end.md §8).
+func cockpit_notes() -> bool:
+	return false
+
+
 ## Each radio call opens with the press-to-talk click and closes with the squelch tail (modern-iaf/docs/sound.md §5.2).
 func radio_key_clicks() -> bool:
 	return true

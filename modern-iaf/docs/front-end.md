@@ -437,6 +437,33 @@ stay the original's (`terrain_view.gd _on_subtitle` hands each line to the fligh
   tower's answer after the pilot's call and the gap (the user, 2026-11-13: "comms subtitle should show up as talking";
   `radio.gd cue_subtitle`, `flight_sounds.gd phrase_cue`: a mark in the speech channel's queue). A line without a clip
   (no sound file) shows at once. The text is subtitle size, 20 px at 1080 (the Mac play test, 2026-11-11: 26 px was too big).
+- **No line for a change the cockpit shows** (the user, 2026-11-19: "Do it"): a switch, key or display whose new
+  state the cockpit already shows (a lamp, a switch's position, a display, the view itself) puts no line in the
+  strip (`Settings.cockpit_notes()` false, `terrain_view.gd _cockpit_note`). The strip keeps the radio lines and the
+  lines for actions with no sign in the cockpit. The original game keeps all its console lines.
+
+  | Line | The strip | Why |
+  |---|---|---|
+  | "Master arm" / "Master safe" (command 202) | removed | the MASTER ARM switch's position; ARM in the stores page and the HUD or helmet |
+  | "Helmet night camera" / "Helmet DAS video" / "Helmet video off" (302 p1 3) | removed | the view itself |
+  | "Dogfight" / "Missile override" / "… off" (251) | removed | the HUD's and the MFDs' master mode |
+  | "IFF IDENT" (255) | removed | the DED's CNI page shows `I` while IDENT replies |
+  | "Bay doors open" / "closed" (301) | removed | the SMS's DOORS legend, the doors on the model |
+  | "Laser armed" / "Laser safe" (241) | removed | the LASER ARM switch's position |
+  | "ADV MODE on" / "off" (242 p1 0) | removed | the ADV MODE button's STBY / ACTIVE lamps |
+  | "Data link on" / "off" (265) | removed | the DL switch's position, the tracks on the HSD |
+  | "Parking brake …", "Master fuel …", "Engine feed …", "Fuel quantity …" (270) | removed | the switches' positions |
+  | the bombs' submode, fuze, arming delay (290) | removed | the SMS's A-G page |
+  | "VIS" / "PRE" (233) | removed | the SMS's A-G page |
+  | "Seeker SPOT" / "Seeker SCAN" (280 p1 1) | removed | the SMS's OSB 2 |
+  | "PITCH …" / "ROLL …" (the autopilot switches, 292) | removed | the switches' positions |
+  | "A/P OFF: …" (a PITCH switch that will not stay engaged) | kept | the reason shows nowhere else |
+  | "TRIM/AP DISC …" (294), "FLCS RESET" (295) | kept | the 3D cockpit has no TRIM/AP DISC switch; FLCS RESET is a momentary button |
+  | "Manual TF fly-up …" (242 p1 1) | kept | the switch is not modelled |
+  | "CMDS …" mode (262), "CMDS program …" (263) | kept | the knob shows OFF / STBY / MAN only; no program knob |
+  | "Seeker uncaged" / "caged" (280 p1 0) | kept | the HUD's diamond grows only with a track |
+  | "PRE n/m" (234), "FLC: no layers on this format" (302) | kept | no display shows the target's number; a refusal |
+  | radio lines, mission messages, damage messages, training lines | kept | no cockpit sign |
 - **The panel** at the inline-start top (the left in English, the right in Hebrew) holds the radio menu (Ctrl+T) and
   the training result. Its text runs in the language's direction; the panel itself keeps the root's direction and
   takes its side from its anchors. Until 2026-11-13 the panel was set right-to-left too, and Godot mirrors such a

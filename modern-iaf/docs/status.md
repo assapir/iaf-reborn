@@ -3,6 +3,11 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **No band line for a change the cockpit shows (2026-11-19, the user's "Do it"):** the master arm switch, the
+  helmet's picture, the DGFT / MSL OVRD switch, LASER ARM, DL, ADV MODE, the fuel switches, IFF IDENT, the bay doors,
+  the bombs' submode, fuze and delay, PRE / VIS, SPOT / SCAN and the autopilot switches put no line in the top strip;
+  the radio lines and the lines with no cockpit sign stay ([front-end.md](front-end.md) §8 lists each). The original
+  game keeps its console lines. Tests `test_sim_adir_pcd.gd`, `tests/godot/test_cockpit_notes.gd`.
 - **The Adir's DAS picture and FLC (2026-11-19, avionics-plan.md slice 7 parts D and E, P9, P12, G35):** the DAS
   format shows the forward aperture's picture, grey, from a camera on the nose that renders only while the format is
   drawn; in the helmet Alt + F7 steps the night camera, the DAS's video and off (the pilot picks one, as the AFI

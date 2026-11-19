@@ -1327,6 +1327,13 @@ func info_line_full() -> bool:
 	return true
 
 
+## A switch's, a key's or a display's new state also shows as a console line ("Master arm", "Laser armed"): the
+## original game. Modern IAF's cockpit shows the change itself, so its band keeps the radio lines and the messages with
+## no cockpit sign (terrain_view.gd _cockpit_note; modern-iaf/docs/front-end.md §8).
+func cockpit_notes() -> bool:
+	return true
+
+
 ## A radio call is keyed: key_on.ogg before its clips and key_off.ogg after them (modern-iaf/docs/sound.md §5.2): Modern
 ## IAF, and the original game with Extras "Real Betty" (its tower's clips carry only the hiss). The original game plays
 ## a phrase's particles alone (radio.gd say, FUN_004c5750).

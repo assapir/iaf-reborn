@@ -80,7 +80,8 @@ A 1.2 s burst at Ramon, from the cockpit (top) and the chase view (bottom), the 
 ## 3. Master arm
 Every sim flight starts with the master arm safe (`Settings.starts_safe()`): the gun trigger (Tab) and the weapon
 release (Space) fire nothing. **Master arm** (Shift+A, record 125 of `data/keys.json`, command 202) switches between
-safe and armed, and the band shows "Master arm" or "Master safe". The original game has no master arm and no key sends
+safe and armed; the MASTER ARM switch moves and the stores page shows ARM (no line in the band since 2026-11-19,
+[front-end.md](front-end.md) §8). The original game has no master arm and no key sends
 command 202, so its weapons stay armed.
 
 The original's gear-down rule still holds when armed: with the gear handle down the gun fires only with Safety off

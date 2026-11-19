@@ -6,7 +6,8 @@
 # - MENU on the function bar opens its page as a pop-up on the portal under it; CRUS restores the default layout;
 # - CNTL> opens the format's control page: the TFLIR's ZOOM IN, WIDE / SPOT and LSR act; SMS has no CNTL>.
 # - the FLC (command 302): turned steps the cursor portal's format, pushed the TSD's layers, a notice on SRCH;
-# - DAS: its camera renders only while the format is drawn; Alt + F7 steps the helmet's picture.
+# - DAS: its camera renders only while the format is drawn; Alt + F7 steps the helmet's picture;
+# - the helmet's steps and the master arm switch put no line in the band (Settings.cockpit_notes).
 #   IAF_DEFAULT_SETTINGS=1 godot --headless --audio-driver Dummy --path modern-iaf \
 #     -s ../modern-iaf/tests/test_sim_adir_pcd.gd --log-file <temp>
 extends "res://../tests/godot/base.gd"
@@ -223,3 +224,16 @@ func _das() -> void:
 		if want == 2:
 			var tint: Vector3 = tv._goggles.get_child(0).material.get_shader_parameter("tint")
 			check(tint == tv.DAS_VIDEO.tint, "the DAS video is grey (%s)" % tint)
+	# The helmet's steps and the master arm switch put no line in the band: the view and the switch show the change
+	# (Settings.cockpit_notes, modern-iaf/docs/front-end.md §8); the original game's console keeps them
+	# (tests/godot/test_cockpit_notes.gd).
+	tv._command([202, 0, 0])
+	await frames(1)
+	var band: Array = tv.addon.ui._lines.map(func(e): return e[0].get_child(0).text)
+	check(w.master_arm, "master arm: the switch moves")
+	for t in ["Helmet video off", "Helmet night camera", "Helmet DAS video", "Master arm"]:
+		check(not t in band, 'no "%s" in the band' % t)
+	tv._on_subtitle("FLCS RESET")  # a kept line still reaches the band
+	await frames(1)
+	check(tv.addon.ui._lines.back()[0].get_child(0).text == "FLCS RESET", "a kept line shows in the band")
+	tv._command([202, 0, 0])

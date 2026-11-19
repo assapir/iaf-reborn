@@ -1843,6 +1843,16 @@ func mission_play_wav(wav: String) -> void:
 		_voice.play()
 
 
+## A switch's, a key's or a display's new state as a line of text: the original game's console line. Modern IAF's
+## cockpit shows the change itself (the switch, the lamp, the display, the view), so there it is no line
+## (Settings.cockpit_notes; modern-iaf/docs/front-end.md §8).
+func _cockpit_note(text: String) -> void:
+	if Settings.cockpit_notes():
+		_on_subtitle(text)
+	elif text != "":
+		_log_event(_log_st, {"event": "message", "text": text})  # the recorded flight keeps it
+
+
 ## Subtitle console (FUN_0044a060): wrapped at the last space before 40 characters, first letter
 ## upper-cased; the newest 14 lines are shown (drawn by the cockpit HUD layer).
 func _on_subtitle(text: String) -> void:
@@ -3007,7 +3017,7 @@ func _command(cmd: Array) -> bool:
 			if weapons != null:
 				var t: String = weapons.delivery_key(p1)
 				if t != "":
-					_on_subtitle(t)
+					_cockpit_note(t)  # the SMS's A-G page
 		291:
 			# Ours, the RET DEPR wheel (records 229 / 230): the reticle 5 mr down (p1 1) or up, over the wheel's travel
 			# (cockpit3d_controls.gd DEPR_MAX_MR, 260 mr).
@@ -3138,7 +3148,7 @@ func _command(cmd: Array) -> bool:
 			if weapons != null:
 				weapons.master_arm = not weapons.master_arm
 				weapons.master_sim = false
-				_on_subtitle("Master arm" if weapons.master_arm else "Master safe")
+				_cockpit_note("Master arm" if weapons.master_arm else "Master safe")
 		210, 211, 212, 213, 214, 215:
 			# Modern IAF's start-up checklist steps (its own keys.json; modern-iaf/docs/training.md §7.1): the flight add-on
 			# passes them to the flight model and ticks its card.
@@ -3216,7 +3226,7 @@ func _command(cmd: Array) -> bool:
 			# (player_weapons.gd override_key).
 			if weapons != null and weapons.modern_f16:
 				var at: int = weapons.override_key(p1)
-				_on_subtitle(["Dogfight / missile override off", "Dogfight", "Missile override"][at])
+				_cockpit_note(["Dogfight / missile override off", "Dogfight", "Missile override"][at])
 		252:
 			# Ours, the F-16's HUD control panel (the 3D cockpit's switches, Alt + D DED DATA, Alt + R DEPR RET): p1 the
 			# switch (cockpit.gd HUD_PANEL), p2 its position, -1 the next one round. The ICP's DRIFT C/O switch (Shift + J
@@ -3246,7 +3256,7 @@ func _command(cmd: Array) -> bool:
 			# Ours, the IFF IDENT button (Alt + K): the transponder's IDENT for 18 s (modern-iaf/docs/ews.md §8).
 			if cockpit.ufc != null and weapons != null and (weapons.ews != null or cockpit.pcd != null):
 				cockpit.ufc.ident(float(cockpit.state.get("tod", 0.0)))
-				_on_subtitle("IFF IDENT")
+				_cockpit_note("IFF IDENT")
 		240:
 			# Ours, the modern MFDs' DMS (Modern IAF's keys.json): p1 0 up, 1 down, 2 left, 3 right (cockpit.gd dms); the
 			# F-35I's moves the sensor of interest between the helmet and the panoramic display's portals (pcd.gd dms).
@@ -3263,7 +3273,7 @@ func _command(cmd: Array) -> bool:
 			# Ours, the F-35I's SMS DOORS (Modern IAF's keys.json, the SMS's DOORS): the bay doors held open or shut.
 			if weapons != null and cockpit.pcd != null and Settings.modern_mfds():
 				weapons.mfd_event(cockpit.pcd.DOORS_EVENT)
-				_on_subtitle("Bay doors open" if weapons.bay_doors_manual else "Bay doors closed")
+				_cockpit_note("Bay doors open" if weapons.bay_doors_manual else "Bay doors closed")
 		302:
 			# Ours, the F-35I's FLC on the throttle (Modern IAF's keys.json; pcd.gd flc): p1 0 / 1 turned on / back, 2
 			# pushed; 3 the helmet's picture (_helmet_video_step).
@@ -3280,7 +3290,7 @@ func _command(cmd: Array) -> bool:
 				if not weapons.laser_arm:
 					weapons.laser_fire = false
 					weapons.eo.laser = false
-				_on_subtitle("Laser armed" if weapons.laser_arm else "Laser safe")
+				_cockpit_note("Laser armed" if weapons.laser_arm else "Laser safe")
 		242:
 			# Ours, Modern IAF's F-16s: the navigation pod's TFR switches (nav_pod.gd; modern-iaf/docs/weapons.md §7.4):
 			# p1 0 ADV MODE, 1 MANUAL TF FLYUP (the paddle is command 293's).
@@ -3290,7 +3300,7 @@ func _command(cmd: Array) -> bool:
 			match p1:
 				0:
 					nav.adv_key()
-					_on_subtitle("ADV MODE on" if nav.adv_on() else "ADV MODE off")
+					_cockpit_note("ADV MODE on" if nav.adv_on() else "ADV MODE off")
 				1:
 					nav.man_flyup = not nav.man_flyup
 					_on_subtitle("Manual TF fly-up " + ("enabled" if nav.man_flyup else "disabled"))
@@ -3317,7 +3327,7 @@ func _command(cmd: Array) -> bool:
 					e.twd_button(p1, true)
 				265:
 					e.link_power(not e.link_on())
-					_on_subtitle("Data link on" if e.link_on() else "Data link off")
+					_cockpit_note("Data link on" if e.link_on() else "Data link off")
 		270:
 			# Ours, Modern IAF: the fuel and brake switches (keys Shift + G, Ctrl + F, Shift + E / U; the 3D cockpit's switches;
 			# modern-iaf/docs/cockpit.md §5.7): p1 0 PARKING BRAKE, 1 MASTER FUEL, 2 ENG FEED, 3 FUEL QTY SEL (the flight
@@ -3335,7 +3345,7 @@ func _command(cmd: Array) -> bool:
 						["TEST", "NORM", "RSVR", "INT WING", "EXT WING", "EXT CTR"],
 					][p1]
 					var label: String = ["Parking brake ", "Master fuel ", "Engine feed ", "Fuel quantity "][p1]
-					_on_subtitle(label + shown[flight.switch(sw)])
+					_cockpit_note(label + shown[flight.switch(sw)])
 		271:
 			# Ours, Modern IAF's F-16s: the display knobs (keys Ctrl + H, Shift + 7 / 8 / 9 / 0; the 3D cockpit's own
 			# CONT wheel and CON / GAIN rockers set them directly): p1 cockpit3d.gd DISPLAY_KNOBS' index (0 the ICP's
@@ -3348,8 +3358,10 @@ func _command(cmd: Array) -> bool:
 			# OSB 2; modern-iaf/docs/weapons.md §8.1): p1 0 the uncage button, 1 SPOT / SCAN.
 			if weapons != null:
 				var said: String = weapons.seeker_key(p1)
-				if said != "":
-					_on_subtitle(said)
+				if said != "" and p1 == 1:
+					_cockpit_note(said)  # SPOT / SCAN: the SMS's OSB 2
+				elif said != "":
+					_on_subtitle(said)  # UNCAGE / CAGE: the HUD's diamond grows only with a track
 		272:
 			in_cockpit = not in_cockpit  # ours, Modern IAF's Ctrl + F2 (keys.json record 220; _own_key in the 1998 game)
 		273:
@@ -4129,7 +4141,7 @@ func _gps_key(step: bool) -> void:
 		if t != "":
 			_on_subtitle(t)
 	elif weapons.gps_mode_key():
-		_on_subtitle("VIS" if weapons.gps_vis(weapons.gps_station()) else "PRE")
+		_cockpit_note("VIS" if weapons.gps_vis(weapons.gps_station()) else "PRE")
 
 
 ## Ours (Graphics → MORE "Night vision", docs/rendering.md §8): the goggles on / off, a screen shader over the 3D
@@ -4212,7 +4224,7 @@ func _helmet_video_step() -> void:
 		)
 		for k in look:
 			mat.set_shader_parameter(k, look[k])
-	_on_subtitle(["Helmet video off", "Helmet night camera", "Helmet DAS video"][_helmet_mode])
+	_cockpit_note(["Helmet video off", "Helmet night camera", "Helmet DAS video"][_helmet_mode])
 
 
 ## Ours (Modern IAF, the F-35I's DAS format; avionics-plan.md P9): the forward aperture's picture, a camera on the jet
@@ -4683,7 +4695,10 @@ func set_ap_switch(axis: int, pos: int) -> void:
 	var why: String = flight.set_ap_switch(axis, clampi(pos, -1, 1))
 	var at := int(flight.ap_state().get(["pitch", "roll"][clampi(axis, 0, 1)], 0))
 	var names: Array = [["ATT HOLD", "A/P OFF", "ALT HOLD"], ["STRG SEL", "ATT HOLD", "HDG SEL"]][clampi(axis, 0, 1)]
-	_on_subtitle(("A/P OFF: " + why) if why != "" else (["PITCH ", "ROLL "][clampi(axis, 0, 1)] + names[at + 1]))
+	if why != "":
+		_on_subtitle("A/P OFF: " + why)
+	else:
+		_cockpit_note(["PITCH ", "ROLL "][clampi(axis, 0, 1)] + names[at + 1])
 
 
 ## The speed brakes are out: the 6-DoF's with the SPD BRK switch; else the brake key's (the original model and the
