@@ -214,6 +214,47 @@ const PATH_TAU: f32 = 5.0;
 /// `FLARE_TAU`, s (the 6-DoF's g lags: its flare starts at 6 × (sink − 1.5) ≈ 15 m).
 const REAL_FINAL_LAWS: (f32, f32, f32) = (0.1, 1.0, 6.0);
 
+/// Ours, the slot loop (Modern IAF's flights, docs/ai.md §8.7): the mode number (the original's modes end at 0x18).
+pub const MODE_SLOT: u8 = 0x20;
+/// The slot loop's laws, all inferred (tuned on the 6-DoF, test `crates/iaf-ai/tests/four_ship.rs`): the position
+/// loop's natural frequency (rad/s) and damping across the flight path; the error it acts on at most (m, the
+/// horizontal and the vertical each), so a far slot is closed sideways at about `SLOT_W · SLOT_E_MAX / (2 ·
+/// SLOT_ZETA)` m/s; the along-track gain (m/s of overtake per m) and its overtake limits (m/s); the throttle's PI
+/// gains (per m/s, per m/s·s); the load factor it asks at most; the bank it flies at most (deg).
+const SLOT_W: f64 = 0.3;
+const SLOT_ZETA: f64 = 0.8;
+const SLOT_E_MAX: f64 = 150.0;
+const SLOT_K_ALONG: f64 = 0.08;
+const SLOT_OVERTAKE: (f64, f64) = (-30.0, 60.0);
+const SLOT_THR: (f32, f32) = (0.03, 0.01);
+const SLOT_G_MAX: f32 = 7.0;
+const SLOT_BANK_MAX: f64 = 75.0;
+/// A slot leader this far from where its last position and velocity put it is a new leader (a promotion), m.
+const LEADER_JUMP_M: f64 = 20.0;
+/// Ours, the flight's collision avoidance ([`Autopilot::avoid`]): the acceleration it pulls away with, m/s² (3 g;
+/// inferred).
+const AVOID_A: f64 = 3.0 * G as f64;
+/// Below this over the ground the avoidance never pulls down, m.
+const AVOID_LOW_M: f64 = 150.0;
+/// The slot loop's speed leads the slot's acceleration by this, s (the throttle's and the speed brake's lag).
+const SLOT_ANTICIPATE_S: f64 = 1.5;
+
+/// The point of a slot `(forward, right, up)` m in the leader's horizontal frame: its track (its nose at rest), its
+/// right, up.
+pub fn slot_point(ld: &Leader, slot: [f32; 3]) -> Vec3 {
+    ld.pos + slot_offset(ld, slot)
+}
+
+fn slot_offset(ld: &Leader, slot: [f32; 3]) -> Vec3 {
+    let h = if ld.vel[0].hypot(ld.vel[1]) > 1.0 { ld.vel[0].atan2(ld.vel[1]) } else { ld.att[2] as f64 };
+    let (s, c) = h.sin_cos();
+    Vec3::new(s * slot[0] as f64 + c * slot[1] as f64, c * slot[0] as f64 - s * slot[1] as f64, slot[2] as f64)
+}
+
+/// Ours, an AI jet's taxi on the 6-DoF ([`Laws::taxi_thr`], inferred): the PI's gains (lever per m/s, per m/s·s)
+/// and its highest lever.
+const TAXI_PI: (f32, f32, f32) = (0.02, 0.01, 0.4);
+
 /// The flare's `FLARE_TAU`: the real final's on the 6-DoF ([`REAL_FINAL_LAWS`]).
 fn flare_tau(v: &ApView) -> f32 {
     if v.final_speed.is_some() { REAL_FINAL_LAWS.2 } else { FLARE_TAU }
@@ -413,6 +454,22 @@ impl<'a> Laws<'a> {
         u
     }
 
+    /// The taxi's speed law (the original's, `5cc9d0`); for an AI jet on the 6-DoF (ours, inferred) a PI from idle on
+    /// the speed at the taxi's 0.2 s tick, its summed lever in `i`: the original's 0.7 lever at no error is near the
+    /// 6-DoF engine's military power, which ran the jet past its taxi speed and tipped it in a braked pivot.
+    fn taxi_thr(&self, vt: f32, i: &mut f32) -> f32 {
+        if !self.v.sixdof || self.mode == 0 {
+            return self.thr_k(vt, self.c.speed_taxi_k, self.c.speed_taxi_beta);
+        }
+        let (kp, ki, max) = TAXI_PI;
+        let e = vt - self.v.speed;
+        let u = (*i + kp * e).clamp(0.0, max);
+        if u > 0.0 && u < max {
+            *i = (*i + ki * e * 0.2).clamp(0.0, max);
+        }
+        u
+    }
+
     /// Watch-ground `5ca480`: 1 = override (wings level, climb over the terrain ahead, ≥ 250 m/s throttle).
     fn watch_ground(&mut self, x: &mut f32, y: &mut f32, thr: &mut f32) -> bool {
         if !self.watch || self.v.on_ground {
@@ -448,7 +505,14 @@ impl<'a> Laws<'a> {
     }
     fn throttle(&mut self, t: f32) {
         self.out.thr = Some(t);
-        self.thr_err = self.thr_last.take().filter(|&(u, _)| u == t && t > 0.0 && t < 1.0).map(|(_, e)| e);
+        let last = self.thr_last.take().filter(|&(u, _)| u == t);
+        // Ours: an AI jet going home on the 6-DoF ([`Laws::real`], mode 8) opens the speed brake while its speed law is
+        // at idle and still 15 m/s fast: the clean jet bleeds speed slowly, entered the landing circuit at 235 m/s and
+        // lowered the gear at 390 kt.
+        if let Some((_, e)) = last.filter(|_| self.real.is_some() && self.mode == 8) {
+            self.out.brakes = Some(t <= 0.0 && e < -15.0);
+        }
+        self.thr_err = last.filter(|_| t > 0.0 && t < 1.0).map(|(_, e)| e);
     }
     fn gear(&mut self, down: bool) {
         self.out.gear = Some(down);
@@ -813,6 +877,8 @@ struct Taxi {
     at_lineup: bool,
     first: bool,
     hangar: Option<(usize, usize)>,
+    /// The 6-DoF's taxi lever summed ([`Laws::taxi_thr`]).
+    thr_i: f32,
 }
 
 /// Loop states per mode.
@@ -894,6 +960,12 @@ enum Loop {
     Break90(Option<Box<Break90>>),
     /// PopupRelease (0x18, Init `5ccbd0`, Run `5cc0f0`); set up on its first tick.
     Popup(Option<Box<Popup>>),
+    /// Ours, the slot ([`MODE_SLOT`]): the throttle's summed speed error (the lever it holds at no error); the
+    /// leader's time, position and velocity at the last tick (its acceleration).
+    Slot {
+        thr_i: f32,
+        prev: Option<(f64, Vec3, Vec3)>,
+    },
 }
 
 /// Break90's state (`5da7a0`): the break point B, the entry-heading point A, the KeepOrientation capture.
@@ -1513,6 +1585,11 @@ struct Landing {
     thr_i: f32,
     /// The player's flare: the wheels have touched (a bounce flares to [`FLARE_SINK`] only).
     touched: bool,
+    /// Ours: an AI jet on Modern IAF's 6-DoF (its circuit seen, [`ApView::circuit`]) lands as the player's autopilot
+    /// does there, with the flare ([`Landing::flares`]); the original's level float stalls the 6-DoF onto the runway.
+    six: bool,
+    /// ParkInHangar's lever summed on the 6-DoF ([`Laws::taxi_thr`]).
+    park_thr: f32,
 }
 
 /// A LandingCL child (docs/ai.md §8.3).
@@ -1697,6 +1774,14 @@ pub struct Autopilot {
     /// original level float. The host sets it when the player has left the original: World scale Real, Real flight
     /// data or a Better physics switch.
     pub player_flare: bool,
+    /// The slot loop's slot ([`MODE_SLOT`]): (forward, right, up) m in the leader's horizontal frame ([`slot_point`]).
+    pub slot: [f32; 3],
+    /// Ours (Modern IAF's flights): the hangar (base index in `bases`, hangar) the landing's taxi parks in when it is
+    /// free; None: the original's first free hangar.
+    pub home_hangar: Option<(usize, usize)>,
+    /// Ours (Modern IAF's flights): a jet about to come too near; the unit direction (world, ENU) to pull away in.
+    /// While set, any loop's stick in the air gives way to the pull ([`AVOID_A`]) every 0.1 s.
+    pub avoid: Option<Vec3>,
     mode: u8,
     lp: Loop,
     next_tick: f64,
@@ -1720,6 +1805,9 @@ impl Autopilot {
             airborne: false,
             align_final: false,
             player_flare: false,
+            slot: [0.0; 3],
+            home_hangar: None,
+            avoid: None,
             mode: 0,
             lp: Loop::None,
             next_tick: 0.0,
@@ -1754,6 +1842,7 @@ impl Autopilot {
             Loop::RunAway { state, .. } => format!("run away state {state}"),
             Loop::Break90(b) => format!("break90 state {:#x}", b.as_ref().map_or(0, |b| b.state)),
             Loop::Popup(p) => format!("popup child {}", p.as_ref().map_or(0, |p| p.child)),
+            Loop::Slot { .. } => "slot".into(),
             Loop::None => "none".into(),
         }
     }
@@ -1793,6 +1882,7 @@ impl Autopilot {
                         at_lineup: false,
                         first: true,
                         hangar: None,
+                        thr_i: 0.0,
                     },
                     ka_target,
                     ka_speed,
@@ -1821,6 +1911,7 @@ impl Autopilot {
             0x17 => {
                 Loop::DiveBomb(Box::new(DiveBomb { state: 0, a: None, b: (Vec3::ZERO, 0.0, 0.0, 4), lw_pitch: 0.0 }))
             }
+            MODE_SLOT => Loop::Slot { thr_i: ac.controls().throttle, prev: None },
             _ => Loop::None,
         };
         self.nose_on = false;
@@ -1902,7 +1993,11 @@ impl Autopilot {
             ground,
             out: Out::default(),
             period: None,
-            real: None,
+            // Ours: an AI jet on the 6-DoF flies its route, take-off, go-home, hold and slot loops on the circuit's path law
+            // and bank limit (the landing sets its own): the original pitch law pushed it to −3.5 g rolling out of an
+            // 80° bank (a structural failure). The player's autopilot (mode 0), the other modes (untested on the
+            // 6-DoF) and the original model keep the original laws.
+            real: v.circuit.filter(|_| matches!(self.mode, 7 | 8 | 9 | 10 | MODE_SLOT)),
             thr_i: 0.0,
             thr_last: Default::default(),
             thr_err: None,
@@ -2054,10 +2149,27 @@ impl Autopilot {
                 }
                 None => l.stick(0.0, 0.0),
             },
+            Loop::Slot { thr_i, prev } => {
+                period = 0.1;
+                self.slot_step(&mut l, thr_i, prev);
+            }
             Loop::None => {}
         }
         if let Some(p) = l.period {
             period = p;
+        }
+        // (Not once the landing's ground watch is off; near the ground never down, and straight down there nothing
+        // is left: the loop's own stick and its ground watch stay.)
+        let low = v.pos[2] - (v.ground_height as f64) < AVOID_LOW_M;
+        if let Some(a) = (self.avoid.filter(|_| !v.on_ground && self.watch))
+            .map(|a| if low { Vec3::new(a[0], a[1], a[2].max(0.0)) } else { a })
+            .filter(|a| a.length() > 0.1)
+        {
+            let t = v.vel.try_normalize().unwrap_or(Vec3::NORTH);
+            let lift = a * AVOID_A + Vec3::UP * G as f64;
+            let (y, x) = lift_stick(&l, lift - t * lift.dot(t));
+            l.stick(y, x);
+            period = period.min(0.1);
         }
         let out = l.out;
         let real = l.real.is_some();
@@ -2116,7 +2228,8 @@ impl Autopilot {
             let lv = (ld.vel[0].powi(2) + ld.vel[1].powi(2) + ld.vel[2].powi(2)).sqrt() as f32;
             if lv < 25.7361 {
                 l.brakes(true);
-                l.throttle(0.6);
+                // Ours: the 6-DoF's 0.6 lever is near military power against the brakes; it holds at idle.
+                l.throttle(if v.sixdof { 0.0 } else { 0.6 });
                 return Leaf::Run;
             }
         }
@@ -2207,6 +2320,85 @@ impl Autopilot {
         l.stick(y, x);
         l.throttle(thr);
     }
+
+    /// Ours, the slot loop ([`MODE_SLOT`], docs/ai.md §8.7; laws inferred): the acceleration that closes the error to
+    /// the slot S = leader + `slot` (the slot's own acceleration in the leader's turn, plus a spring and a damper on
+    /// the position and velocity errors, the position error at most [`SLOT_E_MAX`]) is flown across the flight path
+    /// as a bank and a load factor (with gravity's share), and along it as a speed: the slot's speed plus an overtake
+    /// on the along-track error, through a PI throttle (the original's speed law leaves a standing error on the
+    /// 6-DoF) and the speed brake when 10 m/s fast. The ground watch stays on. A far slot is the same law: the
+    /// rejoin.
+    fn slot_step(&self, l: &mut Laws, thr_i: &mut f32, prev: &mut Option<(f64, Vec3, Vec3)>) {
+        let v = l.v;
+        let Some(ld) = self.leader else {
+            l.stick(0.0, 0.0);
+            return;
+        };
+        let g = G as f64;
+        let d = slot_offset(&ld, self.slot);
+        // The leader's acceleration from its velocity at the last tick, and its turn rate (clockwise seen from above);
+        // the slot moves with the leader's frame turning.
+        // (A leader 20 m off where the last tick's would be is a new one, after a promotion: none.)
+        let a_l = match *prev {
+            Some((t0, p0, v0)) if v.t > t0 && ld.pos.distance(p0 + v0 * (v.t - t0)) < LEADER_JUMP_M => {
+                (ld.vel - v0) * (1.0 / (v.t - t0))
+            }
+            _ => Vec3::ZERO,
+        };
+        *prev = Some((v.t, ld.pos, ld.vel));
+        let h2 = (ld.vel[0] * ld.vel[0] + ld.vel[1] * ld.vel[1]).max(1.0);
+        let w = ((a_l[0] * ld.vel[1] - a_l[1] * ld.vel[0]) / h2).clamp(-0.5, 0.5);
+        let vs = ld.vel + Vec3::new(w * d[1], -w * d[0], 0.0);
+        let a_s = a_l - Vec3::new(d[0], d[1], 0.0) * (w * w);
+        let e = ld.pos + d - v.pos;
+        let de = vs - v.vel;
+        let t = v.vel.try_normalize().unwrap_or(Vec3::NORTH);
+        let across = |x: Vec3| x - t * x.dot(t);
+        // The horizontal and the vertical error each at most SLOT_E_MAX: a far slot still gets its full height (the
+        // transit's step down before paths cross).
+        let eh = Vec3::new(e[0], e[1], 0.0);
+        let ec = eh * (SLOT_E_MAX / eh.length().max(SLOT_E_MAX)) + Vec3::UP * e[2].clamp(-SLOT_E_MAX, SLOT_E_MAX);
+        let kd = 2.0 * SLOT_ZETA * SLOT_W;
+        let lift = across(a_s + ec * (SLOT_W * SLOT_W) + de * kd + Vec3::UP * g);
+        let (mut y, mut x) = lift_stick(l, lift);
+        // Along the path: the slot's speed and the overtake; the PI throttle.
+        let (lo, hi) = SLOT_OVERTAKE;
+        let vt = (vs.dot(t) + (SLOT_K_ALONG * e.dot(t)).clamp(lo, hi) + a_s.dot(t) * SLOT_ANTICIPATE_S) as f32;
+        // Never slower than the jet flies level at the circuit's α (a slow leader, a big-angle rejoin).
+        let vt = vt.max(v.circuit.map_or(0.0, |c| c.1));
+        let err = vt - v.speed;
+        let (kp, ki) = SLOT_THR;
+        let mut thr = (*thr_i + kp * err).clamp(0.0, 1.0);
+        if thr > 0.0 && thr < 1.0 {
+            *thr_i = (*thr_i + ki * err * 0.1).clamp(0.0, 1.0);
+        }
+        l.watch_ground(&mut x, &mut y, &mut thr);
+        if !v.on_ground {
+            l.gear(false);
+            l.flaps(false);
+        }
+        l.brakes(err < -10.0);
+        l.stick(y, x);
+        l.throttle(thr);
+    }
+}
+
+/// The stick (pitch, roll) that flies the lift `lift` (m/s², world, across the flight path): a bank about the flight
+/// path and a load factor on the wing's present lift axis (no pull while the jet is still rolled the wrong way; never
+/// a push), within the slot loop's bank and the jet's load factor.
+fn lift_stick(l: &Laws, lift: Vec3) -> (f32, f32) {
+    let v = l.v;
+    let g = G as f64;
+    let t = v.vel.try_normalize().unwrap_or(Vec3::NORTH);
+    let right = t.cross(Vec3::UP).try_normalize().unwrap_or(Vec3::new(1.0, 0.0, 0.0));
+    let up = right.cross(t);
+    let (lr, lu) = (lift.dot(right), lift.dot(up));
+    let lim = SLOT_BANK_MAX.to_radians();
+    let bank = lr.atan2(lu.max(0.2 * g)).clamp(-lim, lim) as f32;
+    let roll = v.att.roll;
+    let n = ((lr as f32 * roll.sin() + lu as f32 * roll.cos()) / G).max(0.0);
+    let n_max = v.circuit.map_or(v.max_g, |c| c.0.min(v.max_g)).min(SLOT_G_MAX);
+    (l.inv_g(n.min(n_max)), l.roll(bank))
 }
 
 impl Taxi {
@@ -2263,8 +2455,12 @@ impl Taxi {
             } else {
                 let o = OCCUPIED.lock().unwrap().clone();
                 let n = base.hangars.len();
+                // Ours: a jet with a home hangar parks there when it is free (Modern IAF's flights).
+                let home = ap.home_hangar.filter(|&(b, h)| b == bi && h < n && !o.contains(&(b, h)));
                 let h = if v.type_code == C130 {
                     n.saturating_sub(1)
+                } else if let Some((_, h)) = home {
+                    h
                 } else {
                     (0..n).find(|h| !o.contains(&(bi, *h))).unwrap_or(0)
                 };
@@ -2273,6 +2469,11 @@ impl Taxi {
                     self.hangar = Some((bi, h));
                 }
                 self.path = base.arrival((n > 0).then_some(h));
+                // Ours: the 6-DoF turns on its wheels (a 30 m radius), so the turn about at the hangar point is left
+                // out; ParkInHangar steers in from the turn point.
+                if v.sixdof && n > 0 {
+                    self.path.pop();
+                }
             }
             return Leaf::Run;
         }
@@ -2323,17 +2524,19 @@ impl Taxi {
                 occupy(b, h, false);
             }
         }
-        let mut thr = l.thr_k(15.4417, l.c.speed_taxi_k, l.c.speed_taxi_beta);
         if !self.park && !free && !i_am_lead && tight {
             self.waiting = true;
             self.start = now + 3.0;
             l.brakes(true);
             l.throttle(0.0);
             return Leaf::Run;
-        } else if !self.park && !free && !i_am_lead && near && lead_moving {
-            thr = l.thr_k(lead_v, l.c.speed_taxi_k, l.c.speed_taxi_beta);
         }
-        l.brakes(false);
+        let vt = if !self.park && !free && !i_am_lead && near && lead_moving { lead_v } else { 15.4417 };
+        // Ours, the 6-DoF: idle through a pivot (thrust in a tight wheel turn tipped the jet onto its tail).
+        let mut thr = if v.sixdof && l.mode != 0 && self.turning { 0.0 } else { l.taxi_thr(vt, &mut self.thr_i) };
+        // Ours, an AI jet on the 6-DoF: its idle thrust runs it past the taxi speed (36 m/s on the taxiway); the
+        // wheel brakes hold it within 3 m/s of it (inferred).
+        l.brakes(v.sixdof && l.mode != 0 && v.speed > vt + 3.0);
         let mut done = false;
         if let Some(p) = self.path.get(self.i).copied() {
             // Along-track distance to the point.
@@ -2355,6 +2558,13 @@ impl Taxi {
                     l.brakes(false);
                     done = true;
                 }
+            }
+            // Ours, an AI jet on the 6-DoF: between the pivots the nose wheel steers a little at the point (inferred:
+            // at most a 3° wheel, gentle at taxi speed); the pivot's 30 m wheel turn leaves the jet off the next leg,
+            // and on the heading alone it wandered to another shelter.
+            if v.sixdof && l.mode != 0 && !self.turning && !done {
+                let e = wrap(((p.x as f64 - v.pos[0]) as f32).atan2((p.y as f64 - v.pos[1]) as f32) - v.att.heading);
+                l.out.rudder = Some((0.5 * e).clamp(-0.1, 0.1));
             }
         } else {
             done = true;
@@ -2417,7 +2627,14 @@ impl Landing {
             final_i: 0.0,
             thr_i: 0.0,
             touched: false,
+            six: false,
+            park_thr: 0.0,
         })
+    }
+
+    /// The player's flare and its leg ends ([`Autopilot::player_flare`]), or an AI jet on the 6-DoF.
+    fn flares(&self) -> bool {
+        if self.player { self.flare } else { self.six }
     }
 
     /// The child list of LandingCL (ctor `5c6370`): CH1, CA1, LW1, KA1, CH2, CA2, LW2, KA2, CH3, CA3, KA3, CH4,
@@ -2471,6 +2688,7 @@ impl Landing {
         l.real = l.v.circuit.filter(|_| self.step < 13);
         l.thr_i = self.thr_i;
         self.align |= l.real.is_some();
+        self.six |= l.v.circuit.is_some();
         let r = match leg {
             // World scale Real: CH5's pursuit of P5 is not a line capture on a runway off the axes (CH4 can leave
             // the jet 700 m off the centreline, and CH5 then flew level over the runway, so the final began
@@ -2480,8 +2698,9 @@ impl Landing {
             Leg::Ch(i, tol, lim, vt) => {
                 *period = 0.2;
                 let prev = if i > 0 { Some(pt[i - 1]) } else { None };
+                let off = self.flares();
                 let acu = self.acu.get_or_insert_with(|| Acu::new(l.v.speed, vt));
-                acu.step(l, pt[i], prev, tol, lim, self.player && self.flare)
+                acu.step(l, pt[i], prev, tol, lim, off)
             }
             Leg::Ca(i, r) => {
                 if (pos[2] - pt[i][2]).abs() < r {
@@ -2526,7 +2745,7 @@ impl Landing {
                 // instead of 2° below it at the original's ~12 m (docs/autopilot.md §2.3).
                 let v = l.v;
                 let flare_h = flare_tau(v) * (-(v.vel[2] as f32) - FLARE_SINK);
-                let early = self.player && self.flare && wheels_height(v) < flare_h;
+                let early = self.flares() && wheels_height(v) < flare_h;
                 if early || dist2(pos, pt[4][0], pt[4][1]) < r {
                     l.out.rudder = Some(0.0);
                     Leaf::Done
@@ -2551,6 +2770,7 @@ impl Landing {
                     at_lineup: false,
                     first: true,
                     hangar: None,
+                    thr_i: 0.0,
                 });
                 t.step(l, ap, true)
             }
@@ -2608,17 +2828,23 @@ impl Landing {
         // final has it: figure 2-3, "SPEEDBRAKES OPEN"). The speed law's error is summed (0.2 /s, ours): its fixed
         // 0.7 lever at no error held the 6-DoF 50 kt fast.
         let vt = match v.final_speed {
-            Some(vt) => {
+            Some(vt) if self.player => {
                 self.final_i = (self.final_i + 0.2 * 0.1 * (vt - v.speed)).clamp(-40.0, 40.0);
                 vt + self.final_i
             }
+            Some(vt) => vt + self.final_i,
             None => (vmin1 + 10.2944).max(72.0611),
         };
         // The original caps the throttle at 0.5 (`5d4c50`, 0.5 at 0x6133c4): a heavy jet (the Kurnass 2000 with
         // its 312 load) sinks below the glide path at its AoA limit and lands short. Off the original the player's
         // jet below the path keeps the speed law's full throttle (docs/autopilot.md §2.3).
         let thr = l.thr(vt);
-        let thr = if self.player && self.flare && above < 0.0 { thr } else { thr.min(0.5) };
+        let thr = if self.flares() && above < 0.0 { thr } else { thr.min(0.5) };
+        // Ours: an AI jet's sum runs only while the lever is inside its travel; summed through a fast arrival it wound
+        // to −40 m/s and held the throttle at idle below the final's speed.
+        if let Some(f) = v.final_speed.filter(|_| !self.player && thr > 0.0 && thr < 0.5) {
+            self.final_i = (self.final_i + 0.2 * 0.1 * (f - v.speed)).clamp(-40.0, 40.0);
+        }
         let e = wrap(self.rn - v.att.heading);
         let bank = if self.align {
             self.align_bank(l)
@@ -2662,7 +2888,7 @@ impl Landing {
         }
         // The player's flare (below) holds a small sink down to the wheels: within 5 m of the runway that path
         // passes the original's test before the touchdown, so its "rolling" is the wheels on the ground.
-        let flare = self.player && self.flare;
+        let flare = self.flares();
         let rolling = if flare {
             v.on_ground
         } else {
@@ -2742,18 +2968,34 @@ impl Landing {
         if self.park.is_none() {
             let base = Airbase::nearest(&ap.bases, [v.pos[0] as f32, v.pos[1] as f32, v.pos[2] as f32]);
             let t = base.and_then(|b| b.hangar_near(v.pos[0] as f32, v.pos[1] as f32).map(|h| b.hangars[h]));
+            // Ours, the 6-DoF: the hangar the taxi went to.
+            let own = self.taxi.as_ref().and_then(|t| t.hangar).and_then(|(b, h)| ap.bases.get(b)?.hangars.get(h));
+            let t = if v.sixdof { own.copied().or(t) } else { t };
             let Some(t) = t else { return Leaf::Done };
             self.park = Some((t.x as f64, t.y as f64, t.hdg, 1000.0));
         }
         let (x, y, hdg, last) = self.park.unwrap();
         let d = dist2(v.pos, x, y);
-        l.throttle(l.thr(1.0294));
-        if d > last {
+        let mut i = self.park_thr;
+        l.throttle(if v.sixdof { l.taxi_thr(1.0294, &mut i) } else { l.thr(1.0294) });
+        self.park_thr = i;
+        if v.sixdof {
+            l.brakes(v.speed > 3.0);
+        }
+        // Ours, the 6-DoF: the nose wheel steers at the hangar point, and the jet is set on it facing out (the ground
+        // crew's push into the shelter).
+        if v.sixdof {
+            l.out.pivot = Some(Some(((x - v.pos[0]) as f32).atan2((y - v.pos[1]) as f32)));
+        }
+        if d > last || v.sixdof && d < 2.0 {
             l.throttle(0.0);
             l.brakes(true);
             l.out.rudder = Some(0.0);
             l.stick(0.0, 0.0);
-            l.out.replace = Some((v.pos[0], v.pos[1], hdg));
+            l.out.replace = Some(if v.sixdof { (x, y, hdg) } else { (v.pos[0], v.pos[1], hdg) });
+            if v.sixdof {
+                l.out.pivot = Some(None);
+            }
             l.out.engine_off = true;
             return Leaf::Done;
         }

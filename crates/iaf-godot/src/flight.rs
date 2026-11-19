@@ -48,6 +48,14 @@ fn to_godot(v: Vec3) -> Vector3 {
     Vector3::new(v[0] as f32, v[2] as f32, -v[1] as f32)
 }
 
+impl IafFlight {
+    /// The flight model and the autopilot, for `IafAi` (crates/iaf-godot/src/ai.rs); None before `start` and
+    /// `ap_setup`.
+    pub(crate) fn parts(&mut self) -> Option<(&mut Fm, &mut Autopilot)> {
+        self.aircraft.as_mut().zip(self.ap.as_mut())
+    }
+}
+
 #[godot_api]
 impl IafFlight {
     /// Loads `section` (e.g. "F-16") from `<install>/resource/md` and starts it (`FUN_005a5820`,
@@ -732,7 +740,7 @@ impl IafFlight {
 
     /// The control loop the player's autopilot runs, for logs and tests ("none" when off).
     #[func]
-    fn ap_stage(&self) -> GString {
+    pub(crate) fn ap_stage(&self) -> GString {
         self.ap.as_ref().map_or("none".into(), |ap| ap.stage()).as_str().into()
     }
 

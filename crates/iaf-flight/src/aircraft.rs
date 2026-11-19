@@ -339,6 +339,9 @@ pub struct ApView {
     /// the first α of [`crate::autopilot::REAL_CIRCUIT`], and the level speed, m/s, of its second; the landing
     /// circuit's legs fly inside them. None on the original model, whose circuit stays the original's.
     pub circuit: Option<(f32, f32)>,
+    /// Modern IAF's 6-DoF: its lever is the real throttle (0.74 military), so the autopilot's ground laws for an AI
+    /// jet use their own levers there (`autopilot::Laws::taxi_thr`); false on the original model.
+    pub sixdof: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -2664,6 +2667,7 @@ impl Aircraft {
             lift_factor: self.lift_factor(t, speed),
             final_speed: None,
             circuit: None,
+            sixdof: false,
         }
     }
 

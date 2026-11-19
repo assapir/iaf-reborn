@@ -1131,6 +1131,7 @@ impl SixDof {
             lift_factor: 1.0,
             final_speed: self.ap_speeds.filter(|_| self.controls.gear_down && !s.on_ground).map(|v| v.2),
             circuit: self.ap_speeds.filter(|_| !s.on_ground).map(|v| ((s.speed / v.0).powi(2), v.1)),
+            sixdof: true,
         }
     }
 

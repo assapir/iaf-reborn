@@ -397,6 +397,7 @@ The autopilot is a tree of control loops. The brain picks a mode; the mode's roo
 | 0xb | FlyStraightCL | 100 | no |
 | 0xc | LevelFlightCL | player autopilot only | — |
 | 0xd–0x18 | combat manoeuvres (§5) | | no |
+| 0x20 | ours: the slot (§8.7), Modern IAF's flight AI | — | no |
 
 The player's autopilot (FM motion 0xf, `5a1e40`) runs LevelFlightCL / GoHomeCL and leaves the mode unset, so it flies
 with the player's FM rules.
@@ -562,6 +563,57 @@ the "Land" / "go home" rules on waypoint action 7).
 - FlyStraightCL (0xb): LevelWingsPitch0Accel at 180 m/s.
 - The combat modes (0xd–0x18): see the combat job (§13.3).
 
+### 8.7 Ours: the slot loop, the home hangar and the AI jets on the 6-DoF
+
+Modern IAF's flight AI (`crates/iaf-ai`, [../modern-iaf/docs/ai-plan.md](../modern-iaf/docs/ai-plan.md) §6) flies its
+jets with the loops below. The 1998 game never sets mode 0x20 or a home hangar, and its jets fly the original flight
+model, where none of the 6-DoF cases applies. Every figure here is inferred, tuned on the 6-DoF Sufa (test
+`crates/iaf-ai/tests/four_ship.rs`, 19 November 2026).
+
+- **Mode 0x20, the slot** (`MODE_SLOT`, every 0.1 s): keeps `Autopilot::slot` = (forward, right, up) m in the
+  leader's horizontal frame (its track).
+  - Across the flight path it asks the acceleration a = a_S + ω²·e + 2ζω·ė (ω 0.3 rad/s, ζ 0.8): a_S is the slot's
+    own acceleration (the leader's, from its velocity a tick before, and the turn of its frame); e is the position
+    error, its horizontal and its vertical part each at most 150 m; ė the velocity error. The lift that gives a, with
+    gravity's share, is flown as a bank (at most 75°) and a load factor on the wing's present lift axis (at most 7 g
+    and the lift at 15° α; never a push).
+  - Along the flight path it flies the slot's speed, plus 0.08 m/s per m of along-track error (−30 to +60 m/s), plus
+    the slot's acceleration × 1.5 s, never below the jet's level speed at the circuit's second α, through a PI
+    throttle (0.03 per m/s, 0.01 per m/s·s); the speed brake opens when 10 m/s fast. The ground watch stays on. A
+    leader 20 m off where its last tick's position and velocity put it (a new leader after a promotion) gives no
+    acceleration that tick.
+  - A far slot is the same law (the rejoin): it closes sideways at about 28 m/s and along the track at up to 60 m/s.
+  - Measured at 400 kt and 3,000 m: fingertip held within 9.3 m in level flight, every shape of the flight within
+    9.2 m, 23.5 m in the lead's 45° bank turn; a rejoin from 5 km behind in 104 s.
+- **The home hangar** (`Autopilot::home_hangar`): the landing's TaxiCL parks the jet there when it is free; without
+  one, the original's first free hangar. The flight sets it for every jet that starts at a shelter, the player's
+  autopilot too, so no jet takes another's shelter.
+- **Collision avoidance** (`Autopilot::avoid`): every frame the flight (`crates/iaf-ai`) checks each of its AI jets in
+  the air against every other jet of the flight: when the closest approach within 4 s comes nearer than 60 m, the
+  jet pulls away from it at 3 g (straight at it: the higher number goes down), in any loop, every 0.1 s, until the
+  approach clears; below 150 m over the ground never down, and not once the landing's ground watch is off. Without it two wingmen in fingertip came within 4.5 m in the lead's 80° bank break.
+- **An AI jet on Modern IAF's 6-DoF** (`ApView::circuit`, `ApView::sixdof`; the player's autopilot keeps its laws):
+  - Its route, take-off, go-home, hold and slot loops (modes 7, 8, 9, 10, 0x20) fly the landing circuit's path law
+    and bank limit (`REAL_CIRCUIT`). The original pitch law pushed the jet to −3.5 g rolling out of an 80° bank, a structural
+    failure. The other modes keep the original laws (not yet flown on the 6-DoF).
+  - Going home (mode 8) it opens the speed brake while its speed law is at idle and still 15 m/s fast (it entered the
+    circuit at 235 m/s and lowered the gear at 390 kt); the final's speed sum runs only while the lever is inside its
+    travel; it lands with the player's flare (`Landing::flares`).
+  - On the ground the taxi's speed law is a PI from idle (0.02 per m/s, 0.01 per m/s·s, at most 0.4): the original's
+    0.7 lever is near the 6-DoF's military power. The wheel brakes hold the jet within 3 m/s of its taxi speed (its
+    idle thrust ran it to 36 m/s); it idles through a pivot (thrust in the 30 m wheel turn tipped it onto its tail);
+    between the pivots the nose wheel steers at most 3° toward the next point. TakeoffCL's hold on the runway idles
+    (the original's 0.6 lever against the brakes). The taxi to park leaves out the turn about at the hangar point;
+    ParkInHangar steers at the point and sets the jet on it facing out (the ground crew's push into the shelter).
+  - Measured at Ramon from the four Sufa shelters: airborne at 184, 210, 234 and 294 s; landed at 982, 1098, 1136
+    and 1154 s; each parked at its shelter with the engine off; at the least 137 m between jets on the ground and
+    53 m in the air. Once the landing sequence starts, the wingmen not yet sent home wait in trail, stepped down: in
+    fingertip through the lead's circuit (80° banks) #3 had come within 18.8 m of the lead.
+  - The landing sequence also starts when the lead is low (under 300 m above the ground) with the gear down, or on
+    the ground again, anywhere: a wingman whose turn has not come then holds where it is (mode 10) until it is sent
+    home. Measured with the lead landing at Ramon and the flight's home at Nevatim: all four landed at Ramon in order,
+    #3 and #4 held first, at the least 41 m between jets in the air.
+
 ## 9. Airbase data (`iaf.ibx`, TowersManager `54eda0`)
 `iaf.ibx` holds the geometry the AI uses to take off, land and taxi. It has ten sections, in record order: Ramon,
 David, TelNof, Refidim, Inshas, Damescuss, Kuzeir, Bley, Ryak, Aman.
@@ -597,7 +649,8 @@ contact calls. They change no AI behaviour. Trace and port: docs/radio.md §4, �
 ## 12. Port
 Where each part of this document lives in our code:
 
-- `crates/iaf-flight/src/autopilot.rs`: the control loops of §7–§8 (modes 1, 3, 7, 8, 9, 10, 0xb) on an `Aircraft`,
+- `crates/iaf-ai`: Modern IAF's flight AI over these loops (§8.7); `crates/iaf-godot/src/ai.rs`: `IafAi`.
+- `crates/iaf-flight/src/autopilot.rs`: the control loops of §7–§8 (modes 1, 3, 7, 8, 9, 10, 0xb; ours 0x20) on an `Aircraft`,
   one tick per ring period. Outputs go through `set_controls` (stick y = −pull), `set_pivot` (motion 0x16),
   `replace_on_ground` (`5a4d40`) and `engine_off` (motion 0x19). `airbase.rs`: iaf.ibx. Tests:
   `crates/iaf-flight/tests/autopilot.rs`.

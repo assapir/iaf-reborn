@@ -2,6 +2,7 @@
 
 use godot::prelude::*;
 
+mod ai;
 mod airframe;
 mod autorun;
 mod bases;
