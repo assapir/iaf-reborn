@@ -113,7 +113,8 @@ What `real_hud/f16.rs` draws from the panel ([../../docs/real-hud.md](../../docs
 - ALT: RADAR the radar altitude on the scale (`AR`), BARO, AUTO the radar altitude's thermometer below 1,200 ft.
 - DED DATA: at DED the DED's five lines, at PFL the pilot fault list's, low in the HUD, one character per 5 px cell
   so the DED's columns line up, in the gap between the left and the right data column, from the right column's
-  second row down (inferred place: under the heading scale's lower position). Where the gap is narrower than the
+  second row down (inferred place; the real HUD's five windows sit lower in that gap, the last three under the
+  columns, at the normal text size: [../../docs/real-hud.md](../../docs/real-hud.md) "What ours draws (status)"). Where the gap is narrower than the
   block (the F-16s' fitted fields, [cockpit.md](cockpit.md) §4) the block is drawn smaller as a whole, its
   characters, cells and rows, so the characters keep their spacing (2026-11-19). The roll indicator is not drawn
   meanwhile (the dash-34 as a simulator forum quotes it, [../../docs/real-hud.md](../../docs/real-hud.md) "F-16C/D").

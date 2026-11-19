@@ -161,15 +161,16 @@ following[^sufa-at][^sufa-lm-radar]. The pilot's view of each is the dash-34's F
 
 ## 3. F-16D Barak: its differences
 
-The Barak in the sim is today's upgraded F-16D (§8.4): the Block 40 two-seater after Barak 2020, which "installed the
-avionic systems of the Sufa" (2010–2014)[^barak-hm][^barak-upi][^barak-fg]. Its definition is the F-16's
+The Barak in the sim is today's upgraded F-16D (§8.4): 034, a Block 30 two-seater of 109 Squadron, after Barak 2020,
+which "installed the avionic systems of the Sufa" (2010–2014)[^barak-hm][^barak-upi][^barak-fg]. Every IAF F-16C/D, the
+Block 30s and the Block 40s, was upgraded to Barak 2020[^he-f16], so 034 is a Barak 2020 jet (§8.7). Its definition is the F-16's
 (`shared/extra/planes/f16/airframe.json`, the original game's Barak, unchanged) with the sim's own file merged over it
 (`modern-iaf/data/planes/f16.json`, `sim_settings.gd` `airframe_def`). Rows not listed here are the Sufa's, with the
 same status; slice 6 flew every Sufa test on the Barak (§6).
 
 | # | function | real (Barak 2020) | today | status |
 |---|---|---|---|---|
-| B1 | Radar | the Block 40's AN/APG-68; no source names a radar change in Barak 2020 (open); no (V)9 situation mode | the F-16 row of `radar.rs` (CRM RWS to 80 km, 43 NM, Weapon data Real's; the Sufa 104 km) with the real FCR's controls, SAM with one bug (`radar.fcr.sam_tracks` 1; inferred) | Sim (17 Nov) |
+| B1 | Radar | the F-16C/D's AN/APG-68; no source names a radar change in Barak 2020 (open); no (V)9 situation mode | the F-16 row of `radar.rs` (CRM RWS to 80 km, 43 NM, Weapon data Real's; the Sufa 104 km) with the real FCR's controls, SAM with one bug (`radar.fcr.sam_tracks` 1; inferred) | Sim (17 Nov) |
 | B2 | MFDs | colour cockpit displays like the F-16I's[^barak-die] (announced in 2006 as "more advanced color versions"[^barak-f16net]), new high-resolution screens[^barak-upi]; no public photo of the upgraded cockpit found (checked 19 Nov 2026) | the colour formats (`mfd` "colour") | Sim (17 Nov) |
 | B3 | HSD map | on the colour displays (B2); the moving map itself inferred | the HSD's map, as the Sufa's | Sim (17 Nov) |
 | B4 | AIFF | with the Sufa's avionics (inferred: no source names the interrogator) | the Sufa's AIFF (`ews.aiff`) | Sim (17 Nov) |
@@ -177,7 +178,7 @@ same status; slice 6 flew every Sufa test on the Barak (§6).
 | B6 | Helmet | an Elbit helmet sight[^barak-upi] | `dash.rs`; dark while the goggles are down (B12) | Sim |
 | B7 | RWR | the set is open (the dash-34's display is the nearest) | as the Sufa's E1 | Partly (G3) |
 | B8 | MAW, SAM mode, SAR | no MAW: an infrared missile warning is among the upgrades proposed for the Barak in 2025[^barak-dn]; SAM keeps one bug (B1); DBS as the APG-68's (dash-34) | no MAW (`ews.maw` false): an infrared missile at the jet gives no warning, the RWR cannot hear it ([ews.md](ews.md) §3); DBS1 / DBS2 as the Sufa's | Sim (17 Nov) |
-| B9 | HUD | its own: the sim's Barak, a Block 40, came with the LANTIRN wide-angle diffractive HUD[^b40-hud] (30° × 18°[^roch-lantirn]); Barak 2020 fitted a new head-up display[^barak-fg], its maker, optics and look not public (open). The US Air Force replaces its Block 40/42s' diffractive HUDs with a wide-angle conventional one[^wachud], and Elbit's F-16 HUD of today (I-HUD2) has a 28° total field[^ihud2]: the Barak's inferred a conventional F-16 HUD; its symbology the Sufa's, with the Sufa's avionics[^barak-hm] (inferred) | its own frame (the user, 19 Nov: "on it's own"): the F-16C/D's combiner as the US Air Force's front-seat photo of a colour-display F-16C shows it, two slender grey posts joined by an arched bar over the glass (`hud_3d` "HUD_arch"), untinted, matched to the photo from its fitted camera, side by side and overlaid ([../../docs/cockpit.md](../../docs/cockpit.md) "3D cockpit"; its depth and lean inferred); the Real HUD's F-16 symbology, as the Sufa's, in a field narrowed to fit that glass by the least inset ([cockpit.md](cockpit.md) §4: ±4.0°, 1.6° over the boresight; the real HUD's 20° × 13.5°, the new one's open) (the Sufa's wide-angle plate before, 17–19 Nov) | Sim (19 Nov) |
+| B9 | HUD | its own: the Block 40s came with the LANTIRN wide-angle diffractive HUD[^b40-hud] (30° × 18°[^roch-lantirn]); Barak 2020 fitted a new head-up display[^barak-fg], its maker, optics and look not public (open). The US Air Force replaces its Block 40/42s' diffractive HUDs with a wide-angle conventional one[^wachud], and Elbit's F-16 HUD of today (I-HUD2) has a 28° total field[^ihud2]: the Barak's inferred a conventional F-16 HUD; its symbology the Sufa's, with the Sufa's avionics[^barak-hm] (inferred) | its own frame (the user, 19 Nov: "on it's own"): the F-16C/D's combiner as the US Air Force's front-seat photo of a colour-display F-16C shows it, two slender grey posts joined by an arched bar over the glass (`hud_3d` "HUD_arch"), untinted, matched to the photo from its fitted camera, side by side and overlaid ([../../docs/cockpit.md](../../docs/cockpit.md) "3D cockpit"; its depth and lean inferred); the Real HUD's F-16 symbology, as the Sufa's, in a field narrowed to fit that glass by the least inset ([cockpit.md](cockpit.md) §4: ±4.0°, 1.6° over the boresight; the real HUD's 20° × 13.5°, the new one's open) (the Sufa's wide-angle plate before, 17–19 Nov) | Sim (19 Nov) |
 | B10 | TACAN at the start | the home base's station (inferred: the pilot's preset) | tuned to the nearest station when the jet is placed (the home base on a ground start) (`ufc.rs` `tune_nearest`); before, every jet started on Ramon's 75X | Sim (17 Nov) |
 | B11 | Rear seat | the navigator works the pod; in the game the player does it (pods decision 4) | the front seat's keys and controls | Sim |
 | B12 | Night-vision goggles | open: no source names goggles on the Barak ([research/nvg.md](research/nvg.md) §1) | the Sufa's H9 (the user's pick, 19 Nov: "night googles: as suggested") | Sim (19 Nov) |
@@ -368,12 +369,16 @@ The user answered the six open questions on 17 November. His words in quotes; th
 3. **HOTAS functions:** "yes, and I don't have hotas". Every HOTAS function (TMS, DMS, cursor, uncage, DGFT and the
    rest) gets a keyboard key beside the existing keys. The keyboard is the first-class input; a joystick button is
    optional and never the only way.
-4. **Which Barak:** "yes". Today's upgraded jet (the sim is set in 2026), not the Block 40 as delivered.
+4. **Which Barak:** "yes". Today's upgraded jet (the sim is set in 2026), not the jet as delivered.
 5. **The F-35I's DAS picture and electronic attack:** "yes, less in priority". A simple DAS camera picture, at low
    priority, after the rest of the Adir's slice. Orchestrator's reading: electronic attack stays out; it also falls
    under the parked countermeasure-effectiveness rows (§7.3).
 6. **The F-35I's SPICE 1000:** "yes". It goes on the Adir's list; carriage as announced in 2026[^twz-spice]
    (integration announced; the stations and the bay or external carriage inferred until a source shows them).
+7. **The Barak's tail number (19 November 2026):** "Keep the 034 as Barak 2020". 034 is a Block 30 F-16D
+   ([../../docs/aircraft-models.md](../../docs/aircraft-models.md) §1.6). Hebrew Wikipedia says the air force upgraded
+   all its "Barak 1" (F-16C/D, Block 30) and "Barak 2" (F-16CG/DG, Block 40) to Barak 2020 in the early 2010s, and
+   lists 109 Squadron's jets as F-16D Barak 2020[^he-f16]; so 034 is shown as the upgraded jet it is.
 
 [^barak-hm]: Hamichlol, "ג'נרל דיינמיקס F-16 פייטינג פלקון" (all the Baraks upgraded to "Barak 2020", with the Sufa's
     avionic systems installed), an encyclopedia, secondary:
@@ -392,6 +397,10 @@ The user answered the six open questions on 17 November. His words in quotes; th
 [^barak-f16net]: f-16.net, "Israel launches program to upgrade its F-16 fleet", 25 January 2006 (the announced C/D
     upgrade: the command and control systems as in the F-16I, "and a replacement of the cockpit displays with more
     advanced color versions"): https://www.f-16.net/f-16-news-article1608.html
+[^he-f16]: Hebrew Wikipedia, "ג'נרל דיינמיקס F-16 פייטינג פלקון", sections "דגמים" (Barak 1 the C/D, Barak 2 the CG/DG, the Block 40s), "רקורד מבצעי" (the air force upgraded all
+    its "Barak 1" (C/D) and "Barak 2" (CG/DG) to the "Barak 2020" model early in the 2010s) and "טייסות F-16 בחיל
+    האוויר הישראלי" (105 and 109 Squadrons: F-16D Barak 2020), an encyclopedia, secondary, read 19 November 2026:
+    https://he.wikipedia.org/wiki/F-16
 [^b40-hud]: F-16.net, "F-16 Versions: Block 40/42" (introduced "the LANTIRN navigation and targeting pods and the
     associated holographic HUD", "a diffractive optics heads-up display"; Block 40s delivered to Israel):
     https://www.f-16.net/f-16_versions_article7.html

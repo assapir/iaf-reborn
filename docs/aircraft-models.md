@@ -390,7 +390,7 @@ parked jets take that list from the start, and the flying jets reach those numbe
 | jet | the player's | the others' (real; how many known) | drawn today |
 |---|---|---|---|
 | F-16I Sufa (`f16i.tail.json`) | 846 of 201 Squadron, Ramon | Ramon: 201 Squadron's 22 others (201, 808 to 892)[^c-sufa201], then 253 Squadron's 27 (253, 404 to 488)[^c-sufa253], then 119 Squadron's 20 (403 to 499, 839)[^c-sufa119]; Hatzerim (`bases` LLHB): 107 Squadron's 25 (803 to 898)[^c-sufa107] | Ramon's parked (up to 12) and the AI's: 201 Squadron's numbers alone cover them; Hatzerim's parked (up to 6): 107's |
-| F-16D Barak (`f16d.tail.json`) | 034 of 109 Squadron, Ramat David (Block 30)[^c-barak034] | Ramat David: 109 Squadron's 20 others (022 to 088, Block 30)[^c-barak109], then 105 Squadron's 25 (603 to 687, Block 40)[^c-barak105]; then 612, its squadron open (f-16.net's last unit for it, 110 Squadron, closed in 2017[^w110]) | Ramat David's parked (up to 4) and the AI's: 109's numbers alone cover them |
+| F-16D Barak (`f16d.tail.json`) | 034 of 109 Squadron, Ramat David (Block 30)[^c-barak034], upgraded to Barak 2020 as every IAF F-16C/D[^he-f16] (the user, 19 November 2026: "Keep the 034 as Barak 2020") | Ramat David: 109 Squadron's 20 others (022 to 088, Block 30)[^c-barak109], then 105 Squadron's 25 (603 to 687, Block 40)[^c-barak105]; then 612, its squadron open (f-16.net's last unit for it, 110 Squadron, closed in 2017[^w110]) | Ramat David's parked (up to 4) and the AI's: 109's numbers alone cover them |
 | F-35I Adir (`f35i.tail.json`) | 937 of 116 Squadron, Nevatim | 116 Squadron's 13 others (930 to 967), then 140 Squadron's 23 (901 to 983)[^c-adir], then 117 Squadron's 2 (904, 909), then 10 delivered jets whose squadron is open (947 to 992); all three squadrons at Nevatim | Nevatim's parked (up to 5) and the AI's: 116's numbers alone cover them |
 
 The Sufa's number stands on the fin in black and on each intake in dark blue, as on 846; the decal on the intakes
@@ -952,6 +952,9 @@ three pylons under each wing and the centre line tank between the engines. What 
     https://commons.wikimedia.org/wiki/Category:F-16I_(Israeli_Air_Force)
 [^c-barak109]: Oren Rozen, "RamatDavid 020517 Barak 03.jpg", Wikimedia Commons (109 Squadron's F-16D 074 at Ramat
     David, 2 May 2017): https://commons.wikimedia.org/wiki/File:RamatDavid_020517_Barak_03.jpg
+[^he-f16]: Hebrew Wikipedia, "ג'נרל דיינמיקס F-16 פייטינג פלקון", sections "דגמים" (Barak 1 the C/D, Barak 2 the CG/DG, the Block 40s) and "רקורד מבצעי" (the air force upgraded all its
+    "Barak 1" (C/D) and "Barak 2" (CG/DG) to the "Barak 2020" model early in the 2010s), an encyclopedia, secondary,
+    read 19 November 2026: https://he.wikipedia.org/wiki/F-16
 [^c-barak034]: Zachi Evenor and MathKnight, "F-16D--Our-IDF-2018-IZE-239.jpg", Wikimedia Commons, CC BY 2.0 (F-16D
     034 of 109 Squadron, its left side, "Our IDF 70", 23 September 2018; the reference for its fin):
     https://commons.wikimedia.org/wiki/File:F-16D--Our-IDF-2018-IZE-239.jpg

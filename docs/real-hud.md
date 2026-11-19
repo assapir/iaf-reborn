@@ -851,9 +851,16 @@ its scale. The original HUD keeps the original layout.
     panel's switches (the VVI scale at VV/VAH, FPM alone, the scales off, CAS / TAS / ground speed, the radar
     altitude and AUTO's thermometer, DED DATA, the standby reticle), ALIGN, SIM, DGFT / MSL, the DED's ALOW, `FUEL`
     flashing and the SOI asterisk. Reborn's HUD keeps the VAH, ATT/FPM, CAS and BARO positions.
-  - DED DATA (DED or PFL): the five lines one character per cell, between the left and the right data column from the
-    right column's second row down (inferred place), the block smaller as a whole where the gap is narrower than it
-    (the characters never closer than the text's own spacing), and no roll indicator meanwhile ("not displayed [when] DED or
+  - DED DATA (DED or PFL): the real HUD repeats "the five rows of DED or PFLD data on the five corresponding HUD
+    windows", 20 to 24, "data displayed on the DED" (dash-34 pp. 1-158, 1-182[^dash34]; "in the lower portion of the
+    HUD"[^mlu1]): the whole page, 24 columns. Fig. 1-115 (p. 1-179) draws the five windows between the left and the
+    right data column, the first two beside the columns' last rows and the other three under them, each as tall as the
+    other data windows and at their row pitch: the normal text size (inferred from the figure). Ours: the five lines
+    one character per cell in that gap from the right column's second row down (inferred place), the block smaller as
+    a whole where the gap is narrower than it (the characters never closer than the text's own spacing). At the normal
+    size the 24 columns are 120 px; the fitted fields leave 96 px between the columns on the Sufa (the block at 80 %)
+    and 58 px on the Barak (48 %), whose whole field is 96 px (modern-iaf/docs/cockpit.md §4). No roll indicator
+    meanwhile ("not displayed [when] DED or
     PFLD data is displayed on the HUD", a simulator forum quoting the jet's manual[^dcs-roll]).
   - `FUEL` below the bingo flashes in both games since 2026-11-17 (the dash-34's window 6; it was steady before).
   - Modern IAF's F-16s (2026-11-18, [../modern-iaf/docs/weapons.md](../modern-iaf/docs/weapons.md) §9; the MLU
