@@ -403,6 +403,12 @@ const FLOOD := Color(0.45, 0.34, 0.18)
 const FLOOD_ENERGY := 0.9
 const BACKLIGHT := Color(0.476, 0.9, 0.161)
 const BACKLIGHT_ENERGY := 0.7
+## Ours, Modern IAF's F-16s: with the lighting panel's NVIS / NORMAL switch at NVIS (nvis_lit) the flood and the backlit
+## labels light NVIS Green A, the colour MIL-STD-3009 (Table II) sets for the primary and secondary lighting: u' 0.088,
+## v' 0.543 on the 1976 UCS diagram. It lies outside sRGB's gamut: here its hue on the gamut's edge, (0, 1, 0.38) in
+## linear light, at FLOOD's (sRGB) and BACKLIGHT's (linear) own luminance.
+const NVIS_FLOOD := Color(0.0, 0.414, 0.259)
+const NVIS_BACKLIGHT := Color(0.0, 1.019, 0.388)
 ## The F-16's lighting panel (the lights audit, part B, 2026-11-17; modern-iaf/docs/cockpit.md "Lighting"): its knobs'
 ## FlightGear properties. FLOOD and BACKLIGHT above are the light at each knob's rest (<model>.json `modelled`, as the
 ## model shows it); a knob dims its light to none at OFF and raises it to DIMMER_MAX at its full turn, linearly on
@@ -632,8 +638,9 @@ func _lighting() -> void:
 			var side: String = "lr"[e[0].index]
 			m.emission = Color.WHITE * (MFD_CON_FLOOR * (1.0 - _knob("f16/avionics/mfd-%s-con" % side)))
 			e[0].gain = _knob("f16/avionics/mfd-%s-gain" % side) / 1.5
+	var green := nvis_lit()
 	if cockpit.night:
-		c = FLOOD * FLOOD_ENERGY
+		c = (NVIS_FLOOD if green else FLOOD) * FLOOD_ENERGY
 	elif _sun != null:
 		c = _sun.light_color * (FILL * _sun.light_energy)
 	c.a = 1.0
@@ -646,7 +653,7 @@ func _lighting() -> void:
 	for mat: BaseMaterial3D in _lit_mats:
 		mat.emission = c * ((g.y if _console_mats.has(mat) else g.x) if cockpit.night else 1.0)
 	for mat: BaseMaterial3D in _glows:
-		var b := BACKLIGHT * BACKLIGHT_ENERGY * (g.w if _console_mats.has(mat) else g.z)
+		var b := (NVIS_BACKLIGHT if green else BACKLIGHT) * BACKLIGHT_ENERGY * (g.w if _console_mats.has(mat) else g.z)
 		_glows[mat].set_shader_parameter("glow", Vector3(b.r, b.g, b.b))
 	var day := c * (float(meta.get("day_fill", 0.0)) / FILL)
 	for mat: BaseMaterial3D in _night_mats:
@@ -1473,9 +1480,15 @@ const INDEXER_DIM := 0.25
 var lamp_level := 1.0
 
 
-## The NVIS / NORMAL switch at NVIS (the goggles' glare, terrain_view.gd _goggles_glare).
+## The NVIS / NORMAL switch at NVIS (the goggles' glare, terrain_view.gd _goggles_frame).
 func nvis() -> bool:
 	return _knob(NVIS) > 0.5
+
+
+## The cockpit lit NVIS green (NVIS_FLOOD, NVIS_BACKLIGHT): the switch at NVIS in Modern IAF's F-16s; the 1998 game's
+## 3D F-16 cockpit keeps its light.
+func nvis_lit() -> bool:
+	return nvis() and _ours()
 
 
 func _lamp_level() -> float:

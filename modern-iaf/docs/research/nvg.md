@@ -59,6 +59,12 @@ nothing public was found.
   colour symbols, under 55 g added, for AN/AVS-6 and AN/AVS-9 goggles, JHMCS, JHMCS II and Targo)[^elbit-ni]. JHMCS II
   has a night module on modified F4949 goggles that the pilot fits with one hand in flight without taking the helmet
   off (secondary)[^dii-jhmcs].
+- **The Digital Eyepiece, the known way to have both** (added 19 November 2026; the sim keeps option O3, §7). The DEP
+  is a clip-on add-on that overlays the helmet's targeting cues in the goggles[^dvids-dep], in front of the right
+  eye[^twz-dep]. Rockwell Collins ESA Vision Systems (RCEVS), the joint venture of Rockwell Collins and Elbit Systems
+  of America, introduced it in September 2016 (second-hand)[^mae-dep]. The 114th Fighter Wing (South Dakota Air
+  National Guard, Block 40 F-16s) tested it on 4–19 January 2018[^dvids-dep][^twz-dep]. Whether the IAF uses it, or
+  anything like it with the DASH, is open.
 - **DASH IV in the Sufa: open.** No source says whether the Sufa's crews take the DASH IV's visor display off at night,
   wear goggles over it, or use an Elbit night add-on. JHMCS was derived from DASH III[^dii-jhmcs], so the same limit
   (display or goggles) is the likely case (inferred).
@@ -92,6 +98,13 @@ Every row is the US practice; the IAF's own procedure is open.
 
 **The cockpit and exterior lighting.**
 - One cockpit light that does not suit the goggles is enough to degrade their picture[^dtic].
+- **NVIS green.** The US standard for goggle-compatible aircraft lighting, MIL-STD-3009 (2 February 2001, after
+  MIL-L-85762A), sets NVIS Green A for the primary lighting (instruments, displays, consoles), the secondary (flood)
+  lighting, illuminated controls and caution and advisory signals: within 0.037 of u' 0.088, v' 0.543 on the CIE 1976
+  UCS diagram. NVIS Green B (u' 0.131, v' 0.623, radius 0.057) is for parts that need a more saturated colour; warning
+  signals and the master caution are NVIS Yellow (u' 0.274, v' 0.622)[^ms3009]. A short video of a night F-16 cockpit
+  with its goggle-compatible lighting on shows the panel's edge lighting, the consoles and the floodlights all
+  green-blue (second-hand: only its thumbnail was seen; the air force is not named)[^gdp-video].
 - The USAF's F-16 NVIS change replaced the white cockpit lighting with NVIS green, replaced a couple of switches on the
   lighting panels, and replaced the position and formation lights (wingtips, intakes, belly, fin, upper fuselage) and
   the tail flood with goggle-compatible ones[^f16net-nvis][^f16nvg].
@@ -136,13 +149,17 @@ Open: the term the fighter squadrons use for their goggles in speech (משקפו
   not suit the goggles (`goggles_lit`); the HUD in its brightest green while they are on.
 - **Modern IAF** (until 19 November 2026): Shift + N did nothing, because it needs `Settings.night_vision` and Modern
   IAF has no Preferences row for it. Since then the Sufa and the Barak have goggles on a key-table record of their own
-  (O1–O4 below).
+  (O1–O4 below). As built first, the tubes' picture filled the whole screen, the 3D cockpit too; since the user's "fix"
+  of the same day it fills a round field 40° across (§4) on the head's forward line, in the view's upper part, and the
+  pilot sees the panel below it with the naked eye (§3, "In use"; [../cockpit.md](../cockpit.md) §5.5,
+  [../../../docs/rendering.md](../../../docs/rendering.md) §8).
 - **The F-35I** in Modern IAF: Alt + F7 steps the helmet's night camera, the DAS's video and off
   (`_helmet_video_step`, record 254; [../avionics-plan.md](../avionics-plan.md) P9). The night camera uses the same
   shader as the late Gen III tube; the DAS video the shader in grey. The DAS format's picture costs 1.83 ms GPU a frame
   on the Iris Xe while drawn ([../../../docs/rendering.md](../../../docs/rendering.md) §8.1).
 - **The F-16s**: the lighting panel's NVIS / NORMAL switch and the exterior lights panel work
-  ([../cockpit.md](../cockpit.md) §5.5); since 19 November 2026 the NVIS switch also sets the goggles' glare (§7).
+  ([../cockpit.md](../cockpit.md) §5.5); since 19 November 2026 the NVIS switch also sets the goggles' glare (§7), and
+  at NVIS lights the cockpit's flood and backlit labels NVIS Green A (§3), shown as its hue at an sRGB screen's edge.
 
 ## 7. Options to build
 
@@ -151,6 +168,14 @@ The user's pick, 19 November 2026 (Approvals A66): "night googles: as suggested"
 switch sets the glare), O3 (the helmet display's symbols off while the goggles are down, the JHMCS rule) and O4 as flip
 down / up on the same key with no minimum height. O7: the Adir keeps its helmet's night camera and gets no goggles.
 Not started: O5 (later, with the AI wingmen), O6 and O8.
+
+The user's "fix", 19 November 2026 (the goggles' picture covered the whole screen, the 3D cockpit included): built the
+same day. The picture is a round field 40° across, fixed to the head in the upper part of the view; the cockpit below
+it keeps its own night lighting, and where the field overlaps the panel the panel shows through the tubes, with the
+NVIS / NORMAL glare. The shader's gain, halos, grain and P43 green are unchanged; the 1998 game's goggles and the
+Adir's helmet are unchanged. At NVIS the F-16s' cockpit is lit NVIS green (§3). O3 stays as built (the user, 19
+November 2026: "no keep as is"): the helmet's symbols are off while the goggles are down; the Digital Eyepiece (§2.2)
+is the known alternative.
 
 | # | jet | option | what it needs |
 |---|---|---|---|
@@ -247,6 +272,16 @@ Not started: O5 (later, with the AI wingmen), O6 and O8.
     https://apps.dtic.mil/sti/pdfs/ADA517298.pdf
 [^bms-ext]: Secondary. Falcon BMS forum, "question ext. lighting control panel" (the Block 50 panel's "covert ALL",
     after GR1F-16CJ-1; seen as a search summary): https://forum.falcon-bms.com/post/352086
+[^ms3009]: MIL-STD-3009, "Lighting, aircraft, night vision imaging system (NVIS) compatible", 2 February 2001, §4.3.4
+    and Table II (distribution A; a copy hosted by a vendor): https://cdn.shopify.com/s/files/1/1942/0217/files/MIL-STD-3009.pdf
+[^gdp-video]: Second-hand, unidentified. "General Duty Pilots", a YouTube short of a night F-16 cockpit (only its
+    thumbnail was seen; the air force is not named): https://www.youtube.com/shorts/Nay4MM76IVo
+[^dvids-dep]: DVIDS, L. Olson (114th Fighter Wing), "Digital eyepiece increases capabilities of F-16 pilots",
+    26 January 2018 (a clip-on device; tested 4–19 January; the wing's own copy refused automated access):
+    https://www.dvidshub.net/news/263376/digital-eyepiece-increases-capabilities-f-16-pilots
+[^mae-dep]: Second-hand. Military & Aerospace Electronics, "Digital eye piece enhances situational awareness for F-16
+    pilots" (RCEVS introduced the JHMCS DEP in September 2016; seen as a search engine's summary, not opened):
+    https://www.militaryaerospace.com/commercial-aerospace/article/14229040/digital-eye-piece-enhances-situational-awareness-for-f16-pilots
 [^collins-covert]: Collins Aerospace, "Dual mode covert lights": https://www.rtx.com/collinsaerospace/what-we-do/industries/military-and-defense/exteriors/exterior-lighting/dual-mode-covert-lights
 [^rash]: C. E. Rash, "A 25-year retrospective on NVGs", Flight Safety Foundation AeroSafety World, August 2010 (40°
     round view, gain control, sparkles at low light, halos): https://flightsafety.org/wp-content/uploads/2016/11/asw_aug10_p14-18.pdf

@@ -2127,7 +2127,19 @@ their glare, §8.3; the helmet display goes dark while they are down; modern-iaf
 
 The goggles are a full-screen shader on canvas layer −1: over the 3D view and the cloud layer, under the cockpit,
 HUD and MFDs. The pilot sees the outside through the goggles and the panel below them, so the panel keeps its own
-night lighting. The tube depends on the mission's year (§8.1). The shader:
+night lighting. The tube depends on the mission's year (§8.1).
+
+**Modern IAF's round field.** Its cockpit is 3D, inside the view, so the full-screen picture turned the panel green
+too. For the Sufa and the Barak the shader draws the tubes' picture in a round field only (its `field` uniform, the
+radius; 0, the default, keeps the whole view for the 1998 game and the F-35I's helmet): 40° across
+(`iaf_avionics::nvg::FIELD_DEG`; the goggles' round view[^rash]), centred on the head's forward line, 12° above the
+3D cockpit's eye line (`cockpit.gd VIEW_3D_LOOK_DOWN_DEG`). `terrain_view.gd _goggles_frame` sets it every frame from
+the camera's focal length and projection centre, so the field is a true 40° cone at any zoom and turns with the head.
+Per pixel the shader takes the angle between its ray and the field's axis: outside the radius it passes the screen
+through (the naked eye's view: the panel in its own night lighting); inside, the steps below, with the gain from the
+field's own mean (a screen mip of about the field's radius per texel, at its centre), the glare's veil toward the
+field's bottom and its rim darkened over its outer fifth (by up to `vignette`; inferred). It is drawn in the pilot's
+own view only (`IafGoggles.drawn`). The shader:
 
 1. **Spectrum.** The image is one brightness, weighted by the tube's photocathode. A Gen III tube sees 500–900 nm,
    from blue-green into the near infrared[^nvd]: (0.6, 0.4, 0) for R, G, B, no blue. A Gen II tube sees more of the
@@ -2153,7 +2165,8 @@ night lighting. The tube depends on the mission's year (§8.1). The shader:
    brightest of the H key's greens (index 7, 0x00fc00); the player's level comes back when the goggles come off
    (inferred).
 
-The goggles show in every view, also the external ones. No sensor or AI reads them (gameplay unchanged).
+The 1998 game's goggles show in every view, also the external ones; Modern IAF's in the pilot's own view only. No
+sensor or AI reads them (gameplay unchanged).
 
 ### 8.1 The tube by year and jet
 
@@ -2204,8 +2217,9 @@ original's by its id (`mission_year.rs default_year`: 111–117 1967, 121–127 
   the F-15 and F-16 from 1996 (inferred from the USAF's F-16 retrofit[^f16nvg] and the F-15I[^f15i]) and the F-35I
   (its helmet camera). Every other jet and year glares. Modern IAF's F-16s: the lighting panel's NVIS / NORMAL switch
   decides instead, none at NVIS, 0.15 at NORMAL (`iaf_avionics::nvg::Goggles::glare`, set every frame while the
-  goggles are down). The original itself lights the F-4E's night cockpit red, the
-  colour a Gen III tube sees best.
+  goggles are down); at NVIS their cockpit is also lit NVIS Green A, the standard's colour for goggle-compatible
+  primary and secondary lighting (u' 0.088, v' 0.543)[^ms3009] (modern-iaf/docs/cockpit.md §5.5). The original itself
+  lights the F-4E's night cockpit red, the colour a Gen III tube sees best.
 - **Bright-source protection.** When the view's mean (linear, through the tube's weights) passes 0.35, the picture
   darkens, down to 10 % at 0.6: a close blast filling the view, or daylight. The picture comes back as soon as the
   light goes (no hold time). Gray Zone Warfare shuts its goggles down the same way[^gzw]; the limits are inferred.
@@ -2213,7 +2227,10 @@ original's by its id (`mission_year.rs default_year`: 111–117 1967, 121–127 
 **Shots**: `tests/godot/_night_shot.gd` with `NIGHT_VISION=1`; the pilot guides' `night` / `night_nvg` pictures
 (their "Night vision" section). In mission 214 (01:00, Detailed night lights) the goggles show the hills, the
 ground's texture and the AI jet ahead, which are black without them. Cost: 68.5 against 71.4 fps at 1920×1080 on this
-Iris Xe laptop, measured while another render ran (to measure again on an idle machine).
+Iris Xe laptop, measured while another render ran (to measure again on an idle machine). Modern IAF's round field:
+`modern-iaf/tests/_nvg_shot.gd` (the Sufa and the Barak over Beersheba and on Hatzerim's approach). Its cost, the root
+viewport's GPU time with the goggles down against up, three pairs per jet in turn: +1.8 ms on average (0 to 2.6 ms) on
+a 35 to 37 ms frame, every graphics option on, 1920×994, this Iris Xe laptop, 19 Nov 2026; none while they are up.
 
 ## 9. Model detail (built: shared/util/model_detail.gd, model_detail.gdshaderinc)
 
@@ -2494,6 +2511,8 @@ floor.
     https://en.wikipedia.org/wiki/Night-vision_device
 [^rash]: C. E. Rash, "A 25-year retrospective on NVGs", Flight Safety Foundation AeroSafety World, Aug 2010 (40°
     circular view, gain control, sparkles at low light, halos): https://flightsafety.org/wp-content/uploads/2016/11/asw_aug10_p14-18.pdf
+[^ms3009]: MIL-STD-3009, "Lighting, aircraft, night vision imaging system (NVIS) compatible", 2 February 2001,
+    Table II (distribution A; a copy hosted by a vendor): https://cdn.shopify.com/s/files/1/1942/0217/files/MIL-STD-3009.pdf
 [^omni]: Night Vision International wiki, "Omnibus" (per-contract minimums, a rough guide: Omni I 1982 36 lp/mm,
     SNR 16.2, halo 1.47 mm, P20; Omni IV 1996 64 lp/mm, SNR 21, halo 1.25 mm, P43; Omni VII 0.70 mm):
     https://www.nv-intl.com/wiki/index.php/Omnibus

@@ -4182,9 +4182,9 @@ var _hud_level := 0
 
 
 ## Ours, Modern IAF's F-16s (their definition's `nvg`; modern-iaf/docs/cockpit.md §5.5): the night-vision goggles
-## flipped down or up at any height (cockpit.goggles, IafGoggles); down, the tubes' picture (_toggle_goggles) with the
-## cockpit's glare by the NVIS / NORMAL switch (_goggles_glare). The F-35I, the sim's one other jet, has none: its
-## helmet has a night camera.
+## flipped down or up at any height (cockpit.goggles, IafGoggles); down, the tubes' round field (_toggle_goggles,
+## _goggles_frame) with the cockpit's glare by the NVIS / NORMAL switch. The F-35I, the sim's one other jet, has none:
+## its helmet has a night camera.
 func _goggles_key() -> void:
 	if not Settings.airframe(player.get("type", 0)).get("nvg", false):
 		_on_subtitle("No goggles: use the helmet's night camera")
@@ -4194,16 +4194,27 @@ func _goggles_key() -> void:
 	var down: bool = cockpit.goggles.flip()
 	if down != (_goggles != null and _goggles.visible):
 		_toggle_goggles()
-	_goggles_glare()
+	_goggles_frame()
 	_cockpit_note("Goggles down" if down else "Goggles up")
 
 
-## The cockpit's glare in the goggles' tubes (IafGoggles.glare) by the lighting panel's NVIS / NORMAL switch, set
-## every frame while they are down.
-func _goggles_glare() -> void:
-	if cockpit.goggles != null and _goggles != null and _goggles.visible:
-		var nvis: bool = cockpit_3d != null and cockpit_3d.nvis()
-		_goggles.get_child(0).material.set_shader_parameter("glare", cockpit.goggles.glare(nvis))
+## The F-16s' goggles while down, every frame: the cockpit's glare in the tubes (IafGoggles.glare) by the lighting
+## panel's NVIS / NORMAL switch, and their round field (IafGoggles.field_deg) on the head's forward line, which the
+## 3D cockpit's eye looks cockpit.VIEW_3D_LOOK_DOWN_DEG below: the field turns with the head and sits in the view's
+## upper part; below it the pilot sees the panel with the naked eye. Drawn in the pilot's own view only
+## (IafGoggles.drawn).
+func _goggles_frame() -> void:
+	if cockpit.goggles == null or _goggles == null or not _goggles.visible:
+		return
+	var rect: ColorRect = _goggles.get_child(0)
+	rect.visible = cockpit.goggles.drawn(views.cockpit_like())
+	var mat: ShaderMaterial = rect.material
+	mat.set_shader_parameter("glare", cockpit.goggles.glare(cockpit_3d != null and cockpit_3d.nvis()))
+	var up := deg_to_rad(cockpit.VIEW_3D_LOOK_DOWN_DEG)
+	mat.set_shader_parameter("field", deg_to_rad(cockpit.goggles.field_deg() / 2.0))
+	mat.set_shader_parameter("field_axis", Vector3(0.0, sin(up), -cos(up)))
+	mat.set_shader_parameter("field_centre", cockpit.projection_centre() / cockpit.size)
+	mat.set_shader_parameter("field_focal", cockpit.focal_length() / cockpit.size.y)
 
 
 ## A full-view rect drawing the screen through the night-vision shader with `params` (its uniforms).
@@ -4512,7 +4523,7 @@ func _process(delta: float) -> void:
 				weapons.update(_sim_time)
 		_update_eo_view()
 		_update_das_view()
-		_goggles_glare()
+		_goggles_frame()
 		_update_looks()
 		_update_full_screen()
 		g_effects.g = st.g

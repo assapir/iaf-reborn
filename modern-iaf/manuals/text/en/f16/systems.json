@@ -3156,7 +3156,7 @@
       "NVIS"
      ],
      "does": "Changes the cockpit's lights to ones night-vision goggles can bear.",
-     "sim": "Dims the lamps. With the goggles down, NVIS keeps the cockpit's light out of their picture; NORMAL lets it glare."
+     "sim": "Dims the lamps and lights the cockpit NVIS green. With the goggles down, NVIS keeps the cockpit's light out of their picture; NORMAL lets it glare."
     }
    ]
   },

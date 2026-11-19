@@ -12,14 +12,16 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   (docs/credits.md "Modern IAF's logo"). No desktop launcher, .ico or .icns: the sim has none to fill.
 - **The F-16s' night-vision goggles (2026-11-19, the user on Approvals A66: "night googles: as suggested";
   [research/nvg.md](research/nvg.md) options O1–O4, [cockpit.md](cockpit.md) §5.5):** in the Sufa and the Barak
-  Shift + N (record 255, command 303) flips the goggles down and up, at any height; down, the 3D view shows the late
-  Gen III tubes' picture ([../../docs/rendering.md](../../docs/rendering.md) §8). The lighting panel's NVIS / NORMAL
-  switch keeps the cockpit's own light out of the tubes at NVIS; at NORMAL it glares and washes out the picture's lower
-  part. While they are down the helmet display shows no symbols. The F-35I has none (a notice): its helmet keeps the
+  Shift + N (record 255, command 303) flips the goggles down and up, at any height; down, the late Gen III tubes'
+  picture ([../../docs/rendering.md](../../docs/rendering.md) §8) fills a round field 40° across, fixed to the head in
+  the view's upper part; below it the pilot sees the panel in its own night lighting with the naked eye (the user's
+  "fix", 19 Nov: the picture had covered the whole screen, the 3D cockpit too). The lighting panel's NVIS / NORMAL
+  switch keeps the cockpit's own light out of the tubes at NVIS and lights the cockpit NVIS Green A (MIL-STD-3009); at
+  NORMAL it glares and washes out the field's lower part. While they are down the helmet display shows no symbols. The F-35I has none (a notice): its helmet keeps the
   night camera (Alt + F7). Also fixed: the HMCS SYM INT knob at OFF now darkens the helmet display with the Real HUD
   (its symbols drew on). Not started (the user's pick): the exterior lights' covert mode (with the AI wingmen), white
   phosphor, ejection with goggles. Tests: `nvg.rs`, `real_hud::tests::the_helmet_display_is_dark_with_the_hmcs_off_or_the_goggles_down`,
-  `test_cockpit_lights.gd`, `test_sim_adir_pcd.gd`.
+  `test_cockpit_lights.gd` (the field, NVIS green), `test_sim_adir_pcd.gd`.
 - **Real missile performance, the core (2026-11-19, the user's "ok so finish the missile works", avionics-plan.md
   §7):** the AIM-9M, AIM-9X, Python 5 and AIM-120 fly a physical missile: the motor's real thrust and burn, drag by Mach
   and height, gravity, proportional navigation within the g limit, turns bleeding speed, the flight's end when too

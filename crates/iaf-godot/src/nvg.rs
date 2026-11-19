@@ -2,7 +2,7 @@
 //! `goggles` and flipped by `terrain_view.gd` `_goggles_key`.
 
 use godot::prelude::*;
-use iaf_avionics::nvg::Goggles;
+use iaf_avionics::nvg::{FIELD_DEG, Goggles};
 
 #[derive(GodotClass)]
 #[class(init, base = RefCounted)]
@@ -29,5 +29,17 @@ impl IafGoggles {
     #[func]
     fn glare(&self, nvis: bool) -> f64 {
         self.g.glare(nvis)
+    }
+
+    /// Whether the tubes' field is drawn with the view the pilot's own eye or not (`Goggles::drawn`).
+    #[func]
+    fn drawn(&self, pilot_view: bool) -> bool {
+        self.g.drawn(pilot_view)
+    }
+
+    /// The tubes' round field of view across, degrees (`FIELD_DEG`).
+    #[func]
+    fn field_deg(&self) -> f64 {
+        FIELD_DEG
     }
 }

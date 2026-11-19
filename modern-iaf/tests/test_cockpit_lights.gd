@@ -1,13 +1,13 @@
 # The F-16s' lighting controls (the lights audit, part B, 2026-11-17; modern-iaf/docs/cockpit.md "Lighting"): in each
 # F-16's cold start-up, at the knobs' rests the cockpit's light is as before (every dimmer 1); at night each lighting
-# panel dimmer turns its own light (consoles or instrument panel, flood or backlit labels) off at OFF and up at full,
-# by day none moves the sun's fill; DATA ENTRY DISPLAY dims the DED and the fault list, the ICP's BRT wheel the HUD;
-# MAL & IND LTS sets the lamps dim and bright (the level stays when it springs back), NVIS holds them dim, INDV LTG CONT
-# dims the indexers; LE FLAPS at LOCK lights its caution. The night-vision goggles: their key flips them down (NVIS
-# keeps the cockpit's glare out of the tubes, NORMAL lets it in; the helmet display goes dark) and up. Outside: the
-# exterior lights panel shows each light on the jet's model (none without MASTER or the generators), WING / TAIL bright
-# and dim and flashing, the strobe by ANTI-COLL, and the gear panel's LANDING / TAXI light a spot light ahead of the
-# jet.
+# panel dimmer turns its own light (consoles or instrument panel, flood or backlit labels) off at OFF and up at full, by
+# day none moves the sun's fill; DATA ENTRY DISPLAY dims the DED and the fault list, the ICP's BRT wheel the HUD; MAL &
+# IND LTS sets the lamps dim and bright (the level stays when it springs back), NVIS holds them dim (and lights the
+# cockpit NVIS green at night), INDV LTG CONT dims the indexers; LE FLAPS at LOCK lights its caution. The night-vision
+# goggles: their key flips them down (their 40° round field; NVIS keeps the cockpit's glare out of the tubes, NORMAL
+# lets it in; the helmet display goes dark) and up. Outside: the exterior lights panel shows each light on the jet's
+# model (none without MASTER or the generators), WING / TAIL bright and dim and flashing, the strobe by ANTI-COLL, and
+# the gear panel's LANDING / TAXI light a spot light ahead of the jet.
 #   IAF_DEFAULT_SETTINGS=1 godot --headless --audio-driver Dummy --path modern-iaf \
 #     -s ../modern-iaf/tests/test_cockpit_lights.gd --log-file <temp>
 extends "res://../tests/godot/base.gd"
@@ -197,11 +197,29 @@ func _goggles(tv: Node) -> void:
 	var mat: ShaderMaterial = tv._goggles.get_child(0).material
 	var sw := _r("mms-switch")
 	_ctl.put(sw, 1.0)
-	tv._goggles_glare()
+	tv._goggles_frame()
 	check(is_zero_approx(float(mat.get_shader_parameter("glare"))), "%s: NVIS: no glare in the tubes" % _id)
+	var field := float(mat.get_shader_parameter("field"))
+	check(is_equal_approx(field, deg_to_rad(20.0)), "%s: the tubes' round field, 40° across (%.3f rad)" % [_id, field])
+	check(tv._goggles.get_child(0).visible, "%s: the field drawn in the pilot's own view" % _id)
+	_light()
+	var panel := _mat(false)
+	var nvis_glow: float = _c3d.NVIS_BACKLIGHT.g * _c3d.BACKLIGHT_ENERGY
+	check(
+		(
+			panel.emission.is_equal_approx(Color(_c3d.NVIS_FLOOD * _c3d.FLOOD_ENERGY, 1.0))
+			and is_equal_approx(_glow(panel), nvis_glow)
+		),
+		"%s: NVIS at night: the flood and the backlit labels NVIS Green A" % _id
+	)
 	_ctl.put(sw, 0.0)
-	tv._goggles_glare()
+	tv._goggles_frame()
 	check(float(mat.get_shader_parameter("glare")) > 0.1, "%s: NORMAL: the cockpit glares in the tubes" % _id)
+	_light()
+	check(
+		panel.emission.is_equal_approx(Color(_c3d.FLOOD * _c3d.FLOOD_ENERGY, 1.0)),
+		"%s: NORMAL at night: the flood as before" % _id
+	)
 	var hud: Control = tv.cockpit.hud
 	hud._real_frame = -1
 	hud.real_hud()

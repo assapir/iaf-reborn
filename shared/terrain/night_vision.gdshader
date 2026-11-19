@@ -1,6 +1,7 @@
 // Ours (Graphics → MORE "Night vision", docs/rendering.md §8): the 3D view through image-intensifier goggles of the
 // mission's year (terrain_view.gd TUBES). Drawn on a canvas layer under the cockpit, so the panel stays as seen under
-// the goggles.
+// the goggles. Modern IAF's F-16s (terrain_view.gd _goggles_frame): the tubes' round field only, where the 3D cockpit
+// outside it stays as the naked eye sees it.
 shader_type canvas_item;
 
 uniform sampler2D screen : hint_screen_texture, filter_linear_mipmap;
@@ -25,6 +26,13 @@ uniform float vignette = 0.7;
 // The brightness curve's exponent: 0.5 (the square root) keeps the dim ground's detail beside the sky; the DAS's 1.0
 // keeps the picture's contrast by day (inferred).
 uniform float curve = 0.5;
+// The tubes' round field (Modern IAF's F-16s): its radius (rad) around `field_axis` (camera space, the head's forward
+// line); 0 = the whole view (the 1998 game's goggles, the F-35I's helmet). The camera's axis meets the screen at
+// `field_centre` (UV), its focal length `field_focal` screen heights.
+uniform float field = 0.0;
+uniform vec3 field_axis = vec3(0.0, 0.0, -1.0);
+uniform vec2 field_centre = vec2(0.5);
+uniform float field_focal = 1.0;
 
 
 float hash(vec2 p) {
@@ -33,27 +41,52 @@ float hash(vec2 p) {
 
 
 void fragment() {
-	// On the square root of the brightness: the dim ground keeps its detail beside the sky (inferred).
-	vec3 avg = textureLod(screen, vec2(0.5), 12.0).rgb;
-	float mean = pow(dot(avg, cathode), curve) + glare;
-	float gain = clamp(target / max(mean, 1e-3), 1.0, max_gain);
-	float l = pow(dot(textureLod(screen, SCREEN_UV, blur).rgb, cathode), curve) * gain;
-	// Halos: a light far brighter than the scene blooms into a disc around itself.
-	float halo = 0.0;
-	for (float lod = 2.0; lod <= 5.0; lod += 1.0) {
-		halo += max(pow(dot(textureLod(screen, SCREEN_UV, lod).rgb, cathode), curve) * gain - 0.9, 0.0);
+	float aspect = SCREEN_PIXEL_SIZE.y / SCREEN_PIXEL_SIZE.x;
+	// The tubes' mean comes from what they see: the whole view, or the field around its centre (a mip about the
+	// field's radius per texel).
+	vec2 mean_at = vec2(0.5);
+	float mean_lod = 12.0;
+	float edge = 0.0;  // the place in the field: 0 its axis, 1 its rim
+	float down = SCREEN_UV.y;  // 0 the picture's top, 1 its bottom (the glare's veil)
+	if (field > 0.0) {
+		vec3 ray = normalize(vec3((SCREEN_UV - field_centre) * vec2(aspect, -1.0) / field_focal, -1.0));
+		edge = acos(clamp(dot(ray, field_axis), -1.0, 1.0)) / field;
+		down = 0.5 - 0.5 * (asin(ray.y) - asin(field_axis.y)) / field;
+		mean_at = field_centre - vec2(0.0, field_axis.y / -field_axis.z * field_focal);
+		mean_lod = log2(tan(field) * field_focal / SCREEN_PIXEL_SIZE.y);
 	}
-	l += halo_k * halo;
-	// Scintillation: the more gain, the more grain (photon noise), changing every frame.
-	float grain = hash(floor(FRAGCOORD.xy) + fract(TIME * 61.0) * 917.0) - 0.5;
-	l += grain * grain_k * sqrt(gain / 2.0);
-	l += glare * gain * smoothstep(0.3, 1.0, SCREEN_UV.y);
-	// The bright end saturates softly; the tube's edge darkens.
-	l = 1.0 - exp(-1.6 * max(l, 0.0));
-	// Bright-source protection: a view full of light (a close blast, daylight) darkens the tube (inferred limits).
-	// ponytail: no hold time, the picture comes back as soon as the light goes; a CPU-side timer if it should linger.
-	l *= 1.0 - protect * smoothstep(0.35, 0.6, dot(avg, cathode));
-	vec2 d = SCREEN_UV - 0.5;
-	l *= 1.0 - vignette * smoothstep(0.4, 0.85, length(d * vec2(SCREEN_PIXEL_SIZE.y / SCREEN_PIXEL_SIZE.x, 1.0)));
-	COLOR = vec4(tint * l, 1.0);
+	if (edge >= 1.0) {
+		COLOR = textureLod(screen, SCREEN_UV, 0.0);  // outside the field: the naked eye's view
+	} else {
+		// On the square root of the brightness: the dim ground keeps its detail beside the sky (inferred).
+		vec3 avg = textureLod(screen, mean_at, mean_lod).rgb;
+		float mean = pow(dot(avg, cathode), curve) + glare;
+		float gain = clamp(target / max(mean, 1e-3), 1.0, max_gain);
+		float l = pow(dot(textureLod(screen, SCREEN_UV, blur).rgb, cathode), curve) * gain;
+		// Halos: a light far brighter than the scene blooms into a disc around itself.
+		float halo = 0.0;
+		for (float lod = 2.0; lod <= 5.0; lod += 1.0) {
+			halo += max(pow(dot(textureLod(screen, SCREEN_UV, lod).rgb, cathode), curve) * gain - 0.9, 0.0);
+		}
+		l += halo_k * halo;
+		// Scintillation: the more gain, the more grain (photon noise), changing every frame.
+		float grain = hash(floor(FRAGCOORD.xy) + fract(TIME * 61.0) * 917.0) - 0.5;
+		l += grain * grain_k * sqrt(gain / 2.0);
+		l += glare * gain * smoothstep(0.3, 1.0, down);
+		// The bright end saturates softly; the tube's edge darkens.
+		l = 1.0 - exp(-1.6 * max(l, 0.0));
+		// Bright-source protection: a view full of light (a close blast, daylight) darkens the tube (inferred limits).
+		// ponytail: no hold time, the picture comes back as soon as the light goes; a CPU-side timer if it should
+		// linger.
+		l *= 1.0 - protect * smoothstep(0.35, 0.6, dot(avg, cathode));
+		if (field > 0.0) {
+			// The field's rim darkens, then the naked eye's view around it (inferred).
+			l *= 1.0 - vignette * smoothstep(0.8, 1.0, edge);
+			COLOR = mix(vec4(tint * l, 1.0), textureLod(screen, SCREEN_UV, 0.0), smoothstep(0.98, 1.0, edge));
+		} else {
+			vec2 d = SCREEN_UV - 0.5;
+			l *= 1.0 - vignette * smoothstep(0.4, 0.85, length(d * vec2(aspect, 1.0)));
+			COLOR = vec4(tint * l, 1.0);
+		}
+	}
 }
