@@ -522,7 +522,12 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   Sufa), 10 hangars, 14 buildings, the tower, a sunshade, the fence and ramp vehicles beside the player's spot, placed
   from Sentinel-2 and OpenStreetMap; door lamps and obstruction lights at night ([base-furniture.md](base-furniture.md)).
   Our own simple shapes, no download; GPU +1 ms over the base on the Iris Xe; a rebuild of the terrain and airbases steps (nothing to download). Open: the jets start on the apron row, not in a
-  shelter (§7 there); the other four bases.
+  shelter (§7 there).
+- **Hatzerim, Nevatim, Ramat David and Tel Nof filled (2026-11-19, the user's order "do it for all air bases"):** the
+  same method and shapes as Ramon's: shelters, hangars, sunshades and buildings from OpenStreetMap, Sentinel-2 (the
+  2015 photo at Nevatim) and roofs placed by eye; parked Sufas at Hatzerim, F-35Is at Nevatim, Baraks at Ramat David;
+  door lamps and obstruction lights; GPU up to +1 ms on the Iris Xe ([base-furniture.md](base-furniture.md) §2.1, §6). Open: no parked F-15 (no F-15 model
+  of our own), so Tel Nof's shelters stand empty.
 - **The airbases from the air (2026-11-14, built, awaiting the user's yes on the pictures):** the bases' Sentinel-2
   fill toned to the photo around (no tan block; one colour map per base from the medians of the ground around, an odd
   Survey sheet left out, Sentinel-2's brighter dry grass brought down to the earth tones around); the painted

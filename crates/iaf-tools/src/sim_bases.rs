@@ -2623,33 +2623,35 @@ mod tests {
         }
     }
 
-    /// Ramon's furniture (base-furniture.md §4) loads into the frame, stands clear of the runways (a footprint's
+    /// Every base's furniture (base-furniture.md §4) loads into the frame, stands clear of the runways (a footprint's
     /// corner over 40 m from a runway's edge, Annex 14's strip for a building, inferred) and of the departure from each
     /// parking spot (25 m: an F-16's half span and margin, inferred), and its shelters' pads are paved.
     #[test]
     fn the_furniture_stands_clear() {
         let bases = load(&data()).unwrap();
-        let b = bases.iter().find(|b| b.icao == "LLRM").unwrap();
-        assert!(b.furniture.iter().filter(|f| f.kind == "shelter").count() >= 40, "Ramon's shelters");
-        let rt = routes(b).unwrap();
-        for f in b.furniture.iter().filter(|f| f.line.is_empty()) {
-            let [l, w] = f.size.unwrap_or([0.0, 0.0]);
-            let r = (l * l + w * w).sqrt() / 2.0;
-            assert!(b.runway_dist(f.at) - r > 40.0, "{} at {:?} is on a runway's strip", f.kind, f.at);
-            if f.kind == "shelter" {
-                assert!(b.paved(f.at, 0.0), "the shelter at {:?} has no pad", f.at);
-            }
-            for s in &b.parking {
-                let mut path = vec![s.at];
-                path.extend(&rt.from);
-                let near = path.windows(2).map(|q| seg_dist(f.at, q[0], q[1])).fold(f64::MAX, f64::min);
-                let props = ["gpu", "fuel_truck", "extinguisher"].contains(&f.kind.as_str());
-                assert!(
-                    near - r > if props { 5.0 } else { 25.0 },
-                    "{} at {:?} is {near:.0} m from the departure",
-                    f.kind,
-                    f.at
-                );
+        for (icao, shelters) in [("LLRM", 40), ("LLHB", 12), ("LLNV", 10), ("LLRD", 50), ("LLEK", 10)] {
+            let b = bases.iter().find(|b| b.icao == icao).unwrap();
+            assert!(b.furniture.iter().filter(|f| f.kind == "shelter").count() >= shelters, "{icao}'s shelters");
+            let rt = routes(b).unwrap();
+            for f in b.furniture.iter().filter(|f| f.line.is_empty()) {
+                let [l, w] = f.size.unwrap_or([0.0, 0.0]);
+                let r = (l * l + w * w).sqrt() / 2.0;
+                assert!(b.runway_dist(f.at) - r > 40.0, "{icao}: {} at {:?} is on a runway's strip", f.kind, f.at);
+                if f.kind == "shelter" {
+                    assert!(b.paved(f.at, 0.0), "{icao}: the shelter at {:?} has no pad", f.at);
+                }
+                for s in &b.parking {
+                    let mut path = vec![s.at];
+                    path.extend(&rt.from);
+                    let near = path.windows(2).map(|q| seg_dist(f.at, q[0], q[1])).fold(f64::MAX, f64::min);
+                    let props = ["gpu", "fuel_truck", "extinguisher"].contains(&f.kind.as_str());
+                    assert!(
+                        near - r > if props { 5.0 } else { 25.0 },
+                        "{icao}: {} at {:?} is {near:.0} m from the departure",
+                        f.kind,
+                        f.at
+                    );
+                }
             }
         }
     }

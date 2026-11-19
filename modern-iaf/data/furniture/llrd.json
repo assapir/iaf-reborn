@@ -1,0 +1,6544 @@
+{
+ "icao": "LLRD",
+ "survey": "2026-11-19",
+ "frame": "WGS-84 lat / lon, true headings, metres (as data/airbases, data-formats.md §10)",
+ "rows": [
+  {
+   "ref": "S1",
+   "kind": "shelter",
+   "lat": 32.6701852,
+   "lon": 35.1674661,
+   "heading": 209,
+   "size_m": [
+    16,
+    15
+   ],
+   "osm": "way/1159738769",
+   "source": "osm",
+   "note": "OSM shelter 16 × 15 m (way/1159738769); a hardened shelter by its size (inferred); door toward the nearest pavement, 228 m (inferred)"
+  },
+  {
+   "ref": "S2",
+   "kind": "shelter",
+   "lat": 32.6703183,
+   "lon": 35.1680611,
+   "heading": 133,
+   "size_m": [
+    15,
+    16
+   ],
+   "osm": "way/1159738770",
+   "source": "osm",
+   "note": "OSM shelter 16 × 15 m (way/1159738770); a hardened shelter by its size (inferred); door toward the nearest pavement, 215 m (inferred)"
+  },
+  {
+   "ref": "S3",
+   "kind": "shelter",
+   "lat": 32.6716912,
+   "lon": 35.1683064,
+   "heading": 133,
+   "size_m": [
+    16,
+    15
+   ],
+   "osm": "way/1159738771",
+   "source": "osm",
+   "note": "OSM shelter 16 × 15 m (way/1159738771); a hardened shelter by its size (inferred); door toward the nearest pavement, 303 m (inferred)"
+  },
+  {
+   "ref": "S4",
+   "kind": "shelter",
+   "lat": 32.6711238,
+   "lon": 35.1699315,
+   "heading": 133,
+   "size_m": [
+    15,
+    16
+   ],
+   "osm": "way/1159738772",
+   "source": "osm",
+   "note": "OSM shelter 16 × 15 m (way/1159738772); a hardened shelter by its size (inferred); door toward the nearest pavement, 149 m (inferred)"
+  },
+  {
+   "ref": "S5",
+   "kind": "shelter",
+   "lat": 32.6714062,
+   "lon": 35.1701302,
+   "heading": 132,
+   "size_m": [
+    15,
+    16
+   ],
+   "osm": "way/1159738773",
+   "source": "osm",
+   "note": "OSM shelter 16 × 15 m (way/1159738773); a hardened shelter by its size (inferred); door toward the nearest pavement, 157 m (inferred)"
+  },
+  {
+   "ref": "S6",
+   "kind": "shelter",
+   "lat": 32.6718989,
+   "lon": 35.1691719,
+   "heading": 66,
+   "size_m": [
+    16,
+    12
+   ],
+   "osm": "way/1159738774",
+   "source": "osm",
+   "note": "OSM shelter 16 × 12 m (way/1159738774); a hardened shelter by its size (inferred); door toward the nearest pavement, 223 m (inferred)"
+  },
+  {
+   "ref": "S7",
+   "kind": "shelter",
+   "lat": 32.6716357,
+   "lon": 35.1697925,
+   "heading": 50,
+   "size_m": [
+    12,
+    16
+   ],
+   "osm": "way/1159738775",
+   "source": "osm",
+   "note": "OSM shelter 16 × 12 m (way/1159738775); a hardened shelter by its size (inferred); door toward the nearest pavement, 188 m (inferred)"
+  },
+  {
+   "ref": "S8",
+   "kind": "shelter",
+   "lat": 32.6719575,
+   "lon": 35.168862,
+   "heading": 70,
+   "size_m": [
+    16,
+    12
+   ],
+   "osm": "way/1159738776",
+   "source": "osm",
+   "note": "OSM shelter 16 × 12 m (way/1159738776); a hardened shelter by its size (inferred); door toward the nearest pavement, 247 m (inferred)"
+  },
+  {
+   "ref": "S9",
+   "kind": "shelter",
+   "lat": 32.671842,
+   "lon": 35.1694936,
+   "heading": 61,
+   "size_m": [
+    16,
+    12
+   ],
+   "osm": "way/1159738777",
+   "source": "osm",
+   "note": "OSM shelter 16 × 12 m (way/1159738777); a hardened shelter by its size (inferred); door toward the nearest pavement, 199 m (inferred)"
+  },
+  {
+   "ref": "S10",
+   "kind": "shelter",
+   "lat": 32.671432,
+   "lon": 35.1681178,
+   "heading": 133,
+   "size_m": [
+    16,
+    17
+   ],
+   "osm": "way/1159738787",
+   "source": "osm",
+   "note": "OSM shelter 17 × 16 m (way/1159738787); a hardened shelter by its size (inferred); door toward the nearest pavement, 296 m (inferred)"
+  },
+  {
+   "ref": "U1",
+   "kind": "sunshade",
+   "lat": 32.6744449,
+   "lon": 35.1718191,
+   "heading": 43,
+   "size_m": [
+    38,
+    11
+   ],
+   "osm": "way/1159738808",
+   "source": "osm",
+   "note": "OSM shelter 38 × 11 m (way/1159738808): a long narrow roof over a parking row, drawn as a roof on posts (inferred)"
+  },
+  {
+   "ref": "U2",
+   "kind": "sunshade",
+   "lat": 32.673717,
+   "lon": 35.1709954,
+   "heading": 43,
+   "size_m": [
+    68,
+    11
+   ],
+   "osm": "way/1159738809",
+   "source": "osm",
+   "note": "OSM shelter 68 × 11 m (way/1159738809): a long narrow roof over a parking row, drawn as a roof on posts (inferred)"
+  },
+  {
+   "ref": "S11",
+   "kind": "shelter",
+   "lat": 32.6680205,
+   "lon": 35.177694,
+   "heading": 177,
+   "size_m": [
+    19,
+    20
+   ],
+   "osm": "way/1159742223",
+   "source": "osm",
+   "note": "OSM hangar 20 × 19 m (way/1159742223); a hardened shelter by its size (inferred); door toward the nearest pavement, 27 m (inferred)"
+  },
+  {
+   "ref": "S12",
+   "kind": "shelter",
+   "lat": 32.6680325,
+   "lon": 35.1774703,
+   "heading": 177,
+   "size_m": [
+    19,
+    22
+   ],
+   "osm": "way/1159742224",
+   "source": "osm",
+   "note": "OSM hangar 22 × 19 m (way/1159742224); a hardened shelter by its size (inferred); door toward the nearest pavement, 30 m (inferred)"
+  },
+  {
+   "ref": "H1",
+   "kind": "hangar",
+   "lat": 32.6648876,
+   "lon": 35.179408,
+   "heading": 265,
+   "size_m": [
+    41,
+    27
+   ],
+   "osm": "way/1159748571",
+   "source": "osm",
+   "note": "OSM hangar 41 × 27 m (way/1159748571); doors in the end toward the pavement (inferred)"
+  },
+  {
+   "ref": "S13",
+   "kind": "shelter",
+   "lat": 32.6622002,
+   "lon": 35.1742105,
+   "heading": 289,
+   "size_m": [
+    21,
+    16
+   ],
+   "osm": "way/1159748586",
+   "source": "osm",
+   "note": "OSM shelter 21 × 16 m (way/1159748586); a hardened shelter by its size (inferred); door toward the nearest pavement, 420 m (inferred)"
+  },
+  {
+   "ref": "S14",
+   "kind": "shelter",
+   "lat": 32.6623031,
+   "lon": 35.1738388,
+   "heading": 289,
+   "size_m": [
+    21,
+    16
+   ],
+   "osm": "way/1159748587",
+   "source": "osm",
+   "note": "OSM shelter 21 × 16 m (way/1159748587); a hardened shelter by its size (inferred); door toward the nearest pavement, 383 m (inferred)"
+  },
+  {
+   "ref": "S15",
+   "kind": "shelter",
+   "lat": 32.6624087,
+   "lon": 35.1734714,
+   "heading": 289,
+   "size_m": [
+    21,
+    16
+   ],
+   "osm": "way/1159748588",
+   "source": "osm",
+   "note": "OSM shelter 21 × 16 m (way/1159748588); a hardened shelter by its size (inferred); door toward the nearest pavement, 347 m (inferred)"
+  },
+  {
+   "ref": "S16",
+   "kind": "shelter",
+   "lat": 32.6625163,
+   "lon": 35.1730902,
+   "heading": 289,
+   "size_m": [
+    21,
+    16
+   ],
+   "osm": "way/1159748589",
+   "source": "osm",
+   "note": "OSM shelter 21 × 16 m (way/1159748589); a hardened shelter by its size (inferred); door toward the nearest pavement, 309 m (inferred)"
+  },
+  {
+   "ref": "S17",
+   "kind": "shelter",
+   "lat": 32.6626284,
+   "lon": 35.1727123,
+   "heading": 289,
+   "size_m": [
+    21,
+    16
+   ],
+   "osm": "way/1159748590",
+   "source": "osm",
+   "note": "OSM shelter 21 × 16 m (way/1159748590); a hardened shelter by its size (inferred); door toward the nearest pavement, 271 m (inferred)"
+  },
+  {
+   "ref": "S18",
+   "kind": "shelter",
+   "lat": 32.6725129,
+   "lon": 35.1720997,
+   "heading": 221,
+   "size_m": [
+    14,
+    27
+   ],
+   "osm": "way/1159854976",
+   "source": "osm",
+   "note": "OSM hangar 27 × 14 m (way/1159854976); a hardened shelter by its size (inferred); door toward the nearest pavement, 30 m (inferred)"
+  },
+  {
+   "ref": "S19",
+   "kind": "shelter",
+   "lat": 32.6728347,
+   "lon": 35.1753371,
+   "heading": 276,
+   "size_m": [
+    11,
+    23
+   ],
+   "osm": "way/1159854978",
+   "source": "osm",
+   "note": "OSM hangar 23 × 11 m (way/1159854978); a hardened shelter by its size (inferred); door toward the nearest pavement, 27 m (inferred)"
+  },
+  {
+   "ref": "U3",
+   "kind": "sunshade",
+   "lat": 32.674133,
+   "lon": 35.1735314,
+   "heading": 132,
+   "size_m": [
+    168,
+    27
+   ],
+   "osm": "way/1328705633",
+   "source": "osm",
+   "note": "OSM hangar 168 × 27 m (way/1328705633): a long narrow roof over a parking row, drawn as a roof on posts (inferred)"
+  },
+  {
+   "ref": "U4",
+   "kind": "sunshade",
+   "lat": 32.6744035,
+   "lon": 35.1737939,
+   "heading": 133,
+   "size_m": [
+    123,
+    20
+   ],
+   "osm": "way/1328705634",
+   "source": "osm",
+   "note": "OSM hangar 123 × 20 m (way/1328705634): a long narrow roof over a parking row, drawn as a roof on posts (inferred)"
+  },
+  {
+   "ref": "S20",
+   "kind": "shelter",
+   "lat": 32.6629923,
+   "lon": 35.1766338,
+   "heading": 51,
+   "size_m": [
+    13,
+    16
+   ],
+   "osm": "way/1328705711",
+   "source": "osm",
+   "note": "OSM shelter 16 × 13 m (way/1328705711); a hardened shelter by its size (inferred); door toward the nearest pavement, 301 m (inferred)"
+  },
+  {
+   "ref": "H2",
+   "kind": "hangar",
+   "lat": 32.6629079,
+   "lon": 35.1928762,
+   "heading": 251,
+   "size_m": [
+    56,
+    27
+   ],
+   "osm": "way/1328705719",
+   "source": "osm",
+   "note": "OSM shelter 56 × 27 m (way/1328705719); doors in the end toward the pavement (inferred)"
+  },
+  {
+   "ref": "U5",
+   "kind": "sunshade",
+   "lat": 32.6623857,
+   "lon": 35.1806138,
+   "heading": 47,
+   "size_m": [
+    74,
+    29
+   ],
+   "osm": "way/1328705720",
+   "source": "osm",
+   "note": "OSM hangar 74 × 29 m (way/1328705720): a long narrow roof over a parking row, drawn as a roof on posts (inferred)"
+  },
+  {
+   "ref": "U6",
+   "kind": "sunshade",
+   "lat": 32.6722087,
+   "lon": 35.1716978,
+   "heading": 133,
+   "size_m": [
+    128,
+    22
+   ],
+   "osm": "way/1328706019",
+   "source": "osm",
+   "note": "OSM shelter 128 × 22 m (way/1328706019): a long narrow roof over a parking row, drawn as a roof on posts (inferred)"
+  },
+  {
+   "ref": "S21",
+   "kind": "shelter",
+   "lat": 32.6708585,
+   "lon": 35.1696244,
+   "heading": 133,
+   "size_m": [
+    16,
+    17
+   ],
+   "osm": "way/1328708749",
+   "source": "osm",
+   "note": "OSM shelter 17 × 16 m (way/1328708749); a hardened shelter by its size (inferred); door toward the nearest pavement, 150 m (inferred)"
+  },
+  {
+   "ref": "S22",
+   "kind": "shelter",
+   "lat": 32.6706594,
+   "lon": 35.1694053,
+   "heading": 133,
+   "size_m": [
+    16,
+    17
+   ],
+   "osm": "way/1328708750",
+   "source": "osm",
+   "note": "OSM shelter 17 × 16 m (way/1328708750); a hardened shelter by its size (inferred); door toward the nearest pavement, 150 m (inferred)"
+  },
+  {
+   "ref": "S23",
+   "kind": "shelter",
+   "lat": 32.6704726,
+   "lon": 35.1692024,
+   "heading": 133,
+   "size_m": [
+    16,
+    17
+   ],
+   "osm": "way/1328708751",
+   "source": "osm",
+   "note": "OSM shelter 17 × 16 m (way/1328708751); a hardened shelter by its size (inferred); door toward the nearest pavement, 149 m (inferred)"
+  },
+  {
+   "ref": "S24",
+   "kind": "shelter",
+   "lat": 32.670255,
+   "lon": 35.1689605,
+   "heading": 133,
+   "size_m": [
+    16,
+    17
+   ],
+   "osm": "way/1328708752",
+   "source": "osm",
+   "note": "OSM shelter 17 × 16 m (way/1328708752); a hardened shelter by its size (inferred); door toward the nearest pavement, 149 m (inferred)"
+  },
+  {
+   "ref": "S25",
+   "kind": "shelter",
+   "lat": 32.670037,
+   "lon": 35.1687398,
+   "heading": 133,
+   "size_m": [
+    16,
+    17
+   ],
+   "osm": "way/1328708753",
+   "source": "osm",
+   "note": "OSM shelter 17 × 16 m (way/1328708753); a hardened shelter by its size (inferred); door toward the nearest pavement, 147 m (inferred)"
+  },
+  {
+   "ref": "B1",
+   "kind": "building",
+   "lat": 32.6701522,
+   "lon": 35.1701084,
+   "heading": 43,
+   "size_m": [
+    18,
+    12
+   ],
+   "osm": "way/18219290",
+   "source": "osm",
+   "note": "OSM building=roof 18 × 12 m (way/18219290)"
+  },
+  {
+   "ref": "B2",
+   "kind": "building",
+   "lat": 32.6646107,
+   "lon": 35.1968817,
+   "heading": 26,
+   "size_m": [
+    40,
+    8
+   ],
+   "osm": "way/1159738726",
+   "source": "osm",
+   "note": "OSM building=yes 40 × 8 m (way/1159738726)"
+  },
+  {
+   "ref": "B3",
+   "kind": "building",
+   "lat": 32.6651094,
+   "lon": 35.1966785,
+   "heading": 119,
+   "size_m": [
+    21,
+    7
+   ],
+   "osm": "way/1159738727",
+   "source": "osm",
+   "note": "OSM building=yes 21 × 7 m (way/1159738727)"
+  },
+  {
+   "ref": "B4",
+   "kind": "building",
+   "lat": 32.6649037,
+   "lon": 35.1965797,
+   "heading": 119,
+   "size_m": [
+    22,
+    7
+   ],
+   "osm": "way/1159738728",
+   "source": "osm",
+   "note": "OSM building=yes 22 × 7 m (way/1159738728)"
+  },
+  {
+   "ref": "B5",
+   "kind": "building",
+   "lat": 32.6651673,
+   "lon": 35.1962545,
+   "heading": 119,
+   "size_m": [
+    24,
+    8
+   ],
+   "osm": "way/1159738729",
+   "source": "osm",
+   "note": "OSM building=yes 24 × 8 m (way/1159738729)"
+  },
+  {
+   "ref": "B6",
+   "kind": "building",
+   "lat": 32.6654175,
+   "lon": 35.1957169,
+   "heading": 29,
+   "size_m": [
+    20,
+    7
+   ],
+   "osm": "way/1159738730",
+   "source": "osm",
+   "note": "OSM building=yes 20 × 7 m (way/1159738730)"
+  },
+  {
+   "ref": "B7",
+   "kind": "building",
+   "lat": 32.6656017,
+   "lon": 35.1955498,
+   "heading": 119,
+   "size_m": [
+    27,
+    7
+   ],
+   "osm": "way/1159738731",
+   "source": "osm",
+   "note": "OSM building=yes 27 × 7 m (way/1159738731)"
+  },
+  {
+   "ref": "B8",
+   "kind": "building",
+   "lat": 32.6657746,
+   "lon": 35.1955647,
+   "heading": 119,
+   "size_m": [
+    23,
+    7
+   ],
+   "osm": "way/1159738732",
+   "source": "osm",
+   "note": "OSM building=yes 23 × 7 m (way/1159738732)"
+  },
+  {
+   "ref": "B9",
+   "kind": "building",
+   "lat": 32.6660609,
+   "lon": 35.1950216,
+   "heading": 118,
+   "size_m": [
+    18,
+    6
+   ],
+   "osm": "way/1159738733",
+   "source": "osm",
+   "note": "OSM building=yes 18 × 6 m (way/1159738733)"
+  },
+  {
+   "ref": "B10",
+   "kind": "building",
+   "lat": 32.6656443,
+   "lon": 35.1942491,
+   "heading": 177,
+   "size_m": [
+    16,
+    12
+   ],
+   "osm": "way/1159738734",
+   "source": "osm",
+   "note": "OSM building=yes 16 × 12 m (way/1159738734)"
+  },
+  {
+   "ref": "B11",
+   "kind": "building",
+   "lat": 32.6656222,
+   "lon": 35.1944788,
+   "heading": 30,
+   "size_m": [
+    15,
+    9
+   ],
+   "osm": "way/1159738735",
+   "source": "osm",
+   "note": "OSM building=yes 15 × 9 m (way/1159738735)"
+  },
+  {
+   "ref": "B12",
+   "kind": "building",
+   "lat": 32.6658329,
+   "lon": 35.1946012,
+   "heading": 30,
+   "size_m": [
+    27,
+    11
+   ],
+   "osm": "way/1159738736",
+   "source": "osm",
+   "note": "OSM building=yes 27 × 11 m (way/1159738736)"
+  },
+  {
+   "ref": "B13",
+   "kind": "building",
+   "lat": 32.6660181,
+   "lon": 35.1942252,
+   "heading": 30,
+   "size_m": [
+    27,
+    9
+   ],
+   "osm": "way/1159738737",
+   "source": "osm",
+   "note": "OSM building=yes 27 × 9 m (way/1159738737)"
+  },
+  {
+   "ref": "B14",
+   "kind": "building",
+   "lat": 32.665986,
+   "lon": 35.1930697,
+   "heading": 31,
+   "size_m": [
+    8,
+    7
+   ],
+   "osm": "way/1159738738",
+   "source": "osm",
+   "note": "OSM building=yes 8 × 7 m (way/1159738738)"
+  },
+  {
+   "ref": "B15",
+   "kind": "building",
+   "lat": 32.6656623,
+   "lon": 35.1937324,
+   "heading": 28,
+   "size_m": [
+    22,
+    7
+   ],
+   "osm": "way/1159738739",
+   "source": "osm",
+   "note": "OSM building=yes 22 × 7 m (way/1159738739)"
+  },
+  {
+   "ref": "B16",
+   "kind": "building",
+   "lat": 32.6654762,
+   "lon": 35.1936522,
+   "heading": 27,
+   "size_m": [
+    33,
+    10
+   ],
+   "osm": "way/1159738740",
+   "source": "osm",
+   "note": "OSM building=yes 33 × 10 m (way/1159738740)"
+  },
+  {
+   "ref": "B17",
+   "kind": "building",
+   "lat": 32.6652683,
+   "lon": 35.1938817,
+   "heading": 117,
+   "size_m": [
+    15,
+    10
+   ],
+   "osm": "way/1159738742",
+   "source": "osm",
+   "note": "OSM building=yes 15 × 10 m (way/1159738742)"
+  },
+  {
+   "ref": "B18",
+   "kind": "building",
+   "lat": 32.6646078,
+   "lon": 35.1940073,
+   "heading": 118,
+   "size_m": [
+    13,
+    8
+   ],
+   "osm": "way/1159738743",
+   "source": "osm",
+   "note": "OSM building=yes 13 × 8 m (way/1159738743)"
+  },
+  {
+   "ref": "B19",
+   "kind": "building",
+   "lat": 32.6647889,
+   "lon": 35.1943817,
+   "heading": 117,
+   "size_m": [
+    9,
+    7
+   ],
+   "osm": "way/1159738744",
+   "source": "osm",
+   "note": "OSM building=yes 9 × 7 m (way/1159738744)"
+  },
+  {
+   "ref": "B20",
+   "kind": "building",
+   "lat": 32.6648326,
+   "lon": 35.1940458,
+   "heading": 14,
+   "size_m": [
+    7,
+    7
+   ],
+   "osm": "way/1159738745",
+   "source": "osm",
+   "note": "OSM building=yes 7 × 7 m (way/1159738745)"
+  },
+  {
+   "ref": "B21",
+   "kind": "building",
+   "lat": 32.6649527,
+   "lon": 35.1935221,
+   "heading": 16,
+   "size_m": [
+    9,
+    6
+   ],
+   "osm": "way/1159738746",
+   "source": "osm",
+   "note": "OSM building=yes 9 × 6 m (way/1159738746)"
+  },
+  {
+   "ref": "B22",
+   "kind": "building",
+   "lat": 32.6648813,
+   "lon": 35.1938413,
+   "heading": 105,
+   "size_m": [
+    30,
+    9
+   ],
+   "osm": "way/1159738747",
+   "source": "osm",
+   "note": "OSM building=yes 30 × 9 m (way/1159738747)"
+  },
+  {
+   "ref": "B23",
+   "kind": "building",
+   "lat": 32.6642801,
+   "lon": 35.1925344,
+   "heading": 155,
+   "size_m": [
+    13,
+    8
+   ],
+   "osm": "way/1159738748",
+   "source": "osm",
+   "note": "OSM building=yes 13 × 8 m (way/1159738748)"
+  },
+  {
+   "ref": "B24",
+   "kind": "building",
+   "lat": 32.6649365,
+   "lon": 35.1917636,
+   "heading": 41,
+   "size_m": [
+    45,
+    14
+   ],
+   "osm": "way/1159738749",
+   "source": "osm",
+   "note": "OSM building=yes 45 × 14 m (way/1159738749)"
+  },
+  {
+   "ref": "B25",
+   "kind": "building",
+   "lat": 32.6644758,
+   "lon": 35.1911383,
+   "heading": 36,
+   "size_m": [
+    49,
+    8
+   ],
+   "osm": "way/1159738750",
+   "source": "osm",
+   "note": "OSM building=yes 49 × 8 m (way/1159738750)"
+  },
+  {
+   "ref": "B26",
+   "kind": "building",
+   "lat": 32.6640333,
+   "lon": 35.1904537,
+   "heading": 63,
+   "size_m": [
+    32,
+    21
+   ],
+   "osm": "way/1159738751",
+   "source": "osm",
+   "note": "OSM building=yes 32 × 21 m (way/1159738751)"
+  },
+  {
+   "ref": "B27",
+   "kind": "building",
+   "lat": 32.6633881,
+   "lon": 35.1902684,
+   "heading": 154,
+   "size_m": [
+    22,
+    20
+   ],
+   "osm": "way/1159738752",
+   "source": "osm",
+   "note": "OSM building=yes 22 × 20 m (way/1159738752)"
+  },
+  {
+   "ref": "B28",
+   "kind": "building",
+   "lat": 32.662669,
+   "lon": 35.1918373,
+   "heading": 76,
+   "size_m": [
+    47,
+    6
+   ],
+   "osm": "way/1159738753",
+   "source": "osm",
+   "note": "OSM building=yes 47 × 6 m (way/1159738753)"
+  },
+  {
+   "ref": "B29",
+   "kind": "building",
+   "lat": 32.6625273,
+   "lon": 35.1911739,
+   "heading": 62,
+   "size_m": [
+    31,
+    21
+   ],
+   "osm": "way/1159738754",
+   "source": "osm",
+   "note": "OSM building=yes 31 × 21 m (way/1159738754)"
+  },
+  {
+   "ref": "B30",
+   "kind": "building",
+   "lat": 32.6574956,
+   "lon": 35.1884137,
+   "heading": 72,
+   "size_m": [
+    138,
+    46
+   ],
+   "osm": "way/1159738755",
+   "source": "osm",
+   "note": "OSM building=yes 138 × 46 m (way/1159738755)"
+  },
+  {
+   "ref": "B31",
+   "kind": "building",
+   "lat": 32.6598188,
+   "lon": 35.1866963,
+   "heading": 69,
+   "size_m": [
+    11,
+    8
+   ],
+   "osm": "way/1159738756",
+   "source": "osm",
+   "note": "OSM building=yes 11 × 8 m (way/1159738756)"
+  },
+  {
+   "ref": "B32",
+   "kind": "building",
+   "lat": 32.6602189,
+   "lon": 35.1868713,
+   "heading": 141,
+   "size_m": [
+    27,
+    20
+   ],
+   "osm": "way/1159738757",
+   "source": "osm",
+   "note": "OSM building=yes 27 × 20 m (way/1159738757)"
+  },
+  {
+   "ref": "B33",
+   "kind": "building",
+   "lat": 32.6606857,
+   "lon": 35.1839925,
+   "heading": 118,
+   "size_m": [
+    36,
+    24
+   ],
+   "osm": "way/1159738758",
+   "source": "osm",
+   "note": "OSM building=yes 36 × 24 m (way/1159738758)"
+  },
+  {
+   "ref": "B34",
+   "kind": "building",
+   "lat": 32.6599017,
+   "lon": 35.1833882,
+   "heading": 30,
+   "size_m": [
+    28,
+    20
+   ],
+   "osm": "way/1159738759",
+   "source": "osm",
+   "note": "OSM building=yes 28 × 20 m (way/1159738759)"
+  },
+  {
+   "ref": "B35",
+   "kind": "building",
+   "lat": 32.6601609,
+   "lon": 35.1839883,
+   "heading": 120,
+   "size_m": [
+    24,
+    16
+   ],
+   "osm": "way/1159738760",
+   "source": "osm",
+   "note": "OSM building=yes 24 × 16 m (way/1159738760)"
+  },
+  {
+   "ref": "B36",
+   "kind": "building",
+   "lat": 32.6603873,
+   "lon": 35.1835204,
+   "heading": 120,
+   "size_m": [
+    27,
+    16
+   ],
+   "osm": "way/1159738761",
+   "source": "osm",
+   "note": "OSM building=yes 27 × 16 m (way/1159738761)"
+  },
+  {
+   "ref": "B37",
+   "kind": "building",
+   "lat": 32.6596309,
+   "lon": 35.1850585,
+   "heading": 64,
+   "size_m": [
+    74,
+    20
+   ],
+   "osm": "way/1159738762",
+   "source": "osm",
+   "note": "OSM building=yes 74 × 20 m (way/1159738762)"
+  },
+  {
+   "ref": "B38",
+   "kind": "building",
+   "lat": 32.6693101,
+   "lon": 35.1638284,
+   "heading": 178,
+   "size_m": [
+    27,
+    26
+   ],
+   "osm": "way/1159738766",
+   "source": "osm",
+   "note": "OSM building=yes 27 × 26 m (way/1159738766)"
+  },
+  {
+   "ref": "B39",
+   "kind": "building",
+   "lat": 32.6692589,
+   "lon": 35.1633474,
+   "heading": 175,
+   "size_m": [
+    25,
+    18
+   ],
+   "osm": "way/1159738767",
+   "source": "osm",
+   "note": "OSM building=roof 25 × 18 m (way/1159738767)"
+  },
+  {
+   "ref": "B40",
+   "kind": "building",
+   "lat": 32.6710375,
+   "lon": 35.1729862,
+   "heading": 46,
+   "size_m": [
+    19,
+    15
+   ],
+   "osm": "way/1159738778",
+   "source": "osm",
+   "note": "OSM building=yes 19 × 15 m (way/1159738778)"
+  },
+  {
+   "ref": "B41",
+   "kind": "building",
+   "lat": 32.6708365,
+   "lon": 35.1728225,
+   "heading": 26,
+   "size_m": [
+    20,
+    16
+   ],
+   "osm": "way/1159738779",
+   "source": "osm",
+   "note": "OSM building=yes 20 × 16 m (way/1159738779)"
+  },
+  {
+   "ref": "B42",
+   "kind": "building",
+   "lat": 32.6778155,
+   "lon": 35.1768867,
+   "heading": 57,
+   "size_m": [
+    33,
+    7
+   ],
+   "osm": "way/1159738780",
+   "source": "osm",
+   "note": "OSM building=yes 33 × 7 m (way/1159738780)"
+  },
+  {
+   "ref": "B43",
+   "kind": "building",
+   "lat": 32.6730915,
+   "lon": 35.1722779,
+   "heading": 40,
+   "size_m": [
+    18,
+    12
+   ],
+   "osm": "way/1159738781",
+   "source": "osm",
+   "note": "OSM building=yes 18 × 12 m (way/1159738781)"
+  },
+  {
+   "ref": "B44",
+   "kind": "building",
+   "lat": 32.6734784,
+   "lon": 35.1701409,
+   "heading": 130,
+   "size_m": [
+    11,
+    6
+   ],
+   "osm": "way/1159738782",
+   "source": "osm",
+   "note": "OSM building=yes 11 × 6 m (way/1159738782)"
+  },
+  {
+   "ref": "B45",
+   "kind": "building",
+   "lat": 32.6698483,
+   "lon": 35.1670795,
+   "heading": 2,
+   "size_m": [
+    11,
+    6
+   ],
+   "osm": "way/1159738783",
+   "source": "osm",
+   "note": "OSM building=yes 11 × 6 m (way/1159738783)"
+  },
+  {
+   "ref": "B46",
+   "kind": "building",
+   "lat": 32.6706006,
+   "lon": 35.1678013,
+   "heading": 131,
+   "size_m": [
+    10,
+    6
+   ],
+   "osm": "way/1159738784",
+   "source": "osm",
+   "note": "OSM building=yes 10 × 4 m (way/1159738784)"
+  },
+  {
+   "ref": "B47",
+   "kind": "building",
+   "lat": 32.6711099,
+   "lon": 35.1676068,
+   "heading": 122,
+   "size_m": [
+    11,
+    8
+   ],
+   "osm": "way/1159738785",
+   "source": "osm",
+   "note": "OSM building=yes 11 × 8 m (way/1159738785)"
+  },
+  {
+   "ref": "B48",
+   "kind": "building",
+   "lat": 32.6709409,
+   "lon": 35.1679375,
+   "heading": 177,
+   "size_m": [
+    6,
+    6
+   ],
+   "osm": "way/1159738786",
+   "source": "osm",
+   "note": "OSM building=yes 6 × 3 m (way/1159738786)"
+  },
+  {
+   "ref": "B49",
+   "kind": "building",
+   "lat": 32.6705649,
+   "lon": 35.170804,
+   "heading": 133,
+   "size_m": [
+    12,
+    7
+   ],
+   "osm": "way/1159738788",
+   "source": "osm",
+   "note": "OSM building=yes 12 × 7 m (way/1159738788)"
+  },
+  {
+   "ref": "B50",
+   "kind": "building",
+   "lat": 32.6702255,
+   "lon": 35.1703522,
+   "heading": 133,
+   "size_m": [
+    6,
+    6
+   ],
+   "osm": "way/1159738789",
+   "source": "osm",
+   "note": "OSM building=yes 6 × 3 m (way/1159738789)"
+  },
+  {
+   "ref": "B51",
+   "kind": "building",
+   "lat": 32.6696156,
+   "lon": 35.1698481,
+   "heading": 41,
+   "size_m": [
+    29,
+    16
+   ],
+   "osm": "way/1159738793",
+   "source": "osm",
+   "note": "OSM building=yes 29 × 16 m (way/1159738793)"
+  },
+  {
+   "ref": "B52",
+   "kind": "building",
+   "lat": 32.6702542,
+   "lon": 35.1698913,
+   "heading": 6,
+   "size_m": [
+    16,
+    7
+   ],
+   "osm": "way/1159738794",
+   "source": "osm",
+   "note": "OSM building=yes 16 × 7 m (way/1159738794)"
+  },
+  {
+   "ref": "B53",
+   "kind": "building",
+   "lat": 32.6700777,
+   "lon": 35.1696162,
+   "heading": 97,
+   "size_m": [
+    39,
+    12
+   ],
+   "osm": "way/1159738795",
+   "source": "osm",
+   "note": "OSM building=yes 39 × 12 m (way/1159738795)"
+  },
+  {
+   "ref": "B54",
+   "kind": "building",
+   "lat": 32.6693727,
+   "lon": 35.1694456,
+   "heading": 41,
+   "size_m": [
+    21,
+    12
+   ],
+   "osm": "way/1159738796",
+   "source": "osm",
+   "note": "OSM building=garage 21 × 12 m (way/1159738796)"
+  },
+  {
+   "ref": "B55",
+   "kind": "building",
+   "lat": 32.6695211,
+   "lon": 35.169156,
+   "heading": 93,
+   "size_m": [
+    33,
+    15
+   ],
+   "osm": "way/1159738797",
+   "source": "osm",
+   "note": "OSM building=yes 33 × 15 m (way/1159738797)"
+  },
+  {
+   "ref": "B56",
+   "kind": "building",
+   "lat": 32.6677875,
+   "lon": 35.1671928,
+   "heading": 1,
+   "size_m": [
+    17,
+    14
+   ],
+   "osm": "way/1159738798",
+   "source": "osm",
+   "note": "OSM building=yes 17 × 14 m (way/1159738798)"
+  },
+  {
+   "ref": "B57",
+   "kind": "building",
+   "lat": 32.6684963,
+   "lon": 35.1673006,
+   "heading": 87,
+   "size_m": [
+    27,
+    16
+   ],
+   "osm": "way/1159738799",
+   "source": "osm",
+   "note": "OSM building=yes 27 × 16 m (way/1159738799)"
+  },
+  {
+   "ref": "B58",
+   "kind": "building",
+   "lat": 32.668117,
+   "lon": 35.1674332,
+   "heading": 177,
+   "size_m": [
+    29,
+    26
+   ],
+   "osm": "way/1159738800",
+   "source": "osm",
+   "note": "OSM building=yes 29 × 26 m (way/1159738800)"
+  },
+  {
+   "ref": "B59",
+   "kind": "building",
+   "lat": 32.6683199,
+   "lon": 35.1674861,
+   "heading": 87,
+   "size_m": [
+    12,
+    11
+   ],
+   "osm": "way/1159738801",
+   "source": "osm",
+   "note": "OSM building=yes 12 × 11 m (way/1159738801)"
+  },
+  {
+   "ref": "B60",
+   "kind": "building",
+   "lat": 32.6686106,
+   "lon": 35.1679366,
+   "heading": 87,
+   "size_m": [
+    21,
+    9
+   ],
+   "osm": "way/1159738803",
+   "source": "osm",
+   "note": "OSM building=yes 21 × 9 m (way/1159738803)"
+  },
+  {
+   "ref": "B61",
+   "kind": "building",
+   "lat": 32.6684272,
+   "lon": 35.1679034,
+   "heading": 177,
+   "size_m": [
+    16,
+    10
+   ],
+   "osm": "way/1159738804",
+   "source": "osm",
+   "note": "OSM building=yes 16 × 10 m (way/1159738804)"
+  },
+  {
+   "ref": "B62",
+   "kind": "building",
+   "lat": 32.6686016,
+   "lon": 35.1674684,
+   "heading": 177,
+   "size_m": [
+    17,
+    6
+   ],
+   "osm": "way/1159738805",
+   "source": "osm",
+   "note": "OSM building=yes 17 × 6 m (way/1159738805)"
+  },
+  {
+   "ref": "B63",
+   "kind": "building",
+   "lat": 32.6743568,
+   "lon": 35.1706612,
+   "heading": 132,
+   "size_m": [
+    22,
+    14
+   ],
+   "osm": "way/1159738807",
+   "source": "osm",
+   "note": "OSM building=yes 22 × 14 m (way/1159738807)"
+  },
+  {
+   "ref": "B64",
+   "kind": "building",
+   "lat": 32.6619842,
+   "lon": 35.1967044,
+   "heading": 34,
+   "size_m": [
+    33,
+    13
+   ],
+   "osm": "way/1159738810",
+   "source": "osm",
+   "note": "OSM building=yes 33 × 13 m (way/1159738810)"
+  },
+  {
+   "ref": "B65",
+   "kind": "building",
+   "lat": 32.6621165,
+   "lon": 35.1952236,
+   "heading": 175,
+   "size_m": [
+    14,
+    6
+   ],
+   "osm": "way/1159738811",
+   "source": "osm",
+   "note": "OSM building=yes 14 × 4 m (way/1159738811)"
+  },
+  {
+   "ref": "B66",
+   "kind": "building",
+   "lat": 32.6620419,
+   "lon": 35.1955182,
+   "heading": 86,
+   "size_m": [
+    24,
+    8
+   ],
+   "osm": "way/1159738812",
+   "source": "osm",
+   "note": "OSM building=yes 24 × 8 m (way/1159738812)"
+  },
+  {
+   "ref": "B67",
+   "kind": "building",
+   "lat": 32.6622392,
+   "lon": 35.195427,
+   "heading": 86,
+   "size_m": [
+    18,
+    11
+   ],
+   "osm": "way/1159738813",
+   "source": "osm",
+   "note": "OSM building=yes 18 × 11 m (way/1159738813)"
+  },
+  {
+   "ref": "B68",
+   "kind": "building",
+   "lat": 32.6617521,
+   "lon": 35.1947616,
+   "heading": 178,
+   "size_m": [
+    21,
+    18
+   ],
+   "osm": "way/1159738815",
+   "source": "osm",
+   "note": "OSM building=yes 21 × 18 m (way/1159738815)"
+  },
+  {
+   "ref": "B69",
+   "kind": "building",
+   "lat": 32.6611947,
+   "lon": 35.1944068,
+   "heading": 126,
+   "size_m": [
+    7,
+    7
+   ],
+   "osm": "way/1159738816",
+   "source": "osm",
+   "note": "OSM building=yes 7 × 7 m (way/1159738816)"
+  },
+  {
+   "ref": "B70",
+   "kind": "building",
+   "lat": 32.6615305,
+   "lon": 35.1943351,
+   "heading": 179,
+   "size_m": [
+    6,
+    6
+   ],
+   "osm": "way/1159738817",
+   "source": "osm",
+   "note": "OSM building=yes 6 × 6 m (way/1159738817)"
+  },
+  {
+   "ref": "B71",
+   "kind": "building",
+   "lat": 32.6617347,
+   "lon": 35.1942121,
+   "heading": 89,
+   "size_m": [
+    18,
+    12
+   ],
+   "osm": "way/1159738819",
+   "source": "osm",
+   "note": "OSM building=yes 18 × 12 m (way/1159738819)"
+  },
+  {
+   "ref": "B72",
+   "kind": "building",
+   "lat": 32.6612518,
+   "lon": 35.1942376,
+   "heading": 179,
+   "size_m": [
+    28,
+    9
+   ],
+   "osm": "way/1159738820",
+   "source": "osm",
+   "note": "OSM building=yes 28 × 9 m (way/1159738820)"
+  },
+  {
+   "ref": "B73",
+   "kind": "building",
+   "lat": 32.6607045,
+   "lon": 35.1944364,
+   "heading": 178,
+   "size_m": [
+    27,
+    8
+   ],
+   "osm": "way/1159738823",
+   "source": "osm",
+   "note": "OSM building=yes 27 × 8 m (way/1159738823)"
+  },
+  {
+   "ref": "B74",
+   "kind": "building",
+   "lat": 32.6609722,
+   "lon": 35.1944472,
+   "heading": 181,
+   "size_m": [
+    18,
+    7
+   ],
+   "osm": "way/1159738824",
+   "source": "osm",
+   "note": "OSM building=yes 18 × 7 m (way/1159738824)"
+  },
+  {
+   "ref": "B75",
+   "kind": "building",
+   "lat": 32.6599103,
+   "lon": 35.1937987,
+   "heading": 112,
+   "size_m": [
+    20,
+    16
+   ],
+   "osm": "way/1159738825",
+   "source": "osm",
+   "note": "OSM building=yes 20 × 16 m (way/1159738825)"
+  },
+  {
+   "ref": "B76",
+   "kind": "building",
+   "lat": 32.6600436,
+   "lon": 35.1938648,
+   "heading": 112,
+   "size_m": [
+    20,
+    16
+   ],
+   "osm": "way/1159738826",
+   "source": "osm",
+   "note": "OSM building=yes 20 × 16 m (way/1159738826)"
+  },
+  {
+   "ref": "B77",
+   "kind": "building",
+   "lat": 32.6611115,
+   "lon": 35.1916841,
+   "heading": 158,
+   "size_m": [
+    32,
+    21
+   ],
+   "osm": "way/1159738828",
+   "source": "osm",
+   "note": "OSM building=yes 32 × 21 m (way/1159738828)"
+  },
+  {
+   "ref": "B78",
+   "kind": "building",
+   "lat": 32.6616293,
+   "lon": 35.1911637,
+   "heading": 156,
+   "size_m": [
+    22,
+    22
+   ],
+   "osm": "way/1159738829",
+   "source": "osm",
+   "note": "OSM building=yes 22 × 22 m (way/1159738829)"
+  },
+  {
+   "ref": "B79",
+   "kind": "building",
+   "lat": 32.6709879,
+   "lon": 35.1869973,
+   "heading": 3,
+   "size_m": [
+    34,
+    16
+   ],
+   "osm": "way/1159742227",
+   "source": "osm",
+   "note": "OSM building=yes 34 × 16 m (way/1159742227)"
+  },
+  {
+   "ref": "B80",
+   "kind": "building",
+   "lat": 32.6707971,
+   "lon": 35.187595,
+   "heading": 18,
+   "size_m": [
+    32,
+    21
+   ],
+   "osm": "way/1159742228",
+   "source": "osm",
+   "note": "OSM building=yes 32 × 21 m (way/1159742228)"
+  },
+  {
+   "ref": "B81",
+   "kind": "building",
+   "lat": 32.6708279,
+   "lon": 35.1889339,
+   "heading": 125,
+   "size_m": [
+    25,
+    18
+   ],
+   "osm": "way/1159742229",
+   "source": "osm",
+   "note": "OSM building=yes 25 × 18 m (way/1159742229)"
+  },
+  {
+   "ref": "B82",
+   "kind": "building",
+   "lat": 32.6709441,
+   "lon": 35.1887309,
+   "heading": 31,
+   "size_m": [
+    14,
+    6
+   ],
+   "osm": "way/1159742230",
+   "source": "osm",
+   "note": "OSM building=yes 14 × 5 m (way/1159742230)"
+  },
+  {
+   "ref": "B83",
+   "kind": "building",
+   "lat": 32.6709293,
+   "lon": 35.1884939,
+   "heading": 106,
+   "size_m": [
+    11,
+    10
+   ],
+   "osm": "way/1159742231",
+   "source": "osm",
+   "note": "OSM building=yes 11 × 10 m (way/1159742231)"
+  },
+  {
+   "ref": "B84",
+   "kind": "building",
+   "lat": 32.6711712,
+   "lon": 35.1881223,
+   "heading": 107,
+   "size_m": [
+    42,
+    33
+   ],
+   "osm": "way/1159742232",
+   "source": "osm",
+   "note": "OSM building=yes 42 × 33 m (way/1159742232)"
+  },
+  {
+   "ref": "B85",
+   "kind": "building",
+   "lat": 32.671644,
+   "lon": 35.187847,
+   "heading": 110,
+   "size_m": [
+    31,
+    6
+   ],
+   "osm": "way/1159742233",
+   "source": "osm",
+   "note": "OSM building=yes 31 × 6 m (way/1159742233)"
+  },
+  {
+   "ref": "B86",
+   "kind": "building",
+   "lat": 32.6717009,
+   "lon": 35.1875307,
+   "heading": 19,
+   "size_m": [
+    14,
+    9
+   ],
+   "osm": "way/1159742234",
+   "source": "osm",
+   "note": "OSM building=yes 14 × 9 m (way/1159742234)"
+  },
+  {
+   "ref": "B87",
+   "kind": "building",
+   "lat": 32.6717542,
+   "lon": 35.1872196,
+   "heading": 102,
+   "size_m": [
+    25,
+    17
+   ],
+   "osm": "way/1159742235",
+   "source": "osm",
+   "note": "OSM building=yes 25 × 17 m (way/1159742235)"
+  },
+  {
+   "ref": "B88",
+   "kind": "building",
+   "lat": 32.6716347,
+   "lon": 35.18595,
+   "heading": 7,
+   "size_m": [
+    8,
+    8
+   ],
+   "osm": "way/1159742236",
+   "source": "osm",
+   "note": "OSM building=yes 8 × 8 m (way/1159742236)"
+  },
+  {
+   "ref": "B89",
+   "kind": "building",
+   "lat": 32.6718845,
+   "lon": 35.1862099,
+   "heading": 97,
+   "size_m": [
+    49,
+    20
+   ],
+   "osm": "way/1159742237",
+   "source": "osm",
+   "note": "OSM building=yes 49 × 20 m (way/1159742237)"
+  },
+  {
+   "ref": "B90",
+   "kind": "building",
+   "lat": 32.6718043,
+   "lon": 35.1867218,
+   "heading": 8,
+   "size_m": [
+    25,
+    20
+   ],
+   "osm": "way/1159742238",
+   "source": "osm",
+   "note": "OSM building=yes 25 × 20 m (way/1159742238)"
+  },
+  {
+   "ref": "B91",
+   "kind": "building",
+   "lat": 32.6715801,
+   "lon": 35.18634,
+   "heading": 97,
+   "size_m": [
+    16,
+    7
+   ],
+   "osm": "way/1159742239",
+   "source": "osm",
+   "note": "OSM building=yes 16 × 7 m (way/1159742239)"
+  },
+  {
+   "ref": "B92",
+   "kind": "building",
+   "lat": 32.6715368,
+   "lon": 35.1866545,
+   "heading": 8,
+   "size_m": [
+    24,
+    12
+   ],
+   "osm": "way/1159742241",
+   "source": "osm",
+   "note": "OSM building=yes 24 × 12 m (way/1159742241)"
+  },
+  {
+   "ref": "B93",
+   "kind": "building",
+   "lat": 32.671524,
+   "lon": 35.1873856,
+   "heading": 19,
+   "size_m": [
+    16,
+    8
+   ],
+   "osm": "way/1159742242",
+   "source": "osm",
+   "note": "OSM building=yes 16 × 8 m (way/1159742242)"
+  },
+  {
+   "ref": "B94",
+   "kind": "building",
+   "lat": 32.6712802,
+   "lon": 35.1873498,
+   "heading": 109,
+   "size_m": [
+    23,
+    14
+   ],
+   "osm": "way/1159742243",
+   "source": "osm",
+   "note": "OSM building=yes 23 × 14 m (way/1159742243)"
+  },
+  {
+   "ref": "B95",
+   "kind": "building",
+   "lat": 32.6709618,
+   "lon": 35.1864763,
+   "heading": 2,
+   "size_m": [
+    43,
+    19
+   ],
+   "osm": "way/1159742244",
+   "source": "osm",
+   "note": "OSM building=yes 43 × 19 m (way/1159742244)"
+  },
+  {
+   "ref": "B96",
+   "kind": "building",
+   "lat": 32.670494,
+   "lon": 35.1862058,
+   "heading": 89,
+   "size_m": [
+    12,
+    10
+   ],
+   "osm": "way/1159742245",
+   "source": "osm",
+   "note": "OSM building=yes 12 × 10 m (way/1159742245)"
+  },
+  {
+   "ref": "B97",
+   "kind": "building",
+   "lat": 32.6704879,
+   "lon": 35.1859871,
+   "heading": 179,
+   "size_m": [
+    7,
+    6
+   ],
+   "osm": "way/1159742246",
+   "source": "osm",
+   "note": "OSM building=yes 7 × 5 m (way/1159742246)"
+  },
+  {
+   "ref": "B98",
+   "kind": "building",
+   "lat": 32.6704747,
+   "lon": 35.185395,
+   "heading": 180,
+   "size_m": [
+    16,
+    10
+   ],
+   "osm": "way/1159742248",
+   "source": "osm",
+   "note": "OSM building=yes 16 × 10 m (way/1159742248)"
+  },
+  {
+   "ref": "B99",
+   "kind": "building",
+   "lat": 32.6704059,
+   "lon": 35.1857239,
+   "heading": 92,
+   "size_m": [
+    28,
+    28
+   ],
+   "osm": "way/1159742249",
+   "source": "osm",
+   "note": "OSM building=yes 28 × 28 m (way/1159742249)"
+  },
+  {
+   "ref": "B100",
+   "kind": "building",
+   "lat": 32.6709242,
+   "lon": 35.1855275,
+   "heading": 95,
+   "size_m": [
+    22,
+    9
+   ],
+   "osm": "way/1159742250",
+   "source": "osm",
+   "note": "OSM building=yes 22 × 9 m (way/1159742250)"
+  },
+  {
+   "ref": "B101",
+   "kind": "building",
+   "lat": 32.6710217,
+   "lon": 35.1857837,
+   "heading": 7,
+   "size_m": [
+    38,
+    7
+   ],
+   "osm": "way/1159742251",
+   "source": "osm",
+   "note": "OSM building=yes 38 × 7 m (way/1159742251)"
+  },
+  {
+   "ref": "B102",
+   "kind": "building",
+   "lat": 32.6712178,
+   "lon": 35.1855496,
+   "heading": 95,
+   "size_m": [
+    28,
+    6
+   ],
+   "osm": "way/1159742252",
+   "source": "osm",
+   "note": "OSM building=yes 28 × 6 m (way/1159742252)"
+  },
+  {
+   "ref": "B103",
+   "kind": "building",
+   "lat": 32.6716561,
+   "lon": 35.1847244,
+   "heading": 95,
+   "size_m": [
+    43,
+    26
+   ],
+   "osm": "way/1159742253",
+   "source": "osm",
+   "note": "OSM building=yes 43 × 26 m (way/1159742253)"
+  },
+  {
+   "ref": "B104",
+   "kind": "building",
+   "lat": 32.6716238,
+   "lon": 35.1851799,
+   "heading": 95,
+   "size_m": [
+    42,
+    26
+   ],
+   "osm": "way/1159742254",
+   "source": "osm",
+   "note": "OSM building=yes 42 × 26 m (way/1159742254)"
+  },
+  {
+   "ref": "B105",
+   "kind": "building",
+   "lat": 32.6713013,
+   "lon": 35.1845366,
+   "heading": 2,
+   "size_m": [
+    15,
+    13
+   ],
+   "osm": "way/1159742255",
+   "source": "osm",
+   "note": "OSM building=yes 15 × 13 m (way/1159742255)"
+  },
+  {
+   "ref": "B106",
+   "kind": "building",
+   "lat": 32.6708901,
+   "lon": 35.1847932,
+   "heading": 5,
+   "size_m": [
+    13,
+    7
+   ],
+   "osm": "way/1159742256",
+   "source": "osm",
+   "note": "OSM building=yes 13 × 7 m (way/1159742256)"
+  },
+  {
+   "ref": "B107",
+   "kind": "building",
+   "lat": 32.6709238,
+   "lon": 35.1845679,
+   "heading": 95,
+   "size_m": [
+    13,
+    11
+   ],
+   "osm": "way/1159742257",
+   "source": "osm",
+   "note": "OSM building=yes 13 × 11 m (way/1159742257)"
+  },
+  {
+   "ref": "B108",
+   "kind": "building",
+   "lat": 32.6710776,
+   "lon": 35.1847455,
+   "heading": 95,
+   "size_m": [
+    51,
+    14
+   ],
+   "osm": "way/1159742258",
+   "source": "osm",
+   "note": "OSM building=yes 51 × 14 m (way/1159742258)"
+  },
+  {
+   "ref": "B109",
+   "kind": "building",
+   "lat": 32.6698368,
+   "lon": 35.1882582,
+   "heading": 110,
+   "size_m": [
+    29,
+    11
+   ],
+   "osm": "way/1159742261",
+   "source": "osm",
+   "note": "OSM building=yes 29 × 11 m (way/1159742261)"
+  },
+  {
+   "ref": "H3",
+   "kind": "hangar",
+   "lat": 32.670467,
+   "lon": 35.1882715,
+   "heading": 107,
+   "size_m": [
+    48,
+    46
+   ],
+   "osm": "way/1159742262",
+   "source": "osm",
+   "note": "OSM building=yes 48 × 46 m (way/1159742262); a hangar by its size and place by the pavement (inferred); doors toward the pavement"
+  },
+  {
+   "ref": "H4",
+   "kind": "hangar",
+   "lat": 32.6697715,
+   "lon": 35.189985,
+   "heading": 125,
+   "size_m": [
+    47,
+    35
+   ],
+   "osm": "way/1159742263",
+   "source": "osm",
+   "note": "OSM building=yes 47 × 35 m (way/1159742263); a hangar by its size and place by the pavement (inferred); doors toward the pavement"
+  },
+  {
+   "ref": "B110",
+   "kind": "building",
+   "lat": 32.6702552,
+   "lon": 35.1891907,
+   "heading": 125,
+   "size_m": [
+    45,
+    35
+   ],
+   "osm": "way/1159742264",
+   "source": "osm",
+   "note": "OSM building=yes 45 × 35 m (way/1159742264)"
+  },
+  {
+   "ref": "B111",
+   "kind": "building",
+   "lat": 32.6692993,
+   "lon": 35.19074,
+   "heading": 125,
+   "size_m": [
+    37,
+    29
+   ],
+   "osm": "way/1159742265",
+   "source": "osm",
+   "note": "OSM building=yes 37 × 29 m (way/1159742265)"
+  },
+  {
+   "ref": "B112",
+   "kind": "building",
+   "lat": 32.6681489,
+   "lon": 35.1945918,
+   "heading": 30,
+   "size_m": [
+    11,
+    7
+   ],
+   "osm": "way/1159748486",
+   "source": "osm",
+   "note": "OSM building=yes 11 × 7 m (way/1159748486)"
+  },
+  {
+   "ref": "B113",
+   "kind": "building",
+   "lat": 32.6680942,
+   "lon": 35.1948335,
+   "heading": 30,
+   "size_m": [
+    7,
+    7
+   ],
+   "osm": "way/1159748487",
+   "source": "osm",
+   "note": "OSM building=yes 7 × 7 m (way/1159748487)"
+  },
+  {
+   "ref": "B114",
+   "kind": "building",
+   "lat": 32.6682617,
+   "lon": 35.1947438,
+   "heading": 30,
+   "size_m": [
+    12,
+    11
+   ],
+   "osm": "way/1159748488",
+   "source": "osm",
+   "note": "OSM building=yes 12 × 11 m (way/1159748488)"
+  },
+  {
+   "ref": "B115",
+   "kind": "building",
+   "lat": 32.6683575,
+   "lon": 35.1940105,
+   "heading": 7,
+   "size_m": [
+    27,
+    16
+   ],
+   "osm": "way/1159748490",
+   "source": "osm",
+   "note": "OSM building=yes 27 × 16 m (way/1159748490)"
+  },
+  {
+   "ref": "B116",
+   "kind": "building",
+   "lat": 32.6683663,
+   "lon": 35.193146,
+   "heading": 113,
+   "size_m": [
+    20,
+    6
+   ],
+   "osm": "way/1159748491",
+   "source": "osm",
+   "note": "OSM building=yes 20 × 6 m (way/1159748491)"
+  },
+  {
+   "ref": "B117",
+   "kind": "building",
+   "lat": 32.6683333,
+   "lon": 35.1935397,
+   "heading": 113,
+   "size_m": [
+    24,
+    6
+   ],
+   "osm": "way/1159748492",
+   "source": "osm",
+   "note": "OSM building=yes 24 × 6 m (way/1159748492)"
+  },
+  {
+   "ref": "B118",
+   "kind": "building",
+   "lat": 32.6682075,
+   "lon": 35.19372,
+   "heading": 21,
+   "size_m": [
+    8,
+    7
+   ],
+   "osm": "way/1159748493",
+   "source": "osm",
+   "note": "OSM building=yes 8 × 7 m (way/1159748493)"
+  },
+  {
+   "ref": "B119",
+   "kind": "building",
+   "lat": 32.6680547,
+   "lon": 35.1936363,
+   "heading": 25,
+   "size_m": [
+    18,
+    8
+   ],
+   "osm": "way/1159748494",
+   "source": "osm",
+   "note": "OSM building=yes 18 × 8 m (way/1159748494)"
+  },
+  {
+   "ref": "B120",
+   "kind": "building",
+   "lat": 32.6681192,
+   "lon": 35.1934566,
+   "heading": 111,
+   "size_m": [
+    14,
+    6
+   ],
+   "osm": "way/1159748495",
+   "source": "osm",
+   "note": "OSM building=yes 14 × 5 m (way/1159748495)"
+  },
+  {
+   "ref": "B121",
+   "kind": "building",
+   "lat": 32.6679571,
+   "lon": 35.1932362,
+   "heading": 21,
+   "size_m": [
+    13,
+    6
+   ],
+   "osm": "way/1159748496",
+   "source": "osm",
+   "note": "OSM building=yes 13 × 4 m (way/1159748496)"
+  },
+  {
+   "ref": "B122",
+   "kind": "building",
+   "lat": 32.6681584,
+   "lon": 35.1930695,
+   "heading": 111,
+   "size_m": [
+    12,
+    6
+   ],
+   "osm": "way/1159748497",
+   "source": "osm",
+   "note": "OSM building=yes 12 × 5 m (way/1159748497)"
+  },
+  {
+   "ref": "B123",
+   "kind": "building",
+   "lat": 32.6678515,
+   "lon": 35.1929341,
+   "heading": 115,
+   "size_m": [
+    9,
+    6
+   ],
+   "osm": "way/1159748498",
+   "source": "osm",
+   "note": "OSM building=yes 9 × 6 m (way/1159748498)"
+  },
+  {
+   "ref": "B124",
+   "kind": "building",
+   "lat": 32.668747,
+   "lon": 35.1925721,
+   "heading": 171,
+   "size_m": [
+    23,
+    16
+   ],
+   "osm": "way/1159748501",
+   "source": "osm",
+   "note": "OSM building=yes 23 × 16 m (way/1159748501)"
+  },
+  {
+   "ref": "B125",
+   "kind": "building",
+   "lat": 32.6688,
+   "lon": 35.1928901,
+   "heading": 171,
+   "size_m": [
+    6,
+    6
+   ],
+   "osm": "way/1159748502",
+   "source": "osm",
+   "note": "OSM building=yes 6 × 3 m (way/1159748502)"
+  },
+  {
+   "ref": "B126",
+   "kind": "building",
+   "lat": 32.6689773,
+   "lon": 35.192759,
+   "heading": 81,
+   "size_m": [
+    11,
+    9
+   ],
+   "osm": "way/1159748504",
+   "source": "osm",
+   "note": "OSM building=yes 11 × 9 m (way/1159748504)"
+  },
+  {
+   "ref": "B127",
+   "kind": "building",
+   "lat": 32.6685152,
+   "lon": 35.1921101,
+   "heading": 81,
+   "size_m": [
+    26,
+    6
+   ],
+   "osm": "way/1159748507",
+   "source": "osm",
+   "note": "OSM building=yes 26 × 6 m (way/1159748507)"
+  },
+  {
+   "ref": "B128",
+   "kind": "building",
+   "lat": 32.6685389,
+   "lon": 35.1918847,
+   "heading": 171,
+   "size_m": [
+    17,
+    15
+   ],
+   "osm": "way/1159748508",
+   "source": "osm",
+   "note": "OSM building=yes 17 × 15 m (way/1159748508)"
+  },
+  {
+   "ref": "B129",
+   "kind": "building",
+   "lat": 32.6686952,
+   "lon": 35.1920751,
+   "heading": 81,
+   "size_m": [
+    36,
+    20
+   ],
+   "osm": "way/1159748510",
+   "source": "osm",
+   "note": "OSM building=yes 36 × 20 m (way/1159748510)"
+  },
+  {
+   "ref": "B130",
+   "kind": "building",
+   "lat": 32.668693,
+   "lon": 35.1913234,
+   "heading": 107,
+   "size_m": [
+    12,
+    9
+   ],
+   "osm": "way/1159748511",
+   "source": "osm",
+   "note": "OSM building=yes 12 × 9 m (way/1159748511)"
+  },
+  {
+   "ref": "B131",
+   "kind": "building",
+   "lat": 32.6690172,
+   "lon": 35.1916629,
+   "heading": 107,
+   "size_m": [
+    26,
+    22
+   ],
+   "osm": "way/1159748512",
+   "source": "osm",
+   "note": "OSM building=yes 26 × 22 m (way/1159748512)"
+  },
+  {
+   "ref": "B132",
+   "kind": "building",
+   "lat": 32.6676106,
+   "lon": 35.1963421,
+   "heading": 121,
+   "size_m": [
+    23,
+    8
+   ],
+   "osm": "way/1159748513",
+   "source": "osm",
+   "note": "OSM building=yes 23 × 8 m (way/1159748513)"
+  },
+  {
+   "ref": "B133",
+   "kind": "building",
+   "lat": 32.6678742,
+   "lon": 35.1961182,
+   "heading": 121,
+   "size_m": [
+    24,
+    8
+   ],
+   "osm": "way/1159748514",
+   "source": "osm",
+   "note": "OSM building=yes 24 × 8 m (way/1159748514)"
+  },
+  {
+   "ref": "B134",
+   "kind": "building",
+   "lat": 32.668047,
+   "lon": 35.195777,
+   "heading": 121,
+   "size_m": [
+    24,
+    8
+   ],
+   "osm": "way/1159748515",
+   "source": "osm",
+   "note": "OSM building=yes 24 × 8 m (way/1159748515)"
+  },
+  {
+   "ref": "B135",
+   "kind": "building",
+   "lat": 32.6679967,
+   "lon": 35.1954079,
+   "heading": 117,
+   "size_m": [
+    24,
+    7
+   ],
+   "osm": "way/1159748516",
+   "source": "osm",
+   "note": "OSM building=yes 24 × 7 m (way/1159748516)"
+  },
+  {
+   "ref": "B136",
+   "kind": "building",
+   "lat": 32.667795,
+   "lon": 35.1952868,
+   "heading": 117,
+   "size_m": [
+    23,
+    8
+   ],
+   "osm": "way/1159748517",
+   "source": "osm",
+   "note": "OSM building=yes 23 × 8 m (way/1159748517)"
+  },
+  {
+   "ref": "B137",
+   "kind": "building",
+   "lat": 32.6675987,
+   "lon": 35.1951637,
+   "heading": 117,
+   "size_m": [
+    23,
+    7
+   ],
+   "osm": "way/1159748518",
+   "source": "osm",
+   "note": "OSM building=yes 23 × 7 m (way/1159748518)"
+  },
+  {
+   "ref": "B138",
+   "kind": "building",
+   "lat": 32.6670682,
+   "lon": 35.1949193,
+   "heading": 117,
+   "size_m": [
+    15,
+    10
+   ],
+   "osm": "way/1159748519",
+   "source": "osm",
+   "note": "OSM building=yes 15 × 10 m (way/1159748519)"
+  },
+  {
+   "ref": "B139",
+   "kind": "building",
+   "lat": 32.6668616,
+   "lon": 35.1952362,
+   "heading": 117,
+   "size_m": [
+    20,
+    6
+   ],
+   "osm": "way/1159748520",
+   "source": "osm",
+   "note": "OSM building=yes 20 × 6 m (way/1159748520)"
+  },
+  {
+   "ref": "B140",
+   "kind": "building",
+   "lat": 32.6666893,
+   "lon": 35.1958046,
+   "heading": 117,
+   "size_m": [
+    24,
+    7
+   ],
+   "osm": "way/1159748521",
+   "source": "osm",
+   "note": "OSM building=yes 24 × 7 m (way/1159748521)"
+  },
+  {
+   "ref": "B141",
+   "kind": "building",
+   "lat": 32.6668458,
+   "lon": 35.1960333,
+   "heading": 117,
+   "size_m": [
+    24,
+    8
+   ],
+   "osm": "way/1159748522",
+   "source": "osm",
+   "note": "OSM building=yes 24 × 8 m (way/1159748522)"
+  },
+  {
+   "ref": "B142",
+   "kind": "building",
+   "lat": 32.6668596,
+   "lon": 35.1964857,
+   "heading": 117,
+   "size_m": [
+    24,
+    8
+   ],
+   "osm": "way/1159748523",
+   "source": "osm",
+   "note": "OSM building=yes 24 × 8 m (way/1159748523)"
+  },
+  {
+   "ref": "B143",
+   "kind": "building",
+   "lat": 32.6655004,
+   "lon": 35.1965953,
+   "heading": 117,
+   "size_m": [
+    6,
+    6
+   ],
+   "osm": "way/1159748524",
+   "source": "osm",
+   "note": "OSM building=yes 6 × 4 m (way/1159748524)"
+  },
+  {
+   "ref": "B144",
+   "kind": "building",
+   "lat": 32.6657154,
+   "lon": 35.1968309,
+   "heading": 117,
+   "size_m": [
+    23,
+    7
+   ],
+   "osm": "way/1159748526",
+   "source": "osm",
+   "note": "OSM building=yes 23 × 7 m (way/1159748526)"
+  },
+  {
+   "ref": "B145",
+   "kind": "building",
+   "lat": 32.6659333,
+   "lon": 35.1969546,
+   "heading": 117,
+   "size_m": [
+    25,
+    7
+   ],
+   "osm": "way/1159748527",
+   "source": "osm",
+   "note": "OSM building=yes 25 × 7 m (way/1159748527)"
+  },
+  {
+   "ref": "B146",
+   "kind": "building",
+   "lat": 32.6662253,
+   "lon": 35.1969137,
+   "heading": 117,
+   "size_m": [
+    25,
+    7
+   ],
+   "osm": "way/1159748528",
+   "source": "osm",
+   "note": "OSM building=yes 25 × 7 m (way/1159748528)"
+  },
+  {
+   "ref": "B147",
+   "kind": "building",
+   "lat": 32.6663695,
+   "lon": 35.1963543,
+   "heading": 117,
+   "size_m": [
+    19,
+    9
+   ],
+   "osm": "way/1159748529",
+   "source": "osm",
+   "note": "OSM building=yes 19 × 9 m (way/1159748529)"
+  },
+  {
+   "ref": "B148",
+   "kind": "building",
+   "lat": 32.6663294,
+   "lon": 35.1960186,
+   "heading": 121,
+   "size_m": [
+    26,
+    8
+   ],
+   "osm": "way/1159748530",
+   "source": "osm",
+   "note": "OSM building=yes 26 × 8 m (way/1159748530)"
+  },
+  {
+   "ref": "B149",
+   "kind": "building",
+   "lat": 32.6664959,
+   "lon": 35.1956762,
+   "heading": 120,
+   "size_m": [
+    22,
+    7
+   ],
+   "osm": "way/1159748531",
+   "source": "osm",
+   "note": "OSM building=yes 22 × 7 m (way/1159748531)"
+  },
+  {
+   "ref": "B150",
+   "kind": "building",
+   "lat": 32.6662651,
+   "lon": 35.1956183,
+   "heading": 119,
+   "size_m": [
+    22,
+    7
+   ],
+   "osm": "way/1159748532",
+   "source": "osm",
+   "note": "OSM building=yes 22 × 7 m (way/1159748532)"
+  },
+  {
+   "ref": "B151",
+   "kind": "building",
+   "lat": 32.6664211,
+   "lon": 35.1952575,
+   "heading": 27,
+   "size_m": [
+    36,
+    21
+   ],
+   "osm": "way/1159748533",
+   "source": "osm",
+   "note": "OSM building=yes 36 × 21 m (way/1159748533)"
+  },
+  {
+   "ref": "B152",
+   "kind": "building",
+   "lat": 32.6667841,
+   "lon": 35.194874,
+   "heading": 117,
+   "size_m": [
+    19,
+    6
+   ],
+   "osm": "way/1159748534",
+   "source": "osm",
+   "note": "OSM building=yes 19 × 6 m (way/1159748534)"
+  },
+  {
+   "ref": "B153",
+   "kind": "building",
+   "lat": 32.6666391,
+   "lon": 35.1946039,
+   "heading": 117,
+   "size_m": [
+    19,
+    7
+   ],
+   "osm": "way/1159748535",
+   "source": "osm",
+   "note": "OSM building=yes 19 × 7 m (way/1159748535)"
+  },
+  {
+   "ref": "B154",
+   "kind": "building",
+   "lat": 32.6664623,
+   "lon": 35.1944482,
+   "heading": 117,
+   "size_m": [
+    21,
+    6
+   ],
+   "osm": "way/1159748536",
+   "source": "osm",
+   "note": "OSM building=yes 21 × 6 m (way/1159748536)"
+  },
+  {
+   "ref": "B155",
+   "kind": "building",
+   "lat": 32.6691682,
+   "lon": 35.1873506,
+   "heading": 108,
+   "size_m": [
+    26,
+    19
+   ],
+   "osm": "way/1159748537",
+   "source": "osm",
+   "note": "OSM building=yes 26 × 19 m (way/1159748537)"
+  },
+  {
+   "ref": "B156",
+   "kind": "building",
+   "lat": 32.6689147,
+   "lon": 35.1869435,
+   "heading": 108,
+   "size_m": [
+    52,
+    22
+   ],
+   "osm": "way/1159748538",
+   "source": "osm",
+   "note": "OSM building=yes 52 × 22 m (way/1159748538)"
+  },
+  {
+   "ref": "B157",
+   "kind": "building",
+   "lat": 32.6694575,
+   "lon": 35.1846207,
+   "heading": 8,
+   "size_m": [
+    7,
+    6
+   ],
+   "osm": "way/1159748539",
+   "source": "osm",
+   "note": "OSM building=yes 7 × 4 m (way/1159748539)"
+  },
+  {
+   "ref": "B158",
+   "kind": "building",
+   "lat": 32.6689684,
+   "lon": 35.1844308,
+   "heading": 12,
+   "size_m": [
+    15,
+    9
+   ],
+   "osm": "way/1159748540",
+   "source": "osm",
+   "note": "OSM building=yes 15 × 9 m (way/1159748540)"
+  },
+  {
+   "ref": "B159",
+   "kind": "building",
+   "lat": 32.6684905,
+   "lon": 35.1843221,
+   "heading": 111,
+   "size_m": [
+    12,
+    6
+   ],
+   "osm": "way/1159748541",
+   "source": "osm",
+   "note": "OSM building=yes 12 × 4 m (way/1159748541)"
+  },
+  {
+   "ref": "B160",
+   "kind": "building",
+   "lat": 32.6683638,
+   "lon": 35.1846581,
+   "heading": 115,
+   "size_m": [
+    20,
+    6
+   ],
+   "osm": "way/1159748542",
+   "source": "osm",
+   "note": "OSM building=yes 20 × 4 m (way/1159748542)"
+  },
+  {
+   "ref": "B161",
+   "kind": "building",
+   "lat": 32.6682216,
+   "lon": 35.1845917,
+   "heading": 115,
+   "size_m": [
+    20,
+    9
+   ],
+   "osm": "way/1159748543",
+   "source": "osm",
+   "note": "OSM building=yes 20 × 9 m (way/1159748543)"
+  },
+  {
+   "ref": "B162",
+   "kind": "building",
+   "lat": 32.6681697,
+   "lon": 35.184825,
+   "heading": 115,
+   "size_m": [
+    30,
+    17
+   ],
+   "osm": "way/1159748544",
+   "source": "osm",
+   "note": "OSM building=yes 30 × 17 m (way/1159748544)"
+  },
+  {
+   "ref": "B163",
+   "kind": "building",
+   "lat": 32.6679444,
+   "lon": 35.1843515,
+   "heading": 115,
+   "size_m": [
+    6,
+    6
+   ],
+   "osm": "way/1159748545",
+   "source": "osm",
+   "note": "OSM building=yes 6 × 4 m (way/1159748545)"
+  },
+  {
+   "ref": "B164",
+   "kind": "building",
+   "lat": 32.6585033,
+   "lon": 35.1874596,
+   "heading": 18,
+   "size_m": [
+    11,
+    6
+   ],
+   "osm": "way/1159748547",
+   "source": "osm",
+   "note": "OSM building=yes 11 × 4 m (way/1159748547)"
+  },
+  {
+   "ref": "B165",
+   "kind": "building",
+   "lat": 32.6587029,
+   "lon": 35.1877544,
+   "heading": 38,
+   "size_m": [
+    35,
+    17
+   ],
+   "osm": "way/1159748548",
+   "source": "osm",
+   "note": "OSM building=yes 35 × 17 m (way/1159748548)"
+  },
+  {
+   "ref": "B166",
+   "kind": "building",
+   "lat": 32.6630033,
+   "lon": 35.1792226,
+   "heading": 139,
+   "size_m": [
+    11,
+    7
+   ],
+   "osm": "way/1159748549",
+   "source": "osm",
+   "note": "OSM building=yes 11 × 7 m (way/1159748549)"
+  },
+  {
+   "ref": "B167",
+   "kind": "building",
+   "lat": 32.6629084,
+   "lon": 35.1790795,
+   "heading": 49,
+   "size_m": [
+    16,
+    11
+   ],
+   "osm": "way/1159748550",
+   "source": "osm",
+   "note": "OSM building=yes 16 × 11 m (way/1159748550)"
+  },
+  {
+   "ref": "B168",
+   "kind": "building",
+   "lat": 32.6636507,
+   "lon": 35.1800091,
+   "heading": 56,
+   "size_m": [
+    15,
+    8
+   ],
+   "osm": "way/1159748551",
+   "source": "osm",
+   "note": "OSM building=yes 15 × 8 m (way/1159748551)"
+  },
+  {
+   "ref": "B169",
+   "kind": "building",
+   "lat": 32.6634331,
+   "lon": 35.1798151,
+   "heading": 58,
+   "size_m": [
+    16,
+    12
+   ],
+   "osm": "way/1159748552",
+   "source": "osm",
+   "note": "OSM building=yes 16 × 12 m (way/1159748552)"
+  },
+  {
+   "ref": "B170",
+   "kind": "building",
+   "lat": 32.6634079,
+   "lon": 35.1792431,
+   "heading": 149,
+   "size_m": [
+    35,
+    22
+   ],
+   "osm": "way/1159748553",
+   "source": "osm",
+   "note": "OSM building=yes 35 × 22 m (way/1159748553)"
+  },
+  {
+   "ref": "B171",
+   "kind": "building",
+   "lat": 32.6621194,
+   "lon": 35.180941,
+   "heading": 38,
+   "size_m": [
+    11,
+    6
+   ],
+   "osm": "way/1159748555",
+   "source": "osm",
+   "note": "OSM building=yes 11 × 5 m (way/1159748555)"
+  },
+  {
+   "ref": "B172",
+   "kind": "building",
+   "lat": 32.66172,
+   "lon": 35.1804718,
+   "heading": 38,
+   "size_m": [
+    15,
+    12
+   ],
+   "osm": "way/1159748556",
+   "source": "osm",
+   "note": "OSM building=yes 15 × 12 m (way/1159748556)"
+  },
+  {
+   "ref": "B173",
+   "kind": "building",
+   "lat": 32.6619323,
+   "lon": 35.1807083,
+   "heading": 38,
+   "size_m": [
+    23,
+    18
+   ],
+   "osm": "way/1159748557",
+   "source": "osm",
+   "note": "OSM building=yes 23 × 18 m (way/1159748557)"
+  },
+  {
+   "ref": "B174",
+   "kind": "building",
+   "lat": 32.6615877,
+   "lon": 35.1804004,
+   "heading": 38,
+   "size_m": [
+    21,
+    18
+   ],
+   "osm": "way/1159748558",
+   "source": "osm",
+   "note": "OSM building=yes 21 × 18 m (way/1159748558)"
+  },
+  {
+   "ref": "B175",
+   "kind": "building",
+   "lat": 32.6616471,
+   "lon": 35.1813922,
+   "heading": 126,
+   "size_m": [
+    37,
+    23
+   ],
+   "osm": "way/1159748559",
+   "source": "osm",
+   "note": "OSM building=yes 37 × 23 m (way/1159748559)"
+  },
+  {
+   "ref": "B176",
+   "kind": "building",
+   "lat": 32.661831,
+   "lon": 35.1819148,
+   "heading": 35,
+   "size_m": [
+    26,
+    6
+   ],
+   "osm": "way/1159748560",
+   "source": "osm",
+   "note": "OSM building=yes 26 × 6 m (way/1159748560)"
+  },
+  {
+   "ref": "B177",
+   "kind": "building",
+   "lat": 32.6619862,
+   "lon": 35.1825316,
+   "heading": 34,
+   "size_m": [
+    20,
+    14
+   ],
+   "osm": "way/1159748563",
+   "source": "osm",
+   "note": "OSM building=yes 20 × 14 m (way/1159748563)"
+  },
+  {
+   "ref": "B178",
+   "kind": "building",
+   "lat": 32.661831,
+   "lon": 35.1833168,
+   "heading": 31,
+   "size_m": [
+    19,
+    15
+   ],
+   "osm": "way/1159748564",
+   "source": "osm",
+   "note": "OSM building=yes 19 × 15 m (way/1159748564)"
+  },
+  {
+   "ref": "B179",
+   "kind": "building",
+   "lat": 32.6629066,
+   "lon": 35.1838994,
+   "heading": 32,
+   "size_m": [
+    58,
+    16
+   ],
+   "osm": "way/1159748565",
+   "source": "osm",
+   "note": "OSM building=yes 58 × 16 m (way/1159748565)"
+  },
+  {
+   "ref": "B180",
+   "kind": "building",
+   "lat": 32.6647129,
+   "lon": 35.178924,
+   "heading": 97,
+   "size_m": [
+    25,
+    18
+   ],
+   "osm": "way/1159748570",
+   "source": "osm",
+   "note": "OSM building=yes 25 × 18 m (way/1159748570)"
+  },
+  {
+   "ref": "B181",
+   "kind": "building",
+   "lat": 32.6639045,
+   "lon": 35.1787391,
+   "heading": 27,
+   "size_m": [
+    26,
+    16
+   ],
+   "osm": "way/1159748572",
+   "source": "osm",
+   "note": "OSM building=yes 26 × 16 m (way/1159748572)"
+  },
+  {
+   "ref": "B182",
+   "kind": "building",
+   "lat": 32.663537,
+   "lon": 35.1785042,
+   "heading": 27,
+   "size_m": [
+    18,
+    18
+   ],
+   "osm": "way/1159748573",
+   "source": "osm",
+   "note": "OSM building=yes 18 × 18 m (way/1159748573)"
+  },
+  {
+   "ref": "B183",
+   "kind": "building",
+   "lat": 32.6635003,
+   "lon": 35.1779681,
+   "heading": 1,
+   "size_m": [
+    18,
+    18
+   ],
+   "osm": "way/1159748574",
+   "source": "osm",
+   "note": "OSM building=yes 18 × 18 m (way/1159748574)"
+  },
+  {
+   "ref": "B184",
+   "kind": "building",
+   "lat": 32.6638576,
+   "lon": 35.1779586,
+   "heading": 1,
+   "size_m": [
+    18,
+    18
+   ],
+   "osm": "way/1159748575",
+   "source": "osm",
+   "note": "OSM building=yes 18 × 18 m (way/1159748575)"
+  },
+  {
+   "ref": "B185",
+   "kind": "building",
+   "lat": 32.662553,
+   "lon": 35.1785155,
+   "heading": 140,
+   "size_m": [
+    19,
+    17
+   ],
+   "osm": "way/1159748576",
+   "source": "osm",
+   "note": "OSM building=yes 19 × 17 m (way/1159748576)"
+  },
+  {
+   "ref": "B186",
+   "kind": "building",
+   "lat": 32.6628227,
+   "lon": 35.1782512,
+   "heading": 140,
+   "size_m": [
+    18,
+    17
+   ],
+   "osm": "way/1159748577",
+   "source": "osm",
+   "note": "OSM building=yes 18 × 17 m (way/1159748577)"
+  },
+  {
+   "ref": "B187",
+   "kind": "building",
+   "lat": 32.6628188,
+   "lon": 35.1776424,
+   "heading": 40,
+   "size_m": [
+    41,
+    21
+   ],
+   "osm": "way/1159748578",
+   "source": "osm",
+   "note": "OSM building=yes 41 × 21 m (way/1159748578)"
+  },
+  {
+   "ref": "B188",
+   "kind": "building",
+   "lat": 32.6622832,
+   "lon": 35.178107,
+   "heading": 29,
+   "size_m": [
+    24,
+    11
+   ],
+   "osm": "way/1159748579",
+   "source": "osm",
+   "note": "OSM building=yes 24 × 11 m (way/1159748579)"
+  },
+  {
+   "ref": "B189",
+   "kind": "building",
+   "lat": 32.6624383,
+   "lon": 35.1778986,
+   "heading": 29,
+   "size_m": [
+    33,
+    8
+   ],
+   "osm": "way/1159748580",
+   "source": "osm",
+   "note": "OSM building=yes 33 × 8 m (way/1159748580)"
+  },
+  {
+   "ref": "B190",
+   "kind": "building",
+   "lat": 32.6616584,
+   "lon": 35.1785108,
+   "heading": 124,
+   "size_m": [
+    13,
+    13
+   ],
+   "osm": "way/1159748581",
+   "source": "osm",
+   "note": "OSM building=yes 13 × 13 m (way/1159748581)"
+  },
+  {
+   "ref": "B191",
+   "kind": "building",
+   "lat": 32.6643113,
+   "lon": 35.1728607,
+   "heading": 36,
+   "size_m": [
+    23,
+    22
+   ],
+   "osm": "way/1159748584",
+   "source": "osm",
+   "note": "OSM building=yes 23 × 22 m (way/1159748584)"
+  },
+  {
+   "ref": "B192",
+   "kind": "building",
+   "lat": 32.6626233,
+   "lon": 35.1721205,
+   "heading": 103,
+   "size_m": [
+    14,
+    7
+   ],
+   "osm": "way/1159748585",
+   "source": "osm",
+   "note": "OSM building=yes 14 × 7 m (way/1159748585)"
+  },
+  {
+   "ref": "S26",
+   "kind": "shelter",
+   "lat": 32.6631235,
+   "lon": 35.1770773,
+   "heading": 306,
+   "size_m": [
+    16,
+    21
+   ],
+   "osm": "way/1159748591",
+   "source": "osm",
+   "note": "OSM a munitions bunker 21 × 16 m (way/1159748591), drawn as an earth-covered arch (inferred); door toward the nearest track, 23 m (inferred)"
+  },
+  {
+   "ref": "S27",
+   "kind": "shelter",
+   "lat": 32.663318,
+   "lon": 35.1766299,
+   "heading": 208,
+   "size_m": [
+    13,
+    16
+   ],
+   "osm": "way/1159748592",
+   "source": "osm",
+   "note": "OSM a munitions bunker 16 × 13 m (way/1159748592), drawn as an earth-covered arch (inferred); door toward the nearest track, 15 m (inferred)"
+  },
+  {
+   "ref": "B193",
+   "kind": "building",
+   "lat": 32.6634727,
+   "lon": 35.1762893,
+   "heading": 119,
+   "size_m": [
+    21,
+    9
+   ],
+   "osm": "way/1159748593",
+   "source": "osm",
+   "note": "OSM building=yes 21 × 9 m (way/1159748593)"
+  },
+  {
+   "ref": "S28",
+   "kind": "shelter",
+   "lat": 32.6637114,
+   "lon": 35.1757311,
+   "heading": 208,
+   "size_m": [
+    13,
+    16
+   ],
+   "osm": "way/1159748594",
+   "source": "osm",
+   "note": "OSM a munitions bunker 16 × 13 m (way/1159748594), drawn as an earth-covered arch (inferred); door toward the nearest track, 13 m (inferred)"
+  },
+  {
+   "ref": "S29",
+   "kind": "shelter",
+   "lat": 32.6636048,
+   "lon": 35.1752722,
+   "heading": 28,
+   "size_m": [
+    16,
+    21
+   ],
+   "osm": "way/1159748595",
+   "source": "osm",
+   "note": "OSM a munitions bunker 21 × 16 m (way/1159748595), drawn as an earth-covered arch (inferred); door toward the nearest track, 18 m (inferred)"
+  },
+  {
+   "ref": "S30",
+   "kind": "shelter",
+   "lat": 32.6632058,
+   "lon": 35.1761315,
+   "heading": 28,
+   "size_m": [
+    16,
+    21
+   ],
+   "osm": "way/1159748596",
+   "source": "osm",
+   "note": "OSM a munitions bunker 21 × 16 m (way/1159748596), drawn as an earth-covered arch (inferred); door toward the nearest track, 19 m (inferred)"
+  },
+  {
+   "ref": "S31",
+   "kind": "shelter",
+   "lat": 32.6637063,
+   "lon": 35.1765477,
+   "heading": 59,
+   "size_m": [
+    13,
+    16
+   ],
+   "osm": "way/1159748597",
+   "source": "osm",
+   "note": "OSM a munitions bunker 16 × 13 m (way/1159748597), drawn as an earth-covered arch (inferred); door toward the nearest track, 15 m (inferred)"
+  },
+  {
+   "ref": "S32",
+   "kind": "shelter",
+   "lat": 32.6641173,
+   "lon": 35.1766653,
+   "heading": 239,
+   "size_m": [
+    13,
+    16
+   ],
+   "osm": "way/1159748598",
+   "source": "osm",
+   "note": "OSM a munitions bunker 16 × 13 m (way/1159748598), drawn as an earth-covered arch (inferred); door toward the nearest track, 18 m (inferred)"
+  },
+  {
+   "ref": "S33",
+   "kind": "shelter",
+   "lat": 32.6647303,
+   "lon": 35.1762057,
+   "heading": 239,
+   "size_m": [
+    13,
+    16
+   ],
+   "osm": "way/1159748599",
+   "source": "osm",
+   "note": "OSM a munitions bunker 16 × 13 m (way/1159748599), drawn as an earth-covered arch (inferred); door toward the nearest track, 15 m (inferred)"
+  },
+  {
+   "ref": "S34",
+   "kind": "shelter",
+   "lat": 32.6643385,
+   "lon": 35.1761301,
+   "heading": 59,
+   "size_m": [
+    13,
+    16
+   ],
+   "osm": "way/1159748600",
+   "source": "osm",
+   "note": "OSM a munitions bunker 16 × 13 m (way/1159748600), drawn as an earth-covered arch (inferred); door toward the nearest track, 13 m (inferred)"
+  },
+  {
+   "ref": "S35",
+   "kind": "shelter",
+   "lat": 32.6641666,
+   "lon": 35.1754842,
+   "heading": 298,
+   "size_m": [
+    13,
+    16
+   ],
+   "osm": "way/1159748601",
+   "source": "osm",
+   "note": "OSM a munitions bunker 16 × 13 m (way/1159748601), drawn as an earth-covered arch (inferred); door toward the nearest track, 18 m (inferred)"
+  },
+  {
+   "ref": "S36",
+   "kind": "shelter",
+   "lat": 32.6646716,
+   "lon": 35.1754356,
+   "heading": 118,
+   "size_m": [
+    13,
+    16
+   ],
+   "osm": "way/1159748602",
+   "source": "osm",
+   "note": "OSM a munitions bunker 16 × 13 m (way/1159748602), drawn as an earth-covered arch (inferred); door toward the nearest track, 13 m (inferred)"
+  },
+  {
+   "ref": "S37",
+   "kind": "shelter",
+   "lat": 32.6651543,
+   "lon": 35.1753684,
+   "heading": 175,
+   "size_m": [
+    16,
+    21
+   ],
+   "osm": "way/1159748603",
+   "source": "osm",
+   "note": "OSM a munitions bunker 21 × 16 m (way/1159748603), drawn as an earth-covered arch (inferred); door toward the nearest track, 18 m (inferred)"
+  },
+  {
+   "ref": "S38",
+   "kind": "shelter",
+   "lat": 32.6648375,
+   "lon": 35.1750207,
+   "heading": 355,
+   "size_m": [
+    16,
+    21
+   ],
+   "osm": "way/1159748604",
+   "source": "osm",
+   "note": "OSM a munitions bunker 21 × 16 m (way/1159748604), drawn as an earth-covered arch (inferred); door toward the nearest track, 15 m (inferred)"
+  },
+  {
+   "ref": "S39",
+   "kind": "shelter",
+   "lat": 32.6650976,
+   "lon": 35.1746325,
+   "heading": 175,
+   "size_m": [
+    16,
+    21
+   ],
+   "osm": "way/1159748605",
+   "source": "osm",
+   "note": "OSM a munitions bunker 21 × 16 m (way/1159748605), drawn as an earth-covered arch (inferred); door toward the nearest track, 17 m (inferred)"
+  },
+  {
+   "ref": "S40",
+   "kind": "shelter",
+   "lat": 32.6647618,
+   "lon": 35.174184,
+   "heading": 355,
+   "size_m": [
+    16,
+    21
+   ],
+   "osm": "way/1159748606",
+   "source": "osm",
+   "note": "OSM a munitions bunker 21 × 16 m (way/1159748606), drawn as an earth-covered arch (inferred); door toward the nearest track, 17 m (inferred)"
+  },
+  {
+   "ref": "S41",
+   "kind": "shelter",
+   "lat": 32.6648085,
+   "lon": 35.1732597,
+   "heading": 126,
+   "size_m": [
+    16,
+    21
+   ],
+   "osm": "way/1159748607",
+   "source": "osm",
+   "note": "OSM a munitions bunker 21 × 16 m (way/1159748607), drawn as an earth-covered arch (inferred); door toward the nearest track, 21 m (inferred)"
+  },
+  {
+   "ref": "S42",
+   "kind": "shelter",
+   "lat": 32.6650322,
+   "lon": 35.1737737,
+   "heading": 175,
+   "size_m": [
+    16,
+    21
+   ],
+   "osm": "way/1159748608",
+   "source": "osm",
+   "note": "OSM a munitions bunker 21 × 16 m (way/1159748608), drawn as an earth-covered arch (inferred); door toward the nearest track, 16 m (inferred)"
+  },
+  {
+   "ref": "S43",
+   "kind": "shelter",
+   "lat": 32.6646366,
+   "lon": 35.1737055,
+   "heading": 206,
+   "size_m": [
+    16,
+    21
+   ],
+   "osm": "way/1159748609",
+   "source": "osm",
+   "note": "OSM a munitions bunker 21 × 16 m (way/1159748609), drawn as an earth-covered arch (inferred); door toward the nearest track, 18 m (inferred)"
+  },
+  {
+   "ref": "S44",
+   "kind": "shelter",
+   "lat": 32.6641826,
+   "lon": 35.1739898,
+   "heading": 26,
+   "size_m": [
+    16,
+    21
+   ],
+   "osm": "way/1159748610",
+   "source": "osm",
+   "note": "OSM a munitions bunker 21 × 16 m (way/1159748610), drawn as an earth-covered arch (inferred); door toward the nearest track, 15 m (inferred)"
+  },
+  {
+   "ref": "S45",
+   "kind": "shelter",
+   "lat": 32.6638553,
+   "lon": 35.1747133,
+   "heading": 26,
+   "size_m": [
+    16,
+    21
+   ],
+   "osm": "way/1159748611",
+   "source": "osm",
+   "note": "OSM a munitions bunker 21 × 16 m (way/1159748611), drawn as an earth-covered arch (inferred); door toward the nearest track, 17 m (inferred)"
+  },
+  {
+   "ref": "S46",
+   "kind": "shelter",
+   "lat": 32.6642619,
+   "lon": 35.1745632,
+   "heading": 206,
+   "size_m": [
+    16,
+    21
+   ],
+   "osm": "way/1159748612",
+   "source": "osm",
+   "note": "OSM a munitions bunker 21 × 16 m (way/1159748612), drawn as an earth-covered arch (inferred); door toward the nearest track, 17 m (inferred)"
+  },
+  {
+   "ref": "B194",
+   "kind": "building",
+   "lat": 32.6695233,
+   "lon": 35.1772528,
+   "heading": 107,
+   "size_m": [
+    13,
+    8
+   ],
+   "osm": "way/1159748613",
+   "source": "osm",
+   "note": "OSM building=yes 13 × 8 m (way/1159748613)"
+  },
+  {
+   "ref": "B195",
+   "kind": "building",
+   "lat": 32.6689444,
+   "lon": 35.1795385,
+   "heading": 70,
+   "size_m": [
+    45,
+    25
+   ],
+   "osm": "way/1159748615",
+   "source": "osm",
+   "note": "OSM building=yes 45 × 25 m (way/1159748615)"
+  },
+  {
+   "ref": "B196",
+   "kind": "building",
+   "lat": 32.6687728,
+   "lon": 35.1789799,
+   "heading": 178,
+   "size_m": [
+    21,
+    18
+   ],
+   "osm": "way/1159748616",
+   "source": "osm",
+   "note": "OSM building=yes 21 × 18 m (way/1159748616)"
+  },
+  {
+   "ref": "B197",
+   "kind": "building",
+   "lat": 32.6688705,
+   "lon": 35.1785483,
+   "heading": 8,
+   "size_m": [
+    30,
+    20
+   ],
+   "osm": "way/1159748617",
+   "source": "osm",
+   "note": "OSM building=yes 30 × 20 m (way/1159748617)"
+  },
+  {
+   "ref": "B198",
+   "kind": "building",
+   "lat": 32.6688507,
+   "lon": 35.1770381,
+   "heading": 108,
+   "size_m": [
+    9,
+    6
+   ],
+   "osm": "way/1159748618",
+   "source": "osm",
+   "note": "OSM building=yes 9 × 6 m (way/1159748618)"
+  },
+  {
+   "ref": "B199",
+   "kind": "building",
+   "lat": 32.6688667,
+   "lon": 35.1772582,
+   "heading": 19,
+   "size_m": [
+    8,
+    6
+   ],
+   "osm": "way/1159748619",
+   "source": "osm",
+   "note": "OSM building=yes 8 × 6 m (way/1159748619)"
+  },
+  {
+   "ref": "B200",
+   "kind": "building",
+   "lat": 32.66266,
+   "lon": 35.1945684,
+   "heading": 86,
+   "size_m": [
+    43,
+    19
+   ],
+   "osm": "way/1159749123",
+   "source": "osm",
+   "note": "OSM building=yes 43 × 19 m (way/1159749123)"
+  },
+  {
+   "ref": "B201",
+   "kind": "building",
+   "lat": 32.6595324,
+   "lon": 35.1941636,
+   "heading": 22,
+   "size_m": [
+    9,
+    6
+   ],
+   "osm": "way/1159749124",
+   "source": "osm",
+   "note": "OSM building=yes 9 × 5 m (way/1159749124)"
+  },
+  {
+   "ref": "B202",
+   "kind": "building",
+   "lat": 32.6595945,
+   "lon": 35.1940148,
+   "heading": 23,
+   "size_m": [
+    16,
+    15
+   ],
+   "osm": "way/1159749125",
+   "source": "osm",
+   "note": "OSM building=yes 16 × 15 m (way/1159749125)"
+  },
+  {
+   "ref": "B203",
+   "kind": "building",
+   "lat": 32.6591441,
+   "lon": 35.1941456,
+   "heading": 27,
+   "size_m": [
+    21,
+    15
+   ],
+   "osm": "way/1159749126",
+   "source": "osm",
+   "note": "OSM building=yes 21 × 15 m (way/1159749126)"
+  },
+  {
+   "ref": "B204",
+   "kind": "building",
+   "lat": 32.6589076,
+   "lon": 35.193691,
+   "heading": 35,
+   "size_m": [
+    7,
+    7
+   ],
+   "osm": "way/1159749127",
+   "source": "osm",
+   "note": "OSM building=yes 7 × 7 m (way/1159749127)"
+  },
+  {
+   "ref": "B205",
+   "kind": "building",
+   "lat": 32.658519,
+   "lon": 35.1933798,
+   "heading": 37,
+   "size_m": [
+    18,
+    13
+   ],
+   "osm": "way/1159749128",
+   "source": "osm",
+   "note": "OSM building=yes 18 × 13 m (way/1159749128)"
+  },
+  {
+   "ref": "B206",
+   "kind": "building",
+   "lat": 32.658847,
+   "lon": 35.1931863,
+   "heading": 34,
+   "size_m": [
+    15,
+    15
+   ],
+   "osm": "way/1159749129",
+   "source": "osm",
+   "note": "OSM building=yes 15 × 15 m (way/1159749129)"
+  },
+  {
+   "ref": "B207",
+   "kind": "building",
+   "lat": 32.6591416,
+   "lon": 35.19341,
+   "heading": 121,
+   "size_m": [
+    14,
+    7
+   ],
+   "osm": "way/1159749131",
+   "source": "osm",
+   "note": "OSM building=yes 14 × 7 m (way/1159749131)"
+  },
+  {
+   "ref": "B208",
+   "kind": "building",
+   "lat": 32.6593118,
+   "lon": 35.1935282,
+   "heading": 117,
+   "size_m": [
+    14,
+    14
+   ],
+   "osm": "way/1159749134",
+   "source": "osm",
+   "note": "OSM building=yes 14 × 14 m (way/1159749134)"
+  },
+  {
+   "ref": "B209",
+   "kind": "building",
+   "lat": 32.6594402,
+   "lon": 35.1936081,
+   "heading": 27,
+   "size_m": [
+    15,
+    14
+   ],
+   "osm": "way/1159749135",
+   "source": "osm",
+   "note": "OSM building=yes 15 × 14 m (way/1159749135)"
+  },
+  {
+   "ref": "B210",
+   "kind": "building",
+   "lat": 32.6701968,
+   "lon": 35.1921224,
+   "heading": 30,
+   "size_m": [
+    9,
+    6
+   ],
+   "osm": "way/1159751871",
+   "source": "osm",
+   "note": "OSM building=yes 9 × 5 m (way/1159751871)"
+  },
+  {
+   "ref": "B211",
+   "kind": "building",
+   "lat": 32.6705894,
+   "lon": 35.1918463,
+   "heading": 95,
+   "size_m": [
+    13,
+    8
+   ],
+   "osm": "way/1159751873",
+   "source": "osm",
+   "note": "OSM building=yes 13 × 8 m (way/1159751873)"
+  },
+  {
+   "ref": "B212",
+   "kind": "building",
+   "lat": 32.6708112,
+   "lon": 35.1917962,
+   "heading": 5,
+   "size_m": [
+    23,
+    15
+   ],
+   "osm": "way/1159751874",
+   "source": "osm",
+   "note": "OSM building=yes 23 × 15 m (way/1159751874)"
+  },
+  {
+   "ref": "B213",
+   "kind": "building",
+   "lat": 32.6716143,
+   "lon": 35.1918244,
+   "heading": 95,
+   "size_m": [
+    6,
+    6
+   ],
+   "osm": "way/1159751875",
+   "source": "osm",
+   "note": "OSM building=yes 6 × 2 m (way/1159751875)"
+  },
+  {
+   "ref": "B214",
+   "kind": "building",
+   "lat": 32.6715468,
+   "lon": 35.19202,
+   "heading": 5,
+   "size_m": [
+    24,
+    15
+   ],
+   "osm": "way/1159751876",
+   "source": "osm",
+   "note": "OSM building=yes 24 × 15 m (way/1159751876)"
+  },
+  {
+   "ref": "B215",
+   "kind": "building",
+   "lat": 32.6714336,
+   "lon": 35.1924629,
+   "heading": 95,
+   "size_m": [
+    42,
+    25
+   ],
+   "osm": "way/1159751877",
+   "source": "osm",
+   "note": "OSM building=yes 42 × 25 m (way/1159751877)"
+  },
+  {
+   "ref": "B216",
+   "kind": "building",
+   "lat": 32.6708291,
+   "lon": 35.1902603,
+   "heading": 32,
+   "size_m": [
+    11,
+    9
+   ],
+   "osm": "way/1159751878",
+   "source": "osm",
+   "note": "OSM building=yes 11 × 9 m (way/1159751878)"
+  },
+  {
+   "ref": "B217",
+   "kind": "building",
+   "lat": 32.6715552,
+   "lon": 35.1893195,
+   "heading": 124,
+   "size_m": [
+    19,
+    18
+   ],
+   "osm": "way/1159751879",
+   "source": "osm",
+   "note": "OSM building=yes 19 × 18 m (way/1159751879)"
+  },
+  {
+   "ref": "B218",
+   "kind": "building",
+   "lat": 32.6710436,
+   "lon": 35.1904702,
+   "heading": 33,
+   "size_m": [
+    13,
+    7
+   ],
+   "osm": "way/1159751880",
+   "source": "osm",
+   "note": "OSM building=yes 13 × 7 m (way/1159751880)"
+  },
+  {
+   "ref": "B219",
+   "kind": "building",
+   "lat": 32.6713804,
+   "lon": 35.190343,
+   "heading": 123,
+   "size_m": [
+    14,
+    14
+   ],
+   "osm": "way/1159751881",
+   "source": "osm",
+   "note": "OSM building=yes 14 × 14 m (way/1159751881)"
+  },
+  {
+   "ref": "B220",
+   "kind": "building",
+   "lat": 32.6712604,
+   "lon": 35.1901418,
+   "heading": 123,
+   "size_m": [
+    17,
+    10
+   ],
+   "osm": "way/1159751883",
+   "source": "osm",
+   "note": "OSM building=yes 17 × 10 m (way/1159751883)"
+  },
+  {
+   "ref": "B221",
+   "kind": "building",
+   "lat": 32.6712113,
+   "lon": 35.1899028,
+   "heading": 123,
+   "size_m": [
+    40,
+    25
+   ],
+   "osm": "way/1159751884",
+   "source": "osm",
+   "note": "OSM building=yes 40 × 25 m (way/1159751884)"
+  },
+  {
+   "ref": "B222",
+   "kind": "building",
+   "lat": 32.6710724,
+   "lon": 35.1910968,
+   "heading": 123,
+   "size_m": [
+    57,
+    15
+   ],
+   "osm": "way/1159751885",
+   "source": "osm",
+   "note": "OSM building=yes 57 × 15 m (way/1159751885)"
+  },
+  {
+   "ref": "B223",
+   "kind": "building",
+   "lat": 32.6707411,
+   "lon": 35.1907017,
+   "heading": 123,
+   "size_m": [
+    49,
+    40
+   ],
+   "osm": "way/1159751886",
+   "source": "osm",
+   "note": "OSM building=yes 49 × 40 m (way/1159751886)"
+  },
+  {
+   "ref": "B224",
+   "kind": "building",
+   "lat": 32.6697098,
+   "lon": 35.1959926,
+   "heading": 169,
+   "size_m": [
+    8,
+    8
+   ],
+   "osm": "way/1159760435",
+   "source": "osm",
+   "note": "OSM building=yes 8 × 8 m (way/1159760435)"
+  },
+  {
+   "ref": "B225",
+   "kind": "building",
+   "lat": 32.6713828,
+   "lon": 35.1963459,
+   "heading": 81,
+   "size_m": [
+    34,
+    10
+   ],
+   "osm": "way/1159760436",
+   "source": "osm",
+   "note": "OSM building=yes 34 × 10 m (way/1159760436)"
+  },
+  {
+   "ref": "B226",
+   "kind": "building",
+   "lat": 32.669885,
+   "lon": 35.1960288,
+   "heading": 169,
+   "size_m": [
+    10,
+    6
+   ],
+   "osm": "way/1159760440",
+   "source": "osm",
+   "note": "OSM building=yes 10 × 6 m (way/1159760440)"
+  },
+  {
+   "ref": "B227",
+   "kind": "building",
+   "lat": 32.6701454,
+   "lon": 35.1962495,
+   "heading": 79,
+   "size_m": [
+    20,
+    12
+   ],
+   "osm": "way/1159760442",
+   "source": "osm",
+   "note": "OSM building=yes 20 × 12 m (way/1159760442)"
+  },
+  {
+   "ref": "B228",
+   "kind": "building",
+   "lat": 32.6704194,
+   "lon": 35.1957913,
+   "heading": 79,
+   "size_m": [
+    14,
+    6
+   ],
+   "osm": "way/1159760443",
+   "source": "osm",
+   "note": "OSM building=yes 14 × 6 m (way/1159760443)"
+  },
+  {
+   "ref": "B229",
+   "kind": "building",
+   "lat": 32.6702921,
+   "lon": 35.1960057,
+   "heading": 79,
+   "size_m": [
+    14,
+    6
+   ],
+   "osm": "way/1159760444",
+   "source": "osm",
+   "note": "OSM building=yes 14 × 6 m (way/1159760444)"
+  },
+  {
+   "ref": "B230",
+   "kind": "building",
+   "lat": 32.6693013,
+   "lon": 35.1937734,
+   "heading": 31,
+   "size_m": [
+    12,
+    6
+   ],
+   "osm": "way/1159760445",
+   "source": "osm",
+   "note": "OSM building=yes 12 × 6 m (way/1159760445)"
+  },
+  {
+   "ref": "B231",
+   "kind": "building",
+   "lat": 32.6694114,
+   "lon": 35.1943902,
+   "heading": 30,
+   "size_m": [
+    6,
+    6
+   ],
+   "osm": "way/1159760446",
+   "source": "osm",
+   "note": "OSM building=yes 6 × 4 m (way/1159760446)"
+  },
+  {
+   "ref": "B232",
+   "kind": "building",
+   "lat": 32.6692759,
+   "lon": 35.1942974,
+   "heading": 30,
+   "size_m": [
+    6,
+    6
+   ],
+   "osm": "way/1159760447",
+   "source": "osm",
+   "note": "OSM building=yes 6 × 5 m (way/1159760447)"
+  },
+  {
+   "ref": "B233",
+   "kind": "building",
+   "lat": 32.6694816,
+   "lon": 35.1945487,
+   "heading": 30,
+   "size_m": [
+    6,
+    6
+   ],
+   "osm": "way/1159760452",
+   "source": "osm",
+   "note": "OSM building=yes 5 × 3 m (way/1159760452)"
+  },
+  {
+   "ref": "B234",
+   "kind": "building",
+   "lat": 32.6696795,
+   "lon": 35.1946324,
+   "heading": 119,
+   "size_m": [
+    6,
+    6
+   ],
+   "osm": "way/1159760453",
+   "source": "osm",
+   "note": "OSM building=yes 6 × 4 m (way/1159760453)"
+  },
+  {
+   "ref": "B235",
+   "kind": "building",
+   "lat": 32.6698272,
+   "lon": 35.1946403,
+   "heading": 119,
+   "size_m": [
+    7,
+    6
+   ],
+   "osm": "way/1159760458",
+   "source": "osm",
+   "note": "OSM building=yes 7 × 5 m (way/1159760458)"
+  },
+  {
+   "ref": "B236",
+   "kind": "building",
+   "lat": 32.6699929,
+   "lon": 35.1947094,
+   "heading": 119,
+   "size_m": [
+    11,
+    8
+   ],
+   "osm": "way/1159760462",
+   "source": "osm",
+   "note": "OSM building=yes 11 × 8 m (way/1159760462)"
+  },
+  {
+   "ref": "B237",
+   "kind": "building",
+   "lat": 32.6695584,
+   "lon": 35.1937168,
+   "heading": 119,
+   "size_m": [
+    7,
+    6
+   ],
+   "osm": "way/1159760464",
+   "source": "osm",
+   "note": "OSM building=yes 7 × 5 m (way/1159760464)"
+  },
+  {
+   "ref": "B238",
+   "kind": "building",
+   "lat": 32.6697275,
+   "lon": 35.1937966,
+   "heading": 30,
+   "size_m": [
+    8,
+    7
+   ],
+   "osm": "way/1159760468",
+   "source": "osm",
+   "note": "OSM building=yes 8 × 7 m (way/1159760468)"
+  },
+  {
+   "ref": "B239",
+   "kind": "building",
+   "lat": 32.6697421,
+   "lon": 35.1942469,
+   "heading": 119,
+   "size_m": [
+    6,
+    6
+   ],
+   "osm": "way/1159760470",
+   "source": "osm",
+   "note": "OSM building=yes 6 × 4 m (way/1159760470)"
+  },
+  {
+   "ref": "B240",
+   "kind": "building",
+   "lat": 32.669539,
+   "lon": 35.1941055,
+   "heading": 119,
+   "size_m": [
+    7,
+    6
+   ],
+   "osm": "way/1159760471",
+   "source": "osm",
+   "note": "OSM building=yes 7 × 5 m (way/1159760471)"
+  },
+  {
+   "ref": "B241",
+   "kind": "building",
+   "lat": 32.6698701,
+   "lon": 35.1943012,
+   "heading": 119,
+   "size_m": [
+    9,
+    7
+   ],
+   "osm": "way/1159760476",
+   "source": "osm",
+   "note": "OSM building=yes 9 × 7 m (way/1159760476)"
+  },
+  {
+   "ref": "B242",
+   "kind": "building",
+   "lat": 32.6700382,
+   "lon": 35.1943853,
+   "heading": 119,
+   "size_m": [
+    11,
+    8
+   ],
+   "osm": "way/1159760477",
+   "source": "osm",
+   "note": "OSM building=yes 11 × 8 m (way/1159760477)"
+  },
+  {
+   "ref": "B243",
+   "kind": "building",
+   "lat": 32.6700411,
+   "lon": 35.1957672,
+   "heading": 122,
+   "size_m": [
+    6,
+    6
+   ],
+   "osm": "way/1159760481",
+   "source": "osm",
+   "note": "OSM building=yes 6 × 6 m (way/1159760481)"
+  },
+  {
+   "ref": "B244",
+   "kind": "building",
+   "lat": 32.6701686,
+   "lon": 35.1955389,
+   "heading": 32,
+   "size_m": [
+    15,
+    15
+   ],
+   "osm": "way/1159760482",
+   "source": "osm",
+   "note": "OSM building=yes 15 × 15 m (way/1159760482)"
+  },
+  {
+   "ref": "B245",
+   "kind": "building",
+   "lat": 32.6705182,
+   "lon": 35.1965902,
+   "heading": 80,
+   "size_m": [
+    18,
+    8
+   ],
+   "osm": "way/1159760483",
+   "source": "osm",
+   "note": "OSM building=yes 18 × 8 m (way/1159760483)"
+  },
+  {
+   "ref": "B246",
+   "kind": "building",
+   "lat": 32.6706889,
+   "lon": 35.196266,
+   "heading": 75,
+   "size_m": [
+    18,
+    7
+   ],
+   "osm": "way/1159760484",
+   "source": "osm",
+   "note": "OSM building=yes 18 × 7 m (way/1159760484)"
+  },
+  {
+   "ref": "B247",
+   "kind": "building",
+   "lat": 32.6708165,
+   "lon": 35.1969099,
+   "heading": 75,
+   "size_m": [
+    27,
+    7
+   ],
+   "osm": "way/1159760485",
+   "source": "osm",
+   "note": "OSM building=yes 27 × 7 m (way/1159760485)"
+  },
+  {
+   "ref": "B248",
+   "kind": "building",
+   "lat": 32.6719799,
+   "lon": 35.1979321,
+   "heading": 121,
+   "size_m": [
+    14,
+    10
+   ],
+   "osm": "way/1159760488",
+   "source": "osm",
+   "note": "OSM building=yes 14 × 10 m (way/1159760488)"
+  },
+  {
+   "ref": "B249",
+   "kind": "building",
+   "lat": 32.6712702,
+   "lon": 35.1972132,
+   "heading": 89,
+   "size_m": [
+    19,
+    10
+   ],
+   "osm": "way/1159760490",
+   "source": "osm",
+   "note": "OSM building=yes 19 × 10 m (way/1159760490)"
+  },
+  {
+   "ref": "B250",
+   "kind": "building",
+   "lat": 32.6712069,
+   "lon": 35.1965506,
+   "heading": 83,
+   "size_m": [
+    31,
+    12
+   ],
+   "osm": "way/1159760491",
+   "source": "osm",
+   "note": "OSM building=yes 31 × 12 m (way/1159760491)"
+  },
+  {
+   "ref": "B251",
+   "kind": "building",
+   "lat": 32.6711566,
+   "lon": 35.1960759,
+   "heading": 83,
+   "size_m": [
+    30,
+    12
+   ],
+   "osm": "way/1159760492",
+   "source": "osm",
+   "note": "OSM building=yes 30 × 12 m (way/1159760492)"
+  },
+  {
+   "ref": "B252",
+   "kind": "building",
+   "lat": 32.6715277,
+   "lon": 35.1971352,
+   "heading": 81,
+   "size_m": [
+    36,
+    11
+   ],
+   "osm": "way/1159760493",
+   "source": "osm",
+   "note": "OSM building=yes 36 × 11 m (way/1159760493)"
+  },
+  {
+   "ref": "B253",
+   "kind": "building",
+   "lat": 32.6714769,
+   "lon": 35.1967374,
+   "heading": 81,
+   "size_m": [
+    27,
+    11
+   ],
+   "osm": "way/1159760494",
+   "source": "osm",
+   "note": "OSM building=yes 27 × 11 m (way/1159760494)"
+  },
+  {
+   "ref": "B254",
+   "kind": "building",
+   "lat": 32.6703284,
+   "lon": 35.1950684,
+   "heading": 31,
+   "size_m": [
+    16,
+    9
+   ],
+   "osm": "way/1159760495",
+   "source": "osm",
+   "note": "OSM building=yes 16 × 9 m (way/1159760495)"
+  },
+  {
+   "ref": "B255",
+   "kind": "building",
+   "lat": 32.6701389,
+   "lon": 35.1950755,
+   "heading": 122,
+   "size_m": [
+    9,
+    8
+   ],
+   "osm": "way/1159760496",
+   "source": "osm",
+   "note": "OSM building=yes 9 × 8 m (way/1159760496)"
+  },
+  {
+   "ref": "B256",
+   "kind": "building",
+   "lat": 32.6704478,
+   "lon": 35.1953027,
+   "heading": 31,
+   "size_m": [
+    20,
+    9
+   ],
+   "osm": "way/1159760497",
+   "source": "osm",
+   "note": "OSM building=yes 20 × 9 m (way/1159760497)"
+  },
+  {
+   "ref": "B257",
+   "kind": "building",
+   "lat": 32.6711115,
+   "lon": 35.1956675,
+   "heading": 91,
+   "size_m": [
+    13,
+    9
+   ],
+   "osm": "way/1159760498",
+   "source": "osm",
+   "note": "OSM building=yes 13 × 9 m (way/1159760498)"
+  },
+  {
+   "ref": "B258",
+   "kind": "building",
+   "lat": 32.6711058,
+   "lon": 35.1951673,
+   "heading": 119,
+   "size_m": [
+    15,
+    11
+   ],
+   "osm": "way/1159760499",
+   "source": "osm",
+   "note": "OSM building=yes 15 × 11 m (way/1159760499)"
+  },
+  {
+   "ref": "B259",
+   "kind": "building",
+   "lat": 32.6706964,
+   "lon": 35.1950603,
+   "heading": 31,
+   "size_m": [
+    34,
+    10
+   ],
+   "osm": "way/1159760500",
+   "source": "osm",
+   "note": "OSM building=yes 34 × 10 m (way/1159760500)"
+  },
+  {
+   "ref": "B260",
+   "kind": "building",
+   "lat": 32.6708945,
+   "lon": 35.1947176,
+   "heading": 60,
+   "size_m": [
+    31,
+    10
+   ],
+   "osm": "way/1159760501",
+   "source": "osm",
+   "note": "OSM building=yes 31 × 10 m (way/1159760501)"
+  },
+  {
+   "ref": "B261",
+   "kind": "building",
+   "lat": 32.6705976,
+   "lon": 35.1944704,
+   "heading": 62,
+   "size_m": [
+    31,
+    10
+   ],
+   "osm": "way/1159760502",
+   "source": "osm",
+   "note": "OSM building=yes 31 × 10 m (way/1159760502)"
+  },
+  {
+   "ref": "B262",
+   "kind": "building",
+   "lat": 32.6702478,
+   "lon": 35.1941591,
+   "heading": 61,
+   "size_m": [
+    29,
+    9
+   ],
+   "osm": "way/1159760503",
+   "source": "osm",
+   "note": "OSM building=yes 29 × 9 m (way/1159760503)"
+  },
+  {
+   "ref": "B263",
+   "kind": "building",
+   "lat": 32.6699946,
+   "lon": 35.1939396,
+   "heading": 61,
+   "size_m": [
+    30,
+    10
+   ],
+   "osm": "way/1159760504",
+   "source": "osm",
+   "note": "OSM building=yes 30 × 10 m (way/1159760504)"
+  },
+  {
+   "ref": "B264",
+   "kind": "building",
+   "lat": 32.6691545,
+   "lon": 35.1982436,
+   "heading": 123,
+   "size_m": [
+    11,
+    10
+   ],
+   "osm": "way/1159760506",
+   "source": "osm",
+   "note": "OSM building=yes 11 × 10 m (way/1159760506)"
+  },
+  {
+   "ref": "B265",
+   "kind": "building",
+   "lat": 32.6698405,
+   "lon": 35.1987743,
+   "heading": 123,
+   "size_m": [
+    11,
+    10
+   ],
+   "osm": "way/1159760507",
+   "source": "osm",
+   "note": "OSM building=yes 11 × 10 m (way/1159760507)"
+  },
+  {
+   "ref": "B266",
+   "kind": "building",
+   "lat": 32.6693743,
+   "lon": 35.1984131,
+   "heading": 123,
+   "size_m": [
+    11,
+    10
+   ],
+   "osm": "way/1159760508",
+   "source": "osm",
+   "note": "OSM building=yes 11 × 10 m (way/1159760508)"
+  },
+  {
+   "ref": "B267",
+   "kind": "building",
+   "lat": 32.6695914,
+   "lon": 35.1985816,
+   "heading": 123,
+   "size_m": [
+    11,
+    10
+   ],
+   "osm": "way/1159760509",
+   "source": "osm",
+   "note": "OSM building=yes 11 × 10 m (way/1159760509)"
+  },
+  {
+   "ref": "B268",
+   "kind": "building",
+   "lat": 32.6699052,
+   "lon": 35.1978621,
+   "heading": 123,
+   "size_m": [
+    11,
+    10
+   ],
+   "osm": "way/1159760510",
+   "source": "osm",
+   "note": "OSM building=yes 11 × 10 m (way/1159760510)"
+  },
+  {
+   "ref": "B269",
+   "kind": "building",
+   "lat": 32.6696561,
+   "lon": 35.1976694,
+   "heading": 123,
+   "size_m": [
+    11,
+    10
+   ],
+   "osm": "way/1159760511",
+   "source": "osm",
+   "note": "OSM building=yes 11 × 10 m (way/1159760511)"
+  },
+  {
+   "ref": "B270",
+   "kind": "building",
+   "lat": 32.669439,
+   "lon": 35.197501,
+   "heading": 123,
+   "size_m": [
+    11,
+    10
+   ],
+   "osm": "way/1159760512",
+   "source": "osm",
+   "note": "OSM building=yes 11 × 10 m (way/1159760512)"
+  },
+  {
+   "ref": "B271",
+   "kind": "building",
+   "lat": 32.6692192,
+   "lon": 35.1973314,
+   "heading": 123,
+   "size_m": [
+    11,
+    10
+   ],
+   "osm": "way/1159760513",
+   "source": "osm",
+   "note": "OSM building=yes 11 × 10 m (way/1159760513)"
+  },
+  {
+   "ref": "B272",
+   "kind": "building",
+   "lat": 32.6696688,
+   "lon": 35.197352,
+   "heading": 33,
+   "size_m": [
+    6,
+    6
+   ],
+   "osm": "way/1159760514",
+   "source": "osm",
+   "note": "OSM building=yes 6 × 4 m (way/1159760514)"
+  },
+  {
+   "ref": "B273",
+   "kind": "building",
+   "lat": 32.6700537,
+   "lon": 35.1975715,
+   "heading": 123,
+   "size_m": [
+    11,
+    10
+   ],
+   "osm": "way/1159760515",
+   "source": "osm",
+   "note": "OSM building=yes 11 × 10 m (way/1159760515)"
+  },
+  {
+   "ref": "B274",
+   "kind": "building",
+   "lat": 32.6698366,
+   "lon": 35.197402,
+   "heading": 123,
+   "size_m": [
+    11,
+    10
+   ],
+   "osm": "way/1159760516",
+   "source": "osm",
+   "note": "OSM building=yes 11 × 10 m (way/1159760516)"
+  },
+  {
+   "ref": "B275",
+   "kind": "building",
+   "lat": 32.6695884,
+   "lon": 35.1972082,
+   "heading": 123,
+   "size_m": [
+    11,
+    10
+   ],
+   "osm": "way/1159760517",
+   "source": "osm",
+   "note": "OSM building=yes 11 × 10 m (way/1159760517)"
+  },
+  {
+   "ref": "B276",
+   "kind": "building",
+   "lat": 32.6696724,
+   "lon": 35.1982306,
+   "heading": 123,
+   "size_m": [
+    11,
+    10
+   ],
+   "osm": "way/1159760518",
+   "source": "osm",
+   "note": "OSM building=yes 11 × 10 m (way/1159760518)"
+  },
+  {
+   "ref": "B277",
+   "kind": "building",
+   "lat": 32.6692071,
+   "lon": 35.1978674,
+   "heading": 123,
+   "size_m": [
+    11,
+    10
+   ],
+   "osm": "way/1159760519",
+   "source": "osm",
+   "note": "OSM building=yes 11 × 10 m (way/1159760519)"
+  },
+  {
+   "ref": "B278",
+   "kind": "building",
+   "lat": 32.6694553,
+   "lon": 35.1980611,
+   "heading": 123,
+   "size_m": [
+    11,
+    10
+   ],
+   "osm": "way/1159760520",
+   "source": "osm",
+   "note": "OSM building=yes 11 × 10 m (way/1159760520)"
+  },
+  {
+   "ref": "B279",
+   "kind": "building",
+   "lat": 32.6698912,
+   "lon": 35.1984013,
+   "heading": 123,
+   "size_m": [
+    11,
+    10
+   ],
+   "osm": "way/1159760521",
+   "source": "osm",
+   "note": "OSM building=yes 11 × 10 m (way/1159760521)"
+  },
+  {
+   "ref": "B280",
+   "kind": "building",
+   "lat": 32.669551,
+   "lon": 35.2001116,
+   "heading": 90,
+   "size_m": [
+    29,
+    7
+   ],
+   "osm": "way/1159760522",
+   "source": "osm",
+   "note": "OSM building=yes 29 × 7 m (way/1159760522)"
+  },
+  {
+   "ref": "B281",
+   "kind": "building",
+   "lat": 32.6705048,
+   "lon": 35.2003856,
+   "heading": 13,
+   "size_m": [
+    8,
+    6
+   ],
+   "osm": "way/1159760524",
+   "source": "osm",
+   "note": "OSM building=yes 8 × 5 m (way/1159760524)"
+  },
+  {
+   "ref": "B282",
+   "kind": "building",
+   "lat": 32.6702578,
+   "lon": 35.2003284,
+   "heading": 72,
+   "size_m": [
+    18,
+    7
+   ],
+   "osm": "way/1159760526",
+   "source": "osm",
+   "note": "OSM building=yes 18 × 7 m (way/1159760526)"
+  },
+  {
+   "ref": "B283",
+   "kind": "building",
+   "lat": 32.670561,
+   "lon": 35.1999104,
+   "heading": 30,
+   "size_m": [
+    6,
+    6
+   ],
+   "osm": "way/1159760527",
+   "source": "osm",
+   "note": "OSM building=yes 6 × 5 m (way/1159760527)"
+  },
+  {
+   "ref": "B284",
+   "kind": "building",
+   "lat": 32.6706996,
+   "lon": 35.2000247,
+   "heading": 33,
+   "size_m": [
+    6,
+    6
+   ],
+   "osm": "way/1159760528",
+   "source": "osm",
+   "note": "OSM building=yes 6 × 5 m (way/1159760528)"
+  },
+  {
+   "ref": "B285",
+   "kind": "building",
+   "lat": 32.6674811,
+   "lon": 35.2007443,
+   "heading": 31,
+   "size_m": [
+    10,
+    6
+   ],
+   "osm": "way/1159760531",
+   "source": "osm",
+   "note": "OSM building=yes 10 × 6 m (way/1159760531)"
+  },
+  {
+   "ref": "B286",
+   "kind": "building",
+   "lat": 32.6678131,
+   "lon": 35.2003793,
+   "heading": 31,
+   "size_m": [
+    14,
+    7
+   ],
+   "osm": "way/1159760532",
+   "source": "osm",
+   "note": "OSM building=yes 14 × 7 m (way/1159760532)"
+  },
+  {
+   "ref": "B287",
+   "kind": "building",
+   "lat": 32.6676449,
+   "lon": 35.2004551,
+   "heading": 120,
+   "size_m": [
+    45,
+    14
+   ],
+   "osm": "way/1159760533",
+   "source": "osm",
+   "note": "OSM building=yes 45 × 14 m (way/1159760533)"
+  },
+  {
+   "ref": "B288",
+   "kind": "building",
+   "lat": 32.6677238,
+   "lon": 35.2000167,
+   "heading": 120,
+   "size_m": [
+    41,
+    10
+   ],
+   "osm": "way/1159760534",
+   "source": "osm",
+   "note": "OSM building=yes 41 × 10 m (way/1159760534)"
+  },
+  {
+   "ref": "B289",
+   "kind": "building",
+   "lat": 32.6671539,
+   "lon": 35.1996072,
+   "heading": 31,
+   "size_m": [
+    10,
+    6
+   ],
+   "osm": "way/1159760535",
+   "source": "osm",
+   "note": "OSM building=yes 10 × 6 m (way/1159760535)"
+  },
+  {
+   "ref": "B290",
+   "kind": "building",
+   "lat": 32.6675619,
+   "lon": 35.199582,
+   "heading": 28,
+   "size_m": [
+    15,
+    9
+   ],
+   "osm": "way/1159760536",
+   "source": "osm",
+   "note": "OSM building=yes 15 × 9 m (way/1159760536)"
+  },
+  {
+   "ref": "B291",
+   "kind": "building",
+   "lat": 32.6673137,
+   "lon": 35.1997497,
+   "heading": 120,
+   "size_m": [
+    42,
+    17
+   ],
+   "osm": "way/1159760537",
+   "source": "osm",
+   "note": "OSM building=yes 42 × 17 m (way/1159760537)"
+  },
+  {
+   "ref": "B292",
+   "kind": "building",
+   "lat": 32.6682387,
+   "lon": 35.1994558,
+   "heading": 101,
+   "size_m": [
+    30,
+    10
+   ],
+   "osm": "way/1159760538",
+   "source": "osm",
+   "note": "OSM building=yes 30 × 10 m (way/1159760538)"
+  },
+  {
+   "ref": "B293",
+   "kind": "building",
+   "lat": 32.6678878,
+   "lon": 35.1991497,
+   "heading": 11,
+   "size_m": [
+    9,
+    6
+   ],
+   "osm": "way/1159760539",
+   "source": "osm",
+   "note": "OSM building=yes 9 × 6 m (way/1159760539)"
+  },
+  {
+   "ref": "B294",
+   "kind": "building",
+   "lat": 32.6678784,
+   "lon": 35.1988115,
+   "heading": 10,
+   "size_m": [
+    28,
+    7
+   ],
+   "osm": "way/1159760542",
+   "source": "osm",
+   "note": "OSM building=yes 28 × 7 m (way/1159760542)"
+  },
+  {
+   "ref": "B295",
+   "kind": "building",
+   "lat": 32.6681563,
+   "lon": 35.1990592,
+   "heading": 102,
+   "size_m": [
+    24,
+    6
+   ],
+   "osm": "way/1159760543",
+   "source": "osm",
+   "note": "OSM building=yes 24 × 6 m (way/1159760543)"
+  },
+  {
+   "ref": "B296",
+   "kind": "building",
+   "lat": 32.6684511,
+   "lon": 35.1986048,
+   "heading": 99,
+   "size_m": [
+    6,
+    6
+   ],
+   "osm": "way/1159760544",
+   "source": "osm",
+   "note": "OSM building=yes 6 × 5 m (way/1159760544)"
+  },
+  {
+   "ref": "B297",
+   "kind": "building",
+   "lat": 32.6686004,
+   "lon": 35.198472,
+   "heading": 99,
+   "size_m": [
+    10,
+    6
+   ],
+   "osm": "way/1159760547",
+   "source": "osm",
+   "note": "OSM building=yes 10 × 6 m (way/1159760547)"
+  },
+  {
+   "ref": "B298",
+   "kind": "building",
+   "lat": 32.6675074,
+   "lon": 35.198474,
+   "heading": 101,
+   "size_m": [
+    15,
+    10
+   ],
+   "osm": "way/1159760548",
+   "source": "osm",
+   "note": "OSM building=yes 15 × 10 m (way/1159760548)"
+  },
+  {
+   "ref": "B299",
+   "kind": "building",
+   "lat": 32.6675789,
+   "lon": 35.1986645,
+   "heading": 103,
+   "size_m": [
+    30,
+    9
+   ],
+   "osm": "way/1159760549",
+   "source": "osm",
+   "note": "OSM building=yes 30 × 9 m (way/1159760549)"
+  },
+  {
+   "ref": "B300",
+   "kind": "building",
+   "lat": 32.6679724,
+   "lon": 35.1985952,
+   "heading": 13,
+   "size_m": [
+    38,
+    12
+   ],
+   "osm": "way/1159760550",
+   "source": "osm",
+   "note": "OSM building=yes 38 × 12 m (way/1159760550)"
+  },
+  {
+   "ref": "B301",
+   "kind": "building",
+   "lat": 32.668232,
+   "lon": 35.1986026,
+   "heading": 14,
+   "size_m": [
+    16,
+    7
+   ],
+   "osm": "way/1159760551",
+   "source": "osm",
+   "note": "OSM building=yes 16 × 7 m (way/1159760551)"
+  },
+  {
+   "ref": "B302",
+   "kind": "building",
+   "lat": 32.6675956,
+   "lon": 35.1983312,
+   "heading": 14,
+   "size_m": [
+    17,
+    8
+   ],
+   "osm": "way/1159760552",
+   "source": "osm",
+   "note": "OSM building=yes 17 × 8 m (way/1159760552)"
+  },
+  {
+   "ref": "B303",
+   "kind": "building",
+   "lat": 32.6678255,
+   "lon": 35.1983826,
+   "heading": 103,
+   "size_m": [
+    18,
+    12
+   ],
+   "osm": "way/1159760553",
+   "source": "osm",
+   "note": "OSM building=yes 18 × 12 m (way/1159760553)"
+  },
+  {
+   "ref": "B304",
+   "kind": "building",
+   "lat": 32.6681244,
+   "lon": 35.1984646,
+   "heading": 13,
+   "size_m": [
+    54,
+    17
+   ],
+   "osm": "way/1159760554",
+   "source": "osm",
+   "note": "OSM building=yes 54 × 17 m (way/1159760554)"
+  },
+  {
+   "ref": "B305",
+   "kind": "building",
+   "lat": 32.6681097,
+   "lon": 35.1981721,
+   "heading": 11,
+   "size_m": [
+    37,
+    8
+   ],
+   "osm": "way/1159760555",
+   "source": "osm",
+   "note": "OSM building=yes 37 × 8 m (way/1159760555)"
+  },
+  {
+   "ref": "B306",
+   "kind": "building",
+   "lat": 32.667477,
+   "lon": 35.1977387,
+   "heading": 115,
+   "size_m": [
+    7,
+    6
+   ],
+   "osm": "way/1159760556",
+   "source": "osm",
+   "note": "OSM building=yes 7 × 4 m (way/1159760556)"
+  },
+  {
+   "ref": "B307",
+   "kind": "building",
+   "lat": 32.667656,
+   "lon": 35.1979211,
+   "heading": 99,
+   "size_m": [
+    11,
+    8
+   ],
+   "osm": "way/1159760558",
+   "source": "osm",
+   "note": "OSM building=yes 11 × 8 m (way/1159760558)"
+  },
+  {
+   "ref": "B308",
+   "kind": "building",
+   "lat": 32.6678932,
+   "lon": 35.1980218,
+   "heading": 99,
+   "size_m": [
+    26,
+    11
+   ],
+   "osm": "way/1159760559",
+   "source": "osm",
+   "note": "OSM building=yes 26 × 11 m (way/1159760559)"
+  },
+  {
+   "ref": "B309",
+   "kind": "building",
+   "lat": 32.6679158,
+   "lon": 35.1978635,
+   "heading": 10,
+   "size_m": [
+    11,
+    6
+   ],
+   "osm": "way/1159760560",
+   "source": "osm",
+   "note": "OSM building=yes 11 × 4 m (way/1159760560)"
+  },
+  {
+   "ref": "B310",
+   "kind": "building",
+   "lat": 32.6685976,
+   "lon": 35.1980657,
+   "heading": 10,
+   "size_m": [
+    26,
+    11
+   ],
+   "osm": "way/1159760562",
+   "source": "osm",
+   "note": "OSM building=yes 26 × 11 m (way/1159760562)"
+  },
+  {
+   "ref": "B311",
+   "kind": "building",
+   "lat": 32.6682919,
+   "lon": 35.1977576,
+   "heading": 12,
+   "size_m": [
+    94,
+    8
+   ],
+   "osm": "way/1159760563",
+   "source": "osm",
+   "note": "OSM building=yes 94 × 8 m (way/1159760563)"
+  },
+  {
+   "ref": "B312",
+   "kind": "building",
+   "lat": 32.6685564,
+   "lon": 35.1976873,
+   "heading": 12,
+   "size_m": [
+    20,
+    8
+   ],
+   "osm": "way/1159760564",
+   "source": "osm",
+   "note": "OSM building=yes 20 × 8 m (way/1159760564)"
+  },
+  {
+   "ref": "B313",
+   "kind": "building",
+   "lat": 32.6685865,
+   "lon": 35.1975142,
+   "heading": 12,
+   "size_m": [
+    20,
+    6
+   ],
+   "osm": "way/1159760565",
+   "source": "osm",
+   "note": "OSM building=yes 20 × 6 m (way/1159760565)"
+  },
+  {
+   "ref": "B314",
+   "kind": "building",
+   "lat": 32.6682659,
+   "lon": 35.1971279,
+   "heading": 13,
+   "size_m": [
+    20,
+    7
+   ],
+   "osm": "way/1159760567",
+   "source": "osm",
+   "note": "OSM building=yes 20 × 7 m (way/1159760567)"
+  },
+  {
+   "ref": "B315",
+   "kind": "building",
+   "lat": 32.668067,
+   "lon": 35.1971603,
+   "heading": 13,
+   "size_m": [
+    35,
+    19
+   ],
+   "osm": "way/1159760568",
+   "source": "osm",
+   "note": "OSM building=yes 35 × 19 m (way/1159760568)"
+  },
+  {
+   "ref": "B316",
+   "kind": "building",
+   "lat": 32.6679193,
+   "lon": 35.1970991,
+   "heading": 103,
+   "size_m": [
+    19,
+    6
+   ],
+   "osm": "way/1159760569",
+   "source": "osm",
+   "note": "OSM building=yes 19 × 6 m (way/1159760569)"
+  },
+  {
+   "ref": "B317",
+   "kind": "building",
+   "lat": 32.6684196,
+   "lon": 35.1971615,
+   "heading": 103,
+   "size_m": [
+    8,
+    6
+   ],
+   "osm": "way/1159760570",
+   "source": "osm",
+   "note": "OSM building=yes 8 × 6 m (way/1159760570)"
+  },
+  {
+   "ref": "B318",
+   "kind": "building",
+   "lat": 32.6687108,
+   "lon": 35.1971654,
+   "heading": 103,
+   "size_m": [
+    17,
+    11
+   ],
+   "osm": "way/1159760573",
+   "source": "osm",
+   "note": "OSM building=yes 17 × 11 m (way/1159760573)"
+  },
+  {
+   "ref": "B319",
+   "kind": "building",
+   "lat": 32.6686263,
+   "lon": 35.1965823,
+   "heading": 10,
+   "size_m": [
+    22,
+    13
+   ],
+   "osm": "way/1159760575",
+   "source": "osm",
+   "note": "OSM building=yes 22 × 13 m (way/1159760575)"
+  },
+  {
+   "ref": "B320",
+   "kind": "building",
+   "lat": 32.6688719,
+   "lon": 35.196567,
+   "heading": 10,
+   "size_m": [
+    21,
+    7
+   ],
+   "osm": "way/1159760577",
+   "source": "osm",
+   "note": "OSM building=yes 21 × 7 m (way/1159760577)"
+  },
+  {
+   "ref": "B321",
+   "kind": "building",
+   "lat": 32.6682048,
+   "lon": 35.1965496,
+   "heading": 15,
+   "size_m": [
+    27,
+    17
+   ],
+   "osm": "way/1159760579",
+   "source": "osm",
+   "note": "OSM building=yes 27 × 17 m (way/1159760579)"
+  },
+  {
+   "ref": "B322",
+   "kind": "building",
+   "lat": 32.6683434,
+   "lon": 35.1959495,
+   "heading": 32,
+   "size_m": [
+    14,
+    9
+   ],
+   "osm": "way/1159760580",
+   "source": "osm",
+   "note": "OSM building=yes 14 × 9 m (way/1159760580)"
+  },
+  {
+   "ref": "B323",
+   "kind": "building",
+   "lat": 32.6685476,
+   "lon": 35.1959268,
+   "heading": 29,
+   "size_m": [
+    14,
+    11
+   ],
+   "osm": "way/1159760581",
+   "source": "osm",
+   "note": "OSM building=yes 14 × 11 m (way/1159760581)"
+  },
+  {
+   "ref": "B324",
+   "kind": "building",
+   "lat": 32.6640508,
+   "lon": 35.1973904,
+   "heading": 115,
+   "size_m": [
+    25,
+    7
+   ],
+   "osm": "way/1159760583",
+   "source": "osm",
+   "note": "OSM building=yes 25 × 7 m (way/1159760583)"
+  },
+  {
+   "ref": "B325",
+   "kind": "building",
+   "lat": 32.6638091,
+   "lon": 35.1976467,
+   "heading": 118,
+   "size_m": [
+    22,
+    6
+   ],
+   "osm": "way/1159760584",
+   "source": "osm",
+   "note": "OSM building=yes 22 × 6 m (way/1159760584)"
+  },
+  {
+   "ref": "B326",
+   "kind": "building",
+   "lat": 32.6640326,
+   "lon": 35.1978111,
+   "heading": 116,
+   "size_m": [
+    25,
+    7
+   ],
+   "osm": "way/1159760585",
+   "source": "osm",
+   "note": "OSM building=yes 25 × 7 m (way/1159760585)"
+  },
+  {
+   "ref": "B327",
+   "kind": "building",
+   "lat": 32.6641575,
+   "lon": 35.1980423,
+   "heading": 116,
+   "size_m": [
+    23,
+    7
+   ],
+   "osm": "way/1159760586",
+   "source": "osm",
+   "note": "OSM building=yes 23 × 7 m (way/1159760586)"
+  },
+  {
+   "ref": "B328",
+   "kind": "building",
+   "lat": 32.6643673,
+   "lon": 35.1982681,
+   "heading": 117,
+   "size_m": [
+    25,
+    6
+   ],
+   "osm": "way/1159760587",
+   "source": "osm",
+   "note": "OSM building=yes 25 × 6 m (way/1159760587)"
+  },
+  {
+   "ref": "B329",
+   "kind": "building",
+   "lat": 32.6645561,
+   "lon": 35.1984561,
+   "heading": 116,
+   "size_m": [
+    24,
+    7
+   ],
+   "osm": "way/1159760588",
+   "source": "osm",
+   "note": "OSM building=yes 24 × 7 m (way/1159760588)"
+  },
+  {
+   "ref": "B330",
+   "kind": "building",
+   "lat": 32.6647456,
+   "lon": 35.1986516,
+   "heading": 116,
+   "size_m": [
+    23,
+    6
+   ],
+   "osm": "way/1159760589",
+   "source": "osm",
+   "note": "OSM building=yes 23 × 6 m (way/1159760589)"
+  },
+  {
+   "ref": "B331",
+   "kind": "building",
+   "lat": 32.6650679,
+   "lon": 35.1989932,
+   "heading": 24,
+   "size_m": [
+    6,
+    6
+   ],
+   "osm": "way/1159760590",
+   "source": "osm",
+   "note": "OSM building=yes 6 × 4 m (way/1159760590)"
+  },
+  {
+   "ref": "B332",
+   "kind": "building",
+   "lat": 32.6650118,
+   "lon": 35.198801,
+   "heading": 116,
+   "size_m": [
+    23,
+    8
+   ],
+   "osm": "way/1159760591",
+   "source": "osm",
+   "note": "OSM building=yes 23 × 8 m (way/1159760591)"
+  },
+  {
+   "ref": "B333",
+   "kind": "building",
+   "lat": 32.665248,
+   "lon": 35.1989048,
+   "heading": 115,
+   "size_m": [
+    23,
+    8
+   ],
+   "osm": "way/1159760592",
+   "source": "osm",
+   "note": "OSM building=yes 23 × 8 m (way/1159760592)"
+  },
+  {
+   "ref": "B334",
+   "kind": "building",
+   "lat": 32.6654726,
+   "lon": 35.1990063,
+   "heading": 117,
+   "size_m": [
+    24,
+    8
+   ],
+   "osm": "way/1159760593",
+   "source": "osm",
+   "note": "OSM building=yes 24 × 8 m (way/1159760593)"
+  },
+  {
+   "ref": "B335",
+   "kind": "building",
+   "lat": 32.6668828,
+   "lon": 35.1975258,
+   "heading": 73,
+   "size_m": [
+    46,
+    23
+   ],
+   "osm": "way/1159760594",
+   "source": "osm",
+   "note": "OSM building=yes 46 × 23 m (way/1159760594)"
+  },
+  {
+   "ref": "B336",
+   "kind": "building",
+   "lat": 32.666757,
+   "lon": 35.1972445,
+   "heading": 73,
+   "size_m": [
+    27,
+    23
+   ],
+   "osm": "way/1159760595",
+   "source": "osm",
+   "note": "OSM building=yes 27 × 23 m (way/1159760595)"
+  },
+  {
+   "ref": "B337",
+   "kind": "building",
+   "lat": 32.6666241,
+   "lon": 35.1975717,
+   "heading": 163,
+   "size_m": [
+    25,
+    24
+   ],
+   "osm": "way/1159760596",
+   "source": "osm",
+   "note": "OSM building=yes 25 × 24 m (way/1159760596)"
+  },
+  {
+   "ref": "B338",
+   "kind": "building",
+   "lat": 32.6662337,
+   "lon": 35.1973607,
+   "heading": 79,
+   "size_m": [
+    13,
+    7
+   ],
+   "osm": "way/1159760597",
+   "source": "osm",
+   "note": "OSM building=yes 13 × 7 m (way/1159760597)"
+  },
+  {
+   "ref": "B339",
+   "kind": "building",
+   "lat": 32.6662941,
+   "lon": 35.1975157,
+   "heading": 128,
+   "size_m": [
+    9,
+    9
+   ],
+   "osm": "way/1159760598",
+   "source": "osm",
+   "note": "OSM building=yes 9 × 9 m (way/1159760598)"
+  },
+  {
+   "ref": "B340",
+   "kind": "building",
+   "lat": 32.6661772,
+   "lon": 35.1980096,
+   "heading": 119,
+   "size_m": [
+    24,
+    8
+   ],
+   "osm": "way/1159760599",
+   "source": "osm",
+   "note": "OSM building=yes 24 × 8 m (way/1159760599)"
+  },
+  {
+   "ref": "B341",
+   "kind": "building",
+   "lat": 32.6662505,
+   "lon": 35.1984112,
+   "heading": 119,
+   "size_m": [
+    22,
+    8
+   ],
+   "osm": "way/1159760600",
+   "source": "osm",
+   "note": "OSM building=yes 22 × 8 m (way/1159760600)"
+  },
+  {
+   "ref": "B342",
+   "kind": "building",
+   "lat": 32.6664438,
+   "lon": 35.1983936,
+   "heading": 119,
+   "size_m": [
+    23,
+    8
+   ],
+   "osm": "way/1159760601",
+   "source": "osm",
+   "note": "OSM building=yes 23 × 8 m (way/1159760601)"
+  },
+  {
+   "ref": "B343",
+   "kind": "building",
+   "lat": 32.666795,
+   "lon": 35.1986271,
+   "heading": 113,
+   "size_m": [
+    23,
+    7
+   ],
+   "osm": "way/1159760602",
+   "source": "osm",
+   "note": "OSM building=yes 23 × 7 m (way/1159760602)"
+  },
+  {
+   "ref": "B344",
+   "kind": "building",
+   "lat": 32.6665525,
+   "lon": 35.1988248,
+   "heading": 113,
+   "size_m": [
+    23,
+    7
+   ],
+   "osm": "way/1159760603",
+   "source": "osm",
+   "note": "OSM building=yes 23 × 7 m (way/1159760603)"
+  },
+  {
+   "ref": "B345",
+   "kind": "building",
+   "lat": 32.6657164,
+   "lon": 35.199041,
+   "heading": 116,
+   "size_m": [
+    25,
+    7
+   ],
+   "osm": "way/1159760604",
+   "source": "osm",
+   "note": "OSM building=yes 25 × 7 m (way/1159760604)"
+  },
+  {
+   "ref": "B346",
+   "kind": "building",
+   "lat": 32.6656724,
+   "lon": 35.1979994,
+   "heading": 103,
+   "size_m": [
+    33,
+    26
+   ],
+   "osm": "way/1159760605",
+   "source": "osm",
+   "note": "OSM building=yes 33 × 26 m (way/1159760605)"
+  },
+  {
+   "ref": "B347",
+   "kind": "building",
+   "lat": 32.6651635,
+   "lon": 35.1969869,
+   "heading": 117,
+   "size_m": [
+    6,
+    6
+   ],
+   "osm": "way/1159760606",
+   "source": "osm",
+   "note": "OSM building=yes 6 × 4 m (way/1159760606)"
+  },
+  {
+   "ref": "B348",
+   "kind": "building",
+   "lat": 32.6653519,
+   "lon": 35.1970928,
+   "heading": 27,
+   "size_m": [
+    8,
+    6
+   ],
+   "osm": "way/1159760608",
+   "source": "osm",
+   "note": "OSM building=yes 8 × 6 m (way/1159760608)"
+  },
+  {
+   "ref": "B349",
+   "kind": "building",
+   "lat": 32.6656879,
+   "lon": 35.1973708,
+   "heading": 116,
+   "size_m": [
+    16,
+    6
+   ],
+   "osm": "way/1159760610",
+   "source": "osm",
+   "note": "OSM building=yes 16 × 6 m (way/1159760610)"
+  },
+  {
+   "ref": "B350",
+   "kind": "building",
+   "lat": 32.6659013,
+   "lon": 35.1974431,
+   "heading": 118,
+   "size_m": [
+    28,
+    7
+   ],
+   "osm": "way/1159760611",
+   "source": "osm",
+   "note": "OSM building=yes 28 × 7 m (way/1159760611)"
+  },
+  {
+   "ref": "B351",
+   "kind": "building",
+   "lat": 32.6652833,
+   "lon": 35.1976615,
+   "heading": 120,
+   "size_m": [
+    23,
+    7
+   ],
+   "osm": "way/1159760612",
+   "source": "osm",
+   "note": "OSM building=yes 23 × 7 m (way/1159760612)"
+  },
+  {
+   "ref": "B352",
+   "kind": "building",
+   "lat": 32.6644546,
+   "lon": 35.1974546,
+   "heading": 116,
+   "size_m": [
+    21,
+    6
+   ],
+   "osm": "way/1159760613",
+   "source": "osm",
+   "note": "OSM building=yes 21 × 6 m (way/1159760613)"
+  },
+  {
+   "ref": "B353",
+   "kind": "building",
+   "lat": 32.6628132,
+   "lon": 35.1971031,
+   "heading": 31,
+   "size_m": [
+    21,
+    7
+   ],
+   "osm": "way/1159760614",
+   "source": "osm",
+   "note": "OSM building=yes 21 × 7 m (way/1159760614)"
+  },
+  {
+   "ref": "B354",
+   "kind": "building",
+   "lat": 32.6616231,
+   "lon": 35.195025,
+   "heading": 25,
+   "size_m": [
+    24,
+    6
+   ],
+   "osm": "way/1159760615",
+   "source": "osm",
+   "note": "OSM building=yes 24 × 5 m (way/1159760615)"
+  },
+  {
+   "ref": "B355",
+   "kind": "building",
+   "lat": 32.6631094,
+   "lon": 35.1965635,
+   "heading": 38,
+   "size_m": [
+    10,
+    6
+   ],
+   "osm": "way/1159760617",
+   "source": "osm",
+   "note": "OSM building=yes 10 × 5 m (way/1159760617)"
+  },
+  {
+   "ref": "B356",
+   "kind": "building",
+   "lat": 32.6645079,
+   "lon": 35.1946659,
+   "heading": 118,
+   "size_m": [
+    6,
+    6
+   ],
+   "osm": "way/1159764419",
+   "source": "osm",
+   "note": "OSM building=yes 6 × 4 m (way/1159764419)"
+  },
+  {
+   "ref": "B357",
+   "kind": "building",
+   "lat": 32.664318,
+   "lon": 35.194545,
+   "heading": 28,
+   "size_m": [
+    6,
+    6
+   ],
+   "osm": "way/1159764420",
+   "source": "osm",
+   "note": "OSM building=yes 6 × 6 m (way/1159764420)"
+  },
+  {
+   "ref": "B358",
+   "kind": "building",
+   "lat": 32.6645532,
+   "lon": 35.1958408,
+   "heading": 118,
+   "size_m": [
+    21,
+    6
+   ],
+   "osm": "way/1159764423",
+   "source": "osm",
+   "note": "OSM building=yes 21 × 6 m (way/1159764423)"
+  },
+  {
+   "ref": "B359",
+   "kind": "building",
+   "lat": 32.6647387,
+   "lon": 35.1950319,
+   "heading": 119,
+   "size_m": [
+    8,
+    6
+   ],
+   "osm": "way/1159764424",
+   "source": "osm",
+   "note": "OSM building=yes 8 × 4 m (way/1159764424)"
+  },
+  {
+   "ref": "B360",
+   "kind": "building",
+   "lat": 32.6645757,
+   "lon": 35.1950695,
+   "heading": 28,
+   "size_m": [
+    13,
+    8
+   ],
+   "osm": "way/1159764425",
+   "source": "osm",
+   "note": "OSM building=yes 13 × 8 m (way/1159764425)"
+  },
+  {
+   "ref": "B361",
+   "kind": "building",
+   "lat": 32.6646457,
+   "lon": 35.1954017,
+   "heading": 118,
+   "size_m": [
+    17,
+    8
+   ],
+   "osm": "way/1159764426",
+   "source": "osm",
+   "note": "OSM building=yes 17 × 8 m (way/1159764426)"
+  },
+  {
+   "ref": "B362",
+   "kind": "building",
+   "lat": 32.6649492,
+   "lon": 35.1952662,
+   "heading": 118,
+   "size_m": [
+    16,
+    6
+   ],
+   "osm": "way/1159764427",
+   "source": "osm",
+   "note": "OSM building=yes 16 × 6 m (way/1159764427)"
+  },
+  {
+   "ref": "B363",
+   "kind": "building",
+   "lat": 32.6651189,
+   "lon": 35.1945891,
+   "heading": 118,
+   "size_m": [
+    20,
+    6
+   ],
+   "osm": "way/1159764429",
+   "source": "osm",
+   "note": "OSM building=yes 20 × 5 m (way/1159764429)"
+  },
+  {
+   "ref": "B364",
+   "kind": "building",
+   "lat": 32.6653178,
+   "lon": 35.1947134,
+   "heading": 118,
+   "size_m": [
+    19,
+    6
+   ],
+   "osm": "way/1159764430",
+   "source": "osm",
+   "note": "OSM building=yes 19 × 6 m (way/1159764430)"
+  },
+  {
+   "ref": "B365",
+   "kind": "building",
+   "lat": 32.6655134,
+   "lon": 35.1948205,
+   "heading": 118,
+   "size_m": [
+    20,
+    7
+   ],
+   "osm": "way/1159764431",
+   "source": "osm",
+   "note": "OSM building=yes 20 × 7 m (way/1159764431)"
+  },
+  {
+   "ref": "B366",
+   "kind": "building",
+   "lat": 32.6652135,
+   "lon": 35.1951074,
+   "heading": 118,
+   "size_m": [
+    29,
+    13
+   ],
+   "osm": "way/1159764432",
+   "source": "osm",
+   "note": "OSM building=yes 29 × 13 m (way/1159764432)"
+  },
+  {
+   "ref": "B367",
+   "kind": "building",
+   "lat": 32.668869,
+   "lon": 35.1952896,
+   "heading": 162,
+   "size_m": [
+    12,
+    10
+   ],
+   "osm": "way/1159764433",
+   "source": "osm",
+   "note": "OSM building=yes 12 × 10 m (way/1159764433)"
+  },
+  {
+   "ref": "B368",
+   "kind": "building",
+   "lat": 32.6698433,
+   "lon": 35.195322,
+   "heading": 31,
+   "size_m": [
+    12,
+    7
+   ],
+   "osm": "way/1159764437",
+   "source": "osm",
+   "note": "OSM building=yes 12 × 7 m (way/1159764437)"
+  },
+  {
+   "ref": "B369",
+   "kind": "building",
+   "lat": 32.6697197,
+   "lon": 35.1952219,
+   "heading": 31,
+   "size_m": [
+    15,
+    7
+   ],
+   "osm": "way/1159764438",
+   "source": "osm",
+   "note": "OSM building=yes 15 × 7 m (way/1159764438)"
+  },
+  {
+   "ref": "B370",
+   "kind": "building",
+   "lat": 32.669455,
+   "lon": 35.1952485,
+   "heading": 81,
+   "size_m": [
+    7,
+    6
+   ],
+   "osm": "way/1159764441",
+   "source": "osm",
+   "note": "OSM building=yes 7 × 5 m (way/1159764441)"
+  },
+  {
+   "ref": "B371",
+   "kind": "building",
+   "lat": 32.6694171,
+   "lon": 35.1954032,
+   "heading": 171,
+   "size_m": [
+    8,
+    7
+   ],
+   "osm": "way/1159764445",
+   "source": "osm",
+   "note": "OSM building=yes 8 × 7 m (way/1159764445)"
+  },
+  {
+   "ref": "B372",
+   "kind": "building",
+   "lat": 32.6691844,
+   "lon": 35.1950457,
+   "heading": 83,
+   "size_m": [
+    8,
+    8
+   ],
+   "osm": "way/1159764447",
+   "source": "osm",
+   "note": "OSM building=yes 8 × 8 m (way/1159764447)"
+  },
+  {
+   "ref": "B373",
+   "kind": "building",
+   "lat": 32.6691247,
+   "lon": 35.194798,
+   "heading": 91,
+   "size_m": [
+    12,
+    9
+   ],
+   "osm": "way/1159764452",
+   "source": "osm",
+   "note": "OSM building=yes 12 × 9 m (way/1159764452)"
+  },
+  {
+   "ref": "B374",
+   "kind": "building",
+   "lat": 32.669128,
+   "lon": 35.195538,
+   "heading": 171,
+   "size_m": [
+    8,
+    8
+   ],
+   "osm": "way/1159764454",
+   "source": "osm",
+   "note": "OSM building=yes 8 × 8 m (way/1159764454)"
+  },
+  {
+   "ref": "B375",
+   "kind": "building",
+   "lat": 32.6693551,
+   "lon": 35.1955947,
+   "heading": 171,
+   "size_m": [
+    14,
+    6
+   ],
+   "osm": "way/1159764458",
+   "source": "osm",
+   "note": "OSM building=yes 14 × 5 m (way/1159764458)"
+  },
+  {
+   "ref": "B376",
+   "kind": "building",
+   "lat": 32.6693714,
+   "lon": 35.1957988,
+   "heading": 171,
+   "size_m": [
+    6,
+    6
+   ],
+   "osm": "way/1159764459",
+   "source": "osm",
+   "note": "OSM building=yes 6 × 5 m (way/1159764459)"
+  },
+  {
+   "ref": "B377",
+   "kind": "building",
+   "lat": 32.6698777,
+   "lon": 35.1970618,
+   "heading": 123,
+   "size_m": [
+    14,
+    9
+   ],
+   "osm": "way/1159765013",
+   "source": "osm",
+   "note": "OSM building=yes 14 × 9 m (way/1159765013)"
+  },
+  {
+   "ref": "B378",
+   "kind": "building",
+   "lat": 32.6700574,
+   "lon": 35.1970992,
+   "heading": 34,
+   "size_m": [
+    20,
+    14
+   ],
+   "osm": "way/1159765014",
+   "source": "osm",
+   "note": "OSM building=yes 20 × 14 m (way/1159765014)"
+  },
+  {
+   "ref": "B379",
+   "kind": "building",
+   "lat": 32.6698657,
+   "lon": 35.1967715,
+   "heading": 34,
+   "size_m": [
+    14,
+    14
+   ],
+   "osm": "way/1159765015",
+   "source": "osm",
+   "note": "OSM building=yes 14 × 14 m (way/1159765015)"
+  },
+  {
+   "ref": "B380",
+   "kind": "building",
+   "lat": 32.6695403,
+   "lon": 35.1969181,
+   "heading": 123,
+   "size_m": [
+    6,
+    6
+   ],
+   "osm": "way/1159765016",
+   "source": "osm",
+   "note": "OSM building=yes 6 × 6 m (way/1159765016)"
+  },
+  {
+   "ref": "B381",
+   "kind": "building",
+   "lat": 32.6699503,
+   "lon": 35.1972427,
+   "heading": 34,
+   "size_m": [
+    21,
+    6
+   ],
+   "osm": "way/1159765021",
+   "source": "osm",
+   "note": "OSM building=yes 21 × 6 m (way/1159765021)"
+  },
+  {
+   "ref": "B382",
+   "kind": "building",
+   "lat": 32.6699973,
+   "lon": 35.1966734,
+   "heading": 34,
+   "size_m": [
+    8,
+    6
+   ],
+   "osm": "way/1159765022",
+   "source": "osm",
+   "note": "OSM building=yes 8 × 4 m (way/1159765022)"
+  },
+  {
+   "ref": "B383",
+   "kind": "building",
+   "lat": 32.6701378,
+   "lon": 35.1969392,
+   "heading": 34,
+   "size_m": [
+    6,
+    6
+   ],
+   "osm": "way/1159765024",
+   "source": "osm",
+   "note": "OSM building=yes 6 × 6 m (way/1159765024)"
+  },
+  {
+   "ref": "B384",
+   "kind": "building",
+   "lat": 32.6702196,
+   "lon": 35.1971096,
+   "heading": 123,
+   "size_m": [
+    15,
+    6
+   ],
+   "osm": "way/1159765025",
+   "source": "osm",
+   "note": "OSM building=yes 15 × 5 m (way/1159765025)"
+  },
+  {
+   "ref": "B385",
+   "kind": "building",
+   "lat": 32.6697373,
+   "lon": 35.1965839,
+   "heading": 34,
+   "size_m": [
+    6,
+    6
+   ],
+   "osm": "way/1159765026",
+   "source": "osm",
+   "note": "OSM building=yes 6 × 6 m (way/1159765026)"
+  },
+  {
+   "ref": "B386",
+   "kind": "building",
+   "lat": 32.670649,
+   "lon": 35.1753182,
+   "heading": 181,
+   "size_m": [
+    15,
+    10
+   ],
+   "osm": "way/1159854967",
+   "source": "osm",
+   "note": "OSM building=yes 15 × 10 m (way/1159854967)"
+  },
+  {
+   "ref": "B387",
+   "kind": "building",
+   "lat": 32.6713889,
+   "lon": 35.1751411,
+   "heading": 173,
+   "size_m": [
+    21,
+    9
+   ],
+   "osm": "way/1159854968",
+   "source": "osm",
+   "note": "OSM building=yes 21 × 9 m (way/1159854968)"
+  },
+  {
+   "ref": "B388",
+   "kind": "building",
+   "lat": 32.6709383,
+   "lon": 35.1749116,
+   "heading": 174,
+   "size_m": [
+    17,
+    6
+   ],
+   "osm": "way/1159854969",
+   "source": "osm",
+   "note": "OSM building=yes 17 × 6 m (way/1159854969)"
+  },
+  {
+   "ref": "B389",
+   "kind": "building",
+   "lat": 32.6711939,
+   "lon": 35.17489,
+   "heading": 87,
+   "size_m": [
+    15,
+    10
+   ],
+   "osm": "way/1159854971",
+   "source": "osm",
+   "note": "OSM building=yes 15 × 10 m (way/1159854971)"
+  },
+  {
+   "ref": "B390",
+   "kind": "building",
+   "lat": 32.6709197,
+   "lon": 35.1742714,
+   "heading": 77,
+   "size_m": [
+    8,
+    6
+   ],
+   "osm": "way/1159854972",
+   "source": "osm",
+   "note": "OSM building=yes 8 × 2 m (way/1159854972)"
+  },
+  {
+   "ref": "B391",
+   "kind": "building",
+   "lat": 32.6705425,
+   "lon": 35.1738134,
+   "heading": 177,
+   "size_m": [
+    18,
+    10
+   ],
+   "osm": "way/1159854974",
+   "source": "osm",
+   "note": "OSM building=yes 18 × 10 m (way/1159854974)"
+  },
+  {
+   "ref": "B392",
+   "kind": "building",
+   "lat": 32.6702274,
+   "lon": 35.1737812,
+   "heading": 164,
+   "size_m": [
+    13,
+    8
+   ],
+   "osm": "way/1159854975",
+   "source": "osm",
+   "note": "OSM building=yes 13 × 8 m (way/1159854975)"
+  },
+  {
+   "ref": "B393",
+   "kind": "building",
+   "lat": 32.6681242,
+   "lon": 35.1727014,
+   "heading": 162,
+   "size_m": [
+    27,
+    16
+   ],
+   "osm": "way/1159857205",
+   "source": "osm",
+   "note": "OSM building=yes 27 × 16 m (way/1159857205)"
+  },
+  {
+   "ref": "B394",
+   "kind": "building",
+   "lat": 32.6685172,
+   "lon": 35.1725531,
+   "heading": 162,
+   "size_m": [
+    17,
+    16
+   ],
+   "osm": "way/1159857206",
+   "source": "osm",
+   "note": "OSM building=yes 17 × 16 m (way/1159857206)"
+  },
+  {
+   "ref": "B395",
+   "kind": "building",
+   "lat": 32.6705066,
+   "lon": 35.182838,
+   "heading": 172,
+   "size_m": [
+    17,
+    13
+   ],
+   "osm": "way/1159858959",
+   "source": "osm",
+   "note": "OSM building=yes 17 × 13 m (way/1159858959)"
+  },
+  {
+   "ref": "B396",
+   "kind": "building",
+   "lat": 32.6704774,
+   "lon": 35.1824961,
+   "heading": 81,
+   "size_m": [
+    19,
+    10
+   ],
+   "osm": "way/1159858960",
+   "source": "osm",
+   "note": "OSM building=yes 19 × 10 m (way/1159858960)"
+  },
+  {
+   "ref": "B397",
+   "kind": "building",
+   "lat": 32.6709604,
+   "lon": 35.1819459,
+   "heading": 57,
+   "size_m": [
+    11,
+    6
+   ],
+   "osm": "way/1159858961",
+   "source": "osm",
+   "note": "OSM building=yes 11 × 6 m (way/1159858961)"
+  },
+  {
+   "ref": "B398",
+   "kind": "building",
+   "lat": 32.6715882,
+   "lon": 35.1825124,
+   "heading": 51,
+   "size_m": [
+    39,
+    20
+   ],
+   "osm": "way/1159858962",
+   "source": "osm",
+   "note": "OSM building=yes 39 × 20 m (way/1159858962)"
+  },
+  {
+   "ref": "S47",
+   "kind": "shelter",
+   "lat": 32.6635747,
+   "lon": 35.1770093,
+   "heading": 239,
+   "size_m": [
+    13,
+    16
+   ],
+   "osm": "way/1328705710",
+   "source": "osm",
+   "note": "OSM a munitions bunker 16 × 13 m (way/1328705710), drawn as an earth-covered arch (inferred); door toward the nearest track, 15 m (inferred)"
+  },
+  {
+   "ref": "B399",
+   "kind": "building",
+   "lat": 32.6692785,
+   "lon": 35.1662341,
+   "heading": 31,
+   "size_m": [
+    26,
+    20
+   ],
+   "osm": "way/1328724301",
+   "source": "osm",
+   "note": "OSM building=garage 26 × 20 m (way/1328724301)"
+  },
+  {
+   "ref": "S48",
+   "kind": "shelter",
+   "lat": 32.6603433,
+   "lon": 35.191418,
+   "heading": 127,
+   "size_m": [
+    30,
+    24
+   ],
+   "source": "s2",
+   "note": "at the end of a taxiway stub; a bright roof of 3 Sentinel-2 pixels; door toward the stub's end, 47 m (inferred)"
+  },
+  {
+   "ref": "S49",
+   "kind": "shelter",
+   "lat": 32.6755299,
+   "lon": 35.172596,
+   "heading": 184,
+   "size_m": [
+    30,
+    24
+   ],
+   "source": "s2",
+   "note": "at the end of a taxiway stub; a bright roof of 24 Sentinel-2 pixels; door toward the stub's end, 48 m (inferred)"
+  },
+  {
+   "ref": "S50",
+   "kind": "shelter",
+   "lat": 32.6699452,
+   "lon": 35.1733138,
+   "heading": 177,
+   "size_m": [
+    30,
+    24
+   ],
+   "source": "s2",
+   "note": "at the end of a taxiway stub; a bright roof of 3 Sentinel-2 pixels; door toward the stub's end, 52 m (inferred)"
+  },
+  {
+   "ref": "S51",
+   "kind": "shelter",
+   "lat": 32.6620997,
+   "lon": 35.1799469,
+   "heading": 36,
+   "size_m": [
+    30,
+    24
+   ],
+   "source": "s2",
+   "note": "at the end of a taxiway stub; a bright roof of 23 Sentinel-2 pixels; door toward the stub's end, 43 m (inferred)"
+  },
+  {
+   "ref": "S52",
+   "kind": "shelter",
+   "lat": 32.6714234,
+   "lon": 35.1835853,
+   "heading": 160,
+   "size_m": [
+    30,
+    24
+   ],
+   "source": "s2",
+   "note": "at the end of a taxiway stub; a bright roof of 31 Sentinel-2 pixels; door toward the stub's end, 41 m (inferred)"
+  },
+  {
+   "ref": "S53",
+   "kind": "shelter",
+   "lat": 32.6717317,
+   "lon": 35.1750811,
+   "heading": 346,
+   "size_m": [
+    30,
+    24
+   ],
+   "source": "s2",
+   "note": "at the end of a taxiway stub; a bright roof of 4 Sentinel-2 pixels; door toward the stub's end, 48 m (inferred)"
+  },
+  {
+   "ref": "J1",
+   "kind": "f16",
+   "lat": 32.6714234,
+   "lon": 35.1835853,
+   "heading": 160,
+   "source": "inferred",
+   "note": "in the shelter S52, nose out at the door (inferred)"
+  },
+  {
+   "ref": "J2",
+   "kind": "f16",
+   "lat": 32.6680325,
+   "lon": 35.1774703,
+   "heading": 177,
+   "source": "inferred",
+   "note": "in the shelter S12, nose out at the door (inferred)"
+  },
+  {
+   "ref": "J3",
+   "kind": "f16",
+   "lat": 32.6755299,
+   "lon": 35.172596,
+   "heading": 184,
+   "source": "inferred",
+   "note": "in the shelter S49, nose out at the door (inferred)"
+  },
+  {
+   "ref": "J4",
+   "kind": "f16",
+   "lat": 32.6699452,
+   "lon": 35.1733138,
+   "heading": 177,
+   "source": "inferred",
+   "note": "in the shelter S50, nose out at the door (inferred)"
+  },
+  {
+   "ref": "G1",
+   "kind": "gpu",
+   "lat": 32.6678581,
+   "lon": 35.1761387,
+   "heading": 177,
+   "source": "inferred",
+   "note": "beside the player's jet by the cockpit (inferred)"
+  },
+  {
+   "ref": "FT1",
+   "kind": "fuel_truck",
+   "lat": 32.667941,
+   "lon": 35.175984,
+   "heading": 177,
+   "source": "inferred",
+   "note": "parked beside and behind the player's jet, clear of its way out (inferred)"
+  },
+  {
+   "ref": "X1",
+   "kind": "extinguisher",
+   "lat": 32.6677954,
+   "lon": 35.1761639,
+   "heading": 177,
+   "source": "inferred",
+   "note": "off the wingtip, as on a flight line (inferred)"
+  },
+  {
+   "ref": "FN1",
+   "kind": "fence",
+   "along": "boundary",
+   "source": "inferred",
+   "note": "along the base's outline (`boundary` of airbases/llrd.json)"
+  }
+ ],
+ "footnotes": {
+  "s2": "ESA WorldCover 2021 Sentinel-2 RGBNIR composite, 10 m (CC BY 4.0), in assets/source/imagery/sentinel2/: bright objects against the ground within 90 m (modern-iaf/docs/base-furniture.md §2)",
+  "osm": "OpenStreetMap contributors (ODbL 1.0), the scenery step's extract israel-and-palestine-260101.osm.pbf and the airbases step's Overpass answer (assets/source/osm/airbases/LLRD.json)",
+  "inferred": "our own reasoning"
+ }
+}

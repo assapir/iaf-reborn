@@ -1,0 +1,916 @@
+{
+ "icao": "LLEK",
+ "survey": "2026-11-19",
+ "frame": "WGS-84 lat / lon, true headings, metres (as data/airbases, data-formats.md §10)",
+ "rows": [
+  {
+   "ref": "S1",
+   "kind": "shelter",
+   "lat": 31.8466657,
+   "lon": 34.8146939,
+   "heading": 115,
+   "size_m": [
+    30,
+    24
+   ],
+   "source": "s2",
+   "note": "at the end of a taxiway stub; a bright roof of 1 Sentinel-2 pixels; door toward the stub's end, 49 m (inferred)"
+  },
+  {
+   "ref": "S2",
+   "kind": "shelter",
+   "lat": 31.8470143,
+   "lon": 34.8155461,
+   "heading": 99,
+   "size_m": [
+    30,
+    24
+   ],
+   "source": "s2",
+   "note": "at the end of a taxiway stub; a bright roof of 1 Sentinel-2 pixels; door toward the stub's end, 36 m (inferred)"
+  },
+  {
+   "ref": "S3",
+   "kind": "shelter",
+   "lat": 31.8250146,
+   "lon": 34.814904,
+   "heading": 63,
+   "size_m": [
+    30,
+    24
+   ],
+   "source": "s2",
+   "note": "at the end of a taxiway stub; a bright roof of 1 Sentinel-2 pixels; door toward the stub's end, 50 m (inferred)"
+  },
+  {
+   "ref": "S4",
+   "kind": "shelter",
+   "lat": 31.8450275,
+   "lon": 34.8157185,
+   "heading": 84,
+   "size_m": [
+    30,
+    24
+   ],
+   "source": "s2",
+   "note": "at the end of a taxiway stub; a bright roof of 1 Sentinel-2 pixels; door toward the stub's end, 37 m (inferred)"
+  },
+  {
+   "ref": "S5",
+   "kind": "shelter",
+   "lat": 31.8258363,
+   "lon": 34.8330913,
+   "heading": 327,
+   "size_m": [
+    30,
+    24
+   ],
+   "source": "s2",
+   "note": "at the end of a taxiway stub; a bright roof of 1 Sentinel-2 pixels; door toward the stub's end, 27 m (inferred)"
+  },
+  {
+   "ref": "S6",
+   "kind": "shelter",
+   "lat": 31.8349327,
+   "lon": 34.827777,
+   "heading": 178,
+   "size_m": [
+    30,
+    24
+   ],
+   "source": "s2",
+   "note": "at the end of a taxiway stub; a bright roof of 1 Sentinel-2 pixels; door toward the stub's end, 35 m (inferred)"
+  },
+  {
+   "ref": "S7",
+   "kind": "shelter",
+   "lat": 31.8298082,
+   "lon": 34.8139973,
+   "heading": 79,
+   "size_m": [
+    30,
+    24
+   ],
+   "source": "s2",
+   "note": "at the end of a taxiway stub; a bright roof of 2 Sentinel-2 pixels; door toward the stub's end, 29 m (inferred)"
+  },
+  {
+   "ref": "S8",
+   "kind": "shelter",
+   "lat": 31.8233661,
+   "lon": 34.8292393,
+   "heading": 186,
+   "size_m": [
+    30,
+    24
+   ],
+   "source": "s2",
+   "note": "at the end of a taxiway stub; a bright roof of 1 Sentinel-2 pixels; door toward the stub's end, 50 m (inferred)"
+  },
+  {
+   "ref": "B1",
+   "kind": "building",
+   "lat": 31.8391891,
+   "lon": 34.8225081,
+   "heading": 136,
+   "size_m": [
+    23,
+    13
+   ],
+   "source": "s2",
+   "note": "a bright roof, 3 Sentinel-2 pixels; kind inferred; size from the blurred roof"
+  },
+  {
+   "ref": "B2",
+   "kind": "building",
+   "lat": 31.8391785,
+   "lon": 34.8229348,
+   "heading": 136,
+   "size_m": [
+    23,
+    13
+   ],
+   "source": "s2",
+   "note": "a bright roof, 3 Sentinel-2 pixels; kind inferred; size from the blurred roof"
+  },
+  {
+   "ref": "B3",
+   "kind": "building",
+   "lat": 31.8370714,
+   "lon": 34.8253267,
+   "heading": 136,
+   "size_m": [
+    23,
+    13
+   ],
+   "source": "s2",
+   "note": "a bright roof, 3 Sentinel-2 pixels; kind inferred; size from the blurred roof"
+  },
+  {
+   "ref": "B4",
+   "kind": "building",
+   "lat": 31.8371429,
+   "lon": 34.8090194,
+   "heading": 123,
+   "size_m": [
+    32,
+    12
+   ],
+   "source": "s2",
+   "note": "a bright roof, 4 Sentinel-2 pixels; kind inferred; size from the blurred roof"
+  },
+  {
+   "ref": "B5",
+   "kind": "building",
+   "lat": 31.8370786,
+   "lon": 34.8120147,
+   "heading": 136,
+   "size_m": [
+    23,
+    13
+   ],
+   "source": "s2",
+   "note": "a bright roof, 3 Sentinel-2 pixels; kind inferred; size from the blurred roof"
+  },
+  {
+   "ref": "B6",
+   "kind": "building",
+   "lat": 31.8366488,
+   "lon": 34.8237218,
+   "heading": 136,
+   "size_m": [
+    23,
+    13
+   ],
+   "source": "s2",
+   "note": "a bright roof, 3 Sentinel-2 pixels; kind inferred; size from the blurred roof"
+  },
+  {
+   "ref": "B7",
+   "kind": "building",
+   "lat": 31.8367707,
+   "lon": 34.8086191,
+   "heading": 136,
+   "size_m": [
+    23,
+    13
+   ],
+   "source": "s2",
+   "note": "a bright roof, 3 Sentinel-2 pixels; kind inferred; size from the blurred roof"
+  },
+  {
+   "ref": "B8",
+   "kind": "building",
+   "lat": 31.8367656,
+   "lon": 34.8090374,
+   "heading": 136,
+   "size_m": [
+    23,
+    13
+   ],
+   "source": "s2",
+   "note": "a bright roof, 3 Sentinel-2 pixels; kind inferred; size from the blurred roof"
+  },
+  {
+   "ref": "B9",
+   "kind": "building",
+   "lat": 31.8367248,
+   "lon": 34.8115883,
+   "heading": 136,
+   "size_m": [
+    23,
+    13
+   ],
+   "source": "s2",
+   "note": "a bright roof, 3 Sentinel-2 pixels; kind inferred; size from the blurred roof"
+  },
+  {
+   "ref": "B10",
+   "kind": "building",
+   "lat": 31.8362808,
+   "lon": 34.823722,
+   "heading": 136,
+   "size_m": [
+    23,
+    13
+   ],
+   "source": "s2",
+   "note": "a bright roof, 3 Sentinel-2 pixels; kind inferred; size from the blurred roof"
+  },
+  {
+   "ref": "B11",
+   "kind": "building",
+   "lat": 31.836356,
+   "lon": 34.8115822,
+   "heading": 136,
+   "size_m": [
+    23,
+    13
+   ],
+   "source": "s2",
+   "note": "a bright roof, 3 Sentinel-2 pixels; kind inferred; size from the blurred roof"
+  },
+  {
+   "ref": "B12",
+   "kind": "building",
+   "lat": 31.8356962,
+   "lon": 34.8085696,
+   "heading": 123,
+   "size_m": [
+    32,
+    12
+   ],
+   "source": "s2",
+   "note": "a bright roof, 4 Sentinel-2 pixels; kind inferred; size from the blurred roof"
+  },
+  {
+   "ref": "B13",
+   "kind": "building",
+   "lat": 31.8356539,
+   "lon": 34.8107168,
+   "heading": 136,
+   "size_m": [
+    23,
+    13
+   ],
+   "source": "s2",
+   "note": "a bright roof, 3 Sentinel-2 pixels; kind inferred; size from the blurred roof"
+  },
+  {
+   "ref": "B14",
+   "kind": "building",
+   "lat": 31.8356369,
+   "lon": 34.8119781,
+   "heading": 136,
+   "size_m": [
+    23,
+    13
+   ],
+   "source": "s2",
+   "note": "a bright roof, 3 Sentinel-2 pixels; kind inferred; size from the blurred roof"
+  },
+  {
+   "ref": "B15",
+   "kind": "building",
+   "lat": 31.8352941,
+   "lon": 34.8107109,
+   "heading": 136,
+   "size_m": [
+    23,
+    13
+   ],
+   "source": "s2",
+   "note": "a bright roof, 3 Sentinel-2 pixels; kind inferred; size from the blurred roof"
+  },
+  {
+   "ref": "B16",
+   "kind": "building",
+   "lat": 31.8349996,
+   "lon": 34.8151713,
+   "heading": 136,
+   "size_m": [
+    23,
+    13
+   ],
+   "source": "s2",
+   "note": "a bright roof, 3 Sentinel-2 pixels; kind inferred; size from the blurred roof"
+  },
+  {
+   "ref": "B17",
+   "kind": "building",
+   "lat": 31.834628,
+   "lon": 34.8151672,
+   "heading": 136,
+   "size_m": [
+    23,
+    13
+   ],
+   "source": "s2",
+   "note": "a bright roof, 3 Sentinel-2 pixels; kind inferred; size from the blurred roof"
+  },
+  {
+   "ref": "B18",
+   "kind": "building",
+   "lat": 31.8346011,
+   "lon": 34.8155988,
+   "heading": 109,
+   "size_m": [
+    29,
+    17
+   ],
+   "source": "s2",
+   "note": "a bright roof, 5 Sentinel-2 pixels; kind inferred; size from the blurred roof"
+  },
+  {
+   "ref": "B19",
+   "kind": "building",
+   "lat": 31.8309214,
+   "lon": 34.8255912,
+   "heading": 91,
+   "size_m": [
+    26,
+    16
+   ],
+   "source": "s2",
+   "note": "a bright roof, 4 Sentinel-2 pixels; kind inferred; size from the blurred roof"
+  },
+  {
+   "ref": "B20",
+   "kind": "building",
+   "lat": 31.8305721,
+   "lon": 34.8256023,
+   "heading": 136,
+   "size_m": [
+    23,
+    13
+   ],
+   "source": "s2",
+   "note": "a bright roof, 3 Sentinel-2 pixels; kind inferred; size from the blurred roof"
+  },
+  {
+   "ref": "B21",
+   "kind": "building",
+   "lat": 31.8292406,
+   "lon": 34.8137601,
+   "heading": 46,
+   "size_m": [
+    23,
+    13
+   ],
+   "source": "s2",
+   "note": "a bright roof, 3 Sentinel-2 pixels; kind inferred; size from the blurred roof"
+  },
+  {
+   "ref": "B22",
+   "kind": "building",
+   "lat": 31.828831,
+   "lon": 34.814592,
+   "heading": 136,
+   "size_m": [
+    23,
+    13
+   ],
+   "source": "s2",
+   "note": "a bright roof, 3 Sentinel-2 pixels; kind inferred; size from the blurred roof"
+  },
+  {
+   "ref": "B23",
+   "kind": "building",
+   "lat": 31.8284647,
+   "lon": 34.8150359,
+   "heading": 46,
+   "size_m": [
+    23,
+    13
+   ],
+   "source": "s2",
+   "note": "a bright roof, 3 Sentinel-2 pixels; kind inferred; size from the blurred roof"
+  },
+  {
+   "ref": "B24",
+   "kind": "building",
+   "lat": 31.8281064,
+   "lon": 34.8146074,
+   "heading": 46,
+   "size_m": [
+    23,
+    13
+   ],
+   "source": "s2",
+   "note": "a bright roof, 3 Sentinel-2 pixels; kind inferred; size from the blurred roof"
+  },
+  {
+   "ref": "B25",
+   "kind": "building",
+   "lat": 31.8281014,
+   "lon": 34.8150257,
+   "heading": 46,
+   "size_m": [
+    23,
+    13
+   ],
+   "source": "s2",
+   "note": "a bright roof, 3 Sentinel-2 pixels; kind inferred; size from the blurred roof"
+  },
+  {
+   "ref": "B26",
+   "kind": "building",
+   "lat": 31.8277813,
+   "lon": 34.83751,
+   "heading": 136,
+   "size_m": [
+    23,
+    13
+   ],
+   "source": "s2",
+   "note": "a bright roof, 3 Sentinel-2 pixels; kind inferred; size from the blurred roof"
+  },
+  {
+   "ref": "B27",
+   "kind": "building",
+   "lat": 31.8236571,
+   "lon": 34.8297046,
+   "heading": 136,
+   "size_m": [
+    23,
+    13
+   ],
+   "source": "s2",
+   "note": "a bright roof, 3 Sentinel-2 pixels; kind inferred; size from the blurred roof"
+  },
+  {
+   "ref": "B28",
+   "kind": "building",
+   "lat": 31.823651,
+   "lon": 34.8301313,
+   "heading": 136,
+   "size_m": [
+    23,
+    13
+   ],
+   "source": "s2",
+   "note": "a bright roof, 3 Sentinel-2 pixels; kind inferred; size from the blurred roof"
+  },
+  {
+   "ref": "B29",
+   "kind": "building",
+   "lat": 31.8214861,
+   "lon": 34.830508,
+   "heading": 136,
+   "size_m": [
+    23,
+    13
+   ],
+   "source": "s2",
+   "note": "a bright roof, 3 Sentinel-2 pixels; kind inferred; size from the blurred roof"
+  },
+  {
+   "ref": "S9",
+   "kind": "shelter",
+   "lat": 31.8349635,
+   "lon": 34.8092242,
+   "heading": 201,
+   "size_m": [
+    26,
+    20
+   ],
+   "source": "s2",
+   "note": "one of five round bright roofs along the loop road north-west of 15R/33L: a shelter row, doors toward the loop (placed by eye; kind and size inferred)"
+  },
+  {
+   "ref": "S10",
+   "kind": "shelter",
+   "lat": 31.8348951,
+   "lon": 34.8095926,
+   "heading": 201,
+   "size_m": [
+    26,
+    20
+   ],
+   "source": "s2",
+   "note": "the shelter row's second roof (placed by eye; kind and size inferred)"
+  },
+  {
+   "ref": "S11",
+   "kind": "shelter",
+   "lat": 31.8347543,
+   "lon": 34.8099808,
+   "heading": 201,
+   "size_m": [
+    26,
+    20
+   ],
+   "source": "s2",
+   "note": "the shelter row's third roof (placed by eye; kind and size inferred)"
+  },
+  {
+   "ref": "S12",
+   "kind": "shelter",
+   "lat": 31.8346498,
+   "lon": 34.8103486,
+   "heading": 201,
+   "size_m": [
+    26,
+    20
+   ],
+   "source": "s2",
+   "note": "the shelter row's fourth roof (placed by eye; kind and size inferred)"
+  },
+  {
+   "ref": "S13",
+   "kind": "shelter",
+   "lat": 31.8345634,
+   "lon": 34.8107167,
+   "heading": 201,
+   "size_m": [
+    26,
+    20
+   ],
+   "source": "s2",
+   "note": "the shelter row's fifth roof (placed by eye; kind and size inferred)"
+  },
+  {
+   "ref": "H1",
+   "kind": "hangar",
+   "lat": 31.8324895,
+   "lon": 34.8125674,
+   "heading": 106,
+   "size_m": [
+    60,
+    30
+   ],
+   "source": "s2",
+   "note": "a large bright rectangle south of the shelter row (placed by eye; kind and size inferred)"
+  },
+  {
+   "ref": "B30",
+   "kind": "building",
+   "lat": 31.8323752,
+   "lon": 34.8142556,
+   "heading": 1,
+   "size_m": [
+    50,
+    16
+   ],
+   "source": "s2",
+   "note": "a long bright roof beside it (placed by eye; kind and size inferred)"
+  },
+  {
+   "ref": "H2",
+   "kind": "hangar",
+   "lat": 31.8314393,
+   "lon": 34.8122088,
+   "heading": 118,
+   "size_m": [
+    90,
+    35
+   ],
+   "source": "s2",
+   "note": "the west half of a long bright roof by the west loop road (placed by eye; kind and size inferred)"
+  },
+  {
+   "ref": "H3",
+   "kind": "hangar",
+   "lat": 31.8310659,
+   "lon": 34.813089,
+   "heading": 118,
+   "size_m": [
+    90,
+    35
+   ],
+   "source": "s2",
+   "note": "its east half (placed by eye; kind and size inferred)"
+  },
+  {
+   "ref": "B31",
+   "kind": "building",
+   "lat": 31.8302293,
+   "lon": 34.8103996,
+   "heading": 1,
+   "size_m": [
+    30,
+    25
+   ],
+   "source": "s2",
+   "note": "a bright roof (placed by eye; kind and size inferred)"
+  },
+  {
+   "ref": "B32",
+   "kind": "building",
+   "lat": 31.8294019,
+   "lon": 34.8108589,
+   "heading": 1,
+   "size_m": [
+    25,
+    20
+   ],
+   "source": "s2",
+   "note": "a bright roof (placed by eye; kind and size inferred)"
+  },
+  {
+   "ref": "B33",
+   "kind": "building",
+   "lat": 31.8310434,
+   "lon": 34.8064324,
+   "heading": 91,
+   "size_m": [
+    25,
+    12
+   ],
+   "source": "s2",
+   "note": "a bright roof (placed by eye; kind and size inferred)"
+  },
+  {
+   "ref": "B34",
+   "kind": "building",
+   "lat": 31.8277337,
+   "lon": 34.8082907,
+   "heading": 1,
+   "size_m": [
+    20,
+    15
+   ],
+   "source": "s2",
+   "note": "a bright roof (placed by eye; kind and size inferred)"
+  },
+  {
+   "ref": "B35",
+   "kind": "building",
+   "lat": 31.8275754,
+   "lon": 34.8111718,
+   "heading": 1,
+   "size_m": [
+    20,
+    15
+   ],
+   "source": "s2",
+   "note": "a bright roof (placed by eye; kind and size inferred)"
+  },
+  {
+   "ref": "H4",
+   "kind": "hangar",
+   "lat": 31.8305086,
+   "lon": 34.8199032,
+   "heading": 91,
+   "size_m": [
+    60,
+    40
+   ],
+   "source": "s2",
+   "note": "a large bright roof in the technical area: a hangar or workshop (placed by eye; kind and size inferred)"
+  },
+  {
+   "ref": "B36",
+   "kind": "building",
+   "lat": 31.8315113,
+   "lon": 34.82043,
+   "heading": 91,
+   "size_m": [
+    40,
+    30
+   ],
+   "source": "s2",
+   "note": "a bright roof in the technical area east of 15L/33R (placed by eye; kind and size inferred)"
+  },
+  {
+   "ref": "B37",
+   "kind": "building",
+   "lat": 31.8294672,
+   "lon": 34.8220803,
+   "heading": 91,
+   "size_m": [
+    50,
+    30
+   ],
+   "source": "s2",
+   "note": "a bright roof in the technical area east of 15L/33R (placed by eye; kind and size inferred)"
+  },
+  {
+   "ref": "B38",
+   "kind": "building",
+   "lat": 31.8304626,
+   "lon": 34.8231141,
+   "heading": 1,
+   "size_m": [
+    40,
+    40
+   ],
+   "source": "s2",
+   "note": "a bright roof in the technical area east of 15L/33R (placed by eye; kind and size inferred)"
+  },
+  {
+   "ref": "H5",
+   "kind": "hangar",
+   "lat": 31.8317569,
+   "lon": 34.8234354,
+   "heading": 91,
+   "size_m": [
+    60,
+    40
+   ],
+   "source": "s2",
+   "note": "a large bright roof in the technical area: a hangar or workshop (placed by eye; kind and size inferred)"
+  },
+  {
+   "ref": "H6",
+   "kind": "hangar",
+   "lat": 31.8231334,
+   "lon": 34.8209417,
+   "heading": 91,
+   "size_m": [
+    60,
+    40
+   ],
+   "source": "s2",
+   "note": "a large bright roof in the technical area: a hangar or workshop (placed by eye; kind and size inferred)"
+  },
+  {
+   "ref": "H7",
+   "kind": "hangar",
+   "lat": 31.8229673,
+   "lon": 34.8224597,
+   "heading": 91,
+   "size_m": [
+    60,
+    40
+   ],
+   "source": "s2",
+   "note": "a large bright roof in the technical area: a hangar or workshop (placed by eye; kind and size inferred)"
+  },
+  {
+   "ref": "B39",
+   "kind": "building",
+   "lat": 31.8271127,
+   "lon": 34.8252458,
+   "heading": 1,
+   "size_m": [
+    30,
+    25
+   ],
+   "source": "s2",
+   "note": "a bright roof in the technical area east of 15L/33R (placed by eye; kind and size inferred)"
+  },
+  {
+   "ref": "B40",
+   "kind": "building",
+   "lat": 31.8285458,
+   "lon": 34.8259501,
+   "heading": 1,
+   "size_m": [
+    30,
+    25
+   ],
+   "source": "s2",
+   "note": "a bright roof in the technical area east of 15L/33R (placed by eye; kind and size inferred)"
+  },
+  {
+   "ref": "B41",
+   "kind": "building",
+   "lat": 31.8295059,
+   "lon": 34.8193764,
+   "heading": 1,
+   "size_m": [
+    30,
+    30
+   ],
+   "source": "s2",
+   "note": "a bright roof in the technical area east of 15L/33R (placed by eye; kind and size inferred)"
+  },
+  {
+   "ref": "B42",
+   "kind": "building",
+   "lat": 31.8225127,
+   "lon": 34.823972,
+   "heading": 91,
+   "size_m": [
+    40,
+    30
+   ],
+   "source": "s2",
+   "note": "a bright roof in the technical area east of 15L/33R (placed by eye; kind and size inferred)"
+  },
+  {
+   "ref": "B43",
+   "kind": "building",
+   "lat": 31.8218919,
+   "lon": 34.8270023,
+   "heading": 91,
+   "size_m": [
+    40,
+    30
+   ],
+   "source": "s2",
+   "note": "a bright roof in the technical area east of 15L/33R (placed by eye; kind and size inferred)"
+  },
+  {
+   "ref": "B44",
+   "kind": "building",
+   "lat": 31.8254868,
+   "lon": 34.8279183,
+   "heading": 1,
+   "size_m": [
+    25,
+    20
+   ],
+   "source": "s2",
+   "note": "a bright roof in the technical area east of 15L/33R (placed by eye; kind and size inferred)"
+  },
+  {
+   "ref": "B45",
+   "kind": "building",
+   "lat": 31.8318192,
+   "lon": 34.8190837,
+   "heading": 91,
+   "size_m": [
+    30,
+    20
+   ],
+   "source": "s2",
+   "note": "a bright roof in the technical area east of 15L/33R (placed by eye; kind and size inferred)"
+  },
+  {
+   "ref": "B46",
+   "kind": "building",
+   "lat": 31.8248066,
+   "lon": 34.8250313,
+   "heading": 1,
+   "size_m": [
+    25,
+    20
+   ],
+   "source": "s2",
+   "note": "a bright roof in the technical area east of 15L/33R (placed by eye; kind and size inferred)"
+  },
+  {
+   "ref": "B47",
+   "kind": "building",
+   "lat": 31.8274666,
+   "lon": 34.8206887,
+   "heading": 1,
+   "size_m": [
+    25,
+    20
+   ],
+   "source": "s2",
+   "note": "a bright roof in the technical area east of 15L/33R (placed by eye; kind and size inferred)"
+  },
+  {
+   "ref": "G1",
+   "kind": "gpu",
+   "lat": 31.8382824,
+   "lon": 34.8128064,
+   "heading": 226,
+   "source": "inferred",
+   "note": "beside the player's jet by the cockpit (inferred)"
+  },
+  {
+   "ref": "FT1",
+   "kind": "fuel_truck",
+   "lat": 31.8382537,
+   "lon": 34.8129844,
+   "heading": 226,
+   "source": "inferred",
+   "note": "parked beside and behind the player's jet, clear of its way out (inferred)"
+  },
+  {
+   "ref": "X1",
+   "kind": "extinguisher",
+   "lat": 31.8382509,
+   "lon": 34.8127382,
+   "heading": 226,
+   "source": "inferred",
+   "note": "off the wingtip, as on a flight line (inferred)"
+  },
+  {
+   "ref": "FN1",
+   "kind": "fence",
+   "along": "boundary",
+   "source": "inferred",
+   "note": "along the base's outline (`boundary` of airbases/llek.json)"
+  }
+ ],
+ "footnotes": {
+  "s2": "ESA WorldCover 2021 Sentinel-2 RGBNIR composite, 10 m (CC BY 4.0), in assets/source/imagery/sentinel2/: bright objects against the ground within 90 m (modern-iaf/docs/base-furniture.md §2)",
+  "inferred": "our own reasoning"
+ }
+}

@@ -1,0 +1,600 @@
+{
+ "icao": "LLHB",
+ "survey": "2026-11-19",
+ "frame": "WGS-84 lat / lon, true headings, metres (as data/airbases, data-formats.md §10)",
+ "rows": [
+  {
+   "ref": "S1",
+   "kind": "shelter",
+   "lat": 31.2261356,
+   "lon": 34.6809233,
+   "heading": 289,
+   "size_m": [
+    24,
+    15
+   ],
+   "osm": "way/1157437858",
+   "source": "osm",
+   "note": "OSM hangar 24 × 15 m (way/1157437858); a hardened shelter by its size (inferred); door toward the nearest pavement, 30 m (inferred)"
+  },
+  {
+   "ref": "U1",
+   "kind": "sunshade",
+   "lat": 31.2284503,
+   "lon": 34.6757458,
+   "heading": 61,
+   "size_m": [
+    112,
+    21
+   ],
+   "osm": "way/1157437863",
+   "source": "osm",
+   "note": "OSM hangar 112 × 21 m (way/1157437863): a long narrow roof over a parking row, drawn as a roof on posts (inferred)"
+  },
+  {
+   "ref": "U2",
+   "kind": "sunshade",
+   "lat": 31.2313636,
+   "lon": 34.6764145,
+   "heading": 62,
+   "size_m": [
+    113,
+    20
+   ],
+   "osm": "way/1157437866",
+   "source": "osm",
+   "note": "OSM hangar 113 × 20 m (way/1157437866): a long narrow roof over a parking row, drawn as a roof on posts (inferred)"
+  },
+  {
+   "ref": "U3",
+   "kind": "sunshade",
+   "lat": 31.2323136,
+   "lon": 34.6730119,
+   "heading": 62,
+   "size_m": [
+    113,
+    20
+   ],
+   "osm": "way/1157437869",
+   "source": "osm",
+   "note": "OSM hangar 113 × 20 m (way/1157437869): a long narrow roof over a parking row, drawn as a roof on posts (inferred)"
+  },
+  {
+   "ref": "U4",
+   "kind": "sunshade",
+   "lat": 31.2421258,
+   "lon": 34.6564403,
+   "heading": 15,
+   "size_m": [
+    211,
+    15
+   ],
+   "osm": "way/1157437877",
+   "source": "osm",
+   "note": "OSM hangar 211 × 15 m (way/1157437877): a long narrow roof over a parking row, drawn as a roof on posts (inferred)"
+  },
+  {
+   "ref": "U5",
+   "kind": "sunshade",
+   "lat": 31.2424861,
+   "lon": 34.6549368,
+   "heading": 15,
+   "size_m": [
+    211,
+    15
+   ],
+   "osm": "way/1157437878",
+   "source": "osm",
+   "note": "OSM hangar 211 × 15 m (way/1157437878): a long narrow roof over a parking row, drawn as a roof on posts (inferred)"
+  },
+  {
+   "ref": "U6",
+   "kind": "sunshade",
+   "lat": 31.2428278,
+   "lon": 34.6534161,
+   "heading": 15,
+   "size_m": [
+    211,
+    15
+   ],
+   "osm": "way/1157437879",
+   "source": "osm",
+   "note": "OSM hangar 211 × 15 m (way/1157437879): a long narrow roof over a parking row, drawn as a roof on posts (inferred)"
+  },
+  {
+   "ref": "U7",
+   "kind": "sunshade",
+   "lat": 31.2436112,
+   "lon": 34.6514863,
+   "heading": 15,
+   "size_m": [
+    284,
+    15
+   ],
+   "osm": "way/1157437880",
+   "source": "osm",
+   "note": "OSM hangar 284 × 15 m (way/1157437880): a long narrow roof over a parking row, drawn as a roof on posts (inferred)"
+  },
+  {
+   "ref": "U8",
+   "kind": "sunshade",
+   "lat": 31.2440097,
+   "lon": 34.6500295,
+   "heading": 15,
+   "size_m": [
+    284,
+    15
+   ],
+   "osm": "way/1157437881",
+   "source": "osm",
+   "note": "OSM hangar 284 × 15 m (way/1157437881): a long narrow roof over a parking row, drawn as a roof on posts (inferred)"
+  },
+  {
+   "ref": "H1",
+   "kind": "hangar",
+   "lat": 31.2452106,
+   "lon": 34.6637349,
+   "heading": 0,
+   "size_m": [
+    42,
+    41
+   ],
+   "osm": "way/1157437892",
+   "source": "osm",
+   "note": "OSM hangar 42 × 41 m (way/1157437892); doors in the end toward the pavement (inferred)"
+  },
+  {
+   "ref": "H2",
+   "kind": "hangar",
+   "lat": 31.2461618,
+   "lon": 34.664265,
+   "heading": 181,
+   "size_m": [
+    59,
+    50
+   ],
+   "osm": "way/1157437893",
+   "source": "osm",
+   "note": "OSM hangar 59 × 50 m (way/1157437893); doors in the end toward the pavement (inferred)"
+  },
+  {
+   "ref": "H3",
+   "kind": "hangar",
+   "lat": 31.2461006,
+   "lon": 34.6631404,
+   "heading": 91,
+   "size_m": [
+    52,
+    43
+   ],
+   "osm": "way/1157437894",
+   "source": "osm",
+   "note": "OSM hangar 52 × 43 m (way/1157437894); doors in the end toward the pavement (inferred)"
+  },
+  {
+   "ref": "U9",
+   "kind": "sunshade",
+   "lat": 31.2411256,
+   "lon": 34.6732082,
+   "heading": 61,
+   "size_m": [
+    92,
+    26
+   ],
+   "osm": "way/1157437895",
+   "source": "osm",
+   "note": "OSM hangar 92 × 26 m (way/1157437895): a long narrow roof over a parking row, drawn as a roof on posts (inferred)"
+  },
+  {
+   "ref": "U10",
+   "kind": "sunshade",
+   "lat": 31.2414987,
+   "lon": 34.6716388,
+   "heading": 150,
+   "size_m": [
+    92,
+    26
+   ],
+   "osm": "way/1157437896",
+   "source": "osm",
+   "note": "OSM hangar 92 × 26 m (way/1157437896): a long narrow roof over a parking row, drawn as a roof on posts (inferred)"
+  },
+  {
+   "ref": "U11",
+   "kind": "sunshade",
+   "lat": 31.2384838,
+   "lon": 34.6766305,
+   "heading": 15,
+   "size_m": [
+    116,
+    19
+   ],
+   "osm": "way/1157437897",
+   "source": "osm",
+   "note": "OSM hangar 116 × 19 m (way/1157437897): a long narrow roof over a parking row, drawn as a roof on posts (inferred)"
+  },
+  {
+   "ref": "U12",
+   "kind": "sunshade",
+   "lat": 31.2399815,
+   "lon": 34.6708614,
+   "heading": 105,
+   "size_m": [
+    113,
+    21
+   ],
+   "osm": "way/1157437904",
+   "source": "osm",
+   "note": "OSM hangar 113 × 21 m (way/1157437904): a long narrow roof over a parking row, drawn as a roof on posts (inferred)"
+  },
+  {
+   "ref": "H4",
+   "kind": "hangar",
+   "lat": 31.2317504,
+   "lon": 34.669357,
+   "heading": 335,
+   "size_m": [
+    108,
+    36
+   ],
+   "osm": "way/1157437921",
+   "source": "osm",
+   "note": "OSM hangar 108 × 36 m (way/1157437921); doors in the end toward the pavement (inferred)"
+  },
+  {
+   "ref": "U13",
+   "kind": "sunshade",
+   "lat": 31.2390538,
+   "lon": 34.667624,
+   "heading": 16,
+   "size_m": [
+    87,
+    15
+   ],
+   "osm": "way/1157437922",
+   "source": "osm",
+   "note": "OSM hangar 87 × 15 m (way/1157437922): a long narrow roof over a parking row, drawn as a roof on posts (inferred)"
+  },
+  {
+   "ref": "U14",
+   "kind": "sunshade",
+   "lat": 31.2395989,
+   "lon": 34.6656576,
+   "heading": 15,
+   "size_m": [
+    114,
+    20
+   ],
+   "osm": "way/1157437929",
+   "source": "osm",
+   "note": "OSM hangar 114 × 20 m (way/1157437929): a long narrow roof over a parking row, drawn as a roof on posts (inferred)"
+  },
+  {
+   "ref": "S2",
+   "kind": "shelter",
+   "lat": 31.2272719,
+   "lon": 34.6583006,
+   "heading": 303,
+   "size_m": [
+    30,
+    24
+   ],
+   "source": "s2",
+   "note": "at the end of a taxiway stub; a bright roof of 1 Sentinel-2 pixels; door toward the stub's end, 33 m (inferred)"
+  },
+  {
+   "ref": "S3",
+   "kind": "shelter",
+   "lat": 31.2629555,
+   "lon": 34.6544087,
+   "heading": 171,
+   "size_m": [
+    30,
+    24
+   ],
+   "source": "s2",
+   "note": "at the end of a taxiway stub; a bright roof of 1 Sentinel-2 pixels; door toward the stub's end, 35 m (inferred)"
+  },
+  {
+   "ref": "S4",
+   "kind": "shelter",
+   "lat": 31.2276294,
+   "lon": 34.6794076,
+   "heading": 112,
+   "size_m": [
+    30,
+    24
+   ],
+   "source": "s2",
+   "note": "at the end of a taxiway stub; a bright roof of 1 Sentinel-2 pixels; door toward the stub's end, 48 m (inferred)"
+  },
+  {
+   "ref": "S5",
+   "kind": "shelter",
+   "lat": 31.2265472,
+   "lon": 34.6793885,
+   "heading": 172,
+   "size_m": [
+    30,
+    24
+   ],
+   "source": "s2",
+   "note": "at the end of a taxiway stub; a bright roof of 1 Sentinel-2 pixels; door toward the stub's end, 29 m (inferred)"
+  },
+  {
+   "ref": "S6",
+   "kind": "shelter",
+   "lat": 31.2272742,
+   "lon": 34.6789814,
+   "heading": 174,
+   "size_m": [
+    30,
+    24
+   ],
+   "source": "s2",
+   "note": "at the end of a taxiway stub; a bright roof of 1 Sentinel-2 pixels; door toward the stub's end, 46 m (inferred)"
+  },
+  {
+   "ref": "S7",
+   "kind": "shelter",
+   "lat": 31.2284112,
+   "lon": 34.6748023,
+   "heading": 102,
+   "size_m": [
+    30,
+    24
+   ],
+   "source": "s2",
+   "note": "at the end of a taxiway stub; a bright roof of 1 Sentinel-2 pixels; door toward the stub's end, 31 m (inferred)"
+  },
+  {
+   "ref": "S8",
+   "kind": "shelter",
+   "lat": 31.2321486,
+   "lon": 34.6718238,
+   "heading": 88,
+   "size_m": [
+    30,
+    24
+   ],
+   "source": "s2",
+   "note": "at the end of a taxiway stub; a bright roof of 1 Sentinel-2 pixels; door toward the stub's end, 51 m (inferred)"
+  },
+  {
+   "ref": "S9",
+   "kind": "shelter",
+   "lat": 31.2435442,
+   "lon": 34.6556451,
+   "heading": 226,
+   "size_m": [
+    30,
+    24
+   ],
+   "source": "s2",
+   "note": "at the end of a taxiway stub; a bright roof of 1 Sentinel-2 pixels; door toward the stub's end, 33 m (inferred)"
+  },
+  {
+   "ref": "S10",
+   "kind": "shelter",
+   "lat": 31.237683,
+   "lon": 34.6763308,
+   "heading": 350,
+   "size_m": [
+    30,
+    24
+   ],
+   "source": "s2",
+   "note": "at the end of a taxiway stub; a bright roof of 1 Sentinel-2 pixels; door toward the stub's end, 33 m (inferred)"
+  },
+  {
+   "ref": "S11",
+   "kind": "shelter",
+   "lat": 31.2373168,
+   "lon": 34.6767443,
+   "heading": 344,
+   "size_m": [
+    30,
+    24
+   ],
+   "source": "s2",
+   "note": "at the end of a taxiway stub; a bright roof of 1 Sentinel-2 pixels; door toward the stub's end, 51 m (inferred)"
+  },
+  {
+   "ref": "S12",
+   "kind": "shelter",
+   "lat": 31.2401127,
+   "lon": 34.6698642,
+   "heading": 71,
+   "size_m": [
+    30,
+    24
+   ],
+   "source": "s2",
+   "note": "at the end of a taxiway stub; a bright roof of 1 Sentinel-2 pixels; door toward the stub's end, 48 m (inferred)"
+  },
+  {
+   "ref": "S13",
+   "kind": "shelter",
+   "lat": 31.2397519,
+   "lon": 34.6698579,
+   "heading": 60,
+   "size_m": [
+    30,
+    24
+   ],
+   "source": "s2",
+   "note": "at the end of a taxiway stub; a bright roof of 1 Sentinel-2 pixels; door toward the stub's end, 44 m (inferred)"
+  },
+  {
+   "ref": "S14",
+   "kind": "shelter",
+   "lat": 31.2401569,
+   "lon": 34.6664559,
+   "heading": 253,
+   "size_m": [
+    30,
+    24
+   ],
+   "source": "s2",
+   "note": "at the end of a taxiway stub; a bright roof of 2 Sentinel-2 pixels; door toward the stub's end, 47 m (inferred)"
+  },
+  {
+   "ref": "B1",
+   "kind": "building",
+   "lat": 31.2487004,
+   "lon": 34.6650277,
+   "heading": 76,
+   "size_m": [
+    30,
+    15
+   ],
+   "source": "s2",
+   "note": "a bright roof in the row along the technical area's road (placed by eye; kind and size inferred)"
+  },
+  {
+   "ref": "B2",
+   "kind": "building",
+   "lat": 31.2486854,
+   "lon": 34.6661825,
+   "heading": 76,
+   "size_m": [
+    30,
+    15
+   ],
+   "source": "s2",
+   "note": "the row's second roof (placed by eye; kind and size inferred)"
+  },
+  {
+   "ref": "B3",
+   "kind": "building",
+   "lat": 31.2486734,
+   "lon": 34.6671063,
+   "heading": 76,
+   "size_m": [
+    30,
+    15
+   ],
+   "source": "s2",
+   "note": "the row's third roof (placed by eye; kind and size inferred)"
+  },
+  {
+   "ref": "B4",
+   "kind": "building",
+   "lat": 31.2486614,
+   "lon": 34.6680301,
+   "heading": 76,
+   "size_m": [
+    30,
+    15
+   ],
+   "source": "s2",
+   "note": "the row's fourth roof (placed by eye; kind and size inferred)"
+  },
+  {
+   "ref": "B5",
+   "kind": "building",
+   "lat": 31.2486494,
+   "lon": 34.6689539,
+   "heading": 76,
+   "size_m": [
+    30,
+    15
+   ],
+   "source": "s2",
+   "note": "the row's fifth roof (placed by eye; kind and size inferred)"
+  },
+  {
+   "ref": "J1",
+   "kind": "f16i",
+   "lat": 31.2265472,
+   "lon": 34.6793885,
+   "heading": 172,
+   "source": "inferred",
+   "note": "in the shelter S5, nose out at the door (inferred)"
+  },
+  {
+   "ref": "J2",
+   "kind": "f16i",
+   "lat": 31.2272719,
+   "lon": 34.6583006,
+   "heading": 303,
+   "source": "inferred",
+   "note": "in the shelter S2, nose out at the door (inferred)"
+  },
+  {
+   "ref": "J3",
+   "kind": "f16i",
+   "lat": 31.2629555,
+   "lon": 34.6544087,
+   "heading": 171,
+   "source": "inferred",
+   "note": "in the shelter S3, nose out at the door (inferred)"
+  },
+  {
+   "ref": "J4",
+   "kind": "f16i",
+   "lat": 31.2397519,
+   "lon": 34.6698579,
+   "heading": 60,
+   "source": "inferred",
+   "note": "in the shelter S13, nose out at the door (inferred)"
+  },
+  {
+   "ref": "J5",
+   "kind": "f16i",
+   "lat": 31.2401569,
+   "lon": 34.6664559,
+   "heading": 253,
+   "source": "inferred",
+   "note": "in the shelter S14, nose out at the door (inferred)"
+  },
+  {
+   "ref": "J6",
+   "kind": "f16i",
+   "lat": 31.2321486,
+   "lon": 34.6718238,
+   "heading": 88,
+   "source": "inferred",
+   "note": "in the shelter S8, nose out at the door (inferred)"
+  },
+  {
+   "ref": "G1",
+   "kind": "gpu",
+   "lat": 31.2404339,
+   "lon": 34.6610893,
+   "heading": 105,
+   "source": "inferred",
+   "note": "beside the player's jet by the cockpit (inferred)"
+  },
+  {
+   "ref": "FT1",
+   "kind": "fuel_truck",
+   "lat": 31.2403355,
+   "lon": 34.66095,
+   "heading": 105,
+   "source": "inferred",
+   "note": "parked beside and behind the player's jet, clear of its way out (inferred)"
+  },
+  {
+   "ref": "X1",
+   "kind": "extinguisher",
+   "lat": 31.2404347,
+   "lon": 34.6611659,
+   "heading": 105,
+   "source": "inferred",
+   "note": "off the wingtip, as on a flight line (inferred)"
+  },
+  {
+   "ref": "FN1",
+   "kind": "fence",
+   "along": "boundary",
+   "source": "inferred",
+   "note": "along the base's outline (`boundary` of airbases/llhb.json)"
+  }
+ ],
+ "footnotes": {
+  "s2": "ESA WorldCover 2021 Sentinel-2 RGBNIR composite, 10 m (CC BY 4.0), in assets/source/imagery/sentinel2/: bright objects against the ground within 90 m (modern-iaf/docs/base-furniture.md §2)",
+  "osm": "OpenStreetMap contributors (ODbL 1.0), the scenery step's extract israel-and-palestine-260101.osm.pbf and the airbases step's Overpass answer (assets/source/osm/airbases/LLHB.json)",
+  "inferred": "our own reasoning"
+ }
+}
