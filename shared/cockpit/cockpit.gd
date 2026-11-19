@@ -831,6 +831,8 @@ const DASH_CENTRE := Vector2(320, 220)
 func hud_centre_screen() -> Vector2:
 	var s := ui_scale()
 	if dash():
+		if three_d():  # ours: the helmet's cross on the camera axis, the helmet's line of sight (views.gd padlock_raise)
+			return projection_centre()
 		var main_y: float = layout.get("PANEL", {}).get("MainOffsetY", 190)
 		return Vector2(size.x / 2 + (DASH_CENTRE.x - 320.0) * s, panel_top() + (DASH_CENTRE.y - main_y) * s)
 	var pan := view_shift if three_d() else head_pan() * s  # the 3D cockpit: the HUD on the nose (cockpit3d.gd)

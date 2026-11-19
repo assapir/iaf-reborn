@@ -593,9 +593,9 @@ Parts:
 - Chapter 6's F-16 pictures are all taken. The last two, the gun's funnel with a lock (`d_hud_gun_lock`) and the
   helmet (`d_helmet`), on 19 November 2026 (`_f16_weapons_shot.gd`, `display` figures without numbered arrows): the jet
   is put behind the drone where its flight model has it (§4 "A drone in a picture"), the lock taken ahead, then the jet
-  moved. In the 3D cockpit a padlock leaves its target 12° above the helmet's cross (the camera looks
-  `VIEW_3D_LOOK_DOWN_DEG` below the head), so the script turns the head itself. The black ones are taken (§4 "Black
-  captures").
+  moved. The script turns the head itself, the camera `VIEW_3D_LOOK_DOWN_DEG` below it on the drone. A padlock now
+  puts its target on the helmet's cross too (docs/views.md §4.3 "Padlock"; until 19 November 2026 it left it 12° above).
+  The black ones are taken (§4 "Black captures").
 - Found by the black captures, the game's and listed, not changed here: the "start engine" command (213) sent in the
   air runs the start sequence again, so MMC, ST STA, MFD and UFC go off and the displays go dark until it ends.
 - Found while writing chapter 6, the game's and listed, not changed here:

@@ -195,7 +195,7 @@ func _aa() -> void:
 	var locked := await _lock(d)
 	_behind(d, 285.0, 390.0, -130.0)
 	# The head on the drone: the 3D cockpit's camera, the helmet's line of sight, is VIEW_3D_LOOK_DOWN_DEG below the
-	# head (terrain_view.gd _apply_view), so a padlock leaves the drone that far above the helmet's cross.
+	# head (terrain_view.gd _apply_view; a padlock raises the head the same, views.gd padlock_raise).
 	tv.views.snap = null  # a snap holds the head
 	for i in 5:
 		var b: Basis = tv.views.player.global_basis.orthonormalized()

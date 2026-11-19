@@ -41,6 +41,31 @@ func run() -> void:
 		await _lean(tv, jet)
 		if jet == "f16i":
 			await _wheel(c)
+		for up in [20.0, -20.0]:
+			await _padlock(tv, jet, up)
+
+
+## Padlock in the 3D cockpit (docs/views.md §4.3): a point 70° left and `up`° up, 800 m out, ends on the helmet's
+## cross (the camera axis; until 2026-11-19 it sat 12° above it, the camera looking VIEW_3D_LOOK_DOWN_DEG below the
+## head).
+func _padlock(tv: Node, jet: String, up: float) -> void:
+	var c: Control = tv.cockpit
+	var b: Basis = tv.views.player.global_basis.orthonormalized()
+	var dir := Basis(Vector3.UP, deg_to_rad(70.0)) * Basis(Vector3.RIGHT, deg_to_rad(up)) * Vector3.FORWARD
+	var t := Node3D.new()
+	tv.add_child(t)
+	t.global_position = tv.views.player.global_position + b * dir * 800.0
+	tv.views.set_padlock(t)
+	await fly(tv, 8.0)  # the head closes on it with τ ≈ 0.95 s
+	var to: Vector3 = (t.global_position - tv.camera.global_position).normalized()
+	var axis: Vector3 = -tv.camera.global_basis.z
+	var cross: Vector3 = load("res://shared/cockpit/hud.gd").ray_normal(tv.camera, c.hud_centre_screen())
+	check(c.dash(), "%s: padlocked 70° aside, %+.0f° up, the helmet display" % [jet, up])
+	for v in [["line of sight", axis], ["display's centre", cross]]:
+		var off := rad_to_deg(v[1].angle_to(to))
+		check(off < 1.0, "%s %+.0f°: the padlocked target on the helmet's %s (%.1f° off)" % [jet, up, v[0], off])
+	tv.views.set_cockpit(tv.views.COCKPIT)
+	t.queue_free()
 
 
 ## The AoA indexer's three lamps and the AR / NWS lamp whole from the eye (the user, 2026-11-16: "you only see half of

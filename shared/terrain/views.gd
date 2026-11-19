@@ -369,16 +369,24 @@ func update(dt: float) -> void:
 			_trail.pop_front()
 
 
+## Ours, the 3D cockpit: its camera, the helmet's line of sight, looks this far (rad) below the head (terrain_view.gd
+## _apply_view), so the padlock raises the head by it and the target sits on the helmet's cross; 0 in the original's.
+var padlock_raise := 0.0
+
+
 ## Look mode 8: the target's direction in the jet's body frame, pitch ≥ −12°, (0, 0) within 5° of the
 ## nose; the head moves there with 0.9^(10·dt) of the error left (FUN_005858e0).
 func _padlock_step(dt: float) -> void:
 	var b := player.global_basis.orthonormalized()
 	var d := b.inverse() * (target.global_position - player.global_position)
 	var yaw := atan2(d.x, -d.z)
-	var pitch := maxf(atan2(d.y, Vector2(d.x, d.z).length()), HEAD_PITCH_MIN)
+	var el := atan2(d.y, Vector2(d.x, d.z).length())
+	var pitch := maxf(el, HEAD_PITCH_MIN)
 	if absf(yaw) < PADLOCK_DEAD and pitch < PADLOCK_DEAD:
 		yaw = 0.0
 		pitch = 0.0
+	elif padlock_raise != 0.0:
+		pitch = clampf(el + padlock_raise, HEAD_PITCH_MIN, PI / 2.0 + padlock_raise)
 	var k := pow(0.9, 10.0 * dt)
 	head = Vector2(yaw - wrapf(yaw - head.x, -PI, PI) * k, pitch - (pitch - head.y) * k)
 

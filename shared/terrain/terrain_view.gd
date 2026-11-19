@@ -2391,8 +2391,9 @@ func _apply_view() -> void:
 	camera.set_frustum(camera.near * cockpit.size.y / f, Vector2(0, dy * camera.near / f), camera.near, camera.far)
 	var h: Vector2 = views.head_angles()
 	var pitch: float = cockpit.view_pitch(h)
+	views.padlock_raise = deg_to_rad(cockpit.VIEW_3D_LOOK_DOWN_DEG) if cockpit.three_d() else 0.0
 	if cockpit.three_d():  # ours, the 3D cockpit: the head looks down at its panel (free look's pitch_min)
-		pitch = h.y - deg_to_rad(cockpit.VIEW_3D_LOOK_DOWN_DEG)
+		pitch = h.y - views.padlock_raise
 	camera.rotation = Vector3(pitch, -h.x, 0)
 	# Cockpit eye ≥ 1 m above the terrain (0x610e14).
 	var g = scene_ground(rig.global_position)

@@ -235,6 +235,8 @@ Numpad snap keys turn the orbit: 8 / 2 pitch, 6 / 4 heading. F2 and 1 / 3 / 7 / 
   * Panning breaks a padlock.
 * **Padlock** (0x16): the head points at the target's direction in the jet's body frame, pitch ≥ −12°, and at
   (0, 0) within 5° of the nose. The head closes 0.9^(10·dt) of the error per frame step (τ ≈ 0.95 s).
+  Ours, the 3D cockpit: the head points 12° above the target (`views.gd` `padlock_raise`; head pitch −12°…102°), because the camera looks
+  that far below the head. The camera axis is the helmet's line of sight, so the target sits on the helmet's cross.
 * **Helmet** (free look 0x12 / padlock 0x16):
   * The IR seeker looks along the camera axis within its generation cone.
   * `Dash 1` cockpits draw the HUD as a helmet display at (320, 220) once the head is turned (docs/weapons.md
@@ -290,7 +292,7 @@ Numpad snap keys turn the orbit: 8 / 2 pitch, 6 / 4 heading. F2 and 1 / 3 / 7 / 
 * **3D cockpit** (ours, Extras "Cockpit": 3D; cockpit.md "3D cockpit"): the cockpit views draw the jet's 3D cockpit
   in the cockpit-view model at the eye, 85° across, looking 12° down, zoomed by + / − to its true size (the screen's size and a 0.6 m
   viewing distance); free look reaches 60° down (`views.gd` `pitch_min`); hat down and Numpad 2 look 20° down at the
-  panel instead of back (F2 still looks back) (`SNAP_DOWN_3D`, the user's 2026-11-08); the other snap views and padlock are unchanged.
+  panel instead of back (F2 still looks back) (`SNAP_DOWN_3D`, the user's 2026-11-08); the other snap views are unchanged; padlock puts the camera axis on its target (Padlock above); the helmet display's centre is the camera axis, not (320, 220).
 * **EO camera** (slot 1, type 0xb): a SubViewport camera for the FLIR pod and the TV weapons, riding a launched one
   (terrain_view.gd `_update_eo_view`). The pages and the full-screen weapon MFD (Z): docs/mfd.md "FLIR (6), TV (5)"
   and "Full-screen weapon MFD".
