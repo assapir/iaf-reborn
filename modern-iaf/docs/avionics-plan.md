@@ -316,7 +316,7 @@ does.
 
 The user, 19 November 2026, told that AI combat touches real missile performance: "ok so finish the missile works",
 then "I don't think you need to re-investigate". Motors, range envelopes, guidance and seeker behaviour and fuzing are
-in scope; countermeasure effectiveness and electronic attack stay parked (§7.3).
+in scope; countermeasure effectiveness and electronic attack stayed parked until the AI plan (§7.3).
 
 ### 7.2 Built and next
 
@@ -341,10 +341,10 @@ missiles fly the same Rust model. Fuzing stays the existing burst at the closest
 Not started (outside the user's words): the 1998 game's Real weapons (AIM-9L, Python 3 / 4, AMRAAM, the SAMs) on the
 physical model; they keep the chase motion.
 
-### 7.3 Still parked
+### 7.3 Unparked for the AI (19 November 2026)
 
-- countermeasure effectiveness against seekers;
-- electronic attack.
+Countermeasure effectiveness against seekers and electronic attack were parked here until 19 November, when the user
+unparked both ("Unpark both"). Their rows are in [ai-plan.md](ai-plan.md) K8 and K9.
 
 In scope and planned above: bomb ballistics and release computation (G21, G22), the GPS bombs' targeting (G4), and
 every cue, display and control the employment flow needs (G26, G27).

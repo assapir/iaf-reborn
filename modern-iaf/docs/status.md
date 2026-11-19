@@ -906,6 +906,10 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   string key had left every weight at the regular).
 
 ## Open
+- **AI for allies and enemies (2026-11-19, the user's plan session):** the plan is in [ai-plan.md](ai-plan.md): a new
+  Rust AI (a behaviour tree per role, a flight and a package lead) over the existing autopilot loops and combat engine;
+  milestones in his order: the four-ship of Sufas (F1–F11), the intercept lesson with a controller and the Eitam
+  (C1–C7), one Epic Fury strike (K1–K13); the shared needs X1–X7; his open questions in its §9. Nothing built yet.
 - **Missiles (avionics-plan.md §7.2):** next steps 1–5: seekers in flight and the AIM-120's mid-course, its loft, the
   proximity fuzes, the MAW's missile type, the threat missiles once their records are approved.
 - **The manuals** ([manuals.md](manuals.md)): the Typst build, the page design, each manual's outline and one written
