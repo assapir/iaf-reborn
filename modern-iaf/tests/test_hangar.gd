@@ -160,11 +160,11 @@ func walk(fe: Control, lang: String) -> void:
 	await frames(2)
 
 
-## The focus order (F1): Tab from Fly through Attributions, Quit, Settings, the pilot, the three jets and back to Fly;
+## The focus order (F1): Tab from Fly through Attributions, Manuals, Quit, Settings, the pilot, the three jets and back to Fly;
 ## Down from Fly stays; Up from Fly to Settings, Down from there to the picked jet; toward the inline end from a jet:
 ## Fly; Down from the last jet: Attributions.
 func _focus_order(fe: Control, lang: String) -> void:
-	var order := ["credits", "quit", "Settings", "PilotBlock", "sufa", "barak", "adir", "Turntable", "Fly"]
+	var order := ["credits", "manuals", "quit", "Settings", "PilotBlock", "sufa", "barak", "adir", "Turntable", "Fly"]
 	var walked := []
 	for n in order:
 		walked.append(await _press(fe, KEY_TAB))
