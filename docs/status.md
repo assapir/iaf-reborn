@@ -27,7 +27,7 @@ STBY / STT / BORE / LRS / TWS / ACM / GMT / MAP are the radar modes (radar.md).
   and SPICE 1000 (a winged GPS / INS glide bomb, about 100 km, weapons.md §13.2), arming art,
   its pilot guide guides/f15i.md); every F-16
   as the F-16I Sufa (Extras "F-16 version", f16i.md: flight data, radar, the TSD name, its model (painted as F-16I 846 of 201 Squadron, its right side copied from 2025 photos; its left side and top open) and arming art, and
-  the new weapons AIM-9X, Python 5, JDAMs and GBU-39, weapons.md §13 (the AIM-9X and Python 5 fly the physical missile since 2026-11-19: motor, drag, gravity, proportional navigation, real-weapons.md §2.1); the GPS bombs' PRE targets set on the briefing
+  the new weapons AIM-9X, Python 5, JDAMs and GBU-39, weapons.md §13 (the AIM-9X and Python 5 fly the physical missile since 2026-11-19: motor, drag, gravity, proportional navigation, real-weapons.md §2.1; their seekers in flight the same day, §2.2); the GPS bombs' PRE targets set on the briefing
   TSD per station or per bomb of a GBU-39 rack and VIS designations, keys K / Shift+K, the JDAM cues on the F-16, F-15 and F-35I Real HUDs, the released bomb's `TTI m:ss` countdown (those Real HUDs and the original-style HUD); open: the impact
   angle and the GBU-39's attack azimuth (LAR2); its pilot guide guides/f16i.md). Extras "Weapons" on Modern gives those
   weapons to the jets that really carried them too: the Barak and the F-15 (real-weapons.md §1.7). A mission whose player jet is any other type

@@ -98,6 +98,11 @@ fn generation(id: i64) -> Option<(f64, f64)> {
         _ => None,
     }
 }
+
+/// The seeker cone of `generation` (degrees), the record's Real cone in its place: the physical missile's gimbal.
+pub fn cone_deg(generation: i64, real_cone_deg: Option<f64>) -> Option<f64> {
+    real_cone_deg.or(self::generation(generation).map(|(cone, _)| cone))
+}
 const NM: f64 = 1854.0; // 0x6016a0
 /// Narrow seeker field of view (cos 6°, 0x6016c8).
 const FOV_DEG: f64 = 6.0;

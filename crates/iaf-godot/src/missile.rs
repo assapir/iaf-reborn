@@ -5,6 +5,7 @@ use crate::world::{get, num, terrain, vec3, vector3};
 use godot::prelude::*;
 use iaf_avionics::guided::{Guided, GuidedMotion, Phase};
 use iaf_avionics::missile::{Aim, Chase, ChaseMotion, Dlz, Kinematics, Launcher, Missile, Physics, Tuning};
+use iaf_avionics::sight;
 
 /// A `_debugParam` value through `db.debug_param(i, default)`.
 fn debug(f: &Callable, i: i64, default: f64) -> f64 {
@@ -94,7 +95,16 @@ impl IafMissile {
         };
         let aim = if target.is_empty() { Aim::Point(v("point")) } else { Aim::Unit(target.to_string()) };
         let launcher = Launcher { pos: v("pos"), vel: v("vel"), fwd: v("nose"), up: v("up") };
-        self.missile = Some(Missile::launch(motion, tuning, now, launcher.pos, &launcher, aim, q));
+        let mut mis = Missile::launch(motion, tuning, now, launcher.pos, &launcher, aim, q);
+        // The physical missile's seeker in flight (docs/real-weapons.md §2.2): the gimbal is the seeker cone; the
+        // active radar missile (600) goes active at its generation's active range.
+        let generation = num(&shot, "generation").unwrap_or_default() as i64;
+        if let (true, Some(cone)) = (motion.phys.is_some(), sight::cone_deg(generation, num(&shot, "real_cone_deg"))) {
+            let active =
+                if num(&shot, "type") == Some(600.0) { sight::active_range(generation).unwrap_or(0.0) } else { 0.0 };
+            mis.set_seeker(cone, active);
+        }
+        self.missile = Some(mis);
     }
 
     #[func]
@@ -149,6 +159,14 @@ impl IafMissile {
     fn set_guidance_off(&mut self, off: bool) {
         if let Some(m) = &mut self.missile {
             m.guidance_off = off;
+        }
+    }
+
+    /// The launcher's radar still tracks the target: the data link's mid-course updates (docs/real-weapons.md §2.2).
+    #[func]
+    fn set_link(&mut self, on: bool) {
+        if let Some(m) = &mut self.missile {
+            m.set_link(on);
         }
     }
 

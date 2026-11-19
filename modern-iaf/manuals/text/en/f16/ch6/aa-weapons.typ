@@ -30,6 +30,8 @@ With a radar lock the HUD also shows the box on the target and the range scale. 
 
 The HUD's right column (the sim's place) shows how long the missile still flies#dcs[pages 574 and 596–598]: _A_ and the seconds until a radar missile's own radar comes on, then _T_ and the seconds until it reaches the target. A short-range missile shows only _T_. With several missiles in the air the HUD shows the one with the longest time. The #term("FCR") shows the same time at its top right. On the FCR the target carries a short tail from the launch, which flashes once the missile's radar is on, and an X for its last 8 seconds.
 
+Keep the lock until _A_ runs out: until then a radar missile steers on your radar's track, sent over its data link. If the lock drops, it flies on to where the target would be and turns its own radar on there; a target that turned away by then is lost. A missile whose seeker loses the target flies on unguided.
+
 #display("hud_lock", [The HUD and the #term("FCR") with a target locked: the box on the target.], width: 90%)
 
 === The gun

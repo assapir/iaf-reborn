@@ -1747,9 +1747,15 @@ func _update_missiles() -> void:
 	var units := {}
 	for u in _units():
 		units[u.key] = u
+	var me := _me()
+	var lock_key := String(radar.locked().get("key", "")) if radar.has_lock() else ""
 	for mis in missiles.duplicate():
 		if mis.weapon.get("loal", false) and not mis.has_target:
 			_loal(mis, units)
+		# The player's active radar missile: the data link holds while the radar tracks its target (real-weapons.md
+		# §2.2). An AI launcher's link always holds (inferred).
+		if int(mis.weapon.get("type", 0)) == 600 and is_same(mis.get_meta("owner", {}), me):
+			mis.set_link(lock_key != "" and lock_key == String(mis.target_key))
 		var gone := false
 		while not gone and mis.next_update <= now:
 			var t := target_state(mis.target_key, units)

@@ -65,6 +65,10 @@ func launch(
 ) -> void:
 	weapon = w
 	var shot := {"pos": pos, "vel": vel, "nose": nose, "up": up, "target": target, "point": point, "q": q}
+	# The physical missile's seeker in flight (docs/real-weapons.md §2.2): its cone, generation and type.
+	shot.merge({"generation": int(w.get("generation", 0)), "type": int(w.get("type", 0))})
+	if w.has("real_cone_deg"):
+		shot["real_cone_deg"] = float(w.real_cone_deg)
 	_m.launch(m, float(w.get("real_max_g", 0.0)), now, shot, debug)
 	_s = _m.state()
 
@@ -94,6 +98,11 @@ func retarget(key: String) -> void:
 ## The motion's time left (FUN_00468db0): burn − age.
 func time_left(now: float) -> float:
 	return _m.time_left(now)
+
+
+## The launcher's radar still tracks the target: the data link's mid-course updates (docs/real-weapons.md §2.2).
+func set_link(on: bool) -> void:
+	_m.set_link(on)
 
 
 ## The motor's time left (the smoke trail): the physical missile's burn less its age, else time_left.

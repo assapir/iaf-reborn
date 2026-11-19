@@ -328,9 +328,12 @@ burns), turns bleeding speed, and the flight's end when it is too slow. The DLZ,
 post-launch times come from the same fly-out, so the zone shrinks low and in a tail chase. The player's and the AI's
 missiles fly the same Rust model. Fuzing stays the existing burst at the closest pass with the record's blast.
 
+**Built 19 November (step 1):** the seekers in flight and the AIM-120's data link
+([../../docs/real-weapons.md](../../docs/real-weapons.md) §2.2): a target that leaves the seeker's cone is lost; the
+AIM-120 flies on the jet's radar track until its seeker goes active, on the last known track when the lock drops,
+and alone once active.
+
 **Next steps**, each its own merge:
-1. **Seekers in flight:** the seeker's gimbal and field of view during the flight (a target that leaves them is lost),
-   the AIM-120's mid-course on the jet's data link until its seeker goes active, and its flight on alone once active.
 2. **Loft:** the AIM-120's climb on long shots, which the published ranges assume.
 3. **Fuzing:** each missile's proximity fuze (the AIM-9M's DSU-15 laser fuze, the AIM-120's radio fuze): its arming
    time and detection range in place of the burst at the closest pass.

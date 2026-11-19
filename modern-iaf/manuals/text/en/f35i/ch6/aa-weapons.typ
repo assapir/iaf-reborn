@@ -33,6 +33,8 @@ The AIM-9X hangs on the outer wing pylons only. You can aim it with the helmet: 
 
 Under the range bracket the helmet shows how long the missile still flies: _A_ and the seconds until the AIM-120's own radar comes on, then _T_ and the seconds until it reaches the target; the AIM-9X shows only _T_. With several missiles in the air it shows the one with the longest time. SRCH shows the same time at its top right, and marks the target: a short tail from the launch, flashing once the missile's radar is on, and an X for its last 8 seconds. These are the F-16's cues (inferred).
 
+Keep the lock until _A_ runs out: until then the AIM-120 steers on your radar's track, sent over its data link. If the lock drops, it flies on to where the target would be and turns its own radar on there; a target that turned away by then is lost. A missile whose seeker loses the target flies on unguided.
+
 #key("Missile seeker: SPOT / SCAN") widens a little the line on which the caged seeker hears a target (SCAN), or narrows it again (SPOT). The SMS shows which, beside the weapon.
 
 === The gun <aa-gun>

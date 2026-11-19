@@ -413,6 +413,9 @@ After a launch the pilot sees how long each missile still flies[^dcs-f16]:
 - **The target's marks on the FCR and SRCH.** From the launch a rectangular tail behind the target's symbol, flashing
   once the AIM-120's seeker is active, and an X over the symbol for the last 8 s (the DCS guide's AIM-120 target; ours
   for every air-to-air missile, inferred). The real FCR shows the target, not the missile itself.
+- **Keep the lock until "A" ends.** The AIM-120 steers on the radar's track until its seeker goes active; drop the
+  lock before and it flies to where the target would have been, and finds it only if the target is still inside its
+  seeker's cone there ([../../docs/real-weapons.md](../../docs/real-weapons.md) §2.2).
 - **The numbers come from the missile's own flight.** `missile.rs` `Missile::times`: the missile flies straight on from
   where it is at its speed now with its motor and drag (`Physics::fly_straight`, the DLZ's fly-out), while the target
   goes on at its velocity.

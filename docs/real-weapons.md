@@ -510,13 +510,14 @@ The player's and the AI's missiles fly the same code.
 - **Motor:** a steady thrust for its burn, its propellant burnt off at a steady rate.
 - **Drag:** q·S·(Cd0(M) + K·CN²) on the body's cross-section S, with the ISA density and speed of sound at the
   missile's height. Cd0(M) is one generic curve (0.30 subsonic, 0.70 at Mach 1.2, 0.38 at Mach 4; inferred) times the
-  record's drag scale; CN is the normal force needed for the turn, K = 0.1. A turn bleeds speed.
+  record's drag scale; CN is the normal force the fins carry for the turn (at most 7, the rest the thrust vector's),
+  K = 0.1. A turn bleeds speed.
 - **Turn limit:** the fins give at most CN = 7 (inferred), so the limit falls with the air's density and the speed; at
   most the structural g. With thrust-vector control (the AIM-9X's jet vanes[^ds9x]) the structural g holds while the
   motor burns.
-- **Guidance:** augmented proportional navigation, N = 4 (the usual 3–5[^pn]): the line of sight's turn plus half N
-  times the target's acceleration across it (taken from its velocity between updates, at most 12 g; inferred), with
-  gravity held off. More than 60° off the line
+- **Guidance:** augmented proportional navigation, N = 4 (the usual 3–5[^pn]): N times the closing speed times the line
+  of sight's turn rate, across the missile's velocity, plus half N times the target's acceleration across the line of
+  sight (taken from its velocity between updates, at most 12 g; inferred), with gravity held off. More than 60° off the line
   of sight, or opening, the missile turns its velocity onto the line of sight within about 0.5 s, within its limit,
   first (inferred). Gravity acts on the whole flight.
 - **End:** the flight ends at its time limit, or once the motor is out below 200 m/s (inferred: too slow to steer).
@@ -549,6 +550,23 @@ The player's and the AI's missiles fly the same code.
 - **Open:** each missile's real drag, flight time and g limit; the motors' thrust curves (one steady thrust here; the
   AIM-120's boost and sustain are disputed[^iasg]).
 
+### 2.2 The seeker in flight and the data link (2026-11-19)
+
+The physical missile carries its own seeker (`missile.rs` `Missile::set_seeker`, `sees`):
+- **Gimbal:** the seeker sees the target only within its cone off the missile's axis (its velocity): the record's
+  Real cone (AIM-9M 40°, AIM-9X 90°, Python 5 100°; §1.2), else its generation's (AIM-120 70°; docs/weapons.md §5.1).
+  A target that has been inside the cone and leaves it is lost (a launch off the missile's axis, still the jet's, is
+  no loss): the missile stops steering, flies on and bursts as one with its guidance off (no snap to the closest pass,
+  whose closest point can be the target itself on a wide pass). Inside 300 m the cone no longer counts (inferred: the
+  end-game, the fuze's part).
+- **The AIM-120's mid-course:** until its seeker goes active it flies on the jet's data link: while the launcher's
+  radar locks its target (the player: a lock or a TWS selection on it; an AI launcher: always, inferred) it steers at
+  the target itself; once the lock drops it flies to where the target would be on its last known velocity. At the
+  active range (half the generation's lock range, 7.5 NM for the AIM-120; modern-iaf/docs/weapons.md §8.2) it goes
+  active and takes the target if it is inside its cone, else it is lost. From then on it needs the jet no more.
+- **Inferred:** the cones as the seeker's limits in flight; the AIM-120's real active range and its seeker's
+  acquisition basket are not published (open).
+
 ## 3. Validation
 | test | checks |
 |---|---|
@@ -557,7 +575,7 @@ The player's and the AI's missiles fly the same code.
 | `tests/godot/test_radar.gd` | the F-16's 80 km |
 | `tests/godot/test_radar_missiles.gd` | the AMRAAM's 157 kg, a/β = Mach 4 and the distance flown in burn + 6 s from 250 m/s = 70 km; the AIM-7B's DLZ against a still target about 5.7 km (not empty) |
 | `crates/iaf-avionics/src/sight.rs` `real_rear_sector`, `real_front_mil_ab_and_none`, `original_range_and_aspect` | the §1.2 rules: rear range and its R/2 afterburner rule, the 60° sector, front with / without afterburner, no front lock, the original unchanged |
-| `crates/iaf-avionics/src/missile.rs` `physical_missiles_fly_their_published_figures`, `a_physical_missile_reaches_its_dlz_and_no_further`, `turning_bleeds_speed_and_height_takes_the_turn`, `physical_post_launch_times_match_the_flight`, `a_short_shot_hits_a_breaking_target`; `modern-iaf/tests/test_sim_missiles.gd` (each jet kills a range drone with each missile: the IR missiles from 2.5 km behind, the AIM-120 head-on from 20 km) | §2.1: the published ranges and speeds, the CFD study's 35 km, the zone shrinking low and in a tail chase; a launch inside the zone hits, past it misses (still, closing, opening), a crossing target is led, a 6 g break from 2.5 km is hit; induced drag, the fins' limit falling with height, the AIM-9X's thrust vectoring; the post-launch time to impact within 10 % of the flight |
+| `crates/iaf-avionics/src/missile.rs` `physical_missiles_fly_their_published_figures`, `a_physical_missile_reaches_its_dlz_and_no_further`, `turning_bleeds_speed_and_height_takes_the_turn`, `physical_post_launch_times_match_the_flight`, `a_short_shot_hits_a_breaking_target`, `the_data_link_and_the_active_seeker`, `an_ir_seeker_loses_a_target_outside_its_gimbal`; `modern-iaf/tests/test_sim_missiles.gd` (each jet kills a range drone with each missile: the IR missiles from 2.5 km behind, the AIM-120 head-on from 20 km) | §2.1: the published ranges and speeds, the CFD study's 35 km, the zone shrinking low and in a tail chase; a launch inside the zone hits, past it misses (still, closing, opening), a crossing target is led, a 6 g break from 2.5 km is hit; §2.2: with the link the AIM-120 follows a turning target, without it it finds the target inside its cone at the active range, a narrow cone loses it, an IR seeker loses a target outside its gimbal, the AIM-9X turns 70° off the rail onto a still target 3 km off and hits it; induced drag, the fins' limit falling with height, the AIM-9X's thrust vectoring; the post-launch time to impact within 10 % of the flight |
 | `crates/iaf-avionics/src/missile.rs` `dlz_per_missile_original_and_real` | the original DLZ of each air-to-air missile; with Real: the burn flies the published range, the zone is not empty, a launch at its maximum reaches a still target and none flies past 1.05 × its range |
 
 ## Sources

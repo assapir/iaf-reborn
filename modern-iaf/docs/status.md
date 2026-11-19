@@ -9,6 +9,9 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   slow; the DLZ, the AI's launch range and the post-launch times from the same fly-out
   ([../../docs/real-weapons.md](../../docs/real-weapons.md) §2.1). Next steps 1–5 (seekers in flight, loft, fuzes, the
   MAW's missile type, the threat missiles) in avionics-plan.md §7.2. Tests: `missile.rs`, `test_sim_missiles.gd`.
+  Step 1 the same day: the seekers in flight (a target outside the cone is lost) and the AIM-120's data link until its
+  seeker goes active (real-weapons.md §2.2); the AIM-9X's thrust-vectored turn no longer brakes it to a stop, and the
+  guidance acts across the missile's velocity, so the 70° off-boresight shot hits.
 - **No band line for a change the cockpit shows (2026-11-19, the user's "Do it"):** the master arm switch, the
   helmet's picture, the DGFT / MSL OVRD switch, LASER ARM, DL, ADV MODE, the fuel switches, IFF IDENT, the bay doors,
   the bombs' submode, fuze and delay, PRE / VIS, SPOT / SCAN and the autopilot switches put no line in the top strip;
@@ -910,8 +913,8 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   Rust AI (a behaviour tree per role, a flight and a package lead) over the existing autopilot loops and combat engine;
   milestones in his order: the four-ship of Sufas (F1–F11), the intercept lesson with a controller and the Eitam
   (C1–C7), one Epic Fury strike (K1–K13); the shared needs X1–X7; his open questions in its §9. Nothing built yet.
-- **Missiles (avionics-plan.md §7.2):** next steps 1–5: seekers in flight and the AIM-120's mid-course, its loft, the
-  proximity fuzes, the MAW's missile type, the threat missiles once their records are approved.
+- **Missiles (avionics-plan.md §7.2):** next steps 2–5: the AIM-120's loft, the proximity fuzes, the MAW's missile
+  type, the threat missiles once their records are approved.
 - **The manuals** ([manuals.md](manuals.md)): the Typst build, the page design, each manual's outline and one written
   section per jet (Cold start to take-off) wait for the user's approval (18 November 2026); every other section is
   planned in the outlines. The main menu's Manuals entry is not built.

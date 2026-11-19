@@ -133,7 +133,8 @@ impl Physics {
         if qs <= 0.0 {
             return 0.0;
         }
-        let cn = m * lat / qs;
+        // The fins carry at most CN_MAX; beyond it (thrust-vector control) the turn is the thrust's, with no induced drag.
+        let cn = (m * lat / qs).min(CN_MAX);
         qs * (self.cd0(sp / air(z).1) + K_INDUCED * cn * cn)
     }
 
@@ -182,6 +183,30 @@ impl Physics {
             _ => Dlz::NONE,
         }
     }
+}
+
+/// The physical missile's own seeker in flight (ours; docs/real-weapons.md §2.2): the gimbal limit off the missile's
+/// axis (its velocity) and, for an active radar missile, the distance to the target at which its seeker goes active.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct InFlight {
+    pub gimbal_cos: f64,
+    /// 0: the seeker tracks from the launch (the IR missiles).
+    pub active_range: f64,
+}
+
+/// Inside this distance the seeker's gimbal no longer counts (m; inferred: the end-game, where the line of sight swings
+/// fast and the fuze takes over).
+const END_GAME_M: f64 = 300.0;
+
+/// What the in-flight seeker gives the guidance this update.
+#[derive(Clone, Copy, Debug, PartialEq)]
+enum Sees {
+    /// The target itself (the seeker tracks, or the data link feeds it).
+    Target,
+    /// The point and velocity the missile last had from the data link, carried on.
+    Inertial(Vec3, Vec3),
+    /// Nothing: the target left the gimbal, or was outside it when the seeker went active.
+    Lost,
 }
 
 /// A weapon's chase motion (weapons.ibx, with its Real overrides).
@@ -409,6 +434,20 @@ pub struct Missile {
     seen_ahead: bool,
     /// The physical missile: the target's velocity at the last update (its acceleration for the guidance).
     target_vel: Option<(f64, Vec3)>,
+    /// The physical missile's seeker in flight (`set_seeker`).
+    seeker: Option<InFlight>,
+    /// The launcher's data link to the missile: its radar still tracks the target (`set_link`; on by default).
+    link: bool,
+    /// The target as the data link last gave it: time, position, velocity.
+    known: Option<(f64, Vec3, Vec3)>,
+    /// The active radar seeker has gone active (the missile flies on alone).
+    active: bool,
+    /// The seeker has had the target inside its gimbal (only then can it lose it: a launch off the missile's axis,
+    /// still the jet's, is no loss).
+    held: bool,
+    /// The seeker lost the target: no more steering; it bursts as a missile with its guidance off (no snap to the
+    /// closest pass).
+    lost: bool,
 }
 
 impl Missile {
@@ -455,7 +494,57 @@ impl Missile {
             next_update: now,
             seen_ahead: false,
             target_vel: None,
+            seeker: None,
+            link: true,
+            known: None,
+            active: false,
+            held: false,
+            lost: false,
         }
+    }
+
+    /// The physical missile's seeker in flight: the gimbal limit (degrees off its axis) and, for an active radar
+    /// missile, the range at which it goes active (0: tracks from the launch).
+    pub fn set_seeker(&mut self, gimbal_deg: f64, active_range: f64) {
+        self.seeker = Some(InFlight { gimbal_cos: gimbal_deg.to_radians().cos(), active_range });
+    }
+
+    /// The launcher's radar still tracks the target (the data link's mid-course updates).
+    pub fn set_link(&mut self, on: bool) {
+        self.link = on;
+    }
+
+    /// What the seeker gives the guidance at `p` flying along `uv`, the target at `tp` / `tv` (§2.2): before going
+    /// active the data link's picture (the target while the link holds, else the last one carried on); at the active
+    /// range, or for an IR seeker from the launch, the target while it is inside the gimbal; once lost, nothing.
+    fn sees(&mut self, now: f64, age: f64, p: Vec3, uv: Vec3, tp: Vec3, tv: Vec3) -> Sees {
+        let Some(s) = self.seeker else { return Sees::Target };
+        if self.lost {
+            return Sees::Lost;
+        }
+        let in_gimbal = |q: Vec3| (q - p).try_normalize().is_none_or(|d| d.dot(uv) >= s.gimbal_cos);
+        if s.active_range > 0.0 && !self.active {
+            if self.link || self.known.is_none() {
+                self.known = Some((now, tp, tv));
+            }
+            let (t, kp, kv) = self.known.unwrap_or((now, tp, tv));
+            let at = kp + kv * (now - t);
+            if at.distance(p) > s.active_range {
+                return if self.link { Sees::Target } else { Sees::Inertial(at, kv) };
+            }
+            self.active = true;
+            if !in_gimbal(tp) {
+                self.lost = true;
+                return Sees::Lost;
+            }
+        }
+        if in_gimbal(tp) {
+            self.held = true;
+        } else if self.held && age > self.motion.t_co && tp.distance(p) > END_GAME_M {
+            self.lost = true;
+            return Sees::Lost;
+        }
+        Sees::Target
     }
 
     pub fn aim(&self) -> &Aim {
@@ -492,6 +581,8 @@ impl Missile {
     /// gain stay as launched.
     pub fn retarget(&mut self, key: String) {
         self.aim = Aim::Unit(key);
+        self.known = None;
+        self.held = false; // a lost seeker stays lost: a decoy does not bring it back
         self.target_vel = None; // the new target's velocity is no manoeuvre of the old one
     }
 
@@ -595,7 +686,14 @@ impl Missile {
                     // A jump in the host's velocity (a frame stall) is no manoeuvre: at most a fighter's 12 g.
                     let at = if at.length() > TARGET_G_MAX * G { at * (TARGET_G_MAX * G / at.length()) } else { at };
                     self.target_vel = Some((now, tv));
-                    self.phys_acc(&ph, age, p, v, (los, tv, at), steering)
+                    let (gl, gv, at) = match if has_target { self.sees(now, age, p, uv, tp, tv) } else { Sees::Target }
+                    {
+                        Sees::Target => (los, tv, at),
+                        Sees::Inertial(kp, kv) => (kp - p, kv, Vec3::ZERO),
+                        Sees::Lost => (los, tv, at),
+                    };
+                    let steering = steering && !self.lost;
+                    self.phys_acc(&ph, age, p, v, (gl, gv, at), steering)
                 }
                 None => self.thrust(age, if steering { self.steer(u, v, dist, tv) } else { uv }, uv, sp),
             };
@@ -618,7 +716,7 @@ impl Missile {
             return false;
         }
         self.ended = true;
-        if cos_old > 0.0 && cos_new < 0.0 && has_target && !timeout && !hit_ground && !self.guidance_off {
+        if cos_old > 0.0 && cos_new < 0.0 && has_target && !timeout && !hit_ground && !self.guidance_off && !self.lost {
             self.last_pos = snap(closest_on_segment(tp, p_old, p), tp, gh);
         }
         true
@@ -669,7 +767,7 @@ impl Missile {
                 (u - uv * u.dot(uv)).try_normalize().map_or(Vec3::ZERO, |d| d * (sp * off / PURSUIT_TURN_S))
             } else {
                 // Augmented: half the constant times the target's acceleration across the line of sight.
-                los.cross(vr).cross(u) * (ph.nav * vc / (dist * dist)) + (at - u * at.dot(u)) * (0.5 * ph.nav)
+                los.cross(vr).cross(uv) * (ph.nav * vc / (dist * dist)) + (at - u * at.dot(u)) * (0.5 * ph.nav)
             } - gravity;
             lat = cmd - uv * cmd.dot(uv);
             let lim = ph.max_lateral(sp, p.z, m, age).min(self.tuning.max_g.map_or(f64::MAX, |g| g * G));
@@ -1079,5 +1177,85 @@ mod tests {
         let (_, x, _, _) = modern()[1];
         assert_eq!(x.max_lateral(300.0, 12000.0, 80.0, 1.0), 60.0 * G);
         assert!(x.max_lateral(300.0, 12000.0, 60.0, 6.0) < 10.0 * G);
+    }
+
+    /// Flies `p` with an in-flight seeker at `path`, the link holding until `link_until` s: the miss, whether the
+    /// seeker lost the target.
+    fn fly_seeker(
+        p: Physics,
+        gimbal: f64,
+        active: f64,
+        link_until: f64,
+        path: &dyn Fn(f64) -> Kinematics,
+    ) -> (f64, bool) {
+        let jet = Launcher { pos: Vec3::new(0.0, 0.0, 6000.0), vel: Vec3::new(0.0, 284.0, 0.0), ..JET };
+        let mut mi = Missile::launch(physical(p), Tuning::default(), 0.0, jet.pos, &jet, Aim::Unit("t".into()), 1.0);
+        mi.set_seeker(gimbal, active);
+        let (mut t, mut miss) = (0.0, f64::MAX);
+        loop {
+            mi.set_link(t < link_until);
+            let ended = mi.update(t, path(t), &|_| None);
+            miss = miss.min(mi.last_pos().distance(path(t).pos));
+            if ended {
+                return (miss, mi.lost);
+            }
+            let next = mi.next_update();
+            for k in 0..=20 {
+                let tt = t + (next - t) * f64::from(k) / 20.0;
+                miss = miss.min(mi.position(tt).distance(path(tt).pos));
+            }
+            t = next;
+        }
+    }
+
+    #[test]
+    fn the_data_link_and_the_active_seeker() {
+        let (_, a120, _, _) = modern()[3];
+        // 30 km head-on at a target that turns 30° 10 s after the launch.
+        let path = |t: f64| {
+            let start = Vec3::new(0.0, 30000.0, 6000.0);
+            let v1 = Vec3::new(0.0, -250.0, 0.0);
+            if t < 10.0 {
+                Kinematics { pos: start + v1 * t, vel: v1 }
+            } else {
+                let v2 = Vec3::new(125.0, -216.5, 0.0);
+                Kinematics { pos: start + v1 * 10.0 + v2 * (t - 10.0), vel: v2 }
+            }
+        };
+        // The link holds: the missile follows the turn and hits.
+        let (miss, _) = fly_seeker(a120, 70.0, 13900.0, f64::MAX, &path);
+        assert!(miss < 15.0, "linked: {miss:.0} m");
+        // The link drops at 5 s: the missile flies to where the target would have been, goes active there and finds
+        // it inside its gimbal, then hits.
+        let (miss, lost) = fly_seeker(a120, 70.0, 13900.0, 5.0, &path);
+        assert!(miss < 15.0 && !lost, "the seeker finds it: {miss:.0} m");
+        // A narrow seeker (10°) misses the turned target when it goes active: lost, no hit.
+        let (miss, lost) = fly_seeker(a120, 10.0, 3000.0, 5.0, &path);
+        assert!(lost && miss > 100.0, "lost: {miss:.0} m");
+    }
+
+    #[test]
+    fn an_ir_seeker_loses_a_target_outside_its_gimbal() {
+        let (_, m9, _, _) = modern()[0];
+        // A crossing target 3 km off: inside the AIM-9M's 35° all the way.
+        let cross = |t: f64| Kinematics {
+            pos: Vec3::new(-1500.0 + 250.0 * t, 3000.0, 6000.0),
+            vel: Vec3::new(250.0, 0.0, 0.0),
+        };
+        let (miss, lost) = fly_seeker(m9, 35.0, 0.0, f64::MAX, &cross);
+        assert!(miss < 9.0 && !lost, "{miss:.1} m");
+        // A 5° gimbal, the target dead ahead at the launch: the lead puts it outside, and the seeker loses it.
+        let ahead = |t: f64| Kinematics { pos: Vec3::new(250.0 * t, 3000.0, 6000.0), vel: Vec3::new(250.0, 0.0, 0.0) };
+        let (_, lost) = fly_seeker(m9, 5.0, 0.0, f64::MAX, &ahead);
+        assert!(lost);
+        // A target outside the gimbal at the launch (a high off-boresight shot) is not lost: the missile turns to it.
+        let (miss, lost) = fly_seeker(m9, 5.0, 0.0, f64::MAX, &cross);
+        assert!(!lost, "{miss:.0} m");
+        // The AIM-9X off the rail at a still target 3 km off, 70° off the nose: its thrust vector turns it in time.
+        let (_, x, _, _) = modern()[1];
+        let off = 70f64.to_radians();
+        let still = |_| Kinematics { pos: Vec3::new(off.sin(), off.cos(), 2.0) * 3000.0, vel: Vec3::ZERO };
+        let (miss, lost) = fly_seeker(x, 90.0, 0.0, f64::MAX, &still);
+        assert!(miss < 9.0 && !lost, "{miss:.1} m, lost {lost}");
     }
 }
