@@ -76,11 +76,13 @@ Corrections to the brief:
 The squadron the player flies with is in each base file's `squadrons` list (`unit`, `number`, `name` in English and
 Hebrew, `source`: a key of the file's `footnotes`), set in `SQUADRONS` in the script. Each is the squadron whose art
 the jet's model wears (the user, 2026-11-13, "change the string": the text follows the paint, the bases stay): at
-Ramon 201 "The One" (האחת), which flies the F-16I from Ramon[^he-201]; at Ramat David 101 "First Fighter" (הקרב
-הראשונה), at Ramat David since June 2021[^he-101]; at Nevatim 116 "Lions of the South" (אריות הדרום), the F-35I
-since January 2020[^he-116]. Real 101 Squadron flies the single-seat F-16C, the sim's Barak the two-seat F-16D (the
-FlightGear livery's art). Before 2026-11-13 the texts named 253 "Negev", 109 "The Valley" and 140 "Golden Eagle",
-the paint 201, 101 and 116. The F-15s' squadrons, for their greyed
+Ramon 201 "The One" (האחת), which flies the F-16I from Ramon[^he-201]; at Ramat David 109 "The Valley" (העמק), which
+flies the two-seat F-16D Barak from Ramat David[^he-109]; at Nevatim 116 "Lions of the South" (אריות הדרום), the
+F-35I since January 2020[^he-116]. Before 2026-11-13 the texts named 253 "Negev", 109 "The Valley" and 140 "Golden
+Eagle". From 2026-11-13 to 2026-11-19 the Barak's was 101 "First Fighter" (הקרב הראשונה), after the FlightGear
+livery's art; 101 flies the single-seat F-16C only, so the Barak became a 109 Squadron jet again, F-16D 034, whose
+fin art the game draws (the user, 19 November 2026: "Fix the Barak problem. Make sure the tail art match";
+docs/aircraft-models.md §1.6). The F-15s' squadrons, for their greyed
 cards: at Hatzerim 69 "The Hammers" (הפטישים), which flies the F-15I Ra'am[^he-69]; at Tel Nof 133 "Knights of the
 Twin Tail" (אבירי הזנב הכפול), which flies the F-15 Baz[^he-133]. Pick a plane's cards show them (front-end.md §1).
 
@@ -333,7 +335,7 @@ the original's ten names, so Hatzerim and Nevatim had no talking tower; since it
 [^scramble101]: Scramble, "Israeli Air Force squadron updates" (101 Squadron left Hatzor on 21 June 2021), https://www.scramble.nl/military-news/israeli-air-force-squadron-updates
 [^scramble105]: Scramble, "Final Baraks over Hatzor" (105 Squadron, 17 August 2021), https://scramble.nl/military-news/final-baraks-over-hatzor
 [^he-201]: Wikipedia (Hebrew), "טייסת 201" ("האחת"; English: "201 Squadron (Israel)", "The One"), read 2026-11-13, https://he.wikipedia.org/wiki/טייסת_201
-[^he-101]: Wikipedia (Hebrew), "טייסת 101" ("טייסת הקרב הראשונה"; English: "First Fighter Squadron"), read 2026-11-13, https://he.wikipedia.org/wiki/טייסת_101
+[^he-109]: Wikipedia (Hebrew), "טייסת 109" ("טייסת העמק"; English: "The Valley Squadron"; flies the F-16D Barak from Ramat David), read 2026-11-19, https://he.wikipedia.org/wiki/טייסת_109
 [^he-116]: Wikipedia (Hebrew), "טייסת 116" ("אריות הדרום"; English: "Lions of the South Squadron"), read 2026-11-13, https://he.wikipedia.org/wiki/טייסת_116
 [^he-69]: Wikipedia (Hebrew), "טייסת 69", read 2026-11-10, https://he.wikipedia.org/wiki/טייסת_69
 [^he-133]: Wikipedia (Hebrew), "טייסת 133", read 2026-11-10, https://he.wikipedia.org/wiki/טייסת_133

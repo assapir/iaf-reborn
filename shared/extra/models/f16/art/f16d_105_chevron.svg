@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 570 220">
+<!-- 105 Squadron's chevron on each side of the tail box under the fin, pointing forward (682 and 667, as above): our
+     own drawing, flatter than the jets' (their tail box is taller than ours) to fit our box's side. Seen from the left;
+     f16d.tail.json sets its size. -->
+<path fill="#edebe0" d="M0,110 L570,0 L470,110 L570,220 Z"/>
+<path fill="#c22929" d="M60,110 L515,22 L436,110 L515,198 Z"/>
+</svg>

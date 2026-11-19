@@ -1,5 +1,6 @@
 # The F-16D Barak layer over the F-16 base (base.py; f16d.glb, docs/aircraft-models.md §1): the Block 40's GE F110
-# nozzle, the F-16D's three spine vents and FlightGear's IAF livery in the Barak's colours (livery).
+# nozzle, the F-16D's three spine vents and FlightGear's IAF livery in the Barak's colours (livery), its fin
+# repainted as F-16D 034 of 109 Squadron wears it (fin); the game draws each jet's squadron art and number.
 import os
 
 import bpy
@@ -8,12 +9,12 @@ import numpy as np
 from mathutils import Matrix
 
 import base
-from base import CAMO, DIGITS, FG_PAINT, FG_RADOME, FS, RADOME, camo_weights, fg, recolour, skin_bvh, texels, window
+from base import (CAMO, FG_PAINT, FG_RADOME, FS, RADOME, camo_weights, fg, inside, is_fin, old_fin_marks, recolour,
+                  skin_bvh, texels, window)
 
 # The vents on each side of the dorsal spine ahead of the fin (centre y, width; below the spine's top; height; m).
 SPINE_VENTS = ([(-2.80, 0.12), (-3.03, 0.12), (-3.26, 0.12)], 0.18, 0.14)
 MATTE = 0.0  # added to the paint's roughness
-NUMBER_LUM = 0.25  # the livery's black number: darker than any paint and panel line
 
 
 def nozzle():
@@ -43,6 +44,21 @@ def own_parts(body):
 BARAK = {"30219": (0.78, 0.64, 0.45), "33531": (0.85, 0.77, 0.675), "34424": (0.80, 0.76, 0.65),
          "36375": FS["36375"]}
 BARAK_Z_CAMO = 0.15  # m (our frame): the strakes' height, where the camouflage meets the grey on the sides
+# The fin (and rudder) as F-16D 034 of 109 Squadron wears it (Wikimedia Commons, F-16D--Our-IDF-2018-IZE-239.jpg,
+# its left side; 027's right side the same: RamatDavid 020517 Barak 02.jpg), measured on the photo laid onto our fin
+# (y forward, z up, m; docs/aircraft-models.md §1.6): tan, grey-green over the top from about 2.8 m up at the leading
+# edge, dipping under the badge's aft half to 2.45 m at the trailing edge, and a sand dome on the root's aft half.
+# The squadron's art and the number are the game's (f16d.tail.json), so each jet shows its own squadron's.
+BARAK_FIN_BASE = "30219"
+# The livery's skull (101 Squadron's art, in its camouflage colours) reaches past base.BADGES' circle: painted over
+# whole on each side (circles x, y, r in the 2048 px livery from the top left), with no line detail kept from it.
+SKULL = [(1800, 175, 95), (1800, 585, 95)]
+BARAK_FIN = [
+    ("34424", [(-5.2, 3.4), (-5.53, 2.83), (-5.9, 2.78), (-6.1, 2.68), (-6.3, 2.62), (-6.6, 2.55), (-6.9, 2.45),
+               (-7.2, 2.4), (-7.2, 3.4)]),
+    ("33531", [(-4.98, 0.6), (-5.0, 0.95), (-5.1, 1.08), (-5.3, 1.16), (-5.55, 1.19), (-5.8, 1.15), (-6.0, 1.06),
+               (-6.15, 0.95), (-6.3, 0.6)]),
+]
 
 
 def livery(albedo, skin):
@@ -75,24 +91,33 @@ def livery(albedo, skin):
     yy, xx = np.mgrid[h - 1:-1:-1, 0:w]
     for x0, y0, x1, y1 in RADOME:
         recolour(albedo, [(FG_RADOME, FS["36270"])], 0.12, (xx >= x0) & (xx < x1) & (yy >= y0) & (yy < y1))
-    erase_number(albedo, xx, yy, pos)
+    fin(albedo, skin)
     return albedo
 
 
-def erase_number(albedo, xx, yy, pos):
-    """The livery's 547 on the fin (DIGITS) painted over: the game draws each jet's own number there (f16d.tail.json,
-    docs/aircraft-models.md §1.6). Its dark strokes and the pixels round them are filled in from round them, each
-    then the nearest of the Barak's camouflage colours."""
-    box = np.zeros(albedo.shape[:2], dtype=bool)
-    for x0, y0, x1, y1 in DIGITS:
-        box |= (xx >= x0) & (xx < x1) & (yy >= y0) & (yy < y1)
+def fin(albedo, skin):
+    """The fin and rudder repainted (BARAK_FIN over BARAK_FIN_BASE), over the livery's panel lines: the livery's 101
+    Squadron art and number go (base.old_fin_marks; their texels outside the fin's faces filled in from round
+    them)."""
+    bpy.context.view_layer.update()  # the rudder where the rig put it
+    _, tris, uvs = skin_bvh(skin)
+    k = [i for i, t in enumerate(tris) if is_fin(t)]
+    fpos, _ = texels(albedo, [tris[i] for i in k], [uvs[i] for i in k])
+    on_fin = ~np.isnan(fpos[..., 0])
+    yz = fpos[on_fin][:, 1:]
     lum = albedo[..., :3] @ np.array([0.30, 0.59, 0.11], dtype=np.float32)
-    hole = box & (window(np.where(lum < NUMBER_LUM, 1.0, 0.0), 5, np.maximum) > 0)
-    for x0, y0, x1, y1 in DIGITS:  # where the number was, for its tail file's mark (world, m)
-        b = (xx >= x0) & (xx < x1) & (yy >= y0) & (yy < y1) & hole
-        print("barak: the livery's number", (x0, y0), "from", np.nanmin(pos[b], axis=0), "to",
-              np.nanmax(pos[b], axis=0))
-    done = ~hole
+    hole = old_fin_marks(lum.shape)
+    h, w = lum.shape
+    yy, xx = np.mgrid[h - 1:-1:-1, 0:w]
+    for cx, cy, r in SKULL:
+        hole |= np.hypot(xx - cx, yy - cy) <= r
+    detail = np.where(hole, 1.0, np.clip(lum / np.maximum(window(window(lum, 5, np.maximum), 5, np.minimum), 1e-3),
+                                         0.55, 1.0))[on_fin]
+    col = np.tile(np.array(BARAK[BARAK_FIN_BASE], dtype=np.float32), (len(yz), 1))
+    for c, poly in BARAK_FIN:
+        col[inside(yz, poly)] = BARAK[c]
+    albedo[on_fin, :3] = col * detail[:, None]
+    done = ~hole | on_fin
     while not done.all():
         p = np.pad(np.where(done[..., None], albedo[..., :3], 0), ((1, 1), (1, 1), (0, 0)))
         c = np.pad(done.astype(np.float32), 1)
@@ -101,6 +126,4 @@ def erase_number(albedo, xx, yy, pos):
         grow = ~done & (n > 0)
         albedo[grow, :3] = s[grow] / n[grow][:, None]
         done |= grow
-    camo = np.array([BARAK[c] for c in CAMO], dtype=np.float32)
-    albedo[hole, :3] = camo[np.linalg.norm(albedo[hole, None, :3] - camo[None], axis=2).argmin(axis=1)]
-    print("barak: the livery's number painted over, texels", int(hole.sum()))
+    print("barak: the fin repainted, texels", int(on_fin.sum()), "old markings filled", int((hole & ~on_fin).sum()))

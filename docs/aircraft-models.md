@@ -26,8 +26,8 @@ them. Plans for more jets and stores: [graphics-research.md](graphics-research.m
 | source | FlightGear F-16 (`github.com/NikolaiVChr/f16`), GPL-2.0-or-later; credits and changes in `shared/extra/models/f16/SOURCES.md` |
 | triangles | 56 240 (original: 7 200; 56 228 until 2026-11-09, before the pylons' caps, §1.5; 51 500 until 2026-11-08, before the full-detail headrest, helmets and smooth canopy bow, §1.4); runtime LODs cut far jets to a fraction |
 | textures | livery, occlusion / roughness / metallic and normal maps at 2048²; the nozzle, cockpit, seat and pilot textures at 512 px or less; KTX2 inside the glb (about 110 MB in video memory as RGBA8) |
-| file size | 4.03 MB (4.02 MB until 2026-11-09) |
-| livery | IAF desert camouflage, 101 Squadron (FlightGear's own livery and pattern; its tail number 547 painted over: the game draws each jet's, §1.6) in the Barak's colours measured on photographs: faded tan, sand and grey-green down to the strakes, light grey below, camouflaged stabilator tops; IAF wing roundels: one above each wing, one under each wing |
+| file size | 4.25 MB (2026-11-19: the fin repainted, §1.6) |
+| livery | IAF desert camouflage (FlightGear's own livery and pattern; its 101 Squadron art and tail number 547 painted over, the fin and rudder repainted as F-16D 034 of 109 Squadron wears them: tan, grey-green over the top, a sand dome at the root; the game draws each jet's squadron art and number, §1.6) in the Barak's colours measured on photographs: faded tan, sand and grey-green down to the strakes, light grey below, camouflaged stabilator tops; IAF wing roundels: one above each wing, one under each wing |
 | crew | two pilots on two ACES II seats under a two-seat canopy: two transparencies on one narrow near-black bow just behind the front seat's headrest, both cockpits open under the glass |
 | IAF features | the dorsal spine of Israel's F-16D Block 30 / 40 ("Brakeet"): the avionics hump, level from the canopy's rear edge to a box under the fin that ends round just aft of the nozzle, 0.25 m under the canopy's top, with its three vents; the fin and rudder stand on it |
 
@@ -336,24 +336,33 @@ From outside, side on and from behind the left wing:
 ### 1.6 Tail numbers (2026-11-19)
 
 Each jet shows its own tail number (the user, 19 November 2026: "other planes shouold have different tale numbers"):
-the player's jet the livery's, every other jet (the AI's, the mission's other units, the jets parked at the bases)
+the player's jet its `number`, every other jet (the AI's, the mission's other units, the jets parked at the bases)
 one of its own, never the player's, and no two the same. The model's texture holds no number;
 `shared/aircraft/tail_number.gd` draws it on each model with a tail file beside it (`<model>.tail.json`):
 
 | field | what it holds |
 |---|---|
-| `number` | the livery's number: the player's jet's (Modern IAF's unit record shows the same, its `tail`) |
+| `number` | the player's jet's number (Modern IAF's unit record shows the same, its `tail`) |
 | `others` | the other jets' numbers, real ones from the sources, in the order the jets take them |
 | `bases` | per base (its ICAO), the numbers its parked jets take when its squadrons are not the player's: real ones of its own squadrons, in order |
-| `marks` | each place a number is painted: `foot` (y, z of the middle of the number's foot in the model's frame, m), `height` of a digit, `pitch` from one digit to the next, `x` (how far in and out from the centre plane the decal reaches on each side), `colour`, `digits` (how many of the number's last digits; all if absent); a mark on a surface seen from both sides (a thin fin) has instead `foot` [x, y, z] on the left side and `normal` [x, y], the face's outward normal there |
+| `squadrons` | per squadron (`squadron`), its jets' numbers (`tails`) and the `marks` they wear in place of the model's: its number's style and place and its art (the Barak's 109 and 105) |
+| `marks` | each place a number is painted: `foot` (y, z of the middle of the number's foot in the model's frame, m), `height` of a digit, `pitch` from one digit to the next, `x` (how far in and out from the centre plane the decal reaches on each side), `colour`, `digits` (how many of the number's last digits; all if absent); a mark on a surface seen from both sides (a thin fin) has instead `foot` [x, y, z] on the left side and `normal` [x, y], the face's outward normal there; `atlas` another digits' atlas; `art` a picture (a squadron's painted art) in place of the number, `foot` the middle of its bottom edge, its width from the picture's shape, no `colour` |
 
-Each mark is two decals (Godot `Decal`), one a side, projected onto the faces looking out on that side
-(`normal_fade` 0.5), so the far side of the fin stays clear; the number reads front to back on the left side, as on
-the real jet. A mark with a `normal` is a quad on each side instead, 5 mm off the face and seen from outside only: a
-decal would draw on both sides of a one-surface fin, mirrored on the far one. A mark fades out from 1.2 km (`FADE`; a
-digit is under a pixel there). The digits are ours (`tools/f16/digits.py`, a rounded sans traced from 846's 8, 4 and
-6; the other digits drawn in the same hand), in one atlas, `shared/extra/models/tail_digits.png` (0 to 9, white on
-clear). A mark's texture is the number set from the atlas on clear white, coloured by the mark's colour.
+Each mark is two decals (Godot `Decal`), one a side, projected onto the faces looking out on that side (`normal_fade`
+0.5), so the far side of the fin stays clear; the number reads front to back on the left side, as on the real jet. On
+a flying model (`AircraftModel.create`) the decals hang on its root frame, so they turn with it as it sits nose up on
+its wheels (§1.1); until 2026-11-19 they hung on the glTF instance and stayed level, so on the ground the fin's number
+stood about 0.2 m above its place. A mark with a `normal` is a quad on each side instead, 5 mm off the face and seen
+from outside only: a decal would draw on both sides of a one-surface fin, mirrored on the far one. A mark fades out
+from 1.2 km (`FADE`; a digit is under a pixel there). The digits are ours (`tools/f16/digits.py`, a rounded sans
+traced from 846's 8, 4 and 6; the other digits drawn in the same hand), in one atlas,
+`shared/extra/models/tail_digits.png` (0 to 9, white on clear); 109 Squadron's thin ones (`tail_digits_thin.png`,
+`digits.py ... thin`, measured on 034's: 0.12 m wide and 0.024 m strokes for 0.31 m, a 0 with straight sides). A
+mark's texture is the number set from the atlas on clear white, coloured by the mark's colour. An `art` mark's texture
+is its picture as it is (`shared/extra/models/f16/art/`, ours: SVGs drawn over the photos, `render.sh` makes the PNGs
+at 4 mm a pixel; with the mirrored copies and mipmaps about 4 MB of video memory); on the right side it is mirrored,
+so the paint faces forward on both sides as on the jets (034's eagle faces the nose on its left side, 027's on its
+right).
 
 Which jet shows which number: `AircraftModel.create(plane, type, on_ground, tail)`, `tail` 0 the player's jet (the
 flight scene, the hangar's turntable, the front end's model view), k ≥ 1 the k-th other jet's number in the list,
@@ -363,7 +372,7 @@ at the bases (`base_furniture.gd`, decals over the parked jets' merged mesh; eac
 its base is drawn again) each take the next, in the order the flight makes them; the TSD target window numbers its units in their order. A base with its own list (`bases`, the ICAO `airbases.gd`
 passes) numbers its parked jets from that list instead, with its own count. An AI jet keeps its k on its entity
 (`tail`): after the FlyTSD's Fly the jet taken over keeps its number in the player's hands, and the player's old jet,
-given to its brain or left falling, keeps the livery's.
+given to its brain or left falling, keeps the player's number.
 
 Only real numbers are drawn (the user, 19 November 2026: "make sure the planes numbers you choose are real"): the
 numbers of jets of that type in service, with their squadrons, from f-16.net's airframe
@@ -381,19 +390,39 @@ parked jets take that list from the start, and the flying jets reach those numbe
 | jet | the player's | the others' (real; how many known) | drawn today |
 |---|---|---|---|
 | F-16I Sufa (`f16i.tail.json`) | 846 of 201 Squadron, Ramon | Ramon: 201 Squadron's 22 others (201, 808 to 892)[^c-sufa201], then 253 Squadron's 27 (253, 404 to 488)[^c-sufa253], then 119 Squadron's 20 (403 to 499, 839)[^c-sufa119]; Hatzerim (`bases` LLHB): 107 Squadron's 25 (803 to 898)[^c-sufa107] | Ramon's parked (up to 12) and the AI's: 201 Squadron's numbers alone cover them; Hatzerim's parked (up to 6): 107's |
-| F-16D Barak (`f16d.tail.json`) | 547, the FlightGear livery's: a real Barak's number, but a single-seat F-16C's (Block 40, USAF 90-0874), worn by no F-16D[^f16net-idfaf] | Ramat David's two F-16D squadrons: 105 Squadron's 25 (603 to 687, Block 40), then 109 Squadron's 21 (022 to 088, Block 30)[^c-barak109]; then 612, its squadron open (f-16.net's last unit for it, 110 Squadron, closed in 2017[^w110]). The player's squadron, 101, flies F-16Cs only[^w101]: no F-16D number of its own is known | Ramat David's parked (up to 4) and the AI's: 105's numbers |
+| F-16D Barak (`f16d.tail.json`) | 034 of 109 Squadron, Ramat David (Block 30)[^c-barak034] | Ramat David: 109 Squadron's 20 others (022 to 088, Block 30)[^c-barak109], then 105 Squadron's 25 (603 to 687, Block 40)[^c-barak105]; then 612, its squadron open (f-16.net's last unit for it, 110 Squadron, closed in 2017[^w110]) | Ramat David's parked (up to 4) and the AI's: 109's numbers alone cover them |
 | F-35I Adir (`f35i.tail.json`) | 937 of 116 Squadron, Nevatim | 116 Squadron's 13 others (930 to 967), then 140 Squadron's 23 (901 to 983)[^c-adir], then 117 Squadron's 2 (904, 909), then 10 delivered jets whose squadron is open (947 to 992); all three squadrons at Nevatim | Nevatim's parked (up to 5) and the AI's: 116's numbers alone cover them |
 
 The Sufa's number stands on the fin in black and on each intake in dark blue, as on 846; the decal on the intakes
-reaches out 0.7 m at most, short of the chin pylon and the pod on it. The Barak's stands where the livery's 547 was,
-on the fin in black (`tools/f16/barak.py` paints the 547 over: its dark strokes filled in from round them, each texel
-then the nearest of the Barak's colours). The Adir's is low-visibility dark grey, the whole number on each side of the
+reaches out 0.7 m at most, short of the chin pylon and the pod on it.
+
+The Barak wears its squadron's markings, by its number (`squadrons`; the user, 19 November 2026: "Fix the Barak
+problem. Make sure the tail art match"). Until then the player's Barak was 547 of 101 Squadron, after the FlightGear
+livery: a real Barak's number, but a single-seat F-16C's (Block 40, USAF 90-0874)[^f16net-idfaf], and 101 Squadron
+flies F-16Cs only[^w101]. Ramat David's F-16Ds fly with 105 and 109 Squadrons; the player's is a 109 Squadron jet,
+034, whose left side a clear photo shows[^c-barak034]. The markings were measured on photos laid onto our fin (four
+corners of the fin, the photo's perspective taken out; about 0.1 m, inferred) and drawn by us:
+
+| squadron | number | art |
+|---|---|---|
+| 109 "The Valley" (034[^c-barak034], 027[^c-barak027]) | thin black digits low on the fin under the eagle: 0.31 m tall, 0.185 m apart, foot 1.04 m up and 4.91 m aft of the model's origin | a pale sand eagle across the fin's middle, its far wing raised and its near wing spread, head and talons forward (1.15 × 1.3 m); near the tip the squadron's badge, a red disc 0.28 m across with a light rim, a white crescent and a dark eagle (`art/f16d_109.svg`) |
+| 105 "Scorpion" (682[^c-barak105], 667[^c-barak667]) | bold black digits low at the leading edge: 0.42 m tall, 0.25 m apart (our default digits; 682's of 2021 show stencil breaks, 667's of 2010 none) | a pale sand scorpion, its claws forward and down, its tail's segments up the trailing edge to the sting under the tip; below the sting the squadron's badge, an upright oval with a white rim (`art/f16d_105.svg`); a red chevron edged white on each side of the tail box under the fin, pointing forward, flatter than the jets' to fit our shorter box (0.39 × 0.15 m; `art/f16d_105_chevron.svg`) |
+
+The model's fin is plain: `tools/f16/barak.py` (`fin`) paints the livery's 101 Squadron art (its skull, badge, red
+disc and stripes) and its 547 over and repaints the fin and rudder as on 034: tan, grey-green over the top from
+about 2.8 m up at the leading edge, dipping under the badge's aft half to 2.45 m at the trailing edge, and a sand
+dome on the root's aft half, over the livery's panel lines. Every Barak shows that fin under its own squadron's art. 612, its squadron open, shows the number alone.
+The pale sand is the colour of the photos' eagle and scorpion against the fin's sand in the same light (027: the
+same; 034 and 682: a little lighter and greyer), sRGB (0.88, 0.81, 0.72).
+
+The Adir's is low-visibility dark grey, the whole number on each side of the
 nose and its last two digits on each fin's outer face (quads: the fins are one surface), where `tools/f35i/rig.py`
 drew it until 2026-11-19.
 
 Check: `tests/godot/test_sufa_model.gd` (the player's jet 846, the AI's other numbers, none twice; the FlyTSD's Fly;
 every listed number drawn once, then the first again, no ranges; Hatzerim's parked jets take its list; the Barak and
-the Adir draw theirs), `modern-iaf/tests/test_sim_look.gd` (Ramon's
+the Adir draw theirs; a 109 Barak wears 109's art, mirrored on the right, a 105 Barak 105's and its chevron, 612
+none), `modern-iaf/tests/test_sim_look.gd` (Ramon's
 parked Sufas, each its own number) and `modern-iaf/tests/test_hangar.gd` (each unit record's tail the number drawn on
 the player's jet).
 
@@ -407,6 +436,8 @@ git clone --depth 1 https://github.com/NikolaiVChr/f16.git /tmp/f16
 blender -b --python tools/f16/rig.py -- /tmp/f16 assets/converted/planes/f16/f16_h.gltf shared/extra/models/f16/f16d.glb barak
 blender -b --python tools/f16/rig.py -- /tmp/f16 assets/converted/planes/f16/f16_h.gltf shared/extra/models/f16/f16i.glb sufa
 python3 -I tools/f16/digits.py shared/extra/models/tail_digits.png   # the tail numbers' digits (§1.6)
+python3 -I tools/f16/digits.py shared/extra/models/tail_digits_thin.png thin   # 109 Squadron's thin digits
+shared/extra/models/f16/art/render.sh   # the squadrons' art, SVG to PNG (rsvg-convert)
 ```
 
 `F16D_FAST=1` skips the occlusion bake (about 1 minute) for quick geometry tries. `F16D_DEBUG=1` prints every
@@ -419,7 +450,7 @@ The build is the F-16 base plus one variant layer, in `tools/f16/`:
 |---|---|
 | `rig.py` | the entry: loads the base and the layer named by the last argument |
 | `base.py` | the F-16 base: every step below, and the paint tools the layers share (`recolour`, `texels`, `camo_weights`, `skin_bvh`, the FS colours) |
-| `barak.py` | the F-16D Barak layer: the GE F110 nozzle, three spine vents, the Barak's colours (`livery`, constants `BARAK`, `BARAK_Z_CAMO`) |
+| `barak.py` | the F-16D Barak layer: the GE F110 nozzle, three spine vents, the Barak's colours (`livery`, constants `BARAK`, `BARAK_Z_CAMO`), the fin as 034's (`fin`, `BARAK_FIN`, §1.6) |
 | `sufa.py` | the F-16I Sufa layer (§1.3, docs/f16i.md §8.1): FlightGear's CFTs and P&W F100 nozzle, two taller spine vents, the nose and tail-box fairings (`nose_fairings`), 846's paint and markings (`livery`), the matte paint (`MATTE`) |
 
 A layer is a module with `SPINE_VENTS` (the spine's vents), `MATTE` (added to the paint's roughness), `nozzle()`,
@@ -921,6 +952,15 @@ three pylons under each wing and the centre line tank between the engines. What 
     https://commons.wikimedia.org/wiki/Category:F-16I_(Israeli_Air_Force)
 [^c-barak109]: Oren Rozen, "RamatDavid 020517 Barak 03.jpg", Wikimedia Commons (109 Squadron's F-16D 074 at Ramat
     David, 2 May 2017): https://commons.wikimedia.org/wiki/File:RamatDavid_020517_Barak_03.jpg
+[^c-barak034]: Zachi Evenor and MathKnight, "F-16D--Our-IDF-2018-IZE-239.jpg", Wikimedia Commons, CC BY 2.0 (F-16D
+    034 of 109 Squadron, its left side, "Our IDF 70", 23 September 2018; the reference for its fin):
+    https://commons.wikimedia.org/wiki/File:F-16D--Our-IDF-2018-IZE-239.jpg
+[^c-barak027]: Oren Rozen, "RamatDavid 020517 Barak 02.jpg", Wikimedia Commons, CC BY-SA 4.0 (109 Squadron's F-16D
+    027, its right side, Ramat David, 2 May 2017): https://commons.wikimedia.org/wiki/File:RamatDavid_020517_Barak_02.jpg
+[^c-barak105]: Yechezkel Hezi Shmueli, "ברק2020.jpg", Wikimedia Commons, CC BY-SA 4.0 (F-16D 682 of 105 Squadron,
+    "the Scorpions", its left side in flight, 27 April 2021): https://commons.wikimedia.org/wiki/File:ברק2020.jpg
+[^c-barak667]: Efi Elian, "F16D IAF 105 efi elian.jpg", Wikimedia Commons, GFDL (F-16D 667 of 105 Squadron, its
+    right side in flight, 2010): https://commons.wikimedia.org/wiki/File:F16D_IAF_105_efi_elian.jpg
 [^w101]: Wikipedia, "101 Squadron (Israel)" ("operates F-16C Fighting Falcon Barak II out of Ramat David Airbase",
     there since 2021 "alongside the 105 Squadron"): https://en.wikipedia.org/wiki/101_Squadron_(Israel)
 [^w110]: Wikipedia, "110 Squadron (Israel)" ("deactivated in 2017"): https://en.wikipedia.org/wiki/110_Squadron_(Israel)

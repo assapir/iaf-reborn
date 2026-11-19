@@ -3,6 +3,7 @@
 # (shared/aircraft/tail_number.gd, docs/aircraft-models.md "Tail numbers"):
 #
 #   python3 -I tools/f16/digits.py shared/extra/models/tail_digits.png
+#   python3 -I tools/f16/digits.py shared/extra/models/tail_digits_thin.png thin
 #
 # numpy only (no Blender), so the atlas can be made without the model build.
 import struct
@@ -46,29 +47,35 @@ GLYPHS = {
 # A digit's box: width and stroke as fractions of its height (846's on the fin: 0.19 m wide, 0.05 m strokes, 0.37 m
 # tall).
 WIDTH, STROKE = 0.19 / 0.37, 0.05 / 0.37
+# The thin style, as 109 Squadron's F-16Ds wear it (034 and 027, docs/aircraft-models.md §1.6): narrow and light,
+# measured on 034's fin (0.12 m wide, 0.024 m strokes, 0.31 m tall); its 0 has straight sides. The other centre lines
+# as above.
+THIN_WIDTH, THIN_STROKE = 0.12 / 0.31, 0.024 / 0.31
+THIN = dict(GLYPHS, **{"0": [ellipse(0.5, 0.75, 0.5, 0.25, 0, 180) + ellipse(0.5, 0.25, 0.5, 0.25, 180, 360)
+                             + [(1.0, 0.75)]]})
 
 
-def text_ink(uv, text, height, width, pitch, stroke):
+def text_ink(uv, text, height, width, pitch, stroke, glyphs=GLYPHS):
     """The points uv [n, 2] (m, across and up from the middle of the text's foot) on the text's strokes."""
     out = np.zeros(len(uv), dtype=bool)
     for k, ch in enumerate(text):
         x0 = (k - (len(text) - 1) / 2) * pitch - width / 2 + stroke / 2
-        for line in GLYPHS[ch]:
+        for line in glyphs[ch]:
             pts = [(x0 + u * (width - stroke), stroke / 2 + v * (height - stroke)) for u, v in line]
             out |= near_line(uv, pts, [stroke] * len(pts))
     return out
 
 
-def atlas(cell_h=128, ss=4):
-    """0..9 left to right, each in a cell WIDTH × 1 of the height, white with the strokes' coverage as alpha
+def atlas(cell_h=128, ss=4, width=WIDTH, stroke=STROKE, glyphs=GLYPHS):
+    """0..9 left to right, each in a cell `width` × 1 of the height, white with the strokes' coverage as alpha
     (ss × ss samples a pixel): rows of RGBA bytes."""
-    cw = round(cell_h * WIDTH)
+    cw = round(cell_h * width)
     h, w = cell_h * ss, cw * ss
     yy, xx = np.mgrid[0:h, 0:w]
-    uv = np.column_stack([((xx.ravel() + 0.5) / w - 0.5) * WIDTH, 1.0 - (yy.ravel() + 0.5) / h]).astype(np.float32)
+    uv = np.column_stack([((xx.ravel() + 0.5) / w - 0.5) * width, 1.0 - (yy.ravel() + 0.5) / h]).astype(np.float32)
     cells = []
     for ch in "0123456789":
-        ink = text_ink(uv, ch, 1.0, WIDTH, 0.0, STROKE).reshape(h, w).astype(np.float32)
+        ink = text_ink(uv, ch, 1.0, width, 0.0, stroke, glyphs).reshape(h, w).astype(np.float32)
         cells.append(ink.reshape(cell_h, ss, cw, ss).mean(axis=(1, 3)))
     a = (np.concatenate(cells, axis=1) * 255).round().astype(np.uint8)
     rgba = np.dstack([np.full_like(a, 255)] * 3 + [a])
@@ -88,4 +95,5 @@ def write_png(path, rgba):
 
 
 if __name__ == "__main__":
-    write_png(sys.argv[1], atlas())
+    thin = sys.argv[2:] == ["thin"]
+    write_png(sys.argv[1], atlas(width=THIN_WIDTH, stroke=THIN_STROKE, glyphs=THIN) if thin else atlas())

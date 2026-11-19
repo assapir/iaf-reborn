@@ -625,9 +625,9 @@ func walk(fe: Control, ids: Dictionary, lang: String) -> void:
 	check((ratio > 5.1) == he and ratio > 4.4, "%s: the lockup of the screen's language (%.2f)" % [lang, ratio])
 	# Each jet's card: its squadron and base (no wing: the wing is the base).
 	var subs := (
-		[["201 האחת", "רמון"], ["101 הקרב הראשונה", "רמת דוד"], ["116 אריות הדרום", "נבטים"]]
+		[["201 האחת", "רמון"], ["109 העמק", "רמת דוד"], ["116 אריות הדרום", "נבטים"]]
 		if he
-		else [["201 The One", "Ramon"], ["101 First Fighter", "Ramat David"], ["116 Lions of the South", "Nevatim"]]
+		else [["201 The One", "Ramon"], ["109 The Valley", "Ramat David"], ["116 Lions of the South", "Nevatim"]]
 	)
 	for i in 3:
 		(fe.find_child(["sufa", "barak", "adir"][i], true, false) as Button).pressed.emit()

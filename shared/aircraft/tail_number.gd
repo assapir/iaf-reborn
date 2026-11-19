@@ -1,23 +1,27 @@
 # Ours: each jet's own tail number, drawn as decals from our digits (docs/aircraft-models.md §1.6). A model with
-# numbers has them in `<model>.tail.json` beside it, and its texture holds none: the player's jet takes the livery's
-# number, every other jet its own from the list, never the player's (the user, 19 Nov 2026: "other planes shouold
+# numbers has them in `<model>.tail.json` beside it, and its texture holds none: the player's jet takes its `number`,
+# every other jet its own from the list, never the player's (the user, 19 Nov 2026: "other planes shouold
 # have different tale numbers").
 #
-# <model>.tail.json: {number: the livery's (the player's jet), others: [the other jets', real ones, in order], bases:
+# <model>.tail.json: {number: the player's jet's, others: [the other jets', real ones, in order], bases:
 # {ICAO: [the numbers of the jets parked at that base, real ones of its own squadrons, in order]}, marks: [{foot:
 # [y, z] the middle of the number's foot in the model's frame (m; y up, z aft), height: a digit's (m), pitch: from one
 # digit to the next (m), x: [inner, outer] the decal's reach out from the centre plane on each side (m), colour:
-# [r, g, b], digits: how many of the number's last digits (all if absent)}]}; each mark is drawn on both sides,
-# reading front to back on the left: as decals, or, with `normal`, as quads (_quads).
+# [r, g, b], digits: how many of the number's last digits (all if absent), atlas: the digits' atlas (DIGITS if
+# absent)}], squadrons: [{squadron, tails: [its jets' numbers], marks: [the marks its jets wear instead]}]}; a mark
+# with `art` (a picture's path) is a squadron's painted art in place of a number, its width from the picture's
+# shape; each mark is drawn on both sides, a number reading front to back on the left, art mirrored on the right (the
+# same paint seen from the other side): as decals, or, with `normal`, as quads (_quads).
 extends RefCounted
 
 const DIGITS := "res://shared/extra/models/tail_digits.png"  # tools/f16/digits.py: 0..9 in cells of equal width
 ## A number fades out from this far (m): a 0.4 m digit is under a pixel there.
 const FADE := 1200.0
 
-static var _atlas: Image
+static var _atlases := {}  # atlas path -> Image
+static var _arts := {}  # "art path L/R" -> ImageTexture (R: mirrored)
 static var _specs := {}  # model path -> its tail.json ({} none), with "pool": the other jets' numbers
-static var _textures := {}  # "number pitch/height" -> ImageTexture
+static var _textures := {}  # "number pitch/height atlas" -> ImageTexture
 static var _taken := {}  # model path (or "model path ICAO": a base's own list) -> the jets numbered so far (next())
 static var _ids := {}  # "model path id" -> its k: a jet numbered once keeps its number for the flight (next())
 
@@ -27,6 +31,7 @@ static func reset() -> void:
 	_taken.clear()
 	_ids.clear()
 	_textures.clear()
+	_arts.clear()
 
 
 ## The next other jet's k on `model` in this flight (1, 2, … in the order the jets are made: the AI's, the mission's
@@ -49,7 +54,7 @@ static func next(model: String, id := "", base := "") -> int:
 	return k
 
 
-## The number of jet `k` on `model`: 0 the player's (the livery's), k ≥ 1 the k-th other jet's ("" none).
+## The number of jet `k` on `model`: 0 the player's (`number`), k ≥ 1 the k-th other jet's ("" none).
 static func number(model: String, k: int) -> String:
 	var spec := _spec(model)
 	if spec.is_empty():
@@ -59,17 +64,22 @@ static func number(model: String, k: int) -> String:
 	return String(spec.number) if k <= 0 or pool.is_empty() else String(pool[(k - 1) % pool.size()])
 
 
-## The numbers on `scene` (the model's glTF instance, its frame the model's): jet `k`'s (number()).
+## The marks of jet `k` (number()) on `scene`, whose frame is the model's (its glTF instance, or the root frame that
+## turns as the jet sits on its wheels): its number and, for a jet of a squadron with art, that art.
 static func mark(scene: Node3D, model: String, k: int) -> void:
 	var full := number(model, k)
 	if full == "":
 		return
-	var marks: Array = _spec(model).marks
+	var marks := _marks(_spec(model), full)
 	for i in marks.size():
 		var m: Dictionary = marks[i]
-		var shown := full.right(int(m.get("digits", full.length())))
+		var art := String(m.get("art", ""))
 		var h := float(m.height)
-		var tex := _texture(shown, float(m.pitch) / h)
+		var tex: Texture2D
+		if art == "":
+			tex = _texture(full.right(int(m.get("digits", full.length()))), float(m.pitch) / h, m.get("atlas", DIGITS))
+		else:
+			tex = _art(art, false)
 		var w := h * tex.get_width() / tex.get_height()
 		if m.has("normal"):
 			_quads(scene, m, i, full, tex, Vector2(w, h))
@@ -78,10 +88,13 @@ static func mark(scene: Node3D, model: String, k: int) -> void:
 		var x1 := float(m.x[1])
 		for side in [-1.0, 1.0]:
 			var d := Decal.new()
-			d.name = "tail_number_%d%s" % [i, "L" if side < 0 else "R"]
+			d.name = "tail_%s_%d%s" % ["number" if art == "" else "art", i, "L" if side < 0 else "R"]
 			d.set_meta("tail", full)
-			d.texture_albedo = tex
-			d.modulate = Color(m.colour[0], m.colour[1], m.colour[2])
+			if art != "":
+				d.set_meta("art", art)
+			d.texture_albedo = tex if art == "" or side < 0 else _art(art, true)
+			var c: Array = m.get("colour", [1, 1, 1])
+			d.modulate = Color(c[0], c[1], c[2])
 			d.size = Vector3(w, x1 - x0, h)
 			d.upper_fade = 0.0
 			d.lower_fade = 0.0
@@ -123,6 +136,28 @@ static func _quads(scene: Node3D, m: Dictionary, i: int, full: String, tex: Text
 		scene.add_child(mi)
 
 
+## The marks jet `full` wears: its squadron's (the `squadrons` entry whose `tails` hold its number), else the model's.
+static func _marks(spec: Dictionary, full: String) -> Array:
+	for sq: Dictionary in spec.get("squadrons", []):
+		if full in sq.tails:
+			return sq.marks
+	return spec.get("marks", [])
+
+
+## The art picture at `path` (ours, white or coloured on clear), mirrored left to right for the right side.
+static func _art(path: String, mirrored: bool) -> ImageTexture:
+	var key := "%s %s" % [path, "R" if mirrored else "L"]
+	if not _arts.has(key):
+		var img := Image.load_from_file(path)
+		img.convert(Image.FORMAT_RGBA8)
+		img.fix_alpha_edges()  # its clear pixels take the paint's colour: no dark rim in the mipmaps
+		if mirrored:
+			img.flip_x()
+		img.generate_mipmaps()
+		_arts[key] = ImageTexture.create_from_image(img)
+	return _arts[key]
+
+
 static func _spec(model: String) -> Dictionary:
 	var key := model.get_basename()
 	if not _specs.has(key):
@@ -140,22 +175,25 @@ static func _spec(model: String) -> Dictionary:
 	return _specs[key]
 
 
-## `number` in our digits, `pitch` (from one digit to the next) in digit heights apart: white, the strokes' alpha.
-static func _texture(number: String, pitch: float) -> ImageTexture:
-	var key := "%s %.3f" % [number, pitch]
+## `number` in our digits (the atlas at `atlas`), `pitch` (from one digit to the next) in digit heights apart: white,
+## the strokes' alpha.
+static func _texture(number: String, pitch: float, atlas: String) -> ImageTexture:
+	var key := "%s %.3f %s" % [number, pitch, atlas]
 	if _textures.has(key):
 		return _textures[key]
-	if _atlas == null:
-		_atlas = Image.load_from_file(DIGITS)
-		_atlas.convert(Image.FORMAT_RGBA8)
-	var ch := _atlas.get_height()
-	var cw := _atlas.get_width() / 10
+	if not _atlases.has(atlas):
+		var a := Image.load_from_file(atlas)
+		a.convert(Image.FORMAT_RGBA8)
+		_atlases[atlas] = a
+	var at: Image = _atlases[atlas]
+	var ch := at.get_height()
+	var cw := at.get_width() / 10
 	var step := roundi(pitch * ch)
 	var img := Image.create_empty(step * (number.length() - 1) + cw, ch, false, Image.FORMAT_RGBA8)
 	img.fill(Color(1, 1, 1, 0))  # clear white: the strokes' edges and the far mipmaps stay white, not darkened
 	for i in number.length():
 		var n := number.unicode_at(i) - 48
-		img.blend_rect(_atlas, Rect2i(n * cw, 0, cw, ch), Vector2i(i * step, 0))
+		img.blend_rect(at, Rect2i(n * cw, 0, cw, ch), Vector2i(i * step, 0))
 	img.generate_mipmaps()
 	var tex := ImageTexture.create_from_image(img)
 	_textures[key] = tex

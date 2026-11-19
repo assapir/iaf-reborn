@@ -8,7 +8,7 @@
   (auto, auto, auto, 1fr),
   ([Jet], [Squadron], [Base], [Its manual]),
   [F-16I #scr("sufa")#idx("Sufa")], [201 Squadron, "The One"], [#scr("base_ramon")], [#other("f16i", "description")],
-  [F-16D #scr("barak")#idx("Barak")], [101 Squadron, "First Fighter"], [#scr("base_ramat_david")], [#other("f16d", "description")],
+  [F-16D #scr("barak")#idx("Barak")], [109 Squadron, "The Valley"], [#scr("base_ramat_david")], [#other("f16d", "description")],
   [F-35I #scr("adir")#idx("Adir")], [116 Squadron, "Lions of the South"], [#scr("base_nevatim")], [#other("f35i", "description")],
 )
 

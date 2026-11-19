@@ -8,7 +8,7 @@
   (auto, auto, auto, 1fr),
   ([מטוס], [טייסת], [בסיס], [המדריך שלו]),
   [F-16I #scr("sufa")#idx("סופה")], [טייסת 201, "האחת"], [#scr("base_ramon")], [#other("f16i", "description")],
-  [F-16D #scr("barak")#idx("ברק")], [טייסת 101, "הקרב הראשונה"], [#scr("base_ramat_david")], [#other("f16d", "description")],
+  [F-16D #scr("barak")#idx("ברק")], [טייסת 109, "העמק"], [#scr("base_ramat_david")], [#other("f16d", "description")],
   [F-35I #scr("adir")#idx("אדיר")], [טייסת 116, "אריות הדרום"], [#scr("base_nevatim")], [#other("f35i", "description")],
 )
 

@@ -95,7 +95,7 @@ func run() -> void:
 	# (docs/aircraft-models.md §1.6).
 	var tails := {
 		"res://shared/extra/models/f16/f16i.glb": ["846", 4],
-		"res://shared/extra/models/f16/f16d.glb": ["547", 2],
+		"res://shared/extra/models/f16/f16d.glb": ["034", 2],
 		"res://shared/extra/planes/f35i/f35i.gltf": ["937", 4],
 	}
 	for path: String in tails:
@@ -147,6 +147,25 @@ func run() -> void:
 		check(
 			n == TailNumber.number(path, 3) and decals == tails[path][1],
 			"%s: draws %s (%d decals)" % [plane, n, decals]
+		)
+		m.free()
+	# The Barak wears its squadron's art by its number (f16d.tail.json `squadrons`, docs/aircraft-models.md §1.6):
+	# 109's on the player's 034, 105's and its chevron on 682, none on 612 (its squadron open); the right side mirrored.
+	var f16d := "res://shared/extra/models/f16/f16d.glb"
+	var spec: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(f16d.get_basename() + ".tail.json"))
+	for want: Array in [["034", ["f16d_109.png"]], ["682", ["f16d_105.png", "f16d_105_chevron.png"]], ["612", []]]:
+		var k: int = 0 if want[0] == spec.number else spec.others.find(want[0]) + 1
+		var m: Node3D = aircraft_model.create("f16", -1, false, k)
+		var arts := []
+		var mirrored := true
+		for d: Decal in m.find_children("tail_art_*L", "Decal", true, false):
+			arts.append(String(d.get_meta("art")).get_file())
+			var r := d.get_parent().get_node(String(d.name).trim_suffix("L") + "R") as Decal
+			mirrored = mirrored and r != null and r.texture_albedo != d.texture_albedo
+		arts.sort()
+		check(
+			_number(m) == want[0] and arts == want[1] and mirrored,
+			"the Barak %s: its squadron's art %s (%s), the right side mirrored" % [want[0], want[1], arts]
 		)
 		m.free()
 

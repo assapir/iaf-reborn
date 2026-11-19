@@ -5,10 +5,10 @@
 # SHOT_START: "airborne" (mission 231, frozen 3000 m up, LOADOUT on the pylons) or "ground" (mission 311 on the
 # runway, gear down). Each shot in SHOTS: the camera at `dist` m from the jet's origin, `yaw` degrees round from
 # the nose (90 = from the right), `pitch` degrees above; the pose (gear / flaps / brakes / afterburner) set and
-# settled; an optional 6th entry is the look-at point in the jet's frame (m, nose -Z). Writes
-# SHOT_OUT/<models>_<name>.png and prints the frame time of a settled view. SHOT_BENCH=1: no pictures; the frame time
-# (vsync off) and GPU time over 600 frames with the camera 50 m behind the jet (mission 231: the player's jet and the
-# AI's F-16s drawn).
+# settled; an optional 6th entry is the look-at point in the jet's frame (m, nose -Z), a 7th the field of view
+# (degrees; 40 if absent). Writes SHOT_OUT/<models>_<name>.png and prints the frame time of a settled view.
+# SHOT_BENCH=1: no pictures; the frame time (vsync off) and GPU time over 600 frames with the camera 50 m behind the jet
+# (mission 231: the player's jet and the AI's F-16s drawn).
 # SHOT_LIGHTS=1: Night lights Detailed (the jet's navigation lights and strobe).
 # SHOT_F16=sufa: every F-16 as the F-16I Sufa (docs/f16i.md §8.1). SHOT_AI=1: the shots of the first AI F-16 instead
 # of the player's jet (the camera rides with it; no pose).
@@ -98,6 +98,10 @@ const GROUND_SHOTS := [
 	["ground_left", 20.0, 270.0, 3.0, {}],
 	["ground_gear", 8.0, 120.0, -2.0, {}],
 	["ground_rear", 20.0, 150.0, 10.0, {}],
+	# The Barak's fin as the photos of 034 (its left side, from ahead and below) and 027 (its right side) show it
+	# (docs/aircraft-models.md §1.6).
+	["ground_fin_034", 14.0, 328.0, -10.0, {}, Vector3(0, 2.0, 5.8), 14.0],
+	["ground_fin_027", 14.0, 75.0, -3.0, {}, Vector3(0, 2.0, 5.8), 14.0],
 ]
 
 var tv: Node
@@ -266,7 +270,7 @@ func _shot(s: Array, out: String, models: String) -> void:
 	var target: Vector3 = ac.to_global(aim)
 	_cam_xf = Transform3D(Basis.looking_at(target - c, ac.global_basis.y.normalized()), c)
 	_cam_local = ac.global_transform.affine_inverse() * _cam_xf
-	_fov = 40.0 if d < 500.0 else 4.0
+	_fov = float(s[6]) if s.size() > 6 else (40.0 if d < 500.0 else 4.0)
 	await ground_streamed(tv, 30000, 10)
 	for i in 30:
 		await process_frame

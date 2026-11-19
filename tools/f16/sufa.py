@@ -12,8 +12,8 @@ from mathutils import Matrix, Vector
 
 import base
 from digits import near_line
-from base import (CAMO, DIGITS, FG_PAINT, FG_RADOME, FIN_DROP, FS, RADOME, bounds, camo_weights, fg, recolour,
-                  rotate_about, skin_bvh, spine_top, texels, transform, window)
+from base import (CAMO, FG_PAINT, FG_RADOME, FS, RADOME, bounds, camo_weights, fg, inside, is_fin, old_fin_marks,
+                  recolour, rotate_about, skin_bvh, spine_top, texels, transform, window)
 
 # The F-16I's spine (photos of 890 and 827, SOURCES.md) has the F-16D's outline but two taller grilled vents 0.4 to
 # 0.55 m ahead of the fin's root (base.SP_Y_FIN), and on each side of the tail box under the fin a round blister and
@@ -137,11 +137,6 @@ SUFA_PAINT = {"30219": (0.76, 0.56, 0.37), "33531": (0.88, 0.79, 0.64), "34424":
 MATTE = 0.25
 # The CFTs' own UV island in the livery (u0, v0, u1, v1; unpainted in FlightGear's livery): painted with the pattern.
 CFT_UV = (0.19, 0.205, 0.535, 0.40)
-# On the fin, 101 Squadron's markings to paint over (places in the 2048 px livery, pixels from the top left): its
-# badge and the red disc above it (circles x, y, r) and the red and white stripes (boxes), on each side (and the tail
-# number, base.DIGITS).
-BADGES = [(1800, 190, 70), (1820, 115, 26), (1800, 570, 70), (1820, 655, 26)]
-STRIPES = [(1850, 30, 1960, 190), (1850, 585, 1960, 745)]
 # F-16I 846 of 201 Squadron ("The One", Ramon), as its photographs of January 2025 show its right side (SOURCES.md;
 # docs/f16i.md §8.1). Traced by hand onto our model's side view (y forward, z up, m), the photos fitted to it by the
 # radome's tip and the fin's leading edge (inferred, about 0.1 m). The left side is the mirror image (no photo).
@@ -187,13 +182,6 @@ SUFA_BADGE = ((-5.97, 2.61), 0.14)  # centre, radius: white rim, an orange sun o
 # (shared/extra/models/f16/f16i.tail.json, docs/aircraft-models.md "Tail numbers").
 
 
-def is_fin(t):
-    """A triangle of the fin or rudder: facing sideways, on the centre line, above the spine aft of the blade
-    antenna."""
-    n, c = (t[1] - t[0]).cross(t[2] - t[0]), (t[0] + t[1] + t[2]) / 3
-    return n.length > 1e-12 and abs(n.x) > 0.8 * n.length and c.z > 1.2 - FIN_DROP and abs(c.x) < 0.1 and c.y < -3.7
-
-
 def livery(albedo, skin):
     """FlightGear's IAF livery made F-16I 846's: the underside's grey and the radome recoloured to the FS colours;
     the upper surfaces (the CFTs too) repainted over the livery's panel lines, the fuselage with 846's blotches
@@ -223,11 +211,7 @@ def livery(albedo, skin):
     camo_src = (d.argmin(axis=0) < 3) & (d.min(axis=0) < 0.16)
     u0, v0, u1, v1 = CFT_UV
     cft = (xx >= u0 * w) & (xx < u1 * w) & (h - 1 - yy >= v0 * h) & (h - 1 - yy < v1 * h)
-    hole = np.zeros((h, w), dtype=bool)
-    for cx, cy, r in BADGES:
-        hole |= np.hypot(xx - cx, yy - cy) <= r
-    for x0, y0, x1, y1 in STRIPES + DIGITS:
-        hole |= (xx >= x0) & (xx < x1) & (yy >= y0) & (yy < y1)
+    hole = old_fin_marks((h, w))  # the livery's 101 Squadron markings and number (base.BADGES, STRIPES, DIGITS)
     want = camo_src | cft | hole
     paint = covered & want & (nz > -0.35)
     albedo[covered & cft & (nz <= -0.35), :3] = FS["36375"]
@@ -260,18 +244,6 @@ def livery(albedo, skin):
     print("Sufa livery: camouflage texels", int(paint.sum()), "shares", [round(float(x), 2) for x in share],
           "on the body", int(body.sum()), "fin texels", int(on_fin.sum()))
     return albedo
-
-
-def inside(pts, poly):
-    """Even-odd test of the points [n, 2] against the polygon [(y, z), ...]."""
-    poly = np.array(poly, dtype=np.float32)
-    out = np.zeros(len(pts), dtype=bool)
-    for (y0, z0), (y1, z1) in zip(poly, np.roll(poly, -1, axis=0)):
-        cross = (z0 > pts[:, 1]) != (z1 > pts[:, 1])
-        with np.errstate(divide="ignore", invalid="ignore"):
-            at = y0 + (pts[:, 1] - z0) * (y1 - y0) / (z1 - z0)
-        out ^= cross & (pts[:, 0] < at)
-    return out
 
 
 def side_weights(yz):

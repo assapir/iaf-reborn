@@ -833,6 +833,42 @@ RADOME = [(1340, 420, 1600, 560), (390, 990, 670, 1130)]
 # The livery's tail number "547" on each side of the fin (x0, y0, x1, y1), painted over by both layers: the game draws
 # each jet's own (shared/aircraft/tail_number.gd, docs/aircraft-models.md §1.6).
 DIGITS = [(1640, 245, 1757, 312), (1640, 468, 1759, 537)]
+# The livery's 101 Squadron markings on the fin, painted over by both layers: its badge and the red disc above it
+# (circles x, y, r) and the red and white stripes on the rudder (boxes), on each side.
+BADGES = [(1800, 190, 70), (1820, 115, 26), (1800, 570, 70), (1820, 655, 26)]
+STRIPES = [(1850, 30, 1960, 190), (1850, 585, 1960, 745)]
+
+
+def is_fin(t):
+    """A triangle of the fin or rudder: facing sideways, on the centre line, above the spine aft of the blade
+    antenna."""
+    n, c = (t[1] - t[0]).cross(t[2] - t[0]), (t[0] + t[1] + t[2]) / 3
+    return n.length > 1e-12 and abs(n.x) > 0.8 * n.length and c.z > 1.2 - FIN_DROP and abs(c.x) < 0.1 and c.y < -3.7
+
+
+def inside(pts, poly):
+    """Even-odd test of the points [n, 2] against the polygon [(y, z), ...]."""
+    poly = np.array(poly, dtype=np.float32)
+    out = np.zeros(len(pts), dtype=bool)
+    for (y0, z0), (y1, z1) in zip(poly, np.roll(poly, -1, axis=0)):
+        cross = (z0 > pts[:, 1]) != (z1 > pts[:, 1])
+        with np.errstate(divide="ignore", invalid="ignore"):
+            at = y0 + (pts[:, 1] - z0) * (y1 - y0) / (z1 - z0)
+        out ^= cross & (pts[:, 0] < at)
+    return out
+
+
+def old_fin_marks(shape):
+    """The texels of the livery's fin markings (BADGES, STRIPES, DIGITS), [h, w] in the livery's pixel order from the
+    top left as the layers index it (Blender's rows bottom to top)."""
+    h, w = shape
+    yy, xx = np.mgrid[h - 1:-1:-1, 0:w]
+    hole = np.zeros((h, w), dtype=bool)
+    for cx, cy, r in BADGES:
+        hole |= np.hypot(xx - cx, yy - cy) <= r
+    for x0, y0, x1, y1 in STRIPES + DIGITS:
+        hole |= (xx >= x0) & (xx < x1) & (yy >= y0) & (yy < y1)
+    return hole
 
 
 def recolour(albedo, pairs, reach, where):

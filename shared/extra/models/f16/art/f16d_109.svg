@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1750">
+<desc>109 Squadron ("The Valley") on the fins of its F-16Ds, as F-16D 034 wears it on its left side (photo: Wikimedia
+ Commons, F-16D--Our-IDF-2018-IZE-239.jpg; 027 on its right: RamatDavid 020517 Barak 02.jpg): our own drawing, its
+ outline traced on the photo laid onto our fin (docs/aircraft-models.md §1.6). Seen from the left, the nose to the
+ left; 1 unit = 1 mm; the box's top left is y -5.3, z 2.95 on the model (y forward, z up), its foot 1.2 m up. The
+ right side shows it mirrored (shared/aircraft/tail_number.gd).</desc>
+<!-- the eagle, in a pale sand: the far wing raised, the near wing spread, head and talons forward -->
+<path fill="#e0ceb8" d="M92,430 L260,555 L478,634 L566,742 L516,839 L432,852 L386,746 L214,606 Z
+ M1175,502 L1174,534 L1096,590 L1156,605 L1145,654 L1055,698 L1114,730 L1092,787 L1028,786 L1065,838 L1053,874 L980,857 L1006,926 L984,963 L840,954 L922,1018 L892,1047 L851,1046 L861,1086 L832,1114 L804,1106 L792,1155 L732,1136 L720,1146 L780,1267 L898,1394 L880,1440 L836,1434 L854,1502 L829,1546 L769,1490 L755,1494 L793,1598 L776,1635 L763,1634 L728,1561 L712,1558 L726,1678 L676,1715 L621,1458 L576,1400 L464,1507 L388,1519 L368,1476 L292,1541 L280,1607 L260,1573 L215,1574 L266,1534 L198,1498 L236,1489 L272,1522 L329,1498 L354,1462 L350,1442 L457,1342 L470,1282 L384,1220 L324,1133 L212,1100 L104,1095 L109,1074 L84,1049 L28,1052 L24,1040 L92,969 L236,909 L516,895 L620,741 L996,615 Z
+ M330,1222 L414,1310 L324,1367 L256,1353 L216,1369 L199,1386 L201,1442 L184,1454 L176,1412 L123,1402 L145,1366 L106,1334 L128,1328 L188,1352 L228,1343 L245,1326 L242,1298 Z"/>
+<!-- the squadron's badge near the fin tip: a red disc, a light rim, a white crescent broken by a dark eagle -->
+<g transform="translate(820,170)">
+<circle r="140" fill="#edebe0"/>
+<circle r="130" fill="#c22929"/>
+<circle r="108" fill="#edebe0"/>
+<circle cx="12" cy="-12" r="98" fill="#c22929"/>
+<path fill="#1f1f24" d="M62,62 L38,46 L32,66 L18,44 L-6,34 L-28,14 L-62,-6 L-90,-50 L-70,-46 L-76,-66 L-54,-56 L-54,-78
+ L-34,-56 L-14,-22 L-4,-30 L4,-86 L16,-74 L22,-92 L32,-70 L42,-80 L38,-50 L26,-10 L40,20 L58,40 Z"/>
+</g>
+</svg>

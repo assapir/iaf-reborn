@@ -121,7 +121,7 @@ func walk(fe: Control, lang: String) -> void:
 	await frames(2)
 	check(s.sim_jet == "f16d" and s.f16_variant == "barak", "%s: the Barak picked (the F-16 switch)" % lang)
 	card = fe.find_child("JetCard", true, false)
-	check(_has(card, names[1]) and _has(card, "547"), "%s: the Barak's card" % lang)
+	check(_has(card, names[1]) and _has(card, "034"), "%s: the Barak's card" % lang)
 	check(_facts(card) == fact_labels, "%s: the Barak's facts the same" % lang)
 	if he:
 		await _code_first(fe, "the Barak")
@@ -360,24 +360,31 @@ func _code_first(fe: Control, where: String) -> void:
 
 ## Each jet's unit record's tail number is the number the game draws on the player's jet (its model's tail file,
 ## docs/aircraft-models.md §1.6; the user, A31), and its squadron (its base file's `squadrons`) the one whose art the
-## model wears (the user, 2026-11-13: "change the string"): as the model's sources record them.
+## jet wears (the user, 2026-11-13: "change the string"): the art the game draws by the number (the tail file's
+## `squadrons`: the Barak's, the user, 19 Nov 2026), else the art on the model, as its sources record it.
 func _tails_painted() -> void:
 	var srcs := {
 		"f16i": ["res://shared/extra/models/f16/SOURCES.md", "models/f16/f16i", "llrm", "%d Squadron's art"],
-		"f16d": ["res://shared/extra/models/f16/SOURCES.md", "models/f16/f16d", "llrd", "(%d Squadron, tail"],
+		"f16d": ["", "models/f16/f16d", "llrd", ""],
 		"f35i": ["res://../docs/f35i.md", "planes/f35i/f35i", "llnv", "%d Sqn badge"],
 	}
 	for u in srcs:
 		var tail := str(settings().load_json("res://data/db/units/%s.json" % u).get("tail", ""))
-		var text := FileAccess.get_file_as_string(srcs[u][0])
-		var drawn := str(settings().load_json("res://shared/extra/%s.tail.json" % srcs[u][1]).get("number", ""))
+		var spec: Dictionary = settings().load_json("res://shared/extra/%s.tail.json" % srcs[u][1])
+		var drawn := str(spec.get("number", ""))
 		check(
 			tail != "" and tail == drawn, "%s: tail %s is the number drawn on the player's jet (%s)" % [u, tail, drawn]
 		)
 		var sq: Array = settings().load_json("res://data/airbases/%s.json" % srcs[u][2]).get("squadrons", [])
 		sq = sq.filter(func(q): return q.unit == u)
 		var n := int(sq[0].number) if sq.size() == 1 else 0
-		check(n > 0 and text.contains(srcs[u][3] % n), "%s: squadron %d is the one painted on the model" % [u, n])
+		var art: Array = spec.get("squadrons", []).filter(func(q): return drawn in q.tails)
+		var painted := (
+			int(art[0].squadron) == n
+			if art.size() == 1
+			else FileAccess.get_file_as_string(srcs[u][0]).contains(srcs[u][3] % n)
+		)
+		check(n > 0 and painted, "%s: squadron %d is the one whose art the jet wears" % [u, n])
 
 
 func _has(root: Node, t: String) -> bool:

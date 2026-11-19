@@ -1,13 +1,25 @@
 {
-  "number": "547",
-  "others": ["603", "610", "615", "619", "624", "628", "630", "633", "637", "638", "642", "647", "648", "651", "652", "656", "664", "666", "667", "673", "676", "678", "682", "684", "687", "022", "023", "027", "034", "036", "039", "041", "045", "046", "050", "055", "057", "061", "063", "069", "072", "074", "075", "079", "083", "088", "612"],
+  "number": "034",
+  "others": ["022", "023", "027", "036", "039", "041", "045", "046", "050", "055", "057", "061", "063", "069", "072", "074", "075", "079", "083", "088", "603", "610", "615", "619", "624", "628", "630", "633", "637", "638", "642", "647", "648", "651", "652", "656", "664", "666", "667", "673", "676", "678", "682", "684", "687", "612"],
   "marks": [
-    { "foot": [0.92, 4.78], "height": 0.39, "pitch": 0.3, "x": [0.0, 0.6], "colour": [0.07, 0.07, 0.08] }
+    {"foot": [1.04, 4.91], "height": 0.31, "pitch": 0.185, "x": [0.0, 0.6], "colour": [0.07, 0.07, 0.08], "atlas": "res://shared/extra/models/tail_digits_thin.png"}
+  ],
+  "squadrons": [
+    {"squadron": 109, "tails": ["022", "023", "027", "034", "036", "039", "041", "045", "046", "050", "055", "057", "061", "063", "069", "072", "074", "075", "079", "083", "088"], "marks": [
+      {"foot": [1.04, 4.91], "height": 0.31, "pitch": 0.185, "x": [0.0, 0.6], "colour": [0.07, 0.07, 0.08], "atlas": "res://shared/extra/models/tail_digits_thin.png"},
+      {"art": "res://shared/extra/models/f16/art/f16d_109.png", "foot": [1.2, 5.9], "height": 1.75, "x": [0.0, 0.6]}
+    ]},
+    {"squadron": 105, "tails": ["603", "610", "615", "619", "624", "628", "630", "633", "637", "638", "642", "647", "648", "651", "652", "656", "664", "666", "667", "673", "676", "678", "682", "684", "687"], "marks": [
+      {"foot": [0.96, 4.73], "height": 0.42, "pitch": 0.25, "x": [0.0, 0.6], "colour": [0.07, 0.07, 0.08]},
+      {"art": "res://shared/extra/models/f16/art/f16d_105.png", "foot": [1.07, 5.9], "height": 2.1, "x": [0.0, 0.6]},
+      {"art": "res://shared/extra/models/f16/art/f16d_105_chevron.png", "foot": [0.72, 6.1], "height": 0.15, "x": [0.1, 0.45]}
+    ]}
   ],
   "notes": {
-    "": "The Barak's tail numbers (shared/aircraft/tail_number.gd, docs/aircraft-models.md §1.6): f16d.glb holds none (tools/f16/barak.py paints the livery's over).",
-    "number": "547, the number of FlightGear's IAF livery the model wears (SOURCES.md); the sim's unit record shows the same (modern-iaf/data/db/units/f16d.json `tail`). A real Barak's, but a single-seat F-16C's (Block 40, USAF 90-0874, f-16.net): no F-16D wears it (docs/aircraft-models.md §1.6)",
-    "others": "the other F-16Ds in service in f-16.net's airframe database (docs/aircraft-models.md §1.6, checked 19 Nov 2026), each squadron's in number order: Ramat David's two F-16D squadrons, 105 (Block 40) then 109 (Block 30; 074 in a Commons photo there), then 612, its squadron open (f-16.net's last unit for it, 110 Squadron, closed in 2017). Not listed: written off (031, 077, 606, 621, 660) and the test centre's 020 and 601",
-    "marks": "where the livery's 547 was, in black: foot 0.92 m up the fin, centred 4.78 m aft (tools/f16/barak.py prints the place it paints over)"
+    "": "The Barak's tail numbers and squadron art (shared/aircraft/tail_number.gd, docs/aircraft-models.md §1.6): f16d.glb holds neither (tools/f16/barak.py paints the fin plain, as F-16D 034's camouflage).",
+    "number": "034, F-16D Block 30 of 109 Squadron (\"The Valley\", Ramat David), the player's: its left side in Wikimedia Commons' F-16D--Our-IDF-2018-IZE-239.jpg (2018); the sim's unit record shows the same (modern-iaf/data/db/units/f16d.json `tail`)",
+    "others": "the other F-16Ds in service in f-16.net's airframe database (docs/aircraft-models.md §1.6, checked 19 Nov 2026), each squadron's in number order: 109 Squadron's (the player's), then Ramat David's other F-16D squadron, 105 (Block 40); then 612, its squadron open (f-16.net's last unit for it, 110 Squadron, closed in 2017). Commons photos show 027, 034 and 074 in 109's art, 667 and 682 in 105's. Not listed: written off (031, 077, 606, 621, 660) and the test centre's 020 and 601",
+    "marks": "612's (its squadron open): the number alone, in 109's style",
+    "squadrons": "each squadron's jets (`tails`) and what they wear, measured on the photos laid onto our fin (y up, z aft, m). 109: the number in thin black digits low on the fin under the eagle (034's: 0.31 m tall, 0.185 m apart, foot 1.04 m up, 4.91 m aft), its pale eagle and red badge (art/f16d_109.svg). 105: bold black digits low at the leading edge (682's: 0.42 m, 0.25 m apart), its pale scorpion and oval badge (art/f16d_105.svg), a red and white chevron on each side of the tail box, flatter than the jets' to fit our shorter box (0.39 × 0.15 m; art/f16d_105_chevron.svg). The art is ours, drawn over the photos; mirrored on the right side, so it faces forward on both"
   }
 }

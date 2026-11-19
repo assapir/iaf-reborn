@@ -9,6 +9,7 @@
 # mission; hangar_<lang>.json: the boxes of MARKS, the manual's numbers). SHOT_ONLY=<screens> takes those alone
 # (comma-separated, e.g. SHOT_ONLY=missions,section); SHOT_SIZE=1280x720 renders at that size (the 1920 × 1080
 # canvas scaled to it). nodata_hangar / nodata_missions: a fresh install (IAF_ASSETS_DIR an empty folder for those two).
+# SHOT_JET=<unit> picks that jet in the Hangar (the Sufa, f16i, if unset).
 extends "res://../tests/godot/base.gd"
 
 const SCREENS := [
@@ -44,7 +45,7 @@ func run() -> void:
 	for lang in ["en", "he"]:
 		s.language = lang
 		s.pilot_name = "נועה גולן" if lang == "he" else "Noa Golan"
-		s.sim_jet = "f16i"
+		s.sim_jet = OS.get_environment("SHOT_JET") if OS.has_environment("SHOT_JET") else "f16i"
 		for g in ["graphics", "sound", "devices", "language"] if only == "" or "prefs" in only.split(",") else []:
 			fe.pref_group = g
 			fe.pref_search = ""

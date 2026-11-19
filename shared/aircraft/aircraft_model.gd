@@ -121,7 +121,7 @@ static func create(plane: String, type := -1, on_ground := false, tail := 0) -> 
 	m.name = plane
 	m.setup(node, d, type, on_ground)
 	m.tail = TailNumber.next(path) if tail == NEXT else tail
-	TailNumber.mark(node, path, m.tail)
+	TailNumber.mark(m.root_frame, path, m.tail)  # in the frame that turns as the jet sits on its wheels (_apply_sit)
 	return m
 
 

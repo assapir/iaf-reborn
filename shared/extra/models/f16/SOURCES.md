@@ -22,7 +22,7 @@
 | `Models/Cockpit/Main/cockpit.ac` and its textures | the two cockpit tubs |
 | `Models/Cockpit/chair/chair.ac` and its textures | the two ejection seats |
 | `Models/pilot_externalview.ac`, `Models/Pilots/*` | the two pilots |
-| `Models/Liveries/Block40/90-0874.png` | the IAF desert livery (101 Squadron, tail 547) |
+| `Models/Liveries/Block40/90-0874.png` | the IAF desert livery (with 101 Squadron's art and tail 547, both painted over) |
 | `Models/central-pylon.ac` | the centreline pylon (station E) |
 | `Models/Armament/External-stores/Pylons/fuselage-pylon-right.ac`, `fuselage-pylon-left.ac` | the chin pylons (`PylonChinR`, `PylonChinL`; Modern IAF's chin pods) |
 | `Models/F-16.xml`, `Models/Armament/loads_models.xml` | hinge lines, the nozzle's and the centreline pylon's placement, gear and door angles |
@@ -91,13 +91,28 @@ Made by `tools/f16/rig.py ... barak`: the F-16 base (`tools/f16/base.py`) with t
 11. The wing pylons' open tops capped, and the wingtip rails and wing pylons given their own UVs on a free grey
     part of the livery, painted a warm grey that renders as FS 36375, with the paint's material and occlusion (both
     models; docs/aircraft-models.md §1.5).
-12. The livery's tail number, 547 on the fin, painted over in the camouflage round it (`barak.py` `erase_number`):
-    the game draws each jet's own number in our digits (`../tail_digits.png`; docs/aircraft-models.md §1.6).
+12. The fin and rudder repainted as F-16D 034 of 109 Squadron wears them (`barak.py` `fin`): tan, grey-green over
+    the top, a sand dome at the root, over the livery's panel lines; the livery's 101 Squadron art (skull, badge, red
+    disc, stripes) and its tail number 547 painted over. The game draws each jet's squadron art and number on it
+    (`art/`, `../tail_digits*.png`; docs/aircraft-models.md §1.6). References, not copied (no pixel is in the model):
+    F-16D 034 by Zachi Evenor and MathKnight (CC BY 2.0,
+    https://commons.wikimedia.org/wiki/File:F-16D--Our-IDF-2018-IZE-239.jpg) and 027 (change 2's photo).
 
 The model contains about 60 helper positions measured from the original game model (where the game hangs stores,
 draws the afterburner and puts the wheels). They are coordinates only. Every mesh and texture comes from the
 FlightGear F-16, except the dorsal spine's mesh, which the script makes (its paint is FlightGear's livery), and,
-in `f16i.glb`, the nose and spine fairings, the camouflage and the markings, which the script makes too.
+in `f16d.glb`, the fin's camouflage, and in `f16i.glb`, the nose and spine fairings, the camouflage and the
+markings, which the script makes too.
+
+## The squadrons' art (`art/`)
+
+Ours: drawings (SVG) made over photos laid onto our fin, rasterised by `art/render.sh`; the game draws them on each
+Barak by its squadron (shared/aircraft/tail_number.gd). No pixel of a photo is in them. References, not copied:
+
+- 109 Squadron's eagle and badge (`f16d_109.svg`): F-16D 034 and 027, the photos of change 12;
+- 105 Squadron's scorpion, badge and chevron (`f16d_105.svg`, `f16d_105_chevron.svg`): F-16D 682 by Yechezkel Hezi
+  Shmueli (CC BY-SA 4.0, https://commons.wikimedia.org/wiki/File:ברק2020.jpg) and 667 by Efi Elian (GFDL,
+  https://commons.wikimedia.org/wiki/File:F16D_IAF_105_efi_elian.jpg).
 
 ## The F-16I Sufa (`f16i.glb`)
 
@@ -116,7 +131,7 @@ Made by `tools/f16/rig.py ... sufa`, the F-16 base with the Sufa layer (`tools/f
    grey and radome recoloured to FS 36375 / 36270; the upper surfaces and the CFTs repainted in 846's sand, tan and
    green (measured in its photographs), on the fuselage, CFTs, spine and tail box in 846's blotches (polygons we
    traced from the photos), on the wings in our own noise pattern; the livery's panel lines kept; 101 Squadron's
-   fin badge, red disc, stripes and number painted over; the fin tan with our own drawing of 201 Squadron's art
+   fin art (skull, badge, red disc, stripes) and number painted over; the fin tan with our own drawing of 201 Squadron's art
    (sand band, blue and orange swooshes, swift, round badge). The tail number is not in the model: the game draws
    each jet's in our own digits (`tools/f16/digits.py`, `../tail_digits.png`; docs/aircraft-models.md §1.6).
    References, not copied (no pixel is in the model): F-16I 846 in flight, 10 January 2025, by the IDF

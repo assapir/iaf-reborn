@@ -107,9 +107,9 @@ SQUADRONS = {
     "LLRM": {"f16i": (201, "The One", "האחת", "he_201",
                       "Wikipedia, טייסת 201 (\"האחת\", flies the F-16I Sufa from Ramon; the Sufa's model wears its tail art), "
                       "https://he.wikipedia.org/wiki/טייסת_201")},
-    "LLRD": {"f16d": (101, "First Fighter", "הקרב הראשונה", "he_101",
-                      "Wikipedia, טייסת 101 (\"טייסת הקרב הראשונה\", at Ramat David since June 2021; the Barak's livery wears its tail art), "
-                      "https://he.wikipedia.org/wiki/טייסת_101")},
+    "LLRD": {"f16d": (109, "The Valley", "העמק", "he_109",
+                      "Wikipedia, טייסת 109 (\"טייסת העמק\", flies the two-seat F-16D Barak from Ramat David; the Barak's "
+                      "fin wears its art), https://he.wikipedia.org/wiki/טייסת_109")},
     "LLNV": {"f35i": (116, "Lions of the South", "אריות הדרום", "he_116",
                       "Wikipedia, טייסת 116 (\"אריות הדרום\", flies the F-35I Adir from Nevatim since January 2020; the Adir's model wears its badge), "
                       "https://he.wikipedia.org/wiki/טייסת_116")},
