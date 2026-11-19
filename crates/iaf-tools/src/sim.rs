@@ -787,8 +787,8 @@ pub fn compile_mission(
     let base_name = start["base"].as_str().with_context(|| format!("{}: start needs \"base\"", f.name))?;
     let base =
         sim_bases::by_name(bases, base_name).with_context(|| format!("{}: no airbase \"{base_name}\"", f.name))?;
-    // A wingman at a parking start stands on the unit's second spot.
-    let mut wing = None;
+    // The wingmen at a parking start stand on the unit's next spots, Alpha 2..4 in the base file's order.
+    let mut wings = vec![];
     let [x, y, h] = match start["at"].as_str() {
         Some("runway") => runway_start(base, start["runway"].as_str().unwrap_or("")).with_context(|| f.name.clone())?,
         // A parking start without its own place takes the base's spot for its unit (data/airbases, §10).
@@ -797,7 +797,7 @@ pub fn compile_mission(
             let mut spots = base.parking.iter().filter(|p| p.unit == unit);
             let p = spots.next();
             let p = p.with_context(|| format!("{}: {} has no parking spot for {unit}", f.name, base.name_en))?;
-            wing = spots.next().map(|w| json!([w.at[0].round(), w.at[1].round(), w.heading.round()]));
+            wings = spots.map(|w| json!([w.at[0].round(), w.at[1].round(), w.heading.round()])).collect();
             [p.at[0], p.at[1], p.heading]
         }
         Some("parking") => {
@@ -842,13 +842,19 @@ pub fn compile_mission(
         }
         Ok(out)
     };
-    let mut spec = json!({"type": int(unit, "number")?, "count": start["count"].as_i64().unwrap_or(1),
-        "slot_x": x.round(), "slot_y": y.round(), "alt": elev, "heading": h.round()});
+    // Alpha flies one to four jets: a pair anywhere, a three- or four-ship from the unit's parking spots (ai-plan.md F1).
+    let count = start["count"].as_i64().unwrap_or(1);
+    ensure!((1..=4).contains(&count), "{}: start.count {count}: Alpha flies 1 to 4 jets", f.name);
+    ensure!(
+        count <= 2 || count as usize <= 1 + wings.len(),
+        "{}: start.count {count} needs a \"parking\" start with {count} of {}'s spots for its unit (Alpha 2..4 on the next)",
+        f.name,
+        base.name_en
+    );
+    let mut spec = json!({"type": int(unit, "number")?, "count": count,
+        "slot_x": x.round(), "slot_y": y.round(), "alt": elev, "heading": h.round(), "wings": wings});
     if has_route(&f.v["route"]) {
         spec["points"] = json!(route(&f.v["route"], [x, y, elev])?);
-    }
-    if let Some(w) = wing {
-        spec["wing"] = w;
     }
     m = mission_edit::set_flight(m, 1, &spec);
     // Only the player's jet (Alpha's leader, Player1) must survive; a wingman keeps the neutral role.
@@ -1808,6 +1814,41 @@ mod tests {
         assert!(
             compile_mission(&f, &db, &bases, &mut |_, _| None).unwrap_err().to_string().contains("no parking spot")
         );
+    }
+
+    /// A four-ship (ai-plan.md F1): Alpha 1..4 on the unit's four spots in the base file's order, one formation, only
+    /// the player's jet must survive; more jets than spots, or more than two away from the spots, are refused, and the
+    /// 1998 mission editor's flight (no `wings`) stays a pair.
+    #[test]
+    fn a_four_ship_starts_on_the_units_spots() {
+        let (db, bases) = (Db::read(&data()).unwrap(), sim_bases::load(&data().join("airbases")).unwrap());
+        let mut f = ramon(json!({}));
+        f.v["start"]["count"] = json!(4);
+        let m = compile_mission(&f, &db, &bases, &mut |_, _| None).unwrap();
+        let members = m["formations"]["items"][0]["members"].as_array().unwrap();
+        assert_eq!(members.len(), 4);
+        let spots = &sim_bases::by_name(&bases, "Ramon").unwrap().parking;
+        for (k, mm) in members.iter().enumerate() {
+            let e = m["entities"]["items"].as_array().unwrap().iter().find(|e| e["0x1e"] == mm["0x41a"]).unwrap();
+            let name = format!("Player{}", "1".repeat(k + 1));
+            assert_eq!((&e["0x2bc"], &mm["0x410"]), (&json!(name), &json!(name)));
+            assert_eq!(
+                (e["0x2e4"].as_f64().unwrap(), e["0x2ee"].as_f64().unwrap(), e["0x302"].as_f64().unwrap()),
+                (spots[k].at[0].round(), spots[k].at[1].round(), spots[k].heading.round()),
+                "Alpha {}",
+                k + 1
+            );
+        }
+        let c = mission_edit::conditions(&m, &Value::Null);
+        assert_eq!(c["keep_alive"], json!([{"id": 1, "name": "Player1"}]), "{c}");
+        f.v["start"]["count"] = json!(5);
+        assert!(compile_mission(&f, &db, &bases, &mut |_, _| None).unwrap_err().to_string().contains("1 to 4"));
+        let mut f = ramon(json!({}));
+        (f.v["start"]["at"], f.v["start"]["runway"], f.v["start"]["count"]) = (json!("runway"), json!("25R"), json!(3));
+        assert!(compile_mission(&f, &db, &bases, &mut |_, _| None).unwrap_err().to_string().contains("\"parking\""));
+        let spec = json!({"type": 1, "count": 4, "slot_x": 1000.0, "slot_y": 1000.0, "alt": 0.0, "heading": 0.0});
+        let pair = mission_edit::set_flight(mission_edit::blank(skeleton()), 1, &spec);
+        assert_eq!(mission_edit::spawned(&pair).count(), 2, "the mission editor's flight is a pair");
     }
 
     /// The training rules are checked: a training figure without a source, an unknown kind and an unknown goal are

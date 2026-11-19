@@ -93,8 +93,8 @@ func walk(fe: Control, lang: String) -> void:
 		check(not _has_part(card, t), "%s: no %s on the card" % [lang, t])
 	if he:
 		await _code_first(fe, "the Hangar")
-	# Two of the Sufa's three training missions passed in the fixture (the range is the third).
-	check(_has_part(card, "2 מתוך 3" if he else "2 of 3 passed"), "%s: the training's progress (the Sufa's)" % lang)
+	# Two of the Sufa's four training missions passed in the fixture (the range and the four-ship not).
+	check(_has_part(card, "2 מתוך 4" if he else "2 of 4 passed"), "%s: the training's progress (the Sufa's)" % lang)
 	var last: Label = fe.find_child("LastFlight", true, false)
 	check(last.text.contains("המראה" if he else "Take-off"), "%s: the last flight: %s" % [lang, last.text])
 	check(fe.find_child("Campaign", true, false) == null, lang + ": no campaign button (the Missions screen has it)")

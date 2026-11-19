@@ -111,6 +111,12 @@ Fail reasons, in the order checked: the §3.0 reason first (the earliest event);
 engine never at idle with the avionics up), `over_time` (start-up); `no_liftoff`, `wrong_runway`, `excursion`,
 `gear_down`, `over_time`, `off_heading` (take-off; after a §3.0 fail the climb-out is not judged).
 
+**The four-ship (2026-11-19).** `ramon_four_ship` (Sufa, menu 2014) is a take-off lesson with three AI wingmen, Alpha
+2–4, in the next shelters ([ai-plan.md](ai-plan.md) F1). The tower's start-up clearance clears the whole flight: the
+wingmen start their engines 3 s apart, taxi behind the player in order and take off in a stream, then join the
+player in fingertip. The pass is the player's take-off above; the wingmen do not change it. A Take-off kneeboard page
+that looks a lesson up by base takes Ramon's Take-off lesson (2012), the first by menu id.
+
 ### 3.3 The tower's clearances and the runway
 Since 2026-11-13 (the user: "missions should fail if I start without tower permissions"; "I need to be able to call
 tower to align and for take off") a mission's `training.clearances` (mission data: the three take-off missions

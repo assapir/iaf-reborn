@@ -146,7 +146,8 @@ The clock: the single-player sim clock (`DAT_006992d0`, ctor `FUN_004cf910`, vta
 
 ### iaf-reborn
 * `Engine.time_scale` = rate. Godot scales every sim `_process` delta and sim timer, as the original's clock does.
-* The player's flight model is stepped `rate` times per frame with the uncompressed frame time.
+* The player's flight model is stepped `rate` times per frame with the uncompressed frame time; so is every AI jet's
+  (`shared/ai/ai_flights.gd`).
   * Its 1 Hz / 5 Hz updates are scheduled at fixed sim times (`Aircraft::step`). So this equals one step of
     rate × dt and stays deterministic.
   * It also keeps each call under the 0.25 s clamp.

@@ -43,7 +43,7 @@
 - {term: Clearance, means: "The tower's permission for one phase of a flight: the engine start, the taxi, entering the runway, the take-off.", in: [game]}
 - {term: Debrief, means: "The screen after a flight: the result, each goal against what was flown, and the flight on a map and graphs.", in: [game]}
 - {term: Holding point, means: "The place on a taxiway, short of the runway, where a jet stops and waits for the tower's line-up clearance.", in: [game]}
-- {term: Lesson, means: "A Training mission. Each jet has three: Start-up, Take-off and Weapons range.", in: [game]}
+- {term: Lesson, means: "A Training mission. Each jet has three: Start-up, Take-off and Weapons range; the Sufa also a Four-ship.", in: [game]}
 - {term: Loadout, means: "The stores a jet carries on a mission, station by station.", in: [game]}
 - {term: Station, means: "A place under the jet's wing or body, or in a weapon bay, where one store or one rack hangs.", in: [game]}
 - {term: Time allowed, means: "The time from the start of a flight within which a mission's goals must be reached.", in: [game]}

@@ -46,6 +46,7 @@ chapters:
   - {id: lesson-startup, title: "התנעה", file: game/missions-training/lesson-startup.typ}
   - {id: lesson-takeoff, title: "המראה", file: game/missions-training/lesson-takeoff.typ}
   - {id: lesson-range, title: "מטווח חימוש", file: game/missions-training/lesson-range.typ}
+  - {id: lesson-four-ship, title: "רביעייה", file: game/missions-training/lesson-four-ship.typ}
   - {id: scoring, title: "הצלחה וכישלון", file: game/missions-training/scoring.typ}
 - id: bases
   title: "בסיסים"

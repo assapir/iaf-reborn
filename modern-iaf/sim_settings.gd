@@ -461,6 +461,11 @@ func modern_mfds() -> bool:
 	return true
 
 
+## The player's flight under Modern IAF's AI (modern-iaf/docs/ai-plan.md §6).
+func new_ai() -> bool:
+	return true
+
+
 ## The sim's aircraft descriptors (`iaf-sim own`: the F-16's from our model) and its compiled missions.
 func planes_folder() -> String:
 	return "own/planes"

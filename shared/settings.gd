@@ -1096,6 +1096,13 @@ func modern_mfds() -> bool:
 	return false
 
 
+## Ours: the player's flight's AI wingmen fly under Modern IAF's AI (IafAi, crates/iaf-ai; modern-iaf/docs/ai-plan.md
+## §6): taxi in order, the slots, the radio's commands, the landing in turn. The 1998 game keeps its brain (brain.gd);
+## Modern IAF says yes.
+func new_ai() -> bool:
+	return false
+
+
 ## The folders under assets/converted holding the aircraft descriptors (aircraft_model.gd: `<plane>/aircraft.json` and
 ## the index `aircraft.json`) and the menu missions (mission_runtime.gd: `missionlist.json` and the missions): the
 ## original's converted ones; Modern IAF's own (sim_settings.gd).

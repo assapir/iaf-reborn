@@ -971,8 +971,12 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   (C1–C7), one Epic Fury strike (K1–K13); the shared needs X1–X7; his open questions in its §9. Built (19 Nov,
   milestone 1 slice 1, no change on screen): the Rust core `crates/iaf-ai` and `IafAi`, the slot loop and the AI's
   6-DoF cases and the flight's collision avoidance ([../../docs/ai.md](../../docs/ai.md) §8.7), tested from Ramon's
-  shelters to parked again and with a lead landing away from home. Open: the
-  four-ship mission and its wiring (slice 2), the radio page with voices and subtitles (slice 3).
+  shelters to parked again and with a lead landing away from home. Built (19 Nov, slice 2): the four-ship lesson
+  `ramon_four_ship` (Training, the Sufa): Alpha 2–4 in the next shelters with the player's load, started by the
+  tower's start-up clearance, taxiing in order, a stream take-off, the join-up calling "in position", the slots in the
+  player's turns, the commands through `IafAi.command`, RTB, the landing and each parked at its own shelter
+  (`modern-iaf/tests/test_four_ship.gd`); 0.17 ms CPU and 0.127 ms GPU per AI jet on the Iris Xe laptop (ai-plan X5).
+  Open: the radio page with voices and subtitles (slice 3).
 - **Missiles (avionics-plan.md §7.2):** next steps 2, 3 and 5: the AIM-120's loft, the proximity fuzes, the threat
   missiles once their records are approved; step 4 (the missile warning's type) awaits the user's approval.
 - **The missile warning, not started (outside the user's words):** an active radar missile's own seeker as an "M" on

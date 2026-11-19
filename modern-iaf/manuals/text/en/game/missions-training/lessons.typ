@@ -1,6 +1,6 @@
 #import "/modern-iaf/manuals/layout/manual.typ": *
 
-#idx("Lessons")#idx("Training")A #term("lesson") is a mission of the #scr("sec_training") list on the #scr("missions") screen (@mission-list). Each of the three jets has three lessons, flown from its own base. Fly them in order: each one builds on the one before.
+#idx("Lessons")#idx("Training")A #term("lesson") is a mission of the #scr("sec_training") list on the #scr("missions") screen (@mission-list). Each of the three jets has three lessons, flown from its own base; the Sufa has a fourth, the four-ship. Fly them in order: each one builds on the one before.
 
 === The lessons of each jet <lessons-list>
 
@@ -10,6 +10,7 @@
   [1. #scr("kind_startup")], [Mission 2011], [Mission 2021], [Mission 2031],
   [2. #scr("kind_takeoff")], [Mission 2012, runway 25R], [Mission 2022, runway 27], [Mission 2032, runway 26L],
   [3. Weapons range], [Mission 2013, runway 25R], [Mission 2023, runway 27], [Mission 2033, runway 26L],
+  [4. Four-ship], [Mission 2014, runway 25R], [—], [—],
 )
 
 The bases are described in @airbases.
@@ -22,6 +23,7 @@ The bases are described in @airbases.
   [#scr("kind_startup")], [#scr-text("desc_startup") You bring a cold jet to life by its checklist, after the #term("tower") clears the start.], [10 min], [@lesson-startup],
   [#scr("kind_takeoff")], [#scr-text("desc_takeoff") You start the jet, make the four calls, taxi to the runway, take off and climb out.], [15 min], [@lesson-takeoff],
   [Weapons range], [#scr-text("desc_range") You start and take off as before, then fly to the range.], [45 min], [@lesson-range],
+  [Four-ship], [You lead three wingmen flown by the computer: the flight's start-up, the taxi in order, a stream take-off.], [15 min], [@lesson-four-ship],
 )
 
 All three lessons of a jet start at 08:00 or 09:00 in the morning, in daylight, with no wind.

@@ -215,13 +215,16 @@ func _base() -> String:
 	return String(_readable().get("start", {}).get("base", ""))
 
 
-## The training mission of `kind` for the flight's base (else its jet): its readable data, {} when none.
+## The training mission of `kind` for the flight's base (else its jet), the first by menu id (Ramon's Take-off lesson,
+## not its four-ship): its readable data, {} when none.
 func _mission_of(kind: String) -> Dictionary:
 	var mine := _readable()
 	if String(mine.get("training", {}).get("kind", "")) == kind:
 		return mine
 	var by_jet := {}
-	for m in _missions.values():
+	var list := _missions.values()
+	list.sort_custom(func(a, b): return int(a.get("menu_id", 0)) < int(b.get("menu_id", 0)))
+	for m in list:
 		if String(m.get("training", {}).get("kind", "")) != kind:
 			continue
 		if String(m.get("start", {}).get("base", "")) == _base():

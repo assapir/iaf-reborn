@@ -280,11 +280,13 @@ func _round_nodes(u: Unit, w: Dictionary) -> void:
 
 ## The Arming screen's loads go on both members of the flight (FUN_004f0140 on FUN_004f0330 the leader and
 ## FUN_004f0380 the second member; docs/front-end.md §15): pylons 0..8 of the two member slots of the formation
-## its Arming table slot loads (MissionRuntime.flight_slots).
+## its Arming table slot loads (MissionRuntime.flight_slots). Modern IAF's four-ship: on all four (the lead's load,
+## modern-iaf/docs/data-formats.md §5).
 func _armed(ent: Dictionary, load: Array) -> Array:
 	var f: Dictionary = ent.pilot.formation if ent.get("pilot") != null else {}
 	var n := int(f.get("slot", 0))
-	if f.is_empty() or not f.members.slice(0, 2).has(ent):
+	var armed: Array = f.get("members", []) if Settings.new_ai() else f.get("members", []).slice(0, 2)
+	if not armed.has(ent):
 		return load
 	return PlayerWeapons._armed(load, ent, n)
 

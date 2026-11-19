@@ -334,9 +334,10 @@ fn formation_index(mission: &mut Value, number: i64) -> Option<usize> {
 
 /// Creates or updates blue flight `number` (1..4, Alpha..Delta) from `spec` {type (bdb object id), count (1 or 2:
 /// a formation has two member slots), slot_x, slot_y, alt, heading, points? ([[x, y, alt, speed(, action)]])}: the
-/// leader at the slot, the wingman 50 m off its left as the Mission Creator puts it (`FUN_0058eb40`), or at `wing`?
-/// ([x, y, heading]: Modern IAF's second parking spot). New members are
-/// named Player<n> / Player<nn> (the Mission Creator's slots) and copied from a blue aircraft of the mission.
+/// leader at the slot, the wingman 50 m off its left as the Mission Creator puts it (`FUN_0058eb40`), or at `wings`?
+/// ([[x, y, heading], …]: Modern IAF's next parking spots, one member each, up to its four-ship; count up to 1 +
+/// their number, modern-iaf/docs/ai-plan.md F1). New members are named Player<n> / Player<nn> / Player<nnn> … (the
+/// Mission Creator's slots, grown by a digit a member) and copied from a blue aircraft of the mission.
 pub fn set_flight(mut mission: Value, number: i64, spec: &Value) -> Value {
     if !(1..=4).contains(&number) {
         return mission;
@@ -354,16 +355,19 @@ pub fn set_flight(mut mission: Value, number: i64, spec: &Value) -> Value {
             formation_index(&mut mission, number).unwrap()
         }
     };
-    let count = int(&spec["count"]).clamp(1, 2) as usize;
     let (x, y, alt, h) = (num(&spec["slot_x"]), num(&spec["slot_y"]), num(&spec["alt"]), num(&spec["heading"]));
     let (wx, wy) = beside(x, y, h + 90.0);
-    let wing = spec["wing"].as_array().map_or([wx, wy, h], |w| [num(&w[0]), num(&w[1]), num(&w[2])]);
-    let place = [[x, y, h], wing];
-    let members: Vec<i64> = (0..2).map(|k| int(&mission["formations"]["items"][fi]["members"][k]["0x41a"])).collect();
+    let wings = spec["wings"].as_array().filter(|w| !w.is_empty());
+    let wings = wings.map_or(vec![[wx, wy, h]], |w| w.iter().map(|w| [num(&w[0]), num(&w[1]), num(&w[2])]).collect());
+    let place: Vec<[f64; 3]> = [[x, y, h]].into_iter().chain(wings).take(4).collect();
+    let count = int(&spec["count"]).clamp(1, place.len() as i64) as usize;
+    let rows = mission["formations"]["items"][fi]["members"].as_array_mut().unwrap();
+    rows.resize(rows.len().max(count), json!({"0x410": "", "0x41a": -1, "0x424": -1}));
+    let members: Vec<i64> = rows.iter().map(|r| int(&r["0x41a"])).collect();
     let find = |m: &Value, id: i64| {
         m["entities"]["items"].as_array().and_then(|a| a.iter().find(|e| real(e) && int(&e["0x1e"]) == id)).cloned()
     };
-    for k in 0..2 {
+    for k in 0..members.len() {
         let have = find(&mission, members[k]);
         if k >= count {
             if have.is_some() {
@@ -399,7 +403,7 @@ pub fn set_flight(mut mission: Value, number: i64, spec: &Value) -> Value {
                         .cloned()
                         .unwrap_or_else(|| json!({}))
                 });
-                let name = if k == 0 { format!("Player{number}") } else { format!("Player{number}{number}") };
+                let name = format!("Player{}", number.to_string().repeat(k + 1));
                 fields.insert("0x2bc".into(), json!(name));
                 fields.insert("0x14".into(), json!(0));
                 let (m, id) = add_entity(mission, &template, &fields);
@@ -412,6 +416,8 @@ pub fn set_flight(mut mission: Value, number: i64, spec: &Value) -> Value {
         (mm["0x410"], mm["0x41a"]) = (name, json!(id));
     }
     let f = &mut mission["formations"]["items"][fi];
+    // The 1998 formation's two member slots stay; a four-ship's rows past its count go with their jets.
+    f["members"].as_array_mut().unwrap().truncate(count.max(2));
     if let Some(pts) = spec["points"].as_array() {
         let p: Vec<Value> = pts
             .iter()

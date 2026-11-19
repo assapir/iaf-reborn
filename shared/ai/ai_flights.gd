@@ -25,6 +25,15 @@ var combat: Node  # combat.gd: the armed units' weapon handlers, sensors and fir
 var _brains := {}  # bdb brain id -> rules
 var _actions := {}  # bdb action id -> item
 var _formations: Array = []  # [{id, kind, members: [entity], targets: [entity], route: [[x, y, alt, T, action]]}]
+## Modern IAF (Settings.new_ai): the player's flight under IafAi (crates/iaf-ai, modern-iaf/docs/ai-plan.md §6), its
+## members [[number, entity]], and the calls its jets made so far [{from, id, t (mission s)}] (the radio says them).
+var flight_ai: RefCounted
+var _ai_members: Array = []
+var flight_calls: Array = []
+## The CPU time the AI jets took (this node's _process: flight model, autopilot, AI, model and sound), µs, over
+## `cost_frames` frames (modern-iaf/docs/ai-plan.md X5); a test resets both.
+var cost_us := 0
+var cost_frames := 0
 
 
 class Pilot:
@@ -38,6 +47,7 @@ class Pilot:
 	var mode := 0
 	var plane := ""  # the converted plane folder (its flight model start)
 	var airborne_start := true  # the jet's start was airborne (its controller's autopilot starts on, @4483d7)
+	var by_ai := false  # flown by IafAi (flight_ai), not by its brain
 	## Systems damage flags 0..24 (controller +0x3d8 + 0xc + 4n, docs/damage.md §5), the cut-out pick (+0x70)
 	## and the twin-engine test (controller +8 → +0x24: the player's table, PlayerAircraft.TWIN).
 	var systems: Array = []
@@ -125,6 +135,10 @@ func setup(h: Node, rt: Node, bdb: Dictionary, files: Array) -> void:
 		var obj: Dictionary = objects.get(ent.type, {})
 		var pr: Dictionary = present.get(int(obj.get("0x53c", -1)), {})
 		var plane := _plane_of(planes, String(pr.get("0x64a", "")))
+		# A Modern IAF flyable unit (an Objects row with "airframe") has no Present model of its own: it is drawn from
+		# its aircraft definition, so its AI jet (a four-ship's wingman) takes the plane of its type, as the player's.
+		if plane == "" and obj.has("airframe"):
+			plane = PlayerAircraft.plane_for(int(ent.type_code))
 		if plane == "":
 			continue
 		var p := Pilot.new()
@@ -138,6 +152,8 @@ func setup(h: Node, rt: Node, bdb: Dictionary, files: Array) -> void:
 		if not _start(p, install, plane):
 			continue
 		_attach(p, Settings.model_scale(float(pr.get("0x65e", 10.0))), bool(p._state.on_ground_start))
+	if Settings.new_ai() and ClassDB.class_exists("IafAi"):
+		_setup_flight_ai()
 	if not pilots.is_empty() or Settings.has_setting("ai_level"):  # a game with AI (not IAF 2026's training)
 		print("AI aircraft: %d flying" % pilots.size())
 	combat = Combat.new()
@@ -268,6 +284,48 @@ func _formation_of(ent: Dictionary) -> Dictionary:
 	return {}
 
 
+## Modern IAF: the player's formation flies under IafAi, the player its number by the formation's slot (Alpha 1 the
+## first), its AI jets the rest; none without an AI member.
+func _setup_flight_ai() -> void:
+	var me: Dictionary = runtime.player_entity()
+	var f := _formation_of(me)
+	if f.is_empty() or host.get("flight") == null:
+		return
+	var ai = ClassDB.instantiate("IafAi")
+	for k in f.members.size():
+		var ent: Dictionary = f.members[k]
+		var p = ent.get("pilot")
+		if ent == me:
+			ai.add_member(host.flight, k + 1, false)
+		elif p != null:
+			p.by_ai = true
+			ai.add_member(p.flight, k + 1, true)
+		else:
+			continue
+		_ai_members.append([k + 1, ent])
+	if _ai_members.size() > 1:
+		flight_ai = ai
+
+
+## The tower's start-up clearance (sim_flight.gd): the flight's wingmen start their engines.
+func flight_cleared_to_start() -> void:
+	if flight_ai != null:
+		flight_ai.start_up(runtime.now)
+
+
+## IafAi's frame, after every jet's steps of the frame (its orders go to the next frame's ap_step): who is alive
+## (the player while in the jet), the player's steerpoint (a promoted lead flies on from it), the orders, the calls.
+func _step_flight_ai(now: float) -> void:
+	if host.get("cockpit") != null and host.flight != null:
+		host.flight.ap_set_waypoint_index(host.cockpit.current_waypoint)
+	for m in _ai_members:
+		var ent: Dictionary = m[1]
+		flight_ai.set_alive(m[0], int(ent.state) < 3 and not (ent.player and host.ejected))
+	for c in flight_ai.step(now):
+		c["t"] = now
+		flight_calls.append(c)
+
+
 ## The FM start (FUN_004a9100 → FUN_005a5820): the player's rules, 282.84 m/s along the heading.
 func _start(p: Pilot, install: String, plane: String) -> bool:
 	var flight = ClassDB.instantiate("IafFlight")
@@ -319,6 +377,13 @@ func _start(p: Pilot, install: String, plane: String) -> bool:
 func _process(delta: float) -> void:
 	if host.frozen or host.waiting_for_ground:
 		return
+	var t0 := Time.get_ticks_usec()
+	_fly(delta)
+	cost_us += Time.get_ticks_usec() - t0
+	cost_frames += 1
+
+
+func _fly(delta: float) -> void:
 	var now: float = runtime.now
 	for p in pilots:
 		var ent: Dictionary = p.ent
@@ -327,7 +392,8 @@ func _process(delta: float) -> void:
 		var scene_pos: Vector3 = p._state.position
 		host.feed_ground(p.flight, scene_pos)
 		p.flight.set_ai_damage(float(ent.damage) <= 0.1)
-		_feed_leader(p)
+		if not p.by_ai:
+			_feed_leader(p)  # IafAi gives its jets their leader
 		_feed_target(p)
 		var wp: int = p.flight.ap_waypoint_index()
 		var out: Dictionary = p.flight.ap_step(now)
@@ -336,7 +402,9 @@ func _process(delta: float) -> void:
 		# WayPtSet moving on (5d7450: index ≠ brain+0x88) posts the radio's WayptReport (docs/radio.md §4).
 		if p.flight.ap_waypoint_index() != wp and host.get("radio") != null:
 			host.radio.waypoint_passed(ent, p.flight.ap_waypoint_index())
-		p.flight.step(delta)
+		# The player's steps (TerrainView: time_factor equal steps, each capped at 0.25 s): the jets keep one clock.
+		for i in host.time_factor:
+			p.flight.step(delta / host.time_factor)
 		p._state = p.flight.state()
 		p._state["position_world"] = host.scene_to_world(p._state.position)
 		ent.world = p._state.position_world
@@ -356,7 +424,11 @@ func _process(delta: float) -> void:
 			if host.get("radio") != null:
 				host.radio.report_airborne(ent)  # TakeoffCL's AirborneReport (5cdb5d)
 		_place(p)
-		p.brain.update(now)
+		if not p.by_ai:
+			p.brain.update(now)
+	# After every jet's step (the player's came first, TerrainView's frame): the flight reads them all at one instant.
+	if flight_ai != null:
+		_step_flight_ai(now)
 
 
 func _place(p: Pilot) -> void:

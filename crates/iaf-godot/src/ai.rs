@@ -1,7 +1,7 @@
 //! `IafAi`: Modern IAF's flight AI (`iaf_ai`, modern-iaf/docs/ai-plan.md §6) for one flight of up to four `IafFlight`
-//! jets. Each frame, before the jets' `ap_step` and `step`, `step` reads every jet's flight model and autopilot and
-//! sets the AI jets' autopilot (mode, leader, slot, engine start); the player's jet is read only but for its home
-//! hangar (`add_member`).
+//! jets. Each frame, after every jet's `step` (one instant), `step` reads every jet's flight model and autopilot and
+//! sets the AI jets' autopilot for their next `ap_step` (mode, leader, slot, engine start); the player's jet is read
+//! only but for its home hangar (`add_member`).
 
 use godot::prelude::*;
 use iaf_ai::Flight;
@@ -60,7 +60,8 @@ impl IafAi {
         self.flight.command(now, to.clamp(0, 5) as u8, &cmd.to_string())
     }
 
-    /// One frame at `now` (s), before the jets' `ap_step`: the AI's decisions and orders. Returns the calls due, each
+    /// One frame at `now` (s), after every jet's steps of the frame (one instant, `Flight::sense`): the AI's decisions
+    /// and its jets' orders for their next `ap_step`. Returns the calls due, each
     /// {from: number, id: ack, unable, joker, bingo, rtb, fuel_state, lead_change, in_position}.
     #[func]
     fn step(&mut self, now: f64) -> VarArray {
@@ -87,8 +88,8 @@ impl IafAi {
         out
     }
 
-    /// Jet `number` for tests and logs: role (lead / wingman), stage (its control loop), slot_error (m), fuel_kg,
-    /// bingo_kg, released (sent home); empty for an unknown number.
+    /// Jet `number` for tests and logs: role (lead / wingman), stage (its control loop), slot_error (m), avoiding (it
+    /// pulls away from another jet), fuel_kg, bingo_kg, released (sent home); empty for an unknown number.
     #[func]
     fn state(&self, number: i64) -> VarDictionary {
         let mut d = VarDictionary::new();
@@ -98,6 +99,7 @@ impl IafAi {
             d.set("stage", &jet.bind().ap_stage());
         }
         d.set("slot_error", m.slot_error);
+        d.set("avoiding", m.order.avoid.is_some());
         d.set("fuel_kg", m.fuel_kg);
         d.set("bingo_kg", m.bingo_kg);
         d.set("released", m.released);

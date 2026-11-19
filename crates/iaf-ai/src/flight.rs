@@ -36,6 +36,12 @@ const CLEAR_M: (f64, f64) = (50.0, 60.0);
 /// away (`Autopilot::avoid`), checked every frame.
 const AVOID_S: f64 = 4.0;
 const AVOID_M: f64 = 60.0;
+const AVOID_STEP_S: f64 = 0.25;
+/// A jet's acceleration is smoothed over this, s (the frames' velocity steps are rough).
+const ACC_S: f64 = 0.3;
+/// Once pulling away, it goes on until the closest approach is this far, m (inferred: a pull that stopped at
+/// [`AVOID_M`] left two AI jets 37 m apart, and an AI jet 13 m from the player's, who does not pull).
+const AVOID_CLEAR_M: f64 = 100.0;
 /// A slot is reached (the transit's end; "in position") within this, m.
 const IN_POSITION_M: f32 = 50.0;
 /// The index of "trail" in [`SHAPES`].
@@ -95,6 +101,8 @@ pub struct Member {
     pub alive: bool,
     pub skill: Skill,
     pub v: ApView,
+    /// Its acceleration, m/s² (from the frames' velocities, smoothed over [`ACC_S`]): the turn and the throttle.
+    acc: Vec3,
     pub mode: u8,
     /// TakeoffCL has ended in the air.
     pub airborne: bool,
@@ -124,7 +132,10 @@ pub struct Member {
     pub(crate) calls: Vec<&'static str>,
     spot: Vec3,
     pub(crate) transit: bool,
-    report: bool,
+    /// Calls "in position" once in its slot: armed by a join-up or a command.
+    pub(crate) report: bool,
+    /// Pulling away from a jet ([`AVOID_CLEAR_M`]).
+    avoiding: bool,
     /// The lead is low with the gear down, or on the ground again: no slot to keep on it.
     pub(crate) lead_low: bool,
 }
@@ -164,6 +175,7 @@ impl Default for Flight {
     }
 }
 
+/// `m` as a leader, as sensed: every jet at one instant ([`Flight::sense`]).
 fn leader_of(m: &Member) -> Leader {
     let a = m.v.att;
     Leader { pos: m.v.pos, vel: m.v.vel, att: [a.pitch, a.roll, a.heading], active: m.alive }
@@ -187,12 +199,17 @@ impl Flight {
             let (x, y) = (v.pos[0] as f32, v.pos[1] as f32);
             ap.home_hangar = ap.bases.iter().enumerate().find_map(|(i, b)| b.hangar_near(x, y).map(|h| (i, h)));
         }
+        if ai {
+            // A wingman taxies once the jet ahead has moved, not at its route's planned time (TaxiCL holds for wp0's).
+            ap.release_takeoff(0.0);
+        }
         self.members.push(Member {
             number,
             ai,
             alive: true,
             skill: Skill::WINGMAN,
             v,
+            acc: Vec3::ZERO,
             mode: ap.mode(),
             airborne: !v.on_ground,
             landed: false,
@@ -216,6 +233,7 @@ impl Flight {
             spot: v.pos,
             transit: false,
             report: false,
+            avoiding: false,
             lead_low: false,
         });
         self.members.sort_by_key(|m| m.number);
@@ -236,12 +254,22 @@ impl Flight {
     }
 
     /// Jet `number` this frame: alive (the host's word; a crash counts as dead), its flight model and autopilot.
+    /// The flight's one time base is the frame: the host steps every jet of the frame first (the player's, the AI's,
+    /// at any cadence), then senses them all, so they are read at one instant. Their flight models' clocks are never
+    /// compared: a restarted flight model, a late spawn or a skipped step puts them on other epochs (the player's
+    /// 44 s apart from its wingmen's put the lead 50 m off where it flew, test_four_ship).
     pub fn sense(&mut self, number: u8, alive: bool, fm: &Fm, ap: &Autopilot) {
         let Some(i) = self.index(number) else { return };
         let m = &mut self.members[i];
         let s = fm.state();
         m.alive = alive && s.crashed.is_none();
-        m.v = fm.ap_view();
+        let v = fm.ap_view();
+        let dt = v.t - m.v.t;
+        // (Held while it pulls away: its own pull would clear the prediction early and toggle the pull.)
+        if dt > 0.0 && !m.avoiding {
+            m.acc = m.acc + ((v.vel - m.v.vel) / dt - m.acc) * (dt / ACC_S).min(1.0);
+        }
+        m.v = v;
         m.mode = ap.mode();
         // An AI jet: TakeoffCL ended (or it started in the air); the player: off the ground once.
         m.airborne = if m.ai { ap.airborne || m.airborne && !m.v.on_ground } else { m.airborne || !m.v.on_ground };
@@ -348,8 +376,11 @@ impl Flight {
             }
         }
         let lead = &self.members[self.lead];
+        // A lead that started without the tower's call: the flight starts with it.
+        if lead.engine_on && lead.v.on_ground {
+            self.cleared.get_or_insert(now);
+        }
         let lead_n = lead.number;
-        let ld = leader_of(lead);
         // The landing sequence: the lead in the circuit (the gear down again near home, or low anywhere, or on the
         // ground again), or an RTB to the flight. (Starting it when the lead came back within 20 km sent the
         // wingmen home at once, and the circuit's speeds brought #2 and #3 onto the runway 0.3 s apart.)
@@ -388,6 +419,7 @@ impl Flight {
                 .is_none_or(|a| flat(a.v.pos, a.spot) > MOVED_M);
             // The nearest other jet in the air, m.
             let me = &self.members[i];
+            let ld = leader_of(&self.members[self.lead]);
             let nearest = (self.members.iter())
                 .filter(|o| o.number != me.number && o.alive && !o.v.on_ground && !me.v.on_ground)
                 .map(|o| o.v.pos.distance(me.v.pos))
@@ -434,9 +466,12 @@ impl Flight {
     /// Each AI jet's leader this frame: on the ground the jet ahead in taxi order (TaxiCL's spacing, TakeoffCL's
     /// stream), in the air the flight lead; its slot, stepped down during a change of slots.
     fn feed(&mut self) {
-        let ld = leader_of(&self.members[self.lead]);
         for i in 0..self.members.len() {
-            self.members[i].order.avoid = self.avoid(i);
+            let a = self.avoid(i);
+            let ld = leader_of(&self.members[self.lead]);
+            let m = &mut self.members[i];
+            m.avoiding = a.is_some_and(|(miss, _)| miss < if m.avoiding { AVOID_CLEAR_M } else { AVOID_M });
+            m.order.avoid = a.filter(|_| m.avoiding).map(|(_, away)| away);
             let ahead = (0..i).rev().map(|j| &self.members[j]).find(|a| a.alive).map(leader_of);
             let m = &mut self.members[i];
             let ground = m.v.on_ground && !m.airborne || m.mode == 9 && !m.airborne;
@@ -450,26 +485,28 @@ impl Flight {
 }
 
 impl Flight {
-    /// Member `i`, an AI jet in the air: the way away from the jet it comes nearest to within [`AVOID_S`], when that is
-    /// nearer than [`AVOID_M`] (straight at it: the higher number goes down).
-    fn avoid(&self, i: usize) -> Option<Vec3> {
+    /// Member `i`, an AI jet in the air: the closest approach within [`AVOID_S`] to the jet it comes nearest to, m,
+    /// and the way away from it (straight at it: the higher number goes down). Both go on as they turn and speed up
+    /// now (their accelerations; in straight lines a jet released on afterburner from behind the lead was seen too
+    /// late, 13–29 m from it), sampled every [`AVOID_STEP_S`] and at the straight lines' closest approach.
+    fn avoid(&self, i: usize) -> Option<(f64, Vec3)> {
         let me = &self.members[i];
         if !me.ai || !me.alive || me.v.on_ground {
             return None;
         }
         let (miss, other) = (self.members.iter())
             .filter(|o| o.number != me.number && o.alive && !o.v.on_ground)
-            .map(|o| {
-                let (dp, dv) = (o.v.pos - me.v.pos, o.v.vel - me.v.vel);
-                let t = (-dp.dot(dv) / dv.dot(dv).max(1e-6)).clamp(0.0, AVOID_S);
-                (dp + dv * t, o.number)
+            .flat_map(|o| {
+                let (op, ov) = (o.v.pos, o.v.vel);
+                let (dp, dv, da) = (op - me.v.pos, ov - me.v.vel, o.acc - me.acc);
+                // Also the straight lines' closest approach (head-on, a sample's step is 50 m).
+                let straight = (-dp.dot(dv) / dv.dot(dv).max(1e-6)).clamp(0.0, AVOID_S);
+                let steps = (0..=(AVOID_S / AVOID_STEP_S) as usize).map(|k| k as f64 * AVOID_STEP_S);
+                steps.chain([straight]).map(move |t| (dp + dv * t + da * (t * t / 2.0), o.number))
             })
             .min_by(|a, b| a.0.length().total_cmp(&b.0.length()))?;
-        if miss.length() >= AVOID_M {
-            return None;
-        }
         let down = if me.number > other { -1.0 } else { 1.0 };
-        Some((-miss).try_normalize().unwrap_or(Vec3::UP * down))
+        Some((miss.length(), (-miss).try_normalize().unwrap_or(Vec3::UP * down)))
     }
 }
 

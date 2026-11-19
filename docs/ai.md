@@ -583,15 +583,34 @@ model, where none of the 6-DoF cases applies. Every figure here is inferred, tun
     leader 20 m off where its last tick's position and velocity put it (a new leader after a promotion) gives no
     acceleration that tick.
   - A far slot is the same law (the rejoin): it closes sideways at about 28 m/s and along the track at up to 60 m/s.
+    While a far slot flies more than 60° off the jet's path, the jet flies no slower than the slot's speed less 30
+    m/s: without that floor a slot flying the other way asked a speed below zero along the path, and the jet climbed
+    to it at idle with the speed brake out into a stall.
   - Measured at 400 kt and 3,000 m: fingertip held within 9.3 m in level flight, every shape of the flight within
     9.2 m, 23.5 m in the lead's 45° bank turn; a rejoin from 5 km behind in 104 s.
 - **The home hangar** (`Autopilot::home_hangar`): the landing's TaxiCL parks the jet there when it is free; without
   one, the original's first free hangar. The flight sets it for every jet that starts at a shelter, the player's
   autopilot too, so no jet takes another's shelter.
+- **One instant for every jet**: the host steps every jet of a frame first, the player's and the AI's at any cadence
+  (the player's time compression steps), then the flight senses them all (`Flight::sense`) and reads each one as
+  sensed. The flight models' clocks are never compared: each starts at 0 when its flight model starts, so a
+  restarted flight model (test_four_ship restarts the player's: the clocks 44 s apart) or a late spawn puts them on
+  other epochs. Until
+  2026-11-19 the flight moved each jet to the reader's clock (at most 0.25 s): with the clocks 44 s apart, the
+  wingmen saw the lead 50 m ahead of where it flew, and test_four_ship failed 4 runs of 4 (slots 2.5–19.7 m apart,
+  a slot never reached). Test `one_time_base_for_every_jet`: the lead's flight model 40 s behind and stepped 4
+  times a frame, its wingmen once: #2 is fed the lead where it flies.
 - **Collision avoidance** (`Autopilot::avoid`): every frame the flight (`crates/iaf-ai`) checks each of its AI jets in
-  the air against every other jet of the flight: when the closest approach within 4 s comes nearer than 60 m, the
+  the air against every other jet of the flight: each jet goes on with its present acceleration (its turn and its
+  speeding up, from its velocity over the last 0.3 s; held while it pulls away, or its own pull would clear the
+  prediction early), sampled every 0.25 s and at the straight lines' closest approach; when the closest approach within 4 s
+  comes nearer than 60 m, the
   jet pulls away from it at 3 g (straight at it: the higher number goes down), in any loop, every 0.1 s, until the
-  approach clears; below 150 m over the ground never down, and not once the landing's ground watch is off. Without it two wingmen in fingertip came within 4.5 m in the lead's 80° bank break.
+  closest approach is 100 m; below 150 m over the ground never down, and not once the landing's ground watch is off. Without it two wingmen in fingertip came within 4.5 m in the lead's 80° bank break.
+  A pull that stopped at 60 m (until 2026-11-19) left two AI jets 37 m apart. A prediction in straight lines (until
+  2026-11-19) saw a wingman released from echelon right on afterburner, just behind the player's jet in its 30° bank
+  turn, about 1.5 s late: it passed 13–29 m from the player's jet in the game (34–36 m in the Rust case
+  `rtb_from_a_turn_round_ramon`, now 50–55 m).
 - **An AI jet on Modern IAF's 6-DoF** (`ApView::circuit`, `ApView::sixdof`; the player's autopilot keeps its laws):
   - Its route, take-off, go-home, hold and slot loops (modes 7, 8, 9, 10, 0x20) fly the landing circuit's path law
     and bank limit (`REAL_CIRCUIT`). The original pitch law pushed the jet to −3.5 g rolling out of an 80° bank, a structural
@@ -605,9 +624,14 @@ model, where none of the 6-DoF cases applies. Every figure here is inferred, tun
     between the pivots the nose wheel steers at most 3° toward the next point. TakeoffCL's hold on the runway idles
     (the original's 0.6 lever against the brakes). The taxi to park leaves out the turn about at the hangar point;
     ParkInHangar steers at the point and sets the jet on it facing out (the ground crew's push into the shelter).
-  - Measured at Ramon from the four Sufa shelters: airborne at 184, 210, 234 and 294 s; landed at 982, 1098, 1136
-    and 1154 s; each parked at its shelter with the engine off; at the least 137 m between jets on the ground and
-    53 m in the air. Once the landing sequence starts, the wingmen not yet sent home wait in trail, stepped down: in
+  - TakeoffCL's rotation: from the original's 170 kt the pitch law aims at a 10° climb angle (the 6-DoF view's pitch is
+    the flight path's, so on the runway it pulls until lift-off; at most 9.4° on the wheels), the gear and flaps up
+    past 210 kt once off the runway. At the original's 3° / 6° (until 2026-11-19) a Sufa with 2 t of stores was still
+    on its wheels past the tyres' 225 kt and burst both main tyres; on its rims it stopped for good in its first
+    taxi turn after landing (test_four_ship: 2 of 5 runs).
+  - Measured at Ramon from the four Sufa shelters, each with 2 t of stores: airborne at 174, 212, 238 and 303 s;
+    landed at 966, 1101, 1127 and 1234 s; each parked at its shelter with the engine off, no tyre burst; at the least
+    142 m between jets on the ground and 46 m in the air. Once the landing sequence starts, the wingmen not yet sent home wait in trail, stepped down: in
     fingertip through the lead's circuit (80° banks) #3 had come within 18.8 m of the lead.
   - The landing sequence also starts when the lead is low (under 300 m above the ground) with the gear down, or on
     the ground again, anywhere: a wingman whose turn has not come then holds where it is (mode 10) until it is sent

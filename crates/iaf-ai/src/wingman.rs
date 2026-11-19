@@ -58,11 +58,11 @@ fn rtb_own(m: &mut Member) -> Status {
     Status::Failure
 }
 
-/// The slot on the flight lead; a join-up (from the take-off or the way home) comes in stepped down, as a change of
-/// slots does.
+/// The slot on the flight lead; a join-up (from the take-off or the way home) comes in stepped down and calls "in
+/// position" there, as a change of slots does.
 fn keep_slot(m: &mut Member) -> Status {
     if m.mode != MODE_SLOT {
-        m.transit = true;
+        (m.transit, m.report) = (true, true);
     }
     set_mode(m, MODE_SLOT)
 }

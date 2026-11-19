@@ -1825,7 +1825,15 @@ impl Autopilot {
         match &self.lp {
             Loop::Nav { idx, .. } => format!("nav wp {}", idx),
             Loop::GoHome { land: None, .. } => "go home: fly to the last waypoint".into(),
-            Loop::GoHome { land: Some(l), .. } => format!("landing step {}", l.step),
+            Loop::GoHome { land: Some(l), .. } => match l.taxi.as_ref().filter(|_| l.step == 15) {
+                Some(t) => format!(
+                    "landing step 15 taxi point {}/{}{}",
+                    t.i,
+                    t.path.len(),
+                    ["", " turning"][t.turning as usize]
+                ),
+                None => format!("landing step {}", l.step),
+            },
             Loop::TakeOff { stage, taxi, .. } => format!("take-off stage {stage} taxi point {}", taxi.i),
             Loop::Formation { recover, .. } => format!("formation{}", if *recover { " (recovering)" } else { "" }),
             Loop::Hold { .. } => "hold".into(),
@@ -2242,6 +2250,23 @@ impl Autopilot {
             l.stick(0.0, 0.0);
             return Leaf::Done;
         }
+        // Ours, an AI jet on the 6-DoF: from the rotation speed a 10° climb angle (its view's pitch is the flight
+        // path's: on the runway it pulls until the jet lifts off, at most 9.4° on the wheels with 2 t of stores), and
+        // the gear up once off the runway: at the original's 3° / 6° a Sufa with 2 t of stores was still on its wheels
+        // past the tyres' 225 kt and burst them, and on its rims it stopped for good in its taxi turn after landing.
+        if v.sixdof && l.mode != 0 {
+            if v.speed <= 87.5028 {
+                return Leaf::Run;
+            }
+            if v.speed > 108.092 && !v.on_ground {
+                l.gear(false);
+                l.flaps(false);
+            }
+            let y = l.pitch(10f32.to_radians());
+            let x = l.roll(0.0);
+            l.stick(y, x);
+            return Leaf::Run;
+        }
         let theta = if v.speed > 87.5028 && v.speed <= 97.7972 {
             3f32.to_radians()
         } else if v.speed > 97.7972 {
@@ -2364,8 +2389,12 @@ impl Autopilot {
         // Along the path: the slot's speed and the overtake; the PI throttle.
         let (lo, hi) = SLOT_OVERTAKE;
         let vt = (vs.dot(t) + (SLOT_K_ALONG * e.dot(t)).clamp(lo, hi) + a_s.dot(t) * SLOT_ANTICIPATE_S) as f32;
-        // Never slower than the jet flies level at the circuit's α (a slow leader, a big-angle rejoin).
-        let vt = vt.max(v.circuit.map_or(0.0, |c| c.1));
+        // Never slower than the jet flies level at the circuit's α (a slow leader, a big-angle rejoin); toward a far
+        // slot never slower than the slot's speed less the overtake's closing back while the slot flies more than 60°
+        // off the jet's path (one flying the other way had its speed along the path below zero: idle and the speed
+        // brake in the climb to it, a stall on the 6-DoF; one 60–90° off still idled through the turn to it).
+        let far = if e.length() > SLOT_E_MAX && vs.dot(t) < 0.5 * vs.length() { vs.length() + lo } else { 0.0 };
+        let vt = vt.max(v.circuit.map_or(0.0, |c| c.1)).max(far as f32);
         let err = vt - v.speed;
         let (kp, ki) = SLOT_THR;
         let mut thr = (*thr_i + kp * err).clamp(0.0, 1.0);

@@ -1,0 +1,220 @@
+{
+  "category": "training",
+  "time": "08:00",
+  "wind_kt": 0,
+  "wind_from": 0,
+  "start": {
+    "unit": "f16i",
+    "base": "Ramon",
+    "at": "parking",
+    "count": 4,
+    "elevation_m": 648
+  },
+  "flights": [],
+  "targets": [],
+  "sam_sites": [],
+  "sources": {
+    "time": "inferred",
+    "wind_kt": "inferred",
+    "wind_from": "inferred",
+    "start.elevation_m": "oa",
+    "route": "inferred",
+    "training.empty_kg": "w-f16-spec, inferred",
+    "training.takeoff_kt": "bms-told",
+    "training.time_budget_s": "inferred",
+    "training.heading_tolerance_deg": "inferred",
+    "training.end_hold_s": "inferred"
+  },
+  "notes": {
+    "time": "the MVP's conditions: day (plan.md, MVP)",
+    "wind_kt": "the MVP's conditions: calm (plan.md, MVP)",
+    "wind_from": "calm: no direction",
+    "start": "the base's parking spots for the unit (modern-iaf/data/airbases, airbases.md §5): Alpha 1 on the first, Alpha 2, 3 and 4 on the next three in data/parking.json's order (S2; S3, S1, S5); the altitude: the terrain's ground there (elevation_m without the terrain)",
+    "route": "the departure point of the Take-off lesson (10 km beyond runway 25R's far end, 900 m above the field), then a box of three legs north, east and south of the base at 2400 m, clear of the Egyptian border, and the last point 10 km out on runway 25R's extended centreline at 1100 m (about 450 m above the field), where the flight comes home",
+    "training.empty_kg": "the F-16C Block 50 / 52's empty weight; the Sufa's and the Barak's are not published (inferred the same)",
+    "training.takeoff_kt": "70 kt + 3 kt per 1000 lb at 20,000 lb (9,072 kg) and 48,000 lb (21,772 kg), linear between",
+    "training.time_budget_s": "fifteen minutes from the mission's start for the start-up, the tower calls, the taxi and the take-off, as the Take-off lesson; the wingmen take off behind the lead and add no time to it",
+    "training.heading_tolerance_deg": "the climb-out on the runway heading within 10 degrees",
+    "training.end_hold_s": "a fail shows its reason 5 s before the debrief: time to see the result"
+  },
+  "footnotes": {
+    "oa": "OurAirports, airports.csv (public domain; LLRM elevation 2126 ft), https://davidmegginson.github.io/ourairports-data/airports.csv",
+    "bms-told": "Falcon BMS forum, \"Rotation speed\" (the F-16's take-off speed: 70 kt plus 3 kt per 1000 lb of gross weight, a pilot's rule from the -1's charts; a forum post, weak), https://forum.falcon-bms.com/post/314659",
+    "w-f16-spec": "Wikipedia, \"General Dynamics F-16 Fighting Falcon\", Specifications (F-16C Block 50 / 52): empty weight 18,900 lb (8,573 kg), https://en.wikipedia.org/wiki/General_Dynamics_F-16_Fighting_Falcon"
+  },
+  "id": "ramon_four_ship",
+  "menu_id": 2014,
+  "title": {
+    "en": "Four-ship",
+    "he": "רביעייה"
+  },
+  "briefing": {
+    "purpose": {
+      "en": "To lead a four-ship: the flight's start-up with the tower's clearance, the taxi with Alpha 2, 3 and 4 behind the lead, a stream take-off and the join-up, a route of turns in formation, and the return and landing with the flight.",
+      "he": "להוביל רביעייה: התנעת המבנה באישור המגדל, הסעה כשמספרי 2, 3 ו־4 מאחורי המוביל, המראה בזה אחר זה והצטרפות, מסלול של פניות במבנה, וחזרה ונחיתה עם המבנה."
+    },
+    "how": [
+      {
+        "at": "start",
+        "en": "You lead Alpha, a four-ship of Sufas: you are Alpha 1 in shelter S2, and your wingmen, Alpha 2, 3 and 4, flown by the computer, wait in shelters S3, S1 and S5. Call the tower first: {key:47:1} requests start-up. \"Cleared to start\" clears the whole flight, and each wingman starts its engine a few seconds after the one before.",
+        "he": "רביעיית Alpha של מטוסי סופה: המוביל הוא Alpha 1, בדת\"ק S2; מספרי 2, 3 ו־4, בהטסת המחשב, ממתינים בדת\"קים S3, S1 ו־S5. קודם לקרוא למגדל: {key:47:1} מבקש התנעה. \"אישור התנעה\" מאשר את כל המבנה, וכל מספר מתניע כמה שניות אחרי הקודם."
+      },
+      {
+        "en": "Start the jet by its start-up checklist (the notebook, {key:118}), as in the Take-off lesson. With the engine at idle and the avionics up, request taxi: {key:47:2}, and taxi along the dashed route to runway {runway}. Alpha 2, 3 and 4 leave their shelters and taxi behind you in order, each behind the one before; taxi slowly enough for them to keep up.",
+        "he": "להתניע לפי בד\"ח ההתנעה ({key:118}), כמו במשימת ההמראה. כשהמנוע בסרק והאוויוניקה פועלת, לבקש הסעה: {key:47:2}, ולהסיע לאורך המסלול המקווקו אל מסלול {runway}. מספרי 2, 3 ו־4 יוצאים מהדת\"קים ונוסעים אחרי המוביל לפי הסדר, כל אחד אחרי הקודם; להסיע לאט מספיק כדי שיעמדו בקצב."
+      },
+      {
+        "at": "hold",
+        "en": "Stop short of runway {runway} at the holding point and request line-up: {key:47:3}. On \"line up runway {runway}\" taxi onto the runway and stop on its centreline, facing down it.",
+        "he": "לעצור לפני מסלול {runway} בנקודת ההמתנה ולבקש כניסה למסלול: {key:47:3}. עם \"כניסה למסלול {runway}\" להסיע אל המסלול ולעצור על קו האמצע, בכיוון ההמראה."
+      },
+      {
+        "at": "lineup",
+        "en": "Request take-off: {key:47:4}. \"Cleared for take-off\" clears the flight. Take off as in the Take-off lesson; the wingmen take off in a stream behind you, each rolling once the jet ahead of it passes 50 kt.",
+        "he": "לבקש המראה: {key:47:4}. \"אישור המראה\" מאשר את המבנה. להמריא כמו במשימת ההמראה; המספרים ממריאים בזה אחר זה, וכל אחד מתחיל לרוץ כשהמטוס שלפניו עובר 50 קשר."
+      },
+      {
+        "en": "Climb out on the runway heading within ±{tolerance}° with the gear up ({key:20}): the lesson passes on your take-off, as the Take-off lesson does, within {minutes} minutes of the start. Then Continue and fly the route's steerpoints. The wingmen join up and fly fingertip on you: Alpha 2 behind your left wing, Alpha 3 behind your right, Alpha 4 beyond Alpha 3. Turn gently, at 30° of bank or less, so that they keep their places.",
+        "he": "לטפס בכיוון המסלול, בטווח ±{tolerance}°, ולאסוף את כן הנסע ({key:20}): המשימה מצליחה בהמראה, כמו משימת ההמראה, בתוך {minutes} דקות מההתחלה. אחר כך להמשיך ולטוס בין נקודות הציון של המסלול. המספרים מצטרפים וטסים במבנה \"ארבע אצבעות\": מספר 2 מאחורי הכנף השמאלית, מספר 3 מאחורי הכנף הימנית ומספר 4 מימין למספר 3. לפנות בעדינות, בהטיה של 30° לכל היותר, כדי שישמרו על מקומם."
+      },
+      {
+        "en": "The last steerpoint lies 10 km out on runway {runway}'s line. Call the tower for landing ({key:47:1} in the air) and land on runway {runway}. Lower the gear near the base: the wingmen then leave the formation one by one, 20 seconds apart, land behind you and taxi each to its own shelter.",
+        "he": "נקודת הציון האחרונה נמצאת 10 ק\"מ לפני מסלול {runway}, בהמשך הקו שלו. לקרוא למגדל לנחיתה ({key:47:1} באוויר) ולנחות על מסלול {runway}. להוריד את כן הנסע קרוב לבסיס: אז המספרים עוזבים את המבנה בזה אחר זה, בהפרש של 20 שניות, נוחתים אחרי המוביל ונוסעים כל אחד לדת\"ק שלו."
+      }
+    ]
+  },
+  "win": {
+    "en": "Mission - successful. The flight is airborne.",
+    "he": "המשימה הצליחה. המבנה באוויר."
+  },
+  "lose": {
+    "en": "Mission - failed. Better try again.",
+    "he": "המשימה נכשלה. כדאי לנסות שוב."
+  },
+  "runway": "25R",
+  "route": [
+    {
+      "lat": 30.73737,
+      "lon": 34.55702,
+      "alt_m": 1548,
+      "speed_kmh": 600
+    },
+    {
+      "lat": 30.85,
+      "lon": 34.6,
+      "alt_m": 2400,
+      "speed_kmh": 650
+    },
+    {
+      "lat": 30.85,
+      "lon": 34.85,
+      "alt_m": 2400,
+      "speed_kmh": 650
+    },
+    {
+      "lat": 30.7,
+      "lon": 34.85,
+      "alt_m": 2400,
+      "speed_kmh": 650
+    },
+    {
+      "lat": 30.8178,
+      "lon": 34.7751,
+      "alt_m": 1100,
+      "speed_kmh": 550
+    }
+  ],
+  "training": {
+    "kind": "takeoff",
+    "clearances": [
+      "startup",
+      "taxi",
+      "takeoff"
+    ],
+    "steps": [
+      {
+        "key": 47,
+        "pick": 1,
+        "en": "Call the tower: request start-up",
+        "he": "קריאה למגדל: בקשת התנעה",
+        "wait": {
+          "en": "wait for \"cleared to start\": it clears the flight",
+          "he": "המתנה ל\"אישור התנעה\": הוא מאשר את המבנה"
+        }
+      },
+      {
+        "key": 117,
+        "en": "Start the engine",
+        "he": "התנעת המנוע",
+        "wait": {
+          "en": "wait for idle with the avionics up",
+          "he": "המתנה לסרק ולאוויוניקה פועלת"
+        }
+      },
+      {
+        "key": 47,
+        "pick": 2,
+        "en": "Call the tower: request taxi",
+        "he": "קריאה למגדל: בקשת הסעה",
+        "wait": {
+          "en": "wait for \"taxi to runway {runway}\"",
+          "he": "המתנה ל\"הסעה למסלול {runway}\""
+        }
+      },
+      {
+        "en": "Taxi to runway {runway}, the flight behind you, and stop short of it",
+        "he": "הסעה למסלול {runway}, המבנה מאחור, ועצירה לפניו",
+        "wait": {
+          "en": "at the holding point, the taxi route's last point before the runway",
+          "he": "בנקודת ההמתנה, הנקודה האחרונה של מסלול ההסעה לפני המסלול"
+        }
+      },
+      {
+        "key": 47,
+        "pick": 3,
+        "en": "Call the tower: request line-up",
+        "he": "קריאה למגדל: בקשת כניסה למסלול",
+        "wait": {
+          "en": "wait for \"line up runway {runway}\", then line up on it",
+          "he": "המתנה ל\"כניסה למסלול {runway}\", ואז כניסה למסלול והתייצבות"
+        }
+      },
+      {
+        "key": 47,
+        "pick": 4,
+        "en": "Call the tower: request take-off",
+        "he": "קריאה למגדל: בקשת המראה",
+        "wait": {
+          "en": "wait for \"cleared for take-off\": it clears the flight",
+          "he": "המתנה ל\"אישור המראה\": הוא מאשר את המבנה"
+        }
+      },
+      {
+        "key": 20,
+        "en": "Take off on the runway heading, gear up (±{tolerance}°)",
+        "he": "המראה בכיוון המסלול, איסוף כן הנסע (±{tolerance}°)"
+      }
+    ],
+    "time_budget_s": 900,
+    "heading_tolerance_deg": 10,
+    "empty_kg": 8573,
+    "takeoff_kt": [
+      [
+        9072,
+        130
+      ],
+      [
+        21772,
+        214
+      ]
+    ],
+    "end_hold_s": 5,
+    "goals": [
+      "runway",
+      "liftoff_speed",
+      "reference_speed",
+      "max_centreline_offset",
+      "tower_calls"
+    ]
+  }
+}

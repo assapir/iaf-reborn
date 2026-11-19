@@ -7,6 +7,7 @@ use iaf_ai::{Call, Flight, SHAPES, apply};
 use iaf_flight::airbase::Airbase;
 use iaf_flight::autopilot::{self, Autopilot, Config, Host, Waypoint};
 use iaf_flight::fm::Fm;
+use iaf_flight::sixdof::autopilot::{ALT_HOLD, HDG_SEL};
 use iaf_flight::{DataSet, Start, Vec3};
 
 const DT: f64 = 1.0 / 60.0;
@@ -35,8 +36,17 @@ struct World {
     /// Frames and the wall time they took (FM + autopilot + AI).
     frames: u64,
     busy: std::time::Duration,
+    /// The frame's time, s: [`DT`], or the game's under time compression.
+    dt: f64,
+    /// The lead's speed held by its throttle, m/s (else its autopilot's).
+    lead_speed: Option<f64>,
     /// Each jet's last 20 s, every 0.5 s, for a failure's message.
     trace: [std::collections::VecDeque<String>; 4],
+    /// The game's frame order and uneven frames ([`World::frame`]).
+    /// The player's (the lead's) steps a frame; its wingmen take one (the game steps every jet `time_factor` times:
+    /// here the cadences differ on purpose, one instant either way).
+    lead_steps: usize,
+    jitter: f64,
 }
 
 impl World {
@@ -81,35 +91,34 @@ impl World {
             calls: Vec::new(),
             frames: 0,
             busy: Default::default(),
+            dt: DT,
+            lead_speed: None,
             trace: Default::default(),
+            lead_steps: 1,
+            jitter: 0.0,
         }
     }
 
     fn frame(&mut self) {
         let clock = std::time::Instant::now();
+        // The game's uneven frames: up to `jitter` × the frame's time longer or shorter.
+        let dt = self.dt * (1.0 + self.jitter * (((self.frames as f64 * 12.9898).sin() * 43758.5453).fract()));
         for (i, (fm, ap)) in self.jets.iter().enumerate() {
             self.flight.sense(i as u8 + 1, self.alive[i], fm, ap);
         }
         for c in self.flight.step(self.t) {
             self.calls.push((self.t, c));
         }
-        let g = self.ground;
-        for (i, (fm, ap)) in self.jets.iter_mut().enumerate() {
-            if !self.alive[i] {
-                continue;
-            }
-            if i > 0 {
-                apply(&self.flight.members[i].order, ap, fm);
-            }
-            if let Fm::SixDof(s) = fm {
-                s.set_ground_height(g);
-            }
-            ap.step(fm, &|_, _| g);
-            fm.step(DT);
+        // Every jet stepped, then sensed (the game: the player's steps, then the AI's jets', then IafAi).
+        for _ in 0..self.lead_steps {
+            self.step_jet(0, dt / self.lead_steps as f64);
+        }
+        for i in 1..4 {
+            self.step_jet(i, dt);
         }
         self.busy += clock.elapsed();
         self.frames += 1;
-        self.t += DT;
+        self.t += dt;
         for i in 0..4 {
             let si = self.jets[i].0.state();
             if self.frames.is_multiple_of(30) {
@@ -148,8 +157,30 @@ impl World {
         }
     }
 
+    fn step_jet(&mut self, i: usize, dt: f64) {
+        if !self.alive[i] {
+            return;
+        }
+        let g = self.ground;
+        let (fm, ap) = &mut self.jets[i];
+        if i > 0 {
+            apply(&self.flight.members[i].order, ap, fm);
+        }
+        if let Fm::SixDof(s) = fm {
+            s.set_ground_height(g);
+        }
+        ap.step(fm, &|_, _| g);
+        if let Some(v) = self.lead_speed.filter(|_| i == 0) {
+            // The player's throttle: its speed held (the autopilot steers).
+            let mut c = fm.controls();
+            c.throttle = (0.3 + 0.05 * (v - fm.state().speed as f64)).clamp(0.0, 0.9) as f32;
+            fm.set_controls(c);
+        }
+        fm.step(dt);
+    }
+
     fn run(&mut self, seconds: f64) {
-        for _ in 0..(seconds / DT) as usize {
+        for _ in 0..(seconds / self.dt) as usize {
             self.frame();
         }
     }
@@ -169,7 +200,7 @@ impl World {
     /// The worst slot error of the live wingmen over `seconds`, m; with `only` the frames it holds.
     fn worst(&mut self, seconds: f64, only: &dyn Fn(&World) -> bool) -> f32 {
         let mut worst: f32 = 0.0;
-        for _ in 0..(seconds / DT) as usize {
+        for _ in 0..(seconds / self.dt) as usize {
             self.frame();
             if only(self) {
                 for m in self.flight.members.iter().filter(|m| m.alive && m.number != self.flight.lead()) {
@@ -209,6 +240,27 @@ fn airborne(dir: &Path, behind: f64) -> World {
     let mut w = World::new(dir, [start(0), start(1), start(2), start(3)], 205.889, true, 0.0);
     w.lead_to(Vec3::new(0.0, 400_000.0, z));
     w
+}
+
+#[test]
+fn one_time_base_for_every_jet() {
+    // The player's flight model restarted 40 s after its wingmen's (test_four_ship's `tv.flight.start`, a late
+    // spawn) and stepped 4 times a frame while they step once: the flight reads every jet at one instant, its leader
+    // fed where it flies (its clock against theirs put it 50 m ahead).
+    let Some(dir) = own() else { return println!("skipped: no assets/converted/own (iaf-sim fm, airbases)") };
+    let mut w = airborne(&dir, 0.0);
+    for _ in 0..(40.0 / w.dt) as usize {
+        for i in 1..4 {
+            w.step_jet(i, w.dt);
+        }
+    }
+    w.lead_steps = 4;
+    for _ in 0..30 {
+        let lead = w.jets[0].0.state().position;
+        w.frame();
+        let fed = w.flight.member(2).and_then(|m| m.order.leader).expect("#2 is fed its leader");
+        assert!(fed.pos.distance(lead) < 1e-6, "#2's leader {:.1} m off the lead", fed.pos.distance(lead));
+    }
 }
 
 #[test]
@@ -337,9 +389,196 @@ fn fuel_calls_and_rtb() {
 }
 
 #[test]
+fn rtb_from_a_turn_round_ramon() {
+    // Sent home at points round the circle: the lead's heading at the RTB (test_four_ship's case: 243°); at 60 frames
+    // a second and at the game's 0.1 s frames under its time compression (×6).
+    for dt in [DT, 0.1] {
+        for at in [243.0, 200.0, 290.0, 340.0, 30.0, 120.0] {
+            rtb_turn(at, dt);
+        }
+    }
+}
+
+fn rtb_turn(at: f64, dt: f64) {
+    // The four-ship test's case: the lead circles right round Ramon at 30° of bank (HDG SEL, 201 m/s: 7.1 km), the
+    // flight in echelon right, then RTB to the flight: each goes home to a landing waypoint outside the circle, across
+    // the others' paths, and keeps clear of them.
+    let Some(dir) = own() else { return println!("skipped: no assets/converted/own (iaf-sim fm, airbases)") };
+    let bases = Airbase::load_all(&std::fs::read(dir.join("iaf.ibx")).unwrap());
+    let ramon = bases.iter().find(|b| b.name == "Ramon").unwrap();
+    let r = Vec3::new(ramon.lineup[0] as f64, ramon.lineup[1] as f64, ramon.lineup[2] as f64);
+    let home = Waypoint { x: r[0] + 10_000.0, y: r[1] + 4000.0, z: r[2] + 500.0, t: 0.0, action: 7 };
+    let z = r[2] + 1500.0;
+    // Heading east 6 km north of Ramon: forward is east, right is south.
+    let start = |n: usize| {
+        let s = if n == 0 { [0.0; 3] } else { SHAPES[0].1[n - 1] };
+        (Vec3::new(r[0] + s[0] as f64, r[1] + 6000.0 - s[1] as f64, z), 90.0)
+    };
+    let mut w = World::new(&dir, [start(0), start(1), start(2), start(3)], 205.889, true, r[2] as f32);
+    (w.dt, w.lead_speed) = (dt, Some(201.0));
+    for (_, ap) in &mut w.jets {
+        ap.route = vec![home];
+    }
+    w.flight = Flight::default();
+    for (i, (fm, ap)) in w.jets.iter_mut().enumerate() {
+        w.flight.add(i as u8 + 1, i > 0, fm, ap);
+    }
+    // The lead keeps turning right round a circle of 30° of bank at the game's 201 m/s: its point 2 km on along the
+    // circle, each second.
+    let radius = 201f64.powi(2) / (9.81 * 30f64.to_radians().tan());
+    let centre = Vec3::new(r[0], r[1] + 6000.0 - radius, z);
+    let circle = |w: &mut World, seconds: f64| {
+        for _ in 0..seconds as usize {
+            let d = w.jets[0].0.ap_view().pos - centre;
+            let b = d[0].atan2(d[1]) + 2000.0 / radius;
+            w.lead_to(centre + Vec3::new(radius * b.sin(), radius * b.cos(), 0.0));
+            w.run(1.0);
+        }
+    };
+    let heading = |w: &World| (w.jets[0].0.state().heading as f64).to_degrees();
+    assert!(w.flight.command(w.t, 0, "echelon_right"));
+    circle(&mut w, 60.0);
+    while (heading(&w) - at).rem_euclid(360.0) > 2.0 {
+        circle(&mut w, 1.0);
+    }
+    assert!(w.flight.command(w.t, 0, "rtb"));
+    let sep0 = w.sep_air;
+    w.sep_air = f64::MAX;
+    circle(&mut w, 120.0);
+    let away = w.jets[1..].iter().filter(|(_, ap)| ap.mode() == 8).count();
+    println!(
+        "RTB from a turn round Ramon at {at}° ({:.0} s, frame {dt:.3} s): {away} gone home; separation before {sep0:.1} m, after {:.1} m (t {:.0} s, #{} and #{})",
+        w.t - 120.0,
+        w.sep_air,
+        w.sep_at.0,
+        w.sep_at.1,
+        w.sep_at.2
+    );
+    assert_eq!(away, 3, "all three sent home");
+    // The game's limit is 30 m; its uneven frames under time compression cost 10-20 m more than this run (a
+    // prediction in straight lines gave 34-36 m here, 13-29 m in the game).
+    assert!(w.sep_air > 45.0, "separation {}", w.sep_air);
+}
+
+#[test]
+fn join_up_in_a_turn_round_ramon() {
+    // test_four_ship's case: the lead circles right round Ramon at 30° of bank (201 m/s: 7.1 km, 1500 m up) while the
+    // wingmen start in their shelters, take off in a stream and join it in fingertip; and a rejoin from 4 km behind,
+    // all three arriving together.
+    let Some(dir) = own() else { return println!("skipped: no assets/converted/own (iaf-sim fm, airbases)") };
+    let _turn = HANGARS.lock().unwrap_or_else(|e| e.into_inner());
+    for behind in [None, Some(4000.0)] {
+        join_turn(&dir, behind);
+    }
+}
+
+/// The game's 0.1 s frames under its time compression until all three are in position, then every slot held within
+/// 60 m for 30 s at 60 frames a second; the lead in 4 steps a frame, its wingmen in one (on purpose: the game steps
+/// every jet `time_factor` times, and the flight reads them at one instant either way).
+fn join_turn(dir: &Path, behind: Option<f64>) {
+    autopilot::reset_hangars();
+    let bases = Airbase::load_all(&std::fs::read(dir.join("iaf.ibx")).unwrap());
+    let rb = bases.iter().find(|b| b.name == "Ramon").unwrap().clone();
+    let r = Vec3::new(rb.lineup[0] as f64, rb.lineup[1] as f64, rb.lineup[2] as f64);
+    let z = r[2] + 1500.0;
+    // Heading east 6 km north of Ramon: forward is east, right is south.
+    let air = |n: usize, back: f64| {
+        let s = if n == 0 { [0.0; 3] } else { SHAPES[0].1[n - 1] };
+        (Vec3::new(r[0] + s[0] as f64 - back, r[1] + 6000.0 - s[1] as f64, z), 90.0)
+    };
+    let shelter = |h: usize| {
+        let p = rb.hangars[h];
+        (Vec3::new(p.x as f64, p.y as f64, r[2]), p.hdg.to_degrees())
+    };
+    let mut w = match behind {
+        Some(b) => World::new(dir, [air(0, 0.0), air(1, b), air(2, b), air(3, b)], 201.0, true, r[2] as f32),
+        None => {
+            let mut w = World::new(dir, [shelter(0), shelter(1), shelter(2), shelter(3)], 0.0, false, r[2] as f32);
+            let (p, e) = iaf_flight::load_with(dir, "F-16I", DataSet::Original).unwrap();
+            let (pos, _) = air(0, 0.0);
+            let velocity = Vec3::new(201.0, 0.0, 0.0);
+            let st = Start {
+                position: pos,
+                pitch: 0.0,
+                roll: 0.0,
+                heading: 90f32.to_radians(),
+                velocity,
+                airborne: true,
+                engine_on: true,
+            };
+            w.jets[0].0 = Fm::start("F-16I", p, e, st);
+            w
+        }
+    };
+    let home = Waypoint { x: r[0] + 10_000.0, y: r[1] + 4000.0, z: r[2] + 500.0, t: 0.0, action: 7 };
+    for (_, ap) in &mut w.jets {
+        ap.route = vec![home];
+    }
+    w.flight = Flight::default();
+    for (i, (fm, ap)) in w.jets.iter_mut().enumerate() {
+        w.flight.add(i as u8 + 1, i > 0, fm, ap);
+    }
+    match behind {
+        Some(_) => assert!(w.flight.command(0.0, 0, "rejoin")),
+        None => w.flight.start_up(0.0),
+    }
+    (w.dt, w.lead_speed, w.lead_steps, w.jitter) = (0.1, Some(201.0), 4, 0.5);
+    // The player's F-16 autopilot: ALT HOLD and HDG SEL, the heading bug 30° right of the heading (a 30° bank).
+    let bug = |w: &mut World| {
+        let Fm::SixDof(s) = &mut w.jets[0].0 else { unreachable!() };
+        s.ap_panel.hdg_bug = Some((s.state().heading.to_degrees() as f64 + 30.0).rem_euclid(360.0));
+    };
+    bug(&mut w);
+    if let Fm::SixDof(s) = &mut w.jets[0].0 {
+        s.ap_switch(1, HDG_SEL).unwrap();
+        s.ap_switch(0, ALT_HOLD).unwrap();
+    }
+    let mut trace: Vec<String> = Vec::new();
+    // Each second: the wingmen's slot errors (A: pulling away, T: in transit) into the trace; the worst error while
+    // `measure`.
+    let second = |w: &mut World, trace: &mut Vec<String>, measure: bool| {
+        let mut worst: f32 = 0.0;
+        for _ in 0..(1.0 / w.dt).round() as usize {
+            bug(w);
+            worst = worst.max(w.worst(w.dt, &|_| measure));
+        }
+        let line: Vec<_> = (w.flight.members[1..].iter())
+            .map(|m| {
+                let a = if m.order.avoid.is_some() { "A" } else { "" };
+                let t = if m.order.slot[2] < m.slot[2] { "T" } else { "" };
+                format!("#{} {:.0} m{a}{t}", m.number, m.slot_error)
+            })
+            .collect();
+        trace.push(format!("t {:.0}: {}", w.t, line.join(", ")));
+        worst
+    };
+    let joined = |w: &World| (2..=4).all(|n| w.said(n, "in_position").is_some());
+    while w.t < 900.0 && !joined(&w) {
+        second(&mut w, &mut trace, false);
+    }
+    assert!(joined(&w), "all three in position by {:.0} s:\n{}", w.t, trace.join("\n"));
+    w.dt = DT;
+    let h0 = w.jets[0].0.state().heading;
+    let held = (0..30).map(|_| second(&mut w, &mut trace, true)).fold(0f32, f32::max);
+    let turned = ((w.jets[0].0.state().heading - h0).to_degrees() as f64).rem_euclid(360.0);
+    assert!((40.0..180.0).contains(&turned), "the lead turned right {turned:.0}° in the 30 s");
+    let said: Vec<_> = (2..=4).map(|n| w.said(n, "in_position").unwrap_or(0.0).round()).collect();
+    let tail = trace[trace.len().saturating_sub(60)..].join("\n");
+    println!(
+        "join-up in a 30° turn ({behind:?} m behind, else from the shelters): in position at {said:?} s, then worst slot \
+         error {held:.1} m; separation {:.1} m (t {:.0} s, #{} and #{})",
+        w.sep_air, w.sep_at.0, w.sep_at.1, w.sep_at.2
+    );
+    assert!(held < 60.0, "slots held in the turn: worst {held:.1} m\n{tail}");
+    assert!(w.sep_air > 30.0, "air separation {}", w.sep_air);
+}
+
+#[test]
 fn ground_run_at_ramon() {
     // Start-up in the four Sufa shelters (Ramon's hangars 0–3, each with its own taxi path), taxi in order behind the
-    // lead, stream take-off, join-up, a route, the landing in order and each to its own shelter, engine off.
+    // lead, stream take-off, join-up, a route, the landing in order and each to its own shelter, engine off. Each
+    // carries 2 t of stores (the lesson's jets carry the player's load): with the original's take-off law every one
+    // burst its main tyres past 225 kt on the runway.
     let Some(dir) = own() else { return println!("skipped: no assets/converted/own (iaf-sim fm, airbases)") };
     let _turn = HANGARS.lock().unwrap_or_else(|e| e.into_inner());
     autopilot::reset_hangars();
@@ -367,12 +606,19 @@ fn ground_run_at_ramon() {
     for (_, ap) in &mut w.jets {
         ap.route = route.clone();
     }
+    for (fm, _) in &mut w.jets {
+        fm.set_stores(2000.0, 0.0, 0.0);
+    }
     let homes: Vec<_> = w.jets.iter().map(|(_, ap)| ap.home_hangar).collect();
     println!("home hangars {homes:?}");
     w.flight.start_up(0.0);
     w.jets[0].0.start_engine();
     let mut airborne = [None; 4];
     let mut landed = [None; 4];
+    // The join-up: each wingman's least slot error while the lead flies the route.
+    let mut least = [f32::MAX; 3];
+    // The take-off's highest pitch on the wheels, deg (a tail strike past 15°).
+    let mut rotation = [0f32; 4];
     let parked = |w: &World| w.jets.iter().all(|(fm, ap)| ap.landed && !fm.engine_on() && fm.state().speed < 0.5);
     while w.t < 4000.0 && !parked(&w) {
         // The scripted lead: mode 9 once its engine runs, the route from the take-off point, home at the landing
@@ -388,12 +634,19 @@ fn ground_run_at_ramon() {
         }
         w.frame();
         for i in 0..4 {
-            let ap = &w.jets[i].1;
+            let (fm, ap) = &w.jets[i];
+            let st = fm.state();
+            if !ap.airborne && st.on_ground {
+                rotation[i] = rotation[i].max(st.pitch.to_degrees());
+            }
             if ap.airborne && airborne[i].is_none() {
                 airborne[i] = Some(w.t);
             }
             if ap.landed && landed[i].is_none() {
                 landed[i] = Some(w.t);
+            }
+            if i > 0 && ap.airborne && w.jets[0].1.mode() == 7 {
+                least[i - 1] = least[i - 1].min(w.flight.member(i as u8 + 1).unwrap().slot_error);
             }
         }
         if ((w.t * 60.0).round() as u64).is_multiple_of(60 * 60) {
@@ -402,7 +655,15 @@ fn ground_run_at_ramon() {
             println!("t {:.0}: {st:?}", w.t);
         }
     }
-    println!("airborne {airborne:?}\nlanded {landed:?}");
+    println!("airborne {airborne:?}\nlanded {landed:?}\nhighest pitch on the wheels at take-off {rotation:?}");
+    assert!(rotation.iter().all(|&p| p < 13.0), "take-off pitch on the wheels {rotation:?}");
+    // The join-up calls "in position" (#4, airborne 110 s after the lead, is still about 10 km behind when this short
+    // route turns home).
+    for n in 2..=4u8 {
+        let said = w.calls.iter().find(|(_, c)| c.from == n && c.id == "in_position").map(|(t, _)| *t);
+        println!("#{n}: join-up least slot error {:.1} m, in position at {said:?}", least[n as usize - 2]);
+        assert!(n == 4 || said.is_some_and(|t| t > airborne[n as usize - 1].unwrap()), "#{n} joined up, in position");
+    }
     println!(
         "separation: ground {:.1} m, air {:.1} m (t {:.0} s, #{} and #{})",
         w.sep_ground, w.sep_air, w.sep_at.0, w.sep_at.1, w.sep_at.2
@@ -411,8 +672,15 @@ fn ground_run_at_ramon() {
         let p = fm.state().position;
         let h = rb.hangars[i];
         let off = (p.x - h.x as f64).hypot(p.y - h.y as f64);
-        println!("#{}: {}, engine {}, {off:.0} m from its shelter", i + 1, ap.stage(), fm.engine_on());
+        let burst = fm.limits().map_or(0, |l| l.tyres_burst);
+        println!(
+            "#{}: {}, engine {}, {off:.0} m from its shelter, {burst} tyres burst",
+            i + 1,
+            ap.stage(),
+            fm.engine_on()
+        );
         assert!(ap.landed && !fm.engine_on() && off < 40.0, "#{} parked at its shelter", i + 1);
+        assert_eq!(burst, 0, "#{}: tyres burst", i + 1);
     }
     let order = |t: [Option<f64>; 4]| t.windows(2).all(|p| p[0].unwrap() < p[1].unwrap());
     assert!(order(airborne), "take-off in order");

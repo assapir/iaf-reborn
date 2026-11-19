@@ -374,6 +374,8 @@ func pick(id: String) -> String:
 	else:
 		p = r.request(id)
 	answers.append(String(p.template))
+	if p.template == "ACFT_CLEAR_TO_START" and host.ai != null:
+		host.ai.flight_cleared_to_start()  # the clearance is the flight's (modern-iaf/docs/ai-plan.md F2)
 	if kneeboard != null:
 		kneeboard.refresh()  # the start-up lesson's call ticked on the START-UP page
 	host._log_event(host._log_st, {"event": "radio", "call": id, "answer": p.template, "text": p.text})
