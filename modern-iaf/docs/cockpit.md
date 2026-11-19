@@ -915,12 +915,36 @@ regulator's three levers, the KY-58's four knobs and PLAIN / CIPHER, the nuclear
 IDENT, the ICP's WX and FLIR rocker, EXT FUEL TRANS, and the CMDS's JMR, O1 and O2 (parked, or no system behind them);
 the HUD's TEST switch (ON the first of four test patterns, STEP the others, OFF the normal symbology[^d34-hudtest]: no
 picture of the patterns is public, so none is drawn) and GPS power (the GPS corrects the INS's errors[^fm-gps]; the
-sim's INS has none, and the GPS bombs take their own fix). Still to wire: the RF switch and the autopilot's PITCH and
-ROLL switches.
+sim's INS has none, and the GPS bombs take their own fix). Still to wire: the RF switch. The autopilot's PITCH and ROLL
+switches work since 2026-11-19 (§5.10).
 
 Test: `modern-iaf/tests/test_move_only_wired.gd` (the Barak on the ground: OXY QTY, the EPU at ON, GND JETT, VOICE
 MESSAGE, COMM 1, INTERCOM and ILS at OFF, F-ACK and recall, the horn's loop, ALT REL's release, the threat display's
 BRT).
+
+### 5.10 The autopilot's switches (2026-11-19)
+
+The user, 18 November 2026: "yes but I guess the real autopilot will need an investigation and impl like real thing?".
+The F-16's own autopilot is modelled from its flight manual ([research/f16-autopilot.md](research/f16-autopilot.md)):
+the PITCH switch (ALT HOLD / A/P OFF / ATT HOLD) engages it, the ROLL switch (HDG SEL / ATT HOLD / STRG SEL) picks the
+roll mode, and the PITCH switch springs back to A/P OFF, with a line saying why, when a condition holds it off. The
+model's node `roll-hold-switch` is PITCH and `pitch-hold-switch` is ROLL (FlightGear's names, the other way round; its
+properties are right). Both are rows with a `system` (`f16_controls.json`: `ap_pitch`, `ap_roll`), so a key moves the
+switch too. The EHSI's heading marker is HDG SEL's heading; the EHSI's steerpoint is STRG SEL's; AIR REFUEL at OPEN
+holds the autopilot off.
+
+| key | control |
+|---|---|
+| Shift + 2 / Shift + 3 | PITCH a step up (toward ALT HOLD) / down (toward ATT HOLD) |
+| Shift + 4 / Shift + 5 | ROLL a step up (toward HDG SEL) / down (toward STRG SEL) |
+| Shift + I (held) | the stick's paddle switch: the autopilot interrupted |
+| Shift + 6 | TRIM/AP DISC, NORM / DISC (the model has no MANUAL TRIM panel) |
+| Ctrl + L | FLCS RESET (the model has no FLCS RESET switch) |
+
+FLCS A/P FAIL and FLCS A/P DEGR are lines of the pilot fault list (`cockpit3d_display.gd` FAULTS, flags 32 and 33 after
+the damage flags: `cockpit.gd` `pfl_flags`), so they light FLCS FAULT and MASTER CAUTION and F-ACK acknowledges them.
+
+Test: `modern-iaf/tests/test_f16_autopilot.gd`.
 
 ### 5.4 The AoA probe (2026-11-11, from the user's Mac)
 

@@ -31,7 +31,8 @@ const FAULTS := [
 	[[4], 1, " ISA  FLAP FAIL "],
 	[[5], 1, " SPD  BRAK FAIL "],
 	[[7], 1, " GEAR      FAIL "],
-	[[6], 1, " FLCS A/P  FAIL "],
+	[[6, 32], 1, " FLCS A/P  FAIL "],
+	[[33], 1, " FLCS A/P  DEGR "],
 	[[2, 3, 22, 23], 2, " ENG       FAIL "],
 	[[8, 9], 2, " ENG  AB   FAIL "],
 	[[10], 2, " TANK LEAK      "],
@@ -290,7 +291,7 @@ func _ded() -> void:
 ## 3-5 the first three faults, a third line framed by ▼ when more wait.
 func _pfl() -> void:
 	draw_rect(Rect2(Vector2.ZERO, size), PFL_BG)
-	var lines := pfl_lines(cockpit.damage_flags, cockpit.pfl_acked)
+	var lines := pfl_lines(cockpit.pfl_flags(), cockpit.pfl_acked)
 	var fs := int(size.y * 0.1)
 	for i in 5:
 		draw_string(

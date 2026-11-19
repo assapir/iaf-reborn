@@ -465,6 +465,11 @@ static func _system_state(tv: Object, name: String, now: float) -> float:
 			return 1.0 if tv.cat3 else 0.0
 		"mpo":
 			return 1.0 if tv.mpo or tv.mpo_on else 0.0
+		"ap_pitch", "ap_roll":  # the F-16's autopilot switches (IafFlight.ap_state; none on the original model)
+			if tv.flight != null and tv.has_method("set_ap_switch"):
+				var ap: Dictionary = tv.flight.ap_state()
+				if ap.has("pitch"):
+					return float(ap[name.trim_prefix("ap_")])
 		"main_power", "starter", "rdr_alt":  # the flight model's (start.rs Start::position)
 			return float(tv.flight.start_position(name)) if tv.flight != null else NAN
 		"batt":  # the F-35I's BATT RESET (-1) / OFF / ON: off keeps RESET or OFF
@@ -607,6 +612,9 @@ func _system_put(name: String, v: float, was := NAN) -> void:
 			tv.cat3 = on
 		"mpo":
 			tv.mpo = on
+		"ap_pitch", "ap_roll":  # the PITCH switch drops back to A/P OFF when the autopilot will not engage
+			if tv.has_method("set_ap_switch"):
+				tv.set_ap_switch(0 if name == "ap_pitch" else 1, roundi(v))
 		"hmcs":  # the HMCS SYM INT knob: OFF takes the helmet display's power
 			tv.cockpit.helmet_power = v > 0.0
 		"lamp_test":  # MAL & IND LTS: every lamp lit while held

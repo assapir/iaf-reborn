@@ -24,6 +24,9 @@ pub struct Pilot {
     pub g_command: Option<f64>,
     /// A roll rate commanded directly (deg/s, the autopilot's), instead of the stick's roll.
     pub roll_rate_command: Option<f64>,
+    /// The F-16 autopilot's commands, added to the stick's (`sixdof::autopilot`): a g increment and a roll rate, deg/s.
+    pub ap_g: f64,
+    pub ap_p: f64,
     /// The roll trim, stick units (full stick 1): figure 64(a) adds it to the roll-rate error as a roll rate, at most
     /// ±40 × 1.67 = ±66.8 deg/s (`aircraft::step_roll_trim`).
     pub roll_trim: f64,
@@ -231,7 +234,7 @@ impl Fcs {
         // --- Pitch (figure 62(a)) ---
         let force = if pilot.stick_y >= 0.0 { pilot.stick_y * PULL_N } else { pilot.stick_y * PUSH_N };
         let f = self.f_long.step(60.0, force, dt);
-        let n = pilot.g_command.map_or_else(|| table(&PITCH_GRADIENT, f), |g| g - 1.0);
+        let n = pilot.g_command.map_or_else(|| table(&PITCH_GRADIENT, f), |g| g - 1.0) + pilot.ap_g;
         // The MPO overrides the negative g limiter (T.O. 1F-16A-1, "MANUAL PITCH Override"): the jet's own limit
         // stays (inferred).
         let neg = if pilot.mpo { self.min_g - 1.0 } else { table(&NEG_G, qbar_k).max(self.min_g - 1.0) };
@@ -316,6 +319,7 @@ impl Fcs {
                 (self.p_cmd.step(10.0, c.unwrap_or(stick), dt), 0.0)
             }
         };
+        let p_cmd = p_cmd + pilot.ap_p;
         self.t += dt;
         let p_f = self.p_f.step(50.0, s.p, dt);
         let r_f = self.r_f.step(50.0, s.r, dt);

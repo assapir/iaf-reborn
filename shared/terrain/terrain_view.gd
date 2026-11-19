@@ -352,7 +352,7 @@ func _ready() -> void:
 		var c := int(keys.records[i].press[0])
 		# Our switch keys count as held where the record has a release (the SPD BRK switch's close key has none; the
 		# wheel brakes' in Modern IAF's table, held on W, where the 1998 game's key flips them).
-		if c in [2, 3, 10, 139, 140] or (c in [17, 206, 230, 231] and int(keys.records[i].release[0]) == c):
+		if c in [2, 3, 10, 139, 140] or (c in [17, 206, 230, 231, 293] and int(keys.records[i].release[0]) == c):
 			_held_records.append(i)
 		_own_keys_in_table = _own_keys_in_table or c == 206
 	terrain.focus = rig
@@ -2995,7 +2995,7 @@ func _command(cmd: Array) -> bool:
 			_eject_key()
 		19:
 			_chute_key()
-		206, 230, 231:
+		206, 230, 231, 293:
 			_switch_key(cmd)
 		232:
 			cat3 = not cat3  # ours, the STORES CONFIG switch (Modern IAF's keys.json, record 205)
@@ -3012,6 +3012,19 @@ func _command(cmd: Array) -> bool:
 			# Ours, the RET DEPR wheel (records 229 / 230): the reticle 5 mr down (p1 1) or up, over the wheel's travel
 			# (cockpit3d_controls.gd DEPR_MAX_MR, 260 mr).
 			cockpit.depr_mr = clampf(float(cockpit.depr_mr) + 5.0 * p1, 0.0, 260.0)
+		292:
+			# Ours, Modern IAF's F-16s: the autopilot's PITCH (p1 0) or ROLL (p1 1) switch a step up (p2 1) or down (-1)
+			# (keys.json records 231-234; modern-iaf/docs/research/f16-autopilot.md).
+			if _ap_switches():
+				set_ap_switch(p1, int(flight.ap_state().get(["pitch", "roll"][clampi(p1, 0, 1)], 0)) + int(cmd[2]))
+		294:
+			if _ap_switches():  # TRIM/AP DISC (record 236)
+				ap_disc = not ap_disc
+				_on_subtitle("TRIM/AP DISC " + ("DISC" if ap_disc else "NORM"))
+		295:
+			if _ap_switches():  # FLCS RESET (record 237)
+				flight.flcs_reset()
+				_on_subtitle("FLCS RESET")
 		20, 21:
 			# Zoom (events 0x14 / 0x15, held): the orbit distance ±60 m/s in the external orbit views; in the
 			# cockpit our art zoom, one step per press (the original's z only sets the culling angle).
@@ -3937,7 +3950,7 @@ func _release_command(cmd: Array) -> void:
 				cockpit_3d.body_held = false
 		17:
 			_command(cmd)  # ours: the held wheel brakes let go (a joystick button; a key's is _apply_held)
-		206, 230, 231:
+		206, 230, 231, 293:
 			_switch_key(cmd)
 		225:
 			if weapons != null:
@@ -4513,6 +4526,32 @@ func _switch_key(cmd: Array) -> void:
 			_trim_key = p1
 		231:
 			_mpo_key = p1 != 0
+		293:
+			ap_paddle = p1 != 0
+
+
+## The F-16's own autopilot (modern-iaf/docs/research/f16-autopilot.md): the stick's paddle switch held, TRIM/AP DISC at
+## DISC (keys.json records 235 / 236; the 3D cockpit's _systems hands them to the flight model each frame).
+var ap_paddle := false
+var ap_disc := false
+
+
+## The jet has the F-16's autopilot switches: the 6-DoF and the F-16's 3D cockpit (the original model's F-16 cockpit
+## keeps its switches as moving parts).
+func _ap_switches() -> bool:
+	return _sixdof and flight != null and cockpit_3d != null and cockpit_3d.switches.has(cockpit_3d.AP_PITCH)
+
+
+## The autopilot's PITCH (`axis` 0) or ROLL (1) switch moved to `pos` (IafFlight.set_ap_switch); a PITCH switch that
+## will not stay engaged drops back to A/P OFF, and the subtitle says why.
+func set_ap_switch(axis: int, pos: int) -> void:
+	if not _ap_switches():
+		return
+	cockpit_3d.ap_inputs(self)  # a key's TRIM/AP DISC or paddle this frame counts
+	var why: String = flight.set_ap_switch(axis, clampi(pos, -1, 1))
+	var at := int(flight.ap_state().get(["pitch", "roll"][clampi(axis, 0, 1)], 0))
+	var names: Array = [["ATT HOLD", "A/P OFF", "ALT HOLD"], ["STRG SEL", "ATT HOLD", "HDG SEL"]][clampi(axis, 0, 1)]
+	_on_subtitle(("A/P OFF: " + why) if why != "" else (["PITCH ", "ROLL "][clampi(axis, 0, 1)] + names[at + 1]))
 
 
 ## The speed brakes are out: the 6-DoF's with the SPD BRK switch; else the brake key's (the original model and the
@@ -4623,8 +4662,8 @@ func _joy_event(e: Array) -> void:
 func _apply_held(i: int, cmd: Array) -> void:
 	var kb: Vector2 = autopilot.kb_stick if autopilot != null else stick
 	match int(cmd[0]):
-		206, 230, 231:
-			_switch_key(cmd)  # ours: the SPD BRK switch, the roll trim, MPO (Modern IAF's keys.json)
+		206, 230, 231, 293:
+			_switch_key(cmd)  # ours: the SPD BRK switch, the roll trim, MPO, the paddle (Modern IAF's keys.json)
 			return
 		17:
 			_command(cmd)  # ours: the wheel brakes held (Modern IAF's keys.json)

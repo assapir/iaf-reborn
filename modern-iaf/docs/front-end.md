@@ -543,6 +543,9 @@ the 1998 game's night-vision goggles, has no record: Modern IAF has no goggles, 
 laptop's keyboard, where no plain key was left): Next waypoint is on Shift + W, and Previous waypoint moved from there
 to Shift + Q, the key beside it (Alt + W is the wingman's "attack another target", Ctrl + W a debug key). The 1998
 game's Drag chute has no row and no key: no Modern IAF jet has a drag chute (record 23 is an empty slot).
+On 2026-11-19 the F-16's own autopilot got its keys (records 231–237; [cockpit.md](cockpit.md) §5.10): its PITCH switch
+a step up / down (Shift + 2 / 3), its ROLL switch a step up / down (Shift + 4 / 5), the paddle switch (Shift + I,
+held), TRIM/AP DISC (Shift + 6) and FLCS RESET (Ctrl + L).
 
 **The missile seeker's keys (2026-11-18).** Two records in the Weapons group work the seeker head of the air-to-air
 missiles on every Modern IAF jet ([weapons.md](weapons.md) §8.1): Missile seeker: UNCAGE / CAGE on Shift + M (record

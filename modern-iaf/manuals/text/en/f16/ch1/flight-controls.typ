@@ -31,7 +31,11 @@ A button on the stick trims pitch and roll, and the MANUAL TRIM panel trims pitc
 
 === Autopilot
 
-Two switches engage the autopilot#fm[pages 1-134 to 1-136]: #row("pitch-hold-switch") (ALT HOLD, A/P OFF, ATT HOLD) and #row("roll-hold-switch") (HDG SEL, ATT HOLD, STRG SEL: the heading set on the EHSI, the present attitude, or steering to the steerpoint). The autopilot banks up to 30°, works within ±60° of pitch and bank, and lets go above 15° angle of attack.
+#idx("Autopilot")Two switches on the MISC panel work the autopilot#fm[pages 1-134 to 1-136]. #row("roll-hold-switch") engages it: ALT HOLD holds the altitude, ATT HOLD the pitch attitude, A/P OFF disengages it. #row("pitch-hold-switch") chooses the roll mode while the autopilot is engaged: HDG SEL turns to the heading set on the EHSI and holds it, ATT HOLD holds the bank, STRG SEL steers to the selected steerpoint. Set the heading marker to the present heading before you engage HDG SEL, or the jet turns to the marker.
+
+The autopilot's commands add to the stick's, within limits: in pitch +0.5 to +2 g, in roll 30° of bank and 20° a second of roll rate. ALT HOLD engaged in a climb or dive under 2,000 feet a minute picks an altitude it can level at; it holds it within 100 feet up to 40,000 feet. The attitude modes stop working beyond 60° of pitch or bank, while the switch stays engaged. In the attitude modes a firm push on the stick flies the jet by hand, and the autopilot holds the attitude where the stick is let go. The paddle switch on the stick interrupts the autopilot while it is held; in ALT HOLD the autopilot then holds the altitude where the paddle is let go.
+
+The PITCH switch is held engaged by a solenoid. It drops to A/P OFF, or will not stay engaged, with AIR REFUEL at OPEN, ALT FLAPS at EXTEND below 400 knots, the gear handle down, MPO at OVRD, TRIM/AP DISC at DISC, or the low speed warning tone sounding#fm[page 1-135]. Above 15° angle of attack, or without the data it needs, the autopilot disconnects: #row("lamp_caution_flt_cont_sys_0") lights and the fault list shows FLCS A/P FAIL. It cannot be engaged again until an FLCS RESET in 1 g flight below 15° clears the fault. An autopilot that is engaged but does not hold its mode gives FLCS A/P DEGR and stays engaged#fm[page 3-112].
 
 === Tests and backup
 
@@ -45,7 +49,8 @@ Two switches engage the autopilot#fm[pages 1-134 to 1-136]: #row("pitch-hold-swi
   - *Flaps.* The leading-edge flaps follow their schedule. The trailing-edge flaps go to 20° with the gear handle down and come up between 240 and 370 knots.
   - *Speedbrakes.* #key("Speedbrakes open (hold)") opens them while held, and they stay where the key is let go; #key("Speedbrakes close") closes them. Fully open is 60°, 43° with the gear down.
   - *Manual pitch override.* OVRD removes the negative-g limit and gives the stick direct control of the tail above 29° angle of attack.
-  - *Autopilot.* #key("Autopilot: level / nav / off") steps through level flight, steering along the route, and off.
+  - *Autopilot.* #key("Autopilot PITCH switch up (ALT HOLD)") and #key("Autopilot PITCH switch down (ATT HOLD)") move the PITCH switch a step; #key("Autopilot ROLL switch up (HDG SEL)") and #key("Autopilot ROLL switch down (STRG SEL)") the ROLL switch. #key("Paddle switch: autopilot interrupted (hold)") is the paddle, #key("TRIM/AP DISC switch (NORM / DISC)") the disconnect switch, #key("FLCS RESET") the reset. #sym.arrow.r *A switch that does not stay engaged springs back to A/P OFF, and a line says why.* The modes, limits and disengage conditions above are modelled; the stick's trim button is not.
+  - *The sim's own autopilot.* #key("Autopilot: level / nav / off") steps through level flight, steering along the route, and off. While it flies, the PITCH switch stays at A/P OFF.
   - #sym.arrow.r *RUN lights with BIT, FLCS PWR with FLCS PWR TEST, DBU ON with DIGITAL BACKUP, the LE FLAPS caution with LE FLAPS at LOCK.* The FLCS warning light comes on after battle damage to the flight controls.
-  - *#term("Not modelled").* Faults of the computer and the results of its tests; the digital backup's control laws; LE FLAPS LOCK; pitch and yaw trim, the MANUAL TRIM panel and TRIM/AP DISC (the sim trims roll only); the PITCH and ROLL autopilot switches, which move and do nothing.
+  - *#term("Not modelled").* Faults of the computer and the results of its tests; the digital backup's control laws; LE FLAPS LOCK; pitch and yaw trim and the MANUAL TRIM panel (the sim trims roll only); the autopilot's terrain-following blend and its transonic behaviour.
 ]

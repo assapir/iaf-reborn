@@ -35,7 +35,9 @@ At each fuel check, compare three numbers: the fuel left, the bingo, and the fue
 
 === The autopilot <cruise-autopilot>
 
-#key("Autopilot: level / nav / off") steps the sim's autopilot: it holds the jet level, then steers it along the steerpoints, then lets go. #key("Next waypoint") and #key("Previous waypoint") choose the steerpoint. In the cockpit the autopilot's two switches, #row("pitch-hold-switch") and #row("roll-hold-switch"), move only; what they do in the real jet is in @flight-controls.
+In cruise, trim the jet into level flight, set the heading marker on the EHSI to the heading you want, and engage the autopilot: #row("roll-hold-switch") to ALT HOLD with #row("pitch-hold-switch") at HDG SEL holds the altitude and turns to the marker; STRG SEL steers to the selected steerpoint. To change altitude, hold the paddle switch, fly to the new altitude and let the paddle go. The modes and their limits are in @flight-controls.
+
+#in-sim[#key("Autopilot PITCH switch up (ALT HOLD)") engages ALT HOLD; #key("Autopilot ROLL switch up (HDG SEL)") and #key("Autopilot ROLL switch down (STRG SEL)") choose the roll mode; hold #key("Paddle switch: autopilot interrupted (hold)") to fly to a new altitude. #sym.arrow.r *The jet holds the altitude and turns to the marker at up to 30° of bank.* The sim's own autopilot, #key("Autopilot: level / nav / off"), holds the jet level, then steers it along the steerpoints (#key("Next waypoint") and #key("Previous waypoint") choose one), then lets go.]
 
 === The descent <descent>
 

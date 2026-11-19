@@ -1242,3 +1242,86 @@ fn eng_feed_and_the_fuel_quantity_selector_work_over_the_tanks() {
     println!("FWD 60 s: aft {aft:.0} -> {:.0}, fwd {fwd:.0} -> {:.0}", f.tanks().fuselage(0), f.tanks().fuselage(1));
     assert!(f.tanks().fuselage(0) > aft && f.tanks().fuselage(1) < fwd - 40.0);
 }
+
+// --- The F-16's own autopilot (modern-iaf/docs/research/f16-autopilot.md) ------------------------------------------
+
+use iaf_flight::sixdof::autopilot::{ALT_HOLD, ATT_HOLD, HDG_SEL, STRG_SEL};
+
+#[test]
+fn f16_autopilot_flies_each_mode_through_the_control_laws() {
+    // ALT HOLD with HDG SEL, the heading marker 90° right, both F-16s at 350 kt, 10,000 ft: the turn at ≤ 30° of bank
+    // to within 3° of 090°, the altitude within 100 ft (T.O. GR1F-16CJ-1 p. 1-136: "Control accuracy of ±100 feet").
+    for jet in jets::all().iter().take(2) {
+        let mut f = flight(*jet, 3048.0, 350.0 * KT, true);
+        let c = f.controls();
+        f.ap_panel.hdg_bug = Some(90.0);
+        f.ap_switch(1, HDG_SEL).unwrap();
+        f.ap_switch(0, ALT_HOLD).unwrap();
+        let (mut bank, mut dz): (f32, f64) = (0.0, 0.0);
+        fly_for(&mut f, 90.0, |f| {
+            let s = f.state();
+            bank = bank.max(s.roll.to_degrees().abs());
+            dz = dz.max((s.position.z - 3048.0).abs());
+            c
+        });
+        let hdg = f.state().heading.to_degrees();
+        println!("{}: ALT HOLD + HDG SEL 090: heading {hdg:.1}, bank ≤ {bank:.1}°, altitude ±{dz:.1} m", jet.name);
+        assert!((hdg - 90.0).abs() < 3.0 && bank < 31.0 && dz < 30.5, "{} {hdg} {bank} {dz}", jet.name);
+        assert_eq!(f.autopilot.pitch_sw, ALT_HOLD);
+        // The gear handle down drops the PITCH switch to A/P OFF.
+        let down = iaf_flight::Controls { gear_down: true, ..c };
+        fly_for(&mut f, 0.1, |_| down);
+        assert_eq!(f.autopilot.pitch_sw, 0, "{}: gear down", jet.name);
+    }
+
+    // ATT HOLD in both axes: the stick steers (out past the threshold, the reference dropped), let go at its new
+    // attitude, which then holds for 20 s.
+    let barak = jets::all()[0];
+    let mut f = flight(barak, 3048.0, 350.0 * KT, true);
+    let c = f.controls();
+    f.ap_switch(1, 0).unwrap();
+    f.ap_switch(0, ATT_HOLD).unwrap();
+    let steer = iaf_flight::Controls { stick_x: 0.2, stick_y: 0.3, ..c };
+    fly_for(&mut f, 1.5, |_| steer);
+    fly_for(&mut f, 0.5, |_| c);
+    let r = f.state();
+    // The references were taken as the stick came back; the jet settles on them within a few seconds.
+    fly_for(&mut f, 5.0, |_| c);
+    let s0 = f.state();
+    fly_for(&mut f, 20.0, |_| c);
+    let s1 = f.state();
+    let (p0, p1, r0, r1) = (s0.pitch.to_degrees(), s1.pitch.to_degrees(), s0.roll.to_degrees(), s1.roll.to_degrees());
+    println!("ATT HOLD after stick steering: pitch {p0:.1} -> {p1:.1}, bank {r0:.1} -> {r1:.1}");
+    let (pr, rr) = (r.pitch.to_degrees(), r.roll.to_degrees());
+    assert!(rr > 5.0 && rr < 50.0 && pr > 2.0, "the stick steered: {pr} {rr}");
+    assert!((p0 - pr).abs() < 3.0 && (r0 - rr).abs() < 3.0, "settled near where the stick let go: {pr} {p0} {rr} {r0}");
+    assert!((p1 - p0).abs() < 1.5 && (r1 - r0).abs() < 2.0, "{p0} {p1} {r0} {r1}");
+
+    // STRG SEL toward a steerpoint to the west: a left turn onto 270°.
+    let mut f = flight(barak, 3048.0, 350.0 * KT, true);
+    let c = f.controls();
+    f.ap_panel.steer = Some(270.0);
+    f.ap_switch(1, STRG_SEL).unwrap();
+    f.ap_switch(0, ALT_HOLD).unwrap();
+    fly_for(&mut f, 90.0, |_| c);
+    let hdg = f.state().heading.to_degrees();
+    println!("STRG SEL to 270: heading {hdg:.1}");
+    assert!((hdg - 270.0).abs() < 3.0, "{hdg}");
+
+    // A full pull at 250 kt with ALT HOLD (the autopilot's command adds to the stick's): past 15° of α, FLCS A/P FAIL,
+    // the switch to A/P OFF, and no engagement until an FLCS RESET in 1 g flight.
+    let mut f = flight(barak, 3048.0, 250.0 * KT, true);
+    let c = f.controls();
+    f.ap_switch(0, ALT_HOLD).unwrap();
+    let pull = iaf_flight::Controls { stick_y: 1.0, ..c };
+    fly_for(&mut f, 3.0, |_| pull);
+    assert!(f.autopilot.fail && f.autopilot.pitch_sw == 0, "α {:.1}°", f.state().alpha.to_degrees());
+    // Back to 1 g with full power, the speed recovering: α under 15°.
+    let full = iaf_flight::Controls { throttle: 1.0, ..c };
+    fly_for(&mut f, 15.0, |_| full);
+    assert_eq!(f.ap_switch(0, ALT_HOLD), Err("FLCS A/P FAIL"));
+    f.flcs_reset();
+    let s = f.state();
+    println!("after the pull: α {:.1}°, {:.0} kt", s.alpha.to_degrees(), s.speed as f64 / KT);
+    assert_eq!(f.ap_switch(0, ALT_HOLD), Ok(()), "α {:.1}°", s.alpha.to_degrees());
+}

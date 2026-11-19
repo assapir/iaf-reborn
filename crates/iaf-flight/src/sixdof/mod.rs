@@ -9,6 +9,7 @@
 //! (`crate::Aircraft`) never reaches this module.
 
 pub mod aero;
+pub mod autopilot;
 pub mod body;
 pub mod engine;
 pub mod fcs;

@@ -3,6 +3,7 @@
 //! flight-model.md §9.12). The original game never builds one ([`crate::fm::Fm`]).
 
 use super::aero::{Flow, Surfaces, add_drag, coefficients, compressibility, lef_schedule};
+use super::autopilot::{F16Autopilot, Panel as ApPanel, Sensed};
 use super::body::{Body, MAX_FRAME, MAX_STEP, Quat};
 use super::engine::Engine;
 use super::fcs::{Fcs, Pilot, Sensors};
@@ -147,6 +148,11 @@ pub struct SixDof {
     pub ap_landing: bool,
     /// An autopilot loop flies: its stick is a linear g command ([`SixDof::ap_view`]).
     ap_flying: bool,
+    /// The F-16's own autopilot (PITCH / ROLL switches, [`super::autopilot`]), its panel inputs and its last commands
+    /// (g increment, roll rate deg/s), added to the stick's in the control laws.
+    pub autopilot: F16Autopilot,
+    pub ap_panel: ApPanel,
+    ap_cmd: (f64, f64),
     /// While it flies, taken twice a second at the jet's weight and height (m/s): the level speeds of the two αs of
     /// `autopilot::REAL_CIRCUIT` with the flaps and the speed brake as they are ([`ApView::circuit`]), and the real
     /// final's speed ([`ApView::final_speed`]).
@@ -243,6 +249,9 @@ impl SixDof {
             easy_landing: false,
             ap_landing: false,
             ap_flying: false,
+            autopilot: F16Autopilot::default(),
+            ap_panel: ApPanel::default(),
+            ap_cmd: (0.0, 0.0),
             ap_speeds: None,
             aoa_ind: 0.0,
             tef: if st.airborne { 0.0 } else { jet.tef_deg },
@@ -602,6 +611,8 @@ impl SixDof {
         if self.start_seq.step(&self.jet.start, dt) {
             self.engine_on = true; // the sequence reached idle
         }
+        let sensed = self.ap_sensed();
+        self.ap_cmd = self.autopilot.step(&sensed, &self.ap_panel, dt);
         for _ in 0..n as usize {
             self.substep(dt / n, &af);
             if self.crashed.is_some() {
@@ -624,6 +635,50 @@ impl SixDof {
             let fin = approach_speed(&jet, -b.pos.z, alpha as f64, glide as f64, self.jet.tef_deg, dsb).0;
             self.ap_speeds = Some((level(limiter) as f32, level(turn) as f32, fin as f32));
         }
+    }
+
+    /// What the F-16's autopilot senses ([`Sensed`]): the attitude, the air data, the stick and the switches that
+    /// hold it off; its data good with power, the INS aligned and no autopilot damage (flag 6).
+    pub fn ap_sensed(&self) -> Sensed {
+        let b = self.body;
+        let (roll, pitch, heading) = b.att.euler();
+        let flow = Flow::from_body(&Body { vel: b.vel - b.att.rotate_inv(self.wind), ..b });
+        let (rho, _, _) = atmosphere(-b.pos.z);
+        let c = &self.controls;
+        Sensed {
+            pitch: pitch.to_degrees(),
+            roll: roll.to_degrees(),
+            heading: heading.to_degrees().rem_euclid(360.0),
+            alt: -b.pos.z,
+            vs: -b.att.rotate(b.vel).z,
+            speed: flow.v,
+            cas_kt: flow.v * (rho / 1.225).sqrt() * 1.943844,
+            alpha: flow.alpha,
+            stick: (c.stick_x as f64, c.stick_y as f64),
+            gear_handle_down: c.gear_down,
+            alt_flaps: c.flaps > 0.0,
+            mpo: self.mpo,
+            data_ok: self.power() >= 1 && self.ins_status().2 && self.damage & (1 << 6) == 0,
+            other_ap: self.ap_flying,
+        }
+    }
+
+    /// The F-16 autopilot's PITCH (`axis` 0) or ROLL (1) switch moved to `pos` ([`F16Autopilot::set_pitch`]): Err with
+    /// the reason when the PITCH switch will not stay out of A/P OFF.
+    pub fn ap_switch(&mut self, axis: u8, pos: i8) -> Result<(), &'static str> {
+        let s = self.ap_sensed();
+        if axis == 0 {
+            self.autopilot.set_pitch(pos, &s, &self.ap_panel)
+        } else {
+            self.autopilot.set_roll(pos, &s);
+            Ok(())
+        }
+    }
+
+    /// The FLCS RESET switch ([`F16Autopilot::reset`]).
+    pub fn flcs_reset(&mut self) {
+        let s = self.ap_sensed();
+        self.autopilot.reset(&s);
     }
 
     /// The indicated AoA, deg ([`probe_aoa`]).
@@ -689,6 +744,8 @@ impl SixDof {
             roll_trim: if self.ap_flying { 0.0 } else { self.roll_trim * stick_k },
             mpo: self.mpo,
             cat3: self.cat3,
+            ap_g: self.ap_cmd.0,
+            ap_p: self.ap_cmd.1,
             g_command: self.ap_flying.then_some(if stick_y >= 0.0 {
                 1.0 + stick_y * (max_g - 1.0)
             } else {

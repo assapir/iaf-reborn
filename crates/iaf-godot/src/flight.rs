@@ -159,6 +159,58 @@ impl IafFlight {
         }
     }
 
+    /// The 6-DoF F-16's autopilot switch `axis` (0 PITCH: 1 ALT HOLD, 0 A/P OFF, −1 ATT HOLD; 1 ROLL: 1 HDG SEL,
+    /// 0 ATT HOLD, −1 STRG SEL) moved to `pos` (modern-iaf/docs/research/f16-autopilot.md). Returns "" or why the
+    /// PITCH switch drops back to A/P OFF; "" on the original model, which has no such switches.
+    #[func]
+    fn set_ap_switch(&mut self, axis: i64, pos: i64) -> GString {
+        match self.aircraft.as_mut() {
+            Some(Fm::SixDof(s)) => {
+                s.ap_switch(axis.clamp(0, 1) as u8, pos.clamp(-1, 1) as i8).err().unwrap_or("").into()
+            }
+            _ => GString::new(),
+        }
+    }
+
+    /// The F-16 autopilot's other inputs, each frame: the stick's paddle held, TRIM/AP DISC at DISC, AIR REFUEL open,
+    /// the EHSI's heading marker and the steerpoint's bearing (deg; negative: none).
+    #[func]
+    fn set_ap_panel(&mut self, paddle: bool, disc: bool, air_refuel: bool, hdg_bug: f64, steer: f64) {
+        if let Some(Fm::SixDof(s)) = self.aircraft.as_mut() {
+            let deg = |d: f64| (d >= 0.0).then_some(d);
+            s.ap_panel = iaf_flight::sixdof::autopilot::Panel {
+                paddle,
+                disc,
+                air_refuel,
+                hdg_bug: deg(hdg_bug),
+                steer: deg(steer),
+            };
+        }
+    }
+
+    /// The FLCS RESET switch: clears the autopilot's A/P FAIL (once its cause has) and A/P DEGR.
+    #[func]
+    fn flcs_reset(&mut self) {
+        if let Some(Fm::SixDof(s)) = self.aircraft.as_mut() {
+            s.flcs_reset();
+        }
+    }
+
+    /// The F-16 autopilot: `pitch` and `roll` (the switches' positions, as `set_ap_switch`), `fail` (FLCS A/P FAIL) and
+    /// `degr` (FLCS A/P DEGR); empty on the original model.
+    #[func]
+    fn ap_state(&self) -> VarDictionary {
+        let mut d = VarDictionary::new();
+        if let Some(Fm::SixDof(s)) = self.aircraft.as_ref() {
+            let a = &s.autopilot;
+            d.set("pitch", a.pitch_sw as i64);
+            d.set("roll", a.roll_sw as i64);
+            d.set("fail", a.fail);
+            d.set("degr", a.degr);
+        }
+        d
+    }
+
     /// The 6-DoF's SPD BRK switch (`SixDof::sb_switch`): 1 held aft (opens while held), 0 centred, −1 forward (closes).
     /// From its first call the brake control is the wheel brakes only. Returns the speed brake's opening, deg. The
     /// original model's brake control stays both (0).

@@ -32,6 +32,8 @@
 "FQS_sel-knob": {"system": "fuel_qty_sel"},
 "SW_STORES_CONFIG": {"system": "stores_config"},
 "SW_MPO": {"system": "mpo"},
+"roll-hold-switch": {"system": "ap_pitch"},
+"pitch-hold-switch": {"system": "ap_roll"},
 "HMCS_SYM_INT_KNOB": {"system": "hmcs"},
 "MAL_IND_LTS": {"system": "lamp_test", "rest": 0},
 "mal-ind-lts-switch": {"rest": 0},

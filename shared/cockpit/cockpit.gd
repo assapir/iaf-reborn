@@ -118,6 +118,8 @@ var indicators := [false, false, false, false, false, false, false, false, false
 var damage_flags: Array = []
 ## The pilot fault list's messages F-ACK acknowledged (cockpit3d.gd fault_ack): off the list until a fault recall.
 var pfl_acked: Array = []
+## The F-16 autopilot's FLCS A/P FAIL and FLCS A/P DEGR (IafFlight.ap_state, cockpit3d.gd ap_inputs).
+var ap_faults := [false, false]
 var twin_engines := false
 var gear_handle_down := true
 var gear_legs := [2, 2, 2]
@@ -601,6 +603,15 @@ func ded_lines() -> PackedStringArray:
 	return ufc.lines(ufc_nav())
 
 
+## The pilot fault list's flags (cockpit3d_display.gd FAULTS): the damage flags, and at 32 / 33 the autopilot's
+## A/P FAIL and A/P DEGR (ap_faults).
+func pfl_flags() -> Array:
+	var f := damage_flags.duplicate()
+	while f.size() < 32:
+		f.append(false)
+	return f + ap_faults
+
+
 ## The Real HUD's panel input (real_hud.rs `panel`), {} without the UFC (reborn's HUD as it is).
 func hud_panel_input() -> Dictionary:
 	if ufc == null:
@@ -609,7 +620,7 @@ func hud_panel_input() -> Dictionary:
 	if int(hud_panel.ded) == 0:
 		ded = ded_lines()
 	elif int(hud_panel.ded) == 1:
-		ded = PackedStringArray(Display3D.pfl_lines(damage_flags, pfl_acked))
+		ded = PackedStringArray(Display3D.pfl_lines(pfl_flags(), pfl_acked))
 	var ins: Array = state.get("ins", [3, 0.0, 0.0, true])
 	var align = null
 	if int(ins[0]) in [1, 2]:

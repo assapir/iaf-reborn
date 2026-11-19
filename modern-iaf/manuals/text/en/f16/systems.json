@@ -2,7 +2,7 @@
  "about": "A jet's cockpit as chapter 1 describes it (modern-iaf/docs/manuals.md §2): per panel its controls, each by its node in the cockpit's control table (shared/extra/models/cockpit3d/<cockpit>.json): label as on the panel, name (the words behind the initials), positions (optional; their count is checked against the control table, which gives the count when they are left out), does (the real jet, from the panel's source), sim (what the sim does with it and what stops working while it is off; modern-iaf/docs/cockpit.md §5.2; none: the layout says whether the control works a system, from the control table). abbreviations: every abbreviation the manual uses, with its full name: the Abbreviations appendix, and the brackets at an abbreviation's first use in a chapter's steps. short: everyday shortenings, listed in the appendix only. words: plain words the panels write in capitals. tools/manuals.py stops the build on a capital token that is in none of the three.",
  "source": "haf",
  "abbreviations": {
-"NSTL": "Nose and tail: both fuzes", "AD": "Arming delay", "BA": "Burst altitude", "ACM": "Air combat mode: the radar's dogfight patterns", "AGR": "Air-to-ground ranging", "CCIP": "Continuously computed impact point", "CCRP": "Continuously computed release point", "CMS": "Countermeasures management switch", "CNI": "Communication, navigation, identification: the DED's main page", "CRM": "Combined radar mode", "DBS": "Doppler beam sharpening: a sharper ground map patch", "DLNK": "Data link", "DMS": "Display management switch", "DTE": "Data transfer equipment: the data cartridge", "DTOS": "Dive toss", "EEGS": "Enhanced envelope gun sight", "EWS": "Electronic warfare system", "EXP": "Expand", "GM": "Ground map", "GMT": "Ground moving target", "HSD": "Horizontal situation display", "LADD": "Low-altitude drogue delivery", "RWS": "Range while search", "SMS": "Stores management system", "SOI": "Sensor of interest", "STRF": "Strafe", "TGP": "Targeting pod", "TMS": "Target management switch", "TOS": "Time over steerpoint", "TWS": "Track while scan", "VSR": "Velocity search with ranging", "WPN": "Weapon", "MSMD": "Master mode", "DCLT": "Declutter", "INV": "Inventory", "FZ": "Freeze", "SP": "Snowplow", "CZ": "Cursor zero", "STP": "Steerpoint", "LASR": "Laser", "BNGO": "Bingo", "PRE": "Pre-planned", "VIS": "Visual", "SGL": "Single", "NARO": "Narrow", "INR": "Inertial rates: the pod holds its direction", "WHOT": "White hot", "BHOT": "Black hot", "MAGV": "Magnetic variation", "BULL": "Bullseye", "INTG": "Interrogation", "EDR": "Endurance", "RNG": "Range", "DEST": "Destination", "VIP": "Visual initial point", "VRP": "Visual reference point", "MTR": "Moving target rejection", "TGT HIS": "Target history", "FRZ": "Freeze", "DEP": "Depressed", "CEN": "Centred", "CPL": "Coupled", "DCPL": "Decoupled", "CNTL": "Control", "HAD": "HARM attack display", "RCCE": "Reconnaissance", "TFR": "Terrain-following radar", "SEMI": "Semi-automatic", "BYP": "Bypass", "REC": "Receive", 
+"NSTL": "Nose and tail: both fuzes", "AD": "Arming delay", "MPO": "Manual pitch override", "BA": "Burst altitude", "ACM": "Air combat mode: the radar's dogfight patterns", "AGR": "Air-to-ground ranging", "CCIP": "Continuously computed impact point", "CCRP": "Continuously computed release point", "CMS": "Countermeasures management switch", "CNI": "Communication, navigation, identification: the DED's main page", "CRM": "Combined radar mode", "DBS": "Doppler beam sharpening: a sharper ground map patch", "DLNK": "Data link", "DMS": "Display management switch", "DTE": "Data transfer equipment: the data cartridge", "DTOS": "Dive toss", "EEGS": "Enhanced envelope gun sight", "EWS": "Electronic warfare system", "EXP": "Expand", "GM": "Ground map", "GMT": "Ground moving target", "HSD": "Horizontal situation display", "LADD": "Low-altitude drogue delivery", "RWS": "Range while search", "SMS": "Stores management system", "SOI": "Sensor of interest", "STRF": "Strafe", "TGP": "Targeting pod", "TMS": "Target management switch", "TOS": "Time over steerpoint", "TWS": "Track while scan", "VSR": "Velocity search with ranging", "WPN": "Weapon", "MSMD": "Master mode", "DCLT": "Declutter", "INV": "Inventory", "FZ": "Freeze", "SP": "Snowplow", "CZ": "Cursor zero", "STP": "Steerpoint", "LASR": "Laser", "BNGO": "Bingo", "PRE": "Pre-planned", "VIS": "Visual", "SGL": "Single", "NARO": "Narrow", "INR": "Inertial rates: the pod holds its direction", "WHOT": "White hot", "BHOT": "Black hot", "MAGV": "Magnetic variation", "BULL": "Bullseye", "INTG": "Interrogation", "EDR": "Endurance", "RNG": "Range", "DEST": "Destination", "VIP": "Visual initial point", "VRP": "Visual reference point", "MTR": "Moving target rejection", "TGT HIS": "Target history", "FRZ": "Freeze", "DEP": "Depressed", "CEN": "Centred", "CPL": "Coupled", "DCPL": "Decoupled", "CNTL": "Control", "HAD": "HARM attack display", "RCCE": "Reconnaissance", "TFR": "Terrain-following radar", "SEMI": "Semi-automatic", "BYP": "Bypass", "REC": "Receive", 
   "TRP": "Trapped (fuel)",
   "TMR": "Timer (the time to the bomb's release)",
   "BIT": "Built-in test",
@@ -1306,7 +1306,7 @@
      "sim": "On while the jamming pod is on."
     },
     {
-     "node": "roll-hold-switch",
+     "node": "pitch-hold-switch",
      "label": "ROLL",
      "name": "Autopilot roll mode",
      "positions": [
@@ -1314,10 +1314,11 @@
       "ATT HOLD",
       "STRG SEL"
      ],
-     "does": "Chooses what the autopilot holds in roll: the selected heading, the attitude, or the steering to the steerpoint."
+     "does": "Chooses what the autopilot holds in roll: the selected heading, the attitude, or the steering to the steerpoint.",
+     "sim": "Works: HDG SEL turns to the EHSI's heading marker, ATT HOLD keeps the bank, STRG SEL steers to the steerpoint."
     },
     {
-     "node": "pitch-hold-switch",
+     "node": "roll-hold-switch",
      "label": "PITCH",
      "name": "Autopilot pitch mode",
      "positions": [
@@ -1325,7 +1326,8 @@
       "A/P OFF",
       "ATT HOLD"
      ],
-     "does": "Engages the autopilot: it holds the altitude or the pitch attitude."
+     "does": "Engages the autopilot: it holds the altitude or the pitch attitude.",
+     "sim": "Works: the switch falls back to A/P OFF when the autopilot cannot stay engaged."
     },
     {
      "node": "adv-mode-button",

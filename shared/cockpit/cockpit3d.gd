@@ -1673,7 +1673,7 @@ func _twd() -> Dictionary:
 ## A fault of the pilot fault list's class `c` (1 FLCS, 2 ENG, 3 AV) in the damage flags (cockpit3d_display.gd FAULTS),
 ## not acknowledged by F-ACK (fault_ack).
 func _fault_class(c: int) -> bool:
-	return Display.pfl_faults(cockpit.damage_flags).any(func(f): return f[1] == c and not _faults_acked.has(f[2]))
+	return Display.pfl_faults(cockpit.pfl_flags()).any(func(f): return f[1] == c and not _faults_acked.has(f[2]))
 
 
 ## The caution panel's lamps lit and acknowledged (key -> MASTER CAUTION pushed since it lit): a new one lights MASTER
@@ -1772,6 +1772,11 @@ const OXY_TEST := "controls/test/test-panel/oxy-test"
 const HORN_CUTOUT := "controls/gear/gear-horn-cutout"
 const VMS_INHIBIT := "f16/avionics/voice-msg-inhibit"
 const GND_JETT := "f16/avionics/gnd-jett"
+## The F-16's own autopilot (modern-iaf/docs/research/f16-autopilot.md): the PITCH and ROLL switches (FlightGear's
+## properties; its model names the two nodes the other way round: `roll-hold-switch` is PITCH), AIR REFUEL.
+const AP_PITCH := "f16/fcs/switch-pitch-block20"
+const AP_ROLL := "f16/fcs/switch-roll-block20"
+const AIR_REFUEL := "systems/refuel/switch"
 ## The AUDIO panels' knobs with OFF at their stop (COMM 1, ILS, TACAN) and INTERCOM, and the position the model shows
 ## each at (f16.json `modelled`): there the sound keeps the game's own level (inferred), louder clockwise.
 const AUDIO_KNOBS := {
@@ -1821,6 +1826,22 @@ func _systems(delta: float) -> void:
 	if tv.get("weapons") != null:
 		tv.weapons.gnd_jett = _sw(GND_JETT)
 		tv.weapons.rwr.intercom = audio_gain("intercom")
+	ap_inputs(tv)
+
+
+## The autopilot's inputs each frame (IafFlight.set_ap_panel): the paddle and TRIM/AP DISC (the keys, terrain_view.gd),
+## AIR REFUEL, the EHSI's heading marker and the steerpoint's bearing (the EHSI's NAV pointer, none until the INS
+## navigates); and its FLCS A/P FAIL / DEGR for the fault list (cockpit.gd pfl_flags).
+func ap_inputs(tv: Node) -> void:
+	if tv.get("flight") == null or not tv.has_method("set_ap_switch") or not tv._ap_switches():
+		return
+	var steer := -1.0
+	var route: Array = cockpit.steer_route() if cockpit.ins_nav() else []
+	if not route.is_empty():
+		steer = fposmod(float(Display.Hud.nav_cues(cockpit.state, route, cockpit.steer_index()).bearing_deg), 360.0)
+	tv.flight.set_ap_panel(tv.ap_paddle, tv.ap_disc, _sw(AIR_REFUEL), float(switches.get(Display.HDG_BUG, -1.0)), steer)
+	var ap: Dictionary = tv.flight.ap_state()
+	cockpit.ap_faults = [bool(ap.get("fail", false)), bool(ap.get("degr", false))]
 
 
 ## The level of AUDIO_KNOBS `name`'s sound: 0 at OFF, 1 at the model's position (1 too in a cockpit without the knob).
@@ -1856,9 +1877,7 @@ func ils_power() -> bool:
 ## acknowledge, a fault recall: every active fault listed again, the lamps staying out. A fault no longer reported is
 ## forgotten (_systems).
 func fault_ack() -> void:
-	var waiting: Array = Display.pfl_faults(cockpit.damage_flags).filter(
-		func(f): return not cockpit.pfl_acked.has(f[2])
-	)
+	var waiting: Array = Display.pfl_faults(cockpit.pfl_flags()).filter(func(f): return not cockpit.pfl_acked.has(f[2]))
 	if waiting.is_empty():
 		cockpit.pfl_acked.clear()
 		return
@@ -1874,6 +1893,6 @@ func fault_ack() -> void:
 
 ## The acknowledged faults off the lists once no longer reported.
 func _forget_faults() -> void:
-	var active: Array = Display.pfl_faults(cockpit.damage_flags).map(func(f): return f[2])
+	var active: Array = Display.pfl_faults(cockpit.pfl_flags()).map(func(f): return f[2])
 	cockpit.pfl_acked = cockpit.pfl_acked.filter(func(t): return active.has(t))
 	_faults_acked = _faults_acked.filter(func(t): return active.has(t))
