@@ -10,10 +10,10 @@
   {"unit": "f15i", "lat": 31.2407476, "lon": 34.6612307, "heading": 105, "source": "inferred"},
   {"unit": "f15i", "lat": 31.240966, "lon": 34.6612989, "heading": 105, "source": "inferred"},
   {"unit": "f15i", "lat": 31.2411844, "lon": 34.6613671, "heading": 105, "source": "inferred"},
-  {"unit": "f16i", "lat": 31.2402288, "lon": 34.6623126, "heading": 105, "source": "inferred"},
-  {"unit": "f16i", "lat": 31.2404472, "lon": 34.6623812, "heading": 105, "source": "inferred"},
-  {"unit": "f16i", "lat": 31.2406655, "lon": 34.6624498, "heading": 105, "source": "inferred"},
-  {"unit": "f16i", "lat": 31.2408839, "lon": 34.6625183, "heading": 105, "source": "inferred"}
+  {"unit": "f16i", "shelter": "S5", "source": "inferred"},
+  {"unit": "f16i", "shelter": "S6", "source": "inferred"},
+  {"unit": "f16i", "shelter": "S1", "source": "inferred"},
+  {"unit": "f16i", "shelter": "S4", "source": "inferred"}
  ],
  "LLNV": [
   {"unit": "f35i", "shelter": "S8", "source": "inferred"},

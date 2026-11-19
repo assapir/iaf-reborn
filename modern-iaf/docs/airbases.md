@@ -125,7 +125,7 @@ a 20 × 14 m footprint on the apron. The leader takes the first spot and its win
 |---|---|---|---|
 | Ramon | Sufa shelters | four loop-end shelters of the north-east dispersal, S2, S3, S1, S5 ([base-furniture.md](base-furniture.md) §2), the shortest taxi to 25R (1.4–1.7 km); until 2026-11-19 a row on the narrow pad along the loop taxiway by 07R/25L's western link (OSM apron 1496591869) | S2: 30.7743545, 34.6811917, 138° |
 | Hatzerim | F-15I parking | the western of two sunshade rows by the parallel taxiway (OSM apron 1157437942): down the row's middle from the south end, noses east to the row's eastern lane | 31.2405291, 34.6611625, 105° |
-| Hatzerim | Sufa parking | the same in the eastern row (OSM apron 1157437936) | 31.2402288, 34.6623126, 105° |
+| Hatzerim | Sufa shelters | S5, S6, S1, S4 by 28L's end (taxi 0.25–0.5 km to 28L); until 2026-11-19 a row in the eastern of the two sunshade rows (OSM apron 1157437936) | S5: 31.2265472, 34.6793885, 172° |
 | Nevatim | F-35I shelters | S8, S7, S9, S6 (taxi about 3.0 km to 26L); until 2026-11-19 a row on the apron north of 08R/26L (OSM apron 1089049618), 337 m from the lineup | S8: 31.2047489, 35.0054906, 192° |
 | Nevatim | tower | the compound midfield between 08L/26R and 08R/26L (2015 photo) | 31.2058009, 35.0125383 |
 | Tel Nof | apron | OSM maps no apron at Tel Nof: a ring round the pale paved pad west of 18/36's middle, out to the end of the taxiway stub from the south-east (Sentinel-2, 10 m: which squadron uses it, or whether it is an apron at all, is open) | 6 points, about 200 × 200 m |
@@ -139,17 +139,18 @@ may name a shelter of the base's furniture file instead of a place: `{"unit": "f
 ([data-formats.md](data-formats.md) §10). The jet then starts at the shelter's middle, nose to the door, cold; the
 parked jet the furniture file puts there gives way to it (`sim_bases::base`: any furniture row but the shelter within
 5 m of a spot). A base whose furniture file has shelters names four of them per unit in parking.json; a base without
-one keeps its apron row. Since 2026-11-19 the units of Ramon, Nevatim, Ramat David and Tel Nof start in shelters:
+one keeps its apron row. Since 2026-11-19 the units of Ramon, Nevatim, Ramat David, Tel Nof and Hatzerim's Sufas start in shelters:
 per unit the four whose door leads straight (within 10°) onto a taxiway 15–60 m ahead, whose taxi has no unpaved
 metre and room past everything standing (`the_furniture_stands_clear`), with the shortest taxi to the take-off end;
 the shelter must hold the jet (Ramat David's 11 m deep S19 does not). `sim_bases::tests::dump_shelter_starts` lists
 every shelter's figures.
 
-Open: Hatzerim's jets stay on the sunshade rows. Five of its shelters leave with room to spare (S1, S2, S4, S5, S6),
-but four of them stand south-east of the runways, and their taxis to 28R make the sign builder (§9) put a board on a
-shelter's apron and two boards for 28R that disagree at one junction (`signs_guide_the_taxi_to_the_runway`,
-`following_the_signs_reaches_every_runway_start` fail). No lesson flies from Hatzerim. At Ramon the ground power unit,
-the fuel truck and the fire extinguisher stand by the leader's shelter S2.
+At Hatzerim five of the 14 shelters leave with room to spare: S5, S6, S1 and S4 by 28L's end (taxi 250–525 m) and
+S2 (3.8 km); the taxis from the other nine pass a sunshade row 5–9 m nearer than `room_needed` allows, and S3 has no
+taxiway route. The Sufas take the four by 28L. Open: Hatzerim's F-15I unit (the Ra'am, not yet flyable) stays on its
+sunshade row, for want of three more shelters with room besides S2. Until 2026-11-19 the Sufas stood there too: the sign builder
+put a board on the concrete by 28L and a 28R arrow that fitted two ways (§9). At Ramon the ground power unit, the fuel
+truck and the fire extinguisher stand by the leader's shelter S2; at Hatzerim they stay by the F-15I row.
 
 **Each spot's own taxi route** (2026-11-19). Every spot leaves along its nose to the first taxiway within 60 m (its
 "way out": out of a shelter's door, across its apron to the loop taxiway) and from there takes the shortest way along
@@ -228,7 +229,9 @@ code reads ([data-formats.md](data-formats.md) §12):
   - a direction sign (black on yellow) before each junction on the shortest taxi from a parking spot to a runway
     start, for the jet arriving on that taxi where it has a choice (two or more of the other branches lead on to a
     runway): a board for each runway end whose taxi passes there, its designator and the arrow of the branch that
-    taxi takes (45° steps, 15° at a narrow fork). The shortest taxi keeps to the taxiways (a metre along a runway
+    taxi takes (45° steps, 15° at a narrow fork), the branch's way taken 30 m along it (`branch_dir`: until
+    2026-11-19 from its first point, which on Hatzerim's 12 m fillet off the parallel taxiway read 19° right, too
+    near the straight way on for the 28R arrow to tell them apart). The shortest taxi keeps to the taxiways (a metre along a runway
     counts as four, `RUNWAY_TAXI_COST`) and joins the runway at the end's start; where no taxiway joins there
     (Nevatim's 07, 1212 m in) it joins at the first taxiway from that end, an intersection take-off. A jet crosses a
     runway straight on; a board stands before a runway only where the taxi turns on it.
@@ -242,7 +245,11 @@ code reads ([data-formats.md](data-formats.md) §12):
   (`taxi_lines`: from the spot along its nose to its lane) are branches too.
   A direction sign stands 40 m before its junction (inferred; Annex 14 5.4.3.30) on the jet's left, 12 m past the
   taxiway's edge and 8 m or more from a runway's edge (Annex 14 Table 5-5); where the branch is shorter (a spot's way out), across the junction facing
-  the jet (inferred).
+  the jet (inferred); where all of that is paved (a shelter's door apron), farther out beside the way, up to 36 m more
+  (until 2026-11-19 such a board stood on the concrete). Where a taxi turns on a runway and another junction lies
+  between the holding position and the runway (Hatzerim's 28L end, where the ways from the shelters meet 50–80 m
+  from the centreline), the boards join the array of each holding sign for that runway on a taxi that arrives there,
+  their arrows taken along that sign's own taxiway.
   Signs stand apart (2026-11-13; before, at Ramon 25L and Nevatim 26L a holding sign stood 5–10 m in front of a
   direction sign and hid it): a holding sign and a direction sign facing the same way within 25 m become one array,
   the holding sign keeping its place in line with the holding position, the direction boards left to right in turn

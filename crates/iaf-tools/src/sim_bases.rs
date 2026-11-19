@@ -890,8 +890,11 @@ fn sign_spots(p: [f64; 2], d: [f64; 2], half: f64, paved: &dyn Fn([f64; 2]) -> b
 ///   that end's start (`sim_bases::tests::following_the_signs_reaches_every_runway_start`).
 ///
 /// The sign stands DIRECTION_BACK_M before the junction on the jet's left, or, where the branch is shorter (a parking
-/// spot's way out, a short link), across the junction facing the jet (inferred). The parking spots' ways out
-/// (taxi_lines) are branches too. OpenStreetMap names none of the bases' taxiways, so no location sign.
+/// spot's way out, a short link), across the junction facing the jet, or where all that is paved farther out beside
+/// the way (inferred). Where the taxi turns on a runway, its boards stand before the holding position, beside the
+/// holding sign, or in the arrays of the holding signs on the taxis there where another junction lies between. The
+/// parking spots' ways out (taxi_lines) are branches too. OpenStreetMap names none of the bases' taxiways, so no
+/// location sign.
 pub fn signs(b: &Base) -> Vec<Sign> {
     let lines = taxi_lines(b);
     let routed = Graph::new(&lines, &b.runways);
@@ -955,27 +958,40 @@ pub fn signs(b: &Base) -> Vec<Sign> {
         .collect();
     // The junctions the taxis from the parking spots to the starts pass, by the branch they arrive on: the ends
     // whose taxi passes there. Only these get direction signs (the user, 2026-11-17: "I need something that isn't
-    // confusing"): a jet that leaves the shortest taxi has left the signs' way.
-    let mut used: std::collections::BTreeMap<(usize, usize), Vec<usize>> = Default::default();
+    // confusing"): a jet that leaves the shortest taxi has left the signs' way. With them, the taxis' last
+    // HOLD_M + 60 m before the junction (the holding signs on the way to a runway junction, below).
+    type Approach = (Vec<usize>, Vec<[[f64; 2]; 2]>);
+    let mut used: std::collections::BTreeMap<(usize, usize), Approach> = Default::default();
     for (e, (_, next)) in starts.iter().enumerate() {
         for s in &b.parking {
             let Some(mut cur) = routed.nearest(s.at) else { continue };
             let mut prev = usize::MAX;
+            let mut trail = vec![cur];
             while next[cur] != usize::MAX {
                 // On a runway only where the taxi turns off the straightest way (a back-taxi, an offset crossing): a
                 // jet crosses a runway straight on.
                 let turns = on_runway(routed.pts[cur]).is_none() || straightest(&routed, prev, cur) != Some(next[cur]);
                 if prev != usize::MAX && routed.adj[cur].len() >= 3 && turns {
-                    let ends = used.entry((cur, prev)).or_default();
+                    let (ends, segs) = used.entry((cur, prev)).or_default();
                     if !ends.contains(&e) {
                         ends.push(e);
                     }
+                    let mut m = 0.0;
+                    for w in trail.windows(2).rev() {
+                        let seg = [routed.pts[w[0]], routed.pts[w[1]]];
+                        segs.push(seg);
+                        m += dist(seg[0], seg[1]);
+                        if m >= HOLD_M + 60.0 {
+                            break;
+                        }
+                    }
                 }
                 (prev, cur) = (cur, next[cur]);
+                trail.push(cur);
             }
         }
     }
-    for (&(j, arrive), ends) in &used {
+    for (&(j, arrive), (ends, approach)) in &used {
         let mut branches: Vec<usize> = routed.adj[j].iter().map(|a| a.0).collect();
         branches.sort();
         branches.dedup();
@@ -1000,7 +1016,19 @@ pub fn signs(b: &Base) -> Vec<Sign> {
                 spots.extend(sign_spots(p, d, half(p), &paved).into_iter().map(|q| (q, p, READ_FROM_M[1])));
             }
         }
-        if spots.is_empty() {
+        let mut holds = Vec::new();
+        if let (true, Some(ri)) = (spots.is_empty(), on_runway(routed.pts[j])) {
+            // A junction lies between the holding positions and the runway (Hatzerim's 28L, where the ways from the
+            // shelters by its end meet 50–80 m from the centreline): the boards join the array of each holding sign
+            // for this runway on a taxi that arrives here (`approach`). Until 2026-11-19 they stood across the
+            // junction, on the runway's concrete.
+            let hold = |o: &&Sign| {
+                o.panels.iter().any(|p| p.style == "mandatory" && b.runways[ri].designators.contains(&p.text))
+                    && approach.iter().any(|t| seg_dist(o.road, t[0], t[1]) < 1.0)
+            };
+            holds.extend(out.iter().filter(hold).map(|o| (o.at, o.road, o.read, o.facing)));
+        }
+        if spots.is_empty() && holds.is_empty() {
             let j0 = routed.pts[j];
             // The way's length back to its last junction or end.
             let branch_m = (1..=40)
@@ -1023,27 +1051,38 @@ pub fn signs(b: &Base) -> Vec<Sign> {
                 spots.extend(sign_spots(near, d, half(near), &paved).into_iter().map(|q| (q, near, read)));
             }
         }
-        if spots.is_empty() {
-            // Paved all round (an apron's middle): beside the way all the same, farthest out on the left.
+        if spots.is_empty() && holds.is_empty() {
+            // Paved all round (an apron's middle, a shelter's door apron): the nearest place off the pavement farther
+            // out beside the way, either side. Until 2026-11-19 the sign stood on the concrete there.
             let j0 = routed.pts[j];
-            let off = half(j0) + SIGN_EDGE_M + 18.0;
             let p = [j0[0] - d[0] * 15.0, j0[1] - d[1] * 15.0];
-            spots.push(([p[0] - d[1] * off, p[1] + d[0] * off], p, READ_FROM_M[1]));
+            spots.extend(
+                (1..=3)
+                    .flat_map(|i| sign_spots(p, d, half(j0) + 12.0 * i as f64, &paved))
+                    .map(|q| (q, p, READ_FROM_M[1])),
+            );
         }
-        let mut panels: Vec<Panel> = ends
-            .iter()
-            .map(|&e| &starts[e])
-            .map(|(end, next)| Panel {
-                style: "direction",
-                text: end.to_string(),
-                arrow: Some(arrow(&routed.pts, j, d, next[j], &others)),
-            })
-            .collect();
-        // Left to right, as the turns.
-        panels.sort_by(|a, b| a.arrow.unwrap_or(0.0).total_cmp(&b.arrow.unwrap_or(0.0)).then(a.text.cmp(&b.text)));
-        if !panels.is_empty() {
-            place(&mut out, d, spots, panels);
+        // The boards for a jet reading them along `d`, left to right as the turns.
+        let boards = |d: [f64; 2]| {
+            let mut panels: Vec<Panel> = ends
+                .iter()
+                .map(|&e| &starts[e])
+                .map(|(end, next)| Panel {
+                    style: "direction",
+                    text: end.to_string(),
+                    arrow: Some(arrow(&routed, j, d, next[j], &others)),
+                })
+                .collect();
+            panels.sort_by(|a, b| a.arrow.unwrap_or(0.0).total_cmp(&b.arrow.unwrap_or(0.0)).then(a.text.cmp(&b.text)));
+            panels
+        };
+        // At a holding sign the arrows are taken along its own taxiway, the way its reader looks.
+        for (at, road, read, facing) in holds {
+            let f = facing.to_radians();
+            let dh = [-f.sin(), -f.cos()];
+            place(&mut out, dh, vec![(at, road, read)], boards(dh));
         }
+        place(&mut out, d, spots, boards(d));
     }
     out
 }
@@ -1055,8 +1094,8 @@ fn turn(d: [f64; 2], o: [f64; 2]) -> f64 {
 
 /// A direction board's arrow toward `to` among the ways `ways` from a junction at `j`, for a jet arriving along the
 /// unit `d`: the turn in 45° steps, or in 15° steps where another way rounds to the same 45° (a narrow fork).
-fn arrow(pts: &[[f64; 2]], j: usize, d: [f64; 2], to: usize, ways: &[usize]) -> f64 {
-    let t = |n: usize| turn(d, unit(pts[j], pts[n]));
+fn arrow(g: &Graph, j: usize, d: [f64; 2], to: usize, ways: &[usize]) -> f64 {
+    let t = |n: usize| turn(d, branch_dir(g, j, n));
     let step = |n: usize, s: f64| (t(n) / s).round() * s + 0.0;
     if ways.iter().any(|&n| n != to && step(n, 45.0) == step(to, 45.0)) { step(to, 15.0) } else { step(to, 45.0) }
 }
@@ -1078,6 +1117,19 @@ fn takeoff(b: &Base, g: &Graph, ri: usize, k: usize) -> Option<usize> {
         .filter(|&n| r.dist(g.pts[n]) <= r.width / 2.0 + 5.0)
         .filter(|&n| g.adj[n].iter().any(|a| r.dist(g.pts[a.0]) > r.width / 2.0 + 5.0))
         .min_by(|&a, &c| along(g.pts[a]).total_cmp(&along(g.pts[c])))
+}
+
+/// How far along a branch a jet at its junction sees where it goes (m; inferred: past a fillet's curve).
+const BRANCH_LOOK_M: f64 = 30.0;
+
+/// The unit way from junction `j` into its branch through `n`: toward the branch's point BRANCH_LOOK_M on (bends
+/// followed; 20 or 10 m on where the branch meets a junction or ends sooner), else its first point. A curved fillet's
+/// first point lies a few metres out on the curve: until 2026-11-19 a board took its way from there, and at Hatzerim a
+/// fillet 12 m long turning off the parallel taxiway read 19° right, too near the straight way on for its 28R arrow to
+/// tell them apart.
+fn branch_dir(g: &Graph, j: usize, n: usize) -> [f64; 2] {
+    let p = [BRANCH_LOOK_M, 20.0, 10.0].into_iter().find_map(|m| back(g, j, n, m)).map_or(g.pts[n], |(p, _)| p);
+    unit(g.pts[j], p)
 }
 
 /// The way on from `cur` (arriving from `prev`) with the least turn, None at the start or a dead end.
@@ -2379,10 +2431,11 @@ mod tests {
     }
 
     /// A jet that leaves parking spot `from` and follows the signs for runway end `end`: at each junction where it has
-    /// a choice (two or more ways on that lead to a runway, `leads_on`), the direction sign facing it before the
-    /// junction (or across it) must name `end`, and its arrow must match one way alone; elsewhere it rolls on (across
-    /// a runway, straight). The points it taxis, to that end's start, where a holding sign naming `end` alone must
-    /// face it; Err says where it gets stuck.
+    /// a choice (two or more ways on that lead to a runway, `leads_on`), the direction signs facing it since the last
+    /// such junction (before this one, across it, or in a holding sign's array before a junction without a choice)
+    /// must name `end`, and their arrows must agree on one way alone; elsewhere it rolls on (across a runway,
+    /// straight). The points it taxis, to that end's start, where a holding sign naming `end` alone must face it; Err
+    /// says where it gets stuck.
     fn follow(b: &Base, all: &[Sign], from: [f64; 2], end: &str) -> Result<Vec<[f64; 2]>, String> {
         let lines = taxi_lines(b);
         let routed = Graph::new(&lines, &b.runways);
@@ -2395,7 +2448,7 @@ mod tests {
             return Err("no taxiway joins it to the spot".into());
         }
         let mut path = vec![routed.pts[cur]];
-        // Where the jet passed its last junction (the signs it reads stand after it).
+        // Where the jet passed its last junction with a choice (the signs it reads stand after it).
         let mut since = 0;
         for _ in 0..20_000 {
             if cur == entry {
@@ -2417,6 +2470,7 @@ mod tests {
             nexts.sort();
             nexts.dedup();
             let here = routed.pts[cur];
+            let mut chose = routed.adj[cur].len() >= 3;
             let next = if prev == usize::MAX {
                 *nexts.first().ok_or("a spot without a way out")?
             } else {
@@ -2426,7 +2480,8 @@ mod tests {
                 let runway = on_runway(here).is_some();
                 let live: Vec<usize> =
                     nexts.iter().copied().filter(|&n| runway || leads_on(&routed, cur, n, &on_runway)).collect();
-                // The boards for `end` a jet here reads: facing it (within 45°), on its way since the last junction.
+                // The boards for `end` a jet here reads: facing it (within 45°), on its way since the last junction with
+                // a choice.
                 let d = unit(routed.pts[prev], here);
                 let last = path[since];
                 let read: Vec<(f64, [f64; 2])> = all
@@ -2450,13 +2505,14 @@ mod tests {
                     // Across the runway: straight on.
                     straightest(&routed, prev, cur).ok_or("stuck on a runway")?
                 } else if branches.len() < 3 || live.len() < 2 {
+                    chose = runway;
                     *live.first().or(nexts.first()).ok_or_else(|| format!("a dead end at {here:?}"))?
                 } else {
                     // Each board's way: the one nearest its arrow, clearly (10°) nearer than the next; boards read
                     // here must agree.
                     let pick = |a: f64, sd: [f64; 2]| -> Option<usize> {
                         let mut by: Vec<(f64, usize)> =
-                            live.iter().map(|&n| ((turn(sd, unit(here, routed.pts[n])) - a).abs(), n)).collect();
+                            live.iter().map(|&n| ((turn(sd, branch_dir(&routed, cur, n)) - a).abs(), n)).collect();
                         by.sort_by(|x, y| x.0.total_cmp(&y.0));
                         (by.len() < 2 || by[1].0 - by[0].0 >= 10.0).then_some(by[0].1)
                     };
@@ -2475,7 +2531,9 @@ mod tests {
             if next != tree[cur] {
                 return Err(format!("left the shortest taxi at {here:?}"));
             }
-            if routed.adj[cur].len() >= 3 {
+            // The boards for the next junction where it chooses stand after this one (a junction without a choice
+            // may stand between a holding sign's array and its runway: Hatzerim's 28L).
+            if chose {
                 since = path.len() - 1;
             }
             (prev, cur) = (cur, next);
@@ -2822,13 +2880,13 @@ mod tests {
                 );
             }
         }
-        // The user's rule (2026-11-17): every spot of a base with shelters is in one, but Hatzerim's (open,
-        // airbases.md §5: the taxis from its shelters break the signs' rules).
+        // The user's rule (2026-11-17): every spot of a base with shelters is in one, but Hatzerim's F-15Is (open,
+        // airbases.md §5: five of its shelters have room for a taxi, and the Sufas take the four by 28L).
         let want: usize = bases
             .iter()
-            .filter(|b| b.icao != "LLHB" && b.furniture.iter().any(|f| f.kind == "shelter"))
-            .map(|b| b.parking.len())
-            .sum();
+            .filter(|b| b.furniture.iter().any(|f| f.kind == "shelter"))
+            .flat_map(|b| b.parking.iter().filter(move |p| !(b.icao == "LLHB" && p.unit == "f15i")))
+            .count();
         assert_eq!(n, want, "a base with shelters has a spot outside them");
     }
 
