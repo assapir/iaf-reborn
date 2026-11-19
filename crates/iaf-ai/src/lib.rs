@@ -7,4 +7,4 @@ pub mod flight;
 pub mod site;
 pub mod wingman;
 
-pub use flight::{Call, Flight, Member, Order, SHAPES, Skill, apply};
+pub use flight::{Call, Decoy, Flight, Member, Order, SHAPES, Skill, Threat, apply};

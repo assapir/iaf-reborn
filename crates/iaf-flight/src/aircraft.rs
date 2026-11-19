@@ -43,7 +43,7 @@ const CONTROL_RATE: f32 = 0.5;
 /// Flap ramp → flap factor (`×3.4158838`, full flaps = 1.0).
 const FLAPS_K: f32 = 3.415_883_8;
 /// Throttle: military, first AB value, the player's dead band (§15.8).
-const MILITARY: f32 = 0.74;
+pub const MILITARY: f32 = 0.74;
 const AB: f32 = 0.75;
 const THROTTLE_DEADBAND: f32 = 0.015;
 /// Better physics `ground_idle`: the idle share of the thrust on the ground falls with speed as a jet's net thrust

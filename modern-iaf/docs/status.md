@@ -989,7 +989,12 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   tower's start-up clearance, taxiing in order, a stream take-off, the join-up calling "in position", the slots in the
   player's turns, the commands through `IafAi.command`, RTB, the landing and each parked at its own shelter
   (`modern-iaf/tests/test_four_ship.gd`); 0.17 ms CPU and 0.127 ms GPU per AI jet on the Iris Xe laptop (ai-plan X5).
-  Open: the radio page with voices and subtitles (slice 3).
+  Built (19 Nov, slice 4, ai-plan F12–F14, [../../docs/ai.md](../../docs/ai.md) §8.8): the two pairs (#4 on #3 when
+  #3 flies on its own), the split (element 2 to its own target in the same area) and the regroup, the reactions to a
+  lock or a launch (the call, the beam or the break into an infrared missile, chaff or flares by the existing decoy
+  rule, the mate's break call, the rejoin) and the report of an AWACS contact; in the game a scripted ground radar's
+  lock on Alpha 2 is called, defended with chaff and left for its slot again (`test_four_ship.gd`).
+  Open: the radio page with voices and subtitles (slice 3), with the split and regroup orders and the new calls.
 - **Missiles (avionics-plan.md §7.2):** next steps 2, 3 and 5: the AIM-120's loft, the proximity fuzes, the threat
   missiles once their records are approved; step 4 (the missile warning's type) awaits the user's approval.
 - **The missile warning, not started (outside the user's words):** an active radar missile's own seeker as an "M" on

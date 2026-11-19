@@ -18,6 +18,12 @@ Each wingman waits in its shelter until the jet ahead of it has moved 150 m: Alp
 
 A wingman that comes too near another jet pulls away from it, then flies back to its place.
 
+=== The pairs and threats <lesson-four-ship-pairs>
+
+#idx("Four-ship, pairs")The flight flies as two pairs: Alpha 2 with you, Alpha 4 with Alpha 3. When Alpha 3 leaves the formation, Alpha 4 goes with it.
+
+#idx("Four-ship, threats")A wingman locked by a radar, or with a missile fired at it, turns hard against it about a second later: it puts a radar off its wing and turns into a heat-seeking missile. It drops chaff against a radar and flares against a heat-seeking missile. Five seconds after the threat is gone, it flies back to its place.
+
 === The way home <lesson-four-ship-home>
 
 #idx("Four-ship, landing")When you lower the gear within 20 km of Ramon, or fly low with the gear down, the wingmen go home one after the other: Alpha 2 first, Alpha 3 20 seconds later, then Alpha 4. Each flies the circuit, lands, taxis to its own shelter and stops its engine. A wingman low on fuel goes home on its own.

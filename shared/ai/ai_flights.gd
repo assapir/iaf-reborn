@@ -321,9 +321,47 @@ func _step_flight_ai(now: float) -> void:
 	for m in _ai_members:
 		var ent: Dictionary = m[1]
 		flight_ai.set_alive(m[0], int(ent.state) < 3 and not (ent.player and host.ejected))
+		var th := _threat_of(ent)
+		flight_ai.set_threat(m[0], th[0], th[1])
 	for c in flight_ai.step(now):
 		c["t"] = now
 		flight_calls.append(c)
+	# The decoys the AI jets release (combat.gd's release path: their stores, the 4 s busy time, the decoy rule).
+	for m in _ai_members:
+		var d: int = flight_ai.decoy(m[0])
+		if d > 0 and not m[1].player:
+			combat.combat(m[1], "320" if d == 1 else "310", {})
+
+
+## The threat jet `ent`'s RWR and MAW show IafAi: the nearest missile flying at it (3 radar, 4 infrared), else the
+## nearest live hostile radar locked on it (1 from the air, 2 from the ground; combat.gd on_lock), else none; [kind,
+## scene position]. A missile is infrared when the flares decoy it (player_weapons.gd DECOY_KINDS).
+func _threat_of(ent: Dictionary) -> Array:
+	var me := world_of(ent)
+	var ir: Array = Combat.PlayerWeapons.DECOY_KINDS[Combat.Stores.FLARE]
+	var best := [0, Vector3.ZERO]
+	var d := INF
+	var w = host.get("weapons")
+	if w != null:
+		for mis in w.missiles:
+			if String(mis.target_key) != String(ent.key) or mis.ended:
+				continue
+			var p: Vector3 = mis.position(runtime.now)
+			if p.distance_to(me) < d:
+				d = p.distance_to(me)
+				best = [4 if int(mis.weapon.get("type", 0)) in ir else 3, p]
+	if best[0] == 0:
+		for o in ent.get("locked_by", {}).values():
+			# (A friendly radar's lock, the player's included, is no threat; a dead unit never sends its unlock.)
+			if not host.enemy_of_player(o) or int(o.get("state", 0)) >= 3:
+				continue
+			var p := world_of(o)
+			if p.distance_to(me) < d:
+				d = p.distance_to(me)
+				best = [1 if o.get("airborne_class", false) else 2, p]
+	if best[0] != 0:
+		best[1] = host.world_to_scene(best[1])
+	return best
 
 
 ## The FM start (FUN_004a9100 → FUN_005a5820): the player's rules, 282.84 m/s along the heading.

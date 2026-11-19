@@ -34,7 +34,8 @@ impl IafFlightController {
     }
 
     /// The scan: `units` [{key, callsign, enemy, known, pos (world), ground, heading (deg), rand}]; the calls due
-    /// as [[template, PackedStringArray args]]. `callsign`: the player's formation name.
+    /// as [[template, PackedStringArray args, {bearing (deg), miles, code}]] (code 0 friendlies, 1 a target free to
+    /// engage, 2 one already engaged, 3 unidentified). `callsign`: the player's formation name.
     #[func]
     fn scan(&mut self, player: Vector3, units: VarArray, long_always: bool, callsign: GString) -> VarArray {
         let units: Vec<Unit> = units
@@ -58,7 +59,8 @@ impl IafFlightController {
             .map(|c| {
                 let (t, args) = c.phrase(&cs);
                 let args: PackedStringArray = args.iter().map(GString::from).collect();
-                varray![t, &args].to_variant()
+                let d = vdict! { "bearing" => c.bearing as i64, "miles" => c.miles as i64, "code" => c.code as i64 };
+                varray![t, &args, &d].to_variant()
             })
             .collect()
     }

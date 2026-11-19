@@ -5,12 +5,12 @@
 //! for `shared/ai/air_defence.gd`.
 
 use godot::prelude::*;
-use iaf_ai::Flight;
 use iaf_ai::site::{self, Emcon, Kind, Site, Target};
+use iaf_ai::{Decoy, Flight, Threat};
 use iaf_flight::Vec3;
 use iaf_flight::airframe::Rcs;
 
-use crate::flight::IafFlight;
+use crate::flight::{IafFlight, to_enu};
 use crate::world::{get, num, terrain, vec3, vector3};
 
 #[derive(GodotClass)]
@@ -65,9 +65,49 @@ impl IafAi {
         self.flight.command(now, to.clamp(0, 5) as u8, &cmd.to_string())
     }
 
+    /// The lead's split at `now`: element 2 (#3, #4 on it) takes its own task at the scene position `at` (its target,
+    /// within 40 km of the flight lead), circles it at its height until a "regroup". False: no AI #3 in the air to
+    /// take it; the answers (ack, unable: too far) come as calls.
+    #[func]
+    fn split(&mut self, now: f64, at: Vector3) -> bool {
+        self.flight.split(now, to_enu(at))
+    }
+
+    /// The threat jet `number`'s RWR and MAW show this frame, at the scene position `at`: `kind` 0 none, 1 a radar
+    /// locked on it from the air, 2 from the ground, 3 a radar missile flying at it, 4 an infrared one.
+    #[func]
+    fn set_threat(&mut self, number: i64, kind: i64, at: Vector3) {
+        let t = (1..=4).contains(&kind).then(|| Threat {
+            pos: to_enu(at),
+            launch: kind >= 3,
+            ir: kind == 4,
+            ground: kind == 2,
+        });
+        self.flight.threat(number.clamp(0, 255) as u8, t);
+    }
+
+    /// An AWACS contact call at `now` (IafFlightController.scan's {bearing, miles, code}): an AI jet holding it in its
+    /// radar reports "contact". Returns its number, 0 for none.
+    #[func]
+    fn awacs(&mut self, now: f64, bearing: f64, miles: f64, enemy: bool) -> i64 {
+        self.flight.awacs(now, bearing, miles, enemy) as i64
+    }
+
+    /// The decoy jet `number` releases this frame (after `step`): 0 none, 1 chaff, 2 flares (combat.gd's release, one
+    /// each 4 s at most, and the decoy rule).
+    #[func]
+    fn decoy(&self, number: i64) -> i64 {
+        match self.flight.member(number.clamp(0, 255) as u8).and_then(|m| m.order.decoy) {
+            Some(Decoy::Chaff) => 1,
+            Some(Decoy::Flare) => 2,
+            None => 0,
+        }
+    }
+
     /// One frame at `now` (s), after every jet's steps of the frame (one instant, `Flight::sense`): the AI's decisions
     /// and its jets' orders for their next `ap_step`. Returns the calls due, each
-    /// {from: number, id: ack, unable, joker, bingo, rtb, fuel_state, lead_change, in_position}.
+    /// {from: number, id: ack, unable, joker, bingo, rtb, fuel_state, lead_change, in_position, spike, mud, defending,
+    /// break_left, break_right, contact}.
     #[func]
     fn step(&mut self, now: f64) -> VarArray {
         for (n, jet, alive) in &mut self.jets {
@@ -93,8 +133,9 @@ impl IafAi {
         out
     }
 
-    /// Jet `number` for tests and logs: role (lead / wingman), stage (its control loop), slot_error (m), avoiding (it
-    /// pulls away from another jet), fuel_kg, bingo_kg, released (sent home); empty for an unknown number.
+    /// Jet `number` for tests and logs: role (lead / wingman), leader (the number it flies on, 0 none), stage (its
+    /// control loop), slot_error (m), avoiding (it pulls away from another jet), task (element 2's lead on its split
+    /// task), defending, fuel_kg, bingo_kg, released (sent home); empty for an unknown number.
     #[func]
     fn state(&self, number: i64) -> VarDictionary {
         let mut d = VarDictionary::new();
@@ -103,8 +144,11 @@ impl IafAi {
         if let Some((_, jet, _)) = self.jets.iter().find(|j| j.0 == m.number) {
             d.set("stage", &jet.bind().ap_stage());
         }
+        d.set("leader", self.flight.leader(m.number) as i64);
         d.set("slot_error", m.slot_error);
         d.set("avoiding", m.order.avoid.is_some());
+        d.set("task", m.task.is_some());
+        d.set("defending", m.defending);
         d.set("fuel_kg", m.fuel_kg);
         d.set("bingo_kg", m.bingo_kg);
         d.set("released", m.released);

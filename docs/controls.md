@@ -148,6 +148,9 @@ Terms used on this page:
   flipped down / up; the F-35I has none (a notice). DMS left / right (records 149 / 150, Ctrl + `[` / `]`) move the cursor between its
   portals; DMS up / down give the sensor of interest to the helmet and back. The F-16's ICP keys (records 152–174)
   work the CNI.
+* **Modern IAF's four-ship orders** (the formations, rejoin, RTB, the split into pairs and the regroup:
+  `IafAi.command` / `IafAi.split`, [ai.md](ai.md) §8.8): no keys of their own. The radio menu's flight page will carry
+  them (modern-iaf/docs/ai-plan.md F5, F12). The AI jets' reactions to locks, launches and AWACS calls need no input.
 * Joystick buttons, axes and the hat: §5.
 * **Rebinds**: `Settings.key_bindings` = {record: [key, button]} for the records that differ from the default.
   They are saved in the `[keys]` section of `user://settings.cfg` as `r<index> = [key, button]`. A config without

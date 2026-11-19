@@ -4,8 +4,8 @@
 
 use crate::bt::Node::{self, *};
 use crate::bt::Status;
-use crate::flight::{Member, RESERVE_KG};
-use iaf_flight::autopilot::MODE_SLOT;
+use crate::flight::{Member, RESERVE_KG, defend};
+use iaf_flight::autopilot::{MODE_SLOT, MODE_STEER};
 
 /// Inferred: each wingman starts its engine this long after the one before it (#2 this long after the clearance).
 pub const START_STEP_S: f64 = 3.0;
@@ -67,12 +67,24 @@ fn keep_slot(m: &mut Member) -> Status {
     set_mode(m, MODE_SLOT)
 }
 
+/// Element 2's lead while split: to its task's point and round it ([`crate::Flight::split`]).
+fn fly_task(m: &mut Member) -> Status {
+    m.order.steer = m.task;
+    set_mode(m, MODE_STEER)
+}
+
+/// In the air with the gear up: a threat on it is answered ([`defend`]).
+fn flying(m: &Member) -> bool {
+    m.airborne && !m.v.on_ground && !m.v.gear_down
+}
+
 /// The wingman (design §2).
 pub fn wingman() -> Node<Member> {
     Sel(vec![
         Seq(vec![Cond(|m| !m.alive), Act(idle)]),
         // Parked: ParkInHangar has stopped the engine.
         Seq(vec![Cond(|m| m.landed && !m.engine_on), Act(idle)]),
+        Seq(vec![Cond(flying), Act(defend)]),
         Seq(vec![Cond(|m| m.mode == 8 && m.released), Act(idle)]),
         Seq(vec![
             Cond(|m| m.v.on_ground && !m.airborne),
@@ -88,16 +100,18 @@ pub fn wingman() -> Node<Member> {
         Seq(vec![Cond(|m| m.released), Act(|m| set_mode(m, 8))]),
         // Its turn to go home not come yet, with no lead in the air to keep a slot on: the Hold (mode 10) where it is.
         Seq(vec![Cond(|m| m.rtb && m.lead_low), Act(|m| set_mode(m, 10))]),
+        Seq(vec![Cond(|m| m.task.is_some()), Act(fly_task)]),
         Act(keep_slot),
     ])
 }
 
 /// An AI flight lead (after a promotion): the route (mode 7), then home (mode 8) at its landing waypoint, on an RTB
-/// or below the reserve.
+/// or below the reserve; a threat on it is answered as a wingman's.
 pub fn lead() -> Node<Member> {
     Sel(vec![
         Seq(vec![Cond(|m| !m.alive), Act(idle)]),
         Seq(vec![Cond(|m| m.landed && !m.engine_on), Act(idle)]),
+        Seq(vec![Cond(flying), Act(defend)]),
         Seq(vec![Cond(|m| m.mode == 8), Act(idle)]),
         Seq(vec![Cond(|m| m.v.on_ground && !m.airborne), Act(idle)]),
         Act(fuel_calls),

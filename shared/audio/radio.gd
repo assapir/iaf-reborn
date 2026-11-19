@@ -902,8 +902,12 @@ func _awacs() -> void:
 			}
 		)
 	# +0x314 (the player on the FlyTSD: long calls only) stays false: the FlyTSD freezes the sim and this timer.
+	# Modern IAF: the player's flight AI hears each call (an AI jet holding the contact reports it).
+	var fa = ai.get("flight_ai") if ai != null else null
 	for c in fc.scan(p, units, false, formation_name(me)):
 		say(c[0], Array(c[1]))
+		if fa != null:
+			fa.awacs(host.runtime.now, c[2].bearing, c[2].miles, int(c[2].code) != 0)
 
 
 ## A report of a unit on the player's side (FUN_004a4cf0) with a callsign.

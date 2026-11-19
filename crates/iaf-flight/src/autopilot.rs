@@ -238,6 +238,23 @@ const AVOID_A: f64 = 3.0 * G as f64;
 const AVOID_LOW_M: f64 = 150.0;
 /// The slot loop's speed leads the slot's acceleration by this, s (the throttle's and the speed brake's lag).
 const SLOT_ANTICIPATE_S: f64 = 1.5;
+/// Ours, the steer loop (Modern IAF's flights, docs/ai.md §8.8): the mode number.
+pub const MODE_STEER: u8 = 0x21;
+/// The steer loop's laws, inferred: the turn rate it asks per radian of heading error (1/s); the height loop's
+/// natural frequency (rad/s) and damping.
+const STEER_K: f64 = 0.3;
+const STEER_W: f64 = 0.15;
+const STEER_ZETA: f64 = 0.8;
+
+/// The steer loop's order ([`MODE_STEER`], set by the host): fly toward `to` at its height, turning at up to `g`, at
+/// `speed` m/s with the throttle at most `thr_max` (0.74, military: the afterburner stays out).
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Steer {
+    pub to: Vec3,
+    pub g: f32,
+    pub speed: f32,
+    pub thr_max: f32,
+}
 
 /// The point of a slot `(forward, right, up)` m in the leader's horizontal frame: its track (its nose at rest), its
 /// right, up.
@@ -966,6 +983,8 @@ enum Loop {
         thr_i: f32,
         prev: Option<(f64, Vec3, Vec3)>,
     },
+    /// Ours, the steer loop ([`MODE_STEER`]).
+    Steer,
 }
 
 /// Break90's state (`5da7a0`): the break point B, the entry-heading point A, the KeepOrientation capture.
@@ -1782,6 +1801,8 @@ pub struct Autopilot {
     /// Ours (Modern IAF's flights): a jet about to come too near; the unit direction (world, ENU) to pull away in.
     /// While set, any loop's stick in the air gives way to the pull ([`AVOID_A`]) every 0.1 s.
     pub avoid: Option<Vec3>,
+    /// Ours (Modern IAF's flights): the steer loop's order ([`MODE_STEER`]).
+    pub steer: Option<Steer>,
     mode: u8,
     lp: Loop,
     next_tick: f64,
@@ -1808,6 +1829,7 @@ impl Autopilot {
             slot: [0.0; 3],
             home_hangar: None,
             avoid: None,
+            steer: None,
             mode: 0,
             lp: Loop::None,
             next_tick: 0.0,
@@ -1851,6 +1873,7 @@ impl Autopilot {
             Loop::Break90(b) => format!("break90 state {:#x}", b.as_ref().map_or(0, |b| b.state)),
             Loop::Popup(p) => format!("popup child {}", p.as_ref().map_or(0, |p| p.child)),
             Loop::Slot { .. } => "slot".into(),
+            Loop::Steer => "steer".into(),
             Loop::None => "none".into(),
         }
     }
@@ -1920,6 +1943,7 @@ impl Autopilot {
                 Loop::DiveBomb(Box::new(DiveBomb { state: 0, a: None, b: (Vec3::ZERO, 0.0, 0.0, 4), lw_pitch: 0.0 }))
             }
             MODE_SLOT => Loop::Slot { thr_i: ac.controls().throttle, prev: None },
+            MODE_STEER => Loop::Steer,
             _ => Loop::None,
         };
         self.nose_on = false;
@@ -2160,6 +2184,10 @@ impl Autopilot {
             Loop::Slot { thr_i, prev } => {
                 period = 0.1;
                 self.slot_step(&mut l, thr_i, prev);
+            }
+            Loop::Steer => {
+                period = 0.1;
+                self.steer_step(&mut l);
             }
             Loop::None => {}
         }
@@ -2407,6 +2435,36 @@ impl Autopilot {
             l.flaps(false);
         }
         l.brakes(err < -10.0);
+        l.stick(y, x);
+        l.throttle(thr);
+    }
+
+    /// Ours, the steer loop ([`MODE_STEER`], docs/ai.md §8.8; laws inferred): the heading error to the point flown as
+    /// a turn rate ([`STEER_K`] per radian, at most the order's load factor), the point's height through a spring and
+    /// a damper, both as a bank and a load factor ([`lift_stick`]); the speed law's throttle, at most the order's.
+    /// The ground watch stays on. A far point is a heading; a near one is circled.
+    fn steer_step(&self, l: &mut Laws) {
+        let v = l.v;
+        let Some(s) = self.steer else {
+            l.stick(0.0, 0.0);
+            return;
+        };
+        let g = G as f64;
+        let t = v.vel.try_normalize().unwrap_or(Vec3::NORTH);
+        let th = Vec3::new(t[0], t[1], 0.0).try_normalize().unwrap_or(Vec3::NORTH);
+        let d = s.to - v.pos;
+        let dh = Vec3::new(d[0], d[1], 0.0).try_normalize().unwrap_or(th);
+        // The heading error, + to the left.
+        let e = th.cross(dh)[2].atan2(th.dot(dh));
+        let a_max = ((s.g * s.g) as f64 - 1.0).max(0.0).sqrt() * g;
+        let a_turn = (STEER_K * v.speed as f64 * e).clamp(-a_max, a_max);
+        let a_up = (STEER_W * STEER_W * d[2] - 2.0 * STEER_ZETA * STEER_W * v.vel[2]).clamp(-g, g);
+        let lift = Vec3::UP.cross(th) * a_turn + Vec3::UP * (g + a_up);
+        let (mut y, mut x) = lift_stick(l, lift - t * lift.dot(t));
+        let mut thr = l.thr(s.speed).min(s.thr_max);
+        l.watch_ground(&mut x, &mut y, &mut thr);
+        l.gear(false);
+        l.flaps(false);
         l.stick(y, x);
         l.throttle(thr);
     }

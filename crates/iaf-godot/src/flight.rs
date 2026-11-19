@@ -39,7 +39,7 @@ fn sixdof_lacks(what: &'static str) {
 }
 
 /// Godot scene position → the FM's ENU frame.
-fn to_enu(v: Vector3) -> Vec3 {
+pub(crate) fn to_enu(v: Vector3) -> Vec3 {
     Vec3::new(v.x as f64, -v.z as f64, v.y as f64)
 }
 

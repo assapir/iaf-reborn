@@ -638,6 +638,72 @@ model, where none of the 6-DoF cases applies. Every figure here is inferred, tun
     home. Measured with the lead landing at Ramon and the flight's home at Nevatim: all four landed at Ramon in order,
     #3 and #4 held first, at the least 41 m between jets in the air.
 
+### 8.8 Ours: elements, the split, the reactions and the AWACS calls
+
+Modern IAF's flight AI (`crates/iaf-ai/src/flight.rs`, [../modern-iaf/docs/ai-plan.md](../modern-iaf/docs/ai-plan.md)
+F12–F14). The 1998 game sets none of it. Every figure is inferred, tuned on the 6-DoF Sufa (tests
+`crates/iaf-ai/tests/four_ship.rs`, `modern-iaf/tests/test_four_ship.gd`, 19 November 2026).
+
+- **Mode 0x21, the steer loop** (`MODE_STEER`, every 0.1 s): flies toward `Autopilot::steer.to` at that point's height.
+  The heading error is flown as a turn rate of 0.3 per radian, at most the order's load factor; the height through a
+  spring and a damper (0.15 rad/s, 0.8); both as a bank and a load factor (the slot loop's `lift_stick`, at most 75°
+  and 7 g). The throttle is the speed law's, at most the order's (0.74, military: the afterburner stays out). The ground
+  watch stays on. A far point is a heading; a near one is circled.
+- **The elements:** #2 flies on #1 and #4 on #3. In the shape each wingman keeps its slot in the lead's frame, so #4's
+  slot is relative to #3's slot. When #3 flies on its own (the split's task, a defence, any loop but the slot), #4 flies
+  on #3 itself, with its slot relative to #3. #4 was first flown on #3 itself in the shape too. It amplified #3's
+  corrections: it ended 385 m off in a change of shape and 632 m off in a join-up in a turn. That was tested and
+  dropped on 19 November 2026. A lost #3 or #1 leaves its mate on the flight lead (promotion as before: 1 → 3 → 2 → 4).
+- **The split** (`Flight::split(now, at)`, `IafAi.split`): element 2 takes its own target in the same area. #3 flies
+  to the target at its present height and the lead's speed (at least 200 m/s). It circles the target at 1.5 g (about
+  a 4 km circle) with #4 on it, until a regroup. The flight stays one flight: one route and landing sequence, the
+  threats and the calls. The target must be within 40 km of the flight lead, or #3 and #4 answer "unable". The split
+  ends when #3 is lost, is sent home, becomes the flight lead, or the landing sequence starts.
+- **The regroup** (command `regroup`, to anyone): element 2 rejoins its slots ("in position" each). From 20–30 km it
+  takes 7–8 minutes at the slot loop's 60 m/s overtake.
+- **The reactions** (each AI jet in the air with the gear up, the flight lead after a promotion too). The host feeds
+  each jet's threat every frame (`Flight::threat`, `IafAi.set_threat`). `ai_flights.gd` gives the nearest missile
+  flying at the jet (the MAW sees every missile, whatever its seeker), else the nearest radar locked on it
+  (`combat.gd on_lock`, kept on the entity as `locked_by`).
+  - The call comes at once, heard after the reaction time (1 s): `spike` for a lock from the air, `mud` from the
+    ground, `defending` for a missile. A missile after a lock is called again.
+  - After the reaction time the jet defends (the steer loop, every decision). Against a radar (a lock or a radar
+    missile) it beams: it turns the threat 90° off its nose, on the side nearer its track (the Doppler notch). Against
+    an infrared missile it breaks into the missile. It pulls 4 g against a lock and 6.5 g against a missile, at
+    260 m/s. Against infrared it stays at military power: the decoy rule's flares fail with the afterburner lit and
+    work better above 4 g.
+  - Each decision it asks for a decoy: chaff against a radar, flares against infrared. `ai_flights.gd` releases it
+    through `combat.gd`'s path (the jet's stores, one each 4 s, `player_weapons.gd`'s decoy rule); nothing new about
+    countermeasure or missile performance.
+  - Its element mate (1 and 2, 3 and 4), an AI jet in the air and itself clear, sees a missile launched at its partner
+    (the smoke) and calls `break_left` or `break_right`, the partner's turn. That covers the player as #1 too. A lock
+    is heard only on the jet's own RWR, so it gets no mate's call.
+  - Clear for 5 s, it goes back: a wingman rejoins its slot ("in position"), a lead its route.
+  - Measured: the lock called and the beam flown 1.2 s after the lock; against an infrared missile behind it, the break
+    left at up to 5.8 g with the throttle at most 0.74, flares, #4's `break_left` 1.4 s after the launch.
+- **The AWACS calls** (`Flight::awacs`, `IafAi.awacs`; `radio.gd` passes each call of `IafFlightController.scan`,
+  which now also returns {bearing, miles, code}). For a hostile or unidentified contact, the first AI jet by number
+  that holds the called point within 74 km and ±60° of its nose (a fighter radar's 40 NM) reports `contact` after its
+  reaction time.
+
+The calls' words (the radio menu and voices are slice 3). The IAF's own radio words are not public. The Hebrew
+writing on the subject uses נעילה for a lock[^hamichlol-rwr] and the verb מתחמק for evading SAMs[^mako-102]. The
+English is NATO brevity[^brevity]:
+
+| id | English | Hebrew subtitle | source |
+|---|---|---|---|
+| `spike` | "Two, spike." | "שתיים, נעילה" | NATO SPIKE, "RWR indication of an air interceptor threat in track or launch"; Hebrew: נעילה[^hamichlol-rwr] |
+| `mud` | "Two, mud." | "שתיים, נעילה מהקרקע" (ours around נעילה) | NATO MUD, "RWR ground threat displayed with no launch indication" |
+| `defending` | "Two, defending." | "שתיים, בהתחמקות" (ours around מתחמק) | NATO DEFENDING, "in a defensive position and maneuvering with reference to a radar threat"; Hebrew: מתחמק[^mako-102] |
+| `break_left` / `break_right` | "Three, break left!" | none found. Ours: "שלוש, שבירה שמאלה" | NATO BREAK (direction), "an immediate maximum performance turn"; Hebrew open |
+| `contact` | "Two, contact." | none found. Ours: "שתיים, יש מגע" | NATO CONTACT, "sensor information at the stated position"; Hebrew open |
+| split | "Alpha, split." | none found. Ours: "אלפא, פיצול" (the pair: זוג) | NATO SPLIT, "flight member is leaving formation to pursue a separate attack"; Hebrew open |
+| regroup | "Alpha, rejoin." | "אלפא, הצטרפות" | the four-ship's rejoin term (slice 3's research) |
+
+Later (outside this slice): a commit on the AWACS's call (the element turns to the contact); the controller's answers
+to requests (picture, bogey dope, declare, vectors: ai-plan Q12); a memory of contacts already reported (each call is
+answered once today); a mate's call of a lock it sees on its own RWR; the break's direction in the defender's own call.
+
 ## 9. Airbase data (`iaf.ibx`, TowersManager `54eda0`)
 `iaf.ibx` holds the geometry the AI uses to take off, land and taxi. It has ten sections, in record order: Ramon,
 David, TelNof, Refidim, Inshas, Damescuss, Kuzeir, Bley, Ryak, Aman.
@@ -1114,3 +1180,6 @@ Open questions in this document:
 [^ni-f16]: The National Interest, on the F-16's Have Glass V paint, https://nationalinterest.org/node/112436 and https://nationalinterest.org/node/168141 ("the F-16 on average has a 1.2-square-meter radar cross-section, according to Globalsecurity"; second-hand: as quoted by a search engine on 2026-11-19; the site refuses automated reading).
 [^migflug]: Max Grünwald, MiGFlug Afterburner, "F-22 Marble, F-35 Golf Ball: Where RCS Figures Come From", 8 November 2026, https://migflug.com/afterburner/?p=31823215 (GlobalSecurity's table: the F-35 at 0.0015–0.005 m²; GlobalSecurity itself refuses automated reading; read 2026-11-19).
 [^ni-beast]: The National Interest, "The F-35 Has a 'Beast Mode' (But There's a Catch)", https://nationalinterest.org/node/180849 (external hardpoints "drastically increase" the radar cross-section; second-hand: as quoted by a search engine on 2026-11-19).
+[^hamichlol-rwr]: Hamichlol, "מקלט התרעת מכ"ם", https://www.hamichlol.org.il/%D7%9E%D7%A7%D7%9C%D7%98_%D7%94%D7%9E%D7%96%D7%94%D7%99%D7%A8_%D7%91%D7%A4%D7%A0%D7%99_%D7%9E%D7%9B%22%D7%9D (a search radar's warning "ואחריה נעילה ומעקב"; read as quoted by a search engine on 2026-11-19, second-hand).
+[^mako-102]: Mako, "pzm-magazine", on the 102 Squadron's air-combat training, https://www.mako.co.il/pzm-magazine/Article-1c3f6f796402d61027.htm (a good pilot "תוקף ומתחמק מטילי נ"מ"; read as quoted by a search engine on 2026-11-19, second-hand).
+[^brevity]: Wikipedia, "Multiservice tactical brevity code", https://en.wikipedia.org/wiki/Multiservice_tactical_brevity_code (SPIKE, MUD, DEFENDING, BREAK, CONTACT, SPLIT; read 2026-11-19).

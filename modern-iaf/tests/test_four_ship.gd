@@ -1,4 +1,4 @@
-# Modern IAF's four-ship (modern-iaf/docs/ai-plan.md §6 F1–F4, F7, F10, F11): mission ramon_four_ship, Alpha 1 the
+# Modern IAF's four-ship (modern-iaf/docs/ai-plan.md §6 F1–F4, F7, F10–F13): mission ramon_four_ship, Alpha 1 the
 # player and Alpha 2, 3 and 4 flown by IafAi (crates/iaf-ai):
 #   - F1: one formation of four in Ramon's four Sufa shelters in data/parking.json's order, the wingmen with the lead's
 #     stores;
@@ -7,6 +7,8 @@
 #   - F3, F4: Alpha 2, 3 and 4 take off in order and join the lead, the slots kept within 300 m in its turn and
 #     each back within 60 m of its slot in 60 s (a real wingman drifts in a turn too; inferred);
 #   - F5's commands through IafAi.command: check and ops check answered, echelon right flown;
+#   - F12: the split (element 2 to its own target, #4 on #3, #2 on the lead) and the regroup;
+#   - F13: a scripted ground radar's lock on Alpha 2: its call, its defence with chaff, its rejoin;
 #   - F7: sent home, each lands and parks at its own shelter, engine off;
 #   - all along at least 30 m between any two jets in the air; F10: the AI's CPU time per jet per frame at time
 #     scale 1.
@@ -57,6 +59,10 @@ func run() -> void:
 	if await _join(tv):
 		_phase = "commands"
 		await _commands(tv)
+		_phase = "split"
+		await _split(tv)
+		_phase = "lock"
+		await _lock(tv)
 		_phase = "home"
 		await _home(tv)
 	process_frame.disconnect(_watch)
@@ -183,6 +189,52 @@ func _commands(tv: Node) -> void:
 	check(ok, "echelon right: each in position (%s)" % [_calls()])
 
 
+## F12: the lead splits element 2 to its own target 8 km ahead in the same area: #3 flies there with #4 on it, #2
+## stays on the lead; the regroup brings element 2 back.
+func _split(tv: Node) -> void:
+	var fa = tv.ai.flight_ai
+	var st: Dictionary = tv.flight.state()
+	var b: Vector3 = st.position + st.forward * 8000.0 + st.right * 4000.0
+	var t0: float = tv.runtime.now
+	check(fa.split(t0, b), "split taken")
+	var on := func(): return fa.state(3).get("task", false) and int(fa.state(4).get("leader", 0)) == 3
+	check(await _until(tv, on, 10.0), "element 2 on its task, #4 on #3 (%s)" % _wing_states(tv))
+	var near := func():
+		var q: Vector3 = _wing[1].pilot.flight.state().position
+		return Vector2(q.x - b.x, q.z - b.z).length() < 4000.0
+	check(await _until(tv, near, 200.0), "#3 at its target (%s)" % _wing_states(tv))
+	var e2: float = fa.state(2).slot_error
+	var e4: float = fa.state(4).slot_error
+	check(e2 < 60.0 and e4 < 150.0, "#2 on the lead (%.0f m), #4 on #3 (%.0f m)" % [e2, e4])
+	t0 = tv.runtime.now
+	check(fa.command(t0, 0, "regroup"), "regroup taken")
+	var back := func(): return _said(3, "in_position", t0) and _said(4, "in_position", t0)
+	check(await _until(tv, back, 900.0), "element 2 regrouped (%s;%s)" % [_calls(), _wing_states(tv)])
+
+
+## The reactions: a radar on the ground locks Alpha 2 (combat.gd on_lock, scripted): it calls "mud", defends with
+## chaff, and rejoins once the lock is gone.
+func _lock(tv: Node) -> void:
+	var ent: Dictionary = _wing[0]
+	var u = tv.ai.combat.units.get(ent.key)
+	var chaff: int = int(u.stations[10].count) if u != null and u.stations.size() > 10 else 0
+	var side := 3 if int(ent.side) != 3 else 2  # hostile
+	var at: Vector3 = ent.world + Vector3(20000, 20000, -ent.world.z)
+	var radar := {"key": "test:radar", "world": at, "airborne_class": false, "side": side, "state": 0}
+	var t0: float = tv.runtime.now
+	tv.ai.combat.on_lock(radar, ent, true)
+	var fa = tv.ai.flight_ai
+	var defending := func(): return fa.state(2).get("defending", false) and _said(2, "mud", t0)
+	check(await _until(tv, defending, 5.0), "Alpha 2 calls the lock and defends (%s)" % _calls())
+	await fly(tv, 6.0)
+	var left: int = int(u.stations[10].count) if u != null and u.stations.size() > 10 else 0
+	check(chaff > 0 and left < chaff, "Alpha 2 releases chaff (%d of %d left)" % [left, chaff])
+	t0 = tv.runtime.now
+	tv.ai.combat.on_lock(radar, ent, false)
+	var back := func(): return _said(2, "in_position", t0)
+	check(await _until(tv, back, 600.0), "Alpha 2 rejoins (%s;%s)" % [_calls(), _wing_states(tv)])
+
+
 ## F7: sent home, each lands and parks at its own shelter, engine off.
 func _home(tv: Node) -> void:
 	check(tv.ai.flight_ai.command(tv.runtime.now, 0, "rtb"), "RTB taken")
@@ -264,13 +316,15 @@ func _moved(k: int) -> float:
 
 ## Each wingman's call `id` made after `t0` (mission s).
 func _said_all(id: String, t0: float) -> bool:
-	for n in [2, 3, 4]:
-		var said := false
-		for c in _tv.ai.flight_calls:
-			said = said or (int(c.from) == n and String(c.id) == id and float(c.get("t", 0.0)) >= t0)
-		if not said:
-			return false
-	return true
+	return _said(2, id, t0) and _said(3, id, t0) and _said(4, id, t0)
+
+
+## Alpha `n`'s call `id` made after `t0` (mission s).
+func _said(n: int, id: String, t0: float) -> bool:
+	for c in _tv.ai.flight_calls:
+		if int(c.from) == n and String(c.id) == id and float(c.get("t", 0.0)) >= t0:
+			return true
+	return false
 
 
 func _calls() -> String:

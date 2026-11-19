@@ -849,6 +849,14 @@ func on_lock(owner: Dictionary, t: Dictionary, on: bool) -> void:
 		if host.has_method("blackbox_event"):
 			host.blackbox_event({"event": "lock" if on else "unlock", "key": String(owner.key)})
 		return
+	# Modern IAF's flight AI hears the lock on its jet's RWR (ai_flights.gd _threat_of).
+	var tp = t.get("pilot")
+	if tp != null and tp.get("by_ai"):
+		var locks: Dictionary = t.get_or_add("locked_by", {})
+		if on:
+			locks[owner.key] = owner
+		else:
+			locks.erase(owner.key)
 	var b = brain_of(t)
 	if b == null:
 		return

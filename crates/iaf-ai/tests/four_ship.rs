@@ -3,9 +3,9 @@
 
 use std::path::{Path, PathBuf};
 
-use iaf_ai::{Call, Flight, SHAPES, apply};
+use iaf_ai::{Call, Decoy, Flight, SHAPES, Threat, apply};
 use iaf_flight::airbase::Airbase;
-use iaf_flight::autopilot::{self, Autopilot, Config, Host, Waypoint};
+use iaf_flight::autopilot::{self, Autopilot, Config, Host, MODE_STEER, Waypoint};
 use iaf_flight::fm::Fm;
 use iaf_flight::sixdof::autopilot::{ALT_HOLD, HDG_SEL};
 use iaf_flight::{DataSet, Start, Vec3};
@@ -745,4 +745,132 @@ fn a_lead_landing_away_from_home() {
     assert!(landed.windows(2).all(|p| p[0].unwrap() < p[1].unwrap()), "landing in order");
     assert!(held[3], "#4 held until its turn");
     assert!(w.sep_air > 30.0, "air separation {}", w.sep_air);
+}
+
+/// The worst slot error of wingman `n` over `seconds`, m.
+fn worst_of(w: &mut World, n: u8, seconds: f64) -> f32 {
+    let mut worst: f32 = 0.0;
+    for _ in 0..(seconds / w.dt) as usize {
+        w.frame();
+        worst = worst.max(w.flight.member(n).map_or(0.0, |m| m.slot_error));
+    }
+    worst
+}
+
+#[test]
+fn elements_split_and_regroup() {
+    // Two elements: #2 on #1, #4 on #3 (#4's slot relative to #3); the lead splits element 2 to its own target in the
+    // same area, element 2 circles it with #4 on #3 while #2 stays on #1, then regroups (ai-plan F12).
+    let Some(dir) = own() else { return println!("skipped: no assets/converted/own (iaf-sim fm, airbases)") };
+    let mut w = airborne(&dir, 0.0);
+    w.run(30.0);
+    assert_eq!([2, 3, 4].map(|n| w.flight.leader(n)), [1, 1, 1], "in the shape each on the lead (#4 on #3's slot)");
+    // Too far for one area: unable, no task.
+    let p = w.jets[0].0.ap_view().pos;
+    let t0 = w.t;
+    assert!(w.flight.split(w.t, p + Vec3::new(80_000.0, 0.0, 0.0)));
+    w.run(2.0);
+    assert!(w.said(3, "unable").is_some_and(|t| t >= t0) && w.flight.member(3).unwrap().task.is_none());
+    // Target B 12 km ahead and 6 km right of the lead.
+    let b = p + Vec3::new(6_000.0, 12_000.0, -2000.0);
+    let t0 = w.t;
+    assert!(w.flight.split(w.t, b));
+    let near = |w: &World| {
+        let q = w.jets[2].0.ap_view().pos;
+        (q[0] - b[0]).hypot(q[1] - b[1]) < 4000.0
+    };
+    let there = w.until(200.0, &near);
+    assert_eq!([2, 4].map(|n| w.flight.leader(n)), [1, 3], "#4 on #3 on its task");
+    let (two, four) = (worst_of(&mut w, 2, 60.0), worst_of(&mut w, 4, 60.0));
+    let q = w.jets[2].0.ap_view().pos;
+    println!(
+        "split: #3 at B after {there:?} s, {:.0} m from it a minute on, at {:.0} m; #2 on #1 worst {two:.1} m, #4 on #3 \
+         worst {four:.1} m; #1 {:.0} m from B",
+        (q[0] - b[0]).hypot(q[1] - b[1]),
+        q[2],
+        w.jets[0].0.ap_view().pos.distance(b)
+    );
+    assert!(w.said(3, "ack").is_some_and(|t| t >= t0) && w.said(4, "ack").is_some_and(|t| t >= t0));
+    assert!(there.is_some(), "#3 at its target");
+    assert!((q[0] - b[0]).hypot(q[1] - b[1]) < 10_000.0, "#3 circles its target");
+    assert!((q[2] - 3000.0).abs() < 300.0, "at its height ({:.0} m)", q[2]);
+    assert!(two <= 30.0, "#2 on #1 {two}");
+    assert!(four <= 120.0, "#4 on #3 in its turns {four}");
+    // Regroup.
+    let t0 = w.t;
+    assert!(w.flight.command(w.t, 0, "regroup"));
+    // (Element 2 catches up 20–30 km at the slot loop's 60 m/s overtake.)
+    let back = w.until(900.0, &|w| [3, 4].iter().all(|&n| w.said(n, "in_position").is_some_and(|t| t > t0)));
+    println!("regroup: in position after {back:?} s; separation {:.1} m", w.sep_air);
+    assert!(back.is_some(), "regrouped");
+    assert!(w.flight.member(3).unwrap().task.is_none());
+    assert!(w.sep_air > 30.0, "separation {}", w.sep_air);
+    // #3 lost: #4 flies on #1.
+    w.alive[2] = false;
+    w.run(2.0);
+    assert_eq!(w.flight.leader(4), 1);
+}
+
+#[test]
+fn reactions_to_locks_launches_and_awacs() {
+    // A lock from the ground on #2, an infrared missile at #3: each calls and defends (the beam, the break into the
+    // missile) with its decoys, #3's mate #4 calls the break, each rejoins when clear. An AWACS call ahead is
+    // reported by #2.
+    let Some(dir) = own() else { return println!("skipped: no assets/converted/own (iaf-sim fm, airbases)") };
+    let mut w = airborne(&dir, 0.0);
+    w.run(30.0);
+    let t0 = w.t;
+    assert_eq!(w.flight.awacs(w.t, 0.0, 25.0, true), 2, "#2 holds a contact ahead");
+    assert_eq!(w.flight.awacs(w.t, 180.0, 25.0, true), 0, "none behind");
+    assert_eq!(w.flight.awacs(w.t, 0.0, 25.0, false), 0, "no report for friendlies");
+    // A lock on #2 from a radar 30 km ahead-right: the beam is 45° left of the track (north).
+    let p = w.jets[1].0.ap_view().pos;
+    let radar = Threat { pos: p + Vec3::new(21_000.0, 21_000.0, -3000.0), launch: false, ir: false, ground: true };
+    w.flight.threat(2, Some(radar));
+    let mut chaff = false;
+    let mut steer = false;
+    for _ in 0..(20.0 / w.dt) as usize {
+        w.frame();
+        chaff |= w.flight.member(2).unwrap().order.decoy == Some(Decoy::Chaff);
+        steer |= w.jets[1].1.mode() == MODE_STEER;
+    }
+    // The radar off #2's track, deg.
+    let v = w.jets[1].0.ap_view();
+    let d = radar.pos - v.pos;
+    let off = (v.vel[0] * d[1] - v.vel[1] * d[0]).atan2(v.vel[0] * d[0] + v.vel[1] * d[1]).to_degrees();
+    let mud = w.said(2, "mud").map(|t| t - t0);
+    println!("lock on #2: mud after {mud:?} s, chaff {chaff}, the radar {off:.0}° off the track");
+    assert!(mud.is_some_and(|t| t <= 1.6), "#2 calls the lock");
+    assert!(chaff && steer, "#2 defends with chaff");
+    assert!((off.abs() - 90.0).abs() < 20.0, "#2 beams the radar ({off:.0}°)");
+    // An infrared missile at #3 from behind-left: the break into it (left), flares at military power, #4 calls it.
+    let t1 = w.t;
+    let q = w.jets[2].0.ap_view().pos;
+    w.flight
+        .threat(3, Some(Threat { pos: q + Vec3::new(-3000.0, -3000.0, 0.0), launch: true, ir: true, ground: false }));
+    let (mut flares, mut g, mut thr) = (false, 0f32, 0f32);
+    for _ in 0..(12.0 / w.dt) as usize {
+        w.frame();
+        flares |= w.flight.member(3).unwrap().order.decoy == Some(Decoy::Flare);
+        if w.flight.member(3).unwrap().defending {
+            g = g.max(w.jets[2].0.state().g);
+            thr = thr.max(w.jets[2].0.controls().throttle);
+        }
+    }
+    println!(
+        "launch at #3: defending {:?}, #4 {:?}, flares {flares}, up to {g:.1} g, throttle at most {thr:.2}",
+        w.said(3, "defending").map(|t| t - t1),
+        w.said(4, "break_left").map(|t| t - t1)
+    );
+    assert!(w.said(3, "defending").is_some_and(|t| t >= t1), "#3 calls defending");
+    assert!(w.said(4, "break_left").is_some_and(|t| t >= t1), "#4 calls the break");
+    assert!(flares && g > 4.0 && thr <= 0.74, "flares, above 4 g, no afterburner");
+    // Clear: both rejoin.
+    let t2 = w.t;
+    w.flight.threat(2, None);
+    w.flight.threat(3, None);
+    let back = w.until(400.0, &|w| [2, 3].iter().all(|&n| w.said(n, "in_position").is_some_and(|t| t > t2)));
+    println!("clear: in position after {back:?} s; separation {:.1} m", w.sep_air);
+    assert!(back.is_some(), "rejoined");
+    assert!(w.sep_air > 30.0, "separation {}", w.sep_air);
 }

@@ -1,14 +1,16 @@
-//! The flight lead layer (modern-iaf/docs/ai-plan.md §3, §6): a flight of up to four jets, its lead (promoted 1 → 3 →
-//! 2 → 4 when lost), its shape and each wingman's slot, the start-up, the landing sequence, the radio commands, and
+//! The flight lead layer (modern-iaf/docs/ai-plan.md §3, §6): a flight of up to four jets in two elements (#2 on #1,
+//! #4 on #3), its lead (promoted 1 → 3 → 2 → 4 when lost), its shape and each wingman's slot, the split and the
+//! regroup, the start-up, the landing sequence, the radio commands, the threats on each jet and the AWACS calls, and
 //! the calls (after the wingman's reaction time). The jets fly the autopilot's loops ([`apply`]); every figure here is
 //! inferred unless a doc says otherwise.
 
-use crate::bt::Node;
+use crate::bt::{Node, Status};
 use crate::wingman;
 use iaf_flight::Vec3;
 use iaf_flight::airbase::Airbase;
 use iaf_flight::aircraft::ApView;
-use iaf_flight::autopilot::{self, Autopilot, Host, Leader, MODE_SLOT};
+use iaf_flight::aircraft::MILITARY;
+use iaf_flight::autopilot::{self, Autopilot, Host, Leader, MODE_SLOT, Steer};
 use iaf_flight::fm::Fm;
 
 /// The decision tick, s (the slot loop runs at 0.1 s on its own).
@@ -48,6 +50,18 @@ const IN_POSITION_M: f32 = 50.0;
 const TRAIL: usize = 5;
 /// Who leads when the lead is lost: #3 is the deputy (ai-plan F6).
 const PROMOTION: [u8; 4] = [1, 3, 2, 4];
+/// A split's point farther than this from the flight lead is refused: the elements' targets are in one area, m.
+pub const SAME_AREA_M: f64 = 40_000.0;
+/// The split element's turns, g (a 48° bank: #4 keeps its slot on #3 round the circle).
+const TASK_G: f32 = 1.5;
+/// The defensive turn's load factor against a lock and against a missile; its speed, m/s; how long a jet stays clear
+/// before it rejoins, s.
+const DEFEND_G: (f32, f32) = (4.0, 6.5);
+const DEFEND_SPEED: f32 = 260.0;
+const CLEAR_S: f64 = 5.0;
+/// An AI jet reports an AWACS contact inside its radar's reach, m, and this far off its nose, deg (a fighter radar's
+/// 40 NM and ±60°).
+const RADAR: (f64, f64) = (74_000.0, 60.0);
 
 /// The shapes: id, then the slots of #2, #3, #4 (forward, right, up m) relative to #1.
 pub const SHAPES: [(&str, [[f32; 3]; 3]); 6] = [
@@ -70,6 +84,25 @@ impl Skill {
     pub const WINGMAN: Skill = Skill { reaction_s: 1.0 };
 }
 
+/// What a jet's RWR and MAW show on it ([`Flight::threat`], the host's): a radar locked on it or a missile flying at
+/// it, at `pos`.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Threat {
+    pub pos: Vec3,
+    /// A missile (else a lock).
+    pub launch: bool,
+    /// An infrared missile (flares; else chaff).
+    pub ir: bool,
+    /// The lock's radar is on the ground.
+    pub ground: bool,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Decoy {
+    Chaff,
+    Flare,
+}
+
 /// A radio call: the caller's number and the call's id (the radio maps it to a voice clip and its lines).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Call {
@@ -90,6 +123,10 @@ pub struct Order {
     pub wp_index: Option<usize>,
     /// The direction to pull away in from a jet about to come too near (world, unit).
     pub avoid: Option<Vec3>,
+    /// The steer loop's order (the split's task, the defensive turn).
+    pub steer: Option<Steer>,
+    /// A decoy to release now (the host's release path and decoy rule; one each 4 s at most, combat.gd).
+    pub decoy: Option<Decoy>,
 }
 
 /// One jet of the flight: what it is this frame ([`Flight::sense`]) and the AI's memory of it. The trees read and
@@ -138,6 +175,16 @@ pub struct Member {
     avoiding: bool,
     /// The lead is low with the gear down, or on the ground again: no slot to keep on it.
     pub(crate) lead_low: bool,
+    /// The threat on it this frame ([`Flight::threat`]); when it was first seen, the level called (1 a lock, 2 a
+    /// launch), its mate's break called, defending, clear since.
+    pub threat: Option<Threat>,
+    pub(crate) cue: Option<f64>,
+    pub(crate) called_level: u8,
+    mate_called: bool,
+    pub defending: bool,
+    pub(crate) clear_since: Option<f64>,
+    /// Element 2's lead while split: its task ([`Flight::split`]).
+    pub task: Option<Steer>,
 }
 
 /// The flight.
@@ -153,6 +200,8 @@ pub struct Flight {
     lead_gear_up: bool,
     last_release: f64,
     calls: Vec<(f64, Call)>,
+    /// Element 2's task while split.
+    split: Option<Steer>,
     wingman: Node<Member>,
     lead_tree: Node<Member>,
 }
@@ -169,6 +218,7 @@ impl Default for Flight {
             lead_gear_up: false,
             last_release: f64::MIN,
             calls: Vec::new(),
+            split: None,
             wingman: wingman::wingman(),
             lead_tree: wingman::lead(),
         }
@@ -235,6 +285,13 @@ impl Flight {
             report: false,
             avoiding: false,
             lead_low: false,
+            threat: None,
+            cue: None,
+            called_level: 0,
+            mate_called: false,
+            defending: false,
+            clear_since: None,
+            task: None,
         });
         self.members.sort_by_key(|m| m.number);
         self.lead = 0;
@@ -251,6 +308,80 @@ impl Flight {
     /// The flight lead's number.
     pub fn lead(&self) -> u8 {
         self.members.get(self.lead).map_or(0, |m| m.number)
+    }
+
+    /// Whom member `i` flies on in the air: #2 on #1 and #4 on #3, its element lead, while that one flies on its own
+    /// (alive, in the air, not sent home, off the slot loop: the split's task, a defence); else the flight lead, with
+    /// its slot in the shape relative to its element lead's slot. (Flown on #3 itself also in the shape, #4 amplified
+    /// #3's corrections: 385 m off in a change of shape, 632 m in a join-up in a turn; tested and dropped 19 Nov.)
+    fn leader_index(&self, i: usize) -> usize {
+        let n = self.members[i].number;
+        let el = n.is_multiple_of(2).then(|| self.index(n - 1)).flatten().filter(|&j| {
+            let e = &self.members[j];
+            j != self.lead && e.alive && e.airborne && !e.landed && !e.released && !e.v.on_ground && e.mode != MODE_SLOT
+        });
+        el.unwrap_or(self.lead)
+    }
+
+    /// The number of the jet `number` flies on in the air (0: none, or it leads).
+    pub fn leader(&self, number: u8) -> u8 {
+        match self.index(number) {
+            Some(i) if i != self.lead => self.members[self.leader_index(i)].number,
+            _ => 0,
+        }
+    }
+
+    /// The threat on jet `number` this frame (its RWR's lock, its MAW's missile; None: clear), for the reactions.
+    pub fn threat(&mut self, number: u8, t: Option<Threat>) {
+        if let Some(i) = self.index(number) {
+            self.members[i].threat = t;
+        }
+    }
+
+    /// The lead's split (ai-plan F12): element 2 (#3, #4 on it) takes its own task at `at`, its target in the same
+    /// area (within [`SAME_AREA_M`] of the flight lead): it flies there at its present height and the lead's speed and
+    /// circles it until a regroup (`command` "regroup"); the flight stays one (one route, one landing sequence, the
+    /// threats and calls). False: no AI #3 in the air with the flight to take it. #3 and #4 answer (unable: too far).
+    pub fn split(&mut self, now: f64, at: Vec3) -> bool {
+        let Some(k) = self.index(3).filter(|&k| {
+            let m = &self.members[k];
+            k != self.lead && m.ai && m.alive && m.airborne && !m.landed && !m.rtb
+        }) else {
+            return false;
+        };
+        let lead = &self.members[self.lead];
+        let ok = flat(at, lead.v.pos) <= SAME_AREA_M;
+        if ok {
+            let to = Vec3::new(at[0], at[1], self.members[k].v.pos[2]);
+            self.split = Some(Steer { to, g: TASK_G, speed: lead.v.speed.max(200.0), thr_max: 1.0 });
+        }
+        for m in self.members.iter().filter(|m| m.number >= 3 && m.ai && m.alive) {
+            self.calls.push((now + m.skill.reaction_s, Call { from: m.number, id: if ok { "ack" } else { "unable" } }));
+        }
+        true
+    }
+
+    /// An AWACS contact call (fctrl.rs) at `now`: the contact's compass bearing (deg) and range (NM) from the player's
+    /// jet (else the lead's); `enemy`: hostile or unidentified. The first AI jet by number holding it in its radar's
+    /// reach and cone ([`RADAR`]) reports "contact" after its reaction time. Returns its number, 0 for none.
+    pub fn awacs(&mut self, now: f64, bearing_deg: f64, miles: f64, enemy: bool) -> u8 {
+        let Some(from) = self.members.iter().find(|m| !m.ai).or(self.members.get(self.lead)) else { return 0 };
+        if !enemy {
+            return 0;
+        }
+        let b = bearing_deg.to_radians();
+        let at = from.v.pos + Vec3::new(b.sin(), b.cos(), 0.0) * (miles * 1852.0);
+        // ponytail: every AWACS call is answered once by the first jet that holds it; a memory of contacts reported
+        // when the repeats grow too chatty.
+        let Some(m) = self.members.iter().find(|m| {
+            let (d, v) = (at - m.v.pos, m.v.vel);
+            let off = (v[0] * d[1] - v[1] * d[0]).atan2(v[0] * d[0] + v[1] * d[1]).abs().to_degrees();
+            m.ai && m.alive && m.airborne && !m.landed && !m.defending && flat(at, m.v.pos) < RADAR.0 && off < RADAR.1
+        }) else {
+            return 0;
+        };
+        self.calls.push((now + m.skill.reaction_s, Call { from: m.number, id: "contact" }));
+        m.number
     }
 
     /// Jet `number` this frame: alive (the host's word; a crash counts as dead), its flight model and autopilot.
@@ -288,6 +419,8 @@ impl Flight {
     /// A radio command (design §4) to `to`: 0 the flight, 5 the element (#3, #4), 2..4 one wingman. Returns false for
     /// an unknown command or nobody to take it; the answers come as calls.
     pub fn command(&mut self, now: f64, to: u8, cmd: &str) -> bool {
+        // The regroup: element 2 rejoins (from a split).
+        let (to, cmd) = if cmd == "regroup" { (5, "rejoin") } else { (to, cmd) };
         let lead = self.lead;
         let who: Vec<usize> = (0..self.members.len())
             .filter(|&i| {
@@ -316,6 +449,9 @@ impl Flight {
                 // Once in its landing pattern (the gear down), a jet sent home lands.
                 "rejoin" if flying && !(m.released && m.v.gear_down) => {
                     (m.rtb, m.released, m.transit, m.report) = (false, false, true, true);
+                    if m.number == 3 {
+                        self.split = None;
+                    }
                     "ack"
                 }
                 "rtb" if flying => {
@@ -375,6 +511,15 @@ impl Flight {
                 m.transit = true;
             }
         }
+        // The split lasts while #3 flies its task with the flight: lost, sent home or the flight's lead, element 2
+        // regroups.
+        let on_task = self.index(3).is_some_and(|k| {
+            let m = &self.members[k];
+            k != self.lead && m.ai && m.alive && !m.rtb && !m.released
+        });
+        if !on_task {
+            self.split = None;
+        }
         let lead = &self.members[self.lead];
         // A lead that started without the tower's call: the flight starts with it.
         if lead.engine_on && lead.v.on_ground {
@@ -393,7 +538,7 @@ impl Flight {
             } else if self.lead_gear_up && (near || low) {
                 // The wingmen not yet sent home wait in trail, stepped down: no slot is held in the circuit's tight
                 // turns (in fingertip #3 came within 18.8 m of the lead there).
-                self.shape = TRAIL;
+                (self.shape, self.split) = (TRAIL, None);
                 for m in self.members.iter_mut().filter(|m| m.number != lead_n && m.airborne) {
                     m.rtb = true;
                     m.transit |= !m.released;
@@ -409,9 +554,11 @@ impl Flight {
         }
         let base = SHAPES[self.shape].1;
         let table = |n: u8| if (2..=4).contains(&n) { base[n as usize - 2] } else { [0.0; 3] };
-        let lead_slot = table(lead_n);
         let home = self.home;
         for i in 0..self.members.len() {
+            let li = self.leader_index(i);
+            let ld = leader_of(&self.members[li]);
+            let lead_slot = table(self.members[li].number);
             let ahead_moved = (0..i)
                 .rev()
                 .map(|j| &self.members[j])
@@ -419,7 +566,6 @@ impl Flight {
                 .is_none_or(|a| flat(a.v.pos, a.spot) > MOVED_M);
             // The nearest other jet in the air, m.
             let me = &self.members[i];
-            let ld = leader_of(&self.members[self.lead]);
             let nearest = (self.members.iter())
                 .filter(|o| o.number != me.number && o.alive && !o.v.on_ground && !me.v.on_ground)
                 .map(|o| o.v.pos.distance(me.v.pos))
@@ -451,7 +597,8 @@ impl Flight {
             m.cleared = self.cleared;
             m.ahead_moved = ahead_moved;
             m.bingo_kg = RESERVE_KG + KG_PER_KM * home.map_or(0.0, |h| flat(h, m.v.pos) as f32 / 1000.0);
-            m.order.mode = None;
+            m.task = if m.number == 3 { self.split } else { None };
+            (m.order.mode, m.order.decoy) = (None, None);
             if i == self.lead {
                 self.lead_tree.tick(m)
             } else {
@@ -461,6 +608,24 @@ impl Flight {
                 self.calls.push((now + m.skill.reaction_s, Call { from: m.number, id }));
             }
         }
+        // The element mate (1 and 2, 3 and 4) sees a missile launched at its partner (its smoke) and calls the break,
+        // once a launch, unless it is defending itself. (A lock is heard only on the jet's own RWR.)
+        for i in 0..self.members.len() {
+            let p = &self.members[i];
+            let Some(t) = p.threat.filter(|t| t.launch) else {
+                self.members[i].mate_called = false;
+                continue;
+            };
+            let mate =
+                self.index(if p.number % 2 == 1 { p.number + 1 } else { p.number - 1 }).map(|j| &self.members[j]);
+            let Some(mate) = mate.filter(|o| o.ai && o.alive && o.airborne && o.threat.is_none() && !p.mate_called)
+            else {
+                continue;
+            };
+            let id = if defence(p, &t).1 { "break_right" } else { "break_left" };
+            self.calls.push((now + mate.skill.reaction_s, Call { from: mate.number, id }));
+            self.members[i].mate_called = true;
+        }
     }
 
     /// Each AI jet's leader this frame: on the ground the jet ahead in taxi order (TaxiCL's spacing, TakeoffCL's
@@ -468,7 +633,7 @@ impl Flight {
     fn feed(&mut self) {
         for i in 0..self.members.len() {
             let a = self.avoid(i);
-            let ld = leader_of(&self.members[self.lead]);
+            let ld = leader_of(&self.members[self.leader_index(i)]);
             let m = &mut self.members[i];
             m.avoiding = a.is_some_and(|(miss, _)| miss < if m.avoiding { AVOID_CLEAR_M } else { AVOID_M });
             m.order.avoid = a.filter(|_| m.avoiding).map(|(_, away)| away);
@@ -510,11 +675,76 @@ impl Flight {
     }
 }
 
+/// `m`'s defence against `t` and whether it turns right: against a radar (a lock, a radar missile) the beam (the
+/// threat 90° off the nose, the side nearer its track; the Doppler notch), against an infrared missile a break into
+/// it; at [`DEFEND_G`], at military power against infrared (flares), at its height.
+pub(crate) fn defence(m: &Member, t: &Threat) -> (Steer, bool) {
+    use std::f64::consts::{FRAC_PI_2, PI, TAU};
+    let wrap = |a: f64| (a + PI).rem_euclid(TAU) - PI;
+    let p = m.v.pos;
+    let track = m.v.vel[0].atan2(m.v.vel[1]);
+    let b = (t.pos[0] - p[0]).atan2(t.pos[1] - p[1]);
+    let h = if t.launch && t.ir {
+        b
+    } else if wrap(b + FRAC_PI_2 - track).abs() < wrap(b - FRAC_PI_2 - track).abs() {
+        b + FRAC_PI_2
+    } else {
+        b - FRAC_PI_2
+    };
+    let to = p + Vec3::new(h.sin(), h.cos(), 0.0) * 50_000.0;
+    let g = if t.launch { DEFEND_G.1 } else { DEFEND_G.0 };
+    // Flares decoy only with the afterburner out (player_weapons.gd's decoy rule).
+    let thr_max = if t.ir { MILITARY } else { 1.0 };
+    (Steer { to, g, speed: DEFEND_SPEED, thr_max }, wrap(h - track) > 0.0)
+}
+
+/// A threat on it (its RWR's lock, its MAW's missile): the call at once (a lock: "spike" from the air, "mud" from the
+/// ground; a launch: "defending"), heard after its reaction time; then the defence ([`defence`]) with a decoy (chaff
+/// against a radar, flares against infrared) each decision. Clear for [`CLEAR_S`], it goes back (its rejoin or its
+/// route).
+pub(crate) fn defend(m: &mut Member) -> Status {
+    let Some(t) = m.threat else {
+        m.cue = None;
+        if !m.defending {
+            m.called_level = 0;
+            return Status::Failure;
+        }
+        if m.now < *m.clear_since.get_or_insert(m.now) + CLEAR_S {
+            return Status::Running; // the turn held
+        }
+        (m.defending, m.called_level, m.clear_since) = (false, 0, None);
+        return Status::Failure;
+    };
+    m.clear_since = None;
+    let level = 1 + t.launch as u8;
+    if level > m.called_level {
+        m.called_level = level;
+        m.calls.push(if t.launch {
+            "defending"
+        } else if t.ground {
+            "mud"
+        } else {
+            "spike"
+        });
+    }
+    if m.now < *m.cue.get_or_insert(m.now) + m.skill.reaction_s {
+        return Status::Failure;
+    }
+    m.defending = true;
+    m.order.steer = Some(defence(m, &t).0);
+    m.order.decoy = Some(if t.ir { Decoy::Flare } else { Decoy::Chaff });
+    m.order.mode = Some(autopilot::MODE_STEER);
+    Status::Running
+}
+
 /// A member's order to its autopilot and flight model (the tests and the Godot class alike).
 pub fn apply(o: &Order, ap: &mut Autopilot, fm: &mut Fm) {
     ap.leader = o.leader;
     ap.slot = o.slot;
     ap.avoid = o.avoid;
+    if o.steer.is_some() {
+        ap.steer = o.steer;
+    }
     if let Some(i) = o.wp_index {
         ap.wp_index = i;
     }
