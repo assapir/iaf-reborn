@@ -30,4 +30,4 @@ The TACAN gives the bearing and distance to a ground station. Set its channel an
 
 With the gear down the HUD shows the ILS's two needles, the localizer and the glide slope, for the runway. The approach is in @landing.
 
-#in-sim[#term("Not modelled"): the ILS's own frequencies (the ILS serves the runway at any frequency), marker beacons, the INS's position error and its updates.]
+#in-sim[#row("ils-vol-knob") at OFF #sym.arrow.r *the ILS needles go from the HUD and the ADI*; #row("tacan-vol-knob") at OFF #sym.arrow.r *the EHSI's TACAN bearing and distance go*#fm[figure 1-79, page 1-190]. #term("Not modelled"): the stations' identification tones, the ILS's own frequencies (the ILS serves the runway at any frequency), marker beacons, the INS's position error and its updates.]

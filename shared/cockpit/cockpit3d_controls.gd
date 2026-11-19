@@ -566,7 +566,8 @@ func _system_put(name: String, v: float, was := NAN) -> void:
 		"ipp_start":  # the F-35I's IPP knob turned to START (its last position): the engine start, as the key's
 			if v > 1.5:
 				tv._press([212, 1, 0])
-		"alt_gear":  # the F-35I's ALT GEAR EXTENSION: the gear down when it is up (command 14 moves the lever)
+		"alt_gear":  # the F-35I's ALT GEAR EXTENSION, the F-16's ALT GEAR handle: the gear down when it is up (command 14
+			# moves the lever; T.O. GR1F-16CJ-1 p. 1-106)
 			if on and not tv.gear_down:
 				tv._press([14, 0, 0])
 		"alt_flaps":  # command 12 flips the flaps lever
@@ -608,6 +609,9 @@ func _system_put(name: String, v: float, was := NAN) -> void:
 			if on:
 				tv.cockpit.indicators[0] = false
 				tv.cockpit_3d.acknowledge()
+		"f_ack":  # the F-16's F-ACK push: the pilot fault list's next page acknowledged, or a fault recall
+			if on:
+				tv.cockpit_3d.fault_ack()
 		"elec_reset":  # the ELEC panel's CAUTION RESET: ELEC SYS's part of MASTER CAUTION out (FlightGear's)
 			if on:
 				tv.cockpit_3d.acknowledge(true)

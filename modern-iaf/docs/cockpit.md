@@ -882,6 +882,41 @@ PARKING BRAKE up at 1, MASTER FUEL up at MASTER, ENG FEED and FUEL QTY SEL turni
 order, DRIFT C/O up at DRIFT C/O and down at WARN RESET, the rockers pressed at their arrow's end as they rise. None
 was reversed.
 
+### 5.9 The controls that moved only (2026-11-19)
+
+The user, 18 November 2026: "How much of our controls actually controls?" and "Prefer finishing things before moving
+to new things". The status data (`f16_status.json`) listed 47 F-16 controls that moved and did nothing. These now work
+the system the sim has behind them; each is a click on the 3D control (no new keys). `cockpit3d.gd` `_systems` reads
+the switches each frame; F-ACK and ALT GEAR are table rows with a `system` (`f16_controls.json`).
+
+| control (node) | what it does |
+|---|---|
+| OXY QTY test (`SW_TEST_OXY`, held) | the LIQUID OXYGEN pointer runs toward 0 (2 L a second, inferred); below 0.5 L OXY LOW and MASTER CAUTION light; let go, the pointer returns and the light goes out[^fm-oxy] |
+| EPU (`SW_EPU`, OFF / NORM / ON) and its guard (`SW_EPU_COVER`) | ON runs the EPU; NORM, and OFF in flight once it was at NORM since take-off, runs it when the main and standby generators are off line in flight (the engine stopped, or both generators failed); the guard shut puts the switch at NORM[^fm-epu]. Running: EPU run lit; AIR lit while it is commanded; HYDRAZN lit while the engine is below 80 % rpm (inferred from the EPU check[^fm-epu-check]), and EPU FUEL falls from 100 % over 10 minutes; with no hydrazine left it runs only on bleed air. EPU GEN and EPU PMG light while it is commanded and not running (inferred). The EPU's power and pressure are not separate sources: the jet keeps its hydraulics and power as before |
+| HORN SILENCER (`horn_silencer`) | the LG warning horn sounds with TO/LDG CONFIG's gear condition (below 10,000 ft and 190 kt, descending faster than 250 ft a minute, a leg not down and locked); the button silences it until that condition ends[^fm-horn]. The horn is our own tone (800 Hz, a quarter second on and off; inferred), `flight_sounds.gd` `gear_horn` |
+| ALT GEAR handle (`alt-gear`) | pulled, the gear comes down when it is up (command 14, as the F-35I's ALT GEAR)[^fm-horn] |
+| GND JETT ENABLE (`SW_GND_JETT`) | at ENABLE the emergency and selective jettisons work on the ground too (`player_weapons.gd` `gnd_jett`)[^fm-wow] |
+| VOICE MESSAGE (`voice-msg-switch`) | INHIBIT silences every Betty call (`flight_sounds.gd` `vms_inhibit`)[^fm-vms] |
+| F-ACK (`f-ack`) | acknowledges the pilot fault list's page: its messages leave the PFLD and their FLCS FAULT, ENGINE FAULT or AVIONICS FAULT light and MASTER CAUTION go out; the system codes stay while the fault does. Pressed with nothing left to acknowledge, it recalls every active fault to the list, their lights staying out; a fault no longer reported is forgotten[^fm-pfld] (`cockpit.gd` `pfl_acked`) |
+| COMM 1 knob (`COMM1_KNOB`) | the radio calls' volume, nothing at OFF[^fm-audio]; at the position the model shows it at, the game's level (inferred) |
+| ILS knob (`ils-vol-knob`) | at OFF the ILS receiver is off: no ILS on the HUD or the ADI[^fm-audio] (partly: the sim plays no localizer identification) |
+| TACAN knob (`tacan-vol-knob`) | at OFF the TACAN is off: no TCN bearing or range on the EHSI[^fm-audio] (partly: no station identification) |
+| INTERCOM knob (`intercom-knob`) | the threat warning tones' level, over their own THREAT and MSL knobs[^fm-audio] (partly: the AIM-9's tone keeps its own) |
+| MAX POWER (`SW_MAX_POWER`) | nothing: the switch is inoperative on the real jet too[^fm-maxpwr] |
+
+The lamps and gauges they drive work too: EPU run, AIR, HYDRAZN, EPU GEN, EPU PMG, OXY LOW, EPU FUEL and LIQUID
+OXYGEN.
+
+These stay "moves only", each with its reason in the status data: AB RESET / ENG DATA, PBG test, TANK INERTING, COMM
+2, the clock's elapsed-time button, TEMP, LEFT HDPT, ENGINE ANTI-ICE, the two ANT SEL switches, the oxygen
+regulator's three levers, the KY-58's four knobs and PLAIN / CIPHER, the nuclear consent switch and its cover, IFF
+IDENT, the ICP's WX and FLIR rocker, EXT FUEL TRANS, and the CMDS's JMR, O1 and O2 (parked, or no system behind them).
+Still to wire: ALT REL, the RF switch, the autopilot's PITCH and ROLL switches, the HUD's TEST switch, GPS power and
+the threat display's brightness knob.
+
+Test: `modern-iaf/tests/test_move_only_wired.gd` (the Barak on the ground: OXY QTY, the EPU at ON, GND JETT, VOICE
+MESSAGE, COMM 1, INTERCOM and ILS at OFF, F-ACK and recall, the horn's loop).
+
 ### 5.4 The AoA probe (2026-11-11, from the user's Mac)
 
 On the ground the AoA gauge and the indexer jumped about: the 6-DoF's α is the angle of the body's velocity, which
@@ -1234,3 +1269,12 @@ openstreetmap.org/copyright" (also in [docs/credits.md](../../docs/credits.md)).
 [^fm-warn]: T.O. GR1F-16CJ-1, page 1-77 (the FUEL mnemonic "may be manually reset by placing the WARN RESET switch to WARN RESET"), page 1-145 (WARN RESET resets the voice warnings) and figure 3-1, sheet 5 (a flashing FUEL reset by WARN RESET on the ICP).
 [^fm-drift]: Inferred from the switch's name and FlightGear's F-16 (`Nasal/HUD/HUD_main.nas`: at DRIFT C/O the marker's x is the HUD's centre); T.O. GR1F-16CJ-1 does not describe the switch (open).
 [^fm-icp]: Inferred from the wheel's label and FlightGear's F-16 (`Nasal/HUD/HUD_main.nas`, the CONT and BRT wheels set the HUD's FLIR picture); T.O. GR1F-16CJ-1 does not describe the wheels (open).
+[^fm-oxy]: T.O. GR1F-16CJ-1 (https://archive.org/details/haf-f-16), figure 1-71, sheet 3, page 1-179 (OXY QTY "Drives pointer ccw toward 0. As pointer passes 0.5 liter, OXY LOW caution light comes on"; OXY LOW below 0.5 liter).
+[^fm-epu]: T.O. GR1F-16CJ-1, page 1-99 (the EPU switch's OFF, NORM and ON; the guard holds it at NORM; the EPU run, HYDRAZN and AIR lights; EPU FUEL in percent of hydrazine) and section III, page 3-100 ("the EPU should provide a minimum operation of 10 minutes (HYDRAZN light on)").
+[^fm-epu-check]: T.O. GR1F-16CJ-1, section II, page 2-19 (the EPU check: if the run light does not come on, "advance the throttle to idle rpm plus … 10 percent (85 percent rpm maximum)").
+[^fm-horn]: T.O. GR1F-16CJ-1, page 1-106 (the ALT GEAR handle; the LG warning horn, "an intermittent fixed volume signal which sounds in the headset", and its conditions; HORN SILENCER: "If the warning condition is eliminated, the horn resets").
+[^fm-wow]: T.O. GR1F-16CJ-1, figure 1-38, page 1-107 (the WOW switches: on the ground stores are emergency jettisoned only with GND JETT ENABLE in ENABLE).
+[^fm-vms]: T.O. GR1F-16CJ-1, page 1-146 ("Placing the switch to INHIBIT disables all voice messages").
+[^fm-pfld]: T.O. GR1F-16CJ-1, pages 1-146 and 1-147 (the PFLD; F-ACK acknowledges a caution level fault, clearing it from the PFLD and putting out its caution light and MASTER CAUTION; later presses recall the faults still reported).
+[^fm-audio]: T.O. GR1F-16CJ-1, figure 1-79, pages 1-188 to 1-190 (COMM 1: "The OFF position removes power from the UHF radio"; ILS and TACAN: OFF removes power from the receiver, clockwise the identification's volume; INTERCOM: the volume of the AIM-9 tone and the threat warning tones).
+[^fm-maxpwr]: T.O. GR1F-16CJ-1, pages 1-39 (PW 229) and 1-53 (GE 129): "The MAX POWER switch … is inoperative".

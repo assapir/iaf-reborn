@@ -58,6 +58,7 @@ var shown := {}
 var switches := {}
 const HDG_BUG := "instrumentation/heading-indicator/heading-bug-deg"
 const COURSE := "instrumentation/nav[0]/radials/selected-deg-knob"
+const TACAN_KNOB := "instrumentation/tacan/volume"
 
 
 func _init(c: Control, k: Kind, px: Vector2i) -> void:
@@ -193,7 +194,11 @@ func _ehsi() -> void:
 	# Modern IAF's F-16s: the steerpoints with the markpoints, none until the INS navigates; TCN (the M button) the
 	# TACAN station's bearing and range (IafUfc.tacan; no range in REC).
 	var route: Array = cockpit.steer_route() if cockpit.ins_nav() else []
-	var tcn: Dictionary = cockpit.ufc.tacan(cockpit.ufc_nav()) if cockpit.ufc != null and cockpit.ehsi_tcn else {}
+	# The TACAN receiver is off at its AUDIO 2 knob's OFF stop.
+	var tacan_on := float(switches.get(TACAN_KNOB, 1.0)) > 0.0
+	var tcn: Dictionary = (
+		cockpit.ufc.tacan(cockpit.ufc_nav()) if cockpit.ufc != null and cockpit.ehsi_tcn and tacan_on else {}
+	)
 	if cockpit.ehsi_tcn and cockpit.ufc != null:
 		route = []
 		if not tcn.is_empty():
@@ -285,7 +290,7 @@ func _ded() -> void:
 ## 3-5 the first three faults, a third line framed by ▼ when more wait.
 func _pfl() -> void:
 	draw_rect(Rect2(Vector2.ZERO, size), PFL_BG)
-	var lines := pfl_lines(cockpit.damage_flags)
+	var lines := pfl_lines(cockpit.damage_flags, cockpit.pfl_acked)
 	var fs := int(size.y * 0.1)
 	for i in 5:
 		draw_string(
@@ -300,14 +305,20 @@ func _pfl() -> void:
 	shown = {"lines": lines}
 
 
-## The fault list's five lines for the damage `flags` (_pfl; the HUD's DED DATA at PFL, cockpit.gd hud_panel_input).
-static func pfl_lines(flags: Array) -> Array:
+## The FAULTS rows active in the damage `flags`.
+static func pfl_faults(flags: Array) -> Array:
+	return FAULTS.filter(func(f): return f[0].any(func(i: int) -> bool: return i < flags.size() and bool(flags[i])))
+
+
+## The fault list's five lines for the damage `flags` (_pfl; the HUD's DED DATA at PFL, cockpit.gd hud_panel_input):
+## the system codes of every active fault, the faults not in `acked` (F-ACK's, cockpit3d.gd fault_ack).
+static func pfl_lines(flags: Array, acked := []) -> Array:
 	var faults := []
 	var classes := [false, false, false]
-	for f in FAULTS:
-		if f[0].any(func(i: int) -> bool: return i < flags.size() and bool(flags[i])):
+	for f in pfl_faults(flags):
+		classes[maxi(f[1] - 1, 0)] = true
+		if not acked.has(f[2]):
 			faults.append(f[2])
-			classes[maxi(f[1] - 1, 0)] = true
 	var lines := [
 		(
 			"  %s     %s     %s"

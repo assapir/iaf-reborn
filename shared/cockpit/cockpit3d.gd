@@ -910,11 +910,12 @@ func release() -> void:
 		_sun.directional_shadow_split_1 = _split
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	if cockpit == null:
 		return
 	if clickable != null:
 		clickable.sync()  # the switches wired to a system show its state
+		_systems(delta)
 	for a in _anims:
 		var xf: Transform3D = a[1]
 		var recs: Array = a[2]
@@ -1609,6 +1610,16 @@ func _lamp_on(key: String) -> bool:
 		"rwr_launch":
 			var launch: bool = cockpit.rwr.any(func(e): return e.active and e.launch)
 			return launch and int(Time.get_ticks_msec() / BLINK_MS) % 2 == 0
+		"epu_run":  # the turbine at speed (_epu)
+			return bool(epu.run)
+		"epu_air":  # commanded to run, also when hydrazine helps it
+			return bool(epu.commanded)
+		"epu_hydrazine":  # commanding hydrazine, whether any is left or not
+			return bool(epu.hydrazine)
+		"epu_gen", "epu_pmg":  # commanded but not running: its generator and PMG give no power (inferred)
+			return bool(epu.commanded) and not bool(epu.run)
+		"caution_oxy_low":  # below 0.5 L (the OXY QTY test drives the pointer there)
+			return _lox < LOX_LOW_L
 	return false
 
 
@@ -1643,12 +1654,10 @@ func _twd() -> Dictionary:
 	return cockpit.ews.get("twd", {}) if cockpit.ews != null else {}
 
 
-## A fault of the pilot fault list's class `c` (1 FLCS, 2 ENG, 3 AV) in the damage flags (cockpit3d_display.gd FAULTS).
+## A fault of the pilot fault list's class `c` (1 FLCS, 2 ENG, 3 AV) in the damage flags (cockpit3d_display.gd FAULTS),
+## not acknowledged by F-ACK (fault_ack).
 func _fault_class(c: int) -> bool:
-	var flags: Array = cockpit.damage_flags
-	return Display.FAULTS.any(
-		func(f): return f[1] == c and f[0].any(func(i: int) -> bool: return i < flags.size() and bool(flags[i]))
-	)
+	return Display.pfl_faults(cockpit.damage_flags).any(func(f): return f[1] == c and not _faults_acked.has(f[2]))
 
 
 ## The caution panel's lamps lit and acknowledged (key -> MASTER CAUTION pushed since it lit): a new one lights MASTER
@@ -1673,19 +1682,19 @@ func acknowledge(elec := false) -> void:
 			_cautions[key] = true
 
 
-## The ADI's ILS bars show while the HUD shows its ILS (NAV mode, the gear handle down: hud.gd), as the MiG-23's ПНП
-## bars (gauges.gd pnp_live).
+## The ADI's ILS bars show while the HUD shows its ILS (NAV mode, the gear handle down: hud.gd; the ILS knob off its
+## OFF stop), as the MiG-23's ПНП bars (gauges.gd pnp_live).
 func _ils_live() -> bool:
-	return int(cockpit.weapons.get("hud_mode", 0)) == 0 and cockpit.gear_handle_down
+	return int(cockpit.weapons.get("hud_mode", 0)) == 0 and cockpit.gear_handle_down and ils_power()
 
 
 ## The F-16's normal hydraulic pressure, psi (both systems).
 const HYD_PSI := 3000.0
-## The EPU fuel (hydrazine) gauge's full tank: FlightGear's 10 min (f16-base.xml hydrazine-minutes); the game has no
-## EPU.
+## The EPU fuel (hydrazine) gauge's full tank: FlightGear's 10 min (f16-base.xml hydrazine-minutes), the flight
+## manual's "minimum operation of 10 minutes (HYDRAZN light on)" (_epu).
 const EPU_FULL_MIN := 10.0
 ## The liquid oxygen quantity (FlightGear's full 5 L) and the oxygen regulator's pressure (its 75 psi with oxygen in
-## the tank): fixed, the game has no oxygen system (inferred).
+## the tank): full, the sim breathes none (inferred); the OXY QTY test drives the quantity's pointer down (_systems).
 const LOX_FULL_L := 5.0
 const OXY_PSI := 75.0
 ## FlightGear's slip ball (its SlipSkidBall): 10 × the lateral over the normal acceleration, the normal one at least
@@ -1719,9 +1728,9 @@ func _instrument_prop(p: String) -> float:
 		"f16/cockpit/pressure-ft":
 			return _cabin_alt_ft()
 		"f16/cockpit/hydrazine-minutes":
-			return EPU_FULL_MIN
+			return _hydrazine_min
 		"f16/cockpit/oxygen-liters-output":
-			return LOX_FULL_L
+			return _lox
 		"f16/avionics/oxy-psi":
 			return OXY_PSI
 		"controls/gear/gear-down":
@@ -1737,3 +1746,118 @@ func _instrument_prop(p: String) -> float:
 		var k := pow(10.0, float(p.right(1)) - 1.0)
 		return fmod(floorf(float(s.get("fuel_flow_pph", 0.0)) / k), 10.0)
 	return 0.0
+
+
+# The F-16s' controls that moved only until 2026-11-19 (modern-iaf/docs/cockpit.md §5.9), read each frame from
+# `switches`: the EPU, the OXY QTY test, the LG warning horn and its silencer, the AUDIO panels' knobs, VOICE MESSAGE,
+# GND JETT ENABLE. Only a cockpit whose controls hold the EPU switch (the F-16s' table) has them.
+const EPU_SW := "fdm/jsbsim/elec/switches/epu"
+const OXY_TEST := "controls/test/test-panel/oxy-test"
+const HORN_CUTOUT := "controls/gear/gear-horn-cutout"
+const VMS_INHIBIT := "f16/avionics/voice-msg-inhibit"
+const GND_JETT := "f16/avionics/gnd-jett"
+## The AUDIO panels' knobs with OFF at their stop (COMM 1, ILS, TACAN) and INTERCOM, and the position the model shows
+## each at (f16.json `modelled`): there the sound keeps the game's own level (inferred), louder clockwise.
+const AUDIO_KNOBS := {
+	"comm1": ["instrumentation/comm[0]/volume", 0.36],
+	"ils": ["f16/avionics/ils-volume", 0.48],
+	"tacan": ["instrumentation/tacan/volume", 0.48],
+	"intercom": ["f16/avionics/intercom-volume", 0.48],
+}
+## OXY LOW lights below this quantity (T.O. GR1F-16CJ-1 p. 1-179).
+const LOX_LOW_L := 0.5
+## The quantity pointer's speed toward 0 while OXY QTY is held, and back after (L/s, inferred).
+const LOX_TEST_LPS := 2.0
+## Below this rpm the engine's bleed air does not turn the EPU and hydrazine helps it (inferred from the EPU check's
+## "advance the throttle to idle rpm plus 10 percent", T.O. GR1F-16CJ-1 p. 2-19).
+const EPU_BLEED_RPM := 0.8
+
+var _lox := LOX_FULL_L
+var _hydrazine_min := EPU_FULL_MIN
+## The EPU this frame (_epu): commanded to run, burning hydrazine, running.
+var epu := {"commanded": false, "hydrazine": false, "run": false}
+var _horn_silenced := false
+## The faults F-ACK acknowledged (fault_ack): their caution lamps out, also after a recall.
+var _faults_acked: Array = []
+## The EPU switch at NORM or ON at some time since take-off (on the ground: now): at OFF in flight it then still starts
+## with both generators off line (T.O. GR1F-16CJ-1 p. 1-99).
+var _epu_armed := true
+
+
+func _systems(delta: float) -> void:
+	if not switches.has(EPU_SW):
+		return
+	_lox = move_toward(_lox, 0.0 if _sw(OXY_TEST) else LOX_FULL_L, LOX_TEST_LPS * delta)
+	var tv := _tv()
+	var st: Dictionary = tv.flight.state() if tv != null and tv.get("flight") != null else {}
+	var ground := bool(st.get("on_ground", true))
+	_epu(delta, ground)
+	_forget_faults()
+	# The LG warning horn sounds while TO/LDG CONFIG's gear condition holds; HORN SILENCER quiets it until that ends.
+	var warn: bool = cockpit.power >= 1 and bool(cockpit.state.get("better", {}).get("to_ldg_config", false))
+	_horn_silenced = warn and (_horn_silenced or _sw(HORN_CUTOUT))
+	if tv == null:
+		return
+	if tv.get("sounds") != null:
+		tv.sounds.gear_horn(warn and not _horn_silenced)
+		tv.sounds.vms_inhibit = _sw(VMS_INHIBIT)
+		tv.sounds.radio_gain = audio_gain("comm1")
+	if tv.get("weapons") != null:
+		tv.weapons.gnd_jett = _sw(GND_JETT)
+		tv.weapons.rwr.intercom = audio_gain("intercom")
+
+
+## The level of AUDIO_KNOBS `name`'s sound: 0 at OFF, 1 at the model's position (1 too in a cockpit without the knob).
+func audio_gain(name: String) -> float:
+	var k: Array = AUDIO_KNOBS[name]
+	return float(switches.get(k[0], k[1])) / float(k[1])
+
+
+## The EPU (T.O. GR1F-16CJ-1 p. 1-99): ON commands it to run; NORM, and OFF in flight after NORM since take-off, when
+## the main and standby generators are off line in flight (the battery's power with the engine stopped, or both
+## failed: damage 21). Below EPU_BLEED_RPM it burns hydrazine, EPU_FULL_MIN of it; with none left it runs only on
+## bleed air.
+func _epu(delta: float, ground: bool) -> void:
+	var pos := roundi(_knob(EPU_SW))  # 0 OFF, 1 NORM, 2 ON
+	var flags: Array = cockpit.damage_flags
+	var gens_out: bool = cockpit.power == 1 or (flags.size() > 21 and bool(flags[21]))
+	_epu_armed = pos >= 1 or (_epu_armed and not ground)
+	var cmd: bool = cockpit.power >= 1 and (pos == 2 or (not ground and gens_out and _epu_armed))
+	var bleed := _phase() == "running" and float(cockpit.state.get("rpm", 0.0)) >= EPU_BLEED_RPM
+	var hyd: bool = cmd and not bleed
+	if hyd:
+		_hydrazine_min = maxf(_hydrazine_min - delta / 60.0, 0.0)
+	epu = {"commanded": cmd, "hydrazine": hyd, "run": cmd and (bleed or _hydrazine_min > 0.0)}
+
+
+## The ILS receiver powered (its AUDIO 2 knob off its OFF stop).
+func ils_power() -> bool:
+	return audio_gain("ils") > 0.0
+
+
+## F-ACK pushed (T.O. GR1F-16CJ-1 p. 1-146): the next page (three) of the pilot fault list acknowledged: off the list,
+## its FAULT caution lamp out (_faults_acked) and MASTER CAUTION reset for those cautions; with none left to
+## acknowledge, a fault recall: every active fault listed again, the lamps staying out. A fault no longer reported is
+## forgotten (_systems).
+func fault_ack() -> void:
+	var waiting: Array = Display.pfl_faults(cockpit.damage_flags).filter(
+		func(f): return not cockpit.pfl_acked.has(f[2])
+	)
+	if waiting.is_empty():
+		cockpit.pfl_acked.clear()
+		return
+	for f in waiting.slice(0, 3):
+		cockpit.pfl_acked.append(f[2])
+		if not _faults_acked.has(f[2]):
+			_faults_acked.append(f[2])
+	cockpit.indicators[0] = false  # the game's MASTER CAUTION of a hit
+	for key in ["caution_flt_cont_sys", "caution_engine_fault", "caution_avionics"]:
+		if _cautions.has(key):
+			_cautions[key] = true
+
+
+## The acknowledged faults off the lists once no longer reported.
+func _forget_faults() -> void:
+	var active: Array = Display.pfl_faults(cockpit.damage_flags).map(func(f): return f[2])
+	cockpit.pfl_acked = cockpit.pfl_acked.filter(func(t): return active.has(t))
+	_faults_acked = _faults_acked.filter(func(t): return active.has(t))

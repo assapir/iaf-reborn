@@ -41,7 +41,13 @@ var threat_volume := 1.0
 var launch_volume := 1.0:
 	set(v):
 		launch_volume = v
-		scaled(_launch_loop, v)
+		scaled(_launch_loop, v * intercom)
+## Ours, the F-16's AUDIO 2 INTERCOM knob (cockpit3d.gd audio_gain): the level of the threat tones on the intercom.
+var intercom := 1.0:
+	set(v):
+		if v != intercom:
+			intercom = v
+			scaled(_launch_loop, launch_volume * v)
 
 ## Owner callbacks: unit(key) -> {pos, klass, type, state} or {} (gone); own() -> {pos, yaw};
 ## play(code, sub1) -> Node; stop(Node); now() -> sim seconds.
@@ -94,7 +100,7 @@ func launch(key: String, missile := {}) -> void:
 		return
 	if _launch_loop == null or not is_instance_valid(_launch_loop):
 		_launch_loop = play.call("SFX_WARNING", "WRN_MISSILE_LAUNCH") if play.is_valid() else null
-		scaled(_launch_loop, launch_volume)
+		scaled(_launch_loop, launch_volume * intercom)
 	if betty and play.is_valid():
 		play.call("VOC_BBETTY", "BTY_MISS")
 
@@ -173,7 +179,7 @@ func _sync() -> void:
 		if not ids.has(id):
 			_by_id.erase(id)
 	if _r.take_new_guy() and new_guy_tone and play.is_valid():
-		scaled(play.call("SFX_WARNING", "WRN_NEW_GUY"), threat_volume)
+		scaled(play.call("SFX_WARNING", "WRN_NEW_GUY"), threat_volume * intercom)
 
 
 ## Ours: a played sound `p` (flight_sounds.gd play) at `k` of its own volume.

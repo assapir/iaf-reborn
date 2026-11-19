@@ -97,7 +97,7 @@ display.
 |---|---|
 | `text/en/<cockpit>/systems.json` `panels` | per panel its id, title, area (left, front, right) and rows; a row is a node of the control table or of the model (`nodes`: several parts under one number, a lamp's segments or a rocker's halves), its label as the panel writes it, the full name, the positions, what it does in the real jet, and `sim`, what the sim does with it |
 | `numbers.json` | cockpit → panel → node → the number on its arrow. `python3 -I tools/manuals.py --numbers` gives a new row its panel's next number; a number given stays, so a row added later renumbers nothing and a removed row's number is not used again |
-| `shared/extra/models/cockpit3d/<cockpit>_status.json` | per control, lamp, gauge and display its state in the sim, `status` (`works`, `partly`, `moves`, `none`) and a short `note`: the controls from the audit of 18 November 2026 (F-16: 98 work, 11 partly, 54 move only; F-35I: 10, 5, 32), the lamps, gauges and displays traced to the reader of their state (`cockpit3d.gd` `_lamp_on`, `_prop`, `_instrument_prop`) |
+| `shared/extra/models/cockpit3d/<cockpit>_status.json` | per control, lamp, gauge and display its state in the sim, `status` (`works`, `partly`, `moves`, `none`) and a short `note`: the controls from the audit of 18 November 2026 (F-16: 98 work, 11 partly, 54 move only; F-35I: 10, 5, 32); on 2026-11-19 the F-16's 47 move-only controls went to 34 (cockpit.md §5.9), each left with its reason in the `note` or listed there as still to wire, the lamps, gauges and displays traced to the reader of their state (`cockpit3d.gd` `_lamp_on`, `_prop`, `_instrument_prop`) |
 | `pictures/<cockpit>/p_<panel>.jpg`, `overview_all.jpg`, `marks.json` | the panel's picture with each row's box; the whole cockpit's picture with each panel's box (§4) |
 
 The layout (`control-tables`) draws first the overview, one figure of the whole cockpit from above the seat with every
@@ -549,13 +549,13 @@ Parts:
   - An ejection works at any height: the low limits (50 m, 200 m inverted) only mark the recording's `eject` event
     `short` (`Settings.eject_ends_sortie`).
   - "Bingo" is spoken at a fixed 1,000 lb and 500 lb; the HUD's FUEL cue uses the pilot's bingo.
-  - The F-16's `alt-gear` handle moves only while the F-35I's ALT GEAR works; the hook, the EPU and the F-35I's ENG
-    FIRE push, FCS RESET, AUTO RECOVERY and ejection handle move only.
+  - The hook and the F-35I's ENG FIRE push, FCS RESET, AUTO RECOVERY and ejection handle move only.
   - With the brakes damaged (flag 5) the wheel brake key does nothing, but the parking brake still holds the wheels
     (`flight.rs` reads it apart from the key; found 2026-11-18, the manuals say so).
   - The notebook's EMERGENCY pages (`modern-iaf/data/notebook.json`) hold steps the sim cannot do: motoring after a
     hot start, an engine fire on the ground, the ejection handle.
-  - No horn or light warns of a low speed or of the gear up beyond TO/LDG CONFIG; `horn_silencer` moves only.
+  - No horn or light warns of a low speed. (The gear's horn and `horn_silencer`, the F-16's `alt-gear` and its EPU work
+    since 2026-11-19, cockpit.md §5.9.)
 - Found while writing chapters 4 and 5, the game's and listed, not changed here:
   - Nothing happens above the jet's speed limit (800 kt, Mach 2.05) or g limit: only the gear's limit damages.
   - The limits with the gear down (g, 15° angle of attack with stores, roll) and the rolling g limits are not there.

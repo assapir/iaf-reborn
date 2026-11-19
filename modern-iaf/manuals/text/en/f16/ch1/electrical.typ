@@ -28,5 +28,5 @@ With the engine off, MAIN GEN and STBY GEN are on, as no generator turns (inferr
   )
   - #sym.arrow.r *MAIN GEN and STBY GEN are on* until the generator is on line. *FLCS PMG and FLCS RLY are on* until the #term("JFS") turns the engine. *TO FLCS is on* while the engine is below 44~% in a start or a shutdown. *ELEC SYS is on* with any of them; CAUTION RESET acknowledges it. *MAIN GEN lights after damage to the main generator, MAIN GEN and STBY GEN after total damage* (@emergency-systems).
   - The engine gauges' needles move without electrical power.
-  - *#term("Not modelled").* The standby generator and the EPU as separate sources, bus failures; EPU GEN, EPU PMG and ACFT BATT FAIL light in the lamp test only.
+  - *#term("Not modelled").* The standby generator and the EPU as separate sources, bus failures; ACFT BATT FAIL lights in the lamp test only. *EPU GEN and EPU PMG light while the EPU is commanded and not running* (@hydraulic; inferred).
 ]

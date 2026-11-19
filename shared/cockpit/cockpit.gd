@@ -116,6 +116,8 @@ var indicators := [false, false, false, false, false, false, false, false, false
 ## The player's damage flags 0..24 (docs/damage.md §5) for the MFD damage page, and whether the jet
 ## has two engines (damage page ENG L / ENG R rows).
 var damage_flags: Array = []
+## The pilot fault list's messages F-ACK acknowledged (cockpit3d.gd fault_ack): off the list until a fault recall.
+var pfl_acked: Array = []
 var twin_engines := false
 var gear_handle_down := true
 var gear_legs := [2, 2, 2]
@@ -607,7 +609,7 @@ func hud_panel_input() -> Dictionary:
 	if int(hud_panel.ded) == 0:
 		ded = ded_lines()
 	elif int(hud_panel.ded) == 1:
-		ded = PackedStringArray(Display3D.pfl_lines(damage_flags))
+		ded = PackedStringArray(Display3D.pfl_lines(damage_flags, pfl_acked))
 	var ins: Array = state.get("ins", [3, 0.0, 0.0, true])
 	var align = null
 	if int(ins[0]) in [1, 2]:

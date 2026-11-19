@@ -180,6 +180,16 @@ static func create_engine(view_host: Node, flight, ent: Dictionary) -> Node:
 
 ## Every sound stopped for good (`silence`, Settings.eject_ends_sortie): nothing plays any more.
 var silenced := false
+## Ours, the F-16's VOICE MESSAGE switch at INHIBIT (cockpit3d.gd _systems): no Betty call (T.O. GR1F-16CJ-1 p. 1-146:
+## "Placing the switch to INHIBIT disables all voice messages").
+var vms_inhibit := false
+## Ours, the F-16's COMM 1 (UHF) knob (cockpit3d.gd audio_gain): the radio's level, nothing at OFF.
+var radio_gain := 1.0
+## Ours, the F-16's LG warning horn (gear_horn): "an intermittent fixed volume signal which sounds in the headset" (T.O.
+## GR1F-16CJ-1 p. 1-106); its pitch and rhythm inferred: HORN_HZ, half of each HORN_S on.
+const HORN_HZ := 800.0
+const HORN_S := 0.5
+var _horn: AudioStreamPlayer
 
 
 func silence() -> void:
@@ -631,6 +641,8 @@ func play(code: String, sub1 := "None") -> Node:
 	if silenced:
 		return null
 	var r: Dictionary = table.row(code, sub1) if table != null else {}
+	if code == "VOC_BBETTY" and vms_inhibit:
+		return null
 	if code == "VOC_BBETTY" and _betty_set != "original":
 		r = table.betty_rows.get(betty_call(sub1), {})  # Real Betty: the sim's clip, or silent
 	if r.is_empty():
@@ -681,10 +693,47 @@ func play_phrase_wav(file: String) -> Node:
 	var p := AudioStreamPlayer.new()
 	p.bus = SoundBuses.SPEECH
 	p.stream = s
+	p.volume_db = linear_to_db(maxf(radio_gain, 0.0001))
 	add_child(p)
 	p.finished.connect(_on_finished.bind(p))
 	_channel_play(101, p)
 	return p
+
+
+## The LG warning horn on or off (a loop of our own tone: no file).
+func gear_horn(on: bool) -> void:
+	on = on and not silenced
+	if on == (_horn != null):
+		return
+	if not on:
+		_horn.queue_free()
+		_horn = null
+		return
+	_horn = AudioStreamPlayer.new()
+	_horn.bus = SoundBuses.SFX
+	_horn.stream = horn_stream()
+	add_child(_horn)
+	_horn.play()
+
+
+## One HORN_S of the horn, looped: a square wave of HORN_HZ the first half, silence the second.
+static func horn_stream() -> AudioStreamWAV:
+	var rate := 22050
+	var n := int(rate * HORN_S)
+	var data := PackedByteArray()
+	data.resize(n * 2)
+	for i in n:
+		var v := 0
+		if i < int(n * 0.5):
+			v = 6000 if sin(TAU * HORN_HZ * i / rate) >= 0.0 else -6000
+		data.encode_s16(i * 2, v)
+	var w := AudioStreamWAV.new()
+	w.format = AudioStreamWAV.FORMAT_16_BITS
+	w.mix_rate = rate
+	w.data = data
+	w.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	w.loop_end = n
+	return w
 
 
 ## The row's volume in the cockpit or outside. An outside class of the cockpit sound model takes its outside volume

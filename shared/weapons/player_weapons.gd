@@ -1174,15 +1174,17 @@ var _racks_gone := {}
 var _bay_jett := []
 ## Weapon data Real: the F-16 SMS's selective jettison page is up (S-J, OSB 11): WPN REL jettisons, it does not fire.
 var sel_jett := false
+## The F-16's GND JETT ENABLE switch at ENABLE (cockpit3d.gd _systems): the jettisons work on the ground too.
+var gnd_jett := false
 
 
 ## Weapon data Real (ours, docs/real-weapons.md §1.11): the F-16's EMER STORES JETTISON, "a one-step operation which
 ## clears all expendable stores and racks except air-to-air missiles", released unarmed and unguided (T.O.
-## 1F-16A-1). One press; on the ground only with GND JETT ENABLE, which the sim does not model: refused there. No
-## release permission: the button works in any attitude. The F-35I the same way, its bay stores once the doors are
+## 1F-16A-1). One press; on the ground only with GND JETT ENABLE (gnd_jett; T.O. GR1F-16CJ-1 p. 1-107). No release
+## permission: the button works in any attitude. The F-35I the same way, its bay stores once the doors are
 ## open (inferred: no public F-35 jettison procedure).
 func emergency_jettison() -> void:
-	if not _wow():
+	if not _wow() or gnd_jett:
 		_jettison_stations(Stores.PYLONS)
 
 
@@ -1195,7 +1197,7 @@ func _wow() -> bool:
 ## the selected store goes, unarmed, with its rack (the manual's RACK selection); never the A-A missiles. The stations
 ## are the selected store's (ours: no station-by-station choice on the page).
 func selective_jettison() -> void:
-	if _wow():
+	if _wow() and not gnd_jett:
 		return
 	var t: int = stores.current_type()
 	var nm: String = stores.current_name()

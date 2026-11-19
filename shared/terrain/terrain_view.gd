@@ -4290,7 +4290,10 @@ func _process(delta: float) -> void:
 			float(runtime.misc.get("0x460", 0.0)) + runtime.now if runtime != null else float(st.time)
 		)
 		# The HUD ILS deviations (NAV HUD mode update 460130, docs/cockpit.md "ILS").
-		cockpit.state["ils"] = flight.ils()
+		if cockpit_3d == null or cockpit_3d.ils_power():  # the F-16's ILS knob at OFF: no ILS reading
+			cockpit.state["ils"] = flight.ils()
+		else:
+			cockpit.state.erase("ils")
 		# The cockpit state's instrument values (iaf_flight::instruments, docs/cockpit.md).
 		var ins: Dictionary = flight.instruments(player_damage.flags if player_damage != null else [])
 		for k in ins:

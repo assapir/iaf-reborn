@@ -222,6 +222,8 @@ func _draw() -> void:
 
 ## The ILS deviation lines (FUN_005309a0).
 func _draw_ils(st: Dictionary, w: float) -> void:
+	if not st.has("ils"):  # the F-16's ILS receiver off
+		return
 	var il := ils_lines(st.get("ils", Vector2.ZERO), _field(), not Settings.hud_subpixel())
 	var hx: float = 16
 	_ln(self, Vector2(-hx, il.y), Vector2(hx, il.y), w)

@@ -29,6 +29,7 @@ The pedals steer the nosewheel up to 32° to each side once the steering is enga
   - *Touchdown.* A sink rate above 10 ft a second damages the gear; above 13 ft a second, or with the gear moving, the jet is lost. A pitch of more than 15° at touchdown strikes the tail.
   - *Brakes.* #key("Wheel brakes (hold)") brakes both wheels on the ground while it is held. #row("SW_PARKING_BRAKE") at PARKING BRAKE holds them on with no key held; #key("Parking brake (set / off)") moves it too. The jet starts on the ground with the parking brake set. #sym.arrow.r *Release it before the taxi.* The speedbrakes have their own keys (@flight-controls). Anti-skid is always on.
   - *Steering.* The rudder pedals always steer the nosewheel on the ground, up to 32°; no button is needed. #sym.arrow.r *AR/NWS is on while the jet is on the ground.*
-  - *TO/LDG CONFIG* works as above; the horn is silent.
-  - *#term("Not modelled").* ALT GEAR, the brake channels and DN LOCK REL; the HOOK switch only lights the #row("lamp_caution_hook_0") caution; the jet has no drag chute.
+  - *TO/LDG CONFIG* works as above #sym.arrow.r *and the horn sounds with it in the headset*; #row("horn_silencer") #sym.arrow.r *silences it until the condition ends.*
+  - #row("alt-gear") pulled with the gear up #sym.arrow.r *the gear comes down.*
+  - *#term("Not modelled").* The brake channels and DN LOCK REL; the HOOK switch only lights the #row("lamp_caution_hook_0") caution; the jet has no drag chute.
 ]

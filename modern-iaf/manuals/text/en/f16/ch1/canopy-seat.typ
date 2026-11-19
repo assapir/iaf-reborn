@@ -31,7 +31,8 @@ Air bled from the engine pressurises and cools the cockpit and cools the avionic
 
 #in-sim[
   - *Canopy.* Hold #row("CANOPY_SWITCH") at CLOSE until the canopy is down (10 seconds for the whole travel), then put #row("CANOPY_SPIDER") down. #sym.arrow.r *CANOPY goes out.* To open, lift the handle and hold the switch at OPEN. #key("Canopy") does the whole sequence either way.
+  - *Oxygen.* Hold #row("SW_TEST_OXY") at OXY QTY #sym.arrow.r *the LIQUID OXYGEN pointer runs toward 0, and below 0.5 litre OXY LOW and MASTER CAUTION light*; let go #sym.arrow.r *the pointer returns and OXY LOW goes out*#fm[figure 1-71, page 1-179].
   - *Ejection.* #key("Eject (press 3 times)"), pressed three times within a second, ejects.
   - *Cabin.* CABIN PRESS ALT follows the jet up to 8,000 ft, stays there up to about 23,000 ft and rises above that. With AIR SOURCE at OFF, DUMP or RAM it follows the jet all the way. #sym.arrow.r *CABIN PRESS lights above a cabin altitude of 27,000 ft.* *EQUIP HOT lights* with AIR SOURCE at OFF, or at RAM below 70 knots, once the avionics have power.
-  - *#term("Not modelled").* The seat's safety lever, which the cockpit does not have, and SEAT NOT ARMED; the canopy's seal; the canopy's jettison and its loss in flight; the oxygen system (the levers move, LIQUID OXYGEN shows a fixed value); the cabin's pressure and temperature have no effect on the pilot; the avionics do not fail from heat.
+  - *#term("Not modelled").* The seat's safety lever, which the cockpit does not have, and SEAT NOT ARMED; the canopy's seal; the canopy's jettison and its loss in flight; the oxygen system (the levers move, LIQUID OXYGEN stays full); the cabin's pressure and temperature have no effect on the pilot; the avionics do not fail from heat.
 ]

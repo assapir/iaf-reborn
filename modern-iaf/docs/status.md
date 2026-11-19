@@ -27,6 +27,12 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   CON and GAIN rockers set each display's contrast and sensor picture (Shift + 7 / 8 / 9 / 0). Partly: the HUD's CONT
   wheel (Ctrl + H) washes out the symbols' edges, a stand-in: the HUD draws no infrared picture. The directions of
   these and of the fuel and brake switches were checked: none reversed.
+- **The F-16s' controls that moved only (2026-11-19, [cockpit.md](cockpit.md) §5.9):** of the 47 that moved and did
+  nothing, 13 work their system: the OXY QTY test (OXY LOW), the EPU and its guard (its lights and EPU FUEL), the LG
+  warning horn and HORN SILENCER, ALT GEAR, GND JETT ENABLE, VOICE MESSAGE, F-ACK (the fault list), COMM 1, MAX POWER
+  (inoperative on the real jet); partly ILS, TACAN and INTERCOM. 27 stay moves only with their reason in
+  `f16_status.json` (no system in the sim, or parked); 7 are still to wire (ALT REL, RF, the autopilot's PITCH and
+  ROLL, the HUD's TEST, GPS, the threat display's brightness). Test: `test_move_only_wired.gd`.
 - **The key faults the manuals exposed (2026-11-18; the user plays on a Mac laptop's keyboard, no HOTAS;
   [front-end.md](front-end.md) §9.1):** the speedbrakes have their own switch keys (Speedbrakes open (hold) on
   B, Speedbrakes close on Shift + B: open while held, they stay when let go; [flight-model.md](flight-model.md)

@@ -14,5 +14,6 @@ The #term("EPU") is a small turbine that starts by itself when both generators o
   The hydraulic system is #term("not modelled") as a system: pressure is there while the engine runs.
   - HYD PRESS A and B rise with the #term("RPM") to 3,000 psi.
   - #sym.arrow.r *HYD/OIL PRESS is on while the engine is stopped or turns slowly*, and after battle damage to the hydraulics; that damage also weakens the stick's authority.
-  - The EPU switch moves and does nothing; the EPU's lights come on in the lamp test only, and EPU FUEL shows a fixed value.
+  - #row("SW_EPU") at ON #sym.arrow.r *the EPU runs: EPU run and AIR light; below 80~% #term("RPM") HYDRAZN lights too and EPU FUEL falls* (10 minutes from full). At NORM it starts by itself when the generators are off line in flight. Shutting the guard puts the switch at NORM.
+  - The EPU's pressure and power are not separate sources: the hydraulics and the buses work as above with it or without it (80~% inferred).
 ]
