@@ -129,12 +129,13 @@ static func _arming_button(fe: Control, foot: Control) -> Button:
 	return b
 
 
-## FLIGHTS, in a mission of more than one (the player's, Alpha, and Bravo..; one flight shows none): a tab a flight,
+## FLIGHTS, in a mission of more than one flight (the player's, Alpha, and Bravo..) or of more than one jet (a
+## four-ship; one jet alone shows none): a tab a flight, named by its callsign and its jets' numbers ("Alpha 1–4"),
 ## the player's first and picked, and under them the picked flight's jets, task and stores (the player's as the Arming
 ## summary's). The picked flight's route stands out on the map (briefing_map.gd `selected`).
 static func _flights(fe: Control, parent: Control, m: Dictionary, map: Control) -> void:
 	var list: Array = fe.flights(m)
-	if list.size() < 2:
+	if list.is_empty() or (list.size() < 2 and int(list[0].count) < 2):
 		return
 	var fv: VBoxContainer = fe._vbox(parent, 8)
 	fv.name = "Flights"
@@ -147,7 +148,7 @@ static func _flights(fe: Control, parent: Control, m: Dictionary, map: Control) 
 	for f in list:
 		var b := Button.new()
 		b.name = "Flight_" + str(f.callsign)
-		b.text = fe._ltr(str(f.callsign))
+		b.text = fe._ltr(str(f.callsign) + (" 1–%d" % int(f.count) if int(f.count) > 1 else ""))
 		b.toggle_mode = true
 		b.button_group = group
 		_pill(b)
@@ -174,7 +175,7 @@ static func _flight_line(fe: Control, m: Dictionary, f: Dictionary) -> String:
 	for j in script.JETS + script.SOON:
 		if j.unit == unit:
 			name = fe.full_name(j)
-	parts.append("%d × %s" % [int(f.count), name])
+	parts.append(_unbroken("%d × %s" % [int(f.count), name]))
 	parts.append(fe.s("task_" + str(f.task)))
 	var stores: Array = fe.arming(m, fe.mission_loadout(m)).get("stores", []) if bool(f.player) else f.stores
 	parts.append(_stores_text(fe, stores))
@@ -187,8 +188,13 @@ static func _stores_text(fe: Control, stores: Array) -> String:
 	var parts := []
 	for st in stores:
 		if not (st.get("stations", [0]) as Array).is_empty():
-			parts.append("%d × %s" % [int(st.count), fe.short_store(str(st.weapon))])
+			parts.append(_unbroken("%d × %s" % [int(st.count), fe.short_store(str(st.weapon))]))
 	return " · ".join(parts) if not parts.is_empty() else fe.s("arm_empty")
+
+
+## `text` with no-break spaces: one item ("2 × 370 gal tank", "בידון 370") never wraps apart; the line breaks at " · ".
+static func _unbroken(text: String) -> String:
+	return text.replace(" ", "\u00a0")
 
 
 ## The facts: the runway with its heading (a take-off), the time, the wind, the time allowed.

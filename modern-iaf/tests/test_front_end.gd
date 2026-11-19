@@ -63,6 +63,7 @@ func run() -> void:
 	for lang in ["en", "he"]:
 		s.language = lang
 		await two_flights(fe, lang)
+		await four_ship(fe, lang)
 	s.language = "en"
 	await jet_missions(fe)
 	await prefs(fe)
@@ -384,7 +385,7 @@ func two_flights(fe: Control, lang: String) -> void:
 	b.button_pressed = true
 	await frames(1)
 	check(
-		map.selected == "Bravo" and detail.text.contains("2 × ") and detail.text.contains("F-15C"),
+		map.selected == "Bravo" and detail.text.contains("2\u00a0×\u00a0") and detail.text.contains("F-15C"),
 		"%s: flights: Bravo's line and route picked (%s)" % [lang, detail.text]
 	)
 	check(detail.text.contains(fe.s("task_cap")), "%s: flights: Bravo's task" % lang)
@@ -398,6 +399,38 @@ func two_flights(fe: Control, lang: String) -> void:
 	var edit: Button = fe.find_child("ArmEdit", true, false)
 	check(edit.get_node(edit.focus_neighbor_top) == a, "%s: flights: up from Edit the tabs" % lang)
 	check(a.get_node(a.focus_neighbor_bottom) == edit, "%s: flights: down from the tabs Edit" % lang)
+	fe.show_page("section")
+	await frames(2)
+
+
+## The four-ship (ai-plan.md F1): one flight of four jets shows the FLIGHTS card, its one tab "Alpha 1–4" and the line
+## "Your flight · 4 × F-16I Sufa …".
+func four_ship(fe: Control, lang: String) -> void:
+	var m: Dictionary = fe.mission_by_name("ramon_four_ship")
+	fe.section = "training"
+	fe.missions = [m]
+	fe.open_mission(0)
+	await frames(2)
+	var tabs: Control = fe.find_child("FlightTabs", true, false)
+	var a: Button = tabs.find_child("Flight_Alpha", false, false) if tabs != null else null
+	check(
+		tabs != null and tabs.get_child_count() == 1 and a != null and a.text.contains("Alpha\u00a01–4"),
+		"%s: four-ship: one tab, Alpha 1–4 (%s)" % [lang, a.text if a != null else "none"]
+	)
+	var detail: Label = fe.find_child("FlightDetail", true, false)
+	check(
+		(
+			detail != null
+			and detail.text.begins_with(fe.s("your_flight"))
+			and detail.text.contains("4\u00a0×\u00a0")
+			and detail.text.contains("F-16I")
+		),
+		"%s: four-ship: the flight's line (%s)" % [lang, detail.text if detail != null else "none"]
+	)
+	# Each item of the line stays whole when it wraps (a no-break space inside, "2 × בידון 370").
+	check(
+		detail != null and not detail.text.split(" · ")[-1].contains(" "), "%s: four-ship: the stores unbroken" % lang
+	)
 	fe.show_page("section")
 	await frames(2)
 
@@ -2158,7 +2191,7 @@ func _has_button(root: Node, t: String) -> bool:
 
 
 func _has_part(root: Node, t: String) -> bool:
-	return _labels(root).any(func(x): return t in x)
+	return _labels(root).any(func(x): return t in x.replace("\u00a0", " "))
 
 
 func _key_event(k: Key) -> InputEventKey:
