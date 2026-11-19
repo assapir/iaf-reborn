@@ -2,7 +2,7 @@
 
 #layout-head
 
-The navigation pod hangs under the left side of the intake. Its infrared camera (FLIR) draws a picture of the ground ahead on the HUD, under the HUD's symbols, by day and at night. On the F-16I the pod is the LANTIRN AN/AAQ-13, whose terrain-following radar (TFR) also flies the jet low over the ground; on the F-16D it is the Pathfinder, the FLIR only. The pod is a store: it must be loaded (@stores).
+The navigation pod hangs under the left side of the intake. Its infrared camera (FLIR) draws a picture of the ground ahead on the #term("HUD"), under the HUD's symbols, by day and at night. On the F-16I the pod is the LANTIRN AN/AAQ-13, whose terrain-following radar (TFR) also flies the jet low over the ground; on the F-16D it is the Pathfinder, the FLIR only. The pod is a store: it must be loaded (@stores).
 
 === Power and the FLIR format
 
