@@ -141,6 +141,8 @@ var _override_from := {}
 var laser_arm := true
 ## The jet flies the F-16's modern MFDs (Settings.modern_mfds with the F-16's real MFDs in its cockpit; set by setup).
 var modern_f16 := false
+## Ours: Modern IAF's F-35I (its panoramic display, pcd.gd): the WPN-S keeps the SMS profiles as the F-16's.
+var modern_f35 := false
 ## Ours, the modern F-16s' threat display, MAW, CMDS, AIFF and data link, Modern IAF's F-35I's with its combat ID
 ## (ews.gd; null on any other jet).
 var ews: RefCounted = null
@@ -284,6 +286,7 @@ func setup(host_node: Node, entity: Dictionary, object: Dictionary, bdb: Diction
 	modern_f16 = (
 		Settings.modern_mfds() and pit != null and Settings.real_mfd(Settings.cockpit_folder(pit.cockpit_dir)) != ""
 	)
+	modern_f35 = Settings.modern_mfds() and pit != null and pit.pcd != null
 	laser_arm = not modern_f16  # its LASER ARM starts OFF
 	if modern_f16:
 		var names := []
@@ -632,6 +635,10 @@ func mfd_event(ev: int, arg = null) -> void:
 			set_ag_submode(String(arg))  # ours: the SMS A-G submode menu's pick (cockpit/f16_mfd.gd)
 		-31, -32:
 			delivery_key(-30 - ev)  # ours: the SMS's fuze (OSB 18) and arming delay (OSB 17)
+		-6:
+			bay_doors_manual = not bay_doors_manual  # ours, the F-35I's SMS DOORS (pcd.gd, command 301)
+		-7:
+			gps_step_key()  # ours, the F-35I's WPN-S STEP: the next PRE target (key Shift+K)
 		0x37:
 			if String(arg) != harm.selected:  # FUN_005358b0: the selected entry sends nothing
 				harm.select(String(arg))
@@ -1927,7 +1934,7 @@ func ripple_event(ev: int, up: bool) -> void:
 		release_pairs = not release_pairs
 	else:
 		_ripple.step(ev == 0x4a, up)
-	if modern_f16:
+	if modern_f16 or modern_f35:
 		_ripple.keep_profile(stores.current_name(), release_pairs)  # the active SMS profile keeps them
 
 
@@ -2199,6 +2206,23 @@ func _arm_fuze(type: int) -> void:
 ## A store's fuze has armed by `at` (IafDelivery.armed); one without an arming record (the 1998 jets) always.
 func _fuze_armed(arm: Dictionary, at: float) -> bool:
 	return arm.is_empty() or ClassDB.class_call_static("IafDelivery", "armed", float(arm.t), at, float(arm.ad))
+
+
+## Ours, the F-35I's WPN-S: each bomb of the selected GPS store, in the release order: {station, bomb, target (its
+## PRE point or null), gone (released)}; [] with no GPS bomb selected (pre_targets, next_bomb).
+func gps_bomb_rows() -> Array:
+	var name: String = stores.current_name()
+	if stores.cur < 0 or stores.cur >= 9 or not stores.station(stores.cur).get("w", {}).has("gps"):
+		return []
+	var targets := pre_targets()
+	var out := []
+	for i in targets:
+		if String(stores.station(i).get("w", {}).get("name", "")) != name:
+			continue
+		var gone := next_bomb(i) if int(stores.station(i).get("count", 0)) > 0 else int(stores.station(i).initial)
+		for k in targets[i].size():
+			out.append({"station": i, "bomb": k, "target": targets[i][k], "gone": k < gone})
+	return out
 
 
 ## The station whose bomb goes next (the selected store's), -1 none.
@@ -3316,6 +3340,13 @@ func _publish() -> void:
 		"srm_head": seeker.head,
 		"msl_time": cues.moi,
 		"msl_targets": cues.targets,
+		# Ours, the F-35I's SMS: the bay stations (0-based pylons), the doors' opening and command, DOORS held; the
+		# selected GPS bomb's per-bomb targets (gps_bombs).
+		"internal": Stores.PYLONS.filter(func(i): return _internal(i)),
+		"bay": bay_fraction(),
+		"bay_cmd": bay_open(),
+		"bay_manual": bay_doors_manual,
+		"gps_bombs": gps_bomb_rows(),
 	}
 
 
@@ -3599,17 +3630,28 @@ func _build_visuals() -> void:
 	_update_store_nodes()
 
 
-## The weapon bays' doors are commanded open (a release from a bay station in the last BAY_HOLD s).
+## Ours, the F-35I's SMS DOORS (its click, command 301): the bay doors held open until it is pressed again.
+var bay_doors_manual := false
+
+
+## The weapon bays' doors are commanded open: DOORS, or a release from a bay station in the last BAY_HOLD s
+## (IafRelease.bay_doors).
 func bay_open() -> bool:
-	return now < _bay_until
+	return ClassDB.class_call_static("IafRelease", "bay_doors", bay_doors_manual, now, _bay_until)
 
 
-## Ours: a release from bay station i opens the doors (and keeps them open); true while they are not fully open.
+## The bay doors' opening (0 shut, 1 open), for the SMS.
+func bay_fraction() -> float:
+	return host.aircraft.bay_fraction() if host != null and host.aircraft != null else 0.0
+
+
+## Ours: a release from bay station i opens the doors (and keeps them open); true while they are not fully open
+## (IafRelease.bay_release_waits).
 func _bay_wait(i: int) -> bool:
 	if not _internal(i):
 		return false
 	_bay_until = maxf(_bay_until, now + (BAY_HOLD_REAL if db.real else BAY_HOLD))
-	return host.aircraft != null and host.aircraft.bay_fraction() < 1.0
+	return host.aircraft != null and ClassDB.class_call_static("IafRelease", "bay_release_waits", true, bay_fraction())
 
 
 ## Station i is in a weapon bay (descriptor `internal_stations`, letters A..J; ours).

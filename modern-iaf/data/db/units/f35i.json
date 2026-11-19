@@ -24,10 +24,10 @@
     "1": ["aim-9x"],
     "2": [],
     "3": ["gbu-31", "aim-120"],
-    "4": ["gbu-31", { "id": "gbu-39", "count": 4, "rack": "BRU-61/A", "rack_kg": 147, "rack_drag": 2.5 }],
+    "4": ["gbu-31", "spice-1000", { "id": "gbu-39", "count": 4, "rack": "BRU-61/A", "rack_kg": 147, "rack_drag": 2.5 }],
     "5": ["aim-120"],
     "7": ["aim-120"],
-    "8": ["gbu-31", { "id": "gbu-39", "count": 4, "rack": "BRU-61/A", "rack_kg": 147, "rack_drag": 2.5 }],
+    "8": ["gbu-31", "spice-1000", { "id": "gbu-39", "count": 4, "rack": "BRU-61/A", "rack_kg": 147, "rack_drag": 2.5 }],
     "9": ["gbu-31", "aim-120"],
     "10": [],
     "11": ["aim-9x"]
@@ -40,10 +40,11 @@
     { "weapon": "aim-120" },
     { "weapon": "aim-9x" },
     { "weapon": "gbu-31" },
-    { "weapon": "gbu-39" }
+    { "weapon": "gbu-39" },
+    { "weapon": "spice-1000" }
   ],
   "sources": {
-    "allowed": "w-f35-arm, afm-f35, rk-bru61, inferred",
+    "allowed": "w-f35-arm, afm-f35, rk-bru61, twz-spice, inferred",
     "tail": "model-937",
     "max_takeoff_kg": "lm-f35a, inferred",
     "type": "inferred",
@@ -57,12 +58,12 @@
     "internal": "w-f35-bays",
     "positions": "w1-f35, inferred",
     "pylons": "w-f35-bays",
-    "inventory": "w-f35-bays, inferred"
+    "inventory": "w-f35-bays, twz-spice, inferred"
   },
   "notes": {
     "positions": "each station's place as the Loadout screen names it: 1 / 11 outboard and 3 / 9 inboard on the wings, 4 / 8 the bays' outboard and 5 / 7 their inboard stations (w1-f35; the words inferred); 2 / 10 carry nothing in the sim and are left out",
     "lateral_limit_kgm": "open: no public figure for the F-35's asymmetric moment limit was found, so the briefing shows no imbalance warning for the Adir",
-    "allowed": "the stores each station takes, by its real number. Sourced: the AIM-120 on the bays' inboard stations 5 / 7, the GBU-31 on their outboard ones 4 / 8 (up to 2,500 lb) and four GBU-39 there on a BRU-61/A (w-f35-arm), the AIM-9X on the wingtip stations 1 / 11 only, not in the bays (w-f35-arm). Inferred: the GBU-31 on the inboard wing stations 3 / 9 (5,000 lb; w-f35-arm's six 2,000 lb bombs) and the AIM-120 there (afm-f35's eight AIM-120); the BRU-61/A's 147 kg (rk-bru61, unofficial); 2 / 10 take none (no pylon in the engine, stations); no Python on the Adir (not integrated on the F-35I as far as public sources show); each rack's rack_drag (drag index, flight-model.md §9.18) inferred as one of its stores' (a beam of about their cross-section)",
+    "allowed": "the stores each station takes, by its real number. Sourced: the AIM-120 on the bays' inboard stations 5 / 7, the GBU-31 on their outboard ones 4 / 8 (up to 2,500 lb) and four GBU-39 there on a BRU-61/A (w-f35-arm), the AIM-9X on the wingtip stations 1 / 11 only, not in the bays (w-f35-arm). Inferred: the GBU-31 on the inboard wing stations 3 / 9 (5,000 lb; w-f35-arm's six 2,000 lb bombs) and the AIM-120 there (afm-f35's eight AIM-120); the BRU-61/A's 147 kg (rk-bru61, unofficial); 2 / 10 take none (no pylon in the engine, stations); no Python on the Adir (not integrated on the F-35I as far as public sources show); each rack's rack_drag (drag index, flight-model.md §9.18) inferred as one of its stores' (a beam of about their cross-section). The SPICE 1000 (the user's yes, 17 Nov 2026, avionics-plan.md §8.6): carried internally as announced (twz-spice: \"expected to be carried internally\"); the stations inferred: the bays' air-to-ground stations 4 / 8, the 1,000 lb class within their 2,500 lb (w-f35-arm); one each, no rack",
     "tail": "the number painted on the Adir's model (shared/extra/planes/f35i: tail number 937 with 116 Squadron's badge; docs/f35i.md), so every screen shows the jet the player sees (the user, 2026-11-13, A31). Until then 921 of 140 Squadron (isradecal-921); the squadron since then the model's, 116 (the base file's `squadrons`; the user, 2026-11-13)",
     "max_takeoff_kg": "the F-35A's maximum weight, 70,000 lb class (31,751 kg), Lockheed Martin's; the F-35I's is not published (inferred the same)",
     "type": "type codes from 1000 are ours (docs/adding-a-plane.md §1); 1000 is the F-35I's",
@@ -76,7 +77,7 @@
     "stations": "the F-35A's eleven stations, numbered from the left wing tip: 1 / 11 the outboard wing pylons (the AIM-9X's), 2 / 10 the middle and 3 / 9 the inboard wing pylons, 4 / 8 the bays' outboard (air-to-ground, up to 2,500 lb) and 5 / 7 their inboard stations (air-to-air), 6 the centreline (a gun pod on the F-35B / C only, left out); each mapped to the engine's pylon letter (A..I: the armament holds nine), as player_aircraft.gd f35i_object and docs/f35i.md §3.1 do; 2 and 10 have none (empty: ''), so they carry nothing in the sim",
     "internal": "the two bays' four stations, inside the fuselage: their stores add no drag",
     "pylons": "the training's defensive pair: an AIM-120 on each bay's inboard, air-to-air station (5 and 7, D and F), the bays' air-to-ground stations 4 and 8 empty, no external stores (a stealthy jet's; inferred for the training)",
-    "inventory": "the stores the briefing lists as the Adir's, each its own record: the AIM-120, the AIM-9X (the wingtip stations), the GBU-31 JDAM and the GBU-39 SDB; no counts published"
+    "inventory": "the stores the briefing lists as the Adir's, each its own record: the AIM-120, the AIM-9X (the wingtip stations), the GBU-31 JDAM, the GBU-39 SDB and the SPICE 1000 (from 17 Nov 2026, twz-spice); no counts published"
   },
   "footnotes": {
     "afm-f35": "Air & Space Forces Magazine, \"F-35\" (up to six AIM-120 internally with Sidekick; eight AIM-120 and two AIM-9 in all), https://www.airandspaceforces.com/weapons/f-35",
@@ -85,6 +86,7 @@
     "lm-f35a": "Lockheed Martin, \"F-35A Lightning II\" variant page (maximum weight 70,000 lb class), https://view.ceros.com/lockheed-martin/f-35-variants",
     "model-937": "the Adir's model's IAF low-visibility livery, tail number 937 and 116 Squadron's badge (docs/f35i.md, the model row of its status table)",
     "isradecal-921": "IsraDecal, F-35I Adir decal sheet notes (the Golden Eagle squadron's tail art from summer 2021, \"here seen aircraft 916 and 921\"), https://isradecal.com/_files/ugd/ddb4b4_ba84724c1add4daa9882e4818bb8d8e2.pdf",
+    "twz-spice": "The War Zone, \"Israel is bringing SPICE 1000 standoff weapon to the F-35\", 16 September 2026 (Rafael's announcement of 15 September; quoting The Jerusalem Post, \"the SPICE weapon is expected to be carried internally by F-35Is\"; no stations named), https://www.twz.com/air/israel-is-bringing-spice-1000-standoff-weapon-to-the-f-35",
     "w-f35": "Wikipedia, \"Lockheed Martin F-35 Lightning II\" (F-35A: span 35 ft; 1 × 25 mm GAU-22/A with 180 rounds), https://en.wikipedia.org/wiki/Lockheed_Martin_F-35_Lightning_II",
     "w-f35-bays": "Wikipedia, \"Lockheed Martin F-35 Lightning II\", Armament (two internal bays of two stations each; the outboard stations carry air-to-surface weapons up to 2,500 lb, among them the JDAM; the inboard stations the AIM-120; six external stations) (read 2026-11-10), https://en.wikipedia.org/wiki/Lockheed_Martin_F-35_Lightning_II",
     "w1-f35": "Wikipedia, \"Lockheed Martin F-35 Lightning II\", specifications (4 internal and 6 external stations), https://en.wikipedia.org/wiki/Lockheed_Martin_F-35_Lightning_II",

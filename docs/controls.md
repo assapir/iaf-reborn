@@ -137,6 +137,14 @@ Terms used on this page:
   If the player binds one of these keys to a command we implement, the command wins. No table record uses
   Ctrl + F-keys. Moving our functions to Ctrl + F-keys once the original commands on their keys are built is a
   user decision.
+* **Modern IAF's F-35I display keys** (its `data/keys.json` records 241–250, commands 300–301; [f35i.md](f35i.md)
+  §4.3): Home the MENU grid on the cursor's portal, Ctrl + F9 / Ctrl + F10 its cursor back / on, End select, Ctrl +
+  Home the next window into the portal, Ctrl + End widen, Shift + Home enlarge, Shift + End the function bar's SWAP
+  (its halves trade places; the portals stay), Alt + `,` the next preset, Ctrl + Delete the bay doors. The laptop map
+  (no Home / End / Delete): Shift + F5 MENU, Shift + F6 select, Shift + F7 the next window, Ctrl + F3 widen, Ctrl + F4
+  enlarge, Shift + `\` SWAP, Ctrl + F5 the bay doors. DMS left / right (records 149 / 150, Ctrl + `[` / `]`) move the cursor between its
+  portals; DMS up / down give the sensor of interest to the helmet and back. The F-16's ICP keys (records 152–174)
+  work the CNI.
 * Joystick buttons, axes and the hat: §5.
 * **Rebinds**: `Settings.key_bindings` = {record: [key, button]} for the records that differ from the default.
   They are saved in the `[keys]` section of `user://settings.cfg` as `r<index> = [key, button]`. A config without

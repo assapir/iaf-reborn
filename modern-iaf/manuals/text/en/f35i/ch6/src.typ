@@ -14,3 +14,4 @@
 #let open-fmt = [The real jet's procedure is not public: open.]
 /// The words of a function the sim lacks.
 #let nis = [not modelled]
+#let twz-spice = footnote[The War Zone, "Israel is bringing SPICE 1000 standoff weapon to the F-35", 16 September 2026, Rafael's announcement: the weapon is "expected to be carried internally"; no stations named, #link("https://www.twz.com/air/israel-is-bringing-spice-1000-standoff-weapon-to-the-f-35").]

@@ -14,7 +14,7 @@ The real jet has two weapon bays with two stations each, and six stations under 
   table.header(..([Station], [Where], [What the sim hangs there]).map(t => text(fill: white, weight: 600, size: 8.5pt, t))),
   [1, 11], [Outer wing pylons], [The AIM-9X short-range missile.],
   [3, 9], [Inner wing pylons], [The AIM-120 missile, or a 2,000 lb or 1,000 lb bomb.],
-  [4, 8], [Bays, outer side], [A GBU-31 or GBU-32 bomb, four GBU-39 bombs on one rack, or the AIM-120.],
+  [4, 8], [Bays, outer side], [A GBU-31 or GBU-32 bomb, four GBU-39 bombs on one rack, a SPICE 1000 (inferred: announced for carriage inside#twz-spice), or the AIM-120.],
   [5, 7], [Bays, door side], [The AIM-120.],
   [2, 10, 6], [Middle wing pylons, centre line], [Nothing.],
 )
@@ -55,9 +55,12 @@ At SAFE the weapon release and the trigger do nothing.
 
 === The bay doors <stores-doors>
 
-The bay doors are closed in flight. You do not open them yourself: a release from a bay opens them, lets the store go and shuts them.
+The bay doors are closed in flight. A release from a bay opens them, lets the store go and shuts them. The SMS draws the two bays with their doors: grey shut, yellow moving, white open.
 
-#in-sim[Hold the release until the store leaves: the doors take about half a second to open, and they shut half a second after the release. While they are open the jet has more drag.]
++ *Click DOORS* on the SMS, or press #key("Weapon bay doors (F-35I)"). #sym.arrow.r *The doors open and stay open.*
++ *Click DOORS again*, or press the key again. #sym.arrow.r *The doors shut.*
+
+#in-sim[Hold the release until the store leaves: the doors take about half a second to open, and they shut half a second after the release. While they are open the jet has more drag. DOORS is inferred from the F-35's simulators.]
 
 === What the sim checks before a release <stores-checks>
 

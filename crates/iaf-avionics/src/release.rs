@@ -23,6 +23,17 @@ pub fn release_allowed(load_factor: f64, roll_deg: f64) -> bool {
     load_factor >= 0.0 && roll_deg.abs() <= 90.0
 }
 
+/// The weapon bays' doors (ours, the F-35I; modern-iaf/docs/weapons.md §5): commanded open while the SMS's DOORS
+/// holds them open (`manual`) or until `until` (the hold after a release from a bay station, s of sim time).
+pub fn bay_doors(manual: bool, now: f64, until: f64) -> bool {
+    manual || now < until
+}
+
+/// A store of a bay station (`internal`) waits for the doors fully open (`fraction` 1).
+pub fn bay_release_waits(internal: bool, fraction: f64) -> bool {
+    internal && fraction < 1.0
+}
+
 /// Weapon data Real (ours, docs/real-weapons.md §1.11): the fastest bomb release, KCAS. Low-drag deliveries are
 /// limited to 600 KCAS: above it the bomb's fall turns unstable and scatters (T.O. 1-1M-34).
 pub const REAL_BOMB_KCAS: f64 = 600.0;
@@ -367,5 +378,13 @@ mod tests {
         assert_eq!(p.toggle("MK-82", a), b);
         assert_eq!(p.recall("MK-82"), Some(b));
         assert_eq!(p.recall("GBU-12"), None, "per weapon");
+    }
+
+    #[test]
+    fn bay_doors_open_for_a_release_or_the_doors_switch() {
+        assert!(bay_doors(false, 1.0, 1.5) && !bay_doors(false, 2.0, 1.5));
+        assert!(bay_doors(true, 9.0, 1.5), "DOORS holds them open");
+        assert!(bay_release_waits(true, 0.6) && !bay_release_waits(true, 1.0));
+        assert!(!bay_release_waits(false, 0.0), "a wing station never waits");
     }
 }

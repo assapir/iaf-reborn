@@ -27,6 +27,7 @@ mod missile;
 mod mission_edit;
 mod mission_intel;
 mod nav_pod;
+mod pcd;
 mod pilot_log;
 mod radar;
 mod real_hud;

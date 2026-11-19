@@ -121,9 +121,10 @@ func keys(fe: Control) -> void:
 	# CONFIG and the GPS bomb's two came (records 200-207, until then keys with no row); 180 until the fuel switches,
 	# DRIFT C/O, the display knobs, the Ctrl + F-keys and the notebook's pages (records 208-223; the count stayed 180
 	# here), 196 until avionics slices 8 (the seeker's two, records 224 / 225) and 9 (the bombs' submode, fuze, arming
-	# delay and RET DEPR, 226-230); 203 until the autopilot and later key merges (210), then the navigation pod's ADV MODE and MANUAL TF FLYUP
-	# (records 238-239; now 212).
-	check(listed == 212, "keys: 212 commands listed, one head-look set (%d)" % listed)
+	# delay and RET DEPR, 226-230); 203 until the autopilot and later key merges (210), then the navigation pod's
+	# ADV MODE and MANUAL TF FLYUP (records 238-239; 212), then avionics slice 7: the F-35I's panoramic display keys
+	# and bay doors (records 241-250, docs/f35i.md §4.3; record 240 an empty slot): 222.
+	check(listed == 222, "keys: 222 commands listed, one head-look set (%d)" % listed)
 	check(
 		not ks.records_of("flight").has(23) and ks.records_of("flight").has(200) and ks.records_of("weapons").has(206),
 		"keys: no drag chute; the speedbrakes and the GPS bomb's keys listed"

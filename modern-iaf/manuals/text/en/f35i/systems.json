@@ -3,6 +3,9 @@
  "source": "ayton",
  "abbreviations": {
 "ILS": "Instrument landing system",
+  "COM1": "Communication radio 1", "COM2": "Communication radio 2", "GPS": "Global positioning system", "HUD": "Head-up display",
+  "IFF": "Identification friend or foe", "RTE": "Route", "SGL": "Single", "TACAN": "Tactical air navigation", "TCN": "TACAN",
+  "UHF": "Ultra high frequency",
   "FCS": "Flight control system", "FLCS": "Flight control system, as the sim's ICAWS format writes it", "AP": "Autopilot",
   "HMD": "Helmet-mounted display",
   "IPP": "Integrated power pack",
@@ -90,10 +93,12 @@
   "STBY": "Standby",
   "STP": "Steerpoint",
   "TGT": "Target",
-  "VIS": "Visual"
+  "VIS": "Visual",
+  "PROF": "Profile"
  },
  "words": [
   "BRAKES", "DEGD", "ELEC", "FAIL", "FLAPS", "GUN", "LEAK", "RADAR", "RECOVERY", "WPN",
+  "DOORS", "DOWN", "IDENT", "LEFT", "LOAD", "NEXT", "PAIR", "RIGHT", "SPICE",
   "ACTIVE",
   "AFTER",
   "AIR",

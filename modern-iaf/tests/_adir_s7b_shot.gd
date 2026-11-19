@@ -188,7 +188,7 @@ func run() -> void:
 	await _look(false)
 	await portal_shot("sms", "SMS")
 	await portal_shot("menu", "MENU")
-	pcd.menu_open[0] = false
+	pcd._do(func(): pcd.lay.toggle_menu(0))
 	# The break X: a 45° dive from 6,000 ft; saved on the first frame that shows it.
 	await _look(false)
 	o = w.own()

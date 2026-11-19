@@ -46,4 +46,4 @@ With the master mode at NAV and the landing gear handle down, the helmet shows t
 
 === What the sim lacks <nav-missing>
 
-A radio navigation aid and the navigation pages of the CNI format are #nis. Whether the real helmet shows such an aid's channel and distance is open.
+The CNI format (@pcd) sets the navigation source: NAV toggles RTE, the route, and TCN, the TACAN of the bases. With TCN the EFI's caret points at the station; the function bar shows TCN with its channel. The CNI's layout is inferred. Whether the real helmet shows the station's channel and distance is open.

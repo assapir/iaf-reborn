@@ -31,6 +31,17 @@ impl IafRelease {
         release::real_release_allowed(type_code, load_factor, roll_deg, tas, alt_m, climb)
     }
 
+    /// The bay doors commanded open (`release::bay_doors`).
+    #[func]
+    fn bay_doors(manual: bool, now: f64, until: f64) -> bool {
+        release::bay_doors(manual, now, until)
+    }
+
+    #[func]
+    fn bay_release_waits(internal: bool, fraction: f64) -> bool {
+        release::bay_release_waits(internal, fraction)
+    }
+
     #[func]
     fn space_allowed(hud: i64, gear_down: bool, safety_off: bool, gun: bool, weapons_damaged: bool) -> bool {
         release::space_allowed(hud, gear_down, safety_off, gun, weapons_damaged)

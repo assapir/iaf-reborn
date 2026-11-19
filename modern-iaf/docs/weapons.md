@@ -122,6 +122,7 @@ the gun.
 | next target | the radar locks the next target (the Sufa: each press bugs the next target; TMS up or a click on the bug locks it) | the same | Enter | 58 |
 | the Sufa's radar | the real FCR's TMS, submodes, scan width and bars, antenna elevation, OVRD and EXP ([../../docs/radar.md](../../docs/radar.md) §9.4) | — | `/`, Shift+`/`, `;`, Shift+`;`, `'`, Shift+`'`, Ctrl+`'`, Alt+Up / Down, Ctrl+`/`, Ctrl+`;`; the cursor on Ctrl+arrows | 132–142, 48–51 |
 | the Sufa's ground map | GM's OSBs 7–10: FZ, SP, CZ, STP / TGT; in A-G the TMS keys designate or track and Ctrl+`;` steps EXP / DBS1 / DBS2 ([../../docs/radar.md](../../docs/radar.md) §9.7) | — | Alt+`;`, Alt+`'`, Alt+`/`, Alt+`.` | 143–146 |
+| the F-35I's bays | — | DOORS on the SMS holds the doors open, again shuts them; a bay release opens them by itself | Ctrl+Delete (the laptop map: Ctrl+F5) | 250 |
 | the F-16 MFDs | DMS (the SOI, each MFD's next format); LASER ARM ([../../docs/mfd.md](../../docs/mfd.md) §9 "Modern MFDs") | — | Ctrl+Page Up / Down (the laptop map: Ctrl+U / Ctrl+D), Ctrl+`[` / `]`; Shift+L | 147–151 |
 | gun | the trigger held | the same | Tab | 64 |
 
@@ -152,6 +153,13 @@ nothing; before the pass the release is blocked on the ground anyway (the gear h
 
 The checklist notebook's WEAPONS tab (key H; [training.md](training.md) §11) lists these steps per jet family, each
 with its switch, its place and its key as bound (the weapons' controls have no switch to click in the cockpit).
+
+**The SPICE 1000 on the Adir (2026-11-17, [avionics-plan.md](avionics-plan.md) §8 item 6).** The Loadout screen offers it on the bays'
+air-to-ground stations 4 / 8, one each, inside: The War Zone reports it "expected to be carried internally by
+F-35Is"[^twz-spice]; the stations are inferred (the bays' 2,500 lb stations, the 1,000 lb class). It names no need (it steers by
+its own GPS and scene matching), so nothing blocks the load; on the other stations it is not offered. It flies the
+shared SPICE record (1009) and leaves its bay as the other bay stores do, once the doors are open; the WPN-S lists it
+with the GPS bombs' rows ([../../docs/f35i.md](../../docs/f35i.md) §4.3).
 
 **The Delilah (2026-11-14).** Dropped for now (the user): no station lists it and no default carries it. It needs a
 powered cruise-missile flight class the engine does not have, and flew as a glide bomb. Its weapon record
@@ -514,3 +522,5 @@ a dud; a GBU-12 in CCRP with the Litening slaved and LASER ARM leaves by itself 
 [^dash34-low]: T.O. GR1F-16CJ-34-1-1 (Hellenic AF, 1997), p. 1-173 "Pullup Anticipation and Breakaway Cue (Break X)",
     https://falcon.blu3wolf.com/Docs/HAF-F16-34.pdf (PDF page 189), as docs/real-hud.md reads it
 [^bms-tfr]: Falcon BMS community, the LANTIRN navigation pod's FLIR and TFR as the dash-34 gives them (a simulator community page, secondary), as cited in [research/pods.md](research/pods.md) §3.2–3.3.
+[^twz-spice]: The War Zone, "Israel is bringing SPICE 1000 standoff weapon to the F-35", 16 September 2026 (quoting The
+    Jerusalem Post; no stations named), https://www.twz.com/air/israel-is-bringing-spice-1000-standoff-weapon-to-the-f-35

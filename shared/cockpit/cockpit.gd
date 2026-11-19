@@ -414,6 +414,8 @@ func place_mfd_page(page: int) -> Node:
 ## Ours, the modern MFDs: the format of the sensor of interest ("" the HUD, or an MFD whose format cannot be the SOI,
 ## which hands the SOI to the HUD: IafF16Mfd.soi_valid).
 func soi_format() -> String:
+	if pcd != null:
+		return pcd.soi_format()  # the F-35I: the portal with the cursor (pcd.gd)
 	var ok := _soi_ok()
 	soi = ClassDB.class_call_static("IafF16Mfd", "soi_valid", soi, ok[0], ok[1])
 	if soi < 0 or soi >= mfds.size():
@@ -445,7 +447,7 @@ func dms(dir: int) -> void:
 
 # --- Ours, Modern IAF's F-16 up-front controls and HUD control panel (modern-iaf/docs/ufc.md) -------------
 
-## The ICP and DED (IafUfc), with the modern F-16 MFDs only (reborn's jets and the F-35I: null).
+## The ICP and DED (IafUfc), with the modern F-16 MFDs and Modern IAF's F-35I (its CNI); reborn's jets: null.
 var ufc: RefCounted
 ## The markpoints (steerpoints 26 to 30, the DED's MARK page): {world, alt (m), number, mark}; and the one steered
 ## to (an index into marks), -1 while a route steerpoint is.
@@ -475,9 +477,11 @@ func home_tacan() -> void:
 		_tacan_homed = true
 
 
+## Modern IAF's F-35I keeps the same state behind its CNI format (pcd.gd: radios, TACAN, IFF; the ICP keys work it).
 func _create_ufc() -> void:
 	var f16 := Settings.modern_mfds() and Settings.real_mfd(Settings.cockpit_folder(cockpit_dir)) != ""
-	ufc = ClassDB.instantiate("IafUfc") if f16 and ClassDB.class_exists("IafUfc") else null
+	var adir := Settings.modern_mfds() and pcd != null
+	ufc = ClassDB.instantiate("IafUfc") if (f16 or adir) and ClassDB.class_exists("IafUfc") else null
 
 
 ## The steerpoints the DED, HUD and EHSI steer by: the route, then the markpoints.
@@ -535,7 +539,7 @@ func _ins_floats() -> Array:
 ## The INS can navigate (aligned, the knob at NAV or IN FLT ALIGN); always without the UFC.
 func ins_nav() -> bool:
 	var i: Array = state.get("ins", [3, 0.0, 0.0, true])
-	return ufc == null or (bool(i[3]) and int(i[0]) in [3, 4])
+	return ufc == null or pcd != null or (bool(i[3]) and int(i[0]) in [3, 4])  # the F-35I: its own 90 s step
 
 
 ## An ICP key (command 250; IafUfc.press): the DED's page changes, and what it changes outside it is applied here:
@@ -616,7 +620,7 @@ func pfl_flags() -> Array:
 
 ## The Real HUD's panel input (real_hud.rs `panel`), {} without the UFC (reborn's HUD as it is).
 func hud_panel_input() -> Dictionary:
-	if ufc == null:
+	if ufc == null or pcd != null:  # the F-35I's helmet has no HUD control panel
 		return {}
 	var ded := PackedStringArray()
 	if int(hud_panel.ded) == 0:

@@ -189,12 +189,13 @@ called TFLIR on the cockpit displays"[^baseline]. The threat format is TWD. MENU
 
 ### What is left on the F-35I
 
-1. The pilot's own layout changes: widening a portal over its half (LEFT / RIGHT), enlarging it over its windows
-   (DOWN), and the 5 preset layouts. Ours draws one fixed layout (since 2026-11-17, after the user's simulator photo):
-   the left half one large portal with tabs, the right half two portals over four windows ([f35i.md](f35i.md) §4.3).
-2. WPN-A / WPN-S, CNI, FCS, DAS, PHM, CHKLST, IFF and BARO pop-ups from the strip; the MENU page's LITES and HMD.
-3. The radar MAP picture on ASR; the SRCH and TWD layouts once a source shows them (open).
-4. The datalink's tracks on the TSD (ours shows the radar's), and the unknown (yellow square) identity.
+The pilot's layout changes, WPN-A / WPN-S, CNI, FCS, PHM, CHKLST, DIM, the HUD repeat, the DAS format's frame and the
+function bar's pop-ups are built in Modern IAF (2026-11-17, [f35i.md](f35i.md) §4.3), on inferred layouts. Left:
+
+1. The real layouts of WPN-A / WPN-S, CNI and the low-value formats once a source shows them.
+2. The SRCH and TWD layouts once a source shows them (open).
+3. The DAS camera picture ([avionics-plan.md](../modern-iaf/docs/avionics-plan.md) §8 item 5).
+4. The MENU page's LITES and HMD: the sim has no lights page and no helmet settings to put on them.
 
 ## F-16C/D Barak (Block 30/40)
 

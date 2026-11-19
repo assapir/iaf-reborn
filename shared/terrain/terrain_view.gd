@@ -3244,13 +3244,26 @@ func _command(cmd: Array) -> bool:
 				cockpit.ufc.backup_channel()
 		255:
 			# Ours, the IFF IDENT button (Alt + K): the transponder's IDENT for 18 s (modern-iaf/docs/ews.md §8).
-			if cockpit.ufc != null and weapons != null and weapons.ews != null:
+			if cockpit.ufc != null and weapons != null and (weapons.ews != null or cockpit.pcd != null):
 				cockpit.ufc.ident(float(cockpit.state.get("tod", 0.0)))
 				_on_subtitle("IFF IDENT")
 		240:
-			# Ours, the modern MFDs' DMS (Modern IAF's keys.json): p1 0 up, 1 down, 2 left, 3 right (cockpit.gd dms).
-			if Settings.modern_mfds():
+			# Ours, the modern MFDs' DMS (Modern IAF's keys.json): p1 0 up, 1 down, 2 left, 3 right (cockpit.gd dms); the
+			# F-35I's moves the sensor of interest between the helmet and the panoramic display's portals (pcd.gd dms).
+			if Settings.modern_mfds() and cockpit.pcd != null:
+				cockpit.pcd.dms(p1)
+			elif Settings.modern_mfds():
 				cockpit.dms(p1)
+		300:
+			# Ours, the F-35I's panoramic display keys (Modern IAF's keys.json; pcd.gd key): p1 0 MENU, 1 / 2 its cursor,
+			# 3 select, 4 the next window, 5 widen, 6 enlarge, 7 SWAP, 8 the next preset.
+			if Settings.modern_mfds() and cockpit.pcd != null:
+				cockpit.pcd.key(p1)
+		301:
+			# Ours, the F-35I's SMS DOORS (Modern IAF's keys.json, the SMS's DOORS): the bay doors held open or shut.
+			if weapons != null and cockpit.pcd != null and Settings.modern_mfds():
+				weapons.mfd_event(cockpit.pcd.DOORS_EVENT)
+				_on_subtitle("Bay doors open" if weapons.bay_doors_manual else "Bay doors closed")
 		241:
 			# Ours, the modern MFDs' LASER ARM switch (key Shift + L, the 3D cockpit's switch): the laser fires only
 			# armed; disarming stops it (player_weapons.gd laser_arm).

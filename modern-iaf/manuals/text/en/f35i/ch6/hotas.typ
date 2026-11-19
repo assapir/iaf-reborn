@@ -35,6 +35,6 @@ What each switch does in each format of the display is not public: open.
 
 === What the sim does differently <hotas-differences>
 
-- *The DMS.* On the real jet it manages the display (inferred from its name). In the sim you choose a format with the pointer (@pcd). The DMS is #nis.
+- *The DMS.* On the real jet it manages the display (inferred from its name). In the sim its keys move the display's cursor between the portals and give the sensor of interest to the helmet and back (@pcd); a format is chosen with the pointer or the display's keys.
 - *The pointer.* A click on the display works its legends and tabs. The pointer does not move the radar's cursor.
 - *The mark point switch.* #term("Not modelled").

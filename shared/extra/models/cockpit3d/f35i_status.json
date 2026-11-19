@@ -50,7 +50,7 @@
 "gear_handle": {"status": "works"},
 "throttle": {"status": "works"},
 "lamp_gear_transit_0": {"status": "works"},
-"PCD": {"status": "works"},
+"PCD": {"status": "works", "note": "By touch and by keys: the MENU grid's 20 formats, the five preset layouts, a portal widened or enlarged, SWAP, the function bar's pop-ups, the SMS's bay doors."},
 "ESIS": {"status": "works"},
 "side_stick": {"status": "works"}
 }

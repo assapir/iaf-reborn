@@ -23,9 +23,6 @@ const EARTH := Color(0.50, 0.32, 0.14)
 const THIN := 0.45
 const LINE := 0.7
 const BOLD := 1.1
-## The formats a portal can show (the MENU grid, in its order). TSD-1..3 are three independent TSDs; SRCH is the
-## radar's air-to-air page and ASR its air-to-surface one (one game page: the radar's mode picks).
-const FORMATS := ["TSD-1", "TSD-2", "TSD-3", "SRCH", "SMS", "TFLIR", "TWD", "EFI", "ICAWS", "FUEL", "ENG"]
 ## The RWR's threat codes by bdb type (the rwrsymb.bmp glyphs, docs/mfd.md §3 "RWR").
 const THREAT_CODE := {
 	290: "2",
@@ -657,8 +654,11 @@ const PLANFORM := [
 
 
 ## The SMS (stores management): the planform with each station's store (green: missiles slim, bombs fat; the
-## selected station boxed white), the selected weapon, the bays' doors, the gun, chaff and flares.
-func sms(r: Rect2) -> void:
+## selected station boxed white), the two weapon bays with their doors (grey shut, yellow moving, white open with
+## the doors swung out; DOORS in the corner holds them open, a simulator manual p. 49), the selected weapon, the gun,
+## chaff and flares. Returns the buttons: each station by its index ("0".."8", a tap selects it) and DOORS.
+func sms(r: Rect2) -> Dictionary:
+	var buttons := {}
 	var wp: Dictionary = cockpit.weapons
 	var k := minf(r.size.x / 104.0, minf(r.size.y * 0.62, r.size.y - 47.0) / 100.0)  # the GUN line inside a short portal
 	var o := Vector2(r.get_center().x, r.position.y + 14.0)
@@ -668,11 +668,9 @@ func sms(r: Rect2) -> void:
 	for i in range(PLANFORM.size() - 1, -1, -1):
 		pts.append(o + Vector2(-PLANFORM[i].x, PLANFORM[i].y) * k)
 	poly(pts, GREY, LINE, true)
-	# The bays (two long outlines either side of the centreline).
-	for sx in [-1.0, 1.0]:
-		box(Rect2(o + Vector2(sx * 12.5 - 6.0, 30) * k, Vector2(12.0, 22.0) * k), DARK_GREY.lightened(0.3), THIN)
 	if wp.is_empty():
-		return
+		return buttons
+	_bays(o, k, wp)
 	var sel := int(wp.get("selected", -1))
 	for i in 9:
 		var st: Dictionary = wp.stations[i]
@@ -688,6 +686,12 @@ func sms(r: Rect2) -> void:
 			line(at + Vector2(-1.5, 0), at + Vector2(1.5, 0), DARK_GREY.lightened(0.3), THIN)
 		if i == sel:
 			box(Rect2(at - Vector2(3.4, 9.0) * k, Vector2(6.8, 17.0) * k), WHITE, THIN)
+		buttons["%d" % i] = Rect2(at - Vector2(3.4, 9.0) * k, Vector2(6.8, 17.0) * k)
+	if not wp.get("internal", []).is_empty():
+		var held: bool = wp.get("bay_manual", false)
+		var dx := r.end.x - 1.0
+		legend(Vector2(dx, r.position.y + 6.0), "DOORS", true, held, 4.6)
+		buttons["DOORS"] = Rect2(dx - 16.0, r.position.y, 16.0, 8.0)
 	# The selected weapon (or none), its count; the gun; the countermeasures.
 	var y := o.y + 100.0 * k
 	var name := String(wp.get("name", ""))
@@ -704,16 +708,17 @@ func sms(r: Rect2) -> void:
 		HORIZONTAL_ALIGNMENT_CENTER,
 		lw
 	)
-	# Ours: the master arm over the weapon (Modern IAF's, SAFE until Shift+A; inferred), only where the game has one.
+	# Ours: the master arm beside the weapon (Modern IAF's, SAFE until Shift+A; inferred), only where the game has one.
 	if Settings.starts_safe():
 		var arm: bool = wp.get("armed", false)
+		# Left of the weapon's box: over it, it ran into the planform's tail.
 		text(
-			Vector2(lb.position.x, lb.position.y - 1.5),
+			Vector2(r.position.x, lb.end.y - 2.0),
 			"ARM" if arm else "SAFE",
 			4.6,
 			GREEN if arm else YELLOW,
-			HORIZONTAL_ALIGNMENT_CENTER,
-			lw
+			HORIZONTAL_ALIGNMENT_RIGHT,
+			lb.position.x - r.position.x - 2.0
 		)
 	# Ours: the IR missile's seeker SPOT / SCAN (Ctrl + S; modern-iaf/docs/weapons.md §8.1), at the right of the weapon.
 	var head: Dictionary = wp.get("srm_head", {})
@@ -741,6 +746,27 @@ func sms(r: Rect2) -> void:
 			cm.size.x
 		)
 	text(Vector2(r.position.x + 2.0, cm.end.y + 7.0), "GUN %d" % int(wp.get("gun", 0)), 4.6, GREEN)
+	return buttons
+
+
+## The two bays about the centreline (stations 4 / 5 left, 7 / 8 right) and their doors: grey shut, yellow while they
+## move, white open with each bay's two doors swung out by their opening (player_weapons.gd bay_fraction); the doors'
+## state under the bays.
+func _bays(o: Vector2, k: float, wp: Dictionary) -> void:
+	if wp.get("internal", []).is_empty():
+		return
+	var f := float(wp.get("bay", 0.0))
+	var col := GREY if f <= 0.0 else (WHITE if f >= 1.0 else YELLOW)
+	for sx in [-1.0, 1.0]:
+		var b := Rect2(o + Vector2(sx * 8.0 - 6.0, 30) * k, Vector2(12.0, 20.0) * k)
+		box(b, col, THIN)
+		if f > 0.0:
+			# Each door seen from above as it swings out from its edge (its width the sine of 80° × the opening).
+			var w := 4.0 * k * sin(deg_to_rad(80.0 * f))
+			box(Rect2(b.position.x - w, b.position.y, w, b.size.y), col, THIN)
+			box(Rect2(b.end.x, b.position.y, w, b.size.y), col, THIN)
+	var st := "DOORS OPEN" if f >= 1.0 else ("DOORS CLSD" if f <= 0.0 else "DOORS MOVING")
+	text(o + Vector2(-text_width(st, 3.8) / 2.0, 56.0 * k), st, 3.8, col)
 
 
 ## A store's glyph on the planform: a missile slim with fins, a bomb fat, a tank fatter (bdb types).
@@ -846,8 +872,9 @@ func twd(r: Rect2) -> void:
 
 
 ## The EFI (a simulator manual: the ADI over a partial HSI): the attitude ball (blue / brown), the speed and altitude
-## boxes, the heading arc below.
-func efi(r: Rect2) -> void:
+## boxes, the heading arc below; with the navigation source on TACAN (`tacan`: {name, bearing, range_m}) its bearing
+## as a magenta caret on the arc and its station and range under the boxes (inferred, as the F-16 EHSI's TCN).
+func efi(r: Rect2, tacan := {}) -> void:
 	var st: Dictionary = cockpit.state
 	var c := Vector2(r.get_center().x, r.position.y + r.size.y * 0.36)
 	var rad := minf(r.size.x * 0.40, r.size.y * 0.30)
@@ -921,6 +948,19 @@ func efi(r: Rect2) -> void:
 			var lab := "%d" % (posmod(deg, 360) / 10)
 			text(hc + d * (hr - 6.5) + Vector2(-text_width(lab, 4.2) / 2.0, 1.5), lab, 4.2, WHITE)
 	line(hc + Vector2(0, -hr - 3.0), hc + Vector2(0, -hr + 1.0), YELLOW, BOLD)
+	if not tacan.is_empty():
+		var rel := wrapf(float(tacan.bearing) - hdg, -180.0, 180.0)
+		var a := deg_to_rad(clampf(rel, -42.0, 42.0))
+		var d := Vector2(sin(a), -cos(a))
+		var q := hc + d * (hr + 1.0)
+		poly(
+			PackedVector2Array([q, q + d * 3.0 + d.orthogonal() * 1.6, q + d * 3.0 - d.orthogonal() * 1.6]),
+			MAGENTA,
+			LINE,
+			true
+		)
+		var t := "TCN %s %.1f" % [String(tacan.name).left(8), float(tacan.range_m) / 1852.0]
+		text(Vector2(r.position.x, c.y + 18.0), t, 4.4, MAGENTA, HORIZONTAL_ALIGNMENT_CENTER, r.size.x)
 	var hb := Rect2(Vector2(hc.x - 9.0, hc.y - hr - 12.0), Vector2(18.0, 7.5))
 	fill(hb, Color.BLACK)
 	box(hb, WHITE, THIN)
@@ -1062,10 +1102,15 @@ func gauge(c: Vector2, rad: float, f: float, value: String, label: String, col: 
 
 
 ## The TFLIR (the EOTS's picture, "TFLIR" on the displays): the EO camera's picture (the game's FLIR view) square
-## in the portal, the cross, the zoom, WIDE / SPOT, the laser and the range.
-func tflir(r: Rect2) -> void:
-	var side := minf(r.size.x - 4.0, r.size.y - 22.0)
-	var v := Rect2(Vector2(r.get_center().x - side / 2.0, r.position.y + 12.0), Vector2(side, side))
+## in the portal, the cross, the zoom, WIDE / NARO, the track mode, the laser and the range; down the right edge the
+## options the F-16's targeting pod shares (f16_mfd.gd tgp): zoom in / out, WIDE / NARO, the laser, CZ (back on the
+## sensor point). Returns their buttons.
+func tflir(r: Rect2) -> Dictionary:
+	var buttons := {}
+	var modern := Settings.modern_mfds()  # reborn's F-35I keeps its original legends and no option column
+	var col_w := 14.0 if modern and r.size.x > 90.0 else 0.0
+	var side := minf(r.size.x - 4.0 - col_w, r.size.y - 22.0)
+	var v := Rect2(Vector2(r.get_center().x - (side + col_w) / 2.0, r.position.y + 12.0), Vector2(side, side))
 	var eo: Dictionary = cockpit.eo
 	if cockpit.eo_texture != null and eo.get("camera", false):
 		ci.draw_texture_rect(cockpit.eo_texture, v, false)
@@ -1079,11 +1124,15 @@ func tflir(r: Rect2) -> void:
 	for d in [Vector2(1, 0), Vector2(-1, 0), Vector2(0, 1), Vector2(0, -1)]:
 		line(cc + d * 2.5, cc + d * 8.0, WHITE, LINE)
 	if f.is_empty():
-		return
+		return buttons
 	text(Vector2(v.position.x + 2.0, v.position.y - 2.0), "Z%d" % int(f.zoom), 4.6, GREEN)
 	text(
 		Vector2(v.position.x, v.position.y - 2.0),
-		"SPOT" if f.spot else "WIDE",
+		(
+			"%s  %s" % [String(eo.get("track_mode", "")), "NARO" if f.spot else "WIDE"]
+			if modern
+			else ("SPOT" if f.spot else "WIDE")
+		),
 		4.6,
 		GREEN,
 		HORIZONTAL_ALIGNMENT_RIGHT,
@@ -1091,38 +1140,466 @@ func tflir(r: Rect2) -> void:
 	)
 	text(
 		Vector2(v.position.x + 2.0, v.end.y + 7.0),
-		"LSR ARM" if f.laser else "LSR SAFE",
+		("LSR FIRE" if modern else "LSR ARM") if f.laser else "LSR SAFE",
 		4.6,
 		YELLOW if f.laser else GREEN
 	)
 	text(Vector2(v.position.x, v.end.y + 7.0), String(f.range), 4.6, WHITE, HORIZONTAL_ALIGNMENT_RIGHT, v.size.x - 2.0)
+	if col_w > 0.0:
+		var x := r.end.x - 1.0
+		var y := v.position.y + 6.0
+		for b in ["Z+", "Z-", "WIDE" if not f.spot else "NARO", "LSR", "CZ"]:
+			legend(Vector2(x, y), b, true, b == "LSR" and bool(f.laser), 4.6)
+			buttons["WIDE" if b == "NARO" else b] = Rect2(x - 13.0, y - 5.0, 13.0, 7.0)
+			y += 11.0
+	return buttons
 
 
 # --- MENU --------------------------------------------------------------------------------------------------------
 
 
-## The MENU grid: every format a button (3 columns), the current one white. Returns the buttons' rects by name. The
-## same grid with other `names` under another `title`: the strip's MENU page, a CNTL page.
-func menu(r: Rect2, current: String, names: Array = FORMATS, title := "MENU") -> Dictionary:
+## The MENU grid: every format of `list` a button (as many columns as the portal's width takes), the current one
+## white, the keys' cursor (`cursor`) filled. Returns the buttons' rects by name. The same grid with another `list`
+## under another `title`: the strip's MENU page, a CNTL page.
+func menu(r: Rect2, current: String, list: Array, cursor := "", title := "MENU") -> Dictionary:
 	var out := {}
-	var cols := 3
+	var cols := clampi(int(r.size.x / 44.0), 3, 6)
+	var rows := ceili(float(list.size()) / cols)
 	var bw := (r.size.x - 8.0) / cols
-	var bh := 13.0
+	var bh := minf(13.0, (r.size.y - 14.0) / rows - 2.0)
 	text(Vector2(r.position.x, r.position.y + 8.0), title, 6.0, WHITE, HORIZONTAL_ALIGNMENT_CENTER, r.size.x)
-	for i in names.size():
+	for i in list.size():
 		var b := Rect2(
-			Vector2(r.position.x + 4.0 + bw * (i % cols), r.position.y + 14.0 + (bh + 3.0) * (i / cols)),
+			Vector2(r.position.x + 4.0 + bw * (i % cols), r.position.y + 12.0 + (bh + 2.0) * (i / cols)),
 			Vector2(bw - 3.0, bh)
 		)
-		var on: bool = names[i] == current
+		var on: bool = list[i] == current
+		if list[i] == cursor:
+			fill(b, CYAN.darkened(0.6))
 		box(b, WHITE if on else CYAN, THIN)
 		text(
-			Vector2(b.position.x, b.end.y - 4.0),
-			names[i],
-			5.2,
+			Vector2(b.position.x, b.end.y - (bh - 4.0) / 2.0 - 0.6),
+			list[i],
+			minf(5.2, bh - 4.0),
 			WHITE if on else CYAN,
 			HORIZONTAL_ALIGNMENT_CENTER,
 			b.size.x
 		)
-		out[names[i]] = b
+		out[list[i]] = b
 	return out
+
+
+# --- WPN-A / WPN-S: the weapons' status and programming ---------------------------------------------------------
+
+## Air-to-air missile types (f16_mfd.gd AAM_TYPES; 590 the HARM is none of the Adir's).
+const AAM := [570, 580, 600, 610]
+
+
+## The stores of one kind on the stations: [[name, count, stations "4 8"]] in station order.
+func _stores_of(aa: bool) -> Array:
+	var by := {}
+	var order := []
+	for i in 9:
+		var st: Dictionary = cockpit.weapons.stations[i]
+		if int(st.count) <= 0 or (int(st.type) in AAM) != aa or String(st.name) == "":
+			continue
+		if not by.has(st.name):
+			by[st.name] = [String(st.name), 0, ""]
+			order.append(st.name)
+		by[st.name][1] += int(st.count)
+		by[st.name][2] += ("%d " % STATION_OF[i])
+	return order.map(func(n): return by[n])
+
+
+## The status word under a weapon (the F-16 SMS's rule, f16_mfd.gd _status): MAL, NO <need>, SAFE, RDY.
+func _status(wp: Dictionary) -> String:
+	if not wp.get("ready", true):
+		return "MAL"
+	if String(wp.get("need", "")) != "":
+		return "NO " + String(wp.need).to_upper()
+	if not wp.get("armed", true):
+		return "SAFE"
+	return "RDY" if int(wp.get("total", 0)) > 0 else ""
+
+
+## A row of rows: each [text, colour] from `y` down, `h` apart, cut at the body's foot.
+func _rows(r: Rect2, y: float, rows: Array, size := 4.8, h := 7.0) -> float:
+	for row in rows:
+		if y > r.end.y - 2.0:
+			break
+		text(Vector2(r.position.x + 3.0, y), row[0], size, row[1])
+		y += h
+	return y
+
+
+## WPN-A (inferred layout: the public sources name it only, real-mfd.md "Formats"): the air-to-air missiles by type
+## with their counts and stations, the selected one boxed with its status; the radar's target (range, closure) and
+## SHOOT. NEXT steps to the next air-to-air store. Returns its buttons.
+func wpn_a(r: Rect2) -> Dictionary:
+	var wp: Dictionary = cockpit.weapons
+	if wp.is_empty():
+		return {}
+	var y := r.position.y + 8.0
+	text(Vector2(r.position.x + 3.0, y), "A-A WEAPONS", 4.8, GREY)
+	legend(Vector2(r.end.x - 1.0, y), "NEXT", true, false, 4.6)
+	y += 9.0
+	var sel_name := String(wp.get("name", ""))
+	var aa: bool = int(wp.get("type", 0)) in AAM
+	var aam := _stores_of(true)
+	for s in aam:
+		var on: bool = aa and s[0] == sel_name
+		var t := "%s  %d   STA %s" % [s[0], s[1], String(s[2]).strip_edges()]
+		text(Vector2(r.position.x + 4.0, y), t, 4.8, WHITE if on else GREEN)
+		if on:
+			box(Rect2(r.position.x + 2.0, y - 5.2, text_width(t, 4.8) + 4.0, 7.0), WHITE, THIN)
+		y += 8.0
+	if aam.is_empty():
+		text(Vector2(r.position.x + 4.0, y), "NO A-A STORES", 4.8, YELLOW)
+		y += 8.0
+	y += 3.0
+	var rows := []
+	if aa:
+		var stt := _status(wp)
+		rows.append(["%s  %s" % [sel_name, stt], GREEN if stt == "RDY" else YELLOW])
+	var rd: Dictionary = cockpit.radar
+	var lk: Dictionary = rd.get("lock", {})
+	if not lk.is_empty():
+		var rel := Vector2(Vector3(lk.pos).x, Vector3(lk.pos).y) - own_world()
+		rows.append(["TGT %.1f NM  Vc %d" % [rel.length() / 1852.0, int(float(rd.get("closure", 0.0)) * 1.944)], WHITE])
+	else:
+		rows.append(["NO TGT", GREY])
+	if wp.get("shoot", false):
+		rows.append(["SHOOT", GREEN])
+	_rows(r, y, rows)
+	return {"NEXT": Rect2(r.end.x - 16.0, r.position.y + 2.0, 16.0, 8.0)}
+
+
+## WPN-S (inferred layout): the selected air-to-surface store with its status, mode (CCIP; a GPS bomb's PRE / VIS),
+## its programming (the F-16 SMS's profiles: PROF, SGL / PAIR, the release pulses, the interval; release.rs
+## Profiles / Ripple) and, for a GPS bomb, each bomb's own target in the release order (the next one marked, the
+## released greyed; S14). The legends down the right edge set them. Returns its buttons.
+func wpn_s(r: Rect2) -> Dictionary:
+	var buttons := {}
+	var wp: Dictionary = cockpit.weapons
+	if wp.is_empty():
+		return buttons
+	var x := r.end.x - 1.0
+	var y := r.position.y + 8.0
+	var name := String(wp.get("name", ""))
+	var ag: bool = int(wp.get("selected", -1)) in range(9) and not int(wp.get("type", 0)) in AAM and name != ""
+	var gps: Dictionary = wp.get("ag", {}).get("gps", {})
+	var is_gps: bool = not wp.get("gps_bombs", []).is_empty() or not gps.is_empty()
+	var legends := ["NEXT"]
+	if ag:
+		legends = (
+			["MODE", "PROF", "REL", "QTY", "INT", "STEP", "NEXT"] if is_gps else ["PROF", "REL", "QTY", "INT", "NEXT"]
+		)
+	for b in legends:
+		legend(Vector2(x, y), b, true, false, 4.6)
+		buttons[b] = Rect2(x - 14.0, y - 5.0, 14.0, 7.0)
+		y += 10.0
+	y = r.position.y + 8.0
+	if not ag:
+		text(Vector2(r.position.x + 3.0, y), "NO A-S WPN", 5.0, YELLOW)
+		_rows(r, y + 9.0, _stores_of(false).map(func(s): return ["%s  %d" % [s[0], s[1]], GREEN]))
+		return buttons
+	var stt := _status(wp)
+	var rows := [
+		["%s  %d" % [name.to_upper(), int(wp.get("total", 0))], WHITE],
+		[stt if stt != "" else "--", GREEN if stt == "RDY" else YELLOW],
+		[("PRE" if gps.get("pre", true) else "VIS") if is_gps else "CCIP", CYAN],
+		["PROF%d" % (int(wp.get("profile", 0)) + 1), GREEN],
+		[String(wp.get("release", "")) if String(wp.get("release", "")) != "" else "SGL", GREEN],
+		["RP %d" % int(wp.get("quantity", 1)), GREEN],
+		["%d INT" % int(wp.get("interval", 10)), GREEN],
+	]
+	y = _rows(r, y, rows)
+	if is_gps:
+		y += 2.0
+		for b in wp.get("gps_bombs", []):
+			var tgt = b.target
+			var t := "STA %d B%d  " % [STATION_OF[int(b.station)], int(b.bomb) + 1]
+			if tgt is Vector3:
+				var rel := Vector2(tgt.x, tgt.y) - own_world()
+				t += "%.1fNM %03d" % [rel.length() / 1852.0, posmod(int(round(rad_to_deg(atan2(rel.x, rel.y)))), 360)]
+			else:
+				t += "NO TGT"
+			var col := GREY if b.gone else (WHITE if tgt is Vector3 else YELLOW)
+			y = _rows(r, y, [[t, col]], 4.2, 6.0)
+	return buttons
+
+
+# --- CNI: communication, navigation, identification -------------------------------------------------------------
+
+
+## The CNI (Code One: "all radio … identification and navigation controls are on glass"; its layout inferred, a
+## simulator manual's): the radios COM1 (UHF) and COM2 (VHF) with their presets and frequencies, the navigation
+## source (RTE / TCN), the TACAN's channel, station, bearing and range, the IFF's modes and codes with IDENT; under them
+## the scratchpad (the up-front controls' page as the ICP keys work it, ufc.md) and a keypad. `d` is pcd.gd _cni.
+## Returns its buttons.
+func cni(r: Rect2, d: Dictionary) -> Dictionary:
+	var buttons := {}
+	if d.is_empty():
+		text(Vector2(r.position.x, r.get_center().y), "CNI OFF", 6.0, GREY, HORIZONTAL_ALIGNMENT_CENTER, r.size.x)
+		return buttons
+	var x0 := r.position.x + 3.0
+	var y := r.position.y + 7.0
+	var tcn: Dictionary = d.tacan
+	var on: Array = d.xpdr_on
+	var codes: Array = Array(d.xpdr_codes)
+	var modes := ""
+	for m in 4:
+		if on[m]:
+			modes += ["1", "2", "3", "C"][m] + " "
+	var ident := float(d.tod) < float(d.ident_until)
+	var lines := [
+		["COM1", "UHF %s  %.2f" % [_preset(int(d.uhf_preset)), float(d.uhf_khz) / 1000.0]],
+		["COM2", "VHF %s  %.2f" % [_preset(int(d.vhf_preset)), float(d.vhf_khz) / 1000.0]],
+		["NAV", "SRC %s" % ("TCN" if d.source_tcn else "RTE")],
+		[
+			"TCN",
+			(
+				(
+					"%d%s %s %03d %.1f"
+					% [
+						int(d.tcn_chan),
+						"Y" if d.tcn_y else "X",
+						String(tcn.name).left(7),
+						posmod(int(round(float(tcn.bearing))), 360),
+						float(tcn.range_m) / 1852.0
+					]
+				)
+				if not tcn.is_empty()
+				else "%d%s  NO STATION" % [int(d.tcn_chan), "Y" if d.tcn_y else "X"]
+			)
+		],
+		["IFF", "M %s 3/A %04d" % [modes.strip_edges(), int(codes[2])]],
+	]
+	var lw := text_width("COM1", 4.8) + 4.0
+	for l in lines:
+		legend(Vector2(x0, y), l[0], false, l[0] == "NAV" and d.source_tcn, 4.8)
+		buttons[l[0]] = Rect2(x0 - 1.0, y - 5.0, lw, 7.0)
+		text(Vector2(x0 + lw + 2.0, y), l[1], 4.8, WHITE)
+		y += 8.0
+	legend(Vector2(r.end.x - 1.0, y - 8.0), "IDENT", true, ident, 4.6)
+	buttons["IDENT"] = Rect2(r.end.x - 18.0, y - 13.0, 18.0, 7.0)
+	# The scratchpad: the page the ICP keys work (IafUfc lines), as the DED shows it.
+	var ded: PackedStringArray = d.ded
+	var fs := minf(4.2, (r.size.x - 6.0) / 24.0 / 0.55)
+	var pad := Rect2(Vector2(x0 - 1.0, y - 3.0), Vector2(r.size.x - 4.0, fs * 1.25 * 5.0 + 3.0))
+	if pad.end.y + 10.0 > r.end.y:
+		return buttons
+	box(pad, DARK_GREY.lightened(0.2), THIN)
+	for k in ded.size():
+		text(Vector2(x0 + 1.0, pad.position.y + fs * 1.25 * (k + 1)), ded[k], fs, GREEN)
+	y = pad.end.y + 3.0
+	# The keypad (the ICP's keys, ufc.md): two rows.
+	var keys := ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "ENTR", "RCL", "INC", "DEC", "RTN", "TCN"]
+	var kw := (r.size.x - 4.0) / 8.0
+	var kh := minf(9.0, (r.end.y - y) / 2.0 - 1.0)
+	if kh < 6.0:
+		return buttons
+	for k in keys.size():
+		var b := Rect2(Vector2(x0 - 1.0 + kw * (k % 8), y + (kh + 1.0) * (k / 8)), Vector2(kw - 1.5, kh))
+		box(b, CYAN, THIN)
+		text(
+			Vector2(b.position.x, b.end.y - (kh - 3.6) / 2.0 - 0.4),
+			keys[k],
+			minf(4.2, kh - 3.0),
+			CYAN,
+			HORIZONTAL_ALIGNMENT_CENTER,
+			b.size.x
+		)
+		if not buttons.has(keys[k]):
+			buttons[keys[k]] = b
+	return buttons
+
+
+func _preset(p: int) -> String:
+	return "P%d" % p if p > 0 else "MAN"
+
+
+# --- FCS, PHM, CHKLST, DIM: the low-value formats (avionics-plan.md G16) ----------------------------------------
+
+
+## FCS (inferred layout, a simulator manual: control surfaces and gear): the planform with the gear's three lights and
+## the flaps; the flight control channels A–D (the F-16 FLCS's rule: failed with the FLCS fault, degraded with its
+## degradation; damage flags 24 / 18); BIT on the ground (`bit`: IafF16Mfd.flcs_bit's RUN / PASS / FAIL). Returns BIT.
+func fcs(r: Rect2, bit: String) -> Dictionary:
+	var k := minf(r.size.x / 104.0, r.size.y * 0.45 / 100.0)
+	var o := Vector2(r.get_center().x, r.position.y + 6.0)
+	var pts := PackedVector2Array()
+	for p in PLANFORM:
+		pts.append(o + p * k)
+	for i in range(PLANFORM.size() - 1, -1, -1):
+		pts.append(o + Vector2(-PLANFORM[i].x, PLANFORM[i].y) * k)
+	var legs: Array = cockpit.gear_legs
+	poly(pts, GREEN if legs.all(func(v): return v == 2) else GREY, LINE, true)
+	for i in 3:
+		var at: Vector2 = o + [Vector2(0, 22), Vector2(-14, 62), Vector2(14, 62)][i] * k
+		var v: int = legs[i]
+		fill(Rect2(at - Vector2(1.5, 1.5), Vector2(3, 3)), GREEN if v == 2 else (RED if v == 1 else DARK_GREY))
+	var flags: Array = cockpit.damage_flags
+	var fail: bool = flags.size() > 24 and flags[24]
+	var degr: bool = flags.size() > 18 and flags[18]
+	var rows := [["FLAPS " + ["UP", "TRANS", "DN"][clampi(cockpit.flaps_state, 0, 2)], GREEN]]
+	for i in 4:
+		var stt := "FAIL" if fail else ("DEGR" if degr and i == 3 else "OK")
+		rows.append(
+			["CHANNEL %s  %s" % ["ABCD"[i], stt], RED if stt == "FAIL" else (YELLOW if stt == "DEGR" else GREEN)]
+		)
+	if bit != "":
+		rows.append(["BIT %s" % bit, RED if bit == "FAIL" else WHITE])
+	_rows(r, o.y + 100.0 * k + 4.0, rows)
+	legend(Vector2(r.end.x - 1.0, r.position.y + 6.0), "BIT", true, bit == "RUN", 4.6)
+	return {"BIT": Rect2(r.end.x - 12.0, r.position.y, 12.0, 8.0)}
+
+
+## PHM (prognostics and health management; inferred layout): the fault list, the F-16 TEST format's lines for the
+## damage flags (`faults`: f16_mfd.gd FAULTS), failures red, cautions yellow.
+func phm(r: Rect2, faults: Array) -> void:
+	text(Vector2(r.position.x + 3.0, r.position.y + 7.0), "HEALTH  FAULTS", 4.6, GREY)
+	var flags: Array = cockpit.damage_flags
+	var rows := []
+	for row in faults:
+		if row[0].any(func(i): return i < flags.size() and flags[i]):
+			rows.append([row[1], RED if row[2] == "warning" else YELLOW])
+	if rows.is_empty():
+		text(Vector2(r.position.x, r.get_center().y), "NO FAULTS", 6.0, GREEN, HORIZONTAL_ALIGNMENT_CENTER, r.size.x)
+		return
+	_rows(r, r.position.y + 16.0, rows, 5.0, 8.0)
+
+
+## CHKLST: the start-up checklist the flight keeps (sim_flight.gd, training.md §7.1), each step green once done.
+## `steps`: [[label, done]].
+func chklst(r: Rect2, steps: Array) -> void:
+	text(Vector2(r.position.x + 3.0, r.position.y + 7.0), "START-UP CHECKLIST", 4.6, GREY)
+	if steps.is_empty():
+		text(Vector2(r.position.x, r.get_center().y), "NO CHECKLIST", 6.0, GREY, HORIZONTAL_ALIGNMENT_CENTER, r.size.x)
+		return
+	var rows := []
+	for s in steps:
+		rows.append([("+ " if s[1] else "  ") + String(s[0]), GREEN if s[1] else WHITE])
+	var h := clampf((r.size.y - 16.0) / steps.size(), 5.5, 8.0)
+	_rows(r, r.position.y + 16.0, rows, minf(4.8, h - 1.0), h)
+
+
+## DIM (the data transfer: the mission's data loaded; inferred layout, the F-16 DTE's LOAD): LOAD IN PROG while
+## `busy`, LOAD COMPLETE once `loaded`. Returns LOAD.
+func dim(r: Rect2, busy: bool, loaded: bool) -> Dictionary:
+	text(Vector2(r.position.x + 3.0, r.position.y + 7.0), "DATA TRANSFER", 4.6, GREY)
+	var t := "LOAD IN PROG" if busy else ("LOAD COMPLETE" if loaded else "MISSION DATA")
+	text(
+		Vector2(r.position.x, r.get_center().y),
+		t,
+		5.6,
+		YELLOW if busy else GREEN,
+		HORIZONTAL_ALIGNMENT_CENTER,
+		r.size.x
+	)
+	legend(Vector2(r.end.x - 1.0, r.position.y + 7.0), "LOAD", true, busy, 4.6)
+	return {"LOAD": Rect2(r.end.x - 14.0, r.position.y, 14.0, 8.0)}
+
+
+## The autopilot's pop-up (a simulator manual p. 34: the AP / AT state and modes): AP on or off, LVL / NAV, AT, the
+## steerpoint NAV steers to.
+func autopilot(r: Rect2) -> void:
+	var on: bool = cockpit.indicators[8]
+	var mode := int(cockpit.state.get("ap_mode", 0))
+	var rows := [
+		["AUTOPILOT", GREY],
+		["AP  " + (["ON", "LVL", "NAV"][clampi(mode, 0, 2)] if on else "OFF"), GREEN if on else WHITE],
+		["AT  OFF", WHITE],
+		["STPT %d" % (cockpit.current_waypoint + 1), WHITE]
+	]
+	_rows(r, r.position.y + 8.0, rows, 5.0, 9.0)
+
+
+# --- HUD repeat and DAS ------------------------------------------------------------------------------------------
+
+
+## The HUD repeat (inferred: the F-35 has no HUD; the format repeats the helmet's flight symbols): the heading tape,
+## the speed and altitude boxes, the horizon and pitch lines about the fixed aircraft, Mach and g, the master mode and
+## the selected weapon. Helmet green on black.
+func hud_repeat(r: Rect2) -> void:
+	var st: Dictionary = cockpit.state
+	var c := r.get_center()
+	var k := r.size.y / 70.0  # px per degree of pitch
+	var roll := deg_to_rad(float(st.get("roll", 0.0)))
+	var right := Vector2(cos(roll), -sin(roll))
+	var down := Vector2(sin(roll), cos(roll))
+	var hz := c + down * float(st.get("pitch", 0.0)) * k
+	var clip := PackedVector2Array(
+		[
+			r.position + Vector2(24, 12),
+			Vector2(r.end.x - 24, r.position.y + 12),
+			r.end - Vector2(24, 10),
+			Vector2(r.position.x + 24, r.end.y - 10)
+		]
+	)
+	for p in range(-30, 31, 5):
+		var m := hz - down * p * k
+		var w := r.size.x * (0.30 if p == 0 else 0.10)
+		for seg in Geometry2D.intersect_polyline_with_polygon(PackedVector2Array([m - right * w, m + right * w]), clip):
+			if p < 0:
+				dashed_line(seg[0], seg[seg.size() - 1], GREEN, THIN, 2.0)
+			else:
+				poly(seg, GREEN, THIN)
+	poly(
+		PackedVector2Array(
+			[c + Vector2(-8, 0), c + Vector2(-3, 0), c + Vector2(0, 2.5), c + Vector2(3, 0), c + Vector2(8, 0)]
+		),
+		GREEN,
+		LINE
+	)
+	var hdg := float(st.get("heading", 0.0))
+	for deg in range(int(hdg) - 30, int(hdg) + 31):
+		if posmod(deg, 10) != 0:
+			continue
+		var x := c.x + (deg - hdg) * r.size.x * 0.3 / 30.0
+		line(Vector2(x, r.position.y + 2.0), Vector2(x, r.position.y + 5.0), GREEN, THIN)
+		var lab := "%02d" % (posmod(deg, 360) / 10)
+		text(Vector2(x - text_width(lab, 4.2) / 2.0, r.position.y + 10.0), lab, 4.2, GREEN)
+	for i in 2:
+		var b := Rect2(Vector2(r.position.x + 1.0 if i == 0 else r.end.x - 23.0, c.y - 4.5), Vector2(22.0, 9.0))
+		box(b, GREEN, THIN)
+		var v := (
+			"%d" % int(st.get("ias_kt", 0.0)) if i == 0 else "%d" % int(round(float(st.get("alt_ft", 0.0)) / 10.0) * 10)
+		)
+		text(Vector2(b.position.x, b.end.y - 2.2), v, 5.2, GREEN, HORIZONTAL_ALIGNMENT_CENTER, b.size.x)
+	text(Vector2(r.position.x + 1.0, c.y + 12.0), "M %.2f" % float(st.get("mach", 0.0)), 4.4, GREEN)
+	text(Vector2(r.position.x + 1.0, c.y + 18.0), "G %.1f" % float(st.get("g", 1.0)), 4.4, GREEN)
+	var wp: Dictionary = cockpit.weapons
+	var hm := int(wp.get("hud_mode", 0))
+	var bottom := ("A-A" if hm in [1, 2, 3] else ("A-S" if hm >= 4 else "NAV")) + "  " + String(wp.get("name", ""))
+	text(Vector2(r.position.x, r.end.y - 2.0), bottom, 4.4, GREEN, HORIZONTAL_ALIGNMENT_CENTER, r.size.x)
+
+
+## DAS (the distributed aperture system's format; its camera picture is a later item, avionics-plan.md §8.5): the
+## picture's frame with NO VIDEO, under it the six apertures' sectors about the ownship (heading up) with each missile
+## warning (the threat warning's MAW list, cockpit.ews "maw": bearing, time to impact) as a red M on its bearing.
+func das(r: Rect2) -> void:
+	var v := Rect2(r.position + Vector2(2, 2), Vector2(r.size.x - 4.0, r.size.y * 0.42))
+	fill(v, Color(0.06, 0.07, 0.08))
+	box(v, GREY, THIN)
+	text(Vector2(v.position.x, v.get_center().y + 2.0), "NO VIDEO", 6.0, GREY, HORIZONTAL_ALIGNMENT_CENTER, v.size.x)
+	var c := Vector2(r.get_center().x, v.end.y + (r.end.y - v.end.y) / 2.0)
+	var rad := minf(r.size.x * 0.4, (r.end.y - v.end.y) * 0.42)
+	circle(c, rad, GREY, THIN)
+	for s in 6:
+		var a := TAU * s / 6.0 + PI / 6.0
+		line(
+			c + Vector2(sin(a), -cos(a)) * rad * 0.35,
+			c + Vector2(sin(a), -cos(a)) * rad,
+			DARK_GREY.lightened(0.3),
+			THIN
+		)
+	ownship(c, 3.0)
+	var blink := int(Time.get_ticks_msec() / 300) % 2 == 0
+	for wn in cockpit.ews.get("maw", []):
+		var d := Vector2(sin(float(wn.bearing)), -cos(float(wn.bearing)))
+		var p := c + d * rad * 0.8
+		if blink:
+			text(p + Vector2(-1.8, 1.8), "M", 5.0, RED)
+		var tti := "--" if is_inf(float(wn.tti)) else "%d" % mini(int(wn.tti), 99)
+		text(p + Vector2(-2.0, 7.0), tti, 4.0, RED)

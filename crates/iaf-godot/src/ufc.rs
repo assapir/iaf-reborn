@@ -154,7 +154,8 @@ impl IafUfc {
     }
 
     /// The settings the cockpit reads: {page, alow_ft, floor_ft, tcn_chan, tcn_y, tcn_mode, uhf_khz, vhf_khz, backup
-    /// (the backup panel's channel, 0 none), auto_seq, laser_code, bull, bull_no}.
+    /// (the backup panel's channel, 0 none), auto_seq, laser_code, bull, bull_no}; for the F-35I's CNI also uhf_preset,
+    /// vhf_preset (0 a typed frequency), xpdr_on [modes 1, 2, 3/A, C], xpdr_codes [1, 2, 3/A] and ident_until (tod).
     #[func]
     fn state(&self) -> VarDictionary {
         let u = &self.ufc;
@@ -164,6 +165,11 @@ impl IafUfc {
             "uhf_khz" => i64::from(u.uhf.khz(&UHF_PRESETS)), "vhf_khz" => i64::from(u.vhf.khz(&VHF_PRESETS)),
             "backup" => i64::from(u.uhf_backup.unwrap_or(0)), "auto_seq" => u.auto_seq,
             "laser_code" => i64::from(u.laser_code), "bull" => u.bull, "bull_no" => i64::from(u.bull_no),
+            "uhf_preset" => u.uhf.manual.map_or(i64::from(u.uhf.preset), |_| 0),
+            "vhf_preset" => u.vhf.manual.map_or(i64::from(u.vhf.preset), |_| 0),
+            "xpdr_on" => &u.xpdr.on.iter().map(|b| b.to_variant()).collect::<VarArray>(),
+            "xpdr_codes" => &u.xpdr.codes.iter().map(|c| i64::from(*c)).collect::<PackedInt64Array>(),
+            "ident_until" => u.xpdr.ident_until,
         }
     }
 

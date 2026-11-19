@@ -356,6 +356,14 @@ mod tests {
         assert_eq!(load[2][2], 147.0, "the BRU-61/A");
         assert_eq!((load[2][4].as_i64(), load[0][4].as_i64()), (Some(1), Some(0)), "C in the bay, A on the wingtip");
         assert_eq!(load[2][3], 0.0, "no rack drag in the bay");
+        // The SPICE 1000 (avionics-plan.md §8.6): inside, on the bays' air-to-ground stations only, one each; the sim
+        // flies its record 1009 there, with nothing it needs unmet.
+        assert!(!put(&u, &mut lo, 3, "spice-1000", false) && !put(&u, &mut lo, 5, "spice-1000", false));
+        assert!(put(&u, &mut lo, 4, "spice-1000", true));
+        assert_eq!((at(&lo, 4), at(&lo, 8)), (("spice-1000", 1), ("spice-1000", 1)));
+        let load = sim_load(&u, &weapons(), &lo);
+        assert_eq!((load[2][0].as_i64(), load[2][4].as_i64()), (Some(1009), Some(1)), "C: the SPICE 1000, in the bay");
+        assert_eq!(crate::briefing::arming(&u, &weapons(), &lo)["unmet"], json!([]));
     }
 
     #[test]

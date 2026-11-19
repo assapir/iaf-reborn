@@ -11,7 +11,9 @@ A bomb takes its point in one of two modes. #key("GPS bomb PRE / VIS") changes t
 - *PRE, planned:* the point is known before the release. The sim gives each bomb the route's target steerpoint; on the weapons range it is the steerpoint on the targets. #key("GPS bomb next PRE target") steps the next bomb's point through the route's steerpoints; a line of text shows which, as "PRE 2/5".
 - *VIS, by eye:* the point is the one you designate in flight: the point under the TFLIR's cross while its laser fires (@tflir), or else the point designated on the radar's ground map (@radar-ag).
 
-#in-sim[Setting each bomb's own PRE target before the flight, and the WPN-S format that programs the weapons, are #nis.]
+The WPN-S format (@pcd) lists each bomb of the selected store with its PRE target, greys the bombs gone, and sets the release profile: PROF, SGL or PAIR, the count and the interval.
+
+#in-sim[Setting each bomb's own PRE target before the flight is #nis.]
 
 === The helmet's cues <ag-cues>
 

@@ -29,15 +29,18 @@ func _button(i: int, b: String) -> bool:
 	var s: float = pcd._s()
 	var body := Rect2(2.0, pcd.HEAD_H + 1.0, pr.size.x / s - 4.0, pr.size.y / s - pcd.HEAD_H - 4.0)
 	var names: Array = (
-		["CRUS"] if pcd.popup == i else (pcd.fmt.FORMATS if pcd.menu_open[i] else pcd.CNTL_OF[pcd.main[i]])
+		["CRUS"] if pcd.main[i] == "MENU" else (pcd._formats if pcd.menu_open[i] else pcd.CNTL_OF[pcd.main[i]])
 	)
 	var k := names.find(b)
 	if b in ["WIDE", "SPOT"]:
 		k = 2
 	if k < 0:
 		return false
-	var bw := (body.size.x - 8.0) / 3.0
-	var at := body.position + Vector2(4.0 + bw * (k % 3) + bw / 2.0, 14.0 + 16.0 * (k / 3) + 6.0)
+	# pcd_formats.gd menu's grid.
+	var cols := clampi(int(body.size.x / 44.0), 3, 6)
+	var bh := minf(13.0, (body.size.y - 14.0) / ceili(float(names.size()) / cols) - 2.0)
+	var bw := (body.size.x - 8.0) / cols
+	var at := body.position + Vector2(4.0 + bw * (k % cols) + bw / 2.0, 12.0 + (bh + 2.0) * (k / cols) + bh / 2.0)
 	return await _click(i, at)
 
 
@@ -124,9 +127,9 @@ func _swap() -> void:
 	var before: Array = pcd.main.duplicate()
 	var cx: float = pcd.glass().size.x / pcd._s() / 2.0
 	check(await _click(-1, Vector2(cx, 7.0)), "SWAP is clickable")
-	check(pcd.fab_swapped and pcd.main == before, "SWAP trades the bar's halves; the portals stay")
+	check(bool(pcd.st.bar_swapped) and pcd.main == before, "SWAP trades the bar's halves; the portals stay")
 	await _click(-1, Vector2(cx, 7.0))
-	check(not pcd.fab_swapped, "SWAP again: the bar as before")
+	check(not bool(pcd.st.bar_swapped), "SWAP again: the bar as before")
 
 
 func _menu() -> void:
@@ -134,19 +137,19 @@ func _menu() -> void:
 	await frames(2)
 	var cx: float = pcd.glass().size.x / pcd._s() / 2.0
 	check(await _click(-1, Vector2(cx + 116.0, 7.0)), "the bar's MENU is clickable")
-	check(pcd.popup == 2, "MENU: its page pops up on the portal under it (%d)" % pcd.popup)
+	check(int(pcd.st.popup) == 2, "MENU: its page pops up on the portal under it (%d)" % int(pcd.st.popup))
 	await _button(2, "CRUS")
 	check(
-		pcd.popup == -1 and pcd.main == pcd.DEFAULT_MAIN and pcd.tabs == pcd.DEFAULT_TABS,
+		int(pcd.st.popup) == -1 and int(pcd.st.preset) == 0 and pcd.main == ["TSD-1", "SMS", "SRCH", "TFLIR"],
 		"CRUS restores the default layout (%s)" % [pcd.main]
 	)
 	# With the bar swapped the MENU legend sits over the left half.
-	pcd.swap_fab()
+	pcd._do(func(): pcd.lay.swap_bar())
 	await frames(2)
 	await _click(-1, Vector2(116.0 - 13.0, 7.0))
-	check(pcd.popup == 0, "MENU on the swapped bar pops up on the first portal (%d)" % pcd.popup)
+	check(int(pcd.st.popup) == 0, "MENU on the swapped bar pops up on the first portal (%d)" % int(pcd.st.popup))
 	await _click(0, Vector2(10.0, 6.0))
-	check(pcd.popup == -1 and not pcd.menu_open[0], "a click on the pop-up's header closes it")
+	check(int(pcd.st.popup) == -1 and not pcd.menu_open[0], "a click on the pop-up's header closes it")
 	pcd.restore_layout()
 	await frames(2)
 

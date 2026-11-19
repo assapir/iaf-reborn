@@ -3,6 +3,18 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **The Adir's panoramic display and stores (2026-11-19, avionics-plan.md slice 7 part C, P1, P3, P4, P6–P11, S13,
+  S15, N8; G16, G29, G34):** the pilot lays out the display ([../../docs/f35i.md](../../docs/f35i.md) §4.3): the MENU
+  grid's 20 formats, widening a portal over its half, enlarging it over its windows, a window or tab into its portal,
+  the five presets, the function bar's pop-ups, its SWAP and MENU (CRUS), by taps and by keys (records 241–250, each
+  with a key on the laptop map); the layout is Rust
+  (`crates/iaf-avionics/src/pcd.rs`). New formats on inferred layouts: WPN-A, WPN-S (the F-16 SMS's profiles, a GPS
+  bomb's per-bomb targets), CNI (radios, TACAN, IFF over the F-16's up-front controls), FCS, PHM, CHKLST, DIM, the
+  HUD repeat and the DAS format's frame. The SMS draws the bays and their doors with DOORS (Ctrl + Delete); the TFLIR
+  has the TGP's track modes, zoom, WIDE / NARO, laser and CZ; the TMS keys act on the cursor's portal. The SPICE 1000
+  goes in the bays on 4 / 8 ([weapons.md](weapons.md) §5). Tests: `modern-iaf/tests/test_sim_pcd.gd`,
+  `test_sim_adir_pcd.gd`. Open: the DAS camera picture (avionics-plan.md §8 item 5, the slice's last part), the
+  per-bomb PRE pick in the sim (G4: waits for the user's yes), FLC on the grip (P12: no source names its function).
 - **A lesson's load needs its bombs (2026-11-19, fixed, [weapons.md](weapons.md) §7.1):** a load with fewer
   air-to-ground stores than the mission's ground kills is refused on the Loadout screen and the briefing ("The mission
   needs bombs: add a Mk 82 bomb"), and a `--mission` run flies the mission's own load instead. Before, a saved load
