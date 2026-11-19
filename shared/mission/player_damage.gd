@@ -24,6 +24,8 @@ var betty := true
 var rng := RandomNumberGenerator.new()
 ## The fire extinguisher's one charge (engine panel +0x3c, set at the start by FUN_0045af00).
 var extinguisher := true
+## Ours: the airframe damaged past its limits (structure_damage).
+var structure := false
 ## Host callbacks: console(text), sound(code, sub1), light(index, on), gear_stuck(), shake(amount), rwr().
 var host: Object
 
@@ -105,6 +107,18 @@ func system_damage(n: int) -> void:
 				host.damage_sound("VOC_BBETTY", "BTY_ENGINE")
 	flags[n] = true
 	host.damage_light(0, true)  # master caution (FUN_0045b4b0)
+	if betty:
+		host.damage_sound("VOC_BBETTY", "BTY_CAUTION")
+	else:
+		host.damage_sound("SFX_WARNING", "WRN_MASTER")
+
+
+## Ours, Modern IAF's 6-DoF: the airframe damaged past its limit load or speed (sixdof/limits.rs). It has no
+## system flag: the console text, the master caution light and Betty "Caution" (SFX_WARNING WRN_MASTER without Betty).
+func structure_damage() -> void:
+	structure = true
+	host.damage_console("Structural damage")
+	host.damage_light(0, true)
 	if betty:
 		host.damage_sound("VOC_BBETTY", "BTY_CAUTION")
 	else:

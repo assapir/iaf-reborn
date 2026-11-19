@@ -44,9 +44,10 @@ The limits are the flight manual's#fm[section I, "AOA/g limiter", page 1-121, an
 The list is from the flight manual's#fm[section V, "Prohibited maneuvers", page 5-3].#block-note
 
 #in-sim[
-  - *Load factor.* The limiter holds +9 and −3 g; a full pull at high speed peaks near 9.3 g. Nothing breaks from g, and no inspection follows.
+  - *Load factor.* The limiter holds +9 and −3 g; a full pull at high speed peaks near 9.3 g. Past 9.5 or −3.2 g the over-g is counted. Past 10.4 or −3.45 g #sym.arrow.r *the structure is damaged:* "Structural damage", the master caution and more drag; from then on it fails at 11.7 or −3.9 g. Past 13.5 or −4.5 g #sym.arrow.r *the airframe fails, and the jet is lost.* The margins are inferred.
+  - *Rolling.* With a category III load and a roll rate above 20° a second the g limits are 0.8 of the symmetric ones (inferred): the structure is damaged from about 8.3 g.
   - *Angle of attack.* CAT I: 25°. CAT III: 15.5° to 18°, by weight, with the roll reduced to about 60~% and the pedals faded out by 15°. #row("SW_STORES_CONFIG") is read; it starts at CAT I.
   - *The load's category* (inferred): CAT III with an air-to-ground store or a 600-gallon tank on a wing pylon, else CAT I; it follows the stores as they go. #sym.arrow.r *#row("lamp_caution_stores_config_0") lights while the switch is off that category.*
-  - A category III load flown at CAT I has the CAT I limits: the sim does not make it depart more easily.
-  - #term("Not modelled"): the rolling g limits, the g limits with the gear down, the bank-change limit, the supplement's list of stores categories, damage from any prohibited manoeuvre.
+  - A category III load flown at CAT I loses its directional stability past the CAT III line #sym.arrow.r *near the limiter's 25° the jet yaws off.* At CAT III the limiter keeps it from there.
+  - #term("Not modelled"): the rolling g limits of category I loads, the g limits with the gear down, the bank-change limit, the supplement's list of stores categories, damage from the other prohibited manoeuvres.
 ]

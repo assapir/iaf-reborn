@@ -283,6 +283,7 @@ const BRAKES: Controls = Controls {
     stores_roll: 0.0,
     stores_cd_asym: 0.0,
     wind: Vec3::ZERO,
+    cat3_alpha: None,
 };
 
 #[test]
@@ -1324,4 +1325,146 @@ fn f16_autopilot_flies_each_mode_through_the_control_laws() {
     let s = f.state();
     println!("after the pull: α {:.1}°, {:.0} kt", s.alpha.to_degrees(), s.speed as f64 / KT);
     assert_eq!(f.ap_switch(0, ALT_HOLD), Ok(()), "α {:.1}°", s.alpha.to_degrees());
+}
+
+// --- The jets' limits (sixdof::limits, modern-iaf/docs/flight-model.md §9.20) -------------------------------------
+
+/// `f` one frame on with its body's velocity turned to α `deg` at its speed (the attitude kept).
+fn jolt(f: &mut SixDof, deg: f64) {
+    let mut b = *f.body();
+    let v = b.vel.length();
+    b.vel = Vec3::new(v * deg.to_radians().cos(), 0.0, v * deg.to_radians().sin());
+    f.set_body(b);
+    f.step(1.0 / 60.0);
+}
+
+#[test]
+fn over_g_damages_then_breaks_the_airframe() {
+    // The Barak at 600 kt at sea level, its flight path turned to α 4…20° in one frame: the load passes the
+    // limit (9 g), the damage load (1.15 × 9) and the ultimate (1.5 × 9) in turn.
+    let barak = jets::all()[0];
+    let (mut damaged, mut broke) = (None, None);
+    for i in 0..33 {
+        let a = 4.0 + 0.5 * i as f64;
+        let mut f = flight(barak, 300.0, 600.0 * KT, true);
+        jolt(&mut f, a);
+        let (s, l) = (f.state(), f.limits());
+        if l.structure == 2 && s.crashed.is_none() && damaged.is_none() {
+            damaged = Some((a, s.g));
+            assert!(l.over_g == 1);
+        }
+        if s.crashed == Some(iaf_flight::Crash::Structure) && broke.is_none() {
+            broke = Some((a, s.g));
+        }
+    }
+    println!("Barak, 600 kt: damaged at {damaged:?} (α, g), broke at {broke:?}");
+    let (d, b) = (damaged.expect("never damaged"), broke.expect("never broke"));
+    assert!(d.1 >= 10.35 && d.1 < 13.5 && b.0 > d.0, "{d:?} {b:?}");
+    // The control system's full pull (peak 9.3 g) leaves the structure sound.
+    let mut f = flight(barak, 3048.0, 550.0 * KT, true);
+    let full = iaf_flight::Controls { stick_y: 1.0, throttle: 1.0, ..f.controls() };
+    fly_for(&mut f, 6.0, |_| full);
+    assert_eq!(f.limits().structure, 0, "{:?}", f.limits());
+}
+
+#[test]
+fn overspeed_and_flutter() {
+    // The Barak level at sea level: 820 KCAS is past the 800 KCAS limit (counted), 950 KCAS past the flutter margin
+    // (1.15 × 800 = 920): the airframe fails. The Adir's limit is 700 KCAS.
+    let barak = jets::all()[0];
+    let mut f = flight(barak, 300.0, 830.0 * KT, true);
+    f.step(1.0 / 60.0);
+    let l = f.limits();
+    assert!(l.over_speed == 1 && l.structure == 1 && f.state().crashed.is_none(), "{l:?}");
+    let mut f = flight(barak, 300.0, 960.0 * KT, true);
+    f.step(1.0 / 60.0);
+    assert_eq!(f.state().crashed, Some(iaf_flight::Crash::Structure));
+    let mut f = flight(jets::all()[2], 300.0, 730.0 * KT, true);
+    f.step(1.0 / 60.0);
+    assert_eq!(f.limits().over_speed, 1);
+}
+
+#[test]
+fn gear_tyres_and_brakes() {
+    // The gear lowered at 350 kt (past 300 KCAS) is damaged; at 250 kt it is not.
+    let barak = jets::all()[0];
+    for (kt, over) in [(350.0, true), (250.0, false)] {
+        let mut f = flight(barak, 300.0, kt * KT, true);
+        fly_for(&mut f, 1.0, |f| iaf_flight::Controls { gear_down: true, ..f.controls() });
+        assert_eq!(f.limits().gear_overspeed, over, "{kt} kt");
+    }
+    // The main tyres on the runway past 225 kt of ground speed burst; at 200 kt they hold.
+    for (kt, burst) in [(235.0, true), (200.0, false)] {
+        let mut f = flight(barak, 0.0, 0.0, false);
+        f.step(1.0 / 60.0);
+        let mut b = *f.body();
+        b.vel = Vec3::new(kt * KT, 0.0, 0.0);
+        f.set_body(b);
+        f.step(1.0 / 60.0);
+        assert_eq!(f.limits().tyres_burst > 0, burst, "{kt} kt: {:?}", f.limits());
+    }
+    // Three full-brake stops from 140 kt one after the other: the first leaves the brakes whole, the third fades
+    // them. A damaged structure, burst tyres and hot brakes do nothing when invulnerable.
+    let mut f = flight(barak, 0.0, 0.0, false);
+    f.step(1.0 / 60.0);
+    let mut left = [0.0; 3];
+    for l in &mut left {
+        let mut b = *f.body();
+        b.vel = Vec3::new(140.0 * KT, 0.0, 0.0);
+        f.set_body(b);
+        fly_for(&mut f, 40.0, |f| iaf_flight::Controls { brakes: true, throttle: 0.0, ..f.controls() });
+        *l = f.limits().brakes_left;
+    }
+    println!("Barak, three stops from 140 kt: braking left {left:?}");
+    assert!(left[0] == 1.0 && left[2] < 1.0, "{left:?}");
+    let mut f = flight(barak, 300.0, 960.0 * KT, true);
+    f.invulnerable = true;
+    f.step(1.0 / 60.0);
+    assert!(f.state().crashed.is_none() && f.limits().structure == 0);
+}
+
+#[test]
+fn the_cg_and_a_category_iii_load() {
+    // 3,000 lb in the fuselage tanks, ENG FEED at FWD: the forward system feeds the engine and the aft tanks, the
+    // c.g. moves aft.
+    let barak = jets::all()[0];
+    let mut f = flight(barak, 6000.0, 400.0 * KT, true);
+    f.set_fuel(3_000.0 * iaf_flight::units::LB as f32);
+    let x0 = f.xcg();
+    f.set_switch("eng_feed", 3);
+    let c = f.controls();
+    fly_for(&mut f, 300.0, |_| c);
+    println!("Barak, 5 min at FWD: c.g. {x0:.3} -> {:.3} c", f.xcg());
+    assert!(f.xcg() > x0 + 0.01, "{}", f.xcg());
+    // A category III load flown at CAT I on the α limiter (25°) with a little pedal and roll: the jet yaws off; with a
+    // category I load, or with the switch at CAT III (near the CAT III line), it does not.
+    let beta = |cat3_load: bool, cat3: bool| {
+        let mut f = flight(barak, 4500.0, 250.0 * KT, true);
+        (f.cat3_load, f.cat3) = (cat3_load, cat3);
+        let mut peak: f64 = 0.0;
+        fly_for(&mut f, 10.0, |f| {
+            peak = peak.max(f.body().beta().to_degrees().abs());
+            iaf_flight::Controls { stick_y: 1.0, stick_x: 0.2, rudder: 0.2, ..f.controls() }
+        });
+        peak
+    };
+    let (cat1, cat3_at_cat1, cat3_at_cat3) = (beta(false, false), beta(true, false), beta(true, true));
+    println!(
+        "peak |β|: CAT I load {cat1:.1}°, CAT III load at CAT I {cat3_at_cat1:.1}°, at CAT III {cat3_at_cat3:.1}°"
+    );
+    assert!(
+        cat3_at_cat1 > 10.0 && cat3_at_cat1 > 3.0 * cat1 && cat3_at_cat3 < 5.0,
+        "{cat1} {cat3_at_cat1} {cat3_at_cat3}"
+    );
+    // The switch at CAT III, heavy (35,000 lb), a full pull at 450 kt: the CAT III line rises with g and the jet stays
+    // pointed.
+    let mut f = flight(barak.at_weight(35_000.0), 4500.0, 450.0 * KT, true);
+    (f.cat3_load, f.cat3) = (true, true);
+    let mut peak: f64 = 0.0;
+    fly_for(&mut f, 8.0, |f| {
+        peak = peak.max(f.body().beta().to_degrees().abs());
+        iaf_flight::Controls { stick_y: 1.0, throttle: 1.0, ..f.controls() }
+    });
+    println!("CAT III load and switch, 35,000 lb, full pull at 450 kt: peak |β| {peak:.1}°");
+    assert!(peak < 5.0, "{peak}");
 }

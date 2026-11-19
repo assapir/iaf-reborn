@@ -69,6 +69,14 @@ impl Fm {
         }
     }
 
+    /// The 6-DoF's limits so far ([`SixDof::limits`]); none on the original model.
+    pub fn limits(&self) -> Option<crate::sixdof::flight::LimitsState> {
+        match self {
+            Fm::SixDof(s) => Some(s.limits()),
+            _ => None,
+        }
+    }
+
     pub fn params(&self) -> &Params {
         match self {
             Fm::Original(a) => &a.params,

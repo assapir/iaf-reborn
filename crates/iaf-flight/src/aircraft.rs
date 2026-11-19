@@ -388,6 +388,9 @@ pub enum Crash {
     Scenery,
     /// Better physics only: nose too high at touchdown (tail strike).
     TailStrike,
+    /// Modern IAF's 6-DoF only: the airframe failed past its ultimate load or its flutter speed
+    /// (`sixdof::limits`).
+    Structure,
 }
 
 impl Crash {
@@ -399,6 +402,7 @@ impl Crash {
             Crash::SinkRate => "sink rate",
             Crash::Scenery => "scenery",
             Crash::TailStrike => "tail strike",
+            Crash::Structure => "structure",
         }
     }
 }

@@ -19,5 +19,7 @@ What each bay and wing station may carry is in @aircraft-stations. The stores' l
   - *Asymmetry.* No limit, and no warning.
   - *Touchdown.* Sinking faster than 10 ft/s #sym.arrow.r *the gear is damaged.* Sinking faster than 13 ft/s, more than 10° of bank or the nose below −5° #sym.arrow.r *the jet is lost.* Above 15° of pitch #sym.arrow.r *a tail strike, and the jet is lost.* The figures are the F-16's (inferred).
   - *Crosswind.* No limit.
-  - #term("Not modelled"): the centre of gravity, the brakes' energy, the hook, the runway-length rule.
+  - *Centre of gravity.* The fuselage fuel moves it; the wing tanks and the stores sit at it (inferred).
+  - *Brakes.* A full stop from about 150 kt at a heavy landing weight takes them to their energy limit; past it they fade, and they are gone at 1.25 times it. They cool over about 15 minutes. The figures are inferred.
+  - #term("Not modelled"): the hook, the runway-length rule.
 ]

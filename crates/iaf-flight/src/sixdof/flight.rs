@@ -10,6 +10,7 @@ use super::fcs::{Fcs, Pilot, Sensors};
 use super::fuel::Tanks;
 use super::gear::Anchors;
 use super::jets::{self, Jet};
+use super::limits::{self, Brakes, Stress};
 use super::start::{Phase, Start as Sequence};
 use crate::aircraft::{ApView, Controls, Crash, Euler, Start, State};
 use crate::atmosphere::air;
@@ -171,7 +172,45 @@ pub struct SixDof {
     master_fuel: bool,
     eng_feed: u8,
     fuel_qty_sel: u8,
+    /// The load is of category III (`stores.gd` `loading_category`): on a jet with load categories
+    /// (`Limits::categories`) its lower departure resistance and its rolling g limit ([`limits`]).
+    pub cat3_load: bool,
+    /// The Preferences' "invulnerable": no limit has any consequence (the crashes are `no_crashes`').
+    pub invulnerable: bool,
+    /// The structure's worst stress so far ([`Stress::Damage`]: damaged, weaker from then on) and the last step's
+    /// load and speed stresses (the counts below take their rise past the limit).
+    structure: Stress,
+    g_stress: Stress,
+    v_stress: Stress,
+    over_g: u32,
+    over_speed: u32,
+    /// The gear was down or moving past its speed limit.
+    gear_overspeed: bool,
+    /// The brakes' heat.
+    brakes: Brakes,
 }
+
+/// What the limits have done so far ([`SixDof::limits`], modern-iaf/docs/flight-model.md §9.20).
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub struct LimitsState {
+    /// The structure: 0 sound, 1 past its limit (an inspection), 2 damaged, 3 failed.
+    pub structure: u8,
+    /// Times past the g limit and past the speed limit (the manual's over-g report and overspeed).
+    pub over_g: u32,
+    pub over_speed: u32,
+    /// The gear was down or moving past its speed limit.
+    pub gear_overspeed: bool,
+    /// Burst tyres.
+    pub tyres_burst: u32,
+    /// The braking the brakes' heat leaves, 1…0.
+    pub brakes_left: f64,
+    /// The c.g., fraction of the chord, and the aft limit passed.
+    pub xcg: f64,
+    pub cg_aft: bool,
+}
+
+/// A damaged structure's added drag, ΔCD as a drag index × 10⁻⁴ (100: inferred, panels and skin out of shape).
+const DAMAGED_DI: f64 = 0.01;
 
 /// The F-16's ENG FEED knob's positions (flight manual figure 1-23; [`Tanks::feed`]): OFF, NORM, AFT, FWD.
 pub const ENG_FEED: [&str; 4] = ["OFF", "NORM", "AFT", "FWD"];
@@ -261,6 +300,15 @@ impl SixDof {
             master_fuel: true,
             eng_feed: 1,
             fuel_qty_sel: 1,
+            cat3_load: false,
+            invulnerable: false,
+            structure: Stress::None,
+            g_stress: Stress::None,
+            v_stress: Stress::None,
+            over_g: 0,
+            over_speed: 0,
+            gear_overspeed: false,
+            brakes: Brakes::default(),
         };
         s.fcs = Fcs::new(jet.g_limits, jet.roll.map(|r| (r, jet.airframe.b))).with_alpha_max(jet.alpha_max);
         if st.airborne {
@@ -597,7 +645,9 @@ impl SixDof {
         }
         let dt = dt.min(MAX_FRAME);
         let n = (dt / MAX_STEP).ceil().max(1.0);
-        // The mass and the rotors' momentum change slowly: once per frame; the drawn wheels' height at that weight.
+        // The mass, the c.g. and the rotors' momentum change slowly: once per frame; the drawn wheels' height at that
+        // weight.
+        self.jet.airframe.xcg = self.xcg();
         let af = self.airframe();
         if let Some(h) = self.wheel_height {
             self.jet.gear.set_static_height(h, self.mass() * G);
@@ -792,7 +842,7 @@ impl SixDof {
             throttle: travel,
             wheels: self.wheels(&c),
             gear_down,
-            stores_cd: self.stores_cd,
+            stores_cd: self.stores_cd + if self.structure >= Stress::Damage { DAMAGED_DI } else { 0.0 },
             stores_roll: (self.stores_moment
                 + self.tank_moment
                     * crate::aircraft::tank_share(
@@ -807,6 +857,9 @@ impl SixDof {
             // One engine of a twin dead: half the thrust.
             thrust_k: if bits & 0xc != 0 { 0.5 } else { 1.0 },
             wind: air,
+            // From the CAT III line at the jet's load factor (it rises with g, figure 1-44).
+            cat3_alpha: (self.cat3_load && self.jet.limits.categories)
+                .then(|| super::fcs::cat3_alpha_limit(self.mass() / LB, (-self.accel_g.z).max(1.0))),
         };
         let running = jc.engine_on;
         let (jet, engine, anchors) = (&self.jet, self.engine, self.anchors);
@@ -838,6 +891,80 @@ impl SixDof {
             self.tanks.feed(ff * dt / LB, dt / 3600.0, self.eng_feed, self.fuel_qty_sel == 1);
         }
         self.check_ground(was_on_ground, gear_down, ground_z);
+        let cas_kt = crate::atmosphere::cas(flow.v as f32, alt as f32) as f64 * 1.943844;
+        self.check_limits(was_on_ground, cas_kt, flow.v / sound, ground_z, dt);
+    }
+
+    /// The c.g., fraction of the chord ([`limits::xcg`]).
+    pub fn xcg(&self) -> f64 {
+        let a = &self.jet.airframe;
+        limits::xcg(&self.tanks, self.mass(), a.cbar, a.xcg_ref)
+    }
+
+    /// After a step at `cas_kt` and `mach`: the airframe's g and speed, the gear's speed, the tyres' ground speed and
+    /// the brakes' heat against the jet's limits ([`limits`]). The airframe is checked in the air only: a touchdown's
+    /// loads are the landing limits' ([`SixDof::check_ground`]).
+    fn check_limits(&mut self, was_on_ground: bool, cas_kt: f64, mach: f64, ground_z: f64, dt: f64) {
+        let l = self.jet.limits;
+        if self.invulnerable {
+            return;
+        }
+        if !self.on_ground && !was_on_ground {
+            let rolling = self.body.omega.x.to_degrees().abs() > limits::ROLLING_DEG_S;
+            let k = if self.cat3_load && l.categories && rolling { limits::CAT3_ROLLING } else { 1.0 };
+            let weak = self.structure >= Stress::Damage;
+            let g = limits::g_stress(-self.accel_g.z, self.jet.g_limits, k, weak);
+            let v = limits::speed_stress(cas_kt, mach, &l);
+            self.over_g += u32::from(g >= Stress::Over && self.g_stress < Stress::Over);
+            self.over_speed += u32::from(v >= Stress::Over && self.v_stress < Stress::Over);
+            (self.g_stress, self.v_stress) = (g, v);
+            let worst = if g > v { g } else { v };
+            if worst > self.structure {
+                self.structure = worst;
+            }
+            if worst == Stress::Failure && !self.no_crashes {
+                self.crashed = Some(Crash::Structure);
+            }
+        }
+        // The gear down or moving (its doors open) past its speed.
+        self.gear_overspeed |= self.gear < GEAR_UP && limits::gear_over(cas_kt, mach, &l);
+        // The main tyres on the runway past their ground speed burst; the brakes take up their braking's power.
+        let b = &self.body;
+        let gs = b.att.rotate(b.vel);
+        let gs = gs.x.hypot(gs.y);
+        let loads = if self.gear < GEAR_UP { self.jet.gear_loads(b, ground_z) } else { [0.0; 3] };
+        let mut watts = 0.0;
+        let brake = self.wheels(&self.controls).brake;
+        for (n, &load) in loads.iter().enumerate().skip(1) {
+            if load > 0.0 && gs * 1.943844 > l.tyre_kt {
+                self.jet.gear.burst[n] = true;
+            }
+            if !self.jet.gear.burst[n] {
+                watts += super::gear::TYRES.braking * brake * load * gs;
+            }
+        }
+        self.brakes.step(watts, dt);
+    }
+
+    /// What the limits have done so far.
+    pub fn limits(&self) -> LimitsState {
+        let x = self.xcg();
+        LimitsState {
+            structure: self.structure as u8,
+            over_g: self.over_g,
+            over_speed: self.over_speed,
+            gear_overspeed: self.gear_overspeed,
+            tyres_burst: self.jet.gear.burst.iter().filter(|&&b| b).count() as u32,
+            brakes_left: self.brakes.left(self.brake_limit()),
+            xcg: x,
+            cg_aft: x > limits::XCG_AFT,
+        }
+    }
+
+    /// The brakes' energy limit, J, at 1.4 × the jet's reference weight (inferred: a heavy landing weight with stores
+    /// aboard; [`limits::brake_limit`]).
+    fn brake_limit(&self) -> f64 {
+        limits::brake_limit(&self.jet.limits, 1.4 * (self.empty_kg + self.jet.fuel_lb * LB))
     }
 
     /// Touchdowns and crashes: a gear-down touchdown inside the landing limits counts as a landing; outside them,
@@ -1024,7 +1151,8 @@ impl SixDof {
     /// that radius allows, straight: a braked main tyre keeps little side grip (the friction circle), and turning
     /// under full brakes ground-looped the jet backwards onto its tail (2026-11-16; all inferred).
     fn wheels(&self, c: &Controls) -> super::gear::Wheels {
-        let brake = self.brake;
+        // The brakes' heat takes their braking away ([`limits::Brakes`]).
+        let brake = self.brake * self.brakes.left(self.brake_limit());
         let steer = c.rudder as f64 * self.jet.nws_deg;
         let Some(target) = self.pivot.filter(|_| self.on_ground) else {
             let castor = c.rudder.abs() < NWS_ON_PEDAL && self.body.speed() >= NWS_TAXI_KT * 0.514444;

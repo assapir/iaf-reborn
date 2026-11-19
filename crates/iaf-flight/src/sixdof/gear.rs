@@ -66,7 +66,13 @@ pub struct Gear {
     /// moved along under the c.g. until the next reading: at 130 kt on a runway falling 1.3 % the ground dropped
     /// 2 cm each frame, the wheels left it and fell back on it every frame.)
     pub ground_at: [f64; 2],
+    /// A burst tyre per strut (`limits::Limits::tyre_kt`): its wheel runs on the rim, [`BURST`]'s friction, no brake.
+    pub burst: [bool; 3],
 }
+
+/// A burst tyre's wheel on its rim: rolling 0.3, side grip 0.3 (within a peak of 0.42), no braking (inferred: a rim
+/// drags and slides on concrete; the jet pulls toward that side).
+pub const BURST: Tyres = Tyres { rolling: 0.3, peak: 0.42, braking: 0.0, side: 0.3 };
 
 /// Where each braked tyre sticks to the runway (world, NED), if it does: a held brake pins the tyre to its spot
 /// through a stiff tangential spring until the spring's pull exceeds the braking friction (a "bristle" model, so a
@@ -110,6 +116,7 @@ impl Gear {
             ],
             ground_slope: [0.0; 2],
             ground_at: [0.0; 2],
+            burst: [false; 3],
         }
     }
 
@@ -166,6 +173,7 @@ impl Gear {
         for (n, s) in self.struts.iter().enumerate() {
             let Some((r, p, v, normal)) = self.contact(s, b, ground_z) else { continue };
             loads[n] = normal;
+            let t = if self.burst[n] { &BURST } else { t };
             // The wheel's rolling direction on the runway; none when the wheel points straight up or down (a nose-
             // or tail-first impact): then the runway pushes only.
             let steer = if s.steer { w.steer.to_radians() } else { 0.0 };
@@ -212,7 +220,7 @@ impl Gear {
     pub fn update(&self, b: &Body, ground_z: f64, w: &Wheels, t: &Tyres, anchors: &mut Anchors) {
         for (n, s) in self.struts.iter().enumerate() {
             let held = match self.contact(s, b, ground_z) {
-                Some((_, p, v, normal)) if s.brake && w.brake > 0.0 && normal > 0.0 => {
+                Some((_, p, v, normal)) if s.brake && !self.burst[n] && w.brake > 0.0 && normal > 0.0 => {
                     let cap = (t.rolling + t.braking * w.brake.clamp(0.0, 1.0)) * normal;
                     match anchors.0[n] {
                         Some(a) => (Self::anchor_force(s, p, v, a).length() <= cap).then_some(a),

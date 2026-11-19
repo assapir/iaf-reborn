@@ -17,6 +17,7 @@ pub mod flight;
 pub mod fuel;
 pub mod gear;
 pub mod jets;
+pub mod limits;
 pub mod start;
 pub mod tables;
 

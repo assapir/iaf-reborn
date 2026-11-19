@@ -159,6 +159,15 @@ impl IafFlight {
         }
     }
 
+    /// The 6-DoF's load category (`stores.gd` `loading_category`: 3 for category III), for its departure resistance
+    /// and its rolling g limit (`sixdof::limits`); the original model has none.
+    #[func]
+    fn set_load_category(&mut self, category: i64) {
+        if let Some(Fm::SixDof(s)) = self.aircraft.as_mut() {
+            s.cat3_load = category == 3;
+        }
+    }
+
     /// The 6-DoF F-16's autopilot switch `axis` (0 PITCH: 1 ALT HOLD, 0 A/P OFF, −1 ATT HOLD; 1 ROLL: 1 HDG SEL,
     /// 0 ATT HOLD, −1 STRG SEL) moved to `pos` (modern-iaf/docs/research/f16-autopilot.md). Returns "" or why the
     /// PITCH switch drops back to A/P OFF; "" on the original model, which has no such switches.
@@ -399,7 +408,7 @@ impl IafFlight {
     fn set_invulnerable(&mut self, on: bool) {
         match self.aircraft.as_mut() {
             Some(Fm::Original(ac)) => ac.invulnerable = on,
-            Some(Fm::SixDof(s)) => s.no_crashes |= on,
+            Some(Fm::SixDof(s)) => (s.invulnerable, s.no_crashes) = (on, s.no_crashes || on),
             None => {}
         }
     }
@@ -408,7 +417,7 @@ impl IafFlight {
     fn set_no_crashes(&mut self, on: bool) {
         match self.aircraft.as_mut() {
             Some(Fm::Original(ac)) => ac.no_crashes = on,
-            Some(Fm::SixDof(s)) => s.no_crashes = on,
+            Some(Fm::SixDof(s)) => s.no_crashes = on || s.invulnerable,
             None => {}
         }
     }
@@ -954,6 +963,18 @@ impl IafFlight {
         d.set("landings", s.landings as i64);
         // Of them, the hard ones (past the gear's design sink speed): the game damages the gear (docs/damage.md §5.2).
         d.set("hard_landings", s.hard_landings as i64);
+        // The 6-DoF's limits (modern-iaf/docs/flight-model.md §9.20): the structure 0 sound … 3 failed, the gear past
+        // its speed, the burst tyres, the brakes' heat and the c.g.
+        if let Some(l) = ac.limits() {
+            d.set("structure", l.structure as i64);
+            d.set("over_g_count", l.over_g as i64);
+            d.set("over_speed_count", l.over_speed as i64);
+            d.set("gear_overspeed", l.gear_overspeed);
+            d.set("tyres_burst", l.tyres_burst as i64);
+            d.set("brakes_left", l.brakes_left);
+            d.set("xcg", l.xcg);
+            d.set("cg_aft", l.cg_aft);
+        }
         // The "Tornado" map-edge push-back and the EndWorld.wav count (docs/flight-model.md §15.5a).
         d.set("tornado", s.tornado);
         d.set("end_worlds", s.end_worlds as i64);

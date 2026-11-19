@@ -143,7 +143,8 @@ Each entry names the switch and where it lives, then the difference: "Original: 
   IAF's item C2, [modern-iaf/docs/shared.md](../modern-iaf/docs/shared.md)). Original: every jet flies the 1998 flight
   model. Ours, with 6-DoF: the player's modern jet (an aircraft definition with `"sixdof": true`: the F-16I Sufa, the
   F-15I Ra'am, the F-35I; `iaf_flight::data_set::sixdof`) flies Modern IAF's own 6-DoF (NASA TP-1538's aerodynamics
-  and control system, modern-iaf/docs/flight-model.md §9) from the sim's data
+  and control system, modern-iaf/docs/flight-model.md §9, with the jets' structural, gear, tyre, brake and c.g. limits
+  of §9.20) from the sim's data
   (`assets/converted/own/resource/md/bd.ibx`, whose sections say `Model = 6dof`; `Settings.sixdof_data`). The 1998
   jets, the AI's jets and the autopilot's bases keep the original game's data. Without the sim's data (built by
   `./modern-iaf-setup`) the 6-DoF choice reads "Not built", greyed; a saved 6-DoF choice then flies the original model

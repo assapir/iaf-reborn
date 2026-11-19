@@ -1261,6 +1261,61 @@ from the tables); a full push then brings α below 15° within 6 s (a centred st
 stays near the limit), and a full pull at 550 kt peaks between 8 and 9.5 g. Reborn's model has
 no α: it takes the set's g limits, roll and stall floor (the unit test `f35_set_feeds_both_games`).
 
+### 9.20 The jets' limits (2026-11-19)
+
+Passing a limit has consequences on the 6-DoF (`sixdof/limits.rs`, applied each integrator step by
+`SixDof::check_limits`). A limit is the placard; the structure gives way past its design margins, not at it. The
+original model never reaches these rules.
+
+| limit | Barak, Sufa | Adir | Ra'am | source |
+|---|---|---|---|---|
+| g, symmetric | +9 / −3 | +9 / −3 | +8.1 / −2 | `Jet::g_limits` (§9.11) |
+| speed | 800 KCAS, Mach 2.05 | 700 KCAS, Mach 1.6 | 800 KCAS, Mach 2.5 | F-16: the flight manual p. 5-2[^to-f16cj]; Adir: the F-35A placard (inferred, §9.9) and Lockheed Martin's top speed[^lm-f35]; Ra'am: inferred |
+| gear down or moving | 300 KCAS, Mach 0.65 | the F-16's | 250 KCAS, Mach 0.65 | F-16: figure 5-6[^to-f16cj]; others inferred |
+| main tyres | 225 kt ground speed | the F-16's | the F-16's | F-16: p. 5-2[^to-f16cj]; others inferred |
+| brakes | a stop from 150 kt at 1.4 × the reference weight | the F-16's | the F-16's | inferred: the brake energy charts are in a supplement, not public |
+| load categories | CAT I / CAT III | none | none | the F-16's STORES CONFIG switch |
+
+**g and speed.** Each step in the air the load factor and the speed get one of four grades:
+
+| grade | load factor | speed | what happens |
+|---|---|---|---|
+| over | 9.5 / −3.2 g of the F-16's 9 / −3 (the same fractions on every jet) | past the limit | counted (the manual's over-g report and inspection, p. 5-3[^to-f16cj]); nothing breaks |
+| damage | 1.15 × the limit | 1.1 × the limit | the structure is damaged: drag +0.01 ΔCD, it now fails at 1.3 × the limit; the game shows "Structural damage", the master caution and Betty "Caution" |
+| failure | 1.5 × the limit (once damaged: 1.3 ×, inferred) | 1.15 × the limit (flutter) | the airframe fails: crash reason `structure` |
+
+The structure carries its limit load "without detrimental permanent deformation"[^cfr25-305] and its ultimate load,
+1.5 × the limit, without failure[^cfr25-303]; taking the same 1.5 for the military jets, the 15 % to damage and the
+15 % flutter margin on the speed are inferred. The airframe is checked in the air only: a touchdown's loads are the
+landing limits' (§9.12). The F-16's control system holds the jet near 9.3 g at most (§9.13), so a normal full pull
+never damages it; the MANUAL PITCH override, a dive past the limit speed or a category III load rolling do.
+
+**Category III loads.** A category III load (`stores.gd` `loading_category`) has a rolling limit of 0.8 × the
+symmetric one while the roll rate passes 20°/s (the manual's definition of a rolling manoeuvre, p. 5-4[^to-f16cj];
+the 0.8 is inferred, the real figures are in the stores supplement). Past about the CAT III limiter's α the load
+also takes the jet's directional stability away: ΔCn = −0.1 × (α − the CAT III line's α at the jet's load factor) × β (rad), inferred, so
+at the CAT I limiter's 25° the jet yaws off within seconds; at CAT III the limiter keeps it near the CAT III line, as the manual's
+warning says ("the limiter then gives no protection against a departure", p. 5-4[^to-f16cj]).
+
+**Gear, tyres and brakes.** The gear down or moving past its speed is damaged (flag 7: it stays where it is,
+docs/damage.md §5.2), from the 6-DoF itself; the game's own Real gear limit (`player_damage.gd` `gear_overspeed`)
+still checks the gear down and locked. A main tyre on the runway past its ground speed bursts: its wheel runs on the
+rim (rolling friction 0.3, side 0.3, no brake; inferred) and the jet pulls to that side. The brakes take up the
+braking's power (braking friction × the main struts' loads × the ground speed) and cool over 15 minutes (inferred);
+past their energy they fade, to nothing at 1.25 × it. The Preferences' Invulnerable turns every consequence here
+off.
+
+**Centre of gravity.** The fuselage tanks move the c.g.: the aft system's 2.0 m behind the reference c.g. (0.35 c̄),
+the forward system's 2.97 m ahead, so the full tanks balance at the reference (inferred: the tank arms are not
+public). ENG FEED left at FWD moves the c.g. aft (the forward system feeds the engine and the aft tanks), at AFT
+forward. The wing and external tanks and the stores sit at the reference c.g. (inferred), so they move it only by
+their mass. The aerodynamics take the c.g. through TP-1538's c.g. terms (§9.2). The aft limit is taken as 0.38 c̄
+(inferred; the real one is in a supplement): with ENG FEED left at FWD the c.g. passes it, and behind it the
+jet is less stable in pitch and overshoots the α limiter. The real jet gives no cue but the fuel gauge's pointers.
+
+The tests: unit tests in `limits.rs`; `crates/iaf-flight/tests/sixdof.rs` flies each limit (`over_g_damages_then_breaks_the_airframe`,
+`overspeed_and_flutter`, `gear_tyres_and_brakes`, `the_cg_and_a_category_iii_load`).
+
 [^lm-aoa]: Lockheed Martin press release, 19 November 2012, quoted by SLDInfo, "The F-35 and High Angle of Attack
     Flight Testing" ("rapidly expanded its high angle of attack (AOA) test envelope to its 50 degree limit in only four
     flights"), https://sldinfo.com/2012/11/the-f-35-and-high-angle-of-attack-flight-testing/
@@ -1347,3 +1402,7 @@ no α: it takes the set's g limits, roll and stall floor (the unit test `f35_set
   as recalled there by a forum member; secondary): https://forum.falcon-bms.com/post/21564
 [^bms]: Falcon BMS forum, "Rotation speed" (rotate at 170 kt with an air-to-air load, 180 kt heavy; the take-off
   speed 70 kt plus 3 kt per 1,000 lb of gross weight), https://forum.falcon-bms.com/post/314659
+[^cfr25-303]: 14 CFR 25.303, "Factor of safety": "a factor of safety of 1.5 must be applied to the prescribed limit
+load", https://www.ecfr.gov/current/title-14/section-25.303
+[^cfr25-305]: 14 CFR 25.305, "Strength and deformation": "The structure must be able to support limit loads without
+detrimental permanent deformation", https://www.ecfr.gov/current/title-14/section-25.305

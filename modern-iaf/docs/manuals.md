@@ -571,14 +571,12 @@ Parts:
   - No horn or light warns of a low speed. (The gear's horn and `horn_silencer`, the F-16's `alt-gear` and its EPU work
     since 2026-11-19, cockpit.md §5.9.)
 - Found while writing chapters 4 and 5, the game's and listed, not changed here:
-  - Nothing happens above the jet's speed limit (800 kt, Mach 2.05) or g limit: only the gear's limit damages.
-  - The limits with the gear down (g, 15° angle of attack with stores, roll) and the rolling g limits are not there.
+  - Since 2026-11-19 the speed and g limits, the tyres, the brakes, the c.g. and the category III load have
+    consequences on the 6-DoF ([flight-model.md](flight-model.md) §9.20); the chapters say so.
+  - The limits with the gear down (g, 15° angle of attack with stores, roll) and category I loads' rolling g limits are not there.
   - The control laws do not change with the gear handle down (read from flight-model.md §9.11, not from the code): the stick commands g on the approach, where the real
     F-16 commands pitch rate up to 10° angle of attack.
-  - A category III load flown at CAT I flies as a clean jet: stores change no stability. (The STORES CONFIG caution
-    lights since 2026-11-18, cockpit.md §5.7.)
-  - The yaw departure, the inverted deep stall and the centre of gravity (fuel and stores sit at it) are not
-    modelled; open speedbrakes do not lower the departure resistance.
+  - The inverted deep stall is not modelled; open speedbrakes do not lower the departure resistance.
   - The Adir's limits (checked 2026-11-18): its sourced ones are its own data (`data_set::F35I`: +9 g, 50° angle of
     attack, the approach; `jets.rs`: the top speeds' fit; `modern-iaf/data/db/units/f35i.json`: the 70,000 lb take-off weight). Open, no
     public figure found, so the F-16's value stays (inferred): the touchdown limits, the gear limit (`gear_limit`),

@@ -7,6 +7,7 @@ use super::body::{Airframe, Body};
 use super::engine::{Engine, EngineSpec, FIG66_IDLE_MAX, FIG66_IDLE_MIL, TSFC_F100};
 use super::fcs::F16_ALPHA_MAX;
 use super::gear::{Anchors, Gear, TYRES, Wheels};
+use super::limits::{self, Limits};
 use super::start::{IPP, JFS, StartSpec};
 use crate::Vec3;
 use crate::atmosphere::air;
@@ -52,6 +53,8 @@ pub struct Jet {
     pub alpha_max: f64,
     /// A pitching moment added at high α (`data_set::F35I`'s, the F-35I only).
     pub nose_down: Option<crate::data_set::HighAlphaCm>,
+    /// The airframe's, the gear's, the tyres' and the brakes' limits ([`super::limits`]).
+    pub limits: Limits,
 }
 
 /// A jet's speed brake: its opening in flight and with the main gear down and locked, deg of the F-16's split
@@ -159,6 +162,7 @@ pub fn tp1538() -> Jet {
         speed_brake: F16_SPEED_BRAKE,
         alpha_max: F16_ALPHA_MAX,
         nose_down: None,
+        limits: limits::F16,
     }
 }
 
@@ -183,6 +187,7 @@ pub fn all() -> [Jet; 4] {
             speed_brake: F16_SPEED_BRAKE,
             alpha_max: F16_ALPHA_MAX,
             nose_down: None,
+            limits: limits::F16,
         },
         // F-16I Sufa: 20,500 lb + 8,850 lb (the F-16I REAL row).
         Jet {
@@ -203,6 +208,7 @@ pub fn all() -> [Jet; 4] {
             speed_brake: F16_SPEED_BRAKE,
             alpha_max: F16_ALPHA_MAX,
             nose_down: None,
+            limits: limits::F16,
         },
         // F-35I Adir: 29,300 lb + 18,250 lb, wing 460 ft² (the F-35I REAL row), span 35 ft (Lockheed Martin);
         // wheelbase 19.75 ft, track 14.24 ft (Mason, Virginia Tech, F-35A data).
@@ -226,6 +232,7 @@ pub fn all() -> [Jet; 4] {
             speed_brake: F35_SPEED_BRAKE,
             alpha_max: crate::data_set::F35I.alpha_max,
             nose_down: Some(crate::data_set::F35I.nose_down),
+            limits: limits::F35,
         },
         // F-15I Ra'am: 37,000 lb + 22,665 lb, wing 608 ft², span 42.8 ft (the F-15I REAL row, TO 1F-15E-1, USAF);
         // wheelbase 17.78 ft (the F-15 row, SAC), track 9 ft (TO 1F-15E-1, docs/f15i.md).
@@ -247,6 +254,7 @@ pub fn all() -> [Jet; 4] {
             speed_brake: SpeedBrake { max_deg: 60.0, gear_down_deg: 60.0 },
             alpha_max: F16_ALPHA_MAX,
             nose_down: None,
+            limits: limits::F15,
         },
     ]
 }
@@ -293,6 +301,8 @@ pub struct Controls {
     pub stores_cd_asym: f64,
     /// The air mass's velocity, world NED, m/s (the mission's wind).
     pub wind: Vec3,
+    /// A category III load aboard: the CAT III limiter's α at 1 g, deg ([`limits::cat3_cn`]); None: category I.
+    pub cat3_alpha: Option<f64>,
 }
 
 impl Jet {
@@ -355,6 +365,9 @@ impl Jet {
         compressibility(&mut coeffs, mach, flow.alpha, self.aspect_ratio(), self.wave_drag);
         if let Some(n) = self.nose_down {
             coeffs.cm += n.at(flow.alpha);
+        }
+        if let Some(a) = c.cat3_alpha {
+            coeffs.cn += limits::cat3_cn(flow.alpha, flow.beta.to_radians(), a);
         }
         // The gear's drag, ΔCD 0.02 (FM-0's LandingGearDragIndex, inferred), and the stores'.
         add_drag(&mut coeffs, if c.gear_down { 0.02 } else { 0.0 } + self.stores_dcd(c.stores_cd), flow.alpha);

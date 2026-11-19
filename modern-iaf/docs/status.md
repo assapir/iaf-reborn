@@ -816,6 +816,13 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   Since 2026-11-09 the setup downloads only the 14 WorldCover tiles under the 8 m nodes (8.28 GB, before 21 tiles,
   10.62 GB) and reads the other 7 at 20 m over the network (offline, the build stops and says so); the DEM fetch is the shared `imagery_run::fetch_dem`
   (resumes a `.part`); every download logs its MB every 15 s ([terrain.md](terrain.md) §1, §2, §4).
+- **The jets' limits have consequences (2026-11-19):** on the 6-DoF an over-g or an overspeed is counted, past
+  1.15 × the g limit (1.1 × the speed limit) the structure is damaged (more drag, "Structural damage", the master
+  caution), past 1.5 × the g limit (1.15 × the speed limit, flutter) it fails; the gear lowered past its speed is
+  damaged, main tyres past 225 kt of ground speed burst, hot brakes fade, the fuselage fuel moves the c.g., and a
+  category III load departs more easily at CAT I and has a rolling g limit ([flight-model.md](flight-model.md) §9.20).
+  Inferred: the margins, the brakes' energy, the tank arms and the aft c.g. limit; open: the stores supplement's
+  limits.
 - **[C2](plan.md#c2-the-6-dof) stage (c), the 6-DoF flies the sim's jets (2026-11-03):** TP-1538's control system (g command, α limiter, roll
   and yaw), `Fm { Original, SixDof }` behind `IafFlight` chosen by `Model = 6dof` in the own data (the original game's
   data never reaches it, tested), fuel burn, Mach effects (inferred), the validation rows on the 6-DoF, a real Sufa

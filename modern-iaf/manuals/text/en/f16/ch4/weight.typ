@@ -35,5 +35,7 @@ What each station may carry, and each store's limits of speed, g and release, ar
   - *Asymmetry.* A load whose rolling moment passes 25,020 ft-lb is shown with a warning when the jet is loaded; it can be flown.
   - *Touchdown.* Sinking faster than 10 ft/s #sym.arrow.r *the gear is damaged.* Sinking faster than 13 ft/s, more than 10° of bank or the nose below −5° #sym.arrow.r *the jet is lost.* Above 15° of pitch #sym.arrow.r *a tail strike, and the jet is lost.*
   - *Crosswind.* No limit. The jet keeps to the runway in a 25 kt crosswind.
-  - #term("Not modelled"): the centre of gravity (the fuel and the stores sit at it), the brakes' energy, the hook and the arresting gear, the stores' own limits.
+  - *Centre of gravity.* The fuselage tanks' fuel moves it; the wing and external tanks and the stores sit at it. With ENG FEED left at FWD it passes the aft limit, and the jet is less stable in pitch. The tanks' positions and the limit are inferred.
+  - *Brakes.* A full stop from about 150 kt at a heavy landing weight (1.4 times the #jet.short's weight with full internal fuel) takes them to their energy limit; past it they fade, and they are gone at 1.25 times it. They cool over about 15 minutes. The figures are inferred.
+  - #term("Not modelled"): the hook and the arresting gear, the stores' own limits.
 ]

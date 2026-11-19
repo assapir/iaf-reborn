@@ -33,6 +33,6 @@ Stores released in pairs, and missiles fired from the wing tips, do not disturb 
 #in-sim[
   - *Weight and drag.* Each store, rack, pod and tank has its weight and its drag. The jet accelerates, climbs and turns worse with them, and burns more fuel.
   - *Asymmetry.* A heavy wing rolls the jet toward it, more under g; the roll trim holds it. The side with more drag yaws the jet toward it. A store released from one wing leaves the jet rolling toward the other.
-  - *#term("CAT III").* The switch changes the limits (@limits-g); the stores do not change the departure resistance.
-  - #term("Not modelled"): the lower stability with stores, the looseness in yaw with the conformal tanks, every oscillation and buffet, the yaw from the roll trim, the push of a tank as it leaves.
+  - *#term("CAT III").* The switch changes the limits (@limits-g). A category III load lowers the directional stability above the CAT III line: at CAT I the jet yaws off near 25°.
+  - #term("Not modelled"): the lower stability with category I stores, the looseness in yaw with the conformal tanks, every oscillation and buffet, the yaw from the roll trim, the push of a tank as it leaves.
 ]

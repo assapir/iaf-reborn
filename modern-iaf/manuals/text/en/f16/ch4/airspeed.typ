@@ -37,7 +37,8 @@ Each store has its own carriage and release speeds. They are in the stores suppl
 
 #in-sim[
   - *Gear.* Above 300 kt or Mach 0.65 with the gear down or moving #sym.arrow.r *the gear is damaged and stays where it is.*
-  - *Maximum speed.* Nothing breaks at high speed. The #jet.short reaches about #if sufa [Mach 1.19] else [785 kt (Mach 1.19)] at sea level and Mach 1.99 at 40,000 ft in level flight, clean, with full afterburner.
+  - *Maximum speed.* Past 800 kt or Mach 2.05 the overspeed is counted. Past 880 kt or Mach 2.25 #sym.arrow.r *the structure is damaged* (@limits-g). Past 920 kt or Mach 2.36 #sym.arrow.r *the airframe fails from flutter, and the jet is lost.* The margins are inferred. The #jet.short reaches about #if sufa [Mach 1.19] else [785 kt (Mach 1.19)] at sea level and Mach 1.99 at 40,000 ft in level flight, clean, with full afterburner.
   - *Low speed.* A tone sounds above about 27° angle of attack.
-  - #term("Not modelled"): the canopy's, the refuelling door's, the turbulence and the tyres' limits; the stores' speed limits.
+  - *Tyres.* A main tyre on the runway above 225 kt of ground speed #sym.arrow.r *bursts:* its wheel runs on the rim, does not brake and pulls the jet toward its side.
+  - #term("Not modelled"): the canopy's, the refuelling door's and the turbulence limits; the nose tyre's limit; the stores' speed limits.
 ]

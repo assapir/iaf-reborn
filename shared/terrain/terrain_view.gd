@@ -4406,6 +4406,12 @@ func _process(delta: float) -> void:
 			_hard_landings = int(st.hard_landings)
 			if not player_damage.flags[7] and not mission_pref("invulnerable"):
 				player_damage.system_damage(7)
+		# The 6-DoF's limits (modern-iaf/docs/flight-model.md §9.20): a damaged structure, the gear past its speed.
+		if not mission_pref("invulnerable"):
+			if int(st.get("structure", 0)) >= 2 and not player_damage.structure:
+				player_damage.structure_damage()
+			if st.get("gear_overspeed", false) and not player_damage.flags[7]:
+				player_damage.system_damage(7)
 		if int(st.get("landings", 0)) > _landings:
 			_landings = int(st.landings)
 			_on_landed()
@@ -4780,6 +4786,8 @@ func _read_controls(delta: float) -> void:
 		_cat3_key = s_down
 		mpo_on = mpo or (alt and Input.is_key_pressed(KEY_M))
 	flight.set_fcs_switches(mpo_on, cat3)
+	if _sixdof and weapons != null and weapons.stores != null:
+		flight.set_load_category(weapons.stores.loading_category())
 
 
 ## One event of the joystick poller (FUN_004df560): GEV 1 stick (x, y ±100), 9 throttle (0..100), 10 rudder,

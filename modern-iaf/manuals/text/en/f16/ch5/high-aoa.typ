@@ -33,5 +33,6 @@ With the switch at #term("CAT III") the limiter stops at 16° to 18°#fm[section
   - *At the limiter.* Full back stick holds about 25° in CAT I, 15.5° to 18° in CAT III; the speed falls and the jet stays under control. A full pull at 200 kt peaks near 27°.
   - *Departure.* The jet can be driven past the limiter into a deep stall, where it stays near 59° with the hands off; the recovery works as in @emergency-deep-stall. Above 29° the computer works the ailerons and the rudder against the yaw.
   - *The stall.* In level flight at 1 g the #jet.short's least speed is about #if sufa [136] else [125] kt, clean, at sea level.
-  - #term("Not modelled"): the yaw departure and the nose slice, the inverted deep stall, the spin as the real jet flies it, the effect of the centre of gravity, of the open speedbrakes and of the stores on the resistance to a departure, the false airspeed in a departure.
+  - *Centre of gravity and stores.* With the centre of gravity behind its aft limit the jet overshoots the limiter further. A category III load at CAT I yaws off near the limiter's 25° (@limits-g).
+  - #term("Not modelled"): the nose slice of a category I load, the inverted deep stall, the spin as the real jet flies it, the effect of the open speedbrakes, the false airspeed in a departure.
 ]
