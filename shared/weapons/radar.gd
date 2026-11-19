@@ -108,7 +108,8 @@ func _feed() -> void:
 				"coll_radius": float(e.get("coll_radius", 0.0)),
 				"heading": float(e.get("heading", 0.0)),
 				"type": int(e.get("type_code", -1)),
-				"hostile": bool(u.get("hostile", true))
+				"hostile": bool(u.get("hostile", true)),
+				"rcs": e.get("rcs")  # ours: Modern IAF's drones (docs/ai.md §16); absent: the tables' ranges
 			}
 		)
 	_r.set_input(own.call() if own.is_valid() else {}, list, ground)

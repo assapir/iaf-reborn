@@ -3,7 +3,7 @@
 //! `set_input` hands over the own jet, the units and the terrain before a call that can scan; `state()` and
 //! `events()` read the result back.
 
-use crate::world::{get, terrain, vec3, vector3};
+use crate::world::{get, rcs, terrain, vec3, vector3};
 use godot::prelude::*;
 use iaf_avionics::radar::{Contact, Event, Fcr, GroundFrame, Input, Mode, Own, Radar, Runway, Tms, Unit};
 
@@ -104,6 +104,7 @@ fn unit(u: &VarDictionary) -> Unit {
         heading: get(u, "heading").unwrap_or_default(),
         type_code: get(u, "type").unwrap_or(-1),
         hostile: get(u, "hostile").unwrap_or(true),
+        rcs: rcs(u, "rcs"),
     }
 }
 
@@ -119,7 +120,8 @@ impl IafRadar {
         self.radar = Some(Radar::new(usize::try_from(cockpit).unwrap_or(1), lrs, fcr, ours));
     }
 
-    /// The own jet {pos, fwd, yaw, up, vel, wow, steer (the steerpoint, absent: none)}, the units [{key, pos, vel, klass, state, coll_radius, heading, type, hostile}]
+    /// The own jet {pos, fwd, yaw, up, vel, wow, steer (the steerpoint, absent: none)}, the units [{key, pos, vel,
+    /// klass, state, coll_radius, heading, type, hostile, rcs (an airframe-style `rcs`; absent: the tables' ranges)}]
     /// and the terrain (Callable(Vector3) -> float or null) for the next calls.
     #[func]
     fn set_input(&mut self, own: VarDictionary, units: VarArray, terrain: Callable) {

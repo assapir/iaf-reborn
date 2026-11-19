@@ -7,7 +7,29 @@
 //! the RWR lock notices and the semi-active missiles' illumination loss come out as `Event`s.
 
 use crate::vec3::Vec3;
+use iaf_flight::airframe::Rcs;
 use std::f64::consts::PI;
+
+/// Ours (docs/ai.md §15.2): the target size a radar's reach is quoted against (m²), a fighter (inferred; public
+/// ranges rarely name one). Every range table here is read as against it.
+pub const REF_RCS: f64 = 5.0;
+
+/// Ours: the radar cross-section (m²) of a jet with its nose along `nose`, seen from `to_radar` (the direction from
+/// the jet to the radar): front, side and rear blended by the aspect (inferred), plus the open bays and each external
+/// store.
+pub fn sigma(r: &Rcs, nose: Vec3, to_radar: Vec3, bays_open: bool, stores: u32) -> f64 {
+    let c = match (nose.try_normalize(), to_radar.try_normalize()) {
+        (Some(n), Some(d)) => n.dot(d).clamp(-1.0, 1.0),
+        _ => 1.0,
+    };
+    let aspect = r.front_m2 * c.max(0.0).powi(2) + r.side_m2 * (1.0 - c * c) + r.rear_m2 * (-c).max(0.0).powi(2);
+    aspect + if bays_open { r.bays_open_m2 } else { 0.0 } + r.store_m2 * f64::from(stores)
+}
+
+/// Ours: a radar's range against `sigma` (m²), the radar equation's fourth root, from its reach against `REF_RCS`.
+pub fn reach(reach_m: f64, sigma: f64) -> f64 {
+    reach_m * (sigma / REF_RCS).max(0.0).powf(0.25)
+}
 
 /// Range scale of index 1..6 (`FUN_004b0020`, `0x603358..`: 5·2^(i−1) NM at 1851.87 m/NM).
 pub const RANGE_M: [f64; 6] = [9259.372, 18518.744, 37037.488, 74074.977, 148149.95, 296299.9];
@@ -468,11 +490,20 @@ pub struct Unit {
     pub heading: f64,
     pub type_code: i64,
     pub hostile: bool,
+    /// Ours: its radar cross-section (Modern IAF's drones, docs/ai.md §16); None: seen at the tables' ranges, as the
+    /// original.
+    pub rcs: Option<Rcs>,
 }
 
 impl Unit {
     fn alive(&self) -> bool {
         !matches!(self.state, 4 | 5)
+    }
+
+    /// A detection range `base` (against `REF_RCS`) against this unit seen from `from`: scaled by its cross-section
+    /// from there, its nose along its velocity.
+    fn reach_from(&self, base: f64, from: Vec3) -> f64 {
+        self.rcs.as_ref().map_or(base, |r| reach(base, sigma(r, self.vel, from - self.pos, false, 0)))
     }
 }
 
@@ -1059,7 +1090,7 @@ impl Radar {
         for key in keys {
             let record = input
                 .unit(&key)
-                .filter(|u| u.alive() && u.pos.distance(input.own.pos) <= reach)
+                .filter(|u| u.alive() && u.pos.distance(input.own.pos) <= u.reach_from(reach, input.own.pos))
                 .and_then(|u| hit(u, &input.own, true, CONE_COS, None, input.terrain));
             self.contacts.retain(|c| c.key != key);
             match record {
@@ -1200,7 +1231,7 @@ impl Radar {
                 old_unit = Some(u);
             }
             // (ECM rules: no jammer on either side yet, docs/radar.md)
-            if u.pos.distance(own.pos) <= detection {
+            if u.pos.distance(own.pos) <= u.reach_from(detection, own.pos) {
                 let record = test(u);
                 self.detected(&record);
                 insert(&mut list, record);
@@ -1276,7 +1307,7 @@ impl Radar {
         let Some(&range) = self.ranges.get(Mode::Stt) else { return };
         let record = input
             .unit(&key)
-            .filter(|u| u.alive() && u.pos.distance(input.own.pos) <= range.detection_m())
+            .filter(|u| u.alive() && u.pos.distance(input.own.pos) <= u.reach_from(range.detection_m(), input.own.pos))
             .and_then(|u| hit(u, &input.own, true, CONE_COS, None, input.terrain));
         let Some(record) = record else {
             self.unlock();

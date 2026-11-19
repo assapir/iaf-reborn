@@ -38,6 +38,19 @@ pub fn num(d: &VarDictionary, key: &str) -> Option<f64> {
     v.try_to::<f64>().ok().or_else(|| v.try_to::<i64>().ok().map(|i| i as f64))
 }
 
+/// A radar cross-section dictionary (an airframe's `rcs`: front_m2, side_m2, rear_m2, bays_open_m2, store_m2); None
+/// when absent or short of a field.
+pub fn rcs(d: &VarDictionary, key: &str) -> Option<iaf_flight::airframe::Rcs> {
+    let r: VarDictionary = get(d, key)?;
+    Some(iaf_flight::airframe::Rcs {
+        front_m2: num(&r, "front_m2")?,
+        side_m2: num(&r, "side_m2")?,
+        rear_m2: num(&r, "rear_m2")?,
+        bays_open_m2: num(&r, "bays_open_m2").unwrap_or(0.0),
+        store_m2: num(&r, "store_m2")?,
+    })
+}
+
 /// The terrain height at a world point through `f` (Callable(Vector3) -> float or null); no terrain when invalid.
 /// `mission_ground` (terrain_view.gd) is answered from the Rust height field it would read (`IafHeights`, the same
 /// nodes and interpolation, plus `IafScenery.top`) without a call into GDScript per sample.

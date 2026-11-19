@@ -3,6 +3,17 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **Enemy AI step 2: the one-way attack drones (2026-11-19, the user: "we need to have the code for ai enemies. Just
+  isn't reachable by mission yet"; Epic Fury's air threats are drones of the Shahed-136 class; [ai-plan.md](ai-plan.md)
+  K14; [../../docs/ai.md](../../docs/ai.md) §16):** a salvo of drones launched one after another flies a route of
+  waypoints in Rust (`iaf_ai::drone`): 180 km/h, 500 m above the terrain within the published 60–4,000 m band, turns,
+  climbs and sinks within inferred limits, then dives at 40° onto its end point, where it explodes and is removed (its
+  damage there comes with the mission work). A point mass: the type has no 6-DoF data (open). The player's radar finds
+  one by its cross-section (0.01 m², the one published estimate): the Sufa's TWS at about 9.5 NM instead of 45 NM, and
+  the terrain hides it; the data link lists it as hostile; the gun and the missiles bring it down through the existing
+  damage path; it does not shoot. The shape is our own stand-in. No mission launches one: a dev hook
+  (`shared/ai/drones.gd`) and the tests (`crates/iaf-ai/tests/drones.rs`, `modern-iaf/tests/test_enemy_drones.gd`).
+  Later: the network (K6) and enemy-fighter BFM (K3 / K4), listed only.
 - **Enemy AI step 1: the air-defence sites (2026-11-19, the user: "we need to have the code for ai enemies. Just isn't
   reachable by mission yet", "They should take into consideration the stealth of the adir", "Also terrain shape etc.";
   [ai-plan.md](ai-plan.md) K5, K7; [../../docs/ai.md](../../docs/ai.md) §15):** the S-300PMU-2 battery (96L6E search,

@@ -6,12 +6,10 @@
 //! target's radar cross-section and need terrain line of sight over the earth's curvature. The caller
 //! (`shared/ai/air_defence.gd`) fires through the existing weapons; no mission uses a site yet.
 
-use iaf_avionics::radar::line_of_sight;
+use iaf_avionics::radar::{line_of_sight, reach, sigma};
 use iaf_flight::Vec3;
 use iaf_flight::airframe::Rcs;
 
-/// The target size a radar's reach is quoted against (m²): a fighter (inferred; public ranges rarely name one).
-pub const REF_RCS: f64 = 5.0;
 /// A jet without an `rcs` (the 1998 types, the drones): an untreated fighter at the reference size (inferred).
 pub const FIGHTER: Rcs = Rcs { front_m2: 5.0, side_m2: 25.0, rear_m2: 12.5, bays_open_m2: 0.0, store_m2: 0.5 };
 /// The earth's radius (m) and the standard refraction's 4/3 earth radius for the radar horizon (inferred standard).
@@ -68,7 +66,7 @@ pub struct Spec {
     /// 8 a radar SAM, 10 a gun (iaf-tools `sim.rs` classes).
     pub class: i64,
     pub parts: &'static [Part],
-    /// The search and track radars' reach against `REF_RCS` (m).
+    /// The search and track radars' reach against `radar::REF_RCS` (m).
     pub search_reach: f64,
     pub track_reach: f64,
     /// The optical sight's reach (m), 0 without one.
@@ -311,22 +309,6 @@ pub fn visible(a: Vec3, b: Vec3, terrain: &dyn Fn(Vec3) -> Option<f64>) -> bool 
     line_of_sight(a, b, &|p: Vec3| Some(terrain(p).unwrap_or(0.0) + bulge((p.x - a.x).hypot(p.y - a.y), l)))
 }
 
-/// The radar cross-section (m²) of a jet with its nose along `nose`, seen from `to_radar` (the direction from the jet
-/// to the radar): front, side and rear blended by the aspect (inferred), plus the open bays and each external store.
-pub fn sigma(r: &Rcs, nose: Vec3, to_radar: Vec3, bays_open: bool, stores: u32) -> f64 {
-    let c = match (nose.try_normalize(), to_radar.try_normalize()) {
-        (Some(n), Some(d)) => n.dot(d).clamp(-1.0, 1.0),
-        _ => 1.0,
-    };
-    let aspect = r.front_m2 * c.max(0.0).powi(2) + r.side_m2 * (1.0 - c * c) + r.rear_m2 * (-c).max(0.0).powi(2);
-    aspect + if bays_open { r.bays_open_m2 } else { 0.0 } + r.store_m2 * f64::from(stores)
-}
-
-/// A radar's range against `sigma` (m²): the radar equation's fourth root, from its reach against `REF_RCS`.
-pub fn reach(reach_m: f64, sigma: f64) -> f64 {
-    reach_m * (sigma / REF_RCS).max(0.0).powf(0.25)
-}
-
 /// Time to arrive at `at` (s): the "most dangerous" measure (inferred); opening targets come last by distance.
 fn arrival(t: &Target, at: Vec3) -> f64 {
     let d = at - t.pos;
@@ -388,8 +370,8 @@ impl Site {
             .find(|&i| alive.get(i).copied().unwrap_or(true) && if track { parts[i].track } else { parts[i].search })
     }
 
-    /// The radar at `from` with `reach_m` against `REF_RCS` sees `t`: inside its range for the jet's cross-section
-    /// from there, and in sight over the terrain and the earth's curvature.
+    /// The radar at `from` with `reach_m` against `radar::REF_RCS` sees `t`: inside its range for the jet's
+    /// cross-section from there, and in sight over the terrain and the earth's curvature.
     fn sees(from: Vec3, reach_m: f64, t: &Target, terrain: &dyn Fn(Vec3) -> Option<f64>) -> bool {
         let s = sigma(&t.rcs, t.nose, from - t.pos, t.bays_open, t.stores);
         t.pos.distance(from) <= reach(reach_m, s) && visible(from, t.pos, terrain)

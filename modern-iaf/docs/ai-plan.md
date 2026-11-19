@@ -174,13 +174,15 @@ Tor-M1, and holds the models on disk and to download, the MiG-29's flight data, 
 the behaviour sources ([research/enemies.md](research/enemies.md)). The rest of the draft list (3rd Khordad, Kub,
 Misagh-2, F-14A) follows after this milestone, as he decided.
 
-No mission uses the sites of K5 and K7 yet ("Just isn't reachable by mission yet", the user, 19 November): they run
-in headless tests and through a dev hook (`shared/ai/air_defence.gd`), with stand-in shapes and records.
+No mission uses the sites of K5 and K7 or the drones of K14 yet ("Just isn't reachable by mission yet", the user, 19
+November): they run in headless tests and through dev hooks (`shared/ai/air_defence.gd`, `shared/ai/drones.gd`), with
+stand-in shapes and records.
 
 | # | row | what it needs | status |
 |---|---|---|---|
 | K1 | **The package** | the player's four-ship plus two or three other flights of mixed types (escort, strike, SEAD as the mission says) under the package lead: timing, push, roles, abort; the briefing's flights flown | Planned |
 | K2 | **The MiG-29** | its 6-DoF data (X2; source open), the on-disk model (X3), its record approved, its weapons (R-73, R-27R) on the physical missile (X6 step 5) | Planned |
+| K14 | **One-way attack drones** | the Shahed-136 class, Epic Fury's air threats (the user, 19 November): a route flown at the real cruise speed and height, salvoes, the dive at the end point; found by the player's radar by its small cross-section and the terrain; brought down by the gun and missiles; they do not shoot | Engine: built 19 Nov as a capability (`iaf_ai::drone`, docs/ai.md §16): a point mass on the route (the 6-DoF data open), 0.01 m², a stand-in shape; no mission uses it |
 | K3 | **Enemy fighter behaviour** | scramble or CAP, the commit, the BVR shot from the same fly-out as the DLZ, the defence after a shot (crank, notch, drag; inferred list) | Planned |
 | K4 | **Energy-aware BFM** | a new BFM leaf that weighs energy, turn rate and the turn circle against the opponent's, with the skill's tactics (X4); for enemies and wingmen alike; the 6-DoF's real limits (no 1998 cases); placed here because the MiG-29 needs it (inferred; §9 question 4) | Planned |
 | K5 | **SAM site procedure** | per site: search radar, then the track radar on a chosen target; launch counts and salvo rules per system from its record; emission on / off as a choice (EMCON); relocating after firing; the RWR and MAW cues these make; the 1998 quirks (one missile in the air, no shot 90° off the heading) left behind | Engine: built 19 Nov as a capability (`iaf_ai::site`, docs/ai.md §15): the S-300PMU-2 and the Tor-M1 with their crews' procedure, EMCON, relocation, detection by the jet's radar cross-section and terrain sight; the stand-in missile; no mission uses it |

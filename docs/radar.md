@@ -179,6 +179,10 @@ Damage cases 0xf / 0x13 / 0x15 (`FUN_004adb20`) turn the radar OFF, and every la
   (the original's sampling is UNCERTAIN). The heights come from the Rust height field `IafHeights`
   (crates/iaf-avionics/src/heights.rs: the full-detail nodes terrain.gd streams, the same interpolation as
   `height_at`), with no GDScript call per sample (tests/godot/test_heights.gd).
+- **Radar cross-section (ours):** a unit that carries an `rcs` (Modern IAF's one-way attack drones,
+  `shared/ai/drones.gd`) is found and tracked inside the mode's detection range × (σ / 5 m²)^¼, σ its cross-section
+  from the jet's side (`radar.rs` `sigma` / `reach`, docs/ai.md §15.2, §16). Every other unit, the 1998 game's all, is
+  found at the table's range, as in the original.
 - **Weapon data Real:** the LRS / STT detection range of each Jet list jet is its real radar's (F-16 APG-68 80 km,
   F-15 APG-63 135 km, …; docs/real-weapons.md §1.3). The MiGs keep the table. The F-16I's is the F-16's × 1.3,
   104 km.

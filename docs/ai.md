@@ -1167,6 +1167,78 @@ approved.
 - Roads for the move; §11-121's other moves (after a reconnaissance overflight, after 4–6 hours in place); a battery
   of several sites moving a third at a time.
 
+## 16. Modern IAF's one-way attack drones (ours)
+
+The user, 19 November 2026: "we need to have the code for ai enemies. Just isn't reachable by mission yet"; the air
+threats of the later Epic Fury work are one-way attack drones of the Shahed-136 class. Each salvo runs on the Rust
+salvo (`crates/iaf-ai/src/drone.rs`, gdext `IafSalvo`). No mission launches one yet. `shared/ai/drones.gd` is the dev
+and test hook: `load("res://shared/ai/drones.gd").of(host).spawn(route, count, agl, interval)` launches `count` drones
+along `route` (world points; the last is the end point on the ground), `agl` m above the terrain (0: the type's),
+`interval` s apart (−1: the type's).
+Each drone is a mission entity (`drone:N`, class 3: a fixed-wing mover) with the type's radar cross-section, so the
+player's radar, data link, AIFF, gun and missiles take it as any air contact, and the existing damage path brings it
+down. It does not shoot. The test is `modern-iaf/tests/test_enemy_drones.gd`; the Rust tests are
+`crates/iaf-ai/tests/drones.rs`.
+
+### 16.1 The figures
+
+| figure | value | source |
+|---|---|---|
+| length, span, mass | 3.5 m, 2.5 m, 200 kg | Wikipedia[^w-shahed] |
+| cruise speed | 180 km/h (50 m/s); the most 185 km/h | CSIS[^csis-shahed]; Wikipedia[^w-shahed] |
+| height band | 60–4,000 m | Army Recognition[^ar-shahed]; "low and slow", "virtual nap-of-the-earth profiles" (RUSI[^rusi-shahed]) |
+| its height in the band | 500 m above the terrain unless told | inferred (low, and above the 175 m under which the AWACS's picture and the data link leave a contact out, `fctrl.rs`) |
+| radar cross-section | 0.01 m², every aspect | an estimate of the average, one outlet (19FortyFive[^nf-shahed]); the aspects alike: inferred |
+| salvo | launched one after another, 10 s apart | fired in multiples from a launch rack (Wikipedia[^w-shahed]), five to a truck's container (RUSI[^rusi-shahed]); the interval inferred |
+| turns | 30° of bank: 6.5°/s at cruise, a 440 m radius | inferred |
+| climb, sink | 5 m/s, 10 m/s | inferred |
+| the terminal dive | 40° below the horizon | inferred |
+| strength | 100: one 20 mm hit | our damage scale (modern-iaf/docs/data-formats.md §6), inferred |
+
+The 6-DoF has no data for the type (the AI plan wants sourced 6-DoF data per enemy type): the drone is a point mass
+until such data is found (open).
+
+### 16.2 The flight
+
+- **Route.** It turns for its waypoint at the turn rate and passes a waypoint inside its turn's radius (a fly-by),
+  waypoint by waypoint in order. Its speed stays at the cruise speed.
+- **Height.** It holds its height over the highest terrain under it and every 100 m up to 20 s ahead (1 km), closing
+  the error in 5 s within its climb and sink (inferred). The terrain is the mission ground (roofs and trees included),
+  as the sites' sight takes it. Away from the player the ground may not be loaded: there it keeps the last ground it
+  knew, and a route point's own height stands for the ground under it.
+- **The dive.** On the last leg it dives once the end point lies 40° below it, or inside its turn's radius (a low
+  drone would circle it otherwise), straight at the point, and ends there: `drones.gd` sets off the explosion and
+  removes it (state 5, for whoever still holds it). Its warhead's damage there is not modelled yet. A drone that meets
+  the terrain on the way ends there the same way.
+- **Salvo.** The drones leave the route's first point at its height one interval apart, heading for the second point:
+  the launch from the rack and the climb are not flown.
+- **Shot down.** A drone the damage path hits fatally leaves the salvo's flight; the runtime's destruction motion
+  takes it (docs/damage.md).
+
+### 16.3 Our sensors
+
+- **Radar.** The player's radar finds it inside the mode's range × (0.01 / 5)^¼ = 0.21: the Sufa's TWS (45 NM) at
+  about 9.5 NM, LRS (58 NM) at about 12 NM (docs/radar.md; the 1998 game's units keep the tables). Its terrain line of
+  sight is the radar's own `line_of_sight`, the same test the sites' sight (`site::visible`, §15.3) lifts by the
+  earth's bulge; at these ranges the bulge is under 10 m. At 97 kt, a drone flying more than about 50° across the
+  line of sight falls under the real FCR's 60 kt MTR and drops off the scope, as the real radar's rule does.
+- **Data link and AIFF.** The AWACS's tracks on the data link list it as hostile while it flies above 175 m over the
+  terrain; the AIFF gets no reply from it.
+- **Weapons.** The gun's hit test takes its half span (1.25 m); the missiles fly their existing models (no missile
+  performance changed). Its heat is a non-afterburning jet's in the IR seekers' rule (no IR signature research).
+
+### 16.4 Stand-in shape
+
+Ours (`drones.gd _shape`), built like the bases' furniture (`base_furniture.gd`, vertex colours, grey): the fuselage,
+the delta wing, the fins at its tips and the pusher propeller's disc, at the real length and span. It stands in until
+a model is approved. No engine sound: no sound on disk fits a small piston engine.
+
+### 16.5 Later
+
+- The warhead's damage at the end point, the launch from the rack and the climb (the mission work).
+- The 6-DoF data for the type (open).
+- Listed only: the integrated network (ai-plan K6) and enemy-fighter BFM (K3 / K4; the user: lower priority).
+
 ## UNCERTAIN
 Open questions in this document:
 - The RWR field names behind conditions 19, 26, 27, 38, 39 (§13.2); what else writes brain+0x7c.
@@ -1183,3 +1255,8 @@ Open questions in this document:
 [^hamichlol-rwr]: Hamichlol, "מקלט התרעת מכ"ם", https://www.hamichlol.org.il/%D7%9E%D7%A7%D7%9C%D7%98_%D7%94%D7%9E%D7%96%D7%94%D7%99%D7%A8_%D7%91%D7%A4%D7%A0%D7%99_%D7%9E%D7%9B%22%D7%9D (a search radar's warning "ואחריה נעילה ומעקב"; read as quoted by a search engine on 2026-11-19, second-hand).
 [^mako-102]: Mako, "pzm-magazine", on the 102 Squadron's air-combat training, https://www.mako.co.il/pzm-magazine/Article-1c3f6f796402d61027.htm (a good pilot "תוקף ומתחמק מטילי נ"מ"; read as quoted by a search engine on 2026-11-19, second-hand).
 [^brevity]: Wikipedia, "Multiservice tactical brevity code", https://en.wikipedia.org/wiki/Multiservice_tactical_brevity_code (SPIKE, MUD, DEFENDING, BREAK, CONTACT, SPLIT; read 2026-11-19).
+[^w-shahed]: Wikipedia, "HESA Shahed 136", https://en.wikipedia.org/wiki/HESA_Shahed_136 (length 3.5 m, span 2.5 m, mass 200 kg, about 185 km/h; "typically fired in multiples from a launch rack"; "extra-low" altitude flight; read 2026-11-19).
+[^csis-shahed]: CSIS Missile Defense Project, "Shahed-131 and 136", https://missilethreat.csis.org/missile/shahed-131-and-136/ ("approximately 180 km per hour"; read 2026-11-19).
+[^ar-shahed]: Army Recognition, "Shahed-136 loitering munition kamikaze suicide drone technical data", https://armyrecognition.com/military-products/army/unmanned-systems/unmanned-aerial-vehicles/shahed-136-loitering-munition-kamikaze-suicide-drone-technical-data ("It can fly at an altitude from 60 to 4,000 m"; read 2026-11-19).
+[^rusi-shahed]: Uzi Rubin, RUSI Commentary, "Russia's Iranian-Made UAVs: A Technical Profile", 13 January 2023, https://rusi.org/explore-our-research/publications/commentary/russias-iranian-made-uavs-technical-profile ("fly low and slow", "virtual nap-of-the-earth profiles", "a tilting truck-mounted container holding five UAVs", "low radar and thermal signatures"; read 2026-11-19).
+[^nf-shahed]: 19FortyFive, October 2022, https://www.19fortyfive.com/2022/10/irans-shahed-136-kamikaze-drone-everything-you-need-to-know/ (radar cross-section "estimated here to average .01 square meters"; second-hand: as quoted by a search engine on 2026-11-19).

@@ -2,16 +2,16 @@
 //! jets. Each frame, after every jet's `step` (one instant), `step` reads every jet's flight model and autopilot and
 //! sets the AI jets' autopilot for their next `ap_step` (mode, leader, slot, engine start); the player's jet is read
 //! only but for its home hangar (`add_member`). `IafSite`: an air-defence site (`iaf_ai::site`, docs/ai.md §15)
-//! for `shared/ai/air_defence.gd`.
+//! for `shared/ai/air_defence.gd`. `IafSalvo`: one-way attack drones (`iaf_ai::drone`, §16) for `shared/ai/drones.gd`.
 
 use godot::prelude::*;
+use iaf_ai::drone::{SHAHED_136, Salvo};
 use iaf_ai::site::{self, Emcon, Kind, Site, Target};
 use iaf_ai::{Decoy, Flight, Threat};
 use iaf_flight::Vec3;
-use iaf_flight::airframe::Rcs;
 
 use crate::flight::{IafFlight, to_enu};
-use crate::world::{get, num, terrain, vec3, vector3};
+use crate::world::{get, num, rcs, terrain, vec3, vector3};
 
 #[derive(GodotClass)]
 #[class(init, base = RefCounted)]
@@ -165,22 +165,13 @@ pub struct IafSite {
 /// A target dictionary: {id, pos, vel, nose (world), rcs (an airframe's `rcs`, else a fighter's), bays, stores,
 /// cued, dlz (Vector2: max, min m), in_air}.
 fn target(d: &VarDictionary) -> Target {
-    let rcs = get::<VarDictionary>(d, "rcs").and_then(|r| {
-        Some(Rcs {
-            front_m2: num(&r, "front_m2")?,
-            side_m2: num(&r, "side_m2")?,
-            rear_m2: num(&r, "rear_m2")?,
-            bays_open_m2: num(&r, "bays_open_m2").unwrap_or(0.0),
-            store_m2: num(&r, "store_m2")?,
-        })
-    });
     let dlz: Vector2 = get(d, "dlz").unwrap_or_default();
     Target {
         id: get::<GString>(d, "id").unwrap_or_default().to_string(),
         pos: vec3(get(d, "pos").unwrap_or_default()),
         vel: vec3(get(d, "vel").unwrap_or_default()),
         nose: vec3(get(d, "nose").unwrap_or_default()),
-        rcs: rcs.unwrap_or(site::FIGHTER),
+        rcs: rcs(d, "rcs").unwrap_or(site::FIGHTER),
         bays_open: get(d, "bays").unwrap_or(false),
         stores: num(d, "stores").unwrap_or(0.0) as u32,
         cued: get(d, "cued").unwrap_or(false),
@@ -286,5 +277,62 @@ impl IafSite {
             "phase" => self.site.phase(now), "rounds" => &rounds, "engagements" => i64::from(self.site.engagements),
             "at" => self.site.at as i64,
         }
+    }
+}
+
+#[derive(GodotClass)]
+#[class(no_init, base = RefCounted)]
+pub struct IafSalvo {
+    salvo: Salvo,
+}
+
+#[godot_api]
+impl IafSalvo {
+    /// `count` drones of the Shahed-136 class along `route` (world Vector3s; the last is the end point on the ground),
+    /// `agl` m above the terrain (0: the type's; clamped to its band), launched `interval` s apart (< 0: the type's);
+    /// null for a route of fewer than two points.
+    #[func]
+    fn create(route: VarArray, count: i64, agl: f64, interval: f64) -> Option<Gd<Self>> {
+        let route: Vec<Vec3> = route.iter_shared().filter_map(|v| v.try_to::<Vector3>().ok()).map(vec3).collect();
+        let s = &SHAHED_136;
+        let agl = if agl > 0.0 { agl } else { s.agl };
+        let interval = if interval < 0.0 { s.interval } else { interval };
+        let salvo = Salvo::new(s, &route, count.max(0) as usize, agl, interval)?;
+        Some(Gd::from_object(Self { salvo }))
+    }
+
+    /// The type's radar cross-section, as an airframe's `rcs` (the player's radar reads it from the entity).
+    #[func]
+    fn rcs() -> VarDictionary {
+        let r = SHAHED_136.rcs;
+        vdict! {
+            "front_m2" => r.front_m2, "side_m2" => r.side_m2, "rear_m2" => r.rear_m2, "bays_open_m2" => r.bays_open_m2,
+            "store_m2" => r.store_m2,
+        }
+    }
+
+    /// Advances `dt` s on the terrain `ground` (Callable(Vector3) -> float or null): each drone in launch order
+    /// {phase (wait, cruise, dive, impact, down), pos, vel (world), heading, pitch (degrees)}.
+    #[func]
+    fn step(&mut self, dt: f64, ground: Callable) -> VarArray {
+        let ground = terrain(Some(ground));
+        self.salvo.step(dt.max(0.0), &ground);
+        self.salvo
+            .drones
+            .iter()
+            .map(|d| {
+                vdict! {
+                    "phase" => d.phase.name(), "pos" => vector3(d.pos), "vel" => vector3(d.vel),
+                    "heading" => d.heading(), "pitch" => d.pitch(),
+                }
+                .to_variant()
+            })
+            .collect()
+    }
+
+    /// The game destroyed drone `i`: it flies no more.
+    #[func]
+    fn down(&mut self, i: i64) {
+        self.salvo.down(i.max(0) as usize);
     }
 }
