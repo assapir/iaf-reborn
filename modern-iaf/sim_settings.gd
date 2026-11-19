@@ -570,6 +570,11 @@ func cockpit_sound_model() -> bool:
 	return true
 
 
+## The sun at its real place over Israel and the sim's own sky colours by its height (modern-iaf/docs/terrain.md §17).
+func real_sun() -> bool:
+	return true
+
+
 ## The F12 info line: the mission and the FPS only (the Mac play test, 2026-11-11; modern-iaf/docs/front-end.md §8).
 func info_line_full() -> bool:
 	return false

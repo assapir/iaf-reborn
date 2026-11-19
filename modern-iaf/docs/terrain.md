@@ -727,6 +727,46 @@ The grading's version is in `grade.txt` beside `meta.json`. A theatre built befo
 around the bases (about 20 s, no colour, no download) and keeps its `meta.json`, so the scenery stays up to date: its
 cells read no ground height (the game sets them on the ground as it loads them).
 
+## 17. The time of day (2026-11-19)
+
+The sim lights its world by the sun's real place over Israel and its own sky colours by the sun's height; the 1998
+game keeps its colour table (docs/rendering.md §4). `Settings.real_sun()` switches it on; the code is in
+`shared/terrain/time_of_day.gd`.
+
+- **The sun**: NOAA's general solar position equations[^noaa] at 31.5° N, 34.9° E on Israel Standard Time
+  (UTC+2), on the March equinox (day 79). A mission has an hour (its `time`) and no date, so every mission flies that
+  day: the sun rises about 05:45, stands 58° up in the south at about 11:48 and sets about 17:48.
+- **Day** (the sun above the horizon): the Atmospheric sky, as before. The sun's light follows its height: white
+  above 30°, warmer below (255, 228, 195 at 15°; 255, 185, 135 at 5°; 255, 135, 75 on the horizon; inferred from
+  sunset photographs). Shadows above 5°.
+- **Night** (the sun below the horizon): the gradient sky in our own colours by the sun's height (`OWN_ROWS`:
+  the sky's top and the horizon toward the sun, across and away; inferred from twilight photographs): an orange
+  glow toward the set sun and a blue-violet sky away from it just after sunset, deep blue at −6°, near black below
+  −18°. The fog takes the horizon's colour, so the far land darkens with the sky. The Detailed night lights come on
+  (the moon's light, the stars, the airbases' and the towns' lights), and the cockpit's night starts by the same
+  rule. The Atmospheric sky's own twilight turned the whole sky one flat brown below the horizon, so the gradient
+  sky takes over at sunset.
+
+Frame time (1600 × 900, all settings on: TAA, Upscaling Quality, Clouds Volumetric, shadows; the Iris Xe laptop,
+`modern-iaf/tests/_night_sky_shot.gd`, 1,500 m over the Negev looking north to Be'er Sheva). The change adds no
+draw: night costs what the night lights already cost.
+
+| Hour | Cockpit, before → after | Outside, before → after |
+|---|---|---|
+| 12:00 | 30.5 → 29.8 ms | 20.5 → 19.9 ms |
+| 17:30 | 29.1 → 29.4 ms | 19.7 → 18.8 ms |
+| 18:00 | 43.2 → 34.4 ms | 19.8 → 20.2 ms |
+| 22:00 | 37.3 → 34.7 ms | 21.7 → 20.3 ms |
+
+| Hour | Before | After |
+|---|---|---|
+| 12:00 | ![12:00 before](pictures/night/h12_before.jpg) | ![12:00 after](pictures/night/h12_after.jpg) |
+| 17:30 | ![17:30 before](pictures/night/h175_before.jpg) | ![17:30 after](pictures/night/h175_after.jpg) |
+| 18:00 | ![18:00 before](pictures/night/h18_before.jpg) | ![18:00 after](pictures/night/h18_after.jpg) |
+| 22:00 | ![22:00 before](pictures/night/h22_before.jpg) | ![22:00 after](pictures/night/h22_after.jpg) |
+
+Check: `modern-iaf/tests/test_real_sun.gd` (sunrise and sunset, the sun's place at noon, night and day, the colours).
+
 [^faa]: FAA, Advisory Circular 150/5300-13B "Airport Design" (2022), runway longitudinal grades: vertical curves of
     at least 1,000 ft for each 1 % of grade change (approach categories C and D), transverse grade 1.0–1.5 %,
     https://www.faa.gov/airports/resources/advisory_circulars/index.cfm/go/document.current/documentNumber/150_5300-13
@@ -745,3 +785,4 @@ cells read no ground height (the game sets them on the ground as it loads them).
     208.9 and 213.2 m, the lowest level since 1969 in November 2001), https://en.wikipedia.org/wiki/Sea_of_Galilee
 [^ramon-photo]: Godot13, "Israel-2013-Aerial 00-Negev-Makhtesh Ramon", 2013-03-28, CC BY-SA 4.0, Wikimedia Commons,
     https://commons.wikimedia.org/wiki/File:Israel-2013-Aerial_00-Negev-Makhtesh_Ramon.jpg
+[^noaa]: NOAA Global Monitoring Laboratory, "General Solar Position Calculations", https://gml.noaa.gov/grad/solcalc/solareqns.PDF

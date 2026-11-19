@@ -1321,6 +1321,12 @@ func cockpit_sound_model() -> bool:
 	return false
 
 
+## The time of day by the sun's real place over Israel and our own sky colours (shared/terrain/time_of_day.gd,
+## modern-iaf/docs/terrain.md §17): Modern IAF. The 1998 game keeps the original's sun and its colour table.
+func real_sun() -> bool:
+	return false
+
+
 ## The F12 info line in full (the modes, the place, the speed, the controls, the FPS): the original game. Modern IAF
 ## shows the mission and the FPS only (modern-iaf/docs/front-end.md §8).
 func info_line_full() -> bool:

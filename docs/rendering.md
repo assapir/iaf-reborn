@@ -1431,6 +1431,9 @@ F-16, the GPU bench lock held), `BENCH_SET=cockpit_3d=3d` against the 2D panel, 
 This section describes the original's day / night rendering and our port of it. By these rules only mission 214
 starts at night; missions 112, 237 and 515 start at 05:xx, which is dawn.
 
+Modern IAF has none of the original's data: it takes the sun's real place over Israel and its own colours by the
+sun's height instead (`Settings.real_sun()`, [modern-iaf/docs/terrain.md](../modern-iaf/docs/terrain.md) §17).
+
 **Port.** The time of day = the mission start 0x460 + the mission clock (11:00 without a mission).
 
 - Once a sim second the port sets:
