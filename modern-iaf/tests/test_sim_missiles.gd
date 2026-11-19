@@ -12,6 +12,8 @@
 # - the drone goes down.
 #   IAF_DEFAULT_SETTINGS=1 godot --headless --audio-driver Dummy --path modern-iaf \
 #     -s ../modern-iaf/tests/test_sim_missiles.gd --log-file <temp>
+# tools/test.sh also flies the Sufa's (IAF_SIM_JET=f16i) at --fixed-fps 30 and 120: a hit must not hang on the frame
+# rate (docs/real-weapons.md §2.1).
 extends "res://../tests/godot/base.gd"
 
 ## Range mission, jet, its stations' missiles, the missiles in the order flown with the launch distance (m).

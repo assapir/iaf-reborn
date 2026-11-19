@@ -81,10 +81,10 @@ func velocity(now: float) -> Vector3:
 	return _m.velocity(now)
 
 
-## One update (FUN_005627e0). `t_pos` / `t_vel` = the target now (ignored without one), `ground` = terrain height
-## under a point. Returns true when the missile ends (detonate at `last_pos`).
-func update(now: float, t_pos: Vector3, t_vel: Vector3, ground: Callable) -> bool:
-	var end: bool = _m.update(now, t_pos, t_vel, ground)
+## One update (FUN_005627e0). `t_pos` / `t_vel` = the target (ignored without one) as of sim time `t_at`, `ground` =
+## terrain height under a point. Returns true when the missile ends (detonate at `last_pos`).
+func update(now: float, t_pos: Vector3, t_vel: Vector3, t_at: float, ground: Callable) -> bool:
+	var end: bool = _m.update(now, t_pos, t_vel, t_at, ground)
 	_s = _m.state()
 	return end
 

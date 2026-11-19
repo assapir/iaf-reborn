@@ -117,13 +117,13 @@ impl IafMissile {
         vector3(self.get(|m| m.velocity(now)))
     }
 
-    /// One update (`FUN_005627e0`) with the target now; `ground` = terrain height under a point. True when it ends
-    /// (burst at last_pos).
+    /// One update (`FUN_005627e0`) with the target as the host has it, a sample from sim time `t_at`; `ground` =
+    /// terrain height under a point. True when it ends (burst at last_pos).
     #[func]
-    fn update(&mut self, now: f64, t_pos: Vector3, t_vel: Vector3, ground: Callable) -> bool {
+    fn update(&mut self, now: f64, t_pos: Vector3, t_vel: Vector3, t_at: f64, ground: Callable) -> bool {
         let t = terrain(Some(ground));
         let target = Kinematics { pos: vec3(t_pos), vel: vec3(t_vel) };
-        self.missile.as_mut().is_some_and(|m| m.update(now, target, &t))
+        self.missile.as_mut().is_some_and(|m| m.update(now, target, t_at, &t))
     }
 
     #[func]

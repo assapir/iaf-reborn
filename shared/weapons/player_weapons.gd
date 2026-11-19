@@ -105,6 +105,8 @@ var eo_eye = null
 var full_screen := false
 var _tv_was_flying := false
 var now := 0.0
+## The sim time of the mission units' states: the last update's (the runtime and the AI step after the weapons).
+var _units_at := 0.0
 
 ## ctl+0x78 master mode, +0x80 the previous one, +0x7c the M key cycle, +0x5c the HUD mode (iaf_avionics::master
 ## through IafModes).
@@ -1728,18 +1730,18 @@ func _missile_visual(mis: RefCounted) -> void:
 	mis.set_meta("sound", s)
 
 
-## A homing weapon's target now ({pos, vel}, {} gone): a mission unit, the player's jet, or a decoy
-## ("decoy:<n>", its position; after its end it stays where it ended, UNCERTAIN).
+## A homing weapon's target ({pos, vel, t: its sim time, a mission unit's the units' time}, {} gone): a mission unit,
+## the player's jet, or a decoy ("decoy:<n>", its position; after its end it stays where it ended, UNCERTAIN).
 func target_state(key: String, units: Dictionary) -> Dictionary:
 	if key.begins_with("decoy:"):
 		var dc: Dictionary = _decoy_by_id.get(int(key.substr(6)), {})
 		if dc.is_empty():
 			return {}
 		var t: float = minf(now, float(dc.end))
-		return {"pos": _decoy_motion[dc.type].position(dc.r, t), "vel": Vector3.ZERO}
+		return {"pos": _decoy_motion[dc.type].position(dc.r, t), "vel": Vector3.ZERO, "t": now}
 	if key != "" and key == String(_me().get("key", "")):
 		var o := own()
-		return {"pos": o.pos, "vel": o.vel}
+		return {"pos": o.pos, "vel": o.vel, "t": now}
 	return units.get(key, {})
 
 
@@ -1762,7 +1764,8 @@ func _update_missiles() -> void:
 			var tp: Vector3 = t.get("pos", mis.last_pos)
 			if mis.has_target and t.is_empty():
 				tp = Vector3.ZERO  # target gone: FUN_0045a180's static default (UNCERTAIN: origin)
-			gone = mis.update(mis.next_update, tp, t.get("vel", Vector3.ZERO), host.mission_ground)
+			var at: float = t.get("t", _units_at)
+			gone = mis.update(mis.next_update, tp, t.get("vel", Vector3.ZERO), at, host.mission_ground)
 		var node: Node3D = mis.get_meta("node")
 		var p: Vector3 = mis.last_pos if gone else mis.position(now)
 		var v: Vector3 = mis.velocity(now)
@@ -3054,6 +3057,7 @@ func decoy_position(dc: Dictionary) -> Vector3:
 
 ## Advances the weapons to sim time `t`.
 func update(t: float) -> void:
+	_units_at = now
 	now = t
 	if _bay_retry:
 		_bay_retry = false

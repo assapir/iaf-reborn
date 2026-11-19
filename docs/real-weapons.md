@@ -517,11 +517,20 @@ The player's and the AI's missiles fly the same code.
   motor burns.
 - **Guidance:** augmented proportional navigation, N = 4 (the usual 3–5[^pn]): N times the closing speed times the line
   of sight's turn rate, across the missile's velocity, plus half N times the target's acceleration across the line of
-  sight (taken from its velocity between updates, at most 12 g; inferred), with gravity held off. More than 60° off the line
-  of sight, or opening, the missile turns its velocity onto the line of sight within about 0.5 s, within its limit,
-  first (inferred). Gravity acts on the whole flight.
+  sight (taken from its velocity between the game's samples, at their own times, at most 12 g; inferred), with gravity
+  held off. More than 60° off the line of sight, or opening, the missile turns its velocity onto the line of sight
+  within about 0.5 s, within its limit, first (inferred). Gravity acts on the whole flight.
 - **End:** the flight ends at its time limit, or once the motor is out below 200 m/s (inferred: too slow to steer).
-  The burst stays the original's: on a hit, at the closest pass, or on the ground.
+  The burst is where the original's is: on a hit, at the closest pass, or on the ground.
+- **The same at any frame rate** (2026-11-19): the closest pass is that of the missile and the moving target over
+  the 0.1 s step. The original holds the target still at the step's end, so its burst point moved with where the
+  step fell against the pass: a Python 5 burst 11–14 m off a breaking drone in a visible window on a Mac and at 30
+  frames a second, within 6 m at 60 and 120. The game's units are a frame old when the missile updates (they move
+  after the weapons); the update carries the target on at its velocity to its own time and puts the burst (also one
+  on the ground) at its offset from the target as the game has it, where the blast's damage is reckoned. Test:
+  `missile.rs`
+  `the_burst_is_the_same_at_any_frame_rate`; `tools/test.sh` flies `test_sim_missiles.gd` at 30 and 120 frames a
+  second.
 - **DLZ:** a straight level fly-out at the mean height of the jet and the target, from the jet's speed: the maximum
   is the most the missile gains on the target in its flight less the last 2 s (the original's margin), the minimum the
   original's (the distance flown in tCO + 2 s). The post-launch times (modern-iaf/docs/weapons.md §8.2) run the same

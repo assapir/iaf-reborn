@@ -41,7 +41,8 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   MAW's missile type, the threat missiles) in avionics-plan.md §7.2. Tests: `missile.rs`, `test_sim_missiles.gd`.
   Step 1 the same day: the seekers in flight (a target outside the cone is lost) and the AIM-120's data link until its
   seeker goes active (real-weapons.md §2.2); the AIM-9X's thrust-vectored turn no longer brakes it to a stop, and the
-  guidance acts across the missile's velocity, so the 70° off-boresight shot hits.
+  guidance acts across the missile's velocity, so the 70° off-boresight shot hits. The burst is the same at any frame
+  rate: the closest pass of the missile and the moving target over each step (real-weapons.md §2.1).
 - **No band line for a change the cockpit shows (2026-11-19, the user's "Do it"):** the master arm switch, the
   helmet's picture, the DGFT / MSL OVRD switch, LASER ARM, DL, ADV MODE, the fuel switches, IFF IDENT, the bay doors,
   the bombs' submode, fuze and delay, PRE / VIS, SPOT / SCAN and the autopilot switches put no line in the top strip;

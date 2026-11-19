@@ -432,8 +432,11 @@ pub struct Missile {
     next_update: f64,
     /// The target was ahead at an update (cos > 0; `ChaseMotion::off_boresight`).
     seen_ahead: bool,
-    /// The physical missile: the target's velocity at the last update (its acceleration for the guidance).
+    /// The physical missile: the target's velocity at the last update, with its sample's time (its acceleration for
+    /// the guidance).
     target_vel: Option<(f64, Vec3)>,
+    /// The physical missile: the target's position at the last update (the closest pass over a step).
+    target_prev: Option<Vec3>,
     /// The physical missile's seeker in flight (`set_seeker`).
     seeker: Option<InFlight>,
     /// The launcher's data link to the missile: its radar still tracks the target (`set_link`; on by default).
@@ -494,6 +497,7 @@ impl Missile {
             next_update: now,
             seen_ahead: false,
             target_vel: None,
+            target_prev: None,
             seeker: None,
             link: true,
             known: None,
@@ -584,6 +588,7 @@ impl Missile {
         self.known = None;
         self.held = false; // a lost seeker stays lost: a decoy does not bring it back
         self.target_vel = None; // the new target's velocity is no manoeuvre of the old one
+        self.target_prev = None;
     }
 
     /// The motion's time left (vfunc +0x80, `FUN_00468db0`): burn − age; the physical missile's flight time limit
@@ -644,9 +649,15 @@ impl Missile {
         }
     }
 
-    /// One update (`FUN_005627e0`) with the target now (ignored when aiming at a point). True when the weapon ends:
-    /// it bursts at `last_pos()`.
-    pub fn update(&mut self, now: f64, target: Kinematics, terrain: &dyn Fn(Vec3) -> Option<f64>) -> bool {
+    /// One update (`FUN_005627e0`) with the target (ignored when aiming at a point) as the host has it, a sample from
+    /// sim time `target_t`. True when the weapon ends: it bursts at `last_pos()`.
+    pub fn update(
+        &mut self,
+        now: f64,
+        target: Kinematics,
+        target_t: f64,
+        terrain: &dyn Fn(Vec3) -> Option<f64>,
+    ) -> bool {
         let m = self.motion;
         let age = now - self.t_start;
         let t_end = m.burn + END_AFTER_BURN;
@@ -654,10 +665,16 @@ impl Missile {
         let p = self.position(now);
         let p_old = self.last_pos;
         let has_target = matches!(self.aim, Aim::Unit(_));
+        // Ours, the physical missile: the host's sample carried on at its velocity to the update's time, so where its
+        // frames fall does not move the target (docs/real-weapons.md §2.1). The chase motion takes it as it is.
+        let lead = if m.phys.is_some() { now - target_t } else { 0.0 };
         let (tp, tv) = match self.aim {
-            Aim::Unit(_) => (target.pos, target.vel),
+            Aim::Unit(_) => (target.pos + target.vel * lead, target.vel),
             Aim::Point(a) => (a, Vec3::ZERO),
         };
+        let tp_old = self.target_prev.replace(tp);
+        // Where the host has the target: a burst near it is put relative to that, where its damage is reckoned.
+        let seen = tp - tv * lead;
         self.p0 = p;
         self.v0 = v;
         self.t0 = now;
@@ -666,7 +683,7 @@ impl Missile {
         let gh = terrain(p).unwrap_or(NO_TERRAIN_Z);
         let hit_ground = p.z <= gh;
         if hit_ground {
-            self.last_pos = snap(closest_on_segment(tp, p_old, p), tp, gh);
+            self.last_pos = snap(closest_on_segment(tp, p_old, p) + (seen - tp), seen, gh);
         }
         let los = tp - p;
         let dist = los.length();
@@ -679,13 +696,14 @@ impl Missile {
             let steering = age > m.t_co && flying && !self.ended && !self.guidance_off;
             self.acc = match m.phys {
                 Some(ph) => {
+                    // Between the samples' own times: the frames they come from are not 0.1 s apart.
                     let at = match self.target_vel {
-                        Some((t, prev)) if now - t > 1e-3 => (tv - prev) * (1.0 / (now - t)),
+                        Some((t, prev)) if target_t - t > 1e-3 => (tv - prev) * (1.0 / (target_t - t)),
                         _ => Vec3::ZERO,
                     };
                     // A jump in the host's velocity (a frame stall) is no manoeuvre: at most a fighter's 12 g.
                     let at = if at.length() > TARGET_G_MAX * G { at * (TARGET_G_MAX * G / at.length()) } else { at };
-                    self.target_vel = Some((now, tv));
+                    self.target_vel = Some((target_t, tv));
                     let (gl, gv, at) = match if has_target { self.sees(now, age, p, uv, tp, tv) } else { Sees::Target }
                     {
                         Sees::Target => (los, tv, at),
@@ -716,7 +734,15 @@ impl Missile {
             return false;
         }
         self.ended = true;
-        if cos_old > 0.0 && cos_new < 0.0 && has_target && !timeout && !hit_ground && !self.guidance_off && !self.lost {
+        let pass =
+            cos_old > 0.0 && cos_new < 0.0 && has_target && !timeout && !hit_ground && !self.guidance_off && !self.lost;
+        if m.phys.is_some() && has_target && !hit_ground && (pass || hit) {
+            // Ours, the physical missile: the burst at the closest pass of the two over the step, both moving (the
+            // exe's snap holds the target still at the step's end: its miss moved with where the step fell), at that
+            // offset from where the host has the target.
+            let r = if pass { closest_pass(p_old - tp_old.unwrap_or(tp), p - tp) } else { p - tp };
+            self.last_pos = snap(seen + r, seen, gh);
+        } else if pass {
             self.last_pos = snap(closest_on_segment(tp, p_old, p), tp, gh);
         }
         true
@@ -798,6 +824,17 @@ impl Missile {
     }
 }
 
+/// Ours: the closest of two points flying straight over one step, from `r0` apart (missile less target) to `r1`: their
+/// offset there.
+fn closest_pass(r0: Vec3, r1: Vec3) -> Vec3 {
+    let d = r1 - r0;
+    let dd = d.dot(d);
+    if dd <= 0.0 {
+        return r1;
+    }
+    r0 + d * (-r0.dot(d) / dd).clamp(0.0, 1.0)
+}
+
 /// The burst point near the target: at the target's height within 60 m² horizontally and 15 m above it, else at most
 /// 1 m below the ground.
 fn snap(mut q: Vec3, tp: Vec3, gh: f64) -> Vec3 {
@@ -866,7 +903,7 @@ mod tests {
             let mut mis =
                 Missile::launch(m, Tuning::default(), 0.0, Vec3::UP * 3000.0, &JET, Aim::Unit("t".into()), 1.0);
             let mut t = 0.0;
-            while !mis.update(t, still, &|_| None) {
+            while !mis.update(t, still, t, &|_| None) {
                 t += PERIOD;
             }
             mis.last_pos().distance(at)
@@ -890,8 +927,8 @@ mod tests {
         let from = Launcher { vel: Vec3::new(0.0, 300.0, 0.0), ..JET };
         let mut mi = Missile::launch(m, tuning, 0.0, Vec3::new(0.0, 0.0, 1000.0), &from, Aim::Unit("x".into()), 1.0);
         let target = Kinematics { pos: Vec3::new(3000.0, 0.0, 1000.0), vel: Vec3::ZERO };
-        mi.update(0.0, target, &|_| None);
-        mi.update(0.1, target, &|_| None);
+        mi.update(0.0, target, 0.0, &|_| None);
+        mi.update(0.1, target, 0.1, &|_| None);
         let (_, v0, acc) = mi.segment();
         let uv = v0.try_normalize().unwrap();
         assert!(((acc - uv * acc.dot(uv)).length() - 12.0 * G).abs() < 0.01);
@@ -902,7 +939,7 @@ mod tests {
         let mut mi = Missile::launch(amraam(), Tuning::default(), 0.0, Vec3::ZERO, &JET, Aim::Unit("t".into()), 1.0);
         let target = Kinematics { pos: Vec3::new(0.0, 4000.0, 0.0), vel: Vec3::ZERO };
         let mut t = 0.0;
-        while !mi.update(t, target, &|_| None) {
+        while !mi.update(t, target, t, &|_| None) {
             t = mi.next_update();
             assert!(t < 60.0, "never ended");
         }
@@ -920,7 +957,7 @@ mod tests {
         assert!(active > 0.0 && active < impact, "{at_launch:?}");
         let mut t = 0.0;
         let mut went_active = None;
-        while !mi.update(t, target, &|_| None) {
+        while !mi.update(t, target, t, &|_| None) {
             if went_active.is_none() && mi.position(t).distance(target.pos) <= 4000.0 {
                 went_active = Some(t);
             }
@@ -976,7 +1013,7 @@ mod tests {
         let from = from_up();
         let mut mi = Missile::launch(m, Tuning::default(), 0.0, from.pos, &from, Aim::Unit("t".into()), 1.0);
         let mut t = 0.0;
-        while !mi.update(t, still_at(r), &|_| None) {
+        while !mi.update(t, still_at(r), t, &|_| None) {
             t = mi.next_update();
         }
         mi.last_pos().distance(still_at(r).pos) < 20.0
@@ -1110,7 +1147,7 @@ mod tests {
         let mut t = 0.0;
         let mut miss = f64::MAX;
         loop {
-            let ended = mi.update(t, path(t), &|_| None);
+            let ended = mi.update(t, path(t), t, &|_| None);
             if ended {
                 return (miss.min(mi.last_pos().distance(path(t).pos)), t);
             }
@@ -1145,6 +1182,40 @@ mod tests {
             let (miss, t) = fly_at(p, &breaking(2500.0, 6.0));
             println!("{name}: {miss:.1} m after {t:.1} s");
             assert!(miss < 9.0, "{name}: {miss:.1} m");
+        }
+    }
+
+    /// Flies `p` launched at `launch` at `path` as the game's host steps it: a frame every `frame` s, the target a
+    /// frame old (its units step after its weapons). The burst's distance from the host's target.
+    fn host_burst(p: Physics, path: &dyn Fn(f64) -> Kinematics, launch: f64, frame: f64) -> f64 {
+        let jet = Launcher { pos: Vec3::new(0.0, 0.0, 6000.0), vel: Vec3::new(0.0, 284.0, 0.0), ..JET };
+        let mut mi = Missile::launch(physical(p), Tuning::default(), launch, jet.pos, &jet, Aim::Unit("t".into()), 1.0);
+        let (mut units_at, mut now) = (launch - frame, launch);
+        while now < launch + 60.0 {
+            while mi.next_update() <= now {
+                if mi.update(mi.next_update(), path(units_at), units_at, &|_| None) {
+                    return mi.last_pos().distance(path(units_at).pos);
+                }
+            }
+            (units_at, now) = (now, now + frame);
+        }
+        f64::MAX
+    }
+
+    #[test]
+    fn the_burst_is_the_same_at_any_frame_rate() {
+        // The range's breaking drone (the Mac's visible window, 19 Nov 2026: the Python 5 burst 11-14 m off it, where
+        // its step fell against the pass). Every launch instant and frame rate: inside the blast (9 m), all alike.
+        for (name, p, _, _) in modern() {
+            let mut bursts = vec![];
+            for fps in [30.0, 60.0, 120.0, 144.0] {
+                for k in 0..10 {
+                    bursts.push(host_burst(p, &breaking(2500.0, 6.0), 0.01 * f64::from(k), 1.0 / fps));
+                }
+            }
+            let worst = bursts.iter().copied().fold(0.0, f64::max);
+            println!("{name}: the bursts within {worst:.1} m");
+            assert!(worst < 3.0, "{name}: a burst {worst:.1} m off the target ({bursts:.1?})");
         }
     }
 
@@ -1194,7 +1265,7 @@ mod tests {
         let (mut t, mut miss) = (0.0, f64::MAX);
         loop {
             mi.set_link(t < link_until);
-            let ended = mi.update(t, path(t), &|_| None);
+            let ended = mi.update(t, path(t), t, &|_| None);
             miss = miss.min(mi.last_pos().distance(path(t).pos));
             if ended {
                 return (miss, mi.lost);

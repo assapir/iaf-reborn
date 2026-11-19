@@ -147,8 +147,8 @@ func run() -> void:
 		1.0,
 		func(_i, d): return d
 	)
-	mi.update(0.0, Vector3(3000, 0, 1000), Vector3.ZERO, Callable())
-	mi.update(0.1, Vector3(3000, 0, 1000), Vector3.ZERO, Callable())
+	mi.update(0.0, Vector3(3000, 0, 1000), Vector3.ZERO, 0.0, Callable())
+	mi.update(0.1, Vector3(3000, 0, 1000), Vector3.ZERO, 0.1, Callable())
 	var lat: Vector3 = mi.acc - mi.v0.normalized() * mi.acc.dot(mi.v0.normalized())
 	check(absf(lat.length() - 12.0 * 9.80665) < 0.01, "Real AIM-9D: turn limited to 12 g (%.1f m/s²)" % lat.length())
 	var rst = Stores.new()

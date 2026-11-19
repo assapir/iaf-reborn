@@ -41,6 +41,16 @@ for t in modern-iaf/tests/test_*.gd; do
 	echo "$out" | grep -qE "RESULT PASS|^NEEDS DATA" || fail=1
 	echo "$out" | grep -q "SCRIPT ERROR" && { echo "FAIL script errors"; fail=1; }
 done
+# The missiles' shots at two fixed frame rates: a hit must not hang on where the frames fall (real-weapons.md §2.1).
+for fps in 30 120; do
+	echo "== modern-iaf/tests/test_sim_missiles.gd at $fps fps (the Sufa)"
+	out=$(IAF_SIM_JET=f16i IAF_DEFAULT_SETTINGS=1 timeout 300 godot --log-file "$logs/2026-missiles-$fps.log" --headless --audio-driver Dummy --fixed-fps "$fps" --path modern-iaf -s ../modern-iaf/tests/test_sim_missiles.gd 2>&1)
+	rc=$?
+	echo "$out" | grep -E "^(FAIL|RESULT|NEEDS DATA)|SCRIPT ERROR"
+	[[ $rc == 124 ]] && { echo "FAIL timeout (300 s); last output:"; echo "$out" | tail -15; }
+	echo "$out" | grep -qE "RESULT PASS|^NEEDS DATA" || fail=1
+	echo "$out" | grep -q "SCRIPT ERROR" && { echo "FAIL script errors"; fail=1; }
+done
 # Every script of both projects parses (tools/gdparse.gd).
 for p in iaf-reborn modern-iaf; do
 	echo "== gdparse $p"
