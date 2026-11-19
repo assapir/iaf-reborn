@@ -4,6 +4,7 @@
 //! each station takes and how many, its `pylons` the default. `IafBriefing` hands these rules to `menu/front_end.gd`;
 //! `pilot_log` keeps each pilot's per jet.
 
+pub use iaf_avionics::gps::PreAim;
 use iaf_avionics::stores::{CHIN_LEFT, STATIONS, pylon_index};
 use serde_json::{Map, Value, json};
 use std::collections::BTreeMap;
@@ -109,6 +110,70 @@ pub fn parse(unit: &Value, v: &Value) -> Loadout {
 
 pub fn to_json(lo: &Loadout) -> Value {
     Value::Object(lo.iter().map(|(k, (id, n))| (k.to_string(), json!({"id": id, "count": n}))).collect::<Map<_, _>>())
+}
+
+/// A GPS store's PRE pick made on the briefing (A61, `iaf_avionics::gps::pick_ok`): its station, its bomb (None: the
+/// whole station; 0 the first to leave) and its aim.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Pick {
+    pub station: u32,
+    pub bomb: Option<u32>,
+    pub aim: PreAim,
+}
+
+/// The PRE picks of a loadout's JSON (its `pre`: {"3": {"target": 1}, "4-2": {"steer": 2}, "4-4": {"lat": 31.04,
+/// "lon": 34.61, "mission": "ramon_range"}}; a bomb's key "station-bomb" with the bomb 1-based, as the screens name
+/// it). A loadout without `pre` (every one saved before 19 Nov 2026) has none; an entry it cannot read is left out.
+pub fn picks(v: &Value) -> Vec<Pick> {
+    let n = |e: &Value, k: &str| e[k].as_f64().filter(|f| *f >= 1.0).map(|f| f as usize);
+    let mut out = vec![];
+    for (k, e) in v["pre"].as_object().into_iter().flatten() {
+        let (st, bomb) = match k.split_once('-') {
+            Some((s, b)) => (s.parse::<u32>().ok(), b.parse::<u32>().ok().filter(|b| *b >= 1).map(|b| Some(b - 1))),
+            None => (k.parse::<u32>().ok(), Some(None)),
+        };
+        let aim = if let Some(t) = n(e, "target") {
+            Some(PreAim::Target(t))
+        } else if let Some(s) = n(e, "steer") {
+            Some(PreAim::Steer(s))
+        } else {
+            e["lat"].as_f64().zip(e["lon"].as_f64()).map(|(lat, lon)| PreAim::Point {
+                lat,
+                lon,
+                mission: e["mission"].as_str().unwrap_or("").to_string(),
+            })
+        };
+        if let (Some(station), Some(bomb), Some(aim)) = (st, bomb, aim) {
+            out.push(Pick { station, bomb, aim });
+        }
+    }
+    out
+}
+
+/// The picks as a loadout's `pre` (`picks`).
+pub fn picks_json(p: &[Pick]) -> Value {
+    let entry = |a: &PreAim| match a {
+        PreAim::Target(n) => json!({ "target": n }),
+        PreAim::Steer(n) => json!({ "steer": n }),
+        PreAim::Point { lat, lon, mission } => json!({ "lat": lat, "lon": lon, "mission": mission }),
+    };
+    let key = |p: &Pick| p.bomb.map_or(p.station.to_string(), |b| format!("{}-{}", p.station, b + 1));
+    Value::Object(p.iter().map(|p| (key(p), entry(&p.aim))).collect())
+}
+
+/// The loadout `lo` as JSON with its PRE picks `p` (`to_json`, plus `pre` when there are any).
+pub fn to_json_with(lo: &Loadout, p: &[Pick]) -> Value {
+    let mut v = to_json(lo);
+    if !p.is_empty() {
+        v["pre"] = picks_json(p);
+    }
+    v
+}
+
+/// The picks that stay through an edit of the loadout from `before` to `after`: those whose station still holds the
+/// same store, as many (a pick belongs to the store it was made for).
+pub fn keep_picks(before: &Loadout, after: &Loadout, p: &[Pick]) -> Vec<Pick> {
+    p.iter().filter(|k| before.get(&k.station).is_some_and(|b| after.get(&k.station) == Some(b))).cloned().collect()
 }
 
 /// How many of store `id` hang on the jet.
@@ -312,6 +377,76 @@ mod tests {
         // A saved loadout keeps only what the record allows, as many as the station holds.
         let p = parse(&u, &json!({"2": "tank-370", "4": "tank-370", "6": {"id": "mk-82", "count": 9}, "x": "mk-84"}));
         assert_eq!(to_json(&p), json!({"4": {"id": "tank-370", "count": 1}, "6": {"id": "mk-82", "count": 3}}));
+    }
+
+    /// A61: the PRE picks stored in a loadout, the one rule over them (a saved one, an old one, a mission's own) and an
+    /// edit keeping those of the stores left as they were.
+    #[test]
+    fn pre_picks_store_check_and_survive_edits() {
+        use crate::briefing::{pre, pre_set, valid_picks};
+        let u = unit("f35i");
+        let w = weapons();
+        let m: Value = serde_json::from_slice(
+            &std::fs::read(
+                Path::new(env!("CARGO_MANIFEST_DIR")).join("../../modern-iaf/data/missions/nevatim_range.json"),
+            )
+            .unwrap(),
+        )
+        .unwrap();
+        let mut lo = default(&u);
+        assert!(put(&u, &mut lo, 4, "gbu-39", true) && put(&u, &mut lo, 3, "aim-120", false));
+        let base = to_json(&lo);
+        // An old loadout has no picks; every GPS station and each bomb of its rack is listed, the default the target
+        // steerpoint.
+        assert!(picks(&base).is_empty());
+        let p = pre(&u, &w, &base, &m);
+        let rows = p["rows"].as_array().unwrap();
+        assert_eq!(rows.len(), 10, "two racks of four: a row each and one per bomb");
+        assert_eq!(
+            (rows[0]["station"].as_u64(), rows[0]["bomb"].as_i64(), rows[1]["bomb"].as_i64()),
+            (Some(4), Some(-1), Some(0))
+        );
+        assert_eq!(p["default"]["kind"], "steer");
+        assert_eq!(p["aims"].as_array().unwrap().len(), 6 + 2);
+        // Station 4 on Target 2, its third bomb on a map point, station 8 on steerpoint 1.
+        let pt = PreAim::Point { lat: 31.04, lon: 34.61, mission: "nevatim_range".into() };
+        let lo1 = pre_set(&u, &w, &base, &m, (4, None), Some(PreAim::Target(2))).unwrap();
+        let lo1 = pre_set(&u, &w, &lo1, &m, (4, Some(2)), Some(pt.clone())).unwrap();
+        let lo1 = pre_set(&u, &w, &lo1, &m, (8, None), Some(PreAim::Steer(1))).unwrap();
+        assert_eq!(
+            lo1["pre"],
+            json!({"4": {"target": 2}, "4-3": {"lat": 31.04, "lon": 34.61, "mission": "nevatim_range"},
+                   "8": {"steer": 1}})
+        );
+        assert_eq!(picks(&lo1).len(), 3);
+        let p = pre(&u, &w, &lo1, &m);
+        assert_eq!(p["rows"][0]["aim"]["name"], "Target 2");
+        assert!(p["rows"][1]["aim"].is_null(), "bomb 4-1 takes its station's");
+        assert_eq!(p["rows"][3]["aim"]["kind"], "point");
+        // Refused: a missile station, a fifth bomb, a target the mission lacks, a point of another mission.
+        assert!(pre_set(&u, &w, &lo1, &m, (3, None), Some(PreAim::Target(1))).is_none());
+        assert!(pre_set(&u, &w, &lo1, &m, (4, Some(4)), Some(PreAim::Target(1))).is_none());
+        assert!(pre_set(&u, &w, &lo1, &m, (4, None), Some(PreAim::Target(9))).is_none());
+        let far = PreAim::Point { lat: 31.0, lon: 34.6, mission: "ramon_range".into() };
+        assert!(pre_set(&u, &w, &lo1, &m, (4, None), Some(far)).is_none());
+        // Clearing the station clears its bombs' own picks too.
+        let cleared = pre_set(&u, &w, &lo1, &m, (4, None), None).unwrap();
+        assert_eq!(cleared["pre"], json!({"8": {"steer": 1}}));
+        // The same picks on another mission: the target and steerpoint stand, the point does not.
+        let mut other = m.clone();
+        other["id"] = json!("ramon_range");
+        assert_eq!(valid_picks(&u, &w, &lo1, &other).len(), 2);
+        // A saved loadout whose station now holds a missile loses that station's picks; an edit keeps the untouched.
+        let edited = parse(&u, &lo1);
+        let mut after = edited.clone();
+        assert!(put(&u, &mut after, 8, "spice-1000", false));
+        let kept = keep_picks(&edited, &after, &picks(&lo1));
+        assert_eq!(kept.iter().map(|p| (p.station, p.bomb)).collect::<Vec<_>>(), [(4, None), (4, Some(2))]);
+        // A mission's own loadout carries picks the same way; a stray key and a pick on a missile are left out.
+        let own = json!({"4": {"id": "gbu-39", "count": 4}, "5": "aim-120",
+                         "pre": {"4-1": {"target": 1}, "5": {"target": 1}, "x": {"target": 1}}});
+        assert_eq!(picks(&own).len(), 2);
+        assert_eq!(valid_picks(&u, &w, &own, &m), [Pick { station: 4, bomb: Some(0), aim: PreAim::Target(1) }]);
     }
 
     #[test]

@@ -146,12 +146,61 @@ impl IafBriefing {
         edit(&unit, &lo, |u, l| loadout::shift(u, l, from as u32, to as u32, pair))
     }
 
+    /// The PRE targets of the loadout `lo` (JSON text with its `pre` picks; "" the record's default) on the readable
+    /// mission file `mission` (A61, `briefing::pre`): {rows, aims, default} as JSON text, `{}` when the record or the
+    /// mission is unreadable.
+    #[func]
+    fn pre(unit: GString, weapons: GString, lo: GString, mission: GString) -> GString {
+        let (Some(u), Some(m)) = (read(&unit), read(&mission)) else { return text(&json!({})) };
+        text(&briefing::pre(&u, Path::new(&weapons.to_string()), &loadout_json(&u, &lo), &m))
+    }
+
+    /// The loadout `lo` with the PRE pick of `station` (`bomb` ≥ 0: that bomb's own, 0 the first to leave) set to
+    /// `aim` (JSON text: {"target": n}, {"steer": n}, {"x": e, "y": n} a point in the sim's world; "" or null:
+    /// cleared) on the readable mission file `mission` (`briefing::pre_set`) as JSON text; "" when the rule refuses it.
+    #[func]
+    fn pre_set(
+        unit: GString,
+        weapons: GString,
+        lo: GString,
+        mission: GString,
+        station: i64,
+        bomb: i64,
+        aim: GString,
+    ) -> GString {
+        let (Some(u), Some(m)) = (read(&unit), read(&mission)) else { return GString::new() };
+        let a = serde_json::from_str::<Value>(&aim.to_string()).unwrap_or(Value::Null);
+        let n = |k: &str| a[k].as_f64().filter(|f| *f >= 1.0).map(|f| f as usize);
+        let aim = if let Some(t) = n("target") {
+            Some(loadout::PreAim::Target(t))
+        } else if let Some(s) = n("steer") {
+            Some(loadout::PreAim::Steer(s))
+        } else if let (Some(x), Some(y)) = (a["x"].as_f64(), a["y"].as_f64()) {
+            let [lon, lat] = sim_bases::utm36n_geo(x, y);
+            let r = |v: f64| (v * 1e6).round() / 1e6;
+            Some(loadout::PreAim::Point { lat: r(lat), lon: r(lon), mission: m["id"].as_str().unwrap_or("").into() })
+        } else {
+            None
+        };
+        let pick = (u32::try_from(station).unwrap_or(0), u32::try_from(bomb).ok());
+        let out = briefing::pre_set(&u, Path::new(&weapons.to_string()), &loadout_json(&u, &lo), &m, pick, aim);
+        out.as_ref().map_or_else(GString::new, |v| GString::from(v.to_string().as_str()))
+    }
+
     /// The loadout `lo` as the engine's pylons hold it (`loadout::sim_load`): [[weapon number, count, rack kg, rack drag, internal] × 13] as
     /// JSON text, "" when the record is unreadable.
     #[func]
     fn sim_load(unit: GString, weapons: GString, lo: GString) -> GString {
         let v = read(&unit).map(|u| json!(loadout::sim_load(&u, Path::new(&weapons.to_string()), &given(&u, &lo))));
         v.as_ref().map_or_else(GString::new, text)
+    }
+}
+
+/// The loadout `lo` (JSON text) as given, its `pre` picks with it; "" or not JSON: the record's default.
+fn loadout_json(unit: &Value, lo: &GString) -> Value {
+    match serde_json::from_str::<Value>(&lo.to_string()) {
+        Ok(v) if v.is_object() => v,
+        _ => loadout::to_json(&loadout::default(unit)),
     }
 }
 
@@ -167,8 +216,15 @@ fn given(unit: &Value, lo: &GString) -> loadout::Loadout {
     }
 }
 
+/// The loadout `lo` edited by `f` as JSON text ("" when `f` refuses), its PRE picks kept for the stores left as they
+/// were (`loadout::keep_picks`).
 fn edit(unit: &GString, lo: &GString, f: impl FnOnce(&Value, &mut loadout::Loadout) -> bool) -> GString {
     let Some(u) = read(unit) else { return GString::new() };
-    let mut l = given(&u, lo);
-    GString::from(if f(&u, &mut l) { loadout::to_json(&l).to_string() } else { String::new() }.as_str())
+    let before = given(&u, lo);
+    let mut l = before.clone();
+    if !f(&u, &mut l) {
+        return GString::new();
+    }
+    let picks = serde_json::from_str::<Value>(&lo.to_string()).map(|v| loadout::picks(&v)).unwrap_or_default();
+    GString::from(loadout::to_json_with(&l, &loadout::keep_picks(&before, &l, &picks)).to_string().as_str())
 }

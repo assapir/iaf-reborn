@@ -6,8 +6,9 @@
 # row clears it: a bomb back to its station's target, a station back to the default, the route's target waypoint
 # (IafGpsBomb.default_target), else none. The targets are stored as coordinates in Settings.gps_targets ({flight:
 # {station: [x, y, label], Vector2i(station, bomb): [x, y, label]}}) and drawn on the map: a box with the stations (3)
-# or bombs (3-1,3-2) aimed at it.
-extends RefCounted
+# or bombs (3-1,3-2) aimed at it. The rows and the clicks are the shared PRE pick's (shared/weapons/pre_pick.gd), as
+# Modern IAF's briefing panel works them.
+extends "res://shared/weapons/pre_pick.gd"
 
 const ModernWeapons := preload("res://shared/weapons/modern_weapons.gd")
 const MissionWeapons := preload("res://shared/weapons/mission_weapons.gd")
@@ -19,11 +20,6 @@ const PANEL_W := 160.0
 const INHERITED := Color(0.6, 0.6, 0.6)
 
 var tsd: Control
-## The station whose target the next map click sets, -1 none; `armed_bomb` the bomb of a rack, -1 the whole station.
-var armed := -1
-var armed_bomb := -1
-## The racks opened into their bombs' rows (station -> true).
-var opened := {}
 
 
 func _init(owner: Control) -> void:
@@ -83,12 +79,7 @@ func _has_own(i: int, count: int) -> bool:
 
 ## The panel's rows (client px): [[rect, station or -1 for the header, bomb or -1 for the station]].
 func _rows(list: Array) -> Array:
-	var keys := []
-	for l in list:
-		keys.append([l[0], -1])
-		if l[2] > 1 and (opened.has(l[0]) or _has_own(l[0], l[2])):
-			for b in l[2]:
-				keys.append([l[0], b])
+	var keys := row_keys(list.map(func(l): return [l[0], l[2]]), _has_own)
 	var top: float = tsd.area.size.y - 4.0 - ROW_H * (keys.size() + 1)
 	var left: float = tsd.area.size.x - 4.0 - PANEL_W
 	var out := [[Rect2(left, top, PANEL_W, ROW_H), -1, -1]]
@@ -162,25 +153,13 @@ func input(event: InputEvent, c: Vector2) -> bool:
 		if r[0].has_point(c):
 			var i: int = r[1]
 			var b: int = r[2]
-			if event.button_index == MOUSE_BUTTON_RIGHT and i >= 0:
+			if press(i, b, event.button_index):
 				_clear(i, b)
-				armed = -1
-			elif event.button_index == MOUSE_BUTTON_LEFT:
-				var again := i == armed and b == armed_bomb
-				armed = -1 if again or i < 0 else i
-				armed_bomb = -1 if armed < 0 else b
-				# A rack's station row opens its bombs' rows, a second click closes them.
-				if b < 0 and i >= 0:
-					if again:
-						opened.erase(i)
-					else:
-						opened[i] = true
 			return true
 	if armed < 0 or event.button_index != MOUSE_BUTTON_LEFT or event.double_click:
 		return false
-	_assign(armed, c, armed_bomb)
-	armed = -1
-	armed_bomb = -1
+	var k := take()
+	_assign(k[0], c, k[1])
 	return true
 
 

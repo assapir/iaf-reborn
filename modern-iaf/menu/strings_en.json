@@ -420,5 +420,19 @@
 	"throttle_detent_about": "Where the afterburner starts on your throttle lever. Put the lever at its click, then choose Set at lever. Off makes the lever's travel even, the afterburner at its end.",
 	"stick_response_about": "Linear moves the jet as much as the stick moves. Soft centre makes small stick moves gentler, for fine aiming.",
 	"keys_screen_about": "Every command's key, and the keys you can change.",
-	"joystick_screen_about": "The joystick's axes and buttons: which axis does what, its dead zone, and a command for each button."
+	"joystick_screen_about": "The joystick's axes and buttons: which axis does what, its dead zone, and a command for each button.",
+	"pre_title": "PRE targets",
+	"pre_hint": "Click a row, then a target, a steerpoint or a point on the map. Right-click a row clears it.",
+	"pre_sta": "STA %s",
+	"pre_target": "Target %d",
+	"pre_steer": "Steerpoint %d",
+	"pre_point": "Point %s",
+	"pre_latlon": "%.2f° N %.2f° E",
+	"pre_as_station": "%s · as station",
+	"pre_default": "%s · default",
+	"pre_none": "No target",
+	"pre_click_map": "click the map…",
+	"pre_footer": "Without a pick: the mission's target (%s). In flight %s steps through all of them.",
+	"pre_refused": "That pick cannot be used: choose a target of this mission.",
+	"pre_footer_none": "Without a pick a bomb has no target before you step one. In flight %s steps through the targets."
 }

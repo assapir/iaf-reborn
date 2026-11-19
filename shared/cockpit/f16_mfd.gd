@@ -976,12 +976,25 @@ func _gps_block(wp: Dictionary, y: float) -> void:
 	var gps: Dictionary = wp.get("ag", {}).get("gps", {})
 	var col := c("text")
 	var aim = gps.get("aim")
+	# Ours, Modern IAF (A61): in PRE the bomb that leaves next, its pick among the PRE targets (PP n/N, Shift+K
+	# steps) and its target's name and place, the next bomb's target at the bottom (player_weapons.gd gps_pre_info).
+	var pre: Dictionary = wp.get("gps_pre", {}) if modern else {}
+	if not pre.is_empty():
+		centred(66, y - 9, "STA %d  PP %d/%d" % [int(pre.station) + 1, int(pre.pp), int(pre.pp_n)], col, SMALL)
+		var nx: Dictionary = pre.next
+		if not nx.is_empty():
+			centred(66, y + 45, "NEXT STA %d: %s" % [int(nx.station) + 1, String(nx.label)], col, SMALL)
 	if aim is Vector3:
 		var xy := Vector2(aim.x, aim.y)
 		var tgt := "TGT %s" % ("PRE" if gps.get("pre", true) else "VIS")
 		for i in cockpit.waypoints.size():
 			if cockpit.waypoints[i].world.distance_to(xy) < 100.0:
 				tgt = "STPT %d" % (i + 1)
+		if not pre.is_empty() and String(pre.label) != "":
+			tgt = String(pre.label)
+			# Its place as the DED's steerpoint page writes it (N31 01.2 E34 34.2).
+			var g: Vector2 = ClassDB.class_call_static("IafUfc", "geo", xy.x, xy.y)
+			centred(66, y + 36, "%s %s" % [_dm("N", g.y), _dm("E", g.x)], col, SMALL)
 		centred(66, y, tgt, col)
 		var rel := xy - own_world()
 		var brg := posmod(int(round(rad_to_deg(atan2(rel.x, rel.y)))), 360)
@@ -996,6 +1009,12 @@ func _gps_block(wp: Dictionary, y: float) -> void:
 	var tti = wp.get("gps_tti")
 	if tti != null:
 		centred(66, y + 27, "TTI %s" % _mss(float(tti)), col)
+
+
+## "N31 01.2": a latitude or longitude `v` (degrees) in degrees and decimal minutes after its hemisphere `h`.
+static func _dm(h: String, v: float) -> String:
+	var a := absf(v)
+	return "%s%02d %04.1f" % [h, int(a), (a - floorf(a)) * 60.0]
 
 
 static func _mss(s: float) -> String:

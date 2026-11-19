@@ -102,6 +102,15 @@ var track_colors: Array = []
 var track_pins: Array = []
 ## The north arrow and the scale bar shown.
 var chrome := true
+## The PRE targets panel's marks (A61, pre_panel.gd): {at (the map's metres), name ("" none), tags (the stations or
+## bombs aimed there, "4-1 4-2"; "" none), kind ("target", "steer", "point")} each, an amber box (a point a cross)
+## with its name on a dark plate and its tags on an amber one. `pre_click`: while it is set, a left click on the map
+## goes to it first (the point in px; true: used, no drag).
+var pre_marks: Array = []:
+	set(v):
+		pre_marks = v
+		queue_redraw()
+var pre_click := Callable()
 var _aspect := 0.0
 var _dragging := false
 ## The view's ground tiles, coarse to fine: [level, i, j, x0, y0, x1, y1] each (IafBriefing.tiles, the map's metres).
@@ -283,6 +292,11 @@ func _view_flight(callsign: String) -> void:
 	open_view()
 
 
+## Shows the box `box` (the map's metres) with `margin` metres round it in the room (the PRE targets panel's targets).
+func frame_box(box: Rect2, margin: float) -> void:
+	_frame(box.grow(margin))
+
+
 ## Fits the box `box` (the map's metres) into the room with PIN_ROOM round it (a disc stacks up to two discs above its
 ## place), then narrows the room until every pin's name plate, which reaches toward the map's right (the map never
 ## mirrors), ends inside it.
@@ -392,7 +406,9 @@ func _gui_input(event: InputEvent) -> void:
 				pan(Vector2(-WHEEL_PX * maxf(event.factor, 1.0), 0))
 			MOUSE_BUTTON_LEFT, MOUSE_BUTTON_MIDDLE:
 				grab_focus()
-				if event.double_click and event.button_index == MOUSE_BUTTON_LEFT:
+				if event.button_index == MOUSE_BUTTON_LEFT and pre_click.is_valid() and pre_click.call(event.position):
+					pass
+				elif event.double_click and event.button_index == MOUSE_BUTTON_LEFT:
 					reset_view()
 				else:
 					_dragging = true
@@ -509,6 +525,7 @@ func _draw() -> void:
 	if show_labels:
 		_draw_places(font, xf, taken)
 	track_labels.call()
+	_draw_pre(font, xf)
 	pins.call()
 	if chrome:
 		_north(font)
@@ -558,6 +575,41 @@ func _pins(font: Font, xf: Transform2D, taken: Array[Rect2]) -> Callable:
 			draw_circle(d[1], 17.0, Color.WHITE, false, 2.5, true)
 			var w := font.get_string_size(d[2], HORIZONTAL_ALIGNMENT_LEFT, -1, 18).x
 			draw_string(font, d[1] + Vector2(-w / 2.0, 6.5), d[2], HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Look.NAVY)
+
+
+## Metres of the map at `px` (a point of the control).
+func to_map(px: Vector2) -> Vector2:
+	return _xf().affine_inverse() * px
+
+
+## A point of the control at `m` (the map's metres).
+func to_px(m: Vector2) -> Vector2:
+	return _xf() * m
+
+
+## The PRE targets' marks (`pre_marks`).
+func _draw_pre(font: Font, xf: Transform2D) -> void:
+	for mk in pre_marks:
+		var c: Vector2 = xf * Vector2(mk.at)
+		if not Rect2(Vector2.ZERO, size).grow(40).has_point(c):
+			continue
+		if mk.kind == "point":
+			draw_line(c - Vector2(8, 8), c + Vector2(8, 8), Look.AMBER, 3.0, true)
+			draw_line(c - Vector2(8, -8), c + Vector2(8, -8), Look.AMBER, 3.0, true)
+		else:
+			draw_rect(Rect2(c - Vector2(10, 10), Vector2(20, 20)), Color(0, 0, 0, 0.35))
+			draw_rect(Rect2(c - Vector2(10, 10), Vector2(20, 20)), Look.AMBER, false, 3.0)
+			draw_circle(c, 3.0, Look.AMBER, true, -1.0, true)
+		if String(mk.name) != "":
+			var w := font.get_string_size(mk.name, HORIZONTAL_ALIGNMENT_LEFT, -1, 17).x
+			var plate := Rect2(c + Vector2(16, -14), Vector2(w + 16, 28))
+			draw_rect(plate, Color(Look.PANEL, 0.88))
+			draw_string(font, plate.position + Vector2(8, 20), mk.name, HORIZONTAL_ALIGNMENT_LEFT, -1, 17, Look.AMBER)
+		if String(mk.tags) != "":
+			var w := font.get_string_size(mk.tags, HORIZONTAL_ALIGNMENT_LEFT, -1, 16).x
+			var tag := Rect2(c + Vector2(-11, 16), Vector2(w + 12, 24))
+			draw_rect(tag, Look.AMBER)
+			draw_string(font, tag.position + Vector2(6, 18), mk.tags, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Look.INK)
 
 
 ## The view shows the mission's area or less (not zoomed out past `reset_view`'s zoom).

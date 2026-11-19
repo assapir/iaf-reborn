@@ -1068,6 +1068,38 @@ m_per_px)` answers the colour nodes that draw it, coarse to fine, `[level, i, j,
 | the take-off, scrolled 100 km north of Ramon (2×) | ![The map far from the base, near Beit Shemesh](pictures/front-end/briefing_2012_far_en.webp) | ![The same in Hebrew](pictures/front-end/briefing_2012_far_he.webp) |
 | the same place zoomed in (24×, the 2 m photo) | ![The map zoomed in far from the base on a village](pictures/front-end/briefing_2012_far_close_en.webp) | ![The same in Hebrew](pictures/front-end/briefing_2012_far_close_he.webp) |
 
+### 10.2 The PRE targets panel
+
+The GPS bombs' pre-planned targets (A61, the user's pick of option A on 19 Nov 2026: "A61: a"). With a GPS store on
+the jet (a weapon record with `guidance` "gps": the GBU-31, GBU-38, GBU-39, SPICE 1000 / 2000, Delilah), the map's
+chips start with **PRE targets** (`MapPre`). On, its panel (`PreTargets`, `menu/pre_panel.gd`) takes the text card's
+place, and off gives the text back:
+
+- the heading, a line on how to pick, the rows, a rule and a footer naming the default (the route's target
+  steerpoint) and the key that steps the targets in flight (record 207, Shift + K);
+- a row per GPS station in station order (`PreRow_<station>`: "STA 4", the store, the target at the inline end); a
+  rack (the F-35I's four GBU-39, the F-16's two GBU-38) opens on a click into a row per bomb (`PreRow_<station>_<n>`,
+  "4-1" the first to leave), and stays open while one of its bombs has a target of its own;
+- a row's target: its own pick in amber; else, muted, the station's ("Target 2 · as station") or the default
+  ("Steerpoint 2 · default"); the armed row reads "click the map…" in the accent's text colour and the pointer is a
+  cross over the map.
+
+A click on a row arms it (again: disarms; a rack's station row opens or closes its bombs). The next left click on the
+map gives it the mission target or steerpoint within 24 px of the click, else the point itself. A right click on a
+row, or Delete with the focus on it, clears it; a station's clear clears its bombs' own picks. The map draws every
+mission target as an amber box with its name, and under each place aimed at the stations or bombs aimed there on an
+amber tag ("4-1 4-2 4-4"); a map point is an amber cross. The rows and the clicks are the shared PRE pick's
+(`shared/weapons/pre_pick.gd`), the 1998 game's briefing TSD's ([../../docs/front-end.md](../../docs/front-end.md) §8.2).
+
+The picks are kept with the pilot's loadout for the jet, as its `pre` (data-formats.md §3), so the Loadout screen's
+saved loadouts keep them and a loadout saved before has none; a mission's own `loadout` may carry them the same way.
+One rule in Rust decides which picks stand (`gps.rs` `pick_ok`, through `briefing::pre` / `pre_set`): the station
+holds a GPS store, a bomb's own pick is on a rack and one of its bombs, a target or steerpoint is one the mission has
+(by number, so a saved loadout aims at the same numbers on another mission), a map point was made on that mission. A
+pick the rule refuses is not made and the panel says so in one line; a pick that no longer stands (another mission, a
+station's store changed on the Loadout screen) is left out everywhere: the panel, the flight and the next save. As the
+flight starts, `flight/fly.gd` `pre_targets` hands the picks to `Settings.gps_targets` (docs/weapons.md §13.2).
+
 ## 11. The crash page
 
 Every failure the sim cannot go on from ends on one page, never in an empty world or a loading screen that never ends

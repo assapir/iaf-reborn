@@ -96,14 +96,17 @@ A GPS-guided bomb flies to coordinates. It takes them in one of two modes: PRE, 
 
 The WPN format (@mfd) shows the selected GPS-guided bomb's status, and #osb(1) there also changes PRE and VIS.
 
+*PRE targets.* Each station, and each bomb of a two-bomb GBU-38 rack, takes its own PRE target before the flight (#other("game", "briefing")). A bomb with no target of its own takes its station's; a station with none takes the route's target steerpoint. In PRE the SMS's air-to-ground page shows, over the target lines, the station of the bomb that leaves next and *PP 1/4*: which of the planned targets it aims at, of how many. Under them stand the target's name (TGT 2, STPT 1, PT for a point of the map) and its coordinates, and at the bottom the target of the next bomb to leave. #key("GPS bomb next PRE target") steps the bomb from its own target to the other planned targets and the steerpoints.
+
 === The gun: strafing
 
 + Arm. Select the gun in air-to-ground. #then[The HUD shows the strafing dot with the slant range; the SMS format reads STRF.]
 + Dive, put the dot on the target, hold #key("Gun trigger").
 
 #in-sim[
-  - A bomb in PRE takes the route's target steerpoint, if it has one; on the weapons range it is the steerpoint on the targets.
+  - A bomb in PRE takes the target picked for it or its station before the flight, else the route's target steerpoint; on the weapons range that is the steerpoint on the targets.
+  - The SMS's PRE lines (the station, PP, the target's name and place, the next bomb) are laid out by us; the real page's layout was not found.
   - The layout of the GPS-guided bomb's HUD symbols is inferred from simulators' manuals.
   - The release modes' cue scales, the arming delay's steps and the reticle's readout place are inferred; the pull-up time is worked out from the bomb's own fall.
-  - #term("Not modelled"): a PRE target set for each bomb before the flight; the CCRP and LADD control pages (the release angle and the pull-up range typed in); the fuzes' different effects; a laser from another aircraft or from the ground.
+  - #term("Not modelled"): the CCRP and LADD control pages (the release angle and the pull-up range typed in); the fuzes' different effects; a laser from another aircraft or from the ground.
 ]

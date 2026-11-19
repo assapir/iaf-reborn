@@ -3,6 +3,7 @@
   "number": 14,
   "name": "DELILA",
   "kind": "bomb",
+  "guidance": "gps",
   "generation": 9,
   "model": "",
   "kg": 187,

@@ -2221,8 +2221,51 @@ func gps_bomb_rows() -> Array:
 			continue
 		var gone := next_bomb(i) if int(stores.station(i).get("count", 0)) > 0 else int(stores.station(i).initial)
 		for k in targets[i].size():
-			out.append({"station": i, "bomb": k, "target": targets[i][k], "gone": k < gone})
+			var t = targets[i][k]
+			out.append({"station": i, "bomb": k, "target": t, "gone": k < gone, "label": pre_label(t)})
 	return out
+
+
+## Ours (A61, docs/weapons.md §13.2): the PRE target's line of the stores pages for the bomb that leaves next:
+## {station (0-based), bomb, pp (the step key's pick, 1-based) of pp_n, label (pre_label; "" none), next: the next
+## other bomb to leave {station, bomb, label}, {} none}; {} with no GPS bomb in PRE selected.
+func gps_pre_info(rows: Variant = null) -> Dictionary:
+	var i := gps_station()
+	if i < 0 or not stores.station(i).get("w", {}).has("gps") or gps_vis(i):
+		return {}
+	var l := _pre_list(i)
+	var n: int = l[1].size() + (1 if l[0] == null else 0)
+	var k := next_bomb(i)
+	var next := {}
+	for r in rows if rows is Array else gps_bomb_rows():
+		if not r.gone and not (r.station == i and r.bomb == k):
+			next = {"station": r.station, "bomb": r.bomb, "label": r.label}
+			break
+	return {
+		"station": i,
+		"bomb": k,
+		"pp": (pre_index % maxi(n, 1)) + 1,
+		"pp_n": n,
+		"label": pre_label(_pre_point(i)),
+		"next": next
+	}
+
+
+## A PRE point's name on the stores pages: its pick's on the briefing (Settings.gps_targets' label: "TGT 2", "STPT 1",
+## "PT"), else the steerpoint it is on ("STPT n"), else "PT"; "" for none.
+func pre_label(p: Variant) -> String:
+	if not p is Vector3:
+		return ""
+	var xy := Vector2(p.x, p.y)
+	var n = host.get("player_flight_number")
+	for t in Settings.gps_targets.get(int(n) if n != null else 0, {}).values():
+		if Vector2(t[0], t[1]).distance_to(xy) < 1.0 and t.size() > 2:
+			return String(t[2])
+	var route := _route()
+	for w in route.size():
+		if Vector2(route[w].world.x, route[w].world.y).distance_to(xy) < 1.0:
+			return "STPT %d" % (w + 1)
+	return "PT"
 
 
 ## The station whose bomb goes next (the selected store's), -1 none.
@@ -3172,6 +3215,7 @@ func _publish() -> void:
 	var c: Control = host.cockpit
 	if c == null:
 		return
+	var bomb_rows := gps_bomb_rows()
 	var list := []
 	for i in Stores.FRAMES.size():
 		list.append({"type": stores.type_of(i), "count": stores.displayed(i), "name": stores.name_of(i)})
@@ -3346,7 +3390,9 @@ func _publish() -> void:
 		"bay": bay_fraction(),
 		"bay_cmd": bay_open(),
 		"bay_manual": bay_doors_manual,
-		"gps_bombs": gps_bomb_rows(),
+		"gps_bombs": bomb_rows,
+		# Ours, Modern IAF (A61): the SMS's PRE line; none in the 1998 game, which has no such page.
+		"gps_pre": gps_pre_info(bomb_rows) if Settings.modern_mfds() else {},
 	}
 
 

@@ -3,6 +3,7 @@
   "number": 12,
   "name": "SPICE1",
   "kind": "bomb",
+  "guidance": "gps",
   "generation": 7,
   "model": "weapons/sufa/spice1000_m.gltf",
   "kg": 453,

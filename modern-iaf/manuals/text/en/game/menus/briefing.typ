@@ -77,6 +77,20 @@ You can zoom out to the whole country and scroll to any place in it.
 - #idx("Labels (briefing map)")#scr("map_labels") shows or hides the names: the towns, the runway numbers, the base and the pins' plates.
 - #idx("Photo (briefing map)")#scr("map_photo") shows the ground as a photo, or as a plain coloured map when off.
 - #scr("map_zoom") zooms in and out one step.
+- #idx("PRE targets (briefing map)")#scr("pre_title") shows only while the jet carries a GPS-guided bomb. It opens the PRE targets panel (@briefing-pre).
+
+=== PRE targets <briefing-pre>
+
+A GPS-guided bomb (GBU-31, GBU-38, GBU-39, SPICE) in PRE flies to a target planned before the flight. Here you plan it. Select #scr("pre_title") at the top of the map. The panel takes the place of the mission's text and lists the jet's GPS #term("Station", shown: "stations"), each with its bomb and its target. A rack of several bombs (four GBU-39 on the F-35I, two GBU-38 on the F-16) opens into one row for each bomb, the first to leave on top.
+
++ Click a station's row or a bomb's row. #then[The row reads #scr("pre_click_map").]
++ Click the target on the map: one of the mission's targets (an amber box with its name), one of the route's steerpoints, or any other point of the map. #then[The row shows the target; the map tags the target with the stations and bombs that aim at it.]
+
+A right click on a row, or #keycap("Delete") with the focus on it, clears the row's target. A station with no target of its own takes the mission's target steerpoint (its row shows "· default" after the target). A bomb with no target of its own takes its station's.
+
+The targets are kept with your loadout for the jet, and a loadout you save on the Loadout screen keeps them (@loadout). A target or a steerpoint is kept by its number, so a saved loadout aims at the same numbers on another mission; a point of the map belongs to the mission it was picked on. A row whose store you change on the Loadout screen loses its target.
+
+In the flight each bomb takes its own target. #key("GPS bomb next PRE target") steps the next bomb from its own target through the other planned targets and the steerpoints.
 
 === Going on <briefing-go>
 

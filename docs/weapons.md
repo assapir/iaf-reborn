@@ -1217,7 +1217,12 @@ does[^dcs-jdam][^bms-jdam]; the F-35I's are inferred to work the same.
   **Shift+K** steps the next bomb's target (`gps.rs` `pre_targets`, `pre_pick`): the bomb's own first, then the other
   bombs' and stations' and the route's steerpoints, each point once, round again; a bomb without its own target starts
   on none. A subtitle shows "PRE 2/5". The step goes back to the own targets when a release ends. The heights come
-  from the terrain under the points.
+  from the terrain under the points. Modern IAF picks the same targets on its briefing's PRE targets panel (modern-iaf/docs/front-end.md §10.2):
+  the rows and clicks are this TSD panel's (`shared/weapons/pre_pick.gd`); the picks are kept in the pilot's loadout
+  (`pre`: a mission target, a steerpoint or a map point by number or place, checked by `gps.rs` `pick_ok`) and
+  handed to `Settings.gps_targets` as the flight starts (`flight/fly.gd` `pre_targets`). Its stores pages name each
+  bomb's target (the F-16 SMS: the next bomb's PP n/N, the target and its place, the next bomb's target; the F-35I's
+  WPN-S: each bomb's).
 - **VIS (visual / target of opportunity)**: the point designated in flight, its coordinates taken at the release: the
   targeting pod's point with the laser on (in any direction: there is no seeker cone; the bomb does not follow the
   laser spot), when it lies on the ground; else the radar's designated point, the HUD's TD box (MAP / GMT

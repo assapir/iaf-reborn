@@ -121,7 +121,7 @@ Terms used on this page:
   | Alt + Left / Right | roll trim left / right while held (§5.2 "Throttle rocker") | — |
   | Alt + M (held), Alt + S | Modern IAF's 6-DoF: the MANUAL PITCH override, the STORES CONFIG switch CAT I / CAT III (modern-iaf/docs/flight-model.md §9.11); nothing on the original model | — |
   | K | the selected GPS bomb's mode PRE ↔ VIS (weapons.md §13.2) | — |
-  | Shift+K | the next PRE target of the selected GPS bomb: the stored targets, then the steerpoints (weapons.md §13.2) | — |
+  | Shift+K | the next PRE target of the selected GPS bomb: the stored targets (picked on the briefing: reborn's TSD, Modern IAF's PRE targets panel, modern-iaf/docs/front-end.md §10.2, mouse only), then the steerpoints (weapons.md §13.2) | — |
   | = / − / Numpad + / − | cockpit art zoom (cockpit views) | Zoom in / out (20 / 21): the orbit distance in the external views (views.md §4) |
 
   Modern IAF's key table holds the roll trim, MANUAL PITCH, STORES CONFIG and the GPS bomb's two keys as records

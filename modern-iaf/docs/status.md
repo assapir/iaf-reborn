@@ -104,9 +104,16 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   RET DEPR wheel; OSB 18 the fuze, OSB 17 the arming delay; a bomb hitting before it arms is a dud, with `LOW` on the
   HUD ([weapons.md](weapons.md) §9; keys Ctrl + G, Alt + Q, Alt + 0, Ctrl + V / Alt + V;
   `modern-iaf/tests/test_sim_bombs.gd`, the laser path included). The range missions' second steerpoint is their
-  target steerpoint, every GPS bomb's PRE target. Open: the per-bomb PRE target pick on the briefing map, a new panel
-  waiting for the user's yes (G4). Not started (outside the plan's rows): RBS, ULOFT, the CNTL pages. The Adir carries
+  target steerpoint, every GPS bomb's PRE target without a pick of its own. Not started (outside the plan's rows): RBS, ULOFT, the CNTL pages. The Adir carries
   only GPS bombs: its share is the PRE target.
+- **The GPS bombs' PRE targets on the briefing (2026-11-19, A61 option A; avionics-plan.md S14, G4):** the map's
+  PRE targets chip (with a GPS store aboard) puts a panel in the text card's place: each GPS station, a rack opened
+  into its bombs; a click on a row, then on a mission target, a steerpoint or any point of the map sets its target, a
+  right click (or Delete) clears it ([front-end.md](front-end.md) §10.2). The picks live in the pilot's loadout
+  (`pre`; saved loadouts keep them, old ones have none, a mission's own loadout may carry them) under one rule in Rust
+  (`gps::pick_ok`); the flight takes them (`flight/fly.gd`), each bomb flies to its own; the F-16 SMS shows the next
+  bomb's PP n/N, its target's name and place and the next bomb's target, the Adir's WPN-S each bomb's target by name.
+  The rows and clicks are reborn's TSD's, moved to `shared/weapons/pre_pick.gd`. `modern-iaf/tests/test_sim_pre_targets.gd`.
 - **The air-to-air missiles' employment flow (2026-11-18, avionics-plan.md slice 8, W1, W4, N7, P12, S13; G26,
   G27):** on the Sufa, the Barak and the Adir: `]` selects, the radar locks, the IR missile's seeker caged on the lock,
   the helmet or the boresight hears the target; Shift + M uncages it to track (the HUD's large diamond), Ctrl + S or
@@ -876,8 +883,7 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 - **Avionics, missiles and bombs (2026-11-17):** the inventory per jet, the gap list and the build order are in
   [avionics-plan.md](avionics-plan.md); the 15 November bugs (radar standby, break X and the HUD against reborn,
   SPICE / GPS targets, the gun flash) are its first slice; the range is slice 1. The briefing's PRE target pick for the
-  GPS bombs is built on its own branch and waits for the user's yes; until then a PRE bomb steps to the range's ground
-  steerpoint with Shift+K.
+  GPS bombs is built (2026-11-19, A61).
 - **The process staying alive after Quit on macOS**: reported once, on the user's Mac on 2026-11-15; it did not
   reproduce on Linux (headless or in a hidden real render) and is not being pursued unless it is seen again. The leak
   reported with it is fixed (docs/rendering.md §1.5; `modern-iaf/tests/test_exit.gd`).

@@ -59,6 +59,7 @@ static func prepare(id: int) -> bool:
 ## front end never flies one) gives way to the mission's own.
 static func arm(m: Dictionary, readable: Dictionary) -> void:
 	Settings.arm_loadouts = {}
+	Settings.gps_targets = {}
 	var unit := str(readable.get("start", {}).get("unit", ""))
 	var unit_file := ProjectSettings.globalize_path("res://data/db/units/%s.json" % unit)
 	var weapons := ProjectSettings.globalize_path("res://data/db/weapons")
@@ -77,6 +78,28 @@ static func arm(m: Dictionary, readable: Dictionary) -> void:
 	var pf: Dictionary = MissionRuntime.player_flight(m, Settings.player_flight)
 	if load is Array and not pf.is_empty():
 		Settings.arm_loadouts = {int(pf.flight): load}
+		Settings.gps_targets = {int(pf.flight): pre_targets(unit_file, weapons, lo, mission)}
+
+
+## The GPS stores' PRE picks of loadout `lo` (its `pre`, made on the briefing's PRE targets panel or the mission's
+## own; A61) that pass the one rule on the readable mission file `mission` (IafBriefing.pre) as the flight's targets
+## (Settings.gps_targets' shape, player_weapons.gd pre_targets): {pylon: [x, y, label], Vector2i(pylon, bomb): [x,
+## y, label]}. A station without a pick aims at the route's target steerpoint, a bomb without one at its station's.
+static func pre_targets(unit_file: String, weapons: String, lo: String, mission: String) -> Dictionary:
+	var out := {}
+	var d = JSON.parse_string(IafBriefing.pre(unit_file, weapons, lo, mission))
+	for r in d.get("rows", []) if d is Dictionary else []:
+		var a = r.aim
+		if not a is Dictionary or r.pylon == null:
+			continue
+		var label := "PT"
+		if a.kind == "target":
+			label = "TGT %d" % int(a.n)
+		elif a.kind == "steer":
+			label = "STPT %d" % int(a.n)
+		var key = int(r.pylon) if int(r.bomb) < 0 else Vector2i(int(r.pylon), int(r.bomb))
+		out[key] = [float(a.x), float(a.y), label]
+	return out
 
 
 ## The load the readable mission gives its player's jet (its "loadout", station -> store, the shape of a pilot's

@@ -8,12 +8,12 @@ The GBU-31, the GBU-32 and the GBU-39 steer themselves to a point on the ground 
 
 A bomb takes its point in one of two modes. #key("GPS bomb PRE / VIS") changes the selected bomb's mode; the helmet's weapon line reads PRE or VIS.
 
-- *PRE, planned:* the point is known before the release. The sim gives each bomb the route's target steerpoint; on the weapons range it is the steerpoint on the targets. #key("GPS bomb next PRE target") steps the next bomb's point through the route's steerpoints; a line of text shows which, as "PRE 2/5".
+- *PRE, planned:* the point is known before the release. Each bay station, and each of the four GBU-39 on its rack, takes its own PRE target before the flight (#other("game", "briefing")). A bomb with no target of its own takes its station's; a station with none takes the route's target steerpoint, on the weapons range the steerpoint on the targets. #key("GPS bomb next PRE target") steps the next bomb's point from its own through the other planned targets and the route's steerpoints; a line of text shows which, as "PRE 2/5".
 - *VIS, by eye:* the point is the one you designate in flight: the point under the TFLIR's cross while its laser fires (@tflir), or else the point designated on the radar's ground map (@radar-ag).
 
-The WPN-S format (@pcd) lists each bomb of the selected store with its PRE target, greys the bombs gone, and sets the release profile: PROF, SGL or PAIR, the count and the interval.
+The WPN-S format (@pcd) lists each bomb of the selected store with its PRE target by name (TGT 2, STPT 1, PT for a point of the map), its distance and bearing, greys the bombs gone, and sets the release profile: PROF, SGL or PAIR, the count and the interval.
 
-#in-sim[Setting each bomb's own PRE target before the flight is #nis.]
+#in-sim[The PRE targets are picked on a map before the flight (#other("game", "briefing")), not loaded from a planning computer.]
 
 === The helmet's cues <ag-cues>
 

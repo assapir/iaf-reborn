@@ -921,6 +921,9 @@ message `0x55c` to the frame with wParam = the target screen and lParam = the bu
 
 ### 8.2 GPS targets (ours, `iaf-reborn/menu/tsd_gps.gd`)
 
+The rows and the clicks below are the shared PRE pick's (`shared/weapons/pre_pick.gd`), which Modern IAF's briefing
+panel works the same way ([modern-iaf/docs/front-end.md](../modern-iaf/docs/front-end.md) §10.2).
+
 Before the flight, while the selected flight carries GPS bombs (its Arming table, else the mission's load), the TSD
 shows a panel in the map's lower-right corner (clear of the briefing window, which opens on the left): a `GPS TARGETS` header and a row per GPS station, `STA 5 GBU-31` and
 its pre-planned (PRE) target (docs/weapons.md §13.2):

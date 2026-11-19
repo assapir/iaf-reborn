@@ -3,6 +3,7 @@
   "number": 10,
   "name": "GBU-38",
   "kind": "bomb",
+  "guidance": "gps",
   "generation": 5,
   "model": "weapons/sufa/gbu38_m.gltf",
   "kg": 253,

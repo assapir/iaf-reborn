@@ -1281,7 +1281,8 @@ func wpn_a(r: Rect2) -> Dictionary:
 ## WPN-S (inferred layout): the selected air-to-surface store with its status, mode (CCIP; a GPS bomb's PRE / VIS),
 ## its programming (the F-16 SMS's profiles: PROF, SGL / PAIR, the release pulses, the interval; release.rs
 ## Profiles / Ripple) and, for a GPS bomb, each bomb's own target in the release order (the next one marked, the
-## released greyed; S14). The legends down the right edge set them. Returns its buttons.
+## released greyed; S14), named as picked on the briefing (A61). The legends down the right edge set them. Returns
+## its buttons.
 func wpn_s(r: Rect2) -> Dictionary:
 	var buttons := {}
 	var wp: Dictionary = cockpit.weapons
@@ -1323,6 +1324,9 @@ func wpn_s(r: Rect2) -> Dictionary:
 		for b in wp.get("gps_bombs", []):
 			var tgt = b.target
 			var t := "STA %d B%d  " % [STATION_OF[int(b.station)], int(b.bomb) + 1]
+			# Ours, Modern IAF (A61): the bomb's target by its briefing pick's name ("TGT 2", "STPT 1", "PT").
+			if Settings.modern_mfds() and String(b.get("label", "")) != "":
+				t += String(b.label) + " "
 			if tgt is Vector3:
 				var rel := Vector2(tgt.x, tgt.y) - own_world()
 				t += "%.1fNM %03d" % [rel.length() / 1852.0, posmod(int(round(rad_to_deg(atan2(rel.x, rel.y)))), 360)]

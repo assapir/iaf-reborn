@@ -705,6 +705,121 @@ fn needs(unit: &Value, record: &dyn Fn(&str) -> Option<Value>, lo: &loadout::Loa
     out
 }
 
+/// A weapon record of `weapons` guides by GPS / INS to a stored point (its `guidance` "gps": the JDAMs, the GBU-39, the
+/// SPICE, the Delilah): the stores that take a PRE target.
+fn gps_store(weapons: &Path, id: &str) -> bool {
+    let r = std::fs::read(weapons.join(format!("{id}.json"))).ok();
+    let r: Value = r.and_then(|b| serde_json::from_slice(&b).ok()).unwrap_or_default();
+    r["guidance"] == "gps"
+}
+
+/// The mission `mission`'s side of the pick rule (`iaf_avionics::gps::PreMission`).
+fn pre_mission(mission: &Value) -> iaf_avionics::gps::PreMission<'_> {
+    let n = |k: &str| mission[k].as_array().map_or(0, Vec::len);
+    iaf_avionics::gps::PreMission {
+        id: mission["id"].as_str().unwrap_or(""),
+        targets: n("targets"),
+        steers: n("route"),
+    }
+}
+
+/// Station `st`'s GPS side of the pick rule on the stores `stores`: (a GPS store, how many).
+fn gps_on(weapons: &Path, stores: &loadout::Loadout, st: u32) -> (bool, u32) {
+    stores.get(&st).map_or((false, 0), |(id, n)| (gps_store(weapons, id), *n))
+}
+
+/// The picks of the loadout JSON `lo` that pass the rule (`gps::pick_ok`) on its stores (`loadout::parse`) and
+/// `mission`, one per station or bomb.
+pub fn valid_picks(unit: &Value, weapons: &Path, lo: &Value, mission: &Value) -> Vec<loadout::Pick> {
+    let stores = loadout::parse(unit, lo);
+    let m = pre_mission(mission);
+    let mut out: Vec<loadout::Pick> = vec![];
+    for p in loadout::picks(lo) {
+        let (gps, n) = gps_on(weapons, &stores, p.station);
+        let twice = out.iter().any(|q| (q.station, q.bomb) == (p.station, p.bomb));
+        if !twice && iaf_avionics::gps::pick_ok(gps, n, p.bomb, &p.aim, m) {
+            out.push(p);
+        }
+    }
+    out
+}
+
+/// An aim on mission `mission` as the screens and the flight take it: {kind ("target", "steer", "point"), n (the
+/// target's or steerpoint's number; 0 a point), name (a target's, "Target 1"; else null), lat, lon, x, y (the sim's
+/// world, UTM 36N)}; null when the mission lacks it.
+fn aim_json(aim: &loadout::PreAim, mission: &Value) -> Value {
+    let (kind, n, p) = match aim {
+        loadout::PreAim::Target(n) => ("target", *n, mission["targets"][n.saturating_sub(1)].clone()),
+        loadout::PreAim::Steer(n) => ("steer", *n, mission["route"][n.saturating_sub(1)].clone()),
+        loadout::PreAim::Point { lat, lon, .. } => ("point", 0, json!({"lat": lat, "lon": lon})),
+    };
+    let Ok([x, y]) = place(&p, kind) else { return Value::Null };
+    json!({"kind": kind, "n": n, "name": p["name"], "lat": p["lat"], "lon": p["lon"], "x": x, "y": y})
+}
+
+/// The PRE targets of the loadout JSON `lo` (its stores and its `pre` picks) on `mission` (A61, modern-iaf/docs/
+/// weapons.md §13.2), for the briefing's panel and the flight (`flight/fly.gd` hands them to `Settings.gps_targets`):
+/// - `rows`: each GPS station in station order, {station, label (the screens' name: 5R), pylon (the engine's station
+///   index), weapon, count, bomb -1, aim (its pick, `aim_json`; null: none)}, a rack's bombs after it, each {…, bomb k
+///   (0 the first to leave), aim (its own pick; null: the station's)};
+/// - `aims`: what a click on the map may pick: the mission's targets, then its steerpoints (`aim_json` each);
+/// - `default`: the aim of a station without a pick, the route's target steerpoint (`gps::default_target`; null: none).
+pub fn pre(unit: &Value, weapons: &Path, lo: &Value, mission: &Value) -> Value {
+    let stores = loadout::parse(unit, lo);
+    let picks = valid_picks(unit, weapons, lo, mission);
+    let aim_of = |st: u32, b: Option<u32>| {
+        picks.iter().find(|p| p.station == st && p.bomb == b).map_or(Value::Null, |p| aim_json(&p.aim, mission))
+    };
+    let mut rows = vec![];
+    for (&st, (id, n)) in &stores {
+        if !gps_store(weapons, id) {
+            continue;
+        }
+        let label = unit["labels"][st.to_string()].as_str().map_or(st.to_string(), String::from);
+        let row = |bomb: i64, aim: Value| {
+            json!({"station": st, "label": label, "pylon": loadout::letter(unit, st), "weapon": id, "count": n,
+                   "bomb": bomb, "aim": aim})
+        };
+        rows.push(row(-1, aim_of(st, None)));
+        for k in (0..*n).filter(|_| *n > 1) {
+            rows.push(row(i64::from(k), aim_of(st, Some(k))));
+        }
+    }
+    let m = pre_mission(mission);
+    let mut aims: Vec<Value> = (1..=m.targets).map(|n| aim_json(&loadout::PreAim::Target(n), mission)).collect();
+    aims.extend((1..=m.steers).map(|n| aim_json(&loadout::PreAim::Steer(n), mission)));
+    let route: Vec<i64> =
+        mission["route"].as_array().into_iter().flatten().map(|w| if w["target"] == true { 5 } else { 0 }).collect();
+    let default = iaf_avionics::gps::default_target(&route)
+        .map_or(Value::Null, |i| aim_json(&loadout::PreAim::Steer(i + 1), mission));
+    json!({"rows": rows, "aims": aims, "default": default})
+}
+
+/// The loadout JSON `lo` with the PRE pick of `pick` (station, and Some bomb for that bomb's own) set to `aim` (None:
+/// cleared; a station's pick clears its bombs' own too), the picks that no longer pass the rule left out; None when
+/// the new pick fails the rule (`gps::pick_ok`).
+pub fn pre_set(
+    unit: &Value,
+    weapons: &Path,
+    lo: &Value,
+    mission: &Value,
+    pick: (u32, Option<u32>),
+    aim: Option<loadout::PreAim>,
+) -> Option<Value> {
+    let (station, bomb) = pick;
+    let stores = loadout::parse(unit, lo);
+    let mut picks = valid_picks(unit, weapons, lo, mission);
+    picks.retain(|p| p.station != station || (bomb.is_some() && p.bomb != bomb));
+    if let Some(aim) = aim {
+        let (gps, n) = gps_on(weapons, &stores, station);
+        if !iaf_avionics::gps::pick_ok(gps, n, bomb, &aim, pre_mission(mission)) {
+            return None;
+        }
+        picks.push(loadout::Pick { station, bomb, aim });
+    }
+    Some(loadout::to_json_with(&stores, &picks))
+}
+
 /// Each station's distance from the jet's middle (m, + toward the right wing) in the drawing
 /// (`data/drawings/<unit id>_front.json` beside `weapons`' folder, its `px_per_m`; station 1, the left wing tip, at the
 /// drawing's right). Empty without the drawing.

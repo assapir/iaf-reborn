@@ -3,6 +3,7 @@
   "number": 9,
   "name": "GBU-31",
   "kind": "bomb",
+  "guidance": "gps",
   "generation": 4,
   "model": "weapons/sufa/gbu31_m.gltf",
   "kg": 946,

@@ -3,6 +3,7 @@
   "number": 11,
   "name": "GBU-39",
   "kind": "bomb",
+  "guidance": "gps",
   "generation": 6,
   "model": "weapons/sufa/gbu39_m.gltf",
   "kg": 129,

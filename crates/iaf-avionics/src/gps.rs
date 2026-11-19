@@ -120,6 +120,38 @@ pub fn default_target(actions: &[i64]) -> Option<usize> {
     actions.iter().position(|a| *a == 5)
 }
 
+/// What a PRE pick made on Modern IAF's briefing aims at (A61, modern-iaf/docs/weapons.md §13.2): the mission's target
+/// `n` (1-based, its `targets` in order: "Target 1"), its steerpoint `n` (1-based, its `route`), or a point on the
+/// map (degrees) made on the mission with id `mission`.
+#[derive(Clone, Debug, PartialEq)]
+pub enum PreAim {
+    Target(usize),
+    Steer(usize),
+    Point { lat: f64, lon: f64, mission: String },
+}
+
+/// The mission a pick is judged on: its id and how many targets and steerpoints it has.
+#[derive(Clone, Copy, Debug)]
+pub struct PreMission<'a> {
+    pub id: &'a str,
+    pub targets: usize,
+    pub steers: usize,
+}
+
+/// The one rule a PRE pick satisfies (A61): the briefing's panel, a saved loadout, a mission's own loadout and the
+/// flight ask it alone. Its station carries a GPS store (`gps`), `count` of them; a bomb's own pick (`bomb`, 0 the
+/// first to leave) is on a rack (two or more) and one of its bombs; its aim is on mission `m`: one of its targets or
+/// steerpoints, or a map point made on that mission (a point belongs to its mission's map, a target or a steerpoint
+/// to every mission that has one by that number).
+pub fn pick_ok(gps: bool, count: u32, bomb: Option<u32>, aim: &PreAim, m: PreMission) -> bool {
+    let aim_ok = match aim {
+        PreAim::Target(n) => (1..=m.targets).contains(n),
+        PreAim::Steer(n) => (1..=m.steers).contains(n),
+        PreAim::Point { lat, lon, mission } => mission == m.id && lat.is_finite() && lon.is_finite(),
+    };
+    gps && count > 0 && bomb.is_none_or(|b| count > 1 && b < count) && aim_ok
+}
+
 /// Weapon data Real: a GPS bomb's miss for its circular error probable `cep` (m; half the bombs land inside it) from
 /// two uniform draws in (0, 1]: a circular normal miss of σ = CEP / √(2·ln 2) (Rayleigh radius), on the ground plane.
 pub fn cep_miss(cep: f64, u1: f64, u2: f64) -> Vec3 {
@@ -347,6 +379,26 @@ mod tests {
         let l0 = pre_targets(t[0], &others, &wp);
         assert_eq!(pre_pick(t[0], &l0, 0), Some(a));
         assert_eq!(pre_pick(t[0], &l0, 1), Some(b));
+    }
+
+    #[test]
+    fn pick_rule() {
+        let m = PreMission { id: "ramon_range", targets: 6, steers: 2 };
+        let pt = |id: &str| PreAim::Point { lat: 31.04, lon: 34.61, mission: id.into() };
+        assert!(pick_ok(true, 1, None, &PreAim::Target(1), m));
+        assert!(pick_ok(true, 4, Some(3), &PreAim::Steer(2), m));
+        assert!(pick_ok(true, 4, Some(0), &pt("ramon_range"), m));
+        // Not a GPS store, an empty station, a bomb of a single store or past the rack.
+        assert!(!pick_ok(false, 1, None, &PreAim::Target(1), m));
+        assert!(!pick_ok(true, 0, None, &PreAim::Target(1), m));
+        assert!(!pick_ok(true, 1, Some(0), &PreAim::Target(1), m));
+        assert!(!pick_ok(true, 4, Some(4), &PreAim::Target(1), m));
+        // A target or steerpoint the mission lacks; a point made on another mission's map.
+        assert!(!pick_ok(true, 1, None, &PreAim::Target(7), m));
+        assert!(!pick_ok(true, 1, None, &PreAim::Target(0), m));
+        assert!(!pick_ok(true, 1, None, &PreAim::Steer(3), m));
+        assert!(!pick_ok(true, 1, None, &pt("nevatim_range"), m));
+        assert!(!pick_ok(true, 1, None, &PreAim::Point { lat: f64::NAN, lon: 34.0, mission: "ramon_range".into() }, m));
     }
 
     /// Weapon data Real: half of many misses fall inside the CEP (within 1.5 points), none above ground.

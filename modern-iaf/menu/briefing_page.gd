@@ -9,6 +9,7 @@ extends RefCounted
 
 const Look := preload("look.gd")
 const BriefingMap := preload("briefing_map.gd")
+const PrePanel := preload("pre_panel.gd")
 ## The card's width and the screen's edge (px on the 1920 × 1080 canvas, the mock's).
 const CARD_W := 600
 const TEXT_W := 640
@@ -22,13 +23,14 @@ const TEXT_PX := 23
 
 
 ## The briefing of mission `m` on `fe`; the controls named for the tests and the focus (ArmEdit, Back,
-## Arming, Fly, MapLabels, MapPhoto, ZoomIn, ZoomOut, PageMap, Purpose, HowScroll, Para<n>; with several
-## flights Flights, Flight_<callsign>, FlightDetail).
+## Arming, Fly, MapPre (a GPS store aboard: the PRE targets panel, PreTargets), MapLabels, MapPhoto, ZoomIn, ZoomOut,
+## PageMap, Purpose, HowScroll, Para<n>; with several flights Flights, Flight_<callsign>, FlightDetail).
 static func build(fe: Control, m: Dictionary) -> void:
 	var map := _map(fe, m)
 	var card := _card(fe, m, map)
 	var chips := _chips(fe, map)
 	var text := _text_card(fe, m)
+	_pre_chip(fe, m, map, chips, text)
 	# The map opens on the base and the route in the room between the cards, under the chips, over the scale bar.
 	var aim := func():
 		var r := map.get_global_rect()
@@ -298,6 +300,34 @@ static func _chips(fe: Control, map: Control) -> Control:
 	fe._place(row, -1, EDGE, CHIPS_TOP, 0)
 	row.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	return row
+
+
+## The PRE targets chip first among the map's chips, while the jet carries a GPS store (A61, pre_panel.gd): on, its
+## panel takes the text card's place and the map's clicks pick the targets.
+static func _pre_chip(fe: Control, m: Dictionary, map: Control, chips: Control, text: Control) -> void:
+	# A mission that fixes its loadout flies its own stores: no picks of the pilot's (fly.gd arm).
+	if bool(m.get("fixed_loadout", false)):
+		return
+	var pre := PrePanel.new(fe, m, map)
+	if not pre.has_rows():
+		return
+	var card := pre.build(TEXT_TOP, TEXT_W, EDGE)
+	var b := Button.new()
+	b.name = "MapPre"
+	b.text = fe.s("pre_title")
+	b.toggle_mode = true
+	_pill(b)
+	chips.add_child(b)
+	chips.move_child(b, 0)
+	b.toggled.connect(
+		func(on: bool):
+			text.visible = not on
+			pre.set_shown(on)
+			if on:
+				var first := card.find_child("PreRow_*", true, false)
+				if first != null:
+					first.grab_focus.call_deferred()
+	)
 
 
 ## A chip's look: a pill, filled in the accent's tint while on.
