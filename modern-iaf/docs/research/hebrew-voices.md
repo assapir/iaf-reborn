@@ -218,6 +218,9 @@ reference clip needed) and every SASPEECH-, ILSpeech- or MMS-trained model (non-
 **Our pick:** Gemini 3.1 Flash TTS for the quality, with BlueTTS as the choice if the user wants no account or
 finds its samples good enough. Either way the clips are made once and committed, and the setup only copies them.
 
+**Chosen: BlueTTS** (the user, 20 November 2026, after A73: "Voices you created are awesome. Pick some male some
+female and have both"). Built in [sound.md](../sound.md) §3.1; the credits name the voices as machine-generated.
+
 **What the user does:**
 - Listen to section A73 and the linked cloud samples, and say which voice.
 - For Gemini: a Google account and a Gemini API key from Google AI Studio (or a Cloud project with billing for

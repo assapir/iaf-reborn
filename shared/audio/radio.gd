@@ -234,13 +234,18 @@ func bilingual(en: String, he: String) -> void:
 
 ## Ours (Modern IAF, modern-iaf/docs/sound.md §3): each key's clip, where the longest run of keys that has a joined
 ## particle ("ALPHA_T+,+HOLD_POS", one clip said in one breath) plays that one clip instead. The original's particle
-## files hold no joined key, so its phrases play key by key.
+## files hold no joined key, so its phrases play key by key. A joined particle plays only where its clip exists in the
+## language spoken (sound_table.gd has_clip): in Hebrew a callsign is always its own clip (sound.md §3.1).
 func joined_wavs(keys: Array[String]) -> Array[String]:
 	var wavs: Array[String] = []
+	var table = host.sounds.get("table") if host != null and host.get("sounds") != null else null
 	var i := 0
 	while i < keys.size():
 		var j := keys.size()
-		while j > i + 1 and not particles.has("+".join(PackedStringArray(keys.slice(i, j)))):
+		while j > i + 1:
+			var p: Array = particles.get("+".join(PackedStringArray(keys.slice(i, j))), [])
+			if not p.is_empty() and (table == null or table.has_clip(String(p[0]))):
+				break
 			j -= 1
 		wavs.append(String(particles["+".join(PackedStringArray(keys.slice(i, j)))][0]))
 		i = j
@@ -943,6 +948,9 @@ const WING_WORDS := {
 ## a break is called to the element mate (#2 calls "One, break left" when a missile flies at #1).
 func flight_call(from: int, id: String, fuel_kg := 0.0) -> void:
 	var n: String = WING_NUMBERS[clampi(from, 0, 4)]
+	var table = host.sounds.get("table") if host != null and host.get("sounds") != null else null
+	if table != null:
+		table.speaker = from  # his Hebrew voice (sound_table.gd hebrew)
 	match id:
 		"ack":
 			say("WNG_ACK", [n])

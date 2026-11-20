@@ -23,6 +23,12 @@ var betty_rows := {}
 ## lower-case file name -> path.
 var _files := {}
 var _streams := {}
+## Ours (Modern IAF, modern-iaf/docs/sound.md §3.1): the Hebrew voices' voices_he.json (iaf-sim own): `casts` and each
+## Hebrew clip's role; empty where it is not built (the original game).
+var _he := {}
+var _he_dir := ""
+## The wingman (2–4) saying the call that plays now (radio.gd flight_call): his voice of the cast.
+var speaker := 2
 
 
 static func load_table() -> RefCounted:
@@ -50,6 +56,10 @@ func _load() -> void:
 		if not rows.has(key):
 			rows[key] = row
 	_add_sim()
+	_he_dir = dir.path_join("he")
+	var he_file := dir.path_join("voices_he.json")
+	var he = JSON.parse_string(FileAccess.get_file_as_string(he_file)) if FileAccess.file_exists(he_file) else null
+	_he = he if he is Dictionary else {}
 
 
 ## The rows of the SoundProp.trx at `path`, in file order ([] when `path` is "").
@@ -136,13 +146,43 @@ func stream(r: Dictionary) -> AudioStream:
 
 func stream_file(name: String) -> AudioStream:
 	var key := name.to_lower()
+	var he := hebrew(key)
+	if he != "":
+		key = he
 	if _streams.has(key):
 		return _streams[key]
 	var s: AudioStream = null
-	if _files.has(key):
+	if he != "":
+		s = open(he)
+	elif _files.has(key):
 		s = open(_files[key])
 	_streams[key] = s
 	return s
+
+
+## Ours (radio.gd joined_wavs): whether clip `name` exists in the language spoken: in Hebrew its Hebrew clip
+## (`hebrew`), else a file of the folder.
+func has_clip(name: String) -> bool:
+	if Settings.language == "he" and not _he.is_empty():
+		return hebrew(name.to_lower()) != ""
+	return _files.has(name.to_lower())
+
+
+## Ours: in Hebrew, the path of clip `key`'s Hebrew line in the voice its speaker has in this mission's cast (cast =
+## mission id mod the casts' count: stable for the flight); "" in English, for a clip without one, or not built.
+func hebrew(key: String) -> String:
+	if Settings.language != "he" or _he.is_empty():
+		return ""
+	var file := key.get_basename() + ".ogg"
+	var role: String = _he.roles.get(file, "")
+	if role == "":
+		return ""
+	var casts: Array = _he.casts
+	var voice = casts[posmod(Settings.mission_id, casts.size())].get(role, "")
+	if voice is Array:
+		voice = voice[clampi(speaker - 2, 0, voice.size() - 1)]
+	var path := _he_dir.path_join(String(voice)).path_join(file)
+	return path if FileAccess.file_exists(path) else ""
 
 
 ## The clip at `path`, a WAV or an Ogg Vorbis file by its extension; a missing "x.wav" falls back to "x.ogg".

@@ -162,8 +162,10 @@ The sim's voices are Kokoro text to speech[^kokoro] (Kokoro-82M v1.0 by hexgrad,
 the same repository under the same licence) in the American voices af_heart, am_michael, am_puck, am_fenrir and am_eric. Its
 training data is public-domain, permissively licensed and synthetic speech, plus two CC BY sets it names: Koniwa
 `tnc` (CC BY 3.0) and SIWIS (CC BY 4.0). Their texts and voices: `modern-iaf/data/sounds/voices.json`; made by
-`iaf-sim voices` (modern-iaf/docs/sound.md §5). The Hebrew voice waits for a licence decision (modern-iaf/docs/sound.md
-§5.4). The lines the sim's setup wizard (item A3) and its credits roll need: modern-iaf/docs/sound.md §6.
+`iaf-sim voices` (modern-iaf/docs/sound.md §5). The Hebrew radio voices are machine-generated speech by BlueTTS BlueV3[^bluetts] (code and weights MIT, © 2025 Blue; the RenikudPlus Hebrew reader
+Apache-2.0; the voices david, ariel, jonathan, yael, lily, shira and tamar CC BY 4.0, from speakers of LibriTTS-R by
+Y. Koizumi et al.; the vocoder BigScience OpenRAIL-M, fine-tuned from Supertone's Supertonic-3), made once by
+`iaf-sim voices --he` and kept in `modern-iaf/data/sounds/he/` (modern-iaf/docs/sound.md §3.1). The lines the sim's setup wizard (item A3) and its credits roll need: modern-iaf/docs/sound.md §6.
 The sim's terrain (`iaf-sim terrain`, modern-iaf/docs/terrain.md) is converted from the Copernicus DEM GLO-30
 (Copernicus WorldDEM-30 licence[^cop-dem]), the ESA WorldCover 2021 Sentinel-2 composite (credited as "ESA WorldCover Sentinel-2", CC BY 4.0) and the Survey of
 Israel 2015 photo (data.gov.il). The DEM's licence asks for two lines verbatim, which the sim's setup wizard (item A3)
@@ -245,6 +247,7 @@ are Heebo (§ Modern IAF's font) set as paths; the roundel is a ring and a six-p
 
 [^acg-licence]: ambientCG licence, https://docs.ambientcg.com/license/ (read 2026-10-22).
 [^osm]: OpenStreetMap, "Copyright and License": https://www.openstreetmap.org/copyright
+[^bluetts]: BlueTTS, the code and the licences of each file: https://github.com/maxmelichov/BlueTTS
 [^kokoro]: Kokoro-82M, model card (licence, training data, the CC BY sets) and VOICES.md: https://huggingface.co/hexgrad/Kokoro-82M
 [^freesound]: Freesound, the sounds' pages (CC0 1.0, https://creativecommons.org/publicdomain/zero/1.0/): https://freesound.org
 [^ms]: Microsoft, Global ML Building Footprints, "License": https://github.com/microsoft/GlobalMLBuildingFootprints

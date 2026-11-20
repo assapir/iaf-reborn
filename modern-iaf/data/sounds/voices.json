@@ -1,5 +1,5 @@
 {
-  "about": "Modern IAF's voices: every speech clip of modern-iaf/data/sounds, made by `iaf-sim voices` (Kokoro text to speech, tools/iaf-2026/kokoro_tts.py, through crates/iaf-tools/src/sim_voices.rs: modern-iaf/docs/sound.md §5), the tower's phrase particles and templates (compiled by iaf-sim own into phraseparticalsdata.trx / phrasetemplates.trx, and each particle's Hebrew subtitle text_he into phraseparticles_he.trx, the format shared/audio/radio.gd reads, docs/radio.md §1), and the Hebrew lines waiting for a voice. voices: each role's Kokoro voice and speed. clips: file, voice (the role), say (said in one pass), mode: betty (Betty's chain, said `repeat` times), radio (the radio chain with the key clicks), phrase / particle (the radio chain and hiss, no clicks: radio.gd frames the call with key_on / key_off); cut: the head or tail of `say` at its ';' by Kokoro's word timing. A particle key joined by '+' (\"ALPHA_T+,+HOLD_POS\") is one clip for that run of particles, which radio.gd plays in place of the run.",
+  "about": "Modern IAF's voices: every speech clip of modern-iaf/data/sounds, made by `iaf-sim voices` (Kokoro text to speech, tools/iaf-2026/kokoro_tts.py, through crates/iaf-tools/src/sim_voices.rs: modern-iaf/docs/sound.md §5), the tower's phrase particles and templates (compiled by iaf-sim own into phraseparticalsdata.trx / phrasetemplates.trx, and each particle's Hebrew subtitle text_he into phraseparticles_he.trx, the format shared/audio/radio.gd reads, docs/radio.md §1). voices: each role's Kokoro voice and speed. clips: file, voice (the role), say (said in one pass), say_he (the Hebrew line, said by BlueTTS: `iaf-sim voices --he`, tools/iaf-2026/blue_tts.py, into he/<voice>/<file>), mode: betty (Betty's chain, said `repeat` times), radio (the radio chain with the key clicks), phrase / particle (the radio chain and hiss, no clicks: radio.gd frames the call with key_on / key_off); cut: the head or tail of `say` at its ';' by Kokoro's word timing. A particle key joined by '+' (\"ALPHA_T+,+HOLD_POS\") is one clip for that run of particles, which radio.gd plays in place of the run. In Hebrew a callsign is always its own clip (a joined key plays only where its clip exists in the language spoken), so a joined key with a callsign has no say_he, and he_only marks a joined key with only a Hebrew clip (the words after the callsign). role_he: the clip's Hebrew role where it differs (another pilot's call, which the English pilot voice also says, is a wingman's voice in Hebrew; pilot is the player's own).",
   "voices": {
     "betty": {
       "model": "af_heart",
@@ -135,518 +135,599 @@
       "file": "voc_wingman_eject.ogg",
       "voice": "pilot",
       "say": "Eject eject eject!",
-      "mode": "radio"
+      "mode": "radio",
+      "say_he": "נטישה, נטישה, נטישה!",
+      "role_he": "wingman"
     },
     {
       "file": "voc_target_say_friendly_hit.ogg",
       "voice": "pilot",
       "say": "Check fire, check fire, you are shooting at friendlies!",
-      "mode": "radio"
+      "mode": "radio",
+      "say_he": "חדל אש, חדל אש, ירי על כוחותינו!",
+      "role_he": "wingman"
     },
     {
       "file": "voc_wingman_say_friendly_hit.ogg",
       "voice": "pilot",
       "say": "Lead, check your fire, that was a friendly!",
-      "mode": "radio"
+      "mode": "radio",
+      "say_he": "מוביל, חדל אש, זה היה כוח שלנו!",
+      "role_he": "wingman"
     },
     {
       "file": "voc_tower_say_friendly_hit.ogg",
       "voice": "tower",
       "say": "Cease fire, cease fire, you are hitting friendly forces.",
-      "mode": "radio"
+      "mode": "radio",
+      "say_he": "חדל אש, חדל אש, יש פגיעה בכוחותינו."
     },
     {
       "file": "endworld.ogg",
       "voice": "tower",
       "say": "Warning, you are leaving the training area, turn back.",
       "mode": "radio",
-      "note": "the map edge (terrain_view.gd plays EndWorld.wav)"
+      "note": "the map edge (terrain_view.gd plays EndWorld.wav)",
+      "say_he": "אזהרה, יציאה מאזור האימון, יש לפנות חזרה."
     },
     {
       "file": "twr_alpha.ogg",
       "voice": "tower",
       "say": "Alpha",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "אלפא"
     },
     {
       "file": "twr_bravo.ogg",
       "voice": "tower",
       "say": "Bravo",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "בראבו"
     },
     {
       "file": "twr_charlie.ogg",
       "voice": "tower",
       "say": "Charlie",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "צ'רלי"
     },
     {
       "file": "twr_delta.ogg",
       "voice": "tower",
       "say": "Delta",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "דלתא"
     },
     {
       "file": "twr_morning.ogg",
       "voice": "tower",
       "say": "good morning",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "בוקר טוב"
     },
     {
       "file": "twr_afternoon.ogg",
       "voice": "tower",
       "say": "good afternoon",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "צהריים טובים"
     },
     {
       "file": "twr_evening.ogg",
       "voice": "tower",
       "say": "good evening",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "ערב טוב"
     },
     {
       "file": "twr_wind10.ogg",
       "voice": "tower",
       "say": "wind one zero knots",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "רוח עשרה קשר"
     },
     {
       "file": "twr_wind15.ogg",
       "voice": "tower",
       "say": "wind one five knots",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "רוח חמישה עשר קשר"
     },
     {
       "file": "twr_wind20.ogg",
       "voice": "tower",
       "say": "wind two zero knots",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "רוח עשרים קשר"
     },
     {
       "file": "twr_start.ogg",
       "voice": "tower",
       "say": "cleared to start",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "אישור התנעה"
     },
     {
       "file": "twr_taxi_rwy.ogg",
       "voice": "tower",
       "say": "taxi to runway",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "הסעה למסלול"
     },
     {
       "file": "twr_lineup_rwy.ogg",
       "voice": "tower",
       "say": "line up runway",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "כניסה למסלול"
     },
     {
       "file": "twr_hold_pos.ogg",
       "voice": "tower",
       "say": "hold position",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "המתנה במקום"
     },
     {
       "file": "twr_takeoff.ogg",
       "voice": "tower",
       "say": "cleared for take-off",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "אישור המראה"
     },
     {
       "file": "twr_proceed_rwy.ogg",
       "voice": "tower",
       "say": "proceed to runway",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "התקדמות למסלול"
     },
     {
       "file": "twr_land_rwy.ogg",
       "voice": "tower",
       "say": "cleared to land runway",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "אישור נחיתה במסלול"
     },
     {
       "file": "twr_go_around.ogg",
       "voice": "tower",
       "say": "go around, runway not clear",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "סיבוב נוסף, המסלול אינו פנוי"
     },
     {
       "file": "twr_taxi_park.ogg",
       "voice": "tower",
       "say": "welcome back, taxi to parking",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "ברוכים השבים, הסעה לחנייה"
     },
     {
       "file": "twr_gear_not_down.ogg",
       "voice": "tower",
       "say": "check gear down",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "בדיקת כן נסע למטה"
     },
     {
       "file": "twr_wind_calm.ogg",
       "voice": "tower",
       "say": "wind calm",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "רוח שקטה"
     },
     {
       "file": "acft_roger.ogg",
       "voice": "pilot",
       "say": "Roger.",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "רוג'ר."
     },
     {
       "file": "num001.ogg",
       "voice": "tower",
       "say": "Taxi to runway; zero one.",
       "mode": "phrase",
-      "cut": "tail"
+      "cut": "tail",
+      "say_he": "אפס אחת."
     },
     {
       "file": "num002.ogg",
       "voice": "tower",
       "say": "Taxi to runway; zero two.",
       "mode": "phrase",
-      "cut": "tail"
+      "cut": "tail",
+      "say_he": "אפס שתיים."
     },
     {
       "file": "num003.ogg",
       "voice": "tower",
       "say": "Taxi to runway; zero three.",
       "mode": "phrase",
-      "cut": "tail"
+      "cut": "tail",
+      "say_he": "אפס שלוש."
     },
     {
       "file": "num004.ogg",
       "voice": "tower",
       "say": "Taxi to runway; zero four.",
       "mode": "phrase",
-      "cut": "tail"
+      "cut": "tail",
+      "say_he": "אפס ארבע."
     },
     {
       "file": "num005.ogg",
       "voice": "tower",
       "say": "Taxi to runway; zero five.",
       "mode": "phrase",
-      "cut": "tail"
+      "cut": "tail",
+      "say_he": "אפס חמש."
     },
     {
       "file": "num006.ogg",
       "voice": "tower",
       "say": "Taxi to runway; zero six.",
       "mode": "phrase",
-      "cut": "tail"
+      "cut": "tail",
+      "say_he": "אפס שש."
     },
     {
       "file": "num007.ogg",
       "voice": "tower",
       "say": "Taxi to runway; zero seven.",
       "mode": "phrase",
-      "cut": "tail"
+      "cut": "tail",
+      "say_he": "אפס שבע."
     },
     {
       "file": "num008.ogg",
       "voice": "tower",
       "say": "Taxi to runway; zero eight.",
       "mode": "phrase",
-      "cut": "tail"
+      "cut": "tail",
+      "say_he": "אפס שמונה."
     },
     {
       "file": "num009.ogg",
       "voice": "tower",
       "say": "Taxi to runway; zero nine.",
       "mode": "phrase",
-      "cut": "tail"
+      "cut": "tail",
+      "say_he": "אפס תשע."
     },
     {
       "file": "num010.ogg",
       "voice": "tower",
       "say": "Taxi to runway; one zero.",
       "mode": "phrase",
-      "cut": "tail"
+      "cut": "tail",
+      "say_he": "אחת אפס."
     },
     {
       "file": "num011.ogg",
       "voice": "tower",
       "say": "Taxi to runway; one one.",
       "mode": "phrase",
-      "cut": "tail"
+      "cut": "tail",
+      "say_he": "אחת אחת."
     },
     {
       "file": "num012.ogg",
       "voice": "tower",
       "say": "Taxi to runway; one two.",
       "mode": "phrase",
-      "cut": "tail"
+      "cut": "tail",
+      "say_he": "אחת שתיים."
     },
     {
       "file": "num013.ogg",
       "voice": "tower",
       "say": "Taxi to runway; one three.",
       "mode": "phrase",
-      "cut": "tail"
+      "cut": "tail",
+      "say_he": "אחת שלוש."
     },
     {
       "file": "num014.ogg",
       "voice": "tower",
       "say": "Taxi to runway; one four.",
       "mode": "phrase",
-      "cut": "tail"
+      "cut": "tail",
+      "say_he": "אחת ארבע."
     },
     {
       "file": "num015.ogg",
       "voice": "tower",
       "say": "Taxi to runway; one five.",
       "mode": "phrase",
-      "cut": "tail"
+      "cut": "tail",
+      "say_he": "אחת חמש."
     },
     {
       "file": "num016.ogg",
       "voice": "tower",
       "say": "Taxi to runway; one six.",
       "mode": "phrase",
-      "cut": "tail"
+      "cut": "tail",
+      "say_he": "אחת שש."
     },
     {
       "file": "num017.ogg",
       "voice": "tower",
       "say": "Taxi to runway; one seven.",
       "mode": "phrase",
-      "cut": "tail"
+      "cut": "tail",
+      "say_he": "אחת שבע."
     },
     {
       "file": "num018.ogg",
       "voice": "tower",
       "say": "Taxi to runway; one eight.",
       "mode": "phrase",
-      "cut": "tail"
+      "cut": "tail",
+      "say_he": "אחת שמונה."
     },
     {
       "file": "num019.ogg",
       "voice": "tower",
       "say": "Taxi to runway; one nine.",
       "mode": "phrase",
-      "cut": "tail"
+      "cut": "tail",
+      "say_he": "אחת תשע."
     },
     {
       "file": "num020.ogg",
       "voice": "tower",
       "say": "Taxi to runway; two zero.",
       "mode": "phrase",
-      "cut": "tail"
+      "cut": "tail",
+      "say_he": "שתיים אפס."
     },
     {
       "file": "num021.ogg",
       "voice": "tower",
       "say": "Taxi to runway; two one.",
       "mode": "phrase",
-      "cut": "tail"
+      "cut": "tail",
+      "say_he": "שתיים אחת."
     },
     {
       "file": "num022.ogg",
       "voice": "tower",
       "say": "Taxi to runway; two two.",
       "mode": "phrase",
-      "cut": "tail"
+      "cut": "tail",
+      "say_he": "שתיים שתיים."
     },
     {
       "file": "num023.ogg",
       "voice": "tower",
       "say": "Taxi to runway; two three.",
       "mode": "phrase",
-      "cut": "tail"
+      "cut": "tail",
+      "say_he": "שתיים שלוש."
     },
     {
       "file": "num024.ogg",
       "voice": "tower",
       "say": "Taxi to runway; two four.",
       "mode": "phrase",
-      "cut": "tail"
+      "cut": "tail",
+      "say_he": "שתיים ארבע."
     },
     {
       "file": "num025.ogg",
       "voice": "tower",
       "say": "Taxi to runway; two five.",
       "mode": "phrase",
-      "cut": "tail"
+      "cut": "tail",
+      "say_he": "שתיים חמש."
     },
     {
       "file": "num026.ogg",
       "voice": "tower",
       "say": "Taxi to runway; two six.",
       "mode": "phrase",
-      "cut": "tail"
+      "cut": "tail",
+      "say_he": "שתיים שש."
     },
     {
       "file": "num027.ogg",
       "voice": "tower",
       "say": "Taxi to runway; two seven.",
       "mode": "phrase",
-      "cut": "tail"
+      "cut": "tail",
+      "say_he": "שתיים שבע."
     },
     {
       "file": "num028.ogg",
       "voice": "tower",
       "say": "Taxi to runway; two eight.",
       "mode": "phrase",
-      "cut": "tail"
+      "cut": "tail",
+      "say_he": "שתיים שמונה."
     },
     {
       "file": "num029.ogg",
       "voice": "tower",
       "say": "Taxi to runway; two nine.",
       "mode": "phrase",
-      "cut": "tail"
+      "cut": "tail",
+      "say_he": "שתיים תשע."
     },
     {
       "file": "num030.ogg",
       "voice": "tower",
       "say": "Taxi to runway; three zero.",
       "mode": "phrase",
-      "cut": "tail"
+      "cut": "tail",
+      "say_he": "שלוש אפס."
     },
     {
       "file": "num031.ogg",
       "voice": "tower",
       "say": "Taxi to runway; three one.",
       "mode": "phrase",
-      "cut": "tail"
+      "cut": "tail",
+      "say_he": "שלוש אחת."
     },
     {
       "file": "num032.ogg",
       "voice": "tower",
       "say": "Taxi to runway; three two.",
       "mode": "phrase",
-      "cut": "tail"
+      "cut": "tail",
+      "say_he": "שלוש שתיים."
     },
     {
       "file": "num033.ogg",
       "voice": "tower",
       "say": "Taxi to runway; three three.",
       "mode": "phrase",
-      "cut": "tail"
+      "cut": "tail",
+      "say_he": "שלוש שלוש."
     },
     {
       "file": "num034.ogg",
       "voice": "tower",
       "say": "Taxi to runway; three four.",
       "mode": "phrase",
-      "cut": "tail"
+      "cut": "tail",
+      "say_he": "שלוש ארבע."
     },
     {
       "file": "num035.ogg",
       "voice": "tower",
       "say": "Taxi to runway; three five.",
       "mode": "phrase",
-      "cut": "tail"
+      "cut": "tail",
+      "say_he": "שלוש חמש."
     },
     {
       "file": "num036.ogg",
       "voice": "tower",
       "say": "Taxi to runway; three six.",
       "mode": "phrase",
-      "cut": "tail"
+      "cut": "tail",
+      "say_he": "שלוש שש."
     },
     {
       "file": "rwyl.ogg",
       "voice": "tower",
       "say": "left",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "שמאלי"
     },
     {
       "file": "rwyr.ogg",
       "voice": "tower",
       "say": "right",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "ימני"
     },
     {
       "file": "rwyc.ogg",
       "voice": "tower",
       "say": "center",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "מרכזי"
     },
     {
       "file": "rwy07l.ogg",
       "voice": "tower",
       "say": "Taxi to runway; zero seven left.",
       "cut": "tail",
-      "mode": "phrase"
+      "mode": "phrase",
+      "say_he": "אפס שבע שמאלי."
     },
     {
       "file": "rwy07r.ogg",
       "voice": "tower",
       "say": "Taxi to runway; zero seven right.",
       "cut": "tail",
-      "mode": "phrase"
+      "mode": "phrase",
+      "say_he": "אפס שבע ימני."
     },
     {
       "file": "rwy08l.ogg",
       "voice": "tower",
       "say": "Taxi to runway; zero eight left.",
       "cut": "tail",
-      "mode": "phrase"
+      "mode": "phrase",
+      "say_he": "אפס שמונה שמאלי."
     },
     {
       "file": "rwy08r.ogg",
       "voice": "tower",
       "say": "Taxi to runway; zero eight right.",
       "cut": "tail",
-      "mode": "phrase"
+      "mode": "phrase",
+      "say_he": "אפס שמונה ימני."
     },
     {
       "file": "rwy10l.ogg",
       "voice": "tower",
       "say": "Taxi to runway; one zero left.",
       "cut": "tail",
-      "mode": "phrase"
+      "mode": "phrase",
+      "say_he": "אחת אפס שמאלי."
     },
     {
       "file": "rwy10r.ogg",
       "voice": "tower",
       "say": "Taxi to runway; one zero right.",
       "cut": "tail",
-      "mode": "phrase"
+      "mode": "phrase",
+      "say_he": "אחת אפס ימני."
     },
     {
       "file": "rwy25l.ogg",
       "voice": "tower",
       "say": "Taxi to runway; two five left.",
       "cut": "tail",
-      "mode": "phrase"
+      "mode": "phrase",
+      "say_he": "שתיים חמש שמאלי."
     },
     {
       "file": "rwy25r.ogg",
       "voice": "tower",
       "say": "Taxi to runway; two five right.",
       "cut": "tail",
-      "mode": "phrase"
+      "mode": "phrase",
+      "say_he": "שתיים חמש ימני."
     },
     {
       "file": "rwy26l.ogg",
       "voice": "tower",
       "say": "Taxi to runway; two six left.",
       "cut": "tail",
-      "mode": "phrase"
+      "mode": "phrase",
+      "say_he": "שתיים שש שמאלי."
     },
     {
       "file": "rwy26r.ogg",
       "voice": "tower",
       "say": "Taxi to runway; two six right.",
       "cut": "tail",
-      "mode": "phrase"
+      "mode": "phrase",
+      "say_he": "שתיים שש ימני."
     },
     {
       "file": "rwy28l.ogg",
       "voice": "tower",
       "say": "Taxi to runway; two eight left.",
       "cut": "tail",
-      "mode": "phrase"
+      "mode": "phrase",
+      "say_he": "שתיים שמונה שמאלי."
     },
     {
       "file": "rwy28r.ogg",
       "voice": "tower",
       "say": "Taxi to runway; two eight right.",
       "cut": "tail",
-      "mode": "phrase"
+      "mode": "phrase",
+      "say_he": "שתיים שמונה ימני."
     },
     {
       "file": "twr_alpha_taxi_morning.ogg",
@@ -965,7 +1046,8 @@
       "voice": "tower",
       "say": "engine start without clearance",
       "mode": "particle",
-      "note": "a phase without the tower's clearance (modern-iaf/docs/training.md §3.3)"
+      "note": "a phase without the tower's clearance (modern-iaf/docs/training.md §3.3)",
+      "say_he": "התנעה ללא אישור"
     },
     {
       "file": "twr_alpha_no_start_clr.ogg",
@@ -996,7 +1078,8 @@
       "voice": "tower",
       "say": "taxi without clearance",
       "mode": "particle",
-      "note": "a phase without the tower's clearance (modern-iaf/docs/training.md §3.3)"
+      "note": "a phase without the tower's clearance (modern-iaf/docs/training.md §3.3)",
+      "say_he": "הסעה ללא אישור"
     },
     {
       "file": "twr_alpha_no_taxi_clr.ogg",
@@ -1027,7 +1110,8 @@
       "voice": "tower",
       "say": "runway entry without clearance",
       "mode": "particle",
-      "note": "a phase without the tower's clearance (modern-iaf/docs/training.md §3.3)"
+      "note": "a phase without the tower's clearance (modern-iaf/docs/training.md §3.3)",
+      "say_he": "כניסה למסלול ללא אישור"
     },
     {
       "file": "twr_alpha_no_runway_clr.ogg",
@@ -1058,7 +1142,8 @@
       "voice": "tower",
       "say": "take-off without clearance",
       "mode": "particle",
-      "note": "a phase without the tower's clearance (modern-iaf/docs/training.md §3.3)"
+      "note": "a phase without the tower's clearance (modern-iaf/docs/training.md §3.3)",
+      "say_he": "המראה ללא אישור"
     },
     {
       "file": "twr_alpha_no_takeoff_clr.ogg",
@@ -1089,13 +1174,15 @@
       "voice": "tower",
       "say": "you are on runway",
       "mode": "particle",
-      "note": "lined up on another runway than the mission's (modern-iaf/docs/training.md §3.3)"
+      "note": "lined up on another runway than the mission's (modern-iaf/docs/training.md §3.3)",
+      "say_he": "על מסלול"
     },
     {
       "file": "twr_cleared_rwy.ogg",
       "voice": "tower",
       "say": "the assigned runway is",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "המסלול שהוקצה"
     },
     {
       "file": "twr_alpha_on_rwy.ogg",
@@ -1130,25 +1217,29 @@
       "voice": "tower",
       "say": "negative, hold position",
       "mode": "particle",
-      "note": "a call out of order (modern-iaf/docs/training.md §8)"
+      "note": "a call out of order (modern-iaf/docs/training.md §8)",
+      "say_he": "שלילי, המתנה במקום"
     },
     {
       "file": "twr_first_startup.ogg",
       "voice": "tower",
       "say": "request start-up first",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "יש לבקש התנעה קודם"
     },
     {
       "file": "twr_first_taxi.ogg",
       "voice": "tower",
       "say": "request taxi first",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "יש לבקש הסעה קודם"
     },
     {
       "file": "twr_first_lineup.ogg",
       "voice": "tower",
       "say": "request line-up first",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "יש לבקש כניסה למסלול קודם"
     },
     {
       "file": "twr_alpha_negative_hold.ogg",
@@ -1283,79 +1374,92 @@
       "file": "plt_ramon_twr.ogg",
       "voice": "pilot",
       "say": "Ramon tower.",
-      "mode": "helmet"
+      "mode": "helmet",
+      "say_he": "מגדל רמון."
     },
     {
       "file": "plt_david_twr.ogg",
       "voice": "pilot",
       "say": "Ramat David tower.",
-      "mode": "helmet"
+      "mode": "helmet",
+      "say_he": "מגדל רמת דוד."
     },
     {
       "file": "plt_hatzerim_twr.ogg",
       "voice": "pilot",
       "say": "Hatzerim tower.",
-      "mode": "helmet"
+      "mode": "helmet",
+      "say_he": "מגדל חצרים."
     },
     {
       "file": "plt_nevatim_twr.ogg",
       "voice": "pilot",
       "say": "Nevatim tower.",
-      "mode": "helmet"
+      "mode": "helmet",
+      "say_he": "מגדל נבטים."
     },
     {
       "file": "plt_alpha.ogg",
       "voice": "pilot",
       "say": "Alpha.",
-      "mode": "helmet"
+      "mode": "helmet",
+      "say_he": "אלפא."
     },
     {
       "file": "plt_bravo.ogg",
       "voice": "pilot",
       "say": "Bravo.",
-      "mode": "helmet"
+      "mode": "helmet",
+      "say_he": "בראבו."
     },
     {
       "file": "plt_charlie.ogg",
       "voice": "pilot",
       "say": "Charlie.",
-      "mode": "helmet"
+      "mode": "helmet",
+      "say_he": "צ'רלי."
     },
     {
       "file": "plt_delta.ogg",
       "voice": "pilot",
       "say": "Delta.",
-      "mode": "helmet"
+      "mode": "helmet",
+      "say_he": "דלתא."
     },
     {
       "file": "plt_req_start.ogg",
       "voice": "pilot",
       "say": "Request start-up.",
-      "mode": "helmet"
+      "mode": "helmet",
+      "say_he": "בקשת התנעה."
     },
     {
       "file": "plt_req_taxi.ogg",
       "voice": "pilot",
       "say": "Request taxi.",
-      "mode": "helmet"
+      "mode": "helmet",
+      "say_he": "בקשת הסעה."
     },
     {
       "file": "plt_req_lineup.ogg",
       "voice": "pilot",
       "say": "Request line-up.",
-      "mode": "helmet"
+      "mode": "helmet",
+      "say_he": "בקשת כניסה למסלול."
     },
     {
       "file": "plt_req_takeoff.ogg",
       "voice": "pilot",
       "say": "Ready for take-off.",
-      "mode": "helmet"
+      "mode": "helmet",
+      "say_he": "בקשת המראה."
     },
     {
       "file": "plt_req_landing.ogg",
       "voice": "pilot",
       "say": "Request landing.",
-      "mode": "helmet"
+      "mode": "helmet",
+      "say_he": "בקשת נחיתה."
     },
     {
       "file": "plt_ramon_alpha_start.ogg",
@@ -1501,841 +1605,1089 @@
       "file": "awx_alpha.ogg",
       "voice": "awacs",
       "say": "Alpha",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "אלפא"
     },
     {
       "file": "awx_bravo.ogg",
       "voice": "awacs",
       "say": "Bravo",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "בראבו"
     },
     {
       "file": "awx_charlie.ogg",
       "voice": "awacs",
       "say": "Charlie",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "צ'רלי"
     },
     {
       "file": "awx_delta.ogg",
       "voice": "awacs",
       "say": "Delta",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "דלתא"
     },
     {
       "file": "awx_bearing_010.ogg",
       "voice": "awacs",
       "say": "bearing zero one zero",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "אזימוט אפס אחת אפס"
     },
     {
       "file": "awx_heading_010.ogg",
       "voice": "awacs",
       "say": "heading zero one zero",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "כיוון טיסה אפס אחת אפס"
     },
     {
       "file": "awx_bearing_020.ogg",
       "voice": "awacs",
       "say": "bearing zero two zero",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "אזימוט אפס שתיים אפס"
     },
     {
       "file": "awx_heading_020.ogg",
       "voice": "awacs",
       "say": "heading zero two zero",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "כיוון טיסה אפס שתיים אפס"
     },
     {
       "file": "awx_bearing_030.ogg",
       "voice": "awacs",
       "say": "bearing zero three zero",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "אזימוט אפס שלוש אפס"
     },
     {
       "file": "awx_heading_030.ogg",
       "voice": "awacs",
       "say": "heading zero three zero",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "כיוון טיסה אפס שלוש אפס"
     },
     {
       "file": "awx_bearing_040.ogg",
       "voice": "awacs",
       "say": "bearing zero four zero",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "אזימוט אפס ארבע אפס"
     },
     {
       "file": "awx_heading_040.ogg",
       "voice": "awacs",
       "say": "heading zero four zero",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "כיוון טיסה אפס ארבע אפס"
     },
     {
       "file": "awx_bearing_050.ogg",
       "voice": "awacs",
       "say": "bearing zero five zero",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "אזימוט אפס חמש אפס"
     },
     {
       "file": "awx_heading_050.ogg",
       "voice": "awacs",
       "say": "heading zero five zero",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "כיוון טיסה אפס חמש אפס"
     },
     {
       "file": "awx_bearing_060.ogg",
       "voice": "awacs",
       "say": "bearing zero six zero",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "אזימוט אפס שש אפס"
     },
     {
       "file": "awx_heading_060.ogg",
       "voice": "awacs",
       "say": "heading zero six zero",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "כיוון טיסה אפס שש אפס"
     },
     {
       "file": "awx_bearing_070.ogg",
       "voice": "awacs",
       "say": "bearing zero seven zero",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "אזימוט אפס שבע אפס"
     },
     {
       "file": "awx_heading_070.ogg",
       "voice": "awacs",
       "say": "heading zero seven zero",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "כיוון טיסה אפס שבע אפס"
     },
     {
       "file": "awx_bearing_080.ogg",
       "voice": "awacs",
       "say": "bearing zero eight zero",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "אזימוט אפס שמונה אפס"
     },
     {
       "file": "awx_heading_080.ogg",
       "voice": "awacs",
       "say": "heading zero eight zero",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "כיוון טיסה אפס שמונה אפס"
     },
     {
       "file": "awx_bearing_090.ogg",
       "voice": "awacs",
       "say": "bearing zero niner zero",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "אזימוט אפס תשע אפס"
     },
     {
       "file": "awx_heading_090.ogg",
       "voice": "awacs",
       "say": "heading zero niner zero",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "כיוון טיסה אפס תשע אפס"
     },
     {
       "file": "awx_bearing_100.ogg",
       "voice": "awacs",
       "say": "bearing one zero zero",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "אזימוט אחת אפס אפס"
     },
     {
       "file": "awx_heading_100.ogg",
       "voice": "awacs",
       "say": "heading one zero zero",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "כיוון טיסה אחת אפס אפס"
     },
     {
       "file": "awx_bearing_110.ogg",
       "voice": "awacs",
       "say": "bearing one one zero",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "אזימוט אחת אחת אפס"
     },
     {
       "file": "awx_heading_110.ogg",
       "voice": "awacs",
       "say": "heading one one zero",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "כיוון טיסה אחת אחת אפס"
     },
     {
       "file": "awx_bearing_120.ogg",
       "voice": "awacs",
       "say": "bearing one two zero",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "אזימוט אחת שתיים אפס"
     },
     {
       "file": "awx_heading_120.ogg",
       "voice": "awacs",
       "say": "heading one two zero",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "כיוון טיסה אחת שתיים אפס"
     },
     {
       "file": "awx_bearing_130.ogg",
       "voice": "awacs",
       "say": "bearing one three zero",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "אזימוט אחת שלוש אפס"
     },
     {
       "file": "awx_heading_130.ogg",
       "voice": "awacs",
       "say": "heading one three zero",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "כיוון טיסה אחת שלוש אפס"
     },
     {
       "file": "awx_bearing_140.ogg",
       "voice": "awacs",
       "say": "bearing one four zero",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "אזימוט אחת ארבע אפס"
     },
     {
       "file": "awx_heading_140.ogg",
       "voice": "awacs",
       "say": "heading one four zero",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "כיוון טיסה אחת ארבע אפס"
     },
     {
       "file": "awx_bearing_150.ogg",
       "voice": "awacs",
       "say": "bearing one five zero",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "אזימוט אחת חמש אפס"
     },
     {
       "file": "awx_heading_150.ogg",
       "voice": "awacs",
       "say": "heading one five zero",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "כיוון טיסה אחת חמש אפס"
     },
     {
       "file": "awx_bearing_160.ogg",
       "voice": "awacs",
       "say": "bearing one six zero",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "אזימוט אחת שש אפס"
     },
     {
       "file": "awx_heading_160.ogg",
       "voice": "awacs",
       "say": "heading one six zero",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "כיוון טיסה אחת שש אפס"
     },
     {
       "file": "awx_bearing_170.ogg",
       "voice": "awacs",
       "say": "bearing one seven zero",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "אזימוט אחת שבע אפס"
     },
     {
       "file": "awx_heading_170.ogg",
       "voice": "awacs",
       "say": "heading one seven zero",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "כיוון טיסה אחת שבע אפס"
     },
     {
       "file": "awx_bearing_180.ogg",
       "voice": "awacs",
       "say": "bearing one eight zero",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "אזימוט אחת שמונה אפס"
     },
     {
       "file": "awx_heading_180.ogg",
       "voice": "awacs",
       "say": "heading one eight zero",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "כיוון טיסה אחת שמונה אפס"
     },
     {
       "file": "awx_bearing_190.ogg",
       "voice": "awacs",
       "say": "bearing one niner zero",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "אזימוט אחת תשע אפס"
     },
     {
       "file": "awx_heading_190.ogg",
       "voice": "awacs",
       "say": "heading one niner zero",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "כיוון טיסה אחת תשע אפס"
     },
     {
       "file": "awx_bearing_200.ogg",
       "voice": "awacs",
       "say": "bearing two zero zero",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "אזימוט שתיים אפס אפס"
     },
     {
       "file": "awx_heading_200.ogg",
       "voice": "awacs",
       "say": "heading two zero zero",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "כיוון טיסה שתיים אפס אפס"
     },
     {
       "file": "awx_bearing_210.ogg",
       "voice": "awacs",
       "say": "bearing two one zero",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "אזימוט שתיים אחת אפס"
     },
     {
       "file": "awx_heading_210.ogg",
       "voice": "awacs",
       "say": "heading two one zero",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "כיוון טיסה שתיים אחת אפס"
     },
     {
       "file": "awx_bearing_220.ogg",
       "voice": "awacs",
       "say": "bearing two two zero",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "אזימוט שתיים שתיים אפס"
     },
     {
       "file": "awx_heading_220.ogg",
       "voice": "awacs",
       "say": "heading two two zero",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "כיוון טיסה שתיים שתיים אפס"
     },
     {
       "file": "awx_bearing_230.ogg",
       "voice": "awacs",
       "say": "bearing two three zero",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "אזימוט שתיים שלוש אפס"
     },
     {
       "file": "awx_heading_230.ogg",
       "voice": "awacs",
       "say": "heading two three zero",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "כיוון טיסה שתיים שלוש אפס"
     },
     {
       "file": "awx_bearing_240.ogg",
       "voice": "awacs",
       "say": "bearing two four zero",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "אזימוט שתיים ארבע אפס"
     },
     {
       "file": "awx_heading_240.ogg",
       "voice": "awacs",
       "say": "heading two four zero",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "כיוון טיסה שתיים ארבע אפס"
     },
     {
       "file": "awx_bearing_250.ogg",
       "voice": "awacs",
       "say": "bearing two five zero",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "אזימוט שתיים חמש אפס"
     },
     {
       "file": "awx_heading_250.ogg",
       "voice": "awacs",
       "say": "heading two five zero",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "כיוון טיסה שתיים חמש אפס"
     },
     {
       "file": "awx_bearing_260.ogg",
       "voice": "awacs",
       "say": "bearing two six zero",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "אזימוט שתיים שש אפס"
     },
     {
       "file": "awx_heading_260.ogg",
       "voice": "awacs",
       "say": "heading two six zero",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "כיוון טיסה שתיים שש אפס"
     },
     {
       "file": "awx_bearing_270.ogg",
       "voice": "awacs",
       "say": "bearing two seven zero",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "אזימוט שתיים שבע אפס"
     },
     {
       "file": "awx_heading_270.ogg",
       "voice": "awacs",
       "say": "heading two seven zero",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "כיוון טיסה שתיים שבע אפס"
     },
     {
       "file": "awx_bearing_280.ogg",
       "voice": "awacs",
       "say": "bearing two eight zero",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "אזימוט שתיים שמונה אפס"
     },
     {
       "file": "awx_heading_280.ogg",
       "voice": "awacs",
       "say": "heading two eight zero",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "כיוון טיסה שתיים שמונה אפס"
     },
     {
       "file": "awx_bearing_290.ogg",
       "voice": "awacs",
       "say": "bearing two niner zero",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "אזימוט שתיים תשע אפס"
     },
     {
       "file": "awx_heading_290.ogg",
       "voice": "awacs",
       "say": "heading two niner zero",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "כיוון טיסה שתיים תשע אפס"
     },
     {
       "file": "awx_bearing_300.ogg",
       "voice": "awacs",
       "say": "bearing three zero zero",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "אזימוט שלוש אפס אפס"
     },
     {
       "file": "awx_heading_300.ogg",
       "voice": "awacs",
       "say": "heading three zero zero",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "כיוון טיסה שלוש אפס אפס"
     },
     {
       "file": "awx_bearing_310.ogg",
       "voice": "awacs",
       "say": "bearing three one zero",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "אזימוט שלוש אחת אפס"
     },
     {
       "file": "awx_heading_310.ogg",
       "voice": "awacs",
       "say": "heading three one zero",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "כיוון טיסה שלוש אחת אפס"
     },
     {
       "file": "awx_bearing_320.ogg",
       "voice": "awacs",
       "say": "bearing three two zero",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "אזימוט שלוש שתיים אפס"
     },
     {
       "file": "awx_heading_320.ogg",
       "voice": "awacs",
       "say": "heading three two zero",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "כיוון טיסה שלוש שתיים אפס"
     },
     {
       "file": "awx_bearing_330.ogg",
       "voice": "awacs",
       "say": "bearing three three zero",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "אזימוט שלוש שלוש אפס"
     },
     {
       "file": "awx_heading_330.ogg",
       "voice": "awacs",
       "say": "heading three three zero",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "כיוון טיסה שלוש שלוש אפס"
     },
     {
       "file": "awx_bearing_340.ogg",
       "voice": "awacs",
       "say": "bearing three four zero",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "אזימוט שלוש ארבע אפס"
     },
     {
       "file": "awx_heading_340.ogg",
       "voice": "awacs",
       "say": "heading three four zero",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "כיוון טיסה שלוש ארבע אפס"
     },
     {
       "file": "awx_bearing_350.ogg",
       "voice": "awacs",
       "say": "bearing three five zero",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "אזימוט שלוש חמש אפס"
     },
     {
       "file": "awx_heading_350.ogg",
       "voice": "awacs",
       "say": "heading three five zero",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "כיוון טיסה שלוש חמש אפס"
     },
     {
       "file": "awx_bearing_360.ogg",
       "voice": "awacs",
       "say": "bearing three six zero",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "אזימוט שלוש שש אפס"
     },
     {
       "file": "awx_heading_360.ogg",
       "voice": "awacs",
       "say": "heading three six zero",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "כיוון טיסה שלוש שש אפס"
     },
     {
       "file": "awx_miles_01.ogg",
       "voice": "awacs",
       "say": "1 mile",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "מייל אחד"
     },
     {
       "file": "awx_miles_02.ogg",
       "voice": "awacs",
       "say": "2 miles",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "שני מייל"
     },
     {
       "file": "awx_miles_03.ogg",
       "voice": "awacs",
       "say": "3 miles",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "שלושה מייל"
     },
     {
       "file": "awx_miles_04.ogg",
       "voice": "awacs",
       "say": "4 miles",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "ארבעה מייל"
     },
     {
       "file": "awx_miles_05.ogg",
       "voice": "awacs",
       "say": "5 miles",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "חמישה מייל"
     },
     {
       "file": "awx_miles_06.ogg",
       "voice": "awacs",
       "say": "6 miles",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "שישה מייל"
     },
     {
       "file": "awx_miles_07.ogg",
       "voice": "awacs",
       "say": "7 miles",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "שבעה מייל"
     },
     {
       "file": "awx_miles_08.ogg",
       "voice": "awacs",
       "say": "8 miles",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "שמונה מייל"
     },
     {
       "file": "awx_miles_09.ogg",
       "voice": "awacs",
       "say": "9 miles",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "תשעה מייל"
     },
     {
       "file": "awx_miles_10.ogg",
       "voice": "awacs",
       "say": "10 miles",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "עשרה מייל"
     },
     {
       "file": "awx_miles_15.ogg",
       "voice": "awacs",
       "say": "15 miles",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "חמישה עשר מייל"
     },
     {
       "file": "awx_miles_20.ogg",
       "voice": "awacs",
       "say": "20 miles",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "עשרים מייל"
     },
     {
       "file": "awx_miles_25.ogg",
       "voice": "awacs",
       "say": "25 miles",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "עשרים וחמישה מייל"
     },
     {
       "file": "awx_miles_30.ogg",
       "voice": "awacs",
       "say": "30 miles",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "שלושים מייל"
     },
     {
       "file": "awx_miles_35.ogg",
       "voice": "awacs",
       "say": "35 miles",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "שלושים וחמישה מייל"
     },
     {
       "file": "awx_friendlies.ogg",
       "voice": "awacs",
       "say": "friendlies",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "כוחות ידידותיים"
     },
     {
       "file": "awx_target.ogg",
       "voice": "awacs",
       "say": "target",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "מטרה"
     },
     {
       "file": "awx_unidentified.ogg",
       "voice": "awacs",
       "say": "unidentified contacts",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "מגעים לא מזוהים"
     },
     {
       "file": "awx_free_to_engage.ogg",
       "voice": "awacs",
       "say": "free to engage",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "מותר לתקוף"
     },
     {
       "file": "awx_already_engaged.ogg",
       "voice": "awacs",
       "say": "targets are already engaged",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "המטרות כבר מותקפות"
     },
     {
       "file": "awx_please_identify.ogg",
       "voice": "awacs",
       "say": "please identify",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "נא לזהות"
     },
     {
       "file": "flt_wng_one.ogg",
       "voice": "wingman",
       "say": "One.",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "אחת."
     },
     {
       "file": "flt_wng_two.ogg",
       "voice": "wingman",
       "say": "Two.",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "שתיים."
     },
     {
       "file": "flt_wng_three.ogg",
       "voice": "wingman",
       "say": "Three.",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "שלוש."
     },
     {
       "file": "flt_wng_four.ogg",
       "voice": "wingman",
       "say": "Four.",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "ארבע."
     },
     {
       "file": "flt_wng_unable.ogg",
       "voice": "wingman",
       "say": "Unable.",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "אין אפשרות."
     },
     {
       "file": "flt_wng_in_position.ogg",
       "voice": "wingman",
       "say": "In position.",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "במקום."
     },
     {
       "file": "flt_wng_joker.ogg",
       "voice": "wingman",
       "say": "Joker.",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "ג'וקר."
     },
     {
       "file": "flt_wng_bingo.ogg",
       "voice": "wingman",
       "say": "Bingo.",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "בינגו."
     },
     {
       "file": "flt_wng_rtb.ogg",
       "voice": "wingman",
       "say": "R T B.",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "חזרה לבסיס."
     },
     {
       "file": "flt_wng_spike.ogg",
       "voice": "wingman",
       "say": "Spike!",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "נעילה."
     },
     {
       "file": "flt_wng_mud.ogg",
       "voice": "wingman",
       "say": "Mud!",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "נעילה מהקרקע."
     },
     {
       "file": "flt_wng_defending.ogg",
       "voice": "wingman",
       "say": "Defending!",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "בהתחמקות."
     },
     {
       "file": "flt_wng_break_left.ogg",
       "voice": "wingman",
       "say": "Break left!",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "שבירה שמאלה."
     },
     {
       "file": "flt_wng_break_right.ogg",
       "voice": "wingman",
       "say": "Break right!",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "שבירה ימינה."
     },
     {
       "file": "flt_wng_contact.ogg",
       "voice": "wingman",
       "say": "Contact.",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "יש מגע."
     },
     {
       "file": "flt_wng_has_lead.ogg",
       "voice": "wingman",
       "say": "has the lead.",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "בהובלה."
     },
     {
       "file": "flt_wng_point.ogg",
       "voice": "wingman",
       "say": "point",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "נקודה"
     },
     {
       "file": "flt_wng_d0.ogg",
       "voice": "wingman",
       "say": "Zero.",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "אפס."
     },
     {
       "file": "flt_wng_d1.ogg",
       "voice": "wingman",
       "say": "One.",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "אחת."
     },
     {
       "file": "flt_wng_d2.ogg",
       "voice": "wingman",
       "say": "Two.",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "שתיים."
     },
     {
       "file": "flt_wng_d3.ogg",
       "voice": "wingman",
       "say": "Three.",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "שלוש."
     },
     {
       "file": "flt_wng_d4.ogg",
       "voice": "wingman",
       "say": "Four.",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "ארבע."
     },
     {
       "file": "flt_wng_d5.ogg",
       "voice": "wingman",
       "say": "Five.",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "חמש."
     },
     {
       "file": "flt_wng_d6.ogg",
       "voice": "wingman",
       "say": "Six.",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "שש."
     },
     {
       "file": "flt_wng_d7.ogg",
       "voice": "wingman",
       "say": "Seven.",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "שבע."
     },
     {
       "file": "flt_wng_d8.ogg",
       "voice": "wingman",
       "say": "Eight.",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "שמונה."
     },
     {
       "file": "flt_wng_d9.ogg",
       "voice": "wingman",
       "say": "Niner.",
-      "mode": "particle"
+      "mode": "particle",
+      "say_he": "תשע."
     },
     {
       "file": "flt_cmd_alpha_2.ogg",
       "voice": "pilot",
       "say": "Alpha Two.",
-      "mode": "helmet"
+      "mode": "helmet",
+      "say_he": "אלפא שתיים."
     },
     {
       "file": "flt_cmd_alpha_3.ogg",
       "voice": "pilot",
       "say": "Alpha Three.",
-      "mode": "helmet"
+      "mode": "helmet",
+      "say_he": "אלפא שלוש."
     },
     {
       "file": "flt_cmd_alpha_4.ogg",
       "voice": "pilot",
       "say": "Alpha Four.",
-      "mode": "helmet"
+      "mode": "helmet",
+      "say_he": "אלפא ארבע."
     },
     {
       "file": "flt_cmd_alpha_34.ogg",
       "voice": "pilot",
       "say": "Alpha Three and Four.",
-      "mode": "helmet"
+      "mode": "helmet",
+      "say_he": "אלפא שלוש וארבע."
     },
     {
       "file": "flt_cmd_fingertip.ogg",
       "voice": "pilot",
       "say": "Fingertip.",
-      "mode": "helmet"
+      "mode": "helmet",
+      "say_he": "מבנה ארבע אצבעות."
     },
     {
       "file": "flt_cmd_echelon_right.ogg",
       "voice": "pilot",
       "say": "Echelon right.",
-      "mode": "helmet"
+      "mode": "helmet",
+      "say_he": "מדרג ימין."
     },
     {
       "file": "flt_cmd_echelon_left.ogg",
       "voice": "pilot",
       "say": "Echelon left.",
-      "mode": "helmet"
+      "mode": "helmet",
+      "say_he": "מדרג שמאל."
     },
     {
       "file": "flt_cmd_line_abreast.ogg",
       "voice": "pilot",
       "say": "Line abreast.",
-      "mode": "helmet"
+      "mode": "helmet",
+      "say_he": "מבנה מקבילי."
     },
     {
       "file": "flt_cmd_wedge.ogg",
       "voice": "pilot",
       "say": "Wedge.",
-      "mode": "helmet"
+      "mode": "helmet",
+      "say_he": "וודג'."
     },
     {
       "file": "flt_cmd_trail.ogg",
       "voice": "pilot",
       "say": "Trail.",
-      "mode": "helmet"
+      "mode": "helmet",
+      "say_he": "מבנה טור."
     },
     {
       "file": "flt_cmd_rejoin.ogg",
       "voice": "pilot",
       "say": "Rejoin.",
-      "mode": "helmet"
+      "mode": "helmet",
+      "say_he": "הצטרפות."
     },
     {
       "file": "flt_cmd_split.ogg",
       "voice": "pilot",
       "say": "Split.",
-      "mode": "helmet"
+      "mode": "helmet",
+      "say_he": "פיצול."
     },
     {
       "file": "flt_cmd_engage.ogg",
       "voice": "pilot",
       "say": "Engage my target.",
-      "mode": "helmet"
+      "mode": "helmet",
+      "say_he": "תקיפת המטרה שלי."
     },
     {
       "file": "flt_cmd_rtb.ogg",
       "voice": "pilot",
       "say": "R T B.",
-      "mode": "helmet"
+      "mode": "helmet",
+      "say_he": "חזרה לבסיס."
     },
     {
       "file": "flt_cmd_check.ogg",
       "voice": "pilot",
       "say": "Check.",
-      "mode": "helmet"
+      "mode": "helmet",
+      "say_he": "בדיקת קשר."
     },
     {
       "file": "flt_cmd_ops_check.ogg",
       "voice": "pilot",
       "say": "Ops check.",
-      "mode": "helmet"
+      "mode": "helmet",
+      "say_he": "בדיקת מערכות ודלק."
+    },
+    {
+      "file": "twr_taxi_morning.ogg",
+      "voice": "tower",
+      "mode": "phrase",
+      "say_he": "בוקר טוב, הסעה למסלול."
+    },
+    {
+      "file": "twr_taxi_afternoon.ogg",
+      "voice": "tower",
+      "mode": "phrase",
+      "say_he": "צהריים טובים, הסעה למסלול."
+    },
+    {
+      "file": "twr_taxi_evening.ogg",
+      "voice": "tower",
+      "mode": "phrase",
+      "say_he": "ערב טוב, הסעה למסלול."
+    },
+    {
+      "file": "twr_negative_startup.ogg",
+      "voice": "tower",
+      "mode": "phrase",
+      "say_he": "שלילי, המתנה במקום, יש לבקש התנעה קודם."
+    },
+    {
+      "file": "twr_negative_taxi.ogg",
+      "voice": "tower",
+      "mode": "phrase",
+      "say_he": "שלילי, המתנה במקום, יש לבקש הסעה קודם."
+    },
+    {
+      "file": "twr_negative_lineup.ogg",
+      "voice": "tower",
+      "mode": "phrase",
+      "say_he": "שלילי, המתנה במקום, יש לבקש כניסה למסלול קודם."
+    },
+    {
+      "file": "twr_taxi_morning_24.ogg",
+      "voice": "tower",
+      "mode": "phrase",
+      "say_he": "בוקר טוב, הסעה למסלול שתיים ארבע."
+    },
+    {
+      "file": "twr_lineup_24_calm.ogg",
+      "voice": "tower",
+      "mode": "phrase",
+      "say_he": "כניסה למסלול שתיים ארבע, רוח שקטה."
+    },
+    {
+      "file": "twr_taxi_morning_25.ogg",
+      "voice": "tower",
+      "mode": "phrase",
+      "say_he": "בוקר טוב, הסעה למסלול שתיים חמש."
+    },
+    {
+      "file": "twr_lineup_25_calm.ogg",
+      "voice": "tower",
+      "mode": "phrase",
+      "say_he": "כניסה למסלול שתיים חמש, רוח שקטה."
+    },
+    {
+      "file": "twr_taxi_morning_25r.ogg",
+      "voice": "tower",
+      "mode": "phrase",
+      "say_he": "בוקר טוב, הסעה למסלול שתיים חמש ימני."
+    },
+    {
+      "file": "twr_lineup_25r_calm.ogg",
+      "voice": "tower",
+      "mode": "phrase",
+      "say_he": "כניסה למסלול שתיים חמש ימני, רוח שקטה."
+    },
+    {
+      "file": "twr_taxi_morning_26.ogg",
+      "voice": "tower",
+      "mode": "phrase",
+      "say_he": "בוקר טוב, הסעה למסלול שתיים שש."
+    },
+    {
+      "file": "twr_lineup_26_calm.ogg",
+      "voice": "tower",
+      "mode": "phrase",
+      "say_he": "כניסה למסלול שתיים שש, רוח שקטה."
+    },
+    {
+      "file": "twr_taxi_morning_26l.ogg",
+      "voice": "tower",
+      "mode": "phrase",
+      "say_he": "בוקר טוב, הסעה למסלול שתיים שש שמאלי."
+    },
+    {
+      "file": "twr_lineup_26l_calm.ogg",
+      "voice": "tower",
+      "mode": "phrase",
+      "say_he": "כניסה למסלול שתיים שש שמאלי, רוח שקטה."
+    },
+    {
+      "file": "twr_taxi_morning_27.ogg",
+      "voice": "tower",
+      "mode": "phrase",
+      "say_he": "בוקר טוב, הסעה למסלול שתיים שבע."
+    },
+    {
+      "file": "twr_lineup_27_calm.ogg",
+      "voice": "tower",
+      "mode": "phrase",
+      "say_he": "כניסה למסלול שתיים שבע, רוח שקטה."
     }
   ],
   "particles": {
@@ -4058,6 +4410,114 @@
       "file": "flt_cmd_ops_check.ogg",
       "text": "ops check",
       "text_he": "בדיקת מערכות ודלק"
+    },
+    "MORNING+,+TAXI_RWY": {
+      "file": "twr_taxi_morning.ogg",
+      "text": "good morning, taxi to runway",
+      "text_he": "בוקר טוב, הסעה למסלול",
+      "he_only": true
+    },
+    "AFTERNOON+,+TAXI_RWY": {
+      "file": "twr_taxi_afternoon.ogg",
+      "text": "good afternoon, taxi to runway",
+      "text_he": "צהריים טובים, הסעה למסלול",
+      "he_only": true
+    },
+    "EVENING+,+TAXI_RWY": {
+      "file": "twr_taxi_evening.ogg",
+      "text": "good evening, taxi to runway",
+      "text_he": "ערב טוב, הסעה למסלול",
+      "he_only": true
+    },
+    "NEGATIVE_HOLD+,+FIRST_STARTUP": {
+      "file": "twr_negative_startup.ogg",
+      "text": "negative, hold position, request start-up first",
+      "text_he": "שלילי, המתנה במקום, יש לבקש התנעה קודם",
+      "he_only": true
+    },
+    "NEGATIVE_HOLD+,+FIRST_TAXI": {
+      "file": "twr_negative_taxi.ogg",
+      "text": "negative, hold position, request taxi first",
+      "text_he": "שלילי, המתנה במקום, יש לבקש הסעה קודם",
+      "he_only": true
+    },
+    "NEGATIVE_HOLD+,+FIRST_LINEUP": {
+      "file": "twr_negative_lineup.ogg",
+      "text": "negative, hold position, request line-up first",
+      "text_he": "שלילי, המתנה במקום, יש לבקש כניסה למסלול קודם",
+      "he_only": true
+    },
+    "MORNING+,+TAXI_RWY+24": {
+      "file": "twr_taxi_morning_24.ogg",
+      "text": "good morning, taxi to runway two four",
+      "text_he": "בוקר טוב, הסעה למסלול 24",
+      "he_only": true
+    },
+    "LINEUP_RWY+24+,+WIND_CALM": {
+      "file": "twr_lineup_24_calm.ogg",
+      "text": "line up runway two four, wind calm",
+      "text_he": "כניסה למסלול 24, רוח שקטה",
+      "he_only": true
+    },
+    "MORNING+,+TAXI_RWY+25": {
+      "file": "twr_taxi_morning_25.ogg",
+      "text": "good morning, taxi to runway two five",
+      "text_he": "בוקר טוב, הסעה למסלול 25",
+      "he_only": true
+    },
+    "LINEUP_RWY+25+,+WIND_CALM": {
+      "file": "twr_lineup_25_calm.ogg",
+      "text": "line up runway two five, wind calm",
+      "text_he": "כניסה למסלול 25, רוח שקטה",
+      "he_only": true
+    },
+    "MORNING+,+TAXI_RWY+25+RWY_R": {
+      "file": "twr_taxi_morning_25r.ogg",
+      "text": "good morning, taxi to runway two five right",
+      "text_he": "בוקר טוב, הסעה למסלול 25 ימני",
+      "he_only": true
+    },
+    "LINEUP_RWY+25+RWY_R+,+WIND_CALM": {
+      "file": "twr_lineup_25r_calm.ogg",
+      "text": "line up runway two five right, wind calm",
+      "text_he": "כניסה למסלול 25 ימני, רוח שקטה",
+      "he_only": true
+    },
+    "MORNING+,+TAXI_RWY+26": {
+      "file": "twr_taxi_morning_26.ogg",
+      "text": "good morning, taxi to runway two six",
+      "text_he": "בוקר טוב, הסעה למסלול 26",
+      "he_only": true
+    },
+    "LINEUP_RWY+26+,+WIND_CALM": {
+      "file": "twr_lineup_26_calm.ogg",
+      "text": "line up runway two six, wind calm",
+      "text_he": "כניסה למסלול 26, רוח שקטה",
+      "he_only": true
+    },
+    "MORNING+,+TAXI_RWY+26+RWY_L": {
+      "file": "twr_taxi_morning_26l.ogg",
+      "text": "good morning, taxi to runway two six left",
+      "text_he": "בוקר טוב, הסעה למסלול 26 שמאלי",
+      "he_only": true
+    },
+    "LINEUP_RWY+26+RWY_L+,+WIND_CALM": {
+      "file": "twr_lineup_26l_calm.ogg",
+      "text": "line up runway two six left, wind calm",
+      "text_he": "כניסה למסלול 26 שמאלי, רוח שקטה",
+      "he_only": true
+    },
+    "MORNING+,+TAXI_RWY+27": {
+      "file": "twr_taxi_morning_27.ogg",
+      "text": "good morning, taxi to runway two seven",
+      "text_he": "בוקר טוב, הסעה למסלול 27",
+      "he_only": true
+    },
+    "LINEUP_RWY+27+,+WIND_CALM": {
+      "file": "twr_lineup_27_calm.ogg",
+      "text": "line up runway two seven, wind calm",
+      "text_he": "כניסה למסלול 27, רוח שקטה",
+      "he_only": true
     }
   },
   "templates": {
@@ -4091,54 +4551,134 @@
     "WNG_FUEL2": "%S1 , %S2 %S3 WNG_POINT %S4"
   },
   "he": {
-    "voice": "he_IL-saspeech-medium (pending: its dataset's licence is non-commercial; the user decides)",
-    "lines": [
+    "engine": "BlueTTS BlueV3 (github.com/maxmelichov/BlueTTS, git 91b1789): code and weights MIT, the RenikudPlus G2P Apache-2.0, the voices CC BY 4.0 (LibriTTS-R speakers), the vocoder OpenRAIL-M (modern-iaf/docs/research/hebrew-voices.md §4)",
+    "voices": {
+      "david": {
+        "gender": "m",
+        "speed": 1.0
+      },
+      "ariel": {
+        "gender": "m",
+        "speed": 1.0
+      },
+      "jonathan": {
+        "gender": "m",
+        "speed": 1.0
+      },
+      "yael": {
+        "gender": "f",
+        "speed": 1.0
+      },
+      "lily": {
+        "gender": "f",
+        "speed": 1.0
+      },
+      "shira": {
+        "gender": "f",
+        "speed": 1.0
+      },
+      "tamar": {
+        "gender": "f",
+        "speed": 1.0,
+        "use": "the instructor only (the user, 20 November 2026: \"Always the same voice, female\"): never in a cast"
+      }
+    },
+    "instructor": "tamar",
+    "casts": [
       {
-        "file": "he/twr_takeoff_ramon.ogg",
-        "text": "סופה אחת, מגדל רמון, מסלול שתיים חמש ימני, רוח שקטה, מאושר להמראה.",
-        "ipa": "sufˈa aχˈat, migdˈal ʁamˈon, maslˈul ʃtˈajim χˈameʃ jemanˈi, ʁˈuaχ ʃketˈa, meuʃˈaʁ lehamʁaˈa."
+        "tower": "david",
+        "awacs": "yael",
+        "pilot": "ariel",
+        "wingman": [
+          "lily",
+          "jonathan",
+          "shira"
+        ]
       },
       {
-        "file": "he/twr_start.ogg",
-        "text": "מאושר להתניע.",
-        "ipa": "meuʃˈaʁ lehatnˈia."
+        "tower": "lily",
+        "awacs": "jonathan",
+        "pilot": "shira",
+        "wingman": [
+          "ariel",
+          "yael",
+          "david"
+        ]
       },
       {
-        "file": "he/twr_taxi_rwy.ogg",
-        "text": "הסע למסלול",
-        "ipa": "hasˈa lamaslˈul"
+        "tower": "david",
+        "awacs": "jonathan",
+        "pilot": "shira",
+        "wingman": [
+          "yael",
+          "ariel",
+          "lily"
+        ]
       },
       {
-        "file": "he/twr_lineup_rwy.ogg",
-        "text": "היכנס למסלול",
-        "ipa": "hikanˈes lamaslˈul"
+        "tower": "lily",
+        "awacs": "yael",
+        "pilot": "ariel",
+        "wingman": [
+          "jonathan",
+          "shira",
+          "david"
+        ]
       },
       {
-        "file": "he/twr_hold_pos.ogg",
-        "text": "המתן במקום",
-        "ipa": "hamtˈen bamakˈom"
+        "tower": "david",
+        "awacs": "yael",
+        "pilot": "shira",
+        "wingman": [
+          "jonathan",
+          "lily",
+          "ariel"
+        ]
       },
       {
-        "file": "he/twr_takeoff.ogg",
-        "text": "מאושר להמראה",
-        "ipa": "meuʃˈaʁ lehamʁaˈa"
+        "tower": "lily",
+        "awacs": "jonathan",
+        "pilot": "ariel",
+        "wingman": [
+          "shira",
+          "david",
+          "yael"
+        ]
       },
       {
-        "file": "he/twr_wind_calm.ogg",
-        "text": "רוח שקטה",
-        "ipa": "ʁˈuaχ ʃketˈa"
+        "tower": "david",
+        "awacs": "jonathan",
+        "pilot": "ariel",
+        "wingman": [
+          "shira",
+          "yael",
+          "lily"
+        ]
       },
       {
-        "file": "he/acft_roger.ogg",
-        "text": "רוג'ר",
-        "ipa": "ʁˈodʒeʁ"
-      },
-      {
-        "file": "he/voc_bbetty_pull_up.ogg",
-        "text": "משוך למעלה. משוך למעלה.",
-        "ipa": "meʃˈoχ lemˈala. meʃˈoχ lemˈala."
+        "tower": "lily",
+        "awacs": "yael",
+        "pilot": "shira",
+        "wingman": [
+          "david",
+          "ariel",
+          "jonathan"
+        ]
       }
     ],
-    "note": "Not rendered: the Hebrew voice waits for the user's licence decision (modern-iaf/docs/sound.md §5). The Hebrew numbers and the rest of the tower set follow the English particles when it is decided."
+    "ipa": {
+      "אזימוט": "ʔazimˈut",
+      "במקום": "bamakˈom",
+      "בראבו": "bʁˈavo",
+      "המראה": "hamʁaʔˈa",
+      "וודג'": "vˈedʒ",
+      "כן": "kˈan",
+      "נסע": "nˈesa",
+      "מגדל": "miɡdˈal",
+      "מדרג": "midʁˈaɡ",
+      "קודם": "kˈodem",
+      "שמאלי": "smalˈi"
+    },
+    "note": "The Hebrew voices (modern-iaf/docs/sound.md §3.1): each radio clip with a say_he is said in every voice its role takes in the casts, into he/<voice>/<file>. A mission flies cast (mission id mod the casts' count): the tower, the AWACS, the player's own calls (pilot) and the wingmen Alpha 2-4 (wingman, in order), three men and three women in every cast. ipa: the words the RenikudPlus G2P misreads, read as given (checked by its transcription, 20 November 2026). instructor: the instructor's voice, kept out of every cast."
   }
 }

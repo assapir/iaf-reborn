@@ -380,7 +380,8 @@ a time (kept quirk).
   modern-iaf/docs/training.md §8).
 - IAF 2026 only: joined particles. A particle key made of other keys joined by "+" (`ALPHA_T+,+HOLD_POS`) is one
   clip said in one breath; `Radio.joined_wavs()` plays, for each run of a phrase's keys, the longest run that has
-  such a clip, else the keys one by one. The text stays the parts' texts. The original's particle file holds no
+  such a clip in the language spoken (in Hebrew a callsign is always its own clip, modern-iaf/docs/sound.md §3.1),
+  else the keys one by one. The text stays the parts' texts. The original's particle file holds no
   joined key, so its phrases play part by part as before (modern-iaf/docs/sound.md §3).
 - Modern IAF only: keyed calls. With `Settings.radio_key_clicks()` (true in the sim) `say()` plays `key_on.ogg`
   before a phrase's clips and `key_off.ogg` after them: the press-to-talk click and the squelch tail

@@ -8,7 +8,7 @@
 //! `iaf-sim adopt [assets-dir (assets)]`: only stamp the current outputs built without a stamp; prints each step's state
 //! `iaf-sim terrain --box E0 N0 E1 N1 | --out <dir> [--threads N] [assets-dir]`: a theatre elsewhere (tests, studies):
 //!   not the theatre setup reads, so not a step and not stamped
-//! `iaf-sim voices [--only <part of a file name>]` / `iaf-sim voices --say <role> <mode> <text> <out.ogg>`
+//! `iaf-sim voices [--he] [--only <part of a file name>]` / `iaf-sim voices --say <role> <mode> <text> <out.ogg>`
 //!
 //! - `terrain`: the theatre (modern-iaf/docs/terrain.md) → `converted/terrain/israel/`;
 //! - `db`: the units and weapons → `converted/missions/sim.bdb.json`, `converted/objects/objects.json` ("sim.bdb"),
@@ -24,7 +24,8 @@
 //! - `all`: every step of the wizard's plan;
 //! - `voices`: Kokoro text to speech through Betty's chain or the radio chain (modern-iaf/docs/sound.md §5) →
 //!   the clips in `modern-iaf/data/sounds/`, then `own`; needs ffmpeg and the Python of
-//!   `tools/iaf-2026/kokoro_tts.py` (`IAF_KOKORO_PYTHON`).
+//!   `tools/iaf-2026/kokoro_tts.py` (`IAF_KOKORO_PYTHON`); `voices --he`: the Hebrew radio clips by BlueTTS
+//!   (`tools/iaf-2026/blue_tts.py`, `IAF_BLUE_PYTHON`) into `modern-iaf/data/sounds/he/`.
 
 use std::path::{Path, PathBuf};
 use std::sync::atomic::AtomicBool;
@@ -78,7 +79,13 @@ fn main() -> Result<()> {
                 sim_voices::voices(data, repo, Path::new("assets"), Some(only), &Stdout, &AtomicBool::new(false))
             }
             [] => sim_voices::voices(data, repo, Path::new("assets"), None, &Stdout, &AtomicBool::new(false)),
-            _ => bail!("usage: iaf-sim voices [--only <part of a file name>] | --say <role> <mode> <text> <out.ogg>"),
+            [h, rest @ ..] if h == "--he" && (rest.is_empty() || rest.len() == 2 && rest[0] == "--only") => {
+                let only = rest.get(1).map(String::as_str);
+                sim_voices::voices_he(data, repo, Path::new("assets"), only, &Stdout, &AtomicBool::new(false))
+            }
+            _ => bail!(
+                "usage: iaf-sim voices [--he] [--only <part of a file name>] | --say <role> <mode> <text> <out.ogg>"
+            ),
         };
     }
     let cmd = args.first().map(String::as_str).unwrap_or("");
@@ -98,7 +105,7 @@ fn main() -> Result<()> {
         _ => bail!(
             "usage: iaf-sim <terrain|db|missions|own|fm|airbases|scenery|textures|all|adopt> [assets-dir (assets)] [--redo]\n       \
              iaf-sim terrain --box E0 N0 E1 N1 | --out <dir> [--threads N] [assets-dir]\n       \
-             iaf-sim voices [--only <part>] | --say <role> <mode> <text> <out.ogg>"
+             iaf-sim voices [--he] [--only <part>] | --say <role> <mode> <text> <out.ogg>"
         ),
     };
     let redo = args.iter().any(|a| a == "--redo");

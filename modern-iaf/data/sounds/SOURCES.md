@@ -58,6 +58,12 @@ synthetic speech plus two CC BY sets, Koniwa `tnc` (CC BY 3.0) and SIWIS (CC BY 
 `key_on` / `key_off` (the press-to-talk click and the squelch tail around a call) and `twr_pause` (0.2 s of radio
 hiss) are computed.
 
+The Hebrew radio clips (`he/<voice>/<file>`) are machine-generated speech by [BlueTTS BlueV3](https://github.com/maxmelichov/BlueTTS) through the same radio
+chain, made once by `iaf-sim voices --he` (`tools/iaf-2026/blue_tts.py`; modern-iaf/docs/sound.md §3.1) from each
+clip's `say_he` in [voices.json](voices.json): the code and weights MIT (© 2025 Blue), the RenikudPlus Hebrew reader
+Apache-2.0, the voices CC BY 4.0 (speakers of LibriTTS-R, Y. Koizumi et al., 2023), the vocoder BigScience OpenRAIL-M
+(fine-tuned from Supertone's Supertonic-3).
+
 | voice | Kokoro voice | licence | speaks |
 |---|---|---|---|
 | betty | [af_heart](https://huggingface.co/hexgrad/Kokoro-82M) | Kokoro-82M v1.0 model and voice packs, Apache-2.0 | Betty, the cockpit voice warnings: Betty's chain, +3 semitones |

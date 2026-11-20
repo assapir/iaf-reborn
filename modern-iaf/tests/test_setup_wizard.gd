@@ -86,6 +86,7 @@ func run() -> void:
 			"Sentinel",
 			"Survey of Israel",
 			"Kokoro",
+			"BlueTTS",
 			"FlightGear",
 			"TP-1538",
 			"Heebo",

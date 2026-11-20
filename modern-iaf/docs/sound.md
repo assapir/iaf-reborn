@@ -422,6 +422,69 @@ timing (`kokoro_tts.py` reports the end of the word before the ";" and the start
 `cut()` keeps 30 ms past each). Any other call (a wind, another runway) plays a head, a runway and the wind's
 particles: two joins in place of six. In the sim every call is framed by `key_on.ogg` and `key_off.ogg` (§5.2).
 
+### 3.1 The Hebrew voices
+With the game's language set to Hebrew, every radio line speaks Hebrew: the tower, the AWACS, the wingmen and the
+player's own calls (the user, 20 November 2026, after the BlueTTS samples on the Approvals page, item A73: "Voices you
+created are awesome. Pick some male some female and have both. The tower/AWACS/wingman might be a male or female").
+Betty speaks English in both languages. In English the clips of §3 play.
+
+**The voices**: BlueTTS BlueV3[^blue] (§5.4), seven of its fifteen voices. The six radio voices are the three men and
+the three women whose speech keeps the most energy inside the radio's band (300–3000 Hz, the share of each 40 ms frame
+of a sample call, measured on the A73 samples, 20 November 2026), with the pitches spread apart so the voices of one
+flight are told apart:
+
+| voice | gender | median pitch | energy in the radio's band | speaks |
+|---|---|---|---|---|
+| `david` | man | 107 Hz | 46 % | the tower (A73's tower sample), a wingman |
+| `ariel` | man | 130 Hz | 54 % | the player's own calls (A73's wingman), a wingman |
+| `jonathan` | man | 158 Hz | 66 % | the AWACS, a wingman |
+| `yael` | woman | 181 Hz | 62 % | the AWACS, a wingman |
+| `lily` | woman | 198 Hz | 63 % | the tower, a wingman |
+| `shira` | woman | 213 Hz | 62 % | the player's own calls, a wingman |
+| `tamar` | woman | 200 Hz | 56 % | the instructor only, never a radio role (the user, 20 November 2026: "Always the same voice, female"); no instructor line exists yet |
+
+**The casts** (`voices.json` `he.casts`): eight, each giving the tower, the AWACS, the player's calls (`pilot`) and
+the wingmen Alpha 2, 3 and 4 one voice each, three men and three women in every cast. A mission flies cast number
+(mission id mod 8), so the voices stay the same for the whole flight and change from mission to mission. The tower is
+`david` or `lily`, the AWACS `jonathan` or `yael`, the player `ariel` or `shira`; the wingmen take the other three. The
+casts are data: `iaf-sim own` checks that every cast names known voices, has men and women, leaves out the
+instructor's voice and gives a voice to every role that has Hebrew clips (`sim.rs` `compile_voices_he`).
+
+**The lines** (`voices.json`, each clip's `say_he`): the particles' Hebrew subtitles (`text_he`) as spoken words:
+the callsigns אלפא, בראבו, צ'רלי, דלתא; runway numbers and bearings digit by digit ("שתיים חמש ימני", "אזימוט אפס
+אחת אפס"); the winds and ranges as numbers ("רוח עשרה קשר", "עשרים מייל"); the wingmen's words from
+[research/radio-terms.md](research/radio-terms.md) (the formation wedge as the loanword "וודג'"). The five whole
+calls of the sound table (the ejection, the friendly-fire calls, the edge of the map) are ours: "נטישה, נטישה,
+נטישה!", "חדל אש, חדל אש, ירי על כוחותינו!", "מוביל, חדל אש, זה היה כוח שלנו!", "חדל אש, חדל אש, יש פגיעה
+בכוחותינו.", "אזהרה, יציאה מאזור האימון, יש לפנות חזרה.". Every line is gender-neutral, since any role may be a man
+or a woman.
+
+**The readings.** BlueTTS reads unvocalised Hebrew through its RenikudPlus G2P, which ignores nikud. Every word of
+every line was checked in the G2P's transcription (IPA, 20 November 2026); eleven read wrong, and `he.ipa` gives
+their reading: מגדל (miɡdˈal; the G2P also said meɡadˈel), בראבו (bʁˈavo, not beʁˈabo), המראה (hamʁaʔˈa), במקום
+(bamakˈom, not bimkˈom "instead"), אזימוט (ʔazimˈut), כן נסע (kˈan nˈesa, the gear; not kˈen "yes"), מדרג
+(midʁˈaɡ), קודם (kˈodem), שמאלי (smalˈi, one reading for all), וודג' (vˈedʒ). The digits keep the G2P's formal
+stress (χamˈeʃ, ʃalˈoʃ).
+
+**The clips**: `iaf-sim voices --he` says each line in every voice its role takes across the casts, through the
+English clip's own chain (§5.2: `radio`, `phrase` or `helmet`), into `modern-iaf/data/sounds/he/<voice>/<file>`, the
+English clip's file name. A head or a runway that the English cuts from a sentence (§3) is said on its own in Hebrew:
+BlueTTS gives no word times, so a head ends falling rather than rising (inferred). A call plays the same keys in both
+languages, and a joined particle plays only where its clip exists in the language spoken (`radio.gd` `joined_wavs`,
+`sound_table.gd` `has_clip`). In Hebrew the callsign is always its own clip: the joined particles that hold a callsign
+(the tower's "ALPHA_T+,+HOLD_POS", the player's "RAMON_TWR+,+ALPHA_P+,+REQ_STARTUP") have no `say_he`, and 18
+Hebrew-only joined particles (`he_only`, "MORNING+,+TAXI_RWY") hold a tower call's words after the callsign. So
+"אלפא" then "בוקר טוב, הסעה למסלול" plays, and a new callsign changes only the callsign particles. Another
+pilot's call that the English pilot voice says (the wingman's ejection, the friendly-fire calls) takes a wingman's voice
+in Hebrew (`role_he`), since `pilot` is the player's own there. 638 clips (tower 102 lines × 2 voices, AWACS 97 × 2,
+the player's calls 30 × 2, the wingmen 30 × 6), 6.6 MB in all as Ogg Vorbis,
+committed: the setup only copies them.
+
+**In the game**: `iaf-sim own` copies them to `converted/own/resource/soundfiles/he/` with `voices_he.json` (the casts
+and each Hebrew clip's role). `sound_table.gd` `hebrew()` swaps a clip for its Hebrew one when the language is Hebrew:
+the voice is the cast's for the clip's role, and for a wingman's call the voice of the wingman saying it
+(`radio.gd` `flight_call` sets `speaker`). The subtitles are unchanged (§5.4).
+
 ## 4. Keys
 `data/keys.json` holds 126 records: the 117 of docs/controls.md §3, our own Start engine (Ctrl+E, command 200, a
 hidden developer shortcut: [training.md](training.md) §7), the Checklist notebook (record 118 on H, command 203: [training.md](training.md) §11; the mission card's until
@@ -529,27 +592,37 @@ Kokoro runs only where the clips are made, never at the player's setup: the clip
   CC BY sets the card names: Koniwa `tnc` (CC BY 3.0) and SIWIS (CC BY 4.0). The `kokoro` and `misaki` Python packages
   are Apache-2.0; espeak-ng (GPL-3.0) runs only while the clips are made and is not shipped. The credit lines: §6.
 
-### 5.4 Hebrew: English only for now
-Piper's only Hebrew voice is `he_IL-saspeech-medium`. It is trained on SASPEECH[^saspeech], whose licence is custom
+### 5.4 Hebrew: BlueTTS
+The Hebrew clips (§3.1) are BlueTTS BlueV3[^blue]: the code and weights MIT, the RenikudPlus G2P Apache-2.0, the
+voices CC BY 4.0 (made from LibriTTS-R speakers), the vocoder OpenRAIL-M ([research/hebrew-voices.md](research/hebrew-voices.md)
+§4 and §6 list each file, its licence and size). Like Kokoro it runs only where the clips are made, never at the
+player's setup or in the game: the clips ship in the repository and `iaf-sim own` deploys them.
+- **Setup** (once, outside the repo; `tools/iaf-2026/blue_tts.py`'s header): a folder (`IAF_BLUE_DIR`, by default
+  `~/.cache/hebrew-tts-eval`) with the BlueTTS code (git 91b1789), the BlueV3 ONNX files with the int8 vector
+  estimator and the voices, and the RenikudPlus model; a Python with onnxruntime, numpy, soundfile and renikud-plus
+  (`IAF_BLUE_PYTHON`); ffmpeg. Run: `IAF_BLUE_PYTHON=VENV/bin/python nice target/release/iaf-sim voices --he
+  [--only <part of a file name>]`: about 0.5 s a clip on this laptop's CPU, each line from the same seed.
+- **Speed and delivery.** BlueTTS has no style control; each voice speaks at speed 1.0 (`he.voices`).
+
+**Earlier: Piper and SASPEECH (2–3 November 2026, not used).** Piper's only Hebrew voice is `he_IL-saspeech-medium`. It is trained on SASPEECH[^saspeech], whose licence is custom
 and non-commercial: the recordings belong to the Israeli Public Broadcasting Corporation (Kan), the speaker is the
 journalist Shaul Amsterdamski, and broadcast use and anything that suggests Kan's endorsement are not allowed. That
 is not an open licence like the rest of the sim's data. The options were: ship SASPEECH clips under its
 non-commercial terms, English only for now, or record Hebrew ourselves; the user chose English only for now
-(2026-11-03, plan.md). No Hebrew clip is rendered or committed. `voices.json` `he` holds the Hebrew lines' texts and IPA ready to
-render with a Hebrew voice. Kokoro has no Hebrew voice. Tested 2026-11-02: Piper's Hebrew phonemizer (Nakdimon diacritics, then rule-based
+(2026-11-03, plan.md); BlueTTS, an open model, replaced the question on 20 November 2026. Kokoro has no Hebrew voice. Tested 2026-11-02: Piper's Hebrew phonemizer (Nakdimon diacritics, then rule-based
 IPA) puts the stress on the last syllable of almost every word ("mˈigdal" for migdˈal, "ʁuχˈa" for ʁˈuaχ), with or
 without diacritics in the text; hand-written IPA fixes it, so every Hebrew line carries its IPA. A sample tower call
 was made with it for the user's approval (not in the repo).
 
 
-The subtitles do not wait: every tower particle has its Hebrew text (`text_he`, gender-neutral: "אישור המראה",
+The subtitles: every tower particle has its Hebrew text (`text_he`, gender-neutral: "אישור המראה",
 "הסעה למסלול", "המתנה במקום"), compiled by `iaf-sim own` into `phraseparticles_he.trx`. In Hebrew `radio.gd` prints
-the phrase from those while it plays the English clips ([training.md](training.md) §8). Each printed line is kept
+the phrase from those while it plays the Hebrew clips ([training.md](training.md) §8). Each printed line is kept
 in both languages (`radio.gd subtitles`), so the flight's band re-prints it after a language change
 ([front-end.md](front-end.md) §8).
 
 ## 6. Credits the sim's wizard and credits roll need
-The setup wizard (item A3) and the credits roll live outside this branch's folders; they need these lines (also in
+The setup wizard's Attributions and the credits roll show these lines from `shared/credits.json` (also in
 [docs/credits.md](../../docs/credits.md)):
 - **Sound effects** (freesound.org, CC0): ikbenraar, pillwave, 77Pacer, nuckan, qubodup, Seidhepriest,
   Jetrod, craigsmith (the USC Gold / Red / Sunset Editorial libraries), LilMati, Rudmer_Rotteveel, pushkin, xkeril,
@@ -557,16 +630,17 @@ The setup wizard (item A3) and the credits roll live outside this branch's folde
 - **Voices:** Kokoro-82M v1.0 by hexgrad (Apache-2.0), the voices af_heart, am_michael, am_puck, am_fenrir and am_eric;
   trained on public-domain, permissively licensed and synthetic speech and on Koniwa tnc (CC BY 3.0) and SIWIS
   (CC BY 4.0).
-- **Hebrew voice:** only if option 1 of §5 is chosen: SASPEECH, © Kan, the Israeli Public Broadcasting Corporation,
-  non-commercial licence.
+- **Hebrew voices** (machine-generated speech): BlueTTS BlueV3 (github.com/maxmelichov/BlueTTS): the code and weights
+  MIT (© 2025 Blue), the RenikudPlus G2P Apache-2.0, the voices david, ariel, jonathan, yael, lily, shira and tamar
+  CC BY 4.0 (speakers of LibriTTS-R, Y. Koizumi et al., 2023), the vocoder BigScience OpenRAIL-M (fine-tuned from
+  Supertone's Supertonic-3).
 
 ## 7. Open
 - A human listening pass at game volume (§1.1), and the user's verdict on the Kokoro voices and Betty's pace, pitch
   and gap (§5.1; the clips on the approval page, item A5).
 - Loops as Ogg Vorbis: a looped ogg may click at its seam where the WAV did not (listen to the engine, the gun and the
   air-brake wind).
-- The Hebrew voice (§5.4; the services and models compared, with listening samples, in
-  [research/hebrew-voices.md](research/hebrew-voices.md), 20 November 2026).
+- The instructor's Hebrew lines (voice `tamar`, §3.1): no instructor line exists yet.
 - The wingman-command, waypoint and flight-report phrases (`radio.gd`'s other templates have no particles yet, so
   they are silent). The AWACS's contact calls have theirs since 17 November ([ews.md](ews.md) §7).
 - The pilot's calls as Bravo–Delta play part by part (only Alpha has whole-call clips), and the callsigns past Delta
@@ -639,3 +713,4 @@ The setup wizard (item A3) and the credits roll live outside this branch's folde
     https://apps.dtic.mil/sti/pdfs/ADA239984.pdf
 [^f15d]: Matt Dunn, "F 15D Incentive Flight Strafing 20MM", YouTube, 19 December 2015 (reference only; the bursts at
     11:21 and 12:48): https://www.youtube.com/watch?v=5OxjiD3uaE8
+[^blue]: BlueTTS, GitHub repository at 91b1789 (19 November 2026), its model card and LICENSES.md: https://github.com/maxmelichov/BlueTTS

@@ -98,7 +98,7 @@ The page puts the start-up and taxi calls on GND and the line-up, take-off and l
 
 #idx("Subtitles")Every call and answer is spoken, and shows as a line of text at the top middle of the screen as its voice starts. The strip holds the three newest lines, each for 8 seconds. Your own call comes first, then, after a short pause, the tower's answer, then your pilot's "Roger".
 
-The lines are in the game's language (@language). The voices speak English.
+The lines and the voices are in the game's language (@language).
 
 #screen("flight_band", [A tower call: the radio's lines at the top of the screen.])
 

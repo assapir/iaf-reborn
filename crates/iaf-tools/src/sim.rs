@@ -1266,9 +1266,74 @@ pub fn compile_radio(voices: &Value) -> Result<Radio> {
         let he = p["text_he"].as_str().with_context(|| format!("voices: particle {key} has no text_he"))?;
         particles += &format!("{key}\t{file}\t{text}\n");
         particles_he += &format!("{key}\t{he}\n");
-        files.push(file.to_string());
+        // `he_only`: its clip is only under he/<voice>/ (the words after a Hebrew callsign).
+        if p["he_only"] != true {
+            files.push(file.to_string());
+        }
     }
     Ok(Radio { templates, particles, particles_he, files })
+}
+
+/// The Hebrew voices of `voices.json` `he` (modern-iaf/docs/sound.md §3.1): each role's voices across the casts, the
+/// clips they need, and `voices_he.json`, which `sound_table.gd` reads (`casts`, and `roles`: each Hebrew clip's role).
+pub struct VoicesHe {
+    pub roles: BTreeMap<String, BTreeSet<String>>,
+    /// `he/<voice>/<file>`: every clip with a `say_he` in every voice its role takes.
+    pub files: Vec<String>,
+    pub json: String,
+}
+
+impl VoicesHe {
+    pub fn voices_of(&self, role: &str) -> impl Iterator<Item = &str> {
+        self.roles.get(role).into_iter().flatten().map(String::as_str)
+    }
+}
+
+/// A clip's role in Hebrew: its `role_he`, else its `voice` (another pilot's call is the player's English voice but a
+/// wingman's in Hebrew, where `pilot` is the player's own).
+pub fn role_he(clip: &Value) -> &str {
+    clip["role_he"].as_str().or(clip["voice"].as_str()).unwrap_or("")
+}
+
+/// Compiles `he`: every cast names known voices, has men and women, keeps out the instructor's voice and gives every
+/// role a Hebrew clip has a voice.
+pub fn compile_voices_he(voices: &Value) -> Result<VoicesHe> {
+    let he = &voices["he"];
+    let known = he["voices"].as_object().context("voices: no \"he.voices\"")?;
+    let instructor = he["instructor"].as_str().context("voices: no \"he.instructor\"")?;
+    ensure!(known.contains_key(instructor), "voices: the instructor's voice {instructor} is not in he.voices");
+    let casts = he["casts"].as_array().filter(|c| !c.is_empty()).context("voices: no \"he.casts\"")?;
+    let mut roles: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
+    for (i, cast) in casts.iter().enumerate() {
+        let mut genders = BTreeSet::new();
+        for (role, v) in cast.as_object().with_context(|| format!("voices: cast {i} is not an object"))? {
+            let names: Vec<&str> =
+                v.as_array().map_or(v.as_str().into_iter().collect(), |a| a.iter().filter_map(Value::as_str).collect());
+            for n in names {
+                ensure!(n != instructor, "voices: cast {i} gives {role} the instructor's voice {n}");
+                let g = known.get(n).with_context(|| format!("voices: cast {i}: no voice \"{n}\" in he.voices"))?;
+                genders.insert(g["gender"].as_str().unwrap_or(""));
+                roles.entry(role.clone()).or_default().insert(n.to_string());
+            }
+        }
+        ensure!(genders.contains("m") && genders.contains("f"), "voices: cast {i} needs both men and women");
+    }
+    let (mut files, mut by_file) = (vec![], Map::new());
+    for c in voices["clips"].as_array().context("voices: no \"clips\"")? {
+        let (Some(file), Some(_)) = (c["file"].as_str(), c["say_he"].as_str()) else { continue };
+        let role = role_he(c);
+        let vs =
+            roles.get(role).with_context(|| format!("voices: {file}: no cast gives the role \"{role}\" a voice"))?;
+        files.extend(vs.iter().map(|v| format!("he/{v}/{file}")));
+        by_file.insert(file.to_string(), role.into());
+    }
+    for (i, cast) in casts.iter().enumerate() {
+        for role in by_file.values().filter_map(Value::as_str) {
+            ensure!(cast.get(role).is_some(), "voices: cast {i} gives the role \"{role}\" no voice");
+        }
+    }
+    let json = serde_json::to_string(&json!({"casts": casts, "roles": by_file}))?;
+    Ok(VoicesHe { roles, files, json })
 }
 
 /// `iaf-sim own`: `<data>/sounds` → `<assets>/SOUNDS_DIR`: `soundprop.trx`, the radio's phrase files, and every clip
@@ -1298,15 +1363,17 @@ fn read_json(p: &Path) -> Result<Value> {
         .with_context(|| p.display().to_string())
 }
 
-/// `own`'s sounds alone (also `iaf-sim voices`'s last step): `<data>/sounds` → `<assets>/SOUNDS_DIR`; returns the
-/// sound rows and the clips copied.
+/// `own`'s sounds alone (also `iaf-sim voices`'s last step): `<data>/sounds` → `<assets>/SOUNDS_DIR`, with the Hebrew
+/// clips under `he/` and `voices_he.json` ([`compile_voices_he`]); returns the sound rows and the clips copied.
 pub fn own_sounds(data: &Path, assets: &Path, cancel: &AtomicBool) -> Result<(usize, usize)> {
     check(cancel)?;
     let read = read_json;
     let (sounds, out) = (data.join("sounds"), assets.join(SOUNDS_DIR));
     let table = read(&sounds.join("soundprop.json"))?;
     let trx = compile_soundprop(&table)?;
-    let radio = compile_radio(&read(&sounds.join("voices.json"))?)?;
+    let voices = read(&sounds.join("voices.json"))?;
+    let radio = compile_radio(&voices)?;
+    let he = compile_voices_he(&voices)?;
     let names = |k: &str| table[k].as_array().into_iter().flatten().filter_map(|v| v.as_str().map(String::from));
     let rows = table["rows"].as_array().into_iter().flatten().filter_map(|r| r["file"].as_str().map(String::from));
     let files: BTreeSet<String> = rows.chain(names("by_name")).chain(radio.files.clone()).collect();
@@ -1318,22 +1385,35 @@ pub fn own_sounds(data: &Path, assets: &Path, cancel: &AtomicBool) -> Result<(us
         ogg_seconds(&bytes).with_context(|| src.display().to_string())?;
         std::fs::write(out.join(f), bytes).with_context(|| out.join(f).display().to_string())?;
     }
+    // The Hebrew clips (he/<voice>/<file>), the folder made anew.
+    if out.join("he").exists() {
+        std::fs::remove_dir_all(out.join("he"))?;
+    }
+    for f in &he.files {
+        check(cancel)?;
+        let (src, dst) = (sounds.join(f), out.join(f));
+        let bytes = std::fs::read(&src).with_context(|| src.display().to_string())?;
+        ogg_seconds(&bytes).with_context(|| src.display().to_string())?;
+        std::fs::create_dir_all(dst.parent().context("he/")?)?;
+        std::fs::write(&dst, bytes).with_context(|| dst.display().to_string())?;
+    }
     let trx_files = [
         ("soundprop.trx", &trx),
         ("phrasetemplates.trx", &radio.templates),
         ("phraseparticalsdata.trx", &radio.particles),
         ("phraseparticles_he.trx", &radio.particles_he),
+        ("voices_he.json", &he.json),
     ];
     for (name, text) in trx_files {
         write(&out.join(name), text)?;
     }
     for e in std::fs::read_dir(&out)? {
         let name = e?.file_name().to_string_lossy().into_owned();
-        if !files.contains(&name) && !trx_files.iter().any(|t| t.0 == name) {
+        if !files.contains(&name) && name != "he" && !trx_files.iter().any(|t| t.0 == name) {
             std::fs::remove_file(out.join(&name)).with_context(|| out.join(&name).display().to_string())?;
         }
     }
-    Ok((trx.lines().count() - 1, files.len()))
+    Ok((trx.lines().count() - 1, files.len() + he.files.len()))
 }
 
 /// The sim's effects art in the original's layout (`resource/3dobjects`, where the original keeps gunfire.tga).
@@ -1918,6 +1998,26 @@ mod tests {
         }
     }
 
+    #[test]
+    fn voices_he_casts_checked() {
+        let v = |casts: Value| {
+            let voices = json!({"a": {"gender": "m"}, "b": {"gender": "f"}, "i": {"gender": "f"}});
+            let clips = json!([
+                {"file": "x.ogg", "voice": "tower", "say_he": "x"},
+                {"file": "y.ogg", "voice": "tower"},
+                {"file": "z.ogg", "voice": "pilot", "role_he": "wingman", "say_he": "z"}
+            ]);
+            json!({"he": {"voices": voices, "instructor": "i", "casts": casts}, "clips": clips})
+        };
+        let he = compile_voices_he(&v(json!([{"tower": "a", "wingman": ["b"]}]))).unwrap();
+        assert_eq!(he.files, ["he/a/x.ogg", "he/b/z.ogg"], "z in its Hebrew role's voice");
+        assert!(compile_voices_he(&v(json!([{"tower": "a", "wingman": ["i"]}]))).is_err(), "the instructor's voice");
+        assert!(compile_voices_he(&v(json!([{"tower": "a", "wingman": ["a"]}]))).is_err(), "men only");
+        assert!(compile_voices_he(&v(json!([{"wingman": ["a", "b"]}]))).is_err(), "no voice for the tower");
+        let one_without = json!([{"tower": "a", "wingman": ["b"]}, {"tower": "b", "pilot": "a"}]);
+        assert!(compile_voices_he(&v(one_without)).is_err(), "a cast without the wingmen");
+    }
+
     /// `iaf-sim own`: every sound row's clip exists and parses as the game's format, every code the shared flight
     /// code plays has a row, every file it opens by name is there, the radio's templates name only particles with a
     /// clip, a stale clip is removed, the key table compiles to the 126 records `key_table.gd` reads (the 117 of
@@ -1932,6 +2032,10 @@ mod tests {
         own(&data(), &data().join("../.."), &root.0, &Stdout, &AtomicBool::new(false)).unwrap();
         assert_compact(&root.0);
         assert!(!sounds.join("stale.ogg").exists());
+        // The Hebrew voices (sound.md §3.1): voices_he.json and the first cast's tower clip.
+        let he: Value = serde_json::from_slice(&std::fs::read(sounds.join("voices_he.json")).unwrap()).unwrap();
+        assert_eq!(he["roles"]["twr_alpha.ogg"], "tower");
+        assert!(sounds.join("he").join(he["casts"][0]["tower"].as_str().unwrap()).join("twr_alpha.ogg").exists());
         // The F-16's descriptor from our model: its hinges, stations and gun, the type, no original source.
         let f16: Value =
             serde_json::from_slice(&std::fs::read(root.0.join(PLANES_DIR).join("f16/aircraft.json")).unwrap()).unwrap();
@@ -2021,7 +2125,9 @@ mod tests {
             .filter(|l| !l.starts_with(';'))
             .map(|l| {
                 let c: Vec<&str> = l.split('\t').collect();
-                assert!(clip(c[1]) > 0.0, "{l}");
+                // A Hebrew-only joined particle (voices.json he_only): its clip is in the first cast's tower voice.
+                let he_only = sounds.join("he").join(he["casts"][0]["tower"].as_str().unwrap()).join(c[1]);
+                assert!(he_only.exists() || clip(c[1]) > 0.0, "{l}");
                 c[0]
             })
             .collect();

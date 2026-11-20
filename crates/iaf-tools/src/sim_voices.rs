@@ -19,6 +19,8 @@ use crate::progress::{Progress, check};
 pub const SR: f32 = 24000.0;
 /// The Kokoro step, run by `IAF_KOKORO_PYTHON` (default `python3`).
 pub const KOKORO: &str = "tools/iaf-2026/kokoro_tts.py";
+/// The BlueTTS step for the Hebrew lines, run by `IAF_BLUE_PYTHON` (default `python3`).
+pub const BLUE: &str = "tools/iaf-2026/blue_tts.py";
 /// libvorbis quality: about 45 kbit/s for 22050 Hz mono speech.
 const OGG_Q: &str = "4";
 
@@ -406,37 +408,44 @@ fn pitch(x: &[f32], semitones: f32, tmp: &Path) -> Result<Vec<f32>> {
 /// Kokoro's speech of a line and its ";" split times ([`kokoro`]).
 pub type Said = (Vec<f32>, Option<[f32; 2]>);
 
-/// One line for Kokoro.
+/// One line for a speech step (Kokoro or BlueTTS).
 pub struct Line {
     pub text: String,
     pub voice: String,
     pub speed: f64,
+    /// BlueTTS: the line's words read as this IPA (voices.json `he.ipa`); null for Kokoro.
+    pub ipa: Value,
 }
 
 /// Kokoro's speech of each line, with the ";" split times where the line has one (kokoro_tts.py).
 pub fn kokoro(repo: &Path, lines: &[Line], tmp: &Path) -> Result<Vec<Said>> {
-    let python = std::env::var("IAF_KOKORO_PYTHON").unwrap_or_else(|_| "python3".into());
+    speak(repo, KOKORO, "IAF_KOKORO_PYTHON", lines, tmp)
+}
+
+/// The speech of each line by the Python step `script` (kokoro_tts.py or blue_tts.py) run by `$python_var`.
+fn speak(repo: &Path, script: &str, python_var: &str, lines: &[Line], tmp: &Path) -> Result<Vec<Said>> {
+    let python = std::env::var(python_var).unwrap_or_else(|_| "python3".into());
     let req: Vec<Value> = lines
         .iter()
         .enumerate()
         .map(|(i, l)| {
             let out = tmp.join(format!("raw{i}.wav"));
-            json!({"text": l.text, "voice": l.voice, "speed": l.speed, "out": out})
+            json!({"text": l.text, "voice": l.voice, "speed": l.speed, "ipa": l.ipa, "out": out})
         })
         .collect();
     let mut child = Command::new(&python)
         .arg("-I")
-        .arg(repo.join(KOKORO))
+        .arg(repo.join(script))
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::inherit())
         .spawn()
-        .with_context(|| format!("{python} {KOKORO} (Kokoro: see its header for the setup)"))?;
+        .with_context(|| format!("{python} {script} (see its header for the setup)"))?;
     child.stdin.take().context("stdin")?.write_all(serde_json::to_string(&req)?.as_bytes())?;
     let out = child.wait_with_output()?;
-    ensure!(out.status.success(), "{KOKORO} failed");
-    let done: Vec<Value> = serde_json::from_slice(&out.stdout).context("kokoro_tts.py's answer")?;
-    ensure!(done.len() == lines.len(), "kokoro_tts.py answered {} of {} lines", done.len(), lines.len());
+    ensure!(out.status.success(), "{script} failed");
+    let done: Vec<Value> = serde_json::from_slice(&out.stdout).with_context(|| format!("{script}'s answer"))?;
+    ensure!(done.len() == lines.len(), "{script} answered {} of {} lines", done.len(), lines.len());
     done.iter()
         .map(|d| {
             let path = PathBuf::from(d["out"].as_str().context("out")?);
@@ -513,13 +522,14 @@ pub fn voices(
         .as_array()
         .context("voices.json: no \"clips\"")?
         .iter()
-        .filter(|c| only.is_none_or(|o| c["file"].as_str().is_some_and(|f| f.contains(o))))
+        // A clip without `say` is Hebrew only (voices --he).
+        .filter(|c| c["say"].is_string() && only.is_none_or(|o| c["file"].as_str().is_some_and(|f| f.contains(o))))
         .collect();
     let mut lines = vec![];
     for c in &clips {
         let (voice, speed) = role(&v, c["voice"].as_str().context("voices.json: a clip without \"voice\"")?)?;
         let text = c["say"].as_str().context("voices.json: a clip without \"say\"")?;
-        lines.push(Line { text: text.into(), voice: voice.into(), speed });
+        lines.push(Line { text: text.into(), voice: voice.into(), speed, ipa: Value::Null });
     }
     check(cancel)?;
     let said = kokoro(repo, &lines, &tmp.0)?;
@@ -536,13 +546,62 @@ pub fn voices(
     Ok(())
 }
 
+/// `iaf-sim voices --he`: every radio clip's Hebrew line (`say_he`) by BlueTTS (blue_tts.py) in each voice its role
+/// takes in voices.json's `he.casts`, through the English clip's chain (the head and tail cuts are whole lines: BlueTTS
+/// gives no word times), into `<data>/sounds/he/<voice>/<file>` (`only`: the clips whose file name contains it), then
+/// `sim::own_sounds` into `assets`.
+pub fn voices_he(
+    data: &Path,
+    repo: &Path,
+    assets: &Path,
+    only: Option<&str>,
+    pr: &dyn Progress,
+    cancel: &AtomicBool,
+) -> Result<()> {
+    let sounds = data.join("sounds");
+    let v: Value = serde_json::from_str(&std::fs::read_to_string(sounds.join("voices.json"))?)?;
+    let he = crate::sim::compile_voices_he(&v)?;
+    let words = v["he"]["ipa"].as_object().context("voices.json: no \"he.ipa\"")?;
+    let (mut jobs, mut lines) = (vec![], vec![]);
+    for c in v["clips"].as_array().context("voices.json: no \"clips\"")? {
+        let (Some(file), Some(text)) = (c["file"].as_str(), c["say_he"].as_str()) else { continue };
+        if only.is_some_and(|o| !file.contains(o)) {
+            continue;
+        }
+        let ipa: serde_json::Map<String, Value> =
+            words.iter().filter(|(w, _)| text.contains(w.as_str())).map(|(w, i)| (w.clone(), i.clone())).collect();
+        for voice in he.voices_of(crate::sim::role_he(c)) {
+            let speed = v["he"]["voices"][voice]["speed"].as_f64().unwrap_or(1.0);
+            jobs.push((c, file));
+            lines.push(Line { text: text.into(), voice: voice.into(), speed, ipa: Value::Object(ipa.clone()) });
+        }
+    }
+    let tmp = tmp_dir()?;
+    check(cancel)?;
+    let said = speak(repo, BLUE, "IAF_BLUE_PYTHON", &lines, &tmp.0)?;
+    let mut noise = Noise(SEED);
+    for (i, (((c, file), l), (x, _))) in jobs.iter().zip(&lines).zip(&said).enumerate() {
+        check(cancel)?;
+        let dir = sounds.join("he").join(&l.voice);
+        std::fs::create_dir_all(&dir)?;
+        let mode = Mode::of(c["mode"].as_str().unwrap_or(""))?;
+        let y = make(x, None, &json!({"say": l.text}), mode, &mut noise, &tmp.0)?;
+        write_ogg(&y, &dir.join(file), &tmp.0)?;
+        pr.fraction((i + 1) as f32 / jobs.len() as f32);
+    }
+    log!(pr, "voices: {} Hebrew clips -> {}", jobs.len(), sounds.join("he").display());
+    let (rows, files) = crate::sim::own_sounds(data, assets, cancel)?;
+    log!(pr, "voices: {rows} sound rows, {files} clips -> {}", assets.join(crate::sim::SOUNDS_DIR).display());
+    Ok(())
+}
+
 /// `iaf-sim voices --say ROLE MODE TEXT OUT`: one line by a role of voices.json, made as `mode`, into `out` (the
 /// approval samples).
 pub fn say(data: &Path, repo: &Path, role_name: &str, mode: &str, text: &str, out: &Path) -> Result<()> {
     let v: Value = serde_json::from_str(&std::fs::read_to_string(data.join("sounds/voices.json"))?)?;
     let (voice, speed) = role(&v, role_name)?;
     let tmp = tmp_dir()?;
-    let said = kokoro(repo, &[Line { text: text.into(), voice: voice.into(), speed }], &tmp.0)?;
+    let said = kokoro(repo, &[Line { text: text.into(), voice: voice.into(), speed, ipa: Value::Null }], &tmp.0)?;
     let (x, split) = &said[0];
     let c = json!({"say": text, "repeat": if mode == "betty" { 2 } else { 1 }});
     let y = make(x, *split, &c, Mode::of(mode)?, &mut Noise(SEED), &tmp.0)?;

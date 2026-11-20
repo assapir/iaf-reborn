@@ -31,6 +31,6 @@ Read it part by part:
 
 How to work the radar and lock a target is in each jet's manual: the #other("f16i", "radar-aa"), the #other("f16d", "radar-aa") and the #other("f35i", "radar-aa").
 
-The calls are spoken in the AWACS's own voice and show as lines at the top of the screen, like the #term("tower")'s (@tower-subtitles). Setting the jet's radios is in the #other("f16i", "radios"), the #other("f16d", "radios") and the #other("f35i", "radios"); the AWACS's calls reach you whatever the radios are set to.
+The calls are spoken in the AWACS's own voice, in the game's language, and show as lines at the top of the screen, like the #term("tower")'s (@tower-subtitles). Setting the jet's radios is in the #other("f16i", "radios"), the #other("f16d", "radios") and the #other("f35i", "radios"); the AWACS's calls reach you whatever the radios are set to.
 
 #note[The AWACS answers no request in the sim: the list of the #key("Call the tower") key holds the tower's calls only.]

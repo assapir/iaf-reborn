@@ -74,3 +74,45 @@ func run() -> void:
 		tv.runtime.misc["0x460"] = float(hg[0]) * 3600.0
 		var p: Dictionary = r._speak(at, 0)
 		check(String(hg[1]) in String(p.text).to_lower(), "%02d:00: %s" % [hg[0], p.text])
+	_hebrew(tv, r, at)
+
+
+## Hebrew (sound.md §3.1): every tower call and every wingman call plays a Hebrew clip in the voice the mission's cast
+## gives its role (a wingman's own voice for his call), the callsign as its own clip; only the computed clicks, pause
+## and gap are the same in both languages.
+func _hebrew(tv: Node, r: Node, at: int) -> void:
+	var table = tv.sounds.table
+	if table._he.is_empty():
+		print("NEEDS DATA: the Hebrew clips (iaf-sim own)")
+		return
+	settings().language = "he"
+	var cast: Dictionary = table._he.casts[posmod(settings().mission_id, table._he.casts.size())]
+	var plain := ["key_on.ogg", "key_off.ogg", "twr_pause.ogg", "radio_gap.ogg", "kch2.ogg"]
+	var calls := [[0, ""], [1, ""], [3, ""], [4, ""], [5, ""], [6, ""], [8, ""], [9, ""], [10, ""], [12, ""]]
+	for from in [2, 3, 4]:
+		for id in ["ack", "lead_change", "fuel_state"] + r.WING_WORDS.keys():
+			calls.append([from, id])
+	var clips := 0
+	for c in calls:
+		var n0: int = r.said.size()
+		if c[1] == "":
+			r._speak(at, c[0])
+		else:
+			r.flight_call(c[0], c[1], 1800.0)
+		for p in r.said.slice(n0):
+			for w in p.wavs:
+				var he: String = table.hebrew(w.to_lower())
+				clips += 1
+				check(w in plain or he != "", "%s %s: a Hebrew clip for %s" % [c, p.template, w])
+				if c[1] != "" and he != "" and p.template.begins_with("WNG"):
+					var v: String = cast.wingman[c[0] - 2]
+					check(he.contains("/he/%s/" % v), "#%d's call in his voice %s: %s" % [c[0], v, he])
+		if c[0] == 0 and c[1] == "":
+			var w0: Array = r.said[n0].wavs
+			check(
+				w0.slice(0, 3) == ["twr_alpha.ogg", "twr_pause.ogg", "twr_taxi_evening.ogg"],
+				"callsign apart: %s" % [w0]
+			)
+			check(table.hebrew("twr_alpha.ogg").contains("/he/%s/" % cast.tower), "the cast's tower voice")
+	print("Hebrew: %d calls, %d clips" % [calls.size(), clips])
+	settings().language = "en"
