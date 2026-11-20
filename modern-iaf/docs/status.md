@@ -73,11 +73,14 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   US Air Force's front-seat photo of a colour-display F-16C from that photo's fitted camera (its depth inferred).
   `test_sim_mfd.gd` checks each F-16's HUD node and, with `test_sim_missiles.gd`, that the combiner holds the field and
   every Real HUD symbol, in `test_sim_mfd.gd` also with every readout at its widest, in the project's window size: the
-  Barak's field ±4.8°, the Sufa's ±6.0° (since 2026-11-20, the user's "Do the fix": the right data column sits under
-  the altitude scale, as in the dash-34, and the fields widened by the inset that freed; ±4.0° and ±5.6° before).
-  Since 2026-11-20 two symbols stay off that column on both F-16s: ALT AUTO's `AR` box sits on the thermometer's
-  index, and the roll indicator's arc shrinks the least that keeps its tics clear of the columns (docs/real-hud.md
-  "Scales"; `real_hud::f16::tests::ar_and_the_roll_tics_stay_off_the_text`). The F-16D manual's HUD pictures show its
+  Barak's field ±4.8°, the Sufa's ±6.0° (since 2026-11-20, the user's "Do the fix": the right data column was moved
+  under the altitude scale, as in the dash-34, and the fields widened by the inset that freed; ±4.0° and ±5.6° before).
+  Since 2026-11-20 ALT AUTO's `AR` box sits on the thermometer's index, off the right column. The lower data block
+  is centred: the two data columns sit symmetric about the HUD centre (cockpit.json `DataColumns`: Sufa ±66 px, about
+  the real place; Barak ±47 px, as far out as its glass holds the widest row), and the roll indicator has its real
+  70 mr radius on both jets, clear of the columns (docs/real-hud.md "Data windows", "Scales";
+  `real_hud::f16::tests::ar_and_the_roll_tics_stay_off_the_text`). Before, the block was off-centre and the arc was
+  shrunk to clear the right column. The F-16D manual's HUD pictures show its
   own frame. Open: the new HUD's maker, field of view and look.
 - **Real missile performance, the core (2026-11-19, the user's "ok so finish the missile works", avionics-plan.md
   §7):** the AIM-9M, AIM-9X, Python 5 and AIM-120 fly a physical missile: the motor's real thrust and burn, drag by Mach

@@ -130,7 +130,7 @@ layout that borrows (`"Shared"`) or names art. The units:
 | `CenterY` | −26 | 16 | the HUD's centre: the F-16s' 3.5° (42 px) under the boresight, the middle of their field; the F-35I's on the boresight |
 | `LeftBorder`, `RightBorder` | 72 (the Barak 58) | 250 | the field's half width: the Sufa's ±6.0°, the Barak's ±4.8°, the F-35I's ±20° (its helmet's 40° field) |
 | `TopBorder`, `BottomBorder` | 66, 67 (the Barak 61, 67) | 184, 184 | the F-16s' field from 2° (the Barak's 1.6°) over the boresight to 9° under it; the F-35I's ±15° (the helmet's 30°) |
-| `RightColumnUnder` | 1 | — | the Real HUD's right data column under the altitude scale, as the dash-34 draws it (2026-11-20, docs/real-hud.md "Data windows"); without it the column starts at the scale and grows outward (the original game's) |
+| `DataColumns` | 66 (the Barak 47) | — | the Real HUD's data columns' inner edges this many px either side of the HUD centre, symmetric as the dash-34 draws them (2026-11-20, docs/real-hud.md "Data windows"): as far out as the glass holds the widest rows; without it the left column sits at the airspeed scale and the right one starts at the altitude scale and grows outward (the original game's) |
 | `Dash` | 1 | 1 | the helmet display once the combiner glass is off the screen (the DASH, the F-35I's helmet); while any of the glass shows, the HUD stays on it (2026-11-11, the Mac play test's finding 10: looking down-left at the dash the HUD jumped off its glass to the DASH) |
 
 The F-16s' field is what fits their combiners from the eye with the Real HUD's data blocks beside it (docs/cockpit.md
@@ -142,10 +142,11 @@ scales and their blocks in together, nothing rearranged): the Sufa's none, the B
 the top, where the field's top corners met the bar. `_hud_scale_shot.gd` `SHOT_FIT=1` finds them (headless: the widest
 side border, from 72 down, that holds at the wide view and zoomed in, in the project's window).
 
-The right side sets the sides' inset. Since 2026-11-20 the right-hand column sits under the altitude scale
-(`RightColumnUnder`), its rows starting 25 px inboard of the scale's line, as the dash-34 draws it (docs/real-hud.md "Data windows"); it moves out with
-the scale for the DLZ and for a GPS bomb's cues. The widest thing on the right is then the altitude scale's index box
-("49,990") beside the A-A layout's DLZ (inferred from the layout). The left-hand column grows outward, but its texts
+The right side sets the sides' inset. The widest thing on the right is the altitude scale's index box ("49,990")
+beside the A-A layout's DLZ (inferred from the layout). The data columns do not follow the field: `DataColumns` puts
+them symmetric about the HUD centre, as far out as the glass holds the right column's widest row ("AL 10000") with
+1 px to spare, and they stay in place when the DLZ or a GPS bomb's cues move the altitude scale (2026-11-20; before,
+the right-hand column started 25 px inboard of the altitude scale's line and moved out with it). The left-hand column grows outward, but its texts
 have five characters at most, and the airspeed box has a fixed width. The glass is centred on the field to 1.2 px
 (0.1°, left of the centre), so both sides take the same inset. From 2026-11-19 to 20 the right-hand column started at
 the altitude scale and grew outward, and its widest rows ("R 49,990", "AL 10000") held the fields at 67 and 48 px.
@@ -156,8 +157,9 @@ measured no text at the wide view and too narrow a text zoomed in. `test_sim_mfd
 readout at its widest in each master mode: `tests/godot/base.gd` `widest_real_hud_points`) now sizes the window as the
 project's 1,920 × 1,080 first (`project_window`). With `test_sim_missiles.gd` (A-A at SHOOT) it checks that the field's
 corners and every Real HUD symbol lie inside the glass seen from the eye, and `test_sim_mfd.gd` that DED DATA's
-characters keep the text's own spacing there (`base.gd` `ded_packed`): the fitted fields leave less room between the
-data columns than the DED's 24 characters need, so the block is drawn smaller as a whole ([ufc.md](ufc.md) §4). The real F-16 HUD shows
+characters keep the text's own spacing there (`base.gd` `ded_packed`): the Barak's glass leaves less room between the
+data columns than the DED's 24 characters need, so its block is drawn smaller as a whole; the Sufa's is full size
+([ufc.md](ufc.md) §4). The real F-16 HUD shows
 20° × 13.5° (`real_hud/mod.rs` `fov_deg`) to the two eyes; the 3D combiners are smaller from the camera, one eye
 (inferred). The text has the real angular size, while the real scales stand ±7.9° out against ours ±4.8° and ±3.7°
 ([../../docs/real-hud.md](../../docs/real-hud.md) "Text and symbol sizes", 2026-11-20). The F-35I's helmet

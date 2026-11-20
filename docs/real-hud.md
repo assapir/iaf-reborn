@@ -84,13 +84,17 @@ test-pilot accounts[^f16net].
   altitude index on that row (since 2026-11-20; the two covered each other).
 - Roll indicator: tics on a 70 mr arc centred 50 mr below the FOV centre, every 10° to ±45°. With "Real HUD view"
   (see "Real view") it sits at that place. With the original view the glass is shorter than the real field, so ours
-  raises the arc until its lowest tic stays inside the glass.
+  raises the arc until its lowest tic stays inside the glass, but never so far that the pointer at 45° bank reaches
+  the heading scale's lower position (its steering tick).
   - The real arc sits between the data columns: its ±45° tics are about 50 mr inboard of the right column (figs.
-    1-110 / 1-115). Modern IAF's F-16s, whose fitted glass brings the right column under the altitude scale (see
-    "Data windows"), shrink the arc the least that keeps its tics 2 px clear of both columns. The pointer keeps its
-    size, and the arc keeps one size when the DLZ or the GPS cues move the column outward. The arc's radius: 41 px on
-    the Sufa, 22 px on the Barak, against the real 70 mr (48 px). Until 2026-11-20 the tics crossed the column's `AL`
-    row on both jets and the Barak's slant range row (`f16.rs` `roll_indicator`).
+    1-110 / 1-115). On Modern IAF's F-16s the columns sit symmetric about the centre (see "Data windows"), so the arc
+    has its real 70 mr radius (48 px) on both jets. Its ±45° tics end 35.7 px from the centre: 30 px clear of the
+    columns on the Sufa, 11 px on the Barak. A layout whose columns stand closer shrinks the arc the least that keeps
+    its tics 2 px clear of them, the pointer at its size (`f16.rs` `roll_indicator`).
+  - History: until 2026-11-20 the tics crossed the right column's `AL` row on both jets and the Barak's slant range
+    row. The first fix (2026-11-20) shrank the arc to 41 px on the Sufa and 22 px on the Barak. The same day the user
+    asked for the block to be centred ("you have plenty of room in the left, center it as it should and there will be
+    enough room for the roll indicator"); since then the columns are symmetric and the arc has its real size.
 
 **Ladder / markers**[^dash34]
 - Pitch ladder ("attitude bars"): a bar every 5° to ±60°, compressed beyond.
@@ -116,15 +120,30 @@ test-pilot accounts[^f16net].
 - Centre: `WARN`, `FUEL` (flashing at bingo). The MLU puts `SHOOT` in the same window.
 - Right column, under the altitude scale: its windows start about 36 mrad inboard of the scale's line (four
   characters inboard of the scale's inner edge), and the longest ends at the scale's outer edge (figs. 1-110, 1-115).
-  Modern IAF's F-16s since 2026-11-20 (the user's "Do the fix"; cockpit.json `[HUD]` `RightColumnUnder`, `f16.rs`
-  `right_under`): the rows start 25 px (36 mrad) inboard of the scale's line, four 5 px cells inboard of its ticks.
-  The original game's Real HUD keeps its column starting at the scale and growing outward, as both games drew it
-  before.
   - `R xx,xxx`; `AL 200`;
   - slant range with a sensor letter: `B115.0` steerpoint, `F02.5` FCR (fire-control radar), `F 060` = 6,000 ft below
     1 NM;
   - time: `MMM:SS` to the steerpoint / release, or closure in the A-A gun mode;
   - steerpoint `distance>number` (`020>03`).
+- The two columns stand almost symmetric about the HUD centre: the left one's inner edge at −92 mrad, the right one's
+  at +102 mrad.
+- Modern IAF's F-16s (cockpit.json `[HUD]` `DataColumns`, `f16.rs` `columns`): the columns' inner edges sit
+  symmetric about the HUD centre, as far out as the glass holds the widest rows ("AL 10000", 41.5 px), with 1 px to
+  spare. They stay in place when the DLZ or the GPS cues move the altitude scale outward.
+
+  | | Real (dash-34) | Sufa | Barak |
+  |---|---|---|---|
+  | Inner edges | −92 / +102 mrad | ±66 px (±96 mrad) | ±47 px (±68 mrad) |
+  | Inset from the real place | — | the right column 4 px in, the left one 3 px out | the right column 23 px in, the left one 16 px in |
+
+  - On the Sufa the result is about the real place. On the Barak the glass ends 88 to 90.5 px from the centre at the rows' height (measured headless at the
+    project's window size).
+  - Before (2026-11-20, the user's "Do the fix") the right column started 25 px inboard of the altitude scale's line
+    and moved out with it, and the left column stayed at the airspeed scale. The block was off-centre: Sufa −54 /
+    +33 px, Barak −40 / +19 px. Then the user asked for it centred ("you have plenty of room in the left, center it
+    as it should and there will be enough room for the roll indicator", 2026-11-20).
+- The original game's Real HUD keeps its left column at the airspeed scale and its right column starting at the
+  altitude scale and growing outward.
 
 **Text and symbol sizes** (2026-11-20, the user's "check for the real proportion of the text", 19 Nov)
 - The F-16's text sizes are not published. MIL-STD-1787, which sets HUD symbol sizes, is a controlled-distribution
@@ -149,21 +168,24 @@ test-pilot accounts[^f16net].
 | Row pitch | 14.8 mrad (fig. 1-115) | 13.1 mrad (`ROW` 9 px) |
 | Airspeed scale height | 104 to 108 mrad | 105 mrad (`TAPE_HALF` 36 px) |
 | Scales from the centre | ±138 mrad (±7.9°) | Sufa ±85 mrad (±4.8°), Barak ±64 mrad (±3.7°); before 2026-11-20 ±77 / ±50 mrad |
-| Left column's inner edge | −92 mrad | Sufa −79, Barak −58 mrad; before −71 / −44 |
-| Right column | +102 to +154 mrad: under the altitude scale, mostly inboard, ending at the scale's outer edge | Sufa +48, Barak +28 mrad on: under the scale, 36 mrad inboard of it; before +80 / +52 mrad on, from the scale outward |
-| Gap between the columns | 194 mrad (25 characters; DED DATA's 24 fill it) | Sufa 127 mrad (79 px for DED DATA), Barak 86 mrad (51 px); before 152 / 96 mrad (96 / 58 px) |
+| Left column's inner edge | −92 mrad | Sufa −96, Barak −68 mrad (symmetric with the right one); before −79 / −58 |
+| Right column | +102 to +154 mrad: under the altitude scale, mostly inboard, ending at the scale's outer edge | Sufa +96, Barak +68 mrad on, the rows ending near the glass's edge; before +48 / +28 mrad on |
+| Gap between the columns | 194 mrad (25 characters; DED DATA's 24 fill it) | Sufa 192 mrad (124 px for DED DATA), Barak 137 mrad (86 px); before 127 / 86 mrad (79 / 51 px) |
 | Text against the field | a character 2.2 % of the 20° IFOV, a row 6.3 % of the 13.5° | the same angles (the glass seen from the camera: Sufa ±8.9°, inferred from the fit; Barak ±7.4°) |
 
 - Result: our text and scales have the real angular size. Our characters are about as wide as the real ones and
   10 to 25 % lower; the airspeed scale is the same height. The difference is the field. The real scales stand ±7.9°
   out, and the real layout reaches ±8.8°, which the pilot sees with the two eyes and the head. Our camera is one eye:
   through the combiner it sees ±8.9° on the Sufa and ±7.4° on the Barak. The least inset that keeps everything on
-  the glass (modern-iaf/docs/cockpit.md §4) puts the scales at ±4.8° and ±3.7°. The columns sit closer together than
-  the real ones, and the 24 characters of DED DATA (175 mrad at our size) do not fit between them.
+  the glass (modern-iaf/docs/cockpit.md §4) puts the scales at ±4.8° and ±3.7°. The data columns are not tied to the
+  scales: on the Sufa they sit about at their real place, and the 24 characters of DED DATA (175 mrad at our size) fit
+  between them; on the Barak they sit closer together and the block is drawn smaller.
 - 2026-11-20, the right column moved under the altitude scale as in the dash-34. The fields widened by the inset that
   freed (Sufa 67 → 72 px, the original's full width; Barak 48 → 58), but the column moved in further than the field
   widened. The gap for DED DATA narrowed: 96 → 79 px on the Sufa (the block at 66 %, was 80 %), 58 → 51 px on the
   Barak (42 %, was 48 %).
+- 2026-11-20, later: the columns sit symmetric about the centre (see "Data windows"). The gap for DED DATA widened:
+  79 → 124 px on the Sufa (the block at its full size), 51 → 86 px on the Barak (72 %).
 - To keep the real proportion inside our glass, the text and the layout would have to shrink to about 0.78× on the
   Sufa and 0.67× on the Barak: a capital 6 to 7 screen px tall in the wide view at 1,920 × 1,080, against 9 today.
   Not built (for the user to decide).
@@ -914,10 +936,9 @@ its scale. The original HUD keeps the original layout.
     other data windows and at their row pitch: the normal text size (inferred from the figure). Ours: the five lines
     one character per cell in that gap from the right column's second row down (inferred place), the block smaller as
     a whole where the gap is narrower than it (the characters never closer than the text's own spacing). At the normal
-    size the 24 columns are 120 px; the fitted fields leave 79 px between the columns on the Sufa (the block at 66 %)
-    and 51 px on the Barak (42 %), whose whole field is 116 px (modern-iaf/docs/cockpit.md §4; 96 and 58 px before the
-    right column moved under the altitude scale, 2026-11-20). The text has the real angular size; the gap is narrower
-    because the fitted fields are (why: "F-16C/D", "Text and symbol sizes"). No
+    size the 24 columns are 120 px. The columns, symmetric about the centre ("Data windows"), leave 124 px between
+    them on the Sufa (the block at its full size) and 86 px on the Barak (72 %) (2026-11-20; before, 79 and 51 px). The text has the real angular size; the Barak's
+    gap is narrower because its glass holds its columns closer together ("Data windows"). No
     roll indicator meanwhile ("not displayed [when] DED or
     PFLD data is displayed on the HUD", a simulator forum quoting the jet's manual[^dcs-roll]).
   - `FUEL` below the bingo flashes in both games since 2026-11-17 (the dash-34's window 6; it was steady before).

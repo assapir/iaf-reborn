@@ -9,7 +9,7 @@
   "RightBorder": 58,
   "TopBorder": 61,
   "BottomBorder": 67,
-  "RightColumnUnder": 1,
+  "DataColumns": 47,
   "Dash": 1
  },
  "MFD": {

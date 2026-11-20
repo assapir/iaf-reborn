@@ -100,19 +100,22 @@ pub(super) fn frame(f: Field, i: &Input, max_g: f64, fuel_reset: bool) -> Frame 
     // and gear down.
     let hdg_y = if i.gear_down || matches!(mode, 5..=7) { f.top + 10.0 } else { tape_y + TAPE_HALF + 6.0 };
     // The left column (ARM, Mach, max g, the mode / weapon) ends at `lx`. The right column (radar altitude, slant
-    // range, time, steerpoint) starts at `rx`. `right_under` (Modern IAF's F-16s): under the altitude scale, its rows
-    // starting four character cells inboard of the scale's ticks (dash-34 figs. 1-110 / 1-115: the windows start that
-    // far inboard and the longest ends at the scale's outer edge; docs/real-hud.md "Data windows"). Else from the
-    // scale outward (the original game's Real HUD).
-    let (lx, ly) = (sc.left + 4.0, tape_y + TAPE_HALF + 12.0);
-    let rx = if i.right_under { alt_x - 5.0 - 4.0 * CHAR_W } else { alt_x + 2.0 };
+    // range, time, steerpoint) starts at `rx`. `columns` (Modern IAF's F-16s): symmetric about the HUD centre, fixed
+    // while the DLZ or the GPS cues move the altitude scale (dash-34 figs. 1-110 / 1-115: −92 / +102 mrad;
+    // docs/real-hud.md "Data windows"). Else the original game's Real HUD: the left one at the airspeed scale, the
+    // right one from the altitude scale outward.
+    let ly = tape_y + TAPE_HALF + 12.0;
+    let (lx, rx) = match i.columns {
+        Some(g) => (-g, g),
+        None => (sc.left + 4.0, alt_x + 2.0),
+    };
     // EEGS has neither the heading scale nor the roll indicator (fig. 1-257); DED DATA's lines replace the roll
     // indicator (the dash-34 as a simulator forum quotes it, docs/real-hud.md "F-16C/D").
     if mode != 3 && scales {
         heading(o, hdg_y, i.heading_deg, i.steerpoint.map(|s| s.bearing_deg));
         if pn.ded.is_empty() {
-            // The gap from the column's place without the DLZ's or GPS cues' shift: the arc keeps one size.
-            roll_indicator(o, i, f.bottom, (rx - (alt_x - sc.right)).min(-lx));
+            // The gap from the right column's place without the DLZ's or GPS cues' shift: the arc keeps one size.
+            roll_indicator(o, i, (hdg_y + 7.0, f.bottom), i.columns.unwrap_or(sc.right + 2.0).min(-lx));
         }
     }
     let mut row = 0.0;
@@ -738,15 +741,19 @@ fn ded_block(o: &mut Vec<Prim>, lines: &[String], (left, right): (f64, f64), y: 
 /// pointer at the bank angle (limited to ±45°).
 /// Its centre 50 mr below the FOV centre. With the original view the cockpit art's glass is shorter than the real
 /// field of view, so ours raises it until its lowest tic stays above `bottom`; Real HUD view fits it (`Jet::fov_deg`).
+/// It never rises so far that the pointer at ±45° comes within 1 px of `top`, the heading scale's lowest line (its
+/// steering tick): on a field shorter than 134 px the heading scale's lower position meets the raised arc, and the
+/// arc then reaches a little below `bottom` (Modern IAF's F-16s, whose glass goes on below their field; since
+/// 2026-11-20, when their arc got its real size back).
 /// The real arc sits between the data columns, its ±45° tics about 50 mr inboard of the right column (dash-34 figs.
-/// 1-110 / 1-115). `gap`: the columns' inner edges' least distance from the centre; on a glass narrower than the real
-/// field (Modern IAF's F-16s, their right column under the altitude scale) the arc shrinks the least that keeps its
-/// tics 2 px clear of them, the pointer its size (since 2026-11-20; before, the tics crossed the column's rows).
-fn roll_indicator(p: &mut Vec<Prim>, i: &Input, bottom: f64, gap: f64) {
+/// 1-110 / 1-115). `gap`: the columns' inner edges' least distance from the centre; where they stand closer than the
+/// arc needs, it shrinks the least that keeps its tics 2 px clear of them, the pointer its size. Modern IAF's F-16s
+/// leave it room at the real size since their columns sit symmetric (2026-11-20).
+fn roll_indicator(p: &mut Vec<Prim>, i: &Input, (top, bottom): (f64, f64), gap: f64) {
     let real = i.mr(70.0);
     let r = real.min((gap - 2.0) * std::f64::consts::SQRT_2 - 2.5);
     let w = 3.0 * (real / r); // the pointer's half width: 3° on the real arc (exactly, unshrunk)
-    let c = (0.0, i.mr(50.0).min(bottom - r - 4.0));
+    let c = (0.0, i.mr(50.0).min(bottom - r - 4.0).max(top + 1.0 - (r - 5.0) * (45.0 + w).to_radians().cos()));
     let at = |deg: f64, rr: f64| {
         let a = deg.to_radians();
         (c.0 - rr * a.sin(), c.1 + rr * a.cos())
@@ -906,15 +913,15 @@ mod tests {
     #[test]
     fn ded_data_overlaps_nothing_in_any_mode() {
         let full: Vec<String> = (0..5).map(|_| "8".repeat(24)).collect();
-        // FIELD, a narrower field (125 px between the columns), and the Sufa's and the Barak's fields (cockpit.json).
+        // FIELD, a narrower field (125 px between the columns), and the Sufa's and the Barak's fields with their
+        // columns (cockpit.json `DataColumns`).
         let narrow = Field { left: -77.5, right: 77.5, ..FIELD };
-        // The Sufa's and the Barak's with their right column under the altitude scale (`right_under`).
         let (sufa, barak) = (Field { left: -72.0, right: 72.0, ..FIELD }, Field { left: -58.0, right: 58.0, ..FIELD });
-        let fields = [(FIELD, false), (narrow, false), (sufa, true), (barak, true)];
-        for ((f, under), mode) in fields.into_iter().flat_map(|f| [0, 1, 2, 3, 5, 6, 7].map(|m| (f, m))) {
+        let fields = [(FIELD, None), (narrow, None), (sufa, Some(SUFA_COLUMNS)), (barak, Some(BARAK_COLUMNS))];
+        for ((f, columns), mode) in fields.into_iter().flat_map(|f| [0, 1, 2, 3, 5, 6, 7].map(|m| (f, m))) {
             for scales in [Scales::Vah, Scales::VvVah] {
                 let mut i = input(Jet::F16);
-                i.right_under = under;
+                i.columns = columns;
                 i.weapons.hud_mode = mode;
                 i.agl_ft = Some(800.0);
                 i.panel.scales = scales;
@@ -945,11 +952,15 @@ mod tests {
         }
     }
 
+    /// The Sufa's and the Barak's data columns (cockpit.json `[HUD]` `DataColumns`).
+    const SUFA_COLUMNS: f64 = 66.0;
+    const BARAK_COLUMNS: f64 = 47.0;
+
     #[test]
     fn ar_and_the_roll_tics_stay_off_the_text() {
-        // The Sufa's and the Barak's fields (cockpit.json [HUD] borders), their right column under the altitude scale.
-        let sufa = Field { left: -72.0, top: -66.0, right: 72.0, bottom: 67.0 };
-        let barak = Field { left: -58.0, top: -61.0, right: 58.0, bottom: 67.0 };
+        // The Sufa's and the Barak's fields (cockpit.json [HUD] borders) with their columns.
+        let sufa = (Field { left: -72.0, top: -66.0, right: 72.0, bottom: 67.0 }, SUFA_COLUMNS);
+        let barak = (Field { left: -58.0, top: -61.0, right: 58.0, bottom: 67.0 }, BARAK_COLUMNS);
         let hit = |a: (f64, f64, f64, f64), b: (f64, f64, f64, f64)| {
             a.0 < b.2 - 0.5 && b.0 < a.2 - 0.5 && a.1 < b.3 - 0.5 && b.1 < a.3 - 0.5
         };
@@ -960,18 +971,34 @@ mod tests {
             let no_roll = frame(f, &no, 1.0, false).outer;
             frame(f, i, 1.0, false).outer.into_iter().filter(|p| !no_roll.contains(p)).collect::<Vec<_>>()
         };
-        for f in [sufa, barak] {
+        for (f, columns) in [sufa, barak] {
             for (alt, scales) in
                 [AltSwitch::Auto, AltSwitch::Radar].into_iter().flat_map(|a| [(a, Scales::Vah), (a, Scales::VvVah)])
             {
                 let mut i = input(Jet::F16);
-                i.right_under = true;
+                i.columns = Some(columns);
                 i.agl_ft = Some(800.0);
                 i.panel.alt = alt;
                 i.panel.scales = scales;
                 let all = frame(f, &i, 1.0, false).outer;
                 let tics: Vec<_> = roll(f, &i).iter().map(bbox).collect();
                 assert_eq!(tics.len(), 12, "nine tics and the pointer's three lines");
+                // The real 70 mr arc: its ±45° tics' outer ends (2.5 px long) at r sin 45° either side.
+                let reach = tics.iter().fold(0.0_f64, |m, t| m.max(t.0.abs()).max(t.2.abs()));
+                let real = (i.mr(70.0) + 2.5) * std::f64::consts::FRAC_1_SQRT_2;
+                assert!((reach - real).abs() < 1e-9, "{f:?}: the arc at the real size ({reach} against {real})");
+                // The pointer at ±45° stays 1 px under the heading scale's steering tick (its lowest line, 7 px under
+                // the scale's baseline in its lower position).
+                for bank in [-45.0, 45.0] {
+                    i.roll_deg = bank;
+                    let lines = roll(f, &i);
+                    let top = lines[9..].iter().map(|l| bbox(l).1).fold(f64::MAX, f64::min);
+                    let tick = f.centre_y() - 6.0 + TAPE_HALF + 6.0 + 7.0;
+                    assert!(
+                        top >= tick + 1.0 - 1e-9,
+                        "{f:?} {bank}°: the pointer at {top}, the steering tick to {tick}"
+                    );
+                }
                 let texts: Vec<&Prim> = all.iter().filter(|p| matches!(p, Prim::Text { .. })).collect();
                 for (t, r) in texts.iter().flat_map(|t| tics.iter().map(move |r| (t, r))) {
                     assert!(!hit(bbox(t), *r), "{f:?} {alt:?}: a roll tic {r:?} on {t:?}");
@@ -987,9 +1014,9 @@ mod tests {
                     assert!(!hit(bbox(a), bbox(t)), "{f:?} {alt:?} {scales:?}: {a:?} on {t:?}");
                 }
             }
-            // The arc keeps its size when the DLZ moves the altitude scale and the column outward.
+            // The arc keeps its size when the DLZ moves the altitude scale outward.
             let mut i = input(Jet::F16);
-            i.right_under = true;
+            i.columns = Some(columns);
             i.weapons.hud_mode = 1;
             let plain = roll(f, &i);
             i.target =
@@ -1000,19 +1027,25 @@ mod tests {
     }
 
     #[test]
-    fn the_right_column_sits_under_the_altitude_scale_with_right_under() {
+    fn the_data_columns_sit_symmetric_with_columns() {
         let mut i = input(Jet::F16);
         i.agl_ft = Some(4670.0);
-        let r_x = |i: &Input| {
-            frame(FIELD, i, 1.0, false).outer.iter().find_map(|p| match p {
-                Prim::Text { at, text, .. } if text == "R 4,670" => Some(at.0),
-                _ => None,
-            })
+        // The right column's `R` row and the left column's Mach: their inner edges.
+        let edges = |i: &Input| {
+            let o = frame(FIELD, i, 1.0, false).outer;
+            let at =
+                |t: &str| o.iter().find_map(|p| matches!(p, Prim::Text { text, .. } if text == t).then(|| bbox(p)));
+            (at("0.85").map(|b| b.2), at("R 4,670").map(|b| b.0))
         };
-        let alt_x = FIELD.inset(INSET).right;
-        assert_eq!(r_x(&i), Some(alt_x + 2.0), "the original game's: from the scale outward");
-        i.right_under = true;
-        assert_eq!(r_x(&i), Some(alt_x - 5.0 - 4.0 * CHAR_W), "four cells inboard of the scale's ticks");
+        let sc = FIELD.inset(INSET);
+        assert_eq!(edges(&i), (Some(sc.left + 4.0), Some(sc.right + 2.0)), "the original game's: at the scales");
+        i.columns = Some(SUFA_COLUMNS);
+        assert_eq!(edges(&i), (Some(-SUFA_COLUMNS), Some(SUFA_COLUMNS)), "symmetric about the centre");
+        // Fixed while the DLZ moves the altitude scale outward.
+        i.weapons.hud_mode = 1;
+        i.target = Some(Target { range_m: 3000.0, closure: 120.0, at: Some((10.0, -8.0)), aspect: None, ident: None });
+        i.dlz = Some(Dlz { max: 9000.0, min: 900.0 });
+        assert_eq!(edges(&i), (Some(-SUFA_COLUMNS), Some(SUFA_COLUMNS)), "with the DLZ");
     }
 
     #[test]
