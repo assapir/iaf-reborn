@@ -206,8 +206,10 @@ func _dials(c, name: String, phase: String) -> void:
 		gone.all(func(k): return not a.has(k)),
 		"%s (%s): the moved records leave their original dials (%s)" % [name, phase, gone]
 	)
+	# AB 1's nozzle is 50 %, reached with NozzleLag's 0.8 s lag (docs/cockpit.md, since 2026-11-16): 1 s after AB 1
+	# lights it is 50 - 45 e^(-1 / 0.8) = 37 % on its way up from military's 5 %.
 	if want.has("NOZ POS") and int(st.get("afterburner", 0)) > 0:
-		check(no[0] >= 50.0, "%s (%s): the nozzle opens in AB (%.0f %%)" % [name, phase, no[0]])
+		check(no[0] > 35.0 and no[0] <= 50.0, "%s (%s): the nozzle opens in AB (%.0f %%)" % [name, phase, no[0]])
 
 
 func _folder(c) -> String:
