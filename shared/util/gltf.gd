@@ -334,6 +334,7 @@ const STORES := {
 	"cbu93_m.gltf": "cbu87",
 	"f16ftk_m.gltf": "f16ftk",
 	"f16ftkm.gltf": "f16ftkm",
+	"f16ftk600_m.gltf": "f16ftk600",
 	"ecmpod_m.gltf": "ecmpod",
 	"flrpod_m.gltf": "flrpod",
 	"litening_m.gltf": "litening",

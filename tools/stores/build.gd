@@ -94,6 +94,17 @@ const STORES := {
 		"ac": ["External-stores/Fueltanks/370G.ac"],
 		"livery": "Liveries/Block40/90-0874.png"
 	},
+	# Modern IAF's 600 US gal wing tank (tank-600): FlightGear's 600G.ac (5.736 m by 0.830 m) at the real 238.5 in
+	# (6.058 m) by 32.6 in (0.828 m) (SOURCES.md), on the 370's original, painted as the 370. It hangs by its top
+	# on the pylon (weapons/stores.gd LUGGED).
+	"f16ftk600":
+	{
+		"orig": "f16ftk/f16ftk_m.gltf",
+		"ac": ["External-stores/Fueltanks/600G.ac"],
+		"livery": "Liveries/Block40/90-0874.png",
+		"len": 6.058,
+		"girth": 0.9446
+	},
 	"f16ftkm":
 	{
 		"orig": "f16ftk/f16ftkm.gltf",

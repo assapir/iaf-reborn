@@ -1261,7 +1261,7 @@ the pipper and the impact stay together.
 | Mk 82 | 4.2 | SPICE 2000 | 14.8 |
 | Mk 83 | 6.9 | Delilah | 7.7 |
 | Mk 84 | 11.8 | 370 gal tank | 19.1 |
-| GBU-31 | 14.9 | 600 gal tank | 26.4 |
+| GBU-31 | 14.9 | 600 gal tank | 29.0 |
 
 Result (`stores_drag_follows_the_drag_index`, tests/sixdof.rs): two 370 gal tanks add the same drag force to all three
 jets at 400 kt and 10,000 ft (within 3 %), cut the Sufa's sea-level top speed and raise its cruise fuel flow.

@@ -548,6 +548,7 @@ authors and changes in `SOURCES.md` there). They show on every jet that carries 
 | MK-83L, MK-84L | MK-83 / MK-84 with the GBU-12's Paveway II kits (a GBU-16 / GBU-10 look; inferred) | 6 002, 6 050 |
 | CBU-87, CBU-97 | CBU-87 (simplified from 23 500) | 4 890 |
 | 2700LB, 2100LB (the F-16's tanks) | 370 gal, 300 gal tanks in the IAF livery's paint | 2 102, 2 014 |
+| 4006LB (Modern IAF's 600 US gal tank, `weapons/sufa/f16ftk600_m.gltf`) | 600 gal tank (5.736 m by 0.830 m) at the real 6.058 m by 0.828 m, in the IAF livery's paint | 2 086 |
 | ECM | AN/ALQ-131 | 1 284 |
 | FLIR | AN/AAQ-13 (LANTIRN) | 938 |
 | Litening (Modern IAF's targeting pod, `weapons/sufa/litening_m.gltf`) | AN/AAQ-28 (Litening AT) at the real 2.20 m by 0.406 m, on the FLIR pod's place | 2 059 |
@@ -609,7 +610,7 @@ models keep FlightGear's proportions: their fins differ in span from the origina
   ≈ 3 ms each): ≈ 3 MB of video memory for the first 16, against ≈ 23 MB uncompressed.
 - Cost (estimated, not measured): an F-16 with nine detailed stores draws ≈ 20–35 k more triangles close up, a few
   thousand at a distance (the LODs) and the original's few hundred beyond 800 m; one draw per store and texture as
-  before. Files: 4.5 MB in the repo (38 models; the five Soviet ones 0.65 MB, ours of §5.6 0.36 MB).
+  before. Files: 4.6 MB in the repo (39 models; the five Soviet ones 0.65 MB, ours of §5.6 0.36 MB).
 
 ### 5.3 Rebuilding the stores
 

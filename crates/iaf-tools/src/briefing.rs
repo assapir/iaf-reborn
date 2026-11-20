@@ -993,10 +993,11 @@ mod tests {
             c["slots"]["3"],
             json!({"id": "mk-82", "count": 3, "max": 3, "pylon": 2, "kg": (3.0f64 * 241.0 + 47.6).round()})
         );
-        // The store without a model of ours (the 600 gal tank) is not ready to fly; the Delilah is neither listed nor
-        // allowed anywhere (dropped for now, the user 2026-11-14: no cruise-missile flight class).
-        let not_ready: Vec<_> = c["inventory"].as_array().unwrap().iter().filter(|e| e["ready"] == false).collect();
-        assert_eq!(not_ready.iter().map(|e| e["id"].clone()).collect::<Vec<_>>(), [json!("tank-600")]);
+        // Every listed store has a model of ours, the 600 gal tank too, so all are ready to fly; the Delilah is neither
+        // listed nor allowed anywhere (dropped for now, the user 2026-11-14: no cruise-missile flight class).
+        let inv = c["inventory"].as_array().unwrap();
+        assert!(inv.iter().any(|e| e["id"] == "tank-600" && e["ready"] == true), "{inv:?}");
+        assert!(inv.iter().all(|e| e["ready"] == true), "{inv:?}");
         assert!(!c.to_string().contains("delilah"), "the Delilah is not offered");
         assert_eq!(c["allowed"]["3"][2], json!({"id": "mk-82", "count": 3}));
         let groups: Vec<_> = a["inventory"].as_array().unwrap().iter().map(|e| e["group"].clone()).collect();

@@ -42,6 +42,7 @@ Under `Models/` in the FlightGear F-16, unless the row names another aircraft.
 | `mk83lb.glb`, `mk84lb.glb` | MK-83L, MK-84L | the MK-83 / MK-84 above with the GBU-12's guidance and tail kits |
 | `cbu87.glb` | CBU-87, CBU-97 | `Armament/Weapons/CBU-87/CBU-87.ac`, `CBU-87.png` |
 | `f16ftk.glb` | the F-16's 2700 lb (370 gal) wing tank | `Armament/External-stores/Fueltanks/370G.ac`, `Liveries/Block40/90-0874.png` |
+| `f16ftk600.glb` | Modern IAF's 600 US gal wing tank (`tank-600`) | `Armament/External-stores/Fueltanks/600G.ac`, `Liveries/Block40/90-0874.png`; FlightGear's 5.736 m by 0.830 m tank scaled to the real 238.5 in (6.058 m) by 32.6 in (0.828 m) of IMI's 600 gal F-16 tank (Solo Aviation, "External Fuel Drop Tanks: IMI - 600 Gallon fuel tanks", https://www.oocities.org/capecanaveral/5415/fuel.html): 5.6 % longer, 5.5 % slimmer than uniform; its fit checked on photos (looked at only): Commons "IAF-F-16I-2016-12-13.jpg" (Maj. Ofer, IAF, CC BY 4.0) and "F-16I-Sufa-803-pic02.jpg" (Zachi Evenor, CC BY 2.0) |
 | `f16ftkm.glb` | the F-16's 2100 lb (300 gal) centreline tank | `Armament/External-stores/Fueltanks/300G.ac`, `Liveries/Block40/90-0874.png` |
 | `ecmpod.glb` | ECM pod | `Armament/External-stores/AN_ALQ-131/AN_ALQ-131.ac`, `AN_ALQ-131.png` |
 | `flrpod.glb` | FLIR pod | `Armament/External-stores/LANTIRN/AN-AAQ-13.ac`, `AN-AAQ-13.png` |

@@ -998,7 +998,8 @@ The Sufa's take-off, its own loadout beside a saved one, the Adir's with its bay
   takes; the arrows move through the stores, Enter hangs the store (its mirror's too with Mirror on). An
   "Empty" / "ריק" entry heads the stores while a picked callout holds a store: Enter there takes it off. Esc leaves
   the callout as it was (a second Esc goes back to the briefing).
-- **Not yet flyable.** A store whose record has no model of ours (the 600 US gal tank) is greyed in STORES: it neither drags nor takes the focus, and nothing says why (the user, A15
+- **Not yet flyable.** A store whose record has no model of ours is greyed in STORES (every listed store has one
+  since the 600 US gal tank's, 2026-11-20): it neither drags nor takes the focus, and nothing says why (the user, A15
   round 3: "disabled for now"). Its record stays.
 - **The rack's count.** The "×n" badge on a rack's callout is a control: a click takes one store off, from one back to the
   full rack (a TER 3 → 2 → 1 → 3, a BRU-57/A 2 → 1 → 2), the mirror's along with Mirror on, the weight and the

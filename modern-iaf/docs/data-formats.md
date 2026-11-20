@@ -137,8 +137,8 @@ GBU-38 (racked), SPICE 1000 / 2000, Delilah and the 600 US gal tank; the MK-84 g
 4 / 6. The Adir gains the AIM-9X on 1 / 11, the GBU-39 on 4 / 8, the GBU-31 and the AIM-120 on 3 / 9; its 2 / 10 still
 take none (no pylon in the engine). The Python 4 is left out: the Python 5 replaced it on the Sufa (inferred; no
 source says it retired). Each store is a weapon record of its own with its sourced weight and size (§4); a store with
-no model of ours (the 600 US gal tank) shows a flat silhouette in the briefing and nothing on the jet in
-flight. The MK-84's `model` is the original's file name, `weapons/mk84/mk84_m.gltf`, which Models: Detailed draws as
+no model of ours shows a flat silhouette in the briefing and nothing on the jet in flight (the 600 US gal tank until
+2026-11-20, now `shared/extra/models/stores/f16ftk600.glb`). The MK-84's `model` is the original's file name, `weapons/mk84/mk84_m.gltf`, which Models: Detailed draws as
 ours (`shared/extra/models/stores/mk84.glb`), as the AIM-9M's; the Mk 82 and Mk 83 likewise.
 
 The tank (`data/db/weapons/tank-370.json`, kind `tank`: type 660, "Shell") is named for the fuel it holds in pounds,

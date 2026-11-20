@@ -9,6 +9,7 @@ extends "res://../tests/godot/base.gd"
 const STORES := {
 	"aim-9m": "aim9.glb",
 	"tank-370": "f16ftk.glb",
+	"tank-600": "f16ftk600.glb",
 	"aim-120": "aim120.glb",
 	"mk-84": "mk84.glb",
 	"gbu-31": "gbu31.glb",

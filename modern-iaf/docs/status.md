@@ -382,7 +382,7 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   velocity plus the jet's, the M56's drag by air density, gravity) and the EEGS funnel predicts it (W2,
   [weapons.md](weapons.md) §1); the unguided bombs fall by gravity and their own drag through the wind, nothing
   steering them, and CCIP predicts that fall (W5, W6); the GPS bombs miss by their published CEP (W11); a drop tank's own empty weight loads the jet until it is
-  jettisoned (370 gal 443 lb sourced, 600 gal 611 lb inferred; F27). Shared with the original game's Weapon data Real.
+  jettisoned (370 gal 443 lb and 600 gal 380 lb, both sourced; F27). Shared with the original game's Weapon data Real.
 - **Release limits, jettisons, bay doors (2026-11-15, W17, W18, W22):** a bomb leaves only at 600 KCAS or less and in
   a dive of 60° or less; Shift+C is the F-16's emergency jettison (every store and rack but the A-A missiles and the pods in one
   press, unarmed, the tanks' fuel with them); the F-16 SMS's S-J and Space jettison the selected store with its racks;
@@ -851,8 +851,9 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   BRU-57/A's 120.2 kg sourced), and since 2026-11-14 every store's and rack's drag index (inferred from its size, none in the F-35I's bays; [flight-model.md](flight-model.md) §9.18), the bombs, guided bombs and tanks hang by their lugs under the
   F-16's pylons, and the Python 5 and SPICE 2000 fly as `modern_weapons.gd` records with their public figures. The
   Delilah is dropped for now (the user, 2026-11-14): no store list offers or carries it, as it needs a powered
-  cruise-missile flight class the engine does not have; its record stays. Open: a model of the 600 gal tank (the user, 2026-11-15:
-  "no rush"; greyed until then), a Sufa / Barak station chart.
+  cruise-missile flight class the engine does not have; its record stays. Since 2026-11-20 the 600 US gal tank has its
+  model (the user: "It should be high in priority"): FlightGear's tank at IMI's 238.5 in by 32.6 in, painted as the
+  370, on 4 / 6 under the inboard pylons, and the Loadout screen offers it. Open: a Sufa / Barak station chart.
 - **Inventory counts:** no public source gives the IAF's store counts; the records list none, so the inventory is
   unlimited. `cargo test -p iaf-tools --lib loadout`, `test_front_end.gd`,
   `test_mvp.gd --only loadout`.
