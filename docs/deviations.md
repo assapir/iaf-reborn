@@ -329,11 +329,13 @@ Each entry names the switch and where it lives, then the difference: "Original: 
     RPM on NOZ POS and TEMP on RPM, the FTIT dial static; the Kfir draws TEMP on its FUEL FLOW dial and THROTTLE on an
     unlabelled one, its EXH TEMP dial static. Better: each needle on the dial its label names (F-16: OIL pressure,
     NOZ POS, RPM, FTIT; Kfir: FUEL FLOW from the throttle, EXH TEMP), the F-16's oil pressure and nozzle from the RPM,
-    the AB stage and the gear (constants inferred); the F-16's throttle needle goes (the real jet has no throttle
-    dial). MiG-23: the airspeed on the Mach meter, RPM on the litre gauge, fuel on the EGT face, TEMP on the
-    hydraulic gauge, THROTTLE on the wing-sweep indicator, the VVI off its marks; Better: the Mach number, the fuel in
-    litres (0.78 kg/l, inferred), TEMP on the EGT face, the VVI on its marks, RPM / THROTTLE / the hydraulic needle
-    gone. MiG-29: the rpm from 12 o'clock on the tachometers, the airspeed on the radar altimeter, the vertical speed
+    the AB stage and the gear (constants inferred), the nozzle's needle (here and in the 3D cockpit, `cockpit_3d`)
+    following its value with a 0.8 s lag (inferred; since 2026-11-16: no 50 % jump at each AB stage); the F-16's
+    throttle needle goes (the real jet has no throttle dial). MiG-23: the airspeed on the Mach meter, RPM on the litre
+    gauge, fuel on the EGT face, TEMP on the hydraulic gauge, THROTTLE on the wing-sweep indicator, the VVI off its
+    marks; Better: the Mach number, the fuel in litres (0.78 kg/l, inferred), TEMP on the EGT face, the VVI on its
+    marks, RPM / THROTTLE / the hydraulic needle gone. MiG-29: the rpm from 12 o'clock on the tachometers, the
+    airspeed on the radar altimeter, the vertical speed
     on the AoA / g meter; Better: each engine's RPM on its tachometer's scale, the other two faces empty unless their
     own items are on. Other jets unchanged (cockpit.md "Panel instruments per jet").
   - **MiG-29 radar altimeter** (`radar_alt`). Original: the airspeed needle on it, its red flag painted in view.
