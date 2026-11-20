@@ -19,7 +19,7 @@ The same row is in the settings that the pause menu opens, so you can switch dur
   (auto, 1fr),
   ([Thing], [In Hebrew]),
   [The screens], [Every screen of the front end, the pause menu, the loading screen, the #term("debrief") and the setup wizard is in Hebrew, and is mirrored: what stands at the left in English stands at the right.],
-  [The radio], [The #term("tower"), the AWACS, your wingmen and your own pilot speak Hebrew, and their lines are written in Hebrew over the flight. The voices are men's and women's, and who speaks which part changes from mission to mission.],
+  [The radio], [The #term("tower"), the #term("AWACS"), your wingmen and your own pilot speak Hebrew, and their lines are written in Hebrew over the flight. The voices are men's and women's, and who speaks which part changes from mission to mission.],
   [The #term("notebook")], [The notebook's pages and its checklist are in Hebrew.],
   [Key names, numbers and clock times], [They read left to right, as in English.],
   [The licence lines in #scr("credits")], [They stay in English.],
