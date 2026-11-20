@@ -34,7 +34,7 @@
       "speed": 1.1,
       "url": "https://huggingface.co/hexgrad/Kokoro-82M",
       "licence": "Kokoro-82M v1.0 model and voice packs, Apache-2.0",
-      "use": "the player's wingmen Alpha 2–4 (radio chain): their answers and calls WNG_* (modern-iaf/docs/research/radio-terms.md)"
+      "use": "the player's wingmen Kidon 1-2 to 1-4 (radio chain): their answers and calls WNG_* (modern-iaf/docs/research/radio-terms.md)"
     }
   },
   "clips": [
@@ -171,32 +171,32 @@
       "say_he": "אזהרה, יציאה מאזור האימון, יש לפנות חזרה."
     },
     {
-      "file": "twr_alpha.ogg",
+      "file": "twr_kidon1.ogg",
       "voice": "tower",
-      "say": "Alpha",
+      "say": "[Kidon](/kidˈOn/) one",
       "mode": "particle",
-      "say_he": "אלפא"
+      "say_he": "כידון אחד"
     },
     {
-      "file": "twr_bravo.ogg",
+      "file": "twr_kidon2.ogg",
       "voice": "tower",
-      "say": "Bravo",
+      "say": "[Kidon](/kidˈOn/) two",
       "mode": "particle",
-      "say_he": "בראבו"
+      "say_he": "כידון שתיים"
     },
     {
-      "file": "twr_charlie.ogg",
+      "file": "twr_kidon3.ogg",
       "voice": "tower",
-      "say": "Charlie",
+      "say": "[Kidon](/kidˈOn/) three",
       "mode": "particle",
-      "say_he": "צ'רלי"
+      "say_he": "כידון שלוש"
     },
     {
-      "file": "twr_delta.ogg",
+      "file": "twr_kidon4.ogg",
       "voice": "tower",
-      "say": "Delta",
+      "say": "[Kidon](/kidˈOn/) four",
       "mode": "particle",
-      "say_he": "דלתא"
+      "say_he": "כידון ארבע"
     },
     {
       "file": "twr_morning.ogg",
@@ -617,21 +617,21 @@
       "voice": "tower",
       "say": "left",
       "mode": "particle",
-      "say_he": "שמאלי"
+      "say_he": "שמאל"
     },
     {
       "file": "rwyr.ogg",
       "voice": "tower",
       "say": "right",
       "mode": "particle",
-      "say_he": "ימני"
+      "say_he": "ימין"
     },
     {
       "file": "rwyc.ogg",
       "voice": "tower",
       "say": "center",
       "mode": "particle",
-      "say_he": "מרכזי"
+      "say_he": "מרכז"
     },
     {
       "file": "rwy07l.ogg",
@@ -639,7 +639,7 @@
       "say": "Taxi to runway; zero seven left.",
       "cut": "tail",
       "mode": "phrase",
-      "say_he": "אפס שבע שמאלי."
+      "say_he": "אפס שבע שמאל."
     },
     {
       "file": "rwy07r.ogg",
@@ -647,7 +647,7 @@
       "say": "Taxi to runway; zero seven right.",
       "cut": "tail",
       "mode": "phrase",
-      "say_he": "אפס שבע ימני."
+      "say_he": "אפס שבע ימין."
     },
     {
       "file": "rwy08l.ogg",
@@ -655,7 +655,7 @@
       "say": "Taxi to runway; zero eight left.",
       "cut": "tail",
       "mode": "phrase",
-      "say_he": "אפס שמונה שמאלי."
+      "say_he": "אפס שמונה שמאל."
     },
     {
       "file": "rwy08r.ogg",
@@ -663,7 +663,7 @@
       "say": "Taxi to runway; zero eight right.",
       "cut": "tail",
       "mode": "phrase",
-      "say_he": "אפס שמונה ימני."
+      "say_he": "אפס שמונה ימין."
     },
     {
       "file": "rwy10l.ogg",
@@ -671,7 +671,7 @@
       "say": "Taxi to runway; one zero left.",
       "cut": "tail",
       "mode": "phrase",
-      "say_he": "אחת אפס שמאלי."
+      "say_he": "אחת אפס שמאל."
     },
     {
       "file": "rwy10r.ogg",
@@ -679,7 +679,7 @@
       "say": "Taxi to runway; one zero right.",
       "cut": "tail",
       "mode": "phrase",
-      "say_he": "אחת אפס ימני."
+      "say_he": "אחת אפס ימין."
     },
     {
       "file": "rwy25l.ogg",
@@ -687,7 +687,7 @@
       "say": "Taxi to runway; two five left.",
       "cut": "tail",
       "mode": "phrase",
-      "say_he": "שתיים חמש שמאלי."
+      "say_he": "שתיים חמש שמאל."
     },
     {
       "file": "rwy25r.ogg",
@@ -695,7 +695,7 @@
       "say": "Taxi to runway; two five right.",
       "cut": "tail",
       "mode": "phrase",
-      "say_he": "שתיים חמש ימני."
+      "say_he": "שתיים חמש ימין."
     },
     {
       "file": "rwy26l.ogg",
@@ -703,7 +703,7 @@
       "say": "Taxi to runway; two six left.",
       "cut": "tail",
       "mode": "phrase",
-      "say_he": "שתיים שש שמאלי."
+      "say_he": "שתיים שש שמאל."
     },
     {
       "file": "rwy26r.ogg",
@@ -711,7 +711,7 @@
       "say": "Taxi to runway; two six right.",
       "cut": "tail",
       "mode": "phrase",
-      "say_he": "שתיים שש ימני."
+      "say_he": "שתיים שש ימין."
     },
     {
       "file": "rwy28l.ogg",
@@ -719,7 +719,7 @@
       "say": "Taxi to runway; two eight left.",
       "cut": "tail",
       "mode": "phrase",
-      "say_he": "שתיים שמונה שמאלי."
+      "say_he": "שתיים שמונה שמאל."
     },
     {
       "file": "rwy28r.ogg",
@@ -727,318 +727,318 @@
       "say": "Taxi to runway; two eight right.",
       "cut": "tail",
       "mode": "phrase",
-      "say_he": "שתיים שמונה ימני."
+      "say_he": "שתיים שמונה ימין."
     },
     {
-      "file": "twr_alpha_taxi_morning.ogg",
+      "file": "twr_kidon1_taxi_morning.ogg",
       "voice": "tower",
-      "say": "Alpha, good morning, taxi to runway; two seven.",
+      "say": "[Kidon](/kidˈOn/) one, good morning, taxi to runway; two seven.",
       "cut": "head",
       "mode": "phrase"
     },
     {
-      "file": "twr_alpha_taxi_afternoon.ogg",
+      "file": "twr_kidon1_taxi_afternoon.ogg",
       "voice": "tower",
-      "say": "Alpha, good afternoon, taxi to runway; two seven.",
+      "say": "[Kidon](/kidˈOn/) one, good afternoon, taxi to runway; two seven.",
       "cut": "head",
       "mode": "phrase"
     },
     {
-      "file": "twr_alpha_taxi_evening.ogg",
+      "file": "twr_kidon1_taxi_evening.ogg",
       "voice": "tower",
-      "say": "Alpha, good evening, taxi to runway; two seven.",
+      "say": "[Kidon](/kidˈOn/) one, good evening, taxi to runway; two seven.",
       "cut": "head",
       "mode": "phrase"
     },
     {
-      "file": "twr_alpha_lineup_rwy.ogg",
+      "file": "twr_kidon1_lineup_rwy.ogg",
       "voice": "tower",
-      "say": "Alpha, line up runway; two seven.",
+      "say": "[Kidon](/kidˈOn/) one, line up runway; two seven.",
       "cut": "head",
       "mode": "phrase"
     },
     {
-      "file": "twr_alpha_proceed_rwy.ogg",
+      "file": "twr_kidon1_proceed_rwy.ogg",
       "voice": "tower",
-      "say": "Alpha, proceed to runway; two seven.",
+      "say": "[Kidon](/kidˈOn/) one, proceed to runway; two seven.",
       "cut": "head",
       "mode": "phrase"
     },
     {
-      "file": "twr_alpha_land_rwy.ogg",
+      "file": "twr_kidon1_land_rwy.ogg",
       "voice": "tower",
-      "say": "Alpha, cleared to land runway; two seven.",
+      "say": "[Kidon](/kidˈOn/) one, cleared to land runway; two seven.",
       "cut": "head",
       "mode": "phrase"
     },
     {
-      "file": "twr_alpha_start.ogg",
+      "file": "twr_kidon1_start.ogg",
       "voice": "tower",
-      "say": "Alpha, cleared to start.",
+      "say": "[Kidon](/kidˈOn/) one, cleared to start.",
       "mode": "phrase"
     },
     {
-      "file": "twr_alpha_hold_pos.ogg",
+      "file": "twr_kidon1_hold_pos.ogg",
       "voice": "tower",
-      "say": "Alpha, hold position.",
+      "say": "[Kidon](/kidˈOn/) one, hold position.",
       "mode": "phrase"
     },
     {
-      "file": "twr_alpha_takeoff.ogg",
+      "file": "twr_kidon1_takeoff.ogg",
       "voice": "tower",
-      "say": "Alpha, cleared for take-off.",
+      "say": "[Kidon](/kidˈOn/) one, cleared for take-off.",
       "mode": "phrase"
     },
     {
-      "file": "twr_alpha_go_around.ogg",
+      "file": "twr_kidon1_go_around.ogg",
       "voice": "tower",
-      "say": "Alpha, go around, runway not clear.",
+      "say": "[Kidon](/kidˈOn/) one, go around, runway not clear.",
       "mode": "phrase"
     },
     {
-      "file": "twr_alpha_taxi_park.ogg",
+      "file": "twr_kidon1_taxi_park.ogg",
       "voice": "tower",
-      "say": "Alpha, welcome back, taxi to parking.",
+      "say": "[Kidon](/kidˈOn/) one, welcome back, taxi to parking.",
       "mode": "phrase"
     },
     {
-      "file": "twr_alpha_gear_not_down.ogg",
+      "file": "twr_kidon1_gear_not_down.ogg",
       "voice": "tower",
-      "say": "Alpha, check gear down.",
+      "say": "[Kidon](/kidˈOn/) one, check gear down.",
       "mode": "phrase"
     },
     {
-      "file": "twr_bravo_taxi_morning.ogg",
+      "file": "twr_kidon2_taxi_morning.ogg",
       "voice": "tower",
-      "say": "Bravo, good morning, taxi to runway; two seven.",
+      "say": "[Kidon](/kidˈOn/) two, good morning, taxi to runway; two seven.",
       "cut": "head",
       "mode": "phrase"
     },
     {
-      "file": "twr_bravo_taxi_afternoon.ogg",
+      "file": "twr_kidon2_taxi_afternoon.ogg",
       "voice": "tower",
-      "say": "Bravo, good afternoon, taxi to runway; two seven.",
+      "say": "[Kidon](/kidˈOn/) two, good afternoon, taxi to runway; two seven.",
       "cut": "head",
       "mode": "phrase"
     },
     {
-      "file": "twr_bravo_taxi_evening.ogg",
+      "file": "twr_kidon2_taxi_evening.ogg",
       "voice": "tower",
-      "say": "Bravo, good evening, taxi to runway; two seven.",
+      "say": "[Kidon](/kidˈOn/) two, good evening, taxi to runway; two seven.",
       "cut": "head",
       "mode": "phrase"
     },
     {
-      "file": "twr_bravo_lineup_rwy.ogg",
+      "file": "twr_kidon2_lineup_rwy.ogg",
       "voice": "tower",
-      "say": "Bravo, line up runway; two seven.",
+      "say": "[Kidon](/kidˈOn/) two, line up runway; two seven.",
       "cut": "head",
       "mode": "phrase"
     },
     {
-      "file": "twr_bravo_proceed_rwy.ogg",
+      "file": "twr_kidon2_proceed_rwy.ogg",
       "voice": "tower",
-      "say": "Bravo, proceed to runway; two seven.",
+      "say": "[Kidon](/kidˈOn/) two, proceed to runway; two seven.",
       "cut": "head",
       "mode": "phrase"
     },
     {
-      "file": "twr_bravo_land_rwy.ogg",
+      "file": "twr_kidon2_land_rwy.ogg",
       "voice": "tower",
-      "say": "Bravo, cleared to land runway; two seven.",
+      "say": "[Kidon](/kidˈOn/) two, cleared to land runway; two seven.",
       "cut": "head",
       "mode": "phrase"
     },
     {
-      "file": "twr_bravo_start.ogg",
+      "file": "twr_kidon2_start.ogg",
       "voice": "tower",
-      "say": "Bravo, cleared to start.",
+      "say": "[Kidon](/kidˈOn/) two, cleared to start.",
       "mode": "phrase"
     },
     {
-      "file": "twr_bravo_hold_pos.ogg",
+      "file": "twr_kidon2_hold_pos.ogg",
       "voice": "tower",
-      "say": "Bravo, hold position.",
+      "say": "[Kidon](/kidˈOn/) two, hold position.",
       "mode": "phrase"
     },
     {
-      "file": "twr_bravo_takeoff.ogg",
+      "file": "twr_kidon2_takeoff.ogg",
       "voice": "tower",
-      "say": "Bravo, cleared for take-off.",
+      "say": "[Kidon](/kidˈOn/) two, cleared for take-off.",
       "mode": "phrase"
     },
     {
-      "file": "twr_bravo_go_around.ogg",
+      "file": "twr_kidon2_go_around.ogg",
       "voice": "tower",
-      "say": "Bravo, go around, runway not clear.",
+      "say": "[Kidon](/kidˈOn/) two, go around, runway not clear.",
       "mode": "phrase"
     },
     {
-      "file": "twr_bravo_taxi_park.ogg",
+      "file": "twr_kidon2_taxi_park.ogg",
       "voice": "tower",
-      "say": "Bravo, welcome back, taxi to parking.",
+      "say": "[Kidon](/kidˈOn/) two, welcome back, taxi to parking.",
       "mode": "phrase"
     },
     {
-      "file": "twr_bravo_gear_not_down.ogg",
+      "file": "twr_kidon2_gear_not_down.ogg",
       "voice": "tower",
-      "say": "Bravo, check gear down.",
+      "say": "[Kidon](/kidˈOn/) two, check gear down.",
       "mode": "phrase"
     },
     {
-      "file": "twr_charlie_taxi_morning.ogg",
+      "file": "twr_kidon3_taxi_morning.ogg",
       "voice": "tower",
-      "say": "Charlie, good morning, taxi to runway; two seven.",
+      "say": "[Kidon](/kidˈOn/) three, good morning, taxi to runway; two seven.",
       "cut": "head",
       "mode": "phrase"
     },
     {
-      "file": "twr_charlie_taxi_afternoon.ogg",
+      "file": "twr_kidon3_taxi_afternoon.ogg",
       "voice": "tower",
-      "say": "Charlie, good afternoon, taxi to runway; two seven.",
+      "say": "[Kidon](/kidˈOn/) three, good afternoon, taxi to runway; two seven.",
       "cut": "head",
       "mode": "phrase"
     },
     {
-      "file": "twr_charlie_taxi_evening.ogg",
+      "file": "twr_kidon3_taxi_evening.ogg",
       "voice": "tower",
-      "say": "Charlie, good evening, taxi to runway; two seven.",
+      "say": "[Kidon](/kidˈOn/) three, good evening, taxi to runway; two seven.",
       "cut": "head",
       "mode": "phrase"
     },
     {
-      "file": "twr_charlie_lineup_rwy.ogg",
+      "file": "twr_kidon3_lineup_rwy.ogg",
       "voice": "tower",
-      "say": "Charlie, line up runway; two seven.",
+      "say": "[Kidon](/kidˈOn/) three, line up runway; two seven.",
       "cut": "head",
       "mode": "phrase"
     },
     {
-      "file": "twr_charlie_proceed_rwy.ogg",
+      "file": "twr_kidon3_proceed_rwy.ogg",
       "voice": "tower",
-      "say": "Charlie, proceed to runway; two seven.",
+      "say": "[Kidon](/kidˈOn/) three, proceed to runway; two seven.",
       "cut": "head",
       "mode": "phrase"
     },
     {
-      "file": "twr_charlie_land_rwy.ogg",
+      "file": "twr_kidon3_land_rwy.ogg",
       "voice": "tower",
-      "say": "Charlie, cleared to land runway; two seven.",
+      "say": "[Kidon](/kidˈOn/) three, cleared to land runway; two seven.",
       "cut": "head",
       "mode": "phrase"
     },
     {
-      "file": "twr_charlie_start.ogg",
+      "file": "twr_kidon3_start.ogg",
       "voice": "tower",
-      "say": "Charlie, cleared to start.",
+      "say": "[Kidon](/kidˈOn/) three, cleared to start.",
       "mode": "phrase"
     },
     {
-      "file": "twr_charlie_hold_pos.ogg",
+      "file": "twr_kidon3_hold_pos.ogg",
       "voice": "tower",
-      "say": "Charlie, hold position.",
+      "say": "[Kidon](/kidˈOn/) three, hold position.",
       "mode": "phrase"
     },
     {
-      "file": "twr_charlie_takeoff.ogg",
+      "file": "twr_kidon3_takeoff.ogg",
       "voice": "tower",
-      "say": "Charlie, cleared for take-off.",
+      "say": "[Kidon](/kidˈOn/) three, cleared for take-off.",
       "mode": "phrase"
     },
     {
-      "file": "twr_charlie_go_around.ogg",
+      "file": "twr_kidon3_go_around.ogg",
       "voice": "tower",
-      "say": "Charlie, go around, runway not clear.",
+      "say": "[Kidon](/kidˈOn/) three, go around, runway not clear.",
       "mode": "phrase"
     },
     {
-      "file": "twr_charlie_taxi_park.ogg",
+      "file": "twr_kidon3_taxi_park.ogg",
       "voice": "tower",
-      "say": "Charlie, welcome back, taxi to parking.",
+      "say": "[Kidon](/kidˈOn/) three, welcome back, taxi to parking.",
       "mode": "phrase"
     },
     {
-      "file": "twr_charlie_gear_not_down.ogg",
+      "file": "twr_kidon3_gear_not_down.ogg",
       "voice": "tower",
-      "say": "Charlie, check gear down.",
+      "say": "[Kidon](/kidˈOn/) three, check gear down.",
       "mode": "phrase"
     },
     {
-      "file": "twr_delta_taxi_morning.ogg",
+      "file": "twr_kidon4_taxi_morning.ogg",
       "voice": "tower",
-      "say": "Delta, good morning, taxi to runway; two seven.",
+      "say": "[Kidon](/kidˈOn/) four, good morning, taxi to runway; two seven.",
       "cut": "head",
       "mode": "phrase"
     },
     {
-      "file": "twr_delta_taxi_afternoon.ogg",
+      "file": "twr_kidon4_taxi_afternoon.ogg",
       "voice": "tower",
-      "say": "Delta, good afternoon, taxi to runway; two seven.",
+      "say": "[Kidon](/kidˈOn/) four, good afternoon, taxi to runway; two seven.",
       "cut": "head",
       "mode": "phrase"
     },
     {
-      "file": "twr_delta_taxi_evening.ogg",
+      "file": "twr_kidon4_taxi_evening.ogg",
       "voice": "tower",
-      "say": "Delta, good evening, taxi to runway; two seven.",
+      "say": "[Kidon](/kidˈOn/) four, good evening, taxi to runway; two seven.",
       "cut": "head",
       "mode": "phrase"
     },
     {
-      "file": "twr_delta_lineup_rwy.ogg",
+      "file": "twr_kidon4_lineup_rwy.ogg",
       "voice": "tower",
-      "say": "Delta, line up runway; two seven.",
+      "say": "[Kidon](/kidˈOn/) four, line up runway; two seven.",
       "cut": "head",
       "mode": "phrase"
     },
     {
-      "file": "twr_delta_proceed_rwy.ogg",
+      "file": "twr_kidon4_proceed_rwy.ogg",
       "voice": "tower",
-      "say": "Delta, proceed to runway; two seven.",
+      "say": "[Kidon](/kidˈOn/) four, proceed to runway; two seven.",
       "cut": "head",
       "mode": "phrase"
     },
     {
-      "file": "twr_delta_land_rwy.ogg",
+      "file": "twr_kidon4_land_rwy.ogg",
       "voice": "tower",
-      "say": "Delta, cleared to land runway; two seven.",
+      "say": "[Kidon](/kidˈOn/) four, cleared to land runway; two seven.",
       "cut": "head",
       "mode": "phrase"
     },
     {
-      "file": "twr_delta_start.ogg",
+      "file": "twr_kidon4_start.ogg",
       "voice": "tower",
-      "say": "Delta, cleared to start.",
+      "say": "[Kidon](/kidˈOn/) four, cleared to start.",
       "mode": "phrase"
     },
     {
-      "file": "twr_delta_hold_pos.ogg",
+      "file": "twr_kidon4_hold_pos.ogg",
       "voice": "tower",
-      "say": "Delta, hold position.",
+      "say": "[Kidon](/kidˈOn/) four, hold position.",
       "mode": "phrase"
     },
     {
-      "file": "twr_delta_takeoff.ogg",
+      "file": "twr_kidon4_takeoff.ogg",
       "voice": "tower",
-      "say": "Delta, cleared for take-off.",
+      "say": "[Kidon](/kidˈOn/) four, cleared for take-off.",
       "mode": "phrase"
     },
     {
-      "file": "twr_delta_go_around.ogg",
+      "file": "twr_kidon4_go_around.ogg",
       "voice": "tower",
-      "say": "Delta, go around, runway not clear.",
+      "say": "[Kidon](/kidˈOn/) four, go around, runway not clear.",
       "mode": "phrase"
     },
     {
-      "file": "twr_delta_taxi_park.ogg",
+      "file": "twr_kidon4_taxi_park.ogg",
       "voice": "tower",
-      "say": "Delta, welcome back, taxi to parking.",
+      "say": "[Kidon](/kidˈOn/) four, welcome back, taxi to parking.",
       "mode": "phrase"
     },
     {
-      "file": "twr_delta_gear_not_down.ogg",
+      "file": "twr_kidon4_gear_not_down.ogg",
       "voice": "tower",
-      "say": "Delta, check gear down.",
+      "say": "[Kidon](/kidˈOn/) four, check gear down.",
       "mode": "phrase"
     },
     {
@@ -1050,27 +1050,27 @@
       "say_he": "התנעה ללא אישור"
     },
     {
-      "file": "twr_alpha_no_start_clr.ogg",
+      "file": "twr_kidon1_no_start_clr.ogg",
       "voice": "tower",
-      "say": "Alpha, engine start without clearance.",
+      "say": "[Kidon](/kidˈOn/) one, engine start without clearance.",
       "mode": "phrase"
     },
     {
-      "file": "twr_bravo_no_start_clr.ogg",
+      "file": "twr_kidon2_no_start_clr.ogg",
       "voice": "tower",
-      "say": "Bravo, engine start without clearance.",
+      "say": "[Kidon](/kidˈOn/) two, engine start without clearance.",
       "mode": "phrase"
     },
     {
-      "file": "twr_charlie_no_start_clr.ogg",
+      "file": "twr_kidon3_no_start_clr.ogg",
       "voice": "tower",
-      "say": "Charlie, engine start without clearance.",
+      "say": "[Kidon](/kidˈOn/) three, engine start without clearance.",
       "mode": "phrase"
     },
     {
-      "file": "twr_delta_no_start_clr.ogg",
+      "file": "twr_kidon4_no_start_clr.ogg",
       "voice": "tower",
-      "say": "Delta, engine start without clearance.",
+      "say": "[Kidon](/kidˈOn/) four, engine start without clearance.",
       "mode": "phrase"
     },
     {
@@ -1082,27 +1082,27 @@
       "say_he": "הסעה ללא אישור"
     },
     {
-      "file": "twr_alpha_no_taxi_clr.ogg",
+      "file": "twr_kidon1_no_taxi_clr.ogg",
       "voice": "tower",
-      "say": "Alpha, taxi without clearance.",
+      "say": "[Kidon](/kidˈOn/) one, taxi without clearance.",
       "mode": "phrase"
     },
     {
-      "file": "twr_bravo_no_taxi_clr.ogg",
+      "file": "twr_kidon2_no_taxi_clr.ogg",
       "voice": "tower",
-      "say": "Bravo, taxi without clearance.",
+      "say": "[Kidon](/kidˈOn/) two, taxi without clearance.",
       "mode": "phrase"
     },
     {
-      "file": "twr_charlie_no_taxi_clr.ogg",
+      "file": "twr_kidon3_no_taxi_clr.ogg",
       "voice": "tower",
-      "say": "Charlie, taxi without clearance.",
+      "say": "[Kidon](/kidˈOn/) three, taxi without clearance.",
       "mode": "phrase"
     },
     {
-      "file": "twr_delta_no_taxi_clr.ogg",
+      "file": "twr_kidon4_no_taxi_clr.ogg",
       "voice": "tower",
-      "say": "Delta, taxi without clearance.",
+      "say": "[Kidon](/kidˈOn/) four, taxi without clearance.",
       "mode": "phrase"
     },
     {
@@ -1114,27 +1114,27 @@
       "say_he": "כניסה למסלול ללא אישור"
     },
     {
-      "file": "twr_alpha_no_runway_clr.ogg",
+      "file": "twr_kidon1_no_runway_clr.ogg",
       "voice": "tower",
-      "say": "Alpha, runway entry without clearance.",
+      "say": "[Kidon](/kidˈOn/) one, runway entry without clearance.",
       "mode": "phrase"
     },
     {
-      "file": "twr_bravo_no_runway_clr.ogg",
+      "file": "twr_kidon2_no_runway_clr.ogg",
       "voice": "tower",
-      "say": "Bravo, runway entry without clearance.",
+      "say": "[Kidon](/kidˈOn/) two, runway entry without clearance.",
       "mode": "phrase"
     },
     {
-      "file": "twr_charlie_no_runway_clr.ogg",
+      "file": "twr_kidon3_no_runway_clr.ogg",
       "voice": "tower",
-      "say": "Charlie, runway entry without clearance.",
+      "say": "[Kidon](/kidˈOn/) three, runway entry without clearance.",
       "mode": "phrase"
     },
     {
-      "file": "twr_delta_no_runway_clr.ogg",
+      "file": "twr_kidon4_no_runway_clr.ogg",
       "voice": "tower",
-      "say": "Delta, runway entry without clearance.",
+      "say": "[Kidon](/kidˈOn/) four, runway entry without clearance.",
       "mode": "phrase"
     },
     {
@@ -1146,27 +1146,27 @@
       "say_he": "המראה ללא אישור"
     },
     {
-      "file": "twr_alpha_no_takeoff_clr.ogg",
+      "file": "twr_kidon1_no_takeoff_clr.ogg",
       "voice": "tower",
-      "say": "Alpha, take-off without clearance.",
+      "say": "[Kidon](/kidˈOn/) one, take-off without clearance.",
       "mode": "phrase"
     },
     {
-      "file": "twr_bravo_no_takeoff_clr.ogg",
+      "file": "twr_kidon2_no_takeoff_clr.ogg",
       "voice": "tower",
-      "say": "Bravo, take-off without clearance.",
+      "say": "[Kidon](/kidˈOn/) two, take-off without clearance.",
       "mode": "phrase"
     },
     {
-      "file": "twr_charlie_no_takeoff_clr.ogg",
+      "file": "twr_kidon3_no_takeoff_clr.ogg",
       "voice": "tower",
-      "say": "Charlie, take-off without clearance.",
+      "say": "[Kidon](/kidˈOn/) three, take-off without clearance.",
       "mode": "phrase"
     },
     {
-      "file": "twr_delta_no_takeoff_clr.ogg",
+      "file": "twr_kidon4_no_takeoff_clr.ogg",
       "voice": "tower",
-      "say": "Delta, take-off without clearance.",
+      "say": "[Kidon](/kidˈOn/) four, take-off without clearance.",
       "mode": "phrase"
     },
     {
@@ -1185,30 +1185,30 @@
       "say_he": "המסלול שהוקצה"
     },
     {
-      "file": "twr_alpha_on_rwy.ogg",
+      "file": "twr_kidon1_on_rwy.ogg",
       "voice": "tower",
-      "say": "Alpha, you are on runway; two seven.",
+      "say": "[Kidon](/kidˈOn/) one, you are on runway; two seven.",
       "cut": "head",
       "mode": "phrase"
     },
     {
-      "file": "twr_bravo_on_rwy.ogg",
+      "file": "twr_kidon2_on_rwy.ogg",
       "voice": "tower",
-      "say": "Bravo, you are on runway; two seven.",
+      "say": "[Kidon](/kidˈOn/) two, you are on runway; two seven.",
       "cut": "head",
       "mode": "phrase"
     },
     {
-      "file": "twr_charlie_on_rwy.ogg",
+      "file": "twr_kidon3_on_rwy.ogg",
       "voice": "tower",
-      "say": "Charlie, you are on runway; two seven.",
+      "say": "[Kidon](/kidˈOn/) three, you are on runway; two seven.",
       "cut": "head",
       "mode": "phrase"
     },
     {
-      "file": "twr_delta_on_rwy.ogg",
+      "file": "twr_kidon4_on_rwy.ogg",
       "voice": "tower",
-      "say": "Delta, you are on runway; two seven.",
+      "say": "[Kidon](/kidˈOn/) four, you are on runway; two seven.",
       "cut": "head",
       "mode": "phrase"
     },
@@ -1242,131 +1242,131 @@
       "say_he": "יש לבקש כניסה למסלול קודם"
     },
     {
-      "file": "twr_alpha_negative_hold.ogg",
+      "file": "twr_kidon1_negative_hold.ogg",
       "voice": "tower",
-      "say": "Alpha, negative, hold position.",
+      "say": "[Kidon](/kidˈOn/) one, negative, hold position.",
       "mode": "phrase"
     },
     {
-      "file": "twr_bravo_negative_hold.ogg",
+      "file": "twr_kidon2_negative_hold.ogg",
       "voice": "tower",
-      "say": "Bravo, negative, hold position.",
+      "say": "[Kidon](/kidˈOn/) two, negative, hold position.",
       "mode": "phrase"
     },
     {
-      "file": "twr_charlie_negative_hold.ogg",
+      "file": "twr_kidon3_negative_hold.ogg",
       "voice": "tower",
-      "say": "Charlie, negative, hold position.",
+      "say": "[Kidon](/kidˈOn/) three, negative, hold position.",
       "mode": "phrase"
     },
     {
-      "file": "twr_delta_negative_hold.ogg",
+      "file": "twr_kidon4_negative_hold.ogg",
       "voice": "tower",
-      "say": "Delta, negative, hold position.",
+      "say": "[Kidon](/kidˈOn/) four, negative, hold position.",
       "mode": "phrase"
     },
     {
-      "file": "twr_alpha_negative_startup.ogg",
+      "file": "twr_kidon1_negative_startup.ogg",
       "voice": "tower",
-      "say": "Alpha, negative, hold position, request start-up first.",
+      "say": "[Kidon](/kidˈOn/) one, negative, hold position, request start-up first.",
       "mode": "phrase",
       "note": "a training mission's call, whole"
     },
     {
-      "file": "twr_alpha_negative_taxi.ogg",
+      "file": "twr_kidon1_negative_taxi.ogg",
       "voice": "tower",
-      "say": "Alpha, negative, hold position, request taxi first.",
+      "say": "[Kidon](/kidˈOn/) one, negative, hold position, request taxi first.",
       "mode": "phrase",
       "note": "a training mission's call, whole"
     },
     {
-      "file": "twr_alpha_negative_lineup.ogg",
+      "file": "twr_kidon1_negative_lineup.ogg",
       "voice": "tower",
-      "say": "Alpha, negative, hold position, request line-up first.",
+      "say": "[Kidon](/kidˈOn/) one, negative, hold position, request line-up first.",
       "mode": "phrase",
       "note": "a training mission's call, whole"
     },
     {
-      "file": "twr_alpha_taxi_morning_24.ogg",
+      "file": "twr_kidon1_taxi_morning_24.ogg",
       "voice": "tower",
-      "say": "Alpha, good morning, taxi to runway two four.",
+      "say": "[Kidon](/kidˈOn/) one, good morning, taxi to runway two four.",
       "mode": "phrase",
       "note": "a training mission's call, whole"
     },
     {
-      "file": "twr_alpha_lineup_24_calm.ogg",
+      "file": "twr_kidon1_lineup_24_calm.ogg",
       "voice": "tower",
-      "say": "Alpha, line up runway two four, wind calm.",
+      "say": "[Kidon](/kidˈOn/) one, line up runway two four, wind calm.",
       "mode": "phrase",
       "note": "a training mission's call, whole"
     },
     {
-      "file": "twr_alpha_taxi_morning_25.ogg",
+      "file": "twr_kidon1_taxi_morning_25.ogg",
       "voice": "tower",
-      "say": "Alpha, good morning, taxi to runway two five.",
+      "say": "[Kidon](/kidˈOn/) one, good morning, taxi to runway two five.",
       "mode": "phrase",
       "note": "a training mission's call, whole"
     },
     {
-      "file": "twr_alpha_lineup_25_calm.ogg",
+      "file": "twr_kidon1_lineup_25_calm.ogg",
       "voice": "tower",
-      "say": "Alpha, line up runway two five, wind calm.",
+      "say": "[Kidon](/kidˈOn/) one, line up runway two five, wind calm.",
       "mode": "phrase",
       "note": "a training mission's call, whole"
     },
     {
-      "file": "twr_alpha_taxi_morning_25r.ogg",
+      "file": "twr_kidon1_taxi_morning_25r.ogg",
       "voice": "tower",
-      "say": "Alpha, good morning, taxi to runway two five right.",
+      "say": "[Kidon](/kidˈOn/) one, good morning, taxi to runway two five right.",
       "mode": "phrase",
       "note": "a training mission's call, whole"
     },
     {
-      "file": "twr_alpha_lineup_25r_calm.ogg",
+      "file": "twr_kidon1_lineup_25r_calm.ogg",
       "voice": "tower",
-      "say": "Alpha, line up runway two five right, wind calm.",
+      "say": "[Kidon](/kidˈOn/) one, line up runway two five right, wind calm.",
       "mode": "phrase",
       "note": "a training mission's call, whole"
     },
     {
-      "file": "twr_alpha_taxi_morning_26.ogg",
+      "file": "twr_kidon1_taxi_morning_26.ogg",
       "voice": "tower",
-      "say": "Alpha, good morning, taxi to runway two six.",
+      "say": "[Kidon](/kidˈOn/) one, good morning, taxi to runway two six.",
       "mode": "phrase",
       "note": "a training mission's call, whole"
     },
     {
-      "file": "twr_alpha_lineup_26_calm.ogg",
+      "file": "twr_kidon1_lineup_26_calm.ogg",
       "voice": "tower",
-      "say": "Alpha, line up runway two six, wind calm.",
+      "say": "[Kidon](/kidˈOn/) one, line up runway two six, wind calm.",
       "mode": "phrase",
       "note": "a training mission's call, whole"
     },
     {
-      "file": "twr_alpha_taxi_morning_26l.ogg",
+      "file": "twr_kidon1_taxi_morning_26l.ogg",
       "voice": "tower",
-      "say": "Alpha, good morning, taxi to runway two six left.",
+      "say": "[Kidon](/kidˈOn/) one, good morning, taxi to runway two six left.",
       "mode": "phrase",
       "note": "a training mission's call, whole"
     },
     {
-      "file": "twr_alpha_lineup_26l_calm.ogg",
+      "file": "twr_kidon1_lineup_26l_calm.ogg",
       "voice": "tower",
-      "say": "Alpha, line up runway two six left, wind calm.",
+      "say": "[Kidon](/kidˈOn/) one, line up runway two six left, wind calm.",
       "mode": "phrase",
       "note": "a training mission's call, whole"
     },
     {
-      "file": "twr_alpha_taxi_morning_27.ogg",
+      "file": "twr_kidon1_taxi_morning_27.ogg",
       "voice": "tower",
-      "say": "Alpha, good morning, taxi to runway two seven.",
+      "say": "[Kidon](/kidˈOn/) one, good morning, taxi to runway two seven.",
       "mode": "phrase",
       "note": "a training mission's call, whole"
     },
     {
-      "file": "twr_alpha_lineup_27_calm.ogg",
+      "file": "twr_kidon1_lineup_27_calm.ogg",
       "voice": "tower",
-      "say": "Alpha, line up runway two seven, wind calm.",
+      "say": "[Kidon](/kidˈOn/) one, line up runway two seven, wind calm.",
       "mode": "phrase",
       "note": "a training mission's call, whole"
     },
@@ -1399,32 +1399,32 @@
       "say_he": "מגדל נבטים."
     },
     {
-      "file": "plt_alpha.ogg",
+      "file": "plt_kidon1.ogg",
       "voice": "pilot",
-      "say": "Alpha.",
+      "say": "[Kidon](/kidˈOn/) one.",
       "mode": "helmet",
-      "say_he": "אלפא."
+      "say_he": "כידון אחד."
     },
     {
-      "file": "plt_bravo.ogg",
+      "file": "plt_kidon2.ogg",
       "voice": "pilot",
-      "say": "Bravo.",
+      "say": "[Kidon](/kidˈOn/) two.",
       "mode": "helmet",
-      "say_he": "בראבו."
+      "say_he": "כידון שתיים."
     },
     {
-      "file": "plt_charlie.ogg",
+      "file": "plt_kidon3.ogg",
       "voice": "pilot",
-      "say": "Charlie.",
+      "say": "[Kidon](/kidˈOn/) three.",
       "mode": "helmet",
-      "say_he": "צ'רלי."
+      "say_he": "כידון שלוש."
     },
     {
-      "file": "plt_delta.ogg",
+      "file": "plt_kidon4.ogg",
       "voice": "pilot",
-      "say": "Delta.",
+      "say": "[Kidon](/kidˈOn/) four.",
       "mode": "helmet",
-      "say_he": "דלתא."
+      "say_he": "כידון ארבע."
     },
     {
       "file": "plt_req_start.ogg",
@@ -1462,172 +1462,172 @@
       "say_he": "בקשת נחיתה."
     },
     {
-      "file": "plt_ramon_alpha_start.ogg",
+      "file": "plt_ramon_kidon1_start.ogg",
       "voice": "pilot",
-      "say": "Ramon tower, Alpha, request start-up.",
+      "say": "Ramon tower, [Kidon](/kidˈOn/) one, request start-up.",
       "mode": "helmet",
       "note": "the player's call, whole"
     },
     {
-      "file": "plt_ramon_alpha_taxi.ogg",
+      "file": "plt_ramon_kidon1_taxi.ogg",
       "voice": "pilot",
-      "say": "Ramon tower, Alpha, request taxi.",
+      "say": "Ramon tower, [Kidon](/kidˈOn/) one, request taxi.",
       "mode": "helmet",
       "note": "the player's call, whole"
     },
     {
-      "file": "plt_ramon_alpha_lineup.ogg",
+      "file": "plt_ramon_kidon1_lineup.ogg",
       "voice": "pilot",
-      "say": "Ramon tower, Alpha, request line-up.",
+      "say": "Ramon tower, [Kidon](/kidˈOn/) one, request line-up.",
       "mode": "helmet",
       "note": "the player's call, whole"
     },
     {
-      "file": "plt_ramon_alpha_takeoff.ogg",
+      "file": "plt_ramon_kidon1_takeoff.ogg",
       "voice": "pilot",
-      "say": "Ramon tower, Alpha, ready for take-off.",
+      "say": "Ramon tower, [Kidon](/kidˈOn/) one, ready for take-off.",
       "mode": "helmet",
       "note": "the player's call, whole"
     },
     {
-      "file": "plt_ramon_alpha_landing.ogg",
+      "file": "plt_ramon_kidon1_landing.ogg",
       "voice": "pilot",
-      "say": "Ramon tower, Alpha, request landing.",
+      "say": "Ramon tower, [Kidon](/kidˈOn/) one, request landing.",
       "mode": "helmet",
       "note": "the player's call, whole"
     },
     {
-      "file": "plt_david_alpha_start.ogg",
+      "file": "plt_david_kidon1_start.ogg",
       "voice": "pilot",
-      "say": "Ramat David tower, Alpha, request start-up.",
+      "say": "Ramat David tower, [Kidon](/kidˈOn/) one, request start-up.",
       "mode": "helmet",
       "note": "the player's call, whole"
     },
     {
-      "file": "plt_david_alpha_taxi.ogg",
+      "file": "plt_david_kidon1_taxi.ogg",
       "voice": "pilot",
-      "say": "Ramat David tower, Alpha, request taxi.",
+      "say": "Ramat David tower, [Kidon](/kidˈOn/) one, request taxi.",
       "mode": "helmet",
       "note": "the player's call, whole"
     },
     {
-      "file": "plt_david_alpha_lineup.ogg",
+      "file": "plt_david_kidon1_lineup.ogg",
       "voice": "pilot",
-      "say": "Ramat David tower, Alpha, request line-up.",
+      "say": "Ramat David tower, [Kidon](/kidˈOn/) one, request line-up.",
       "mode": "helmet",
       "note": "the player's call, whole"
     },
     {
-      "file": "plt_david_alpha_takeoff.ogg",
+      "file": "plt_david_kidon1_takeoff.ogg",
       "voice": "pilot",
-      "say": "Ramat David tower, Alpha, ready for take-off.",
+      "say": "Ramat David tower, [Kidon](/kidˈOn/) one, ready for take-off.",
       "mode": "helmet",
       "note": "the player's call, whole"
     },
     {
-      "file": "plt_david_alpha_landing.ogg",
+      "file": "plt_david_kidon1_landing.ogg",
       "voice": "pilot",
-      "say": "Ramat David tower, Alpha, request landing.",
+      "say": "Ramat David tower, [Kidon](/kidˈOn/) one, request landing.",
       "mode": "helmet",
       "note": "the player's call, whole"
     },
     {
-      "file": "plt_hatzerim_alpha_start.ogg",
+      "file": "plt_hatzerim_kidon1_start.ogg",
       "voice": "pilot",
-      "say": "Hatzerim tower, Alpha, request start-up.",
+      "say": "Hatzerim tower, [Kidon](/kidˈOn/) one, request start-up.",
       "mode": "helmet",
       "note": "the player's call, whole"
     },
     {
-      "file": "plt_hatzerim_alpha_taxi.ogg",
+      "file": "plt_hatzerim_kidon1_taxi.ogg",
       "voice": "pilot",
-      "say": "Hatzerim tower, Alpha, request taxi.",
+      "say": "Hatzerim tower, [Kidon](/kidˈOn/) one, request taxi.",
       "mode": "helmet",
       "note": "the player's call, whole"
     },
     {
-      "file": "plt_hatzerim_alpha_lineup.ogg",
+      "file": "plt_hatzerim_kidon1_lineup.ogg",
       "voice": "pilot",
-      "say": "Hatzerim tower, Alpha, request line-up.",
+      "say": "Hatzerim tower, [Kidon](/kidˈOn/) one, request line-up.",
       "mode": "helmet",
       "note": "the player's call, whole"
     },
     {
-      "file": "plt_hatzerim_alpha_takeoff.ogg",
+      "file": "plt_hatzerim_kidon1_takeoff.ogg",
       "voice": "pilot",
-      "say": "Hatzerim tower, Alpha, ready for take-off.",
+      "say": "Hatzerim tower, [Kidon](/kidˈOn/) one, ready for take-off.",
       "mode": "helmet",
       "note": "the player's call, whole"
     },
     {
-      "file": "plt_hatzerim_alpha_landing.ogg",
+      "file": "plt_hatzerim_kidon1_landing.ogg",
       "voice": "pilot",
-      "say": "Hatzerim tower, Alpha, request landing.",
+      "say": "Hatzerim tower, [Kidon](/kidˈOn/) one, request landing.",
       "mode": "helmet",
       "note": "the player's call, whole"
     },
     {
-      "file": "plt_nevatim_alpha_start.ogg",
+      "file": "plt_nevatim_kidon1_start.ogg",
       "voice": "pilot",
-      "say": "Nevatim tower, Alpha, request start-up.",
+      "say": "Nevatim tower, [Kidon](/kidˈOn/) one, request start-up.",
       "mode": "helmet",
       "note": "the player's call, whole"
     },
     {
-      "file": "plt_nevatim_alpha_taxi.ogg",
+      "file": "plt_nevatim_kidon1_taxi.ogg",
       "voice": "pilot",
-      "say": "Nevatim tower, Alpha, request taxi.",
+      "say": "Nevatim tower, [Kidon](/kidˈOn/) one, request taxi.",
       "mode": "helmet",
       "note": "the player's call, whole"
     },
     {
-      "file": "plt_nevatim_alpha_lineup.ogg",
+      "file": "plt_nevatim_kidon1_lineup.ogg",
       "voice": "pilot",
-      "say": "Nevatim tower, Alpha, request line-up.",
+      "say": "Nevatim tower, [Kidon](/kidˈOn/) one, request line-up.",
       "mode": "helmet",
       "note": "the player's call, whole"
     },
     {
-      "file": "plt_nevatim_alpha_takeoff.ogg",
+      "file": "plt_nevatim_kidon1_takeoff.ogg",
       "voice": "pilot",
-      "say": "Nevatim tower, Alpha, ready for take-off.",
+      "say": "Nevatim tower, [Kidon](/kidˈOn/) one, ready for take-off.",
       "mode": "helmet",
       "note": "the player's call, whole"
     },
     {
-      "file": "plt_nevatim_alpha_landing.ogg",
+      "file": "plt_nevatim_kidon1_landing.ogg",
       "voice": "pilot",
-      "say": "Nevatim tower, Alpha, request landing.",
+      "say": "Nevatim tower, [Kidon](/kidˈOn/) one, request landing.",
       "mode": "helmet",
       "note": "the player's call, whole"
     },
     {
-      "file": "awx_alpha.ogg",
+      "file": "awx_kidon1.ogg",
       "voice": "awacs",
-      "say": "Alpha",
+      "say": "[Kidon](/kidˈOn/) one",
       "mode": "particle",
-      "say_he": "אלפא"
+      "say_he": "כידון אחד"
     },
     {
-      "file": "awx_bravo.ogg",
+      "file": "awx_kidon2.ogg",
       "voice": "awacs",
-      "say": "Bravo",
+      "say": "[Kidon](/kidˈOn/) two",
       "mode": "particle",
-      "say_he": "בראבו"
+      "say_he": "כידון שתיים"
     },
     {
-      "file": "awx_charlie.ogg",
+      "file": "awx_kidon3.ogg",
       "voice": "awacs",
-      "say": "Charlie",
+      "say": "[Kidon](/kidˈOn/) three",
       "mode": "particle",
-      "say_he": "צ'רלי"
+      "say_he": "כידון שלוש"
     },
     {
-      "file": "awx_delta.ogg",
+      "file": "awx_kidon4.ogg",
       "voice": "awacs",
-      "say": "Delta",
+      "say": "[Kidon](/kidˈOn/) four",
       "mode": "particle",
-      "say_he": "דלתא"
+      "say_he": "כידון ארבע"
     },
     {
       "file": "awx_bearing_010.ogg",
@@ -2264,7 +2264,7 @@
       "voice": "awacs",
       "say": "free to engage",
       "mode": "particle",
-      "say_he": "מותר לתקוף"
+      "say_he": "רשאי לתקוף"
     },
     {
       "file": "awx_already_engaged.ogg",
@@ -2281,32 +2281,32 @@
       "say_he": "נא לזהות"
     },
     {
-      "file": "flt_wng_one.ogg",
+      "file": "flt_wng_kidon1_1.ogg",
       "voice": "wingman",
-      "say": "One.",
+      "say": "[Kidon](/kidˈOn/) one-one.",
       "mode": "particle",
-      "say_he": "אחת."
+      "say_he": "כידון אחד אחד."
     },
     {
-      "file": "flt_wng_two.ogg",
+      "file": "flt_wng_kidon1_2.ogg",
       "voice": "wingman",
-      "say": "Two.",
+      "say": "[Kidon](/kidˈOn/) one-two.",
       "mode": "particle",
-      "say_he": "שתיים."
+      "say_he": "כידון אחד שתיים."
     },
     {
-      "file": "flt_wng_three.ogg",
+      "file": "flt_wng_kidon1_3.ogg",
       "voice": "wingman",
-      "say": "Three.",
+      "say": "[Kidon](/kidˈOn/) one-three.",
       "mode": "particle",
-      "say_he": "שלוש."
+      "say_he": "כידון אחד שלוש."
     },
     {
-      "file": "flt_wng_four.ogg",
+      "file": "flt_wng_kidon1_4.ogg",
       "voice": "wingman",
-      "say": "Four.",
+      "say": "[Kidon](/kidˈOn/) one-four.",
       "mode": "particle",
-      "say_he": "ארבע."
+      "say_he": "כידון אחד ארבע."
     },
     {
       "file": "flt_wng_unable.ogg",
@@ -2470,32 +2470,32 @@
       "say_he": "תשע."
     },
     {
-      "file": "flt_cmd_alpha_2.ogg",
+      "file": "flt_cmd_kidon1_2.ogg",
       "voice": "pilot",
-      "say": "Alpha Two.",
+      "say": "[Kidon](/kidˈOn/) one-two.",
       "mode": "helmet",
-      "say_he": "אלפא שתיים."
+      "say_he": "כידון אחד שתיים."
     },
     {
-      "file": "flt_cmd_alpha_3.ogg",
+      "file": "flt_cmd_kidon1_3.ogg",
       "voice": "pilot",
-      "say": "Alpha Three.",
+      "say": "[Kidon](/kidˈOn/) one-three.",
       "mode": "helmet",
-      "say_he": "אלפא שלוש."
+      "say_he": "כידון אחד שלוש."
     },
     {
-      "file": "flt_cmd_alpha_4.ogg",
+      "file": "flt_cmd_kidon1_4.ogg",
       "voice": "pilot",
-      "say": "Alpha Four.",
+      "say": "[Kidon](/kidˈOn/) one-four.",
       "mode": "helmet",
-      "say_he": "אלפא ארבע."
+      "say_he": "כידון אחד ארבע."
     },
     {
-      "file": "flt_cmd_alpha_34.ogg",
+      "file": "flt_cmd_kidon1_34.ogg",
       "voice": "pilot",
-      "say": "Alpha Three and Four.",
+      "say": "[Kidon](/kidˈOn/) one, element three and four.",
       "mode": "helmet",
-      "say_he": "אלפא שלוש וארבע."
+      "say_he": "כידון אחד, זוג שלוש וארבע."
     },
     {
       "file": "flt_cmd_fingertip.ogg",
@@ -2659,13 +2659,13 @@
       "file": "twr_taxi_morning_25r.ogg",
       "voice": "tower",
       "mode": "phrase",
-      "say_he": "בוקר טוב, הסעה למסלול שתיים חמש ימני."
+      "say_he": "בוקר טוב, הסעה למסלול שתיים חמש ימין."
     },
     {
       "file": "twr_lineup_25r_calm.ogg",
       "voice": "tower",
       "mode": "phrase",
-      "say_he": "כניסה למסלול שתיים חמש ימני, רוח שקטה."
+      "say_he": "כניסה למסלול שתיים חמש ימין, רוח שקטה."
     },
     {
       "file": "twr_taxi_morning_26.ogg",
@@ -2683,13 +2683,13 @@
       "file": "twr_taxi_morning_26l.ogg",
       "voice": "tower",
       "mode": "phrase",
-      "say_he": "בוקר טוב, הסעה למסלול שתיים שש שמאלי."
+      "say_he": "בוקר טוב, הסעה למסלול שתיים שש שמאל."
     },
     {
       "file": "twr_lineup_26l_calm.ogg",
       "voice": "tower",
       "mode": "phrase",
-      "say_he": "כניסה למסלול שתיים שש שמאלי, רוח שקטה."
+      "say_he": "כניסה למסלול שתיים שש שמאל, רוח שקטה."
     },
     {
       "file": "twr_taxi_morning_27.ogg",
@@ -2711,24 +2711,24 @@
       "text_he": ","
     },
     "ALPHA_T": {
-      "file": "twr_alpha.ogg",
-      "text": "Alpha",
-      "text_he": "אלפא"
+      "file": "twr_kidon1.ogg",
+      "text": "Kidon 1",
+      "text_he": "כידון 1"
     },
     "BRAVO_T": {
-      "file": "twr_bravo.ogg",
-      "text": "Bravo",
-      "text_he": "בראבו"
+      "file": "twr_kidon2.ogg",
+      "text": "Kidon 2",
+      "text_he": "כידון 2"
     },
     "CHARLIE_T": {
-      "file": "twr_charlie.ogg",
-      "text": "Charlie",
-      "text_he": "צ'רלי"
+      "file": "twr_kidon3.ogg",
+      "text": "Kidon 3",
+      "text_he": "כידון 3"
     },
     "DELTA_T": {
-      "file": "twr_delta.ogg",
-      "text": "Delta",
-      "text_he": "דלתא"
+      "file": "twr_kidon4.ogg",
+      "text": "Kidon 4",
+      "text_he": "כידון 4"
     },
     "MORNING": {
       "file": "twr_morning.ogg",
@@ -3053,512 +3053,512 @@
     "RWY_L": {
       "file": "rwyl.ogg",
       "text": "left",
-      "text_he": "שמאלי"
+      "text_he": "שמאל"
     },
     "RWY_R": {
       "file": "rwyr.ogg",
       "text": "right",
-      "text_he": "ימני"
+      "text_he": "ימין"
     },
     "RWY_C": {
       "file": "rwyc.ogg",
       "text": "center",
-      "text_he": "מרכזי"
+      "text_he": "מרכז"
     },
     "7+RWY_L": {
       "file": "rwy07l.ogg",
       "text": "7 left",
-      "text_he": "7 שמאלי"
+      "text_he": "7 שמאל"
     },
     "7+RWY_R": {
       "file": "rwy07r.ogg",
       "text": "7 right",
-      "text_he": "7 ימני"
+      "text_he": "7 ימין"
     },
     "8+RWY_L": {
       "file": "rwy08l.ogg",
       "text": "8 left",
-      "text_he": "8 שמאלי"
+      "text_he": "8 שמאל"
     },
     "8+RWY_R": {
       "file": "rwy08r.ogg",
       "text": "8 right",
-      "text_he": "8 ימני"
+      "text_he": "8 ימין"
     },
     "10+RWY_L": {
       "file": "rwy10l.ogg",
       "text": "10 left",
-      "text_he": "10 שמאלי"
+      "text_he": "10 שמאל"
     },
     "10+RWY_R": {
       "file": "rwy10r.ogg",
       "text": "10 right",
-      "text_he": "10 ימני"
+      "text_he": "10 ימין"
     },
     "25+RWY_L": {
       "file": "rwy25l.ogg",
       "text": "25 left",
-      "text_he": "25 שמאלי"
+      "text_he": "25 שמאל"
     },
     "25+RWY_R": {
       "file": "rwy25r.ogg",
       "text": "25 right",
-      "text_he": "25 ימני"
+      "text_he": "25 ימין"
     },
     "26+RWY_L": {
       "file": "rwy26l.ogg",
       "text": "26 left",
-      "text_he": "26 שמאלי"
+      "text_he": "26 שמאל"
     },
     "26+RWY_R": {
       "file": "rwy26r.ogg",
       "text": "26 right",
-      "text_he": "26 ימני"
+      "text_he": "26 ימין"
     },
     "28+RWY_L": {
       "file": "rwy28l.ogg",
       "text": "28 left",
-      "text_he": "28 שמאלי"
+      "text_he": "28 שמאל"
     },
     "28+RWY_R": {
       "file": "rwy28r.ogg",
       "text": "28 right",
-      "text_he": "28 ימני"
+      "text_he": "28 ימין"
     },
     "ALPHA_T+,+MORNING+,+TAXI_RWY": {
-      "file": "twr_alpha_taxi_morning.ogg",
-      "text": "Alpha, good morning, taxi to runway",
-      "text_he": "אלפא, בוקר טוב, הסעה למסלול"
+      "file": "twr_kidon1_taxi_morning.ogg",
+      "text": "Kidon 1, good morning, taxi to runway",
+      "text_he": "כידון 1, בוקר טוב, הסעה למסלול"
     },
     "ALPHA_T+,+AFTERNOON+,+TAXI_RWY": {
-      "file": "twr_alpha_taxi_afternoon.ogg",
-      "text": "Alpha, good afternoon, taxi to runway",
-      "text_he": "אלפא, צהריים טובים, הסעה למסלול"
+      "file": "twr_kidon1_taxi_afternoon.ogg",
+      "text": "Kidon 1, good afternoon, taxi to runway",
+      "text_he": "כידון 1, צהריים טובים, הסעה למסלול"
     },
     "ALPHA_T+,+EVENING+,+TAXI_RWY": {
-      "file": "twr_alpha_taxi_evening.ogg",
-      "text": "Alpha, good evening, taxi to runway",
-      "text_he": "אלפא, ערב טוב, הסעה למסלול"
+      "file": "twr_kidon1_taxi_evening.ogg",
+      "text": "Kidon 1, good evening, taxi to runway",
+      "text_he": "כידון 1, ערב טוב, הסעה למסלול"
     },
     "ALPHA_T+,+LINEUP_RWY": {
-      "file": "twr_alpha_lineup_rwy.ogg",
-      "text": "Alpha, line up runway",
-      "text_he": "אלפא, כניסה למסלול"
+      "file": "twr_kidon1_lineup_rwy.ogg",
+      "text": "Kidon 1, line up runway",
+      "text_he": "כידון 1, כניסה למסלול"
     },
     "ALPHA_T+,+PROCEED_RWY": {
-      "file": "twr_alpha_proceed_rwy.ogg",
-      "text": "Alpha, proceed to runway",
-      "text_he": "אלפא, התקדמות למסלול"
+      "file": "twr_kidon1_proceed_rwy.ogg",
+      "text": "Kidon 1, proceed to runway",
+      "text_he": "כידון 1, התקדמות למסלול"
     },
     "ALPHA_T+,+LAND_RWY": {
-      "file": "twr_alpha_land_rwy.ogg",
-      "text": "Alpha, cleared to land runway",
-      "text_he": "אלפא, אישור נחיתה במסלול"
+      "file": "twr_kidon1_land_rwy.ogg",
+      "text": "Kidon 1, cleared to land runway",
+      "text_he": "כידון 1, אישור נחיתה במסלול"
     },
     "ALPHA_T+,+START": {
-      "file": "twr_alpha_start.ogg",
-      "text": "Alpha, cleared to start",
-      "text_he": "אלפא, אישור התנעה"
+      "file": "twr_kidon1_start.ogg",
+      "text": "Kidon 1, cleared to start",
+      "text_he": "כידון 1, אישור התנעה"
     },
     "ALPHA_T+,+HOLD_POS": {
-      "file": "twr_alpha_hold_pos.ogg",
-      "text": "Alpha, hold position",
-      "text_he": "אלפא, המתנה במקום"
+      "file": "twr_kidon1_hold_pos.ogg",
+      "text": "Kidon 1, hold position",
+      "text_he": "כידון 1, המתנה במקום"
     },
     "ALPHA_T+,+TAKEOFF": {
-      "file": "twr_alpha_takeoff.ogg",
-      "text": "Alpha, cleared for take-off",
-      "text_he": "אלפא, אישור המראה"
+      "file": "twr_kidon1_takeoff.ogg",
+      "text": "Kidon 1, cleared for take-off",
+      "text_he": "כידון 1, אישור המראה"
     },
     "ALPHA_T+,+GO_AROUND": {
-      "file": "twr_alpha_go_around.ogg",
-      "text": "Alpha, go around, runway not clear",
-      "text_he": "אלפא, סיבוב נוסף, המסלול אינו פנוי"
+      "file": "twr_kidon1_go_around.ogg",
+      "text": "Kidon 1, go around, runway not clear",
+      "text_he": "כידון 1, סיבוב נוסף, המסלול אינו פנוי"
     },
     "ALPHA_T+,+TAXI_PARK": {
-      "file": "twr_alpha_taxi_park.ogg",
-      "text": "Alpha, welcome back, taxi to parking",
-      "text_he": "אלפא, ברוכים השבים, הסעה לחנייה"
+      "file": "twr_kidon1_taxi_park.ogg",
+      "text": "Kidon 1, welcome back, taxi to parking",
+      "text_he": "כידון 1, ברוכים השבים, הסעה לחנייה"
     },
     "ALPHA_T+,+GEAR_NOT_DOWN": {
-      "file": "twr_alpha_gear_not_down.ogg",
-      "text": "Alpha, check gear down",
-      "text_he": "אלפא, בדיקת כן נסע למטה"
+      "file": "twr_kidon1_gear_not_down.ogg",
+      "text": "Kidon 1, check gear down",
+      "text_he": "כידון 1, בדיקת כן נסע למטה"
     },
     "BRAVO_T+,+MORNING+,+TAXI_RWY": {
-      "file": "twr_bravo_taxi_morning.ogg",
-      "text": "Bravo, good morning, taxi to runway",
-      "text_he": "בראבו, בוקר טוב, הסעה למסלול"
+      "file": "twr_kidon2_taxi_morning.ogg",
+      "text": "Kidon 2, good morning, taxi to runway",
+      "text_he": "כידון 2, בוקר טוב, הסעה למסלול"
     },
     "BRAVO_T+,+AFTERNOON+,+TAXI_RWY": {
-      "file": "twr_bravo_taxi_afternoon.ogg",
-      "text": "Bravo, good afternoon, taxi to runway",
-      "text_he": "בראבו, צהריים טובים, הסעה למסלול"
+      "file": "twr_kidon2_taxi_afternoon.ogg",
+      "text": "Kidon 2, good afternoon, taxi to runway",
+      "text_he": "כידון 2, צהריים טובים, הסעה למסלול"
     },
     "BRAVO_T+,+EVENING+,+TAXI_RWY": {
-      "file": "twr_bravo_taxi_evening.ogg",
-      "text": "Bravo, good evening, taxi to runway",
-      "text_he": "בראבו, ערב טוב, הסעה למסלול"
+      "file": "twr_kidon2_taxi_evening.ogg",
+      "text": "Kidon 2, good evening, taxi to runway",
+      "text_he": "כידון 2, ערב טוב, הסעה למסלול"
     },
     "BRAVO_T+,+LINEUP_RWY": {
-      "file": "twr_bravo_lineup_rwy.ogg",
-      "text": "Bravo, line up runway",
-      "text_he": "בראבו, כניסה למסלול"
+      "file": "twr_kidon2_lineup_rwy.ogg",
+      "text": "Kidon 2, line up runway",
+      "text_he": "כידון 2, כניסה למסלול"
     },
     "BRAVO_T+,+PROCEED_RWY": {
-      "file": "twr_bravo_proceed_rwy.ogg",
-      "text": "Bravo, proceed to runway",
-      "text_he": "בראבו, התקדמות למסלול"
+      "file": "twr_kidon2_proceed_rwy.ogg",
+      "text": "Kidon 2, proceed to runway",
+      "text_he": "כידון 2, התקדמות למסלול"
     },
     "BRAVO_T+,+LAND_RWY": {
-      "file": "twr_bravo_land_rwy.ogg",
-      "text": "Bravo, cleared to land runway",
-      "text_he": "בראבו, אישור נחיתה במסלול"
+      "file": "twr_kidon2_land_rwy.ogg",
+      "text": "Kidon 2, cleared to land runway",
+      "text_he": "כידון 2, אישור נחיתה במסלול"
     },
     "BRAVO_T+,+START": {
-      "file": "twr_bravo_start.ogg",
-      "text": "Bravo, cleared to start",
-      "text_he": "בראבו, אישור התנעה"
+      "file": "twr_kidon2_start.ogg",
+      "text": "Kidon 2, cleared to start",
+      "text_he": "כידון 2, אישור התנעה"
     },
     "BRAVO_T+,+HOLD_POS": {
-      "file": "twr_bravo_hold_pos.ogg",
-      "text": "Bravo, hold position",
-      "text_he": "בראבו, המתנה במקום"
+      "file": "twr_kidon2_hold_pos.ogg",
+      "text": "Kidon 2, hold position",
+      "text_he": "כידון 2, המתנה במקום"
     },
     "BRAVO_T+,+TAKEOFF": {
-      "file": "twr_bravo_takeoff.ogg",
-      "text": "Bravo, cleared for take-off",
-      "text_he": "בראבו, אישור המראה"
+      "file": "twr_kidon2_takeoff.ogg",
+      "text": "Kidon 2, cleared for take-off",
+      "text_he": "כידון 2, אישור המראה"
     },
     "BRAVO_T+,+GO_AROUND": {
-      "file": "twr_bravo_go_around.ogg",
-      "text": "Bravo, go around, runway not clear",
-      "text_he": "בראבו, סיבוב נוסף, המסלול אינו פנוי"
+      "file": "twr_kidon2_go_around.ogg",
+      "text": "Kidon 2, go around, runway not clear",
+      "text_he": "כידון 2, סיבוב נוסף, המסלול אינו פנוי"
     },
     "BRAVO_T+,+TAXI_PARK": {
-      "file": "twr_bravo_taxi_park.ogg",
-      "text": "Bravo, welcome back, taxi to parking",
-      "text_he": "בראבו, ברוכים השבים, הסעה לחנייה"
+      "file": "twr_kidon2_taxi_park.ogg",
+      "text": "Kidon 2, welcome back, taxi to parking",
+      "text_he": "כידון 2, ברוכים השבים, הסעה לחנייה"
     },
     "BRAVO_T+,+GEAR_NOT_DOWN": {
-      "file": "twr_bravo_gear_not_down.ogg",
-      "text": "Bravo, check gear down",
-      "text_he": "בראבו, בדיקת כן נסע למטה"
+      "file": "twr_kidon2_gear_not_down.ogg",
+      "text": "Kidon 2, check gear down",
+      "text_he": "כידון 2, בדיקת כן נסע למטה"
     },
     "CHARLIE_T+,+MORNING+,+TAXI_RWY": {
-      "file": "twr_charlie_taxi_morning.ogg",
-      "text": "Charlie, good morning, taxi to runway",
-      "text_he": "צ'רלי, בוקר טוב, הסעה למסלול"
+      "file": "twr_kidon3_taxi_morning.ogg",
+      "text": "Kidon 3, good morning, taxi to runway",
+      "text_he": "כידון 3, בוקר טוב, הסעה למסלול"
     },
     "CHARLIE_T+,+AFTERNOON+,+TAXI_RWY": {
-      "file": "twr_charlie_taxi_afternoon.ogg",
-      "text": "Charlie, good afternoon, taxi to runway",
-      "text_he": "צ'רלי, צהריים טובים, הסעה למסלול"
+      "file": "twr_kidon3_taxi_afternoon.ogg",
+      "text": "Kidon 3, good afternoon, taxi to runway",
+      "text_he": "כידון 3, צהריים טובים, הסעה למסלול"
     },
     "CHARLIE_T+,+EVENING+,+TAXI_RWY": {
-      "file": "twr_charlie_taxi_evening.ogg",
-      "text": "Charlie, good evening, taxi to runway",
-      "text_he": "צ'רלי, ערב טוב, הסעה למסלול"
+      "file": "twr_kidon3_taxi_evening.ogg",
+      "text": "Kidon 3, good evening, taxi to runway",
+      "text_he": "כידון 3, ערב טוב, הסעה למסלול"
     },
     "CHARLIE_T+,+LINEUP_RWY": {
-      "file": "twr_charlie_lineup_rwy.ogg",
-      "text": "Charlie, line up runway",
-      "text_he": "צ'רלי, כניסה למסלול"
+      "file": "twr_kidon3_lineup_rwy.ogg",
+      "text": "Kidon 3, line up runway",
+      "text_he": "כידון 3, כניסה למסלול"
     },
     "CHARLIE_T+,+PROCEED_RWY": {
-      "file": "twr_charlie_proceed_rwy.ogg",
-      "text": "Charlie, proceed to runway",
-      "text_he": "צ'רלי, התקדמות למסלול"
+      "file": "twr_kidon3_proceed_rwy.ogg",
+      "text": "Kidon 3, proceed to runway",
+      "text_he": "כידון 3, התקדמות למסלול"
     },
     "CHARLIE_T+,+LAND_RWY": {
-      "file": "twr_charlie_land_rwy.ogg",
-      "text": "Charlie, cleared to land runway",
-      "text_he": "צ'רלי, אישור נחיתה במסלול"
+      "file": "twr_kidon3_land_rwy.ogg",
+      "text": "Kidon 3, cleared to land runway",
+      "text_he": "כידון 3, אישור נחיתה במסלול"
     },
     "CHARLIE_T+,+START": {
-      "file": "twr_charlie_start.ogg",
-      "text": "Charlie, cleared to start",
-      "text_he": "צ'רלי, אישור התנעה"
+      "file": "twr_kidon3_start.ogg",
+      "text": "Kidon 3, cleared to start",
+      "text_he": "כידון 3, אישור התנעה"
     },
     "CHARLIE_T+,+HOLD_POS": {
-      "file": "twr_charlie_hold_pos.ogg",
-      "text": "Charlie, hold position",
-      "text_he": "צ'רלי, המתנה במקום"
+      "file": "twr_kidon3_hold_pos.ogg",
+      "text": "Kidon 3, hold position",
+      "text_he": "כידון 3, המתנה במקום"
     },
     "CHARLIE_T+,+TAKEOFF": {
-      "file": "twr_charlie_takeoff.ogg",
-      "text": "Charlie, cleared for take-off",
-      "text_he": "צ'רלי, אישור המראה"
+      "file": "twr_kidon3_takeoff.ogg",
+      "text": "Kidon 3, cleared for take-off",
+      "text_he": "כידון 3, אישור המראה"
     },
     "CHARLIE_T+,+GO_AROUND": {
-      "file": "twr_charlie_go_around.ogg",
-      "text": "Charlie, go around, runway not clear",
-      "text_he": "צ'רלי, סיבוב נוסף, המסלול אינו פנוי"
+      "file": "twr_kidon3_go_around.ogg",
+      "text": "Kidon 3, go around, runway not clear",
+      "text_he": "כידון 3, סיבוב נוסף, המסלול אינו פנוי"
     },
     "CHARLIE_T+,+TAXI_PARK": {
-      "file": "twr_charlie_taxi_park.ogg",
-      "text": "Charlie, welcome back, taxi to parking",
-      "text_he": "צ'רלי, ברוכים השבים, הסעה לחנייה"
+      "file": "twr_kidon3_taxi_park.ogg",
+      "text": "Kidon 3, welcome back, taxi to parking",
+      "text_he": "כידון 3, ברוכים השבים, הסעה לחנייה"
     },
     "CHARLIE_T+,+GEAR_NOT_DOWN": {
-      "file": "twr_charlie_gear_not_down.ogg",
-      "text": "Charlie, check gear down",
-      "text_he": "צ'רלי, בדיקת כן נסע למטה"
+      "file": "twr_kidon3_gear_not_down.ogg",
+      "text": "Kidon 3, check gear down",
+      "text_he": "כידון 3, בדיקת כן נסע למטה"
     },
     "DELTA_T+,+MORNING+,+TAXI_RWY": {
-      "file": "twr_delta_taxi_morning.ogg",
-      "text": "Delta, good morning, taxi to runway",
-      "text_he": "דלתא, בוקר טוב, הסעה למסלול"
+      "file": "twr_kidon4_taxi_morning.ogg",
+      "text": "Kidon 4, good morning, taxi to runway",
+      "text_he": "כידון 4, בוקר טוב, הסעה למסלול"
     },
     "DELTA_T+,+AFTERNOON+,+TAXI_RWY": {
-      "file": "twr_delta_taxi_afternoon.ogg",
-      "text": "Delta, good afternoon, taxi to runway",
-      "text_he": "דלתא, צהריים טובים, הסעה למסלול"
+      "file": "twr_kidon4_taxi_afternoon.ogg",
+      "text": "Kidon 4, good afternoon, taxi to runway",
+      "text_he": "כידון 4, צהריים טובים, הסעה למסלול"
     },
     "DELTA_T+,+EVENING+,+TAXI_RWY": {
-      "file": "twr_delta_taxi_evening.ogg",
-      "text": "Delta, good evening, taxi to runway",
-      "text_he": "דלתא, ערב טוב, הסעה למסלול"
+      "file": "twr_kidon4_taxi_evening.ogg",
+      "text": "Kidon 4, good evening, taxi to runway",
+      "text_he": "כידון 4, ערב טוב, הסעה למסלול"
     },
     "DELTA_T+,+LINEUP_RWY": {
-      "file": "twr_delta_lineup_rwy.ogg",
-      "text": "Delta, line up runway",
-      "text_he": "דלתא, כניסה למסלול"
+      "file": "twr_kidon4_lineup_rwy.ogg",
+      "text": "Kidon 4, line up runway",
+      "text_he": "כידון 4, כניסה למסלול"
     },
     "DELTA_T+,+PROCEED_RWY": {
-      "file": "twr_delta_proceed_rwy.ogg",
-      "text": "Delta, proceed to runway",
-      "text_he": "דלתא, התקדמות למסלול"
+      "file": "twr_kidon4_proceed_rwy.ogg",
+      "text": "Kidon 4, proceed to runway",
+      "text_he": "כידון 4, התקדמות למסלול"
     },
     "DELTA_T+,+LAND_RWY": {
-      "file": "twr_delta_land_rwy.ogg",
-      "text": "Delta, cleared to land runway",
-      "text_he": "דלתא, אישור נחיתה במסלול"
+      "file": "twr_kidon4_land_rwy.ogg",
+      "text": "Kidon 4, cleared to land runway",
+      "text_he": "כידון 4, אישור נחיתה במסלול"
     },
     "DELTA_T+,+START": {
-      "file": "twr_delta_start.ogg",
-      "text": "Delta, cleared to start",
-      "text_he": "דלתא, אישור התנעה"
+      "file": "twr_kidon4_start.ogg",
+      "text": "Kidon 4, cleared to start",
+      "text_he": "כידון 4, אישור התנעה"
     },
     "DELTA_T+,+HOLD_POS": {
-      "file": "twr_delta_hold_pos.ogg",
-      "text": "Delta, hold position",
-      "text_he": "דלתא, המתנה במקום"
+      "file": "twr_kidon4_hold_pos.ogg",
+      "text": "Kidon 4, hold position",
+      "text_he": "כידון 4, המתנה במקום"
     },
     "DELTA_T+,+TAKEOFF": {
-      "file": "twr_delta_takeoff.ogg",
-      "text": "Delta, cleared for take-off",
-      "text_he": "דלתא, אישור המראה"
+      "file": "twr_kidon4_takeoff.ogg",
+      "text": "Kidon 4, cleared for take-off",
+      "text_he": "כידון 4, אישור המראה"
     },
     "DELTA_T+,+GO_AROUND": {
-      "file": "twr_delta_go_around.ogg",
-      "text": "Delta, go around, runway not clear",
-      "text_he": "דלתא, סיבוב נוסף, המסלול אינו פנוי"
+      "file": "twr_kidon4_go_around.ogg",
+      "text": "Kidon 4, go around, runway not clear",
+      "text_he": "כידון 4, סיבוב נוסף, המסלול אינו פנוי"
     },
     "DELTA_T+,+TAXI_PARK": {
-      "file": "twr_delta_taxi_park.ogg",
-      "text": "Delta, welcome back, taxi to parking",
-      "text_he": "דלתא, ברוכים השבים, הסעה לחנייה"
+      "file": "twr_kidon4_taxi_park.ogg",
+      "text": "Kidon 4, welcome back, taxi to parking",
+      "text_he": "כידון 4, ברוכים השבים, הסעה לחנייה"
     },
     "DELTA_T+,+GEAR_NOT_DOWN": {
-      "file": "twr_delta_gear_not_down.ogg",
-      "text": "Delta, check gear down",
-      "text_he": "דלתא, בדיקת כן נסע למטה"
+      "file": "twr_kidon4_gear_not_down.ogg",
+      "text": "Kidon 4, check gear down",
+      "text_he": "כידון 4, בדיקת כן נסע למטה"
     },
     "ALPHA_T+,+NO_START_CLR": {
-      "file": "twr_alpha_no_start_clr.ogg",
-      "text": "Alpha, engine start without clearance",
-      "text_he": "אלפא, התנעה ללא אישור"
+      "file": "twr_kidon1_no_start_clr.ogg",
+      "text": "Kidon 1, engine start without clearance",
+      "text_he": "כידון 1, התנעה ללא אישור"
     },
     "BRAVO_T+,+NO_START_CLR": {
-      "file": "twr_bravo_no_start_clr.ogg",
-      "text": "Bravo, engine start without clearance",
-      "text_he": "בראבו, התנעה ללא אישור"
+      "file": "twr_kidon2_no_start_clr.ogg",
+      "text": "Kidon 2, engine start without clearance",
+      "text_he": "כידון 2, התנעה ללא אישור"
     },
     "CHARLIE_T+,+NO_START_CLR": {
-      "file": "twr_charlie_no_start_clr.ogg",
-      "text": "Charlie, engine start without clearance",
-      "text_he": "צ'רלי, התנעה ללא אישור"
+      "file": "twr_kidon3_no_start_clr.ogg",
+      "text": "Kidon 3, engine start without clearance",
+      "text_he": "כידון 3, התנעה ללא אישור"
     },
     "DELTA_T+,+NO_START_CLR": {
-      "file": "twr_delta_no_start_clr.ogg",
-      "text": "Delta, engine start without clearance",
-      "text_he": "דלתא, התנעה ללא אישור"
+      "file": "twr_kidon4_no_start_clr.ogg",
+      "text": "Kidon 4, engine start without clearance",
+      "text_he": "כידון 4, התנעה ללא אישור"
     },
     "ALPHA_T+,+NO_TAXI_CLR": {
-      "file": "twr_alpha_no_taxi_clr.ogg",
-      "text": "Alpha, taxi without clearance",
-      "text_he": "אלפא, הסעה ללא אישור"
+      "file": "twr_kidon1_no_taxi_clr.ogg",
+      "text": "Kidon 1, taxi without clearance",
+      "text_he": "כידון 1, הסעה ללא אישור"
     },
     "BRAVO_T+,+NO_TAXI_CLR": {
-      "file": "twr_bravo_no_taxi_clr.ogg",
-      "text": "Bravo, taxi without clearance",
-      "text_he": "בראבו, הסעה ללא אישור"
+      "file": "twr_kidon2_no_taxi_clr.ogg",
+      "text": "Kidon 2, taxi without clearance",
+      "text_he": "כידון 2, הסעה ללא אישור"
     },
     "CHARLIE_T+,+NO_TAXI_CLR": {
-      "file": "twr_charlie_no_taxi_clr.ogg",
-      "text": "Charlie, taxi without clearance",
-      "text_he": "צ'רלי, הסעה ללא אישור"
+      "file": "twr_kidon3_no_taxi_clr.ogg",
+      "text": "Kidon 3, taxi without clearance",
+      "text_he": "כידון 3, הסעה ללא אישור"
     },
     "DELTA_T+,+NO_TAXI_CLR": {
-      "file": "twr_delta_no_taxi_clr.ogg",
-      "text": "Delta, taxi without clearance",
-      "text_he": "דלתא, הסעה ללא אישור"
+      "file": "twr_kidon4_no_taxi_clr.ogg",
+      "text": "Kidon 4, taxi without clearance",
+      "text_he": "כידון 4, הסעה ללא אישור"
     },
     "ALPHA_T+,+NO_RUNWAY_CLR": {
-      "file": "twr_alpha_no_runway_clr.ogg",
-      "text": "Alpha, runway entry without clearance",
-      "text_he": "אלפא, כניסה למסלול ללא אישור"
+      "file": "twr_kidon1_no_runway_clr.ogg",
+      "text": "Kidon 1, runway entry without clearance",
+      "text_he": "כידון 1, כניסה למסלול ללא אישור"
     },
     "BRAVO_T+,+NO_RUNWAY_CLR": {
-      "file": "twr_bravo_no_runway_clr.ogg",
-      "text": "Bravo, runway entry without clearance",
-      "text_he": "בראבו, כניסה למסלול ללא אישור"
+      "file": "twr_kidon2_no_runway_clr.ogg",
+      "text": "Kidon 2, runway entry without clearance",
+      "text_he": "כידון 2, כניסה למסלול ללא אישור"
     },
     "CHARLIE_T+,+NO_RUNWAY_CLR": {
-      "file": "twr_charlie_no_runway_clr.ogg",
-      "text": "Charlie, runway entry without clearance",
-      "text_he": "צ'רלי, כניסה למסלול ללא אישור"
+      "file": "twr_kidon3_no_runway_clr.ogg",
+      "text": "Kidon 3, runway entry without clearance",
+      "text_he": "כידון 3, כניסה למסלול ללא אישור"
     },
     "DELTA_T+,+NO_RUNWAY_CLR": {
-      "file": "twr_delta_no_runway_clr.ogg",
-      "text": "Delta, runway entry without clearance",
-      "text_he": "דלתא, כניסה למסלול ללא אישור"
+      "file": "twr_kidon4_no_runway_clr.ogg",
+      "text": "Kidon 4, runway entry without clearance",
+      "text_he": "כידון 4, כניסה למסלול ללא אישור"
     },
     "ALPHA_T+,+NO_TAKEOFF_CLR": {
-      "file": "twr_alpha_no_takeoff_clr.ogg",
-      "text": "Alpha, take-off without clearance",
-      "text_he": "אלפא, המראה ללא אישור"
+      "file": "twr_kidon1_no_takeoff_clr.ogg",
+      "text": "Kidon 1, take-off without clearance",
+      "text_he": "כידון 1, המראה ללא אישור"
     },
     "BRAVO_T+,+NO_TAKEOFF_CLR": {
-      "file": "twr_bravo_no_takeoff_clr.ogg",
-      "text": "Bravo, take-off without clearance",
-      "text_he": "בראבו, המראה ללא אישור"
+      "file": "twr_kidon2_no_takeoff_clr.ogg",
+      "text": "Kidon 2, take-off without clearance",
+      "text_he": "כידון 2, המראה ללא אישור"
     },
     "CHARLIE_T+,+NO_TAKEOFF_CLR": {
-      "file": "twr_charlie_no_takeoff_clr.ogg",
-      "text": "Charlie, take-off without clearance",
-      "text_he": "צ'רלי, המראה ללא אישור"
+      "file": "twr_kidon3_no_takeoff_clr.ogg",
+      "text": "Kidon 3, take-off without clearance",
+      "text_he": "כידון 3, המראה ללא אישור"
     },
     "DELTA_T+,+NO_TAKEOFF_CLR": {
-      "file": "twr_delta_no_takeoff_clr.ogg",
-      "text": "Delta, take-off without clearance",
-      "text_he": "דלתא, המראה ללא אישור"
+      "file": "twr_kidon4_no_takeoff_clr.ogg",
+      "text": "Kidon 4, take-off without clearance",
+      "text_he": "כידון 4, המראה ללא אישור"
     },
     "ALPHA_T+,+ON_RWY": {
-      "file": "twr_alpha_on_rwy.ogg",
-      "text": "Alpha, you are on runway",
-      "text_he": "אלפא, על מסלול"
+      "file": "twr_kidon1_on_rwy.ogg",
+      "text": "Kidon 1, you are on runway",
+      "text_he": "כידון 1, על מסלול"
     },
     "BRAVO_T+,+ON_RWY": {
-      "file": "twr_bravo_on_rwy.ogg",
-      "text": "Bravo, you are on runway",
-      "text_he": "בראבו, על מסלול"
+      "file": "twr_kidon2_on_rwy.ogg",
+      "text": "Kidon 2, you are on runway",
+      "text_he": "כידון 2, על מסלול"
     },
     "CHARLIE_T+,+ON_RWY": {
-      "file": "twr_charlie_on_rwy.ogg",
-      "text": "Charlie, you are on runway",
-      "text_he": "צ'רלי, על מסלול"
+      "file": "twr_kidon3_on_rwy.ogg",
+      "text": "Kidon 3, you are on runway",
+      "text_he": "כידון 3, על מסלול"
     },
     "DELTA_T+,+ON_RWY": {
-      "file": "twr_delta_on_rwy.ogg",
-      "text": "Delta, you are on runway",
-      "text_he": "דלתא, על מסלול"
+      "file": "twr_kidon4_on_rwy.ogg",
+      "text": "Kidon 4, you are on runway",
+      "text_he": "כידון 4, על מסלול"
     },
     "ALPHA_T+,+NEGATIVE_HOLD": {
-      "file": "twr_alpha_negative_hold.ogg",
-      "text": "Alpha, negative, hold position",
-      "text_he": "אלפא, שלילי, המתנה במקום"
+      "file": "twr_kidon1_negative_hold.ogg",
+      "text": "Kidon 1, negative, hold position",
+      "text_he": "כידון 1, שלילי, המתנה במקום"
     },
     "BRAVO_T+,+NEGATIVE_HOLD": {
-      "file": "twr_bravo_negative_hold.ogg",
-      "text": "Bravo, negative, hold position",
-      "text_he": "בראבו, שלילי, המתנה במקום"
+      "file": "twr_kidon2_negative_hold.ogg",
+      "text": "Kidon 2, negative, hold position",
+      "text_he": "כידון 2, שלילי, המתנה במקום"
     },
     "CHARLIE_T+,+NEGATIVE_HOLD": {
-      "file": "twr_charlie_negative_hold.ogg",
-      "text": "Charlie, negative, hold position",
-      "text_he": "צ'רלי, שלילי, המתנה במקום"
+      "file": "twr_kidon3_negative_hold.ogg",
+      "text": "Kidon 3, negative, hold position",
+      "text_he": "כידון 3, שלילי, המתנה במקום"
     },
     "DELTA_T+,+NEGATIVE_HOLD": {
-      "file": "twr_delta_negative_hold.ogg",
-      "text": "Delta, negative, hold position",
-      "text_he": "דלתא, שלילי, המתנה במקום"
+      "file": "twr_kidon4_negative_hold.ogg",
+      "text": "Kidon 4, negative, hold position",
+      "text_he": "כידון 4, שלילי, המתנה במקום"
     },
     "ALPHA_T+,+NEGATIVE_HOLD+,+FIRST_STARTUP": {
-      "file": "twr_alpha_negative_startup.ogg",
-      "text": "Alpha, negative, hold position, request start-up first",
-      "text_he": "אלפא, שלילי, המתנה במקום, יש לבקש התנעה קודם"
+      "file": "twr_kidon1_negative_startup.ogg",
+      "text": "Kidon 1, negative, hold position, request start-up first",
+      "text_he": "כידון 1, שלילי, המתנה במקום, יש לבקש התנעה קודם"
     },
     "ALPHA_T+,+NEGATIVE_HOLD+,+FIRST_TAXI": {
-      "file": "twr_alpha_negative_taxi.ogg",
-      "text": "Alpha, negative, hold position, request taxi first",
-      "text_he": "אלפא, שלילי, המתנה במקום, יש לבקש הסעה קודם"
+      "file": "twr_kidon1_negative_taxi.ogg",
+      "text": "Kidon 1, negative, hold position, request taxi first",
+      "text_he": "כידון 1, שלילי, המתנה במקום, יש לבקש הסעה קודם"
     },
     "ALPHA_T+,+NEGATIVE_HOLD+,+FIRST_LINEUP": {
-      "file": "twr_alpha_negative_lineup.ogg",
-      "text": "Alpha, negative, hold position, request line-up first",
-      "text_he": "אלפא, שלילי, המתנה במקום, יש לבקש כניסה למסלול קודם"
+      "file": "twr_kidon1_negative_lineup.ogg",
+      "text": "Kidon 1, negative, hold position, request line-up first",
+      "text_he": "כידון 1, שלילי, המתנה במקום, יש לבקש כניסה למסלול קודם"
     },
     "ALPHA_T+,+MORNING+,+TAXI_RWY+24": {
-      "file": "twr_alpha_taxi_morning_24.ogg",
-      "text": "Alpha, good morning, taxi to runway two four",
-      "text_he": "אלפא, בוקר טוב, הסעה למסלול 24"
+      "file": "twr_kidon1_taxi_morning_24.ogg",
+      "text": "Kidon 1, good morning, taxi to runway two four",
+      "text_he": "כידון 1, בוקר טוב, הסעה למסלול 24"
     },
     "ALPHA_T+,+LINEUP_RWY+24+,+WIND_CALM": {
-      "file": "twr_alpha_lineup_24_calm.ogg",
-      "text": "Alpha, line up runway two four, wind calm",
-      "text_he": "אלפא, כניסה למסלול 24, רוח שקטה"
+      "file": "twr_kidon1_lineup_24_calm.ogg",
+      "text": "Kidon 1, line up runway two four, wind calm",
+      "text_he": "כידון 1, כניסה למסלול 24, רוח שקטה"
     },
     "ALPHA_T+,+MORNING+,+TAXI_RWY+25": {
-      "file": "twr_alpha_taxi_morning_25.ogg",
-      "text": "Alpha, good morning, taxi to runway two five",
-      "text_he": "אלפא, בוקר טוב, הסעה למסלול 25"
+      "file": "twr_kidon1_taxi_morning_25.ogg",
+      "text": "Kidon 1, good morning, taxi to runway two five",
+      "text_he": "כידון 1, בוקר טוב, הסעה למסלול 25"
     },
     "ALPHA_T+,+LINEUP_RWY+25+,+WIND_CALM": {
-      "file": "twr_alpha_lineup_25_calm.ogg",
-      "text": "Alpha, line up runway two five, wind calm",
-      "text_he": "אלפא, כניסה למסלול 25, רוח שקטה"
+      "file": "twr_kidon1_lineup_25_calm.ogg",
+      "text": "Kidon 1, line up runway two five, wind calm",
+      "text_he": "כידון 1, כניסה למסלול 25, רוח שקטה"
     },
     "ALPHA_T+,+MORNING+,+TAXI_RWY+25+RWY_R": {
-      "file": "twr_alpha_taxi_morning_25r.ogg",
-      "text": "Alpha, good morning, taxi to runway two five right",
-      "text_he": "אלפא, בוקר טוב, הסעה למסלול 25 ימני"
+      "file": "twr_kidon1_taxi_morning_25r.ogg",
+      "text": "Kidon 1, good morning, taxi to runway two five right",
+      "text_he": "כידון 1, בוקר טוב, הסעה למסלול 25 ימין"
     },
     "ALPHA_T+,+LINEUP_RWY+25+RWY_R+,+WIND_CALM": {
-      "file": "twr_alpha_lineup_25r_calm.ogg",
-      "text": "Alpha, line up runway two five right, wind calm",
-      "text_he": "אלפא, כניסה למסלול 25 ימני, רוח שקטה"
+      "file": "twr_kidon1_lineup_25r_calm.ogg",
+      "text": "Kidon 1, line up runway two five right, wind calm",
+      "text_he": "כידון 1, כניסה למסלול 25 ימין, רוח שקטה"
     },
     "ALPHA_T+,+MORNING+,+TAXI_RWY+26": {
-      "file": "twr_alpha_taxi_morning_26.ogg",
-      "text": "Alpha, good morning, taxi to runway two six",
-      "text_he": "אלפא, בוקר טוב, הסעה למסלול 26"
+      "file": "twr_kidon1_taxi_morning_26.ogg",
+      "text": "Kidon 1, good morning, taxi to runway two six",
+      "text_he": "כידון 1, בוקר טוב, הסעה למסלול 26"
     },
     "ALPHA_T+,+LINEUP_RWY+26+,+WIND_CALM": {
-      "file": "twr_alpha_lineup_26_calm.ogg",
-      "text": "Alpha, line up runway two six, wind calm",
-      "text_he": "אלפא, כניסה למסלול 26, רוח שקטה"
+      "file": "twr_kidon1_lineup_26_calm.ogg",
+      "text": "Kidon 1, line up runway two six, wind calm",
+      "text_he": "כידון 1, כניסה למסלול 26, רוח שקטה"
     },
     "ALPHA_T+,+MORNING+,+TAXI_RWY+26+RWY_L": {
-      "file": "twr_alpha_taxi_morning_26l.ogg",
-      "text": "Alpha, good morning, taxi to runway two six left",
-      "text_he": "אלפא, בוקר טוב, הסעה למסלול 26 שמאלי"
+      "file": "twr_kidon1_taxi_morning_26l.ogg",
+      "text": "Kidon 1, good morning, taxi to runway two six left",
+      "text_he": "כידון 1, בוקר טוב, הסעה למסלול 26 שמאל"
     },
     "ALPHA_T+,+LINEUP_RWY+26+RWY_L+,+WIND_CALM": {
-      "file": "twr_alpha_lineup_26l_calm.ogg",
-      "text": "Alpha, line up runway two six left, wind calm",
-      "text_he": "אלפא, כניסה למסלול 26 שמאלי, רוח שקטה"
+      "file": "twr_kidon1_lineup_26l_calm.ogg",
+      "text": "Kidon 1, line up runway two six left, wind calm",
+      "text_he": "כידון 1, כניסה למסלול 26 שמאל, רוח שקטה"
     },
     "ALPHA_T+,+MORNING+,+TAXI_RWY+27": {
-      "file": "twr_alpha_taxi_morning_27.ogg",
-      "text": "Alpha, good morning, taxi to runway two seven",
-      "text_he": "אלפא, בוקר טוב, הסעה למסלול 27"
+      "file": "twr_kidon1_taxi_morning_27.ogg",
+      "text": "Kidon 1, good morning, taxi to runway two seven",
+      "text_he": "כידון 1, בוקר טוב, הסעה למסלול 27"
     },
     "ALPHA_T+,+LINEUP_RWY+27+,+WIND_CALM": {
-      "file": "twr_alpha_lineup_27_calm.ogg",
-      "text": "Alpha, line up runway two seven, wind calm",
-      "text_he": "אלפא, כניסה למסלול 27, רוח שקטה"
+      "file": "twr_kidon1_lineup_27_calm.ogg",
+      "text": "Kidon 1, line up runway two seven, wind calm",
+      "text_he": "כידון 1, כניסה למסלול 27, רוח שקטה"
     },
     "RAMON_TWR": {
       "file": "plt_ramon_twr.ogg",
@@ -3581,24 +3581,24 @@
       "text_he": "מגדל נבטים"
     },
     "ALPHA_P": {
-      "file": "plt_alpha.ogg",
-      "text": "Alpha",
-      "text_he": "אלפא"
+      "file": "plt_kidon1.ogg",
+      "text": "Kidon 1",
+      "text_he": "כידון 1"
     },
     "BRAVO_P": {
-      "file": "plt_bravo.ogg",
-      "text": "Bravo",
-      "text_he": "בראבו"
+      "file": "plt_kidon2.ogg",
+      "text": "Kidon 2",
+      "text_he": "כידון 2"
     },
     "CHARLIE_P": {
-      "file": "plt_charlie.ogg",
-      "text": "Charlie",
-      "text_he": "צ'רלי"
+      "file": "plt_kidon3.ogg",
+      "text": "Kidon 3",
+      "text_he": "כידון 3"
     },
     "DELTA_P": {
-      "file": "plt_delta.ogg",
-      "text": "Delta",
-      "text_he": "דלתא"
+      "file": "plt_kidon4.ogg",
+      "text": "Kidon 4",
+      "text_he": "כידון 4"
     },
     "REQ_STARTUP": {
       "file": "plt_req_start.ogg",
@@ -3626,124 +3626,124 @@
       "text_he": "בקשת נחיתה"
     },
     "RAMON_TWR+,+ALPHA_P+,+REQ_STARTUP": {
-      "file": "plt_ramon_alpha_start.ogg",
-      "text": "Ramon tower, Alpha, request start-up",
-      "text_he": "מגדל רמון, אלפא, בקשת התנעה"
+      "file": "plt_ramon_kidon1_start.ogg",
+      "text": "Ramon tower, Kidon 1, request start-up",
+      "text_he": "מגדל רמון, כידון 1, בקשת התנעה"
     },
     "RAMON_TWR+,+ALPHA_P+,+REQ_TAXI": {
-      "file": "plt_ramon_alpha_taxi.ogg",
-      "text": "Ramon tower, Alpha, request taxi",
-      "text_he": "מגדל רמון, אלפא, בקשת הסעה"
+      "file": "plt_ramon_kidon1_taxi.ogg",
+      "text": "Ramon tower, Kidon 1, request taxi",
+      "text_he": "מגדל רמון, כידון 1, בקשת הסעה"
     },
     "RAMON_TWR+,+ALPHA_P+,+REQ_LINEUP": {
-      "file": "plt_ramon_alpha_lineup.ogg",
-      "text": "Ramon tower, Alpha, request line-up",
-      "text_he": "מגדל רמון, אלפא, בקשת כניסה למסלול"
+      "file": "plt_ramon_kidon1_lineup.ogg",
+      "text": "Ramon tower, Kidon 1, request line-up",
+      "text_he": "מגדל רמון, כידון 1, בקשת כניסה למסלול"
     },
     "RAMON_TWR+,+ALPHA_P+,+REQ_TAKEOFF": {
-      "file": "plt_ramon_alpha_takeoff.ogg",
-      "text": "Ramon tower, Alpha, ready for take-off",
-      "text_he": "מגדל רמון, אלפא, בקשת המראה"
+      "file": "plt_ramon_kidon1_takeoff.ogg",
+      "text": "Ramon tower, Kidon 1, ready for take-off",
+      "text_he": "מגדל רמון, כידון 1, בקשת המראה"
     },
     "RAMON_TWR+,+ALPHA_P+,+REQ_LANDING": {
-      "file": "plt_ramon_alpha_landing.ogg",
-      "text": "Ramon tower, Alpha, request landing",
-      "text_he": "מגדל רמון, אלפא, בקשת נחיתה"
+      "file": "plt_ramon_kidon1_landing.ogg",
+      "text": "Ramon tower, Kidon 1, request landing",
+      "text_he": "מגדל רמון, כידון 1, בקשת נחיתה"
     },
     "DAVID_TWR+,+ALPHA_P+,+REQ_STARTUP": {
-      "file": "plt_david_alpha_start.ogg",
-      "text": "Ramat David tower, Alpha, request start-up",
-      "text_he": "מגדל רמת דוד, אלפא, בקשת התנעה"
+      "file": "plt_david_kidon1_start.ogg",
+      "text": "Ramat David tower, Kidon 1, request start-up",
+      "text_he": "מגדל רמת דוד, כידון 1, בקשת התנעה"
     },
     "DAVID_TWR+,+ALPHA_P+,+REQ_TAXI": {
-      "file": "plt_david_alpha_taxi.ogg",
-      "text": "Ramat David tower, Alpha, request taxi",
-      "text_he": "מגדל רמת דוד, אלפא, בקשת הסעה"
+      "file": "plt_david_kidon1_taxi.ogg",
+      "text": "Ramat David tower, Kidon 1, request taxi",
+      "text_he": "מגדל רמת דוד, כידון 1, בקשת הסעה"
     },
     "DAVID_TWR+,+ALPHA_P+,+REQ_LINEUP": {
-      "file": "plt_david_alpha_lineup.ogg",
-      "text": "Ramat David tower, Alpha, request line-up",
-      "text_he": "מגדל רמת דוד, אלפא, בקשת כניסה למסלול"
+      "file": "plt_david_kidon1_lineup.ogg",
+      "text": "Ramat David tower, Kidon 1, request line-up",
+      "text_he": "מגדל רמת דוד, כידון 1, בקשת כניסה למסלול"
     },
     "DAVID_TWR+,+ALPHA_P+,+REQ_TAKEOFF": {
-      "file": "plt_david_alpha_takeoff.ogg",
-      "text": "Ramat David tower, Alpha, ready for take-off",
-      "text_he": "מגדל רמת דוד, אלפא, בקשת המראה"
+      "file": "plt_david_kidon1_takeoff.ogg",
+      "text": "Ramat David tower, Kidon 1, ready for take-off",
+      "text_he": "מגדל רמת דוד, כידון 1, בקשת המראה"
     },
     "DAVID_TWR+,+ALPHA_P+,+REQ_LANDING": {
-      "file": "plt_david_alpha_landing.ogg",
-      "text": "Ramat David tower, Alpha, request landing",
-      "text_he": "מגדל רמת דוד, אלפא, בקשת נחיתה"
+      "file": "plt_david_kidon1_landing.ogg",
+      "text": "Ramat David tower, Kidon 1, request landing",
+      "text_he": "מגדל רמת דוד, כידון 1, בקשת נחיתה"
     },
     "HATZERIM_TWR+,+ALPHA_P+,+REQ_STARTUP": {
-      "file": "plt_hatzerim_alpha_start.ogg",
-      "text": "Hatzerim tower, Alpha, request start-up",
-      "text_he": "מגדל חצרים, אלפא, בקשת התנעה"
+      "file": "plt_hatzerim_kidon1_start.ogg",
+      "text": "Hatzerim tower, Kidon 1, request start-up",
+      "text_he": "מגדל חצרים, כידון 1, בקשת התנעה"
     },
     "HATZERIM_TWR+,+ALPHA_P+,+REQ_TAXI": {
-      "file": "plt_hatzerim_alpha_taxi.ogg",
-      "text": "Hatzerim tower, Alpha, request taxi",
-      "text_he": "מגדל חצרים, אלפא, בקשת הסעה"
+      "file": "plt_hatzerim_kidon1_taxi.ogg",
+      "text": "Hatzerim tower, Kidon 1, request taxi",
+      "text_he": "מגדל חצרים, כידון 1, בקשת הסעה"
     },
     "HATZERIM_TWR+,+ALPHA_P+,+REQ_LINEUP": {
-      "file": "plt_hatzerim_alpha_lineup.ogg",
-      "text": "Hatzerim tower, Alpha, request line-up",
-      "text_he": "מגדל חצרים, אלפא, בקשת כניסה למסלול"
+      "file": "plt_hatzerim_kidon1_lineup.ogg",
+      "text": "Hatzerim tower, Kidon 1, request line-up",
+      "text_he": "מגדל חצרים, כידון 1, בקשת כניסה למסלול"
     },
     "HATZERIM_TWR+,+ALPHA_P+,+REQ_TAKEOFF": {
-      "file": "plt_hatzerim_alpha_takeoff.ogg",
-      "text": "Hatzerim tower, Alpha, ready for take-off",
-      "text_he": "מגדל חצרים, אלפא, בקשת המראה"
+      "file": "plt_hatzerim_kidon1_takeoff.ogg",
+      "text": "Hatzerim tower, Kidon 1, ready for take-off",
+      "text_he": "מגדל חצרים, כידון 1, בקשת המראה"
     },
     "HATZERIM_TWR+,+ALPHA_P+,+REQ_LANDING": {
-      "file": "plt_hatzerim_alpha_landing.ogg",
-      "text": "Hatzerim tower, Alpha, request landing",
-      "text_he": "מגדל חצרים, אלפא, בקשת נחיתה"
+      "file": "plt_hatzerim_kidon1_landing.ogg",
+      "text": "Hatzerim tower, Kidon 1, request landing",
+      "text_he": "מגדל חצרים, כידון 1, בקשת נחיתה"
     },
     "NEVATIM_TWR+,+ALPHA_P+,+REQ_STARTUP": {
-      "file": "plt_nevatim_alpha_start.ogg",
-      "text": "Nevatim tower, Alpha, request start-up",
-      "text_he": "מגדל נבטים, אלפא, בקשת התנעה"
+      "file": "plt_nevatim_kidon1_start.ogg",
+      "text": "Nevatim tower, Kidon 1, request start-up",
+      "text_he": "מגדל נבטים, כידון 1, בקשת התנעה"
     },
     "NEVATIM_TWR+,+ALPHA_P+,+REQ_TAXI": {
-      "file": "plt_nevatim_alpha_taxi.ogg",
-      "text": "Nevatim tower, Alpha, request taxi",
-      "text_he": "מגדל נבטים, אלפא, בקשת הסעה"
+      "file": "plt_nevatim_kidon1_taxi.ogg",
+      "text": "Nevatim tower, Kidon 1, request taxi",
+      "text_he": "מגדל נבטים, כידון 1, בקשת הסעה"
     },
     "NEVATIM_TWR+,+ALPHA_P+,+REQ_LINEUP": {
-      "file": "plt_nevatim_alpha_lineup.ogg",
-      "text": "Nevatim tower, Alpha, request line-up",
-      "text_he": "מגדל נבטים, אלפא, בקשת כניסה למסלול"
+      "file": "plt_nevatim_kidon1_lineup.ogg",
+      "text": "Nevatim tower, Kidon 1, request line-up",
+      "text_he": "מגדל נבטים, כידון 1, בקשת כניסה למסלול"
     },
     "NEVATIM_TWR+,+ALPHA_P+,+REQ_TAKEOFF": {
-      "file": "plt_nevatim_alpha_takeoff.ogg",
-      "text": "Nevatim tower, Alpha, ready for take-off",
-      "text_he": "מגדל נבטים, אלפא, בקשת המראה"
+      "file": "plt_nevatim_kidon1_takeoff.ogg",
+      "text": "Nevatim tower, Kidon 1, ready for take-off",
+      "text_he": "מגדל נבטים, כידון 1, בקשת המראה"
     },
     "NEVATIM_TWR+,+ALPHA_P+,+REQ_LANDING": {
-      "file": "plt_nevatim_alpha_landing.ogg",
-      "text": "Nevatim tower, Alpha, request landing",
-      "text_he": "מגדל נבטים, אלפא, בקשת נחיתה"
+      "file": "plt_nevatim_kidon1_landing.ogg",
+      "text": "Nevatim tower, Kidon 1, request landing",
+      "text_he": "מגדל נבטים, כידון 1, בקשת נחיתה"
     },
     "ALPHA_R": {
-      "file": "awx_alpha.ogg",
-      "text": "Alpha",
-      "text_he": "אלפא"
+      "file": "awx_kidon1.ogg",
+      "text": "Kidon 1",
+      "text_he": "כידון 1"
     },
     "BRAVO_R": {
-      "file": "awx_bravo.ogg",
-      "text": "Bravo",
-      "text_he": "בראבו"
+      "file": "awx_kidon2.ogg",
+      "text": "Kidon 2",
+      "text_he": "כידון 2"
     },
     "CHARLIE_R": {
-      "file": "awx_charlie.ogg",
-      "text": "Charlie",
-      "text_he": "צ'רלי"
+      "file": "awx_kidon3.ogg",
+      "text": "Kidon 3",
+      "text_he": "כידון 3"
     },
     "DELTA_R": {
-      "file": "awx_delta.ogg",
-      "text": "Delta",
-      "text_he": "דלתא"
+      "file": "awx_kidon4.ogg",
+      "text": "Kidon 4",
+      "text_he": "כידון 4"
     },
     "BEARING010": {
       "file": "awx_bearing_010.ogg",
@@ -4198,7 +4198,7 @@
     "FREE_TO_ENGAGE": {
       "file": "awx_free_to_engage.ogg",
       "text": "free to engage",
-      "text_he": "מותר לתקוף"
+      "text_he": "רשאי לתקוף"
     },
     "TRGT_ALRDY_ENGAGE": {
       "file": "awx_already_engaged.ogg",
@@ -4211,24 +4211,24 @@
       "text_he": "נא לזהות"
     },
     "WNG_ONE": {
-      "file": "flt_wng_one.ogg",
-      "text": "One",
-      "text_he": "אחת"
+      "file": "flt_wng_kidon1_1.ogg",
+      "text": "Kidon 1-1",
+      "text_he": "כידון 1-1"
     },
     "WNG_TWO": {
-      "file": "flt_wng_two.ogg",
-      "text": "Two",
-      "text_he": "שתיים"
+      "file": "flt_wng_kidon1_2.ogg",
+      "text": "Kidon 1-2",
+      "text_he": "כידון 1-2"
     },
     "WNG_THREE": {
-      "file": "flt_wng_three.ogg",
-      "text": "Three",
-      "text_he": "שלוש"
+      "file": "flt_wng_kidon1_3.ogg",
+      "text": "Kidon 1-3",
+      "text_he": "כידון 1-3"
     },
     "WNG_FOUR": {
-      "file": "flt_wng_four.ogg",
-      "text": "Four",
-      "text_he": "ארבע"
+      "file": "flt_wng_kidon1_4.ogg",
+      "text": "Kidon 1-4",
+      "text_he": "כידון 1-4"
     },
     "WNG_UNABLE": {
       "file": "flt_wng_unable.ogg",
@@ -4345,25 +4345,25 @@
       "text": "nine",
       "text_he": "תשע"
     },
-    "CMD_ALPHA_2": {
-      "file": "flt_cmd_alpha_2.ogg",
-      "text": "Alpha Two",
-      "text_he": "אלפא שתיים"
+    "CMD_KIDON1_2": {
+      "file": "flt_cmd_kidon1_2.ogg",
+      "text": "Kidon 1-2",
+      "text_he": "כידון 1-2"
     },
-    "CMD_ALPHA_3": {
-      "file": "flt_cmd_alpha_3.ogg",
-      "text": "Alpha Three",
-      "text_he": "אלפא שלוש"
+    "CMD_KIDON1_3": {
+      "file": "flt_cmd_kidon1_3.ogg",
+      "text": "Kidon 1-3",
+      "text_he": "כידון 1-3"
     },
-    "CMD_ALPHA_4": {
-      "file": "flt_cmd_alpha_4.ogg",
-      "text": "Alpha Four",
-      "text_he": "אלפא ארבע"
+    "CMD_KIDON1_4": {
+      "file": "flt_cmd_kidon1_4.ogg",
+      "text": "Kidon 1-4",
+      "text_he": "כידון 1-4"
     },
-    "CMD_ALPHA_34": {
-      "file": "flt_cmd_alpha_34.ogg",
-      "text": "Alpha Three and Four",
-      "text_he": "אלפא שלוש וארבע"
+    "CMD_KIDON1_34": {
+      "file": "flt_cmd_kidon1_34.ogg",
+      "text": "Kidon 1, element 3–4",
+      "text_he": "כידון 1, זוג ⁦3–4⁩"
     },
     "CMD_FINGERTIP": {
       "file": "flt_cmd_fingertip.ogg",
@@ -4498,13 +4498,13 @@
     "MORNING+,+TAXI_RWY+25+RWY_R": {
       "file": "twr_taxi_morning_25r.ogg",
       "text": "good morning, taxi to runway two five right",
-      "text_he": "בוקר טוב, הסעה למסלול 25 ימני",
+      "text_he": "בוקר טוב, הסעה למסלול 25 ימין",
       "he_only": true
     },
     "LINEUP_RWY+25+RWY_R+,+WIND_CALM": {
       "file": "twr_lineup_25r_calm.ogg",
       "text": "line up runway two five right, wind calm",
-      "text_he": "כניסה למסלול 25 ימני, רוח שקטה",
+      "text_he": "כניסה למסלול 25 ימין, רוח שקטה",
       "he_only": true
     },
     "MORNING+,+TAXI_RWY+26": {
@@ -4522,13 +4522,13 @@
     "MORNING+,+TAXI_RWY+26+RWY_L": {
       "file": "twr_taxi_morning_26l.ogg",
       "text": "good morning, taxi to runway two six left",
-      "text_he": "בוקר טוב, הסעה למסלול 26 שמאלי",
+      "text_he": "בוקר טוב, הסעה למסלול 26 שמאל",
       "he_only": true
     },
     "LINEUP_RWY+26+RWY_L+,+WIND_CALM": {
       "file": "twr_lineup_26l_calm.ogg",
       "text": "line up runway two six left, wind calm",
-      "text_he": "כניסה למסלול 26 שמאלי, רוח שקטה",
+      "text_he": "כניסה למסלול 26 שמאל, רוח שקטה",
       "he_only": true
     },
     "MORNING+,+TAXI_RWY+27": {
@@ -4694,14 +4694,13 @@
       "אזימוט": "ʔazimˈut",
       "אלכסון": "ʔalaχsˈon",
       "במקום": "bamakˈom",
-      "בראבו": "bʁˈavo",
       "המראה": "hamʁaʔˈa",
       "כן": "kˈan",
       "נסע": "nˈesa",
       "מגדל": "miɡdˈal",
       "קודם": "kˈodem",
-      "שמאלי": "smalˈi"
+      "מייל": "mˈajl"
     },
-    "note": "The Hebrew voices (modern-iaf/docs/sound.md §3.1): each radio clip with a say_he is said in every voice its role takes in the casts, into he/<voice>/<file>. A mission flies cast (mission id mod the casts' count): the tower, the AWACS, the player's own calls (pilot) and the wingmen Alpha 2-4 (wingman, in order), three men and three women in every cast. ipa: the words the RenikudPlus G2P misreads, read as given (checked by its transcription, 20 November 2026). instructor: the instructor's voice, kept out of every cast."
+    "note": "The Hebrew voices (modern-iaf/docs/sound.md §3.1): each radio clip with a say_he is said in every voice its role takes in the casts, into he/<voice>/<file>. A mission flies cast (mission id mod the casts' count): the tower, the AWACS, the player's own calls (pilot) and the wingmen Kidon 1-2 to 1-4 (wingman, in order), three men and three women in every cast. ipa: the words the RenikudPlus G2P misreads, read as given (checked by its transcription, 20 November 2026). instructor: the instructor's voice, kept out of every cast."
   }
 }

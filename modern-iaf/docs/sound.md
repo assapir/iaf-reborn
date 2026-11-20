@@ -360,13 +360,13 @@ licence:
 | tower | `am_michael`, 1.1 | the tower's phrases, the friendly-fire call, the map edge |
 | pilot | `am_puck`, 1.1 | the player's radio-menu calls (helmet chain, §5.2), "Roger", eject, the friendly-fire calls of the target and the wingman |
 | AWACS | `am_fenrir`, 1.1 | the contact calls `ACFT_FCTRL_LONG` / `_SHORT` ([ews.md](ews.md) §7) |
-| wingman | `am_eric`, 1.1 | the four-ship's wingmen Alpha 2–4: their answers and calls (`WNG_*`, `radio.gd flight_call`; the words in [research/radio-terms.md](research/radio-terms.md)); the player's commands to them (`CMD_*`) are the pilot's |
+| wingman | `am_eric`, 1.1 | the four-ship's wingmen Kidon 1-2 to 1-4: their answers and calls (`WNG_*`, `radio.gd flight_call`; the words in [research/radio-terms.md](research/radio-terms.md)); the player's commands to them (`CMD_*`) are the pilot's |
 
 **Choice** (9 November 2026; the user on 3 November: "less British", American or neutral voices). Kokoro's
 American voices graded best by its own VOICES.md[^kokoro]: `af_heart` (A) and `af_bella` (A−) among the women,
 `am_michael`, `am_puck` and `am_fenrir` (C+, the best men's grade) among the men. For Betty eleven female voices said
 "Pull up! Pull up!"; `af_heart` and `af_sarah` had the highest pitch (232 and 226 Hz), `af_heart` the higher grade.
-The tower and the pilot are two different men so a call and its answer are told apart; the AWACS a third; the wingmen a fourth (`am_eric`, 19 November 2026: the remaining best-graded American man not yet used, D in VOICES.md; one voice for Alpha 2–4, inferred).
+The tower and the pilot are two different men so a call and its answer are told apart; the AWACS a third; the wingmen a fourth (`am_eric`, 19 November 2026: the remaining best-graded American man not yet used, D in VOICES.md; one voice for Kidon 1-2 to 1-4, inferred).
 
 **Betty** follows the F-16 VMS, as [real-betty.md](../../docs/real-betty.md) §5 proposes for all three jets (the
 Sufa and the Barak are F-16s; the F-35I's set is open, so it takes the same):
@@ -388,19 +388,26 @@ Each warning is said twice, as in both reference recordings (§5.1). Betty is ab
 wording. The templates are the ones `radio.gd` calls (`ACFT_TAXI_TO_RUNWAY`, `ACFT_CLEAR_TO_LINEUP` / `_NW`,
 `ACFT_HOLD_POS`, `ACFT_CLEAR_TO_TAKEOFF`, `ACFT_PROCEED_TO_RUNWAY`, `ACFT_CLEAR_TO_LAND` / `_NW`,
 `ACFT_GO_AROUND_RUNWAY`, `ACFT_TAXI_TO_PARK`, `ACFT_GEARS_NOT_OPEN`, `ACFT_ROGER`) plus `ACFT_CLEAR_TO_START` for
-the radio menu's start-up request, the four calls of a phase without clearance (`ACFT_NO_START_CLEARANCE` "Alpha,
+the radio menu's start-up request, the four calls of a phase without clearance (`ACFT_NO_START_CLEARANCE` "Kidon 1,
 engine start without clearance", `ACFT_NO_TAXI_CLEARANCE`, `ACFT_NO_RUNWAY_CLEARANCE`, `ACFT_NO_TAKEOFF_CLEARANCE`;
-each a particle and a joined clip per callsign) and `ACFT_WRONG_RUNWAY` (`%S1 , ON_RWY %D1 , CLEARED_RWY %D2`: "Alpha,
+each a particle and a joined clip per callsign) and `ACFT_WRONG_RUNWAY` (`%S1 , ON_RWY %D1 , CLEARED_RWY %D2`: "Kidon 1,
 you are on runway 7 left, the assigned runway is 25 right"; [training.md](training.md) §3.3), `ACFT_NEGATIVE` (`%S1 ,
-NEGATIVE_HOLD , %S2`: "Alpha, negative, hold position, request line-up first", a call out of order, training.md §8);
+NEGATIVE_HOLD , %S2`: "Kidon 1, negative, hold position, request line-up first", a call out of order, training.md §8);
 the pilot's
-`REQ_LINEUP` ("request line-up", whole per base for Alpha) for the menu's line-up call (item E3b, [training.md](training.md) §8: the menu's three requests use
-`ACFT_CLEAR_TO_START`, `ACFT_TAXI_TO_RUNWAY`, `ACFT_CLEAR_TO_LINEUP` / `_NW`, `ACFT_HOLD_POS`, `ACFT_CLEAR_TO_TAKEOFF`). Example: `ACFT_TAXI_TO_RUNWAY` = `%S1 , %S2 , TAXI_RWY %D1` → "Alpha, good morning, taxi
-to runway 25 right". The particles cover the callsigns Alpha–Delta, the greetings, the winds 10 / 15 / 20 kt, every
+`REQ_LINEUP` ("request line-up", whole per base for Kidon 1) for the menu's line-up call (item E3b, [training.md](training.md) §8: the menu's three requests use
+`ACFT_CLEAR_TO_START`, `ACFT_TAXI_TO_RUNWAY`, `ACFT_CLEAR_TO_LINEUP` / `_NW`, `ACFT_HOLD_POS`, `ACFT_CLEAR_TO_TAKEOFF`). Example: `ACFT_TAXI_TO_RUNWAY` = `%S1 , %S2 , TAXI_RWY %D1` → "Kidon 1, good morning, taxi
+to runway 25 right". The particles cover the callsigns Kidon 1–4, the greetings, the winds 10 / 15 / 20 kt, every
 runway number 1–36 (spoken digit by digit, "two five") and the letters `RWY_L` / `RWY_R` / `RWY_C`.
 
+**The callsigns** are kidon style (the user, 20 November 2026: "Use kidon style, where kidon 1 is the first formation
+the second is kidon 2 etc"; [research/radio-terms.md](research/radio-terms.md)): the flight is "Kidon 1" ("כידון 1"),
+its jets "Kidon 1-1" to "Kidon 1-4", spoken "Kidon one-two" ("כידון אחד-שתיים"). The particle keys stay the exe's
+formation names (`ALPHA_T` is Kidon 1, `DELTA_T` Kidon 4: `radio.gd` `kidon`); the files are named `*_kidon<N>*`. The
+wingmen's own calls say the jet's callsign ("Kidon 1-2, unable": `WNG_ONE`..`WNG_FOUR`). Kokoro reads a bare "Kidon"
+as KID-ahn, so `say` carries its reading as a misaki link, `[Kidon](/kidˈOn/)` (kee-DOHN, the Hebrew stress).
+
 **Fluent phrases** (3 November 2026, item E1c; the user: the TTS is "not fluent between words"). E1b played a call
-as five to seven separate clips ("Alpha" "," "good morning" "," "taxi to runway" "two five" "right"), each said on
+as five to seven separate clips ("Kidon 1" "," "good morning" "," "taxi to runway" "two five" "right"), each said on
 its own. Since E1c a run of particles can be one clip, said in one breath: a joined particle, its key the parts'
 keys joined by "+" (`ALPHA_T+,+MORNING+,+TAXI_RWY`). `radio.gd` `joined_wavs()` plays the longest run of a call's
 keys that has a joined clip (docs/radio.md §5); the original game's particle files have none. Every combination as
@@ -411,12 +418,12 @@ instead (2.3 MB for every sim clip as ogg):
 
 | clips | count | said as |
 |---|---|---|
-| whole calls the training missions make | 12 | "Alpha, good morning, taxi to runway two five right." and "Alpha, line up runway two five right, wind calm." for the runway each mission's tower says (24, 25, 25R, 26, 26L, 27) |
-| calls without a runway | 24 | "Alpha, hold position.": 4 callsigns × start, hold, take-off, go around, taxi to parking, gear |
-| the head of a runway call | 24 | "Alpha, good morning, taxi to runway": 4 callsigns × taxi × 3 greetings, line up, proceed, land |
+| whole calls the training missions make | 12 | "Kidon 1, good morning, taxi to runway two five right." and "Kidon 1, line up runway two five right, wind calm." for the runway each mission's tower says (24, 25, 25R, 26, 26L, 27) |
+| calls without a runway | 24 | "Kidon 1, hold position.": 4 callsigns × start, hold, take-off, go around, taxi to parking, gear |
+| the head of a runway call | 24 | "Kidon 1, good morning, taxi to runway": 4 callsigns × taxi × 3 greetings, line up, proceed, land |
 | a runway | 48 | "two five" / "two six left": numbers 1–36 and the 12 lettered ends |
 
-A head is cut from the sentence "Alpha, good morning, taxi to runway; two seven." before the number, so it ends with
+A head is cut from the sentence "Kidon 1, good morning, taxi to runway; two seven." before the number, so it ends with
 the voice still rising; a runway from "Taxi to runway; two six left." after the ";". The cut is at Kokoro's own word
 timing (`kokoro_tts.py` reports the end of the word before the ";" and the start of the word after it; `sim_voices.rs`
 `cut()` keeps 30 ms past each). Any other call (a wind, another runway) plays a head, a runway and the wind's
@@ -444,14 +451,16 @@ flight are told apart:
 | `tamar` | woman | 200 Hz | 56 % | the instructor only, never a radio role (the user, 20 November 2026: "Always the same voice, female"); no instructor line exists yet |
 
 **The casts** (`voices.json` `he.casts`): eight, each giving the tower, the AWACS, the player's calls (`pilot`) and
-the wingmen Alpha 2, 3 and 4 one voice each, three men and three women in every cast. A mission flies cast number
+the wingmen Kidon 1-2, 1-3 and 1-4 one voice each, three men and three women in every cast. A mission flies cast number
 (mission id mod 8), so the voices stay the same for the whole flight and change from mission to mission. The tower is
 `david` or `lily`, the AWACS `jonathan` or `yael`, the player `ariel` or `shira`; the wingmen take the other three. The
 casts are data: `iaf-sim own` checks that every cast names known voices, has men and women, leaves out the
 instructor's voice and gives a voice to every role that has Hebrew clips (`sim.rs` `compile_voices_he`).
 
 **The lines** (`voices.json`, each clip's `say_he`): the particles' Hebrew subtitles (`text_he`) as spoken words:
-the callsigns אלפא, בראבו, צ'רלי, דלתא; runway numbers and bearings digit by digit ("שתיים חמש ימני", "אזימוט אפס
+the callsigns כידון אחד to כידון ארבע, a jet's as "כידון אחד שתיים" (the two numbers apart: across a hyphen the G2P
+drops the second number's stress); runway numbers and bearings digit by digit, a runway's side as the noun ("שתיים
+חמש ימין", the user, 20 November 2026: "it should be 25 ימין. Not 25 ימני"; "אזימוט אפס
 אחת אפס"); the winds and ranges as numbers ("רוח עשרה קשר", "עשרים מייל"); the wingmen's words from
 [research/radio-terms.md](research/radio-terms.md) (the formations by Hebrew Wikipedia's names). The five whole
 calls of the sound table (the ejection, the friendly-fire calls, the edge of the map) are ours: "נטישה, נטישה,
@@ -461,9 +470,11 @@ or a woman.
 
 **The readings.** BlueTTS reads unvocalised Hebrew through its RenikudPlus G2P, which ignores nikud. Every word of
 every line was checked in the G2P's transcription (IPA, 20 November 2026); ten read wrong, and `he.ipa` gives
-their reading: מגדל (miɡdˈal; the G2P also said meɡadˈel), בראבו (bʁˈavo, not beʁˈabo), המראה (hamʁaʔˈa), במקום
+their reading: מגדל (miɡdˈal; the G2P also said meɡadˈel), המראה (hamʁaʔˈa), במקום
 (bamakˈom, not bimkˈom "instead"), אזימוט (ʔazimˈut), כן נסע (kˈan nˈesa, the gear; not kˈen "yes"), קודם
-(kˈodem), שמאלי (smalˈi, one reading for all), אלכסון (ʔalaχsˈon, not ʔaleχsˈon). The digits keep the G2P's formal
+(kˈodem), אלכסון (ʔalaχsˈon, not ʔaleχsˈon), מייל (mˈajl, the mile; the G2P said mˈejl, "male": the user, 20
+November 2026, "it say male, not mile"; nikud does not help, the G2P ignores it). The other loanwords read right:
+בינגו (bˈinɡo), ג'וקר (dʒˈokeʁ), רוג'ר (ʁˈodʒeʁ), כידון (kidˈon). The digits keep the G2P's formal
 stress (χamˈeʃ, ʃalˈoʃ).
 
 **The clips**: `iaf-sim voices --he` says each line in every voice its role takes across the casts, through the
@@ -474,7 +485,7 @@ languages, and a joined particle plays only where its clip exists in the languag
 `sound_table.gd` `has_clip`). In Hebrew the callsign is always its own clip: the joined particles that hold a callsign
 (the tower's "ALPHA_T+,+HOLD_POS", the player's "RAMON_TWR+,+ALPHA_P+,+REQ_STARTUP") have no `say_he`, and 18
 Hebrew-only joined particles (`he_only`, "MORNING+,+TAXI_RWY") hold a tower call's words after the callsign. So
-"אלפא" then "בוקר טוב, הסעה למסלול" plays, and a new callsign changes only the callsign particles. Another
+"כידון אחד" then "בוקר טוב, הסעה למסלול" plays, and a new callsign changes only the callsign particles. Another
 pilot's call that the English pilot voice says (the wingman's ejection, the friendly-fire calls) takes a wingman's voice
 in Hebrew (`role_he`), since `pilot` is the player's own there. 642 clips (tower 102 lines × 2 voices, AWACS 97 × 2,
 the player's calls 32 × 2, the wingmen 30 × 6), 6.7 MB in all as Ogg Vorbis,
@@ -555,8 +566,8 @@ only the tower response") use the same chain heard from an oxygen-mask microphon
 at 2600 Hz instead of 3000 Hz (less air), +4 dB at 500 Hz, Q 0.9 (more low-mid). `sim_flight.gd` `pick()` says the
 call (`PILOT_CALL` = `%S1 , %S2 , %S3`: the tower's address `<BASE>_TWR`, the callsign `<NAME>_P`, `REQ_<ID>`) framed
 by the key clicks, then `radio_gap.ogg` (0.6 s of silence, `RADIO_GAP`: the controller's reply, inferred), then the
-tower's answer. Each base × Alpha × the four requests (start-up, taxi, take-off, landing) is one joined clip
-("Ramon tower, Alpha, request start-up."); the parts (4 towers, Alpha–Delta, 4 requests) cover the other callsigns.
+tower's answer. Each base × Kidon 1 × the four requests (start-up, taxi, take-off, landing) is one joined clip
+("Ramon tower, Kidon 1, request start-up."); the parts (4 towers, Kidon 1–4, 4 requests) cover the other callsigns.
 
 A transmission plays like a receiver's squelch (9 November 2026; the user: "missing a bit of a quiet before / after
 like a real radio"). Measured on a scanner recording of Orlando's tower frequency[^mco] (minutes 5–10, 77 openings,
@@ -643,7 +654,7 @@ The setup wizard's Attributions and the credits roll show these lines from `shar
 - The instructor's Hebrew lines (voice `tamar`, §3.1): no instructor line exists yet.
 - The wingman-command, waypoint and flight-report phrases (`radio.gd`'s other templates have no particles yet, so
   they are silent). The AWACS's contact calls have theirs since 17 November ([ews.md](ews.md) §7).
-- The pilot's calls as Bravo–Delta play part by part (only Alpha has whole-call clips), and the callsigns past Delta
+- The pilot's calls as Kidon 2–4 play part by part (only Kidon 1 has whole-call clips), and the callsigns past Kidon 4
   have no particle (the tower's set stops there too).
 - The cockpit sound model (§1.9): the canopy's real transmission loss, the helmet in flight, the air-conditioning
   hiss, and the user's listening.

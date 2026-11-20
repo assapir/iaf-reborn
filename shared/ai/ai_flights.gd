@@ -286,7 +286,7 @@ func _formation_of(ent: Dictionary) -> Dictionary:
 	return {}
 
 
-## Modern IAF: the player's formation flies under IafAi, the player its number by the formation's slot (Alpha 1 the
+## Modern IAF: the player's formation flies under IafAi, the player its number by the formation's slot (Kidon 1-1 the
 ## first), its AI jets the rest; none without an AI member.
 func _setup_flight_ai() -> void:
 	var me: Dictionary = runtime.player_entity()

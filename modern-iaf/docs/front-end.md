@@ -767,10 +767,10 @@ over it sit two cards and the map's chips (`menu/briefing_page.gd` lays them out
 - **The title and the line under it**: the mission's kind, then what it is and the jet's squadron ("Radio calls, taxi
   and take-off. F-16I Sufa · 201 Squadron The One · Ramon"), once; the tail number is the top bar's.
 - **Flights** (מבנים), in a mission of more than one flight only (the user, 2026-11-15: "briefing need future support
-  for multiple flights together (alpha, bravo, etc)"): a tab a flight, its callsign (Alpha, the player's, first and
-  picked; Bravo, Charlie, Delta), and under the tabs the picked flight's line: "Your flight · 1 × F-16I Sufa ·
+  for multiple flights together (alpha, bravo, etc)"): a tab a flight, its callsign (Kidon 1, the player's, first and
+  picked; Kidon 2, 3 and 4: kidon style since 20 November 2026, [research/radio-terms.md](research/radio-terms.md)), and under the tabs the picked flight's line: "Your flight · 1 × F-16I Sufa ·
   Training · 6 × AIM-9M · 2 × 370 gal tank" (the player's stores as the Arming summary's, another flight's its unit
-  record's own pylons). Another flight picked, the map fits its route into view and draws it wider; Alpha
+  record's own pylons). Another flight picked, the map fits its route into view and draws it wider; Kidon 1
   picked again, the map's opening view. The flights are Rust's
   (`IafBriefing.flights`, `crates/iaf-tools/src/flights.rs`, from the mission's `start` and `flights`,
   [data-formats.md](data-formats.md) §5); `iaf-sim` writes the same list into the compiled mission's `sim.flights`.
@@ -880,7 +880,7 @@ did not handle, so it could not be zoomed in to make a drag move. It draws:
   beside the first leg, the base's label at the whole map's zoom; zoomed out past the mission's area (past the
   zoom a double click or 0 shows, which keeps them) the runway's label and the pins' names stay off (the pins a few
   pixels apart), and a label whose place is off the map is left out;
-- the mission's other flights (Bravo..; IafBriefing's `flights`): each from its start (a square) through its
+- the mission's other flights (Kidon 2..; IafBriefing's `flights`): each from its start (a square) through its
   waypoints (rings) to an arrow, each in a colour of its own (orange, green, purple) apart from the player's navy,
   its callsign on a plate at its start, the one the Flights tabs pick wider;
 - the pins: a disc in the accent with the number of the text's first paragraph done at its place, the place's name on
@@ -1076,7 +1076,7 @@ m_per_px)` answers the colour nodes that draw it, coarse to fine, `[level, i, j,
 | the take-off, the explanation focused and scrolled | ![The take-off with its explanation scrolled](pictures/front-end/briefing_2012_text_en.webp) | ![The same in Hebrew](pictures/front-end/briefing_2012_text_he.webp) |
 | the take-off, labels and photo off | ![The take-off's map without labels or photo](pictures/front-end/briefing_2012_plain_en.webp) | ![The same in Hebrew](pictures/front-end/briefing_2012_plain_he.webp) |
 | the take-off, zoomed out to the whole theatre | ![The map zoomed out to the whole theatre](pictures/front-end/briefing_2012_theatre_en.webp) | ![The same in Hebrew](pictures/front-end/briefing_2012_theatre_he.webp) |
-| two flights (the test sample `modern-iaf/tests/data/two_flights.json`), Bravo picked | ![Two flights, Bravo picked and its route in view](pictures/front-end/briefing_two_flights_en.webp) | ![The same in Hebrew](pictures/front-end/briefing_two_flights_he.webp) |
+| two flights (the test sample `modern-iaf/tests/data/two_flights.json`), Kidon 2 picked | ![Two flights, Kidon 2 picked and its route in view](pictures/front-end/briefing_two_flights_en.webp) | ![The same in Hebrew](pictures/front-end/briefing_two_flights_he.webp) |
 | the take-off, scrolled 100 km north of Ramon (2×) | ![The map far from the base, near Beit Shemesh](pictures/front-end/briefing_2012_far_en.webp) | ![The same in Hebrew](pictures/front-end/briefing_2012_far_he.webp) |
 | the same place zoomed in (24×, the 2 m photo) | ![The map zoomed in far from the base on a village](pictures/front-end/briefing_2012_far_close_en.webp) | ![The same in Hebrew](pictures/front-end/briefing_2012_far_close_he.webp) |
 

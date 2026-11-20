@@ -356,8 +356,8 @@ func crumbs(fe: Control) -> void:
 
 
 ## A mission of two flights (N1; the sample modern-iaf/tests/data/two_flights.json, test data, not a shipped mission):
-## FLIGHTS tabs Alpha (the player's, picked) and Bravo over a line for the picked flight (its jets, task, stores),
-## Bravo's route on the map, picked by its tab; up from Edit the tabs.
+## FLIGHTS tabs Kidon 1 (the player's, picked) and Kidon 2 over a line for the picked flight (its jets, task, stores),
+## Kidon 2's route on the map, picked by its tab; up from Edit the tabs.
 func two_flights(fe: Control, lang: String) -> void:
 	var m: Dictionary = settings().load_json("res://tests/data/two_flights.json")
 	m["_file"] = "res://tests/data/two_flights.json"
@@ -369,9 +369,9 @@ func two_flights(fe: Control, lang: String) -> void:
 	check(tabs != null and tabs.get_child_count() == 2, "%s: flights: two tabs" % lang)
 	if tabs == null:
 		return
-	var a: Button = tabs.find_child("Flight_Alpha", false, false)
-	var b: Button = tabs.find_child("Flight_Bravo", false, false)
-	check(a != null and b != null and a.button_pressed and not b.button_pressed, "%s: flights: Alpha picked" % lang)
+	var a: Button = tabs.find_child("Flight_Kidon 1", false, false)
+	var b: Button = tabs.find_child("Flight_Kidon 2", false, false)
+	check(a != null and b != null and a.button_pressed and not b.button_pressed, "%s: flights: Kidon 1 picked" % lang)
 	var detail: Label = fe.find_child("FlightDetail", true, false)
 	check(
 		detail.text.begins_with(fe.s("your_flight")) and detail.text.contains("F-16I"),
@@ -380,21 +380,21 @@ func two_flights(fe: Control, lang: String) -> void:
 	var map: Control = fe.find_child("PageMap", true, false)
 	await frames(2)
 	var others: Array = map.data.get("flights", [])
-	check(others.size() == 1 and others[0].callsign == "Bravo", "%s: map: Bravo's route" % lang)
-	check(map.selected == "Alpha", "%s: map: the player's flight picked" % lang)
+	check(others.size() == 1 and others[0].callsign == "Kidon 2", "%s: map: Kidon 2's route" % lang)
+	check(map.selected == "Kidon 1", "%s: map: the player's flight picked" % lang)
 	b.button_pressed = true
 	await frames(1)
 	check(
-		map.selected == "Bravo" and detail.text.contains("2\u00a0×\u00a0") and detail.text.contains("F-15C"),
-		"%s: flights: Bravo's line and route picked (%s)" % [lang, detail.text]
+		map.selected == "Kidon 2" and detail.text.contains("2\u00a0×\u00a0") and detail.text.contains("F-15C"),
+		"%s: flights: Kidon 2's line and route picked (%s)" % [lang, detail.text]
 	)
-	check(detail.text.contains(fe.s("task_cap")), "%s: flights: Bravo's task" % lang)
+	check(detail.text.contains(fe.s("task_cap")), "%s: flights: Kidon 2's task" % lang)
 	var xf: Transform2D = map._xf()
-	var bravo: Array = others[0].pts
+	var kidon2: Array = others[0].pts
 	var room: Rect2 = map._room().grow(40)
 	check(
-		room.has_point(xf * Vector2(float(bravo[0]), float(bravo[1]))),
-		"%s: map: Bravo picked, its route in view" % lang
+		room.has_point(xf * Vector2(float(kidon2[0]), float(kidon2[1]))),
+		"%s: map: Kidon 2 picked, its route in view" % lang
 	)
 	var edit: Button = fe.find_child("ArmEdit", true, false)
 	check(edit.get_node(edit.focus_neighbor_top) == a, "%s: flights: up from Edit the tabs" % lang)
@@ -403,8 +403,8 @@ func two_flights(fe: Control, lang: String) -> void:
 	await frames(2)
 
 
-## The four-ship (ai-plan.md F1): one flight of four jets shows the FLIGHTS card, its one tab "Alpha 1–4" and the line
-## "Your flight · 4 × F-16I Sufa …".
+## The four-ship (ai-plan.md F1): one flight of four jets shows the FLIGHTS card, its one tab "Kidon 1" ("כידון 1" in
+## Hebrew) and the line "Your flight · 4 × F-16I Sufa …".
 func four_ship(fe: Control, lang: String) -> void:
 	var m: Dictionary = fe.mission_by_name("ramon_four_ship")
 	fe.section = "training"
@@ -412,10 +412,15 @@ func four_ship(fe: Control, lang: String) -> void:
 	fe.open_mission(0)
 	await frames(2)
 	var tabs: Control = fe.find_child("FlightTabs", true, false)
-	var a: Button = tabs.find_child("Flight_Alpha", false, false) if tabs != null else null
+	var a: Button = tabs.find_child("Flight_Kidon 1", false, false) if tabs != null else null
 	check(
-		tabs != null and tabs.get_child_count() == 1 and a != null and a.text.contains("Alpha\u00a01–4"),
-		"%s: four-ship: one tab, Alpha 1–4 (%s)" % [lang, a.text if a != null else "none"]
+		(
+			tabs != null
+			and tabs.get_child_count() == 1
+			and a != null
+			and a.text == ("כידון 1" if lang == "he" else "Kidon 1")
+		),
+		"%s: four-ship: one tab, Kidon 1 (%s)" % [lang, a.text if a != null else "none"]
 	)
 	var detail: Label = fe.find_child("FlightDetail", true, false)
 	check(

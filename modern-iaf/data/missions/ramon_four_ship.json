@@ -29,7 +29,7 @@
     "time": "the MVP's conditions: day (plan.md, MVP)",
     "wind_kt": "the MVP's conditions: calm (plan.md, MVP)",
     "wind_from": "calm: no direction",
-    "start": "the base's parking spots for the unit (modern-iaf/data/airbases, airbases.md §5): Alpha 1 on the first, Alpha 2, 3 and 4 on the next three in data/parking.json's order (S2; S3, S1, S5); the altitude: the terrain's ground there (elevation_m without the terrain)",
+    "start": "the base's parking spots for the unit (modern-iaf/data/airbases, airbases.md §5): Kidon 1-1 on the first, Kidon 1-2, 1-3 and 1-4 on the next three in data/parking.json's order (S2; S3, S1, S5); the altitude: the terrain's ground there (elevation_m without the terrain)",
     "route": "the departure point of the Take-off lesson (10 km beyond runway 25R's far end, 900 m above the field), then a box of three legs north, east and south of the base at 2400 m, clear of the Egyptian border, and the last point 10 km out on runway 25R's extended centreline at 1100 m (about 450 m above the field), where the flight comes home",
     "training.empty_kg": "the F-16C Block 50 / 52's empty weight; the Sufa's and the Barak's are not published (inferred the same)",
     "training.takeoff_kt": "70 kt + 3 kt per 1000 lb at 20,000 lb (9,072 kg) and 48,000 lb (21,772 kg), linear between",
@@ -50,17 +50,17 @@
   },
   "briefing": {
     "purpose": {
-      "en": "To lead a four-ship: the flight's start-up with the tower's clearance, the taxi with Alpha 2, 3 and 4 behind the lead, a stream take-off and the join-up, a route of turns in formation, and the return and landing with the flight.",
+      "en": "To lead a four-ship: the flight's start-up with the tower's clearance, the taxi with Kidon 1-2, 1-3 and 1-4 behind the lead, a stream take-off and the join-up, a route of turns in formation, and the return and landing with the flight.",
       "he": "להוביל רביעייה: התנעת המבנה באישור המגדל, הסעה כשמספרי 2, 3 ו־4 מאחורי המוביל, המראה בזה אחר זה והצטרפות, מסלול של פניות במבנה, וחזרה ונחיתה עם המבנה."
     },
     "how": [
       {
         "at": "start",
-        "en": "You lead Alpha, a four-ship of Sufas: you are Alpha 1 in shelter S2, and your wingmen, Alpha 2, 3 and 4, flown by the computer, wait in shelters S3, S1 and S5. Call the tower first: {key:47:1} requests start-up. \"Cleared to start\" clears the whole flight, and each wingman starts its engine a few seconds after the one before.",
-        "he": "רביעיית אלפא של מטוסי סופה: המוביל הוא אלפא 1, בדת\"ק S2; מספרי 2, 3 ו־4, בהטסת המחשב, ממתינים בדת\"קים S3, S1 ו־S5. קודם לקרוא למגדל: {key:47:1} מבקש התנעה. \"אישור התנעה\" מאשר את כל המבנה, וכל מספר מתניע כמה שניות אחרי הקודם."
+        "en": "You lead Kidon 1, a four-ship of Sufas: you are Kidon 1-1 in shelter S2, and your wingmen, Kidon 1-2, 1-3 and 1-4, flown by the computer, wait in shelters S3, S1 and S5. Call the tower first: {key:47:1} requests start-up. \"Cleared to start\" clears the whole flight, and each wingman starts its engine a few seconds after the one before.",
+        "he": "רביעיית כידון 1 של מטוסי סופה: המוביל הוא כידון 1-1, בדת\"ק S2; מספרי 2, 3 ו־4, בהטסת המחשב, ממתינים בדת\"קים S3, S1 ו־S5. קודם לקרוא למגדל: {key:47:1} מבקש התנעה. \"אישור התנעה\" מאשר את כל המבנה, וכל מספר מתניע כמה שניות אחרי הקודם."
       },
       {
-        "en": "Start the jet by its start-up checklist (the notebook, {key:118}), as in the Take-off lesson. With the engine at idle and the avionics up, request taxi: {key:47:2}, and taxi along the dashed route to runway {runway}. Alpha 2, 3 and 4 leave their shelters and taxi behind you in order, each behind the one before; taxi slowly enough for them to keep up.",
+        "en": "Start the jet by its start-up checklist (the notebook, {key:118}), as in the Take-off lesson. With the engine at idle and the avionics up, request taxi: {key:47:2}, and taxi along the dashed route to runway {runway}. Kidon 1-2, 1-3 and 1-4 leave their shelters and taxi behind you in order, each behind the one before; taxi slowly enough for them to keep up.",
         "he": "להתניע לפי בד\"ח ההתנעה ({key:118}), כמו במשימת ההמראה. כשהמנוע בסרק והאוויוניקה פועלת, לבקש הסעה: {key:47:2}, ולהסיע לאורך המסלול המקווקו אל מסלול {runway}. מספרי 2, 3 ו־4 יוצאים מהדת\"קים ונוסעים אחרי המוביל לפי הסדר, כל אחד אחרי הקודם; להסיע לאט מספיק כדי שיעמדו בקצב."
       },
       {
@@ -74,7 +74,7 @@
         "he": "לבקש המראה: {key:47:4}. \"אישור המראה\" מאשר את המבנה. להמריא כמו במשימת ההמראה; המספרים ממריאים בזה אחר זה, וכל אחד מתחיל לרוץ כשהמטוס שלפניו עובר 50 קשר."
       },
       {
-        "en": "Climb out on the runway heading within ±{tolerance}° with the gear up ({key:20}): the lesson passes on your take-off, as the Take-off lesson does, within {minutes} minutes of the start. Then Continue and fly the route's steerpoints. The wingmen join up and fly fingertip on you: Alpha 2 behind your left wing, Alpha 3 behind your right, Alpha 4 beyond Alpha 3. Turn gently, at 30° of bank or less, so that they keep their places.",
+        "en": "Climb out on the runway heading within ±{tolerance}° with the gear up ({key:20}): the lesson passes on your take-off, as the Take-off lesson does, within {minutes} minutes of the start. Then Continue and fly the route's steerpoints. The wingmen join up and fly fingertip on you: Kidon 1-2 behind your left wing, Kidon 1-3 behind your right, Kidon 1-4 beyond Kidon 1-3. Turn gently, at 30° of bank or less, so that they keep their places.",
         "he": "לטפס בכיוון המסלול, בטווח ±{tolerance}°, ולאסוף את כן הנסע ({key:20}): המשימה מצליחה בהמראה, כמו משימת ההמראה, בתוך {minutes} דקות מההתחלה. אחר כך להמשיך ולטוס בין נקודות הציון של המסלול. המספרים מצטרפים וטסים במבנה \"ארבע אצבעות\": מספר 2 מאחורי הכנף השמאלית, מספר 3 מאחורי הכנף הימנית ומספר 4 מימין למספר 3. לפנות בעדינות, בהטיה של 30° לכל היותר, כדי שישמרו על מקומם."
       },
       {

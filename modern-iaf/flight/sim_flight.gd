@@ -41,13 +41,14 @@ const TOP := [
 const PARENT := {"tower": "", "wingmen": "", "to": "wingmen", "formation": "to"}
 ## The flight's pages (ours, modern-iaf/docs/ai-plan.md F5; the user, 19 Nov: "radion menu instead of hotkeys"): after
 ## the tower's calls, one line per addressee of the four-ship (IafAi's `to`: 0 the flight, 5 the element, 2..4 one
-## wingman), its English and Hebrew label and the address the pilot says (voices.json).
+## wingman), its English and Hebrew label and the address the pilot says (voices.json). The callsigns are kidon style
+## (the user, 20 Nov 2026; radio.gd `kidon`): the flight Kidon 1, its jets Kidon 1-1..1-4.
 const ADDRESSEES := [
-	[0, "Alpha (flight)", "אלפא (רביעייה)", "ALPHA_P"],
-	[5, "Alpha 3–4 (element)", "אלפא 3–4 (זוג)", "CMD_ALPHA_34"],
-	[2, "Alpha 2", "אלפא 2", "CMD_ALPHA_2"],
-	[3, "Alpha 3", "אלפא 3", "CMD_ALPHA_3"],
-	[4, "Alpha 4", "אלפא 4", "CMD_ALPHA_4"],
+	[0, "Kidon 1", "כידון 1", "ALPHA_P"],
+	[5, "Kidon 1, element 3–4", "כידון 1, זוג 3–4", "CMD_KIDON1_34"],
+	[2, "Kidon 1-2", "כידון 1-2", "CMD_KIDON1_2"],
+	[3, "Kidon 1-3", "כידון 1-3", "CMD_KIDON1_3"],
+	[4, "Kidon 1-4", "כידון 1-4", "CMD_KIDON1_4"],
 ]
 ## An addressee's commands: id, English, Hebrew (the words of modern-iaf/docs/research/radio-terms.md), the particle
 ## said, and whom it is offered to (f the flight, e the element, w one wingman). "formation" opens the shapes' page.
@@ -318,13 +319,13 @@ func _title() -> String:
 	return _bi(ui.s("fl_radio_to") % (who if page == "to" else "%s, %s" % [who, COMMANDS[0][2 if he else 1]]))
 
 
-## Hebrew text with each Latin run (a callsign, a number, "Alpha 3–4") in a Unicode isolate, so the parentheses and
-## the neighbours around it keep the right-to-left order (the front end's way, flight_graphs.gd); English as is.
+## Hebrew text with each Latin run (a number, "3–4", "1-2") in a Unicode isolate, so the parentheses and the
+## neighbours around it keep the right-to-left order (the front end's way, flight_graphs.gd); English as is.
 func _bi(t: String) -> String:
 	if not _he():
 		return t
 	var re := RegEx.new()
-	re.compile("[A-Za-z0-9]+(?:[ \u2013][A-Za-z0-9]+)*")
+	re.compile("[A-Za-z0-9]+(?:[ \u2013-][A-Za-z0-9]+)*")
 	return re.sub(t, "\u2066$0\u2069", true)
 
 
@@ -505,7 +506,7 @@ func key(event: InputEventKey) -> bool:
 
 
 ## A command of the radio menu's flight pages to `to` (IafAi's: 0 the flight, 5 the element, 2..4 one wingman): the
-## pilot's call said with its subtitle ("Alpha Two, rejoin"), then IafAi takes it and the wingmen answer (ai_flights.gd
+## pilot's call said with its subtitle ("Kidon 1-2, rejoin"), then IafAi takes it and the wingmen answer (ai_flights.gd
 ## says their calls). "split" sends element 2 to the SPI (the radar's designated point, else the steerpoint),
 ## "engage" the jets at the radar's locked enemy aircraft (ai_flights.gd engage_target). Recorded as a `radio` event.
 func flight_command(to: int, id: String) -> void:
@@ -537,10 +538,11 @@ func pick(id: String) -> String:
 		return ""
 	var r: Node = host.radio
 	var cs: String = r.formation_name(r._player_ent())
+	var said_cs: String = r.kidon(cs)
 	# The tower called: the one in range on the ground (request's), the radio's base in the air (contact_tower's).
 	var at: int = r.base if id == "landing" else r.base_at(r._pos())
 	var has_tower: bool = at >= 0 and at < r.tower_count
-	var lines := ["%s, %s" % [cs, CALLS[id][0]], "%s, %s" % [r.callsign_text(cs), CALLS[id][1]]]
+	var lines := ["%s, %s" % [said_cs, CALLS[id][0]], "%s, %s" % [said_cs.replace("Kidon", "כידון"), CALLS[id][1]]]
 	if has_tower:
 		lines[0] = "%s, %s" % [TOWER.en % _base_name(at, 0), lines[0]]
 		lines[1] = "%s, %s" % [TOWER.he % _base_name(at, 1), lines[1]]
@@ -613,7 +615,7 @@ func _process(delta: float) -> void:
 			host._log_event(st, {"event": "surface", "paved": false})
 		elif _why.ends_with("_clearance") or _why == "wrong_runway":
 			host._log_event(st, {"event": "clearance", "reason": _why})
-			# The tower calls it once ("Alpha, taxi without clearance": ACFT_NO_TAXI_CLEARANCE, training.md §3.3); a
+			# The tower calls it once ("Kidon 1, taxi without clearance": ACFT_NO_TAXI_CLEARANCE, training.md §3.3); a
 			# wrong runway it named at the line-up (_wrong_runway).
 			if _why != "wrong_runway":
 				host.radio.say("ACFT_" + _why.to_upper(), [host.radio._tower_callsign()])
@@ -653,7 +655,7 @@ func _process(delta: float) -> void:
 		ui.show_panel(String(trainer.text("todo_" + String(why[0]), "he" if _he() else "en")))
 
 
-## Lined up on runway end `wrong` ("" none), not the mission's: the tower says so once per end ("Alpha, you are on
+## Lined up on runway end `wrong` ("" none), not the mission's: the tower says so once per end ("Kidon 1, you are on
 ## runway 7 left, the assigned runway is 25 right": ACFT_WRONG_RUNWAY, training.md §3.3) and the panel shows it while
 ## it lasts; the roll on it fails (IafTraining.check "wrong_runway").
 func _wrong_runway(wrong: String) -> void:

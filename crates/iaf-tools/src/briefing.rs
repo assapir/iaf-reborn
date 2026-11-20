@@ -83,7 +83,7 @@ pub struct Briefing {
     pub focus: [f64; 4],
     /// The whole built theatre [x0, y0, x1, y1] (the map's metres; `meta.json`), where the map scrolls; None without it.
     pub theatre: Option<[f64; 4]>,
-    /// The mission's other flights (`flights::flights`, Bravo..): their callsign and route from their start.
+    /// The mission's other flights (`flights::flights`, Kidon 2..): their callsign and route from their start.
     pub flights: Vec<(&'static str, Vec<[f64; 2]>)>,
 }
 
@@ -169,7 +169,7 @@ pub fn briefing(
             route.push(place(p, "route")?);
         }
     }
-    // The other flights (Bravo..): from their start along their waypoints.
+    // The other flights (Kidon 2..): from their start along their waypoints.
     let others: Vec<(&'static str, Vec<[f64; 2]>)> = flights::flights(mission, |_| None)?
         .into_iter()
         .filter(|f| !f.player())
@@ -927,7 +927,7 @@ mod tests {
         assert!(b.flights.is_empty() && v["flights"] == json!([]), "one flight: the player's, drawn as the route");
     }
 
-    /// The two-flight sample (modern-iaf/tests/data, not a shipped mission): Bravo's route from its start, in the map,
+    /// The two-flight sample (modern-iaf/tests/data, not a shipped mission): Kidon 2's route from its start, in the map,
     /// the player's route as before.
     #[test]
     fn a_second_flight_has_its_own_route() {
@@ -938,11 +938,11 @@ mod tests {
         let one = briefing(&mission("ramon_takeoff"), &bases, &map(), 0.6, None, &[]).unwrap();
         assert_eq!(b.flights.len(), 1);
         let (callsign, pts) = &b.flights[0];
-        assert_eq!((*callsign, pts.len()), ("Bravo", 3), "its start and two waypoints");
+        assert_eq!((*callsign, pts.len()), ("Kidon 2", 3), "its start and two waypoints");
         let inside = |p: &[f64; 2]| p[0] >= 0.0 && p[1] >= 0.0 && p[0] <= b.size[0] && p[1] <= b.size[1];
-        assert!(pts.iter().all(inside), "the map holds Bravo's route");
+        assert!(pts.iter().all(inside), "the map holds Kidon 2's route");
         assert_eq!(b.route.len(), one.route.len());
-        assert_eq!(b.to_json()["flights"][0]["callsign"], "Bravo");
+        assert_eq!(b.to_json()["flights"][0]["callsign"], "Kidon 2");
     }
 
     #[test]

@@ -30,12 +30,12 @@ The tower that answers is the base nearest to you, within about 18 km.
 
 === The calls on the ground, in order <tower-ground>
 
-#idx("Start-up clearance")#idx("Taxi clearance")#idx("Line-up clearance")#idx("Take-off clearance")Your callsign is Alpha. The runway in the tower's answers is your mission's runway.
+#idx("Start-up clearance")#idx("Taxi clearance")#idx("Line-up clearance")#idx("Take-off clearance")Your callsign is Kidon 1 (kidon style: the first flight is Kidon 1, the next Kidon 2, and a flight's jets are Kidon 1-1, 1-2 and so on). The runway in the tower's answers is your mission's runway.
 
 #caution[A phase started before the tower's clearance fails a Training mission at once. Make each call, and wait for the answer in the right-hand column, before you do what it clears (@scoring-clearances).]
 
 + With the engine off, on your parking spot, press #key("Call the tower"), then #keycap("1").
-  #then[The tower answers "Alpha, cleared to start". You may start the engine.]
+  #then[The tower answers "Kidon 1, cleared to start". You may start the engine.]
 + Start the jet by its checklist (@notebook-checklist). Wait for the engine at idle and the avionics up.
 + Press #key("Call the tower"), then #keycap("2").
   #then[The tower answers with a greeting and "taxi to runway" with your runway's number. You may leave the parking spot.]
@@ -104,16 +104,16 @@ The lines and the voices are in the game's language (@language).
 
 === Commands to your wingmen <radio-flight>
 
-#idx("Wingmen")#idx("Radio menu")In a four-ship lesson you fly as Alpha 1 and lead Alpha 2, 3 and 4. Alpha 2 flies on you; Alpha 4 flies on Alpha 3, who leads the second pair. You command them from the same menu: there is no other key.
+#idx("Wingmen")#idx("Radio menu")In a four-ship lesson you fly as Kidon 1-1 and lead Kidon 1-2, 1-3 and 1-4. Kidon 1-2 flies on you; Kidon 1-4 flies on Kidon 1-3, who leads the second pair. You command them from the same menu: there is no other key.
 
 + Press #key("Call the tower").
   #then[The list shows 1 Tower, 2 Wingmen and 3 #term("AWACS"). The tower's calls are under 1. AWACS has no call to make: it reports by itself, so its line is dimmed.]
 + Press 2.
-  #then[The list shows Alpha (flight), Alpha 3–4 (element), Alpha 2, Alpha 3 and Alpha 4.]
+  #then[The list shows "Kidon 1" (the flight), "Kidon 1, element 3–4", "Kidon 1-2", "Kidon 1-3" and "Kidon 1-4".]
 + Press the number of whom you call.
   #then[The list shows the commands for them. #keycap("0") goes back.]
 + Press the number of a command.
-  #then[The list closes. Your pilot makes the call ("Alpha Two, rejoin"). Each wingman answers by its number ("Two.") or "unable".]
+  #then[The list closes. Your pilot makes the call ("Kidon 1-2, rejoin"). Each wingman answers with its callsign ("Kidon 1-2.") or "unable".]
 
 You can also click a line of the list.
 
@@ -121,8 +121,8 @@ You can also click a line of the list.
   (auto, auto, 1fr),
   ([Command], [To], [What the wingmen do]),
   [Formation], [the flight], [A page of shapes: fingertip, line abreast, trail, echelon right, echelon left, diamond, vic, delta. Each calls "in position" in its new slot.],
-  [Rejoin], [anyone], [Back to the slot from any task, also after an RTB. To Alpha 3–4 it ends a split.],
-  [Split], [Alpha 3–4], [The second pair flies to your sensor's point (the radar's designated point, else your steerpoint) and circles it. It must be within 40 km of you, or they answer "unable".],
+  [Rejoin], [anyone], [Back to the slot from any task, also after an RTB. To the element 3–4 it ends a split.],
+  [Split], [the element 3–4], [The second pair flies to your sensor's point (the radar's designated point, else your steerpoint) and circles it. It must be within 40 km of you, or they answer "unable".],
   [Engage my target], [anyone], [They fly at the aircraft your radar has locked and fire their air-to-air missiles. With no enemy aircraft locked they answer "unable". When it is destroyed they rejoin.],
   [RTB], [anyone], [They return to base and land.],
   [Check in], [anyone], [Each answers with its number.],

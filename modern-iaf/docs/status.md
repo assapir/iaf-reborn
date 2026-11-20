@@ -354,7 +354,7 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   The Settings' icon is a gear of our own, crisp at every size (Hangar, pause menu, Settings title). The Hangar's jet
   view shows no white frame while dragged; only the keyboard's focus shows a faint ring.
 - **The briefing ready for several flights (2026-11-15, the front-end finish list's N1, [front-end.md](front-end.md)
-  §10):** a mission names its flights (Alpha, the player's, and Bravo..Delta: callsign, jet, task, route, stores; Rust
+  §10):** a mission names its flights (Kidon 1, the player's, and Kidon 2..4: callsign, jet, task, route, stores; Rust
   `flights.rs`, compiled into `sim.flights`); the briefing shows a mission of several flights as tabs with the
   player's picked and its line, and the map draws each other flight's route in its own colour. Every mission has one
   flight today and shows no tabs. Multi-flight missions themselves wait for their AI flights' missions.
@@ -997,7 +997,7 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   milestone 1 slice 1, no change on screen): the Rust core `crates/iaf-ai` and `IafAi`, the slot loop and the AI's
   6-DoF cases and the flight's collision avoidance ([../../docs/ai.md](../../docs/ai.md) §8.7), tested from Ramon's
   shelters to parked again and with a lead landing away from home. Built (19 Nov, slice 2): the four-ship lesson
-  `ramon_four_ship` (Training, the Sufa): Alpha 2–4 in the next shelters with the player's load, started by the
+  `ramon_four_ship` (Training, the Sufa): Kidon 1-2 to 1-4 in the next shelters with the player's load, started by the
   tower's start-up clearance, taxiing in order, a stream take-off, the join-up calling "in position", the slots in the
   player's turns, the commands through `IafAi.command`, RTB, the landing and each parked at its own shelter
   (`modern-iaf/tests/test_four_ship.gd`); 0.17 ms CPU and 0.127 ms GPU per AI jet on the Iris Xe laptop (ai-plan X5).
@@ -1005,12 +1005,16 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   #3 flies on its own), the split (element 2 to its own target in the same area) and the regroup, the reactions to a
   lock or a launch (the call, the beam or the break into an infrared missile, chaff or flares by the existing decoy
   rule, the mate's break call, the rejoin) and the report of an AWACS contact; in the game a scripted ground radar's
-  lock on Alpha 2 is called, defended with chaff and left for its slot again (`test_four_ship.gd`).
+  lock on Kidon 1-2 is called, defended with chaff and left for its slot again (`test_four_ship.gd`).
   Built (19 Nov, slice 3's logic, ai-plan F5, F8, F13, F14): every call of the flight said in the wingmen's own voice
   (Kokoro `am_eric`) with its subtitle in the game's language (the words in
   [research/radio-terms.md](research/radio-terms.md): IAF terms where a source has one, else NATO brevity);
   `IafAi.engage` ("engage my target": the jets fly at the radar's locked enemy aircraft and fire through combat.gd,
   then rejoin); a real S-300PMU-2 locking and launching at the wingmen in `test_four_ship.gd`.
+  Callsigns (20 Nov, the user: "Use kidon style, where kidon 1 is the first formation the second is kidon 2 etc"):
+  the flights are Kidon 1..4 and the jets Kidon 1-1..1-4 on every screen, subtitle and voice, in English and Hebrew
+  ([research/radio-terms.md](research/radio-terms.md)); in Hebrew a runway's side is ימין / שמאל ("25 ימין"), the
+  AWACS's clearance "רשאי לתקוף", and "מייל" is read as the mile ([sound.md](sound.md) §3.1).
   Open: the radio menu's flight pages (slice 3's screen, waiting for the user's approval).
 - **Missiles (avionics-plan.md §7.2):** next steps 2, 3 and 5: the AIM-120's loft, the proximity fuzes, the threat
   missiles once their records are approved; step 4 (the missile warning's type) awaits the user's approval.

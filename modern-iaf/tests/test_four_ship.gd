@@ -1,18 +1,18 @@
-# Modern IAF's four-ship (modern-iaf/docs/ai-plan.md §6 F1–F4, F7, F10–F13): mission ramon_four_ship, Alpha 1 the
-# player and Alpha 2, 3 and 4 flown by IafAi (crates/iaf-ai):
+# Modern IAF's four-ship (modern-iaf/docs/ai-plan.md §6 F1–F4, F7, F10–F13): mission ramon_four_ship, Kidon 1-1 the
+# player and Kidon 1-2, 1-3 and 1-4 flown by IafAi (crates/iaf-ai):
 #   - F1: one formation of four in Ramon's four Sufa shelters in data/parking.json's order, the wingmen with the lead's
 #     stores;
 #   - F2: the tower's start-up clearance starts the wingmen's engines; each holds until the jet ahead has moved (the
 #     player's jet put in the air over the base, its F-16 autopilot circling at 30° of bank), then taxies;
-#   - F3, F4: Alpha 2, 3 and 4 take off in order and join the lead, the slots kept within 300 m in its turn and
+#   - F3, F4: Kidon 1-2, 1-3 and 1-4 take off in order and join the lead, the slots kept within 300 m in its turn and
 #     each back within 60 m of its slot in 60 s (a real wingman drifts in a turn too; inferred);
 #   - F5's commands through the radio menu (sim_flight.gd): the pilot's call and the answers said, check and ops
 #     check answered, engage my target with nothing locked "unable", echelon right flown, the split and the regroup;
 #   - F12: the split (element 2 to its own target, #4 on #3, #2 on the lead) and the regroup;
-#   - F13: a scripted ground radar's lock on Alpha 2: its call, its defence with chaff, its rejoin; then a real
+#   - F13: a scripted ground radar's lock on Kidon 1-2: its call, its defence with chaff, its rejoin; then a real
 #     S-300PMU-2 (shared/ai/air_defence.gd) 15 km away locks and launches at the wingmen: the calls said with their
 #     subtitles, the defence with chaff, the rejoin once the site is silent;
-#   - F5's engage my target: Alpha 2 on an enemy drone (shared/ai/drones.gd): it flies at it and fires through
+#   - F5's engage my target: Kidon 1-2 on an enemy drone (shared/ai/drones.gd): it flies at it and fires through
 #     combat.gd, one missile in the air at a time, and rejoins once the target is gone;
 #   - F4's other close shapes through the radio menu: diamond, vic, delta, echelon left, fingertip, each held within
 #     60 m of its slot for 20 s by 80 s after the "in position";
@@ -32,7 +32,7 @@ const BUG_AHEAD := 30.0
 const ORBIT_THROTTLE := 0.2
 
 var _tv: Node
-var _wing: Array = []  # the wingmen's entities, Alpha 2..4
+var _wing: Array = []  # the wingmen's entities, Kidon 1-2..1-4
 var _spots: Array = []  # their shelters' spots (x east, y north)
 var _orbit := false
 var _min_air := INF
@@ -58,7 +58,9 @@ func run() -> void:
 	_tv = tv
 	_spawn(tv)
 	var ai = tv.ai
-	check(ai.flight_ai != null and ai._ai_members.size() == 4, "IafAi flies Alpha 1-4 (%d)" % ai._ai_members.size())
+	check(
+		ai.flight_ai != null and ai._ai_members.size() == 4, "IafAi flies Kidon 1-1..1-4 (%d)" % ai._ai_members.size()
+	)
 	if ai.flight_ai == null or _wing.size() != 3:
 		return
 	process_frame.connect(_watch)
@@ -97,13 +99,15 @@ func _spawn(tv: Node) -> void:
 		placed[int(e["0x1e"])] = Vector2(float(e["0x2e4"]), float(e["0x2ee"]))
 	for k in range(1, members.size()):
 		var ent: Dictionary = members[k]
-		check(int(ent.control) == 1 and ent.has("pilot"), "Alpha %d: flown by the AI" % (k + 1))
+		check(int(ent.control) == 1 and ent.has("pilot"), "Kidon 1-%d: flown by the AI" % (k + 1))
 		var at: Vector2 = placed.get(int(ent.id), Vector2.INF)
 		var w := Vector2(ent.world.x, ent.world.y)
-		check(w.distance_to(at) < 2.0, "Alpha %d: on its shelter's spot (%.1f m off)" % [k + 1, w.distance_to(at)])
+		check(w.distance_to(at) < 2.0, "Kidon 1-%d: on its shelter's spot (%.1f m off)" % [k + 1, w.distance_to(at)])
 		for j in k:
 			var o: Vector2 = Vector2(members[j].world.x, members[j].world.y) if j > 0 else _me(tv)
-			check(w.distance_to(o) > 30.0, "Alpha %d and %d stand apart (%.0f m)" % [k + 1, j + 1, w.distance_to(o)])
+			check(
+				w.distance_to(o) > 30.0, "Kidon 1-%d and 1-%d stand apart (%.0f m)" % [k + 1, j + 1, w.distance_to(o)]
+			)
 		var u = tv.ai.combat.units.get(ent.key)
 		var same := u != null
 		for i in 9:
@@ -111,7 +115,7 @@ func _spawn(tv: Node) -> void:
 			var b: Dictionary = u.stores.station(i) if u != null else {}
 			same = same and int(a.get("w", {}).get("id", 0)) == int(b.get("w", {}).get("id", 0))
 			same = same and int(a.get("count", 0)) == int(b.get("count", 0))
-		check(same, "Alpha %d: the lead's stores" % (k + 1))
+		check(same, "Kidon 1-%d: the lead's stores" % (k + 1))
 		_wing.append(ent)
 		_spots.append(at)
 
@@ -130,13 +134,13 @@ func _start_up(tv: Node) -> void:
 	var running := func(k: int) -> bool: return bool(_wing[k].pilot.flight.state().engine_on)
 	var ok := await _until(tv, func(): return running.call(0) and running.call(1) and running.call(2), 120.0)
 	for k in 3:
-		check(running.call(k), "Alpha %d: its engine started after the clearance" % (k + 2))
-		check(_moved(k) < 5.0, "Alpha %d: holds while the jet ahead has not moved (%.1f m)" % [k + 2, _moved(k)])
+		check(running.call(k), "Kidon 1-%d: its engine started after the clearance" % (k + 2))
+		check(_moved(k) < 5.0, "Kidon 1-%d: holds while the jet ahead has not moved (%.1f m)" % [k + 2, _moved(k)])
 	_lead_up(tv)
 	ok = await _until(tv, func(): return _moved(0) > 20.0, 90.0)
 	check(
 		ok and _moved(1) < 5.0,
-		"Alpha 2 taxies once the lead has moved, Alpha 3 holds (%.0f, %.0f m)" % [_moved(0), _moved(1)]
+		"Kidon 1-2 taxies once the lead has moved, Kidon 1-3 holds (%.0f, %.0f m)" % [_moved(0), _moved(1)]
 	)
 	var up := [INF, INF, INF]
 	var t0: float = tv._sim_time
@@ -150,7 +154,8 @@ func _start_up(tv: Node) -> void:
 		900.0
 	)
 	check(
-		ok and up[0] < up[1] and up[1] < up[2], "Alpha 2, 3 and 4 airborne in order (%s s after the lead left)" % [up]
+		ok and up[0] < up[1] and up[1] < up[2],
+		"Kidon 1-2, 1-3 and 1-4 airborne in order (%s s after the lead left)" % [up]
 	)
 
 
@@ -159,7 +164,7 @@ func _start_up(tv: Node) -> void:
 ## cost at time scale 1 meanwhile.
 func _join(tv: Node) -> bool:
 	var ok := await _until(tv, func(): return _said_all("in_position", 0), 600.0)
-	check(ok, "Alpha 2, 3 and 4 in position on the lead (%s;%s)" % [_calls(), _wing_states(tv)])
+	check(ok, "Kidon 1-2, 1-3 and 1-4 in position on the lead (%s;%s)" % [_calls(), _wing_states(tv)])
 	if not ok:
 		return false
 	Engine.time_scale = 1.0
@@ -195,12 +200,12 @@ func _commands(tv: Node) -> void:
 	var t0: float = tv.runtime.now
 	check(_menu(tv, ["to:0", "check"]) and _menu(tv, ["to:0", "ops_check"]), "check and ops check in the radio menu")
 	await fly(tv, 3.0)
-	check(_heard(tv, "FLT_CMD", "Alpha, check"), "the pilot's call said (%s)" % [_said_texts(tv)])
+	check(_heard(tv, "FLT_CMD", "Kidon 1, check"), "the pilot's call said (%s)" % [_said_texts(tv)])
 	check(_said_all("ack", t0) and _said_all("fuel_state", t0), "check and ops check answered (%s)" % [_calls()])
-	check(_heard(tv, "WNG_FUEL", "Two, "), "the fuel state said (%s)" % [_said_texts(tv)])
+	check(_heard(tv, "WNG_FUEL", "Kidon 1-2, "), "the fuel state said (%s)" % [_said_texts(tv)])
 	check(_menu(tv, ["to:2", "engage"]), "engage my target in the radio menu")
 	await fly(tv, 3.0)
-	check(_said(2, "unable", t0) and _heard(tv, "WNG_CALL", "Two, unable"), "no target locked: Two, unable")
+	check(_said(2, "unable", t0) and _heard(tv, "WNG_CALL", "Kidon 1-2, unable"), "no target locked: Kidon 1-2, unable")
 	t0 = tv.runtime.now
 	check(_menu(tv, ["to:0", "formation", "echelon_right"]), "echelon right in the radio menu")
 	var ok := await _until(tv, func(): return _said_all("in_position", t0), 300.0)
@@ -253,7 +258,7 @@ func _split(tv: Node) -> void:
 	check(await _until(tv, back, 900.0), "element 2 regrouped (%s;%s)" % [_calls(), _wing_states(tv)])
 
 
-## The reactions: a radar on the ground locks Alpha 2 (combat.gd on_lock, scripted): it calls "mud", defends with
+## The reactions: a radar on the ground locks Kidon 1-2 (combat.gd on_lock, scripted): it calls "mud", defends with
 ## chaff, and rejoins once the lock is gone.
 func _lock(tv: Node) -> void:
 	var ent: Dictionary = _wing[0]
@@ -266,14 +271,14 @@ func _lock(tv: Node) -> void:
 	tv.ai.combat.on_lock(radar, ent, true)
 	var fa = tv.ai.flight_ai
 	var defending := func(): return fa.state(2).get("defending", false) and _said(2, "mud", t0)
-	check(await _until(tv, defending, 5.0), "Alpha 2 calls the lock and defends (%s)" % _calls())
+	check(await _until(tv, defending, 5.0), "Kidon 1-2 calls the lock and defends (%s)" % _calls())
 	await fly(tv, 6.0)
 	var left: int = int(u.stations[10].count) if u != null and u.stations.size() > 10 else 0
-	check(chaff > 0 and left < chaff, "Alpha 2 releases chaff (%d of %d left)" % [left, chaff])
+	check(chaff > 0 and left < chaff, "Kidon 1-2 releases chaff (%d of %d left)" % [left, chaff])
 	t0 = tv.runtime.now
 	tv.ai.combat.on_lock(radar, ent, false)
 	var back := func(): return _said(2, "in_position", t0)
-	check(await _until(tv, back, 600.0), "Alpha 2 rejoins (%s;%s)" % [_calls(), _wing_states(tv)])
+	check(await _until(tv, back, 600.0), "Kidon 1-2 rejoins (%s;%s)" % [_calls(), _wing_states(tv)])
 
 
 ## F13 against a real site (docs/ai.md §15): an S-300PMU-2 15 km from the flight locks and launches at the wingmen;
@@ -305,7 +310,7 @@ func _site(tv: Node) -> void:
 	var k0: int = locked[0] if not locked.is_empty() else 0
 	var fa = tv.ai.flight_ai
 	var reacts := func(): return _said(k0 + 2, "mud", t0) and fa.state(k0 + 2).get("defending", false)
-	check(await _until(tv, reacts, 10.0), "Alpha %d calls the lock and defends (%s)" % [k0 + 2, _calls()])
+	check(await _until(tv, reacts, 10.0), "Kidon 1-%d calls the lock and defends (%s)" % [k0 + 2, _calls()])
 	var heard := func(p): return String(p.template) == "WNG_CALL" and String(p.text).ends_with("mud")
 	check(tv.radio.said.any(heard), "the call said with its subtitle (%s)" % [tv.radio.said.slice(-3)])
 	var shot := []
@@ -317,7 +322,9 @@ func _site(tv: Node) -> void:
 		return not shot.is_empty()
 	check(await _until(tv, at_wing, 150.0), "the S-300 launches at a wingman (%s)" % [site.site.state(tv.runtime.now)])
 	var k1: int = shot[0] if not shot.is_empty() else k0
-	check(await _until(tv, func(): return _said(k1 + 2, "defending", t0), 10.0), "Alpha %d calls the launch" % (k1 + 2))
+	check(
+		await _until(tv, func(): return _said(k1 + 2, "defending", t0), 10.0), "Kidon 1-%d calls the launch" % (k1 + 2)
+	)
 	var dropped := func(): return locked.all(func(k): return _chaff(tv, _wing[k]) < chaff[k])
 	check(
 		await _until(tv, dropped, 10.0),
@@ -335,7 +342,7 @@ func _site(tv: Node) -> void:
 
 
 ## F5's engage my target (ai_flights.gd engage, the menu's path after the radar lock): an enemy drone 15 km away;
-## Alpha 2 acknowledges, flies at it and fires (combat.gd's pick and launch), never two of its missiles at it at once;
+## Kidon 1-2 acknowledges, flies at it and fires (combat.gd's pick and launch), never two of its missiles at it at once;
 ## the drone gone, it rejoins. The S-300 above stays silent.
 func _engage(tv: Node) -> void:
 	var j: Vector3 = tv.player_world()
@@ -353,9 +360,9 @@ func _engage(tv: Node) -> void:
 	var fa = tv.ai.flight_ai
 	check(
 		await _until(tv, func(): return _said(2, "ack", t0) and fa.state(2).get("engaging", false), 5.0),
-		"Alpha 2 acknowledges and engages (%s)" % _calls()
+		"Kidon 1-2 acknowledges and engages (%s)" % _calls()
 	)
-	var most := [0, 0]  # the most of Alpha 2's missiles at the drone at once, launches seen
+	var most := [0, 0]  # the most of Kidon 1-2's missiles at the drone at once, launches seen
 	var seen := {}
 	var shoot := func():
 		var mine: Array = tv.weapons.missiles.filter(
@@ -369,11 +376,11 @@ func _engage(tv: Node) -> void:
 	check(await _until(tv, shoot, 240.0), "the drone destroyed or gone (%d launches, %s)" % [most[1], _wing_states(tv)])
 	check(
 		most[1] >= 1 and most[0] == 1,
-		"Alpha 2 fires, one missile in the air at a time (%d launches, %d at once)" % [most[1], most[0]]
+		"Kidon 1-2 fires, one missile in the air at a time (%d launches, %d at once)" % [most[1], most[0]]
 	)
 	t0 = tv.runtime.now
 	var back := func(): return _said(2, "in_position", t0) and not fa.state(2).get("engaging", true)
-	check(await _until(tv, back, 600.0), "Alpha 2 rejoins (%s;%s)" % [_calls(), _wing_states(tv)])
+	check(await _until(tv, back, 600.0), "Kidon 1-2 rejoins (%s;%s)" % [_calls(), _wing_states(tv)])
 
 
 func _chaff(tv: Node, ent: Dictionary) -> int:
@@ -393,7 +400,7 @@ func _home(tv: Node) -> void:
 		check(
 			parked.call(k) and _moved(k) < 40.0,
 			(
-				"Alpha %d: landed and parked at its shelter, engine off (%.0f m off; %s)"
+				"Kidon 1-%d: landed and parked at its shelter, engine off (%.0f m off; %s)"
 				% [k + 2, _moved(k), _wing[k].pilot.flight.ap_stage()]
 			)
 		)
@@ -419,8 +426,8 @@ func _watch() -> void:
 			var d: float = (jets[i][0] as Vector3).distance_to(jets[j][0])
 			if d < _min_air:
 				_min_air = d
-				_min_at = ", Alpha %d and %d at %.0f s, %s" % [i + 1, j + 1, tv._sim_time, _phase]
-				_min_at += "; Alpha %d: %s" % [j + 1, tv.ai.flight_ai.state(j + 1).get("stage", "")]
+				_min_at = ", Kidon 1-%d and 1-%d at %.0f s, %s" % [i + 1, j + 1, tv._sim_time, _phase]
+				_min_at += "; Kidon 1-%d: %s" % [j + 1, tv.ai.flight_ai.state(j + 1).get("stage", "")]
 				var sts: Array = [me] + _wing.map(func(e): return e.pilot.flight.state())
 				for k in [i, j]:
 					var st: Dictionary = sts[k]
@@ -475,7 +482,7 @@ func _said_all(id: String, t0: float) -> bool:
 	return _said(2, id, t0) and _said(3, id, t0) and _said(4, id, t0)
 
 
-## Alpha `n`'s call `id` made after `t0` (mission s).
+## Kidon 1-`n`'s call `id` made after `t0` (mission s).
 func _said(n: int, id: String, t0: float) -> bool:
 	for c in _tv.ai.flight_calls:
 		if int(c.from) == n and String(c.id) == id and float(c.get("t", 0.0)) >= t0:
@@ -508,7 +515,7 @@ func _calls() -> String:
 	return ", ".join(_tv.ai.flight_calls.map(func(c): return "%d %s" % [c.from, c.id]))
 
 
-## Alpha `n`'s distance to the nearest other jet of the flight, m.
+## Kidon 1-`n`'s distance to the nearest other jet of the flight, m.
 func _nearest(tv: Node, n: int) -> float:
 	var pos: Array = [tv.flight.state().position]
 	for w in _wing:

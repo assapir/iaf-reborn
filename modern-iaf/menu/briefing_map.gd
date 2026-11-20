@@ -15,11 +15,12 @@
 extends Control
 
 const Look := preload("look.gd")
+const RadioScript := preload("res://shared/audio/radio.gd")
 const RUNWAY := Color("4a4f57")
 const ROUTE := Look.NAVY
 ## The taxi's and the route's pale edge.
 const CASING := Color(1, 1, 1, 0.75)
-## The other flights' routes (Bravo, Charlie, Delta), each in its own colour, apart from the player's NAVY.
+## The other flights' routes (Kidon 2, 3 and 4), each in its own colour, apart from the player's NAVY.
 const FLIGHT_COLOURS := [Color("c2571a"), Color("2e7d32"), Color("8e24aa")]
 ## The base's pavement over the ground and the parking spots.
 const PAVEMENT := Color("8f8b82")
@@ -521,7 +522,7 @@ func _draw() -> void:
 		for i in flights.size():
 			var pts := _points(flights[i].pts, xf)
 			if not pts.is_empty():
-				_tag(font, str(flights[i].callsign), pts[0] + Vector2(20, -12), 19, taken)
+				_tag(font, RadioScript.callsign_text(str(flights[i].callsign)), pts[0] + Vector2(20, -12), 19, taken)
 	if show_labels:
 		_draw_places(font, xf, taken)
 	track_labels.call()

@@ -111,8 +111,8 @@ Fail reasons, in the order checked: the §3.0 reason first (the earliest event);
 engine never at idle with the avionics up), `over_time` (start-up); `no_liftoff`, `wrong_runway`, `excursion`,
 `gear_down`, `over_time`, `off_heading` (take-off; after a §3.0 fail the climb-out is not judged).
 
-**The four-ship (2026-11-19).** `ramon_four_ship` (Sufa, menu 2014) is a take-off lesson with three AI wingmen, Alpha
-2–4, in the next shelters ([ai-plan.md](ai-plan.md) F1). The tower's start-up clearance clears the whole flight: the
+**The four-ship (2026-11-19).** `ramon_four_ship` (Sufa, menu 2014) is a take-off lesson with three AI wingmen, Kidon
+1-2 to 1-4, in the next shelters ([ai-plan.md](ai-plan.md) F1). The tower's start-up clearance clears the whole flight: the
 wingmen start their engines 3 s apart, taxi behind the player in order and take off in a stream, then join the
 player in fingertip. The pass is the player's take-off above; the wingmen do not change it. A Take-off kneeboard page
 that looks a lesson up by base takes Ramon's Take-off lesson (2012), the first by menu id.
@@ -129,10 +129,10 @@ answers so far (`Cleared::of`, the same state the radio menu lists its calls fro
 
 | phase | detected when | cleared by | reason | the tower |
 |---|---|---|---|---|
-| `startup` | the engine turning: RPM 5 % or more (`ENGINE_TURNING_RPM`; a cold engine reads 0, the starter cranks it to 20 %) | "cleared to start" | `no_start_clearance` | "Alpha, engine start without clearance" / "Alpha, התנעה ללא אישור" |
-| `taxi` | on the ground, the jet's centre more than 10 m from where it first stood (`TAXI_MOVED_M`, inferred: more than brake creep or the start's jolt) | "taxi to runway …" | `no_taxi_clearance` | "Alpha, taxi without clearance" / "Alpha, הסעה ללא אישור" |
-| `takeoff`: entering the runway | on the ground, the centre within half the width of the mission's runway's centreline (the airbase file) | "line up …" or "cleared for take-off" | `no_runway_clearance` | "Alpha, runway entry without clearance" / "Alpha, כניסה למסלול ללא אישור" |
-| `takeoff`: the roll | on that runway faster than 30 kt (`ROLL_START_KT`, the roll's start in §3.2) | "cleared for take-off" | `no_takeoff_clearance` | "Alpha, take-off without clearance" / "Alpha, המראה ללא אישור" |
+| `startup` | the engine turning: RPM 5 % or more (`ENGINE_TURNING_RPM`; a cold engine reads 0, the starter cranks it to 20 %) | "cleared to start" | `no_start_clearance` | "Kidon 1, engine start without clearance" / "כידון 1, התנעה ללא אישור" |
+| `taxi` | on the ground, the jet's centre more than 10 m from where it first stood (`TAXI_MOVED_M`, inferred: more than brake creep or the start's jolt) | "taxi to runway …" | `no_taxi_clearance` | "Kidon 1, taxi without clearance" / "כידון 1, הסעה ללא אישור" |
+| `takeoff`: entering the runway | on the ground, the centre within half the width of the mission's runway's centreline (the airbase file) | "line up …" or "cleared for take-off" | `no_runway_clearance` | "Kidon 1, runway entry without clearance" / "כידון 1, כניסה למסלול ללא אישור" |
+| `takeoff`: the roll | on that runway faster than 30 kt (`ROLL_START_KT`, the roll's start in §3.2) | "cleared for take-off" | `no_takeoff_clearance` | "Kidon 1, take-off without clearance" / "כידון 1, המראה ללא אישור" |
 
 A call asked and answered "hold position" clears nothing; the answer is decided at the pick, so no call is pending.
 A clearance stays valid afterwards (a restart needs no new start-up call). No readback is modelled. A flight that
@@ -141,8 +141,8 @@ starts with the engine running holds the start, taxi and line-up clearances.
 **The wrong runway.** In a take-off mission the jet on the ground, on a runway of the base and lined up within 30°
 (`LINED_UP_DEG`, inferred: a jet crossing at 90° is not lined up) of an end other than the mission's
 (`Watch::wrong_runway`; the designators are the airbase file's, the ones the tower names) gets a warning: the tower
-says once per end "Alpha, you are on runway 7 left, the assigned runway is 25 right" ("Alpha, על מסלול 7 שמאלי,
-המסלול שהוקצה 25 ימני") and the panel shows "Wrong runway: this is 07L, the assigned one is 25R." while it lasts. Lining
+says once per end "Kidon 1, you are on runway 7 left, the assigned runway is 25 right" ("כידון 1, על מסלול 7 שמאל,
+המסלול שהוקצה 25 ימין") and the panel shows "Wrong runway: this is 07L, the assigned one is 25R." while it lasts. Lining
 up there only warns; the roll there (faster than 30 kt) fails at once with `wrong_runway`.
 
 ### 3.4 Weapons range: pass
@@ -392,7 +392,7 @@ always 1–4) and the landing call in the air (`training::radio_calls`). The men
 training mission expected next carried "(next)" / "(הבאה)" (the user: "remove the (next) from the raio menu");
 `training::next_call` (the "marked when" column) still tells the lesson which call comes next. A ground call made before
 the clearance it follows (take-off before line-up, line-up before taxi, taxi before start-up;
-`training::missing_before`) gets "Alpha, negative, hold position, request line-up first" ("Alpha, שלילי, המתנה במקום,
+`training::missing_before`) gets "Kidon 1, negative, hold position, request line-up first" ("כידון 1, שלילי, המתנה במקום,
 יש לבקש כניסה למסלול קודם"; `ACFT_NEGATIVE`) and clears nothing; a call repeated gets its answer again. A wrong call
 alone never fails a mission; acting without the clearance does (§3.3). No "say again" or "radio check" call exists;
 the air has only the landing call (open: the calls the landing and navigation lessons need, such as joining the
@@ -403,8 +403,8 @@ the game manual's "Commands to your wingmen").
 
 | call | English | Hebrew | marked when | the tower answers |
 |---|---|---|---|---|
-| start-up | Request start-up | בקשת התנעה | on the ground with the engine off | "Alpha, cleared to start" (`ACFT_CLEAR_TO_START`) |
-| taxi | Request taxi | בקשת הסעה | on the ground with the engine running and the avionics up, taxi not yet (also after a start without start-up approval) | with the engine running: "Alpha, good morning, taxi to runway 25 right" (`ACFT_TAXI_TO_RUNWAY`); else "hold position" |
+| start-up | Request start-up | בקשת התנעה | on the ground with the engine off | "Kidon 1, cleared to start" (`ACFT_CLEAR_TO_START`) |
+| taxi | Request taxi | בקשת הסעה | on the ground with the engine running and the avionics up, taxi not yet (also after a start without start-up approval) | with the engine running: "Kidon 1, good morning, taxi to runway 25 right" (`ACFT_TAXI_TO_RUNWAY`); else "hold position" |
 | line-up | Request line-up | בקשת כניסה למסלול | on the ground at the holding point or past it (no farther from the lineup point than the holding point plus 50 m, inferred; the holding point is the base's taxi-out path's last point before the lineup, `iaf.ibx` `FromTaxiPt`) with taxi approved, line-up not yet (since 2026-11-13) | within 400 m of the lineup point with the runway clear: "line up runway 25 right, wind calm" (`ACFT_CLEAR_TO_LINEUP_NW`; ours: the original's band starts 200 m out, which leaves out the holding point); else "hold position" |
 | take-off | Request take-off | בקשת המראה | at the holding point or past it with line-up approved, take-off not yet | the original tower's rule on the ground (docs/radio.md §2 `ground()`): lined up in the lineup zone: "cleared for take-off"; 200–400 m from the lineup point with the runway clear: "line up runway 25 right, wind calm"; else "hold position" |
 | landing | Contact tower (landing) | קריאה למגדל (נחיתה) | in the air | the original's Ctrl+T (docs/radio.md §2): "proceed to runway …" in the air |
@@ -415,18 +415,17 @@ again. The rules are in `crates/iaf-tools/src/training.rs` (`IafTraining.radio_c
 point) no call is marked. A flight that starts on the ground with the engine running (at the lineup point) has taxi
 and line-up approved, so take-off is marked at once.
 
-The pilot's call is printed and spoken by the pilot's voice through the helmet chain ("Ramon tower, Alpha, request
+The pilot's call is printed and spoken by the pilot's voice through the helmet chain ("Ramon tower, Kidon 1, request
 taxi"; sound.md §5.2), then 0.6 s of quiet, then the tower's answer printed and spoken by the tower's voice (sound.md
 §3), then the pilot's "Roger". The landing call is "request landing" to the radio's current base, then the
 original's Ctrl+T. The taxi greeting follows the mission's clock (its start time plus the sim time): good
 morning 05:00–12:00, good afternoon 12:00–17:00, good evening 17:00–05:00 (`Settings.tower_greeting` in
 `modern-iaf/sim_settings.gd`; the original game keeps its own table, docs/radio.md §2 code 0;
 `modern-iaf/tests/test_radio_calls.gd` at 04, 08, 14, 16, 20 and 23 h). The lines show in the sim's band over the flight
-([front-end.md](front-end.md) §8), wholly in the game's language: in Hebrew the pilot's call ("מגדל רמון, Alpha,
+([front-end.md](front-end.md) §8), wholly in the game's language: in Hebrew the pilot's call ("מגדל רמון, כידון 1,
 בקשת הסעה") and the tower's answer from each phrase particle's Hebrew text (`text_he` in
-`modern-iaf/data/sounds/voices.json`, compiled into `phraseparticles_he.trx`: "Alpha, בוקר טוב, הסעה למסלול 25 ימני");
-only the callsigns and the runway numbers stay Latin and digits. The voice stays English until the Hebrew voice's
-licence is decided (sound.md §5.4). The
+`modern-iaf/data/sounds/voices.json`, compiled into `phraseparticles_he.trx`: "כידון 1, בוקר טוב, הסעה למסלול 25 ימין");
+only the runway numbers stay digits. The voice speaks the game's language too (sound.md §3.1). The
 tower is the base within 18.54 km: every base of the own `iaf.ibx` talks (Ramon, Ramat David, Hatzerim, Nevatim;
 `Settings.tower_bases`); the mission's base's tower names the mission's runway (`"runway"`), the others their own. A request leaves the tower's
 state machine as it is. In the menu the tower no longer talks on

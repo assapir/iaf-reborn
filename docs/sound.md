@@ -266,7 +266,8 @@ the F-16's GAAF "Pull up" and CARA ALOW "Altitude", the F-35I's pull-up call. Th
 only where the jet's set has it (`terrain_view.gd`).
 
 **The tower** (Real Betty): the sim's phrase templates and particles replace the original's of the same names, so the
-tower's calls (`ACFT_TAXI_TO_RUNWAY` …) speak Modern IAF's voice, with its joined clips (radio.md §5); every base's
+tower's calls (`ACFT_TAXI_TO_RUNWAY` …) speak Modern IAF's voice, with its joined clips (radio.md §5), but the
+callsigns stay the original's ("Alpha"): the sim's callsign particles and its clips that say one are left out; every base's
 tower talks (`radio.gd` `tower_count`). Every radio call is framed by the sim's `key_on` / `key_off` clips, whose
 radio chain is rendered into the clips (modern-iaf/docs/sound.md §5.2); nothing filters at run time.
 

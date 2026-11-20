@@ -6,9 +6,6 @@
 #     -s ../modern-iaf/tests/test_flight_ui.gd --log-file <temp>
 extends "res://../tests/godot/base.gd"
 
-## Latin words a Hebrew radio line may hold: callsigns and the key names, runway designators (digits and L / R / C).
-const LATIN_OK := ["Alpha", "Bravo", "Charlie", "Delta"]
-
 
 func run() -> void:
 	var s := settings()
@@ -68,7 +65,7 @@ func run() -> void:
 			var rx := RegEx.create_from_string("[A-Za-z]+")
 			for line in band:
 				var latin := rx.search_all(line).map(func(m): return m.get_string())
-				var stray := latin.filter(func(w): return not w in LATIN_OK and not w in ["L", "R", "C"])
+				var stray := latin.filter(func(w): return not w in ["L", "R", "C"])
 				check(stray.is_empty(), '%s: no English word in "%s" (%s)' % [lang, line, stray])
 		var panel_ok: bool = Rect2(Vector2.ZERO, ui.size).encloses(ui.find_child("Band", true, false).get_rect())
 		check(panel_ok, "%s: the band inside the view" % lang)

@@ -154,7 +154,7 @@ jet, aircraft above the terrain + 175 m) and names each track by its side (infer
 ## 7. The AWACS (N6)
 
 The game's contact calls (docs/radio.md §4, `fctrl.rs`, `radio.gd` `_awacs`) run in every mission: from 60 s into the
-flight, every 12 s, an aircraft within 35 NM: "Alpha, bearing 090, 15 miles, target, heading 270, free to engage". The
+flight, every 12 s, an aircraft within 35 NM: "Kidon 1, bearing 090, 15 miles, target, heading 270, free to engage". The
 range's drones are the calls' contacts. The sim's voices file holds their templates (`ACFT_FCTRL_LONG`, `_SHORT`) and
 97 particles in the AWACS's voice `am_fenrir`, with Hebrew subtitles; the `voices` step (Kokoro, [sound.md](sound.md)
 §5) made the `awx_*.ogg` clips on 17 November.

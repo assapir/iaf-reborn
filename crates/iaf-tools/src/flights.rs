@@ -1,17 +1,21 @@
 //! A Modern IAF mission's flights for its briefing (modern-iaf/docs/front-end.md §10), from a readable mission
 //! (modern-iaf/data/missions, data-formats.md §5).
 //!
-//! The flights are the player's (Alpha: the mission's `start` and `route`) and the mission's other `flights`
-//! (Bravo..Delta), named as the mission editor's `set_flight` names them (`mission_edit::FLIGHT_NAMES`), the order the
-//! compiler (`sim.rs compile_mission`) hands them to it.
+//! The flights are the player's (Kidon 1: the mission's `start` and `route`) and the mission's other `flights`
+//! (Kidon 2..4), in the order the compiler (`sim.rs compile_mission`) hands them to the mission editor's `set_flight`
+//! (which names their formations `mission_edit::FLIGHT_NAMES`). The callsigns are kidon style (the user, 20 November
+//! 2026: "Use kidon style, where kidon 1 is the first formation the second is kidon 2 etc"; he.wikipedia טיסת מבנה,
+//! modern-iaf/docs/research/radio-terms.md): flight N is "Kidon N", its jets "Kidon N-1"...
 
 use std::path::Path;
 
 use anyhow::{Context, Result, ensure};
 use serde_json::{Value, json};
 
-use crate::mission_edit::FLIGHT_NAMES;
 use crate::sim::place;
+
+/// The flights' callsigns, the player's first.
+pub const CALLSIGNS: [&str; 4] = ["Kidon 1", "Kidon 2", "Kidon 3", "Kidon 4"];
 
 /// A flight's tasks (its `task`): the briefing names each ("task_<id>" in the front end's strings).
 pub const TASKS: [&str; 4] = ["training", "cap", "strike", "escort"];
@@ -19,7 +23,7 @@ pub const TASKS: [&str; 4] = ["training", "cap", "strike", "escort"];
 /// A flight of a mission.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Flight {
-    /// "Alpha" (the player's), "Bravo", …
+    /// "Kidon 1" (the player's), "Kidon 2", …
     pub callsign: &'static str,
     /// Its unit record's id ("f16i") and how many jets fly in it.
     pub unit: String,
@@ -35,9 +39,9 @@ pub struct Flight {
 }
 
 impl Flight {
-    /// The player's flight (Alpha) is the first.
+    /// The player's flight (Kidon 1) is the first.
     pub fn player(&self) -> bool {
-        self.callsign == FLIGHT_NAMES[0]
+        self.callsign == CALLSIGNS[0]
     }
 
     /// As JSON: {callsign, unit, count, task, player, start (null or [x, y]), route [[x, y], …] (UTM 36N, m),
@@ -58,15 +62,15 @@ impl Flight {
 }
 
 /// The flights of readable mission `m`, the player's first; `record` answers a unit record by its id (None: no
-/// stores). A flight's `task` (Alpha's in `start`) defaults to "training" in a training mission and is needed in any
+/// stores). A flight's `task` (Kidon 1's in `start`) defaults to "training" in a training mission and is needed in any
 /// other; an unknown task, or more flights than `set_flight` names, is refused.
 pub fn flights(m: &Value, record: impl Fn(&str) -> Option<Value>) -> Result<Vec<Flight>> {
     let others = m["flights"].as_array().map_or(&[][..], Vec::as_slice);
-    ensure!(others.len() < FLIGHT_NAMES.len(), "{} flights besides Alpha; set_flight takes Bravo..Delta", others.len());
+    ensure!(others.len() < CALLSIGNS.len(), "{} flights besides Kidon 1; set_flight takes 3 more", others.len());
     let training = m["category"] == "training";
     let mut out = vec![];
     for (k, f) in [&m["start"]].into_iter().chain(others).enumerate() {
-        let callsign = FLIGHT_NAMES[k];
+        let callsign = CALLSIGNS[k];
         let task = match f["task"].as_str() {
             Some(t) => t,
             None if training => "training",
@@ -136,7 +140,7 @@ mod tests {
         let f = flights(&mission("ramon_takeoff"), units).unwrap();
         assert_eq!(f.len(), 1);
         let a = &f[0];
-        assert!(a.player() && a.callsign == "Alpha" && a.unit == "f16i" && a.count == 1 && a.task == "training");
+        assert!(a.player() && a.callsign == "Kidon 1" && a.unit == "f16i" && a.count == 1 && a.task == "training");
         assert_eq!(a.start, None);
         assert_eq!(a.route.len(), 1);
         // The Sufa record's pylons: six AIM-9Ms and two tanks, in station order.
@@ -147,7 +151,7 @@ mod tests {
     #[test]
     fn the_sample_has_two_flights_each_with_its_own_route() {
         let f = flights(&two_flights(), units).unwrap();
-        assert_eq!(f.iter().map(|f| f.callsign).collect::<Vec<_>>(), ["Alpha", "Bravo"]);
+        assert_eq!(f.iter().map(|f| f.callsign).collect::<Vec<_>>(), ["Kidon 1", "Kidon 2"]);
         let b = &f[1];
         assert!(!b.player() && b.unit == "f15c" && b.count == 2 && b.task == "cap");
         assert!(b.start.is_some() && b.route.len() == 2);
@@ -165,7 +169,7 @@ mod tests {
         m["category"] = json!("single");
         m["start"]["task"] = json!("cap");
         m["flights"][0].as_object_mut().unwrap().remove("task");
-        assert!(flights(&m, units).unwrap_err().to_string().contains("Bravo: a flight needs \"task\""));
+        assert!(flights(&m, units).unwrap_err().to_string().contains("Kidon 2: a flight needs \"task\""));
         let mut m = two_flights();
         let b = m["flights"][0].clone();
         m["flights"] = json!([b, b, b, b]);

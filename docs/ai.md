@@ -722,14 +722,14 @@ English is NATO brevity[^brevity]:
 
 | id | English | Hebrew subtitle | source |
 |---|---|---|---|
-| `spike` | "Two, spike" | "שתיים, נעילה" | NATO SPIKE, "RWR indication of an air interceptor threat in track or launch"; Hebrew: נעילה[^hamichlol-rwr] |
-| `mud` | "Two, mud" | "שתיים, נעילה מהקרקע" (ours around נעילה) | NATO MUD, "RWR ground threat displayed with no launch indication" |
-| `defending` | "Two, defending" | "שתיים, בהתחמקות" (ours around מתחמק) | NATO DEFENDING, "in a defensive position and maneuvering with reference to a radar threat"; Hebrew: מתחמק[^mako-102] |
-| `break_left` / `break_right` | "Three, break left!" | none found. Ours: "שלוש, שבירה שמאלה" | NATO BREAK (direction), "an immediate maximum performance turn"; Hebrew open |
-| `contact` | "Two, contact." | none found. Ours: "שתיים, יש מגע" | NATO CONTACT, "sensor information at the stated position"; Hebrew open |
-| split | "Alpha Three and Four, split." | none found. Ours: "Alpha שלוש וארבע, פיצול" (the pair: זוג) | NATO SPLIT, "flight member is leaving formation to pursue a separate attack"; Hebrew open |
-| regroup | "Alpha Three and Four, rejoin." | "Alpha שלוש וארבע, הצטרפות" | the four-ship's rejoin term (slice 3's research) |
-| engage | "Alpha Two, engage my target." | none found. Ours: "Alpha שתיים, תקיפת המטרה שלי" | NATO ENGAGE, "a fire control order used to direct or authorize units to fire on a designated target"; Hebrew open |
+| `spike` | "Kidon 1-2, spike" | "כידון 1-2, נעילה" | NATO SPIKE, "RWR indication of an air interceptor threat in track or launch"; Hebrew: נעילה[^hamichlol-rwr] |
+| `mud` | "Kidon 1-2, mud" | "כידון 1-2, נעילה מהקרקע" (ours around נעילה) | NATO MUD, "RWR ground threat displayed with no launch indication" |
+| `defending` | "Kidon 1-2, defending" | "כידון 1-2, בהתחמקות" (ours around מתחמק) | NATO DEFENDING, "in a defensive position and maneuvering with reference to a radar threat"; Hebrew: מתחמק[^mako-102] |
+| `break_left` / `break_right` | "Kidon 1-3, break left!" | none found. Ours: "כידון 1-3, שבירה שמאלה" | NATO BREAK (direction), "an immediate maximum performance turn"; Hebrew open |
+| `contact` | "Kidon 1-2, contact." | none found. Ours: "כידון 1-2, יש מגע" | NATO CONTACT, "sensor information at the stated position"; Hebrew open |
+| split | "Kidon 1, element 3–4, split." | none found. Ours: "כידון 1, זוג 3–4, פיצול" (the pair: זוג) | NATO SPLIT, "flight member is leaving formation to pursue a separate attack"; Hebrew open |
+| regroup | "Kidon 1, element 3–4, rejoin." | "כידון 1, זוג 3–4, הצטרפות" | the four-ship's rejoin term (slice 3's research) |
+| engage | "Kidon 1-2, engage my target." | none found. Ours: "כידון 1-2, תקיפת המטרה שלי" | NATO ENGAGE, "a fire control order used to direct or authorize units to fire on a designated target"; Hebrew open |
 
 Later (outside this slice): a commit on the AWACS's call (the element turns to the contact); the controller's answers
 to requests (picture, bogey dope, declare, vectors: ai-plan Q12); a memory of contacts already reported (each call is

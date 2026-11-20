@@ -24,8 +24,8 @@ found; "second-hand" means a search engine's quote of a page our tool could not 
   `voices.json` is 85 % of the length of the same call in English, and three short lines 55–90 %). Trying three voices with three takes each is about 70,000
   characters. The Hebrew clips would add about 3.5 MB to the repository (inferred: today's tower, AWACS, four-ship,
   player and Betty clips take 3.6 MB).
-- **Radio speech.** Callsigns ("אלפא אחת"), numbers said digit by digit in the feminine counting forms ("שתיים
-  חמש"), runway sides ("ימני", "שמאלי") and short urgent calls ("שתיים, נעילה!"). The game's radio chain filters every
+- **Radio speech.** Callsigns ("כידון אחד-אחד"), numbers said digit by digit in the feminine counting forms ("שתיים
+  חמש"), runway sides ("ימין", "שמאל"; the user, 20 November 2026: "it should be 25 ימין. Not 25 ימני") and short urgent calls ("שתיים, נעילה!"). The game's radio chain filters every
   clip anyway ([sound.md](../sound.md) §5.2), so a clean studio voice is the input we want.
 
 ## 2. The options at a glance
@@ -138,12 +138,12 @@ text did not change it; the IPA line fixed it (sample 3b, §6).
 ## 5. Callsigns, numbers and runways: parts or whole calls
 
 Today a call plays the longest run of its keys that has a joined clip; the training missions' calls are whole
-clips, and other calls join a head ("Alpha, good morning, taxi to runway") and a runway ("two five right"). The head
+clips, and other calls join a head ("Kidon 1, good morning, taxi to runway") and a runway ("two five right"). The head
 and the runway are cut from one sentence at Kokoro's word times ([sound.md](../sound.md) §3). Hebrew keeps the same
 structure (inferred):
 - **The words.** Digits are said one by one in the counting forms, as `voices.json`'s Hebrew lines already do
-  ("מסלול שתיים חמש ימני"), so a number never agrees with a noun. Prefixes join the next word (ל-, ב-: "למסלול"), so
-  a cut falls between words, never inside one. A head ends on "מסלול", a runway is "שתיים חמש ימני".
+  ("מסלול שתיים חמש ימין"), so a number never agrees with a noun. Prefixes join the next word (ל-, ב-: "למסלול"), so
+  a cut falls between words, never inside one. A head ends on "מסלול", a runway is "שתיים חמש ימין".
 - **Word times by engine.** Kokoro (today): yes, but no Hebrew. Azure: WordBoundary[^az-wb]. ElevenLabs v3: character
   times[^el-ts]. Soniox: character timestamps, by its page[^soniox]. Google Chirp 3 HD and Gemini TTS: none in their
   documents (open). OpenAI: none found (open). BlueTTS: none (inferred: its model predicts one length for the whole
@@ -169,6 +169,9 @@ BlueTTS voices, and the IPA fix of call 3. Files: the page only, not the reposit
 | 3 | wingman, ariel | אלפא שתיים, במקום. (3b: the same from IPA, "bamakˈom") |
 | 4 | AWACS, michael | אלפא אחת, מגע, כיוון שלוש שלוש אפס, טווח ארבעים מייל, גובה עשרים אלף רגל. |
 | 5 | wingman, ariel | שתיים, נעילה! שבירה שמאלה! |
+
+The samples are kept as they were played: they predate the user's corrections of 20 November 2026 (the kidon
+callsigns, "25 ימין"; [radio-terms.md](radio-terms.md)), which the game's lines follow.
 
 - **Measured, not heard by us:** 0.5–1.1 s to make each call (6.5 s of speech in 1.1 s), 0.9 s to load, 31 s for
   the whole run of 25 files (most of it the radio filter in plain Python); the radio version of call 1 at −19.8 LUFS, peak −2.9 dBFS, inside the game's range for radio clips

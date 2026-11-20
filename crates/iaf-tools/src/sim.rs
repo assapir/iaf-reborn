@@ -781,13 +781,13 @@ pub fn compile_mission(
     misc[hex("mission", "win")] = texts(f, "win")?["en"].clone();
     misc[hex("mission", "lose")] = texts(f, "lose")?["en"].clone();
     misc[hex("mission", "category")] = json!(f.v["category"].as_str().unwrap_or(""));
-    // The player's flight (Alpha): the start, its unit and its route.
+    // The player's flight (Kidon 1): the start, its unit and its route.
     let start = &f.v["start"];
     let unit = db.unit(start["unit"].as_str().unwrap_or("")).with_context(|| f.name.clone())?;
     let base_name = start["base"].as_str().with_context(|| format!("{}: start needs \"base\"", f.name))?;
     let base =
         sim_bases::by_name(bases, base_name).with_context(|| format!("{}: no airbase \"{base_name}\"", f.name))?;
-    // The wingmen at a parking start stand on the unit's next spots, Alpha 2..4 in the base file's order.
+    // The wingmen at a parking start stand on the unit's next spots, Kidon 1-2..1-4 in the base file's order.
     let mut wings = vec![];
     let [x, y, h] = match start["at"].as_str() {
         Some("runway") => runway_start(base, start["runway"].as_str().unwrap_or("")).with_context(|| f.name.clone())?,
@@ -842,12 +842,12 @@ pub fn compile_mission(
         }
         Ok(out)
     };
-    // Alpha flies one to four jets: a pair anywhere, a three- or four-ship from the unit's parking spots (ai-plan.md F1).
+    // Kidon 1 flies one to four jets: a pair anywhere, a three- or four-ship from the unit's parking spots (ai-plan.md F1).
     let count = start["count"].as_i64().unwrap_or(1);
-    ensure!((1..=4).contains(&count), "{}: start.count {count}: Alpha flies 1 to 4 jets", f.name);
+    ensure!((1..=4).contains(&count), "{}: start.count {count}: Kidon 1 flies 1 to 4 jets", f.name);
     ensure!(
         count <= 2 || count as usize <= 1 + wings.len(),
-        "{}: start.count {count} needs a \"parking\" start with {count} of {}'s spots for its unit (Alpha 2..4 on the next)",
+        "{}: start.count {count} needs a \"parking\" start with {count} of {}'s spots for its unit (Kidon 1-2..1-4 on the next)",
         f.name,
         base.name_en
     );
@@ -857,12 +857,12 @@ pub fn compile_mission(
         spec["points"] = json!(route(&f.v["route"], [x, y, elev])?);
     }
     m = mission_edit::set_flight(m, 1, &spec);
-    // Only the player's jet (Alpha's leader, Player1) must survive; a wingman keeps the neutral role.
+    // Only the player's jet (Kidon 1-1, Player1) must survive; a wingman keeps the neutral role.
     let player = m["formations"]["items"][0]["members"][0]["0x41a"].as_i64().unwrap_or(-1);
     m = mission_edit::set_role(m, &[player], mission_edit::MUST_SURVIVE);
-    // The other blue flights (Bravo..Delta).
+    // The other blue flights (Kidon 2..4; set_flight's formations Bravo..Delta).
     let flights = f.v["flights"].as_array().map_or(&[][..], Vec::as_slice);
-    ensure!(flights.len() <= 3, "{}: {} flights besides Alpha; set_flight takes Bravo..Delta", f.name, flights.len());
+    ensure!(flights.len() <= 3, "{}: {} flights besides Kidon 1; set_flight takes 3 more", f.name, flights.len());
     for (k, fl) in flights.iter().enumerate() {
         let u = db.unit(fl["unit"].as_str().unwrap_or("")).with_context(|| f.name.clone())?;
         let at = &fl["start"];
@@ -1671,14 +1671,14 @@ mod tests {
     }
 
     /// The briefing's flights ride in `sim`: the two-flight sample (modern-iaf/tests/data, not a shipped mission) names
-    /// Alpha, the player's, and Bravo.
+    /// Kidon 1, the player's, and Kidon 2 (set_flight's formation Bravo).
     #[test]
     fn the_briefing_flights_are_compiled() {
         let (db, bases) = (Db::read(&data()).unwrap(), sim_bases::load(&data().join("airbases")).unwrap());
         let v = serde_json::from_slice(&std::fs::read(data().join("../tests/data/two_flights.json")).unwrap()).unwrap();
         let m = compile_mission(&File { name: "two_flights".into(), v }, &db, &bases, &mut |_, _| None).unwrap();
         let f = m["sim"]["flights"].as_array().unwrap();
-        assert_eq!(f.iter().map(|f| f["callsign"].clone()).collect::<Vec<_>>(), [json!("Alpha"), json!("Bravo")]);
+        assert_eq!(f.iter().map(|f| f["callsign"].clone()).collect::<Vec<_>>(), [json!("Kidon 1"), json!("Kidon 2")]);
         assert_eq!(
             (&f[0]["player"], &f[0]["unit"], &f[1]["unit"], &f[1]["task"]),
             (&json!(true), &json!("f16i"), &json!("f15c"), &json!("cap"))
@@ -1687,7 +1687,7 @@ mod tests {
         assert!(names.collect::<Vec<_>>().contains(&"Bravo"), "the formation set_flight named");
     }
 
-    /// A flight without a route (none or empty) gets set_flight's default point, as Alpha does.
+    /// A flight without a route (none or empty) gets set_flight's default point, as Kidon 1 does.
     #[test]
     fn a_flight_without_a_route_gets_the_default_point() {
         let (db, bases) = (Db::read(&data()).unwrap(), sim_bases::load(&data().join("airbases")).unwrap());
@@ -1896,7 +1896,7 @@ mod tests {
         );
     }
 
-    /// A four-ship (ai-plan.md F1): Alpha 1..4 on the unit's four spots in the base file's order, one formation, only
+    /// A four-ship (ai-plan.md F1): Kidon 1-1..1-4 on the unit's four spots in the base file's order, one formation, only
     /// the player's jet must survive; more jets than spots, or more than two away from the spots, are refused, and the
     /// 1998 mission editor's flight (no `wings`) stays a pair.
     #[test]
@@ -1915,7 +1915,7 @@ mod tests {
             assert_eq!(
                 (e["0x2e4"].as_f64().unwrap(), e["0x2ee"].as_f64().unwrap(), e["0x302"].as_f64().unwrap()),
                 (spots[k].at[0].round(), spots[k].at[1].round(), spots[k].heading.round()),
-                "Alpha {}",
+                "Kidon 1-{}",
                 k + 1
             );
         }
@@ -2034,8 +2034,8 @@ mod tests {
         assert!(!sounds.join("stale.ogg").exists());
         // The Hebrew voices (sound.md §3.1): voices_he.json and the first cast's tower clip.
         let he: Value = serde_json::from_slice(&std::fs::read(sounds.join("voices_he.json")).unwrap()).unwrap();
-        assert_eq!(he["roles"]["twr_alpha.ogg"], "tower");
-        assert!(sounds.join("he").join(he["casts"][0]["tower"].as_str().unwrap()).join("twr_alpha.ogg").exists());
+        assert_eq!(he["roles"]["twr_kidon1.ogg"], "tower");
+        assert!(sounds.join("he").join(he["casts"][0]["tower"].as_str().unwrap()).join("twr_kidon1.ogg").exists());
         // The F-16's descriptor from our model: its hinges, stations and gun, the type, no original source.
         let f16: Value =
             serde_json::from_slice(&std::fs::read(root.0.join(PLANES_DIR).join("f16/aircraft.json")).unwrap()).unwrap();

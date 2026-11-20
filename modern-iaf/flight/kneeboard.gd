@@ -318,7 +318,9 @@ func _sections() -> Array:
 	secs.append(_sec("taxi", "nb_taxi", "%s · %s" % [s("nb_taxi"), _base_name().to_upper()], blocks))
 	# RADIO
 	blocks = []
-	var cs: String = flight.host.radio.formation_name(flight.host.radio._player_ent()) if flight.host.radio else "Alpha"
+	var cs := RadioScript.kidon(
+		flight.host.radio.formation_name(flight.host.radio._player_ent()) if flight.host.radio else "Alpha"
+	)
 	var rows := [[s("nb_callsign"), "[b]%s[/b]" % (RadioScript.callsign_text(cs) if he() else cs.to_upper()), ""]]
 	for f in data.get("radio", {}).get(_base(), []):
 		var mhz := float(f[1])
@@ -326,7 +328,7 @@ func _sections() -> Array:
 	blocks.append(table(rows, 3))
 	rows = [["[b]%s[/b]" % s("nb_you_call"), "[b]%s[/b]" % s("nb_on"), "[b]%s[/b]" % s("nb_answer")]]
 	for c in data.get("calls", []):
-		var said := String(c[l]).replace("{cs}", _ltr(cs)).replace("{runway}", _ltr(runway))
+		var said := String(c[l]).replace("{cs}", RadioScript.callsign_text(cs)).replace("{runway}", _ltr(runway))
 		var item: Array = flight.ITEMS.filter(func(it): return it[0] == c.call)
 		rows.append([String(item[0][2 if he() else 1]) if not item.is_empty() else "", c.on, said])
 	blocks.append(table(rows, 3))

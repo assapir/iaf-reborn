@@ -136,8 +136,23 @@ func _ready() -> void:
 	var sim: String = Settings.sim_sounds("phrasetemplates.trx") if Settings.real_betty == "modern" else ""
 	if sim != "":
 		_load_templates(sim.path_join("phrasetemplates.trx"))
+		var own := particles.duplicate()
 		_load_particles(sim.path_join("phraseparticalsdata.trx"))
+		# The sim's callsigns are kidon style ("Kidon 1"); the original game keeps its own ("Alpha"): its callsign
+		# particles, and none of the sim's clips that say one.
+		for k in particles.keys():
+			if Array(k.split("+")).any(func(x): return _is_callsign(x)):
+				if own.has(k):
+					particles[k] = own[k]
+				else:
+					particles.erase(k)
 		tower_count = bases.size()
+
+
+## A callsign particle key: a formation's name and _T / _P / _R ("ALPHA_T", the tower's).
+static func _is_callsign(key: String) -> bool:
+	var cut := key.rfind("_")
+	return cut > 0 and key.substr(cut) in ["_T", "_P", "_R"] and KIND_NAMES.values().has(key.left(cut).capitalize())
 
 
 # --- phrases (§1) -------------------------------------------------------------------------------
@@ -175,8 +190,9 @@ func _load_particles(path: String) -> void:
 ## rwyl / rwyr / rwyc (shared/extra/tower_numbers).
 const LETTERS := {"L": "RWY_L", "R": "RWY_R", "C": "RWY_C"}
 const LETTER_PARTS := {"RWY_L": ["RwyL", "left"], "RWY_R": ["RwyR", "right"], "RWY_C": ["RwyC", "center"]}
-## Their Hebrew subtitles, where the Hebrew table (particles_he) has none of its own.
-const LETTER_HE := {"RWY_L": "שמאלי", "RWY_R": "ימני", "RWY_C": "מרכזי"}
+## Their Hebrew subtitles, where the Hebrew table (particles_he) has none of its own: "25 ימין", not "ימני" (the user,
+## 20 Nov 2026).
+const LETTER_HE := {"RWY_L": "שמאל", "RWY_R": "ימין", "RWY_C": "מרכז"}
 
 
 ## FUN_004c66a0: the template's tokens with %Sn / %Dn from the arguments, each key's wav and text; the text
@@ -371,14 +387,18 @@ func _formation_of(ent: Dictionary) -> Dictionary:
 	return ai._formation_of(ent) if ai != null and not ent.is_empty() else {}
 
 
-## Ours (the user, 19 Nov): a callsign in Hebrew letters on Hebrew screens (the voice stays English).
-const CALLSIGN_HE := {
-	"Alpha": "אלפא", "Bravo": "בראבו", "Charlie": "צ'רלי", "Delta": "דלתא", "Echo": "אקו", "Foxtrot": "פוקסטרוט"
-}
+## Ours (Modern IAF; the user, 20 Nov 2026: "Use kidon style, where kidon 1 is the first formation the second is
+## kidon 2 etc"): formation `name`'s callsign "Kidon N", N its kind (FUN_005bd3c0: Alpha, the player's, is 1); its
+## jets are "Kidon N-M" (he.wikipedia טיסת מבנה, modern-iaf/docs/research/radio-terms.md). The particle keys stay
+## the exe's (ALPHA_T).
+static func kidon(name: String) -> String:
+	var k = KIND_NAMES.find_key(name)
+	return "Kidon %d" % k if k != null else name
 
 
-static func callsign_text(en: String) -> String:
-	return CALLSIGN_HE.get(en, en) if Settings.language == "he" else en
+## A callsign ("Kidon 1", "Kidon 1-2") on a screen in the game's language: "כידון 1" in Hebrew.
+static func callsign_text(cs: String) -> String:
+	return cs.replace("Kidon", "כידון") if Settings.language == "he" else cs
 
 
 ## FUN_005513c0: a unit's formation name (kinds 2–6, 9, 10; else "Alpha").
@@ -943,9 +963,10 @@ const WING_WORDS := {
 }
 
 
-## Ours (Modern IAF): the flight AI's call `id` from jet `from` (IafAi.step) said and subtitled: "Two." (ack), "Two,
-## unable", "Three has the lead", "Two, six point two" (an ops check's fuel state, `fuel_kg` in thousands of pounds);
-## a break is called to the element mate (#2 calls "One, break left" when a missile flies at #1).
+## Ours (Modern IAF): the flight AI's call `id` from jet `from` (IafAi.step) said and subtitled: "Kidon 1-2." (ack),
+## "Kidon 1-2, unable", "Kidon 1-3 has the lead", "Kidon 1-2, six point two" (an ops check's fuel state, `fuel_kg` in
+## thousands of pounds); a break is called to the element mate (#2 calls "Kidon 1-1, break left" when a missile flies
+## at #1).
 func flight_call(from: int, id: String, fuel_kg := 0.0) -> void:
 	var n: String = WING_NUMBERS[clampi(from, 0, 4)]
 	var table = host.sounds.get("table") if host != null and host.get("sounds") != null else null

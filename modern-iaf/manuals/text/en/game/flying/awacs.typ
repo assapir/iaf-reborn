@@ -8,14 +8,14 @@
 
 A call sounds like this:
 
-"Alpha, bearing 090, 15 miles, target, heading 270, free to engage"
+"Kidon 1, bearing 090, 15 miles, target, heading 270, free to engage"
 
 Read it part by part:
 
 #grid-table(
   (auto, 1fr),
   ([Part], [Meaning]),
-  [Alpha], [Your callsign: the call is for you.],
+  [Kidon 1], [Your callsign: the call is for you.],
   [bearing 090], [The direction from you to the aircraft, as a compass heading. 090 is due east. Turn to this heading to point at it.],
   [15 miles], [Its distance from you, in nautical miles.],
   [target], [What it is: an aircraft you are to attack.],

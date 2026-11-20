@@ -28,13 +28,13 @@ func run() -> void:
 	var said: Array = r.said.slice(said0)
 	check(said.size() >= 2 and said[0].template == "PILOT_CALL", "the pilot's call is said first: %s" % [said])
 	check(
-		said[0].wavs == ["plt_ramon_alpha_start.ogg"],
-		'the pilot says "Ramon tower, Alpha, request start-up" in one clip: %s' % [said[0].wavs]
+		said[0].wavs == ["plt_ramon_kidon1_start.ogg"],
+		'the pilot says "Ramon tower, Kidon 1, request start-up" in one clip: %s' % [said[0].wavs]
 	)
 	var seq: Array = played.slice(n0)
-	var want := ["key_on.ogg", "plt_ramon_alpha_start.ogg", "key_off.ogg", "radio_gap.ogg", "key_on.ogg"]
+	var want := ["key_on.ogg", "plt_ramon_kidon1_start.ogg", "key_off.ogg", "radio_gap.ogg", "key_on.ogg"]
 	check(seq.slice(0, 5) == want, "call, key-off, the gap, then the tower keys on: %s" % [seq])
-	check(seq.has("twr_alpha_start.ogg"), "then the tower's answer: %s" % [seq])
+	check(seq.has("twr_kidon1_start.ogg"), "then the tower's answer: %s" % [seq])
 	# The subtitles show as each voice starts (the user, 2026-11-13): the tower's not with the pilot's.
 	var band: Array = tv.addon.ui.band_texts()
 	check(
@@ -110,9 +110,9 @@ func _hebrew(tv: Node, r: Node, at: int) -> void:
 		if c[0] == 0 and c[1] == "":
 			var w0: Array = r.said[n0].wavs
 			check(
-				w0.slice(0, 3) == ["twr_alpha.ogg", "twr_pause.ogg", "twr_taxi_evening.ogg"],
+				w0.slice(0, 3) == ["twr_kidon1.ogg", "twr_pause.ogg", "twr_taxi_evening.ogg"],
 				"callsign apart: %s" % [w0]
 			)
-			check(table.hebrew("twr_alpha.ogg").contains("/he/%s/" % cast.tower), "the cast's tower voice")
+			check(table.hebrew("twr_kidon1.ogg").contains("/he/%s/" % cast.tower), "the cast's tower voice")
 	print("Hebrew: %d calls, %d clips" % [calls.size(), clips])
 	settings().language = "en"

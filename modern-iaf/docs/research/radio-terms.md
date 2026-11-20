@@ -1,7 +1,7 @@
 # IAF radio terms for the four-ship — research
 
 This page records the radio calls of the AI's first milestone, where the player leads a four-ship of F-16I Sufas
-(callsign Alpha, wingmen Alpha 2, 3 and 4) and no combat takes place. For each call it gives the term the Israeli Air
+(callsign Kidon 1, its jets Kidon 1-1 to 1-4: the callsign row) and no combat takes place. For each call it gives the term the Israeli Air
 Force (IAF) uses, as public sources write it, and the English words the voice says. The voices stay English
 (synthesised) with Hebrew subtitles, so each row has both. The user asked on 19 November 2026: "I said search for IAF
 terms and if not fallback to NATO". Research date: 19 November 2026. It is research only: it changes no code or
@@ -19,43 +19,43 @@ strings.
 | call | Hebrew subtitle (IAF term) | English voice | source |
 |---|---|---|---|
 | **Lead to flight** | | | |
-| check-in | ours: "Alpha, בדיקת קשר" | "Alpha, check." Replies: "Two." "Three." "Four." | no IAF term found, NATO: a check-in on every frequency, each wingman answering with the number[^tpub-t2c]; the word "check" is inferred |
-| formation: fingertip | "Alpha, מבנה **ארבע אצבעות**" | "Alpha, fingertip." | Hebrew Wikipedia[^hewiki-formation]; English: NATO[^wiki-formation][^wiki-fingerfour] |
-| formation: line abreast (spread) | "Alpha, **מבנה מקבילי**" | "Alpha, line abreast." | Hebrew Wikipedia[^hewiki-formation]; the IAF site describes the lowest flight as flown "בשורה אופקית", a description, not a named formation (IAF site, second-hand[^iaf-low]); English: NATO, where LINE ABREAST names a group of enemy contacts; for one's own flight inferred[^alsa] |
-| formation: trail | "Alpha, **מבנה טור**" | "Alpha, trail." | Hebrew Wikipedia[^hewiki-formation]; English: NATO[^wiki-formation] |
-| formation: echelon right / left | "Alpha, **מבנה אלכסון** ימין" / "Alpha, **מבנה אלכסון** שמאל" (Hebrew Wikipedia's gallery name; its text also gives "סולם" and "מדרג"; "ימין" / "שמאל" ours) | "Alpha, echelon right." / "Alpha, echelon left." | Hebrew Wikipedia[^hewiki-formation]; English: NATO[^wiki-formation] |
-| formation: diamond | "Alpha, **מבנה יהלום**" | "Alpha, diamond." | Hebrew Wikipedia[^hewiki-formation]; English: Wikipedia ("Fingertip right to diamond": "#4 moves into slot")[^wiki-formation] |
-| formation: vic | "Alpha, **מבנה וי**" | "Alpha, vic." | Hebrew Wikipedia[^hewiki-formation]; English: Wikipedia[^wiki-vic] |
-| formation: delta | "Alpha, **מבנה דלתא**" | "Alpha, delta." | Hebrew Wikipedia[^hewiki-formation]; English: the name of the article's gallery picture ("Delta formation of Blue Impulse")[^hewiki-formation] |
-| rejoin | "Alpha, **הצטרפות**" | "Alpha, rejoin." | IAF site, second-hand ("הצטרפות למבנה")[^iaf-auschwitz]; a pilot's account of the IAF flight course ("הצטרפות אחרי ההמראה אל המוביל")[^mustov] |
-| close up | "Alpha, **מבנה צמוד**" | "Alpha, close up." (plain English, inferred: the brevity list has no word for it) | IAF site, second-hand ("במבנה צמוד", several pages)[^iaf-guinness][^iaf-dakota]; the pilot's account writes "התכנסות למבנה מכונס"[^mustov] |
-| spread out | none found. Ours: "Alpha, להגדיל מרווחים" | "Alpha, spread out." (plain English, inferred) | no IAF term found; NATO has none either: its SPREAD is a maneuver of enemy contacts[^alsa]. Open |
-| return to base (RTB) | none found. Ours: "Alpha, חזרה לבסיס" | "Alpha, RTB." | no IAF term found; English inferred: common US abbreviation, not in the brevity list[^alsa] |
-| ops check / fuel check | none found. Ours: "Alpha, בדיקת מערכות ודלק" | "Alpha, ops check." | no IAF term found, NATO: USAF and Navy training manuals, second-hand[^ops-check] |
-| take-off order (stream / pairs) | none found as a call. Ours: "המראה בזוגות" / "המראה בזה אחר זה" (the sources call a pair **זוג**[^mako-kaz]) | "Alpha, pairs take-off." / "Alpha, stream take-off." (inferred) | open: no IAF or NATO source found |
-| lead change ("Three has the lead") | ours around the term: "ההובלה אצל שלוש" (term: **לקחת את ההובלה**, to take the lead) | "Alpha, Three has the lead." | the lead is hit and the next pilot "צריך לקחת את ההובלה"[^mako-kaz]; a pilot's account: "המוביל היה מתחלף"[^mustov]; English: Navy T-6A manual, second-hand[^lead-change] |
+| check-in | ours: "כידון 1, בדיקת קשר" | "Kidon 1, check." Replies: "Kidon 1-2." "Kidon 1-3." "Kidon 1-4." | no IAF term found, NATO: a check-in on every frequency, each wingman answering with the number[^tpub-t2c]; the word "check" is inferred |
+| formation: fingertip | "כידון 1, מבנה **ארבע אצבעות**" | "Kidon 1, fingertip." | Hebrew Wikipedia[^hewiki-formation]; English: NATO[^wiki-formation][^wiki-fingerfour] |
+| formation: line abreast (spread) | "כידון 1, **מבנה מקבילי**" | "Kidon 1, line abreast." | Hebrew Wikipedia[^hewiki-formation]; the IAF site describes the lowest flight as flown "בשורה אופקית", a description, not a named formation (IAF site, second-hand[^iaf-low]); English: NATO, where LINE ABREAST names a group of enemy contacts; for one's own flight inferred[^alsa] |
+| formation: trail | "כידון 1, **מבנה טור**" | "Kidon 1, trail." | Hebrew Wikipedia[^hewiki-formation]; English: NATO[^wiki-formation] |
+| formation: echelon right / left | "כידון 1, **מבנה אלכסון** ימין" / "כידון 1, **מבנה אלכסון** שמאל" (Hebrew Wikipedia's gallery name; its text also gives "סולם" and "מדרג"; "ימין" / "שמאל" ours) | "Kidon 1, echelon right." / "Kidon 1, echelon left." | Hebrew Wikipedia[^hewiki-formation]; English: NATO[^wiki-formation] |
+| formation: diamond | "כידון 1, **מבנה יהלום**" | "Kidon 1, diamond." | Hebrew Wikipedia[^hewiki-formation]; English: Wikipedia ("Fingertip right to diamond": "#4 moves into slot")[^wiki-formation] |
+| formation: vic | "כידון 1, **מבנה וי**" | "Kidon 1, vic." | Hebrew Wikipedia[^hewiki-formation]; English: Wikipedia[^wiki-vic] |
+| formation: delta | "כידון 1, **מבנה דלתא**" | "Kidon 1, delta." | Hebrew Wikipedia[^hewiki-formation]; English: the name of the article's gallery picture ("Delta formation of Blue Impulse")[^hewiki-formation] |
+| rejoin | "כידון 1, **הצטרפות**" | "Kidon 1, rejoin." | IAF site, second-hand ("הצטרפות למבנה")[^iaf-auschwitz]; a pilot's account of the IAF flight course ("הצטרפות אחרי ההמראה אל המוביל")[^mustov] |
+| close up | "כידון 1, **מבנה צמוד**" | "Kidon 1, close up." (plain English, inferred: the brevity list has no word for it) | IAF site, second-hand ("במבנה צמוד", several pages)[^iaf-guinness][^iaf-dakota]; the pilot's account writes "התכנסות למבנה מכונס"[^mustov] |
+| spread out | none found. Ours: "כידון 1, להגדיל מרווחים" | "Kidon 1, spread out." (plain English, inferred) | no IAF term found; NATO has none either: its SPREAD is a maneuver of enemy contacts[^alsa]. Open |
+| return to base (RTB) | none found. Ours: "כידון 1, חזרה לבסיס" | "Kidon 1, RTB." | no IAF term found; English inferred: common US abbreviation, not in the brevity list[^alsa] |
+| ops check / fuel check | none found. Ours: "כידון 1, בדיקת מערכות ודלק" | "Kidon 1, ops check." | no IAF term found, NATO: USAF and Navy training manuals, second-hand[^ops-check] |
+| take-off order (stream / pairs) | none found as a call. Ours: "המראה בזוגות" / "המראה בזה אחר זה" (the sources call a pair **זוג**[^mako-kaz]) | "Kidon 1, pairs take-off." / "Kidon 1, stream take-off." (inferred) | open: no IAF or NATO source found |
+| lead change ("Three has the lead") | ours around the term: "ההובלה אצל כידון 1-3" (term: **לקחת את ההובלה**, to take the lead) | "Kidon 1, Kidon 1-3 has the lead." | the lead is hit and the next pilot "צריך לקחת את ההובלה"[^mako-kaz]; a pilot's account: "המוביל היה מתחלף"[^mustov]; English: Navy T-6A manual, second-hand[^lead-change] |
 | **Wingman to lead** | | | |
-| acknowledgement | "שתיים" (from **מספר שתיים**, the position's name; the bare-number reply is inferred) | "Two." | the position's name: IAF site, second-hand[^iaf-number2], press[^walla-2012]; Hebrew radio speech says "מספר שתיים", not "שני"[^takanot]; English: Navy T-2C manual[^tpub-t2c] |
-| unable | none found. Ours: "שתיים, אין אפשרות" | "Two, unable." | no IAF term found, NATO[^alsa] |
-| rejoined / in position | none found. Ours: "שתיים במקום" | "Two, in position." (inferred) | no IAF term found; no NATO brevity word; open |
-| bingo (fuel to return) | "שתיים, **בינגו**" (the English loanword; Hebrew writers use "דלק בינגו") | "Two, bingo." | no IAF term found, NATO[^alsa][^tpub-wingman]; the loanword in Hebrew: press[^ynet-sims] |
-| joker (fuel for one more task) | "שתיים, **ג'וקר**" (the loanword; inferred: no Hebrew source found) | "Two, joker." | no IAF term found, NATO[^alsa][^tpub-wingman] |
-| fuel state (answer to an ops check) | ours: "שתיים, שש נקודה שתיים" (the number only) | "Two, six point two." (fuel in thousands of pounds) | no IAF term found, NATO: FUEL STATE[^alsa]; the answer's format, second-hand[^ops-check] |
-| airborne | none found. Ours: "Alpha באוויר" | "Alpha, airborne." (inferred) | no IAF term found; not in the brevity list[^alsa]; open |
-| landed / on the ground | none found. Ours: "Alpha על הקרקע" | "Alpha, on the ground." (inferred) | no IAF term found; not in the brevity list[^alsa]; open |
+| acknowledgement | "כידון 1-2" (the jet's callsign, kidon style: the callsign row; the position's name is **מספר שתיים**; a reply of the callsign alone is inferred) | "Kidon 1-2." | the callsign: Hebrew Wikipedia[^hewiki-formation], the user's decision (20 November 2026); the position's name: IAF site, second-hand[^iaf-number2], press[^walla-2012]; Hebrew radio speech says "מספר שתיים", not "שני"[^takanot]; English: Navy T-2C manual[^tpub-t2c] |
+| unable | none found. Ours: "כידון 1-2, אין אפשרות" | "Kidon 1-2, unable." | no IAF term found, NATO[^alsa] |
+| rejoined / in position | none found. Ours: "כידון 1-2 במקום" | "Kidon 1-2, in position." (inferred) | no IAF term found; no NATO brevity word; open |
+| bingo (fuel to return) | "כידון 1-2, **בינגו**" (the English loanword; Hebrew writers use "דלק בינגו") | "Kidon 1-2, bingo." | no IAF term found, NATO[^alsa][^tpub-wingman]; the loanword in Hebrew: press[^ynet-sims] |
+| joker (fuel for one more task) | "כידון 1-2, **ג'וקר**" (the loanword; inferred: no Hebrew source found) | "Kidon 1-2, joker." | no IAF term found, NATO[^alsa][^tpub-wingman] |
+| fuel state (answer to an ops check) | ours: "כידון 1-2, שש נקודה שתיים" (the number only) | "Kidon 1-2, six point two." (fuel in thousands of pounds) | no IAF term found, NATO: FUEL STATE[^alsa]; the answer's format, second-hand[^ops-check] |
+| airborne | none found. Ours: "כידון 1 באוויר" | "Kidon 1, airborne." (inferred) | no IAF term found; not in the brevity list[^alsa]; open |
+| landed / on the ground | none found. Ours: "כידון 1 על הקרקע" | "Kidon 1, on the ground." (inferred) | no IAF term found; not in the brevity list[^alsa]; open |
 | **Second search: the radio menu's and the reactions' words (19 November 2026, slice 3)** | | | |
-| address: the second element | ours: "Alpha שלוש וארבע" (the pair is a **זוג**[^mako-kaz]) | "Alpha Three and Four." (plain English, inferred) | no IAF or NATO call found; open |
-| split (element 2 to its own target) | none found. Ours: "פיצול" | "Alpha Three and Four, split." | no IAF term found, NATO: SPLIT "Flight member is leaving formation to pursue a separate attack"[^alsa]; there the leaving member says it, here the lead orders it (inferred) |
-| engage my target | none found. Ours around the press's word **תקיפה** (attack)[^mako-kaz]: "תקיפת המטרה שלי" | "Alpha Two, engage my target." | no IAF term found, NATO: ENGAGE "A fire control order used to direct or authorize units to fire on a designated target"[^alsa] |
-| spike (an air radar's lock) | ours around **נעילה** (lock): "שתיים, נעילה" | "Two, spike!" | no IAF call found; the Hebrew writing on the RWR names the lock נעילה[^hamichlol-rwr], and aircrew describe a battery "שנעלה עלינו" (N12, a description, not a call)[^n12-lock]; NATO: SPIKE "Radar warning receiver indication of an air interceptor threat in track or launch"[^alsa] |
-| mud (a ground radar's lock) | ours: "שתיים, נעילה מהקרקע" (as spike) | "Two, mud!" | no IAF call found; NATO: MUD "Radar warning receiver ground threat displayed with no launch indication"[^alsa] |
-| defending (a missile at it) | ours around the press's **מתחמק** (evades SAMs)[^mako-102]: "שתיים, בהתחמקות" | "Two, defending!" | no IAF call found, NATO: DEFENDING[^alsa] |
-| break left / right (the mate's call) | none found. Ours: "שתיים, שבירה שמאלה" / "ימינה" | "Two, break left!" | no IAF term found (searches for the Hebrew call found none); NATO: BREAK "Perform an immediate maximum performance turn in the indicated direction"[^alsa]; the form "Eagle, break right, missile in the air": US Navy, second-hand (search quote)[^tpub-break] |
-| contact (an AWACS call's contact on its radar) | none found. Ours: "שלוש, יש מגע" | "Three, contact." | no IAF term found, NATO: CONTACT "Sensor information at the stated position"[^alsa] |
-| lead change (the new lead's call) | ours: "שלוש בהובלה" (term: **לקחת את ההובלה**[^mako-kaz]) | "Three has the lead." | as the lead-change row above |
+| address: the second element | ours: "כידון 1, זוג 3–4" (the pair is a **זוג**[^mako-kaz]) | "Kidon 1, element 3–4." (plain English, inferred) | no IAF or NATO call found; open |
+| split (element 2 to its own target) | none found. Ours: "פיצול" | "Kidon 1, element 3–4, split." | no IAF term found, NATO: SPLIT "Flight member is leaving formation to pursue a separate attack"[^alsa]; there the leaving member says it, here the lead orders it (inferred) |
+| engage my target | none found. Ours around the press's word **תקיפה** (attack)[^mako-kaz]: "תקיפת המטרה שלי" | "Kidon 1-2, engage my target." | no IAF term found, NATO: ENGAGE "A fire control order used to direct or authorize units to fire on a designated target"[^alsa] |
+| spike (an air radar's lock) | ours around **נעילה** (lock): "כידון 1-2, נעילה" | "Kidon 1-2, spike!" | no IAF call found; the Hebrew writing on the RWR names the lock נעילה[^hamichlol-rwr], and aircrew describe a battery "שנעלה עלינו" (N12, a description, not a call)[^n12-lock]; NATO: SPIKE "Radar warning receiver indication of an air interceptor threat in track or launch"[^alsa] |
+| mud (a ground radar's lock) | ours: "כידון 1-2, נעילה מהקרקע" (as spike) | "Kidon 1-2, mud!" | no IAF call found; NATO: MUD "Radar warning receiver ground threat displayed with no launch indication"[^alsa] |
+| defending (a missile at it) | ours around the press's **מתחמק** (evades SAMs)[^mako-102]: "כידון 1-2, בהתחמקות" | "Kidon 1-2, defending!" | no IAF call found, NATO: DEFENDING[^alsa] |
+| break left / right (the mate's call) | none found. Ours: "כידון 1-2, שבירה שמאלה" / "ימינה" | "Kidon 1-2, break left!" | no IAF term found (searches for the Hebrew call found none); NATO: BREAK "Perform an immediate maximum performance turn in the indicated direction"[^alsa]; the form "Eagle, break right, missile in the air": US Navy, second-hand (search quote)[^tpub-break] |
+| contact (an AWACS call's contact on its radar) | none found. Ours: "כידון 1-3, יש מגע" | "Kidon 1-3, contact." | no IAF term found, NATO: CONTACT "Sensor information at the stated position"[^alsa] |
+| lead change (the new lead's call) | ours: "כידון 1-3 בהובלה" (term: **לקחת את ההובלה**[^mako-kaz]) | "Kidon 1-3 has the lead." | as the lead-change row above |
 | **Terms** | | | |
-| the flight's callsign (Alpha, members Alpha 1–4) | **אות קריאה** names a formation's callsign (the press: a training sortie flown again "עם אותו אות קריאה שהיה למבנה"); the callsign words or style the IAF uses: none found. Kept: "Alpha" (Latin, as every callsign on the screens) | "Alpha", "Alpha Two" | the term: press, search quote[^mako-kaz]; IAF pilots talk to each other in Hebrew on the radio (USAF, Red Flag, search quote)[^shaw-redflag]; the members by number: "מספר שתיים", "מספר 3" (see the wingman row). No IAF term found, NATO-style Alpha kept (researched 19 November 2026, on the user's question "if you couldn't get names for a four-ship in IAF and stayed with alpha?") |
-| the flight | **מבנה** (any group flying together); a flight of four is a **רביעייה** | "Alpha", "flight" | press: "כל 'מוביל' בכל מבנה", "להוביל רביעיית מטוסים"[^walla-2012], "מוביל של רביעיית מטוסי הקרב"[^walla-2020]; Hebrew Wikipedia[^hewiki-formation] |
+| the flight's callsign | **כידון N** for flight N (the player's is כידון 1, the next כידון 2, …); its jets **כידון N-M**, spoken "כידון אחד-אחד", "כידון אחד-שתיים". The callsign's term is **אות קריאה** | "Kidon 1", "Kidon 1-2" (spoken "Kidon one-two") | Hebrew Wikipedia: "זה נובע מצורת חלוקת אותות הקריאה בקשר: במבנה כידון 1, המוביל במבנה יהיה כידון 1-1 (אחד-אחד) ומספר 2 יהיה כידון 1-2 (אחד-שתיים)"[^hewiki-formation]; the user, 20 November 2026: "Use kidon style, where kidon 1 is the first formation the second is kidon 2 etc". The term אות קריאה: press, search quote[^mako-kaz]. Until 20 November the flight was "Alpha" (NATO style; no IAF style had been found on 19 November) |
+| the flight | **מבנה** (any group flying together); a flight of four is a **רביעייה** | "Kidon 1", "flight" | press: "כל 'מוביל' בכל מבנה", "להוביל רביעיית מטוסים"[^walla-2012], "מוביל של רביעיית מטוסי הקרב"[^walla-2020]; Hebrew Wikipedia[^hewiki-formation] |
 | the element (the pair) | **זוג** (a four-ship is two pairs) | "element" | press: "זוג נגד זוג"[^mako-kaz]; Hebrew Wikipedia: "שני מבני זוגות"[^hewiki-formation]; a pilot's account: "טיסות המבנה היו בזוגות"[^mustov] |
 | the wingman | **מספר 2**, spoken "מספר שתיים"; the lead's partner is also **בן הזוג** (the sources write the masculine form). The second pair's lead is **מספר 3** | "wingman"; on the radio "Two" | press: "מספר 2 אומנם מוגדר כסגנו במבנה"[^walla-2012], "בן הזוג של המוביל"[^mako-kaz]; IAF site, second-hand[^iaf-number2]; Hebrew Wikipedia[^hewiki-formation] |
 | the flight lead | **מוביל** (also "מוביל המבנה", "מספר 1") | "lead" | press: "המוביל"[^walla-2012][^walla-2020]; IAF site, second-hand[^iaf-number2]; Hebrew Wikipedia: "מפקד המבנה נקרא 'מוביל' או 'מספר 1'"[^hewiki-formation] |
@@ -65,7 +65,7 @@ a Hebrew term from Hebrew Wikipedia only (fingertip, line abreast, trail, echelo
 the user on 20 November 2026: "just pick others that has the Hebrew term"; the wedge, without one, is no longer
 offered; the missing man is a memorial and is left out). 13 rows fall back to NATO / US
 English with Hebrew we wrote; of these, 6 have no NATO source either and are marked inferred or open. The flight's
-callsign has the Hebrew term (אות קריאה) but no IAF callsign style was found: Alpha stays.
+callsign follows Hebrew Wikipedia's kidon style (כידון 1, its jets כידון 1-1 to 1-4), the user's choice of 20 November 2026.
 
 Second search (19 November 2026, the user: "I said search for IAF terms and if not fallback to NATO"): break,
 contact, split, spike, mud, defending and engage were searched in Hebrew in the press (Mako, N12, Walla, Ynet,
@@ -83,6 +83,16 @@ was left alone (it refuses automated access).
 - The wingman: **מספר 2** names the position, **בן הזוג** the partner; both are in IAF-related sources. The press
   writes the digit ("מספר 2"); the IAF site and the radio rules spell it out ("מספר שתיים").
 
+
+**The user's corrections** (20 November 2026; each applies to every Hebrew screen, subtitle and voice line)
+- The callsigns: kidon style (the callsign row): "Use kidon style, where kidon 1 is the first formation the second is
+  kidon 2 etc".
+- A runway's side is the noun: "25 ימין", "26 שמאל" (and "מרכז" for C), not the adjective "ימני" / "שמאלי": "it
+  should be 25 ימין. Not 25 ימני".
+- The AWACS's clearance to attack ("free to engage") is **רשאי לתקוף**: "מותר לתקוף should be רשאי לתקוף". The
+  tower's clearances are "אישור התנעה", "אישור המראה" and the like; none says "מותר", and no source was found for
+  "רשאי" in a tower's call, so they stay.
+
 [^walla-2012]: Walla, Amir Bohbot, "מי הם הטייסים שיובילו תקיפה אפשרית באירן?", 2 March 2012 ("המוביל"; "מספר 2 אומנם
     מוגדר כסגנו במבנה"; "להוביל רביעיית מטוסים"; "כל 'מוביל' בכל מבנה"): https://www.walla.co.il/news/israel/2513482
 [^walla-2020]: Walla, Amir Bohbot, "בול בגובה, בזווית המדויקת: העתיד האווירי של ישראל", 11 January 2020 ("מוביל של
@@ -93,7 +103,8 @@ was left alone (it refuses automated access).
     https://www.mako.co.il/pzm-magazine/Article-f8d76077d704571026.htm
 [^hewiki-formation]: Hebrew Wikipedia, "טיסת מבנה", last edited 5 June 2025 (מבנה מקבילי, מבנה אלכסון / סולם / מדרג,
     מבנה טור, מבנה "ארבע אצבעות"; "מפקד המבנה נקרא 'מוביל' או 'מספר 1', בן זוגו נקרא 'מספר 2'"; a four-ship of two
-    pairs, the second led by "מספר 3"). Its gallery (read 20 November 2026), Blue Impulse diagrams: מבנה מקבילי, מבנה
+    pairs, the second led by "מספר 3"; the callsigns: "במבנה כידון 1, המוביל במבנה יהיה כידון 1-1(אחד-אחד)", "מספר 2
+    יהיה כידון 1-2(אחד-שתיים)"). Its gallery (read 20 November 2026), Blue Impulse diagrams: מבנה מקבילי, מבנה
     וי, מבנה דלתא, מבנה אלכסון, מבנה יהלום, מבנה טור, מבנה ארבע אצבעות (the picture "Fingertip formation"), מבנה חסר;
     its text: the diamond "מטוס מוביל, מאחוריו זוג מטוסים" and one more at the back; the vic an arrowhead; the delta
     the vic "כולל מטוסים שסוגרים את השורה האחרונה". Its footnotes cite English histories, not IAF sources:
