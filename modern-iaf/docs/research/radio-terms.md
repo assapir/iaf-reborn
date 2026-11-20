@@ -90,8 +90,17 @@ was left alone (it refuses automated access).
 - A runway's side is the noun: "25 ימין", "26 שמאל" (and "מרכז" for C), not the adjective "ימני" / "שמאלי": "it
   should be 25 ימין. Not 25 ימני".
 - The AWACS's clearance to attack ("free to engage") is **רשאי לתקוף**: "מותר לתקוף should be רשאי לתקוף". The
-  tower's clearances are "אישור התנעה", "אישור המראה" and the like; none says "מותר", and no source was found for
-  "רשאי" in a tower's call, so they stay.
+  tower's clearances are "אישור התנעה", "אישור המראה" and the like. No Hebrew string, subtitle or voice line says
+  "מותר ל…" now; the manual's tower chapter did, and now says "יש אישור להתניע", "לעזוב", "להיכנס", "להתחיל" (20
+  November 2026; "רשאי" would address the reader as a man, and the rule is gender-neutral Hebrew). Sources: the aviation radio guide's clearance examples "רשאי
+  להמריא", "רשאי לנחות"[^omni-rt] and the Aviation Regulations' rule that "להמריא" is said only when the take-off is
+  permitted[^takanot]. No IAF publication was found, so the manual's prose uses the neutral "יש אישור ל…" (inferred).
+- The HUD is **תע"ל**, written with the straight ASCII `"`: "Hud in Hebrew is תע\"ל. You can use this form." Every
+  Hebrew string, kneeboard line and manual source says תע"ל; the English "HUD" stays in English text.
+
+[^omni-rt]: Omni flight school, "כללי דיבור רדיו בתעופה" (clearance, "רשאי להמריא", "רשאי לנחות"):
+    https://sites.google.com/site/omniflightschool/home/rt1/rt8-1
+[^takanot]: תקנות הטיס (הפעלת כלי טיס וכללי טיסה), התשמ"ב-1981, the radio phraseology annex: https://www.nevo.co.il/law_html/law01/162_018.htm
 
 [^walla-2012]: Walla, Amir Bohbot, "מי הם הטייסים שיובילו תקיפה אפשרית באירן?", 2 March 2012 ("המוביל"; "מספר 2 אומנם
     מוגדר כסגנו במבנה"; "להוביל רביעיית מטוסים"; "כל 'מוביל' בכל מבנה"): https://www.walla.co.il/news/israel/2513482

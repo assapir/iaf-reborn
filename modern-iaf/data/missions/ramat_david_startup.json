@@ -76,7 +76,7 @@
           "ins"
         ],
         "en": "With the generators on line, turn the avionics on: {key:122} sets the four AVIONIC POWER switches (MMC, ST STA, MFD, UFC; right console) to ON, and the displays and the HUD come up 3 s later. Then the INS: {key:123} or a click turns its knob (AVIONIC POWER panel) one position, to STOR HDG first; the stored-heading alignment takes 90 s, ALIGN shows on the HUD and flashes when it is done (the DED's INS page, LIST then 6, counts it). Then two more positions, through NORM, to NAV: the INS navigates and the steering works. Avionics switched on before the generators get no power, and the mission fails.",
-        "he": "כשהגנרטורים פועלים, להדליק את האוויוניקה: {key:122} מעביר את ארבעת מתגי AVIONIC POWER (MMC, ST STA, MFD, UFC; בקונסולה הימנית) ל־ON, והתצוגות וה־HUD עולים כעבור 3 שניות. אחר כך ה־INS: ‏{key:123} או לחיצה מעבירים את הבורר שלו (לוח AVIONIC POWER) מצב אחד, קודם ל־STOR HDG; יישור STOR HDG נמשך 90 שניות, ALIGN מופיע ב־HUD ומהבהב כשהיישור הושלם (דף ה־INS ב־DED, ‏LIST ואז 6, מציג את הזמן). אחר כך עוד שני מצבים, דרך NORM, ל־NAV: ה־INS מנווט וההיגוי פועל. הדלקת האוויוניקה לפני הגנרטורים אינה מקבלת מתח, והמשימה נכשלת."
+        "he": "כשהגנרטורים פועלים, להדליק את האוויוניקה: {key:122} מעביר את ארבעת מתגי AVIONIC POWER (MMC, ST STA, MFD, UFC; בקונסולה הימנית) ל־ON, והתצוגות והתע\"ל עולים כעבור 3 שניות. אחר כך ה־INS: ‏{key:123} או לחיצה מעבירים את הבורר שלו (לוח AVIONIC POWER) מצב אחד, קודם ל־STOR HDG; יישור STOR HDG נמשך 90 שניות, ALIGN מופיע בתע\"ל ומהבהב כשהיישור הושלם (דף ה־INS ב־DED, ‏LIST ואז 6, מציג את הזמן). אחר כך עוד שני מצבים, דרך NORM, ל־NAV: ה־INS מנווט וההיגוי פועל. הדלקת האוויוניקה לפני הגנרטורים אינה מקבלת מתח, והמשימה נכשלת."
       },
       {
         "switches": [

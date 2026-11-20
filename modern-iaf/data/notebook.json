@@ -17,7 +17,7 @@
       "landing": [
         {"en": "Tower: contact for landing", "he": "מגדל: קריאה לנחיתה", "wait": {"en": "then wait for “proceed to runway …”", "he": "ואז המתנה ל\"המשך למסלול …\""}},
         {"en": "Landing gear: DOWN, three green", "he": "כן הנסע: למטה, שלוש ירוקות", "where": {"en": "gear handle, left of the front panel", "he": "ידית כן הנסע, משמאל ללוח הקדמי"}},
-        {"en": "Final: on-speed AOA 13°", "he": "גמר: זווית התקפה 13°", "where": {"en": "AOA indexer, left of the HUD", "he": "מחוון זווית ההתקפה, משמאל ל־HUD"}},
+        {"en": "Final: on-speed AOA 13°", "he": "גמר: זווית התקפה 13°", "where": {"en": "AOA indexer, left of the HUD", "he": "מחוון זווית ההתקפה, משמאל לתע\"ל"}},
         {"en": "Touchdown: throttle IDLE, wheel brakes", "he": "נגיעה: מצערת לסרק, בלמי גלגלים", "where": {"en": "throttle grip, left console; brakes on the rudder pedals", "he": "ידית המצערת, הקונסולה השמאלית; בלמים בדוושות"}},
         {"en": "On the parking spot: throttle OFF", "he": "בחנייה: מצערת OFF", "where": {"en": "throttle grip, over the idle detent", "he": "ידית המצערת, מעבר לעצירת הסרק"}}
       ],
@@ -30,14 +30,14 @@
         ]},
         {"title": {"en": "AIR-TO-GROUND", "he": "אוויר-קרקע"}, "steps": [
           {"en": "The bombs: hung on the briefing's Arming page before Fly", "he": "הפצצות: נתלות בדף החימוש בתדריך לפני הטיסה", "where": {"en": "the mission's briefing, Arming tab", "he": "תדריך המשימה, לשונית החימוש"}},
-          {"en": "Bombs: A-G, the HUD shows the CCIP pipper", "he": "פצצות: A-G, ב־HUD מוצג סמן ה־CCIP", "where": {"en": "ICP, under the HUD", "he": "לוח ICP, מתחת ל־HUD"}, "key": 65},
+          {"en": "Bombs: A-G, the HUD shows the CCIP pipper", "he": "פצצות: A-G, בתע\"ל מוצג סמן ה־CCIP", "where": {"en": "ICP, under the HUD", "he": "לוח ICP, מתחת לתע\"ל"}, "key": 65},
           {"en": "Pickle held: the bomb leaves when the pipper reaches the aim point", "he": "כפתור השחרור לחוץ: הפצצה משתחררת כשהסמן מגיע לנקודת הכיוון", "where": {"en": "stick grip, under the thumb", "he": "ידית ההיגוי, מתחת לאגודל"}, "key": 69},
           {"en": "Emergency jettison: all stores but the missiles", "he": "השלכת חירום: כל החימוש מלבד הטילים", "where": {"en": "front panel, the jettison button", "he": "הלוח הקדמי, כפתור ההשלכה"}, "key": 72}
         ]},
         {"title": {"en": "AIR-TO-AIR", "he": "אוויר-אוויר"}, "steps": [
-          {"en": "Missiles: A-A, the HUD shows the seeker circle", "he": "טילים: A-A, ב־HUD מוצג מעגל המחפש", "where": {"en": "ICP, under the HUD", "he": "לוח ICP, מתחת ל־HUD"}, "key": 66},
+          {"en": "Missiles: A-A, the HUD shows the seeker circle", "he": "טילים: A-A, בתע\"ל מוצג מעגל המחפש", "where": {"en": "ICP, under the HUD", "he": "לוח ICP, מתחת לתע\"ל"}, "key": 66},
           {"en": "Next target: the radar locks it", "he": "המטרה הבאה: המכ\"ם ננעל עליה", "where": {"en": "stick grip, target designate", "he": "ידית ההיגוי, מתג סימון המטרה"}, "key": 58},
-          {"en": "IR missile: UNCAGE once the tone is heard, the seeker tracks the target; SHOOT on the HUD", "he": "טיל מונחה חום: UNCAGE כשנשמע הצליל, ראש הביות עוקב אחר המטרה; SHOOT ב־HUD", "where": {"en": "throttle grip, MAN RNG / UNCAGE", "he": "ידית המצערת, MAN RNG / UNCAGE"}, "key": 224},
+          {"en": "IR missile: UNCAGE once the tone is heard, the seeker tracks the target; SHOOT on the HUD", "he": "טיל מונחה חום: UNCAGE כשנשמע הצליל, ראש הביות עוקב אחר המטרה; SHOOT בתע\"ל", "where": {"en": "throttle grip, MAN RNG / UNCAGE", "he": "ידית המצערת, MAN RNG / UNCAGE"}, "key": 224},
           {"en": "Fire: the pickle button", "he": "שיגור: כפתור השחרור", "where": {"en": "stick grip, under the thumb", "he": "ידית ההיגוי, מתחת לאגודל"}, "key": 69},
           {"en": "Gun: the trigger, held", "he": "תותח: ההדק, לחוץ", "where": {"en": "stick grip, under the index finger", "he": "ידית ההיגוי, מתחת לאצבע"}, "key": 64}
         ]}
