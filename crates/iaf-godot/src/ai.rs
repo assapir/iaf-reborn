@@ -58,8 +58,8 @@ impl IafAi {
     }
 
     /// A radio command at `now` to `to` (0 the flight, 5 the element #3–#4, 2..4 one wingman): check, ops_check,
-    /// fingertip, echelon_right, echelon_left, line_abreast, wedge, trail, rejoin, rtb. False: unknown, or nobody to
-    /// take it. The answers come from `step` as calls.
+    /// a shape of `iaf_ai::SHAPES` (fingertip, line_abreast, trail, echelon_right, echelon_left, diamond, vic, delta),
+    /// rejoin, rtb. False: unknown, or nobody to take it. The answers come from `step` as calls.
     #[func]
     fn command(&mut self, now: f64, to: i64, cmd: GString) -> bool {
         self.flight.command(now, to.clamp(0, 5) as u8, &cmd.to_string())

@@ -2509,14 +2509,14 @@
       "voice": "pilot",
       "say": "Echelon right.",
       "mode": "helmet",
-      "say_he": "מדרג ימין."
+      "say_he": "מבנה אלכסון ימין."
     },
     {
       "file": "flt_cmd_echelon_left.ogg",
       "voice": "pilot",
       "say": "Echelon left.",
       "mode": "helmet",
-      "say_he": "מדרג שמאל."
+      "say_he": "מבנה אלכסון שמאל."
     },
     {
       "file": "flt_cmd_line_abreast.ogg",
@@ -2526,18 +2526,32 @@
       "say_he": "מבנה מקבילי."
     },
     {
-      "file": "flt_cmd_wedge.ogg",
-      "voice": "pilot",
-      "say": "Wedge.",
-      "mode": "helmet",
-      "say_he": "וודג'."
-    },
-    {
       "file": "flt_cmd_trail.ogg",
       "voice": "pilot",
       "say": "Trail.",
       "mode": "helmet",
       "say_he": "מבנה טור."
+    },
+    {
+      "file": "flt_cmd_diamond.ogg",
+      "voice": "pilot",
+      "say": "Diamond.",
+      "mode": "helmet",
+      "say_he": "מבנה יהלום."
+    },
+    {
+      "file": "flt_cmd_vic.ogg",
+      "voice": "pilot",
+      "say": "Vic.",
+      "mode": "helmet",
+      "say_he": "מבנה וי."
+    },
+    {
+      "file": "flt_cmd_delta.ogg",
+      "voice": "pilot",
+      "say": "Delta.",
+      "mode": "helmet",
+      "say_he": "מבנה דלתא."
     },
     {
       "file": "flt_cmd_rejoin.ogg",
@@ -4359,22 +4373,32 @@
     "CMD_ECHELON_RIGHT": {
       "file": "flt_cmd_echelon_right.ogg",
       "text": "echelon right",
-      "text_he": "מדרג ימין"
+      "text_he": "מבנה אלכסון ימין"
     },
     "CMD_ECHELON_LEFT": {
       "file": "flt_cmd_echelon_left.ogg",
       "text": "echelon left",
-      "text_he": "מדרג שמאל"
+      "text_he": "מבנה אלכסון שמאל"
     },
     "CMD_LINE_ABREAST": {
       "file": "flt_cmd_line_abreast.ogg",
       "text": "line abreast",
       "text_he": "מבנה מקבילי"
     },
-    "CMD_WEDGE": {
-      "file": "flt_cmd_wedge.ogg",
-      "text": "wedge",
-      "text_he": "wedge"
+    "CMD_DIAMOND": {
+      "file": "flt_cmd_diamond.ogg",
+      "text": "diamond",
+      "text_he": "מבנה יהלום"
+    },
+    "CMD_VIC": {
+      "file": "flt_cmd_vic.ogg",
+      "text": "vic",
+      "text_he": "מבנה וי"
+    },
+    "CMD_DELTA": {
+      "file": "flt_cmd_delta.ogg",
+      "text": "delta",
+      "text_he": "מבנה דלתא"
     },
     "CMD_TRAIL": {
       "file": "flt_cmd_trail.ogg",
@@ -4668,14 +4692,13 @@
     ],
     "ipa": {
       "אזימוט": "ʔazimˈut",
+      "אלכסון": "ʔalaχsˈon",
       "במקום": "bamakˈom",
       "בראבו": "bʁˈavo",
       "המראה": "hamʁaʔˈa",
-      "וודג'": "vˈedʒ",
       "כן": "kˈan",
       "נסע": "nˈesa",
       "מגדל": "miɡdˈal",
-      "מדרג": "midʁˈaɡ",
       "קודם": "kˈodem",
       "שמאלי": "smalˈi"
     },

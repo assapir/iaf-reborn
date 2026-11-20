@@ -453,17 +453,17 @@ instructor's voice and gives a voice to every role that has Hebrew clips (`sim.r
 **The lines** (`voices.json`, each clip's `say_he`): the particles' Hebrew subtitles (`text_he`) as spoken words:
 the callsigns אלפא, בראבו, צ'רלי, דלתא; runway numbers and bearings digit by digit ("שתיים חמש ימני", "אזימוט אפס
 אחת אפס"); the winds and ranges as numbers ("רוח עשרה קשר", "עשרים מייל"); the wingmen's words from
-[research/radio-terms.md](research/radio-terms.md) (the formation wedge as the loanword "וודג'"). The five whole
+[research/radio-terms.md](research/radio-terms.md) (the formations by Hebrew Wikipedia's names). The five whole
 calls of the sound table (the ejection, the friendly-fire calls, the edge of the map) are ours: "נטישה, נטישה,
 נטישה!", "חדל אש, חדל אש, ירי על כוחותינו!", "מוביל, חדל אש, זה היה כוח שלנו!", "חדל אש, חדל אש, יש פגיעה
 בכוחותינו.", "אזהרה, יציאה מאזור האימון, יש לפנות חזרה.". Every line is gender-neutral, since any role may be a man
 or a woman.
 
 **The readings.** BlueTTS reads unvocalised Hebrew through its RenikudPlus G2P, which ignores nikud. Every word of
-every line was checked in the G2P's transcription (IPA, 20 November 2026); eleven read wrong, and `he.ipa` gives
+every line was checked in the G2P's transcription (IPA, 20 November 2026); ten read wrong, and `he.ipa` gives
 their reading: מגדל (miɡdˈal; the G2P also said meɡadˈel), בראבו (bʁˈavo, not beʁˈabo), המראה (hamʁaʔˈa), במקום
-(bamakˈom, not bimkˈom "instead"), אזימוט (ʔazimˈut), כן נסע (kˈan nˈesa, the gear; not kˈen "yes"), מדרג
-(midʁˈaɡ), קודם (kˈodem), שמאלי (smalˈi, one reading for all), וודג' (vˈedʒ). The digits keep the G2P's formal
+(bamakˈom, not bimkˈom "instead"), אזימוט (ʔazimˈut), כן נסע (kˈan nˈesa, the gear; not kˈen "yes"), קודם
+(kˈodem), שמאלי (smalˈi, one reading for all), אלכסון (ʔalaχsˈon, not ʔaleχsˈon). The digits keep the G2P's formal
 stress (χamˈeʃ, ʃalˈoʃ).
 
 **The clips**: `iaf-sim voices --he` says each line in every voice its role takes across the casts, through the
@@ -476,8 +476,8 @@ languages, and a joined particle plays only where its clip exists in the languag
 Hebrew-only joined particles (`he_only`, "MORNING+,+TAXI_RWY") hold a tower call's words after the callsign. So
 "אלפא" then "בוקר טוב, הסעה למסלול" plays, and a new callsign changes only the callsign particles. Another
 pilot's call that the English pilot voice says (the wingman's ejection, the friendly-fire calls) takes a wingman's voice
-in Hebrew (`role_he`), since `pilot` is the player's own there. 638 clips (tower 102 lines × 2 voices, AWACS 97 × 2,
-the player's calls 30 × 2, the wingmen 30 × 6), 6.6 MB in all as Ogg Vorbis,
+in Hebrew (`role_he`), since `pilot` is the player's own there. 642 clips (tower 102 lines × 2 voices, AWACS 97 × 2,
+the player's calls 32 × 2, the wingmen 30 × 6), 6.7 MB in all as Ogg Vorbis,
 committed: the setup only copies them.
 
 **In the game**: `iaf-sim own` copies them to `converted/own/resource/soundfiles/he/` with `voices_he.json` (the casts
@@ -509,7 +509,7 @@ their press command (the doc's names for them look swapped).
 3. ffmpeg writes it as 22050 Hz mono Ogg Vorbis, quality 4, into `modern-iaf/data/sounds/`, which ships the clips;
 4. `sim::own_sounds` compiles the sound folder into `assets/converted/own/resource/soundfiles/`, as `iaf-sim own`
    (the wizard's "sounds, voices, keys and effects art" step) does.
-The set is 361 clips (the AWACS's 97 `awx_*` since 17 November; the four-ship's 43 `flt_*` since 19 November, `--only flt_`) plus four computed ones (`kch2`, `key_on`, `key_off`,
+The set is 363 clips (the AWACS's 97 `awx_*` since 17 November; the four-ship's 45 `flt_*` since 19 November, `--only flt_`) plus four computed ones (`kch2`, `key_on`, `key_off`,
 `twr_pause`). `iaf-sim voices --only <name part>` remakes some clips (`--only awx` the AWACS's, about 1 minute); with
 the model and voice packs in the cache, `HF_HUB_OFFLINE=1` and `IAF_KOKORO_PYTHON` set to the venv's Python, the step
 runs without the network; `iaf-sim voices --say <role>

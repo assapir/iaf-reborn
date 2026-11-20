@@ -263,6 +263,20 @@ fn one_time_base_for_every_jet() {
     }
 }
 
+/// No two slots of a shape nearer than 84 m: 60 m is the step-down and the pull-away distance (flight.rs `SHAPES`).
+#[test]
+fn shapes_keep_the_jets_apart() {
+    for (id, s) in SHAPES {
+        let p = [[0.0; 3], s[0], s[1], s[2]];
+        for (i, a) in p.iter().enumerate() {
+            for (j, b) in p.iter().enumerate().skip(i + 1) {
+                let d = a.iter().zip(b).map(|(x, y)| (x - y).powi(2)).sum::<f32>().sqrt();
+                assert!(d >= 84.0, "{id}: #{} and #{} {d:.0} m apart", i + 1, j + 1);
+            }
+        }
+    }
+}
+
 #[test]
 fn airborne_four_ship_holds_slots_changes_shape_rejoins_and_promotes() {
     let Some(dir) = own() else { return println!("skipped: no assets/converted/own (iaf-sim fm, airbases)") };
@@ -911,5 +925,51 @@ fn engage_my_target_and_rejoin() {
     let back = w.until(600.0, &|w| [2, 3].iter().all(|&n| w.said(n, "in_position").is_some_and(|t| t > t0)));
     println!("engage: rejoined after {back:?} s; separation {:.1} m", w.sep_air);
     assert!(back.is_some() && w.flight.member(2).unwrap().task.is_none());
+    assert!(w.sep_air > 30.0, "separation {}", w.sep_air);
+}
+
+/// The close shapes changed in the lead's continuous 45° bank turn, as test_four_ship does in the game's: each wingman
+/// calls "in position", then within 60 s all are within 60 m of their slots and stay so for 20 s (the turn's
+/// tolerance there; a wingman pulled away by the collision avoidance in the change takes that long to come back, as
+/// a real one drifts too).
+#[test]
+fn close_shapes_changed_in_a_turn() {
+    let Some(dir) = own() else { return println!("skipped: no assets/converted/own (iaf-sim fm, airbases)") };
+    let mut w = airborne(&dir, 0.0);
+    w.run(30.0);
+    // Every 10 s the lead turns toward the point 90° right of its track.
+    let turn = |w: &mut World| {
+        let v = w.jets[0].0.ap_view();
+        let (p, d) = (v.pos, v.vel.try_normalize().unwrap());
+        w.lead_to(Vec3::new(p[0] + d[1] * 30_000.0, p[1] - d[0] * 30_000.0, 3000.0));
+    };
+    turn(&mut w);
+    w.run(30.0);
+    for id in ["diamond", "vic", "delta", "echelon_left", "echelon_right", "fingertip"] {
+        let t0 = w.t;
+        assert!(w.flight.command(w.t, 0, id));
+        // In position (s after the command); all within 60 m since (s); held 20 s (s after "in position").
+        let (mut said, mut since, mut held, mut worst) = (None, None, None, 0f32);
+        while w.t - t0 < 300.0 && held.is_none() {
+            w.frame();
+            if (((w.t - t0) / w.dt).round() as usize).is_multiple_of(600) {
+                turn(&mut w);
+            }
+            let e = (2..=4).map(|n| w.flight.member(n).unwrap().slot_error).fold(0.0, f32::max);
+            if said.is_none() && (2..=4).all(|n| w.said(n, "in_position").is_some_and(|t| t > t0)) {
+                said = Some(w.t - t0);
+            } else if let Some(s) = said {
+                worst = worst.max(e);
+                since = if e < 60.0 { since.or(Some(w.t)) } else { None };
+                if since.is_some_and(|b| w.t - b >= 20.0) {
+                    held = Some(w.t - t0 - s);
+                }
+            }
+        }
+        println!(
+            "{id} in the turn: in position after {said:?} s, held 20 s within 60 m {held:?} s later (worst {worst:.0} m)"
+        );
+        assert!(said.is_some() && held.is_some_and(|h| h <= 80.0), "{id}: {said:?} {held:?}");
+    }
     assert!(w.sep_air > 30.0, "separation {}", w.sep_air);
 }

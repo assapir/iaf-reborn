@@ -591,8 +591,22 @@ model, where none of the 6-DoF cases applies. Every figure here is inferred, tun
     While a far slot flies more than 60° off the jet's path, the jet flies no slower than the slot's speed less 30
     m/s: without that floor a slot flying the other way asked a speed below zero along the path, and the jet climbed
     to it at idle with the speed brake out into a stall.
+  - The shapes (`SHAPES` in `flight.rs`) are the seven of Hebrew Wikipedia's "טיסת מבנה" gallery, the missing man
+    left out (the user, 20 November 2026; the names in modern-iaf/docs/research/radio-terms.md). The slots of #2,
+    #3, #4, forward / right of #1 in m, are inferred: fingertip (−60 / −60, −60 / 60, −120 / 120), line abreast
+    (0 / −1500, 0 / 1500, 0 / 3000), trail (600 m apart), echelon right and left (60 m steps back and out), diamond
+    (#2 and #3 as in fingertip, #4 at −120 / 0, behind #1), vic (−90 / −45, −90 / 45, −180 / 90: deeper than the
+    fingertip, as in the gallery's picture) and delta (#2, #4, #3 abreast 120 m apart, 120 m behind #1). Any two
+    jets are at least 84 m apart: 60 m is where a wingman steps down and where it pulls away. The wedge, without a
+    Hebrew term, was dropped. Tested and changed (20 November 2026): the delta's three abreast 90 m apart made #4,
+    climbing back into the middle of the row, set off the pull-away on #2, which went 354 m off in a 45° bank turn;
+    120 m apart, none pulls away. A transit step of 70 m in place of 35 m (deeper than the 60 m of the pull-away) was
+    also tried and dropped: the level crossings no longer pulled away, but in the turn the longer climbs back did.
   - Measured at 400 kt and 3,000 m: fingertip held within 9.3 m in level flight, every shape of the flight within
-    9.2 m, 23.5 m in the lead's 45° bank turn; a rejoin from 5 km behind in 104 s.
+    10.7 m, 23.6 m in the lead's 45° bank turn; a rejoin from 5 km behind in 104 s (20 November 2026). Each close
+    shape ordered in the lead's continuous 45° bank turn: all "in position" in 12–25 s and held within 60 m for 20 s
+    from then on, except echelon left from delta, where #3 crossing to the left under the others set off the pull-away
+    (one jet 236 m off) and the flight held 11 s later (`close_shapes_changed_in_a_turn`).
 - **The home hangar** (`Autopilot::home_hangar`): the landing's TaxiCL parks the jet there when it is free; without
   one, the original's first free hangar. The flight sets it for every jet that starts at a shelter, the player's
   autopilot too, so no jet takes another's shelter.

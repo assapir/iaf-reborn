@@ -47,7 +47,7 @@ const AVOID_CLEAR_M: f64 = 100.0;
 /// A slot is reached (the transit's end; "in position") within this, m.
 const IN_POSITION_M: f32 = 50.0;
 /// The index of "trail" in [`SHAPES`].
-const TRAIL: usize = 5;
+const TRAIL: usize = 2;
 /// Who leads when the lead is lost: #3 is the deputy (ai-plan F6).
 const PROMOTION: [u8; 4] = [1, 3, 2, 4];
 /// A split's point farther than this from the flight lead is refused: the elements' targets are in one area, m.
@@ -73,14 +73,19 @@ const REJOIN: (f32, f32, f32, f32) = (6_000.0, 3_000.0, 3.0, 60.0);
 /// 40 NM and ±60°).
 const RADAR: (f64, f64) = (74_000.0, 60.0);
 
-/// The shapes: id, then the slots of #2, #3, #4 (forward, right, up m) relative to #1.
-pub const SHAPES: [(&str, [[f32; 3]; 3]); 6] = [
+/// The shapes, the gallery of Hebrew Wikipedia's "טיסת מבנה" (echelon both ways; not the missing man): id, then the
+/// slots of #2, #3, #4 (forward, right, up m) relative to #1. The spacing is inferred: any two jets at least 84 m
+/// apart (60 m is the step-down and pull-away distance, [`CLEAR_M`], [`AVOID_M`]); the vic deeper than the
+/// fingertip, as in the gallery; the delta #1 ahead of the three abreast; the diamond #4 behind #1 (docs/ai.md §8.7).
+pub const SHAPES: [(&str, [[f32; 3]; 3]); 8] = [
     ("fingertip", [[-60.0, -60.0, 0.0], [-60.0, 60.0, 0.0], [-120.0, 120.0, 0.0]]),
+    ("line_abreast", [[0.0, -1500.0, 0.0], [0.0, 1500.0, 0.0], [0.0, 3000.0, 0.0]]),
+    ("trail", [[-600.0, 0.0, 0.0], [-1200.0, 0.0, 0.0], [-1800.0, 0.0, 0.0]]),
     ("echelon_right", [[-60.0, 60.0, 0.0], [-120.0, 120.0, 0.0], [-180.0, 180.0, 0.0]]),
     ("echelon_left", [[-60.0, -60.0, 0.0], [-120.0, -120.0, 0.0], [-180.0, -180.0, 0.0]]),
-    ("line_abreast", [[0.0, -1500.0, 0.0], [0.0, 1500.0, 0.0], [0.0, 3000.0, 0.0]]),
-    ("wedge", [[-600.0, -1200.0, 0.0], [-600.0, 1200.0, 0.0], [-1200.0, 2400.0, 0.0]]),
-    ("trail", [[-600.0, 0.0, 0.0], [-1200.0, 0.0, 0.0], [-1800.0, 0.0, 0.0]]),
+    ("diamond", [[-60.0, -60.0, 0.0], [-60.0, 60.0, 0.0], [-120.0, 0.0, 0.0]]),
+    ("vic", [[-90.0, -45.0, 0.0], [-90.0, 45.0, 0.0], [-180.0, 90.0, 0.0]]),
+    ("delta", [[-120.0, -120.0, 0.0], [-120.0, 120.0, 0.0], [-120.0, 0.0, 0.0]]),
 ];
 
 /// A unit's skill (ai-plan X4). Wingmen take [`Skill::WINGMAN`]; the enemy's levels come later.

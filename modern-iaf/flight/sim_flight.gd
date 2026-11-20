@@ -62,11 +62,13 @@ const COMMANDS := [
 ]
 const SHAPES := [
 	["fingertip", "Fingertip", "מבנה ארבע אצבעות", "CMD_FINGERTIP"],
-	["echelon_right", "Echelon right", "מדרג ימין", "CMD_ECHELON_RIGHT"],
-	["echelon_left", "Echelon left", "מדרג שמאל", "CMD_ECHELON_LEFT"],
 	["line_abreast", "Line abreast", "מבנה מקבילי", "CMD_LINE_ABREAST"],
-	["wedge", "Wedge", "Wedge", "CMD_WEDGE"],
 	["trail", "Trail", "מבנה טור", "CMD_TRAIL"],
+	["echelon_right", "Echelon right", "מבנה אלכסון ימין", "CMD_ECHELON_RIGHT"],
+	["echelon_left", "Echelon left", "מבנה אלכסון שמאל", "CMD_ECHELON_LEFT"],
+	["diamond", "Diamond", "מבנה יהלום", "CMD_DIAMOND"],
+	["vic", "Vic", "מבנה וי", "CMD_VIC"],
+	["delta", "Delta", "מבנה דלתא", "CMD_DELTA"],
 ]
 ## The pilot's call, printed in the game's language and said by the pilot's voice (radio.gd PILOT_CALL: the address,
 ## the callsign, REQ_<ID>; modern-iaf/docs/sound.md §5.2).

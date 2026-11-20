@@ -120,7 +120,7 @@ You can also click a line of the list.
 #grid-table(
   (auto, auto, 1fr),
   ([Command], [To], [What the wingmen do]),
-  [Formation], [the flight], [A page of shapes: fingertip, echelon right, echelon left, line abreast, wedge, trail. Each calls "in position" in its new slot.],
+  [Formation], [the flight], [A page of shapes: fingertip, line abreast, trail, echelon right, echelon left, diamond, vic, delta. Each calls "in position" in its new slot.],
   [Rejoin], [anyone], [Back to the slot from any task, also after an RTB. To Alpha 3–4 it ends a split.],
   [Split], [Alpha 3–4], [The second pair flies to your sensor's point (the radar's designated point, else your steerpoint) and circles it. It must be within 40 km of you, or they answer "unable".],
   [Engage my target], [anyone], [They fly at the aircraft your radar has locked and fire their air-to-air missiles. With no enemy aircraft locked they answer "unable". When it is destroyed they rejoin.],

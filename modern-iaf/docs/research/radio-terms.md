@@ -21,10 +21,12 @@ strings.
 | **Lead to flight** | | | |
 | check-in | ours: "Alpha, בדיקת קשר" | "Alpha, check." Replies: "Two." "Three." "Four." | no IAF term found, NATO: a check-in on every frequency, each wingman answering with the number[^tpub-t2c]; the word "check" is inferred |
 | formation: fingertip | "Alpha, מבנה **ארבע אצבעות**" | "Alpha, fingertip." | Hebrew Wikipedia[^hewiki-formation]; English: NATO[^wiki-formation][^wiki-fingerfour] |
-| formation: echelon right / left | "Alpha, **מדרג** ימין" / "Alpha, **מדרג** שמאל" (Hebrew Wikipedia: "מבנה מדרג", also "מבנה אלכסון", "מבנה סולם"; "ימין" / "שמאל" ours) | "Alpha, echelon right." / "Alpha, echelon left." | Hebrew Wikipedia[^hewiki-formation]; English: NATO[^wiki-formation] |
 | formation: line abreast (spread) | "Alpha, **מבנה מקבילי**" | "Alpha, line abreast." | Hebrew Wikipedia[^hewiki-formation]; the IAF site describes the lowest flight as flown "בשורה אופקית", a description, not a named formation (IAF site, second-hand[^iaf-low]); English: NATO, where LINE ABREAST names a group of enemy contacts; for one's own flight inferred[^alsa] |
-| formation: wedge | none found (open). Inferred: show the English word "wedge" until a term is found | "Alpha, wedge." | no IAF term found, NATO: WEDGE names a three-contact group; for one's own four-ship inferred[^alsa] |
 | formation: trail | "Alpha, **מבנה טור**" | "Alpha, trail." | Hebrew Wikipedia[^hewiki-formation]; English: NATO[^wiki-formation] |
+| formation: echelon right / left | "Alpha, **מבנה אלכסון** ימין" / "Alpha, **מבנה אלכסון** שמאל" (Hebrew Wikipedia's gallery name; its text also gives "סולם" and "מדרג"; "ימין" / "שמאל" ours) | "Alpha, echelon right." / "Alpha, echelon left." | Hebrew Wikipedia[^hewiki-formation]; English: NATO[^wiki-formation] |
+| formation: diamond | "Alpha, **מבנה יהלום**" | "Alpha, diamond." | Hebrew Wikipedia[^hewiki-formation]; English: Wikipedia ("Fingertip right to diamond": "#4 moves into slot")[^wiki-formation] |
+| formation: vic | "Alpha, **מבנה וי**" | "Alpha, vic." | Hebrew Wikipedia[^hewiki-formation]; English: Wikipedia[^wiki-vic] |
+| formation: delta | "Alpha, **מבנה דלתא**" | "Alpha, delta." | Hebrew Wikipedia[^hewiki-formation]; English: the name of the article's gallery picture ("Delta formation of Blue Impulse")[^hewiki-formation] |
 | rejoin | "Alpha, **הצטרפות**" | "Alpha, rejoin." | IAF site, second-hand ("הצטרפות למבנה")[^iaf-auschwitz]; a pilot's account of the IAF flight course ("הצטרפות אחרי ההמראה אל המוביל")[^mustov] |
 | close up | "Alpha, **מבנה צמוד**" | "Alpha, close up." (plain English, inferred: the brevity list has no word for it) | IAF site, second-hand ("במבנה צמוד", several pages)[^iaf-guinness][^iaf-dakota]; the pilot's account writes "התכנסות למבנה מכונס"[^mustov] |
 | spread out | none found. Ours: "Alpha, להגדיל מרווחים" | "Alpha, spread out." (plain English, inferred) | no IAF term found; NATO has none either: its SPREAD is a maneuver of enemy contacts[^alsa]. Open |
@@ -58,8 +60,10 @@ strings.
 | the wingman | **מספר 2**, spoken "מספר שתיים"; the lead's partner is also **בן הזוג** (the sources write the masculine form). The second pair's lead is **מספר 3** | "wingman"; on the radio "Two" | press: "מספר 2 אומנם מוגדר כסגנו במבנה"[^walla-2012], "בן הזוג של המוביל"[^mako-kaz]; IAF site, second-hand[^iaf-number2]; Hebrew Wikipedia[^hewiki-formation] |
 | the flight lead | **מוביל** (also "מוביל המבנה", "מספר 1") | "lead" | press: "המוביל"[^walla-2012][^walla-2020]; IAF site, second-hand[^iaf-number2]; Hebrew Wikipedia: "מפקד המבנה נקרא 'מוביל' או 'מספר 1'"[^hewiki-formation] |
 
-Count: 7 rows have an IAF term with a source (rejoin, close up, lead change, and the four terms). 4 formation names have
-a Hebrew term from Hebrew Wikipedia only (fingertip, echelon, line abreast, trail). 14 rows fall back to NATO / US
+Count: 7 rows have an IAF term with a source (rejoin, close up, lead change, and the four terms). 7 formation names have
+a Hebrew term from Hebrew Wikipedia only (fingertip, line abreast, trail, echelon, diamond, vic, delta: its gallery,
+the user on 20 November 2026: "just pick others that has the Hebrew term"; the wedge, without one, is no longer
+offered; the missing man is a memorial and is left out). 13 rows fall back to NATO / US
 English with Hebrew we wrote; of these, 6 have no NATO source either and are marked inferred or open. The flight's
 callsign has the Hebrew term (אות קריאה) but no IAF callsign style was found: Alpha stays.
 
@@ -74,7 +78,8 @@ was left alone (it refuses automated access).
   (inferred): מבנה צמוד, the IAF's own and found on several pages.
 - Line abreast: Hebrew Wikipedia names it **מבנה מקבילי**; the IAF site describes low flying "בשורה אופקית", which
   is a description, not a name.
-- Echelon: Hebrew Wikipedia gives three names (מדרג, אלכסון, סולם) and no IAF source settles between them.
+- Echelon: Hebrew Wikipedia gives three names (אלכסון, סולם, מדרג) and no IAF source settles between them. Its
+  gallery names the shape **מבנה אלכסון**, so the game uses that (20 November 2026; until then מדרג).
 - The wingman: **מספר 2** names the position, **בן הזוג** the partner; both are in IAF-related sources. The press
   writes the digit ("מספר 2"); the IAF site and the radio rules spell it out ("מספר שתיים").
 
@@ -86,9 +91,12 @@ was left alone (it refuses automated access).
     2020, on the IAF's pair air-combat training ("קרב האוויר בו נלחמים זוג נגד זוג"; "בן הזוג של המוביל"; "המוביל
     נפגע, כפי שקרה במציאות, והוא צריך לקחת את ההובלה ולהמשיך את המשימה לבד"):
     https://www.mako.co.il/pzm-magazine/Article-f8d76077d704571026.htm
-[^hewiki-formation]: Hebrew Wikipedia, "טיסת מבנה", last edited 5 June 2025 (מבנה מקבילי, מבנה מדרג / אלכסון / סולם,
+[^hewiki-formation]: Hebrew Wikipedia, "טיסת מבנה", last edited 5 June 2025 (מבנה מקבילי, מבנה אלכסון / סולם / מדרג,
     מבנה טור, מבנה "ארבע אצבעות"; "מפקד המבנה נקרא 'מוביל' או 'מספר 1', בן זוגו נקרא 'מספר 2'"; a four-ship of two
-    pairs, the second led by "מספר 3"). Its footnotes cite English histories, not IAF sources:
+    pairs, the second led by "מספר 3"). Its gallery (read 20 November 2026), Blue Impulse diagrams: מבנה מקבילי, מבנה
+    וי, מבנה דלתא, מבנה אלכסון, מבנה יהלום, מבנה טור, מבנה ארבע אצבעות (the picture "Fingertip formation"), מבנה חסר;
+    its text: the diamond "מטוס מוביל, מאחוריו זוג מטוסים" and one more at the back; the vic an arrowhead; the delta
+    the vic "כולל מטוסים שסוגרים את השורה האחרונה". Its footnotes cite English histories, not IAF sources:
     https://he.wikipedia.org/wiki/%D7%98%D7%99%D7%A1%D7%AA_%D7%9E%D7%91%D7%A0%D7%94
 [^mustov]: Yitzhak Mustov, "הדרך אל מסדר הכנפיים: פרק כ"א - טיסות מבנה", sky-high.co.il, 28 June 2021: a pilot's
     account of formation training in the basic stage of the IAF flight course ("טיסות המבנה היו בזוגות ושלישיות וכללו
@@ -118,6 +126,8 @@ was left alone (it refuses automated access).
     REJOIN or OPS CHECK: https://en.wikipedia.org/wiki/Multiservice_tactical_brevity_code
 [^wiki-formation]: Wikipedia, "Formation flying" (the fingertip four; echelon; the move into trail, "#2 slides back
     and behind lead"): https://en.wikipedia.org/wiki/Formation_flying
+[^wiki-vic]: Wikipedia, "Vic formation" ("the leader at the apex and the rest of the flight en echelon to the left and
+    the right, the whole resembling the letter V"): https://en.wikipedia.org/wiki/Vic_formation
 [^wiki-fingerfour]: Wikipedia, "Finger-four" (flight leader, wingman, lead element and second element, element
     leader): https://en.wikipedia.org/wiki/Finger-four
 [^tpub-t2c]: US Navy flight-training manual (T-2C, VT-86), "Formation Communication Procedures", on the tpub.com
