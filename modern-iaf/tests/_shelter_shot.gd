@@ -1,8 +1,9 @@
 # Dev helper (not run by tools/test.sh): the player's jet at its start spot (airbases.md §5: in a shelter where the
 # base has them), the Sufa's start-up mission at Ramon (2011), the lesson's boxes hidden.
 # SHOT_DIR/<SHOT_NAME>_<view>.jpg: cockpit (the pilot's view), outside (from 45 m ahead of the nose, 3 m up, looking
-# back at the jet) and above (90 m up, 60 m behind, looking down the nose's way: the way out). The same script runs on
-# main (before pictures). Night: `-- --hour 22`. A real render:
+# back at the jet), behind (45 m behind it, 3 m up: the shelter's open back) and above (90 m up, 60 m behind, looking
+# down the nose's way: the way out). The same script runs on main (before pictures). Night: `-- --hour 22`. A real
+# render:
 #   flock ~/.cache/iaf-gpu-bench.lock tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 SHOT_DIR=<dir> SHOT_NAME=<n> \
 #     -- --log-file <temp> --resolution 1600x900 --path modern-iaf -s ../modern-iaf/tests/_shelter_shot.gd \
 #     [-- --hour 22]
@@ -50,7 +51,7 @@ func run() -> void:
 	tv.in_cockpit = false
 	_cam = tv.chase
 	RenderingServer.frame_pre_draw.connect(_pre_draw)
-	for v in [["outside", 45.0, 3.0], ["above", -60.0, 90.0]]:
+	for v in [["outside", 45.0, 3.0], ["behind", -45.0, 3.0], ["above", -60.0, 90.0]]:
 		var p := Vector3(w.x + fwd.x * v[1], w.y + fwd.y * v[1], w.z + v[2])
 		var pos: Vector3 = tv.world_to_scene(p)
 		var at: Vector3 = tv.world_to_scene(w)

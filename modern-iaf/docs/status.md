@@ -610,6 +610,9 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   2015 photo at Nevatim) and roofs placed by eye; parked Sufas at Hatzerim, F-35Is at Nevatim, Baraks at Ramat David;
   door lamps and obstruction lights; GPU up to +1 ms on the Iris Xe ([base-furniture.md](base-furniture.md) §2.1, §6). Open: no parked F-15 (no F-15 model
   of our own), so Tel Nof's shelters stand empty.
+- **Shelters open at the back (2026-11-20, the user's order: "completely open in the back, not like now"):** every
+  shelter's back is open, as wide and high as its door, with the same concrete lip ([base-furniture.md](base-furniture.md)
+  §5). The shape is built in the game: no rebuild, nothing to download.
 - **Start in a shelter (2026-11-19, the user's order of 17 Nov: "if there are shelters then start inside one"):** at Ramon,
   Nevatim, Ramat David, Tel Nof and (Sufas) Hatzerim the jets start cold inside shelters, nose to the door, four per unit (Ramon's Sufas in the loop-end
   shelters S2, S3, S1 and S5, the ground power unit and the extinguisher beside the leader's jet). Each parking spot has its own taxi route out of its door along the

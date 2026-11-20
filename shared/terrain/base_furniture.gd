@@ -215,7 +215,8 @@ static func _mesh(kind: String) -> Mesh:
 	return st.commit()
 
 
-## A shelter of unit width, height and length: the outer shell and its thick front lip in concrete, the inside dark.
+## A shelter of unit width, height and length, open at both ends (the back as wide and high as the door; the user,
+## 20 Nov 2026): the outer shell and its thick lip at each end in concrete, the inside dark.
 static func _arch(st: SurfaceTool) -> void:
 	var outer := []
 	var inner := []
@@ -243,14 +244,14 @@ static func _arch(st: SurfaceTool) -> void:
 		var d: Vector2 = inner[i + 1]
 		_quad(
 			st,
-			Vector3(d.x, d.y, -0.47),
-			Vector3(c.x, c.y, -0.47),
+			Vector3(d.x, d.y, -0.5),
+			Vector3(c.x, c.y, -0.5),
 			Vector3(c.x, c.y, 0.5),
 			Vector3(d.x, d.y, 0.5),
 			-n,
 			SHADOW
 		)
-		# The lip at the door, the back wall outside and inside.
+		# The lip at the door and the same lip round the open back.
 		_quad(
 			st,
 			Vector3(a.x, a.y, 0.5),
@@ -260,8 +261,15 @@ static func _arch(st: SurfaceTool) -> void:
 			Vector3.BACK,
 			CONCRETE
 		)
-		_tri(st, Vector3(0, 0, -0.5), Vector3(b.x, b.y, -0.5), Vector3(a.x, a.y, -0.5), Vector3.FORWARD, CONCRETE)
-		_tri(st, Vector3(0, 0, -0.47), Vector3(c.x, c.y, -0.47), Vector3(d.x, d.y, -0.47), Vector3.BACK, SHADOW)
+		_quad(
+			st,
+			Vector3(a.x, a.y, -0.5),
+			Vector3(c.x, c.y, -0.5),
+			Vector3(d.x, d.y, -0.5),
+			Vector3(b.x, b.y, -0.5),
+			Vector3.FORWARD,
+			CONCRETE
+		)
 
 
 ## A gable roof over a unit footprint, eaves to ridge along Z.

@@ -134,7 +134,8 @@ stands on its pad.
 `shared/terrain/base_furniture.gd` builds the nearest base's furniture once the ground under it has loaded
 (`airbases.gd`, as the taxiway signs). Every shape is our own, in vertex colours with one material:
 - a shelter: a concrete arch 0.4 times as high as it is wide (a TAB-VEE is about 22 m wide and 8.5 m high: inferred
-  for the IAF's), open at the door, dark inside;
+  for the IAF's), dark inside, open at both ends: the back is as wide and high as the door, with the same lip (the
+  user, 20 Nov 2026: "completely open in the back"; no photo of an IAF shelter's back was found);
 - a hangar: walls to 10 m, a low gable roof to 13 m, a door in the front end; a building: a 6 m flat-roofed block;
 - the tower: a low building, a shaft and a glass cab at about 18 m (inferred);
 - the sunshade: a 5.5 m roof on posts every 15 m; the fence: 2.4 m of grey mesh on posts every 6 m, see-through;
