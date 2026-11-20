@@ -110,7 +110,8 @@ What `real_hud/f16.rs` draws from the panel ([../../docs/real-hud.md](../../docs
   ticks every 500 fpm, a moving triangle; the range inferred), VAH as before, OFF leaves only the boxes (inferred).
 - FP MARKER: ATT/FPM the ladder and the marker, FPM the marker alone, OFF neither.
 - VELOCITY: CAS (`C`), TAS (`T`) or ground speed (`G`); CAS with the gear down or in DGFT.
-- ALT: RADAR the radar altitude on the scale (`AR`), BARO, AUTO the radar altitude's thermometer below 1,200 ft.
+- ALT: RADAR the radar altitude on the scale (`AR`), BARO, AUTO the radar altitude's thermometer below 1,200 ft, with
+  `AR` and the radar altitude on its index.
 - DED DATA: at DED the DED's five lines, at PFL the pilot fault list's, low in the HUD, one character per 5 px cell
   so the DED's columns line up, in the gap between the left and the right data column, from the right column's
   second row down (inferred place; the real HUD's five windows sit lower in that gap, the last three under the

@@ -407,7 +407,8 @@ func eject() -> void:
 	tv._eject()
 	var said: int = tv.radio.said.size()
 	var played: int = tv.sounds.played.size()
-	_press(tv, KEY_T, true)  # the radio menu and its first call
+	_press(tv, KEY_T, true)  # the radio menu, its Tower page and the first call
+	_press(tv, KEY_1)
 	_press(tv, KEY_1)
 	await fly(tv, 1.0)
 	check(
@@ -805,10 +806,11 @@ func _check_files(tv: Node, jet: String) -> void:
 	check(st != null and int(st) == 1, "%s: the pilot log holds the pass" % jet)
 
 
-## The radio menu: Ctrl+T opens it with every ground call, `id` marked as the next (training.md §8); its number
-## picks; the tower's answer.
+## The radio menu: Ctrl+T opens it, 1 its Tower page with the ground calls the moment allows, `id` the next
+## (training.md §8); its number picks; the tower's answer.
 func _call(tv: Node, id: String) -> String:
 	_press(tv, KEY_T, true)
+	_press(tv, KEY_1)  # Tower (since e5c62019 the first page is Tower / Wingmen / AWACS)
 	var shown: bool = tv.addon.open
 	var i: int = tv.addon.shown.find(id)
 	var plain: bool = not tv.addon.menu_text().contains("(")
@@ -856,6 +858,7 @@ func takeoff(id: String) -> void:
 	# At the spot after taxi: every ground call listed, none marked; take-off (4) out of order: "negative, hold
 	# position, request line-up first", no clearance and no fail.
 	_press(tv, KEY_T, true)
+	_press(tv, KEY_1)  # Tower
 	var all: bool = tv.addon.shown == ["startup", "taxi", "lineup", "takeoff"] and tv.addon.next_call() == ""
 	_press(tv, KEY_4)
 	await fly(tv, 0.5)

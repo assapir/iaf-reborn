@@ -74,14 +74,23 @@ test-pilot accounts[^f16net].
   - Gear down: the scale expands ×5 (20 ft ticks).
   - Below it: the radar altitude box `R 19,500` and `AL 200` (ALOW, the low-altitude warning setting).
   - Below 1,200 ft the AUTO scale applies: a 0-1,500 ft thermometer, `AR` on the index; `AL` flashes below ALOW.
+    Ours draws the radar altitude in the index box at the thermometer's middle, `AR` beside it, as ALT RADAR's
+    (`f16.rs` `index`). Until 2026-11-20 that box sat under the thermometer, over the right column's `R` row.
   - When the A-A DLZ appears, the altitude scale moves outward.
 - Heading: at the **bottom of the HUD in NAV**; gear down it sits 50 mr above the FPM. At the top in the A-G modes,
   except strafe. Ticks every 5°; labels every 10°, in tens (`06 [070] 08`, the current heading boxed).
 - Vertical velocity (VV/VAH switch): a fixed scale inboard of the altitude scale with a moving triangle; ticks every
-  500 fpm.
+  500 fpm. Ours labels it `1` / `0` / `-1` (thousands, inferred) and leaves out the `0` while `AR` sits beside the
+  altitude index on that row (since 2026-11-20; the two covered each other).
 - Roll indicator: tics on a 70 mr arc centred 50 mr below the FOV centre, every 10° to ±45°. With "Real HUD view"
   (see "Real view") it sits at that place. With the original view the glass is shorter than the real field, so ours
   raises the arc until its lowest tic stays inside the glass.
+  - The real arc sits between the data columns: its ±45° tics are about 50 mr inboard of the right column (figs.
+    1-110 / 1-115). Modern IAF's F-16s, whose fitted glass brings the right column under the altitude scale (see
+    "Data windows"), shrink the arc the least that keeps its tics 2 px clear of both columns. The pointer keeps its
+    size, and the arc keeps one size when the DLZ or the GPS cues move the column outward. The arc's radius: 41 px on
+    the Sufa, 22 px on the Barak, against the real 70 mr (48 px). Until 2026-11-20 the tics crossed the column's `AL`
+    row on both jets and the Barak's slant range row (`f16.rs` `roll_indicator`).
 
 **Ladder / markers**[^dash34]
 - Pitch ladder ("attitude bars"): a bar every 5° to ±60°, compressed beyond.

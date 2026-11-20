@@ -76,29 +76,45 @@ pub(super) fn frame(f: Field, i: &Input, max_g: f64, fuel_reset: bool) -> Frame 
     // The altitude by the ALT switch: RADAR the radar altitude (AR), AUTO the radar altitude's thermometer below
     // 1,200 ft, BARO (and a radar altitude out of reach) the barometric one.
     let agl = i.agl_ft.filter(|a| *a < 50_000.0);
-    match (pn.alt, agl) {
-        (AltSwitch::Auto, Some(a)) if a < 1200.0 => thermometer(o, alt_x, tape_y, a),
-        (AltSwitch::Radar, Some(a)) => altitude(o, alt_x, tape_y, a, scales, "AR"),
-        _ => altitude(o, alt_x, tape_y, i.alt_ft, scales, ""),
-    }
+    // `ar`: `AR` beside the index.
+    let ar = match (pn.alt, agl) {
+        (AltSwitch::Auto, Some(a)) if a < 1200.0 => {
+            thermometer(o, alt_x, tape_y, a);
+            true
+        }
+        (AltSwitch::Radar, Some(a)) => {
+            altitude(o, alt_x, tape_y, a, scales, "AR");
+            true
+        }
+        _ => {
+            altitude(o, alt_x, tape_y, i.alt_ft, scales, "");
+            false
+        }
+    };
     if let Some((t, z)) = dlz {
         dlz_scale(o, sc.right - DLZ_IN, tape_y, DLZ_HALF, t, z);
     } else if pn.scales == Scales::VvVah && !gps {
-        vvi(o, alt_x - VVI_IN, tape_y, i.vs_fpm);
+        vvi(o, alt_x - VVI_IN, tape_y, i.vs_fpm, ar);
     }
     // The heading scale: the lower position (below the scales) in NAV, A-A and strafe; the upper one in the A-G modes
     // and gear down.
     let hdg_y = if i.gear_down || matches!(mode, 5..=7) { f.top + 10.0 } else { tape_y + TAPE_HALF + 6.0 };
+    // The left column (ARM, Mach, max g, the mode / weapon) ends at `lx`. The right column (radar altitude, slant
+    // range, time, steerpoint) starts at `rx`. `right_under` (Modern IAF's F-16s): under the altitude scale, its rows
+    // starting four character cells inboard of the scale's ticks (dash-34 figs. 1-110 / 1-115: the windows start that
+    // far inboard and the longest ends at the scale's outer edge; docs/real-hud.md "Data windows"). Else from the
+    // scale outward (the original game's Real HUD).
+    let (lx, ly) = (sc.left + 4.0, tape_y + TAPE_HALF + 12.0);
+    let rx = if i.right_under { alt_x - 5.0 - 4.0 * CHAR_W } else { alt_x + 2.0 };
     // EEGS has neither the heading scale nor the roll indicator (fig. 1-257); DED DATA's lines replace the roll
     // indicator (the dash-34 as a simulator forum quotes it, docs/real-hud.md "F-16C/D").
     if mode != 3 && scales {
         heading(o, hdg_y, i.heading_deg, i.steerpoint.map(|s| s.bearing_deg));
         if pn.ded.is_empty() {
-            roll_indicator(o, i, f.bottom);
+            // The gap from the column's place without the DLZ's or GPS cues' shift: the arc keeps one size.
+            roll_indicator(o, i, f.bottom, (rx - (alt_x - sc.right)).min(-lx));
         }
     }
-    // The left column: ARM, Mach, max g, the mode / weapon.
-    let (lx, ly) = (sc.left + 4.0, tape_y + TAPE_HALF + 12.0);
     let mut row = 0.0;
     // ALIGN while the INS aligns, flashing once it can navigate (inferred place: the left column's top).
     if let Some(ready) = pn.align
@@ -118,11 +134,7 @@ pub(super) fn frame(f: Field, i: &Input, max_g: f64, fuel_reset: bool) -> Frame 
         _ => mode_text(w),
     };
     o.push(text((lx, ly + row + 2.0 * ROW), mode_s, Align::Right));
-    // The right column: radar altitude, slant range, time, steerpoint. `right_under` (Modern IAF's F-16s): under the
-    // altitude scale, its rows starting four character cells inboard of the scale's ticks (dash-34 figs. 1-110 /
-    // 1-115: the windows start that far inboard and the longest ends at the scale's outer edge; docs/real-hud.md
-    // "Data windows"). Else from the scale outward (the original game's Real HUD).
-    let rx = if i.right_under { alt_x - 5.0 - 4.0 * CHAR_W } else { alt_x + 2.0 };
+    // The right column.
     let ry = tape_y + TAPE_HALF + 12.0;
     let mut rows = Vec::new();
     if let Some(a) = i.agl_ft.filter(|a| *a < 50_000.0) {
@@ -616,11 +628,16 @@ fn altitude(p: &mut Vec<Prim>, x: f64, y0: f64, alt_ft: f64, scale: bool, mnemon
             p.push(text((x + 2.0, y0 + dy + 3.0), format!("{},{}", h.div_euclid(10), h.rem_euclid(10)), Align::Left));
         }
     }
+    index(p, x, y0, alt_ft, mnemonic);
+}
+
+/// The altitude scale's index at the scale's middle: the boxed readout with its caret, `mnemonic` beside it.
+fn index(p: &mut Vec<Prim>, x: f64, y0: f64, ft: f64, mnemonic: &str) {
     let (bx, by) = (x + 2.0, y0);
     p.extend(box_poly(bx + 4.0, by - 5.0, bx + 34.0, by + 5.0));
     p.push(line((bx + 4.0, by - 5.0), (bx, by)));
     p.push(line((bx, by), (bx + 4.0, by + 5.0)));
-    p.push(text((bx + 32.0, by + 3.0), thousands(alt_ft), Align::Right));
+    p.push(text((bx + 32.0, by + 3.0), thousands(ft), Align::Right));
     if !mnemonic.is_empty() {
         p.push(text((bx - 7.0, by + 3.0), mnemonic, Align::Right));
     }
@@ -628,7 +645,8 @@ fn altitude(p: &mut Vec<Prim>, x: f64, y0: f64, alt_ft: f64, scale: bool, mnemon
 
 /// ALT AUTO below 1,200 ft: the radar altitude's thermometer in place of the scale (docs/real-hud.md "Scales"): 0 to
 /// 1,500 ft over the scale's height, ticks every 100 ft, labels 0 / 5 / 10 / 15 (hundreds), the bar filled up to the
-/// radar altitude, the box with `AR`.
+/// radar altitude, `AR` and the radar altitude on the scale's index (as ALT RADAR's; until 2026-11-20 a box under the
+/// scale, on the right column's first row).
 fn thermometer(p: &mut Vec<Prim>, x: f64, y0: f64, agl_ft: f64) {
     let y = |ft: f64| y0 + TAPE_HALF - ft.clamp(0.0, 1500.0) / 1500.0 * 2.0 * TAPE_HALF;
     p.push(line((x, y(0.0)), (x, y(1500.0))));
@@ -642,22 +660,20 @@ fn thermometer(p: &mut Vec<Prim>, x: f64, y0: f64, agl_ft: f64) {
     // The bar: a second line beside the scale up to the height.
     p.push(line((x - 2.0, y(0.0)), (x - 2.0, y(agl_ft))));
     p.push(line((x - 3.0, y(0.0)), (x - 3.0, y(agl_ft))));
-    let by = y0 + TAPE_HALF + 8.0;
-    p.extend(box_poly(x + 6.0, by - 5.0, x + 36.0, by + 5.0));
-    p.push(text((x + 34.0, by + 3.0), thousands(agl_ft), Align::Right));
-    p.push(text((x + 4.0, by + 3.0), "AR", Align::Right));
+    index(p, x, y0, agl_ft, "AR");
 }
 
 /// SCALES VV/VAH: the vertical velocity scale inboard of the altitude scale (docs/real-hud.md "Scales": a fixed
 /// scale, a moving triangle, ticks every 500 fpm). Ours: ±1,500 fpm over the scale's height with labels `1` / `0` /
-/// `-1` (thousands), the triangle held at the ends (inferred).
-fn vvi(p: &mut Vec<Prim>, x: f64, y0: f64, vs_fpm: f64) {
+/// `-1` (thousands), the triangle held at the ends (inferred). `ar`: `AR` beside the altitude index on the `0` label's
+/// row, so the label is left out (since 2026-11-20; the two covered each other).
+fn vvi(p: &mut Vec<Prim>, x: f64, y0: f64, vs_fpm: f64, ar: bool) {
     let y = |v: f64| y0 - v.clamp(-1500.0, 1500.0) / 1500.0 * TAPE_HALF;
     p.push(line((x, y(1500.0)), (x, y(-1500.0))));
     for k in -3..=3 {
         let v = f64::from(k) * 500.0;
         p.push(line((x, y(v)), (x + if k % 2 == 0 { 4.0 } else { 2.0 }, y(v))));
-        if k % 2 == 0 {
+        if k % 2 == 0 && !(k == 0 && ar) {
             p.push(text((x + 6.0, y(v) + 3.0), format!("{}", k / 2), Align::Left));
         }
     }
@@ -722,8 +738,14 @@ fn ded_block(o: &mut Vec<Prim>, lines: &[String], (left, right): (f64, f64), y: 
 /// pointer at the bank angle (limited to ±45°).
 /// Its centre 50 mr below the FOV centre. With the original view the cockpit art's glass is shorter than the real
 /// field of view, so ours raises it until its lowest tic stays above `bottom`; Real HUD view fits it (`Jet::fov_deg`).
-fn roll_indicator(p: &mut Vec<Prim>, i: &Input, bottom: f64) {
-    let r = i.mr(70.0);
+/// The real arc sits between the data columns, its ±45° tics about 50 mr inboard of the right column (dash-34 figs.
+/// 1-110 / 1-115). `gap`: the columns' inner edges' least distance from the centre; on a glass narrower than the real
+/// field (Modern IAF's F-16s, their right column under the altitude scale) the arc shrinks the least that keeps its
+/// tics 2 px clear of them, the pointer its size (since 2026-11-20; before, the tics crossed the column's rows).
+fn roll_indicator(p: &mut Vec<Prim>, i: &Input, bottom: f64, gap: f64) {
+    let real = i.mr(70.0);
+    let r = real.min((gap - 2.0) * std::f64::consts::SQRT_2 - 2.5);
+    let w = 3.0 * (real / r); // the pointer's half width: 3° on the real arc (exactly, unshrunk)
     let c = (0.0, i.mr(50.0).min(bottom - r - 4.0));
     let at = |deg: f64, rr: f64| {
         let a = deg.to_radians();
@@ -734,7 +756,7 @@ fn roll_indicator(p: &mut Vec<Prim>, i: &Input, bottom: f64) {
     }
     let b = i.roll_deg.clamp(-45.0, 45.0);
     let tip = at(b, r - 1.0);
-    let (l, rr) = (at(b - 3.0, r - 5.0), at(b + 3.0, r - 5.0));
+    let (l, rr) = (at(b - w, r - 5.0), at(b + w, r - 5.0));
     p.push(line(tip, l));
     p.push(line(l, rr));
     p.push(line(rr, tip));
@@ -920,6 +942,60 @@ mod tests {
                     }
                 }
             }
+        }
+    }
+
+    #[test]
+    fn ar_and_the_roll_tics_stay_off_the_text() {
+        // The Sufa's and the Barak's fields (cockpit.json [HUD] borders), their right column under the altitude scale.
+        let sufa = Field { left: -72.0, top: -66.0, right: 72.0, bottom: 67.0 };
+        let barak = Field { left: -58.0, top: -61.0, right: 58.0, bottom: 67.0 };
+        let hit = |a: (f64, f64, f64, f64), b: (f64, f64, f64, f64)| {
+            a.0 < b.2 - 0.5 && b.0 < a.2 - 0.5 && a.1 < b.3 - 0.5 && b.1 < a.3 - 0.5
+        };
+        // The roll indicator's lines: the frame's less the frame's with DED DATA on, its lines blank (no indicator).
+        let roll = |f: Field, i: &Input| {
+            let mut no = i.clone();
+            no.panel.ded = vec![String::new()];
+            let no_roll = frame(f, &no, 1.0, false).outer;
+            frame(f, i, 1.0, false).outer.into_iter().filter(|p| !no_roll.contains(p)).collect::<Vec<_>>()
+        };
+        for f in [sufa, barak] {
+            for (alt, scales) in
+                [AltSwitch::Auto, AltSwitch::Radar].into_iter().flat_map(|a| [(a, Scales::Vah), (a, Scales::VvVah)])
+            {
+                let mut i = input(Jet::F16);
+                i.right_under = true;
+                i.agl_ft = Some(800.0);
+                i.panel.alt = alt;
+                i.panel.scales = scales;
+                let all = frame(f, &i, 1.0, false).outer;
+                let tics: Vec<_> = roll(f, &i).iter().map(bbox).collect();
+                assert_eq!(tics.len(), 12, "nine tics and the pointer's three lines");
+                let texts: Vec<&Prim> = all.iter().filter(|p| matches!(p, Prim::Text { .. })).collect();
+                for (t, r) in texts.iter().flat_map(|t| tics.iter().map(move |r| (t, r))) {
+                    assert!(!hit(bbox(t), *r), "{f:?} {alt:?}: a roll tic {r:?} on {t:?}");
+                }
+                // The index: `AR` and the radar altitude, clear of every other text (the right column's `R 800` row,
+                // VV/VAH's labels).
+                let (index, rest): (Vec<&Prim>, Vec<&Prim>) = texts
+                    .iter()
+                    .copied()
+                    .partition(|p| matches!(p, Prim::Text { text, .. } if text == "AR" || text == "800"));
+                assert_eq!(index.len(), 2, "{alt:?}: AR and its readout");
+                for (a, t) in index.iter().flat_map(|a| rest.iter().map(move |t| (a, t))) {
+                    assert!(!hit(bbox(a), bbox(t)), "{f:?} {alt:?} {scales:?}: {a:?} on {t:?}");
+                }
+            }
+            // The arc keeps its size when the DLZ moves the altitude scale and the column outward.
+            let mut i = input(Jet::F16);
+            i.right_under = true;
+            i.weapons.hud_mode = 1;
+            let plain = roll(f, &i);
+            i.target =
+                Some(Target { range_m: 3000.0, closure: 120.0, at: Some((10.0, -8.0)), aspect: None, ident: None });
+            i.dlz = Some(Dlz { max: 9000.0, min: 900.0 });
+            assert_eq!(roll(f, &i), plain, "{f:?}: the arc with the DLZ");
         }
     }
 

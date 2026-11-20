@@ -60,6 +60,7 @@ func run() -> void:
 	Engine.time_scale = 1.0
 	await frames(3)
 	check(not tv.addon.kneeboard.marks.is_empty(), "the take-off lesson rings the card's first open item")
+	tv.addon.result = {"pass": true}  # not flown here: no score (and logged sortie) at the exit
 
 
 const SCORE_S := 4

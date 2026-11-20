@@ -2500,7 +2500,8 @@ func _picture_frame(parent: Node, size: Vector2, tex: Texture2D) -> PanelContain
 
 ## Opens the debrief record of sortie `id` (the records database, training.md §4); false when it has none.
 func open_debrief(id: int) -> bool:
-	var d = JSON.parse_string(IafPilotLog.debrief(Settings.records_db(), id))
+	var j := String(IafPilotLog.debrief(Settings.records_db(), id))
+	var d = JSON.parse_string(j) if j != "" else null  # "": no record of that sortie
 	if not d is Dictionary or not d.has("items"):
 		return false
 	record = d

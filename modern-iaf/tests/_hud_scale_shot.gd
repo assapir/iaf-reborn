@@ -10,10 +10,10 @@
 # the gear up; SHOT_PITCH: the head pitched (rad, up +); SHOT_LEAN: the head moved off the eye (m: x right, y up, z
 # aft; views.gd lean); SHOT_NAME: the file's name (default hud_scale<SHOT_SCALE>). SHOT_CAM (an F-16, base.gd
 # photo_camera): also <name>_ref.png from a reference photo's camera, the HUD hidden. SHOT_DED=1: the HUD's DED switch
-# on DED (DED DATA). SHOT_WIDEST=<master mode 0 1 2 3 5>: every readout at its widest (base.gd widest_real_hud_inputs,
-# DED DATA only with SHOT_DED). SHOT_FIT=1 (headless will do): no picture; prints the widest side border (and the top
-# border with it) whose field holds on the glass with every readout at its widest (test_sim_mfd.gd _on_glass), and
-# DED DATA's size there.
+# on DED (DED DATA). SHOT_ALT: the HUD's ALT switch (0 RADAR, 1 BARO, 2 AUTO). SHOT_WIDEST=<master mode 0 1 2 3 5>:
+# every readout at its widest (base.gd widest_real_hud_inputs, DED DATA only with SHOT_DED). SHOT_FIT=1 (headless
+# will do): no picture; prints the widest side border (and the top border with it) whose field holds on the glass with
+# every readout at its widest (test_sim_mfd.gd _on_glass), and DED DATA's size there.
 extends "res://../tests/godot/base.gd"
 
 
@@ -54,6 +54,9 @@ func run() -> void:
 	var c: Node = tv.cockpit
 	if _env("SHOT_DED", "") == "1":
 		c.hud_panel.ded = 0
+		await frames(5)
+	if _env("SHOT_ALT", "") != "":
+		c.hud_panel.alt = int(_env("SHOT_ALT", "1"))
 		await frames(5)
 	if _env("SHOT_FIT", "") == "1":
 		await _fit(c)

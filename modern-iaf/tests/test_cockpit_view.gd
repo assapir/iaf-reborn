@@ -439,5 +439,8 @@ func _start(id: int) -> Node:
 	while tv == null or tv.get("flight") == null or tv.waiting_for_ground:
 		await process_frame
 		tv = current_scene
+	# No lesson flown here: the start-up lesson would score the flight it never saw as a fail when the scene leaves
+	# (sim_flight.gd _exit_tree) and log the sortie.
+	tv.addon.result = {"pass": true}
 	await frames(3)
 	return tv
