@@ -565,7 +565,8 @@ The setup wizard (item A3) and the credits roll live outside this branch's folde
   and gap (§5.1; the clips on the approval page, item A5).
 - Loops as Ogg Vorbis: a looped ogg may click at its seam where the WAV did not (listen to the engine, the gun and the
   air-brake wind).
-- The Hebrew voice (§5.4).
+- The Hebrew voice (§5.4; the services and models compared, with listening samples, in
+  [research/hebrew-voices.md](research/hebrew-voices.md), 20 November 2026).
 - The wingman-command, waypoint and flight-report phrases (`radio.gd`'s other templates have no particles yet, so
   they are silent). The AWACS's contact calls have theirs since 17 November ([ews.md](ews.md) §7).
 - The pilot's calls as Bravo–Delta play part by part (only Alpha has whole-call clips), and the callsigns past Delta
