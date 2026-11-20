@@ -118,8 +118,12 @@ pub(super) fn frame(f: Field, i: &Input, max_g: f64, fuel_reset: bool) -> Frame 
         _ => mode_text(w),
     };
     o.push(text((lx, ly + row + 2.0 * ROW), mode_s, Align::Right));
-    // The right column: radar altitude, slant range, time, steerpoint.
-    let (rx, ry) = (alt_x + 2.0, tape_y + TAPE_HALF + 12.0);
+    // The right column: radar altitude, slant range, time, steerpoint. `right_under` (Modern IAF's F-16s): under the
+    // altitude scale, its rows starting four character cells inboard of the scale's ticks (dash-34 figs. 1-110 /
+    // 1-115: the windows start that far inboard and the longest ends at the scale's outer edge; docs/real-hud.md
+    // "Data windows"). Else from the scale outward (the original game's Real HUD).
+    let rx = if i.right_under { alt_x - 5.0 - 4.0 * CHAR_W } else { alt_x + 2.0 };
+    let ry = tape_y + TAPE_HALF + 12.0;
     let mut rows = Vec::new();
     if let Some(a) = i.agl_ft.filter(|a| *a < 50_000.0) {
         rows.push(format!("R {}", thousands(a)));
@@ -882,11 +886,13 @@ mod tests {
         let full: Vec<String> = (0..5).map(|_| "8".repeat(24)).collect();
         // FIELD, a narrower field (125 px between the columns), and the Sufa's and the Barak's fields (cockpit.json).
         let narrow = Field { left: -77.5, right: 77.5, ..FIELD };
-        let (sufa, barak) = (Field { left: -67.0, right: 67.0, ..FIELD }, Field { left: -48.0, right: 48.0, ..FIELD });
-        let fields = [FIELD, narrow, sufa, barak];
-        for (f, mode) in fields.into_iter().flat_map(|f| [0, 1, 2, 3, 5, 6, 7].map(|m| (f, m))) {
+        // The Sufa's and the Barak's with their right column under the altitude scale (`right_under`).
+        let (sufa, barak) = (Field { left: -72.0, right: 72.0, ..FIELD }, Field { left: -58.0, right: 58.0, ..FIELD });
+        let fields = [(FIELD, false), (narrow, false), (sufa, true), (barak, true)];
+        for ((f, under), mode) in fields.into_iter().flat_map(|f| [0, 1, 2, 3, 5, 6, 7].map(|m| (f, m))) {
             for scales in [Scales::Vah, Scales::VvVah] {
                 let mut i = input(Jet::F16);
+                i.right_under = under;
                 i.weapons.hud_mode = mode;
                 i.agl_ft = Some(800.0);
                 i.panel.scales = scales;
@@ -908,13 +914,29 @@ mod tests {
                     assert!(d.0 >= f.left && d.2 <= f.right, "mode {mode}: {d:?} off the field");
                     for (p, r) in rest.iter().map(|p| (p, bbox(p))) {
                         // A text 3 px clear beside a cell, so the two do not read as one word.
-                        let m = if matches!(p, Prim::Text { .. }) { 3.0 } else { -0.5 };
+                        let m = if matches!(p, Prim::Text { .. }) { 3.0 - 1e-9 } else { -0.5 };
                         let hit = d.0 - m < r.2 && r.0 < d.2 + m && d.1 < r.3 - 0.5 && r.1 < d.3 - 0.5;
                         assert!(!hit, "mode {mode} {scales:?}: DED cell {d:?} on {p:?}");
                     }
                 }
             }
         }
+    }
+
+    #[test]
+    fn the_right_column_sits_under_the_altitude_scale_with_right_under() {
+        let mut i = input(Jet::F16);
+        i.agl_ft = Some(4670.0);
+        let r_x = |i: &Input| {
+            frame(FIELD, i, 1.0, false).outer.iter().find_map(|p| match p {
+                Prim::Text { at, text, .. } if text == "R 4,670" => Some(at.0),
+                _ => None,
+            })
+        };
+        let alt_x = FIELD.inset(INSET).right;
+        assert_eq!(r_x(&i), Some(alt_x + 2.0), "the original game's: from the scale outward");
+        i.right_under = true;
+        assert_eq!(r_x(&i), Some(alt_x - 5.0 - 4.0 * CHAR_W), "four cells inboard of the scale's ticks");
     }
 
     #[test]

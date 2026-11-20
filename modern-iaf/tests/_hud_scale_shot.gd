@@ -9,8 +9,24 @@
 # SHOT_MISSION: another mission, by id or name (default 2012; 2022 or ramat_david_range the Barak's); SHOT_GEAR=0:
 # the gear up; SHOT_PITCH: the head pitched (rad, up +); SHOT_LEAN: the head moved off the eye (m: x right, y up, z
 # aft; views.gd lean); SHOT_NAME: the file's name (default hud_scale<SHOT_SCALE>). SHOT_CAM (an F-16, base.gd
-# photo_camera): also <name>_ref.png from a reference photo's camera, the HUD hidden.
+# photo_camera): also <name>_ref.png from a reference photo's camera, the HUD hidden. SHOT_DED=1: the HUD's DED switch
+# on DED (DED DATA). SHOT_WIDEST=<master mode 0 1 2 3 5>: every readout at its widest (base.gd widest_real_hud_inputs,
+# DED DATA only with SHOT_DED). SHOT_FIT=1 (headless will do): no picture; prints the widest side border (and the top
+# border with it) whose field holds on the glass with every readout at its widest (test_sim_mfd.gd _on_glass), and
+# DED DATA's size there.
 extends "res://../tests/godot/base.gd"
+
+
+## The Real HUD with its input's readouts replaced by `over`'s (SHOT_WIDEST).
+class Widest:
+	var rh = ClassDB.instantiate("IafRealHud")
+	var over: Dictionary
+
+	func _init(o: Dictionary) -> void:
+		over = o
+
+	func frame(field: Rect2, _i: Dictionary) -> Dictionary:
+		return rh.frame(field, over)
 
 
 func run() -> void:
@@ -35,6 +51,23 @@ func run() -> void:
 	await create_timer(3.0).timeout
 	Engine.time_scale = 0.0
 	await frames(30)
+	var c: Node = tv.cockpit
+	if _env("SHOT_DED", "") == "1":
+		c.hud_panel.ded = 0
+		await frames(5)
+	if _env("SHOT_FIT", "") == "1":
+		await _fit(c)
+		Engine.time_scale = 1.0
+		check(true, "fit")
+		return
+	if _env("SHOT_WIDEST", "") != "":
+		var over: Dictionary = widest_real_hud_inputs(c.hud)[maxi(
+			0, [0, 1, 2, 3, 5].find(int(_env("SHOT_WIDEST", "0")))
+		)]
+		if _env("SHOT_DED", "") != "1":
+			over.panel.ded = PackedStringArray()
+		c.hud._real_hud = Widest.new(over)
+		await frames(5)
 	print("window ", get_root().size, " scale ", get_root().content_scale_factor, " canvas ", tv.cockpit.size)
 	print("ui_scale ", tv.cockpit.ui_scale(), " focal ", tv.cockpit.focal_length())
 	print("final ", get_root().get_final_transform(), " screen ", tv.cockpit.hud.get_screen_transform())
@@ -55,3 +88,30 @@ func run() -> void:
 		cam.queue_free()
 	Engine.time_scale = 1.0
 	check(true, "shot")
+
+
+## SHOT_FIT: the side borders from the original's 72 down, each with the top border from the original's 66 down, until
+## the field and every Real HUD symbol, its readouts at their widest, lie on the glass at the wide view and zoomed in,
+## in the project's window (test_sim_mfd.gd _on_glass).
+func _fit(c: Node) -> void:
+	var h: Dictionary = c.layout.HUD
+	await project_window()
+	for side in range(72, 39, -1):
+		for top in range(66, 49, -1):
+			h.LeftBorder = side
+			h.RightBorder = side
+			h.TopBorder = top
+			var ok := true
+			for zoom in [c.ZOOM_MIN, c.ZOOM_MAX]:
+				c.zoom = zoom
+				c.hud.queue_redraw()
+				await frames(3)
+				ok = ok and off_glass(c, true).is_empty()
+			if ok:
+				var i: Dictionary = widest_real_hud_inputs(c.hud)[0]
+				var sizes: Array = ClassDB.instantiate("IafRealHud").frame(c.hud._field(), i).outer.map(
+					func(p): return float(p.get("size", 1.0))
+				)
+				print("FIT side %d top %d ded %.3f" % [side, top, sizes.min()])
+				return
+	print("FIT none")

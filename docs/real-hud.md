@@ -105,12 +105,59 @@ test-pilot accounts[^f16net].
   `3 MRM`, `EEGS`, `LCOS`, `CCIP`, `DTOS`, `STRF`, ...); fuel / bingo.
 - Top left, above the airspeed scale: current G `1.0`.
 - Centre: `WARN`, `FUEL` (flashing at bingo). The MLU puts `SHOOT` in the same window.
-- Right column, under the altitude scale:
+- Right column, under the altitude scale: its windows start about 36 mrad inboard of the scale's line (four
+  characters inboard of the scale's inner edge), and the longest ends at the scale's outer edge (figs. 1-110, 1-115).
+  Modern IAF's F-16s since 2026-11-20 (the user's "Do the fix"; cockpit.json `[HUD]` `RightColumnUnder`, `f16.rs`
+  `right_under`): the rows start 25 px (36 mrad) inboard of the scale's line, four 5 px cells inboard of its ticks.
+  The original game's Real HUD keeps its column starting at the scale and growing outward, as both games drew it
+  before.
   - `R xx,xxx`; `AL 200`;
   - slant range with a sensor letter: `B115.0` steerpoint, `F02.5` FCR (fire-control radar), `F 060` = 6,000 ft below
     1 NM;
   - time: `MMM:SS` to the steerpoint / release, or closure in the A-A gun mode;
   - steerpoint `distance>number` (`020>03`).
+
+**Text and symbol sizes** (2026-11-20, the user's "check for the real proportion of the text", 19 Nov)
+- The F-16's text sizes are not published. MIL-STD-1787, which sets HUD symbol sizes, is a controlled-distribution
+  standard[^mil1787]. A study of the A-10's HUD says sizes of 7 to 10 mrad are common on HUDs (second-hand: a search
+  engine's quote; the site refuses automated access)[^a10-size].
+- Measured from the dash-34's figures[^dash34] (inferred: counted in the scans at 300 dpi). Fig. 1-115 (p. 1-179)
+  draws every text window as a box, and fig. 1-110 (p. 1-168) draws the NAV HUD with its text. Two scales give the
+  same result:
+  - fig. 1-110: its 5° ladder bars, checked by the flight path marker's 10 mr circle and wings;
+  - fig. 1-115: its glass taken as the 25° total field[^dash34fov].
+  Both put the two scales 273 to 276 mrad apart, and both give the airspeed scale 104 to 108 mrad tall.
+- The real field: 25° total; 20° × 13.5° instantaneous (IFOV)[^roch-f16cd]. The IFOV is what the two eyes see
+  together through the collimator[^us4714320]. With a round collimator, one eye sees about the vertical figure across
+  (inferred). The Sufa's Elbit wide-angle HUD and the Barak 2020's HUD have no public field (open); the Block 40's
+  LANTIRN HUD had 30° × 18°[^roch-lantirn]. The symbols are drawn in milliradians, so the windows keep their angles
+  on every F-16 HUD and a wider HUD only shows more around them (inferred).
+
+| | Real F-16 (dash-34 figures) | Ours, both F-16s (layout px × 1.457 mrad) |
+|---|---|---|
+| Character pitch | 7.2 to 7.7 mrad (DED windows: 24 characters in 184 mrad) | 7.3 mrad (`CHAR_W` 5 px); digits 7.9 mrad |
+| Character height | 9.8 mrad (window box) to 11.4 mrad (fig. 1-110's type) | 8.5 mrad (Hershey capital); 9.3 with the stroke |
+| Row pitch | 14.8 mrad (fig. 1-115) | 13.1 mrad (`ROW` 9 px) |
+| Airspeed scale height | 104 to 108 mrad | 105 mrad (`TAPE_HALF` 36 px) |
+| Scales from the centre | ±138 mrad (±7.9°) | Sufa ±85 mrad (±4.8°), Barak ±64 mrad (±3.7°); before 2026-11-20 ±77 / ±50 mrad |
+| Left column's inner edge | −92 mrad | Sufa −79, Barak −58 mrad; before −71 / −44 |
+| Right column | +102 to +154 mrad: under the altitude scale, mostly inboard, ending at the scale's outer edge | Sufa +48, Barak +28 mrad on: under the scale, 36 mrad inboard of it; before +80 / +52 mrad on, from the scale outward |
+| Gap between the columns | 194 mrad (25 characters; DED DATA's 24 fill it) | Sufa 127 mrad (79 px for DED DATA), Barak 86 mrad (51 px); before 152 / 96 mrad (96 / 58 px) |
+| Text against the field | a character 2.2 % of the 20° IFOV, a row 6.3 % of the 13.5° | the same angles (the glass seen from the camera: Sufa ±8.9°, inferred from the fit; Barak ±7.4°) |
+
+- Result: our text and scales have the real angular size. Our characters are about as wide as the real ones and
+  10 to 25 % lower; the airspeed scale is the same height. The difference is the field. The real scales stand ±7.9°
+  out, and the real layout reaches ±8.8°, which the pilot sees with the two eyes and the head. Our camera is one eye:
+  through the combiner it sees ±8.9° on the Sufa and ±7.4° on the Barak. The least inset that keeps everything on
+  the glass (modern-iaf/docs/cockpit.md §4) puts the scales at ±4.8° and ±3.7°. The columns sit closer together than
+  the real ones, and the 24 characters of DED DATA (175 mrad at our size) do not fit between them.
+- 2026-11-20, the right column moved under the altitude scale as in the dash-34. The fields widened by the inset that
+  freed (Sufa 67 → 72 px, the original's full width; Barak 48 → 58), but the column moved in further than the field
+  widened. The gap for DED DATA narrowed: 96 → 79 px on the Sufa (the block at 66 %, was 80 %), 58 → 51 px on the
+  Barak (42 %, was 48 %).
+- To keep the real proportion inside our glass, the text and the layout would have to shrink to about 0.78× on the
+  Sufa and 0.67× on the Barak: a capital 6 to 7 screen px tall in the wide view at 1,920 × 1,080, against 9 today.
+  Not built (for the user to decide).
 
 **A-A missiles**[^dash34]
 - TD box: 25 mr, segmented when coasting. When the target is off the HUD, a 40 mr locator line from the gun cross
@@ -858,9 +905,11 @@ its scale. The original HUD keeps the original layout.
     other data windows and at their row pitch: the normal text size (inferred from the figure). Ours: the five lines
     one character per cell in that gap from the right column's second row down (inferred place), the block smaller as
     a whole where the gap is narrower than it (the characters never closer than the text's own spacing). At the normal
-    size the 24 columns are 120 px; the fitted fields leave 96 px between the columns on the Sufa (the block at 80 %)
-    and 58 px on the Barak (48 %), whose whole field is 96 px (modern-iaf/docs/cockpit.md §4). No roll indicator
-    meanwhile ("not displayed [when] DED or
+    size the 24 columns are 120 px; the fitted fields leave 79 px between the columns on the Sufa (the block at 66 %)
+    and 51 px on the Barak (42 %), whose whole field is 116 px (modern-iaf/docs/cockpit.md §4; 96 and 58 px before the
+    right column moved under the altitude scale, 2026-11-20). The text has the real angular size; the gap is narrower
+    because the fitted fields are (why: "F-16C/D", "Text and symbol sizes"). No
+    roll indicator meanwhile ("not displayed [when] DED or
     PFLD data is displayed on the HUD", a simulator forum quoting the jet's manual[^dcs-roll]).
   - `FUEL` below the bingo flashes in both games since 2026-11-17 (the dash-34's window 6; it was steady before).
   - Modern IAF's F-16s (2026-11-18, [../modern-iaf/docs/weapons.md](../modern-iaf/docs/weapons.md) §9; the MLU
@@ -1112,6 +1161,14 @@ The F-35I's helmet display over the Negev, before and after, by day and at 22:00
 [^dash34fov]: T.O. GR1F-16CJ-34-1-1 (1997), p. 1-156: "a total field of view of 25 degrees in diameter and is limited
     at the bottom along a line of 10.5 degrees below the center of the total field of view":
     https://falcon.blu3wolf.com/Docs/HAF-F16-34.pdf
+[^mil1787]: GlobalSpec, MIL-STD-1787D listing ("CONT-DIST", controlled distribution):
+    https://standards.globalspec.com/std/10286851/mil-std-1787d-cont-dist
+[^a10-size]: U.S. Air Force, A-10 HUD symbology size study, DTIC ADA210460 ("symbol sizes of 7 to 10 milliradians are
+    commonly found on contemporary HUDs", as a search engine quotes it; not read, the site refuses automated access):
+    https://apps.dtic.mil/sti/pdfs/ADA210460.pdf
+[^us4714320]: US patent 4,714,320, "Display systems" (the IFOV is "the angular field of superimposed and collimated
+    display which can be seen using the two-eyes of the observer", limited by the collimating element):
+    https://patents.google.com/patent/US4714320A/en
 [^roch-lantirn]: Rochester Avionic Archives, "F-16 LANTIRN Diffractive HUD Pilot's Display Unit" (18° vertically,
     30° horizontally): https://rochesteravionicarchives.co.uk/items/f-16-lantirn-diffractive-hud-pilot-s-display-unit
 [^barak-fg]: FlightGlobal, "Israel completes F-16 Barak upgrade", 5 November 2014 (new head-up display and digital

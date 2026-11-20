@@ -73,7 +73,8 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   US Air Force's front-seat photo of a colour-display F-16C from that photo's fitted camera (its depth inferred).
   `test_sim_mfd.gd` checks each F-16's HUD node and, with `test_sim_missiles.gd`, that the combiner holds the field and
   every Real HUD symbol, in `test_sim_mfd.gd` also with every readout at its widest, in the project's window size: the
-  Barak's field ±4.0°, the Sufa's ±5.6° (moved in 5 px, so that its five-digit rows beside the DLZ stay on its plate).
+  Barak's field ±4.8°, the Sufa's ±6.0° (since 2026-11-20, the user's "Do the fix": the right data column sits under
+  the altitude scale, as in the dash-34, and the fields widened by the inset that freed; ±4.0° and ±5.6° before).
   The F-16D manual's HUD pictures show its own frame. Open: the new HUD's maker, field of view and look.
 - **Real missile performance, the core (2026-11-19, the user's "ok so finish the missile works", avionics-plan.md
   §7):** the AIM-9M, AIM-9X, Python 5 and AIM-120 fly a physical missile: the motor's real thrust and burn, drag by Mach

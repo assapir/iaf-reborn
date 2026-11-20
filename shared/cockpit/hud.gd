@@ -792,6 +792,8 @@ func real_hud() -> Dictionary:
 		"g_limit": st.get("g_limit", 9.0),
 		"aoa": st.get("aoa", 0.0),
 		"gear_down": cockpit.gear_handle_down,
+		# Modern IAF's F-16s: the right data column under the altitude scale (cockpit.json [HUD] RightColumnUnder).
+		"right_under": _key("RightColumnUnder", 0.0) > 0.0,
 		"fuel_lbs": st.get("fuel_lbs", 0.0),
 		"bingo_lbs": float(Settings.bingo_lbs),
 		"fpm": (fpm - _c) / _s if fpm != null else null,

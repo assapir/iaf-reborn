@@ -394,6 +394,9 @@ pub struct Input {
     pub g_limit: f64,
     pub aoa_deg: f64,
     pub gear_down: bool,
+    /// The F-16's right data column under the altitude scale, as the dash-34 draws it (Modern IAF's F-16s, their
+    /// cockpit.json `[HUD]` `RightColumnUnder`); false: from the scale outward (the original game's Real HUD).
+    pub right_under: bool,
     pub fuel_lbs: f64,
     /// The bingo fuel (lb) below which the bingo cue shows: the player's setting (Settings.bingo_lbs), as the real
     /// pilot sets it.
