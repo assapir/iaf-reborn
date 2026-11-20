@@ -396,7 +396,10 @@ the clearance it follows (take-off before line-up, line-up before taxi, taxi bef
 יש לבקש כניסה למסלול קודם"; `ACFT_NEGATIVE`) and clears nothing; a call repeated gets its answer again. A wrong call
 alone never fails a mission; acting without the clearance does (§3.3). No "say again" or "radio check" call exists;
 the air has only the landing call (open: the calls the landing and navigation lessons need, such as joining the
-pattern, final and go-around, have no tower lines yet).
+pattern, final and go-around, have no tower lines yet). The list's first page is 1 Tower (the calls above), 2 Wingmen and 3 AWACS (dimmed: it
+reports by itself, no request exists). In a four-ship ([ai-plan.md](ai-plan.md) F5) Wingmen lists the
+flight's addressees, each opening its page of commands to the wingmen (0 goes back; every line is also clickable;
+the game manual's "Commands to your wingmen").
 
 | call | English | Hebrew | marked when | the tower answers |
 |---|---|---|---|---|

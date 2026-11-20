@@ -112,8 +112,9 @@ func _layout(sim_flight: Node, what: String) -> void:
 	var r: Rect2 = ui.panel.get_rect()
 	var right := r.get_center().x > ui.size.x / 2.0
 	check(ui.panel.visible and right == he, "%s: the radio menu at the %s (%s)" % [what, "right" if he else "left", r])
-	check(("מגדל" in ui.panel_label.text) == he, "%s: the menu in the language (%s)" % [what, ui.panel_label.text])
-	check(ui.panel_label.is_layout_rtl() == he, "%s: the panel's text direction" % what)
+	var menu := "\n".join(ui.menu_texts())
+	check(("מגדל" in menu) == he, "%s: the menu in the language (%s)" % [what, menu])
+	check(ui.menu_box.is_layout_rtl() == he, "%s: the panel's text direction" % what)
 	# Not in use, the menu closes by itself MENU_S after it opened (training.md §8); a held modifier keeps it open.
 	sim_flight._menu_at -= int((sim_flight.MENU_S - 1.0) * 1000.0)
 	var ctrl := InputEventKey.new()

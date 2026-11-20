@@ -7,6 +7,8 @@
 # `fe` (front_end.gd), whose building blocks it uses.
 extends RefCounted
 
+const RadioScript := preload("res://shared/audio/radio.gd")
+
 const Look := preload("look.gd")
 const BriefingMap := preload("briefing_map.gd")
 const PrePanel := preload("pre_panel.gd")
@@ -148,7 +150,7 @@ static func _flights(fe: Control, parent: Control, m: Dictionary, map: Control) 
 	for f in list:
 		var b := Button.new()
 		b.name = "Flight_" + str(f.callsign)
-		b.text = fe._ltr(str(f.callsign) + (" 1–%d" % int(f.count) if int(f.count) > 1 else ""))
+		b.text = _flight_tab(fe, f)
 		b.toggle_mode = true
 		b.button_group = group
 		_pill(b)
@@ -535,3 +537,13 @@ static func _focus_order(fe: Control, card: Control, chips: Control, text: Contr
 	for c in chip_list:
 		fe._nb(c, {"top": c, "bottom": map})
 	fe._nb(how, {"top": chip_list[0], "bottom": how, start: last_card, end: how})
+
+
+## A flight's tab: its callsign and its jets' numbers ("Alpha 1–4"); in Hebrew the callsign in Hebrew letters
+## ("אלפא 1–4", the numbers in an isolate), as the user asked, 19 Nov.
+static func _flight_tab(fe: Node, f: Dictionary) -> String:
+	var n := " 1–%d" % int(f.count) if int(f.count) > 1 else ""
+	if Settings.language == "he":
+		var name: String = RadioScript.callsign_text(str(f.callsign))
+		return "%s \u2066%s\u2069" % [name, n.strip_edges()] if n != "" else name
+	return fe._ltr(str(f.callsign) + n)

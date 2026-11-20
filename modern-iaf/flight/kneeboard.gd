@@ -13,6 +13,8 @@
 # - a help line over the board in the pilot's first start-up mission only (Settings.notebook_help_seen).
 extends Node
 
+const RadioScript := preload("res://shared/audio/radio.gd")
+
 const Notebook := preload("notebook.gd")
 const Look := preload("../menu/look.gd")
 ## The sim's key records of the Checklist notebook (modern-iaf/data/keys.json, command 203): raise / stow, the previous
@@ -317,7 +319,7 @@ func _sections() -> Array:
 	# RADIO
 	blocks = []
 	var cs: String = flight.host.radio.formation_name(flight.host.radio._player_ent()) if flight.host.radio else "Alpha"
-	var rows := [[s("nb_callsign"), "[b]%s[/b]" % _ltr(cs.to_upper()), ""]]
+	var rows := [[s("nb_callsign"), "[b]%s[/b]" % (RadioScript.callsign_text(cs) if he() else cs.to_upper()), ""]]
 	for f in data.get("radio", {}).get(_base(), []):
 		var mhz := float(f[1])
 		rows.append(["%s %s" % [_base_name(), f[0]], _ltr("%.3f" % mhz), "VHF" if mhz < 136.0 else "UHF"])

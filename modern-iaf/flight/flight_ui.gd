@@ -2,7 +2,8 @@
 # mirrored in Hebrew, on the front end's 1080-high canvas scaled to the window:
 # - the radio lines and the training messages: a strip centred at the top, the newest at the bottom, each for
 #   LINE_S seconds (terrain_view.gd _on_subtitle hands them to the flight add-on instead of the original's console);
-# - a panel at the inline-start top for the radio menu and the training result (flight/sim_flight.gd);
+# - a panel at the inline-start top for the radio menu (its title and numbered lines, each clickable) and the training
+#   result (flight/sim_flight.gd);
 # No key hint over the flight (the user, 13 Nov: "lets remove the kb hints"; 15 Nov: "remove it completely"): the keys
 # are listed in the pilot's notebook (H) and the Keys screen.
 # All of it follows the game's language, also when the pause menu's Preferences switch it mid-flight: the radio lines
@@ -24,6 +25,9 @@ var host: Node
 var strings := {}
 var panel: PanelContainer
 var panel_label: Label
+## The radio menu in the panel: its title, then a flat button per line (show_menu).
+var menu_box: VBoxContainer
+var _on_pick := Callable()
 var _band: VBoxContainer
 var _lines: Array = []  # [Label, shown at (ms)]
 var _lang := ""
@@ -64,6 +68,10 @@ func _ready() -> void:
 	panel_label = Label.new()
 	panel_label.add_theme_font_size_override("font_size", 24)
 	panel.add_child(panel_label)
+	menu_box = VBoxContainer.new()
+	menu_box.name = "Menu"
+	menu_box.add_theme_constant_override("separation", 0)
+	panel.add_child(menu_box)
 	panel.visible = false
 	_apply_language()
 
@@ -76,10 +84,10 @@ func _apply_language() -> void:
 	var dir := Control.LAYOUT_DIRECTION_RTL if he() else Control.LAYOUT_DIRECTION_LTR
 	# The panel's text, not the panel: an RTL control mirrors its own anchors, which put the top-right panel back at
 	# the left (the Mac's Hebrew radio menu and "To complete", 2026-11-13). The band is centred.
-	for c in [_band, panel_label]:  # not the add-on's own (an RTL child here mirrors its anchors)
+	for c in [_band, panel_label, menu_box]:  # not the add-on's own (an RTL child here mirrors its anchors)
 		c.layout_direction = dir
 	# The panel by its anchors: the right edge in Hebrew.
-	panel.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT if he() else Control.PRESET_TOP_LEFT)
+	_place()
 	panel.grow_horizontal = Control.GROW_DIRECTION_BEGIN if he() else Control.GROW_DIRECTION_END
 	if he():
 		panel.offset_right = -48
@@ -141,7 +149,58 @@ func _process(_delta: float) -> void:
 # --- the panel (radio menu, training result) --------------------------------------------------------------------------
 
 
+## The panel at its corner (the right edge in Hebrew), its size back to its content's: a page narrower than the one
+## before would otherwise stay off the corner.
+func _place() -> void:
+	panel.reset_size()
+	panel.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT if he() else Control.PRESET_TOP_LEFT)
+
+
 func show_panel(text: String) -> void:
 	panel_label.text = text
+	panel_label.visible = true
+	menu_box.visible = false
 	panel.visible = text != ""
-	panel.reset_size()
+	_place()
+
+
+## The radio menu: `title`, then each of `lines` ("1. Request taxi") as a flat button in the panel's text size; a click
+## calls `on_pick` with the line's index (the number keys pick the same lines, sim_flight.gd key()).
+func show_menu(title: String, lines: Array, on_pick: Callable, off := {}) -> void:
+	_on_pick = on_pick
+	for c in menu_box.get_children():
+		menu_box.remove_child(c)
+		c.queue_free()
+	var t := Label.new()
+	t.text = title
+	t.text_direction = Control.TEXT_DIRECTION_INHERITED  # a Hebrew line that starts with a Latin run stays RTL
+	t.add_theme_font_size_override("font_size", 24)
+	menu_box.add_child(t)
+	for i in lines.size():
+		var b := Button.new()
+		b.text = String(lines[i])
+		b.flat = true
+		b.focus_mode = Control.FOCUS_NONE  # the keys stay with the menu
+		b.alignment = HORIZONTAL_ALIGNMENT_LEFT  # the inline start: a Button mirrors it in Hebrew
+		b.add_theme_font_size_override("font_size", 24)
+		b.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+		b.text_direction = Control.TEXT_DIRECTION_INHERITED
+		b.pressed.connect(func(): _on_pick.call(i))
+		menu_box.add_child(b)
+		if off.has(i):  # shown off, with its reason in one line below
+			b.disabled = true
+			var r := Label.new()
+			r.text = String(off[i])
+			r.text_direction = Control.TEXT_DIRECTION_INHERITED
+			r.add_theme_font_size_override("font_size", 24)
+			r.modulate = Color(1, 1, 1, 0.6)
+			menu_box.add_child(r)
+	panel_label.visible = false
+	menu_box.visible = true
+	panel.visible = true
+	_place()
+
+
+## The menu's text as shown: the title and each line (and a reason line).
+func menu_texts() -> Array:
+	return menu_box.get_children().map(func(c): return String(c.text))

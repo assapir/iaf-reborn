@@ -101,3 +101,32 @@ The page puts the start-up and taxi calls on GND and the line-up, take-off and l
 The lines are in the game's language (@language). The voices speak English.
 
 #screen("flight_band", [A tower call: the radio's lines at the top of the screen.])
+
+=== Commands to your wingmen <radio-flight>
+
+#idx("Wingmen")#idx("Radio menu")In a four-ship lesson you fly as Alpha 1 and lead Alpha 2, 3 and 4. Alpha 2 flies on you; Alpha 4 flies on Alpha 3, who leads the second pair. You command them from the same menu: there is no other key.
+
++ Press #key("Call the tower").
+  #then[The list shows 1 Tower, 2 Wingmen and 3 #term("AWACS"). The tower's calls are under 1. AWACS has no call to make: it reports by itself, so its line is dimmed.]
++ Press 2.
+  #then[The list shows Alpha (flight), Alpha 3–4 (element), Alpha 2, Alpha 3 and Alpha 4.]
++ Press the number of whom you call.
+  #then[The list shows the commands for them. #keycap("0") goes back.]
++ Press the number of a command.
+  #then[The list closes. Your pilot makes the call ("Alpha Two, rejoin"). Each wingman answers by its number ("Two.") or "unable".]
+
+You can also click a line of the list.
+
+#grid-table(
+  (auto, auto, 1fr),
+  ([Command], [To], [What the wingmen do]),
+  [Formation], [the flight], [A page of shapes: fingertip, echelon right, echelon left, line abreast, wedge, trail. Each calls "in position" in its new slot.],
+  [Rejoin], [anyone], [Back to the slot from any task, also after an RTB. To Alpha 3–4 it ends a split.],
+  [Split], [Alpha 3–4], [The second pair flies to your sensor's point (the radar's designated point, else your steerpoint) and circles it. It must be within 40 km of you, or they answer "unable".],
+  [Engage my target], [anyone], [They fly at the aircraft your radar has locked and fire their air-to-air missiles. With no enemy aircraft locked they answer "unable". When it is destroyed they rejoin.],
+  [RTB], [anyone], [They return to base and land.],
+  [Check in], [anyone], [Each answers with its number.],
+  [Ops check], [anyone], [Each answers with its fuel, in thousands of pounds ("Two, six point two").],
+)
+
+The wingmen also call by themselves: "joker" and "bingo" for their fuel, "spike" or "mud" when a radar locks on them, "defending" when a missile flies at them, "break left" or "break right" when they see a missile fired at their pair's other jet, "contact" when their radar holds an aircraft the AWACS called, and "Three has the lead" when the lead changes. A wingman under a lock turns away from the threat and drops chaff or flares, then rejoins.

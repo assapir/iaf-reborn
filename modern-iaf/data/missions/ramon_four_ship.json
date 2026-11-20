@@ -57,7 +57,7 @@
       {
         "at": "start",
         "en": "You lead Alpha, a four-ship of Sufas: you are Alpha 1 in shelter S2, and your wingmen, Alpha 2, 3 and 4, flown by the computer, wait in shelters S3, S1 and S5. Call the tower first: {key:47:1} requests start-up. \"Cleared to start\" clears the whole flight, and each wingman starts its engine a few seconds after the one before.",
-        "he": "רביעיית Alpha של מטוסי סופה: המוביל הוא Alpha 1, בדת\"ק S2; מספרי 2, 3 ו־4, בהטסת המחשב, ממתינים בדת\"קים S3, S1 ו־S5. קודם לקרוא למגדל: {key:47:1} מבקש התנעה. \"אישור התנעה\" מאשר את כל המבנה, וכל מספר מתניע כמה שניות אחרי הקודם."
+        "he": "רביעיית אלפא של מטוסי סופה: המוביל הוא אלפא 1, בדת\"ק S2; מספרי 2, 3 ו־4, בהטסת המחשב, ממתינים בדת\"קים S3, S1 ו־S5. קודם לקרוא למגדל: {key:47:1} מבקש התנעה. \"אישור התנעה\" מאשר את כל המבנה, וכל מספר מתניע כמה שניות אחרי הקודם."
       },
       {
         "en": "Start the jet by its start-up checklist (the notebook, {key:118}), as in the Take-off lesson. With the engine at idle and the avionics up, request taxi: {key:47:2}, and taxi along the dashed route to runway {runway}. Alpha 2, 3 and 4 leave their shelters and taxi behind you in order, each behind the one before; taxi slowly enough for them to keep up.",

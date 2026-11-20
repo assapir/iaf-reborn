@@ -29,6 +29,45 @@ const ITEMS := [
 	["takeoff", "Request take-off", "בקשת המראה"],
 	["landing", "Contact tower (landing)", "קריאה למגדל (נחיתה)"],
 ]
+## The first page's lines: id, English, Hebrew (the user, 19 Nov: "1: tower ... 2: wingman's commands ... 3 will be
+## AWACS"). AWACS has no request call to make (its contact calls come by themselves, radio.gd), so its line is shown
+## off with the reason (fl_radio_awacs_off).
+const TOP := [
+	["m:tower", "Tower", "מגדל"],
+	["m:wingmen", "Wingmen", "המבנה"],
+	["m:awacs", "AWACS", "AWACS"],
+]
+## The page a `0` goes back to.
+const PARENT := {"tower": "", "wingmen": "", "to": "wingmen", "formation": "to"}
+## The flight's pages (ours, modern-iaf/docs/ai-plan.md F5; the user, 19 Nov: "radion menu instead of hotkeys"): after
+## the tower's calls, one line per addressee of the four-ship (IafAi's `to`: 0 the flight, 5 the element, 2..4 one
+## wingman), its English and Hebrew label and the address the pilot says (voices.json).
+const ADDRESSEES := [
+	[0, "Alpha (flight)", "אלפא (רביעייה)", "ALPHA_P"],
+	[5, "Alpha 3–4 (element)", "אלפא 3–4 (זוג)", "CMD_ALPHA_34"],
+	[2, "Alpha 2", "אלפא 2", "CMD_ALPHA_2"],
+	[3, "Alpha 3", "אלפא 3", "CMD_ALPHA_3"],
+	[4, "Alpha 4", "אלפא 4", "CMD_ALPHA_4"],
+]
+## An addressee's commands: id, English, Hebrew (the words of modern-iaf/docs/research/radio-terms.md), the particle
+## said, and whom it is offered to (f the flight, e the element, w one wingman). "formation" opens the shapes' page.
+const COMMANDS := [
+	["formation", "Formation", "מבנה", "", "f"],
+	["rejoin", "Rejoin", "הצטרפות", "CMD_REJOIN", "few"],
+	["split", "Split", "פיצול", "CMD_SPLIT", "e"],
+	["engage", "Engage my target", "תקיפת המטרה שלי", "CMD_ENGAGE", "few"],
+	["rtb", "RTB", "חזרה לבסיס", "CMD_RTB", "few"],
+	["check", "Check in", "בדיקת קשר", "CMD_CHECK", "few"],
+	["ops_check", "Ops check", "בדיקת מערכות ודלק", "CMD_OPS_CHECK", "few"],
+]
+const SHAPES := [
+	["fingertip", "Fingertip", "מבנה ארבע אצבעות", "CMD_FINGERTIP"],
+	["echelon_right", "Echelon right", "מדרג ימין", "CMD_ECHELON_RIGHT"],
+	["echelon_left", "Echelon left", "מדרג שמאל", "CMD_ECHELON_LEFT"],
+	["line_abreast", "Line abreast", "מבנה מקבילי", "CMD_LINE_ABREAST"],
+	["wedge", "Wedge", "Wedge", "CMD_WEDGE"],
+	["trail", "Trail", "מבנה טור", "CMD_TRAIL"],
+]
 ## The pilot's call, printed in the game's language and said by the pilot's voice (radio.gd PILOT_CALL: the address,
 ## the callsign, REQ_<ID>; modern-iaf/docs/sound.md §5.2).
 const CALLS := {
@@ -61,6 +100,10 @@ const FINAL := ["wrong_runway", "excursion", "over_time"]
 var host: Node
 var open := false
 var _menu_at := 0  # the radio menu's opening or last key (ms): MENU_S later it closes
+## The menu's page: "" the first (Tower, Wingmen, AWACS), "tower" the tower's calls, "wingmen" the flight's
+## addressees, "to" an addressee's commands (`_to`), "formation" the flight's shapes.
+var page := ""
+var _to := 0
 ## The menu's calls as shown (ids), and the tower's answers so far (templates; approvals for IafTraining.radio_calls).
 var shown: Array = []
 var answers := PackedStringArray()
@@ -255,17 +298,86 @@ func _hold_of(sec: String, l: Vector2) -> Variant:
 	return Vector2(float(s["FromTaxiPtX%d" % (n - 2)]), float(s["FromTaxiPtY%d" % (n - 2)])).distance_to(l)
 
 
-## The menu's text in the game's language: the title and the calls in `shown`, numbered.
+## The menu's text in the game's language: the title and the entries in `shown`, numbered (0 back on a later page).
 func menu_text() -> String:
+	return "\n".join([_title()] + _lines())
+
+
+func _title() -> String:
+	var he := _he()
+	if page == "":
+		return _bi(ui.s("fl_radio_top"))
+	if page == "tower":
+		return _bi(ui.s("fl_radio") % _tower_name())
+	if page == "wingmen":
+		return _bi(ui.s("fl_radio_to") % TOP[1][2 if he else 1])
+	var a: Array = ADDRESSEES.filter(func(x): return x[0] == _to)[0]
+	var who: String = a[2 if he else 1]
+	return _bi(ui.s("fl_radio_to") % (who if page == "to" else "%s, %s" % [who, COMMANDS[0][2 if he else 1]]))
+
+
+## Hebrew text with each Latin run (a callsign, a number, "Alpha 3–4") in a Unicode isolate, so the parentheses and
+## the neighbours around it keep the right-to-left order (the front end's way, flight_graphs.gd); English as is.
+func _bi(t: String) -> String:
+	if not _he():
+		return t
+	var re := RegEx.new()
+	re.compile("[A-Za-z0-9]+(?:[ \u2013][A-Za-z0-9]+)*")
+	return re.sub(t, "\u2066$0\u2069", true)
+
+
+## The numbered lines of `shown` (then the back line on a later page).
+func _lines() -> Array:
 	var lang := 1 if not _he() else 2
-	var base := _tower_name()
-	var lines := [ui.s("fl_radio") % base]
+	var lines := []
 	# No "(next)" mark (the user, 17 Nov: "remove the (next) from the raio menu").
 	for i in shown.size():
-		for it in ITEMS:
+		for it in (
+			TOP + ITEMS + ADDRESSEES.map(func(a): return ["to:%d" % a[0], a[1] + " ›", a[2] + " ‹"]) + COMMANDS + SHAPES
+		):
 			if it[0] == shown[i]:
-				lines.append("%d. %s" % [i + 1, it[lang]])
-	return "\n".join(lines)
+				lines.append(_bi("%d. %s" % [i + 1, it[lang]]))
+				break
+	if page != "":
+		lines.append("0. %s" % ui.s("fl_radio_back"))
+	return lines
+
+
+## The lines shown off (index in `shown` -> the reason), clickable no more.
+func _off() -> Dictionary:
+	var off := {}
+	var i: int = shown.find("m:awacs")
+	if i >= 0:
+		off[i] = _bi(ui.s("fl_radio_awacs_off"))
+	return off
+
+
+## The entries of the page now (ids): Tower, Wingmen, AWACS; the tower's calls; the flight's addressees with an AI jet
+## alive (the four-ship, IafAi); an addressee's commands; the shapes.
+func _entries() -> Array:
+	if page == "":
+		return TOP.map(func(x): return x[0])
+	if page == "formation":
+		return SHAPES.map(func(x): return x[0])
+	if page == "to":
+		var kind := "f" if _to == 0 else ("e" if _to == 5 else "w")
+		return COMMANDS.filter(func(c): return kind in c[4]).map(func(c): return c[0])
+	if page == "tower":
+		return calls()
+	var ai = host.get("ai")
+	var fa = ai.get("flight_ai") if ai != null else null
+	var ids := []
+	if fa == null or host.ejected:
+		return ids
+	var alive := {}
+	for m in ai._ai_members:
+		if not m[1].player and int(m[1].state) < 3:
+			alive[int(m[0])] = true
+	for a in ADDRESSEES:
+		var n: int = a[0]
+		if (n == 0 and not alive.is_empty()) or (n == 5 and (alive.has(3) or alive.has(4))) or alive.has(n):
+			ids.append("to:%d" % n)
+	return ids
 
 
 func _tower_name() -> String:
@@ -285,17 +397,63 @@ func _base_name(i: int, lang := -1) -> String:
 ## frame's score.
 func _language_changed() -> void:
 	if open:
-		ui.show_panel(menu_text())
+		_show()
 	_wrong_shown = ""
 	_next_score = 0.0
 
 
 func set_open(on: bool) -> void:
 	open = on
+	page = ""
 	_menu_at = Time.get_ticks_msec()
-	shown = calls() if on else []
-	ui.show_panel(menu_text() if on else "")
+	_show()
 	_wrong_shown = ""  # the wrong-runway line (if any) back once the menu closes
+
+
+## The menu's page now in the panel, each line clickable (`choose`), or the panel cleared when closed.
+func _show() -> void:
+	shown = _entries() if open else []
+	if open:
+		ui.show_menu(_title(), _lines(), _clicked, _off())
+	else:
+		ui.show_panel("")
+
+
+## A line clicked: its number, 0 the back line (after the entries).
+func _clicked(i: int) -> void:
+	_menu_at = Time.get_ticks_msec()
+	choose(i + 1 if i < shown.size() else 0)
+
+
+## The menu's entry `n` (1 the first; 0 back to the first page, else closes): a tower's call is made, an addressee or
+## Formation opens its page, a command is given (flight_command). Any other number closes the menu.
+func choose(n: int) -> void:
+	var ids := shown
+	var id: String = String(ids[n - 1]) if n >= 1 and n <= ids.size() else ""
+	if n == 0 and page != "":
+		page = PARENT[page]
+		_show()
+	elif id == "m:awacs":
+		pass  # off: the line says why
+	elif id.begins_with("m:"):
+		page = id.substr(2)
+		_show()
+	elif id.begins_with("to:"):
+		_to = int(id.substr(3))
+		page = "to"
+		_show()
+	elif id == "formation":
+		page = "formation"
+		_show()
+	elif page == "tower":
+		set_open(false)
+		pick(id)
+	elif page == "":
+		set_open(false)
+	else:
+		set_open(false)
+		if id != "":
+			flight_command(_to, id)
 
 
 ## A radio line or a message (terrain_view.gd _on_subtitle): the band of the sim's own text, not the original's
@@ -331,16 +489,42 @@ func key(event: InputEventKey) -> bool:
 			_idle_key(host.keys.records[rec].press)
 		return false
 	var k := event.keycode
-	var i := -1
-	if k >= KEY_1 and k <= KEY_9:
-		i = k - KEY_1
-	elif k >= KEY_KP_1 and k <= KEY_KP_9:
-		i = k - KEY_KP_1
-	var ids := shown
-	set_open(false)
-	if i >= 0 and i < ids.size():
-		pick(ids[i])
+	var n := -1
+	if k >= KEY_0 and k <= KEY_9:
+		n = k - KEY_0
+	elif k >= KEY_KP_0 and k <= KEY_KP_9:
+		n = k - KEY_KP_0
+	_menu_at = Time.get_ticks_msec()
+	if n < 0:
+		set_open(false)
+	else:
+		choose(n)
 	return true
+
+
+## A command of the radio menu's flight pages to `to` (IafAi's: 0 the flight, 5 the element, 2..4 one wingman): the
+## pilot's call said with its subtitle ("Alpha Two, rejoin"), then IafAi takes it and the wingmen answer (ai_flights.gd
+## says their calls). "split" sends element 2 to the SPI (the radar's designated point, else the steerpoint),
+## "engage" the jets at the radar's locked enemy aircraft (ai_flights.gd engage_target). Recorded as a `radio` event.
+func flight_command(to: int, id: String) -> void:
+	var ai = host.get("ai")
+	if ai == null or ai.get("flight_ai") == null:
+		return
+	var r: Node = host.radio
+	var addr: String = ADDRESSEES.filter(func(a): return a[0] == to)[0][3]
+	var said: Array = (COMMANDS + SHAPES).filter(func(c): return c[0] == id)
+	if not said.is_empty():
+		r.say("FLT_CMD", [addr, said[0][3]])
+	var now: float = host.runtime.now
+	var ok: bool
+	match id:
+		"engage":
+			ok = ai.engage_target(to)
+		"split":
+			ok = ai.flight_ai.split(now, host.world_to_scene(host.weapons.spi()))
+		_:
+			ok = ai.flight_ai.command(now, to, id)
+	host._log_event(host._log_st, {"event": "radio", "call": "%s:%d" % [id, to], "answer": "ok" if ok else "none"})
 
 
 ## One menu pick: the pilot's call printed and said, the gap, the tower's answer (radio.gd request), a `radio` event
@@ -354,7 +538,7 @@ func pick(id: String) -> String:
 	# The tower called: the one in range on the ground (request's), the radio's base in the air (contact_tower's).
 	var at: int = r.base if id == "landing" else r.base_at(r._pos())
 	var has_tower: bool = at >= 0 and at < r.tower_count
-	var lines := ["%s, %s" % [cs, CALLS[id][0]], "%s, %s" % [cs, CALLS[id][1]]]
+	var lines := ["%s, %s" % [cs, CALLS[id][0]], "%s, %s" % [r.callsign_text(cs), CALLS[id][1]]]
 	if has_tower:
 		lines[0] = "%s, %s" % [TOWER.en % _base_name(at, 0), lines[0]]
 		lines[1] = "%s, %s" % [TOWER.he % _base_name(at, 1), lines[1]]

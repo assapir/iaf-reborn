@@ -2347,22 +2347,22 @@
     "ALPHA_T": {
       "file": "twr_alpha.ogg",
       "text": "Alpha",
-      "text_he": "Alpha"
+      "text_he": "אלפא"
     },
     "BRAVO_T": {
       "file": "twr_bravo.ogg",
       "text": "Bravo",
-      "text_he": "Bravo"
+      "text_he": "בראבו"
     },
     "CHARLIE_T": {
       "file": "twr_charlie.ogg",
       "text": "Charlie",
-      "text_he": "Charlie"
+      "text_he": "צ'רלי"
     },
     "DELTA_T": {
       "file": "twr_delta.ogg",
       "text": "Delta",
-      "text_he": "Delta"
+      "text_he": "דלתא"
     },
     "MORNING": {
       "file": "twr_morning.ogg",
@@ -2762,437 +2762,437 @@
     "ALPHA_T+,+MORNING+,+TAXI_RWY": {
       "file": "twr_alpha_taxi_morning.ogg",
       "text": "Alpha, good morning, taxi to runway",
-      "text_he": "Alpha, בוקר טוב, הסעה למסלול"
+      "text_he": "אלפא, בוקר טוב, הסעה למסלול"
     },
     "ALPHA_T+,+AFTERNOON+,+TAXI_RWY": {
       "file": "twr_alpha_taxi_afternoon.ogg",
       "text": "Alpha, good afternoon, taxi to runway",
-      "text_he": "Alpha, צהריים טובים, הסעה למסלול"
+      "text_he": "אלפא, צהריים טובים, הסעה למסלול"
     },
     "ALPHA_T+,+EVENING+,+TAXI_RWY": {
       "file": "twr_alpha_taxi_evening.ogg",
       "text": "Alpha, good evening, taxi to runway",
-      "text_he": "Alpha, ערב טוב, הסעה למסלול"
+      "text_he": "אלפא, ערב טוב, הסעה למסלול"
     },
     "ALPHA_T+,+LINEUP_RWY": {
       "file": "twr_alpha_lineup_rwy.ogg",
       "text": "Alpha, line up runway",
-      "text_he": "Alpha, כניסה למסלול"
+      "text_he": "אלפא, כניסה למסלול"
     },
     "ALPHA_T+,+PROCEED_RWY": {
       "file": "twr_alpha_proceed_rwy.ogg",
       "text": "Alpha, proceed to runway",
-      "text_he": "Alpha, התקדמות למסלול"
+      "text_he": "אלפא, התקדמות למסלול"
     },
     "ALPHA_T+,+LAND_RWY": {
       "file": "twr_alpha_land_rwy.ogg",
       "text": "Alpha, cleared to land runway",
-      "text_he": "Alpha, אישור נחיתה במסלול"
+      "text_he": "אלפא, אישור נחיתה במסלול"
     },
     "ALPHA_T+,+START": {
       "file": "twr_alpha_start.ogg",
       "text": "Alpha, cleared to start",
-      "text_he": "Alpha, אישור התנעה"
+      "text_he": "אלפא, אישור התנעה"
     },
     "ALPHA_T+,+HOLD_POS": {
       "file": "twr_alpha_hold_pos.ogg",
       "text": "Alpha, hold position",
-      "text_he": "Alpha, המתנה במקום"
+      "text_he": "אלפא, המתנה במקום"
     },
     "ALPHA_T+,+TAKEOFF": {
       "file": "twr_alpha_takeoff.ogg",
       "text": "Alpha, cleared for take-off",
-      "text_he": "Alpha, אישור המראה"
+      "text_he": "אלפא, אישור המראה"
     },
     "ALPHA_T+,+GO_AROUND": {
       "file": "twr_alpha_go_around.ogg",
       "text": "Alpha, go around, runway not clear",
-      "text_he": "Alpha, סיבוב נוסף, המסלול אינו פנוי"
+      "text_he": "אלפא, סיבוב נוסף, המסלול אינו פנוי"
     },
     "ALPHA_T+,+TAXI_PARK": {
       "file": "twr_alpha_taxi_park.ogg",
       "text": "Alpha, welcome back, taxi to parking",
-      "text_he": "Alpha, ברוכים השבים, הסעה לחנייה"
+      "text_he": "אלפא, ברוכים השבים, הסעה לחנייה"
     },
     "ALPHA_T+,+GEAR_NOT_DOWN": {
       "file": "twr_alpha_gear_not_down.ogg",
       "text": "Alpha, check gear down",
-      "text_he": "Alpha, בדיקת כן נסע למטה"
+      "text_he": "אלפא, בדיקת כן נסע למטה"
     },
     "BRAVO_T+,+MORNING+,+TAXI_RWY": {
       "file": "twr_bravo_taxi_morning.ogg",
       "text": "Bravo, good morning, taxi to runway",
-      "text_he": "Bravo, בוקר טוב, הסעה למסלול"
+      "text_he": "בראבו, בוקר טוב, הסעה למסלול"
     },
     "BRAVO_T+,+AFTERNOON+,+TAXI_RWY": {
       "file": "twr_bravo_taxi_afternoon.ogg",
       "text": "Bravo, good afternoon, taxi to runway",
-      "text_he": "Bravo, צהריים טובים, הסעה למסלול"
+      "text_he": "בראבו, צהריים טובים, הסעה למסלול"
     },
     "BRAVO_T+,+EVENING+,+TAXI_RWY": {
       "file": "twr_bravo_taxi_evening.ogg",
       "text": "Bravo, good evening, taxi to runway",
-      "text_he": "Bravo, ערב טוב, הסעה למסלול"
+      "text_he": "בראבו, ערב טוב, הסעה למסלול"
     },
     "BRAVO_T+,+LINEUP_RWY": {
       "file": "twr_bravo_lineup_rwy.ogg",
       "text": "Bravo, line up runway",
-      "text_he": "Bravo, כניסה למסלול"
+      "text_he": "בראבו, כניסה למסלול"
     },
     "BRAVO_T+,+PROCEED_RWY": {
       "file": "twr_bravo_proceed_rwy.ogg",
       "text": "Bravo, proceed to runway",
-      "text_he": "Bravo, התקדמות למסלול"
+      "text_he": "בראבו, התקדמות למסלול"
     },
     "BRAVO_T+,+LAND_RWY": {
       "file": "twr_bravo_land_rwy.ogg",
       "text": "Bravo, cleared to land runway",
-      "text_he": "Bravo, אישור נחיתה במסלול"
+      "text_he": "בראבו, אישור נחיתה במסלול"
     },
     "BRAVO_T+,+START": {
       "file": "twr_bravo_start.ogg",
       "text": "Bravo, cleared to start",
-      "text_he": "Bravo, אישור התנעה"
+      "text_he": "בראבו, אישור התנעה"
     },
     "BRAVO_T+,+HOLD_POS": {
       "file": "twr_bravo_hold_pos.ogg",
       "text": "Bravo, hold position",
-      "text_he": "Bravo, המתנה במקום"
+      "text_he": "בראבו, המתנה במקום"
     },
     "BRAVO_T+,+TAKEOFF": {
       "file": "twr_bravo_takeoff.ogg",
       "text": "Bravo, cleared for take-off",
-      "text_he": "Bravo, אישור המראה"
+      "text_he": "בראבו, אישור המראה"
     },
     "BRAVO_T+,+GO_AROUND": {
       "file": "twr_bravo_go_around.ogg",
       "text": "Bravo, go around, runway not clear",
-      "text_he": "Bravo, סיבוב נוסף, המסלול אינו פנוי"
+      "text_he": "בראבו, סיבוב נוסף, המסלול אינו פנוי"
     },
     "BRAVO_T+,+TAXI_PARK": {
       "file": "twr_bravo_taxi_park.ogg",
       "text": "Bravo, welcome back, taxi to parking",
-      "text_he": "Bravo, ברוכים השבים, הסעה לחנייה"
+      "text_he": "בראבו, ברוכים השבים, הסעה לחנייה"
     },
     "BRAVO_T+,+GEAR_NOT_DOWN": {
       "file": "twr_bravo_gear_not_down.ogg",
       "text": "Bravo, check gear down",
-      "text_he": "Bravo, בדיקת כן נסע למטה"
+      "text_he": "בראבו, בדיקת כן נסע למטה"
     },
     "CHARLIE_T+,+MORNING+,+TAXI_RWY": {
       "file": "twr_charlie_taxi_morning.ogg",
       "text": "Charlie, good morning, taxi to runway",
-      "text_he": "Charlie, בוקר טוב, הסעה למסלול"
+      "text_he": "צ'רלי, בוקר טוב, הסעה למסלול"
     },
     "CHARLIE_T+,+AFTERNOON+,+TAXI_RWY": {
       "file": "twr_charlie_taxi_afternoon.ogg",
       "text": "Charlie, good afternoon, taxi to runway",
-      "text_he": "Charlie, צהריים טובים, הסעה למסלול"
+      "text_he": "צ'רלי, צהריים טובים, הסעה למסלול"
     },
     "CHARLIE_T+,+EVENING+,+TAXI_RWY": {
       "file": "twr_charlie_taxi_evening.ogg",
       "text": "Charlie, good evening, taxi to runway",
-      "text_he": "Charlie, ערב טוב, הסעה למסלול"
+      "text_he": "צ'רלי, ערב טוב, הסעה למסלול"
     },
     "CHARLIE_T+,+LINEUP_RWY": {
       "file": "twr_charlie_lineup_rwy.ogg",
       "text": "Charlie, line up runway",
-      "text_he": "Charlie, כניסה למסלול"
+      "text_he": "צ'רלי, כניסה למסלול"
     },
     "CHARLIE_T+,+PROCEED_RWY": {
       "file": "twr_charlie_proceed_rwy.ogg",
       "text": "Charlie, proceed to runway",
-      "text_he": "Charlie, התקדמות למסלול"
+      "text_he": "צ'רלי, התקדמות למסלול"
     },
     "CHARLIE_T+,+LAND_RWY": {
       "file": "twr_charlie_land_rwy.ogg",
       "text": "Charlie, cleared to land runway",
-      "text_he": "Charlie, אישור נחיתה במסלול"
+      "text_he": "צ'רלי, אישור נחיתה במסלול"
     },
     "CHARLIE_T+,+START": {
       "file": "twr_charlie_start.ogg",
       "text": "Charlie, cleared to start",
-      "text_he": "Charlie, אישור התנעה"
+      "text_he": "צ'רלי, אישור התנעה"
     },
     "CHARLIE_T+,+HOLD_POS": {
       "file": "twr_charlie_hold_pos.ogg",
       "text": "Charlie, hold position",
-      "text_he": "Charlie, המתנה במקום"
+      "text_he": "צ'רלי, המתנה במקום"
     },
     "CHARLIE_T+,+TAKEOFF": {
       "file": "twr_charlie_takeoff.ogg",
       "text": "Charlie, cleared for take-off",
-      "text_he": "Charlie, אישור המראה"
+      "text_he": "צ'רלי, אישור המראה"
     },
     "CHARLIE_T+,+GO_AROUND": {
       "file": "twr_charlie_go_around.ogg",
       "text": "Charlie, go around, runway not clear",
-      "text_he": "Charlie, סיבוב נוסף, המסלול אינו פנוי"
+      "text_he": "צ'רלי, סיבוב נוסף, המסלול אינו פנוי"
     },
     "CHARLIE_T+,+TAXI_PARK": {
       "file": "twr_charlie_taxi_park.ogg",
       "text": "Charlie, welcome back, taxi to parking",
-      "text_he": "Charlie, ברוכים השבים, הסעה לחנייה"
+      "text_he": "צ'רלי, ברוכים השבים, הסעה לחנייה"
     },
     "CHARLIE_T+,+GEAR_NOT_DOWN": {
       "file": "twr_charlie_gear_not_down.ogg",
       "text": "Charlie, check gear down",
-      "text_he": "Charlie, בדיקת כן נסע למטה"
+      "text_he": "צ'רלי, בדיקת כן נסע למטה"
     },
     "DELTA_T+,+MORNING+,+TAXI_RWY": {
       "file": "twr_delta_taxi_morning.ogg",
       "text": "Delta, good morning, taxi to runway",
-      "text_he": "Delta, בוקר טוב, הסעה למסלול"
+      "text_he": "דלתא, בוקר טוב, הסעה למסלול"
     },
     "DELTA_T+,+AFTERNOON+,+TAXI_RWY": {
       "file": "twr_delta_taxi_afternoon.ogg",
       "text": "Delta, good afternoon, taxi to runway",
-      "text_he": "Delta, צהריים טובים, הסעה למסלול"
+      "text_he": "דלתא, צהריים טובים, הסעה למסלול"
     },
     "DELTA_T+,+EVENING+,+TAXI_RWY": {
       "file": "twr_delta_taxi_evening.ogg",
       "text": "Delta, good evening, taxi to runway",
-      "text_he": "Delta, ערב טוב, הסעה למסלול"
+      "text_he": "דלתא, ערב טוב, הסעה למסלול"
     },
     "DELTA_T+,+LINEUP_RWY": {
       "file": "twr_delta_lineup_rwy.ogg",
       "text": "Delta, line up runway",
-      "text_he": "Delta, כניסה למסלול"
+      "text_he": "דלתא, כניסה למסלול"
     },
     "DELTA_T+,+PROCEED_RWY": {
       "file": "twr_delta_proceed_rwy.ogg",
       "text": "Delta, proceed to runway",
-      "text_he": "Delta, התקדמות למסלול"
+      "text_he": "דלתא, התקדמות למסלול"
     },
     "DELTA_T+,+LAND_RWY": {
       "file": "twr_delta_land_rwy.ogg",
       "text": "Delta, cleared to land runway",
-      "text_he": "Delta, אישור נחיתה במסלול"
+      "text_he": "דלתא, אישור נחיתה במסלול"
     },
     "DELTA_T+,+START": {
       "file": "twr_delta_start.ogg",
       "text": "Delta, cleared to start",
-      "text_he": "Delta, אישור התנעה"
+      "text_he": "דלתא, אישור התנעה"
     },
     "DELTA_T+,+HOLD_POS": {
       "file": "twr_delta_hold_pos.ogg",
       "text": "Delta, hold position",
-      "text_he": "Delta, המתנה במקום"
+      "text_he": "דלתא, המתנה במקום"
     },
     "DELTA_T+,+TAKEOFF": {
       "file": "twr_delta_takeoff.ogg",
       "text": "Delta, cleared for take-off",
-      "text_he": "Delta, אישור המראה"
+      "text_he": "דלתא, אישור המראה"
     },
     "DELTA_T+,+GO_AROUND": {
       "file": "twr_delta_go_around.ogg",
       "text": "Delta, go around, runway not clear",
-      "text_he": "Delta, סיבוב נוסף, המסלול אינו פנוי"
+      "text_he": "דלתא, סיבוב נוסף, המסלול אינו פנוי"
     },
     "DELTA_T+,+TAXI_PARK": {
       "file": "twr_delta_taxi_park.ogg",
       "text": "Delta, welcome back, taxi to parking",
-      "text_he": "Delta, ברוכים השבים, הסעה לחנייה"
+      "text_he": "דלתא, ברוכים השבים, הסעה לחנייה"
     },
     "DELTA_T+,+GEAR_NOT_DOWN": {
       "file": "twr_delta_gear_not_down.ogg",
       "text": "Delta, check gear down",
-      "text_he": "Delta, בדיקת כן נסע למטה"
+      "text_he": "דלתא, בדיקת כן נסע למטה"
     },
     "ALPHA_T+,+NO_START_CLR": {
       "file": "twr_alpha_no_start_clr.ogg",
       "text": "Alpha, engine start without clearance",
-      "text_he": "Alpha, התנעה ללא אישור"
+      "text_he": "אלפא, התנעה ללא אישור"
     },
     "BRAVO_T+,+NO_START_CLR": {
       "file": "twr_bravo_no_start_clr.ogg",
       "text": "Bravo, engine start without clearance",
-      "text_he": "Bravo, התנעה ללא אישור"
+      "text_he": "בראבו, התנעה ללא אישור"
     },
     "CHARLIE_T+,+NO_START_CLR": {
       "file": "twr_charlie_no_start_clr.ogg",
       "text": "Charlie, engine start without clearance",
-      "text_he": "Charlie, התנעה ללא אישור"
+      "text_he": "צ'רלי, התנעה ללא אישור"
     },
     "DELTA_T+,+NO_START_CLR": {
       "file": "twr_delta_no_start_clr.ogg",
       "text": "Delta, engine start without clearance",
-      "text_he": "Delta, התנעה ללא אישור"
+      "text_he": "דלתא, התנעה ללא אישור"
     },
     "ALPHA_T+,+NO_TAXI_CLR": {
       "file": "twr_alpha_no_taxi_clr.ogg",
       "text": "Alpha, taxi without clearance",
-      "text_he": "Alpha, הסעה ללא אישור"
+      "text_he": "אלפא, הסעה ללא אישור"
     },
     "BRAVO_T+,+NO_TAXI_CLR": {
       "file": "twr_bravo_no_taxi_clr.ogg",
       "text": "Bravo, taxi without clearance",
-      "text_he": "Bravo, הסעה ללא אישור"
+      "text_he": "בראבו, הסעה ללא אישור"
     },
     "CHARLIE_T+,+NO_TAXI_CLR": {
       "file": "twr_charlie_no_taxi_clr.ogg",
       "text": "Charlie, taxi without clearance",
-      "text_he": "Charlie, הסעה ללא אישור"
+      "text_he": "צ'רלי, הסעה ללא אישור"
     },
     "DELTA_T+,+NO_TAXI_CLR": {
       "file": "twr_delta_no_taxi_clr.ogg",
       "text": "Delta, taxi without clearance",
-      "text_he": "Delta, הסעה ללא אישור"
+      "text_he": "דלתא, הסעה ללא אישור"
     },
     "ALPHA_T+,+NO_RUNWAY_CLR": {
       "file": "twr_alpha_no_runway_clr.ogg",
       "text": "Alpha, runway entry without clearance",
-      "text_he": "Alpha, כניסה למסלול ללא אישור"
+      "text_he": "אלפא, כניסה למסלול ללא אישור"
     },
     "BRAVO_T+,+NO_RUNWAY_CLR": {
       "file": "twr_bravo_no_runway_clr.ogg",
       "text": "Bravo, runway entry without clearance",
-      "text_he": "Bravo, כניסה למסלול ללא אישור"
+      "text_he": "בראבו, כניסה למסלול ללא אישור"
     },
     "CHARLIE_T+,+NO_RUNWAY_CLR": {
       "file": "twr_charlie_no_runway_clr.ogg",
       "text": "Charlie, runway entry without clearance",
-      "text_he": "Charlie, כניסה למסלול ללא אישור"
+      "text_he": "צ'רלי, כניסה למסלול ללא אישור"
     },
     "DELTA_T+,+NO_RUNWAY_CLR": {
       "file": "twr_delta_no_runway_clr.ogg",
       "text": "Delta, runway entry without clearance",
-      "text_he": "Delta, כניסה למסלול ללא אישור"
+      "text_he": "דלתא, כניסה למסלול ללא אישור"
     },
     "ALPHA_T+,+NO_TAKEOFF_CLR": {
       "file": "twr_alpha_no_takeoff_clr.ogg",
       "text": "Alpha, take-off without clearance",
-      "text_he": "Alpha, המראה ללא אישור"
+      "text_he": "אלפא, המראה ללא אישור"
     },
     "BRAVO_T+,+NO_TAKEOFF_CLR": {
       "file": "twr_bravo_no_takeoff_clr.ogg",
       "text": "Bravo, take-off without clearance",
-      "text_he": "Bravo, המראה ללא אישור"
+      "text_he": "בראבו, המראה ללא אישור"
     },
     "CHARLIE_T+,+NO_TAKEOFF_CLR": {
       "file": "twr_charlie_no_takeoff_clr.ogg",
       "text": "Charlie, take-off without clearance",
-      "text_he": "Charlie, המראה ללא אישור"
+      "text_he": "צ'רלי, המראה ללא אישור"
     },
     "DELTA_T+,+NO_TAKEOFF_CLR": {
       "file": "twr_delta_no_takeoff_clr.ogg",
       "text": "Delta, take-off without clearance",
-      "text_he": "Delta, המראה ללא אישור"
+      "text_he": "דלתא, המראה ללא אישור"
     },
     "ALPHA_T+,+ON_RWY": {
       "file": "twr_alpha_on_rwy.ogg",
       "text": "Alpha, you are on runway",
-      "text_he": "Alpha, על מסלול"
+      "text_he": "אלפא, על מסלול"
     },
     "BRAVO_T+,+ON_RWY": {
       "file": "twr_bravo_on_rwy.ogg",
       "text": "Bravo, you are on runway",
-      "text_he": "Bravo, על מסלול"
+      "text_he": "בראבו, על מסלול"
     },
     "CHARLIE_T+,+ON_RWY": {
       "file": "twr_charlie_on_rwy.ogg",
       "text": "Charlie, you are on runway",
-      "text_he": "Charlie, על מסלול"
+      "text_he": "צ'רלי, על מסלול"
     },
     "DELTA_T+,+ON_RWY": {
       "file": "twr_delta_on_rwy.ogg",
       "text": "Delta, you are on runway",
-      "text_he": "Delta, על מסלול"
+      "text_he": "דלתא, על מסלול"
     },
     "ALPHA_T+,+NEGATIVE_HOLD": {
       "file": "twr_alpha_negative_hold.ogg",
       "text": "Alpha, negative, hold position",
-      "text_he": "Alpha, שלילי, המתנה במקום"
+      "text_he": "אלפא, שלילי, המתנה במקום"
     },
     "BRAVO_T+,+NEGATIVE_HOLD": {
       "file": "twr_bravo_negative_hold.ogg",
       "text": "Bravo, negative, hold position",
-      "text_he": "Bravo, שלילי, המתנה במקום"
+      "text_he": "בראבו, שלילי, המתנה במקום"
     },
     "CHARLIE_T+,+NEGATIVE_HOLD": {
       "file": "twr_charlie_negative_hold.ogg",
       "text": "Charlie, negative, hold position",
-      "text_he": "Charlie, שלילי, המתנה במקום"
+      "text_he": "צ'רלי, שלילי, המתנה במקום"
     },
     "DELTA_T+,+NEGATIVE_HOLD": {
       "file": "twr_delta_negative_hold.ogg",
       "text": "Delta, negative, hold position",
-      "text_he": "Delta, שלילי, המתנה במקום"
+      "text_he": "דלתא, שלילי, המתנה במקום"
     },
     "ALPHA_T+,+NEGATIVE_HOLD+,+FIRST_STARTUP": {
       "file": "twr_alpha_negative_startup.ogg",
       "text": "Alpha, negative, hold position, request start-up first",
-      "text_he": "Alpha, שלילי, המתנה במקום, יש לבקש התנעה קודם"
+      "text_he": "אלפא, שלילי, המתנה במקום, יש לבקש התנעה קודם"
     },
     "ALPHA_T+,+NEGATIVE_HOLD+,+FIRST_TAXI": {
       "file": "twr_alpha_negative_taxi.ogg",
       "text": "Alpha, negative, hold position, request taxi first",
-      "text_he": "Alpha, שלילי, המתנה במקום, יש לבקש הסעה קודם"
+      "text_he": "אלפא, שלילי, המתנה במקום, יש לבקש הסעה קודם"
     },
     "ALPHA_T+,+NEGATIVE_HOLD+,+FIRST_LINEUP": {
       "file": "twr_alpha_negative_lineup.ogg",
       "text": "Alpha, negative, hold position, request line-up first",
-      "text_he": "Alpha, שלילי, המתנה במקום, יש לבקש כניסה למסלול קודם"
+      "text_he": "אלפא, שלילי, המתנה במקום, יש לבקש כניסה למסלול קודם"
     },
     "ALPHA_T+,+MORNING+,+TAXI_RWY+24": {
       "file": "twr_alpha_taxi_morning_24.ogg",
       "text": "Alpha, good morning, taxi to runway two four",
-      "text_he": "Alpha, בוקר טוב, הסעה למסלול 24"
+      "text_he": "אלפא, בוקר טוב, הסעה למסלול 24"
     },
     "ALPHA_T+,+LINEUP_RWY+24+,+WIND_CALM": {
       "file": "twr_alpha_lineup_24_calm.ogg",
       "text": "Alpha, line up runway two four, wind calm",
-      "text_he": "Alpha, כניסה למסלול 24, רוח שקטה"
+      "text_he": "אלפא, כניסה למסלול 24, רוח שקטה"
     },
     "ALPHA_T+,+MORNING+,+TAXI_RWY+25": {
       "file": "twr_alpha_taxi_morning_25.ogg",
       "text": "Alpha, good morning, taxi to runway two five",
-      "text_he": "Alpha, בוקר טוב, הסעה למסלול 25"
+      "text_he": "אלפא, בוקר טוב, הסעה למסלול 25"
     },
     "ALPHA_T+,+LINEUP_RWY+25+,+WIND_CALM": {
       "file": "twr_alpha_lineup_25_calm.ogg",
       "text": "Alpha, line up runway two five, wind calm",
-      "text_he": "Alpha, כניסה למסלול 25, רוח שקטה"
+      "text_he": "אלפא, כניסה למסלול 25, רוח שקטה"
     },
     "ALPHA_T+,+MORNING+,+TAXI_RWY+25+RWY_R": {
       "file": "twr_alpha_taxi_morning_25r.ogg",
       "text": "Alpha, good morning, taxi to runway two five right",
-      "text_he": "Alpha, בוקר טוב, הסעה למסלול 25 ימני"
+      "text_he": "אלפא, בוקר טוב, הסעה למסלול 25 ימני"
     },
     "ALPHA_T+,+LINEUP_RWY+25+RWY_R+,+WIND_CALM": {
       "file": "twr_alpha_lineup_25r_calm.ogg",
       "text": "Alpha, line up runway two five right, wind calm",
-      "text_he": "Alpha, כניסה למסלול 25 ימני, רוח שקטה"
+      "text_he": "אלפא, כניסה למסלול 25 ימני, רוח שקטה"
     },
     "ALPHA_T+,+MORNING+,+TAXI_RWY+26": {
       "file": "twr_alpha_taxi_morning_26.ogg",
       "text": "Alpha, good morning, taxi to runway two six",
-      "text_he": "Alpha, בוקר טוב, הסעה למסלול 26"
+      "text_he": "אלפא, בוקר טוב, הסעה למסלול 26"
     },
     "ALPHA_T+,+LINEUP_RWY+26+,+WIND_CALM": {
       "file": "twr_alpha_lineup_26_calm.ogg",
       "text": "Alpha, line up runway two six, wind calm",
-      "text_he": "Alpha, כניסה למסלול 26, רוח שקטה"
+      "text_he": "אלפא, כניסה למסלול 26, רוח שקטה"
     },
     "ALPHA_T+,+MORNING+,+TAXI_RWY+26+RWY_L": {
       "file": "twr_alpha_taxi_morning_26l.ogg",
       "text": "Alpha, good morning, taxi to runway two six left",
-      "text_he": "Alpha, בוקר טוב, הסעה למסלול 26 שמאלי"
+      "text_he": "אלפא, בוקר טוב, הסעה למסלול 26 שמאלי"
     },
     "ALPHA_T+,+LINEUP_RWY+26+RWY_L+,+WIND_CALM": {
       "file": "twr_alpha_lineup_26l_calm.ogg",
       "text": "Alpha, line up runway two six left, wind calm",
-      "text_he": "Alpha, כניסה למסלול 26 שמאלי, רוח שקטה"
+      "text_he": "אלפא, כניסה למסלול 26 שמאלי, רוח שקטה"
     },
     "ALPHA_T+,+MORNING+,+TAXI_RWY+27": {
       "file": "twr_alpha_taxi_morning_27.ogg",
       "text": "Alpha, good morning, taxi to runway two seven",
-      "text_he": "Alpha, בוקר טוב, הסעה למסלול 27"
+      "text_he": "אלפא, בוקר טוב, הסעה למסלול 27"
     },
     "ALPHA_T+,+LINEUP_RWY+27+,+WIND_CALM": {
       "file": "twr_alpha_lineup_27_calm.ogg",
       "text": "Alpha, line up runway two seven, wind calm",
-      "text_he": "Alpha, כניסה למסלול 27, רוח שקטה"
+      "text_he": "אלפא, כניסה למסלול 27, רוח שקטה"
     },
     "RAMON_TWR": {
       "file": "plt_ramon_twr.ogg",
@@ -3217,22 +3217,22 @@
     "ALPHA_P": {
       "file": "plt_alpha.ogg",
       "text": "Alpha",
-      "text_he": "Alpha"
+      "text_he": "אלפא"
     },
     "BRAVO_P": {
       "file": "plt_bravo.ogg",
       "text": "Bravo",
-      "text_he": "Bravo"
+      "text_he": "בראבו"
     },
     "CHARLIE_P": {
       "file": "plt_charlie.ogg",
       "text": "Charlie",
-      "text_he": "Charlie"
+      "text_he": "צ'רלי"
     },
     "DELTA_P": {
       "file": "plt_delta.ogg",
       "text": "Delta",
-      "text_he": "Delta"
+      "text_he": "דלתא"
     },
     "REQ_STARTUP": {
       "file": "plt_req_start.ogg",
@@ -3262,122 +3262,122 @@
     "RAMON_TWR+,+ALPHA_P+,+REQ_STARTUP": {
       "file": "plt_ramon_alpha_start.ogg",
       "text": "Ramon tower, Alpha, request start-up",
-      "text_he": "מגדל רמון, Alpha, בקשת התנעה"
+      "text_he": "מגדל רמון, אלפא, בקשת התנעה"
     },
     "RAMON_TWR+,+ALPHA_P+,+REQ_TAXI": {
       "file": "plt_ramon_alpha_taxi.ogg",
       "text": "Ramon tower, Alpha, request taxi",
-      "text_he": "מגדל רמון, Alpha, בקשת הסעה"
+      "text_he": "מגדל רמון, אלפא, בקשת הסעה"
     },
     "RAMON_TWR+,+ALPHA_P+,+REQ_LINEUP": {
       "file": "plt_ramon_alpha_lineup.ogg",
       "text": "Ramon tower, Alpha, request line-up",
-      "text_he": "מגדל רמון, Alpha, בקשת כניסה למסלול"
+      "text_he": "מגדל רמון, אלפא, בקשת כניסה למסלול"
     },
     "RAMON_TWR+,+ALPHA_P+,+REQ_TAKEOFF": {
       "file": "plt_ramon_alpha_takeoff.ogg",
       "text": "Ramon tower, Alpha, ready for take-off",
-      "text_he": "מגדל רמון, Alpha, בקשת המראה"
+      "text_he": "מגדל רמון, אלפא, בקשת המראה"
     },
     "RAMON_TWR+,+ALPHA_P+,+REQ_LANDING": {
       "file": "plt_ramon_alpha_landing.ogg",
       "text": "Ramon tower, Alpha, request landing",
-      "text_he": "מגדל רמון, Alpha, בקשת נחיתה"
+      "text_he": "מגדל רמון, אלפא, בקשת נחיתה"
     },
     "DAVID_TWR+,+ALPHA_P+,+REQ_STARTUP": {
       "file": "plt_david_alpha_start.ogg",
       "text": "Ramat David tower, Alpha, request start-up",
-      "text_he": "מגדל רמת דוד, Alpha, בקשת התנעה"
+      "text_he": "מגדל רמת דוד, אלפא, בקשת התנעה"
     },
     "DAVID_TWR+,+ALPHA_P+,+REQ_TAXI": {
       "file": "plt_david_alpha_taxi.ogg",
       "text": "Ramat David tower, Alpha, request taxi",
-      "text_he": "מגדל רמת דוד, Alpha, בקשת הסעה"
+      "text_he": "מגדל רמת דוד, אלפא, בקשת הסעה"
     },
     "DAVID_TWR+,+ALPHA_P+,+REQ_LINEUP": {
       "file": "plt_david_alpha_lineup.ogg",
       "text": "Ramat David tower, Alpha, request line-up",
-      "text_he": "מגדל רמת דוד, Alpha, בקשת כניסה למסלול"
+      "text_he": "מגדל רמת דוד, אלפא, בקשת כניסה למסלול"
     },
     "DAVID_TWR+,+ALPHA_P+,+REQ_TAKEOFF": {
       "file": "plt_david_alpha_takeoff.ogg",
       "text": "Ramat David tower, Alpha, ready for take-off",
-      "text_he": "מגדל רמת דוד, Alpha, בקשת המראה"
+      "text_he": "מגדל רמת דוד, אלפא, בקשת המראה"
     },
     "DAVID_TWR+,+ALPHA_P+,+REQ_LANDING": {
       "file": "plt_david_alpha_landing.ogg",
       "text": "Ramat David tower, Alpha, request landing",
-      "text_he": "מגדל רמת דוד, Alpha, בקשת נחיתה"
+      "text_he": "מגדל רמת דוד, אלפא, בקשת נחיתה"
     },
     "HATZERIM_TWR+,+ALPHA_P+,+REQ_STARTUP": {
       "file": "plt_hatzerim_alpha_start.ogg",
       "text": "Hatzerim tower, Alpha, request start-up",
-      "text_he": "מגדל חצרים, Alpha, בקשת התנעה"
+      "text_he": "מגדל חצרים, אלפא, בקשת התנעה"
     },
     "HATZERIM_TWR+,+ALPHA_P+,+REQ_TAXI": {
       "file": "plt_hatzerim_alpha_taxi.ogg",
       "text": "Hatzerim tower, Alpha, request taxi",
-      "text_he": "מגדל חצרים, Alpha, בקשת הסעה"
+      "text_he": "מגדל חצרים, אלפא, בקשת הסעה"
     },
     "HATZERIM_TWR+,+ALPHA_P+,+REQ_LINEUP": {
       "file": "plt_hatzerim_alpha_lineup.ogg",
       "text": "Hatzerim tower, Alpha, request line-up",
-      "text_he": "מגדל חצרים, Alpha, בקשת כניסה למסלול"
+      "text_he": "מגדל חצרים, אלפא, בקשת כניסה למסלול"
     },
     "HATZERIM_TWR+,+ALPHA_P+,+REQ_TAKEOFF": {
       "file": "plt_hatzerim_alpha_takeoff.ogg",
       "text": "Hatzerim tower, Alpha, ready for take-off",
-      "text_he": "מגדל חצרים, Alpha, בקשת המראה"
+      "text_he": "מגדל חצרים, אלפא, בקשת המראה"
     },
     "HATZERIM_TWR+,+ALPHA_P+,+REQ_LANDING": {
       "file": "plt_hatzerim_alpha_landing.ogg",
       "text": "Hatzerim tower, Alpha, request landing",
-      "text_he": "מגדל חצרים, Alpha, בקשת נחיתה"
+      "text_he": "מגדל חצרים, אלפא, בקשת נחיתה"
     },
     "NEVATIM_TWR+,+ALPHA_P+,+REQ_STARTUP": {
       "file": "plt_nevatim_alpha_start.ogg",
       "text": "Nevatim tower, Alpha, request start-up",
-      "text_he": "מגדל נבטים, Alpha, בקשת התנעה"
+      "text_he": "מגדל נבטים, אלפא, בקשת התנעה"
     },
     "NEVATIM_TWR+,+ALPHA_P+,+REQ_TAXI": {
       "file": "plt_nevatim_alpha_taxi.ogg",
       "text": "Nevatim tower, Alpha, request taxi",
-      "text_he": "מגדל נבטים, Alpha, בקשת הסעה"
+      "text_he": "מגדל נבטים, אלפא, בקשת הסעה"
     },
     "NEVATIM_TWR+,+ALPHA_P+,+REQ_LINEUP": {
       "file": "plt_nevatim_alpha_lineup.ogg",
       "text": "Nevatim tower, Alpha, request line-up",
-      "text_he": "מגדל נבטים, Alpha, בקשת כניסה למסלול"
+      "text_he": "מגדל נבטים, אלפא, בקשת כניסה למסלול"
     },
     "NEVATIM_TWR+,+ALPHA_P+,+REQ_TAKEOFF": {
       "file": "plt_nevatim_alpha_takeoff.ogg",
       "text": "Nevatim tower, Alpha, ready for take-off",
-      "text_he": "מגדל נבטים, Alpha, בקשת המראה"
+      "text_he": "מגדל נבטים, אלפא, בקשת המראה"
     },
     "NEVATIM_TWR+,+ALPHA_P+,+REQ_LANDING": {
       "file": "plt_nevatim_alpha_landing.ogg",
       "text": "Nevatim tower, Alpha, request landing",
-      "text_he": "מגדל נבטים, Alpha, בקשת נחיתה"
+      "text_he": "מגדל נבטים, אלפא, בקשת נחיתה"
     },
     "ALPHA_R": {
       "file": "awx_alpha.ogg",
       "text": "Alpha",
-      "text_he": "Alpha"
+      "text_he": "אלפא"
     },
     "BRAVO_R": {
       "file": "awx_bravo.ogg",
       "text": "Bravo",
-      "text_he": "Bravo"
+      "text_he": "בראבו"
     },
     "CHARLIE_R": {
       "file": "awx_charlie.ogg",
       "text": "Charlie",
-      "text_he": "Charlie"
+      "text_he": "צ'רלי"
     },
     "DELTA_R": {
       "file": "awx_delta.ogg",
       "text": "Delta",
-      "text_he": "Delta"
+      "text_he": "דלתא"
     },
     "BEARING010": {
       "file": "awx_bearing_010.ogg",
@@ -3982,22 +3982,22 @@
     "CMD_ALPHA_2": {
       "file": "flt_cmd_alpha_2.ogg",
       "text": "Alpha Two",
-      "text_he": "Alpha שתיים"
+      "text_he": "אלפא שתיים"
     },
     "CMD_ALPHA_3": {
       "file": "flt_cmd_alpha_3.ogg",
       "text": "Alpha Three",
-      "text_he": "Alpha שלוש"
+      "text_he": "אלפא שלוש"
     },
     "CMD_ALPHA_4": {
       "file": "flt_cmd_alpha_4.ogg",
       "text": "Alpha Four",
-      "text_he": "Alpha ארבע"
+      "text_he": "אלפא ארבע"
     },
     "CMD_ALPHA_34": {
       "file": "flt_cmd_alpha_34.ogg",
       "text": "Alpha Three and Four",
-      "text_he": "Alpha שלוש וארבע"
+      "text_he": "אלפא שלוש וארבע"
     },
     "CMD_FINGERTIP": {
       "file": "flt_cmd_fingertip.ogg",

@@ -366,6 +366,16 @@ func _formation_of(ent: Dictionary) -> Dictionary:
 	return ai._formation_of(ent) if ai != null and not ent.is_empty() else {}
 
 
+## Ours (the user, 19 Nov): a callsign in Hebrew letters on Hebrew screens (the voice stays English).
+const CALLSIGN_HE := {
+	"Alpha": "אלפא", "Bravo": "בראבו", "Charlie": "צ'רלי", "Delta": "דלתא", "Echo": "אקו", "Foxtrot": "פוקסטרוט"
+}
+
+
+static func callsign_text(en: String) -> String:
+	return CALLSIGN_HE.get(en, en) if Settings.language == "he" else en
+
+
 ## FUN_005513c0: a unit's formation name (kinds 2–6, 9, 10; else "Alpha").
 func formation_name(ent: Dictionary) -> String:
 	var k := int(_formation_of(ent).get("kind", 1))

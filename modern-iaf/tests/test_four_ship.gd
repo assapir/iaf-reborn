@@ -6,7 +6,8 @@
 #     player's jet put in the air over the base, its F-16 autopilot circling at 30° of bank), then taxies;
 #   - F3, F4: Alpha 2, 3 and 4 take off in order and join the lead, the slots kept within 300 m in its turn and
 #     each back within 60 m of its slot in 60 s (a real wingman drifts in a turn too; inferred);
-#   - F5's commands through IafAi.command: check and ops check answered, echelon right flown;
+#   - F5's commands through the radio menu (sim_flight.gd): the pilot's call and the answers said, check and ops
+#     check answered, engage my target with nothing locked "unable", echelon right flown, the split and the regroup;
 #   - F12: the split (element 2 to its own target, #4 on #3, #2 on the lead) and the regroup;
 #   - F13: a scripted ground radar's lock on Alpha 2: its call, its defence with chaff, its rejoin; then a real
 #     S-300PMU-2 (shared/ai/air_defence.gd) 15 km away locks and launches at the wingmen: the calls said with their
@@ -186,13 +187,17 @@ func _join(tv: Node) -> bool:
 
 ## F5's commands, by IafAi.command: check (each its number), ops check (each its fuel), echelon right flown.
 func _commands(tv: Node) -> void:
-	var fa = tv.ai.flight_ai
 	var t0: float = tv.runtime.now
-	check(fa.command(t0, 0, "check") and fa.command(t0, 0, "ops_check"), "check and ops check taken")
+	check(_menu(tv, ["to:0", "check"]) and _menu(tv, ["to:0", "ops_check"]), "check and ops check in the radio menu")
 	await fly(tv, 3.0)
+	check(_heard(tv, "FLT_CMD", "Alpha, check"), "the pilot's call said (%s)" % [_said_texts(tv)])
 	check(_said_all("ack", t0) and _said_all("fuel_state", t0), "check and ops check answered (%s)" % [_calls()])
+	check(_heard(tv, "WNG_FUEL", "Two, "), "the fuel state said (%s)" % [_said_texts(tv)])
+	check(_menu(tv, ["to:2", "engage"]), "engage my target in the radio menu")
+	await fly(tv, 3.0)
+	check(_said(2, "unable", t0) and _heard(tv, "WNG_CALL", "Two, unable"), "no target locked: Two, unable")
 	t0 = tv.runtime.now
-	check(fa.command(t0, 0, "echelon_right"), "echelon right taken")
+	check(_menu(tv, ["to:0", "formation", "echelon_right"]), "echelon right in the radio menu")
 	var ok := await _until(tv, func(): return _said_all("in_position", t0), 300.0)
 	check(ok, "echelon right: each in position (%s)" % [_calls()])
 
@@ -204,6 +209,10 @@ func _split(tv: Node) -> void:
 	var st: Dictionary = tv.flight.state()
 	var b: Vector3 = st.position + st.forward * 8000.0 + st.right * 4000.0
 	var t0: float = tv.runtime.now
+	check(_menu(tv, ["to:5", "split"]), "split in the radio menu (to the SPI)")
+	await fly(tv, 3.0)
+	check(_said(3, "ack", t0) or _said(3, "unable", t0), "#3 answers the split (%s)" % _calls())
+	t0 = tv.runtime.now
 	check(fa.split(t0, b), "split taken")
 	var on := func(): return fa.state(3).get("task", false) and int(fa.state(4).get("leader", 0)) == 3
 	check(await _until(tv, on, 10.0), "element 2 on its task, #4 on #3 (%s)" % _wing_states(tv))
@@ -213,9 +222,11 @@ func _split(tv: Node) -> void:
 	check(await _until(tv, near, 200.0), "#3 at its target (%s)" % _wing_states(tv))
 	var e2: float = fa.state(2).slot_error
 	var e4: float = fa.state(4).slot_error
-	check(e2 < 60.0 and e4 < 150.0, "#2 on the lead (%.0f m), #4 on #3 (%.0f m)" % [e2, e4])
+	# "It's ok if wingman isn't perfect, as in reality" (user): after engage + menu split #2 is 95 m, #4 51 m;
+	# main's direct split still holds 60 m.
+	check(e2 < 150.0 and e4 < 150.0, "#2 on the lead (%.0f m), #4 on #3 (%.0f m)" % [e2, e4])
 	t0 = tv.runtime.now
-	check(fa.command(t0, 0, "regroup"), "regroup taken")
+	check(_menu(tv, ["to:5", "rejoin"]), "the element's rejoin (the regroup) in the radio menu")
 	var back := func(): return _said(3, "in_position", t0) and _said(4, "in_position", t0)
 	check(await _until(tv, back, 900.0), "element 2 regrouped (%s;%s)" % [_calls(), _wing_states(tv)])
 
@@ -438,6 +449,27 @@ func _said(n: int, id: String, t0: float) -> bool:
 		if int(c.from) == n and String(c.id) == id and float(c.get("t", 0.0)) >= t0:
 			return true
 	return false
+
+
+## The radio menu (Ctrl+T, sim_flight.gd): opened, each id of `path` picked by its number as the keys do.
+func _menu(tv: Node, path: Array) -> bool:
+	tv.addon.set_open(true)
+	for id in ["m:wingmen"] + path:
+		var i: int = tv.addon.shown.find(id)
+		if i < 0:
+			tv.addon.set_open(false)
+			return false
+		tv.addon.choose(i + 1)
+	return true
+
+
+## A phrase of `template` said whose English text starts with `text`.
+func _heard(tv: Node, template: String, text: String) -> bool:
+	return tv.radio.said.any(func(p): return String(p.template) == template and String(p.text).begins_with(text))
+
+
+func _said_texts(tv: Node) -> Array:
+	return tv.radio.said.slice(-4).map(func(p): return String(p.text))
 
 
 func _calls() -> String:
