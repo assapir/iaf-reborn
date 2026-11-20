@@ -105,7 +105,7 @@ func _jet(name: String) -> void:
 	# Drop tanks (half the internal fuel): the original fill stays at 1 while the tank fuel burns; the Better fill is
 	# the fuel over the load with the tanks.
 	var internal: float = tv.flight.state().internal_fuel_kg
-	tv.flight.set_fuel_capacity(internal * 0.5)
+	tv.flight.set_fuel_capacity(internal * 0.5, 0.0)
 	key(tv, KEY_6)
 	await create_timer(3.0).timeout
 	var kg: float = tv.flight.state().fuel_lbs * 0.45359

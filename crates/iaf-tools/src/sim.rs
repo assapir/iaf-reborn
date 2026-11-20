@@ -85,7 +85,7 @@ pub const F16_GLB: &str = "shared/extra/models/f16/f16d.glb";
 ///   - 4 and 6 (StationD, StationF): under the inboard pylons (x ±1.73 m, bottom y −0.341 m, z −0.18 to 2.23 m), the
 ///     370 US gal tank's top (0.328 m above its origin in stores/f16ftk.glb) on the pylon's bottom.
 ///   - 5 (StationE): the Sufa's targeting pod station, the right chin hardpoint under the intake (ours: the sim's
-///     station 5; the model's centreline helper is not used, no sim store goes there): under the model's right chin
+///     station 5; the model's centreline helper is StationK's place, below): under the model's right chin
 ///     pylon (`PylonChinR`, FlightGear's fuselage pylon, tools/f16/base.py `CHIN_PYLONS`), where FlightGear hangs its
 ///     Litening (loads_models.xml: 0.69 m right, its axis 1.02 m down, 2.25 m ahead of its origin, 1.05 m aft of
 ///     ours): the pod's top on the pylon's bottom at x 0.69 m, y −0.82 m, z −1.20 m (`F16_SIM_LUGS`), its axis
@@ -95,9 +95,14 @@ pub const F16_GLB: &str = "shared/extra/models/f16/f16d.glb";
 ///     (loads_models.xml `Station11_LANTIRNnav`: 0.66 m left, its axis 1.02 m down, 2.45 m ahead of its origin): the
 ///     axis at x −0.66 m, y −1.02 m, z −1.40 m, the pod's top (its mount, 0.428 m above the axis in lantirn.glb) at
 ///     y −0.592 m (`F16_SIM_LUGS`), as FlightGear places it (modern-iaf/docs/weapons.md §7.3).
+///   - 5, the centreline (StationK, the engine's 14th station, `iaf_avionics::stores::CENTRELINE`; ours): the 300 US
+///     gal tank under the model's centreline pylon (FlightGear's central-pylon.ac on the model's own StationE helper,
+///     its bottom y −1.01 m, z −0.43 to 2.49 m): the tank's attach point (its origin in stores/f16ftk300.glb) under the
+///     pylon's middle, x 0, z 1.034 m, its axis at y −1.307 m, so its body's top (0.297 m above the axis) touches the
+///     pylon's bottom (modern-iaf/docs/weapons.md §7.3).
 ///
 /// These are the rail points the missiles hang at; the stores that hang by their lugs take `F16_SIM_LUGS` instead.
-const F16_SIM_STATIONS: [(&str, [f64; 3]); 10] = [
+const F16_SIM_STATIONS: [(&str, [f64; 3]); 11] = [
     ("StationA", [-4.7075, -0.2015, 2.35]),
     ("StationB", [-3.974, -0.3855, 2.496]),
     ("StationC", [-2.986, -0.4555, 1.912]),
@@ -108,19 +113,23 @@ const F16_SIM_STATIONS: [(&str, [f64; 3]); 10] = [
     ("StationH", [3.965, -0.3855, 2.496]),
     ("StationI", [4.7115, -0.2015, 2.347]),
     ("StationJ", [-0.66, -1.02, -1.4]),
+    ("StationK", [0.0, -1.307, 1.034]),
 ];
 
 /// The bomb lugs of the F-16's heavy stations 3 / 7 (StationC, StationG) and 4 / 6 (StationD, StationF): the pylon's
 /// bottom on its middle (the same pylons as `F16_SIM_STATIONS`), the descriptor's `lugs`. A bomb, a guided bomb or a
 /// tank hangs its top there (stores.gd `LUGGED`), so the Mk 84 on 3 / 7 hangs under the pylon, not on the AIM-9's
-/// axis inside it; the tank's place on 4 / 6 stays as before. The chin pods (E, J) hang their tops there too.
-const F16_SIM_LUGS: [(&str, [f64; 3]); 6] = [
+/// axis inside it; the tank's place on 4 / 6 stays as before. The chin pods (E, J) hang their tops there too. The
+/// centreline (K): the 300 US gal tank's highest point is its tail cone, 0.088 m above its body's top and aft of the
+/// pylon, so that point goes 0.088 m above the pylon's bottom (y −1.010 m + 0.088 m) and the body's top touches it.
+const F16_SIM_LUGS: [(&str, [f64; 3]); 7] = [
     ("StationC", [-2.986, -0.392, 1.912]),
     ("StationD", [-1.735, -0.341, 1.023]),
     ("StationE", [0.69, -0.82, -1.2]),
     ("StationF", [1.726, -0.341, 1.023]),
     ("StationG", [2.977, -0.392, 1.912]),
     ("StationJ", [-0.66, -0.592, -1.4]),
+    ("StationK", [0.0, -0.922, 1.034]),
 ];
 
 /// The F-16 model's own adapters (nodes of f16d.glb / f16i.glb, hidden until shown) by station: the right chin
@@ -505,9 +514,9 @@ pub fn compile_db(db: &Db) -> Result<(Value, Map<String, Value>, String)> {
             u.name
         );
         for (st, p) in u.v["pylons"].as_object().into_iter().flatten() {
-            // Pylon stations A..I are stations 0..8 (CArmament, docs/formats/mis.md "CArmament"), J is 12 (ours).
+            // Pylon stations A..I are stations 0..8 (CArmament, docs/formats/mis.md "CArmament"), J 12, K 13 (ours).
             let i = Some(st.as_bytes()).filter(|b| b.len() == 1).and_then(|b| pylon_index(b[0]));
-            let i = i.with_context(|| format!("{}: pylon \"{st}\" is not A..J", u.name))?;
+            let i = i.with_context(|| format!("{}: pylon \"{st}\" is not A..K", u.name))?;
             let w = db.weapon(p["weapon"].as_str().unwrap_or("")).with_context(|| u.name.clone())?;
             hard[2 * i] = int(w, "number")?;
             hard[2 * i + 1] = p["count"].as_i64().unwrap_or(1);
@@ -2053,6 +2062,10 @@ mod tests {
         assert_eq!(
             (f16["pylons"]["StationJ"].as_str(), f16["lugs"]["StationJ"][0].as_f64()),
             (Some("PylonChinL"), Some(-0.66))
+        );
+        assert_eq!(
+            (f16["stations"]["StationK"][2].as_f64(), f16["lugs"]["StationK"][1].as_f64()),
+            (Some(1.034), Some(-0.922))
         );
         let clip = |f: &str| ogg_seconds(&std::fs::read(sounds.join(f.to_lowercase())).unwrap()).unwrap();
         let trx = std::fs::read_to_string(sounds.join("soundprop.trx")).unwrap();

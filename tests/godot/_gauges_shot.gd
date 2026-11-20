@@ -21,7 +21,7 @@ func run() -> void:
 		settings().jet_id = id
 		var tv = await start_mission(312)
 		var c = tv.cockpit
-		tv.flight.set_fuel_capacity(tv.flight.state().internal_fuel_kg * 0.5)
+		tv.flight.set_fuel_capacity(tv.flight.state().internal_fuel_kg * 0.5, 0.0)
 		key(tv, KEY_7)
 		c.panel_target = 1.0
 		c.panel_shift = 1.0

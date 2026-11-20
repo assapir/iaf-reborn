@@ -69,7 +69,7 @@ func _restart(tv: Node, speed: float) -> void:
 	tv.rig.position = pos
 	var vel: Vector3 = (st0.forward * Vector3(1, 0, 1)).normalized() * speed
 	tv.flight.start(s.own_dir(), tv.player.fm_section, pos, Vector3(0, 0, st0.heading), vel, airborne_flags())
-	tv.flight.set_fuel_capacity(tv.weapons.stores.tank_fuel)  # the start's tank fuel (player_weapons.gd setup)
+	tv.flight.set_fuel_capacity(tv.weapons.stores.tank_fuel, tv.weapons.stores.tank_fuel_centre)  # as player_weapons.gd
 
 
 func _record(id: String) -> Dictionary:

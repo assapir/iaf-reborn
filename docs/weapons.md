@@ -130,8 +130,9 @@ The loadout has 12 slots of {weapon id, count}:
 - 9: the gun (StationGun);
 - 10: chaff;
 - 11: flares;
-- 12 (ours, Modern IAF only): StationJ, the F-16's left chin hardpoint (modern-iaf/docs/weapons.md §7.3). The 1998
-  game's data never fills it, and its armaments hold 12 pairs.
+- 12 (ours, Modern IAF only): StationJ, the F-16's left chin hardpoint (modern-iaf/docs/weapons.md §7.3);
+- 13 (ours, Modern IAF only): StationK, the F-16's centreline (the same §7.3). The 1998 game's data never fills 12 or
+  13, and its armaments hold 12 pairs.
 
 Where the slots come from:
 - Pylons 0..8 come from the mission entity's `CArmament` when any of its 0..8 ids is set, else from the object type's.

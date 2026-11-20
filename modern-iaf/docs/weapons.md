@@ -289,7 +289,7 @@ The laser is modelled only as cockpit procedure. A bomb takes its aim at its rel
 guidance is not modelled further. Not built here: the FLIR polarity (WHOT / BHOT) and the CCD TV picture, which
 change the picture's look and wait for the user's approval of a picture. Test: `modern-iaf/tests/test_sim_pod.gd`.
 
-### 7.3 The chin stations and the navigation pods
+### 7.3 The chin stations, the centreline and the navigation pods
 The user, 17 November 2026: the pods "are on the side of the air intake"; the Sufa carries a Litening and a LANTIRN
 navigation pod beneath its intake[^iaf-f16i], the F-16's navigation pod hangs on the left chin hardpoint,
 5L[^f16net-lantirn] ([research/pods.md](research/pods.md) §1, §2.3, items P4 and P9).
@@ -309,17 +309,26 @@ navigation pod beneath its intake[^iaf-f16i], the F-16's navigation pod hangs on
   `F16_SIM_PYLONS`).
 - **Weight and drag.** The pod's weight loads the jet at its 0.66 m arm (the asymmetric-stores moment); its drag
   goes half to each side, as station 5's. The briefing's balance takes it on the jet's middle, as the Litening.
-- **What changes for every table keyed by station.** The loadout (`stores::loadout`, `loadout::sim_load`, 13 entries),
+- **The centreline** (the user, 20 Nov 2026: "Do the center tank, and in gray, yes"). The real jet's station 5 is
+  the 14th station: index 13, pylon letter K, frame `StationK` (`iaf_avionics::stores` `CENTRELINE`); the unit records
+  number it 11 and show it as 5. It takes only the 300 US gal tank (`tank-300.json`: 908 kg of fuel, 163 kg empty,
+  drag index 23.0), on the Sufa (a photo of one in IAF service with two 600 gal tanks and a centreline
+  tank[^commons-857]) and the Barak (the F-16C's centreline tank[^f16net-300]; the Barak's own inferred). No mirror. The tank hangs under the model's centreline pylon, always fitted: its attach point under
+  the pylon's middle, its body's top on the pylon's bottom (`sim.rs` `F16_SIM_STATIONS`, `F16_SIM_LUGS`). Its drag
+  goes half to each side and it has no rolling moment; its fuel joins the other tanks', empties first and shows on the
+  FUEL QTY gauge at EXT CTR ([cockpit.md](cockpit.md) §5.7).
+- **What changes for every table keyed by station.** The loadout (`stores::loadout`, `loadout::sim_load`, 14 entries),
   the weight and drag, jettison, the release lists, the Real jettison, the Loadout screen's lines (`briefing::arming`
   `pylons`), the turntable and the flight's store models, the AI's loads (`combat.gd`, from the same load) and the
-  mission report read the 13 stations. The SMS inventory page lists 5L by OSB 3, a line under 5R, when it holds a
-  store (`f16_mfd.gd` `STATION_OSB`). The 1998 game's own arming tables (`mission_weapons.gd`, the CDMEWeaponLoadItem
+  mission report read the 14 stations. The SMS inventory page lists 5L and the centreline by OSB 3, each a line under
+  5R, when they hold a store (`f16_mfd.gd` `STATION_OSB`). The 1998 game's own arming tables (`mission_weapons.gd`, the CDMEWeaponLoadItem
   flags) keep their file format's nine.
 - **Jettison.** The emergency and selective jettisons keep every pod: the 1998 game's by name (FLIR, ECM) and Modern
   IAF's by its record (`kind: pod`, compiled as `"pod": true`). Until now the Litening, named TGP, was jettisoned.
 - **The functions:** the FLIR picture on the HUD and the Sufa's terrain following, §7.4 (pods part 2).
 - **Tests:** `crates/iaf-avionics/src/stores.rs` `left_chin_station_loads_weighs_and_drags_both_sides`,
-  `crates/iaf-tools/src/loadout.rs` `chin_stations_take_their_own_pods`, `modern-iaf/tests/test_sim_chin_pods.gd`
+  `centreline_tank_adds_fuel_and_drags_both_sides`, `crates/iaf-tools/src/loadout.rs`
+  `chin_stations_take_their_own_pods`, `centreline_takes_the_300_tank`, `modern-iaf/tests/test_sim_chin_pods.gd`
   (load, draw, weight, jettison, the SMS inventory), `modern-iaf/tests/test_front_end.gd` (5R / 5L, the pod drawn).
 
 ### 7.4 The navigation pod's FLIR and terrain following
@@ -505,6 +514,11 @@ a dud; a GBU-12 in CCRP with the Litening slaved and LASER ARM leaves by itself 
 [^w-gbu10]: Wikipedia, "GBU-10 Paveway II" (910 kg): https://en.wikipedia.org/wiki/GBU-10_Paveway_II
 [^iaf-f16i]: Israeli Air Force site, "F-16I הדור הבא" (two pods beneath the F-16I's air intake: a Litening and a
     LANTIRN navigation pod), https://www.iaf.org.il/522-19034-he/IAF.aspx (as the search engine returned it)
+[^commons-857]: Wikimedia Commons, "Oferet-Yetzuka-F16I.jpg" (F-16I 857 of 107 Squadron in Operation Cast Lead,
+    December 2008, with two 600 gal tanks and a centreline tank; Yosi Yaari, CC BY-SA 3.0):
+    https://commons.wikimedia.org/wiki/File:Oferet-Yetzuka-F16I.jpg
+[^f16net-300]: F-16.net, "Illinois guard pilot jettisons fuel tank" (April 4, 2004: an F-16C drops its 300-gallon
+    centerline tank, "about 12 feet long and 2½ feet wide", 360 lb): https://www.f-16.net/f-16-news-article1050.html
 [^f16net-lantirn]: F-16.net, "AN/AAQ-13 & AN/AAQ-14 LANTIRN" (the navigation pod on 5L):
     https://www.f-16.net/f-16_armament_article2.html
 [^w-lantirn]: Wikipedia, "LANTIRN" (the AN/AAQ-13: 199 cm, 30 cm across, 204.6 kg; the AN/AAQ-20 Pathfinder, its

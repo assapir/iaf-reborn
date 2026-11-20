@@ -41,9 +41,10 @@ Under `Models/` in the FlightGear F-16, unless the row names another aircraft.
 | `mk82lb.glb` | MK-82L | `Armament/Weapons/GBU-12/GBU-12.ac`, `GBU-12.png` |
 | `mk83lb.glb`, `mk84lb.glb` | MK-83L, MK-84L | the MK-83 / MK-84 above with the GBU-12's guidance and tail kits |
 | `cbu87.glb` | CBU-87, CBU-97 | `Armament/Weapons/CBU-87/CBU-87.ac`, `CBU-87.png` |
-| `f16ftk.glb` | the F-16's 2700 lb (370 gal) wing tank | `Armament/External-stores/Fueltanks/370G.ac`, `Liveries/Block40/90-0874.png` |
-| `f16ftk600.glb` | Modern IAF's 600 US gal wing tank (`tank-600`) | `Armament/External-stores/Fueltanks/600G.ac`, `Liveries/Block40/90-0874.png`; FlightGear's 5.736 m by 0.830 m tank scaled to the real 238.5 in (6.058 m) by 32.6 in (0.828 m) of IMI's 600 gal F-16 tank (Solo Aviation, "External Fuel Drop Tanks: IMI - 600 Gallon fuel tanks", https://www.oocities.org/capecanaveral/5415/fuel.html): 5.6 % longer, 5.5 % slimmer than uniform; its fit checked on photos (looked at only): Commons "IAF-F-16I-2016-12-13.jpg" (Maj. Ofer, IAF, CC BY 4.0) and "F-16I-Sufa-803-pic02.jpg" (Zachi Evenor, CC BY 2.0) |
-| `f16ftkm.glb` | the F-16's 2100 lb (300 gal) centreline tank | `Armament/External-stores/Fueltanks/300G.ac`, `Liveries/Block40/90-0874.png` |
+| `f16ftk.glb` | the F-16's 2700 lb (370 gal) wing tank | `Armament/External-stores/Fueltanks/370G.ac`, `Liveries/Block40/90-0874.png`, in the tanks' grey (Changes 4) |
+| `f16ftk600.glb` | Modern IAF's 600 US gal wing tank (`tank-600`) | `Armament/External-stores/Fueltanks/600G.ac`, `Liveries/Block40/90-0874.png`; FlightGear's 5.736 m by 0.830 m tank scaled to the real 238.5 in (6.058 m) by 32.6 in (0.828 m) of IMI's 600 gal F-16 tank (Solo Aviation, "External Fuel Drop Tanks: IMI - 600 Gallon fuel tanks", https://www.oocities.org/capecanaveral/5415/fuel.html): 5.6 % longer, 5.5 % slimmer than uniform; its fit checked on photos (looked at only): Commons "IAF-F-16I-2016-12-13.jpg" (Maj. Ofer, IAF, CC BY 4.0) and "F-16I-Sufa-803-pic02.jpg" (Zachi Evenor, CC BY 2.0); in the tanks' grey (Changes 4) |
+| `f16ftkm.glb` | the F-16's 2100 lb (300 gal) centreline tank | `Armament/External-stores/Fueltanks/300G.ac`, `Liveries/Block40/90-0874.png`, in the tanks' grey (Changes 4) |
+| `f16ftk300.glb` | Modern IAF's 300 US gal centreline tank (`tank-300`) | `Armament/External-stores/Fueltanks/300G.ac`, `Liveries/Block40/90-0874.png`; FlightGear's tank at its own size (4.515 m long, 0.918 m wide, 0.594 m high; no published size found: F-16.net's "about 12 feet long and 2½ feet wide", https://www.f-16.net/f-16-news-article1050.html, would hold about 200 US gal in this shape, so FlightGear's is kept; inferred) and origin (its attach point), unlike `f16ftkm.glb`, which is at the 1998 original's 5.296 m; in the tanks' grey (Changes 4); its fit checked on a photo (looked at only): Commons "Oferet-Yetzuka-F16I.jpg" (Yosi Yaari, CC BY-SA 3.0) |
 | `ecmpod.glb` | ECM pod | `Armament/External-stores/AN_ALQ-131/AN_ALQ-131.ac`, `AN_ALQ-131.png` |
 | `flrpod.glb` | FLIR pod | `Armament/External-stores/LANTIRN/AN-AAQ-13.ac`, `AN-AAQ-13.png` |
 | `litening.glb` | Modern IAF's Litening targeting pod | `Armament/External-stores/LITENING_AT/AN-AAQ-28.ac`, `AN-AAQ-28.png` (the Litening AT), scaled to the real 2.20 m by 0.406 m |
@@ -72,7 +73,15 @@ Made by `tools/stores/build.gd` (re-runnable; docs/aircraft-models.md §5):
    look; inferred).
 3. CBU-87: the submunitions inside left out and the mesh simplified from 23 500 to about 4 900 triangles.
 4. The 300 gal tank's own pylon left out. The tanks' paint is cut out of the IAF Block 40 livery (the texture the
-   F-16D uses) to the part the tank's faces use.
+   F-16D uses) to the part the tank's faces use, its near-white underside (about sRGB 197, 205, 207). Since
+   2026-11-20 it is darkened by a colour factor, `PAINT_TANK` (sRGB 0.77, 0.78, 0.80, about sRGB 150, 159, 165 on that
+   underside), to the medium grey of the IAF's tanks: the sunlit tanks on photos of F-16Is and F-16Ds read about
+   sRGB 150 to 180 in each channel, a neutral grey with a little blue, lighter than the jet's camouflage (looked at
+   and sampled only, not distributed): Commons "Israeli F-16s at Red Flag.jpg" (F-16I 421 with 600 gal tanks, 2009;
+   Master Sergeant Kevin J. Gruenwald, USAF, public domain), "Fueling our allies (7273096).jpg" (an F-16D's 370 gal
+   tanks from above, 2022; Staff Sgt. Christian Sullivan, USAF, public domain), "Lockheed Martin F-16D Barak, Israel -
+   Air Force JP7236316.jpg" (F-16D 022 with 370 gal tanks; Aldo Bidini, GFDL 1.2) and "Oferet-Yetzuka-F16I.jpg" (F-16I
+   857 with 600 gal tanks and a centreline tank, 2008; Yosi Yaari, CC BY-SA 3.0).
 5. The seeker glass and lenses (see-through in FlightGear) made opaque dark glass.
 6. Every face drawn from both sides (as FlightGear marks them), smooth normals within each object's crease angle,
    one mesh per store, textures re-encoded as JPEG (512 px or less; the Soviet missiles keep their 1024 × 512).

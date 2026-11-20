@@ -187,7 +187,7 @@ impl IafBriefing {
         out.as_ref().map_or_else(GString::new, |v| GString::from(v.to_string().as_str()))
     }
 
-    /// The loadout `lo` as the engine's pylons hold it (`loadout::sim_load`): [[weapon number, count, rack kg, rack drag, internal] × 13] as
+    /// The loadout `lo` as the engine's pylons hold it (`loadout::sim_load`): [[weapon number, count, rack kg, rack drag, internal] × 14] as
     /// JSON text, "" when the record is unreadable.
     #[func]
     fn sim_load(unit: GString, weapons: GString, lo: GString) -> GString {

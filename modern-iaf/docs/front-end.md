@@ -922,8 +922,8 @@ editing pieces (the callout, the store, the stores' column).
   camera straight under the jet, the nose up the screen, still, lit from below, the F-35I's bay doors open with the
   bays' stores in view (`below`). The jet never mirrors: seen from beneath, its left wing (station 1) is on the right.
   Without the converted model (before setup) the callouts stand alone, with no lines.
-- **The callouts:** one per station that takes a store (the record's `allowed`; the F-16s' centreline and the Adir's
-  2 / 10 take none, so they have none), 170 × 84 px, in a column on each side of the jet, in the order of their
+- **The callouts:** one per station that takes a store (the record's `allowed`; the Adir's 2 / 10 take none, so they
+  have none; the F-16s' centreline, 5, takes the 300 gal tank and stands under the jet), 170 × 84 px, in a column on each side of the jet, in the order of their
   stations' height on the screen, so the lines do not cross (a station on the middle line would sit under the jet): "6 · INBOARD" (the number and the station's place, the record's `positions`:
   WINGTIP, OUTBOARD, MID, INBOARD, CENTRELINE, BAY OUTBOARD, BAY INBOARD), the store's short name and its weight with
   the rack's ("1,321 kg" for a full 370 gal tank, its fuel and its own empty weight, `briefing::arming`'s slot `kg`); an empty station's frame is dashed
@@ -948,8 +948,8 @@ editing pieces (the callout, the store, the stores' column).
   record's `lateral_limit_hard`). A store that cannot be employed (a laser bomb with no targeting pod) also turns Fly
   and "+ Save this loadout" off, with one short warning-coloured line in the footer at the notice size, "GBU-12 needs
   the Litening pod" ([weapons.md](weapons.md) §7.1); the briefing's Arming summary shows the same line in its small
-  text. A saved loadout from before that rule loads whole and shows the line. The chin callouts read 5R and 5L (the
-  record's `labels`).
+  text. A saved loadout from before that rule loads whole and shows the line. The chin callouts read 5R and 5L, the
+  centreline's 5 (the record's `labels`); the centreline's callout stands under the jet, its 300 gal tank's alone.
 - **STORES** under it: the stores the jet may carry (the record's `inventory`), two to a row, each its short name in a
   thin frame (the full name the tooltip), the ones left where the record gives a count (none does yet).
 - **The footer:** "Reset to the mission's" at the inline start (off while the mission's own is on the jet), Briefing

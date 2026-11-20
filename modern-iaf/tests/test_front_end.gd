@@ -1304,9 +1304,10 @@ func _loadout_checks(fe: Control, lang: String) -> void:
 		"%s: loadout: the footer's Briefing named" % lang
 	)
 	var c: Dictionary = scr.call().callouts
-	# Every station, 5 (5R) the chin's Litening (avionics slice 4), 10 (5L) the navigation pod's (pods part 1).
+	# Every station, 5 (5R) the chin's Litening (avionics slice 4), 10 (5L) the navigation pod's (pods part 1), 11 the
+	# centreline's 300 gal tank (shown as 5).
 	check(
-		c.size() == 10 and c.has("5") and c.has("10"),
+		c.size() == 11 and c.has("5") and c.has("10") and c.has("11"),
 		"%s: loadout: a callout per station that takes a store (%s)" % [lang, c.keys()]
 	)
 	check(
@@ -1318,7 +1319,7 @@ func _loadout_checks(fe: Control, lang: String) -> void:
 	check(stage.layout_direction == Control.LAYOUT_DIRECTION_LTR, "%s: loadout: the jet never mirrors" % lang)
 	if scr.call().tt != null:
 		var pts: Dictionary = scr.call().points()
-		check(pts.size() == 10, "%s: loadout: each station's place on the model (%d)" % [lang, pts.size()])
+		check(pts.size() == 11, "%s: loadout: each station's place on the model (%d)" % [lang, pts.size()])
 		check(
 			pts["1"].x > pts["9"].x and c["1"].position.x > c["9"].position.x,
 			"%s: loadout: from beneath the left wing (1) on the right" % lang
@@ -1565,7 +1566,7 @@ func _loadout_checks(fe: Control, lang: String) -> void:
 		var pylons: Array = s.arm_loadouts.values()[0] if s.arm_loadouts.size() == 1 else []
 		check(
 			(
-				pylons.size() == 13
+				pylons.size() == 14
 				and pylons[2] == [2.0, 1.0, 0.0, 0.0, 0.0]
 				and pylons[6] == [2.0, 1.0, 0.0, 0.0, 0.0]
 				and pylons[0] == [1.0, 1.0, 0.0, 0.0, 0.0]

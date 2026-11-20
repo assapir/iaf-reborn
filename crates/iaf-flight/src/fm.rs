@@ -304,10 +304,12 @@ impl Fm {
         }
     }
 
-    pub fn set_fuel_capacity(&mut self, extra_kg: f32) {
+    /// The external tanks' fuel at the start, `centre_kg` of it the centreline tank's (the 6-DoF's EXT CTR gauge; the
+    /// original model has one fuel figure).
+    pub fn set_fuel_capacity(&mut self, extra_kg: f32, centre_kg: f32) {
         match self {
             Fm::Original(a) => a.set_fuel_capacity(extra_kg),
-            Fm::SixDof(s) => s.set_fuel_capacity(extra_kg),
+            Fm::SixDof(s) => s.set_fuel_capacity(extra_kg, centre_kg),
         }
     }
 

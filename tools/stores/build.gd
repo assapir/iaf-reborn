@@ -21,7 +21,8 @@ extends SceneTree
 ## instead of its axis on the original's: the tanks and pods whose FlightGear mounts stand above the body), `dy`
 ## (metres up after the fit), `tris` (decimated to about that), `tint` (the texture's colour factor: the MiG-29 9-12's
 ## textures are plain white, with no baked shading), `len` (the store's real length in metres: its scale, in place of
-## the original's length).
+## the original's length), `keep` (no original: FlightGear's size and origin kept as they are, so the origin stays the
+## store's own attach point).
 ## Every model is scaled uniformly to the original's length, its centre on the original's, its axis (FlightGear's
 ## origin line) on the original's (the mean of its nose and tail centroids).
 ## Our own stores' shapes (parts()).
@@ -33,6 +34,9 @@ const MIG29 := "MiG-29_9-12/Models/Submodels"
 ## The Soviet missiles' light grey paint over their white textures (ours, set by eye; sRGB, a material colour).
 const PAINT_29 := Color(0.74, 0.75, 0.76)
 const PAINT_21 := Color(0.86, 0.86, 0.87)
+## The fuel tanks' grey (2026-11-20): the Block 40 livery's crop is its near-white underside (about sRGB 197, 205, 207);
+## this factor darkens it to the medium grey of the IAF's F-16I and F-16D tanks on photos (SOURCES.md, "Changes" 4).
+const PAINT_TANK := Color(0.77, 0.78, 0.80)
 const STORES := {
 	"aim9": {"orig": "aim9/aim9_m.gltf", "ac": ["Weapons/AIM-9M/AIM-9M.ac"]},
 	"aim7": {"orig": "aim7/aim7_m.gltf", "ac": ["Weapons/AIM-7/AIM-7F.ac"]},
@@ -92,7 +96,8 @@ const STORES := {
 	{
 		"orig": "f16ftk/f16ftk_m.gltf",
 		"ac": ["External-stores/Fueltanks/370G.ac"],
-		"livery": "Liveries/Block40/90-0874.png"
+		"livery": "Liveries/Block40/90-0874.png",
+		"tint": PAINT_TANK
 	},
 	# Modern IAF's 600 US gal wing tank (tank-600): FlightGear's 600G.ac (5.736 m by 0.830 m) at the real 238.5 in
 	# (6.058 m) by 32.6 in (0.828 m) (SOURCES.md), on the 370's original, painted as the 370. It hangs by its top
@@ -102,6 +107,7 @@ const STORES := {
 		"orig": "f16ftk/f16ftk_m.gltf",
 		"ac": ["External-stores/Fueltanks/600G.ac"],
 		"livery": "Liveries/Block40/90-0874.png",
+		"tint": PAINT_TANK,
 		"len": 6.058,
 		"girth": 0.9446
 	},
@@ -111,7 +117,20 @@ const STORES := {
 		"ac": ["External-stores/Fueltanks/300G.ac"],
 		"drop": ["pylon"],
 		"livery": "Liveries/Block40/90-0874.png",
+		"tint": PAINT_TANK,
 		"top": true
+	},
+	# Modern IAF's 300 US gal centreline tank (tank-300): FlightGear's 300G.ac at its own size (4.515 m long, 0.918 m
+	# wide, 0.594 m high; SOURCES.md) and origin, its attach point, without its sway-brace strip ("pylon"): the F-16
+	# model's own centreline pylon holds it (sim.rs F16_SIM_LUGS StationK).
+	"f16ftk300":
+	{
+		"ac": ["External-stores/Fueltanks/300G.ac"],
+		"drop": ["pylon"],
+		"livery": "Liveries/Block40/90-0874.png",
+		"tint": PAINT_TANK,
+		"top": true,
+		"keep": true
 	},
 	"ecmpod": {"orig": "ecmpod/ecmpod_m.gltf", "ac": ["External-stores/AN_ALQ-131/AN_ALQ-131.ac"], "top": true},
 	"flrpod": {"orig": "flrpod/flrpod_m.gltf", "ac": ["External-stores/LANTIRN/AN-AAQ-13.ac"], "top": true},
@@ -337,7 +356,9 @@ func build(name: String, spec: Dictionary) -> void:
 	for o in objs:
 		verts.append_array(o.verts)
 	var m := measure(verts)
-	var om := measure(original_verts(spec.orig)) if spec.has("orig") else _centred(m)
+	var om := (
+		m if spec.get("keep", false) else (measure(original_verts(spec.orig)) if spec.has("orig") else _centred(m))
+	)
 	var tris := 0
 	for o in objs:
 		for fc in o.faces:
@@ -380,6 +401,8 @@ func build(name: String, spec: Dictionary) -> void:
 	)
 	if spec.get("top", false):
 		fit.origin.y = om.hi.y - s * m.hi.y + float(spec.get("dy", 0.0))
+	if spec.get("keep", false):
+		fit = Transform3D.IDENTITY
 	print("  fit: scale %.3f, %s" % [s, fit.origin])
 	var root := Node3D.new()
 	root.name = name

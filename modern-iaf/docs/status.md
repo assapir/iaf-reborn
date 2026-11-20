@@ -388,7 +388,7 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   velocity plus the jet's, the M56's drag by air density, gravity) and the EEGS funnel predicts it (W2,
   [weapons.md](weapons.md) §1); the unguided bombs fall by gravity and their own drag through the wind, nothing
   steering them, and CCIP predicts that fall (W5, W6); the GPS bombs miss by their published CEP (W11); a drop tank's own empty weight loads the jet until it is
-  jettisoned (370 gal 443 lb and 600 gal 380 lb, both sourced; F27). Shared with the original game's Weapon data Real.
+  jettisoned (370 gal 443 lb, 600 gal 380 lb and 300 gal 360 lb, all sourced; F27). Shared with the original game's Weapon data Real.
 - **Release limits, jettisons, bay doors (2026-11-15, W17, W18, W22):** a bomb leaves only at 600 KCAS or less and in
   a dive of 60° or less; Shift+C is the F-16's emergency jettison (every store and rack but the A-A missiles and the pods in one
   press, unarmed, the tanks' fuel with them); the F-16 SMS's S-J and Space jettison the selected store with its racks;
@@ -859,7 +859,14 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   Delilah is dropped for now (the user, 2026-11-14): no store list offers or carries it, as it needs a powered
   cruise-missile flight class the engine does not have; its record stays. Since 2026-11-20 the 600 US gal tank has its
   model (the user: "It should be high in priority"): FlightGear's tank at IMI's 238.5 in by 32.6 in, painted as the
-  370, on 4 / 6 under the inboard pylons, and the Loadout screen offers it. Open: a Sufa / Barak station chart.
+  370, on 4 / 6 under the inboard pylons, and the Loadout screen offers it. Since 2026-11-20 too, the 300 US gal
+  centreline tank (the user: "Do the center tank, and in gray, yes"): the real jet's station 5, the engine's 14th
+  station (pylon K; the records' 11, shown as 5), on the Sufa (a Commons photo of a Sufa with it) and the Barak,
+  FlightGear's tank at its own size under the model's centreline pylon, 0.086 m above the ground with the gear down,
+  its fuel on the FUEL QTY gauge at EXT CTR and burnt before the wing tanks';
+  and the three tanks (370, 600, 300) are painted the IAF tanks' medium grey, matched to Commons photos of F-16Is and
+  F-16Ds (they were the livery's near-white underside) ([weapons.md](weapons.md) §7.3). Open: a Sufa / Barak station
+  chart; the 300 gal tank's size (no published figure found; FlightGear's kept).
 - **Inventory counts:** no public source gives the IAF's store counts; the records list none, so the inventory is
   unlimited. `cargo test -p iaf-tools --lib loadout`, `test_front_end.gd`,
   `test_mvp.gd --only loadout`.

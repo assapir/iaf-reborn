@@ -5,7 +5,7 @@
 //! `pilot_log` keeps each pilot's per jet.
 
 pub use iaf_avionics::gps::PreAim;
-use iaf_avionics::stores::{CHIN_LEFT, STATIONS, pylon_index};
+use iaf_avionics::stores::{CENTRELINE, CHIN_LEFT, STATIONS, pylon_index};
 use serde_json::{Map, Value, json};
 use std::collections::BTreeMap;
 use std::path::Path;
@@ -52,16 +52,18 @@ fn rack(unit: &Value, st: u32, id: &str, f: &str) -> f64 {
 }
 
 /// The station across the jet from `st` (stations numbered from the left wing tip: 3 ↔ 7 of nine), none for the
-/// middle one and the left chin hardpoint (pylon J, numbered after the wing's: the F-16's 5L).
+/// middle one, the left chin hardpoint and the centreline (pylons J and K, numbered after the wing's: the F-16's 5L
+/// and 5).
 pub fn mirror(unit: &Value, st: u32) -> Option<u32> {
-    let all: Vec<u32> = stations(unit).into_iter().filter(|&s| letter(unit, s) != Some(CHIN_LEFT)).collect();
+    let after = |s: u32| matches!(letter(unit, s), Some(CHIN_LEFT | CENTRELINE));
+    let all: Vec<u32> = stations(unit).into_iter().filter(|&s| !after(s)).collect();
     let n = (all.last()? + 1).checked_sub(st)?;
     (n != st && all.contains(&n)).then_some(n)
 }
 
-/// The engine's station index of station `st`'s pylon letter (A..I 0..8, J 12: `iaf_avionics::stores::LETTERS`; the
-/// record's `stations` where its numbers differ, else the number's letter, 10 → J), none for a station the engine's
-/// pylons leave out.
+/// The engine's station index of station `st`'s pylon letter (A..I 0..8, J 12, K 13: `iaf_avionics::stores::LETTERS`;
+/// the record's `stations` where its numbers differ, else the number's letter, 10 → J, 11 → K), none for a station
+/// the engine's pylons leave out.
 pub fn letter(unit: &Value, st: u32) -> Option<usize> {
     let l = match unit["stations"].as_object() {
         Some(m) => m.get(&st.to_string())?.as_str()?.bytes().next()?,
@@ -288,7 +290,7 @@ pub fn weigh(base: f64, stores: &[(f64, f64)]) -> Weight {
 }
 
 /// The stores on the pylons as the engine's armament holds them, [weapon number, count, rack kg, rack drag, internal]
-/// by station index × 13 (A..I 0..8, J 12; 9..11 the gun, chaff and flares, left empty) (`Settings.arm_loadouts`, player_weapons.gd `_armed`, stores.gd `setup`): each store's weapon
+/// by station index × 14 (A..I 0..8, J 12, K 13; 9..11 the gun, chaff and flares, left empty) (`Settings.arm_loadouts`, player_weapons.gd `_armed`, stores.gd `setup`): each store's weapon
 /// record's `sim` (a `modern_weapons.gd` record built on it, the GBU-31's 1003), else its `number`, its rack's
 /// `rack_kg` / `rack_drag` (0 without a rack), and 1 on a station inside a weapons bay (the record's `internal`: its
 /// stores and rack add no drag, the rack's drag written 0), else 0; a station the engine has no pylon for carries nothing.
@@ -468,6 +470,23 @@ mod tests {
             assert_eq!((a["labels"]["10"].as_str(), a["labels"]["5"].as_str()), (Some("5L"), Some("5R")), "{id}");
             assert_eq!((a["pylons"]["10"].as_i64(), a["slots"]["10"]["pylon"].as_i64()), (Some(12), Some(12)), "{id}");
             assert!(a["inventory"].as_array().unwrap().iter().any(|e| e["id"] == nav && e["group"] == "pod"));
+        }
+    }
+
+    #[test]
+    fn centreline_takes_the_300_tank() {
+        // The Sufa's and the Barak's 300 US gal tank on the centreline, the real jet's 5, the record's 11 (pylon K:
+        // station index 13), shown as 5; nowhere else, and no mirror.
+        for id in ["f16i", "f16d"] {
+            let u = unit(id);
+            let mut lo = default(&u);
+            assert_eq!((letter(&u, 11), mirror(&u, 11), mirror(&u, 3)), (Some(13), None, Some(7)), "{id}");
+            assert!(!put(&u, &mut lo, 4, "tank-300", true) && put(&u, &mut lo, 11, "tank-300", true), "{id}");
+            assert_eq!(at(&lo, 11), ("tank-300", 1), "{id}");
+            let load = sim_load(&u, &weapons(), &lo);
+            assert_eq!((load.len(), load[13][0].as_i64()), (STATIONS, Some(22)), "{id}");
+            let a = crate::briefing::arming(&u, &weapons(), &lo);
+            assert_eq!((a["labels"]["11"].as_str(), a["pylons"]["11"].as_i64()), (Some("5"), Some(13)), "{id}");
         }
     }
 

@@ -5,7 +5,10 @@
 //! The tanks form two systems, the aft (left) and the forward (right), each a chain from the engine out: the
 //! reservoir, the fuselage tanks (A-1; F-1 and F-2), the internal wing tank (with its conformal tank on the Sufa) and
 //! the external wing tank. Fuel moves down each chain toward its reservoir, so a chain empties from its far end: the
-//! external tank first, the reservoir last (page 1-61). Masses are in pounds, as the manual's.
+//! external tank first, the reservoir last (page 1-61). The centreline tank (ours: a tank on a centre station, the
+//! 300 US gal tank of Modern IAF's F-16s or, in the 1998 game under 6-DoF, a tank on station E) feeds both systems
+//! and empties before the wing tanks, as EXT FUEL TRANS at NORM (inferred; its WING FIRST position is not modelled).
+//! Masses are in pounds, as the manual's.
 
 /// The tank levels of a system, from the engine out.
 pub const RSVR: usize = 0;
@@ -34,11 +37,13 @@ const AUTO_FWD_OFF: f64 = 750.0;
 /// The FWD and AFT FUEL LOW caution lights of the F-16D: the reservoir under 250 and 400 lb (page 1-74).
 const LOW_LB: [f64; 2] = [400.0, 250.0];
 
-/// The tanks: [level][system], capacity and fuel, lb.
+/// The tanks: [level][system], capacity and fuel, lb; the centreline tank's beside them.
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct Tanks {
     pub cap: [[f64; 2]; 4],
     pub lb: [[f64; 2]; 4],
+    pub ctr_cap: f64,
+    pub ctr: f64,
     /// The automatic forward transfer running.
     auto_fwd: bool,
 }
@@ -50,29 +55,33 @@ impl Tanks {
         let wing = ((internal_lb - k * (FUSELAGE_LB[0] + FUSELAGE_LB[1])) / 2.0).max(0.0);
         let cap =
             [[RSVR_LB * k; 2], [(FUSELAGE_LB[0] - RSVR_LB) * k, (FUSELAGE_LB[1] - RSVR_LB) * k], [wing; 2], [0.0; 2]];
-        Tanks { cap, lb: cap, auto_fwd: false }
+        Tanks { cap, lb: cap, ctr_cap: 0.0, ctr: 0.0, auto_fwd: false }
     }
 
     pub fn total(&self) -> f64 {
-        self.lb.iter().flatten().sum()
+        self.lb.iter().flatten().sum::<f64>() + self.ctr
     }
 
     pub fn capacity(&self) -> f64 {
-        self.cap.iter().flatten().sum()
+        self.cap.iter().flatten().sum::<f64>() + self.ctr_cap
     }
 
     /// The internal tanks' capacity, lb.
     pub fn internal(&self) -> f64 {
-        self.capacity() - self.cap[EXT][0] - self.cap[EXT][1]
+        self.capacity() - self.cap[EXT][0] - self.cap[EXT][1] - self.ctr_cap
     }
 
-    /// The external wing tanks: `ext_lb` of capacity, half on each wing; then `total_lb` aboard ([`Tanks::fill`]).
-    pub fn set(&mut self, ext_lb: f64, total_lb: f64) {
-        self.cap[EXT] = [ext_lb.max(0.0) / 2.0; 2];
+    /// The external tanks: `ext_lb` of capacity, `ctr_lb` of it the centreline tank's and the rest half on each wing;
+    /// then `total_lb` aboard ([`Tanks::fill`]).
+    pub fn set(&mut self, ext_lb: f64, ctr_lb: f64, total_lb: f64) {
+        let ext = ext_lb.max(0.0);
+        self.ctr_cap = ctr_lb.clamp(0.0, ext);
+        self.cap[EXT] = [(ext - self.ctr_cap) / 2.0; 2];
         self.fill(total_lb);
     }
 
-    /// `total_lb` aboard, the tanks filled from the engine out: the reservoirs first, the external tanks last.
+    /// `total_lb` aboard, the tanks filled from the engine out: the reservoirs first, the external tanks last, the
+    /// centreline tank after the wing tanks.
     pub fn fill(&mut self, total_lb: f64) {
         let mut left = total_lb.max(0.0);
         for (lb, cap) in self.lb.iter_mut().zip(self.cap) {
@@ -81,10 +90,14 @@ impl Tanks {
             left -= take;
             *lb = if both > 0.0 { [take * cap[0] / both, take * cap[1] / both] } else { [0.0; 2] };
         }
+        self.ctr = left.min(self.ctr_cap);
     }
 
-    /// Up to `lb` taken from `sys`, its far end first; what it lacked.
+    /// Up to `lb` taken from `sys`, the centreline tank first, then the system's far end; what it lacked.
     fn draw(&mut self, sys: usize, mut lb: f64) -> f64 {
+        let take = lb.min(self.ctr);
+        self.ctr -= take;
+        lb -= take;
         for level in (RSVR..=EXT).rev() {
             let take = lb.min(self.lb[level][sys]);
             self.lb[level][sys] -= take;
@@ -146,7 +159,7 @@ impl Tanks {
 
     /// The fuel quantity indicator at FUEL QTY SEL position `sel` (0 TEST, 1 NORM, 2 RSVR, 3 INT WING, 4 EXT WING, 5
     /// EXT CTR; figure 1-24): [the FR pointer, the AL pointer, the totalizer], lb. TEST drives the pointers to 2,000 lb
-    /// and the totalizer to 6,000; EXT CTR shows the centreline tank on FR, which no sim jet carries.
+    /// and the totalizer to 6,000; EXT CTR shows the centreline tank on FR, AL at 0.
     pub fn gauge(&self, sel: u8) -> [f64; 3] {
         let pair = |p: [f64; 2]| [p[FWD], p[AFT], self.total()];
         match sel {
@@ -155,7 +168,7 @@ impl Tanks {
             2 => pair(self.lb[RSVR]),
             3 => pair(self.lb[WING]),
             4 => pair(self.lb[EXT]),
-            _ => [0.0, 0.0, self.total()],
+            _ => [self.ctr, 0.0, self.total()],
         }
     }
 
@@ -182,14 +195,30 @@ mod tests {
     #[test]
     fn a_chain_empties_from_its_far_end() {
         let mut t = Tanks::new(5_800.0);
-        t.set(4_840.0, 10_640.0);
+        t.set(4_840.0, 0.0, 10_640.0);
         assert_eq!(t.gauge(4), [2_420.0, 2_420.0, 10_640.0]);
         t.feed(2_000.0, 0.0, 1, true);
         assert_eq!(t.gauge(4), [1_420.0, 1_420.0, 8_640.0]);
         assert_eq!(t.gauge(1), [1_890.0, 2_810.0, 8_640.0]);
         // The jettison: the external tanks gone, the internal ones full.
-        t.set(0.0, 5_800.0);
+        t.set(0.0, 0.0, 5_800.0);
         assert_eq!(t.gauge(4), [0.0, 0.0, 5_800.0]);
+    }
+
+    #[test]
+    fn the_centreline_tank_empties_first_and_shows_at_ext_ctr() {
+        // Two 370 gal tanks (2,470 lb each) and the 300 gal centreline tank (2,002 lb): EXT CTR shows the centreline
+        // tank's fuel on FR; the engine takes it before the wing tanks', from both systems.
+        let mut t = Tanks::new(5_800.0);
+        t.set(2.0 * 2_470.0 + 2_002.0, 2_002.0, 12_742.0);
+        assert_eq!(
+            (t.gauge(5), t.gauge(4), t.internal()),
+            ([2_002.0, 0.0, 12_742.0], [2_470.0, 2_470.0, 12_742.0], 5_800.0)
+        );
+        t.feed(1_500.0, 0.0, 1, true);
+        assert_eq!((t.gauge(5), t.gauge(4)), ([502.0, 0.0, 11_242.0], [2_470.0, 2_470.0, 11_242.0]));
+        t.feed(1_000.0, 0.0, 1, true);
+        assert_eq!((t.gauge(5)[0], t.gauge(4)), (0.0, [1_972.0, 2_470.0, 10_242.0]));
     }
 
     #[test]

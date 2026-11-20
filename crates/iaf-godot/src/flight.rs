@@ -467,11 +467,12 @@ impl IafFlight {
     }
 
     /// External fuel tanks at the start: fuel maximum = FuelWeight + `extra_kg`, filled (FUN_005a8980
-    /// then the start, docs/weapons.md "Fuel tanks").
+    /// then the start, docs/weapons.md "Fuel tanks"); `centre_kg` of it in the centreline tank (stores.gd
+    /// `tank_fuel_centre`; the 6-DoF's EXT CTR gauge).
     #[func]
-    fn set_fuel_capacity(&mut self, extra_kg: f64) {
+    fn set_fuel_capacity(&mut self, extra_kg: f64, centre_kg: f64) {
         if let Some(ac) = &mut self.aircraft {
-            ac.set_fuel_capacity(extra_kg as f32);
+            ac.set_fuel_capacity(extra_kg as f32, centre_kg as f32);
         }
     }
 

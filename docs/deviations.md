@@ -146,7 +146,8 @@ Each entry names the switch and where it lives, then the difference: "Original: 
   and control system, modern-iaf/docs/flight-model.md §9, with the jets' structural, gear, tyre, brake and c.g. limits
   of §9.20) from the sim's data
   (`assets/converted/own/resource/md/bd.ibx`, whose sections say `Model = 6dof`; `Settings.sixdof_data`). The 1998
-  jets, the AI's jets and the autopilot's bases keep the original game's data. Without the sim's data (built by
+  jets, the AI's jets and the autopilot's bases keep the original game's data. A tank on station E (the centreline)
+  burns before the wing tanks and shows at FUEL QTY SEL's EXT CTR (since 2026-11-20). Without the sim's data (built by
   `./modern-iaf-setup`) the 6-DoF choice reads "Not built", greyed; a saved 6-DoF choice then flies the original model
   and logs "Flight model 6-DoF: Modern IAF's data is not built". Each flight logs "Flight model: original|6dof".
   The autopilot's landing circuit flies its legs with laws of their own on the 6-DoF and lands it (2026-11-18,
@@ -505,7 +506,8 @@ Each entry names the switch and where it lives, then the difference: "Original: 
     the Reference viewer; and the FlightGear F-16's stores in place of 16 original stores on every jet, on the pylons
     and in flight, and the FlightGear MiG-21bis's and MiG-29 9-12's AA-2, AA-8, AA-10, AA-11 and MiG-29 tank
     (aircraft-models.md §5). The laser bombs are 41–47 % longer than the original's (the real
-    proportions); the other stores have the original's length and axis.
+    proportions); the other stores have the original's length and axis. The F-16's 370 and 300 gal tanks are the IAF
+    tanks' medium grey (since 2026-11-20; the livery's near-white before; aircraft-models.md §5).
     The F-15 becomes the FlightGear F-15C (GPL-2.0-only) where setup could download and convert it
     (aircraft-models.md §6): grey with IAF roundels, its speed brake and hook shown also shut.
     Every MiG-29 becomes the FlightGear MiG-29 9-12 (GPL-3.0; aircraft-models.md §7), repainted as a Syrian jet

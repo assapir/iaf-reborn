@@ -41,9 +41,9 @@ const SIZE := 6.0  # the mnemonics' font size, MFD px (about 18 characters acros
 const SMALL := 4.8
 ## The game's stations 0..8 (real 1..9) on the INV page by the OSBs the original's stores page selects them with
 ## (0xd, 0xc, 0xb, 1, 3, 5, 0x10, 0x11, 0x12 as real numbers): an inverted V, station 1 lower left, 5 top centre.
-## Ours, Modern IAF: the left chin hardpoint 5L (station index 12, stores.gd PYLONS) by OSB 3 too, a line under 5 (5R;
-## inferred).
-const STATION_OSB := {0: 18, 1: 19, 2: 20, 3: 1, 4: 3, 5: 5, 6: 6, 7: 7, 8: 8, 12: 3}
+## Ours, Modern IAF: the left chin hardpoint 5L (station index 12) and the centreline (13, the real 5; stores.gd
+## PYLONS) by OSB 3 too, each a line under 5R while loaded (inferred).
+const STATION_OSB := {0: 18, 1: 19, 2: 20, 3: 1, 4: 3, 5: 5, 6: 6, 7: 7, 8: 8, 12: 3, 13: 3}
 ## Air-to-air missile types (the AAM page); 590 is the HARM (WPN: HAS).
 const AAM_TYPES := [570, 580, 600, 610]
 ## The IR missiles (the SRM HUD mode).
@@ -868,15 +868,17 @@ func sms_format() -> void:
 ## gun's rounds in tens by OSB 16.
 func _inventory(wp: Dictionary) -> void:
 	var sel := int(wp.selected)
+	var row3 := 0  # the stations stacked under OSB 3: 5R, then 5L and the centreline while loaded
 	for i in STATION_OSB:
-		if i >= wp.stations.size() or (i == 12 and int(wp.stations[i].count) <= 0):
-			continue  # the left chin hardpoint shows only with a store on it (the 1998 jets have none)
+		if i >= wp.stations.size() or (i in [12, 13] and int(wp.stations[i].count) <= 0):
+			continue  # 5L and the centreline show only with a store on them (the 1998 jets have neither)
 		var st: Dictionary = wp.stations[i]
 		var n := int(st.count)
 		var t := "%d %s" % [n, String(st.name)] if n > 0 and String(st.name) != "" else "----"
 		var osb: int = STATION_OSB[i]
-		if osb <= 5:  # the top stations under the mode row (5L a line under 5R)
-			var a := osb_at(osb) + Vector2(0, 9 + (SMALL * 1.3 if i == 12 else 0.0))
+		if osb <= 5:  # the top stations under the mode row (5L and the centreline a line each under 5R)
+			var a := osb_at(osb) + Vector2(0, 9 + SMALL * 1.3 * (row3 if osb == 3 else 0))
+			row3 += 1 if osb == 3 else 0
 			var w := text_width(t, SMALL)
 			if i == sel:
 				fill(Rect2(a.x - w / 2.0 - 1.0, a.y - SMALL * 0.82, w + 2.0, SMALL * 1.05), c("text"))

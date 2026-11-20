@@ -26,7 +26,7 @@ pub struct IafStores {
 
 #[godot_api]
 impl IafStores {
-    /// The loadout an aircraft spawns with (`FUN_0058f110`) from the entity's and the object's armament: [[id, n] × 13].
+    /// The loadout an aircraft spawns with (`FUN_0058f110`) from the entity's and the object's armament: [[id, n] × 14].
     #[func]
     fn loadout(entity: VarDictionary, object: VarDictionary) -> VarArray {
         stores::loadout(&pairs(&entity), &pairs(&object)).iter().map(|&(id, n)| varray![id, n].to_variant()).collect()
@@ -71,7 +71,7 @@ impl IafStores {
             .collect()
     }
 
-    /// The 13 stations (stores.rs STATIONS): {} none, else {type, name, weight_lb, empty_lb (a tank's own, optional), drag, rounds_per_tick
+    /// The 14 stations (stores.rs STATIONS): {} none, else {type, name, weight_lb, empty_lb (a tank's own, optional), drag, rounds_per_tick
     /// (optional), count, arm (the attach
     /// point's glTF x, + right), rack_kg / rack_drag (optional: the rack the stores hang on)}.
     #[func]
@@ -191,8 +191,8 @@ impl IafStores {
         self.stores.reload();
     }
 
-    /// {counts [13] (−1 none), unlimited [13], last_fired, releases, unlimited_all, fm_mass, fm_di_left, fm_di_right,
-    /// has_tank, tank_fuel, roll_moment, tank_moment}.
+    /// {counts [14] (−1 none), unlimited [14], last_fired, releases, unlimited_all, fm_mass, fm_di_left, fm_di_right,
+    /// has_tank, tank_fuel, tank_fuel_centre, roll_moment, tank_moment}.
     #[func]
     fn state(&self) -> VarDictionary {
         let s = &self.stores;
@@ -203,7 +203,7 @@ impl IafStores {
             "counts" => &counts, "unlimited" => &unl, "last_fired" => s.last_fired() as i64,
             "releases" => s.releases() as i64, "unlimited_all" => s.unlimited(), "fm_mass" => load.mass,
             "fm_di_left" => load.di_left, "fm_di_right" => load.di_right, "has_tank" => s.has_tank(),
-            "tank_fuel" => s.tank_fuel(), "roll_moment" => s.roll_moment(),
+            "tank_fuel" => s.tank_fuel(), "tank_fuel_centre" => s.tank_fuel_centre(), "roll_moment" => s.roll_moment(),
             "tank_moment" => s.tank_moment(),
         }
     }

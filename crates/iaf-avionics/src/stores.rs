@@ -1,6 +1,6 @@
 //! The stores of one aircraft (docs/weapons.md §2–§5): the station container (ctl+0xfc, `FUN_0053b460`) with its 12
-//! stations (0..8 pylons StationA..I, 9 gun, 10 chaff, 11 flares) and Modern IAF's 13th (12, StationJ: the F-16's left
-//! chin hardpoint, ours), the loadout at mission start, the selection
+//! stations (0..8 pylons StationA..I, 9 gun, 10 chaff, 11 flares) and Modern IAF's 13th and 14th (12, StationJ: the
+//! F-16's left chin hardpoint; 13, StationK: its centreline; ours), the loadout at mission start, the selection
 //! cycle, which station fires next, the count decrement, and the stores weight / drag the flight model reads (S+0x424,
 //! S+0x428, S+0x42c).
 
@@ -11,28 +11,32 @@ pub const CHAFF: i64 = 540;
 pub const FLARE: i64 = 550;
 /// Fuel tanks and pods.
 pub const SHELL: i64 = 660;
-pub const STATIONS: usize = 13;
+pub const STATIONS: usize = 14;
 /// The wing pylons 0..8 (the original's nine; the mirror and the drag sides count them).
 const PYLONS: usize = 9;
 /// Ours (Modern IAF, modern-iaf/docs/weapons.md §7.3): the F-16's left chin hardpoint (5L), pylon J, after the
 /// original's gun, chaff and flares so their indexes stay. The 1998 game's data never fills it.
 pub const CHIN_LEFT: usize = 12;
+/// Ours (Modern IAF): the F-16's centreline station (the real jet's 5, its 300 US gal tank), pylon K, after the left
+/// chin hardpoint: Modern IAF's F-16 hangs its right chin pod on the original's centre station E. The 1998 game's data
+/// never fills it.
+pub const CENTRELINE: usize = 13;
 /// Each station's pylon letter ('-': the gun, chaff and flares).
-pub const LETTERS: &[u8; STATIONS] = b"ABCDEFGHI---J";
+pub const LETTERS: &[u8; STATIONS] = b"ABCDEFGHI---JK";
 
-/// Station `i` is a pylon (A..I or J).
+/// Station `i` is a pylon (A..I, J or K).
 pub fn is_pylon(i: usize) -> bool {
-    i < PYLONS || i == CHIN_LEFT
+    i < PYLONS || i == CHIN_LEFT || i == CENTRELINE
 }
 
-/// The station index of pylon letter `l` (A..J).
+/// The station index of pylon letter `l` (A..K).
 pub fn pylon_index(l: u8) -> Option<usize> {
     LETTERS.iter().position(|&c| c == l && c != b'-')
 }
 
-/// A centre station (the original's 4, the left chin 12): its drag goes half to each side.
+/// A centre station (the original's 4, the left chin 12, the centreline 13): its drag goes half to each side.
 fn centre(i: usize) -> bool {
-    i == 4 || i == CHIN_LEFT
+    i == 4 || i == CHIN_LEFT || i == CENTRELINE
 }
 /// [Misc] BombStationLength (IAF.ibx, default 2.0 @0x60c5bc; not in the shipped file).
 const BOMB_STATION_LENGTH: f64 = 2.0;
@@ -125,9 +129,9 @@ pub struct Load {
     pub di_right: f64,
 }
 
-/// The loadout an aircraft spawns with (`FUN_0058f110`): the pylons (0..8, and 12) from the entity's CArmament when
+/// The loadout an aircraft spawns with (`FUN_0058f110`): the pylons (0..8, 12 and 13) from the entity's CArmament when
 /// any of them is set, else from the object type's; 9..11 (gun, chaff, flares) always from the type. [weapon id,
-/// count] × 13 (an armament of the original's 12 leaves 12 empty).
+/// count] × 14 (an armament of the original's 12 leaves 12 and 13 empty).
 pub fn loadout(entity: &[(i64, i64)], object: &[(i64, i64)]) -> [(i64, i64); STATIONS] {
     let pylons_set = entity.iter().enumerate().any(|(i, &(id, _))| is_pylon(i) && id != 0 && id != -1);
     std::array::from_fn(|i| {
@@ -139,7 +143,7 @@ pub fn loadout(entity: &[(i64, i64)], object: &[(i64, i64)]) -> [(i64, i64); STA
 /// The store positions of a station (`FUN_0053c990`) in glTF metres, computed once in the original's E frame (x =
 /// −glTF x, y = glTF z, z = glTF y) from the attach point and the store's Pilon: TER (3) for non-bombs and bombs ≤ 3,
 /// MER (6) for bombs ≥ 4 spread ±BombStationLength fore / aft. Stations 6..8 are mirrored (station 5 is not: the
-/// original's `> 5.0` test; nor the left chin 12, ours).
+/// original's `> 5.0` test; nor the left chin 12 and the centreline 13, ours).
 pub fn slots(index: usize, attach: Vec3, count: i64, bomb: bool, pilon: Option<Vec3>) -> Vec<Vec3> {
     let pl = pilon.unwrap_or(Vec3::new(0.0, PILON_DEFAULT_Z, 0.0));
     let (px, py, pz) = (-pl.x, pl.z, pl.y);
@@ -190,6 +194,9 @@ pub struct Stores {
     has_tank: bool,
     /// The fuel the tanks add to the fuel maximum at the start (kg field; see `init_weight_drag`).
     tank_fuel: f64,
+    /// Ours: the share of `tank_fuel` in the tanks on a centre station (the F-16's centreline tank), which the 6-DoF's
+    /// gauge shows at EXT CTR.
+    tank_fuel_centre: f64,
     load: Load,
 }
 
@@ -233,6 +240,9 @@ impl Stores {
     }
     pub fn tank_fuel(&self) -> f64 {
         self.tank_fuel
+    }
+    pub fn tank_fuel_centre(&self) -> f64 {
+        self.tank_fuel_centre
     }
     pub fn load(&self) -> Load {
         self.load
@@ -499,9 +509,10 @@ impl Stores {
         }
     }
 
-    /// `FUN_00454010`: one store per station 0..8 whatever the count (original); tanks go to the fuel (`tank_fuel`)
+    /// `FUN_00454010`: one store per pylon (0..8, Modern IAF's 12 and 13) whatever the count (original); tanks go to
+    /// the fuel (`tank_fuel`, the centre stations' share also `tank_fuel_centre`)
     /// instead of the stores weight; drag of stations 0..3 left, 5..8 right, station 4 half to each (and the left
-    /// chin 12, ours). The weight
+    /// chin 12 and the centreline 13, ours). The weight
     /// (pounds) goes into the kg field as is. With the weight fix: every store counted, in kg, tank fuel in kg. A rack
     /// (ours) adds its weight and drag once per station.
     pub fn init_weight_drag(&mut self) {
@@ -509,6 +520,7 @@ impl Stores {
         let (mut weight, mut left, mut right) = (0.0, 0.0, 0.0);
         self.has_tank = false;
         self.tank_fuel = 0.0;
+        self.tank_fuel_centre = 0.0;
         for (i, s) in self.stations.iter().enumerate().filter(|(i, _)| is_pylon(*i)) {
             let Some(s) = s else { continue };
             let n = if self.weight_fix { s.count } else { 1.0 };
@@ -516,6 +528,9 @@ impl Stores {
                 // The tank's bdb weight becomes fuel (FUN_005a8980: fuel maximum FuelWeight + out[3]).
                 self.has_tank = true;
                 self.tank_fuel += n * s.weapon.weight_lb * unit;
+                if centre(i) {
+                    self.tank_fuel_centre += n * s.weapon.weight_lb * unit;
+                }
                 if self.weight_fix {
                     weight += n * s.weapon.empty_lb * unit;
                 }
@@ -537,7 +552,7 @@ impl Stores {
     }
 
     /// `FUN_004583a0`: that side's drag index loses the store's drag (half at station 4, both sides; the left chin 12
-    /// the same), only when it stays ≥ 0.
+    /// and the centreline 13 the same), only when it stays ≥ 0.
     fn release_drag(&mut self, i: usize, w: &Weapon) {
         let d = w.drag * if centre(i) { 0.5 } else { 1.0 };
         let drop = |di: &mut f64| {
@@ -675,6 +690,30 @@ mod tests {
         ent[CHIN_LEFT] = (21, 1);
         assert_eq!(loadout(&ent, &twelve)[CHIN_LEFT], (21, 1));
         assert_eq!(loadout(&ent, &twelve)[0], (0, 0), "a set pylon 12 takes the entity's pylons");
+    }
+
+    #[test]
+    fn centreline_tank_adds_fuel_and_drags_both_sides() {
+        // Modern IAF (weight fix): the 300 US gal tank on the centreline, pylon K: its fuel to the tanks', its empty
+        // weight to the jet, its drag half to each side, no rolling moment; a jettison takes half its drag off each.
+        assert_eq!((pylon_index(b'K'), LETTERS[CENTRELINE]), (Some(CENTRELINE), b'K'));
+        assert!(is_pylon(CENTRELINE) && centre(CENTRELINE));
+        let mut s = Stores { player: true, weight_fix: true, ..Stores::default() };
+        let mut stations: [Option<Station>; STATIONS] = Default::default();
+        stations[CENTRELINE] = st(SHELL, "2002LB", 1.0);
+        let tank = stations[CENTRELINE].as_mut().unwrap();
+        (tank.weapon.weight_lb, tank.weapon.empty_lb) = (2002.0, 360.0);
+        s.setup(stations);
+        assert!(s.has_tank() && (s.tank_fuel() - 2002.0 * KG_PER_LB).abs() < 1e-9, "{}", s.tank_fuel());
+        assert_eq!(s.tank_fuel_centre(), s.tank_fuel(), "the centreline's share: all of it");
+        assert!((s.load().mass - 360.0 * KG_PER_LB).abs() < 1e-9, "{}", s.load().mass);
+        assert!((s.load().di_left - 5e-4).abs() < 1e-12 && (s.load().di_right - 5e-4).abs() < 1e-12);
+        assert_eq!(s.roll_moment(), 0.0);
+        s.jettisoned(CENTRELINE);
+        assert!(s.load().di_left < 1e-12 && s.load().di_right < 1e-12 && s.load().mass < 1e-9);
+        let mut ent = [(0, 0); STATIONS];
+        ent[CENTRELINE] = (22, 1);
+        assert_eq!(loadout(&ent, &[(1, 1); 12])[CENTRELINE], (22, 1));
     }
 
     #[test]

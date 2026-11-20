@@ -501,19 +501,22 @@ impl SixDof {
         self.start_seq.phase.name()
     }
 
-    /// Motion 0x18, as `Aircraft::set_fuel`: the fuel and its maximum := `kg` (the tank jettison).
+    /// Motion 0x18, as `Aircraft::set_fuel`: the fuel and its maximum := `kg` (the tank jettison). External capacity
+    /// left above the internal tanks stays the centreline tank's first, up to its own.
     pub fn set_fuel(&mut self, kg: f32) {
         if kg >= 0.0 {
             let lb = kg as f64 / LB;
-            self.tanks.set(lb - self.tanks.internal(), lb);
+            let ext = lb - self.tanks.internal();
+            self.tanks.set(ext, self.tanks.ctr_cap, lb);
         }
     }
 
     /// External tanks at the start, as `Aircraft::set_fuel_capacity` (FUN_005a8980 then the start's fill): the
-    /// maximum = the internal fuel + `extra_kg`, filled.
-    pub fn set_fuel_capacity(&mut self, extra_kg: f32) {
+    /// maximum = the internal fuel + `extra_kg`, filled; `centre_kg` of it in the centreline tank (ours, the EXT CTR
+    /// gauge's), the rest in the wing tanks.
+    pub fn set_fuel_capacity(&mut self, extra_kg: f32, centre_kg: f32) {
         let ext = extra_kg.max(0.0) as f64 / LB;
-        self.tanks.set(ext, self.tanks.internal() + ext);
+        self.tanks.set(ext, centre_kg.max(0.0) as f64 / LB, self.tanks.internal() + ext);
     }
 
     /// The mission's wind: `knots` from `from_deg` (true), as the original's (`aircraft::wind`).

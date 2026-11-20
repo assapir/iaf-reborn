@@ -306,11 +306,11 @@ func setup(host_node: Node, entity: Dictionary, object: Dictionary, bdb: Diction
 	_push_stores()
 	# The tanks' fuel (FUN_005a8980 before the start fills the fuel to FuelWeight + tanks).
 	if host.flight != null and _given_load.is_empty():  # a jet taken over in flight keeps its fuel
-		host.flight.set_fuel_capacity(stores.tank_fuel)
+		host.flight.set_fuel_capacity(stores.tank_fuel, stores.tank_fuel_centre)  # the centreline's: the EXT CTR gauge
 	_build_visuals()
 
 
-## The stores left on the jet, [[weapon id, count] × 13] (the jet handed to the AI by the FlyTSD's Fly).
+## The stores left on the jet, [[weapon id, count] × 14] (the jet handed to the AI by the FlyTSD's Fly).
 func loadout() -> Array:
 	var out := []
 	for i in Stores.FRAMES.size():

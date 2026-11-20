@@ -71,9 +71,9 @@ and up by their key ([cockpit.md](cockpit.md) §5.5).
 | `tail` | a flyable jet's tail number: the number painted on its model, so every screen shows the jet the player sees (the user, 2026-11-13, A31): the Sufa 846, the Barak 034, the Adir 937 (until 2026-11-13 482, 034 and 921, real jets of the units' squadrons from public photos; the Barak 547 until 2026-11-19); shown in the front end's subtitle, the Hangar's card, the Arming page ([front-end.md](front-end.md) §4); needs a source. The squadron shown with it is the one whose art the jet wears, 201, 109 and 116, from the base file's `squadrons` (airbases.md §3; 253, 109 and 140 before 2026-11-13; the Barak's 101 until 2026-11-19) |
 | `max_takeoff_kg` | a flyable jet's maximum take-off weight, against which the briefing's Arming page weighs the take-off ([front-end.md](front-end.md) §10); needs a source |
 | `loadout` | weapon id → count for the gun, chaff and flare stations (9–11); a unit with an `airframe` must give its gun rounds, the count the sim's gun fires down to empty ([weapons.md](weapons.md) §1) |
-| `pylons` | station `A`..`J` → `{"weapon", "count"}` (J the F-16's left chin hardpoint, the engine's 13th station; [weapons.md](weapons.md) §7.3) (the F-16s: an AIM-9M on A, B, C, G, H and I, a 370 US gal tank on D and F; the F-35I: an AIM-120 on D and F) |
-| `stations` | only where the real jet's station numbers differ from A..I → 1..9, 10 → J (the F-35I's eleven): real number → its pylon letter, `""` for a station the engine's pylons leave out; the briefing names the stations by these numbers |
-| `labels` | real station number → the name the screens show in its place (the F-16s: 5 "5R", 10 "5L", the chin hardpoints); optional |
+| `pylons` | station `A`..`K` → `{"weapon", "count"}` (J the F-16's left chin hardpoint, the engine's 13th station; K its centreline, the 14th; [weapons.md](weapons.md) §7.3) (the F-16s: an AIM-9M on A, B, C, G, H and I, a 370 US gal tank on D and F; the F-35I: an AIM-120 on D and F) |
+| `stations` | only where the real jet's station numbers differ from A..I → 1..9, 10 → J, 11 → K (the F-35I's eleven): real number → its pylon letter, `""` for a station the engine's pylons leave out; the briefing names the stations by these numbers |
+| `labels` | real station number → the name the screens show in its place (the F-16s: 5 "5R", 10 "5L", the chin hardpoints; 11 "5", the centreline); optional |
 | `internal` | the real numbers of the stations inside the jet (the F-35I's bays: 4, 5, 7, 8); the briefing marks their slots "internal" |
 | `lateral_limit_kgm`, `lateral_limit_hard` | the jet's largest stores rolling moment (kg·m) and whether it blocks Fly (else a warning): the briefing's imbalance marker ([front-end.md](front-end.md) §10). The F-16s: 3,459 kg·m (25,020 ft-lb, the flight manual's maximum allowable asymmetric moment as a forum quotes it[^bms-asym]; inferred), a warning; the Adir's open |
 | `inventory` | the stores the briefing lists as the jet's: `{"weapon", "count"}`, each its own weapon record (§4), `count` only where a source gives one |
@@ -163,6 +163,8 @@ AIM-9 about a missile diameter above and outboard of our rails and the tank's to
 - Stations 2 / 8 and 3 / 7: the AIM-9's axis one body radius below the pylon's bottom, on its middle (inferred, as
   at the rails).
 - Stations 4 and 6: the tank's top on the inboard pylon's bottom, on the pylon's middle.
+- Station 11, the centreline (the real 5, StationK; 2026-11-20): the 300 US gal tank's body top on the centreline
+  pylon's bottom, its attach point under the pylon's middle ([weapons.md](weapons.md) §7.3).
 - The bomb lugs (`sim.rs` `F16_SIM_LUGS`, the descriptor's `lugs`, 2026-11-11): on 3 / 7 and 4 / 6 a bomb, a guided
   bomb or a tank (`stores.gd` `LUGGED`) hangs with its model's top on the pylon's bottom, on its middle; a missile
   keeps the station's rail point. Before, the Mk 84 on 3 / 7 hung on the AIM-9's axis, its top 0.3 m inside the pylon.

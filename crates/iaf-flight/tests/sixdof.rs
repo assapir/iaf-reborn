@@ -593,7 +593,7 @@ fn fuel_tanks_and_a_dead_engine() {
     // holds 1 g of specific force (no thrust in it).
     let mut f = flight(jets::all()[1], 0.0, 0.0, false);
     let internal = f.internal_fuel_kg();
-    f.set_fuel_capacity(1000.0);
+    f.set_fuel_capacity(1000.0, 0.0);
     assert!(
         (f.state().fuel_kg - (internal + 1000.0)).abs() < 1e-3
             && (f.fuel_capacity_kg() - (internal + 1000.0)).abs() < 1e-3
@@ -899,7 +899,7 @@ fn a_tank_rolls_while_it_holds_fuel_and_its_drag_yaws() {
     let tank_kg = 1120.0; // tank-370.json
     let run = |fuel_left: bool, di_right: f32| {
         let mut f = flight(sufa, 3000.0, 350.0 * KT, true);
-        f.set_fuel_capacity(tank_kg);
+        f.set_fuel_capacity(tank_kg, 0.0);
         if !fuel_left {
             f.set_fuel(f.internal_fuel_kg());
         }
@@ -1221,7 +1221,7 @@ fn eng_feed_and_the_fuel_quantity_selector_work_over_the_tanks() {
     use iaf_flight::sixdof::LB;
     let near = |a: [f64; 3], b: [f64; 3]| a.iter().zip(b).all(|(x, y)| (x - y).abs() < 0.1);
     let mut f = flight(jets::all()[0], 3048.0, 300.0 * KT, true);
-    f.set_fuel_capacity((4_840.0 * LB) as f32);
+    f.set_fuel_capacity((4_840.0 * LB) as f32, 0.0);
     assert!(near(f.fuel_gauge(), [1_890.0, 2_810.0, 10_640.0]), "{:?}", f.fuel_gauge());
     f.set_switch("fuel_qty_sel", 4);
     assert!(near(f.fuel_gauge(), [2_420.0, 2_420.0, 10_640.0]), "{:?}", f.fuel_gauge());

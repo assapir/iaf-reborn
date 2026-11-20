@@ -772,9 +772,11 @@ func measure(ent: Dictionary, code: int, t: Dictionary) -> Variant:
 	var rt: Node = ai.runtime
 	match code:
 		8:
-			# No external tanks attached (FUN_004593e0).
-			for i in 9:
-				if int(u.stations[i].count) > 0 and int(u.stations[i].w.get("type", 0)) == 660:
+			# No external tanks attached (FUN_004593e0): the pylons, Modern IAF's centreline (13) among them; Modern IAF's
+			# pods (type 660 as the tanks, "pod" in their record) are no tanks.
+			for i in Stores.PYLONS:
+				var e: Dictionary = u.stations[i] if i < u.stations.size() else {}
+				if int(e.get("count", 0)) > 0 and int(e.w.get("type", 0)) == 660 and not e.w.get("pod", false):
 					return 0
 			return 1
 		10:

@@ -1,8 +1,9 @@
 # The stores of one aircraft (docs/weapons.md §2–§5): 12 stations (0..8 pylons StationA..I, 9 gun, 10 chaff,
-# 11 flares) and Modern IAF's 13th (12, pylon J: the F-16's left chin hardpoint, ours; iaf_avionics::stores
-# CHIN_LEFT). The logic (selection cycle, the station firing next, counts, the flight model's stores weight / drag)
-# is iaf_avionics::stores (crates/iaf-avionics/src/stores.rs) through IafStores; this keeps the GDScript face:
-# `stations` mirrors the counts next to each station's weapon record, attach point and store slots.
+# 11 flares) and Modern IAF's 13th and 14th (12, pylon J: the F-16's left chin hardpoint; 13, pylon K: its
+# centreline; ours; iaf_avionics::stores CHIN_LEFT, CENTRELINE). The logic (selection cycle, the station firing
+# next, counts, the flight model's stores weight / drag) is iaf_avionics::stores (crates/iaf-avionics/src/stores.rs)
+# through IafStores; this keeps the GDScript face: `stations` mirrors the counts next to each station's weapon record,
+# attach point and store slots.
 extends RefCounted
 
 const Gltf := preload("res://shared/util/gltf.gd")
@@ -25,12 +26,13 @@ const FRAMES := [
 	"StationGun",
 	"StationCha",
 	"StationFla",
-	"StationJ"
+	"StationJ",
+	"StationK"
 ]
-## The pylon stations (stores.rs is_pylon): the original's 0..8 and Modern IAF's left chin hardpoint, 12.
-const PYLONS := [0, 1, 2, 3, 4, 5, 6, 7, 8, 12]
+## The pylon stations (stores.rs is_pylon): the original's 0..8, Modern IAF's left chin hardpoint 12 and centreline 13.
+const PYLONS := [0, 1, 2, 3, 4, 5, 6, 7, 8, 12, 13]
 ## Each station's pylon letter ("-": the gun, chaff and flares; stores.rs LETTERS).
-const LETTERS := "ABCDEFGHI---J"
+const LETTERS := "ABCDEFGHI---JK"
 ## Types that get a store model (FUN_0053ceb0 / FUN_0053ced0; 560 rockets get the rocket box). BOMBS: the bomb rack
 ## layout, which the GPS bombs (ours, modern_weapons.gd) take too: four GBU-39s sit on one rack.
 const BOMBS := [500, 510]
@@ -80,6 +82,10 @@ var has_tank: bool:
 var tank_fuel: float:
 	get:
 		return _st.tank_fuel
+## Ours: the centreline tank's share of it (stores.rs tank_fuel_centre; the 6-DoF's EXT CTR gauge).
+var tank_fuel_centre: float:
+	get:
+		return _st.tank_fuel_centre
 ## Better physics "Asymmetric stores" (ours): the pylon stores' lateral moment, kg·m, + right wing heavier.
 var roll_moment: float:
 	get:

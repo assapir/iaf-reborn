@@ -696,10 +696,10 @@ func _jet_view(j: Dictionary) -> void:
 	_place(still, 380, 470, 250, 800)
 
 
-## The jet's stores for the turntable: {engine station (A..I 0..8, J 12): {path, count, lugged, bomb}} from loadout
-## `lo` (JSON text, "" the unit record's: a caller with a mission passes its own load; null: the pilot's now, as the
-## Loadout screen shows it; IafBriefing.arming; each slot's `pylon` maps the real station number to the engine's
-## pylon, the F-35I's 5 to D, the F-16's 10 to J).
+## The jet's stores for the turntable: {engine station (A..I 0..8, J 12, K 13): {path, count, lugged, bomb}} from
+## loadout `lo` (JSON text, "" the unit record's: a caller with a mission passes its own load; null: the pilot's now,
+## as the Loadout screen shows it; IafBriefing.arming; each slot's `pylon` maps the real station number to the
+## engine's pylon, the F-35I's 5 to D, the F-16's 10 to J and 11 to K).
 func jet_stores(j: Dictionary, lo = null) -> Dictionary:
 	var m := {"start": {"unit": j.unit}}
 	var out := {}

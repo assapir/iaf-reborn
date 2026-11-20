@@ -578,8 +578,8 @@ pub fn arming(unit: &Value, weapons: &Path, lo: &loadout::Loadout) -> Value {
     let limit = unit["lateral_limit_kgm"].as_f64();
     let imbalanced = limit.is_some_and(|l| moment.abs() > l);
     let over = takeoff.zip(max).is_some_and(|(t, m)| t.round() > m);
-    // Every station's engine station index (`loadout::letter`: A..I 0..8, J 12; null none), where the Loadout screen
-    // draws its line to.
+    // Every station's engine station index (`loadout::letter`: A..I 0..8, J 12, K 13; null none), where the Loadout
+    // screen draws its line to.
     let pylons: Map<String, Value> =
         loadout::stations(unit).into_iter().map(|s| (s.to_string(), json!(loadout::letter(unit, s)))).collect();
     let allowed: Map<String, Value> = loadout::stations(unit)
@@ -1003,8 +1003,10 @@ mod tests {
         let groups: Vec<_> = a["inventory"].as_array().unwrap().iter().map(|e| e["group"].clone()).collect();
         let want = ["air", "air", "air", "ground", "ground", "ground", "ground", "ground", "ground", "ground"];
         assert_eq!(groups[..10], want.map(|g| json!(g)));
-        // The laser bombs, the targeting pod (the loadout line asks for it) and the navigation pod are on the shelf too.
-        assert_eq!(groups[12..], [json!("ground"), json!("ground"), json!("ground"), json!("pod"), json!("pod")]);
+        // The three tanks (370, 600, the 300 on the centreline); the laser bombs, the targeting pod (the loadout line
+        // asks for it) and the navigation pod are on the shelf too.
+        assert_eq!(groups[10..13], [json!("tank"), json!("tank"), json!("tank")]);
+        assert_eq!(groups[13..], [json!("ground"), json!("ground"), json!("ground"), json!("pod"), json!("pod")]);
     }
 
     #[test]
