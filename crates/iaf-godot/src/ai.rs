@@ -2,10 +2,11 @@
 //! jets. Each frame, after every jet's `step` (one instant), `step` reads every jet's flight model and autopilot and
 //! sets the AI jets' autopilot for their next `ap_step` (mode, leader, slot, engine start); the player's jet is read
 //! only but for its home hangar (`add_member`). `IafSite`: an air-defence site (`iaf_ai::site`, docs/ai.md §15)
-//! for `shared/ai/air_defence.gd`. `IafSalvo`: one-way attack drones (`iaf_ai::drone`, §16) for `shared/ai/drones.gd`.
+//! for `shared/ai/air_defence.gd`, `IafNet` their network (`iaf_ai::net`, §15.5). `IafSalvo`: one-way attack drones (`iaf_ai::drone`, §16) for `shared/ai/drones.gd`.
 
 use godot::prelude::*;
 use iaf_ai::drone::{SHAHED_136, Salvo};
+use iaf_ai::net::{self, Member, Net};
 use iaf_ai::site::{self, Emcon, Kind, Site, Target};
 use iaf_ai::{Decoy, Flight, Threat};
 use iaf_flight::Vec3;
@@ -294,6 +295,67 @@ impl IafSite {
             "phase" => self.site.phase(now), "rounds" => &rounds, "engagements" => i64::from(self.site.engagements),
             "at" => self.site.at as i64,
         }
+    }
+}
+
+#[derive(GodotClass)]
+#[class(no_init, base = RefCounted)]
+pub struct IafNet {
+    net: Net,
+}
+
+#[godot_api]
+impl IafNet {
+    /// An 83M6E2 network whose 64N6E2 search radar stands at `radar` (world).
+    #[func]
+    fn create(radar: Vector3) -> Gd<Self> {
+        Gd::from_object(Self { net: Net::new(vec3(radar)) })
+    }
+
+    /// Its parts, as `IafSite.parts`: the 64N6E2 search radar (the S-300's RWR symbol) and the 54K6E2 command post.
+    #[func]
+    fn parts() -> VarArray {
+        let radar = vdict! {
+            "name" => "64N6E2 RADAR", "type_code" => 310, "klass" => 8, "search" => true, "track" => false,
+            "rounds" => 0, "reach_km" => net::REACH / 1000.0,
+        };
+        let post = vdict! {
+            "name" => "54K6E2", "type_code" => 310, "klass" => 8, "search" => false, "track" => false, "rounds" => 0,
+            "reach_km" => 0.0,
+        };
+        varray![&radar, &post]
+    }
+
+    /// One decision at `now` (s), before the sites' ticks: the radar and the post alive, the members ([site
+    /// (IafSite), its parts alive (bools), its targets (target dictionaries as `IafSite.tick`, each with that site's
+    /// envelope)]), the terrain (Callable(Vector3) -> float or null). Each member's cues (target ids); all empty, the
+    /// sites autonomous, while the radar or the post is lost.
+    #[func]
+    fn tick(&mut self, now: f64, radar_alive: bool, post_alive: bool, members: VarArray, ground: Callable) -> VarArray {
+        let mut gds = Vec::new();
+        let mut alive: Vec<Vec<bool>> = Vec::new();
+        let mut targets: Vec<Vec<Target>> = Vec::new();
+        for m in members.iter_shared().filter_map(|v| v.try_to::<VarArray>().ok()) {
+            let Some(site) = m.get(0).and_then(|v| v.try_to::<Gd<IafSite>>().ok()) else { continue };
+            let list = |i: usize| m.get(i).and_then(|v| v.try_to::<VarArray>().ok()).unwrap_or_default();
+            gds.push(site);
+            alive.push(list(1).iter_shared().map(|v| v.try_to::<bool>().unwrap_or(true)).collect());
+            targets.push(
+                list(2).iter_shared().filter_map(|v| v.try_to::<VarDictionary>().ok()).map(|d| target(&d)).collect(),
+            );
+        }
+        let ground = terrain(Some(ground));
+        let mut guards: Vec<_> = gds.iter_mut().map(|g| g.bind_mut()).collect();
+        let mut members: Vec<Member> = guards
+            .iter_mut()
+            .zip(&alive)
+            .zip(&targets)
+            .map(|((g, alive), targets)| Member { site: &mut g.site, alive, targets })
+            .collect();
+        let cues = self.net.tick(now, radar_alive, post_alive, &mut members, &ground);
+        cues.iter()
+            .map(|c| c.iter().map(|s| GString::from(s.as_str())).collect::<PackedStringArray>().to_variant())
+            .collect()
     }
 }
 
