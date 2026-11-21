@@ -5,6 +5,7 @@
 //! inferred unless a doc says otherwise.
 
 use crate::bt::{Node, Status};
+use crate::skill::Skill;
 use crate::wingman;
 use iaf_flight::Vec3;
 use iaf_flight::airbase::Airbase;
@@ -87,17 +88,6 @@ pub const SHAPES: [(&str, [[f32; 3]; 3]); 8] = [
     ("vic", [[-90.0, -45.0, 0.0], [-90.0, 45.0, 0.0], [-180.0, 90.0, 0.0]]),
     ("delta", [[-120.0, -120.0, 0.0], [-120.0, 120.0, 0.0], [-120.0, 0.0, 0.0]]),
 ];
-
-/// A unit's skill (ai-plan X4). Wingmen take [`Skill::WINGMAN`]; the enemy's levels come later.
-#[derive(Debug, Clone, Copy)]
-pub struct Skill {
-    /// From a cue to the answer, s.
-    pub reaction_s: f64,
-}
-
-impl Skill {
-    pub const WINGMAN: Skill = Skill { reaction_s: 1.0 };
-}
 
 /// What a jet's RWR and MAW show on it ([`Flight::threat`], the host's): a radar locked on it or a missile flying at
 /// it, at `pos`.

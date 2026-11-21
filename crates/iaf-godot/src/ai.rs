@@ -7,7 +7,7 @@
 use godot::prelude::*;
 use iaf_ai::drone::{SHAHED_136, Salvo};
 use iaf_ai::site::{self, Emcon, Kind, Site, Target};
-use iaf_ai::{Decoy, Flight, Threat};
+use iaf_ai::{Decoy, Flight, Skill, Threat};
 use iaf_flight::Vec3;
 
 use crate::flight::{IafFlight, to_enu};
@@ -257,9 +257,16 @@ impl IafSite {
         self.site.mast = on;
     }
 
+    /// The crew's skill: the enemy's level (0 low, 1 medium, 2 high; docs/ai.md §17).
+    #[func]
+    fn set_skill(&mut self, level: i64) {
+        self.site.skill = Skill::enemy(level);
+    }
+
     /// One decision at `now` (s): `alive` per part, the hostile jets alive (target dictionaries), the terrain
     /// (Callable(Vector3) -> float or null). {search, track, tracks, launches: [[part, id]], bursts: [[part, id,
-    /// rounds]], parts: [each part's ground position], heading (the vehicles', their course on the move), phase}.
+    /// rounds, the laying error (Vector2, rad: across the line of sight, up)]], parts: [each part's ground position],
+    /// heading (the vehicles', their course on the move), phase}.
     #[func]
     fn tick(&mut self, now: f64, alive: VarArray, targets: VarArray, ground: Callable) -> VarDictionary {
         let alive: Vec<bool> = alive.iter_shared().map(|v| v.try_to::<bool>().unwrap_or(true)).collect();
@@ -270,8 +277,13 @@ impl IafSite {
         let tracks: PackedStringArray = out.tracks.iter().map(|s| GString::from(s.as_str())).collect();
         let launches: VarArray =
             out.launches.iter().map(|(p, id)| varray![*p as i64, id.as_str()].to_variant()).collect();
-        let bursts: VarArray =
-            out.bursts.iter().map(|(p, id, n)| varray![*p as i64, id.as_str(), i64::from(*n)].to_variant()).collect();
+        let bursts: VarArray = out
+            .bursts
+            .iter()
+            .map(|(p, id, n, e)| {
+                varray![*p as i64, id.as_str(), i64::from(*n), Vector2::new(e[0] as f32, e[1] as f32)].to_variant()
+            })
+            .collect();
         let parts: VarArray =
             (0..self.site.spec().parts.len()).map(|i| vector3(self.site.part_pos(i, &ground)).to_variant()).collect();
         vdict! {

@@ -25,8 +25,8 @@ var host: Node  # terrain_view.gd
 var cb: Node  # combat.gd
 ## Each site: {site (IafSite), parts (its part records), ents (their entities), units (each firing part's combat.gd
 ## unit, null for a radar), track (the part whose radar locks), locked {target key: true}, flying [[missile, target
-## key]], gun {part, key, left, next}: the burst firing, cued {target key: true}: the network's cues (EMCON cue),
-## next (the next tick)}.
+## key]], gun {part, key, left, next, err (the laying error)}: the burst firing, cued {target key: true}: the
+## network's cues (EMCON cue), next (the next tick)}.
 var sites: Array = []
 var _n := 0
 
@@ -49,6 +49,7 @@ func spawn(kind: String, pos: Vector3, heading := 0.0, alternates := [], side :=
 	var site = IafSite.create(kind, pos, heading, alternates)
 	if site == null:
 		return []
+	site.set_skill(Settings.enemy_skill())  # the crew's: the pilot's pick (docs/ai.md §17)
 	var rt: Node = host.runtime
 	if side < 0:
 		side = 1 if int(rt.player_entity().get("side", 2)) == 2 else 2
@@ -145,7 +146,7 @@ func _tick(s: Dictionary, now: float) -> void:
 	for l in out.launches:
 		_launch(s, int(l[0]), String(l[1]))
 	for b in out.bursts:
-		s.gun = {"part": int(b[0]), "key": String(b[1]), "left": int(b[2]), "next": now}
+		s.gun = {"part": int(b[0]), "key": String(b[1]), "left": int(b[2]), "next": now, "err": b[3]}
 
 
 func _lock(s: Dictionary, radar: Dictionary, key: String, on: bool) -> void:
@@ -180,14 +181,15 @@ func _launch(s: Dictionary, part: int, key: String) -> void:
 		s.flying.append([u.missile, key])
 
 
-## The burst's rounds, one per combat.gd GUN_PERIOD, through the fire tick's aim and release.
+## The burst's rounds, one per combat.gd GUN_PERIOD, through the fire tick's aim (off by the crew's laying error) and
+## release.
 func _fire_gun(s: Dictionary, now: float) -> void:
 	var g: Dictionary = s.gun
 	var u = s.units[g.part] if not g.is_empty() else null
 	while u != null and int(u.ent.state) < 3 and g.left > 0 and now >= g.next:
 		g.next += cb.GUN_PERIOD
 		g.left -= 1
-		cb.fire_at(u, host.runtime.entities.get(g.key, {}), now, false)
+		cb.fire_at(u, host.runtime.entities.get(g.key, {}), now, false, g.err)
 
 
 ## The jets hostile to the site, alive: the player and the AI aircraft, each with what the site's radar sees of it

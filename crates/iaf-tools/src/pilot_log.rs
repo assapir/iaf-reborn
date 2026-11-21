@@ -65,6 +65,9 @@ const MIGRATIONS: &[&str] = &[
        stations TEXT NOT NULL
      );
      CREATE INDEX saved_loadouts_pilot ON saved_loadouts (pilot, plane);",
+    // 6 → 7: the enemy's skill the pilot picked (the Pilot screen; 0 low, 1 medium, 2 high; docs/ai.md §17), the
+    // medium for every pilot before.
+    "ALTER TABLE pilots ADD COLUMN skill INTEGER NOT NULL DEFAULT 1;",
 ];
 
 /// The schema version this build writes.
@@ -446,17 +449,26 @@ pub fn add_pilot(c: &Connection, name: &str, nickname: &str) -> Result<i64> {
 /// The folder of the pilots' pictures beside the database.
 const PICTURES: &str = "pictures";
 
-/// The pilot's profile: `name`, `nickname` and `picture` (the picture file's absolute path, "" = none); empty
-/// strings for a pilot never stored.
+/// The pilot's profile: `name`, `nickname`, `picture` (the picture file's absolute path, "" = none) and `skill` (the
+/// enemy's, 0..2); empty strings and the medium skill for a pilot never stored.
 pub fn pilot(c: &Connection, db: &Path, pilot: i64) -> Result<Value> {
-    let row: Option<(String, String, String)> = c
-        .query_row("SELECT name, nickname, picture FROM pilots WHERE id = ?1", [pilot], |r| {
-            Ok((r.get(0)?, r.get(1)?, r.get(2)?))
+    let row: Option<(String, String, String, i64)> = c
+        .query_row("SELECT name, nickname, picture, skill FROM pilots WHERE id = ?1", [pilot], |r| {
+            Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?))
         })
         .optional()?;
-    let (name, nickname, picture) = row.unwrap_or_default();
+    let (name, nickname, picture, skill) = row.unwrap_or((String::new(), String::new(), String::new(), 1));
     let picture = if picture.is_empty() { picture } else { folder(db).join(picture).to_string_lossy().into_owned() };
-    Ok(json!({"name": name, "nickname": nickname, "picture": picture}))
+    Ok(json!({"name": name, "nickname": nickname, "picture": picture, "skill": skill}))
+}
+
+/// Stores the enemy's skill the pilot picked, clamped to 0..2 (the pilot made when new).
+pub fn set_skill(c: &Connection, pilot: i64, skill: i64) -> Result<()> {
+    c.execute(
+        "INSERT INTO pilots (id, skill) VALUES (?1, ?2) ON CONFLICT (id) DO UPDATE SET skill = excluded.skill",
+        params![pilot, skill.clamp(0, 2)],
+    )?;
+    Ok(())
 }
 
 /// Stores the pilot's name and nickname (the pilot made when new).
@@ -576,7 +588,10 @@ mod tests {
         let d = temp("profile");
         let db = d.join("modern-iaf.sqlite");
         let c = open(&db).unwrap();
-        assert_eq!(pilot(&c, &db, DEFAULT_PILOT).unwrap(), json!({"name": "", "nickname": "", "picture": ""}));
+        assert_eq!(
+            pilot(&c, &db, DEFAULT_PILOT).unwrap(),
+            json!({"name": "", "nickname": "", "picture": "", "skill": 1})
+        );
         set_pilot(&c, DEFAULT_PILOT, "Noa Golan", "Viper").unwrap();
         let src = d.join("me.JPG");
         fs::write(&src, b"jpeg").unwrap();
@@ -584,8 +599,15 @@ mod tests {
         assert_eq!(fs::read(&to).unwrap(), b"jpeg");
         assert_eq!(
             pilot(&c, &db, DEFAULT_PILOT).unwrap(),
-            json!({"name": "Noa Golan", "nickname": "Viper", "picture": to})
+            json!({"name": "Noa Golan", "nickname": "Viper", "picture": to, "skill": 1})
         );
+        // The enemy's skill, kept within its three levels; the name stays.
+        set_skill(&c, DEFAULT_PILOT, 2).unwrap();
+        assert_eq!(pilot(&c, &db, DEFAULT_PILOT).unwrap()["skill"], 2);
+        set_skill(&c, DEFAULT_PILOT, 9).unwrap();
+        assert_eq!(pilot(&c, &db, DEFAULT_PILOT).unwrap()["skill"], 2);
+        set_skill(&c, DEFAULT_PILOT, 0).unwrap();
+        assert_eq!(pilot(&c, &db, DEFAULT_PILOT).unwrap()["name"], "Noa Golan");
         // Another picture replaces the file; the name stays.
         let png = d.join("me.png");
         fs::write(&png, b"png").unwrap();
@@ -621,6 +643,7 @@ mod tests {
         let c = open(&db).unwrap();
         assert_eq!(c.pragma_query_value(None, "user_version", |r| r.get::<_, i64>(0)).unwrap(), SCHEMA_VERSION);
         assert_eq!(sorties(&c, DEFAULT_PILOT).unwrap().len(), 1);
+        assert_eq!(pilot(&c, &db, DEFAULT_PILOT).unwrap()["skill"], 1, "the medium skill");
         set_pilot(&c, DEFAULT_PILOT, "Noa", "").unwrap();
         assert_eq!(pilot(&c, &db, DEFAULT_PILOT).unwrap()["name"], "Noa");
     }
@@ -686,8 +709,9 @@ mod tests {
         assert_eq!(id, DEFAULT_PILOT + 1);
         assert_eq!(
             pilots(&c, &db).unwrap(),
-            json!([{"id": DEFAULT_PILOT, "name": "Noa", "nickname": "Viper", "picture": "", "photo": 0, "selected": false},
-                   {"id": id, "name": "Dana", "nickname": "", "picture": "", "photo": 0, "selected": false}])
+            json!([{"id": DEFAULT_PILOT, "name": "Noa", "nickname": "Viper", "picture": "", "photo": 0, "selected": false,
+                    "skill": 1},
+                   {"id": id, "name": "Dana", "nickname": "", "picture": "", "photo": 0, "selected": false, "skill": 1}])
         );
     }
 

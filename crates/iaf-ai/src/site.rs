@@ -3,9 +3,11 @@
 //! A plain state machine per site (one fixed procedure needs no behaviour tree): the site is Ready (silent or
 //! searching), and each of its channels takes one target through Acquire → Track → launch → Guide → assess; after the
 //! engagement it ceases, marches, moves to its next position and sets up. Detection and tracking scale with the
-//! target's radar cross-section and need terrain line of sight over the earth's curvature. The caller
-//! (`shared/ai/air_defence.gd`) fires through the existing weapons; no mission uses a site yet.
+//! target's radar cross-section and need terrain line of sight over the earth's curvature. The crew's skill
+//! (`skill`, §17) sets its reaction, its drills, its gun's laying error and how deep in the envelope it fires. The
+//! caller (`shared/ai/air_defence.gd`) fires through the existing weapons; no mission uses a site yet.
 
+use crate::skill::Skill;
 use iaf_avionics::radar::{line_of_sight, reach, sigma};
 use iaf_flight::Vec3;
 use iaf_flight::airframe::Rcs;
@@ -258,13 +260,15 @@ pub struct Out {
     pub tracks: Vec<String>,
     /// Missiles to launch: (part, target).
     pub launches: Vec<(usize, String)>,
-    /// Gun bursts: (part, target, rounds).
-    pub bursts: Vec<(usize, String, u32)>,
+    /// Gun bursts: (part, target, rounds, the laying error in rad: across the line of sight, up).
+    pub bursts: Vec<(usize, String, u32, [f64; 2])>,
 }
 
 #[derive(Clone, Debug)]
 pub struct Site {
     pub kind: Kind,
+    /// The crew's.
+    pub skill: Skill,
     pub emcon: Emcon,
     /// The 30N6E2 on its tower.
     pub mast: bool,
@@ -295,6 +299,9 @@ pub struct Site {
     window_ok: bool,
     window_until: f64,
     halt_until: Option<f64>,
+    /// The laying errors' sequence: its seed (the placed position) and the bursts fired.
+    seed: u64,
+    bursts: u64,
 }
 
 /// The earth's bulge (m) at `s` along a line of length `l` over the 4/3 earth.
@@ -321,6 +328,7 @@ impl Site {
         let spec = kind.spec();
         Site {
             kind,
+            skill: Skill::MEDIUM,
             emcon: Emcon::Radiate,
             mast: false,
             positions: std::iter::once(pos).chain(alternates.iter().copied()).collect(),
@@ -341,7 +349,14 @@ impl Site {
             window_ok: false,
             window_until: f64::NEG_INFINITY,
             halt_until: None,
+            seed: pos.x.to_bits() ^ pos.y.to_bits().rotate_left(32),
+            bursts: 0,
         }
+    }
+
+    /// From a target found to a track (s): the crew's reaction, then the acquisition drill.
+    fn acquire_s(&self) -> f64 {
+        self.skill.reaction_s + self.spec().acquire * self.skill.procedure
     }
 
     pub fn spec(&self) -> &'static Spec {
@@ -399,11 +414,13 @@ impl Site {
             })
     }
 
-    /// A cued target seconds from the envelope: the track radar comes on for it (§11-134).
+    /// A cued target seconds from the crew's launch range: the track radar comes on for it (§11-134).
     fn cue_due(&self, t: &Target) -> bool {
         let d = self.pos - t.pos;
         let closing = t.vel.dot(d) / d.length().max(1.0);
-        self.emcon == Emcon::Cue && t.cued && d.length() <= t.dlz.0 + closing.max(0.0) * self.spec().acquire
+        self.emcon == Emcon::Cue
+            && t.cued
+            && d.length() <= t.dlz.0 * self.skill.launch_range + closing.max(0.0) * self.acquire_s()
     }
 
     /// One decision at `now` (s; about every 0.5 s): `alive` per part, the hostile jets alive, the terrain's height.
@@ -484,7 +501,7 @@ impl Site {
                     break;
                 }
                 if let Some(radar) = hold(self, t, false) {
-                    let stage = Stage::Acquire(now + spec.acquire);
+                    let stage = Stage::Acquire(now + self.acquire_s());
                     self.channels.push(Channel { target: t.id.clone(), stage, fired: 0, radar, counted: false });
                 }
             }
@@ -506,9 +523,10 @@ impl Site {
     /// The channels' stages: acquisition, the launches inside the envelope, the salvo's flight, the assessment.
     fn engage(&mut self, now: f64, targets: &[Target], out: &mut Out) {
         let spec = self.spec();
+        let share = self.skill.launch_range;
         let in_env = |t: &Target, at: Vec3| {
             let d = t.pos.distance(at);
-            t.dlz.0 > 0.0 && d >= t.dlz.1 && d <= t.dlz.0
+            t.dlz.0 > 0.0 && d >= t.dlz.1 && d <= t.dlz.0 * share
         };
         let target = |id: &str| targets.iter().find(|t| t.id == id);
         // A site that fires only at a halt stops first (the Tor on the move).
@@ -520,7 +538,7 @@ impl Site {
         let firing = match self.mode {
             Mode::Ready => true,
             Mode::Move if spec.fires_moving => true,
-            Mode::Move if wants => *self.halt_until.get_or_insert(now + spec.halt) <= now,
+            Mode::Move if wants => *self.halt_until.get_or_insert(now + spec.halt * self.skill.procedure) <= now,
             _ => false,
         };
         if !wants {
@@ -546,7 +564,8 @@ impl Site {
                     if spec.gun {
                         let n = spec.salvo.min(self.rounds[p]);
                         self.rounds[p] -= n;
-                        out.bursts.push((p, t.id.clone(), n));
+                        out.bursts.push((p, t.id.clone(), n, self.skill.lay(self.seed, self.bursts)));
+                        self.bursts += 1;
                         continue;
                     }
                     self.rounds[p] -= 1;
@@ -596,7 +615,7 @@ impl Site {
         if self.fired_here > 0 && self.positions.len() > 1 && now - self.quiet_since >= CEASE {
             self.fired_here = 0;
             self.at = (self.at + 1) % self.positions.len();
-            self.mode = Mode::March(now + self.spec().march);
+            self.mode = Mode::March(now + self.spec().march * self.skill.procedure);
         }
     }
 
@@ -612,7 +631,7 @@ impl Site {
         if dist <= step {
             self.pos = Vec3::new(to.x, to.y, to.z);
             self.course = self.heading;
-            let setup = self.spec().setup;
+            let setup = self.spec().setup * self.skill.procedure;
             self.mode = if setup > 0.0 { Mode::Setup(now + setup) } else { Mode::Ready };
         } else {
             self.pos += d * (step / dist);

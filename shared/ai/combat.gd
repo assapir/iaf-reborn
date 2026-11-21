@@ -905,8 +905,9 @@ func _fire_tick(u: Unit, now: float) -> void:
 	fire_at(u, u.brain.target, now)
 
 
-## The fire tick's shot at `t` (a site's gun, air_defence.gd, passes its own target and no truce).
-func fire_at(u: Unit, t: Dictionary, now: float, truce := true) -> void:
+## The fire tick's shot at `t` (a site's gun, air_defence.gd, passes its own target, no truce and its crew's laying
+## error `err`: rad across the line of sight and up, docs/ai.md §17).
+func fire_at(u: Unit, t: Dictionary, now: float, truce := true, err := Vector2.ZERO) -> void:
 	if t.is_empty() or int(t.state) >= 4:
 		u.fire_next = INF
 		return
@@ -934,6 +935,10 @@ func fire_at(u: Unit, t: Dictionary, now: float, truce := true) -> void:
 		aim = tp + tv * ft + 0.5 * acc * ft * ft
 		if real:  # and falls: aim above by its drop
 			aim.z += 0.5 * 9.80665 * ft * ft
+		if err != Vector2.ZERO:  # the crew lays off by its error (z is up here)
+			var los := (aim - p).normalized()
+			var across := los.cross(Vector3(0, 0, 1)).normalized()
+			aim += (across * err.x + across.cross(los) * err.y) * aim.distance_to(p)
 	elif int(u.w.type) in HOMING and host.weapons != null:
 		var env: Array = Missile.dlz(
 			host.weapons._motion(u.w), {"pos": p, "fwd": nose, "vel": Vector3.ZERO}, {"pos": tp, "vel": tv}

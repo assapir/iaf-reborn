@@ -761,6 +761,12 @@ func flight_addon(host: Node) -> Node:
 	return load(_sim_res("flight/sim_flight.gd")).create(host)
 
 
+## The enemy's skill the active pilot picked on the Pilot screen (docs/ai.md §17): 0 low, 1 medium, 2 high.
+func enemy_skill() -> int:
+	var p = JSON.parse_string(IafPilotLog.pilot(records_db(), pilot()))
+	return int(p.get("skill", 1)) if p is Dictionary else 1
+
+
 ## The recorder with the RPM and avionics columns (docs/blackbox.schema.json version 2).
 func blackbox_version() -> int:
 	return 2

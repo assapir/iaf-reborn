@@ -187,8 +187,8 @@ var _summary = null
 ## The pilot's profile (IafPilotLog.pilot: name, nickname, picture), read once per page; the pictures' textures.
 var _profile = null
 static var _pictures := {}
-## The Pilot screen's draft, stored by Save: `name`, `nickname` and `picture` (a file just chosen, "" = the stored
-## one).
+## The Pilot screen's draft, stored by Save: `name`, `nickname`, `picture` (a file just chosen, "" = the stored
+## one) and `skill` (the enemy's: 0 low, 1 medium, 2 high).
 var draft := {}
 ## The Pilot screen makes a new pilot (New pilot on the pilot list) instead of editing the active one.
 var creating := false
@@ -328,7 +328,12 @@ func show_page(p: String) -> void:
 		creating = false
 	elif page_was != "pilot":
 		var was := {} if creating else profile()
-		draft = {"name": str(was.get("name", "")), "nickname": str(was.get("nickname", "")), "picture": ""}
+		draft = {
+			"name": str(was.get("name", "")),
+			"nickname": str(was.get("nickname", "")),
+			"picture": "",
+			"skill": int(was.get("skill", 1)),
+		}
 	# The section's list again, except on a mission's own screens while the list is the picked jet's (the briefing and
 	# Arming keep the mission opened: a test's sample mission, modern-iaf/tests/data, too).
 	var kept := p in ["mission", "arming"] and not missions.is_empty()
@@ -2059,9 +2064,9 @@ func play_sample(key: String) -> void:
 # --- Pilot ------------------------------------------------------------------------------------------------------------
 
 
-## The Pilot screen (the Hangar → the pilot's name): the picture in a service ID photo's fixed 3:4 frame, the name and
-## the nickname (the one every screen's top bar shows). The edits are a draft: Save stores them in the records
-## (IafPilotLog) and opens the Hangar; Back leaves them, after a prompt when something changed.
+## The Pilot screen (the Hangar → the pilot's name): the picture in a service ID photo's fixed 3:4 frame, the name,
+## the nickname (the one every screen's top bar shows) and the enemy's skill. The edits are a draft: Save stores them
+## in the records (IafPilotLog) and opens the Hangar; Back leaves them, after a prompt when something changed.
 func _page_pilot() -> void:
 	var first := not creating and first_start()
 	_header(["pilot"] if first else ["hangar", "pilot"])
@@ -2117,6 +2122,17 @@ func _page_pilot() -> void:
 		if _focus == null:
 			_focus = e
 		_spacer_px(f, 12)
+	# The enemy's skill (docs/ai.md §17): three segments, the medium for a pilot who never picked.
+	_label(f, s("enemy_skill"), "Strong").add_theme_font_size_override("font_size", 25)
+	var seg := _hbox(f, -1)
+	seg.name = "Skill"
+	var g := ButtonGroup.new()
+	for i in 3:
+		var b := _segment(seg, s("skill_%d" % i), g, int(draft.get("skill", 1)) == i)
+		b.name = "Skill_%d" % i
+		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		b.pressed.connect(func(): draft.skill = i)
+	_spacer_px(f, 12)
 	f.add_child(col)
 	_logbook(h, creating or first)
 	var save := _action(s("save"), "Primary", save_pilot)
@@ -2137,8 +2153,8 @@ func _page_pilot() -> void:
 		other.name = "OtherPilots"
 		actions = [reset, del, other] + actions
 	_footer("", actions)
-	# Tab: the fields, the picture, the Pilot log, the bottom bar, the crumb.
-	var order := ["Field_name", "Field_nickname", "ChoosePicture", "pilot_log"].map(
+	# Tab: the fields, the skill, the picture, the Pilot log, the bottom bar, the crumb.
+	var order := ["Field_name", "Field_nickname", "Skill_0", "Skill_1", "Skill_2", "ChoosePicture", "pilot_log"].map(
 		func(n): return find_child(n, true, false)
 	)
 	_chain((order + actions + [find_child("Crumb_hangar", true, false)]).filter(func(c): return c != null))
@@ -2226,12 +2242,12 @@ func _show_initials() -> void:
 	(find_child("Placeholder", true, false) as Control).visible = ini.text == ""
 
 
-## Up / Down (ui_up / ui_down, the gamepad's too) move between Name and Nickname, from Nickname down to Save once it
-## can save, and from Name up to Choose a picture (a gamepad has no Tab; a LineEdit keeps the arrows otherwise).
+## Up / Down (ui_up / ui_down, the gamepad's too) move between Name and Nickname, from Nickname down to the skill
+## picked, and from Name up to the Hangar crumb (a gamepad has no Tab; a LineEdit keeps the arrows otherwise).
 func _field_keys(event: InputEvent, e: LineEdit) -> void:
 	var to: Control = null
 	if event.is_action_pressed("ui_down"):
-		to = find_child("Field_nickname" if e.name == "Field_name" else "ChoosePicture", true, false)
+		to = find_child("Field_nickname" if e.name == "Field_name" else "Skill_%d" % int(draft.skill), true, false)
 	elif event.is_action_pressed("ui_up"):
 		to = find_child("Field_name" if e.name == "Field_nickname" else "Crumb_hangar", true, false)
 	if to == null:
@@ -2247,7 +2263,7 @@ func pilot_changed() -> bool:
 	for k in ["name", "nickname"]:
 		if str(draft.get(k, "")).strip_edges() != str(was.get(k, "")):
 			return true
-	return str(draft.get("picture", "")) != ""
+	return str(draft.get("picture", "")) != "" or int(draft.get("skill", 1)) != int(was.get("skill", 1))
 
 
 ## Save: the draft into the records, then the Hangar.
@@ -2264,6 +2280,7 @@ func save_pilot() -> void:
 		IafPilotLog.set_pilot(db, Settings.pilot(), str(draft.name).strip_edges(), str(draft.nickname).strip_edges())
 	if draft.picture != "":
 		_pictures.erase(IafPilotLog.set_picture(db, Settings.pilot(), draft.picture))
+	IafPilotLog.set_skill(db, Settings.pilot(), int(draft.get("skill", 1)))
 	show_page("hangar")
 
 
@@ -2290,7 +2307,7 @@ func _delete_now() -> void:
 	if not IafPilotLog.delete_pilot(db, Settings.pilot()):
 		return
 	_pictures.erase(str(profile().get("picture", "")))
-	draft = {"name": "", "nickname": "", "picture": ""}
+	draft = {"name": "", "nickname": "", "picture": "", "skill": 1}
 	var others = JSON.parse_string(IafPilotLog.pilots(db))
 	show_page("pilots" if others is Array and not others.is_empty() else "pilot")
 
