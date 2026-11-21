@@ -71,6 +71,10 @@ pub struct Spec {
     pub track_reach: f64,
     /// The optical sight's reach (m), 0 without one.
     pub optical: f64,
+    /// Ground clutter (docs/ai.md §15.3): the radars lose a target slower than this along the line of sight (m/s, the
+    /// pulse-Doppler rejection speed; 0: none) or lower than `floor` above the ground (m; 0: none).
+    pub reject: f64,
+    pub floor: f64,
     /// Targets engaged at once.
     pub channels: usize,
     /// Missiles per target (a gun: rounds per burst).
@@ -118,6 +122,8 @@ const S300: Spec = Spec {
     search_reach: 300_000.0, // the 96L6E's 5–300 km (missilery.info)
     track_reach: 200_000.0,  // the 30N6E2: open; the record's 200 km held (threat-records.md)
     optical: 0.0,
+    reject: 0.0, // the radars' processing: open
+    floor: 0.0,
     channels: 6,  // six targets at once (FAS)
     salvo: 2,     // two missiles per target (FAS)
     spacing: 3.0, // 3 s; FAS's "three per second" conflicts (enemies.md §2.4)
@@ -139,6 +145,8 @@ const TOR: Spec = Spec {
     search_reach: 25_000.0, // F-band search 25 km (threats.md §2)
     track_reach: 20_000.0,  // G/H-band track 20 km (threats.md §2)
     optical: 0.0,
+    reject: 30.0, // both radars pulse-Doppler (Wikipedia); the speed inferred
+    floor: 0.0,
     channels: 2, // two targets at once (enemies.md §2.6)
     salvo: 2,    // one or two missiles, about 4 s apart: two taken
     spacing: 4.0,
@@ -160,6 +168,8 @@ const ZSU: Spec = Spec {
     search_reach: 20_000.0, // the RPK-2's 20 km (threats.md §2)
     track_reach: 20_000.0,
     optical: 5_000.0, // inferred: the optical sight's useful reach
+    reject: 0.0,      // the radar's processing: open
+    floor: 60.0,      // "many false returns (ground clutter) under 60 m" (Wikipedia)
     channels: 1,      // stays on one target (§11-132)
     salvo: 10,        // "2-3 rounds per barrel" × 4 (FAS's text; its table's 30 conflicts)
     spacing: 3.0,     // inferred
@@ -371,22 +381,27 @@ impl Site {
     }
 
     /// The radar at `from` with `reach_m` against `radar::REF_RCS` sees `t`: inside its range for the jet's
-    /// cross-section from there, and in sight over the terrain and the earth's curvature.
-    fn sees(from: Vec3, reach_m: f64, t: &Target, terrain: &dyn Fn(Vec3) -> Option<f64>) -> bool {
+    /// cross-section from there, clear of the ground's clutter, and in sight over the terrain and the earth's curvature.
+    fn sees(&self, from: Vec3, reach_m: f64, t: &Target, terrain: &dyn Fn(Vec3) -> Option<f64>) -> bool {
+        let spec = self.spec();
         let s = sigma(&t.rcs, t.nose, from - t.pos, t.bays_open, t.stores);
-        t.pos.distance(from) <= reach(reach_m, s) && visible(from, t.pos, terrain)
+        let along = t.vel.dot((t.pos - from).try_normalize().unwrap_or(Vec3::ZERO)).abs();
+        t.pos.distance(from) <= reach(reach_m, s)
+            && along >= spec.reject
+            && t.pos.z - terrain(t.pos).unwrap_or(0.0) >= spec.floor
+            && visible(from, t.pos, terrain)
     }
 
     /// The search radar (alive, radiating or not) detects `t`.
     pub fn detects(&self, alive: &[bool], t: &Target, terrain: &dyn Fn(Vec3) -> Option<f64>) -> bool {
         self.radar(alive, false)
-            .is_some_and(|i| Self::sees(self.antenna(i, terrain), self.spec().search_reach, t, terrain))
+            .is_some_and(|i| self.sees(self.antenna(i, terrain), self.spec().search_reach, t, terrain))
     }
 
     /// The track radar (alive) can hold `t`.
     pub fn trackable(&self, alive: &[bool], t: &Target, terrain: &dyn Fn(Vec3) -> Option<f64>) -> bool {
         self.radar(alive, true)
-            .is_some_and(|i| Self::sees(self.antenna(i, terrain), self.spec().track_reach, t, terrain))
+            .is_some_and(|i| self.sees(self.antenna(i, terrain), self.spec().track_reach, t, terrain))
     }
 
     /// The optical sight sees `t`.

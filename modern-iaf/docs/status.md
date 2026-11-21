@@ -3,6 +3,15 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **Ground clutter for the radars (2026-11-21, the user: "Ok finish all enemies things you can";
+  [ai-plan.md](ai-plan.md) K14, K5; [../../docs/radar.md](../../docs/radar.md) §9.8,
+  [../../docs/ai.md](../../docs/ai.md) §15.3):** the Sufa's and the Adir's pulse-Doppler radars lose a target in
+  look-down whose speed along the line of sight is under CNTL's MTR (60 kt LO, 100 kt HI; inferred): a jet on the beam
+  drops off the scope and an STT lock on it breaks; a drone at 180 km/h is found at MTR LO only within about 50° of
+  its nose or tail, at MTR HI not at all. Look-up is unchanged; the 1998 game's radar has no such rule. The Tor's
+  pulse-Doppler radars lose a jet slower than 30 m/s along the line of sight (the wingmen's beam now breaks its
+  track); the ZSU's radar loses a jet under 60 m and lays optically. No clutter is drawn on the FCR page (not
+  started). Open: the S-300's radars' processing; the AI fighters' sensor keeps the 1998 rule.
 - **Enemy AI step 2: the one-way attack drones (2026-11-19, the user: "we need to have the code for ai enemies. Just
   isn't reachable by mission yet"; Epic Fury's air threats are drones of the Shahed-136 class; [ai-plan.md](ai-plan.md)
   K14; [../../docs/ai.md](../../docs/ai.md) §16):** a salvo of drones launched one after another flies a route of
@@ -26,7 +35,7 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   curvature. They fire the existing missile and gun-round models with the AIM-120's and the 20 mm's records standing
   in; the shapes are our own stand-ins. The threat display now lists the radars searching the jet. No mission places a
   site: a dev hook (`shared/ai/air_defence.gd`) and the tests (`crates/iaf-ai/tests/sites.rs`,
-  `modern-iaf/tests/test_enemy_sites.gd`). Later: ground clutter, the network (K6), the sites' own records.
+  `modern-iaf/tests/test_enemy_sites.gd`). Later: the network (K6), the sites' own records.
 - **Modern IAF in the applications menu (2026-11-19, the user: "also as game icon in windows/linux/mac? deskop files
   etc?"; [setup.md](setup.md) "Applications menu"):** the setup wizard's Done page has the tick "Add Modern IAF to
   the applications menu" (the Start menu on Windows, the Applications folder on macOS), on by default. It adds "Modern

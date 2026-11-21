@@ -1182,6 +1182,16 @@ km; sea level where the terrain has none. The terrain is the mission ground (roo
 (inferred): the 96L6E 6 m, the 30N6E2 8 m (25 m on its 40V6M tower, `set_mast`), the Tor 5 m, the ZSU 3.5 m. The
 site tests sight only at its decision tick (0.5 s) and only for jets inside the range for their σ.
 
+Ground clutter (`site.rs` `Spec::reject`, `Spec::floor`):
+
+| site | rule | source |
+|---|---|---|
+| Tor-M1 | both radars are pulse-Doppler[^w-tor-pd]: they lose a jet slower than 30 m/s along the line of sight (one on the beam, a hovering one) | a pulse-Doppler radar detects nothing below its rejection speed, set from 20 to 160 km/h[^w-pd]; the Tor's 30 m/s inferred |
+| ZSU-23-4 | its radar loses a jet lower than 60 m above the ground; the optical sight still lays on it within 5 km | "many false returns (ground clutter) under 60 m (200 ft) of altitude"[^w-zsu] |
+| S-300PMU-2 | none: the 96L6E's and the 30N6E2's processing is open | open |
+
+The wingmen's beam (§8.8, the reactions) turns the threat 90° off the nose: against the Tor it breaks the track.
+
 ### 15.4 Stand-in shapes
 
 Ours (`air_defence.gd _shape`), built like the bases' furniture (`base_furniture.gd`, vertex colours, olive): a radar
@@ -1191,7 +1201,8 @@ approved.
 
 ### 15.5 Later
 
-- Ground clutter for the search radars (the radar code has none).
+- Ground clutter for the S-300's radars (their processing is open) and for the AI fighters' sensor (`combat.gd`, the
+  1998 game's rule): not started.
 - The network (ai-plan K6): an early-warning radar cueing the sites; today the caller marks a jet cued.
 - The sites' own missile and gun records (drafts, threat-records.md) and the site's guidance of its missiles: the
   stand-in missile homes by itself and flies on when the track radar dies.
@@ -1208,8 +1219,9 @@ along `route` (world points; the last is the end point on the ground), `agl` m a
 `interval` s apart (−1: the type's).
 Each drone is a mission entity (`drone:N`, class 3: a fixed-wing mover) with the type's radar cross-section, so the
 player's radar, data link, AIFF, gun and missiles take it as any air contact, and the existing damage path brings it
-down. It does not shoot. The test is `modern-iaf/tests/test_enemy_drones.gd`; the Rust tests are
-`crates/iaf-ai/tests/drones.rs`.
+down. In look-down the player's radar finds it only where its 97 kt along the line of sight passes the gate (MTR LO:
+within about 50° of its nose or tail; MTR HI: never; docs/radar.md §9.8). It does not shoot. The test is
+`modern-iaf/tests/test_enemy_drones.gd`; the Rust tests are `crates/iaf-ai/tests/drones.rs`.
 
 ### 16.1 The figures
 
@@ -1291,3 +1303,6 @@ Open questions in this document:
 [^ar-shahed]: Army Recognition, "Shahed-136 loitering munition kamikaze suicide drone technical data", https://armyrecognition.com/military-products/army/unmanned-systems/unmanned-aerial-vehicles/shahed-136-loitering-munition-kamikaze-suicide-drone-technical-data ("It can fly at an altitude from 60 to 4,000 m"; read 2026-11-19).
 [^rusi-shahed]: Uzi Rubin, RUSI Commentary, "Russia's Iranian-Made UAVs: A Technical Profile", 13 January 2023, https://rusi.org/explore-our-research/publications/commentary/russias-iranian-made-uavs-technical-profile ("fly low and slow", "virtual nap-of-the-earth profiles", "a tilting truck-mounted container holding five UAVs", "low radar and thermal signatures"; read 2026-11-19).
 [^nf-shahed]: 19FortyFive, October 2022, https://www.19fortyfive.com/2022/10/irans-shahed-136-kamikaze-drone-everything-you-need-to-know/ (radar cross-section "estimated here to average .01 square meters"; second-hand: as quoted by a search engine on 2026-11-19).
+[^w-pd]: Wikipedia, "Pulse-Doppler radar", https://en.wikipedia.org/wiki/Pulse-Doppler_radar ("Rejection speed is selectable on pulse-Doppler aircraft-detection systems so nothing below that speed will be detected"; "usually set just above the prevailing wind speed (10 to 100 mph or 20 to 160 km/h)"; read 2026-11-21).
+[^w-tor-pd]: Wikipedia, "Tor missile system", https://en.wikipedia.org/wiki/Tor_missile_system ("The target acquisition radar is an F band pulse doppler 3D radar"; "The target engagement radar is a G band/H band (later K band) pulse doppler radar"; read 2026-11-21).
+[^w-zsu]: Wikipedia, "ZSU-23-4 Shilka", https://en.wikipedia.org/wiki/ZSU-23-4_Shilka ("the radar picks up many false returns (ground clutter) under 60 m (200 ft) of altitude"; read 2026-11-21).

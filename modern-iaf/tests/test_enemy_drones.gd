@@ -3,7 +3,8 @@
 # AIM-9Ms): a salvo of three spawned near the jet (no mission launches one) flies its route at its height, launched one
 # after another; the radar finds one by its small cross-section (not at 30 km, where a jet would be found, but at 4 km)
 # and lists it, and the data link, as a hostile air contact; a gun pass brings the first down and an AIM-9M the second
-# (the existing damage path); the third reaches its end point and is removed.
+# (the existing damage path); the third reaches its end point and is removed. A fourth, 60 m over the terrain, is lost
+# in the ground's clutter on the beam in look-down and found from behind at MTR LO only (docs/radar.md §9.8).
 #   IAF_DEFAULT_SETTINGS=1 godot --headless --audio-driver Dummy --path modern-iaf \
 #     -s ../modern-iaf/tests/test_enemy_drones.gd --log-file <temp>
 extends "res://../tests/godot/base.gd"
@@ -58,6 +59,17 @@ func _until(f: Callable, s: float, keep = null) -> bool:
 
 func _listed(e: Dictionary) -> bool:
 	return w.radar.contacts.any(func(c): return String(c.get("key", "")) == e.key)
+
+
+## Each second for `secs` s: the jet put at drone `e` + `off`, 300 m above it, on `heading` at 150 m/s; whether the
+## radar listed the drone.
+func _near(e: Dictionary, off: Vector3, heading: float, secs: int) -> Array:
+	var seen := []
+	for i in secs:
+		_put(tv.runtime._world_of(e) + off + Vector3(0, 0, 300), heading, 150.0)
+		await fly(tv, 1.0)
+		seen.append(_listed(e))
+	return seen
 
 
 func run() -> void:
@@ -164,3 +176,23 @@ func run() -> void:
 		"on the end point (%.0f m off)" % at.distance_to(Vector2(end.x, end.y))
 	)
 	check(d[2].node == null and not d[2].visible, "its shape gone")
+
+	# Ground clutter (docs/radar.md §9.8): a drone 60 m over the terrain, the jet 300 m above it 5 km out (look-down,
+	# RWS). Crossing its track (the beam): in the ground's band, never found; behind it (97 kt along the line of sight):
+	# found at MTR LO (60 kt), lost at MTR HI (100 kt).
+	var low: Dictionary = dr.spawn([j + Vector3(-10000, 15000, 0), j + Vector3(15000, 15000, 0)], 1, 60.0)
+	check(await _until(func(): return low.ents.all(func(e): return e != null), 12.0), "a drone launched at 60 m")
+	var e: Dictionary = low.ents[0]
+	w.radar.set_mode(4, tv._sim_time)
+	var beam: Array = await _near(e, Vector3(0, -5000, 0), 0.0, 12)
+	var lg = tv.mission_ground(rt._world_of(e))
+	var low_agl: float = rt._world_of(e).z - float(lg if lg != null else 0.0)
+	check(low_agl > 40.0 and low_agl < 150.0, "about 60 m above the terrain: %.0f m" % low_agl)
+	var eye: Vector3 = rt._world_of(e) + Vector3(0, -5000, 300)
+	check(IafRadar.line_of_sight(eye, rt._world_of(e), tv.mission_ground), "5 km out: the drone in sight")
+	check(int(w.radar.mode) == 4 and not beam.has(true), "on the beam in look-down: not found (%s)" % [beam])
+	var behind: Array = await _near(e, Vector3(-5000, 0, 0), 90.0, 12)
+	check(behind.has(true), "behind it at MTR LO: found (%s)" % [behind])
+	w.radar.cntl_press(20)
+	var hi: Array = await _near(e, Vector3(-5000, 0, 0), 90.0, 20)
+	check(not hi.slice(10).has(true), "MTR HI: lost (%s)" % [hi])
