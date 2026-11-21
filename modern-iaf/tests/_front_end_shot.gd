@@ -7,8 +7,9 @@
 # test_front_end.gd (debrief: the sample flight; debrief_fail: a record from before the goals and the recording, its
 # take-off with the gear never raised; fly_again: the debrief's Fly again; log_filtered: the Pilot log filtered to one
 # mission; hangar_<lang>.json: the boxes of MARKS, the manual's numbers). SHOT_ONLY=<screens> takes those alone
-# (comma-separated, e.g. SHOT_ONLY=missions,section); SHOT_SIZE=1280x720 renders at that size (the 1920 × 1080
-# canvas scaled to it). nodata_hangar / nodata_missions: a fresh install (IAF_ASSETS_DIR an empty folder for those two).
+# (comma-separated, e.g. SHOT_ONLY=missions,section; SHOT_ONLY=pilot the Pilot screens); SHOT_SIZE=1280x720
+# renders at that size (the 1920 × 1080 canvas scaled to it). nodata_hangar / nodata_missions: a fresh install
+# (IAF_ASSETS_DIR an empty folder for those two).
 # SHOT_JET=<unit> picks that jet in the Hangar (the Sufa, f16i, if unset).
 extends "res://../tests/godot/base.gd"
 
@@ -82,8 +83,9 @@ func run() -> void:
 			check(vp.get_texture().get_image().save_png(path) == OK, "saved " + path)
 			if p in MARKS:
 				_marks(fe, dir.path_join("%s_%s.json" % [p, lang]), MARKS[p])
-		if only == "":
+		if only == "" or "pilot" in only.split(","):
 			await _pilot(fe, vp, dir, lang)
+		if only == "":
 			await _no_data(fe, vp, dir, lang)
 	s.language = "en"
 	s.pilot_name = ""

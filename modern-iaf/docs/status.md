@@ -3,6 +3,15 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **Enemy skill (2026-11-21, the user, 19 Nov: "wingman are always the same, it only effect enemeis, choosen from 3
+  options per player"; 21 Nov: "Ok finish all enemies things you can"; [ai-plan.md](ai-plan.md) X4;
+  [../../docs/ai.md](../../docs/ai.md) §17):** three levels, Low / Medium / High ("נמוכה / בינונית / גבוהה"), picked per
+  pilot on the Pilot screen and stored with the pilot (Medium by default, old records too). `iaf_ai::Skill` holds the
+  reaction, the drills' share, the gun's laying error and the launch range. The air-defence crews take the pilot's
+  level: Low answers in 3 s with drills 1.5 times as long, lays its guns at 8 mrad and fires at the envelope's edge;
+  High answers in 0.5 s, drills in three quarters of the time, lays at 2 mrad and holds fire to 80 % of the range. The
+  radars, missiles and rounds are the same at every level; the wingmen stay at Medium. The drones fly a programmed
+  route and take none. Checked by `cargo test -p iaf-ai --test sites skill`.
 - **Enemy AI step 2: the one-way attack drones (2026-11-19, the user: "we need to have the code for ai enemies. Just
   isn't reachable by mission yet"; Epic Fury's air threats are drones of the Shahed-136 class; [ai-plan.md](ai-plan.md)
   K14; [../../docs/ai.md](../../docs/ai.md) §16):** a salvo of drones launched one after another flies a route of
