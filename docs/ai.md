@@ -1646,10 +1646,45 @@ mission places one.
   without the vector, the start after the lead's reaction, the take-off in order, the commit within 30 s of the
   take-off, home, landing and parking within 40 m of the shelters); `modern-iaf/tests/test_enemy_scramble.gd`
   (headless on the range mission: the pair in Ramon's shelters, the player's jet moved to Nevatim and parked there).
-- **Open** (found 2026-11-22; they hold for every AI jet, not only a based one): an AI jet has ground only where the
-  terrain is loaded near the camera (`terrain_view.gd` `scene_ground` gives −1e9 elsewhere), so one landing far from
-  the player falls through the ground; an AI MiG-29A landing at Nevatim crashes on its sink rate at the threshold
-  (Ramon's landing holds; not yet traced).
+- The ground, the flare and the arrival home of every AI jet: §18.4.
+
+### 18.4 Every AI jet's ground, flare and arrival home
+
+2026-11-22. The faults found with the scramble held for every AI jet on Modern IAF's 6-DoF, not only a based one.
+
+- **The ground wherever the player is.** The terrain loads its full-detail heights only for the nodes its camera's tree
+  wants (within the view range, `camera.far`), and an AI jet beyond them, or before its node arrived, had none (`terrain_view.gd` `feed_ground` gives −1e9): one landing far from the player fell through the
+  ground. Now `ai_flights.gd` lists each AI jet's position in `terrain.gd` `extra_heights` every frame; the terrain
+  keeps the height node under each loaded (not drawn, not waited for). Until it is there, the jet keeps the last ground
+  it had (`_feed_ground`), a parked one its spawn's height. The autopilot's ground probe falls back the same way.
+  Modern IAF only (`Settings.new_ai()`); the 1998 game's AI jets keep the ground as before.
+- **The flare over the runway.** The 6-DoF AI's flare (autopilot `Landing::flare`, and the final's end at the flare
+  height) measured the wheels' height over the ground under the jet. At Nevatim the ground under the final stands up
+  to 12 m above the runway, so the flare began 20 m up over the rise. Now it measures the height over the runway
+  (`Landing::wheels_height`): short of the lineup the lineup's height, past it the ground. The player's flare keeps
+  the ground's.
+- **The flare's lead.** The MiG-29A's vertical acceleration follows the flare's command about 2 s late. On the sink of
+  the moment the flare pushed while the jet still rose (0.5 m/s at 13° of pitch, 3 m up), and the push came on as it
+  neared the runway: 2.3 m/s at the touch on level ground, and at Nevatim, where the runway falls about 2 m in its
+  first 240 m, a crash on the sink rate. The AI's flare now flies the sink 1 s ahead (`FLARE_LEAD_AI`: the vertical
+  acceleration × 1 s added; swept 0.5–2 s, 1.3 m/s at the touch at 1 s). The player's flare is unchanged.
+- **The arrival home.** GoHome's Fly2WayPt ends on passing its waypoint (KeepAttitude, PassWaypoint within 1,852 m).
+  A wingman sent home abeam of the waypoint and near it circled it at KeepAttitude's 45° bank, 4 km off at 197 m/s,
+  until its fuel ran out. On the 6-DoF the pass now counts within 1.5 × the 45° turn's radius (5.9 km at 197 m/s); the
+  landing's pattern starts from where the jet is.
+- **Open:** Nevatim's four shelters share one taxi-in path (`iaf-sim airbases` from `modern-iaf/data/airbases/llnv.json`).
+  In the four-ship ground run at Nevatim #4, taxiing in, closed to 1 m on #2 (t 1,483 s). Found 2026-11-22, not yet
+  traced.
+- Tried and dropped (2026-11-22): KeepAttitude flying wings level while the waypoint lies inside its turn. Flying
+  away the jet sped up (the route's speed cap holds only inside 6 km), its turn widened with it, and it ran on for
+  minutes. The flare's sum held at zero once the jet stopped sinking: the touch was the same, as the sum was already
+  negative when the jet rose.
+- **Tests:** `cargo test -p iaf-ai --test landing` (a MiG-29A home from 15 km out over a 12 m rise under the final onto
+  a runway falling 0.8 %: no crash, a touchdown under 3 m/s); `cargo test -p iaf-ai --test four_ship
+  mig29_ground_run_at_nevatim` (the four-ship ground run at Nevatim: all four land and park; its ground separation
+  is not checked, see Open);
+  `modern-iaf/tests/test_ai_far_landing.gd` (headless: a MiG-29A lands at Nevatim with the player parked there, then
+  with the player at Tel Nof, 70 km off, and the view range cut to 10 km, so no terrain is loaded at Nevatim).
 
 ## UNCERTAIN
 Open questions in this document:

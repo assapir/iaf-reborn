@@ -61,6 +61,7 @@ class Pilot:
 	var plane := ""  # the converted plane folder (its flight model start)
 	var airborne_start := true  # the jet's start was airborne (its controller's autopilot starts on, @4483d7)
 	var by_ai := false  # flown by IafAi (flight_ai), not by its brain
+	var ground = null  # Modern IAF: the last ground height fed (m), held where the terrain is not loaded (_feed_ground)
 	## Systems damage flags 0..24 (controller +0x3d8 + 0xc + 4n, docs/damage.md §5), the cut-out pick (+0x70)
 	## and the twin-engine test (controller +8 → +0x24: the player's table PlayerAircraft.TWIN, or the aircraft
 	## definition's `engines`: `_twin`).
@@ -677,9 +678,13 @@ func _start(p: Pilot, install: String, plane: String) -> bool:
 	if host.has_method("ai_wind"):
 		host.ai_wind(flight)
 	flight.ap_setup(install, host.terrain.world_origin.x, host.terrain.world_origin.y)
+	if Settings.new_ai() and not airborne:
+		p.ground = w.z  # parked: its spawn's height until the terrain under it is loaded
 	flight.ap_set_ground(
 		func(pos: Vector3):
 			var g = host.scene_ground(pos)
+			if g == null and Settings.new_ai():
+				g = p.ground
 			return float(g) if g != null else -1.0e9
 	)
 	var pts := PackedFloat64Array()
@@ -705,12 +710,17 @@ func _process(delta: float) -> void:
 
 func _fly(delta: float) -> void:
 	var now: float = runtime.now
+	var want: Array[Vector3] = []
 	for p in pilots:
 		var ent: Dictionary = p.ent
 		if ent.control != 1 or int(ent.state) >= 3:
 			continue  # fatally hit: the destruction motion drives it (mission_runtime.gd)
 		var scene_pos: Vector3 = p._state.position
-		host.feed_ground(p.flight, scene_pos)
+		if Settings.new_ai():
+			want.append(scene_pos)
+			_feed_ground(p, scene_pos)
+		else:
+			host.feed_ground(p.flight, scene_pos)
 		p.flight.set_ai_damage(float(ent.damage) <= 0.1)
 		if not p.by_ai:
 			_feed_leader(p)  # IafAi gives its jets their leader
@@ -746,11 +756,24 @@ func _fly(delta: float) -> void:
 		_place(p)
 		if not p.by_ai:
 			p.brain.update(now)
+	if Settings.new_ai() and host.get("terrain") != null:
+		host.terrain.extra_heights = want
 	# After every jet's step (the player's came first, TerrainView's frame): the flight reads them all at one instant.
 	if flight_ai != null:
 		_step_flight_ai(now)
 	for f in enemy_flights:
 		_step_enemy(f, now)
+
+
+## Ours, Modern IAF (docs/ai.md §18.4): an AI jet's ground. Terrain heights load only where the camera wants; each
+## AI jet's own come too (terrain.gd `extra_heights`), and until they are there the jet keeps the last ground it had
+## (a parked one its spawn's height): with none it fell through the ground landing far from the player.
+func _feed_ground(p: Pilot, scene_pos: Vector3) -> void:
+	var g = host.feed_ground(p.flight, scene_pos)
+	if g != null:
+		p.ground = g
+	elif p.ground != null:
+		p.flight.set_ground_height(float(p.ground))
 
 
 func _place(p: Pilot) -> void:

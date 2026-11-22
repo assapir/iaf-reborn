@@ -193,6 +193,12 @@ const FLARE_I_MAX: f32 = 3.0;
 /// gear down (63 % in 2.0–2.3 s at 220 kt, test `sixdof_g_follows_a_command`). The flare's sum takes the sink the
 /// jet's present vertical acceleration leaves after it (modern-iaf/docs/flight-model.md §9.6).
 const FLARE_LAG_6DOF: f32 = 2.0;
+/// Ours, an AI jet's flare on the 6-DoF, s: the flare flies the sink this far ahead (the vertical acceleration's
+/// part added). The MiG-29A's vertical acceleration follows the flare's command about 2 s late; on the sink of the
+/// moment the flare pushed while the jet still rose (0.5 m/s at 13° of pitch, 3 m off the runway) and the push came
+/// on as it neared the runway: 2.3 m/s at the touch on level ground, 4.7 m/s where it falls (a crash). Swept
+/// 2026-11-22 (`crates/iaf-ai/tests/landing.rs`): 0.5 s 2.0 m/s, 1.0 s 1.3 m/s, 1.5 s 2.0 m/s, 2.0 s 2.5 m/s.
+const FLARE_LEAD_AI: f32 = 1.0;
 /// Ours, Modern IAF's 6-DoF ([`ApView::final_speed`] set): the real final's α and glide path, deg. The α is the F-16
 /// manual's 13° (T.O. GR1F-16CJ-1 p. 2-23, "arrive on final at 11 or 13 degrees AOA", and figure 2-3), the F-35's
 /// too (the Eglin F-35A accident report); the glide path the usual 3° of an ILS (inferred: the F-16 manual gives
@@ -862,6 +868,12 @@ impl Fly2Wp {
                 3983.95
             };
             self.pass.r = if l.mode != 0 && dist2(pos, self.t[0], self.t[1]) < r { r } else { PASS_R };
+        }
+        // Ours, GoHome on the 6-DoF ([`Laws::real`]): the waypoint is passed within 1.5 turns' radius at KeepAttitude's
+        // 45° bank. A jet sent home abeam of it and near circled it there for good (a MiG-29A round Nevatim's last
+        // waypoint, 4 km off at 197 m/s, until its fuel ran out); the landing's pattern starts from where it is.
+        if self.end_radius.is_some() && l.real.is_some() {
+            self.pass.r = self.pass.r.max(1.5 * (l.v.speed as f64).powi(2) / 9.81);
         }
         let done = match self.end_radius {
             Some(r) => dist2(pos, self.t[0], self.t[1]) < r,
@@ -2853,6 +2865,21 @@ impl Landing {
         })
     }
 
+    /// The wheels' height the flare flies to. Ours, an AI jet on the 6-DoF: over the runway, which is the lineup's
+    /// height short of the lineup and the ground under the jet past it. The ground under the final can
+    /// stand above the runway (Nevatim's, up to 12 m) and the runway can fall past the lineup (Nevatim's, 2 m in its
+    /// first 240 m): over the ground the flare began 20 m up over the rise, levelled off 6 m over the runway, slowed
+    /// at idle and dropped onto it at 6 m/s (a crash on the sink rate). The player's flare keeps the ground's.
+    fn wheels_height(&self, v: &ApView) -> f32 {
+        if self.player || !self.six {
+            return wheels_height(v);
+        }
+        let l = self.pts[4];
+        let along = (v.pos[0] - l[0]) * (self.rn as f64).sin() + (v.pos[1] - l[1]) * (self.rn as f64).cos();
+        let runway = if along < 0.0 { l[2] as f32 } else { v.ground_height };
+        v.pos[2] as f32 - runway - v.gear_clearance.abs()
+    }
+
     /// The player's flare and its leg ends ([`Autopilot::player_flare`]), or an AI jet on the 6-DoF.
     fn flares(&self) -> bool {
         if self.player { self.flare } else { self.six }
@@ -2966,7 +2993,7 @@ impl Landing {
                 // instead of 2° below it at the original's ~12 m (docs/autopilot.md §2.3).
                 let v = l.v;
                 let flare_h = flare_tau(v) * (-(v.vel[2] as f32) - FLARE_SINK);
-                let early = self.flares() && wheels_height(v) < flare_h;
+                let early = self.flares() && self.wheels_height(v) < flare_h;
                 if early || dist2(pos, pt[4][0], pt[4][1]) < r {
                     l.out.rudder = Some(0.0);
                     Leaf::Done
@@ -3151,10 +3178,12 @@ impl Landing {
         let v = l.v;
         // After a bounce the height term would dive the jet back at the runway (the Kurnass 2000 Real with 312's
         // load bounced to 16 m at 185 kt, then hit nose 9° down): it holds the small sink instead.
-        let h = if self.touched { 0.0 } else { wheels_height(v).max(0.0) };
+        let h = if self.touched { 0.0 } else { self.wheels_height(v).max(0.0) };
         let vz = v.vel[2] as f32;
         let tau = flare_tau(v);
-        let e = -(h / tau + FLARE_SINK) - vz;
+        // Ours, an AI jet on the 6-DoF: the sink a lead ahead ([`FLARE_LEAD_AI`]).
+        let vz_e = if !self.player && self.six { vz + v.acc[2] as f32 * FLARE_LEAD_AI } else { vz };
+        let e = -(h / tau + FLARE_SINK) - vz_e;
         // On the 6-DoF the sum learns the sink's error left once the jet's vertical acceleration has acted over its
         // g lag (`FLARE_LAG_6DOF`): summing the error the lag still holds wound it to its limit in a long flare, the
         // Adir with 3 t of stores ballooned 2.6 m off the runway and dropped onto it at 4.05 m/s.

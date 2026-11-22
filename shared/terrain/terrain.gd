@@ -99,6 +99,9 @@ var _blocked_near := 1
 ## The resources ground_ready() waits for in this selection (the nodes within `near_range` at full
 ## detail, every drawn node, the heights under the focus): key -> loaded (ground_progress()).
 var _near := {}
+## Scene positions whose full-detail heights stay loaded besides the focus's (Modern IAF's AI jets, ai_flights.gd
+## `_fly`): height_at answers there wherever the player is. Not drawn; not waited for.
+var extra_heights: Array[Vector3] = []
 ## false: load only, draw nothing (the front end's preload, terrain_preload.gd).
 var draw_nodes := true
 var _eye := Vector3.ZERO  # focus in terrain units (x, y) and height above the ground (z, metres)
@@ -455,6 +458,16 @@ func _reselect(fp: Vector3) -> void:
 	var under := _height_source(Vector3i(floori(t.x / _span0), floori(t.y / _span0), 0))
 	if _inside(under):
 		_ready_node(under, 0.0)
+	for p in extra_heights:
+		var e := godot_to_terrain(p)
+		var n := _height_source(Vector3i(floori(e.x / _span0), floori(e.y / _span0), 0))
+		var key := _key(1, n)
+		if not _inside(n):
+			continue
+		if _res.has(key):
+			_res[key].used = Time.get_ticks_msec()
+		else:
+			_wanted[key] = minf(_wanted.get(key, INF), near_range)
 	if draw_nodes:
 		_update_drawn(selected)
 	_evict()

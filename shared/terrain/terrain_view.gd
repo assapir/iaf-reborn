@@ -1546,12 +1546,14 @@ func scene_ground(p: Vector3) -> Variant:
 
 
 ## A flight model's ground under scene position `p`: the terrain plus the scenery's roofs and trees, which are an
-## obstacle (meeting one is a crash, docs/scenery.md §4); −1e9 where the terrain is not loaded.
-func feed_ground(f: Object, p: Vector3) -> void:
+## obstacle (meeting one is a crash, docs/scenery.md §4); −1e9 where the terrain is not loaded. The height fed, null
+## for the −1e9.
+func feed_ground(f: Object, p: Vector3) -> Variant:
 	var g = terrain.height_at(p)
 	var top: float = IafScenery.top(scene_to_world(p)) if g != null else 0.0
 	f.set_ground_height(g + top if g != null else -1.0e9)
 	f.set_ground_obstacle(top > 0.0)
+	return g + top if g != null else null
 
 
 ## A unit's attitude (pitch, roll, heading, degrees) and world velocity (X east, Y north, up m/s)

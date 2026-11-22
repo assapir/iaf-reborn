@@ -19,9 +19,9 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   shelters (`crates/iaf-ai/tests/scramble.rs`, `modern-iaf/tests/test_enemy_scramble.gd` through the dev hook
   `ai_flights.gd` `enemy_base`). The sim has no enemy base, so any base stands in by the hook's argument; no mission
   places one. The Tor-M1's search radar turns while it searches, its turret and tracking radar lay on the track and its
-  cell covers open at a launch (`modern-iaf/tests/test_enemy_sites.gd`). Open, for every AI jet: no ground where the
-  terrain is not loaded (one landing far from the player falls through it), and a MiG-29A landing at Nevatim crashes
-  on its sink rate ([../../docs/ai.md](../../docs/ai.md) §18.3).
+  cell covers open at a launch (`modern-iaf/tests/test_enemy_sites.gd`). Every AI jet has its ground wherever the
+  player is, flares over the runway's height with a lead on its sink and ends GoHome when it passes near its waypoint
+  ([../../docs/ai.md](../../docs/ai.md) §18.4; `crates/iaf-ai/tests/landing.rs`, `modern-iaf/tests/test_ai_far_landing.gd`).
 - **Enemy fighter step 3: the dogfight (2026-11-22, the user, 21 Nov: "Ok finish all enemies things you can",
   "Ok, do it"; [ai-plan.md](ai-plan.md) K4, X4, X5; [../../docs/ai.md](../../docs/ai.md) §18.2):** inside 6 km of a
   hostile jet it sees, a committed MiG-29A flies an energy-aware BFM leaf: pursuit (lead, pure, lag) and the yo-yos when

@@ -36,7 +36,7 @@ func run() -> void:
 	var b: Dictionary = ibx["Ramon"]
 	var base := Vector3(float(b.LineupLocX), float(b.LineupLocY), float(b.LineupLocZ))
 	# The player's jet parked at Nevatim's lineup, engine off, 58 km from Ramon: below the network's radar horizon, and
-	# near enough that the terrain under Ramon stays loaded (an AI jet has no ground where the terrain is not loaded).
+	# near enough that the terrain under Ramon stays loaded.
 	var nb: Dictionary = ibx["Nevatim"]
 	var sp: Vector3 = tv.world_to_scene(Vector3(float(nb.LineupLocX), float(nb.LineupLocY), float(nb.LineupLocZ)))
 	var flags := airborne_flags()
