@@ -101,7 +101,7 @@
     {"index": 96, "group": "views", "label": {"en": "Zoom out (minus key)", "he": "התרחקות (מקש מינוס)"}, "key": "-", "joystick": -1, "press": [21, -1, 0], "release": [21, 0, 0], "shown": true},
     {"index": 97, "group": "views", "label": {"en": "Zoom in (equals key)", "he": "התקרבות (מקש שווה)"}, "key": "=", "joystick": -1, "press": [20, -1, 0], "release": [20, 0, 0], "shown": true},
     {"index": 98, "label": {"en": "Wingman: attack another target", "he": "מספר 2: תקוף מטרה אחרת"}, "key": "Alt + W", "joystick": -1, "press": [108, 4, 0], "release": [0, 0, 0], "shown": true},
-    {"index": 99, "label": {"en": "Wingman: attack my target", "he": "מספר 2: תקיפת המטרה שלי"}, "key": "Alt + E", "joystick": -1, "press": [108, 3, 0], "release": [0, 0, 0], "shown": true},
+    {"index": 99, "group": "sim", "label": {"en": "Wingman: attack my target", "he": "מספר 2: תקיפת המטרה שלי"}, "key": "Alt + E", "joystick": -1, "press": [108, 3, 0], "release": [0, 0, 0], "shown": true},
     {"index": 100, "label": {"en": "Wingman: tactical formation", "he": "מספר 2: מבנה טקטי"}, "key": "Alt + T", "joystick": -1, "press": [108, 5, 0], "release": [0, 0, 0], "shown": true},
     {"index": 101, "label": {"en": "Wingman: cover me", "he": "מספר 2: אבטח אותי"}, "key": "Alt + P", "joystick": -1, "press": [108, 1, 0], "release": [0, 0, 0], "shown": true},
     {"index": 102, "label": {"en": "Wingman: close formation", "he": "מספר 2: מבנה צמוד"}, "key": "Alt + C", "joystick": -1, "press": [108, 6, 0], "release": [0, 0, 0], "shown": true},
