@@ -45,4 +45,6 @@ Keep the lock until _A_ runs out: until then the AIM-120 steers on your radar's 
 
 === What the sim lacks <aa-missing>
 
-The real jet's own cues for each weapon, before and after the launch, are #nis: the sim shows the F-16's. A missile's flight and its chances are outside this manual.
+The real jet's own cues for each weapon, before and after the launch, are #nis: the sim shows the F-16's.
+
+#in-sim[An enemy fighter releases flares or chaff against your missile, at its launch and in its last 6 seconds. A missile that follows a decoy is lost. Each missile's chance is in @ew-cmds.]

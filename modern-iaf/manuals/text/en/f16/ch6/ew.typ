@@ -21,6 +21,7 @@ The round display left of the #term("HUD") shows the radars that look at the jet
   [A diamond round a symbol], [The highest-priority threat.],
   [A square round a symbol], [A radar locked on the jet.],
   [A flashing circle round a symbol], [A launch of a radar-guided missile. The symbol is the radar that guides it. #then[#row("lamp_rwr_launch_0") lights and the launch tone sounds.]],
+  ..if sufa { ([Chevrons either side of a symbol, \>6\<], [Your jammer is on against that radar#d34[section I, "RWR display", figure 1-133, page 1-200] (the jammer, below).]) },
 )
 
 The display hears radars only. A missile that homes on heat sends no radar signal, so its launch does not show here.
@@ -67,9 +68,22 @@ The #term("CMDS") releases chaff and flares. Its panel is on the left console.
 
 A program is, for chaff and for flares, a burst quantity and interval and a salvo quantity and interval. Set them, and the quantity at which the voice warns, on the #term("DED"): LIST, 7 opens EWS CONTROLS with the two counts and the options; SEQ steps to the BINGO quantities and to the chaff and flare program pages (@fig-d-ded_pages). #then[The voice says "Chaff flare, low" at the BINGO quantity and "Chaff flare, out" at none.] #row("JETT_50_switch") releases every flare. #key("Drop chaff") and #key("Drop flares") release one at any time. Nothing is dispensed with the gear down.
 
+A flare burns hotter than the engine and draws the seeker of a heat-seeking missile. Chaff is a cloud of thin strips that gives a radar a larger echo than the jet's. A decoy acts on a missile in flight, at the moment it is released. Newer heat-seeking missiles tell a flare from a jet by the colours of its heat and by its path#footnote[Wikipedia, "Flare (countermeasure)": "More modern IR-guided missiles have sophisticated on-board electronics and secondary electro-optical sensors that help discriminate between flares and targets"; "spectral discrimination" and "trajectory discrimination", #link("https://en.wikipedia.org/wiki/Flare_(countermeasure)"). Checked 22 November 2026.]. A radar that measures speed along its line of sight tells the chaff, which slows at once, from a jet that flies toward it or away from it. A jet that turns to move across the radar's line is hard to tell from the chaff#footnote[Wikipedia, "Chaff (countermeasure)": modern radars "can thus distinguish chaff from an aircraft, which continues to move at high speed"; an aircraft moving "predominantly perpendicular to the radar source" is "more difficult to separate from the effectively stationary chaff", #link("https://en.wikipedia.org/wiki/Chaff_(countermeasure)"). Checked 22 November 2026.].
+
 === The jammer
 
-#key("ECM jammer") turns the jammer on and off. #then[#row("lamp_ecm_enbl_0") lights.] Electronic attack is outside this manual.
+#if sufa [
+The #jet.short carries a self-protection jammer in its dorsal spine#footnote[Airforce Technology, "F-16I Sufa (Storm) Multirole Fighter" (the self-protection jammer of the jet's suite), #link("https://www.airforce-technology.com/projects/f-16i-soufa/"); Military Periscope, "Advanced Self-Protection System (ASPS)" (the jammer in the dorsal spine), #link("https://www.militaryperiscope.com/weapons/electronics/electronic-warfare/advanced-self-protection/overview/"). Not read again for this chapter.]. It sends noise on an enemy radar's frequency, so that the radar cannot pick the jet's echo out of the noise. Close to the radar the echo is stronger than the noise. The range inside which the radar sees the jet again is its #term("burn-through range")#footnote[Wikipedia, "Radar jamming and deception": "The burn-through range is the distance from the radar at which the jamming is ineffective", #link("https://en.wikipedia.org/wiki/Radar_jamming_and_deception"). Checked 22 November 2026.]. A smaller echo has a shorter burn-through range.
+
+With the jammer on, an enemy radar sees the jet only inside its burn-through range. A search radar farther away does not find the jet, and a radar's lock breaks when the jet is farther away than that range.
+
+#caution[The jammer shows the enemy where you are: a jet that jams "essentially broadcasts its position"#footnote[Wikipedia, "Radar jamming and deception", the same page. Checked 22 November 2026.]. An enemy fighter's radar sees your bearing beyond the burn-through range and the fighter flies toward it. Turn the jammer on when a radar locks on you or a missile flies at you, and off when the threat is gone.]
+
++ Press #key("ECM jammer"). #then[#row("lamp_ecm_enbl_0") lights. On the threat warning display each radar shows between chevrons.]
++ Press #key("ECM jammer") again. #then[The jammer is off; #row("lamp_ecm_enbl_0") goes out.]
+] else [
+#key("ECM jammer") turns the jammer on and off. #then[#row("lamp_ecm_enbl_0") lights.]
+]
 
 #in-sim[
   - The cockpit's MODE knob has three positions; SEMI, AUTO and BYP are on the key, with the knob left at MAN.
@@ -77,5 +91,7 @@ A program is, for chaff and for flares, a burst quantity and interval and a salv
   - #row("01_50_switch"), #row("02_50_switch") and #row("JMR_50_switch") move only.
   - #row("IFF_button") #then[dims the threat warning display turned down and brightens it turned up.]
   - No picture of the display with threats is in this edition.
-  - #term("Not modelled"): the jammer's own controls and modes.
+  - *A decoy.* At each release every missile that flies at the jet may follow it: a flare a heat-seeking missile, chaff a radar-guided one. A missile that follows a decoy does not come back to the jet. The chance is each seeker's own (inferred). Within the missile's last 6 seconds a flare draws an R-73 about one time in three, an AIM-9M one in four, an AIM-9X or a Python 5 fewer than one in ten. Chaff draws a radar-guided missile about two times in five with the jet on the missile's beam. With the jet flying straight away from it, chaff draws an R-27R one time in five, and an AIM-120 or a surface-to-air missile one in twelve. A decoy has its full chance within the missile's last 6 seconds; one released earlier has less, and it burns out after 4 seconds. Above 4 g every decoy has one and a half times its chance; a flare beside a lit afterburner, a quarter.
+  #if sufa [- *The jammer's burn-through range* is 0.3 of the radar's range against an echo of 5 m², times the square root of the jet's echo over 5 m² (inferred: the jammer's power is not public). Head on, an S-300 site's search radar finds the jet at 44 km in place of 210 km, its tracking radar holds it inside 29 km in place of 140 km, and an enemy fighter's radar, which takes every jet as 5 m², holds it inside 22 km in place of 74 km.] else [- #term("Not modelled"): the #jet.short's jammer. #key("ECM jammer") lights #row("lamp_ecm_enbl_0") only.]
+  - #term("Not modelled"): the jammer's own controls and modes, and its effect on a missile's own seeker.
 ]

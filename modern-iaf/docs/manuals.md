@@ -167,9 +167,12 @@ employment as numbered steps with the reaction in bold (`then[…]`). It is writ
 ([avionics-plan.md](avionics-plan.md) §2 to §4, [ufc.md](ufc.md), [ews.md](ews.md), [weapons.md](weapons.md),
 `docs/radar.md` §9, `docs/mfd.md` §9), not from the outline's plan. A real-jet statement carries a footnote to the
 public Block 50 manuals those docs cite (marked "not read again for this chapter") or the word "inferred"; each
-F-16 section opens with the line that the jet's own pages are not public. The user's safety rule holds in every
-section: no countermeasure effectiveness and no electronic attack (still parked, avionics-plan.md §7.3); missile
-performance is in scope since 19 November 2026 (§7.1), and the missile warning names no missile (the sim's does not). The Adir's sections describe what is on
+F-16 section opens with the line that the jet's own pages are not public. Missile performance is in scope
+since 19 November 2026 (avionics-plan.md §7.1), and the missile warning names no missile (the sim's does not).
+Countermeasure effectiveness and electronic attack were unparked the same day (avionics-plan.md §7.3) and written on
+22 November 2026, once built (ai-plan.md K8, K9): the EW sections give what a flare and chaff do to a missile's seeker
+and the Sufa's jammer with its burn-through range, at the level of the sim's own rules (each figure inferred), and the
+radar sections the jam strobe. The Adir's sections describe what is on
 `main` and mark the rest "not in the sim yet".
 
 A display's picture is `display("<name>", [caption])`: `pictures/<cockpit>/d_<name>.jpg`, a figure labelled
@@ -255,7 +258,8 @@ notes, the glossary's entries, the outline's titles and introductions, and `syst
 sections' plans join when they are written. The game manual has no such list yet.
 
 Weapons sections give the employment procedure: switches, pages, cues, counts. Missile performance may be written
-since 19 November 2026 (avionics-plan.md §7.1); how well a countermeasure works and electronic attack stay out.
+since 19 November 2026 (avionics-plan.md §7.1); what a countermeasure does and the jammer since 22 November 2026, as
+the sim models them (§2 "Chapter 6").
 
 ## 3. The build
 

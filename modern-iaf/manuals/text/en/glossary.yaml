@@ -1,6 +1,7 @@
 # The glossary: term, means, and `in` (the manuals that carry it; none: all).
 - {term: AVIONIC POWER, means: "The right console's panel that powers the mission computer, the stores stations, the displays and the up-front controls.", in: [f16i, f16d]}
 - {term: Bingo fuel, means: "A fuel quantity set by the pilot: the fuel needed to fly home and land with a reserve. Below it the jet warns."}
+- {term: Burn-through range, means: "The range from an enemy radar inside which the jet's echo is stronger than its jammer's noise, so that the radar sees the jet.", in: [f16i, f16d, f35i]}
 - {term: CAT III, means: "The flight control system's setting for heavy or large stores: a lower angle-of-attack limit and slower roll than CAT I.", in: [f16i, f16d]}
 - {term: CMDS, means: "Countermeasures dispenser set: releases chaff and flares.", in: [f16i, f16d]}
 - {term: Deep stall, means: "A stable, stalled fall at an angle of attack far past the limiter, from which the tail alone cannot lower the nose.", in: [f16i, f16d]}

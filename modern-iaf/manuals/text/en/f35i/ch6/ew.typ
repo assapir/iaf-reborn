@@ -1,6 +1,6 @@
 #import "src.typ": *
 
-This section covers what warns you of a threat and how you release chaff and flares. It gives the displays and the switches only. Electronic attack is outside this manual.
+This section covers what warns you of a threat, how you release chaff and flares, and what they do to a missile.
 
 === The TWD format <ew-twd>
 
@@ -53,3 +53,10 @@ The jet carries chaff and flares. The function bar and the SMS format show their
 - In SEMI, a launch warning makes the voice say "Counter"; #key("CMS right: consent (SEMI) / enable AUTO") then runs the program. In AUTO, after the same key once, the program runs by itself at each launch warning.
 
 Nothing leaves the jet with the landing gear handle down.
+
+A flare burns hotter than the engine and draws the seeker of a heat-seeking missile. Chaff is a cloud of thin strips that gives a radar a larger echo than the jet's. A decoy acts on a missile in flight, at the moment it is released. Newer heat-seeking missiles tell a flare from a jet by the colours of its heat and by its path#footnote[Wikipedia, "Flare (countermeasure)": "More modern IR-guided missiles have sophisticated on-board electronics and secondary electro-optical sensors that help discriminate between flares and targets"; "spectral discrimination" and "trajectory discrimination", #link("https://en.wikipedia.org/wiki/Flare_(countermeasure)"). Checked 22 November 2026.]. A radar that measures speed along its line of sight tells the chaff, which slows at once, from a jet that flies toward it or away from it. A jet that turns to move across the radar's line is hard to tell from the chaff#footnote[Wikipedia, "Chaff (countermeasure)": modern radars "can thus distinguish chaff from an aircraft, which continues to move at high speed"; an aircraft moving "predominantly perpendicular to the radar source" is "more difficult to separate from the effectively stationary chaff", #link("https://en.wikipedia.org/wiki/Chaff_(countermeasure)"). Checked 22 November 2026.].
+
+#in-sim[
+  - *A decoy.* At each release every missile that flies at the jet may follow it: a flare a heat-seeking missile, chaff a radar-guided one. A missile that follows a decoy does not come back to the jet. The chance is each seeker's own (inferred). Within the missile's last 6 seconds a flare draws an R-73 about one time in three, an AIM-9M one in four, an AIM-9X or a Python 5 fewer than one in ten. Chaff draws a radar-guided missile about two times in five with the jet on the missile's beam. With the jet flying straight away from it, chaff draws an R-27R one time in five, and an AIM-120 or a surface-to-air missile one in twelve. A decoy has its full chance within the missile's last 6 seconds; one released earlier has less, and it burns out after 4 seconds. Above 4 g every decoy has one and a half times its chance; a flare beside a lit afterburner, a quarter.
+  - #key("ECM jammer") lights the advisory ECM ON (@warnings). #term("Not modelled"): the jet's electronic attack.
+]

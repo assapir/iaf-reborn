@@ -32,6 +32,7 @@
 - {en: gun, he: תותח, from: game}
 - {en: chaff, he: מוץ, from: game}
 - {en: flares, he: נורים, from: game}
+- {en: jammer, he: משבש, from: game}
 - {en: radar, he: מכ"ם, from: game, not: [ראדאר, רדאר]}
 - {en: drone, he: מל"ט, from: game, not: [רחפן]}
 - {en: weapons range, he: מטווח, from: game}

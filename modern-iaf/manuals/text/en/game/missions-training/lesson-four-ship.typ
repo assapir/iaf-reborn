@@ -22,7 +22,7 @@ A wingman that comes too near another jet pulls away from it, then flies back to
 
 #idx("Four-ship, pairs")The flight flies as two pairs: Kidon 1-2 with you, Kidon 1-4 with Kidon 1-3. When Kidon 1-3 leaves the formation, Kidon 1-4 goes with it.
 
-#idx("Four-ship, threats")A wingman locked by a radar, or with a missile fired at it, turns hard against it about a second later: it puts a radar off its wing and turns into a heat-seeking missile. It drops chaff against a radar and flares against a heat-seeking missile. Five seconds after the threat is gone, it flies back to its place.
+#idx("Four-ship, threats")A wingman locked by a radar, or with a missile fired at it, turns hard against it about a second later: it puts a radar off its wing and turns into a heat-seeking missile. It turns its jammer on. Against a missile it drops chaff, or flares against a heat-seeking one: once at the launch and again in the missile's last seconds. Against a lock alone it only turns and jams. Five seconds after the threat is gone, it flies back to its place.
 
 === The way home <lesson-four-ship-home>
 

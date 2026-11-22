@@ -45,5 +45,6 @@ Keep the lock until _A_ runs out: until then a radar missile steers on your rada
 
 #in-sim[
   - With the gear handle down the gun does not fire.
+  - An enemy fighter releases flares or chaff against your missile, at its launch and in its last 6 seconds. A missile that follows a decoy is lost. Each missile's chance is in @ew.
   - #term("Not modelled"): the time of flight before the launch, and the target's range at those moments; the seeker's SLAVE and BORE options and its cooling.
 ]

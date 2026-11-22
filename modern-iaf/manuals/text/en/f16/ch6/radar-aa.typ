@@ -34,6 +34,7 @@ The cursor is two short vertical lines. Move it with the cursor control's keys (
 - *TWS, track while scan.* The radar keeps a track file on up to ten targets, shown as triangles; a file with no fresh return flashes and then goes. Bug one as in RWS. The scan is narrower: #osb(18) or #osb(17) steps three width and bar pairs.
 - *VSR, velocity search.* It shows only closing targets, placed up the scope by their closing speed.
 - *Single-target track.* The radar follows one target and stops searching; the top legend names the mode the lock came from. #key("Radar: drop bug / lock (TMS down)") or #key("Drop target lock") returns to the search.
+- *A jammer.* An aircraft that jams your radar shows only inside its #term("burn-through range"). Farther out, but within the range at which the radar would see it, the search shows its bearing: a dashed line from the bottom to the top of the scope. The line gives no range. The #jet.short's own jamming symbol is not public; the sim draws the angle-only jam strobe of a fighter radar's display (inferred).
 
 === The dogfight patterns (ACM)
 

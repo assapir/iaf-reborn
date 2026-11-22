@@ -28,6 +28,7 @@ The picture is a fan: the jet at its foot, the range up, the bearing off the nos
 - *A track* is drawn by its identity: a red diamond, a yellow square or a green circle (@radios), with a line along its heading.
 - *Two vertical lines* mark the scan's limits when it is narrower than the fan.
 - *The white circle* is the steerpoint.
+- *A yellow dashed line* from the jet up the fan is the bearing of an aircraft that jams your radar. Such an aircraft shows as a track only inside its #term("burn-through range"); farther out, within the range at which the radar would see it, it shows as this line, which gives no range. The real symbol is open; the line is inferred.
 
 === The modes <radar-aa-modes>
 
