@@ -2461,6 +2461,30 @@
       "note": "Hebrew ours: no IAF call found (modern-iaf/docs/research/radio-terms.md)"
     },
     {
+      "file": "flt_wng_in.ogg",
+      "voice": "wingman",
+      "say": "In.",
+      "mode": "particle",
+      "say_he": "נכנס.",
+      "note": "the run-in; Hebrew: the IAF's call for committing to the attack run (a 1967 squadron diary, briefs iaf-radio-terms.md B); English: NATO brevity IN"
+    },
+    {
+      "file": "flt_wng_alpha.ogg",
+      "voice": "wingman",
+      "say": "Bombs away.",
+      "mode": "particle",
+      "say_he": "אלפא!",
+      "note": "the release; Hebrew: the IAF's bomb-release call (Walla, 8 March 2026, briefs iaf-radio-terms.md B); English ours: NATO has no brevity word for a bomb's release"
+    },
+    {
+      "file": "flt_wng_done.ogg",
+      "voice": "wingman",
+      "say": "Done.",
+      "mode": "particle",
+      "say_he": "ביצעתי.",
+      "note": "the attack made, clear of the target; Hebrew: an F-35I pilot's report (JDN, 5 March 2026, briefs iaf-radio-terms.md B); English ours"
+    },
+    {
       "file": "flt_wng_has_lead.ogg",
       "voice": "wingman",
       "say": "has the lead.",
@@ -4417,6 +4441,21 @@
       "file": "flt_wng_winchester.ogg",
       "text": "winchester",
       "text_he": "אין חימוש"
+    },
+    "WNG_IN": {
+      "file": "flt_wng_in.ogg",
+      "text": "in",
+      "text_he": "נכנס"
+    },
+    "WNG_ALPHA": {
+      "file": "flt_wng_alpha.ogg",
+      "text": "bombs away",
+      "text_he": "אלפא"
+    },
+    "WNG_DONE": {
+      "file": "flt_wng_done.ogg",
+      "text": "done",
+      "text_he": "ביצעתי"
     },
     "WNG_HAS_LEAD": {
       "file": "flt_wng_has_lead.ogg",

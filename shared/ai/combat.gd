@@ -682,15 +682,16 @@ func _launch(u: Unit, t: Dictionary, now: float) -> bool:
 
 ## A bombing manoeuvre's release (440440: the fire gate, then the selected weapon as 300's FUN_00454270): bombs
 ## (500 / 510) start the AI ripple (W+0xe4 = W+0xe8, a timer every W+0xf0 s; none while one runs, W+0xac), a missile
-## or a gun burst as Launch does. Rockets (560) and laser bombs (650) ripple too (their FUN_00454270 case).
-func release(ent: Dictionary) -> void:
+## or a gun burst as Launch does. Rockets (560) and laser bombs (650) ripple too (their FUN_00454270 case). Ours
+## (Modern IAF's attack, ai_flights.gd): `given` the target in place of the brain's; whether a release started.
+func release(ent: Dictionary, given := {}) -> bool:
 	var u: Unit = units.get(ent.key)
 	var now: float = ai.runtime.now
 	if u == null or not u.air or u.cur < 0 or int(u.stations[u.cur].count) <= 0 or _releasing(u) or not _gate(u, now):
-		return
-	var t: Dictionary = u.brain.target
+		return false
+	var t: Dictionary = given if not given.is_empty() else u.brain.target
 	if t.is_empty() or host.weapons == null:
-		return
+		return false
 	var o := _pose(u)
 	var type := int(u.w.type)
 	if type in [500, 510, 560, 650]:
@@ -703,6 +704,9 @@ func release(ent: Dictionary) -> void:
 	elif type in AA_TYPES or type in HOMING:
 		_spent(u, u.cur)
 		host.weapons.launch_homing(u.w, o.pos, o, String(t.key), 1.0, u.ent)
+	else:
+		return false
+	return true
 
 
 ## One store of the AI ripple (the timer callback FUN_004545e0 with p4 = 1: no release permission, no delayed

@@ -13,11 +13,11 @@
 use iaf_flight::Vec3;
 use iaf_flight::autopilot::{MODE_STEER, Steer};
 
-use crate::bfm;
 use crate::bt::Node::{self, *};
 use crate::bt::Status;
 use crate::flight::{Member, defence, defend};
 use crate::wingman::{before_takeoff, fly_task, flying, idle, keep_slot, set_mode};
+use crate::{bfm, strike};
 
 /// The commit: a bogey this near the station (m, horizontal; inferred: the MiG-29's 700 km range at a combat radius
 /// with a fight's fuel, about a third of the way out).
@@ -330,6 +330,8 @@ pub fn lead() -> Node<Member> {
         Act(shoot),
         Seq(vec![Cond(bfm::fighting), Act(bfm::fight)]),
         Seq(vec![Cond(|m| m.enemy.committed), Act(intercept)]),
+        // An attack ordered (strike.rs, `Flight::strike`): pressed before a commit; done, a based pair goes home.
+        Seq(vec![Cond(strike::striking), Act(strike::fly)]),
         Act(commit),
         Act(cap),
     ])
@@ -348,6 +350,7 @@ pub fn wingman() -> Node<Member> {
         Seq(vec![Cond(|m| m.rtb && m.lead_low), Act(|m| set_mode(m, 10))]),
         Act(shoot),
         Seq(vec![Cond(bfm::fighting), Act(bfm::fight)]),
+        Seq(vec![Cond(strike::striking), Act(strike::fly)]),
         Seq(vec![Cond(|m| m.task.is_some()), Act(fly_task)]),
         Act(slot),
     ])

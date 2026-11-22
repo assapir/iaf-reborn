@@ -876,6 +876,61 @@ the same host path in `ai_flights.gd`. The 1998 game sets none of it. Every figu
   `modern-iaf/tests/test_wing_battle.gd` (headless: the four-ship in the air by the dev hook against a MiG-29A pair:
   engage, cover through the radio menu, a Fox call, both MiGs down, splash, the rejoin).
 
+### 8.10 Ours: the air-to-ground attack
+
+The user, 22 Nov 2026: "We don't have bomb release yet? So this is missing in ai, no?", then "Both for enemies and
+wingman" (modern-iaf/docs/ai-plan.md F15, K15). Our wingmen and the enemy fighters attack a ground target
+(`crates/iaf-ai/src/strike.rs`); the 1998 game sets none of it. Every figure is inferred unless it says otherwise.
+
+- **The orders.** The lead's "engage my target" (the radio menu, record 47; record 99, Alt + E, to Kidon 1-2) on a
+  ground target: `ai_flights.gd engage_target` engages the radar's locked aircraft, else attacks the player's ground
+  target: the radar's locked hostile ground unit, else the hostile ground unit nearest the SPI within 500 m, else the
+  SPI itself (a point). `Flight::attack` (`IafAi.attack`): each AI jet addressed in the air with an air-to-ground
+  weapon answers "ack" and takes it (an engage or a cover it had ends); the others "unable". An AI-led flight's own
+  order is `Flight::strike` (`IafAi.strike`; the dev hook `ai_flights.gd enemy_strike(flight, target)`, the target an
+  entity or a world point such as a base's runway): its lead takes it at once, then orders its wingmen.
+- **The turns.** The jets run in number order, each at least 20 s after the one before and never while another jet
+  of the flight flies its run. Before its turn a jet keeps its slot (an AI lead its route or station); while the
+  flight lead flies its own run its wingmen hold where they are (HoldPositionCL, mode 10), since their slot would take
+  them down the lead's dive. #4 keeps its slot in the shape while #3 runs.
+- **The run, by the weapon** (the host's `set_ground_weapon`, combat.gd's first pylon with one left):
+  - a guided bomb (GPS, laser): a level run on the steer loop at the target at its height, at least 1,500 m above the
+    target, released once the vacuum impact passes the target (at most 500 m beyond it, within 300 m of the track);
+  - a bomb or rockets: on the steer loop at the target at least 2,500 m above it (climbing there at 20° on the BFM
+    loop when lower); rolled in once the target lies 30° below the horizon within 30° of the nose (steeper than 35°,
+    or not ahead: out on its track until the target is less than 20° below it, then back); the dive on the BFM loop
+    at 4 g and 250 m/s (its speed brake), its flight path on the aim-off point (the target moved on by the drop of a
+    store released along the line to it); released below 2,500 m with the vacuum impact within 400 m of the target
+    (DiveBomb's own figure, `5d8590`); below 900 m without a release it pulls out and runs again.
+  - The vacuum impact is the CCIP's fall (`iaf_avionics::bombs::fall_time`), the release within the release
+    permission (`iaf_avionics::release::release_allowed`: load factor ≥ 0, bank ≤ 90°). A run with no release in
+    300 s is given up ("unable").
+- **The release** (`Order::release`, `IafAi.release`): the host selects the air-to-ground pylon and releases every
+  store of that weapon (at most 14) in one AI ripple 30 m apart (`combat.gd release` with the target given, then
+  `_ripple_tick`: the target led by its velocity, the steered fall `player_weapons.gd drop_bomb`, a GPS bomb's or laser
+  bomb's own guidance); a release started is reported (`IafAi.released`). The bursts damage what is near through the
+  existing area damage.
+- **The egress:** on along its track, pulling out and climbing at 20° on the BFM loop while it is below 1,500 m above
+  the target or going down faster than 10 m/s, then level on the steer loop, until 8 km from the target; then back to
+  its slot ("in position"), an enemy pair to its CAP, a based one home. The target destroyed or gone ends every attack.
+- **The calls** (IAF Hebrew from the radio-terms research; voices.json): "in" / "נכנס" at the run-in, "alpha" /
+  "אלפא" ("bombs away" in English) at the release, "done" / "ביצעתי" once 8 km clear, "unable" for a run given up.
+  The enemy's calls are not heard.
+- **The MiG-29A's strike load:** the MiG-29 (9.12) carries "4 × FAB-500-M62 500kg general purpose bomb" (Wikipedia,
+  "Mikoyan MiG-29", Specifications, read 23 Nov 2026); the sim has no FAB record, so the generic MK-83 (447 kg)
+  stands in, on pylons B, C, G and H with the R-73s kept outboard (the pylons inferred). The dev hook `spawn(unit,
+  at, heading, route, side, arm)` replaces pylons of the record's load.
+- **Tried and dropped (23 Nov 2026):** the original's own bombing manoeuvres (§13.3) as the run: on the 6-DoF
+  DiveBomb ran in at 357 m/s, overshot its dive and flew into the ground without a release; LevelBomb's release (the
+  vacuum impact within twice its height of the target) let go 7 km short at 4,000 m, beyond what the AI stores'
+  steered fall corrects. The pop-up (PopupRelease) runs in at 300 m above the terrain, below the safe heights kept
+  until the AI's low-level terrain following is built.
+- **Tests:** `cargo test -p iaf-ai --test strike` (on the 6-DoF: `four_ship_attacks_my_target` two dives and a level
+  run in turn, each store within 50 m of the target, the calls, the rejoin; `mig29_pair_strikes_on_its_leads_order`
+  the lead first, the wingman holding, both back on the CAP; `unable_target_gone_and_rejoin`);
+  `modern-iaf/tests/test_ground_attack.gd` (headless: the four-ship with MK-82s through the radio menu on an enemy
+  64N6E2, destroyed; a MiG-29A pair with MK-83s on its lead's order against a 64N6E2 of our side, destroyed).
+
 ## 9. Airbase data (`iaf.ibx`, TowersManager `54eda0`)
 `iaf.ibx` holds the geometry the AI uses to take off, land and taxi. It has ten sections, in record order: Ramon,
 David, TelNof, Refidim, Inshas, Damescuss, Kuzeir, Bley, Ryak, Aman.

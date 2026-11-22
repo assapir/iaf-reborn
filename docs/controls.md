@@ -149,8 +149,10 @@ Terms used on this page:
   portals; DMS up / down give the sensor of interest to the helmet and back. The F-16's ICP keys (records 152–174)
   work the CNI.
 * **Modern IAF's four-ship orders** (the formations, rejoin, RTB, the split into pairs and the regroup, engage my
-  target, cover me: `IafAi.command` / `IafAi.split` / `IafAi.engage`, [ai.md](ai.md) §8.8, §8.9): no keys of their
-  own; the radio menu's flight pages carry them (record 47, modern-iaf/docs/ai-plan.md F5, F12). The AI jets'
+  target, cover me: `IafAi.command` / `IafAi.split` / `IafAi.engage` / `IafAi.attack`, [ai.md](ai.md) §8.8–§8.10):
+  the radio menu's flight pages carry them (record 47, modern-iaf/docs/ai-plan.md F5, F12, F15); record 99 (Alt + E,
+  "Wingman: attack my target") gives engage my target to Kidon 1-2. Engage my target with no aircraft locked attacks
+  the player's ground target. The AI jets'
   reactions to locks, launches, attackers and AWACS calls need no input.
 * Joystick buttons, axes and the hat: §5.
 * **Rebinds**: `Settings.key_bindings` = {record: [key, button]} for the records that differ from the default.
@@ -220,7 +222,7 @@ How to read the table:
 | 44 | Laser on/off | L |  | (106, 0, 0) |  | yes | laser flag (FLIR pod only); with it on the laser bombs fly to the FLIR camera's centre point (weapons.md §9.8) |
 | 45 | NAV mode on | N |  | (98, 0, 0) |  | yes | master mode NAV (weapons.md §4) |
 | 46 | Change HUD color | H |  | (123, 0, 0) |  | yes | HUD colour |
-| 47 | Contact tower | Ctrl + T |  | (107, 0, 0) |  | yes | the tower: in the air near an Israeli base "proceed to runway" and the landing calls; near no tower / an Arab base a radio click; on the ground nothing (the tower talks by itself; docs/radio.md §2). Modern IAF ("Call the tower"): the radio menu, the tower's calls (modern-iaf/docs/training.md §8) and in a four-ship the wingmen's pages: the flight, the element, each wingman; formation, rejoin, split, engage my target, cover me, RTB, check in, ops check; the number keys pick, 0 back, a click picks too (modern-iaf/docs/ai-plan.md F5) |
+| 47 | Contact tower | Ctrl + T |  | (107, 0, 0) |  | yes | the tower: in the air near an Israeli base "proceed to runway" and the landing calls; near no tower / an Arab base a radio click; on the ground nothing (the tower talks by itself; docs/radio.md §2). Modern IAF ("Call the tower"): the radio menu, the tower's calls (modern-iaf/docs/training.md §8) and in a four-ship the wingmen's pages: the flight, the element, each wingman; formation, rejoin, split, engage my target (an aircraft locked: the engage; else the ground attack, [ai.md](ai.md) §8.10), cover me, RTB, check in, ops check; the number keys pick, 0 back, a click picks too (modern-iaf/docs/ai-plan.md F5, F15) |
 | 48 | Pan EO weapon/FLIR up | Ctrl + Up |  | (140, 0, 100) | (140, 0, 0) | no | EO camera slew / lock on release (mfd.md) |
 | 49 | Pan EO weapon/FLIR left | Ctrl + Left |  | (139, -100, 0) | (139, 0, 0) | no | EO camera slew / lock on release (mfd.md) |
 | 50 | Pan EO weapon/FLIR right | Ctrl + Right |  | (139, 100, 0) | (139, 0, 0) | no | EO camera slew / lock on release (mfd.md) |
@@ -272,7 +274,7 @@ How to read the table:
 | 96 | Zoom out | - |  | (21, -1, 0) | (21, 0, 0) | yes | orbit distance (external); cockpit art zoom, one step (ours); the release zooms the EO camera |
 | 97 | Zoom in | = |  | (20, -1, 0) | (20, 0, 0) | yes | orbit distance (external); cockpit art zoom, one step (ours); the release zooms the EO camera |
 | 98 | Engage other target | Alt + W |  | (108, 4, 0) |  | yes | wingman command 4 → the wingman's brain, negative reply if it cannot (docs/radio.md §3) |
-| 99 | Engage my target | Alt + E |  | (108, 3, 0) |  | yes | wingman command 3 → the wingman's brain, negative reply if it cannot (docs/radio.md §3) |
+| 99 | Engage my target | Alt + E |  | (108, 3, 0) |  | yes | wingman command 3 → the wingman's brain, negative reply if it cannot (docs/radio.md §3). Modern IAF ("Wingman: attack my target"): the radio menu's engage my target to Kidon 1-2 (an aircraft locked: the engage; else the ground attack on the player's ground target, [ai.md](ai.md) §8.10) |
 | 100 | Tactical formation | Alt + T |  | (108, 5, 0) |  | yes | wingman command 5 → the wingman's brain, negative reply if it cannot (docs/radio.md §3) |
 | 101 | Protect me | Alt + P |  | (108, 1, 0) |  | yes | wingman command 1 → the wingman's brain, negative reply if it cannot (docs/radio.md §3) |
 | 102 | Close formation | Alt + C |  | (108, 6, 0) |  | yes | wingman command 6 → the wingman's brain, negative reply if it cannot (docs/radio.md §3) |

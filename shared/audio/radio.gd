@@ -746,6 +746,15 @@ func wingman_command(cmd: int) -> void:
 	var me := _player_ent()
 	if ai == null or me.is_empty():
 		return
+	# Modern IAF's four-ship (IafAi): attack my target is the radio menu's engage my target to Kidon 1-2.
+	if (
+		cmd == 3
+		and ai.get("flight_ai") != null
+		and host.get("addon") != null
+		and host.addon.has_method("flight_command")
+	):
+		host.addon.flight_command(2, "engage")
+		return
 	var w: Dictionary = ai.partner_of(me)  # brain+0x44
 	if w.is_empty() or int(w.state) in [4, 5] or int(w.control) == 0:
 		return
@@ -972,6 +981,9 @@ const WING_WORDS := {
 	"guns": "WNG_GUNS",
 	"splash": "WNG_SPLASH",
 	"winchester": "WNG_WINCHESTER",
+	"in": "WNG_IN",
+	"alpha": "WNG_ALPHA",
+	"done": "WNG_DONE",
 }
 
 

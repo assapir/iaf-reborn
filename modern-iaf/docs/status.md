@@ -13,6 +13,16 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   AI jet's roll holds the runway's heading. Enemy flights land and space their taxi the same way, without the tower's
   calls, and take off in a stream. Tests: `four_ship` (`ground_run_*`, `taxi_in_behind_a_stopped_lead`, `pairs_take_off_*`),
   `modern-iaf/tests/test_four_ship.gd`, `modern-iaf/tests/test_pairs_takeoff.gd`.
+- **The AI jets' air-to-ground attack (2026-11-23, the user, 22 Nov: "We don't have bomb release yet? So this is
+  missing in ai, no?", "Both for enemies and wingman"; [ai-plan.md](ai-plan.md) F15, K15;
+  [../../docs/ai.md](../../docs/ai.md) §8.10):** "engage my target" (the radio menu; Alt + E to Kidon 1-2) with no
+  aircraft locked attacks the player's ground target (the radar's locked ground unit, else the one nearest the SPI,
+  else the SPI): each wingman with bombs in turn, a 30° dive for plain bombs, a level run for guided ones, the release
+  by the CCIP's vacuum impact through combat.gd's AI ripple, the egress and the rejoin; calls in / נכנס, bombs away /
+  אלפא, done / ביצעתי. An enemy pair attacks on its lead's own order (the dev hook `ai_flights.gd enemy_strike`, a
+  target unit or a base's point; a MiG-29A with MK-83s standing in for its FAB-500s by `spawn`'s `arm`). Tests:
+  `crates/iaf-ai/tests/strike.rs`, `modern-iaf/tests/test_ground_attack.gd`. No mission orders one; the pop-up
+  attack waits for the AI's low-level flight.
 - **Our wingmen in a fight (2026-11-22, the user: "Finish wingman in battle"; [ai-plan.md](ai-plan.md) F5, K4;
   [../../docs/ai.md](../../docs/ai.md) §8.9):** a wingman told "engage my target" fights it with the enemy fighters'
   leaves: the collision course, a missile inside its share of the envelope, the crank, the BFM leaf and the gun, the

@@ -102,6 +102,56 @@ impl IafAi {
         self.flight.target(alive.then(|| Bogey { pos: to_enu(at), vel: to_enu(vel) }), jam);
     }
 
+    /// The lead's "attack my target" at `now` to `to` (0 the flight, 5 the element #3–#4, 2..4 one wingman) on the
+    /// ground target at the scene position `at` moving at `vel` (docs/ai.md §8.10); `has` false: none (each answers
+    /// "unable"). 1: a jet took it; 0: none could (no air-to-ground weapon, not flying); -1: nobody to take it. The
+    /// attacking jets fly their runs one after the other (`state` "strike"); the host feeds `set_ground_target`,
+    /// `set_ground_weapon` and `released`.
+    #[func]
+    fn attack(&mut self, now: f64, to: i64, has: bool, at: Vector3, vel: Vector3) -> i64 {
+        let b = Bogey { pos: to_enu(at), vel: to_enu(vel) };
+        self.flight.attack(now, to.clamp(0, 5) as u8, has.then_some(b)).map_or(-1, i64::from)
+    }
+
+    /// An AI-led flight's own attack at `now` (its lead first, then its wingmen) on the ground target at the scene
+    /// position `at` moving at `vel`. False: the lead is the player's, or no jet could take it.
+    #[func]
+    fn strike(&mut self, now: f64, at: Vector3, vel: Vector3) -> bool {
+        self.flight.strike(now, Bogey { pos: to_enu(at), vel: to_enu(vel) })
+    }
+
+    /// The attacked ground target this frame at the scene position `at` moving at `vel`; `alive` false: gone (the
+    /// attacking jets end their attack and rejoin).
+    #[func]
+    fn set_ground_target(&mut self, alive: bool, at: Vector3, vel: Vector3) {
+        self.flight.ground_target(alive.then(|| Bogey { pos: to_enu(at), vel: to_enu(vel) }));
+    }
+
+    /// Jet `number`'s air-to-ground weapon left this frame: 0 none, 1 a bomb or rockets (the dive), 2 a guided bomb (the
+    /// level run).
+    #[func]
+    fn set_ground_weapon(&mut self, number: i64, kind: i64) {
+        let guided = match kind {
+            1 => Some(false),
+            2 => Some(true),
+            _ => None,
+        };
+        self.flight.ground_weapon(number.clamp(0, 255) as u8, guided);
+    }
+
+    /// Jet `number`'s release made at `now` (after `step`'s `release` order: combat.gd's AI ripple started): it calls
+    /// "alpha" and egresses.
+    #[func]
+    fn released(&mut self, number: i64, now: f64) {
+        self.flight.released(now, number.clamp(0, 255) as u8);
+    }
+
+    /// Jet `number` releases its air-to-ground weapon this frame (after `step`; the host's AI ripple, combat.gd).
+    #[func]
+    fn release(&self, number: i64) -> bool {
+        self.flight.member(number.clamp(0, 255) as u8).is_some_and(|m| m.order.release)
+    }
+
     /// A foe shot down at `now` (`foe` 1 the engaged target, 2 the flight's bogey): the wingmen whose weapons were on it
     /// call "splash".
     #[func]
@@ -195,7 +245,8 @@ impl IafAi {
     /// One frame at `now` (s), after every jet's steps of the frame (one instant, `Flight::sense`): the AI's decisions
     /// and its jets' orders for their next `ap_step`. Returns the calls due, each
     /// {from: number, id: ack, unable, joker, bingo, rtb, fuel_state, lead_change, in_position, spike, mud, defending,
-    /// break_left, break_right, contact; the tower's to it: tower_land, tower_park}.
+    /// break_left, break_right, contact, engaged, splash, winchester, in, alpha, done; the tower's to it: tower_land,
+    /// tower_park}.
     #[func]
     fn step(&mut self, now: f64) -> VarArray {
         for (n, jet, alive) in &mut self.jets {
@@ -224,7 +275,8 @@ impl IafAi {
     /// Jet `number` for tests and logs: role (lead / wingman), leader (the number it flies on, 0 none), stage (its
     /// control loop), slot_error (m), avoiding (it pulls away from another jet), task (element 2's lead on its split
     /// task), defending, engaging (it engages the player's target), fuel_kg, bingo_kg, released (sent home), hold (it
-    /// waits on the ground: taxiing in behind a jet, a pair's lead for its wingman); empty for an unknown number.
+    /// waits on the ground: taxiing in behind a jet, a pair's lead for its wingman), strike (its attack's phase: "",
+    /// wait, run, egress), profile (its run: level, dive); empty for an unknown number.
     #[func]
     fn state(&self, number: i64) -> VarDictionary {
         let mut d = VarDictionary::new();
@@ -250,6 +302,8 @@ impl IafAi {
         d.set("contact", m.enemy.contact);
         d.set("strobe", m.enemy.strobe);
         d.set("visual", m.enemy.visual);
+        d.set("strike", m.strike.phase.name());
+        d.set("profile", m.strike.profile.name());
         d
     }
 }

@@ -5,7 +5,7 @@
 use crate::bt::Node::{self, *};
 use crate::bt::Status;
 use crate::flight::{Member, RESERVE_KG, defend};
-use crate::{bfm, fighter};
+use crate::{bfm, fighter, strike};
 use iaf_flight::autopilot::{MODE_SLOT, MODE_STEER};
 
 /// Inferred: each wingman starts its engine this long after the one before it (#2 this long after the clearance).
@@ -138,13 +138,15 @@ pub fn wingman() -> Node<Member> {
             Cond(|m| m.enemy.committed),
             Sel(vec![Act(fighter::shoot), Seq(vec![Cond(bfm::fighting), Act(bfm::fight)]), Act(press)]),
         ]),
+        // Its air-to-ground attack (strike.rs): the slot until its turn, then the run, the egress and the rejoin.
+        Seq(vec![Cond(strike::striking), Act(strike::fly)]),
         Seq(vec![Cond(|m| m.task.is_some()), Act(fly_task)]),
         Act(keep_slot),
     ])
 }
 
 /// An AI flight lead (after a promotion): the route (mode 7), then home (mode 8) at its landing waypoint, on an RTB
-/// or below the reserve; a threat on it is answered as a wingman's.
+/// or below the reserve; a threat on it is answered as a wingman's; an attack it has (strike.rs) before the route.
 pub fn lead() -> Node<Member> {
     Sel(vec![
         Seq(vec![Cond(|m| !m.alive), Act(idle)]),
@@ -154,6 +156,7 @@ pub fn lead() -> Node<Member> {
         Seq(vec![Cond(|m| m.v.on_ground && !m.airborne), Act(idle)]),
         Act(fuel_calls),
         Seq(vec![Cond(|m| m.rtb || m.fuel_kg <= RESERVE_KG || m.wp_action == 7), Act(|m| set_mode(m, 8))]),
+        Seq(vec![Cond(strike::striking), Act(strike::fly)]),
         Act(|m| set_mode(m, 7)),
     ])
 }

@@ -8,6 +8,7 @@ use crate::bfm;
 use crate::bt::{Node, Status};
 use crate::fighter::{self, Bogey, Enemy};
 use crate::skill::Skill;
+use crate::strike::{self, Phase, Strike};
 use crate::wingman;
 use iaf_avionics::ecm::{self, Shot};
 use iaf_avionics::radar::REF_RCS;
@@ -180,6 +181,8 @@ pub struct Order {
     pub lineup_offset: f32,
     /// A pairs take-off's lead with its wingman beside it: the roll at military power.
     pub pair_lead: bool,
+    /// Its attack's release now (the host's AI ripple of its air-to-ground weapon, combat.gd; [`strike`]; one frame).
+    pub release: bool,
 }
 
 /// One jet of the flight: what it is this frame ([`Flight::sense`]) and the AI's memory of it. The trees read and
@@ -234,6 +237,10 @@ pub struct Member {
     avoiding: bool,
     /// The lead is low with the gear down, or on the ground again: no slot to keep on it.
     pub(crate) lead_low: bool,
+    /// The flight lead flies its attack's run or egress: no slot to keep on it ([`strike`]).
+    pub(crate) lead_striking: bool,
+    /// Another jet of the flight flies its attack's run (one run at a time, [`strike`]).
+    pub(crate) run_busy: bool,
     /// The threat on it this frame ([`Flight::threat`]); when it was first seen, the level called (1 a lock, 2 a
     /// launch), its mate's break called, defending, clear since.
     pub threat: Option<Threat>,
@@ -266,6 +273,8 @@ pub struct Member {
     /// collision avoidance since its lift-off ([`PAIR_FREE`]; None on the ground).
     lined_up: Option<f64>,
     pair_free: Option<Option<f64>>,
+    /// Its air-to-ground attack ([`Flight::attack`], [`Flight::strike`]).
+    pub strike: Strike,
 }
 
 /// The flight.
@@ -296,6 +305,8 @@ pub struct Flight {
     truth_jam: f64,
     /// A pairs take-off ([`Flight::pairs`]).
     pairs: bool,
+    /// The ground target the attacking jets attack ([`Flight::attack`], [`Flight::ground_target`]).
+    ground: Option<Bogey>,
 }
 
 impl Default for Flight {
@@ -320,6 +331,7 @@ impl Default for Flight {
             truth: None,
             truth_jam: 0.0,
             pairs: false,
+            ground: None,
         }
     }
 }
@@ -440,6 +452,8 @@ impl Flight {
             rejoining: false,
             avoiding: false,
             lead_low: false,
+            lead_striking: false,
+            run_busy: false,
             threat: None,
             rwr: false,
             launch_decoy: false,
@@ -458,6 +472,7 @@ impl Flight {
             tower: [false; 2],
             lined_up: None,
             pair_free: None,
+            strike: Strike::default(),
         });
         self.members.sort_by_key(|m| m.number);
         self.lead = 0;
@@ -485,14 +500,15 @@ impl Flight {
 
     /// Whom member `i` flies on in the air: #2 on #1 and #4 on #3, its element lead, while that one flies on its own
     /// (alive, in the air, not sent home, off the slot loop: the split's task, a defence; not the far rejoin, where each
-    /// flies at its own slot); else the flight lead, with its slot in the shape relative to its element lead's slot.
+    /// flies at its own slot, nor an attack's run); else the flight lead, with its slot in the shape relative to its element lead's slot.
     /// (Flown on #3 itself also in the shape, #4 amplified #3's corrections: 385 m off in a change of shape, 632 m in a
     /// join-up in a turn; tested and dropped 19 Nov.)
     fn leader_index(&self, i: usize) -> usize {
         let n = self.members[i].number;
         let el = n.is_multiple_of(2).then(|| self.index(n - 1)).flatten().filter(|&j| {
             let e = &self.members[j];
-            let off = e.mode != MODE_SLOT && !e.rejoining;
+            // (Not on its attack's run: #4 keeps its slot in the shape.)
+            let off = e.mode != MODE_SLOT && !e.rejoining && !strike::striking(e);
             j != self.lead && e.alive && e.airborne && !e.landed && !e.released && !e.v.on_ground && off
         });
         el.unwrap_or(self.lead)
@@ -585,6 +601,90 @@ impl Flight {
         for m in self.members.iter().filter(|m| m.ai && m.alive && m.foe == Some(foe)) {
             if m.enemy.in_air || now - m.last_shot <= SPLASH_S {
                 self.calls.push((now + m.skill.reaction_s, Call { from: m.number, id: "splash" }));
+            }
+        }
+    }
+
+    /// The lead's "attack my target" at `now` to `to` (0 the flight, 5 the element, 2..4 one wingman) on the ground target
+    /// `at` (the host's: a ground unit, a point; docs/ai.md §8.10): each AI jet addressed in the air with an
+    /// air-to-ground weapon ([`Flight::ground_weapon`]) answers "ack" and attacks it in number order, each run
+    /// [`strike::STAGGER_S`] after the one before (an engage or a cover it had ends); the others "unable". `at` None:
+    /// each "unable". Some(true): a jet took it; Some(false): none could; None: nobody to take it.
+    pub fn attack(&mut self, now: f64, to: u8, at: Option<Bogey>) -> Option<bool> {
+        let lead = self.lead;
+        let takes = |m: &Member| m.ai && m.alive && (to == 0 || m.number == to || to == 5 && m.number >= 3);
+        let who: Vec<usize> = (0..self.members.len()).filter(|&i| i != lead && takes(&self.members[i])).collect();
+        if who.is_empty() {
+            return None;
+        }
+        Some(self.assign(now, &who, at, now))
+    }
+
+    /// An AI-led flight's attack on the ground target `at` at `now` (the AI lead's own order; an enemy pair's, docs/ai.md
+    /// §8.10): the lead takes it at once when it can, then orders its wingmen as [`Flight::attack`] to the flight, the
+    /// first run [`strike::STAGGER_S`] after its own. False: the lead is the player's, or no jet could take it.
+    pub fn strike(&mut self, now: f64, at: Bogey) -> bool {
+        if !self.members.get(self.lead).is_some_and(|m| m.ai) {
+            return false;
+        }
+        let all: Vec<usize> = (0..self.members.len()).filter(|&i| self.members[i].ai).collect();
+        self.assign(now, &all, Some(at), now)
+    }
+
+    /// The jets `who` (indices, in number order) take the ground target `at`, the first run at `first`, each next
+    /// [`strike::STAGGER_S`] later; each AI wingman answers. Whether any took it.
+    fn assign(&mut self, now: f64, who: &[usize], at: Option<Bogey>, first: f64) -> bool {
+        let mut turn = first;
+        let mut took = false;
+        for &i in who {
+            let m = &mut self.members[i];
+            let ok = at.is_some()
+                && m.alive
+                && m.airborne
+                && !m.landed
+                && !m.rtb
+                && !m.released
+                && m.strike.weapon.is_some()
+                && matches!(m.strike.phase, Phase::None | Phase::Wait);
+            if ok {
+                m.strike.clear();
+                (m.strike.phase, m.strike.turn) = (Phase::Wait, turn);
+                (m.engaging, m.covering, took) = (false, false, true);
+                turn += strike::STAGGER_S;
+            }
+            if i != self.lead {
+                self.calls
+                    .push((now + m.skill.reaction_s, Call { from: m.number, id: if ok { "ack" } else { "unable" } }));
+            }
+        }
+        if took {
+            self.ground = at;
+        }
+        took
+    }
+
+    /// The attacked ground target this frame (the host's): None, it is gone (destroyed): the attacking jets end their
+    /// attack ("done" after their release) and rejoin.
+    pub fn ground_target(&mut self, at: Option<Bogey>) {
+        self.ground = at;
+    }
+
+    /// Jet `number`'s air-to-ground weapon left this frame (the host's): Some(true) a guided bomb, Some(false) a bomb or
+    /// rockets, None none ([`strike::profile`]).
+    pub fn ground_weapon(&mut self, number: u8, guided: Option<bool>) {
+        if let Some(i) = self.index(number) {
+            self.members[i].strike.weapon = guided;
+        }
+    }
+
+    /// Jet `number`'s bombing manoeuvre released at `now` (the host's AI ripple started): in its run it calls "alpha" and
+    /// egresses.
+    pub fn released(&mut self, now: f64, number: u8) {
+        if let Some(i) = self.index(number) {
+            let m = &mut self.members[i];
+            if m.strike.phase == Phase::Run && !m.strike.released {
+                m.strike.released = true;
+                self.calls.push((now, Call { from: m.number, id: "alpha" }));
             }
         }
     }
@@ -718,6 +818,7 @@ impl Flight {
                 "rejoin" if flying && !(m.released && m.v.gear_down) => {
                     (m.rtb, m.released, m.transit, m.report, m.engaging) = (false, false, true, true, false);
                     m.covering = false;
+                    m.strike.clear();
                     if m.number == 3 {
                         self.split = None;
                     }
@@ -756,6 +857,7 @@ impl Flight {
         for m in &mut self.members {
             m.order.start_engine = false;
             m.order.wp_index = None;
+            m.order.release = false;
         }
         if now >= self.next {
             self.next = now + DECIDE_S;
@@ -827,6 +929,7 @@ impl Flight {
             self.last_release = now;
         }
         let committed = self.members[self.lead].enemy.committed;
+        let lead_striking = matches!(self.members[self.lead].strike.phase, Phase::Run | Phase::Egress);
         let lead_pos = self.members[self.lead].v.pos;
         let base = SHAPES[self.shape].1;
         let table = |n: u8| if (2..=4).contains(&n) { base[n as usize - 2] } else { [0.0; 3] };
@@ -847,7 +950,9 @@ impl Flight {
                 .filter(|o| !pair_free(me, o))
                 .map(|o| o.v.pos.distance(me.v.pos))
                 .fold(f64::MAX, f64::min);
+            let busy = (0..self.members.len()).any(|j| j != i && self.members[j].strike.phase == Phase::Run);
             let m = &mut self.members[i];
+            m.run_busy = busy;
             let t = table(m.number);
             m.slot = [t[0] - lead_slot[0], t[1] - lead_slot[1], t[2] - lead_slot[2]];
             let mut rejoin = None;
@@ -877,11 +982,16 @@ impl Flight {
             }
             m.now = now;
             m.lead_low = lead_low;
+            m.lead_striking = lead_striking && i != self.lead;
             m.cleared = self.cleared;
             m.ahead_moved = ahead_moved;
             m.bingo_kg = RESERVE_KG + KG_PER_KM * home.map_or(0.0, |h| flat(h, m.v.pos) as f32 / 1000.0);
             m.engaging &= m.alive && !m.rtb && !m.released;
             m.covering &= m.alive && !m.rtb && !m.released;
+            if !m.alive || m.rtb || m.released {
+                m.strike.clear();
+            }
+            m.strike.target = self.ground.filter(|_| m.strike.phase != Phase::None);
             let own = if m.number == 3 { self.split } else { None };
             m.rejoining = own.is_none() && rejoin.is_some();
             m.task = own.or(rejoin);

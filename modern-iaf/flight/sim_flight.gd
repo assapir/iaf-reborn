@@ -509,7 +509,8 @@ func key(event: InputEventKey) -> bool:
 ## A command of the radio menu's flight pages to `to` (IafAi's: 0 the flight, 5 the element, 2..4 one wingman): the
 ## pilot's call said with its subtitle ("Kidon 1-2, rejoin"), then IafAi takes it and the wingmen answer (ai_flights.gd
 ## says their calls). "split" sends element 2 to the SPI (the radar's designated point, else the steerpoint),
-## "engage" the jets at the radar's locked enemy aircraft (ai_flights.gd engage_target). Recorded as a `radio` event.
+## "engage" the jets at the radar's locked enemy aircraft, else at the player's ground target, which they attack one
+## after the other (ai_flights.gd engage_target, docs/ai.md §8.10). Recorded as a `radio` event.
 func flight_command(to: int, id: String) -> void:
 	var ai = host.get("ai")
 	if ai == null or ai.get("flight_ai") == null:

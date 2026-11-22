@@ -2,7 +2,7 @@
 //! loops (`iaf_flight::autopilot`), which fly every AI jet on the same flight model as the player's. The 1998 game
 //! keeps its own brain (`shared/ai/brain.gd`). The air-defence sites (`site`) and their network (`net`): docs/ai.md
 //! §15; the one-way attack drones (`drone`): §16; a unit's skill (`skill`): §17; the enemy fighters (`fighter`, the
-//! network's vector `net::Gci`): §18.
+//! network's vector `net::Gci`): §18; the air-to-ground attack (`strike`): §8.10.
 
 pub mod bfm;
 pub mod bt;
@@ -12,6 +12,7 @@ pub mod flight;
 pub mod net;
 pub mod site;
 pub mod skill;
+pub mod strike;
 pub mod wingman;
 
 pub use fighter::Bogey;
