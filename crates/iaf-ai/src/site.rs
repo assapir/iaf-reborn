@@ -36,7 +36,8 @@ pub enum Kind {
 
 /// Emission control (enemies.md §5.2), the caller's choice per site: Radiate searches all the time; Silent never
 /// radiates (a gun lays optically); Cue keeps the radars off until a cued target (the network's track, §11-35) is
-/// seconds from the launch envelope, then the track radar comes on to acquire it and fire (§11-134).
+/// seconds from the launch envelope, then the track radar comes on to acquire it and fire (§11-134). A radar track
+/// the cue is taken from ends unless its salvo flies (the network handed the target over, `net`).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Emcon {
     Radiate,
@@ -266,6 +267,9 @@ pub struct Out {
 pub struct Site {
     pub kind: Kind,
     pub emcon: Emcon,
+    /// The network commands it (`net::Net`): it runs Cue whatever its own `emcon`, which holds again once the network
+    /// is lost.
+    pub net: bool,
     /// The 30N6E2 on its tower.
     pub mast: bool,
     /// Where it was placed, then its alternate positions (§11-121: two or three).
@@ -310,7 +314,7 @@ pub fn visible(a: Vec3, b: Vec3, terrain: &dyn Fn(Vec3) -> Option<f64>) -> bool 
 }
 
 /// Time to arrive at `at` (s): the "most dangerous" measure (inferred); opening targets come last by distance.
-fn arrival(t: &Target, at: Vec3) -> f64 {
+pub(crate) fn arrival(t: &Target, at: Vec3) -> f64 {
     let d = at - t.pos;
     let dist = d.length();
     dist / (t.vel.dot(d) / dist.max(1.0)).max(1.0)
@@ -322,6 +326,7 @@ impl Site {
         Site {
             kind,
             emcon: Emcon::Radiate,
+            net: false,
             mast: false,
             positions: std::iter::once(pos).chain(alternates.iter().copied()).collect(),
             at: 0,
@@ -348,6 +353,20 @@ impl Site {
         self.kind.spec()
     }
 
+    /// In place, or on the move with radars that work on the move.
+    fn placed(&self) -> bool {
+        match self.mode {
+            Mode::Ready => true,
+            Mode::Move => self.spec().searches_moving,
+            Mode::March(_) | Mode::Setup(_) => false,
+        }
+    }
+
+    /// The EMCON it runs: Cue under the network, else its own.
+    fn emission(&self) -> Emcon {
+        if self.net { Emcon::Cue } else { self.emcon }
+    }
+
     /// Part `i` on the ground (z: the terrain's height there).
     pub fn part_pos(&self, i: usize, terrain: &dyn Fn(Vec3) -> Option<f64>) -> Vec3 {
         let p = &self.spec().parts[i];
@@ -372,7 +391,7 @@ impl Site {
 
     /// The radar at `from` with `reach_m` against `radar::REF_RCS` sees `t`: inside its range for the jet's
     /// cross-section from there, and in sight over the terrain and the earth's curvature.
-    fn sees(from: Vec3, reach_m: f64, t: &Target, terrain: &dyn Fn(Vec3) -> Option<f64>) -> bool {
+    pub(crate) fn sees(from: Vec3, reach_m: f64, t: &Target, terrain: &dyn Fn(Vec3) -> Option<f64>) -> bool {
         let s = sigma(&t.rcs, t.nose, from - t.pos, t.bays_open, t.stores);
         t.pos.distance(from) <= reach(reach_m, s) && visible(from, t.pos, terrain)
     }
@@ -389,6 +408,31 @@ impl Site {
             .is_some_and(|i| Self::sees(self.antenna(i, terrain), self.spec().track_reach, t, terrain))
     }
 
+    /// Seconds until the site could fire at `t` (the network's pick, `net`): 0 inside its envelope with the track
+    /// radar able to hold it, else the time to the envelope's edge at the closing speed; infinite when it cannot (no
+    /// rounds or track radar, not set up, in the Tor's break with its window spent, masked or too close inside the
+    /// envelope, opening outside it). The edge is the nearer of the envelope's and the track radar's reach for the
+    /// jet's cross-section.
+    pub fn eta(&self, now: f64, alive: &[bool], t: &Target, terrain: &dyn Fn(Vec3) -> Option<f64>) -> f64 {
+        let spec = self.spec();
+        let placed = self.placed();
+        let resting = now < self.off_until && now >= self.window_until && !self.window_ok;
+        let Some(i) = self.radar(alive, true).filter(|_| placed && !resting && t.dlz.0 > 0.0) else {
+            return f64::INFINITY;
+        };
+        if !self.rounds.iter().any(|&r| r > 0) {
+            return f64::INFINITY;
+        }
+        let at = self.antenna(i, terrain);
+        let edge = t.dlz.0.min(reach(spec.track_reach, sigma(&t.rcs, t.nose, at - t.pos, t.bays_open, t.stores)));
+        let d = t.pos.distance(self.pos);
+        if d <= edge {
+            return if d >= t.dlz.1 && visible(at, t.pos, terrain) { 0.0 } else { f64::INFINITY };
+        }
+        let closing = t.vel.dot(self.pos - t.pos) / d;
+        if closing > 0.0 { (d - edge) / closing } else { f64::INFINITY }
+    }
+
     /// The optical sight sees `t`.
     fn sighted(&self, alive: &[bool], t: &Target, terrain: &dyn Fn(Vec3) -> Option<f64>) -> bool {
         let spec = self.spec();
@@ -403,7 +447,7 @@ impl Site {
     fn cue_due(&self, t: &Target) -> bool {
         let d = self.pos - t.pos;
         let closing = t.vel.dot(d) / d.length().max(1.0);
-        self.emcon == Emcon::Cue && t.cued && d.length() <= t.dlz.0 + closing.max(0.0) * self.spec().acquire
+        self.emission() == Emcon::Cue && t.cued && d.length() <= t.dlz.0 + closing.max(0.0) * self.spec().acquire
     }
 
     /// One decision at `now` (s; about every 0.5 s): `alive` per part, the hostile jets alive, the terrain's height.
@@ -440,17 +484,13 @@ impl Site {
             self.window_until = now + BREAK_WINDOW;
         }
         let duty_off = now < self.off_until && now >= self.window_until;
-        let placed = match self.mode {
-            Mode::Ready => true,
-            Mode::Move => spec.searches_moving,
-            Mode::March(_) | Mode::Setup(_) => false,
-        };
+        let placed = self.placed();
         let up = placed && !duty_off;
-        let search_on = up && self.emcon == Emcon::Radiate && self.radar(alive, false).is_some();
-        let track_ok = up && can_track && self.emcon != Emcon::Silent;
+        let search_on = up && self.emission() == Emcon::Radiate && self.radar(alive, false).is_some();
+        let track_ok = up && can_track && self.emission() != Emcon::Silent;
         // How the site holds `t` now: Some(true) by radar, Some(false) optically.
         let hold = |s: &Site, t: &Target, radar_before: bool| -> Option<bool> {
-            let radar = track_ok && (s.emcon == Emcon::Radiate || radar_before || s.cue_due(t));
+            let radar = track_ok && (s.emission() == Emcon::Radiate || radar_before || s.cue_due(t));
             if radar && s.trackable(alive, t, terrain) {
                 Some(true)
             } else if placed && s.sighted(alive, t, terrain) {
@@ -459,12 +499,17 @@ impl Site {
                 None
             }
         };
-        // Tracks lost (gone, out of reach, masked) end; with no rounds left, each once its missiles have ended.
+        // Tracks lost (gone, out of reach, masked) end; with no rounds left, each once its missiles have ended; under
+        // Cue a radar track whose cue was taken away, unless its salvo flies.
         let armed = self.rounds.iter().any(|&r| r > 0);
+        let cue = self.emission() == Emcon::Cue;
         let mut kept = std::mem::take(&mut self.channels);
         kept.retain_mut(|c| {
             let Some(t) = targets.iter().find(|t| t.id == c.target) else { return false };
-            (armed || c.stage == Stage::Guide) && hold(self, t, c.radar).inspect(|&r| c.radar = r).is_some()
+            let guide = c.stage == Stage::Guide;
+            (armed || guide)
+                && !(cue && c.radar && !t.cued && !guide)
+                && hold(self, t, c.radar).inspect(|&r| c.radar = r).is_some()
         });
         self.channels = kept;
         // New ones: the most dangerous detected first, while a channel is free.
@@ -649,7 +694,7 @@ impl Site {
             Mode::Setup(_) => "setup",
             Mode::Ready if now < self.off_until && now >= self.window_until => "rest",
             Mode::Ready if !self.channels.is_empty() => "engage",
-            Mode::Ready if self.emcon == Emcon::Radiate => "search",
+            Mode::Ready if self.emission() == Emcon::Radiate => "search",
             Mode::Ready => "silent",
         }
     }

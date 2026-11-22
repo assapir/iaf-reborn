@@ -2,7 +2,8 @@
 ## Rust site (IafSite, crates/iaf-ai/src/site.rs). A dev / test hook: no mission places one yet. Each part is a mission
 ## entity ("ad:N") with a stand-in shape of ours, and each firing part a combat.gd unit without a brain, so the
 ## launches go through combat.gd's release (the existing missile and gun-round models, the AIM-120's and the 20 mm's
-## records standing in) and the locks through its on_lock (the RWR, an AI jet's brain).
+## records standing in) and the locks through its on_lock (the RWR, an AI jet's brain). Sites may join a network
+## (IafNet, crates/iaf-ai/src/net.rs, docs/ai.md §15.5): its search radar cues their track radars.
 extends Node
 
 const MissionRuntime := preload("res://shared/mission/mission_runtime.gd")
@@ -28,6 +29,9 @@ var cb: Node  # combat.gd
 ## key]], gun {part, key, left, next}: the burst firing, cued {target key: true}: the network's cues (EMCON cue),
 ## next (the next tick)}.
 var sites: Array = []
+## Each network: {net (IafNet), ents [the 64N6E2, the 54K6E2], sites (its members' site records), next (the next
+## tick)}.
+var nets: Array = []
 var _n := 0
 
 
@@ -50,8 +54,7 @@ func spawn(kind: String, pos: Vector3, heading := 0.0, alternates := [], side :=
 	if site == null:
 		return []
 	var rt: Node = host.runtime
-	if side < 0:
-		side = 1 if int(rt.player_entity().get("side", 2)) == 2 else 2
+	side = _side(side)
 	var s := {
 		"site": site,
 		"parts": site.parts(),
@@ -68,24 +71,55 @@ func spawn(kind: String, pos: Vector3, heading := 0.0, alternates := [], side :=
 	var record := _record(GUN_RECORD if kind == "zsu" else SAM_RECORD)
 	for i in s.parts.size():
 		var p: Dictionary = s.parts[i]
-		_n += 1
-		var e := {"0x1e": -_n, "0x2bc": p.name, "0x2e4": at[i].x, "0x2ee": at[i].y, "0x2f8": at[i].z}
-		e.merge({"0x2d0": side, "0x302": heading})
-		var ent := MissionRuntime.entity(e, "ad:%d" % _n, -1, false)
-		var obj := {"0x5aa": p.klass, "0x5b4": p.type_code, "0x56e": STRENGTH, "0x564": RADIUS, "0x58c": 1}
-		if float(p.reach_km) > 0.0:
-			obj.radar_km = p.reach_km  # the RWR hears the radar to its reach (player_weapons.gd _rwr_search)
-		MissionRuntime._init_damage(ent, obj)
-		ent.node = _shape(String(p.name))
-		host.add_child(ent.node)
-		rt.entities[ent.key] = ent
-		host.mission_entity_moved(ent)
-		ent.node.rotation.y = -deg_to_rad(heading)
+		var ent := _part(p, at[i], heading, side)
 		s.units.append(cb.add_ground_unit(ent, record) if int(p.rounds) > 0 and not record.is_empty() else null)
 		s.ents.append(ent)
 	s.track = maxi(0, s.parts.map(func(p): return p.track).find(true))
 	sites.append(s)
 	return s.ents
+
+
+## An 83M6E2 network over the site records `members` (site_of): its 64N6E2 search radar at `radar_pos` and its 54K6E2
+## command post at `post_pos` (world, on the ground), facing `heading`. Its two entities; while both stand, the sites
+## run on its cues with their own search radars off; losing either leaves them autonomous (their own EMCON).
+func spawn_net(radar_pos: Vector3, post_pos: Vector3, members: Array, heading := 0.0, side := -1) -> Array:
+	var on_ground := func(v: Vector3):
+		var g = host.mission_ground(v)
+		return Vector3(v.x, v.y, float(g) if g != null else v.z)
+	var at := [on_ground.call(radar_pos), on_ground.call(post_pos)]
+	var parts: Array = IafNet.parts()
+	side = _side(side)
+	var ents := []
+	for i in parts.size():
+		ents.append(_part(parts[i], at[i], heading, side))
+	nets.append({"net": IafNet.create(at[0]), "ents": ents, "sites": members, "next": float(host.runtime.now)})
+	return ents
+
+
+## The side −1 stands for: the player's enemy.
+func _side(side: int) -> int:
+	if side >= 0:
+		return side
+	return 1 if int(host.runtime.player_entity().get("side", 2)) == 2 else 2
+
+
+## Part `p` ({name, klass, type_code, reach_km}) as a mission entity ("ad:N") at `at` (world) with its stand-in shape.
+func _part(p: Dictionary, at: Vector3, heading: float, side: int) -> Dictionary:
+	var rt: Node = host.runtime
+	_n += 1
+	var e := {"0x1e": -_n, "0x2bc": p.name, "0x2e4": at.x, "0x2ee": at.y, "0x2f8": at.z}
+	e.merge({"0x2d0": side, "0x302": heading})
+	var ent := MissionRuntime.entity(e, "ad:%d" % _n, -1, false)
+	var obj := {"0x5aa": p.klass, "0x5b4": p.type_code, "0x56e": STRENGTH, "0x564": RADIUS, "0x58c": 1}
+	if float(p.reach_km) > 0.0:
+		obj.radar_km = p.reach_km  # the RWR hears the radar to its reach (player_weapons.gd _rwr_search)
+	MissionRuntime._init_damage(ent, obj)
+	ent.node = _shape(String(p.name))
+	host.add_child(ent.node)
+	rt.entities[ent.key] = ent
+	host.mission_entity_moved(ent)
+	ent.node.rotation.y = -deg_to_rad(heading)
+	return ent
 
 
 ## The site record a part of it belongs to, {} for none.
@@ -109,11 +143,31 @@ func _process(_delta: float) -> void:
 	if host.frozen or host.waiting_for_ground or host.weapons == null:
 		return
 	var now: float = host.runtime.now
+	for n in nets:
+		if now >= n.next:
+			n.next = now + TICK
+			_net_tick(n, now)
 	for s in sites:
 		_fire_gun(s, now)
 		if now >= s.next:
 			s.next = now + TICK
 			_tick(s, now)
+
+
+## The network's decision: its sites' cues (their `cued`, read at their next tick). Its radar radiates while it
+## stands; the post emits nothing the RWR hears.
+func _net_tick(n: Dictionary, now: float) -> void:
+	var up: Array = n.ents.map(func(e): return int(e.state) < 3)
+	var members: Array = n.sites.map(
+		func(s): return [s.site, s.ents.map(func(e): return int(e.state) < 3), _targets(s)]
+	)
+	var cues: Array = n.net.tick(now, up[0], up[1], members, host.mission_ground)
+	for i in n.sites.size():
+		n.sites[i].cued = {}
+		for key in cues[i]:
+			n.sites[i].cued[key] = true
+	n.ents[0].radiating = up[0]
+	n.ents[1].radiating = false
 
 
 ## One decision: the parts move, radiate and lock as the site says; its launches and bursts go out.
@@ -240,8 +294,8 @@ func _shape(part: String) -> Node3D:
 	var boxes := []  # [centre, size, colour]
 	var plates := []  # [centre, size, colour, tilt back (degrees)]
 	match part:
-		"96L6E RADAR", "30N6E2 RADAR":
-			# A MAZ-7910 8×8 with its cabins, the antenna on a post.
+		"96L6E RADAR", "30N6E2 RADAR", "64N6E2 RADAR", "54K6E2":
+			# A MAZ-7910 8×8 with its cabins, the antenna on a post (the command post: the cabins only).
 			boxes = [
 				[Vector3(0, 0.9, 0), Vector3(3, 1.2, 12), olive],
 				[Vector3(0, 2.3, -4.8), Vector3(3, 1.6, 2.4), olive],
@@ -249,8 +303,11 @@ func _shape(part: String) -> Node3D:
 				[Vector3(0, 2.6, 1.5), Vector3(3, 2.2, 6), olive],
 				[Vector3(0, 4.6, 2.5), Vector3(0.5, 2, 0.5), steel],
 			]
-			var big := part.begins_with("96L6E")
-			plates = [[Vector3(0, 7.2, 2.5), Vector3(6, 3.5, 0.3) if big else Vector3(4.5, 4.5, 0.4), FACE, 20.0]]
+			var big := not part.begins_with("30N6E2")
+			if part.ends_with("RADAR"):
+				plates = [[Vector3(0, 7.2, 2.5), Vector3(6, 3.5, 0.3) if big else Vector3(4.5, 4.5, 0.4), FACE, 20.0]]
+			else:
+				boxes.pop_back()
 		"5P85TE2":
 			# A KrAZ tractor and the semi-trailer, its four canisters raised upright.
 			boxes = [
@@ -293,7 +350,7 @@ func _shape(part: String) -> Node3D:
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	for b in boxes:
 		BaseFurniture._box(st, b[0], b[1], b[2])
-	if part.ends_with("RADAR") and not part.begins_with("9A331"):
+	if (part.ends_with("RADAR") and not part.begins_with("9A331")) or part == "54K6E2":
 		BaseFurniture._wheels(st, 3.0, 11.0)
 	var body := MeshInstance3D.new()
 	body.mesh = st.commit()

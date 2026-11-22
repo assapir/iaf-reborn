@@ -3,6 +3,14 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **Enemy AI step 3: the SAM network (2026-11-21, the user: "Ok finish all enemies things you can";
+  [ai-plan.md](ai-plan.md) K6; [../../docs/ai.md](../../docs/ai.md) §15.5):** an S-300 regiment's search radar (the
+  64N6E2, 300 km, a sweep every 12 s) and command post (the 54K6E2) run the sites together. The post fuses the radar's
+  picture with the sites' own tracks and cues one site's track radar onto each jet, the site that can fire first, while
+  the sites' own search radars stay off; a jet leaving one site's envelope goes to the next. The threat display hears
+  the search radar, then only the engaging site's lock. With the radar or the post destroyed every site fights alone
+  again. No mission places one: the dev hook (`AirDefence.spawn_net`) and the tests (`crates/iaf-ai/tests/net.rs`,
+  `modern-iaf/tests/test_sam_net.gd`).
 - **Enemy AI step 2: the one-way attack drones (2026-11-19, the user: "we need to have the code for ai enemies. Just
   isn't reachable by mission yet"; Epic Fury's air threats are drones of the Shahed-136 class; [ai-plan.md](ai-plan.md)
   K14; [../../docs/ai.md](../../docs/ai.md) §16):** a salvo of drones launched one after another flies a route of
@@ -13,7 +21,7 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   the terrain hides it; the data link lists it as hostile; the gun and the missiles bring it down through the existing
   damage path; it does not shoot. The shape is our own stand-in. No mission launches one: a dev hook
   (`shared/ai/drones.gd`) and the tests (`crates/iaf-ai/tests/drones.rs`, `modern-iaf/tests/test_enemy_drones.gd`).
-  Later: the network (K6) and enemy-fighter BFM (K3 / K4), listed only.
+  Later: enemy-fighter BFM (K3 / K4), listed only.
 - **Enemy AI step 1: the air-defence sites (2026-11-19, the user: "we need to have the code for ai enemies. Just isn't
   reachable by mission yet", "They should take into consideration the stealth of the adir", "Also terrain shape etc.";
   [ai-plan.md](ai-plan.md) K5, K7; [../../docs/ai.md](../../docs/ai.md) §15):** the S-300PMU-2 battery (96L6E search,
@@ -26,7 +34,7 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   curvature. They fire the existing missile and gun-round models with the AIM-120's and the 20 mm's records standing
   in; the shapes are our own stand-ins. The threat display now lists the radars searching the jet. No mission places a
   site: a dev hook (`shared/ai/air_defence.gd`) and the tests (`crates/iaf-ai/tests/sites.rs`,
-  `modern-iaf/tests/test_enemy_sites.gd`). Later: ground clutter, the network (K6), the sites' own records.
+  `modern-iaf/tests/test_enemy_sites.gd`). Later: ground clutter, the sites' own records.
 - **Modern IAF in the applications menu (2026-11-19, the user: "also as game icon in windows/linux/mac? deskop files
   etc?"; [setup.md](setup.md) "Applications menu"):** the setup wizard's Done page has the tick "Add Modern IAF to
   the applications menu" (the Start menu on Windows, the Applications folder on macOS), on by default. It adds "Modern

@@ -1189,10 +1189,48 @@ cabin on a truck with its flat array on a post, a semi-trailer with four caniste
 turret with its two antennas, the ZSU's hull and turret with four barrels and its dish. They stand in until a model is
 approved.
 
-### 15.5 Later
+### 15.5 The network (K6)
+
+An S-300PMU-2 regiment's 83M6E2: the 54K6E2 command post and the 64N6E2 search radar, which designate targets to up to
+six batteries[^apa-s300]. The Rust network (`crates/iaf-ai/src/net.rs`, gdext `IafNet`) runs before the sites at the
+same 0.5 s tick; the dev hook is `AirDefence.spawn_net(radar_pos, post_pos, members)`, members being site records
+(`site_of`), any kind. The test is `modern-iaf/tests/test_sam_net.gd`; the Rust tests are
+`crates/iaf-ai/tests/net.rs`.
+
+| | the 64N6E2 | the 54K6E2 |
+|---|---|---|
+| does | searches for the network: 300 km against 5 m²[^w-s300], a sweep every 12 s[^w-s300], the antenna 8 m up (inferred) | fuses the picture, assigns and cues |
+| on the RWR | a search radar of the S-300's type (310) while it stands | nothing (it does not radiate) |
+| stand-in shape | the 96L6E's truck and array | the same truck without the array |
+
+- **The picture:** each sweep adds the jets the radar sees (the sites' rule: the jet's cross-section, the terrain and
+  the earth's curvature); every site's radar track adds its jet at each tick. A jet no radar of the network has seen
+  for two sweeps (25 s, inferred) drops out. A jet flying below the 64N6E2's horizon stays in the picture while a
+  site tracks it.
+- **The cue** (§11-35, §11-36[^tc7100]): a networked site runs EMCON `cue` whatever its own: its search radar stays
+  off, and its track radar comes on for its cued jet seconds before the envelope (§15.1). The cue is the jet itself;
+  the site's acquisition time stands for finding it from the cue's data (inferred).
+- **The assignment:** one site per jet, so two sites never fire at one jet. The jets go most dangerous first (the
+  soonest to arrive at any site), each to the site that could fire at it first (`Site::eta`): 0 inside its envelope
+  with its track radar able to hold the jet; else the time to the envelope's edge at the closing speed, the edge the
+  nearer of the launch envelope and the track radar's reach for the jet's cross-section. A site cannot take it with no
+  rounds, no track radar, while not set up, in the Tor's break with its window spent, or with the jet masked or too
+  close inside the envelope or opening outside it. A site takes no more jets than its channels.
+- **The hand-over:** a site keeps its jet while its salvo flies, and while it holds the jet and can still fire. A jet
+  leaving the envelope (opening past its edge), masked, or at a site out of rounds goes to the next site. A cue taken
+  away ends that site's radar track unless its salvo flies. A gun laying optically on a jet near it (§15.1) takes one
+  of its channels but does not keep the jet: the jet goes to the site that can fire at it first, so a ZSU beside an
+  S-300 does not hold the S-300's fire on a jet outside the gun's reach.
+- **Lost:** with the 64N6E2 or the 54K6E2 out of action (state 3 or more), every member is autonomous at once: its own
+  EMCON again (`radiate` by default: the 96L6E searches), the K5 procedure. The picture is cleared; restored, the
+  network sweeps at once.
+
+### 15.6 Later
 
 - Ground clutter for the search radars (the radar code has none).
-- The network (ai-plan K6): an early-warning radar cueing the sites; today the caller marks a jet cued.
+- The network's other parts (§15.5): the 15Ya6ME relay's 90 km reach, several search radars per network, a
+  hand-over delay for a siloed network ([enemies.md](../modern-iaf/docs/research/enemies.md) §5.2), the Tor battery's
+  own command post.
 - The sites' own missile and gun records (drafts, threat-records.md) and the site's guidance of its missiles: the
   stand-in missile homes by itself and flies on when the track radar dies.
 - Roads for the move; §11-121's other moves (after a reconnaissance overflight, after 4–6 hours in place); a battery
@@ -1278,6 +1316,9 @@ Open questions in this document:
 - The leader flag gating the wingman's take-off roll; the taxi re-placement's 60 m sign; what happens after parking
   (the root timer keeps running ParkInHangar).
 
+[^apa-s300]: Carlo Kopp, Air Power Australia, "S-300PMU2 Favorit / SA-20 Gargoyle", updated to April 2012, https://www.ausairpower.net/APA-S-300PMU2-Favorit.html (the 83M6E2: the 54K6E2 command post and the 64N6E2 search radar, up to six batteries; read 2026-11-19).
+[^w-s300]: Wikipedia, "S-300 missile system", https://en.wikipedia.org/wiki/S-300_missile_system (the 64N6 Big Bird: "a maximum detection range of 300 km", "a scan once every twelve seconds"; read 2026-11-21).
+[^tc7100]: US Army, TC 7-100.2 "Opposing Force Tactics", 9 December 2011, chapter 11, https://www.govinfo.gov/content/pkg/GOVPUB-D101-PURL-gpo122554/pdf/GOVPUB-D101-PURL-gpo122554.pdf (§11-35 the cue's data, §11-36 units fighting with their radars off on the higher radars' data; read 2026-11-19).
 [^mis-96l6e]: Missilery.info, "All Altitude Detector (VO) 96L6E", https://en.missilery.info/node/13476 (target detection range 5–300 km; read as quoted by a search engine on 2026-11-19, second-hand).
 [^aerospaceweb]: Jeff Scott, Aerospaceweb.org, "Radar Cross Section", 21 March 2004, https://aerospaceweb.org/question/electronics/q0168.shtml (the head-on view most important; the largest returns from the sides; read 2026-11-19).
 [^ni-f16]: The National Interest, on the F-16's Have Glass V paint, https://nationalinterest.org/node/112436 and https://nationalinterest.org/node/168141 ("the F-16 on average has a 1.2-square-meter radar cross-section, according to Globalsecurity"; second-hand: as quoted by a search engine on 2026-11-19; the site refuses automated reading).
