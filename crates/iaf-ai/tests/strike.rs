@@ -270,3 +270,41 @@ fn unable_target_gone_and_rejoin() {
     w.until(1.0, &|_| false);
     assert_eq!(w.flight.member(4).unwrap().strike.phase.name(), "");
 }
+
+#[test]
+fn a_new_order_ends_the_run() {
+    // The lead's new order wins (docs/ai.md §8.10): #2 in its dive, "attack my target" again: "ack", the run broken off
+    // and flown again; in that dive "cover me": "ack", the attack over, back in its slot. Safe all through: the
+    // autopilot's ground watch pulls each broken-off dive out.
+    let Some(dir) = own() else { return println!("skipped: no assets/converted/own (iaf-sim fm)") };
+    let mut w = Strike::new(&dir, "F-16I", 4, true, 4000.0);
+    for n in [2, 3] {
+        w.flight.ground_weapon(n, Some(false));
+    }
+    w.until(1.0, &|_| false);
+    let at = Vec3::new(0.0, 30_000.0, 0.0);
+    let t = Some(Bogey { pos: at, vel: Vec3::ZERO });
+    w.target = Some(at);
+    assert_eq!(w.flight.attack(w.t, 0, t), Some(true));
+    let diving = |w: &Strike| {
+        let s = &w.flight.member(2).unwrap().strike;
+        s.diving && !s.released && w.jets[1].0.state().position[2] < DIVE_IN_AGL + 300.0
+    };
+    assert!(w.until(300.0, &diving).is_some(), "#2 dives: {:?}", w.calls);
+    let t1 = w.t;
+    assert_eq!(w.flight.attack(w.t, 2, t), Some(true));
+    assert_eq!(w.flight.member(2).unwrap().strike.phase.name(), "wait", "its run broken off");
+    let again = w.until(300.0, &|w| w.calls.iter().any(|(t, c)| c.from == 2 && c.id == "in" && *t >= t1));
+    assert!(again.is_some(), "#2 runs in again: {:?}", w.calls);
+    assert!(w.calls.iter().any(|(t, c)| c.from == 2 && c.id == "ack" && *t >= t1));
+    assert!(!w.calls.iter().any(|(_, c)| c.from == 2 && c.id == "unable"));
+    assert!(w.until(300.0, &diving).is_some(), "#2 dives again: {:?}", w.calls);
+    let t2 = w.t;
+    assert!(w.flight.command(w.t, 2, "cover"));
+    assert_eq!(w.flight.member(2).unwrap().strike.phase.name(), "", "the attack over");
+    let back = w.until(300.0, &|w| w.calls.iter().any(|(t, c)| c.from == 2 && c.id == "in_position" && *t >= t2));
+    println!("#2 low {:.0} m, back after {back:?} s; releases {:?}", w.low[1], w.releases[1]);
+    assert!(back.is_some(), "#2 back in its slot: {:?}", w.calls);
+    assert!(w.releases[1].is_none() && w.low[1] > 300.0, "no release, safe: {:.0} m", w.low[1]);
+    assert!(w.calls.iter().any(|(t, c)| c.from == 2 && c.id == "ack" && *t >= t2));
+}

@@ -548,7 +548,10 @@ impl Flight {
             let to = Vec3::new(at[0], at[1], self.members[k].v.pos[2]);
             self.split = Some(Steer { to, g: TASK_G, speed: lead.v.speed.max(200.0), thr_max: 1.0, fighter: false });
         }
-        for m in self.members.iter().filter(|m| m.number >= 3 && m.ai && m.alive) {
+        for m in self.members.iter_mut().filter(|m| m.number >= 3 && m.ai && m.alive) {
+            if ok {
+                m.strike.clear(); // the split ends an attack (docs/ai.md §8.10)
+            }
             self.calls.push((now + m.skill.reaction_s, Call { from: m.number, id: if ok { "ack" } else { "unable" } }));
         }
         true
@@ -557,9 +560,9 @@ impl Flight {
     /// The lead's "engage my target" at `now` to `to` (0 the flight, 5 the element, 2..4 one wingman): each AI jet
     /// addressed in the air leaves its slot and fights the target `at` (the host's radar lock, kept fresh by
     /// [`Flight::target`]; known to it by the data link) with the enemy fighters' leaves (the intercept, the shot,
-    /// the crank, the dogfight; [`Foe::Target`]); #4 stays on #3 when #3 engages too. `at` None (no target
-    /// to engage) or a jet not flying: "unable". Some(true): a jet took it; Some(false): each answered "unable" (a jet
-    /// already engaging keeps its target); None: nobody to take it.
+    /// the crank, the dogfight; [`Foe::Target`]); #4 stays on #3 when #3 engages too; an attack it had ends. `at`
+    /// None (no target to engage) or a jet not flying: "unable". Some(true): a jet took it; Some(false): each answered
+    /// "unable" (a jet already engaging keeps its target); None: nobody to take it.
     pub fn engage(&mut self, now: f64, to: u8, at: Option<Bogey>) -> Option<bool> {
         let lead = self.lead;
         let takes = |m: &Member| m.ai && m.alive && (to == 0 || m.number == to || to == 5 && m.number >= 3);
@@ -575,6 +578,9 @@ impl Flight {
             let m = &mut self.members[i];
             if ok && !(with_three && m.number == 4) {
                 (m.engaging, took) = (true, true);
+            }
+            if ok {
+                m.strike.clear(); // the lead's new order ends its attack (docs/ai.md §8.10)
             }
             self.calls.push((now + m.skill.reaction_s, Call { from: m.number, id: if ok { "ack" } else { "unable" } }));
         }
@@ -608,7 +614,9 @@ impl Flight {
     /// The lead's "attack my target" at `now` to `to` (0 the flight, 5 the element, 2..4 one wingman) on the ground target
     /// `at` (the host's: a ground unit, a point; docs/ai.md §8.10): each AI jet addressed in the air with an
     /// air-to-ground weapon ([`Flight::ground_weapon`]) answers "ack" and attacks it in number order, each run
-    /// [`strike::STAGGER_S`] after the one before (an engage or a cover it had ends); the others "unable". `at` None:
+    /// [`strike::STAGGER_S`] after the one before (an engage, a cover or an attack it had ends: a run under way is
+    /// broken off at once, the autopilot's ground watch on); the others "unable". The flight has one ground target: a
+    /// new one is every attacking jet's. `at` None:
     /// each "unable". Some(true): a jet took it; Some(false): none could; None: nobody to take it.
     pub fn attack(&mut self, now: f64, to: u8, at: Option<Bogey>) -> Option<bool> {
         let lead = self.lead;
@@ -644,8 +652,7 @@ impl Flight {
                 && !m.landed
                 && !m.rtb
                 && !m.released
-                && m.strike.weapon.is_some()
-                && matches!(m.strike.phase, Phase::None | Phase::Wait);
+                && m.strike.weapon.is_some();
             if ok {
                 m.strike.clear();
                 (m.strike.phase, m.strike.turn) = (Phase::Wait, turn);
@@ -831,6 +838,7 @@ impl Flight {
                 // Cover: it keeps its slot and fights a hostile jet near the lead (decide); with something to shoot.
                 "cover" if flying && !m.rtb && !m.winchester => {
                     m.covering = true;
+                    m.strike.clear();
                     "ack"
                 }
                 "rejoin" | "rtb" | "cover" => "unable",

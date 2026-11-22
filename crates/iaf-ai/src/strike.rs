@@ -14,6 +14,7 @@
 //! what the AI stores' steered fall corrects.
 
 use iaf_avionics::bombs::fall_time;
+use iaf_avionics::master::{Master, Modes};
 use iaf_avionics::release::release_allowed;
 use iaf_flight::Vec3;
 use iaf_flight::aircraft::ApView;
@@ -136,6 +137,55 @@ impl Strike {
     pub fn clear(&mut self) {
         *self = Strike { weapon: self.weapon, ..Strike::default() };
     }
+}
+
+/// "Attack my target" on a point takes the hostile ground unit nearest it within this (m, horizontal), else the point.
+pub const SNAP_M: f64 = 500.0;
+/// One release: every store of its weapon, at most this many (IafRipple's), this far apart (m; inferred).
+pub const RIPPLE_MAX: u32 = 14;
+pub const RIPPLE_M: u32 = 30;
+
+/// The player's ground target for "attack my target" (docs/ai.md §8.10) among the hostile ground units alive at
+/// `units` (world positions): the one the radar has locked (`locked`, an index), else the one nearest the SPI `spi`
+/// within [`SNAP_M`]; None: the SPI itself (a point).
+pub fn pick(locked: Option<usize>, spi: Vec3, units: &[Vec3]) -> Option<usize> {
+    if locked.is_some_and(|i| i < units.len()) {
+        return locked;
+    }
+    let d = |u: &Vec3| Vec3::new(u[0] - spi[0], u[1] - spi[1], 0.0).length();
+    (0..units.len()).filter(|&i| d(&units[i]) < SNAP_M).min_by(|&a, &b| d(&units[a]).total_cmp(&d(&units[b])))
+}
+
+/// One of a jet's pylons as the host gives it: its weapon's type (the records' 500 bomb, 510 cluster, 560 rockets, 650
+/// laser bomb), whether it is GPS-guided, the stores left and the weapon's id.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Pylon {
+    pub kind: i64,
+    pub gps: bool,
+    pub count: i64,
+    pub id: i64,
+}
+
+/// The pylon an attack releases from: the first with stores of a guided bomb (GPS, laser; Some(true): the level run) or
+/// a bomb or rockets (Some(false): the dive) left; None: no air-to-ground weapon ([`Profile::of`]).
+pub fn pylon(pylons: &[Pylon]) -> Option<(usize, bool)> {
+    pylons.iter().enumerate().filter(|(_, p)| p.count > 0).find_map(|(i, p)| {
+        if p.gps {
+            return Some((i, true));
+        }
+        match Modes::for_store(p.kind, false, false)?.0 {
+            Master::LaserBomb => Some((i, true)),
+            Master::Bombs => Some((i, false)),
+            _ => None,
+        }
+    })
+}
+
+/// The stores of one release from pylon `i`: every store of its weapon on all pylons, 1 to [`RIPPLE_MAX`].
+pub fn ripple(pylons: &[Pylon], i: usize) -> u32 {
+    let id = pylons.get(i).map(|p| p.id);
+    let n: i64 = pylons.iter().filter(|p| Some(p.id) == id).map(|p| p.count.max(0)).sum();
+    n.clamp(1, RIPPLE_MAX as i64) as u32
 }
 
 /// The vacuum impact of a store released now from `p` at `v` on the height `z` (`bombs::fall_time`, the CCIP's fall).
@@ -303,5 +353,27 @@ mod tests {
         // Not above it: the target itself.
         assert_eq!(aim_off(Vec3::new(0.0, 0.0, 0.0), 200.0, t), t);
         assert_eq!((Profile::of(true), Profile::of(false)), (Profile::Level, Profile::Dive));
+    }
+
+    #[test]
+    fn target_and_weapon() {
+        let units = [Vec3::new(400.0, 0.0, 0.0), Vec3::new(0.0, 300.0, 50.0), Vec3::new(5_000.0, 0.0, 0.0)];
+        // The radar's lock wins; else the nearest within 500 m; else the point.
+        assert_eq!(pick(Some(2), Vec3::ZERO, &units), Some(2));
+        assert_eq!(pick(None, Vec3::ZERO, &units), Some(1));
+        assert_eq!(pick(Some(7), Vec3::ZERO, &units), Some(1), "a lock not among them");
+        assert_eq!(pick(None, Vec3::new(0.0, -2_000.0, 0.0), &units), None);
+        let p = |kind, gps, count, id| Pylon { kind, gps, count, id };
+        // An AIM-9 (570), an empty bomb pylon, then two pylons of MK-82s and one of GBU-31 (GPS, type 500).
+        let mut ps = [p(570, false, 1, 1), p(500, false, 0, 2), p(500, false, 4, 3), p(500, false, 4, 3)];
+        assert_eq!(pylon(&ps), Some((2, false)));
+        assert_eq!(ripple(&ps, 2), 8);
+        ps[1] = p(500, true, 1, 4);
+        assert_eq!(pylon(&ps), Some((1, true)));
+        assert_eq!(ripple(&ps, 1), 1);
+        assert_eq!(pylon(&[p(650, false, 2, 5)]), Some((0, true)));
+        assert_eq!(pylon(&[p(560, false, 19, 6)]), Some((0, false)));
+        assert_eq!(ripple(&[p(560, false, 19, 6)], 0), RIPPLE_MAX);
+        assert_eq!(pylon(&ps[..1]), None);
     }
 }

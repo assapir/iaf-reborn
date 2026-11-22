@@ -21,11 +21,6 @@ const GUN_BURST := 5
 ## Ours: the launch call by the missile's guidance (brevity: Fox 1 semi-active radar, Fox 2 infrared, Fox 3 active
 ## radar; modern-iaf/docs/research/radio-terms.md), by combat.gd's weapon type.
 const FOX := {570: "fox_2", 580: "fox_2", 600: "fox_3", 610: "fox_1"}
-## Ours (Modern IAF's attack, docs/ai.md §8.10): the stores of one release, the AI ripple's spacing (m; IafRipple's
-## interval, its period at least 0.1 s; inferred); "attack my target" on the SPI takes the ground unit nearest it within
-## this (m), else the point itself.
-const RIPPLE_M := 30
-const SNAP_M := 500.0
 ## FUN_004a9100: the FM start velocity (200, 200, 0) → 282.84 m/s along the heading.
 const START_SPEED := 282.842712
 
@@ -658,31 +653,26 @@ func _fire(ai, n: int, ent: Dictionary, t: Dictionary) -> String:
 
 ## Ours (Modern IAF, the radio menu's "engage my target", modern-iaf/docs/ai-plan.md F5, F15): the flight's jets `to`
 ## (0 the flight, 5 the element, 2..4 one wingman) engage the radar's locked aircraft, else attack the player's ground
-## target (attack: the radar's locked ground unit, else the ground unit nearest the SPI within SNAP_M, else the SPI
-## itself). False: no flight AI or nobody to take it.
+## target (attack; IafAi.pick_ground among the hostile ground units: the radar's lock, else the one nearest the SPI,
+## else the SPI itself). False: no flight AI or nobody to take it.
 func engage_target(to: int) -> bool:
 	var t: Dictionary = host.radio._radar_target() if host.get("radio") != null else {}
 	if not t.is_empty() and int(t.get("klass", 0)) in host.radio.AIRCRAFT:
 		return engage(to, t)
-	if t.is_empty() or int(t.state) >= 3 or not host.enemy_of_player(t):
-		t = _ground_near(host.weapons.spi()) if host.get("weapons") != null else {}
-	return attack(to, t)
-
-
-## The hostile ground unit (not an aircraft, alive, drawn) nearest the world point `p` within SNAP_M, else the point
-## itself.
-func _ground_near(p: Vector3) -> Dictionary:
-	var best := _point(p)
-	var near := SNAP_M
+	if flight_ai == null or host.get("weapons") == null:
+		return attack(to, {})
+	# The hostile ground units alive and drawn (not aircraft).
+	var units: Array = []
+	var at := PackedVector3Array()
 	for e in runtime.entities.values():
 		var air: bool = int(e.get("klass", 0)) in host.radio.AIRCRAFT
 		if e.player or int(e.state) >= 3 or air or e.get("node") == null or not host.enemy_of_player(e):
 			continue
-		var d: float = Vector2(e.world.x - p.x, e.world.y - p.y).length()
-		if d < near:
-			near = d
-			best = e
-	return best
+		units.append(e)
+		at.append(e.world)
+	var spi: Vector3 = host.weapons.spi()
+	var i: int = flight_ai.pick_ground(units.find(t) if not t.is_empty() else -1, spi, at)
+	return attack(to, units[i] if i >= 0 else _point(spi))
 
 
 ## The flight's jets `to` attack the ground target `t` (an entity or `_point`'s; {} none: each "unable"), each with an
@@ -719,43 +709,33 @@ func _feed_strike(ai, members: Array, t: Dictionary) -> Dictionary:
 	return t
 
 
-## Jet `n`'s air-to-ground weapon left (IafAi.set_ground_weapon: 0 none, 1 a bomb or rockets, 2 a guided bomb).
+## Jet `n`'s pylons for its air-to-ground weapon (IafAi.set_ground_pylons).
 func _ground_weapon(ai, n: int, ent: Dictionary) -> void:
 	var u = combat.units.get(ent.key)
-	ai.set_ground_weapon(n, int(_ag_of(u)[1]) if u != null else 0)
+	ai.set_ground_pylons(n, _pylons_of(u) if u != null else PackedInt64Array())
 
 
-## The air-to-ground station of combat.gd's unit `u` an attack releases: the first pylon with a bomb, rockets or a
-## guided bomb left; [station, kind (1 a bomb or rockets, 2 a guided bomb: GPS or laser)], [-1, 0] none.
-static func _ag_of(u) -> Array:
+## The pylons 0..8 of combat.gd's unit `u` as IafAi takes them: the weapon's type, 1 when GPS-guided, the stores
+## left, the weapon's id, for each.
+static func _pylons_of(u) -> PackedInt64Array:
+	var a := PackedInt64Array()
 	for i in mini(9, u.stations.size()):
-		var st: Dictionary = u.stations[i]
-		var type := int(st.w.get("type", 0))
-		if int(st.count) <= 0:
-			continue
-		if st.w.has("gps") or type == 650:
-			return [i, 2]
-		if type in [500, 510, 560]:
-			return [i, 1]
-	return [-1, 0]
+		var w: Dictionary = u.stations[i].w
+		a.append_array([int(w.get("type", 0)), int(w.has("gps")), int(u.stations[i].count), int(w.get("id", -1))])
+	return a
 
 
-## Jet `n`'s release this frame (IafAi.release) on the ground target `t`: its air-to-ground station selected, every
-## store of that weapon in one AI ripple (combat.gd release, RIPPLE_M apart, at most the ripple's 14); IafAi told
-## (released: "alpha").
+## Jet `n`'s release this frame (IafAi.release) on the ground target `t`: the pylon IafAi.ground_release names selected,
+## its stores in one AI ripple (combat.gd release); IafAi told (released: "alpha").
 func _release(ai, n: int, ent: Dictionary, t: Dictionary) -> void:
 	var u = combat.units.get(ent.key)
 	if t.is_empty() or u == null or not ai.release(n) or combat._releasing(u):
 		return
-	var ag := _ag_of(u)
-	if int(ag[0]) < 0:
+	var r: Vector3i = ai.ground_release(_pylons_of(u))
+	if r.x < 0:
 		return
-	combat._select(u, int(ag[0]))
-	var count := 0
-	for i in mini(9, u.stations.size()):
-		if u.stations[i].w.get("id") == u.w.get("id"):
-			count += int(u.stations[i].count)
-	u.ripple.set_values(clampi(count, 1, 14), RIPPLE_M)
+	combat._select(u, r.x)
+	u.ripple.set_values(r.y, r.z)
 	if combat.release(ent, t):
 		ai.released(n, runtime.now)
 

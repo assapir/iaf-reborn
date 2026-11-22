@@ -11,6 +11,7 @@ use iaf_ai::drone::{SHAHED_136, Salvo};
 use iaf_ai::fighter;
 use iaf_ai::net::{self, Gci, Member, Net};
 use iaf_ai::site::{self, Emcon, Kind, Site, Target};
+use iaf_ai::strike::{self, Pylon};
 use iaf_ai::{Bogey, Decoy, Flight, Foe, Skill, Threat};
 use iaf_flight::Vec3;
 
@@ -106,7 +107,7 @@ impl IafAi {
     /// ground target at the scene position `at` moving at `vel` (docs/ai.md §8.10); `has` false: none (each answers
     /// "unable"). 1: a jet took it; 0: none could (no air-to-ground weapon, not flying); -1: nobody to take it. The
     /// attacking jets fly their runs one after the other (`state` "strike"); the host feeds `set_ground_target`,
-    /// `set_ground_weapon` and `released`.
+    /// `set_ground_pylons` and `released`.
     #[func]
     fn attack(&mut self, now: f64, to: i64, has: bool, at: Vector3, vel: Vector3) -> i64 {
         let b = Bogey { pos: to_enu(at), vel: to_enu(vel) };
@@ -127,16 +128,32 @@ impl IafAi {
         self.flight.ground_target(alive.then(|| Bogey { pos: to_enu(at), vel: to_enu(vel) }));
     }
 
-    /// Jet `number`'s air-to-ground weapon left this frame: 0 none, 1 a bomb or rockets (the dive), 2 a guided bomb (the
-    /// level run).
+    /// Jet `number`'s pylons this frame (`pylons`: 4 values each, combat.gd's stations 0..8: the weapon's type, 1 when
+    /// GPS-guided, the stores left, the weapon's id): its air-to-ground weapon left (`iaf_ai::strike::pylon`).
     #[func]
-    fn set_ground_weapon(&mut self, number: i64, kind: i64) {
-        let guided = match kind {
-            1 => Some(false),
-            2 => Some(true),
-            _ => None,
-        };
+    fn set_ground_pylons(&mut self, number: i64, pylons: PackedInt64Array) {
+        let guided = strike::pylon(&pylons_of(&pylons)).map(|p| p.1);
         self.flight.ground_weapon(number.clamp(0, 255) as u8, guided);
+    }
+
+    /// The release of an attack from the pylons `pylons` (as `set_ground_pylons`): (the pylon, the stores of one
+    /// ripple, their spacing m); the pylon −1: none (`iaf_ai::strike::pylon`, `ripple`).
+    #[func]
+    fn ground_release(&self, pylons: PackedInt64Array) -> Vector3i {
+        let ps = pylons_of(&pylons);
+        strike::pylon(&ps).map_or(Vector3i::new(-1, 0, 0), |(i, _)| {
+            Vector3i::new(i as i32, strike::ripple(&ps, i) as i32, strike::RIPPLE_M as i32)
+        })
+    }
+
+    /// "Attack my target"'s ground target (`iaf_ai::strike::pick`) among the hostile ground units alive at the world
+    /// positions `units`: `locked` (an index, −1 none: the radar's lock), else the one nearest the SPI `spi` (world)
+    /// within 500 m; −1: the SPI itself.
+    #[func]
+    fn pick_ground(&self, locked: i64, spi: Vector3, units: PackedVector3Array) -> i64 {
+        let us: Vec<Vec3> = units.as_slice().iter().map(|&u| vec3(u)).collect();
+        let lock = usize::try_from(locked).ok();
+        strike::pick(lock, vec3(spi), &us).map_or(-1, |i| i as i64)
     }
 
     /// Jet `number`'s release made at `now` (after `step`'s `release` order: combat.gd's AI ripple started): it calls
@@ -605,4 +622,14 @@ impl IafSalvo {
     fn down(&mut self, i: i64) {
         self.salvo.down(i.max(0) as usize);
     }
+}
+
+/// The host's pylons, 4 values each (type, GPS, count, id).
+fn pylons_of(a: &PackedInt64Array) -> Vec<Pylon> {
+    a.as_slice()
+        .as_chunks::<4>()
+        .0
+        .iter()
+        .map(|&[kind, gps, count, id]| Pylon { kind, gps: gps != 0, count, id })
+        .collect()
 }

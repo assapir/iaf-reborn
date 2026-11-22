@@ -884,16 +884,25 @@ wingman" (modern-iaf/docs/ai-plan.md F15, K15). Our wingmen and the enemy fighte
 
 - **The orders.** The lead's "engage my target" (the radio menu, record 47; record 99, Alt + E, to Kidon 1-2) on a
   ground target: `ai_flights.gd engage_target` engages the radar's locked aircraft, else attacks the player's ground
-  target: the radar's locked hostile ground unit, else the hostile ground unit nearest the SPI within 500 m, else the
-  SPI itself (a point). `Flight::attack` (`IafAi.attack`): each AI jet addressed in the air with an air-to-ground
-  weapon answers "ack" and takes it (an engage or a cover it had ends); the others "unable". An AI-led flight's own
+  target, picked by `strike::pick` (`IafAi.pick_ground`) among the hostile ground units alive the host lists: the
+  radar's locked one, else the one nearest the SPI within 500 m, else the SPI itself (a point). `Flight::attack`
+  (`IafAi.attack`): each AI jet addressed in the air with an air-to-ground weapon answers "ack" and takes it (an
+  engage or a cover it had ends); the others "unable". The flight has one ground target: a new one is every attacking
+  jet's. An AI-led flight's own
   order is `Flight::strike` (`IafAi.strike`; the dev hook `ai_flights.gd enemy_strike(flight, target)`, the target an
   entity or a world point such as a base's runway): its lead takes it at once, then orders its wingmen.
+- **A new order wins** (inferred: the lead's word is the order; no source found for a wingman finishing its
+  release against it). Engage my target (an aircraft or a ground target, the same one too), cover me, rejoin, RTB
+  and the split end a jet's attack at once, its run too, and the jet answers "ack" and obeys: a ground target again
+  starts its run over in its turn. A run broken off in its dive is pulled out by the autopilot's ground watch (the
+  slot, steer and BFM loops keep it on). A release already started finishes (the host's ripple). A formation change
+  leaves the attack on: the jet takes its new slot when it rejoins.
 - **The turns.** The jets run in number order, each at least 20 s after the one before and never while another jet
   of the flight flies its run. Before its turn a jet keeps its slot (an AI lead its route or station); while the
   flight lead flies its own run its wingmen hold where they are (HoldPositionCL, mode 10), since their slot would take
   them down the lead's dive. #4 keeps its slot in the shape while #3 runs.
-- **The run, by the weapon** (the host's `set_ground_weapon`, combat.gd's first pylon with one left):
+- **The run, by the weapon** (`strike::pylon` on the pylons the host gives, `IafAi.set_ground_pylons`: the first
+  pylon with stores left of a guided bomb, GPS or laser, or of a bomb or rockets, types 500, 510, 560):
   - a guided bomb (GPS, laser): a level run on the steer loop at the target at its height, at least 1,500 m above the
     target, released once the vacuum impact passes the target (at most 500 m beyond it, within 300 m of the track);
   - a bomb or rockets: on the steer loop at the target at least 2,500 m above it (climbing there at 20° on the BFM
@@ -905,8 +914,8 @@ wingman" (modern-iaf/docs/ai-plan.md F15, K15). Our wingmen and the enemy fighte
   - The vacuum impact is the CCIP's fall (`iaf_avionics::bombs::fall_time`), the release within the release
     permission (`iaf_avionics::release::release_allowed`: load factor ≥ 0, bank ≤ 90°). A run with no release in
     300 s is given up ("unable").
-- **The release** (`Order::release`, `IafAi.release`): the host selects the air-to-ground pylon and releases every
-  store of that weapon (at most 14) in one AI ripple 30 m apart (`combat.gd release` with the target given, then
+- **The release** (`Order::release`, `IafAi.release`): the host selects the pylon `IafAi.ground_release` names
+  (`strike::pylon`) and releases every store of that weapon (`strike::ripple`, at most 14) in one AI ripple 30 m apart (`combat.gd release` with the target given, then
   `_ripple_tick`: the target led by its velocity, the steered fall `player_weapons.gd drop_bomb`, a GPS bomb's or laser
   bomb's own guidance); a release started is reported (`IafAi.released`). The bursts damage what is near through the
   existing area damage.
@@ -927,9 +936,12 @@ wingman" (modern-iaf/docs/ai-plan.md F15, K15). Our wingmen and the enemy fighte
   until the AI's low-level terrain following is built.
 - **Tests:** `cargo test -p iaf-ai --test strike` (on the 6-DoF: `four_ship_attacks_my_target` two dives and a level
   run in turn, each store within 50 m of the target, the calls, the rejoin; `mig29_pair_strikes_on_its_leads_order`
-  the lead first, the wingman holding, both back on the CAP; `unable_target_gone_and_rejoin`);
-  `modern-iaf/tests/test_ground_attack.gd` (headless: the four-ship with MK-82s through the radio menu on an enemy
-  64N6E2, destroyed; a MiG-29A pair with MK-83s on its lead's order against a 64N6E2 of our side, destroyed).
+  the lead first, the wingman holding, both back on the CAP; `unable_target_gone_and_rejoin`;
+  `a_new_order_ends_the_run`: in the dive a second attack, then cover me, safe throughout); `strike.rs`'s unit test
+  `target_and_weapon` (the target and the pylon picked, the ripple's count); `modern-iaf/tests/test_ground_attack.gd`
+  (headless: the four-ship with MK-82s through the radio menu on an enemy 64N6E2, destroyed; a second order to Kidon
+  1-2 in its run, "ack" and the run flown again; a MiG-29A pair with MK-83s on its lead's order against a 64N6E2 of
+  our side, destroyed).
 
 ## 9. Airbase data (`iaf.ibx`, TowersManager `54eda0`)
 `iaf.ibx` holds the geometry the AI uses to take off, land and taxi. It has ten sections, in record order: Ramon,

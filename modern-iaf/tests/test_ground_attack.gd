@@ -4,7 +4,8 @@
 #   - Our four-ship: an enemy 64N6E2 radar (air_defence.gd `spawn_net`, the network's stand-in shapes) 20 km ahead,
 #     designated on the radar (the SPI); "engage my target" to the flight through the radio menu: Kidon 1-2, 1-3 and
 #     1-4 acknowledge and attack it one after the other: "in" with its subtitle, the release through combat.gd's AI
-#     ripple ("alpha"), the radar destroyed, "done", each back on the slot.
+#     ripple ("alpha"), the radar destroyed, "done", each back on the slot. A second order to Kidon 1-2 in its run:
+#     "ack" (not "unable"), the run broken off and flown again.
 #   - A MiG-29A pair (spawned by `spawn` with two MK-83s each standing in for its FAB-500s, flown by `enemy_flight`)
 #     on its lead's own order (`enemy_strike`) against a 64N6E2 of our side: the lead releases on it, it is destroyed
 #     (the target gone ends the wingman's turn), the lead goes back to its CAP.
@@ -65,7 +66,7 @@ func run() -> void:
 			m[1].shield = true
 	s.invulnerable = true
 	var u = ai.combat.units.get(_wing[0].key) if not _wing.is_empty() else null
-	check(u != null and int(ai._ag_of(u)[1]) == 1, "the wingmen carry the MK-82s")
+	check(u != null and _pylon(ai, u) >= 0, "the wingmen carry the MK-82s")
 	Engine.time_scale = TIME_SCALE
 	await fly(tv, 5.0)
 	await _ours(tv)
@@ -97,6 +98,18 @@ func _ours(tv: Node) -> void:
 	var heard := func(p):
 		return String(p.template) == "WNG_CALL" and String(p.text).strip_edges().trim_suffix(".").ends_with(", in")
 	check(tv.radio.said.any(heard), "the run-in call said with its subtitle")
+	# A second order mid-run (to Kidon 1-2 alone): it acknowledges, breaks its run off and runs in again.
+	var t1: float = tv.runtime.now
+	tv.weapons.radar.designated = true
+	tv.weapons.radar.desig = radar.world
+	check(_menu(tv, ["to:2", "engage"]), "engage my target again, to Kidon 1-2")
+	tv.weapons.radar.designated = false
+	check(String(fa.state(2).strike) == "wait", "its run broken off: %s" % fa.state(2))
+	check(await _until(tv, func(): return _said(2, "ack", t1), 5.0), "Kidon 1-2 acknowledges (%s)" % _calls())
+	check(not _said(2, "unable", t1), "no unable")
+	var twice := func():
+		return _tv.ai.flight_calls.filter(func(c): return int(c.from) == 2 and c.id == "in").size() >= 2
+	check(await _until(tv, twice, 30.0), "and runs in again (%s)" % _calls())
 	var alpha := func(): return _said(2, "alpha", t0)
 	check(await _until(tv, alpha, 240.0), "Kidon 1-2 releases: alpha (%s; %s)" % [_calls(), fa.state(2)])
 	var dropped := func(): return tv.weapons.bombs.any(func(b): return is_same(b.owner, _wing[0]))
@@ -129,11 +142,11 @@ func _migs(tv: Node) -> void:
 	if migs.size() != 2:
 		return
 	var u = ai.combat.units.get(migs[0].key)
-	check(int(ai._ag_of(u)[1]) == 1, "MK-83s on its pylons")
+	check(_pylon(ai, u) >= 0, "MK-83s on its pylons")
 	var f = ai.enemy_flight(migs, migs[0].world, {})
 	check(ai.enemy_strike(f, radar), "its lead's own attack order")
 	var t0: float = tv.runtime.now
-	var empty := func(m): return int(ai._ag_of(ai.combat.units.get(m.key))[1]) == 0
+	var empty := func(m): return _pylon(ai, ai.combat.units.get(m.key)) < 0
 	var one := func(): return migs.any(empty)
 	check(await _until(tv, one, 400.0), "a MiG releases (%s, %s)" % [f.state(1), f.state(2)])
 	var down := func(): return int(radar.state) >= 3
@@ -142,6 +155,11 @@ func _migs(tv: Node) -> void:
 	var cap := func(): return String(f.state(1).phase) == "cap" and String(f.state(1).strike) == ""
 	check(await _until(tv, cap, 200.0), "the lead back on its CAP (%s)" % f.state(1))
 	print("MiG strike over after %.0f s" % (tv.runtime.now - t0))
+
+
+## The pylon of combat.gd's unit `u` an attack releases from (IafAi.ground_release), −1 none.
+func _pylon(ai, u) -> int:
+	return ai.flight_ai.ground_release(ai._pylons_of(u)).x
 
 
 ## Kidon 1-`n`'s call `id` made after `t0` (mission s).
