@@ -42,6 +42,7 @@ strings.
 | joker (fuel for one more task) | "כידון 1-2, **ג'וקר**" (the loanword; inferred: no Hebrew source found) | "Kidon 1-2, joker." | no IAF term found, NATO[^alsa][^tpub-wingman] |
 | fuel state (answer to an ops check) | ours: "כידון 1-2, שש נקודה שתיים" (the number only) | "Kidon 1-2, six point two." (fuel in thousands of pounds) | no IAF term found, NATO: FUEL STATE[^alsa]; the answer's format, second-hand[^ops-check] |
 | airborne | none found. Ours: "כידון 1 באוויר" | "Kidon 1, airborne." (inferred) | no IAF term found; not in the brevity list[^alsa]; open |
+| the tower's landing calls to a wingman (22 November 2026) | the tower's own lines, with the jet's callsign: "כידון 1-2, אישור נחיתה במסלול 25 ימין", "כידון 1-2, ברוכים השבים, הסעה לחנייה" | "Kidon 1-2, cleared to land runway 25 right." / "Kidon 1-2, welcome back, taxi to parking." | no new words: the tower's landing and parking lines the player hears (the clearance's form "אישור …", the user's correction of 20 November 2026 below) and the callsign row; the wingman answers with the acknowledgement row |
 | landed / on the ground | none found. Ours: "כידון 1 על הקרקע" | "Kidon 1, on the ground." (inferred) | no IAF term found; not in the brevity list[^alsa]; open |
 | **Second search: the radio menu's and the reactions' words (19 November 2026, slice 3)** | | | |
 | address: the second element | ours: "כידון 1, זוג 3–4" (the pair is a **זוג**[^mako-kaz]) | "Kidon 1, element 3–4." (plain English, inferred) | no IAF or NATO call found; open |

@@ -456,6 +456,16 @@ func flight_cleared_to_start() -> void:
 		flight_ai.start_up(runtime.now)
 
 
+## Ours (Modern IAF, a dev hook: no mission sets it yet): the player's flight takes off in pairs (true) or in a stream
+## (false, the default): Kidon 1-2 lines up beside the lead, 1-4 beside 1-3, each rolls with its lead
+## (docs/ai.md §8.7). False: no flight AI.
+func flight_pairs(on: bool) -> bool:
+	if flight_ai == null:
+		return false
+	flight_ai.pairs(on)
+	return true
+
+
 ## IafAi's frame, after every jet's steps of the frame (its orders go to the next frame's ap_step): who is alive
 ## (the player while in the jet), the player's steerpoint (a promoted lead flies on from it), the orders, the calls.
 func _step_flight_ai(now: float) -> void:
@@ -517,7 +527,12 @@ func _flight_say(c: Dictionary, now: float) -> void:
 	c["t"] = now
 	flight_calls.append(c)
 	if host.get("radio") != null:
-		host.radio.flight_call(int(c.from), String(c.id), float(flight_ai.state(c.from).get("fuel_kg", 0.0)))
+		var ent: Dictionary = {}
+		for m in _ai_members:
+			if int(m[0]) == int(c.from):
+				ent = m[1]
+		var at: Vector3 = world_of(ent) if not ent.is_empty() else Vector3.INF
+		host.radio.flight_call(int(c.from), String(c.id), float(flight_ai.state(c.from).get("fuel_kg", 0.0)), at)
 
 
 ## The entity our wingman `n` fights (IafAi state "foe"): the engaged target, the flight's bogey, else {}.

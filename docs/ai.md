@@ -625,8 +625,15 @@ model, where none of the 6-DoF cases applies. Every figure here is inferred, tun
   prediction early), sampled every 0.25 s and at the straight lines' closest approach; when the closest approach within 4 s
   comes nearer than 60 m, the
   jet pulls away from it at 3 g (straight at it: the higher number goes down), in any loop, every 0.1 s, until the
-  closest approach is 100 m; below 150 m over the ground never down, and not once the landing's ground watch is off. Without it two wingmen in fingertip came within 4.5 m in the lead's 80° bank break.
-  A pull that stopped at 60 m (until 2026-11-19) left two AI jets 37 m apart. A prediction in straight lines (until
+  closest approach is 100 m, or, a jet in its slot (within 50 m of it), 70 m with the jets no longer closing (the
+  closest approach is now);
+  below 150 m over the ground never down, and not once the landing's ground watch is off. Without it two wingmen in fingertip came within 4.5 m in the lead's 80° bank break.
+  A pull that stopped at 60 m (until 2026-11-19) left two AI jets 37 m apart. A pull that went on to 100 m in
+  every case (until 2026-11-22), more than the slots' 84 m, never stopped in a slot: in the lead's 30° bank turn #3
+  and #4, 69 m apart at the join-up, pulled on and scattered the flight 500 m (test_four_ship). Also tried and
+  dropped (2026-11-22): that release at 60 m for every jet (in the dogfight two of our jets on one MiG-29 pair let go
+  of each other sooner and neither got a gun burst in three minutes, wing_battle), and at 60 m for a jet in its slot
+  (the diamond ordered in a 45° bank turn went 446 m off, close_shapes_changed_in_a_turn). A prediction in straight lines (until
   2026-11-19) saw a wingman released from echelon right on afterburner, just behind the player's jet in its 30° bank
   turn, about 1.5 s late: it passed 13–29 m from the player's jet in the game (34–36 m in the Rust case
   `rtb_from_a_turn_round_ramon`, now 50–55 m).
@@ -656,6 +663,61 @@ model, where none of the 6-DoF cases applies. Every figure here is inferred, tun
     the ground again, anywhere: a wingman whose turn has not come then holds where it is (mode 10) until it is sent
     home. Measured with the lead landing at Ramon and the flight's home at Nevatim: all four landed at Ramon in order,
     #3 and #4 held first, at the least 41 m between jets in the air.
+- **The recovery, end to end** (2026-11-22, the user: "Finish landing"). The flight's home is the base nearest its
+  route's last waypoint. Its landing order is the release order: the lead (the player) lands when he chooses, and
+  once its gear is down again within 20 km of home, or low anywhere, the wingmen go home one every 20 s, #2, #3, #4,
+  each on the original's left-hand circuit (§8.3; the AI flies no overhead break: the 1998 game has none and no
+  source gives the IAF's). Every figure in this list is inferred. Measured at Ramon (F-16I, 2 t of stores): landed
+  136, 23 and 21 s apart; at Nevatim (MiG-29A) 123, 28 and 27 s.
+  - **The tower's landing calls** to each AI jet of our flight (not an enemy flight's; `Flight::tower_calls`,
+    `radio.gd flight_call`): "Kidon 1-2, cleared to land runway 25 right" (`ACFT_CLEAR_TO_LAND`, its runway and wind as
+    the player's) on its turn to final (LandingCL's CH4, autopilot `phase` 11), and "Kidon 1-2, welcome back, taxi to
+    parking" (`ACFT_TAXI_TO_PARK`) once its roll has stopped (StopPlane). The tower is the talking tower in range of
+    the jet. Each is answered with the callsign alone ("Kidon 1-2."), the acknowledgement of
+    [../modern-iaf/docs/research/radio-terms.md](../modern-iaf/docs/research/radio-terms.md), in the wingman's voice.
+    The words are the tower's lines the player hears; the tower addresses the wingman by its kidon-style callsign. The
+    player asks for his own clearance on the radio menu.
+  - **The taxi's pivots** (an AI jet on the 6-DoF): a pivot begins at its turn's own lead, 40 m × tan(half the turn),
+    within 5–40 m, where the original began every pivot 30 m before its point; before a turn of more than 10° the jet
+    slows to 8 m/s, braking at most 1.5 m/s² from the taxi speed (the 30 m wheel turn's speed on the tyres' side grip
+    is 9 m/s), with the brakes within 0.5 m/s of that speed; it reaches the departure's last point, the lineup, at a
+    walk (2 m/s). At the 30 kt taxi speed the jet braked straight on into a 90° turn and swung 40 m wide: at Nevatim,
+    whose four spots turn off one taxi line 25 m apart, #4 swung into #2's spot and came within 1 m of it (found by
+    the ground run 2026-11-22). A 97° turn onto the runway at Ramon swung 15 m past the centreline; the last 2° pivot
+    onto the lineup stopped the jet 30 m short of it.
+  - **The taxi in, spaced** (`Flight::taxi_hold`, `Autopilot::hold`): an AI jet taxiing in (to park, or creeping into
+    its shelter) stops on its brakes while another jet of the flight with its engine running is on the ground in its
+    way: within 150 m along its heading and 25 m across, or nearer than 60 m and not behind it. Two jets taxiing in
+    that are each in the other's way: the higher number holds. The player's jet counts, and holds for nobody. At 80 m
+    along a jet stopped 21 m behind the one ahead; turning toward a jet stopped beside its turn point it came within
+    31 m.
+  - **The take-off roll** (an AI jet on the 6-DoF): the nose wheel turns onto the runway's heading (a pedal of 1 per
+    radian of error less 0.5 per rad/s of turn, at most 0.1) below 30 kt; above, the 6-DoF's nose wheel castors unless
+    a pedal of 0.02 engages it and then turns the jet hard, so the pedal falls with the speed squared and only an error
+    of a degree or more engages it. Left alone the jet rolled on the heading its taxi left: 3° off (60 m across a 1.2
+    km roll) after its last pivot ended in a turn and it coasted on turning. A wheel held on a line at speed swung a
+    wingman 4° off and was dropped.
+  - **Pairs** (`Flight::pairs`, `IafAi.pairs`, the dev hook `ai_flights.gd flight_pairs`; no mission sets it yet;
+    the default is the stream): #2 lines up beside #1 and #4 beside #3, 15 m apart, on the side of its slot in the
+    shape (#2 left and #4 right in fingertip); its runway entry and lineup points move with it, so its last leg runs
+    beside its lead's. An AI element lead waits on the runway until its wingman is lined up, at most 90 s
+    (`Autopilot::hold`); the wingman rolls when its lead starts to roll (1 m/s, where the stream waits for 50 kt). The
+    lead rolls at military power and the wingman keeps beside it on the throttle (military, plus 0.03 per m the lead is
+    ahead and 0.1 per m/s it is faster, at least 0.3) while the lead is within 200 m; a lead already gone, as the
+    player who rolled first, leaves it at full power. The lead keeps military power until its own lift-off. The
+    player as #1 does the same by hand: he waits for #2 and rolls at military power. The mates fly free of each other's collision avoidance from the roll until they are 60 m
+    apart in the air, or 120 s after the lift-off, and do not step down for each other. The second pair lines up once
+    the first rolls. Measured (F-16I, 2 t of stores; #1 as the player): at Ramon the pairs rolled 0.6 and 0.7 s apart,
+    lifted off within 0.1 s, 11.9 and 13.9 m abreast and less than 1 m ahead or behind at the lead's lift-off, at the
+    least 11.6 m apart (the F-16's span is 9.45 m); at Nevatim 12.3 and 17.2 m abreast, at the least 12.3 m apart.
+    The 15 m is inferred: the lineup runways are 44–46 m wide, Hatzerim's 28L 34 m, where the wingman's wheels run
+    0.8 m inside the edge (the F-16's track is 2.4 m).
+  - **Tests:** `cargo test -p iaf-ai --test four_ship ground_run` (the ground runs at Ramon and Nevatim: at the least
+    30 m between jets on the ground, the tower's calls to #2–#4 in order and none to the player),
+    `--test four_ship taxi_in_behind_a_stopped_lead` (the lead stops 240 s on its way in: the wingmen hold behind it,
+    at the least 53 m), `--test four_ship pairs_take_off` (Ramon and Nevatim); `modern-iaf/tests/test_four_ship.gd`
+    (sent home: the tower's calls said, at the least 30 m between the wingmen taxiing in) and
+    `modern-iaf/tests/test_pairs_takeoff.gd` (Kidon 1-3 waits for 1-4 and they take off together).
 
 ### 8.8 Ours: elements, the split, the reactions and the AWACS calls
 
@@ -1741,17 +1803,17 @@ mission places one.
   A wingman sent home abeam of the waypoint and near it circled it at KeepAttitude's 45° bank, 4 km off at 197 m/s,
   until its fuel ran out. On the 6-DoF the pass now counts within 1.5 × the 45° turn's radius (5.9 km at 197 m/s); the
   landing's pattern starts from where the jet is.
-- **Open:** Nevatim's four shelters share one taxi-in path (`iaf-sim airbases` from `modern-iaf/data/airbases/llnv.json`).
-  In the four-ship ground run at Nevatim #4, taxiing in, closed to 1 m on #2 (t 1,483 s). Found 2026-11-22, not yet
-  traced.
+- **Nevatim's taxi in** (fixed the same day): its four spots turn off one taxi line 25 m apart, and #4, braking
+  straight on into its 90° turn at the taxi speed, swung 40 m wide into #2's spot (1 m from it). The taxi now slows
+  before a pivot and the flight spaces the jets taxiing in (§8.7, "The recovery, end to end"): 44 m at the least.
 - Tried and dropped (2026-11-22): KeepAttitude flying wings level while the waypoint lies inside its turn. Flying
   away the jet sped up (the route's speed cap holds only inside 6 km), its turn widened with it, and it ran on for
   minutes. The flare's sum held at zero once the jet stopped sinking: the touch was the same, as the sum was already
   negative when the jet rose.
 - **Tests:** `cargo test -p iaf-ai --test landing` (a MiG-29A home from 15 km out over a 12 m rise under the final onto
   a runway falling 0.8 %: no crash, a touchdown under 3 m/s); `cargo test -p iaf-ai --test four_ship
-  mig29_ground_run_at_nevatim` (the four-ship ground run at Nevatim: all four land and park; its ground separation
-  is not checked, see Open);
+  mig29_ground_run_at_nevatim` (the four-ship ground run at Nevatim: all four land and park, at the least 30 m apart
+  on the ground);
   `modern-iaf/tests/test_ai_far_landing.gd` (headless: a MiG-29A lands at Nevatim with the player parked there, then
   with the player at Tel Nof, 70 km off, and the view range cut to 10 km, so no terrain is loaded at Nevatim).
 

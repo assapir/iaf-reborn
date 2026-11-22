@@ -28,4 +28,8 @@ A wingman that comes too near another jet pulls away from it, then flies back to
 
 #idx("Four-ship, landing")When you lower the gear within 20 km of Ramon, or fly low with the gear down, the wingmen go home one after the other: Kidon 1-2 first, Kidon 1-3 20 seconds later, then Kidon 1-4. Each flies the circuit, lands, taxis to its own shelter and stops its engine. A wingman low on fuel goes home on its own.
 
+#idx("Four-ship, landing calls")The tower talks to each wingman on the way in. As it turns onto its final approach: "Kidon 1-2, cleared to land runway 25 right"; once its landing roll has stopped: "Kidon 1-2, welcome back, taxi to parking". The wingman answers with its callsign. Your own landing call is on the tower's menu (@tower-landing).
+
+On the taxiways a wingman slows before each turn and stops behind any jet of the flight in its way, yours too, until the way is clear.
+
 The lesson passes as the Take-off lesson does, once you are in the air (@lesson-takeoff).

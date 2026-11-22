@@ -3,6 +3,16 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **The flight's landing and the take-off in pairs (2026-11-22, the user: "Finish landing"; [ai-plan.md](ai-plan.md)
+  F3, F7; [../../docs/ai.md](../../docs/ai.md) §8.7):** the wingmen go home one by one after the lead, each on the
+  circuit; the tower clears each to land on its turn to final and sends it to parking after its roll ("Kidon 1-2,
+  cleared to land runway 25 right"; "Kidon 1-2, welcome back, taxi to parking"), each answering with its callsign.
+  Taxiing in, an AI jet holds for a jet of the flight in its way, and every AI jet slows before a taxi turn: at Nevatim
+  #4 no longer swings into #2's spot (1 m, now 44 m at the least). The take-off in pairs (a dev hook, `ai_flights.gd
+  flight_pairs`; no mission sets it): #2 beside #1 and #4 beside #3, each pair rolling and lifting off together; every
+  AI jet's roll holds the runway's heading. Enemy flights land and space their taxi the same way, without the tower's
+  calls, and take off in a stream. Tests: `four_ship` (`ground_run_*`, `taxi_in_behind_a_stopped_lead`, `pairs_take_off_*`),
+  `modern-iaf/tests/test_four_ship.gd`, `modern-iaf/tests/test_pairs_takeoff.gd`.
 - **Our wingmen in a fight (2026-11-22, the user: "Finish wingman in battle"; [ai-plan.md](ai-plan.md) F5, K4;
   [../../docs/ai.md](../../docs/ai.md) §8.9):** a wingman told "engage my target" fights it with the enemy fighters'
   leaves: the collision course, a missile inside its share of the envelope, the crank, the BFM leaf and the gun, the

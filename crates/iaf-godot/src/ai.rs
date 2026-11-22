@@ -61,6 +61,13 @@ impl IafAi {
         self.flight.start_up(now);
     }
 
+    /// The take-off in pairs (true: #2 lines up beside #1, #4 beside #3, each rolls with its lead) or in a stream
+    /// behind the lead (false, the default; docs/ai.md §8.7).
+    #[func]
+    fn pairs(&mut self, on: bool) {
+        self.flight.pairs(on);
+    }
+
     /// A radio command at `now` to `to` (0 the flight, 5 the element #3–#4, 2..4 one wingman): check, ops_check,
     /// a shape of `iaf_ai::SHAPES` (fingertip, line_abreast, trail, echelon_right, echelon_left, diamond, vic, delta),
     /// rejoin, rtb, cover (keep the slot, fight a hostile jet near the lead). False: unknown, or nobody to take it.
@@ -188,7 +195,7 @@ impl IafAi {
     /// One frame at `now` (s), after every jet's steps of the frame (one instant, `Flight::sense`): the AI's decisions
     /// and its jets' orders for their next `ap_step`. Returns the calls due, each
     /// {from: number, id: ack, unable, joker, bingo, rtb, fuel_state, lead_change, in_position, spike, mud, defending,
-    /// break_left, break_right, contact}.
+    /// break_left, break_right, contact; the tower's to it: tower_land, tower_park}.
     #[func]
     fn step(&mut self, now: f64) -> VarArray {
         for (n, jet, alive) in &mut self.jets {
@@ -216,8 +223,8 @@ impl IafAi {
 
     /// Jet `number` for tests and logs: role (lead / wingman), leader (the number it flies on, 0 none), stage (its
     /// control loop), slot_error (m), avoiding (it pulls away from another jet), task (element 2's lead on its split
-    /// task), defending, engaging (it engages the player's target), fuel_kg, bingo_kg, released (sent home); empty for
-    /// an unknown number.
+    /// task), defending, engaging (it engages the player's target), fuel_kg, bingo_kg, released (sent home), hold (it
+    /// waits on the ground: taxiing in behind a jet, a pair's lead for its wingman); empty for an unknown number.
     #[func]
     fn state(&self, number: i64) -> VarDictionary {
         let mut d = VarDictionary::new();
@@ -237,6 +244,7 @@ impl IafAi {
         d.set("fuel_kg", m.fuel_kg);
         d.set("bingo_kg", m.bingo_kg);
         d.set("released", m.released);
+        d.set("hold", m.order.hold);
         d.set("phase", m.enemy.phase);
         d.set("committed", m.enemy.committed);
         d.set("contact", m.enemy.contact);

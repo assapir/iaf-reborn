@@ -69,7 +69,9 @@ A wrong or repeated call costs nothing. A repeated call gets its answer again.
 + Press #key("Call the tower"), then #keycap("1").
   #then[Your pilot asks the nearest base for a landing. The tower answers "proceed to runway" with the runway to land on.]
 
-The tower has no calls yet for joining the pattern, the final approach or a go-around.
+The tower has no calls for you yet for joining the pattern, the final approach or a go-around.
+
+#idx("Wingmen, landing calls")In a four-ship lesson you also hear the tower talk to your wingmen as each comes home: "Kidon 1-2, cleared to land runway ..." as it turns onto its final approach and "Kidon 1-2, welcome back, taxi to parking" after its landing roll. Each answers with its callsign. These calls need nothing from you (@lesson-four-ship-home).
 
 === The frequencies: the RADIO tab <tower-radio>
 

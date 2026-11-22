@@ -323,6 +323,29 @@ fn slot_offset(ld: &Leader, slot: [f32; 3]) -> Vec3 {
 /// Ours, an AI jet's taxi on the 6-DoF ([`Laws::taxi_thr`], inferred): the PI's gains (lever per m/s, per m/s·s)
 /// and its highest lever.
 const TAXI_PI: (f32, f32, f32) = (0.02, 0.01, 0.4);
+/// Ours, an AI jet's take-off roll on the 6-DoF (inferred): the nose wheel's pedal per radian of heading error to the
+/// runway's, per rad/s of turn, and at most below [`NWS_KT_MS`] (Autopilot::roll_steer).
+const ROLL_STEER: (f32, f32, f32) = (1.0, 0.5, 0.1);
+/// 30 kt, m/s, and the pedal: the 6-DoF's nose wheel castors above that speed unless a pedal this far engages it.
+const NWS_KT_MS: f32 = 15.4333;
+const NWS_PEDAL: f32 = 0.02;
+/// Ours, an AI jet's taxi on the 6-DoF (inferred): a pivot begins at the turn's own lead, its radius × tan(half the
+/// turn), m, within [5, 40] m (the original's 30 m for any turn: a 97° turn onto the runway swung 15 m past the
+/// centreline, and the last pivot of 2° onto the lineup stopped the jet 30 m short of it); the departure's last point
+/// is reached at a walk, m/s, and the take-off holds its brakes there.
+const PIVOT_R: f32 = 40.0;
+const PIVOT_LEAD: (f32, f32) = (5.0, 40.0);
+const LINEUP_WALK: f32 = 2.0;
+/// Ours, a pairs take-off's wingman on the roll (inferred): the lever about military power per m its lead is ahead,
+/// per m/s the lead is faster, and at least.
+const PAIR_KEEP: (f32, f32, f32) = (0.03, 0.1, 0.3);
+/// Ours, a pairs take-off's wingman keeps station only on a lead this near, m.
+const PAIR_NEAR_M: f64 = 200.0;
+/// Ours, an AI jet's taxi on the 6-DoF (inferred): before a pivot of more than `.2` deg it slows to `.0` m/s, under
+/// the speed of the pivot's 30 m wheel turn (9 m/s on the tyres' side grip), braking at most `.1` m/s² from the taxi
+/// speed: at the 30 kt taxi speed it braked straight on into the turn and swung 40 m wide, into the next shelter's
+/// spot at Nevatim (2026-11-22).
+const PIVOT_IN: (f32, f32, f32) = (8.0, 1.5, 10.0);
 
 /// The flare's `FLARE_TAU`: the real final's on the 6-DoF ([`REAL_FINAL_LAWS`]).
 fn flare_tau(v: &ApView) -> f32 {
@@ -366,6 +389,17 @@ fn wrap(a: f32) -> f32 {
 
 fn dist2(a: Vec3, x: f64, y: f64) -> f64 {
     (a[0] - x).hypot(a[1] - y)
+}
+
+/// Ours, an AI jet's taxi on the 6-DoF: where a pivot of `turn` rad begins before its point, m ([`PIVOT_R`]).
+fn pivot_lead(turn: f32) -> f32 {
+    (PIVOT_R * (turn / 2.0).tan()).clamp(PIVOT_LEAD.0, PIVOT_LEAD.1)
+}
+
+/// A taxi path's last point when it is the lineup (within 100 m of it).
+fn path_end_at(path: &[TaxiPt], lineup: [f32; 3]) -> Option<TaxiPt> {
+    let p = *path.last()?;
+    (dist2(Vec3::new(p.x as f64, p.y as f64, 0.0), lineup[0] as f64, lineup[1] as f64) < 100.0).then_some(p)
 }
 
 /// `5d70a0` PassWaypoint: passed once the 2-D distance was ≤ R and then grows.
@@ -1863,6 +1897,14 @@ pub struct Autopilot {
     pub avoid: Option<Vec3>,
     /// Ours (Modern IAF's flights): the steer loop's order ([`MODE_STEER`]).
     pub steer: Option<Steer>,
+    /// Ours (Modern IAF's flights): stop on the brakes at idle on the ground, set every frame: the taxi to park and
+    /// ParkInHangar behind a jet ahead on the way, TakeoffCL's roll held for a pair's wingman to line up beside.
+    pub hold: bool,
+    /// Ours (Modern IAF's flights, a pairs take-off): this jet lines up this far right of the lineup point (m; 0 the
+    /// original's lineup) beside its element lead, and rolls when the lead starts its roll.
+    pub lineup_offset: f32,
+    /// Ours (Modern IAF's flights, a pairs take-off): this jet leads a pair; its roll is at military power.
+    pub pair_lead: bool,
     mode: u8,
     lp: Loop,
     next_tick: f64,
@@ -1890,6 +1932,9 @@ impl Autopilot {
             home_hangar: None,
             avoid: None,
             steer: None,
+            hold: false,
+            lineup_offset: 0.0,
+            pair_lead: false,
             mode: 0,
             lp: Loop::None,
             next_tick: 0.0,
@@ -1900,6 +1945,17 @@ impl Autopilot {
 
     pub fn mode(&self) -> u8 {
         self.mode
+    }
+
+    /// Ours (Modern IAF's flights): the take-off's stage (0 the taxi, 1 TakeoffCL on the runway, 2 and 3 in the air)
+    /// or the landing pattern's step (LandingCL's children: 11 the turn to final, 13 the final, 14 StopPlane, 15 the
+    /// taxi in, 16 ParkInHangar); None in any other loop.
+    pub fn phase(&self) -> Option<usize> {
+        match &self.lp {
+            Loop::TakeOff { stage, .. } => Some(*stage as usize),
+            Loop::GoHome { land: Some(l), .. } => Some(l.step),
+            _ => None,
+        }
     }
 
     /// The loop's stage, for logs and tests.
@@ -2329,12 +2385,55 @@ impl Autopilot {
         }
     }
 
+    /// Ours, an AI jet's take-off on the 6-DoF: the nose wheel onto the runway's heading on the roll ([`ROLL_STEER`]).
+    /// Left alone the jet kept the heading its taxi left: up to 10° off where its last pivot ended in a turn and it
+    /// coasted on turning, 3° off on the roll (60 m across 1.2 km), and a pair rolled 15 m apart. Past 30 kt a pedal
+    /// that engages the nose wheel turns the jet hard and less leaves the wheel castoring, so there the pedal falls
+    /// with the speed squared and only an error of a degree or more engages it.
+    fn roll_steer(&self, l: &mut Laws) {
+        let v = l.v;
+        let rn = Airbase::nearest(&self.bases, [v.pos[0] as f32, v.pos[1] as f32, v.pos[2] as f32])
+            .map_or(v.att.heading, |b| b.runway_deg.to_radians());
+        let max = ROLL_STEER.2 * (NWS_KT_MS / v.speed.max(1.0)).min(1.0).powi(2);
+        let p = (ROLL_STEER.0 * wrap(rn - v.att.heading) - ROLL_STEER.1 * v.rates[2]).clamp(-max, max);
+        let castor = v.speed >= NWS_KT_MS && p.abs() < NWS_PEDAL;
+        l.out.rudder = Some(if !v.on_ground || castor { 0.0 } else { p });
+    }
+
+    /// TakeoffCL's lever on the roll: 1. Ours (Modern IAF's flights, a pairs take-off): the lead at military power
+    /// ([`Autopilot::pair_lead`]); its wingman keeps beside it ([`PAIR_KEEP`]) until it lifts off.
+    fn roll_throttle(&self, v: &ApView) -> f32 {
+        if self.pair_lead {
+            return crate::aircraft::MILITARY;
+        }
+        // (Only beside it: a lead already in the air, or far down the runway, is not kept station on.)
+        let beside = |ld: &Leader| ld.pos.distance(v.pos) < PAIR_NEAR_M;
+        let Some(ld) = self.leader.filter(|ld| ld.active && self.lineup_offset != 0.0 && v.on_ground && beside(ld))
+        else {
+            return 1.0;
+        };
+        let h = v.att.heading as f64;
+        let gap = ((ld.pos[0] - v.pos[0]) * h.sin() + (ld.pos[1] - v.pos[1]) * h.cos()) as f32;
+        let dv = ld.vel[0].hypot(ld.vel[1]) as f32 - v.speed;
+        (crate::aircraft::MILITARY + PAIR_KEEP.0 * gap + PAIR_KEEP.1 * dv).clamp(PAIR_KEEP.2, 1.0)
+    }
+
     /// TakeoffCL Run `5cda10`.
     fn takeoff_step(&self, l: &mut Laws) -> Leaf {
         let v = l.v;
+        if v.sixdof && l.mode != 0 {
+            self.roll_steer(l);
+        }
+        // Ours (Modern IAF's flights): a pair's lead holds for its wingman beside it; the wingman rolls with the lead.
+        if self.hold && v.on_ground && v.speed < 20.0 {
+            l.brakes(true);
+            l.throttle(0.0);
+            return Leaf::Run;
+        }
+        let roll_with = if self.lineup_offset != 0.0 { 1.0 } else { 25.7361 };
         if let Some(ld) = self.leader.filter(|ld| ld.active) {
             let lv = (ld.vel[0].powi(2) + ld.vel[1].powi(2) + ld.vel[2].powi(2)).sqrt() as f32;
-            if lv < 25.7361 {
+            if lv < roll_with {
                 l.brakes(true);
                 // Ours: the 6-DoF's 0.6 lever is near military power against the brakes; it holds at idle.
                 l.throttle(if v.sixdof { 0.0 } else { 0.6 });
@@ -2342,7 +2441,7 @@ impl Autopilot {
             }
         }
         l.brakes(false);
-        l.throttle(1.0);
+        l.throttle(self.roll_throttle(v));
         let agl = v.pos[2] as f32 - v.ground_height;
         if agl > 100.0 {
             l.gear(false);
@@ -2655,7 +2754,7 @@ impl Taxi {
                 self.waiting = true;
             }
             if self.at_lineup && !self.park {
-                return self.run(l, ap);
+                return self.run(l, ap, lineup);
             }
             if !self.park {
                 let h = base.hangar_near(pos[0] as f32, pos[1] as f32);
@@ -2684,6 +2783,22 @@ impl Taxi {
                 }) {
                     self.at_lineup = true;
                 }
+                // Ours, a pairs take-off: the wingman's path ends beside the lineup, its offset right of it, and so
+                // does its runway entry (the point before, on the centreline: 86–101 m before the lineup at each base
+                // of Modern IAF's iaf.ibx), so its last leg runs beside its lead's.
+                if ap.lineup_offset != 0.0
+                    && let Some(e) = path_end_at(&path, lineup)
+                {
+                    let (s, c) = (e.hdg as f64).sin_cos();
+                    let o = ap.lineup_offset as f64;
+                    let n = path.len();
+                    for p in path.iter_mut().skip(n.saturating_sub(2)) {
+                        let across = (p.x - e.x) as f64 * c - (p.y - e.y) as f64 * s;
+                        if across.abs() < 10.0 {
+                            (p.x, p.y) = ((p.x as f64 + o * c) as f32, (p.y as f64 - o * s) as f32);
+                        }
+                    }
+                }
                 self.path = path;
             } else {
                 let o = OCCUPIED.lock().unwrap().clone();
@@ -2710,10 +2825,10 @@ impl Taxi {
             }
             return Leaf::Run;
         }
-        self.run(l, ap)
+        self.run(l, ap, lineup)
     }
 
-    fn run(&mut self, l: &mut Laws, ap: &Autopilot) -> Leaf {
+    fn run(&mut self, l: &mut Laws, ap: &Autopilot, lineup: [f32; 3]) -> Leaf {
         let v = l.v;
         let now = v.t;
         let lead = ap.leader;
@@ -2733,9 +2848,12 @@ impl Taxi {
         if !i_am_lead && !free && lead_moving {
             self.start = now;
         }
+        // Ours, a pairs take-off: its lead lined up (at rest by the lineup), the wingman taxies up beside it.
+        let lined_up = lead.is_some_and(|ld| dist2(ld.pos, lineup[0] as f64, lineup[1] as f64) < 100.0);
+        let beside = ap.lineup_offset != 0.0 && lined_up && !lead_moving;
         if self.waiting && !self.park {
             if now < self.start {
-                if !free && !i_am_lead && tight {
+                if !free && !i_am_lead && tight && !beside {
                     self.start = now + 3.0;
                 }
                 if !i_am_lead && self.at_lineup {
@@ -2757,25 +2875,47 @@ impl Taxi {
                 occupy(b, h, false);
             }
         }
-        if !self.park && !free && !i_am_lead && tight {
+        // Ours (Modern IAF's flights): to park, a jet ahead on the way holds it (the flight's word).
+        if self.park && ap.hold {
+            l.brakes(true);
+            l.throttle(0.0);
+            return Leaf::Run;
+        }
+        if !self.park && !free && !i_am_lead && tight && !beside {
             self.waiting = true;
             self.start = now + 3.0;
             l.brakes(true);
             l.throttle(0.0);
             return Leaf::Run;
         }
-        let vt = if !self.park && !free && !i_am_lead && near && lead_moving { lead_v } else { 15.4417 };
+        let mut vt = if !self.park && !free && !i_am_lead && near && lead_moving { lead_v } else { 15.4417 };
+        // Ours, an AI jet on the 6-DoF: slow before a pivot to its wheel turn's speed ([`PIVOT_IN`]).
+        let ai6 = v.sixdof && l.mode != 0;
+        let mut slow = false;
+        if let Some(p) = self.path.get(self.i).filter(|_| ai6 && !self.turning) {
+            let h = v.att.heading as f64;
+            let along = ((p.x as f64 - v.pos[0]) * h.sin() + (p.y as f64 - v.pos[1]) * h.cos()) as f32;
+            let turn = wrap(p.hdg - v.att.heading).abs();
+            let lineup = !self.park && self.i + 1 == self.path.len();
+            if lineup || turn > PIVOT_IN.2.to_radians() {
+                let v0 = if lineup { LINEUP_WALK } else { PIVOT_IN.0 };
+                let cap = (v0 * v0 + 2.0 * PIVOT_IN.1 * (along - pivot_lead(turn)).max(0.0)).sqrt();
+                slow = cap < vt;
+                vt = vt.min(cap);
+            }
+        }
         // Ours, the 6-DoF: idle through a pivot (thrust in a tight wheel turn tipped the jet onto its tail).
-        let mut thr = if v.sixdof && l.mode != 0 && self.turning { 0.0 } else { l.taxi_thr(vt, &mut self.thr_i) };
+        let mut thr = if ai6 && self.turning { 0.0 } else { l.taxi_thr(vt, &mut self.thr_i) };
         // Ours, an AI jet on the 6-DoF: its idle thrust runs it past the taxi speed (36 m/s on the taxiway); the
-        // wheel brakes hold it within 3 m/s of it (inferred).
-        l.brakes(v.sixdof && l.mode != 0 && v.speed > vt + 3.0);
+        // wheel brakes hold it within 3 m/s of it (inferred), and within 0.5 m/s of a pivot's speed.
+        l.brakes(ai6 && v.speed > vt + if slow { 0.5 } else { 3.0 });
         let mut done = false;
         if let Some(p) = self.path.get(self.i).copied() {
             // Along-track distance to the point.
             let h = v.att.heading as f64;
             let along = (p.x as f64 - v.pos[0]) * h.sin() + (p.y as f64 - v.pos[1]) * h.cos();
-            if !self.turning && along <= 30.0 {
+            let lead_m = if ai6 { pivot_lead(wrap(p.hdg - v.att.heading).abs()) as f64 } else { 30.0 };
+            if !self.turning && along <= lead_m {
                 l.out.pivot = Some(Some(p.hdg));
                 self.turning = true;
             }
@@ -3225,6 +3365,12 @@ impl Landing {
             self.park = Some((t.x as f64, t.y as f64, t.hdg, 1000.0));
         }
         let (x, y, hdg, last) = self.park.unwrap();
+        // Ours (Modern IAF's flights): a jet ahead on the way holds it.
+        if ap.hold {
+            l.throttle(0.0);
+            l.brakes(true);
+            return Leaf::Run;
+        }
         let d = dist2(v.pos, x, y);
         let mut i = self.park_thr;
         l.throttle(if v.sixdof { l.taxi_thr(1.0294, &mut i) } else { l.thr(1.0294) });

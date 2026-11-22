@@ -702,10 +702,12 @@ func _say(code: int) -> void:
 	_speak(base, code)
 
 
-## Tower message `code` of base `at` and the pilot's "Roger" (551c20's speech); returns the message (say's).
-func _speak(at: int, code: int) -> Dictionary:
+## Tower message `code` of base `at` and the pilot's "Roger" (551c20's speech); returns the message (say's). Ours
+## (Modern IAF's flight AI): `cs` another callsign particle (a wingman's), answered by its own `answer` in place of the
+## player's "Roger".
+func _speak(at: int, code: int, cs := "", answer := []) -> Dictionary:
 	var b: Dictionary = bases[at]
-	var cs := _tower_callsign()
+	cs = cs if cs != "" else _tower_callsign()
 	var rwy: Variant = int(b.rwy) / 10
 	if b.letter != "":
 		rwy = "%d%s" % [rwy, b.letter]
@@ -728,7 +730,10 @@ func _speak(at: int, code: int) -> Dictionary:
 			p = say(t, [cs], [rwy])
 		_:
 			p = say(t, [cs])
-	say("ACFT_ROGER", [], [], false)
+	if answer.is_empty():
+		say("ACFT_ROGER", [], [], false)
+	else:
+		say("WNG_ACK", answer)
 	return p
 
 
@@ -973,12 +978,19 @@ const WING_WORDS := {
 ## Ours (Modern IAF): the flight AI's call `id` from jet `from` (IafAi.step) said and subtitled: "Kidon 1-2." (ack),
 ## "Kidon 1-2, unable", "Kidon 1-3 has the lead", "Kidon 1-2, six point two" (an ops check's fuel state, `fuel_kg` in
 ## thousands of pounds); a break is called to the element mate (#2 calls "Kidon 1-1, break left" when a missile flies
-## at #1).
-func flight_call(from: int, id: String, fuel_kg := 0.0) -> void:
+## at #1). The tower's landing calls to the jet at `at` (world): "Kidon 1-2, cleared to land runway 25 left" on its
+## turn to final (tower_land), "Kidon 1-2, welcome back, taxi to parking" after its roll (tower_park), from the
+## talking tower in range, each answered with the callsign (docs/ai.md §8.7).
+func flight_call(from: int, id: String, fuel_kg := 0.0, at := Vector3.INF) -> void:
 	var n: String = WING_NUMBERS[clampi(from, 0, 4)]
 	var table = host.sounds.get("table") if host != null and host.get("sounds") != null else null
 	if table != null:
 		table.speaker = from  # his Hebrew voice (sound_table.gd hebrew)
+	if id in ["tower_land", "tower_park"]:
+		var b := base_at(at) if at != Vector3.INF else -1
+		if b >= 0 and b < tower_count and from >= 2:
+			_speak(b, 6 if id == "tower_land" else 9, n + "_T", [n])
+		return
 	match id:
 		"ack":
 			say("WNG_ACK", [n])

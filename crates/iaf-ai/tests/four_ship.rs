@@ -620,11 +620,21 @@ fn mig29_ground_run_at_nevatim() {
     ground_run_at("MiG-29A", "Nevatim");
 }
 
+#[test]
+fn taxi_in_behind_a_stopped_lead() {
+    // The lead (the player) stops on its way in for minutes: the wingmen taxiing in behind it hold (docs/ai.md §8.7).
+    ground_run_with("F-16I", "Ramon", true);
+}
+
 fn ground_run(ty: &str) {
     ground_run_at(ty, "Ramon");
 }
 
 fn ground_run_at(ty: &str, base: &str) {
+    ground_run_with(ty, base, false);
+}
+
+fn ground_run_with(ty: &str, base: &str, lead_stops: bool) {
     let Some(dir) = own() else { return println!("skipped: no assets/converted/own (iaf-sim fm, airbases)") };
     let _turn = HANGARS.lock().unwrap_or_else(|e| e.into_inner());
     autopilot::reset_hangars();
@@ -668,6 +678,9 @@ fn ground_run_at(ty: &str, base: &str) {
     // The pitch (deg; a tail strike past 15°: aircraft::landing_limits) and the speed (kt) at the touchdown.
     let mut touchdown = [None; 4];
     let parked = |w: &World| w.jets.iter().all(|(fm, ap)| ap.landed && !fm.engine_on() && fm.state().speed < 0.5);
+    // How long the wingmen held for a jet ahead taxiing in, s; the lead's stop's end.
+    let mut held = 0.0;
+    let mut stop_until = None;
     while w.t < 4000.0 && !parked(&w) {
         // The scripted lead: mode 9 once its engine runs, the route from the take-off point, home at the landing
         // waypoint (the 1998 brain's rules).
@@ -680,7 +693,14 @@ fn ground_run_at(ty: &str, base: &str) {
         } else if ap.mode() == 7 && ap.wp_index == 3 {
             ap.set_mode(fm, 8);
         }
+        if lead_stops && ap.stage().starts_with("landing step 15 taxi point 3") && stop_until.is_none() {
+            stop_until = Some(w.t + 240.0);
+        }
+        ap.hold = stop_until.is_some_and(|t| w.t < t);
         w.frame();
+        if w.flight.members.iter().any(|m| m.order.hold) {
+            held += w.dt;
+        }
         for i in 0..4 {
             let (fm, ap) = &w.jets[i];
             let st = fm.state();
@@ -746,11 +766,159 @@ fn ground_run_at(ty: &str, base: &str) {
     let order = |t: [Option<f64>; 4]| t.windows(2).all(|p| p[0].unwrap() < p[1].unwrap());
     assert!(order(airborne), "take-off in order");
     assert!(order(landed), "landing in order");
-    // Nevatim's four shelters share one taxi-in path, where #4 closed to 1 m on #2 (open, docs/ai.md §18.4).
-    if base != "Nevatim" {
-        assert!(w.sep_ground > 30.0, "ground separation {}", w.sep_ground);
-    }
+    // Nevatim's four shelters share one taxi-in path, where #4, swinging 40 m wide into its turn, came within 1 m of
+    // #2 parked before the taxi slowed for its pivots (docs/ai.md §18.4).
+    println!("held for a jet ahead taxiing in: {held:.0} s");
+    assert!(w.sep_ground > 30.0, "ground separation {}", w.sep_ground);
     assert!(w.sep_air > 30.0, "air separation {}", w.sep_air);
+    assert!(!lead_stops || held > 60.0, "the wingmen held behind the stopped lead");
+    // The tower's landing calls to each AI jet, in order: cleared to land on the turn to final, taxi to parking after
+    // the roll; none to the lead (the player, who asks the tower himself).
+    let said = |n: u8, id: &str| w.calls.iter().find(|(_, c)| c.from == n && c.id == id).map(|(t, _)| *t);
+    for n in 1..=4u8 {
+        let (land, park) = (said(n, "tower_land"), said(n, "tower_park"));
+        println!("#{n}: tower: cleared to land at {land:?}, taxi to parking at {park:?}");
+        if n == 1 {
+            assert!(land.is_none() && park.is_none(), "no tower call to the player");
+        } else {
+            let landed = landed[n as usize - 1].unwrap();
+            assert!(land.is_some_and(|t| t < landed && t > landed - 120.0), "#{n} cleared to land on its final");
+            assert!(park.is_some_and(|t| t >= landed && t < landed + 2.0), "#{n} taxi to parking after its roll");
+        }
+    }
+}
+
+#[test]
+fn pairs_take_off_at_ramon() {
+    pairs_take_off_at("Ramon");
+}
+
+#[test]
+fn pairs_take_off_at_nevatim() {
+    pairs_take_off_at("Nevatim");
+}
+
+/// The four Sufas take off in pairs ([`Flight::pairs`]): #2 lines up beside #1 (the scripted lead, as the player,
+/// waits for it), #4 beside #3 (the AI element lead waits for it), each wingman rolls with its lead; then the join-up.
+fn pairs_take_off_at(base: &str) {
+    let Some(dir) = own() else { return println!("skipped: no assets/converted/own (iaf-sim fm, airbases)") };
+    let _turn = HANGARS.lock().unwrap_or_else(|e| e.into_inner());
+    autopilot::reset_hangars();
+    let bases = Airbase::load_all(&std::fs::read(dir.join("iaf.ibx")).unwrap());
+    let rb = bases.iter().find(|b| b.name == base).unwrap().clone();
+    let z = rb.lineup[2];
+    let l = Vec3::new(rb.lineup[0] as f64, rb.lineup[1] as f64, z as f64);
+    let (s, c) = (rb.runway_deg as f64).to_radians().sin_cos();
+    let at = |along: f64, up: f64| Vec3::new(l[0] + along * s, l[1] + along * c, l[2] + up);
+    let shelter = |h: usize| {
+        let p = rb.hangars[h];
+        (Vec3::new(p.x as f64, p.y as f64, z as f64), p.hdg.to_degrees())
+    };
+    let mut w = World::new(&dir, [shelter(0), shelter(1), shelter(2), shelter(3)], 0.0, false, z);
+    let wp = |p: Vec3, action: i32| Waypoint { x: p[0], y: p[1], z: p[2], t: 0.0, action };
+    let route = vec![wp(at(15_000.0, 1500.0), 2), wp(at(60_000.0, 2500.0), 3), wp(at(120_000.0, 2500.0), 3)];
+    for (fm, ap) in &mut w.jets {
+        ap.route = route.clone();
+        fm.set_stores(2000.0, 0.0, 0.0);
+    }
+    w.flight.pairs(true);
+    w.flight.start_up(0.0);
+    w.jets[0].0.start_engine();
+    let mut airborne = [None; 4];
+    let mut rolled = [None; 4];
+    // The least distance between the mates of each pair from the roll to 30 s after both are up, and the least
+    // between any jets of the two pairs, m.
+    let (mut mates, mut others) = ([f64::MAX; 2], f64::MAX);
+    let mut lined_up = [None; 4];
+    let mut abreast = [None; 2];
+    while w.t < 1000.0 && w.flight.members.iter().skip(1).any(|m| !m.airborne || m.slot_error > 50.0) {
+        let lead_waits = w.jets[1].1.phase().is_none_or(|p| p < 1);
+        let (fm, ap) = &mut w.jets[0];
+        if ap.mode() == 0 && fm.engine_on() {
+            ap.set_mode(fm, 9);
+        } else if ap.mode() == 9 && ap.stage().starts_with("take-off stage 3") {
+            ap.wp_index = 1;
+            ap.set_mode(fm, 7);
+        }
+        // The player waits on the runway for #2 beside him, then rolls at military power.
+        ap.hold = ap.mode() == 9 && ap.phase() == Some(1) && lead_waits;
+        ap.pair_lead = true;
+        w.frame();
+        for i in 0..4 {
+            let (fm, ap) = &w.jets[i];
+            let st = fm.state();
+            if ap.mode() == 9 && ap.phase() == Some(1) && lined_up[i].is_none() {
+                lined_up[i] = Some(w.t);
+            }
+            if ap.mode() == 9 && ap.phase() == Some(1) && st.speed > 20.0 && rolled[i].is_none() {
+                rolled[i] = Some(w.t);
+            }
+            if rolled[i].is_some() && !st.on_ground && airborne[i].is_none() {
+                airborne[i] = Some(w.t);
+                // Each wingman where its lead is at the lead's lift-off.
+                if i % 2 == 0 {
+                    abreast[i / 2] = Some(w.jets[i + 1].0.state().position - st.position);
+                }
+            }
+            assert_eq!(fm.limits().map_or(0, |l| l.tyres_burst), 0, "#{}: tyres burst", i + 1);
+        }
+        if ((w.t * 60.0).round() as u64).is_multiple_of(60 * 20) {
+            let st: Vec<_> = (w.jets.iter().zip(&w.flight.members))
+                .map(|((fm, ap), m)| format!("{} {:.0} m/s slot {:.0} m", ap.stage(), fm.state().speed, m.slot_error))
+                .collect();
+            println!("t {:.0}: {st:?}", w.t);
+        }
+        for (k, p) in [(0, 1), (2, 3)].into_iter().enumerate() {
+            let up = airborne[p.0].zip(airborne[p.1]).map(|(a, b)| a.max(b));
+            if rolled[p.0].is_some() && up.is_none_or(|t| w.t < t + 30.0) {
+                let d = w.jets[p.0].0.state().position.distance(w.jets[p.1].0.state().position);
+                mates[k] = mates[k].min(d);
+            }
+        }
+        for i in 0..2 {
+            for j in 2..4 {
+                others = others.min(w.jets[i].0.state().position.distance(w.jets[j].0.state().position));
+            }
+        }
+    }
+    let beside = |i: usize, _: usize| {
+        let d: Vec3 = abreast[i / 2].unwrap();
+        (d[0] * c - d[1] * s, d[0] * s + d[1] * c)
+    };
+    println!("pairs at {base}: lined up {lined_up:?}\nrolled {rolled:?}\nairborne {airborne:?}");
+    println!(
+        "at the lead's lift-off #2 {:?} (right, ahead m) of #1, #4 {:?} of #3; least between mates {mates:?} m, between the pairs \
+         {others:.0} m; air separation {:.1} m (t {:.0} s, #{} and #{})",
+        beside(0, 1),
+        beside(2, 3),
+        w.sep_air,
+        w.sep_at.0,
+        w.sep_at.1,
+        w.sep_at.2
+    );
+    for n in 2..=4u8 {
+        let m = w.flight.member(n).unwrap();
+        println!("#{n}: {} slot error {:.0} m", w.jets[n as usize - 1].1.stage(), m.slot_error);
+        assert!(m.airborne && m.slot_error < 50.0, "#{n} joined up");
+    }
+    for (k, (a, b)) in [(0, 1), (2, 3)].into_iter().enumerate() {
+        let (right, ahead) = beside(a, b);
+        assert!(
+            right.abs() > 10.0 && right.abs() < 25.0 && ahead.abs() < 60.0,
+            "#{} beside #{} at the lift-off",
+            b + 1,
+            a + 1
+        );
+        let (ra, rb) = (rolled[a].unwrap(), rolled[b].unwrap());
+        assert!((rb - ra).abs() < 3.0, "#{} rolled with #{} ({ra:.1}, {rb:.1} s)", b + 1, a + 1);
+        let (ua, ub) = (airborne[a].unwrap(), airborne[b].unwrap());
+        assert!((ub - ua).abs() < 6.0, "#{} up with #{} ({ua:.1}, {ub:.1} s)", b + 1, a + 1);
+        // (The F-16's span is 9.45 m: their tips a metre apart at the least, as in a formation take-off.)
+        assert!(mates[k] > 10.5, "pair {k}: mates {:.1} m apart", mates[k]);
+    }
+    // The second pair rolls after the first has left the runway's end (inferred: 20 s at least).
+    assert!(rolled[2].unwrap() > rolled[0].unwrap() + 20.0, "the second pair after the first");
+    assert!(others > 30.0, "the pairs {others:.0} m apart");
 }
 
 #[test]

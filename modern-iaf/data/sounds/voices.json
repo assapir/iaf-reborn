@@ -199,6 +199,30 @@
       "say_he": "כידון ארבע"
     },
     {
+      "file": "twr_kidon1_2.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) one-two",
+      "mode": "particle",
+      "say_he": "כידון אחד שתיים",
+      "note": "the tower to a wingman of the flight (its landing calls, docs/ai.md §8.7)"
+    },
+    {
+      "file": "twr_kidon1_3.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) one-three",
+      "mode": "particle",
+      "say_he": "כידון אחד שלוש",
+      "note": "the tower to a wingman of the flight (its landing calls, docs/ai.md §8.7)"
+    },
+    {
+      "file": "twr_kidon1_4.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) one-four",
+      "mode": "particle",
+      "say_he": "כידון אחד ארבע",
+      "note": "the tower to a wingman of the flight (its landing calls, docs/ai.md §8.7)"
+    },
+    {
       "file": "twr_morning.ogg",
       "voice": "tower",
       "say": "good morning",
@@ -2788,6 +2812,21 @@
       "file": "twr_kidon4.ogg",
       "text": "Kidon 4",
       "text_he": "כידון 4"
+    },
+    "WNG_TWO_T": {
+      "file": "twr_kidon1_2.ogg",
+      "text": "Kidon 1-2",
+      "text_he": "כידון 1-2"
+    },
+    "WNG_THREE_T": {
+      "file": "twr_kidon1_3.ogg",
+      "text": "Kidon 1-3",
+      "text_he": "כידון 1-3"
+    },
+    "WNG_FOUR_T": {
+      "file": "twr_kidon1_4.ogg",
+      "text": "Kidon 1-4",
+      "text_he": "כידון 1-4"
     },
     "MORNING": {
       "file": "twr_morning.ogg",

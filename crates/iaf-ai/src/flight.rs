@@ -46,9 +46,13 @@ const AVOID_M: f64 = 60.0;
 const AVOID_STEP_S: f64 = 0.25;
 /// A jet's acceleration is smoothed over this, s (the frames' velocity steps are rough).
 const ACC_S: f64 = 0.3;
-/// Once pulling away, it goes on until the closest approach is this far, m (inferred: a pull that stopped at
-/// [`AVOID_M`] left two AI jets 37 m apart, and an AI jet 13 m from the player's, who does not pull).
+/// Once pulling away, it goes on until the closest approach is this far, m, or, a jet in its slot, no nearer than
+/// the second with the jets no longer closing (the closest approach is now; inferred: a pull that stopped at
+/// [`AVOID_M`] left two AI jets 37 m apart, and an AI jet 13 m from the player's, who does not pull; one that went on
+/// to this far, more than the slots' 84 m, never stopped in a slot: in the lead's 30° bank turn #3 and #4, 69 m apart
+/// at the join-up, pulled on and scattered the flight 500 m, test_four_ship, 2026-11-22).
 const AVOID_CLEAR_M: f64 = 100.0;
+const AVOID_SLOT_CLEAR_M: f64 = 70.0;
 /// A slot is reached (the transit's end; "in position") within this, m.
 const IN_POSITION_M: f32 = 50.0;
 /// The indices of "line_abreast" and "trail" in [`SHAPES`].
@@ -80,6 +84,23 @@ const REJOIN: (f32, f32, f32, f32) = (6_000.0, 3_000.0, 3.0, 60.0);
 /// An AI jet reports an AWACS contact inside its radar's reach, m, and this far off its nose, deg (a fighter radar's
 /// 40 NM and ±60°).
 const RADAR: (f64, f64) = (74_000.0, 60.0);
+/// Taxiing in, a jet holds while another jet of the flight with its engine running is on the ground in its way:
+/// within `.0` m along its heading and `.1` m across, or nearer than `.2` m and not behind it (inferred: room to stop
+/// from the 30 kt taxi speed on the brakes, the width of a taxiway with a wing either side, and a pivot's turn toward
+/// a jet beside the way; at 80 m along a jet stopped 21 m behind the one ahead, and one turning toward a jet stopped
+/// beside its turn point came within 31 m).
+const TAXI_HOLD_M: (f64, f64, f64) = (150.0, 25.0, 60.0);
+/// A pairs take-off ([`Flight::pairs`]): the wingman lines up this far beside its element lead, m (inferred: a 10 m
+/// span either side of a 45 m runway's centreline, 5 m between the tips); the lead waits on the runway for it at most
+/// this long, s.
+const PAIR_M: f32 = 15.0;
+const PAIR_WAIT_S: f64 = 90.0;
+/// A pairs take-off: the mates fly free of each other's collision avoidance from the roll until they are this far
+/// apart (the wingman's way out to its slot; the slots are at least 84 m apart), m, or this long after lift-off, s.
+const PAIR_FREE: (f64, f64) = (60.0, 120.0);
+/// The landing pattern's steps that bring the tower's calls (autopilot `phase`): the turn to final (LandingCL's CH4)
+/// and StopPlane's end.
+const TURN_FINAL: usize = 11;
 
 /// The shapes, the gallery of Hebrew Wikipedia's "טיסת מבנה" (echelon both ways; not the missing man): id, then the
 /// slots of #2, #3, #4 (forward, right, up m) relative to #1. The spacing is inferred: any two jets at least 84 m
@@ -153,6 +174,12 @@ pub struct Order {
     pub shoot: bool,
     /// An enemy fighter in the dogfight: a gun burst at the bogey now (the host's launch, combat.gd).
     pub gun: bool,
+    /// Stop on the ground (taxiing in behind a jet ahead; a pair's lead waiting on the runway for its wingman).
+    pub hold: bool,
+    /// A pairs take-off's wingman: its lineup this far right of the lineup point, m (0: the stream's).
+    pub lineup_offset: f32,
+    /// A pairs take-off's lead with its wingman beside it: the roll at military power.
+    pub pair_lead: bool,
 }
 
 /// One jet of the flight: what it is this frame ([`Flight::sense`]) and the AI's memory of it. The trees read and
@@ -169,6 +196,8 @@ pub struct Member {
     /// Its acceleration, m/s² (from the frames' velocities, smoothed over [`ACC_S`]): the turn and the throttle.
     acc: Vec3,
     pub mode: u8,
+    /// The take-off's stage or the landing pattern's step (`Autopilot::phase`).
+    pub phase: Option<usize>,
     /// TakeoffCL has ended in the air.
     pub airborne: bool,
     /// StopPlane has run.
@@ -231,6 +260,12 @@ pub struct Member {
     pub(crate) winchester: bool,
     /// An enemy fighter's facts and memory ([`Flight::enemy`]).
     pub enemy: Enemy,
+    /// The tower's calls to it made: cleared to land, taxi to parking.
+    tower: [bool; 2],
+    /// A pairs take-off: lined up on the runway since (the lead's wait, [`PAIR_WAIT_S`]); flying free of its mate's
+    /// collision avoidance since its lift-off ([`PAIR_FREE`]; None on the ground).
+    lined_up: Option<f64>,
+    pair_free: Option<Option<f64>>,
 }
 
 /// The flight.
@@ -259,6 +294,8 @@ pub struct Flight {
     truth: Option<Bogey>,
     /// The bogey's self-protection jammer: its burn-through share, 0 not jamming ([`Flight::bogey_jamming`]).
     truth_jam: f64,
+    /// A pairs take-off ([`Flight::pairs`]).
+    pairs: bool,
 }
 
 impl Default for Flight {
@@ -282,6 +319,7 @@ impl Default for Flight {
             gci: None,
             truth: None,
             truth_jam: 0.0,
+            pairs: false,
         }
     }
 }
@@ -376,6 +414,7 @@ impl Flight {
             corner: None,
             acc: Vec3::ZERO,
             mode: ap.mode(),
+            phase: ap.phase(),
             airborne: !v.on_ground,
             landed: false,
             engine_on: fm.engine_on(),
@@ -416,6 +455,9 @@ impl Flight {
             last_shot: f64::MIN,
             winchester: false,
             enemy: Enemy::default(),
+            tower: [false; 2],
+            lined_up: None,
+            pair_free: None,
         });
         self.members.sort_by_key(|m| m.number);
         self.lead = 0;
@@ -620,6 +662,7 @@ impl Flight {
         m.v = v;
         m.corner = fm.corner_speed();
         m.mode = ap.mode();
+        m.phase = ap.phase();
         // An AI jet: TakeoffCL ended (or it started in the air); the player: off the ground once.
         m.airborne = if m.ai { ap.airborne || m.airborne && !m.v.on_ground } else { m.airborne || !m.v.on_ground };
         m.landed = ap.landed;
@@ -632,6 +675,13 @@ impl Flight {
     /// The tower's start-up clearance: the wingmen start their engines, one after the other.
     pub fn start_up(&mut self, now: f64) {
         self.cleared.get_or_insert(now);
+    }
+
+    /// The take-off in pairs (true) or in a stream behind the lead (false, the default): #2 lines up beside #1 and #4
+    /// beside #3, [`PAIR_M`] apart on the side of their slot in the shape; an AI element lead waits on the runway until
+    /// its wingman is lined up (at most [`PAIR_WAIT_S`]), and the wingman rolls with it.
+    pub fn pairs(&mut self, on: bool) {
+        self.pairs = on;
     }
 
     /// A radio command (design §4) to `to`: 0 the flight, 5 the element (#3, #4), 2..4 one wingman. Returns false for
@@ -711,7 +761,7 @@ impl Flight {
             self.next = now + DECIDE_S;
             self.decide(now);
         }
-        self.feed();
+        self.feed(now);
         let (due, later) = std::mem::take(&mut self.calls).into_iter().partition(|(t, _)| *t <= now);
         self.calls = later;
         due.into_iter().map(|(_, c)| c).collect::<Vec<_>>()
@@ -794,6 +844,7 @@ impl Flight {
             let me = &self.members[i];
             let nearest = (self.members.iter())
                 .filter(|o| o.number != me.number && o.alive && !o.v.on_ground && !me.v.on_ground)
+                .filter(|o| !pair_free(me, o))
                 .map(|o| o.v.pos.distance(me.v.pos))
                 .fold(f64::MAX, f64::min);
             let m = &mut self.members[i];
@@ -907,17 +958,80 @@ impl Flight {
             self.calls.push((now + mate.skill.reaction_s, Call { from: mate.number, id }));
             self.members[i].mate_called = true;
         }
+        self.pairs_take_off(now);
+        self.tower_calls(now);
+    }
+
+    /// A pairs take-off's bookkeeping: each AI jet's time lined up on the runway, and a wingman lined up beside its
+    /// lead flies free of the lead's collision avoidance until [`PAIR_FREE`].
+    fn pairs_take_off(&mut self, now: f64) {
+        for i in 0..self.members.len() {
+            let n = self.members[i].number;
+            let lead_pos = self.index(n.wrapping_sub(1)).map(|j| self.members[j].v.pos).filter(|_| n.is_multiple_of(2));
+            let m = &mut self.members[i];
+            let on_runway = m.mode == 9 && m.phase == Some(1);
+            m.lined_up = if on_runway { Some(m.lined_up.unwrap_or(now)) } else { None };
+            if self.pairs && on_runway && m.v.on_ground && m.order.lineup_offset != 0.0 && m.pair_free.is_none() {
+                m.pair_free = Some(None);
+            }
+            if let Some(free) = m.pair_free {
+                let since = free.or((!m.v.on_ground).then_some(now));
+                let apart = lead_pos.is_none_or(|p| p.distance(m.v.pos) > PAIR_FREE.0);
+                let over = since.is_some_and(|t| now - t > PAIR_FREE.1 || apart && !m.v.on_ground);
+                m.pair_free = (!over && m.alive).then_some(since);
+            }
+        }
+    }
+
+    /// The tower's landing calls to our AI jets (not an enemy flight's: [`Flight::enemy`]): "cleared to land" on the
+    /// turn to final, "taxi to parking" once the landing roll has stopped.
+    fn tower_calls(&mut self, now: f64) {
+        if self.station.is_some() {
+            return;
+        }
+        for m in self.members.iter_mut().filter(|m| m.ai && m.alive) {
+            if m.mode == 8 && m.phase.is_some_and(|p| p >= TURN_FINAL) && !m.landed && !m.tower[0] {
+                m.tower[0] = true;
+                self.calls.push((now, Call { from: m.number, id: "tower_land" }));
+            }
+            if m.landed && !m.tower[1] {
+                m.tower = [true; 2];
+                self.calls.push((now, Call { from: m.number, id: "tower_park" }));
+            }
+        }
     }
 
     /// Each AI jet's leader this frame: on the ground the jet ahead in taxi order (TaxiCL's spacing, TakeoffCL's
     /// stream), in the air the flight lead; its slot, stepped down during a change of slots.
-    fn feed(&mut self) {
+    fn feed(&mut self, now: f64) {
+        let t = SHAPES[self.shape].1;
+        let side = |n: u8| {
+            let right = if n == 2 { t[0][1] } else { t[2][1] - t[1][1] };
+            if right > 0.0 { PAIR_M } else { -PAIR_M }
+        };
         for i in 0..self.members.len() {
+            let hold = self.taxi_hold(i) || self.pair_hold(i, now);
+            let n = self.members[i].number;
+            let mate = self.index(n + 1).map(|j| &self.members[j]);
+            // (Until the lead's own lift-off: a wingman off the ground a moment first leaves its stage on the runway.)
+            let rolling = self.members[i].lined_up.is_some();
+            let mate_up = |o: &Member| o.lined_up.is_some() || o.airborne;
+            let pair_lead = self.pairs && n % 2 == 1 && rolling && mate.is_some_and(|o| o.ai && o.alive && mate_up(o));
+            self.members[i].order.pair_lead = pair_lead;
+            self.members[i].order.hold = hold;
+            self.members[i].order.lineup_offset = if self.pairs && n.is_multiple_of(2) { side(n) } else { 0.0 };
             let a = self.avoid(i);
             let ld = leader_of(&self.members[self.leader_index(i)]);
             let m = &mut self.members[i];
-            m.avoiding = a.is_some_and(|(miss, _)| miss < if m.avoiding { AVOID_CLEAR_M } else { AVOID_M });
-            m.order.avoid = a.filter(|_| m.avoiding).map(|(_, away)| away);
+            let in_slot = m.mode == MODE_SLOT && !m.transit && m.slot_error < IN_POSITION_M;
+            m.avoiding = a.is_some_and(|(miss, _, closing)| {
+                if !m.avoiding {
+                    miss < AVOID_M
+                } else {
+                    miss < AVOID_CLEAR_M && (closing || miss < AVOID_SLOT_CLEAR_M || !in_slot)
+                }
+            });
+            m.order.avoid = a.filter(|_| m.avoiding).map(|(_, away, _)| away);
             let ahead = (0..i).rev().map(|j| &self.members[j]).find(|a| a.alive).map(leader_of);
             let m = &mut self.members[i];
             let ground = m.v.on_ground && !m.airborne || m.mode == 9 && !m.airborne;
@@ -939,29 +1053,72 @@ impl Flight {
 }
 
 impl Flight {
+    /// Member `i`, an AI jet taxiing in: another jet of the flight on the ground with its engine running ahead of it
+    /// on its way ([`TAXI_HOLD_M`]). Two jets taxiing in that each have the other ahead (head on): the higher number
+    /// holds.
+    fn taxi_hold(&self, i: usize) -> bool {
+        let taxiing_in = |m: &Member| m.ai && m.alive && m.airborne && m.v.on_ground && m.mode == 8;
+        let me = &self.members[i];
+        if !taxiing_in(me) {
+            return false;
+        }
+        let in_way = |a: &Member, b: &Member| {
+            let (d, h) = (b.v.pos - a.v.pos, a.v.att.heading as f64);
+            let along = d[0] * h.sin() + d[1] * h.cos();
+            let across = d[0] * h.cos() - d[1] * h.sin();
+            along > 0.0 && along < TAXI_HOLD_M.0 && across.abs() < TAXI_HOLD_M.1
+                || along > -10.0 && along.hypot(across) < TAXI_HOLD_M.2
+        };
+        self.members.iter().any(|o| {
+            // Each in the other's way: the higher number holds.
+            let holds_for_me = taxiing_in(o) && in_way(o, me) && o.number > me.number;
+            o.number != me.number && o.alive && o.v.on_ground && o.engine_on && in_way(me, o) && !holds_for_me
+        })
+    }
+
+    /// Member `i`, an AI element lead (#1, #3) lined up for a pairs take-off: it waits on the runway while its AI
+    /// wingman, alive and still on the ground, is not yet lined up beside it, at most [`PAIR_WAIT_S`].
+    fn pair_hold(&self, i: usize, now: f64) -> bool {
+        let me = &self.members[i];
+        let waiting = me.lined_up.is_some_and(|t| now - t < PAIR_WAIT_S);
+        if !(self.pairs && me.ai && me.number % 2 == 1 && waiting) {
+            return false;
+        }
+        let mate = self.index(me.number + 1).map(|j| &self.members[j]);
+        mate.is_some_and(|o| o.ai && o.alive && !o.airborne && o.lined_up.is_none())
+    }
+
     /// Member `i`, an AI jet in the air: the closest approach within [`AVOID_S`] to the jet it comes nearest to, m,
     /// and the way away from it (straight at it: the higher number goes down). Both go on as they turn and speed up
     /// now (their accelerations; in straight lines a jet released on afterburner from behind the lead was seen too
-    /// late, 13–29 m from it), sampled every [`AVOID_STEP_S`] and at the straight lines' closest approach.
-    fn avoid(&self, i: usize) -> Option<(f64, Vec3)> {
+    /// late, 13–29 m from it), sampled every [`AVOID_STEP_S`] and at the straight lines' closest approach; and
+    /// whether they still close (the closest approach later than now).
+    fn avoid(&self, i: usize) -> Option<(f64, Vec3, bool)> {
         let me = &self.members[i];
         if !me.ai || !me.alive || me.v.on_ground {
             return None;
         }
-        let (miss, other) = (self.members.iter())
-            .filter(|o| o.number != me.number && o.alive && !o.v.on_ground)
+        let (miss, other, closing) = (self.members.iter())
+            .filter(|o| o.number != me.number && o.alive && !o.v.on_ground && !pair_free(me, o))
             .flat_map(|o| {
                 let (op, ov) = (o.v.pos, o.v.vel);
                 let (dp, dv, da) = (op - me.v.pos, ov - me.v.vel, o.acc - me.acc);
                 // Also the straight lines' closest approach (head-on, a sample's step is 50 m).
                 let straight = (-dp.dot(dv) / dv.dot(dv).max(1e-6)).clamp(0.0, AVOID_S);
                 let steps = (0..=(AVOID_S / AVOID_STEP_S) as usize).map(|k| k as f64 * AVOID_STEP_S);
-                steps.chain([straight]).map(move |t| (dp + dv * t + da * (t * t / 2.0), o.number))
+                steps.chain([straight]).map(move |t| (dp + dv * t + da * (t * t / 2.0), o.number, t > 0.0))
             })
             .min_by(|a, b| a.0.length().total_cmp(&b.0.length()))?;
         let down = if me.number > other { -1.0 } else { 1.0 };
-        Some((miss.length(), (-miss).try_normalize().unwrap_or(Vec3::UP * down)))
+        Some((miss.length(), (-miss).try_normalize().unwrap_or(Vec3::UP * down), closing))
     }
+}
+
+/// `a` and `b` are a pair's mates flying free of each other's collision avoidance after a pairs take-off
+/// ([`PAIR_FREE`]).
+fn pair_free(a: &Member, b: &Member) -> bool {
+    let (w, l) = if a.number.is_multiple_of(2) { (a, b) } else { (b, a) };
+    w.pair_free.is_some() && l.number + 1 == w.number
 }
 
 /// `m`'s defence against `t` and whether it turns right: against a radar (a lock, a radar missile) the beam (the
@@ -1039,6 +1196,9 @@ pub fn apply(o: &Order, ap: &mut Autopilot, fm: &mut Fm) {
     ap.leader = o.leader;
     ap.slot = o.slot;
     ap.avoid = o.avoid;
+    ap.hold = o.hold;
+    ap.lineup_offset = o.lineup_offset;
+    ap.pair_lead = o.pair_lead;
     if o.steer.is_some() {
         ap.steer = o.steer;
     }

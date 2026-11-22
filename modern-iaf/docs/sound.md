@@ -403,7 +403,9 @@ runway number 1–36 (spoken digit by digit, "two five") and the letters `RWY_L`
 the second is kidon 2 etc"; [research/radio-terms.md](research/radio-terms.md)): the flight is "Kidon 1" ("כידון 1"),
 its jets "Kidon 1-1" to "Kidon 1-4", spoken "Kidon one-two" ("כידון אחד-שתיים"). The particle keys stay the exe's
 formation names (`ALPHA_T` is Kidon 1, `DELTA_T` Kidon 4: `radio.gd` `kidon`); the files are named `*_kidon<N>*`. The
-wingmen's own calls say the jet's callsign ("Kidon 1-2, unable": `WNG_ONE`..`WNG_FOUR`). Kokoro reads a bare "Kidon"
+wingmen's own calls say the jet's callsign ("Kidon 1-2, unable": `WNG_ONE`..`WNG_FOUR`); the tower's landing calls to
+a wingman say it in the tower's voice ("Kidon 1-2, cleared to land runway 25 right": `WNG_TWO_T`..`WNG_FOUR_T`,
+`twr_kidon1_2.ogg`..`twr_kidon1_4.ogg`; [../../docs/ai.md](../../docs/ai.md) §8.7). Kokoro reads a bare "Kidon"
 as KID-ahn, so `say` carries its reading as a misaki link, `[Kidon](/kidˈOn/)` (kee-DOHN, the Hebrew stress).
 
 **Fluent phrases** (3 November 2026, item E1c; the user: the TTS is "not fluent between words"). E1b played a call

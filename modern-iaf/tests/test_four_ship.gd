@@ -16,7 +16,8 @@
 #     combat.gd, one missile in the air at a time, and rejoins once the target is gone;
 #   - F4's other close shapes through the radio menu: diamond, vic, delta, echelon left, fingertip, each held within
 #     60 m of its slot for 20 s by 80 s after the "in position";
-#   - F7: sent home, each lands and parks at its own shelter, engine off;
+#   - F7: sent home, each lands and parks at its own shelter, engine off, at least 30 m from the others taxiing in;
+#     the tower clears each to land on its turn to final and sends it to parking after its roll;
 #   - all along at least 30 m between any two jets in the air; F10: the AI's CPU time per jet per frame at time
 #     scale 1.
 #   IAF_DEFAULT_SETTINGS=1 godot --headless --audio-driver Dummy --path modern-iaf \
@@ -392,12 +393,23 @@ func _chaff(tv: Node, ent: Dictionary) -> int:
 
 ## F7: sent home, each lands and parks at its own shelter, engine off.
 func _home(tv: Node) -> void:
+	var t0: float = tv.runtime.now
 	check(tv.ai.flight_ai.command(tv.runtime.now, 0, "rtb"), "RTB taken")
 	var parked := func(k: int) -> bool:
 		var p = _wing[k].pilot
 		var st: Dictionary = p.flight.state()
 		return p.flight.ap_landed() and not bool(st.engine_on) and float(st.get("speed", 0.0)) < 0.5
-	var ok := await _until(tv, func(): return parked.call(0) and parked.call(1) and parked.call(2), 1500.0)
+	# The least distance between two wingmen both on the ground after their landings (the taxi in), m.
+	var ground := [INF]
+	var taxi_in := func():
+		for i in 3:
+			for j in range(i + 1, 3):
+				var a = _wing[i].pilot
+				var b = _wing[j].pilot
+				if a.flight.ap_landed() and b.flight.ap_landed():
+					ground[0] = minf(ground[0], (_wing[i].world as Vector3).distance_to(_wing[j].world))
+		return parked.call(0) and parked.call(1) and parked.call(2)
+	var ok := await _until(tv, taxi_in, 1500.0)
 	for k in 3:
 		check(
 			parked.call(k) and _moved(k) < 40.0,
@@ -407,6 +419,19 @@ func _home(tv: Node) -> void:
 			)
 		)
 	check(ok, "all three parked")
+	check(ground[0] > 30.0, "at least 30 m between the wingmen taxiing in (%.1f m)" % ground[0])
+	# F7: the tower's landing calls to each, said with the callsign's answer.
+	for n in [2, 3, 4]:
+		check(
+			_said(n, "tower_land", t0) and _said(n, "tower_park", t0),
+			"Kidon 1-%d: the tower's landing calls (%s)" % [n, _calls()]
+		)
+		var cs := "Kidon 1-%d" % n
+		check(
+			_heard(tv, "ACFT_CLEAR_TO_LAND", cs) or _heard(tv, "ACFT_CLEAR_TO_LAND_NW", cs),
+			'the tower: "%s, cleared to land …" said' % cs
+		)
+		check(_heard(tv, "ACFT_TAXI_TO_PARK", cs), 'the tower: "%s, welcome back, taxi to parking" said' % cs)
 
 
 ## Every frame: the least distance between two jets in the air; the player's heading bug kept ahead (the circle).
