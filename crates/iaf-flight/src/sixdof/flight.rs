@@ -156,8 +156,8 @@ pub struct SixDof {
     ap_cmd: (f64, f64),
     /// While it flies, taken twice a second at the jet's weight and height (m/s): the level speeds of the two αs of
     /// `autopilot::REAL_CIRCUIT` with the flaps and the speed brake as they are ([`ApView::circuit`]), and the real
-    /// final's speed ([`ApView::final_speed`]).
-    ap_speeds: Option<(f32, f32, f32)>,
+    /// final's speed ([`ApView::final_speed`]), and the level speed at its α limit ([`SixDof::corner_speed`]).
+    ap_speeds: Option<(f32, f32, f32, f32)>,
     /// The AoA the probe gives the gauge, the indexer and the HUD, deg ([`probe_aoa`]).
     aoa_ind: f64,
     /// The trailing-edge flaps, deg down ([`jets::tef_schedule`]).
@@ -686,7 +686,8 @@ impl SixDof {
             let glide = crate::autopilot::REAL_FINAL.1 as f64;
             let dsb = self.jet.speed_brake.gear_down_deg;
             let fin = approach_speed(&jet, -b.pos.z, self.jet.final_alpha, glide, self.jet.tef_deg, dsb).0;
-            self.ap_speeds = Some((level(limiter) as f32, level(turn) as f32, fin as f32));
+            let top = level(self.jet.alpha_max as f32);
+            self.ap_speeds = Some((level(limiter) as f32, level(turn) as f32, fin as f32, top as f32));
         }
     }
 
@@ -1136,6 +1137,13 @@ impl SixDof {
             circuit: self.ap_speeds.filter(|_| !s.on_ground).map(|v| ((s.speed / v.0).powi(2), v.1)),
             sixdof: true,
         }
+    }
+
+    /// While an autopilot loop flies it: the corner speed at its weight and height (m/s), where the wing's lift at the
+    /// jet's α limit reaches its g limit; below it the wing gives (V / corner)² of the g limit (the BFM's turn,
+    /// docs/ai.md §18.2).
+    pub fn corner_speed(&self) -> Option<f32> {
+        self.ap_speeds.map(|v| v.3 * (self.jet.g_limits.0 as f32).sqrt())
     }
 
     /// An autopilot loop starts or stops flying the jet (the autopilot's `stores_trim` hook): while it flies, the

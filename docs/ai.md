@@ -1343,7 +1343,7 @@ engine sound: no sound on disk fits a small piston engine.
 
 - The warhead's damage at the end point, the launch from the rack and the climb (the mission work).
 - The 6-DoF data for the type (open).
-- Listed only: the integrated network (ai-plan K6) and enemy-fighter BFM (K3 / K4; the user: lower priority).
+- The integrated network (ai-plan K6, §15.5) and the enemy fighters (K3, K4, §18) are built since.
 
 ## 17. Modern IAF's skill levels (ours)
 
@@ -1362,6 +1362,7 @@ the same struct.
 | the gun's laying error, each way (mrad, one standard deviation) | 8 | 4 | 2 |
 | the missile launch range, share of the envelope from its minimum range out | 1.0 | 0.9 | 0.8 |
 | a fighter's tactics (§18) | the plain ones | the crank, the notch | the crank, the notch, the drag |
+| a fighter's dogfight moves (§18.2) | pure pursuit, a level turn, the break | also the lag, the low yo-yo, the rate or radius fight, the break down | also the high yo-yo, the vertical, the guns jink |
 
 Every figure is inferred: no source grades crews in numbers. The names are the front end's words for the same scale,
 "נמוכה / בינונית / גבוהה" (Low / Medium / High, as the Settings' cost column); "מיומנות" is the IDF's word for a
@@ -1384,8 +1385,9 @@ What each level changes in the enemy we have:
   shoots once the bogey has been inside its share of the missile's envelope for its reaction time, so the launch comes
   deeper than the window's edge by the closure in that time (head-on at 500–550 m/s closing in `--test intercept shot`:
   about 2 km Low, 0.5 km High, with the 0.5 s decision tick); its tactics pick the turns after its shot and against a
-  missile. A missile takes no laying error: it guides itself from the launch. The fighters have no gun shot yet; the
-  gun's aim (`Skill::lay`, as the ZSU's) comes with the dogfight (K4).
+  missile. A missile takes no laying error: it guides itself from the launch. In the dogfight (§18.2) its moves are its
+  tactics' and its gun's lead point is laid off by the level's error. A wingman's gun aim stays open: the wingmen do
+  not dogfight yet.
 - **The drones** (§16): none. A Shahed-136 flies a programmed route; it has no crew, no reaction and no shot.
 
 Check: `cargo test -p iaf-ai --test sites skill` (each level's track, first launch and march order against the same
@@ -1457,7 +1459,77 @@ hostile jet, which the pair knows only while its radar holds it.
   notches a radar missile).
 - **Open:** a scramble from a base (no enemy airbases yet); the fighters' own radar is the wingmen's reach and cone,
   without the ground clutter or the target's cross-section; the pairing of several pairs to several raids (each pair
-  takes the track nearest its station); the dogfight (K4).
+  takes the track nearest its station).
+
+### 18.2 The dogfight (K4)
+
+Step 3 (2026-11-22). Inside the fight's range of a bogey it sees, a committed fighter with something to shoot flies the
+BFM leaf (`crates/iaf-ai/src/bfm.rs`) in place of the intercept, in both trees after the missile shot; past 1.5 times
+the range it goes back to the intercept. Each decision (0.5 s) the leaf reads:
+
+- **the geometry:** the range, its nose's angle to the bogey (the antenna train angle) and its angle off the bogey's
+  tail (the aspect angle), the closure;
+- **the energy:** both jets' energy heights (height plus V²/2g);
+- **the turn:** its own from the 6-DoF's real limits: the corner speed at its weight and height (`SixDof::corner_speed`:
+  the level speed at its α limit times √ its g limit, from the same trim as the landing circuit's speeds), the most it
+  pulls at a speed ((V / corner)² of the g limit) and its turn rate at the corner; the bogey's turn as seen (its
+  velocity's swing between two decisions).
+
+The moves are the basic fighter manoeuvres as Shaw names them[^shaw] (the reference the plan names); their thresholds
+are ours (inferred). The skill's tactics (§17) pick the branches:
+
+| situation | tactics 0 | tactics 1 adds | tactics 2 adds |
+|---|---|---|---|
+| offensive: the bogey within 90° of its nose, itself within 90° of the bogey's tail | pure pursuit (the lead point inside the gun's range) at full g and full power | the lag (1.5 s behind the bogey) when closing faster than 60 m/s inside 2.5 km or when its turn circle is wider; the low yo-yo (the point 0.4 of the range below) when out of the gun's range and falling back, or slow | the high yo-yo (the lag point 0.4 of the range above) when closing at 120 m/s from more than 45° off the tail |
+| defensive: the bogey behind its beam, its nose within 60° of it, inside 5 km | the break: full g into the bogey, level | the break in any plane; the break down (the point 0.4 of the range below) when 600 m of energy height behind | the guns jink inside 1.35 km: the point a range above or below, flipped every 2 s |
+| neutral | a level turn at full g toward the bogey | the rate fight (pure pursuit, the speed held near the corner) when it out-turns the bogey, else the radius fight (full g at 0.75 of the corner speed) | the vertical (the point 0.4 of the range above) when 600 m of energy height ahead and faster than the corner speed |
+
+- **Energy.** No move asks more than the wing gives at the speed (no pull into the α limit's drag). Every move flies
+  full power except the radius fight (the speed law's throttle at its slower speed). From tactics 1 the fighter holds
+  its speed near the corner: in the rate fight, the lag, the high yo-yo and the vertical it unloads to 3 g below 0.85
+  of the corner speed, and when slow out of the gun's range it flies the low yo-yo (down for speed, full g); the plain
+  tactics pull full g whatever the speed (they bleed to a slow, nose-high fight).
+- **The BFM loop** (`autopilot.rs` `MODE_BFM`, ours): it flies the move's point in any plane, the lift rolled onto it
+  with no bank limit; the turn asked is 0.5 per radian of the angle to the point plus the swing of the line to it (as
+  a proportional navigation's: a moving point is tracked with no standing error), inside the load factor left once
+  gravity's share is held; the line to the point is kept within 60° of the horizon (no loops: the bank about the
+  horizon stays defined); the ground watch stays on. Its tick is 1/30 s. The gain and the tick are the least tracking
+  error behind a jet in a 5 g turn (2.9° mean, `dogfight.rs`). The flight moves the point onto the bogey as it is every
+  frame while the fighter sees it (`Flight::feed`), and never below 500 m above the ground (the fight's floor, the
+  notch's).
+- **Sight.** A pilot sees a jet within 8 km except in the 30° cone behind its own tail (the MiG-29's "poor view to the
+  rear", modern-iaf/docs/research/enemies.md §4.2); once seen, it keeps sight inside the 8 km (checking six). The
+  bogey's truth is then known without the radar; the radar's lock and the missile shot still need the radar's
+  contact.
+- **The gun.** Inside 330–900 m (the 30 mm's, inferred) with the lead point (the round's flight time at 860 m/s plus its
+  own speed) within 2° of the nose in any move (a lag behind a bogey flying straight included) and the bogey itself
+  within combat.gd's 5° gun cone, the fighter orders a burst (`Order::gun`); the lead point is laid off by the skill's
+  error (`Skill::lay`, a seeded hash per jet and burst). The host (`ai_flights.gd` `_step_enemy`) selects the gun
+  (combat.gd 370), sets a 1 s burst (5 ticks; inferred) and launches it (300: the cone, the gun's envelope, the fire
+  gate at 370's 5 s); the gate's interval is the missiles' again after the burst. A brain-less jet's rounds fly at the
+  target of its launch (`combat.gd` `gun_target`). A fighter with no missile but rounds left counts as armed: it commits
+  and closes to the gun.
+- **The MiG-29's tuning** (modern-iaf/docs/research/enemies.md §4.2): its "nose-pointing" below 200 kt and the F-16's acceleration above come
+  from the 6-DoF itself (its corner speed and thrust); its poor rear view is the blind cone. No figure is specific to
+  the type: another fighter flies the same leaf from its own definition.
+- **Tests:** `cargo test -p iaf-ai --test dogfight` (MiG-29As on the 6-DoF: offensive behind a jet in a 5 g turn,
+  each level reaches a gun solution and from Medium stays behind its 3-9 line, the plain tactics' tracking under 4°;
+  defensive with a High fighter behind, each level breaks or jinks; neutral head-on passes 0.5, 1 and 2 km apart,
+  High against Low both ways, 120 s each: High offensive longer, 8 s against 0; most passes end in an even circling
+  fight, as two of the same jet would), `bfm::tests` (the moves by geometry, energy and tactics; the
+  points); `modern-iaf/tests/test_dogfight.gd` (headless: a MiG-29A behind a scripted jet sees it, commits, flies a
+  BFM move and fires its gun through combat.gd). The tests repeat: the Rust ones are deterministic (the laying
+  error is a seeded hash).
+- **CPU:** 4.1–7.8 µs per jet per frame on the build Mac for the Rust part (two fighters in the BFM leaf; the 6-DoF,
+  the autopilot, the trees), against the intercept's 3.9.
+- **Each fighter fights the pair's bogey**: two against one, both fly the leaf on it (the flight's collision
+  avoidance keeps them apart). The bogey's turn is the one it shows, not its type's limits: a pilot sees the turn, not
+  the other jet's corner speed.
+- **Open:** the level moves climb: the plain tactics' level break gains about 210 m in 6 s and their neutral level turn
+  about 1.6 km in 12 s (a probe on `dogfight.rs`'s setups, 22 Nov 2026); the level point is set at the jet's own height
+  each decision, so the climb is not corrected (the steer loop's level hard turn shows the same, about 285 m in 8 s).
+- **Not started** (outside step 3's brief, "enemies now; wingmen may read it later"): the wingmen's dogfight; the leaf
+  reads only a member and its bogey, so their trees can call it.
 
 ## UNCERTAIN
 Open questions in this document:
@@ -1489,3 +1561,4 @@ Open questions in this document:
 [^w-zsu]: Wikipedia, "ZSU-23-4 Shilka", https://en.wikipedia.org/wiki/ZSU-23-4_Shilka ("the radar picks up many false returns (ground clutter) under 60 m (200 ft) of altitude"; read 2026-11-21; 6.535 m long, 3.125 m wide, 2.576 m high, 3.572 m with the radar up, read 2026-11-22).
 [^ru-maz543]: Wikipedia (Russian), "МАЗ-543", https://ru.wikipedia.org/wiki/МАЗ-543 (the MAZ-543 / MAZ-7310: 11,657 mm long, 3,050 mm wide; read 2026-11-22).
 [^w-ural]: Wikipedia, "Ural-4320", https://en.wikipedia.org/wiki/Ural-4320 (7,366 mm long, 2,500 mm wide, 2,715 mm high; read 2026-11-22).
+[^shaw]: Robert L. Shaw, "Fighter Combat: Tactics and Maneuvering", Naval Institute Press, 1985, ISBN 0-87021-059-9 (pursuit: lead, pure, lag; the high and low yo-yo; the break and the guns jink; one-circle and two-circle fights; energy height; the terms only, no figure taken).

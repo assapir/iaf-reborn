@@ -107,6 +107,14 @@ impl Fm {
         }
     }
 
+    /// The 6-DoF's [`SixDof::corner_speed`]; None on the original model.
+    pub fn corner_speed(&self) -> Option<f32> {
+        match self {
+            Fm::Original(_) => None,
+            Fm::SixDof(s) => s.corner_speed(),
+        }
+    }
+
     pub fn engine_on(&self) -> bool {
         match self {
             Fm::Original(a) => a.engine_on,

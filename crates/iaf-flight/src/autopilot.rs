@@ -252,6 +252,28 @@ const STEER_BANK_MAX: f64 = 85.0;
 /// The steer loop goes down (its bank and lift above) for a [`Steer::dive`] point this far below the jet (m): a
 /// defence's descent (`iaf_ai::fighter`'s 500 m), not a level point's small error.
 pub const STEER_DOWN_M: f64 = 200.0;
+/// Ours, the BFM loop (Modern IAF's enemy fighters, docs/ai.md §18.2): the mode number; the turn rate it asks per
+/// radian of the angle between the flight path and the line to its point (1/s), and its tick (s): the least mean
+/// tracking error behind a jet in a 5 g turn (`crates/iaf-ai/tests/dogfight.rs`: 2.9° at 0.5 and 1/30 s, 5.7° at 1.0,
+/// 3.9° at 0.1 s; inferred).
+pub const MODE_BFM: u8 = 0x22;
+const BFM_K: f64 = 0.5;
+const BFM_PERIOD: f64 = 1.0 / 30.0;
+/// The BFM loop: the swing of the line to its point it follows at most (rad/s; a jet's turn near its corner speed: a
+/// faster swing is a new point); the line's steepest climb or dive off the horizon (deg; inferred: no loops, the bank
+/// about the horizon stays defined).
+const BFM_SWING: f64 = 1.0;
+const BFM_STEEP: f64 = 60.0;
+
+/// The unit direction `d` brought within [`BFM_STEEP`] of the horizon.
+fn steep_cut(d: Vec3) -> Vec3 {
+    let max = BFM_STEEP.to_radians().sin();
+    if d[2].abs() <= max {
+        return d;
+    }
+    let h = Vec3::new(d[0], d[1], 0.0).try_normalize().unwrap_or(Vec3::NORTH);
+    h * (1.0 - max * max).sqrt() + Vec3::UP * max.copysign(d[2])
+}
 
 /// The steer loop's order ([`MODE_STEER`], set by the host): fly toward `to` at its height, turning at up to `g`, at
 /// `speed` m/s with the throttle at most `thr_max` (0.74, military: the afterburner stays out). With `dive` (Modern
@@ -994,6 +1016,8 @@ enum Loop {
     },
     /// Ours, the steer loop ([`MODE_STEER`]).
     Steer,
+    /// Ours, the BFM loop ([`MODE_BFM`]): the time and the line to its point at the last tick (the line's swing).
+    Bfm(Option<(f64, Vec3)>),
 }
 
 /// Break90's state (`5da7a0`): the break point B, the entry-heading point A, the KeepOrientation capture.
@@ -1883,6 +1907,7 @@ impl Autopilot {
             Loop::Popup(p) => format!("popup child {}", p.as_ref().map_or(0, |p| p.child)),
             Loop::Slot { .. } => "slot".into(),
             Loop::Steer => "steer".into(),
+            Loop::Bfm(_) => "bfm".into(),
             Loop::None => "none".into(),
         }
     }
@@ -1953,6 +1978,7 @@ impl Autopilot {
             }
             MODE_SLOT => Loop::Slot { thr_i: ac.controls().throttle, prev: None },
             MODE_STEER => Loop::Steer,
+            MODE_BFM => Loop::Bfm(None),
             _ => Loop::None,
         };
         self.nose_on = false;
@@ -2197,6 +2223,10 @@ impl Autopilot {
             Loop::Steer => {
                 period = 0.1;
                 self.steer_step(&mut l);
+            }
+            Loop::Bfm(prev) => {
+                period = BFM_PERIOD;
+                self.bfm_step(&mut l, prev);
             }
             Loop::None => {}
         }
@@ -2477,6 +2507,48 @@ impl Autopilot {
         l.stick(y, x);
         l.throttle(thr);
     }
+
+    /// Ours, the BFM loop ([`MODE_BFM`], docs/ai.md §18.2; laws inferred): the steer order's point flown in any plane,
+    /// the lift rolled onto it with no bank limit ([`lift_stick_in`]), the line to it within [`BFM_STEEP`] of the
+    /// horizon; the turn asked [`BFM_K`] per radian of the angle to the point plus the swing of the line to it since
+    /// the last tick (the point's own motion, as a proportional navigation's: a moving point is tracked with no
+    /// standing error; the swing at most [`BFM_SWING`], so a new point adds no jolt), within the order's load factor
+    /// and the jet's once gravity's share across the path is held; the speed law's throttle, at most the order's. The
+    /// ground watch stays on.
+    fn bfm_step(&self, l: &mut Laws, prev: &mut Option<(f64, Vec3)>) {
+        let v = l.v;
+        let Some(s) = self.steer else {
+            l.stick(0.0, 0.0);
+            return;
+        };
+        let g = G as f64;
+        let t = v.vel.try_normalize().unwrap_or(Vec3::NORTH);
+        let d = steep_cut((s.to - v.pos).try_normalize().unwrap_or(t));
+        let n_max = s.g.min(v.max_g);
+        let swing = match prev.replace((v.t, d)) {
+            Some((t0, d0)) if v.t > t0 => (d - d0) / (v.t - t0),
+            _ => Vec3::ZERO,
+        };
+        let swing = swing * (BFM_SWING / swing.length().max(1e-9)).min(1.0);
+        let across = (d - t * t.dot(d)).try_normalize().unwrap_or(Vec3::ZERO);
+        let want = across * (BFM_K * t.dot(d).clamp(-1.0, 1.0).acos()) + (swing - t * t.dot(swing));
+        // The turn inside the load factor left once gravity's share is held: |a u + w| = n g along the turn's u.
+        let w = (Vec3::UP - t * t[2]) * g;
+        let a = want.length() * v.speed as f64;
+        let u = want.try_normalize().unwrap_or(Vec3::ZERO);
+        let uw = u.dot(w);
+        let room = (uw * uw - w.dot(w) + (n_max as f64 * g).powi(2)).max(0.0).sqrt() - uw;
+        let lift = u * a.min(room.max(0.0)) + w;
+        // (The bank is measured about the horizon's right, undefined straight up or down: the line to the point is
+        // kept within BFM_STEEP of the horizon, so the path stays off the vertical.)
+        let (mut y, mut x) = lift_stick_in(l, lift, std::f64::consts::PI, f64::NEG_INFINITY, n_max, false);
+        let mut thr = l.thr(s.speed).min(s.thr_max);
+        l.watch_ground(&mut x, &mut y, &mut thr);
+        l.gear(false);
+        l.flaps(false);
+        l.stick(y, x);
+        l.throttle(thr);
+    }
 }
 
 /// The stick (pitch, roll) that flies the lift `lift` (m/s², world, across the flight path): a bank about the flight
@@ -2486,19 +2558,25 @@ impl Autopilot {
 /// holds its height, so the turn's lift does not climb it.
 fn lift_stick(l: &Laws, lift: Vec3, hold: bool) -> (f32, f32) {
     let v = l.v;
-    let g = G as f64;
+    let n_max = v.circuit.map_or(v.max_g, |c| c.0.min(v.max_g)).min(SLOT_G_MAX);
+    let lim = if hold { STEER_BANK_MAX } else { SLOT_BANK_MAX }.to_radians();
+    lift_stick_in(l, lift, lim, 0.2 * G as f64, n_max, hold)
+}
+
+/// [`lift_stick`] within the bank `lim` (rad), the lift's up share taken as at least `up_min` (m/s²) for the bank, and
+/// the load factor `n_max`; `hold` as [`lift_stick`]'s.
+fn lift_stick_in(l: &Laws, lift: Vec3, lim: f64, up_min: f64, n_max: f32, hold: bool) -> (f32, f32) {
+    let v = l.v;
     let t = v.vel.try_normalize().unwrap_or(Vec3::NORTH);
     let right = t.cross(Vec3::UP).try_normalize().unwrap_or(Vec3::new(1.0, 0.0, 0.0));
     let up = right.cross(t);
     let (lr, lu) = (lift.dot(right), lift.dot(up));
-    let lim = if hold { STEER_BANK_MAX } else { SLOT_BANK_MAX }.to_radians();
-    let bank = lr.atan2(lu.max(0.2 * g)).clamp(-lim, lim) as f32;
+    let bank = lr.atan2(lu.max(up_min)).clamp(-lim, lim) as f32;
     let roll = v.att.roll;
     let mut n = ((lr as f32 * roll.sin() + lu as f32 * roll.cos()) / G).max(0.0);
     if hold && roll.cos() > 0.05 {
         n = n.min(1.0 / roll.cos());
     }
-    let n_max = v.circuit.map_or(v.max_g, |c| c.0.min(v.max_g)).min(SLOT_G_MAX);
     (l.inv_g(n.min(n_max)), l.roll(bank))
 }
 

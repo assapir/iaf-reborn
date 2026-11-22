@@ -4,6 +4,7 @@
 //! the calls (after the wingman's reaction time). The jets fly the autopilot's loops ([`apply`]); every figure here is
 //! inferred unless a doc says otherwise.
 
+use crate::bfm;
 use crate::bt::{Node, Status};
 use crate::fighter::{self, Bogey, Enemy};
 use crate::skill::Skill;
@@ -136,6 +137,8 @@ pub struct Order {
     pub decoy: Option<Decoy>,
     /// An enemy fighter: its missile at the bogey now (the host's launch, combat.gd).
     pub shoot: bool,
+    /// An enemy fighter in the dogfight: a gun burst at the bogey now (the host's launch, combat.gd).
+    pub gun: bool,
 }
 
 /// One jet of the flight: what it is this frame ([`Flight::sense`]) and the AI's memory of it. The trees read and
@@ -147,6 +150,8 @@ pub struct Member {
     pub alive: bool,
     pub skill: Skill,
     pub v: ApView,
+    /// The 6-DoF's corner speed now, m/s (`Fm::corner_speed`; None on the original model): the dogfight's turn.
+    pub corner: Option<f32>,
     /// Its acceleration, m/s² (from the frames' velocities, smoothed over [`ACC_S`]): the turn and the throttle.
     acc: Vec3,
     pub mode: u8,
@@ -267,6 +272,13 @@ fn in_radar(m: &Member, at: Vec3) -> bool {
     flat(at, m.v.pos) < RADAR.0 && off < RADAR.1
 }
 
+/// `at` in `m`'s pilot's sight: inside [`bfm::VISUAL_M`], not in the blind cone behind its tail ([`bfm::BLIND_DEG`]).
+fn in_sight(m: &Member, at: Vec3) -> bool {
+    let d = at - m.v.pos;
+    let tail = (-m.v.vel).try_normalize().unwrap_or(Vec3::NORTH);
+    d.length() < bfm::VISUAL_M && d.dot(tail) < d.length() * bfm::BLIND_DEG.to_radians().cos()
+}
+
 impl Flight {
     /// Adds jet `number` (1..4; `ai` false: the player). The first one names the home base: the base nearest its
     /// route's last waypoint (else itself). A jet on the ground at a hangar takes it as its home hangar
@@ -291,6 +303,7 @@ impl Flight {
             alive: true,
             skill: Skill::WINGMAN,
             v,
+            corner: None,
             acc: Vec3::ZERO,
             mode: ap.mode(),
             airborne: !v.on_ground,
@@ -500,6 +513,7 @@ impl Flight {
             m.acc = m.acc + ((v.vel - m.v.vel) / dt - m.acc) * (dt / ACC_S).min(1.0);
         }
         m.v = v;
+        m.corner = fm.corner_speed();
         m.mode = ap.mode();
         // An AI jet: TakeoffCL ended (or it started in the air); the player: off the ground once.
         m.airborne = if m.ai { ap.airborne || m.airborne && !m.v.on_ground } else { m.airborne || !m.v.on_ground };
@@ -709,11 +723,20 @@ impl Flight {
             let own = engage.or(if m.number == 3 { self.split } else { None });
             m.rejoining = own.is_none() && rejoin.is_some();
             m.task = own.or(rejoin);
-            (m.order.mode, m.order.decoy, m.order.shoot) = (None, None, false);
+            (m.order.mode, m.order.decoy, m.order.shoot, m.order.gun) = (None, None, false, false);
             if let Some(st) = self.station {
                 let contact = self.truth.filter(|b| in_radar(m, b.pos));
+                // (Once seen it stays seen inside the visual range: the pilot keeps sight, checking six.)
+                let kept = |b: &Bogey| m.enemy.visual && b.pos.distance(m.v.pos) < bfm::VISUAL_M;
+                let seen = self.truth.filter(|b| in_sight(m, b.pos) || kept(b));
                 let e = &mut m.enemy;
-                (e.station, e.contact, e.bogey) = (st, contact.is_some(), contact.or(self.gci));
+                (e.station, e.contact, e.visual) = (st, contact.is_some(), seen.is_some());
+                e.bogey = contact.or(seen).or(self.gci);
+                e.fought = e.aim.take().is_some();
+                // The bogey's turn as seen: its velocity's swing since the last decision that knew it.
+                let truth = contact.or(seen);
+                e.rate = truth.map_or(0.0, |b| bfm::seen_rate(e.last, now, b.vel));
+                e.last = truth.map(|b| (now, b.vel));
                 if i != self.lead {
                     e.committed = committed;
                 }
@@ -761,6 +784,13 @@ impl Flight {
             let ground = m.v.on_ground && !m.airborne || m.mode == 9 && !m.airborne;
             m.order.leader = if ground { ahead } else { Some(ld) };
             m.order.slot = m.slot;
+            // The dogfight's point follows the bogey every frame while it is in sight.
+            if let (Some((aim, lay)), Some(b)) = (m.enemy.aim, self.truth.filter(|_| m.enemy.visual)) {
+                let to = bfm::aim_point(m.v.pos, &b, &aim, lay, bfm::floor(m));
+                if let Some(s) = m.order.steer.as_mut() {
+                    s.to = to;
+                }
+            }
             if m.transit {
                 m.order.slot[2] -= TRANSIT_STEP * (m.number as f32 - 1.0);
             }

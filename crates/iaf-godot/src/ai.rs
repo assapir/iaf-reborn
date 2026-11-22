@@ -134,6 +134,13 @@ impl IafAi {
         self.flight.member(number.clamp(0, 255) as u8).is_some_and(|m| m.order.shoot)
     }
 
+    /// An enemy jet `number` in the dogfight fires a gun burst at its bogey this frame (after `step`; the host's launch:
+    /// combat.gd's).
+    #[func]
+    fn gun(&self, number: i64) -> bool {
+        self.flight.member(number.clamp(0, 255) as u8).is_some_and(|m| m.order.gun)
+    }
+
     /// An AWACS contact call at `now` (IafFlightController.scan's {bearing, miles, code}): an AI jet holding it in its
     /// radar reports "contact". Returns its number, 0 for none.
     #[func]
@@ -205,6 +212,7 @@ impl IafAi {
         d.set("phase", m.enemy.phase);
         d.set("committed", m.enemy.committed);
         d.set("contact", m.enemy.contact);
+        d.set("visual", m.enemy.visual);
         d
     }
 }

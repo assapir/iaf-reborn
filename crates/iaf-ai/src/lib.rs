@@ -4,6 +4,7 @@
 //! §15; the one-way attack drones (`drone`): §16; a unit's skill (`skill`): §17; the enemy fighters (`fighter`, the
 //! network's vector `net::Gci`): §18.
 
+pub mod bfm;
 pub mod bt;
 pub mod drone;
 pub mod fighter;

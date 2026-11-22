@@ -16,6 +16,8 @@ const FlightSounds := preload("res://shared/audio/flight_sounds.gd")
 const AirDefence := preload("res://shared/ai/air_defence.gd")
 const CLASS_AIRCRAFT := 0x1c
 const CLASS_TRANSPORT := 3
+## Ours: an enemy fighter's gun burst in the dogfight, combat.gd ticks of 0.2 s (1 s; inferred).
+const GUN_BURST := 5
 ## FUN_004a9100: the FM start velocity (200, 200, 0) → 282.84 m/s along the heading.
 const START_SPEED := 282.842712
 
@@ -529,17 +531,28 @@ func _step_enemy(f: Dictionary, now: float) -> void:
 		f.ai.set_threat(m[0], th[0], th[1])
 		var u = combat.units.get(ent.key)
 		var env: Array = _pick_aa(u, t) if u != null and not t.is_empty() else [0.0, 0.0, false]
+		# Armed: a missile left, or the gun's rounds (the dogfight, docs/ai.md §18.2).
+		var rounds: bool = u != null and u.stations.size() > 9 and int(u.stations[9].count) > 0
 		var mine := func(mis): return not mis.ended and is_same(mis.get_meta("owner", {}), ent)
 		var flying: bool = (
 			w != null and w.missiles.any(func(mis): return mine.call(mis) and mis.target_key == t.get("key"))
 		)
-		f.ai.set_weapons(m[0], env[0], env[1], env[2], flying)
+		f.ai.set_weapons(m[0], env[0], env[1], env[2] or rounds, flying)
 	f.ai.step(now)  # (the enemy's radio calls are not heard)
 	for m in f.members:
 		var ent: Dictionary = m[1]
 		var alive := int(ent.state) < 3
 		if alive and f.ai.shoot(m[0]):
 			combat.combat(ent, "300", t)
+		# The dogfight's burst: the gun selected (370), a burst of GUN_BURST ticks, the launch through the fire gate;
+		# the gate's interval is the missiles' again after it (370 sets the gun's 5 s for good).
+		elif alive and f.ai.gun(m[0]):
+			var gu = combat.units[ent.key]
+			var gi: float = gu.gate_interval
+			if combat.combat(ent, "370", {}):
+				gu.ripple.set_values(GUN_BURST, 10)
+				combat.combat(ent, "300", t)
+				gu.gate_interval = gi
 		var d: int = f.ai.decoy(m[0]) if alive else 0
 		if d > 0:
 			combat.combat(ent, "320" if d == 1 else "310", {})

@@ -1,0 +1,272 @@
+//! The dogfight (docs/ai.md §18.2; modern-iaf/docs/ai-plan.md K4): MiG-29As on the 6-DoF and the sim's own data under
+//! the enemy trees' BFM leaf, one against one from three starting geometries (offensive, defensive, neutral), against a
+//! scripted jet turning or against another fighter flying the same leaf. Skips with a message when
+//! `assets/converted/own` is not built.
+
+use std::path::PathBuf;
+
+use iaf_ai::{Bogey, Flight, Skill, apply};
+use iaf_flight::autopilot::{Autopilot, Config, MODE_STEER, Steer};
+use iaf_flight::fm::Fm;
+use iaf_flight::{DataSet, Start, Vec3};
+
+const DT: f64 = 1.0 / 60.0;
+const ALT: f64 = 5000.0;
+
+fn own() -> Option<PathBuf> {
+    let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../assets/converted/own");
+    (dir.join("resource/md/bd.ibx").is_file() && dir.join("iaf.ibx").is_file()).then_some(dir)
+}
+
+/// One jet: its flight model, its autopilot, and its own enemy flight (None: the scripted jet, flying its steer order).
+struct Jet {
+    fm: Fm,
+    ap: Autopilot,
+    flight: Option<Flight>,
+    /// Its gun bursts (an order 0.4 s after the last is a new one): (time, range).
+    bursts: Vec<(f64, f64)>,
+}
+
+/// Two jets, each the other's bogey.
+struct Duel {
+    jets: [Jet; 2],
+    t: f64,
+    frames: u64,
+    busy: std::time::Duration,
+    /// Jet 0's angle off its BFM point from 10 to 40 s: (sum of degrees, frames).
+    err: (f64, f64),
+}
+
+/// A MiG-29A in the air at `pos` heading `heading` (deg) at `speed` m/s; flown by an enemy flight at `skill`, or
+/// scripted (None).
+fn jet(dir: &std::path::Path, pos: Vec3, heading: f64, speed: f64, skill: Option<Skill>) -> Jet {
+    let (prm, env) = iaf_flight::load_with(dir, "MiG-29A", DataSet::Original).unwrap();
+    let h = heading.to_radians();
+    let st = Start {
+        position: pos,
+        pitch: 0.0,
+        roll: 0.0,
+        heading: h as f32,
+        velocity: Vec3::new(h.sin(), h.cos(), 0.0) * speed,
+        airborne: true,
+        engine_on: true,
+    };
+    let mut fm = Fm::start("MiG-29A", prm, env, st);
+    if let Fm::SixDof(s) = &mut fm {
+        s.set_ground_height(0.0);
+    }
+    let mut ap = Autopilot::new(Config::load(dir));
+    let flight = skill.map(|skill| {
+        let mut f = Flight::default();
+        f.add(1, true, &fm, &mut ap);
+        f.enemy(skill, pos);
+        // A missile left (its R-73s; no envelope given: only the gun shoots here).
+        f.weapons(1, (0.0, 0.0), true, false);
+        f
+    });
+    Jet { fm, ap, flight, bursts: Vec::new() }
+}
+
+impl Duel {
+    fn frame(&mut self) {
+        let clock = std::time::Instant::now();
+        let truth = |j: &Jet| {
+            let s = j.fm.state();
+            let v = s.velocity;
+            Bogey { pos: s.position, vel: Vec3::new(v[0] as f64, v[1] as f64, v[2] as f64) }
+        };
+        let b = [truth(&self.jets[1]), truth(&self.jets[0])];
+        for (i, j) in self.jets.iter_mut().enumerate() {
+            if let Some(f) = &mut j.flight {
+                f.sense(1, true, &j.fm, &j.ap);
+                f.bogey(None, Some(b[i]));
+                f.weapons(1, (0.0, 0.0), true, false);
+                f.step(self.t);
+                apply(&f.members[0].order, &mut j.ap, &mut j.fm);
+                if f.members[0].order.gun && j.bursts.last().is_none_or(|(t, _)| self.t - t > 0.4) {
+                    j.bursts.push((self.t, b[i].pos.distance(j.fm.state().position)));
+                }
+            }
+            j.ap.step(&mut j.fm, &|_, _| 0.0);
+            j.fm.step(DT);
+        }
+        self.busy += clock.elapsed();
+        self.frames += 1;
+        if self.t > 10.0
+            && self.t < 40.0
+            && let Some(st) = self.jets[0].ap.steer
+        {
+            let d = st.to - self.pos(0);
+            let v = self.vel(0);
+            self.err.0 += (d.dot(v) / (d.length() * v.length())).clamp(-1.0, 1.0).acos().to_degrees();
+            self.err.1 += 1.0;
+        }
+        self.t += DT;
+    }
+
+    fn run(&mut self, secs: f64, each: &mut dyn FnMut(&Duel)) {
+        for _ in 0..(secs / DT) as usize {
+            self.frame();
+            each(self);
+        }
+    }
+
+    fn pos(&self, n: usize) -> Vec3 {
+        self.jets[n].fm.state().position
+    }
+
+    fn vel(&self, n: usize) -> Vec3 {
+        let v = self.jets[n].fm.state().velocity;
+        Vec3::new(v[0] as f64, v[1] as f64, v[2] as f64)
+    }
+
+    fn phase(&self, n: usize) -> &'static str {
+        self.jets[n].flight.as_ref().map_or("scripted", |f| f.members[0].enemy.phase)
+    }
+
+    /// Jet `n`'s geometry against the other: the range, its nose's angle to it, its angle off the other's tail (deg).
+    fn geometry(&self, n: usize) -> (f64, f64, f64) {
+        let o = 1 - n;
+        let a = |x: Vec3, y: Vec3| (x.dot(y) / (x.length() * y.length())).clamp(-1.0, 1.0).acos().to_degrees();
+        let los = self.pos(o) - self.pos(n);
+        (los.length(), a(self.vel(n), los), a(self.vel(o), los))
+    }
+
+    fn alive(&self) -> bool {
+        self.jets.iter().all(|j| j.fm.state().crashed.is_none() && j.fm.state().position.z > 300.0)
+    }
+}
+
+/// The scripted bogey: a level turn to the right at `g`, at its speed.
+fn turning(j: &mut Jet, g: f32) {
+    let s = j.fm.state();
+    let right = s.right;
+    j.ap.steer = Some(Steer {
+        to: s.position + Vec3::new(right.x, right.y, 0.0) * 1500.0,
+        g,
+        speed: 230.0,
+        thr_max: 1.0,
+        dive: false,
+    });
+    j.ap.set_mode(&mut j.fm, MODE_STEER);
+}
+
+#[test]
+fn offensive_gun_solution() {
+    // 1.5 km behind a jet in a 5 g turn: each skill tracks it to a gun solution within the minute, and from Medium up
+    // stays behind its 3-9 line (the lag against the overshoot).
+    let Some(dir) = own() else {
+        println!("skipped: no assets/converted/own (iaf-sim fm)");
+        return;
+    };
+    for skill in [Skill::LOW, Skill::MEDIUM, Skill::HIGH] {
+        let target = jet(&dir, Vec3::new(0.0, 1500.0, ALT), 0.0, 230.0, None);
+        let mut w = Duel {
+            jets: [jet(&dir, Vec3::new(0.0, 0.0, ALT), 0.0, 250.0, Some(skill)), target],
+            t: 0.0,
+            frames: 0,
+            busy: Default::default(),
+            err: (0.0, 0.0),
+        };
+        turning(&mut w.jets[1], 5.0);
+        let (mut front, mut phases) = (0.0, Vec::new());
+        w.run(60.0, &mut |w| {
+            let (_, _, aa) = w.geometry(0);
+            if aa > 90.0 {
+                front += DT;
+            }
+            if phases.last() != Some(&w.phase(0)) {
+                phases.push(w.phase(0));
+            }
+        });
+        let first = w.jets[0].bursts.first().copied();
+        let err = w.err.0 / w.err.1.max(1.0);
+        println!(
+            "tactics {}: first burst {first:?}, {} bursts, {front:.1} s ahead of its 3-9 line, {err:.1}° off its point; \
+             {phases:?}",
+            skill.tactics,
+            w.jets[0].bursts.len()
+        );
+        assert!(w.alive(), "both fly");
+        assert!(first.is_some_and(|(_, r)| (330.0..=900.0).contains(&r)), "a gun solution: {first:?}");
+        if skill.tactics == 0 {
+            // Pure pursuit: the BFM loop's tracking (10–40 s), its gain's measure.
+            assert!(err < 4.0, "tracking {err:.1}°");
+        } else {
+            assert!(front < 3.0, "stays behind: {front:.1} s in front");
+        }
+    }
+}
+
+#[test]
+fn defensive_break() {
+    // A fighter at High 1.2 km behind, nose on: the defender breaks (turns hard into it) at once and is out of its gun
+    // solution within seconds.
+    let Some(dir) = own() else { return };
+    for skill in [Skill::LOW, Skill::MEDIUM, Skill::HIGH] {
+        let me = jet(&dir, Vec3::new(0.0, 0.0, ALT), 0.0, 250.0, Some(skill));
+        let bandit = jet(&dir, Vec3::new(-700.0, -1000.0, ALT), 0.0, 270.0, Some(Skill::HIGH));
+        let mut w = Duel { jets: [me, bandit], t: 0.0, frames: 0, busy: Default::default(), err: (0.0, 0.0) };
+        w.run(skill.reaction_s + 1.5, &mut |_| {});
+        let first = w.phase(0);
+        let h0 = w.vel(0);
+        w.run(8.0, &mut |_| {});
+        let turned = (h0.x * w.vel(0).y - h0.y * w.vel(0).x).atan2(h0.dot(w.vel(0))).abs().to_degrees();
+        let (r, _, aa) = w.geometry(1);
+        println!(
+            "tactics {}: {first}, turned {turned:.0}° in 8 s; the bandit {r:.0} m, {aa:.0}° off its tail; {} bursts at it",
+            skill.tactics,
+            w.jets[1].bursts.len()
+        );
+        assert!(["break", "jink", "break down"].contains(&first), "{first}");
+        assert!(turned > 60.0 || first == "jink", "turned {turned:.0}°");
+    }
+}
+
+#[test]
+fn neutral_merge_skill_decides() {
+    // Head-on passes 0.5, 1 and 2 km apart, High against Low, both ends: High is offensive longer in sum.
+    let Some(dir) = own() else { return };
+    let mut score = [[0.0f64; 2]; 2];
+    for (flip, side) in [false, true].into_iter().flat_map(|f| [500.0, 1000.0, 2000.0].map(|x| (f, x))) {
+        let skills = if flip { [Skill::LOW, Skill::HIGH] } else { [Skill::HIGH, Skill::LOW] };
+        let a = jet(&dir, Vec3::new(0.0, 0.0, ALT), 0.0, 250.0, Some(skills[0]));
+        let b = jet(&dir, Vec3::new(side, 8000.0, ALT), 180.0, 250.0, Some(skills[1]));
+        let mut w = Duel { jets: [a, b], t: 0.0, frames: 0, busy: Default::default(), err: (0.0, 0.0) };
+        let mut off = [0.0f64; 2];
+        let mut low = f64::MAX;
+        w.run(120.0, &mut |w| {
+            for (n, o) in off.iter_mut().enumerate() {
+                let (r, ata, aa) = w.geometry(n);
+                if r < 3000.0 && ata < 30.0 && aa < 60.0 {
+                    *o += DT;
+                }
+            }
+            low = low.min(w.pos(0).z.min(w.pos(1).z));
+        });
+        for n in 0..2 {
+            let hi = usize::from(skills[n] == Skill::HIGH);
+            score[hi][0] += off[n];
+            score[hi][1] += w.jets[n].bursts.len() as f64;
+        }
+        println!(
+            "{:?}: offensive {:.1} / {:.1} s, bursts {} / {}, lowest {low:.0} m",
+            skills.map(|s| s.tactics),
+            off[0],
+            off[1],
+            w.jets[0].bursts.len(),
+            w.jets[1].bursts.len()
+        );
+        assert!(w.alive(), "both fly");
+        let us = w.busy.as_secs_f64() * 1e6 / w.frames as f64 / 2.0;
+        println!(
+            "X5: {us:.2} µs per jet per frame (6-DoF, autopilot, enemy tree with the BFM leaf; {} frames)",
+            w.frames
+        );
+    }
+    println!(
+        "High: {:.1} s offensive, {} bursts; Low: {:.1} s, {} bursts",
+        score[1][0], score[1][1], score[0][0], score[0][1]
+    );
+    assert!(score[1][0] > score[0][0], "High offensive longer");
+}

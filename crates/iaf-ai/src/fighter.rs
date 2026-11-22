@@ -10,6 +10,7 @@
 use iaf_flight::Vec3;
 use iaf_flight::autopilot::{MODE_STEER, Steer};
 
+use crate::bfm;
 use crate::bt::Node::{self, *};
 use crate::bt::Status;
 use crate::flight::{Member, defence, defend};
@@ -71,7 +72,17 @@ pub struct Enemy {
     pub(crate) seen: Option<f64>,
     /// When the bogey came inside its shot window (its reaction to the launch runs from then).
     pub(crate) aimed: Option<f64>,
-    /// What it flies: cap, intercept, crank, slot, beam, notch, drag, break (for tests and logs).
+    /// The bogey in its pilot's sight this decision (inside [`crate::bfm::VISUAL_M`], not behind its tail).
+    pub visual: bool,
+    /// The dogfight's move this decision (its point and the gun's laying error, [`crate::bfm::fight`]); whether it
+    /// fought the decision before; the bogey's velocity at the last decision (its turn as seen); the gun's bursts.
+    pub(crate) aim: Option<(crate::bfm::Aim, [f64; 2])>,
+    pub(crate) fought: bool,
+    pub(crate) last: Option<(f64, Vec3)>,
+    /// The bogey's turn rate as seen this decision (rad/s; from `last`).
+    pub(crate) rate: f64,
+    pub(crate) bursts: u64,
+    /// What it flies: cap, intercept, crank, slot, beam, notch, drag, break, or a dogfight's move (for tests and logs).
     pub phase: &'static str,
 }
 
@@ -248,6 +259,7 @@ pub fn lead() -> Node<Member> {
         Seq(vec![Cond(|m| !m.alive), Act(idle)]),
         Seq(vec![Cond(flying), Act(evade)]),
         Act(shoot),
+        Seq(vec![Cond(bfm::fighting), Act(bfm::fight)]),
         Seq(vec![Cond(|m| m.enemy.committed), Act(intercept)]),
         Act(commit),
         Act(cap),
@@ -260,6 +272,7 @@ pub fn wingman() -> Node<Member> {
         Seq(vec![Cond(|m| !m.alive), Act(idle)]),
         Seq(vec![Cond(flying), Act(evade)]),
         Act(shoot),
+        Seq(vec![Cond(bfm::fighting), Act(bfm::fight)]),
         Seq(vec![Cond(|m| m.task.is_some()), Act(fly_task)]),
         Act(slot),
     ])

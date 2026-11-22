@@ -122,6 +122,7 @@ class Unit:
 	var gate_interval := 1.0
 	var gun_left := 0  # the burst's ticks left (W+0xe4)
 	var gun_next := INF
+	var gun_target: Dictionary = {}  # a brain-less jet's burst target (Modern IAF's fighters, docs/ai.md §18.2)
 	var decoy_until := -INF
 	var round_scale := 1.0  # the round model's Present scale
 	var stores  # stores.gd of an AI jet: the weight / drag on its flight model and the pylon models
@@ -667,6 +668,7 @@ func _launch(u: Unit, t: Dictionary, now: float) -> bool:
 	if type == 565:
 		u.gun_left = u.ripple.qty()
 		u.gun_next = now
+		u.gun_target = t
 		return true
 	if host.weapons == null:
 		return false
@@ -745,16 +747,8 @@ func _gun_round(u: Unit, now: float) -> void:
 		return
 	var o := _pose(u)
 	var a: Vector3 = u.rounds.aim_point(o.pos, o.vel, o.fwd, false)
-	u.rounds.fire(
-		now,
-		o.pos,
-		o.pos + o.fwd * 10.0,
-		o.vel,
-		a,
-		String(u.brain.target.get("key", "")),
-		u.ent.key,
-		Settings.easy_aiming
-	)
+	var t: Dictionary = u.brain.target if u.brain != null else u.gun_target
+	u.rounds.fire(now, o.pos, o.pos + o.fwd * 10.0, o.vel, a, String(t.get("key", "")), u.ent.key, Settings.easy_aiming)
 	_spent(u, 9)
 
 

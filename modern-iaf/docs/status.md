@@ -3,6 +3,15 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **Enemy fighter step 3: the dogfight (2026-11-22, the user, 21 Nov: "Ok finish all enemies things you can",
+  "Ok, do it"; [ai-plan.md](ai-plan.md) K4, X4, X5; [../../docs/ai.md](../../docs/ai.md) §18.2):** inside 6 km of a
+  hostile jet it sees, a committed MiG-29A flies an energy-aware BFM leaf: pursuit (lead, pure, lag) and the yo-yos when
+  offensive, the break or the guns jink when defensive, the rate, radius or vertical fight when neutral, picked by its
+  skill's tactics and its own turn from the 6-DoF (the corner speed), the energy heights and the bogey's turn as seen;
+  it fires its 30 mm through combat.gd with its skill's laying error. A High MiG beats a Low one from head-on passes
+  (`crates/iaf-ai/tests/dogfight.rs`, `modern-iaf/tests/test_dogfight.gd` through the dev hook `enemy_flight`). No
+  mission places one. CPU: 4.1–7.8 µs per jet per frame for the Rust part on the build Mac, 0.16–0.18 ms per AI jet per frame on the laptop. Not
+  started: the wingmen's dogfight.
 - **Enemy fighter step 2: the intercept (2026-11-22, the user, 21 Nov: "Ok finish all enemies things you can", "Ok, do
   it"; [ai-plan.md](ai-plan.md) K3, X4, X5; [../../docs/ai.md](../../docs/ai.md) §18.1):** an enemy pair of MiG-29As on
   a CAP orbit or started in the air is vectored by the S-300 network's 64N6E2 and 54K6E2 onto a hostile jet; it commits
