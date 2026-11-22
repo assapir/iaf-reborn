@@ -960,6 +960,13 @@ const WING_WORDS := {
 	"contact": "WNG_CONTACT",
 	"break_left": "WNG_BREAK_LEFT",
 	"break_right": "WNG_BREAK_RIGHT",
+	"engaged": "WNG_ENGAGED",
+	"fox_1": "WNG_FOX1",
+	"fox_2": "WNG_FOX2",
+	"fox_3": "WNG_FOX3",
+	"guns": "WNG_GUNS",
+	"splash": "WNG_SPLASH",
+	"winchester": "WNG_WINCHESTER",
 }
 
 

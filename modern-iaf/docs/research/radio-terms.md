@@ -53,6 +53,13 @@ strings.
 | break left / right (the mate's call) | none found. Ours: "כידון 1-2, שבירה שמאלה" / "ימינה" | "Kidon 1-2, break left!" | no IAF term found (searches for the Hebrew call found none); NATO: BREAK "Perform an immediate maximum performance turn in the indicated direction"[^alsa]; the form "Eagle, break right, missile in the air": US Navy, second-hand (search quote)[^tpub-break] |
 | contact (an AWACS call's contact on its radar) | none found. Ours: "כידון 1-3, יש מגע" | "Kidon 1-3, contact." | no IAF term found, NATO: CONTACT "Sensor information at the stated position"[^alsa] |
 | lead change (the new lead's call) | ours: "כידון 1-3 בהובלה" (term: **לקחת את ההובלה**[^mako-kaz]) | "Kidon 1-3 has the lead." | as the lead-change row above |
+| **Third search: the fight's words (22 November 2026, the wingmen in battle)** | | | |
+| cover me (the lead's command) | ours around the press's **חיפוי** (fighters "שחיפו על החילוץ", search summary, second-hand): "כידון 1-4, חיפוי" | "Kidon 1-4, cover me." | no IAF call found; NATO COVER (a defensive, supporting posture)[^alsa] |
+| engaged (a wingman takes a foe by itself) | none found. Ours: "כידון 1-2, בקרב" | "Kidon 1-2, engaged!" | no IAF call found, NATO ENGAGED[^alsa] |
+| Fox one / two / three (a missile launched: semi-active radar, infrared, active radar) | "כידון 1-2, **שיגור**" for all three (the fourth search: no IAF word for the seeker type found, so one line, inferred) | "Kidon 1-2, Fox two!" | the launch verb: the Nevatim commander on the F-35I's kill, "ושיגרנו עליו" (second-hand)[^jdn-yak]; "פוקס" in IAF use: none found; NATO FOX[^alsa] |
+| guns (a gun burst) | none found. Ours: "כידון 1-2, תותח" | "Kidon 1-2, guns!" | no IAF call found, NATO GUNS[^alsa] |
+| splash (a kill) | "כידון 1-2, **המטרה נפלה**" (the fourth search; **הפלה** stays the noun for a kill in debriefs and scores) | "Kidon 1-2, splash!" | an F-35I pilot on his kill, "ביצעתי, המטרה נפלה, נמשיך לתקיפה"[^jdn-f35]; an F-15 crew's radio, "המטרה הופלה"[^ynet-uav]; that it is a fixed call: inferred; NATO SPLASH[^alsa] |
+| winchester (nothing left to shoot) | none found. Ours: "כידון 1-2, אין חימוש" | "Kidon 1-2, winchester." | no IAF call found, NATO WINCHESTER[^alsa] |
 | **Terms** | | | |
 | the flight's callsign | **כידון N** for flight N (the player's is כידון 1, the next כידון 2, …); its jets **כידון N-M**, spoken "כידון אחד-אחד", "כידון אחד-שתיים". The callsign's term is **אות קריאה** | "Kidon 1", "Kidon 1-2" (spoken "Kidon one-two") | Hebrew Wikipedia: "זה נובע מצורת חלוקת אותות הקריאה בקשר: במבנה כידון 1, המוביל במבנה יהיה כידון 1-1 (אחד-אחד) ומספר 2 יהיה כידון 1-2 (אחד-שתיים)"[^hewiki-formation]; the user, 20 November 2026: "Use kidon style, where kidon 1 is the first formation the second is kidon 2 etc". The term אות קריאה: press, search quote[^mako-kaz]. Until 20 November the flight was "Alpha" (NATO style; no IAF style had been found on 19 November) |
 | the flight | **מבנה** (any group flying together); a flight of four is a **רביעייה** | "Kidon 1", "flight" | press: "כל 'מוביל' בכל מבנה", "להוביל רביעיית מטוסים"[^walla-2012], "מוביל של רביעיית מטוסי הקרב"[^walla-2020]; Hebrew Wikipedia[^hewiki-formation] |
@@ -72,6 +79,35 @@ contact, split, spike, mud, defending and engage were searched in Hebrew in the 
 Calcalist, Israel Hayom) and pilots' accounts; no IAF radio word was found for any of them, so each falls back to
 NATO brevity in the English voice, marked in the table, with Hebrew we wrote for the subtitle. The IAF's own site
 was left alone (it refuses automated access).
+
+Third search (22 November 2026): Fox, splash, winchester and cover were searched in Hebrew in the press; no IAF radio
+word was found for any of them (the press writes of shooting down, להפיל, and of fighters covering a rescue, חיפו), so
+each falls back to NATO brevity in the English voice, with Hebrew we wrote around those words for the subtitle.
+
+**Fourth search (22 November 2026: every call in the sim).** The user: "Do we have the iaf terms for fox 1/2/3 etc?",
+then "Same for target attack (I think it calls alpha) and so on". The air-to-air calls, the air-to-ground calls, the
+kill, break, ejection, the AWACS and the tower were searched again in Hebrew and English.
+- **The language.** IAF crews talk on the radio in Hebrew: in a joint exercise with French Rafales the IAF pilots
+  "had to communicate in a common language: English" and "practiced the English phrases and terms they expected to
+  need", the example being "I'm firing a missile"[^toi-french]. Inferred: NATO brevity is not their daily radio. Some
+  English words live on as loanwords (בינגו, רוג'ר, קלירנס, פיקל[^inn-terms]). No public source shows an IAF crew
+  saying "fox", "splash", "winchester" or "engaged". The only Hebrew "פוקס 1" found explains US Navy F-14s to the
+  reader[^calcalist-f14].
+- **Changed in the game.** Fox one / two / three: **שיגור**, one line for the three (the table's row). Splash:
+  **המטרה נפלה** (the table's row; "המטרה הופלה" is as well sourced).
+- **Kept, sourced.** Guns: **תותח**, the weapon's word and the game's one term (no call found). Break: the root
+  **שבירה** / **לשבור** ("הודעתי לכולם לשבור", "התרינו במבנה לשבירה" in a 1967 squadron diary[^iafe-1967]); the call's
+  exact form was not found, so "שבירה ימינה" stays. Eject: **נטישה** (press on IAF ejection training, second-hand[^walla-eject]).
+  The AWACS's **רשאי לתקוף** and **מטרה** (an F-15 crew's radio: "רשאי אש חופשית – המטרה הופלה", "כי זו מטרת
+  אויב"[^ynet-uav]).
+- **Kept, ours (no source found).** Engaged "בקרב", winchester "אין חימוש" (it agrees with **חימוש**, the IAF's word for
+  stores[^mitgaisim]), cover me "חיפוי", defending, contact, unable, in position, the tower's lines and the AWACS's
+  bearings and ranges. voices.json marks the fight's three in each clip's `note`.
+- **Sourced, no call in the game yet.** Bomb release: **אלפא** ("לאחר השחרור מוכרז בקשר "אלפא" - אות לכך שהפצצה
+  שוחררה בהצלחה"[^walla-alpha]; a Kan opinion piece uses it as a known figure, second-hand[^kan-alpha]); so אלפא means
+  only the release, never a callsign. The attack run: **נכנס** ("כשאחד הודיע "נכנס""[^iafe-1967], 1967; current use
+  not confirmed). The attack report: **ביצעתי**[^jdn-f35]. Scramble: **הזנק**[^ynet-uav]. The pickle button:
+  **פיקל**[^inn-terms]. The voices use these when the calls are built.
 
 **Where the sources differ**
 - Close formation: the IAF site writes **מבנה צמוד**; the pilot's account writes **מבנה מכונס**[^mustov]. Recommended
@@ -178,3 +214,28 @@ was left alone (it refuses automated access).
     engine's quote, second-hand): https://www.hamichlol.org.il/%D7%9E%D7%A7%D7%9C%D7%98_%D7%94%D7%9E%D7%96%D7%94%D7%99%D7%A8_%D7%91%D7%A4%D7%A0%D7%99_%D7%9E%D7%9B%22%D7%9D
 [^mako-102]: Mako, on the 102 Squadron's air-combat training (a good pilot "תוקף ומתחמק מטילי נ"מ"; read as a search
     engine's quote, second-hand): https://www.mako.co.il/pzm-magazine/Article-1c3f6f796402d61027.htm
+
+[^toi-french]: The Times of Israel, Judah Ari Gross, "IAF pilots practice their dog fighting, and English, in war games
+    with French", 13 February 2020: https://www.timesofisrael.com/iaf-pilots-practice-their-dog-fighting-and-english-in-war-games-with-french/
+[^inn-terms]: Arutz 7, from the IAF site, Shira Feinsky, "למה דווקא ''קוקפיט''?", 12 February 2020 ("כמו "קלירנס",
+    ה"קוביה", כפתור ה"פיקל""): https://www.inn.co.il/news/427145
+[^walla-alpha]: Walla, Amir Bohbot, "אלפא בלב טהרן: הצצה נדירה לפעילות חיל האוויר", updated 8 March 2026:
+    https://www.walla.co.il/news/military/3822072
+[^kan-alpha]: Kan, opinion ("טייסי חיל האוויר המוחים מעוניינים להכריז 'אלפא' - המטרה הושגה"). Second-hand (search
+    quote; Kan refuses automated access): https://www.kan.org.il/content/kan-news/opinions/456102/
+[^jdn-f35]: JDN, "התיעוד נחשף: כך נראו רגעי הפלת מטוס הקרב האיראני בשמי טהרן", 5 March 2026 (subheading "ביצעתי,
+    המטרה נפלה, נמשיך לתקיפה", with the IDF's footage): https://www.jdn.co.il/news/2600246/
+[^jdn-yak]: JDN, the Nevatim base commander on the Yak-130 kill ("קלטנו אותו, עלינו עליו – ושיגרנו עליו"), March 2026.
+    Second-hand (search quote): https://www.jdn.co.il/news/2600033/ ; English: The Times of Israel ("We identified the
+    plane, locked on it and launched"), search quote:
+    https://www.timesofisrael.com/in-world-1st-israeli-f-35-shoots-down-iranian-jet-in-air-to-air-combat-over-tehran/
+[^ynet-uav]: ynet, Yoav Zitun, "הפלה בגיחה הראשונה: 'רשאי אש חופשית – המטרה הופלה'. תיעוד מיוחד" (two F-15 pilots on
+    downing a Hamas drone, with the radio audio): https://www.ynet.co.il/news/article/ryZCtM5rD
+[^calcalist-f14]: Calcalist, Nitzan Sadan, "שפת הגוף של מטוסי קרב: כשכלב פוגש נחש", 2 January 2021 (US Navy F-14s:
+    "ודיווח "פוקס 1!" - קוד לירי טיל מונחה מכ"מ"): https://www.calcalist.co.il/articles/0,7340,L-3884670,00.html
+[^iafe-1967]: Avinoam Misnikov (ed. Amos Dor), "יומן מלחמת ששת הימים של טייסת אבירי הצפון" (the Vautour squadron's
+    debriefs, printed as written), iafe.net, issue 110: https://www.iafe.net/pdf/110%206.pdf
+[^mitgaisim]: IDF Mitgaisim, "מילון המושגים של הטכני של חיל האוויר", 18 November 2018 ("חימוש מטוס/מסוק"):
+    https://www.mitgaisim.idf.il/%D7%9B%D7%AA%D7%91%D7%95%D7%AA/%D7%A8%D7%90%D7%A9%D7%99/%D7%98%D7%99%D7%A4%D7%99%D7%9D-%D7%90%D7%95%D7%A8%D7%97-%D7%97%D7%99%D7%99%D7%9D-%D7%95%D7%A1%D7%9C%D7%A0%D7%92/%D7%9E%D7%99%D7%9C%D7%95%D7%9F-%D7%94%D7%9E%D7%95%D7%A9%D7%92%D7%99%D7%9D-%D7%A9%D7%9C-%D7%94%D7%98%D7%9B%D7%A0%D7%99-%D7%A9%D7%9C-%D7%97%D7%99%D7%9C-%D7%94%D7%90%D7%95%D7%95%D7%99%D7%A8/
+[^walla-eject]: Walla, 2011, IAF fighter crews' ejection ("נטישה") training. Second-hand (search quote; the page
+    returns 404): https://news.walla.co.il/item/1872332

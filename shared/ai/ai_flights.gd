@@ -16,8 +16,11 @@ const FlightSounds := preload("res://shared/audio/flight_sounds.gd")
 const AirDefence := preload("res://shared/ai/air_defence.gd")
 const CLASS_AIRCRAFT := 0x1c
 const CLASS_TRANSPORT := 3
-## Ours: an enemy fighter's gun burst in the dogfight, combat.gd ticks of 0.2 s (1 s; inferred).
+## Ours: a fighter's gun burst in the dogfight, combat.gd ticks of 0.2 s (1 s; inferred).
 const GUN_BURST := 5
+## Ours: the launch call by the missile's guidance (brevity: Fox 1 semi-active radar, Fox 2 infrared, Fox 3 active
+## radar; modern-iaf/docs/research/radio-terms.md), by combat.gd's weapon type.
+const FOX := {570: "fox_2", 580: "fox_2", 600: "fox_3", 610: "fox_1"}
 ## FUN_004a9100: the FM start velocity (200, 200, 0) → 282.84 m/s along the heading.
 const START_SPEED := 282.842712
 
@@ -33,8 +36,12 @@ var _formations: Array = []  # [{id, kind, members: [entity], targets: [entity],
 var flight_ai: RefCounted
 var _ai_members: Array = []
 var flight_calls: Array = []
-## The target the flight engages (the radio menu's "engage my target", engage), {} none.
+## The target the flight engages (the radio menu's "engage my target", engage), {} none; the hostile jet nearest the
+## flight (IafAi's bogey: a wingman covering the lead or attacked fights it), {} none.
 var engage_ent := {}
+var flight_bogey := {}
+## Our wingmen's radar locks on their foe {number: target key} (_radar_lock).
+var _wing_locks := {}
 ## Modern IAF's enemy fighter flights (enemy_flight, docs/ai.md §18): {ai (IafAi), members [[number, entity]], net (its
 ## ground control: an air_defence.gd network, {} none), station (world), bogey (the entity it is set on), locks {number:
 ## target key}}.
@@ -414,6 +421,35 @@ func _setup_flight_ai() -> void:
 		flight_ai = ai
 
 
+## Ours (a dev / test hook, docs/ai.md §8.9; no mission starts a flight in the air): the player's flight's AI jets put
+## in the air behind the player's jet (put it in the air first), stepped back 150 m each and 150 m right or left,
+## heading `heading` (deg), engines on; the flight's IafAi made again from them (they rejoin their slots). False: no
+## flight.
+func flight_in_air(heading: float) -> bool:
+	if flight_ai == null:
+		return false
+	var me: Vector3 = world_of(runtime.player_entity())
+	var h := deg_to_rad(heading)
+	var fwd := Vector3(sin(h), cos(h), 0.0)
+	var right := Vector3(cos(h), -sin(h), 0.0)
+	for m in _ai_members:
+		var ent: Dictionary = m[1]
+		var p = ent.get("pilot")
+		if ent.player or p == null:
+			continue
+		var n: int = m[0]
+		ent.world = me - fwd * (150.0 * (n - 1)) + right * (150.0 if n % 2 == 1 else -150.0)
+		ent.heading = heading
+		if not _start(p, Settings.own_dir(), p.plane):
+			return false
+		p.airborne = true
+		p.landed = false
+	_ai_members = []
+	flight_ai = null
+	_setup_flight_ai()
+	return flight_ai != null
+
+
 ## The tower's start-up clearance (sim_flight.gd): the flight's wingmen start their engines.
 func flight_cleared_to_start() -> void:
 	if flight_ai != null:
@@ -433,30 +469,40 @@ func _step_flight_ai(now: float) -> void:
 	if not engage_ent.is_empty():
 		# Gone: destroyed, or out of the world (a drone at its end point, a unit removed).
 		var gone: bool = int(engage_ent.state) >= 3 or not runtime.entities.has(engage_ent.key)
-		flight_ai.set_target(not gone, Vector3.ZERO if gone else host.world_to_scene(world_of(engage_ent)))
+		if int(engage_ent.state) >= 3:
+			flight_ai.splash(now, 1)
+		var at: Vector3 = Vector3.ZERO if gone else host.world_to_scene(world_of(engage_ent))
+		var vel: Vector3 = Vector3.ZERO if gone else Terrain.dir_to_scene(combat._velocity_of(engage_ent))
+		flight_ai.set_target(not gone, at, vel, 0.0 if gone else _jam_of(engage_ent))
 		if gone:
 			engage_ent = {}
-	for c in flight_ai.step(now):
-		c["t"] = now
-		flight_calls.append(c)
-		if host.get("radio") != null:
-			host.radio.flight_call(int(c.from), String(c.id), float(flight_ai.state(c.from).get("fuel_kg", 0.0)))
-	# The engaging jets' weapons (combat.gd's air-to-air pick and launch: its envelope, cone and fire gate), one missile
-	# of each jet in the air at the target at a time (shoot, look, shoot again; inferred).
-	var w = host.get("weapons")
+	# The flight's bogey: the hostile jet nearest it (one shot down is the wingmen's splash when theirs).
+	if not flight_bogey.is_empty() and int(flight_bogey.state) >= 3:
+		flight_ai.splash(now, 2)
+	var side := int(runtime.player_entity().side)
+	flight_bogey = _nearest_hostile(_ai_members, side)
+	var b := flight_bogey
+	flight_ai.set_bogey_jam(_jam_of(b))
+	var bw: Vector3 = world_of(b) if not b.is_empty() else Vector3.ZERO
+	var bv: Vector3 = combat._velocity_of(b) if not b.is_empty() else Vector3.ZERO
+	flight_ai.set_bogey(
+		false, Vector3.ZERO, Vector3.ZERO, not b.is_empty(), host.world_to_scene(bw), Terrain.dir_to_scene(bv)
+	)
+	# Each AI jet's weapons against its foe (state "foe": 1 the target, 2 the bogey; the last frame's decision).
 	for m in _ai_members:
-		if engage_ent.is_empty() or m[1].player or not flight_ai.state(m[0]).get("engaging", false):
+		if not m[1].player:
+			_weapons_of(flight_ai, m[0], m[1], _foe_of(m[0]))
+	for c in flight_ai.step(now):
+		_flight_say(c, now)
+	# The wingmen's shots and bursts (the enemy fighters' host path, combat.gd), called "Fox" or "guns".
+	for m in _ai_members:
+		if m[1].player:
 			continue
-		var own := func(mis): return not mis.ended and is_same(mis.get_meta("owner", {}), m[1])
-		if w != null and w.missiles.any(func(mis): return own.call(mis) and mis.target_key == engage_ent.key):
-			continue
-		var u = combat.units.get(m[1].key)
-		if (
-			u != null
-			and (u.cur < 0 or int(u.stations[u.cur].count) <= 0 or not int(u.w.get("type", 0)) in Combat.AA_TYPES)
-		):
-			combat.combat(m[1], "330", {})
-		combat.combat(m[1], "300", engage_ent)
+		var foe := _foe_of(m[0]) if int(m[1].state) < 3 else {}
+		var said := _fire(flight_ai, m[0], m[1], foe)
+		if said != "":
+			_flight_say({"from": m[0], "id": said}, now)
+		_radar_lock(flight_ai, m[0], m[1], foe, _wing_locks)
 	# The decoys the AI jets release (combat.gd's release path: their stores, the 4 s busy time, the decoy rule).
 	for m in _ai_members:
 		var d: int = flight_ai.decoy(m[0])
@@ -464,6 +510,83 @@ func _step_flight_ai(now: float) -> void:
 			combat.combat(m[1], "320" if d == 1 else "310", {})
 		if not m[1].player:
 			_set_jam(m[1], flight_ai.jams(m[0]))
+
+
+## A call of the flight (IafAi.step's, or a wingman's launch call) said by the radio and recorded.
+func _flight_say(c: Dictionary, now: float) -> void:
+	c["t"] = now
+	flight_calls.append(c)
+	if host.get("radio") != null:
+		host.radio.flight_call(int(c.from), String(c.id), float(flight_ai.state(c.from).get("fuel_kg", 0.0)))
+
+
+## The entity our wingman `n` fights (IafAi state "foe"): the engaged target, the flight's bogey, else {}.
+func _foe_of(n: int) -> Dictionary:
+	match int(flight_ai.state(n).get("foe", 0)):
+		1:
+			return engage_ent
+		2:
+			return flight_bogey
+	return {}
+
+
+## The hostile jet (AirDefence's jets not of `side`) nearest any live member of `members` [[number, entity]], {} none.
+func _nearest_hostile(members: Array, side: int) -> Dictionary:
+	var t := {}
+	var near := INF
+	var jets: Array = AirDefence.of(host).jets(side)
+	for m in members:
+		if int(m[1].state) >= 3:
+			continue
+		for j in jets:
+			var d: float = j.pos.distance_to(world_of(m[1]))
+			if d < near:
+				near = d
+				t = j.ent
+	return t
+
+
+## Jet `n` (entity `ent`) of the IafAi `ai`: its weapons against `t` ({} none; set_weapons): the missile picked and its
+## envelope (_pick_aa), armed (a missile or the gun's rounds left), its own missile flying at `t`.
+func _weapons_of(ai, n: int, ent: Dictionary, t: Dictionary) -> void:
+	var u = combat.units.get(ent.key)
+	var env: Array = _pick_aa(u, t) if u != null and not t.is_empty() else [0.0, 0.0, false]
+	# Armed: an air-to-air missile left (with a target or not: a foe taken this decision is fed next frame), or the
+	# gun's rounds (the dogfight, docs/ai.md §18.2).
+	var armed: bool = u != null and u.stations.size() > 9 and int(u.stations[9].count) > 0
+	if u != null and not armed:
+		for i in mini(9, u.stations.size()):
+			if int(u.stations[i].count) > 0 and int(u.stations[i].w.get("type", 0)) in Combat.AA_TYPES:
+				armed = true
+	var w = host.get("weapons")
+	var mine := func(mis): return not mis.ended and is_same(mis.get_meta("owner", {}), ent)
+	var flying: bool = (
+		w != null
+		and not t.is_empty()
+		and w.missiles.any(func(mis): return mine.call(mis) and mis.target_key == t.get("key"))
+	)
+	ai.set_weapons(n, env[0], env[1], env[2] or armed, flying)
+
+
+## Jet `n`'s shot or burst at `t` this frame (IafAi shoot / gun) through combat.gd: the missile (300), or the gun
+## selected (370), a burst of GUN_BURST ticks and its launch through the fire gate (the gate's interval the missiles'
+## again after it: 370 sets the gun's 5 s for good). The call it makes ("fox_1".."fox_3", "guns"), "" none.
+func _fire(ai, n: int, ent: Dictionary, t: Dictionary) -> String:
+	if t.is_empty():
+		return ""
+	if ai.shoot(n):
+		var u = combat.units.get(ent.key)
+		var type: int = int(u.w.get("type", 0)) if u != null and u.cur >= 0 else 0
+		return FOX.get(type, "") if combat.combat(ent, "300", t) else ""
+	if ai.gun(n):
+		var gu = combat.units[ent.key]
+		var gi: float = gu.gate_interval
+		if combat.combat(ent, "370", {}):
+			gu.ripple.set_values(GUN_BURST, 10)
+			var fired = combat.combat(ent, "300", t)
+			gu.gate_interval = gi
+			return "guns" if fired else ""
+	return ""
 
 
 ## Ours (Modern IAF, the radio menu's "engage my target", modern-iaf/docs/ai-plan.md F5): the flight's jets `to` (0
@@ -480,7 +603,9 @@ func engage(to: int, t: Dictionary) -> bool:
 	var ok: bool = not t.is_empty() and host.enemy_of_player(t) and int(t.get("klass", 0)) in host.radio.AIRCRAFT
 	ok = ok and int(t.state) < 3
 	# Taken by nobody (each "unable"): a jet already engaging keeps its target.
-	var r: int = flight_ai.engage(runtime.now, to, ok, host.world_to_scene(world_of(t)) if ok else Vector3.ZERO)
+	var at: Vector3 = host.world_to_scene(world_of(t)) if ok else Vector3.ZERO
+	var vel: Vector3 = Terrain.dir_to_scene(combat._velocity_of(t)) if ok else Vector3.ZERO
+	var r: int = flight_ai.engage(runtime.now, to, ok, at, vel)
 	if r > 0:
 		engage_ent = t
 	return r >= 0
@@ -535,16 +660,7 @@ func _step_enemy(f: Dictionary, now: float) -> void:
 		t = {}
 		gci = {}
 	if gci.is_empty():
-		var near := INF
-		var jets: Array = AirDefence.of(host).jets(side)
-		for m in f.members:
-			if int(m[1].state) >= 3:
-				continue
-			for j in jets:
-				var d: float = j.pos.distance_to(world_of(m[1]))
-				if d < near:
-					near = d
-					t = j.ent
+		t = _nearest_hostile(f.members, side)
 	f.bogey = t
 	f.ai.set_bogey_jam(_jam_of(t))
 	var tw: Vector3 = world_of(t) if not t.is_empty() else Vector3.ZERO
@@ -557,49 +673,36 @@ func _step_enemy(f: Dictionary, now: float) -> void:
 		host.world_to_scene(tw),
 		Terrain.dir_to_scene(tv)
 	)
-	var w = host.get("weapons")
 	for m in f.members:
 		var ent: Dictionary = m[1]
 		f.ai.set_alive(m[0], int(ent.state) < 3)
 		var th := _threat_of(ent)
 		f.ai.set_threat(m[0], th[0], th[1], th[2])
-		var u = combat.units.get(ent.key)
-		var env: Array = _pick_aa(u, t) if u != null and not t.is_empty() else [0.0, 0.0, false]
-		# Armed: a missile left, or the gun's rounds (the dogfight, docs/ai.md §18.2).
-		var rounds: bool = u != null and u.stations.size() > 9 and int(u.stations[9].count) > 0
-		var mine := func(mis): return not mis.ended and is_same(mis.get_meta("owner", {}), ent)
-		var flying: bool = (
-			w != null and w.missiles.any(func(mis): return mine.call(mis) and mis.target_key == t.get("key"))
-		)
-		f.ai.set_weapons(m[0], env[0], env[1], env[2] or rounds, flying)
+		_weapons_of(f.ai, m[0], ent, t)
 	f.ai.step(now)  # (the enemy's radio calls are not heard)
 	for m in f.members:
 		var ent: Dictionary = m[1]
 		var alive := int(ent.state) < 3
-		if alive and f.ai.shoot(m[0]):
-			combat.combat(ent, "300", t)
-		# The dogfight's burst: the gun selected (370), a burst of GUN_BURST ticks, the launch through the fire gate;
-		# the gate's interval is the missiles' again after it (370 sets the gun's 5 s for good).
-		elif alive and f.ai.gun(m[0]):
-			var gu = combat.units[ent.key]
-			var gi: float = gu.gate_interval
-			if combat.combat(ent, "370", {}):
-				gu.ripple.set_values(GUN_BURST, 10)
-				combat.combat(ent, "300", t)
-				gu.gate_interval = gi
+		if alive:
+			_fire(f.ai, m[0], ent, t)
 		var d: int = f.ai.decoy(m[0]) if alive else 0
 		if d > 0:
 			combat.combat(ent, "320" if d == 1 else "310", {})
 		_set_jam(ent, alive and f.ai.jams(m[0]))
-		# Its radar's lock (the target's RWR) while it holds the bogey.
-		var key: String = String(t.get("key", "")) if alive and f.ai.state(m[0]).get("contact", false) else ""
-		var had: String = f.locks.get(m[0], "")
-		if had != key:
-			if had != "":
-				combat.on_lock(ent, runtime.entities.get(had, {}), false)
-			if key != "":
-				combat.on_lock(ent, t, true)
-			f.locks[m[0]] = key
+		_radar_lock(f.ai, m[0], ent, t if alive else {}, f.locks)
+
+
+## Jet `n`'s radar lock on `t` (combat.gd on_lock: the target's RWR) while its radar holds it (IafAi state "contact");
+## `locks` {number: target key} the locks held.
+func _radar_lock(ai, n: int, ent: Dictionary, t: Dictionary, locks: Dictionary) -> void:
+	var key: String = String(t.get("key", "")) if not t.is_empty() and ai.state(n).get("contact", false) else ""
+	var had: String = locks.get(n, "")
+	if had != key:
+		if had != "":
+			combat.on_lock(ent, runtime.entities.get(had, {}), false)
+		if key != "":
+			combat.on_lock(ent, t, true)
+		locks[n] = key
 
 
 ## Ours (Modern IAF, docs/ai.md §15.6): an AI jet's jammer on or off by its tree (IafAi.jams), when its definition has

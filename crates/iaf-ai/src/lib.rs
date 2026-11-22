@@ -15,5 +15,5 @@ pub mod skill;
 pub mod wingman;
 
 pub use fighter::Bogey;
-pub use flight::{Call, Decoy, Flight, Member, Order, SHAPES, Threat, apply};
+pub use flight::{Call, Decoy, Flight, Foe, Member, Order, SHAPES, Threat, apply};
 pub use skill::Skill;

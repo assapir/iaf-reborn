@@ -3,6 +3,14 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **Our wingmen in a fight (2026-11-22, the user: "Finish wingman in battle"; [ai-plan.md](ai-plan.md) F5, K4;
+  [../../docs/ai.md](../../docs/ai.md) §8.9):** a wingman told "engage my target" fights it with the enemy fighters'
+  leaves: the collision course, a missile inside its share of the envelope, the crank, the BFM leaf and the gun, the
+  fighters' defence (a lock called, the attack goes on; a missile notched or broken with chaff or flares). "Cover me"
+  (the radio menu) keeps it in its slot until a hostile jet comes within 37 km of the lead; a jet attacking a wingman
+  is fought uncommanded. Calls: engaged, Fox 1 / 2 / 3, guns, splash, winchester (voices from `iaf-sim voices`). Tests:
+  `crates/iaf-ai/tests/wing_battle.rs`, `modern-iaf/tests/test_wing_battle.gd` (the four-ship put in the air by the
+  dev hook `ai_flights.gd flight_in_air` against a MiG-29A pair). No mission places the enemy.
 - **Countermeasures and jamming (2026-11-22, the user: "Yes start whatever you didn't finished"; [ai-plan.md](ai-plan.md)
   K8, K9; [../../docs/real-weapons.md](../../docs/real-weapons.md) §2.3, [../../docs/ai.md](../../docs/ai.md)
   §15.6):** flares and chaff act on each missile's own seeker (its record's rejection, the beam for chaff, the time to
@@ -29,8 +37,8 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   skill's tactics and its own turn from the 6-DoF (the corner speed), the energy heights and the bogey's turn as seen;
   it fires its 30 mm through combat.gd with its skill's laying error. A High MiG beats a Low one from head-on passes
   (`crates/iaf-ai/tests/dogfight.rs`, `modern-iaf/tests/test_dogfight.gd` through the dev hook `enemy_flight`). No
-  mission places one. CPU: 4.1–7.8 µs per jet per frame for the Rust part on the build Mac, 0.16–0.18 ms per AI jet per frame on the laptop. Not
-  started: the wingmen's dogfight. Fixed the same day: a level hard turn holds its height within 30 m (the fighter's
+  mission places one. CPU: 4.1–7.8 µs per jet per frame for the Rust part on the build Mac, 0.16–0.18 ms per AI jet per frame on the laptop. Our
+  wingmen fly it too (the entry above). Fixed the same day: a level hard turn holds its height within 30 m (the fighter's
   turn laws: an 85° bank, a fast roll-in, the lift upward held; it climbed up to 1.6 km in 12 s), and behind a jet
   flying straight it controls its closure (throttle, speed brake) and settles 480 m behind instead of passing it.
 - **Enemy fighter step 2: the intercept (2026-11-22, the user, 21 Nov: "Ok finish all enemies things you can", "Ok, do

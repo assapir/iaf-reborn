@@ -65,10 +65,12 @@ const TASK_G: f32 = 1.5;
 const DEFEND_G: (f32, f32) = (4.0, 6.5);
 const DEFEND_SPEED: f32 = 260.0;
 const CLEAR_S: f64 = 5.0;
-/// An engage ([`Flight::engage`]): the turn's load factor and the speed to the target, m/s (inferred: a hard turn at
-/// about 0.85 Mach at altitude).
-const ENGAGE_G: f32 = 4.0;
-const ENGAGE_SPEED: f32 = 280.0;
+/// A wingman ordered to cover ([`Flight::command`] "cover") fights a hostile jet this near the flight lead, m (20 NM,
+/// inside an R-27R's reach of the lead; inferred).
+pub const COVER_M: f64 = 37_000.0;
+/// A splash is a wingman's when its missile flew at the foe, or its gun fired at it this recently, s (a burst and the
+/// rounds' flight; inferred).
+const SPLASH_S: f64 = 3.0;
 /// The far rejoin: a wingman in the air farther than `.0` m from its slot flies at the slot point (the steer loop, at
 /// `.2` g and its leader's speed plus `.3` m/s, at least [`DEFEND_SPEED`]) until nearer than `.1` m, then the slot
 /// loop. The slot loop's capped
@@ -107,6 +109,14 @@ pub struct Threat {
     pub ir: bool,
     /// The lock's radar is on the ground.
     pub ground: bool,
+}
+
+/// Whom one of our wingmen fights ([`Member::foe`]): the lead's target ([`Flight::engage`]) or the flight's bogey (the
+/// hostile jet nearest the flight, [`Flight::bogey`]: covering the lead, or in its own defence).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Foe {
+    Target,
+    Bogey,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -207,6 +217,13 @@ pub struct Member {
     pub task: Option<Steer>,
     /// Engages the player's target ([`Flight::engage`]).
     pub engaging: bool,
+    /// Ordered to cover the lead ([`Flight::command`] "cover"): it fights a hostile jet inside [`COVER_M`] of it.
+    pub covering: bool,
+    /// One of our wingmen: whom it fights this decision (the enemy trees' leaves, `enemy` its facts), None in the shape.
+    pub foe: Option<Foe>,
+    /// When it last fired (a missile or a burst; [`SPLASH_S`]); "winchester" called (nothing left to shoot).
+    pub(crate) last_shot: f64,
+    pub(crate) winchester: bool,
     /// An enemy fighter's facts and memory ([`Flight::enemy`]).
     pub enemy: Enemy,
 }
@@ -226,8 +243,9 @@ pub struct Flight {
     calls: Vec<(f64, Call)>,
     /// Element 2's task while split.
     split: Option<Steer>,
-    /// The target the engaging jets fly at ([`Flight::engage`], [`Flight::target`]).
-    target: Option<Vec3>,
+    /// The target the engaging jets fight ([`Flight::engage`], [`Flight::target`]).
+    target: Option<Bogey>,
+    target_jam: f64,
     wingman: Node<Member>,
     lead_tree: Node<Member>,
     /// An enemy pair ([`Flight::enemy`]): its station; the ground's vector and the bogey as it is ([`Flight::bogey`]).
@@ -252,6 +270,7 @@ impl Default for Flight {
             calls: Vec::new(),
             split: None,
             target: None,
+            target_jam: 0.0,
             wingman: wingman::wingman(),
             lead_tree: wingman::lead(),
             station: None,
@@ -290,6 +309,33 @@ fn in_sight(m: &Member, at: Vec3) -> bool {
     let d = at - m.v.pos;
     let tail = (-m.v.vel).try_normalize().unwrap_or(Vec3::NORTH);
     d.length() < bfm::VISUAL_M && d.dot(tail) < d.length() * bfm::BLIND_DEG.to_radians().cos()
+}
+
+/// What `m` knows of its bogey this decision (the fighter's facts, [`Enemy`]), its station `station`: `truth` (the jet
+/// as it is) while its radar holds it (through a jammer of share `jam`) or its pilot sees it, else `known` (the
+/// ground's vector, the lead's data link); the bogey's turn as seen.
+fn know(m: &mut Member, station: Vec3, known: Option<Bogey>, truth: Option<Bogey>, jam: f64, now: f64) {
+    // On the ground its radar is off and its pilot looks for nothing.
+    let up = !m.v.on_ground;
+    let contact = truth.filter(|b| up && in_radar_jammed(m, b.pos, jam));
+    // (Once seen it stays seen inside the visual range: the pilot keeps sight, checking six.)
+    let kept = |b: &Bogey| m.enemy.visual && b.pos.distance(m.v.pos) < bfm::VISUAL_M;
+    let seen = truth.filter(|b| up && (in_sight(m, b.pos) || kept(b)));
+    let e = &mut m.enemy;
+    (e.station, e.contact, e.visual) = (station, contact.is_some(), seen.is_some());
+    e.bogey = contact.or(seen).or(known);
+    e.fought = e.aim.take().map(|(aim, _)| aim);
+    // The bogey's turn as seen: its velocity's swing since the last decision that knew it.
+    let truth = contact.or(seen);
+    e.rate = truth.map_or(0.0, |b| bfm::seen_rate(e.last, now, b.vel));
+    e.last = truth.map(|b| (now, b.vel));
+}
+
+/// `b` attacks `m`: in its pilot's sight and in the dogfight's defensive geometry against it ([`bfm::defensive`]).
+fn attacked(m: &Member, b: &Bogey) -> bool {
+    let own = bfm::Jet { pos: m.v.pos, vel: m.v.vel, rate: 0.0 };
+    let (range, ata, aa) = bfm::geometry(&own, &bfm::Jet { pos: b.pos, vel: b.vel, rate: 0.0 });
+    in_sight(m, b.pos) && bfm::defensive(range, ata, aa)
 }
 
 impl Flight {
@@ -352,6 +398,10 @@ impl Flight {
             clear_since: None,
             task: None,
             engaging: false,
+            covering: false,
+            foe: None,
+            last_shot: f64::MIN,
+            winchester: false,
             enemy: Enemy::default(),
         });
         self.members.sort_by_key(|m| m.number);
@@ -432,18 +482,19 @@ impl Flight {
     }
 
     /// The lead's "engage my target" at `now` to `to` (0 the flight, 5 the element, 2..4 one wingman): each AI jet
-    /// addressed in the air leaves its slot and flies at the target `at` (the host's radar lock, kept fresh by
-    /// [`Flight::target`]) for the host's weapons to fire; #4 stays on #3 when #3 engages too. `at` None (no target
+    /// addressed in the air leaves its slot and fights the target `at` (the host's radar lock, kept fresh by
+    /// [`Flight::target`]; known to it by the data link) with the enemy fighters' leaves (the intercept, the shot,
+    /// the crank, the dogfight; [`Foe::Target`]); #4 stays on #3 when #3 engages too. `at` None (no target
     /// to engage) or a jet not flying: "unable". Some(true): a jet took it; Some(false): each answered "unable" (a jet
     /// already engaging keeps its target); None: nobody to take it.
-    pub fn engage(&mut self, now: f64, to: u8, at: Option<Vec3>) -> Option<bool> {
+    pub fn engage(&mut self, now: f64, to: u8, at: Option<Bogey>) -> Option<bool> {
         let lead = self.lead;
         let takes = |m: &Member| m.ai && m.alive && (to == 0 || m.number == to || to == 5 && m.number >= 3);
         let who: Vec<usize> = (0..self.members.len()).filter(|&i| i != lead && takes(&self.members[i])).collect();
         if who.is_empty() {
             return None;
         }
-        let can = |m: &Member| at.is_some() && m.airborne && !m.landed && !m.rtb && !m.released;
+        let can = |m: &Member| at.is_some() && m.airborne && !m.landed && !m.rtb && !m.released && !m.winchester;
         let with_three = to != 4 && who.iter().any(|&i| self.members[i].number == 3 && can(&self.members[i]));
         let mut took = false;
         for &i in &who {
@@ -455,17 +506,28 @@ impl Flight {
             self.calls.push((now + m.skill.reaction_s, Call { from: m.number, id: if ok { "ack" } else { "unable" } }));
         }
         if took {
-            self.target = at;
+            (self.target, self.target_jam) = (at, 0.0);
         }
         Some(took)
     }
 
     /// The engaged target this frame (the host's): None, it is gone (destroyed, lost): the engaging jets rejoin.
-    pub fn target(&mut self, at: Option<Vec3>) {
-        self.target = at;
+    /// `jam`: its self-protection jammer's burn-through share, 0 not jamming (as [`Flight::bogey_jamming`]).
+    pub fn target(&mut self, at: Option<Bogey>, jam: f64) {
+        (self.target, self.target_jam) = (at, jam);
         if at.is_none() {
             for m in self.members.iter_mut().filter(|m| m.engaging) {
                 (m.engaging, m.transit, m.report) = (false, true, true);
+            }
+        }
+    }
+
+    /// The foe `foe` was shot down at `now` (the host's): each AI jet fighting it whose missile flew at it, or whose gun
+    /// fired within [`SPLASH_S`], calls "splash" after its reaction time (a kill by another is not called).
+    pub fn splash(&mut self, now: f64, foe: Foe) {
+        for m in self.members.iter().filter(|m| m.ai && m.alive && m.foe == Some(foe)) {
+            if m.enemy.in_air || now - m.last_shot <= SPLASH_S {
+                self.calls.push((now + m.skill.reaction_s, Call { from: m.number, id: "splash" }));
             }
         }
     }
@@ -590,16 +652,22 @@ impl Flight {
                 // Once in its landing pattern (the gear down), a jet sent home lands.
                 "rejoin" if flying && !(m.released && m.v.gear_down) => {
                     (m.rtb, m.released, m.transit, m.report, m.engaging) = (false, false, true, true, false);
+                    m.covering = false;
                     if m.number == 3 {
                         self.split = None;
                     }
                     "ack"
                 }
                 "rtb" if flying => {
-                    (m.rtb, m.engaging) = (true, false);
+                    (m.rtb, m.engaging, m.covering) = (true, false, false);
                     "ack"
                 }
-                "rejoin" | "rtb" => "unable",
+                // Cover: it keeps its slot and fights a hostile jet near the lead (decide); with something to shoot.
+                "cover" if flying && !m.rtb && !m.winchester => {
+                    m.covering = true;
+                    "ack"
+                }
+                "rejoin" | "rtb" | "cover" => "unable",
                 _ => return false,
             };
             acked |= answer == "ack";
@@ -694,6 +762,7 @@ impl Flight {
             self.last_release = now;
         }
         let committed = self.members[self.lead].enemy.committed;
+        let lead_pos = self.members[self.lead].v.pos;
         let base = SHAPES[self.shape].1;
         let table = |n: u8| if (2..=4).contains(&n) { base[n as usize - 2] } else { [0.0; 3] };
         let home = self.home;
@@ -746,36 +815,59 @@ impl Flight {
             m.ahead_moved = ahead_moved;
             m.bingo_kg = RESERVE_KG + KG_PER_KM * home.map_or(0.0, |h| flat(h, m.v.pos) as f32 / 1000.0);
             m.engaging &= m.alive && !m.rtb && !m.released;
-            let engage = self.target.filter(|_| m.engaging);
-            let engage = engage.map(|to| Steer { to, g: ENGAGE_G, speed: ENGAGE_SPEED, thr_max: 1.0, fighter: false });
-            let own = engage.or(if m.number == 3 { self.split } else { None });
+            m.covering &= m.alive && !m.rtb && !m.released;
+            let own = if m.number == 3 { self.split } else { None };
             m.rejoining = own.is_none() && rejoin.is_some();
             m.task = own.or(rejoin);
             (m.order.mode, m.order.decoy, m.order.shoot, m.order.gun) = (None, None, false, false);
             if let Some(st) = self.station {
-                // On the ground its radar is off and its pilot looks for nothing: the ground's vector only.
-                let up = !m.v.on_ground;
-                let contact = self.truth.filter(|b| up && in_radar_jammed(m, b.pos, self.truth_jam));
-                // (Once seen it stays seen inside the visual range: the pilot keeps sight, checking six.)
-                let kept = |b: &Bogey| m.enemy.visual && b.pos.distance(m.v.pos) < bfm::VISUAL_M;
-                let seen = self.truth.filter(|b| up && (in_sight(m, b.pos) || kept(b)));
-                let e = &mut m.enemy;
-                (e.station, e.contact, e.visual) = (st, contact.is_some(), seen.is_some());
-                e.bogey = contact.or(seen).or(self.gci);
-                e.fought = e.aim.take().map(|(aim, _)| aim);
-                // The bogey's turn as seen: its velocity's swing since the last decision that knew it.
-                let truth = contact.or(seen);
-                e.rate = truth.map_or(0.0, |b| bfm::seen_rate(e.last, now, b.vel));
-                e.last = truth.map(|b| (now, b.vel));
+                // An enemy jet: the ground's vector, and the bogey as its radar and its pilot see it.
+                know(m, st, self.gci, self.truth, self.truth_jam, now);
                 if i != self.lead {
-                    e.committed = committed;
+                    m.enemy.committed = committed;
                 }
+            } else {
+                // One of our wingmen: the lead's target (engaging), else the flight's bogey when it covers the lead and
+                // the bogey is near it, or when the bogey attacks it (its own defence). An AI lead (promoted) has none.
+                let fit = i != self.lead && wingman::flying(m) && !m.rtb && !m.released && !m.winchester;
+                let near_lead = |b: &Bogey| m.covering && flat(b.pos, lead_pos) <= COVER_M;
+                let foe = if !fit {
+                    None
+                } else if m.engaging && self.target.is_some() {
+                    Some(Foe::Target)
+                } else if self.truth.is_some_and(|b| {
+                    // Covering: taken once its radar holds it or its pilot sees it, kept while near the lead.
+                    let found = in_radar_jammed(m, b.pos, self.truth_jam) || in_sight(m, b.pos);
+                    near_lead(&b) && (found || m.foe == Some(Foe::Bogey)) || attacked(m, &b)
+                }) {
+                    Some(Foe::Bogey)
+                } else {
+                    None
+                };
+                if foe == Some(Foe::Bogey) && m.foe != foe {
+                    m.calls.push("engaged");
+                }
+                if foe.is_none() && m.foe.is_some() {
+                    (m.transit, m.report) = (true, true);
+                }
+                m.foe = foe;
+                // The target is known by the data link (the lead's radar); the bogey only by its own radar and eyes.
+                let (known, truth, jam) = match foe {
+                    Some(Foe::Target) => (self.target, self.target, self.target_jam),
+                    Some(Foe::Bogey) => (None, self.truth, self.truth_jam),
+                    None => (None, None, 0.0),
+                };
+                know(m, lead_pos, known, truth, jam, now);
+                m.enemy.committed = foe.is_some();
             }
             if i == self.lead {
                 self.lead_tree.tick(m)
             } else {
                 self.wingman.tick(m)
             };
+            if m.order.shoot || m.order.gun {
+                m.last_shot = now;
+            }
             for id in m.calls.drain(..) {
                 self.calls.push((now + m.skill.reaction_s, Call { from: m.number, id }));
             }
@@ -815,7 +907,8 @@ impl Flight {
             m.order.leader = if ground { ahead } else { Some(ld) };
             m.order.slot = m.slot;
             // The dogfight's point follows the bogey every frame while it is in sight.
-            if let (Some((aim, lay)), Some(b)) = (m.enemy.aim, self.truth.filter(|_| m.enemy.visual)) {
+            let b = if m.foe == Some(Foe::Target) { self.target } else { self.truth };
+            if let (Some((aim, lay)), Some(b)) = (m.enemy.aim, b.filter(|_| m.enemy.visual)) {
                 let to = bfm::aim_point(m.v.pos, &b, &aim, lay, bfm::floor(m));
                 if let Some(s) = m.order.steer.as_mut() {
                     s.to = to;

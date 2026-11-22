@@ -727,14 +727,16 @@ F12–F14). The 1998 game sets none of it. Every figure is inferred, tuned on th
   that holds the called point within 74 km and ±60° of its nose (a fighter radar's 40 NM) reports `contact` after its
   reaction time.
 
-- **Engage my target** (`Flight::engage(now, to, at)`, `IafAi.engage`, slice 3; the radio menu's command): each AI jet
-  addressed (the flight, the element or one wingman) in the air leaves its slot and flies the steer loop at the
-  target at 4 g and 280 m/s; #4 stays on #3 when #3 engages too. The target is the player's radar lock, an enemy
-  aircraft alive (`ai_flights.gd engage_target`, `engage`); without one each answers "unable", and a jet already engaging keeps its target. Each jet keeps one missile in the air at the target at a time (inferred). The pursuit is the steer loop (slice 4's, every 0.1 s at the target's point as of the flight's last decision, every 0.5 s), not the 1998 Dogchase (mode 0x11): the 1998 combat loops are not flown on the 6-DoF AI jets yet (§8.7 lists the loops they fly). `ai_flights.gd` keeps its
-  position fresh every frame (`IafAi.set_target`) and fires the engaging jets' weapons through `combat.gd`: the next
-  air-to-air station with rounds (action 330), then the launch (action 300: its envelope, its 30° cone, its fire gate).
-  When the target is gone (destroyed, or out of the world: a drone at its end point) the engaging jets rejoin ("in position"); a rejoin or an RTB ends the
-  engage too. Ground targets are not engaged (the AI's air-to-ground deliveries are milestone 3's rows).
+- **Engage my target** (`Flight::engage(now, to, at)`, `IafAi.engage`; the radio menu's command): each AI jet
+  addressed (the flight, the element or one wingman) in the air with something left to shoot fights the target with
+  the enemy fighters' leaves (§8.9); #4 stays on #3 when #3 engages too. The target is the player's radar lock, an enemy
+  aircraft alive (`ai_flights.gd engage_target`, `engage`); without one, or with nothing left to shoot, each answers
+  "unable", and a jet already engaging keeps its target. `ai_flights.gd` keeps its position and velocity fresh every
+  frame (`IafAi.set_target`). When the target is gone (destroyed, or out of the world: a drone at its end point) the
+  engaging jets rejoin ("in position"); a rejoin or an RTB ends the engage too. Ground targets are not engaged (the
+  AI's air-to-ground deliveries are milestone 3's rows). Until 22 November 2026 an engaging jet flew the steer loop at
+  the target at 4 g and 280 m/s and fired whenever combat.gd's launch allowed (the next air-to-air station, its
+  envelope, cone and fire gate), with no shot window, crank, dogfight or gun.
 
 The calls' words (slice 3: said in the wingmen's voice, Kokoro `am_eric`, with Hebrew subtitles; every call with its
 source in [../modern-iaf/docs/research/radio-terms.md](../modern-iaf/docs/research/radio-terms.md)). The IAF's own
@@ -752,10 +754,61 @@ English is NATO brevity[^brevity]:
 | split | "Kidon 1, element 3–4, split." | none found. Ours: "כידון 1, זוג 3–4, פיצול" (the pair: זוג) | NATO SPLIT, "flight member is leaving formation to pursue a separate attack"; Hebrew open |
 | regroup | "Kidon 1, element 3–4, rejoin." | "כידון 1, זוג 3–4, הצטרפות" | the four-ship's rejoin term (slice 3's research) |
 | engage | "Kidon 1-2, engage my target." | none found. Ours: "כידון 1-2, תקיפת המטרה שלי" | NATO ENGAGE, "a fire control order used to direct or authorize units to fire on a designated target"; Hebrew open |
+| cover | "Kidon 1-4, cover me." | none found. Ours around the press's חיפוי (fighters "שחיפו על החילוץ")[^mako-cover]: "כידון 1-4, חיפוי" | NATO COVER (to take a defensive, supporting posture; paraphrased)[^brevity]; Hebrew: חיפוי, second-hand |
+| `engaged` | "Kidon 1-2, engaged!" | none found. Ours: "כידון 1-2, בקרב" | NATO ENGAGED (attacking the stated group; paraphrased)[^brevity]; Hebrew open |
+| `fox_1` / `fox_2` / `fox_3` | "Kidon 1-2, Fox two!" | "כידון 1-2, שיגור" for all three (the launch verb **שיגור** an IAF base commander used on the F-35I's kill; no IAF word for the seeker type found: [radio-terms.md](../modern-iaf/docs/research/radio-terms.md)) | NATO FOX ONE / TWO / THREE (the launch of a semi-active radar, an infrared, an active radar missile)[^brevity] |
+| `guns` | "Kidon 1-2, guns!" | none found. Ours: "כידון 1-2, תותח" | NATO GUNS (a gun engagement; paraphrased)[^brevity]; Hebrew open |
+| `splash` | "Kidon 1-2, splash!" | "כידון 1-2, המטרה נפלה" (an F-35I pilot's words on his kill: [radio-terms.md](../modern-iaf/docs/research/radio-terms.md)) | NATO SPLASH (the target destroyed, air to air; paraphrased)[^brevity] |
+| `winchester` | "Kidon 1-2, winchester." | none found. Ours: "כידון 1-2, אין חימוש" | NATO WINCHESTER (no ordnance left; paraphrased)[^brevity]; Hebrew open |
 
 Later (outside this slice): a commit on the AWACS's call (the element turns to the contact); the controller's answers
 to requests (picture, bogey dope, declare, vectors: ai-plan Q12); a memory of contacts already reported (each call is
 answered once today); a mate's call of a lock it sees on its own RWR; the break's direction in the defender's own call.
+
+### 8.9 Ours: the wingmen in the fight
+
+The user, 22 Nov 2026: "Finish wingman in battle" (modern-iaf/docs/ai-plan.md F5, F13, K4). Our AI wingmen fight on
+the enemy fighters' rules (§18): the same leaves, the same skill struct (`Skill::WINGMAN`, the Medium figures, §17),
+the same host path in `ai_flights.gd`. The 1998 game sets none of it. Every figure is inferred.
+
+- **The foe** (`Member::foe`, `IafAi.state` "foe": 1 the target, 2 the bogey), chosen each decision for a wingman in
+  the air with the gear up, not sent home and with something left to shoot:
+  - the lead's target while it engages (`Flight::engage`, §8.8); it knows the target by the data link (the lead's
+    radar), so it flies at it before its own radar or eyes have it;
+  - else the flight's bogey (`Flight::bogey`: `ai_flights.gd` gives the hostile jet nearest the flight, as the
+    enemy's host does without a network), when the wingman covers the lead (the radio menu's "cover me",
+    `command` "cover") and the bogey is within 37 km (20 NM) of the lead (taken once its own radar holds it or its
+    pilot sees it, kept while it stays that near), or when the bogey attacks the wingman: in
+    its pilot's sight and in the dogfight's defensive geometry against it (behind its beam, its nose within 60° of
+    the wingman, inside 5 km, `bfm::defensive`). It knows the bogey only by its own radar and eyes. A foe taken by
+    itself is called `engaged`.
+  - A rejoin or an RTB ends the engage and the cover; the foe gone, it rejoins its slot ("in position").
+- **The fight:** the enemy fighters' leaves on the foe, in the enemy wingman's order: the shot (§18.1: its own radar
+  holding the foe, inside the skill's share of the envelope for its reaction time), the dogfight inside 6 km of a foe
+  in sight (§18.2: the BFM leaf, the gun with the skill's laying error), else the intercept (the collision course at
+  300 m/s, the crank while its missile flies). Its station is the flight lead's position, so the intercept ends past
+  150 km from the lead.
+- **The defence in the fight** is the enemy fighters' (`fighter::evade`): a lock is called (`spike`, `mud`) and the
+  attack goes on; a missile is defended by the tactics (Medium: the notch, the break against an infrared one) with
+  chaff or flares within 6 s of its arrival. Out of the fight a wingman defends as before (§8.8: the beam against a
+  lock too).
+- **Winchester:** with no missile or round left and none of its missiles flying, it calls `winchester`, its engage
+  and cover end and it rejoins; a later engage or cover is answered "unable".
+- **The host** (`ai_flights.gd _step_flight_ai`, the enemy's path shared: `_weapons_of`, `_fire`, `_radar_lock`,
+  `_nearest_hostile`): each frame the target and the bogey with their velocity and jammer share, each wingman's
+  weapons against its foe (`_pick_aa`: the missile whose envelope holds it), then its shot (combat.gd 300) or gun burst
+  (370, then 300), called `fox_1`, `fox_2` or `fox_3` by the missile's guidance (combat.gd types 610, 570 / 580, 600)
+  or `guns`; its radar's lock on the foe while it holds it (the foe's RWR). A foe shot down while a wingman's missile
+  flew at it, or within 3 s of its burst, is that wingman's `splash` (`IafAi.splash`); a kill by another is not called.
+- **The jammer:** a Sufa wingman's jammer is on while it fights or defends (§15.6, `Flight::jams`).
+- **The dev hook:** `ai_flights.gd flight_in_air(heading)` puts the player's flight's AI jets in the air behind the
+  player's jet (put there first) and makes the flight's IafAi again; no mission starts a flight in the air.
+- **Tests:** `cargo test -p iaf-ai --test wing_battle` (the four-ship of Sufas on the 6-DoF against MiG-29As:
+  `engage_a_mig29_pair` the engage against a pair flying the enemy trees: the shots inside 36.2 km, the crank, a BFM
+  move and the gun, splash and the rejoin; `cover_and_self_defence` the cover's take at 37 km and the break against a
+  MiG behind #3; `lock_called_winchester_and_rejoin`), `--test four_ship engage_my_target_and_rejoin`;
+  `modern-iaf/tests/test_wing_battle.gd` (headless: the four-ship in the air by the dev hook against a MiG-29A pair:
+  engage, cover through the radio menu, a Fox call, both MiGs down, splash, the rejoin).
 
 ## 9. Airbase data (`iaf.ibx`, TowersManager `54eda0`)
 `iaf.ibx` holds the geometry the AI uses to take off, land and taxi. It has ten sections, in record order: Ramon,
@@ -1461,8 +1514,8 @@ What each level changes in the enemy we have:
   deeper than the window's edge by the closure in that time (head-on at 500–550 m/s closing in `--test intercept shot`:
   about 2 km Low, 0.5 km High, with the 0.5 s decision tick); its tactics pick the turns after its shot and against a
   missile. A missile takes no laying error: it guides itself from the launch. In the dogfight (§18.2) its moves are its
-  tactics' and its gun's lead point is laid off by the level's error. A wingman's gun aim stays open: the wingmen do
-  not dogfight yet.
+  tactics' and its gun's lead point is laid off by the level's error. Our wingmen
+  fight on the same rules at the Medium figures (§8.9).
 - **The drones** (§16): none. A Shahed-136 flies a programmed route; it has no crew, no reaction and no shot.
 
 Check: `cargo test -p iaf-ai --test sites skill` (each level's track, first launch and march order against the same
@@ -1618,8 +1671,7 @@ are ours (inferred). The skill's tactics (§17) pick the branches:
 - **Each fighter fights the pair's bogey**: two against one, both fly the leaf on it (the flight's collision
   avoidance keeps them apart). The bogey's turn is the one it shows, not its type's limits: a pilot sees the turn, not
   the other jet's corner speed.
-- **Not started** (outside step 3's brief, "enemies now; wingmen may read it later"): the wingmen's dogfight; the leaf
-  reads only a member and its bogey, so their trees can call it.
+- **Our wingmen** fly the same leaf on their foe (§8.9, 22 November 2026).
 
 ### 18.3 The scramble from a base (K3)
 
@@ -1721,3 +1773,4 @@ Open questions in this document:
 [^w-mig29-jam]: Wikipedia, "Mikoyan MiG-29" (the 9.13: "the installation of the L-203BE Gardenyia-1 jammer that was
   lacking on the initial 9.12 version"; read 2026-11-22): https://en.wikipedia.org/wiki/Mikoyan_MiG-29
 [^w-jam]: Wikipedia, "Radar jamming and deception" ("The burn-through range is the distance from the radar at which the jamming is ineffective"; a self-protection jammer "essentially broadcasts its position") (read 2026-11-22): https://en.wikipedia.org/wiki/Radar_jamming_and_deception
+[^mako-cover]: Israeli press on the IAF's rescues, fighters "שחיפו על החילוץ" (read as a search engine's summary on 2026-11-22, second-hand: the summary tied the quote to no single page).

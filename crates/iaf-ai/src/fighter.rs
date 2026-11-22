@@ -171,14 +171,22 @@ fn steer(m: &mut Member, s: Steer, phase: &'static str) -> Status {
     Status::Running
 }
 
-/// The defence after a shot at it: a lock alone does not stop the attack (inferred); a missile is answered as the
-/// wingmen answer it ([`defend`]: the call, the reaction, the turn, the decoys, the 5 s clear), the turn by the skill's
-/// tactics: an infrared one the break into it; a radar one the wingmen's beam at its height (tactics 0), the notch, the
-/// beam down into the radar's look-down (1), or from farther than [`DRAG_M`] the drag, a 4 g turn away from it, then
-/// at full power going down (2).
-fn evade(m: &mut Member) -> Status {
-    if m.threat.is_some_and(|t| !t.launch) {
+/// The defence after a shot at it: a lock alone does not stop the attack (inferred; it is called, "spike" or "mud"); a
+/// missile is answered as the wingmen answer it ([`defend`]: the call, the reaction, the turn, the decoys, the 5 s
+/// clear), the turn by the skill's tactics: an infrared one the break into it; a radar one the wingmen's beam at its
+/// height (tactics 0), the notch, the beam down into the radar's look-down (1), or from farther than [`DRAG_M`] the
+/// drag, a 4 g turn away from it, then at full power going down (2).
+pub(crate) fn evade(m: &mut Member) -> Status {
+    if let Some(t) = m.threat.filter(|t| !t.launch) {
+        // The lock is called once (our wingmen's call is heard; an enemy's is not), and the attack goes on.
+        if m.called_level == 0 {
+            m.calls.push(if t.ground { "mud" } else { "spike" });
+        }
         m.threat = None;
+        if !m.defending {
+            m.called_level = 1;
+            return Status::Failure;
+        }
     }
     // A level defence (the break, the beam) holds the height it began at: its point's while it flies one (the steer
     // loop's; the dogfight's break flies the BFM loop).
@@ -214,7 +222,7 @@ fn evade(m: &mut Member) -> Status {
 /// Its missile at the bogey (the host's launch, `Order::shoot`): committed, its radar holding the bogey, a missile
 /// left and none of its own flying at it, the bogey inside its window ([`in_window`]) for its reaction time (the
 /// launch's timing: the bogey goes deeper while it reacts). A side effect: the tree goes on.
-fn shoot(m: &mut Member) -> Status {
+pub(crate) fn shoot(m: &mut Member) -> Status {
     let e = &m.enemy;
     let ready = e.bogey.filter(|_| e.committed && e.contact && e.armed && !e.in_air);
     if !ready.is_some_and(|b| in_window(b.pos.distance(m.v.pos), e.dlz, m.skill.launch_range)) {
@@ -227,7 +235,7 @@ fn shoot(m: &mut Member) -> Status {
 
 /// The lead committed: the collision course at the bogey, or the crank while its missile flies (tactics 1 and up);
 /// back to the station (fails) once the bogey is lost, past [`ABORT_M`] from the station, or with nothing left to shoot.
-fn intercept(m: &mut Member) -> Status {
+pub(crate) fn intercept(m: &mut Member) -> Status {
     let e = &m.enemy;
     let Some(b) = e.bogey.filter(|b| flat(b.pos, e.station) <= ABORT_M && (e.armed || e.in_air)) else {
         (m.enemy.committed, m.enemy.seen, m.enemy.done) = (false, None, e.based);

@@ -2386,6 +2386,57 @@
       "say_he": "יש מגע."
     },
     {
+      "file": "flt_wng_engaged.ogg",
+      "voice": "wingman",
+      "say": "Engaged!",
+      "mode": "particle",
+      "say_he": "בקרב!",
+      "note": "Hebrew ours: no IAF call found (modern-iaf/docs/research/radio-terms.md)"
+    },
+    {
+      "file": "flt_wng_fox1.ogg",
+      "voice": "wingman",
+      "say": "Fox one!",
+      "mode": "particle",
+      "say_he": "שיגור!"
+    },
+    {
+      "file": "flt_wng_fox2.ogg",
+      "voice": "wingman",
+      "say": "Fox two!",
+      "mode": "particle",
+      "say_he": "שיגור!"
+    },
+    {
+      "file": "flt_wng_fox3.ogg",
+      "voice": "wingman",
+      "say": "Fox three!",
+      "mode": "particle",
+      "say_he": "שיגור!"
+    },
+    {
+      "file": "flt_wng_guns.ogg",
+      "voice": "wingman",
+      "say": "Guns!",
+      "mode": "particle",
+      "say_he": "תותח!"
+    },
+    {
+      "file": "flt_wng_splash.ogg",
+      "voice": "wingman",
+      "say": "Splash!",
+      "mode": "particle",
+      "say_he": "המטרה נפלה!"
+    },
+    {
+      "file": "flt_wng_winchester.ogg",
+      "voice": "wingman",
+      "say": "Winchester.",
+      "mode": "particle",
+      "say_he": "אין חימוש.",
+      "note": "Hebrew ours: no IAF call found (modern-iaf/docs/research/radio-terms.md)"
+    },
+    {
       "file": "flt_wng_has_lead.ogg",
       "voice": "wingman",
       "say": "has the lead.",
@@ -2573,6 +2624,14 @@
       "say": "Engage my target.",
       "mode": "helmet",
       "say_he": "תקיפת המטרה שלי."
+    },
+    {
+      "file": "flt_cmd_cover.ogg",
+      "voice": "pilot",
+      "say": "Cover me.",
+      "mode": "helmet",
+      "say_he": "חיפוי.",
+      "note": "Hebrew ours: no IAF call found (modern-iaf/docs/research/radio-terms.md)"
     },
     {
       "file": "flt_cmd_rtb.ogg",
@@ -4285,6 +4344,41 @@
       "text": "contact",
       "text_he": "יש מגע"
     },
+    "WNG_ENGAGED": {
+      "file": "flt_wng_engaged.ogg",
+      "text": "engaged",
+      "text_he": "בקרב"
+    },
+    "WNG_FOX1": {
+      "file": "flt_wng_fox1.ogg",
+      "text": "fox one",
+      "text_he": "שיגור"
+    },
+    "WNG_FOX2": {
+      "file": "flt_wng_fox2.ogg",
+      "text": "fox two",
+      "text_he": "שיגור"
+    },
+    "WNG_FOX3": {
+      "file": "flt_wng_fox3.ogg",
+      "text": "fox three",
+      "text_he": "שיגור"
+    },
+    "WNG_GUNS": {
+      "file": "flt_wng_guns.ogg",
+      "text": "guns",
+      "text_he": "תותח"
+    },
+    "WNG_SPLASH": {
+      "file": "flt_wng_splash.ogg",
+      "text": "splash",
+      "text_he": "המטרה נפלה"
+    },
+    "WNG_WINCHESTER": {
+      "file": "flt_wng_winchester.ogg",
+      "text": "winchester",
+      "text_he": "אין חימוש"
+    },
     "WNG_HAS_LEAD": {
       "file": "flt_wng_has_lead.ogg",
       "text": "has the lead",
@@ -4419,6 +4513,11 @@
       "file": "flt_cmd_engage.ogg",
       "text": "engage my target",
       "text_he": "תקיפת המטרה שלי"
+    },
+    "CMD_COVER": {
+      "file": "flt_cmd_cover.ogg",
+      "text": "cover me",
+      "text_he": "חיפוי"
     },
     "CMD_RTB": {
       "file": "flt_cmd_rtb.ogg",

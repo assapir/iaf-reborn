@@ -122,6 +122,12 @@ pub fn corner_rate(corner: f32, max_g: f32) -> f64 {
     G * ((max_g * max_g) as f64 - 1.0).max(0.0).sqrt() / corner.max(1.0) as f64
 }
 
+/// Defensive: the bogey behind its beam with its nose within [`DEFENSIVE_DEG`] of us, inside [`DEFENSIVE_M`] (the
+/// geometry's range, antenna train and aspect angles, [`geometry`]).
+pub fn defensive(range: f64, ata: f64, aa: f64) -> bool {
+    aa > 180.0 - DEFENSIVE_DEG && ata > 90.0 && range < DEFENSIVE_M
+}
+
 /// The move for `own` against the bogey `b` at `skill`, its corner speed `corner` and g limit `max_g`; `now` (s) times
 /// the jink. No move asks more than the wing gives at its speed (no pull into the α limit's drag).
 pub fn choose(own: &Jet, b: &Jet, corner: f32, max_g: f32, skill: &Skill, now: f64) -> Move {
@@ -164,7 +170,7 @@ pub fn choose(own: &Jet, b: &Jet, corner: f32, max_g: f32, skill: &Skill, now: f
         let (name, aim) = if range <= GUN_M.1 { ("lead", lead) } else { ("pursuit", at) };
         return chase(name, aim);
     }
-    if aa > 180.0 - DEFENSIVE_DEG && ata > 90.0 && range < DEFENSIVE_M {
+    if defensive(range, ata, aa) {
         if t >= 2 && range < GUN_M.1 * 1.5 {
             let up = if (now / JINK_S).floor() as i64 % 2 == 0 { JINK } else { -JINK };
             return full("jink", Aim { up, ..at });

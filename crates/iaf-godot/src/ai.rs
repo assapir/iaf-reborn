@@ -11,7 +11,7 @@ use iaf_ai::drone::{SHAHED_136, Salvo};
 use iaf_ai::fighter;
 use iaf_ai::net::{self, Gci, Member, Net};
 use iaf_ai::site::{self, Emcon, Kind, Site, Target};
-use iaf_ai::{Bogey, Decoy, Flight, Skill, Threat};
+use iaf_ai::{Bogey, Decoy, Flight, Foe, Skill, Threat};
 use iaf_flight::Vec3;
 
 use crate::flight::{IafFlight, to_enu};
@@ -63,7 +63,8 @@ impl IafAi {
 
     /// A radio command at `now` to `to` (0 the flight, 5 the element #3–#4, 2..4 one wingman): check, ops_check,
     /// a shape of `iaf_ai::SHAPES` (fingertip, line_abreast, trail, echelon_right, echelon_left, diamond, vic, delta),
-    /// rejoin, rtb. False: unknown, or nobody to take it. The answers come from `step` as calls.
+    /// rejoin, rtb, cover (keep the slot, fight a hostile jet near the lead). False: unknown, or nobody to take it.
+    /// The answers come from `step` as calls.
     #[func]
     fn command(&mut self, now: f64, to: i64, cmd: GString) -> bool {
         self.flight.command(now, to.clamp(0, 5) as u8, &cmd.to_string())
@@ -78,18 +79,27 @@ impl IafAi {
     }
 
     /// The lead's "engage my target" at `now` to `to` (0 the flight, 5 the element #3–#4, 2..4 one wingman) on the
-    /// target at the scene position `at`; `has` false: no target to engage (each answers "unable"). 1: a jet took it;
-    /// 0: each answered "unable" (a jet already engaging keeps its target); -1: nobody to take it. The engaging jets
-    /// fly at it; the host fires their weapons.
+    /// target at the scene position `at` flying `vel`; `has` false: no target to engage (each answers "unable"). 1: a
+    /// jet took it; 0: each answered "unable" (a jet already engaging keeps its target); -1: nobody to take it. The
+    /// engaging jets fight it (`state` "foe" 1); the host feeds their weapons and fires them (`shoot`, `gun`).
     #[func]
-    fn engage(&mut self, now: f64, to: i64, has: bool, at: Vector3) -> i64 {
-        self.flight.engage(now, to.clamp(0, 5) as u8, has.then(|| to_enu(at))).map_or(-1, i64::from)
+    fn engage(&mut self, now: f64, to: i64, has: bool, at: Vector3, vel: Vector3) -> i64 {
+        let b = Bogey { pos: to_enu(at), vel: to_enu(vel) };
+        self.flight.engage(now, to.clamp(0, 5) as u8, has.then_some(b)).map_or(-1, i64::from)
     }
 
-    /// The engaged target this frame at the scene position `at`; `alive` false: gone, the engaging jets rejoin.
+    /// The engaged target this frame at the scene position `at` flying `vel`, its jammer's burn-through share `jam` (0
+    /// none); `alive` false: gone, the engaging jets rejoin.
     #[func]
-    fn set_target(&mut self, alive: bool, at: Vector3) {
-        self.flight.target(alive.then(|| to_enu(at)));
+    fn set_target(&mut self, alive: bool, at: Vector3, vel: Vector3, jam: f64) {
+        self.flight.target(alive.then(|| Bogey { pos: to_enu(at), vel: to_enu(vel) }), jam);
+    }
+
+    /// A foe shot down at `now` (`foe` 1 the engaged target, 2 the flight's bogey): the wingmen whose weapons were on it
+    /// call "splash".
+    #[func]
+    fn splash(&mut self, now: f64, foe: i64) {
+        self.flight.splash(now, if foe == 1 { Foe::Target } else { Foe::Bogey });
     }
 
     /// The threat jet `number`'s RWR and MAW show this frame, at the scene position `at`: `kind` 0 none, 1 a radar
@@ -116,15 +126,17 @@ impl IafAi {
     }
 
     /// An enemy pair's bogey this frame (scene positions and velocities): the ground's vector (`gci`: its track as the
-    /// network reckons it) and the jet as it is (`truth`), which a jet knows only while its own radar holds it.
+    /// network reckons it) and the jet as it is (`truth`), which a jet knows only while its own radar holds it or its
+    /// pilot sees it. For our flight: the hostile jet nearest it (`gci` false), which a wingman fights when it covers
+    /// the lead or is attacked (`state` "foe" 2).
     #[func]
     fn set_bogey(&mut self, gci: bool, gci_pos: Vector3, gci_vel: Vector3, truth: bool, pos: Vector3, vel: Vector3) {
         let b = |p, v| Bogey { pos: to_enu(p), vel: to_enu(v) };
         self.flight.bogey(gci.then(|| b(gci_pos, gci_vel)), truth.then(|| b(pos, vel)));
     }
 
-    /// An enemy jet `number`'s weapons this frame: its selected missile's envelope against the bogey (m), a missile
-    /// left, its own missile flying at the bogey.
+    /// A jet `number`'s weapons this frame: its selected missile's envelope against its bogey (an enemy's; one of our
+    /// wingmen's foe) (m), a missile or rounds left, its own missile flying at it.
     #[func]
     fn set_weapons(&mut self, number: i64, max: f64, min: f64, armed: bool, in_air: bool) {
         self.flight.weapons(number.clamp(0, 255) as u8, (max, min), armed, in_air);
@@ -220,6 +232,8 @@ impl IafAi {
         d.set("task", m.task.is_some());
         d.set("defending", m.defending);
         d.set("engaging", m.engaging);
+        d.set("covering", m.covering);
+        d.set("foe", m.foe.map_or(0, |f| if f == Foe::Target { 1 } else { 2 }));
         d.set("fuel_kg", m.fuel_kg);
         d.set("bingo_kg", m.bingo_kg);
         d.set("released", m.released);

@@ -5,6 +5,7 @@
 use crate::bt::Node::{self, *};
 use crate::bt::Status;
 use crate::flight::{Member, RESERVE_KG, defend};
+use crate::{bfm, fighter};
 use iaf_flight::autopilot::{MODE_SLOT, MODE_STEER};
 
 /// Inferred: each wingman starts its engine this long after the one before it (#2 this long after the clearance).
@@ -94,13 +95,37 @@ pub(crate) fn before_takeoff() -> Node<Member> {
     ])
 }
 
+/// A threat on it: in the fight the enemy fighters' defence ([`fighter::evade`]: a lock called but no stop to the
+/// attack, a missile defended by the tactics), in the shape the wingmen's ([`defend`]).
+fn guard(m: &mut Member) -> Status {
+    if m.enemy.committed { fighter::evade(m) } else { defend(m) }
+}
+
+/// The fight's way in: the enemy fighters' intercept (the collision course, the crank while its missile flies). It
+/// ends (fails) with the foe lost or past [`fighter::ABORT_M`] of the flight lead, or with nothing left to shoot and
+/// none of its missiles flying: then "winchester", the engage and the cover over; back to the slot ("in position").
+fn press(m: &mut Member) -> Status {
+    if fighter::intercept(m) == Status::Running {
+        return Status::Running;
+    }
+    if !m.enemy.armed && !m.enemy.in_air && !m.winchester {
+        (m.winchester, m.engaging, m.covering) = (true, false, false);
+        m.calls.push("winchester");
+    }
+    // (Back to the slot once: a foe held but not found leaves it in the slot, with no call each decision.)
+    if m.mode != MODE_SLOT {
+        (m.transit, m.report) = (true, true);
+    }
+    Status::Failure
+}
+
 /// The wingman (design §2).
 pub fn wingman() -> Node<Member> {
     Sel(vec![
         Seq(vec![Cond(|m| !m.alive), Act(idle)]),
         // Parked: ParkInHangar has stopped the engine.
         Seq(vec![Cond(|m| m.landed && !m.engine_on), Act(idle)]),
-        Seq(vec![Cond(flying), Act(defend)]),
+        Seq(vec![Cond(flying), Act(guard)]),
         Seq(vec![Cond(|m| m.mode == 8 && m.released), Act(idle)]),
         before_takeoff(),
         Act(fuel_calls),
@@ -108,6 +133,11 @@ pub fn wingman() -> Node<Member> {
         Seq(vec![Cond(|m| m.released), Act(|m| set_mode(m, 8))]),
         // Its turn to go home not come yet, with no lead in the air to keep a slot on: the Hold (mode 10) where it is.
         Seq(vec![Cond(|m| m.rtb && m.lead_low), Act(|m| set_mode(m, 10))]),
+        // In the fight (a foe, Flight::decide): the enemy fighters' shot, dogfight and intercept.
+        Seq(vec![
+            Cond(|m| m.enemy.committed),
+            Sel(vec![Act(fighter::shoot), Seq(vec![Cond(bfm::fighting), Act(bfm::fight)]), Act(press)]),
+        ]),
         Seq(vec![Cond(|m| m.task.is_some()), Act(fly_task)]),
         Act(keep_slot),
     ])

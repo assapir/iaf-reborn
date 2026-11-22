@@ -3,7 +3,7 @@
 
 use std::path::{Path, PathBuf};
 
-use iaf_ai::{Call, Decoy, Flight, SHAPES, Threat, apply};
+use iaf_ai::{Bogey, Call, Decoy, Flight, SHAPES, Threat, apply};
 use iaf_flight::airbase::Airbase;
 use iaf_flight::autopilot::{self, Autopilot, Config, Host, MODE_STEER, Waypoint};
 use iaf_flight::fm::Fm;
@@ -962,7 +962,11 @@ fn engage_my_target_and_rejoin() {
     let p = w.jets[0].0.ap_view().pos;
     let at = p + Vec3::new(-5_000.0, 20_000.0, 0.0);
     let t0 = w.t;
-    assert_eq!(w.flight.engage(w.t, 0, Some(at)), Some(true));
+    // The host's weapons: a missile left (wing_battle.rs fights with them).
+    for n in 2..=4 {
+        w.flight.weapons(n, (40_000.0, 2_000.0), true, false);
+    }
+    assert_eq!(w.flight.engage(w.t, 0, Some(Bogey { pos: at, vel: Vec3::ZERO })), Some(true));
     let flat = |w: &World, j: usize| {
         let q = w.jets[j].0.ap_view().pos;
         (q[0] - at[0]).hypot(q[1] - at[1])
@@ -976,7 +980,7 @@ fn engage_my_target_and_rejoin() {
     assert!(flat(&w, 1) < d2 - 3_000.0 && flat(&w, 2) < d3 - 3_000.0, "both close on the target");
     // The target gone: back in the shape.
     let t0 = w.t;
-    w.flight.target(None);
+    w.flight.target(None, 0.0);
     let back = w.until(600.0, &|w| [2, 3].iter().all(|&n| w.said(n, "in_position").is_some_and(|t| t > t0)));
     println!("engage: rejoined after {back:?} s; separation {:.1} m", w.sep_air);
     assert!(back.is_some() && w.flight.member(2).unwrap().task.is_none());

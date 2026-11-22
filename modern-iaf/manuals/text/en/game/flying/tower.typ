@@ -123,10 +123,11 @@ You can also click a line of the list.
   [Formation], [the flight], [A page of shapes: fingertip, line abreast, trail, echelon right, echelon left, diamond, vic, delta. Each calls "in position" in its new slot.],
   [Rejoin], [anyone], [Back to the slot from any task, also after an RTB. To the element 3–4 it ends a split.],
   [Split], [the element 3–4], [The second pair flies to your sensor's point (the radar's designated point, else your steerpoint) and circles it. It must be within 40 km of you, or they answer "unable".],
-  [Engage my target], [anyone], [They fly at the aircraft your radar has locked and fire their air-to-air missiles. With no enemy aircraft locked they answer "unable". When it is destroyed they rejoin.],
+  [Engage my target], [anyone], [They fight the aircraft your radar has locked: a collision course, a missile inside its envelope, a turn away while it flies, then the dogfight and the gun. With no enemy aircraft locked, or nothing left to shoot, they answer "unable". When it is destroyed they rejoin. Number 4 stays with number 3.],
+  [Cover me], [anyone], [They keep their slot and fight an enemy aircraft that comes within 20 NM of you. Rejoin or RTB ends the cover.],
   [RTB], [anyone], [They return to base and land.],
   [Check in], [anyone], [Each answers with its number.],
   [Ops check], [anyone], [Each answers with its fuel, in thousands of pounds ("Two, six point two").],
 )
 
-The wingmen also call by themselves: "joker" and "bingo" for their fuel, "spike" or "mud" when a radar locks on them, "defending" when a missile flies at them, "break left" or "break right" when they see a missile fired at their pair's other jet, "contact" when their radar holds an aircraft the AWACS called, and "Three has the lead" when the lead changes. A wingman under a lock turns away from the threat and drops chaff or flares, then rejoins.
+The wingmen also call by themselves: "joker" and "bingo" for their fuel, "spike" or "mud" when a radar locks on them, "defending" when a missile flies at them, "break left" or "break right" when they see a missile fired at their pair's other jet, "contact" when their radar holds an aircraft the AWACS called, and "Three has the lead" when the lead changes. A wingman under a lock turns away from the threat and drops chaff or flares, then rejoins. In a fight they call "engaged" when they take on an aircraft by themselves (one attacking them, or one near you while they cover you), "Fox one", "Fox two" or "Fox three" for a missile, "guns" for a burst, "splash" for a kill and "winchester" when nothing is left to shoot; a lock in a fight is called and the attack goes on.

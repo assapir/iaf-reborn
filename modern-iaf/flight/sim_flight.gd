@@ -57,6 +57,7 @@ const COMMANDS := [
 	["rejoin", "Rejoin", "הצטרפות", "CMD_REJOIN", "few"],
 	["split", "Split", "פיצול", "CMD_SPLIT", "e"],
 	["engage", "Engage my target", "תקיפת המטרה שלי", "CMD_ENGAGE", "few"],
+	["cover", "Cover me", "חיפוי", "CMD_COVER", "few"],
 	["rtb", "RTB", "חזרה לבסיס", "CMD_RTB", "few"],
 	["check", "Check in", "בדיקת קשר", "CMD_CHECK", "few"],
 	["ops_check", "Ops check", "בדיקת מערכות ודלק", "CMD_OPS_CHECK", "few"],

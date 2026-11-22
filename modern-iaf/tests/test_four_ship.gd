@@ -258,8 +258,8 @@ func _split(tv: Node) -> void:
 	check(await _until(tv, back, 900.0), "element 2 regrouped (%s;%s)" % [_calls(), _wing_states(tv)])
 
 
-## The reactions: a radar on the ground locks Kidon 1-2 (combat.gd on_lock, scripted): it calls "mud", defends with
-## chaff, and rejoins once the lock is gone.
+## The reactions: a radar on the ground locks Kidon 1-2 (combat.gd on_lock, scripted): it calls "mud", defends (no
+## chaff against a lock alone, K8) and rejoins once the lock is gone.
 func _lock(tv: Node) -> void:
 	var ent: Dictionary = _wing[0]
 	var u = tv.ai.combat.units.get(ent.key)
@@ -274,7 +274,8 @@ func _lock(tv: Node) -> void:
 	check(await _until(tv, defending, 5.0), "Kidon 1-2 calls the lock and defends (%s)" % _calls())
 	await fly(tv, 6.0)
 	var left: int = int(u.stations[10].count) if u != null and u.stations.size() > 10 else 0
-	check(chaff > 0 and left < chaff, "Kidon 1-2 releases chaff (%d of %d left)" % [left, chaff])
+	# K8: an AI jet releases against a missile within 6 s, none against a lock alone (docs/ai.md §15).
+	check(chaff > 0 and left == chaff, "Kidon 1-2 keeps its chaff against a lock alone (%d of %d left)" % [left, chaff])
 	t0 = tv.runtime.now
 	tv.ai.combat.on_lock(radar, ent, false)
 	var back := func(): return _said(2, "in_position", t0)
@@ -282,8 +283,9 @@ func _lock(tv: Node) -> void:
 
 
 ## F13 against a real site (docs/ai.md §15): an S-300PMU-2 15 km from the flight locks and launches at the wingmen;
-## each locked one calls "mud" (said, with its subtitle), defends and drops chaff, a launch at one is called
-## "defending"; the site silent and its missiles gone, each rejoins. The jets are shielded: the stand-in missiles hit.
+## each locked one calls "mud" (said, with its subtitle) and defends, a launch at one is called "defending" and that
+## one drops chaff as the missile comes within 6 s (K8); the site silent and its missiles gone, each rejoins. The jets
+## are shielded: the stand-in missiles hit.
 ## (At 25 km the envelope's edge: the beaming wingmen were out of it and the site fired only at the lead, 1 run in 2.)
 func _site(tv: Node) -> void:
 	settings().invulnerable = true
@@ -325,10 +327,10 @@ func _site(tv: Node) -> void:
 	check(
 		await _until(tv, func(): return _said(k1 + 2, "defending", t0), 10.0), "Kidon 1-%d calls the launch" % (k1 + 2)
 	)
-	var dropped := func(): return locked.all(func(k): return _chaff(tv, _wing[k]) < chaff[k])
+	var dropped := func(): return _chaff(tv, _wing[k1]) < chaff[k1]
 	check(
-		await _until(tv, dropped, 10.0),
-		"each locked wingman drops chaff (%s of %s)" % [_wing.map(func(e): return _chaff(tv, e)), chaff]
+		await _until(tv, dropped, 30.0),
+		"Kidon 1-%d drops chaff (%s of %s)" % [k1 + 2, _wing.map(func(e): return _chaff(tv, e)), chaff]
 	)
 	site.site.set_emcon("silent")
 	t0 = tv.runtime.now
