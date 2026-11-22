@@ -666,14 +666,27 @@ F12–F14). The 1998 game sets none of it. Every figure is inferred, tuned on th
 - **Mode 0x21, the steer loop** (`MODE_STEER`, every 0.1 s): flies toward `Autopilot::steer.to` at that point's height.
   The heading error is flown as a turn rate of 0.3 per radian, at most the order's load factor; the height through a
   spring and a damper (0.15 rad/s, 0.8); both as a bank and a load factor (the slot loop's `lift_stick`, at most 75° and
-  7 g). For an order marked `Steer::dive` (only the enemy fighters' notch and drag, §18.1; the 1998 game never flies
-  this loop) and a point more than 200 m below the jet, the bank is at most 85° and the lift upward at most 1 g, so a
-  hard turn goes down while it turns. At 75° with the full load factor a 6.5 g notch climbed at up to 39 m/s and was
-  still above its start height when the missile was gone (the flaky `modern-iaf/tests/test_intercept.gd`, 22 November
-  2026). The same limits on every turn starved the wingmen's break (2.3 g, the roll-in being slow) and their join-up in
-  a turn (228 m off), so a level point keeps the 75° rule; tested and dropped the same day. Open: a level hard turn
-  still climbs (a 6.5 g beam about 285 m in its first 8 s), until the roll law rolls in fast enough for the turn to keep
-  its load factor under that limit. The throttle is the speed law's, at most the order's (0.74, military: the
+  7 g). The wingmen's turn so flown climbs: the load factor is the wanted lift projected on the wing's present lift
+  axis, so a jet still rolling in pulls lift upward, and at the 75° limit a 6.5 g turn's lift upward is 1.7 g (a 6.5 g
+  turn to a level point 90° off climbs 252 m in 8 s; per-frame bank, g and vertical speed, 22 November 2026).
+- **The enemy fighter's turn laws** (`Steer::fighter`, set only by the enemy trees, §18; the 1998 game never flies the
+  steer loop and the wingmen never set it): the bank up to 85°, so a level turn holds its height up to 11 g; the
+  fighter's roll law, the roll rate 4 per radian of bank error within the jet's MaxRollRate (the 1998 roll law `5c9bc0`
+  rolls in with a time constant near 1.3 s on the 6-DoF: a 6.5 g turn was still rolling in after 4 s); never more lift
+  upward than the height law asks (the load factor at most that lift / cos bank, so it grows as the bank comes in); the
+  turn what the load factor leaves once that lift upward is held, up to the jet's own g limit (not the slot loop's 7);
+  the height law at 0.5 rad/s (a bank a degree past the target sinks a 9 g turn at 0.16 g: at the wingmen's 0.15 rad/s
+  the level break lost 46 m in 8 s, at 0.5 rad/s 9 m; 0.3: 17 m, 0.8: 7 m; a damping term on the roll rate changed
+  nothing); the loop's tick 1/30 s. For a point more than 200 m below the lift upward is at most 1 g, so a hard turn
+  goes down while it turns (at 75° with the full load factor a 6.5 g notch climbed at up to 39 m/s, the flaky
+  `modern-iaf/tests/test_intercept.gd`, 22 November 2026). A level hard turn holds its height within 30 m, the band of
+  the FAA's steep-turn standard (±100 ft)[^faa-acs] applied to a hard turn (inferred): the 6.5 g turn above −11 / +3 m
+  in 8 s, the beam +6 m and −1 m after 40 s, the plain tactics' 9 g level break −9 m in 8 s. The same laws on the
+  wingmen starved their break (2.3 g) and their join-up in a turn (228 m off) when tried with the slow roll law (22
+  November 2026); they stay the enemy's. Check: `cargo test -p iaf-ai --test intercept fighter_laws_only_when_asked`
+  (without the laws the turns climb to the metre as before the change), `--test intercept defence_by_the_tactics`,
+  `--test dogfight defensive_break`.
+- The steer loop's throttle is the speed law's, at most the order's (0.74, military: the
   afterburner stays out). The ground watch stays on. A far point is a heading; a near one is circled.
 - **The elements:** #2 flies on #1 and #4 on #3. In the shape each wingman keeps its slot in the lead's frame, so #4's
   slot is relative to #3's slot. When #3 flies on its own (the split's task, a defence, any loop but the slot), #4 flies
@@ -1454,7 +1467,8 @@ hostile jet, which the pair knows only while its radar holds it.
 - **Tests:** `cargo test -p iaf-ai --test intercept` (a MiG-29A pair on the 6-DoF against a scripted bogey: one test per
   leaf, each skill's commit time, shot range, crank and defence), `--test net gci` (the picture), `fighter::tests` (the
   collision course, the orbit, the crank, the window), `--test intercept defence` also the notch and the drag going down
-  while they turn, `dive_only_when_asked` the steer loop unchanged without the dive;
+  while they turn and the beam and the break within 30 m of their height, `fighter_laws_only_when_asked` the steer loop
+  unchanged without the fighter's laws (§8.8);
   `modern-iaf/tests/test_intercept.gd` (headless: a pair on a CAP vectored onto a scripted jet, commits, locks, shoots,
   notches a radar missile).
 - **Open:** a scramble from a base (no enemy airbases yet); the fighters' own radar is the wingmen's reach and cone,
@@ -1480,15 +1494,31 @@ are ours (inferred). The skill's tactics (§17) pick the branches:
 
 | situation | tactics 0 | tactics 1 adds | tactics 2 adds |
 |---|---|---|---|
-| offensive: the bogey within 90° of its nose, itself within 90° of the bogey's tail | pure pursuit (the lead point inside the gun's range) at full g and full power | the lag (1.5 s behind the bogey) when closing faster than 60 m/s inside 2.5 km or when its turn circle is wider; the low yo-yo (the point 0.4 of the range below) when out of the gun's range and falling back, or slow | the high yo-yo (the lag point 0.4 of the range above) when closing at 120 m/s from more than 45° off the tail |
+| offensive: the bogey within 90° of its nose, itself within 90° of the bogey's tail | pure pursuit (the lead point inside the gun's range) at full g, its closure controlled | the lag (1.5 s behind the bogey) when closing faster than 60 m/s inside 2.5 km or when its turn circle is wider; the low yo-yo (the point 0.4 of the range below) when out of the gun's range and falling back, or slow | the high yo-yo (the lag point 0.4 of the range above) when closing at 120 m/s from more than 45° off the tail |
 | defensive: the bogey behind its beam, its nose within 60° of it, inside 5 km | the break: full g into the bogey, level | the break in any plane; the break down (the point 0.4 of the range below) when 600 m of energy height behind | the guns jink inside 1.35 km: the point a range above or below, flipped every 2 s |
 | neutral | a level turn at full g toward the bogey | the rate fight (pure pursuit, the speed held near the corner) when it out-turns the bogey, else the radius fight (full g at 0.75 of the corner speed) | the vertical (the point 0.4 of the range above) when 600 m of energy height ahead and faster than the corner speed |
 
-- **Energy.** No move asks more than the wing gives at the speed (no pull into the α limit's drag). Every move flies
-  full power except the radius fight (the speed law's throttle at its slower speed). From tactics 1 the fighter holds
-  its speed near the corner: in the rate fight, the lag, the high yo-yo and the vertical it unloads to 3 g below 0.85
-  of the corner speed, and when slow out of the gun's range it flies the low yo-yo (down for speed, full g); the plain
-  tactics pull full g whatever the speed (they bleed to a slow, nose-high fight).
+- **Energy.** No move asks more than the wing gives at the speed (no pull into the α limit's drag). From tactics 1 the
+  fighter holds its speed near the corner: in the rate fight, the lag, the high yo-yo and the vertical it unloads to
+  3 g below 0.85 of the corner speed, the rate fight flies the corner speed (the throttle and the speed brake from
+  above), and when slow out of the gun's range it flies the low yo-yo (down for speed, full g). The vertical, the
+  yo-yos down, the defensive moves and the level turn fly full power; the radius fight its slower speed.
+- **The closure** (every offensive move: pursuit, lead, lag, high yo-yo; Shaw's closure control[^shaw], here by the
+  throttle and the speed brake): the closure wanted is 0.1 per second of the range past 600 m (inside the
+  gun's), at most 100 m/s either way; the move's speed is its own speed plus the closure wanted less the closure, never
+  below the corner speed (a slower chase bled to 130 m/s at full g behind a turning jet). The BFM loop opens the speed
+  brake 25 m/s above the move's speed (the speed law is at idle 23 m/s fast; the radius fight's slower speed too), and
+  the fighter's steer loop closes it. Between the steer and the BFM loop the autopilot's 0.5 s hold of the old stick
+  on a change of mode is skipped (the level moves switch loops each decision; the 1998 loops keep it). Behind a jet flying straight at 280 m/s
+  each level closes on afterburner, throttles back from about 1.3 km and settles 480 m behind (the speed law's offset
+  from 600), firing; with full power it passed the jet at 400 m/s and lost it (`dogfight.rs`
+  `closure_control_settles_behind`). All figures inferred.
+- **The level moves** (the plain tactics' break and turn) fly the steer loop with the fighter's turn laws (§8.8) at the
+  height the move began at: the BFM loop's turn toward a point behind took the path's own pitch for its plane (the
+  shortest rotation onto a line behind is undefined in the plane, so the trim's and the climb's pitch picked it), and
+  the point was set at the jet's own height each decision: the neutral level turn climbed 1.6 km in 12 s, pitched to
+  70° and rolled over the top (per-frame bank, g and vertical speed, 22 November 2026). Now the 9 g level turn holds
+  within 32 m.
 - **The BFM loop** (`autopilot.rs` `MODE_BFM`, ours): it flies the move's point in any plane, the lift rolled onto it
   with no bank limit; the turn asked is 0.5 per radian of the angle to the point plus the swing of the line to it (as
   a proportional navigation's: a moving point is tracked with no standing error), inside the load factor left once
@@ -1514,9 +1544,10 @@ are ours (inferred). The skill's tactics (§17) pick the branches:
   the type: another fighter flies the same leaf from its own definition.
 - **Tests:** `cargo test -p iaf-ai --test dogfight` (MiG-29As on the 6-DoF: offensive behind a jet in a 5 g turn,
   each level reaches a gun solution and from Medium stays behind its 3-9 line, the plain tactics' tracking under 4°;
-  defensive with a High fighter behind, each level breaks or jinks; neutral head-on passes 0.5, 1 and 2 km apart,
-  High against Low both ways, 120 s each: High offensive longer, 8 s against 0; most passes end in an even circling
-  fight, as two of the same jet would), `bfm::tests` (the moves by geometry, energy and tactics; the
+  defensive with a High fighter behind, each level breaks or jinks (the level break within 30 m of its height); behind
+  a jet flying straight each level settles in the gun's range without passing it; neutral head-on passes 0.5, 1 and 2 km apart,
+  High against Low both ways, 120 s each: High offensive longer, 36 s against 0 in sum, its rate fight at the corner
+  speed out-turning Low's fast level turn), `bfm::tests` (the moves by geometry, energy and tactics; the
   points); `modern-iaf/tests/test_dogfight.gd` (headless: a MiG-29A behind a scripted jet sees it, commits, flies a
   BFM move and fires its gun through combat.gd). The tests repeat: the Rust ones are deterministic (the laying
   error is a seeded hash).
@@ -1525,9 +1556,6 @@ are ours (inferred). The skill's tactics (§17) pick the branches:
 - **Each fighter fights the pair's bogey**: two against one, both fly the leaf on it (the flight's collision
   avoidance keeps them apart). The bogey's turn is the one it shows, not its type's limits: a pilot sees the turn, not
   the other jet's corner speed.
-- **Open:** the level moves climb: the plain tactics' level break gains about 210 m in 6 s and their neutral level turn
-  about 1.6 km in 12 s (a probe on `dogfight.rs`'s setups, 22 Nov 2026); the level point is set at the jet's own height
-  each decision, so the climb is not corrected (the steer loop's level hard turn shows the same, about 285 m in 8 s).
 - **Not started** (outside step 3's brief, "enemies now; wingmen may read it later"): the wingmen's dogfight; the leaf
   reads only a member and its bogey, so their trees can call it.
 
@@ -1539,6 +1567,7 @@ Open questions in this document:
 - The leader flag gating the wingman's take-off roll; the taxi re-placement's 60 m sign; what happens after parking
   (the root timer keeps running ParkInHangar).
 
+[^faa-acs]: FAA, "Private Pilot – Airplane Airman Certification Standards" (FAA-S-ACS-6), Area of Operation V, Task A, steep turns, https://www.faasafety.gov/files/events/GL/GL03/2016/GL0369764/private_airplane_acs.pdf (the entry altitude held within ±100 ft; read as quoted by a search engine on 2026-11-22, second-hand).
 [^apa-s300]: Carlo Kopp, Air Power Australia, "S-300PMU2 Favorit / SA-20 Gargoyle", updated to April 2012, https://www.ausairpower.net/APA-S-300PMU2-Favorit.html (the 83M6E2: the 54K6E2 command post and the 64N6E2 search radar, up to six batteries; the 40V6M "Semi-Mobile Mast System 24 Metre"; read 2026-11-19 and 2026-11-22).
 [^w-s300]: Wikipedia, "S-300 missile system", https://en.wikipedia.org/wiki/S-300_missile_system (the 64N6 Big Bird: "a maximum detection range of 300 km", "a scan once every twelve seconds"; read 2026-11-21).
 [^tc7100]: US Army, TC 7-100.2 "Opposing Force Tactics", 9 December 2011, chapter 11, https://www.govinfo.gov/content/pkg/GOVPUB-D101-PURL-gpo122554/pdf/GOVPUB-D101-PURL-gpo122554.pdf (§11-35 the cue's data, §11-36 units fighting with their radars off on the higher radars' data; read 2026-11-19).
@@ -1561,4 +1590,4 @@ Open questions in this document:
 [^w-zsu]: Wikipedia, "ZSU-23-4 Shilka", https://en.wikipedia.org/wiki/ZSU-23-4_Shilka ("the radar picks up many false returns (ground clutter) under 60 m (200 ft) of altitude"; read 2026-11-21; 6.535 m long, 3.125 m wide, 2.576 m high, 3.572 m with the radar up, read 2026-11-22).
 [^ru-maz543]: Wikipedia (Russian), "МАЗ-543", https://ru.wikipedia.org/wiki/МАЗ-543 (the MAZ-543 / MAZ-7310: 11,657 mm long, 3,050 mm wide; read 2026-11-22).
 [^w-ural]: Wikipedia, "Ural-4320", https://en.wikipedia.org/wiki/Ural-4320 (7,366 mm long, 2,500 mm wide, 2,715 mm high; read 2026-11-22).
-[^shaw]: Robert L. Shaw, "Fighter Combat: Tactics and Maneuvering", Naval Institute Press, 1985, ISBN 0-87021-059-9 (pursuit: lead, pure, lag; the high and low yo-yo; the break and the guns jink; one-circle and two-circle fights; energy height; the terms only, no figure taken).
+[^shaw]: Robert L. Shaw, "Fighter Combat: Tactics and Maneuvering", Naval Institute Press, 1985, ISBN 0-87021-059-9 (pursuit: lead, pure, lag; the high and low yo-yo; the break and the guns jink; one-circle and two-circle fights; energy height; closure control; the terms only, no figure taken).

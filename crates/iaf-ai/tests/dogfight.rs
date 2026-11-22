@@ -146,7 +146,7 @@ fn turning(j: &mut Jet, g: f32) {
         g,
         speed: 230.0,
         thr_max: 1.0,
-        dive: false,
+        fighter: false,
     });
     j.ap.set_mode(&mut j.fm, MODE_STEER);
 }
@@ -199,6 +199,48 @@ fn offensive_gun_solution() {
 }
 
 #[test]
+fn closure_control_settles_behind() {
+    // 2 km behind a jet flying straight at 280 m/s, each skill closes on afterburner and then controls its closure
+    // (the throttle, the speed brake): it never passes the jet's 3-9 line and settles in its gun's range, firing.
+    let Some(dir) = own() else { return };
+    for skill in [Skill::LOW, Skill::MEDIUM, Skill::HIGH] {
+        let mut target = jet(&dir, Vec3::new(0.0, 2000.0, ALT), 0.0, 250.0, None);
+        target.ap.steer =
+            Some(Steer { to: Vec3::new(0.0, 400_000.0, ALT), g: 3.0, speed: 280.0, thr_max: 1.0, fighter: false });
+        target.ap.set_mode(&mut target.fm, MODE_STEER);
+        let mut w = Duel {
+            jets: [jet(&dir, Vec3::new(0.0, 0.0, ALT), 0.0, 250.0, Some(skill)), target],
+            t: 0.0,
+            frames: 0,
+            busy: Default::default(),
+            err: (0.0, 0.0),
+        };
+        let (mut front, mut settled) = (0.0, (f64::MAX, 0.0f64));
+        w.run(90.0, &mut |w| {
+            let (r, _, aa) = w.geometry(0);
+            if aa > 90.0 {
+                front += DT;
+            }
+            if w.t > 60.0 {
+                settled = (settled.0.min(r), settled.1.max(r));
+            }
+        });
+        println!(
+            "tactics {}: {:.1} s ahead of its 3-9 line; the last 30 s {:.0}–{:.0} m behind, {} bursts",
+            skill.tactics,
+            front,
+            settled.0,
+            settled.1,
+            w.jets[0].bursts.len()
+        );
+        assert!(w.alive(), "both fly");
+        assert!(front == 0.0, "overran: {front:.1} s in front");
+        assert!(settled.0 >= 330.0 && settled.1 <= 900.0, "settled {settled:?}");
+        assert!(!w.jets[0].bursts.is_empty(), "fires");
+    }
+}
+
+#[test]
 fn defensive_break() {
     // A fighter at High 1.2 km behind, nose on: the defender breaks (turns hard into it) at once and is out of its gun
     // solution within seconds.
@@ -210,16 +252,25 @@ fn defensive_break() {
         w.run(skill.reaction_s + 1.5, &mut |_| {});
         let first = w.phase(0);
         let h0 = w.vel(0);
-        w.run(8.0, &mut |_| {});
+        let z0 = w.pos(0).z;
+        let mut dz = (0.0f64, 0.0f64);
+        w.run(8.0, &mut |w| dz = (dz.0.min(w.pos(0).z - z0), dz.1.max(w.pos(0).z - z0)));
         let turned = (h0.x * w.vel(0).y - h0.y * w.vel(0).x).atan2(h0.dot(w.vel(0))).abs().to_degrees();
         let (r, _, aa) = w.geometry(1);
         println!(
-            "tactics {}: {first}, turned {turned:.0}° in 8 s; the bandit {r:.0} m, {aa:.0}° off its tail; {} bursts at it",
+            "tactics {}: {first}, turned {turned:.0}° in 8 s ({:+.0} / {:+.0} m); the bandit {r:.0} m, {aa:.0}° off its \
+             tail; {} bursts at it",
             skill.tactics,
+            dz.0,
+            dz.1,
             w.jets[1].bursts.len()
         );
         assert!(["break", "jink", "break down"].contains(&first), "{first}");
         assert!(turned > 60.0 || first == "jink", "turned {turned:.0}°");
+        if first == "break" && skill.tactics == 0 {
+            // The plain tactics' level break inside 30 m of its height (docs/ai.md §8.8).
+            assert!(dz.0 > -30.0 && dz.1 < 30.0, "level break: {dz:?}");
+        }
     }
 }
 

@@ -12,7 +12,7 @@
 //! ([`Skill::lay`]). Every figure here is inferred unless its comment names a source.
 
 use iaf_flight::Vec3;
-use iaf_flight::autopilot::{MODE_BFM, Steer};
+use iaf_flight::autopilot::{MODE_BFM, MODE_STEER, Steer};
 
 use crate::bt::Status;
 use crate::fighter::Bogey;
@@ -42,6 +42,12 @@ const DEFENSIVE_M: f64 = 5000.0;
 /// inside this range (m), or when its turn circle is wider than the bogey's.
 const LAG_S: f64 = 1.5;
 const OVERSHOOT: (f64, f64) = (60.0, 2500.0);
+/// The closure control when offensive (Shaw's closure control, flown here by the throttle and the speed brake): the
+/// closure wanted is this share (1/s) of the range past the gun's resting range (m: inside the gun's), at
+/// most this much (m/s) either way, so it settles there behind the bogey (inferred).
+const CLOSE_K: f64 = 0.1;
+const REST_M: f64 = 600.0;
+const CLOSE_MAX: f64 = 100.0;
 /// The yo-yos: the high one (closing at twice the lag's rate, far off the bogey's tail: up out of its plane, deg off
 /// its tail), the low one (out of the gun's range and not closing: down inside its turn, m); the point's height off
 /// the bogey, as a share of the range.
@@ -65,12 +71,12 @@ pub const FLOOR_M: f64 = 500.0;
 const G: f64 = 9.80665;
 
 /// Where the move's point lies: on the bogey's path `lead_s` ahead (behind when negative), `up` × the range above it
-/// (below when negative); `level` at its own height (a level turn).
+/// (below when negative); `level` at that height (m; a level turn: the height it began at).
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub struct Aim {
     pub lead_s: f64,
     pub up: f64,
-    pub level: bool,
+    pub level: Option<f64>,
 }
 
 /// A move: its name, its point, the load factor (g) and the speed (m/s) it flies.
@@ -127,32 +133,36 @@ pub fn choose(own: &Jet, b: &Jet, corner: f32, max_g: f32, skill: &Skill, now: f
     // The most the wing gives now: below the corner speed (V / corner)² of the g limit.
     let max_g = max_g.min(max_g * (speed / corner.max(1.0)).powi(2)).max(1.0);
     let full = |name, aim| Move { name, aim, g: max_g, speed: FULL };
-    let corner_move = |name, aim| {
+    let corner_move = |name, aim, speed_to| {
         let unload = speed < UNLOAD.0 * corner;
-        Move { name, aim, g: if unload { UNLOAD.1.min(max_g) } else { max_g }, speed: FULL }
+        Move { name, aim, g: if unload { UNLOAD.1.min(max_g) } else { max_g }, speed: speed_to }
     };
     let at = Aim::default();
     if ata < OFFENSIVE_DEG.0 && aa < OFFENSIVE_DEG.1 {
         let tof = range / (ROUND_V + speed as f64);
         let lead = Aim { lead_s: tof, ..at };
+        // The speed that brings the closure to the one wanted, never below the corner speed (its best turn).
+        let want = (CLOSE_K * (range - REST_M)).clamp(-CLOSE_MAX, CLOSE_MAX);
+        let close = ((speed as f64 + want - closure) as f32).max(corner);
+        let chase = |name, aim| Move { name, aim, g: max_g, speed: close };
         if t == 0 {
-            return full("pursuit", if range <= GUN_M.1 { lead } else { at });
+            return chase("pursuit", if range <= GUN_M.1 { lead } else { at });
         }
         // Its turn circle wider than the bogey's: it would fly outside it (rate over speed, its corner's against the
         // bogey's as seen).
         let wide = speed as f64 / own.rate > b.vel.length() / b.rate.max(1e-3);
         if t >= 2 && closure > 2.0 * OVERSHOOT.0 && range < OVERSHOOT.1 && aa > HIGH_YOYO_DEG {
-            return corner_move("high yo-yo", Aim { lead_s: -LAG_S, up: YOYO, level: false });
+            return corner_move("high yo-yo", Aim { lead_s: -LAG_S, up: YOYO, level: None }, close);
         }
         if range < OVERSHOOT.1 && closure > OVERSHOOT.0 || wide && range > GUN_M.1 && range < OVERSHOOT.1 {
-            return corner_move("lag", Aim { lead_s: -LAG_S, ..at });
+            return corner_move("lag", Aim { lead_s: -LAG_S, ..at }, close);
         }
         // Out of the gun's range and falling back, or slow: down inside the bogey's turn for speed.
         if range > LOW_YOYO_M && closure < 0.0 || range > GUN_M.1 && speed < UNLOAD.0 * corner {
             return full("low yo-yo", Aim { up: -YOYO, ..at });
         }
         let (name, aim) = if range <= GUN_M.1 { ("lead", lead) } else { ("pursuit", at) };
-        return full(name, aim);
+        return chase(name, aim);
     }
     if aa > 180.0 - DEFENSIVE_DEG && ata > 90.0 && range < DEFENSIVE_M {
         if t >= 2 && range < GUN_M.1 * 1.5 {
@@ -162,16 +172,16 @@ pub fn choose(own: &Jet, b: &Jet, corner: f32, max_g: f32, skill: &Skill, now: f
         if t >= 1 && de < -ENERGY_M {
             return full("break down", Aim { up: -YOYO, ..at });
         }
-        return full("break", Aim { level: t == 0, ..at });
+        return full("break", Aim { level: (t == 0).then_some(own.pos[2]), ..at });
     }
     if t == 0 {
-        return full("turn", Aim { level: true, ..at });
+        return full("turn", Aim { level: Some(own.pos[2]), ..at });
     }
     if t >= 2 && de > ENERGY_M && speed > corner {
-        return corner_move("vertical", Aim { up: YOYO, ..at });
+        return corner_move("vertical", Aim { up: YOYO, ..at }, FULL);
     }
     if own.rate >= b.rate {
-        return corner_move("rate", at);
+        return corner_move("rate", at, corner);
     }
     Move { name: "radius", aim: at, g: max_g, speed: RADIUS_SPEED * corner }
 }
@@ -185,8 +195,8 @@ pub fn aim_point(p: Vec3, b: &Bogey, aim: &Aim, lay: [f64; 2], floor: f64) -> Ve
     let los = (to - p).try_normalize().unwrap_or(Vec3::NORTH);
     let across = los.cross(Vec3::UP).try_normalize().unwrap_or(Vec3::new(1.0, 0.0, 0.0));
     to += (across * lay[0] + across.cross(los) * lay[1]) * range;
-    if aim.level {
-        to[2] = p[2];
+    if let Some(h) = aim.level {
+        to[2] = h;
     }
     to[2] = to[2].max(floor);
     to
@@ -206,7 +216,7 @@ pub(crate) fn seen_rate(last: Option<(f64, Vec3)>, now: f64, vel: Vec3) -> f64 {
 /// something to shoot.
 pub fn fighting(m: &Member) -> bool {
     let e = &m.enemy;
-    let reach = if e.fought { 1.5 * BFM_M } else { BFM_M };
+    let reach = if e.fought.is_some() { 1.5 * BFM_M } else { BFM_M };
     let near = e.visual && e.bogey.is_some_and(|b| b.pos.distance(m.v.pos) <= reach);
     near && e.committed && (e.armed || e.in_air)
 }
@@ -218,7 +228,11 @@ pub fn fight(m: &mut Member) -> Status {
     let corner = m.corner.unwrap_or(CORNER);
     let own = Jet { pos: m.v.pos, vel: m.v.vel, rate: corner_rate(corner, m.v.max_g) };
     let rate = m.enemy.rate;
-    let mv = choose(&own, &Jet { pos: b.pos, vel: b.vel, rate }, corner, m.v.max_g, &m.skill, m.now);
+    let mut mv = choose(&own, &Jet { pos: b.pos, vel: b.vel, rate }, corner, m.v.max_g, &m.skill, m.now);
+    // A level move goes on at the height it began at (the steer loop's height law brings it back there).
+    if let (Some(_), Some(Aim { level: Some(h), .. })) = (mv.aim.level, m.enemy.fought) {
+        mv.aim.level = Some(h);
+    }
     let range = b.pos.distance(m.v.pos);
     let lay = m.skill.lay(m.number as u64, m.enemy.bursts);
     let to = aim_point(m.v.pos, &b, &mv.aim, if mv.aim.lead_s > 0.0 { lay } else { [0.0; 2] }, floor(m));
@@ -232,8 +246,10 @@ pub fn fight(m: &mut Member) -> Status {
         m.enemy.bursts += 1;
     }
     m.enemy.aim = Some((mv.aim, lay));
-    m.order.steer = Some(Steer { to, g: mv.g, speed: mv.speed, thr_max: 1.0, dive: false });
-    m.order.mode = Some(MODE_BFM);
+    // A level move (the plain tactics' break and turn) is the steer loop's level turn with the fighter's laws: the BFM
+    // loop's turn toward a point behind took the path's own pitch for its plane and climbed (1.6 km in 12 s).
+    m.order.steer = Some(Steer { to, g: mv.g, speed: mv.speed, thr_max: 1.0, fighter: true });
+    m.order.mode = Some(if mv.aim.level.is_some() { MODE_STEER } else { MODE_BFM });
     m.enemy.phase = mv.name;
     Status::Running
 }
@@ -266,7 +282,7 @@ mod tests {
         // The bogey 1 km behind, nose on: the break (level for 0), the jink (2); behind on energy: the break down.
         let behind = jet(0.0, -1000.0, 0.2, 0.0, 250.0);
         let me = jet(0.0, 0.0, 0.3, 0.0, 250.0);
-        assert_eq!(choose(&me, &behind, 220.0, 9.0, &s(0), 0.0).aim, Aim { level: true, ..Aim::default() });
+        assert_eq!(choose(&me, &behind, 220.0, 9.0, &s(0), 0.0).aim, Aim { level: Some(5000.0), ..Aim::default() });
         assert_eq!(pick(&me, &behind, 1), "break");
         assert_eq!(pick(&me, &behind, 2), "jink");
         let fast_behind = Jet { pos: Vec3::new(0.0, -3000.0, 6000.0), ..behind };
@@ -294,10 +310,10 @@ mod tests {
             aim_point(p, &b, &Aim { lead_s: 0.5, ..Aim::default() }, [0.0; 2], 0.0),
             Vec3::new(100.0, 1000.0, 5000.0)
         );
-        let lag = aim_point(p, &b, &Aim { lead_s: -LAG_S, up: YOYO, level: false }, [0.0; 2], 0.0);
+        let lag = aim_point(p, &b, &Aim { lead_s: -LAG_S, up: YOYO, level: None }, [0.0; 2], 0.0);
         let r = (Vec3::new(-300.0, 1000.0, 5000.0) - p).length();
         assert!((lag[0] + 300.0).abs() < 1e-9 && (lag[2] - 5000.0 - YOYO * r).abs() < 1e-9, "{lag:?}");
-        assert_eq!(aim_point(p, &b, &Aim { level: true, ..Aim::default() }, [0.0; 2], 0.0)[2], 4000.0);
+        assert_eq!(aim_point(p, &b, &Aim { level: Some(4000.0), ..Aim::default() }, [0.0; 2], 0.0)[2], 4000.0);
         // A laying error of 2 mrad across moves the point 2 m per km sideways.
         let off =
             aim_point(Vec3::ZERO, &Bogey { pos: Vec3::new(0.0, 1000.0, 0.0), ..b }, &Aim::default(), [2e-3, 0.0], -1e9);

@@ -266,15 +266,18 @@ fn defence_by_the_tactics() {
         // The notch and the drag go down while they turn (90° to the beam, 180° away), as a missile may be over in a
         // few seconds.
         let z0 = w.pos(0).z;
-        let mut top = z0;
+        let (mut top, mut low) = (z0, z0);
         for _ in 0..16 {
             w.run(0.5);
-            top = top.max(w.pos(0).z);
+            (top, low) = (top.max(w.pos(0).z), low.min(w.pos(0).z));
         }
         let dz8 = w.pos(0).z - z0;
         println!("{want}: in the first 8 s at most {:+.0} m, {dz8:+.0} m at 8 s", top - z0);
         if want == "notch" || want == "drag" {
             assert!(top - z0 < 20.0 && dz8 < -50.0, "{want}: {:+.0}, {dz8:+.0} m", top - z0);
+        } else {
+            // A level hard turn inside 30 m of its height (docs/ai.md §8.8).
+            assert!(top - z0 < 30.0 && low - z0 > -30.0, "{want}: {:+.0} / {:+.0} m", low - z0, top - z0);
         }
         w.run(32.0);
         let (dz, v) = (w.pos(0).z - z0, w.flight.members[0].v.vel);
@@ -285,7 +288,9 @@ fn defence_by_the_tactics() {
             .to_degrees();
         println!("{want}: the missile's launch point {off:.0}° off the nose, {dz:+.0} m in 40 s, {vz:+.1} m/s");
         match want {
-            "beam" => assert!((60.0..120.0).contains(&off) && vz.abs() < 10.0, "{off:.0}°, {vz:.1} m/s"),
+            "beam" => {
+                assert!((60.0..120.0).contains(&off) && vz.abs() < 10.0 && dz.abs() < 30.0, "{off:.0}°, {dz:+.0} m")
+            }
             "notch" => assert!((60.0..120.0).contains(&off) && vz < -10.0, "{off:.0}°, {vz:.1} m/s"),
             "drag" => assert!(off > 140.0 && vz < -10.0, "{off:.0}°, {vz:.1} m/s"),
             _ => {} // the break: past the launch point by then
@@ -315,28 +320,37 @@ fn back_to_station_with_nothing_to_shoot() {
 }
 
 #[test]
-fn dive_only_when_asked() {
-    // The steer loop's dive is the enemy fighter's alone (`Steer::dive`): the same 6.5 g turn to a point 500 m below,
-    // 90° right, without it flies the loop as before (the 75° bank and the full load factor climb it), with it goes
-    // down while it turns.
+fn fighter_laws_only_when_asked() {
+    // The steer loop's turn laws are the enemy fighter's alone (`Steer::fighter`). A 6.5 g turn 90° right to a point
+    // at its height, and one to a point 500 m below. Without them the loop flies as before (the wingmen's: the 75°
+    // bank and the full load factor climb it). With them the level turn holds its height and the other goes down while
+    // it turns.
     use iaf_flight::autopilot::{MODE_STEER, Steer};
     let mut dz = Vec::new();
-    for dive in [false, true] {
+    for (fighter, below) in [(false, 0.0), (false, 500.0), (true, 0.0), (true, 500.0)] {
         let p = Vec3::new(0.0, 0.0, ALT);
         let Some(mut w) = Pair::new(p, p, Skill::MEDIUM) else { return };
         let (fm, ap) = &mut w.jets[0];
-        let to = p + Vec3::new(50_000.0, 0.0, -500.0);
-        ap.steer = Some(Steer { to, g: 6.5, speed: 260.0, thr_max: 1.0, dive });
+        let to = p + Vec3::new(50_000.0, 0.0, -below);
+        ap.steer = Some(Steer { to, g: 6.5, speed: 260.0, thr_max: 1.0, fighter });
         ap.set_mode(fm, MODE_STEER);
-        let mut top = ALT;
+        let (mut lo, mut hi) = (ALT, ALT);
         for _ in 0..(8.0 / DT) as usize {
             ap.step(fm, &|_, _| 0.0);
             fm.step(DT);
-            top = top.max(fm.state().position.z);
+            (lo, hi) = (lo.min(fm.state().position.z), hi.max(fm.state().position.z));
         }
-        println!("dive {dive}: at most {:+.0} m, {:+.0} m at 8 s", top - ALT, fm.state().position.z - ALT);
-        dz.push((top - ALT, fm.state().position.z - ALT));
+        let end = fm.state().position.z - ALT;
+        println!("fighter {fighter}, {below} m below: {:+.3} / {:+.3} m, {end:+.3} m at 8 s", lo - ALT, hi - ALT);
+        dz.push((lo - ALT, hi - ALT, end));
     }
-    assert!(dz[0].0 > 100.0, "without the dive the old turn climbs: {:+.0} m", dz[0].0);
-    assert!(dz[1].0 < 20.0 && dz[1].1 < -50.0, "the dive goes down: {:?}", dz[1]);
+    // The wingmen's loop unchanged: the same climb to the metre as before the fighter's laws (22 Nov 2026, 9bc342c0).
+    assert!((dz[0].1 - OLD_CLIMB[0]).abs() < 1.0 && (dz[1].1 - OLD_CLIMB[1]).abs() < 1.0, "{dz:?}");
+    // The level turn inside 30 m (the FAA's steep-turn standard, ±100 ft; docs/ai.md §8.8).
+    assert!(dz[2].0 > -30.0 && dz[2].1 < 30.0, "level: {:?}", dz[2]);
+    assert!(dz[3].1 < 20.0 && dz[3].2 < -50.0, "going down: {:?}", dz[3]);
 }
+
+/// The steer loop's highest point in its first 8 s before the fighter's laws (m above the start; 9bc342c0's
+/// `dive_only_when_asked` without the dive, and the same turn to a level point).
+const OLD_CLIMB: [f64; 2] = [252.086, 187.486];

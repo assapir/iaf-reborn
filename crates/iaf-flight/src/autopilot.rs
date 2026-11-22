@@ -245,13 +245,22 @@ pub const MODE_STEER: u8 = 0x21;
 const STEER_K: f64 = 0.3;
 const STEER_W: f64 = 0.15;
 const STEER_ZETA: f64 = 0.8;
-/// The bank the steer loop flies at most going down (deg): a 6.5 g turn at 85° has 0.56 g of lift upward, so it goes
-/// down while it turns (at the slot loop's 75° the full load factor lifted the jet: a notch's 6.5 g turn climbed at
-/// 39 m/s, 22 November 2026).
+/// The bank the steer loop flies at most for a [`Steer::fighter`] (deg): a level turn holds its height up to
+/// 1 / cos 85° = 11 g, and a 6.5 g turn going down at 85° has 0.56 g of lift upward (at the slot loop's 75° the full
+/// load factor lifted the jet: a notch's 6.5 g turn climbed at 39 m/s, 22 November 2026).
 const STEER_BANK_MAX: f64 = 85.0;
-/// The steer loop goes down (its bank and lift above) for a [`Steer::dive`] point this far below the jet (m): a
+/// The steer loop goes down (at most 1 g of lift upward) for a [`Steer::fighter`] point this far below the jet (m): a
 /// defence's descent (`iaf_ai::fighter`'s 500 m), not a level point's small error.
 pub const STEER_DOWN_M: f64 = 200.0;
+/// The enemy fighters' laws ([`Steer::fighter`]; inferred, 22 November 2026): the roll rate asked per radian of bank
+/// error (1/s), within the jet's MaxRollRate, and the height law's natural frequency (rad/s; the damping is the steer
+/// loop's). The 1998 roll law (`5c9bc0`) rolls in with a time constant near 1.3 s on the 6-DoF: a 6.5 g turn was still
+/// rolling in after 4 s. A bank a little past the target sinks a 9 g turn fast (a degree is 0.16 g): at the steer
+/// loop's 0.15 rad/s the plain tactics' level break lost 46 m in 8 s, at 0.5 rad/s 9 m (0.3: 17 m, 0.8: 7 m; a damping
+/// term on the roll rate changed nothing). `crates/iaf-ai/tests/intercept.rs` `fighter_laws_only_when_asked`,
+/// `dogfight.rs` `defensive_break`.
+const FIGHTER_ROLL_K: f32 = 4.0;
+const FIGHTER_STEER_W: f64 = 0.5;
 /// Ours, the BFM loop (Modern IAF's enemy fighters, docs/ai.md §18.2): the mode number; the turn rate it asks per
 /// radian of the angle between the flight path and the line to its point (1/s), and its tick (s): the least mean
 /// tracking error behind a jet in a 5 g turn (`crates/iaf-ai/tests/dogfight.rs`: 2.9° at 0.5 and 1/30 s, 5.7° at 1.0,
@@ -263,6 +272,9 @@ const BFM_PERIOD: f64 = 1.0 / 30.0;
 /// faster swing is a new point); the line's steepest climb or dive off the horizon (deg; inferred: no loops, the bank
 /// about the horizon stays defined).
 const BFM_SWING: f64 = 1.0;
+/// The BFM loop opens the speed brake this much faster than its order's speed (m/s; the speed law is at idle 23 m/s
+/// fast; inferred).
+const BFM_BRAKE_MS: f32 = 25.0;
 const BFM_STEEP: f64 = 60.0;
 
 /// The unit direction `d` brought within [`BFM_STEEP`] of the horizon.
@@ -276,15 +288,18 @@ fn steep_cut(d: Vec3) -> Vec3 {
 }
 
 /// The steer loop's order ([`MODE_STEER`], set by the host): fly toward `to` at its height, turning at up to `g`, at
-/// `speed` m/s with the throttle at most `thr_max` (0.74, military: the afterburner stays out). With `dive` (Modern
-/// IAF's enemy fighters' notch and drag only) a point more than [`STEER_DOWN_M`] below is flown as a turn going down.
+/// `speed` m/s with the throttle at most `thr_max` (0.74, military: the afterburner stays out). With `fighter`
+/// (Modern IAF's enemy fighters only; the wingmen and the 1998 game never set it) the loop flies a hard turn as a
+/// fighter pilot does: it rolls in at once ([`FIGHTER_ROLL_K`]) to up to [`STEER_BANK_MAX`], and pulls only the load
+/// factor whose lift upward is what the point's height asks, so a level turn holds its height while it rolls in and
+/// turns; a point more than [`STEER_DOWN_M`] below is flown as a turn going down.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Steer {
     pub to: Vec3,
     pub g: f32,
     pub speed: f32,
     pub thr_max: f32,
-    pub dive: bool,
+    pub fighter: bool,
 }
 
 /// The point of a slot `(forward, right, up)` m in the leader's horizontal frame: its track (its nose at rest), its
@@ -1918,6 +1933,7 @@ impl Autopilot {
             return;
         }
         let now = ac.ap_view().t;
+        let old = self.mode;
         if self.mode == 0 && mode != 0 {
             ac.set_ai_since(now);
         }
@@ -1925,7 +1941,11 @@ impl Autopilot {
         ac.set_ai_mode(mode);
         self.watch = true;
         self.period = 0.5;
-        self.next_tick = now + 0.5;
+        // Ours: the enemy fighter's moves switch between the steer and the BFM loop each decision (its level moves are
+        // the steer loop's, §18.2); the 0.5 s hold of the old stick at up to 9 g is skipped between the two.
+        let ours = |m: u8| m == MODE_STEER || m == MODE_BFM;
+        let held = if ours(mode) && ours(old) { 0.0 } else { 0.5 };
+        self.next_tick = now + held;
         let v = ac.ap_view();
         self.lp = match mode {
             7 => Loop::Nav { f: None, idx: self.wp_index },
@@ -2221,7 +2241,8 @@ impl Autopilot {
                 self.slot_step(&mut l, thr_i, prev);
             }
             Loop::Steer => {
-                period = 0.1;
+                // A fighter's roll law at the BFM loop's tick: at 0.1 s its fast roll overshot (inferred).
+                period = if self.steer.is_some_and(|s| s.fighter) { BFM_PERIOD } else { 0.1 };
                 self.steer_step(&mut l);
             }
             Loop::Bfm(prev) => {
@@ -2242,7 +2263,7 @@ impl Autopilot {
         {
             let t = v.vel.try_normalize().unwrap_or(Vec3::NORTH);
             let lift = a * AVOID_A + Vec3::UP * G as f64;
-            let (y, x) = lift_stick(&l, lift - t * lift.dot(t), false);
+            let (y, x) = lift_stick(&l, lift - t * lift.dot(t), None);
             l.stick(y, x);
             period = period.min(0.1);
         }
@@ -2452,7 +2473,7 @@ impl Autopilot {
         let ec = eh * (SLOT_E_MAX / eh.length().max(SLOT_E_MAX)) + Vec3::UP * e[2].clamp(-SLOT_E_MAX, SLOT_E_MAX);
         let kd = 2.0 * SLOT_ZETA * SLOT_W;
         let lift = across(a_s + ec * (SLOT_W * SLOT_W) + de * kd + Vec3::UP * g);
-        let (mut y, mut x) = lift_stick(l, lift, false);
+        let (mut y, mut x) = lift_stick(l, lift, None);
         // Along the path: the slot's speed and the overtake; the PI throttle.
         let (lo, hi) = SLOT_OVERTAKE;
         let vt = (vs.dot(t) + (SLOT_K_ALONG * e.dot(t)).clamp(lo, hi) + a_s.dot(t) * SLOT_ANTICIPATE_S) as f32;
@@ -2495,15 +2516,28 @@ impl Autopilot {
         let dh = Vec3::new(d[0], d[1], 0.0).try_normalize().unwrap_or(th);
         // The heading error, + to the left.
         let e = th.cross(dh)[2].atan2(th.dot(dh));
-        let a_max = ((s.g * s.g) as f64 - 1.0).max(0.0).sqrt() * g;
+        let hw = if s.fighter { FIGHTER_STEER_W } else { STEER_W };
+        let a_up = (hw * hw * d[2] - 2.0 * STEER_ZETA * hw * v.vel[2]).clamp(-g, g);
+        // A fighter's turn: what the load factor leaves once the height law's lift upward is held.
+        let a_max = if s.fighter {
+            let n = s.g.min(v.max_g) as f64 * g;
+            (n * n - (g + a_up).powi(2)).max(0.0).sqrt()
+        } else {
+            ((s.g * s.g) as f64 - 1.0).max(0.0).sqrt() * g
+        };
         let a_turn = (STEER_K * v.speed as f64 * e).clamp(-a_max, a_max);
-        let a_up = (STEER_W * STEER_W * d[2] - 2.0 * STEER_ZETA * STEER_W * v.vel[2]).clamp(-g, g);
         let lift = Vec3::UP.cross(th) * a_turn + Vec3::UP * (g + a_up);
-        let (mut y, mut x) = lift_stick(l, lift - t * lift.dot(t), s.dive && d[2] < -STEER_DOWN_M);
+        // A fighter's lift upward: 1 g at most going down, else the height law's.
+        let hold = s.fighter.then_some(if d[2] < -STEER_DOWN_M { g } else { g + a_up });
+        let (mut y, mut x) = lift_stick(l, lift - t * lift.dot(t), hold);
         let mut thr = l.thr(s.speed).min(s.thr_max);
         l.watch_ground(&mut x, &mut y, &mut thr);
         l.gear(false);
         l.flaps(false);
+        // (A fighter's speed brake, opened by the BFM loop, closes: its steer loop flies full power or the speed law.)
+        if s.fighter {
+            l.brakes(false);
+        }
         l.stick(y, x);
         l.throttle(thr);
     }
@@ -2541,11 +2575,12 @@ impl Autopilot {
         let lift = u * a.min(room.max(0.0)) + w;
         // (The bank is measured about the horizon's right, undefined straight up or down: the line to the point is
         // kept within BFM_STEEP of the horizon, so the path stays off the vertical.)
-        let (mut y, mut x) = lift_stick_in(l, lift, std::f64::consts::PI, f64::NEG_INFINITY, n_max, false);
+        let (mut y, mut x) = lift_stick_in(l, lift, std::f64::consts::PI, f64::NEG_INFINITY, n_max, None);
         let mut thr = l.thr(s.speed).min(s.thr_max);
         l.watch_ground(&mut x, &mut y, &mut thr);
         l.gear(false);
         l.flaps(false);
+        l.brakes(v.speed > s.speed + BFM_BRAKE_MS);
         l.stick(y, x);
         l.throttle(thr);
     }
@@ -2553,19 +2588,20 @@ impl Autopilot {
 
 /// The stick (pitch, roll) that flies the lift `lift` (m/s², world, across the flight path): a bank about the flight
 /// path and a load factor on the wing's present lift axis (no pull while the jet is still rolled the wrong way; never a
-/// push), within the slot loop's bank and the jet's load factor. With `hold` (the steer loop's dive going down) within
-/// the steer loop's bank, and never more than 1 g of lift upward: a jet still rolling into a hard turn pulls only what
-/// holds its height, so the turn's lift does not climb it.
-fn lift_stick(l: &Laws, lift: Vec3, hold: bool) -> (f32, f32) {
+/// push), within the slot loop's bank and the jet's load factor. With `hold` (a [`Steer::fighter`]: its lift upward,
+/// m/s²) within the steer loop's bank, rolled by the fighter's roll law, and never more lift upward than `hold`: a jet
+/// still rolling into a hard turn pulls only what holds its height, so the turn's lift does not climb it.
+fn lift_stick(l: &Laws, lift: Vec3, hold: Option<f64>) -> (f32, f32) {
     let v = l.v;
-    let n_max = v.circuit.map_or(v.max_g, |c| c.0.min(v.max_g)).min(SLOT_G_MAX);
-    let lim = if hold { STEER_BANK_MAX } else { SLOT_BANK_MAX }.to_radians();
+    // (A fighter's load factor: the jet's, its order's turn within it.)
+    let n_max = if hold.is_some() { v.max_g } else { v.circuit.map_or(v.max_g, |c| c.0.min(v.max_g)).min(SLOT_G_MAX) };
+    let lim = if hold.is_some() { STEER_BANK_MAX } else { SLOT_BANK_MAX }.to_radians();
     lift_stick_in(l, lift, lim, 0.2 * G as f64, n_max, hold)
 }
 
 /// [`lift_stick`] within the bank `lim` (rad), the lift's up share taken as at least `up_min` (m/s²) for the bank, and
 /// the load factor `n_max`; `hold` as [`lift_stick`]'s.
-fn lift_stick_in(l: &Laws, lift: Vec3, lim: f64, up_min: f64, n_max: f32, hold: bool) -> (f32, f32) {
+fn lift_stick_in(l: &Laws, lift: Vec3, lim: f64, up_min: f64, n_max: f32, hold: Option<f64>) -> (f32, f32) {
     let v = l.v;
     let t = v.vel.try_normalize().unwrap_or(Vec3::NORTH);
     let right = t.cross(Vec3::UP).try_normalize().unwrap_or(Vec3::new(1.0, 0.0, 0.0));
@@ -2574,10 +2610,16 @@ fn lift_stick_in(l: &Laws, lift: Vec3, lim: f64, up_min: f64, n_max: f32, hold: 
     let bank = lr.atan2(lu.max(up_min)).clamp(-lim, lim) as f32;
     let roll = v.att.roll;
     let mut n = ((lr as f32 * roll.sin() + lu as f32 * roll.cos()) / G).max(0.0);
-    if hold && roll.cos() > 0.05 {
-        n = n.min(1.0 / roll.cos());
-    }
-    (l.inv_g(n.min(n_max)), l.roll(bank))
+    let x = match hold {
+        Some(up) => {
+            if roll.cos() > 0.05 {
+                n = n.min((up.max(0.0) / G as f64) as f32 / roll.cos());
+            }
+            (wrap(bank - roll) * FIGHTER_ROLL_K / v.max_roll_rate.max(1e-3)).clamp(-1.0, 1.0)
+        }
+        None => l.roll(bank),
+    };
+    (l.inv_g(n.min(n_max)), x)
 }
 
 impl Taxi {

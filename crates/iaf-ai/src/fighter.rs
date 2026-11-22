@@ -74,10 +74,11 @@ pub struct Enemy {
     pub(crate) aimed: Option<f64>,
     /// The bogey in its pilot's sight this decision (inside [`crate::bfm::VISUAL_M`], not behind its tail).
     pub visual: bool,
-    /// The dogfight's move this decision (its point and the gun's laying error, [`crate::bfm::fight`]); whether it
-    /// fought the decision before; the bogey's velocity at the last decision (its turn as seen); the gun's bursts.
+    /// The dogfight's move this decision (its point and the gun's laying error, [`crate::bfm::fight`]); its move's
+    /// point the decision before, if it fought; the bogey's velocity at the last decision (its turn as seen); the gun's
+    /// bursts.
     pub(crate) aim: Option<(crate::bfm::Aim, [f64; 2])>,
-    pub(crate) fought: bool,
+    pub(crate) fought: Option<crate::bfm::Aim>,
     pub(crate) last: Option<(f64, Vec3)>,
     /// The bogey's turn rate as seen this decision (rad/s; from `last`).
     pub(crate) rate: f64,
@@ -154,8 +155,10 @@ fn down(m: &Member) -> f64 {
     (p[2] - DESCENT_M).max(m.v.ground_height as f64 + FLOOR_M).min(p[2])
 }
 
+/// The order `s` flown by the steer loop with the fighter's turn laws ([`Steer::fighter`]: rolled in at once, the
+/// height held in a level turn), as `phase`.
 fn steer(m: &mut Member, s: Steer, phase: &'static str) -> Status {
-    m.order.steer = Some(s);
+    m.order.steer = Some(Steer { fighter: true, ..s });
     m.order.mode = Some(MODE_STEER);
     m.enemy.phase = phase;
     Status::Running
@@ -170,10 +173,19 @@ fn evade(m: &mut Member) -> Status {
     if m.threat.is_some_and(|t| !t.launch) {
         m.threat = None;
     }
+    // A level defence (the break, the beam) holds the height it began at: its point's while it flies one (the steer
+    // loop's; the dogfight's break flies the BFM loop).
+    let level = m.defending && m.mode == MODE_STEER && ["beam", "break"].contains(&m.enemy.phase);
+    let held = m.order.steer.filter(|_| level).map(|s| s.to[2]);
     let s = defend(m);
     // (Running without a threat: the turn held after the missile is gone.)
     let Some(t) = m.threat.filter(|_| s == Status::Running) else { return s };
+    let h = held.unwrap_or(m.v.pos[2]);
     if t.ir {
+        // The wingmen's break, flown with the fighter's turn laws.
+        if let Some(st) = m.order.steer.as_mut() {
+            (st.fighter, st.to[2]) = (true, h);
+        }
         m.enemy.phase = "break";
         return s;
     }
@@ -188,9 +200,7 @@ fn evade(m: &mut Member) -> Status {
     } else {
         "notch"
     };
-    if phase != "beam" {
-        (st.to, st.dive) = (Vec3::new(st.to[0], st.to[1], down(m)), true);
-    }
+    st.to[2] = if phase == "beam" { h } else { down(m) };
     steer(m, st, phase)
 }
 
@@ -220,12 +230,17 @@ fn intercept(m: &mut Member) -> Status {
     if e.in_air && e.contact && m.skill.tactics >= 1 {
         let track = m.v.vel[0].atan2(m.v.vel[1]);
         let to = p + dir(crank_heading(p, track, b.pos)) * FAR;
-        let s =
-            Steer { to: Vec3::new(to[0], to[1], p[2]), g: INTERCEPT.0, speed: CRANK_SPEED, thr_max: 1.0, dive: false };
+        let s = Steer {
+            to: Vec3::new(to[0], to[1], p[2]),
+            g: INTERCEPT.0,
+            speed: CRANK_SPEED,
+            thr_max: 1.0,
+            fighter: true,
+        };
         return steer(m, s, "crank");
     }
     let to = collision(p, INTERCEPT.1 as f64, &b);
-    steer(m, Steer { to, g: INTERCEPT.0, speed: INTERCEPT.1, thr_max: 1.0, dive: false }, "intercept")
+    steer(m, Steer { to, g: INTERCEPT.0, speed: INTERCEPT.1, thr_max: 1.0, fighter: true }, "intercept")
 }
 
 /// The commit: armed, a bogey inside [`COMMIT_M`] of the station for the lead's reaction time.
@@ -245,7 +260,7 @@ fn commit(m: &mut Member) -> Status {
 /// On station: the CAP orbit ([`cap_point`]).
 fn cap(m: &mut Member) -> Status {
     let to = cap_point(m.v.pos, m.enemy.station);
-    steer(m, Steer { to, g: CAP.0, speed: CAP.1, thr_max: 1.0, dive: false }, "cap")
+    steer(m, Steer { to, g: CAP.0, speed: CAP.1, thr_max: 1.0, fighter: true }, "cap")
 }
 
 fn slot(m: &mut Member) -> Status {
