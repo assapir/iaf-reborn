@@ -73,7 +73,7 @@ The enemy models (Modern IAF) are Sketchfab downloads, made once from the user's
 (`assets/source/enemy_models/`) by `tools/enemy_models/convert.py` and committed, so setup never needs a Sketchfab
 login. Changes: the display props beside the vehicles left out (a spare missile, a reload rack); scaled to the real
 vehicle; turned and set on the ground; joined, the big parts decimated; the textures shrunk to 1024 px at most (512 px
-for the ZSU-23-4, the Shahed-136 and the T-72) and stored as JPEG; the Tor-M1's animations left out.
+for the ZSU-23-4, the Shahed-136 and the T-72) and stored as JPEG; the Shahed-136 recoloured by us (the blue nose band black, the body a light grey, after Iranian photographs on Wikimedia Commons); the Tor-M1's animations left out.
 
 ## Texture credits
 
