@@ -207,8 +207,8 @@ fn shot_inside_the_skill_window() {
         let Some(mut w) = Pair::new(p, p, skill) else { return };
         w.bogey = Some(head_on(p, 70.0));
         w.until(120.0, &|w| w.shot.iter().all(|s| s.is_some())).expect("both shoot");
-        for n in 0..2 {
-            let (t, r) = w.shot[n].unwrap();
+        for (n, s) in w.shot.iter().enumerate() {
+            let (t, r) = s.unwrap();
             println!("#{} shot at {r:.0} m, t {t:.1} s (window edge {edge:.0} m)", n + 1);
             // One decision (0.5 s) at a closing speed near 550 m/s inside the edge at most.
             assert!(r <= edge && r > edge - 600.0, "#{}: {r:.0} m against {edge:.0} m", n + 1);
