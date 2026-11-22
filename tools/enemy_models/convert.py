@@ -43,6 +43,19 @@ BIG = 1500
 DROP = {"s300_5p85": ("Object_4",), "t72": ("Icosphere",)}
 # Big parts kept whole: the S-300's frame behind the cab (thin bars).
 WHOLE = {"s300_5p85": ("Object_26",)}
+# Moving parts kept as their own nodes (docs/ai.md §15.4; air_defence.gd turns them): our node name, the source's node
+# (its meshes are those under it, each in the innermost listed node) and the node it hangs on (None: the body). Each
+# node keeps the source node's pivot and rest rotation: the turret turns about up, the search radar about up, the
+# tracking radar about its x (elevation), a cell cover about its x (open).
+PARTS = {
+    "tor_m1": (
+        ("turret", "Turret_348", None),
+        ("search_radar", "Search radar_340", "turret"),
+        ("tracking_radar", "Tracking radar_343", "turret"),
+        ("cover_l", "Hinge L3_315", "turret"),
+        ("cover_r", "Hinge R2_321", "turret"),
+    ),
+}
 
 
 def strip_jpeg(d):
@@ -94,8 +107,21 @@ def convert(mid, src_dir, out_root):
                 bpy.data.objects.remove(o)
     for a in list(bpy.data.actions):
         bpy.data.actions.remove(a)
-    # Every mesh in world space, then one object; one UV map each (the join keeps every name as its own map).
+    # The moving parts: each mesh's group (the innermost listed node above it, else the body) and each pivot.
+    parts = PARTS.get(mid, ())
+    src = {p[1]: p[0] for p in parts}
+    pivot = {p[0]: bpy.data.objects[p[1]].matrix_world.copy() for p in parts}
+
+    def group(o):
+        while o is not None and o.name not in src:
+            o = o.parent
+        return src[o.name] if o is not None else mid
+
     objs = meshes()
+    for o in objs:
+        o["group"] = group(o)
+    # Every mesh in world space, then one object per group; one UV map each (the join keeps every name as its own
+    # map).
     for o in objs:
         uv = o.data.uv_layers
         while len(uv) > 1:
@@ -120,21 +146,45 @@ def convert(mid, src_dir, out_root):
         if ratio < 1.0 and o.name not in WHOLE.get(mid, ()) and sum(len(p.vertices) - 2 for p in o.data.polygons) > BIG:
             o.modifiers.new("collapse", "DECIMATE").ratio = ratio
     bpy.ops.object.convert(target="MESH")
-    bpy.ops.object.join()
-    body = bpy.context.view_layer.objects.active
+    joined = {}
+    for g in dict.fromkeys(o["group"] for o in meshes()):
+        bpy.ops.object.select_all(action="DESELECT")
+        mine = [o for o in meshes() if o["group"] == g]
+        for o in mine:
+            o.select_set(True)
+        bpy.context.view_layer.objects.active = mine[0]
+        bpy.ops.object.join()
+        joined[g] = bpy.context.view_layer.objects.active
     for o in list(bpy.context.scene.objects):
-        if o != body:
+        if o not in joined.values():
             bpy.data.objects.remove(o)
-    body.name = mid
-    body.data.transform(Matrix.Rotation(math.radians(turn), 4, "Z"))
-    mn, mx = bounds([body])
+    for g, o in joined.items():
+        o.name = g
+    whole = list(joined.values())
+    turn_m = Matrix.Rotation(math.radians(turn), 4, "Z")
+    for o in whole:
+        o.data.transform(turn_m)
+    mn, mx = bounds(whole)
     k = real / (mx - mn)["xyz".index(axis)]
     # The origin at the middle of the footprint (the lowest quarter: wheels, tracks, the mast's feet; a traversed
     # gun or a raised antenna does not shift it), on the ground.
-    low = [v.co for v in body.data.vertices if v.co.z < mn.z + 0.25 * (mx.z - mn.z)]
+    low = [v.co for o in whole for v in o.data.vertices if v.co.z < mn.z + 0.25 * (mx.z - mn.z)]
     foot = Vector([(min(v[i] for v in low) + max(v[i] for v in low)) / 2 for i in range(2)] + [mn.z])
-    body.data.transform(Matrix.Scale(k, 4) @ Matrix.Translation(-foot))
-    body.matrix_world = Matrix.Identity(4)
+    place = Matrix.Scale(k, 4) @ Matrix.Translation(-foot)
+    for o in whole:
+        o.data.transform(place)
+        o.matrix_world = Matrix.Identity(4)
+    # Each moving part in its pivot's frame (the source node's place and rest rotation, scaled with the model), hung
+    # on its parent.
+    for name, _, _ in parts:
+        m = turn_m @ pivot[name]
+        at = Matrix.Translation(place @ m.translation) @ m.to_quaternion().to_matrix().to_4x4()
+        joined[name].data.transform(at.inverted())
+        joined[name].matrix_world = at
+    for name, _, parent in parts:
+        o, up = joined[name], joined[parent or mid]
+        o.parent = up
+        o.matrix_parent_inverse = up.matrix_world.inverted()
     for im in bpy.data.images:
         if im.size[0] > side or im.size[1] > side:
             f = side / max(im.size)
@@ -153,8 +203,8 @@ def convert(mid, src_dir, out_root):
     )
     clean_images(os.path.join(out, mid + ".glb"))
     shutil.copy(os.path.join(tmp, "license.txt"), os.path.join(out, "license.txt"))
-    mn, mx = bounds([body])
-    tris = sum(len(p.vertices) - 2 for p in body.data.polygons)
+    mn, mx = bounds(whole)
+    tris = sum(len(p.vertices) - 2 for o in whole for p in o.data.polygons)
     print("MODEL", mid, "scale %.4f" % k, "size", [round(v, 2) for v in mx - mn], "tris", tris)
     shutil.rmtree(tmp)
 

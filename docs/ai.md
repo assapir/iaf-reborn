@@ -1228,9 +1228,21 @@ along −Z, by `tools/enemy_models/convert.py` (docs/credits.md § Model credits
 
 Stand-in shapes (boxes in vertex colours, as the bases' furniture, `base_furniture.gd`) remain for the 96L6E, the
 64N6E2 (no openly licensed model: the ones found are taken from War Thunder, excluded) and the 30N6E2 on its truck
-(the default site). A model stands in its rest pose: the S-300's canisters stay down, the Tor's antennas still
-(open: the Tor's source animations, `Raise` / `Scan` / `Launch`, are left out, as the site has no hook that turns a
-part).
+(the default site). The S-300's canisters stay down (rest pose).
+
+The Tor's moving parts follow the site's state (`air_defence.gd` `_rig`, `_animate`, each frame). The converter keeps
+five of the source's nodes as their own nodes with the source's pivots (`tools/enemy_models/convert.py` `PARTS`):
+`turret`, and hung on it `search_radar`, `tracking_radar`, `cover_l` and `cover_r`. The source's own animations
+(`Raise` / `Scan` / `Launch`) are left out; the code turns the nodes:
+
+| part | what turns it | figures |
+|---|---|---|
+| search radar | turns about up while the site searches (`IafSite`'s `search`) | 120°/s: the source's `Scan`, a turn in 3 s (the real rate open) |
+| turret | turns onto the site's first track, back to the nose without one | 60°/s (inferred) |
+| tracking radar | elevates onto the first track, 0–80° | 60°/s (inferred) |
+| cell covers | open about their hinge at a launch, held open 4 s, over 2 s each way | 146.1°: the source's `Launch` |
+
+A part out of action stops where it is.
 
 A site's models load on the main thread when it spawns (a parse, LODs and texture compression; the S-300's about
 65,000 triangles): today only the dev hook spawns sites and drones. Once missions place them, the flight's preload
@@ -1432,8 +1444,8 @@ MiG-29 first (modern-iaf/docs/ai-plan.md K2–K4). Step 1 (K2, 2026-11-22): the 
 
 ### 18.1 The intercept (K3)
 
-Step 2 (2026-11-22). There are no enemy airbases yet (the user, 22 Nov), so a pair starts on station: a CAP orbit, or
-where it was spawned in the air. The dev hook is `ai_flights.gd` `enemy_flight(ents, station, net)`: the jets from
+Step 2 (2026-11-22). A pair starts on station: a CAP orbit, or where it was spawned in the air; or parked at a base
+(§18.3). The dev hook is `ai_flights.gd` `enemy_flight(ents, station, net)`: the jets from
 `spawn`, the station (world), and the network (an `air_defence.gd` network, {} for none). It makes an `IafAi` an enemy
 pair (`IafAi.enemy`, `Flight::enemy`) with the enemy trees (`crates/iaf-ai/src/fighter.rs`); the flight's slots, far
 rejoin, collision avoidance and threat reactions are the wingmen's (§8.7, §8.8). The pair holds line abreast.
@@ -1471,7 +1483,7 @@ hostile jet, which the pair knows only while its radar holds it.
   unchanged without the fighter's laws (§8.8);
   `modern-iaf/tests/test_intercept.gd` (headless: a pair on a CAP vectored onto a scripted jet, commits, locks, shoots,
   notches a radar missile).
-- **Open:** a scramble from a base (no enemy airbases yet); the fighters' own radar is the wingmen's reach and cone,
+- **Open:** the fighters' own radar is the wingmen's reach and cone,
   without the ground clutter or the target's cross-section; the pairing of several pairs to several raids (each pair
   takes the track nearest its station).
 
@@ -1558,6 +1570,36 @@ are ours (inferred). The skill's tactics (§17) pick the branches:
   the other jet's corner speed.
 - **Not started** (outside step 3's brief, "enemies now; wingmen may read it later"): the wingmen's dogfight; the leaf
   reads only a member and its bogey, so their trees can call it.
+
+### 18.3 The scramble from a base (K3)
+
+2026-11-22. A pair can start parked at an airbase and scramble from there. The sim has no enemy airbase in its data
+(the user, 22 Nov: no enemy airbases yet), so any base in `iaf.ibx` stands in, named by the dev hook's argument. No
+mission places one.
+
+- **The dev hook.** `ai_flights.gd` `enemy_base(unit, base, count, station, net)` spawns up to `count` jets of the
+  bdb unit in the base's shelters (`HangarPt*`), engines off, and makes them an enemy pair by `enemy_flight`. Their
+  route: the take-off point 15 km along the runway and the landing waypoint 15 km out on the approach (action 7), both
+  1,500 m up (the Rust ground run's).
+- **Based.** `Flight::enemy` marks every jet added on the ground as based (`Enemy::based`).
+- **The scramble.** On the ground its radar is off and its pilot looks for nothing: only the network's vector (§18.1)
+  counts. A vectored bogey inside the commit range (90 km) of the station for the lead's reaction time (§17) starts
+  the lead's engine. The wingman starts once the lead's engine runs (the flight's clearance, the wingmen's tree).
+  Both taxi and take off under the autopilot's ground loops (TaxiCL, TakeoffCL), then fly the intercept's trees.
+- **Home.** The sortie ends when the intercept ends (the bogey lost or out of range), when nothing is left to shoot
+  with none of its missiles flying, or at bingo fuel. The lead flies GoHomeCL (mode 8) to the landing waypoint and
+  lands; the flight's landing sequence sends the wingman after it; both taxi in and park in their shelters. A bogey
+  shot down drops out of the vector at once (`_step_enemy`), though the network's track runs on a while. A bogey
+  lost before the lead commits in the air leaves the pair on its CAP until bingo. A pair scrambles once: parked
+  again, it stays parked.
+- **Tests:** `cargo test -p iaf-ai --test scramble` (two MiG-29As on the 6-DoF in Ramon's shelters: no start on a bogey
+  without the vector, the start after the lead's reaction, the take-off in order, the commit within 30 s of the
+  take-off, home, landing and parking within 40 m of the shelters); `modern-iaf/tests/test_enemy_scramble.gd`
+  (headless on the range mission: the pair in Ramon's shelters, the player's jet moved to Nevatim and parked there).
+- **Open** (found 2026-11-22; they hold for every AI jet, not only a based one): an AI jet has ground only where the
+  terrain is loaded near the camera (`terrain_view.gd` `scene_ground` gives −1e9 elsewhere), so one landing far from
+  the player falls through the ground; an AI MiG-29A landing at Nevatim crashes on its sink rate at the threshold
+  (Ramon's landing holds; not yet traced).
 
 ## UNCERTAIN
 Open questions in this document:

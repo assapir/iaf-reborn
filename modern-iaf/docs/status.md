@@ -3,6 +3,16 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **Enemy scramble from a base and the Tor's moving parts (2026-11-22, the user, 22 Nov: "Yes start whatever you
+  didn't finished"; [ai-plan.md](ai-plan.md) K3; [../../docs/ai.md](../../docs/ai.md) §18.3, §15.4):** an enemy pair
+  parked in a base's shelters, engines off, starts on the S-300 network's vector after the lead's reaction time, taxies
+  and takes off by the autopilot's ground loops, intercepts, and after the sortie goes home, lands and parks in its
+  shelters (`crates/iaf-ai/tests/scramble.rs`, `modern-iaf/tests/test_enemy_scramble.gd` through the dev hook
+  `ai_flights.gd` `enemy_base`). The sim has no enemy base, so any base stands in by the hook's argument; no mission
+  places one. The Tor-M1's search radar turns while it searches, its turret and tracking radar lay on the track and its
+  cell covers open at a launch (`modern-iaf/tests/test_enemy_sites.gd`). Open, for every AI jet: no ground where the
+  terrain is not loaded (one landing far from the player falls through it), and a MiG-29A landing at Nevatim crashes
+  on its sink rate ([../../docs/ai.md](../../docs/ai.md) §18.3).
 - **Enemy fighter step 3: the dogfight (2026-11-22, the user, 21 Nov: "Ok finish all enemies things you can",
   "Ok, do it"; [ai-plan.md](ai-plan.md) K4, X4, X5; [../../docs/ai.md](../../docs/ai.md) §18.2):** inside 6 km of a
   hostile jet it sees, a committed MiG-29A flies an energy-aware BFM leaf: pursuit (lead, pure, lag) and the yo-yos when
@@ -21,8 +31,7 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   after its reaction time through combat.gd's launch, cranks, and defends against a missile by its tactics (beam, notch,
   drag, break) with chaff or flares (`crates/iaf-ai/tests/intercept.rs`, `modern-iaf/tests/test_intercept.gd` through
   the dev hook `ai_flights.gd` `enemy_flight`). No mission places one. CPU: about 3.9 µs per jet per frame for the Rust
-  part on the build Mac, 0.17 ms per AI jet per frame on the laptop (with the scripted jet and the network). Open: the
-  scramble from a base (no enemy airbases yet, the user, 22 Nov).
+  part on the build Mac, 0.17 ms per AI jet per frame on the laptop (with the scripted jet and the network).
 - **Enemy fighter step 1: the MiG-29A flies (2026-11-22, the user, 21 Nov: "Ok finish all enemies things you can",
   "Ok, do it"; [ai-plan.md](ai-plan.md) K2, X2; [../../docs/ai.md](../../docs/ai.md) §18):** the MiG-29A is an AI type
   of its own aircraft definition (type 1020). Its 6-DoF set is TP-1538's tables on its wing with its masses, RD-33s and
@@ -40,7 +49,7 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   stands in for the network's 54K6E2 command post. Two ground-target records, `target_t72` and `target_ural`
   (`modern-iaf/data/db/units`, no mission places them yet). About 13 MB together. Open: the 64N6E2 and 96L6E radars
   and the 30N6E2 on its truck keep their stand-in shapes (no clean model); the models stand in their rest pose (the
-  S-300's canisters down; the Tor's animations left out: no hook turns a site's parts).
+  S-300's canisters down).
 - **Ground clutter for the radars (2026-11-21, the user: "Ok finish all enemies things you can";
   [ai-plan.md](ai-plan.md) K14, K5; [../../docs/radar.md](../../docs/radar.md) §9.8,
   [../../docs/ai.md](../../docs/ai.md) §15.3):** the Sufa's and the Adir's pulse-Doppler radars lose a target in

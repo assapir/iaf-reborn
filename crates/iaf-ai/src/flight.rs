@@ -451,12 +451,13 @@ impl Flight {
     }
 
     /// Makes the flight an enemy pair (or four; docs/ai.md §18) on station at `station`, every jet at `skill`: the
-    /// enemy trees ([`fighter::lead`], [`fighter::wingman`]) in line abreast. Call it after adding its jets.
+    /// enemy trees ([`fighter::lead`], [`fighter::wingman`]) in line abreast. Call it after adding its jets; a jet
+    /// added on the ground is based there (`Enemy::based`): it scrambles on the ground's vector and lands after.
     pub fn enemy(&mut self, skill: Skill, station: Vec3) {
         (self.lead_tree, self.wingman) = (fighter::lead(), fighter::wingman());
         (self.station, self.shape) = (Some(station), LINE_ABREAST);
         for m in &mut self.members {
-            m.skill = skill;
+            (m.skill, m.enemy.based) = (skill, !m.airborne);
         }
     }
 
@@ -725,10 +726,12 @@ impl Flight {
             m.task = own.or(rejoin);
             (m.order.mode, m.order.decoy, m.order.shoot, m.order.gun) = (None, None, false, false);
             if let Some(st) = self.station {
-                let contact = self.truth.filter(|b| in_radar(m, b.pos));
+                // On the ground its radar is off and its pilot looks for nothing: the ground's vector only.
+                let up = !m.v.on_ground;
+                let contact = self.truth.filter(|b| up && in_radar(m, b.pos));
                 // (Once seen it stays seen inside the visual range: the pilot keeps sight, checking six.)
                 let kept = |b: &Bogey| m.enemy.visual && b.pos.distance(m.v.pos) < bfm::VISUAL_M;
-                let seen = self.truth.filter(|b| in_sight(m, b.pos) || kept(b));
+                let seen = self.truth.filter(|b| up && (in_sight(m, b.pos) || kept(b)));
                 let e = &mut m.enemy;
                 (e.station, e.contact, e.visual) = (st, contact.is_some(), seen.is_some());
                 e.bogey = contact.or(seen).or(self.gci);

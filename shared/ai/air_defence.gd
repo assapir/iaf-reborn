@@ -19,6 +19,14 @@ const GUN_RECORD := "20 MM"
 ## Every part's strength and spawn radius (threat-records.md §3: the vehicles held at 300).
 const STRENGTH := 300.0
 const RADIUS := 8.0
+## The Tor's moving parts (its model's nodes, tools/enemy_models/convert.py PARTS; docs/ai.md §15.4): the search
+## radar's turn while it searches (deg/s: the model's own Scan animation, a turn in 3 s; the real rate open), the
+## turret's and the tracking radar's slew onto the track (deg/s, inferred), a cell cover's opening about its x (deg:
+## the model's Launch animation) over 2 s, held open this long after a launch (s: the animation's hold).
+const SEARCH_TURN := 120.0
+const LAY_RATE := 60.0
+const COVER_OPEN := -146.1
+const COVER_S := 4.0
 ## The stand-ins' array faces and missile canisters.
 const FACE := Color(0.2, 0.22, 0.2)
 const CANISTER := Color(0.42, 0.45, 0.31)
@@ -28,7 +36,8 @@ var cb: Node  # combat.gd
 ## Each site: {site (IafSite), parts (its part records), ents (their entities), units (each firing part's combat.gd
 ## unit, null for a radar), track (the part whose radar locks), locked {target key: true}, flying [[missile, target
 ## key]], gun {part, key, left, next, err (the laying error)}: the burst firing, cued {target key: true}: the
-## network's cues (EMCON cue), next (the next tick)}.
+## network's cues (EMCON cue), next (the next tick), rig (the moving parts, `_rig`), searching (its search radar on),
+## aim (the key of its first track, "" none), open_until (its cell covers open until then)}.
 var sites: Array = []
 ## Each network: {net (IafNet), gci (IafGci: its vector for the enemy fighters, ai_flights.gd enemy_flight), ents [the
 ## 64N6E2, the 54K6E2], sites (its members' site records), next (the next tick)}.
@@ -69,7 +78,10 @@ func spawn(kind: String, pos: Vector3, heading := 0.0, alternates := [], side :=
 		"flying": [],
 		"gun": {},
 		"cued": {},
-		"next": float(rt.now)
+		"next": float(rt.now),
+		"searching": false,
+		"aim": "",
+		"open_until": -INF
 	}
 	var at: Array = site.positions(host.mission_ground)
 	var record := _record(GUN_RECORD if kind == "zsu" else SAM_RECORD)
@@ -80,6 +92,7 @@ func spawn(kind: String, pos: Vector3, heading := 0.0, alternates := [], side :=
 		s.units.append(cb.add_ground_unit(ent, record) if int(p.rounds) > 0 and not record.is_empty() else null)
 		s.ents.append(ent)
 	s.track = maxi(0, s.parts.map(func(p): return p.track).find(true))
+	s["rig"] = _rig(s.ents)
 	sites.append(s)
 	return s.ents
 
@@ -155,7 +168,7 @@ func _record(name: String) -> Dictionary:
 
 ## A child of ai_flights.gd: it runs after every jet's step of the frame, so it reads them all at one instant (as
 ## `_step_flight_ai`), on the runtime's clock.
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	if host.frozen or host.waiting_for_ground or host.weapons == null:
 		return
 	var now: float = host.runtime.now
@@ -168,6 +181,7 @@ func _process(_delta: float) -> void:
 		if now >= s.next:
 			s.next = now + TICK
 			_tick(s, now)
+		_animate(s, delta, now)
 
 
 ## The network's decision: its sites' cues (their `cued`, read at their next tick). Its radar radiates while it
@@ -213,6 +227,8 @@ func _tick(s: Dictionary, now: float) -> void:
 	for key in out.tracks:
 		if not s.locked.has(key):
 			_lock(s, radar, key, true)
+	s.searching = out.search
+	s.aim = String(out.tracks[0]) if not out.tracks.is_empty() else ""
 	for l in out.launches:
 		_launch(s, int(l[0]), String(l[1]))
 	for b in out.bursts:
@@ -249,6 +265,52 @@ func _launch(s: Dictionary, part: int, key: String) -> void:
 		s.site.refund(part, key)
 	else:
 		s.flying.append([u.missile, key])
+		s.open_until = rt.now + COVER_S
+
+
+## The site's moving parts: the first part whose model has a turret (the Tor's), {part, turret, search, dish, covers,
+## rest (the covers' rest bases), open (0 shut .. 1 open)}; {} for a site drawn without them.
+func _rig(ents: Array) -> Dictionary:
+	for i in ents.size():
+		var t: Node3D = ents[i].node.find_child("turret", true, false)
+		if t == null:
+			continue
+		var covers := ["cover_l", "cover_r"].map(func(n): return t.find_child(n, true, false))
+		return {
+			"part": i,
+			"turret": t,
+			"search": t.find_child("search_radar", true, false),
+			"dish": t.find_child("tracking_radar", true, false),
+			"covers": covers,
+			"rest": covers.map(func(c): return c.basis),
+			"open": 0.0
+		}
+	return {}
+
+
+## The moving parts by the site's state: the search radar turns while it searches; the turret and the tracking radar
+## lay on its first track (back to the rest without one); the cell covers open at a launch. A part out of action stops.
+func _animate(s: Dictionary, delta: float, now: float) -> void:
+	var a: Dictionary = s.rig
+	if a.is_empty() or int(s.ents[a.part].state) >= 3:
+		return
+	var e: Dictionary = s.ents[a.part]
+	if s.searching:
+		a.search.rotation.y = wrapf(a.search.rotation.y - deg_to_rad(SEARCH_TURN) * delta, -PI, PI)
+	var yaw := 0.0
+	var elev := 0.0
+	var t: Dictionary = host.runtime.entities.get(s.aim, {})
+	if not t.is_empty():
+		var d: Vector3 = host.runtime._world_of(t) - host.runtime._world_of(e)
+		# Clockwise of the hull's nose is a negative turn about up (Godot's y).
+		yaw = -deg_to_rad(wrapf(rad_to_deg(atan2(d.x, d.y)) - float(e.heading), -180.0, 180.0))
+		elev = clampf(atan2(d.z, Vector2(d.x, d.y).length()), 0.0, deg_to_rad(80.0))
+	var step := deg_to_rad(LAY_RATE) * delta
+	a.turret.rotation.y = rotate_toward(a.turret.rotation.y, yaw, step)
+	a.dish.rotation.x = move_toward(a.dish.rotation.x, elev, step)
+	a.open = move_toward(a.open, 1.0 if now < s.open_until else 0.0, delta / 2.0)
+	for i in a.covers.size():
+		a.covers[i].basis = a.rest[i] * Basis(Vector3.RIGHT, deg_to_rad(COVER_OPEN) * a.open)
 
 
 ## The burst's rounds, one per combat.gd GUN_PERIOD, through the fire tick's aim (off by the crew's laying error) and

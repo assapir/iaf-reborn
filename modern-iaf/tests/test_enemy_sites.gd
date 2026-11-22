@@ -93,4 +93,28 @@ func run() -> void:
 	check(zs.units[0].rounds.pool.any(func(r): return r.flying), "its rounds fly (the existing round model)")
 	_put(j + Vector3(0, 10000, 0), 3000.0, 200.0)  # away: the engagement over
 	check(await _until(func(): return zsu[0].world.distance_to(zp) > 20.0, 40.0), "the ZSU relocates")
+
+	# The Tor's model turns its parts by the site's state (docs/ai.md §15.4).
+	var ts: Dictionary = ad.site_of(tor[0])
+	var rig: Dictionary = ts.rig
+	check(not rig.is_empty() and rig.search != null and rig.dish != null, "the Tor's moving parts (%s)" % [rig.keys()])
+	if rig.is_empty():
+		return
+	var tp: Vector3 = tor[0].world
+	_put(tp + Vector3(0, -14000, 0), 2000.0, 200.0)
+	var y0: float = rig.search.rotation.y
+	await fly(tv, 1.0)
+	check(ts.searching and absf(wrapf(rig.search.rotation.y - y0, -PI, PI)) > 0.5, "its search radar turns")
+	check(await _until(_locked.bind(330), 20.0), "the Tor's track locks the jet")
+	await fly(tv, 4.0)  # the turret's slew
+	var d: Vector3 = tv.player_world() - tp
+	var want := -deg_to_rad(wrapf(rad_to_deg(atan2(d.x, d.y)) - float(tor[0].heading), -180.0, 180.0))
+	var off := rad_to_deg(absf(wrapf(rig.turret.rotation.y - want, -PI, PI)))
+	check(
+		off < 10.0 and rig.dish.rotation.x > 0.02,
+		"turret %.1f° off the jet, dish up %.1f°" % [off, rad_to_deg(rig.dish.rotation.x)]
+	)
+	check(await _until(func(): return not ts.flying.is_empty(), 60.0), "the Tor launches")
+	await fly(tv, 1.5)
+	check(rig.open > 0.5, "its cell covers open (%.2f)" % rig.open)
 	print("sites: ", ad.sites.map(func(x): return x.site.state(tv.runtime.now)))

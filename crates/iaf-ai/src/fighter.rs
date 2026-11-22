@@ -4,8 +4,11 @@
 //! commits the pair after the lead's reaction time; it flies the collision course, shoots inside its share of the
 //! missile's envelope (the host's DLZ and launch, `combat.gd`), cranks while its missile flies, and defends against a
 //! missile launched at it (the notch, the drag, the break) as its skill's tactics allow. The wingman holds line abreast
-//! on the lead and shoots at the same bogey once its own radar holds it. Every figure here is inferred: no open source
-//! gives the opposing force's numbers (modern-iaf/docs/research/enemies.md §5.1).
+//! on the lead and shoots at the same bogey once its own radar holds it. A pair parked at a base ([`Enemy::based`])
+//! scrambles on the ground's vector: the lead starts its engine after its reaction time, the wingman after the
+//! clearance, both taxi and take off under the autopilot's ground loops, then the intercept; done (the bogey gone,
+//! nothing left to shoot, or bingo) it goes home and lands, the wingman in the flight's landing sequence. Every figure
+//! here is inferred: no open source gives the opposing force's numbers (modern-iaf/docs/research/enemies.md §5.1).
 
 use iaf_flight::Vec3;
 use iaf_flight::autopilot::{MODE_STEER, Steer};
@@ -14,7 +17,7 @@ use crate::bfm;
 use crate::bt::Node::{self, *};
 use crate::bt::Status;
 use crate::flight::{Member, defence, defend};
-use crate::wingman::{fly_task, flying, idle, keep_slot};
+use crate::wingman::{before_takeoff, fly_task, flying, idle, keep_slot, set_mode};
 
 /// The commit: a bogey this near the station (m, horizontal; inferred: the MiG-29's 700 km range at a combat radius
 /// with a fight's fuel, about a third of the way out).
@@ -58,6 +61,10 @@ pub struct Bogey {
 pub struct Enemy {
     /// Its station: the CAP orbit's centre at its height.
     pub station: Vec3,
+    /// It started parked at a base ([`crate::Flight::enemy`]): it scrambles from there and lands there after.
+    pub based: bool,
+    /// A based jet's sortie is over (its intercept ended): it goes home.
+    pub(crate) done: bool,
     /// The host's, this frame: the selected missile's envelope against the bogey (m: max, min; 0 none), a missile left,
     /// its own missile flying at the bogey.
     pub dlz: (f64, f64),
@@ -223,7 +230,7 @@ fn shoot(m: &mut Member) -> Status {
 fn intercept(m: &mut Member) -> Status {
     let e = &m.enemy;
     let Some(b) = e.bogey.filter(|b| flat(b.pos, e.station) <= ABORT_M && (e.armed || e.in_air)) else {
-        (m.enemy.committed, m.enemy.seen) = (false, None);
+        (m.enemy.committed, m.enemy.seen, m.enemy.done) = (false, None, e.based);
         return Status::Failure;
     };
     let p = m.v.pos;
@@ -257,6 +264,33 @@ fn commit(m: &mut Member) -> Status {
     intercept(m)
 }
 
+/// Parked at its base, its engine off: the scramble on the ground's vector (its radar is off on the ground): a bogey
+/// inside [`COMMIT_M`] of the station for the lead's reaction time starts its engine (the crews on cockpit alert,
+/// inferred); the wingmen start after it ([`crate::Flight`]'s clearance: the lead's engine running on the ground).
+fn scramble(m: &mut Member) -> Status {
+    let e = &m.enemy;
+    if !e.bogey.is_some_and(|b| flat(b.pos, e.station) <= COMMIT_M) {
+        m.enemy.seen = None;
+    } else if m.now >= *m.enemy.seen.get_or_insert(m.now) + m.skill.reaction_s && !m.start_sent {
+        (m.start_sent, m.order.start_engine) = (true, true);
+    }
+    Status::Running
+}
+
+/// A based jet goes home: its intercept over, nothing left to shoot with none of its missiles flying, or at bingo.
+fn going_home(m: &Member) -> bool {
+    let e = &m.enemy;
+    e.based && (m.rtb || e.done || !e.armed && !e.in_air || m.fuel_kg <= m.bingo_kg)
+}
+
+/// Home: GoHomeCL (mode 8) to its route's landing waypoint and the landing; the flight's landing sequence sends the
+/// wingmen after it.
+fn home(m: &mut Member) -> Status {
+    m.rtb = true;
+    m.enemy.phase = "home";
+    set_mode(m, 8)
+}
+
 /// On station: the CAP orbit ([`cap_point`]).
 fn cap(m: &mut Member) -> Status {
     let to = cap_point(m.v.pos, m.enemy.station);
@@ -268,11 +302,19 @@ fn slot(m: &mut Member) -> Status {
     keep_slot(m)
 }
 
-/// The enemy lead.
+/// The enemy lead: parked, the scramble, the take-off (a based lead), then its trees in the air; home after.
 pub fn lead() -> Node<Member> {
     Sel(vec![
         Seq(vec![Cond(|m| !m.alive), Act(idle)]),
+        Seq(vec![Cond(|m| m.landed && !m.engine_on), Act(idle)]),
+        Seq(vec![
+            Cond(|m| m.v.on_ground && !m.airborne),
+            Sel(vec![Seq(vec![Cond(|m| !m.engine_on), Act(scramble)]), Act(|m| set_mode(m, 9))]),
+        ]),
+        Seq(vec![Cond(|m| m.mode == 9 && !m.airborne), Act(idle)]),
         Seq(vec![Cond(flying), Act(evade)]),
+        Seq(vec![Cond(going_home), Act(home)]),
+        Seq(vec![Cond(|m| m.mode == 8), Act(idle)]),
         Act(shoot),
         Seq(vec![Cond(bfm::fighting), Act(bfm::fight)]),
         Seq(vec![Cond(|m| m.enemy.committed), Act(intercept)]),
@@ -281,11 +323,17 @@ pub fn lead() -> Node<Member> {
     ])
 }
 
-/// The enemy wingman: its slot on the lead (the far rejoin from afar), its own defence, its shot at the pair's bogey.
+/// The enemy wingman: its slot on the lead (the far rejoin from afar), its own defence, its shot at the pair's bogey; a
+/// based one starts, taxies and takes off after the lead and lands when the flight sends it home.
 pub fn wingman() -> Node<Member> {
     Sel(vec![
         Seq(vec![Cond(|m| !m.alive), Act(idle)]),
+        Seq(vec![Cond(|m| m.landed && !m.engine_on), Act(idle)]),
         Seq(vec![Cond(flying), Act(evade)]),
+        Seq(vec![Cond(|m| m.mode == 8 && m.released), Act(idle)]),
+        before_takeoff(),
+        Seq(vec![Cond(|m| m.released), Act(|m| set_mode(m, 8))]),
+        Seq(vec![Cond(|m| m.rtb && m.lead_low), Act(|m| set_mode(m, 10))]),
         Act(shoot),
         Seq(vec![Cond(bfm::fighting), Act(bfm::fight)]),
         Seq(vec![Cond(|m| m.task.is_some()), Act(fly_task)]),

@@ -201,10 +201,11 @@ func spawn(unit: String, at: Vector3, heading: float, route: Array, side := -1) 
 	return ent
 
 
-## Ours (a dev / test hook, docs/ai.md §18; no mission places one yet): the AI jets `ents` (from `spawn`, in the air)
-## fly as an enemy pair under IafAi on station at `station` (world: a CAP orbit's centre at its height, or where they
-## were spawned), vectored by the network `net` (an air_defence.gd network: its IafGci; {} none: its own radar only),
-## at the pilot's enemy skill. The flight, null when fewer than one jet could join.
+## Ours (a dev / test hook, docs/ai.md §18; no mission places one yet): the AI jets `ents` (from `spawn`: in the air,
+## or parked at a base, `enemy_base`) fly as an enemy pair under IafAi on station at `station` (world: a CAP orbit's
+## centre at its height, or where they were spawned), vectored by the network `net` (an air_defence.gd network: its
+## IafGci; {} none: its own radar only), at the pilot's enemy skill. The flight, null when fewer than one jet could
+## join.
 func enemy_flight(ents: Array, station: Vector3, net := {}) -> RefCounted:
 	var ai = ClassDB.instantiate("IafAi")
 	var members := []
@@ -218,6 +219,29 @@ func enemy_flight(ents: Array, station: Vector3, net := {}) -> RefCounted:
 	ai.enemy(Settings.enemy_skill(), host.world_to_scene(station))
 	enemy_flights.append({"ai": ai, "members": members, "net": net, "station": station, "bogey": {}, "locks": {}})
 	return ai
+
+
+## Ours (a dev / test hook, docs/ai.md §18.3; no mission places one): up to `count` jets of the bdb unit `unit` parked
+## in the shelters of `base` (its iaf.ibx section; the sim has no enemy base yet, so any base stands in), flown as an
+## enemy pair by `enemy_flight` on station at `station` (world): they scramble on the network `net`'s vector, take off,
+## intercept and land there after. Their route is the Rust ground run's: the take-off point 15 km along the runway,
+## the landing waypoint 15 km out on the approach (action 7), both 1,500 m up. The flight, null when none could park.
+func enemy_base(unit: String, base: String, count: int, station: Vector3, net := {}, side := -1) -> RefCounted:
+	var b: Dictionary = Settings.load_ibx(Settings.own_dir().path_join("iaf.ibx")).get(base, {})
+	var f := func(k: String) -> float: return float(b.get(k, "0"))
+	var l := Vector3(f.call("LineupLocX"), f.call("LineupLocY"), f.call("LineupLocZ"))
+	var h := deg_to_rad(f.call("RunwayNumber"))
+	var route := []
+	for q in [[15000.0, 2], [-15000.0, 7]]:
+		var p: Vector3 = l + Vector3(sin(h), cos(h), 0) * q[0] + Vector3(0, 0, 1500)
+		route.append([p.x, p.y, p.z, q[1]])
+	var ents := []
+	for i in mini(count, int(f.call("HangarsNum"))):
+		var at := Vector3(f.call("HangarPtX%d" % i), f.call("HangarPtY%d" % i), l.z)
+		var e := spawn(unit, at, f.call("HangarPtHdg%d" % i), route, side)
+		if not e.is_empty():
+			ents.append(e)
+	return enemy_flight(ents, station, net) if not ents.is_empty() else null
 
 
 ## An AI jet's pilot for `ent` in `formation` on `plane`: its flight model started and its model attached (`pr`: its
@@ -501,6 +525,10 @@ func _step_enemy(f: Dictionary, now: float) -> void:
 	if not n.is_empty() and n.ents.all(func(e): return int(e.state) < 3):
 		gci = n.gci.vector(now, f.station)
 	var t: Dictionary = runtime.entities.get(gci.get("id", ""), {})
+	if not t.is_empty() and int(t.state) >= 3:
+		# Shot down: the network's track coasts on a while; neither it nor the jet is a bogey.
+		t = {}
+		gci = {}
 	if gci.is_empty():
 		var near := INF
 		var jets: Array = AirDefence.of(host).jets(side)

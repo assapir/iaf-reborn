@@ -14,7 +14,7 @@ pub(crate) fn idle(_: &mut Member) -> Status {
     Status::Running
 }
 
-fn set_mode(m: &mut Member, mode: u8) -> Status {
+pub(crate) fn set_mode(m: &mut Member, mode: u8) -> Status {
     m.order.mode = Some(mode);
     Status::Running
 }
@@ -78,14 +78,10 @@ pub(crate) fn flying(m: &Member) -> bool {
     m.airborne && !m.v.on_ground && !m.v.gear_down
 }
 
-/// The wingman (design §2).
-pub fn wingman() -> Node<Member> {
+/// On the ground before its take-off: the engine at its turn after the clearance, the taxi once the jet ahead has
+/// moved, TaxiCL and TakeoffCL until airborne.
+pub(crate) fn before_takeoff() -> Node<Member> {
     Sel(vec![
-        Seq(vec![Cond(|m| !m.alive), Act(idle)]),
-        // Parked: ParkInHangar has stopped the engine.
-        Seq(vec![Cond(|m| m.landed && !m.engine_on), Act(idle)]),
-        Seq(vec![Cond(flying), Act(defend)]),
-        Seq(vec![Cond(|m| m.mode == 8 && m.released), Act(idle)]),
         Seq(vec![
             Cond(|m| m.v.on_ground && !m.airborne),
             Sel(vec![
@@ -95,6 +91,18 @@ pub fn wingman() -> Node<Member> {
             ]),
         ]),
         Seq(vec![Cond(|m| m.mode == 9 && !m.airborne), Act(idle)]),
+    ])
+}
+
+/// The wingman (design §2).
+pub fn wingman() -> Node<Member> {
+    Sel(vec![
+        Seq(vec![Cond(|m| !m.alive), Act(idle)]),
+        // Parked: ParkInHangar has stopped the engine.
+        Seq(vec![Cond(|m| m.landed && !m.engine_on), Act(idle)]),
+        Seq(vec![Cond(flying), Act(defend)]),
+        Seq(vec![Cond(|m| m.mode == 8 && m.released), Act(idle)]),
+        before_takeoff(),
         Act(fuel_calls),
         Seq(vec![Cond(|m| m.fuel_kg <= RESERVE_KG), Act(rtb_own)]),
         Seq(vec![Cond(|m| m.released), Act(|m| set_mode(m, 8))]),
