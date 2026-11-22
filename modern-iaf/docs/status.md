@@ -3,6 +3,15 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **Moving ground vehicles (2026-11-23, the user, 22 Nov: "Ok follow your suggested order", which named "ground
+  units that move: convoys on roads; ground attack needs moving targets"; [ai-plan.md](ai-plan.md) K16;
+  [../../docs/ai.md](../../docs/ai.md) §19):** a convoy of T-72s and Ural-4320s drives as one column on
+  OpenStreetMap's roads (across country where no road serves), 100 m apart, at its slowest vehicle's march speed for
+  road or open ground, on the terrain under it (its ground kept far from the player). A blast within 500 m (a bomb, a
+  missile, rockets, gun rounds) scatters it off the road; 60 s after the last one the survivors drive back onto the
+  route and on. The AI jets' attack leads a moving vehicle. The dev hook `shared/ai/convoys.gd spawn`; tests
+  `crates/iaf-ai/tests/convoy.rs`, `modern-iaf/tests/test_convoy.gd`. No mission places one; the models have no wheel
+  or track nodes, so nothing turns.
 - **The flight's landing and the take-off in pairs (2026-11-22, the user: "Finish landing"; [ai-plan.md](ai-plan.md)
   F3, F7; [../../docs/ai.md](../../docs/ai.md) §8.7):** the wingmen go home one by one after the lead, each on the
   circuit; the tower clears each to land on its turn to final and sends it to parking after its roll ("Kidon 1-2,

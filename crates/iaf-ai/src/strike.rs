@@ -284,9 +284,13 @@ pub(crate) fn fly(m: &mut Member) -> Status {
 /// the target lies [`DIVE_DEG`] below the horizon within [`AHEAD_DEG`] of the nose (too near, too steep or not ahead:
 /// out on its track first, [`EXTEND_DEG`]), then the BFM loop on the aim-off point, released below
 /// [`DIVE_IN_AGL`] with the impact within [`DIVE_MISS_M`] of the target; below [`DIVE_FLOOR_AGL`] without a
-/// release it pulls out and runs again. Both within the release permission.
+/// release it pulls out and runs again. Both within the release permission. A moving target is led: the run and the
+/// release take it where it will be after the store's fall from here.
 fn run(m: &mut Member, t: &Bogey, agl: f64) -> Status {
     let (p, v) = (m.v.pos, m.v.vel);
+    // A moving target (a convoy's vehicle, crate::convoy): where it will be when a store released now lands.
+    let lead = Vec3::new(t.vel[0], t.vel[1], 0.0) * fall_time(v[2], agl.max(0.0));
+    let t = &Bogey { pos: t.pos + lead, vel: t.vel };
     let to_t = Vec3::new(t.pos[0] - p[0], t.pos[1] - p[1], 0.0);
     let dir = to_t.try_normalize().unwrap_or(Vec3::NORTH);
     let miss = impact(p, v, t.pos[2]) - t.pos;

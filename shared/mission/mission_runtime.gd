@@ -9,6 +9,7 @@ signal subtitle(text: String)
 signal message_box(msg: int, buttons: Array)  # msgs.trx line, ["deb", "fly", "exit"]
 signal end_flight(debrief: bool)
 signal event_fired(id: int, name: String)  # the blackbox's mission events
+signal blast(point: Vector3, kind: String)  # ours: every area_damage (Modern IAF's convoys scatter, convoys.gd)
 
 const RADIUS_PERIOD := 4.0
 const END_BOX_DELAY := 10.0
@@ -819,6 +820,7 @@ func _add_debrief(file: int, id: int) -> void:
 func area_damage(
 	point: Vector3, power: float, radius: float, source: Dictionary, kind := "blast", only = null
 ) -> Array:
+	blast.emit(point, kind)
 	var out := []
 	for ent in entities.values():
 		if ent.state == DamageModel.EXPLODED or ent == source or not ent.damageable:

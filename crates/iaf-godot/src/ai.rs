@@ -5,8 +5,10 @@
 //! for `shared/ai/air_defence.gd`, `IafNet` their network (`iaf_ai::net`, §15.5). `IafSalvo`: one-way attack drones
 //! (`iaf_ai::drone`, §16) for `shared/ai/drones.gd`. An `IafAi` made an enemy pair (`enemy`) flies the enemy
 //! fighter's trees (`iaf_ai::fighter`, §18); `IafGci` is a network's ground-controlled intercept (`iaf_ai::net::Gci`).
+//! `IafConvoy`: a column of ground vehicles on the roads (`iaf_ai::convoy`, §19) for `shared/ai/convoys.gd`.
 
 use godot::prelude::*;
+use iaf_ai::convoy::{self, Convoy, Route};
 use iaf_ai::drone::{SHAHED_136, Salvo};
 use iaf_ai::fighter;
 use iaf_ai::net::{self, Gci, Member, Net};
@@ -632,4 +634,76 @@ fn pylons_of(a: &PackedInt64Array) -> Vec<Pylon> {
         .iter()
         .map(|&[kind, gps, count, id]| Pylon { kind, gps: gps != 0, count, id })
         .collect()
+}
+
+#[derive(GodotClass)]
+#[class(no_init, base = RefCounted)]
+pub struct IafConvoy {
+    convoy: Convoy,
+}
+
+/// A convoy keeps to roads of this class and the more important ones (tertiary; the route's cost per class prefers
+/// the big ones, iaf_avionics::roads).
+const CONVOY_CLASS: u8 = iaf_avionics::roads::CLASS_TERTIARY;
+
+#[godot_api]
+impl IafConvoy {
+    /// A column of the unit records `ids` (head first: target_t72, target_ural) from `from` to `to` (world; z
+    /// ignored): on the roads (IafRoads, opened) where they serve, else across country; its tail at `from`. Null
+    /// without a known vehicle.
+    #[func]
+    fn create(ids: PackedStringArray, from: Vector3, to: Vector3) -> Option<Gd<Self>> {
+        let specs: Vec<_> = ids.as_slice().iter().filter_map(|id| convoy::spec(&id.to_string())).collect();
+        let (a, b) = ([from.x as f64, from.y as f64], [to.x as f64, to.y as f64]);
+        let road =
+            crate::roads::route_graph(a, b, CONVOY_CLASS).and_then(|r| r.route(a, b, CONVOY_CLASS)).unwrap_or_default();
+        let convoy = Convoy::new(&specs, Route::plan(a, b, &road))?;
+        Some(Gd::from_object(Self { convoy }))
+    }
+
+    /// The route: {points (PackedVector2Array, world), road (per segment), length (m)}.
+    #[func]
+    fn route(&self) -> VarDictionary {
+        let r = &self.convoy.route;
+        let pts: PackedVector2Array = r.points.iter().map(|&p| crate::world::v2(p)).collect();
+        let road: VarArray = r.road.iter().map(|b| b.to_variant()).collect();
+        vdict! {"points" => &pts, "road" => &road, "length" => r.length()}
+    }
+
+    /// A blast at the world point `at` at `now` (s): within reach of a vehicle the convoy scatters; true when it did.
+    #[func]
+    fn alarm(&mut self, now: f64, at: Vector3) -> bool {
+        self.convoy.alarm(now, vec3(at))
+    }
+
+    /// The game destroyed vehicle `i`: it stays where it is.
+    #[func]
+    fn down(&mut self, i: i64) {
+        self.convoy.down(i.max(0) as usize);
+    }
+
+    /// The phase: move, scatter, rejoin, arrived.
+    #[func]
+    fn phase(&self) -> GString {
+        self.convoy.phase.name().into()
+    }
+
+    /// Advances `dt` s at `now` on the terrain `ground` (Callable(Vector3) -> float or null): each vehicle head first
+    /// {id, alive, pos, vel (world), heading, pitch (degrees)}.
+    #[func]
+    fn step(&mut self, now: f64, dt: f64, ground: Callable) -> VarArray {
+        let ground = terrain(Some(ground));
+        self.convoy.step(now, dt.max(0.0), &ground);
+        self.convoy
+            .vehicles
+            .iter()
+            .map(|v| {
+                vdict! {
+                    "id" => v.spec.id, "alive" => v.alive, "pos" => vector3(v.pos), "vel" => vector3(v.vel),
+                    "heading" => v.heading, "pitch" => v.pitch,
+                }
+                .to_variant()
+            })
+            .collect()
+    }
 }

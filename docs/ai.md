@@ -913,7 +913,8 @@ wingman" (modern-iaf/docs/ai-plan.md F15, K15). Our wingmen and the enemy fighte
     (DiveBomb's own figure, `5d8590`); below 900 m without a release it pulls out and runs again.
   - The vacuum impact is the CCIP's fall (`iaf_avionics::bombs::fall_time`), the release within the release
     permission (`iaf_avionics::release::release_allowed`: load factor ≥ 0, bank ≤ 90°). A run with no release in
-    300 s is given up ("unable").
+    300 s is given up ("unable"). A moving target (a convoy's vehicle) is led: the run and the release take it where
+    it will be after the store's fall (§19.3).
 - **The release** (`Order::release`, `IafAi.release`): the host selects the pylon `IafAi.ground_release` names
   (`strike::pylon`) and releases every store of that weapon (`strike::ripple`, at most 14) in one AI ripple 30 m apart (`combat.gd release` with the target given, then
   `_ripple_tick`: the target led by its velocity, the steered fall `player_weapons.gd drop_bomb`, a GPS bomb's or laser
@@ -1885,6 +1886,69 @@ mission places one.
   `modern-iaf/tests/test_ai_far_landing.gd` (headless: a MiG-29A lands at Nevatim with the player parked there, then
   with the player at Tel Nof, 70 km off, and the view range cut to 10 km, so no terrain is loaded at Nevatim).
 
+## 19. Modern IAF's moving ground vehicles (ours)
+
+The user, 22 November 2026, on the order of the last enemy jobs: "Ok follow your suggested order", which named
+"ground units that move: convoys on roads; ground attack needs moving targets". A convoy is a column of T-72 tanks
+and Ural-4320 trucks (their unit records `target_t72`, `target_ural` and models, §15.4) run by the Rust convoy
+(`crates/iaf-ai/src/convoy.rs`, gdext `IafConvoy`). No mission places one yet. `shared/ai/convoys.gd` is the dev and
+test hook: `load("res://shared/ai/convoys.gd").of(host).spawn(ids, from, to, side)` makes a column of the records
+`ids` (head first) whose tail stands at `from` (world) and which drives to `to`. Each vehicle is a mission entity
+(`convoy:N`, class 6, a vehicle) with its record's model, strength and size, so the player's sensors and weapons and
+the AI jets' attack (§8.10) take it as any ground unit. The test is `modern-iaf/tests/test_convoy.gd`; the Rust tests
+are `crates/iaf-ai/tests/convoy.rs`.
+
+### 19.1 The figures
+
+| figure | value | source |
+|---|---|---|
+| T-72 top speed | 60 km/h on roads; 35 km/h across country | Wikipedia[^w-t72-speed]; across country inferred |
+| Ural-4320 top speed | 82 km/h on roads (the V8); 30 km/h across country | Wikipedia[^w-ural]; across country inferred |
+| march speed | 0.7 of the slowest vehicle's top speed for the ground under the head: 42 km/h on a road with a T-72 in the column | inferred |
+| spacing | 100 m between two vehicles | an open column's "intervals of 300 feet or more" (FHWA[^fhwa-convoy]) |
+| alarm | a blast within 500 m of a vehicle | inferred |
+| scatter | off the road square to its course (a little ahead), even places right, odd places left, 60–141 m out, then stopped | inferred |
+| quiet | 60 s after the last blast they drive on | inferred |
+| turning off the road | on the spot at 45°/s, driving once within 30° of the goal | inferred |
+
+### 19.2 The drive
+
+- **Route.** `IafConvoy.create` asks the road layer (`iaf_avionics::roads::Roads::route`, OpenStreetMap's roads down
+  to tertiary; the route's cost per class prefers the big roads) for the road route between the road points nearest
+  `from` and `to`. The route takes it, with the legs from `from` to the road and from the road to `to` across country,
+  when those two legs add up to less than half the straight line; else the column drives straight across country.
+  Without the road layer (an older setup) every route is across country.
+- **Column.** Each vehicle keeps its place along the route, 100 m behind the one ahead, so the column follows the road
+  through every bend. It drives at the march speed for the ground under its head; at the route's end the head stops
+  there and each other vehicle 100 m behind the one ahead.
+- **Ground.** Each vehicle stands on the mission ground under it (roofs and trees included, as the sites take it) and
+  pitches with the terrain read at its two ends. Away from the player the ground may not be loaded: each convoy's first
+  vehicle alive joins the AI jets' height nodes (terrain.gd `extra_heights`, §18.4), and until they arrive a vehicle keeps the last
+  ground it had.
+- **Attacked.** Every `area_damage` (a bomb, a missile, a rocket, a gun's round, a hit) tells the convoys through the
+  runtime's `blast` signal. A blast within 500 m of a vehicle alive scatters the convoy: each vehicle turns off the
+  road to its side and stops there. Each further blast restarts the 60 s of quiet. After them the survivors drive back
+  onto the route, closed up behind the head in their order, and the column drives on.
+- **Destroyed.** A vehicle hit fatally stays where it was; the runtime's destruction takes it (docs/damage.md). The
+  column goes on without it.
+- **Models.** The T-72's and the Ural's models are one mesh each, with no wheel or track nodes: the hull moves and
+  pitches; nothing turns.
+
+### 19.3 The attack on a moving vehicle
+
+The AI jets' run (§8.10) follows the target's position each decision. The release leads it: the impact is compared
+with where the target will be after the store's fall from here (its velocity times the fall time), so a dive's or a
+level run's release falls on the vehicle where it will be. The AI ripple's stores lead a target by their own rule
+(combat.gd, FUN_00454b70: the velocity over the distance / own speed), which aims a guided bomb (type 650) where the
+target is now. Ours: `ai_flights.gd _release` gives the ripple a moving target as the point that rule leads it to, so
+bombs and rockets aim as before and a guided bomb aims there too.
+
+### 19.4 Later
+
+- The SAM sites' move to their next position (K5, §15) can drive the same route on the roads; today it drives
+  straight.
+- Mission content (convoys placed by a mission or the free-combat setup).
+
 ## UNCERTAIN
 Open questions in this document:
 - The RWR field names behind conditions 19, 26, 27, 38, 39 (§13.2); what else writes brain+0x7c.
@@ -1915,9 +1979,11 @@ Open questions in this document:
 [^w-tor-pd]: Wikipedia, "Tor missile system", https://en.wikipedia.org/wiki/Tor_missile_system ("The target acquisition radar is an F band pulse doppler 3D radar"; "The target engagement radar is a G band/H band (later K band) pulse doppler radar"; read 2026-11-21; the Tor-M1 7,500 mm long, 3,300 mm wide, 5,100 mm high with the radar up, read 2026-11-22).
 [^w-zsu]: Wikipedia, "ZSU-23-4 Shilka", https://en.wikipedia.org/wiki/ZSU-23-4_Shilka ("the radar picks up many false returns (ground clutter) under 60 m (200 ft) of altitude"; read 2026-11-21; 6.535 m long, 3.125 m wide, 2.576 m high, 3.572 m with the radar up, read 2026-11-22).
 [^ru-maz543]: Wikipedia (Russian), "МАЗ-543", https://ru.wikipedia.org/wiki/МАЗ-543 (the MAZ-543 / MAZ-7310: 11,657 mm long, 3,050 mm wide; read 2026-11-22).
-[^w-ural]: Wikipedia, "Ural-4320", https://en.wikipedia.org/wiki/Ural-4320 (7,366 mm long, 2,500 mm wide, 2,715 mm high; read 2026-11-22).
+[^w-ural]: Wikipedia, "Ural-4320", https://en.wikipedia.org/wiki/Ural-4320 (7,366 mm long, 2,500 mm wide, 2,715 mm high; top speed 82 km/h with the V8, 75 km/h with the V6; read 2026-11-22 and 2026-11-23).
 [^shaw]: Robert L. Shaw, "Fighter Combat: Tactics and Maneuvering", Naval Institute Press, 1985, ISBN 0-87021-059-9 (pursuit: lead, pure, lag; the high and low yo-yo; the break and the guns jink; one-circle and two-circle fights; energy height; closure control; the terms only, no figure taken).
 [^w-mig29-jam]: Wikipedia, "Mikoyan MiG-29" (the 9.13: "the installation of the L-203BE Gardenyia-1 jammer that was
   lacking on the initial 9.12 version"; read 2026-11-22): https://en.wikipedia.org/wiki/Mikoyan_MiG-29
 [^w-jam]: Wikipedia, "Radar jamming and deception" ("The burn-through range is the distance from the radar at which the jamming is ineffective"; a self-protection jammer "essentially broadcasts its position") (read 2026-11-22): https://en.wikipedia.org/wiki/Radar_jamming_and_deception
 [^mako-cover]: Israeli press on the IAF's rescues, fighters "שחיפו על החילוץ" (read as a search engine's summary on 2026-11-22, second-hand: the summary tied the quote to no single page).
+[^w-t72-speed]: Wikipedia, "T-72" (infobox: 60 km/h; read 2026-11-23): https://en.wikipedia.org/wiki/T-72
+[^fhwa-convoy]: FHWA Office of Operations, "Coordinating Military Deployments on Roads and Highways", Appendix B. Military Convoy Movement Facts ("vehicle intervals of 300 feet or more and speeds in excess of 25 mph"; read 2026-11-23): https://ops.fhwa.dot.gov/publications/fhwahop05029/appendix_b.htm

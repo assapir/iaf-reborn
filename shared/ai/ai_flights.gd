@@ -736,7 +736,16 @@ func _release(ai, n: int, ent: Dictionary, t: Dictionary) -> void:
 		return
 	combat._select(u, r.x)
 	u.ripple.set_values(r.y, r.z)
-	if combat.release(ent, t):
+	# Ours: a moving target (a convoy's vehicle, convoys.gd) given as the point where it will be, by the ripple's own
+	# lead (its velocity over its distance / own speed): the ripple's aim for bombs and rockets, and the same for a
+	# guided bomb, which the ripple aims where the target is now.
+	var aim := t
+	var tv: Vector3 = combat._velocity_of(t)
+	if tv.length() > 0.5:
+		var o: Dictionary = combat._pose(u)
+		var p: Vector3 = runtime._world_of(t)
+		aim = _point(p + tv * (p.distance_to(o.pos) / maxf(o.vel.length(), 1.0)))
+	if combat.release(ent, aim):
 		ai.released(n, runtime.now)
 
 
