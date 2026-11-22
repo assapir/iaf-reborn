@@ -9,6 +9,7 @@ extends Node
 const MissionRuntime := preload("res://shared/mission/mission_runtime.gd")
 const BaseFurniture := preload("res://shared/terrain/base_furniture.gd")
 const Missile := preload("res://shared/weapons/missile.gd")
+const Gltf := preload("res://shared/util/gltf.gd")
 
 ## The decision tick (s): the site tests line of sight only then (docs/ai.md §15.3).
 const TICK := 0.5
@@ -48,11 +49,13 @@ static func of(h: Node) -> Node:
 
 
 ## A site of `kind` (s300, tor, zsu) centred at `pos` (world), facing `heading` (degrees), with its alternate positions
-## (world); its parts' entities, [] for an unknown kind. `side` −1: the player's enemy.
-func spawn(kind: String, pos: Vector3, heading := 0.0, alternates := [], side := -1) -> Array:
+## (world); its parts' entities, [] for an unknown kind. `side` −1: the player's enemy. `mast`: the S-300's track
+## radar on its 40V6M tower (IafSite set_mast: its antenna at 25 m), drawn as the tower.
+func spawn(kind: String, pos: Vector3, heading := 0.0, alternates := [], side := -1, mast := false) -> Array:
 	var site = IafSite.create(kind, pos, heading, alternates)
 	if site == null:
 		return []
+	site.set_mast(mast)
 	site.set_skill(Settings.enemy_skill())  # the crew's: the pilot's pick (docs/ai.md §17)
 	var rt: Node = host.runtime
 	side = _side(side)
@@ -72,7 +75,8 @@ func spawn(kind: String, pos: Vector3, heading := 0.0, alternates := [], side :=
 	var record := _record(GUN_RECORD if kind == "zsu" else SAM_RECORD)
 	for i in s.parts.size():
 		var p: Dictionary = s.parts[i]
-		var ent := _part(p, at[i], heading, side)
+		var tower: bool = mast and p.track and not p.search
+		var ent := _part(p, at[i], heading, side, " MAST" if tower else "")
 		s.units.append(cb.add_ground_unit(ent, record) if int(p.rounds) > 0 and not record.is_empty() else null)
 		s.ents.append(ent)
 	s.track = maxi(0, s.parts.map(func(p): return p.track).find(true))
@@ -114,8 +118,9 @@ func _side(side: int) -> int:
 	return 1 if int(host.runtime.player_entity().get("side", 2)) == 2 else 2
 
 
-## Part `p` ({name, klass, type_code, reach_km}) as a mission entity ("ad:N") at `at` (world) with its stand-in shape.
-func _part(p: Dictionary, at: Vector3, heading: float, side: int) -> Dictionary:
+## Part `p` ({name, klass, type_code, reach_km}) as a mission entity ("ad:N") at `at` (world) with its model or
+## stand-in shape (its name and `look`'s suffix: " MAST" for the tower).
+func _part(p: Dictionary, at: Vector3, heading: float, side: int, look := "") -> Dictionary:
 	var rt: Node = host.runtime
 	_n += 1
 	var e := {"0x1e": -_n, "0x2bc": p.name, "0x2e4": at.x, "0x2ee": at.y, "0x2f8": at.z}
@@ -125,7 +130,7 @@ func _part(p: Dictionary, at: Vector3, heading: float, side: int) -> Dictionary:
 	if float(p.reach_km) > 0.0:
 		obj.radar_km = p.reach_km  # the RWR hears the radar to its reach (player_weapons.gd _rwr_search)
 	MissionRuntime._init_damage(ent, obj)
-	ent.node = _shape(String(p.name))
+	ent.node = _shape(String(p.name) + look)
 	host.add_child(ent.node)
 	rt.entities[ent.key] = ent
 	host.mission_entity_moved(ent)
@@ -308,9 +313,12 @@ func _targets(s: Dictionary) -> Array:
 	return out
 
 
-## The stand-in shapes (ours, until a model is approved; docs/ai.md §15.4): boxes in vertex colours, as the bases'
-## furniture (base_furniture.gd), the front along −Z; the array faces and dishes as tilted plates.
+## The part's model (Gltf.UNITS, docs/ai.md §15.4), else its stand-in shape (ours): boxes in vertex colours, as the
+## bases' furniture (base_furniture.gd), the front along −Z; the array faces and dishes as tilted plates.
 func _shape(part: String) -> Node3D:
+	var model = Gltf.model(Gltf.UNITS[part]) if Gltf.UNITS.has(part) else null
+	if model != null:
+		return Gltf.instance(model)
 	var olive := BaseFurniture.OLIVE
 	var dark := BaseFurniture.SHADOW
 	var steel := BaseFurniture.STEEL

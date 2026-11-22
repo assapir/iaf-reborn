@@ -60,7 +60,20 @@ for each.
 | Detailed F-15 (docs/aircraft-models.md §6) | the FlightGear F-15C/D, https://github.com/Zaretto/fg-aircraft (`aircraft/F-15`, commit 062cb58), 3D model by Enrique Laso, rig and systems by Richard Harrison (Zaretto), cockpit textures by GeneB; its grey livery, its IAF F-15I livery (69 Squadron, tail 269; the F-15I Ra'am, §6.7), its rear cockpit and IAF pilot patch | GPL 2.0 only (the author, fg-aircraft issue #211); setup downloads and converts it on the player's machine, so the repo and the game's distribution hold none of it | `crates/iaf-tools/src/f15.rs` (files, checksums, changes) |
 | F-35I Adir (docs/f35i.md) | "Lockheed Martin F35 Lightning II" by andertan, https://sketchfab.com/3d-models/lockheed-martin-f35-lightning-ii-db911de503c74285a8d506951df786d6 | CC BY 4.0, https://creativecommons.org/licenses/by/4.0/ | `shared/extra/planes/f35i/CREDITS.md` |
 | F-35I 116 Squadron badge | "IAF Squadron 116 Adir.png" by the IDF Spokesperson's Unit, https://commons.wikimedia.org/wiki/File:IAF_Squadron_116_Adir.png | CC BY-SA 3.0, https://creativecommons.org/licenses/by-sa/3.0/ | `shared/extra/planes/f35i/CREDITS.md` |
+| S-300 launcher model: the S-300 battery's launchers (docs/ai.md §15.4) | "S-300 5P85 Launcher with 9M83 Missiles" by xFORTUNAx, https://sketchfab.com/3d-models/s-300-5p85-launcher-with-9m83-missiles-da2204450fda471a949e4100e62e14a4 | CC BY 4.0, https://creativecommons.org/licenses/by/4.0/ | `shared/extra/models/s300_5p85/license.txt` |
+| 30N6E radar model: the S-300's track radar on its 40V6M tower (docs/ai.md §15.4) | "30N6E 'Flap Lid' B Phased Array Radar" by aardque, https://sketchfab.com/3d-models/30n6e-flap-lid-b-phased-array-radar-12d2dea1efbf4296891e512b16c57880 | CC BY 4.0, https://creativecommons.org/licenses/by/4.0/ | `shared/extra/models/radar_30n6e/license.txt` |
+| Tor-M1 model (docs/ai.md §15.4) | "Tor-M1 SAM with 9M331 Missiles (Animated)" by xFORTUNAx, https://sketchfab.com/3d-models/tor-m1-sam-with-9m331-missiles-animated-4cc7af0120ac460b96aabd5135f63b70 | CC BY 4.0, https://creativecommons.org/licenses/by/4.0/ | `shared/extra/models/tor_m1/license.txt` |
+| ZSU-23-4 model (docs/ai.md §15.4) | "Lowpoly Zsu-23-4" by SIpriv, https://sketchfab.com/3d-models/lowpoly-zsu-23-4-53bea8003bfc4a80b429d4f1f5d9206c | CC BY 4.0, https://creativecommons.org/licenses/by/4.0/ | `shared/extra/models/zsu23_4/license.txt` |
+| Shahed-136 model: the one-way attack drones (docs/ai.md §16) | "Shahed 136" by faintastic, https://sketchfab.com/3d-models/shahed-136-bc8754128c9d48c48baadeff1db8f0c7 | CC BY 4.0, https://creativecommons.org/licenses/by/4.0/ | `shared/extra/models/shahed136/license.txt` |
+| T-72 model: the enemy armour ground target (`target_t72`) | "Low Poly T-72 Tank - Game Ready" by Mr. The Rich, https://sketchfab.com/3d-models/low-poly-t-72-tank-game-ready-8c9d0d6640a244e39082cd9fdf565cef | CC BY 4.0, https://creativecommons.org/licenses/by/4.0/ | `shared/extra/models/t72/license.txt` |
+| Ural-4320 model: the convoy ground target (`target_ural`) and the S-300 network's 54K6E2 command post | "Ural 4320" by Brout, https://sketchfab.com/3d-models/ural-4320-f953c51a5dbc4a15949f4dcc0905c4e8 | CC BY 4.0, https://creativecommons.org/licenses/by/4.0/ | `shared/extra/models/ural4320/license.txt` |
 | The setup wizard's icon (docs/setup.md) | "Roundel of Israel.svg" by Zscout370, https://commons.wikimedia.org/wiki/File:Roundel_of_Israel.svg, with our "REBORN" banner | CC BY-SA 4.0, https://creativecommons.org/licenses/by-sa/4.0/ | `iaf-reborn/setup/icon.svg` |
+
+The enemy models (Modern IAF) are Sketchfab downloads, made once from the user's own download of 22 November 2026
+(`assets/source/enemy_models/`) by `tools/enemy_models/convert.py` and committed, so setup never needs a Sketchfab
+login. Changes: the display props beside the vehicles left out (a spare missile, a reload rack); scaled to the real
+vehicle; turned and set on the ground; joined, the big parts decimated; the textures shrunk to 1024 px at most (512 px
+for the ZSU-23-4, the Shahed-136 and the T-72) and stored as JPEG; the Tor-M1's animations left out.
 
 ## Texture credits
 

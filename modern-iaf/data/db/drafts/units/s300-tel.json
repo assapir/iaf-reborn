@@ -6,7 +6,7 @@
   "status": "pending the user's decision",
   "class": "radar_sam",
   "type": 310,
-  "model": "",
+  "model": "res://shared/extra/models/s300_5p85/s300_5p85.glb",
   "scale": 1.0,
   "radius_m": 6.0,
   "strength": 300,
@@ -34,7 +34,7 @@
     "radar_km": "open, w-s300"
   },
   "notes": {
-    "model": "none yet (modern-iaf/docs/threat-records.md lists the model source)",
+    "model": "our S-300 launcher (Sketchfab, \"S-300 5P85 Launcher with 9M83 Missiles\", xFORTUNAx, CC BY 4.0; docs/credits.md): a self-propelled 5P85 on the MAZ-543 standing in for the towed 5P85SE2 / TE2 (inferred)",
     "scale": "1: our models are built true size",
     "type": "310, the SA-5's code (the 1998 long-range SAM): its RWR symbol and SPO-15 lamp stand in (inferred)",
     "radar_km": "open: the 30N6E2's range; the missile's 200 km held. the unit's sensor reach, compiled into its Objects row (combat.gd sensor_nm reads it before the type code's)",

@@ -96,13 +96,13 @@ setup downloads it at a pinned commit with checksums and converts it locally (`c
 | 20 ft ISO container | FlightGear models DB #2527 (Frank Goeldner)[^sm-api] | GPL v2 (setup download) | `.ac` | 4 KiB | box | no |
 | Truss bridge span, 48 m | FlightGear models DB #8554 (David Megginson)[^sm-api] | GPL v2 (setup download) | `.ac` | 104 KiB | steel truss | no |
 | T-72 main battle tank, very low poly | Sketchfab, lebedeventerprise[^sf-t72a] | CC BY | glTF | 977 faces / 19 KB | far-view only, 64 px texture | no |
-| T-72 main battle tank, "Low Poly … Game Ready" | Sketchfab, MrTheRich[^sf-t72b] | CC BY | glTF | 1,488 faces / 16.9 MB (2048 px textures) | game-ready | no |
-| Ural-4320 army truck | Sketchfab, davidbroutian[^sf-ural] | CC BY | glTF | 8,492 faces / 4.2 MB | "ready for use in game engines" | no |
+| T-72 main battle tank, "Low Poly … Game Ready" | Sketchfab, MrTheRich[^sf-t72b] | CC BY | glTF | 1,488 faces / 16.9 MB (2048 px textures) | game-ready | yes: `shared/extra/models/` (2026-11-22) |
+| Ural-4320 army truck | Sketchfab, davidbroutian[^sf-ural] | CC BY | glTF | 8,492 faces / 4.2 MB | "ready for use in game engines" | yes: `shared/extra/models/` (2026-11-22) |
 | BM-21 Grad rocket launcher truck, low poly | Sketchfab, lm9241221[^sf-bm21] | CC BY ("noai" tag) | glTF | 16,131 faces / 5.9 MB | low poly | no |
 | MAZ-543 8×8 launcher chassis (stand-in for a ballistic-missile launcher), low poly | Sketchfab, lm9241221[^sf-maz] | CC BY | glTF | 31,031 faces / 13.7 MB | low poly | no |
 | Toyota Hilux 1983 pickup (stand-in for a "technical") | Sketchfab, elkarimeldino[^sf-hilux] | CC BY | glTF | 12,140 faces / 3.6 MB | civilian pickup | no |
-| S-300 5P85 launcher (9M83 missiles) | Sketchfab, xFORTUNAx ([threats.md](../threats.md) `sf-s300`) | CC BY | glTF | 285,136 faces / 21.6 MB | detailed; the missile is not the PMU-2's (threats.md) | no |
-| ZSU-23-4, low poly | Sketchfab, S1Priv ([threats.md](../threats.md) `sf-zsu`) | CC BY | glTF | unknown without download | low poly | no |
+| S-300 5P85 launcher (9M83 missiles) | Sketchfab, xFORTUNAx ([threats.md](../threats.md) `sf-s300`) | CC BY | glTF | 285,136 faces / 21.6 MB | detailed; the missile is not the PMU-2's (threats.md) | yes: `shared/extra/models/` (2026-11-22) |
+| ZSU-23-4, low poly | Sketchfab, S1Priv ([threats.md](../threats.md) `sf-zsu`) | CC BY | glTF | unknown without download | low poly | yes: `shared/extra/models/` (2026-11-22) |
 | Factories, warehouses (generic depot / plant buildings) | Kenney, City Kit (Industrial)[^kenney] | CC0 | unknown without download | unknown | stylised low poly (inferred from the tags) | no |
 
 ### 3.2 Sea

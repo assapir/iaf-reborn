@@ -1,0 +1,11 @@
+Model Information:
+* title:	Lowpoly Zsu-23-4
+* source:	https://sketchfab.com/3d-models/lowpoly-zsu-23-4-53bea8003bfc4a80b429d4f1f5d9206c
+* author:	SIpriv (https://sketchfab.com/S1Priv)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Lowpoly Zsu-23-4" (https://sketchfab.com/3d-models/lowpoly-zsu-23-4-53bea8003bfc4a80b429d4f1f5d9206c) by SIpriv (https://sketchfab.com/S1Priv) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

@@ -1,0 +1,11 @@
+Model Information:
+* title:	S-300 5P85 Launcher with 9M83 Missiles
+* source:	https://sketchfab.com/3d-models/s-300-5p85-launcher-with-9m83-missiles-da2204450fda471a949e4100e62e14a4
+* author:	xFORTUNAx (https://sketchfab.com/xFORTUNAx)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "S-300 5P85 Launcher with 9M83 Missiles" (https://sketchfab.com/3d-models/s-300-5p85-launcher-with-9m83-missiles-da2204450fda471a949e4100e62e14a4) by xFORTUNAx (https://sketchfab.com/xFORTUNAx) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

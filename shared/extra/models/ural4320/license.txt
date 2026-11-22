@@ -1,0 +1,11 @@
+Model Information:
+* title:	Ural 4320
+* source:	https://sketchfab.com/3d-models/ural-4320-f953c51a5dbc4a15949f4dcc0905c4e8
+* author:	Brout (https://sketchfab.com/davidbroutian)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Ural 4320" (https://sketchfab.com/3d-models/ural-4320-f953c51a5dbc4a15949f4dcc0905c4e8) by Brout (https://sketchfab.com/davidbroutian) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

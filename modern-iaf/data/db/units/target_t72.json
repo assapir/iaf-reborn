@@ -1,0 +1,31 @@
+{
+  "id": "target_t72",
+  "number": 35,
+  "name": "T-72 tank (ground target)",
+  "label": "T-72",
+  "class": "vehicle",
+  "type": -1,
+  "model": "res://shared/extra/models/t72/t72.glb",
+  "scale": 1.0,
+  "radius_m": 3.4,
+  "strength": 600,
+  "loadout": {},
+  "pylons": {},
+  "sources": {
+    "type": "inferred",
+    "scale": "inferred",
+    "radius_m": "w-t72",
+    "strength": "inferred"
+  },
+  "notes": {
+    "": "An enemy armour ground target: a T-72 main battle tank, class \"vehicle\" (6), no brain, no weapon. No mission places one yet.",
+    "type": "-1: no type code, as the original's static objects",
+    "model": "our T-72 (Sketchfab, \"Low Poly T-72 Tank - Game Ready\", Mr. The Rich, CC BY 4.0; tools/enemy_models/convert.py, docs/credits.md)",
+    "scale": "1: the model is built true size (its 2.23 m height)",
+    "radius_m": "half the hull's length, 6.67 to 6.86 m",
+    "strength": "as the hulks' (inferred)"
+  },
+  "footnotes": {
+    "w-t72": "Wikipedia, \"T-72\" (hull 6.67-6.86 m, width 3.40-3.59 m, height 2.23 m), https://en.wikipedia.org/wiki/T-72"
+  }
+}

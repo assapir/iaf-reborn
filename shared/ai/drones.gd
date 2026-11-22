@@ -8,6 +8,7 @@ extends Node
 const MissionRuntime := preload("res://shared/mission/mission_runtime.gd")
 const BaseFurniture := preload("res://shared/terrain/base_furniture.gd")
 const DamageModel := preload("res://shared/mission/damage_model.gd")
+const Gltf := preload("res://shared/util/gltf.gd")
 
 ## Strength: one 20 mm hit (100) brings it down (our damage scale, modern-iaf/docs/data-formats.md §6; inferred).
 const STRENGTH := 100.0
@@ -112,9 +113,13 @@ func _impact(e: Dictionary) -> void:
 	e.node = null
 
 
-## The stand-in shape (ours, until a model is approved; docs/ai.md §16): the fuselage, the cranked delta wing, the
-## fins at its tips and the pusher propeller's disc, in vertex colours as the bases' furniture, the nose along −Z.
+## The drone's model (Gltf.UNITS, docs/ai.md §16), else its stand-in shape (ours): the fuselage, the cranked delta
+## wing, the fins at its tips and the pusher propeller's disc, in vertex colours as the bases' furniture, the nose
+## along −Z.
 func _shape() -> Node3D:
+	var model = Gltf.model(Gltf.UNITS.get("SHAHED-136", ""))
+	if model != null:
+		return Gltf.instance(model)
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var half := LENGTH / 2.0

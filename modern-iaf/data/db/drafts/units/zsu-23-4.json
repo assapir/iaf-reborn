@@ -6,7 +6,7 @@
   "status": "pending the user's decision",
   "class": "aaa",
   "type": 360,
-  "model": "",
+  "model": "res://shared/extra/models/zsu23_4/zsu23_4.glb",
   "scale": 1.0,
   "radius_m": 3.27,
   "strength": 300,
@@ -28,7 +28,7 @@
     "loadout.23mm": "w-zsu"
   },
   "notes": {
-    "model": "none yet (modern-iaf/docs/threat-records.md lists the model source)",
+    "model": "our ZSU-23-4 (Sketchfab, \"Lowpoly Zsu-23-4\", SIpriv, CC BY 4.0; docs/credits.md)",
     "scale": "1: our models are built true size",
     "type": "360, an AAA code of the 1998 game: its RWR symbol and SPO-15 lamp",
     "radius_m": "half the length, 6.535 m",

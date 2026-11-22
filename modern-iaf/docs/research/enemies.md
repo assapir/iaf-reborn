@@ -354,7 +354,7 @@ November ([models-catalogue.md](models-catalogue.md) §7). Each download waits f
 - **Tor-M1, ZSU-23-4:** how Iran deploys them around a site (battery layout, spacing).
 - **Fighters:** no open source on Iranian fighter tactics; the GCI reliance is the opposing-force manual's, applied to
   Iran by inference.
-- **Models:** the 96L6E and 64N6E2 radars; the Tor's missile count to check on download.
+- **Models:** the 96L6E and 64N6E2 radars (the 64N6E2 models found are War Thunder rips, excluded). Picks 2, 3, 5 and 6 were downloaded by the user on 22 November 2026 and are in the game ([../../../docs/ai.md](../../../docs/ai.md) §15.4); the Tor model's "four missiles on a rack" are a display rack beside the vehicle (left out); its turret's cell covers are shut, so its own count does not show.
 
 [^apa-s300]: Carlo Kopp, Air Power Australia, "S-300PMU2 Favorit / SA-20 Gargoyle", May 2009, updated to April 2012, https://www.ausairpower.net/APA-S-300PMU2-Favorit.html (83M6E2 = 54K6E2 + 64N6E2, up to six batteries; 30N6E2 with up to twelve 5P85SE2 / TE2; 96L6E for autonomous batteries; chassis; 15Ya6ME relay; NK Orientir for "hide, shoot and scoot"; read 2026-11-19).
 [^apa-sites]: Sean O'Connor, Air Power Australia, "Soviet/Russian SAM Site Configuration Part 2", APA-TR-2009-1205-B, January 2010, updated April 2012, https://ausairpower.net/APA-Rus-SAM-Site-Configs-B.html (S-300P layouts: four launch positions around a raised radar berm; revetments; masts; reused sites; no spacing figures; read 2026-11-19).

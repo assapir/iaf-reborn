@@ -1,0 +1,31 @@
+{
+  "id": "target_ural",
+  "number": 36,
+  "name": "Ural-4320 truck (ground target)",
+  "label": "Ural-4320",
+  "class": "vehicle",
+  "type": -1,
+  "model": "res://shared/extra/models/ural4320/ural4320.glb",
+  "scale": 1.0,
+  "radius_m": 3.68,
+  "strength": 300,
+  "loadout": {},
+  "pylons": {},
+  "sources": {
+    "type": "inferred",
+    "scale": "inferred",
+    "radius_m": "w-ural",
+    "strength": "inferred"
+  },
+  "notes": {
+    "": "A convoy and supply ground target: a Ural-4320 6x6 army truck, class \"vehicle\" (6), no brain, no weapon. No mission places one yet. The same model stands in for the S-300 network's 54K6E2 command post (shared/util/gltf.gd UNITS).",
+    "type": "-1: no type code, as the original's static objects",
+    "model": "our Ural-4320 (Sketchfab, \"Ural 4320\", Brout, CC BY 4.0; tools/enemy_models/convert.py, docs/credits.md)",
+    "scale": "1: the model is built true size (its 7.366 m length)",
+    "radius_m": "half the length, 7.366 m",
+    "strength": "a soft-skinned truck: half the hulks' (inferred)"
+  },
+  "footnotes": {
+    "w-ural": "Wikipedia, \"Ural-4320\" (length 7,366 mm, width 2,500 mm, height 2,715 mm), https://en.wikipedia.org/wiki/Ural-4320"
+  }
+}

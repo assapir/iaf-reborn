@@ -21,7 +21,7 @@
     "radar_km": "open, w-s300"
   },
   "notes": {
-    "model": "none yet (modern-iaf/docs/threat-records.md lists the model source)",
+    "model": "none on its truck; on its 40V6M tower the site draws our 30N6E (Sketchfab, \"30N6E 'Flap Lid' B Phased Array Radar\", aardque, CC BY 4.0; shared/util/gltf.gd UNITS, docs/credits.md)",
     "scale": "1: our models are built true size",
     "type": "310 as the launcher, so one battery shows one RWR symbol (docs/rwr.md: radars of the launchers' type)",
     "radius_m": "open: 6 m held (inferred)",

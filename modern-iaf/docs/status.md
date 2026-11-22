@@ -20,6 +20,15 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   parks at Ramon in the Rust test, about 4.2 µs per jet per frame on the build Mac (0.149 ms with its model and sound on the laptop); one takes off, flies its route and
   lands in the headless game (`modern-iaf/tests/test_mig29.gd`, the dev hook `ai_flights.gd` `spawn`). No mission
   places one. Open: its ceiling runs high (every 6-DoF jet's does), its roll rate and gear geometry (no public figure).
+- **Enemy models (2026-11-22, the user's downloads of 22 Nov; [../../docs/ai.md](../../docs/ai.md) §15.4, §16.4;
+  [../../docs/credits.md](../../docs/credits.md) § Model credits):** seven CC BY 4.0 Sketchfab models, made once by
+  `tools/enemy_models/convert.py` and committed under `shared/extra/models/<id>/` (setup needs no login), true size:
+  the S-300 launcher, the 30N6E on its 40V6M tower (a site spawned with `mast`), the Tor-M1, the ZSU-23-4, the
+  Shahed-136, the T-72 and the Ural-4320. The sites and drones draw them by placed name (`Gltf.UNITS`); the Ural
+  stands in for the network's 54K6E2 command post. Two ground-target records, `target_t72` and `target_ural`
+  (`modern-iaf/data/db/units`, no mission places them yet). About 13 MB together. Open: the 64N6E2 and 96L6E radars
+  and the 30N6E2 on its truck keep their stand-in shapes (no clean model); the models stand in their rest pose (the
+  S-300's canisters down; the Tor's animations left out: no hook turns a site's parts).
 - **Ground clutter for the radars (2026-11-21, the user: "Ok finish all enemies things you can";
   [ai-plan.md](ai-plan.md) K14, K5; [../../docs/radar.md](../../docs/radar.md) §9.8,
   [../../docs/ai.md](../../docs/ai.md) §15.3):** the Sufa's and the Adir's pulse-Doppler radars lose a target in

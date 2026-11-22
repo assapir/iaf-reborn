@@ -387,6 +387,9 @@ sim's own (the user's decision of 17 Nov 2026, avionics-plan.md §8, item 1); no
   type −1, no brain, strength 600), drawn with our F-16 model and the detailed MiG-29 already in the repo
   (`shared/extra/models/mig29`, GPL 3, [../../docs/credits.md](../../docs/credits.md)). Each range's Target 5 is the
   MiG-29 hulk towed on a ground route (the radar's GMT mover).
+- **Enemy ground targets** (`target_t72.json`, `target_ural.json`): a T-72 tank and a Ural-4320 truck (class
+  `vehicle`, type −1, no brain), drawn with our models (`"model"`: their `res://shared/extra/models/…` file, which
+  `Gltf.objects_path` takes as it is; [../../docs/credits.md](../../docs/credits.md)). No mission places them yet.
 - **Sea target** (`target_barge.json`): class `ship` (15, a boat, which the radar's SEA mode lists), the MiG-29 hulk
   on a target barge, towed off the coast as each range's Target 6 (docs/radar.md §9.7). The repo has no ship model,
   so the barge is not drawn.

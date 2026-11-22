@@ -1,0 +1,11 @@
+Model Information:
+* title:	30N6E "Flap Lid" B Phased Array Radar
+* source:	https://sketchfab.com/3d-models/30n6e-flap-lid-b-phased-array-radar-12d2dea1efbf4296891e512b16c57880
+* author:	aardque (https://sketchfab.com/aardque)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "30N6E "Flap Lid" B Phased Array Radar" (https://sketchfab.com/3d-models/30n6e-flap-lid-b-phased-array-radar-12d2dea1efbf4296891e512b16c57880) by aardque (https://sketchfab.com/aardque) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

@@ -1108,7 +1108,7 @@ locks, 430, condition 26).
 Modern IAF's sites run on the Rust site (`crates/iaf-ai/src/site.rs`, gdext `IafSite`), not on the 1998 brain; the
 1998 game keeps §14 as it is. No mission places a site yet. `shared/ai/air_defence.gd` is the dev and test hook:
 `AirDefence.of(host).spawn(kind, pos, heading, alternates)` (kind `s300`, `tor` or `zsu`) adds each part as a
-mission entity (`ad:N`) with its stand-in shape and arms each firing part as a combat.gd unit without a brain
+mission entity (`ad:N`) with its model or stand-in shape (§15.4) and arms each firing part as a combat.gd unit without a brain
 (`add_ground_unit`). The test is `modern-iaf/tests/test_enemy_sites.gd`; the Rust tests are
 `crates/iaf-ai/tests/sites.rs`. The procedure and its sources: [modern-iaf/docs/research/enemies.md](../modern-iaf/docs/research/enemies.md)
 §2.3–§2.6, §3.1 and §5.2. Timings no source gives are inferred, each with a comment in `site.rs`.
@@ -1192,12 +1192,29 @@ Ground clutter (`site.rs` `Spec::reject`, `Spec::floor`):
 
 The wingmen's beam (§8.8, the reactions) turns the threat 90° off the nose: against the Tor it breaks the track.
 
-### 15.4 Stand-in shapes
+### 15.4 Models and stand-in shapes
 
-Ours (`air_defence.gd _shape`), built like the bases' furniture (`base_furniture.gd`, vertex colours, olive): a radar
-cabin on a truck with its flat array on a post, a semi-trailer with four canisters upright, the Tor's tracked hull and
-turret with its two antennas, the ZSU's hull and turret with four barrels and its dish. They stand in until a model is
-approved.
+Each part is drawn with its model when `Gltf.UNITS` (`shared/util/gltf.gd`) lists its placed name, else with a
+stand-in shape of ours (`air_defence.gd _shape`). The models are CC BY 4.0 Sketchfab models made true size, nose
+along −Z, by `tools/enemy_models/convert.py` (docs/credits.md § Model credits):
+
+| part | model | real size it is scaled to |
+|---|---|---|
+| 5P85TE2 launcher | `s300_5p85`: a self-propelled 5P85 on the MAZ-543 with 9M83 canisters lowered, standing in for the towed TE2 (inferred) | the MAZ-543's width, 3.05 m[^ru-maz543] |
+| 30N6E2 track radar on its tower (`spawn(…, mast = true)`) | `radar_30n6e`: the 30N6E on the 40V6M tower | 25 m high, the site's `MAST` (inferred from the 40V6M's 24 m[^apa-s300]) |
+| 9A331 Tor | `tor_m1`: the Tor-M1 in its rest pose | 7.5 m long[^w-tor-pd] |
+| ZSU-23-4 | `zsu23_4`: a low-poly ZSU-23-4 | 6.535 m long[^w-zsu]; its width and height come out about 8 % over the real ones |
+| 54K6E2 command post (§15.5) | `ural4320`: a Ural-4320 with its canvas cover, standing in for the post's container on a Ural-532361 (inferred) | 7.366 m long[^w-ural] |
+
+Stand-in shapes (boxes in vertex colours, as the bases' furniture, `base_furniture.gd`) remain for the 96L6E, the
+64N6E2 (no openly licensed model: the ones found are taken from War Thunder, excluded) and the 30N6E2 on its truck
+(the default site). A model stands in its rest pose: the S-300's canisters stay down, the Tor's antennas still
+(open: the Tor's source animations, `Raise` / `Scan` / `Launch`, are left out, as the site has no hook that turns a
+part).
+
+A site's models load on the main thread when it spawns (a parse, LODs and texture compression; the S-300's about
+65,000 triangles): today only the dev hook spawns sites and drones. Once missions place them, the flight's preload
+(`terrain_preload.gd` `mission_models`) takes their `Gltf.UNITS` paths ahead (open).
 
 ### 15.5 The network (K6)
 
@@ -1211,7 +1228,7 @@ same 0.5 s tick; the dev hook is `AirDefence.spawn_net(radar_pos, post_pos, memb
 |---|---|---|
 | does | searches for the network: 300 km against 5 m²[^w-s300], a sweep every 12 s[^w-s300], the antenna 8 m up (inferred) | fuses the picture, assigns and cues |
 | on the RWR | a search radar of the S-300's type (310) while it stands | nothing (it does not radiate) |
-| stand-in shape | the 96L6E's truck and array | the same truck without the array |
+| drawn as | the 96L6E's stand-in truck and array | the Ural-4320 model (§15.4) |
 
 - **The picture:** each sweep adds the jets the radar sees (the sites' rule: the jet's cross-section, the terrain and
   the earth's curvature); every site's radar track adds its jet at each tick. A jet no radar of the network has seen
@@ -1308,11 +1325,12 @@ until such data is found (open).
 - **Weapons.** The gun's hit test takes its half span (1.25 m); the missiles fly their existing models (no missile
   performance changed). Its heat is a non-afterburning jet's in the IR seekers' rule (no IR signature research).
 
-### 16.4 Stand-in shape
+### 16.4 Model
 
-Ours (`drones.gd _shape`), built like the bases' furniture (`base_furniture.gd`, vertex colours, grey): the fuselage,
-the delta wing, the fins at its tips and the pusher propeller's disc, at the real length and span. It stands in until
-a model is approved. No engine sound: no sound on disk fits a small piston engine.
+The Shahed-136 model of `Gltf.UNITS` ("Shahed 136" by faintastic, CC BY 4.0; docs/credits.md), 3.5 m long and 2.56 m
+in span (Wikipedia's 3.5 and 2.5). Without it, the stand-in shape of ours (`drones.gd _shape`, built like the bases'
+furniture): the fuselage, the delta wing, the fins and the pusher propeller's disc. The propeller does not turn. No
+engine sound: no sound on disk fits a small piston engine.
 
 ### 16.5 Later
 
@@ -1437,7 +1455,7 @@ Open questions in this document:
 - The leader flag gating the wingman's take-off roll; the taxi re-placement's 60 m sign; what happens after parking
   (the root timer keeps running ParkInHangar).
 
-[^apa-s300]: Carlo Kopp, Air Power Australia, "S-300PMU2 Favorit / SA-20 Gargoyle", updated to April 2012, https://www.ausairpower.net/APA-S-300PMU2-Favorit.html (the 83M6E2: the 54K6E2 command post and the 64N6E2 search radar, up to six batteries; read 2026-11-19).
+[^apa-s300]: Carlo Kopp, Air Power Australia, "S-300PMU2 Favorit / SA-20 Gargoyle", updated to April 2012, https://www.ausairpower.net/APA-S-300PMU2-Favorit.html (the 83M6E2: the 54K6E2 command post and the 64N6E2 search radar, up to six batteries; the 40V6M "Semi-Mobile Mast System 24 Metre"; read 2026-11-19 and 2026-11-22).
 [^w-s300]: Wikipedia, "S-300 missile system", https://en.wikipedia.org/wiki/S-300_missile_system (the 64N6 Big Bird: "a maximum detection range of 300 km", "a scan once every twelve seconds"; read 2026-11-21).
 [^tc7100]: US Army, TC 7-100.2 "Opposing Force Tactics", 9 December 2011, chapter 11, https://www.govinfo.gov/content/pkg/GOVPUB-D101-PURL-gpo122554/pdf/GOVPUB-D101-PURL-gpo122554.pdf (§11-35 the cue's data, §11-36 units fighting with their radars off on the higher radars' data; read 2026-11-19).
 [^mis-96l6e]: Missilery.info, "All Altitude Detector (VO) 96L6E", https://en.missilery.info/node/13476 (target detection range 5–300 km; read as quoted by a search engine on 2026-11-19, second-hand).
@@ -1455,5 +1473,7 @@ Open questions in this document:
 [^nf-shahed]: 19FortyFive, October 2022, https://www.19fortyfive.com/2022/10/irans-shahed-136-kamikaze-drone-everything-you-need-to-know/ (radar cross-section "estimated here to average .01 square meters"; second-hand: as quoted by a search engine on 2026-11-19).
 [^maarachot]: "מהפכת האימון האווירי המבצעי", Maarachot (the IDF's journal), https://www.maarachot.idf.il/media/0rbdlk3j/מהפכת-האימון-האווירי-המבצעי.pdf ("המיומנויות הנדרשות", "מצעיר למנוסה"; read 2026-11-21).
 [^w-pd]: Wikipedia, "Pulse-Doppler radar", https://en.wikipedia.org/wiki/Pulse-Doppler_radar ("Rejection speed is selectable on pulse-Doppler aircraft-detection systems so nothing below that speed will be detected"; "usually set just above the prevailing wind speed (10 to 100 mph or 20 to 160 km/h)"; read 2026-11-21).
-[^w-tor-pd]: Wikipedia, "Tor missile system", https://en.wikipedia.org/wiki/Tor_missile_system ("The target acquisition radar is an F band pulse doppler 3D radar"; "The target engagement radar is a G band/H band (later K band) pulse doppler radar"; read 2026-11-21).
-[^w-zsu]: Wikipedia, "ZSU-23-4 Shilka", https://en.wikipedia.org/wiki/ZSU-23-4_Shilka ("the radar picks up many false returns (ground clutter) under 60 m (200 ft) of altitude"; read 2026-11-21).
+[^w-tor-pd]: Wikipedia, "Tor missile system", https://en.wikipedia.org/wiki/Tor_missile_system ("The target acquisition radar is an F band pulse doppler 3D radar"; "The target engagement radar is a G band/H band (later K band) pulse doppler radar"; read 2026-11-21; the Tor-M1 7,500 mm long, 3,300 mm wide, 5,100 mm high with the radar up, read 2026-11-22).
+[^w-zsu]: Wikipedia, "ZSU-23-4 Shilka", https://en.wikipedia.org/wiki/ZSU-23-4_Shilka ("the radar picks up many false returns (ground clutter) under 60 m (200 ft) of altitude"; read 2026-11-21; 6.535 m long, 3.125 m wide, 2.576 m high, 3.572 m with the radar up, read 2026-11-22).
+[^ru-maz543]: Wikipedia (Russian), "МАЗ-543", https://ru.wikipedia.org/wiki/МАЗ-543 (the MAZ-543 / MAZ-7310: 11,657 mm long, 3,050 mm wide; read 2026-11-22).
+[^w-ural]: Wikipedia, "Ural-4320", https://en.wikipedia.org/wiki/Ural-4320 (7,366 mm long, 2,500 mm wide, 2,715 mm high; read 2026-11-22).

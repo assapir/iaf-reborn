@@ -6,7 +6,7 @@
   "status": "pending the user's decision",
   "class": "radar_sam",
   "type": 330,
-  "model": "",
+  "model": "res://shared/extra/models/tor_m1/tor_m1.glb",
   "scale": 1.0,
   "radius_m": 3.75,
   "strength": 300,
@@ -32,7 +32,7 @@
     "radar_km": "w-tor"
   },
   "notes": {
-    "model": "none yet (modern-iaf/docs/threat-records.md lists the model source)",
+    "model": "our Tor-M1 (Sketchfab, \"Tor-M1 SAM with 9M331 Missiles (Animated)\", xFORTUNAx, CC BY 4.0; docs/credits.md), drawn in its rest pose",
     "scale": "1: our models are built true size",
     "type": "330, the SA-8's code (the 1998 short-range TELAR): its RWR symbol and SPO-15 lamp stand in (inferred)",
     "radius_m": "half the length, 7.5 m",

@@ -124,7 +124,11 @@ static func _own_textures(state: GLTFState, dir: String) -> void:
 				if not img.has_mipmaps() and not img.is_compressed():
 					img.generate_mipmaps()
 				if (
-					(dir + "/" in [STORES_DIR, MIG29_DIR, COCKPIT3D_DIR] or _made_by_setup(dir + "/"))
+					(
+						dir + "/" in [STORES_DIR, MIG29_DIR, COCKPIT3D_DIR]
+						or _made_by_setup(dir + "/")
+						or UNITS.values().any(func(u): return u.get_base_dir() == dir)
+					)
 					and RenderingServer.has_os_feature("s3tc")
 				):
 					img.compress(Image.COMPRESS_S3TC)  # the CPU encoder (rendering.md §1.5), ≈ 3 ms a 512² image
@@ -262,6 +266,8 @@ static func object(path: String, allow_detailed := true) -> Variant:
 ## The full path of a converted object model (path under converted/objects); a model of ours the install lacks
 ## (STAND_INS) gives the original model standing in for it.
 static func objects_path(path: String) -> String:
+	if path.begins_with("res://"):
+		return path  # a model of ours in the repo (a unit record's, UNITS)
 	return _settings().converted("objects".path_join(STAND_INS.get(path, path)))
 
 
@@ -318,6 +324,20 @@ const MIG29_DIR := "res://shared/extra/models/mig29/"
 const STORES_DIR := "res://shared/extra/models/stores/"
 ## The F-16's 3D cockpit (cockpit/cockpit3d.gd): its textures compressed (BC1 / BC3) at the parse too.
 const COCKPIT3D_DIR := "res://shared/extra/models/cockpit3d/"
+## Modern IAF's enemy units (CC BY 4.0, docs/credits.md; tools/enemy_models/convert.py: true size, nose along −Z, on
+## the ground at the footprint's middle): a site part's or drone's placed name -> its model (air_defence.gd, drones.gd;
+## a name without one keeps its stand-in shape). "T-72" is placed by no site: its unit record (target_t72, as the Ural's
+## target_ural) names the file as its "model" (modern-iaf/data/db/units); listed here so that every enemy model is
+## parsed with LODs and its textures compressed as the stores'.
+const UNITS := {
+	"5P85TE2": "res://shared/extra/models/s300_5p85/s300_5p85.glb",
+	"30N6E2 RADAR MAST": "res://shared/extra/models/radar_30n6e/radar_30n6e.glb",
+	"54K6E2": "res://shared/extra/models/ural4320/ural4320.glb",
+	"9A331 TOR RADAR": "res://shared/extra/models/tor_m1/tor_m1.glb",
+	"ZSU-23-4": "res://shared/extra/models/zsu23_4/zsu23_4.glb",
+	"SHAHED-136": "res://shared/extra/models/shahed136/shahed136.glb",
+	"T-72": "res://shared/extra/models/t72/t72.glb",
+}
 const STORES := {
 	"aim9_m.gltf": "aim9",
 	"aim7_m.gltf": "aim7",
@@ -413,11 +433,15 @@ static func read_airframe_models() -> void:
 		_airframe_models = ClassDB.class_call_static("IafAirframe", "models")
 
 
-## True for our detailed models (DETAILED, STORES, the aircraft definitions' models in the repo): parsed with LODs. By
-## the path alone (the parse runs on workers).
+## True for our detailed models (DETAILED, STORES, UNITS, the aircraft definitions' models in the repo): parsed with
+## LODs. By the path alone (the parse runs on workers).
 static func is_detailed(path: String) -> bool:
 	return (
-		DETAILED.values().has(path) or path in _airframe_models or path.begins_with(STORES_DIR) or _made_by_setup(path)
+		DETAILED.values().has(path)
+		or path in _airframe_models
+		or path.begins_with(STORES_DIR)
+		or _made_by_setup(path)
+		or UNITS.values().has(path)
 	)
 
 
