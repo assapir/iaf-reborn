@@ -400,6 +400,7 @@ pub(crate) fn sim_io(id: &str, ctx: &SimCtx) -> Option<(PathBuf, Vec<PathBuf>)> 
                 data.join("keys.json"),
                 data.join("planes"),
                 ctx.repo.join(iaf_tools::sim::F16_GLB),
+                ctx.repo.join(iaf_tools::sim::MIG29_GLB),
             ],
         ),
         "sim-airbases" => (

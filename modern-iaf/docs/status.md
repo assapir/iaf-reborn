@@ -3,6 +3,15 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **Enemy fighter step 1: the MiG-29A flies (2026-11-22, the user, 21 Nov: "Ok finish all enemies things you can",
+  "Ok, do it"; [ai-plan.md](ai-plan.md) K2, X2; [../../docs/ai.md](../../docs/ai.md) §18):** the MiG-29A is an AI type
+  of its own aircraft definition (type 1020). Its 6-DoF set is TP-1538's tables on its wing with its masses, RD-33s and
+  limits ([flight-model.md](flight-model.md) §9.21): Mach 1.24 at sea level and 2.30 at 40,000 ft (fit), 9.3 g, α 24–25°
+  at full pull, a 280 m/s climb against the published 330. Its record and its 30 mm, R-73 and R-27R records are
+  approved; it is drawn with our MiG-29 model. A four-ship of them starts up, takes off, flies the route, lands and
+  parks at Ramon in the Rust test, about 4.2 µs per jet per frame on the build Mac (0.149 ms with its model and sound on the laptop); one takes off, flies its route and
+  lands in the headless game (`modern-iaf/tests/test_mig29.gd`, the dev hook `ai_flights.gd` `spawn`). No mission
+  places one. Open: its ceiling runs high (every 6-DoF jet's does), its roll rate and gear geometry (no public figure).
 - **Ground clutter for the radars (2026-11-21, the user: "Ok finish all enemies things you can";
   [ai-plan.md](ai-plan.md) K14, K5; [../../docs/radar.md](../../docs/radar.md) §9.8,
   [../../docs/ai.md](../../docs/ai.md) §15.3):** the Sufa's and the Adir's pulse-Doppler radars lose a target in

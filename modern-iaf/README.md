@@ -118,7 +118,7 @@ own paths; the original game's `shared/settings.gd` answers with the install's.
 | `theatre_dir()`: the terrain `terrain.gd` streams | `converted/terrain/theatre` (`IAF_THEATRE=<name>`: `converted/terrain/<name>`) | `converted/terrain/israel` |
 | `airbases_file()`: the runways, taxi lines and masks (Detailed airbases, the tower's wind turn) | `converted/terrain/airbases.json` | the theatre's own: `converted/terrain/israel/airbases.json` |
 | `converted(rel)`: every path under `assets/converted` a shared script reads | `assets/converted/<rel>` | the same for `own/`, `terrain/israel/`, `modern-iaf/`, `missions/sim.bdb.json` and `objects/objects.json`; any other path is refused: a path that does not exist, an error naming the caller the first time, counted in `rejected` as `converted/<rel>` |
-| `planes_folder()`: the aircraft descriptors | `converted/planes` | `converted/own/planes` (the F-16's from our model, `iaf-sim own`) |
+| `planes_folder()`: the aircraft descriptors | `converted/planes` | `converted/own/planes` (the F-16's and the MiG-29A's from our models, `iaf-sim own`) |
 | `missions_folder()`: the menu missions and `missionlist.json` | `converted/missions` | `converted/modern-iaf/missions` |
 | `default_bdb()`: the object database a jet's default load falls back on | `default6_1.bdb` | `sim.bdb` |
 | `loading_screen_scene()`: the flight's loading screen | `shared/terrain/loading_screen.gd` (the menu art) | `flight/loading_screen.gd` ([front-end.md](docs/front-end.md)) |

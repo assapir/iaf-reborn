@@ -52,7 +52,12 @@ struct World {
 impl World {
     /// Four Sufas (F-16I) at `starts` (position, heading deg); #1 the scripted lead.
     fn new(dir: &Path, starts: [(Vec3, f32); 4], speed: f64, airborne: bool, ground: f32) -> World {
-        let (p, e) = iaf_flight::load_with(dir, "F-16I", DataSet::Original).unwrap();
+        World::of_type(dir, "F-16I", starts, speed, airborne, ground)
+    }
+
+    /// [`World::new`] with four jets of flight-model type `ty` (`data_set::TYPES`).
+    fn of_type(dir: &Path, ty: &str, starts: [(Vec3, f32); 4], speed: f64, airborne: bool, ground: f32) -> World {
+        let (p, e) = iaf_flight::load_with(dir, ty, DataSet::Original).unwrap();
         let bases = Airbase::load_all(&std::fs::read(dir.join("iaf.ibx")).unwrap());
         let mut flight = Flight::default();
         let mut jets = Vec::new();
@@ -67,7 +72,8 @@ impl World {
                 airborne,
                 engine_on: airborne,
             };
-            let fm = Fm::start("F-16I", p.clone(), e.clone(), st);
+            let fm = Fm::start(ty, p.clone(), e.clone(), st);
+            assert!(matches!(fm, Fm::SixDof(_)), "{ty} flies the 6-DoF");
             let mut ap = Autopilot::new(Config::load(dir));
             ap.bases = bases.clone();
             jets.push((fm, ap));
@@ -596,6 +602,18 @@ fn ground_run_at_ramon() {
     // lead, stream take-off, join-up, a route, the landing in order and each to its own shelter, engine off. Each
     // carries 2 t of stores (the lesson's jets carry the player's load): with the original's take-off law every one
     // burst its main tyres past 225 kt on the runway.
+    ground_run("F-16I");
+}
+
+#[test]
+fn mig29_ground_run_at_ramon() {
+    // K2 (modern-iaf/docs/ai-plan.md): the MiG-29A, an AI type of its own aircraft definition, flies the same ground
+    // run on its 6-DoF set: start-up, taxi, take-off, the autopilot's route and join-up, landing and parking. Ramon
+    // stands in for an enemy base (the sim has none yet); its CPU per jet (X5) is printed.
+    ground_run("MiG-29A");
+}
+
+fn ground_run(ty: &str) {
     let Some(dir) = own() else { return println!("skipped: no assets/converted/own (iaf-sim fm, airbases)") };
     let _turn = HANGARS.lock().unwrap_or_else(|e| e.into_inner());
     autopilot::reset_hangars();
@@ -611,7 +629,7 @@ fn ground_run_at_ramon() {
         let p = rb.hangars[h];
         (Vec3::new(p.x as f64, p.y as f64, z as f64), p.hdg.to_degrees())
     };
-    let mut w = World::new(&dir, [shelter(0), shelter(1), shelter(2), shelter(3)], 0.0, false, z);
+    let mut w = World::of_type(&dir, ty, [shelter(0), shelter(1), shelter(2), shelter(3)], 0.0, false, z);
     // Take-off point, a turn to the north-east, the landing waypoint 15 km out on the approach.
     let wp = |p: Vec3, action: i32| Waypoint { x: p[0], y: p[1], z: p[2], t: 0.0, action };
     let route = vec![
@@ -636,6 +654,8 @@ fn ground_run_at_ramon() {
     let mut least = [f32::MAX; 3];
     // The take-off's highest pitch on the wheels, deg (a tail strike past 15°).
     let mut rotation = [0f32; 4];
+    // The pitch (deg; a tail strike past 15°: aircraft::landing_limits) and the speed (kt) at the touchdown.
+    let mut touchdown = [None; 4];
     let parked = |w: &World| w.jets.iter().all(|(fm, ap)| ap.landed && !fm.engine_on() && fm.state().speed < 0.5);
     while w.t < 4000.0 && !parked(&w) {
         // The scripted lead: mode 9 once its engine runs, the route from the take-off point, home at the landing
@@ -656,6 +676,9 @@ fn ground_run_at_ramon() {
             if !ap.airborne && st.on_ground {
                 rotation[i] = rotation[i].max(st.pitch.to_degrees());
             }
+            if ap.airborne && st.on_ground && touchdown[i].is_none() {
+                touchdown[i] = Some((st.pitch.to_degrees(), st.speed * 1.943844));
+            }
             if ap.airborne && airborne[i].is_none() {
                 airborne[i] = Some(w.t);
             }
@@ -672,7 +695,10 @@ fn ground_run_at_ramon() {
             println!("t {:.0}: {st:?}", w.t);
         }
     }
-    println!("airborne {airborne:?}\nlanded {landed:?}\nhighest pitch on the wheels at take-off {rotation:?}");
+    println!("{ty}: airborne {airborne:?}\nlanded {landed:?}\nhighest pitch on the wheels at take-off {rotation:?}");
+    println!("{ty}: pitch and speed at the touchdown {touchdown:?}");
+    assert!(touchdown.iter().all(|t| t.is_some_and(|(p, _)| p < 15.0)), "touchdown {touchdown:?}");
+    println!("{ty}: {:.2} µs per jet per frame (FM + autopilot + AI)", w.us_per_jet_frame());
     assert!(rotation.iter().all(|&p| p < 13.0), "take-off pitch on the wheels {rotation:?}");
     // The join-up calls "in position" (#4, airborne 110 s after the lead, is still about 10 km behind when this short
     // route turns home).

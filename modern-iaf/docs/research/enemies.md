@@ -199,8 +199,7 @@ Public License version 3"[^fg-mig29-gh]. It needs no download. Two notes:
 - [../threats.md](../threats.md) §5's MiG-29 row (licence "GPL version 2", "open") is about a different FlightGear
   MiG-29, the FGAddon one; the repo's model is the GitHub one above (`shared/extra/models/mig29/SOURCES.md`).
 - The model wears our Syrian roundels; an Iranian MiG-29 needs the IRIAF's markings, a repaint in the converter
-  (inferred). The draft record's `"model": ""` (`modern-iaf/data/db/drafts/units/mig29a.json`) can point to it once
-  the user approves the record (K11).
+  (inferred). The record (`modern-iaf/data/db/units/mig29a.json`, approved with K2 on 2026-11-22) points to it.
 
 ### 4.2 Flight data
 

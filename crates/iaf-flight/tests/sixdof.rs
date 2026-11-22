@@ -642,11 +642,15 @@ fn an_empty_tank_flames_the_engine_out() {
 #[test]
 fn top_speeds_meet_the_published_figures() {
     // The wave-drag fit's pin (§9.15): each jet's level top speed at its reference weight within 5 % of the figure it
-    // was fit to. Sea level: the F-16s' Mach 1.2. 40,000 ft: the F-16s' 2.0, the Adir's 1.6, the Ra'am's 2.0.
+    // was fit to. Sea level: the F-16s' Mach 1.2, the MiG-29A's 1,500 km/h (1.225). 40,000 ft: the F-16s' 2.0, the
+    // Adir's 1.6, the Ra'am's 2.0, the MiG-29A's 2.3.
     let mach = |j: &Jet, alt: f64| iaf_flight::sixdof::flight::top_speed(j, alt, 0.0) / air(alt as f32).sound as f64;
     let hi = 40_000.0 * iaf_flight::sixdof::FT;
     let [barak, sufa, adir, raam] = jets::all();
-    for (j, sl, high) in [(barak, Some(1.2), 2.0), (sufa, Some(1.2), 2.0), (adir, None, 1.6), (raam, None, 2.0)] {
+    let mig = jets::mig29a();
+    for (j, sl, high) in
+        [(barak, Some(1.2), 2.0), (sufa, Some(1.2), 2.0), (adir, None, 1.6), (raam, None, 2.0), (mig, Some(1.225), 2.3)]
+    {
         let (m0, m40) = (mach(&j, 0.0), mach(&j, hi));
         println!("{}: Mach {m0:.2} at sea level, {m40:.2} at 40,000 ft", j.name);
         assert!((m40 / high - 1.0).abs() <= 0.05, "{} {m40}", j.name);
@@ -676,8 +680,17 @@ fn fit_wave_drag() {
     };
     let hi_alt = 40_000.0 * iaf_flight::sixdof::FT;
     let mut barak_k = 0.0;
-    for (i, sl, high) in [(0, Some(1.2), 2.0), (1, Some(1.2), 2.0), (2, None, 1.6), (3, None, 2.0)] {
-        let mut j = jets::all()[i];
+    let [barak, sufa, adir, raam] = jets::all();
+    for (i, (mut j, sl, high)) in [
+        (barak, Some(1.2), 2.0),
+        (sufa, Some(1.2), 2.0),
+        (adir, None, 1.6),
+        (raam, None, 2.0),
+        (jets::mig29a(), Some(1.225), 2.3),
+    ]
+    .into_iter()
+    .enumerate()
+    {
         let k = if sl.is_none() { barak_k } else { 0.0 };
         let w = match sl {
             Some(m) => bisect(0.0, 0.2, &|w| mach(&Jet { wave_drag: (w, k), ..j }, 0.0) - m),
@@ -1172,6 +1185,65 @@ fn adir_flies_the_f35_figures() {
     let stall = iaf_flight::sixdof::flight::stall_speed(&adir) / KT;
     println!("Adir: 1 g stall {stall:.0} kt (inferred {:.0})", fig.stall_kt);
     assert!((stall / fig.stall_kt - 1.0).abs() <= 0.10, "{stall}");
+}
+
+#[test]
+fn mig29_flies_its_figures() {
+    // K2: the MiG-29A on TP-1538's tables with its own wing, masses, RD-33s and limits (modern-iaf/docs/flight-model.md
+    // §9.21). Its top speeds are pinned by `top_speeds_meet_the_published_figures`.
+    let mig = jets::mig29a();
+    // The α limit (24–28°, the jet's 26°): a full pull at 200–400 kt, 10,000 ft, holds α near it, sideslip small.
+    for kt in [200.0, 300.0, 400.0] {
+        let mut f = flight(mig, 3048.0, kt * KT, true);
+        let full = iaf_flight::Controls { stick_y: 1.0, throttle: 1.0, ..f.controls() };
+        let (mut amax, mut bmax) = (0.0f64, 0.0f64);
+        fly_for(&mut f, 6.0, |s| {
+            let st = s.state();
+            amax = amax.max(st.alpha.to_degrees() as f64);
+            bmax = bmax.max((st.beta.to_degrees() as f64).abs());
+            full
+        });
+        let a_end = f.state().alpha.to_degrees() as f64;
+        println!("MiG-29A, full pull at {kt} kt: α peak {amax:.1}°, after 6 s {a_end:.1}°, |β| ≤ {bmax:.1}°");
+        assert!(amax < jets::MIG29_ALPHA_MAX + 4.0 && a_end > jets::MIG29_ALPHA_MAX - 4.0, "{kt}: {amax} {a_end}");
+        assert!(bmax < 5.0, "{kt}: {bmax}");
+    }
+    // +9 g (Wikipedia): a full pull at 550 kt peaks between 8 and 9.5 g.
+    let mut f = flight(mig, 3048.0, 550.0 * KT, true);
+    let full = iaf_flight::Controls { stick_y: 1.0, throttle: 1.0, ..f.controls() };
+    let mut peak: f32 = 0.0;
+    fly_for(&mut f, 6.0, |s| {
+        peak = peak.max(s.state().g);
+        full
+    });
+    println!("MiG-29A, full pull at 550 kt: peak {peak:.2} g");
+    assert!(peak > 8.0 && peak < 9.5, "{peak}");
+    // The climb (330 m/s, Wikipedia): the specific excess power at 500 ft, 350 kt, full afterburner, at 1 g.
+    let mut f = flight(mig, 152.0, 350.0 * KT, true);
+    let ab = iaf_flight::Controls { throttle: 1.0, ..f.controls() };
+    fly_for(&mut f, 5.0, |_| ab);
+    let a = f.state();
+    fly_for(&mut f, 1.0, |_| ab);
+    let b = f.state();
+    let ps = (b.speed * b.speed - a.speed * a.speed) / (2.0 * 9.806) + (b.position[2] - a.position[2]) as f32;
+    // The service ceiling (18,000 m): the highest altitude, in 500 m steps, where full afterburner still gives 100
+    // ft/min (0.5 m/s) of specific excess power at 1 g at some Mach from 0.8 to 2.3 (over 6 s, once it settled 4 s).
+    let ps_at = |alt: f64, mach: f64| {
+        let mut f = flight(mig, alt, mach * air(alt as f32).sound as f64, true);
+        let ab = iaf_flight::Controls { throttle: 1.0, ..f.controls() };
+        fly_for(&mut f, 4.0, |_| ab);
+        let a = f.state();
+        fly_for(&mut f, 6.0, |_| ab);
+        let b = f.state();
+        ((b.speed * b.speed - a.speed * a.speed) / (2.0 * 9.806) + (b.position[2] - a.position[2]) as f32) / 6.0
+    };
+    let holds = |alt: f64| (8..=23).any(|m10| ps_at(alt, m10 as f64 / 10.0) > 0.5);
+    // Up to 20 km, where the atmosphere stops (atmosphere.rs). The same measure gives the Sufa about 19,000 m against
+    // its published 15,240 m: the 6-DoF's thrust and drag at altitude run high for every jet (open, §9.21).
+    let ceiling = (20..=40).map(|k| k as f64 * 500.0).take_while(|&h| holds(h)).last().unwrap_or(0.0);
+    println!("MiG-29A: Ps {ps:.0} m/s at 350 kt, 500 ft (published climb 330); ceiling about {ceiling:.0} m (18,000)");
+    assert!(ps > 200.0, "{ps}");
+    assert!(ceiling >= 18_000.0, "{ceiling}");
 }
 
 #[test]

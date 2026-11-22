@@ -11,7 +11,7 @@ use super::limits::{self, Limits};
 use super::start::{IPP, JFS, StartSpec};
 use crate::Vec3;
 use crate::atmosphere::air;
-use crate::units::{FT, G, LB};
+use crate::units::{FT, G, LB, LBF};
 
 /// The area a drag index is referenced to, m²: the F-16's 300 ft² wing ("a store drag index is also referenced to
 /// wing area", F-16.net, modern-iaf/docs/flight-model.md §9.18). On a jet with another wing the same store's ΔCD is
@@ -51,6 +51,9 @@ pub struct Jet {
     /// The angle of attack the control system's limiter holds at 1 g, deg: the F-16's 25.2° (T.O. 1F-16A-1 figure
     /// 1-44, TP-1538's limiter, [`super::fcs::F16_ALPHA_MAX`]); the F-35I's 50° (`data_set::F35I`).
     pub alpha_max: f64,
+    /// The final approach's α, deg, the autopilot's landing flies (`autopilot::REAL_FINAL`'s 13°: the F-16 manual's,
+    /// the F-35's too; the MiG-29's 10°, [`MIG29_FINAL_ALPHA`]).
+    pub final_alpha: f64,
     /// A pitching moment added at high α (`data_set::F35I`'s, the F-35I only).
     pub nose_down: Option<crate::data_set::HighAlphaCm>,
     /// The airframe's, the gear's, the tyres' and the brakes' limits ([`super::limits`]).
@@ -143,6 +146,59 @@ pub fn f135() -> EngineSpec {
     EngineSpec::rated("F135-PW-100", 28_000.0, 43_000.0, 6.0 * FIG66_IDLE_MIL / FIG66_IDLE_MAX, (0.79, 2.0))
 }
 
+/// The Klimov RD-33 (MiG-29 9.12, two): 49.4 kN dry, 81.3 kN with afterburner each (Wikipedia, "Mikoyan MiG-29";
+/// its RD-33 page gives 50.0 / 81.6); specific fuel consumption 75 kg/(kN·h) dry, 188.1 with afterburner (Wikipedia,
+/// "Klimov RD-33"); idle → military 3.0 s, the F100's (inferred, open); the lapse with Mach and altitude is TP-1538's
+/// F100 table's shape (inferred, modern-iaf/docs/research/enemies.md §4.2).
+pub fn rd33() -> EngineSpec {
+    // kg/(kN·h) → lb/(lbf·h): × LBF / 1000 / LB.
+    let tsfc = |kg_kn_h: f64| kg_kn_h * LBF / 1000.0 / LB;
+    EngineSpec::rated("RD-33", 49_400.0 / LBF, 81_300.0 / LBF, 3.0, (tsfc(75.0), tsfc(188.1)))
+}
+
+/// The MiG-29 9.12's α limit, deg: inside the 24–28° the limiter is set to by variant (second-hand: forum posts
+/// quoting MiG-29 manuals; modern-iaf/docs/research/enemies.md §4.2), 26° where the same posts give its lift
+/// coefficient of 1.5 (inferred; open until a manual gives the figure).
+pub const MIG29_ALPHA_MAX: f64 = 26.0;
+
+/// The MiG-29's final approach α, deg: the flare "begins at α 10 and ends at α 12", 280 → 260 km/h (second-hand: a
+/// DCS forum post quoting the MiG-29's manuals, as a web search quoted it; modern-iaf/docs/flight-model.md §9.21). At the F-16's 13° the flare
+/// carried it past the 15° tail strike (`aircraft::landing_limits`).
+pub const MIG29_FINAL_ALPHA: f64 = 10.0;
+
+/// The MiG-29A (9.12), the first enemy fighter (modern-iaf/docs/ai-plan.md K2, flight-model.md §9.21): TP-1538's
+/// tables on its wing, 38 m² and 11.36 m; empty 11,000 kg + 3,500 kg internal fuel (Wikipedia); two RD-33s; +9 g
+/// (Wikipedia), −3 g the F-16's (inferred); the α limit [`MIG29_ALPHA_MAX`]; TP-1538's roll (control system A: no
+/// public MiG-29 roll rate, open); the gear from the model's hinges (`shared/extra/models/mig29/mig29.glb`, FlightGear's
+/// `MiG-29.xml`: wheelbase 4.25 m, track 2.65 m, the wheels 1.61 m below its origin; inferred, no public figure); the
+/// F-16's speed brake, nose-wheel steering and start sequence (inferred). The wave drag is fit to Mach 2.3 at
+/// 40,000 ft and 1,500 km/h at sea level (Wikipedia; `fit_wave_drag`).
+pub fn mig29a() -> Jet {
+    let (empty_lb, fuel_lb) = (11_000.0 / LB, 3_500.0 / LB);
+    let weight_lb = empty_lb + fuel_lb;
+    let (area_ft2, span_ft) = (38.0 / (FT * FT), 11.36 / FT);
+    Jet {
+        name: "MiG-29A",
+        airframe: scaled(weight_lb, span_ft, area_ft2),
+        engine: rd33(),
+        engines: 2,
+        gear: gear(4.25 / FT, 2.65 / FT, 1.61, weight_lb),
+        nws_deg: 32.0,
+        fuel_lb,
+        // Fit: Mach 1.225 (1,500 km/h) at sea level, 2.3 at 40,000 ft (`fit_wave_drag`, 2026-11-22).
+        wave_drag: (0.0434, -0.427),
+        g_limits: (9.0, -3.0),
+        roll: None,
+        tef_deg: 20.0,
+        start: JFS,
+        speed_brake: F16_SPEED_BRAKE,
+        alpha_max: MIG29_ALPHA_MAX,
+        final_alpha: MIG29_FINAL_ALPHA,
+        nose_down: None,
+        limits: limits::MIG29,
+    }
+}
+
 /// TP-1538's F-16A as simulated: Table I, its own engine (Table VI, figure 66).
 pub fn tp1538() -> Jet {
     Jet {
@@ -161,6 +217,7 @@ pub fn tp1538() -> Jet {
         start: JFS,
         speed_brake: F16_SPEED_BRAKE,
         alpha_max: F16_ALPHA_MAX,
+        final_alpha: crate::autopilot::REAL_FINAL.0 as f64,
         nose_down: None,
         limits: limits::F16,
     }
@@ -186,6 +243,7 @@ pub fn all() -> [Jet; 4] {
             start: JFS,
             speed_brake: F16_SPEED_BRAKE,
             alpha_max: F16_ALPHA_MAX,
+            final_alpha: crate::autopilot::REAL_FINAL.0 as f64,
             nose_down: None,
             limits: limits::F16,
         },
@@ -207,6 +265,7 @@ pub fn all() -> [Jet; 4] {
             start: JFS,
             speed_brake: F16_SPEED_BRAKE,
             alpha_max: F16_ALPHA_MAX,
+            final_alpha: crate::autopilot::REAL_FINAL.0 as f64,
             nose_down: None,
             limits: limits::F16,
         },
@@ -231,6 +290,7 @@ pub fn all() -> [Jet; 4] {
             start: IPP,
             speed_brake: F35_SPEED_BRAKE,
             alpha_max: crate::data_set::F35I.alpha_max,
+            final_alpha: crate::autopilot::REAL_FINAL.0 as f64,
             nose_down: Some(crate::data_set::F35I.nose_down),
             limits: limits::F35,
         },
@@ -253,6 +313,7 @@ pub fn all() -> [Jet; 4] {
             // The F-15's dorsal speed brake: no gear-down limit (inferred: nothing near the runway).
             speed_brake: SpeedBrake { max_deg: 60.0, gear_down_deg: 60.0 },
             alpha_max: F16_ALPHA_MAX,
+            final_alpha: crate::autopilot::REAL_FINAL.0 as f64,
             nose_down: None,
             limits: limits::F15,
         },
@@ -260,7 +321,8 @@ pub fn all() -> [Jet; 4] {
 }
 
 /// The 6-DoF jet flying as the flight-model type `name` (`data_set::TYPES`): the F-16 as the Barak, the F-16I as the
-/// Sufa, the F-35I as the Adir, the F-15I (and an F-15 on the own data) as the Ra'am.
+/// Sufa, the F-35I as the Adir, the F-15I (and an F-15 on the own data) as the Ra'am, the MiG-29A (an AI jet) as
+/// [`mig29a`].
 pub fn by_type(name: &str) -> Option<Jet> {
     let [barak, sufa, adir, raam] = all();
     match name.to_ascii_uppercase().as_str() {
@@ -268,6 +330,7 @@ pub fn by_type(name: &str) -> Option<Jet> {
         "F-16I" => Some(sufa),
         "F-35I" => Some(adir),
         "F-15I" | "F-15" => Some(raam),
+        "MIG-29A" => Some(mig29a()),
         _ => None,
     }
 }

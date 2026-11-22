@@ -54,6 +54,7 @@ the §1 type-code tables stay for the 1998 jets.
 | `f15` | F-15C Baz, the 1998 F-15 (type 110) | — | the F-15 family's base: `original_model` |
 | `f15i` | F-15I Ra'am | `f15` | Jet list name, flight-model type, model, radar range, gun rounds, stations, Arming art, guide, TSD label, info tag |
 | `f35i` | F-35I Adir | — | Jet list name, cockpit, 3D cockpit, HUD, voice, radar, gun, built-in FLIR, stations, Arming art, `flyable` |
+| `mig29a` | MiG-29A, Modern IAF's AI fighter (type 1020) | — | flight-model type, `sixdof`, gun, `flyable` false (modern-iaf/docs/flight-model.md §9.21) |
 
 **How the game reads a definition**
 - `crates/iaf-flight/src/airframe.rs` builds the files into the crate (the `FILES` list) and resolves the bases.
@@ -66,6 +67,7 @@ the §1 type-code tables stay for the 1998 jets.
   - 100 → `f16`, or `f16i` with Extras "F-16 version" on Sufa;
   - 110 → `f15`, or `f15i` with Extras "F-15 version" on Ra'am;
   - 1000 → `f35i` (the Extras "F-35I replaces" slot flies type 1000);
+  - 1020 → `mig29a` (Modern IAF's AI MiG-29A; the 1998 MiG-29, 180, keeps its tables);
   - every other type → none: its tables decide.
 - Rust reads the struct's typed fields (`airframe::get(id)?.radar`). GDScript asks `Settings.airframe(type_code)`
   (through `IafAirframe`): a Dictionary of the struct, with only the fields the definition holds. Each reader takes
@@ -99,6 +101,7 @@ the §1 type-code tables stay for the 1998 jets.
 | `gear_limit` (`kcas`, `mach`) | `player_damage.gd` `gear_overspeed` | Flight data Real: the gear is damaged above this calibrated airspeed (kt) or Mach with the gear down; without it the 1998 450 kt true airspeed (docs/damage.md §5.2) |
 | `sixdof` (bool) | `data_set.rs` `sixdof` | Physics "Flight model" on 6-DoF flies it on Modern IAF's 6-DoF from the sim's data (deviations.md §2) |
 | `engine_spool` [4 numbers] | `spool.rs` `of_type` (via `lib.rs` `load_section`) | Better physics engine spool, before the type code's row: idle → military, military → idle, afterburner light-off, light-off → full (s) |
+| `engines` (number) | `ai_flights.gd` `_twin` | 2: a twin, whose AI jet's hits break one engine of two (docs/damage.md); without it the 1998 type-code table `PlayerAircraft.TWIN` |
 | `goggles` | `terrain_view.gd` `goggles_tube`, `goggles_lit` | the night goggles' tube whatever the year (`TUBES`), the cockpit lit for them |
 | `rcs` (`front_m2`, `side_m2`, `rear_m2`, `bays_open_m2`, `store_m2`) | `iaf_ai::site` (via `air_defence.gd`) | the radar cross-section (m²) Modern IAF's enemy radars see: from ahead, the side and behind, what the open bays add, what each loaded external station adds; without it an untreated fighter's (ai.md §15.2) |
 | `ews` | `shared/weapons/ews.gd` | the modern F-16s' AIFF (`aiff`) and missile approach warning (`maw`), [modern-iaf/docs/ews.md](../modern-iaf/docs/ews.md) |

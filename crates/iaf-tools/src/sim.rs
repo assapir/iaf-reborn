@@ -72,6 +72,8 @@ pub const KEYS_LAPTOP_FILE: &str = "converted/own/keys_laptop.json";
 pub const PLANES_DIR: &str = "converted/own/planes";
 /// The sim's F-16 model (the Barak's; the Sufa's f16i.glb has the same frames), from which `own` describes the F-16.
 pub const F16_GLB: &str = "shared/extra/models/f16/f16d.glb";
+/// The sim's MiG-29A model (an AI jet, modern-iaf/docs/ai-plan.md K2), from which `own` describes the `mig29a` plane.
+pub const MIG29_GLB: &str = "shared/extra/models/mig29/mig29.glb";
 /// The F-16's stations the sim's loadout hangs stores on (glTF metres on our model), each where its store's origin
 /// goes: a store with no original model hangs by its own origin (player_weapons.gd `_pilon_of`). The model's own
 /// helpers are the original's, which put the AIM-9 about a missile diameter above and outboard of our rails and the
@@ -1486,8 +1488,24 @@ fn planes(repo: &Path, assets: &Path) -> Result<()> {
     }
     let out = assets.join(PLANES_DIR);
     write(&out.join("f16/aircraft.json"), &serde_json::to_string(&d)?)?;
+    // The MiG-29A (type 1020, ours): its descriptor from our model's frames; `model` the file name gltf.gd DETAILED
+    // swaps for the model (the sim's Models is fixed on Detailed).
+    let glb = repo.join(MIG29_GLB);
+    let bytes = std::fs::read(&glb).with_context(|| glb.display().to_string())?;
+    let mig = crate::aircraft::DbObject {
+        name: "mig29a".into(),
+        class: "Controlled aircraft".into(),
+        label: "MiG-29".into(),
+        type_code: 1020,
+    };
+    let mut d = crate::aircraft::describe_glb(&bytes, "mig29a", "mig29_h.gltf", MIG29_GLB, &[mig])?;
+    // Its flight-model type (no 1998 section has the code: data_set.rs TYPES).
+    d["fm_section"] = json!(iaf_flight::data_set::fm_name(1020));
+    write(&out.join("mig29a/aircraft.json"), &serde_json::to_string(&d)?)?;
     let index = json!({"f16": {"model": "f16/f16_h.gltf", "descriptor": "f16/aircraft.json", "type": 100,
-        "label": "F-16", "group": "controllableplanes"}});
+        "label": "F-16", "group": "controllableplanes"},
+        "mig29a": {"model": "mig29a/mig29_h.gltf", "descriptor": "mig29a/aircraft.json", "type": 1020,
+        "label": "MiG-29", "group": "controllableplanes"}});
     write(&out.join("aircraft.json"), &serde_json::to_string(&index)?)
 }
 
@@ -2056,6 +2074,15 @@ mod tests {
             f16["parts"]["LdgF"]["axis"].is_array() && f16["stations"]["StationE"].is_array() && f16["gun"].is_array()
         );
         assert_eq!(f16["engines"]["pairs"], 1);
+        // The MiG-29A's from our model: twin nozzles, its gear hinges, the type and the source.
+        let mig: Value =
+            serde_json::from_slice(&std::fs::read(root.0.join(PLANES_DIR).join("mig29a/aircraft.json")).unwrap())
+                .unwrap();
+        assert_eq!(
+            (mig["type"].as_i64(), mig["fm_section"].as_str(), mig["source"].as_str()),
+            (Some(1020), Some("MiG-29A"), Some(MIG29_GLB))
+        );
+        assert!(mig["parts"]["LdgL"]["axis"].is_array() && mig["engines"]["pairs"] == 2);
         assert_eq!(f16["stations"]["StationA"], json!(F16_SIM_STATIONS[0].1));
         assert_eq!(f16["lugs"]["StationC"], json!(F16_SIM_LUGS[0].1));
         assert_eq!(f16["pylons"]["StationE"], "PylonChinR");

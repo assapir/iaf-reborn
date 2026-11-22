@@ -5,7 +5,9 @@ IR = infrared; MANPADS = man-portable air-defence system; SAM = surface-to-air m
 homing; TEL / TELAR = launcher vehicle (with its own radar); "inferred" = our own reasoning; "open" = no source
 found.
 
-**Status: every record here is a draft, pending the user's decision** (item D2, 2026-11-03). The records hold the
+**Status: every record here is a draft, pending the user's decision** (item D2, 2026-11-03), **except four approved
+with the MiG-29 on 2026-11-22** (the user, 21 Nov: "Ok, do it", ai-plan.md K2): `mig29a`, `r-73`, `r-27r` and `30mm`,
+now in `modern-iaf/data/db/units` and `weapons`. The records hold the
 threat set that [threats.md](threats.md) §6 recommends, in the unit and weapon formats of
 [data-formats.md](data-formats.md) §3 and §4. They sit in `modern-iaf/data/db/drafts/`, which `iaf-sim db` does not
 read, so nothing in `assets/` changes until the user approves them. Approving a record is one move and one edit
@@ -18,7 +20,7 @@ read on 2026-11-03.
 
 | unit (file) | role | class, type | key figures | sources | open | model source (threats.md §5) |
 |---|---|---|---|---|---|---|
-| MiG-29A 9.12 (`mig29a`) | fighter | `fighter`, 180 | Mach 2.3, 18,000 m, +9 g, 700 km combat range; GSh-30-1 150 rounds; 2 R-27R + 4 R-73 | [^w-mig29] | N019 range; chaff / flare counts (60 held); an own flight-model row; the stations | FlightGear "Mig-29" (GPL-2.0, "or later" open); Sketchfab "Mig 29 (9-13)" (CC BY) |
+| MiG-29A 9.12 (`mig29a`, approved) | fighter | `fighter`, 1020 (ours; until 2026-11-22 the 1998 MiG-29's 180) | Mach 2.3, 18,000 m, +9 g, 700 km combat range; GSh-30-1 150 rounds; 2 R-27R + 4 R-73 | [^w-mig29] | N019 range; chaff / flare counts (60 held); the stations | FlightGear "Mig-29" (GPL-2.0, "or later" open); Sketchfab "Mig 29 (9-13)" (CC BY) |
 | F-14A (`f14a`) | interceptor | `fighter`, 1010 (ours) | Mach 2.34, 16,154 m, +7.5 g (all F-14D); M61A1 675 rounds; 4 AIM-54A | [^w-f14] | the F-14A (TF30) figures; AWG-9 range; range; Iran's AIM-54 stock; an own flight-model row; type 1010's place in the type-keyed tables (§4) | FlightGear "f-14b" (licence open); Sketchfab "Grumman F-14B Tomcat" (CC BY) |
 | S-300PMU-2 TEL (`s300-tel`) | long-range SAM launcher | `radar_sam`, 310 | 3–200 km, 10 m–27 km; sensor 200 km held; four 48N6E2 | [^w-s300] | vehicle size (6 m held); missiles per TEL (4 inferred); the 30N6E2's range | Sketchfab "S-300 5P85 Launcher" (CC BY, a 9M83 to rework) |
 | 30N6E2 (`s300-30n6e2`) | S-300 fire-control radar | `radar_sam`, 310 | I/J band, 6 targets; 200 km held | [^w-s300] | range; vehicle size | as the TEL; Commons "S-300PMU2" photos |
@@ -40,11 +42,11 @@ read on 2026-11-03.
 | 9M331 (`9m331`) | `radar_sam`, 3 | 850 m/s, 1.5–12 km, 6,000 m, 30 g, 167 kg, 15 kg warhead; reaction 6.5 s | 400 / 13 m | [^w-tor] | launch interval | as the TELAR |
 | 3M9 (`3m9`) | `radar_sam`, 1 | Mach 2.8, 4–24 km, 50–14,000 m, 599 kg, 59 kg warhead; reaction 25 s | 400 / 21 m | [^w-kub] | launch interval; g limit | as the TEL |
 | Misagh-2 (`misagh-2`) | `ir_sam`, 4 | 850 m/s, 6 km, 5 km, 12.74 kg, 1.42 kg warhead | 250 / 6 m | [^w-misagh] | reaction time; g limit; whether the weight holds the tube | none |
-| R-73 (`r-73`) | `ir_missile`, 4 | Mach 2.5, 30 km, 105 kg, 7.4 kg warhead | 400 / 11 m | [^w-r73] | g limit | Sketchfab "R-73 Vympel" (CC BY) |
-| R-27R (`r-27r`) | `semi_radar_missile`, 3 | Mach 4.5 (uncited), 73 km, 253 kg, 39 kg warhead | 400 / 18 m | [^w-r27] | a cited speed; g limit | none found |
+| R-73 (`r-73`, approved) | `ir_missile`, 4 | Mach 2.5, 30 km, 105 kg, 7.4 kg warhead | 400 / 11 m | [^w-r73] | g limit | Sketchfab "R-73 Vympel" (CC BY) |
+| R-27R (`r-27r`, approved) | `semi_radar_missile`, 3 | Mach 4.5 (uncited), 73 km, 253 kg, 39 kg warhead | 400 / 18 m | [^w-r27] | a cited speed; g limit | none found |
 | AIM-54A (`aim-54a`) | `radar_missile`, 2 | Mach 4.3, 135 km, 454 kg, 60 kg warhead | 400 / 21 m | [^w-aim54] | g limit | none found |
 | 23 mm (`23mm`) | `gun`, 1 | 975 m/s; fires within 2.5 km | 100 / 5 m | [^w-zsu] | the round's drag | — |
-| 30 mm (`30mm`) | `gun`, 2 | 860 m/s | 200 held / 5 m | [^w-gsh30] | a per-round damage figure | — |
+| 30 mm (`30mm`, approved) | `gun`, 2 | 860 m/s | 200 held / 5 m | [^w-gsh30] | a per-round damage figure | — |
 
 ## 3. The rules the drafts follow
 These choices are ours (inferred); each record's `notes` repeats the one it uses.

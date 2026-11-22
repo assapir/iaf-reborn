@@ -72,6 +72,10 @@ pub const TYPES: &[Type] = &[
     // Ours: the F-15I Ra'am, type 110 with the Extras switch "F-15 version" on Ra'am (docs/f15i.md). No 1998 data: it
     // always flies its Real row, on the F-15's section.
     ty("F-15I", "f15i", "F-15", 110),
+    // Ours: Modern IAF's MiG-29A (9.12), an AI jet (modern-iaf/docs/ai-plan.md K2), type 1020; its model folder is the
+    // sim's own `mig29a` (iaf-sim own). No 1998 data: it always flies its Real row, on the F-16's section, and the 6-DoF
+    // (`sixdof::jets::mig29a`). The 1998 MiG-29 (180) below is another type and is unchanged.
+    ty("MiG-29A", "mig29a", "F-16", 1020),
     ty("MIRAGE", "mirage", "MIRAGE", 190),
     ty("MIG21", "mig21", "MIG21", 150),
     ty("MIG23", "mig23", "MIG23", 160),
@@ -88,7 +92,7 @@ pub const TYPES: &[Type] = &[
 ];
 
 /// Types the original never had: no Original data, so they always fly their Real row.
-const NO_ORIGINAL: &[&str] = &["F-35I", "F-16I", "F-15I"];
+const NO_ORIGINAL: &[&str] = &["F-35I", "F-16I", "F-15I", "MiG-29A"];
 
 /// The data set a type flies with: `set`, except that a type without original data always takes Real.
 pub fn effective(set: DataSet, name: &str) -> DataSet {
@@ -538,6 +542,29 @@ const REAL: &[Real] = &[
         nose_wheel: Some(Nws { angle_deg: 32.0, wheelbase_ft: 13.2, grip_g: 0.3 }),
         // Block 50/52 "above 50,000 ft" as every F-16 (USAF fact sheet); 52,490 ft for the F-16I is secondary.
         ceiling_ft: Some(50_000.0),
+        ..NONE
+    },
+    // MiG-29A (9.12, 2 x RD-33): Wikipedia, "Mikoyan MiG-29" (modern-iaf/docs/research/enemies.md §4.2). The 6-DoF
+    // flies it (`sixdof::jets::mig29a`); this row gives the loaded section its weights, thrust and limits.
+    Real {
+        aircraft: "MiG-29A",
+        base: Some("F-16"),
+        // 11,000 kg empty, 3,500 kg internal fuel, 18,000 kg maximum take-off.
+        empty_lb: 24_251.0,
+        fuel_lb: Some(7_716.0),
+        max_lb: Some(39_683.0),
+        // 2 x 81.3 kN with afterburner, 49.4 kN dry.
+        thrust: Thrust::StaticAb(36_555.0),
+        mil_ratio: Some(49.4 / 81.3),
+        // 38 m².
+        wing_ft2: Some(409.0),
+        wave_drag: 0.0,
+        // TSFC 1.845 with afterburner, 0.736 dry (75 and 188.1 kg/(kN·h), Wikipedia "Klimov RD-33").
+        ff_ab_lb_s: Some(1.845 * 36_555.0 / 3600.0),
+        ff_mil_lb_h: Some(0.736 * 22_211.0),
+        g: Some((9.0, -3.0)),
+        // 18,000 m.
+        ceiling_ft: Some(59_055.0),
         ..NONE
     },
     // F-15I Ra'am (two-seat F-15E derivative, 2 x F100-PW-229, conformal fuel tanks), docs/f15i.md §1. The F-15I's own

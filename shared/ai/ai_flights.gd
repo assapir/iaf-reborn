@@ -36,6 +36,10 @@ var engage_ent := {}
 ## `cost_frames` frames (modern-iaf/docs/ai-plan.md X5); a test resets both.
 var cost_us := 0
 var cost_frames := 0
+## The bdb's Objects and Present rows by id (setup), for `spawn`; the jets `spawn` made so far.
+var _objects := {}
+var _present := {}
+var _spawned := 0
 
 
 class Pilot:
@@ -51,7 +55,8 @@ class Pilot:
 	var airborne_start := true  # the jet's start was airborne (its controller's autopilot starts on, @4483d7)
 	var by_ai := false  # flown by IafAi (flight_ai), not by its brain
 	## Systems damage flags 0..24 (controller +0x3d8 + 0xc + 4n, docs/damage.md §5), the cut-out pick (+0x70)
-	## and the twin-engine test (controller +8 → +0x24: the player's table, PlayerAircraft.TWIN).
+	## and the twin-engine test (controller +8 → +0x24: the player's table PlayerAircraft.TWIN, or the aircraft
+	## definition's `engines`: `_twin`).
 	var systems: Array = []
 	var cut_out := false
 	var twin := false
@@ -126,6 +131,8 @@ func setup(h: Node, rt: Node, bdb: Dictionary, files: Array) -> void:
 	var present := {}
 	for p in bdb.get("present", {}).get("items", []):
 		present[int(p["0x1e"])] = p
+	_objects = objects
+	_present = present
 	_load_formations(files)
 	var planes: Dictionary = AircraftModel.index()
 	var install := Settings.own_dir()
@@ -143,17 +150,7 @@ func setup(h: Node, rt: Node, bdb: Dictionary, files: Array) -> void:
 			plane = PlayerAircraft.plane_for(int(ent.type_code))
 		if plane == "":
 			continue
-		var p := Pilot.new()
-		p._host = self
-		p.ent = ent
-		p.formation = _formation_of(ent)
-		p.plane = plane
-		p.systems.resize(25)
-		p.systems.fill(false)
-		p.twin = int(ent.type_code) in PlayerAircraft.TWIN
-		if not _start(p, install, plane):
-			continue
-		_attach(p, Settings.model_scale(float(pr.get("0x65e", 10.0))), bool(p._state.on_ground_start))
+		_launch(ent, _formation_of(ent), plane, install, pr)
 	if Settings.new_ai() and ClassDB.class_exists("IafAi"):
 		_setup_flight_ai()
 	if not pilots.is_empty() or Settings.has_setting("ai_level"):  # a game with AI (not IAF 2026's training)
@@ -161,6 +158,61 @@ func setup(h: Node, rt: Node, bdb: Dictionary, files: Array) -> void:
 	combat = Combat.new()
 	add_child(combat)
 	combat.setup(host, self, bdb)
+
+
+## A dev / test hook (no mission places one yet; modern-iaf/docs/ai-plan.md K2): an AI jet of the bdb unit `unit`
+## (its Objects id, e.g. "mig29a") at world `at`, heading `heading` (deg), flying `route` ([[x, y, z, action] world
+## points]) under its autopilot, as a mission's brain-less aircraft does: its plane, flight model and model from its
+## unit's record and aircraft definition, on the ground at a base when `at` is there (the start rule). `side` −1: the
+## player's enemy. Its entity, {} for a unit that does not fly.
+func spawn(unit: String, at: Vector3, heading: float, route: Array, side := -1) -> Dictionary:
+	var obj: Dictionary = {}
+	for o in _objects.values():
+		if String(o.get("0x514", "")) == unit:
+			obj = o
+	var pr: Dictionary = _present.get(int(obj.get("0x53c", -1)), {})
+	var plane := _plane_of(AircraftModel.index(), String(pr.get("0x64a", "")))
+	if plane == "":
+		return {}
+	_spawned += 1
+	if side < 0:
+		side = 1 if int(runtime.player_entity().get("side", 2)) == 2 else 2
+	var e := {"0x1e": -1000 - _spawned, "0x2bc": "%s %d" % [unit, _spawned], "0x2c6": int(obj["0x1e"])}
+	e.merge({"0x2e4": at.x, "0x2ee": at.y, "0x2f8": at.z, "0x2d0": side, "0x302": heading})
+	var ent := MissionRuntime.entity(e, "jet:%d" % _spawned, -1, false)
+	MissionRuntime._init_damage(ent, obj)
+	var pts := []
+	for q in route:
+		pts.append([float(q[0]), float(q[1]), float(q[2]), 0.0, int(q[3])])
+	var formation := {"id": ent.id, "kind": 0, "slot": 0, "members": [ent], "targets": [], "route": pts}
+	runtime.entities[ent.key] = ent
+	if not _launch(ent, formation, plane, Settings.own_dir(), pr):
+		runtime.entities.erase(ent.key)
+		return {}
+	return ent
+
+
+## An AI jet's pilot for `ent` in `formation` on `plane`: its flight model started and its model attached (`pr`: its
+## Present row); false when the flight model refuses it.
+func _launch(ent: Dictionary, formation: Dictionary, plane: String, install: String, pr: Dictionary) -> bool:
+	var p := Pilot.new()
+	p._host = self
+	p.ent = ent
+	p.formation = formation
+	p.plane = plane
+	p.systems.resize(25)
+	p.systems.fill(false)
+	p.twin = _twin(int(ent.type_code))
+	if not _start(p, install, plane):
+		return false
+	_attach(p, Settings.model_scale(float(pr.get("0x65e", 10.0))), bool(p._state.on_ground_start))
+	return true
+
+
+## A twin-engine jet for the damage model: its aircraft definition's `engines`, else the 1998 type-code table.
+static func _twin(type_code: int) -> bool:
+	var n = Settings.airframe(type_code).get("engines")
+	return int(n) == 2 if n != null else type_code in PlayerAircraft.TWIN
 
 
 ## A pilot's jet in the world: its model at the Present scale `scale` (with its engine sound), its entity's links
@@ -205,7 +257,7 @@ func adopt(
 	p.formation = _formation_of(ent)
 	p.plane = plane
 	p.systems = systems
-	p.twin = int(ent.type_code) in PlayerAircraft.TWIN
+	p.twin = _twin(int(ent.type_code))
 	p.flight = flight
 	p.airborne_start = airborne_start
 	flight.set_ai(host.enemy_of_player(ent), int(host.mission_pref("ai_level")))

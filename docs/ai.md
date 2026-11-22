@@ -1360,6 +1360,29 @@ Check: `cargo test -p iaf-ai --test sites skill` (each level's track, first laun
 detection; the laying errors the same draws scaled by each level's aim, the bursts' rounds and spacing the same) and
 `skill::tests` (the three levels, the wingmen's).
 
+## 18. Modern IAF's enemy fighters (ours)
+
+The user, 21 Nov 2026: "Ok finish all enemies things you can", on the plan to build the enemy fighter generically, the
+MiG-29 first (modern-iaf/docs/ai-plan.md K2–K4). Step 1 (K2, 2026-11-22): the MiG-29A flies.
+
+- **An AI type of its own definition.** Type 1020 (ours) reaches `shared/extra/planes/mig29a/airframe.json` through
+  `airframe::id_for`, as 1000 reaches the F-35I. The definition names its flight-model type (`fm` "MiG-29A", the
+  `data_set.rs` row on the `[F-16]` section) and the 6-DoF (`sixdof`); `sixdof::jets::by_type` gives its jet data
+  (modern-iaf/docs/flight-model.md §9.21). The 1998 MiG-29 (type 180) keeps its tables.
+- **Its record and model.** `modern-iaf/data/db/units/mig29a.json` (with its 30 mm, R-73 and R-27R records) names the
+  original MiG-29's model file; the sim's own plane `mig29a` (`iaf-sim own`, from our `mig29.glb`) has that file, so
+  `ai_flights.gd` finds the plane as for any mission aircraft and Models: Detailed draws our model.
+- **The flight.** It flies under the shared autopilot's loops (§7–§8): start-up, taxi, take-off, the route, the
+  landing, the taxi in and parking, on the 6-DoF. Its final approach flies its own α (`Jet::final_alpha`, 10°).
+- **The dev hook.** No mission places one (the user, 19 Nov: "we need to have the code for ai enemies. Just isn't
+  reachable by mission yet"): `ai_flights.gd` `spawn(unit, at, heading, route)` puts a jet of a bdb unit in the world
+  with its plane, flight model and model, its route under its autopilot, on the player's enemy side; the caller sets
+  its modes (take-off 9, the waypoints 7, the landing 8), as a brain's rules would.
+- **Its damage.** A hit breaks one engine of two: the definition's `engines` 2 makes it a twin (`ai_flights.gd`
+  `_twin`; the 1998 jets keep the type-code table `PlayerAircraft.TWIN`).
+- **Later:** the intercept, commit, BVR shot and defence (K3), the dogfight (K4); the type-keyed tables (the RWR's
+  symbol, the radio's type name) have no row for 1020 yet, which K3 needs once it radiates and shoots.
+
 ## UNCERTAIN
 Open questions in this document:
 - The RWR field names behind conditions 19, 26, 27, 38, 39 (§13.2); what else writes brain+0x7c.

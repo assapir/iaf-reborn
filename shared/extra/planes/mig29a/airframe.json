@@ -1,0 +1,19 @@
+{
+  "name": "MiG-29A (9.12)",
+  "doc": "modern-iaf/docs/research/enemies.md",
+  "flyable": false,
+  "fm": "MiG-29A",
+  "sixdof": true,
+  "engines": 2,
+  "gun_rounds": 150,
+  "gun": { "rpm": 1800, "muzzle": 860, "guns": 1 },
+  "notes": {
+    "": "Modern IAF's first enemy fighter, an AI jet (modern-iaf/docs/ai-plan.md K2): type 1020 (ours), its model the sim's own mig29a (iaf-sim own: shared/extra/models/mig29/mig29.glb, GPL-3.0), its unit record modern-iaf/data/db/units/mig29a.json",
+    "flyable": "an AI jet: the player does not fly it",
+    "fm": "data_set.rs MiG-29A row on the F-16 section; the 6-DoF's sixdof::jets::mig29a (modern-iaf/docs/flight-model.md §9.21)",
+    "sixdof": "always on the 6-DoF: it has no original-model data",
+    "engines": "two RD-33s (Wikipedia, \"Mikoyan MiG-29\")",
+    "gun_rounds": "GSh-30-1, 150 rounds (Wikipedia, \"Mikoyan MiG-29\")",
+    "gun": "GSh-30-1: 1,500-1,800 rounds a minute (the high end), 860 m/s (Wikipedia, \"Gryazev-Shipunov GSh-30-1\")"
+  }
+}

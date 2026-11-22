@@ -52,6 +52,9 @@ pub struct Airframe {
     pub gear_limit: Option<GearLimit>,
     /// The engine's spool times in seconds, `[idle_mil, mil_idle, ab_light, ab_fill]` (spool.rs `Spool`).
     pub engine_spool: Option<[f32; 4]>,
+    /// The engines' count: 2 is a twin for the damage model's engine systems (ai_flights.gd `_twin`); a jet without
+    /// it takes the 1998 type-code table (`PlayerAircraft.TWIN`).
+    pub engines: Option<u8>,
     /// Physics "Flight model" on 6-DoF flies this jet on Modern IAF's 6-DoF (`data_set::sixdof`, docs/deviations.md
     /// §2); a jet without it keeps the original model.
     pub sixdof: Option<bool>,
@@ -178,6 +181,7 @@ const FILES: &[(&str, &str)] = &[
     ("f16", include_str!("../../../shared/extra/planes/f16/airframe.json")),
     ("f16i", include_str!("../../../shared/extra/planes/f16i/airframe.json")),
     ("f35i", include_str!("../../../shared/extra/planes/f35i/airframe.json")),
+    ("mig29a", include_str!("../../../shared/extra/planes/mig29a/airframe.json")),
 ];
 
 /// The Extras switches that pick a 1998 jet's variant (Settings `f16_variant`, `f15_variant`).
@@ -189,12 +193,14 @@ pub struct Switches<'a> {
 
 /// The adapter: the definition a jet of bdb type `type_code` flies as with the Extras switches `s`, None for a 1998
 /// jet without one (its tables decide). The F-16 (100): its base `f16` (the Barak), the F-16I `f16i` on Sufa; the F-15
-/// (110): its base `f15` (the Baz), the F-15I `f15i` on Ra'am.
+/// (110): its base `f15` (the Baz), the F-15I `f15i` on Ra'am; 1000 the F-35I, 1020 Modern IAF's MiG-29A.
 pub fn id_for(type_code: i64, s: Switches) -> Option<&'static str> {
     match type_code {
         100 => Some(if s.f16 == "sufa" { "f16i" } else { "f16" }),
         110 => Some(if s.f15 == "raam" { "f15i" } else { "f15" }),
         1000 => Some("f35i"),
+        // Ours: Modern IAF's MiG-29A, an AI jet (the 1998 MiG-29, 180, keeps its tables).
+        1020 => Some("mig29a"),
         _ => None,
     }
 }

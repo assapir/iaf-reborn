@@ -1352,6 +1352,51 @@ jet is less stable in pitch and overshoots the α limiter. The real jet gives no
 The tests: unit tests in `limits.rs`; `crates/iaf-flight/tests/sixdof.rs` flies each limit (`over_g_damages_then_breaks_the_airframe`,
 `overspeed_and_flutter`, `gear_tyres_and_brakes`, `the_cg_and_a_category_iii_load`).
 
+### 9.21 The MiG-29A, the first AI type of its own (2026-11-22)
+
+The enemy fighter plan's step 1 ([ai-plan.md](ai-plan.md) K2, X2): the MiG-29A (9.12) flies on the 6-DoF by
+[research/enemies.md](research/enemies.md) §4.2's route. No MiG-29 aerodynamic tables are public, so it keeps
+TP-1538's tables on its own wing, as the F-35I does (§9.19). It is an AI jet: type 1020 (ours), the aircraft definition
+`shared/extra/planes/mig29a/airframe.json` (`fm` "MiG-29A", `sixdof`), `data_set.rs`'s MiG-29A row on the `[F-16]`
+section (so no setup step writes a new section) and `sixdof::jets::mig29a`. The 1998 MiG-29 (type 180) is another type
+and is unchanged.
+
+| part | the MiG-29A | source |
+|---|---|---|
+| wing | 38 m², span 11.36 m (TP-1538's tables on it; inertia and chord scaled as §9.9) | sourced[^w-mig29]; inferred: the scaling |
+| masses | empty 11,000 kg, internal fuel 3,500 kg (reference 14,500 kg), maximum take-off 18,000 kg | sourced[^w-mig29] |
+| engines | two RD-33: 49.4 kN dry, 81.3 kN with afterburner; 75 / 188.1 kg/(kN·h); idle → military 3.0 s | sourced: thrust[^w-mig29], fuel use[^w-rd33]; inferred: the spool (the F100's); open: the lapse with Mach and altitude, TP-1538's F100 shape (§9.7) |
+| g limits | +9 / −3 | sourced: +9[^w-mig29]; inferred: −3 (the F-16's) |
+| α limit | 26° | second-hand: 24–28° by variant and the limiter's setting, a lift coefficient of 1.5 at 26° (forum posts quoting manuals, [research/enemies.md](research/enemies.md) §4.2); open until a manual gives it |
+| final approach α | 10° (`Jet::final_alpha`; the F-16s' and the Adir's 13°) | second-hand: the flare "begins at α 10 and ends at α 12", 280 → 260 km/h (a DCS forum post quoting the manuals)[^dcs-mig29-flare] |
+| roll | TP-1538's control system A (as the Ra'am) | open: no public MiG-29 roll rate |
+| gear | wheelbase 4.25 m, track 2.65 m, the wheels 1.61 m below the model's origin | inferred: measured from our model's gear hinges (FlightGear's `MiG-29.xml`); no public figure |
+| limits | 810 KCAS (1,500 km/h), Mach 2.3; the F-16's gear, tyres and brakes | inferred: its published top speeds as placards (`limits::MIG29`) |
+| wave drag | (w, k) = (0.0434, −0.427): Mach 1.225 at sea level, 2.3 at 40,000 ft | fit (`fit_wave_drag`, §9.15) to its published 1,500 km/h low down and Mach 2.3 at altitude[^w-mig29]; the altitude inferred (40,000 ft, as the other jets') |
+| speed brake, nose-wheel steering, start sequence, flaps | the F-16's | inferred |
+
+**Results** (`mig29_flies_its_figures`, `top_speeds_meet_the_published_figures`, validation's
+`sixdof_jets_against_public_data` row "MiG-29A"; 2026-11-22):
+
+| figure | the 6-DoF | published |
+|---|---|---|
+| top speed, sea level | 816 kt (Mach 1.24) | 810 kt (1,500 km/h) |
+| top speed, 40,000 ft | Mach 2.30 | Mach 2.3 at altitude |
+| climb (Ps at 350–430 kt near sea level) | 279–281 m/s (55,300 ft/min) | 330 m/s |
+| full pull at 200–400 kt, 10,000 ft | α 24–25°, no sideslip | the α limit 24–28° |
+| full pull at 550 kt | 9.3 g | +9 g |
+| service ceiling (0.5 m/s of excess power) | at least 20,000 m (the atmosphere's top, atmosphere.rs) | 18,000 m |
+| 1 g stall, sea level | 120 kt | landing 127 kt / 1.1 |
+| fuel flow, military / full afterburner | 16,270 / 71,950 lb/h | about 17,100 / 67,400 lb/h |
+| touchdown (the AI's landing with 2 t of stores) | 150 kt at 5° pitch | 235–260 km/h (127–140 kt) clean, second-hand |
+
+Open: the ceiling runs high, as every 6-DoF jet's does by the same measure (the Sufa about 19,000 m against its
+15,240 m: the thrust and drag at altitude, TP-1538's thrust held above Mach 2); the neutral-stick hold at 10,000 ft on
+military power accelerates to 644 kt and climbs 994 ft in 60 s (its thrust to weight); the real jet's better nose
+pointing below 200 kt and worse energy above it ([research/enemies.md](research/enemies.md) §4.2) are a tuning note for its manoeuvring (K4), not
+data. At the F-16's 13° final α the flare carried it past the 15° tail strike (tried 2026-11-22, dropped: the
+second-hand 10° is used); the Sufa lands at 14.8–14.9° on the same law, close to that limit.
+
 [^lm-aoa]: Lockheed Martin press release, 19 November 2012, quoted by SLDInfo, "The F-35 and High Angle of Attack
     Flight Testing" ("rapidly expanded its high angle of attack (AOA) test envelope to its 50 degree limit in only four
     flights"), https://sldinfo.com/2012/11/the-f-35-and-high-angle-of-attack-flight-testing/
@@ -1448,3 +1493,11 @@ the load factor limits defined in the flight manuals"), https://patents.google.c
 load", https://www.ecfr.gov/current/title-14/section-25.303
 [^cfr25-305]: 14 CFR 25.305, "Strength and deformation": "The structure must be able to support limit loads without
 detrimental permanent deformation", https://www.ecfr.gov/current/title-14/section-25.305
+[^w-mig29]: Wikipedia, "Mikoyan MiG-29" (span 11.36 m, wing 38 m²; empty 11,000 kg, internal fuel 3,500 kg, maximum
+    take-off 18,000 kg; 2 × RD-33, 49.4 kN dry, 81.3 kN with afterburner; Mach 2.3+ at altitude, 1,500 km/h at low
+    altitude; ceiling 18,000 m; climb 330 m/s; +9 g): https://en.wikipedia.org/wiki/Mikoyan_MiG-29
+[^w-rd33]: Wikipedia, "Klimov RD-33" (specific fuel consumption 75 kg/(kN·h) dry, 188.1 with afterburner):
+    https://en.wikipedia.org/wiki/Klimov_RD-33
+[^dcs-mig29-flare]: A DCS World forum post quoting the MiG-29's manuals ("по книгам – начало на 280 км/ч, конец на
+    260 км/ч, или начало с УА = 10, заканчивается с УА = 12"), as a web search quoted it on 2026-11-22; the forum
+    refuses automated access, so the post was not read (second-hand): https://forum.dcs.world

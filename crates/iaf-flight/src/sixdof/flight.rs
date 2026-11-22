@@ -683,9 +683,9 @@ impl SixDof {
             let jet = self.jet.at_weight(self.mass() / LB);
             let level = |alpha: f32| approach_speed(&jet, -b.pos.z, alpha as f64, 0.0, self.tef, self.surfaces.dsb).0;
             let (limiter, turn) = crate::autopilot::REAL_CIRCUIT;
-            let (alpha, glide) = crate::autopilot::REAL_FINAL;
+            let glide = crate::autopilot::REAL_FINAL.1 as f64;
             let dsb = self.jet.speed_brake.gear_down_deg;
-            let fin = approach_speed(&jet, -b.pos.z, alpha as f64, glide as f64, self.jet.tef_deg, dsb).0;
+            let fin = approach_speed(&jet, -b.pos.z, self.jet.final_alpha, glide, self.jet.tef_deg, dsb).0;
             self.ap_speeds = Some((level(limiter) as f32, level(turn) as f32, fin as f32));
         }
     }

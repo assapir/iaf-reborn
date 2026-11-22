@@ -309,6 +309,23 @@ const REFS: &[Ref] = &[
         ff_ab: Some((72000.0, 78000.0, "~75,000 lb/h (TSFC 2.05)")),
         ..JET
     },
+    // Modern IAF's MiG-29A (type 1020, the 6-DoF; modern-iaf/docs/flight-model.md §9.21): the same public figures.
+    Ref {
+        aircraft: "MiG-29A",
+        name: "MiG-29A 9.12 (2x RD-33), Modern IAF",
+        empty: Some((24030.0, 24260.0, "24,030-24,250 lb")),
+        fuel: Some((7500.0, 8000.0, "4,200-4,365 l, 7,500-8,000 lb")),
+        thrust_mil: Some((22000.0, 22400.0, "2 x 11,110 lbf")),
+        thrust_ab: Some((36400.0, 36800.0, "2 x 18,300 lbf")),
+        stall: Some((110.0, 125.0, "landing 127 kt / 1.1")),
+        ceiling: Some((57283.0, 60827.0, "18,000 m")),
+        vmax_sl: Some((770.0, 850.0, "810 kt (1,500 km/h)")),
+        vmax_hi: Some((1265.0, 1375.0, "Mach 2.3 at altitude")),
+        climb: Some((49600.0, 65000.0, "49,600-65,000 ft/min")),
+        ff_mil: Some((16000.0, 18000.0, "~16,350 lb/h (TSFC 0.736)")),
+        ff_ab: Some((64000.0, 72000.0, "~67,400 lb/h (TSFC 1.845)")),
+        ..JET
+    },
     Ref {
         aircraft: "MIG17",
         name: "MiG-17F (VK-1F)",
