@@ -38,8 +38,7 @@ fn scramble_intercept_and_land() {
     let (prm, env) = iaf_flight::load_with(&dir, "MiG-29A", DataSet::Original).unwrap();
     let mut flight = Flight::default();
     let mut jets: Vec<(Fm, Autopilot)> = Vec::new();
-    for h in 0..2 {
-        let p = rb.hangars[h];
+    for (h, p) in rb.hangars.iter().take(2).enumerate() {
         let st = Start {
             position: Vec3::new(p.x as f64, p.y as f64, g as f64),
             pitch: 0.0,
