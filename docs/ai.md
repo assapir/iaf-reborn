@@ -665,9 +665,16 @@ F12–F14). The 1998 game sets none of it. Every figure is inferred, tuned on th
 
 - **Mode 0x21, the steer loop** (`MODE_STEER`, every 0.1 s): flies toward `Autopilot::steer.to` at that point's height.
   The heading error is flown as a turn rate of 0.3 per radian, at most the order's load factor; the height through a
-  spring and a damper (0.15 rad/s, 0.8); both as a bank and a load factor (the slot loop's `lift_stick`, at most 75°
-  and 7 g). The throttle is the speed law's, at most the order's (0.74, military: the afterburner stays out). The ground
-  watch stays on. A far point is a heading; a near one is circled.
+  spring and a damper (0.15 rad/s, 0.8); both as a bank and a load factor (the slot loop's `lift_stick`, at most 75° and
+  7 g). For an order marked `Steer::dive` (only the enemy fighters' notch and drag, §18.1; the 1998 game never flies
+  this loop) and a point more than 200 m below the jet, the bank is at most 85° and the lift upward at most 1 g, so a
+  hard turn goes down while it turns. At 75° with the full load factor a 6.5 g notch climbed at up to 39 m/s and was
+  still above its start height when the missile was gone (the flaky `modern-iaf/tests/test_intercept.gd`, 22 November
+  2026). The same limits on every turn starved the wingmen's break (2.3 g, the roll-in being slow) and their join-up in
+  a turn (228 m off), so a level point keeps the 75° rule; tested and dropped the same day. Open: a level hard turn
+  still climbs (a 6.5 g beam about 285 m in its first 8 s), until the roll law rolls in fast enough for the turn to keep
+  its load factor under that limit. The throttle is the speed law's, at most the order's (0.74, military: the
+  afterburner stays out). The ground watch stays on. A far point is a heading; a near one is circled.
 - **The elements:** #2 flies on #1 and #4 on #3. In the shape each wingman keeps its slot in the lead's frame, so #4's
   slot is relative to #3's slot. When #3 flies on its own (the split's task, a defence, any loop but the slot), #4 flies
   on #3 itself, with its slot relative to #3. #4 was first flown on #3 itself in the shape too. It amplified #3's
@@ -1374,8 +1381,11 @@ What each level changes in the enemy we have:
   `combat.gd fire_at`, which moves the aim point by it (straight overhead, about the east axis); the rounds then fly
   the existing round model. A gun fires in its whole range at every level.
 - **The fighters** (§18; `IafAi.enemy`, from `Settings.enemy_skill()`): the lead commits after its reaction; each jet
-  shoots inside its share of the missile's envelope; its tactics pick the turns after its shot and against a missile.
-  A wingman's or a fighter's gun aim waits for the dogfight (K4).
+  shoots once the bogey has been inside its share of the missile's envelope for its reaction time, so the launch comes
+  deeper than the window's edge by the closure in that time (head-on at 500–550 m/s closing in `--test intercept shot`:
+  about 2 km Low, 0.5 km High, with the 0.5 s decision tick); its tactics pick the turns after its shot and against a
+  missile. A missile takes no laying error: it guides itself from the launch. The fighters have no gun shot yet; the
+  gun's aim (`Skill::lay`, as the ZSU's) comes with the dogfight (K4).
 - **The drones** (§16): none. A Shahed-136 flies a programmed route; it has no crew, no reaction and no shot.
 
 Check: `cargo test -p iaf-ai --test sites skill` (each level's track, first launch and march order against the same
@@ -1426,7 +1436,7 @@ hostile jet, which the pair knows only while its radar holds it.
 | CAP | the lead orbits its station clockwise at the station's height, steering at the point 30° ahead on the circle; the wingman keeps its slot | radius 15 km, 2 g, 220 m/s |
 | commit | a bogey inside the commit range of the station, with a missile left: the pair commits after the lead's reaction time | 90 km |
 | intercept | the collision course at the bogey (the point where the two meet flying straight; pure pursuit when it cannot be caught) | 4 g, 300 m/s, at most 120 s ahead |
-| shot | committed, its own radar holding the bogey, a missile left and none of its own flying at it, the bogey inside its share of the envelope (§17): `Order::shoot`; the host fires through `combat.gd`'s launch (the envelope, the cone, the fire gate) | the radar: 74 km, ±60° (the wingmen's) |
+| shot | committed, its own radar holding the bogey, a missile left and none of its own flying at it, the bogey inside its share of the envelope (§17) for its reaction time (the launch's timing: Low 3 s, Medium 1 s, High 0.5 s): `Order::shoot`; the host fires through `combat.gd`'s launch (the envelope, the cone, the fire gate) | the radar: 74 km, ±60° (the wingmen's) |
 | crank | its missile flying, the radar holding the bogey: the bogey 50° off the nose on the side it is on (tactics 1 and up) | 250 m/s |
 | defence | a missile at it, after its reaction (a lock alone does not stop the attack): an infrared one the break into it; a radar one the beam at its height (tactics 0), the notch down into the look-down, the missile beamed (1), the drag, a 4 g turn away then full power going down, while the missile is farther than 20 km, inside that the notch (2); chaff or flares each decision, the 5 s clear (§8.8) | the descent: the steer point 500 m below, near 10°, down to 500 m above the ground; drag 400 m/s |
 | back | the bogey lost, past 150 km from the station, or nothing left to shoot with none flying: back to the CAP | 150 km |
@@ -1439,10 +1449,12 @@ hostile jet, which the pair knows only while its radar holds it.
   `spawn` gets its `combat.gd` unit with the stores of its record (`combat.adopt`).
 - **The missiles** are the records the MiG-29A carries (the R-27R, a semi-active radar missile, type 610; the R-73,
   infrared) on the existing physical missile; no support by the shooter's radar is modelled (the 1998 model's).
-- **Tests:** `cargo test -p iaf-ai --test intercept` (a MiG-29A pair on the 6-DoF against a scripted bogey: one test
-  per leaf, each skill's commit time, shot range, crank and defence), `--test net gci` (the picture), `fighter::tests`
-  (the collision course, the orbit, the crank, the window); `modern-iaf/tests/test_intercept.gd` (headless: a pair on
-  a CAP vectored onto a scripted jet, commits, locks, shoots, notches a radar missile).
+- **Tests:** `cargo test -p iaf-ai --test intercept` (a MiG-29A pair on the 6-DoF against a scripted bogey: one test per
+  leaf, each skill's commit time, shot range, crank and defence), `--test net gci` (the picture), `fighter::tests` (the
+  collision course, the orbit, the crank, the window), `--test intercept defence` also the notch and the drag going down
+  while they turn, `dive_only_when_asked` the steer loop unchanged without the dive;
+  `modern-iaf/tests/test_intercept.gd` (headless: a pair on a CAP vectored onto a scripted jet, commits, locks, shoots,
+  notches a radar missile).
 - **Open:** a scramble from a base (no enemy airbases yet); the fighters' own radar is the wingmen's reach and cone,
   without the ground clutter or the target's cross-section; the pairing of several pairs to several raids (each pair
   takes the track nearest its station); the dogfight (K4).

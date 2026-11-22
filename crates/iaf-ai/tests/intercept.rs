@@ -200,8 +200,9 @@ fn commit_after_the_reaction_and_intercept() {
 
 #[test]
 fn shot_inside_the_skill_window() {
-    // Head-on from 70 km with the envelope 40–2 km: Low shoots at its edge (40 km), High deep inside (0.8: 32.4 km);
-    // both jets shoot (each once its own radar holds it).
+    // Head-on from 70 km with the envelope 40–2 km: Low reacts to its edge (40 km), High deep inside (0.8: 32.4 km);
+    // each shoots after its reaction time inside the window (Low 3 s, High 0.5 s); both jets shoot (each once its own
+    // radar holds it).
     for (skill, edge) in [(Skill::LOW, 40_000.0), (Skill::HIGH, 2_000.0 + 0.8 * 38_000.0)] {
         let p = Vec3::new(0.0, 0.0, ALT);
         let Some(mut w) = Pair::new(p, p, skill) else { return };
@@ -209,9 +210,11 @@ fn shot_inside_the_skill_window() {
         w.until(120.0, &|w| w.shot.iter().all(|s| s.is_some())).expect("both shoot");
         for (n, s) in w.shot.iter().enumerate() {
             let (t, r) = s.unwrap();
-            println!("#{} shot at {r:.0} m, t {t:.1} s (window edge {edge:.0} m)", n + 1);
-            // One decision (0.5 s) at a closing speed near 550 m/s inside the edge at most.
-            assert!(r <= edge && r > edge - 600.0, "#{}: {r:.0} m against {edge:.0} m", n + 1);
+            let react = skill.reaction_s;
+            println!("#{} shot at {r:.0} m, t {t:.1} s (window edge {edge:.0} m, reaction {react} s)", n + 1);
+            // The reaction plus up to two decisions (0.5 s each) at a closing speed of 480–600 m/s inside the edge.
+            let (deep, shallow) = (edge - (react + 1.0) * 600.0, edge - react * 480.0);
+            assert!(r <= shallow && r > deep, "#{}: {r:.0} m, not {deep:.0}–{shallow:.0} m", n + 1);
         }
     }
 }
@@ -260,8 +263,20 @@ fn defence_by_the_tactics() {
         w.run(skill.reaction_s + 1.0);
         assert!(w.flight.members[0].defending, "{want}: defending");
         assert_eq!(w.phase(0), want);
+        // The notch and the drag go down while they turn (90° to the beam, 180° away), as a missile may be over in a
+        // few seconds.
         let z0 = w.pos(0).z;
-        w.run(40.0);
+        let mut top = z0;
+        for _ in 0..16 {
+            w.run(0.5);
+            top = top.max(w.pos(0).z);
+        }
+        let dz8 = w.pos(0).z - z0;
+        println!("{want}: in the first 8 s at most {:+.0} m, {dz8:+.0} m at 8 s", top - z0);
+        if want == "notch" || want == "drag" {
+            assert!(top - z0 < 20.0 && dz8 < -50.0, "{want}: {:+.0}, {dz8:+.0} m", top - z0);
+        }
+        w.run(32.0);
         let (dz, v) = (w.pos(0).z - z0, w.flight.members[0].v.vel);
         let vz = v.z;
         let off = (v.x * (t.pos.y - w.pos(0).y) - v.y * (t.pos.x - w.pos(0).x))
@@ -297,4 +312,31 @@ fn back_to_station_with_nothing_to_shoot() {
     assert!(!w.flight.members[0].enemy.committed && w.phase(0) == "cap", "{}", w.phase(0));
     let us = w.busy.as_secs_f64() * 1e6 / w.frames as f64 / 2.0;
     println!("X5: {us:.2} µs per jet per frame (6-DoF, autopilot, enemy tree; {} frames)", w.frames);
+}
+
+#[test]
+fn dive_only_when_asked() {
+    // The steer loop's dive is the enemy fighter's alone (`Steer::dive`): the same 6.5 g turn to a point 500 m below,
+    // 90° right, without it flies the loop as before (the 75° bank and the full load factor climb it), with it goes
+    // down while it turns.
+    use iaf_flight::autopilot::{MODE_STEER, Steer};
+    let mut dz = Vec::new();
+    for dive in [false, true] {
+        let p = Vec3::new(0.0, 0.0, ALT);
+        let Some(mut w) = Pair::new(p, p, Skill::MEDIUM) else { return };
+        let (fm, ap) = &mut w.jets[0];
+        let to = p + Vec3::new(50_000.0, 0.0, -500.0);
+        ap.steer = Some(Steer { to, g: 6.5, speed: 260.0, thr_max: 1.0, dive });
+        ap.set_mode(fm, MODE_STEER);
+        let mut top = ALT;
+        for _ in 0..(8.0 / DT) as usize {
+            ap.step(fm, &|_, _| 0.0);
+            fm.step(DT);
+            top = top.max(fm.state().position.z);
+        }
+        println!("dive {dive}: at most {:+.0} m, {:+.0} m at 8 s", top - ALT, fm.state().position.z - ALT);
+        dz.push((top - ALT, fm.state().position.z - ALT));
+    }
+    assert!(dz[0].0 > 100.0, "without the dive the old turn climbs: {:+.0} m", dz[0].0);
+    assert!(dz[1].0 < 20.0 && dz[1].1 < -50.0, "the dive goes down: {:?}", dz[1]);
 }

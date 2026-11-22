@@ -390,7 +390,7 @@ impl Flight {
         let ok = flat(at, lead.v.pos) <= SAME_AREA_M;
         if ok {
             let to = Vec3::new(at[0], at[1], self.members[k].v.pos[2]);
-            self.split = Some(Steer { to, g: TASK_G, speed: lead.v.speed.max(200.0), thr_max: 1.0 });
+            self.split = Some(Steer { to, g: TASK_G, speed: lead.v.speed.max(200.0), thr_max: 1.0, dive: false });
         }
         for m in self.members.iter().filter(|m| m.number >= 3 && m.ai && m.alive) {
             self.calls.push((now + m.skill.reaction_s, Call { from: m.number, id: if ok { "ack" } else { "unable" } }));
@@ -692,7 +692,7 @@ impl Flight {
                 let far = if m.rejoining { REJOIN.1 } else { REJOIN.0 };
                 if m.slot_error > far && m.airborne && !m.v.on_ground && !m.v.gear_down {
                     let speed = (ld.vel.length() as f32 + REJOIN.3).max(DEFEND_SPEED);
-                    rejoin = Some(Steer { to: s, g: REJOIN.2, speed, thr_max: 1.0 });
+                    rejoin = Some(Steer { to: s, g: REJOIN.2, speed, thr_max: 1.0, dive: false });
                 }
             }
             if !m.ai {
@@ -705,7 +705,7 @@ impl Flight {
             m.bingo_kg = RESERVE_KG + KG_PER_KM * home.map_or(0.0, |h| flat(h, m.v.pos) as f32 / 1000.0);
             m.engaging &= m.alive && !m.rtb && !m.released;
             let engage = self.target.filter(|_| m.engaging);
-            let engage = engage.map(|to| Steer { to, g: ENGAGE_G, speed: ENGAGE_SPEED, thr_max: 1.0 });
+            let engage = engage.map(|to| Steer { to, g: ENGAGE_G, speed: ENGAGE_SPEED, thr_max: 1.0, dive: false });
             let own = engage.or(if m.number == 3 { self.split } else { None });
             m.rejoining = own.is_none() && rejoin.is_some();
             m.task = own.or(rejoin);
@@ -814,7 +814,7 @@ pub(crate) fn defence(m: &Member, t: &Threat) -> (Steer, bool) {
     let g = if t.launch { DEFEND_G.1 } else { DEFEND_G.0 };
     // Flares decoy only with the afterburner out (player_weapons.gd's decoy rule).
     let thr_max = if t.ir { MILITARY } else { 1.0 };
-    (Steer { to, g, speed: DEFEND_SPEED, thr_max }, wrap(h - track) > 0.0)
+    (Steer { to, g, speed: DEFEND_SPEED, thr_max, dive: false }, wrap(h - track) > 0.0)
 }
 
 /// A threat on it (its RWR's lock, its MAW's missile): the call at once (a lock: "spike" from the air, "mud" from the

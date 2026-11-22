@@ -29,12 +29,12 @@ const CRANK_DEG: f64 = 50.0;
 const CRANK_SPEED: f32 = 250.0;
 /// A radar missile launched from farther than this is dragged (outrun), nearer it is notched (m).
 pub const DRAG_M: f64 = 20_000.0;
-/// The drag's turn away (g: the missile far, the energy kept; a 6.5 g turn climbs, the steer loop's 75° bank) and its
-/// speed (m/s).
+/// The drag's turn away (g: the missile far, the energy kept) and its speed (m/s).
 const DRAG_G: f32 = 4.0;
 const DRAG_SPEED: f32 = 400.0;
 /// The notch and the drag go down into the radar's look-down: the steer point this far below the jet (m; the steer
-/// loop's descent near 10° at 270 m/s), down to this height above the ground (m).
+/// loop's descent near 10° at 270 m/s, and its turn going down from 200 m below), down to this height above the ground
+/// (m).
 const DESCENT_M: f64 = 500.0;
 const FLOOR_M: f64 = 500.0;
 /// The CAP orbit: its radius (m); the turn (g) and speed (m/s, an endurance speed); the point it steers at, this far
@@ -69,6 +69,8 @@ pub struct Enemy {
     pub committed: bool,
     /// When the bogey came inside the commit range (its reaction runs from then).
     pub(crate) seen: Option<f64>,
+    /// When the bogey came inside its shot window (its reaction to the launch runs from then).
+    pub(crate) aimed: Option<f64>,
     /// What it flies: cap, intercept, crank, slot, beam, notch, drag, break (for tests and logs).
     pub phase: &'static str,
 }
@@ -176,18 +178,20 @@ fn evade(m: &mut Member) -> Status {
         "notch"
     };
     if phase != "beam" {
-        st.to = Vec3::new(st.to[0], st.to[1], down(m));
+        (st.to, st.dive) = (Vec3::new(st.to[0], st.to[1], down(m)), true);
     }
     steer(m, st, phase)
 }
 
 /// Its missile at the bogey (the host's launch, `Order::shoot`): committed, its radar holding the bogey, a missile
-/// left and none of its own flying at it, the bogey inside its window ([`in_window`]). A side effect: the tree goes on.
+/// left and none of its own flying at it, the bogey inside its window ([`in_window`]) for its reaction time (the
+/// launch's timing: the bogey goes deeper while it reacts). A side effect: the tree goes on.
 fn shoot(m: &mut Member) -> Status {
     let e = &m.enemy;
-    if let Some(b) = e.bogey.filter(|_| e.committed && e.contact && e.armed && !e.in_air)
-        && in_window(b.pos.distance(m.v.pos), e.dlz, m.skill.launch_range)
-    {
+    let ready = e.bogey.filter(|_| e.committed && e.contact && e.armed && !e.in_air);
+    if !ready.is_some_and(|b| in_window(b.pos.distance(m.v.pos), e.dlz, m.skill.launch_range)) {
+        m.enemy.aimed = None;
+    } else if m.now >= *m.enemy.aimed.get_or_insert(m.now) + m.skill.reaction_s {
         m.order.shoot = true;
     }
     Status::Failure
@@ -205,11 +209,12 @@ fn intercept(m: &mut Member) -> Status {
     if e.in_air && e.contact && m.skill.tactics >= 1 {
         let track = m.v.vel[0].atan2(m.v.vel[1]);
         let to = p + dir(crank_heading(p, track, b.pos)) * FAR;
-        let s = Steer { to: Vec3::new(to[0], to[1], p[2]), g: INTERCEPT.0, speed: CRANK_SPEED, thr_max: 1.0 };
+        let s =
+            Steer { to: Vec3::new(to[0], to[1], p[2]), g: INTERCEPT.0, speed: CRANK_SPEED, thr_max: 1.0, dive: false };
         return steer(m, s, "crank");
     }
     let to = collision(p, INTERCEPT.1 as f64, &b);
-    steer(m, Steer { to, g: INTERCEPT.0, speed: INTERCEPT.1, thr_max: 1.0 }, "intercept")
+    steer(m, Steer { to, g: INTERCEPT.0, speed: INTERCEPT.1, thr_max: 1.0, dive: false }, "intercept")
 }
 
 /// The commit: armed, a bogey inside [`COMMIT_M`] of the station for the lead's reaction time.
@@ -229,7 +234,7 @@ fn commit(m: &mut Member) -> Status {
 /// On station: the CAP orbit ([`cap_point`]).
 fn cap(m: &mut Member) -> Status {
     let to = cap_point(m.v.pos, m.enemy.station);
-    steer(m, Steer { to, g: CAP.0, speed: CAP.1, thr_max: 1.0 }, "cap")
+    steer(m, Steer { to, g: CAP.0, speed: CAP.1, thr_max: 1.0, dive: false }, "cap")
 }
 
 fn slot(m: &mut Member) -> Status {

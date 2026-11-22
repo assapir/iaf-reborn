@@ -245,15 +245,24 @@ pub const MODE_STEER: u8 = 0x21;
 const STEER_K: f64 = 0.3;
 const STEER_W: f64 = 0.15;
 const STEER_ZETA: f64 = 0.8;
+/// The bank the steer loop flies at most going down (deg): a 6.5 g turn at 85° has 0.56 g of lift upward, so it goes
+/// down while it turns (at the slot loop's 75° the full load factor lifted the jet: a notch's 6.5 g turn climbed at
+/// 39 m/s, 22 November 2026).
+const STEER_BANK_MAX: f64 = 85.0;
+/// The steer loop goes down (its bank and lift above) for a [`Steer::dive`] point this far below the jet (m): a
+/// defence's descent (`iaf_ai::fighter`'s 500 m), not a level point's small error.
+pub const STEER_DOWN_M: f64 = 200.0;
 
 /// The steer loop's order ([`MODE_STEER`], set by the host): fly toward `to` at its height, turning at up to `g`, at
-/// `speed` m/s with the throttle at most `thr_max` (0.74, military: the afterburner stays out).
+/// `speed` m/s with the throttle at most `thr_max` (0.74, military: the afterburner stays out). With `dive` (Modern
+/// IAF's enemy fighters' notch and drag only) a point more than [`STEER_DOWN_M`] below is flown as a turn going down.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Steer {
     pub to: Vec3,
     pub g: f32,
     pub speed: f32,
     pub thr_max: f32,
+    pub dive: bool,
 }
 
 /// The point of a slot `(forward, right, up)` m in the leader's horizontal frame: its track (its nose at rest), its
@@ -2203,7 +2212,7 @@ impl Autopilot {
         {
             let t = v.vel.try_normalize().unwrap_or(Vec3::NORTH);
             let lift = a * AVOID_A + Vec3::UP * G as f64;
-            let (y, x) = lift_stick(&l, lift - t * lift.dot(t));
+            let (y, x) = lift_stick(&l, lift - t * lift.dot(t), false);
             l.stick(y, x);
             period = period.min(0.1);
         }
@@ -2413,7 +2422,7 @@ impl Autopilot {
         let ec = eh * (SLOT_E_MAX / eh.length().max(SLOT_E_MAX)) + Vec3::UP * e[2].clamp(-SLOT_E_MAX, SLOT_E_MAX);
         let kd = 2.0 * SLOT_ZETA * SLOT_W;
         let lift = across(a_s + ec * (SLOT_W * SLOT_W) + de * kd + Vec3::UP * g);
-        let (mut y, mut x) = lift_stick(l, lift);
+        let (mut y, mut x) = lift_stick(l, lift, false);
         // Along the path: the slot's speed and the overtake; the PI throttle.
         let (lo, hi) = SLOT_OVERTAKE;
         let vt = (vs.dot(t) + (SLOT_K_ALONG * e.dot(t)).clamp(lo, hi) + a_s.dot(t) * SLOT_ANTICIPATE_S) as f32;
@@ -2460,7 +2469,7 @@ impl Autopilot {
         let a_turn = (STEER_K * v.speed as f64 * e).clamp(-a_max, a_max);
         let a_up = (STEER_W * STEER_W * d[2] - 2.0 * STEER_ZETA * STEER_W * v.vel[2]).clamp(-g, g);
         let lift = Vec3::UP.cross(th) * a_turn + Vec3::UP * (g + a_up);
-        let (mut y, mut x) = lift_stick(l, lift - t * lift.dot(t));
+        let (mut y, mut x) = lift_stick(l, lift - t * lift.dot(t), s.dive && d[2] < -STEER_DOWN_M);
         let mut thr = l.thr(s.speed).min(s.thr_max);
         l.watch_ground(&mut x, &mut y, &mut thr);
         l.gear(false);
@@ -2471,19 +2480,24 @@ impl Autopilot {
 }
 
 /// The stick (pitch, roll) that flies the lift `lift` (m/s², world, across the flight path): a bank about the flight
-/// path and a load factor on the wing's present lift axis (no pull while the jet is still rolled the wrong way; never
-/// a push), within the slot loop's bank and the jet's load factor.
-fn lift_stick(l: &Laws, lift: Vec3) -> (f32, f32) {
+/// path and a load factor on the wing's present lift axis (no pull while the jet is still rolled the wrong way; never a
+/// push), within the slot loop's bank and the jet's load factor. With `hold` (the steer loop's dive going down) within
+/// the steer loop's bank, and never more than 1 g of lift upward: a jet still rolling into a hard turn pulls only what
+/// holds its height, so the turn's lift does not climb it.
+fn lift_stick(l: &Laws, lift: Vec3, hold: bool) -> (f32, f32) {
     let v = l.v;
     let g = G as f64;
     let t = v.vel.try_normalize().unwrap_or(Vec3::NORTH);
     let right = t.cross(Vec3::UP).try_normalize().unwrap_or(Vec3::new(1.0, 0.0, 0.0));
     let up = right.cross(t);
     let (lr, lu) = (lift.dot(right), lift.dot(up));
-    let lim = SLOT_BANK_MAX.to_radians();
+    let lim = if hold { STEER_BANK_MAX } else { SLOT_BANK_MAX }.to_radians();
     let bank = lr.atan2(lu.max(0.2 * g)).clamp(-lim, lim) as f32;
     let roll = v.att.roll;
-    let n = ((lr as f32 * roll.sin() + lu as f32 * roll.cos()) / G).max(0.0);
+    let mut n = ((lr as f32 * roll.sin() + lu as f32 * roll.cos()) / G).max(0.0);
+    if hold && roll.cos() > 0.05 {
+        n = n.min(1.0 / roll.cos());
+    }
     let n_max = v.circuit.map_or(v.max_g, |c| c.0.min(v.max_g)).min(SLOT_G_MAX);
     (l.inv_g(n.min(n_max)), l.roll(bank))
 }
