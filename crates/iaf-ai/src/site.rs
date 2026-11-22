@@ -8,7 +8,8 @@
 //! caller (`shared/ai/air_defence.gd`) fires through the existing weapons; no mission uses a site yet.
 
 use crate::skill::Skill;
-use iaf_avionics::radar::{line_of_sight, reach, sigma};
+use iaf_avionics::ecm::jammed_reach;
+use iaf_avionics::radar::{line_of_sight, sigma};
 use iaf_flight::Vec3;
 use iaf_flight::airframe::Rcs;
 
@@ -224,6 +225,9 @@ pub struct Target {
     pub dlz: (f64, f64),
     /// The site's missiles flying at it.
     pub in_air: u32,
+    /// Its self-protection jammer on: the jammer's burn-through share (its definition's `jammer.burn_through`), 0 not
+    /// jamming (`ecm::jammed_reach`, docs/ai.md §15.6).
+    pub jam: f64,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -426,10 +430,11 @@ impl Site {
     }
 
     /// The radar at `from` with `reach_m` against `radar::REF_RCS` sees `t`: inside its range for the jet's
-    /// cross-section from there, and in sight over the terrain and the earth's curvature.
+    /// cross-section from there (inside its burn-through when it jams), and in sight over the terrain and the earth's
+    /// curvature.
     pub(crate) fn sees(from: Vec3, reach_m: f64, t: &Target, terrain: &dyn Fn(Vec3) -> Option<f64>) -> bool {
         let s = sigma(&t.rcs, t.nose, from - t.pos, t.bays_open, t.stores);
-        t.pos.distance(from) <= reach(reach_m, s) && visible(from, t.pos, terrain)
+        t.pos.distance(from) <= jammed_reach(reach_m, s, t.jam) && visible(from, t.pos, terrain)
     }
 
     /// This site's radar at `from` sees `t` (`sees`) clear of the ground's clutter: fast enough along the line of
@@ -470,7 +475,8 @@ impl Site {
             return f64::INFINITY;
         }
         let at = self.antenna(i, terrain);
-        let edge = t.dlz.0.min(reach(spec.track_reach, sigma(&t.rcs, t.nose, at - t.pos, t.bays_open, t.stores)));
+        let s = sigma(&t.rcs, t.nose, at - t.pos, t.bays_open, t.stores);
+        let edge = t.dlz.0.min(jammed_reach(spec.track_reach, s, t.jam));
         let d = t.pos.distance(self.pos);
         if d <= edge {
             return if d >= t.dlz.1 && visible(at, t.pos, terrain) { 0.0 } else { f64::INFINITY };

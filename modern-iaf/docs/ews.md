@@ -77,7 +77,9 @@ indicator") and the MLU's ALR-69[^mlu1]:
 - separation: a symbol within 0.45 of the scope's radius of one already placed (the top threat's diamond is 0.43
   wide) moves along its ring, counter-clockwise then clockwise in turn, until clear; TGT SEP held widens the gap to
   0.65 (inferred);
-- SYS TEST: one symbol of each class on the inner ring for 3 s (inferred).
+- SYS TEST: one symbol of each class on the inner ring for 3 s (inferred);
+- the own jammer on (the Sufa's, J; [../../docs/ai.md](../../docs/ai.md) §15.6): every named radar's label between
+  chevrons, ">6<" (the dash-34's "jamming (steady)", fig. 1-133; docs/real-mfd.md); the Barak has no jammer modelled.
 
 The THREAT knob scales the new-threat tone, the MSL knob the launch tone. On the modern F-16s the RWR hears an
 aircraft's radar from every side (`rwr.rs` `all_aspect`); the 1998 rule heard an aircraft only more than 120° off the
@@ -108,12 +110,13 @@ The F-35I's DAS gives the same warning, with the same class, on the TWD, the DAS
 
 ## 4. The CMDS (E4)
 
-A cockpit procedure only (avionics-plan.md §7: what a decoy does stays the game's decoy rule, docs/weapons.md §10).
+A cockpit procedure; what each decoy then does to a missile is each seeker's own chance (Modern IAF's,
+[../../docs/real-weapons.md](../../docs/real-weapons.md) §2.3).
 After the simulator manual the plan cites[^dcs]: MODE OFF / STBY / MAN / SEMI / AUTO / BYP; CMS forward runs the
 selected program in MAN, SEMI and AUTO (BYP one chaff and one flare); CMS aft stops it; CMS right gives consent in SEMI
 and enables AUTO. A missile launch heard by the RWR (RWR switch on; a radar-guided one, §2) or seen by the MAW (MWS switch on) makes SEMI ask
 for consent with the VMS's "Counter", and AUTO, enabled, run the program and say "Counter". The JMR switch's input
-starts nothing (the sim has no jammer cues for the CMDS). CH and FL power each dispenser; O1 and O2 move only (the sim
+starts nothing (the jammer runs on its own J key, [../../docs/ai.md](../../docs/ai.md) §15.6). CH and FL power each dispenser; O1 and O2 move only (the sim
 carries no other dispenser). JETT releases every flare, one each 0.1 s (inferred). Each release goes through the
 game's own dispense (`player_weapons.gd` `dispense`), so it is counted, refused with the gear down and limited by the
 decoy pool as the Drop chaff and Drop flares keys are (Ctrl + Z and Ctrl + X).
@@ -182,7 +185,8 @@ the DCS guide's CNI page). The real jet's crypto modes (4 and 5) are open.
 
 ## 9. Tests
 
-- Rust: `ews.rs` (symbols, priority, PRI / OPEN, separation, HANDOFF, SYS TEST, the MAW's direction, TTI and class),
+- Rust: `ews.rs` (symbols, priority, PRI / OPEN, separation, HANDOFF, SYS TEST, the jamming chevrons, the MAW's
+  direction, TTI and class),
   `cmds.rs` (a program's count at its interval, SEMI / AUTO, low / out, JETT), `aiff.rs` (a friend replies, a hostile
   does not; SCAN and LOS volumes), `datalink.rs` (members, AWACS tracks, the switch), `rwr.rs` (all-aspect, stable
   ids, `radar_only_hears_no_infrared_launch`), `betty.rs` (the CMDS calls).

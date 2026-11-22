@@ -1103,6 +1103,13 @@ func new_ai() -> bool:
 	return false
 
 
+## Ours: Modern IAF's countermeasures (modern-iaf/docs/ai-plan.md K8, K9): each seeker's own decoy chance
+## (docs/real-weapons.md §2.3) and the jammers' burn-through on the radars (docs/ai.md §15.6). The 1998 game keeps its
+## decoy rule and its jammer (docs/weapons.md §10); Modern IAF says yes.
+func modern_ew() -> bool:
+	return false
+
+
 ## The folders under assets/converted holding the aircraft descriptors (aircraft_model.gd: `<plane>/aircraft.json` and
 ## the index `aircraft.json`) and the menu missions (mission_runtime.gd: `missionlist.json` and the missions): the
 ## original's converted ones; Modern IAF's own (sim_settings.gd).

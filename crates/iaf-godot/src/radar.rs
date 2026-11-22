@@ -3,7 +3,7 @@
 //! `set_input` hands over the own jet, the units and the terrain before a call that can scan; `state()` and
 //! `events()` read the result back.
 
-use crate::world::{get, rcs, terrain, vec3, vector3};
+use crate::world::{get, num, rcs, terrain, vec3, vector3};
 use godot::prelude::*;
 use iaf_avionics::radar::{Contact, Event, Fcr, GroundFrame, Input, Mode, Own, Radar, Runway, Tms, Unit};
 
@@ -105,6 +105,7 @@ fn unit(u: &VarDictionary) -> Unit {
         type_code: get(u, "type").unwrap_or(-1),
         hostile: get(u, "hostile").unwrap_or(true),
         rcs: rcs(u, "rcs"),
+        jam: num(u, "jam").unwrap_or(0.0),
     }
 }
 
@@ -339,12 +340,14 @@ impl IafRadar {
     }
 
     /// Everything the cockpit and the weapons read: mode, last_aa, aa, off, damaged, bore_held, sel_key, sel_locked,
-    /// contacts, stt ({} none), locked ({} none: the HUD / gun / seeker target), has_lock, antenna, heading_shift,
-    /// designated, desig, exp, modes {mode: {max, nm, idx}}, range_index, range_m, scope_width.
+    /// contacts, strobes (ours: the jam strobes' azimuths off the nose, rad), stt ({} none), locked ({} none: the HUD
+    /// / gun / seeker target), has_lock, antenna, heading_shift, designated, desig, exp, modes {mode: {max, nm, idx}},
+    /// range_index, range_m, scope_width.
     #[func]
     fn state(&self) -> VarDictionary {
         let Some(r) = &self.radar else { return VarDictionary::new() };
         let contacts: VarArray = r.contacts().iter().map(|c| contact(r, c).to_variant()).collect();
+        let strobes: PackedFloat64Array = r.strobes().iter().copied().collect();
         let mut modes = VarDictionary::new();
         for (m, range) in r.ranges().iter() {
             modes.set(m as i64, &vdict! { "max" => range.max, "nm" => range.nm, "idx" => range.index });
@@ -394,6 +397,7 @@ impl IafRadar {
             "sel_key" => selection.map_or("", |s| s.key.as_str()),
             "sel_locked" => selection.is_some_and(|s| s.locked),
             "contacts" => &contacts,
+            "strobes" => &strobes,
             "stt" => &record(r, r.stt()),
             "locked" => &record(r, r.locked()),
             "has_lock" => r.has_lock(),

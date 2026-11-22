@@ -428,7 +428,7 @@ func _step_flight_ai(now: float) -> void:
 		var ent: Dictionary = m[1]
 		flight_ai.set_alive(m[0], int(ent.state) < 3 and not (ent.player and host.ejected))
 		var th := _threat_of(ent)
-		flight_ai.set_threat(m[0], th[0], th[1])
+		flight_ai.set_threat(m[0], th[0], th[1], th[2])
 	if not engage_ent.is_empty():
 		# Gone: destroyed, or out of the world (a drone at its end point, a unit removed).
 		var gone: bool = int(engage_ent.state) >= 3 or not runtime.entities.has(engage_ent.key)
@@ -461,6 +461,8 @@ func _step_flight_ai(now: float) -> void:
 		var d: int = flight_ai.decoy(m[0])
 		if d > 0 and not m[1].player:
 			combat.combat(m[1], "320" if d == 1 else "310", {})
+		if not m[1].player:
+			_set_jam(m[1], flight_ai.jams(m[0]))
 
 
 ## Ours (Modern IAF, the radio menu's "engage my target", modern-iaf/docs/ai-plan.md F5): the flight's jets `to` (0
@@ -485,11 +487,12 @@ func engage(to: int, t: Dictionary) -> bool:
 
 ## The threat jet `ent`'s RWR and MAW show IafAi: the nearest missile flying at it (3 radar, 4 infrared), else the
 ## nearest live hostile radar locked on it (1 from the air, 2 from the ground; combat.gd on_lock), else none; [kind,
-## scene position]. A missile is infrared when the flares decoy it (player_weapons.gd DECOY_KINDS).
+## scene position, the missile's scene velocity (zero for a lock)]. A missile is infrared when the flares decoy it
+## (player_weapons.gd DECOY_KINDS).
 func _threat_of(ent: Dictionary) -> Array:
 	var me := world_of(ent)
 	var ir: Array = Combat.PlayerWeapons.DECOY_KINDS[Combat.Stores.FLARE]
-	var best := [0, Vector3.ZERO]
+	var best := [0, Vector3.ZERO, Vector3.ZERO]
 	var d := INF
 	var w = host.get("weapons")
 	if w != null:
@@ -499,7 +502,7 @@ func _threat_of(ent: Dictionary) -> Array:
 			var p: Vector3 = mis.position(runtime.now)
 			if p.distance_to(me) < d:
 				d = p.distance_to(me)
-				best = [4 if int(mis.weapon.get("type", 0)) in ir else 3, p]
+				best = [4 if int(mis.weapon.get("type", 0)) in ir else 3, p, mis.velocity(runtime.now)]
 	if best[0] == 0:
 		for o in ent.get("locked_by", {}).values():
 			# (A friendly radar's lock, the player's included, is no threat; a dead unit never sends its unlock.)
@@ -508,9 +511,10 @@ func _threat_of(ent: Dictionary) -> Array:
 			var p := world_of(o)
 			if p.distance_to(me) < d:
 				d = p.distance_to(me)
-				best = [1 if o.get("airborne_class", false) else 2, p]
+				best = [1 if o.get("airborne_class", false) else 2, p, Vector3.ZERO]
 	if best[0] != 0:
 		best[1] = host.world_to_scene(best[1])
+		best[2] = Terrain.dir_to_scene(best[2])
 	return best
 
 
@@ -541,6 +545,7 @@ func _step_enemy(f: Dictionary, now: float) -> void:
 					near = d
 					t = j.ent
 	f.bogey = t
+	f.ai.set_bogey_jam(_jam_of(t))
 	var tw: Vector3 = world_of(t) if not t.is_empty() else Vector3.ZERO
 	var tv: Vector3 = combat._velocity_of(t) if not t.is_empty() else Vector3.ZERO
 	f.ai.set_bogey(
@@ -556,7 +561,7 @@ func _step_enemy(f: Dictionary, now: float) -> void:
 		var ent: Dictionary = m[1]
 		f.ai.set_alive(m[0], int(ent.state) < 3)
 		var th := _threat_of(ent)
-		f.ai.set_threat(m[0], th[0], th[1])
+		f.ai.set_threat(m[0], th[0], th[1], th[2])
 		var u = combat.units.get(ent.key)
 		var env: Array = _pick_aa(u, t) if u != null and not t.is_empty() else [0.0, 0.0, false]
 		# Armed: a missile left, or the gun's rounds (the dogfight, docs/ai.md §18.2).
@@ -584,6 +589,7 @@ func _step_enemy(f: Dictionary, now: float) -> void:
 		var d: int = f.ai.decoy(m[0]) if alive else 0
 		if d > 0:
 			combat.combat(ent, "320" if d == 1 else "310", {})
+		_set_jam(ent, alive and f.ai.jams(m[0]))
 		# Its radar's lock (the target's RWR) while it holds the bogey.
 		var key: String = String(t.get("key", "")) if alive and f.ai.state(m[0]).get("contact", false) else ""
 		var had: String = f.locks.get(m[0], "")
@@ -593,6 +599,22 @@ func _step_enemy(f: Dictionary, now: float) -> void:
 			if key != "":
 				combat.on_lock(ent, t, true)
 			f.locks[m[0]] = key
+
+
+## Ours (Modern IAF, docs/ai.md §15.6): an AI jet's jammer on or off by its tree (IafAi.jams), when its definition has
+## one (`jammer.burn_through`); the entity's `jam` is the share the radars read (air_defence.gd jets, radar.gd).
+func _set_jam(ent: Dictionary, on: bool) -> void:
+	var share := float(Settings.airframe(int(ent.get("type_code", -1))).get("jammer", {}).get("burn_through", 0.0))
+	ent["jam"] = share if on and Settings.modern_ew() else 0.0
+
+
+## The jammer share of a jet `t` ({} none): the player's from its jammer switch, an AI jet's from its entity.
+func _jam_of(t: Dictionary) -> float:
+	if t.is_empty():
+		return 0.0
+	return (
+		host.weapons.jam_share() if t.get("player", false) and host.get("weapons") != null else float(t.get("jam", 0.0))
+	)
 
 
 ## The air-to-air missile an enemy jet `u` shoots at `t` (combat.gd's stations and DLZ): of those it has left, the one

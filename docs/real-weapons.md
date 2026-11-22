@@ -576,6 +576,39 @@ The physical missile carries its own seeker (`missile.rs` `Missile::set_seeker`,
 - **Inferred:** the cones as the seeker's limits in flight; the AIM-120's real active range and its seeker's
   acquisition basket are not published (open).
 
+### 2.3 Decoys against the seeker (Modern IAF's, 2026-11-22)
+
+In Modern IAF (`Settings.modern_ew`; modern-iaf/docs/ai-plan.md K8) a flare or a chaff bundle acts on each missile's
+own seeker in place of the 1998 decoy rule (docs/weapons.md §10, which the 1998 game keeps). At the release each
+missile flying at the releasing jet rolls on its own chance (`ecm.rs` `decoy_chance`; no first-failure stop), and a
+missile taken chases the decoy:
+
+- **The kind:** flares take only infrared seekers (570, 580, 620), chaff only radar seekers (600, 610, 630).
+- **The seeker's rejection** (the record's `_decoyReject`, 0 to 1): newer infrared seekers tell flares from the jet by
+  their spectrum and their path[^w-flare], so a flare's chance is 0.5 · (1 − rejection). A Doppler radar seeker tells
+  the slowing chaff from a jet moving along its line of sight; a jet on the beam has the chaff's Doppler[^w-chaff], so
+  chaff's chance is 0.4 · (1 − rejection · (1 − beam)), the beam 1 − |cos| of the angle between the jet's velocity
+  and the line of sight.
+- **Timing:** full inside 6 s of the missile's arrival (its time to go at the closure); earlier, 6 s / time to go (a
+  decoy burns 4 s: one released early has burnt out while the missile is still far). An opening missile is not taken.
+- **The jet:** above 4 g every chance × 1.5 (the 1998 rule's threshold); a flare beside a lit afterburner × 0.25 (the
+  1998 rule: none).
+
+| missile | seeker | rejection | basis |
+|---|---|---|---|
+| AIM-9M | infrared | 0.5 | "better background rejection and infrared countermeasures discrimination" over the AIM-9L[^2] |
+| AIM-9X | imaging infrared | 0.85 | the imaging seeker and its reprogrammable IRCCM[^2] |
+| Python 5 | electro-optical and imaging infrared | 0.85 | as the AIM-9X[^3] |
+| R-73 | cooled infrared (1984) | 0.3 | no counter-countermeasure claim found |
+| AIM-120 (also the SAMs' stand-in) | active pulse-Doppler radar | 0.8 | the Doppler rule above |
+| R-27R | semi-active radar (1987) | 0.5 | an older Doppler seeker |
+| any other | — | 0 | — |
+
+Every figure is inferred (no seeker's decoy rejection is published); the sources give only what each seeker adds.
+What a flare and chaff then give, head on 2 km out: an old IR seeker 0.5, the AIM-9M 0.25, the AIM-9X 0.075; chaff
+against the AIM-120 0.4 on the beam, 0.08 from a jet flying straight away. Tests: `ecm.rs` (`rejection_by_generation`,
+`afterburner_and_g`, `chaff_works_on_the_beam`, `early_decoys_burn_out`), `modern-iaf/tests/test_countermeasures.gd`.
+
 ## 3. Validation
 | test | checks |
 |---|---|
@@ -778,3 +811,5 @@ The physical missile carries its own seeker (`missile.rs` `Missile::set_seeker`,
 [^p5bro]: Rafael, "Python-5" brochure, as a document-sharing copy shows it (the Python 5 keeps "Python-4s unique
     aerodynamic airframe, INS, powerful rocket motor, warhead and proximity fuze"; second-hand: a search engine's quote),
     https://www.scribd.com/document/230260894/Python-5-Rafael
+[^w-flare]: Wikipedia, "Flare (countermeasure)" (newer IR seekers' "sophisticated on-board electronics and secondary electro-optical sensors help discriminate between flares and targets"; spectral and trajectory discrimination, "the so-called CCM") (read 2026-11-22): https://en.wikipedia.org/wiki/Flare_(countermeasure)
+[^w-chaff]: Wikipedia, "Chaff (countermeasure)" ("Modern radars use the Doppler effect to measure the line-of-sight velocity of objects, and can thus distinguish chaff from an aircraft"; a jet moving across the beam is "more difficult to separate from the effectively stationary chaff") (read 2026-11-22): https://en.wikipedia.org/wiki/Chaff_(countermeasure)

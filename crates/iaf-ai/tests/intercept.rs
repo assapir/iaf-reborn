@@ -247,7 +247,13 @@ fn defence_by_the_tactics() {
     // A radar missile launched at the lead: Low beams at its height, Medium notches down into the look-down, High drags
     // one from far and notches one near; an infrared missile is broken into; a lock alone does not stop the attack.
     let p = Vec3::new(0.0, 0.0, ALT);
-    let radar = |km: f64| Threat { pos: p + Vec3::new(0.0, km * 1000.0, 0.0), launch: true, ir: false, ground: false };
+    let radar = |km: f64| Threat {
+        pos: p + Vec3::new(0.0, km * 1000.0, 0.0),
+        vel: Vec3::ZERO,
+        launch: true,
+        ir: false,
+        ground: false,
+    };
     let cases = [
         (Skill::LOW, radar(30.0), "beam"),
         (Skill::MEDIUM, radar(30.0), "notch"),
@@ -354,3 +360,21 @@ fn fighter_laws_only_when_asked() {
 /// The steer loop's highest point in its first 8 s before the fighter's laws (m above the start; 9bc342c0's
 /// `dive_only_when_asked` without the dive, and the same turn to a level point).
 const OLD_CLIMB: [f64; 2] = [252.086, 187.486];
+
+#[test]
+fn a_jamming_bogey_is_held_inside_the_burn_through() {
+    // A bogey head on from 60 km, the ground's vector on: clear, the lead's radar holds it at once (inside 74 km);
+    // jamming at 0.3, only inside 74 · 0.3 = 22.2 km (docs/ai.md §15.6). The committed lead jams too.
+    let p = Vec3::new(0.0, 0.0, ALT);
+    for (jam, near) in [(0.0, 60_000.0), (0.3, 22_200.0)] {
+        let Some(mut w) = Pair::new(p, p, Skill::HIGH) else { return };
+        w.bogey = Some(head_on(p, 60.0));
+        w.flight.bogey_jamming(jam);
+        w.until(150.0, &|w| w.flight.members[0].enemy.contact).expect("contact");
+        let d = w.bogey.unwrap().pos.distance(w.pos(0));
+        println!("jam {jam}: contact at {d:.0} m");
+        assert!(d <= near && d > near - 8_000.0, "{d:.0} m");
+        w.run(1.0);
+        assert!(w.flight.jams(1), "committed: its jammer on");
+    }
+}

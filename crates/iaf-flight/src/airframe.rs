@@ -64,6 +64,9 @@ pub struct Airframe {
     pub ews: Option<Ews>,
     /// The radar cross-section an enemy radar sees (`iaf_ai::site`); a jet without one takes `site::FIGHTER`.
     pub rcs: Option<Rcs>,
+    /// Modern IAF's self-protection jammer: its burn-through on the enemy's radars (`iaf_avionics::ecm`, docs/ai.md
+    /// §15.6); a jet without one jams no radar.
+    pub jammer: Option<Jammer>,
     pub guide: Option<String>,
     /// Each value's source, by field (`"radar.km"`); read by no code.
     pub notes: Option<BTreeMap<String, String>>,
@@ -125,6 +128,13 @@ pub struct Fcr {
 pub struct GearLimit {
     pub kcas: f64,
     pub mach: Option<f64>,
+}
+
+/// `jammer`: the burn-through share of a radar's reach against the reference 5 m² (`iaf_avionics::ecm::burn_through`).
+#[derive(Clone, Copy, Debug, PartialEq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct Jammer {
+    pub burn_through: f64,
 }
 
 /// `rcs`: the radar cross-section (m²) seen from ahead, from the side and from behind; what the open weapon bays add;
@@ -392,6 +402,7 @@ mod tests {
     #[test]
     fn the_sufa_is_the_f16_base_with_its_own_values() {
         let s = of_type(100, Switches { f16: "sufa", f15: "baz" }).unwrap();
+        assert_eq!(s.jammer.map(|j| j.burn_through), Some(0.3), "the SPS-3000 in its spine");
         assert_eq!(s.original_model.as_deref(), Some("f16_h.gltf"), "from the base");
         assert_eq!((s.fm.as_deref(), s.hud_3d.as_deref()), (Some("F-16I"), Some("HUD_wide")));
         assert_eq!(s.radar.as_ref().and_then(|r| r.km), Some(104.0));

@@ -25,7 +25,8 @@
     "_dragScale": 1.217,
     "_maxTime": 24.7,
     "_maxG": 40.0,
-    "_navConstant": 4.0
+    "_navConstant": 4.0,
+    "_decoyReject": 0.5
   },
   "sources": {
     "kg": "ds-aim9",
@@ -47,7 +48,8 @@
     "motion._dragScale": "inferred",
     "motion._maxTime": "inferred, f16net",
     "motion._maxG": "inferred",
-    "motion._navConstant": "inferred"
+    "motion._navConstant": "inferred",
+    "motion._decoyReject": "inferred, w-aim9, w-flare"
   },
   "notes": {
     "model": "the original's file name, which Models: Detailed draws as our AIM-9 (shared/util/gltf.gd STORES: shared/extra/models/stores/aim9.glb); the sim has no install, so nothing else draws it",
@@ -70,12 +72,14 @@
     "motion._propellantKg": "the motor's impulse (12,810 N x 5.0 s) at 240 s specific impulse, a reduced-smoke propellant's (inferred)",
     "motion._diameterM": "the Sidewinder's 0.127 m body",
     "motion._maxTime": "the flight's end, fitted so the missile flies 17.7 km (f16net) at a still target 6,000 m up from Mach 0.9 (docs/real-weapons.md §2.1)",
-    "motion._maxG": "no public figure: 40 g, one forum's figure for an AIM-9 (inferred, weak)"
+    "motion._maxG": "no public figure: 40 g, one forum's figure for an AIM-9 (inferred, weak)",
+    "motion._decoyReject": "0.5 (inferred): the AIM-9M added \"better background rejection and infrared countermeasures discrimination\" over the AIM-9L (w-aim9); the share is ours (ecm.rs decoy_chance, docs/real-weapons.md 2.3)"
   },
   "footnotes": {
     "ds-aim9": "designation-systems.net, \"Raytheon AIM-9 Sidewinder\" (AIM-9L / M 86 kg, Mach 2.5+; AIM-9A / B effective kill radius about 9 m), https://www.designation-systems.net/dusrm/m-9.html",
     "f16net": "F-16.net, \"AIM-9 Sidewinder\" (AIM-9L / M / P 17.7 km), https://www.f-16.net/f-16_armament_article1.html",
     "w-aim9": "Wikipedia, \"AIM-9 Sidewinder\" (0.127 m body diameter), https://en.wikipedia.org/wiki/AIM-9_Sidewinder",
-    "navy-mk36": "US Navy flight manual P-825 (navyflightmanuals.tpub.com/P-825/Fuse-105.htm), as a search engine quotes it: the Mk 36 rocket motor gives 2,880 lb of thrust for a 5.0 s burn (second-hand; the site refuses automated access)"
+    "navy-mk36": "US Navy flight manual P-825 (navyflightmanuals.tpub.com/P-825/Fuse-105.htm), as a search engine quotes it: the Mk 36 rocket motor gives 2,880 lb of thrust for a 5.0 s burn (second-hand; the site refuses automated access)",
+    "w-flare": "Wikipedia, \"Flare (countermeasure)\" (newer IR seekers' electronics and secondary electro-optical sensors \"help discriminate between flares and targets\"; spectral and trajectory discrimination, \"the so-called CCM\") (read 2026-11-22), https://en.wikipedia.org/wiki/Flare_(countermeasure)"
   }
 }

@@ -93,11 +93,13 @@ impl IafAi {
     }
 
     /// The threat jet `number`'s RWR and MAW show this frame, at the scene position `at`: `kind` 0 none, 1 a radar
-    /// locked on it from the air, 2 from the ground, 3 a radar missile flying at it, 4 an infrared one.
+    /// locked on it from the air, 2 from the ground, 3 a radar missile flying at it, 4 an infrared one; `vel` the
+    /// missile's scene velocity (zero for a lock).
     #[func]
-    fn set_threat(&mut self, number: i64, kind: i64, at: Vector3) {
+    fn set_threat(&mut self, number: i64, kind: i64, at: Vector3, vel: Vector3) {
         let t = (1..=4).contains(&kind).then(|| Threat {
             pos: to_enu(at),
+            vel: to_enu(vel),
             launch: kind >= 3,
             ir: kind == 4,
             ground: kind == 2,
@@ -146,6 +148,18 @@ impl IafAi {
     #[func]
     fn awacs(&mut self, now: f64, bearing: f64, miles: f64, enemy: bool) -> i64 {
         self.flight.awacs(now, bearing, miles, enemy) as i64
+    }
+
+    /// Jet `number` has its jammer on this frame (after `step`; `Flight::jams`), when its definition has one.
+    #[func]
+    fn jams(&self, number: i64) -> bool {
+        self.flight.jams(number.clamp(0, 255) as u8)
+    }
+
+    /// The bogey's jammer this frame: its burn-through share, 0 not jamming (`Flight::bogey_jamming`).
+    #[func]
+    fn set_bogey_jam(&mut self, jam: f64) {
+        self.flight.bogey_jamming(jam);
     }
 
     /// The decoy jet `number` releases this frame (after `step`): 0 none, 1 chaff, 2 flares (combat.gd's release, one
@@ -257,7 +271,7 @@ pub struct IafSite {
 }
 
 /// A target dictionary: {id, pos, vel, nose (world), rcs (an airframe's `rcs`, else a fighter's), bays, stores,
-/// cued, dlz (Vector2: max, min m), in_air}.
+/// cued, dlz (Vector2: max, min m), in_air, jam (its jammer's burn-through share, 0 not jamming)}.
 fn target(d: &VarDictionary) -> Target {
     let dlz: Vector2 = get(d, "dlz").unwrap_or_default();
     Target {
@@ -271,6 +285,7 @@ fn target(d: &VarDictionary) -> Target {
         cued: get(d, "cued").unwrap_or(false),
         dlz: (dlz.x.into(), dlz.y.into()),
         in_air: num(d, "in_air").unwrap_or(0.0) as u32,
+        jam: num(d, "jam").unwrap_or(0.0),
     }
 }
 

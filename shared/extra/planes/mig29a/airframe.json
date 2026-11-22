@@ -14,6 +14,7 @@
     "sixdof": "always on the 6-DoF: it has no original-model data",
     "engines": "two RD-33s (Wikipedia, \"Mikoyan MiG-29\")",
     "gun_rounds": "GSh-30-1, 150 rounds (Wikipedia, \"Mikoyan MiG-29\")",
-    "gun": "GSh-30-1: 1,500-1,800 rounds a minute (the high end), 860 m/s (Wikipedia, \"Gryazev-Shipunov GSh-30-1\")"
+    "gun": "GSh-30-1: 1,500-1,800 rounds a minute (the high end), 860 m/s (Wikipedia, \"Gryazev-Shipunov GSh-30-1\")",
+    "jammer": "none: the 9.12 has no self-protection jammer; the L-203BE Gardeniya-1 came with the 9.13 in its enlarged spine (Wikipedia, \"Mikoyan MiG-29\": \"the installation of the L-203BE Gardenyia-1 jammer that was lacking on the initial 9.12 version\"). A MiG-29 9.13 or MiG-29S is a definition with `jammer` (docs/ai.md §15.6)"
   }
 }

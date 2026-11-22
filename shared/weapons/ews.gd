@@ -127,7 +127,7 @@ func link_on() -> bool:
 func update() -> void:
 	var o: Dictionary = w.own()
 	var own_xy := Vector2(o.pos.x, o.pos.y)
-	var symbols: Array = _e.threats(w.rwr.display(), own_xy, o.yaw, w.now)
+	var symbols: Array = _e.threats(w.rwr.display(), own_xy, o.yaw, w.now, w.jam_share() > 0.0)
 	if _e.take_new_guy() or _e.take_handoff():
 		_play("SFX_WARNING", "WRN_NEW_GUY", w.rwr.threat_volume)
 	# The missiles launched at the jet: the RWR's launch for the CMDS (a radar-guided one, heard), the MAW's warnings

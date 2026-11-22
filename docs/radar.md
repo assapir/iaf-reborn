@@ -161,6 +161,13 @@ Damage cases 0xf / 0x13 / 0x15 (`FUN_004adb20`) turn the radar OFF, and every la
 - **ECM (electronic countermeasures):** the player's jammer is built (docs/weapons.md §10). AI units carry no ECM,
   so the launch q − rand of `_launch_target` never applies. The AI's scans and launches react to the player's jammer
   (docs/ai.md §13).
+- **Jamming in Modern IAF** (docs/ai.md §15.6; `Unit::jam`, `ecm::jammed_reach`): a unit whose entity has `jam` (an
+  AI jet's jammer on) is seen only inside its burn-through, in every mode's detection and in STT's and SAM's track (a
+  lock breaks past it). Past it but inside the range it would be seen at, the search shows its jam strobe: its
+  azimuth off the nose (`Radar::strobes`), drawn on the F-16's FCR as a dashed line from the bottom to the top of the
+  B-scope (`f16_mfd.gd`; the F-15's VSD's angle-only jam strobe, docs/real-mfd.md, inferred for the F-16), and on the
+  F-35's PCD SRCH as a yellow dashed spoke from the apex (`pcd_formats.gd`, inferred). The 1998 game's units never
+  jam (only Modern IAF sets `jam`).
 - **The designated point** (+0x58 / +0x5c / +0x60, written by `FUN_004ade90`) is read by the MAP page's cross and
   the HUD's TD box, as in the original:
   - the flag +0x50 goes to state+0xa1c (`FUN_00445f10`), which the MFD cross (`FUN_00535ea0`) and the HUD read;

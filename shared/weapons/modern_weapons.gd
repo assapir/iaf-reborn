@@ -42,7 +42,9 @@ const AGILE := {"_absAcceleration": 600.0, "_timeConstOrientation": 0.05, "_offB
 ## The physical missiles' motor, body and guidance (missile.rs Physics; values and sources docs/real-weapons.md §2.1).
 ## The AIM-9X keeps the AIM-9M's Mk 36 motor and adds jet-vane steering (thrust-vector control) for 60 g; its range is
 ## the AIM-9M's (the flight time fitted for 17.7 km). The Python 5: its motor unpublished, the propellant set for its
-## Mach 4, the flight time for its 20 km (inferred).
+## Mach 4, the flight time for its 20 km (inferred). The decoy rejection (Modern IAF's, ecm.rs decoy_chance; read only
+## with Settings.modern_ew): both imaging seekers 0.85 (inferred: the AIM-9X's imaging seeker and reprogrammable IRCCM,
+## the Python 5's dual electro-optical and imaging IR seeker; docs/real-weapons.md §2.3).
 const AIM9X_PHYS := {
 	"_motorThrust": 12810.0,
 	"_motorBurn": 5.0,
@@ -53,7 +55,8 @@ const AIM9X_PHYS := {
 	"_maxTime": 24.7,
 	"_maxG": 60.0,
 	"_navConstant": 4.0,
-	"_thrustVector": 1.0
+	"_thrustVector": 1.0,
+	"_decoyReject": 0.85
 }
 const PYTHON5_PHYS := {
 	"_motorThrust": 16671.0,
@@ -65,7 +68,8 @@ const PYTHON5_PHYS := {
 	"_maxTime": 31.1,
 	"_maxG": 60.0,
 	"_navConstant": 4.0,
-	"_thrustVector": 0.0
+	"_thrustVector": 0.0,
+	"_decoyReject": 0.85
 }
 
 ## id (above every bdb's), name (as the Arming screen shows it: 6 characters at most, as the original's weapon names,

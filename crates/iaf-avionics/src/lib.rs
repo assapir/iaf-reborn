@@ -8,6 +8,7 @@ pub mod city_lights;
 pub mod cmds;
 pub mod datalink;
 pub mod delivery;
+pub mod ecm;
 pub mod eo;
 pub mod ews;
 pub mod f16_mfd;

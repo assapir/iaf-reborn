@@ -437,6 +437,11 @@ func radar(r: Rect2) -> void:
 			dashed_circle(p, 5.2, WHITE, THIN, 12)
 		if not ground:
 			_msl_mark(p, deg_to_rad(float(ct.get("heading", 0.0))) - h, String(ct.key))
+	# Ours, Modern IAF: a jammer beyond its burn-through, a dashed spoke at its azimuth (docs/radar.md §8; inferred).
+	if not ground:
+		for az: float in rd.get("strobes", PackedFloat64Array()):
+			if absf(az + shift) <= half:
+				dashed_line(apex, apex + Vector2(sin(az + shift), -cos(az + shift)) * rad, YELLOW, THIN, 2.0)
 	# The mode (the real FCR's names, inferred for the APG-81: its own are not public) and the scan.
 	var mode_text: String = MODE_NAMES[mode]
 	if not real.is_empty():

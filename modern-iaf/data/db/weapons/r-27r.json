@@ -20,7 +20,8 @@
     "_timeAcceleration": 52.2,
     "_timeConstVel": 0.0,
     "_timeDecceleration": 0.0,
-    "_timeConstOrientation": 0.5
+    "_timeConstOrientation": 0.5,
+    "_decoyReject": 0.5
   },
   "sources": {
     "drag": "open",
@@ -37,7 +38,8 @@
     "motion._timeAcceleration": "inferred, w-r27",
     "motion._timeConstVel": "inferred",
     "motion._timeDecceleration": "inferred",
-    "motion._timeConstOrientation": "inferred"
+    "motion._timeConstOrientation": "inferred",
+    "motion._decoyReject": "inferred, w-chaff"
   },
   "notes": {
     "drag": "carriage drag: none until a source gives one",
@@ -51,10 +53,12 @@
     "motion._spiralAccelBeta": "top speed a / beta: 120 / the top speed",
     "motion.burn": "the burn with which the motion flies the published range from 250 m/s before its flight ends 6 s after the burn (missile.rs real_burn, the rule real_weapons.gd gives the AIM-9M)",
     "motion._timeAcceleration": "the burn, so the original's reading of the section flies as long",
-    "motion._timeConstOrientation": "flies straight 0.5 s after launch (the AIM-9M record's)"
+    "motion._timeConstOrientation": "flies straight 0.5 s after launch (the AIM-9M record's)",
+    "motion._decoyReject": "0.5 (inferred): a semi-active seeker of 1987 on the launcher's illumination; its Doppler rejection taken lower than the AIM-120's 0.8 (w-chaff; docs/real-weapons.md 2.3)"
   },
   "footnotes": {
     "w-r27": "Wikipedia, \"R-27 (air-to-air missile)\" (253 kg, 39 kg warhead; R-27R SARH 73 km; launch below 5 g; Mach 4.5–5.8 \"citation needed\") (read 2026-11-03), https://en.wikipedia.org/wiki/R-27_(air-to-air_missile)",
-    "ds-aim9": "designation-systems.net, \"Raytheon AIM-9 Sidewinder\" (AIM-9A / B effective kill radius about 9 m), https://www.designation-systems.net/dusrm/m-9.html"
+    "ds-aim9": "designation-systems.net, \"Raytheon AIM-9 Sidewinder\" (AIM-9A / B effective kill radius about 9 m), https://www.designation-systems.net/dusrm/m-9.html",
+    "w-chaff": "Wikipedia, \"Chaff (countermeasure)\" (Doppler radars tell the slowing chaff from a jet; on the beam the jet is \"more difficult to separate from the effectively stationary chaff\") (read 2026-11-22), https://en.wikipedia.org/wiki/Chaff_(countermeasure)"
   }
 }

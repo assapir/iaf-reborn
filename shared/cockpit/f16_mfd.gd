@@ -378,6 +378,14 @@ func fcr() -> void:
 				lock_p = p
 			_fcr_msl_mark(p, fw, rt, String(ct.key), col)
 			centred(p.x, p.y + 9.0, "%02d" % int(float(ct.get("alt", 0.0)) * 0.0032808398), col, SMALL)
+	# Ours, Modern IAF: a jammer beyond its burn-through, an angle-only strobe from the bottom to the top at its
+	# azimuth (docs/radar.md §8; the F-15's VSD's jam strobe, docs/real-mfd.md; the F-16's own is open, inferred).
+	if not expanded and not blank:
+		for az: float in r.get("strobes", PackedFloat64Array()):
+			var sx: float = 66.0 + rad_to_deg(az) * 112.0 / 120.0
+			if sx > 8 and sx < 124:
+				for y0 in range(12, 114, 6):
+					line(Vector2(sx, y0), Vector2(sx, y0 + 3), c("track"), THIN)
 	if not vsr and not expanded:
 		_steerpoint_bscope(nm, r)
 		var own: Vector3 = cockpit.ews.get("own", Vector3.ZERO)

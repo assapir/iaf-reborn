@@ -2846,6 +2846,14 @@ func ecm_on() -> bool:
 	return host.cockpit != null and bool(host.cockpit.indicators[6])
 
 
+## Ours, Modern IAF (Settings.modern_ew; docs/ai.md §15.6): the jammer's burn-through share on the enemy's radars while
+## it is on, from the jet's definition (`jammer.burn_through`: the Sufa's SPS-3000); 0 off or without one.
+func jam_share() -> float:
+	if not Settings.modern_ew() or not ecm_on():
+		return 0.0
+	return float(Settings.airframe(jet_type).get("jammer", {}).get("burn_through", 0.0))
+
+
 ## An emitter for the RWR: {pos, klass, type, state} of a mission unit, {} when gone.
 func _rwr_unit(key: String) -> Dictionary:
 	var rt = host.runtime if host != null else null
@@ -2893,6 +2901,7 @@ func radar_snapshot() -> Dictionary:
 		"shift": radar.heading_shift,
 		"antenna": radar.antenna,
 		"contacts": radar.contacts,
+		"strobes": radar.strobes(),
 		"lock": lk,
 		"closure": closure,
 		"has_lock": not lk.is_empty(),
@@ -2989,7 +2998,7 @@ func release_decoy(type: int, p0: Vector3, o: Dictionary, key: String, ab: bool,
 	_decoy_by_id[_decoy_id] = dc
 	var ost := "OST_CHAFF" if type == Stores.CHAFF else "OST_FLARE"
 	_place_sound(host.sounds.play("SFX_AIRCRAFT_FIRED_WEAPON", ost), p0)
-	_decoy_effect(type, _decoy_id, key, ab, g_load)
+	_decoy_effect(type, _decoy_id, key, ab, g_load, o)
 	return true
 
 
@@ -3002,10 +3011,23 @@ func release_decoy(type: int, p0: Vector3, o: Dictionary, key: String, ab: bool,
 const DECOY_KINDS := {540: [600, 610, 630], 550: [570, 580, 620]}
 
 
-func _decoy_effect(type: int, dc_id: int, key: String, ab: bool, g_load: float) -> void:
+## Ours, Modern IAF (Settings.modern_ew; docs/real-weapons.md §2.3): each missile of either kind rolls on its own
+## seeker's chance (ecm.rs decoy_chance: the kind, its record's rejection, the beam, the time to go, the afterburner,
+## the g), no first-failure stop; `o` the releasing jet's pose.
+func _decoy_effect(type: int, dc_id: int, key: String, ab: bool, g_load: float, o: Dictionary) -> void:
 	if key == String(_me().get("key", "")) and _flag(14):
 		return
 	var list := missiles.filter(func(m): return String(m.target_key) == key)
+	if Settings.modern_ew():
+		for mis in list:
+			var t := int(mis.weapon.get("type", 0))
+			if mis.ended or not (t in DECOY_KINDS[Stores.FLARE] or t in DECOY_KINDS[Stores.CHAFF]):
+				continue
+			var ir: bool = t in DECOY_KINDS[Stores.FLARE]
+			var tgt := {"pos": o.pos, "vel": o.vel, "ab": ab, "g": g_load}
+			if randf() < mis.decoy_chance(type == Stores.FLARE, ir, now, tgt):
+				mis.retarget("decoy:%d" % dc_id)
+		return
 	list.sort_custom(func(a, b): return float(a.get_meta("dist", 0.0)) < float(b.get_meta("dist", 0.0)))
 	for mis in list:
 		if not int(mis.weapon.get("type", 0)) in DECOY_KINDS[type]:
@@ -3031,7 +3053,8 @@ func ecm_key() -> void:
 	if not ecm_fitted:
 		return
 	var me := String(_me().get("key", ""))
-	for mis in missiles:
+	# (Modern IAF, Settings.modern_ew: the jammer acts on the radars' burn-through instead, docs/ai.md §15.6.)
+	for mis in missiles if not Settings.modern_ew() else []:
 		if (
 			String(mis.target_key) == me
 			and int(mis.weapon.get("type", 0)) in [600, 610]

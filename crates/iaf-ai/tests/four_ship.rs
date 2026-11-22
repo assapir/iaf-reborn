@@ -857,8 +857,8 @@ fn elements_split_and_regroup() {
 #[test]
 fn reactions_to_locks_launches_and_awacs() {
     // A lock from the ground on #2, an infrared missile at #3: each calls and defends (the beam, the break into the
-    // missile) with its decoys, #3's mate #4 calls the break, each rejoins when clear. An AWACS call ahead is
-    // reported by #2.
+    // missile), #3 with its flares (a lock alone takes no chaff: ecm.rs WINDOW_S), #3's mate #4 calls the break, each
+    // rejoins when clear. An AWACS call ahead is reported by #2.
     let Some(dir) = own() else { return println!("skipped: no assets/converted/own (iaf-sim fm, airbases)") };
     let mut w = airborne(&dir, 0.0);
     w.run(30.0);
@@ -868,7 +868,13 @@ fn reactions_to_locks_launches_and_awacs() {
     assert_eq!(w.flight.awacs(w.t, 0.0, 25.0, false), 0, "no report for friendlies");
     // A lock on #2 from a radar 30 km ahead-right: the beam is 45° left of the track (north).
     let p = w.jets[1].0.ap_view().pos;
-    let radar = Threat { pos: p + Vec3::new(21_000.0, 21_000.0, -3000.0), launch: false, ir: false, ground: true };
+    let radar = Threat {
+        pos: p + Vec3::new(21_000.0, 21_000.0, -3000.0),
+        vel: Vec3::ZERO,
+        launch: false,
+        ir: false,
+        ground: true,
+    };
     w.flight.threat(2, Some(radar));
     let mut chaff = false;
     let mut steer = false;
@@ -884,13 +890,15 @@ fn reactions_to_locks_launches_and_awacs() {
     let mud = w.said(2, "mud").map(|t| t - t0);
     println!("lock on #2: mud after {mud:?} s, chaff {chaff}, the radar {off:.0}° off the track");
     assert!(mud.is_some_and(|t| t <= 1.6), "#2 calls the lock");
-    assert!(chaff && steer, "#2 defends with chaff");
+    assert!(!chaff && steer, "#2 defends, no chaff against a lock");
     assert!((off.abs() - 90.0).abs() < 20.0, "#2 beams the radar ({off:.0}°)");
-    // An infrared missile at #3 from behind-left: the break into it (left), flares at military power, #4 calls it.
+    // An infrared missile at #3 from behind-left, 2.8 km and 4 s out: the break into it (left), flares at military
+    // power, #4 calls it.
     let t1 = w.t;
     let q = w.jets[2].0.ap_view().pos;
-    w.flight
-        .threat(3, Some(Threat { pos: q + Vec3::new(-3000.0, -3000.0, 0.0), launch: true, ir: true, ground: false }));
+    let at = q + Vec3::new(-2000.0, -2000.0, 0.0);
+    let vel = (q - at).try_normalize().unwrap() * 850.0;
+    w.flight.threat(3, Some(Threat { pos: at, vel, launch: true, ir: true, ground: false }));
     let (mut flares, mut g, mut thr) = (false, 0f32, 0f32);
     for _ in 0..(12.0 / w.dt) as usize {
         w.frame();

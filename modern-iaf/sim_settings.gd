@@ -468,6 +468,11 @@ func new_ai() -> bool:
 	return true
 
 
+## Modern IAF's countermeasures: the seekers' decoy chance and the jammers' burn-through.
+func modern_ew() -> bool:
+	return true
+
+
 ## The sim's aircraft descriptors (`iaf-sim own`: the F-16's from our model) and its compiled missions.
 func planes_folder() -> String:
 	return "own/planes"

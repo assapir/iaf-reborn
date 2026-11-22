@@ -457,7 +457,8 @@ func _scan(u: Unit) -> void:
 		var r := u.sensor_r
 		if e.player and host.weapons != null and host.weapons.radar.mode <= 1 and d > r * QUIET_FACTOR:
 			continue
-		if not (e.player and _jamming()) and d > r:
+		# (Modern IAF: no beacon; its burn-through acts on the sites' and the fighters' radars, docs/ai.md §15.6.)
+		if not (e.player and _jamming() and not Settings.modern_ew()) and d > r:
 			continue
 		if not line_of_sight(me, p):
 			continue

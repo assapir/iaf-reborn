@@ -109,8 +109,9 @@ func _rwr() -> void:
 
 ## Ours, the modern F-16s' threat display (ews.gd, iaf_avionics::ews; modern-iaf/docs/ews.md): 12 ticks at 30° on the
 ## edge, the ownship "+", each threat's label in its frame (an aircraft's hat, AAA's box), the top threat in a diamond,
-## a lock in a square, a launch in a flashing circle, a new threat flashing; the MAW's warnings as an "M" on the edge
-## with the missile's class and the seconds to impact under it ("AAM 12", ews.rs launch_class); SYS TEST's pattern.
+## a lock in a square, a launch in a flashing circle, a new threat flashing, the jamming chevrons (">6<") while the own
+## jammer works; the MAW's warnings as an "M" on the edge with the missile's class and the seconds to impact under it
+## ("AAM 12", ews.rs launch_class); SYS TEST's pattern.
 func _threats(c: Vector2, r: float) -> void:
 	var col := DED_GREEN
 	for i in 12:
@@ -128,7 +129,8 @@ func _threats(c: Vector2, r: float) -> void:
 		if (sy.new or sy.launch) and not blink:
 			continue
 		var p: Vector2 = c + Vector2(sy.at.x, -sy.at.y) * r * 0.86
-		_text(p, String(sy.label), fs, col)
+		# Ours: the own jammer works against it, chevrons either side (">6<", ews.rs jammed).
+		_text(p, (">%s<" if sy.get("jammed", false) else "%s") % sy.label, fs, col)
 		var h := fs * 0.75
 		match String(sy.kind):
 			"air":

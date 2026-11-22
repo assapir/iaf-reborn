@@ -709,17 +709,19 @@ F12–F14). The 1998 game sets none of it. Every figure is inferred, tuned on th
   - After the reaction time the jet defends (the steer loop, every decision). Against a radar (a lock or a radar
     missile) it beams: it turns the threat 90° off its nose, on the side nearer its track (the Doppler notch). Against
     an infrared missile it breaks into the missile. It pulls 4 g against a lock and 6.5 g against a missile, at
-    260 m/s. Against infrared it stays at military power: the decoy rule's flares fail with the afterburner lit and
-    work better above 4 g.
-  - Each decision it asks for a decoy: chaff against a radar, flares against infrared. `ai_flights.gd` releases it
-    through `combat.gd`'s path (the jet's stores, one each 4 s, `player_weapons.gd`'s decoy rule); nothing new about
-    countermeasure or missile performance.
+    260 m/s. Against infrared it stays at military power: a flare beside a lit afterburner has a quarter of its chance
+    (§15.6), and above 4 g every decoy has more.
+  - Each decision while a missile is within 6 s of reaching it (its time to go at the closure, `ecm::WINDOW_S`) it
+    asks for a decoy: chaff against a radar missile, flares against an infrared one; a lock alone takes none (a decoy
+    acts on missiles only, and one released early burns out). `ai_flights.gd` releases it through `combat.gd`'s path
+    (the jet's stores, one each 4 s); what it does to the missile is §15.7's seeker rule.
   - Its element mate (1 and 2, 3 and 4), an AI jet in the air and itself clear, sees a missile launched at its partner
     (the smoke) and calls `break_left` or `break_right`, the partner's turn. That covers the player as #1 too. A lock
     is heard only on the jet's own RWR, so it gets no mate's call.
   - Clear for 5 s, it goes back: a wingman rejoins its slot ("in position"), a lead its route.
   - Measured: the lock called and the beam flown 1.2 s after the lock; against an infrared missile behind it, the break
-    left at up to 5.8 g with the throttle at most 0.74, flares, #4's `break_left` 1.4 s after the launch.
+    left at up to 5.8 g with the throttle at most 0.74, flares, #4's `break_left` 1.4 s after the launch; against the
+    lock no chaff (2026-11-22).
 - **The AWACS calls** (`Flight::awacs`, `IafAi.awacs`; `radio.gd` passes each call of `IafFlightController.scan`,
   which now also returns {bearing, miles, code}). For a hostile or unidentified contact, the first AI jet by number
   that holds the called point within 74 km and ±60° of its nose (a fighter radar's 40 NM) reports `contact` after its
@@ -1284,7 +1286,55 @@ same 0.5 s tick; the dev hook is `AirDefence.spawn_net(radar_pos, post_pos, memb
   EMCON again (`radiate` by default: the 96L6E searches), the K5 procedure. The picture is cleared; restored, the
   network sweeps at once.
 
-### 15.6 Later
+### 15.6 Countermeasures and jamming (K8, K9)
+
+The user, 22 Nov 2026: "Yes start whatever you didn't finished" (countermeasure effectiveness and electronic attack,
+unparked 19 Nov). Modern IAF only (`Settings.modern_ew`); the 1998 game keeps its decoy rule, its jammer and its
+sensors' beacon (docs/weapons.md §10, §13 here). The rules are `crates/iaf-avionics/src/ecm.rs`.
+
+- **Decoys against seekers** (K8): flares against infrared seekers, chaff against radar seekers, for every jet that
+  releases one (the player's keys and CMDS, an AI jet's tree, both through `player_weapons.gd release_decoy`). Each
+  missile flying at the releasing jet rolls on its own seeker's chance: the kind, its record's rejection, the beam,
+  the time to go, the afterburner and the load factor (docs/real-weapons.md §2.3). A missile taken chases the decoy;
+  the seeker does not come back to the jet (as the 1998 rule).
+- **The AI's decoys:** every AI jet (the wingmen, the enemy fighters) releases them by its tree against a missile within
+  6 s of reaching it (§8.8).
+- **Jamming** (K9): a self-protection jammer holds a radar to its burn-through: the range inside which the echo
+  beats the jamming. The echo falls with the range's fourth power, the jamming with its square, so the burn-through
+  goes with the root of the cross-section[^w-jam]: R_bt = reach · share · √(σ / 5 m²), the share the jammer's
+  (its definition's `jammer.burn_through`, docs/adding-a-plane.md). A radar sees a jamming jet within the nearer of
+  its range (§15.2) and the burn-through (`ecm::jammed_reach`); the shares are inferred (no jammer's power is
+  published).
+
+| jammer | share | against |
+|---|---|---|
+| the Sufa's internal SPS-3000 / ASPS (dorsal spine; the J key, the CMDS's JMR switch; docs/f16i.md §8) | 0.3 | the sites' search and track radars (§15.1), the network's 64N6E2 (§15.5, so the GCI's picture too), the enemy fighters' radar (§18.1) |
+| an AI jet whose definition has one (none today: the MiG-29A (9.12) has none, its jammer came with the 9.13[^w-mig29-jam]), on while it defends or is committed (`Flight::jams`) | its own | the player's radar |
+| the Barak's | open ([../modern-iaf/docs/ai-plan.md](../modern-iaf/docs/ai-plan.md) §1 item 10) | — |
+
+In Modern IAF the J key's jammer works through the burn-through only; the 0.6 chance of breaking each radar
+missile's lock as it comes on is the 1998 game's (docs/weapons.md §10). The player's radar takes a jammer's share only
+from a hostile jet; a friendly's (a defending wingman's) jams the enemy, not the own radar.
+
+- **What it gives:** the Sufa head on and level (1.2 m²) is found by the 96L6E at 44 km in place of 210 km and held by the
+  30N6E2 inside 29 km in place of 140 km; an enemy fighter's radar (74 km, no cross-section model: the reference 5 m²)
+  holds it inside 22 km. Inside the burn-through the jammer changes nothing. A jammed track radar loses its lock
+  past the burn-through, and the site's channel frees (§15.1).
+- **The cues:** the player's own jammer on, the threat display shows the jamming chevrons either side of every named
+  radar (">6<", modern-iaf/docs/ews.md §2); a jammer beyond its burn-through shows on the F-16's FCR as an
+  angle-only strobe at its azimuth (docs/radar.md §8).
+- **No beacon:** the 1998 rule that the AI's sensors see a jamming player at any range (§13, `combat.gd _scan`) is
+  off in Modern IAF; the burn-through takes its place.
+- **Tests:** `cargo test -p iaf-avionics ecm` (each rule), `radar a_jammer_shows_as_a_strobe`, `ews
+  symbols_priority_and_limits` (the chevrons); `-p iaf-ai --test sites a_jammer_holds_the_radars`, `--test intercept
+  a_jamming_bogey` (the fighter's contact, its jammer when committed), `--test four_ship reactions` (no chaff against
+  a lock, flares against a near missile); `modern-iaf/tests/test_countermeasures.gd` (headless: decoys against an
+  AIM-9M and an AIM-9X, a beaming and a fleeing jet against chaff; the Sufa's jammer against an S-300's track radar,
+  the chevrons and the FCR's strobe).
+- **Not started** (outside the K8 and K9 rows): the jammer's effect on a missile's own seeker (home on jam, an active
+  seeker's burn-through), the 1998 game's switch-on rule staying as it is; stand-off and escort jamming; towed decoys.
+
+### 15.7 Later
 
 - Ground clutter for the S-300's radars (their processing is open) and for the AI fighters' sensor (`combat.gd`, the
   1998 game's rule): not started.
@@ -1465,7 +1515,7 @@ hostile jet, which the pair knows only while its radar holds it.
 | intercept | the collision course at the bogey (the point where the two meet flying straight; pure pursuit when it cannot be caught) | 4 g, 300 m/s, at most 120 s ahead |
 | shot | committed, its own radar holding the bogey, a missile left and none of its own flying at it, the bogey inside its share of the envelope (§17) for its reaction time (the launch's timing: Low 3 s, Medium 1 s, High 0.5 s): `Order::shoot`; the host fires through `combat.gd`'s launch (the envelope, the cone, the fire gate) | the radar: 74 km, ±60° (the wingmen's) |
 | crank | its missile flying, the radar holding the bogey: the bogey 50° off the nose on the side it is on (tactics 1 and up) | 250 m/s |
-| defence | a missile at it, after its reaction (a lock alone does not stop the attack): an infrared one the break into it; a radar one the beam at its height (tactics 0), the notch down into the look-down, the missile beamed (1), the drag, a 4 g turn away then full power going down, while the missile is farther than 20 km, inside that the notch (2); chaff or flares each decision, the 5 s clear (§8.8) | the descent: the steer point 500 m below, near 10°, down to 500 m above the ground; drag 400 m/s |
+| defence | a missile at it, after its reaction (a lock alone does not stop the attack): an infrared one the break into it; a radar one the beam at its height (tactics 0), the notch down into the look-down, the missile beamed (1), the drag, a 4 g turn away then full power going down, while the missile is farther than 20 km, inside that the notch (2); chaff or flares each decision while the missile is within 6 s, the 5 s clear (§8.8) | the descent: the steer point 500 m below, near 10°, down to 500 m above the ground; drag 400 m/s |
 | back | the bogey lost, past 150 km from the station, or nothing left to shoot with none flying: back to the CAP | 150 km |
 
 - **The host** (`ai_flights.gd` `_step_enemy`, each frame after every jet's step): the bogey (`IafAi.set_bogey`: the
@@ -1483,8 +1533,8 @@ hostile jet, which the pair knows only while its radar holds it.
   unchanged without the fighter's laws (§8.8);
   `modern-iaf/tests/test_intercept.gd` (headless: a pair on a CAP vectored onto a scripted jet, commits, locks, shoots,
   notches a radar missile).
-- **Open:** the fighters' own radar is the wingmen's reach and cone,
-  without the ground clutter or the target's cross-section; the pairing of several pairs to several raids (each pair
+- **Open:** the fighters' own radar is the wingmen's reach and cone
+  (a jamming bogey inside its burn-through, §15.6), without the ground clutter or the target's cross-section; the pairing of several pairs to several raids (each pair
   takes the track nearest its station).
 
 ### 18.2 The dogfight (K4)
@@ -1633,3 +1683,6 @@ Open questions in this document:
 [^ru-maz543]: Wikipedia (Russian), "МАЗ-543", https://ru.wikipedia.org/wiki/МАЗ-543 (the MAZ-543 / MAZ-7310: 11,657 mm long, 3,050 mm wide; read 2026-11-22).
 [^w-ural]: Wikipedia, "Ural-4320", https://en.wikipedia.org/wiki/Ural-4320 (7,366 mm long, 2,500 mm wide, 2,715 mm high; read 2026-11-22).
 [^shaw]: Robert L. Shaw, "Fighter Combat: Tactics and Maneuvering", Naval Institute Press, 1985, ISBN 0-87021-059-9 (pursuit: lead, pure, lag; the high and low yo-yo; the break and the guns jink; one-circle and two-circle fights; energy height; closure control; the terms only, no figure taken).
+[^w-mig29-jam]: Wikipedia, "Mikoyan MiG-29" (the 9.13: "the installation of the L-203BE Gardenyia-1 jammer that was
+  lacking on the initial 9.12 version"; read 2026-11-22): https://en.wikipedia.org/wiki/Mikoyan_MiG-29
+[^w-jam]: Wikipedia, "Radar jamming and deception" ("The burn-through range is the distance from the radar at which the jamming is ineffective"; a self-protection jammer "essentially broadcasts its position") (read 2026-11-22): https://en.wikipedia.org/wiki/Radar_jamming_and_deception

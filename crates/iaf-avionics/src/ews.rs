@@ -90,6 +90,9 @@ pub struct Symbol {
     pub launch: bool,
     /// First seen less than [`NEW_S`] ago: the symbol flashes.
     pub new: bool,
+    /// Ours (Modern IAF): the own jammer works against it: chevrons either side, `>6<` (the dash-34's "jamming
+    /// (steady)", fig. 1-133; docs/real-mfd.md).
+    pub jammed: bool,
 }
 
 /// The threat warning prime panel's state and the display it drives.
@@ -112,6 +115,9 @@ pub struct Twd {
     new_guy: bool,
     /// HANDOFF moved the diamond (its tone).
     handed: bool,
+    /// Ours: the own jammer is on (Modern IAF's burn-through, docs/ai.md §15.6): every named radar shows the jamming
+    /// chevrons.
+    pub jamming: bool,
 }
 
 impl Twd {
@@ -199,6 +205,7 @@ impl Twd {
                     lethal,
                     launch,
                     new: now - self.seen[&id] < NEW_S,
+                    jammed: self.jamming && kind != Kind::Unknown,
                 }
             })
             .collect()
@@ -231,6 +238,7 @@ fn test_pattern() -> Vec<Symbol> {
         lethal: false,
         launch: false,
         new: false,
+        jammed: false,
     };
     vec![
         s(1, Kind::Air, "16", (0.0, 0.5)),
@@ -341,6 +349,11 @@ mod tests {
         assert!(s.iter().any(|s| s.kind == Kind::Unknown && s.label == "U" && s.new) && t.take_new_guy());
         let s = t.update(&shown, Vec3::ZERO, 0.0, 10.0);
         assert!(s.iter().all(|s| !s.new), "no longer new after 4 s");
+        // The own jammer on: the named radars carry the jamming chevrons, the unknown none.
+        assert!(s.iter().all(|s| !s.jammed));
+        t.jamming = true;
+        let s = t.update(&shown, Vec3::ZERO, 0.0, 11.0);
+        assert!(s.iter().all(|s| s.jammed == (s.kind != Kind::Unknown)), "jamming chevrons");
         let many: Vec<(u64, Shown)> = (10..30).map(|i| (i, at(100, i as f64 * nm, 0.0, true, false))).collect();
         assert_eq!(t.update(&many, Vec3::ZERO, 0.0, 11.0).len(), PRI_MAX);
         t.open = true;

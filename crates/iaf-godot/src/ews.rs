@@ -80,10 +80,11 @@ impl IafEws {
     }
 
     /// The scope's symbols from the RWR's cockpit copy `entries` ([{id, type, pos (world X / Y), launch, active,
-    /// search}], IafRwr.display), the own world X / Y and heading: [{id, kind, label, at (scope radii, x right, y up),
-    /// diamond, lethal, launch, new}].
+    /// search}], IafRwr.display), the own world X / Y and heading, the own jammer on (ours, Modern IAF's burn-through):
+    /// [{id, kind, label, at (scope radii, x right, y up), diamond, lethal, launch, new, jammed}].
     #[func]
-    fn threats(&mut self, entries: VarArray, own: Vector2, heading: f64, now: f64) -> VarArray {
+    fn threats(&mut self, entries: VarArray, own: Vector2, heading: f64, now: f64, jamming: bool) -> VarArray {
+        self.twd.jamming = jamming;
         let shown: Vec<(u64, Shown)> = dicts(&entries)
             .map(|d| {
                 let p: Vector2 = get(&d, "pos").unwrap_or_default();
@@ -105,7 +106,7 @@ impl IafEws {
                 vdict! {
                     "id" => s.id as i64, "kind" => kind_name(s.kind), "label" => s.label,
                     "at" => Vector2::new(s.at.0 as f32, s.at.1 as f32), "diamond" => s.diamond, "lethal" => s.lethal,
-                    "launch" => s.launch, "new" => s.new,
+                    "launch" => s.launch, "new" => s.new, "jammed" => s.jammed,
                 }
                 .to_variant()
             })

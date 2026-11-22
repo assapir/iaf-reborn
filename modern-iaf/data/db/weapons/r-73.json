@@ -20,7 +20,8 @@
     "_timeAcceleration": 34.3,
     "_timeConstVel": 0.0,
     "_timeDecceleration": 0.0,
-    "_timeConstOrientation": 0.5
+    "_timeConstOrientation": 0.5,
+    "_decoyReject": 0.3
   },
   "sources": {
     "drag": "open",
@@ -37,7 +38,8 @@
     "motion._timeAcceleration": "inferred, w-r73",
     "motion._timeConstVel": "inferred",
     "motion._timeDecceleration": "inferred",
-    "motion._timeConstOrientation": "inferred"
+    "motion._timeConstOrientation": "inferred",
+    "motion._decoyReject": "inferred, w-flare"
   },
   "notes": {
     "drag": "carriage drag: none until a source gives one",
@@ -50,10 +52,12 @@
     "motion._spiralAccelBeta": "top speed a / beta: 120 / the top speed",
     "motion.burn": "the burn with which the motion flies the published range from 250 m/s before its flight ends 6 s after the burn (missile.rs real_burn, the rule real_weapons.gd gives the AIM-9M)",
     "motion._timeAcceleration": "the burn, so the original's reading of the section flies as long",
-    "motion._timeConstOrientation": "flies straight 0.5 s after launch (the AIM-9M record's)"
+    "motion._timeConstOrientation": "flies straight 0.5 s after launch (the AIM-9M record's)",
+    "motion._decoyReject": "0.3 (inferred): a cooled seeker of 1984 with no counter-countermeasure claim found; below the AIM-9M's 0.5 (docs/real-weapons.md 2.3)"
   },
   "footnotes": {
     "w-r73": "Wikipedia, \"R-73 (missile)\" (105 kg, 7.4 kg warhead, Mach 2.5, 30 km, cooled IR ±40° (R-73E ±45°)) (read 2026-11-03), https://en.wikipedia.org/wiki/R-73_(missile)",
-    "ds-aim9": "designation-systems.net, \"Raytheon AIM-9 Sidewinder\" (AIM-9A / B effective kill radius about 9 m), https://www.designation-systems.net/dusrm/m-9.html"
+    "ds-aim9": "designation-systems.net, \"Raytheon AIM-9 Sidewinder\" (AIM-9A / B effective kill radius about 9 m), https://www.designation-systems.net/dusrm/m-9.html",
+    "w-flare": "Wikipedia, \"Flare (countermeasure)\" (newer IR seekers' electronics and secondary electro-optical sensors \"help discriminate between flares and targets\"; spectral and trajectory discrimination, \"the so-called CCM\") (read 2026-11-22), https://en.wikipedia.org/wiki/Flare_(countermeasure)"
   }
 }

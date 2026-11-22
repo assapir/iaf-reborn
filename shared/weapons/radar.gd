@@ -109,7 +109,8 @@ func _feed() -> void:
 				"heading": float(e.get("heading", 0.0)),
 				"type": int(e.get("type_code", -1)),
 				"hostile": bool(u.get("hostile", true)),
-				"rcs": e.get("rcs")  # ours: Modern IAF's drones (docs/ai.md §16); absent: the tables' ranges
+				"rcs": e.get("rcs"),  # ours: Modern IAF's drones (docs/ai.md §16); absent: the tables' ranges
+				"jam": float(e.get("jam", 0.0))  # ours: its jammer on (Modern IAF, docs/radar.md §8)
 			}
 		)
 	_r.set_input(own.call() if own.is_valid() else {}, list, ground)
@@ -154,6 +155,11 @@ func _attach(c: Dictionary) -> Dictionary:
 	if not c.is_empty() and _by_key.has(c.key):
 		c.unit = _by_key[c.key]
 	return c
+
+
+## Ours: the last search's jam strobes, each a jammer's azimuth off the nose (rad; docs/radar.md §8).
+func strobes() -> PackedFloat64Array:
+	return _st.get("strobes", PackedFloat64Array())
 
 
 func range_index() -> int:

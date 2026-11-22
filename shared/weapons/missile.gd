@@ -95,6 +95,12 @@ func retarget(key: String) -> void:
 	_s = _m.state()
 
 
+## Ours, Modern IAF: the chance a decoy released now takes the seeker (ecm.rs decoy_chance): `flare` (else chaff),
+## `ir` an infrared seeker, the target `t` {pos, vel, ab (its afterburner lit), g (its load factor)}.
+func decoy_chance(flare: bool, ir: bool, now: float, t: Dictionary) -> float:
+	return _m.decoy_chance(flare, ir, now, t)
+
+
 ## The motion's time left (FUN_00468db0): burn − age.
 func time_left(now: float) -> float:
 	return _m.time_left(now)

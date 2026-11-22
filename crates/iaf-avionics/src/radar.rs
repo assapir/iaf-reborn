@@ -494,6 +494,9 @@ pub struct Unit {
     /// Ours: its radar cross-section (Modern IAF's drones, docs/ai.md §16); None: seen at the tables' ranges, as the
     /// original.
     pub rcs: Option<Rcs>,
+    /// Ours: its self-protection jammer on, its burn-through share (`ecm::jammed_reach`, docs/radar.md §8), 0 not
+    /// jamming.
+    pub jam: f64,
 }
 
 impl Unit {
@@ -502,9 +505,24 @@ impl Unit {
     }
 
     /// A detection range `base` (against `REF_RCS`) against this unit seen from `from`: scaled by its cross-section
-    /// from there, its nose along its velocity.
+    /// from there, its nose along its velocity; jamming, the nearer of that and its burn-through.
     fn reach_from(&self, base: f64, from: Vec3) -> f64 {
-        self.rcs.as_ref().map_or(base, |r| reach(base, sigma(r, self.vel, from - self.pos, false, 0)))
+        crate::ecm::jammed_reach(base, self.sigma_from(from), self.jam())
+    }
+
+    /// Its jammer's share against the own radar: a friendly's jams the enemy, not us.
+    fn jam(&self) -> f64 {
+        if self.hostile { self.jam } else { 0.0 }
+    }
+
+    fn sigma_from(&self, from: Vec3) -> f64 {
+        self.rcs.as_ref().map_or(REF_RCS, |r| sigma(r, self.vel, from - self.pos, false, 0))
+    }
+
+    /// Jamming and beyond its burn-through, yet inside the range it would be seen at: the radar shows its strobe.
+    fn strobe_from(&self, base: f64, from: Vec3) -> bool {
+        let d = self.pos.distance(from);
+        self.jam() > 0.0 && d > self.reach_from(base, from) && d <= reach(base, self.sigma_from(from))
     }
 }
 
@@ -656,6 +674,8 @@ pub struct Radar {
     dirty: bool,
     /// The contact list, highest priority first.
     contacts: Vec<Contact>,
+    /// Ours: the last search's jam strobes, each a jammer's azimuth off the nose (rad; docs/radar.md §8).
+    strobes: Vec<f64>,
     selection: Option<Selection>,
     /// STT: the locked record (re-made every frame by the track).
     stt: Option<Contact>,
@@ -708,6 +728,7 @@ impl Radar {
             bore_held: false,
             dirty: false,
             contacts: Vec::new(),
+            strobes: Vec::new(),
             selection: None,
             stt: None,
             live: None,
@@ -866,6 +887,10 @@ impl Radar {
     }
     pub fn contacts(&self) -> &[Contact] {
         &self.contacts
+    }
+    /// Ours: the jam strobes of the last search (azimuths off the nose, rad), none while it does not radiate.
+    pub fn strobes(&self) -> &[f64] {
+        if self.radiating() { &self.strobes } else { &[] }
     }
     pub fn selection(&self) -> Option<&Selection> {
         self.selection.as_ref()
@@ -1200,6 +1225,7 @@ impl Radar {
         let since = now - self.last_scan;
         self.last_scan = now;
         if self.mode == Mode::Stt {
+            self.strobes.clear();
             return; // STT's list is its track
         }
         let own = &input.own;
@@ -1225,6 +1251,7 @@ impl Radar {
         let old = self.selection.take();
         let mut old_unit = None;
         let mut list = Vec::new();
+        let mut strobes = Vec::new();
         for u in input.units.iter().filter(|u| u.alive()) {
             if (u.pos - centre).length_squared() >= QUERY_K * (u.coll_radius + scale / 2.0).powi(2)
                 || !self.mode.sees(u)
@@ -1234,7 +1261,13 @@ impl Radar {
             if old.as_ref().is_some_and(|s| s.key == u.key) {
                 old_unit = Some(u);
             }
-            // (ECM rules: no jammer on either side yet, docs/radar.md)
+            // Ours: a jammer beyond its burn-through shows as a strobe at its azimuth (docs/radar.md §8).
+            if u.strobe_from(detection, own.pos) {
+                if let Some(c) = hit(u, own, air, cone, vol.as_ref(), input.terrain) {
+                    strobes.push(c.az);
+                }
+                continue;
+            }
             if u.pos.distance(own.pos) <= u.reach_from(detection, own.pos) {
                 let record = test(u);
                 self.detected(&record);
@@ -1276,6 +1309,7 @@ impl Radar {
             r.history.truncate(r.cntl[CNTL_TGT_HIS]);
         }
         self.contacts = list;
+        self.strobes = if air { strobes } else { Vec::new() };
         // The cursor: the old selection if still listed, else the nearest (its RWR hears a lock); the real FCR's
         // search waits for the pilot's bug.
         let auto = self.real.is_none() || matches!(self.mode, Mode::Acm | Mode::Bore);
@@ -2801,6 +2835,26 @@ mod tests {
         r.cntl_press(20);
         r.update(8.1, &scene(&units));
         assert_eq!(keys(&r), ["above"], "MTR HI (100 kt): no drone in look-down");
+    }
+
+    #[test]
+    fn a_jammer_shows_as_a_strobe_beyond_its_burn_through() {
+        // The Sufa's FCR, a jet (no cross-section: the reference) 40 km ahead and 5° right: seen; jamming with 0.3 its
+        // burn-through is under 40 km, so only its strobe; 10 km out it burns through.
+        let base = sufa().ranges.get(Mode::Lrs).map_or(0.0, Range::detection_m);
+        assert!(base * 0.3 < 40_000.0 && base > 40_000.0, "{base:.0} m");
+        let jet = |km, jam| [Unit { jam, ..at("j", 5.0, km, 0.0) }];
+        let r = up(&jet(40.0, 0.0));
+        assert_eq!((keys(&r), r.strobes().len()), (vec!["j"], 0));
+        let r = up(&jet(40.0, 0.3));
+        assert!(keys(&r).is_empty(), "no contact beyond the burn-through");
+        assert_eq!(r.strobes().len(), 1);
+        assert!((r.strobes()[0].to_degrees() - 5.0).abs() < 0.5, "the strobe at its azimuth");
+        let r = up(&jet(10.0, 0.3));
+        assert_eq!((keys(&r), r.strobes().len()), (vec!["j"], 0), "burnt through");
+        // A friendly's jammer (a defending wingman) works on the enemy, not on the own radar.
+        let r = up(&[Unit { jam: 0.3, hostile: false, ..at("j", 5.0, 40.0, 0.0) }]);
+        assert_eq!((keys(&r), r.strobes().len()), (vec!["j"], 0), "a friendly jammer");
     }
 
     #[test]

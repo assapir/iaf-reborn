@@ -325,7 +325,8 @@ func _fire_gun(s: Dictionary, now: float) -> void:
 
 
 ## The jets hostile to `side`, alive: the player and the AI aircraft, each with what a radar sees of it (its
-## definition's rcs, the bays, the external stores): {id, pos, vel, nose, rcs, bays, stores, ent}.
+## definition's rcs, the bays, the external stores; its jammer's burn-through share while it jams, docs/ai.md §15.6):
+## {id, pos, vel, nose, rcs, bays, stores, jam, ent}.
 func jets(side: int) -> Array:
 	var rt: Node = host.runtime
 	var w: Node = host.weapons
@@ -346,6 +347,7 @@ func jets(side: int) -> Array:
 					"rcs": Settings.airframe(w.jet_type if e.player else int(e.type_code)).get("rcs"),
 					"bays": e.player and w.bay_open(),
 					"stores": stores.external() if stores != null else 0,
+					"jam": w.jam_share() if e.player else float(e.get("jam", 0.0)),
 					"ent": e,
 				}
 			)

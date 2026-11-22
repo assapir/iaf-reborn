@@ -3,6 +3,7 @@
 
 use crate::world::{get, num, terrain, vec3, vector3};
 use godot::prelude::*;
+use iaf_avionics::ecm::{self, Shot};
 use iaf_avionics::guided::{Guided, GuidedMotion, Phase};
 use iaf_avionics::missile::{Aim, Chase, ChaseMotion, Dlz, Kinematics, Launcher, Missile, Physics, Tuning};
 use iaf_avionics::sight;
@@ -65,6 +66,8 @@ fn physics(m: &VarDictionary) -> Option<Physics> {
 #[class(init, base = RefCounted)]
 pub struct IafMissile {
     missile: Option<Missile>,
+    /// Its seeker's decoy rejection (the motion's `_decoyReject`, 0 none; `ecm::decoy_chance`).
+    reject: f64,
 }
 
 impl IafMissile {
@@ -105,6 +108,23 @@ impl IafMissile {
             mis.set_seeker(cone, active);
         }
         self.missile = Some(mis);
+        self.reject = num(&m, "_decoyReject").unwrap_or(0.0);
+    }
+
+    /// Ours, Modern IAF (`ecm::decoy_chance`, docs/real-weapons.md §2.3): the chance that a decoy released now takes
+    /// this missile's seeker: `flare` (else chaff), `ir` its seeker infrared, the target `t` {pos, vel, ab (its
+    /// afterburner lit), g (its load factor)}.
+    #[func]
+    fn decoy_chance(&self, flare: bool, ir: bool, now: f64, t: VarDictionary) -> f64 {
+        let Some(m) = &self.missile else { return 0.0 };
+        let shot = Shot {
+            missile_pos: m.position(now),
+            missile_vel: m.velocity(now),
+            target_pos: vec3(get(&t, "pos").unwrap_or_default()),
+            target_vel: vec3(get(&t, "vel").unwrap_or_default()),
+        };
+        let ab = get(&t, "ab").unwrap_or(false);
+        ecm::decoy_chance(flare, ir, self.reject, &shot, ab, num(&t, "g").unwrap_or(1.0))
     }
 
     #[func]

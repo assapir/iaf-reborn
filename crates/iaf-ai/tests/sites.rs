@@ -23,6 +23,7 @@ fn jet(id: &str, def: &str, pos: Vec3, vel: Vec3) -> Target {
         cued: false,
         dlz: (0.0, 0.0),
         in_air: 0,
+        jam: 0.0,
     }
 }
 
@@ -402,6 +403,25 @@ fn rcs_decides_the_detection_range() {
         f16 > 3.0 * adir && bays > 3.0 * adir,
         "tracked: the F-16 at {f16} m, the Adir {adir} m, bays open {bays} m"
     );
+}
+
+#[test]
+fn a_jammer_holds_the_radars_to_its_burn_through() {
+    // The Sufa head on (1.2 m²) with its jammer at 0.3 (docs/ai.md §15.6): the 96L6E finds it at 300 km · 0.3 ·
+    // √(1.2 / 5) = 44 km in place of 210 km, the 30N6E2 holds it inside 29 km in place of 140 km (level).
+    let head_on = |jam: f64| {
+        move |r: f64| Target { jam, ..jet("a", "f16", Vec3::new(0.0, r, 8000.0), Vec3::new(0.0, -250.0, 0.0)) }
+    };
+    let (clear, jammed) = (detection_range(head_on(0.0), &flat), detection_range(head_on(0.3), &flat));
+    println!("search: {clear:.0} m clear, {jammed:.0} m jammed");
+    // (8 km up the line of sight is tilted: a little of the side's return adds to the jammed figure.)
+    assert!((clear - 210_000.0).abs() < 1_000.0 && (43_000.0..48_000.0).contains(&jammed));
+    let (clear, jammed) = (track_range(head_on(0.0)), track_range(head_on(0.3)));
+    println!("track: {clear:.0} m clear, {jammed:.0} m jammed");
+    assert!((clear - 140_000.0).abs() < 1_000.0 && (28_500.0..33_000.0).contains(&jammed));
+    // Inside the burn-through the jammer changes nothing.
+    let site = Site::new(Kind::S300, Vec3::ZERO, 0.0, &[]);
+    assert!(site.detects(&[true; 6], &head_on(0.3)(40_000.0), &flat));
 }
 
 #[test]
