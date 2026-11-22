@@ -26,7 +26,7 @@ The window opens plain in the front end's background colour (#00163C, no Godot s
 | Briefing | the briefing, map first (§10): the map over the screen, opened on the base and the route with the pins; the mission card (the facts, the objectives, the Arming summary with Edit, Back to the section's list, Arming, Fly: Edit and Arming open the Loadout screen §10.1); what you will learn and how to fly it, the keys as bound; the map's chips | ![Briefing](pictures/front-end/mission_en.webp) | ![Briefing, Hebrew](pictures/front-end/mission_he.webp) |
 | Settings | the search; the sections Graphics, Language, Sound and Devices with their counts at the inline start; the picked one's settings beside them as segmented buttons, switches and sliders, Graphics with its Preset row and a cost chip per row; the pane at the inline end on the hovered setting (§14); Devices has the afterburner detent (§9.2); the footer's Defaults, Export settings file / Import settings file (below) and Back to the hangar | ![Settings](pictures/front-end/prefs_graphics_en.webp) | ![Settings, Hebrew](pictures/front-end/prefs_graphics_he.webp) |
 | Debrief | the sheet at the inline start (Plane flown, From, Time, Mission, Result; the goals with the target, the flown figure and ✓ / !; Remarks with "Next time:"), at the inline end the whole flight on the map and the flight's graphs (§13); Pilot log, Export flight data (below), Back to missions, Fly again, Next mission (§2) | ![Debrief](pictures/front-end/debrief_en.webp) | ![Debrief, Hebrew](pictures/front-end/debrief_he.webp) |
-| Pilot | the Hangar → the pilot: the name and the nickname, under them the picture in a service ID photo's fixed 3:4 frame (a click on it, or Choose a picture…, opens the system's file dialog; without a picture the initials, or a head and shoulders before there is a name), and beside that column the logbook panel down to the bottom bar (§3) with its Pilot log button; the footer's Reset the log, Delete profile, Change pilot, Back and Save (§3) | ![Pilot](pictures/front-end/pilot_en.webp) | ![Pilot, Hebrew](pictures/front-end/pilot_he.webp) |
+| Pilot | the Hangar → the pilot: the name and the nickname, the enemy's skill (Low / Medium / High), under them the picture in a service ID photo's fixed 3:4 frame (a click on it, or Choose a picture…, opens the system's file dialog; without a picture the initials, or a head and shoulders before there is a name), and beside that column the logbook panel down to the bottom bar (§3) with its Pilot log button; the footer's Reset the log, Delete profile, Change pilot, Back and Save (§3) | ![Pilot](pictures/front-end/pilot_en.webp) | ![Pilot, Hebrew](pictures/front-end/pilot_he.webp) |
 | Create your pilot | the first start, before the Hangar: the Pilot screen with Save only and no pilot in the top bar yet; the logbook panel says "No flights yet." (§3) | ![Create your pilot](pictures/front-end/pilot_first_en.webp) | ![Create your pilot, Hebrew](pictures/front-end/pilot_first_he.webp) |
 | Reset the log | the Pilot screen's Reset: a warning modal, then a second confirm (§3) | ![Reset the log](pictures/front-end/pilot_reset_en.webp) | ![Reset the log, Hebrew](pictures/front-end/pilot_reset_he.webp) |
 | Pilots | the Pilot screen's Change pilot: every pilot with a name, the active one marked Current; New pilot (§3) | ![Pilots](pictures/front-end/pilots_en.webp) | ![Pilots, Hebrew](pictures/front-end/pilots_he.webp) |
@@ -171,14 +171,19 @@ cropped to fill the frame.
   the database then. Back (and Esc) opens the Hangar, after a modal "Discard the changes?" (Discard / Keep editing) when
   something changed; Change pilot and the Hangar crumb ask the same. The empty fields show hints ("Full name", "For example: Viper"): the nickname field used to show
   the pilot's name in grey, which read as text that no click could edit.
+- **The enemy's skill** (2026-11-21, the user, 19 Nov: "wingman are always the same, it only effect enemeis, choosen
+  from 3 options per player"): a row under the nickname, "Enemy skill" / "מיומנות האויב", three segments Low /
+  Medium / High ("נמוכה / בינונית / גבוהה", the Settings' cost words). Part of the draft; Save stores it with the pilot
+  (`IafPilotLog.set_skill`); a pilot who never picked, and every pilot from before, has Medium. It sets the enemy
+  crews' reaction, drills, aim and launch range, never the wingmen's ([../../docs/ai.md](../../docs/ai.md) §17).
 - **The picture** opens the file dialog on a click, as Choose a picture… does. Without a picture the frame shows the
   name's initials as they are typed, and a head and shoulders (`Look.person_icon`) before there is a name (F1,
   2026-11-14: the first start's frame was empty).
 - **The layout** (F6, 2026-11-16): one column holds the fields and the picture under them, and the logbook takes the
   rest of the width. Before, the fields stood in a middle column with nothing under Nickname.
 - **The keys:** Up and Down move between Name and Nickname (a text field keeps the arrows otherwise), Down from Nickname
-  to Choose a picture (a gamepad has no Tab). Tab goes the fields, Choose a picture, the Pilot log, the bottom bar's
-  buttons, the Hangar crumb, and round.
+  to the skill picked (a gamepad has no Tab). Tab goes the fields, the three skill segments, Choose a picture, the
+  Pilot log, the bottom bar's buttons, the Hangar crumb, and round.
 - **The logbook** beside the profile, a panel in the card look running down to the bottom bar (F1, 2026-11-14: the
   screen's lower 40 % was empty), its list scrolling inside (`IafPilotLog.logbook`): per plane flown, most hours first, its flight time
   (`clock`) and its flights, passes and fails, then each mission flown on it with its passes and fails. A sortie

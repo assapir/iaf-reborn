@@ -1308,6 +1308,46 @@ a model is approved. No engine sound: no sound on disk fits a small piston engin
 - The 6-DoF data for the type (open).
 - Listed only: the integrated network (ai-plan K6) and enemy-fighter BFM (K3 / K4; the user: lower priority).
 
+## 17. Modern IAF's skill levels (ours)
+
+The user, 19 Nov 2026: "wingman are always the same, it only effect enemeis, choosen from 3 options per player". A unit's
+skill (`iaf_ai::Skill`, `crates/iaf-ai/src/skill.rs`; modern-iaf/docs/ai-plan.md X4) changes what the crew or pilot
+does, never the physics: the radars' reach, the missiles, the guns' rounds and the airframes stay the same at every
+level. The pilot picks the enemy's level on the Pilot screen (modern-iaf/docs/front-end.md §3); it is stored with the
+pilot (`pilots.skill`, modern-iaf/docs/storage.md), Medium for a pilot who never picked. The wingmen and every
+friendly flight keep `Skill::WINGMAN`, the Medium figures, whatever the pilot picks. The enemy fighters to come read
+the same struct.
+
+| | Low | Medium | High |
+|---|---|---|---|
+| reaction, from a cue to the answer (s) | 3.0 | 1.0 | 0.5 |
+| the crew's drills, share of the type's nominal times | 1.5 | 1.0 | 0.75 |
+| the gun's laying error, each way (mrad, one standard deviation) | 8 | 4 | 2 |
+| the missile launch range, share of the envelope from its minimum range out | 1.0 | 0.9 | 0.8 |
+
+Every figure is inferred: no source grades crews in numbers. The names are the front end's words for the same scale,
+"נמוכה / בינונית / גבוהה" (Low / Medium / High, as the Settings' cost column); "מיומנות" is the IDF's word for a
+skill[^maarachot].
+
+What each level changes in the enemy we have:
+
+- **The air-defence sites** (§15; `site.skill`, set by `air_defence.gd` from `Settings.enemy_skill()`): a target its
+  radar or sight finds is designated after the reaction, then acquired in the type's acquisition time times the
+  drills' share (the S-300's 5 s: 7.5 s Low, 3.75 s High). The march order, the set-up and the Tor's halt before a shot
+  take the drills' share of their times too; the Tor's duty limits are equipment and stay. The crew launches a missile once the
+  target is inside its share of the envelope, counted from the minimum range out (so every level has a window): Low
+  fires at the edge, High holds until the target is deeper. With EMCON Cue the track radar comes on that much earlier before this range. The detection is the same at
+  every level.
+- **The guns** (the ZSU-23-4): each burst is laid off by an error across the line of sight and up, a normal spread of
+  the level's mrad (`Skill::lay`: a seeded hash per site and burst, so a run repeats). `air_defence.gd` passes it to
+  `combat.gd fire_at`, which moves the aim point by it (straight overhead, about the east axis); the rounds then fly
+  the existing round model. A gun fires in its whole range at every level.
+- **The drones** (§16): none. A Shahed-136 flies a programmed route; it has no crew, no reaction and no shot.
+
+Check: `cargo test -p iaf-ai --test sites skill` (each level's track, first launch and march order against the same
+detection; the laying errors the same draws scaled by each level's aim, the bursts' rounds and spacing the same) and
+`skill::tests` (the three levels, the wingmen's).
+
 ## UNCERTAIN
 Open questions in this document:
 - The RWR field names behind conditions 19, 26, 27, 38, 39 (§13.2); what else writes brain+0x7c.
@@ -1332,3 +1372,4 @@ Open questions in this document:
 [^ar-shahed]: Army Recognition, "Shahed-136 loitering munition kamikaze suicide drone technical data", https://armyrecognition.com/military-products/army/unmanned-systems/unmanned-aerial-vehicles/shahed-136-loitering-munition-kamikaze-suicide-drone-technical-data ("It can fly at an altitude from 60 to 4,000 m"; read 2026-11-19).
 [^rusi-shahed]: Uzi Rubin, RUSI Commentary, "Russia's Iranian-Made UAVs: A Technical Profile", 13 January 2023, https://rusi.org/explore-our-research/publications/commentary/russias-iranian-made-uavs-technical-profile ("fly low and slow", "virtual nap-of-the-earth profiles", "a tilting truck-mounted container holding five UAVs", "low radar and thermal signatures"; read 2026-11-19).
 [^nf-shahed]: 19FortyFive, October 2022, https://www.19fortyfive.com/2022/10/irans-shahed-136-kamikaze-drone-everything-you-need-to-know/ (radar cross-section "estimated here to average .01 square meters"; second-hand: as quoted by a search engine on 2026-11-19).
+[^maarachot]: "מהפכת האימון האווירי המבצעי", Maarachot (the IDF's journal), https://www.maarachot.idf.il/media/0rbdlk3j/מהפכת-האימון-האווירי-המבצעי.pdf ("המיומנויות הנדרשות", "מצעיר למנוסה"; read 2026-11-21).

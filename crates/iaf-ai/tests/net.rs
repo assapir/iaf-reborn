@@ -2,6 +2,7 @@
 //! off, one site per jet, the hand-over past a site's envelope, the sites' tracks in the picture, and the sites
 //! autonomous once the radar or the post is lost.
 
+use iaf_ai::Skill;
 use iaf_ai::net::{Member, Net, SCAN};
 use iaf_ai::site::{Emcon, FIGHTER, Kind, Out, Site, Target};
 use iaf_flight::{Vec3, airframe};
@@ -123,11 +124,15 @@ fn the_sweep_cues_the_track_radar_with_the_search_off() {
     assert!(sim.log.iter().all(|(_, o)| !o[0].search), "the site's own search radar stays off");
     assert!(sim.net.picture.contains_key("a"), "the 64N6E2 sees the jet");
     let on = sim.when(0, |o| o.track)[0];
-    // On for the last seconds: the 40 km envelope plus the 5 s acquisition at the closing speed.
+    // On for the last seconds: the medium crew's launch range (docs/ai.md §17) plus its reaction and 5 s acquisition at
+    // the closing speed.
+    let m = Skill::MEDIUM;
+    let range = 3_000.0 + 37_000.0 * m.launch_range;
+    let lead = 250.0 * (m.reaction_s + 5.0 * m.procedure);
     let slant = |t: f64| (100_000.0 - 250.0 * t).hypot(8000.0);
-    assert!(slant(on) <= 41_300.0 && slant(on) > 40_000.0, "the track radar comes on at {} m", slant(on));
+    assert!(slant(on) <= range + lead + 50.0 && slant(on) > range, "the track radar comes on at {} m", slant(on));
     let l = sim.launches(0);
-    assert!(l.len() >= 2 && slant(l[0].0) <= 40_000.0, "it fires inside the envelope: {l:?}");
+    assert!(l.len() >= 2 && slant(l[0].0) <= range, "it fires inside the crew's range: {l:?}");
 }
 
 #[test]
@@ -199,7 +204,7 @@ fn a_restored_network_keeps_the_site_on_its_jet() {
     let mut sim = Sim::new(Vec3::new(0.0, -20_000.0, 0.0), &at, vec![southbound("a", 60.0)]);
     sim.sites[0].emcon = Emcon::Silent;
     sim.radar = false;
-    sim.run(100.0);
+    sim.run(115.0); // the medium crew fires at 36.3 km (docs/ai.md §17)
     assert!(sim.launches(0).is_empty() && !sim.launches(1).is_empty(), "alone, site 1 fires");
     let b = sim.launches(1).len();
     sim.radar = true;

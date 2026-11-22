@@ -1190,6 +1190,11 @@ func flight_addon(_host: Node) -> Node:
 	return null
 
 
+## The enemy's skill (docs/ai.md §17): 0 low, 1 medium, 2 high; Modern IAF's is the active pilot's (sim_settings.gd).
+func enemy_skill() -> int:
+	return 1
+
+
 ## The flight recorder's format (docs/blackbox.schema.json `blackbox`): 1 here; Modern IAF's 2 adds the RPM and avionics
 ## columns (terrain_view.gd blackbox_columns).
 func blackbox_version() -> int:

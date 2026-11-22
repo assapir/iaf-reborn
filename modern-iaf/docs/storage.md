@@ -81,7 +81,7 @@ crate of its own: it is one file, and `iaf-tools` already links `rusqlite`.
 
 | table | columns |
 |---|---|
-| `pilots` | `id` (14, the default pilot; a new pilot from the front end's pilot list takes the next free id); since version 2 the profile of the Pilot screen: `name`, `nickname` (the one every screen shows), `picture` (the picture file's path relative to the database's folder, `pictures/pilot-<id>.<ext>`; `''` = none) |
+| `pilots` | `id` (14, the default pilot; a new pilot from the front end's pilot list takes the next free id); since version 2 the profile of the Pilot screen: `name`, `nickname` (the one every screen shows), `picture` (the picture file's path relative to the database's folder, `pictures/pilot-<id>.<ext>`; `''` = none); since version 7 `skill` (the enemy's skill the pilot picked: 0 low, 1 medium, 2 high; 1 for every pilot before, [../../docs/ai.md](../../docs/ai.md) §17) |
 | `sorties` | `id` (autoincrement: the debrief's number), `pilot`, `mission_id` (the menu id), `mission` (the readable name), `date`, `result` (1 pass, 0 fail), `elapsed_s`, `debrief` (the whole record as JSON text, NULL when it was lost); since version 3 `plane` (the jet's unit id, `f16i`; `''` for a sortie stored before) |
 | `loadouts` | since version 4: `pilot`, `plane` (the jet's unit id), `stations` (the loadout as JSON text, real station number → the store and how many, `{"3": {"id": "mk-82", "count": 3}}`; a plain id, the first build's form, reads as one; since 2026-11-19 also `pre`, the GPS stores' PRE targets picked on the briefing: `{"4": {"target": 2}, "4-3": {"lat": 31.04, "lon": 34.61, "mission": "nevatim_range"}, "8": {"steer": 1}}`, a station's key its number, a rack bomb's "station-bomb" 1-based, the aim a mission target's or steerpoint's number or a map point of one mission; a loadout without it has no picks ([front-end.md](front-end.md) §10.2); no schema change); one row per pilot and jet, none while the loadout is the record's default |
 | `saved_loadouts` | since version 6: `id`, `pilot`, `plane` (the jet's unit id), `name` (the pilot's, unique per pilot and jet), `stations` (as `loadouts`); the Loadout screen's Saved list ([front-end.md](front-end.md) §10.1) |
@@ -123,6 +123,9 @@ crate of its own: it is one file, and `iaf-tools` already links `rusqlite`.
   §10.1): `saved_loadouts(db, pilot, plane)` answers them oldest first (`[{id, name, stations}]`), `save_loadout(db,
   pilot, plane, name, stations)` stores one (the name trimmed; the same name again replaces that one; an empty name
   refused, −1 from GDScript) and answers its id, `delete_saved_loadout(db, pilot, id)` deletes one of the pilot's.
+- **Version 7** (2026-11-21) adds `pilots.skill`, the enemy's skill from the Pilot screen ([front-end.md](front-end.md)
+  §3): `pilot(db, pilot)` answers it with the profile (`skill`, 1 for a pilot never stored), `set_skill(db, pilot,
+  skill)` stores it clamped to 0..2; `Settings.enemy_skill()` reads the active pilot's for the enemy.
 - **The 1998 game** (iaf-reborn's Pilot Records, [front-end.md](../../docs/front-end.md) §13.13) uses this store
   in its own file, `user://iaf-reborn.sqlite`: its pilot list is `pilots` (the callsign is the `nickname`, `place` its place in the list, `photo`
   the original's photo index: 0..13 its pictures, the pilot's id for the pilot's own; `selected` 1 on the selected

@@ -57,7 +57,8 @@ impl IafPilotLog {
         text(with(&db, |c| pilot_log::summary(c, pilot)))
     }
 
-    /// The pilot's profile as JSON: {name, nickname, picture (the picture file's absolute path, "" = none)}.
+    /// The pilot's profile as JSON: {name, nickname, picture (the picture file's absolute path, "" = none), skill (the
+    /// enemy's: 0 low, 1 medium, 2 high)}.
     #[func]
     fn pilot(db: GString, pilot: i64) -> GString {
         text(with(&db, |c| pilot_log::pilot(c, Path::new(&db.to_string()), pilot)))
@@ -67,6 +68,12 @@ impl IafPilotLog {
     #[func]
     fn set_pilot(db: GString, pilot: i64, name: GString, nickname: GString) -> bool {
         with(&db, |c| pilot_log::set_pilot(c, pilot, &name.to_string(), &nickname.to_string())).is_some()
+    }
+
+    /// Stores the enemy's skill the pilot picked (0 low, 1 medium, 2 high); false when it could not.
+    #[func]
+    fn set_skill(db: GString, pilot: i64, skill: i64) -> bool {
+        with(&db, |c| pilot_log::set_skill(c, pilot, skill)).is_some()
     }
 
     /// Copies the picture file at `src` (an absolute path) beside the records and stores it as the pilot's: the

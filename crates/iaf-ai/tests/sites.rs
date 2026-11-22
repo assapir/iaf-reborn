@@ -1,6 +1,8 @@
 //! The air-defence sites (`iaf_ai::site`, docs/ai.md §15): the crews' procedure, the counts, EMCON, relocation, the
-//! Tor's halt and duty limits, the ZSU's radar and optical laying, the radar cross-section and the terrain.
+//! Tor's halt and duty limits, the ZSU's radar and optical laying, the radar cross-section and the terrain; each at
+//! the crew's medium skill (its reaction before the acquisition, its launch range a share of the envelope's).
 
+use iaf_ai::Skill;
 use iaf_ai::site::{Emcon, FIGHTER, Kind, Mode, Out, Site, Target};
 use iaf_flight::{Vec3, airframe};
 
@@ -30,6 +32,10 @@ fn inbound(id: &str, km: f64, bearing: f64) -> Target {
     let dir = Vec3::new(s, c, 0.0);
     Target { dlz: (40_000.0, 3_000.0), ..jet(id, "f16", dir * (km * 1000.0) + Vec3::UP * 8000.0, dir * -250.0) }
 }
+
+/// The medium crew's reaction (s) and launch range inside the 40 km envelope (m).
+const REACT: f64 = Skill::MEDIUM.reaction_s;
+const LAUNCH: f64 = 3_000.0 + 37_000.0 * Skill::MEDIUM.launch_range;
 
 /// The first tick (0.5 s steps) at which `f` holds.
 fn first_tick(f: impl Fn(f64) -> bool) -> f64 {
@@ -97,10 +103,10 @@ fn s300_searches_tracks_and_fires_two_per_target() {
     sim.run(200.0);
     assert!(sim.log[0].1.search, "the 96L6E searches from the start");
     let lock = sim.first(|o| !o.tracks.is_empty()).unwrap();
-    assert_eq!(lock, 5.0, "a track 5 s after designation (acquisition)");
+    assert_eq!(lock, REACT + 5.0, "a track the reaction and 5 s (acquisition) after detection");
     let l = sim.launches();
     assert!(l.len() >= 4, "{l:?}");
-    assert_eq!(l[0].0, first_tick(|t| slant(60.0, t).0 <= 40_000.0), "the first launch inside the envelope");
+    assert_eq!(l[0].0, first_tick(|t| slant(60.0, t).0 <= LAUNCH), "the first launch at the crew's range");
     assert_eq!(l[1].0 - l[0].0, 3.0, "two missiles, 3 s apart");
     assert!(l[2].0 >= l[1].0 + 20.0, "the salvo guided to its end before the next (shoot-look-shoot): {l:?}");
     assert!(sim.site.engagements >= 1);
@@ -159,19 +165,19 @@ fn emcon_silent_cue_radiate() {
     let mut sim = Sim::new(site, vec![a]);
     sim.run(120.0);
     assert!(sim.log.iter().all(|(_, o, _)| !o.search), "Cue: the search radar stays off");
-    // On for the last seconds: the 40 km envelope plus the acquisition's 5 s at the closing speed.
+    // On for the last seconds: the launch range plus the reaction and the acquisition's 5 s at the closing speed.
     let on = sim.first(|o| o.track).unwrap();
-    let due = first_tick(|t| slant(60.0, t).0 <= 40_000.0 + 5.0 * slant(60.0, t).1);
+    let due = first_tick(|t| slant(60.0, t).0 <= LAUNCH + (REACT + 5.0) * slant(60.0, t).1);
     assert_eq!(on, due, "the track radar comes on only seconds before the envelope");
     assert!(slant(60.0, on).0 < 42_000.0);
-    assert_eq!(sim.launches()[0].0, first_tick(|t| t >= on + 5.0 && slant(60.0, t).0 <= 40_000.0));
+    assert_eq!(sim.launches()[0].0, first_tick(|t| t >= on + REACT + 5.0 && slant(60.0, t).0 <= LAUNCH));
 }
 
 #[test]
 fn s300_relocates_after_the_engagement() {
     let alt = Vec3::new(5000.0, 0.0, 0.0);
     let mut sim = Sim::new(Site::new(Kind::S300, Vec3::ZERO, 0.0, &[alt]), vec![inbound("a", 45.0, 0.0)]);
-    sim.run(30.0);
+    sim.run(45.0);
     assert_eq!(sim.launches().len(), 2);
     sim.targets.clear(); // shot down
     sim.run(19.5);
@@ -305,7 +311,7 @@ fn zsu_radar_and_optical_laying() {
     assert!(sim.log.iter().all(|(_, o, _)| o.tracks.len() <= 1), "one target at a time");
     let bursts: Vec<(f64, u32)> = sim.log.iter().flat_map(|(t, o, _)| o.bursts.iter().map(|b| (*t, b.2))).collect();
     assert!(sim.log[10].1.track && sim.log[10].1.tracks == ["a"], "a radar track");
-    assert_eq!(bursts[0], (2.0, 10), "bursts of 10 rounds once acquired");
+    assert_eq!(bursts[0], (REACT + 2.0, 10), "bursts of 10 rounds once acquired");
     assert!(bursts.windows(2).all(|w| w[1].0 - w[0].0 >= 3.0));
     assert_eq!(bursts.iter().map(|b| b.1).sum::<u32>(), 2000, "the load");
     assert!(sim.site.pos.x < -1000.0, "it fired on the move");
@@ -383,4 +389,63 @@ fn terrain_and_the_earth_curvature_mask() {
     // The radar horizon over flat ground: 6 m and 100 m see each other to about 51 km.
     assert!(!site.detects(&alive, &at(100.0, 60_000.0), &flat), "below the horizon");
     assert!(site.detects(&alive, &at(100.0, 45_000.0), &flat), "above it");
+}
+
+/// The crew's skill (docs/ai.md §17): the same radar finds the target at the same moment at every level; the track
+/// comes the reaction and the scaled acquisition later, the first launch at the level's share of the envelope, the
+/// salvo's spacing the same, the march order its scaled drill.
+#[test]
+fn skill_changes_the_crew_not_the_physics() {
+    let half = |s: f64| (s * 2.0).ceil() / 2.0;
+    let mut found = Vec::new();
+    for skill in [Skill::LOW, Skill::MEDIUM, Skill::HIGH] {
+        let mut site = Site::new(Kind::S300, Vec3::ZERO, 0.0, &[Vec3::new(5000.0, 0.0, 0.0)]);
+        site.skill = skill;
+        let mut sim = Sim::new(site, vec![inbound("a", 60.0, 0.0)]);
+        sim.run(120.0);
+        let seen = sim.first(|o| o.track).unwrap();
+        found.push(seen);
+        let lock = sim.first(|o| !o.tracks.is_empty()).unwrap();
+        assert_eq!(lock, seen + half(skill.reaction_s + 5.0 * skill.procedure), "{skill:?}");
+        let l = sim.launches();
+        let range = 3_000.0 + 37_000.0 * skill.launch_range;
+        assert_eq!(l[0].0, first_tick(|t| t >= lock && slant(60.0, t).0 <= range), "{skill:?}");
+        assert_eq!(l[1].0 - l[0].0, 3.0, "the same spacing: {skill:?}");
+        sim.targets.clear();
+        while !matches!(sim.site.mode, Mode::March(_)) {
+            sim.run(0.5);
+        }
+        let Mode::March(until) = sim.site.mode else { unreachable!() };
+        assert_eq!(until - (sim.now - 0.5), 300.0 * skill.procedure, "the march order: {skill:?}");
+    }
+    assert!(found.windows(2).all(|w| w[0] == w[1]), "the same detection: {found:?}");
+}
+
+/// The gun's laying error: each burst's error the same draw at every level, scaled by its aim, spread about it; the
+/// bursts' rounds and spacing the same.
+#[test]
+fn skill_sets_the_gun_laying_error() {
+    let bursts = |skill: Skill| {
+        let mut site = Site::new(Kind::Zsu, Vec3::new(100.0, 200.0, 0.0), 0.0, &[]);
+        site.skill = skill;
+        let t = Target { dlz: (2_250.0, 0.0), ..jet("a", "f16", Vec3::new(0.0, 1500.0, 300.0), Vec3::ZERO) };
+        let mut sim = Sim::new(site, vec![t]);
+        sim.run(120.0);
+        sim.log.iter().flat_map(|(t, o, _)| o.bursts.iter().map(|b| (*t, b.2, b.3))).collect::<Vec<_>>()
+    };
+    let levels = [bursts(Skill::LOW), bursts(Skill::MEDIUM), bursts(Skill::HIGH)];
+    for (b, skill) in levels.iter().zip([Skill::LOW, Skill::MEDIUM, Skill::HIGH]) {
+        assert!(b.len() >= 30 && b.iter().all(|x| x.1 == 10), "bursts of 10: {skill:?}");
+        assert!(b.windows(2).all(|w| w[1].0 - w[0].0 == 3.0), "3 s apart: {skill:?}");
+        let rms = (b.iter().map(|x| x.2[0] * x.2[0] + x.2[1] * x.2[1]).sum::<f64>() / (2 * b.len()) as f64).sqrt();
+        assert!((rms * 1000.0 / skill.aim_mrad - 1.0).abs() < 0.3, "spread {rms} about {} mrad", skill.aim_mrad);
+    }
+    let [low, medium, high] = &levels;
+    for ((l, m), h) in low.iter().zip(medium).zip(high).take(30) {
+        assert!(h.2 != [0.0, 0.0]);
+        for (e, aim) in [(l.2, Skill::LOW.aim_mrad), (m.2, Skill::MEDIUM.aim_mrad)] {
+            let r = aim / Skill::HIGH.aim_mrad;
+            assert!((e[0] - h.2[0] * r).abs() < 1e-12 && (e[1] - h.2[1] * r).abs() < 1e-12, "{e:?} {h:?}");
+        }
+    }
 }
