@@ -3,6 +3,14 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **Enemy fighter step 2: the intercept (2026-11-22, the user, 21 Nov: "Ok finish all enemies things you can",
+  "Ok, do it"; [ai-plan.md](ai-plan.md) K3, X4, X5; [../../docs/ai.md](../../docs/ai.md) §18.1):** an enemy pair of
+  MiG-29As on a CAP orbit or started in the air is vectored by the S-300 network's 64N6E2 and 54K6E2 onto a hostile
+  jet; it commits after the lead's reaction time, flies a collision course, shoots an R-27R or R-73 inside its skill's
+  share of the DLZ through combat.gd's launch, cranks, and defends against a missile by its tactics (beam, notch, drag,
+  break) with chaff or flares (`crates/iaf-ai/tests/intercept.rs`, `modern-iaf/tests/test_intercept.gd` through the
+  dev hook `ai_flights.gd` `enemy_flight`). No mission places one. CPU: about 3.9 µs per jet per frame for the Rust part on the build Mac, 0.17 ms per AI jet per frame on the laptop (with the scripted jet and the network). Open: the scramble from a base
+  (no enemy airbases yet, the user, 22 Nov); a missile shot has no aim error.
 - **Enemy fighter step 1: the MiG-29A flies (2026-11-22, the user, 21 Nov: "Ok finish all enemies things you can",
   "Ok, do it"; [ai-plan.md](ai-plan.md) K2, X2; [../../docs/ai.md](../../docs/ai.md) §18):** the MiG-29A is an AI type
   of its own aircraft definition (type 1020). Its 6-DoF set is TP-1538's tables on its wing with its masses, RD-33s and
@@ -48,7 +56,7 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   the terrain hides it; the data link lists it as hostile; the gun and the missiles bring it down through the existing
   damage path; it does not shoot. The shape is our own stand-in. No mission launches one: a dev hook
   (`shared/ai/drones.gd`) and the tests (`crates/iaf-ai/tests/drones.rs`, `modern-iaf/tests/test_enemy_drones.gd`).
-  Later: enemy-fighter BFM (K3 / K4), listed only.
+  Later: enemy-fighter BFM (K4), listed only.
 - **Enemy AI step 1: the air-defence sites (2026-11-19, the user: "we need to have the code for ai enemies. Just isn't
   reachable by mission yet", "They should take into consideration the stealth of the adir", "Also terrain shape etc.";
   [ai-plan.md](ai-plan.md) K5, K7; [../../docs/ai.md](../../docs/ai.md) §15):** the S-300PMU-2 battery (96L6E search,

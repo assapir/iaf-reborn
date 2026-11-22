@@ -17,15 +17,20 @@ pub struct Skill {
     /// The launch decision: the share of the envelope, from its minimum range out, a target must be inside before the
     /// crew fires a missile (a gun fires in its whole range).
     pub launch_range: f64,
+    /// The tactics a fighter may fly (docs/ai.md §18): 0 the plain ones (no crank after its shot; against a radar
+    /// missile the wingmen's beam at its height), 1 also the crank and the notch down into the look-down, 2 also the
+    /// drag from a radar missile launched from far.
+    pub tactics: u8,
 }
 
 impl Skill {
-    /// Low: slow to answer, slow drills, a wide laying error, firing as soon as the target is in the envelope.
-    pub const LOW: Skill = Skill { reaction_s: 3.0, procedure: 1.5, aim_mrad: 8.0, launch_range: 1.0 };
+    /// Low: slow to answer, slow drills, a wide laying error, firing as soon as the target is in the envelope, the plain
+    /// tactics.
+    pub const LOW: Skill = Skill { reaction_s: 3.0, procedure: 1.5, aim_mrad: 8.0, launch_range: 1.0, tactics: 0 };
     /// Medium: the types' nominal drills.
-    pub const MEDIUM: Skill = Skill { reaction_s: 1.0, procedure: 1.0, aim_mrad: 4.0, launch_range: 0.9 };
-    /// High: quick, tight laying, holding fire until the target is deep in the envelope.
-    pub const HIGH: Skill = Skill { reaction_s: 0.5, procedure: 0.75, aim_mrad: 2.0, launch_range: 0.8 };
+    pub const MEDIUM: Skill = Skill { reaction_s: 1.0, procedure: 1.0, aim_mrad: 4.0, launch_range: 0.9, tactics: 1 };
+    /// High: quick, tight laying, holding fire until the target is deep in the envelope, every tactic.
+    pub const HIGH: Skill = Skill { reaction_s: 0.5, procedure: 0.75, aim_mrad: 2.0, launch_range: 0.8, tactics: 2 };
     /// The wingmen's one skill, whatever the player picks for the enemy.
     pub const WINGMAN: Skill = Skill::MEDIUM;
 

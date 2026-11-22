@@ -3,13 +3,15 @@
 //! sets the AI jets' autopilot for their next `ap_step` (mode, leader, slot, engine start); the player's jet is read
 //! only but for its home hangar (`add_member`). `IafSite`: an air-defence site (`iaf_ai::site`, docs/ai.md §15)
 //! for `shared/ai/air_defence.gd`, `IafNet` their network (`iaf_ai::net`, §15.5). `IafSalvo`: one-way attack drones
-//! (`iaf_ai::drone`, §16) for `shared/ai/drones.gd`.
+//! (`iaf_ai::drone`, §16) for `shared/ai/drones.gd`. An `IafAi` made an enemy pair (`enemy`) flies the enemy
+//! fighter's trees (`iaf_ai::fighter`, §18); `IafGci` is a network's ground-controlled intercept (`iaf_ai::net::Gci`).
 
 use godot::prelude::*;
 use iaf_ai::drone::{SHAHED_136, Salvo};
-use iaf_ai::net::{self, Member, Net};
+use iaf_ai::fighter;
+use iaf_ai::net::{self, Gci, Member, Net};
 use iaf_ai::site::{self, Emcon, Kind, Site, Target};
-use iaf_ai::{Decoy, Flight, Skill, Threat};
+use iaf_ai::{Bogey, Decoy, Flight, Skill, Threat};
 use iaf_flight::Vec3;
 
 use crate::flight::{IafFlight, to_enu};
@@ -103,6 +105,35 @@ impl IafAi {
         self.flight.threat(number.clamp(0, 255) as u8, t);
     }
 
+    /// Makes the flight an enemy pair on station at the scene position `station` (a CAP orbit's centre at its height,
+    /// or where it was spawned in the air), every jet at the enemy's skill `level` (0 low, 1 medium, 2 high), after
+    /// its `add_member`s.
+    #[func]
+    fn enemy(&mut self, level: i64, station: Vector3) {
+        self.flight.enemy(Skill::enemy(level), to_enu(station));
+    }
+
+    /// An enemy pair's bogey this frame (scene positions and velocities): the ground's vector (`gci`: its track as the
+    /// network reckons it) and the jet as it is (`truth`), which a jet knows only while its own radar holds it.
+    #[func]
+    fn set_bogey(&mut self, gci: bool, gci_pos: Vector3, gci_vel: Vector3, truth: bool, pos: Vector3, vel: Vector3) {
+        let b = |p, v| Bogey { pos: to_enu(p), vel: to_enu(v) };
+        self.flight.bogey(gci.then(|| b(gci_pos, gci_vel)), truth.then(|| b(pos, vel)));
+    }
+
+    /// An enemy jet `number`'s weapons this frame: its selected missile's envelope against the bogey (m), a missile
+    /// left, its own missile flying at the bogey.
+    #[func]
+    fn set_weapons(&mut self, number: i64, max: f64, min: f64, armed: bool, in_air: bool) {
+        self.flight.weapons(number.clamp(0, 255) as u8, (max, min), armed, in_air);
+    }
+
+    /// An enemy jet `number` shoots at its bogey this frame (after `step`; the host's launch: combat.gd's).
+    #[func]
+    fn shoot(&self, number: i64) -> bool {
+        self.flight.member(number.clamp(0, 255) as u8).is_some_and(|m| m.order.shoot)
+    }
+
     /// An AWACS contact call at `now` (IafFlightController.scan's {bearing, miles, code}): an AI jet holding it in its
     /// radar reports "contact". Returns its number, 0 for none.
     #[func]
@@ -171,7 +202,43 @@ impl IafAi {
         d.set("fuel_kg", m.fuel_kg);
         d.set("bingo_kg", m.bingo_kg);
         d.set("released", m.released);
+        d.set("phase", m.enemy.phase);
+        d.set("committed", m.enemy.committed);
+        d.set("contact", m.enemy.contact);
         d
+    }
+}
+
+#[derive(GodotClass)]
+#[class(no_init, base = RefCounted)]
+pub struct IafGci {
+    gci: Gci,
+}
+
+#[godot_api]
+impl IafGci {
+    /// The ground-controlled intercept of a network whose 64N6E2 stands at `radar` (world).
+    #[func]
+    fn create(radar: Vector3) -> Gd<Self> {
+        Gd::from_object(Self { gci: Gci::new(vec3(radar)) })
+    }
+
+    /// One tick at `now` (s): the radar and the post alive (`up`), the jets hostile to the network (target
+    /// dictionaries as `IafSite.tick`'s; only id, pos, vel, nose, rcs, bays, stores are read), the terrain
+    /// (Callable(Vector3) -> float or null).
+    #[func]
+    fn tick(&mut self, now: f64, up: bool, jets: VarArray, ground: Callable) {
+        let jets: Vec<Target> =
+            jets.iter_shared().filter_map(|v| v.try_to::<VarDictionary>().ok()).map(|d| target(&d)).collect();
+        self.gci.tick(now, up, &jets, &terrain(Some(ground)));
+    }
+
+    /// The vector for fighters on station at `station` (world): {id, pos, vel} (world) of the track nearest it within
+    /// the commit range (`iaf_ai::fighter::COMMIT_M`), reckoned to `now`; empty for none.
+    #[func]
+    fn vector(&self, now: f64, station: Vector3) -> VarDictionary {
+        let Some(k) = self.gci.vector(now, vec3(station), fighter::COMMIT_M) else { return VarDictionary::new() };
+        vdict! { "id" => k.id.as_str(), "pos" => vector3(k.pos), "vel" => vector3(k.vel) }
     }
 }
 

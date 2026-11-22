@@ -3,7 +3,7 @@
 //! autonomous once the radar or the post is lost.
 
 use iaf_ai::Skill;
-use iaf_ai::net::{Member, Net, SCAN};
+use iaf_ai::net::{Gci, Member, Net, SCAN};
 use iaf_ai::site::{Emcon, FIGHTER, Kind, Out, Site, Target};
 use iaf_flight::{Vec3, airframe};
 
@@ -270,4 +270,33 @@ fn losing_the_radar_or_the_post_leaves_the_sites_autonomous() {
         sim.run(1.0);
         assert!(sim.sites[0].net, "restored");
     }
+}
+
+#[test]
+fn gci_vectors_the_nearest_sweep_track() {
+    // docs/ai.md §18: the 64N6E2's sweeps make the vector, a track reckoned between them; the nearest to the station
+    // within the reach; lost with the radar or the post; a jet out of the sweeps drops after two of them.
+    let radar = Vec3::ZERO;
+    let station = Vec3::new(0.0, 50_000.0, 6000.0);
+    let mut gci = Gci::new(radar);
+    let a = jet("a", Vec3::new(0.0, 150_000.0, 6000.0), Vec3::new(0.0, -250.0, 0.0));
+    let b = jet("b", Vec3::new(30_000.0, 180_000.0, 6000.0), Vec3::new(0.0, -250.0, 0.0));
+    let far = jet("far", Vec3::new(0.0, 400_000.0, 6000.0), Vec3::new(0.0, -250.0, 0.0));
+    let all = [a.clone(), b.clone(), far.clone()];
+    gci.tick(0.0, true, &all, &flat);
+    assert_eq!(gci.tracks.len(), 2, "the jet past the radar's reach is not seen");
+    // Reckoned 6 s later (no sweep yet): 1.5 km nearer.
+    gci.tick(6.0, true, &all, &flat);
+    let v = gci.vector(6.0, station, 120_000.0).expect("a vector");
+    assert_eq!(v.id, "a");
+    assert!((v.pos.y - 148_500.0).abs() < 1e-6, "{:?}", v.pos);
+    assert!(gci.vector(6.0, station, 90_000.0).is_none(), "both outside the reach");
+    // A jet the sweeps no longer see (gone from the jets) drops; the next sweep is at 12 s.
+    gci.tick(SCAN, true, std::slice::from_ref(&b), &flat);
+    assert_eq!(gci.tracks.iter().map(|k| k.id.as_str()).collect::<Vec<_>>(), ["b"]);
+    // Lost: no picture; restored, it sweeps at once.
+    gci.tick(13.0, false, std::slice::from_ref(&b), &flat);
+    assert!(gci.tracks.is_empty());
+    gci.tick(13.5, true, &[b], &flat);
+    assert_eq!(gci.tracks.len(), 1);
 }

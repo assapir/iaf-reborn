@@ -10,7 +10,7 @@ use iaf_flight::autopilot::{MODE_SLOT, MODE_STEER};
 /// Inferred: each wingman starts its engine this long after the one before it (#2 this long after the clearance).
 pub const START_STEP_S: f64 = 3.0;
 
-fn idle(_: &mut Member) -> Status {
+pub(crate) fn idle(_: &mut Member) -> Status {
     Status::Running
 }
 
@@ -60,7 +60,7 @@ fn rtb_own(m: &mut Member) -> Status {
 
 /// The slot on the flight lead; a join-up (from the take-off or the way home) comes in stepped down and calls "in
 /// position" there, as a change of slots does.
-fn keep_slot(m: &mut Member) -> Status {
+pub(crate) fn keep_slot(m: &mut Member) -> Status {
     if m.mode != MODE_SLOT {
         (m.transit, m.report) = (true, true);
     }
@@ -68,13 +68,13 @@ fn keep_slot(m: &mut Member) -> Status {
 }
 
 /// Element 2's lead while split: to its task's point and round it ([`crate::Flight::split`]).
-fn fly_task(m: &mut Member) -> Status {
+pub(crate) fn fly_task(m: &mut Member) -> Status {
     m.order.steer = m.task;
     set_mode(m, MODE_STEER)
 }
 
 /// In the air with the gear up: a threat on it is answered ([`defend`]).
-fn flying(m: &Member) -> bool {
+pub(crate) fn flying(m: &Member) -> bool {
     m.airborne && !m.v.on_ground && !m.v.gear_down
 }
 

@@ -1327,7 +1327,7 @@ skill (`iaf_ai::Skill`, `crates/iaf-ai/src/skill.rs`; modern-iaf/docs/ai-plan.md
 does, never the physics: the radars' reach, the missiles, the guns' rounds and the airframes stay the same at every
 level. The pilot picks the enemy's level on the Pilot screen (modern-iaf/docs/front-end.md §3); it is stored with the
 pilot (`pilots.skill`, modern-iaf/docs/storage.md), Medium for a pilot who never picked. The wingmen and every
-friendly flight keep `Skill::WINGMAN`, the Medium figures, whatever the pilot picks. The enemy fighters to come read
+friendly flight keep `Skill::WINGMAN`, the Medium figures, whatever the pilot picks. The enemy fighters (§18) read
 the same struct.
 
 | | Low | Medium | High |
@@ -1336,6 +1336,7 @@ the same struct.
 | the crew's drills, share of the type's nominal times | 1.5 | 1.0 | 0.75 |
 | the gun's laying error, each way (mrad, one standard deviation) | 8 | 4 | 2 |
 | the missile launch range, share of the envelope from its minimum range out | 1.0 | 0.9 | 0.8 |
+| a fighter's tactics (§18) | the plain ones | the crank, the notch | the crank, the notch, the drag |
 
 Every figure is inferred: no source grades crews in numbers. The names are the front end's words for the same scale,
 "נמוכה / בינונית / גבוהה" (Low / Medium / High, as the Settings' cost column); "מיומנות" is the IDF's word for a
@@ -1354,6 +1355,9 @@ What each level changes in the enemy we have:
   the level's mrad (`Skill::lay`: a seeded hash per site and burst, so a run repeats). `air_defence.gd` passes it to
   `combat.gd fire_at`, which moves the aim point by it (straight overhead, about the east axis); the rounds then fly
   the existing round model. A gun fires in its whole range at every level.
+- **The fighters** (§18; `IafAi.enemy`, from `Settings.enemy_skill()`): the lead commits after its reaction; each jet
+  shoots inside its share of the missile's envelope; its tactics pick the turns after its shot and against a missile.
+  A wingman's or a fighter's gun aim waits for the dogfight (K4).
 - **The drones** (§16): none. A Shahed-136 flies a programmed route; it has no crew, no reaction and no shot.
 
 Check: `cargo test -p iaf-ai --test sites skill` (each level's track, first launch and march order against the same
@@ -1380,8 +1384,50 @@ MiG-29 first (modern-iaf/docs/ai-plan.md K2–K4). Step 1 (K2, 2026-11-22): the 
   its modes (take-off 9, the waypoints 7, the landing 8), as a brain's rules would.
 - **Its damage.** A hit breaks one engine of two: the definition's `engines` 2 makes it a twin (`ai_flights.gd`
   `_twin`; the 1998 jets keep the type-code table `PlayerAircraft.TWIN`).
-- **Later:** the intercept, commit, BVR shot and defence (K3), the dogfight (K4); the type-keyed tables (the RWR's
-  symbol, the radio's type name) have no row for 1020 yet, which K3 needs once it radiates and shoots.
+- **On the scopes.** Type 1020 shows as the MiG-29 on the threat warning display ("29", `ews.rs`) and in the radio's
+  calls ("MIG29", `fctrl.rs`).
+
+### 18.1 The intercept (K3)
+
+Step 2 (2026-11-22). There are no enemy airbases yet (the user, 22 Nov), so a pair starts on station: a CAP orbit, or
+where it was spawned in the air. The dev hook is `ai_flights.gd` `enemy_flight(ents, station, net)`: the jets from
+`spawn`, the station (world), and the network (an `air_defence.gd` network, {} for none). It makes an `IafAi` an enemy
+pair (`IafAi.enemy`, `Flight::enemy`) with the enemy trees (`crates/iaf-ai/src/fighter.rs`); the flight's slots, far
+rejoin, collision avoidance and threat reactions are the wingmen's (§8.7, §8.8). The pair holds line abreast.
+
+The opposing force relies on its vectoring posts to "redirect fighters in flight to the proper location at the most
+opportune time"; Iran's fighter control sits in the KADHQ's radar network
+(modern-iaf/docs/research/enemies.md §5.1). So the network's 64N6E2 and 54K6E2 (§15.5) vector the pair: `IafGci`
+(`net::Gci`) keeps a picture of the jets the radar's sweeps see (every 12 s, the sites' radar rule), reckons each track
+on at its last velocity between sweeps, and gives the pair the track nearest its station inside the commit range. With
+the radar or the post out of action, or with no network, the pair has only its own radar: the host gives the nearest
+hostile jet, which the pair knows only while its radar holds it.
+
+| leaf | what it does | figures (all inferred) |
+|---|---|---|
+| CAP | the lead orbits its station clockwise at the station's height, steering at the point 30° ahead on the circle; the wingman keeps its slot | radius 15 km, 2 g, 220 m/s |
+| commit | a bogey inside the commit range of the station, with a missile left: the pair commits after the lead's reaction time | 90 km |
+| intercept | the collision course at the bogey (the point where the two meet flying straight; pure pursuit when it cannot be caught) | 4 g, 300 m/s, at most 120 s ahead |
+| shot | committed, its own radar holding the bogey, a missile left and none of its own flying at it, the bogey inside its share of the envelope (§17): `Order::shoot`; the host fires through `combat.gd`'s launch (the envelope, the cone, the fire gate) | the radar: 74 km, ±60° (the wingmen's) |
+| crank | its missile flying, the radar holding the bogey: the bogey 50° off the nose on the side it is on (tactics 1 and up) | 250 m/s |
+| defence | a missile at it, after its reaction (a lock alone does not stop the attack): an infrared one the break into it; a radar one the beam at its height (tactics 0), the notch down into the look-down, the missile beamed (1), the drag, a 4 g turn away then full power going down, while the missile is farther than 20 km, inside that the notch (2); chaff or flares each decision, the 5 s clear (§8.8) | the descent: the steer point 500 m below, near 10°, down to 500 m above the ground; drag 400 m/s |
+| back | the bogey lost, past 150 km from the station, or nothing left to shoot with none flying: back to the CAP | 150 km |
+
+- **The host** (`ai_flights.gd` `_step_enemy`, each frame after every jet's step): the bogey (`IafAi.set_bogey`: the
+  vector, the jet as it is), each jet's threat (its RWR's locks and the missiles at it, as the wingmen's, now by side),
+  its weapons (`set_weapons`: `_pick_aa` selects, of the missiles left, the one with the shortest reach whose envelope
+  holds the bogey, else the farthest reaching, and gives its DLZ), then the shots (`combat.gd` action 300), the decoys
+  (310 / 320) and its radar's lock on the bogey while it holds it (`combat.gd on_lock`: the target's RWR). A jet from
+  `spawn` gets its `combat.gd` unit with the stores of its record (`combat.adopt`).
+- **The missiles** are the records the MiG-29A carries (the R-27R, a semi-active radar missile, type 610; the R-73,
+  infrared) on the existing physical missile; no support by the shooter's radar is modelled (the 1998 model's).
+- **Tests:** `cargo test -p iaf-ai --test intercept` (a MiG-29A pair on the 6-DoF against a scripted bogey: one test
+  per leaf, each skill's commit time, shot range, crank and defence), `--test net gci` (the picture), `fighter::tests`
+  (the collision course, the orbit, the crank, the window); `modern-iaf/tests/test_intercept.gd` (headless: a pair on
+  a CAP vectored onto a scripted jet, commits, locks, shoots, notches a radar missile).
+- **Open:** a scramble from a base (no enemy airbases yet); the fighters' own radar is the wingmen's reach and cone,
+  without the ground clutter or the target's cross-section; the pairing of several pairs to several raids (each pair
+  takes the track nearest its station); the dogfight (K4).
 
 ## UNCERTAIN
 Open questions in this document:

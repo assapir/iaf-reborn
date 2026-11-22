@@ -119,3 +119,69 @@ impl Net {
         cues
     }
 }
+
+/// A jet of the command post's picture as the last sweep saw it.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Track {
+    pub id: String,
+    pub pos: Vec3,
+    pub vel: Vec3,
+    pub seen: f64,
+}
+
+impl Track {
+    /// Where the post reckons it at `now`: the sweep's position flown on at its velocity.
+    pub fn at(&self, now: f64) -> Vec3 {
+        self.pos + self.vel * (now - self.seen)
+    }
+}
+
+/// The ground-controlled intercept (docs/ai.md §18): the network's 64N6E2 and 54K6E2 vector the enemy fighters onto
+/// the jets the radar's sweeps see, as the opposing force's vectoring posts do (TC 7-100.2 §10-32–§10-35; Iran's
+/// fighter control sits in the KADHQ's radar network, modern-iaf/docs/research/enemies.md §5.1).
+#[derive(Clone, Debug, Default)]
+pub struct Gci {
+    pub radar: Vec3,
+    pub tracks: Vec<Track>,
+    next_scan: f64,
+}
+
+impl Gci {
+    pub fn new(radar: Vec3) -> Gci {
+        Gci { radar, ..Gci::default() }
+    }
+
+    /// One tick at `now`: with the search radar and the post alive (`up`), a sweep every [`SCAN`] adds or refreshes
+    /// the `jets` the radar sees (the sites' rule: the cross-section, the terrain, the earth's curvature); a track not
+    /// seen for two sweeps drops. Lost, the picture is cleared; restored, it sweeps at once.
+    pub fn tick(&mut self, now: f64, up: bool, jets: &[Target], terrain: &dyn Fn(Vec3) -> Option<f64>) {
+        if !up {
+            *self = Gci::new(self.radar);
+            return;
+        }
+        if now >= self.next_scan {
+            self.next_scan = now + SCAN;
+            let eye = self.radar.raised(ANTENNA);
+            for t in jets.iter().filter(|t| Site::sees(eye, REACH, t, terrain)) {
+                let track = Track { id: t.id.clone(), pos: t.pos, vel: t.vel, seen: now };
+                match self.tracks.iter_mut().find(|k| k.id == t.id) {
+                    Some(k) => *k = track,
+                    None => self.tracks.push(track),
+                }
+            }
+        }
+        self.tracks.retain(|k| now - k.seen <= STALE && jets.iter().any(|t| t.id == k.id));
+    }
+
+    /// The vector for fighters on station at `station`: the track nearest it (horizontally) within `reach` m, reckoned
+    /// to `now`. (ponytail: every pair takes the nearest; a pairing of fighters to tracks once a mission flies two
+    /// pairs against two raids.)
+    pub fn vector(&self, now: f64, station: Vec3, reach: f64) -> Option<Track> {
+        let flat = |p: Vec3| (p[0] - station[0]).hypot(p[1] - station[1]);
+        self.tracks
+            .iter()
+            .map(|k| Track { pos: k.at(now), seen: now, ..k.clone() })
+            .filter(|k| flat(k.pos) <= reach)
+            .min_by(|a, b| flat(a.pos).total_cmp(&flat(b.pos)))
+    }
+}

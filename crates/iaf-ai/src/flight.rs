@@ -5,6 +5,7 @@
 //! inferred unless a doc says otherwise.
 
 use crate::bt::{Node, Status};
+use crate::fighter::{self, Bogey, Enemy};
 use crate::skill::Skill;
 use crate::wingman;
 use iaf_flight::Vec3;
@@ -47,7 +48,8 @@ const ACC_S: f64 = 0.3;
 const AVOID_CLEAR_M: f64 = 100.0;
 /// A slot is reached (the transit's end; "in position") within this, m.
 const IN_POSITION_M: f32 = 50.0;
-/// The index of "trail" in [`SHAPES`].
+/// The indices of "line_abreast" and "trail" in [`SHAPES`].
+const LINE_ABREAST: usize = 1;
 const TRAIL: usize = 2;
 /// Who leads when the lead is lost: #3 is the deputy (ai-plan F6).
 const PROMOTION: [u8; 4] = [1, 3, 2, 4];
@@ -132,6 +134,8 @@ pub struct Order {
     pub steer: Option<Steer>,
     /// A decoy to release now (the host's release path and decoy rule; one each 4 s at most, combat.gd).
     pub decoy: Option<Decoy>,
+    /// An enemy fighter: its missile at the bogey now (the host's launch, combat.gd).
+    pub shoot: bool,
 }
 
 /// One jet of the flight: what it is this frame ([`Flight::sense`]) and the AI's memory of it. The trees read and
@@ -194,6 +198,8 @@ pub struct Member {
     pub task: Option<Steer>,
     /// Engages the player's target ([`Flight::engage`]).
     pub engaging: bool,
+    /// An enemy fighter's facts and memory ([`Flight::enemy`]).
+    pub enemy: Enemy,
 }
 
 /// The flight.
@@ -215,6 +221,10 @@ pub struct Flight {
     target: Option<Vec3>,
     wingman: Node<Member>,
     lead_tree: Node<Member>,
+    /// An enemy pair ([`Flight::enemy`]): its station; the ground's vector and the bogey as it is ([`Flight::bogey`]).
+    station: Option<Vec3>,
+    gci: Option<Bogey>,
+    truth: Option<Bogey>,
 }
 
 impl Default for Flight {
@@ -233,6 +243,9 @@ impl Default for Flight {
             target: None,
             wingman: wingman::wingman(),
             lead_tree: wingman::lead(),
+            station: None,
+            gci: None,
+            truth: None,
         }
     }
 }
@@ -245,6 +258,13 @@ fn leader_of(m: &Member) -> Leader {
 
 fn flat(a: Vec3, b: Vec3) -> f64 {
     (a[0] - b[0]).hypot(a[1] - b[1])
+}
+
+/// `at` inside `m`'s radar's reach and cone ([`RADAR`]).
+fn in_radar(m: &Member, at: Vec3) -> bool {
+    let (d, v) = (at - m.v.pos, m.v.vel);
+    let off = (v[0] * d[1] - v[1] * d[0]).atan2(v[0] * d[0] + v[1] * d[1]).abs().to_degrees();
+    flat(at, m.v.pos) < RADAR.0 && off < RADAR.1
 }
 
 impl Flight {
@@ -306,6 +326,7 @@ impl Flight {
             clear_since: None,
             task: None,
             engaging: false,
+            enemy: Enemy::default(),
         });
         self.members.sort_by_key(|m| m.number);
         self.lead = 0;
@@ -416,6 +437,31 @@ impl Flight {
         }
     }
 
+    /// Makes the flight an enemy pair (or four; docs/ai.md §18) on station at `station`, every jet at `skill`: the
+    /// enemy trees ([`fighter::lead`], [`fighter::wingman`]) in line abreast. Call it after adding its jets.
+    pub fn enemy(&mut self, skill: Skill, station: Vec3) {
+        (self.lead_tree, self.wingman) = (fighter::lead(), fighter::wingman());
+        (self.station, self.shape) = (Some(station), LINE_ABREAST);
+        for m in &mut self.members {
+            m.skill = skill;
+        }
+    }
+
+    /// An enemy pair's bogey this frame: the ground's vector (`gci`, its track as the network reckons it) and the jet
+    /// as it is (`truth`), which a jet knows only while its radar holds it ([`RADAR`]); None, none.
+    pub fn bogey(&mut self, gci: Option<Bogey>, truth: Option<Bogey>) {
+        (self.gci, self.truth) = (gci, truth);
+    }
+
+    /// An enemy jet `number`'s weapons this frame (the host's): its selected missile's envelope against the bogey (m:
+    /// max, min), a missile left, its own missile flying at the bogey.
+    pub fn weapons(&mut self, number: u8, dlz: (f64, f64), armed: bool, in_air: bool) {
+        if let Some(i) = self.index(number) {
+            let e = &mut self.members[i].enemy;
+            (e.dlz, e.armed, e.in_air) = (dlz, armed, in_air);
+        }
+    }
+
     /// An AWACS contact call (fctrl.rs) at `now`: the contact's compass bearing (deg) and range (NM) from the player's
     /// jet (else the lead's); `enemy`: hostile or unidentified. The first AI jet by number holding it in its radar's
     /// reach and cone ([`RADAR`]) reports "contact" after its reaction time. Returns its number, 0 for none.
@@ -428,11 +474,9 @@ impl Flight {
         let at = from.v.pos + Vec3::new(b.sin(), b.cos(), 0.0) * (miles * 1852.0);
         // ponytail: every AWACS call is answered once by the first jet that holds it; a memory of contacts reported
         // when the repeats grow too chatty.
-        let Some(m) = self.members.iter().find(|m| {
-            let (d, v) = (at - m.v.pos, m.v.vel);
-            let off = (v[0] * d[1] - v[1] * d[0]).atan2(v[0] * d[0] + v[1] * d[1]).abs().to_degrees();
-            m.ai && m.alive && m.airborne && !m.landed && !m.defending && flat(at, m.v.pos) < RADAR.0 && off < RADAR.1
-        }) else {
+        let Some(m) =
+            self.members.iter().find(|m| m.ai && m.alive && m.airborne && !m.landed && !m.defending && in_radar(m, at))
+        else {
             return 0;
         };
         self.calls.push((now + m.skill.reaction_s, Call { from: m.number, id: "contact" }));
@@ -607,6 +651,7 @@ impl Flight {
             m.released = true;
             self.last_release = now;
         }
+        let committed = self.members[self.lead].enemy.committed;
         let base = SHAPES[self.shape].1;
         let table = |n: u8| if (2..=4).contains(&n) { base[n as usize - 2] } else { [0.0; 3] };
         let home = self.home;
@@ -664,7 +709,15 @@ impl Flight {
             let own = engage.or(if m.number == 3 { self.split } else { None });
             m.rejoining = own.is_none() && rejoin.is_some();
             m.task = own.or(rejoin);
-            (m.order.mode, m.order.decoy) = (None, None);
+            (m.order.mode, m.order.decoy, m.order.shoot) = (None, None, false);
+            if let Some(st) = self.station {
+                let contact = self.truth.filter(|b| in_radar(m, b.pos));
+                let e = &mut m.enemy;
+                (e.station, e.contact, e.bogey) = (st, contact.is_some(), contact.or(self.gci));
+                if i != self.lead {
+                    e.committed = committed;
+                }
+            }
             if i == self.lead {
                 self.lead_tree.tick(m)
             } else {

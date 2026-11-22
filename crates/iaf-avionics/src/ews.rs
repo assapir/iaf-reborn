@@ -46,7 +46,8 @@ pub enum Kind {
 }
 
 /// A threat's class and label by its type code (inferred from the dash-34's figs. 1-133 / 1-134: the aircraft by its
-/// number, a SAM by its digit, AAA by a letter). Codes from 1000 are Modern IAF's (1000 = the F-35).
+/// number, a SAM by its digit, AAA by a letter). Codes from 1000 are Modern IAF's (1000 = the F-35, 1020 = the
+/// MiG-29A).
 pub fn identify(type_code: i64) -> (Kind, &'static str) {
     use Kind::*;
     match type_code {
@@ -61,6 +62,7 @@ pub fn identify(type_code: i64) -> (Kind, &'static str) {
         180 => (Air, "29"),
         190 => (Air, "M3"),
         1000 => (Air, "35"),
+        1020 => (Air, "29"),
         290 => (Sam, "2"),
         300 => (Sam, "3"),
         310 => (Sam, "5"),

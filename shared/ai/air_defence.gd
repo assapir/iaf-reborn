@@ -29,8 +29,8 @@ var cb: Node  # combat.gd
 ## key]], gun {part, key, left, next, err (the laying error)}: the burst firing, cued {target key: true}: the
 ## network's cues (EMCON cue), next (the next tick)}.
 var sites: Array = []
-## Each network: {net (IafNet), ents [the 64N6E2, the 54K6E2], sites (its members' site records), next (the next
-## tick)}.
+## Each network: {net (IafNet), gci (IafGci: its vector for the enemy fighters, ai_flights.gd enemy_flight), ents [the
+## 64N6E2, the 54K6E2], sites (its members' site records), next (the next tick)}.
 var nets: Array = []
 var _n := 0
 
@@ -93,8 +93,18 @@ func spawn_net(radar_pos: Vector3, post_pos: Vector3, members: Array, heading :=
 	var ents := []
 	for i in parts.size():
 		ents.append(_part(parts[i], at[i], heading, side))
-	nets.append({"net": IafNet.create(at[0]), "ents": ents, "sites": members, "next": float(host.runtime.now)})
+	var n := {"net": IafNet.create(at[0]), "gci": IafGci.create(at[0]), "ents": ents, "sites": members}
+	n["next"] = float(host.runtime.now)
+	nets.append(n)
 	return ents
+
+
+## The network whose 64N6E2 or 54K6E2 is `ent`, {} none (an enemy flight's ground control).
+func net_of(ent: Dictionary) -> Dictionary:
+	for n in nets:
+		if n.ents.any(func(e): return is_same(e, ent)):
+			return n
+	return {}
 
 
 ## The side −1 stands for: the player's enemy.
@@ -163,6 +173,7 @@ func _net_tick(n: Dictionary, now: float) -> void:
 		func(s): return [s.site, s.ents.map(func(e): return int(e.state) < 3), _targets(s)]
 	)
 	var cues: Array = n.net.tick(now, up[0], up[1], members, host.mission_ground)
+	n.gci.tick(now, up[0] and up[1], jets(n.ents[0].side), host.mission_ground)
 	for i in n.sites.size():
 		n.sites[i].cued = {}
 		for key in cues[i]:
@@ -246,44 +257,54 @@ func _fire_gun(s: Dictionary, now: float) -> void:
 		cb.fire_at(u, host.runtime.entities.get(g.key, {}), now, false, g.err)
 
 
-## The jets hostile to the site, alive: the player and the AI aircraft, each with what the site's radar sees of it
-## (its definition's rcs, the bays, the external stores) and the launch envelope from the site's first launcher.
-func _targets(s: Dictionary) -> Array:
+## The jets hostile to `side`, alive: the player and the AI aircraft, each with what a radar sees of it (its
+## definition's rcs, the bays, the external stores): {id, pos, vel, nose, rcs, bays, stores, ent}.
+func jets(side: int) -> Array:
 	var rt: Node = host.runtime
 	var w: Node = host.weapons
-	var side: int = s.ents[0].side
-	var shooters: Array = s.units.filter(func(x): return x != null)
-	var u = shooters[0] if not shooters.is_empty() else null
-	var from: Vector3 = rt._world_of(u.ent if u != null else s.ents[0])
 	var out := []
 	for e in rt.entities.values():
 		if e.side == side or int(e.state) >= 4 or not (e.player or (e.klass in cb.AIR and e.node != null)):
 			continue
-		var pos: Vector3 = rt._world_of(e)
 		var vel: Vector3 = cb._velocity_of(e)
 		var stores = w.stores if e.player else cb.units.get(e.key, {}).get("stores")
+		(
+			out
+			. append(
+				{
+					"id": String(e.key),
+					"pos": rt._world_of(e),
+					"vel": vel,
+					"nose": vel.normalized() if vel.length() > 1.0 else Vector3(0, 1, 0),
+					"rcs": Settings.airframe(w.jet_type if e.player else int(e.type_code)).get("rcs"),
+					"bays": e.player and w.bay_open(),
+					"stores": stores.external() if stores != null else 0,
+					"ent": e,
+				}
+			)
+		)
+	return out
+
+
+## The jets hostile to the site (`jets`), each with the network's cue, the launch envelope from the site's first
+## launcher and the site's missiles flying at it.
+func _targets(s: Dictionary) -> Array:
+	var w: Node = host.weapons
+	var shooters: Array = s.units.filter(func(x): return x != null)
+	var u = shooters[0] if not shooters.is_empty() else null
+	var from: Vector3 = host.runtime._world_of(u.ent if u != null else s.ents[0])
+	var out := jets(s.ents[0].side)
+	for t in out:
 		var dlz := Vector2.ZERO
 		if u != null and u.rounds != null:
 			dlz = Vector2(u.range_m, 0.0)
 		elif u != null:
-			var own := {"pos": from, "fwd": (pos - from).normalized(), "vel": Vector3.ZERO}
-			var env: Array = Missile.dlz(w._motion(u.w), own, {"pos": pos, "vel": vel})
+			var own := {"pos": from, "fwd": (t.pos - from).normalized(), "vel": Vector3.ZERO}
+			var env: Array = Missile.dlz(w._motion(u.w), own, {"pos": t.pos, "vel": t.vel})
 			dlz = Vector2(env[0], env[1])
-		var key: String = e.key
-		out.append(
-			{
-				"id": key,
-				"pos": pos,
-				"vel": vel,
-				"nose": vel.normalized() if vel.length() > 1.0 else Vector3(0, 1, 0),
-				"rcs": Settings.airframe(w.jet_type if e.player else int(e.type_code)).get("rcs"),
-				"bays": e.player and w.bay_open(),
-				"stores": stores.external() if stores != null else 0,
-				"cued": s.cued.has(key),
-				"dlz": dlz,
-				"in_air": s.flying.filter(func(f): return f[1] == key).size(),
-			}
-		)
+		t["cued"] = s.cued.has(t.id)
+		t["dlz"] = dlz
+		t["in_air"] = s.flying.filter(func(f): return f[1] == t.id).size()
 	return out
 
 

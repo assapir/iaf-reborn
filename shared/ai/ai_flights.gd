@@ -13,6 +13,7 @@ const MissionRuntime := preload("res://shared/mission/mission_runtime.gd")
 const DamageModel := preload("res://shared/mission/damage_model.gd")
 const PlayerAircraft := preload("res://shared/aircraft/player_aircraft.gd")
 const FlightSounds := preload("res://shared/audio/flight_sounds.gd")
+const AirDefence := preload("res://shared/ai/air_defence.gd")
 const CLASS_AIRCRAFT := 0x1c
 const CLASS_TRANSPORT := 3
 ## FUN_004a9100: the FM start velocity (200, 200, 0) → 282.84 m/s along the heading.
@@ -32,6 +33,10 @@ var _ai_members: Array = []
 var flight_calls: Array = []
 ## The target the flight engages (the radio menu's "engage my target", engage), {} none.
 var engage_ent := {}
+## Modern IAF's enemy fighter flights (enemy_flight, docs/ai.md §18): {ai (IafAi), members [[number, entity]], net (its
+## ground control: an air_defence.gd network, {} none), station (world), bogey (the entity it is set on), locks {number:
+## target key}}.
+var enemy_flights: Array = []
 ## The CPU time the AI jets took (this node's _process: flight model, autopilot, AI, model and sound), µs, over
 ## `cost_frames` frames (modern-iaf/docs/ai-plan.md X5); a test resets both.
 var cost_us := 0
@@ -189,7 +194,28 @@ func spawn(unit: String, at: Vector3, heading: float, route: Array, side := -1) 
 	if not _launch(ent, formation, plane, Settings.own_dir(), pr):
 		runtime.entities.erase(ent.key)
 		return {}
+	if combat != null:
+		combat.adopt(ent, [])  # its stores and weapons from its record, as a mission's jet
 	return ent
+
+
+## Ours (a dev / test hook, docs/ai.md §18; no mission places one yet): the AI jets `ents` (from `spawn`, in the air)
+## fly as an enemy pair under IafAi on station at `station` (world: a CAP orbit's centre at its height, or where they
+## were spawned), vectored by the network `net` (an air_defence.gd network: its IafGci; {} none: its own radar only),
+## at the pilot's enemy skill. The flight, null when fewer than one jet could join.
+func enemy_flight(ents: Array, station: Vector3, net := {}) -> RefCounted:
+	var ai = ClassDB.instantiate("IafAi")
+	var members := []
+	for k in ents.size():
+		var p = ents[k].get("pilot")
+		if p != null and ai.add_member(p.flight, k + 1, true):
+			p.by_ai = true
+			members.append([k + 1, ents[k]])
+	if members.is_empty():
+		return null
+	ai.enemy(Settings.enemy_skill(), host.world_to_scene(station))
+	enemy_flights.append({"ai": ai, "members": members, "net": net, "station": station, "bogey": {}, "locks": {}})
+	return ai
 
 
 ## An AI jet's pilot for `ent` in `formation` on `plane`: its flight model started and its model attached (`pr`: its
@@ -451,7 +477,7 @@ func _threat_of(ent: Dictionary) -> Array:
 	if best[0] == 0:
 		for o in ent.get("locked_by", {}).values():
 			# (A friendly radar's lock, the player's included, is no threat; a dead unit never sends its unlock.)
-			if not host.enemy_of_player(o) or int(o.get("state", 0)) >= 3:
+			if int(o.get("side", -1)) == int(ent.side) or int(o.get("state", 0)) >= 3:
 				continue
 			var p := world_of(o)
 			if p.distance_to(me) < d:
@@ -460,6 +486,101 @@ func _threat_of(ent: Dictionary) -> Array:
 	if best[0] != 0:
 		best[1] = host.world_to_scene(best[1])
 	return best
+
+
+## An enemy flight's frame (docs/ai.md §18), after every jet's step: its bogey (the network's vector while its radar
+## and post stand, else the nearest hostile jet, which only its own radar can find), each jet's threat and weapons,
+## the orders; then its shots and decoys through combat.gd, and its radar's lock on the bogey while it holds it.
+func _step_enemy(f: Dictionary, now: float) -> void:
+	var lead: Dictionary = f.members[0][1]
+	var side := int(lead.side)
+	var gci := {}
+	var n: Dictionary = f.net
+	if not n.is_empty() and n.ents.all(func(e): return int(e.state) < 3):
+		gci = n.gci.vector(now, f.station)
+	var t: Dictionary = runtime.entities.get(gci.get("id", ""), {})
+	if gci.is_empty():
+		var near := INF
+		var jets: Array = AirDefence.of(host).jets(side)
+		for m in f.members:
+			if int(m[1].state) >= 3:
+				continue
+			for j in jets:
+				var d: float = j.pos.distance_to(world_of(m[1]))
+				if d < near:
+					near = d
+					t = j.ent
+	f.bogey = t
+	var tw: Vector3 = world_of(t) if not t.is_empty() else Vector3.ZERO
+	var tv: Vector3 = combat._velocity_of(t) if not t.is_empty() else Vector3.ZERO
+	f.ai.set_bogey(
+		not gci.is_empty(),
+		host.world_to_scene(gci.get("pos", Vector3.ZERO)),
+		Terrain.dir_to_scene(gci.get("vel", Vector3.ZERO)),
+		not t.is_empty(),
+		host.world_to_scene(tw),
+		Terrain.dir_to_scene(tv)
+	)
+	var w = host.get("weapons")
+	for m in f.members:
+		var ent: Dictionary = m[1]
+		f.ai.set_alive(m[0], int(ent.state) < 3)
+		var th := _threat_of(ent)
+		f.ai.set_threat(m[0], th[0], th[1])
+		var u = combat.units.get(ent.key)
+		var env: Array = _pick_aa(u, t) if u != null and not t.is_empty() else [0.0, 0.0, false]
+		var mine := func(mis): return not mis.ended and is_same(mis.get_meta("owner", {}), ent)
+		var flying: bool = (
+			w != null and w.missiles.any(func(mis): return mine.call(mis) and mis.target_key == t.get("key"))
+		)
+		f.ai.set_weapons(m[0], env[0], env[1], env[2], flying)
+	f.ai.step(now)  # (the enemy's radio calls are not heard)
+	for m in f.members:
+		var ent: Dictionary = m[1]
+		var alive := int(ent.state) < 3
+		if alive and f.ai.shoot(m[0]):
+			combat.combat(ent, "300", t)
+		var d: int = f.ai.decoy(m[0]) if alive else 0
+		if d > 0:
+			combat.combat(ent, "320" if d == 1 else "310", {})
+		# Its radar's lock (the target's RWR) while it holds the bogey.
+		var key: String = String(t.get("key", "")) if alive and f.ai.state(m[0]).get("contact", false) else ""
+		var had: String = f.locks.get(m[0], "")
+		if had != key:
+			if had != "":
+				combat.on_lock(ent, runtime.entities.get(had, {}), false)
+			if key != "":
+				combat.on_lock(ent, t, true)
+			f.locks[m[0]] = key
+
+
+## The air-to-air missile an enemy jet `u` shoots at `t` (combat.gd's stations and DLZ): of those it has left, the one
+## with the shortest reach whose envelope holds the target (the infrared one close in), else the farthest reaching;
+## selected. [max, min, a missile left].
+func _pick_aa(u, t: Dictionary) -> Array:
+	var o: Dictionary = combat._pose(u)
+	var tgt := {"pos": world_of(t), "vel": combat._velocity_of(t)}
+	var dist: float = o.pos.distance_to(tgt.pos)
+	var best := [-1, 0.0, 0.0]
+	var inside := false
+	for i in mini(9, u.stations.size()):
+		var st: Dictionary = u.stations[i]
+		if int(st.count) <= 0 or not int(st.w.get("type", 0)) in Combat.AA_TYPES:
+			continue
+		var env: Array = Combat.Missile.dlz(host.weapons._motion(st.w), {"pos": o.pos, "fwd": o.fwd, "vel": o.vel}, tgt)
+		var holds: bool = dist >= float(env[1]) and dist <= float(env[0])
+		if (
+			best[0] < 0
+			or (holds and (not inside or env[0] < best[1]))
+			or (not inside and not holds and env[0] > best[1])
+		):
+			best = [i, float(env[0]), float(env[1])]
+			inside = holds
+	if best[0] < 0:
+		return [0.0, 0.0, false]
+	if best[0] != u.cur and not combat._releasing(u):
+		combat._select(u, best[0])
+	return [best[1], best[2], true]
 
 
 ## The FM start (FUN_004a9100 → FUN_005a5820): the player's rules, 282.84 m/s along the heading.
@@ -565,6 +686,8 @@ func _fly(delta: float) -> void:
 	# After every jet's step (the player's came first, TerrainView's frame): the flight reads them all at one instant.
 	if flight_ai != null:
 		_step_flight_ai(now)
+	for f in enemy_flights:
+		_step_enemy(f, now)
 
 
 func _place(p: Pilot) -> void:

@@ -1520,7 +1520,7 @@ func _release_tv() -> void:
 		tv_weapon = launch_homing(w, pos, o, unit, 1.0, _me(), eo_centre)
 	else:
 		tv_weapon = launch_guided(w, pos, o.vel, eo_centre, _me())
-	var node = tv_weapon.get_meta("node", null)
+	var node = tv_weapon.get_meta("node") if tv_weapon.has_meta("node") else null
 	if node != null:
 		for g: VisualInstance3D in node.find_children("*", "VisualInstance3D", true, false):
 			g.layers = 1 << (EoSensor.SELF_LAYER - 1)
@@ -1559,7 +1559,7 @@ func _update_guided() -> void:
 		while not gone and g.next_update <= now:
 			gone = g.update(g.next_update, host.mission_ground)
 		var p: Vector3 = g.last_pos if gone else g.position(now)
-		var node: Node3D = g.get_meta("node")
+		var node: Node3D = g.get_meta("node") if g.has_meta("node") else null
 		if node != null:
 			node.position = to_scene(p)
 			_orient(node, g.velocity(now))
@@ -1770,7 +1770,7 @@ func _update_missiles() -> void:
 				tp = Vector3.ZERO  # target gone: FUN_0045a180's static default (UNCERTAIN: origin)
 			var at: float = t.get("t", _units_at)
 			gone = mis.update(mis.next_update, tp, t.get("vel", Vector3.ZERO), at, host.mission_ground)
-		var node: Node3D = mis.get_meta("node")
+		var node: Node3D = mis.get_meta("node") if mis.has_meta("node") else null
 		var p: Vector3 = mis.last_pos if gone else mis.position(now)
 		var v: Vector3 = mis.velocity(now)
 		if node != null:
@@ -1823,7 +1823,7 @@ func _missile_detonate(mis: RefCounted) -> void:
 	_place_sound(host.sounds.play("SFX_WEAPON_EXPLODED", WEAPON_OST.get(int(mis.weapon.type), "OST_HEATMISSILE")), p)
 	if not hit.is_empty():
 		_place_sound(host.sounds.play("SFX_WEAPON_HIT_TARGET"), p)
-	var node: Node3D = mis.get_meta("node")
+	var node: Node3D = mis.get_meta("node") if mis.has_meta("node") else null
 	if node != null:
 		node.queue_free()
 	if mis.get_meta("sound") != null:

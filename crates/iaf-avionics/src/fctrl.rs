@@ -212,7 +212,8 @@ pub fn air_name(klass: i64, type_code: i64, name: &str) -> &'static str {
         160 if is("SU22", "SU-22") => "SU22",
         160 => "MIG23",
         170 => "MIG25",
-        180 => "MIG29",
+        // 1020: Modern IAF's MiG-29A (docs/ai.md §18).
+        180 | 1020 => "MIG29",
         190 => "MIRAGE",
         200 => "PHANTOM2000",
         210 => "MIG17",

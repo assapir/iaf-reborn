@@ -3788,7 +3788,7 @@ func last_weapon() -> Node3D:
 	var best: Node3D = null
 	var t0 := -INF
 	for m in weapons.missiles:
-		var n = m.get_meta("node")
+		var n = m.get_meta("node") if m.has_meta("node") else null
 		if n is Node3D and is_instance_valid(n) and float(m.t0) >= t0:
 			best = n
 			t0 = float(m.t0)
