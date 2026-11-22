@@ -692,10 +692,12 @@ func _step_enemy(f: Dictionary, now: float) -> void:
 		_radar_lock(f.ai, m[0], ent, t if alive else {}, f.locks)
 
 
-## Jet `n`'s radar lock on `t` (combat.gd on_lock: the target's RWR) while its radar holds it (IafAi state "contact");
-## `locks` {number: target key} the locks held.
+## Jet `n`'s radar lock on `t` (combat.gd on_lock: the target's RWR) while its radar holds it (IafAi state "contact")
+## or tracks its jammer's angle beyond the burn-through ("strobe": home on jam, still a track on the target's RWR;
+## inferred); `locks` {number: target key} the locks held.
 func _radar_lock(ai, n: int, ent: Dictionary, t: Dictionary, locks: Dictionary) -> void:
-	var key: String = String(t.get("key", "")) if not t.is_empty() and ai.state(n).get("contact", false) else ""
+	var st: Dictionary = ai.state(n) if not t.is_empty() else {}
+	var key: String = String(t.key) if st.get("contact", false) or st.get("strobe", false) else ""
 	var had: String = locks.get(n, "")
 	if had != key:
 		if had != "":

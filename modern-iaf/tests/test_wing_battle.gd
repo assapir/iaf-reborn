@@ -109,9 +109,8 @@ func _battle(tv: Node) -> void:
 		return false
 	var launched := func():
 		return tv.weapons.missiles.any(func(m): return _wing.any(func(e): return is_same(m.get_meta("owner", {}), e)))
-	# The Sufas jam while they fight (K9), so the MiGs see them only inside the burn-through and keep their orbit
-	# meanwhile: the shot is a slow chase, seen at 26 km and still closing 150 s in (22 Nov).
-	check(await _until(tv, func(): return fox.call() and launched.call(), 300.0), "a wingman's shot (%s)" % _calls())
+	# A Sufa jams once a MiG's radar locks it (K9); the MiGs fly at its strobe (home on jam) to the burn-through.
+	check(await _until(tv, func(): return fox.call() and launched.call(), 120.0), "a wingman's shot (%s)" % _calls())
 	var heard := func(p): return String(p.template) == "WNG_CALL" and String(p.text).contains("fox")
 	check(tv.radio.said.any(heard), "the Fox call said with its subtitle")
 	# The first down, the lead's next target the other (each answers "unable" when it has nothing left).

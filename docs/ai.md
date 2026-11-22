@@ -711,9 +711,12 @@ F12–F14). The 1998 game sets none of it. Every figure is inferred, tuned on th
     an infrared missile it breaks into the missile. It pulls 4 g against a lock and 6.5 g against a missile, at
     260 m/s. Against infrared it stays at military power: a flare beside a lit afterburner has a quarter of its chance
     (§15.6), and above 4 g every decoy has more.
-  - Each decision while a missile is within 6 s of reaching it (its time to go at the closure, `ecm::WINDOW_S`) it
-    asks for a decoy: chaff against a radar missile, flares against an infrared one; a lock alone takes none (a decoy
-    acts on missiles only, and one released early burns out). `ai_flights.gd` releases it through `combat.gd`'s path
+  - It asks for a decoy (chaff against a radar missile, flares against an infrared one) once at the launch's cue,
+    the first decision after its reaction (the CMDS's automatic program starts on the RWR's launch or the MAW's warning,
+    `cmds.rs` AUTO), then each decision while the missile is within 6 s of reaching it (its time to go at the closure,
+    `ecm::WINDOW_S`; a decoy released earlier has less chance and burns out). A lock alone takes none (a decoy acts on
+    missiles only). Before 22 November 2026 the window alone set it: a jet beaming a long SAM shot (test_four_ship's
+    S-300 at 15 km) often had none, the missile still more than 6 s out when it flew out of energy or when the test's 30 s limit ran out. `ai_flights.gd` releases it through `combat.gd`'s path
     (the jet's stores, one each 4 s); what it does to the missile is §15.7's seeker rule.
   - Its element mate (1 and 2, 3 and 4), an AI jet in the air and itself clear, sees a missile launched at its partner
     (the smoke) and calls `break_left` or `break_right`, the partner's turn. That covers the player as #1 too. A lock
@@ -790,7 +793,7 @@ the same host path in `ai_flights.gd`. The 1998 game sets none of it. Every figu
   150 km from the lead.
 - **The defence in the fight** is the enemy fighters' (`fighter::evade`): a lock is called (`spike`, `mud`) and the
   attack goes on; a missile is defended by the tactics (Medium: the notch, the break against an infrared one) with
-  chaff or flares within 6 s of its arrival. Out of the fight a wingman defends as before (§8.8: the beam against a
+  chaff or flares at the launch's cue and within 6 s of its arrival (§8.8). Out of the fight a wingman defends as before (§8.8: the beam against a
   lock too).
 - **Winchester:** with no missile or round left and none of its missiles flying, it calls `winchester`, its engage
   and cover end and it rejoins; a later engage or cover is answered "unable".
@@ -800,7 +803,8 @@ the same host path in `ai_flights.gd`. The 1998 game sets none of it. Every figu
   (370, then 300), called `fox_1`, `fox_2` or `fox_3` by the missile's guidance (combat.gd types 610, 570 / 580, 600)
   or `guns`; its radar's lock on the foe while it holds it (the foe's RWR). A foe shot down while a wingman's missile
   flew at it, or within 3 s of its burst, is that wingman's `splash` (`IafAi.splash`); a kill by another is not called.
-- **The jammer:** a Sufa wingman's jammer is on while it fights or defends (§15.6, `Flight::jams`).
+- **The jammer:** a Sufa wingman's jammer is on while its RWR shows a threat (a lock, a missile) or it defends
+  (§15.6, `Flight::jams`).
 - **The dev hook:** `ai_flights.gd flight_in_air(heading)` puts the player's flight's AI jets in the air behind the
   player's jet (put there first) and makes the flight's IafAi again; no mission starts a flight in the air.
 - **Tests:** `cargo test -p iaf-ai --test wing_battle` (the four-ship of Sufas on the 6-DoF against MiG-29As:
@@ -1351,7 +1355,7 @@ sensors' beacon (docs/weapons.md §10, §13 here). The rules are `crates/iaf-avi
   the time to go, the afterburner and the load factor (docs/real-weapons.md §2.3). A missile taken chases the decoy;
   the seeker does not come back to the jet (as the 1998 rule).
 - **The AI's decoys:** every AI jet (the wingmen, the enemy fighters) releases them by its tree against a missile within
-  6 s of reaching it (§8.8).
+  6 s of reaching it, and once at the launch's cue (§8.8).
 - **Jamming** (K9): a self-protection jammer holds a radar to its burn-through: the range inside which the echo
   beats the jamming. The echo falls with the range's fourth power, the jamming with its square, so the burn-through
   goes with the root of the cross-section[^w-jam]: R_bt = reach · share · √(σ / 5 m²), the share the jammer's
@@ -1362,7 +1366,7 @@ sensors' beacon (docs/weapons.md §10, §13 here). The rules are `crates/iaf-avi
 | jammer | share | against |
 |---|---|---|
 | the Sufa's internal SPS-3000 / ASPS (dorsal spine; the J key, the CMDS's JMR switch; docs/f16i.md §8) | 0.3 | the sites' search and track radars (§15.1), the network's 64N6E2 (§15.5, so the GCI's picture too), the enemy fighters' radar (§18.1) |
-| an AI jet whose definition has one (none today: the MiG-29A (9.12) has none, its jammer came with the 9.13[^w-mig29-jam]), on while it defends or is committed (`Flight::jams`) | its own | the player's radar |
+| an AI jet whose definition has one (our Sufa wingmen; on the enemy's side none today: the MiG-29A (9.12) has none, its jammer came with the 9.13[^w-mig29-jam]), on while its RWR shows a threat or it defends (`Flight::jams`) | its own | an enemy's: the player's radar; a wingman's: the sites, the network and the enemy fighters' radar |
 | the Barak's | open ([../modern-iaf/docs/ai-plan.md](../modern-iaf/docs/ai-plan.md) §1 item 10) | — |
 
 In Modern IAF the J key's jammer works through the burn-through only; the 0.6 chance of breaking each radar
@@ -1376,12 +1380,25 @@ from a hostile jet; a friendly's (a defending wingman's) jams the enemy, not the
 - **The cues:** the player's own jammer on, the threat display shows the jamming chevrons either side of every named
   radar (">6<", modern-iaf/docs/ews.md §2); a jammer beyond its burn-through shows on the F-16's FCR as an
   angle-only strobe at its azimuth (docs/radar.md §8).
+- **The AI's jammer policy** (`Flight::jams`): on while the jet's RWR shows a radar locked on it or a missile at it,
+  or while it defends; off on the commit alone. A self-protection jammer "essentially broadcasts its position"[^w-jam],
+  so it answers the radar that tracks it (inferred). Until 22 November 2026 it came on with the commit too: the
+  Sufas jammed from 50 km, the MiGs' radar had no contact beyond 22 km and no strobe, and without a ground network
+  they kept their orbit (test_wing_battle's first shot took up to 300 s).
+- **Home on jam** (`flight.rs know`): an AI fighter's radar that holds a jamming jet inside its cone and its reach
+  but beyond the burn-through sees its strobe, the jammer's bearing (as the F-16's FCR, docs/radar.md §8). The pilot
+  flies at it as at the ground's vector: it commits and closes, and its radar keeps the angle track, still a lock on
+  the target's RWR (`ai_flights.gd _radar_lock`, IafAi state `strobe`). It shoots only once its radar holds the jet
+  inside the burn-through (no range from a strobe). The ground's vector, where there is one, comes first. Our
+  covering wingmen take a jamming bogey by its strobe the same way (§8.9). Inferred:
+  the strobe's position is the jet's own (the range taken as known while it steers).
 - **No beacon:** the 1998 rule that the AI's sensors see a jamming player at any range (§13, `combat.gd _scan`) is
   off in Modern IAF; the burn-through takes its place.
 - **Tests:** `cargo test -p iaf-avionics ecm` (each rule), `radar a_jammer_shows_as_a_strobe`, `ews
   symbols_priority_and_limits` (the chevrons); `-p iaf-ai --test sites a_jammer_holds_the_radars`, `--test intercept
-  a_jamming_bogey` (the fighter's contact, its jammer when committed), `--test four_ship reactions` (no chaff against
-  a lock, flares against a near missile); `modern-iaf/tests/test_countermeasures.gd` (headless: decoys against an
+  a_jamming_bogey` (no ground's vector: the commit on the strobe, the contact inside the burn-through, its jammer off
+  on the commit alone and on under a lock), `--test four_ship reactions` (no chaff against a lock, one at a radar
+  missile's cue, flares against a near missile); `modern-iaf/tests/test_countermeasures.gd` (headless: decoys against an
   AIM-9M and an AIM-9X, a beaming and a fleeing jet against chaff; the Sufa's jammer against an S-300's track radar,
   the chevrons and the FCR's strobe).
 - **Not started** (outside the K8 and K9 rows): the jammer's effect on a missile's own seeker (home on jam, an active

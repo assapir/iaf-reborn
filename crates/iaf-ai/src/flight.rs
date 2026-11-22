@@ -208,6 +208,11 @@ pub struct Member {
     /// The threat on it this frame ([`Flight::threat`]); when it was first seen, the level called (1 a lock, 2 a
     /// launch), its mate's break called, defending, clear since.
     pub threat: Option<Threat>,
+    /// The host's threat this frame as it came (the tree clears `threat` for a lock it fights through): the jammer's
+    /// cue ([`Flight::jams`]).
+    rwr: bool,
+    /// The decoy of the launch's cue released ([`defend`]).
+    launch_decoy: bool,
     pub(crate) cue: Option<f64>,
     pub(crate) called_level: u8,
     mate_called: bool,
@@ -313,17 +318,23 @@ fn in_sight(m: &Member, at: Vec3) -> bool {
 
 /// What `m` knows of its bogey this decision (the fighter's facts, [`Enemy`]), its station `station`: `truth` (the jet
 /// as it is) while its radar holds it (through a jammer of share `jam`) or its pilot sees it, else `known` (the
-/// ground's vector, the lead's data link); the bogey's turn as seen.
+/// ground's vector, the lead's data link), else the strobe of the bogey's jammer in its radar beyond the burn-through
+/// (a jammer broadcasts its position[^w-jam]: the radar's home on jam tracks its angle, not its range; the pilot flies
+/// at it as at a vector, inferred: its range taken as known); the bogey's turn as seen.
+///
+/// [^w-jam]: Wikipedia, "Radar jamming and deception": "When a target is using self-protective jamming (SPJ), it
+///     essentially broadcasts its position."
 fn know(m: &mut Member, station: Vec3, known: Option<Bogey>, truth: Option<Bogey>, jam: f64, now: f64) {
     // On the ground its radar is off and its pilot looks for nothing.
     let up = !m.v.on_ground;
     let contact = truth.filter(|b| up && in_radar_jammed(m, b.pos, jam));
+    let strobe = truth.filter(|b| up && jam > 0.0 && contact.is_none() && in_radar(m, b.pos));
     // (Once seen it stays seen inside the visual range: the pilot keeps sight, checking six.)
     let kept = |b: &Bogey| m.enemy.visual && b.pos.distance(m.v.pos) < bfm::VISUAL_M;
     let seen = truth.filter(|b| up && (in_sight(m, b.pos) || kept(b)));
     let e = &mut m.enemy;
-    (e.station, e.contact, e.visual) = (station, contact.is_some(), seen.is_some());
-    e.bogey = contact.or(seen).or(known);
+    (e.station, e.contact, e.strobe, e.visual) = (station, contact.is_some(), strobe.is_some(), seen.is_some());
+    e.bogey = contact.or(seen).or(known).or(strobe);
     e.fought = e.aim.take().map(|(aim, _)| aim);
     // The bogey's turn as seen: its velocity's swing since the last decision that knew it.
     let truth = contact.or(seen);
@@ -391,6 +402,8 @@ impl Flight {
             avoiding: false,
             lead_low: false,
             threat: None,
+            rwr: false,
+            launch_decoy: false,
             cue: None,
             called_level: 0,
             mate_called: false,
@@ -413,10 +426,10 @@ impl Flight {
     }
 
     /// Jet `number` switches its self-protection jammer on (when its definition has one; docs/ai.md §15.6): alive,
-    /// and defending against a threat or committed to a bogey (inferred: a jammer on in the fight, off on station, as
-    /// it gives the jet away).
+    /// with a threat on its RWR (a radar locked on it, a missile at it) or defending. Not on the commit alone: a
+    /// jammer broadcasts the jet's position ([`know`]'s strobe), so it answers the radar that tracks it (inferred).
     pub fn jams(&self, number: u8) -> bool {
-        self.member(number).is_some_and(|m| m.alive && (m.defending || m.enemy.committed))
+        self.member(number).is_some_and(|m| m.alive && (m.rwr || m.defending))
     }
 
     fn index(&self, number: u8) -> Option<usize> {
@@ -454,7 +467,9 @@ impl Flight {
     /// The threat on jet `number` this frame (its RWR's lock, its MAW's missile; None: clear), for the reactions.
     pub fn threat(&mut self, number: u8, t: Option<Threat>) {
         if let Some(i) = self.index(number) {
-            self.members[i].threat = t;
+            let m = &mut self.members[i];
+            (m.threat, m.rwr) = (t, t.is_some());
+            m.launch_decoy &= t.is_some_and(|t| t.launch);
         }
     }
 
@@ -836,8 +851,10 @@ impl Flight {
                 } else if m.engaging && self.target.is_some() {
                     Some(Foe::Target)
                 } else if self.truth.is_some_and(|b| {
-                    // Covering: taken once its radar holds it or its pilot sees it, kept while near the lead.
-                    let found = in_radar_jammed(m, b.pos, self.truth_jam) || in_sight(m, b.pos);
+                    // Covering: taken once its radar holds it or its jammer's strobe or its pilot sees it, kept
+                    // while near the lead.
+                    let strobe = self.truth_jam > 0.0 && in_radar(m, b.pos);
+                    let found = in_radar_jammed(m, b.pos, self.truth_jam) || strobe || in_sight(m, b.pos);
                     near_lead(&b) && (found || m.foe == Some(Foe::Bogey)) || attacked(m, &b)
                 }) {
                     Some(Foe::Bogey)
@@ -972,8 +989,8 @@ pub(crate) fn defence(m: &Member, t: &Threat) -> (Steer, bool) {
 
 /// A threat on it (its RWR's lock, its MAW's missile): the call at once (a lock: "spike" from the air, "mud" from the
 /// ground; a launch: "defending"), heard after its reaction time; then the defence ([`defence`]) with a decoy (chaff
-/// against a radar, flares against infrared) each decision while a missile is inside [`ecm::WINDOW_S`] of arriving.
-/// Clear for [`CLEAR_S`], it goes back (its rejoin or its route).
+/// against a radar, flares against infrared) at the launch's cue and each decision while a missile is inside
+/// [`ecm::WINDOW_S`] of arriving. Clear for [`CLEAR_S`], it goes back (its rejoin or its route).
 pub(crate) fn defend(m: &mut Member) -> Status {
     let Some(t) = m.threat else {
         m.cue = None;
@@ -1004,10 +1021,13 @@ pub(crate) fn defend(m: &mut Member) -> Status {
     }
     m.defending = true;
     m.order.steer = Some(defence(m, &t).0);
-    // The decoys against a missile inside the window of its arrival (ecm.rs WINDOW_S: one earlier burns out while
-    // the missile is still far; a lock alone takes none).
+    // The decoys against a missile: one at the launch's cue (the dispenser's automatic program starts on the RWR's
+    // launch or the MAW's warning, cmds.rs AUTO; a missile defeated by the turn alone, or one long in flight, never
+    // comes inside the window), then each decision inside the window of its arrival (ecm.rs WINDOW_S: one earlier has
+    // less chance, it burns out while the missile is still far). A lock alone takes none.
     let shot = Shot { missile_pos: t.pos, missile_vel: t.vel, target_pos: m.v.pos, target_vel: m.v.vel };
-    if t.launch && shot.time_to_go().is_some_and(|s| s <= ecm::WINDOW_S) {
+    if t.launch && (!m.launch_decoy || shot.time_to_go().is_some_and(|s| s <= ecm::WINDOW_S)) {
+        m.launch_decoy = true;
         m.order.decoy = Some(if t.ir { Decoy::Flare } else { Decoy::Chaff });
     }
     m.order.mode = Some(autopilot::MODE_STEER);

@@ -363,18 +363,28 @@ const OLD_CLIMB: [f64; 2] = [252.086, 187.486];
 
 #[test]
 fn a_jamming_bogey_is_held_inside_the_burn_through() {
-    // A bogey head on from 60 km, the ground's vector on: clear, the lead's radar holds it at once (inside 74 km);
-    // jamming at 0.3, only inside 74 · 0.3 = 22.2 km (docs/ai.md §15.6). The committed lead jams too.
+    // A bogey head on from 60 km, no ground's vector: clear, the lead's radar holds it at once (inside 74 km);
+    // jamming at 0.3, only inside 74 · 0.3 = 22.2 km (docs/ai.md §15.6), but its strobe (home on jam's angle) shows
+    // it at once: the pair commits on the strobe and closes, so the jammer does not keep it orbiting.
     let p = Vec3::new(0.0, 0.0, ALT);
     for (jam, near) in [(0.0, 60_000.0), (0.3, 22_200.0)] {
         let Some(mut w) = Pair::new(p, p, Skill::HIGH) else { return };
+        w.gci = false;
         w.bogey = Some(head_on(p, 60.0));
         w.flight.bogey_jamming(jam);
+        w.run(0.5);
+        let e = &w.flight.members[0].enemy;
+        assert!(e.bogey.is_some() && e.strobe == (jam > 0.0) && e.contact == (jam == 0.0), "{jam}: {e:?}");
+        w.until(150.0, &|w| w.flight.members[0].enemy.committed).expect("committed");
         w.until(150.0, &|w| w.flight.members[0].enemy.contact).expect("contact");
         let d = w.bogey.unwrap().pos.distance(w.pos(0));
         println!("jam {jam}: contact at {d:.0} m");
         assert!(d <= near && d > near - 8_000.0, "{d:.0} m");
-        w.run(1.0);
-        assert!(w.flight.jams(1), "committed: its jammer on");
+        // Its own jammer answers a threat on its RWR, not the commit alone.
+        assert!(!w.flight.jams(1), "committed, no threat: its jammer off");
+        let lock = Threat { pos: w.bogey.unwrap().pos, vel: Vec3::ZERO, launch: false, ir: false, ground: false };
+        w.threat[0] = Some(lock);
+        w.run(0.1);
+        assert!(w.flight.jams(1), "locked: its jammer on");
     }
 }

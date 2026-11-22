@@ -878,8 +878,8 @@ fn elements_split_and_regroup() {
 #[test]
 fn reactions_to_locks_launches_and_awacs() {
     // A lock from the ground on #2, an infrared missile at #3: each calls and defends (the beam, the break into the
-    // missile), #3 with its flares (a lock alone takes no chaff: ecm.rs WINDOW_S), #3's mate #4 calls the break, each
-    // rejoins when clear. An AWACS call ahead is reported by #2.
+    // missile), #3 with its flares (a lock alone takes no chaff; a radar missile one at its cue, then inside ecm.rs
+    // WINDOW_S), #3's mate #4 calls the break, each rejoins when clear. An AWACS call ahead is reported by #2.
     let Some(dir) = own() else { return println!("skipped: no assets/converted/own (iaf-sim fm, airbases)") };
     let mut w = airborne(&dir, 0.0);
     w.run(30.0);
@@ -913,6 +913,20 @@ fn reactions_to_locks_launches_and_awacs() {
     assert!(mud.is_some_and(|t| t <= 1.6), "#2 calls the lock");
     assert!(!chaff && steer, "#2 defends, no chaff against a lock");
     assert!((off.abs() - 90.0).abs() < 20.0, "#2 beams the radar ({off:.0}°)");
+    // The radar's missile at #2, 30 km and some 35 s out: one chaff at the launch's cue (cmds.rs AUTO), then none
+    // while it is outside the window.
+    let vel = (v.pos - radar.pos).try_normalize().unwrap() * 850.0;
+    w.flight.threat(2, Some(Threat { vel, launch: true, ..radar }));
+    // (The order stands for one decision, DECIDE_S: its frames count once.)
+    let (mut cued, mut was) = (0, false);
+    for _ in 0..(5.0 / w.dt) as usize {
+        w.frame();
+        let now = w.flight.member(2).unwrap().order.decoy == Some(Decoy::Chaff);
+        cued += (now && !was) as u32;
+        was = now;
+    }
+    assert_eq!(cued, 1, "#2's chaff at the launch's cue");
+    w.flight.threat(2, Some(radar));
     // An infrared missile at #3 from behind-left, 2.8 km and 4 s out: the break into it (left), flares at military
     // power, #4 calls it.
     let t1 = w.t;

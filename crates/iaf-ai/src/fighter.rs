@@ -70,9 +70,13 @@ pub struct Enemy {
     pub dlz: (f64, f64),
     pub armed: bool,
     pub in_air: bool,
-    /// What it knows of the bogey this decision: its own radar's contact, else the ground's vector.
+    /// What it knows of the bogey this decision: its own radar's contact, else the ground's vector, else its radar's
+    /// jamming strobe.
     pub bogey: Option<Bogey>,
     pub contact: bool,
+    /// Its radar sees the bogey's jammer beyond the burn-through: the strobe on its bearing (home on jam's angle
+    /// track; no range, so no shot).
+    pub strobe: bool,
     /// The pair committed (the lead's decision; the wingman reads it).
     pub committed: bool,
     /// When the bogey came inside the commit range (its reaction runs from then).

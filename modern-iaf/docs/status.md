@@ -14,9 +14,11 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 - **Countermeasures and jamming (2026-11-22, the user: "Yes start whatever you didn't finished"; [ai-plan.md](ai-plan.md)
   K8, K9; [../../docs/real-weapons.md](../../docs/real-weapons.md) §2.3, [../../docs/ai.md](../../docs/ai.md)
   §15.6):** flares and chaff act on each missile's own seeker (its record's rejection, the beam for chaff, the time to
-  go, the afterburner, the g), for the player and every AI jet; the AI jets release them against a missile within 6 s
-  of arriving, none against a lock. The Sufa's jammer (J) holds the enemy's site, network and fighter radars to its
-  burn-through; an AI jet with a jammer in its definition jams the player's radar (the enemy's MiG-29A (9.12) has none: its jammer came with the 9.13); the threat
+  go, the afterburner, the g), for the player and every AI jet; the AI jets release them at a missile's launch cue and
+  within 6 s of its arriving, none against a lock. The Sufa's jammer (J) holds the enemy's site, network and fighter radars to its
+  burn-through; an AI jet with a jammer in its definition (the Sufa wingmen) jams under a lock or a missile, not on
+  the commit alone, and an enemy fighter's radar flies at its strobe (home on jam) to the burn-through; an enemy jet
+  with one would jam the player's radar (the MiG-29A (9.12) has none: its jammer came with the 9.13); the threat
   display's chevrons and the FCR's and PCD's jam strobe. Tests: `ecm.rs`, `sites`, `intercept`, `four_ship`,
   `modern-iaf/tests/test_countermeasures.gd`. Not started: jamming against a missile's own seeker; the Barak's jammer
   (open).

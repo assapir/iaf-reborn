@@ -240,6 +240,7 @@ impl IafAi {
         d.set("phase", m.enemy.phase);
         d.set("committed", m.enemy.committed);
         d.set("contact", m.enemy.contact);
+        d.set("strobe", m.enemy.strobe);
         d.set("visual", m.enemy.visual);
         d
     }
