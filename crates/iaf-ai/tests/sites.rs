@@ -37,6 +37,9 @@ fn inbound(id: &str, km: f64, bearing: f64) -> Target {
 const REACT: f64 = Skill::MEDIUM.reaction_s;
 const LAUNCH: f64 = 3_000.0 + 37_000.0 * Skill::MEDIUM.launch_range;
 
+/// Coming at a site to the south (a Tor's Doppler radars lose a jet without speed along the line of sight).
+const INBOUND: Vec3 = Vec3::new(0.0, -200.0, 0.0);
+
 /// The first tick (0.5 s steps) at which `f` holds.
 fn first_tick(f: impl Fn(f64) -> bool) -> f64 {
     (0..100_000).map(|i| i as f64 * 0.5).find(|&t| f(t)).unwrap()
@@ -49,9 +52,11 @@ fn slant(km: f64, t: f64) -> (f64, f64) {
     (s, 250.0 * y / s)
 }
 
-/// A site ticked every 0.5 s, its targets flying straight; each missile flies `fly` s.
+/// A site ticked every 0.5 s, its targets flying straight (`still`: held in place, their velocity only seen by the
+/// radars); each missile flies `fly` s.
 struct Sim {
     site: Site,
+    still: bool,
     now: f64,
     targets: Vec<Target>,
     alive: Vec<bool>,
@@ -63,7 +68,7 @@ struct Sim {
 impl Sim {
     fn new(site: Site, targets: Vec<Target>) -> Sim {
         let alive = vec![true; site.spec().parts.len()];
-        Sim { site, now: 0.0, targets, alive, fly: 20.0, flying: Vec::new(), log: Vec::new() }
+        Sim { site, still: false, now: 0.0, targets, alive, fly: 20.0, flying: Vec::new(), log: Vec::new() }
     }
 
     fn run(&mut self, secs: f64) {
@@ -77,8 +82,10 @@ impl Sim {
                 self.flying.push((id.clone(), self.now + self.fly));
             }
             self.log.push((self.now, out, self.site.pos));
-            for t in &mut self.targets {
-                t.pos += t.vel * 0.5;
+            if !self.still {
+                for t in &mut self.targets {
+                    t.pos += t.vel * 0.5;
+                }
             }
             self.now += 0.5;
         }
@@ -224,8 +231,9 @@ fn tor_halts_to_fire_and_keeps_its_duty_limits() {
     assert!(on(599.5) && !on(600.5) && !on(1199.5) && on(1200.5), "the duty cycle");
 
     // After three engagements an hour's break, with one window of a minute for a cue.
-    let t = Target { dlz: (12_000.0, 1_500.0), ..jet("a", "f16", Vec3::new(0.0, 8000.0, 1000.0), Vec3::ZERO) };
+    let t = Target { dlz: (12_000.0, 1_500.0), ..jet("a", "f16", Vec3::new(0.0, 8000.0, 1000.0), INBOUND) };
     let mut sim = Sim::new(Site::new(Kind::Tor, Vec3::ZERO, 0.0, &[]), vec![t]);
+    sim.still = true;
     sim.fly = 5.0;
     sim.run(60.0);
     assert_eq!(sim.launches().len(), 6, "three engagements of two");
@@ -245,12 +253,11 @@ fn tor_halts_to_fire_and_keeps_its_duty_limits() {
 #[test]
 fn tor_two_channels_and_engagements_counted_by_salvo() {
     // Three jets in reach, missiles that fly on: two channels; a jet shot down frees its channel.
-    let at = |id: &str, x: f64| Target {
-        dlz: (12_000.0, 1_500.0),
-        ..jet(id, "f16", Vec3::new(x, 8000.0, 1000.0), Vec3::ZERO)
-    };
+    let at =
+        |id: &str, x: f64| Target { dlz: (12_000.0, 1_500.0), ..jet(id, "f16", Vec3::new(x, 8000.0, 1000.0), INBOUND) };
     let mut sim =
         Sim::new(Site::new(Kind::Tor, Vec3::ZERO, 0.0, &[]), vec![at("a", 0.0), at("b", 300.0), at("c", -300.0)]);
+    sim.still = true;
     sim.fly = 1000.0;
     sim.run(30.0);
     assert_eq!(sim.log.iter().map(|(_, o, _)| o.tracks.len()).max(), Some(2), "two targets at once");
@@ -266,7 +273,7 @@ fn tor_two_channels_and_engagements_counted_by_salvo() {
 fn refused_launches_count_for_nothing() {
     // The caller refuses every launch after the first (no sight from the launcher): the second missile of the salvo
     // is tried again and again, yet no salvo completes, so no engagement counts and no break comes.
-    let t = Target { dlz: (12_000.0, 1_500.0), ..jet("a", "f16", Vec3::new(0.0, 8000.0, 1000.0), Vec3::ZERO) };
+    let t = Target { dlz: (12_000.0, 1_500.0), ..jet("a", "f16", Vec3::new(0.0, 8000.0, 1000.0), INBOUND) };
     let tick = |site: &mut Site, refuse_from: usize, secs: f64| {
         let alive = vec![true; site.spec().parts.len()];
         let mut n = 0;
@@ -328,6 +335,27 @@ fn zsu_radar_and_optical_laying() {
     let mut sim = Sim::new(Site::new(Kind::Zsu, Vec3::ZERO, 0.0, &[]), vec![gun(6.0)]);
     sim.run(5.0);
     assert!(!sim.site.channels.is_empty() && sim.site.channels[0].radar, "the radar holds it at 6 km");
+}
+
+#[test]
+fn ground_clutter_tor_notch_and_zsu_floor() {
+    // The Tor's pulse-Doppler radars lose a jet on the beam (no speed along the line of sight); the S-300's keep it.
+    let tor = Site::new(Kind::Tor, Vec3::ZERO, 0.0, &[]);
+    let s300 = Site::new(Kind::S300, Vec3::ZERO, 0.0, &[]);
+    let (a1, a6) = (vec![true; tor.spec().parts.len()], vec![true; s300.spec().parts.len()]);
+    let at = |vel| jet("a", "f16", Vec3::new(0.0, 10_000.0, 1000.0), vel);
+    let (hot, beam) = (at(Vec3::new(0.0, -250.0, 0.0)), at(Vec3::new(250.0, 0.0, 0.0)));
+    assert!(tor.detects(&a1, &hot, &flat) && tor.trackable(&a1, &hot, &flat), "coming: seen");
+    assert!(!tor.detects(&a1, &beam, &flat) && !tor.trackable(&a1, &beam, &flat), "on the beam: in the notch");
+    assert!(s300.detects(&a6, &beam, &flat) && s300.trackable(&a6, &beam, &flat), "the S-300 has no notch");
+    // The ZSU's radar loses a jet under 60 m in the ground's clutter; the optical sight lays on it.
+    let zsu = Site::new(Kind::Zsu, Vec3::ZERO, 0.0, &[]);
+    let low = |z| Target { dlz: (2_250.0, 0.0), ..jet("a", "f16", Vec3::new(0.0, 4000.0, z), INBOUND) };
+    assert!(!zsu.trackable(&[true], &low(40.0), &flat) && zsu.trackable(&[true], &low(100.0), &flat));
+    let mut sim = Sim::new(zsu, vec![low(40.0)]);
+    sim.still = true;
+    sim.run(5.0);
+    assert!(!sim.site.channels.is_empty() && !sim.site.channels[0].radar, "laid optically");
 }
 
 /// The range (m) at which the S-300's search radar first detects the target `at(range)` as it comes in.

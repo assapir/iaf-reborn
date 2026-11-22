@@ -228,7 +228,8 @@ fn a_gun_laying_on_a_jet_out_of_its_reach_leaves_it_to_the_s300() {
 
 #[test]
 fn a_full_site_takes_no_new_jet() {
-    // Tor 0 guides salvos at x and y (both its channels); the more dangerous z goes to Tor 1.
+    // Tor 0 guides salvos at x and y (both its channels); the more dangerous z goes to Tor 1. Every jet comes in fast
+    // enough along the line of sight for the Tor's Doppler notch (30 m/s, docs/ai.md §15.3).
     let tor = |x: f64| Site::new(Kind::Tor, Vec3::new(x, 0.0, 0.0), 0.0, &[]);
     let near = |id: &str, x: f64, vy: f64| Target {
         dlz: (12_000.0, 1_500.0),
@@ -237,13 +238,13 @@ fn a_full_site_takes_no_new_jet() {
     let mut sim = Sim::of(
         Vec3::new(0.0, -10_000.0, 0.0),
         vec![tor(0.0), tor(1000.0)],
-        vec![near("x", -500.0, 0.0), near("y", 500.0, 0.0)],
+        vec![near("x", -500.0, -35.0), near("y", 500.0, -35.0)],
     );
     sim.fly = 1e9;
     sim.run(30.0);
     let ids = |l: Vec<(f64, String)>| l.into_iter().map(|x| x.1).collect::<Vec<_>>();
     assert_eq!(ids(sim.launches(0)), ["x", "x", "y", "y"], "Tor 0 takes both");
-    sim.targets.push(near("z", 0.0, -50.0));
+    sim.targets.push(near("z", 0.0, -100.0));
     sim.run(30.0);
     assert!(!ids(sim.launches(0)).contains(&"z".to_string()), "not to the full Tor 0");
     assert!(ids(sim.launches(1)).contains(&"z".to_string()), "Tor 1 fires at z");

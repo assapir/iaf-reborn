@@ -265,8 +265,8 @@ the target inside it):
 - **CNTL page (OSB 5):** the dash-34's options by their OSBs (fig. 1-76, p. 1-116): CHAN 1–4 (6), MK INT 1–4 (7), BAND
   WIDE / NARO (8), PM ON / OFF (10), MTR LO / HI (20), ALT TRK OFF / ON (19), TGT HIS 1–4 (18), LVL 1–4 (17); a press
   steps the value, OSB 5 returns. TGT HIS n shows RWS's last n frames, the earlier returns as dimmer squares (p. 1-134;
-  default 3). MTR drops a search return whose speed along the line of sight is under 60 kt (LO) or 100 kt (HI), the
-  beam notch (thresholds inferred). The sim has no radar channels, marker intervals, band, pulse modes, altitude-line
+  default 3). MTR sets the ground's band in look-down: a target slower than 60 kt (LO) or 100 kt (HI) along the line of
+  sight is lost (§9.8; thresholds inferred). The sim has no radar channels, marker intervals, band, pulse modes, altitude-line
   tracker or levels to act on, so those options step and change nothing; BCN DLY (OSB 9) is left off: there is no BCN
   mode (`radar.rs` `CNTL`).
 - **Range:** 10 to 160 NM in RWS / VSR, 10 to 80 NM in TWS (from 40 NM). The cursor bumps the scale: above 95 % up
@@ -358,6 +358,32 @@ modes"). Only the jets with `radar.fcr`; the original's MAP / GMT stay as §1–
 - **Targets on the weapons range** for these modes (modern-iaf/docs/data-formats.md): each range's Target 5, the
   MiG-29 hulk towed on a loop (GMT), and Target 6, a barge off the coast (SEA).
 
+### 9.8 Ground clutter: look-down, the beam notch and slow targets
+The Sufa's APG-68(V)9 and the Adir's APG-81 are pulse-Doppler radars. They tell a target from the ground by its
+Doppler shift, so the ground's return limits what they see in look-down (`radar.rs` `notched`, `look_down`). The
+1998 game's radar has no such rule: this one applies only to the real FCR (Modern IAF).
+
+- **Look-down:** the line of sight, carried on past the target, meets the ground within the mode's detection range.
+  The ground is taken level at the height under the target, sea level where there is none, on a flat earth
+  (inferred). A target above the jet, or level with it, is in look-up and is found as before.
+- **The ground's band:** in look-down the main lobe's ground return sits at the Doppler of the jet's own speed
+  along the beam; a target whose own speed along the line of sight is close to zero sits in the same band and is
+  filtered out with it[^odonnell][^w-pd]. A target nose-on or tail-on stands clear of it[^odonnell].
+  Only the main lobe's clutter is modelled; the sidelobes' and the altitude line's clutter are left out (inferred
+  simplification).
+- **The gate:** the band's half-width is CNTL's MTR, 60 kt (LO, the default) or 100 kt (HI). A pulse-Doppler
+  radar's rejection speed is selectable, and nothing slower than it is detected[^w-pd]; the APG-68's own values
+  are not published (the two values inferred). In look-down every air mode (RWS / VSR, TWS, ACM, SAM's tracks, STT)
+  loses a target under the gate (inferred: the APG-68's rules per mode are not published). A lock in STT breaks when the target turns into the band, and its semi-active
+  missile loses its illumination.
+- **What follows:**
+  - A jet crossing at about 90° (the beam, the notch) in look-down drops off the scope; TWS keeps its file for 13 s
+    without a return.
+  - A slow target is found only where its speed along the line of sight passes the gate. A drone at 180 km/h
+    (97 kt) in look-down is found at MTR LO within about 50° of its nose or tail. At MTR HI it is not found at all.
+- **On the scope:** contacts appear or drop by these rules; no clutter is drawn. A ground-clutter picture on the
+  FCR page is not started.
+
 ## 10. Validation
 `tests/godot/test_radar.gd` checks:
 1. the F-16 table, the detection range, the kept selection and the 60° cone;
@@ -371,11 +397,20 @@ modes"). Only the jets with `radar.fcr`; the original's MAP / GMT stay as §1–
 9. Backspace returns to LRS; S goes to STBY.
 
 The real FCR: `crates/iaf-avionics/src/radar.rs` tests (power and weight on wheels, scan width / bars / elevation,
-VSR, SAM, the TMS and the cursor, the ACM patterns, TWS's files, EXP's 4:1, and A-G: the PPI places, the EXP / DBS
+VSR, SAM, the TMS and the cursor, the ACM patterns, TWS's files, EXP's 4:1, the ground clutter (look-down and
+look-up, the beam and nose-on, the STT lock in the notch, a slow drone at MTR LO and HI), and A-G: the PPI places, the EXP / DBS
 scales and the notch, FZ, SP, CZ, GMT's movers, SEA's ships, the designation and FTT, the picture's slopes, shadow and
 runways, AGR) and `modern-iaf/tests/test_sim_fcr.gd` / `test_sim_fcr_ag.gd` against the weapons range's drones and
-ground targets.
+ground targets; `modern-iaf/tests/test_enemy_drones.gd` flies a drone 60 m over the terrain: on the beam in
+look-down it is not found, from behind it is found at MTR LO and lost at MTR HI.
 
+[^odonnell]: R. M. O'Donnell, "Radar Systems Engineering, Lecture 14: Airborne Pulse Doppler Radar", IEEE New
+    Hampshire Section, 2010 (the main-lobe clutter at the Doppler of the platform's speed along the beam; nose-on
+    detection clutter free; "Short range sidelobe clutter often masks low radial velocity targets"):
+    https://gmoein.github.io/files/MIT%20Graduate%20Radar%20Course/Radar%202009%20A_14%20Airborne%20Pulse%20Doppler%20Radar.pdf
+[^w-pd]: Wikipedia, "Pulse-Doppler radar" ("Rejection speed is selectable on pulse-Doppler aircraft-detection
+    systems so nothing below that speed will be detected"; the target signal is "rejected by the Doppler filter when
+    radial velocity approaches zero"): https://en.wikipedia.org/wiki/Pulse-Doppler_radar
 [^chuck]: Chuck's Guides, "DCS Guide - F-16CM Viper" (EXP, DBS1 8:1, DBS2 64:1), a simulator guide:
     https://chucksguides.com/aircraft/dcs/f-16cm/
 [^bms-slew]: Falcon BMS forum, "How does ACM slew work?" (the slewable pattern about 60° wide and 20° high, the only

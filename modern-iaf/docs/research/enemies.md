@@ -126,7 +126,7 @@ by the rules in §5.2. The 1998 engine's quirks (one missile in the air, no shot
 | part | what it is | sources |
 |---|---|---|
 | 9A331 combat vehicle | tracked (GM-5955 chassis), 7.5 m long, 3.3 m wide, 5.1 m high with the radar raised; crew 3 (the infobox; the text says four) | [^w-tor] |
-| its sensors | a search radar on top of the turret (a "truncated parabolic antenna" that folds flat for travel), a phased-array tracking radar on the turret's front, an optical tracker (Iran's Dezful upgrade adds a thermal camera), a two-processor computer | [^w-tor][^mis-tor] |
+| its sensors | a search radar on top of the turret (a "truncated parabolic antenna" that folds flat for travel; F-band pulse-Doppler), a phased-array tracking radar on the turret's front (G/H-band, later K-band, pulse-Doppler), an optical tracker (Iran's Dezful upgrade adds a thermal camera), a two-processor computer | [^w-tor][^mis-tor] |
 | its missiles | eight, upright between the two radars, in two modules of four (9M334 modules of 9M331 rounds) | [^w-tor][^mis-tor] |
 | battery | four vehicles with a mobile command post (Ranzhir-M / 9S737) | [^w-tor][^mis-tor] |
 | reload | 9T244 transport-loader with a crane (two modules per load), 9T245 transporter; loading two modules takes 25 minutes | [^mis-tor] |
@@ -163,7 +163,7 @@ can radiate.
 | item | what the sources say | sources |
 |---|---|---|
 | crew | four: the driver (front left of the hull); the commander, gunner and radar operator in the turret | [^fas-zsu] |
-| fire control | radar (the RPK-2 "Gun Dish" on the turret) for search, acquisition, tracking and ranging; a computer for the lead; conventional optical sights as well; it fires on the move | [^fas-zsu] ([../threats.md](../threats.md) §2 for the band) |
+| fire control | radar (the RPK-2 "Gun Dish" on the turret) for search, acquisition, tracking and ranging, with "many false returns (ground clutter) under 60 m (200 ft) of altitude"[^w-zsu]; a computer for the lead; conventional optical sights as well; it fires on the move | [^fas-zsu] ([../threats.md](../threats.md) §2 for the band) |
 | bursts | "normally fired in bursts (2-3 rounds per barrel)" in the text; the same page's table lists 30 rounds per barrel per burst (conflict, open) | [^fas-zsu] |
 | load | about 2,000 rounds on the vehicle, about three HE-T to one API-T; supply trucks follow with more | [^fas-zsu] |
 | organisation (Soviet) | a platoon of four ZSU-23-4s with four SA-9s in a regiment's AA battery; two ZSUs behind each first-echelon battalion, about 200 m apart and about 400 m behind the lead elements; supply trucks 1.5–2.5 km behind | [^fas-zsu] |
@@ -368,7 +368,8 @@ November ([models-catalogue.md](models-catalogue.md) §7). Each download waits f
 [^tc7100]: US Army, TC 7-100.2 "Opposing Force Tactics", 9 December 2011, approved for public release, chapters 10 (aviation, §10-32–§10-35, §10-72) and 11 (air defence), https://www.govinfo.gov/content/pkg/GOVPUB-D101-PURL-gpo122554/pdf/GOVPUB-D101-PURL-gpo122554.pdf (read 2026-11-19).
 [^w-bavar]: Wikipedia, "Bavar-373", https://en.wikipedia.org/wiki/Bavar-373 (two canisters on a Zoljanah 10×10; phased-array radar on a ZAFAR truck; 200 targets tracked, claim; read 2026-11-19).
 [^w-3kh]: Wikipedia, "3rd Khordad", https://en.wikipedia.org/wiki/3rd_Khordad (battery one TELAR + two TELs; battalion four batteries, a Bashir radar and a C2 unit; 4 targets, 2 missiles each per TELAR; struck June 2025 and 28 February 2026; read 2026-11-19).
-[^w-tor]: Wikipedia, "Tor missile system", https://en.wikipedia.org/wiki/Tor_missile_system (GM-355 / GM-5955 tracked chassis; 7.5 × 3.3 × 5.1 m; search radar on top, PESA tracker at the front, optical tracker; eight missiles upright in two groups of four; battery of four with a Ranzhir-M CP; tracks on the move, fires at a halt; M1 two targets; 48 detected, 10 tracked; Iran 29, Dezful upgrade; read 2026-11-19).
+[^w-zsu]: Wikipedia, "ZSU-23-4 Shilka", https://en.wikipedia.org/wiki/ZSU-23-4_Shilka (the radar's ground clutter under 60 m; read 2026-11-21).
+[^w-tor]: Wikipedia, "Tor missile system", https://en.wikipedia.org/wiki/Tor_missile_system (GM-355 / GM-5955 tracked chassis; 7.5 × 3.3 × 5.1 m; search radar on top, PESA tracker at the front, both pulse-Doppler (read 2026-11-21), optical tracker; eight missiles upright in two groups of four; battery of four with a Ranzhir-M CP; tracks on the move, fires at a halt; M1 two targets; 48 detected, 10 tracked; Iran 29, Dezful upgrade; read 2026-11-19).
 [^mis-tor]: Missilery.info, "Anti-aircraft missile system 9K331 Tor-M1", https://en.missilery.info/node/1028 (secondary; cites a BGTU Voenmekh textbook and Tekhnika i vooruzheniya: the combat vehicle's equipment, 9T244 / 9T245, Ranzhir 9S737, wheeled M1TA / M1TB, the engagement sequence, about 4 s between launches, 25 min to load two modules, the 10 min on / 10 min off cycle and the hour's break after three engagements, crew 3; read 2026-11-19).
 [^fas-zsu]: Federation of American Scientists, "ZSU-23-4 Shilka", updated 22 January 1999, https://man.fas.org/dod-101/sys/land/row/zsu-23-4.htm (crew; radar and optical sights; bursts; basic load; platoon of four with four SA-9s; deployment distances; read 2026-11-19).
 [^w-iriadf]: Wikipedia, "Islamic Republic of Iran Air Defense Force", https://en.wikipedia.org/wiki/Islamic_Republic_of_Iran_Air_Defense_Force (radars, guns and missile systems named; several entries marked "citation needed"; read 2026-11-19).

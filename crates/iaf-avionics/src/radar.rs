@@ -95,7 +95,8 @@ const TWS_KEEP: f64 = 13.0;
 pub const VSR_MAX_KT: f64 = 1200.0;
 /// The real FCR's EXP: a 4:1 expansion about the bugged target or the cursor (p. 1-140).
 pub const EXP_K: f64 = 4.0;
-/// MTR LO / HI: the search drops a target whose speed along the line of sight is under these (kt; inferred).
+/// MTR LO / HI: in look-down every air mode loses a target whose speed along the line of sight is under these, the
+/// ground's band (kt; inferred; docs/radar.md §9.8).
 const MTR_KT: [f64; 2] = [60.0, 100.0];
 
 /// The CNTL page (fig. 1-76, p. 1-116): each option's OSB, legend and values, in `Real::cntl`'s order. TGT HIS (the
@@ -898,6 +899,11 @@ impl Radar {
             && !self.real.as_ref().is_some_and(|r| r.ovrd)
     }
 
+    /// Ours, Modern IAF's FCR: the ground's band in look-down, CNTL's MTR (kt); 0 for the original's radar.
+    fn gate_kt(&self) -> f64 {
+        self.real.as_ref().map_or(0.0, |r| MTR_KT[r.cntl[CNTL_MTR]])
+    }
+
     /// The current mode's range scale index (1 without one).
     pub fn range_index(&self) -> u8 {
         self.ranges.get(self.mode).map_or(1, |r| r.index)
@@ -1086,12 +1092,14 @@ impl Radar {
             return;
         }
         let reach = self.ranges.get(Mode::Stt).map_or(0.0, Range::detection_m);
+        let gate = self.gate_kt();
         let keys = self.real.as_ref().map(|r| r.sam.clone()).unwrap_or_default();
         for key in keys {
             let record = input
                 .unit(&key)
                 .filter(|u| u.alive() && u.pos.distance(input.own.pos) <= u.reach_from(reach, input.own.pos))
-                .and_then(|u| hit(u, &input.own, true, CONE_COS, None, input.terrain));
+                .and_then(|u| hit(u, &input.own, true, CONE_COS, None, input.terrain))
+                .filter(|c| !notched(c, &input.own, gate, reach, input.terrain));
             self.contacts.retain(|c| c.key != key);
             match record {
                 Some(c) => {
@@ -1199,11 +1207,7 @@ impl Radar {
         let cone = self.mode.cone_cos();
         let vol = self.volume();
         let vsr = self.mode == Mode::Lrs && self.real.as_ref().is_some_and(|r| r.vsr);
-        // The real FCR's search drops the slow movers along the line of sight (CNTL's MTR).
-        let mtr = match (&self.real, self.mode) {
-            (Some(r), Mode::Lrs | Mode::Tws) => MTR_KT[r.cntl[CNTL_MTR]],
-            _ => 0.0,
-        };
+        let gate = if air { self.gate_kt() } else { 0.0 };
         let scale = self.range_m();
         let centre = own.pos + own.fwd.flat_dir() * (scale / 2.0);
         let detection = self.ranges.get(self.mode).map_or(0.0, Range::detection_m);
@@ -1215,7 +1219,7 @@ impl Radar {
             }
             hit(u, own, air, cone, vol.as_ref(), input.terrain)
                 .filter(|c| !vsr || c.closure_kt > 0.0)
-                .filter(|c| mtr == 0.0 || (c.vel.dot(c.pos - own.pos) / c.dist.max(1.0)).abs() * KT >= mtr)
+                .filter(|c| !notched(c, own, gate, detection, input.terrain))
                 .map(|c| Contact { seen: now, ..c })
         };
         let old = self.selection.take();
@@ -1308,7 +1312,8 @@ impl Radar {
         let record = input
             .unit(&key)
             .filter(|u| u.alive() && u.pos.distance(input.own.pos) <= u.reach_from(range.detection_m(), input.own.pos))
-            .and_then(|u| hit(u, &input.own, true, CONE_COS, None, input.terrain));
+            .and_then(|u| hit(u, &input.own, true, CONE_COS, None, input.terrain))
+            .filter(|c| !notched(c, &input.own, self.gate_kt(), range.detection_m(), input.terrain));
         let Some(record) = record else {
             self.unlock();
             return;
@@ -2223,6 +2228,19 @@ fn hit(
     })
 }
 
+/// Ours, a pulse-Doppler radar's ground clutter (docs/radar.md §9.8): in look-down a contact whose speed along the line
+/// of sight is under `gate_kt` sits in the ground's Doppler band and is lost (the beam notch, a slow drone).
+fn notched(c: &Contact, own: &Own, gate_kt: f64, reach: f64, terrain: &dyn Fn(Vec3) -> Option<f64>) -> bool {
+    (c.vel.dot(c.pos - own.pos) / c.dist.max(1.0)).abs() * KT < gate_kt && look_down(own.pos, c.pos, reach, terrain)
+}
+
+/// Ours: the ground lies behind `to` seen from `from`: the line of sight, carried on past it, meets the ground (taken
+/// level at the height under `to`, sea level where there is none) within `reach` (inferred; a flat earth).
+fn look_down(from: Vec3, to: Vec3, reach: f64, terrain: &dyn Fn(Vec3) -> Option<f64>) -> bool {
+    let (d, drop) = (to - from, from.z - to.z);
+    drop > 0.0 && d.x.hypot(d.y) * (from.z - terrain(to).unwrap_or(0.0)) / drop <= reach
+}
+
 /// Azimuth (+ right) and elevation (+ up) of `d` about the jet's own axes (deg).
 fn body_angles(own: &Own, d: Vec3) -> (f64, f64) {
     let up = if own.up == Vec3::ZERO { Vec3::UP } else { own.up };
@@ -2689,7 +2707,7 @@ mod tests {
 
     #[test]
     fn target_history_bug_centred_scan_exp_and_mtr() {
-        let beam = Unit { vel: Vec3::new(200.0, 0.0, 0.0), ..at("beam", -5.0, 30.0, 0.0) };
+        let beam = Unit { vel: Vec3::new(200.0, 0.0, 0.0), ..at("beam", -5.0, 30.0, -2000.0) };
         let units = [at("a", 20.0, 30.0, 0.0), at("b", 22.0, 32.0, 0.0), at("n", 0.0, 30.0, 0.0), beam];
         let mut r = up(&units);
         for t in [8.1, 16.2, 24.3] {
@@ -2700,7 +2718,7 @@ mod tests {
             k.sort();
             k.join(" ")
         };
-        assert_eq!(sorted(&r), "a b n", "MTR LO drops the beaming target");
+        assert_eq!(sorted(&r), "a b n", "MTR LO drops the beaming target in look-down");
         assert_eq!(r.history_xy().len(), 2, "TGT HIS 3: two earlier frames");
         r.cntl_press(18);
         r.update(32.4, &scene(&units));
@@ -2732,6 +2750,57 @@ mod tests {
         assert_eq!(r.exp_centre(), None);
         r.cntl_press(20);
         assert_eq!(r.real().unwrap().cntl[4], 1, "MTR HI");
+    }
+
+    #[test]
+    fn ground_clutter_notch_in_look_down_only() {
+        // 30 km out, 2 km below (the ground behind it 75 km out: look-down) or 2 km above (look-up), crossing (the
+        // beam) or coming (hot).
+        let unit = |key: &str, up, vel| Unit { vel, ..at(key, 0.0, 30.0, up) };
+        let (beam, hot) = (Vec3::new(200.0, 0.0, 0.0), Vec3::new(0.0, -200.0, 0.0));
+        let units = [
+            unit("low_beam", -2000.0, beam),
+            unit("low_hot", -2000.0, hot),
+            unit("high_beam", 2000.0, beam),
+            unit("high_hot", 2000.0, hot),
+        ];
+        let sorted = |r: &Radar| {
+            let mut k = keys(r);
+            k.sort();
+            k.join(" ")
+        };
+        let mut r = up(&units);
+        assert_eq!(sorted(&r), "high_beam high_hot low_hot", "look-down loses the beam only");
+        // The 1998 game's radar (the Sufa's row without the real FCR) has no clutter.
+        let mut old = Radar::new(F16I, None, None, false);
+        old.toggle_aa_ag(0.0, &scene(&units));
+        assert_eq!(sorted(&old), "high_beam high_hot low_beam low_hot");
+        // STT on the low jet coming; it turns to the beam: the lock breaks.
+        assert!(r.lock_key("low_hot") && r.lock_key("low_hot"));
+        r.update(0.1, &scene(&units));
+        assert_eq!(r.mode(), Mode::Stt);
+        let turned = [unit("low_hot", -2000.0, beam)];
+        r.update(0.2, &scene(&turned));
+        assert!(r.locked().is_none(), "in the notch the lock breaks");
+        assert!(r.take_events().contains(&Event::Lock { key: "low_hot".into(), on: false }));
+    }
+
+    #[test]
+    fn slow_drone_inside_the_speed_gate_only() {
+        // A drone (0.01 m², 50 m/s = 97 kt) 10 km out, 600 m below: head on, or 60° off the line of sight (25 m/s
+        // along it); and 600 m above, 60° off.
+        let shahed = Rcs { front_m2: 0.01, side_m2: 0.01, rear_m2: 0.01, bays_open_m2: 0.0, store_m2: 0.0 };
+        let drone = |key: &str, up, off: f64| {
+            let a = (180.0 + off).to_radians();
+            Unit { vel: Vec3::new(50.0 * a.sin(), 50.0 * a.cos(), 0.0), rcs: Some(shahed), ..at(key, 0.0, 10.0, up) }
+        };
+        let units = [drone("hot", -600.0, 0.0), drone("off", -600.0, 60.0), drone("above", 600.0, 60.0)];
+        let mut r = up(&units);
+        assert_eq!(keys(&r).len(), 2);
+        assert!(r.contact("hot").is_some() && r.contact("above").is_some(), "MTR LO (60 kt): head on, and look-up");
+        r.cntl_press(20);
+        r.update(8.1, &scene(&units));
+        assert_eq!(keys(&r), ["above"], "MTR HI (100 kt): no drone in look-down");
     }
 
     #[test]
