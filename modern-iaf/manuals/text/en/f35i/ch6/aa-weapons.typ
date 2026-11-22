@@ -47,4 +47,7 @@ Keep the lock until _A_ runs out: until then the AIM-120 steers on your radar's 
 
 The real jet's own cues for each weapon, before and after the launch, are #nis: the sim shows the F-16's.
 
-#in-sim[An enemy fighter releases flares or chaff against your missile, at its launch and in its last 6 seconds. A missile that follows a decoy is lost. Each missile's chance is in @ew-cmds.]
+#in-sim[
+  - An enemy fighter releases flares or chaff against your missile, at its launch and in its last 6 seconds. A missile that follows a decoy is lost. Each missile's chance is in @ew-cmds.
+  - A radar missile fired from far climbs first, into thinner air, and dives onto the target; the helmet's range bracket allows for the climb. A missile goes off when it passes the target within its warhead's reach. One that passes wider destroys itself past the target, out of reach. A missile that reaches the target in its first seconds is a dud: its fuze arms only after them.
+]

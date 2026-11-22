@@ -1808,6 +1808,11 @@ func _missile_detonate(mis: RefCounted) -> void:
 	# The release flag (combat.gd _release): 0, a script's miss for show, hurts nothing; 2, its kill shot, then
 	# explodes the target (FUN_004d6130).
 	var flag: int = mis.get_meta("flag", 1)
+	# A physical missile that ended before its fuze armed does not burst (docs/real-weapons.md §2.5); a script's kill
+	# shot still kills.
+	if mis.dud and flag != 2:
+		_missile_remove(mis, owner)
+		return
 	if host.runtime != null and not owner.is_empty() and flag != 0:
 		hit = host.runtime.area_damage(p, float(mis.weapon.power), float(mis.weapon.radius), owner, "missile")
 	if flag == 2 and host.runtime != null:
@@ -1823,6 +1828,11 @@ func _missile_detonate(mis: RefCounted) -> void:
 	_place_sound(host.sounds.play("SFX_WEAPON_EXPLODED", WEAPON_OST.get(int(mis.weapon.type), "OST_HEATMISSILE")), p)
 	if not hit.is_empty():
 		_place_sound(host.sounds.play("SFX_WEAPON_HIT_TARGET"), p)
+	_missile_remove(mis, owner)
+
+
+## The missile's model, its sound and its RWR entry go.
+func _missile_remove(mis: RefCounted, owner: Dictionary) -> void:
 	var node: Node3D = mis.get_meta("node") if mis.has_meta("node") else null
 	if node != null:
 		node.queue_free()

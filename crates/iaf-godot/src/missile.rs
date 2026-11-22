@@ -44,7 +44,7 @@ fn chase_motion(m: &VarDictionary, launch: bool) -> ChaseMotion {
 
 /// The physical missile of a record with a motor (ours, Modern IAF's data and modern_weapons.gd; docs/real-weapons.md
 /// §2.1): "_motorThrust" (N), "_motorBurn" (s), "_launchKg", "_propellantKg", "_diameterM", "_dragScale",
-/// "_maxTime" (s), "_maxG", "_navConstant", "_thrustVector" (1: thrust-vector control).
+/// "_maxTime" (s), "_loft" (1: lofts on long shots), "_maxG", "_navConstant", "_thrustVector" (1: thrust-vector control).
 fn physics(m: &VarDictionary) -> Option<Physics> {
     let thrust = num(m, "_motorThrust")?;
     let f = |k: &str, d: f64| num(m, k).unwrap_or(d);
@@ -59,6 +59,7 @@ fn physics(m: &VarDictionary) -> Option<Physics> {
         max_g: f("_maxG", 30.0),
         nav: f("_navConstant", 4.0),
         tvc: f("_thrustVector", 0.0) != 0.0,
+        loft: f("_loft", 0.0) != 0.0,
     })
 }
 
@@ -79,7 +80,8 @@ impl IafMissile {
 #[godot_api]
 impl IafMissile {
     /// Launch (`FUN_004d5d10` → `FUN_00561ef0`): motion record `m`, the Real turn limit `max_g` (0 none), `shot` =
-    /// {pos, vel, nose, up: the launcher; target: the unit ("" = the point), point, q}; `debug` = db.debug_param.
+    /// {pos, vel, nose, up: the launcher; target: the unit ("" = the point), point, q; radius: Modern IAF's fuze};
+    /// `debug` = db.debug_param.
     #[func]
     fn launch(&mut self, m: VarDictionary, max_g: f64, now: f64, shot: VarDictionary, debug_param: Callable) {
         let v = |k: &str| vec3(get(&shot, k).unwrap_or_default());
@@ -106,6 +108,10 @@ impl IafMissile {
             let active =
                 if num(&shot, "type") == Some(600.0) { sight::active_range(generation).unwrap_or(0.0) } else { 0.0 };
             mis.set_seeker(cone, active);
+        }
+        // Modern IAF's proximity fuze on the physical missile (docs/real-weapons.md §2.5): "radius", the warhead's.
+        if let (true, Some(radius)) = (motion.phys.is_some(), num(&shot, "radius")) {
+            mis.set_fuze(radius);
         }
         self.missile = Some(mis);
         self.reject = num(&m, "_decoyReject").unwrap_or(0.0);
@@ -208,6 +214,7 @@ impl IafMissile {
             "p0" => vector3(p0), "v0" => vector3(v0), "acc" => vector3(acc), "t0" => m.t0(),
             "last_pos" => vector3(m.last_pos()), "next_update" => m.next_update(), "ended" => m.ended(),
             "has_target" => matches!(m.aim(), Aim::Unit(_)), "target_key" => key, "aim_point" => point,
+            "dud" => m.dud(),
         }
     }
 

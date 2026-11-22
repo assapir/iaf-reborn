@@ -473,6 +473,11 @@ func modern_ew() -> bool:
 	return true
 
 
+## Modern IAF's proximity fuzes on the physical missiles.
+func modern_fuzes() -> bool:
+	return true
+
+
 ## The sim's aircraft descriptors (`iaf-sim own`: the F-16's from our model) and its compiled missions.
 func planes_folder() -> String:
 	return "own/planes"

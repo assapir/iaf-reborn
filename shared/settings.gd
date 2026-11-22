@@ -1110,6 +1110,13 @@ func modern_ew() -> bool:
 	return false
 
 
+## Ours: Modern IAF's proximity fuzes (docs/real-weapons.md §2.5): a physical missile bursts within its warhead's
+## radius and is a dud before it arms. The 1998 game (and its Extras' physical missiles) keeps the burst at the closest
+## pass; Modern IAF says yes.
+func modern_fuzes() -> bool:
+	return false
+
+
 ## The folders under assets/converted holding the aircraft descriptors (aircraft_model.gd: `<plane>/aircraft.json` and
 ## the index `aircraft.json`) and the menu missions (mission_runtime.gd: `missionlist.json` and the missions): the
 ## original's converted ones; Modern IAF's own (sim_settings.gd).

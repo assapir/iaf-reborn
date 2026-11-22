@@ -31,7 +31,8 @@
     "_maxTime": 120.0,
     "_maxG": 35.0,
     "_navConstant": 4.0,
-    "_decoyReject": 0.8
+    "_decoyReject": 0.8,
+    "_loft": 1
   },
   "sources": {
     "kg": "w-aim120",
@@ -59,7 +60,8 @@
     "motion._maxTime": "inferred",
     "motion._maxG": "wt-aim120",
     "motion._navConstant": "inferred",
-    "motion._decoyReject": "inferred, w-chaff"
+    "motion._decoyReject": "inferred, w-chaff",
+    "motion._loft": "inferred"
   },
   "notes": {
     "number": "ours",

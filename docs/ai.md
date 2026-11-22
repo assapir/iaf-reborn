@@ -1347,7 +1347,8 @@ target gone, out of reach or masked) frees its channel.
   (the fire tick's lead) one per `GUN_PERIOD`. The launch envelope is `Missile.dlz` from the first launcher toward
   the target; the gun's is its range. The weapon records are stand-ins:
   the AIM-120's for the SAMs and the 20 mm's for the ZSU, the existing missile and round models unchanged (the sites'
-  own records await the user, modern-iaf/docs/threat-records.md).
+  own records await the user, modern-iaf/docs/threat-records.md). The SAM therefore lofts on a long shot and its
+  envelope is the lofted one; its proximity fuze is the record's (docs/real-weapons.md §2.4, §2.5).
 - **The RWR and the HARM:** each track is a lock. A site's radar is on the RWR's search list (docs/rwr.md §7) and in
   the HARM sensor's scan only while it radiates (the part's `radiating`), heard to the radar's reach (`radar_km`).
   Modern IAF has the search list on.

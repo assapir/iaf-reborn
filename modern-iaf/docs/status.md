@@ -204,6 +204,10 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   seeker goes active (real-weapons.md §2.2); the AIM-9X's thrust-vectored turn no longer brakes it to a stop, and the
   guidance acts across the missile's velocity, so the 70° off-boresight shot hits. The burst is the same at any frame
   rate: the closest pass of the missile and the moving target over each step (real-weapons.md §2.1).
+  Steps 2 and 3 (23 Nov): the AIM-120 lofts on long shots, the enemy SAM sites' stand-in too (real-weapons.md §2.4):
+  6,000 m up its zone grows from 36 to 50 km at a still target and from 56 to 86 km head on; the AIM-9X's thrust
+  vectoring adds the motor's thrust to its fins' turn. Each physical missile's proximity fuze fires only within its
+  blast radius, past a wider pass it self-destructs, and a hit before it arms is a dud (§2.5).
 - **No band line for a change the cockpit shows (2026-11-19, the user's "Do it"):** the master arm switch, the
   helmet's picture, the DGFT / MSL OVRD switch, LASER ARM, DL, ADV MODE, the fuel switches, IFF IDENT, the bay doors,
   the bombs' submode, fuze and delay, PRE / VIS, SPOT / SCAN and the autopilot switches put no line in the top strip;
@@ -1145,8 +1149,8 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   ([research/radio-terms.md](research/radio-terms.md)); in Hebrew a runway's side is ימין / שמאל ("25 ימין"), the
   AWACS's clearance "רשאי לתקוף", and "מייל" is read as the mile ([sound.md](sound.md) §3.1).
   Open: the radio menu's flight pages (slice 3's screen, waiting for the user's approval).
-- **Missiles (avionics-plan.md §7.2):** next steps 2, 3 and 5: the AIM-120's loft, the proximity fuzes, the threat
-  missiles once their records are approved; step 4 (the missile warning's type) awaits the user's approval.
+- **Missiles (avionics-plan.md §7.2):** next step 5: the threat missiles once their records are approved; step 4
+  (the missile warning's type) awaits the user's approval.
 - **The missile warning, not started (outside the user's words):** an active radar missile's own seeker as an "M" on
   the threat display (the F-15C's ALR-56C shows one, a simulator manual; the dash-34's F-16 list has none;
   [research/missile-warning.md](research/missile-warning.md) §2, §6).

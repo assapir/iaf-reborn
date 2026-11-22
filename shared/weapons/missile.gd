@@ -43,6 +43,10 @@ var next_update: float:
 var ended: bool:
 	get:
 		return _s.get("ended", false)
+## The physical missile ended before its fuze armed: no burst (docs/real-weapons.md §2.5).
+var dud: bool:
+	get:
+		return _s.get("dud", false)
 
 var _m = ClassDB.instantiate("IafMissile")
 var _s := {}
@@ -67,6 +71,9 @@ func launch(
 	var shot := {"pos": pos, "vel": vel, "nose": nose, "up": up, "target": target, "point": point, "q": q}
 	# The physical missile's seeker in flight (docs/real-weapons.md §2.2): its cone, generation and type.
 	shot.merge({"generation": int(w.get("generation", 0)), "type": int(w.get("type", 0))})
+	# Modern IAF's proximity fuze on the physical missile (docs/real-weapons.md §2.5): the warhead's radius.
+	if Settings.modern_fuzes():
+		shot["radius"] = float(w.get("radius", 0.0))
 	if w.has("real_cone_deg"):
 		shot["real_cone_deg"] = float(w.real_cone_deg)
 	_m.launch(m, float(w.get("real_max_g", 0.0)), now, shot, debug)

@@ -513,8 +513,8 @@ The player's and the AI's missiles fly the same code.
   record's drag scale; CN is the normal force the fins carry for the turn (at most 7, the rest the thrust vector's),
   K = 0.1. A turn bleeds speed.
 - **Turn limit:** the fins give at most CN = 7 (inferred), so the limit falls with the air's density and the speed; at
-  most the structural g. With thrust-vector control (the AIM-9X's jet vanes[^ds9x]) the structural g holds while the
-  motor burns.
+  most the structural g. With thrust-vector control (the AIM-9X's jet vanes[^ds9x]) the motor's thrust adds to the
+  fins' turn while it burns, at most the structural g (inferred: a jet vane turns at most the thrust).
 - **Guidance:** augmented proportional navigation, N = 4 (the usual 3–5[^pn]): N times the closing speed times the line
   of sight's turn rate, across the missile's velocity, plus half N times the target's acceleration across the line of
   sight (taken from its velocity between the game's samples, at their own times, at most 12 g; inferred), with gravity
@@ -533,8 +533,9 @@ The player's and the AI's missiles fly the same code.
   second.
 - **DLZ:** a straight level fly-out at the mean height of the jet and the target, from the jet's speed: the maximum
   is the most the missile gains on the target in its flight less the last 2 s (the original's margin), the minimum the
-  original's (the distance flown in tCO + 2 s). The post-launch times (modern-iaf/docs/weapons.md §8.2) run the same
-  fly-out from the missile's state, and the AI's launch range reads the same zone.
+  original's (the distance flown in tCO + 2 s). A lofting missile's maximum is the farther of that and its lofted
+  fly-out's (§2.4). The post-launch times (modern-iaf/docs/weapons.md §8.2) run the same fly-out (a lofting missile's
+  lofted one) from the missile's state, and the AI's launch range reads the same zone.
 
 **The values:**
 
@@ -545,17 +546,22 @@ The player's and the AI's missiles fly the same code.
 | Python 5 | 105 | 16,671 N for 5.0 s (inferred: sized for Mach 4) | 34 kg (inferred) | 0.16 m | 60 (inferred: the AIM-9X's) | 31.1 s (fitted) | [^3] |
 | AIM-120 | 161.5 | 17,188 N for 7.75 s (51.3 kg at 265 s) | 51.3 kg | 0.178 m | 35 (weak: a forum's table; 28–40 quoted) | 120 s (inferred) | [^iasg], [^wt120] |
 
-- **The drag scale** (1.217 for all four, inferred): fitted so the AIM-120 flies its published 90 km head-on, both
-  jets at Mach 0.9 12,000 m up. A check against the CFD study[^iasg]: from Mach 0.83 5 km up at a still point it flies
-  about 35 km in both. One scale for every body is inferred: no public drag figure for the Sidewinder or the Python
-  was found.
+- **The drag scale** (1.217 for all four, inferred): fitted so the AIM-120's straight shot flies its published 90 km
+  head-on, both jets at Mach 0.9 12,000 m up. A check against the CFD study[^iasg]: from Mach 0.83 5 km up at a still
+  point its straight shot flies about 35 km in both. One scale for every body is inferred: no public drag figure for
+  the Sidewinder or the Python was found.
+- **Tried and dropped (19 November 2026): the drag fitted on the lofted shot.** Fitting the drag so the lofted AIM-120
+  (§2.4) makes the 90 km needed a drag scale of 2.0; the CFD study's straight shot then fell to 21 km against its
+  35 km, and the Python 5 needed a 120 s flight for its 20 km. The 90 km and the study agree on the straight shot, so
+  the drag stays fitted on it and the loft adds to the published range (inferred).
 - **The flight times** (fitted): the AIM-9M's 24.7 s makes its 17.7 km at a still target from Mach 0.9 6,000 m up
   (the medium-altitude reading of §1.1); the Python 5's 31.1 s its 20 km. No missile's battery life is published.
 - **The Python 5's motor**: Rafael keeps the Python 4's motor[^p5bro], whose figures are not published; its propellant
   is set so it reaches Mach 4[^3] from Mach 0.9 12,000 m up (inferred).
 - **What the model gives** (Mach 0.9 launches, test `physical_missiles_fly_their_published_figures`; the model's
   results, not published figures): the AIM-9M reaches Mach 3.8 12,000 m up (published: "Mach 2.5+"[^1]); at sea level it reaches 14 km at a still target, 7 km chasing a Mach 0.9 target; the
-  AIM-120 36 km at a still target 6,000 m up, 16 km in a tail chase.
+  AIM-120's straight shot 36 km at a still target 6,000 m up; lofted (§2.4) 50 km at a still target, 88 km head-on and
+  16 km in a tail chase 6,000 m up, 101 km head-on 12,000 m up, 24 km at a still target 300 m up.
 - **Open:** each missile's real drag, flight time and g limit; the motors' thrust curves (one steady thrust here; the
   AIM-120's boost and sustain are disputed[^iasg]).
 
@@ -608,6 +614,47 @@ Every figure is inferred (no seeker's decoy rejection is published); the sources
 What a flare and chaff then give, head on 2 km out: an old IR seeker 0.5, the AIM-9M 0.25, the AIM-9X 0.075; chaff
 against the AIM-120 0.4 on the beam, 0.08 from a jet flying straight away. Tests: `ecm.rs` (`rejection_by_generation`,
 `afterburner_and_g`, `chaff_works_on_the_beam`, `early_decoys_burn_out`), `modern-iaf/tests/test_countermeasures.gd`.
+### 2.4 The AIM-120's loft (2026-11-19)
+
+On a long shot the AIM-120 climbs into thinner air and dives on the target (`missile.rs` `Physics::loft_angle`; the
+record's `_loft`, modern-iaf/docs/data-formats.md §3):
+- **The loft angle** is keyed on the distance the missile flies to the intercept: the horizontal distance to the
+  target times the missile's horizontal speed over the closing speed (the closing speed at least half the missile's
+  speed). From 15 km to the intercept the missile aims above it, by an angle rising to 30° at 55 km; inside 15 km it
+  aims at the intercept itself.
+- **In flight:** while the loft angle holds, the missile turns straight (pursuit, within its limit) at the point above
+  the predicted intercept (the target's velocity times the time to go); then the proportional navigation takes over.
+- **The zone:** a 2-D lofted fly-out (range, height, the flight path turning within the limit, the air by height, the
+  lift's drag) at the mean height; the DLZ's maximum is the farthest target it reaches with 2 s of flight to spare
+  and within 200 m of the target's height, found by halving to about 4 m. The search is kept per record at 10 m/s
+  and 100 m steps of the launcher's speed and height and the target's speed away (`Physics::lofted_max`), so the AI's
+  and the SAM sites' frequent zone checks fly it once. The post-launch times run it from the missile's state.
+- **Who lofts:** every launch of a record with `_loft`: the player's and the wingmen's AIM-120, and the enemy SAM
+  sites, which fire the AIM-120's record as their stand-in (docs/ai.md §15.1).
+- **What it gives** (both 0.9 Mach, the straight shot's zone → the lofted one): 300 m up, head on 37 → 44 km; 6,000 m
+  up, a still target 36 → 50 km, head on 56 → 86 km; 12,000 m up, head on 91 → 102 km, a target flying away 33 →
+  40 km. At sea level and against a target flying away low the zone stays the straight one (under 15 km).
+- **Inferred:** the whole profile (15 km, 30°, 55 km). Missiles of this class loft; the AIM-120's own loft logic is
+  not published (open). The drag stays fitted on the straight shot (§2.1), so the loft adds to the published 90 km.
+
+### 2.5 The proximity fuze (Modern IAF's, 2026-11-23)
+
+In Modern IAF (`Settings.modern_fuzes`) a physical missile (§2.1) carries a proximity fuze (`missile.rs`
+`Missile::set_fuze`, set from the weapon's blast radius in `IafMissile.launch`):
+- **The trigger:** at the closest pass, the missile's and the target's motion over the step both counted (as the
+  burst of §2.1), the fuze fires when the target is within the record's blast radius (`blast_m`: the AIM-9M, AIM-9X
+  and Python 5 9 m, the AIM-120 15 m). The burst and its damage are the record's, as before.
+- **A wider pass:** no burst at the target. Past it the missile self-destructs where it is, out of its warhead's reach
+  of the target (no damage). A missile whose flight ends first (too slow, its longest flight) bursts where it is; one
+  that hits the ground hurts what is there.
+- **A contact fuze** is the same rule at the hit distance (1.5 m): a record with no blast radius bursts only on a hit.
+- **Arming:** the warhead arms at the zone's minimum time (the turn-on time + 2 s, the original's DLZ minimum, §2.1).
+  A missile that ends between the turn-on time and that time is a dud: no burst and no damage
+  (`player_weapons.gd` `_missile_detonate`; a mission script's kill shot still kills). Before the turn-on time no
+  missile ends: one that passes the target then self-destructs past it.
+- **Inferred:** the trigger at the blast radius and the arming time; no source for the missiles' fuze ranges and
+  arming times was found (open).
+- The 1998 game, and its Extras' physical AIM-9X and Python 5, keep the burst at the closest pass (no fuze).
 
 ## 3. Validation
 | test | checks |
@@ -617,7 +664,7 @@ against the AIM-120 0.4 on the beam, 0.08 from a jet flying straight away. Tests
 | `tests/godot/test_radar.gd` | the F-16's 80 km |
 | `tests/godot/test_radar_missiles.gd` | the AMRAAM's 157 kg, a/β = Mach 4 and the distance flown in burn + 6 s from 250 m/s = 70 km; the AIM-7B's DLZ against a still target about 5.7 km (not empty) |
 | `crates/iaf-avionics/src/sight.rs` `real_rear_sector`, `real_front_mil_ab_and_none`, `original_range_and_aspect` | the §1.2 rules: rear range and its R/2 afterburner rule, the 60° sector, front with / without afterburner, no front lock, the original unchanged |
-| `crates/iaf-avionics/src/missile.rs` `physical_missiles_fly_their_published_figures`, `a_physical_missile_reaches_its_dlz_and_no_further`, `turning_bleeds_speed_and_height_takes_the_turn`, `physical_post_launch_times_match_the_flight`, `a_short_shot_hits_a_breaking_target`, `the_data_link_and_the_active_seeker`, `an_ir_seeker_loses_a_target_outside_its_gimbal`; `modern-iaf/tests/test_sim_missiles.gd` (each jet kills a range drone with each missile: the IR missiles from 2.5 km behind, the AIM-120 head-on from 20 km) | §2.1: the published ranges and speeds, the CFD study's 35 km, the zone shrinking low and in a tail chase; a launch inside the zone hits, past it misses (still, closing, opening), a crossing target is led, a 6 g break from 2.5 km is hit; §2.2: with the link the AIM-120 follows a turning target, without it it finds the target inside its cone at the active range, a narrow cone loses it, an IR seeker loses a target outside its gimbal, the AIM-9X turns 70° off the rail onto a still target 3 km off and hits it; induced drag, the fins' limit falling with height, the AIM-9X's thrust vectoring; the post-launch time to impact within 10 % of the flight |
+| `crates/iaf-avionics/src/missile.rs` `physical_missiles_fly_their_published_figures`, `a_physical_missile_reaches_its_dlz_and_no_further`, `turning_bleeds_speed_and_height_takes_the_turn`, `physical_post_launch_times_match_the_flight`, `a_short_shot_hits_a_breaking_target`, `the_data_link_and_the_active_seeker`, `an_ir_seeker_loses_a_target_outside_its_gimbal`, `the_aim_120_lofts_on_a_long_shot`, `the_proximity_fuze`; `modern-iaf/tests/test_sim_missiles.gd` (each jet kills a range drone with each missile: the IR missiles from 2.5 km behind, the AIM-120 head-on from 20 km) | §2.1: the published ranges and speeds (the AIM-120's on the straight shot, the loft adding to it), the CFD study's 35 km, the zone shrinking low and in a tail chase; a launch inside the zone hits, past it misses (still, closing, opening; 300 m, 6,000 m and 12,000 m up, the AIM-120 lofted), a crossing target is led, a 6 g break from 2.5 km is hit; §2.2: with the link the AIM-120 follows a turning target, without it it finds the target inside its cone at the active range, a narrow cone loses it, an IR seeker loses a target outside its gimbal, the AIM-9X turns 70° off the rail onto a still target 3 km off and hits it; induced drag, the fins' limit falling with height, the AIM-9X's thrust vectoring adding its thrust; the post-launch time to impact within 10 % of the flight (also on a lofted shot, at the launch and high in the climb); §2.4: the AIM-120 climbs over 3 km on a 45 km shot, not on a 10 km one; §2.5: a hit bursts within the fuze, a pass wider than it self-destructs past the target, a hit before the arming time is a dud |
 | `crates/iaf-avionics/src/missile.rs` `dlz_per_missile_original_and_real` | the original DLZ of each air-to-air missile; with Real: the burn flies the published range, the zone is not empty, a launch at its maximum reaches a still target and none flies past 1.05 × its range |
 
 ## Sources

@@ -326,20 +326,27 @@ in scope; countermeasure effectiveness and electronic attack stayed parked until
 **Built 19 November (the core):** Modern IAF's four air-to-air missiles (AIM-9M, AIM-9X, Python 5, AIM-120) fly the
 physical missile of [../../docs/real-weapons.md](../../docs/real-weapons.md) §2.1 (`missile.rs` `Physics`): a motor
 of real thrust and burn, the propellant burnt off, the body's drag by Mach and height, gravity, proportional
-navigation within the g limit (the fins' lift falls with height, the AIM-9X's thrust vectoring holds while the motor
-burns), turns bleeding speed, and the flight's end when it is too slow. The DLZ, the AI's launch range and the
+navigation within the g limit (the fins' lift falls with height, the AIM-9X's thrust vectoring adds its thrust while
+the motor burns), turns bleeding speed, and the flight's end when it is too slow. The DLZ, the AI's launch range and the
 post-launch times come from the same fly-out, so the zone shrinks low and in a tail chase. The player's and the AI's
-missiles fly the same Rust model. Fuzing stays the existing burst at the closest pass with the record's blast.
+missiles fly the same Rust model.
 
 **Built 19 November (step 1):** the seekers in flight and the AIM-120's data link
 ([../../docs/real-weapons.md](../../docs/real-weapons.md) §2.2): a target that leaves the seeker's cone is lost; the
 AIM-120 flies on the jet's radar track until its seeker goes active, on the last known track when the lock drops,
 and alone once active.
 
+**Built 19 November (step 2):** the AIM-120's loft ([../../docs/real-weapons.md](../../docs/real-weapons.md) §2.4):
+beyond 15 km to the intercept it climbs toward a point above it and dives on it; its zone and post-launch times come
+from the same lofted fly-out. The drag stays fitted on the straight shot (the lofted fit, tried, broke the CFD check).
+Merged 23 November with step 3; the enemy SAM sites, firing the AIM-120's record, loft too.
+
+**Built 23 November (step 3):** the proximity fuzes ([../../docs/real-weapons.md](../../docs/real-weapons.md) §2.5):
+each physical missile bursts at its closest pass only within its record's blast radius, else self-destructs past the
+target; before the zone's minimum time it is a dud. The trigger at the blast radius and the arming time are
+inferred (no published figures).
+
 **Next steps**, each its own merge:
-2. **Loft:** the AIM-120's climb on long shots, which the published ranges assume.
-3. **Fuzing:** each missile's proximity fuze (the AIM-9M's DSU-15 laser fuze, the AIM-120's radio fuze): its arming
-   time and detection range in place of the burst at the closest pass.
 4. **The missile warning's type** (E1, E2, E5; built 19 November, awaiting the user's approval: a visible change): the
    RWR names a radar-guided missile by its launcher's radar and does not hear an infrared one; the MAW names the
    missile's class from its launch point ("AAM", "SAM"). Not a designation: no source shows a warning that writes one
