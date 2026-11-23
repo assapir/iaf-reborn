@@ -283,6 +283,92 @@ const BFM_SWING: f64 = 1.0;
 const BFM_BRAKE_MS: f32 = 25.0;
 const BFM_STEEP: f64 = 60.0;
 
+/// Ours, the AI jets' ground collision avoidance (Modern IAF's, [`Autopilot::floor`], docs/ai.md §20): the fly-up rolls
+/// wings level and pulls this load factor (the F-16's Auto GCAS: a roll to wings level, then a 5 g pull[^gcas]), to a
+/// climb of [`FLY_UP_DEG`] (inferred), held until the predicted fly-up clears the floor by half again and the jet
+/// climbs. The prediction: [`FLY_UP_LAG_S`] of delay (inferred: the 6-DoF's load factor builds over about a second)
+/// and the roll at the jet's roll rate, the climb rate changing as its acceleration has it now, then the pull, then
+/// the climb [`FLY_UP_LOOK_S`] on (inferred), in steps of [`FLY_UP_STEP_S`], at most every [`FLY_UP_CHECK_S`] (the
+/// host's terrain is a script call).
+///
+/// [^gcas]: NASA / AFRL, "Automatic Ground Collision Avoidance System" briefing (ntrs.nasa.gov 20090035618): the
+///     maneuver phase is a roll to wings level and a 5 g pull.
+pub const FLY_UP_G: f32 = 5.0;
+const FLY_UP_DEG: f64 = 20.0;
+const FLY_UP_LAG_S: f64 = 1.0;
+const FLY_UP_LOOK_S: f64 = 3.0;
+const FLY_UP_STEP_S: f64 = 0.25;
+const FLY_UP_CHECK_S: f64 = 0.1;
+/// Ours, the terrain following ([`Autopilot::follow`], docs/ai.md §20; inferred): the terrain this far ahead along the
+/// track (s of flight, one sample a second) is cleared by its height when climbed to at [`FOLLOW_DEG`]. The height law:
+/// the height's own rate (the same profile a second on) plus a climb rate of [`FOLLOW_K`] per m of height error (1/s),
+/// within a path [`FOLLOW_PATH_DEG`] below and above the horizon, flown by [`FOLLOW_KV`] of lift upward per m/s of
+/// climb rate error (1/s), within `.0` g down and `.1` g up (a descent eases over; the climbs pull).
+const FOLLOW_LOOK_S: usize = 10;
+const FOLLOW_LEAD_S: f64 = 1.5;
+const FOLLOW_DEG: f64 = 10.0;
+const FOLLOW_K: f64 = 0.3;
+const FOLLOW_PATH_DEG: (f64, f64) = (15.0, 30.0);
+const FOLLOW_KV: f64 = 1.0;
+const FOLLOW_G: (f64, f64) = (0.8, 2.0);
+
+/// The horizontal unit of the jet's track (its heading when it flies straight up or down).
+fn track(v: &ApView) -> Vec3 {
+    let h = v.att.heading as f64;
+    Vec3::new(v.vel[0], v.vel[1], 0.0).try_normalize().unwrap_or(Vec3::new(h.sin(), h.cos(), 0.0))
+}
+
+/// Ours, the least clearance (m) over the terrain `ground` of a fly-up started now at `n` g ([`FLY_UP_G`]), along the
+/// jet's present track.
+pub fn fly_up_clearance(v: &ApView, ground: Ground, n: f64) -> f64 {
+    let g = G as f64;
+    let speed = (v.speed as f64).max(50.0);
+    let th = track(v);
+    let mut gam = 0.0;
+    let t_roll = FLY_UP_LAG_S + (v.att.roll as f64).abs() / (v.max_roll_rate as f64).max(0.5);
+    let up = FLY_UP_DEG.to_radians();
+    let (mut s, mut h, mut t, mut end) = (0.0, v.pos[2], 0.0, f64::INFINITY);
+    let mut low = h - ground(v.pos[0], v.pos[1]) as f64;
+    while t < end && t < 30.0 {
+        if t < t_roll {
+            // The delay and the roll: the climb rate goes on changing as the jet's acceleration has it now.
+            gam = ((v.vel[2] + v.acc[2] * t) / speed).clamp(-1.0, 1.0).asin();
+        } else if gam < up {
+            gam = (gam + g * (n - gam.cos()) / speed * FLY_UP_STEP_S).min(up);
+        }
+        if gam >= up && end.is_infinite() {
+            end = t + FLY_UP_LOOK_S;
+        }
+        s += speed * gam.cos() * FLY_UP_STEP_S;
+        h += speed * gam.sin() * FLY_UP_STEP_S;
+        t += FLY_UP_STEP_S;
+        let p = v.pos + th * s;
+        low = low.min(h - ground(p[0], p[1]) as f64);
+    }
+    low
+}
+
+/// Ours, the terrain following's height (m) and its rate (m/s): the least height that clears the terrain
+/// [`FOLLOW_LOOK_S`] ahead along the track by `agl` when climbed to at [`FOLLOW_DEG`], now and a second on.
+pub fn follow_height(v: &ApView, ground: Ground, agl: f32) -> (f64, f64) {
+    let th = track(v);
+    let step = (v.speed as f64).max(50.0);
+    let rise = step * FOLLOW_DEG.to_radians().tan();
+    let hs: Vec<f64> = (0..=FOLLOW_LOOK_S + 1)
+        .map(|i| {
+            let p = v.pos + th * (step * i as f64);
+            ground(p[0], p[1]) as f64 + agl as f64
+        })
+        .collect();
+    let profile = |from: usize| {
+        (from..hs.len())
+            .map(|i| hs[i] - ((i - from) as f64 - FOLLOW_LEAD_S).max(0.0) * rise)
+            .fold(f64::NEG_INFINITY, f64::max)
+    };
+    let now = profile(0);
+    (now, profile(1) - now)
+}
+
 /// The unit direction `d` brought within [`BFM_STEEP`] of the horizon.
 fn steep_cut(d: Vec3) -> Vec3 {
     let max = BFM_STEEP.to_radians().sin();
@@ -1905,6 +1991,21 @@ pub struct Autopilot {
     pub lineup_offset: f32,
     /// Ours (Modern IAF's flights, a pairs take-off): this jet leads a pair; its roll is at military power.
     pub pair_lead: bool,
+    /// Ours (Modern IAF's AI jets, set by `iaf_ai::apply`; docs/ai.md §20): the ground collision avoidance's floor, m
+    /// above the terrain: in every loop but the take-off and the landing a predicted fly-up below it takes the stick
+    /// ([`FLY_UP_G`]) over the loop and the original's watch-ground; with [`Autopilot::low`] in place of the
+    /// watch-ground (its 200 m above the terrain would hold the jet up). None (the 1998 game, the player): the
+    /// watch-ground alone.
+    pub floor: Option<f32>,
+    /// Ours (Modern IAF's AI jets, set by `iaf_ai::apply`): the jet flies low (its flight's low level): the ground
+    /// collision avoidance ([`Autopilot::floor`]) in place of the watch-ground.
+    pub low: bool,
+    /// Ours (Modern IAF's AI jets, set by `iaf_ai::apply`): the steer loop flies this high above the terrain ahead
+    /// ([`follow_height`]) in place of its point's height; None: the point's.
+    pub follow: Option<f32>,
+    /// The fly-up flies; the next prediction's time.
+    fly_up: bool,
+    fly_up_next: f64,
     mode: u8,
     lp: Loop,
     next_tick: f64,
@@ -1935,6 +2036,11 @@ impl Autopilot {
             hold: false,
             lineup_offset: 0.0,
             pair_lead: false,
+            floor: None,
+            low: false,
+            follow: None,
+            fly_up: false,
+            fly_up_next: 0.0,
             mode: 0,
             lp: Loop::None,
             next_tick: 0.0,
@@ -2140,11 +2246,19 @@ impl Autopilot {
         let vmin25 = ac.vmin(v.pos[2] as f32, 2.5);
         let vmin1 = ac.vmin(v.pos[2] as f32, 1.0);
         let cfg = self.cfg;
+        // Ours: the AI jets' ground collision avoidance, but in the take-off and the landing; in place of the
+        // watch-ground while the jet flies low (its 200 m would hold it up), else over it.
+        let floor = self.floor.filter(|_| {
+            self.watch && !v.on_ground && !matches!(self.lp, Loop::TakeOff { .. } | Loop::GoHome { land: Some(_), .. })
+        });
+        if floor.is_none() {
+            self.fly_up = false;
+        }
         let mut l = Laws {
             c: &cfg,
             v: &v,
             mode: self.mode,
-            watch: self.watch,
+            watch: self.watch && (floor.is_none() || !self.low),
             ground,
             out: Out::default(),
             period: None,
@@ -2334,6 +2448,22 @@ impl Autopilot {
             let (y, x) = lift_stick(&l, lift - t * lift.dot(t), None);
             l.stick(y, x);
             period = period.min(0.1);
+        }
+        if let Some(floor) = floor {
+            let n = FLY_UP_G.min(v.max_g);
+            if self.fly_up || v.t >= self.fly_up_next {
+                self.fly_up_next = v.t + FLY_UP_CHECK_S;
+                let low = fly_up_clearance(&v, ground, n as f64);
+                let floor = floor as f64;
+                self.fly_up = low < floor || self.fly_up && (low < 1.5 * floor || v.vel[2] < 0.0);
+            }
+            if self.fly_up {
+                let (y, x) = fly_up_stick(&l, n);
+                l.stick(y, x);
+                let thr = l.out.thr.unwrap_or(crate::aircraft::MILITARY).max(crate::aircraft::MILITARY);
+                l.throttle(thr);
+                period = period.min(BFM_PERIOD);
+            }
         }
         let out = l.out;
         let real = l.real.is_some();
@@ -2627,8 +2757,19 @@ impl Autopilot {
         let dh = Vec3::new(d[0], d[1], 0.0).try_normalize().unwrap_or(th);
         // The heading error, + to the left.
         let e = th.cross(dh)[2].atan2(th.dot(dh));
+        // Ours: the terrain following's height in place of the point's.
+        let (dz, rate) = self.follow.map_or((d[2], 0.0), |agl| {
+            let (h, rate) = follow_height(v, l.ground, agl);
+            (h - v.pos[2], rate)
+        });
         let hw = if s.fighter { FIGHTER_STEER_W } else { STEER_W };
-        let a_up = (hw * hw * d[2] - 2.0 * STEER_ZETA * hw * v.vel[2]).clamp(-g, g);
+        let a_up = if self.follow.is_some() {
+            let (down, up) = (FOLLOW_PATH_DEG.0.to_radians().sin(), FOLLOW_PATH_DEG.1.to_radians().sin());
+            let vz = (rate + FOLLOW_K * dz).clamp(-down * v.speed as f64, up * v.speed as f64);
+            (FOLLOW_KV * (vz - v.vel[2])).clamp(-FOLLOW_G.0 * g, FOLLOW_G.1 * g)
+        } else {
+            (hw * hw * dz - 2.0 * STEER_ZETA * hw * v.vel[2]).clamp(-g, g)
+        };
         // A fighter's turn: what the load factor leaves once the height law's lift upward is held.
         let a_max = if s.fighter {
             let n = s.g.min(v.max_g) as f64 * g;
@@ -2639,7 +2780,7 @@ impl Autopilot {
         let a_turn = (STEER_K * v.speed as f64 * e).clamp(-a_max, a_max);
         let lift = Vec3::UP.cross(th) * a_turn + Vec3::UP * (g + a_up);
         // A fighter's lift upward: 1 g at most going down, else the height law's.
-        let hold = s.fighter.then_some(if d[2] < -STEER_DOWN_M { g } else { g + a_up });
+        let hold = s.fighter.then_some(if dz < -STEER_DOWN_M { g } else { g + a_up });
         let (mut y, mut x) = lift_stick(l, lift - t * lift.dot(t), hold);
         let mut thr = l.thr(s.speed).min(s.thr_max);
         l.watch_ground(&mut x, &mut y, &mut thr);
@@ -2695,6 +2836,19 @@ impl Autopilot {
         l.stick(y, x);
         l.throttle(thr);
     }
+}
+
+/// Ours, the fly-up's stick ([`FLY_UP_G`]): the lift rolled onto the world's up across the flight path at the
+/// fighter's roll rate, `n` g until the path climbs at [`FLY_UP_DEG`], then gravity's share across it (the climb held).
+fn fly_up_stick(l: &Laws, n: f32) -> (f32, f32) {
+    let t = l.v.vel.try_normalize().unwrap_or(Vec3::NORTH);
+    let w = Vec3::UP - t * t[2];
+    let lift = if t[2] < FLY_UP_DEG.to_radians().sin() {
+        w.try_normalize().unwrap_or(track(l.v)) * (n as f64 * G as f64)
+    } else {
+        w * G as f64
+    };
+    lift_stick_in(l, lift, std::f64::consts::PI, 0.0, n, Some(f64::INFINITY))
 }
 
 /// The stick (pitch, roll) that flies the lift `lift` (m/s², world, across the flight path): a bank about the flight

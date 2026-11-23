@@ -2706,6 +2706,22 @@
       "note": "English: NATO WEAPONS FREE; Hebrew: an F-15 crew's clearance on the radio, \"רשאי אש חופשית\" (ynet; modern-iaf/docs/research/radio-terms.md)"
     },
     {
+      "file": "flt_cmd_low.ogg",
+      "voice": "pilot",
+      "say": "Low level.",
+      "mode": "helmet",
+      "say_he": "גובה נמוך.",
+      "note": "English ours: no NATO brevity word; Hebrew: the press's \"בגובה נמוך\" on IAF training (Mako; modern-iaf/docs/research/radio-terms.md)"
+    },
+    {
+      "file": "flt_cmd_high.ogg",
+      "voice": "pilot",
+      "say": "Back to altitude.",
+      "mode": "helmet",
+      "say_he": "חזרה לגובה.",
+      "note": "English and Hebrew ours around the sourced גובה: no call found (modern-iaf/docs/research/radio-terms.md)"
+    },
+    {
       "file": "flt_cmd_rtb.ogg",
       "voice": "pilot",
       "say": "R T B.",
@@ -4635,6 +4651,16 @@
       "file": "flt_cmd_free.ogg",
       "text": "weapons free",
       "text_he": "אש חופשית"
+    },
+    "CMD_LOW": {
+      "file": "flt_cmd_low.ogg",
+      "text": "low level",
+      "text_he": "גובה נמוך"
+    },
+    "CMD_HIGH": {
+      "file": "flt_cmd_high.ogg",
+      "text": "back to altitude",
+      "text_he": "חזרה לגובה"
     },
     "CMD_RTB": {
       "file": "flt_cmd_rtb.ogg",

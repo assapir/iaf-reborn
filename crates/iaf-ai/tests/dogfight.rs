@@ -243,10 +243,14 @@ fn closure_control_settles_behind() {
 #[test]
 fn defensive_break() {
     // A fighter at High 1.2 km behind, nose on: the defender breaks (turns hard into it) at once and is out of its gun
-    // solution within seconds.
+    // solution within seconds; the same with its flight ordered low (an air fight flies its own heights, docs/ai.md
+    // §20: the level break holds its height).
     let Some(dir) = own() else { return };
-    for skill in [Skill::LOW, Skill::MEDIUM, Skill::HIGH] {
-        let me = jet(&dir, Vec3::new(0.0, 0.0, ALT), 0.0, 250.0, Some(skill));
+    for (skill, low) in [Skill::LOW, Skill::MEDIUM, Skill::HIGH].into_iter().flat_map(|s| [(s, false), (s, true)]) {
+        let mut me = jet(&dir, Vec3::new(0.0, 0.0, ALT), 0.0, 250.0, Some(skill));
+        if let Some(f) = me.flight.as_mut().filter(|_| low) {
+            f.low(Some(iaf_ai::flight::LOW_ORDER_M));
+        }
         let bandit = jet(&dir, Vec3::new(-700.0, -1000.0, ALT), 0.0, 270.0, Some(Skill::HIGH));
         let mut w = Duel { jets: [me, bandit], t: 0.0, frames: 0, busy: Default::default(), err: (0.0, 0.0) };
         w.run(skill.reaction_s + 1.5, &mut |_| {});
@@ -258,7 +262,7 @@ fn defensive_break() {
         let turned = (h0.x * w.vel(0).y - h0.y * w.vel(0).x).atan2(h0.dot(w.vel(0))).abs().to_degrees();
         let (r, _, aa) = w.geometry(1);
         println!(
-            "tactics {}: {first}, turned {turned:.0}° in 8 s ({:+.0} / {:+.0} m); the bandit {r:.0} m, {aa:.0}° off its \
+            "tactics {} low {low}: {first}, turned {turned:.0}° in 8 s ({:+.0} / {:+.0} m); the bandit {r:.0} m, {aa:.0}° off its \
              tail; {} bursts at it",
             skill.tactics,
             dz.0,

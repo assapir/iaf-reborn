@@ -3,6 +3,15 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **Low level and ground collision avoidance (2026-11-23, the user, 22 Nov: "Ok follow your suggested order", which
+  named the AI's terrain following for attack runs; [ai-plan.md](ai-plan.md) K17; [../../docs/ai.md](../../docs/ai.md)
+  §20):** every AI jet, ours and the enemy's, predicts a fly-up (a roll to wings level and 5 g, as the F-16's Auto
+  GCAS) and flies it before it would come within 30 m of the terrain, in every mode but the take-off and the landing.
+  A flight ordered low (150 to 500 ft; the dev hook `ai_flights.gd flight_low`) follows the terrain 10 s ahead, and
+  its bomb runs come in low and pop up into the dive 4 nm out. A SAM site's move to its next position keeps to the
+  roads. The lead orders the low level (300 ft) and its end from the radio menu's flight page or with `Ctrl + \` (record
+  257); each wingman acknowledges. Tests `crates/iaf-ai/tests/lowlevel.rs`, `modern-iaf/tests/test_low_level.gd`. No
+  mission sets the low level yet.
 - **Release bundles, the nightly (2026-11-23, the user: "Have only the nightly builds";
   [../../docs/release.md](../../docs/release.md)):** each day `main` changed, the Nightly workflow builds both games
   for Linux, macOS (Apple silicon, unsigned) and Windows and replaces the `nightly` pre-release. The game opens its

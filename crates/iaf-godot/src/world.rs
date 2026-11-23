@@ -17,6 +17,14 @@ pub fn v2(p: impl Into<[f64; 2]>) -> Vector2 {
     Vector2::new(x as f32, y as f32)
 }
 
+/// A ground route (`iaf_ai::convoy::Route`, a convoy's or a site's march) as {points (PackedVector2Array, world), road
+/// (per segment), length (m)}.
+pub fn route_dict(r: &iaf_ai::convoy::Route) -> VarDictionary {
+    let pts: PackedVector2Array = r.points.iter().map(|&p| v2(p)).collect();
+    let road: VarArray = r.road.iter().map(|b| b.to_variant()).collect();
+    vdict! {"points" => &pts, "road" => &road, "length" => r.length()}
+}
+
 /// JSON as Godot text (compact).
 pub fn text(v: &serde_json::Value) -> GString {
     GString::from(v.to_string().as_str())

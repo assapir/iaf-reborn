@@ -167,9 +167,11 @@ fn down(m: &Member) -> f64 {
 }
 
 /// The order `s` flown by the steer loop with the fighter's turn laws ([`Steer::fighter`]: rolled in at once, the
-/// height held in a level turn), as `phase`.
+/// height held in a level turn), as `phase`; at its own heights, never the low level's terrain following (docs/ai.md
+/// §20).
 fn steer(m: &mut Member, s: Steer, phase: &'static str) -> Status {
     m.order.steer = Some(Steer { fighter: true, ..s });
+    m.order.follow = None;
     m.order.mode = Some(MODE_STEER);
     m.enemy.phase = phase;
     Status::Running

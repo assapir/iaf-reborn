@@ -197,13 +197,48 @@ fn s300_relocates_after_the_engagement() {
     assert_eq!(sim.site.mode, Mode::Move, "the march order takes 5 min");
     let p0 = sim.site.pos;
     sim.run(10.0);
-    assert!((sim.site.pos.x - p0.x - 100.0).abs() < 1e-6, "on the road at 10 m/s");
-    sim.run(490.0);
+    assert!((sim.site.pos.x - p0.x - 60.0).abs() < 1e-6, "no road: across country at 0.6 of its 10 m/s");
+    sim.run(825.0);
     assert!(matches!(sim.site.mode, Mode::Setup(_)), "{:?}", sim.site.mode);
     assert_eq!((sim.site.pos.x, sim.site.pos.y), (alt.x, alt.y), "at the alternate position");
     assert!(sim.log.last().is_some_and(|(_, o, _)| !o.search), "setting up: silent");
     sim.run(300.0);
     assert!(sim.log.last().is_some_and(|(_, o, _)| o.search), "set up: it searches again");
+}
+
+/// The march on the roads (K5 with the convoy's routes, docs/ai.md §15): the host's road route between the road
+/// points nearest the two positions; the site drives off the road to it at 0.6 of its road speed, along it at its road
+/// speed, and off it to the alternate position, every point of its way on the route.
+#[test]
+fn s300_relocates_along_the_road() {
+    let alt = Vec3::new(5000.0, 0.0, 0.0);
+    let mut site = Site::new(Kind::S300, Vec3::ZERO, 0.0, &[alt]);
+    (site.at, site.mode) = (1, Mode::Move);
+    let road = [[0.0, 100.0], [0.0, 2000.0], [5000.0, 2000.0], [5000.0, 100.0]];
+    site.reroute(&road);
+    assert_eq!(site.route.road, [false, true, true, true, false], "off the road, three road legs, off the road");
+    assert!((site.route.length() - 9000.0).abs() < 1e-6);
+    let mut sim = Sim::new(site, vec![]);
+    // 200 m across country at 6 m/s and 8,800 m of road at 10 m/s: 913.3 s.
+    sim.run(913.0);
+    assert_eq!(sim.site.mode, Mode::Move, "still on its way");
+    let off = |p: Vec3| {
+        let pts = [[0.0, 0.0], road[0], road[1], road[2], road[3], [alt.x, alt.y]];
+        pts.windows(2)
+            .map(|w| {
+                let (a, b) = (Vec3::new(w[0][0], w[0][1], 0.0), Vec3::new(w[1][0], w[1][1], 0.0));
+                let q = Vec3::new(p.x, p.y, 0.0);
+                let f = ((q - a).dot(b - a) / (b - a).dot(b - a)).clamp(0.0, 1.0);
+                q.distance(a + (b - a) * f)
+            })
+            .fold(f64::MAX, f64::min)
+    };
+    assert!(sim.log.iter().all(|(_, _, p)| off(*p) < 1e-6), "every point on the route");
+    assert!(sim.log.iter().any(|(_, _, p)| p.y > 1999.0 && p.x > 2000.0), "it drove the road's far leg");
+    assert!((sim.site.course - 180.0).abs() < 1e-6, "south on the last leg off the road: {}", sim.site.course);
+    sim.run(1.0);
+    assert!(matches!(sim.site.mode, Mode::Setup(_)), "{:?}", sim.site.mode);
+    assert_eq!((sim.site.pos.x, sim.site.pos.y), (alt.x, alt.y));
 }
 
 #[test]
@@ -312,6 +347,7 @@ fn zsu_radar_and_optical_laying() {
     let mut site = Site::new(Kind::Zsu, Vec3::ZERO, 0.0, &[Vec3::new(-100_000.0, 0.0, 0.0)]);
     site.mode = Mode::Move;
     site.at = 1;
+    site.reroute(&[[0.0, 0.0], [-100_000.0, 0.0]]); // on a road west, at its road speed
     let west = Vec3::new(-8.0, 0.0, 0.0);
     let b = Target { id: "b".into(), vel: west, ..gun(2.5) };
     let mut sim = Sim::new(site, vec![Target { vel: west, ..gun(2.0) }, b]);

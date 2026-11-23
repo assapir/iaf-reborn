@@ -905,13 +905,15 @@ wingman" (modern-iaf/docs/ai-plan.md F15, K15). Our wingmen and the enemy fighte
 - **A new order wins** (inferred: the lead's word is the order; no source found for a wingman finishing its
   release against it). Engage my target (an aircraft or a ground target, the same one too), cover me, sort, weapons
   free (§8.11), rejoin, RTB and the split end a jet's attack at once, its run too, and the jet answers "ack" and obeys: a ground target again
-  starts its run over in its turn. A run broken off in its dive is pulled out by the autopilot's ground watch (the
-  slot, steer and BFM loops keep it on). A release already started finishes (the host's ripple). A formation change
+  starts its run over in its turn. A run broken off in its dive is pulled out by the autopilot's ground watch and the
+  fly-up (§20). A release already started finishes (the host's ripple). A formation change
   leaves the attack on: the jet takes its new slot when it rejoins.
 - **The turns.** The jets run in number order, each at least 20 s after the one before and never while another jet
   of the flight flies its run. Before its turn a jet keeps its slot (an AI lead its route or station); while the
   flight lead flies its own run its wingmen hold where they are (HoldPositionCL, mode 10), since their slot would take
   them down the lead's dive. #4 keeps its slot in the shape while #3 runs.
+- **The low attack:** with the flight low (§20) a bomb or rocket run comes in on the terrain following and pops up
+  into the dive (profile `pop`); a level run comes in low and climbs to its height; the egress goes out low.
 - **The run, by the weapon** (`strike::pylon` on the pylons the host gives, `IafAi.set_ground_pylons`: the first
   pylon with stores left of a guided bomb, GPS or laser, or of a bomb or rockets, types 500, 510, 560):
   - a guided bomb (GPS, laser): a level run on the steer loop at the target at its height, at least 1,500 m above the
@@ -944,8 +946,8 @@ wingman" (modern-iaf/docs/ai-plan.md F15, K15). Our wingmen and the enemy fighte
 - **Tried and dropped (23 Nov 2026):** the original's own bombing manoeuvres (§13.3) as the run: on the 6-DoF
   DiveBomb ran in at 357 m/s, overshot its dive and flew into the ground without a release; LevelBomb's release (the
   vacuum impact within twice its height of the target) let go 7 km short at 4,000 m, beyond what the AI stores'
-  steered fall corrects. The pop-up (PopupRelease) runs in at 300 m above the terrain, below the safe heights kept
-  until the AI's low-level terrain following is built.
+  steered fall corrects. The original's pop-up (PopupRelease) runs in at 300 m above the terrain; the low attack is
+  ours (§20).
 - **Tests:** `cargo test -p iaf-ai --test strike` (on the 6-DoF: `four_ship_attacks_my_target` two dives and a level
   run in turn, each store within 50 m of the target, the calls, the rejoin; `mig29_pair_strikes_on_its_leads_order`
   the lead first, the wingman holding, both back on the CAP; `unable_target_gone_and_rejoin`;
@@ -1430,8 +1432,11 @@ target gone, out of reach or masked) frees its channel.
   seconds from the envelope (its edge plus the acquisition time at its closing speed), then the track radar comes on
   to acquire it and fire (§11-134).
 - **Relocation** (§11-121): after an engagement, 20 s without a track (inferred), the site takes its march order
-  (radars off), drives straight to its next position (the placed one and its alternates in turn), sets up and searches
-  again. A single site moves whole (inferred from §11-119's one third), its layout kept, each vehicle facing its course;
+  (radars off), drives to its next position (the placed one and its alternates in turn), sets up and searches
+  again. Its route is a convoy's (§19.2, `convoy::Route`): `IafSite.tick` asks the road layer for the road route
+  between the road points nearest the two positions and takes it as a convoy does, else straight across country; it
+  drives at its road speed on the road and 0.6 of it across country (inferred). `IafSite.relocate(now)` gives the
+  march order at once (a dev hook). A single site moves whole (inferred from §11-119's one third), its layout kept, each vehicle facing its course;
   a destroyed part stays where it is.
 - **Parts destroyed** (a part hit fatally, state 3 or more): no search radar, no search; no track radar, no
   engagement; a launcher's rounds go with it. With no rounds left the site drops its tracks once its missiles have
@@ -2030,9 +2035,71 @@ bombs and rockets aim as before and a guided bomb aims there too.
 
 ### 19.4 Later
 
-- The SAM sites' move to their next position (K5, §15) can drive the same route on the roads; today it drives
-  straight.
 - Mission content (convoys placed by a mission or the free-combat setup).
+
+## 20. Modern IAF's low level and ground collision avoidance (ours)
+
+The user, 22 November 2026, on the order of the last enemy jobs: "Ok follow your suggested order", which named the AI
+jets' terrain following for attack runs (modern-iaf/docs/ai-plan.md K17). Every AI jet of IafAi, ours and the enemy's,
+has it; the 1998 game and the player's autopilot set none of it (`Autopilot::floor` None). Figures are inferred unless
+they say otherwise.
+
+| figure | value | source |
+|---|---|---|
+| floor | 30 m (100 ft) above the terrain, every AI jet | inferred |
+| fly-up | a roll to wings level, then 5 g, to a 20° climb | the F-16's Auto GCAS: "roll to wings-level and 5-g pull"[^gcas]; the climb inferred |
+| fly-up prediction | 1 s of delay, the roll at the jet's roll rate, the pull, the climb 3 s on, every 0.1 s | inferred (the 6-DoF's load factor builds over about a second) |
+| low level | 150 to 500 ft (46 to 152 m) above the terrain ahead, by order; the lead's radio order 300 ft (91 m) | inferred |
+| terrain following | the terrain 10 s ahead along the track, cleared when climbed to at 10° from 1.5 s before it; a path 15° down to 30° up; 0.2 to 3 g | inferred |
+| pop-up | pulled up 4 nm (7.4 km) from the target to 30° into the 30° dive; the roll-in 1,500 m above the target | the US Navy's pop-up attack[^popup]; the roll-in height inferred |
+
+- **Ground collision avoidance** (`iaf_flight::autopilot`, `Autopilot::floor`, set for every AI jet by `iaf_ai::apply`).
+  In every loop but the take-off and the landing, every 0.1 s the autopilot predicts a fly-up started now
+  (`fly_up_clearance`): the delay and the roll with the climb rate changing as the jet's acceleration has it now, then
+  the 5 g pull to a 20° climb along its track, over the terrain the host gives (the per-jet height node of §18.4). When
+  the least clearance of that fly-up is under the floor, the fly-up takes the stick over the loop (BFM, the dive, the
+  formation, the defence), at least military power, until its prediction clears the floor by half again and the jet
+  climbs. It runs beside the original's watch-ground (§8.0: wings level and climb when the point 4 s ahead, plus the
+  descent / 15, is less than 200 m over the terrain); a jet flying low has the fly-up alone, since the watch-ground's
+  200 m would hold it up.
+- **Low level** (`Flight::low`, `IafAi.set_low`; the dev hook `ai_flights.gd flight_low(agl_m)`; no mission sets it
+  yet). The lead orders it: the radio menu's flight page "Low level" / "Back to altitude" (`Flight::command` "low" /
+  "high" to the flight, 300 ft, `LOW_ORDER_M`, inferred), or record 257 (`Ctrl + \`), which gives the one of the two not
+  in force (`sim_flight.gd flight_command`). Every flying wingman acknowledges; one on the ground answers "unable", and
+  with no jet taking it the order changes nothing. Addressed to one wingman or the element, it is "unable". The flight's
+  AI jets fly their steered legs (the split's task, the rejoin, the defence turn outside a fight)
+  at the set height above the terrain ahead (`Autopilot::follow`, `follow_height`): the height that clears the terrain
+  10 s ahead when climbed to at 10° from 1.5 s before it (the climb starts early by the jet's answer), and its rate a
+  second on, flown as a climb rate of 0.3 per m of error within the path's limits. An air fight (the CAP, the intercept,
+  the dogfight, the defence in a fight: `fighter::steer`, `bfm::fight`) flies its own heights: the level break holds its
+  height with the flight low too (`dogfight.rs defensive_break`). The wingmen on their slots keep the lead's height; the
+  fly-up guards them.
+- **The low attack** (§8.10, profile `pop`): with the flight low, a bomb or rocket run comes in on the terrain
+  following, pops up 7.4 km from the target at 30°, rolls in from 1,500 m above the target into the 30° dive and
+  releases as the dive does; the egress pulls out and goes out low on the terrain following. A guided bomb's level run
+  comes in low and climbs to its 1,500 m at 14.8 km (twice the distance: its release lies 4 km or more short of the
+  target).
+- **Tried and dropped (23 November 2026):** the fly-up in place of the watch-ground for every AI jet. Over open
+  ground the watch-ground also acts in a steep dive at 5,000 m (its look-ahead grows with the descent) and gives
+  full power; without it a High MiG-29A in the neutral merges bled to 140 m/s in its yo-yos and was offensive 0 s
+  instead of 36 s (`dogfight.rs neutral_merge_skill_decides`). It now runs in place of the watch-ground only while
+  the jet flies low. A climb law on the height error alone (no rate) overshot each valley and came within 19 m of a
+  rise; a 1 s extrapolation of the climb rate was added to the fly-up after a MiG-29A pulling 7 g inverted toward the
+  ground was predicted too late. The climb profile without the 1.5 s lead began each climb just in time: over a
+  knoll 50 m high and 300 m across the jet came within 44 m, the fly-up took over and the jet ballooned to 380 m for
+  2 km (over the Negev in test_low_level.gd, and in `lowlevel.rs` follows_over_a_knoll_without_a_balloon); with the
+  lead it rides 46 to 120 m over the same knolls.
+- **Tests:** `cargo test -p iaf-ai --test lowlevel` (over hills with 6° slopes: a Sufa and a MiG-29A at 200 ft for
+  40 km, the least 56 m, the mean 66 m; a Sufa over 50 m knolls, 46 to 120 m; a MiG-29A's BFM dive at the ground, upright and inverted, with and without the
+  low level, pulled out 76 m or more over the hills; the four-ship's low pop-up attack: the run-in at 55 to 66 m, the
+  apex 2,517 m, the store 2 m from the target, never under the floor); `modern-iaf/tests/test_low_level.gd`
+  (headless over the Negev: Kidon 1-2's low pop-up attack on a 64N6E2, and an S-300's march on the roads).
+
+[^gcas]: NASA / AFRL, "Automatic Ground Collision Avoidance System" (ntrs.nasa.gov, 20090035618): the maneuver
+    phase, a roll to wings level and a 5 g pull. <https://ntrs.nasa.gov/api/citations/20090035618/downloads/20090035618.pdf>
+[^popup]: CNATRA P-1217, Operational Navigation Flight Training Instruction, "The Pop-Up Attack": "The pop-up and
+    cut should be executed at four miles from the target", "30 degrees nose up", "30-degree dive cone".
+    <https://navyflightmanuals.tpub.com/P-1217/The-Pop-Up-Attack-46.htm>
 
 ## UNCERTAIN
 Open questions in this document:

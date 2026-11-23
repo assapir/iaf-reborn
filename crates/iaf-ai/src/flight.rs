@@ -65,6 +65,14 @@ const TRAIL: usize = 2;
 const PROMOTION: [u8; 4] = [1, 3, 2, 4];
 /// A split's point farther than this from the flight lead is refused: the elements' targets are in one area, m.
 pub const SAME_AREA_M: f64 = 40_000.0;
+/// Every AI jet's ground collision avoidance floor (m above the terrain; `Autopilot::floor`, docs/ai.md §20; inferred:
+/// 100 ft, under the lowest terrain following height).
+pub const FLOOR_M: f32 = 30.0;
+/// The terrain following's heights by order ([`Flight::low`]): 150 to 500 ft (m; the low-level band of the brief,
+/// inferred).
+pub const LOW_M_RANGE: (f32, f32) = (45.7, 152.4);
+/// The lead's radio order "low level" ([`Flight::command`]): 300 ft (m; inferred, the band's middle).
+pub const LOW_ORDER_M: f32 = 91.4;
 /// The split element's turns, g (a 48° bank: #4 keeps its slot on #3 round the circle).
 const TASK_G: f32 = 1.5;
 /// The defensive turn's load factor against a lock and against a missile; its speed, m/s; how long a jet stays clear
@@ -216,6 +224,12 @@ pub struct Order {
     pub pair_lead: bool,
     /// Its attack's release now (the host's AI ripple of its air-to-ground weapon, combat.gd; [`strike`]; one frame).
     pub release: bool,
+    /// The steer loop flies this high above the terrain ahead (`Autopilot::follow`; [`Flight::low`], the attack's
+    /// low run-in and egress); None: its point's height.
+    pub follow: Option<f32>,
+    /// The flight flies low ([`Flight::low`]): the ground collision avoidance in place of the watch-ground
+    /// (`Autopilot::low`).
+    pub low: bool,
 }
 
 /// One jet of the flight: what it is this frame ([`Flight::sense`]) and the AI's memory of it. The trees read and
@@ -311,6 +325,8 @@ pub struct Member {
     pair_free: Option<Option<f64>>,
     /// Its air-to-ground attack ([`Flight::attack`], [`Flight::strike`]).
     pub strike: Strike,
+    /// The flight's low-level height this decision ([`Flight::low`]).
+    pub(crate) low: Option<f32>,
 }
 
 /// The flight.
@@ -343,6 +359,8 @@ pub struct Flight {
     pairs: bool,
     /// The ground target the attacking jets attack ([`Flight::attack`], [`Flight::ground_target`]).
     ground: Option<Bogey>,
+    /// The flight's low-level height ([`Flight::low`]).
+    low: Option<f32>,
 }
 
 impl Default for Flight {
@@ -367,6 +385,7 @@ impl Default for Flight {
             gci: None,
             pairs: false,
             ground: None,
+            low: None,
         }
     }
 }
@@ -534,6 +553,7 @@ impl Flight {
             lined_up: None,
             pair_free: None,
             strike: Strike::default(),
+            low: None,
         });
         self.members.sort_by_key(|m| m.number);
         self.lead = 0;
@@ -817,6 +837,18 @@ impl Flight {
         took
     }
 
+    /// The flight's low level (the lead's order, a mission's profile; docs/ai.md §20): its AI jets' steer loops fly
+    /// `agl` m above the terrain ahead (within [`LOW_M_RANGE`]), and an attack's run comes in low and pops up
+    /// ([`strike`]); None: their points' heights.
+    pub fn low(&mut self, agl: Option<f32>) {
+        self.low = agl.map(|h| h.clamp(LOW_M_RANGE.0, LOW_M_RANGE.1));
+    }
+
+    /// The flight's low level's height (m), None: not low ([`Flight::low`]).
+    pub fn low_m(&self) -> Option<f32> {
+        self.low
+    }
+
     /// The attacked ground target this frame (the host's): None, it is gone (destroyed): the attacking jets end their
     /// attack ("done" after their release) and rejoin.
     pub fn ground_target(&mut self, at: Option<Bogey>) {
@@ -946,7 +978,8 @@ impl Flight {
     }
 
     /// A radio command (design §4) to `to`: 0 the flight, 5 the element (#3, #4), 2..4 one wingman. Returns false for
-    /// an unknown command or nobody to take it; the answers come as calls.
+    /// an unknown command or nobody to take it; the answers come as calls. "low" / "high" to the flight set and end
+    /// its low level at [`LOW_ORDER_M`] ([`Flight::low`]); they return false when no jet took them.
     pub fn command(&mut self, now: f64, to: u8, cmd: &str) -> bool {
         // The regroup: element 2 rejoins (from a split).
         let (to, cmd) = if cmd == "regroup" { (5, "rejoin") } else { (to, cmd) };
@@ -990,7 +1023,8 @@ impl Flight {
                     m.strike.clear();
                     "ack"
                 }
-                "rejoin" | "rtb" | "cover" => "unable",
+                "low" | "high" if to == 0 && flying => "ack",
+                "rejoin" | "rtb" | "cover" | "low" | "high" => "unable",
                 _ => return false,
             };
             acked |= answer == "ack";
@@ -1001,6 +1035,12 @@ impl Flight {
             for m in self.members.iter_mut().filter(|m| m.airborne && !m.landed) {
                 (m.transit, m.report) = (true, true);
             }
+        }
+        if cmd == "low" || cmd == "high" {
+            if acked {
+                self.low((cmd == "low").then_some(LOW_ORDER_M));
+            }
+            return acked;
         }
         true
     }
@@ -1161,6 +1201,7 @@ impl Flight {
             let bandits = &self.bandits;
             let find = |id: Option<u32>| id.and_then(|id| bandits.iter().find(|b| b.id == id));
             let mut orbit = None;
+            (m.low, m.order.follow, m.order.low) = (self.low, self.low, self.low.is_some());
             if let Some(st) = self.station {
                 // An enemy jet: the lead on the ground's vector's jet (else the nearest), a wingman on its share once
                 // the pair has committed ([`Flight::share`]); the bandit as its radar and its pilot see it.
@@ -1658,6 +1699,9 @@ pub fn apply(o: &Order, ap: &mut Autopilot, fm: &mut Fm) {
     ap.hold = o.hold;
     ap.lineup_offset = o.lineup_offset;
     ap.pair_lead = o.pair_lead;
+    ap.floor = Some(FLOOR_M);
+    ap.follow = o.follow;
+    ap.low = o.low;
     if o.steer.is_some() {
         ap.steer = o.steer;
     }

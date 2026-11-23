@@ -59,6 +59,8 @@ const COMMANDS := [
 	["engage", "Engage my target", "תקיפת המטרה שלי", "CMD_ENGAGE", "few"],
 	["sort", "Sort", "חלוקת מטרות", "CMD_SORT", "f"],
 	["free", "Weapons free", "אש חופשית", "CMD_FREE", "few"],
+	["low", "Low level", "גובה נמוך", "CMD_LOW", "f"],
+	["high", "Back to altitude", "חזרה לגובה", "CMD_HIGH", "f"],
 	["cover", "Cover me", "חיפוי", "CMD_COVER", "few"],
 	["rtb", "RTB", "חזרה לבסיס", "CMD_RTB", "few"],
 	["check", "Check in", "בדיקת קשר", "CMD_CHECK", "few"],
@@ -513,11 +515,14 @@ func key(event: InputEventKey) -> bool:
 ## says their calls). "split" sends element 2 to the SPI (the radar's designated point, else the steerpoint),
 ## "engage" the jets at the radar's locked enemy aircraft, else at the player's ground target, which they attack one
 ## after the other (ai_flights.gd engage_target, docs/ai.md §8.10), "sort" shares the bandits out between the jets,
-## "free" sends the jets hunting round the SPI (docs/ai.md §8.11). Recorded as a `radio` event.
+## "free" sends the jets hunting round the SPI (docs/ai.md §8.11), "low" / "high" set and end the flight's low level
+## (docs/ai.md §20; the key's "low_level" is the one of the two not in force). Recorded as a `radio` event.
 func flight_command(to: int, id: String) -> void:
 	var ai = host.get("ai")
 	if ai == null or ai.get("flight_ai") == null:
 		return
+	if id == "low_level":
+		id = "high" if ai.flight_ai.is_low() else "low"
 	var r: Node = host.radio
 	var addr: String = ADDRESSEES.filter(func(a): return a[0] == to)[0][3]
 	var said: Array = (COMMANDS + SHAPES).filter(func(c): return c[0] == id)

@@ -66,6 +66,9 @@ strings.
 | weapons free (hunt any bandit in an area) | "כידון 1, **אש חופשית**" (from an F-15 crew's clearance on the radio, "רשאי אש חופשית"[^ynet-uav]) | "Kidon 1, weapons free." | NATO WEAPONS FREE, "at targets not identified as FRIENDLY"[^alsa]; "search and destroy" is no brevity word |
 | targeted (a pair's lead has its group) | none found. Ours around **מטרה**: "כידון 1-3, יש מטרה" (as "יש מגע") | "Kidon 1-3, targeted." | no IAF call found; NATO TARGETED, "fighter has acquired assigned GROUP and has assumed responsibility for it"[^alsa] |
 | cover me (now: defend the lead) | as the third search's row: "כידון 1-4, חיפוי" | "Kidon 1-4, cover me." | the word kept; the wingman now fights a jet that attacks the lead (docs/ai.md §8.11) |
+| **Sixth search: the low level (23 November 2026, lowlevel)** | | | |
+| low level (the flight follows the terrain low) | "כידון 1, **גובה נמוך**" (from the press on IAF strike training: trainees "ילמדו להפעיל חימוש חכם ולהגיע **בגובה נמוך** מאוד ומאתגר", read on the page[^mako-kaz]) | "Kidon 1, low level." | no IAF call found; no NATO brevity word for the order; the English inferred |
+| back to altitude (the low level ends) | none found. Ours around **גובה**: "כידון 1, חזרה לגובה" | "Kidon 1, back to altitude." | no IAF or NATO call found; open |
 | **Terms** | | | |
 | the flight's callsign | **כידון N** for flight N (the player's is כידון 1, the next כידון 2, …); its jets **כידון N-M**, spoken "כידון אחד-אחד", "כידון אחד-שתיים". The callsign's term is **אות קריאה** | "Kidon 1", "Kidon 1-2" (spoken "Kidon one-two") | Hebrew Wikipedia: "זה נובע מצורת חלוקת אותות הקריאה בקשר: במבנה כידון 1, המוביל במבנה יהיה כידון 1-1 (אחד-אחד) ומספר 2 יהיה כידון 1-2 (אחד-שתיים)"[^hewiki-formation]; the user, 20 November 2026: "Use kidon style, where kidon 1 is the first formation the second is kidon 2 etc". The term אות קריאה: press, search quote[^mako-kaz]. Until 20 November the flight was "Alpha" (NATO style; no IAF style had been found on 19 November) |
 | the flight | **מבנה** (any group flying together); a flight of four is a **רביעייה** | "Kidon 1", "flight" | press: "כל 'מוביל' בכל מבנה", "להוביל רביעיית מטוסים"[^walla-2012], "מוביל של רביעיית מטוסי הקרב"[^walla-2020]; Hebrew Wikipedia[^hewiki-formation] |
@@ -124,6 +127,11 @@ back to NATO in the English voice with Hebrew we wrote around **מטרה**, whic
 Weapons free is **אש חופשית**, from the same crew's "רשאי אש חופשית"; "רשאי" is not said in the call (the call is the
 lead's order, and the rule is gender-neutral Hebrew).
 
+**Sixth search (23 November 2026: the low level).** The lead orders the flight low and back (docs/ai.md §20). Searched
+in Hebrew ("טיסה בגובה נמוך", "גובה נמוך", "ניווט נמוך", with חיל האוויר, טייסים, מבנה): no radio call was found. The
+press writes **בגובה נמוך** for an IAF strike's low approach[^mako-kaz], so the order is "גובה נמוך"; its end, "חזרה
+לגובה", is ours around the same **גובה**. NATO's brevity list has no word for either; the English is plain words.
+
 **Where the sources differ**
 - Close formation: the IAF site writes **מבנה צמוד**; the pilot's account writes **מבנה מכונס**[^mustov]. Recommended
   (inferred): מבנה צמוד, the IAF's own and found on several pages.
@@ -159,7 +167,8 @@ lead's order, and the rule is gender-neutral Hebrew).
     רביעיית מטוסי הקרב"): https://www.walla.co.il/news/military/3332280
 [^mako-kaz]: Mako, military section, Shay Levi, "הכל מתחיל כאן: כך מאמנים את טייסי חיל האוויר לתקיפה", 23 October
     2020, on the IAF's pair air-combat training ("קרב האוויר בו נלחמים זוג נגד זוג"; "בן הזוג של המוביל"; "המוביל
-    נפגע, כפי שקרה במציאות, והוא צריך לקחת את ההובלה ולהמשיך את המשימה לבד"):
+    נפגע, כפי שקרה במציאות, והוא צריך לקחת את ההובלה ולהמשיך את המשימה לבד"; read on the page 23 November 2026:
+    "בהמשך כבר ילמדו להפעיל חימוש חכם ולהגיע בגובה נמוך מאוד ומאתגר"):
     https://www.mako.co.il/pzm-magazine/Article-f8d76077d704571026.htm
 [^hewiki-formation]: Hebrew Wikipedia, "טיסת מבנה", last edited 5 June 2025 (מבנה מקבילי, מבנה אלכסון / סולם / מדרג,
     מבנה טור, מבנה "ארבע אצבעות"; "מפקד המבנה נקרא 'מוביל' או 'מספר 1', בן זוגו נקרא 'מספר 2'"; a four-ship of two

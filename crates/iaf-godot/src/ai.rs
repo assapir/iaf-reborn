@@ -123,6 +123,19 @@ impl IafAi {
         self.flight.strike(now, Bogey { pos: to_enu(at), vel: to_enu(vel) })
     }
 
+    /// The flight's low level (docs/ai.md §20): its AI jets' steer loops fly `agl` m above the terrain ahead (150–500
+    /// ft, clamped) and an attack's run comes in low and pops up; 0 or less: off.
+    #[func]
+    fn set_low(&mut self, agl: f64) {
+        self.flight.low((agl > 0.0).then_some(agl as f32));
+    }
+
+    /// The flight flies low ([`Self::set_low`], the lead's "low" order).
+    #[func]
+    fn is_low(&self) -> bool {
+        self.flight.low_m().is_some()
+    }
+
     /// The attacked ground target this frame at the scene position `at` moving at `vel`; `alive` false: gone (the
     /// attacking jets end their attack and rejoin).
     #[func]
@@ -318,7 +331,8 @@ impl IafAi {
     /// task), defending, tactic (the lead's order: "", cover, engage, sort, free), engaging, covering, holding (a sorted
     /// wingman holding its fire), foe (the bandit it fights, 0 none), fuel_kg, bingo_kg, released (sent home), hold (it
     /// waits on the ground: taxiing in behind a jet, a pair's lead for its wingman), strike (its attack's phase: "",
-    /// wait, run, egress), profile (its run: level, dive); empty for an unknown number.
+    /// wait, run, egress), profile (its run: level, dive, pop), low (the flight flies low, docs/ai.md §20); empty for an
+    /// unknown number.
     #[func]
     fn state(&self, number: i64) -> VarDictionary {
         let mut d = VarDictionary::new();
@@ -355,6 +369,7 @@ impl IafAi {
         d.set("visual", m.enemy.visual);
         d.set("strike", m.strike.phase.name());
         d.set("profile", m.strike.profile.name());
+        d.set("low", m.order.low);
         d
     }
 }
@@ -494,6 +509,15 @@ impl IafSite {
             targets.iter_shared().filter_map(|v| v.try_to::<VarDictionary>().ok()).map(|d| target(&d)).collect();
         let ground = terrain(Some(ground));
         let out = self.site.tick(now, &alive, &targets, &ground);
+        if self.site.replan {
+            // The march order: its route on the roads where they serve, as a convoy's (IafConvoy).
+            let to = self.site.positions[self.site.at];
+            let (a, b) = ([self.site.pos.x, self.site.pos.y], [to.x, to.y]);
+            let road = crate::roads::route_graph(a, b, CONVOY_CLASS)
+                .and_then(|r| r.route(a, b, CONVOY_CLASS))
+                .unwrap_or_default();
+            self.site.reroute(&road);
+        }
         let tracks: PackedStringArray = out.tracks.iter().map(|s| GString::from(s.as_str())).collect();
         let launches: VarArray =
             out.launches.iter().map(|(p, id)| varray![*p as i64, id.as_str()].to_variant()).collect();
@@ -512,19 +536,29 @@ impl IafSite {
         }
     }
 
+    /// The march order now (`now` s) to its next position, its route on the roads where they serve (dev hook: a
+    /// site relocates by itself after an engagement).
+    #[func]
+    fn relocate(&mut self, now: f64) {
+        self.site.relocate(now);
+    }
+
     /// A launch the caller could not make: its round back to `part`.
     #[func]
     fn refund(&mut self, part: i64, target: GString) {
         self.site.refund(part.max(0) as usize, &target.to_string());
     }
 
-    /// For tests and logs: {phase, rounds (per part), engagements, at (the position index)}.
+    /// For tests and logs: {phase, rounds (per part), engagements, at (the position index), pos (world), route (as
+    /// IafConvoy's: its march's, empty in place)}.
     #[func]
     fn state(&self, now: f64) -> VarDictionary {
         let rounds: PackedInt64Array = self.site.rounds.iter().map(|&r| i64::from(r)).collect();
+        let route = crate::world::route_dict(&self.site.route);
         vdict! {
             "phase" => self.site.phase(now), "rounds" => &rounds, "engagements" => i64::from(self.site.engagements),
-            "at" => self.site.at as i64,
+            "at" => self.site.at as i64, "pos" => vector3(self.site.pos),
+            "route" => &route,
         }
     }
 }
@@ -696,10 +730,7 @@ impl IafConvoy {
     /// The route: {points (PackedVector2Array, world), road (per segment), length (m)}.
     #[func]
     fn route(&self) -> VarDictionary {
-        let r = &self.convoy.route;
-        let pts: PackedVector2Array = r.points.iter().map(|&p| crate::world::v2(p)).collect();
-        let road: VarArray = r.road.iter().map(|b| b.to_variant()).collect();
-        vdict! {"points" => &pts, "road" => &road, "length" => r.length()}
+        crate::world::route_dict(&self.convoy.route)
     }
 
     /// A blast at the world point `at` at `now` (s): within reach of a vehicle the convoy scatters; true when it did.

@@ -512,6 +512,16 @@ func flight_pairs(on: bool) -> bool:
 	return true
 
 
+## Ours (Modern IAF, a dev hook: no mission sets it yet): the player's flight low at `agl_m` m above the terrain
+## (150 to 500 ft; 0: off): its wingmen's steered legs follow the terrain and an attack's run comes in low and pops up
+## (docs/ai.md §20). False: no flight AI.
+func flight_low(agl_m: float) -> bool:
+	if flight_ai == null:
+		return false
+	flight_ai.set_low(agl_m)
+	return true
+
+
 ## IafAi's frame, after every jet's steps of the frame (its orders go to the next frame's ap_step): who is alive
 ## (the player while in the jet), the player's steerpoint (a promoted lead flies on from it), the orders, the calls.
 func _step_flight_ai(now: float) -> void:

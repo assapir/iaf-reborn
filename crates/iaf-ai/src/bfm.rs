@@ -256,6 +256,8 @@ pub fn fight(m: &mut Member) -> Status {
     // loop's turn toward a point behind took the path's own pitch for its plane and climbed (1.6 km in 12 s).
     m.order.steer = Some(Steer { to, g: mv.g, speed: mv.speed, thr_max: 1.0, fighter: true });
     m.order.mode = Some(if mv.aim.level.is_some() { MODE_STEER } else { MODE_BFM });
+    // An air fight flies its own heights, never the low level's terrain following (docs/ai.md §20).
+    m.order.follow = None;
     m.enemy.phase = mv.name;
     Status::Running
 }

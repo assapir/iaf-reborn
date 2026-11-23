@@ -7,6 +7,7 @@
 //! (`skill`, §17) sets its reaction, its drills, its gun's laying error and how deep in the envelope it fires. The
 //! caller (`shared/ai/air_defence.gd`) fires through the existing weapons; no mission uses a site yet.
 
+use crate::convoy::Route;
 use crate::skill::Skill;
 use iaf_avionics::ecm::jammed_reach;
 use iaf_avionics::radar::{line_of_sight, sigma};
@@ -20,6 +21,8 @@ const EARTH_R: f64 = 6_371_000.0;
 const REFRACTION: f64 = 4.0 / 3.0;
 /// The quiet time after the last track ends before the crew ceases fire and moves (s, inferred).
 const CEASE: f64 = 20.0;
+/// On the move off the roads a site drives at this share of its road speed (inferred).
+const CROSS_SHARE: f64 = 0.6;
 /// The 30N6E2 on its optional 40V6M tower (enemies.md §2.3): the antenna's height (m, inferred).
 pub const MAST: f64 = 25.0;
 /// The Tor's duty limits (enemies.md §2.6): 10 min on, 10 min off; after three engagements at least an hour off, in
@@ -300,6 +303,12 @@ pub struct Site {
     pub heading: f64,
     /// The vehicles' heading on the move (their travel bearing); the layout's in place.
     pub course: f64,
+    /// The route to the position it moves to (`convoy::Route`: on the roads where they serve, else across country;
+    /// straight across country until the host routes it, [`Site::reroute`]) and how far along it, m.
+    pub route: Route,
+    pub along: f64,
+    /// A march order was given: the host may route it on the roads ([`Site::reroute`]).
+    pub replan: bool,
     pub mode: Mode,
     /// Rounds left per part.
     pub rounds: Vec<u32>,
@@ -361,6 +370,9 @@ impl Site {
             pos,
             heading,
             course: heading,
+            route: Route::default(),
+            along: 0.0,
+            replan: false,
             mode: Mode::Ready,
             rounds: spec.parts.iter().map(|p| p.rounds).collect(),
             channels: Vec::new(),
@@ -695,29 +707,53 @@ impl Site {
             return;
         }
         if self.fired_here > 0 && self.positions.len() > 1 && now - self.quiet_since >= CEASE {
-            self.fired_here = 0;
-            self.at = (self.at + 1) % self.positions.len();
-            self.mode = Mode::March(now + self.spec().march * self.skill.procedure);
+            self.relocate(now);
         }
     }
 
-    /// Drives toward the position it moves to; at a halt for a shot it waits.
+    /// The march order at `now` to its next position (after an engagement, or the host's order): radars off, the
+    /// march drill, then the drive ([`Site::reroute`]). A site with no other position stays.
+    pub fn relocate(&mut self, now: f64) {
+        if self.positions.len() < 2 {
+            return;
+        }
+        self.fired_here = 0;
+        self.channels.clear();
+        self.at = (self.at + 1) % self.positions.len();
+        self.mode = Mode::March(now + self.spec().march * self.skill.procedure);
+        self.reroute(&[]);
+        self.replan = true;
+    }
+
+    /// The route from where it is to the position it moves to: along `road` (the host's road route between the road
+    /// points nearest the two, empty for none) when it serves, else straight across country (`convoy::Route::plan`).
+    pub fn reroute(&mut self, road: &[[f64; 2]]) {
+        let to = self.positions[self.at];
+        self.route = Route::plan([self.pos.x, self.pos.y], [to.x, to.y], road);
+        (self.along, self.replan) = (0.0, false);
+    }
+
+    /// Drives its route to the position it moves to, at its road speed on the roads and [`CROSS_SHARE`] of it across
+    /// country; at a halt for a shot it waits.
     fn drive(&mut self, dt: f64, now: f64) {
         if self.halt_until.is_some() {
             return;
         }
-        let to = self.positions[self.at];
-        let d = Vec3::new(to.x - self.pos.x, to.y - self.pos.y, 0.0);
-        let dist = d.length();
-        let step = self.spec().speed * dt;
-        if dist <= step {
+        if self.route.road.is_empty() {
+            self.reroute(&[]);
+        }
+        let road = self.route.at(self.along).2;
+        self.along += self.spec().speed * if road { 1.0 } else { CROSS_SHARE } * dt;
+        if self.along >= self.route.length() {
+            let to = self.positions[self.at];
             self.pos = Vec3::new(to.x, to.y, to.z);
             self.course = self.heading;
+            self.route = Route::default();
             let setup = self.spec().setup * self.skill.procedure;
             self.mode = if setup > 0.0 { Mode::Setup(now + setup) } else { Mode::Ready };
         } else {
-            self.pos += d * (step / dist);
-            self.course = d.x.atan2(d.y).to_degrees().rem_euclid(360.0);
+            let (p, course, _) = self.route.at(self.along);
+            (self.pos.x, self.pos.y, self.course) = (p[0], p[1], course);
         }
     }
 

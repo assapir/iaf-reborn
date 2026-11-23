@@ -58,6 +58,18 @@ const CLIMB_DEG: f64 = 20.0;
 /// A jet going down faster than this (m/s: a dive's) pulls out on the BFM loop first.
 const DESCENT_MS: f64 = 10.0;
 pub const EGRESS_AGL: f64 = 1_500.0;
+/// The flight's low level ([`crate::Flight::low`]): the run comes in on the terrain following at its height and
+/// pops up this far from the target (m, horizontal), climbing at [`POP_DEG`] into the dive's 30° cone: the US Navy's
+/// pop-up attack, pulled up 4 nm from the target to 30° nose up into a 30° dive cone[^popup]. A level run (a guided
+/// bomb) pops up at twice the distance: its release from [`LEVEL_AGL`] lies 4 km or more short of the target
+/// (inferred). The egress is low again once the pull-out is done.
+///
+/// [^popup]: CNATRA P-1217, Operational Navigation Flight Training Instruction, "The Pop-Up Attack"
+///     (navyflightmanuals.tpub.com/P-1217/The-Pop-Up-Attack-46.htm).
+pub const POP_M: f64 = 7_408.0;
+const POP_DEG: f64 = 30.0;
+/// The pop-up's roll-in into the dive: at least this high above the target (m; inferred).
+const POP_ROLL_IN_AGL: f64 = 1_500.0;
 /// A steer point this far along a heading (m).
 const FAR: f64 = 50_000.0;
 const G: f64 = 9.80665;
@@ -94,18 +106,26 @@ pub enum Profile {
     Level,
     /// A bomb or rockets: a 30° dive.
     Dive,
+    /// A bomb or rockets from the flight's low level: in low, the pop-up ([`POP_M`]), then the dive.
+    Pop,
 }
 
 impl Profile {
-    /// The run for a weapon: a guided bomb from the level run, a bomb or rockets from the dive.
-    pub fn of(guided: bool) -> Profile {
-        if guided { Profile::Level } else { Profile::Dive }
+    /// The run for a weapon: a guided bomb from the level run, a bomb or rockets from the dive (from the pop-up when the
+    /// flight flies low).
+    pub fn of(guided: bool, low: bool) -> Profile {
+        match (guided, low) {
+            (true, _) => Profile::Level,
+            (false, false) => Profile::Dive,
+            (false, true) => Profile::Pop,
+        }
     }
 
     pub fn name(self) -> &'static str {
         match self {
             Profile::Level => "level",
             Profile::Dive => "dive",
+            Profile::Pop => "pop",
         }
     }
 }
@@ -130,6 +150,10 @@ pub struct Strike {
     /// The dive's run: rolled in; too near for the dive, extending away on its track.
     pub diving: bool,
     pub(crate) extending: bool,
+    /// The flight's low level at the run's start ([`crate::Flight::low`]): the run comes in low, the egress goes out
+    /// low; past the pop-up point (`popped`) the run stays up.
+    pub low: Option<f32>,
+    pub popped: bool,
 }
 
 impl Strike {
@@ -250,7 +274,8 @@ pub(crate) fn fly(m: &mut Member) -> Status {
         Phase::Wait if now < s.turn || m.run_busy => return Status::Failure,
         Phase::Wait => {
             let Some(guided) = s.weapon else { return end(m, Some("unable")) };
-            (s.phase, s.since, s.profile, s.diving) = (Phase::Run, now, Profile::of(guided), false);
+            (s.phase, s.since, s.diving, s.low) = (Phase::Run, now, false, m.low);
+            s.profile = Profile::of(guided, s.low.is_some());
             m.calls.push("in");
         }
         Phase::Run if s.released || now > s.since + RUN_MAX_S => (s.phase, s.since) = (Phase::Egress, now),
@@ -268,7 +293,9 @@ pub(crate) fn fly(m: &mut Member) -> Status {
     }
     // (Straight on along its track: a turn back from a dive's release short of the target looped it down to 977 m.)
     let away = Vec3::new(v[0], v[1], 0.0).try_normalize().or(off.try_normalize()).unwrap_or(Vec3::NORTH);
-    if agl < EGRESS_AGL || v[2] < -DESCENT_MS {
+    // Low: out on the terrain following once the pull-out is done.
+    m.order.follow = m.strike.low;
+    if m.strike.low.is_none() && agl < EGRESS_AGL || v[2] < -DESCENT_MS {
         // The pull-out and the climb away (the BFM loop flies the line in any plane, its ground watch on).
         let c = CLIMB_DEG.to_radians();
         return fly_to(m, MODE_BFM, p + (away * c.cos() + Vec3::UP * c.sin()) * 10_000.0, DIVE_G);
@@ -299,15 +326,23 @@ fn run(m: &mut Member, t: &Bogey, agl: f64) -> Status {
         let at = Vec3::new(t.pos[0], t.pos[1], p[2].max(t.pos[2] + agl_min));
         fly_to(m, MODE_STEER, at, RUN.1)
     };
-    if m.strike.profile == Profile::Level {
+    let below = agl.atan2(to_t.length()).to_degrees();
+    let track = Vec3::new(v[0], v[1], 0.0).try_normalize().unwrap_or(dir);
+    let s = &mut m.strike;
+    let pop = if s.profile == Profile::Level { 2.0 * POP_M } else { POP_M };
+    s.popped |= to_t.length() < pop;
+    m.order.follow = s.low.filter(|_| !s.popped);
+    if m.order.follow.is_some() {
+        // In low at the target: the steer loop's height is the terrain following's.
+        return fly_to(m, MODE_STEER, Vec3::new(t.pos[0], t.pos[1], p[2]), RUN.1);
+    }
+    let climb = if s.profile == Profile::Pop { POP_DEG } else { CLIMB_DEG }.to_radians();
+    if s.profile == Profile::Level {
         let track = Vec3::new(v[0], v[1], 0.0).try_normalize().unwrap_or(dir);
         let along = miss.dot(track);
         m.order.release = allowed && (0.0..PAST_M).contains(&along) && (miss - track * along).length() < ACROSS_M;
         return level(m, LEVEL_AGL);
     }
-    let below = agl.atan2(to_t.length()).to_degrees();
-    let track = Vec3::new(v[0], v[1], 0.0).try_normalize().unwrap_or(dir);
-    let s = &mut m.strike;
     if s.diving && agl < DIVE_FLOOR_AGL {
         s.diving = false; // pulled out: run again
     } else if s.extending && below < EXTEND_DEG.1 {
@@ -315,7 +350,9 @@ fn run(m: &mut Member, t: &Bogey, agl: f64) -> Status {
     } else if !s.diving && !s.extending && below >= DIVE_DEG {
         // Rolled in with the target ahead and the height for the dive; else out on its track and back.
         let ahead = track.dot(dir) >= AHEAD_DEG.to_radians().cos();
-        if ahead && agl >= DIVE_IN_AGL - 500.0 && below <= EXTEND_DEG.0 {
+        // (From the pop-up the cone is met lower: the Navy's apex is 3,000 ft over the ingress, POP_M's source.)
+        let roll_in = if s.profile == Profile::Pop { POP_ROLL_IN_AGL } else { DIVE_IN_AGL - 500.0 };
+        if ahead && agl >= roll_in && below <= EXTEND_DEG.0 {
             s.diving = true;
         } else {
             s.extending = true;
@@ -331,8 +368,7 @@ fn run(m: &mut Member, t: &Bogey, agl: f64) -> Status {
         return fly_to(m, MODE_BFM, aim_off(p, v.length(), t.pos), DIVE_G);
     }
     if agl < DIVE_IN_AGL {
-        let c = CLIMB_DEG.to_radians();
-        return fly_to(m, MODE_BFM, p + (dir * c.cos() + Vec3::UP * c.sin()) * 10_000.0, DIVE_G);
+        return fly_to(m, MODE_BFM, p + (dir * climb.cos() + Vec3::UP * climb.sin()) * 10_000.0, DIVE_G);
     }
     level(m, DIVE_IN_AGL)
 }
@@ -356,7 +392,8 @@ mod tests {
         assert!(short > 50.0 && (a[1] - (t[1] + short)).abs() < 1e-6 && a[0].abs() < 1e-9, "{a:?}");
         // Not above it: the target itself.
         assert_eq!(aim_off(Vec3::new(0.0, 0.0, 0.0), 200.0, t), t);
-        assert_eq!((Profile::of(true), Profile::of(false)), (Profile::Level, Profile::Dive));
+        assert_eq!((Profile::of(true, false), Profile::of(false, false)), (Profile::Level, Profile::Dive));
+        assert_eq!((Profile::of(true, true), Profile::of(false, true)), (Profile::Level, Profile::Pop));
     }
 
     #[test]

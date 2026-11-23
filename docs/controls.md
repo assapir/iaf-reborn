@@ -149,11 +149,13 @@ Terms used on this page:
   portals; DMS up / down give the sensor of interest to the helmet and back. The F-16's ICP keys (records 152–174)
   work the CNI.
 * **Modern IAF's four-ship orders** (the formations, rejoin, RTB, the split into pairs and the regroup, engage my
-  target, sort, weapons free, cover me: `IafAi.command` / `IafAi.split` / `IafAi.engage` / `IafAi.attack` /
-  `IafAi.sort` / `IafAi.weapons_free`, [ai.md](ai.md) §8.8–§8.11): the radio menu's flight pages carry them (record 47,
-  modern-iaf/docs/ai-plan.md F5, F12, F15). Four have keys (command 108, `radio.gd FLIGHT_KEYS`): record 99 (Alt + E,
-  "Wingman: attack my target") engage my target to Kidon 1-2, record 98 (Alt + W) sort, record 101 (Alt + P) cover
-  me to Kidon 1-2, and Modern IAF's own record 256 (`Alt + \`, p1 7) weapons free to the flight round the SPI.
+  target, sort, weapons free, cover me, low level and back to altitude: `IafAi.command` / `IafAi.split` /
+  `IafAi.engage` / `IafAi.attack` / `IafAi.sort` / `IafAi.weapons_free`, [ai.md](ai.md) §8.8–§8.11, §20): the radio
+  menu's flight pages carry them (record 47, modern-iaf/docs/ai-plan.md F5, F12, F15, K17). Five have keys (command
+  108, `radio.gd FLIGHT_KEYS`): record 99 (Alt + E, "Wingman: attack my target") engage my target to Kidon 1-2, record
+  98 (Alt + W) sort, record 101 (Alt + P) cover me to Kidon 1-2, and Modern IAF's own record 256 (`Alt + \`, p1 7)
+  weapons free to the flight round the SPI and record 257 (`Ctrl + \`, p1 8) the flight low level (300 ft) or back to
+  altitude, in turn.
   Without an IafAi flight records 98, 99 and 101 reach the wingman's brain as in the 1998 game. Engage my target with
   no aircraft locked attacks the player's ground target. The AI jets' reactions to locks, launches, attackers and
   AWACS calls need no input.

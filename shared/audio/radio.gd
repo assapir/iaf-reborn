@@ -961,9 +961,10 @@ func _awacs() -> void:
 const WING_NUMBERS := ["", "WNG_ONE", "WNG_TWO", "WNG_THREE", "WNG_FOUR"]
 ## Modern IAF's four-ship (ours, docs/ai.md §8.10, §8.11): command 108's p1 -> [to, the radio menu's command]: cover me
 ## to Kidon 1-2 (record 101, Alt + P), engage my target to Kidon 1-2 (record 99, Alt + E), sort (record 98, Alt + W),
-## weapons free to the flight round the SPI (record 256, Alt + \). The 1998 game has no IafAi flight: its brain takes
-## 1–6 as before; 7 is Modern IAF's only.
-const FLIGHT_KEYS := {1: [2, "cover"], 3: [2, "engage"], 4: [0, "sort"], 7: [0, "free"]}
+## weapons free to the flight round the SPI (record 256, Alt + \), the flight low level / back to altitude in turn
+## (record 257, Ctrl + \, docs/ai.md §20). The 1998 game has no IafAi flight: its brain takes 1–6 as before; 7 and 8
+## are Modern IAF's only.
+const FLIGHT_KEYS := {1: [2, "cover"], 3: [2, "engage"], 4: [0, "sort"], 7: [0, "free"], 8: [0, "low_level"]}
 
 const WING_WORDS := {
 	"unable": "WNG_UNABLE",
