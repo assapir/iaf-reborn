@@ -61,6 +61,11 @@ strings.
 | guns (a gun burst) | none found. Ours: "כידון 1-2, תותח" | "Kidon 1-2, guns!" | no IAF call found, NATO GUNS[^alsa] |
 | splash (a kill) | "כידון 1-2, **המטרה נפלה**" (the fourth search; **הפלה** stays the noun for a kill in debriefs and scores) | "Kidon 1-2, splash!" | an F-35I pilot on his kill, "ביצעתי, המטרה נפלה, נמשיך לתקיפה"[^jdn-f35]; an F-15 crew's radio, "המטרה הופלה"[^ynet-uav]; that it is a fixed call: inferred; NATO SPLASH[^alsa] |
 | winchester (nothing left to shoot) | none found. Ours: "כידון 1-2, אין חימוש" | "Kidon 1-2, winchester." | no IAF call found, NATO WINCHESTER[^alsa] |
+| **Fifth search: the lead's targets (23 November 2026, target-assign)** | | | |
+| sort (the lead shares the bandits out) | none found. Ours around the sourced **מטרה**[^ynet-uav]: "כידון 1, חלוקת מטרות" | "Kidon 1, sort." | no IAF call found; NATO SORT, "assignment of responsibility within a GROUP"[^alsa] |
+| weapons free (hunt any bandit in an area) | "כידון 1, **אש חופשית**" (from an F-15 crew's clearance on the radio, "רשאי אש חופשית"[^ynet-uav]) | "Kidon 1, weapons free." | NATO WEAPONS FREE, "at targets not identified as FRIENDLY"[^alsa]; "search and destroy" is no brevity word |
+| targeted (a pair's lead has its group) | none found. Ours around **מטרה**: "כידון 1-3, יש מטרה" (as "יש מגע") | "Kidon 1-3, targeted." | no IAF call found; NATO TARGETED, "fighter has acquired assigned GROUP and has assumed responsibility for it"[^alsa] |
+| cover me (now: defend the lead) | as the third search's row: "כידון 1-4, חיפוי" | "Kidon 1-4, cover me." | the word kept; the wingman now fights a jet that attacks the lead (docs/ai.md §8.11) |
 | **Terms** | | | |
 | the flight's callsign | **כידון N** for flight N (the player's is כידון 1, the next כידון 2, …); its jets **כידון N-M**, spoken "כידון אחד-אחד", "כידון אחד-שתיים". The callsign's term is **אות קריאה** | "Kidon 1", "Kidon 1-2" (spoken "Kidon one-two") | Hebrew Wikipedia: "זה נובע מצורת חלוקת אותות הקריאה בקשר: במבנה כידון 1, המוביל במבנה יהיה כידון 1-1 (אחד-אחד) ומספר 2 יהיה כידון 1-2 (אחד-שתיים)"[^hewiki-formation]; the user, 20 November 2026: "Use kidon style, where kidon 1 is the first formation the second is kidon 2 etc". The term אות קריאה: press, search quote[^mako-kaz]. Until 20 November the flight was "Alpha" (NATO style; no IAF style had been found on 19 November) |
 | the flight | **מבנה** (any group flying together); a flight of four is a **רביעייה** | "Kidon 1", "flight" | press: "כל 'מוביל' בכל מבנה", "להוביל רביעיית מטוסים"[^walla-2012], "מוביל של רביעיית מטוסי הקרב"[^walla-2020]; Hebrew Wikipedia[^hewiki-formation] |
@@ -109,6 +114,15 @@ kill, break, ejection, the AWACS and the tower were searched again in Hebrew and
   only the release, never a callsign. The attack run: **נכנס** ("כשאחד הודיע "נכנס""[^iafe-1967], 1967; current use
   not confirmed). The attack report: **ביצעתי**[^jdn-f35]. Scramble: **הזנק**[^ynet-uav]. The pickle button:
   **פיקל**[^inn-terms]. The voices use these when the calls are built.
+
+**Fifth search (23 November 2026: the lead's targets).** The user, 22 November 2026: "The leader (on our side) should
+assign targets to the other pair and to their wingman". Searched in Hebrew ("חלוקת מטרות", "מיון מטרות", with טייסים,
+קרב אוויר, יירוט, צה"ל) and in English (SORT, AZIMUTH, RANGE, TARGETED, WEAPONS FREE): no IAF radio word for a sort
+or for "targeted" was found, and no Israeli page uses "חלוקת מטרות" for a flight's targets; Mako's article on the
+102 Squadron's pair-against-pair training[^mako-kaz] describes the fight, not its words. So sort and targeted fall
+back to NATO in the English voice with Hebrew we wrote around **מטרה**, which the F-15 crew's radio uses[^ynet-uav].
+Weapons free is **אש חופשית**, from the same crew's "רשאי אש חופשית"; "רשאי" is not said in the call (the call is the
+lead's order, and the rule is gender-neutral Hebrew).
 
 **Where the sources differ**
 - Close formation: the IAF site writes **מבנה צמוד**; the pilot's account writes **מבנה מכונס**[^mustov]. Recommended
@@ -177,7 +191,7 @@ kill, break, ejection, the AWACS and the tower were searched again in Hebrew and
 [^ynet-sims]: Ynet, Nitzan Sadan, "נפלו בקרב: לאן נעלמו הסימולטורים?", 8 October 2010 ("דלק בינגו" in the writer's
     own list of jargon known to pilots and simulator players; no pilot quoted):
     https://www.ynet.co.il/articles/1,7340,L-3966149,00.html
-[^alsa]: Wikipedia, "Multiservice tactical brevity code", citing ATP 1-02.1 / AFTTP 3-2.5, *Multi-Service Brevity
+[^alsa]: Wikipedia, "Multiservice tactical brevity code" (SORT, TARGETED, WEAPONS FREE read 2026-11-23), citing ATP 1-02.1 / AFTTP 3-2.5, *Multi-Service Brevity
     Codes* (Air Land Sea Space Application Center, 25 April 2025) and NATO APP-7(D) (2007): BINGO "Prebriefed fuel
     state needed for recovery", JOKER, FUEL STATE, UNABLE, LINE ABREAST, WEDGE, ECHELON, SPREAD; no AIRBORNE, RTB,
     REJOIN or OPS CHECK: https://en.wikipedia.org/wiki/Multiservice_tactical_brevity_code

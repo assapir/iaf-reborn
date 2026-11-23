@@ -5,7 +5,7 @@
 
 use std::path::PathBuf;
 
-use iaf_ai::{Bogey, Flight, Skill, apply};
+use iaf_ai::{Bandit, Bogey, Flight, Skill, apply};
 use iaf_flight::autopilot::{Autopilot, Config, MODE_STEER, Steer};
 use iaf_flight::fm::Fm;
 use iaf_flight::{DataSet, Start, Vec3};
@@ -79,7 +79,7 @@ impl Duel {
         for (i, j) in self.jets.iter_mut().enumerate() {
             if let Some(f) = &mut j.flight {
                 f.sense(1, true, &j.fm, &j.ap);
-                f.bogey(None, Some(b[i]));
+                f.bandits(vec![Bandit::new(1, b[i], 0.0)]);
                 f.weapons(1, (0.0, 0.0), true, false);
                 f.step(self.t);
                 apply(&f.members[0].order, &mut j.ap, &mut j.fm);

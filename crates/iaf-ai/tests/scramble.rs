@@ -8,7 +8,7 @@
 use std::path::PathBuf;
 
 use iaf_ai::fighter::COMMIT_M;
-use iaf_ai::{Bogey, Flight, Skill, apply};
+use iaf_ai::{Bandit, Bogey, Flight, Skill, apply};
 use iaf_flight::airbase::Airbase;
 use iaf_flight::autopilot::{self, Autopilot, Config, Waypoint};
 use iaf_flight::fm::Fm;
@@ -66,7 +66,8 @@ fn scramble_intercept_and_land() {
             for (i, (fm, ap)) in jets.iter().enumerate() {
                 flight.sense(i as u8 + 1, true, fm, ap);
             }
-            flight.bogey(bogey.filter(|_| gci), *bogey);
+            flight.bandits(bogey.iter().map(|b| Bandit::new(1, *b, 0.0)).collect());
+            flight.gci(bogey.filter(|_| gci), 1);
             for n in 1..=2 {
                 flight.weapons(n, (40_000.0, 2_000.0), true, false);
             }

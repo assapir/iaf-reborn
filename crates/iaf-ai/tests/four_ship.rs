@@ -3,7 +3,7 @@
 
 use std::path::{Path, PathBuf};
 
-use iaf_ai::{Bogey, Call, Decoy, Flight, SHAPES, Threat, apply};
+use iaf_ai::{Bandit, Bogey, Call, Decoy, Flight, SHAPES, Tactic, Threat, apply};
 use iaf_flight::airbase::Airbase;
 use iaf_flight::autopilot::{self, Autopilot, Config, Host, MODE_STEER, Waypoint};
 use iaf_flight::fm::Fm;
@@ -1144,7 +1144,7 @@ fn engage_my_target_and_rejoin() {
     let t0 = w.t;
     assert_eq!(w.flight.engage(w.t, 2, None), Some(false));
     w.run(2.0);
-    assert!(w.said(2, "unable").is_some_and(|t| t >= t0) && !w.flight.member(2).unwrap().engaging);
+    assert!(w.said(2, "unable").is_some_and(|t| t >= t0) && w.flight.member(2).unwrap().tactic == Tactic::None);
     // A target 20 km ahead and 5 km left of the lead.
     let p = w.jets[0].0.ap_view().pos;
     let at = p + Vec3::new(-5_000.0, 20_000.0, 0.0);
@@ -1153,7 +1153,8 @@ fn engage_my_target_and_rejoin() {
     for n in 2..=4 {
         w.flight.weapons(n, (40_000.0, 2_000.0), true, false);
     }
-    assert_eq!(w.flight.engage(w.t, 0, Some(Bogey { pos: at, vel: Vec3::ZERO })), Some(true));
+    w.flight.bandits(vec![Bandit::new(7, Bogey { pos: at, vel: Vec3::ZERO }, 0.0)]);
+    assert_eq!(w.flight.engage(w.t, 0, Some(7)), Some(true));
     let flat = |w: &World, j: usize| {
         let q = w.jets[j].0.ap_view().pos;
         (q[0] - at[0]).hypot(q[1] - at[1])
@@ -1162,12 +1163,13 @@ fn engage_my_target_and_rejoin() {
     w.run(30.0);
     println!("engage: #2 {d2:.0} → {:.0} m, #3 {d3:.0} → {:.0} m from the target", flat(&w, 1), flat(&w, 2));
     assert!([2, 3, 4].iter().all(|&n| w.said(n, "ack").is_some_and(|t| t >= t0)));
-    assert!(w.flight.member(2).unwrap().engaging && w.flight.member(3).unwrap().engaging);
-    assert!(!w.flight.member(4).unwrap().engaging && w.flight.leader(4) == 3, "#4 on #3");
+    let tactic = |n: u8| w.flight.member(n).unwrap().tactic;
+    assert!(tactic(2) == Tactic::Engage && tactic(3) == Tactic::Engage);
+    assert!(tactic(4) == Tactic::None && w.flight.leader(4) == 3, "#4 on #3");
     assert!(flat(&w, 1) < d2 - 3_000.0 && flat(&w, 2) < d3 - 3_000.0, "both close on the target");
     // The target gone: back in the shape.
     let t0 = w.t;
-    w.flight.target(None, 0.0);
+    w.flight.bandits(Vec::new());
     let back = w.until(600.0, &|w| [2, 3].iter().all(|&n| w.said(n, "in_position").is_some_and(|t| t > t0)));
     println!("engage: rejoined after {back:?} s; separation {:.1} m", w.sep_air);
     assert!(back.is_some() && w.flight.member(2).unwrap().task.is_none());

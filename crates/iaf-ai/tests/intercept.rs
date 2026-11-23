@@ -6,7 +6,7 @@
 use std::path::PathBuf;
 
 use iaf_ai::fighter::{CAP_R, DRAG_M};
-use iaf_ai::{Bogey, Flight, Skill, Threat, apply};
+use iaf_ai::{Bandit, Bogey, Flight, Skill, Threat, apply};
 use iaf_flight::autopilot::{Autopilot, Config};
 use iaf_flight::fm::Fm;
 use iaf_flight::{DataSet, Start, Vec3};
@@ -29,6 +29,8 @@ struct Pair {
     /// The bogey: where, how fast; the ground's vector of it on or off.
     bogey: Option<Bogey>,
     gci: bool,
+    /// Its jammer's burn-through share (0 none).
+    jam: f64,
     armed: bool,
     in_air: [bool; 2],
     threat: [Option<Threat>; 2],
@@ -74,6 +76,7 @@ impl Pair {
             t: 0.0,
             bogey: None,
             gci: true,
+            jam: 0.0,
             armed: true,
             in_air: [false; 2],
             threat: [None; 2],
@@ -89,7 +92,8 @@ impl Pair {
             self.flight.sense(i as u8 + 1, true, fm, ap);
         }
         let b = self.bogey;
-        self.flight.bogey(b.filter(|_| self.gci), b);
+        self.flight.bandits(b.iter().map(|b| Bandit::new(1, *b, self.jam)).collect());
+        self.flight.gci(b.filter(|_| self.gci), 1);
         for n in 0..2 {
             self.flight.weapons(n as u8 + 1, DLZ, self.armed, self.in_air[n]);
             self.flight.threat(n as u8 + 1, self.threat[n]);
@@ -371,7 +375,7 @@ fn a_jamming_bogey_is_held_inside_the_burn_through() {
         let Some(mut w) = Pair::new(p, p, Skill::HIGH) else { return };
         w.gci = false;
         w.bogey = Some(head_on(p, 60.0));
-        w.flight.bogey_jamming(jam);
+        w.jam = jam;
         w.run(0.5);
         let e = &w.flight.members[0].enemy;
         assert!(e.bogey.is_some() && e.strobe == (jam > 0.0) && e.contact == (jam == 0.0), "{jam}: {e:?}");

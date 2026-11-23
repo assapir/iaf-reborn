@@ -57,6 +57,8 @@ const COMMANDS := [
 	["rejoin", "Rejoin", "הצטרפות", "CMD_REJOIN", "few"],
 	["split", "Split", "פיצול", "CMD_SPLIT", "e"],
 	["engage", "Engage my target", "תקיפת המטרה שלי", "CMD_ENGAGE", "few"],
+	["sort", "Sort", "חלוקת מטרות", "CMD_SORT", "f"],
+	["free", "Weapons free", "אש חופשית", "CMD_FREE", "few"],
 	["cover", "Cover me", "חיפוי", "CMD_COVER", "few"],
 	["rtb", "RTB", "חזרה לבסיס", "CMD_RTB", "few"],
 	["check", "Check in", "בדיקת קשר", "CMD_CHECK", "few"],
@@ -510,7 +512,8 @@ func key(event: InputEventKey) -> bool:
 ## pilot's call said with its subtitle ("Kidon 1-2, rejoin"), then IafAi takes it and the wingmen answer (ai_flights.gd
 ## says their calls). "split" sends element 2 to the SPI (the radar's designated point, else the steerpoint),
 ## "engage" the jets at the radar's locked enemy aircraft, else at the player's ground target, which they attack one
-## after the other (ai_flights.gd engage_target, docs/ai.md §8.10). Recorded as a `radio` event.
+## after the other (ai_flights.gd engage_target, docs/ai.md §8.10), "sort" shares the bandits out between the jets,
+## "free" sends the jets hunting round the SPI (docs/ai.md §8.11). Recorded as a `radio` event.
 func flight_command(to: int, id: String) -> void:
 	var ai = host.get("ai")
 	if ai == null or ai.get("flight_ai") == null:
@@ -529,6 +532,12 @@ func flight_command(to: int, id: String) -> void:
 			# No SPI: a point at infinity, outside the same area, so element 2 answers "unable".
 			var spi = host.weapons.spi()
 			ok = ai.flight_ai.split(now, host.world_to_scene(spi) if spi != null else Vector3.INF)
+		"sort":
+			ok = ai.flight_ai.sort(now)
+		"free":
+			# No SPI: the hunt is round the lead itself.
+			var at = host.weapons.spi()
+			ok = ai.flight_ai.weapons_free(now, to, host.world_to_scene(at if at != null else host.player_world())) >= 0
 		_:
 			ok = ai.flight_ai.command(now, to, id)
 	host._log_event(host._log_st, {"event": "radio", "call": "%s:%d" % [id, to], "answer": "ok" if ok else "none"})

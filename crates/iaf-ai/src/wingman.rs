@@ -4,7 +4,7 @@
 
 use crate::bt::Node::{self, *};
 use crate::bt::Status;
-use crate::flight::{Member, RESERVE_KG, defend};
+use crate::flight::{Member, RESERVE_KG, Tactic, defend};
 use crate::{bfm, fighter, strike};
 use iaf_flight::autopilot::{MODE_SLOT, MODE_STEER};
 
@@ -103,13 +103,13 @@ fn guard(m: &mut Member) -> Status {
 
 /// The fight's way in: the enemy fighters' intercept (the collision course, the crank while its missile flies). It
 /// ends (fails) with the foe lost or past [`fighter::ABORT_M`] of the flight lead, or with nothing left to shoot and
-/// none of its missiles flying: then "winchester", the engage and the cover over; back to the slot ("in position").
+/// none of its missiles flying: then "winchester", the lead's order over; back to the slot ("in position").
 fn press(m: &mut Member) -> Status {
     if fighter::intercept(m) == Status::Running {
         return Status::Running;
     }
     if !m.enemy.armed && !m.enemy.in_air && !m.winchester {
-        (m.winchester, m.engaging, m.covering) = (true, false, false);
+        (m.winchester, m.tactic, m.assigned, m.holding, m.bandit) = (true, Tactic::None, None, false, None);
         m.calls.push("winchester");
     }
     // (Back to the slot once: a foe held but not found leaves it in the slot, with no call each decision.)

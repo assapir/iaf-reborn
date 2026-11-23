@@ -2,8 +2,8 @@
 # ramon_four_ship with the player's four-ship put in the air by the dev hook ai_flights.gd `flight_in_air` (no mission
 # starts so), against a MiG-29A pair spawned 50 km ahead by `spawn` and flown by `enemy_flight` (no network). Our jets
 # are shielded (a MiG's missile cannot end the test); the MiGs are not.
-#   - "engage my target" to the flight on the lead MiG: Kidon 1-2 and 1-3 acknowledge and fight it (IafAi "foe" 1),
-#     Kidon 1-4 stays on 1-3;
+#   - "engage my target" to the flight on the lead MiG: Kidon 1-2 and 1-3 acknowledge and fight it (IafAi "foe" its
+#     bandit id), Kidon 1-4 stays on 1-3;
 #   - "cover me" to Kidon 1-4 through the radio menu: acknowledged;
 #   - a wingman's missile launched through combat.gd and its "Fox" call said with its subtitle;
 #   - both MiGs shot down (the second engaged once the first is down); a kill by a wingman's weapons called "splash";
@@ -88,7 +88,8 @@ func _battle(tv: Node) -> void:
 	var t0: float = tv.runtime.now
 	check(ai.engage(0, migs[0]), "engage my target taken")
 	var took := func():
-		return int(fa.state(2).get("foe", 0)) == 1 and int(fa.state(3).get("foe", 0)) == 1 and _said(2, "ack", t0)
+		var id: int = ai._bandit_id(migs[0])
+		return int(fa.state(2).get("foe", 0)) == id and int(fa.state(3).get("foe", 0)) == id and _said(2, "ack", t0)
 	check(await _until(tv, took, 5.0), "Kidon 1-2 and 1-3 acknowledge and fight the target (%s)" % _calls())
 	check(int(fa.state(4).get("foe", 0)) == 0 and int(fa.state(4).leader) == 3, "Kidon 1-4 stays on Kidon 1-3")
 	check(_menu(tv, ["to:4", "cover"]), "cover me in the radio menu")

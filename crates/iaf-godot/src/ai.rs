@@ -14,7 +14,7 @@ use iaf_ai::fighter;
 use iaf_ai::net::{self, Gci, Member, Net};
 use iaf_ai::site::{self, Emcon, Kind, Site, Target};
 use iaf_ai::strike::{self, Pylon};
-use iaf_ai::{Bogey, Decoy, Flight, Foe, Skill, Threat};
+use iaf_ai::{Bandit, Bogey, Decoy, Flight, Skill, Tactic, Threat};
 use iaf_flight::Vec3;
 
 use crate::flight::{IafFlight, to_enu};
@@ -73,7 +73,7 @@ impl IafAi {
 
     /// A radio command at `now` to `to` (0 the flight, 5 the element #3–#4, 2..4 one wingman): check, ops_check,
     /// a shape of `iaf_ai::SHAPES` (fingertip, line_abreast, trail, echelon_right, echelon_left, diamond, vic, delta),
-    /// rejoin, rtb, cover (keep the slot, fight a hostile jet near the lead). False: unknown, or nobody to take it.
+    /// rejoin, rtb, cover (keep the slot, fight a bandit that attacks the lead). False: unknown, or nobody to take it.
     /// The answers come from `step` as calls.
     #[func]
     fn command(&mut self, now: f64, to: i64, cmd: GString) -> bool {
@@ -89,20 +89,20 @@ impl IafAi {
     }
 
     /// The lead's "engage my target" at `now` to `to` (0 the flight, 5 the element #3–#4, 2..4 one wingman) on the
-    /// target at the scene position `at` flying `vel`; `has` false: no target to engage (each answers "unable"). 1: a
-    /// jet took it; 0: each answered "unable" (a jet already engaging keeps its target); -1: nobody to take it. The
-    /// engaging jets fight it (`state` "foe" 1); the host feeds their weapons and fires them (`shoot`, `gun`).
+    /// bandit `id` (of `set_bandits`; 0 none: each answers "unable"). 1: a jet took it; 0: each answered "unable" (a jet
+    /// already engaging keeps its bandit); -1: nobody to take it. The engaging jets fight it (`state` "foe" its id); the
+    /// host feeds their weapons and fires them (`shoot`, `gun`).
     #[func]
-    fn engage(&mut self, now: f64, to: i64, has: bool, at: Vector3, vel: Vector3) -> i64 {
-        let b = Bogey { pos: to_enu(at), vel: to_enu(vel) };
-        self.flight.engage(now, to.clamp(0, 5) as u8, has.then_some(b)).map_or(-1, i64::from)
+    fn engage(&mut self, now: f64, to: i64, id: i64) -> i64 {
+        let id = (id > 0).then_some(id as u32);
+        self.flight.engage(now, to.clamp(0, 5) as u8, id).map_or(-1, i64::from)
     }
 
-    /// The engaged target this frame at the scene position `at` flying `vel`, its jammer's burn-through share `jam` (0
-    /// none); `alive` false: gone, the engaging jets rejoin.
+    /// The lead's sort at `now` (to the flight, docs/ai.md §8.11): the picture's groups and jets shared out between the
+    /// elements and their jets; the answers (targeted, ack, unable) come as calls. False: no AI wingman.
     #[func]
-    fn set_target(&mut self, alive: bool, at: Vector3, vel: Vector3, jam: f64) {
-        self.flight.target(alive.then(|| Bogey { pos: to_enu(at), vel: to_enu(vel) }), jam);
+    fn sort(&mut self, now: f64) -> bool {
+        self.flight.sort(now)
     }
 
     /// The lead's "attack my target" at `now` to `to` (0 the flight, 5 the element #3–#4, 2..4 one wingman) on the
@@ -171,11 +171,41 @@ impl IafAi {
         self.flight.member(number.clamp(0, 255) as u8).is_some_and(|m| m.order.release)
     }
 
-    /// A foe shot down at `now` (`foe` 1 the engaged target, 2 the flight's bogey): the wingmen whose weapons were on it
-    /// call "splash".
+    /// The lead's "weapons free" at `now` to `to` (0 the flight, 5 the element #3–#4, 2..4 one wingman) in the area
+    /// round the scene position `at` (within 40 km of the flight lead): the jets hunt the bandits there until a rejoin
+    /// or joker fuel. 1: a jet took it; 0: none could; -1: nobody to take it. Not `free`: GDScript calls Object.free.
     #[func]
-    fn splash(&mut self, now: f64, foe: i64) {
-        self.flight.splash(now, if foe == 1 { Foe::Target } else { Foe::Bogey });
+    fn weapons_free(&mut self, now: f64, to: i64, at: Vector3) -> i64 {
+        self.flight.free(now, to.clamp(0, 5) as u8, to_enu(at)).map_or(-1, i64::from)
+    }
+
+    /// Jet `number` (the player's) shot at a bandit: an element lead's shot clears its wingman holding in a sort.
+    #[func]
+    fn fired(&mut self, number: i64) {
+        self.flight.fired(number.clamp(0, 255) as u8);
+    }
+
+    /// The hostile jets this frame: each {id (the host's, > 0, never reused), pos, vel (scene), jam (its jammer's
+    /// burn-through share, 0 none)}. A bandit an order named that is gone from the list is gone.
+    #[func]
+    fn set_bandits(&mut self, list: VarArray) {
+        let bandits = list
+            .iter_shared()
+            .filter_map(|v| v.try_to::<VarDictionary>().ok())
+            .map(|d| Bandit {
+                id: num(&d, "id").unwrap_or(0.0) as u32,
+                pos: to_enu(get(&d, "pos").unwrap_or_default()),
+                vel: to_enu(get(&d, "vel").unwrap_or_default()),
+                jam: num(&d, "jam").unwrap_or(0.0),
+            })
+            .collect();
+        self.flight.bandits(bandits);
+    }
+
+    /// The bandit `id` shot down at `now`: the wingmen whose weapons were on it call "splash".
+    #[func]
+    fn splash(&mut self, now: f64, id: i64) {
+        self.flight.splash(now, id.max(0) as u32);
     }
 
     /// The threat jet `number`'s RWR and MAW show this frame, at the scene position `at`: `kind` 0 none, 1 a radar
@@ -201,14 +231,12 @@ impl IafAi {
         self.flight.enemy(Skill::enemy(level), to_enu(station));
     }
 
-    /// An enemy pair's bogey this frame (scene positions and velocities): the ground's vector (`gci`: its track as the
-    /// network reckons it) and the jet as it is (`truth`), which a jet knows only while its own radar holds it or its
-    /// pilot sees it. For our flight: the hostile jet nearest it (`gci` false), which a wingman fights when it covers
-    /// the lead or is attacked (`state` "foe" 2).
+    /// An enemy pair's vector this frame: the ground's track (`has`; scene position and velocity) as the network
+    /// reckons it and the id of the bandit it tracks (0 unknown). Its lead fights that bandit, else the one nearest the
+    /// pair (`set_bandits`); its wingmen their share once committed (`state` "foe").
     #[func]
-    fn set_bogey(&mut self, gci: bool, gci_pos: Vector3, gci_vel: Vector3, truth: bool, pos: Vector3, vel: Vector3) {
-        let b = |p, v| Bogey { pos: to_enu(p), vel: to_enu(v) };
-        self.flight.bogey(gci.then(|| b(gci_pos, gci_vel)), truth.then(|| b(pos, vel)));
+    fn set_gci(&mut self, has: bool, pos: Vector3, vel: Vector3, id: i64) {
+        self.flight.gci(has.then(|| Bogey { pos: to_enu(pos), vel: to_enu(vel) }), id.max(0) as u32);
     }
 
     /// A jet `number`'s weapons this frame: its selected missile's envelope against its bogey (an enemy's; one of our
@@ -244,12 +272,6 @@ impl IafAi {
         self.flight.jams(number.clamp(0, 255) as u8)
     }
 
-    /// The bogey's jammer this frame: its burn-through share, 0 not jamming (`Flight::bogey_jamming`).
-    #[func]
-    fn set_bogey_jam(&mut self, jam: f64) {
-        self.flight.bogey_jamming(jam);
-    }
-
     /// The decoy jet `number` releases this frame (after `step`): 0 none, 1 chaff, 2 flares (combat.gd's release, one
     /// each 4 s at most, and the decoy rule).
     #[func]
@@ -264,8 +286,8 @@ impl IafAi {
     /// One frame at `now` (s), after every jet's steps of the frame (one instant, `Flight::sense`): the AI's decisions
     /// and its jets' orders for their next `ap_step`. Returns the calls due, each
     /// {from: number, id: ack, unable, joker, bingo, rtb, fuel_state, lead_change, in_position, spike, mud, defending,
-    /// break_left, break_right, contact, engaged, splash, winchester, in, alpha, done; the tower's to it: tower_land,
-    /// tower_park}.
+    /// break_left, break_right, contact, engaged, targeted, splash, winchester, in, alpha, done; the tower's to it:
+    /// tower_land, tower_park}.
     #[func]
     fn step(&mut self, now: f64) -> VarArray {
         for (n, jet, alive) in &mut self.jets {
@@ -293,7 +315,8 @@ impl IafAi {
 
     /// Jet `number` for tests and logs: role (lead / wingman), leader (the number it flies on, 0 none), stage (its
     /// control loop), slot_error (m), avoiding (it pulls away from another jet), task (element 2's lead on its split
-    /// task), defending, engaging (it engages the player's target), fuel_kg, bingo_kg, released (sent home), hold (it
+    /// task), defending, tactic (the lead's order: "", cover, engage, sort, free), engaging, covering, holding (a sorted
+    /// wingman holding its fire), foe (the bandit it fights, 0 none), fuel_kg, bingo_kg, released (sent home), hold (it
     /// waits on the ground: taxiing in behind a jet, a pair's lead for its wingman), strike (its attack's phase: "",
     /// wait, run, egress), profile (its run: level, dive); empty for an unknown number.
     #[func]
@@ -309,9 +332,18 @@ impl IafAi {
         d.set("avoiding", m.order.avoid.is_some());
         d.set("task", m.task.is_some());
         d.set("defending", m.defending);
-        d.set("engaging", m.engaging);
-        d.set("covering", m.covering);
-        d.set("foe", m.foe.map_or(0, |f| if f == Foe::Target { 1 } else { 2 }));
+        let tactic = match m.tactic {
+            Tactic::None => "",
+            Tactic::Cover => "cover",
+            Tactic::Engage => "engage",
+            Tactic::Sort => "sort",
+            Tactic::Free => "free",
+        };
+        d.set("tactic", tactic);
+        d.set("engaging", m.tactic == Tactic::Engage);
+        d.set("covering", m.tactic == Tactic::Cover);
+        d.set("holding", m.holding);
+        d.set("foe", m.bandit.map_or(0, i64::from));
         d.set("fuel_kg", m.fuel_kg);
         d.set("bingo_kg", m.bingo_kg);
         d.set("released", m.released);

@@ -3,6 +3,17 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **The lead assigns targets (2026-11-23, the user, 22 Nov: "The leader (on our side) should assign targets to the
+  other pair and to their wingman"; [ai-plan.md](ai-plan.md) F5; [../../docs/ai.md](../../docs/ai.md) §8.11):** with
+  no order the wingmen keep their slots, call each new radar contact and fight only a jet that attacks them. Engage my
+  target names one bandit per jet or element (lock it, then the command). Sort (the radio menu, Alt + W) shares the
+  bandits the flight sees out between the pairs and their jets, by side or by range (NATO GROUP, AZIMUTH, RANGE):
+  #3 calls "targeted" and attacks, #2 and #4 hold their fire until their leader shoots or a threat is on them.
+  Weapons free (the radio menu, `Alt + \`) sends the jets hunting round the SPI until joker fuel or rejoin. Cover me
+  (Alt + P to Kidon 1-2) now fights a jet that attacks the lead, not any jet near it. Enemy pairs sort by the same
+  rule, so two MiGs take two of our jets. The voices of "sort", "weapons free" and "targeted" come from `iaf-sim
+  voices`. Tests: `crates/iaf-ai/tests/wing_battle.rs`, `crates/iaf-ai/src/sort.rs`,
+  `modern-iaf/tests/test_target_assign.gd`.
 - **Moving ground vehicles (2026-11-23, the user, 22 Nov: "Ok follow your suggested order", which named "ground
   units that move: convoys on roads; ground attack needs moving targets"; [ai-plan.md](ai-plan.md) K16;
   [../../docs/ai.md](../../docs/ai.md) §19):** a convoy of T-72s and Ural-4320s drives as one column on
@@ -37,8 +48,8 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   [../../docs/ai.md](../../docs/ai.md) §8.9):** a wingman told "engage my target" fights it with the enemy fighters'
   leaves: the collision course, a missile inside its share of the envelope, the crank, the BFM leaf and the gun, the
   fighters' defence (a lock called, the attack goes on; a missile notched or broken with chaff or flares). "Cover me"
-  (the radio menu) keeps it in its slot until a hostile jet comes within 37 km of the lead; a jet attacking a wingman
-  is fought uncommanded. Calls: engaged, Fox 1 / 2 / 3, guns, splash, winchester (voices from `iaf-sim voices`). Tests:
+  (the radio menu) keeps it in its slot until a jet attacks the lead (since 23 Nov; before, any hostile jet within
+  37 km of the lead); a jet attacking a wingman is fought uncommanded. Calls: engaged, Fox 1 / 2 / 3, guns, splash, winchester (voices from `iaf-sim voices`). Tests:
   `crates/iaf-ai/tests/wing_battle.rs`, `modern-iaf/tests/test_wing_battle.gd` (the four-ship put in the air by the
   dev hook `ai_flights.gd flight_in_air` against a MiG-29A pair). No mission places the enemy.
 - **Countermeasures and jamming (2026-11-22, the user: "Yes start whatever you didn't finished"; [ai-plan.md](ai-plan.md)

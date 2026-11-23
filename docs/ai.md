@@ -792,14 +792,14 @@ F12–F14). The 1998 game sets none of it. Every figure is inferred, tuned on th
   that holds the called point within 74 km and ±60° of its nose (a fighter radar's 40 NM) reports `contact` after its
   reaction time.
 
-- **Engage my target** (`Flight::engage(now, to, at)`, `IafAi.engage`; the radio menu's command): each AI jet
-  addressed (the flight, the element or one wingman) in the air with something left to shoot fights the target with
-  the enemy fighters' leaves (§8.9); #4 stays on #3 when #3 engages too. The target is the player's radar lock, an enemy
-  aircraft alive (`ai_flights.gd engage_target`, `engage`); without one, or with nothing left to shoot, each answers
-  "unable", and a jet already engaging keeps its target. `ai_flights.gd` keeps its position and velocity fresh every
-  frame (`IafAi.set_target`). When the target is gone (destroyed, or out of the world: a drone at its end point) the
-  engaging jets rejoin ("in position"); a rejoin or an RTB ends the engage too. Ground targets are not engaged (the
-  AI's air-to-ground deliveries are milestone 3's rows). Until 22 November 2026 an engaging jet flew the steer loop at
+- **Engage my target** (`Flight::engage(now, to, id)`, `IafAi.engage`; the radio menu's command): each AI jet
+  addressed (the flight, the element or one wingman) that can fight fights the bandit the player's radar has locked
+  (`ai_flights.gd engage_target`, `engage`) with the enemy fighters' leaves (§8.9); #4 stays on #3 when #3 engages too.
+  Since each command names one bandit for the jets it addresses, the lead names a bandit per jet or element in turn
+  (§8.11). Without a locked enemy aircraft, or with nothing left to shoot, each answers "unable", and a jet already
+  engaging keeps its bandit. When the bandit is gone (destroyed, or out of the world: a drone at its end point) the
+  engaging jets rejoin ("in position"); a rejoin or an RTB ends the engage too. On a ground target the command is an attack
+  (§8.10). Until 22 November 2026 an engaging jet flew the steer loop at
   the target at 4 g and 280 m/s and fired whenever combat.gd's launch allowed (the next air-to-air station, its
   envelope, cone and fire gate), with no shot window, crank, dogfight or gun.
 
@@ -820,6 +820,9 @@ English is NATO brevity[^brevity]:
 | regroup | "Kidon 1, element 3–4, rejoin." | "כידון 1, זוג 3–4, הצטרפות" | the four-ship's rejoin term (slice 3's research) |
 | engage | "Kidon 1-2, engage my target." | none found. Ours: "כידון 1-2, תקיפת המטרה שלי" | NATO ENGAGE, "a fire control order used to direct or authorize units to fire on a designated target"; Hebrew open |
 | cover | "Kidon 1-4, cover me." | none found. Ours around the press's חיפוי (fighters "שחיפו על החילוץ")[^mako-cover]: "כידון 1-4, חיפוי" | NATO COVER (to take a defensive, supporting posture; paraphrased)[^brevity]; Hebrew: חיפוי, second-hand |
+| sort | "Kidon 1, sort." | none found. Ours around the sourced מטרה: "כידון 1, חלוקת מטרות" | NATO SORT, "assignment of responsibility within a GROUP"[^brevity]; Hebrew open |
+| weapons free | "Kidon 1, weapons free." | "כידון 1, אש חופשית" (an F-15 crew's clearance on the radio, "רשאי אש חופשית": [radio-terms.md](../modern-iaf/docs/research/radio-terms.md)) | NATO WEAPONS FREE, "at targets not identified as FRIENDLY"[^brevity] |
+| `targeted` | "Kidon 1-3, targeted." | none found. Ours around the sourced מטרה: "כידון 1-3, יש מטרה" | NATO TARGETED, "fighter has acquired assigned GROUP and has assumed responsibility for it"[^brevity]; Hebrew open |
 | `engaged` | "Kidon 1-2, engaged!" | none found. Ours: "כידון 1-2, בקרב" | NATO ENGAGED (attacking the stated group; paraphrased)[^brevity]; Hebrew open |
 | `fox_1` / `fox_2` / `fox_3` | "Kidon 1-2, Fox two!" | "כידון 1-2, שיגור" for all three (the launch verb **שיגור** an IAF base commander used on the F-35I's kill; no IAF word for the seeker type found: [radio-terms.md](../modern-iaf/docs/research/radio-terms.md)) | NATO FOX ONE / TWO / THREE (the launch of a semi-active radar, an infrared, an active radar missile)[^brevity] |
 | `guns` | "Kidon 1-2, guns!" | none found. Ours: "כידון 1-2, תותח" | NATO GUNS (a gun engagement; paraphrased)[^brevity]; Hebrew open |
@@ -834,20 +837,25 @@ answered once today); a mate's call of a lock it sees on its own RWR; the break'
 
 The user, 22 Nov 2026: "Finish wingman in battle" (modern-iaf/docs/ai-plan.md F5, F13, K4). Our AI wingmen fight on
 the enemy fighters' rules (§18): the same leaves, the same skill struct (`Skill::WINGMAN`, the Medium figures, §17),
-the same host path in `ai_flights.gd`. The 1998 game sets none of it. Every figure is inferred.
+the same host path in `ai_flights.gd`. The 1998 game sets none of it. Every figure is inferred. Whom they fight is the
+lead's to say (§8.11).
 
-- **The foe** (`Member::foe`, `IafAi.state` "foe": 1 the target, 2 the bogey), chosen each decision for a wingman in
-  the air with the gear up, not sent home and with something left to shoot:
-  - the lead's target while it engages (`Flight::engage`, §8.8); it knows the target by the data link (the lead's
-    radar), so it flies at it before its own radar or eyes have it;
-  - else the flight's bogey (`Flight::bogey`: `ai_flights.gd` gives the hostile jet nearest the flight, as the
-    enemy's host does without a network), when the wingman covers the lead (the radio menu's "cover me",
-    `command` "cover") and the bogey is within 37 km (20 NM) of the lead (taken once its own radar holds it or its
-    pilot sees it, kept while it stays that near), or when the bogey attacks the wingman: in
-    its pilot's sight and in the dogfight's defensive geometry against it (behind its beam, its nose within 60° of
-    the wingman, inside 5 km, `bfm::defensive`). It knows the bogey only by its own radar and eyes. A foe taken by
-    itself is called `engaged`.
-  - A rejoin or an RTB ends the engage and the cover; the foe gone, it rejoins its slot ("in position").
+- **The foe** (`Member::bandit`, `IafAi.state` "foe": the bandit's id), chosen each decision for a wingman in the air
+  with the gear up, not sent home and with something left to shoot, from the hostile jets the host gives
+  (`Flight::bandits`, `ai_flights.gd _bandits`: every live jet of the other side, each with an id that is never
+  reused):
+  - the bandit of the lead's order (engage, sort, weapons free: §8.11), once a sorted wingman is cleared to shoot; it
+    knows it by the data link (the flight's picture), so it flies at it before its own radar or eyes have it;
+  - else a bandit that attacks it: in its pilot's sight and in the dogfight's defensive geometry against it (behind
+    its beam, its nose within 60° of the wingman, inside 5 km, `bfm::defensive`); a fight so begun goes on while the
+    attacker stays within 1.5 times the dogfight's range (9 km). It knows that one only by its own radar and eyes;
+  - else, told to cover the lead (the radio menu's "cover me", `command` "cover": defend the lead), a bandit that
+    attacks the lead: its radar locked on the lead (the lead's RWR shows the lock within 1 km of the bandit) or on the
+    lead's six (the same geometry), kept while it stays within 37 km (20 NM) of the lead.
+  A foe it takes by itself (an attacker, the lead's attacker, a bandit it hunts) is called `engaged`. A rejoin or an
+  RTB ends the order and the cover; the foe gone, it rejoins its slot ("in position"). With no order (§8.11 level a)
+  it keeps its slot and fights only a bandit that attacks it. Until 23 November 2026 "cover me" fought the hostile jet
+  nearest the flight once it came within 37 km of the lead, whether it attacked or not.
 - **The fight:** the enemy fighters' leaves on the foe, in the enemy wingman's order: the shot (§18.1: its own radar
   holding the foe, inside the skill's share of the envelope for its reaction time), the dogfight inside 6 km of a foe
   in sight (§18.2: the BFM leaf, the gun with the skill's laying error), else the intercept (the collision course at
@@ -857,24 +865,25 @@ the same host path in `ai_flights.gd`. The 1998 game sets none of it. Every figu
   attack goes on; a missile is defended by the tactics (Medium: the notch, the break against an infrared one) with
   chaff or flares at the launch's cue and within 6 s of its arrival (§8.8). Out of the fight a wingman defends as before (§8.8: the beam against a
   lock too).
-- **Winchester:** with no missile or round left and none of its missiles flying, it calls `winchester`, its engage
-  and cover end and it rejoins; a later engage or cover is answered "unable".
-- **The host** (`ai_flights.gd _step_flight_ai`, the enemy's path shared: `_weapons_of`, `_fire`, `_radar_lock`,
-  `_nearest_hostile`): each frame the target and the bogey with their velocity and jammer share, each wingman's
+- **Winchester:** with no missile or round left and none of its missiles flying, it calls `winchester`, the lead's
+  order and the cover end and it rejoins; a later order is answered "unable".
+- **The host** (`ai_flights.gd _step_flight_ai`, the enemy's path shared: `_bandits`, `_weapons_of`, `_fire`,
+  `_radar_lock`, `_splash`): each frame the bandits with their velocity and jammer share, each wingman's
   weapons against its foe (`_pick_aa`: the missile whose envelope holds it), then its shot (combat.gd 300) or gun burst
   (370, then 300), called `fox_1`, `fox_2` or `fox_3` by the missile's guidance (combat.gd types 610, 570 / 580, 600)
   or `guns`; its radar's lock on the foe while it holds it (the foe's RWR). A foe shot down while a wingman's missile
-  flew at it, or within 3 s of its burst, is that wingman's `splash` (`IafAi.splash`); a kill by another is not called.
+  flew at it, or within 3 s of its burst, is that wingman's `splash` (`IafAi.splash(id)`, `ai_flights.gd _splash`); a
+  kill by another is not called.
 - **The jammer:** a Sufa wingman's jammer is on while its RWR shows a threat (a lock, a missile) or it defends
   (§15.6, `Flight::jams`).
 - **The dev hook:** `ai_flights.gd flight_in_air(heading)` puts the player's flight's AI jets in the air behind the
   player's jet (put there first) and makes the flight's IafAi again; no mission starts a flight in the air.
 - **Tests:** `cargo test -p iaf-ai --test wing_battle` (the four-ship of Sufas on the 6-DoF against MiG-29As:
   `engage_a_mig29_pair` the engage against a pair flying the enemy trees: the shots inside 36.2 km, the crank, a BFM
-  move and the gun, splash and the rejoin; `cover_and_self_defence` the cover's take at 37 km and the break against a
-  MiG behind #3; `lock_called_winchester_and_rejoin`), `--test four_ship engage_my_target_and_rejoin`;
-  `modern-iaf/tests/test_wing_battle.gd` (headless: the four-ship in the air by the dev hook against a MiG-29A pair:
-  engage, cover through the radio menu, a Fox call, both MiGs down, splash, the rejoin).
+  move and the gun, splash and the rejoin; `no_order_holds_calls_contacts_and_fights_back` the break against a MiG
+  behind #3; `cover_defends_the_lead`; `lock_called_winchester_and_rejoin`; the orders of §8.11), `--test four_ship
+  engage_my_target_and_rejoin`; `modern-iaf/tests/test_wing_battle.gd` (headless: the four-ship in the air by the dev
+  hook against a MiG-29A pair: engage, cover through the radio menu, a Fox call, both MiGs down, splash, the rejoin).
 
 ### 8.10 Ours: the air-to-ground attack
 
@@ -888,14 +897,14 @@ wingman" (modern-iaf/docs/ai-plan.md F15, K15). Our wingmen and the enemy fighte
   radar's locked one, else the one nearest the SPI within 500 m, else the SPI itself (a point). The SPI
   (`player_weapons.gd spi`) is the radar's designated point, else the current steerpoint, else the EO camera's point
   on the ground; with none of them there is no SPI and each jet answers "unable" (the split too). `Flight::attack`
-  (`IafAi.attack`): each AI jet addressed in the air with an air-to-ground weapon answers "ack" and takes it (an
-  engage or a cover it had ends); the others "unable". The flight has one ground target: a new one is every attacking
+  (`IafAi.attack`): each AI jet addressed in the air with an air-to-ground weapon answers "ack" and takes it (the order on
+  targets it had ends, §8.11); the others "unable". The flight has one ground target: a new one is every attacking
   jet's. An AI-led flight's own
   order is `Flight::strike` (`IafAi.strike`; the dev hook `ai_flights.gd enemy_strike(flight, target)`, the target an
   entity or a world point such as a base's runway): its lead takes it at once, then orders its wingmen.
 - **A new order wins** (inferred: the lead's word is the order; no source found for a wingman finishing its
-  release against it). Engage my target (an aircraft or a ground target, the same one too), cover me, rejoin, RTB
-  and the split end a jet's attack at once, its run too, and the jet answers "ack" and obeys: a ground target again
+  release against it). Engage my target (an aircraft or a ground target, the same one too), cover me, sort, weapons
+  free (§8.11), rejoin, RTB and the split end a jet's attack at once, its run too, and the jet answers "ack" and obeys: a ground target again
   starts its run over in its turn. A run broken off in its dive is pulled out by the autopilot's ground watch (the
   slot, steer and BFM loops keep it on). A release already started finishes (the host's ripple). A formation change
   leaves the attack on: the jet takes its new slot when it rejoins.
@@ -945,6 +954,80 @@ wingman" (modern-iaf/docs/ai-plan.md F15, K15). Our wingmen and the enemy fighte
   (headless: the four-ship with MK-82s through the radio menu on an enemy 64N6E2, destroyed; a second order to Kidon
   1-2 in its run, "ack" and the run flown again; a MiG-29A pair with MK-83s on its lead's order against a 64N6E2 of
   our side, destroyed).
+
+### 8.11 Ours: the lead assigns targets
+
+The user, 22 Nov 2026: "The leader (on our side) should assign targets to the other pair and to their wingman (no.
+2). I am not sure how proactive they should be unless was commanded something like search and destroy or something,
+wdyt?". He accepted four levels by the lead's command (`Tactic`, `crates/iaf-ai/src/flight.rs`; the sort's rule in
+`crates/iaf-ai/src/sort.rs`). The 1998 game sets none of it. Every figure is inferred unless a footnote gives its
+source.
+
+- **The picture.** The host gives every live hostile jet as a bandit with its id (`Flight::bandits`). The flight's
+  picture is the bandits any of its jets sees, the player's included: in its radar's reach and cone (74 km, ±60°;
+  inside a jammer's burn-through, §15.6) or in its pilot's sight (§18.2). The jets share it by the data link.
+
+| level | the lead's command | what the wingmen do |
+|---|---|---|
+| a | none | each keeps its slot, calls `contact` for a bandit its own radar finds first (once a bandit, for the flight), and fights only a bandit that attacks it (§8.9) |
+| b | engage my target, to the flight, the element or one wingman | the jets addressed fight the bandit the lead's radar has locked (§8.8); #4 stays on #3. The lead names a bandit per jet: lock one, engage to Kidon 1-2; lock another, engage to the element |
+| c | sort, to the flight | the picture shared out by the sort's rule (below): each element lead commits on its share and calls `targeted`; #2 and #4 answer `ack`, support their leads and hold their fire |
+| d | weapons free, to the flight, the element or one wingman | the jets addressed hunt any bandit in an area round the SPI until a rejoin or joker fuel (below) |
+| — | cover me, to the flight, the element or one wingman | defend the lead: fight a bandit that attacks the lead (§8.9) |
+
+The latest order replaces the one before and ends a ground attack (§8.10); a rejoin or an RTB ends any. A jet that cannot fight (on the ground, sent
+home, nothing left to shoot) answers "unable".
+
+- **The sort's rule** (`sort::groups`, `sort::deal`). The bandits fall into groups: any contacts within 3 NM of each
+  other (NATO GROUP)[^brevity]. The groups go to the elements (#1 and #2, #3 and #4), then each group's jets to its
+  element's jets, by one rule seen along the line from the units to the groups: groups spread wider across that line
+  than along it (the picture label AZIMUTH, "two GROUPS separated laterally"[^brevity]) are dealt by side, the left
+  unit the left one, as a lead on the left of the formation takes the bandit on its side[^crenshaw]; groups one
+  behind the other (RANGE, "separated in distance along the same line of bearing"[^brevity]) by range, the lead's
+  element the near one (inferred: the sources name lead and trail groups, not who takes which). The flight lead sorts
+  (sorting "should always be done by the flight leader"[^barton]). With one group both elements are on it, each on
+  one of its jets, the wingman on its lead's; with more groups than elements the outer ones are taken (inferred).
+- **The wingman's hold.** A wingman whose element lead is in the sort keeps its slot on that lead with its radar on its
+  share (the bandit's RWR shows the lock) and holds its fire until its element lead shoots (#3's own shot; the
+  player's missile launched at a bandit, `IafAi.fired`) or a threat is on it (a lock or a missile on its RWR, a bandit
+  attacking it). Then it fights its share.
+- **A share gone** (shot down, out of the world): the jet takes the nearest bandit of the picture that no other jet
+  has, else the nearest; with none left it rejoins.
+- **Weapons free** (`Flight::free(now, to, at)`, `IafAi.weapons_free`): the area is 37 km (20 NM) round the SPI (the radar's
+  designated point, else the steerpoint, as the split's), which must be within 40 km of the lead or each answers
+  "unable"; with no SPI the area is round the lead itself. Each jet addressed hunts the bandits of the picture inside it: the nearest one that no other jet has
+  first, else the nearest; it drops a bandit gone or more than 46 km (1.25 times the radius) from the point; with
+  none it circles the point at 1.5 g (the split's turn). A wingman whose element lead hunts too supports it: it takes
+  the other jet of its lead's group by the sort's rule (its lead's own with a group of one) and fights it, weapons
+  free. The hunt ends at joker fuel (bingo + 1,000 kg, the `joker` call) or on a rejoin. "Weapons free" is NATO's
+  WEAPONS FREE ("at targets not identified as FRIENDLY")[^brevity]; "search and destroy" is not a brevity word.
+- **AI-led flights** (`Flight::share`): an enemy pair, or any flight `enemy_flight` makes (either side). Its lead takes
+  the jet of the network's vector (§18.1), else the bandit nearest the pair, and keeps it once committed while it
+  lives. Once committed, each wingman takes its share of the lead's bandit's group by the same rule, never the lead's
+  own while the group has another jet: two jets do not take one bandit while another flies free. Before the commit
+  the wingman's bandit is the lead's. A pair vectored onto one raid sorts that raid; several pairs against several
+  raids each take the track nearest their station (§18.1, open).
+- **Keys and the menu.** The radio menu's flight pages carry Sort (to the flight) and Weapons free (to anyone) beside
+  Engage my target and Cover me. Command 108 (the 1998 game's wingman commands) gives four of them keys in Modern
+  IAF: record 99 (Alt + E) engage my target to Kidon 1-2 (§8.10), record 98 (Alt + W) sort, record 101 (Alt + P) cover
+  me to Kidon 1-2, record 256 (`Alt + \`) weapons free to the flight (`radio.gd FLIGHT_KEYS`,
+  [controls.md](controls.md)). Without an IafAi flight (the 1998 game) records 98, 99 and 101 reach the wingman's
+  brain as before.
+- **Calls:** `targeted` (an element lead on its share; NATO TARGETED), `ack`, `unable`, `contact`, `engaged` (a bandit
+  it hunts or takes by itself). Their words: the table of §8.8.
+- **Open:** the cover sees the lead's attacker by its lock or its place on the lead's six; a missile at the lead
+  hides the lock behind it (the host's RWR gives the nearest threat), so a bandit that locks and fires at once is
+  taken only when it sits on the lead's six. An enemy pair sorts the lead's group only: against two groups more than
+  3 NM apart its wingman stays on the lead's bandit. A player's gun burst does not clear a holding #2 (only a missile
+  launch does).
+- **Measured** (`wing_battle.rs`, Medium): sorted against two MiG pairs 60 km ahead and 20 km apart, #3 shot at its
+  share at 35.6 km 43 s later and #4 was cleared at once; a MiG pair committed on the four-ship took #1 and #4.
+- **Tests:** `cargo test -p iaf-ai --lib sort` (the groups; the azimuth and range deals), `--test wing_battle`
+  (`no_order_holds_calls_contacts_and_fights_back`, `engage_named_bandits`, `sort_by_azimuth_and_by_range`,
+  `free_hunts_in_its_area_until_joker`, `cover_defends_the_lead`, `an_enemy_pair_sorts`);
+  `modern-iaf/tests/test_target_assign.gd` (headless: the four-ship in the air by the dev hook against two MiG-29A
+  pairs under each command: no order, each enemy pair's sort, engage per bandit, sort by the menu and by its key,
+  weapons free by its key, the rejoin).
 
 ## 9. Airbase data (`iaf.ibx`, TowersManager `54eda0`)
 `iaf.ibx` holds the geometry the AI uses to take off, land and taxi. It has ten sections, in record order: Ramon,
@@ -1818,8 +1901,8 @@ are ours (inferred). The skill's tactics (§17) pick the branches:
   error is a seeded hash).
 - **CPU:** 4.1–7.8 µs per jet per frame on the build Mac for the Rust part (two fighters in the BFM leaf; the 6-DoF,
   the autopilot, the trees), against the intercept's 3.9.
-- **Each fighter fights the pair's bogey**: two against one, both fly the leaf on it (the flight's collision
-  avoidance keeps them apart). The bogey's turn is the one it shows, not its type's limits: a pilot sees the turn, not
+- **Each fighter fights its own bandit**: committed, the pair sorts the bogey's group (§8.11), so against two jets
+  each takes one; against one both fly the leaf on it (the flight's collision avoidance keeps them apart). The bogey's turn is the one it shows, not its type's limits: a pilot sees the turn, not
   the other jet's corner speed.
 - **Our wingmen** fly the same leaf on their foe (§8.9, 22 November 2026).
 
@@ -1970,7 +2053,7 @@ Open questions in this document:
 [^ni-beast]: The National Interest, "The F-35 Has a 'Beast Mode' (But There's a Catch)", https://nationalinterest.org/node/180849 (external hardpoints "drastically increase" the radar cross-section; second-hand: as quoted by a search engine on 2026-11-19).
 [^hamichlol-rwr]: Hamichlol, "מקלט התרעת מכ"ם", https://www.hamichlol.org.il/%D7%9E%D7%A7%D7%9C%D7%98_%D7%94%D7%9E%D7%96%D7%94%D7%99%D7%A8_%D7%91%D7%A4%D7%A0%D7%99_%D7%9E%D7%9B%22%D7%9D (a search radar's warning "ואחריה נעילה ומעקב"; read as quoted by a search engine on 2026-11-19, second-hand).
 [^mako-102]: Mako, "pzm-magazine", on the 102 Squadron's air-combat training, https://www.mako.co.il/pzm-magazine/Article-1c3f6f796402d61027.htm (a good pilot "תוקף ומתחמק מטילי נ"מ"; read as quoted by a search engine on 2026-11-19, second-hand).
-[^brevity]: Wikipedia, "Multiservice tactical brevity code", https://en.wikipedia.org/wiki/Multiservice_tactical_brevity_code (SPIKE, MUD, DEFENDING, BREAK, CONTACT, SPLIT; read 2026-11-19).
+[^brevity]: Wikipedia, "Multiservice tactical brevity code", https://en.wikipedia.org/wiki/Multiservice_tactical_brevity_code (SPIKE, MUD, DEFENDING, BREAK, CONTACT, SPLIT, read 2026-11-19; GROUP, AZIMUTH, RANGE, SORT, TARGETED, WEAPONS FREE, read 2026-11-23).
 [^w-shahed]: Wikipedia, "HESA Shahed 136", https://en.wikipedia.org/wiki/HESA_Shahed_136 (length 3.5 m, span 2.5 m, mass 200 kg, about 185 km/h; "typically fired in multiples from a launch rack"; "extra-low" altitude flight; read 2026-11-19).
 [^csis-shahed]: CSIS Missile Defense Project, "Shahed-131 and 136", https://missilethreat.csis.org/missile/shahed-131-and-136/ ("approximately 180 km per hour"; read 2026-11-19).
 [^ar-shahed]: Army Recognition, "Shahed-136 loitering munition kamikaze suicide drone technical data", https://armyrecognition.com/military-products/army/unmanned-systems/unmanned-aerial-vehicles/shahed-136-loitering-munition-kamikaze-suicide-drone-technical-data ("It can fly at an altitude from 60 to 4,000 m"; read 2026-11-19).
@@ -1986,6 +2069,8 @@ Open questions in this document:
 [^w-mig29-jam]: Wikipedia, "Mikoyan MiG-29" (the 9.13: "the installation of the L-203BE Gardenyia-1 jammer that was
   lacking on the initial 9.12 version"; read 2026-11-22): https://en.wikipedia.org/wiki/Mikoyan_MiG-29
 [^w-jam]: Wikipedia, "Radar jamming and deception" ("The burn-through range is the distance from the radar at which the jamming is ineffective"; a self-protection jammer "essentially broadcasts its position") (read 2026-11-22): https://en.wikipedia.org/wiki/Radar_jamming_and_deception
+[^crenshaw]: Dan "Crash" Crenshaw, "A2A Wingman Tactics", COMBATSIM.COM (the bracket: the lead on the left side of the formation "has the East man", the wingman on the right takes the west man; read 2026-11-23): https://combatsim.com/archive/htm/htm_arc5/wingman1.htm
+[^barton]: Peter "Faust" Barton, "Simulation Tactics and Communications III", COMBATSIM.COM, 1998 ("Sorting should always be done by the flight leader"; the bandits numbered "from nearest to farthest and left to right"; read 2026-11-23): https://combatsim.com/memb123/archive/htm/htm_arc5/voicecom5.htm
 [^mako-cover]: Israeli press on the IAF's rescues, fighters "שחיפו על החילוץ" (read as a search engine's summary on 2026-11-22, second-hand: the summary tied the quote to no single page).
 [^w-t72-speed]: Wikipedia, "T-72" (infobox: 60 km/h; read 2026-11-23): https://en.wikipedia.org/wiki/T-72
 [^fhwa-convoy]: FHWA Office of Operations, "Coordinating Military Deployments on Roads and Highways", Appendix B. Military Convoy Movement Facts ("vehicle intervals of 300 feet or more and speeds in excess of 25 mph"; read 2026-11-23): https://ops.fhwa.dot.gov/publications/fhwahop05029/appendix_b.htm

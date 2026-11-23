@@ -2418,6 +2418,14 @@
       "note": "Hebrew ours: no IAF call found (modern-iaf/docs/research/radio-terms.md)"
     },
     {
+      "file": "flt_wng_targeted.ogg",
+      "voice": "wingman",
+      "say": "Targeted.",
+      "mode": "particle",
+      "say_he": "יש מטרה.",
+      "note": "English: NATO brevity TARGETED; Hebrew ours around the sourced מטרה: no IAF call found (modern-iaf/docs/research/radio-terms.md)"
+    },
+    {
       "file": "flt_wng_fox1.ogg",
       "voice": "wingman",
       "say": "Fox one!",
@@ -2680,6 +2688,22 @@
       "mode": "helmet",
       "say_he": "חיפוי.",
       "note": "Hebrew ours: no IAF call found (modern-iaf/docs/research/radio-terms.md)"
+    },
+    {
+      "file": "flt_cmd_sort.ogg",
+      "voice": "pilot",
+      "say": "Sort.",
+      "mode": "helmet",
+      "say_he": "חלוקת מטרות.",
+      "note": "English: NATO brevity SORT; Hebrew ours around the sourced מטרה: no IAF call found (modern-iaf/docs/research/radio-terms.md)"
+    },
+    {
+      "file": "flt_cmd_free.ogg",
+      "voice": "pilot",
+      "say": "Weapons free.",
+      "mode": "helmet",
+      "say_he": "אש חופשית.",
+      "note": "English: NATO WEAPONS FREE; Hebrew: an F-15 crew's clearance on the radio, \"רשאי אש חופשית\" (ynet; modern-iaf/docs/research/radio-terms.md)"
     },
     {
       "file": "flt_cmd_rtb.ogg",
@@ -4412,6 +4436,11 @@
       "text": "engaged",
       "text_he": "בקרב"
     },
+    "WNG_TARGETED": {
+      "file": "flt_wng_targeted.ogg",
+      "text": "targeted",
+      "text_he": "יש מטרה"
+    },
     "WNG_FOX1": {
       "file": "flt_wng_fox1.ogg",
       "text": "fox one",
@@ -4596,6 +4625,16 @@
       "file": "flt_cmd_cover.ogg",
       "text": "cover me",
       "text_he": "חיפוי"
+    },
+    "CMD_SORT": {
+      "file": "flt_cmd_sort.ogg",
+      "text": "sort",
+      "text_he": "חלוקת מטרות"
+    },
+    "CMD_FREE": {
+      "file": "flt_cmd_free.ogg",
+      "text": "weapons free",
+      "text_he": "אש חופשית"
     },
     "CMD_RTB": {
       "file": "flt_cmd_rtb.ogg",

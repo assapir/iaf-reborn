@@ -36,18 +36,21 @@ var _formations: Array = []  # [{id, kind, members: [entity], targets: [entity],
 var flight_ai: RefCounted
 var _ai_members: Array = []
 var flight_calls: Array = []
-## The target the flight engages (the radio menu's "engage my target", engage), {} none; the hostile jet nearest the
-## flight (IafAi's bogey: a wingman covering the lead or attacked fights it), {} none.
-var engage_ent := {}
-var flight_bogey := {}
+## The hostile jets fed to every IafAi as bandits (_bandits, docs/ai.md §8.11): each one's id by its key (from 1,
+## never reused) and back; the bandits a wingman's splash was asked for (_splash); the player's last missile seen
+## (an element lead's shot clears its sorted wingman, IafAi.fired).
+var _bandit_ids := {}
+var _bandit_ents := {}
+var _splashed := {}
+var _player_shot: Object = null
 ## The ground target the flight attacks (the radio menu's "engage my target" on a ground target, attack; an entity or a
 ## point, `_point`), {} none.
 var attack_ent := {}
 ## Our wingmen's radar locks on their foe {number: target key} (_radar_lock).
 var _wing_locks := {}
 ## Modern IAF's enemy fighter flights (enemy_flight, docs/ai.md §18): {ai (IafAi), members [[number, entity]], net (its
-## ground control: an air_defence.gd network, {} none), station (world), bogey (the entity it is set on), locks {number:
-## target key}, strike (the ground target of its lead's attack order, enemy_strike; {} none)}.
+## ground control: an air_defence.gd network, {} none), station (world), locks {number: target key}, strike (the
+## ground target of its lead's attack order, enemy_strike; {} none)}.
 var enemy_flights: Array = []
 ## The CPU time the AI jets took (this node's _process: flight model, autopilot, AI, model and sound), µs, over
 ## `cost_frames` frames (modern-iaf/docs/ai-plan.md X5); a test resets both.
@@ -241,9 +244,7 @@ func enemy_flight(ents: Array, station: Vector3, net := {}) -> RefCounted:
 	if members.is_empty():
 		return null
 	ai.enemy(Settings.enemy_skill(), host.world_to_scene(station))
-	enemy_flights.append(
-		{"ai": ai, "members": members, "net": net, "station": station, "bogey": {}, "locks": {}, "strike": {}}
-	)
+	enemy_flights.append({"ai": ai, "members": members, "net": net, "station": station, "locks": {}, "strike": {}})
 	return ai
 
 
@@ -521,40 +522,30 @@ func _step_flight_ai(now: float) -> void:
 		flight_ai.set_alive(m[0], int(ent.state) < 3 and not (ent.player and host.ejected))
 		var th := _threat_of(ent)
 		flight_ai.set_threat(m[0], th[0], th[1], th[2])
-	if not engage_ent.is_empty():
-		# Gone: destroyed, or out of the world (a drone at its end point, a unit removed).
-		var gone: bool = int(engage_ent.state) >= 3 or not runtime.entities.has(engage_ent.key)
-		if int(engage_ent.state) >= 3:
-			flight_ai.splash(now, 1)
-		var at: Vector3 = Vector3.ZERO if gone else host.world_to_scene(world_of(engage_ent))
-		var vel: Vector3 = Vector3.ZERO if gone else Terrain.dir_to_scene(combat._velocity_of(engage_ent))
-		flight_ai.set_target(not gone, at, vel, 0.0 if gone else _jam_of(engage_ent))
-		if gone:
-			engage_ent = {}
 	attack_ent = _feed_strike(flight_ai, _ai_members, attack_ent)
-	# The flight's bogey: the hostile jet nearest it (one shot down is the wingmen's splash when theirs).
-	if not flight_bogey.is_empty() and int(flight_bogey.state) >= 3:
-		flight_ai.splash(now, 2)
 	var side := int(runtime.player_entity().side)
-	flight_bogey = _nearest_hostile(_ai_members, side)
-	var b := flight_bogey
-	flight_ai.set_bogey_jam(_jam_of(b))
-	var bw: Vector3 = world_of(b) if not b.is_empty() else Vector3.ZERO
-	var bv: Vector3 = combat._velocity_of(b) if not b.is_empty() else Vector3.ZERO
-	flight_ai.set_bogey(
-		false, Vector3.ZERO, Vector3.ZERO, not b.is_empty(), host.world_to_scene(bw), Terrain.dir_to_scene(bv)
-	)
-	# Each AI jet's weapons against its foe (state "foe": 1 the target, 2 the bogey; the last frame's decision).
+	_splash(flight_ai, _ai_members, now)
+	flight_ai.set_bandits(_bandits(side))
+	# The player's shot at an aircraft: the lead's call that clears its sorted wingman.
+	var w = host.get("weapons")
+	var shot = w.get("last_launched") if w != null else null
+	if shot != null and shot != _player_shot:
+		_player_shot = shot
+		var key := String(shot.get("target_key"))  # (a guided weapon's object has none)
+		for m in _ai_members:
+			if m[1].player and _bandit_ids.has(key):
+				flight_ai.fired(m[0])
+	# Each AI jet's weapons against its foe (state "foe": the bandit's id; the last frame's decision).
 	for m in _ai_members:
 		if not m[1].player:
-			_weapons_of(flight_ai, m[0], m[1], _foe_of(m[0]))
+			_weapons_of(flight_ai, m[0], m[1], _foe_of(flight_ai, m[0]))
 	for c in flight_ai.step(now):
 		_flight_say(c, now)
 	# The wingmen's shots and bursts (the enemy fighters' host path, combat.gd), called "Fox" or "guns".
 	for m in _ai_members:
 		if m[1].player:
 			continue
-		var foe := _foe_of(m[0]) if int(m[1].state) < 3 else {}
+		var foe := _foe_of(flight_ai, m[0]) if int(m[1].state) < 3 else {}
 		var said := _fire(flight_ai, m[0], m[1], foe)
 		if said != "":
 			_flight_say({"from": m[0], "id": said}, now)
@@ -582,30 +573,45 @@ func _flight_say(c: Dictionary, now: float) -> void:
 		host.radio.flight_call(int(c.from), String(c.id), float(flight_ai.state(c.from).get("fuel_kg", 0.0)), at)
 
 
-## The entity our wingman `n` fights (IafAi state "foe"): the engaged target, the flight's bogey, else {}.
-func _foe_of(n: int) -> Dictionary:
-	match int(flight_ai.state(n).get("foe", 0)):
-		1:
-			return engage_ent
-		2:
-			return flight_bogey
-	return {}
+## The entity jet `n` of the IafAi `ai` fights (its state "foe", a bandit's id), {} none.
+func _foe_of(ai, n: int) -> Dictionary:
+	return _bandit_ents.get(int(ai.state(n).get("foe", 0)), {})
 
 
-## The hostile jet (AirDefence's jets not of `side`) nearest any live member of `members` [[number, entity]], {} none.
-func _nearest_hostile(members: Array, side: int) -> Dictionary:
-	var t := {}
-	var near := INF
-	var jets: Array = AirDefence.of(host).jets(side)
+## The bandit id of the jet `ent` (from 1, kept for its key: never reused).
+func _bandit_id(ent: Dictionary) -> int:
+	var k := String(ent.key)
+	if not _bandit_ids.has(k):
+		_bandit_ids[k] = _bandit_ids.size() + 1
+		_bandit_ents[_bandit_ids[k]] = ent
+	return _bandit_ids[k]
+
+
+## The hostile jets (AirDefence's jets not of `side`, alive) as IafAi bandits: [{id, pos, vel (scene), jam (its
+## jammer's share)}].
+func _bandits(side: int) -> Array:
+	var out := []
+	for j in AirDefence.of(host).jets(side):
+		if int(j.ent.state) < 3:
+			out.append(
+				{
+					"id": _bandit_id(j.ent),
+					"pos": host.world_to_scene(j.pos),
+					"vel": Terrain.dir_to_scene(j.vel),
+					"jam": j.jam
+				}
+			)
+	return out
+
+
+## The bandits shot down that a jet of the IafAi `ai` ([[number, entity]] `members`) fought: its splash (IafAi.splash:
+## the jets whose weapons were on it call it), once a bandit.
+func _splash(ai, members: Array, now: float) -> void:
 	for m in members:
-		if int(m[1].state) >= 3:
-			continue
-		for j in jets:
-			var d: float = j.pos.distance_to(world_of(m[1]))
-			if d < near:
-				near = d
-				t = j.ent
-	return t
+		var id := int(ai.state(m[0]).get("foe", 0))
+		if id > 0 and not _splashed.has(id) and int(_bandit_ents.get(id, {}).get("state", 0)) >= 3:
+			_splashed[id] = true
+			ai.splash(now, id)
 
 
 ## Jet `n` (entity `ent`) of the IafAi `ai`: its weapons against `t` ({} none; set_weapons): the missile picked and its
@@ -651,10 +657,11 @@ func _fire(ai, n: int, ent: Dictionary, t: Dictionary) -> String:
 	return ""
 
 
-## Ours (Modern IAF, the radio menu's "engage my target", modern-iaf/docs/ai-plan.md F5, F15): the flight's jets `to`
-## (0 the flight, 5 the element, 2..4 one wingman) engage the radar's locked aircraft, else attack the player's ground
-## target (attack; IafAi.pick_ground among the hostile ground units: the radar's lock, else the one nearest the SPI,
-## else the SPI itself; no SPI: each "unable"). False: no flight AI or nobody to take it.
+## Ours (Modern IAF, the radio menu's "engage my target", modern-iaf/docs/ai-plan.md F5, F15, docs/ai.md §8.11): the
+## flight's jets `to` (0 the flight, 5 the element, 2..4 one wingman) engage the radar's locked aircraft (so the lead
+## names a bandit for each in turn), else attack the player's ground target (attack; IafAi.pick_ground among the hostile
+## ground units: the radar's lock, else the one nearest the SPI, else the SPI itself; no SPI: each "unable"). False: no
+## flight AI or nobody to take it.
 func engage_target(to: int) -> bool:
 	var t: Dictionary = host.radio._radar_target() if host.get("radio") != null else {}
 	if not t.is_empty() and int(t.get("klass", 0)) in host.radio.AIRCRAFT:
@@ -759,13 +766,10 @@ func engage(to: int, t: Dictionary) -> bool:
 		return false
 	var ok: bool = not t.is_empty() and host.enemy_of_player(t) and int(t.get("klass", 0)) in host.radio.AIRCRAFT
 	ok = ok and int(t.state) < 3
-	# Taken by nobody (each "unable"): a jet already engaging keeps its target.
-	var at: Vector3 = host.world_to_scene(world_of(t)) if ok else Vector3.ZERO
-	var vel: Vector3 = Terrain.dir_to_scene(combat._velocity_of(t)) if ok else Vector3.ZERO
-	var r: int = flight_ai.engage(runtime.now, to, ok, at, vel)
-	if r > 0:
-		engage_ent = t
-	return r >= 0
+	# The bandits now: a jet locked in the frame it appeared is one too.
+	flight_ai.set_bandits(_bandits(int(runtime.player_entity().side)))
+	# Taken by nobody (each "unable"): a jet already engaging keeps its bandit.
+	return flight_ai.engage(runtime.now, to, _bandit_id(t) if ok else 0) >= 0
 
 
 ## The threat jet `ent`'s RWR and MAW show IafAi: the nearest missile flying at it (3 radar, 4 infrared), else the
@@ -816,39 +820,34 @@ func _step_enemy(f: Dictionary, now: float) -> void:
 		# Shot down: the network's track coasts on a while; neither it nor the jet is a bogey.
 		t = {}
 		gci = {}
-	if gci.is_empty():
-		t = _nearest_hostile(f.members, side)
-	f.bogey = t
-	f.ai.set_bogey_jam(_jam_of(t))
-	var tw: Vector3 = world_of(t) if not t.is_empty() else Vector3.ZERO
-	var tv: Vector3 = combat._velocity_of(t) if not t.is_empty() else Vector3.ZERO
-	f.ai.set_bogey(
+	_splash(f.ai, f.members, now)
+	f.ai.set_bandits(_bandits(side))
+	f.ai.set_gci(
 		not gci.is_empty(),
 		host.world_to_scene(gci.get("pos", Vector3.ZERO)),
 		Terrain.dir_to_scene(gci.get("vel", Vector3.ZERO)),
-		not t.is_empty(),
-		host.world_to_scene(tw),
-		Terrain.dir_to_scene(tv)
+		_bandit_id(t) if not t.is_empty() else 0
 	)
 	for m in f.members:
 		var ent: Dictionary = m[1]
 		f.ai.set_alive(m[0], int(ent.state) < 3)
 		var th := _threat_of(ent)
 		f.ai.set_threat(m[0], th[0], th[1], th[2])
-		_weapons_of(f.ai, m[0], ent, t)
+		_weapons_of(f.ai, m[0], ent, _foe_of(f.ai, m[0]))
 	f.strike = _feed_strike(f.ai, f.members, f.strike)
 	f.ai.step(now)  # (the enemy's radio calls are not heard)
 	for m in f.members:
 		var ent: Dictionary = m[1]
 		var alive := int(ent.state) < 3
+		var foe := _foe_of(f.ai, m[0])
 		if alive:
-			_fire(f.ai, m[0], ent, t)
+			_fire(f.ai, m[0], ent, foe)
 			_release(f.ai, m[0], ent, f.strike)
 		var d: int = f.ai.decoy(m[0]) if alive else 0
 		if d > 0:
 			combat.combat(ent, "320" if d == 1 else "310", {})
 		_set_jam(ent, alive and f.ai.jams(m[0]))
-		_radar_lock(f.ai, m[0], ent, t if alive else {}, f.locks)
+		_radar_lock(f.ai, m[0], ent, foe if alive else {}, f.locks)
 
 
 ## Jet `n`'s radar lock on `t` (combat.gd on_lock: the target's RWR) while its radar holds it (IafAi state "contact")

@@ -740,21 +740,18 @@ func _speak(at: int, code: int, cs := "", answer := []) -> Dictionary:
 # --- wingman commands (§3) ----------------------------------------------------------------------
 
 
-## Command 108 (records 98–103): FUN_0043f8d0(cmd) on the player's brain.
+## Command 108 (records 98–103): FUN_0043f8d0(cmd) on the player's brain. Modern IAF's four-ship (IafAi) takes its
+## own of them through the radio menu's commands (FLIGHT_KEYS).
 func wingman_command(cmd: int) -> void:
 	var ai = host.get("ai")
 	var me := _player_ent()
 	if ai == null or me.is_empty():
 		return
-	# Modern IAF's four-ship (IafAi): attack my target is the radio menu's engage my target to Kidon 1-2.
-	if (
-		cmd == 3
-		and ai.get("flight_ai") != null
-		and host.get("addon") != null
-		and host.addon.has_method("flight_command")
-	):
-		host.addon.flight_command(2, "engage")
-		return
+	if FLIGHT_KEYS.has(cmd):
+		if ai.get("flight_ai") != null and host.get("addon") != null and host.addon.has_method("flight_command"):
+			host.addon.flight_command(FLIGHT_KEYS[cmd][0], FLIGHT_KEYS[cmd][1])
+		if cmd > 6 or ai.get("flight_ai") != null:
+			return
 	var w: Dictionary = ai.partner_of(me)  # brain+0x44
 	if w.is_empty() or int(w.state) in [4, 5] or int(w.control) == 0:
 		return
@@ -962,6 +959,12 @@ func _awacs() -> void:
 ## Ours (Modern IAF, modern-iaf/docs/research/radio-terms.md): the flight AI's numbers and call words (voices.json's
 ## WNG_* particles, the wingmen's voice).
 const WING_NUMBERS := ["", "WNG_ONE", "WNG_TWO", "WNG_THREE", "WNG_FOUR"]
+## Modern IAF's four-ship (ours, docs/ai.md §8.10, §8.11): command 108's p1 -> [to, the radio menu's command]: cover me
+## to Kidon 1-2 (record 101, Alt + P), engage my target to Kidon 1-2 (record 99, Alt + E), sort (record 98, Alt + W),
+## weapons free to the flight round the SPI (record 256, Alt + \). The 1998 game has no IafAi flight: its brain takes
+## 1–6 as before; 7 is Modern IAF's only.
+const FLIGHT_KEYS := {1: [2, "cover"], 3: [2, "engage"], 4: [0, "sort"], 7: [0, "free"]}
+
 const WING_WORDS := {
 	"unable": "WNG_UNABLE",
 	"in_position": "WNG_IN_POSITION",
@@ -975,6 +978,7 @@ const WING_WORDS := {
 	"break_left": "WNG_BREAK_LEFT",
 	"break_right": "WNG_BREAK_RIGHT",
 	"engaged": "WNG_ENGAGED",
+	"targeted": "WNG_TARGETED",
 	"fox_1": "WNG_FOX1",
 	"fox_2": "WNG_FOX2",
 	"fox_3": "WNG_FOX3",
