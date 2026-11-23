@@ -18,7 +18,7 @@
 
 The game is not signed. On macOS, the first start is refused: right-click the app in Applications, select Open, then Open again. On Windows, when the screen "Windows protected your PC" appears, select More info, then Run anyway.
 
-The downloaded game keeps its data in a folder of your user account (@start-game-files); the wizard's first page shows it, and #stp("change") picks another one. To run setup again later, start `setup` in the game's folder on Linux, `Setup.cmd` on Windows, or on macOS run `open -a "Modern IAF" --args --setup` in Terminal. The rest of this section is the same for both.
+The downloaded game keeps its data in a folder of your user account (@start-game-files); the wizard's first page shows it, and #stp("change") picks another one. To run setup again later, open `setup` in the game's folder on Linux or `Setup.cmd` on Windows; on macOS, follow "Read me first.txt" on the disk image. The rest of this section is the same for both.
 
 === Starting the wizard <setup-start>
 
