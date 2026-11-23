@@ -203,7 +203,8 @@ static func _strpbrk(s: String, from: int) -> int:
 # --- ours -------------------------------------------------------------------------------------
 
 
-## Our lines (shared/credits.json "roll") as runs in the original's styles, Hebrew where given; "imagery" is the
+## Our lines (shared/credits.json "roll") as runs in the original's styles, Hebrew where given; "version" is the
+## game's version (Settings.version) as a small line; "imagery" is the
 ## Terrain Imagery section: its title as a role line, then each converted layer's credit as small lines.
 func our_runs() -> Array:
 	var he := Settings.language == "he"
@@ -227,6 +228,8 @@ func our_runs() -> Array:
 			out.append_array(_lines("role", text))
 			for c in credits:
 				out.append_array(_lines("small", c))
+		elif style == "version":  # the release's version (Settings.version, docs/release.md)
+			out.append_array(_lines("small", Settings.version()))
 		elif style in ["gap", "blank"]:
 			out.append(_run(style, ""))
 		else:

@@ -11,7 +11,7 @@ const BASE_SIZE := 16
 ## The theme: Godot's default with Heebo, and the variations.
 static func make() -> Theme:
 	var heebo := FontFile.new()
-	heebo.load_dynamic_font(ProjectSettings.globalize_path(FONT))
+	heebo.load_dynamic_font(Settings.disk_path(FONT))
 	var t := Theme.new()
 	t.default_font = _weight(heebo, 400)
 	t.default_font_size = BASE_SIZE

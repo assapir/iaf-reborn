@@ -107,7 +107,7 @@ func _init(f: Node) -> void:
 
 func _ready() -> void:
 	data = Settings.load_json(DATA)
-	for f in DirAccess.get_files_at("res://data/missions"):
+	for f in DirAccess.get_files_at(Settings.readable("res://data/missions")):
 		if f.ends_with(".json"):
 			_missions[f.get_basename()] = Settings.load_json("res://data/missions/" + f)
 	board = Notebook.new()
@@ -401,7 +401,7 @@ func _base_name() -> String:
 func _runway(designator: String) -> Dictionary:
 	if _base() == "":
 		return {}
-	for f in DirAccess.get_files_at("res://data/airbases"):
+	for f in DirAccess.get_files_at(Settings.readable("res://data/airbases")):
 		var b := Settings.load_json("res://data/airbases/" + f)
 		if not String(b.get("name", {}).get("en", "")).begins_with(_base()):
 			continue
@@ -426,7 +426,7 @@ func _runway(designator: String) -> Dictionary:
 ## The grid heading of the flight's base's runway end `designator` (IafBriefing.runway_heading, the briefing's: the
 ## sim's world is grid north); `fallback` (the data's true heading) without it.
 func _grid_heading(designator: String, fallback: float) -> float:
-	var h := IafBriefing.runway_heading(ProjectSettings.globalize_path("res://data/airbases"), _base(), designator)
+	var h := IafBriefing.runway_heading(Settings.disk_path("res://data/airbases"), _base(), designator)
 	return h if h >= 0.0 else fallback
 
 

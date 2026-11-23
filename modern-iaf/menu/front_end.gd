@@ -206,6 +206,13 @@ func _ready() -> void:
 		get_viewport().size_changed.connect(_fit_overlay)
 		show_page({"pref": "prefs", "done": "accomplished"}.get(screen, "pause"))
 		return
+	# A release bundle starts here: without the sim's data, or with --setup, its setup wizard (./start-modern-iaf and
+	# ./modern-iaf-setup do this in the checkout).
+	var built := DirAccess.dir_exists_absolute(Settings.converted("modern-iaf/missions"))
+	if Settings.bundled() and not _args_done and (Settings.setup_asked() or not built):
+		_args_done = true
+		get_tree().change_scene_to_file.call_deferred("res://setup/wizard.tscn")
+		return
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var win := get_window()
 	win.content_scale_mode = Window.CONTENT_SCALE_MODE_CANVAS_ITEMS
@@ -693,7 +700,7 @@ func _jet_view(j: Dictionary) -> void:
 		tt.queue_free()
 	var still := TextureRect.new()
 	still.name = "Still"
-	still.texture = Img.load_texture(ProjectSettings.globalize_path("res://data/hangar/%s.webp" % j.unit))
+	still.texture = Img.load_texture(Settings.disk_path("res://data/hangar/%s.webp" % j.unit))
 	still.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	still.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	still.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -1124,7 +1131,7 @@ func arming(m: Dictionary, lo := "") -> Dictionary:
 	var a = JSON.parse_string(
 		IafBriefing.arming(
 			_unit_file(m),
-			ProjectSettings.globalize_path("res://data/db/weapons"),
+			Settings.disk_path("res://data/db/weapons"),
 			lo if lo != "" else Fly.own_loadout(m),
 			mission_file(m)
 		)
@@ -1154,7 +1161,7 @@ func station_label(a: Dictionary, st: String) -> String:
 
 ## The mission's unit record, an absolute path (in `units_dir`).
 func _unit_file(m: Dictionary) -> String:
-	return ProjectSettings.globalize_path(units_dir.path_join("%s.json" % str(m.get("start", {}).get("unit", ""))))
+	return Settings.disk_path(units_dir.path_join("%s.json" % str(m.get("start", {}).get("unit", ""))))
 
 
 ## The loadout mission `m` flies with: the pilot's for its jet, "" (the mission's own, else the record's) where the
@@ -1215,11 +1222,7 @@ func objectives(m: Dictionary, budget: String) -> Array:
 func briefing_map(m: Dictionary, aspect: float) -> Dictionary:
 	var d = JSON.parse_string(
 		IafBriefing.map(
-			mission_file(m),
-			ProjectSettings.globalize_path("res://data/airbases"),
-			_map_file(m),
-			briefing_theatre(),
-			aspect
+			mission_file(m), Settings.disk_path("res://data/airbases"), _map_file(m), briefing_theatre(), aspect
 		)
 	)
 	if not d is Dictionary or d.has("error"):
@@ -1253,13 +1256,13 @@ func _map_file(m: Dictionary) -> String:
 ## Readable mission `m`'s file, an absolute path: res://data/missions/<id>.json, else its `_file` (a test's sample
 ## mission, modern-iaf/tests/data).
 static func mission_file(m: Dictionary) -> String:
-	return ProjectSettings.globalize_path(str(m.get("_file", "res://data/missions/%s.json" % str(m.get("id", "")))))
+	return Settings.disk_path(str(m.get("_file", "res://data/missions/%s.json" % str(m.get("id", "")))))
 
 
 ## Mission `m`'s flights (IafBriefing.flights: [{callsign, unit, count, task, player, start, route, stores}]), the
 ## player's first; [] when it cannot be read.
 func flights(m: Dictionary) -> Array:
-	var d = JSON.parse_string(IafBriefing.flights(mission_file(m), ProjectSettings.globalize_path(units_dir)))
+	var d = JSON.parse_string(IafBriefing.flights(mission_file(m), Settings.disk_path(units_dir)))
 	return d if d is Array else []
 
 
@@ -1641,7 +1644,7 @@ func _row_box(on: bool) -> StyleBoxFlat:
 ## their choices at the top corners, a line between them. null when it has none.
 func _preview(key: String) -> Control:
 	var pairs: Dictionary = Settings.load_json(SETTINGS_DATA.path_join("previews.json"))
-	var file := ProjectSettings.globalize_path(SETTINGS_DATA.path_join(key + ".webp"))
+	var file := Settings.disk_path(SETTINGS_DATA.path_join(key + ".webp"))
 	if not pairs.has(key) or not FileAccess.file_exists(file):
 		return null
 	if not _textures.has(file):
@@ -2739,7 +2742,7 @@ func _log_row(list: Control, cells: Array, result: int, a) -> Control:
 func _page_credits() -> void:
 	_header(["hangar", "credits"])
 	var v := _vbox(_body(), 24)
-	_title(v, s("credits"), "")
+	_title(v, s("credits"), s("version") % Settings.version())  # docs/release.md
 	var scroll := ScrollContainer.new()
 	scroll.name = "Credits"
 	scroll.focus_mode = Control.FOCUS_ALL
@@ -2779,7 +2782,7 @@ func _page_credits() -> void:
 ## A manual's edition in the game's language (`of`: its manual, `lang`) takes that manual's row: in Hebrew the game
 ## manual's row opens the Hebrew PDF; the jets' manuals are English in both.
 static func manuals() -> Array:
-	var dir := ProjectSettings.globalize_path("res://manuals")
+	var dir := Settings.disk_path("res://manuals")
 	var list: Dictionary = Settings.load_json(dir.path_join("manuals.json")).get("manuals", {})
 	var out := []
 	for id in list:

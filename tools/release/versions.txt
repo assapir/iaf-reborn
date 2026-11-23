@@ -1,0 +1,4 @@
+# Each game's version line (docs/release.md): <project folder> <version>. A nightly is
+# <version>-nightly.<YYYYMMDD>+<short commit hash>; the checkout shows "dev".
+modern-iaf 0.1.0
+iaf-reborn 1.1.0

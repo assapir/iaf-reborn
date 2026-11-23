@@ -3,6 +3,12 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **Release bundles, the nightly (2026-11-23, the user: "Have only the nightly builds";
+  [../../docs/release.md](../../docs/release.md)):** each day `main` changed, the Nightly workflow builds both games
+  for Linux, macOS (Apple silicon, unsigned) and Windows and replaces the `nightly` pre-release. The game opens its
+  setup wizard while its data is missing and with `--setup`; the data goes to a per-user folder (shown on the wizard's
+  first page, Change… picks another), so an update keeps it. Version `0.1.0-nightly.<date>+<hash>` under the
+  Attributions screen's title, `dev` in the checkout. Setup still needs GDAL and curl on the computer.
 - **The lead assigns targets (2026-11-23, the user, 22 Nov: "The leader (on our side) should assign targets to the
   other pair and to their wingman"; [ai-plan.md](ai-plan.md) F5; [../../docs/ai.md](../../docs/ai.md) §8.11):** with
   no order the wingmen keep their slots, call each new radar contact and fight only a jet that attacks them. Engage my

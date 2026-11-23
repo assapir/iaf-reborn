@@ -3,6 +3,12 @@
 Two flight sims on one open-source engine (Godot 4 and Rust), for Linux, macOS and Windows. Each has its own folder,
 its own README and its own setup.
 
+**Download and play:** the [nightly pre-release](https://github.com/assapir/iaf-reborn/releases/tag/nightly) has
+both games for Linux, macOS (Apple silicon) and Windows, built each day that `main` changed. Unpack it and start the
+game: its setup wizard builds the data. The programs are unsigned: on macOS right-click the app and choose Open (or
+`xattr -dr com.apple.quarantine "/Applications/Modern IAF.app"`); on Windows choose More info, then Run anyway.
+Details: [docs/release.md](docs/release.md). The commands below run the games from this checkout.
+
 ## Jane's IAF reborn: the 1998 game
 
 A re-implementation of **Jane's IAF: Israeli Air Force** (1998). It loads the game data from **your own copy** of

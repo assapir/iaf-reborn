@@ -76,7 +76,7 @@ func setup(front_end: Control) -> void:
 
 
 static func guides_dir() -> String:
-	return ProjectSettings.globalize_path("res://").path_join("../docs/guides").simplify_path()
+	return Settings.app_root().path_join("docs/guides")
 
 
 ## The record's guide name: its dir; the F-16's and F-15's their aircraft definition's guide (the Sufa's f16i with

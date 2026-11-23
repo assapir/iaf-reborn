@@ -4,7 +4,8 @@ The credits roll when you quit from the menus, as in the original. The code is i
 
 * **Trigger**: QUIT → "Are you sure you want to quit the game?" → Yes. The roll runs only when the game was started
   without arguments (`./iafjets`).
-* **Content**: our credits first, in the original's fonts and colour; then the original's `credits.trx` over the
+* **Content**: our credits first, in the original's fonts and colour, the game's version under "IAF-REBORN" (the
+  `version` line, [release.md](release.md) §3); then the original's `credits.trx` over the
   `cr0..cr8` screens with `credits.wav`. How the original's roll works: docs/front-end.md §4.1.
 * **End**: a key or a mouse button ends the roll, and then the game exits.
 

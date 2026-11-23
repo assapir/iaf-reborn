@@ -2266,7 +2266,9 @@ func _spawn_cockpit() -> void:
 	var c3d_model: String = Cockpit3d.model_for(player.type)
 	var three_d: bool = Cockpit3d.in_cut_model(player.type, player.cockpit_dir)
 	# Ours first: an extra plane's (the F-35I's, tools/f35i/bc.py), which no install has.
-	var extra: String = AircraftModel.EXTRA_DIR.path_join(player.plane).path_join(player.plane + "_bc.gltf")
+	var extra: String = Settings.readable(AircraftModel.EXTRA_DIR).path_join(player.plane).path_join(
+		player.plane + "_bc.gltf"
+	)
 	var own := not three_d and FileAccess.file_exists(extra)
 	var bc = null if three_d or own else Gltf.object("controllableplanes/%s/%s_bc.gltf" % [player.plane, player.plane])
 	if own:

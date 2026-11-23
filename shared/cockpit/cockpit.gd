@@ -302,7 +302,7 @@ static func _file_in(d: String, lay: Dictionary, name: String) -> String:
 	if extra != "":
 		return extra
 	var own := d.path_join(name)
-	if FileAccess.file_exists(own) or not lay.has("Shared"):
+	if FileAccess.file_exists(Settings.readable(own)) or not lay.has("Shared"):
 		return own
 	return Settings.converted("cockpits".path_join(String(lay.Shared)).path_join(name))
 

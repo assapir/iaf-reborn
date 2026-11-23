@@ -62,16 +62,22 @@ pub fn disk_bytes(p: &Path) -> u64 {
     files.iter().filter_map(|f| std::fs::metadata(f).ok()).map(|m| m.len()).sum()
 }
 
+/// The launcher step's script under the repo.
+#[cfg(not(windows))]
+const LAUNCHER: &str = "tools/install-launcher.sh";
+#[cfg(windows)]
+const LAUNCHER: &str = r"tools\windows\install-launcher.ps1";
+
 /// The launcher step's command: tools/install-launcher.sh (it reads XDG_DATA_HOME itself).
 #[cfg(not(windows))]
 fn launcher(ctx: &Ctx) -> Command {
-    Command::new(ctx.repo.join("tools/install-launcher.sh"))
+    Command::new(ctx.repo.join(LAUNCHER))
 }
 
 /// The launcher step's command: Start Menu shortcuts (with XDG_DATA_HOME set: into a folder there instead).
 #[cfg(windows)]
 fn launcher(ctx: &Ctx) -> Command {
-    let script = plain_path(&ctx.repo.join(r"tools\windows\install-launcher.ps1"));
+    let script = plain_path(&ctx.repo.join(LAUNCHER));
     let mut c = Command::new("powershell");
     c.args(["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", &script]);
     if let Some(x) = std::env::var_os("XDG_DATA_HOME") {
@@ -157,6 +163,10 @@ pub(crate) fn run(step: &Step, ctx: &Ctx, pr: &dyn Progress, cancel: &AtomicBool
             iaf_tools::sim_cockpit::extras(&data, &out, Some(&isr), pr, cancel).map(|_| ())?
         }
         "icon" => convert::icon(&install, &conv.join("icon.png"), pr, cancel)?,
+        // A release bundle (docs/release.md) has no launcher script: the game's own folder or app is the launcher.
+        "launcher" if !ctx.repo.join(LAUNCHER).is_file() => {
+            return Ok(Outcome::Skipped("a release bundle: the game is its own launcher".into()));
+        }
         "launcher" => child(launcher(ctx), pr, cancel)?,
         "sentinel2" | "mapi2015" => return imagery(step, ctx, pr, cancel),
         "textures" => return textures_into(a, pr, cancel),

@@ -6,6 +6,7 @@ mod ai;
 mod airframe;
 mod autorun;
 mod bases;
+mod bc1;
 mod bombs;
 mod briefing;
 mod city_lights;

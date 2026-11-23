@@ -4,7 +4,8 @@
 # left, the Attributions dialog, the free disk space, the durations the setup logs write and the window's size.
 # Each game's wizard extends it with its pages, its look and its texts: `s(key)` gives the texts used here (next,
 # back, cancel, cancelling, not_started, installing, log_file, show_log, hide_log, state_checking, credits), and it
-# overrides _on_page, _update (calling super), _run, _polled, _finished and _finish.
+# overrides _on_page, _update (calling super), _run, _polled, _finished and _finish. A release bundle's first page also
+# shows the data folder (_data_folder_row; texts data_folder, change).
 extends Control
 
 var setup := IafSetup.new()
@@ -33,6 +34,8 @@ var log_button: Button
 var install_note: Label
 var redo_check: CheckBox
 var log_view: TextEdit
+## Started with --setup --install: the run starts at once and the game quits when it ends (_install_unattended).
+var unattended := false
 
 
 ## The common start, from the game's _ready: the window `window` (times the UI scale, centred), the pages' ids, the
@@ -42,8 +45,43 @@ func _start_wizard(page_ids: Array, window: Vector2i) -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	(func(): resize_window(self, window)).call_deferred()
 	assets = Settings.assets_dir()
-	repo = ProjectSettings.globalize_path("res://").path_join("..").simplify_path()
+	repo = Settings.app_root()
 	tools = IafSetup.tools()
+
+
+## A release bundle's data folder, on the first page (docs/release.md): its path and Change… (a folder picker, saved
+## by Settings.set_data_folder; the wizard opens again on the new folder). The checkout's assets/ is fixed: no row.
+func _data_folder_row(parent: Control) -> void:
+	if not Settings.bundled():
+		return
+	var row := HBoxContainer.new()
+	row.name = "DataFolder"
+	row.add_theme_constant_override("separation", 12)
+	parent.add_child(row)
+	var l := Label.new()
+	l.text = s("data_folder") % assets
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(l)
+	var b := Button.new()
+	b.text = s("change")
+	b.pressed.connect(_pick_data_folder)
+	row.add_child(b)
+
+
+func _pick_data_folder() -> void:
+	var d := FileDialog.new()
+	d.file_mode = FileDialog.FILE_MODE_OPEN_DIR
+	d.access = FileDialog.ACCESS_FILESYSTEM
+	d.use_native_dialog = true
+	d.current_dir = assets
+	d.dir_selected.connect(
+		func(path: String) -> void:
+			if path != assets and Settings.set_data_folder(path):
+				get_tree().reload_current_scene.call_deferred()
+	)
+	add_child(d)
+	d.popup_centered(Vector2i(800, 500))
 
 
 func _exit_tree() -> void:
@@ -188,6 +226,20 @@ func start_install() -> void:
 	_update()
 
 
+## `--setup --install` (docs/release.md): the run starts at once on the saved choices (the last run's, else the
+## defaults), every step's end state goes to the log, and the game quits when the run ends: 0 when it finished, 1 when
+## it failed or did not start. A scripted setup, and the release bundles' setup check. Called at the end of _ready.
+func _install_unattended() -> void:
+	if not ("--install" in OS.get_cmdline_args() or "--install" in OS.get_cmdline_user_args()):
+		return
+	unattended = true
+	await get_tree().process_frame
+	start_install()
+	if not running:
+		print("setup: did not start: ", install_note.text)
+		get_tree().quit(1)
+
+
 ## Starts the game's run in IafSetup (into log_file; `redo`: redo_ids()); "" when it started, else why not.
 func _run(_redo: PackedStringArray) -> String:
 	return ""
@@ -239,6 +291,11 @@ func _process(_delta: float) -> void:
 		_finished(p)
 		if failed != "":
 			_show_log(true)
+		if unattended:
+			for st in p.steps:
+				print("setup: step %s: %s" % [st.id, st.state])
+			print("setup: %s" % ("finished" if failed == "" else "failed: " + failed))
+			get_tree().quit(0 if failed == "" else 1)
 	_update()
 
 

@@ -3,6 +3,7 @@
 	"roll": [
 		{"style": "gap"},
 		{"style": "heading", "text": "IAF-REBORN"},
+		{"style": "version"},
 		{"style": "gap"},
 		{"style": "role", "text": "Created by", "he": "יוצר"},
 		{"style": "name", "text": "Assaf Sapir", "he": "אסף ספיר"},

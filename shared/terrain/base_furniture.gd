@@ -128,7 +128,7 @@ static func _tail_numbers(parent: Node3D, kind: String, at: Array, o: Vector2, b
 
 
 static func _is_jet(kind: String) -> bool:
-	return FileAccess.file_exists(PLANES % kind + "airframe.json")
+	return FileAccess.file_exists(Settings.readable(PLANES % kind + "airframe.json"))
 
 
 ## The night lights the furniture carries (airbase_lights.gd): [engine point, metres above the ground, colour]. A

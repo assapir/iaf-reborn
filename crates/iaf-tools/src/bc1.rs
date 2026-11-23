@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 
 use anyhow::{Context, Result};
-use texpresso::{Algorithm, Format};
+use texpresso::{Algorithm, Format, Params};
 
 use crate::progress::{Progress, par_map};
 use crate::thirdparty::{compress, mip_chain};
@@ -31,6 +31,25 @@ pub fn dds(w: u32, h: u32, mips: u32, data: &[u8]) -> Vec<u8> {
     (0..4).for_each(|_| put(0)); // caps2..4, reserved
     v.extend_from_slice(data);
     v
+}
+
+/// `rgba`, the data of a Godot RGBA8 Image (`w`×`h`, then each mip level down to 1×1 when `mips`), as BC1 with the
+/// same levels, for Image.set_data(…, FORMAT_DXT1, …): an exported Godot game (the release bundles, docs/release.md)
+/// has no encoder behind Image.compress. Levels past the end of `rgba` are left out.
+pub fn godot_image(rgba: &[u8], w: usize, h: usize, mips: bool) -> Vec<u8> {
+    let params = Params { algorithm: Algorithm::RangeFit, weights: [1.0; 3], weigh_colour_by_alpha: false };
+    let (mut w, mut h, mut at, mut out) = (w.max(1), h.max(1), 0, Vec::new());
+    while let Some(level) = rgba.get(at..at + w * h * 4) {
+        let mut buf = vec![0u8; Format::Bc1.compressed_size(w, h)];
+        Format::Bc1.compress(level, w, h, params, &mut buf);
+        out.extend_from_slice(&buf);
+        at += w * h * 4;
+        if !mips || (w == 1 && h == 1) {
+            break;
+        }
+        (w, h) = ((w / 2).max(1), (h / 2).max(1));
+    }
+    out
 }
 
 /// The `.dds` beside a tile.
@@ -95,6 +114,23 @@ pub fn trees(dirs: &[PathBuf], pr: &dyn Progress, cancel: &AtomicBool) -> Result
 mod tests {
     use super::*;
     use crate::progress::Stdout;
+
+    /// A 6×3 gradient along one colour line with its levels (6×3, 3×1, 1×1): Godot's DXT1 layout (2 + 1 + 1 blocks
+    /// of 8 bytes), and the top level decodes back within BC1's four steps of the source.
+    #[test]
+    fn a_godot_image_with_its_levels() {
+        let px = |x: usize, _y: usize| [(x * 40) as u8, (x * 20) as u8, 128, 255];
+        let mut rgba: Vec<u8> = (0..3).flat_map(|y| (0..6).flat_map(move |x| px(x, y))).collect();
+        rgba.extend((0..3).flat_map(|x| px(2 * x, 0)));
+        rgba.extend(px(0, 0));
+        let out = godot_image(&rgba, 6, 3, true);
+        assert_eq!(out.len(), (2 + 1 + 1) * 8);
+        let mut back = vec![0u8; 6 * 3 * 4];
+        Format::Bc1.decompress(&out[..16], 6, 3, &mut back);
+        let worst = rgba[..72].iter().zip(&back).map(|(a, b)| a.abs_diff(*b)).max().unwrap();
+        assert!(worst <= 48, "worst channel error {worst}");
+        assert_eq!(godot_image(&rgba[..72], 6, 3, false).len(), 16);
+    }
 
     #[test]
     fn dds_header_and_mips() {

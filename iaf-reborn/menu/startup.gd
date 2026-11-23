@@ -4,7 +4,7 @@
 #   2. the main menu (menu/front_end.tscn; the exe's state 2 draws Bmp\Back0.bmp and opens it).
 # The exe plays janes.avi and intro.avi before the menu; ours goes straight on (README "Intro videos").
 # Our command-line runs (--mission, --screenshot, --hover) go straight to the menu. Without assets/converted: the
-# setup wizard (setup/wizard.tscn).
+# setup wizard (setup/wizard.tscn), also with --setup (a release bundle's way to run setup again).
 extends Control
 
 const FRONT_END := "res://menu/front_end.tscn"
@@ -21,8 +21,8 @@ func _ready() -> void:
 
 
 func run() -> void:
-	# No game data yet (a launch that bypassed ./setup and ./iafjets): the setup wizard.
-	if not DirAccess.dir_exists_absolute(Settings.assets_dir().path_join("converted")):
+	# No game data yet (a launch that bypassed ./setup and ./iafjets), or --setup: the setup wizard.
+	if Settings.setup_asked() or not DirAccess.dir_exists_absolute(Settings.assets_dir().path_join("converted")):
 		get_tree().change_scene_to_file.call_deferred(SETUP)
 		return
 	if Settings.cd_launcher:

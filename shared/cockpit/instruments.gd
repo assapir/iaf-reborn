@@ -101,7 +101,7 @@ func setup(c: Control, s: Array) -> void:
 ## to their darkest channel per pixel; null without the art.
 func unlit_art(boxes: Array) -> ImageTexture:
 	var file := String(cockpit.layout.get("HUD", {}).get("FileName", ""))
-	var img := Image.load_from_file(cockpit.dir.path_join(file.get_basename().to_lower() + ".png"))
+	var img := Image.load_from_file(Settings.readable(cockpit.dir.path_join(file.get_basename().to_lower() + ".png")))
 	if img == null:
 		return null
 	img.convert(Image.FORMAT_RGBA8)

@@ -7,6 +7,11 @@ flight data, the sounds and voices and the training missions. It is item [A3](pl
 ./modern-iaf-setup        # Windows: .\modern-iaf-setup.ps1
 ```
 
+A release bundle ([docs/release.md](../../docs/release.md)) needs no Rust or Godot: the game opens this wizard itself
+while the sim's data is missing, and with `--setup` (`setup` on Linux, `Setup.cmd` on Windows, `open -a "Modern IAF"
+--args --setup` on macOS). Its first page then shows the data folder (per user, not `assets/` beside the game) with a
+Change… button, and the Done page has no menu tick: the app is its own launcher.
+
 `./start-modern-iaf` starts it too while the sim's data is missing (no `assets/converted/modern-iaf/missions/`, the last step's
 output). Run it again at any time: a step whose inputs did not change is "up to date" and is skipped, and a run
 that stopped resumes where it stopped.

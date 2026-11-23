@@ -167,7 +167,9 @@ static func prefetch_flight(id: int, flight := 0) -> void:
 		models.push_front(_jet_model(p.plane, d))
 	# The cockpit-view model: an extra plane's, else the install's (terrain_view.gd _spawn_player); none in the F-16's
 	# 3D cockpit (the detailed F-16's cut model).
-	var extra_bc: String = aircraft_model.EXTRA_DIR.path_join(p.plane).path_join(p.plane + "_bc.gltf")
+	var extra_bc: String = Settings.readable(aircraft_model.EXTRA_DIR).path_join(p.plane).path_join(
+		p.plane + "_bc.gltf"
+	)
 	if not _script("res://shared/cockpit/cockpit3d.gd").in_cut_model(jet, p.cockpit_dir):
 		models.push_front(
 			(

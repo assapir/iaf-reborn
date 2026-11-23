@@ -1,5 +1,10 @@
 # Running on Windows
 
+To play without building, download the Windows zip of the
+[nightly pre-release](https://github.com/assapir/iaf-reborn/releases/tag/nightly), unpack it and start
+`Modern IAF.exe` or `IAF Reborn.exe` ([release.md](release.md)). It is unsigned: on SmartScreen's "Windows protected
+your PC", choose More info, then Run anyway. This page is about running from the source checkout.
+
 The code builds and runs on Windows 10 / 11 (x64), with the same Rust tools and setup steps as on Linux. The scripts
 are PowerShell; no bash is needed. Checked on Windows 11 with Intel Iris Xe graphics (Vulkan).
 

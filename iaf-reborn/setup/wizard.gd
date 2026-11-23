@@ -77,6 +77,8 @@ const FRAME_TEXT := {
 	"hide_log": "Hide the log",
 	"state_checking": "checking…",
 	"credits": "Attributions",
+	"data_folder": "Data folder: %s",
+	"change": "Change…",
 }
 
 ## Tests: only these steps (and what they wait for) run.
@@ -125,12 +127,13 @@ func _ready() -> void:
 	_start_wizard(PAGES, Vector2i(1200, 820))
 	get_window().title = TITLE
 	# Our own icon (icon.svg), not the CD's: the wizard runs before the CD is read.
-	var icon := Image.load_from_file(ProjectSettings.globalize_path("res://setup/icon.png"))
+	var icon := Image.load_from_file(Settings.disk_path("res://setup/icon.png"))
 	if icon != null:
 		DisplayServer.set_icon(icon)
 	_build()
 	_prefill()
 	show_page(0)
+	_install_unattended()
 
 
 func s(key: String) -> String:
@@ -592,6 +595,7 @@ func _page_welcome() -> Control:
 	attr_btn.text = "Attributions…"
 	attr_btn.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	box.add_child(attr_btn)
+	_data_folder_row(box)
 	var holder := MarginContainer.new()
 	# The bullets are shared/credits.json "attributions" (both games' credits, docs/credits.md).
 	var bullets := PackedStringArray(Settings.load_json("res://shared/credits.json").get("attributions", []))
@@ -824,9 +828,13 @@ func _page_extras() -> Control:
 		"Pilot guides (pictures and PDFs)",
 		"Takes a while; game windows open briefly.",
 		(
-			""
-			if tools.get("python3", false) and tools.get("firefox", false)
-			else "Needs python3 and Firefox (see Requirements)."
+			"Made from the source checkout (tools/guide_shots.sh): not in a release."
+			if Settings.bundled()
+			else (
+				""
+				if tools.get("python3", false) and tools.get("firefox", false)
+				else "Needs python3 and Firefox (see Requirements)."
+			)
 		)
 	)
 	for c in [mapi_check, scenery_check, sentinel_check, refresh_check, guides_check]:
@@ -1285,5 +1293,6 @@ func _finished(p: Dictionary) -> void:
 
 ## Starts the game in a new process and closes the wizard.
 func start_game() -> void:
-	OS.create_process(OS.get_executable_path(), ["--path", ProjectSettings.globalize_path("res://")])
+	var args := [] if Settings.bundled() else ["--path", ProjectSettings.globalize_path("res://")]
+	OS.create_process(OS.get_executable_path(), args)
 	get_tree().quit()

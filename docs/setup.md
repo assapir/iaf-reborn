@@ -2,7 +2,10 @@
 
 Setup turns your own copy of Jane's IAF into everything the game reads under `assets/`. Three front ends run it:
 
-- `./setup`: the setup wizard, a window that asks for the inputs and shows each step ([below](#the-wizard)).
+- `./setup`: the setup wizard, a window that asks for the inputs and shows each step ([below](#the-wizard)). A
+  release bundle opens the same wizard from the game: on its first start, from the CD launcher's INSTALL, and with
+  `--setup` (its `setup` / `Setup.cmd`); its data goes to the per-user data folder, which the wizard's first page shows
+  and can change ([release.md](release.md) §2).
 - `tools/setup-cli.sh [--patch P] [--hebrew-iso ISO] [--imagery …] [--scenery[=buildings|trees]] ISO [Brief.zip Menu.zip]`:
   the scripted way, a wrapper over `iaf-setup` below (every option of it works). `--patch` also reads the `IAF_PATCH`
   environment variable, `--hebrew-iso` `IAF_HEBREW_ISO`. Without the ISO the last run's inputs (`assets/setup.json`)

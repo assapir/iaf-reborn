@@ -101,7 +101,7 @@ func card_image() -> Image:
 		r = spec.from[2]
 	# The panel art from its file (the cockpit's texture may hold no image: headless, mipmaps).
 	var file := String(Settings.load_json(folder.path_join("cockpit.json")).get("PANEL", {}).get("FileName", ""))
-	var src := Image.load_from_file(folder.path_join(file.get_basename().to_lower() + ".png"))
+	var src := Image.load_from_file(Settings.readable(folder.path_join(file.get_basename().to_lower() + ".png")))
 	var n := int(round(r * a)) * 2
 	var o := Vector2i((centre * a).round()) - Vector2i(n / 2, n / 2)
 	var img := src.get_region(Rect2i(o, Vector2i(n, n)))

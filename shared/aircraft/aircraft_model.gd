@@ -319,7 +319,7 @@ const EXTRA_DIR := "res://shared/extra/planes"
 ## label, …}.
 static func index() -> Dictionary:
 	var idx: Dictionary = Settings.load_json(Settings.converted(Settings.planes_folder().path_join("aircraft.json")))
-	for plane in DirAccess.get_directories_at(EXTRA_DIR):
+	for plane in DirAccess.get_directories_at(Settings.readable(EXTRA_DIR)):
 		var d: Dictionary = load_descriptor(plane)
 		if not d.is_empty():
 			idx[plane] = {
@@ -389,7 +389,7 @@ static func _borrowed_model(src: Dictionary) -> String:
 
 ## The file `rel` of plane folder `plane`: an extra plane's in the repo (EXTRA_DIR), else the converted original's.
 static func plane_file(plane: String, rel: String) -> String:
-	if FileAccess.file_exists(EXTRA_DIR.path_join(plane).path_join("aircraft.json")):
+	if FileAccess.file_exists(Settings.readable(EXTRA_DIR.path_join(plane).path_join("aircraft.json"))):
 		return EXTRA_DIR.path_join(plane).path_join(rel)
 	return Settings.converted(Settings.planes_folder().path_join(plane).path_join(rel))
 

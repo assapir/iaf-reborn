@@ -10,7 +10,7 @@ Setup downloads all its data once, under open licences. The sources and their li
 
 === The programs <requirements-programs>
 
-#idx("GDAL")#idx("curl")#idx("Godot")#idx("Rust")The game is built from its source, so the computer needs four programs. The first step checks the first two when it starts and says which one is missing; install it with your system's package manager. The #term("Setup wizard")'s first page checks the other two under #stp("needs"), shows each as #stp("found") or #stp("missing"), and names the command that installs a missing one.
+#idx("GDAL")#idx("curl")#idx("Godot")#idx("Rust")The downloaded game (@setup-download) needs GDAL and curl only. The game built from its source needs four programs. The first step checks the first two when it starts and says which one is missing; install it with your system's package manager. The #term("Setup wizard")'s first page checks the other two under #stp("needs"), shows each as #stp("found") or #stp("missing"), and names the command that installs a missing one.
 
 #grid-table(
   (auto, 1fr, 1.4fr),

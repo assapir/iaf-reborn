@@ -359,6 +359,11 @@ detail and the mission's models are parsed. What runs where:
 | the mission's models (every placed unit's model and its LOD copies, the AI's jets; with Models Detailed the detailed F-16D and stores) | worker threads parse the files, make their mipmapped textures, set their materials and, for a detailed model, its LODs and meshes, from the mission screens on (`TerrainPreload.mission_models`, `Gltf.parse_ahead`); the main thread takes them for ≤ 12 ms a frame (no GPU readback) | ≈ 1.5 s of worker time (the F-16D ≈ 0.4 s), done before Fly after a few seconds on the TSD; headless (the dummy renderer, whose texture store is not thread-safe) parses on the main thread instead (`Gltf.ahead`, 2026-11-12) |
 | the spawn of the mission's units and the AI's jets | the main thread, the first flying frame (one parse per jet type, `Gltf.model`) | ≈ 0.25 s (mission 224) |
 
+A release bundle's game has no encoder behind `Image.compress` (Godot's export templates leave it out): there every
+BC1 compression at load goes through `Img.compress_s3tc` to `IafImage.bc1`, texpresso's range fit on the CPU (the
+encoder of setup's `.dds`), on the main thread when the decode worker hands the image over; an image with alpha stays
+uncompressed ([release.md](release.md) §2).
+
 Three things made the start slow, measured 2026-10-22:
 
 - **The GPU encoder and the loading screen's frame rate.** In a window `Image.compress` (BC1) ran on the GPU (Godot's

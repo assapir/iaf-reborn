@@ -148,7 +148,7 @@ static func _marks(spec: Dictionary, full: String) -> Array:
 static func _art(path: String, mirrored: bool) -> ImageTexture:
 	var key := "%s %s" % [path, "R" if mirrored else "L"]
 	if not _arts.has(key):
-		var img := Image.load_from_file(path)
+		var img := Image.load_from_file(Settings.readable(path))
 		img.convert(Image.FORMAT_RGBA8)
 		img.fix_alpha_edges()  # its clear pixels take the paint's colour: no dark rim in the mipmaps
 		if mirrored:
@@ -161,7 +161,7 @@ static func _art(path: String, mirrored: bool) -> ImageTexture:
 static func _spec(model: String) -> Dictionary:
 	var key := model.get_basename()
 	if not _specs.has(key):
-		var path := key + ".tail.json"
+		var path := Settings.readable(key + ".tail.json")
 		var v = JSON.parse_string(FileAccess.get_file_as_string(path)) if FileAccess.file_exists(path) else null
 		var spec: Dictionary = v if v is Dictionary else {}
 		if not spec.is_empty():
@@ -182,7 +182,7 @@ static func _texture(number: String, pitch: float, atlas: String) -> ImageTextur
 	if _textures.has(key):
 		return _textures[key]
 	if not _atlases.has(atlas):
-		var a := Image.load_from_file(atlas)
+		var a := Image.load_from_file(Settings.readable(atlas))
 		a.convert(Image.FORMAT_RGBA8)
 		_atlases[atlas] = a
 	var at: Image = _atlases[atlas]

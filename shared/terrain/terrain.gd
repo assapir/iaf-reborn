@@ -34,6 +34,7 @@ var own_frame := false
 @export var max_jobs := 4
 ## "Near" for `ground_ready()`: nodes within this distance (m) must be at their full detail.
 @export var near_range := 8000.0
+const Img := preload("res://shared/util/img.gd")
 ## Geometry splits down to this level everywhere; finer only where finer imagery exists.
 const GEOM_MIN_LEVEL := 2
 ## Loaded textures unused for this long (ms) are dropped.
@@ -626,7 +627,7 @@ func _decode(key: Vector4i) -> Image:
 	if img != null:
 		if key.x == 0:
 			img.generate_mipmaps()
-			img.compress(Image.COMPRESS_S3TC)
+			Img.compress_s3tc(img)
 		else:
 			img.convert(Image.FORMAT_RG8)
 	return img
@@ -645,7 +646,7 @@ static func load_colour(jpg: String) -> Image:
 	var img := Image.load_from_file(jpg)
 	if img != null:
 		img.generate_mipmaps()
-		img.compress(Image.COMPRESS_S3TC)
+		Img.compress_s3tc(img)
 	return img
 
 
@@ -727,7 +728,7 @@ static func _bake(img: Image, key: Vector4i) -> Image:
 			w, h, false, Image.FORMAT_RGB8, IafBases.bake_colour(img.get_data(), w, h, key.w, key.y, key.z)
 		)
 		img.generate_mipmaps()
-		img.compress(Image.COMPRESS_S3TC)
+		Img.compress_s3tc(img)
 		return img
 	img.convert(Image.FORMAT_RG8)
 	return Image.create_from_data(
@@ -759,6 +760,8 @@ func _finish_jobs(block := false) -> bool:
 			img = Image.create(1, 1, false, Image.FORMAT_RG8 if key.x == 1 else Image.FORMAT_RGB8)
 		elif img.has_meta("bake"):
 			img = _bake(img, key)
+		elif img.has_meta("s3tc"):  # a release bundle: compressed here, on the main thread (Img.compress_s3tc)
+			Img.compress_s3tc(img)
 		if not _res.has(key):
 			_feed_heights(key, img)
 		_res[key] = {

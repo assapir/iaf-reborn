@@ -55,8 +55,8 @@ static func track(fe: Control, m: Dictionary) -> Dictionary:
 	var d = JSON.parse_string(
 		IafTraining.track(
 			flight,
-			ProjectSettings.globalize_path("res://data/missions/%s.json" % str(m.get("id", ""))),
-			ProjectSettings.globalize_path("res://data/airbases")
+			Settings.disk_path("res://data/missions/%s.json" % str(m.get("id", ""))),
+			Settings.disk_path("res://data/airbases")
 		)
 	)
 	if not d is Dictionary or d.has("error") or d.get("t", []).is_empty():

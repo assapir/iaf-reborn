@@ -132,7 +132,8 @@ const PILOT_THROTTLE_DEG := 40.0
 ## panel (the switch off, no model).
 static func model_for(type_code: int) -> String:
 	var path: String = Settings.airframe(type_code).get("cockpit_3d", "")
-	return path if Settings.cockpit_3d == "3d" and path != "" and FileAccess.file_exists(path) else ""
+	var ok := Settings.cockpit_3d == "3d" and path != "" and FileAccess.file_exists(Settings.readable(path))
+	return path if ok else ""
 
 
 ## True when the jet of type `type_code` with the cockpit `cockpit_dir` flies the F-16's 3D cockpit, hung in the
@@ -145,7 +146,7 @@ static func in_cut_model(type_code: int, cockpit_dir: String) -> bool:
 ## display) moved onto its screens. False when the model is missing.
 func setup(c: Control, cam: Camera3D, type_code: int) -> bool:
 	var path := model_for(type_code)
-	_dir = path.get_base_dir()
+	_dir = Settings.readable(path.get_base_dir())
 	cockpit = c
 	camera = cam
 	process_priority = 10  # after the flight scene has placed the camera (terrain_view.gd _apply_view)
@@ -160,7 +161,7 @@ func setup(c: Control, cam: Camera3D, type_code: int) -> bool:
 		tips.visible = false
 	# The pilot's body (<model>_pilot.glb, the F-16's: tools/f16d/pilot.py) in the model's frame, lit as the cockpit.
 	var body := path.get_basename() + "_pilot.glb"
-	if Settings.cockpit_pilot_body() and FileAccess.file_exists(body):
+	if Settings.cockpit_pilot_body() and FileAccess.file_exists(Settings.readable(body)):
 		var pm = Gltf.open(body)
 		if pm != null:
 			var pilot := Gltf.instance(pm)
@@ -240,7 +241,7 @@ func setup(c: Control, cam: Camera3D, type_code: int) -> bool:
 	_setup_instruments(n)
 	_setup_light(n)
 	var table := path.get_basename() + "_controls.json"
-	if Settings.cockpit_controls() and FileAccess.file_exists(table):
+	if Settings.cockpit_controls() and FileAccess.file_exists(Settings.readable(table)):
 		clickable = Controls.new()
 		add_child(clickable)
 		var rows: Dictionary = Settings.load_json(table)

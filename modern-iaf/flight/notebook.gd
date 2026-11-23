@@ -198,7 +198,7 @@ func arrow_rects() -> Array:
 
 func _set_fonts() -> void:
 	var heebo := FontFile.new()
-	heebo.load_dynamic_font(ProjectSettings.globalize_path(WizardTheme.FONT))
+	heebo.load_dynamic_font(Settings.disk_path(WizardTheme.FONT))
 	var regular: Font = WizardTheme._weight(heebo, 400)
 	var bold: Font = WizardTheme._weight(heebo, 700)
 	if not rtl:

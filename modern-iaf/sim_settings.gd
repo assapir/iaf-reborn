@@ -832,6 +832,8 @@ func display_font(style: String) -> Font:
 ## res://../modern-iaf when a test of the original's project loads this script (which globalize_path and DirAccess do
 ## not resolve: joined to the project's folder by hand).
 func _sim_file(rel: String) -> String:
+	if bundled():
+		return disk_path(_sim_res(rel))
 	return ProjectSettings.globalize_path("res://").path_join(_sim_res(rel).trim_prefix("res://")).simplify_path()
 
 

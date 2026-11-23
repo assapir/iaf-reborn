@@ -1,6 +1,7 @@
 # Runtime loading of the converted glTF models (objects, aircraft, weapons, the viewer).
 extends RefCounted
 
+const Img := preload("res://shared/util/img.gd")
 const ModelDetail := preload("res://shared/util/model_detail.gd")
 
 ## The renderer's OBJECT DETAIL level 1..3 (1 − ftol(−2·slider), FUN_004d8ce0 → 0x7d1924), set by the flight
@@ -22,6 +23,10 @@ static func open(path: String) -> Variant:
 		parsed = _parse(path)
 	if parsed.is_empty():
 		return null
+	for t in parsed[1].get_meta("s3tc", []):  # Img.compress_s3tc marked them on a worker thread
+		Img.compress_s3tc(t[1])
+		t[0].set_image(t[1])
+	parsed[1].remove_meta("s3tc")
 	if parsed[1].get_meta("level") != object_level:
 		_set_materials(parsed[1], path)  # parsed ahead at another OBJECT DETAIL level, or a texture left to read back
 	return parsed
@@ -47,18 +52,19 @@ static func _parse(path: String) -> Array:
 ## The file read: its base colour images decoded by _own_textures, the other textures (a detailed model's normal and
 ## ORM maps, embedded) as Godot's import makes them.
 static func _parse_file(path: String) -> Array:
-	if not FileAccess.file_exists(path):
+	var file := Settings.readable(path)  # `path` stays the name the model is known by (is_detailed, the dirs below)
+	if not FileAccess.file_exists(file):
 		return []
 	var doc := GLTFDocument.new()
 	var state := GLTFState.new()
 	if path.get_extension() != "glb":  # a .glb embeds its images
 		state.handle_binary_image_mode = GLTFState.HANDLE_BINARY_IMAGE_MODE_DISCARD_TEXTURES
-		if doc.append_from_file(path, state) != OK:
+		if doc.append_from_file(file, state) != OK:
 			return []
 	if state.json.is_empty() or state.json.get("images", []).any(func(im): return not im.has("uri")):
 		doc = GLTFDocument.new()
 		state = GLTFState.new()
-		if doc.append_from_file(path, state) != OK:
+		if doc.append_from_file(file, state) != OK:
 			return []
 	_own_textures(state, path.get_base_dir())
 	return [doc, state]
@@ -131,16 +137,20 @@ static func _own_textures(state: GLTFState, dir: String) -> void:
 					)
 					and RenderingServer.has_os_feature("s3tc")
 				):
-					img.compress(Image.COMPRESS_S3TC)  # the CPU encoder (rendering.md §1.5), ≈ 3 ms a 512² image
+					Img.compress_s3tc(img)  # the CPU encoder (rendering.md §1.5), ≈ 3 ms a 512² image
 				made[src] = ImageTexture.create_from_image(img)
 				made[src].set_meta("mipmapped", true)
+				if img.has_meta("s3tc"):  # a release bundle on a worker: compressed in open(), on the main thread
+					var later: Array = state.get_meta("s3tc", [])
+					later.append([made[src], img])
+					state.set_meta("s3tc", later)
 		bm.albedo_texture = made[src]
 
 
 ## A glTF image: its file in `dir`, or its buffer view (PNG, JPEG, KTX2); null when unreadable.
 static func _image(state: GLTFState, im: Dictionary, dir: String) -> Image:
 	if im.has("uri"):
-		return Image.load_from_file(dir.path_join(String(im.uri).uri_decode()))
+		return Image.load_from_file(Settings.readable(dir.path_join(String(im.uri).uri_decode())))
 	if not im.has("bufferView") or int(im.bufferView) >= state.get_buffer_views().size():
 		return null
 	var bytes: PackedByteArray = state.get_buffer_views()[int(im.bufferView)].load_buffer_view_data(state)
@@ -392,14 +402,14 @@ static func detailed(path: String) -> String:
 	var f := path.get_file()
 	# Ours: the model of the aircraft definition the Extras switches pick (variant_model), when it exists.
 	var own := variant_model(f)
-	if own != "" and FileAccess.file_exists(own):
+	if own != "" and FileAccess.file_exists(Settings.readable(own)):
 		return own
 	if String(_settings().get("models")) != "detailed":
 		return ""
 	var hd: String = DETAILED.get(f, STORES_DIR + STORES[f] + ".glb" if STORES.has(f) else "")
 	if hd != "" and not hd.begins_with("res://"):
 		hd = _settings().converted(hd)
-	return hd if hd != "" and FileAccess.file_exists(hd) else ""
+	return hd if hd != "" and FileAccess.file_exists(Settings.readable(hd)) else ""
 
 
 ## Every detailed store's file (parse_ahead before the flight: a loadout can carry any).

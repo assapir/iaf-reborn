@@ -72,6 +72,7 @@ func _ready() -> void:
 	_load_optional()
 	_build()
 	show_page(0)
+	_install_unattended()
 
 
 ## The logo (modern-iaf/branding/, tools/iaf-2026/logo.py): the horizontal lockup for a dark background, the mark
@@ -81,7 +82,7 @@ func _ready() -> void:
 static func logo(lang: String, h: float, name: String) -> TextureRect:
 	var t := TextureRect.new()
 	t.name = "Logo"
-	t.texture = Img.load_texture(ProjectSettings.globalize_path("res://branding/bar_%s_dark.png" % lang), true)
+	t.texture = Img.load_texture(Settings.disk_path("res://branding/bar_%s_dark.png" % lang), true)
 	t.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	t.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	t.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
@@ -261,6 +262,7 @@ func _page_welcome() -> Control:
 				credits_row, s("free_online") % _gb(minf(need + tiles + KEEP_FREE_GB - free, tiles)), "Note"
 			)
 			online.name = "Online"
+	_data_folder_row(v)
 	return v
 
 
@@ -367,6 +369,7 @@ func _page_done() -> Control:
 	menu_check.text = s(by_os("menu_linux", "menu_mac", "menu_windows"))
 	menu_check.button_pressed = Settings.menu_entry
 	menu_check.toggled.connect(set_menu_entry)
+	menu_check.visible = not Settings.bundled()  # a release bundle is its own app (docs/release.md)
 	v.add_child(menu_check)
 	menu_note = _text(v, "", "Note")
 	menu_note.name = "MenuNote"
@@ -402,7 +405,7 @@ func _on_page(id: String) -> void:
 		_fill_rows(IafSetup.sim_plan(survey))
 		_note("")
 		_preview_sim()
-	if id == "done" and Settings.menu_entry:
+	if id == "done" and Settings.menu_entry and not Settings.bundled():
 		await get_tree().process_frame  # the page first: the script takes a moment
 		add_to_menu(true)
 

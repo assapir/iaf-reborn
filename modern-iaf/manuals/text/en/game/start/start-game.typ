@@ -7,7 +7,7 @@
 + Select "Modern IAF".
   #then[The game's window opens on the #term("Hangar") (@main-menu). After an update the first start takes longer, because the game's program is built again.]
 
-The entries are there once the #term("setup wizard") has run and its last page's tick was on (@setup-menu). Before that, the first start is the wizard's own (@setup-start). The wizard's last page starts the game as well, with #stp("start_game").
+The downloaded game starts from its own folder or app instead (@setup-download). The entries are there once the #term("setup wizard") has run and its last page's tick was on (@setup-menu). Before that, the first start is the wizard's own (@setup-start). The wizard's last page starts the game as well, with #stp("start_game").
 
 === The first start <start-game-first>
 
@@ -45,7 +45,15 @@ The pilot, its picture and its log are described in @pilots.
   [`logs/`], [The game's logs; the newest 30 are kept (@crash-page).],
 )
 
-The data that setup builds, and its downloads, are in the folder `assets` inside the game's folder.
+The data that setup builds, and its downloads, are in the folder `assets` inside the game's folder. The downloaded game keeps them in a folder of its own, which its updates keep, unless the wizard's #stp("change") picked another:
+
+#grid-table(
+  (auto, 1fr),
+  ([System], [Data folder of the downloaded game]),
+  [Linux], [`~/.local/share/IAF/assets/`],
+  [macOS], [`~/Library/Application Support/IAF/assets/`],
+  [Windows], [`%LOCALAPPDATA%\IAF\assets\`],
+)
 
 === Quitting <start-game-quit>
 

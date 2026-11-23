@@ -15,6 +15,29 @@ static func soft_dot() -> Texture2D:
 	return t
 
 
+## `img` compressed to S3TC in place, as Image.compress(Image.COMPRESS_S3TC). An exported game (a release bundle,
+## docs/release.md) has no encoder behind Image.compress: there an opaque image becomes BC1 by IafImage.bc1 (the
+## texpresso encoder setup's .dds use), and an image with alpha stays uncompressed. The extension is callable from the
+## main thread only, so on a worker thread the image is only marked (meta "s3tc") and its caller compresses it again
+## on the main thread (terrain.gd _finish_jobs, gltf.gd open).
+static func compress_s3tc(img: Image) -> void:
+	if not OS.has_feature("template"):
+		img.compress(Image.COMPRESS_S3TC)
+		return
+	if img.is_compressed() or img.detect_alpha() != Image.ALPHA_NONE:
+		return
+	if OS.get_thread_caller_id() != OS.get_main_thread_id():
+		img.set_meta("s3tc", true)
+		return
+	img.remove_meta("s3tc")
+	var mips := img.has_mipmaps()
+	img.convert(Image.FORMAT_RGBA8)
+	var w := img.get_width()
+	var h := img.get_height()
+	var bc1: PackedByteArray = ClassDB.class_call_static("IafImage", "bc1", img.get_data(), w, h, mips)
+	img.set_data(w, h, mips, Image.FORMAT_DXT1, bc1)
+
+
 ## An image file as a texture (with mipmaps when asked); null when the file is missing.
 static func load_texture(path: String, mipmaps := false) -> ImageTexture:
 	var img := _take(path, mipmaps)
@@ -66,6 +89,7 @@ static func _prefetch_task(path: String, mipmaps: bool, key: String) -> void:
 
 
 static func _decode(path: String, mipmaps: bool) -> Image:
+	path = Settings.readable(path)
 	var img := Image.load_from_file(path) if FileAccess.file_exists(path) else null
 	if img != null and mipmaps:
 		img.generate_mipmaps()

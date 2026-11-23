@@ -196,7 +196,7 @@ func show_drag(id: String, at: Vector2) -> void:
 ## The store's picture (data/stores/<id>.png), null without one.
 func store_picture(id: String) -> Texture2D:
 	if not _pictures.has(id):
-		_pictures[id] = Img.load_texture(ProjectSettings.globalize_path("res://data/stores/%s.png" % id))
+		_pictures[id] = Img.load_texture(Settings.disk_path("res://data/stores/%s.png" % id))
 	return _pictures[id]
 
 

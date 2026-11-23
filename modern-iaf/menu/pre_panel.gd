@@ -35,7 +35,7 @@ func has_rows() -> bool:
 
 
 func _weapons() -> String:
-	return ProjectSettings.globalize_path("res://data/db/weapons")
+	return Settings.disk_path("res://data/db/weapons")
 
 
 ## The loadout the mission flies as JSON text: the pilot's for the jet, else the mission's own.

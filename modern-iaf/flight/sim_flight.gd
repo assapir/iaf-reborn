@@ -222,7 +222,7 @@ func _ready() -> void:
 		checklist = readable.get("training", {}).get("checklist", [])
 	if not rules.is_empty():
 		trainer = ClassDB.instantiate("IafTraining")
-		var err: String = trainer.open(_readable(), ProjectSettings.globalize_path("res://data/airbases"))
+		var err: String = trainer.open(_readable(), Settings.disk_path("res://data/airbases"))
 		if err != "":
 			push_warning("training: %s" % err)
 			rules = {}
@@ -703,7 +703,7 @@ func _exit_tree() -> void:
 
 
 func _readable() -> String:
-	return ProjectSettings.globalize_path("res://data/missions/%s.json" % mission_name)
+	return Settings.disk_path("res://data/missions/%s.json" % mission_name)
 
 
 ## The recording so far against the mission's rules (IafTraining, the readable mission and the airbases of
@@ -711,7 +711,7 @@ func _readable() -> String:
 func score() -> Dictionary:
 	host._log.flush()
 	var flight: String = ProjectSettings.globalize_path(host._log.get_path_absolute())
-	var d = JSON.parse_string(trainer.score(flight, _readable(), ProjectSettings.globalize_path("res://data/airbases")))
+	var d = JSON.parse_string(trainer.score(flight, _readable(), Settings.disk_path("res://data/airbases")))
 	return d if d is Dictionary else {"error": "no debrief"}
 
 
@@ -1029,7 +1029,7 @@ func _show_banner(title: String, reason: String) -> void:
 	if _banner != null:
 		_banner.queue_free()
 	var font := FontFile.new()
-	font.load_dynamic_font(ProjectSettings.globalize_path(WizardTheme.FONT))
+	font.load_dynamic_font(Settings.disk_path(WizardTheme.FONT))
 	_banner = PanelContainer.new()
 	_banner.name = "Banner"
 	_banner.add_theme_stylebox_override("panel", Look.box(Look.NAVY, Look.ACCENT, 3, 5, Vector2(48, 24)))

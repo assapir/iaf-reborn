@@ -11,6 +11,8 @@
 	"show_log": "Show the log",
 	"hide_log": "Hide the log",
 	"credits": "Attributions",
+	"data_folder": "Data folder: %s",
+	"change": "Change…",
 	"close": "Close",
 	"page_welcome": "Modern IAF setup",
 	"page_imagery": "Imagery",

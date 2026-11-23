@@ -35,6 +35,9 @@ STBY / STT / BORE / LRS / TWS / ACM / GMT / MAP are the radar modes (radar.md).
 - **Game version: v1.1 logic**, with v1.1 data when setup is given the patch; v1.0 data still plays. Doc addresses
   are v1.1 (v1.1.md maps them to v1.0).
 - Everything comes from the player's own ISO; the repo (github.com/assapir/iaf-reborn, GPL-3.0) holds no game data.
+- **Download (2026-11-23, [release.md](release.md)):** the nightly pre-release has the game for Linux, macOS (Apple
+  silicon, unsigned) and Windows, version `1.1.0-nightly.<date>+<hash>`; the game opens its setup wizard and keeps
+  its data in a per-user folder. Open: Intel Macs are not built for; the pilot guides are built from the checkout only.
 
 ## Priorities (user decision: 1. player experience, 2. enemies, 3. missions and general fixes)
 1. **Player experience:** built (Done table). Open: the stores that look detached (Small bugs).

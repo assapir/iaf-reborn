@@ -404,7 +404,7 @@ static func _text_card(fe: Control, m: Dictionary) -> Control:
 		pics.add_theme_constant_override("v_separation", 12)
 		for sw in how[i].get("switches", []):
 			var crop: Texture2D = fe._texture(
-				ProjectSettings.globalize_path(fe.get_script().SWITCHES.path_join(unit).path_join(str(sw) + ".webp"))
+				Settings.disk_path(fe.get_script().SWITCHES.path_join(unit).path_join(str(sw) + ".webp"))
 			)
 			if crop == null:
 				continue
@@ -469,7 +469,7 @@ static func _rich(fe: Control, parent: Control, bb: String) -> RichTextLabel:
 ## picture's tooltip.
 static func _where(m: Dictionary, step: String, lang: String) -> String:
 	var unit := str(m.get("start", {}).get("unit", ""))
-	for f in DirAccess.get_files_at("res://data/checklists"):
+	for f in DirAccess.get_files_at(Settings.readable("res://data/checklists")):
 		var card := Settings.load_json("res://data/checklists/" + f)
 		if not unit in card.get("jets", []):
 			continue

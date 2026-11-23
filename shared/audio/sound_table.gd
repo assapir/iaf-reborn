@@ -48,9 +48,10 @@ func _load() -> void:
 			if f.to_lower().ends_with(".ogg") and not _files.has(wav):
 				_files[wav] = dir.path_join(f)
 	# The tower's runway numbers the install lacks (our TTS clips, docs/radio.md §1); the install's own win.
-	for f in DirAccess.get_files_at(OUR_NUMBERS):
+	var ours := Settings.readable(OUR_NUMBERS)
+	for f in DirAccess.get_files_at(ours):
 		if f.ends_with(".wav") and not _files.has(f):
-			_files[f] = OUR_NUMBERS.path_join(f)
+			_files[f] = ours.path_join(f)
 	for row in _rows_in(_files.get("soundprop.trx", "")):
 		var key := "%s/%s" % [row.code, row.sub1]
 		if not rows.has(key):

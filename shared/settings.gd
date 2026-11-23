@@ -533,7 +533,9 @@ func _log_startup() -> void:
 	)
 	var log_path: String = ProjectSettings.get_setting("debug/file_logging/log_path", "user://logs/godot.log")
 	# The game's own log (a --log-file run writes elsewhere; Godot does not show scripts that argument).
-	print("game log: %s | assets: %s" % [ProjectSettings.globalize_path(log_path), assets_dir()])
+	print(
+		"game log: %s | assets: %s | version %s" % [ProjectSettings.globalize_path(log_path), assets_dir(), version()]
+	)
 	print("settings changed from the defaults: %s" % [changed_settings()])
 
 
@@ -574,9 +576,10 @@ var _applied_vsync = null  # null: not applied yet
 
 ## The boot splash (project.godot: the English back0) follows the language: Godot reads override.cfg
 ## next to project.godot before drawing it, so in Hebrew it points at the Hebrew CD's back0 (setup
-## --hebrew-iso; the Hebrew v1.1 patch itself put the English one back, docs/packs.md).
+## --hebrew-iso; the Hebrew v1.1 patch itself put the English one back, docs/packs.md). A release bundle has no
+## splash from the CDs (project.godot's .template line) and a folder it does not write.
 func _update_splash() -> void:
-	if isolated():
+	if isolated() or bundled():
 		return
 	var he_splash := "res://../assets/converted/menu_he/img/back0.png"
 	var he := language == "he" and FileAccess.file_exists(ProjectSettings.globalize_path(he_splash))
@@ -609,7 +612,7 @@ func _set_override(section: String, key: String, value: Variant) -> void:
 ## file kept, and restarts once (Godot read the file before the window opened). True: restarting.
 func _drop_hidpi_override() -> bool:
 	var args := OS.get_cmdline_args()
-	if DisplayServer.get_name() == "headless" or "-s" in args or "--script" in args:
+	if DisplayServer.get_name() == "headless" or "-s" in args or "--script" in args or bundled():
 		return false
 	if not drop_hidpi_line(ProjectSettings.globalize_path("res://override.cfg")):
 		return false
@@ -646,9 +649,26 @@ static func drop_hidpi_line(path: String) -> bool:
 	return true
 
 
-## The command that starts the setup wizard: ./setup, on Windows .\setup.ps1 (tools/windows/launch.ps1).
+## The command that starts the setup wizard: ./setup, on Windows .\setup.ps1 (tools/windows/launch.ps1); in a
+## release bundle the game started with --setup (setup_asked).
 static func setup_command() -> String:
+	if bundled():
+		match OS.get_name():
+			"macOS":
+				return (
+					'open -a "%s" --args --setup'
+					% OS.get_executable_path().get_base_dir().get_base_dir().get_base_dir()
+				)
+			"Windows":
+				return "Setup.cmd"
+			_:
+				return "./setup"
 	return ".\\setup.ps1" if OS.get_name() == "Windows" else "./setup"
+
+
+## True when the game was started with --setup: its setup wizard opens (a release bundle's way to run setup again).
+static func setup_asked() -> bool:
+	return "--setup" in OS.get_cmdline_args() or "--setup" in OS.get_cmdline_user_args()
 
 
 ## Display settings that act at once (VSync, full screen).
@@ -1034,11 +1054,84 @@ func display_font(style: String) -> Font:
 	return f
 
 
-## The assets folder: <repo>/assets, or $IAF_ASSETS_DIR (tests: the setup wizard on a scratch folder).
+## The assets folder: $IAF_ASSETS_DIR (tests: the setup wizard on a scratch folder); in the checkout <repo>/assets;
+## in a release bundle the per-user data folder (data_folder()).
 func assets_dir() -> String:
 	if OS.get_environment("IAF_ASSETS_DIR") != "":
 		return OS.get_environment("IAF_ASSETS_DIR")
-	return ProjectSettings.globalize_path("res://").path_join("../assets").simplify_path()
+	return data_folder() if bundled() else app_root().path_join("assets")
+
+
+## True in a release bundle (an exported game, docs/release.md); false when run from the repo checkout.
+static func bundled() -> bool:
+	return OS.has_feature("template")
+
+
+## The repo checkout's root; in a release bundle the folder that holds the same layout for the files read by path
+## (setup, the Rust side: modern-iaf/data, shared/extra…): the game's own folder, Contents/Resources in the macOS app.
+static func app_root() -> String:
+	if not bundled():
+		return ProjectSettings.globalize_path("res://").path_join("..").simplify_path()
+	var exe := OS.get_executable_path().get_base_dir()
+	return exe.path_join("../Resources").simplify_path() if OS.get_name() == "macOS" else exe
+
+
+## The path on disk of `path` (res://, user:// or absolute), for the readers that open it by path (Rust, fonts,
+## images): globalize_path, except a project file (res://) in a release bundle: the project's files are in the .pck,
+## which globalize_path does not reach, so their copy under app_root() (docs/release.md).
+static func disk_path(path: String) -> String:
+	if not bundled() or not path.begins_with("res://"):
+		return ProjectSettings.globalize_path(path)
+	if path.begins_with("res://shared/"):  # the shared/ link: beside the project, as in the checkout
+		return app_root().path_join(path.trim_prefix("res://"))
+	return app_root().path_join(project_folder()).path_join(path.trim_prefix("res://"))
+
+
+## The project's folders that a release bundle's .pck leaves out (each holds a .gdignore, so Godot never imports
+## them): the bundle has their copy on disk (tools/release/bundle.sh), which readable() reaches.
+const LOOSE := ["res://data/", "res://branding/", "res://manuals/", "res://shared/extra/"]
+
+
+## `path` as FileAccess, DirAccess, Image and the glTF reader open it: in a release bundle a file of the LOOSE folders
+## is its copy on disk (disk_path); anything else is `path` itself. Every reader of those folders opens through here.
+static func readable(path: String) -> String:
+	if bundled():
+		for loose in LOOSE:
+			if path.begins_with(loose):
+				return disk_path(path)
+	return path
+
+
+## The project's folder in the checkout: modern-iaf or iaf-reborn (static: the image decoders' worker threads ask).
+static func project_folder() -> String:
+	return "modern-iaf" if ProjectSettings.get_setting("application/config/name") == "Modern IAF" else "iaf-reborn"
+
+
+## The per-user folder of a release bundle's data: ~/.local/share/IAF (or $XDG_DATA_HOME/IAF), ~/Library/Application
+## Support/IAF, %LOCALAPPDATA%\IAF. It holds the default data folder (assets) and the player's choice (data-folder.txt).
+static func data_home() -> String:
+	var local := OS.get_environment("LOCALAPPDATA") if OS.get_name() == "Windows" else ""
+	return (local if local != "" else OS.get_data_dir()).path_join("IAF")
+
+
+## A release bundle's data folder, shared by both games (as assets/ in the checkout): the one the player chose in
+## setup (set_data_folder), else data_home()/assets. An update replaces the game's folder and keeps this one.
+static func data_folder() -> String:
+	var chosen := FileAccess.get_file_as_string(data_home().path_join("data-folder.txt")).strip_edges()
+	return chosen if chosen != "" else data_home().path_join("assets")
+
+
+## Makes `path` the data folder (setup's Change button); false when it could not be saved.
+static func set_data_folder(path: String) -> bool:
+	DirAccess.make_dir_recursive_absolute(data_home())
+	var f := FileAccess.open(data_home().path_join("data-folder.txt"), FileAccess.WRITE)
+	return f != null and f.store_line(path)
+
+
+## The version the front ends show (application/config/version): the tag in a release (v0.3.1), nightly-<date>-<hash>
+## in a nightly (tools/release/bundle.sh writes it), "dev" in the checkout.
+static func version() -> String:
+	return str(ProjectSettings.get_setting("application/config/version", "dev"))
 
 
 ## The path of `rel` under assets/converted: every shared reader of converted data asks here, so Modern IAF's answer
@@ -1410,6 +1503,7 @@ func msgs() -> PackedStringArray:
 
 ## A JSON file's top-level object; {} when the file is missing or holds something else.
 func load_json(path: String) -> Dictionary:
+	path = readable(path)
 	if not FileAccess.file_exists(path):
 		return {}
 	var d = JSON.parse_string(FileAccess.get_file_as_string(path))

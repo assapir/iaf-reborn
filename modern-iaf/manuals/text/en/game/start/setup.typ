@@ -8,9 +8,21 @@
 - Free the disk space of @requirements-disk.
 - Connect the computer to the internet.
 
+=== Downloading the game <setup-download>
+
+#idx("Download")#idx("Nightly")The game is also offered ready to run, built each day the source changed, on the "nightly" release of the game's GitHub page. Take the file for your system: the `.tar.gz` for Linux, the `.dmg` for macOS (Apple silicon), the `.zip` for Windows.
+
++ Unpack it: on Linux and Windows into a folder of your choice; on macOS open the `.dmg` and drag the app into Applications.
++ Start the game: `Modern IAF.x86_64` on Linux, the app on macOS, `Modern IAF.exe` on Windows.
+  #then[The game has no data yet, so it opens the setup wizard on its first page.]
+
+The game is not signed. On macOS, the first start is refused: right-click the app in Applications, select Open, then Open again. On Windows, when the screen "Windows protected your PC" appears, select More info, then Run anyway.
+
+The downloaded game keeps its data in a folder of your user account (@start-game-files); the wizard's first page shows it, and #stp("change") picks another one. To run setup again later, start `setup` in the game's folder on Linux, `Setup.cmd` on Windows, or on macOS run `open -a "Modern IAF" --args --setup` in Terminal. The rest of this section is the same for both.
+
 === Starting the wizard <setup-start>
 
-The first time, the wizard has no menu entry yet, and one step starts it: open a terminal in the game's folder and run `./modern-iaf-setup` (on Windows `.\modern-iaf-setup.ps1`). The wizard's window opens on its first page, #stp("page_welcome"). This is the only step of the game that is taken in a terminal.
+From the download, the game starts the wizard itself (@setup-download). From the source, the first time, the wizard has no menu entry yet, and one step starts it: open a terminal in the game's folder and run `./modern-iaf-setup` (on Windows `.\modern-iaf-setup.ps1`). The wizard's window opens on its first page, #stp("page_welcome"). This is the only step of the game that is taken in a terminal.
 
 The wizard's last page adds the game's entries to the system's menu (@setup-menu). From then on, to run setup again, select "Modern IAF — Setup" in the applications menu, in Launchpad or the Applications folder, or in the Start menu.
 
@@ -23,10 +35,10 @@ The wizard has four pages. #stp("next") goes to the next page and #stp("back") t
 #grid-table(
   (auto, 1fr),
   ([Page], [What it holds]),
-  [#stp("page_welcome")], [#stp("language"): English or Hebrew, for the wizard and the game. What setup downloads and builds. #stp("download"), #stp("disk") and #stp("time"). #stp("needs"): GDAL and curl, each #stp("found") or #stp("missing"), and the free disk space. The #stp("credits") button opens the list of every source with its licence; #stp("close") or #keycap("Esc") closes it. #stp("next") waits until GDAL, curl and the disk space are there.],
+  [#stp("page_welcome")], [#stp("language"): English or Hebrew, for the wizard and the game. What setup downloads and builds. #stp("download"), #stp("disk") and #stp("time"). #stp("needs"): GDAL and curl, each #stp("found") or #stp("missing"), and the free disk space. The #stp("credits") button opens the list of every source with its licence; #stp("close") or #keycap("Esc") closes it. #stp("next") waits until GDAL, curl and the disk space are there. In the downloaded game, the data folder and #stp("change").],
   [#stp("page_imagery")], [The choice of the ground's picture (@setup-imagery).],
   [#stp("page_install")], [One row for each #term("setup step"), with its progress bar and its state (@setup-steps). The #stp("install") button starts the run.],
-  [#stp("page_done")], [Whether the game is set up. The tick that adds the game to the system's menu (@setup-menu). #stp("start_game") opens the game's first screen. #stp("close") ends the wizard.],
+  [#stp("page_done")], [Whether the game is set up. The tick that adds the game to the system's menu (@setup-menu); the downloaded game has none, as it is an app of its own. #stp("start_game") opens the game's first screen. #stp("close") ends the wizard.],
 )
 
 === The imagery choice <setup-imagery>

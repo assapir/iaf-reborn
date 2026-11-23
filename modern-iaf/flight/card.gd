@@ -39,7 +39,7 @@ var _c3d: Node
 func _init(f: Node, plane: String) -> void:
 	flight = f
 	name = "Card"
-	for file in DirAccess.get_files_at(DIR):
+	for file in DirAccess.get_files_at(Settings.readable(DIR)):
 		var d := Settings.load_json(DIR.path_join(file))
 		if plane in d.get("jets", []):
 			data = d

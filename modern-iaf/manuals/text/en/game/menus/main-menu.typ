@@ -17,7 +17,7 @@
   ("Turntable", [The jet], [The picked jet, with the stores of its #term("loadout"). You can look at it from any side (@main-menu-jet).]),
   ("JetCard", [The card], [The picked jet's #scr("squadron_l"), #scr("base_l") and #scr("tail_number"); then #scr("training"): how many of the jet's lessons are passed, and the last flight on the jet with its result.]),
   ("Fly", [#scr("fly")], [Opens the #scr("missions") screen for the picked jet: Training and the other sections (@mission-list). It is picked when the Hangar opens, so #keycap("Enter") goes straight on.]),
-  ("credits", [#scr("credits")], [Opens the list of the game's sources and their licences. The arrow keys scroll it. The same list is in @attributions.]),
+  ("credits", [#scr("credits")], [Opens the list of the game's sources and their licences, with the game's version under the title. The arrow keys scroll it. The same list is in @attributions.]),
   ("manuals", [#scr("manuals")], [Opens the list of the four manuals (@manuals-screen).]),
   ("quit", [#scr("quit")], [Asks #scr("quit_q"), then closes the game (@start-game-quit).]),
 )

@@ -61,9 +61,9 @@ static func arm(m: Dictionary, readable: Dictionary) -> void:
 	Settings.arm_loadouts = {}
 	Settings.gps_targets = {}
 	var unit := str(readable.get("start", {}).get("unit", ""))
-	var unit_file := ProjectSettings.globalize_path("res://data/db/units/%s.json" % unit)
-	var weapons := ProjectSettings.globalize_path("res://data/db/weapons")
-	var mission := ProjectSettings.globalize_path("res://data/missions/%s.json" % str(readable.get("id", "")))
+	var unit_file := Settings.disk_path("res://data/db/units/%s.json" % unit)
+	var weapons := Settings.disk_path("res://data/db/weapons")
+	var mission := Settings.disk_path("res://data/missions/%s.json" % str(readable.get("id", "")))
 	var lo := IafPilotLog.loadout(Settings.records_db(), Settings.pilot(), unit)
 	if lo != "":
 		var a = JSON.parse_string(IafBriefing.arming(unit_file, weapons, lo, mission))

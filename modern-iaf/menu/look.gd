@@ -83,7 +83,7 @@ const TYPES := [
 
 static func make() -> Theme:
 	var heebo := FontFile.new()
-	heebo.load_dynamic_font(ProjectSettings.globalize_path(WizardTheme.FONT))
+	heebo.load_dynamic_font(Settings.disk_path(WizardTheme.FONT))
 	var t := Theme.new()
 	t.default_font = WizardTheme._weight(heebo, 400)
 	t.default_font_size = R
