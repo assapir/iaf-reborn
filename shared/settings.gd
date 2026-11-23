@@ -459,6 +459,7 @@ func isolated() -> bool:
 
 func _init() -> void:
 	_install_log()
+	_use_bundled_tools()
 	for id in BETTER:
 		better[id] = false
 	for id in BETTER_COCKPIT:
@@ -1065,6 +1066,27 @@ func assets_dir() -> String:
 ## True in a release bundle (an exported game, docs/release.md); false when run from the repo checkout.
 static func bundled() -> bool:
 	return OS.has_feature("template")
+
+
+## A release bundle's setup tools (GDAL, curl: tools/release/tools_env.sh) for the programs setup starts: their bin/
+## first on the PATH, their data folders and CA bundle in the environment. Before any setup thread starts.
+static func _use_bundled_tools() -> void:
+	var tools := app_root().path_join("tools")
+	if not bundled() or not DirAccess.dir_exists_absolute(tools.path_join("bin")):
+		return
+	if OS.get_name() == "macOS":
+		# A quarantined download (approved by right-click, Open) keeps the flag on the programs inside, which
+		# Gatekeeper then stops when setup starts them: cleared on the app's own tools folder.
+		OS.execute("xattr", ["-dr", "com.apple.quarantine", tools])
+	var sep := ";" if OS.get_name() == "Windows" else ":"
+	OS.set_environment("PATH", tools.path_join("bin") + sep + OS.get_environment("PATH"))
+	OS.set_environment("GDAL_DATA", tools.path_join("share/gdal"))
+	OS.set_environment("PROJ_DATA", tools.path_join("share/proj"))
+	OS.set_environment("PROJ_LIB", tools.path_join("share/proj"))
+	var cert := tools.path_join("ssl/cacert.pem")
+	if FileAccess.file_exists(cert):
+		OS.set_environment("CURL_CA_BUNDLE", cert)
+		OS.set_environment("SSL_CERT_FILE", cert)
 
 
 ## The repo checkout's root; in a release bundle the folder that holds the same layout for the files read by path

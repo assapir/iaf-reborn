@@ -28,8 +28,8 @@ update.
 |---|---|---|---|---|
 | Rust (cargo) | builds the extension the wizard runs in | with your distribution's package manager, or rustup.rs | `brew install rustup`, then `$(brew --prefix rustup)/bin/rustup default stable` | `winget install Rustlang.Rustup` |
 | Godot 4.7 | runs the wizard | with your distribution's package manager, or godotengine.org | `brew install godot` | `winget install GodotEngine.GodotEngine` |
-| GDAL | reads and reprojects the heights and the imagery; cuts the inland water and the scenery from OpenStreetMap (`ogr2ogr`) | with your distribution's package manager (GDAL's command-line tools, `ogr2ogr`) | `brew install gdal` | the GISInternals installer (`winget install GISInternals.GDAL`) |
-| curl | downloads the height tiles | with your distribution's package manager | in macOS | in Windows 10 and later |
+| GDAL | (the downloads carry it, docs/release.md §1) reads and reprojects the heights and the imagery; cuts the inland water and the scenery from OpenStreetMap (`ogr2ogr`) | with your distribution's package manager (GDAL's command-line tools, `ogr2ogr`) | `brew install gdal` | the GISInternals installer (`winget install GISInternals.GDAL`) |
+| curl | (the downloads carry it) downloads the height tiles | with your distribution's package manager | in macOS | in Windows 10 and later |
 | disk | the data (§4) | | | |
 
 The launcher (`tools/launch-wizard.sh`, which the original game's `./setup` uses too) and `./start-modern-iaf` check Rust and

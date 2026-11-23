@@ -217,6 +217,10 @@ the Font data in this distribution was originally created by James Hurt, Cogniti
 wizard, its Credits page and the game manual's Attributions appendix list them after the sources: Godot Engine (MIT), godot-rust (gdext) (MPL-2.0), Typst
 (Apache-2.0), which sets the manuals, and DejaVu Sans Mono (the Bitstream Vera Fonts licence; the DejaVu changes are
 public domain), the manuals' fixed-width font, which Typst carries and the PDFs embed. Each record holds its link.
+The release bundles' setup tools are credited there too, as "GDAL, PROJ and curl": conda-forge's builds of GDAL (MIT),
+PROJ (MIT), curl (curl licence) and their libraries under their own licences (GEOS LGPL-2.1, librttopo and lzo
+GPL-2.0, readline GPL-3.0 among them; compatible with the project's GPL-3.0), each package's licence files in the bundle's
+tools folder, under licenses ([release.md](release.md) §1); the original game's Attributions has the same line.
 
 ## Modern IAF's pictures
 

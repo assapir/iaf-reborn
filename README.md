@@ -5,7 +5,7 @@ its own README and its own setup.
 
 **Download and play:** the [nightly pre-release](https://github.com/assapir/iaf-reborn/releases/tag/nightly) has
 both games for Linux, macOS (Apple silicon) and Windows, built each day that `main` changed. Unpack it and start the
-game: its setup wizard builds the data. The programs are unsigned: on macOS right-click the app and choose Open (or
+game: its setup wizard builds the data with the GDAL and curl it carries. The programs are unsigned: on macOS right-click the app and choose Open (or
 `xattr -dr com.apple.quarantine "/Applications/Modern IAF.app"`); on Windows choose More info, then Run anyway.
 Details: [docs/release.md](docs/release.md). The commands below run the games from this checkout.
 

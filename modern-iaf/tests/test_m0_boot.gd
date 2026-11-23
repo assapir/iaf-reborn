@@ -66,12 +66,26 @@ func run() -> void:
 			bad.append(sounds.rows[k].file)
 	var parts := FileAccess.get_file_as_string(s.own_dir().path_join("resource/soundfiles/phraseparticalsdata.trx"))
 	var n := 0
+	var english_missing: Array = []
 	for line in parts.split("\n"):
 		var c := line.replace("\t", " ").split(" ", false)
 		if c.size() >= 2 and not line.begins_with(";"):
 			n += 1
 			if not sounds.stream_file(c[1]) is AudioStreamOggVorbis:
-				bad.append(c[1])
+				english_missing.append(c[1])
+	# A Hebrew-only particle (voices.json he_only: the tower's words after a Hebrew callsign) has no English clip; it
+	# must open in Hebrew. Any other particle must open in English.
+	var he_only := {}
+	var particles: Dictionary = s.load_json("res://data/sounds/voices.json").get("particles", {})
+	for k in particles:
+		if particles[k].get("he_only", false):
+			he_only[String(particles[k].file).to_lower()] = true
+	var lang: String = s.language
+	s.language = "he"
+	for f in english_missing:
+		if not he_only.has(String(f).to_lower()) or not sounds.stream_file(f) is AudioStreamOggVorbis:
+			bad.append(f)
+	s.language = lang
 	for f in ["cock_g_02.wav", "EndWorld.wav", "KCH2.WAV"]:
 		if sounds.stream_file(f) == null:
 			bad.append(f)

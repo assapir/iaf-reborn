@@ -40,4 +40,24 @@ if grep -qE "SCRIPT ERROR|^crash: " "$log"; then
 	exit 1
 fi
 [[ $code == 0 ]] || { echo "smoke: the game exited with $code" >&2; tail -20 "$log" >&2; exit 1; }
+# Setup's bundled tools (tools_env.sh), in the environment Settings._use_bundled_tools sets (rebuilt here): GDAL
+# with its OSM driver and PROJ's database, and https by curl and by GDAL's /vsicurl with the bundled CA file.
+tools=$(dirname "$exe")/tools
+[[ $exe == */MacOS/* ]] && tools=$(dirname "$exe")/../Resources/tools
+if [[ -d $tools/bin ]]; then
+	export GDAL_DATA=$tools/share/gdal PROJ_DATA=$tools/share/proj
+	[[ -f $tools/ssl/cacert.pem ]] && export CURL_CA_BUNDLE=$tools/ssl/cacert.pem SSL_CERT_FILE=$tools/ssl/cacert.pem
+	t=$tools/bin
+	# Each output saved first: grep -q on a pipe can stop the writer (SIGPIPE) and fail the pipe under pipefail.
+	out=$("$t/ogr2ogr" --formats)
+	grep -Eq '^ *OSM -vector-' <<<"$out" || { echo "smoke: ogr2ogr has no OSM driver" >&2; exit 1; }
+	out=$("$t/gdalsrsinfo" -o proj4 EPSG:2039)
+	grep -q tmerc <<<"$out" || { echo "smoke: PROJ has no EPSG:2039" >&2; exit 1; }
+	for p in gdalwarp gdal_translate gdalbuildvrt gdalinfo; do "$t/$p" --version >/dev/null; done
+	"$t/curl" -fsSI https://download.geofabrik.de/ >/dev/null || { echo "smoke: curl https failed" >&2; exit 1; }
+	# MSYS2_ARG_CONV_EXCL: Git Bash on Windows would rewrite the /vsicurl/ path as a folder of its own.
+	out=$(MSYS2_ARG_CONV_EXCL=/vsicurl "$t/gdalinfo" /vsicurl/https://copernicus-dem-30m.s3.amazonaws.com/Copernicus_DSM_COG_10_N31_00_E034_00_DEM/Copernicus_DSM_COG_10_N31_00_E034_00_DEM.tif)
+	grep -q "Size is 3600" <<<"$out" || { echo "smoke: GDAL's /vsicurl failed" >&2; exit 1; }
+	echo "smoke: bundled GDAL and curl OK"
+fi
 echo "smoke: OK"

@@ -64,6 +64,7 @@
 	"for_engine": "the game engine",
 	"for_bridge": "the link between the engine and the game's Rust code",
 	"for_manuals": "typesetting the manuals",
+	"for_setup_tools": "the setup's map and download programs in the downloaded game",
 	"for_manual_font": "the manuals' fixed-width font",
 	"for_trees": "the trees",
 	"for_textures": "the ground, model and tree textures",

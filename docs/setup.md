@@ -192,7 +192,8 @@ game then quits; `./setup` installs again. The launcher's INSTALL button opens t
 - GDAL (`gdal_translate`, `gdalbuildvrt`, `gdalwarp`, `ogr2ogr` with its OSM driver): the imagery and `scenery` steps.
   Without it they are skipped. Windows: the scripts give winget's install (`C:\Program Files\GDAL`) its PATH,
   `GDAL_DATA` and `PROJ_LIB` (`tools/windows/gdal.ps1`, windows.md).
-- gzip: `scenery` (the Microsoft footprints).
+- A release bundle carries curl and GDAL in its `tools/` folder ([release.md](release.md) §1); the game puts them first on
+  the PATH (`Settings._use_bundled_tools`).
 - Firefox's data.gov.il token (optional; without it the sheets download through the browser's tabs): the Survey
   sheets (imagery.md §8).
 - `tools/install-launcher.sh`: the desktop launcher (its `XDG_DATA_HOME` can be set). Windows:

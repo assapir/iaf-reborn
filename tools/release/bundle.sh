@@ -5,6 +5,7 @@
 # Writes <out dir>/<project>-nightly-<linux-x86_64.tar.gz|windows-x86_64.zip|macos-arm64.dmg> and prints its path.
 # The game's version: $IAF_VERSION, else tools/release/versions.txt's line + -nightly.<date>+<hash>.
 # Needs Godot (GODOT, default godot) with its export templates; on macOS codesign and hdiutil, on Windows 7z.
+# $IAF_TOOLS: a folder made by tools/release/tools_env.sh (GDAL and curl for setup), copied in as tools/.
 # On macOS it imports the project again with ETC2 / ASTC textures (Apple silicon's) and leaves that import in its
 # .godot folder: run `godot --headless --path <project> --import` after it in a checkout you play from.
 set -euo pipefail
@@ -62,6 +63,10 @@ for f in "${files[@]}"; do
 	cp -RL "$f" "$root/$f"
 done
 cp LICENSE docs/credits.md "$root/"
+# Setup's outside programs (GDAL, curl), made by tools/release/tools_env.sh: the nightly passes them in $IAF_TOOLS.
+if [[ -n ${IAF_TOOLS:-} ]]; then
+	cp -R "$IAF_TOOLS" "$root/tools"
+fi
 file="$out/$project-nightly-$os-$arch.$ext"
 rm -f "$file"
 case $os in

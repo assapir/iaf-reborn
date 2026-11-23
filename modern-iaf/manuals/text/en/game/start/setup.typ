@@ -35,7 +35,7 @@ The wizard has four pages. #stp("next") goes to the next page and #stp("back") t
 #grid-table(
   (auto, 1fr),
   ([Page], [What it holds]),
-  [#stp("page_welcome")], [#stp("language"): English or Hebrew, for the wizard and the game. What setup downloads and builds. #stp("download"), #stp("disk") and #stp("time"). #stp("needs"): GDAL and curl, each #stp("found") or #stp("missing"), and the free disk space. The #stp("credits") button opens the list of every source with its licence; #stp("close") or #keycap("Esc") closes it. #stp("next") waits until GDAL, curl and the disk space are there. In the downloaded game, the data folder and #stp("change").],
+  [#stp("page_welcome")], [#stp("language"): English or Hebrew, for the wizard and the game. What setup downloads and builds. #stp("download"), #stp("disk") and #stp("time"). #stp("needs"): GDAL and curl, each #stp("found") or #stp("missing") (the downloaded game carries both), and the free disk space. The #stp("credits") button opens the list of every source with its licence; #stp("close") or #keycap("Esc") closes it. #stp("next") waits until GDAL, curl and the disk space are there. In the downloaded game, the data folder and #stp("change").],
   [#stp("page_imagery")], [The choice of the ground's picture (@setup-imagery).],
   [#stp("page_install")], [One row for each #term("setup step"), with its progress bar and its state (@setup-steps). The #stp("install") button starts the run.],
   [#stp("page_done")], [Whether the game is set up. The tick that adds the game to the system's menu (@setup-menu); the downloaded game has none, as it is an app of its own. #stp("start_game") opens the game's first screen. #stp("close") ends the wizard.],

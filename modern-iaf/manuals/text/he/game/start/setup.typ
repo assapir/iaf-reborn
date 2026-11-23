@@ -35,7 +35,7 @@
 #grid-table(
   (auto, 1fr),
   ([עמוד], [מה יש בו]),
-  [#stp("page_welcome")], [#stp("language"): עברית או אנגלית, לאשף ולמשחק. מה ההתקנה מורידה ובונה. #stp("download"), #stp("disk") ו#stp("time"). #stp("needs"): GDAL ו-curl, כל אחד #stp("found") או #stp("missing"), והמקום הפנוי בדיסק. הלחצן #stp("credits") פותח את רשימת כל המקורות עם הרישיונות שלהם; #stp("close") או #keycap("Esc") סוגרים אותה. #stp("next") ממתין עד ש-GDAL, curl והמקום בדיסק קיימים. במשחק שהורד, תיקיית הנתונים ו#stp("change").],
+  [#stp("page_welcome")], [#stp("language"): עברית או אנגלית, לאשף ולמשחק. מה ההתקנה מורידה ובונה. #stp("download"), #stp("disk") ו#stp("time"). #stp("needs"): GDAL ו-curl, כל אחד #stp("found") או #stp("missing") (המשחק שהורד כולל את שניהם), והמקום הפנוי בדיסק. הלחצן #stp("credits") פותח את רשימת כל המקורות עם הרישיונות שלהם; #stp("close") או #keycap("Esc") סוגרים אותה. #stp("next") ממתין עד ש-GDAL, curl והמקום בדיסק קיימים. במשחק שהורד, תיקיית הנתונים ו#stp("change").],
   [#stp("page_imagery")], [בחירת תמונת הקרקע (@setup-imagery).],
   [#stp("page_install")], [שורה לכל #term("שלב התקנה"), עם מד ההתקדמות והמצב שלו (@setup-steps). הלחצן #stp("install") מתחיל את ההרצה.],
   [#stp("page_done")], [האם המשחק מותקן. תיבת הסימון שמוסיפה את המשחק לתפריט של מערכת ההפעלה (@setup-menu); במשחק שהורד אין אותה, כי הוא יישום בפני עצמו. #stp("start_game") פותח את המסך הראשון של המשחק. #stp("close") סוגר את האשף.],

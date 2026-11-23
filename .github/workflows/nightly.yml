@@ -70,7 +70,11 @@ jobs:
           GODOT_TEMPLATES_TPZ: ${{ runner.temp }}/godot-templates.tpz
       - run: godot --headless --path modern-iaf --import
       - run: godot --headless --path iaf-reborn --import
+      - name: Setup's tools (GDAL, curl)
+        run: tools/release/tools_env.sh "$RUNNER_TEMP/tools"
       - name: Bundles
+        env:
+          IAF_TOOLS: ${{ runner.temp }}/tools
         run: |
           for p in modern-iaf iaf-reborn; do tools/release/bundle.sh "$p" "$RUNNER_TEMP/bundles"; done
           ls -l "$RUNNER_TEMP/bundles"

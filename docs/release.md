@@ -25,13 +25,37 @@ game (`IafSetup`), so no separate setup program ships.
   and is not notarised, so macOS stops its first start. Right-click the app, choose Open, then Open again; or run once
   `xattr -dr com.apple.quarantine "/Applications/Modern IAF.app"`. Intel Macs are not built for.
 
-What a player still installs:
-
-- Modern IAF: GDAL and curl, as from the checkout ([modern-iaf/docs/setup.md](../modern-iaf/docs/setup.md) §1). The
-  wizard's first page checks both and names the install command.
-- Jane's IAF reborn: nothing for the game and the CD. The optional imagery of the Survey of Israel needs python3 and
+Both games' bundles also hold setup's outside programs in `tools/` (below), so a player installs nothing for Modern
+IAF. Jane's IAF reborn: nothing for the game and the CD. The optional imagery of the Survey of Israel needs python3 and
   Firefox, as from the checkout. The pilot guides are built from the checkout only (`tools/guide_shots.sh`): the
   wizard shows their row disabled.
+
+### The setup tools
+
+Setup runs GDAL's command-line programs (`gdalwarp`, `gdal_translate`, `gdalbuildvrt`, `gdalinfo`, `ogr2ogr` with its
+OSM driver) and curl ([setup.md](setup.md) "Outside programs"). A bundle carries them: `tools/release/tools_env.sh`
+installs conda-forge's builds (`libgdal-core` 3.13.3, the checkout's GDAL, with `curl` and `ca-certificates`) through
+micromamba (its release pinned and its checksum checked) into one layout on every system: `bin/` (on Windows with
+the DLLs, the MSVC runtime too), `lib/`, `share/gdal`, `share/proj`, `ssl/cacert.pem`, `licenses/<package>/`, each
+package's own licence files (GDAL and PROJ MIT, curl's licence; GEOS LGPL-2.1, librttopo and lzo GPL-2.0, readline GPL-3.0, all compatible
+with the project's GPL-3.0), and `SOURCES.txt`:
+every package's exact version, build, licence and download, where its source and recipe are, and the offer of the
+source. The workflow passes that folder to
+`bundle.sh` in `$IAF_TOOLS`; it is copied in as `tools/` (in the macOS app under `Contents/Resources`). A bundle
+built by hand without `$IAF_TOOLS` has none, and setup needs GDAL and curl installed, as the checkout does.
+
+At start, a bundled game whose tools folder holds bin puts that first on the PATH and sets `GDAL_DATA`, `PROJ_DATA` /
+`PROJ_LIB` and `CURL_CA_BUNDLE` / `SSL_CERT_FILE` to its CA file (`Settings._use_bundled_tools`, in `Settings._init`,
+before any setup thread). The programs setup starts inherit them; the wizard's GDAL and curl checks
+find them. On Windows a program started by name is looked up in `System32` before the PATH, so setup runs Windows'
+own curl there (it takes the same CA file); GDAL's programs come from the bundle. On macOS the game also clears
+the download's quarantine flag on its tools folder (`xattr -dr com.apple.quarantine`), so Gatekeeper does not stop
+the programs that the player's right-click, Open did not cover. The checkout is unchanged: it uses the installed GDAL and curl. The Microsoft footprints' `.csv.gz` are read
+in-process (flate2), so no gzip either.
+
+Tried and dropped (23 November 2026): GDAL's work in Rust (GeoTIFF and Cloud Optimized GeoTIFF reads over HTTP,
+reprojection with GDAL's resampling kernels, OpenStreetMap's multipolygons as OGR builds them). It is weeks of work, and
+its terrain and scenery would differ from the approved builds; the bundled programs give the same output as the checkout.
 
 The launcher step (desktop entries) is skipped in a bundle: the game's folder or app is its launcher. Modern IAF's
 Done page shows no menu tick there.
@@ -120,12 +144,16 @@ The exports are each project's `export_presets.cfg` (Linux, Windows, macOS): eve
 From a checkout with the extension built and the project imported, and Godot with its export templates:
 
 ```sh
-tools/release/bundle.sh modern-iaf /some/out        # or iaf-reborn; prints the bundle's path
+tools/release/tools_env.sh /some/tools              # setup's GDAL and curl (optional; needs curl, jq, a network)
+IAF_TOOLS=/some/tools tools/release/bundle.sh modern-iaf /some/out   # or iaf-reborn; prints the bundle's path
 tools/release/smoke.sh /some/out/modern-iaf-nightly-linux-x86_64.tar.gz
 ```
 
 `smoke.sh` unpacks the bundle and runs it headless for 900 frames on an empty data folder: the game opens its setup
 wizard. It fails on a `SCRIPT ERROR`, the game's crash page (a `crash:` line), a missing version line or a non-zero exit.
+With `tools/`, it then runs the bundled programs in the environment that `Settings._use_bundled_tools` sets (the script
+sets the same variables): `ogr2ogr` has the OSM driver, PROJ knows
+EPSG:2039, curl fetches over https and `gdalinfo` reads a GLO-30 tile's header through `/vsicurl/`.
 Arguments after the bundle go to the game, and then the game runs until it quits. An exported game runs no test script (`-s` is the editor's), so the
 checks of a bundle go through the game's own arguments:
 

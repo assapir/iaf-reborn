@@ -1005,7 +1005,7 @@ pub(crate) fn gdal_warp(
     Ok(raw)
 }
 
-/// Runs a GDAL / gzip command: an error with its stderr (without GDAL's plugin load noise) when it fails.
+/// Runs a GDAL command: an error with its stderr (without GDAL's plugin load noise) when it fails.
 pub(crate) fn run(mut cmd: Command) -> Result<()> {
     let name = format!("{:?}", cmd.get_program());
     // No .aux.xml statistics beside or inside the sources: GDAL wrote one into a pinned zip, which then failed its
@@ -1297,11 +1297,14 @@ fn row_points(line: &[[f64; 2]]) -> Vec<[f64; 2]> {
 
 /// Microsoft's footprints of one `.csv.gz` (GeoJSON lines, gzip) inside the coverage.
 fn read_ms(file: &Path, g: &Gather) -> Result<Vec<Footprint>> {
-    let mut c = Command::new("gzip").arg("-dc").arg(file).stdout(Stdio::piped()).stderr(Stdio::null()).spawn()?;
-    let out = c.stdout.take().context("gzip stdout")?;
+    let gz = std::fs::File::open(file).with_context(|| format!("{}", file.display()))?;
+    if gz.metadata()?.len() == 0 {
+        bail!("{}: empty", file.display());
+    }
+    let out = flate2::read::MultiGzDecoder::new(BufReader::new(gz));
     let mut v = Vec::new();
     for line in BufReader::new(out).lines() {
-        let line = line?;
+        let line = line.with_context(|| format!("{}: gzip", file.display()))?;
         // A cheap look at the first point before parsing the line.
         let first = line.split("[[[").nth(1).and_then(|s| {
             let mut it = s.split([',', ']']);
@@ -1317,9 +1320,6 @@ fn read_ms(file: &Path, g: &Gather) -> Result<Vec<Footprint>> {
                 v.push(Footprint { pts, geo, height: None, levels: 0, roof: Roof::Flat, wall, source: SOURCE_MS });
             }
         }
-    }
-    if !c.wait()?.success() {
-        bail!("{}: gzip failed", file.display());
     }
     Ok(v)
 }
@@ -2413,6 +2413,32 @@ pub(crate) fn median_ring(img: &RgbImage, q: &[[f64; 2]], ring: f64) -> [u8; 3] 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Microsoft's `.csv.gz` read in-process (no gzip program): the footprint inside the coverage, not the one
+    /// outside; a file that is not gzip fails.
+    #[test]
+    fn ms_footprints_read_from_gzip() {
+        use std::io::Write;
+        let dir = std::env::temp_dir().join(format!("iaf-ms-gz-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let ring =
+            |x: f64| format!("[[[{x},31.0],[{},31.0],[{},31.0003],[{x},31.0003],[{x},31.0]]]", x + 0.0003, x + 0.0003);
+        let line = |x: f64| {
+            format!("{{\"type\":\"Feature\",\"geometry\":{{\"type\":\"Polygon\",\"coordinates\":{}}}}}\n", ring(x))
+        };
+        let gz = dir.join("ms.csv.gz");
+        let mut e = flate2::write::GzEncoder::new(std::fs::File::create(&gz).unwrap(), flate2::Compression::fast());
+        e.write_all((line(34.8) + &line(36.5)).as_bytes()).unwrap();
+        e.finish().unwrap();
+        let geo = [34.7, 30.9, 34.9, 31.1];
+        let warp = Warp::new(&sim_bases::utm36n, geo, 0.005);
+        let g = Gather { frame: GAME, warp: &warp, nodes: BTreeMap::new(), geo };
+        assert_eq!(read_ms(&gz, &g).unwrap().len(), 1);
+        let bad = dir.join("bad.csv.gz");
+        std::fs::write(&bad, b"not gzip").unwrap();
+        assert!(read_ms(&bad, &g).is_err());
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
 
     /// A 4 × 4 px dark square on a light 12 × 12 image with a red frame 1 px around it: the ring's median is the frame's,
     /// the inside's the square's.
