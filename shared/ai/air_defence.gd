@@ -52,6 +52,8 @@ var sites: Array = []
 ## 64N6E2, the 54K6E2], sites (its members' site records), next (the next tick)}.
 var nets: Array = []
 var _n := 0
+## The CPU time of its frames (µs, modern-iaf/docs/ai-plan.md X5, K12); a test resets it.
+var cost_us := 0
 
 
 ## The sites of the flight `h` (terrain_view.gd), made on first use.
@@ -215,6 +217,12 @@ func _record(name: String) -> Dictionary:
 ## A child of ai_flights.gd: it runs after every jet's step of the frame, so it reads them all at one instant (as
 ## `_step_flight_ai`), on the runtime's clock.
 func _process(delta: float) -> void:
+	var t0 := Time.get_ticks_usec()
+	_step(delta)
+	cost_us += Time.get_ticks_usec() - t0
+
+
+func _step(delta: float) -> void:
 	if host.frozen or host.waiting_for_ground or host.weapons == null:
 		return
 	var now: float = host.runtime.now

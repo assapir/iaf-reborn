@@ -2196,6 +2196,64 @@ The tests: `crates/iaf-ai/tests/target_drones.rs` (the kinds, the period, each k
 `modern-iaf/tests/test_sim_range.gd` (every range drone flies under its brain's kind; Drone 3 breaks or runs from a jet
 5 km behind it), `modern-iaf/tests/test_sim_ews.gd` (Drones 4's lock on the player's RWR).
 
+## 22. Modern IAF's big fight: everything at once (ours)
+
+The user, 22 November 2026: "Ok follow your suggested order. If possible create a video of your multiplabes multi sam
+etc dogfight?" (modern-iaf/docs/ai-plan.md K12, X5). One scenario puts the AI of §8.9–§20 in the same sky, built
+from the dev hooks alone (`modern-iaf/tests/big_fight.gd`). No mission places it.
+
+- **The scenario.** Mission `ramon_four_ship` with MK-82s on the Arming load. The four-ship flies over Ramon at
+  6,000 m heading north (`flight_in_air`). The lead flies on ALT HOLD and HDG SEL and is invulnerable; the wingmen can
+  be shot down. The enemy flies at the pilot's skill (Medium by default):
+  - a convoy of two T-72s and two Ural-4320s on the roads 25 to 35 km north (§19), with a Tor-M1 and a ZSU-23-4
+    beside it;
+  - an S-300PMU-2 battery 65 km north (96L6E, 30N6E2 and four 5P85TE2) under an 83M6E2 network (64N6E2, 54K6E2).
+    All three sites join the network (§15.5);
+  - a MiG-29A pair on CAP 85 km north;
+  - a second pair parked at Nevatim, which scrambles on the network's vector (§18.3; Nevatim stands in for an enemy
+    base);
+  - four Shahed-136s flying from the north at Ramon (§16).
+- **The lead's orders** go through the radio menu's path (`sim_flight.gd flight_command`):
+  - "low level" to the flight at once (§20);
+  - "sort" once a MiG is within 60 km;
+  - "weapons free" to the element round the MiGs, 8 s after the sort (§8.11);
+  - "engage my target" to Kidon 1-2 with the radar's point on the convoy's first vehicle alive, 12 s after the sort (§8.10: the low
+    pop-up attack on a moving vehicle).
+- **What happens** (headless runs of 420 s, 23 November 2026):
+  - Kidon 1-3 and 1-4 shoot down both CAP MiGs, and Kidon 1-2 bombs the convoy (one or two vehicles).
+  - The S-300's launchers, the Tor and the MiGs fire 30 to 32 missiles, most of them at the invulnerable lead.
+  - One wingman of three is shot down in most runs.
+  - The based pair takes off. No AI jet hits the ground and none is stuck.
+- **CPU cost** on the Iris Xe laptop: headless, at time scale 1, 20 s after the sort, with a quiet machine. The fight
+  has 7 AI jets, 3 sites and a network, 4 drones and 4 vehicles:
+  - the AI jets: 3.15 ms a frame, 0.45 ms each. Jets fighting cost more than those in the calmer tests (0.15–0.21 ms,
+    ai-plan X5);
+  - the sites with their network: 0.11 ms, 0.03 ms each;
+  - the drones: 0.06 ms; the convoy: 0.07 ms;
+  - the frame's whole process time: 23.1 ms, against 11.6 ms with our flight alone. The AI accounts for 3.4 ms of the
+    11.5 ms added. The rest is the host's work for the extra units and missiles (weapons, missiles in flight, the
+    RWR, the runtime). That split is open.
+- **GPU cost**: a real render at 1,920 × 1,080 with the default settings, the camera chasing Kidon 1-3 from 30 m. Each
+  part is compared shown against hidden, by turns, because the fight keeps moving:
+  - the whole scene: 19.5 ms GPU, 31.7 ms a frame. The frame is limited by the CPU, not the GPU;
+  - the chased jet, which fills much of the screen: 1.38 ms;
+  - each other AI jet: 0.037 ms;
+  - each ground unit or drone: 0.014 ms (18 of them).
+
+  Distant units cost little to draw, so a far-distance model cut would gain almost nothing.
+- **Tests:** `modern-iaf/tests/test_big_fight.gd` (headless, 420 s of sim time). It checks that the four orders are
+  taken, at least one missile flies each way, a kill happens, no AI jet hits the ground, none is stuck and the based
+  pair gets airborne. It prints the CPU figures and the missiles by shooter and target.
+  The video comes from `modern-iaf/tests/_big_fight_movie.gd`: the same scenario under Godot's movie writer, with a
+  scripted camera director. Each shot lasts 5 to 9 s (a missile's up to 12 s, Kidon 1-2's run up to 14 s); it picks, in this order:
+  1. a missile just launched: its launcher, then its target with the missile coming in;
+  2. Kidon 1-2's attack run;
+  3. the based pair's start;
+  4. in turn: a jet with its nearest enemy ahead, the convoy, a drone, the S-300.
+
+  `BIGFIGHT_BENCH=1` gives the GPU figures. The site, drone and convoy nodes count their own CPU time (`cost_us`),
+  as `ai_flights.gd` does.
+
 ## UNCERTAIN
 Open questions in this document:
 - The RWR field names behind conditions 19, 26, 27, 38, 39 (§13.2); what else writes brain+0x7c.

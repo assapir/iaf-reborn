@@ -17,6 +17,8 @@ var host: Node  # terrain_view.gd
 ## Each convoy: {convoy (IafConvoy), ents [its vehicles' entities, head first]}.
 var convoys: Array = []
 var _n := 0
+## The CPU time of its frames (µs, modern-iaf/docs/ai-plan.md X5, K12); a test resets it.
+var cost_us := 0
 var _last := -1.0
 
 
@@ -55,7 +57,13 @@ func spawn(ids: Array, from: Vector3, to: Vector3, side := -1) -> Dictionary:
 ## A child of ai_flights.gd, on the runtime's clock (as drones.gd); after ai_flights.gd set the AI jets' height nodes,
 ## each convoy's first vehicle alive joins them (terrain.gd `extra_heights`): its ground is there far from the
 ## player.
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
+	var t0 := Time.get_ticks_usec()
+	_step(delta)
+	cost_us += Time.get_ticks_usec() - t0
+
+
+func _step(_delta: float) -> void:
 	var now: float = host.runtime.now
 	var dt := now - _last if _last >= 0.0 else 0.0
 	_last = now
