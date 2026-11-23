@@ -885,7 +885,9 @@ wingman" (modern-iaf/docs/ai-plan.md F15, K15). Our wingmen and the enemy fighte
 - **The orders.** The lead's "engage my target" (the radio menu, record 47; record 99, Alt + E, to Kidon 1-2) on a
   ground target: `ai_flights.gd engage_target` engages the radar's locked aircraft, else attacks the player's ground
   target, picked by `strike::pick` (`IafAi.pick_ground`) among the hostile ground units alive the host lists: the
-  radar's locked one, else the one nearest the SPI within 500 m, else the SPI itself (a point). `Flight::attack`
+  radar's locked one, else the one nearest the SPI within 500 m, else the SPI itself (a point). The SPI
+  (`player_weapons.gd spi`) is the radar's designated point, else the current steerpoint, else the EO camera's point
+  on the ground; with none of them there is no SPI and each jet answers "unable" (the split too). `Flight::attack`
   (`IafAi.attack`): each AI jet addressed in the air with an air-to-ground weapon answers "ack" and takes it (an
   engage or a cover it had ends); the others "unable". The flight has one ground target: a new one is every attacking
   jet's. An AI-led flight's own

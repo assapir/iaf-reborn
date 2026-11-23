@@ -367,6 +367,9 @@ mod tests {
         assert_eq!(pick(None, Vec3::ZERO, &units), Some(1));
         assert_eq!(pick(Some(7), Vec3::ZERO, &units), Some(1), "a lock not among them");
         assert_eq!(pick(None, Vec3::new(0.0, -2_000.0, 0.0), &units), None);
+        let none = Vec3::new(f64::INFINITY, f64::INFINITY, f64::INFINITY); // the host's "no SPI"
+        assert_eq!(pick(None, none, &units), None, "no SPI: nothing near it");
+        assert_eq!(pick(Some(0), none, &units), Some(0), "the lock still");
         let p = |kind, gps, count, id| Pylon { kind, gps, count, id };
         // An AIM-9 (570), an empty bomb pylon, then two pylons of MK-82s and one of GBU-31 (GPS, type 500).
         let mut ps = [p(570, false, 1, 1), p(500, false, 0, 2), p(500, false, 4, 3), p(500, false, 4, 3)];

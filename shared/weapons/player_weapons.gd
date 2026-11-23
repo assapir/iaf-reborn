@@ -86,6 +86,8 @@ var ecm_fitted := false
 var eo_ae := Vector2.ZERO
 var eo_dir := Vector3(0, 1, 0)
 var eo_centre := Vector3.ZERO
+## eo_centre lies on the ground or a unit (the camera's ray hit within 100 km); false: a point far along the ray.
+var eo_on_ground := false
 ## The page that TV page 5 (ctl+0x930), FLIR page 6 (+0x934) and HARM page 10 (+0x92c) replaced, by page.
 var _replaced := {5: 0, 6: 0, 10: 0}
 ## Physics "fix_lock_threat" (ours): a radar lock makes the player the AI target's threat (brain+0x7c).
@@ -692,7 +694,9 @@ func tgp_tms(dir: int) -> void:
 			tgp_slaved = false
 		1:
 			tgp_slaved = true
-			eo.start(EoSensor.FLIR, true, spi(), now)
+			var p = spi()
+			if p != null:  # no SPI: the pod holds where it looks
+				eo.start(EoSensor.FLIR, true, p, now)
 			eo_on_unit = false
 
 
@@ -707,14 +711,14 @@ func _unit_at(p: Vector3) -> String:
 	return ""
 
 
-## The SPI (the sensor's point of interest): the radar's designated ground point, else the current steerpoint on the
-## ground.
-func spi() -> Vector3:
+## The SPI (the sensor's point of interest, world): the radar's designated ground point, else the current steerpoint on
+## the ground, else the EO camera's point on the ground; null: none (no route and no camera on the ground).
+func spi() -> Variant:
 	if radar.designated:
 		return radar.desig
 	var c = host.cockpit
 	if c == null or c.waypoints.is_empty():
-		return eo_centre
+		return eo_centre if eo.camera and eo_on_ground else null
 	var w: Vector2 = c.waypoints[clampi(c.current_waypoint, 0, c.waypoints.size() - 1)].world
 	var g = host.mission_ground(Vector3(w.x, w.y, 0.0))
 	return Vector3(w.x, w.y, float(g) if g != null else 0.0)
@@ -725,8 +729,8 @@ func _modern_update() -> void:
 	if ews != null:
 		ews.update()
 	if tgp_slaved and eo.mode == EoSensor.FLIR:
-		var p := spi()
-		if p.distance_to(eo.point) > 1.0 or eo.target != "":
+		var p = spi()
+		if p != null and (p.distance_to(eo.point) > 1.0 or eo.target != ""):
 			eo.start(EoSensor.FLIR, true, p, now)
 	if flir_pod:
 		_update_pod()
@@ -845,6 +849,7 @@ func _eo_update() -> void:
 	var views = host.get("views")
 	if views != null and not views.cockpit_drawn() and not full_screen:
 		eo_centre = eye + eo_dir * 1.0e7
+		eo_on_ground = false
 		return
 	var hit = ground_hit(eye, eo_dir)
 	var far: float = (hit - eye).length() if hit != null else 100000.0
@@ -872,6 +877,7 @@ func _eo_update() -> void:
 	if d >= 0.0:
 		hit = eye + eo_dir * d
 	eo_centre = hit if hit != null else eye + eo_dir * 1.0e8
+	eo_on_ground = hit != null
 
 
 ## The first terrain point along a ray (world), or null within 100 km: steps of 2 % of the distance (at

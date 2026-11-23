@@ -654,7 +654,7 @@ func _fire(ai, n: int, ent: Dictionary, t: Dictionary) -> String:
 ## Ours (Modern IAF, the radio menu's "engage my target", modern-iaf/docs/ai-plan.md F5, F15): the flight's jets `to`
 ## (0 the flight, 5 the element, 2..4 one wingman) engage the radar's locked aircraft, else attack the player's ground
 ## target (attack; IafAi.pick_ground among the hostile ground units: the radar's lock, else the one nearest the SPI,
-## else the SPI itself). False: no flight AI or nobody to take it.
+## else the SPI itself; no SPI: each "unable"). False: no flight AI or nobody to take it.
 func engage_target(to: int) -> bool:
 	var t: Dictionary = host.radio._radar_target() if host.get("radio") != null else {}
 	if not t.is_empty() and int(t.get("klass", 0)) in host.radio.AIRCRAFT:
@@ -670,9 +670,13 @@ func engage_target(to: int) -> bool:
 			continue
 		units.append(e)
 		at.append(e.world)
-	var spi: Vector3 = host.weapons.spi()
-	var i: int = flight_ai.pick_ground(units.find(t) if not t.is_empty() else -1, spi, at)
-	return attack(to, units[i] if i >= 0 else _point(spi))
+	var spi = host.weapons.spi()
+	var i: int = flight_ai.pick_ground(
+		units.find(t) if not t.is_empty() else -1, spi if spi != null else Vector3.INF, at
+	)
+	if i >= 0:
+		return attack(to, units[i])
+	return attack(to, _point(spi) if spi != null else {})
 
 
 ## The flight's jets `to` attack the ground target `t` (an entity or `_point`'s; {} none: each "unable"), each with an

@@ -2,7 +2,8 @@
 # ramon_four_ship with MK-82s on the Arming load (the four-ship carries the lead's), the flight put in the air by the
 # dev hook ai_flights.gd `flight_in_air`.
 #   - Our four-ship: an enemy 64N6E2 radar (air_defence.gd `spawn_net`, the network's stand-in shapes) 20 km ahead,
-#     designated on the radar (the SPI); "engage my target" to the flight through the radio menu: Kidon 1-2, 1-3 and
+#     first with nothing designated and no route (no SPI: each "unable"), then designated on the radar (the SPI);
+#     "engage my target" to the flight through the radio menu: Kidon 1-2, 1-3 and
 #     1-4 acknowledge and attack it one after the other: "in" with its subtitle, the release through combat.gd's AI
 #     ripple ("alpha"), the radar destroyed, "done", each back on the slot. A second order to Kidon 1-2 in its run:
 #     "ack" (not "unable"), the run broken off and flown again.
@@ -83,6 +84,20 @@ func _ours(tv: Node) -> void:
 	var ents: Array = ad.spawn_net(Vector3(j.x, j.y + 20000, 0), Vector3(j.x + 3000, j.y + 23000, 0), [])
 	var radar: Dictionary = ents[0]
 	check(tv.enemy_of_player(radar), "an enemy 64N6E2 20 km ahead")
+	# Nothing designated: the SPI is the steerpoint, near; with no route (and the camera off) there is none, and the
+	# order gets "unable" from each, the flight kept on its slots.
+	var near: Vector3 = tv.weapons.spi()
+	check(Vector2(near.x - j.x, near.y - j.y).length() < 100000.0, "no designation: the SPI on the steerpoint, near")
+	var route: Array = tv.cockpit.waypoints
+	tv.cockpit.waypoints = []
+	check(tv.weapons.spi() == null, "no designation, no route: no SPI")
+	var t9: float = tv.runtime.now
+	check(_menu(tv, ["to:0", "engage"]), "engage my target with no SPI")
+	tv.cockpit.waypoints = route
+	check(ai.attack_ent.is_empty(), "no ground target taken")
+	var unable := func(): return [2, 3, 4].all(func(n): return _said(n, "unable", t9))
+	check(await _until(tv, unable, 5.0), "Kidon 1-2, 1-3 and 1-4: unable (%s)" % _calls())
+	check([2, 3, 4].all(func(n): return String(fa.state(n).strike) == ""), "nobody attacks: the slots kept")
 	# Designated on the radar: the SPI on it (the radar's designated point).
 	tv.weapons.radar.designated = true
 	tv.weapons.radar.desig = radar.world

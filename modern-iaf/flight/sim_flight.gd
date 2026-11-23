@@ -526,7 +526,9 @@ func flight_command(to: int, id: String) -> void:
 		"engage":
 			ok = ai.engage_target(to)
 		"split":
-			ok = ai.flight_ai.split(now, host.world_to_scene(host.weapons.spi()))
+			# No SPI: a point at infinity, outside the same area, so element 2 answers "unable".
+			var spi = host.weapons.spi()
+			ok = ai.flight_ai.split(now, host.world_to_scene(spi) if spi != null else Vector3.INF)
 		_:
 			ok = ai.flight_ai.command(now, to, id)
 	host._log_event(host._log_st, {"event": "radio", "call": "%s:%d" % [id, to], "answer": "ok" if ok else "none"})

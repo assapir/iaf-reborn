@@ -1003,6 +1003,11 @@ fn elements_split_and_regroup() {
     assert!(w.flight.split(w.t, p + Vec3::new(80_000.0, 0.0, 0.0)));
     w.run(2.0);
     assert!(w.said(3, "unable").is_some_and(|t| t >= t0) && w.flight.member(3).unwrap().task.is_none());
+    // No SPI (the host's point at infinity): unable too.
+    let t0 = w.t;
+    assert!(w.flight.split(w.t, Vec3::new(f64::INFINITY, f64::INFINITY, f64::INFINITY)));
+    w.run(2.0);
+    assert!(w.said(3, "unable").is_some_and(|t| t >= t0) && w.flight.member(3).unwrap().task.is_none());
     // Target B 12 km ahead and 6 km right of the lead.
     let b = p + Vec3::new(6_000.0, 12_000.0, -2000.0);
     let t0 = w.t;
