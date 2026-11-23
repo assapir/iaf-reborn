@@ -589,7 +589,8 @@ own seeker in place of the 1998 decoy rule (docs/weapons.md §10, which the 1998
 missile flying at the releasing jet rolls on its own chance (`ecm.rs` `decoy_chance`; no first-failure stop), and a
 missile taken chases the decoy:
 
-- **The kind:** flares take only infrared seekers (570, 580, 620), chaff only radar seekers (600, 610, 630).
+- **The kind:** flares take only infrared seekers (570, 580, 620: the shoulder-fired teams' missiles), chaff only
+  radar seekers (600, 610, 630).
 - **The seeker's rejection** (the record's `_decoyReject`, 0 to 1): newer infrared seekers tell flares from the jet by
   their spectrum and their path[^w-flare], so a flare's chance is 0.5 · (1 − rejection). A Doppler radar seeker tells
   the slowing chaff from a jet moving along its line of sight; a jet on the beam has the chaff's Doppler[^w-chaff], so
@@ -608,6 +609,8 @@ missile taken chases the decoy:
 | R-73 | cooled infrared (1984) | 0.3 | no counter-countermeasure claim found |
 | AIM-120 (also the SAMs' stand-in) | active pulse-Doppler radar | 0.8 | the Doppler rule above |
 | R-27R | semi-active radar (1987) | 0.5 | an older Doppler seeker |
+| Strela-2M (a shoulder-fired team's, docs/ai.md §15.8) | uncooled infrared, rear aspect | 0 | flares "highly effective" against it[^w-strela2] |
+| Igla (the same) | cooled infrared and ultraviolet | 0.6 | "much improved resistance against flares"[^w-igla] |
 | any other | — | 0 | — |
 
 Every figure is inferred (no seeker's decoy rejection is published); the sources give only what each seeker adds.
@@ -859,4 +862,6 @@ In Modern IAF (`Settings.modern_fuzes`) a physical missile (§2.1) carries a pro
     aerodynamic airframe, INS, powerful rocket motor, warhead and proximity fuze"; second-hand: a search engine's quote),
     https://www.scribd.com/document/230260894/Python-5-Rafael
 [^w-flare]: Wikipedia, "Flare (countermeasure)" (newer IR seekers' "sophisticated on-board electronics and secondary electro-optical sensors help discriminate between flares and targets"; spectral and trajectory discrimination, "the so-called CCM") (read 2026-11-22): https://en.wikipedia.org/wiki/Flare_(countermeasure)
+[^w-strela2]: Wikipedia, "9K32 Strela-2", https://en.wikipedia.org/wiki/9K32_Strela-2
+[^w-igla]: Wikipedia, "9K38 Igla", https://en.wikipedia.org/wiki/9K38_Igla
 [^w-chaff]: Wikipedia, "Chaff (countermeasure)" ("Modern radars use the Doppler effect to measure the line-of-sight velocity of objects, and can thus distinguish chaff from an aircraft"; a jet moving across the beam is "more difficult to separate from the effectively stationary chaff") (read 2026-11-22): https://en.wikipedia.org/wiki/Chaff_(countermeasure)

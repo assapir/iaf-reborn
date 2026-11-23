@@ -25,6 +25,7 @@ fn jet(id: &str, pos: Vec3, vel: Vec3) -> Target {
         dlz: (40_000.0, 3_000.0),
         in_air: 0,
         jam: 0.0,
+        ab: false,
     }
 }
 

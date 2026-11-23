@@ -84,6 +84,13 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   display's chevrons and the FCR's and PCD's jam strobe. Tests: `ecm.rs`, `sites`, `intercept`, `four_ship`,
   `modern-iaf/tests/test_countermeasures.gd`. Not started: jamming against a missile's own seeker; the Barak's jammer
   (open).
+- **Shoulder-fired SAMs (2026-11-23, the user, 22 Nov: "Ok follow your suggested order"; [ai-plan.md](ai-plan.md) K16;
+  [../../docs/ai.md](../../docs/ai.md) §15.8):** a Strela-2M or an Igla team (`air_defence.gd spawn("strela" |
+  "igla", …)`) sees a low jet by eye to 10 km, launches after its crew's reaction and drill once the jet is inside
+  its envelope and its seeker has it (the Strela only at a jet's tail), two rounds, shoot-look-shoot. Nothing shows on
+  the RWR; the Sufa's MAW warns "SAM". A flare takes the Strela's seeker one time in two, the Igla's one in five
+  (inferred). Drawn as a stand-in figure (no model on disk). `crates/iaf-ai/tests/sites.rs`,
+  `modern-iaf/tests/test_manpads.gd`; no mission places one.
 - **Enemy scramble from a base and the Tor's moving parts (2026-11-22, the user, 22 Nov: "Yes start whatever you
   didn't finished"; [ai-plan.md](ai-plan.md) K3; [../../docs/ai.md](../../docs/ai.md) §18.3, §15.4):** an enemy pair
   parked in a base's shelters, engines off, starts on the S-300 network's vector after the lead's reaction time, taxies

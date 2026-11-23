@@ -1020,6 +1020,8 @@ func _release(u: Unit, t: Dictionary, aim: Vector3, now: float, truce: bool, fla
 		var b := h - deg_to_rad(float(parts.get("launcher", 0.0)))
 		var pitch := asin(clampf((tp.z - p.z) / dist, -1.0, 1.0)) if dist > 0.0 else 0.0
 		nose = Vector3(sin(b) * cos(pitch), cos(b) * cos(pitch), sin(pitch))
+	elif u.ent.get("shoulder", false) and dist > 0.0:
+		nose = (tp - p) / dist  # ours: a shoulder-fired team's gunner aims at the target (docs/ai.md §15.8)
 	var right := nose.cross(Vector3(0, 0, 1))
 	right = right.normalized() if right.length() > 1e-4 else Vector3(1, 0, 0)
 	var up := right.cross(nose)

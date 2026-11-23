@@ -130,6 +130,20 @@ pub struct RealLock {
     pub front_ab: f64,
 }
 
+impl RealLock {
+    /// The seeker holds a target at `d` from it moving at `vel` (`ab` its afterburner lit): in the rear sector (the
+    /// target's tail within 60° of the line of sight) within the rear range, beyond half of it only with the
+    /// afterburner; from the front within the front range, the afterburner one when it is lit.
+    pub fn holds(&self, d: Vec3, vel: Vec3, ab: bool) -> bool {
+        let r = d.length();
+        if vel.try_normalize().is_some_and(|v| v.dot(d) >= REAR_SECTOR_DEG.to_radians().cos() * r) {
+            return r <= self.rear && (r <= self.rear / 2.0 || ab);
+        }
+        let front = if ab { self.front_ab } else { self.front_mil };
+        front > 0.0 && r <= front
+    }
+}
+
 /// The distance at which a radar missile of `generation` goes active after launch (m; modern-iaf/docs/weapons.md §8.2,
 /// inferred): the reach of the generation's seeker without the target's afterburner, half its lock range (`can_track`'s
 /// R/2). The time to active of the post-launch cue counts down to it (`missile::Missile::times`).
@@ -218,10 +232,6 @@ impl Seeker {
         self.real_lock.map_or(self.lock_range, |l| l.rear.max(l.front_ab).max(l.front_mil))
     }
 
-    /// A target that moves away from the shooter within the rear sector of the line of sight `d`.
-    fn rear_aspect(d: Vec3, vel: Vec3) -> bool {
-        vel.try_normalize().is_some_and(|v| v.dot(d) >= REAR_SECTOR_DEG.to_radians().cos() * d.length())
-    }
     pub fn target(&self) -> Option<&str> {
         self.target.as_deref()
     }
@@ -337,14 +347,10 @@ impl Seeker {
             }
         }
         let r = d.length();
-        let Some(l) = self.real_lock else {
-            return r <= self.lock_range && (r <= self.lock_range / 2.0 || u.afterburner);
-        };
-        if Self::rear_aspect(d, u.vel) {
-            return r <= l.rear && (r <= l.rear / 2.0 || u.afterburner);
+        match self.real_lock {
+            Some(l) => l.holds(d, u.vel, u.afterburner),
+            None => r <= self.lock_range && (r <= self.lock_range / 2.0 || u.afterburner),
         }
-        let front = if u.afterburner { l.front_ab } else { l.front_mil };
-        front > 0.0 && r <= front
     }
 
     /// `FUN_00461f10`. With an A-A radar lock (`FUN_004625f0`): the target within the generation's cone of the nose.

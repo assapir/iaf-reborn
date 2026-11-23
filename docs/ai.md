@@ -1418,13 +1418,14 @@ locks, 430, condition 26).
 
 ## 15. Modern IAF's air-defence sites (ours)
 
-Modern IAF's sites run on the Rust site (`crates/iaf-ai/src/site.rs`, gdext `IafSite`), not on the 1998 brain; the
-1998 game keeps §14 as it is. No mission places a site yet. `shared/ai/air_defence.gd` is the dev and test hook:
-`AirDefence.of(host).spawn(kind, pos, heading, alternates)` (kind `s300`, `tor` or `zsu`) adds each part as a
-mission entity (`ad:N`) with its model or stand-in shape (§15.4) and arms each firing part as a combat.gd unit without a brain
-(`add_ground_unit`). The test is `modern-iaf/tests/test_enemy_sites.gd`; the Rust tests are
-`crates/iaf-ai/tests/sites.rs`. The procedure and its sources: [modern-iaf/docs/research/enemies.md](../modern-iaf/docs/research/enemies.md)
-§2.3–§2.6, §3.1 and §5.2. Timings no source gives are inferred, each with a comment in `site.rs`.
+Modern IAF's sites run on the Rust site (`crates/iaf-ai/src/site.rs`, gdext `IafSite`), not on the 1998 brain; the 1998
+game keeps §14 as it is. No mission places a site yet. `shared/ai/air_defence.gd` is the dev and test hook:
+`AirDefence.of(host).spawn(kind, pos, heading, alternates)` (kind `s300`, `tor`, `zsu`, or a shoulder-fired team
+`strela` or `igla`, §15.8) adds each part as a mission entity (`ad:N`) with its model or stand-in shape (§15.4) and arms
+each firing part as a combat.gd unit without a brain (`add_ground_unit`). The test is
+`modern-iaf/tests/test_enemy_sites.gd`; the Rust tests are `crates/iaf-ai/tests/sites.rs`. The procedure and its
+sources: [modern-iaf/docs/research/enemies.md](../modern-iaf/docs/research/enemies.md) §2.3–§2.6, §3.1 and §5.2. Timings
+no source gives are inferred, each with a comment in `site.rs`.
 
 ### 15.1 The procedure
 
@@ -1654,6 +1655,56 @@ from a hostile jet; a friendly's (a defending wingman's) jams the enemy, not the
 - Roads for the move; §11-121's other moves (after a reconnaissance overflight, after 4–6 hours in place); a battery
   of several sites moving a third at a time.
 
+### 15.8 Shoulder-fired teams
+
+The user, 22 Nov 2026: "Ok follow your suggested order" (the list that named shoulder-fired missiles as a missing
+low-altitude threat; modern-iaf/docs/ai-plan.md K16). A team runs on the same Rust site (`Kind::Strela`,
+`Kind::Igla`) and the same dev hook, `spawn("strela" | "igla", pos, heading, alternates)`. Two types stand for the two
+seeker generations the threat set holds (modern-iaf/docs/threats.md: the Strela-2 with Hezbollah and in Gaza, the
+Misagh-2 in Iran). The tests: `cargo test -p iaf-ai --test sites` (`manpads_…`, `a_team_…`,
+`the_strela_…`, `skill_sets_the_team_s_reaction`), `modern-iaf/tests/test_manpads.gd`.
+
+| | 9K32M Strela-2M | 9K38 Igla |
+|---|---|---|
+| seeker | uncooled PbS, a jet's tail only[^w-strela] (generation 1) | cooled InSb and PbS, IR and UV; head on "under favourable circumstances"[^w-igla] (generation 3) |
+| the seeker's lock (`sight::RealLock`) | rear 8.4 km with the afterburner, 4.2 km at military power; no front lock | rear 10.4 km / 5.2 km; front 2.5 km, 4 km with the afterburner (inferred) |
+| range | 0.8–4.2 km[^w-strela] | 0.5 (inferred)–5.2 km[^w-igla] |
+| height above the team | 50–2,300 m[^w-strela] | 10 (inferred)–3,500 m[^w-igla] |
+| fastest target | receding 260 m/s; no approaching jet[^w-strela] | approaching 320 m/s, receding 360 m/s[^w-igla] |
+| missile | 9.8 kg, 72 mm, 500 m/s[^w-strela] | 10.8 kg, 72 mm, 570 m/s[^w-igla] |
+| decoy rejection (`_decoyReject`) | 0: "flares proved to be a highly effective countermeasure"[^w-strela] | 0.6 (inferred): two bands, "much improved resistance against flares"[^w-igla] |
+
+- **The team:** two men (the gunner and one with the second round; inferred), class 9 (an infrared SAM), no radar, so no
+  RWR symbol (type −1, [threat-records.md](../modern-iaf/docs/threat-records.md) §3), strength 100 (one 20 mm hit).
+  Drawn as a stand-in figure of ours (`air_defence.gd _shape`: the gunner kneeling with the launcher, the second man
+  standing); no openly licensed model of a team is on disk.
+- **The sight:** the gunner sees a jet within 10 km ("a target detection range of about 10 km"[^w-manpads]) over the
+  terrain from 1.7 m (the sites' `visible`); the team holds it by eye (the ZSU's optical rule, §15.1) on one channel.
+  A team takes no network cue (`Site::eta`: no track radar).
+- **The drill:** from the jet seen to ready, the crew's reaction, then 8 s ("6–10 seconds" from the shoulder with the
+  covers off and the sights up[^w-strela]) times its drills' share (§17).
+- **The launch:** when the jet is inside the envelope (the caller's `Missile.dlz` from rest inside the published
+  range, the crew's share of it as every site's), inside the height band, no faster than the fastest target, and the
+  seeker locks it (`RealLock::holds`, the player's IR seeker's rule: in the rear sector beyond half the rear range only
+  with the afterburner). One missile, then the next after the first has ended (shoot-look-shoot), 20 s apart at the
+  least (the spent tube off, a new one on; inferred). The release aims the missile at the jet (`combat.gd _release`,
+  gated to a team's entity, `shoulder`).
+- **The missile:** its own record built from the AIM-9M's (its model and drag): the warhead 1.15 and 1.17
+  kg[^w-strela][^w-igla], power 250 (one hit damages a fighter, two destroy it) and a 5.7 m blast radius
+  ([threat-records.md](../modern-iaf/docs/threat-records.md) §3's rules for the Misagh-2 and the blast scaling;
+  inferred), so the proximity fuze (docs/real-weapons.md §2.5) bursts within 5.7 m; type 620, a heat SAM, so the RWR
+  does not hear its launch (`rwr.rs ir_guided`) and the MAW warns "SAM" (`ews.rs launch_class`, the class from the
+  ground); the physical missile of `missile.rs` with the team's motor and body (`IafSite.missile`); the seeker's cone in
+  flight by its generation (15°, 35°). The motor's thrust and propellant are fitted to the top speed and the flight's
+  end (the self-destruct's 14–17 s[^w-strela]) to the range: from rest at sea level 495 m/s and 4.3 km, 574 m/s and 5.0
+  km. A flare within the missile's last 6 s takes a Strela one time in two, an Igla one in five (§15.6).
+- **Moving:** on foot at 1.5 m/s to its alternates after an engagement (§15.1's relocation), a 10 s march order, 5 s
+  set-up and a 3 s halt before a shot (all inferred).
+- **The drafts:** the Misagh-2 team and missile drafts ([threat-records.md](../modern-iaf/docs/threat-records.md),
+  pending the user's decision) are not read: the teams' figures live in `site.rs`; the power and blast follow the
+  drafts' rules.
+- **Open:** the real seekers' lock ranges, the teams' reload time, the missiles' g limits (12 and 16 g held).
+
 ## 16. Modern IAF's one-way attack drones (ours)
 
 The user, 19 November 2026: "we need to have the code for ai enemies. Just isn't reachable by mission yet"; the air
@@ -1760,6 +1811,9 @@ What each level changes in the enemy we have:
   target is inside its share of the envelope, counted from the minimum range out (so every level has a window): Low
   fires at the edge, High holds until the target is deeper. With EMCON Cue the track radar comes on that much earlier before this range. The detection is the same at
   every level.
+- **The shoulder-fired teams** (§15.8): the reaction and the drill from the shoulder (8 s: 15 s Low, 6.5 s High, with
+  the reaction); the launch inside the level's share of the envelope. A jet that comes into sight close and going away
+  may leave the missile's reach before a Low crew is ready (`modern-iaf/tests/test_manpads.gd`).
 - **The guns** (the ZSU-23-4): each burst is laid off by an error across the line of sight and up, a normal spread of
   the level's mrad (`Skill::lay`: a seeded hash per site and burst, so a run repeats). `air_defence.gd` passes it to
   `combat.gd fire_at`, which moves the aim point by it (straight overhead, about the east axis); the rounds then fly
@@ -2146,6 +2200,9 @@ Open questions in this document:
 [^maarachot]: "מהפכת האימון האווירי המבצעי", Maarachot (the IDF's journal), https://www.maarachot.idf.il/media/0rbdlk3j/מהפכת-האימון-האווירי-המבצעי.pdf ("המיומנויות הנדרשות", "מצעיר למנוסה"; read 2026-11-21).
 [^w-pd]: Wikipedia, "Pulse-Doppler radar", https://en.wikipedia.org/wiki/Pulse-Doppler_radar ("Rejection speed is selectable on pulse-Doppler aircraft-detection systems so nothing below that speed will be detected"; "usually set just above the prevailing wind speed (10 to 100 mph or 20 to 160 km/h)"; read 2026-11-21).
 [^w-tor-pd]: Wikipedia, "Tor missile system", https://en.wikipedia.org/wiki/Tor_missile_system ("The target acquisition radar is an F band pulse doppler 3D radar"; "The target engagement radar is a G band/H band (later K band) pulse doppler radar"; read 2026-11-21; the Tor-M1 7,500 mm long, 3,300 mm wide, 5,100 mm high with the radar up, read 2026-11-22).
+[^w-strela]: Wikipedia, "9K32 Strela-2", https://en.wikipedia.org/wiki/9K32_Strela-2 (the 2M: 9.8 kg, 72 mm, 500 m/s, 800–4,200 m, 50–2,300 m, receding 260 m/s, jets only from the rear, uncooled PbS seeker; "6–10 seconds" from the shoulder; the booster 0.5 s and the sustainer about 2.0 s; self-destruct 14–17 s; "flares proved to be a highly effective countermeasure against both versions"; read 2026-11-23).
+[^w-igla]: Wikipedia, "9K38 Igla", https://en.wikipedia.org/wiki/9K38_Igla (10.8 kg, 72 mm, 570 m/s peak, 5.2 km, ceiling 3.5 km, approaching 320 m/s, receding 360 m/s; the 9E410 seeker in IR and UV; "much improved resistance against flares and jamming"; "capability to engage straight-approaching fighters (all-aspect capability) under favourable circumstances"; read 2026-11-23).
+[^w-manpads]: Wikipedia, "Man-portable air-defense system", https://en.wikipedia.org/wiki/Man-portable_air-defense_system ("a target detection range of about 10 km (6 mi) and an engagement range of about 6 km (4 mi)"; read 2026-11-23).
 [^w-zsu]: Wikipedia, "ZSU-23-4 Shilka", https://en.wikipedia.org/wiki/ZSU-23-4_Shilka ("the radar picks up many false returns (ground clutter) under 60 m (200 ft) of altitude"; read 2026-11-21; 6.535 m long, 3.125 m wide, 2.576 m high, 3.572 m with the radar up, read 2026-11-22).
 [^ru-maz543]: Wikipedia (Russian), "МАЗ-543", https://ru.wikipedia.org/wiki/МАЗ-543 (the MAZ-543 / MAZ-7310: 11,657 mm long, 3,050 mm wide; read 2026-11-22).
 [^w-ural]: Wikipedia, "Ural-4320", https://en.wikipedia.org/wiki/Ural-4320 (7,366 mm long, 2,500 mm wide, 2,715 mm high; top speed 82 km/h with the V8, 75 km/h with the V6; read 2026-11-22 and 2026-11-23).

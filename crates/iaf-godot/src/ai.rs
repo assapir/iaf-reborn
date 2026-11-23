@@ -429,13 +429,14 @@ fn target(d: &VarDictionary) -> Target {
         dlz: (dlz.x.into(), dlz.y.into()),
         in_air: num(d, "in_air").unwrap_or(0.0) as u32,
         jam: num(d, "jam").unwrap_or(0.0),
+        ab: get(d, "ab").unwrap_or(false),
     }
 }
 
 #[godot_api]
 impl IafSite {
-    /// A site of `kind` (s300, tor, zsu) centred at `pos` (world), facing `heading` (degrees), with its alternate
-    /// positions (Vector3s); null for an unknown kind.
+    /// A site of `kind` (s300, tor, zsu, strela, igla) centred at `pos` (world), facing `heading` (degrees), with its
+    /// alternate positions (Vector3s); null for an unknown kind.
     #[func]
     fn create(kind: GString, pos: Vector3, heading: f64, alternates: VarArray) -> Option<Gd<Self>> {
         let kind = Kind::from_name(&kind.to_string())?;
@@ -464,6 +465,24 @@ impl IafSite {
                 .to_variant()
             })
             .collect()
+    }
+
+    /// A shoulder-fired team's missile (docs/ai.md §15.8), {} for a radar site or a gun: {name, generation, kg, power,
+    /// radius (the blast's, m), motion (the physical missile's keys, `missile.rs` Physics, and its seeker's
+    /// `_decoyReject`)}.
+    #[func]
+    fn missile(&self) -> VarDictionary {
+        let Some(ir) = self.site.spec().ir else { return VarDictionary::new() };
+        let p = ir.phys;
+        let motion = vdict! {
+            "_motorThrust" => p.thrust, "_motorBurn" => p.burn, "_launchKg" => p.mass, "_propellantKg" => p.propellant,
+            "_diameterM" => p.diameter, "_dragScale" => p.drag_scale, "_maxTime" => p.max_time, "_maxG" => p.max_g,
+            "_navConstant" => p.nav, "_thrustVector" => if p.tvc { 1.0 } else { 0.0 }, "_decoyReject" => ir.reject,
+        };
+        vdict! {
+            "name" => ir.name, "generation" => ir.generation, "kg" => p.mass, "power" => site::Ir::POWER,
+            "radius" => ir.blast(), "motion" => &motion,
+        }
     }
 
     /// Each part's ground position (world) on the terrain `ground` (Callable(Vector3) -> float or null).

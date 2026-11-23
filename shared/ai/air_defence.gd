@@ -1,8 +1,9 @@
-## Modern IAF's air-defence sites (docs/ai.md §15): an S-300PMU-2 battery, a Tor-M1 and a ZSU-23-4, each run by the
-## Rust site (IafSite, crates/iaf-ai/src/site.rs). A dev / test hook: no mission places one yet. Each part is a mission
-## entity ("ad:N") with a stand-in shape of ours, and each firing part a combat.gd unit without a brain, so the
-## launches go through combat.gd's release (the existing missile and gun-round models, the AIM-120's and the 20 mm's
-## records standing in) and the locks through its on_lock (the RWR, an AI jet's brain). Sites may join a network
+## Modern IAF's air-defence sites (docs/ai.md §15): an S-300PMU-2 battery, a Tor-M1, a ZSU-23-4 and shoulder-fired
+## teams (a Strela-2M, an Igla; §15.8), each run by the Rust site (IafSite, crates/iaf-ai/src/site.rs). A dev / test
+## hook: no mission places one yet. Each part is a mission entity ("ad:N") with a stand-in shape of ours, and each
+## firing part a combat.gd unit without a brain, so the launches go through combat.gd's release (the existing missile
+## and gun-round models, the AIM-120's and the 20 mm's records standing in; a team's missile its own record,
+## IafSite.missile) and the locks through its on_lock (the RWR, an AI jet's brain). Sites may join a network
 ## (IafNet, crates/iaf-ai/src/net.rs, docs/ai.md §15.5): its search radar cues their track radars.
 extends Node
 
@@ -19,6 +20,14 @@ const GUN_RECORD := "20 MM"
 ## Every part's strength and spawn radius (threat-records.md §3: the vehicles held at 300).
 const STRENGTH := 300.0
 const RADIUS := 8.0
+## A shoulder-fired team's (threat-records.md §3: one 20 mm hit; a person with a launcher, inferred).
+const TEAM_STRENGTH := 100.0
+const TEAM_RADIUS := 1.0
+## A team's missile record: the AIM-9M's model, its own warhead and motion, type 620 (a heat SAM: the RWR does not hear
+## its launch, rwr.rs ir_guided) and an id above every other record's.
+const IR_BASE := "AIM-9M"
+const IR_TYPE := 620
+const IR_ID := 1900
 ## The Tor's moving parts (its model's nodes, tools/enemy_models/convert.py PARTS; docs/ai.md §15.4): the search
 ## radar's turn while it searches (deg/s: the model's own Scan animation, a turn in 3 s; the real rate open), the
 ## turret's and the tracking radar's slew onto the track (deg/s, inferred), a cell cover's opening about its x (deg:
@@ -57,9 +66,9 @@ static func of(h: Node) -> Node:
 	return n
 
 
-## A site of `kind` (s300, tor, zsu) centred at `pos` (world), facing `heading` (degrees), with its alternate positions
-## (world); its parts' entities, [] for an unknown kind. `side` −1: the player's enemy. `mast`: the S-300's track
-## radar on its 40V6M tower (IafSite set_mast: its antenna at 25 m), drawn as the tower.
+## A site of `kind` (s300, tor, zsu, strela, igla) centred at `pos` (world), facing `heading` (degrees), with its
+## alternate positions (world); its parts' entities, [] for an unknown kind. `side` −1: the player's enemy. `mast`:
+## the S-300's track radar on its 40V6M tower (IafSite set_mast: its antenna at 25 m), drawn as the tower.
 func spawn(kind: String, pos: Vector3, heading := 0.0, alternates := [], side := -1, mast := false) -> Array:
 	var site = IafSite.create(kind, pos, heading, alternates)
 	if site == null:
@@ -84,11 +93,12 @@ func spawn(kind: String, pos: Vector3, heading := 0.0, alternates := [], side :=
 		"open_until": -INF
 	}
 	var at: Array = site.positions(host.mission_ground)
-	var record := _record(GUN_RECORD if kind == "zsu" else SAM_RECORD)
+	var ir: Dictionary = site.missile()
+	var record := _ir_record(ir) if not ir.is_empty() else _record(GUN_RECORD if kind == "zsu" else SAM_RECORD)
 	for i in s.parts.size():
 		var p: Dictionary = s.parts[i]
 		var tower: bool = mast and p.track and not p.search
-		var ent := _part(p, at[i], heading, side, " MAST" if tower else "")
+		var ent := _part(p, at[i], heading, side, " MAST" if tower else "", not ir.is_empty())
 		s.units.append(cb.add_ground_unit(ent, record) if int(p.rounds) > 0 and not record.is_empty() else null)
 		s.ents.append(ent)
 	s.track = maxi(0, s.parts.map(func(p): return p.track).find(true))
@@ -133,16 +143,25 @@ func _side(side: int) -> int:
 
 ## Part `p` ({name, klass, type_code, reach_km}) as a mission entity ("ad:N") at `at` (world) with its model or
 ## stand-in shape (its name and `look`'s suffix: " MAST" for the tower).
-func _part(p: Dictionary, at: Vector3, heading: float, side: int, look := "") -> Dictionary:
+## `team`: a shoulder-fired team (its strength and size; the gunner aims the launch at the target, combat.gd _release).
+func _part(p: Dictionary, at: Vector3, heading: float, side: int, look := "", team := false) -> Dictionary:
 	var rt: Node = host.runtime
 	_n += 1
 	var e := {"0x1e": -_n, "0x2bc": p.name, "0x2e4": at.x, "0x2ee": at.y, "0x2f8": at.z}
 	e.merge({"0x2d0": side, "0x302": heading})
 	var ent := MissionRuntime.entity(e, "ad:%d" % _n, -1, false)
-	var obj := {"0x5aa": p.klass, "0x5b4": p.type_code, "0x56e": STRENGTH, "0x564": RADIUS, "0x58c": 1}
+	var obj := {
+		"0x5aa": p.klass,
+		"0x5b4": p.type_code,
+		"0x56e": TEAM_STRENGTH if team else STRENGTH,
+		"0x564": TEAM_RADIUS if team else RADIUS,
+		"0x58c": 1
+	}
 	if float(p.reach_km) > 0.0:
 		obj.radar_km = p.reach_km  # the RWR hears the radar to its reach (player_weapons.gd _rwr_search)
 	MissionRuntime._init_damage(ent, obj)
+	if team:
+		ent.shoulder = true
 	ent.node = _shape(String(p.name) + look)
 	host.add_child(ent.node)
 	rt.entities[ent.key] = ent
@@ -157,6 +176,33 @@ func site_of(ent: Dictionary) -> Dictionary:
 		if s.ents.has(ent):
 			return s
 	return {}
+
+
+## A team's missile record from IafSite.missile {name, generation, kg, power, radius, motion}: the AIM-9M's record
+## (its model and drag) with the team's warhead, physical missile and seeker; made once per name.
+func _ir_record(ir: Dictionary) -> Dictionary:
+	var have := _record(String(ir.name))
+	if not have.is_empty():
+		return have
+	var base := _record(IR_BASE)
+	if base.is_empty():
+		return {}
+	var w := base.duplicate(true)
+	var m: Dictionary = cb._db.motion_for(int(base.type), int(base.generation)).duplicate()
+	m.merge(ir.motion, true)
+	w.motion = m
+	# The AIM-9M's own seeker and lock figures go: the team's seeker cone is its generation's (sight.rs cone_deg).
+	for k in w.keys().filter(func(k): return String(k) == "real" or String(k).begins_with("real_")):
+		w.erase(k)
+	w.id = IR_ID + cb._db.weapons.size()
+	w.name = String(ir.name)
+	w.type = IR_TYPE
+	w.generation = int(ir.generation)
+	w.weight_lb = roundf(float(ir.kg) / 0.45359)
+	w.power = float(ir.power)
+	w.radius = float(ir.radius)
+	cb._db.weapons[w.id] = w
+	return w
 
 
 func _record(name: String) -> Dictionary:
@@ -325,8 +371,8 @@ func _fire_gun(s: Dictionary, now: float) -> void:
 
 
 ## The jets hostile to `side`, alive: the player and the AI aircraft, each with what a radar sees of it (its
-## definition's rcs, the bays, the external stores; its jammer's burn-through share while it jams, docs/ai.md §15.6):
-## {id, pos, vel, nose, rcs, bays, stores, jam, ent}.
+## definition's rcs, the bays, the external stores; its jammer's burn-through share while it jams, docs/ai.md §15.6;
+## its afterburner lit, for an infrared seeker, §15.8): {id, pos, vel, nose, rcs, bays, stores, jam, ab, ent}.
 func jets(side: int) -> Array:
 	var rt: Node = host.runtime
 	var w: Node = host.weapons
@@ -335,7 +381,13 @@ func jets(side: int) -> Array:
 		if e.side == side or int(e.state) >= 4 or not (e.player or (e.klass in cb.AIR and e.node != null)):
 			continue
 		var vel: Vector3 = cb._velocity_of(e)
-		var stores = w.stores if e.player else cb.units.get(e.key, {}).get("stores")
+		var u = cb.units.get(e.key)
+		var stores = w.stores if e.player else (u.stores if u != null else null)
+		var st: Dictionary = {}
+		if e.player and host.flight != null:
+			st = host.flight.state()
+		elif u != null and u.pilot != null:
+			st = u.pilot.state()
 		(
 			out
 			. append(
@@ -348,6 +400,7 @@ func jets(side: int) -> Array:
 					"bays": e.player and w.bay_open(),
 					"stores": stores.external() if stores != null else 0,
 					"jam": w.jam_share() if e.player else float(e.get("jam", 0.0)),
+					"ab": int(st.get("afterburner", 0)) > 0,
 					"ent": e,
 				}
 			)
@@ -440,6 +493,19 @@ func _shape(part: String) -> Node3D:
 				for y in [2.2, 2.5]:
 					plates.append([Vector3(x, y + 0.2, -2.6), Vector3(0.12, 0.12, 2.8), steel, 8.0])
 			plates.append([Vector3(0, 3.4, 1.5), Vector3(1.4, 1.0, 0.15), FACE, 10.0])
+		"9K32M STRELA-2M", "9K38 IGLA":
+			# The gunner kneeling, the launcher on the shoulder raised 20°; the second man standing beside him (ours: no
+			# openly licensed model of a team is on disk).
+			var skin := Color(0.55, 0.42, 0.33)
+			boxes = [
+				[Vector3(0, 0.25, 0.15), Vector3(0.4, 0.5, 0.6), dark],
+				[Vector3(0, 0.8, 0), Vector3(0.45, 0.6, 0.3), olive],
+				[Vector3(0, 1.22, 0), Vector3(0.2, 0.22, 0.22), skin],
+				[Vector3(0.9, 0.4, 0.3), Vector3(0.4, 0.8, 0.3), dark],
+				[Vector3(0.9, 1.15, 0.3), Vector3(0.45, 0.7, 0.3), olive],
+				[Vector3(0.9, 1.62, 0.3), Vector3(0.2, 0.22, 0.22), skin],
+			]
+			plates = [[Vector3(0.22, 1.2, -0.1), Vector3(0.08, 0.08, 1.6), CANISTER, 20.0]]
 	var root := Node3D.new()
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)

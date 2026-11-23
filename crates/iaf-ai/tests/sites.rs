@@ -24,6 +24,7 @@ fn jet(id: &str, def: &str, pos: Vec3, vel: Vec3) -> Target {
         dlz: (0.0, 0.0),
         in_air: 0,
         jam: 0.0,
+        ab: false,
     }
 }
 
@@ -532,4 +533,126 @@ fn skill_sets_the_gun_laying_error() {
             assert!((e[0] - h.2[0] * r).abs() < 1e-12 && (e[1] - h.2[1] * r).abs() < 1e-12, "{e:?} {h:?}");
         }
     }
+}
+
+// --- shoulder-fired teams (docs/ai.md §15.8) ---------------------------------------------------------------------
+
+/// A jet `y` m north of the team at `agl` m, flying `vy` m/s north (negative: toward it), `x` m east.
+fn low(id: &str, x: f64, y: f64, agl: f64, vy: f64) -> Target {
+    // The caller's envelope from rest (`Missile.dlz`) is wider than the published one, which takes over.
+    Target { dlz: (8_000.0, 300.0), ..jet(id, "f16", Vec3::new(x, y, agl), Vec3::new(0.0, vy, 0.0)) }
+}
+
+/// Each team's missile from rest at sea level: its published top speed and range (the straight flight before its
+/// end, less the DLZ's last 2 s).
+#[test]
+fn manpads_missiles_fly_their_published_figures() {
+    for (kind, top, km) in [(Kind::Strela, 500.0, 4.2), (Kind::Igla, 570.0, 5.2)] {
+        let ir = kind.spec().ir.unwrap();
+        let mut best = 0.0f64;
+        let mut flown = Vec::new();
+        ir.phys.fly_straight(0.0, 0.0, 0.0, |t, d, v| {
+            best = best.max(v);
+            flown.push((t, d));
+            false
+        });
+        let end = flown.last().unwrap().0 - 2.0;
+        let reach = flown.iter().filter(|f| f.0 <= end).map(|f| f.1).fold(0.0, f64::max);
+        println!("{kind:?}: top {best:.0} m/s, reach {:.2} km, flight {:.1} s", reach / 1e3, end + 2.0);
+        assert!((best / top - 1.0).abs() < 0.05, "{kind:?}: top {best:.0} m/s against {top}");
+        assert!((reach / 1e3 / km - 1.0).abs() < 0.05, "{kind:?}: {:.2} km against {km}", reach / 1e3);
+        assert!((ir.blast() - 5.7).abs() < 0.1, "{kind:?}: the blast scaled from the AIM-9A / B's 9 m for 4.5 kg");
+    }
+}
+
+/// A team is passive: it holds a low jet by eye (no search, no track, no lock on the RWR), fires after the crew's
+/// reaction and drill from the shoulder once the jet is inside its envelope and its seeker has it, one missile, then
+/// its second once the first has ended (shoot-look-shoot).
+#[test]
+fn a_team_sees_a_low_jet_and_fires_by_eye() {
+    // Head on 12 km out at 150 m, 250 m/s: the Igla's front lock (2.5 km) comes before its minimum range.
+    let mut sim = Sim::new(Site::new(Kind::Igla, Vec3::ZERO, 0.0, &[]), vec![low("a", 300.0, 12_000.0, 150.0, -250.0)]);
+    sim.fly = 6.0;
+    let mut seen = None;
+    while sim.now < 60.0 {
+        sim.run(0.5);
+        if seen.is_none() && !sim.site.channels.is_empty() {
+            seen = Some(sim.now - 0.5);
+        }
+    }
+    let seen = seen.expect("seen by eye");
+    let y0 = |t: f64| 12_000.0 - 250.0 * t;
+    assert_eq!(seen, first_tick(|t| Vec3::new(300.0, y0(t), 150.0).distance(Vec3::UP * 1.7) <= 10_000.0), "10 km");
+    assert!(sim.log.iter().all(|(_, o, _)| !o.search && !o.track && o.tracks.is_empty()), "nothing radiates");
+    let l = sim.launches();
+    assert_eq!(l.len(), 2, "its two rounds: {l:?}");
+    let drill = Skill::MEDIUM.reaction_s + 8.0;
+    assert!(l[0].0 >= seen + drill, "after the drill: {l:?}");
+    let d0 = Vec3::new(300.0, y0(l[0].0), 150.0).length();
+    assert!(d0 <= 4_000.0 && y0(l[0].0) > 0.0, "head on inside the front lock (afterburner off: 2.5 km): {d0:.0}");
+    assert!(l[1].0 >= l[0].0 + 6.0, "the second after the first has ended: {l:?}");
+    assert_eq!(sim.site.rounds, [0]);
+}
+
+/// The Strela-2M's uncooled seeker sees only a jet's tail: no launch while it approaches, a launch once it recedes
+/// inside the range.
+#[test]
+fn the_strela_fires_only_at_a_receding_jet() {
+    let mut sim =
+        Sim::new(Site::new(Kind::Strela, Vec3::ZERO, 0.0, &[]), vec![low("a", 500.0, 8_000.0, 200.0, -220.0)]);
+    sim.fly = 1e9;
+    sim.run(80.0);
+    let l = sim.launches();
+    assert_eq!(l.len(), 1, "{l:?}");
+    let y = 8_000.0 - 220.0 * l[0].0;
+    assert!(y < 0.0, "past the team, going away: y {y:.0}");
+    assert!(Vec3::new(500.0, y, 200.0).length() <= 4_200.0);
+}
+
+/// The envelope's height band and the fastest target: no launch at a jet above the ceiling or too fast; the Igla
+/// takes a jet the Strela cannot (its height, its front).
+#[test]
+fn a_team_keeps_to_its_envelope() {
+    let fired = |kind: Kind, t: Target| {
+        let mut sim = Sim::new(Site::new(kind, Vec3::ZERO, 0.0, &[]), vec![t]);
+        sim.fly = 1e9;
+        sim.run(80.0);
+        !sim.launches().is_empty()
+    };
+    assert!(!fired(Kind::Igla, low("a", 0.0, 8_000.0, 3_800.0, -200.0)), "above the Igla's 3.5 km");
+    assert!(fired(Kind::Igla, low("a", 0.0, 8_000.0, 3_000.0, -200.0)), "inside it");
+    assert!(!fired(Kind::Strela, low("a", 0.0, 8_000.0, 3_000.0, -200.0)), "above the Strela's 2.3 km");
+    assert!(!fired(Kind::Igla, low("a", 0.0, 8_000.0, 200.0, -400.0)), "faster than its 320 m/s head on");
+    // At 30 m a hill 2 km out hides the jet from the team until it is over the hill (the eye needs a line of sight).
+    let hill = |p: Vec3| Some(if (p.y - 2_000.0).abs() < 100.0 { 60.0 } else { 0.0 });
+    let mut site = Site::new(Kind::Igla, Vec3::ZERO, 0.0, &[]);
+    let t = low("a", 0.0, 8_000.0, 30.0, -200.0);
+    let out = site.tick(0.0, &[true], &[t], &hill);
+    assert!(out.launches.is_empty() && site.channels.is_empty(), "masked");
+}
+
+/// The crew's skill: the same sighting, the launch later for a slower crew (its reaction and drill).
+#[test]
+fn skill_sets_the_team_s_reaction() {
+    let first = |skill: Skill| {
+        let mut site = Site::new(Kind::Igla, Vec3::ZERO, 0.0, &[]);
+        site.skill = skill;
+        // Crossing behind, receding: inside the rear lock all the way.
+        let mut sim = Sim::new(site, vec![low("a", 1_500.0, 500.0, 300.0, 200.0)]);
+        sim.fly = 1e9;
+        sim.run(40.0);
+        sim.launches()[0].0
+    };
+    let (low_t, med, high) = (first(Skill::LOW), first(Skill::MEDIUM), first(Skill::HIGH));
+    let drill = |s: Skill| s.reaction_s + 8.0 * s.procedure;
+    assert!(low_t > med && med > high, "{low_t} {med} {high}");
+    assert!(((low_t - high) - (drill(Skill::LOW) - drill(Skill::HIGH))).abs() <= 0.5, "{low_t} {high}");
+}
+
+/// A team takes no cue from a network: no radar to acquire with.
+#[test]
+fn a_team_is_no_network_member() {
+    let site = Site::new(Kind::Igla, Vec3::ZERO, 0.0, &[]);
+    let t = low("a", 0.0, 3_000.0, 200.0, -200.0);
+    assert!(site.eta(0.0, &[true], &t, &flat).is_infinite());
 }
