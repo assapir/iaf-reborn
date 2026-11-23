@@ -337,5 +337,11 @@ static func pfl_lines(flags: Array, acked := []) -> Array:
 
 
 func _text(at: Vector2, t: String, fs: int, col: Color) -> void:
+	if t.length() == 1:
+		# One glyph, drawn without shaping: the font's string cache misses whenever its glyphs change (the big fight's
+		# DED cost 3.9 ms a frame in get_string_size, docs/ai.md §22).
+		var c := t.unicode_at(0)
+		draw_char(_font, at + Vector2(-_font.get_char_size(c, fs).x / 2.0, fs * 0.35), t, fs, col)
+		return
 	var w := _font.get_string_size(t, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
 	draw_string(_font, at + Vector2(-w / 2.0, fs * 0.35), t, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, col)

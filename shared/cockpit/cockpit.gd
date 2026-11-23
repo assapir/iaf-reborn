@@ -327,7 +327,13 @@ func _load_tsd_map() -> void:
 					WorldMap.WORLD_H - WorldMap.WORLD_Y_SHIFT - ring[i + 1] / f * WorldMap.WORLD_H
 				)
 			)
-		tsd_map.append({"points": pts, "color": Color8(op.brush[0], op.brush[1], op.brush[2])})
+		if pts.is_empty():
+			continue
+		var box := Rect2(pts[0], Vector2.ZERO)
+		for p in pts:
+			box = box.expand(p)
+		# "box": the polygon's bounds, so a map draw skips the polygons off its window without clipping them.
+		tsd_map.append({"points": pts, "color": Color8(op.brush[0], op.brush[1], op.brush[2]), "box": box})
 
 
 ## Ours: the panoramic display's layers (pcd.gd), null without a [PCD] section.

@@ -1274,7 +1274,10 @@ func _draw_tsd() -> void:
 		var x := Vector2(cos_h, -sin_h) / k
 		var y := Vector2(-sin_h, -cos_h) / k
 		var xf := Transform2D(x, y, Vector2(65, 85) - x * own.x - y * own.y)
+		var win := Rect2(10, 10, 112, 112)
 		for poly in cockpit.tsd_map:
+			if not (xf * (poly.box as Rect2)).intersects(win):
+				continue
 			var pts: PackedVector2Array = xf * (poly.points as PackedVector2Array)
 			for piece in Geometry2D.intersect_polygons(pts, clip):
 				# Skip slivers the clipper leaves (they don't triangulate).

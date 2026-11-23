@@ -697,7 +697,10 @@ func hsd() -> void:
 	if m.real_look == "colour":
 		# At night darker: the 3D screens by MAP_NIGHT (cockpit3d.gd sets map_dim), the 2D panel's by MAP_NIGHT_2D.
 		var dim := maxf(0.62, MfdNode.MAP_NIGHT_2D if cockpit.night and m.screen_px == 0.0 else m.map_dim)
+		var win := Rect2(1, 12, 130, 109)
 		for piece_src in cockpit.tsd_map:
+			if not (xf * (piece_src.box as Rect2)).intersects(win):
+				continue
 			var pts: PackedVector2Array = xf * (piece_src.points as PackedVector2Array)
 			for piece in Geometry2D.intersect_polygons(pts, clip):
 				if piece.size() >= 3 and not Geometry2D.triangulate_polygon(piece).is_empty():

@@ -2225,17 +2225,38 @@ from the dev hooks alone (`modern-iaf/tests/big_fight.gd`). No mission places it
   - One wingman of three is shot down in most runs.
   - The based pair takes off. No AI jet hits the ground and none is stuck.
 - **CPU cost** on the Iris Xe laptop: headless, at time scale 1, 20 s after the sort, with a quiet machine. The fight
-  has 7 AI jets, 3 sites and a network, 4 drones and 4 vehicles:
-  - the AI jets: 3.15 ms a frame, 0.45 ms each. Jets fighting cost more than those in the calmer tests (0.15–0.21 ms,
-    ai-plan X5);
-  - the sites with their network: 0.11 ms, 0.03 ms each;
-  - the drones: 0.06 ms; the convoy: 0.07 ms;
-  - the frame's whole process time: 23.1 ms, against 11.6 ms with our flight alone. The AI accounts for 3.4 ms of the
-    11.5 ms added. The rest is the host's work for the extra units and missiles (weapons, missiles in flight, the
-    RWR, the runtime). That split is open.
+  has 7 AI jets, 3 sites and a network, 4 drones and 4 vehicles. Figures of 23 November 2026, before and after the
+  profiling fixes below (the same machine, one run each):
+
+  | Part | Before | After |
+  |---|---|---|
+  | The AI jets, a frame | 3.33 ms (0.48 ms each) | 2.67 ms (0.38 ms each) |
+  | The sites with their network | 0.12 ms | 0.07 ms |
+  | The drones; the convoy | 0.06 ms; 0.07 ms | 0.06 ms; 0.06 ms |
+  | The frame's whole process time | 24.3 ms | 15.2 ms |
+  | The same with our flight alone | 11.9 ms | 10.8 ms |
+
+  The whole fight now fits the 16.7 ms of a 60 fps frame on the CPU. Jets fighting still cost more than those in the
+  calmer tests (0.15–0.21 ms, ai-plan X5).
+- **Where the time went** (Godot's script profiler with native calls, `modern-iaf/tests/_big_fight_profile.gd` and
+  `tools/gd_profile.py`; the profiler's own overhead inflates every figure by about a third):
+  - **The 3D cockpit's DED: 3.9 ms a frame.** It draws each character on its own, centred by
+    `Font.get_string_size`. The font's string cache misses each time the font's glyph cache changes, which the fight's
+    many labels make happen every frame: 50 µs a character against 1 µs with our flight alone. A single character is
+    now measured and drawn as a glyph (`get_char_size`, `draw_char`), which needs no shaping. The same glyphs land in
+    the same places (`cockpit3d_display.gd _text`).
+  - **The aircraft definitions read from disk: about 0.5 ms.** Modern IAF's `airframe_def` read and parsed the jet's
+    JSON file on every call, before it looked in its cache: 16 reads a frame from the air-defence and AI loops. The
+    cache is now looked at first (`sim_settings.gd`).
+  - **The moving map clipped off screen: about 0.4 ms.** The HSD's colour map (and the 2D MFD's TSD and the F-35I's
+    TSD) clipped every map polygon against its window each frame: 187 clips a frame, now 82. Each polygon keeps its bounds
+    (`cockpit.gd tsd_map` "box"), and a polygon whose bounds miss the window is skipped. The picture is the same.
+  - **What is left** is spread thin: the per-frame flight states (`IafFlight.state`, 34 calls), the Rust missile
+    envelopes (`dlz`) and the jets' lists the sites, the AI and the radar each build. None costs more than about
+    0.3 ms.
 - **GPU cost**: a real render at 1,920 × 1,080 with the default settings, the camera chasing Kidon 1-3 from 30 m. Each
   part is compared shown against hidden, by turns, because the fight keeps moving:
-  - the whole scene: 19.5 ms GPU, 31.7 ms a frame. The frame is limited by the CPU, not the GPU;
+  - the whole scene: 19.5 ms GPU, 31.7 ms a frame, measured before the CPU fixes above, when the CPU limited the frame;
   - the chased jet, which fills much of the screen: 1.38 ms;
   - each other AI jet: 0.037 ms;
   - each ground unit or drone: 0.014 ms (18 of them).

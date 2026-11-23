@@ -8,9 +8,9 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   with everything at once. Our four-ship flies low and gets the sort, weapons free and a ground attack. It faces a MiG-29A pair on
   CAP and a pair that scrambles from a base, the S-300 network with a Tor and a ZSU, a convoy on the road and four
   Shahed-136s. The headless test `modern-iaf/tests/test_big_fight.gd` passes: missiles fly both ways, MiGs and
-  vehicles go down, no jet hits the ground, none is stuck. The cost on the Iris Xe is 0.45 ms CPU per AI jet, about
-  32 fps at 1080p, with the frame limited by the CPU. A movie script films the fight (`_big_fight_movie.gd`). No
-  mission places it.
+  vehicles go down, no jet hits the ground, none is stuck. Profiled and fixed (23 Nov): the frame's CPU time fell
+  from 24.3 to 15.2 ms on the Iris Xe, inside a 60 fps frame, at 0.38 ms per AI jet. A movie script films the fight
+  (`_big_fight_movie.gd`). No mission places it.
 - **The target drones on Modern IAF's AI (2026-11-23, the user, 22 Nov: "Ok follow your suggested order";
   [ai-plan.md](ai-plan.md) C4; [../../docs/ai.md](../../docs/ai.md) §21):** the weapons range's drones decide in Rust
   (`iaf_ai::target`, gdext `IafTargetDrone`) in place of the 1998 brain: each by its brain record's kind, every 3 s,

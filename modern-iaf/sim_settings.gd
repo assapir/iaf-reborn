@@ -736,10 +736,11 @@ func set_jet(airframe_id: String) -> void:
 ## The shared definition with the sim's own file (data/planes/<id>.json) merged over it, key by key, and the
 ## jet's cockpit dir (_planes).
 func airframe_def(id: String) -> Dictionary:
-	var own := load_json(_sim_file(PLANES).path_join(id + ".json"))
-	if own.is_empty() and not _planes().has(id):
-		return super(id)
 	if not _sim_airframes.has(id):
+		var own := load_json(_sim_file(PLANES).path_join(id + ".json"))
+		if own.is_empty() and not _planes().has(id):
+			_sim_airframes[id] = super(id)
+			return _sim_airframes[id]
 		var d: Dictionary = super(id).duplicate(true)
 		d.merge(own, true)
 		if _planes().has(id):

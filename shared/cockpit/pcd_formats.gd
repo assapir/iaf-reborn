@@ -259,6 +259,8 @@ func tsd(r: Rect2, range_nm: float, show_map := true, layer := 0) -> void:
 		# point by point took 64 ms a frame (measured 2026-11-08) and slowed the F-35I's flight.
 		var xf := scope_xform(c, mpp)
 		for p in cockpit.tsd_map:
+			if not (xf * (p.box as Rect2)).intersects(r):
+				continue
 			var pts: PackedVector2Array = xf * (p.points as PackedVector2Array)
 			if pts.size() > 0:
 				pts.append(pts[0])
