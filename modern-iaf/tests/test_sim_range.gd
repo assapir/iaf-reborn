@@ -1,7 +1,8 @@
 # The weapons range (avionics-plan.md §6 slice 1, G3; modern-iaf/docs/training.md §3.4), headless, per jet: its range
 # mission set up as the front end's Fly does (fly.gd prepare), then
 # - the mission's own load is on the jet, with bombs for its ground kills;
-# - the range's drones fly: the sim's own jets as red AI flights under their brains, airborne and moving, none armed;
+# - the range's drones fly: the sim's own jets as red AI flights under IafTargetDrone (docs/ai.md §21), each of the
+#   kind its record's brain names, airborne and moving, none armed; Drone 3 breaks or runs from a jet 5 km behind it;
 #   its ground targets stand on the ground, drawn;
 # - the radar finds them: the jet put 12 km behind a drone at its height, Q in the air (CRM) lists it as a contact;
 # - a gun kill is scored: the jet put 200 m behind the drone at its speed, Shift+A and the trigger shoot it down; the
@@ -84,6 +85,15 @@ func jet(mission: String, unit: String, load: int) -> void:
 		)
 	)
 	check(drones.all(func(p): return p.mode == 7), "%s: every drone flies its route (WayPtSet)" % unit)
+	var kinds := {"drone": "route", "drone_radar": "radar", "drone_evade": "evade"}
+	var wrong := []
+	for p in drones:
+		var rec: Array = readable.drones.filter(func(d): return String(p.ent.name).begins_with(String(d.name)))
+		if p.drone == null or rec.is_empty() or p.drone.kind() != kinds.get(String(rec[0].brain)):
+			wrong.append(p.ent.name)
+	check(
+		wrong.is_empty(), "%s: every drone flies under IafTargetDrone of its brain's kind (wrong: %s)" % [unit, wrong]
+	)
 	# The hulks (class 6, a vehicle; one towed) and the barge (class 15, a ship).
 	var ground: Array = tv.runtime.entities.values().filter(
 		func(e): return int(e.klass) in [6, 15] and int(e.side) == 2
@@ -92,6 +102,16 @@ func jet(mission: String, unit: String, load: int) -> void:
 		ground.size() == readable.targets.size() and ground.all(func(e): return e.node != null and e.node.visible),
 		"%s: the %d ground targets drawn" % [unit, ground.size()]
 	)
+	# Drone 3 (drone_evade): a jet 5 km behind it, at its speed: inside 9 km it breaks (0x13) or runs (0x12) at its next
+	# decision (every 3 s).
+	var d3 = drones.filter(func(p): return String(p.ent.name).begins_with("Drone 3"))[0]
+	var s3: Dictionary = d3.state()
+	_put(tv, s3.position - s3.velocity.normalized() * 5000.0, s3.velocity, float(s3.heading))
+	var evaded := false
+	for i in 16:
+		await fly(tv, 0.5)
+		evaded = evaded or d3.mode in [0x12, 0x13]
+	check(evaded, "%s: Drone 3 breaks or runs from a jet 5 km behind it (mode %d)" % [unit, d3.mode])
 	# The radar: 12 km behind Drone 1 at its height, Q in the air: CRM finds it.
 	var d1 = drones.filter(func(p): return String(p.ent.name).begins_with("Drone 1"))[0]
 	var st: Dictionary = d1.state()

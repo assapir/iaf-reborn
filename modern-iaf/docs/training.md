@@ -161,7 +161,8 @@ The places are inferred: open ground the theatre's scenery shows no building on 
 not published. The five drones: Drone 1 on a 30 km racetrack at 15,000 ft (co-altitude with the route), Drone 2 low
 (about 500 m above the ground or the sea), Drone 3 weaving at 20,000 ft and breaking away from a jet inside 9 km
 (brain `drone_evade`), and Drones 4, a pair of F-35s on a 50 km box at 25,000 ft with their radars on (brain
-`drone_radar`: the player's RWR hears their lock). They are red for the exercise and never shoot.
+`drone_radar`: the player's RWR hears their lock). They are red for the exercise and never shoot. Their decisions run
+on Modern IAF's AI (`iaf_ai::target`, [../../docs/ai.md](../../docs/ai.md) §21).
 
 The ground targets are six: the four parked airframes, Target 5 (a hulk towed on a loop beside them, the radar's GMT
 target) and Target 6 (a target barge at sea, the radar's SEA target); any two pass.

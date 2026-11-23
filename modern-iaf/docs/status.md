@@ -3,6 +3,13 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **The target drones on Modern IAF's AI (2026-11-23, the user, 22 Nov: "Ok follow your suggested order";
+  [ai-plan.md](ai-plan.md) C4; [../../docs/ai.md](../../docs/ai.md) §21):** the weapons range's drones decide in Rust
+  (`iaf_ai::target`, gdext `IafTargetDrone`) in place of the 1998 brain: each by its brain record's kind, every 3 s,
+  flies its route, keeps its radar's lock on the best air contact (Drones 4), or breaks 90° or runs from a fighter
+  inside 9 km (Drone 3); none shoots. The intercept lesson's drone is the route kind, non-manoeuvring. What the
+  player sees is unchanged: a decision every 3 s, the brain's at the Normal AI level Modern IAF keeps. The 1998 game
+  keeps its brain. Checked by `crates/iaf-ai/tests/target_drones.rs` and `modern-iaf/tests/test_sim_range.gd`.
 - **The flight lands in order, the pairs line up 15 m apart (2026-11-23; [ai-plan.md](ai-plan.md) F3, F7;
   [../../docs/ai.md](../../docs/ai.md) §8.7):** going home, each wingman keeps at least 30 s behind the one sent home
   before it, slowing until the turn to final: Kidon 1-4, sent 20 s after 1-3 and faster on the circuit, had landed

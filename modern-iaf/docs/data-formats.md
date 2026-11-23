@@ -399,8 +399,12 @@ sim's own (the user's decision of 17 Nov 2026, avionics-plan.md §8, item 1); no
   `waypoint` 33, `damage_pct` 36; ops `==`, `>`, `<`, `>=`, `<=`, `!=`. Actions (docs/ai.md §5): `straight` 100,
   `horizontal` 150, `run_away` 160, `break_90` 170, `hold` 230, `navigate` 240 (fly the route), `select_air_target`
   400 (pick the best air contact of the unit's sensor: a lock the player's RWR hears). No weapon action exists, so no
-  brain of ours shoots. The rules run in order every 2 s; per action type the first rule that fires wins
-  (`brain.gd`), so a later `navigate` runs only when no manoeuvre fired before it. `iaf-sim db` compiles them into the
+  brain of ours shoots. Modern IAF flies a jet with one of the target drones' brains below on its own AI
+  (`iaf_ai::target`, docs/ai.md §21): the record's actions name its kind (any record of only `navigate`,
+  `select_air_target`, `break_90` and `run_away` is one), and the evading drone's 9 km and roll under 50 are fixed in
+  `target.rs`, so a change to these records' conditions needs the same change there. For any other brain the rules
+  run in order every period (2 s, × 1.5 for an enemy at the Normal AI level) and per action type the first rule that
+  fires wins (`brain.gd`), so a later `navigate` runs only when no manoeuvre fired before it. `iaf-sim db` compiles them into the
   bdb's Brains part (`rules0`: `list16` the conditions, `list20` the actions) and an Actions row per action used (its
   id the action code).
 

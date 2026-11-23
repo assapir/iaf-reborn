@@ -74,6 +74,7 @@ class Pilot:
 	var plane := ""  # the converted plane folder (its flight model start)
 	var airborne_start := true  # the jet's start was airborne (its controller's autopilot starts on, @4483d7)
 	var by_ai := false  # flown by IafAi (flight_ai), not by its brain
+	var drone = null  # Modern IAF: a target drone's decisions (IafTargetDrone, docs/ai.md §21), not its brain's
 	var ground = null  # Modern IAF: the last ground height fed (m), held where the terrain is not loaded (_feed_ground)
 	## Systems damage flags 0..24 (controller +0x3d8 + 0xc + 4n, docs/damage.md §5), the cut-out pick (+0x70)
 	## and the twin-engine test (controller +8 → +0x24: the player's table PlayerAircraft.TWIN, or the aircraft
@@ -174,6 +175,7 @@ func setup(h: Node, rt: Node, bdb: Dictionary, files: Array) -> void:
 		_launch(ent, _formation_of(ent), plane, install, pr)
 	if Settings.new_ai() and ClassDB.class_exists("IafAi"):
 		_setup_flight_ai()
+		_setup_drones()
 	if not pilots.is_empty() or Settings.has_setting("ai_level"):  # a game with AI (not IAF 2026's training)
 		print("AI aircraft: %d flying" % pilots.size())
 	combat = Combat.new()
@@ -465,6 +467,35 @@ func _setup_flight_ai() -> void:
 		_ai_members.append([k + 1, ent])
 	if _ai_members.size() > 1:
 		flight_ai = ai
+
+
+## Modern IAF: every AI jet outside the player's flight whose brain is a target drone's (the range's, the lesson's:
+## data/db/brains drone, drone_radar, drone_evade) flies under IafTargetDrone (crates/iaf-ai target.rs, docs/ai.md §21).
+func _setup_drones() -> void:
+	if not ClassDB.class_exists("IafTargetDrone"):
+		return
+	for p in pilots:
+		if p.by_ai:
+			continue
+		var codes := PackedInt64Array()
+		for r in _brains.get(int(p.ent.get("brain", -1)), []):
+			for a in r.acts:
+				codes.append(int(_actions.get(int(a[0]), {}).get("0xbe", -1)))
+		p.drone = ClassDB.class_call_static("IafTargetDrone", "create", codes)
+
+
+## A target drone's decision when due (IafTargetDrone): its scan for the best air contact (combat.gd's air mode pick,
+## whose lock the target's RWR hears), then its loop: the route, or a break or a run from that contact.
+func _step_drone(p: Pilot, now: float) -> void:
+	if not p.drone.due(now):
+		return
+	if p.drone.scans():
+		combat.combat(p.ent, "400", {})
+	var t: Dictionary = p.brain.target
+	var alive := not t.is_empty() and not int(t.state) in [4, 5]
+	var r: float = world_of(t).distance_to(p._state.position_world) if alive else -1.0
+	var m: int = p.drone.mode(r, randi() % 101)
+	p.set_mode(m, t if alive else p.ent)
 
 
 ## Ours (a dev / test hook, docs/ai.md §8.9; no mission starts a flight in the air): the player's flight's AI jets put
@@ -1027,7 +1058,9 @@ func _fly(delta: float) -> void:
 			if host.get("radio") != null:
 				host.radio.report_airborne(ent)  # TakeoffCL's AirborneReport (5cdb5d)
 		_place(p)
-		if not p.by_ai:
+		if p.drone != null:
+			_step_drone(p, now)
+		elif not p.by_ai:
 			p.brain.update(now)
 	if Settings.new_ai() and host.get("terrain") != null:
 		host.terrain.extra_heights = want

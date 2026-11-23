@@ -2172,6 +2172,30 @@ they say otherwise.
     cut should be executed at four miles from the target", "30 degrees nose up", "30-degree dive cone".
     <https://navyflightmanuals.tpub.com/P-1217/The-Pop-Up-Attack-46.htm>
 
+## 21. Modern IAF's target drones (ours)
+
+The weapons range's drones and the intercept lesson's drone (modern-iaf/docs/ai-plan.md C4: "the lesson's drone flies
+a route under the new core, non-manoeuvring as decided; the range's drones move over too") are the sim's own jets on
+the flight model, flown by the autopilot's loops. In Modern IAF their decisions are Rust (`crates/iaf-ai/src/target.rs`,
+gdext `IafTargetDrone`); `shared/ai/ai_flights.gd` (`_setup_drones`, `_step_drone`) gives one to every AI jet outside
+the player's flight whose brain record is a target drone's. The 1998 game's jets keep their brain (§2–§6).
+
+- **Kind.** Read from the brain record's actions (modern-iaf/docs/data-formats.md §5.1): `navigate` alone is the
+  route drone (`drone`, non-manoeuvring: the lesson's), with `select_air_target` the radar drone (`drone_radar`), with
+  `break_90` or `run_away` the evading drone (`drone_evade`). A record with any other action is not a target drone's.
+  The records' conditions are not read: the 9 km and the roll under 50 are `target.rs`'s figures, the same as
+  `drone_evade`'s. The brain's other parts (sub-brains, combat on and off) are not used: no drone record has them.
+- **Decision.** At once, then every 3 s: the 1998 brain's 2 s for an enemy aircraft, × 1.5 at the Normal AI level,
+  which Modern IAF keeps (it has no AI level preference). The radar and evading drones first pick the best air contact of
+  their sensor (combat.gd's air mode pick, whose lock the target's RWR hears). The evading drone, with that contact
+  alive inside 9 km, breaks 90° (Break90, mode 0x13) on a roll of 0..100 under 50, else runs away from it (RunAway,
+  0x12); every other decision flies the route (WayPtSet, mode 7). A loop already running is kept.
+- **Never shoots.** No drone kind has a weapon.
+
+The tests: `crates/iaf-ai/tests/target_drones.rs` (the kinds, the period, each kind's loops) and
+`modern-iaf/tests/test_sim_range.gd` (every range drone flies under its brain's kind; Drone 3 breaks or runs from a jet
+5 km behind it), `modern-iaf/tests/test_sim_ews.gd` (Drones 4's lock on the player's RWR).
+
 ## UNCERTAIN
 Open questions in this document:
 - The RWR field names behind conditions 19, 26, 27, 38, 39 (§13.2); what else writes brain+0x7c.

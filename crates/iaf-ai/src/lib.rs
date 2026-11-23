@@ -3,7 +3,8 @@
 //! keeps its own brain (`shared/ai/brain.gd`). The air-defence sites (`site`) and their network (`net`): docs/ai.md
 //! §15; the one-way attack drones (`drone`): §16; a unit's skill (`skill`): §17; the enemy fighters (`fighter`, the
 //! network's vector `net::Gci`): §18; the air-to-ground attack (`strike`): §8.10; the sort of the bandits between the
-//! jets (`sort`): §8.11; the moving ground vehicles (`convoy`): §19.
+//! jets (`sort`): §8.11; the moving ground vehicles (`convoy`): §19; the target drones of the range and the lessons
+//! (`target`): §21.
 
 pub mod bfm;
 pub mod bt;
@@ -16,6 +17,7 @@ pub mod site;
 pub mod skill;
 pub mod sort;
 pub mod strike;
+pub mod target;
 pub mod wingman;
 
 pub use fighter::Bogey;

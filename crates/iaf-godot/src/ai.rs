@@ -6,6 +6,7 @@
 //! (`iaf_ai::drone`, §16) for `shared/ai/drones.gd`. An `IafAi` made an enemy pair (`enemy`) flies the enemy
 //! fighter's trees (`iaf_ai::fighter`, §18); `IafGci` is a network's ground-controlled intercept (`iaf_ai::net::Gci`).
 //! `IafConvoy`: a column of ground vehicles on the roads (`iaf_ai::convoy`, §19) for `shared/ai/convoys.gd`.
+//! `IafTargetDrone`: a target drone's decisions (`iaf_ai::target`, §21) for `shared/ai/ai_flights.gd`.
 
 use godot::prelude::*;
 use iaf_ai::convoy::{self, Convoy, Route};
@@ -14,6 +15,7 @@ use iaf_ai::fighter;
 use iaf_ai::net::{self, Gci, Member, Net};
 use iaf_ai::site::{self, Emcon, Kind, Site, Target};
 use iaf_ai::strike::{self, Pylon};
+use iaf_ai::target::{Drone, Kind as DroneKind};
 use iaf_ai::{Bandit, Bogey, Decoy, Flight, Skill, Tactic, Threat};
 use iaf_flight::Vec3;
 
@@ -708,6 +710,51 @@ impl IafSalvo {
     #[func]
     fn down(&mut self, i: i64) {
         self.salvo.down(i.max(0) as usize);
+    }
+}
+
+#[derive(GodotClass)]
+#[class(no_init, base = RefCounted)]
+pub struct IafTargetDrone {
+    drone: Drone,
+}
+
+#[godot_api]
+impl IafTargetDrone {
+    /// The target drone flying under the brain record whose actions' codes are `actions` (brain.gd's rules); null
+    /// when that is not a target drone's brain.
+    #[func]
+    fn create(actions: PackedInt64Array) -> Option<Gd<Self>> {
+        let kind = DroneKind::of_actions(actions.as_slice())?;
+        Some(Gd::from_object(Self { drone: Drone::new(kind) }))
+    }
+
+    /// Its kind: route, radar, evade.
+    #[func]
+    fn kind(&self) -> GString {
+        match self.drone.kind {
+            DroneKind::Route => "route",
+            DroneKind::Radar => "radar",
+            DroneKind::Evade => "evade",
+        }
+        .into()
+    }
+
+    /// A decision is due at `now` (s); then `scans` (pick the best air contact first) and `mode`.
+    #[func]
+    fn due(&mut self, now: f64) -> bool {
+        self.drone.due(now)
+    }
+
+    #[func]
+    fn scans(&self) -> bool {
+        self.drone.scans()
+    }
+
+    /// Its autopilot loop this decision: `range_m` to its contact alive (< 0: none), `roll` 0..100 at random.
+    #[func]
+    fn mode(&self, range_m: f64, roll: i64) -> i64 {
+        self.drone.mode((range_m >= 0.0).then_some(range_m), roll.clamp(0, 100) as u32) as i64
     }
 }
 
