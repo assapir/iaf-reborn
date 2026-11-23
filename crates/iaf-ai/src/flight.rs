@@ -31,6 +31,10 @@ pub const KG_PER_KM: f32 = 2.0;
 pub const JOKER_KG: f32 = 1000.0;
 /// The landing sequence: one wingman sent home this long after the one before, s.
 pub const RELEASE_S: f64 = 20.0;
+/// Going home, each jet keeps this long behind the jet ahead of it on the way to the lineup, s (inferred: jets in a
+/// circuit land some 15-40 s apart): below it, it flies its leader's speed less `.1` per m short, at least `.2` m/s
+/// (above the circuit's base-leg speed, 87.5 m/s), until the turn to final ([`Autopilot::pace`]).
+const SPACING: (f64, f64, f32) = (30.0, 0.02, 85.0);
 /// The landing sequence starts when the lead is airborne with the gear down this near the home base, m, or with the
 /// gear down this low anywhere, m above the ground (or on the ground again).
 const CIRCUIT_M: f64 = 20_000.0;
@@ -227,6 +231,8 @@ pub struct Order {
     /// The steer loop flies this high above the terrain ahead (`Autopilot::follow`; [`Flight::low`], the attack's
     /// low run-in and egress); None: its point's height.
     pub follow: Option<f32>,
+    /// Going home: the speed it flies at most, m/s, its spacing behind the jet ahead (`Autopilot::pace`).
+    pub pace: Option<f32>,
     /// The flight flies low ([`Flight::low`]): the ground collision avoidance in place of the watch-ground
     /// (`Autopilot::low`).
     pub low: bool,
@@ -248,6 +254,8 @@ pub struct Member {
     pub mode: u8,
     /// The take-off's stage or the landing pattern's step (`Autopilot::phase`).
     pub phase: Option<usize>,
+    /// Going home, the way left to the lineup along its track, m (`Autopilot::to_go`).
+    pub to_go: Option<f64>,
     /// TakeoffCL has ended in the air.
     pub airborne: bool,
     /// StopPlane has run.
@@ -264,6 +272,8 @@ pub struct Member {
     /// Wants to go home (ordered, the landing sequence, or its fuel); sent home by the flight ([`RELEASE_S`]).
     pub rtb: bool,
     pub released: bool,
+    /// When it was sent home, s: the order the jets going home keep ([`SPACING`]).
+    pub released_at: f64,
     pub order: Order,
     // The decision's facts and the memory the trees use.
     pub(crate) now: f64,
@@ -505,6 +515,7 @@ impl Flight {
             acc: Vec3::ZERO,
             mode: ap.mode(),
             phase: ap.phase(),
+            to_go: ap.to_go(v.pos),
             airborne: !v.on_ground,
             landed: false,
             engine_on: fm.engine_on(),
@@ -516,6 +527,7 @@ impl Flight {
             slot_error: 0.0,
             rtb: false,
             released: false,
+            released_at: 0.0,
             order: Order::default(),
             now: 0.0,
             cleared: None,
@@ -956,6 +968,7 @@ impl Flight {
         m.corner = fm.corner_speed();
         m.mode = ap.mode();
         m.phase = ap.phase();
+        m.to_go = ap.to_go(m.v.pos);
         // An AI jet: TakeoffCL ended (or it started in the air); the player: off the ground once.
         m.airborne = if m.ai { ap.airborne || m.airborne && !m.v.on_ground } else { m.airborne || !m.v.on_ground };
         m.landed = ap.landed;
@@ -1122,8 +1135,30 @@ impl Flight {
         if now >= self.last_release + RELEASE_S
             && let Some(m) = self.members.iter_mut().find(|m| m.alive && m.rtb && !m.released && m.number != lead_n)
         {
-            m.released = true;
+            (m.released, m.released_at) = (true, now);
             self.last_release = now;
+        }
+        // The jets going home keep their spacing on the way to the lineup, in the order they were sent home (an AI
+        // lead first; the player's own landing has no track): each behind the one sent just before it, slower while
+        // it is short of that or ahead of it.
+        let lead_i = self.lead;
+        let sent = |i: usize, m: &Member| if i == lead_i { f64::MIN } else { m.released_at };
+        let going: Vec<(f64, f64, f32)> = (self.members.iter().enumerate())
+            .filter(|(i, m)| m.alive && m.airborne && !m.landed && (*i == lead_i || m.released))
+            .filter_map(|(i, m)| Some((sent(i, m), m.to_go?, m.v.speed)))
+            .collect();
+        for (i, m) in self.members.iter_mut().enumerate() {
+            let me = (m.ai && m.alive && m.airborne && !m.landed && m.released && i != lead_i)
+                .then_some((m.released_at, m.to_go))
+                .and_then(|(t, d)| Some((t, d?)));
+            let ahead = me.and_then(|(t, d)| {
+                let a = going.iter().filter(|g| g.0 < t).max_by(|a, b| a.0.total_cmp(&b.0))?;
+                Some((d - a.1, a.2))
+            });
+            m.order.pace = ahead.and_then(|(gap, v)| {
+                let short = SPACING.0 * v as f64 - gap;
+                (short > 0.0).then(|| (v - (SPACING.1 * short) as f32).max(SPACING.2))
+            });
         }
         let committed = self.members[self.lead].enemy.committed;
         let lead_striking = matches!(self.members[self.lead].strike.phase, Phase::Run | Phase::Egress);
@@ -1701,6 +1736,7 @@ pub fn apply(o: &Order, ap: &mut Autopilot, fm: &mut Fm) {
     ap.pair_lead = o.pair_lead;
     ap.floor = Some(FLOOR_M);
     ap.follow = o.follow;
+    ap.pace = o.pace;
     ap.low = o.low;
     if o.steer.is_some() {
         ap.steer = o.steer;

@@ -766,6 +766,9 @@ fn ground_run_with(ty: &str, base: &str, lead_stops: bool) {
     let order = |t: [Option<f64>; 4]| t.windows(2).all(|p| p[0].unwrap() < p[1].unwrap());
     assert!(order(airborne), "take-off in order");
     assert!(order(landed), "landing in order");
+    // The wingmen land some 15-60 s apart (SPACING's 30 s at the least on the way in; inferred), not a circuit apart.
+    let gaps: Vec<f64> = landed[1..].windows(2).map(|p| p[1].unwrap() - p[0].unwrap()).collect();
+    assert!(gaps.iter().all(|g| (15.0..60.0).contains(g)), "the wingmen's landings {gaps:?} s apart");
     // Nevatim's four shelters share one taxi-in path, where #4, swinging 40 m wide into its turn, came within 1 m of
     // #2 parked before the taxi slowed for its pivots (docs/ai.md §18.4).
     println!("held for a jet ahead taxiing in: {held:.0} s");
@@ -782,7 +785,8 @@ fn ground_run_with(ty: &str, base: &str, lead_stops: bool) {
             assert!(land.is_none() && park.is_none(), "no tower call to the player");
         } else {
             let landed = landed[n as usize - 1].unwrap();
-            assert!(land.is_some_and(|t| t < landed && t > landed - 120.0), "#{n} cleared to land on its final");
+            // (The turn to final is 7.4 km out at 87.5 m/s, about 85 s, then the roll: 105-120 s.)
+            assert!(land.is_some_and(|t| t < landed && t > landed - 150.0), "#{n} cleared to land on its final");
             assert!(park.is_some_and(|t| t >= landed && t < landed + 2.0), "#{n} taxi to parking after its roll");
         }
     }

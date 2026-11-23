@@ -666,9 +666,19 @@ model, where none of the 6-DoF cases applies. Every figure here is inferred, tun
 - **The recovery, end to end** (2026-11-22, the user: "Finish landing"). The flight's home is the base nearest its
   route's last waypoint. Its landing order is the release order: the lead (the player) lands when he chooses, and
   once its gear is down again within 20 km of home, or low anywhere, the wingmen go home one every 20 s, #2, #3, #4,
-  each on the original's left-hand circuit (§8.3; the AI flies no overhead break: the 1998 game has none and no
+  each on the original's left-hand circuit. On the way in each keeps at least 30 s behind the jet sent home just before
+  it (an AI lead first; behind the player, whose own landing has no track, the 20 s alone), by the way left to the lineup along its track (`Autopilot::to_go`: to the route's last
+  waypoint, then the pattern's points): short of that, or ahead of it, it flies that jet's speed less 0.02 m/s per m
+  short, at least 85 m/s, until the turn to final (`Autopilot::pace`: the throttle held under it, the speed brake out
+  15 m/s above it; `flight::SPACING`) (§8.3; the AI flies no overhead break: the 1998 game has none and no
   source gives the IAF's). Every figure in this list is inferred. Measured at Ramon (F-16I, 2 t of stores): landed
-  136, 23 and 21 s apart; at Nevatim (MiG-29A) 123, 28 and 27 s.
+  136, 57 and 36 s apart (the first is the lead's own way in before #2 is sent); at Nevatim (MiG-29A) 131, 55 and 28 s;
+  the lead landing away from home 239, 42 and 26 s. Jets in a circuit land some 15-40 s apart (inferred; no source
+  found for the IAF's). With the 20 s alone (until 2026-11-23) they landed 136, 23 and 21 s apart, and on the
+  laptop's build #4, sent 20 s after #3 and flying the circuit faster, landed first (1148 s against 1171 s). Tried and
+  dropped (2026-11-23): sending the next only once the one before was on its circuit's second leg (in order, but
+  109-137 s apart, a whole circuit), or once it had begun its circuit (#4 still landed first); spacing on whichever
+  jet was nearer the lineup (at the last waypoint #4, on a better line, came out ahead and #3 was spaced behind it).
   - **The tower's landing calls** to each AI jet of our flight (not an enemy flight's; `Flight::tower_calls`,
     `radio.gd flight_call`): "Kidon 1-2, cleared to land runway 25 right" (`ACFT_CLEAR_TO_LAND`, its runway and wind as
     the player's) on its turn to final (LandingCL's CH4, autopilot `phase` 11), and "Kidon 1-2, welcome back, taxi to
@@ -685,6 +695,12 @@ model, where none of the 6-DoF cases applies. Every figure here is inferred, tun
     whose four spots turn off one taxi line 25 m apart, #4 swung into #2's spot and came within 1 m of it (found by
     the ground run 2026-11-22). A 97° turn onto the runway at Ramon swung 15 m past the centreline; the last 2° pivot
     onto the lineup stopped the jet 30 m short of it.
+    The leg to the lineup (2026-11-23) steers at the runway's line through the lineup 25 m ahead of the jet, with up to
+    0.3 of the wheel (elsewhere 0.1), and its pivot onto the lineup ends within 0.1° of the runway's heading (elsewhere
+    0.5°). A pairs wingman's turn onto the runway at Nevatim swung it 13 m past its line; steering at the point with a
+    3° wheel, it came to the lineup 21° off, and the pivot, still near full lock at 0.5°, swung on 1.5° past: #2 rolled
+    9.6 m beside #1, not 15. A look-ahead that runs on past the lineup (10, 15 or 25 m) and the wider wheel alone were
+    tried and dropped: #2 ended 4 to 51 m beside #1.
   - **The taxi in, spaced** (`Flight::taxi_hold`, `Autopilot::hold`): an AI jet taxiing in (to park, or creeping into
     its shelter) stops on its brakes while another jet of the flight with its engine running is on the ground in its
     way: within 150 m along its heading and 25 m across, or nearer than 60 m and not behind it. Two jets taxiing in
@@ -707,9 +723,10 @@ model, where none of the 6-DoF cases applies. Every figure here is inferred, tun
     player who rolled first, leaves it at full power. The lead keeps military power until its own lift-off. The
     player as #1 does the same by hand: he waits for #2 and rolls at military power. The mates fly free of each other's collision avoidance from the roll until they are 60 m
     apart in the air, or 120 s after the lift-off, and do not step down for each other. The second pair lines up once
-    the first rolls. Measured (F-16I, 2 t of stores; #1 as the player): at Ramon the pairs rolled 0.6 and 0.7 s apart,
-    lifted off within 0.1 s, 11.9 and 13.9 m abreast and less than 1 m ahead or behind at the lead's lift-off, at the
-    least 11.6 m apart (the F-16's span is 9.45 m); at Nevatim 12.3 and 17.2 m abreast, at the least 12.3 m apart.
+    the first rolls. Measured (F-16I, 2 t of stores; #1 as the player): at Ramon the pairs rolled 0.8 and 0.7 s apart,
+    lifted off within 0.1 s, 15.0 and 15.6 m abreast and less than 1 m ahead or behind at the lead's lift-off, at the
+    least 14.8 m apart (the F-16's span is 9.45 m); at Nevatim 15.3 and 14.7 m abreast, at the least 14.0 m apart
+    (2026-11-23; before the lineup's line steering 9.6 m at Nevatim, the wings 0.2 m apart).
     The 15 m is inferred: the lineup runways are 44–46 m wide, Hatzerim's 28L 34 m, where the wingman's wheels run
     0.8 m inside the edge (the F-16's track is 2.4 m).
   - **Tests:** `cargo test -p iaf-ai --test four_ship ground_run` (the ground runs at Ramon and Nevatim: at the least

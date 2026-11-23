@@ -422,6 +422,16 @@ const NWS_PEDAL: f32 = 0.02;
 const PIVOT_R: f32 = 40.0;
 const PIVOT_LEAD: (f32, f32) = (5.0, 40.0);
 const LINEUP_WALK: f32 = 2.0;
+/// The leg to the lineup steers at the runway's line through the lineup this far ahead of the jet, m (inferred): at
+/// the point alone a pairs wingman, swung 13 m past its line by the turn onto the runway, came to it 21° off and its
+/// last pivot left it 10 m beside its lead, not 15.
+const LINEUP_LOOK: f64 = 25.0;
+/// ... with up to this wheel (the rudder's share; elsewhere between the pivots 0.1): the leg is flown at or below the
+/// pivot's speed, slowing to [`LINEUP_WALK`].
+const LINEUP_WHEEL: f32 = 0.3;
+/// The pivot onto the lineup ends this near the runway's heading, deg (elsewhere 0.5°): the pivot's wheel is still near
+/// full lock at 0.5°, and the 1.5° it swung on past put a pairs wingman 10 m wide by its lift-off.
+const LINEUP_TOL_DEG: f32 = 0.1;
 /// Ours, a pairs take-off's wingman on the roll (inferred): the lever about military power per m its lead is ahead,
 /// per m/s the lead is faster, and at least.
 const PAIR_KEEP: (f32, f32, f32) = (0.03, 0.1, 0.3);
@@ -2003,6 +2013,10 @@ pub struct Autopilot {
     /// Ours (Modern IAF's AI jets, set by `iaf_ai::apply`): the steer loop flies this high above the terrain ahead
     /// ([`follow_height`]) in place of its point's height; None: the point's.
     pub follow: Option<f32>,
+    /// Ours (Modern IAF's flights, set by `iaf_ai::apply`): going home, the speed it flies at most, m/s, until the turn
+    /// to final (the throttle held under it, the speed brake out 15 m/s above it): its spacing behind the jet ahead
+    /// in the circuit. None: the loops' own speeds.
+    pub pace: Option<f32>,
     /// The fly-up flies; the next prediction's time.
     fly_up: bool,
     fly_up_next: f64,
@@ -2039,6 +2053,7 @@ impl Autopilot {
             floor: None,
             low: false,
             follow: None,
+            pace: None,
             fly_up: false,
             fly_up_next: 0.0,
             mode: 0,
@@ -2051,6 +2066,31 @@ impl Autopilot {
 
     pub fn mode(&self) -> u8 {
         self.mode
+    }
+
+    /// Ours (Modern IAF's flights): going home, the way left to the lineup along its track, m: to the route's last
+    /// waypoint, then the landing pattern's points in turn (2-D); None in any other loop or past the final.
+    pub fn to_go(&self, pos: Vec3) -> Option<f64> {
+        let Loop::GoHome { f, land } = &self.lp else { return None };
+        let flat = |a: Vec3, b: Vec3| (a[0] - b[0]).hypot(a[1] - b[1]);
+        let (pts, i, from) = match land {
+            Some(l) => {
+                let i = match l.legs(false, &self.cfg).get(l.step)? {
+                    Leg::Ch(i, ..) | Leg::Ca(i, _) | Leg::CaOr(i, _) | Leg::Ka(i, ..) => *i,
+                    Leg::Lw(_) => [0, 1].get(l.step / 4).copied()?,
+                    Leg::Fa(_) => 4,
+                    _ => return None,
+                };
+                (l.pts, i, pos)
+            }
+            None => {
+                let l = Landing::new(&self.bases, self.origin, f.t, 0, false)?;
+                return Some(
+                    flat(pos, f.t) + flat(f.t, l.pts[0]) + (1..5).map(|j| flat(l.pts[j - 1], l.pts[j])).sum::<f64>(),
+                );
+            }
+        };
+        Some(flat(from, pts[i]) + (i + 1..5).map(|j| flat(pts[j - 1], pts[j])).sum::<f64>())
     }
 
     /// Ours (Modern IAF's flights): the take-off's stage (0 the taxi, 1 TakeoffCL on the runway, 2 and 3 in the air)
@@ -2306,6 +2346,17 @@ impl Autopilot {
                     }
                 } else if let Some(ld) = land {
                     ld.step(&mut l, self, &mut period, vmin1, vmin12);
+                }
+                // Ours (Modern IAF's flights): the spacing's pace, until the turn to final.
+                if let Some(p) = self.pace.filter(|_| land.as_ref().is_none_or(|ld| ld.step < 11)) {
+                    if let Some(t) = l.out.thr {
+                        l.out.thr = Some(t.min(l.thr(p)));
+                    }
+                    if v.speed > p + 15.0 {
+                        l.out.brakes = Some(true);
+                    }
+                }
+                if let Some(ld) = land {
                     if ld.landed {
                         self.landed = true;
                     }
@@ -3073,7 +3124,9 @@ impl Taxi {
                 l.out.pivot = Some(Some(p.hdg));
                 self.turning = true;
             }
-            if self.turning && wrap(p.hdg - v.att.heading).abs() < 0.5f32.to_radians() {
+            let lineup = !self.park && self.i + 1 == self.path.len();
+            let tol = if ai6 && lineup { LINEUP_TOL_DEG } else { 0.5 };
+            if self.turning && wrap(p.hdg - v.att.heading).abs() < tol.to_radians() {
                 l.out.pivot = Some(None);
                 self.i += 1;
                 self.turning = false;
@@ -3090,8 +3143,14 @@ impl Taxi {
             // at most a 3° wheel, gentle at taxi speed); the pivot's 30 m wheel turn leaves the jet off the next leg,
             // and on the heading alone it wandered to another shelter.
             if v.sixdof && l.mode != 0 && !self.turning && !done {
-                let e = wrap(((p.x as f64 - v.pos[0]) as f32).atan2((p.y as f64 - v.pos[1]) as f32) - v.att.heading);
-                l.out.rudder = Some((0.5 * e).clamp(-0.1, 0.1));
+                let (mut x, mut y, mut lim) = (p.x as f64, p.y as f64, 0.1);
+                if lineup {
+                    let (s, c) = (p.hdg as f64).sin_cos();
+                    let k = ((v.pos[0] - x) * s + (v.pos[1] - y) * c + LINEUP_LOOK).min(0.0);
+                    (x, y, lim) = (x + k * s, y + k * c, LINEUP_WHEEL);
+                }
+                let e = wrap(((x - v.pos[0]) as f32).atan2((y - v.pos[1]) as f32) - v.att.heading);
+                l.out.rudder = Some((0.5 * e).clamp(-lim, lim));
             }
         } else {
             done = true;

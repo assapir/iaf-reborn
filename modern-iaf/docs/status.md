@@ -3,6 +3,12 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **The flight lands in order, the pairs line up 15 m apart (2026-11-23; [ai-plan.md](ai-plan.md) F3, F7;
+  [../../docs/ai.md](../../docs/ai.md) §8.7):** going home, each wingman keeps at least 30 s behind the one sent home
+  before it, slowing until the turn to final: Kidon 1-4, sent 20 s after 1-3 and faster on the circuit, had landed
+  first. They now land 26-57 s apart. A pairs wingman steers onto its line on the leg to the lineup and lines up 15 m beside its lead
+  (it had rolled 9.6 m beside it at Nevatim, the wings 0.2 m apart). Tests: `four_ship` (`ground_run_*`,
+  `taxi_in_behind_a_stopped_lead`, `pairs_take_off_*`, `a_lead_landing_away_from_home`).
 - **Low level and ground collision avoidance (2026-11-23, the user, 22 Nov: "Ok follow your suggested order", which
   named the AI's terrain following for attack runs; [ai-plan.md](ai-plan.md) K17; [../../docs/ai.md](../../docs/ai.md)
   §20):** every AI jet, ours and the enemy's, predicts a fly-up (a roll to wings level and 5 g, as the F-16's Auto
