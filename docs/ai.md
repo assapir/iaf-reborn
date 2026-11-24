@@ -602,6 +602,43 @@ model, where none of the 6-DoF cases applies. Every figure here is inferred, tun
     climbing back into the middle of the row, set off the pull-away on #2, which went 354 m off in a 45° bank turn;
     120 m apart, none pulls away. A transit step of 70 m in place of 35 m (deeper than the 60 m of the pull-away) was
     also tried and dropped: the level crossings no longer pulled away, but in the turn the longer climbs back did.
+  - **Close up / spread out** (the user, 20 November 2026: "we should allow ask for "get closer", which will even
+    lead to 10m apart"): the lead's radio command to the flight (the radio menu's Formation → Spacing page) takes the
+    close shapes one step in or out (`CLOSE_STEPS` in `flight.rs`): standard (the slots above), close (half: 30 m),
+    tight (a fifth: 12 m between the slots). Tight is the parade position: an F-16's 9.96 m span[^w-f16-span] 12 m from
+    the next jet's centreline leaves 2 m (7 ft) between the wingtips, inside parade's 4 to 10 ft[^cnatra-parade]; close
+    is inferred. Line abreast and trail keep their spacing, and a close up there, past the tight step or to one jet or
+    the element is "unable"; a spread out at the standard too. A
+    new shape keeps the step; the landing sequence's trail is at the standard. Each wingman answers with its callsign
+    and calls "in position" at the new spacing (no transit step: the slots move along their own lines from #1).
+    Every distance the flight keeps between its jets in the close shapes takes the same share: the step down (50 /
+    60 m), "in position" (50 m), the pull-away (60 m, on until 100 m or 70 m in its slot) and the pull-away's
+    look-ahead (4 s, sampled every 0.25 s). At the close and tight steps the slot loop (`Autopilot::close`) rolls the
+    leader's lift on by the leader's roll rate over 0.5 s (the wingman rolls with the lead's wings, as in a "welded
+    wing" turn), rolls by its own law (`SLOT_ROLL`: 4 / rad of bank error, 0.3 per rad/s, over the jet's highest roll
+    rate) and triples its throttle's gain (`SLOT_CLOSE_KP`); all inferred. At the standard the loop is as before.
+    Tested and changed (24 November 2026, `close_up_and_spread_out`): with the standard laws and the pull-away's full
+    look-ahead, the tight four-ship in the lead's roll into a 45° bank turn tripped the pull-away and went 129–193 m
+    off its slots, two jets 10.7 m apart; with the look-ahead alone scaled, 160 m; a stiffer spring (0.6 and 1.0
+    rad/s in place of 0.3) oscillated, even at the standard (511 m and 748 m); the quick roll law at every spacing
+    moved the landings' spacing out of its 15–60 s (ground_run_at_ramon). Measured at 400 kt and 3,000 m: close
+    within 3.5 m level, tight within 2.1 m level and 0.1 m in a diamond, no two jets nearer than 16.8 m; each step in
+    position in 8–24 s. A break or a fight takes a jet out of its slot by its own tree, as at any spacing.
+  - **The lead past the parade's limits** (`PARADE_LOOSE`, `PARADE_LIMITS`, `PARADE_SETTLE_S` in `flight.rs`): the
+    parade's lead rolls into 30° of bank at the parade rate of roll[^p1213-parade] (about 10°/s, second-hand: a
+    search engine's quote); a lead that manoeuvres harder has the section in cruise, a looser
+    position[^p1213-cruise]. At the tight step the flight holds the close step (30 m) while the lead banks past 35°,
+    rolls faster than 20°/s or pulls more than 1.5 g, and closes back up once the lead has flown within those for
+    5 s; the margins and the 5 s are inferred. The wingmen move without a call. Until the flight closes back up, the
+    step down and the pull-away keep the tight step's distances.
+    `IafAi.state` gives the step held as `held`. Measured at 400 kt and 3,000 m (`tight_flight_loosens_in_a_sharp_roll`,
+    `close_up_and_spread_out`): in the lead's 45° bank turn, the close step held within 7.3 m, no two jets nearer than
+    16.8 m; in a sharp roll to 40° of bank and a 2.6 g pull (the player's break), F-16I and F-35I, each wingman at most
+    21 m past where its slot moved, no two jets nearer than 15.1 m, the tight slots held again within 2 m 16 s after
+    the lead rolled out. Tested and changed (25 November 2026): the tight slots held through that break left each
+    wingman up to 38 m off its slot and two jets 13.1 m apart (F-35I), and about 100 m off in the game's
+    _close_up_shot.gd; loosening with the step down and the pull-away at the close step's distances set both off with
+    the jets still 17 m apart and threw the flight 213 m off its slots.
   - Measured at 400 kt and 3,000 m: fingertip held within 9.3 m in level flight, every shape of the flight within
     10.7 m, 23.6 m in the lead's 45° bank turn; a rejoin from 5 km behind in 104 s (20 November 2026). Each close
     shape ordered in the lead's continuous 45° bank turn: all "in position" in 12–25 s and held within 60 m for 20 s
@@ -2439,3 +2476,7 @@ Open questions in this document:
 [^mako-cover]: Israeli press on the IAF's rescues, fighters "שחיפו על החילוץ" (read as a search engine's summary on 2026-11-22, second-hand: the summary tied the quote to no single page).
 [^w-t72-speed]: Wikipedia, "T-72" (infobox: 60 km/h; read 2026-11-23): https://en.wikipedia.org/wiki/T-72
 [^fhwa-convoy]: FHWA Office of Operations, "Coordinating Military Deployments on Roads and Highways", Appendix B. Military Convoy Movement Facts ("vehicle intervals of 300 feet or more and speeds in excess of 25 mph"; read 2026-11-23): https://ops.fhwa.dot.gov/publications/fhwahop05029/appendix_b.htm
+[^cnatra-parade]: CNATRAINST 1542.154 (2003) and CNATRAINST 1542.61L (2006), Parade / Fingertip: "wingtip separation of 4 feet to 10 feet" (second-hand: a search engine's quote, read 2026-11-24): https://navyflightmanuals.tpub.com/1542.61L_wch1/Parade-Fingertip-1542-61L_Wch10166-166.htm
+[^p1213-parade]: CNATRA P-1213 (draft), Flight Training Instruction T-45 advanced, Parade Turns: "rolling into 30 degrees AOB at the parade rate of roll" (read 2026-11-25): https://navyflightmanuals.tpub.com/Draft_P-1213/Parade-Turns-Draft_P-12130041-41.htm
+[^p1213-cruise]: CNATRA P-1213 (draft), Cruise Position: the cruise position gives the section more maneuverability than parade, the lead not held to 30° of bank (second-hand: a search engine's quote, read 2026-11-25): https://navyflightmanuals.tpub.com/Draft_P-1213/Cruise-Position-Draft_P-12130050-50.htm
+[^w-f16-span]: Wikipedia, "General Dynamics F-16 Fighting Falcon", specifications (span 32 ft 8 in, 9.96 m): https://en.wikipedia.org/wiki/General_Dynamics_F-16_Fighting_Falcon

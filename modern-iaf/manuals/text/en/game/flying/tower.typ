@@ -113,7 +113,7 @@ The lines and the voices are in the game's language (@language).
 + Press 2.
   #then[The list shows "Kidon 1" (the flight), "Kidon 1, element 3–4", "Kidon 1-2", "Kidon 1-3" and "Kidon 1-4".]
 + Press the number of whom you call.
-  #then[The list shows the commands for them. #keycap("0") goes back.]
+  #then[The list shows the commands for them. #keycap("0") goes back. A list longer than nine shows its first eight and 9 More, which shows the rest.]
 + Press the number of a command.
   #then[The list closes. Your pilot makes the call ("Kidon 1-2, rejoin"). Each wingman answers with its callsign ("Kidon 1-2.") or "unable".]
 
@@ -122,7 +122,9 @@ You can also click a line of the list.
 #grid-table(
   (auto, auto, 1fr),
   ([Command], [To], [What the wingmen do]),
-  [Formation], [the flight], [A page of shapes: fingertip, line abreast, trail, echelon right, echelon left, diamond, vic, delta. Each calls "in position" in its new slot.],
+  [Formation], [the flight], [A page of shapes: fingertip, line abreast, trail, echelon right, echelon left, diamond, vic, delta. Each calls "in position" in its new slot. Its last line, Spacing, opens Close up and Spread out.],
+  [Close up], [the flight], [The close shapes one step tighter: from the standard 60 m between the slots to 30 m, then to 12 m, wingtips 2 m apart. Each calls "in position" at the new spacing. At 12 m, in line abreast or in trail they answer "unable". A new shape keeps the spacing. At 12 m, fly smoothly: when you bank past 35°, roll fast or pull more than 1.5 g, the wingmen move out to 30 m on their own, and close back up 5 seconds after you fly smoothly again.],
+  [Spread out], [the flight], [One step back toward the standard 60 m. At the standard they answer "unable".],
   [Rejoin], [anyone], [Back to the slot from any task, also after an RTB. To the element 3–4 it ends a split.],
   [Split], [the element 3–4], [The second pair flies to your sensor's point (the radar's designated point, else your steerpoint) and circles it. It must be within 40 km of you, or they answer "unable"; with no sensor's point they answer "unable" too.],
   [Engage my target], [anyone], [They fight the aircraft your radar has locked: a collision course, a missile inside its envelope, a turn away while it flies, then the dogfight and the gun. With nothing left to shoot they answer "unable". When it is destroyed they rejoin. Number 4 stays with number 3. To give each its own aircraft, lock one and give it to Kidon 1-2, then lock another and give it to the element 3–4. With no aircraft locked they attack your ground target instead: the enemy ground unit your radar has locked, else the one nearest your sensor's point (within 500 m), else that point itself. With no sensor's point (nothing designated, no steerpoint and the targeting pod not looking at the ground) they answer "unable". Each wingman with bombs attacks in turn, one after the other: a dive for plain bombs, a level run for guided ones. Without bombs it answers "unable". Against a moving target, such as a vehicle in a convoy, each aims where it will be when the bombs land.],

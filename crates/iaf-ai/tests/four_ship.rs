@@ -3,7 +3,7 @@
 
 use std::path::{Path, PathBuf};
 
-use iaf_ai::{Bandit, Bogey, Call, Decoy, Flight, SHAPES, Tactic, Threat, apply};
+use iaf_ai::{Bandit, Bogey, CLOSE_STEPS, Call, Decoy, Flight, SHAPES, Tactic, Threat, apply};
 use iaf_flight::airbase::Airbase;
 use iaf_flight::autopilot::{self, Autopilot, Config, Host, MODE_STEER, Waypoint};
 use iaf_flight::fm::Fm;
@@ -40,6 +40,8 @@ struct World {
     dt: f64,
     /// The lead's speed held by its throttle, m/s (else its autopilot's).
     lead_speed: Option<f64>,
+    /// The lead's stick (roll, pitch) held over its autopilot's (a player's break).
+    lead_stick: Option<(f32, f32)>,
     /// Each jet's last 20 s, every 0.5 s, for a failure's message.
     trace: [std::collections::VecDeque<String>; 4],
     /// The game's frame order and uneven frames ([`World::frame`]).
@@ -99,6 +101,7 @@ impl World {
             busy: Default::default(),
             dt: DT,
             lead_speed: None,
+            lead_stick: None,
             trace: Default::default(),
             lead_steps: 1,
             jitter: 0.0,
@@ -182,6 +185,11 @@ impl World {
             c.throttle = (0.3 + 0.05 * (v - fm.state().speed as f64)).clamp(0.0, 0.9) as f32;
             fm.set_controls(c);
         }
+        if let Some((x, y)) = self.lead_stick.filter(|_| i == 0) {
+            let mut c = fm.controls();
+            (c.stick_x, c.stick_y) = (x, y);
+            fm.set_controls(c);
+        }
         fm.step(dt);
     }
 
@@ -237,13 +245,18 @@ impl World {
 
 /// The flight at 3,000 m heading north at 400 kt, in fingertip (or `behind` m further back), #1 at the origin.
 fn airborne(dir: &Path, behind: f64) -> World {
+    airborne_of(dir, "F-16I", behind)
+}
+
+/// [`airborne`] with four jets of flight-model type `ty`.
+fn airborne_of(dir: &Path, ty: &str, behind: f64) -> World {
     let z = 3000.0;
     let start = |n: usize| {
         let s = if n == 0 { [0.0; 3] } else { SHAPES[0].1[n - 1] };
         let back = if n == 0 { 0.0 } else { behind };
         (Vec3::new(s[1] as f64, s[0] as f64 - back, z), 0.0)
     };
-    let mut w = World::new(dir, [start(0), start(1), start(2), start(3)], 205.889, true, 0.0);
+    let mut w = World::of_type(dir, ty, [start(0), start(1), start(2), start(3)], 205.889, true, 0.0);
     w.lead_to(Vec3::new(0.0, 400_000.0, z));
     w
 }
@@ -1224,4 +1237,161 @@ fn close_shapes_changed_in_a_turn() {
         assert!(said.is_some() && held.is_some_and(|h| h <= 80.0), "{id}: {said:?} {held:?}");
     }
     assert!(w.sep_air > 30.0, "separation {}", w.sep_air);
+}
+
+/// Close up, step by step to the parade spacing (flight.rs `CLOSE_STEPS`), level and in another close shape; in the
+/// lead's 45° bank turn, past the parade's 30°, the flight holds the close step (`PARADE_LOOSE`); then spread out back
+/// to the standard. Each step answered, in position and held; no two jets nearer than 12 m (centres: an F-16's span is
+/// 10 m; the tight slots are 17 m apart). "Unable" past the last step, in line abreast, and to one jet.
+#[test]
+fn close_up_and_spread_out() {
+    let Some(dir) = own() else { return println!("skipped: no assets/converted/own (iaf-sim fm, airbases)") };
+    let mut w = airborne(&dir, 0.0);
+    w.run(30.0);
+    let answered = |w: &mut World, to: u8, cmd: &str, id: &str| {
+        let t0 = w.t;
+        w.flight.command(w.t, to, cmd);
+        w.run(3.0);
+        (2..=4).all(|n| w.said(n, id).is_some_and(|t| t > t0))
+    };
+    let step = |w: &mut World, cmd: &str, want: usize| {
+        let t0 = w.t;
+        assert!(answered(w, 0, cmd, "ack"), "{cmd}: acknowledged");
+        assert_eq!(w.flight.close_step(), want, "{cmd}");
+        let took = w.until(120.0, &|w| (2..=4).all(|n| w.said(n, "in_position").is_some_and(|t| t > t0)));
+        w.run(20.0);
+        w.sep_air = f64::MAX;
+        let held = w.worst(30.0, &|_| true);
+        println!(
+            "{cmd} to step {want}: in position after {took:?} s, worst slot error {held:.1} m, nearest {:.1} m",
+            w.sep_air
+        );
+        // (The slot error allowed: a quarter of the step's spacing, at least 5 m.)
+        let allowed = (60.0 * CLOSE_STEPS[want] / 4.0).max(5.0);
+        assert!(took.is_some() && held <= allowed, "{cmd} to {want}: {took:?} {held}");
+        w.sep_air
+    };
+    w.flight.command(w.t, 2, "close_up");
+    w.run(3.0);
+    assert!(w.said(2, "unable").is_some(), "to one jet: unable");
+    assert_eq!(w.flight.close_step(), 0);
+    step(&mut w, "close_up", 1);
+    let tight = step(&mut w, "close_up", 2);
+    assert!(answered(&mut w, 0, "close_up", "unable"), "past the tight step: unable");
+    // The 45° bank turn, past the parade's 30°: the flight loosens to the close step and holds it.
+    w.sep_air = f64::MAX;
+    let p = w.jets[0].0.ap_view().pos;
+    w.lead_to(Vec3::new(p[0] - 60_000.0, p[1] - 30_000.0, 3000.0));
+    let banked = |w: &World| w.jets[0].0.ap_view().att.roll.abs() > 40f32.to_radians();
+    w.until(30.0, &banked);
+    w.run(15.0);
+    let held = w.flight.held_step();
+    let turn = w.worst(20.0, &banked);
+    let turn_sep = w.sep_air;
+    println!("tight, 45° bank turn: held step {held}, worst slot error {turn:.1} m, nearest {turn_sep:.1} m");
+    assert_eq!(held, 1, "the 45° bank turn: loosened to close");
+    // Level again, a close shape at the tight step.
+    w.lead_to(Vec3::new(p[0] - 400_000.0, p[1] - 30_000.0, 3000.0));
+    w.run(40.0);
+    let t0 = w.t;
+    assert!(w.flight.command(w.t, 0, "diamond"));
+    let took = w.until(200.0, &|w| (2..=4).all(|n| w.said(n, "in_position").is_some_and(|t| t > t0)));
+    w.run(20.0);
+    w.sep_air = f64::MAX;
+    let diamond = w.worst(30.0, &|_| true);
+    println!(
+        "tight diamond: in position after {took:?} s, worst slot error {diamond:.1} m, nearest {:.1} m",
+        w.sep_air
+    );
+    assert!(took.is_some() && diamond <= 5.0, "tight diamond {took:?} {diamond}");
+    let diamond_sep = w.sep_air;
+    step(&mut w, "spread_out", 1);
+    step(&mut w, "spread_out", 0);
+    assert!(answered(&mut w, 0, "spread_out", "unable"), "at the standard: unable");
+    assert!(w.flight.command(w.t, 0, "line_abreast"));
+    w.run(5.0);
+    assert!(answered(&mut w, 0, "close_up", "unable"), "line abreast: unable");
+    assert!(turn <= 60.0 * CLOSE_STEPS[1] / 4.0, "the turn, close: {turn}");
+    for sep in [tight, turn_sep, diamond_sep] {
+        assert!(sep > 12.0, "tight: jets {sep:.1} m apart");
+    }
+}
+
+/// The tight four-ship (flight.rs `PARADE_LOOSE`): the lead's sharp roll to 40° of bank and a 6 s pull (the player's
+/// break, _close_up_shot.gd's) loosens the flight to the close step at once; each wingman no further off its slot than
+/// the slot moved (tight to close) and 25 m, no two jets nearer than 12 m; level again, it closes back up to the tight
+/// slots. (Without the loosening, the break threw the wingmen about 100 m out, 24 Nov 2026.)
+#[test]
+fn tight_flight_loosens_in_a_sharp_roll() {
+    let Some(dir) = own() else { return println!("skipped: no assets/converted/own (iaf-sim fm, airbases)") };
+    let faults: Vec<String> = ["F-16I", "F-35I"].iter().filter_map(|ty| tight_break(&dir, ty).err()).collect();
+    assert!(faults.is_empty(), "{}", faults.join("; "));
+}
+
+/// [`tight_flight_loosens_in_a_sharp_roll`] with four jets of type `ty`: Err names what failed.
+fn tight_break(dir: &Path, ty: &str) -> Result<(), String> {
+    let mut w = airborne_of(dir, ty, 0.0);
+    w.run(30.0);
+    for _ in 0..2 {
+        w.flight.command(w.t, 0, "close_up");
+        w.run(40.0);
+    }
+    assert_eq!((w.flight.close_step(), w.flight.held_step()), (2, 2));
+    let tight = w.worst(10.0, &|_| true);
+    w.sep_air = f64::MAX;
+    // Each wingman's worst slot error over the break, m; whether the flight loosened.
+    let mut worst = [0f32; 3];
+    let mut loosened = false;
+    let track = |w: &World, worst: &mut [f32; 3], loosened: &mut bool| {
+        *loosened |= w.flight.held_step() == 1;
+        for m in w.flight.members.iter().filter(|m| m.number != 1) {
+            let e = &mut worst[m.number as usize - 2];
+            *e = e.max(m.slot_error);
+        }
+    };
+    w.lead_stick = Some((0.3, 0.0));
+    let t0 = w.t;
+    while w.jets[0].0.ap_view().att.roll.abs() < 40f32.to_radians() && w.t - t0 < 4.0 {
+        w.frame();
+        track(&w, &mut worst, &mut loosened);
+    }
+    w.lead_stick = Some((0.0, 0.2));
+    for _ in 0..(6.0 / DT) as usize {
+        w.frame();
+        track(&w, &mut worst, &mut loosened);
+    }
+    let g = w.jets[0].0.state().g;
+    let p = w.jets[0].0.ap_view().pos;
+    let h = w.jets[0].0.ap_view().att.heading as f64;
+    w.lead_stick = None;
+    w.lead_to(Vec3::new(p[0] + h.sin() * 400_000.0, p[1] + h.cos() * 400_000.0, 3000.0));
+    let back = w.until(120.0, &|w| {
+        let lv = w.jets[0].0.ap_view();
+        lv.att.roll.abs() < 5f32.to_radians() && w.flight.held_step() == 2
+    });
+    let sep = w.sep_air;
+    w.run(30.0);
+    let after = w.worst(20.0, &|_| true);
+    println!(
+        "{ty}: tight {tight:.1} m; the break (lead {g:.1} g): loosened {loosened}, worst {worst:.1?} m, nearest {sep:.1} m; \
+         tight again after {back:?} s, worst {after:.1} m"
+    );
+    let mut faults = Vec::new();
+    if !loosened {
+        faults.push(format!("{ty}: the break did not loosen the flight"));
+    }
+    for (i, e) in worst.into_iter().enumerate() {
+        let s = SHAPES[0].1[i];
+        let moved = s[0].hypot(s[1]) * (CLOSE_STEPS[1] - CLOSE_STEPS[2]);
+        if e > moved + 25.0 {
+            faults.push(format!("{ty}, the break: #{} {e:.1} m off its slot (moved {moved:.1} m)", i + 2));
+        }
+    }
+    if sep <= 12.0 {
+        faults.push(format!("{ty}, the break: jets {sep:.1} m apart"));
+    }
+    if back.is_none() || after > 5.0 {
+        faults.push(format!("{ty}, tight again: {back:?} {after:.1}"));
+    }
+    if faults.is_empty() { Ok(()) } else { Err(faults.join("; ")) }
 }

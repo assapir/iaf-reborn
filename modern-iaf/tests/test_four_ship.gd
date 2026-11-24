@@ -37,6 +37,7 @@ var _wing: Array = []  # the wingmen's entities, Kidon 1-2..1-4
 var _spots: Array = []  # their shelters' spots (x east, y north)
 var _orbit := false
 var _min_air := INF
+var _min_close := INF  # the spacing phase's least separation (its tight slots are 17 m apart)
 var _min_at := ""
 var _phase := "start-up"  # the test's step, in the separation's message
 var _since := -1.0  # all the wingmen within 60 m of their slots since (mission s; -1 not)
@@ -80,11 +81,14 @@ func run() -> void:
 		await _engage(tv)
 		_phase = "shapes"
 		await _shapes(tv)
+		_phase = "spacing"
+		await _spacing(tv)
 		_phase = "home"
 		await _home(tv)
 	process_frame.disconnect(_watch)
 	Engine.time_scale = 1.0
 	check(_min_air > 30.0, "at least 30 m between any two jets in the air all along (%.1f m%s)" % [_min_air, _min_at])
+	check(_min_close > 12.0, "close up, at least 12 m between any two jets (%.1f m)" % _min_close)
 
 
 ## F1: four jets in one formation, the player first, each on its own shelter's spot; the wingmen AI with the lead's
@@ -229,6 +233,35 @@ func _shapes(tv: Node) -> void:
 		check(ok and held, "%s: each in position, then held (%s)" % [id, _wing_states(tv)])
 
 
+## Close up through the radio menu's spacing page, twice (to the tight step, docs/ai.md §8.7), in the lead's 30° bank
+## turn: each step said, answered and in position, the tight slots held within 12 m for 20 s; a third "unable"; then
+## spread out twice back to the standard.
+func _spacing(tv: Node) -> void:
+	var fa = tv.ai.flight_ai
+	for want in [1, 2]:
+		var t0: float = tv.runtime.now
+		check(_menu(tv, ["to:0", "formation", "m:spacing", "close_up"]), "close up in the radio menu")
+		var ok := await _until(tv, func(): return _said_all("in_position", t0), 120.0)
+		check(ok and int(fa.state(2).close) == want, "close up to step %d: each in position (%s)" % [want, _calls()])
+	check(_heard(tv, "FLT_CMD", "Kidon 1, close up"), "the pilot's call said (%s)" % [_said_texts(tv)])
+	var tight := func(): return [2, 3, 4].all(func(n): return float(fa.state(n).slot_error) < 12.0)
+	var since := [-1.0]
+	var held := func():
+		var now: float = tv.runtime.now
+		since[0] = (now if since[0] < 0.0 else since[0]) if tight.call() else -1.0
+		return since[0] >= 0.0 and now - since[0] >= 20.0
+	check(await _until(tv, held, 120.0), "tight: held within 12 m for 20 s (%s)" % _wing_states(tv))
+	var t1: float = tv.runtime.now
+	check(_menu(tv, ["to:0", "formation", "m:spacing", "close_up"]), "close up again in the radio menu")
+	await fly(tv, 3.0)
+	check(_said_all("unable", t1), "past the tight step: unable (%s)" % _calls())
+	for want in [1, 0]:
+		var t0: float = tv.runtime.now
+		check(_menu(tv, ["to:0", "formation", "m:spacing", "spread_out"]), "spread out in the radio menu")
+		var ok := await _until(tv, func(): return _said_all("in_position", t0), 120.0)
+		check(ok and int(fa.state(2).close) == want, "spread out to step %d: each in position (%s)" % [want, _calls()])
+
+
 ## F12: the lead splits element 2 to its own target 8 km ahead in the same area: #3 flies there with #4 on it, #2
 ## stays on the lead; the regroup brings element 2 back.
 func _split(tv: Node) -> void:
@@ -312,10 +345,19 @@ func _site(tv: Node) -> void:
 	check(await _until(tv, any_locked, 60.0), "the S-300 locks a wingman (%s)" % _calls())
 	var k0: int = locked[0] if not locked.is_empty() else 0
 	var fa = tv.ai.flight_ai
-	var reacts := func(): return _said(k0 + 2, "mud", t0) and fa.state(k0 + 2).get("defending", false)
+	# The lock's call is "mud"; a launch in the same decision (DECIDE_S) is called "defending" alone (flight.rs
+	# defend): which one depends on the site's launch time against the decision's tick (failed 1 run of 2, 24 Nov 2026).
+	var call := [""]
+	var reacts := func():
+		for id in ["mud", "defending"]:
+			if _said(k0 + 2, id, t0):
+				call[0] = id
+		return call[0] != "" and fa.state(k0 + 2).get("defending", false)
 	check(await _until(tv, reacts, 10.0), "Kidon 1-%d calls the lock and defends (%s)" % [k0 + 2, _calls()])
-	var heard := func(p): return String(p.template) == "WNG_CALL" and String(p.text).ends_with("mud")
-	check(tv.radio.said.any(heard), "the call said with its subtitle (%s)" % [tv.radio.said.slice(-3)])
+	var heard := func(p): return String(p.template) == "WNG_CALL" and String(p.text).ends_with(call[0])
+	check(
+		call[0] != "" and tv.radio.said.any(heard), "the call said with its subtitle (%s)" % [tv.radio.said.slice(-3)]
+	)
 	var shot := []
 	var at_wing := func():
 		for f in site.flying:
@@ -451,7 +493,9 @@ func _watch() -> void:
 			if jets[i][1] or jets[j][1]:
 				continue
 			var d: float = (jets[i][0] as Vector3).distance_to(jets[j][0])
-			if d < _min_air:
+			if _phase == "spacing":
+				_min_close = minf(_min_close, d)
+			elif d < _min_air:
 				_min_air = d
 				_min_at = ", Kidon 1-%d and 1-%d at %.0f s, %s" % [i + 1, j + 1, tv._sim_time, _phase]
 				_min_at += "; Kidon 1-%d: %s" % [j + 1, tv.ai.flight_ai.state(j + 1).get("stage", "")]
@@ -521,8 +565,10 @@ func _said(n: int, id: String, t0: float) -> bool:
 func _menu(tv: Node, path: Array) -> bool:
 	tv.addon.set_open(true)
 	for id in ["m:wingmen"] + path:
+		if not id in tv.addon.shown and "m:more" in tv.addon.shown:
+			tv.addon.choose(tv.addon.shown.find("m:more") + 1)  # the page's lines after its first eight
 		var i: int = tv.addon.shown.find(id)
-		if i < 0:
+		if i < 0 or tv.addon.shown.size() > 9:  # every line has a number key
 			tv.addon.set_open(false)
 			return false
 		tv.addon.choose(i + 1)

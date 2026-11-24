@@ -77,7 +77,8 @@ impl IafAi {
 
     /// A radio command at `now` to `to` (0 the flight, 5 the element #3–#4, 2..4 one wingman): check, ops_check,
     /// a shape of `iaf_ai::SHAPES` (fingertip, line_abreast, trail, echelon_right, echelon_left, diamond, vic, delta),
-    /// rejoin, rtb, cover (keep the slot, fight a bandit that attacks the lead). False: unknown, or nobody to take it.
+    /// close_up / spread_out (one step of `iaf_ai::CLOSE_STEPS`, to the flight), rejoin, rtb, cover (keep the slot,
+    /// fight a bandit that attacks the lead). False: unknown, or nobody to take it.
     /// The answers come from `step` as calls.
     #[func]
     fn command(&mut self, now: f64, to: i64, cmd: GString) -> bool {
@@ -331,12 +332,13 @@ impl IafAi {
     }
 
     /// Jet `number` for tests and logs: role (lead / wingman), leader (the number it flies on, 0 none), stage (its
-    /// control loop), slot_error (m), avoiding (it pulls away from another jet), task (element 2's lead on its split
-    /// task), defending, tactic (the lead's order: "", cover, engage, sort, free), engaging, covering, holding (a sorted
-    /// wingman holding its fire), foe (the bandit it fights, 0 none), fuel_kg, bingo_kg, released (sent home), hold (it
-    /// waits on the ground: taxiing in behind a jet, a pair's lead for its wingman), strike (its attack's phase: "",
-    /// wait, run, egress), profile (its run: level, dive, pop), low (the flight flies low, docs/ai.md §20); empty for an
-    /// unknown number.
+    /// control loop), slot_error (m), close (the flight's close-up step, 0 standard), held (the step it holds now: looser
+    /// while the lead manoeuvres past the parade's limits, iaf_ai `PARADE_LOOSE`), avoiding (it pulls away from
+    /// another jet), task (element 2's lead on its split task), defending, tactic (the lead's order: "", cover, engage,
+    /// sort, free), engaging, covering, holding (a sorted wingman holding its fire), foe (the bandit it fights, 0 none),
+    /// fuel_kg, bingo_kg, released (sent home), hold (it waits on the ground: taxiing in behind a jet, a pair's lead for
+    /// its wingman), strike (its attack's phase: "", wait, run, egress), profile (its run: level, dive, pop), low (the
+    /// flight flies low, docs/ai.md §20); empty for an unknown number.
     #[func]
     fn state(&self, number: i64) -> VarDictionary {
         let mut d = VarDictionary::new();
@@ -347,6 +349,8 @@ impl IafAi {
         }
         d.set("leader", self.flight.leader(m.number) as i64);
         d.set("slot_error", m.slot_error);
+        d.set("close", self.flight.close_step() as i64);
+        d.set("held", self.flight.held_step() as i64);
         d.set("avoiding", m.order.avoid.is_some());
         d.set("task", m.task.is_some());
         d.set("defending", m.defending);

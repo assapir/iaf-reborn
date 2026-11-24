@@ -3,6 +3,17 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **Close up / spread out (2026-11-24, the user, 20 Nov: "we should allow ask for "get closer", which will even lead
+  to 10m apart"; [ai-plan.md](ai-plan.md) F4, F5; [../../docs/ai.md](../../docs/ai.md) §8.7):** the radio menu's
+  Formation page has a Spacing page: Close up takes the close shapes from 60 m between the slots to 30 m, then to 12 m
+  (the parade position: 2 m between an F-16's wingtips); Spread out goes back one step. The command and each wingman's
+  answer are said with subtitles, English and Hebrew; "unable" past the last step, in line abreast or trail. Close up,
+  the wingmen roll with the lead and use a quicker throttle, and the pull-away's distances shrink with the spacing:
+  in the Rust test the tight slots held within 2 m level, no two jets nearer than 16.8 m (`four_ship.rs
+  close_up_and_spread_out`; `test_four_ship.gd`'s spacing phase drives the menu). When the lead banks past 35°, rolls
+  faster than 20°/s or pulls more than 1.5 g, the tight flight moves out to 30 m on its own (the parade's lead turns
+  at 30° of bank; harder, the formation flies cruise) and closes back up 5 s after; in a sharp break the wingmen keep
+  15 m from each other (`four_ship.rs tight_flight_loosens_in_a_sharp_roll`).
 - **The combat logbook (2026-11-24, the user, 23 Nov: "Is the pilot logs count kills/targets destroyed/lost?"; the
   round-2 mock approved on A79 with his answers of 24 Nov; [storage.md](storage.md) §5, [front-end.md](front-end.md)
   §3 and §13):** each scored flight counts its combat from its recording in Rust (`crates/iaf-tools/src/combat_log.rs`):

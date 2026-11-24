@@ -62,6 +62,32 @@ const AVOID_CLEAR_M: f64 = 100.0;
 const AVOID_SLOT_CLEAR_M: f64 = 70.0;
 /// A slot is reached (the transit's end; "in position") within this, m.
 const IN_POSITION_M: f32 = 50.0;
+/// The lead's "close up" / "spread out" ([`Flight::command`]): the close shapes' spacing by step, a share of
+/// [`SHAPES`]' (standard, close, tight). Tight is the parade position: an F-16's 9.96 m span 12 m from the next jet's
+/// centreline leaves 2 m (7 ft) between the wingtips, inside parade's 4 to 10 ft[^cnatra-parade]; close halves the
+/// standard (inferred). Line abreast and trail keep theirs. Every distance the flight keeps between its jets in the
+/// close shapes ([`CLEAR_M`], [`AVOID_M`], [`AVOID_CLEAR_M`], [`AVOID_SLOT_CLEAR_M`], [`IN_POSITION_M`]) takes the
+/// same share.
+///
+/// [^cnatra-parade]: CNATRAINST 1542.154 / 1542.61L, Parade / Fingertip: "wingtip separation of 4 feet to 10 feet"
+///     (second-hand: a search engine's quote), docs/ai.md §8.7;
+///     <https://navyflightmanuals.tpub.com/1542.61L_wch1/Parade-Fingertip-1542-61L_Wch10166-166.htm>
+pub const CLOSE_STEPS: [f32; 3] = [1.0, 0.5, 0.2];
+/// Closer than this step of [`CLOSE_STEPS`], the flight loosens to it while the lead manoeuvres past the parade's
+/// limits ([`PARADE_LIMITS`]) and closes back up once the lead has flown within them for [`PARADE_SETTLE_S`]: the
+/// parade's lead turns at 30° of bank at the parade rate of roll (about 10°/s)[^p1213-parade]; past that the section
+/// flies cruise, whose lead is not held to 30°[^p1213-cruise]. (The 10°/s is second-hand: a search engine's quote.)
+///
+/// [^p1213-parade]: CNATRA P-1213 (draft), Parade Turns: "rolling into 30 degrees AOB at the parade rate of roll";
+///     <https://navyflightmanuals.tpub.com/Draft_P-1213/Parade-Turns-Draft_P-12130041-41.htm>
+/// [^p1213-cruise]: CNATRA P-1213 (draft), Cruise Position (second-hand: a search engine's quote);
+///     <https://navyflightmanuals.tpub.com/Draft_P-1213/Cruise-Position-Draft_P-12130050-50.htm>
+const PARADE_LOOSE: usize = 1;
+/// The lead's bank (rad), roll rate (rad/s) and load factor past which the flight loosens ([`PARADE_LOOSE`]); the
+/// parade's 30° and 10°/s with a margin, and a 30° bank turn's 1.15 g with one (inferred).
+const PARADE_LIMITS: (f32, f32, f64) = (35.0 * std::f32::consts::PI / 180.0, 20.0 * std::f32::consts::PI / 180.0, 1.5);
+/// The lead within [`PARADE_LIMITS`] this long, s, the flight closes back up (inferred).
+const PARADE_SETTLE_S: f64 = 5.0;
 /// The indices of "line_abreast" and "trail" in [`SHAPES`].
 const LINE_ABREAST: usize = 1;
 const TRAIL: usize = 2;
@@ -206,6 +232,8 @@ pub struct Order {
     /// The taxi's jet ahead on the ground, else the flight lead.
     pub leader: Option<Leader>,
     pub slot: [f32; 3],
+    /// The slot is a close-up step ([`CLOSE_STEPS`], `Autopilot::close`).
+    pub close: bool,
     /// Start the engine (once).
     pub start_engine: bool,
     /// The route's waypoint to go on from (once: a promoted lead takes the lost lead's).
@@ -345,6 +373,13 @@ pub struct Flight {
     /// The index of the flight lead in `members`.
     lead: usize,
     shape: usize,
+    /// The close shapes' spacing: an index of [`CLOSE_STEPS`].
+    close: usize,
+    /// Since when the lead has flown within [`PARADE_LIMITS`] (the host's time, as `now`: the jets' clocks differ);
+    /// None: it is past them, the flight loosened.
+    parade: Option<f64>,
+    /// The last frame's time ([`Flight::step`]).
+    now: f64,
     /// The home base's lineup (bingo's distance, the landing sequence).
     home: Option<Vec3>,
     cleared: Option<f64>,
@@ -379,6 +414,9 @@ impl Default for Flight {
             members: Vec::new(),
             lead: 0,
             shape: 0,
+            close: 0,
+            parade: Some(f64::NEG_INFINITY),
+            now: 0.0,
             home: None,
             cleared: None,
             next: 0.0,
@@ -613,6 +651,53 @@ impl Flight {
             Some(i) if i != self.lead => self.members[self.leader_index(i)].number,
             _ => 0,
         }
+    }
+
+    /// The share of the standard spacing the flight keeps ([`CLOSE_STEPS`]): its close-up step in a close shape, else 1.
+    fn spacing(&self) -> f64 {
+        self.spacing_at(self.held_step())
+    }
+
+    /// [`Flight::spacing`] at close-up step `step`.
+    fn spacing_at(&self, step: usize) -> f64 {
+        if matches!(self.shape, LINE_ABREAST | TRAIL) { 1.0 } else { CLOSE_STEPS[step] as f64 }
+    }
+
+    /// The share the distances the jets keep from each other take (the step down, the pull-away): the ordered step's,
+    /// so a flight loosened from the tight step ([`PARADE_LOOSE`]) steps down and pulls away as at the tight step until
+    /// it closes back up (with the close step's, the jets still 17 m apart stepped down and pulled away: 213 m off).
+    fn guard(&self) -> f64 {
+        self.spacing_at(self.close)
+    }
+
+    /// The close-up step the flight holds now: the ordered one ([`Flight::close_step`]), or [`PARADE_LOOSE`] while
+    /// the lead manoeuvres past the parade's limits and [`PARADE_SETTLE_S`] after.
+    pub fn held_step(&self) -> usize {
+        let settled = self.parade.is_some_and(|t| self.now - t >= PARADE_SETTLE_S);
+        if settled { self.close } else { self.close.min(PARADE_LOOSE) }
+    }
+
+    /// The lead past the parade's limits ([`PARADE_LIMITS`]) this frame: the flight loosens; within them, the time
+    /// since.
+    fn watch_parade(&mut self, now: f64) {
+        self.now = now;
+        let Some(l) = self.members.get(self.lead) else { return };
+        let (bank, rate, n) = PARADE_LIMITS;
+        const G: f64 = 9.80665;
+        let g = (l.acc + Vec3::UP * G).length() / G;
+        let past = l.airborne && (l.v.att.roll.abs() > bank || l.v.rates[1].abs() > rate || g > n);
+        self.parade = if past { None } else { Some(self.parade.unwrap_or(now)) };
+    }
+
+    /// The slots of #2, #3, #4 in the shape now, at its spacing ([`Flight::spacing`]).
+    fn slots(&self) -> [[f32; 3]; 3] {
+        let k = self.spacing() as f32;
+        SHAPES[self.shape].1.map(|s| s.map(|x| x * k))
+    }
+
+    /// The close-up step the flight keeps: 0 standard, 1 close, 2 tight ([`CLOSE_STEPS`]).
+    pub fn close_step(&self) -> usize {
+        self.close
     }
 
     /// The threat on jet `number` this frame (its RWR's lock, its MAW's missile; None: clear), for the reactions.
@@ -991,7 +1076,9 @@ impl Flight {
     }
 
     /// A radio command (design §4) to `to`: 0 the flight, 5 the element (#3, #4), 2..4 one wingman. Returns false for
-    /// an unknown command or nobody to take it; the answers come as calls. "low" / "high" to the flight set and end
+    /// an unknown command or nobody to take it; the answers come as calls. "close_up" / "spread_out" to the flight
+    /// take the close shapes one step of [`CLOSE_STEPS`] in or out; "unable" at the last step, in line abreast or
+    /// trail, or to one jet or the element. "low" / "high" to the flight set and end
     /// its low level at [`LOW_ORDER_M`] ([`Flight::low`]); they return false when no jet took them.
     pub fn command(&mut self, now: f64, to: u8, cmd: &str) -> bool {
         // The regroup: element 2 rejoins (from a split).
@@ -1001,6 +1088,13 @@ impl Flight {
             return false;
         }
         let shape = SHAPES.iter().position(|s| s.0 == cmd);
+        // Close up / spread out: one step of [`CLOSE_STEPS`], in a close shape, to the flight.
+        let step = match cmd {
+            "close_up" => (self.close + 1 < CLOSE_STEPS.len()).then_some(self.close + 1),
+            "spread_out" => self.close.checked_sub(1),
+            _ => None,
+        }
+        .filter(|_| to == 0 && !matches!(self.shape, LINE_ABREAST | TRAIL));
         let mut acked = false;
         for &i in &who {
             let m = &mut self.members[i];
@@ -1037,11 +1131,18 @@ impl Flight {
                     "ack"
                 }
                 "low" | "high" if to == 0 && flying => "ack",
-                "rejoin" | "rtb" | "cover" | "low" | "high" => "unable",
+                "close_up" | "spread_out" if step.is_some() && flying => "ack",
+                "rejoin" | "rtb" | "cover" | "low" | "high" | "close_up" | "spread_out" => "unable",
                 _ => return false,
             };
             acked |= answer == "ack";
             self.calls.push((now + m.skill.reaction_s, Call { from: m.number, id: answer }));
+        }
+        if let Some(c) = step.filter(|_| acked) {
+            self.close = c;
+            for m in self.members.iter_mut().filter(|m| m.airborne && !m.landed) {
+                m.report = true;
+            }
         }
         if let Some(s) = shape.filter(|_| acked) {
             self.shape = s;
@@ -1073,6 +1174,7 @@ impl Flight {
             self.next = now + DECIDE_S;
             self.decide(now);
         }
+        self.watch_parade(now);
         self.feed(now);
         let (due, later) = std::mem::take(&mut self.calls).into_iter().partition(|(t, _)| *t <= now);
         self.calls = later;
@@ -1172,7 +1274,9 @@ impl Flight {
             self.bandits.iter().filter(|b| attacks_lead(&self.members[self.lead], b)).map(|b| b.id).collect();
         let mut shooters = Vec::new();
         let lead_pos = self.members[self.lead].v.pos;
-        let base = SHAPES[self.shape].1;
+        let base = self.slots();
+        let (k, kg) = (self.spacing(), self.guard());
+        let (clear, in_position) = ((CLEAR_M.0 * kg, CLEAR_M.1 * kg), IN_POSITION_M * k as f32);
         let table = |n: u8| if (2..=4).contains(&n) { base[n as usize - 2] } else { [0.0; 3] };
         let home = self.home;
         for (i, &support) in supports.iter().enumerate() {
@@ -1203,12 +1307,12 @@ impl Flight {
                 m.slot_error = s.distance(m.v.pos) as f32;
                 // Too near another jet: step down as in a change of slots (the higher number gives way: its step is
                 // the larger), until in its slot and clear.
-                if nearest < CLEAR_M.0 && m.mode == MODE_SLOT {
+                if nearest < clear.0 && m.mode == MODE_SLOT {
                     m.transit = true;
-                } else if m.transit && flat_err < IN_POSITION_M && nearest > CLEAR_M.1 {
+                } else if m.transit && flat_err < in_position && nearest > clear.1 {
                     m.transit = false;
                 }
-                if m.report && !m.transit && m.slot_error < IN_POSITION_M && m.mode == MODE_SLOT {
+                if m.report && !m.transit && m.slot_error < in_position && m.mode == MODE_SLOT {
                     m.report = false;
                     m.calls.push("in_position");
                 }
@@ -1383,6 +1487,7 @@ impl Flight {
     /// stream), in the air the flight lead; its slot, stepped down during a change of slots.
     fn feed(&mut self, now: f64) {
         let t = SHAPES[self.shape].1;
+        let (k, kg) = (self.spacing(), self.guard());
         let side = |n: u8| {
             let right = if n == 2 { t[0][1] } else { t[2][1] - t[1][1] };
             if right > 0.0 { PAIR_M } else { -PAIR_M }
@@ -1401,12 +1506,12 @@ impl Flight {
             let a = self.avoid(i);
             let ld = leader_of(&self.members[self.leader_index(i)]);
             let m = &mut self.members[i];
-            let in_slot = m.mode == MODE_SLOT && !m.transit && m.slot_error < IN_POSITION_M;
+            let in_slot = m.mode == MODE_SLOT && !m.transit && m.slot_error < IN_POSITION_M * k as f32;
             m.avoiding = a.is_some_and(|(miss, _, closing)| {
                 if !m.avoiding {
-                    miss < AVOID_M
+                    miss < AVOID_M * kg
                 } else {
-                    miss < AVOID_CLEAR_M && (closing || miss < AVOID_SLOT_CLEAR_M || !in_slot)
+                    miss < AVOID_CLEAR_M * kg && (closing || miss < AVOID_SLOT_CLEAR_M * kg || !in_slot)
                 }
             });
             m.order.avoid = a.filter(|_| m.avoiding).map(|(_, away, _)| away);
@@ -1415,6 +1520,7 @@ impl Flight {
             let ground = m.v.on_ground && !m.airborne || m.mode == 9 && !m.airborne;
             m.order.leader = if ground { ahead } else { Some(ld) };
             m.order.slot = m.slot;
+            m.order.close = k < 1.0;
             // The dogfight's point follows the bogey every frame while it is in sight.
             let b = m.bandit.and_then(|id| self.bandits.iter().find(|b| b.id == id)).map(Bandit::bogey);
             if let (Some((aim, lay)), Some(b)) = (m.enemy.aim, b.filter(|_| m.enemy.visual)) {
@@ -1633,14 +1739,16 @@ impl Flight {
         if !me.ai || !me.alive || me.v.on_ground {
             return None;
         }
+        // (The look-ahead shrinks with the spacing: at the tight step, 0.8 s.)
+        let (h, dt) = (AVOID_S * self.guard(), AVOID_STEP_S * self.guard());
         let (miss, other, closing) = (self.members.iter())
             .filter(|o| o.number != me.number && o.alive && !o.v.on_ground && !pair_free(me, o))
             .flat_map(|o| {
                 let (op, ov) = (o.v.pos, o.v.vel);
                 let (dp, dv, da) = (op - me.v.pos, ov - me.v.vel, o.acc - me.acc);
                 // Also the straight lines' closest approach (head-on, a sample's step is 50 m).
-                let straight = (-dp.dot(dv) / dv.dot(dv).max(1e-6)).clamp(0.0, AVOID_S);
-                let steps = (0..=(AVOID_S / AVOID_STEP_S) as usize).map(|k| k as f64 * AVOID_STEP_S);
+                let straight = (-dp.dot(dv) / dv.dot(dv).max(1e-6)).clamp(0.0, h);
+                let steps = (0..=(h / dt).round() as usize).map(move |k| k as f64 * dt);
                 steps.chain([straight]).map(move |t| (dp + dv * t + da * (t * t / 2.0), o.number, t > 0.0))
             })
             .min_by(|a, b| a.0.length().total_cmp(&b.0.length()))?;
@@ -1730,6 +1838,7 @@ pub(crate) fn defend(m: &mut Member) -> Status {
 pub fn apply(o: &Order, ap: &mut Autopilot, fm: &mut Fm) {
     ap.leader = o.leader;
     ap.slot = o.slot;
+    ap.close = o.close;
     ap.avoid = o.avoid;
     ap.hold = o.hold;
     ap.lineup_offset = o.lineup_offset;

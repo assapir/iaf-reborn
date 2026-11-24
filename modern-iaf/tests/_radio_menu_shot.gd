@@ -30,11 +30,20 @@ func run() -> void:
 ## Each page of the menu, opened as the keys do (sim_flight.gd choose).
 func _pages(tv: Node, lang: String) -> void:
 	for path in [
-		[], ["m:tower"], ["m:wingmen"], ["m:wingmen", "to:0"], ["m:wingmen", "to:0", "formation"], ["m:wingmen", "to:5"]
+		[],
+		["m:tower"],
+		["m:wingmen"],
+		["m:wingmen", "to:0"],
+		["m:wingmen", "to:0", "m:more"],
+		["m:wingmen", "to:0", "formation"],
+		["m:wingmen", "to:0", "formation", "m:spacing"],
+		["m:wingmen", "to:5"],
 	]:
 		tv.addon.set_open(true)
 		var ok := true
 		for id in path:
+			if not id in tv.addon.shown and "m:more" in tv.addon.shown:
+				tv.addon.choose(tv.addon.shown.find("m:more") + 1)  # the page's lines after its first eight
 			var i: int = tv.addon.shown.find(id)
 			ok = ok and i >= 0
 			if ok:

@@ -235,6 +235,20 @@ const SLOT_OVERTAKE: (f64, f64) = (-30.0, 60.0);
 const SLOT_THR: (f32, f32) = (0.03, 0.01);
 const SLOT_G_MAX: f32 = 7.0;
 const SLOT_BANK_MAX: f64 = 75.0;
+/// Ours, the slot loop's roll law (inferred): the stick per radian of bank error and per rad/s of roll rate, over the
+/// jet's highest roll rate, close up ([`Autopilot::close`]). The original's (`RollK`, `RollBeta`) rolled a wingman 12 m
+/// off the lead into its 45° bank turn so late that its pull-away tripped and threw it 98 m out of its slot; with this
+/// one, 10 m at most (test four_ship `close_up_and_spread_out`). At the standard spacing the original's stays (this one
+/// moved the landings' order and spacing).
+const SLOT_ROLL: (f32, f32) = (4.0, 0.3);
+/// Close up ([`Autopilot::close`]), the slot loop's throttle gain is this many times [`SLOT_THR`]'s (inferred: with
+/// the standard gain a wingman 30 m off the lead still swung 7.6 m along its slot half a minute after the close-up,
+/// with this one 3.5 m).
+const SLOT_CLOSE_KP: f32 = 3.0;
+/// Close up ([`Autopilot::close`]), the slot loop rolls the leader's lift on by the leader's roll rate over this, s (the
+/// wingman's roll lag; inferred: without it, a wingman 12 m off the lead in its roll into a 45° bank turn fell 98 m
+/// out of its slot, with it 10 m).
+const SLOT_ROLL_LEAD_S: f64 = 0.5;
 /// A slot leader this far from where its last position and velocity put it is a new leader (a promotion), m.
 const LEADER_JUMP_M: f64 = 20.0;
 /// Ours, the flight's collision avoidance ([`Autopilot::avoid`]): the acceleration it pulls away with, m/s² (3 g;
@@ -1175,7 +1189,7 @@ enum Loop {
     /// leader's time, position and velocity at the last tick (its acceleration).
     Slot {
         thr_i: f32,
-        prev: Option<(f64, Vec3, Vec3)>,
+        prev: Option<(f64, Vec3, Vec3, f32)>,
     },
     /// Ours, the steer loop ([`MODE_STEER`]).
     Steer,
@@ -1991,6 +2005,10 @@ pub struct Autopilot {
     pub player_flare: bool,
     /// The slot loop's slot ([`MODE_SLOT`]): (forward, right, up) m in the leader's horizontal frame ([`slot_point`]).
     pub slot: [f32; 3],
+    /// Ours (Modern IAF's flights): the slot is a close-up step (the lead's "close up", iaf-ai `CLOSE_STEPS`): the slot
+    /// loop rolls with the leader ([`SLOT_ROLL_LEAD_S`]) by its own roll law ([`SLOT_ROLL`]), its throttle quicker
+    /// ([`SLOT_CLOSE_KP`]).
+    pub close: bool,
     /// Ours (Modern IAF's flights): the hangar (base index in `bases`, hangar) the landing's taxi parks in when it is
     /// free; None: the original's first free hangar.
     pub home_hangar: Option<(usize, usize)>,
@@ -2050,6 +2068,7 @@ impl Autopilot {
             align_final: false,
             player_flare: false,
             slot: [0.0; 3],
+            close: false,
             home_hangar: None,
             avoid: None,
             steer: None,
@@ -2502,7 +2521,7 @@ impl Autopilot {
         {
             let t = v.vel.try_normalize().unwrap_or(Vec3::NORTH);
             let lift = a * AVOID_A + Vec3::UP * G as f64;
-            let (y, x) = lift_stick(&l, lift - t * lift.dot(t), None);
+            let (y, x) = lift_stick(&l, lift - t * lift.dot(t), None, false);
             l.stick(y, x);
             period = period.min(0.1);
         }
@@ -2764,7 +2783,7 @@ impl Autopilot {
     /// on the along-track error, through a PI throttle (the original's speed law leaves a standing error on the
     /// 6-DoF) and the speed brake when 10 m/s fast. The ground watch stays on. A far slot is the same law: the
     /// rejoin.
-    fn slot_step(&self, l: &mut Laws, thr_i: &mut f32, prev: &mut Option<(f64, Vec3, Vec3)>) {
+    fn slot_step(&self, l: &mut Laws, thr_i: &mut f32, prev: &mut Option<(f64, Vec3, Vec3, f32)>) {
         let v = l.v;
         let Some(ld) = self.leader else {
             l.stick(0.0, 0.0);
@@ -2775,13 +2794,24 @@ impl Autopilot {
         // The leader's acceleration from its velocity at the last tick, and its turn rate (clockwise seen from above);
         // the slot moves with the leader's frame turning.
         // (A leader 20 m off where the last tick's would be is a new one, after a promotion: none.)
-        let a_l = match *prev {
-            Some((t0, p0, v0)) if v.t > t0 && ld.pos.distance(p0 + v0 * (v.t - t0)) < LEADER_JUMP_M => {
-                (ld.vel - v0) * (1.0 / (v.t - t0))
+        let (a_l, rate) = match *prev {
+            Some((t0, p0, v0, r0)) if v.t > t0 && ld.pos.distance(p0 + v0 * (v.t - t0)) < LEADER_JUMP_M => {
+                ((ld.vel - v0) * (1.0 / (v.t - t0)), wrap(ld.att[1] - r0) as f64 / (v.t - t0))
             }
-            _ => Vec3::ZERO,
+            _ => (Vec3::ZERO, 0.0),
         };
-        *prev = Some((v.t, ld.pos, ld.vel));
+        *prev = Some((v.t, ld.pos, ld.vel, ld.att[1]));
+        // Close up, the leader's lift rolled on by its roll rate for SLOT_ROLL_LEAD_S: the wingman rolls with the
+        // leader, as a wingman in close formation watches the leader's wings, not its path ("welded wing" turns).
+        let a_l = match ld.vel.try_normalize().filter(|_| self.close) {
+            Some(tl) => {
+                let lift = a_l + Vec3::UP * G as f64;
+                let lift = lift - tl * lift.dot(tl);
+                let th = (rate * SLOT_ROLL_LEAD_S).clamp(-1.0, 1.0);
+                a_l + lift * (th.cos() - 1.0) + tl.cross(lift) * th.sin()
+            }
+            None => a_l,
+        };
         let h2 = (ld.vel[0] * ld.vel[0] + ld.vel[1] * ld.vel[1]).max(1.0);
         let w = ((a_l[0] * ld.vel[1] - a_l[1] * ld.vel[0]) / h2).clamp(-0.5, 0.5);
         let vs = ld.vel + Vec3::new(w * d[1], -w * d[0], 0.0);
@@ -2796,7 +2826,7 @@ impl Autopilot {
         let ec = eh * (SLOT_E_MAX / eh.length().max(SLOT_E_MAX)) + Vec3::UP * e[2].clamp(-SLOT_E_MAX, SLOT_E_MAX);
         let kd = 2.0 * SLOT_ZETA * SLOT_W;
         let lift = across(a_s + ec * (SLOT_W * SLOT_W) + de * kd + Vec3::UP * g);
-        let (mut y, mut x) = lift_stick(l, lift, None);
+        let (mut y, mut x) = lift_stick(l, lift, None, self.close);
         // Along the path: the slot's speed and the overtake; the PI throttle.
         let (lo, hi) = SLOT_OVERTAKE;
         let vt = (vs.dot(t) + (SLOT_K_ALONG * e.dot(t)).clamp(lo, hi) + a_s.dot(t) * SLOT_ANTICIPATE_S) as f32;
@@ -2808,6 +2838,7 @@ impl Autopilot {
         let vt = vt.max(v.circuit.map_or(0.0, |c| c.1)).max(far as f32);
         let err = vt - v.speed;
         let (kp, ki) = SLOT_THR;
+        let kp = if self.close { kp * SLOT_CLOSE_KP } else { kp };
         let mut thr = (*thr_i + kp * err).clamp(0.0, 1.0);
         if thr > 0.0 && thr < 1.0 {
             *thr_i = (*thr_i + ki * err * 0.1).clamp(0.0, 1.0);
@@ -2863,7 +2894,7 @@ impl Autopilot {
         let lift = Vec3::UP.cross(th) * a_turn + Vec3::UP * (g + a_up);
         // A fighter's lift upward: 1 g at most going down, else the height law's.
         let hold = s.fighter.then_some(if dz < -STEER_DOWN_M { g } else { g + a_up });
-        let (mut y, mut x) = lift_stick(l, lift - t * lift.dot(t), hold);
+        let (mut y, mut x) = lift_stick(l, lift - t * lift.dot(t), hold, false);
         let mut thr = l.thr(s.speed).min(s.thr_max);
         l.watch_ground(&mut x, &mut y, &mut thr);
         l.gear(false);
@@ -2909,7 +2940,7 @@ impl Autopilot {
         let lift = u * a.min(room.max(0.0)) + w;
         // (The bank is measured about the horizon's right, undefined straight up or down: the line to the point is
         // kept within BFM_STEEP of the horizon, so the path stays off the vertical.)
-        let (mut y, mut x) = lift_stick_in(l, lift, std::f64::consts::PI, f64::NEG_INFINITY, n_max, None);
+        let (mut y, mut x) = lift_stick_in(l, lift, std::f64::consts::PI, f64::NEG_INFINITY, n_max, None, false);
         let mut thr = l.thr(s.speed).min(s.thr_max);
         l.watch_ground(&mut x, &mut y, &mut thr);
         l.gear(false);
@@ -2930,25 +2961,26 @@ fn fly_up_stick(l: &Laws, n: f32) -> (f32, f32) {
     } else {
         w * G as f64
     };
-    lift_stick_in(l, lift, std::f64::consts::PI, 0.0, n, Some(f64::INFINITY))
+    lift_stick_in(l, lift, std::f64::consts::PI, 0.0, n, Some(f64::INFINITY), false)
 }
 
 /// The stick (pitch, roll) that flies the lift `lift` (m/s², world, across the flight path): a bank about the flight
 /// path and a load factor on the wing's present lift axis (no pull while the jet is still rolled the wrong way; never a
-/// push), within the slot loop's bank and the jet's load factor. With `hold` (a [`Steer::fighter`]: its lift upward,
+/// push), within the slot loop's bank and the jet's load factor; rolled by [`SLOT_ROLL`] with `slot` (the slot loop),
+/// else by the original's roll law. With `hold` (a [`Steer::fighter`]: its lift upward,
 /// m/s²) within the steer loop's bank, rolled by the fighter's roll law, and never more lift upward than `hold`: a jet
 /// still rolling into a hard turn pulls only what holds its height, so the turn's lift does not climb it.
-fn lift_stick(l: &Laws, lift: Vec3, hold: Option<f64>) -> (f32, f32) {
+fn lift_stick(l: &Laws, lift: Vec3, hold: Option<f64>, slot: bool) -> (f32, f32) {
     let v = l.v;
     // (A fighter's load factor: the jet's, its order's turn within it.)
     let n_max = if hold.is_some() { v.max_g } else { v.circuit.map_or(v.max_g, |c| c.0.min(v.max_g)).min(SLOT_G_MAX) };
     let lim = if hold.is_some() { STEER_BANK_MAX } else { SLOT_BANK_MAX }.to_radians();
-    lift_stick_in(l, lift, lim, 0.2 * G as f64, n_max, hold)
+    lift_stick_in(l, lift, lim, 0.2 * G as f64, n_max, hold, slot)
 }
 
 /// [`lift_stick`] within the bank `lim` (rad), the lift's up share taken as at least `up_min` (m/s²) for the bank, and
 /// the load factor `n_max`; `hold` as [`lift_stick`]'s.
-fn lift_stick_in(l: &Laws, lift: Vec3, lim: f64, up_min: f64, n_max: f32, hold: Option<f64>) -> (f32, f32) {
+fn lift_stick_in(l: &Laws, lift: Vec3, lim: f64, up_min: f64, n_max: f32, hold: Option<f64>, slot: bool) -> (f32, f32) {
     let v = l.v;
     let t = v.vel.try_normalize().unwrap_or(Vec3::NORTH);
     let right = t.cross(Vec3::UP).try_normalize().unwrap_or(Vec3::new(1.0, 0.0, 0.0));
@@ -2963,6 +2995,10 @@ fn lift_stick_in(l: &Laws, lift: Vec3, lim: f64, up_min: f64, n_max: f32, hold: 
                 n = n.min((up.max(0.0) / G as f64) as f32 / roll.cos());
             }
             (wrap(bank - roll) * FIGHTER_ROLL_K / v.max_roll_rate.max(1e-3)).clamp(-1.0, 1.0)
+        }
+        None if slot => {
+            let rmax = v.max_roll_rate.max(1e-3);
+            ((wrap(bank - roll) * SLOT_ROLL.0 - SLOT_ROLL.1 * v.rates[1]) / rmax).clamp(-1.0, 1.0)
         }
         None => l.roll(bank),
     };

@@ -2742,6 +2742,20 @@
       "say_he": "מבנה דלתא."
     },
     {
+      "file": "flt_cmd_close_up.ogg",
+      "voice": "pilot",
+      "say": "Close up.",
+      "mode": "helmet",
+      "say_he": "מבנה צמוד."
+    },
+    {
+      "file": "flt_cmd_spread_out.ogg",
+      "voice": "pilot",
+      "say": "Spread out.",
+      "mode": "helmet",
+      "say_he": "להגדיל מרווחים."
+    },
+    {
       "file": "flt_cmd_rejoin.ogg",
       "voice": "pilot",
       "say": "Rejoin.",
@@ -4752,6 +4766,16 @@
       "file": "flt_cmd_delta.ogg",
       "text": "delta",
       "text_he": "מבנה דלתא"
+    },
+    "CMD_CLOSE_UP": {
+      "file": "flt_cmd_close_up.ogg",
+      "text": "close up",
+      "text_he": "מבנה צמוד"
+    },
+    "CMD_SPREAD_OUT": {
+      "file": "flt_cmd_spread_out.ogg",
+      "text": "spread out",
+      "text_he": "להגדיל מרווחים"
     },
     "CMD_TRAIL": {
       "file": "flt_cmd_trail.ogg",

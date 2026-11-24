@@ -193,6 +193,8 @@ func _calls() -> String:
 func _menu(tv: Node, path: Array) -> bool:
 	tv.addon.set_open(true)
 	for id in ["m:wingmen"] + path:
+		if not id in tv.addon.shown and "m:more" in tv.addon.shown:
+			tv.addon.choose(tv.addon.shown.find("m:more") + 1)  # the page's lines after its first eight
 		var i: int = tv.addon.shown.find(id)
 		if i < 0:
 			tv.addon.set_open(false)

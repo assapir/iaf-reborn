@@ -38,8 +38,11 @@ const TOP := [
 	["m:wingmen", "Wingmen", "המבנה"],
 	["m:awacs", "AWACS", "AWACS"],
 ]
+## A page of more lines than the number keys reach shows its first eight and this ninth line, which shows the rest
+## (every line has a number key; 0 goes back to the first eight).
+const MORE := ["m:more", "More ›", "עוד ‹"]
 ## The page a `0` goes back to.
-const PARENT := {"tower": "", "wingmen": "", "to": "wingmen", "formation": "to"}
+const PARENT := {"tower": "", "wingmen": "", "to": "wingmen", "formation": "to", "spacing": "formation"}
 ## The flight's pages (ours, modern-iaf/docs/ai-plan.md F5; the user, 19 Nov: "radion menu instead of hotkeys"): after
 ## the tower's calls, one line per addressee of the four-ship (IafAi's `to`: 0 the flight, 5 the element, 2..4 one
 ## wingman), its English and Hebrew label and the address the pilot says (voices.json). The callsigns are kidon style
@@ -77,6 +80,13 @@ const SHAPES := [
 	["vic", "Vic", "מבנה וי", "CMD_VIC"],
 	["delta", "Delta", "מבנה דלתא", "CMD_DELTA"],
 ]
+## The shapes' page's last line opens the spacing page: close up / spread out, one step each (IafAi's command;
+## docs/ai.md §8.7; the words of modern-iaf/docs/research/radio-terms.md).
+const SPACING_PAGE := ["m:spacing", "Spacing ›", "מרווחים ‹"]
+const SPACING := [
+	["close_up", "Close up", "מבנה צמוד", "CMD_CLOSE_UP"],
+	["spread_out", "Spread out", "להגדיל מרווחים", "CMD_SPREAD_OUT"],
+]
 ## The pilot's call, printed in the game's language and said by the pilot's voice (radio.gd PILOT_CALL: the address,
 ## the callsign, REQ_<ID>; modern-iaf/docs/sound.md §5.2).
 const CALLS := {
@@ -110,9 +120,10 @@ var host: Node
 var open := false
 var _menu_at := 0  # the radio menu's opening or last key (ms): MENU_S later it closes
 ## The menu's page: "" the first (Tower, Wingmen, AWACS), "tower" the tower's calls, "wingmen" the flight's
-## addressees, "to" an addressee's commands (`_to`), "formation" the flight's shapes.
+## addressees, "to" an addressee's commands (`_to`), "formation" the flight's shapes, "spacing" close up / spread out.
 var page := ""
 var _to := 0
+var _rest := false  # the page's lines after its first eight (MORE)
 ## The menu's calls as shown (ids), and the tower's answers so far (templates; approvals for IafTraining.radio_calls).
 var shown: Array = []
 var answers := PackedStringArray()
@@ -324,7 +335,12 @@ func _title() -> String:
 		return _bi(ui.s("fl_radio_to") % TOP[1][2 if he else 1])
 	var a: Array = ADDRESSEES.filter(func(x): return x[0] == _to)[0]
 	var who: String = a[2 if he else 1]
-	return _bi(ui.s("fl_radio_to") % (who if page == "to" else "%s, %s" % [who, COMMANDS[0][2 if he else 1]]))
+	if page == "to":
+		return _bi(ui.s("fl_radio_to") % who)
+	var what: String = (
+		(SPACING_PAGE if page == "spacing" else COMMANDS[0])[2 if he else 1].trim_suffix(" ›").trim_suffix(" ‹")
+	)
+	return _bi(ui.s("fl_radio_to") % ("%s, %s" % [who, what]))
 
 
 ## Hebrew text with each Latin run (a number, "3–4", "1-2") in a Unicode isolate, so the parentheses and the
@@ -344,7 +360,14 @@ func _lines() -> Array:
 	# No "(next)" mark (the user, 17 Nov: "remove the (next) from the raio menu").
 	for i in shown.size():
 		for it in (
-			TOP + ITEMS + ADDRESSEES.map(func(a): return ["to:%d" % a[0], a[1] + " ›", a[2] + " ‹"]) + COMMANDS + SHAPES
+			TOP
+			+ ITEMS
+			+ ADDRESSEES.map(func(a): return ["to:%d" % a[0], a[1] + " ›", a[2] + " ‹"])
+			+ COMMANDS
+			+ SHAPES
+			+ [SPACING_PAGE]
+			+ SPACING
+			+ [MORE]
 		):
 			if it[0] == shown[i]:
 				lines.append(_bi("%d. %s" % [i + 1, it[lang]]))
@@ -369,7 +392,9 @@ func _entries() -> Array:
 	if page == "":
 		return TOP.map(func(x): return x[0])
 	if page == "formation":
-		return SHAPES.map(func(x): return x[0])
+		return SHAPES.map(func(x): return x[0]) + [SPACING_PAGE[0]]
+	if page == "spacing":
+		return SPACING.map(func(x): return x[0])
 	if page == "to":
 		var kind := "f" if _to == 0 else ("e" if _to == 5 else "w")
 		return COMMANDS.filter(func(c): return kind in c[4]).map(func(c): return c[0])
@@ -416,6 +441,7 @@ func _language_changed() -> void:
 func set_open(on: bool) -> void:
 	open = on
 	page = ""
+	_rest = false
 	_menu_at = Time.get_ticks_msec()
 	_show()
 	_wrong_shown = ""  # the wrong-runway line (if any) back once the menu closes
@@ -424,6 +450,8 @@ func set_open(on: bool) -> void:
 ## The menu's page now in the panel, each line clickable (`choose`), or the panel cleared when closed.
 func _show() -> void:
 	shown = _entries() if open else []
+	if shown.size() > 9:
+		shown = shown.slice(8) if _rest else shown.slice(0, 8) + [MORE[0]]
 	if open:
 		ui.show_menu(_title(), _lines(), _clicked, _off())
 	else:
@@ -442,19 +470,28 @@ func choose(n: int) -> void:
 	var ids := shown
 	var id: String = String(ids[n - 1]) if n >= 1 and n <= ids.size() else ""
 	if n == 0 and page != "":
-		page = PARENT[page]
+		if _rest:
+			_rest = false
+		else:
+			page = PARENT[page]
 		_show()
 	elif id == "m:awacs":
 		pass  # off: the line says why
+	elif id == MORE[0]:
+		_rest = true
+		_show()
 	elif id.begins_with("m:"):
 		page = id.substr(2)
+		_rest = false
 		_show()
 	elif id.begins_with("to:"):
 		_to = int(id.substr(3))
 		page = "to"
+		_rest = false
 		_show()
 	elif id == "formation":
 		page = "formation"
+		_rest = false
 		_show()
 	elif page == "tower":
 		set_open(false)
@@ -528,7 +565,7 @@ func flight_command(to: int, id: String) -> void:
 		id = "high" if ai.flight_ai.is_low() else "low"
 	var r: Node = host.radio
 	var addr: String = ADDRESSEES.filter(func(a): return a[0] == to)[0][3]
-	var said: Array = (COMMANDS + SHAPES).filter(func(c): return c[0] == id)
+	var said: Array = (COMMANDS + SHAPES + SPACING).filter(func(c): return c[0] == id)
 	if not said.is_empty():
 		r.say("FLT_CMD", [addr, said[0][3]])
 	var now: float = host.runtime.now

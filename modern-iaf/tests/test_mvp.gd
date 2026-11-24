@@ -812,6 +812,8 @@ func _call(tv: Node, id: String) -> String:
 	_press(tv, KEY_T, true)
 	_press(tv, KEY_1)  # Tower (since e5c62019 the first page is Tower / Wingmen / AWACS)
 	var shown: bool = tv.addon.open
+	if not id in tv.addon.shown and "m:more" in tv.addon.shown:
+		tv.addon.choose(tv.addon.shown.find("m:more") + 1)  # the page's lines after its first eight
 	var i: int = tv.addon.shown.find(id)
 	var plain: bool = not tv.addon.menu_text().contains("(")
 	check(
