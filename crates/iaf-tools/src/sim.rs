@@ -1842,6 +1842,62 @@ mod tests {
         assert!(e.to_string().contains("status"), "{e}");
     }
 
+    /// The enemy fighters' approved missiles (the R-73, the R-27R) fly the physical missile (docs/real-weapons.md §2.1)
+    /// from their records' motion: their published Mach from Mach 0.9 12,000 m up, and their published range on the
+    /// straight shot head on, both jets at Mach 0.9 12,000 m up (the AIM-120's rule).
+    #[test]
+    fn threat_missiles_fly_their_published_figures() {
+        use iaf_avionics::missile::{Chase, ChaseMotion, Kinematics, Launcher, Physics};
+        use iaf_avionics::{Vec3, missile};
+        let db = Db::read(&data()).unwrap();
+        let sound = f64::from(iaf_flight::atmosphere::air(12_000.0).sound);
+        for (id, mach) in [("r-73", 2.5), ("r-27r", 4.5)] {
+            let w = db.weapon(id).unwrap();
+            let m = &w.v["motion"];
+            let f = |k: &str| m[k].as_f64().unwrap_or_else(|| panic!("{id}: motion.{k}"));
+            let p = Physics {
+                mass: f("_launchKg"),
+                propellant: f("_propellantKg"),
+                burn: f("_motorBurn"),
+                thrust: f("_motorThrust"),
+                diameter: f("_diameterM"),
+                drag_scale: f("_dragScale"),
+                max_time: f("_maxTime"),
+                max_g: f("_maxG"),
+                nav: f("_navConstant"),
+                tvc: false,
+                loft: false,
+            };
+            assert_eq!(p.mass, number(w, "kg").unwrap(), "{id}: the launch mass is the record's");
+            let s = 0.9 * sound;
+            let mut top = 0.0f64;
+            p.fly_straight(s, 0.0, 12_000.0, |_, _, v| {
+                top = top.max(v);
+                false
+            });
+            let motion = ChaseMotion {
+                accel: f("_absAcceleration"),
+                beta: f("_spiralAccelBeta"),
+                spiral: 1000.0,
+                t_co: f("_timeConstOrientation"),
+                burn: f("burn"),
+                chase: Chase::Proportional,
+                high_angle_turn: false,
+                release_time: 0.0,
+                release_accel: 0.0,
+                real: true,
+                off_boresight: false,
+                phys: Some(p),
+            };
+            let jet = Launcher { pos: Vec3::UP * 12_000.0, vel: Vec3::NORTH * s, fwd: Vec3::NORTH, up: Vec3::UP };
+            let ahead = Kinematics { pos: Vec3::new(0.0, 300e3, 12_000.0), vel: Vec3::NORTH * -s };
+            let km = number(w, "range_km").unwrap();
+            let zone = missile::ChaseMotion::dlz(&motion, &jet, Some(&ahead)).max / 1e3;
+            assert!((top / sound / mach - 1.0).abs() < 0.02, "{id}: Mach {:.2} against {mach}", top / sound);
+            assert!((zone / km - 1.0).abs() < 0.02, "{id}: {zone:.1} km against {km}");
+        }
+    }
+
     /// A pylon store without a weight is refused (the gun, chaff and flare weigh nothing in their record).
     #[test]
     fn a_pylon_store_needs_its_weight() {

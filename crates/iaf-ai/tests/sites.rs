@@ -550,7 +550,7 @@ fn low(id: &str, x: f64, y: f64, agl: f64, vy: f64) -> Target {
 #[test]
 fn manpads_missiles_fly_their_published_figures() {
     for (kind, top, km) in [(Kind::Strela, 500.0, 4.2), (Kind::Igla, 570.0, 5.2)] {
-        let ir = kind.spec().ir.unwrap();
+        let ir = kind.spec().missile.unwrap();
         let mut best = 0.0f64;
         let mut flown = Vec::new();
         ir.phys.fly_straight(0.0, 0.0, 0.0, |t, d, v| {
@@ -564,6 +564,46 @@ fn manpads_missiles_fly_their_published_figures() {
         assert!((best / top - 1.0).abs() < 0.05, "{kind:?}: top {best:.0} m/s against {top}");
         assert!((reach / 1e3 / km - 1.0).abs() < 0.05, "{kind:?}: {:.2} km against {km}", reach / 1e3);
         assert!((ir.blast() - 5.7).abs() < 0.1, "{kind:?}: the blast scaled from the AIM-9A / B's 9 m for 4.5 kg");
+    }
+}
+
+/// The S-300's 48N6E2 and the Tor's 9M331 (docs/ai.md §15.1): from rest, their published top speed, and the zone at a
+/// still target (`Missile.dlz`, the caller's) their published range, at the height each is fitted at (inferred: the
+/// 48N6E2 10,000 m, the middle of the Tor's 6 km ceiling); the blast scaled from the warhead.
+#[test]
+fn sam_missiles_fly_their_published_figures() {
+    use iaf_avionics::missile::{Chase, ChaseMotion, Kinematics, Launcher};
+    for (kind, top, km, z, blast) in
+        [(Kind::S300, 1900.0, 200.0, 10_000.0, 30.8), (Kind::Tor, 850.0, 12.0, 3_000.0, 13.4)]
+    {
+        let m = kind.spec().missile.unwrap();
+        assert!(m.lock.is_none(), "{kind:?}: radar-guided");
+        let mut best = 0.0f64;
+        m.phys.fly_straight(0.0, 0.0, z, |_, _, v| {
+            best = best.max(v);
+            false
+        });
+        let motion = ChaseMotion {
+            accel: 0.0,
+            beta: 0.0,
+            spiral: 0.0,
+            t_co: 0.5,
+            burn: 0.0,
+            chase: Chase::Proportional,
+            high_angle_turn: false,
+            release_time: 0.0,
+            release_accel: 0.0,
+            real: false,
+            off_boresight: false,
+            phys: Some(m.phys),
+        };
+        let site = Launcher { pos: Vec3::UP * z, vel: Vec3::ZERO, fwd: Vec3::NORTH, up: Vec3::UP };
+        let far = Kinematics { pos: Vec3::new(0.0, 400e3, z), vel: Vec3::ZERO };
+        let zone = motion.dlz(&site, Some(&far)).max / 1e3;
+        println!("{kind:?}: top {best:.0} m/s, zone {zone:.1} km");
+        assert!((best / top - 1.0).abs() < 0.02, "{kind:?}: top {best:.0} m/s against {top}");
+        assert!((zone / km - 1.0).abs() < 0.02, "{kind:?}: {zone:.1} km against {km}");
+        assert!((m.blast() - blast).abs() < 0.1, "{kind:?}: blast {:.1} m", m.blast());
     }
 }
 

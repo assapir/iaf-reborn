@@ -13,6 +13,11 @@ threat set that [threats.md](threats.md) §6 recommends, in the unit and weapon 
 read, so nothing in `assets/` changes until the user approves them. Approving a record is one move and one edit
 (data-formats.md §11).
 
+Since 2026-11-25 the approved R-73 and R-27R carry the physical missile's motor in their motion, and the S-300 and Tor
+sites fire their own 48N6E2 and 9M331, defined with the sites in `crates/iaf-ai/src/site.rs` from the figures below
+(docs/real-weapons.md §2.1). The drafts' chase-motion fields stay as they are; a draft approved later takes the
+physical fields of its site's missile.
+
 Every figure in a record names its source (data-formats.md §1). The sources below are the records' own footnotes,
 read on 2026-11-03.
 

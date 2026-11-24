@@ -1,12 +1,13 @@
 //! `IafMissile` (the chase motion of a homing weapon) and `IafGuided` (the guided motion of the TV missile / laser
 //! bomb) from `iaf_avionics::{missile, guided}`, for `shared/weapons/missile.gd` and `guided.gd`.
 
-use crate::world::{get, num, terrain, vec3, vector3};
+use crate::world::{get, num, rcs, terrain, vec3, vector3};
 use godot::prelude::*;
+use iaf_ai::site::FIGHTER;
 use iaf_avionics::ecm::{self, Shot};
 use iaf_avionics::guided::{Guided, GuidedMotion, Phase};
 use iaf_avionics::missile::{Aim, Chase, ChaseMotion, Dlz, Kinematics, Launcher, Missile, Physics, Tuning};
-use iaf_avionics::sight;
+use iaf_avionics::{Vec3, radar, sight};
 
 /// A `_debugParam` value through `db.debug_param(i, default)`.
 fn debug(f: &Callable, i: i64, default: f64) -> f64 {
@@ -131,6 +132,21 @@ impl IafMissile {
         };
         let ab = get(&t, "ab").unwrap_or(false);
         ecm::decoy_chance(flare, ir, self.reject, &shot, ab, num(&t, "g").unwrap_or(1.0))
+    }
+
+    /// Ours, Modern IAF (`ecm::seeker_jam_chance`, docs/real-weapons.md §2.6): the chance that the target's jammer
+    /// breaks this radar seeker's track now; 0 while its seeker is not yet on (an active missile on the data link).
+    /// `t` {pos, vel, rcs (its definition's), bays (open), stores (external), jam (its jammer's share)}.
+    #[func]
+    fn jam_chance(&self, now: f64, t: VarDictionary) -> f64 {
+        let Some(m) = self.missile.as_ref().filter(|m| m.seeker_on()) else { return 0.0 };
+        let (pos, vel) = (vec3(get(&t, "pos").unwrap_or_default()), vec3(get(&t, "vel").unwrap_or_default()));
+        let at = m.position(now);
+        let rcs = rcs(&t, "rcs").unwrap_or(FIGHTER);
+        let bays = get(&t, "bays").unwrap_or(false);
+        let nose = vel.try_normalize().unwrap_or(Vec3::NORTH);
+        let s = radar::sigma(&rcs, nose, at - pos, bays, num(&t, "stores").unwrap_or(0.0) as u32);
+        ecm::seeker_jam_chance(self.reject, at.distance(pos), s, num(&t, "jam").unwrap_or(0.0))
     }
 
     #[func]

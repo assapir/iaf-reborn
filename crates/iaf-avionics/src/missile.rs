@@ -636,6 +636,11 @@ impl Missile {
         self.seeker = Some(InFlight { gimbal_cos: gimbal_deg.to_radians().cos(), active_range });
     }
 
+    /// Its seeker tracks by itself: an active radar missile once active, every other from the launch.
+    pub fn seeker_on(&self) -> bool {
+        self.seeker.is_none_or(|s| s.active_range <= 0.0 || self.active)
+    }
+
     /// The launcher's radar still tracks the target (the data link's mid-course updates).
     pub fn set_link(&mut self, on: bool) {
         self.link = on;

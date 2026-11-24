@@ -894,7 +894,8 @@ one pool per jet: `player_weapons.release_decoy`) and the decoy rule (below).
   4. r > p **ends the whole scan** (quirk: one resisting missile protects the later ones).
   5. Else the missile chases the decoy (`FUN_004d83c0` → `FUN_005622e0`, q 1.0).
   Modern IAF (ours) replaces the rule by each seeker's own chance (docs/real-weapons.md §2.3) and adds the jammers'
-  burn-through (docs/ai.md §15.6); the 1998 game keeps this rule and the ECM below.
+  burn-through (docs/ai.md §15.6), on the radars and on a radar missile's own seeker (docs/real-weapons.md §2.6); the
+  1998 game keeps this rule and the ECM below.
 
   Only the kind, g and afterburner matter: range, aspect, generation, AI level and Real data play no part. The bearing
   gates (doubles 6302.5 / 4010.7 / 5156.6 = 110° / 70° / 90° × 57.3) compare a bearing in radians, so they are never

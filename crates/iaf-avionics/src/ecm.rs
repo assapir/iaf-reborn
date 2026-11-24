@@ -87,6 +87,25 @@ pub fn burn_through(reach_m: f64, sigma: f64, jam: f64) -> f64 {
     reach_m * jam * (sigma / REF_RCS).max(0.0).sqrt()
 }
 
+/// A radar missile's own seeker's reach against `REF_RCS` (m; inferred: a missile's small radar or its semi-active
+/// receiver, about twice the AIM-120's active range, modern-iaf/docs/weapons.md §8.2).
+pub const SEEKER_REACH: f64 = 28_000.0;
+/// A jammer's chance to break a radar seeker's track with no counter-countermeasures (the 1998 jammer's 0.6,
+/// 0x600f68, docs/weapons.md §10).
+pub const JAM_P: f64 = 0.6;
+
+/// The chance that a self-protection jammer breaks a radar missile's seeker's track (Modern IAF; modern-iaf/docs/ai-plan.md
+/// K9, docs/real-weapons.md §2.6): `dist` the missile's distance to the jet of `sigma` m², `jam` its jammer's share
+/// (0: not jamming), `reject` the seeker's rejection (its record's `_decoyReject`, its counter-countermeasures). Inside
+/// the seeker's burn-through (`burn_through(SEEKER_REACH, sigma, jam)`) the echo outshines the noise: none; outside
+/// it, JAM_P · (1 − reject).
+pub fn seeker_jam_chance(reject: f64, dist: f64, sigma: f64, jam: f64) -> f64 {
+    if jam <= 0.0 || dist <= burn_through(SEEKER_REACH, sigma, jam) {
+        return 0.0;
+    }
+    JAM_P * (1.0 - reject.clamp(0.0, 1.0))
+}
+
 /// A radar's range against a jet of `sigma` m², jamming with `jam` (0: not jamming): the nearer of its range
 /// (`radar::reach`) and the burn-through.
 pub fn jammed_reach(reach_m: f64, sigma: f64, jam: f64) -> f64 {
@@ -107,6 +126,21 @@ mod tests {
             target_pos: Vec3::ZERO,
             target_vel: Vec3::new(h.sin(), h.cos(), 0.0) * 250.0,
         }
+    }
+
+    #[test]
+    fn a_jammer_breaks_a_seeker_outside_its_burn_through() {
+        // The Sufa's share (0.3) head on (5 m²): the seeker burns through inside 8.4 km.
+        let bt = burn_through(SEEKER_REACH, REF_RCS, 0.3);
+        assert!((bt - 8_400.0).abs() < 1.0, "{bt}");
+        assert_eq!(seeker_jam_chance(0.0, 5_000.0, REF_RCS, 0.3), 0.0, "inside the burn-through");
+        assert_eq!(seeker_jam_chance(0.0, 20_000.0, REF_RCS, 0.0), 0.0, "not jamming");
+        assert!((seeker_jam_chance(0.0, 20_000.0, REF_RCS, 0.3) - JAM_P).abs() < 1e-9);
+        // The seeker's counter-countermeasures: the AIM-120's (0.8) least, the R-27R's (0.5) more.
+        let p = |r| seeker_jam_chance(r, 20_000.0, REF_RCS, 0.3);
+        assert!(p(0.5) > p(0.8) && p(0.8) > 0.0 && (p(0.8) - 0.12).abs() < 1e-9);
+        // A bigger jet is seen farther through the noise (√σ): the beam's 25 m² burns through at 18.8 km.
+        assert_eq!(seeker_jam_chance(0.0, 18_000.0, 25.0, 0.3), 0.0);
     }
 
     #[test]

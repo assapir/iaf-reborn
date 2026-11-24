@@ -487,21 +487,22 @@ impl IafSite {
             .collect()
     }
 
-    /// A shoulder-fired team's missile (docs/ai.md §15.8), {} for a radar site or a gun: {name, generation, kg, power,
-    /// radius (the blast's, m), motion (the physical missile's keys, `missile.rs` Physics, and its seeker's
-    /// `_decoyReject`)}.
+    /// The site's own missile (docs/ai.md §15.1, §15.8), {} for a gun: {name, generation, ir (an infrared seeker, else
+    /// radar-guided), kg, power, radius (the blast's, m), motion (the physical missile's keys, `missile.rs` Physics,
+    /// and its seeker's `_decoyReject`)}.
     #[func]
     fn missile(&self) -> VarDictionary {
-        let Some(ir) = self.site.spec().ir else { return VarDictionary::new() };
-        let p = ir.phys;
+        let Some(m) = self.site.spec().missile else { return VarDictionary::new() };
+        let p = m.phys;
         let motion = vdict! {
             "_motorThrust" => p.thrust, "_motorBurn" => p.burn, "_launchKg" => p.mass, "_propellantKg" => p.propellant,
             "_diameterM" => p.diameter, "_dragScale" => p.drag_scale, "_maxTime" => p.max_time, "_maxG" => p.max_g,
-            "_navConstant" => p.nav, "_thrustVector" => if p.tvc { 1.0 } else { 0.0 }, "_decoyReject" => ir.reject,
+            "_navConstant" => p.nav, "_thrustVector" => if p.tvc { 1.0 } else { 0.0 },
+            "_loft" => if p.loft { 1.0 } else { 0.0 }, "_decoyReject" => m.reject,
         };
         vdict! {
-            "name" => ir.name, "generation" => ir.generation, "kg" => p.mass, "power" => site::Ir::POWER,
-            "radius" => ir.blast(), "motion" => &motion,
+            "name" => m.name, "generation" => m.generation, "ir" => m.lock.is_some(), "kg" => p.mass,
+            "power" => m.power, "radius" => m.blast(), "motion" => &motion,
         }
     }
 

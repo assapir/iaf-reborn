@@ -1829,6 +1829,8 @@ func _update_missiles() -> void:
 		# §2.2). An AI launcher's link always holds (inferred).
 		if int(mis.weapon.get("type", 0)) == 600 and is_same(mis.get_meta("owner", {}), me):
 			mis.set_link(lock_key != "" and lock_key == String(mis.target_key))
+		if Settings.modern_ew() and not mis.ended and int(mis.weapon.get("type", 0)) in DECOY_KINDS[Stores.CHAFF]:
+			_seeker_jam(mis, units)
 		var gone := false
 		while not gone and mis.next_update <= now:
 			var t := target_state(mis.target_key, units)
@@ -1852,6 +1854,33 @@ func _update_missiles() -> void:
 			_trail(mis, node, MissileFx.burning(String(mis.weapon.get("name", "")), now - mis.t0, mis.motor_left(now)))
 		if gone:
 			_missile_detonate(mis)
+
+
+## Ours, Modern IAF (Settings.modern_ew; docs/real-weapons.md §2.6): a radar missile's seeker against its target's
+## jammer. Once its seeker is on and outside the seeker's burn-through, one roll on its chance (ecm.rs
+## seeker_jam_chance); taken, its guidance goes off for good (as the 1998 jammer's, FUN_004582f0).
+func _seeker_jam(mis: RefCounted, units: Dictionary) -> void:
+	if mis.has_meta("jam_rolled") or mis.guidance_off:
+		return
+	var key := String(mis.target_key)
+	var mine := key != "" and key == String(_me().get("key", ""))
+	var ent: Dictionary = host.runtime.entities.get(key, {}) if host.runtime != null else {}
+	var jam: float = jam_share() if mine else float(ent.get("jam", 0.0))
+	var t := target_state(key, units)
+	if jam <= 0.0 or t.is_empty():
+		return
+	var rcs = Settings.airframe(jet_type if mine else int(ent.get("type_code", -1))).get("rcs")
+	var tgt := {"pos": t.pos, "vel": t.get("vel", Vector3.ZERO), "jam": jam}
+	if rcs is Dictionary:
+		tgt["rcs"] = rcs
+	if mine:
+		tgt.merge({"bays": bay_open(), "stores": stores.external()})
+	var p: float = mis.jam_chance(now, tgt)
+	if p <= 0.0:
+		return
+	mis.set_meta("jam_rolled", true)
+	if randf() < p:
+		mis.guidance_off = true
 
 
 ## Lock-on after launch (ours, docs/weapons.md §13.1): a missile flying at its cued point takes the unit nearest the

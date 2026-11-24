@@ -21,7 +21,16 @@
     "_timeConstVel": 0.0,
     "_timeDecceleration": 0.0,
     "_timeConstOrientation": 0.5,
-    "_decoyReject": 0.5
+    "_decoyReject": 0.5,
+    "_motorThrust": 39242.0,
+    "_motorBurn": 6.0,
+    "_launchKg": 253.0,
+    "_propellantKg": 81.0,
+    "_diameterM": 0.23,
+    "_dragScale": 1.217,
+    "_maxTime": 73.1,
+    "_maxG": 35.0,
+    "_navConstant": 4.0
   },
   "sources": {
     "drag": "open",
@@ -39,7 +48,16 @@
     "motion._timeConstVel": "inferred",
     "motion._timeDecceleration": "inferred",
     "motion._timeConstOrientation": "inferred",
-    "motion._decoyReject": "inferred, w-chaff"
+    "motion._decoyReject": "inferred, w-chaff",
+    "motion._motorThrust": "inferred, w-r27",
+    "motion._motorBurn": "inferred",
+    "motion._launchKg": "w-r27",
+    "motion._propellantKg": "inferred",
+    "motion._diameterM": "w-r27",
+    "motion._dragScale": "inferred",
+    "motion._maxTime": "inferred, w-r27",
+    "motion._maxG": "inferred",
+    "motion._navConstant": "inferred"
   },
   "notes": {
     "drag": "carriage drag: none until a source gives one",
@@ -54,10 +72,19 @@
     "motion.burn": "the burn with which the motion flies the published range from 250 m/s before its flight ends 6 s after the burn (missile.rs real_burn, the rule real_weapons.gd gives the AIM-9M)",
     "motion._timeAcceleration": "the burn, so the original's reading of the section flies as long",
     "motion._timeConstOrientation": "flies straight 0.5 s after launch (the AIM-9M record's)",
-    "motion._decoyReject": "0.5 (inferred): a semi-active seeker of 1987 on the launcher's illumination; its Doppler rejection taken lower than the AIM-120's 0.8 (w-chaff; docs/real-weapons.md 2.3)"
+    "motion._decoyReject": "0.5 (inferred): a semi-active seeker of 1987 on the launcher's illumination; its Doppler rejection taken lower than the AIM-120's 0.8 (w-chaff; docs/real-weapons.md 2.3)",
+    "motion._motorThrust": "fitted: the steady thrust with which it reaches its published Mach 4.5 from Mach 0.9 12,000 m up (the Python 5's rule, docs/real-weapons.md §2.1)",
+    "motion._motorBurn": "inferred: no burn time published",
+    "motion._launchKg": "the record's kg",
+    "motion._propellantKg": "inferred: the AIM-9M's share of the launch mass (32 %)",
+    "motion._diameterM": "the body's diameter, the drag's reference",
+    "motion._dragScale": "the generic body's (docs/real-weapons.md §2.1, inferred)",
+    "motion._maxTime": "fitted: the straight shot head on, both jets at Mach 0.9 12,000 m up, reaches its published 73 km (the AIM-120's rule, docs/real-weapons.md §2.1)",
+    "motion._maxG": "open; held at the AIM-120's 35 (inferred)",
+    "motion._navConstant": "the usual 3-5 (docs/real-weapons.md §2.1)"
   },
   "footnotes": {
-    "w-r27": "Wikipedia, \"R-27 (air-to-air missile)\" (253 kg, 39 kg warhead; R-27R SARH 73 km; launch below 5 g; Mach 4.5–5.8 \"citation needed\") (read 2026-11-03), https://en.wikipedia.org/wiki/R-27_(air-to-air_missile)",
+    "w-r27": "Wikipedia, \"R-27 (air-to-air missile)\" (253 kg, 230 mm diameter, 39 kg warhead; R-27R SARH 73 km; launch below 5 g; Mach 4.5–5.8 \"citation needed\") (read 2026-11-03, the diameter 2026-11-25), https://en.wikipedia.org/wiki/R-27_(air-to-air_missile)",
     "ds-aim9": "designation-systems.net, \"Raytheon AIM-9 Sidewinder\" (AIM-9A / B effective kill radius about 9 m), https://www.designation-systems.net/dusrm/m-9.html",
     "w-chaff": "Wikipedia, \"Chaff (countermeasure)\" (Doppler radars tell the slowing chaff from a jet; on the beam the jet is \"more difficult to separate from the effectively stationary chaff\") (read 2026-11-22), https://en.wikipedia.org/wiki/Chaff_(countermeasure)"
   }

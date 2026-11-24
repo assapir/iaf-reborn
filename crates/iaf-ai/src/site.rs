@@ -109,19 +109,19 @@ pub struct Spec {
     pub halt: f64,
     /// The Tor's duty limits.
     pub duty: bool,
-    /// A shoulder-fired team's missile and seeker (no radar: `track_reach` 0), None for a radar or a gun.
-    pub ir: Option<Ir>,
+    /// The site's own missile (a shoulder-fired team's, an S-300's, a Tor's), None for a gun.
+    pub missile: Option<SiteMissile>,
 }
 
-/// A shoulder-fired missile (docs/ai.md §15.8): what its seeker locks, where it reaches and what it flies.
+/// A site's missile (docs/ai.md §15.1, §15.8): what its seeker locks, where it reaches and what it flies.
 #[derive(Clone, Copy, Debug)]
-pub struct Ir {
+pub struct SiteMissile {
     /// The record's name and generation (the seeker cone in flight, `sight::cone_deg`).
     pub name: &'static str,
     pub generation: i64,
-    /// The seeker's lock before the launch (`RealLock::holds`): the rear range is the afterburner's, half of it a
-    /// jet's at military power.
-    pub lock: RealLock,
+    /// An infrared seeker's lock before the launch (`RealLock::holds`): the rear range is the afterburner's, half of
+    /// it a jet's at military power. None: a radar-guided missile (the site's track radar holds the target).
+    pub lock: Option<RealLock>,
     /// The launch envelope (m): the slant range and the target's height above the team.
     pub range: (f64, f64),
     pub height: (f64, f64),
@@ -129,8 +129,9 @@ pub struct Ir {
     pub speed: (f64, f64),
     /// The seeker's decoy rejection (`ecm::decoy_chance`).
     pub reject: f64,
-    /// The warhead (kg): the record's power and blast radius (`Ir::blast`).
+    /// The warhead (kg): the record's blast radius (`SiteMissile::blast`), and its power on our damage scale.
     pub warhead: f64,
+    pub power: f64,
     /// The missile's motor, body and guidance (`missile.rs`).
     pub phys: Physics,
 }
@@ -173,7 +174,30 @@ const S300: Spec = Spec {
     fires_moving: false,
     halt: 0.0,
     duty: false,
-    ir: None,
+    missile: Some(SiteMissile {
+        name: "48N6E2",
+        generation: 4,
+        lock: None,
+        range: (200_000.0, 3_000.0), // 3–200 km (threat-records.md, w-s300)
+        height: (10.0, 27_000.0),    // 10 m–27 km (w-s300)
+        speed: (f64::INFINITY, f64::INFINITY),
+        reject: 0.8,    // inferred: the AIM-120's, its stand-in until 25 Nov (docs/real-weapons.md §2.3)
+        warhead: 180.0, // (w-s300's comparison table)
+        power: SAM_POWER,
+        phys: Physics {
+            mass: 1_900.0,       // the upper end of the PMU-2 column's 330–1,900 kg (threat-records.md)
+            propellant: 1_140.0, // inferred: 60 % of the launch mass, the share a 1,900 m/s rocket from rest needs
+            burn: 60.0,          // inferred: one steady burn standing in for the boost and the high coast (fitted)
+            thrust: 73_496.0,    // fitted: 1,900 m/s (w-s300) from rest 10,000 m up
+            diameter: 0.519,     // the 48N6's (Wikipedia's specification table, second-hand)
+            drag_scale: 1.217,
+            max_time: 200.8, // fitted: the zone from rest 10,000 m up at a still target is the published 200 km
+            max_g: 25.0,     // open (inferred)
+            nav: 4.0,
+            tvc: false,
+            loft: true, // inferred: it climbs on a long shot (the AIM-120's loft, docs/real-weapons.md §2.4)
+        },
+    }),
 };
 
 const TOR: Spec = Spec {
@@ -197,7 +221,30 @@ const TOR: Spec = Spec {
     fires_moving: false, // fires only at a halt
     halt: 5.0,           // inferred
     duty: true,
-    ir: None,
+    missile: Some(SiteMissile {
+        name: "9M331",
+        generation: 3,
+        lock: None,
+        range: (12_000.0, 1_500.0), // 1.5–12 km (w-tor; the 12 km "citation needed")
+        height: (10.0, 6_000.0),    // to 6 km (w-tor); the floor inferred
+        speed: (f64::INFINITY, f64::INFINITY),
+        reject: 0.8,   // inferred: "designed to shoot down guided weapons ... in jamming situations" (w-tor)
+        warhead: 15.0, // (w-tor)
+        power: SAM_POWER,
+        phys: Physics {
+            mass: 167.0,      // (w-tor)
+            propellant: 58.0, // inferred: 35 % of the launch mass
+            burn: 3.0,        // inferred
+            thrust: 42_153.0, // fitted: 850 m/s (w-tor) from rest 3,000 m up (the middle of its ceiling)
+            diameter: 0.235,  // (w-tor)
+            drag_scale: 1.217,
+            max_time: 32.1, // fitted: the zone from rest 3,000 m up at a still target is the published 12 km
+            max_g: 30.0,    // "up to 30 g" (w-tor)
+            nav: 4.0,
+            tvc: false,
+            loft: false,
+        },
+    }),
 };
 
 const ZSU: Spec = Spec {
@@ -221,7 +268,7 @@ const ZSU: Spec = Spec {
     fires_moving: true, // it fires on the move (§11-70)
     halt: 0.0,
     duty: false,
-    ir: None,
+    missile: None,
 };
 
 // One gunner with the launcher at the shoulder, 1.7 m (inferred).
@@ -253,21 +300,22 @@ const TEAM: Spec = Spec {
     fires_moving: false,
     halt: 3.0, // inferred
     duty: false,
-    ir: None,
+    missile: None,
 };
 
 const STRELA: Spec = Spec {
-    ir: Some(Ir {
+    missile: Some(SiteMissile {
         name: "STRELA",
         generation: 1,
         // Rear only: an uncooled PbS seeker sees a jet's nozzle (Wikipedia, Strela-2); its lock range open, the
         // missile's reach taken at military power.
-        lock: RealLock { rear: 8_400.0, front_mil: 0.0, front_ab: 0.0 },
+        lock: Some(RealLock { rear: 8_400.0, front_mil: 0.0, front_ab: 0.0 }),
         range: (4_200.0, 800.0), // 2M: 800 m to 4,200 m (Wikipedia)
         height: (50.0, 2_300.0), // 2M: 50 m to 2,300 m (Wikipedia)
         speed: (0.0, 260.0),     // no approaching jet; receding 260 m/s (Wikipedia)
         reject: 0.0,             // "flares proved to be a highly effective countermeasure" (Wikipedia)
         warhead: 1.15,           // the 2M's (Wikipedia's infobox)
+        power: TEAM_POWER,
         phys: Physics {
             mass: 9.8,       // the 2M's (Wikipedia)
             propellant: 2.0, // inferred
@@ -287,17 +335,18 @@ const STRELA: Spec = Spec {
 
 const IGLA: Spec = Spec {
     parts: IGLA_PARTS,
-    ir: Some(Ir {
+    missile: Some(SiteMissile {
         name: "IGLA",
         generation: 3,
         // Cooled InSb and PbS, IR and UV; "straight-approaching fighters ... under favourable circumstances"
         // (Wikipedia, Igla): the front ranges inferred.
-        lock: RealLock { rear: 10_400.0, front_mil: 2_500.0, front_ab: 4_000.0 },
+        lock: Some(RealLock { rear: 10_400.0, front_mil: 2_500.0, front_ab: 4_000.0 }),
         range: (5_200.0, 500.0), // 5.2 km (Wikipedia); the minimum inferred
         height: (10.0, 3_500.0), // the ceiling 3.5 km (Wikipedia); the floor inferred
         speed: (320.0, 360.0),   // approaching 320 m/s, receding 360 m/s (Wikipedia)
         reject: 0.6,             // inferred: two bands, "much improved resistance against flares" (Wikipedia)
         warhead: 1.17,           // (Wikipedia)
+        power: TEAM_POWER,
         phys: Physics {
             mass: 10.8,      // (Wikipedia)
             propellant: 2.5, // inferred
@@ -315,11 +364,13 @@ const IGLA: Spec = Spec {
     ..TEAM
 };
 
-impl Ir {
-    /// The record's power on our damage scale: one hit damages a fighter of 300, two destroy it (threat-records.md §3,
-    /// the Misagh-2's rule for a warhead of about 1.4 kg; inferred).
-    pub const POWER: f64 = 250.0;
+/// A shoulder-fired missile's power on our damage scale: one hit damages a fighter of 300, two destroy it
+/// (threat-records.md §3, the Misagh-2's rule for a warhead of about 1.4 kg; inferred).
+pub const TEAM_POWER: f64 = 250.0;
+/// A SAM's: one hit destroys a fighter of 300 (threat-records.md §3, as the AIM-9M; inferred).
+pub const SAM_POWER: f64 = 400.0;
 
+impl SiteMissile {
     /// The blast radius (m): the AIM-9A / B's 9 m for 4.5 kg times the cube root of the warhead's share
     /// (threat-records.md §3's blast scaling; inferred).
     pub fn blast(&self) -> f64 {
@@ -371,7 +422,7 @@ pub struct Target {
     /// Its self-protection jammer on: the jammer's burn-through share (its definition's `jammer.burn_through`), 0 not
     /// jamming (`ecm::jammed_reach`, docs/ai.md §15.6).
     pub jam: f64,
-    /// Its afterburner lit (an infrared seeker's lock, `Ir::lock`).
+    /// Its afterburner lit (an infrared seeker's lock, `SiteMissile::lock`).
     pub ab: bool,
 }
 
@@ -473,10 +524,10 @@ pub struct Site {
     burst_n: u64,
 }
 
-/// The launch envelope at `t` (m: max, min): the caller's, inside a shoulder-fired missile's published range.
+/// The launch envelope at `t` (m: max, min): the caller's, inside the site's missile's published range.
 fn envelope(spec: &Spec, t: &Target) -> (f64, f64) {
-    match spec.ir {
-        Some(ir) => (t.dlz.0.min(ir.range.0), t.dlz.1.max(ir.range.1)),
+    match spec.missile {
+        Some(m) => (t.dlz.0.min(m.range.0), t.dlz.1.max(m.range.1)),
         None => t.dlz,
     }
 }
@@ -488,17 +539,17 @@ fn fire_range(spec: &Spec, skill: Skill, t: &Target) -> f64 {
     if spec.gun { max } else { min + (max - min) * skill.launch_range }
 }
 
-/// A shoulder-fired team at `at` may launch at `t` (docs/ai.md §15.8): the jet inside the height band above it, no
-/// faster than the missile engages, and its seeker locked on it.
-fn ir_ready(ir: &Ir, at: Vec3, t: &Target) -> bool {
+/// A site at `at` may launch its missile at `t` (docs/ai.md §15.1, §15.8): the jet inside the height band above it,
+/// no faster than the missile engages, and an infrared seeker locked on it.
+fn ready(m: &SiteMissile, at: Vec3, t: &Target) -> bool {
     let d = t.pos - at;
     let approach = -t.vel.dot(d.try_normalize().unwrap_or(Vec3::ZERO));
     let h = t.pos.z - at.z;
-    h >= ir.height.0
-        && h <= ir.height.1
-        && approach <= ir.speed.0
-        && -approach <= ir.speed.1
-        && ir.lock.holds(d, t.vel, t.ab)
+    h >= m.height.0
+        && h <= m.height.1
+        && approach <= m.speed.0
+        && -approach <= m.speed.1
+        && m.lock.is_none_or(|l| l.holds(d, t.vel, t.ab))
 }
 
 /// The earth's bulge (m) at `s` along a line of length `l` over the 4/3 earth.
@@ -803,7 +854,7 @@ impl Site {
             t.dlz.0 > 0.0
                 && d >= envelope(spec, t).1
                 && d <= fire_range(spec, skill, t)
-                && spec.ir.is_none_or(|ir| ir_ready(&ir, at.raised(spec.parts[0].antenna), t))
+                && spec.missile.is_none_or(|m| ready(&m, at.raised(spec.parts[0].antenna), t))
         };
         let target = |id: &str| targets.iter().find(|t| t.id == id);
         // A site that fires only at a halt stops first (the Tor on the move).

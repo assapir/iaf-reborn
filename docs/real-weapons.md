@@ -545,6 +545,10 @@ The player's and the AI's missiles fly the same code.
 | AIM-9X | 85 | the AIM-9M's Mk 36[^ds9x] | the same | the same | 60, thrust-vector control[^2] | the AIM-9M's (inferred) | [^ds9x], [^2] |
 | Python 5 | 105 | 16,671 N for 5.0 s (inferred: sized for Mach 4) | 34 kg (inferred) | 0.16 m | 60 (inferred: the AIM-9X's) | 31.1 s (fitted) | [^3] |
 | AIM-120 | 161.5 | 17,188 N for 7.75 s (51.3 kg at 265 s) | 51.3 kg | 0.178 m | 35 (weak: a forum's table; 28–40 quoted) | 120 s (inferred) | [^iasg], [^wt120] |
+| R-73 (the MiG-29A's) | 105 | 8,840 N for 5.0 s (fitted) | 33 kg (inferred: the AIM-9M's share) | 0.165 m | 40 (open; the AIM-9M's) | 39.4 s (fitted) | [^w-r73] |
+| R-27R (the MiG-29A's) | 253 | 39,242 N for 6.0 s (fitted) | 81 kg (inferred: the same share) | 0.23 m | 35 (open; the AIM-120's) | 73.1 s (fitted) | [^w-r27] |
+| 48N6E2 (the S-300's) | 1,900 | 73,496 N for 60 s (fitted) | 1,140 kg (inferred: 60 %) | 0.519 m (second-hand) | 25 (open) | 200.8 s (fitted) | [^w-s300] |
+| 9M331 (the Tor's) | 167 | 42,153 N for 3.0 s (fitted) | 58 kg (inferred: 35 %) | 0.235 m | 30 | 32.1 s (fitted) | [^w-tor] |
 
 - **The drag scale** (1.217 for all four, inferred): fitted so the AIM-120's straight shot flies its published 90 km
   head-on, both jets at Mach 0.9 12,000 m up. A check against the CFD study[^iasg]: from Mach 0.83 5 km up at a still
@@ -554,6 +558,20 @@ The player's and the AI's missiles fly the same code.
   (§2.4) makes the 90 km needed a drag scale of 2.0; the CFD study's straight shot then fell to 21 km against its
   35 km, and the Python 5 needed a 120 s flight for its 20 km. The 90 km and the study agree on the straight shot, so
   the drag stays fitted on it and the loft adds to the published range (inferred).
+- **The threat missiles** (2026-11-25; modern-iaf/docs/avionics-plan.md §7.2 step 5): the records approved on 22
+  November (the R-73, the R-27R, modern-iaf/data/db/weapons) and the SAM sites' own missiles (`iaf_ai::site`,
+  docs/ai.md §15.1) fly the same model. No motor figure is published for any of them, so each is fitted (inferred):
+  - an air-to-air missile's thrust reaches its published Mach from Mach 0.9 12,000 m up (the Python 5's rule: the
+    R-73 Mach 2.5, the R-27R Mach 4.5, the low end of its "citation needed" 4.5–5.8), and its flight time makes its
+    published range on the straight shot head on, both jets at Mach 0.9 12,000 m up (the AIM-120's rule: 30 km,
+    73 km);
+  - a SAM's thrust reaches its published speed from rest, and its flight time makes its published range as the zone
+    from rest at a still target: the 48N6E2 1,900 m/s and 200 km 10,000 m up, the 9M331 850 m/s and 12 km 3,000 m up
+    (the middle of its 6 km ceiling). The model flies no ballistic arc, so the 48N6E2's one steady burn of 60 s
+    stands in for its boost and its high coast: with the 12 s first tried, its zone ended at 69 km. It lofts (§2.4).
+  - The site still fires only inside its missile's published envelope (3–200 km and 10 m–27 km; 1.5–12 km and to
+    6 km). Tests: `sim.rs` `threat_missiles_fly_their_published_figures`, `sites.rs`
+    `sam_missiles_fly_their_published_figures`, `modern-iaf/tests/test_threat_missiles.gd`.
 - **The flight times** (fitted): the AIM-9M's 24.7 s makes its 17.7 km at a still target from Mach 0.9 6,000 m up
   (the medium-altitude reading of §1.1); the Python 5's 31.1 s its 20 km. No missile's battery life is published.
 - **The Python 5's motor**: Rafael keeps the Python 4's motor[^p5bro], whose figures are not published; its propellant
@@ -607,7 +625,9 @@ missile taken chases the decoy:
 | AIM-9X | imaging infrared | 0.85 | the imaging seeker and its reprogrammable IRCCM[^2] |
 | Python 5 | electro-optical and imaging infrared | 0.85 | as the AIM-9X[^3] |
 | R-73 | cooled infrared (1984) | 0.3 | no counter-countermeasure claim found |
-| AIM-120 (also the SAMs' stand-in) | active pulse-Doppler radar | 0.8 | the Doppler rule above |
+| AIM-120 | active pulse-Doppler radar | 0.8 | the Doppler rule above |
+| 48N6E2 (an S-300 site's, docs/ai.md §15.1) | radar (the guidance open) | 0.8 | the AIM-120's, its stand-in until 25 November |
+| 9M331 (a Tor's) | radio command | 0.8 | the system "designed to shoot down guided weapons ... in bad weather and jamming situations"[^w-tor] |
 | R-27R | semi-active radar (1987) | 0.5 | an older Doppler seeker |
 | Strela-2M (a shoulder-fired team's, docs/ai.md §15.8) | uncooled infrared, rear aspect | 0 | flares "highly effective" against it[^w-strela2] |
 | Igla (the same) | cooled infrared and ultraviolet | 0.6 | "much improved resistance against flares"[^w-igla] |
@@ -632,8 +652,8 @@ record's `_loft`, modern-iaf/docs/data-formats.md §3):
   and within 200 m of the target's height, found by halving to about 4 m. The search is kept per record at 10 m/s
   and 100 m steps of the launcher's speed and height and the target's speed away (`Physics::lofted_max`), so the AI's
   and the SAM sites' frequent zone checks fly it once. The post-launch times run it from the missile's state.
-- **Who lofts:** every launch of a record with `_loft`: the player's and the wingmen's AIM-120, and the enemy SAM
-  sites, which fire the AIM-120's record as their stand-in (docs/ai.md §15.1).
+- **Who lofts:** every launch of a record with `_loft`: the player's and the wingmen's AIM-120, and an S-300 site's
+  48N6E2 (docs/ai.md §15.1; until 25 November the sites fired the AIM-120's record as their stand-in).
 - **What it gives** (both 0.9 Mach, the straight shot's zone → the lofted one): 300 m up, head on 37 → 44 km; 6,000 m
   up, a still target 36 → 50 km, head on 56 → 86 km; 12,000 m up, head on 91 → 102 km, a target flying away 33 →
   40 km. At sea level and against a target flying away low the zone stays the straight one (under 15 km).
@@ -658,6 +678,30 @@ In Modern IAF (`Settings.modern_fuzes`) a physical missile (§2.1) carries a pro
 - **Inferred:** the trigger at the blast radius and the arming time; no source for the missiles' fuze ranges and
   arming times was found (open).
 - The 1998 game, and its Extras' physical AIM-9X and Python 5, keep the burst at the closest pass (no fuze).
+
+### 2.6 The jammer against the seeker (Modern IAF's, 2026-11-25)
+
+In Modern IAF (`Settings.modern_ew`; modern-iaf/docs/ai-plan.md K9) a jet's self-protection jammer also acts on the
+seeker of each radar-guided missile flying at it (600, 610, 630), in place of the 1998 jammer's break of the missiles
+in flight (docs/weapons.md §10, which the 1998 game keeps):
+
+- **The seeker's burn-through:** the jammer's noise hides the jet's echo from the seeker until the echo outshines it
+  (the burn-through, docs/ai.md §15.6). The seeker's reach against 5 m² is 28 km (inferred: about twice the
+  AIM-120's active range); its burn-through is that times the jammer's share (the Sufa's 0.3) times √(σ / 5 m²),
+  σ the jet's echo toward the missile: 8.4 km head on at 5 m².
+- **One roll:** once the seeker is on (an AIM-120 once active, every other from the launch) and the missile is outside
+  the burn-through with the jammer on, the missile rolls once (`ecm.rs` `seeker_jam_chance`; `player_weapons.gd`
+  `_seeker_jam`): 0.6 · (1 − rejection), the 1998 jammer's 0.6 and the record's `_decoyReject` taken as its
+  counter-countermeasures. Taken, its guidance goes off for good. A missile first seen inside the burn-through, or
+  with the jammer off, does not roll.
+- **What it gives:** an R-27R 0.3, an AIM-120, a 48N6E2 or a 9M331 0.12. A missile launched inside the burn-through is
+  not jammed.
+- **A command-guided missile** (the Tor's 9M331, radio command[^w-tor]) has no seeker of its own: its roll stands in
+  for the jammer's effect on the guidance link (inferred). The site's track radar is jammed besides (its
+  burn-through, docs/ai.md §15.6), so a jammed Tor fires only inside that range, mostly inside the seeker's too.
+- **Inferred:** the whole rule. Seekers home on a jammer's noise; how often a real one is broken is not published
+  (open). Tests: `ecm.rs` `a_jammer_breaks_a_seeker_outside_its_burn_through`,
+  `modern-iaf/tests/test_threat_missiles.gd`.
 
 ## 3. Validation
 | test | checks |
@@ -865,3 +909,7 @@ In Modern IAF (`Settings.modern_fuzes`) a physical missile (§2.1) carries a pro
 [^w-strela2]: Wikipedia, "9K32 Strela-2", https://en.wikipedia.org/wiki/9K32_Strela-2
 [^w-igla]: Wikipedia, "9K38 Igla", https://en.wikipedia.org/wiki/9K38_Igla
 [^w-chaff]: Wikipedia, "Chaff (countermeasure)" ("Modern radars use the Doppler effect to measure the line-of-sight velocity of objects, and can thus distinguish chaff from an aircraft"; a jet moving across the beam is "more difficult to separate from the effectively stationary chaff") (read 2026-11-22): https://en.wikipedia.org/wiki/Chaff_(countermeasure)
+[^w-r73]: Wikipedia, "R-73 (missile)" (105 kg, 165 mm diameter, Mach 2.5, 30 km; no motor figures) (read 2026-11-25), https://en.wikipedia.org/wiki/R-73_(missile)
+[^w-r27]: Wikipedia, "R-27 (air-to-air missile)" (253 kg, 230 mm diameter, the R-27R 73 km, Mach 4.5–5.8 "citation needed"; no motor figures) (read 2026-11-25), https://en.wikipedia.org/wiki/R-27_(air-to-air_missile)
+[^w-s300]: Wikipedia, "S-300 missile system" (PMU-2: 3–200 km, 0.01–27 km, 1,900 m/s; the comparison table's 330–1,900 kg and 180 kg warhead, "less reliable"; the 48N6's 519 mm from its specification table, read through a summary, second-hand) (read 2026-11-25), https://en.wikipedia.org/wiki/S-300_missile_system
+[^w-tor]: Wikipedia, "Tor missile system" (9M331: 167 kg, 235 mm, 850 m/s, 12 km "citation needed", 6 km, radio command; "up to 30 g"; the system "designed to shoot down guided weapons ... in bad weather and jamming situations") (read 2026-11-25), https://en.wikipedia.org/wiki/Tor_missile_system

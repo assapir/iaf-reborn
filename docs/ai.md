@@ -1508,10 +1508,13 @@ target gone, out of reach or masked) frees its channel.
   site counting its own missiles in the air instead of the 1998 one per unit; a launch the release refuses gives its
   round back and counts neither toward the relocation nor toward the Tor's break), the gun's rounds through `fire_at`
   (the fire tick's lead) one per `GUN_PERIOD`. The launch envelope is `Missile.dlz` from the first launcher toward
-  the target; the gun's is its range. The weapon records are stand-ins:
-  the AIM-120's for the SAMs and the 20 mm's for the ZSU, the existing missile and round models unchanged (the sites'
-  own records await the user, modern-iaf/docs/threat-records.md). The SAM therefore lofts on a long shot and its
-  envelope is the lofted one; its proximity fuze is the record's (docs/real-weapons.md §2.4, §2.5).
+  the target, inside its missile's published envelope; the gun's is its range. Each SAM site fires its own missile
+  (2026-11-25, `iaf_ai::site` `SiteMissile`, `IafSite.missile`): the S-300 the 48N6E2, the Tor the 9M331, as the
+  shoulder-fired teams (§15.8), on the physical missile (docs/real-weapons.md §2.1: motor, body, g limit, seeker's
+  rejection; the 48N6E2 lofts, §2.4), drawn with the AIM-120's model as a radar SAM (type 630: the RWR hears its
+  launch, chaff and the jammer act on it, docs/real-weapons.md §2.3, §2.6); its proximity fuze its warhead's blast
+  (§2.5). The ZSU's rounds stand in as the 20 mm's. Until 25 November the SAMs fired the AIM-120's record. The
+  draft records of modern-iaf/docs/threat-records.md stay drafts: the sites' missiles are defined with the sites.
 - **The RWR and the HARM:** each track is a lock. A site's radar is on the RWR's search list (docs/rwr.md §7) and in
   the HARM sensor's scan only while it radiates (the part's `radiating`), heard to the radar's reach (`radar_km`).
   Modern IAF has the search list on.
@@ -1716,16 +1719,18 @@ from a hostile jet; a friendly's (a defending wingman's) jams the enemy, not the
   missile's cue, flares against a near missile); `modern-iaf/tests/test_countermeasures.gd` (headless: decoys against an
   AIM-9M and an AIM-9X, a beaming and a fleeing jet against chaff; the Sufa's jammer against an S-300's track radar,
   the chevrons and the FCR's strobe).
-- **Not started** (outside the K8 and K9 rows): the jammer's effect on a missile's own seeker (home on jam, an active
-  seeker's burn-through), the 1998 game's switch-on rule staying as it is; stand-off and escort jamming; towed decoys.
+- **The seeker** (2026-11-25, docs/real-weapons.md §2.6): the jammer also acts on each radar-guided missile flying at
+  the jet, whoever fired it: outside the seeker's burn-through the missile rolls once on 0.6 · (1 − its rejection),
+  and taken, its guidance goes off. The AI jets' jammer is on under a missile, so it works for them too.
+- **Not started** (outside the K8 and K9 rows): stand-off and escort jamming; towed decoys.
 
 ### 15.7 Later
 
 - The network's other parts (§15.5): the 15Ya6ME relay's 90 km reach, several search radars per network, a
   hand-over delay for a siloed network ([enemies.md](../modern-iaf/docs/research/enemies.md) §5.2), the Tor battery's
   own command post.
-- The sites' own missile and gun records (drafts, threat-records.md) and the site's guidance of its missiles: the
-  stand-in missile homes by itself and flies on when the track radar dies.
+- The gun's record (the 23 mm, a draft, threat-records.md) and the site's guidance of its missiles: the missile homes
+  by itself and flies on when the track radar dies.
 - Roads for the move; §11-121's other moves (after a reconnaissance overflight, after 4–6 hours in place); a battery
   of several sites moving a third at a time.
 

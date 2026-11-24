@@ -134,7 +134,10 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   the commit alone, and an enemy fighter's radar flies at its strobe (home on jam) to the burn-through; an enemy jet
   with one would jam the player's radar (the MiG-29A (9.12) has none: its jammer came with the 9.13); the threat
   display's chevrons and the FCR's and PCD's jam strobe. Tests: `ecm.rs`, `sites`, `intercept`, `four_ship`,
-  `modern-iaf/tests/test_countermeasures.gd`. Not started: jamming against a missile's own seeker; the Barak's jammer
+  `modern-iaf/tests/test_countermeasures.gd`. Built 25 Nov: the jammer against a radar missile's own seeker: outside
+  the seeker's burn-through each missile at the jamming jet rolls once on 0.6 · (1 − its rejection) and loses its
+  guidance when taken ([../../docs/real-weapons.md](../../docs/real-weapons.md) §2.6;
+  `modern-iaf/tests/test_threat_missiles.gd`). Not started: the Barak's jammer
   (open).
 - **Shoulder-fired SAMs (2026-11-23, the user, 22 Nov: "Ok follow your suggested order"; [ai-plan.md](ai-plan.md) K16;
   [../../docs/ai.md](../../docs/ai.md) §15.8):** a Strela-2M or an Igla team (`air_defence.gd spawn("strela" |
@@ -318,7 +321,7 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   seeker goes active (real-weapons.md §2.2); the AIM-9X's thrust-vectored turn no longer brakes it to a stop, and the
   guidance acts across the missile's velocity, so the 70° off-boresight shot hits. The burst is the same at any frame
   rate: the closest pass of the missile and the moving target over each step (real-weapons.md §2.1).
-  Steps 2 and 3 (23 Nov): the AIM-120 lofts on long shots, the enemy SAM sites' stand-in too (real-weapons.md §2.4):
+  Steps 2 and 3 (23 Nov): the AIM-120 lofts on long shots, the enemy SAM sites' then stand-in too (real-weapons.md §2.4):
   6,000 m up its zone grows from 36 to 50 km at a still target and from 56 to 86 km head on; the AIM-9X's thrust
   vectoring adds the motor's thrust to its fins' turn. Each physical missile's proximity fuze fires only within its
   blast radius, past a wider pass it self-destructs, and a hit before it arms is a dud (§2.5).
@@ -1288,8 +1291,11 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   ([research/radio-terms.md](research/radio-terms.md)); in Hebrew a runway's side is ימין / שמאל ("25 ימין"), the
   AWACS's clearance "רשאי לתקוף", and "מייל" is read as the mile ([sound.md](sound.md) §3.1).
   Built (20 Nov, A72): the radio menu's Tower / Wingmen / AWACS pages, the wingman commands through the menu.
-- **Missiles (avionics-plan.md §7.2):** next step 5: the threat missiles once their records are approved; step 4
-  (the missile warning's type) is built (19 Nov).
+- **Missiles (avionics-plan.md §7.2):** step 5 built (25 Nov): the MiG-29A's R-73 and R-27R and the SAM sites' own
+  missiles (the S-300's 48N6E2, the Tor's 9M331, no longer the AIM-120's record) fly the physical missile, fitted to
+  their published speed and range ([../../docs/real-weapons.md](../../docs/real-weapons.md) §2.1; `sim.rs`,
+  `sites.rs`, `modern-iaf/tests/test_threat_missiles.gd`). After a pull the db setup step recompiles the R-73's and
+  R-27R's records. Open: the AIM-54A (a draft record, with the F-14A).
 - **The missile warning, not started (outside the user's words):** an active radar missile's own seeker as an "M" on
   the threat display (the F-15C's ALR-56C shows one, a simulator manual; the dash-34's F-16 list has none;
   [research/missile-warning.md](research/missile-warning.md) §2, §6).

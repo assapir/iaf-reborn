@@ -339,7 +339,7 @@ and alone once active.
 **Built 19 November (step 2):** the AIM-120's loft ([../../docs/real-weapons.md](../../docs/real-weapons.md) §2.4):
 beyond 15 km to the intercept it climbs toward a point above it and dives on it; its zone and post-launch times come
 from the same lofted fly-out. The drag stays fitted on the straight shot (the lofted fit, tried, broke the CFD check).
-Merged 23 November with step 3; the enemy SAM sites, firing the AIM-120's record, loft too.
+Merged 23 November with step 3; the enemy SAM sites, firing the AIM-120's record then, lofted too.
 
 **Built 23 November (step 3):** the proximity fuzes ([../../docs/real-weapons.md](../../docs/real-weapons.md) §2.5):
 each physical missile bursts at its closest pass only within its record's blast radius, else self-destructs past the
@@ -351,8 +351,11 @@ inferred (no published figures).
    RWR names a radar-guided missile by its launcher's radar and does not hear an infrared one; the MAW names the
    missile's class from its launch point ("AAM", "SAM"). Not a designation: no source shows a warning that writes one
    ([research/missile-warning.md](research/missile-warning.md), with the F-15s' for later).
-5. **The threat missiles:** the R-73, R-27R, AIM-54A and the SAMs of [threat-records.md](threat-records.md) on the
-   same physical model, once their records are approved.
+5. **The threat missiles** (built 25 November): the approved R-73 and R-27R and the SAM sites' own missiles (the
+   S-300's 48N6E2, the Tor's 9M331, in place of the AIM-120's record) fly the same physical model, their motors and
+   flight times fitted to their published speed and range ([../../docs/real-weapons.md](../../docs/real-weapons.md)
+   §2.1). The AIM-54A waits for its record's approval (a draft, [threat-records.md](threat-records.md)); its F-14A
+   too.
 
 Not started (outside the user's words): the 1998 game's Real weapons (AIM-9L, Python 3 / 4, AMRAAM, the SAMs) on the
 physical model; they keep the chase motion.

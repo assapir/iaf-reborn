@@ -1,9 +1,9 @@
 ## Modern IAF's air-defence sites (docs/ai.md §15): an S-300PMU-2 battery, a Tor-M1, a ZSU-23-4 and shoulder-fired
 ## teams (a Strela-2M, an Igla; §15.8), each run by the Rust site (IafSite, crates/iaf-ai/src/site.rs). A dev / test
 ## hook: no mission places one yet. Each part is a mission entity ("ad:N") with a stand-in shape of ours, and each
-## firing part a combat.gd unit without a brain, so the launches go through combat.gd's release (the existing missile
-## and gun-round models, the AIM-120's and the 20 mm's records standing in; a team's missile its own record,
-## IafSite.missile) and the locks through its on_lock (the RWR, an AI jet's brain). Sites may join a network
+## firing part a combat.gd unit without a brain, so the launches go through combat.gd's release (each site's own
+## missile on the physical model, IafSite.missile; the ZSU's rounds the 20 mm's record standing in) and the locks
+## through its on_lock (the RWR, an AI jet's brain). Sites may join a network
 ## (IafNet, crates/iaf-ai/src/net.rs, docs/ai.md §15.5): its search radar cues their track radars.
 extends Node
 
@@ -14,8 +14,7 @@ const Gltf := preload("res://shared/util/gltf.gd")
 
 ## The decision tick (s): the site tests line of sight only then (docs/ai.md §15.3).
 const TICK := 0.5
-## The stand-in records: the existing models as they are (the sites' own records are drafts, threat-records.md).
-const SAM_RECORD := "AIM-120"
+## The gun's stand-in record: the existing rounds as they are (the 23 mm's record is a draft, threat-records.md).
 const GUN_RECORD := "20 MM"
 ## Every part's strength and spawn radius (threat-records.md §3: the vehicles held at 300).
 const STRENGTH := 300.0
@@ -23,10 +22,13 @@ const RADIUS := 8.0
 ## A shoulder-fired team's (threat-records.md §3: one 20 mm hit; a person with a launcher, inferred).
 const TEAM_STRENGTH := 100.0
 const TEAM_RADIUS := 1.0
-## A team's missile record: the AIM-9M's model, its own warhead and motion, type 620 (a heat SAM: the RWR does not hear
-## its launch, rwr.rs ir_guided) and an id above every other record's.
+## A site's missile record: a team's on the AIM-9M's model, type 620 (a heat SAM: the RWR does not hear its launch,
+## rwr.rs ir_guided); a radar site's on the AIM-120's model, type 630 (a radar SAM: chaff and the jammer act on it,
+## docs/real-weapons.md §2.3, §2.6); its own warhead and motion, an id above every other record's.
 const IR_BASE := "AIM-9M"
 const IR_TYPE := 620
+const SAM_BASE := "AIM-120"
+const SAM_TYPE := 630
 const IR_ID := 1900
 ## The Tor's moving parts (its model's nodes, tools/enemy_models/convert.py PARTS; docs/ai.md §15.4): the search
 ## radar's turn while it searches (deg/s: the model's own Scan animation, a turn in 3 s; the real rate open), the
@@ -100,11 +102,11 @@ func spawn(kind: String, pos: Vector3, heading := 0.0, alternates := [], side :=
 	}
 	var at: Array = site.positions(host.mission_ground)
 	var ir: Dictionary = site.missile()
-	var record := _ir_record(ir) if not ir.is_empty() else _record(GUN_RECORD if kind == "zsu" else SAM_RECORD)
+	var record := _site_record(ir) if not ir.is_empty() else _record(GUN_RECORD)
 	for i in s.parts.size():
 		var p: Dictionary = s.parts[i]
 		var tower: bool = mast and p.track and not p.search
-		var ent := _part(p, at[i], heading, side, " MAST" if tower else "", not ir.is_empty())
+		var ent := _part(p, at[i], heading, side, " MAST" if tower else "", bool(ir.get("ir", false)))
 		s.units.append(cb.add_ground_unit(ent, record) if int(p.rounds) > 0 and not record.is_empty() else null)
 		s.ents.append(ent)
 	s.track = maxi(0, s.parts.map(func(p): return p.track).find(true))
@@ -188,25 +190,26 @@ func site_of(ent: Dictionary) -> Dictionary:
 	return {}
 
 
-## A team's missile record from IafSite.missile {name, generation, kg, power, radius, motion}: the AIM-9M's record
-## (its model and drag) with the team's warhead, physical missile and seeker; made once per name.
-func _ir_record(ir: Dictionary) -> Dictionary:
+## A site's missile record from IafSite.missile {name, generation, ir, kg, power, radius, motion}: the AIM-9M's record
+## (a team's) or the AIM-120's (a radar site's), its model and drag, with the site's warhead, physical missile and
+## seeker; made once per name.
+func _site_record(ir: Dictionary) -> Dictionary:
 	var have := _record(String(ir.name))
 	if not have.is_empty():
 		return have
-	var base := _record(IR_BASE)
+	var base := _record(IR_BASE if ir.ir else SAM_BASE)
 	if base.is_empty():
 		return {}
 	var w := base.duplicate(true)
 	var m: Dictionary = cb._db.motion_for(int(base.type), int(base.generation)).duplicate()
 	m.merge(ir.motion, true)
 	w.motion = m
-	# The AIM-9M's own seeker and lock figures go: the team's seeker cone is its generation's (sight.rs cone_deg).
+	# The base's own seeker, lock and loft figures go: the site's seeker cone is its generation's (sight.rs cone_deg).
 	for k in w.keys().filter(func(k): return String(k) == "real" or String(k).begins_with("real_")):
 		w.erase(k)
 	w.id = IR_ID + cb._db.weapons.size()
 	w.name = String(ir.name)
-	w.type = IR_TYPE
+	w.type = IR_TYPE if ir.ir else SAM_TYPE
 	w.generation = int(ir.generation)
 	w.weight_lb = roundf(float(ir.kg) / 0.45359)
 	w.power = float(ir.power)

@@ -108,6 +108,12 @@ func decoy_chance(flare: bool, ir: bool, now: float, t: Dictionary) -> float:
 	return _m.decoy_chance(flare, ir, now, t)
 
 
+## Ours, Modern IAF: the chance the target's jammer breaks this radar seeker's track now (ecm.rs seeker_jam_chance),
+## 0 while its seeker is not yet on; `t` {pos, vel, rcs, bays, stores, jam}.
+func jam_chance(now: float, t: Dictionary) -> float:
+	return _m.jam_chance(now, t)
+
+
 ## The motion's time left (FUN_00468db0): burn − age.
 func time_left(now: float) -> float:
 	return _m.time_left(now)
