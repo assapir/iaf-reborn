@@ -29,6 +29,14 @@ func _key(k: Key, mods := "") -> void:
 		tv._unhandled_input(e)
 
 
+## The DCS RTN key: Alt + Home, on the laptop map (macOS's default) Ctrl + ,.
+func _rtn() -> void:
+	if settings().laptop_keys:
+		_key(KEY_COMMA, "ctrl")
+	else:
+		_key(KEY_HOME, "alt")
+
+
 ## ICP keys by their numbers (IafUfc.press), through command 250.
 func icp(keys: Array) -> void:
 	for k in keys:
@@ -85,7 +93,7 @@ func _jet(_unit: String, base: String) -> void:
 
 func _pages(stn, home: String) -> void:
 	# CNI: the steerpoint and the time.
-	_key(KEY_HOME, "alt")
+	_rtn()
 	await frames(1)
 	var l := ded()
 	check(l.size() == 5 and l[0].begins_with("UHF") and "STPT" in l[0], "CNI: UHF, STPT (%s)" % [l])
@@ -121,7 +129,7 @@ func _pages(stn, home: String) -> void:
 	await icp([18, 4, 17, 17, 17, 1, 2, 3, 4, 10])
 	check(int(c.waypoints[0].get("elev_ft", -1)) == 1234, "STPT 1's ELEV 1234 (%s)" % [ded()])
 	# MARK: OFLY over the jet, steerpoint 26; then STPT 26 steered to, the HUD's steerpoint 26.
-	_key(KEY_HOME, "alt")  # RTN first: on a page with a data field the digits are data
+	_rtn()  # RTN first: on a page with a data field the digits are data
 	_key(KEY_7, "ctrl")
 	_key(KEY_ENTER, "alt")
 	await frames(1)
