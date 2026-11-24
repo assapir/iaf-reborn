@@ -359,7 +359,7 @@ licence:
 | Betty | `af_heart`, 1.3, +3 semitones | the VMS calls |
 | tower | `am_michael`, 1.1 | the tower's phrases, the friendly-fire call, the map edge |
 | pilot | `am_puck`, 1.1 | the player's radio-menu calls (helmet chain, §5.2), "Roger", eject, the friendly-fire calls of the target and the wingman |
-| AWACS | `am_fenrir`, 1.1 | the contact calls `ACFT_FCTRL_LONG` / `_SHORT` ([ews.md](ews.md) §7) |
+| AWACS | `am_fenrir`, 1.1 | the contact calls `ACFT_FCTRL_LONG` / `_SHORT` ([ews.md](ews.md) §7); Scramble's task call `AWX_TASK` ([../../docs/ai.md](../../docs/ai.md) §23) |
 | wingman | `am_eric`, 1.1 | the four-ship's wingmen Kidon 1-2 to 1-4: their answers and calls (`WNG_*`, `radio.gd flight_call`; the words in [research/radio-terms.md](research/radio-terms.md)); the player's commands to them (`CMD_*`) are the pilot's |
 
 **Choice** (9 November 2026; the user on 3 November: "less British", American or neutral voices). Kokoro's
@@ -489,7 +489,7 @@ languages, and a joined particle plays only where its clip exists in the languag
 Hebrew-only joined particles (`he_only`, "MORNING+,+TAXI_RWY") hold a tower call's words after the callsign. So
 "כידון אחד" then "בוקר טוב, הסעה למסלול" plays, and a new callsign changes only the callsign particles. Another
 pilot's call that the English pilot voice says (the wingman's ejection, the friendly-fire calls) takes a wingman's voice
-in Hebrew (`role_he`), since `pilot` is the player's own there. 642 clips (tower 102 lines × 2 voices, AWACS 97 × 2,
+in Hebrew (`role_he`), since `pilot` is the player's own there. 664 clips (tower 102 lines × 2 voices, AWACS 108 × 2,
 the player's calls 32 × 2, the wingmen 30 × 6), 6.7 MB in all as Ogg Vorbis,
 committed: the setup only copies them.
 
@@ -522,7 +522,7 @@ their press command (the doc's names for them look swapped).
 3. ffmpeg writes it as 22050 Hz mono Ogg Vorbis, quality 4, into `modern-iaf/data/sounds/`, which ships the clips;
 4. `sim::own_sounds` compiles the sound folder into `assets/converted/own/resource/soundfiles/`, as `iaf-sim own`
    (the wizard's "sounds, voices, keys and effects art" step) does.
-The set is 363 clips (the AWACS's 97 `awx_*` since 17 November; the four-ship's 45 `flt_*` since 19 November, `--only flt_`) plus four computed ones (`kch2`, `key_on`, `key_off`,
+The set is 374 clips (the AWACS's 97 `awx_*` since 17 November and Scramble's 11 `awx_task_*` since 24 November, `--only awx_task`; the four-ship's 45 `flt_*` since 19 November, `--only flt_`) plus four computed ones (`kch2`, `key_on`, `key_off`,
 `twr_pause`). `iaf-sim voices --only <name part>` remakes some clips (`--only awx` the AWACS's, about 1 minute); with
 the model and voice packs in the cache, `HF_HUB_OFFLINE=1` and `IAF_KOKORO_PYTHON` set to the venv's Python, the step
 runs without the network; `iaf-sim voices --say <role>

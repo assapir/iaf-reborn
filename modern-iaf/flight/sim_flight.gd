@@ -14,6 +14,7 @@ extends Node
 
 const MissionRuntime := preload("res://shared/mission/mission_runtime.gd")
 const Kneeboard := preload("kneeboard.gd")
+const FreeCombat := preload("free_combat.gd")
 const Card := preload("card.gd")
 const FlightUi := preload("flight_ui.gd")
 const FrameMeter := preload("frame_meter.gd")
@@ -222,6 +223,8 @@ func _ready() -> void:
 		rules = readable.get("training", {}) if sim.has("training") else {}
 		mission_name = String(files[0].name) if not rules.is_empty() else ""
 		checklist = readable.get("training", {}).get("checklist", [])
+		if String(readable.get("category", "")) == "fly_now":
+			add_child(FreeCombat.new(host, host.radio.runway_base))  # Scramble's enemy and task (front-end.md §2.1)
 	if not rules.is_empty():
 		trainer = ClassDB.instantiate("IafTraining")
 		var err: String = trainer.open(_readable(), Settings.disk_path("res://data/airbases"))

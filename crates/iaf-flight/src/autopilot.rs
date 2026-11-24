@@ -412,6 +412,12 @@ const TAXI_PI: (f32, f32, f32) = (0.02, 0.01, 0.4);
 /// Ours, an AI jet's take-off roll on the 6-DoF (inferred): the nose wheel's pedal per radian of heading error to the
 /// runway's, per rad/s of turn, and at most below [`NWS_KT_MS`] (Autopilot::roll_steer).
 const ROLL_STEER: (f32, f32, f32) = (1.0, 0.5, 0.1);
+/// Ours, the take-off roll's line (inferred): the heading aimed at turns back onto the jet's line by the atan of its
+/// distance off over this, m (2 m off: 1.1°, about where the castoring nose wheel engages).
+const ROLL_LINE_LOOK: f32 = 100.0;
+/// ... and past 30 kt, its nose wheel castoring, the pedal's error (rad, the heading's and its turn's) that engages
+/// the nose wheel with the least pedal, [`NWS_PEDAL`] (inferred).
+const ROLL_NUDGE: f32 = 0.005;
 /// 30 kt, m/s, and the pedal: the 6-DoF's nose wheel castors above that speed unless a pedal this far engages it.
 const NWS_KT_MS: f32 = 15.4333;
 const NWS_PEDAL: f32 = 0.02;
@@ -2570,15 +2576,40 @@ impl Autopilot {
     /// Left alone the jet kept the heading its taxi left: up to 10° off where its last pivot ended in a turn and it
     /// coasted on turning, 3° off on the roll (60 m across 1.2 km), and a pair rolled 15 m apart. Past 30 kt a pedal
     /// that engages the nose wheel turns the jet hard and less leaves the wheel castoring, so there the pedal falls
-    /// with the speed squared and only an error of a degree or more engages it.
+    /// with the speed squared and only an error of a degree or more engages it. In a pairs take-off the heading aimed
+    /// at turns back onto the jet's own line, the runway's through its lineup point ([`Autopilot::lineup_offset`] right of it), within
+    /// [`ROLL_LINE_LOOK`]: on the heading alone each jet of a pair kept whatever error under that degree its pivot
+    /// left, and at Nevatim the two closed from 15 m to 10 m by the lift-off.
     fn roll_steer(&self, l: &mut Laws) {
         let v = l.v;
-        let rn = Airbase::nearest(&self.bases, [v.pos[0] as f32, v.pos[1] as f32, v.pos[2] as f32])
-            .map_or(v.att.heading, |b| b.runway_deg.to_radians());
+        let pair = self.lineup_offset != 0.0 || self.pair_lead;
+        let rn = Airbase::nearest(&self.bases, [v.pos[0] as f32, v.pos[1] as f32, v.pos[2] as f32]).map_or(
+            v.att.heading,
+            |b| {
+                let rn = b.runway_deg.to_radians();
+                if !pair {
+                    return rn;
+                }
+                let (s, c) = (rn as f64).sin_cos();
+                let (dx, dy) = (v.pos[0] - b.lineup[0] as f64, v.pos[1] - b.lineup[1] as f64);
+                let right = (dx * c - dy * s) as f32 - self.lineup_offset;
+                rn - (right / ROLL_LINE_LOOK).atan()
+            },
+        );
         let max = ROLL_STEER.2 * (NWS_KT_MS / v.speed.max(1.0)).min(1.0).powi(2);
-        let p = (ROLL_STEER.0 * wrap(rn - v.att.heading) - ROLL_STEER.1 * v.rates[2]).clamp(-max, max);
+        let want = ROLL_STEER.0 * wrap(rn - v.att.heading) - ROLL_STEER.1 * v.rates[2];
+        let p = want.clamp(-max, max);
         let castor = v.speed >= NWS_KT_MS && p.abs() < NWS_PEDAL;
-        l.out.rudder = Some(if !v.on_ground || castor { 0.0 } else { p });
+        // In a pairs take-off a castoring jet off its line by more than ROLL_NUDGE engages the nose wheel with the
+        // least pedal, a frame at a time.
+        let nudge = if pair && want.abs() > ROLL_NUDGE { NWS_PEDAL.copysign(want) } else { 0.0 };
+        l.out.rudder = Some(if !v.on_ground {
+            0.0
+        } else if castor {
+            nudge
+        } else {
+            p
+        });
     }
 
     /// TakeoffCL's lever on the roll: 1. Ours (Modern IAF's flights, a pairs take-off): the lead at military power

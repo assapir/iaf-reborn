@@ -281,8 +281,11 @@ func _point(p: Vector3) -> Dictionary:
 ## in the shelters of `base` (its iaf.ibx section; the sim has no enemy base yet, so any base stands in), flown as an
 ## enemy pair by `enemy_flight` on station at `station` (world): they scramble on the network `net`'s vector, take off,
 ## intercept and land there after. Their route is the Rust ground run's: the take-off point 15 km along the runway,
-## the landing waypoint 15 km out on the approach (action 7), both 1,500 m up. The flight, null when none could park.
-func enemy_base(unit: String, base: String, count: int, station: Vector3, net := {}, side := -1) -> RefCounted:
+## the landing waypoint 15 km out on the approach (action 7), both 1,500 m up. `first`: the first shelter taken (a
+## second pair in the next ones). The flight, null when none could park.
+func enemy_base(
+	unit: String, base: String, count: int, station: Vector3, net := {}, side := -1, first := 0
+) -> RefCounted:
 	var b: Dictionary = Settings.load_ibx(Settings.own_dir().path_join("iaf.ibx")).get(base, {})
 	var f := func(k: String) -> float: return float(b.get(k, "0"))
 	var l := Vector3(f.call("LineupLocX"), f.call("LineupLocY"), f.call("LineupLocZ"))
@@ -292,7 +295,7 @@ func enemy_base(unit: String, base: String, count: int, station: Vector3, net :=
 		var p: Vector3 = l + Vector3(sin(h), cos(h), 0) * q[0] + Vector3(0, 0, 1500)
 		route.append([p.x, p.y, p.z, q[1]])
 	var ents := []
-	for i in mini(count, int(f.call("HangarsNum"))):
+	for i in range(first, mini(first + count, int(f.call("HangarsNum")))):
 		var at := Vector3(f.call("HangarPtX%d" % i), f.call("HangarPtY%d" % i), l.z)
 		var e := spawn(unit, at, f.call("HangarPtHdg%d" % i), route, side)
 		if not e.is_empty():
@@ -539,9 +542,9 @@ func flight_cleared_to_start() -> void:
 		flight_ai.start_up(runtime.now)
 
 
-## Ours (Modern IAF, a dev hook: no mission sets it yet): the player's flight takes off in pairs (true) or in a stream
-## (false, the default): Kidon 1-2 lines up beside the lead, 1-4 beside 1-3, each rolls with its lead
-## (docs/ai.md §8.7). False: no flight AI.
+## Ours (Modern IAF; Scramble's runway start sets it, modern-iaf/flight/free_combat.gd): the player's flight takes
+## off in pairs (true) or in a stream (false, the default): Kidon 1-2 lines up beside the lead, 1-4 beside 1-3, each
+## rolls with its lead (docs/ai.md §8.7). False: no flight AI.
 func flight_pairs(on: bool) -> bool:
 	if flight_ai == null:
 		return false

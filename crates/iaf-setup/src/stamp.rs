@@ -212,6 +212,9 @@ pub(crate) struct Stamp {
     /// is its frame and heights only, so a rebuild of its colour alone leaves the airbases and the missions up to date
     /// (the scenery tracks the colour images it reads itself).
     pub view: Option<Box<dyn Fn() -> String + Send + Sync>>,
+    /// Its sources are not all on disk (a download begun and not finished): the stamp does not hold, so the step
+    /// runs again and finishes them, though its text is unchanged.
+    pub pending: bool,
 }
 
 impl Stamp {
@@ -220,7 +223,8 @@ impl Stamp {
         self.view.as_ref().map_or_else(|| self.text.clone(), |v| v())
     }
     pub fn holds(&self) -> bool {
-        std::fs::read_to_string(&self.path).is_ok_and(|t| t == self.text)
+        !self.pending
+            && std::fs::read_to_string(&self.path).is_ok_and(|t| t == self.text)
             && self.output.as_ref().is_none_or(|o| o.exists())
     }
     /// Removed before the step runs, so a step that fails half way is not up to date.
@@ -347,7 +351,7 @@ pub(crate) fn of(step: &Step, ctx: &Ctx) -> Result<Option<Stamp>> {
     for p in &inputs {
         text += &describe(p)?;
     }
-    Ok(Some(Stamp { path: stamp, text, output: out, view: None }))
+    Ok(Some(Stamp { path: stamp, text, output: out, view: None, pending: false }))
 }
 
 /// Where Modern IAF's step `id` keeps its stamp.
@@ -384,7 +388,9 @@ pub(crate) fn sim_of(step: &Step, ctx: &SimCtx) -> Result<Option<Stamp>> {
         let (theatre, area) = (a.join(THEATRE), ctx.terrain().area);
         Box::new(move || terrain_view(&theatre, area)) as Box<dyn Fn() -> String + Send + Sync>
     });
-    Ok(Some(Stamp { path: sim_stamp_path(a, step.id), text, output: Some(out), view }))
+    // A Sentinel-2 tile whose download stopped short (`sim_terrain::s2_pending`): the terrain runs until it is whole.
+    let pending = step.id == "sim-terrain" && iaf_tools::sim_terrain::s2_pending(&ctx.terrain());
+    Ok(Some(Stamp { path: sim_stamp_path(a, step.id), text, output: Some(out), view, pending }))
 }
 
 /// Sim step `id`'s output (it must exist for the stamp to hold) and the authored inputs its stamp describes.

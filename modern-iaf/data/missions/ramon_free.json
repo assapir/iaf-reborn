@@ -1,0 +1,58 @@
+{
+  "category": "fly_now",
+  "time": "08:00",
+  "wind_kt": 0,
+  "wind_from": 0,
+  "start": {
+    "unit": "f16i",
+    "base": "Ramon",
+    "at": "parking",
+    "elevation_m": 648,
+    "count": 4,
+    "task": "cap"
+  },
+  "flights": [],
+  "targets": [],
+  "sam_sites": [],
+  "sources": {
+    "time": "inferred",
+    "wind_kt": "inferred",
+    "wind_from": "inferred",
+    "start.elevation_m": "oa"
+  },
+  "notes": {
+    "category": "Scramble's start (the front end's Scramble, modern-iaf/docs/front-end.md §2.1): the player's flight parked at its base; the Scramble screen's picks cut it, put it in the air or on the runway for those starts (flight/fly.gd prepare_free), and the enemy is drawn and placed in flight (modern-iaf/flight/free_combat.gd), not from this file",
+    "start": "the base's four parking spots for the unit (data/parking.json); the flight's size picked on the screen keeps the first one, two or four; task cap: the flight flies against the enemy picked, with no target of its own (flights.rs TASKS)"
+  },
+  "footnotes": {
+    "oa": "OurAirports, airports.csv (public domain; LLRM elevation 2126 ft), https://davidmegginson.github.io/ourairports-data/airports.csv"
+  },
+  "id": "ramon_free",
+  "menu_id": 2019,
+  "title": {
+    "en": "Scramble",
+    "he": "הזנקה"
+  },
+  "briefing": {
+    "purpose": {
+      "en": "Scramble: a flight against an enemy drawn at random; the AWACS gives the task by radio.",
+      "he": "הזנקה: טיסה מול אויב שנבחר באקראי; ה-AWACS מוסר את המשימה בקשר."
+    },
+    "how": [
+      {
+        "at": "start",
+        "en": "In the air: fly the task the AWACS gives. On the runway, engine running: take off; the wingmen roll in pairs. Cold at your parking spot: call the tower, start up, taxi and take off. On the ground the AWACS gives the task once you are airborne.",
+        "he": "באוויר: לבצע את המשימה שה-AWACS מוסר. על המסלול, מנוע פועל: להמריא; המספרים ממריאים בזוגות. בחניה, במטוס קר: לקרוא למגדל, להתניע, להסיע ולהמריא. בהתחלה על הקרקע ה-AWACS מוסר את המשימה אחרי ההמראה."
+      }
+    ]
+  },
+  "win": {
+    "en": "Flight over.",
+    "he": "הטיסה הסתיימה."
+  },
+  "lose": {
+    "en": "Flight over.",
+    "he": "הטיסה הסתיימה."
+  },
+  "runway": "25R"
+}

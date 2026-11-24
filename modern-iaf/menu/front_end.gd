@@ -22,6 +22,7 @@ const BriefingPage := preload("res://menu/briefing_page.gd")
 const DebriefPage := preload("res://menu/debrief_page.gd")
 const CombatPage := preload("res://menu/combat_page.gd")
 const LoadoutScreen := preload("res://menu/loadout_screen.gd")
+const FreeCombatPage := preload("res://menu/free_combat_page.gd")
 const MissionList := preload("res://shared/mission/mission_list.gd")
 const Turntable := preload("res://shared/aircraft/turntable.gd")
 const AircraftModel := preload("res://shared/aircraft/aircraft_model.gd")
@@ -112,8 +113,9 @@ const PREFS := [
 	],
 ]
 ## The Missions screen's sections (front-end.md §2, the user's menu flow of 15 Nov): [id, the missions' `category`]; a
-## section without missions is greyed, Fly now (no category: random missions and dogfights later) always.
-const SECTIONS := [["training", "training"], ["campaign", "campaign"], ["single", "single"], ["fly_now", ""]]
+## section without missions is greyed. Scramble (§2.1, id fly_now) is the jet's Scramble start (category fly_now) and
+## opens its own screen (free_combat_page.gd).
+const SECTIONS := [["training", "training"], ["campaign", "campaign"], ["single", "single"], ["fly_now", "fly_now"]]
 ## The screen each breadcrumb opens (_header).
 const CRUMB_PAGES := {
 	"hangar": "hangar",
@@ -127,11 +129,12 @@ const CRUMB_PAGES := {
 	"manuals": "manuals"
 }
 ## The screens that show the picked jet: the Hangar opens in their place before the first pick.
-const NEEDS_JET := ["missions", "section", "mission", "arming"]
+const NEEDS_JET := ["missions", "section", "mission", "arming", "free"]
 ## Esc on each screen goes here (the Hangar's: the Quit prompt).
 const BACK := {
 	"missions": "hangar",
 	"section": "missions",
+	"free": "missions",
 	"mission": "section",
 	"arming": "mission",
 	"prefs": "hangar",
@@ -354,6 +357,8 @@ func show_page(p: String) -> void:
 		}
 	# The section's list again, except on a mission's own screens while the list is the picked jet's (the briefing and
 	# Arming keep the mission opened: a test's sample mission, modern-iaf/tests/data, too).
+	if p == "free":
+		section = "fly_now"  # the Scramble screen lists the jet's Scramble start
 	var kept := p in ["mission", "arming"] and not missions.is_empty()
 	if kept and str(missions[0].get("start", {}).get("unit", "")) != Settings.sim_jet:
 		kept = false
@@ -869,7 +874,9 @@ func full_name(j: Dictionary) -> String:
 
 ## The crumbs to a section's screens: Hangar · the jet (the Missions screen) · the section (its list).
 func section_crumbs() -> Array:
-	return ["hangar", [full_name(jet()), "missions"], [s("sec_" + section), "section"]]
+	return [
+		"hangar", [full_name(jet()), "missions"], [s("sec_" + section), "free" if section == "fly_now" else "section"]
+	]
 
 
 ## The Missions screen (front-end.md §2, the user's menu flow of 15 Nov): a card per section (SECTIONS), its number and
@@ -900,7 +907,7 @@ func _page_missions() -> void:
 		h3.add_theme_font_size_override("font_size", 36)
 		_label(cv, s("sec_" + sec[0]), "H2")
 		_spacer(cv, true)  # the progress (or Coming later) at the card's foot
-		if not list.is_empty():
+		if not list.is_empty() and sec[0] != "fly_now":
 			var passed := passed_count(list)
 			_label(cv, s("passed_of") % [passed, list.size()], "Small")
 			var bar := ProgressBar.new()
@@ -941,7 +948,7 @@ func _page_missions() -> void:
 ## Opens section `id`'s list.
 func open_section(id: String) -> void:
 	section = id
-	show_page("section")
+	show_page("free" if id == "fly_now" else "section")
 
 
 ## A section's list (front-end.md §2): the Hangar jet's missions of the section in order (section_missions), numbered
@@ -950,6 +957,9 @@ func open_section(id: String) -> void:
 ## and takes the focus; Enter or a click opens its briefing. Beside the list a panel tells about the mission under the
 ## focus or the pointer (_side); Back (Esc) the Missions screen.
 func _page_section() -> void:
+	if section == "fly_now":
+		show_page("free")
+		return
 	if missions.is_empty():
 		show_page("missions")
 		return
@@ -1105,12 +1115,39 @@ func open_mission(i: int) -> void:
 
 ## The briefing of the mission picked (briefing_page.gd): its map, what it is for and how to fly it; Arming and Fly.
 func _page_mission() -> void:
+	if section == "fly_now":
+		show_page("free")
+		return
 	if missions.is_empty():
 		show_page("missions")
 		return
 	var m: Dictionary = missions[mission_i]
 	_header(section_crumbs() + [title_of(m)])
 	BriefingPage.build(self, m)
+
+
+## The Scramble screen (front-end.md §2.1, free_combat_page.gd): the flight and the start, then Fly.
+func _page_free() -> void:
+	mission_i = 0  # the jet's one Scramble start
+	FreeCombatPage.build(self)
+
+
+## Fly on the Scramble screen (and its Arming): the picks the screen allows (FreeCombatPage.refusal) flown from the
+## jet's Scramble start, the flight cut to their size and put in the air or on the runway for those starts; a new seed
+## for the draw of the fight's area (Fly.free_area) and of the enemy, placed in flight (flight/free_combat.gd).
+func fly_free() -> void:
+	if missions.is_empty() or FreeCombatPage.refusal(self) != "":
+		return
+	var fc: Dictionary = FreeCombatPage.picks(self)
+	fc.seed = randi()
+	fc.area = Fly.free_area(fc.home, fc.seed)
+	Settings.free_combat = fc.duplicate()
+	Settings.free_combat.erase("home")
+	Settings.save()
+	if Fly.prepare_free(int(missions[0].menu_id), fc):
+		TerrainPreload.fly(get_tree())
+	else:
+		Fly.start(int(missions[0].menu_id))  # the crash page says what is missing
 
 
 ## The picked mission's Loadout screen (front-end.md §10.1, loadout_screen.gd), opened by the briefing's Edit.
@@ -1296,6 +1333,9 @@ static func _ltr(t: String) -> String:
 
 ## Fly: the mission's flight scene (flight/fly.gd), with the ground preloaded on this page (_preload_ground).
 func fly_mission(m: Dictionary) -> void:
+	if section == "fly_now":
+		fly_free()  # the Loadout screen's Fly on the Scramble start
+		return
 	# The one load rule (weapons.md §7.1), whichever button asked: a load that cannot fly (a laser bomb with no pod,
 	# over the maximum weight) is never flown.
 	if bool(arming(m, mission_loadout(m)).get("blocked", false)):
@@ -1318,8 +1358,10 @@ var _preload := Vector2i(-1, -1)
 
 func _preload_ground() -> void:
 	var id := -1
-	if page in ["mission", "arming"] and flight == null and mission_i < missions.size():
+	if page in ["mission", "arming", "free"] and flight == null and mission_i < missions.size():
 		id = int(missions[mission_i].menu_id)
+	if page in ["free", "arming"] and section == "fly_now" and FreeCombatPage.picks(self).start == "air":
+		id = -1  # the air start is 60 km from the area (drawn at Fly), not at the parking Fly.prepare loads
 	_preload = TerrainPreload.follow(get_tree(), _preload, Vector2i(id, Settings.player_flight), Fly.prepare)
 
 

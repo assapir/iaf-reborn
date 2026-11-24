@@ -529,6 +529,38 @@ pub(crate) fn tile_whole(cache: &Path, tiles: &BTreeMap<String, u64>, n: &str) -
     std::fs::metadata(cache.join(tile_file(n))).is_ok_and(|m| size > 0 && m.len() == size)
 }
 
+/// The tiles whose download into `cache` began and stopped short, by name ("N30E035"): a `.part` on disk, or a
+/// `.lock` with no `.tif` beside it (the download stopped before its first bytes; a tile with both is named twice).
+/// Only those the disk has room to finish ([`tile_sources`]'s room rule, `S2_KEEP_FREE`): one with no room would be
+/// read over the network and never kept, so it would stay begun and the terrain would run again on every setup.
+pub(crate) fn tiles_begun(cache: &Path) -> Vec<String> {
+    let room = free_bytes(cache).map_or(u64::MAX, |f| f.saturating_sub(S2_KEEP_FREE));
+    tiles_begun_in(cache, room)
+}
+
+/// [`tiles_begun`] with `room` bytes to keep tiles in. ponytail: each tile against the whole room, not their sum;
+/// a second begun tile that does not fit is streamed (`tile_sources`) and stays begun until the disk has room.
+fn tiles_begun_in(cache: &Path, room: u64) -> Vec<String> {
+    let names = std::fs::read_dir(cache).into_iter().flatten().flatten();
+    let file = |e: std::fs::DirEntry| e.file_name().into_string().ok();
+    let name = |f: String| {
+        let n = f.strip_prefix("ESA_WorldCover_10m_2021_v200_")?;
+        if let Some(n) = n.strip_suffix("_S2RGBNIR.part") {
+            return Some(n.to_string());
+        }
+        let n = n.strip_suffix("_S2RGBNIR.lock")?;
+        (!cache.join(tile_file(n)).exists()).then(|| n.to_string())
+    };
+    // The tile's listed size (its listing already cached: no network); unknown counts as fitting.
+    let size = |n: &str| {
+        let t = std::fs::read_to_string(cache.join(format!("listing_{}.tsv", n.get(..3)?))).ok()?;
+        t.lines().filter_map(|l| l.split_once('\t')).find(|(k, _)| *k == n)?.1.parse::<u64>().ok()
+    };
+    let part = |n: &str| std::fs::metadata(cache.join(tile_file(n)).with_extension("part")).map_or(0, |m| m.len());
+    let fits = |n: &String| size(n).is_none_or(|b| b.saturating_sub(part(n)) <= room);
+    names.filter_map(file).filter_map(name).filter(fits).collect()
+}
+
 /// The tile's 1° box (lon0, lat0, lon1, lat1) from its name ("N30E032" = 30..31 N, 32..33 E).
 pub(crate) fn tile_box(name: &str) -> Option<[f64; 4]> {
     let lat: f64 = name.get(1..3)?.parse().ok()?;
@@ -1213,6 +1245,22 @@ fn write_manifest(prep: &Prep, dir: &Path, layer: &str) -> Result<()> {
 
 #[cfg(test)]
 mod tests {
+
+    /// A begun tile counts while the disk has room to finish it: a `.part`'s rest, a lone `.lock`'s listed size.
+    #[test]
+    fn begun_tiles_need_room() {
+        let d = std::env::temp_dir().join(format!("iaf_begun_{}", std::process::id()));
+        std::fs::create_dir_all(&d).unwrap();
+        std::fs::write(d.join("listing_N31.tsv"), "N31E035\t1000\nN31E034\t1000\n").unwrap();
+        std::fs::write(d.join(tile_file("N31E035")).with_extension("lock"), "").unwrap();
+        std::fs::write(d.join(tile_file("N31E034")).with_extension("part"), [0u8; 600]).unwrap();
+        let mut got = tiles_begun_in(&d, 1000);
+        got.sort();
+        assert_eq!(got, ["N31E034", "N31E035"]);
+        assert_eq!(tiles_begun_in(&d, 500), ["N31E034"]);
+        assert!(tiles_begun_in(&d, 100).is_empty());
+        std::fs::remove_dir_all(&d).unwrap();
+    }
     use super::*;
 
     /// A bucket nothing answers on: any network call fails.

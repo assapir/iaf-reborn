@@ -93,6 +93,10 @@ var runway := ""
 var runway_base := ""
 ## For tests: every phrase said, {template, text, wavs}; every waypoint report posted, [unit name, waypoint].
 var said: Array = []
+## Ours (Modern IAF's Scramble, docs/ai.md §23): while true the flight AI's calls (flight_call) wait, so the AWACS's
+## task call comes first; hold_calls(false) says them in order. Off everywhere else.
+var _holding := false
+var _held: Array = []
 var posted: Array = []
 
 # TowersManager +0x3318 base, +0x336c state, +0x3388 last message, +0x337c runway clear, +0x3374 period.
@@ -992,6 +996,16 @@ const WING_WORDS := {
 }
 
 
+## Ours (Modern IAF's Scramble): the flight AI's calls wait (`on`) or, held ones first, are said again.
+func hold_calls(on: bool) -> void:
+	_holding = on
+	if not on:
+		var held := _held
+		_held = []
+		for c in held:
+			flight_call(c[0], c[1], c[2], c[3])
+
+
 ## Ours (Modern IAF): the flight AI's call `id` from jet `from` (IafAi.step) said and subtitled: "Kidon 1-2." (ack),
 ## "Kidon 1-2, unable", "Kidon 1-3 has the lead", "Kidon 1-2, six point two" (an ops check's fuel state, `fuel_kg` in
 ## thousands of pounds); a break is called to the element mate (#2 calls "Kidon 1-1, break left" when a missile flies
@@ -999,6 +1013,9 @@ const WING_WORDS := {
 ## turn to final (tower_land), "Kidon 1-2, welcome back, taxi to parking" after its roll (tower_park), from the
 ## talking tower in range, each answered with the callsign (docs/ai.md §8.7).
 func flight_call(from: int, id: String, fuel_kg := 0.0, at := Vector3.INF) -> void:
+	if _holding:
+		_held.append([from, id, fuel_kg, at])
+		return
 	var n: String = WING_NUMBERS[clampi(from, 0, 4)]
 	var table = host.sounds.get("table") if host != null and host.get("sounds") != null else null
 	if table != null:

@@ -200,16 +200,33 @@ left" over the tiles still to fetch, a DEM tile's MB so far.
      edge and less to 10 km out (smoothstep); on the photo's side Sentinel-2 is toned to 200 m in (under the photo's
      soft edge in the 2 m nodes) and kept from 400 m (the bases' fill reads it). Water keeps Sentinel-2's colour.
      Open: Sentinel-2 stays 10 m beside the 2 m photo; along the Egyptian border the blocks show as stepped edges
-     and a lighter outlined patch (approved as shown, 2026-11-17).
+     (approved as shown, 2026-11-17).
+     The sheets' white fill (`white_fill`, 2026-11-24): a pixel near-white in every band (235 or more) joined, through
+     near-white pixels, to one the warp left without the photo or to a pure white one is the fill, not ground, inland
+     as at the shore; white ground inside the photo touches no fill and stays (a clipped pure-white roof goes to
+     Sentinel-2). The first build of the rule ("tone2") seeded from the warp's no-data alone and left a unit west of
+     Ramon white: its fill came through the warp as pure white with alpha 255. Before, the fill's JPEG noise (240–254) passed the warp's
+     no-data test and took the levels' white: grey-white blocks 2–10 km wide along the Egyptian border west of Ramon
+     (L1 nodes 64–66 / 184 among them; the "lighter outlined patch" of 2026-11-17), the Arava and the northern
+     border, seen from every air start in the south (Scramble, docs/ai.md §23).
+     A 10 m tile whose download began and stopped short (its `.part` in the cache, or a `.lock` with no tile beside
+     it) is finished by the next terrain run, and setup's stamp of the terrain does not hold until it is whole, then the border's units over it are toned (the user, 2026-11-24: "lmk what you need me to downaload and
+     download the missing tiles, ofcourse!"): on this laptop the Arava and the Dead Sea's south (N30E035, 653 MB,
+     302 MB of it on disk), Eilat's border (N29E034, 664 MB), N30E036 (141 MB on disk) and the Dead Sea's north and
+     the Judean desert (N31E035, 678 MB, only its lock: 2026-11-24, the stamp held over all four and nothing ran). `would_fetch` names
+     "sentinel-2" while one is unfinished. A begun tile counts only while the disk has room to keep it (the 5 GB room rule above): without room it is read
+     over the network and the stamp holds; once the disk has room, the next setup finishes it (2026-11-25: the run of
+     2026-11-24 kept three tiles and read N31E035 over the network, under 7 GB free).
      The 8 m Sentinel-2 units (level 5) and Survey units (level 4) with a toned pixel are listed in
-     `.work/border_tone1.json` and have their own done marks (`s2_8m_border_tone1`, `survey_2m_border_tone1`): a
+     `.work/border_tone3.json` and have their own done marks (`s2_8m_border_tone3`, `survey_2m_border_tone3`; "tone1"
+     before the white fill): a
      theatre built before redoes those (`stamp`'s `border_fill`), Sentinel-2's from the local tiles, nothing
      downloaded. A base within reach of the toned ground has all its 8 m units redone too: its own tone reads
      Sentinel-2 from them, which would otherwise mix the photo into its fit; the 100 m warps of the photo and Sentinel-2 run once per run that writes an 8 m unit.
      A theatre built before reads only the 10 m tiles kept whole under `assets/source` for this: a border unit over a
      tile not kept whole (a theatre built by reading tiles over the network) keeps Sentinel-2's own colour, and a base
-     with such a unit near it keeps all its units as they are. No tile is fetched (2026-11-17: the laptop's theatre
-     would have fetched 7 tiles, 4.6 GB). A new theatre fetches its tiles whole anyway and tones every border unit.
+     with such a unit near it keeps all its units as they are. No other tile is fetched (2026-11-17: the laptop's
+     theatre would have fetched 7 tiles, 4.6 GB). A new theatre fetches its tiles whole anyway and tones every border unit.
 5. **Coarser levels**: levels 2 and 4–11 from their four children (Triangle filter); level 3 too over the photo (§3).
 6. **`meta.json`**: the node lists per level, the georeference, `attribution` (§5) and `notice` (the DEM's liability
    sentence).

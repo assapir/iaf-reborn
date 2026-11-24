@@ -23,6 +23,22 @@ Read it part by part:
   [free to engage], [You may shoot.],
 )
 
+=== The task call <awacs-task>
+
+#idx("Task call")In a #scr("sec_fly_now") flight (@mission-list-scramble) the AWACS also gives your task. The first call comes a few seconds after you are in the air. It comes again every minute while the target is there, and it tells you where the part of the target nearest you is.
+
+"Kidon 1, attack the convoy, bearing 040, 25 miles, free to engage"
+
+#grid-table(
+  (auto, 1fr),
+  ([Part], [Meaning]),
+  [Kidon 1], [Your callsign: the call is for you.],
+  [attack the convoy], [The task. The others are "intercept the bandits" (a MiG-29 pair), "intercept the drones" and "attack the SAM battery" (the S-300).],
+  [bearing 040], [The direction from you to the target, as a compass heading.],
+  [25 miles], [Its distance from you, in nautical miles.],
+  [free to engage], [You may shoot.],
+)
+
 === Using a call <awacs-use>
 
 + Turn the jet to the bearing.

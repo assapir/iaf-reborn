@@ -112,7 +112,7 @@ missing (no `converted/modern-iaf/missions`), Jane's IAF reborn without `convert
 
 | game | a nightly's version | in the checkout |
 |---|---|---|
-| Modern IAF | `0.1.0-nightly.<YYYYMMDD>+<short hash>` | `dev` |
+| Modern IAF | `0.2.0-nightly.<YYYYMMDD>+<short hash>` | `dev` |
 | Jane's IAF reborn | `1.1.0-nightly.<YYYYMMDD>+<short hash>` | `dev` |
 
 The base numbers are [tools/release/versions.txt](../tools/release/versions.txt). `tools/release/bundle.sh` writes the

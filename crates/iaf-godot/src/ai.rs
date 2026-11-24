@@ -7,11 +7,13 @@
 //! fighter's trees (`iaf_ai::fighter`, §18); `IafGci` is a network's ground-controlled intercept (`iaf_ai::net::Gci`).
 //! `IafConvoy`: a column of ground vehicles on the roads (`iaf_ai::convoy`, §19) for `shared/ai/convoys.gd`.
 //! `IafTargetDrone`: a target drone's decisions (`iaf_ai::target`, §21) for `shared/ai/ai_flights.gd`.
+//! `IafFreeCombat`: Scramble's roll, refusal, layout, air start and AWACS task call (`iaf_ai::free_combat`, §23).
 
 use godot::prelude::*;
 use iaf_ai::convoy::{self, Convoy, Route};
 use iaf_ai::drone::{SHAHED_136, Salvo};
 use iaf_ai::fighter;
+use iaf_ai::free_combat;
 use iaf_ai::net::{self, Gci, Member, Net};
 use iaf_ai::site::{self, Emcon, Kind, Site, Target};
 use iaf_ai::strike::{self, Pylon};
@@ -830,6 +832,123 @@ impl IafConvoy {
                 vdict! {
                     "id" => v.spec.id, "alive" => v.alive, "pos" => vector3(v.pos), "vel" => vector3(v.vel),
                     "heading" => v.heading, "pitch" => v.pitch,
+                }
+                .to_variant()
+            })
+            .collect()
+    }
+}
+
+/// `IafFreeCombat`: Scramble's rules (`iaf_ai::free_combat`, docs/ai.md §23) for the front end's Scramble screen,
+/// `modern-iaf/flight/fly.gd` and `modern-iaf/flight/free_combat.gd`. A setup is {cap_pairs, based_pairs (ints),
+/// sam_net, shorad, drones, convoy (bools)}.
+#[derive(GodotClass)]
+#[class(no_init, base = RefCounted)]
+pub struct IafFreeCombat {}
+
+fn free_setup(d: &VarDictionary) -> free_combat::Setup {
+    let pairs = |k: &str| num(d, k).unwrap_or(0.0).clamp(0.0, f64::from(free_combat::MAX_PAIRS)) as u8;
+    let on = |k: &str| get::<bool>(d, k).unwrap_or(false);
+    free_combat::Setup {
+        cap_pairs: pairs("cap_pairs"),
+        based_pairs: pairs("based_pairs"),
+        sam_net: on("sam_net"),
+        shorad: on("shorad"),
+        drones: on("drones"),
+        convoy: on("convoy"),
+    }
+}
+
+#[godot_api]
+impl IafFreeCombat {
+    /// The fight's base drawn from `seed` among the theatre's `bases` (world), within reach of the player's `home`: its
+    /// index in `bases`, -1 for none.
+    #[func]
+    fn area(seed: i64, home: Vector3, bases: PackedVector3Array) -> i64 {
+        let bases: Vec<Vec3> = bases.as_slice().iter().map(|&b| vec3(b)).collect();
+        free_combat::area(seed as u64, vec3(home), &bases).map_or(-1, |i| i as i64)
+    }
+
+    /// The runway start of a flight of `count` at the lineup point `lineup` (world) facing `heading` (deg): one {pos
+    /// (world, the lineup's height), heading} per jet, the lead first, lined up in pairs.
+    #[func]
+    fn runway_start(lineup: Vector3, heading: f64, count: i64) -> VarArray {
+        free_combat::runway_start(vec3(lineup), heading, count.max(1) as usize)
+            .into_iter()
+            .map(|[x, y, h]| vdict! {"pos" => Vector3::new(x as f32, y as f32, lineup.z), "heading" => h}.to_variant())
+            .collect()
+    }
+
+    /// The enemy drawn from `seed` at enemy skill `skill` (0..2): a setup with its `task` (cap, drones, convoy, sam).
+    #[func]
+    fn roll(seed: i64, skill: i64) -> VarDictionary {
+        let (s, task) = free_combat::roll(seed as u64, skill);
+        vdict! {
+            "cap_pairs" => i64::from(s.cap_pairs), "based_pairs" => i64::from(s.based_pairs), "sam_net" => s.sam_net,
+            "shorad" => s.shorad, "drones" => s.drones, "convoy" => s.convoy, "task" => task.name()
+        }
+    }
+
+    /// The air start of a flight of `count` round the fight's base `area` from the player's `home` among the
+    /// theatre's `bases` (world): one {pos (world, the start's height), heading} per jet, the lead first.
+    #[func]
+    fn air_start(home: Vector3, area: Vector3, bases: PackedVector3Array, count: i64) -> VarArray {
+        let bases: Vec<Vec3> = bases.as_slice().iter().map(|&b| vec3(b)).collect();
+        free_combat::air_start(vec3(home), vec3(area), &bases, count.max(1) as usize)
+            .into_iter()
+            .map(|[x, y, h]| {
+                let pos = Vector3::new(x as f32, y as f32, free_combat::START_ALT as f32);
+                vdict! {"pos" => pos, "heading" => h}.to_variant()
+            })
+            .collect()
+    }
+
+    /// The AWACS's task call is due `airborne_s` after the player's jet left the ground, `since_s` after the last.
+    #[func]
+    fn task_due(airborne_s: f64, since_s: f64) -> bool {
+        free_combat::task_due(airborne_s, since_s)
+    }
+
+    /// The AWACS's call of task `task` to `callsign` (the player's formation name) at `player` for its target at
+    /// `target` (world): [template, its %S particles]; [] for an unknown task.
+    #[func]
+    fn task_call(task: GString, callsign: GString, player: Vector3, target: Vector3) -> VarArray {
+        let Some(t) = free_combat::Task::from_name(&task.to_string()) else {
+            return VarArray::new();
+        };
+        let (template, args) = free_combat::task_call(t, &callsign.to_string(), vec3(player), vec3(target));
+        let args: PackedStringArray = args.iter().map(GString::from).collect();
+        varray![template, &args]
+    }
+
+    /// The enemy of `setup` round the fight's base `area` facing the player's `home` (world, on the ground), in
+    /// placing order: each {kind: site (kind, pos, heading), net (radar, post, heading), cap (jets [2], heading,
+    /// station), based (first, station), convoy (from, to), drones (route, count, interval)}.
+    #[func]
+    fn plan(setup: VarDictionary, home: Vector3, area: Vector3) -> VarArray {
+        use free_combat::Spawn;
+        free_combat::plan(&free_setup(&setup), vec3(home), vec3(area))
+            .into_iter()
+            .map(|s| {
+                match s {
+                    Spawn::Site { kind, pos, heading } => {
+                        vdict! {"kind" => "site", "site" => kind, "pos" => vector3(pos), "heading" => heading}
+                    }
+                    Spawn::Net { radar, post, heading } => {
+                        vdict! {"kind" => "net", "radar" => vector3(radar), "post" => vector3(post), "heading" => heading}
+                    }
+                    Spawn::Cap { jets, heading, station } => {
+                        let j: VarArray = jets.iter().map(|&v| vector3(v).to_variant()).collect();
+                        vdict! {"kind" => "cap", "jets" => &j, "heading" => heading, "station" => vector3(station)}
+                    }
+                    Spawn::Based { first, station } => {
+                        vdict! {"kind" => "based", "first" => i64::from(first), "station" => vector3(station)}
+                    }
+                    Spawn::Convoy { from, to } => vdict! {"kind" => "convoy", "from" => vector3(from), "to" => vector3(to)},
+                    Spawn::Drones { route, count, interval } => {
+                        let r: VarArray = route.iter().map(|&v| vector3(v).to_variant()).collect();
+                        vdict! {"kind" => "drones", "route" => &r, "count" => i64::from(count), "interval" => interval}
+                    }
                 }
                 .to_variant()
             })

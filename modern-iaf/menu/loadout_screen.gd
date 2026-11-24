@@ -72,7 +72,9 @@ func build() -> void:
 	fixed = bool(m.get("fixed_loadout", false))
 	now = "" if fixed else fe._arm_now(m)
 	a = fe.arming(m, now)
-	fe._header(fe.section_crumbs() + [[fe.title_of(m), "mission"], "tab_arming"])
+	# Scramble's Arming under its own crumb (no mission title: the screen is the start's).
+	var mission_crumb := [] if fe.section == "fly_now" else [[fe.title_of(m), "mission"]]
+	fe._header(fe.section_crumbs() + mission_crumb + ["tab_arming"])
 	_stage(j)
 	_loadouts()
 	_weight()
@@ -81,7 +83,8 @@ func build() -> void:
 	if reset != null:
 		reset.name = "ArmReset"
 		reset.disabled = now == ""
-	var brief: Button = fe._action(s("lo_briefing"), "Secondary", func(): fe.show_page("mission"))
+	var to := s("sec_fly_now") if fe.section == "fly_now" else s("lo_briefing")  # back to the screen it came from
+	var brief: Button = fe._action(to, "Secondary", func(): fe.show_page("mission"))
 	brief.name = "ToBriefing"
 	var fly: Button = fe._action(s("fly"), "Primary", func(): fe.fly_mission(m))
 	fly.name = "Fly"

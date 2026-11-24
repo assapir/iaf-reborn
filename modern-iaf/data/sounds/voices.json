@@ -27,7 +27,7 @@
       "speed": 1.1,
       "url": "https://huggingface.co/hexgrad/Kokoro-82M",
       "licence": "Kokoro-82M v1.0 model and voice packs, Apache-2.0",
-      "use": "the AWACS controller (radio chain): the contact calls ACFT_FCTRL_LONG / _SHORT (docs/radio.md §4)"
+      "use": "the AWACS controller (radio chain): the contact calls ACFT_FCTRL_LONG / _SHORT and Scramble's task call AWX_TASK (docs/radio.md §4)"
     },
     "wingman": {
       "model": "am_eric",
@@ -2305,6 +2305,87 @@
       "say_he": "נא לזהות"
     },
     {
+      "file": "awx_task_miles_40.ogg",
+      "voice": "awacs",
+      "say": "40 miles",
+      "mode": "particle",
+      "say_he": "ארבעים מייל"
+    },
+    {
+      "file": "awx_task_miles_45.ogg",
+      "voice": "awacs",
+      "say": "45 miles",
+      "mode": "particle",
+      "say_he": "ארבעים וחמישה מייל"
+    },
+    {
+      "file": "awx_task_miles_50.ogg",
+      "voice": "awacs",
+      "say": "50 miles",
+      "mode": "particle",
+      "say_he": "חמישים מייל"
+    },
+    {
+      "file": "awx_task_miles_60.ogg",
+      "voice": "awacs",
+      "say": "60 miles",
+      "mode": "particle",
+      "say_he": "שישים מייל"
+    },
+    {
+      "file": "awx_task_miles_70.ogg",
+      "voice": "awacs",
+      "say": "70 miles",
+      "mode": "particle",
+      "say_he": "שבעים מייל"
+    },
+    {
+      "file": "awx_task_miles_80.ogg",
+      "voice": "awacs",
+      "say": "80 miles",
+      "mode": "particle",
+      "say_he": "שמונים מייל"
+    },
+    {
+      "file": "awx_task_miles_90.ogg",
+      "voice": "awacs",
+      "say": "90 miles",
+      "mode": "particle",
+      "say_he": "תשעים מייל"
+    },
+    {
+      "file": "awx_task_cap.ogg",
+      "voice": "awacs",
+      "say": "intercept the bandits",
+      "mode": "particle",
+      "say_he": "יירוט מטוסי אויב",
+      "note": "Scramble's task call AWX_TASK (docs/ai.md §23); the Hebrew line is ours (modern-iaf/docs/research/radio-terms.md)"
+    },
+    {
+      "file": "awx_task_drones.ogg",
+      "voice": "awacs",
+      "say": "intercept the drones",
+      "mode": "particle",
+      "say_he": "יירוט מלטים",
+      "note": "Scramble's task call AWX_TASK (docs/ai.md §23); the Hebrew line is ours (modern-iaf/docs/research/radio-terms.md)"
+    },
+    {
+      "file": "awx_task_convoy.ogg",
+      "voice": "awacs",
+      "say": "attack the convoy",
+      "mode": "particle",
+      "say_he": "תקיפת השיירה",
+      "note": "Scramble's task call AWX_TASK (docs/ai.md §23); the Hebrew line is ours (modern-iaf/docs/research/radio-terms.md)"
+    },
+    {
+      "file": "awx_task_sam.ogg",
+      "voice": "awacs",
+      "say": "attack the SAM battery",
+      "mode": "particle",
+      "say_he": "תקיפת סוללת הטילים",
+      "note": "Scramble's task call AWX_TASK (docs/ai.md §23); the Hebrew line is ours (modern-iaf/docs/research/radio-terms.md)"
+    },
+    {
       "file": "flt_wng_kidon1_1.ogg",
       "voice": "wingman",
       "say": "[Kidon](/kidˈOn/) one-one.",
@@ -4342,6 +4423,41 @@
       "text": "35 miles",
       "text_he": "35 מייל"
     },
+    "MILES40": {
+      "file": "awx_task_miles_40.ogg",
+      "text": "40 miles",
+      "text_he": "40 מייל"
+    },
+    "MILES45": {
+      "file": "awx_task_miles_45.ogg",
+      "text": "45 miles",
+      "text_he": "45 מייל"
+    },
+    "MILES50": {
+      "file": "awx_task_miles_50.ogg",
+      "text": "50 miles",
+      "text_he": "50 מייל"
+    },
+    "MILES60": {
+      "file": "awx_task_miles_60.ogg",
+      "text": "60 miles",
+      "text_he": "60 מייל"
+    },
+    "MILES70": {
+      "file": "awx_task_miles_70.ogg",
+      "text": "70 miles",
+      "text_he": "70 מייל"
+    },
+    "MILES80": {
+      "file": "awx_task_miles_80.ogg",
+      "text": "80 miles",
+      "text_he": "80 מייל"
+    },
+    "MILES90": {
+      "file": "awx_task_miles_90.ogg",
+      "text": "90 miles",
+      "text_he": "90 מייל"
+    },
     "DESC_FRIENDS": {
       "file": "awx_friendlies.ogg",
       "text": "friendlies",
@@ -4361,6 +4477,26 @@
       "file": "awx_free_to_engage.ogg",
       "text": "free to engage",
       "text_he": "רשאי לתקוף"
+    },
+    "TASK_CAP": {
+      "file": "awx_task_cap.ogg",
+      "text": "intercept the bandits",
+      "text_he": "יירוט מטוסי אויב"
+    },
+    "TASK_DRONES": {
+      "file": "awx_task_drones.ogg",
+      "text": "intercept the drones",
+      "text_he": "יירוט מל\"טים"
+    },
+    "TASK_CONVOY": {
+      "file": "awx_task_convoy.ogg",
+      "text": "attack the convoy",
+      "text_he": "תקיפת השיירה"
+    },
+    "TASK_SAM": {
+      "file": "awx_task_sam.ogg",
+      "text": "attack the SAM battery",
+      "text_he": "תקיפת סוללת הטילים"
     },
     "TRGT_ALRDY_ENGAGE": {
       "file": "awx_already_engaged.ogg",
@@ -4809,6 +4945,7 @@
     "PILOT_CALL": "%S1 , %S2 , %S3",
     "ACFT_FCTRL_LONG": "%S1 , %S2 , %S3 , %S4 , %S5 , %S6",
     "ACFT_FCTRL_SHORT": "%S1 , %S2 , %S3",
+    "AWX_TASK": "%S1 , %S2 , %S3 , %S4 , FREE_TO_ENGAGE",
     "FLT_CMD": "%S1 , %S2",
     "WNG_ACK": "%S1",
     "WNG_CALL": "%S1 , %S2",
@@ -4941,7 +5078,9 @@
       "נסע": "nˈesa",
       "מגדל": "miɡdˈal",
       "קודם": "kˈodem",
-      "מייל": "mˈajl"
+      "מייל": "mˈajl",
+      "יירוט": "jeʁˈut",
+      "מלטים": "malatˈim"
     },
     "note": "The Hebrew voices (modern-iaf/docs/sound.md §3.1): each radio clip with a say_he is said in every voice its role takes in the casts, into he/<voice>/<file>. A mission flies cast (mission id mod the casts' count): the tower, the AWACS, the player's own calls (pilot) and the wingmen Kidon 1-2 to 1-4 (wingman, in order), three men and three women in every cast. ipa: the words the RenikudPlus G2P misreads, read as given (checked by its transcription, 20 November 2026). instructor: the instructor's voice, kept out of every cast."
   }

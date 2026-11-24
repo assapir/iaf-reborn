@@ -147,7 +147,7 @@ pub fn bearing(from: Vec3, to: Vec3) -> f32 {
 }
 
 /// `FUN_0054bbf0`: degrees truncated to tens; 0 is 360.
-fn tens(deg: f32) -> i32 {
+pub fn tens(deg: f32) -> i32 {
     match (deg as i32) / 10 * 10 {
         0 => 360,
         d => d,

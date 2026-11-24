@@ -50,7 +50,7 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   [../../docs/release.md](../../docs/release.md)):** each day `main` changed, the Nightly workflow builds both games
   for Linux, macOS (Apple silicon, unsigned) and Windows and replaces the `nightly` pre-release. The game opens its
   setup wizard while its data is missing and with `--setup`; the data goes to a per-user folder (shown on the wizard's
-  first page, Change… picks another), so an update keeps it. Version `0.1.0-nightly.<date>+<hash>` under the
+  first page, Change… picks another), so an update keeps it. Version `0.2.0-nightly.<date>+<hash>` under the
   Attributions screen's title, `dev` in the checkout. The bundle carries GDAL and curl for setup (`tools/`,
   conda-forge's builds), so a player installs nothing.
 - **The lead assigns targets (2026-11-23, the user, 22 Nov: "The leader (on our side) should assign targets to the
@@ -565,12 +565,25 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   `cargo test -p iaf-tools --lib flights briefing sim`, `test_front_end.gd` (the sample mission
   `modern-iaf/tests/data/two_flights.json`).
 - **The menu flow (2026-11-15, the front-end finish list's M, [front-end.md](front-end.md) §1, §2):** the Hangar's Fly
-  opens a Missions screen with the sections Training, Campaign, Single missions and Fly now (a section without
-  missions greyed, no click, no focus; Fly now greyed until random missions and dogfights come); a section opens its
+  opens a Missions screen with the sections Training, Campaign, Single missions and Scramble (a section without
+  missions greyed, no click, no focus; Scramble opens its own screen, below); a section opens its
   list with each mission's last result (Pass with the best time, Fail, Not flown yet) and the next one to fly marked
   and focused; a row opens its briefing (no mission tabs on it any more), whose Back returns to the list; Arming
   returns to the briefing; the debrief has Next mission, Fly again and Back to missions. The list's progression logic
   is shared with reborn (`shared/mission/mission_list.gd`). Campaign and Single missions wait for their missions.
+- **Scramble (2026-11-24, [front-end.md](front-end.md) §2.1, [../../docs/ai.md](../../docs/ai.md) §23):** the
+  Scramble card (הזנקה) opens a screen of one panel: the flight (alone, pair, four-ship) and the start (in the air, the
+  default; on the runway, engines running, lined up in pairs; cold at parking), the home base named, a line naming the
+  Pilot screen's enemy skill; Arming and Fly. Fly draws the fight's area (another base within 180 km of the home base,
+  `iaf_ai::free_combat::area`) and the enemy round it (`roll`: the task, its target and one to three more threats by
+  the skill, from MiG-29 pairs on CAP and on alert, the S-300 network, short-range air defence, Shahed-136 drones and a
+  convoy); the air start puts the flight 60 km from the area at 6,000 m. The Area and Enemy skill rows went on the
+  user's round-3 word (24 November). The AWACS gives the task by radio once the jet is in the air, in English and Hebrew ("Kidon 1, attack the
+  convoy, bearing 040, 25 miles, free to engage"), and every minute while the target lives. Not scored. The first
+  version (A81, 23 November: "Fly now", the enemy picked row by row, a ground start only) was renamed and cut down on
+  the user's word of 24 November; its picture of a "cold start at home base" showed the jet in the air because the
+  picture's script had put it there, not the start. Waiting on the user's approval (a new screen). Not started: the
+  full AWACS (picture, bogey dope, the Eitam in the sky). The combat logbook is its own job.
 - **The Loadout screen (2026-11-14, the front-end finish list's F3, [front-end.md](front-end.md) §10.1):** Arming on
   the briefing opens a screen of its own: the jet seen from beneath (the Hangar's live model, the camera under it, the
   F-35I's bays open) with a callout per station (number, place on the wing, store, weight; an empty one dashed) and

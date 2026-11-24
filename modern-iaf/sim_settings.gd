@@ -126,6 +126,10 @@ var menu_entry := true
 ## The frame time measured during the last flight on this computer (flight/frame_meter.gd; settings.cfg [sim]
 ## frame_measured): {"ms", "size" [w, h], "settings" (the Preset row's settings then)}; {} before the first flight.
 var frame_measured := {}
+## The Scramble screen's picks and the last Fly's draw (front-end.md §2.1; settings.cfg [sim] free_combat): {flight
+## (1, 2, 4), start (air, runway, ground), area (an iaf.ibx section, drawn at Fly), seed (the enemy's draw)};
+## modern-iaf/flight/free_combat.gd draws and places the enemy from it. {} before the first visit.
+var free_combat := {}
 var _fonts := {}  # display_font's, by style
 var _keys: Array = []  # has_setting's
 ## The player's joystick axes (devices_file); a test sets its own.
@@ -161,6 +165,8 @@ func read_config(cfg: ConfigFile) -> void:
 	menu_entry = cfg.get_value("sim", "menu_entry", true) != false
 	var fm = cfg.get_value("sim", "frame_measured", {})
 	frame_measured = fm if fm is Dictionary else {}
+	var fc = cfg.get_value("sim", "free_combat", {})
+	free_combat = fc if fc is Dictionary else {}
 	_apply_profile()
 
 
@@ -178,6 +184,8 @@ func write_config(values := {}) -> ConfigFile:
 	cfg.set_value("sim", "menu_entry", menu_entry)
 	if not frame_measured.is_empty():
 		cfg.set_value("sim", "frame_measured", frame_measured)
+	if not free_combat.is_empty():
+		cfg.set_value("sim", "free_combat", free_combat)
 	return cfg
 
 

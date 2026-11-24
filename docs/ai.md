@@ -712,7 +712,12 @@ model, where none of the 6-DoF cases applies. Every figure here is inferred, tun
     a pedal of 0.02 engages it and then turns the jet hard, so the pedal falls with the speed squared and only an error
     of a degree or more engages it. Left alone the jet rolled on the heading its taxi left: 3° off (60 m across a 1.2
     km roll) after its last pivot ended in a turn and it coasted on turning. A wheel held on a line at speed swung a
-    wingman 4° off and was dropped.
+    wingman 4° off and was dropped. In a pairs take-off each jet steers onto its own line, the runway's through the
+    lineup point (the wingman's 15 m beside it): the heading aimed at turns back by atan(off / 100 m), and above 30 kt
+    an error of 0.3° or more (heading and turn) engages the nose wheel with the least pedal, 0.02, a frame at a time
+    (2026-11-24, inferred). On the heading alone each jet kept whatever error under a degree its lineup pivot left: at
+    Nevatim Kidon 1-1 and 1-2 closed from 15 m to 10 m by the lift-off, 1-3 and 1-4 opened to 26 m with a line but no
+    nudge; with both, all four lift off 15 m from their mates at Ramon and Nevatim.
   - **Pairs** (`Flight::pairs`, `IafAi.pairs`, the dev hook `ai_flights.gd flight_pairs`; no mission sets it yet;
     the default is the stream): #2 lines up beside #1 and #4 beside #3, 15 m apart, on the side of its slot in the
     shape (#2 left and #4 right in fingertip); its runway entry and lineup points move with it, so its last leg runs
@@ -2140,7 +2145,7 @@ bombs and rockets aim as before and a guided bomb aims there too.
 
 ### 19.4 Later
 
-- Mission content (convoys placed by a mission or the free-combat setup).
+- Mission content (convoys placed by a mission). The front end's Scramble places one (§23).
 
 ## 20. Modern IAF's low level and ground collision avoidance (ours)
 
@@ -2308,6 +2313,80 @@ from the dev hooks alone (`modern-iaf/tests/big_fight.gd`). No mission places it
 
   `BIGFIGHT_BENCH=1` gives the GPU figures. The site, drone and convoy nodes count their own CPU time (`cost_us`),
   as `ai_flights.gd` does.
+
+## 23. Modern IAF's Scramble: the player's quick fight (ours)
+
+Scramble (Hebrew הזנקה) is the front end's quick fight: the player's flight takes off, or starts in the air, against
+an enemy drawn at random, and the AWACS gives the task by radio. It is the player's own scramble; an enemy pair's
+alert launch from its base is the enemy's scramble of §18.3, a separate thing that Scramble's roll may include.
+
+The user, 22 November 2026, approving the order of the AI jobs ("Ok follow your suggested order"), whose last item was
+free combat: a small front-end setup, then fly; not a mission (modern-iaf/docs/plan.md: no missions or campaign yet).
+On its first version (A81, 24 November 2026): "1. call it "Scramble" and הזנקה in hebrew. 2. where is based on the
+plane they choose, right? 3. by default, start in-air, with awacs calling or giving orders what to bomb. 3. too much
+enemy options, should be some random selection." On the second (24 November): "why we choose area if in all other
+places the area is tied to the airplane? why we choose a enemies skill if that already by pilot?", then "allow it to
+start in cold, runway or in air". The Scramble screen (modern-iaf/docs/front-end.md §2.1) picks the flight and the
+start; the area is drawn, the skill is the Pilot screen's. Every distance and time here is ours (inferred).
+
+- **The start.** Each jet has one Scramble start (modern-iaf/data/missions/`<base>_free.json`, category `fly_now`):
+  a flight of four parked cold at the jet's home base, the base of the jet picked in the Hangar. Fly cuts it to the
+  flight picked (alone, a pair, a four-ship; `flight/fly.gd prepare_free`): the jets after it leave the formation and
+  the mission. The default start is in the air (`air_start`, below; `IafMissionEdit.set_flight` moves the flight
+  there, the start rule of §7.1 makes it airborne with its engines running). The runway start (`runway_start`, below)
+  lines the flight up on the home base's runway with the engines running, and the flight takes off in pairs
+  (`ai_flights.gd flight_pairs`, §8.7). The cold start stays at the parking spots.
+- **The rules** (`iaf_ai::free_combat`, `IafFreeCombat`):
+  - `roll(seed, skill)`: the task first, each of the four alike: intercept the MiG-29 pair on CAP, intercept the
+    drones, attack the convoy, attack the S-300 battery; then the task's target; then one more threat per enemy skill
+    level (§17: low one, medium two, high three), each drawn alike from those with room: a MiG-29 pair on CAP (two at
+    most), a pair on alert in the area's shelters (two at most; it brings the S-300 network, whose vector scrambles it,
+    §18.3), the network, the short-range sites, the drones, the convoy. Fly draws a new seed (`Settings.free_combat`
+    `seed`); the same seed and skill draw the same enemy.
+  - `area(seed, home, bases)`: the fight's base A, drawn at Fly from the same seed, alike among the theatre's bases
+    other than the home base within 180 km of it (a short sortie; every base has at least two in reach), the nearest
+    other base when none is.
+  - `plan`, round the area's base A, the player's base H, u the direction from A towards H: the S-300PMU-2 battery
+    12 km beyond A, its 83M6E2 network's 64N6E2 8 km beyond and 3 km aside, the 54K6E2 beside it; the short-range
+    sites (a Tor-M1, a ZSU-23-4, an Igla team) at the convoy's middle, else 4 km aside of A, all in the network when
+    there is one; each MiG-29A pair on CAP 25 km from A towards H, 12 km to either side, 6,000 m above A (the second
+    pair 1,000 m higher), facing H; each pair on alert in A's shelters (the first pair in the first two, the second in
+    the next two: `enemy_base`'s `first`), its station 15 km from A towards H; a convoy of two T-72s and two
+    Ural-4320s 12 to 4 km from A towards H, 6 km aside, on the roads nearest its ends; a salvo of four Shahed-136s
+    from 80 km beyond A over A to H, 10 s apart.
+  - `air_start(home, area, bases, count)`: the lead 60 km from A on the line towards H (beyond H when H is nearer),
+    moved out in 2 km steps until 8 km clear of every base (the start rule takes a start within 5 km of a base for a
+    ground start), 6,000 m up, heading for A; each wingman 150 m further back per place and 150 m to alternate sides
+    (as `ai_flights.gd flight_in_air`). The flight's route is one point over A.
+  - `runway_start(lineup, heading, count)`: the lead on the home base's lineup point facing down the runway
+    (iaf.ibx `RunwayNumber`), Kidon 1-2 15 m to its left (the pairs take-off's `PAIR_M`, fingertip's side), the
+    second element 60 m behind, Kidon 1-4 15 m to the right of Kidon 1-3: every jet within the start rule's 100 m of
+    the lineup point, so every engine runs (§7.1).
+  - `task_call(task, callsign, player, target)` and `task_due(airborne_s, since_s)`: the AWACS's task call, template
+    `AWX_TASK` ("Kidon 1, attack the convoy, bearing 040, 25 miles, free to engage"): the callsign, the task, the
+    bearing (in tens, as the contact calls of docs/radio.md §4), the distance in nautical miles (1 to 10, then fives
+    to 50, tens to 90), then "free to engage". It comes 5 s after the player's jet first leaves the ground (so an air
+    start hears it at once, a ground start after take-off) and every 60 s after, about the task's target nearest the
+    jet, until every one of them is down. The AWACS's contact calls (docs/radio.md §4) go on beside it. The words of
+    the four tasks and the Hebrew lines are ours (modern-iaf/docs/research/radio-terms.md).
+- **In flight** (`modern-iaf/flight/free_combat.gd`, a child of `sim_flight.gd` on a Scramble start): once the ground
+  under the jet is loaded it rolls the enemy at the pilot's enemy skill and places the plan in order (the sites, the
+  network, the fighters vectored by it, the convoy, the drones), all at that skill (§17). A based pair stands in the
+  area's base, as `enemy_base` allows (the sim has no enemy base). Then it says the task calls through the radio
+  (`radio.gd say`, subtitled). On the air start the flight's own calls (contact, spike: `radio.gd flight_call`) wait
+  until the first task call is said (`radio.gd hold_calls`), then follow it in order, so the AWACS speaks first
+  (2026-11-24: the wingman's contact calls came before it and its subtitle waited behind theirs, about 15 s in).
+  Nothing is scored; the flight ends from the pause menu.
+- **Not started** (outside the user's words of 24 November): the full AWACS (the picture, bogey dope and vectors on
+  request, the Eitam flying in the sky: ai-plan.md C1, Q12), a call when the task is done, the task's choice by the
+  player.
+- **Tests:** `cargo test -p iaf-ai --lib free_combat` (the area: never home, in reach, every base in reach drawn;
+  the runway start's places; the roll: a seed draws the same enemy, the task's
+  target always there, alert pairs with the network, the threats by skill, every task drawn; the air start clear of
+  the bases, the wingmen's places; the call's words and timing; the layout faces the player, the order, the second
+  alert pair's shelters); `modern-iaf/tests/test_free_combat.gd` (the screen en + he; Ramon's start in the air round
+  Hatzerim with the roll placed and the task call said before the flight's calls; the area drawn from Ramon; the
+  runway start lined up with both engines running; the same start on the ground, cold at Ramon).
 
 ## UNCERTAIN
 Open questions in this document:

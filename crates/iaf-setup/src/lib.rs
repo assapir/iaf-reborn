@@ -649,6 +649,7 @@ mod tests {
                     text: stamp::describe(&dir.join(format!("{}.in", s.id)))?,
                     output: None,
                     view: None,
+                    pending: false,
                 }))
             };
             let ex = |s: &Step, _: &dyn Progress| -> Result<Outcome> {
@@ -710,7 +711,13 @@ mod tests {
         std::fs::create_dir_all(&dir).unwrap();
         let steps = [Step { id: "a", title: "a", required: false, after: vec![] }];
         let st = |_: &Step| -> Result<Option<stamp::Stamp>> {
-            Ok(Some(stamp::Stamp { path: dir.join("a.stamp"), text: "a\n".into(), output: None, view: None }))
+            Ok(Some(stamp::Stamp {
+                path: dir.join("a.stamp"),
+                text: "a\n".into(),
+                output: None,
+                view: None,
+                pending: false,
+            }))
         };
         let go =
             |o: fn() -> Outcome| run_graph(&steps, &|_| false, &Quiet, &AtomicBool::new(false), &st, &|_, _| Ok(o()));
@@ -719,6 +726,10 @@ mod tests {
         assert_eq!(go(|| Outcome::UpToDate)[0].1, State::UpToDate);
         assert!(dir.join("a.stamp").exists(), "its own check's up to date is stamped");
         assert_eq!(preview_with(&steps, &st), [("a", true)]);
+        // A stamp with its sources not all on disk (a download begun) does not hold: the step runs to finish them.
+        let pending =
+            stamp::Stamp { path: dir.join("a.stamp"), text: "a\n".into(), output: None, view: None, pending: true };
+        assert!(!pending.holds(), "a pending stamp does not hold");
         std::fs::remove_dir_all(&dir).unwrap();
     }
 
@@ -735,6 +746,7 @@ mod tests {
                     text: format!("step {}\n", s.id),
                     output: None,
                     view: None,
+                    pending: false,
                 }))
             };
             let ex = |s: &Step, _: &dyn Progress| -> Result<Outcome> {

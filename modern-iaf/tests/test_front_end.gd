@@ -1741,16 +1741,16 @@ func _labels_of(root: Node, kind: String) -> Array:
 	return labels.filter(func(n): return n.theme_type_variation == kind).map(func(n): return n.text)
 
 
-## The Missions screen and the Training list (front-end.md §2): the four sections, Training open and focused, the
-## others greyed without focus or click; the list's six missions with their statuses, the next one to fly marked and
-## focused; Esc back up.
+## The Missions screen and the Training list (front-end.md §2): the four sections, Training open and focused,
+## Scramble open, the other two greyed without focus or click; the list's six missions with their statuses, the next one
+## to fly marked and focused; Esc back up.
 func _missions_checks(fe: Control, lang: String) -> void:
 	var he := lang == "he"
 	check(fe.page == "missions", "%s: Fly opens the Missions screen" % lang)
 	var names := (
-		["אימונים", "מערכה", "משימות בודדות", "טיסה מיידית"]
+		["אימונים", "מערכה", "משימות בודדות", "הזנקה"]
 		if he
-		else ["Training", "Campaign", "Single missions", "Fly now"]
+		else ["Training", "Campaign", "Single missions", "Scramble"]
 	)
 	var ids := ["training", "campaign", "single", "fly_now"]
 	for i in 4:
@@ -1758,6 +1758,8 @@ func _missions_checks(fe: Control, lang: String) -> void:
 		check(b != null and _has(b, names[i]), "%s: missions: the section %s" % [lang, names[i]])
 		if i == 0:
 			check(not b.disabled and b.has_focus(), "%s: missions: Training open and focused" % lang)
+		elif i == 3:
+			check(not b.disabled and not b.pressed.get_connections().is_empty(), "%s: missions: Scramble open" % lang)
 		else:
 			check(
 				(
@@ -1784,13 +1786,21 @@ func _missions_checks(fe: Control, lang: String) -> void:
 		_has(camp, "יגיע בהמשך" if he else "Coming later") and texts.call(camp).size() == 3,
 		"%s: missions: Campaign: number, title, Coming later (%s)" % [lang, texts.call(camp)]
 	)
+	# Scramble (front-end.md §2.1): its number and title, no progress.
+	var now: Control = fe.find_child("Section_fly_now", true, false)
+	check(texts.call(now).size() == 2, "%s: missions: Scramble: number, title (%s)" % [lang, texts.call(now)])
 	var back: Button = fe.find_child("Back", true, false)
 	check(
 		back != null and back.focus_mode != Control.FOCUS_NONE and back.text == ("חזרה" if he else "Back"),
 		"%s: missions: the footer's Back" % lang
 	)
 	check(
-		tr.get_node(tr.focus_next) == back and back.get_node(back.focus_next) == tr, "%s: missions: Tab to Back" % lang
+		(
+			tr.get_node(tr.focus_next) == now
+			and now.get_node(now.focus_next) == back
+			and back.get_node(back.focus_next) == tr
+		),
+		"%s: missions: Tab through Scramble to Back" % lang
 	)
 	back.pressed.emit()
 	await frames(2)

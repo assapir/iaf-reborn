@@ -21,7 +21,7 @@ The window opens plain in the front end's background colour (#00163C, no Godot s
 | screen | what it does | English | Hebrew |
 |---|---|---|---|
 | Hangar | the first screen (§12): the jets at the inline start, the picked one in 3D in the middle (the player looks at it from any side) with its full name faint behind it, its card at the inline end (squadron and base, facts, the training's progress, Fly to the Missions screen); Settings and the pilot in the top bar, Attributions, Manuals and Quit at the foot | ![Hangar](pictures/front-end/hangar_en.webp) | ![Hangar, Hebrew](pictures/front-end/hangar_he.webp) |
-| Missions | the Hangar's Fly (§2): a card per section, Training, Campaign, Single missions and Fly now, each with its number, its title and the pilot's progress in it; a section without missions greyed, "Coming later", out of the focus, without a click (Fly now always, until it flies random missions and dogfights); the footer's Back (Esc) | ![Missions](pictures/front-end/missions_en.webp) | ![Missions, Hebrew](pictures/front-end/missions_he.webp) |
+| Missions | the Hangar's Fly (§2): a card per section, Training, Campaign, Single missions and Scramble, each with its number, its title and the pilot's progress in it; a section without missions greyed, "Coming later", out of the focus, without a click; Scramble (§2.1) shows no progress; the footer's Back (Esc) | ![Missions](pictures/front-end/missions_en.webp) | ![Missions, Hebrew](pictures/front-end/missions_he.webp) |
 | A section's list | the Hangar jet's missions of the section in order, numbered 1, 2 …: the title, the base and what it trains, the last result (Pass with the best time, Fail, Not flown yet); the next one to fly marked Next, tinted and focused (every mission passed: no Next, the first focused); beside the list a panel on the mission under the focus or the pointer (§2); the footer's Back (Esc) | ![Training](pictures/front-end/section_en.webp) | ![Training, Hebrew](pictures/front-end/section_he.webp) |
 | Briefing | the briefing, map first (§10): the map over the screen, opened on the base and the route with the pins; the mission card (the facts, the objectives, the Arming summary with Edit, Back to the section's list, Arming, Fly: Edit and Arming open the Loadout screen §10.1); what you will learn and how to fly it, the keys as bound; the map's chips | ![Briefing](pictures/front-end/mission_en.webp) | ![Briefing, Hebrew](pictures/front-end/mission_he.webp) |
 | Settings | the search; the sections Graphics, Language, Sound and Devices with their counts at the inline start; the picked one's settings beside them as segmented buttons, switches and sliders, Graphics with its Preset row and a cost chip per row; the pane at the inline end on the hovered setting (§14); Devices has the afterburner detent (§9.2); the footer's Defaults, Export settings file / Import settings file (below) and Back to the hangar | ![Settings](pictures/front-end/prefs_graphics_en.webp) | ![Settings, Hebrew](pictures/front-end/prefs_graphics_he.webp) |
@@ -33,7 +33,7 @@ The window opens plain in the front end's background colour (#00163C, no Godot s
 | Pilot log | the Pilot screen → Pilot log: every attempt, newest first, its day as the debrief writes it and the time ("2 Nov 2026 · 08:14", "2 בנובמבר 2026 · 08:14"); two filters, a jet and a mission (those flown, "All jets" / "All missions" first; with a jet picked, only its missions; a filter the pilot's log does not hold, kept from another pilot, falls back to All); a row opens its debrief; the footer's Back (Esc) to the Pilot screen | ![Pilot log](pictures/front-end/log_en.webp) | ![Pilot log, Hebrew](pictures/front-end/log_he.webp) |
 | More stats | the Pilot screen → More stats (every combat flight; a debrief's More stats shows that flight): air kills and ground targets by type, the weapons fired and their hits (missiles, bombs, the gun's rounds), the jets lost by cause as counts, how many of them were the flight's other jets, the ejections; from the Pilot screen also each combat flight; the footer's Back (Esc) (§3) | ![More stats](pictures/front-end/more_stats_en.webp) | ![More stats, Hebrew](pictures/front-end/more_stats_he.webp) |
 | Manuals | the four manuals' list ("מדריכים" in Hebrew; [manuals.md](manuals.md)); with the game in Hebrew the game manual's row opens its Hebrew edition (`manuals.json` `of`, `lang`), the jets' rows the English manuals, and the line under the title says so; the Hangar's foot opens it, a row opens its PDF in the system's PDF viewer (`OS.shell_open`; the PDFs of a source checkout, `modern-iaf/manuals/pdf/`), a row whose file is missing is greyed; the footer's Back (Esc) | ![Manuals](pictures/front-end/manuals_en.webp) | ![Manuals, Hebrew](pictures/front-end/manuals_he.webp) |
-| Attributions | the game's version under the title ("Version 0.1.0-nightly.…", "dev" in the checkout; docs/release.md §3); the setup wizard's list of sources and licences, the jet models with them; the Hangar's foot opens it ("קרדיטים ורישיונות" in Hebrew); the arrows and Page Up / Down scroll it (Down at its end reaches Back), and with the focus the list wears the rows' accent ring (look.gd `ListScroll`; none until 2026-11-16); the footer's Back (Esc) | ![Attributions](pictures/front-end/credits_en.webp) | ![Attributions, Hebrew](pictures/front-end/credits_he.webp) |
+| Attributions | the game's version under the title ("Version 0.2.0-nightly.…", "dev" in the checkout; docs/release.md §3); the setup wizard's list of sources and licences, the jet models with them; the Hangar's foot opens it ("קרדיטים ורישיונות" in Hebrew); the arrows and Page Up / Down scroll it (Down at its end reaches Back), and with the focus the list wears the rows' accent ring (look.gd `ListScroll`; none until 2026-11-16); the footer's Back (Esc) | ![Attributions](pictures/front-end/credits_en.webp) | ![Attributions, Hebrew](pictures/front-end/credits_he.webp) |
 | Hangar without data | a fresh install before `./modern-iaf-setup` (no training missions): the card says what is missing and the command (`./modern-iaf-setup`; Windows `.\modern-iaf-setup.ps1`), in place of the training's progress; Fly greyed and out of the focus, the picked jet focused; the F-16s' still pictures (§12) | ![Hangar without data](pictures/front-end/nodata_hangar_en.webp) | ![Hangar without data, Hebrew](pictures/front-end/nodata_hangar_he.webp) |
 | Loadout | Edit on the briefing's Arming summary (§10.1): the jet from beneath with a callout per station, the loadouts (the mission's, the pilot's saved ones), the take-off weight and the stores; Reset to the mission's, Briefing, Fly | ![Loadout](pictures/front-end/loadout_f16i_en.webp) | ![Loadout, Hebrew](pictures/front-end/loadout_f16i_he.webp) |
 | Missions without data | the same note under the title, every section greyed; the Hangar crumb focused | ![Missions without data](pictures/front-end/nodata_missions_en.webp) | ![Missions without data, Hebrew](pictures/front-end/nodata_missions_he.webp) |
@@ -96,11 +96,13 @@ Missions, the Settings and Attributions to the Hangar, the loadout screen to the
 list. The breadcrumbs: Hangar · the jet (Missions) · the section (its list) · the mission (the briefing) · Arming (the
 loadout screen) or Debrief.
 
-- **The sections** (`SECTIONS` in `front_end.gd`): Training, Campaign, Single missions and Fly now, each holding the
+- **The sections** (`SECTIONS` in `front_end.gd`): Training, Campaign, Single missions and Scramble, each holding the
   Hangar jet's missions of its `category` (the readable mission's: `training`, `campaign`, `single`). A card, 320 px
   high, the row of cards in the middle of the room under the title, shows its number and title and at its foot the
   pilot's progress ("2 of 2 passed" and a bar). A section without missions is greyed, marked "Coming later" / "יגיע
-  בהמשך", no click and no focus. Today Training holds each jet's start-up, take-off and weapons range ([training.md](training.md) §3.4) and the others are greyed.
+  בהמשך", no click and no focus. Today Training holds each jet's start-up, take-off and weapons range ([training.md](training.md) §3.4), Scramble
+  each jet's Scramble start (category `fly_now`; its card has no progress and opens the Scramble screen, §2.1) and the
+  other two are greyed.
   Until 2026-11-16 a card also had a subtitle and a "What it holds" list (Training's missions and its lessons coming
   later, the greyed sections what they would hold); the user removed them ("remove the subtitles and what it holds").
 - **Each jet's own missions** (the user, 15 November 2026: "you should show only the same plane missions"): a
@@ -150,6 +152,51 @@ Tel Nof base files, airbases.md §3). Making one flyable moves its row from `SOO
   Pilot screen's Choose a picture… here).
 - **The flight's end:** the flight scene returns to `Settings.front_end_scene()` (`res://main.tscn`). When the flight
   stored a sortie (`flight/sim_flight.gd` sets `Settings.flown_sortie`), the front end opens its debrief.
+
+### 2.1 Scramble
+
+Scramble (Hebrew הזנקה) is a quick fight, not a mission: the player's flight against an enemy drawn at random, the
+task given by the AWACS by radio. The user, 22 November 2026, approving the AI jobs' order ("Ok follow your suggested
+order"), whose last item was this setup; on its first version (A81), 24 November 2026: "1. call it "Scramble" and
+הזנקה in hebrew. 2. where is based on the plane they choose, right? 3. by default, start in-air, with awacs calling or
+giving orders what to bomb. 3. too much enemy options, should be some random selection." Scramble on the Missions
+screen opens the Scramble screen (`menu/free_combat_page.gd`); its picks fly from the jet's Scramble start
+(`data/missions/<base>_free.json`, a flight of four parked cold at the jet's home base), and the enemy is drawn and
+placed in flight ([../../docs/ai.md](../../docs/ai.md) §23).
+
+| English | Hebrew |
+|---|---|
+| ![Scramble](pictures/front-end/free_en.webp) | ![Scramble, Hebrew](pictures/front-end/free_he.webp) |
+
+- **The screen:** the title, Scramble, and under it the home base the flight flies from (the base of the jet picked
+  in the Hangar) and one line on what comes: the fight's area and the enemy drawn at random, the task and where from
+  the AWACS. One panel, Your flight, of rows, each row a label and its segments, the one picked lit: Flight (Alone,
+  Pair, Four-ship), Start (In the air; On the runway, engine running; Cold, at parking). Under the rows one line names
+  the enemy's skill, the Pilot screen's own value (docs/ai.md §17: "Enemy skill: Medium, as set on the Pilot
+  screen."); it sizes the enemy, one to three threats beside the task's target.
+- **His round-3 words** (2026-11-24, A81: "why we choose area if in all other places the area is tied to the
+  airplane? why we choose a enemies skill if that already by pilot?"; then "allow it to start in cold, runway or in
+  air"): the Area and Enemy skill rows went; the Start row has the three starts, in the air by default.
+- **The fight's area** is drawn at Fly with the enemy (`flight/fly.gd free_area`, `IafFreeCombat.area`): one of the
+  theatre's bases other than the home base, alike from those within 180 km of it (inferred: a short sortie; from Ramon
+  Nevatim, Hatzerim or Tel Nof, from Ramat David Tel Nof, Hatzerim or Nevatim). The AWACS's call says where.
+- **The picks** are kept at once (`Settings.free_combat`, `settings.cfg` `[sim]` `free_combat`); a first visit picks
+  a pair in the air.
+- **Refused here:** a load the one load rule blocks (weapons.md §7.1) gives the Loadout screen's line. Fly is off and
+  the line, one short line in the warning colour at the footer, says why.
+- **The footer:** Back (Esc: the Missions screen), Arming (the Loadout screen, §10.1, on the jet's Scramble start; its
+  crumb Hangar · the jet · Scramble · Arming, its back button Scramble), Fly. Fly (here or on Arming) draws a new
+  seed for the area and the enemy and flies the picks (`front_end.gd fly_free`, `flight/fly.gd prepare_free`: the
+  start's flight cut to the size picked; in the air 60 km from the area for the air start; for the runway start lined
+  up in pairs on the home base's runway, Kidon 1-2 15 m left of the lead, the second element 60 m behind, every
+  engine running (the start rule's 100 m of the lineup point, docs/ai.md §7.1), and the take-off in pairs, docs/ai.md
+  §8.7).
+- **Keyboard:** Tab and Shift+Tab go through the segments row by row, then Back, Arming, Fly; the arrows move by place;
+  Enter or Space picks.
+- **The flight:** the AWACS gives the task once the jet is in the air ("Kidon 1, attack the convoy, bearing 040, 25
+  miles, free to engage") and again every minute while its target lives. It is not scored and stores no sortie; it
+  ends from the pause menu, back to the Hangar.
+- **Checks:** `modern-iaf/tests/test_free_combat.gd`.
 
 ## 3. The data it reads
 
@@ -386,7 +433,8 @@ flight's models load in the background with reborn's preload (`shared/terrain/te
 on its TSD): the mission page sets the mission up (`flight/fly.gd prepare`), aims the preload at the start
 (`MissionRuntime.player_start`) and polls it each frame (`front_end.gd _preload_ground` through
 `TerrainPreload.follow`, the driver reborn's TSD calls too); another mission re-aims it,
-leaving the page drops it. Fly waits for the flight scene's load on menu frames (`TerrainPreload.fly`, reborn's Fly
+leaving the page drops it. Scramble's screen and its Arming preload its ground start only; its air start (60 km from the area,
+`IafFreeCombat.air_start`) loads cold. Fly waits for the flight scene's load on menu frames (`TerrainPreload.fly`, reborn's Fly
 too) and the flight's terrain takes the loaded nodes. A `--mission` start loads cold, as before.
 `modern-iaf/tests/test_terrain_preload.gd` checks it on the 1:1 theatre (388 nodes at Ramon). Measured on the Mac
 (Metal, a real 1920 × 1080 window, Ramon take-off after 6 s on the page, warm, three runs each): Fly to the first

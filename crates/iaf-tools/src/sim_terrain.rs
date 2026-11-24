@@ -19,7 +19,9 @@ use image::RgbImage;
 use image::imageops::{FilterType, resize};
 
 use crate::imagery::{self, read_envi, save};
-use crate::imagery_run::{BUCKET, Edges, Sheet, gdal, list_sheets, list_tiles, tile_box, tile_sources, tile_whole};
+use crate::imagery_run::{
+    BUCKET, Edges, Sheet, gdal, list_sheets, list_tiles, tile_box, tile_sources, tile_whole, tiles_begun,
+};
 use crate::log;
 use crate::progress::{Part, Progress, check, utf8};
 use crate::sim_bases::{utm36n, utm36n_geo};
@@ -964,9 +966,36 @@ const BASE_COVER_M: f64 = 160.0;
 const BASE_FEATHER_M: f64 = 160.0;
 /// The mask's cell: the fade spans 16 of them, and a 2 m raster per unit would cost 2 × 268 MB per worker.
 const BASE_CELL_M: f64 = 10.0;
-/// A Survey pixel this bright in every band near the coast is the sheets' no-data (white, JPEG-noisy), not ground
-/// (inferred from the sheets' borders off Tel Aviv: 240–255).
+/// A Survey pixel this bright in every band near the coast, or joined to the sheets' no-data through such pixels, is
+/// the sheets' no-data (white, JPEG-noisy), not ground (inferred from the sheets' borders off Tel Aviv: 240–255; on
+/// the Egyptian border west of Ramon the fill took the levels' white, 235 grey-white, before 2026-11-24).
 const NEAR_WHITE: u8 = 235;
+
+/// The unit's near-white pixels (NEAR_WHITE in every band) joined, through near-white pixels, to one the warp left
+/// without the photo (alpha below 255) or to a pure white one (the sheets' fill: west of Ramon a whole unit of it came
+/// through the warp with alpha 255, 2026-11-24): the sheets' white fill with its JPEG noise. White ground inside the
+/// photo (a roof, a salt pan) touches no fill and stays, but for a clipped pure-white roof. `raw`: RGBA, `n` × `n`.
+fn white_fill(raw: &[u8], n: usize) -> Vec<bool> {
+    let white = |i: usize| raw[i * 4..i * 4 + 3].iter().all(|&c| c >= NEAR_WHITE);
+    let mut fill = vec![false; n * n];
+    let mut stack: Vec<usize> =
+        (0..n * n).filter(|&i| raw[i * 4 + 3] < 255 || raw[i * 4..i * 4 + 3] == [255; 3]).collect();
+    for &i in &stack {
+        fill[i] = true;
+    }
+    while let Some(i) = stack.pop() {
+        let (x, y) = (i % n, i / n);
+        let near =
+            [(x > 0).then(|| i - 1), (x + 1 < n).then(|| i + 1), (y > 0).then(|| i - n), (y + 1 < n).then(|| i + n)];
+        for j in near.into_iter().flatten() {
+            if !fill[j] && white(j) {
+                fill[j] = true;
+                stack.push(j);
+            }
+        }
+    }
+    fill
+}
 
 /// Where Sentinel-2 replaces the Survey around the bases, on a BASE_CELL_M grid over a UTM rect and its margin.
 struct BaseMask {
@@ -1128,11 +1157,15 @@ fn survey_unit(sv: &Survey, f: &Frame, unit: Key, itm: [[f64; 2]; 4], work: &Pat
         [l(0) + (r(0) - l(0)) * v, l(1) + (r(1) - l(1)) * v]
     };
     let shore = if sv.coast.touches(rect) { Some(ShoreSea::new(sv.coast, f, unit, out)?) } else { None };
+    let fill = white_fill(&e.raw, n);
     let centre = |i: usize| [rect[0] + ((i % n) as f64 + 0.5) * px, rect[3] - ((i / n) as f64 + 0.5) * px];
     // The photo's weight and the base cover's (BaseMask) at unit pixel i.
     let weight = |i: usize| {
         let p = centre(i);
         let base = bases.as_ref().map_or(0.0, |b| b.at(p[0], p[1]));
+        if fill[i] {
+            return (0.0, base); // the sheets' white fill (white_fill)
+        }
         let a = f32::from(e.raw[i * 4 + 3]) / 255.0 * (1.0 - base);
         // At the shore: none of the photo on the sea (the coastline's water side, beyond its reach Sentinel-2's water
         // joined to it), nor its near-white (the sheets' no-data with JPEG noise) beyond the coastline's reach.
@@ -1278,8 +1311,29 @@ pub fn stamp(r: &Run) -> serde_json::Value {
     let base_fill = if zips.is_empty() { "" } else { BASE_FILL };
     // "border_fill": the neighbours' Sentinel-2 toned to the photo along its edge (BORDER_FILL, 2026-11-15).
     let border_fill = if zips.is_empty() { "" } else { BORDER_FILL };
-    serde_json::json!({ "box": r.area, "detail": r.detail, "survey_zips": zips, "airbases": bases, "osm": osm,
-        "shore": shore, "sea": SEA, "survey": survey, "base_fill": base_fill, "border_fill": border_fill })
+    let mut v = serde_json::json!({ "box": r.area, "detail": r.detail, "survey_zips": zips, "airbases": bases,
+        "osm": osm, "shore": shore, "sea": SEA, "survey": survey, "base_fill": base_fill, "border_fill": border_fill });
+    // "s2_begun" (2026-11-24): a 10 m tile under the 8 m nodes begun and not finished (`sentinel` finishes it). Only
+    // while there is one; `terrain` leaves it out of the stored stamp, so the run after the fetch is up to date.
+    if !zips.is_empty() && s2_begun(r) {
+        v["s2_begun"] = true.into();
+    }
+    v
+}
+
+/// With the Survey sheets, a 10 m tile under the 8 m nodes whose download began and stopped short (`tiles_begun`):
+/// the next run finishes it (`sentinel`). Setup's stamp of the terrain does not hold while there is one (iaf-setup
+/// `Stamp::pending`).
+pub fn s2_pending(r: &Run) -> bool {
+    has_zips(&r.sheets) && s2_begun(r)
+}
+
+fn s2_begun(r: &Run) -> bool {
+    let Ok(f) = Frame::new(r.area) else { return false };
+    geo_bbox(fine_area(&f, r.detail)).is_ok_and(|g| {
+        let over = |b: [f64; 4]| b[0] < g[2] && g[0] < b[2] && b[1] < g[3] && g[1] < b[3];
+        tiles_begun(&r.s2_cache).iter().any(|n| tile_box(n).is_some_and(over))
+    })
 }
 
 /// `meta.json` (the shape `terrain::theatre` writes) with the georeference, the sources and the run's stamp.
@@ -1588,8 +1642,10 @@ const S2_8M_BASE: &str = "s2_8m_median";
 /// list): the neighbours' Sentinel-2 toned to the photo (BorderTone, 2026-11-15). S2_8M_BORDER changes with it. A
 /// border unit has only this mark, also when it lies on a base or the shore: renaming BASE_FILL, "s2_8m" or the
 /// Survey's "_lv" marks, rename BORDER_FILL with them, or the border units keep the old build.
-const BORDER_FILL: &str = "tone1";
-const S2_8M_BORDER: &str = "s2_8m_border_tone1";
+/// "tone2", "tone3" (2026-11-24): the sheets' white fill joined to their no-data, then to pure white, left out inland
+/// too (`white_fill`).
+const BORDER_FILL: &str = "tone3";
+const S2_8M_BORDER: &str = "s2_8m_border_tone3";
 
 /// Whether `dir` holds a Survey sheet ZIP: only then does the colour branch make the 2 m nodes (and read the shore).
 fn has_zips(dir: &Path) -> bool {
@@ -1638,7 +1694,8 @@ fn s2_cached(r: &Run, f: &Frame, bases: &[Vec<[f64; 2]>]) -> bool {
 
 /// What a run of `r` would fetch over the network, by name: the DEM tiles missing from the cache (neither `.tif` nor
 /// `.none`), with the Survey sheets the OpenStreetMap extracts the shore's photo is cut by, and "sentinel-2" while a Sentinel-2 unit is still
-/// to do besides the border's (`s2_rest_left`). Empty: the run reads only local files (setup's "Nothing to download").
+/// to do besides the border's (`s2_rest_left`), or while a 10 m tile under the 8 m nodes was begun and not finished (a
+/// `.part`, `sentinel` finishes it). Empty: the run reads only local files (setup's "Nothing to download").
 pub fn would_fetch(r: &Run) -> Result<Vec<String>> {
     let geo = crate::sim_bases::theatre_geo(r.area);
     let mut v = Vec::new();
@@ -1657,7 +1714,7 @@ pub fn would_fetch(r: &Run) -> Result<Vec<String>> {
         }
     }
     let (f, bases) = (Frame::new(r.area)?, base_outlines(&r.airbases)?);
-    if s2_rest_left(&f, r.detail, &bases, &r.out.join(".work")) && !s2_cached(r, &f, &bases) {
+    if s2_pending(r) || s2_rest_left(&f, r.detail, &bases, &r.out.join(".work")) && !s2_cached(r, &f, &bases) {
         v.push("sentinel-2".into());
     }
     Ok(v)
@@ -1680,13 +1737,16 @@ fn sentinel(
     log!(pr, "sentinel-2: WorldCover tiles from {}", r.s2_cache.display());
     let tiles = list_tiles(&r.s2_cache, BUCKET, geo[1].floor() as i32, geo[3].floor() as i32)?;
     let whole = |n: &String| tile_whole(&r.s2_cache, &tiles, n);
-    // Only the border's units to do: the whole tiles on disk alone, nothing fetched or cut (`s2_rest_left`).
+    // Only the border's units to do: the whole tiles on disk alone, and those whose download began (a `.part`,
+    // finished now: the user, 2026-11-24, "download the missing tiles, ofcourse!"); nothing else fetched or cut
+    // (`s2_rest_left`).
     let local = has_zips && !s2_rest_left(&f, r.detail, &base_outlines(&r.airbases)?, work);
     let mut names = tiles_in(&tiles, geo);
     // The tiles outside the 8 m nodes are read only at 32 m, from their 20 m overview: not downloaded whole.
     let mut fine = tiles_in(&tiles, geo_bbox(fine_area(&f, r.detail))?);
     if local {
-        fine.retain(whole);
+        let begun = tiles_begun(&r.s2_cache);
+        fine.retain(|n| whole(n) || begun.contains(n));
         names.clone_from(&fine);
         if fine.is_empty() {
             write_border_units(work, &BTreeSet::new(), &BTreeSet::new())?;
@@ -1829,7 +1889,9 @@ fn colour(r: &Run, f: &Frame, geo: [f64; 4], work: &Path, pr: &dyn Progress, can
     };
     // Sentinel-2 only while one of its units is still to do: a theatre rebuilt for its photo (or any later change)
     // reads no tile and fetches nothing (the user, 2026-11-13: a code change never makes the player download again).
-    let (ends, s2_line) = if s2_left(&f, r.detail, &base_outlines(&r.airbases)?, &work, has_zips) {
+    // Or while a 10 m tile's download was begun and not finished (`s2_begun`): `sentinel` finishes it and redoes the
+    // border's units over it, which the border's list left out while the tile was not whole.
+    let (ends, s2_line) = if s2_pending(r) || s2_left(&f, r.detail, &base_outlines(&r.airbases)?, &work, has_zips) {
         let sv = match &survey {
             Some((_, _, sheets, vrt)) => {
                 Some((utf8(vrt)?, sheets.iter().map(|s| (s.bbox, s.levels)).collect::<Vec<_>>()))
@@ -1932,6 +1994,7 @@ pub fn terrain(r: &Run, pr: &dyn Progress, cancel: &AtomicBool) -> Result<()> {
     let mut was = old["built_from"].clone();
     if let Some(o) = was.as_object_mut() {
         o.remove("grade");
+        o.remove("s2_begun");
     }
     let grade = grade_text(r);
     let graded = std::fs::read_to_string(out.join(GRADE_FILE)).is_ok_and(|g| g == grade);
@@ -2009,6 +2072,30 @@ mod tests {
         let _ = std::fs::remove_dir_all(&d);
         std::fs::create_dir_all(&d).unwrap();
         d
+    }
+
+    /// The sheets' white fill: near-white joined to the warp's no-data is fill; a white roof inside the photo stays.
+    #[test]
+    fn the_white_fill_is_no_ground() {
+        let n = 8;
+        let mut raw = vec![0u8; n * n * 4];
+        for (i, p) in raw.chunks_mut(4).enumerate() {
+            let (x, y) = (i % n, i / n);
+            p.copy_from_slice(&match (x, y) {
+                (0, 0) => [255, 255, 255, 0],           // the warp's no-data
+                (0..=2, _) => [248, 241, 252, 255],     // the fill's JPEG noise
+                (5..=6, 5..=6) => [250, 250, 250, 255], // a white roof in the photo
+                _ => [120, 110, 90, 255],               // ground
+            });
+        }
+        let fill = white_fill(&raw, n);
+        assert!((0..n).all(|y| (0..3).all(|x| fill[y * n + x])), "the fill column");
+        // A fill with no pixel left without the photo: its pure white seeds it.
+        raw[3] = 255;
+        let fill = white_fill(&raw, n);
+        assert!(fill[0] && fill[n + 1], "the fill seeded by pure white");
+        assert!(!fill[5 * n + 5] && !fill[6 * n + 6], "the roof");
+        assert!(!fill[3 * n + 4], "the ground");
     }
 
     /// The 32 m nodes' rim: a pixel within RIM of an empty one counts as empty, one farther out keeps its own colour.
@@ -2410,6 +2497,22 @@ mod tests {
         std::fs::remove_file(done(&work, S2_8M_BORDER, east)).unwrap();
         std::fs::remove_file(run.s2_cache.join("ESA_WorldCover_10m_2021_v200_N30E034_S2RGBNIR.tif")).unwrap();
         assert_eq!(would_fetch(&run).unwrap(), ["sentinel-2"], "the base's unit left, a tile missing");
+        // Every unit done again, a tile's download begun under the 8 m nodes: it is finished (2026-11-24).
+        std::fs::write(done(&work, what, list[0]), "").unwrap();
+        std::fs::write(done(&work, S2_8M_BORDER, east), "").unwrap();
+        assert!(would_fetch(&run).unwrap().is_empty(), "every unit done");
+        std::fs::write(run.s2_cache.join("ESA_WorldCover_10m_2021_v200_N30E034_S2RGBNIR.part"), "12").unwrap();
+        // Without the Survey sheets nothing finishes it (the stamp's "s2_begun" is the Survey's border fill).
+        assert!(would_fetch(&run).unwrap().is_empty(), "a begun tile, no Survey sheets");
+        std::fs::create_dir_all(&run.sheets).unwrap();
+        std::fs::write(run.sheets.join("x.zip"), "").unwrap();
+        assert!(s2_pending(&run), "a begun tile is finished");
+        // A lock left with no tile beside it (the download stopped before its first bytes) is a begun tile too.
+        let part = run.s2_cache.join("ESA_WorldCover_10m_2021_v200_N30E034_S2RGBNIR.part");
+        std::fs::rename(&part, part.with_extension("lock")).unwrap();
+        assert!(s2_pending(&run), "a lock without its tile");
+        std::fs::write(part.with_extension("tif"), "12345").unwrap();
+        assert!(!s2_pending(&run), "a lock beside its whole tile");
         std::fs::remove_dir_all(&out).unwrap();
     }
 

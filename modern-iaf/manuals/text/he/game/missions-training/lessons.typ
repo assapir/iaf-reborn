@@ -40,6 +40,6 @@
 
 === אחרי השיעורים <lessons-after>
 
-#idx("מערכה")#idx("משימות בודדות")במסך #scr("missions") מופיעים גם #scr("sec_campaign"), #scr("sec_single") וכן #scr("sec_fly_now"). בשלושתם כתוב #scr("coming_later"): הם יגיעו בגרסה מאוחרת יותר.
+#idx("מערכה")#idx("משימות בודדות")במסך #scr("missions") מופיעים גם #scr("sec_campaign") וכן #scr("sec_single"). בשניהם כתוב #scr("coming_later"): הם יגיעו בגרסה מאוחרת יותר. #scr("sec_fly_now") הוא קרב קצר בפני עצמו (@mission-list-scramble).
 
 שיעור שעבר נשאר פתוח. אפשר לטוס בו שוב בכל עת; #term("יומן טיסות", shown: "יומן הטיסות") שומר כל טיסה (@pilots).

@@ -40,6 +40,6 @@ The briefing tells each lesson's story in order (@briefing-text). Read it before
 
 === After the lessons <lessons-after>
 
-#idx("Campaign")#idx("Single missions")The #scr("missions") screen also lists #scr("sec_campaign"), #scr("sec_single") and #scr("sec_fly_now"). All three read #scr("coming_later"): they come in a later version.
+#idx("Campaign")#idx("Single missions")The #scr("missions") screen also lists #scr("sec_campaign") and #scr("sec_single"). Both read #scr("coming_later"): they come in a later version. #scr("sec_fly_now") is a quick fight of its own (@mission-list-scramble).
 
 A lesson you passed stays open. Fly it again whenever you like; the #term("pilot log") keeps every flight (@pilots).
