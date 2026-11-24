@@ -1524,18 +1524,27 @@ along −Z, by `tools/enemy_models/convert.py` (docs/credits.md § Model credits
 | ZSU-23-4 | `zsu23_4`: a low-poly ZSU-23-4 | 6.535 m long[^w-zsu]; its width and height come out about 8 % over the real ones |
 | 54K6E2 command post (§15.5) | `ural4320`: a Ural-4320 with its canvas cover, standing in for the post's container on a Ural-532361 (inferred) | 7.366 m long[^w-ural] |
 
-The two search radars and the 30N6E2 on its truck are our own low-poly models (no openly licensed model exists: the
-64N6E2 models found are taken from War Thunder, excluded): boxes and prisms in plain colours, the olive of the other enemy models, built by
-`tools/enemy_models/radars.py` (Blender, run once by hand, committed). Each was matched by eye to the reference
+The two search radars and the 30N6E2 on its truck are our own low-poly radars (no openly licensed model exists: the
+64N6E2 models found are taken from War Thunder, excluded) on a Sketchfab MAZ-543 chassis, built by
+`tools/enemy_models/radars.py` (Blender, run once by hand, committed). The radars are boxes and prisms in plain
+colours, the olive of the other enemy models. The chassis is "MAZ-543 Uragan 9P117" (CC BY 4.0, docs/credits.md
+§ Model credits), the user's pick of 24 November 2026: the script keeps its cabs, wheels, frame and side lockers and
+cuts off the R-17 missile, its erector and cradle, the blast deflector and the rear jacks (each a loose part of the
+source, picked by its place: `_maz_launcher`); it scales it to the MAZ-543's 11.66 m[^ru-maz543] (its width comes out
+2.9 m) and repaints its three-tone camouflage the same olive (`_olive`: the texture's brightness kept within 0.97–1.03,
+so its panel lines and rivets stay faintly). An olive cover fills the cradle's place behind the cabs (`engine_cover`,
+inferred). The radar's cabins and decks sit on the lockers, 2.6 m up (`DECK`). The 96L6E's real chassis is the
+MZKT-7930[^w-mzkt7930] and the 64N6E2's tractor the MAZ-7910; the MAZ-543 stands in for both (the MAZ-7910 is its
+successor, inferred). Each was matched by eye to the reference
 photographs[^c-64n6e2-maks05][^c-64n6e2-maks03][^c-favorit-maks05][^c-96l6e-maks11][^c-30n6e2-maks09]; the sizes no
 source gives are read off them (inferred). The wheels have 16 sides, a flat side down; every model stands 0.08 m into
 the ground, so its tyres meet the drawn terrain (inferred).
 
 | part | model | sizes |
 |---|---|---|
-| 64N6E2 search radar (§15.5) | `radar_64n6e2`: the MAZ-7910 8×8 tractor with its split cabs[^w-maz7310] and the semi-trailer with the radar's cabin, the two-faced array on its turntable over the gooseneck, the IFF strip under it, the boom over it; 2,112 triangles | the tractor the MAZ-543's 11.66 m × 3.05 m[^ru-maz543]; the semi-trailer 13.2 m (the length Army Recognition gives[^ar-64n6], taken as the trailer's, inferred); the array 6.0 m wide and 4.0 m high, its top 8.6 m up (inferred) |
-| 96L6E search radar | `radar_96l6e`: the MZKT-7930 8×8 with its cab, the equipment box, the antenna on its post and the rear cabin with the levelling jacks; the array leaned back 10° over the lattice IFF array; 1,360 triangles | the chassis 12.7 m × 3.0 m, the cab 3.29 m high[^w-mzkt7930]; the array 3.4 m × 4.0 m, its top 8.0 m up (inferred) |
-| 30N6E2 track radar on its truck (the default site) | `radar_30n6e2`: the MAZ-7910 8×8 (the chassis[^apa-s300]) with the driver's cab on the left, an equipment box on the right, the antenna's turntable amidships and the control cabin behind; the flat array leaned back 20° with the mast beside it; 1,240 triangles | the MAZ-543's 11.66 m × 3.05 m[^ru-maz543]; the array 3.5 m × 3.8 m, its top 7.4 m up (inferred) |
+| 64N6E2 search radar (§15.5) | `radar_64n6e2`: the MAZ-543 chassis as the tractor (the real one the MAZ-7910[^w-maz7310]) and the semi-trailer with the radar's cabin, the two-faced array on its turntable over the gooseneck, the IFF strip under it, the boom over it; 15,912 triangles | the tractor the MAZ-543's 11.66 m[^ru-maz543]; the semi-trailer 13.2 m (the length Army Recognition gives[^ar-64n6], taken as the trailer's, inferred); the array 6.0 m wide and 4.0 m high, its top 9.5 m up (inferred; 0.9 m higher on the MAZ-543's lockers) |
+| 96L6E search radar | `radar_96l6e`: the MAZ-543 chassis (the real one the MZKT-7930 8×8[^w-mzkt7930]), the antenna on its post and the rear cabin with the levelling jacks; the array leaned back 10° over the lattice IFF array; 15,236 triangles | the chassis 11.66 m[^ru-maz543]; the array 3.4 m × 4.0 m, its top 8.75 m up (inferred; 0.75 m higher on the MAZ-543's lockers) |
+| 30N6E2 track radar on its truck (the default site) | `radar_30n6e2`: the MAZ-543 chassis (the real one the MAZ-7910[^apa-s300]), the antenna's turntable amidships and the control cabin behind; the flat array leaned back 20° with the mast beside it; 15,088 triangles | the MAZ-543's 11.66 m[^ru-maz543]; the array 3.5 m × 3.8 m, its top 8.25 m up (inferred; 0.85 m higher on the MAZ-543's lockers) |
 
 Each antenna (the array, its IFF array, the pedestal above the turntable) is the model's node `antenna`, its origin on
 the turning axis. It turns clockwise seen from above while its radar radiates (`air_defence.gd` `_turn`,

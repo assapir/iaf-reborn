@@ -322,6 +322,7 @@ November ([models-catalogue.md](models-catalogue.md) §7). Each download waits f
 | 2b | S-300 launcher, low poly | "Lowpoly S300" (S1Priv)[^sf-s1-s300] | CC BY | 24,028 / 0.4 MB | "Based on the real life S-300"; tags "pixel-art", "blockbench" | a blocky style unlike the sim's jets (inferred) |
 | 3 | 30N6E2 engagement radar | "30N6E 'Flap Lid' B Phased Array Radar" (aardque)[^sf-30n6] | CC BY | 25,227 / 1.3 MB | the uploader's own model, first on SketchUp's 3D Warehouse in 2013, reworked | the 30N6E of the PMU-1; how much the PMU-2's 30N6E2 differs in look is open |
 | 4 | 96L6E and 64N6E2 search radars | none found | — | — | — | our own low-poly models, 2026-11-23 ([../../../docs/ai.md](../../../docs/ai.md) §15.4) |
+| 4a | the radars' chassis | "MAZ-543 Uragan 9P117" (Muhamad Mirza Arrafi)[^sf-maz543] | CC BY | 26,600 / 2.7 MB | tagged by its author as made with AI | the R-17 launcher's MAZ-543; its missile and launcher cut off, the 64N6E2, 96L6E and 30N6E2 on it (2026-11-24) |
 | 5 | Tor-M1 | "Tor-M1 SAM with 9M331 Missiles (Animated)" (xFORTUNAx)[^sf-tor-xf] | CC BY | 155,034 / 25.3 MB | "Built from scratch in Blender from public reference drawings"; turret, antennas, tracks and cell covers animated, two launches | the listing says four missiles on a rack, where the real vehicle carries eight (open: check on download) |
 | 5a | Tor-M1, low poly | "TOR-M1" (urastyzh)[^sf-tor-ur] | CC BY | 14,074 / 0.2 MB | no description (open) | provenance to check |
 | 6 | ZSU-23-4 | "Lowpoly Zsu-23-4" (S1Priv)[^sf-zsu] | CC BY | 67,456 / 0.9 MB | "Based on real life Soviet military technology" | the low-poly pick ([../threats.md](../threats.md) §5) |
@@ -354,7 +355,7 @@ November ([models-catalogue.md](models-catalogue.md) §7). Each download waits f
 - **Tor-M1, ZSU-23-4:** how Iran deploys them around a site (battery layout, spacing).
 - **Fighters:** no open source on Iranian fighter tactics; the GCI reliance is the opposing-force manual's, applied to
   Iran by inference.
-- **Models:** the 96L6E and 64N6E2 radars are our own models (the 64N6E2 models found are War Thunder rips, excluded). Picks 2, 3, 5 and 6 were downloaded by the user on 22 November 2026 and are in the game ([../../../docs/ai.md](../../../docs/ai.md) §15.4); the Tor model's "four missiles on a rack" are a display rack beside the vehicle (left out); its turret's cell covers are shut, so its own count does not show.
+- **Models:** the 96L6E and 64N6E2 radars are our own models, on the MAZ-543 chassis of pick 4a (the user's download of 24 November 2026) (the 64N6E2 models found are War Thunder rips, excluded). Picks 2, 3, 5 and 6 were downloaded by the user on 22 November 2026 and are in the game ([../../../docs/ai.md](../../../docs/ai.md) §15.4); the Tor model's "four missiles on a rack" are a display rack beside the vehicle (left out); its turret's cell covers are shut, so its own count does not show.
 
 [^apa-s300]: Carlo Kopp, Air Power Australia, "S-300PMU2 Favorit / SA-20 Gargoyle", May 2009, updated to April 2012, https://www.ausairpower.net/APA-S-300PMU2-Favorit.html (83M6E2 = 54K6E2 + 64N6E2, up to six batteries; 30N6E2 with up to twelve 5P85SE2 / TE2; 96L6E for autonomous batteries; chassis; 15Ya6ME relay; NK Orientir for "hide, shoot and scoot"; read 2026-11-19).
 [^apa-sites]: Sean O'Connor, Air Power Australia, "Soviet/Russian SAM Site Configuration Part 2", APA-TR-2009-1205-B, January 2010, updated April 2012, https://ausairpower.net/APA-Rus-SAM-Site-Configs-B.html (S-300P layouts: four launch positions around a raised radar berm; revetments; masts; reused sites; no spacing figures; read 2026-11-19).
@@ -387,6 +388,7 @@ November ([models-catalogue.md](models-catalogue.md) §7). Each download waits f
 [^shaw]: Robert L. Shaw, "Fighter Combat: Tactics and Maneuvering", Naval Institute Press, Annapolis, 1985 (book; not read for this page).
 [^sf-api]: Sketchfab, public search API, downloadable models with the licence filters "by" and "cc0", queries for the S-300 family, its radars, Tor, ZSU-23-4, MiG-29, F-14, ZU-23 and 35 mm guns, read 2026-11-19: https://api.sketchfab.com/v3/search?type=models&downloadable=true (and `/v3/models/<uid>` for each candidate's description and tags).
 [^sf-5p85]: Sketchfab, xFORTUNAx, "S-300 5P85 Launcher with 9M83 Missiles", https://sketchfab.com/3d-models/none-da2204450fda471a949e4100e62e14a4.
+[^sf-maz543]: Sketchfab, Muhamad Mirza Arrafi, "MAZ-543 Uragan 9P117", https://sketchfab.com/3d-models/maz-543-uragan-9p117-2dcaca61c4b9470cb0d8705a12097cef.
 [^sf-s400]: Sketchfab, xFORTUNAx, "S-400 Launcher on MAZ-543 with 5V55R Missiles", https://sketchfab.com/3d-models/none-a174bb760614407c8af1e614cecf7457.
 [^sf-s1-s300]: Sketchfab, S1Priv, "Lowpoly S300", https://sketchfab.com/3d-models/none-db81bd95b7a14ecf8e0be4e605681a7f.
 [^sf-30n6]: Sketchfab, aardque, "30N6E 'Flap Lid' B Phased Array Radar", https://sketchfab.com/3d-models/none-12d2dea1efbf4296891e512b16c57880.

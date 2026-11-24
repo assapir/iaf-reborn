@@ -7,7 +7,7 @@
 #     --log-file <temp> --resolution 1600x900 --path modern-iaf -s ../modern-iaf/tests/_enemy_models_shot.gd
 extends "res://../tests/godot/base.gd"
 
-const Gltf := preload("res://shared/util/gltf.gd")
+var gltf  # load()ed in run(): it uses Settings, which a test script compiles before (base.gd)
 
 var tv: Node
 var _cam: Camera3D
@@ -63,16 +63,17 @@ func _aim(ent: Dictionary, yaw: float) -> void:
 
 ## A unit record's model (target_t72, target_ural) placed as the flight scene places a mission's units.
 func _put_model(path: String, at: Vector3, heading: float) -> void:
-	var model = Gltf.model(Gltf.objects_path(path))
+	var model = gltf.model(gltf.objects_path(path))
 	if model == null:
 		return
-	var n: Node3D = Gltf.instance(model)
+	var n: Node3D = gltf.instance(model)
 	tv.add_child(n)
 	n.position = tv.world_to_scene(Vector3(at.x, at.y, _ground(at)))
 	n.rotation.y = -deg_to_rad(heading)
 
 
 func run() -> void:
+	gltf = load("res://shared/util/gltf.gd")
 	DirAccess.make_dir_recursive_absolute(OS.get_environment("SHOT_DIR"))
 	await require_data()
 	var s := settings()
@@ -98,7 +99,7 @@ func run() -> void:
 	var zsu: Array = ad.spawn("zsu", at + Vector3(-200, -480, 0), 200.0)
 	var net: Array = ad.spawn_net(at + Vector3(700, 0, 0), at + Vector3(700, 150, 0), [ad.site_of(s300[0])], 90.0)
 	var t72 := at + Vector3(-700, 0, 0)
-	var units: Dictionary = (Gltf as Script).get_script_constant_map().get("UNITS", {})
+	var units: Dictionary = gltf.get_script_constant_map().get("UNITS", {})
 	if units.has("T-72"):
 		_put_model(units["T-72"], t72, 30.0)
 		_put_model(units["54K6E2"], t72 + Vector3(14, 6, 0), 300.0)

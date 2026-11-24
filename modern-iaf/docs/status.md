@@ -166,7 +166,9 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   stands in for the network's 54K6E2 command post. Two ground-target records, `target_t72` and `target_ural`
   (`modern-iaf/data/db/units`, no mission places them yet). About 13 MB together. The 64N6E2 and 96L6E search radars
   and the 30N6E2 on its truck (2026-11-23, the user 22 Nov: "No, don't leave it open. Finish to the end") are our own
-  low-poly models (`tools/enemy_models/radars.py`): the search radars' antennas turn while they radiate, the 30N6E2's
+  low-poly radars (`tools/enemy_models/radars.py`), since 2026-11-24 on the MAZ-543 chassis of a CC BY 4.0 Sketchfab
+  model, its missile and launcher cut off, repainted olive (the user, 24 Nov: "don't forget to add credits"; about
+  0.9 MB each): the search radars' antennas turn while they radiate, the 30N6E2's
   lays on its track (`modern-iaf/tests/test_sam_net.gd`). The models stand in their rest pose (the S-300's canisters
   down).
 - **Ground clutter for the radars (2026-11-21, the user: "Ok finish all enemies things you can";

@@ -209,6 +209,7 @@ def convert(mid, src_dir, out_root):
     shutil.rmtree(tmp)
 
 
-args = sys.argv[sys.argv.index("--") + 1:]
-for mid in args[2:] or MODELS:
-    convert(mid, args[0], args[1])
+if __name__ == "__main__":
+    args = sys.argv[sys.argv.index("--") + 1:]
+    for mid in args[2:] or MODELS:
+        convert(mid, args[0], args[1])

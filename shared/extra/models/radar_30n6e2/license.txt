@@ -1,0 +1,11 @@
+Model Information:
+* title:	MAZ-543 Uragan 9P117
+* source:	https://sketchfab.com/3d-models/maz-543-uragan-9p117-2dcaca61c4b9470cb0d8705a12097cef
+* author:	Muhamad Mirza Arrafi (https://sketchfab.com/nazidefenseforceofficial)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "MAZ-543 Uragan 9P117" (https://sketchfab.com/3d-models/maz-543-uragan-9p117-2dcaca61c4b9470cb0d8705a12097cef) by Muhamad Mirza Arrafi (https://sketchfab.com/nazidefenseforceofficial) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

@@ -68,13 +68,14 @@ for each.
 | Shahed-136 model: the one-way attack drones (docs/ai.md §16) | "Shahed 136" by faintastic, https://sketchfab.com/3d-models/shahed-136-bc8754128c9d48c48baadeff1db8f0c7 | CC BY 4.0, https://creativecommons.org/licenses/by/4.0/ | `shared/extra/models/shahed136/license.txt` |
 | T-72 model: the enemy armour ground target (`target_t72`) | "Low Poly T-72 Tank - Game Ready" by Mr. The Rich, https://sketchfab.com/3d-models/low-poly-t-72-tank-game-ready-8c9d0d6640a244e39082cd9fdf565cef | CC BY 4.0, https://creativecommons.org/licenses/by/4.0/ | `shared/extra/models/t72/license.txt` |
 | Ural-4320 model: the convoy ground target (`target_ural`) and the S-300 network's 54K6E2 command post | "Ural 4320" by Brout, https://sketchfab.com/3d-models/ural-4320-f953c51a5dbc4a15949f4dcc0905c4e8 | CC BY 4.0, https://creativecommons.org/licenses/by/4.0/ | `shared/extra/models/ural4320/license.txt` |
+| MAZ-543 model: the chassis of the S-300's 64N6E2, 96L6E and 30N6E2 radar trucks (docs/ai.md §15.4) | "MAZ-543 Uragan 9P117" by Muhamad Mirza Arrafi, https://sketchfab.com/3d-models/maz-543-uragan-9p117-2dcaca61c4b9470cb0d8705a12097cef (tagged by its author as made with AI) | CC BY 4.0, https://creativecommons.org/licenses/by/4.0/ | `shared/extra/models/radar_30n6e2/license.txt` (the same beside the other two) |
 | The setup wizard's icon (docs/setup.md) | "Roundel of Israel.svg" by Zscout370, https://commons.wikimedia.org/wiki/File:Roundel_of_Israel.svg, with our "REBORN" banner | CC BY-SA 4.0, https://creativecommons.org/licenses/by-sa/4.0/ | `iaf-reborn/setup/icon.svg` |
 
 The enemy models (Modern IAF) are Sketchfab downloads, made once from the user's own download of 22 November 2026
 (`assets/source/enemy_models/`) by `tools/enemy_models/convert.py` and committed, so setup never needs a Sketchfab
 login. Changes: the display props beside the vehicles left out (a spare missile, a reload rack); scaled to the real
 vehicle; turned and set on the ground; joined, the big parts decimated; the textures shrunk to 1024 px at most (512 px
-for the ZSU-23-4, the Shahed-136 and the T-72) and stored as JPEG; the Shahed-136 recoloured by us (the blue nose band black, the body a light grey, after Iranian photographs on Wikimedia Commons); the Tor-M1's animations left out. The 64N6E2 and 96L6E search radars and the 30N6E2 on its truck are our own models (`tools/enemy_models/radars.py`, docs/ai.md §15.4).
+for the ZSU-23-4, the Shahed-136 and the T-72) and stored as JPEG; the Shahed-136 recoloured by us (the blue nose band black, the body a light grey, after Iranian photographs on Wikimedia Commons); the Tor-M1's animations left out. The 64N6E2 and 96L6E search radars and the 30N6E2 are our own models (`tools/enemy_models/radars.py`, docs/ai.md §15.4) on the MAZ-543 chassis from "MAZ-543 Uragan 9P117" (the user's own download of 24 November 2026): its R-17 missile, erector, cradle and launcher gear cut off, scaled to 11.66 m, its camouflage repainted the olive of the other S-300 parts, the textures stored as JPEG.
 
 ## Texture credits
 
