@@ -127,6 +127,19 @@
 
 מה השפה משנה מתואר ב@language.
 
+=== עדכונים <settings-updates>
+
+#idx("עדכונים")
+#settings-table(("update_check",))
+
+#grid-table(
+  (auto, 1fr, auto),
+  ([הגדרה], [ערכים], [ברירת מחדל]),
+  [#scr("update_check")], [#scr("off"), #scr("on")], [#scr("on")],
+)
+
+מה המשחק בודק בהפעלה, ומה עושה #strong(upd("update")), מתואר ב@setup-updates.
+
 === שמע <settings-sound>
 
 #idx("הגדרות שמע")#idx("עוצמת קול")

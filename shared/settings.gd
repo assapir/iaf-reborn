@@ -134,6 +134,7 @@ const PREFS := {
 		"shadow_reach",
 		"town_labels",
 		"cd_launcher",
+		"update_check",
 		"wheel_scroll",
 		"better_cockpit",
 		"better_mc",
@@ -340,6 +341,11 @@ var shadow_reach := "original"
 ## Town labels (ours, Extras page; docs/scenery.md §3.5, terrain/town_labels.gd): the towns' names over the view at
 ## their places. Needs the places setup's scenery step writes.
 var town_labels := false
+## Check for updates on start (ours; Modern IAF's Preferences, the Extras page; docs/release.md §7): a release
+## bundle looks for a newer nightly, and both games, in a bundle and in the checkout, for setup steps to run again.
+var update_check := true
+## Set by the front end's Update for a setup that changed (shared/util/updater.gd): the wizard runs at once.
+var setup_update := false
 ## CD launcher (ours, Extras page; docs/front-end.md §18.1): the CD's autorun poster (Jauto.exe) before the main menu.
 var cd_launcher := false
 ## Mouse wheel (ours, Extras page; docs/front-end.md §12.9): "regular" (wheel down scrolls down) or "natural"

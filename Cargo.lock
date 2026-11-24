@@ -387,6 +387,7 @@ dependencies = [
  "iaf-formats",
  "iaf-tools",
  "serde_json",
+ "sha2",
  "zip",
 ]
 

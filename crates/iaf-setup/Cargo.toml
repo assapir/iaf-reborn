@@ -11,4 +11,5 @@ iaf-tools = { path = "../iaf-tools" }
 anyhow = "1"
 crc32fast = "1.5.2"
 serde_json = "1.0.154"
+sha2 = "0.10"
 zip = { version = "9", default-features = false, features = ["deflate"] }

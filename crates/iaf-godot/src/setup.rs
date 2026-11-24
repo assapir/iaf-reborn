@@ -181,12 +181,89 @@ impl IafSetup {
             .collect()
     }
 
+    /// True when the release's version `remote` should replace `own` (`iaf_setup::update::newer`).
+    #[func]
+    fn update_newer(own: GString, remote: GString) -> bool {
+        iaf_setup::update::newer(&own.to_string(), &remote.to_string())
+    }
+
+    /// The release manifest's download for `project` on `os`: {name, version, size, sha256}, {} when none.
+    #[func]
+    fn update_pick(manifest: GString, project: GString, os: GString) -> VarDictionary {
+        match iaf_setup::update::pick(&manifest.to_string(), &project.to_string(), &os.to_string()) {
+            Some(o) => {
+                vdict! { "name" => o.name, "version" => o.version, "size" => o.size as i64, "sha256" => o.sha256 }
+            }
+            None => VarDictionary::new(),
+        }
+    }
+
+    /// The game's folder from its program's path (the `.app` on macOS).
+    #[func]
+    fn update_app_dir(exe: GString, os: GString) -> GString {
+        GString::from(iaf_setup::update::app_dir(exe.to_string().as_ref(), &os.to_string()).to_string_lossy().as_ref())
+    }
+
+    /// Where the download is unpacked, beside the game's folder `app`.
+    #[func]
+    fn update_stage_dir(app: GString) -> GString {
+        GString::from(iaf_setup::update::stage_dir(app.to_string().as_ref()).to_string_lossy().as_ref())
+    }
+
+    /// The swap (`update::swap`): "" when done, else why not (the old folder is back then). The game runs it as job
+    /// "update_swap"; this is the tests' direct call.
+    #[func]
+    fn update_swap(app: GString, new: GString) -> GString {
+        iaf_setup::update::swap(app.to_string().as_ref(), new.to_string().as_ref())
+            .map_or_else(err, |()| GString::new())
+    }
+
+    /// The old version back in the game's folder: "" when done, else why not.
+    #[func]
+    fn update_rollback(app: GString) -> GString {
+        iaf_setup::update::rollback(app.to_string().as_ref()).map_or_else(err, |()| GString::new())
+    }
+
+    /// The old version and the unpacked download removed (before a new download).
+    #[func]
+    fn update_cleanup(app: GString) {
+        iaf_setup::update::cleanup(app.to_string().as_ref())
+    }
+
+    /// The new version's first start: once the copy that swapped (process `pid`) has quit, the old version and the
+    /// unpacked download go (`update::cleanup`). On its own thread, so it does not depend on the screen that asked.
+    #[func]
+    fn update_finish(pid: i64, app: GString) {
+        let app = app.to_string();
+        std::thread::spawn(move || {
+            if iaf_setup::update::wait_exit(pid as u32, 300.0) {
+                iaf_setup::update::cleanup(app.as_ref());
+            }
+        });
+    }
+
+    /// Starts `exe` with `args` in the folder `cwd` (`update::launch`): its process id, -1 when it did not start.
+    #[func]
+    fn update_launch(exe: GString, args: PackedStringArray, cwd: GString) -> i64 {
+        let args: Vec<String> = args.as_slice().iter().map(|s| s.to_string()).collect();
+        iaf_setup::update::launch(exe.to_string().as_ref(), &args, cwd.to_string().as_ref()).map_or(-1, i64::from)
+    }
+
     /// Starts a background job (gdext objects can only be called on the main thread, so the slow checks run here);
     /// `result(job)` gives its answer. `job` is a kind, optionally with `#<anything>` after it:
     /// - "preview" [assets, repo, inputs JSON]: {step id: true when a run would find it up to date} (reads the inputs);
     /// - "sim_preview" [assets, repo, survey "1" | "0", left-out step ids…]: the same for Modern IAF's steps;
     /// - "scan" [folder]: {"english" | "hebrew" | "patch" | "brief" | "menu": path} found in it (`iaf_setup::scan`);
     /// - "stale" [assets, layer ids…]: the imagery units older rules made, -1 when it cannot tell (e.g. offline).
+    /// - "setup_stale" [assets, repo, "sim" | "reborn"]: [{id, title, download}] the steps a run would do again
+    ///   (`iaf_setup::update::setup_stale`; download: bytes, -1 unknown);
+    /// - "update_verify" [file, size, sha256]: "" when the download is the release's, else why not;
+    /// - "update_unpack" [archive, game folder, OS name]: {dir: the new game's folder, error} (`update::unpack`);
+    /// - "update_wait" [pid, seconds]: true once process `pid` has ended, false when it still ran after `seconds`.
+    /// - "update_swap" [game folder, new folder]: {error ("" when swapped), intact: the game's folder still holds the
+    ///   old version} (`update::swap_or_keep`);
+    /// - "update_start" [program, working folder, started file, seconds, its arguments…]: "started", "ended" or
+    ///   "stopped" (`update::start_and_wait`), else why it did not start.
     #[func]
     fn begin(&mut self, job: GString, args: PackedStringArray) {
         let (job, args): (String, Vec<String>) =
@@ -225,6 +302,46 @@ impl IafSetup {
                         let n: anyhow::Result<usize> =
                             layers.iter().map(|id| iaf_setup::imagery_stale(assets.as_ref(), id)).sum();
                         n.map_or(-1, |n| n as i64).into()
+                    }
+                    ("setup_stale", [assets, repo, game]) => {
+                        let v = iaf_setup::update::setup_stale(assets.as_ref(), repo.as_ref(), game == "sim");
+                        v.iter()
+                            .map(|s| serde_json::json!({"id": s.id, "title": s.title, "download": s.download}))
+                            .collect()
+                    }
+                    ("update_verify", [file, size, sha]) => {
+                        let r = iaf_setup::update::verify(file.as_ref(), size.parse().unwrap_or(0), sha);
+                        r.map_or_else(|e| format!("{e:#}"), |()| String::new()).into()
+                    }
+                    ("update_unpack", [archive, app, os]) => {
+                        let stage = iaf_setup::update::stage_dir(app.as_ref());
+                        match iaf_setup::update::unpack(archive.as_ref(), &stage, app.as_ref(), os) {
+                            Ok(d) => serde_json::json!({"dir": d.display().to_string(), "error": ""}),
+                            Err(e) => serde_json::json!({"dir": "", "error": format!("{e:#}")}),
+                        }
+                    }
+                    ("update_swap", [app, new]) => {
+                        let (error, intact) = iaf_setup::update::swap_or_keep(app.as_ref(), new.as_ref());
+                        serde_json::json!({"error": error, "intact": intact})
+                    }
+                    ("update_start", [exe, cwd, started, secs, rest @ ..]) => {
+                        use iaf_setup::update::Start;
+                        let secs = secs.parse().unwrap_or(0.0);
+                        match iaf_setup::update::start_and_wait(
+                            exe.as_ref(),
+                            rest,
+                            cwd.as_ref(),
+                            started.as_ref(),
+                            secs,
+                        ) {
+                            Ok(Start::Started) => "started".into(),
+                            Ok(Start::Ended) => "ended".into(),
+                            Ok(Start::Stopped) => "stopped".into(),
+                            Err(e) => format!("{e:#}").into(),
+                        }
+                    }
+                    ("update_wait", [pid, secs]) => {
+                        iaf_setup::update::wait_exit(pid.parse().unwrap_or(0), secs.parse().unwrap_or(0.0)).into()
                     }
                     _ => serde_json::Value::Null,
                 }

@@ -7,6 +7,8 @@ its own README and its own setup.
 both games for Linux, macOS (Apple silicon) and Windows, built each day that `main` changed. Unpack it and start the
 game: its setup wizard builds the data with the GDAL and curl it carries. The programs are unsigned: on macOS right-click the app and choose Open (or
 `xattr -dr com.apple.quarantine "/Applications/Modern IAF.app"`); on Windows choose More info, then Run anyway.
+On start, the game offers each newer nightly and the setup steps a new version changed (Update / Later; Preferences
+turns it off).
 Details: [docs/release.md](docs/release.md). The commands below run the games from this checkout.
 
 ## Jane's IAF reborn: the 1998 game

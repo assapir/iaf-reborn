@@ -127,6 +127,19 @@ Before the first flight the pane reads: #scr-text("frame_none")
 
 What the language changes is in @language.
 
+=== Updates <settings-updates>
+
+#idx("Updates")
+#settings-table(("update_check",))
+
+#grid-table(
+  (auto, 1fr, auto),
+  ([Setting], [Values], [Default]),
+  [#scr("update_check")], [#scr("off"), #scr("on")], [#scr("on")],
+)
+
+What the game looks for on start, and what #strong(upd("update")) does, is in @setup-updates.
+
 === Sound <settings-sound>
 
 #idx("Sound settings")#idx("Volume")

@@ -312,6 +312,16 @@ pub(crate) fn describe(p: &Path) -> Result<String> {
 /// (imagery keeps its own per-unit marks; the scenery's sources their `.ok` marks and its cells `manifest.json`'s
 /// `made_from`; the guides decide per picture).
 pub(crate) fn of(step: &Step, ctx: &Ctx) -> Result<Option<Stamp>> {
+    of_with(step, ctx, false)
+}
+
+/// [`of`] for the check on start (`update::setup_stale`): a user's file (the CD image, the patch, the Hebrew packs)
+/// whose size is still the one the stamp on disk lists keeps that stamp's line, so no start reads a whole CD image.
+pub(crate) fn of_quick(step: &Step, ctx: &Ctx) -> Result<Option<Stamp>> {
+    of_with(step, ctx, true)
+}
+
+fn of_with(step: &Step, ctx: &Ctx, quick: bool) -> Result<Option<Stamp>> {
     let a = &ctx.assets;
     let i = &ctx.inputs;
     let conv = |p: &str| a.join("converted").join(p);
@@ -348,8 +358,19 @@ pub(crate) fn of(step: &Step, ctx: &Ctx) -> Result<Option<Stamp>> {
     if step.id == "launcher" {
         text += &format!("repo {}\nxdg {:?}\n", ctx.repo.display(), std::env::var_os("XDG_DATA_HOME"));
     }
+    let old = if quick { std::fs::read_to_string(&stamp).unwrap_or_default() } else { String::new() };
     for p in &inputs {
-        text += &describe(p)?;
+        let kept = match std::fs::metadata(p) {
+            Ok(m) if quick && m.is_file() => {
+                let head = format!("input {} {} ", p.display(), m.len());
+                old.lines().find(|l| l.starts_with(&head)).map(|l| format!("{l}\n"))
+            }
+            _ => None,
+        };
+        text += &match kept {
+            Some(l) => l,
+            None => describe(p)?,
+        };
     }
     Ok(Some(Stamp { path: stamp, text, output: out, view: None, pending: false }))
 }

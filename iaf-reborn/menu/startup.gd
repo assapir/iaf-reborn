@@ -17,6 +17,9 @@ func _ready() -> void:
 	if Array(OS.get_cmdline_user_args()).any(func(a): return a in DEV_ARGS):
 		_menu.call_deferred()
 		return
+	# The update on start (docs/release.md §7): a newer nightly, setup steps to run again; the update's own start.
+	if preload("res://shared/util/updater.gd").start(get_tree()):
+		return
 	run()
 
 

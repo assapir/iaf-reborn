@@ -38,6 +38,10 @@ STBY / STT / BORE / LRS / TWS / ACM / GMT / MAP are the radar modes (radar.md).
 - **Download (2026-11-23, [release.md](release.md)):** the nightly pre-release has the game for Linux, macOS (Apple
   silicon, unsigned) and Windows, version `1.1.0-nightly.<date>+<hash>`; the game opens its setup wizard and keeps
   its data in a per-user folder; the bundle carries curl and GDAL for setup. Open: Intel Macs are not built for; the pilot guides are built from the checkout only.
+- **Updates on start (2026-11-24, the user: "auto update on startup for released assests", "same for setup";
+  [release.md](release.md) §7):** a bundle offers a newer nightly (download, size and SHA-256 check, swap with the old
+  version kept until the new one starts, rollback); bundle and checkout offer the setup steps whose stamps no longer
+  hold and run them in the wizard. Extras → "Updates on start".
 
 ## Priorities (user decision: 1. player experience, 2. enemies, 3. missions and general fixes)
 1. **Player experience:** built (Done table). Open: the stores that look detached (Small bugs).

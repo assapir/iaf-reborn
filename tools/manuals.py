@@ -19,7 +19,7 @@ import sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DIR = os.path.join(ROOT, "modern-iaf", "manuals")
 # What a manual is made from: its edition is the date of the last commit that touched any of these.
-SOURCES = ["modern-iaf/manuals", "modern-iaf/branding", "modern-iaf/data/checklists", "modern-iaf/data/keys.json", "shared/extra/models/cockpit3d", "shared/credits.json", "modern-iaf/setup/strings_en.json", "modern-iaf/setup/strings_he.json", "modern-iaf/menu/strings_en.json", "modern-iaf/menu/strings_he.json"]
+SOURCES = ["modern-iaf/manuals", "modern-iaf/branding", "modern-iaf/data/checklists", "modern-iaf/data/keys.json", "shared/extra/models/cockpit3d", "shared/credits.json", "modern-iaf/setup/strings_en.json", "modern-iaf/setup/strings_he.json", "modern-iaf/menu/strings_en.json", "modern-iaf/menu/strings_he.json", "shared/util/update_strings_en.json", "shared/util/update_strings_he.json"]
 
 # A jet's flight manual describes the aircraft and its procedures, independent of any base, lesson, mission or the
 # game's flow (the user, 18 November 2026); that context is the game manual's, and a jet manual links to it. These

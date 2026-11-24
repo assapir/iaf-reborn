@@ -1,0 +1,21 @@
+{
+	"_note": "The update line over the front end (shared/util/updater.gd, docs/release.md §7); Hebrew in update_strings_he.json.",
+	"new_version": "Version %s is out (%s download).",
+	"update": "Update",
+	"later": "Later",
+	"close": "Close",
+	"cancel": "Cancel",
+	"downloading": "Downloading the update: %d%% of %s.",
+	"checking": "Checking the download.",
+	"unpacking": "Unpacking the update.",
+	"installing": "Installing the update: the game starts again.",
+	"download_failed": "The update failed: this version stays; it tries again on the next start.",
+	"no_write": "The update cannot write to %s: move the game to a folder you can write to.",
+	"failed": "The update did not install: this version stays.",
+	"setup_steps": "Setup has %d steps to run again after a change.",
+	"setup_download": "They download %s.",
+	"setup_download_some": "They download new data.",
+	"data_inside": "The data folder is inside the game's folder: choose another data folder in setup, then update.",
+	"stuck": "The update could not put the old version back: move %s back to %s.",
+	"setup_steps_one": "Setup has 1 step to run again after a change."
+}

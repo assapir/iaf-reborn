@@ -122,6 +122,10 @@ Running setup again is how you add or redo things. The last run's inputs are kep
 fills its pages from them; the CLI uses them when no ISO is given, plus the options given). Add an extra, for example
 `--imagery sentinel2`, and only its steps and the steps that wait for them run.
 
+On each start the game itself looks for steps whose stamps no longer hold (a new version changed their code, or
+added a step) and offers to run them: a line with Update / Later, the size of any new download first; Update runs
+those steps in the wizard with its progress and goes on to the menu ([release.md](release.md) §7.2).
+
 ### A step's sources
 
 New code redoes only the steps whose sources changed, and the steps that wait for them. Each stamped step lists its

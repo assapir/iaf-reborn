@@ -9,6 +9,7 @@ extends Control
 const Look := preload("res://menu/look.gd")
 const Fly := preload("res://flight/fly.gd")
 const Wizard := preload("res://setup/wizard.gd")
+const Updater := preload("res://shared/util/updater.gd")
 const SoundBuses := preload("res://shared/audio/sound_buses.gd")
 const SoundTable := preload("res://shared/audio/sound_table.gd")
 const KeysScreen := preload("res://menu/keys_screen.gd")
@@ -90,6 +91,7 @@ const PREFS := [
 		]
 	],
 	["language", [["language", "segments"]]],
+	["updates", [["update_check", "switch", []]]],
 	[
 		"sound",
 		[
@@ -213,6 +215,9 @@ func _ready() -> void:
 		_fit_overlay()
 		get_viewport().size_changed.connect(_fit_overlay)
 		show_page({"pref": "prefs", "done": "accomplished"}.get(screen, "pause"))
+		return
+	# The update on start (docs/release.md §7): a newer nightly, setup steps to run again; the update's own start.
+	if Updater.start(get_tree()):
 		return
 	# A release bundle starts here: without the sim's data, or with --setup, its setup wizard (./start-modern-iaf and
 	# ./modern-iaf-setup do this in the checkout).

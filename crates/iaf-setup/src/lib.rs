@@ -19,6 +19,7 @@ mod saved;
 mod sim;
 mod stamp;
 mod steps;
+pub mod update;
 
 pub use checks::{CdKind, PackInfo, Tools, check_cd, check_pack, check_patch, python, scan, tools};
 pub use saved::{from_json, inputs_file, load_inputs, save_inputs, to_json};
@@ -382,18 +383,23 @@ pub(crate) fn adopt_with(steps: &[Step], stamp: &StampFn, verify: &dyn Fn(&Step)
 
 /// `preview` with the stamps of `stamp`.
 pub(crate) fn preview_with(steps: &[Step], stamp: &StampFn) -> Vec<(&'static str, bool)> {
+    stamped_with(steps, stamp).into_iter().map(|(id, up)| (id, up == Some(true))).collect()
+}
+
+/// `preview_with`, with None for a step that keeps no stamp (it decides for itself whether it runs).
+pub(crate) fn stamped_with(steps: &[Step], stamp: &StampFn) -> Vec<(&'static str, Option<bool>)> {
     let mut texts: HashMap<&'static str, String> = HashMap::new();
     steps
         .iter()
         .map(|step| {
             let Ok(Some(mut s)) = stamp(step) else {
                 texts.insert(step.id, "ran".into());
-                return (step.id, false);
+                return (step.id, None);
             };
             s.text += &after_lines(&step.after, &texts);
             let up = s.holds();
             texts.insert(step.id, s.for_dependents());
-            (step.id, up)
+            (step.id, Some(up))
         })
         .collect()
 }

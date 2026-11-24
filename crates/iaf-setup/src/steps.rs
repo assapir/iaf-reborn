@@ -64,9 +64,9 @@ pub fn disk_bytes(p: &Path) -> u64 {
 
 /// The launcher step's script under the repo.
 #[cfg(not(windows))]
-const LAUNCHER: &str = "tools/install-launcher.sh";
+pub(crate) const LAUNCHER: &str = "tools/install-launcher.sh";
 #[cfg(windows)]
-const LAUNCHER: &str = r"tools\windows\install-launcher.ps1";
+pub(crate) const LAUNCHER: &str = r"tools\windows\install-launcher.ps1";
 
 /// The launcher step's command: tools/install-launcher.sh (it reads XDG_DATA_HOME itself).
 #[cfg(not(windows))]

@@ -232,6 +232,13 @@ once into its kept 20 m extract, `<tile>_20m.tif`, [terrain.md](terrain.md) §1.
 and read only while one of the terrain's Sentinel-2 units is still to do: a built theatre rebuilt for anything else
 (its photo, its code) fetches nothing (`sim_terrain::would_fetch`, the terrain row's "Nothing to download").
 
+### After a change
+
+On each start, `./start-modern-iaf` and the downloaded game look for steps whose stamps no longer hold (a new
+version changed their code, or added a step) and offer to run them: one line with Update / Later and the size of any
+new download. Update opens the wizard on Install, runs those steps with their progress and goes on to the Hangar
+([../../docs/release.md](../../docs/release.md) §7.2). Settings → Updates turns it off.
+
 ## 4. Sizes and times
 
 Measured on the developer's Linux laptop (Intel i7-1185G7, 8 threads), 3 November 2026 ([terrain.md](terrain.md) §7); the

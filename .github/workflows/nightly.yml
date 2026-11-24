@@ -31,6 +31,7 @@ jobs:
     outputs:
       build: ${{ steps.c.outputs.build }}
       last: ${{ steps.c.outputs.last }}
+      nightly: ${{ steps.c.outputs.nightly }}
     steps:
       - id: c
         env:
@@ -38,6 +39,8 @@ jobs:
         run: |
           last=$(gh api "repos/${{ github.repository }}/git/ref/tags/nightly" -q .object.sha 2>/dev/null || true)
           echo "last=$last" >>"$GITHUB_OUTPUT"
+          # One version stamp for every bundle and the manifest (tools/release/manifest.sh).
+          echo "nightly=$(date -u +%Y%m%d)+${GITHUB_SHA::7}" >>"$GITHUB_OUTPUT"
           if [[ "${{ github.event_name }}" == schedule && "$last" == "$GITHUB_SHA" ]]; then
             echo "main has not changed since the last nightly ($last)"
             echo build=false >>"$GITHUB_OUTPUT"
@@ -75,6 +78,7 @@ jobs:
       - name: Bundles
         env:
           IAF_TOOLS: ${{ runner.temp }}/tools
+          IAF_NIGHTLY: ${{ needs.changed.outputs.nightly }}
         run: |
           for p in modern-iaf iaf-reborn; do tools/release/bundle.sh "$p" "$RUNNER_TEMP/bundles"; done
           ls -l "$RUNNER_TEMP/bundles"
@@ -102,6 +106,10 @@ jobs:
           pattern: bundles-*
           path: bundles
           merge-multiple: true
+      - name: The manifest (the games' update on start reads it)
+        env:
+          IAF_NIGHTLY: ${{ needs.changed.outputs.nightly }}
+        run: tools/release/manifest.sh bundles && cat bundles/nightly.json
       - name: Replace the nightly pre-release
         env:
           GH_TOKEN: ${{ github.token }}

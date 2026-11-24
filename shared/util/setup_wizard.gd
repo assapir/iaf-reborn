@@ -36,6 +36,8 @@ var redo_check: CheckBox
 var log_view: TextEdit
 ## Started with --setup --install: the run starts at once and the game quits when it ends (_install_unattended).
 var unattended := false
+## Started by the front end's Update (_install_unattended): a finished run goes on to the front end.
+var then_front := false
 
 
 ## The common start, from the game's _ready: the window `window` (times the UI scale, centred), the pages' ids, the
@@ -229,7 +231,16 @@ func start_install() -> void:
 ## `--setup --install` (docs/release.md): the run starts at once on the saved choices (the last run's, else the
 ## defaults), every step's end state goes to the log, and the game quits when the run ends: 0 when it finished, 1 when
 ## it failed or did not start. A scripted setup, and the release bundles' setup check. Called at the end of _ready.
+## Also the front end's Update on a setup that changed (shared/util/updater.gd, Settings.setup_update): the run starts
+## at once on the Install page, with its progress, and a finished run goes on to the front end.
 func _install_unattended() -> void:
+	if Settings.setup_update:
+		Settings.setup_update = false
+		then_front = true
+		show_page(ids.find("install"))
+		await get_tree().process_frame
+		start_install()
+		return
 	if not ("--install" in OS.get_cmdline_args() or "--install" in OS.get_cmdline_user_args()):
 		return
 	unattended = true
@@ -296,6 +307,8 @@ func _process(_delta: float) -> void:
 				print("setup: step %s: %s" % [st.id, st.state])
 			print("setup: %s" % ("finished" if failed == "" else "failed: " + failed))
 			get_tree().quit(0 if failed == "" else 1)
+		elif then_front and failed == "":
+			get_tree().change_scene_to_file.call_deferred(Settings.front_end_scene())
 	_update()
 
 

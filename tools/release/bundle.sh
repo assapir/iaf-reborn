@@ -3,7 +3,8 @@
 # (target/release/libiaf_godot.*) and whose project is imported (godot --headless --path <project> --import):
 #   tools/release/bundle.sh <modern-iaf|iaf-reborn> <out dir>
 # Writes <out dir>/<project>-nightly-<linux-x86_64.tar.gz|windows-x86_64.zip|macos-arm64.dmg> and prints its path.
-# The game's version: $IAF_VERSION, else tools/release/versions.txt's line + -nightly.<date>+<hash>.
+# The game's version: $IAF_VERSION, else tools/release/versions.txt's line + -nightly.$IAF_NIGHTLY (default
+# <date>+<hash>: the nightly workflow passes one for all bundles, which manifest.sh lists).
 # Needs Godot (GODOT, default godot) with its export templates; on macOS codesign and hdiutil, on Windows 7z.
 # $IAF_TOOLS: a folder made by tools/release/tools_env.sh (GDAL and curl for setup), copied in as tools/.
 # On macOS it imports the project again with ETC2 / ASTC textures (Apple silicon's) and leaves that import in its
@@ -26,7 +27,7 @@ iaf-reborn)
 *) echo "unknown project: $project" >&2; exit 2 ;;
 esac
 base=$(awk -v p="$project" '$1 == p {print $2}' tools/release/versions.txt)
-version=${IAF_VERSION:-$base-nightly.$(date -u +%Y%m%d)+$(git rev-parse --short HEAD)}
+version=${IAF_VERSION:-$base-nightly.${IAF_NIGHTLY:-$(date -u +%Y%m%d)+$(git rev-parse --short HEAD)}}
 case $(uname -s) in
 Linux) os=linux preset=Linux ext=tar.gz arch=x86_64 ;;
 Darwin) os=macos preset=macOS ext=dmg arch=arm64 ;;

@@ -173,3 +173,82 @@ IAF_ASSETS_DIR=<built data> tools/release/smoke.sh <bundle> --quit-after 3000 --
   into a data folder that holds only the built terrain (so the offline steps run: units and weapons, flight data,
   sounds and voices, airbases, missions; scenery and textures left out); a mission flown on the laptop's data.
 - Windows: the workflow's smoke run.
+
+## 7. Updates on start
+
+On each start, both games look for two things and show one line at the top of the screen with **Update** and
+**Later** (en / he, `shared/util/update_strings_*.json`) when they find one. The user's request (24 November 2026):
+"we need to add auto update on startup for released assests", then "same for setup". Preferences' "Check for updates
+on start" (`Settings.update_check`, on by default; Modern IAF: Preferences → Updates, Jane's IAF reborn: Extras →
+"Updates on start") turns both off. Scripted runs (`IAF_DEFAULT_SETTINGS=1`) and `--mission` runs check nothing.
+The logic is Rust's (`crates/iaf-setup/src/update.rs`, through `IafSetup`); `shared/util/updater.gd` shows it.
+Each game's first screen calls `Updater.start` (Modern IAF `menu/front_end.gd`, Jane's IAF reborn `menu/startup.gd`).
+
+### 7.1 A newer nightly (a bundle only)
+
+1. The game reads the release's `nightly.json` (`<release>/nightly.json`, one HTTPS request with the User-Agent
+   `IAF-update` and an 8 s timeout). Offline, or without the file: no line, the game goes on. The checkout's
+   version is `dev` and checks no release.
+2. `update::pick` takes this game's download for this system from the manifest; `update::newer` compares its version
+   with the game's own: a later base, then a later day; on the same base and day a different build (the nightly is
+   the latest one). Never from or to a version that is not a nightly's. A second run of the workflow on the same day
+   is newer by this rule; so is an older commit published again that day (a re-run of an old ref): the release then
+   holds that build, and the game takes it, as the release is what the nightly is.
+3. **Update** first refuses, with one line, when the data folder is inside the game's folder (it would go with the
+   old version), and removes an earlier update's leftovers beside the game's folder (`update::cleanup`). It then
+   downloads it into the per-user folder's `updates/` (`Settings.data_home()`), with the percentage on the
+   line, while a shade over the screen holds the game. `update::verify` checks its size and SHA-256 against the
+   manifest; a mismatch deletes the file and the line says the update failed.
+4. `update::unpack` unpacks it beside the game's folder, into `.<folder>.update/` (Linux: `tar`; Windows: the zip,
+   in Rust; macOS: the disk image attached read-only and the app copied with `ditto`, which keeps its signature).
+   When the game's folder's parent is not writable (an app run from the disk image, or translocated by macOS), the
+   line says to move the game to a folder the player can write to.
+5. The game starts the unpacked copy with `--update-apply <game folder> --update-pid <its pid>` and quits. Every
+   program the update starts runs in the game's folder's parent (`update::launch`), never inside the game's folder:
+   on Windows a program's working folder cannot be moved. The copy waits in Rust for the old game's process to end
+   (`update::wait_exit`, 60 s at most: `ps` on Linux and macOS, where an ended process not yet reaped counts as
+   ended; `tasklist` on Windows); when it still runs, the
+   copy starts it again with `--update-failed`. Then `update::swap`: the game's folder becomes `.<folder>.old/`
+   (tried again for up to 30 s, as Windows keeps a folder locked a moment after its program quit) and the new
+   version is copied into the game's folder; a failed copy puts the old one back. A swap is refused while an
+   earlier `.<folder>.old/` is still there. A failed update deletes its download.
+6. The copy starts the game again from its folder with `--update-done --update-pid <its pid>` and waits for it to
+   write `updates/started-<project>` (one file per game, as both share the per-user folder; `update::start_and_wait`
+   keeps the program's handle). A start that is slow but alive (macOS's first-launch check) is waited for up to
+   10 minutes, then stopped. When the new version ends or is stopped without writing the file, `update::rollback`
+   moves it aside to `.<folder>.failed/`, puts the old one back and starts it with `--update-failed`: its line says
+   the update did not install. When the old one cannot be put back (also after a copy whose own rollback failed), the
+   copy stays open and its line says which folder to move back where. The swap and the wait run on threads, so the
+   copy's window keeps drawing.
+7. The new version, once the copy has quit, removes `.<folder>.old/`, `.<folder>.update/` and
+   `.<folder>.failed/` (`update::cleanup`, on its own thread; never the folder the program runs from). The data
+   folder is never touched.
+
+The manifest is written by `tools/release/manifest.sh` in the workflow's publish job: every bundle's name, version,
+size and SHA-256. The workflow's `changed` job sets one `IAF_NIGHTLY=<YYYYMMDD>+<hash>` for all bundles and the
+manifest, so their versions agree. `$IAF_UPDATE_URL` replaces the release: a URL, or a folder that holds a
+`nightly.json` and the bundles (a local release, as the test uses).
+
+### 7.2 Setup steps to run again (a bundle and the checkout)
+
+After the release check (or without one), `update::setup_stale` (IafSetup job `setup_stale`) finds the steps of
+the last run's choices whose stamps no longer hold: their code or inputs changed, or a newer version added a step
+([setup.md](setup.md) "Running only what changed"). The check only reads: it moves and adopts nothing (the wizard's run does that). A user's own file (the CD image,
+the patch, the Hebrew packs) keeps its stamp's line while its size is the one listed, so no start reads a whole CD
+image; a file that moved or changed size is read, and its step then shows when it would run again. Steps that keep
+no stamp of their own decide for themselves (imagery, the scenery's
+fetch, the guides) and are left out, as is the launcher in a bundle. Before the first setup it finds nothing (the
+game opens the wizard anyway). The line gives the number of steps and, when one of them would download a source that
+is not on the disk yet, its size (Modern IAF's scenery and textures from their pinned sizes, the terrain's tiles as
+"new data", the remake's F-15 sources). **Update** opens the setup wizard on its Install page and starts the run at
+once (`Settings.setup_update`); a finished run goes on to the front end, a failed one stays on the page with its log.
+Nothing on the disk is downloaded again: the steps' sources stay under `assets/source` by name.
+
+### 7.3 Checks
+
+- `cargo test -p iaf-setup update`: the version compare, the manifest's pick, the size and SHA-256 check, the swap
+  (refused over an old folder), rollback and cleanup, a process waited for and one started in another folder, a
+  Linux bundle unpacked.
+- `modern-iaf/tests/test_update.gd` (headless, offline): an older nightly against a local release folder finds the
+  newer one, downloads, checks and unpacks it beside a scratch game folder, and the swap puts it in place; a wrong
+  SHA-256 is refused; with no newer one, setup's check on a scratch data folder shows its steps.
