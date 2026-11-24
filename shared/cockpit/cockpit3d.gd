@@ -106,7 +106,6 @@ var _ded_mat: StandardMaterial3D  # the F-16's DED screen (_attach_display): dar
 var _pfl_mat: StandardMaterial3D  # the F-16's pilot fault list (_attach_display)
 var _rwr_mat: StandardMaterial3D  # the F-16's threat warning azimuth display (_attach_display)
 var _rwr_seeded := false  # its BRT knob set to its start (_lighting)
-var _split := -1.0  # the scene's first shadow split (_sun_split)
 ## The pilot's body whose left glove follows the throttle's grip (_pilot_throttle); null without one.
 var _pilot: MeshInstance3D
 ## The pilot's body (its glTF's root), hidden while the head leans off the seat (show_body).
@@ -397,10 +396,11 @@ func _materials(model: Node3D, path: String, barak_jet: bool) -> void:
 ## the panel face under the glareshield came out at sRGB 9-14, black with its labels floating; at 1.6 about 25 and
 ## the side walls about 55, as a web F-16 and the photos show it (dark grey, its surface and screws seen); at 2.0 the
 ## keypad's grey keys washed out and the gauges' black faces turned grey. The sun itself lights what it reaches through
-## the canopy, its shadows sharp in the cockpit (_sun_split).
+## the canopy, its shadows sharp in the cockpit (SPLIT_M).
 const FILL := 1.6
-## The sun's first shadow split while the cockpit is drawn (m at the model's scale; the scene's is 40 m): the
-## glareshield's, the HUD's, the stick's and the canopy sills' shadows sharp on the panel, the consoles and the floor.
+## The sun's first shadow split while the cockpit is drawn in the flight's world (m at the model's scale; set by
+## terrain_view.gd _shadow_fit): the glareshield's, the HUD's, the stick's and the canopy sills' shadows sharp on the
+## panel, the consoles and the floor.
 const SPLIT_M := 4.0
 const FLOOD := Color(0.45, 0.34, 0.18)
 const FLOOD_ENERGY := 0.9
@@ -602,7 +602,6 @@ func _backlight_on(on: bool) -> void:
 
 
 func _lighting() -> void:
-	_sun_split()
 	if _tinted:  # the plate's own green by day only (cockpit.night is set after setup)
 		(_glass.material_override as StandardMaterial3D).emission_enabled = not cockpit.night
 	var c := Color.BLACK
@@ -745,18 +744,6 @@ func ext_lights() -> Dictionary:
 	e.ar = clampf(_knob(EXT + "ar-knob"), 0.0, 1.0) if on and _knob("systems/refuel/switch") > 0.5 else 0.0
 	e.land = roundi(_knob("controls/lighting/landing-light")) if cockpit.power >= 2 else 0
 	return e
-
-
-## The sun's first shadow split pulled in to the cockpit (SPLIT_M) while it is drawn, the scene's otherwise.
-func _sun_split() -> void:
-	if _sun == null:
-		return
-	if _split < 0.0:
-		_split = _sun.directional_shadow_split_1
-	var inside := is_visible_in_tree() and camera.current
-	_sun.directional_shadow_split_1 = (
-		SPLIT_M * global_basis.get_scale().x / _sun.directional_shadow_max_distance if inside else _split
-	)
 
 
 ## The MFD node drawn into a SubViewport shown on `screen` (emissive, under the glass's sheen).
@@ -939,8 +926,6 @@ func release() -> void:
 		cockpit.hud_on_glass = false
 		cockpit.zoom = minf(cockpit.zoom, cockpit.ZOOM_MAX)  # the zoom past true size is the 3D cockpit's only
 		cockpit.hud.modulate.a = 1.0  # the BRT wheel's (_lighting)
-	if _sun != null and _split >= 0.0:
-		_sun.directional_shadow_split_1 = _split
 
 
 func _process(delta: float) -> void:

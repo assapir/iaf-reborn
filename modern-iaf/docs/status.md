@@ -1039,6 +1039,12 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   the near buildings casting them; +0.5 ms on the Iris Xe ([scenery.md](scenery.md) §7). `test_scenery.gd`. Open: at
   the Shoham pose the change is small (the sun behind the camera), so the reference's shaded street sides are still
   apart.
+- **The jet's shadow sharp (2026-11-25, the 19–20 Nov look pass's "jet shadow pixelated"):** past 40 m from the
+  camera a jet's shadow fell in the sun's second shadow cascade (15 cm a texel with Long shadows) and showed blocky.
+  The outside views now fit the first cascade to the followed jet and its shadow on the ground, so from 60 m and at a
+  low pass it is about twice as fine; no measurable GPU cost on the Iris Xe
+  ([../../docs/rendering.md](../../docs/rendering.md) §3.1 "The first split"). Within 40 m the shadow keeps its 3 cm
+  texels: finer needs the 8192 atlas, +1.7 ms on the Iris Xe, over the budget. `_jet_shadow_shot.gd`.
 - **The cockpit holds still (2026-11-09, the Mac play test's finding 25):** far from the flight's start the whole
   cockpit jumped against the eye (32-bit floats: 3.1 mm steps 30 km out, 4.4 mm at 60 km). The sim draws the cockpit
   in its own world about the origin and lays it over the flight's view ([cockpit.md](cockpit.md) §6.2): it no longer

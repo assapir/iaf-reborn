@@ -1322,12 +1322,46 @@ sentinel2 imagery, at 1920×1080:
 shadows", on by default; 2026-11-09, the look study's proposal 5). Original keeps the scene's sun shadows: 400 m from
 the camera, splits at 10 / 25 / 55 % (40 m, 100 m, 220 m). Far (`terrain_view.gd` `_shadow_reach`) reaches 2.5 km,
 splits at 40 m, 200 m and 750 m, and lets the scenery's near building model cast shadows (scenery.md §3), so a town's
-blocks shade their streets seen from a flying jet. The first split stays 40 m; the 3D cockpit still pulls it in to
-4 m while it is drawn (`cockpit3d.gd` `_sun_split`, divided by the reach). The building shaders pick the near or far
+blocks shade their streets seen from a flying jet. The first split is the scene's 40 m; the views fit it (next
+paragraph). The building shaders pick the near or far
 model by the main camera's distance (`MAIN_CAM_INV_VIEW_MATRIX`), so the shadow pass draws the same buildings as the
 view. Cost on the Iris Xe at 2560 × 1440 over Tel Aviv at 500 m, measured with vsync forced on (the GPU time agrees:
 +0.54 ms): +0.5 ms a frame (1.5 %), +40 draw calls, +125 k primitives, no video memory (the 4096² atlas is the
 same); pictures and the runs in [modern-iaf/docs/scenery.md](../modern-iaf/docs/scenery.md) §7.
+
+**The first split** (ours, 2026-11-25; `terrain_view.gd` `_shadow_fit`, both reaches, both games). Godot fits each
+shadow cascade to a sphere round its slice of the view, so the first cascade's texel is about 1.5 × its split ÷ 2048
+(the 4096 atlas holds four 2048 px cascades): 3 cm at 40 m. Past the first split a jet's shadow fell in the second
+cascade, 15 cm a texel with Far's 200 m (8 cm with Original's 100 m), and showed blocky: a jet seen from 60 m, a
+wingman beside the player's jet, the shadow of a low pass. Each frame the first split is now set:
+
+- in an external view: 10 m past the followed object's shadow on the ground (the object projected along the sun's
+  light to the ground), or past the object itself when its shadow lies beyond the cap below; the scene's split when
+  the object too lies beyond it (a far view gains nothing from a larger first cascade); rounded up to a power of
+  1.1, so that the cascade's size steps rather than moving every frame (a cascade that changes size makes the shadow
+  edges crawl); at least 20 m, at most 0.8 of the second split;
+- in the 3D cockpit drawn in the flight's world (the 1998 game's Extras "Cockpit": 3D): 4 m × the Present scale,
+  so the canopy sills', the HUD's and the stick's shadows fall sharp on the panel (cockpit.md "3D cockpit"); Modern
+  IAF, and the 1998 game's 3D cockpit while the 3D view is upscaled, draw the cockpit in its own world with its own
+  sun (cockpit_origin.gd) and keep the scene's 40 m outside;
+- else the scene's split (40 m).
+
+Measured on the Iris Xe at 1920 × 1080, Modern IAF, Ramon's runway with the Sufa and its wingman, Long shadows on
+(`modern-iaf/tests/_jet_shadow_shot.gd`; `SHADOW_AB=1` times the fitted split against the scene's in turns, the frame
+held still): chase 15 m, split 34 m, GPU 22.64 ms with the scene's split and 22.69 ms fitted; chase 30 m, 45 m,
+23.89 / 24.13 ms; side 60 m, 73 m, 25.45 / 25.43 ms; above 120 m, 107 m, 27.14 / 27.16 ms; a low pass 40 m over the
+ground, 129 m, 21.86 / 21.84 ms. The differences are inside the run-to-run spread (load average 7–10 from parallel
+builds); no memory is added. The jet's shadow from 60 m and at the low pass is about twice as fine; within 40 m the
+split hardly moves, so the shadow there keeps its 3 cm texels.
+
+Tried and dropped (2026-11-25):
+
+- The 8192 atlas (4096 px cascades): the shadow at a 30 m chase clearly sharper, but +1.6 to +1.8 ms on the Iris Xe
+  (chase 30 m 22.1 → 23.9 ms, side 60 m 24.7 → 26.3 ms, in turns in one run), over the 1 ms budget.
+- A wider PCF blur (`shadow_blur` 1.0 to 2.0, the scene's is 0.5): no cost, the steps smoothed, but at 1.5 and over
+  the soft filter's noise shows and the shadow loses its edge; kept at 0.5.
+- The first split at the followed jet + 25 m: at a 30 m chase the split went to 59 m and the shadow came out no finer
+  than the scene's 40 m.
 
 ### 3.2 The 3D cockpit (Extras "Cockpit": 3D; cockpit.md "3D cockpit")
 

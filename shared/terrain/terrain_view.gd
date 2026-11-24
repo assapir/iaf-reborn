@@ -349,6 +349,7 @@ func _ready() -> void:
 	# Graphics page SHADOWS (our renderer's sun shadows; the original's shadow method is not used).
 	($Sun as DirectionalLight3D).shadow_enabled = Settings.shadows
 	_shadow_reach()
+	_split_1 = ($Sun as DirectionalLight3D).directional_shadow_split_1
 	for i in keys.size():
 		var c := int(keys.records[i].press[0])
 		# Our switch keys count as held where the record has a release (the SPD BRK switch's close key has none; the
@@ -662,8 +663,18 @@ func time_of_day() -> float:
 	return 39600.0 + _sim_time
 
 
-## Shadow reach Far (Settings.shadow_reach): the sun's shadows to 2.5 km, the splits at 40 m (the scene's first, the
-## 3D cockpit pulls it in: cockpit3d.gd _sun_split), 200 m and 750 m. Original keeps the scene's 400 m.
+## The scene's first shadow split (after _shadow_reach) and the external views' fit of it (_shadow_fit): m beyond the
+## followed object or its shadow (about half a jet's length), rounded up to a power of SHADOW_FIT_STEP, at least
+## SHADOW_FIT_MIN m, at most SHADOW_FIT_CAP of the second split.
+var _split_1 := 0.0
+const SHADOW_FIT_M := 10.0
+const SHADOW_FIT_MIN := 20.0
+const SHADOW_FIT_CAP := 0.8
+const SHADOW_FIT_STEP := 1.1
+
+
+## Shadow reach Far (Settings.shadow_reach): the sun's shadows to 2.5 km, the splits at 40 m (the scene's first; the
+## views fit it: _shadow_fit), 200 m and 750 m. Original keeps the scene's 400 m.
 func _shadow_reach() -> void:
 	if Settings.shadow_reach != "far":
 		return
@@ -2471,6 +2482,33 @@ func _apply_view() -> void:
 		if (pose[1] - pose[0]).length() > 0.01:
 			var up := Vector3.UP if absf((pose[1] - pose[0]).normalized().y) < 0.999 else Vector3.FORWARD
 			chase.look_at(pose[1], up)
+	_shadow_fit(inside, pose)
+
+
+## The sun's first shadow split (ours, docs/rendering.md §3.1 "The first split"), set each frame. In an external view:
+## SHADOW_FIT_M past the followed object's shadow on the ground, or past the object itself when the shadow lies beyond
+## SHADOW_FIT_CAP of the second split; the scene's when the object too lies beyond it (a far view gains nothing from a
+## larger first cascade). The jet's shadow so takes the first cascade's fine texels at the chase distances. In the 3D
+## cockpit drawn in the flight's world: Cockpit3d.SPLIT_M (its shadows sharp on the panel). Else the scene's (_split_1).
+func _shadow_fit(inside: bool, pose: Array) -> void:
+	var sun := $Sun as DirectionalLight3D
+	var split := _split_1
+	if not inside and not pose.is_empty():
+		var top := sun.directional_shadow_split_2 * sun.directional_shadow_max_distance * SHADOW_FIT_CAP
+		var near := (pose[1] - pose[0]).length() as float + SHADOW_FIT_M
+		var far := near
+		var dir := -sun.global_basis.z  # the light's travel
+		var g = scene_ground(pose[1])
+		if g != null and dir.y < -0.05 and pose[1].y > g:
+			far = maxf(near, (pose[1] + dir * ((pose[1].y - g) / -dir.y) - pose[0]).length() + SHADOW_FIT_M)
+		var d := far if far <= top else near
+		if d <= top:
+			# Whole SHADOW_FIT_STEP steps: a split moving each frame would resize the cascade and its edges would crawl.
+			var m := pow(SHADOW_FIT_STEP, ceilf(log(d) / log(SHADOW_FIT_STEP)))
+			split = clampf(m, SHADOW_FIT_MIN, top) / sun.directional_shadow_max_distance
+	elif inside and cockpit_3d != null and cockpit_origin == null and cockpit_3d.is_visible_in_tree():
+		split = Cockpit3d.SPLIT_M * cockpit_3d.global_basis.get_scale().x / sun.directional_shadow_max_distance
+	sun.directional_shadow_split_1 = split
 
 
 ## The followed object of an external view is gone: circle its last position, cockpit after 6 s

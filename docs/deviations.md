@@ -36,7 +36,7 @@ Each row: Original = the 1998 game; Ours = this port, for everyone.
 | Parachuter | freezes at "land − 10 s" (factor 4) | descends to 20 m AGL | original bug; flight has ended by then in single player | part-animation.md |
 | Frame-rate-dependent effects | canopy spin 10°/frame, smoke puffs once per frame, flame flicker per frame | time-based (smoke 30 Hz) except the flame flicker | same look at any frame rate | damage.md, aircraft.md |
 | Explosions, smoke, afterburner flame | 1998 sprites / blend modes (partly not decoded) | our soft billboards / additive glow, original sizes and timings | rendering | damage.md §6, aircraft.md |
-| Shadows | the original's shadow method | Godot sun shadows (4096 atlas, 4 cascades to 400 m, soft filter); Graphics SHADOWS turns them off | rendering | terrain_view.tscn |
+| Shadows | the original's shadow method | Godot sun shadows (4096 atlas, 4 cascades to 400 m, soft filter; in the outside views the first cascade fitted to the followed object and its shadow, rendering.md §3.1 "The first split"); Graphics SHADOWS turns them off | rendering | terrain_view.tscn |
 | Shatter pieces (flag 0x2) | one per model polygon; > 6 vertices = large | one per triangle of our model (max 600, else neighbours together); largest 10 % = large; a flared piece stays drawn | our models are triangulated / subdivided | damage_effects.gd `_shatter_model` |
 | Resting debris (explosion flag 0x1000) | pieces stop at the explosion altitude − 0.5 m | on the terrain under each piece | a low explosion (up to 10.5 m above ground) or a slope left pieces hanging in the air | damage_effects.gd `_update_pieces` |
 | Hit shake | flight-model side not traced | 2° camera shake for 0.5 s | stand-in | damage.md |

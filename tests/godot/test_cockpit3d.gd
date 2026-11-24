@@ -193,6 +193,19 @@ func _three_d(variant: String, pages_2d: Array) -> void:
 		jet_rel.z < -0.4 and jet_rel.z > -0.9 and absf(jet_rel.x) < 0.02 and absf(jet_rel.y) < 0.15,
 		"%s 3D: the combiner %.2f m ahead of the eye, %.2f m up (%s)" % [variant, -jet_rel.z, jet_rel.y, rel]
 	)
+	# The sun's first shadow split (terrain_view.gd _shadow_fit): 4 m × the scale in the 3D cockpit, past the jet outside.
+	var sun: DirectionalLight3D = tv.get_node("Sun")
+	var split := func() -> float: return sun.directional_shadow_split_1 * sun.directional_shadow_max_distance
+	var inner: float = split.call()
+	tv.in_cockpit = false
+	await frames(3)
+	var outer: float = split.call()
+	tv.in_cockpit = true
+	await frames(3)
+	check(
+		is_equal_approx(inner, c3.SPLIT_M * c3.global_basis.get_scale().x) and outer >= 20.0 and split.call() == inner,
+		"%s 3D: the first shadow split %.1f m in the cockpit, %.1f m outside" % [variant, inner, outer]
+	)
 	check(
 		c.mfds.all(func(m): return m.get_parent() is SubViewport and m.screen_px > 0.0),
 		"%s 3D: each MFD draws into its screen's SubViewport" % variant

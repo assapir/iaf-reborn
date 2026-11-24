@@ -8,7 +8,7 @@
 # view by a full-screen quad in that view (cockpit_composite.gdshader), so the flight's exposure and tonemap apply.
 #   - `rig`: the cockpit world's stand-in for the flight's rig (own_bc's parent), at the origin with the rig's basis;
 #   - `camera`: the cockpit world's eye (cockpit3d.gd projects the HUD glass and the screens' clicks through it);
-#   - the Sun: the flight's sun copied each frame (the cockpit's shadows; cockpit3d.gd pulls its first split in);
+#   - the Sun: the flight's sun copied each frame (the cockpit's shadows, one orthogonal map over SHADOW_M);
 #   - the environment: the flight's (the same ambient light and sky), without fog, tonemap or glow (the flight's apply).
 # The flight's world keeps its lights for itself: a light there (a flare, a muzzle flash, the airbase lamps) does not
 # reach the cockpit (inferred: none is near enough to matter for the cockpit's own lit panels).

@@ -907,13 +907,14 @@ occlusion, 2.0 MB; built by
   real-hud.md). Cost (`_flight_bench.gd`, Iris Xe, 1920×1080, `BENCH_SET=cockpit_3d=3d`,
   2026-11-01): GPU +0.3 ms at 150 m, +0.2 ms at 1,500 m by day, none at night; the backlit labels' pass: rendering.md
   §3.2.
-* **The sun's shadows** (2026-11-02; `cockpit3d.gd` `_sun_split`): the scene's sun (`terrain_view.tscn` `Sun`, four
-  shadow splits over 400 m, the 4096 px atlas, rendering.md §3.1) always shadowed the cockpit, but its first split
-  reached 40 m: 2 cm a texel, the shadows a blur the fill drowned. While the 3D cockpit is drawn (the cockpit views)
-  the first split ends at 4 m (`SPLIT_M`, × the Present scale): about 2 mm a texel, so the canopy sills, the seat,
-  the HUD posts, the glareshield and the stick throw sharp shadows on the panel, the consoles and the floor, from
-  where the sun is, moving as the jet turns. The second split then reaches from 4 m to its
-  100 m (the ground near the jet a little softer); the outside views keep the scene's splits. With the paint lifted
+* **The sun's shadows** (2026-11-02; `cockpit3d.gd` `SPLIT_M`, set by `terrain_view.gd` `_shadow_fit`): the
+  scene's sun (`terrain_view.tscn` `Sun`, four shadow splits over 400 m, the 4096 px atlas, rendering.md §3.1) always
+  shadowed the cockpit, but its first split reached 40 m: 2 cm a texel, the shadows a blur the fill drowned. While the
+  3D cockpit is drawn (the cockpit views) the first split ends at 4 m (`SPLIT_M`, × the Present scale): about 2 mm a
+  texel, so the canopy sills, the seat, the HUD posts, the glareshield and the stick throw sharp shadows on the panel,
+  the consoles and the floor, from where the sun is, moving as the jet turns. The second split then reaches from 4 m
+  to its 100 m (the ground near the jet a little softer); the outside views fit the first split to the followed jet
+  and its shadow (rendering.md §3.1 "The first split"). With the paint lifted
   (above), a sunlit panel reads light grey and a shaded one darker grey, as in the photos; the fill keeps the shade
   readable. The sun casts no shadows before 08:00 and after 17:00 (the original's SHADOWS hours, rendering.md §4) nor
   with Graphics SHADOWS off: then it lights the cockpit unshadowed, as before.
