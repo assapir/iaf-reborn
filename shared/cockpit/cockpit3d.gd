@@ -1811,6 +1811,8 @@ const LOX_TEST_LPS := 2.0
 ## Below this rpm the engine's bleed air does not turn the EPU and hydrazine helps it (inferred from the EPU check's
 ## "advance the throttle to idle rpm plus 10 percent", T.O. GR1F-16CJ-1 p. 2-19).
 const EPU_BLEED_RPM := 0.8
+## The generators on line from this rpm (start.rs JFS generator_rpm, 52 %).
+const EPU_GEN_RPM := 0.52
 
 var _lox := LOX_FULL_L
 var _hydrazine_min := EPU_FULL_MIN
@@ -1876,7 +1878,12 @@ func audio_gain(name: String) -> float:
 func _epu(delta: float, ground: bool) -> void:
 	var pos := roundi(_knob(EPU_SW))  # 0 OFF, 1 NORM, 2 ON
 	var flags: Array = cockpit.damage_flags
-	var gens_out: bool = cockpit.power == 1 or (flags.size() > 21 and bool(flags[21]))
+	# The generators off line: in Modern IAF (per-system power, cockpit.systems) the engine below their 52 % with main
+	# power on (start.rs JFS generator_rpm; not the displays' power, which the running EPU itself holds in the air);
+	# in the original game the battery's power, as before; or both failed.
+	var rpm_low := float(cockpit.state.get("rpm", 0.0)) < EPU_GEN_RPM
+	var low: bool = rpm_low if not cockpit.systems.is_empty() else cockpit.power == 1
+	var gens_out: bool = (cockpit.power >= 1 and low) or (flags.size() > 21 and bool(flags[21]))
 	_epu_armed = pos >= 1 or (_epu_armed and not ground)
 	var cmd: bool = cockpit.power >= 1 and (pos == 2 or (not ground and gens_out and _epu_armed))
 	var bleed := _phase() == "running" and float(cockpit.state.get("rpm", 0.0)) >= EPU_BLEED_RPM
@@ -1884,6 +1891,10 @@ func _epu(delta: float, ground: bool) -> void:
 	if hyd:
 		_hydrazine_min = maxf(_hydrazine_min - delta / 60.0, 0.0)
 	epu = {"commanded": cmd, "hydrazine": hyd, "run": cmd and (bleed or _hydrazine_min > 0.0)}
+	# The flight model holds the displays' power on the running EPU in the air (IafFlight.set_epu).
+	var tv := _tv()
+	if tv != null and tv.get("flight") != null and tv.flight.has_method("set_epu"):
+		tv.flight.set_epu(bool(epu.run))
 
 
 ## The ILS receiver powered (its AUDIO 2 knob off its OFF stop).

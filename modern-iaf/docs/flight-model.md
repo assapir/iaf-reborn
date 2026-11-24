@@ -560,10 +560,19 @@ budget, a real flight. Open:
   The weights: 30 % of the internal fuel (a landing weight), full internal fuel, full fuel with 3 t of stores. The
   limits the test holds: a sink under the gear's design 10 ft/s (3.05 m/s, [damage.md](../../docs/damage.md) §5.2),
   a touchdown no faster than the final's speed, a stop on Ramat David's 2,934 m runway within its 44 m width (all
-  on the centreline), and at the landing weight a pitch under the tail strike's 15°. Open: above the landing weights
-  the flare ends at 15–19° of pitch (the Adir at full fuel), past the 15° of the tail strike; the game keeps the
-  original's landing limits while the autopilot lands, so the landing counts.
-  That touchdown passes because the game keeps
+  on the centreline), and at every weight a pitch under the tail strike's 15° (since 2026-11-25).
+  **The heavy final and the flare's pitch ceiling** (2026-11-25, `Jet::final_alpha_at`, `autopilot::FLARE_PITCH_MAX`):
+  above the landing weights the flare had ended at 15–19° of pitch (the Adir at full fuel 16.6°, with 3 t 17.7°),
+  past the 15° of the tail strike. Now the final's α falls from 13° at a landing weight (30 % of the internal fuel)
+  to 12° at full internal fuel and above, inside the manual's two ("arrive on final at 11 or 13 degrees AOA",
+  T.O. GR1F-16CJ-1 p. 2-23; 12° inferred: the pitch the heavier flare needs), and the flare stops pulling at
+  14.5° of pitch, 0.5° under the tail strike, with a 0.8 s lead on the pitch rate (its sum holds meanwhile). Every
+  case touches at 13.2–14.6° of pitch and 1.3–2.7 m/s of sink (the Sufa with 3 t: 14.4°, 1.75 m/s; the Adir at full
+  fuel 14.4°, 1.5 m/s), the heavy finals 8–16 kt faster. Tried and dropped (the test's 21 landings): the ceiling
+  alone at 13°–14.5° with gains of 20–100 /s² and leads of 0.5–1 s (the Sufa with 3 t at 3.1–4.4 m/s, the Adir
+  still at 15.0°); a heavy final at 11° (pitch 8–11°, but the heavy finals at 177–190 kt floated 270 m and the 1998
+  game's Sufa with 3 t touched at 3.26 m/s). The original model's flare is unchanged.
+  The touchdown passes also because the game keeps
   the original's landing limits while the autopilot lands, on both models (`set_ap_landing`). "No stalls" and "No
   spins" reach only reborn's model: the 6-DoF has no scripted stall or spin to block, and the sim fixes both off.
 * **Not modelled, one plain log line per run when the game asks** (`IafFlight`, no warning): the drag chute. No F-16
@@ -1030,6 +1039,16 @@ forum ("70 kt plus 3 kt per 1,000 lb of gross weight", 158 kt here, its chart un
 than both SAC figures and is not used. The F-16C/D's and F-16I's take-off speeds by weight are open (their
 performance supplements are not public).
 
+**The sim's jets' take-off rolls (2026-11-25, test `sim_jets_take_off_rolls_between_the_sacs`).** The finish list's
+"the Sufa lifts off after about 465 m at 180 kt" (a probe of 2026-11-03, before the rotation moved to 170 kt) was
+checked against public figures. With the same technique (maximum power, the pull at 170 kt to 12°) at full internal
+fuel: the Barak 1,415 ft (431 m) to 192 kt, the Sufa 1,672 ft (510 m) to 193 kt, the Adir 1,914 ft (583 m) to 195 kt,
+the Ra'am 1,729 ft (527 m) to 195 kt. Their thrust to weight, 0.90–1.15, lies between the two USAF SAC figures quoted
+by migflug.com[^sac-migflug]: the F-16A's 2,380 ft at 0.69 (which TP-1538's jet meets within 5 %, above) and the
+F-15C's 1,250 ft ground run at 45,713 lb with four AIM-7F (about 1.04 with two F100-PW-220); every roll lies between
+them, so the roll is not short: it follows from the thrust, which the SAC rolls validate. No F-16C/D, F-16I or F-35A
+roll by weight is public (open).
+
 **Tested and corrected (2026-11-03): two test setups.** The g test was first written as "9 ± 0.5 g at 450 kt"; there a
 9 g pull needs α ≈ 21°, the α limiter takes 2 g away and the jet pulls 7.6 g, which is figure 63's design: the test
 moved to 550 kt and states the limit. The roll test first trimmed by a pilot loop that settled at α 21–28° (roll times
@@ -1432,8 +1451,9 @@ second-hand 10° is used); the Sufa lands at 14.8–14.9° on the same law, clos
 [^mason-f35]: W. H. Mason, Virginia Tech, AOE 4065 aircraft data, F-35A (wheel track 14.24 ft, wheelbase 19.75 ft;
     the units unlabelled, feet by the overall length 51.41): https://archive.aoe.vt.edu/mason/Mason_f/F35ASpr11.pdf
 [^sac-migflug]: USAF Standard Aircraft Characteristics, F-16A Block 1–15 (March 1984): ground roll 3,725 ft at
-    intermediate and 2,380 ft at maximum power, 29,253 lb with two AIM-9J and two 370 US gal tanks; as quoted by
-    migflug.com, "Fighter Jet Takeoff and Landing: The Real Numbers" (the SAC itself not read):
+    intermediate and 2,380 ft at maximum power, 29,253 lb with two AIM-9J and two 370 US gal tanks; and F-15C
+    (February 1992): ground run 1,250 ft at 45,713 lb with four AIM-7F (its power setting unconfirmed there); as
+    quoted by migflug.com, "Fighter Jet Takeoff and Landing: The Real Numbers" (the SAC itself not read):
     https://migflug.com/afterburner/fighter-jet-takeoff-landing-distances-speeds-afterburner-drag-chute/
 [^ni-f16]: The National Interest, "What It's Like To Hit the Afterburner in an F-16 for the First Time" (a 150-knot
     rotation in an afterburner take-off; secondary): https://nationalinterest.org/node/175815

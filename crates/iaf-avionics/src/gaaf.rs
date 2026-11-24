@@ -23,9 +23,21 @@ pub const ALOW_FT: f64 = 300.0;
 
 /// GAAF (p. 1-313): gear up, above 50 ft AGL, descending at 960 fpm or more, and the height at or below the height
 /// lost in the recovery (reaction, the roll to wings level, the 4 g pull-up) plus the clearance buffer: above 375 KCAS
-/// 12.5 % of it + 50 ft, below 325 KCAS 25 % + 150 ft, linear between (p. 1-314). `ag`: an A-G HUD mode.
-pub fn advisory(agl_ft: f64, kcas: f64, tas_ms: f64, vs_fpm: f64, roll_deg: f64, gear_down: bool, ag: bool) -> bool {
-    agl_ft > 50.0 && advisory_height(kcas, tas_ms, vs_fpm, roll_deg, gear_down, ag).is_some_and(|h| agl_ft <= h)
+/// 12.5 % of it + 50 ft, below 325 KCAS 25 % + 150 ft, linear between (p. 1-314). `ag`: an A-G HUD mode. `agl_ft`
+/// is the CARA's radar height: None with the RDR ALT switch off (no advisory; inferred: the GAAF's height is the
+/// CARA's).
+pub fn advisory(
+    agl_ft: Option<f64>,
+    kcas: f64,
+    tas_ms: f64,
+    vs_fpm: f64,
+    roll_deg: f64,
+    gear_down: bool,
+    ag: bool,
+) -> bool {
+    agl_ft.is_some_and(|a| {
+        a > 50.0 && advisory_height(kcas, tas_ms, vs_fpm, roll_deg, gear_down, ag).is_some_and(|h| a <= h)
+    })
 }
 
 /// The height above the ground (ft) at which the GAAF advisory comes (`advisory`); None when GAAF is off (gear down,
@@ -47,9 +59,10 @@ pub fn advisory_height(kcas: f64, tas_ms: f64, vs_fpm: f64, roll_deg: f64, gear_
 }
 
 /// CARA ALOW's voice (p. 1-316): below the ALOW height `alow_ft` (`ALOW_FT`, or the DED's ALOW page); it stops above
-/// it, climbing faster than 1,200 fpm, with the gear handle down or below 15 ft.
-pub fn alow(agl_ft: f64, vs_fpm: f64, gear_down: bool, alow_ft: f64) -> bool {
-    (15.0..alow_ft).contains(&agl_ft) && vs_fpm <= 1200.0 && !gear_down
+/// it, climbing faster than 1,200 fpm, with the gear handle down or below 15 ft. `agl_ft` is the CARA's radar height:
+/// None with the RDR ALT switch off (no voice).
+pub fn alow(agl_ft: Option<f64>, vs_fpm: f64, gear_down: bool, alow_ft: f64) -> bool {
+    agl_ft.is_some_and(|a| (15.0..alow_ft).contains(&a)) && vs_fpm <= 1200.0 && !gear_down
 }
 
 /// CARA ALOW on the HUD (p. 1-316): the `AL` mnemonic and its readout flash below the ALOW height; they stop above
@@ -73,28 +86,35 @@ mod tests {
     fn dives() {
         // 45° at 413 kt: about 2,270 ft (the 2,300 ft bombing dive is just outside).
         let (v, vs) = dive(45.0, 413.0);
-        assert!(advisory(2200.0, 413.0, v, vs, 0.0, false, true));
-        assert!(!advisory(2400.0, 413.0, v, vs, 0.0, false, true));
+        assert!(advisory(Some(2200.0), 413.0, v, vs, 0.0, false, true));
+        assert!(!advisory(Some(2400.0), 413.0, v, vs, 0.0, false, true));
         // 20° at 414 kt strafing: the shorter A-G reaction, about 520 ft.
         let (v, vs) = dive(20.0, 414.0);
-        assert!(advisory(500.0, 414.0, v, vs, 0.0, false, true));
-        assert!(!advisory(560.0, 414.0, v, vs, 0.0, false, true));
-        assert!(advisory(560.0, 414.0, v, vs, 0.0, false, false), "1 s reaction outside A-G");
+        assert!(advisory(Some(500.0), 414.0, v, vs, 0.0, false, true));
+        assert!(!advisory(Some(560.0), 414.0, v, vs, 0.0, false, true));
+        assert!(advisory(Some(560.0), 414.0, v, vs, 0.0, false, false), "1 s reaction outside A-G");
         // Gated: gear down, level flight, at 50 ft.
-        assert!(!advisory(500.0, 414.0, v, vs, 0.0, true, true));
-        assert!(!advisory(500.0, 414.0, v, -500.0, 0.0, false, true));
-        assert!(!advisory(50.0, 414.0, v, vs, 0.0, false, true));
+        assert!(!advisory(Some(500.0), 414.0, v, vs, 0.0, true, true));
+        assert!(!advisory(Some(500.0), 414.0, v, -500.0, 0.0, false, true));
+        assert!(!advisory(Some(50.0), 414.0, v, vs, 0.0, false, true));
         // Banked: the roll to wings level costs height.
-        assert!(advisory(700.0, 414.0, v, vs, 120.0, false, false));
+        assert!(advisory(Some(700.0), 414.0, v, vs, 120.0, false, false));
+        // RDR ALT off: no CARA height, no advisory.
+        assert!(!advisory(None, 414.0, v, vs, 120.0, false, false));
     }
 
     #[test]
     fn alow_rule() {
         let a = ALOW_FT;
-        assert!(alow(250.0, -500.0, false, a));
-        assert!(!alow(350.0, -500.0, false, a) && !alow(150.0, 1500.0, false, a) && !alow(150.0, 0.0, true, a));
-        assert!(!alow(10.0, 0.0, false, a));
-        assert!(alow(450.0, -500.0, false, 500.0), "the DED's ALOW setting");
+        assert!(alow(Some(250.0), -500.0, false, a));
+        assert!(
+            !alow(Some(350.0), -500.0, false, a)
+                && !alow(Some(150.0), 1500.0, false, a)
+                && !alow(Some(150.0), 0.0, true, a)
+        );
+        assert!(!alow(Some(10.0), 0.0, false, a));
+        assert!(alow(Some(450.0), -500.0, false, 500.0), "the DED's ALOW setting");
+        assert!(!alow(None, -500.0, false, a), "RDR ALT off: no CARA, no voice");
         // The HUD's flash: gear down and on the ground too, but not below 70 kt.
         assert!(alow_hud(250.0, -500.0, 300.0, a) && alow_hud(10.0, 0.0, 150.0, a));
         assert!(!alow_hud(350.0, 0.0, 300.0, a) && !alow_hud(150.0, 1500.0, 300.0, a) && !alow_hud(0.0, 0.0, 60.0, a));

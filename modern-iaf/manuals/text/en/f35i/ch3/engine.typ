@@ -19,7 +19,7 @@ The fuel states that come before an empty tank are public: "minimum fuel" is dec
 
 #in-sim[
   - An empty tank, a fire or a dead engine after a hit (*ENGINE FAIL*) #sym.arrow.r *no thrust.* Glide to a runway or eject.
-  - An empty tank flames the engine out: *the #term("RPM") runs down, and below 52~% the displays go dark.*
+  - An empty tank flames the engine out: *the #term("RPM") runs down*; in the air it settles where the airflow turns the engine, about 20~% at 250 kt. *The #term("IPP") keeps the displays up* as the jet's emergency power; on the ground below 52~% they go dark.
   - A leak after a hit (*FUEL LEAK*) #sym.arrow.r *the fuel falls fast.* The FUEL format marks #term("joker fuel") and bingo (@fuel).
-  - The start on the ground works in the air as it does there (@cold-start). #term("Not modelled"): the real restart, and fuel dumping.
+  - With the windmilling RPM at 12~% or more (about 150 kt and faster) the engine start lights the engine again without the IPP's cranking (inferred: the F-16's rule). Slower, the start on the ground works in the air as it does there (@cold-start). #term("Not modelled"): the real restart's heights and speeds (open), and fuel dumping.
 ]

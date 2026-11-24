@@ -325,7 +325,12 @@ fn standing_jets_settle_on_their_gear() {
 /// 12° of pitch (the take-off attitude 8–12°, T.O. 1F-16A-1 p. 2-20) and holds it until every wheel is off the
 /// runway. Returns the ground roll (ft) and the lift-off speed (kt).
 fn take_off(throttle: f32) -> (f64, f64) {
-    let mut f = flight(jets::tp1538().at_weight(29_253.0), 0.0, 0.0, false);
+    take_off_jet(jets::tp1538().at_weight(29_253.0), throttle)
+}
+
+/// [`take_off`] for any jet `j`.
+fn take_off_jet(j: Jet, throttle: f32) -> (f64, f64) {
+    let mut f = flight(j, 0.0, 0.0, false);
     let x0 = f.state().position.y;
     let mut rotate = false;
     for _ in 0..60 * 60 {
@@ -354,6 +359,19 @@ fn take_off_roll_against_the_sac() {
             "TP-1538 F-16A, 29,253 lb, throttle {throttle}: lift-off at {kt:.0} kt after {ft:.0} ft (SAC {sac} ft)"
         );
         assert!((ft / sac - 1.0).abs() <= 0.1, "{throttle}: {ft}");
+    }
+}
+
+#[test]
+fn sim_jets_take_off_rolls_between_the_sacs() {
+    // The four sim jets at full internal fuel, maximum power, the same technique as `take_off`. Their thrust to
+    // weight (0.90–1.15) lies between the two USAF SAC rolls quoted by migflug.com: the F-16A's 2,380 ft at 0.69
+    // (`take_off_roll_against_the_sac`) and the F-15C's 1,250 ft ground run at 45,713 lb with four AIM-7F (two
+    // F100-PW-220, about 1.04). So does each roll (modern-iaf/docs/flight-model.md §9.10).
+    for j in jets::all() {
+        let (ft, kt) = take_off_jet(j, 1.0);
+        println!("{}: lift-off at {kt:.0} kt after {ft:.0} ft ({:.0} m)", j.name, ft * FT);
+        assert!((1_250.0..=2_380.0).contains(&ft), "{}: {ft} ft", j.name);
     }
 }
 
@@ -1270,13 +1288,23 @@ fn master_fuel_off_flames_the_engine_out() {
     let mut f = flight(jets::all()[1], 3048.0, 300.0 * KT, true);
     let c = iaf_flight::Controls { throttle: 0.74, ..f.controls() };
     assert!(f.set_switch("master_fuel", 0) && !f.fuel_feeds());
-    fly_for(&mut f, 60.0, |_| c);
+    fly_for(&mut f, 10.0, |_| c);
+    assert_eq!(f.power(), 1, "the generators off line");
+    f.set_epu(true); // the EPU at NORM starts with the generators off line (cockpit3d.gd `_epu`)
+    fly_for(&mut f, 50.0, |_| c);
     let s = f.state();
     println!("master fuel off, 60 s: {} RPM {:.1}, thrust {:.0} N", f.start_phase(), s.rpm, s.thrust_n);
-    assert!(s.fuel_kg > 0.0 && s.thrust_n == 0.0 && s.rpm < 20.0 && f.start_phase() != "running");
+    // In the air the core windmills (`start::WINDMILL_RPM_PER_KT`) and the EPU holds the displays.
+    assert!(s.fuel_kg > 0.0 && s.thrust_n == 0.0 && s.rpm < 30.0 && f.start_phase() == "rundown");
+    assert!(s.rpm > iaf_flight::sixdof::start::AIRSTART_RPM as f32 && f.power() == 2, "{} {}", s.rpm, f.power());
     assert_eq!(f.start_step("engine"), Err("no_fuel"));
     f.set_switch("master_fuel", 1);
     assert!(f.fuel_feeds());
+    // The throttle up from OFF relights the windmilling engine: the airstart, no starter.
+    assert_eq!(f.start_step("engine"), Ok(()));
+    fly_for(&mut f, 30.0, |_| c);
+    println!("airstart, 30 s: {} RPM {:.1}, thrust {:.0} N", f.start_phase(), f.state().rpm, f.state().thrust_n);
+    assert!(f.start_phase() == "running" && f.state().thrust_n > 0.0);
     // ENG FEED OFF stops the electric pumps only: the fuel flow proportioner still feeds the engine (figure 1-23).
     f.set_switch("eng_feed", -1);
     f.set_switch("eng_feed", -1);

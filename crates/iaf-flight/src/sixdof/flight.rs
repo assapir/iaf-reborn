@@ -481,6 +481,12 @@ impl SixDof {
         self.start_seq.ins_status(&self.jet.start)
     }
 
+    /// The F-16's EPU runs (its cockpit's EPU switch and hydrazine, each frame): in the air it holds the displays'
+    /// power with the generators off line ([`Sequence::epu`]).
+    pub fn set_epu(&mut self, run: bool) {
+        self.start_seq.epu = run;
+    }
+
     /// The electrical power: 0 none, 1 the battery, 2 the displays up ([`Sequence::power`]).
     pub fn power(&self) -> u8 {
         self.start_seq.power(&self.jet.start)
@@ -661,6 +667,13 @@ impl SixDof {
         if !self.fuel_feeds() && lit && self.start_seq.flame_out(self.rpm() as f64) {
             self.engine_on = false;
         }
+        // In the air the engine windmills and the emergency power can run (`start::WINDMILL_RPM_PER_KT`).
+        self.start_seq.air = (!self.on_ground).then(|| {
+            let b = self.body;
+            let flow = Flow::from_body(&Body { vel: b.vel - b.att.rotate_inv(self.wind), ..b });
+            let alt = -b.pos.z;
+            (crate::atmosphere::cas(flow.v as f32, alt as f32) as f64 * 1.943844, alt / super::FT)
+        });
         if self.start_seq.step(&self.jet.start, dt) {
             self.engine_on = true; // the sequence reached idle
         }
@@ -685,7 +698,8 @@ impl SixDof {
             let (limiter, turn) = crate::autopilot::REAL_CIRCUIT;
             let glide = crate::autopilot::REAL_FINAL.1 as f64;
             let dsb = self.jet.speed_brake.gear_down_deg;
-            let fin = approach_speed(&jet, -b.pos.z, self.jet.final_alpha, glide, self.jet.tef_deg, dsb).0;
+            let fa = self.jet.final_alpha_at(self.mass());
+            let fin = approach_speed(&jet, -b.pos.z, fa, glide, self.jet.tef_deg, dsb).0;
             let top = level(self.jet.alpha_max as f32);
             self.ap_speeds = Some((level(limiter) as f32, level(turn) as f32, fin as f32, top as f32));
         }
@@ -1134,6 +1148,7 @@ impl SixDof {
             stick_centre: [0.0, 0.0, 1.0],
             lift_factor: 1.0,
             final_speed: self.ap_speeds.filter(|_| self.controls.gear_down && !s.on_ground).map(|v| v.2),
+            nose_pitch: Some(s.pitch),
             circuit: self.ap_speeds.filter(|_| !s.on_ground).map(|v| ((s.speed / v.0).powi(2), v.1)),
             sixdof: true,
         }

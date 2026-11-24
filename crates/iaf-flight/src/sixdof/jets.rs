@@ -223,6 +223,9 @@ pub fn tp1538() -> Jet {
     }
 }
 
+/// The heavy jet's final α, deg ([`Jet::final_alpha_at`]).
+pub const HEAVY_FINAL_ALPHA: f64 = 12.0;
+
 /// The four sim jets.
 pub fn all() -> [Jet; 4] {
     [
@@ -376,6 +379,17 @@ impl Jet {
         let a = &mut self.airframe;
         (a.mass, a.ix, a.iy, a.iz, a.ixz) = (a.mass * k, a.ix * k, a.iy * k, a.iz * k, a.ixz * k);
         self
+    }
+
+    /// The final's α at `mass_kg`, deg: [`Jet::final_alpha`] at a landing weight (30 % of the internal fuel), down to
+    /// [`HEAVY_FINAL_ALPHA`] at full internal fuel and above (the F-16 manual's two αs, "arrive on final at 11 or 13
+    /// degrees AOA", T.O. GR1F-16CJ-1 p. 2-23; the heavier jet at the lower one, inferred: its flare needs the pitch
+    /// left under the 15° tail strike). A final already flatter keeps its α.
+    pub fn final_alpha_at(&self, mass_kg: f64) -> f64 {
+        let full = self.airframe.mass;
+        let landing = full - 0.7 * self.fuel_lb * LB;
+        let k = ((mass_kg - landing) / (full - landing)).clamp(0.0, 1.0);
+        self.final_alpha - k * (self.final_alpha - HEAVY_FINAL_ALPHA).max(0.0)
     }
 
     /// The stores' ΔCD on this jet's wing from their drag index × 10⁻⁴ ([`DI_AREA`]).

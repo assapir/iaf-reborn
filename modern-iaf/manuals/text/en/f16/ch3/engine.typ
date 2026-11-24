@@ -38,8 +38,8 @@ The actions are the air start, below, or the flameout landing (@emergency-flameo
 
 #in-sim[
   - An empty tank, a fire or a dead engine after a hit #sym.arrow.r *no thrust.* After a hit *ENGINE lights and the voice says "Warning".*
-  - An empty tank flames the engine out: *the RPM runs down, #row("lamp_engine_0") lights, and below 52~% the displays go dark and MAIN GEN, STBY GEN and #row("lamp_caution_elec_sys_0") light.* #key("Throttle OFF (engine shutdown)") in the air runs the engine down the same way.
-  - With the engine stopped in flight #sym.arrow.r *the EPU starts by itself: EPU run, AIR and HYDRAZN light and EPU FUEL falls.* The flight controls keep working with it or without it (@hydraulic).
+  - An empty tank flames the engine out: *the RPM runs down, #row("lamp_engine_0") lights, and below 52~% MAIN GEN, STBY GEN and #row("lamp_caution_elec_sys_0") light.* #key("Throttle OFF (engine shutdown)") in the air runs the engine down the same way. In the air the RPM settles where the airflow turns the engine, about 20~% at 250 kt: the engine *windmills*.
+  - With the engine stopped in flight #sym.arrow.r *the EPU starts by itself: EPU run, AIR and HYDRAZN light and EPU FUEL falls.* *While the EPU runs, the displays and the avionics stay up*; with its hydrazine spent (10 minutes) or its switch at OFF they go dark. The flight controls keep working with it or without it (@hydraulic).
 ]
 
 === Air start <emergency-airstart>
@@ -56,4 +56,8 @@ The actions are the air start, below, or the flameout landing (@emergency-flameo
 
 With #row("lamp_jfs_run_0") on, the speed may come down to the best glide (about 200 kt, more with weight)#fm[section III, "Airstart procedures", page 3-80].
 
-#in-sim[The start on the ground works in the air as it does there: with the RPM under 20~%, JFS to START 2, and the throttle to idle at 20~%. Not modelled: the windmilling engine, the speeds and heights of the real air start, SEC.]
+#in-sim[
+  - *With the windmilling RPM at 12~% or more* (about 150 kt and faster), the throttle up from OFF lights the engine: the RPM climbs to idle and the generators come back at 52~%. No JFS is needed.
+  - *Slower*, JFS to START 2 below 20,000 ft and 400 kt, then the throttle to idle at 20~%, as on the ground. Above 20,000 ft or 400 kt the JFS switch does nothing.
+  - #term("Not modelled"): SEC, a hot start or a stall in the air start, the time the engine takes to light at height.
+]

@@ -94,16 +94,17 @@ pub struct IafRealHud {
 #[godot_api]
 impl IafRealHud {
     /// The F-16's ground avoidance advisory (GAAF, `iaf_avionics::gaaf::advisory`): the break X and "PULL UP".
+    /// `agl_ft` null: the radar altimeter off (RDR ALT), no advisory.
     #[func]
-    fn gaaf(agl_ft: f64, kcas: f64, tas_ms: f64, vs_fpm: f64, roll_deg: f64, gear_down: bool, ag: bool) -> bool {
-        iaf_avionics::gaaf::advisory(agl_ft, kcas, tas_ms, vs_fpm, roll_deg, gear_down, ag)
+    fn gaaf(agl_ft: Variant, kcas: f64, tas_ms: f64, vs_fpm: f64, roll_deg: f64, gear_down: bool, ag: bool) -> bool {
+        iaf_avionics::gaaf::advisory(agl_ft.try_to().ok(), kcas, tas_ms, vs_fpm, roll_deg, gear_down, ag)
     }
 
     /// The F-16's CARA ALOW voice ("ALTITUDE", `iaf_avionics::gaaf::alow`) below `alow_ft` (the DED's ALOW page in
-    /// Modern IAF, `gaaf::ALOW_FT` otherwise).
+    /// Modern IAF, `gaaf::ALOW_FT` otherwise). `agl_ft` null: the radar altimeter off (RDR ALT), no voice.
     #[func]
-    fn alow(agl_ft: f64, vs_fpm: f64, gear_down: bool, alow_ft: f64) -> bool {
-        iaf_avionics::gaaf::alow(agl_ft, vs_fpm, gear_down, alow_ft)
+    fn alow(agl_ft: Variant, vs_fpm: f64, gear_down: bool, alow_ft: f64) -> bool {
+        iaf_avionics::gaaf::alow(agl_ft.try_to().ok(), vs_fpm, gear_down, alow_ft)
     }
 
     /// Extras "Real Betty": the sim's Betty sub code a real jet of voice `set` speaks for the game's call `sub`

@@ -174,6 +174,31 @@ func run() -> void:
 		"Real F-16: Altitude below 300 ft at once and every 4 s (%d)" % _count(fs, "VOC_BBETTY/BTY_ALT")
 	)
 	fs.queue_free()
+	# Modern IAF's RDR ALT switch off (cockpit.up): no CARA height, so neither call (the HUD's R row and break X go too).
+	var ck_src := GDScript.new()
+	ck_src.source_code = "extends RefCounted\nvar state := {}\nfunc up(_name: String) -> bool:\n\treturn false\n"
+	ck_src.reload()
+	var host_src := GDScript.new()
+	host_src.source_code = "extends Node\nvar cockpit\n"
+	host_src.reload()
+	var host: Node = host_src.new()
+	host.cockpit = ck_src.new()
+	fs = flight_sounds.create(host, 100)
+	root.add_child(fs)
+	real.vs_fpm = -kt * 0.7071 * 196.85
+	for i in 6:
+		real.time = float(i)
+		fs.update(_state(real), _inp({"agl_m": 2000.0 / 3.281, "hud_mode": 5, "pitch": -45.0}))
+	real.vs_fpm = -300.0
+	for i in 5:
+		real.time = 6.0 + i
+		fs.update(_state(real), _inp({"agl_m": 250.0 / 3.281}))
+	check(
+		_count(fs, "VOC_BBETTY/BTY_PULL_UP") + _count(fs, "VOC_BBETTY/BTY_ALT") == 0,
+		"Real F-16, RDR ALT off: no Pull up, no Altitude"
+	)
+	fs.queue_free()
+	host.free()
 	fs = flight_sounds.create(null, 110)
 	root.add_child(fs)
 	real.vs_fpm = -kt * 0.7071 * 196.85

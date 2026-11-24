@@ -527,8 +527,8 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   15° α, the gear-down legs fly no slower than the speed of 11° α, the path law is as slow as the jet's g answers, and
   the final starts 7 km out, level, until the 3° path comes down. The Barak, the Sufa, the Adir and the Ra'am land at
   Ramat David from a landing weight to full fuel with 3 t of stores: 128–165 kt, 0.8–2.9 m/s of sink, stopped 0.7–1.1 km
-  down the runway (were: 12 of a sweep of 24 flights crashed). Open: above the landing weights the flare ends at 15–19°
-  of pitch (the tail strike's limit is 15°; the autopilot's landing keeps the original's limits). Since 2026-11-19 the
+  down the runway (were: 12 of a sweep of 24 flights crashed). Since 2026-11-25 every weight touches under the tail
+  strike's 15° (13.2–14.6°): the heavier final flies 12° α and the flare stops pulling at 14.5°. Since 2026-11-19 the
   flare's sum on the 6-DoF allows for the jet's g lag: the 1998 game's Adir with 3 t of stores touches at 1.5 m/s
   (was a balloon to 2.8 m and 4.05 m/s).
 - **The autopilot lands softly; the roll starts faster (2026-11-16, finish list: autopilot touchdown, roll onset,
@@ -665,7 +665,8 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   the HUD without the break X's radar altitude; `test_sim_radar.gd`); after a start by clicks the key powers the FCR
   too, and the switches work after a lesson's pass (`test_radar_cold.gd`); the avionics step is the four on
   ([cockpit.md](cockpit.md) §5.2 "One by one"; `test_switches_both_ways.gd`).
-  Open: the real consequences beyond the switches' names (sources), the CARA ALOW and GAAF voices without RDR ALT.
+  Open: the real consequences beyond the switches' names (sources). Since 2026-11-25 the CARA ALOW and GAAF voices
+  stay silent with RDR ALT off, as the HUD's R row and break X (`gaaf::alow` / `advisory` take the CARA's height).
 - **The jet's checklist card (2026-11-17):** one real checklist per jet in every mission, the notebook's CHECKLIST tab:
   the F-16s' after the real F-16C/D normal procedures (67 items, 49 checked by the sim, 18 read and acknowledged), the
   F-35I's from the public start flow and inferred (38 items, 26 and 12); each checked item ticks from the cockpit's
@@ -942,7 +943,9 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   the generators drop at 52 % with the displays, the HUD and the avionics, the FTIT falls, the engine loop pitches
   down and fades; the recording's `checklist` step `cutoff` with fault `shutdown` / `no_start` fails a training
   mission; the JFS below 20 % and the throttle up from OFF restart it ([training.md](training.md) §7.2). `test_mvp.gd`
-  (shutdown), the start.rs and training.rs unit tests. Open: the EPU and windmilling in the air.
+  (shutdown), the start.rs and training.rs unit tests. In the air (2026-11-25, [training.md](training.md) §7.2): the
+  engine windmills (20 % at 250 kt), the throttle up from OFF relights it from 12 %, the JFS below 20,000 ft and
+  400 kt; the F-16's EPU keeps the displays up while it runs, the F-35I's IPP for good.
 - **The HUD's light (2026-11-09, Approvals A10):** the F-16s' HUD in the P43 green, drawn over the scene, bright by day
   and dimmed to a night floor as the sun sets, with a faint halo, the original's thin pen and the combiner glass
   untinted (2026-11-13; a quarter of 14 % before); the 3D cockpit's SYM wheel sets the day level (hover, wheel, drag; kept in the settings file) and Shift + H steps
@@ -1195,7 +1198,8 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   F100-PW-229 and F135; a three-strut gear with brakes, steering and a braked stand; the four jets' mass, inertia and
   geometry; tests against the ratings, the spool times, a take-off roll and a stop ([flight-model.md](flight-model.md)
   §9.7–9.10). Since 2026-11-15 the take-off roll meets both F-16A SAC rolls within 10 % (2,201 / 3,623 ft against
-  2,380 / 3,725 ft, the rotation at 170 kt, §9.13); the tyres brake at NASA's antiskid figure with a friction circle,
+  2,380 / 3,725 ft, the rotation at 170 kt, §9.13), and since 2026-11-25 the four sim jets' rolls at full fuel
+  (1,415–1,914 ft) lie between the F-16A's and the F-15C's SAC rolls, as their thrust to weight does (§9.10); the tyres brake at NASA's antiskid figure with a friction circle,
   a 25 kt crosswind take-off and landing roll stay within 4 m of the centreline, the autopilot's taxi turns run on the
   wheels; a touchdown past 10 ft/s damages the gear, gear damage holds the gear, and the gear's 300 KCAS limit comes
   from the aircraft definition ([flight-model.md](flight-model.md) §9.8; docs/damage.md §5.2). Since 2026-11-16 full

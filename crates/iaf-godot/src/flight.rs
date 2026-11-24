@@ -189,6 +189,15 @@ impl IafFlight {
         }
     }
 
+    /// The F-16's EPU runs (cockpit3d.gd `_epu`, each frame): on the 6-DoF in the air it holds the displays' power
+    /// with the generators off line (modern-iaf/docs/training.md §7.2).
+    #[func]
+    fn set_epu(&mut self, run: bool) {
+        if let Some(Fm::SixDof(s)) = self.aircraft.as_mut() {
+            s.set_epu(run);
+        }
+    }
+
     /// The F-16 autopilot's other inputs, each frame: the stick's paddle held, TRIM/AP DISC at DISC, AIR REFUEL open,
     /// the EHSI's heading marker and the steerpoint's bearing (deg; negative: none).
     #[func]

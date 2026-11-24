@@ -36,6 +36,15 @@ pub const IDLE_RPM: f64 = 60.0;
 pub const RUNDOWN_TAU: f64 = 15.0;
 pub const STOP_RPM: f64 = 1.0;
 
+/// In the air (modern-iaf/docs/training.md §7.2): the airflow windmills the core at `WINDMILL_RPM_PER_KT` × KCAS, %
+/// (inferred: 20 % at 250 KCAS, inside the "20–25 %" a dive gives, secondary); the run-down settles there instead of
+/// stopping. The throttle up from OFF lights a windmilling engine from `AIRSTART_RPM`, % (below it the main fuel
+/// pump gives too little flow, second-hand); below it the JFS cranks it, inside `JFS_AIR_ENVELOPE` (ft, KCAS: below
+/// 20,000 ft and 400 KCAS, secondary). Sources in modern-iaf/docs/training.md §7.2.
+pub const WINDMILL_RPM_PER_KT: f64 = 0.08;
+pub const AIRSTART_RPM: f64 = 12.0;
+pub const JFS_AIR_ENVELOPE: (f64, f64) = (20_000.0, 400.0);
+
 /// The F-16's per-system power switches (`Start::system`): the four AVIONIC POWER switches (the checklist's avionics
 /// step) and the SNSR PWR panel's FCR, RDR ALT, LEFT HDPT and RIGHT HDPT (the chin stations' pods: the navigation pod
 /// on 5L, the targeting pod on 5R; modern-iaf/docs/weapons.md §7.3); IafFlight command 219's p2 indexes them.
@@ -78,6 +87,9 @@ pub struct StartSpec {
     pub warmup_s: f64,
     /// The avionics report ready this long after the command at the earliest (the F-35's self test), s.
     pub ready_s: f64,
+    /// In the air with the engine below `generator_rpm`, the starter keeps the displays up as the emergency power: the
+    /// F-35's IPP (no limit). The F-16's EPU is its own system ([`Start::epu`]).
+    pub starter_emergency: bool,
     /// By keys: the engine start runs on its own once commanded (the F-35's): no throttle step, no avionics switches.
     pub fadec: bool,
     /// By keys: the INS stored-heading alignment, s (0: none to fly).
@@ -98,6 +110,7 @@ pub const JFS: StartSpec = StartSpec {
     displays_on_starter: false,
     warmup_s: 3.0,
     ready_s: 0.0,
+    starter_emergency: false,
     fadec: false,
     ins_align_s: 90.0,
 };
@@ -110,6 +123,9 @@ pub const IPP: StartSpec = StartSpec {
     starter_s: 10.0,
     displays_on_starter: true,
     ready_s: 90.0,
+    // The IPP is also the jet's emergency power in the air, on the main fuel: no limit (inferred: no figure is
+    // public).
+    starter_emergency: true,
     fadec: true,
     ins_align_s: 0.0,
     ..JFS
@@ -181,6 +197,13 @@ pub struct Start {
     batt_only: bool,
     start_1: bool,
     rdr_alt_stby: bool,
+    /// In the air: (KCAS, altitude ft), set by the flight before each step; None on the ground.
+    pub air: Option<(f64, f64)>,
+    /// The RPM the acceleration to idle started from, %.
+    accel_from: f64,
+    /// The F-16's EPU runs (set by its cockpit each frame: the EPU switch, its hydrazine; modern-iaf/docs/cockpit.md
+    /// "EPU"): in the air it holds the displays' power with the generators off line.
+    pub epu: bool,
 }
 
 impl Start {
@@ -281,11 +304,17 @@ impl Start {
                     self.next(Phase::LightOff);
                 }
             }
-            Phase::LightOff if self.phase_t >= s.lightoff_s => self.next(Phase::Accel),
+            Phase::LightOff if self.phase_t >= s.lightoff_s => {
+                self.accel_from = self.rpm.min(IDLE_RPM);
+                self.next(Phase::Accel)
+            }
             Phase::Rundown => {
-                self.rpm *= (-dt / RUNDOWN_TAU).exp();
-                // The generators off line: the displays and the avionics down (the INS stays on main power).
-                if self.rpm < s.generator_rpm {
+                // Toward the windmill's RPM in the air (`WINDMILL_RPM_PER_KT`), to a stop on the ground.
+                let wind = self.windmill_rpm();
+                self.rpm = wind + (self.rpm - wind) * (-dt / RUNDOWN_TAU).exp();
+                // The generators off line: the displays and the avionics down (the INS stays on main power), unless
+                // the emergency power holds them in the air.
+                if self.rpm < s.generator_rpm && !self.emergency(s) {
                     self.displays_at = None;
                 }
                 if self.rpm < STOP_RPM {
@@ -294,8 +323,15 @@ impl Start {
                 }
             }
             Phase::Accel => {
-                let k = (self.phase_t / s.accel_s).min(1.0);
-                self.rpm = s.lightoff_rpm + (IDLE_RPM - s.lightoff_rpm) * k;
+                // From the light-off RPM (an airstart's from its windmill's) to idle at the start's rate.
+                // A quick relight still at idle or above (the fuel cut at power) is at idle at once.
+                let from = self.accel_from;
+                let k = if from >= IDLE_RPM {
+                    1.0
+                } else {
+                    (self.phase_t / (s.accel_s * (IDLE_RPM - from) / (IDLE_RPM - s.lightoff_rpm))).min(1.0)
+                };
+                self.rpm = from + (IDLE_RPM - from) * k;
                 if k >= 1.0 {
                     self.next(Phase::Running);
                 }
@@ -311,7 +347,10 @@ impl Start {
             && self.phase != Phase::Rundown
             && self.phase != Phase::Off
             && if s.displays_on_starter { self.phase != Phase::Starter } else { self.rpm >= s.generator_rpm };
-        if self.displays_at.is_none() && (powered || (main && self.phase == Phase::Running)) {
+        // The emergency power coming on after the generators dropped (the EPU starts once they are off line) brings
+        // the displays back after their warm-up.
+        let emergency = main && self.emergency(s);
+        if self.displays_at.is_none() && (powered || emergency || (main && self.phase == Phase::Running)) {
             self.displays_at = Some(self.t);
         }
         // The INS knob left on through a main power loss aligns again once main power is back (inferred).
@@ -320,6 +359,22 @@ impl Start {
         }
         self.ins_aligned = self.ins_aligned || self.ins_done(s);
         was != Phase::Running && self.phase == Phase::Running
+    }
+
+    /// The RPM the airflow windmills the core at: in the air `WINDMILL_RPM_PER_KT` × KCAS, on the ground none.
+    fn windmill_rpm(&self) -> f64 {
+        self.air.map_or(0.0, |(kcas, _)| WINDMILL_RPM_PER_KT * kcas.max(0.0))
+    }
+
+    /// The emergency power runs in the air: the EPU ([`Start::epu`]), or the starter ([`StartSpec::starter_emergency`]).
+    fn emergency(&self, s: &StartSpec) -> bool {
+        self.air.is_some() && (self.epu || s.starter_emergency)
+    }
+
+    /// A windmilling engine the throttle up from OFF lights (an airstart without the starter): in the air, winding
+    /// down at `AIRSTART_RPM` or more.
+    fn airstart(&self) -> bool {
+        self.air.is_some() && self.phase == Phase::Rundown && self.rpm >= AIRSTART_RPM
     }
 
     fn next(&mut self, p: Phase) {
@@ -374,6 +429,13 @@ impl Start {
                 self.start_1 = true;
             }
             "starter" if !self.commanded => return Err("no_power"),
+            // In the air the JFS runs only inside its envelope.
+            "starter"
+                if !s.fadec
+                    && self.air.is_some_and(|(kcas, ft)| ft >= JFS_AIR_ENVELOPE.0 || kcas >= JFS_AIR_ENVELOPE.1) =>
+            {
+                return Err("starter_envelope");
+            }
             // Winding down above the light-off RPM: the starter waits, the key does nothing.
             "starter" if self.phase == Phase::Rundown && !self.starter_engages(s) => return Err("starter_high"),
             "starter" => {
@@ -383,6 +445,11 @@ impl Start {
                 }
                 // Turned with the engine sustaining itself it springs back at once (`step`).
                 self.starter_on = true;
+            }
+            // A windmilling engine lights from the throttle alone (`airstart`): fuel, the light-off, idle.
+            "engine" if self.airstart() => {
+                self.fuel_on = true;
+                self.next(Phase::LightOff);
             }
             "engine" if s.fadec => match self.phase {
                 Phase::Off | Phase::Rundown => return Err("no_ipp"),
@@ -541,6 +608,8 @@ impl Start {
             "main_power" => self.commanded,
             "starter" => self.starter_on || lit,
             "engine" => self.fuel_on || lit,
+            // Not a switch: the windmill turns the engine fast enough for an airstart (the throttle's idle step).
+            "airstart" => self.airstart(),
             "avionics" => self.systems[..AVIONICS].iter().all(Option::is_some),
             "ins" => self.ins_aligning(),
             "canopy" => self.canopy_closed,
@@ -946,5 +1015,68 @@ mod tests {
         }
         assert_eq!(st.cut_off(st.rpm), Err("no_start"));
         assert_eq!(st.phase, Phase::Rundown);
+    }
+
+    /// In the air (training.md §7.2): the fuel cut at 300 KCAS, 10,000 ft: the core windmills at 24 % instead of
+    /// stopping, the EPU holds the displays while it runs, the throttle up from OFF lights it again to idle with no
+    /// starter. At 150 KCAS the windmill's 12 %; slower the JFS, which runs only below 20,000 ft and 400 KCAS. The
+    /// F-35I's IPP holds the displays with no limit.
+    #[test]
+    fn in_the_air_the_engine_windmills_the_epu_holds_and_the_throttle_relights() {
+        let air = |st: &mut Start, kcas: f64, ft: f64, s: f64| {
+            st.air = Some((kcas, ft));
+            for _ in 0..(s * 30.0) as usize {
+                st.step(&JFS, 1.0 / 30.0);
+            }
+        };
+        let mut st = Start::running();
+        st.air = Some((300.0, 10_000.0));
+        assert_eq!(st.cut_off(IDLE_RPM), Err("shutdown"));
+        // The EPU starts once the generators are off line (the cockpit sees the RPM below 52 %): the displays drop,
+        // then come back after their warm-up.
+        air(&mut st, 300.0, 10_000.0, 5.0);
+        assert_eq!(st.power(&JFS), 1);
+        st.epu = true;
+        air(&mut st, 300.0, 10_000.0, 115.0);
+        assert_eq!(st.phase, Phase::Rundown);
+        assert!((st.rpm - 24.0).abs() < 0.1, "windmilling at {}", st.rpm);
+        assert_eq!(st.power(&JFS), 2, "the EPU holds the displays");
+        assert!(st.on("airstart"));
+        st.press(&JFS, "engine").unwrap();
+        assert_eq!(st.phase, Phase::LightOff);
+        air(&mut st, 300.0, 10_000.0, 30.0);
+        assert_eq!((st.phase, st.power(&JFS)), (Phase::Running, 2));
+        // A quick relight at military power: the RPM still above idle lights straight to idle.
+        let mut q = Start::running();
+        q.air = Some((300.0, 10_000.0));
+        q.cut_off(100.0).unwrap_err();
+        air(&mut q, 300.0, 10_000.0, 0.5);
+        q.press(&JFS, "engine").unwrap();
+        air(&mut q, 300.0, 10_000.0, 10.0);
+        assert_eq!((q.phase, q.rpm), (Phase::Running, IDLE_RPM));
+        // The EPU stopped (its hydrazine spent, its switch OFF): the displays go dark with the generators.
+        st.cut_off(IDLE_RPM).unwrap_err();
+        st.epu = false;
+        air(&mut st, 300.0, 10_000.0, 20.0);
+        assert_eq!(st.power(&JFS), 1, "no EPU");
+        // Slow: below the airstart's 12 %, the throttle does nothing; the JFS cranks within its envelope.
+        let mut st = Start::running();
+        st.cut_off(IDLE_RPM).unwrap_err();
+        air(&mut st, 140.0, 25_000.0, 120.0);
+        assert!(!st.on("airstart") && st.rpm < AIRSTART_RPM);
+        assert_eq!(st.press(&JFS, "engine"), Err("no_rotation"));
+        assert_eq!(st.press(&JFS, "starter"), Err("starter_envelope"), "above 20,000 ft");
+        st.air = Some((140.0, 15_000.0));
+        st.press(&JFS, "starter").unwrap();
+        air(&mut st, 140.0, 15_000.0, 60.0);
+        assert_eq!(st.phase, Phase::Running, "the JFS-assisted airstart");
+        // The F-35I's IPP: the displays held for good.
+        let mut st = Start::running();
+        st.cut_off(IDLE_RPM).unwrap_err();
+        st.air = Some((300.0, 10_000.0));
+        for _ in 0..30 * 3600 {
+            st.step(&IPP, 1.0 / 30.0);
+        }
+        assert_eq!(st.power(&IPP), 2);
     }
 }

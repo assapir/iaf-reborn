@@ -193,6 +193,14 @@ const FLARE_I_MAX: f32 = 3.0;
 /// gear down (63 % in 2.0–2.3 s at 220 kt, test `sixdof_g_follows_a_command`). The flare's sum takes the sink the
 /// jet's present vertical acceleration leaves after it (modern-iaf/docs/flight-model.md §9.6).
 const FLARE_LAG_6DOF: f32 = 2.0;
+/// Ours, the flare on the 6-DoF ([`ApView::final_speed`] set): the pitch it pulls to at most, rad, 0.5° under the 15°
+/// of the tail strike (`aircraft::landing_limits`), and its gain, m/s² of vertical acceleration per rad of the pitch
+/// left after [`FLARE_PITCH_LEAD`] s at the present pitch rate. Above the landing weights the flare had ended at
+/// 15–19° (the Adir at full fuel; with the heavier final's lower α, `Jet::final_alpha_at`, modern-iaf/docs/
+/// flight-model.md §9.6). Swept 2026-11-25: 13° with a gain of 20 /s² touched at 3.2–4.4 m/s.
+const FLARE_PITCH_MAX: f32 = 14.5 * std::f32::consts::PI / 180.0;
+const FLARE_PITCH_K: f32 = 100.0;
+const FLARE_PITCH_LEAD: f32 = 0.8;
 /// Ours, an AI jet's flare on the 6-DoF, s: the flare flies the sink this far ahead (the vertical acceleration's
 /// part added). The MiG-29A's vertical acceleration follows the flare's command about 2 s late; on the sink of the
 /// moment the flare pushed while the jet still rose (0.5 m/s at 13° of pitch, 3 m off the runway) and the push came
@@ -1808,6 +1816,8 @@ struct Landing {
     flare: bool,
     /// The player's flare: the vertical acceleration (m/s²) summed from the sink's error ([`Landing::flare`]).
     flare_i: f32,
+    /// The flare's last tick: its time, s, and the pitch, rad (NaN before the first; [`FLARE_PITCH_MAX`]).
+    flare_pitch: (f64, f32),
     /// The real final's speed error summed, m/s ([`Landing::final_approach`]).
     final_i: f32,
     /// The 6-DoF circuit's speed error summed, m/s ([`REAL_CIRCUIT`]; 0.2 /s at its 0.1 s tick).
@@ -3277,6 +3287,7 @@ impl Landing {
             align: false,
             flare: false,
             flare_i: 0.0,
+            flare_pitch: (f64::NAN, 0.0),
             final_i: 0.0,
             thr_i: 0.0,
             touched: false,
@@ -3609,8 +3620,21 @@ impl Landing {
         // Adir with 3 t of stores ballooned 2.6 m off the runway and dropped onto it at 4.05 m/s.
         let lag = if v.final_speed.is_some() { FLARE_LAG_6DOF } else { 0.0 };
         let e_sum = e - v.acc[2] as f32 * lag;
-        self.flare_i = (self.flare_i + e_sum * 0.2 * FLARE_KI).clamp(-FLARE_I_MAX, FLARE_I_MAX);
-        let a = FLARE_KV * e + self.flare_i;
+        let i = (self.flare_i + e_sum * 0.2 * FLARE_KI).clamp(-FLARE_I_MAX, FLARE_I_MAX);
+        let mut a = FLARE_KV * e + i;
+        // On the 6-DoF the pull stops short of the tail strike ([`FLARE_PITCH_MAX`]); its sum holds while it does.
+        let cap = v.nose_pitch.filter(|_| v.final_speed.is_some()).map(|pitch| {
+            // The rate from the last tick only if it was this flare's (0.2 s ago; a flare after a go-around starts
+            // at 0).
+            let (t0, p0) = self.flare_pitch;
+            let rate = if v.t - t0 < 0.3 { (pitch - p0) / (v.t - t0).max(0.01) as f32 } else { 0.0 };
+            self.flare_pitch = (v.t, pitch);
+            FLARE_PITCH_K * (FLARE_PITCH_MAX - pitch - rate * FLARE_PITCH_LEAD)
+        });
+        match cap {
+            Some(cap) if a > cap => a = cap,
+            _ => self.flare_i = i,
+        }
         // The load factor for that vertical acceleration on the flight path, at the bank.
         let cos_path = (1.0 - (vz / v.speed.max(1.0)).powi(2)).max(0.0).sqrt();
         let n = (G + a) / (G * cos_path * v.att.roll.cos().max(0.2));

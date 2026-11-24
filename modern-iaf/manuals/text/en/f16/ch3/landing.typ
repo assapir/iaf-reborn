@@ -11,7 +11,7 @@
 + Aim a third of the way down the runway; when the landing is sure, move the aim short of the touchdown point. Flare and touch down at 11° to 13° angle of attack.
 + Stop with one steady braking; expect about twice the normal ground roll (8,000 ft of runway advised).
 
-#in-sim[The glide and the landing can be flown with the engine stopped. The gear, the brakes and the flight controls keep their normal power: the hydraulics' and the #term("EPU")'s part is #term("not modelled").]
+#in-sim[The glide and the landing can be flown with the engine stopped. The gear, the brakes and the flight controls keep their normal power: the hydraulics' part is #term("not modelled"). The displays stay up while the #term("EPU") runs.]
 
 === The gear does not come down <emergency-alt-gear>
 #state("none")

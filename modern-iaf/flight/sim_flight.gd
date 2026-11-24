@@ -1049,10 +1049,12 @@ func _throttle_step() -> void:
 		start_step(STEP_IDS.find("engine"), 1)
 
 
-## The throttle's move from OFF is the idle step now: the starter step done and the idle step not yet, in a mission
-## whose checklist has it or in a flight without one (a restart after a shutdown).
+## The throttle's move from OFF is the idle step now: the starter step done (or, in the air, the engine windmilling
+## fast enough to light: the airstart, training.md §7.2) and the idle step not yet, in a mission whose checklist has it
+## or in a flight without one (a restart after a shutdown).
 func _idle_step_due() -> bool:
-	return "starter" in done and not "engine" in done and (checklist.is_empty() or "engine" in _steps())
+	var turning: bool = "starter" in done or (host.flight != null and host.flight.start_on("airstart"))
+	return turning and not "engine" in done and (checklist.is_empty() or "engine" in _steps())
 
 
 ## The Throttle OFF key (command 218, keys.json record 121): the throttle over the idle-cutoff detent to OFF, the fuel

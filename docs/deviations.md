@@ -153,7 +153,10 @@ Each entry names the switch and where it lives, then the difference: "Original: 
   and logs "Flight model 6-DoF: Modern IAF's data is not built". Each flight logs "Flight model: original|6dof".
   The autopilot's landing circuit flies its legs with laws of their own on the 6-DoF and lands it (2026-11-18,
   modern-iaf/docs/flight-model.md §9.6; before, the 1998 circuit crashed the 6-DoF jets); on the original model the
-  circuit is the original's.
+  circuit is the original's. Since 2026-11-25 its heavier final flies 12° α and its flare stops at 14.5° of pitch,
+  under the tail strike (§9.6 there).
+  On the 6-DoF the engine windmills in the air after a shutdown or flame-out and the throttle up from OFF relights
+  it; the F-16's running EPU keeps the displays up (2026-11-25, modern-iaf/docs/training.md §7.2).
   On the 6-DoF the rudder keys ramp the pedals to full over 1 s instead of jumping and spring back over 0.25 s
   (docs/controls.md §2); the original model keeps the jump.
 

@@ -342,9 +342,8 @@ fn tf_cues(p: &mut Vec<Prim>, i: &Input, f: Field, fpm: P, tf: &TfCue) {
 /// Auto-GCAS lineage, modern-iaf/docs/avionics-plan.md H8).
 pub(super) fn ground_cues(p: &mut Vec<Prim>, i: &Input, f: Field, rmin: bool) {
     let mode = i.weapons.hud_mode;
-    let gaaf = i.agl_ft.is_some_and(|h| {
-        crate::gaaf::advisory(h, i.kcas, i.tas_ms, i.vs_fpm, i.roll_deg, i.gear_down, matches!(mode, 4..=7))
-    });
+    let gaaf =
+        crate::gaaf::advisory(i.agl_ft, i.kcas, i.tas_ms, i.vs_fpm, i.roll_deg, i.gear_down, matches!(mode, 4..=7));
     if rmin || (gaaf && flash_on(i.time_s)) {
         x_over(p, (0.5 * (f.left + f.right), f.centre_y()), 0.3 * (f.right - f.left).min(f.bottom - f.top));
     }

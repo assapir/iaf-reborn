@@ -328,7 +328,7 @@ fn landing_circuit_on_the_sixdof() {
     // internal fuel) from 55 km out at 2,000 m, at full internal fuel from 3 km out at 300 m, and at full fuel with 3 t
     // of stores (drag index 60 a side). Each lands on the runway and stops on it, touches at less than the
     // gear's design sink of 10 ft/s (3.05 m/s, docs/damage.md §5.2), no faster than its final's speed (13° α at its
-    // weight) and, at the landing weight, under the 15° of the tail strike (`aircraft::landing_limits`). Before: 12 of
+    // weight) and under the 15° of the tail strike (`aircraft::landing_limits`). Before: 12 of
     // a 24-flight sweep (these weights, entries from 55 km at 2,000 m and 20 km at 300 m) crashed (the Sufa at full
     // fuel on the final at 22 m/s, the Adir in CH1's 80° bank in a deep stall at α 43–50°).
     use iaf_flight::airbase::Airbase;
@@ -414,7 +414,9 @@ fn landing_circuit_on_the_sixdof() {
                 // with 3 t of stores ballooned 2.6 m and touched at 4.05 m/s (`autopilot::FLARE_LAG_6DOF`).
                 assert!(sink < 3.05, "{name} case {ci}: sink {sink}");
                 assert!(kt <= final_kt, "{name} case {ci}: {kt} kt, final {final_kt}");
-                assert!(ci != 0 || pitch < 15.0, "{name} case {ci}: pitch {pitch}");
+                // Every case since 2026-11-25: the heavier final's lower α and the flare's pitch ceiling (`autopilot::FLARE_PITCH_MAX`,
+                // `Jet::final_alpha_at`); above the landing weights the flare had ended at 15–19°.
+                assert!(pitch < 15.0, "{name} case {ci}: pitch {pitch}");
                 let on = at > runway.0 && along < runway.1 && cross.abs() < 22.0;
                 assert!(on, "{name} case {ci}: {at} {along} {cross}");
             }

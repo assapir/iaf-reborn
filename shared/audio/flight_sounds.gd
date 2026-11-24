@@ -531,7 +531,10 @@ func _real_warning(voice: String, h_ft: float, st: Dictionary, inp: Dictionary, 
 	# The ALOW height: the DED's ALOW page in Modern IAF (cockpit.gd ufc), gaaf.rs's 300 ft otherwise.
 	var ck = host.get("cockpit") if host != null else null
 	var alow := float(ck.state.get("alow_ft", 300.0)) if ck != null else 300.0
-	if voice == "f16" and ClassDB.class_call_static("IafRealHud", "alow", h_ft, vs, inp.gear_down, alow):
+	# The CARA's height only with its RDR ALT switch on (cockpit.up; always on in the original game): off, neither
+	# voice speaks, as the HUD's R row and break X go (hud.gd).
+	var cara = h_ft if ck == null or ck.up("rdr_alt") else null
+	if voice == "f16" and ClassDB.class_call_static("IafRealHud", "alow", cara, vs, inp.gear_down, alow):
 		if _alt_timer < 0.0:
 			_alt_timer = now
 		if not _alt_reset:
@@ -544,7 +547,7 @@ func _real_warning(voice: String, h_ft: float, st: Dictionary, inp: Dictionary, 
 		and ClassDB.class_call_static(
 			"IafRealHud",
 			"gaaf",
-			h_ft,
+			cara,
 			float(inp.get("kcas", st.get("speed_kt", 0.0))),
 			float(st.get("speed", 0.0)),
 			vs,

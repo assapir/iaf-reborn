@@ -255,7 +255,6 @@ are refused, an unknown goal is refused, and every take-off mission's runway is 
 - The F-16I's, F-16D's and F-35I's own empty weights and take-off speeds by weight (open).
 - A start-up fault model (hot / hung start): none in the flight model.
 - The roll's start and rotation thresholds checked against a real flight of each mission by the user.
-- The 6-DoF's take-off roll is short (flight-model.md §9.6): the probe's Sufa lifts off after about 465 m at 180 kt.
 - Radio calls and the ground flow around the checklist are a manual topic (the pilot's manual, planned separately); the
   card (§12) holds no radio call.
 
@@ -370,11 +369,25 @@ below 20 %; the starter above 20 % is the fault `starter_high` and the key is ta
 alone, as Start engine does (inferred: no checklist was flown to give the throttle's step). Before the starter step the
 throttle moves alone. A cut-off with no fault (a cold or cranking engine) leaves the steps taken as they were.
 
+**In the air** (2026-11-25, `start.rs`, test `in_the_air_the_engine_windmills_the_epu_holds_and_the_throttle_relights`
+and `master_fuel_off_flames_the_engine_out`), after the throttle to OFF or a flame-out:
+
+| what | in the sim | source |
+|---|---|---|
+| RPM | runs down toward the windmill's RPM, 0.08 % per KCAS (20 % at 250 kt, 24 % at 300 kt), not to a stop; on the ground to a stop as above | the airflow spins the core to "20–25 %" in a dive (secondary)[^boltepu]; the line through it inferred |
+| airstart | the throttle up from OFF (the F-35I's engine start) lights an engine windmilling at 12 % or more: the light-off, then idle at the start's rate, the generators at 52 % | below 12 % the main fuel pump gives too little flow (secondary, a study set's figure)[^f16num] |
+| JFS-assisted airstart | below 12 %: the starter, then the throttle at 20 %, as on the ground; the F-16's JFS only below 20,000 ft and 400 KCAS (else the fault `starter_envelope`) | the dash-1's airstart, as the F-16 manual chapter quotes it (secondary)[^boltepu][^f16num] |
+| F-16 EPU | starts by itself with the generators off line in flight (the EPU switch at NORM, cockpit3d.gd `_epu`); while it runs the displays and the avionics stay up (`IafFlight.set_epu`); its 10 minutes of hydrazine spent, or the switch at OFF, they go dark | "approximately 10–15 minutes" (secondary)[^boltepu]; the hydrazine's 10 min as the gauge (cockpit.md) |
+| F-35I IPP | keeps the displays up in the air with no limit | inferred: the IPP is the jet's only power source besides the engine's generator; no figure is public |
+| F-15I, MiG-29A | no emergency power: the displays go at 52 % | inferred: none sourced |
+
+The throttle's idle step in the air needs no starter step (`sim_flight.gd` `_idle_step_due`, `start_on("airstart")`).
+Not modelled: SEC, a hot start or stall in the air start, the time to light at height.
+
 The recording gets a `checklist` event with step `cutoff` and its fault: `shutdown` (the engine was running) or
 `no_start` (it was lighting or accelerating to idle). A cold or cranking engine has nothing to cut: no fault. In a
 training mission the fault fails it at once (§3.0) with "Engine shutdown: the throttle went to OFF with the engine
-running." first in the debrief. Open: the air. In flight the real jet's emergency power unit and standby generator
-keep the displays up, and the engine windmills rather than stopping; the sim models neither. The mission passes when every card item it asks for is
+running." first in the debrief. The mission passes when every card item it asks for is
 ticked (`skip_<step>` names a start-up step never taken, `skip_item` any other item), the engine idles and the avionics
 are up within the time budget (10 min since 2026-11-17, inferred), and nothing failed, at its end. The items' lines are
 the jet's card (§12); the lesson's `training.checklist` names them ([data-formats.md](data-formats.md) §5). Each key
@@ -760,3 +773,5 @@ with the gear up and sank into the ground at "landing step 5" (the 1998 landing 
 [^airbrake]: Hebrew Wikipedia, "ספוילר (תעופה)" ("מעצורי אוויר, המגדילים משמעותית את כוח הגרר"; second-hand: read in a search engine's quote of the mirror's page), https://www.hamichlol.org.il/מחבלי_זרימה
 [^birdhe]: Maariv, "הפחד הגדול של כל טייס: ציפורים במסלול ההמראה והנחיתה" (the press's term, "פגיעת ציפור"; second-hand: a search engine's listing), https://www.maariv.co.il/lifestyle/travel/article-1169648
 [^bdh]: Hebrew Wikipedia, "בדיקות חיוניות" (בד"ח: the checklist booklet; its sections before and after the take-off and the landing), through its mirror https://www.hamichlol.org.il/בדיקות_חיוניות
+[^boltepu]: BoltFlight, "F-16 Emergency Power Unit (EPU): Function, Operation, and Safety" (the EPU "for approximately 10-15 minutes when the main engine fails"; it engages by itself on an engine shutdown in the air; the windmill "increasing RPM to 20-25%"; the JFS-assisted airstart "below 20,000 feet and airspeed is under 400 knots"; secondary), https://boltflight.com/f-16-emergency-power-unit-epu-function-operation-and-safety/
+[^f16num]: Brainscape, "F-16 by the numbers" flashcards (12 % RPM: below it the main fuel pump does not give enough flow for an airstart; 20,000 ft / 400 kt for the JFS; secondary, a study set; second-hand: a search engine's listing), https://brainscape.com/flashcards/f-16-by-the-numbers-8760536/packs/14965827

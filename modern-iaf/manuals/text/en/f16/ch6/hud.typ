@@ -25,7 +25,7 @@ The airspeed scale on the left, the altitude scale on the right, the heading sca
 
 === Ground-avoidance cues
 
-A large *X* flashes when the radar altitude and the dive call for an immediate pull-up, and the voice says "Pull up". The cue needs #row("RDR_ALT") on. Below the height set on the DED's ALOW page *AL* flashes and the voice says "Altitude".
+A large *X* flashes when the radar altitude and the dive call for an immediate pull-up, and the voice says "Pull up". The cue and both voices need #row("RDR_ALT") on: with it off they stay silent. Below the height set on the DED's ALOW page *AL* flashes and the voice says "Altitude".
 
 === The HUD control panel
 
