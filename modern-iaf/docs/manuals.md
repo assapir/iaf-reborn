@@ -428,7 +428,8 @@ Barak's, taken with `IAF_SIM_JET=f16d`, are in `pictures/f16d/` (19 November 202
 scripts, each a real render with its command in its header, and scaled to 1,600 px JPEGs with ImageMagick (the name
 without `_en`; a prefix per script): `_front_end_shot.gd` (no prefix), `_loadout_shot.gd` (`loadout_`),
 `_briefing_shot.gd` (no prefix), `_notebook_shot.gd` (`notebook_`), `_flight_ui_shot.gd` (`flight_`),
-`_devices_shot.gd` (`devices_`). The setup wizard's (`setup_*`) and the loading screen's are the pictures of
+`_devices_shot.gd` (`devices_`); `pilot`, `log` and `more_stats` are `_logbook_shot.gd`'s `pilot`, `log` and
+`more_pilot` (24 November 2026, the combat logbook's sample flights). The setup wizard's (`setup_*`) and the loading screen's are the pictures of
 `_setup_wizard_shot.gd` (`setup_welcome`, `setup_imagery`, `setup_install`) and, converted, the pictures of
 `modern-iaf/docs/pictures/setup/` (the skipped step, the remove dialog) and `front-end/loading_en.webp`. Only the pictures a section uses are
 kept. The pilot on them is the shot scripts' sample pilot.

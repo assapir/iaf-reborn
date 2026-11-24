@@ -106,6 +106,8 @@ Select a row to open the flight's debrief (@debrief). #scr("back") or #keycap("E
 
 #idx("Combat statistics")#idx("Kills")Every flight counts what you did in combat: the aircraft you shot down, the ground targets you destroyed, each weapon you released and how many hit, and the jets lost. #scr("combat_more") on the #scr("pilot") screen shows every flight's; the same button on a debrief shows that flight's (@debrief).
 
+#screen("more_stats", [#scr("combat_more") of every flight.])
+
 #grid-table(
   (auto, 1fr),
   ([Part], [What it shows]),
