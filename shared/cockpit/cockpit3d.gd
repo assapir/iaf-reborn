@@ -718,16 +718,23 @@ func _dimmer(prop: String) -> float:
 
 ## The exterior lights panel and the gear panel's LANDING / TAXI switch (the lights audit, part B; FlightGear's
 ## f16.nas sendLightsToMp): what the jet shows outside (aircraft_model.gd panel_lights), {} without the panel (the 2D
-## panel, the original game, the F-35I). MASTER feeds them all but the landing and taxi lights, on the generators
+## panel, the original game). MASTER feeds them all but the landing and taxi lights, on the generators
 ## (cockpit.power 2: FlightGear's AC buses): WING / TAIL the wingtips', inlets' and tail's position lights (BRT 1,
 ## DIM 0.2), steady or flashing (FLASH); with WING / TAIL off the wingtips glow as formation lights. ANTI-COLL the
 ## fin's strobe; FUSELAGE the white lights on the aft fuselage (BRT 1, DIM 0.4); FORM (a knob) the formation lights;
 ## AR (a knob) the air refuelling receptacle's light with its door open. LANDING / TAXI: 1 LANDING, -1 TAXI.
+## The F-35I's LAND/TAXI LIGHTS switch (LAND_TAXI: 0 OFF, 1 TAXI, 2 LAND) its landing and taxi light only, as the
+## F-16's ("land_only": its other lights stay as before; modern-iaf/docs/cockpit.md §5.12).
 const EXT := "controls/lighting/ext-lighting-panel/"
+const LAND_TAXI := "f35i/lights/land-taxi"
 var _ext := {}
 
 
 func ext_lights() -> Dictionary:
+	if clickable != null and Settings.cockpit_controls() and _rest.has(LAND_TAXI):
+		_ext.land_only = true
+		_ext.land = [0, -1, 1][clampi(roundi(_knob(LAND_TAXI)), 0, 2)] if cockpit.power >= 2 else 0
+		return _ext
 	if clickable == null or not Settings.cockpit_controls() or not _rest.has(EXT + "master"):
 		return {}  # the 1998 game (its switches not clickable): the lights stay on as before
 	var on: bool = cockpit.power >= 2 and _knob(EXT + "master") > 0.5
@@ -1655,6 +1662,14 @@ func _lamp_on(key: String) -> bool:
 			return bool(epu.commanded) and not bool(epu.run)
 		"caution_oxy_low":  # below 0.5 L (the OXY QTY test drives the pointer there)
 			return _lox < LOX_LOW_L
+		# The lamps read since 2026-11-25 (modern-iaf/docs/cockpit.md §5.12; T.O. GR1F-16CJ-1).
+		"caution_anti_skid":  # a fault affecting braking (p. 1-117): the brakes failed (damage 5, BRAKES FAIL)
+			return flag.call(5)
+		"stby_gains":  # the FLCS on its standby gains: the dual air data failure (damage 11, the fault list's STBY GAIN)
+			return flag.call(11)
+		"ar_rdy":  # AIR REFUEL at OPEN, the slipway door open, the system ready (p. 1-78): on hydraulic system B (inferred)
+			var ab: PackedFloat32Array = cockpit.state.get("hyd_ab", PackedFloat32Array([0.0, 0.0]))
+			return _sw(AIR_REFUEL) and ab.size() > 1 and HYD_PSI * ab[1] > 1000.0
 	return false
 
 

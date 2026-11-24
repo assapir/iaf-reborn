@@ -1214,6 +1214,11 @@ var _bay_jett := []
 var sel_jett := false
 ## The F-16's GND JETT ENABLE switch at ENABLE (cockpit3d.gd _systems): the jettisons work on the ground too.
 var gnd_jett := false
+## The F-35I's JETTISON knob (cockpit3d_controls.gd "jett_sel"): JETT_ALL, JETT_EXT or JETT_SEL; ALL on every other jet.
+var jett_select := 0
+const JETT_ALL := 0
+const JETT_EXT := 1
+const JETT_SEL := 2
 
 
 ## Weapon data Real (ours, docs/real-weapons.md §1.11): the F-16's EMER STORES JETTISON, "a one-step operation which
@@ -1221,9 +1226,19 @@ var gnd_jett := false
 ## 1F-16A-1). One press; on the ground only with GND JETT ENABLE (gnd_jett; T.O. GR1F-16CJ-1 p. 1-107). No release
 ## permission: the button works in any attitude. The F-35I the same way, its bay stores once the doors are
 ## open (inferred: no public F-35 jettison procedure).
+##
+## The F-35I's JETTISON knob (jett_select, its 3D cockpit's `JETT_SEL`) picks what goes: ALL every station, EXT the
+## external ones (the bays' stay), SEL the selected store's stations (selective_jettison).
 func emergency_jettison() -> void:
-	if not _wow() or gnd_jett:
-		_jettison_stations(Stores.PYLONS)
+	if _wow() and not gnd_jett:
+		return
+	match jett_select:
+		JETT_EXT:
+			_jettison_stations(Stores.PYLONS.filter(func(i): return not _internal(i)))
+		JETT_SEL:
+			selective_jettison()
+		_:
+			_jettison_stations(Stores.PYLONS)
 
 
 ## The flight model has the jet on the ground (weight on wheels).

@@ -12,9 +12,11 @@ The #jet.short's start is three selections in order: battery, #term("IPP"), engi
 ]
 
 === Fire on the ground and leaving the jet <emergency-ground-fire>
-#state("none")
+#state("part")
 
 #open-proc The cockpit has the parts such a procedure would use: the #row("lamp_eng_fire_0") light, which is also a push-button, #row("IPP_EMER_OFF") and the canopy (their use is inferred from their names).
+
+#in-sim[A push on #row("lamp_eng_fire_0") #sym.arrow.r *fires the extinguisher*, as #key("Extinguish engine fire") does (one charge). #row("IPP_EMER_OFF"), its guard lifted by the first click #sym.arrow.r *shuts the IPP down.*]
 
 === Ice at the intake <emergency-ice>
 #state("none")

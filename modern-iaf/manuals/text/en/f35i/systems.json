@@ -82,6 +82,7 @@
   "CONT": "Contrast",
   "EMER": "Emergency",
   "EXT": "External",
+  "SEL": "Selected",
   "MIL": "Military power, full power without the afterburner",
   "PRESS": "Pressure",
   "REC": "Recovery",
@@ -143,6 +144,7 @@
   "MAIN",
   "MASTER",
   "MAX",
+  "MOH",
   "MOTOR",
   "NIGHT",
   "OFF",
@@ -282,7 +284,8 @@
      "node": "IPP_EMER_OFF",
      "label": "IPP EMER OFF",
      "name": "IPP emergency off",
-     "does": "Stops the IPP at once."
+     "does": "Stops the IPP at once.",
+     "sim": "With its guard open, shuts the IPP down, as the IPP switch at OFF."
     }
    ]
   },
@@ -437,20 +440,22 @@
       "TAXI",
       "LAND"
      ],
-     "does": "Turns on the taxi light or the landing light."
+     "does": "Turns on the taxi light or the landing light.",
+     "sim": "At night, with the gear down and the generator on line, the light lights the ground ahead."
     },
     {
      "node": "JETT_SEL",
      "label": "JETTISON",
      "name": "Jettison select",
-     "does": "Chooses what the jettison button drops: ALL the stores or the external ones (EXT)."
+     "does": "Chooses what the jettison button drops: ALL the stores, the external ones (EXT) or the selected store (SEL).",
+     "sim": "ALL: every station but the air-to-air missiles. EXT: the external stations; the bay stores stay. SEL: the selected store's stations."
     },
     {
      "node": "EMER_JETT",
      "label": "Jettison button",
      "name": "Emergency jettison",
      "does": "Drops the stores the knob around it selects.",
-     "sim": "Drops the external stores."
+     "sim": "Drops the stores JETTISON selects."
     },
     {
      "node": "HOOK",
@@ -488,7 +493,8 @@
      "positions": [
       "Light and button"
      ],
-     "does": "Red with a fire in the engine bay; pushed, it arms the fire extinguisher."
+     "does": "Red with a fire in the engine bay; pushed, it arms the fire extinguisher.",
+     "sim": "Pushed, it fires the extinguisher, as the key does: one charge."
     },
     {
      "node": "AUTO_RECOVERY",
@@ -498,7 +504,8 @@
       "off",
       "on"
      ],
-     "does": "Lets the flight control system bring the jet back to level flight by itself."
+     "does": "Lets the flight control system bring the jet back to level flight by itself.",
+     "sim": "OFF silences the \"Pull up\" call. The automatic recovery is not modelled."
     },
     {
      "node": "ZEROIZE",
@@ -547,7 +554,8 @@
       "centre",
       "up"
      ],
-     "does": "Steps the brightness of the helmet's night picture."
+     "does": "Steps the brightness of the helmet's night picture.",
+     "sim": "Each push steps the brightness of the helmet's picture (the night camera or the DAS), five steps each way."
     },
     {
      "node": "VIDEO_CONT",
@@ -558,7 +566,8 @@
       "centre",
       "up"
      ],
-     "does": "Steps the contrast of the helmet's night picture."
+     "does": "Steps the contrast of the helmet's night picture.",
+     "sim": "Each push steps the contrast of the helmet's picture (the night camera or the DAS), five steps each way."
     },
     {
      "node": "MFD_MODE",
@@ -589,7 +598,8 @@
      "positions": [
       "Knob"
      ],
-     "does": "Sets the first radio's volume."
+     "does": "Sets the first radio's volume.",
+     "sim": "The radio calls' volume: none at its stop, the normal level where it starts."
     },
     {
      "node": "COM_B",
@@ -687,7 +697,8 @@
      "node": "EJECT_HANDLE",
      "label": "Ejection handle",
      "name": "Ejection handle",
-     "does": "Pulled, fires the seat."
+     "does": "Pulled, fires the seat.",
+     "sim": "A click ejects with SEAT at ARMED; at SAFE or MOH it moves only."
     },
     {
      "node": "SEAT_SAFE",
@@ -695,10 +706,11 @@
      "name": "Seat safe and arm",
      "positions": [
       "SAFE",
-      "centre",
-      "ARMED"
+      "ARMED",
+      "MOH"
      ],
-     "does": "SAFE keeps the seat from firing."
+     "does": "SAFE keeps the seat from firing.",
+     "sim": "At ARMED the handle fires the seat; SAFE and MOH hold it. SAFE on a cold jet, ARMED on a hot or airborne start."
     },
     {
      "node": "SEAT_HEIGHT",

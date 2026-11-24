@@ -371,7 +371,7 @@ a step whose control takes no click, the throttle; the manuals' step tables show
 `training.checklist` names it; the flight model's step ids `main_power`, `starter`, `engine`, `avionics`, `ins`,
 `canopy` keep their own debrief lines); `how` and `where` `{"en", "he"}`; `control` the 3D cockpit's node names the
 training ring outlines; `check` the state that ticks it (`step`, `set`, `test`, `lamp_off`, `state`, `gear`,
-`throttle_off`: training.md §12). No `check`: read and acknowledged. Read at run time by `modern-iaf/flight/card.gd`; not
+`throttle_off`, `speedbrake`: training.md §12). No `check`: read and acknowledged. Read at run time by `modern-iaf/flight/card.gd`; not
 compiled.
 
 ### 5.1 The weapons range: drones, brains and ground targets

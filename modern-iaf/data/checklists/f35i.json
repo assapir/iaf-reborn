@@ -26,7 +26,7 @@
 ]},
 {"id": "before_taxi", "en": "BEFORE TAXI", "he": "לפני הסעה", "starts": "hot", "items": [
   {"id": "canopy", "en": "CANOPY – close and lock", "he": "CANOPY – סגירה ונעילה", "how": {"en": "one click, or the Canopy key; the canopy closes in about 10 s", "he": "לחיצה אחת, או מקש החופה; החופה נסגרת תוך כ־10 שנ'"}, "where": {"en": "CANOPY lever: left console, aft", "he": "ידית CANOPY: הקונסולה השמאלית, מאחור"}, "check": {"step": "canopy"}, "control": ["CANOPY"]},
-  {"id": "seat_arm", "en": "SEAT – ARMED", "he": "SEAT – ‏ARMED"},
+  {"id": "seat_arm", "en": "SEAT – ARMED", "he": "SEAT – ‏ARMED", "where": {"en": "SAFE / ARM / MOH lever: left side of the seat", "he": "ידית SAFE / ARM / MOH: בצד שמאל של הכיסא"}, "check": {"set": {"SEAT_SAFE": 1}}, "control": ["SEAT_SAFE"]},
   {"id": "taxi_light", "en": "LAND/TAXI LIGHTS – TAXI", "he": "LAND/TAXI LIGHTS – ‏TAXI", "check": {"set": {"LAND_TAXI": 1}}, "control": ["LAND_TAXI"]},
   {"id": "park_brake_off", "en": "PARKING BRAKE – OFF", "he": "PARKING BRAKE – ‏OFF", "check": {"set": {"PARK_BRAKE": 0}}, "control": ["PARK_BRAKE"]}
 ]},
@@ -52,7 +52,7 @@
 {"id": "after_landing", "en": "AFTER LANDING", "he": "אחרי נחיתה", "when": "landed", "items": [
   {"id": "taxi_light_in", "en": "LAND/TAXI LIGHTS – TAXI", "he": "LAND/TAXI LIGHTS – ‏TAXI", "check": {"set": {"LAND_TAXI": 1}}, "control": ["LAND_TAXI"]},
   {"id": "arm_safe", "en": "MASTER ARM – SAFE", "he": "MASTER ARM – ‏SAFE", "check": {"set": {"MASTER_ARM": 0}}, "control": ["MASTER_ARM"]},
-  {"id": "seat_safe", "en": "SEAT – SAFE", "he": "SEAT – ‏SAFE"}
+  {"id": "seat_safe", "en": "SEAT – SAFE", "he": "SEAT – ‏SAFE", "where": {"en": "SAFE / ARM / MOH lever: left side of the seat", "he": "ידית SAFE / ARM / MOH: בצד שמאל של הכיסא"}, "check": {"set": {"SEAT_SAFE": 0}}, "control": ["SEAT_SAFE"]}
 ]},
 {"id": "shutdown", "en": "ENGINE SHUTDOWN", "he": "כיבוי מנוע", "when": "landed", "items": [
   {"id": "park_brake_on", "en": "PARKING BRAKE – ON", "he": "PARKING BRAKE – ‏ON", "check": {"set": {"PARK_BRAKE": 1}}, "control": ["PARK_BRAKE"]},

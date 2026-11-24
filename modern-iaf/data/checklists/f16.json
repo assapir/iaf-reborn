@@ -37,7 +37,7 @@
   {"id": "dbu", "en": "DIGITAL BACKUP – BACKUP, then OFF", "he": "DIGITAL BACKUP – ‏BACKUP, ואז OFF", "how": {"en": "one click to BACKUP (the DBU ON lights come on), one more to OFF", "he": "לחיצה אחת ל־BACKUP (נוריות DBU ON נדלקות), עוד אחת ל־OFF"}, "where": {"en": "FLT CONTROL panel, left console", "he": "לוח FLT CONTROL, הקונסולה השמאלית"}, "check": {"test": {"SW_DBU": 1}, "set": {"SW_DBU": 0}}, "control": ["SW_DBU"]},
   {"id": "mpo", "en": "MANUAL PITCH – OVRD, then release", "he": "MANUAL PITCH – ‏OVRD, ואז לשחרר", "how": {"en": "hold it at OVRD, let go", "he": "להחזיק ב־OVRD, לשחרר"}, "where": {"en": "MANUAL PITCH switch: left console", "he": "מתג MANUAL PITCH: הקונסולה השמאלית"}, "check": {"test": {"SW_MPO": 1}}, "control": ["SW_MPO"]},
   {"id": "flight_controls", "en": "Flight controls and trim – cycle and check, trim centred", "he": "היגוי וטרים – תנועה מלאה ובדיקה, טרים במרכז"},
-  {"id": "speedbrakes", "en": "Speedbrakes – cycle, then closed", "he": "מעצורי אוויר – פתיחה וסגירה"},
+  {"id": "speedbrakes", "en": "Speedbrakes – cycle, then closed", "he": "מעצורי אוויר – פתיחה וסגירה", "where": {"en": "SPD BRK switch on the throttle", "he": "מתג SPD BRK במצערת"}, "check": {"speedbrake": "cycled"}},
   {"id": "epu_check", "en": "EPU – OFF, then NORM", "he": "EPU – ‏OFF, ואז NORM", "how": {"en": "the first click lifts the guard; on to OFF; back to NORM, guard down", "he": "הלחיצה הראשונה מרימה את המכסה; ל־OFF; חזרה ל־NORM, מכסה סגור"}, "where": {"en": "EPU switch: ELEC panel, left console", "he": "מתג EPU: לוח ELEC, הקונסולה השמאלית"}, "check": {"test": {"SW_EPU": 0}, "set": {"SW_EPU": 1}}, "control": ["SW_EPU"]},
   {"id": "oxygen", "en": "Oxygen – check", "he": "חמצן – בדיקה"}
 ]},
@@ -77,7 +77,7 @@
 ]},
 {"id": "after_landing", "en": "AFTER LANDING", "he": "אחרי נחיתה", "when": "landed", "items": [
   {"id": "probe_heat_off", "en": "PROBE HEAT – OFF", "he": "PROBE HEAT – ‏OFF", "check": {"set": {"SW_PROBE_HEAT": 0}}, "control": ["SW_PROBE_HEAT"]},
-  {"id": "speedbrakes_closed", "en": "Speedbrakes – closed", "he": "מעצורי אוויר – סגורים"},
+  {"id": "speedbrakes_closed", "en": "Speedbrakes – closed", "he": "מעצורי אוויר – סגורים", "where": {"en": "SPD BRK switch on the throttle", "he": "מתג SPD BRK במצערת"}, "check": {"speedbrake": "closed"}},
   {"id": "seat_safe", "en": "Ejection safety lever – SAFE", "he": "ידית נצרת כיסא המפלט – ‏SAFE"},
   {"id": "iff_stby", "en": "IFF MASTER – STBY", "he": "IFF MASTER – ‏STBY"},
   {"id": "taxi_light_in", "en": "LANDING TAXI LIGHTS – TAXI", "he": "LANDING TAXI LIGHTS – ‏TAXI", "check": {"set": {"light-land-switch": -1}}, "control": ["light-land-switch"]},

@@ -39,6 +39,8 @@
 #     (cockpit3d.gd _setup_legend_lamps: the ADV MODE button's STBY and ACTIVE);
 #   - "shows" (a table row's): the node that shows the control's setting (the EHSI's screen for its HDG and CRS knobs;
 #     the proof modern-iaf/tests/_controls_shot.gd pictures it with the knob).
+#   - "cold" (a table row's): its position on a cold jet (parked, engine off), instead of "modelled" (the F-35I's seat
+#     at SAFE).
 # The position is kept in cockpit3d.gd `switches` (the one store of the cockpit's switches; the start-up's are the
 # flight model's, start.rs) and shown by the model's own mapping. Hovering a control
 # lights its rim (RIM): its own texture stays as it is. The flight controls are in neither table: the throttle and the
@@ -88,8 +90,12 @@ func setup(model: Node3D, table: Dictionary, generic := {}) -> void:
 	for name in table:
 		all[name] = generic.get(name, {}).merged(table[name], true)
 	var sw: Dictionary = get_parent().switches
+	var tv: Object = get_parent().command.get_object() if get_parent().command.is_valid() else null
+	var cold: bool = tv != null and "start_engine_on" in tv and not (tv.start_engine_on or tv.start_airborne)
 	for name in all:
 		var r: Dictionary = all[name]
+		if r.has("cold") and cold and not sw.has(r.prop):
+			sw[r.prop] = float(r.cold)
 		if r.has("modelled") and not r.has("on") and not sw.has(r.prop):
 			sw[r.prop] = float(r.modelled)  # a switch the flight model does not hold starts as the model shows it
 		var mi := model.find_child(name, true, false) as MeshInstance3D
@@ -419,6 +425,11 @@ const START_CMD := {"main_power": [210, 0], "starter": [211, 0], "rdr_alt": [219
 ## The F-35I's BATT (RESET / OFF / ON) and ENGINE (OFF / MOTOR / NORM): their command and the position over which they
 ## are on; MOTOR and RESET move the switch only (motoring and the battery's reset are not modelled).
 const F35_START := {"batt": [210, 0.5], "eng": [212, 1.5]}
+## The F-35I's COM A knob at the position the model shows it at: the game's radio level there (inferred, as the F-16's
+## COMM 1).
+const COM_A_REST := 0.5
+## The F-35I seat's SAFE / ARM / MOH lever at ARM: only then does the firing handle fire the seat.
+const SEAT_ARM := "f35i/seat/safe-arm"
 
 # The switches wired to the systems the game has (a row's "system", finish list C2; modern-iaf/docs/cockpit.md §5.2):
 # a move sends the system's own command through the key path (or sets its state), and each frame the switch shows the
@@ -500,6 +511,16 @@ static func _system_state(tv: Object, name: String, now: float) -> float:
 		"eng":  # the F-35I's ENGINE OFF / MOTOR / NORM: not running keeps MOTOR or OFF
 			if tv.flight != null:
 				return 2.0 if tv.flight.start_on("engine") else (1.0 if is_equal_approx(now, 1.0) else 0.0)
+		# The F-35I's controls whose system reads the switch (modern-iaf/docs/cockpit.md §5.12): the switch's own position
+		# handed to the system each frame (its start the model's), the switch kept as it is.
+		"jett_sel":  # JETTISON: ALL / EXT / SEL, what EMER JETT drops (player_weapons.gd jett_select)
+			tv.weapons.jett_select = roundi(now)
+		"com_a":  # COM A: the radio calls' volume, the game's level at the model's position (0.5)
+			if tv.get("sounds") != null:
+				tv.sounds.radio_gain = now / COM_A_REST
+		"auto_recovery":  # AUTO RECOVERY off: no "Pull up" (flight_sounds.gd gcas_off)
+			if tv.get("sounds") != null:
+				tv.sounds.gcas_off = now < 0.5
 	return NAN
 
 
@@ -630,6 +651,19 @@ func _system_put(name: String, v: float, was := NAN) -> void:
 		"elec_reset":  # the ELEC panel's CAUTION RESET: ELEC SYS's part of MASTER CAUTION out (FlightGear's)
 			if on:
 				tv.cockpit_3d.acknowledge(true)
+		"eject":  # the F-35I's seat firing handle: each pull one of the E key's three presses (within a second of the one
+			# before: a stray click never fires the seat), the seat at ARM only
+			if on and is_equal_approx(float(get_parent().switches.get(SEAT_ARM, 1.0)), 1.0):
+				tv._eject_key()
+		"ipp_off":  # the F-35I's IPP EMER OFF: the IPP shut down (command 211 off, as the IPP switch at OFF)
+			if on:
+				tv._press([211, -1, 0])
+		"fire_push":  # the F-35I's ENG FIRE push-light: the fire extinguisher (command 73, the X key; inferred)
+			if on:
+				tv._press([73, 0, 0])
+		"video_brt", "video_cont":  # the F-35I's VIDEO BRT / CONT rockers: the helmet's picture a step (terrain_view.gd)
+			if absf(v) > 0.5:
+				tv.helmet_video_adjust(name == "video_cont", int(signf(v)))
 
 
 ## The control lit under the pointer ([its mesh, its record]), null when none: it keeps the clicks and the wheel until

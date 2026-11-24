@@ -28,6 +28,7 @@ var section := -1
 var phase_ok := true
 var _seen := {}  # "prop=value": a position a control was put to (a test switch's moment)
 var _flown := false
+var _brakes_out := false  # the speed brakes seen open since the flight began ("speedbrake": "cycled")
 var _approach := false
 ## The approach (a section's "when": "approach"): airborne and descending below this height above the ground, ft
 ## (inferred: about the height of a visual pattern's downwind).
@@ -69,6 +70,7 @@ func update() -> bool:
 	record("")  # the 3D cockpit's controls known and their moves heard (a test switch's moment)
 	var air := not bool(st.get("on_ground", true))
 	_flown = _flown or air
+	_brakes_out = _brakes_out or _speed_brake_deg() > SPEED_BRAKE_OPEN_DEG
 	# The approach: airborne, descending below APPROACH_FT above the ground under the jet (the flight's state holds no
 	# height above the ground); held while the jet stays below it, until the wheels touch.
 	var at_y: Vector3 = flight.host.rig.position
@@ -146,7 +148,8 @@ func _phase(when: String, st: Dictionary) -> bool:
 ## Check `c` holds: every key of it ("step": the flight model's start-up step done (sim_flight.gd done); "set": each
 ## control node at its value, or within [lo, hi]; "test": each control seen at its value since the flight began (a
 ## test switch's moment); "lamp_off": that cockpit lamp dark; "state": the flight state's values; "gear": the gear
-## handle "up" or "down"; "throttle_off": the throttle at OFF).
+## handle "up" or "down"; "throttle_off": the throttle at OFF; "speedbrake": the speed brakes "closed", or "cycled":
+## seen open since the flight began and closed now).
 func holds(c: Dictionary, st: Dictionary) -> bool:
 	for k in c:
 		var ok := true
@@ -166,9 +169,20 @@ func holds(c: Dictionary, st: Dictionary) -> bool:
 				ok = flight.host.cockpit != null and flight.host.cockpit.gear_handle_down == (String(c.gear) == "down")
 			"throttle_off":
 				ok = float(flight.host.throttle) <= flight.THROTTLE_OFF
+			"speedbrake":
+				ok = _speed_brake_deg() <= SPEED_BRAKE_OPEN_DEG and (String(c.speedbrake) == "closed" or _brakes_out)
 		if not ok:
 			return false
 	return true
+
+
+## The speed brakes open past this, deg: out of their closed position (inferred).
+const SPEED_BRAKE_OPEN_DEG := 1.0
+
+
+## The speed brakes' opening, deg (terrain_view.gd's, the SPD BRK switch's).
+func _speed_brake_deg() -> float:
+	return float(flight.host.get("_speed_brake_deg"))
 
 
 ## Control `node`'s record (cockpit3d_controls.gd), {} without the 3D cockpit or that control.

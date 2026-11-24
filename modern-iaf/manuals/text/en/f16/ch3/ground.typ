@@ -50,7 +50,7 @@ The brakes can fail in three ways: one of two circuits (both brakes work but nee
 + Lower the hook if the runway has a cable.
 + With no cable and no brakes: the parking brake, early and at the lowest speed you can. It may burst the tyres.
 
-#in-sim[Damage to the brakes #sym.arrow.r *#key("Wheel brakes (hold)") and the speedbrake keys do nothing.* #row("SW_PARKING_BRAKE") at PARKING BRAKE still holds the wheels. Not modelled: the brake channels, the anti-skid and its #row("lamp_caution_anti_skid_0") light, and the hook.]
+#in-sim[Damage to the brakes #sym.arrow.r *#key("Wheel brakes (hold)") and the speedbrake keys do nothing, and #row("lamp_caution_anti_skid_0") lights.* #row("SW_PARKING_BRAKE") at PARKING BRAKE still holds the wheels. Not modelled: the brake channels, the anti-skid's own work, and the hook.]
 
 === Hot brakes <emergency-hot-brakes>
 #state("none")

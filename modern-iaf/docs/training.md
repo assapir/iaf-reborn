@@ -688,9 +688,10 @@ describes the jet; what a lesson asks and how it is marked is the lesson's text 
 - The F-35I's LAND/TAXI positions (OFF, TAXI, LAND) and its PARKING BRAKE are our cockpit's (research/f35-cockpit.md).
 
 **The sections and items.** F-16: BEFORE STARTING ENGINE, STARTING ENGINE, AFTER ENGINE START, BEFORE TAXI, TAXI,
-BEFORE TAKEOFF, AFTER TAKEOFF, BEFORE LANDING, AFTER LANDING, PRIOR TO ENGINE SHUTDOWN, ENGINE SHUTDOWN: 67 items, 49
-checked by the sim and 18 read and acknowledged. F-35I: the same sections less PRIOR TO ENGINE SHUTDOWN: 38 items, 26
-checked and 12 read and acknowledged.
+BEFORE TAKEOFF, AFTER TAKEOFF, BEFORE LANDING, AFTER LANDING, PRIOR TO ENGINE SHUTDOWN, ENGINE SHUTDOWN: 68 items, 53
+checked by the sim and 15 read and acknowledged. F-35I: the same sections less PRIOR TO ENGINE SHUTDOWN: 38 items, 28
+checked and 10 read and acknowledged (since 2026-11-25 the F-16's two speed brake items and the F-35I's two seat items
+are checked; [cockpit.md](cockpit.md) §5.12).
 
 **An item** (`data/checklists/*.json`, [data-formats.md](data-formats.md) §5) has its line (`en`, `he`), how to do it
 when that is more than one action or a wait (`how`: "two clicks …", "WAIT for 20 % RPM"), the switch's place (`where`),
@@ -706,9 +707,10 @@ it:
 | `state` | the flight state's values (the generators' power, the engine running, the F-35I's self test) |
 | `gear` | the gear handle up or down |
 | `throttle_off` | the throttle at OFF |
+| `speedbrake` | the speed brakes `closed` (also when never opened), or `cycled`: seen open since the flight began and closed now |
 
 An item with no `check` is read and acknowledged: its system is not modelled (the oxygen, the IFF, the trim, the
-ejection seat's lever). The notebook shows it with ○ and "Read and acknowledge: not modelled in the sim"; it is never
+F-16's ejection safety lever). The notebook shows it with ○ and "Read and acknowledge: not modelled in the sim"; it is never
 the current item.
 
 **How it runs.** The sections run in order. The current section is the first with a checked item still open, and its

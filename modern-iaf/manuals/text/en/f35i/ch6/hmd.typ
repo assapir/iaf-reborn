@@ -7,7 +7,7 @@ The #jet.short has no head-up display. The #term("HMD") draws the flight and wea
 - #row("HMD_MODE") turns the helmet's display on and sets it for the night or the day.
 - #row("HMD_BRT") steps its brightness. Its key is #key("Step HUD brightness").
 
-#in-sim[OFF: the helmet shows nothing. NIGHT, AUTO and DAY show the same picture: their difference is #term("Not modelled"). The helmet also shows a picture of the world: #key("Helmet picture: night camera / DAS / off (F-35I)") steps the night camera (green), the DAS's video (grey) and off. On the real jet the pilot picks one of the two#afi[paragraph 3.19.1.1]. The DAS video's look is inferred: the sim's world has no heat, so the picture is its light, amplified.]
+#in-sim[OFF: the helmet shows nothing. NIGHT, AUTO and DAY show the same picture: their difference is #term("Not modelled"). The helmet also shows a picture of the world: #key("Helmet picture: night camera / DAS / off (F-35I)") steps the night camera (green), the DAS's video (grey) and off. On the real jet the pilot picks one of the two#afi[paragraph 3.19.1.1]. The DAS video's look is inferred: the sim's world has no heat, so the picture is its light, amplified. Each push of #row("VIDEO_BRT") or #row("VIDEO_CONT") #sym.arrow.r *steps the picture's brightness or contrast*, five steps each way.]
 
 === Looking forward: the virtual head-up display <hmd-forward>
 
@@ -51,4 +51,4 @@ When the jet's path leads into the ground, the sim warns you (inferred: the F-35
 - the voice says "Pull up";
 - the helmet shows a pull-up cue, and then a large X over the centre of the display (@fig-d-helmet_break_x). #sym.arrow.r *Roll the wings level and pull at once.*
 
-The sim does not take the controls from you: an automatic recovery is #term("Not modelled").
+The sim does not take the controls from you: an automatic recovery is #term("Not modelled"). #row("AUTO_RECOVERY") at OFF #sym.arrow.r *the voice no longer says "Pull up"*; the helmet's cues stay.

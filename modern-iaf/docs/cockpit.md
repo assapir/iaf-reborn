@@ -554,7 +554,7 @@ The PARKING BRAKE switch is the flight model's (§5.7). The rest move and keep t
 them: JETTISON's ALL / EXT / SEL, LAND/TAXI LIGHTS, HOOK, the VIDEO BRT and CONT rockers, the MFD NIGHT / DAY knob, the three radio knobs, the standby
 display's knob, ALIGN and BRT, PEDAL ADJ, AUTO RECOVERY, the BYPASS / NORM / ZEROIZE knob, FCS/ENG RESET, VS BIT, the
 throttle's friction and THROTTLE ACTIVE, ICC1, ICC2, CABIN PRESSURE, IPP EMER OFF (guarded), STICK ACTIVE, DEFOG, the
-seat's firing handle (pulled while held; ejection stays its key's, so a stray click never fires the seat), SAFE /
+seat's firing handle (pulled while held; since 2026-11-25 it ejects as the key does, §5.12), SAFE /
 ARM / MOH and height switch, the canopy's MDC handle, ENG FIRE. The rudder trim switch is drawn but takes no mouse
 (trim stays the keys'). Places and labels whose confidence is low in the research are inferred
 ([../../docs/f35i.md](../../docs/f35i.md) §4.2).
@@ -1042,6 +1042,54 @@ and command 252 needs the UFC).
 
 Test: `modern-iaf/tests/test_radar_cold.gd` `_hud_panel` (a click on each moves its setting and changes the HUD).
 
+### 5.12 The controls and lamps that moved only, round two (2026-11-25)
+
+The user, 18 November 2026: "How much of our controls actually controls?" and "Prefer finishing things before moving
+to new things". The controls and lamps below had a system in the sim behind them and now work it. Each is a click on
+the 3D control (no new keys); the F-35I's are rows of `f35i_controls.json` with a `system`
+(`cockpit3d_controls.gd` `_system_put` / `_system_state`), the F-16's lamps `cockpit3d.gd` `_lamp_on`.
+
+| jet | control or lamp (node) | what it does |
+|---|---|---|
+| F-35I | firing handle (`EJECT_HANDLE`) | with the seat at ARM each pull is one of the E key's three presses (within a second of the one before: a stray click never fires the seat); at SAFE or MOH it moves only[^mb-seat] (the key ejects at any position) |
+| F-35I | SAFE / ARM / MOH (`SEAT_SAFE`) | ARM lets the handle fire the seat; SAFE on a cold jet (parked, engine off: the table row's `cold`), ARM on a hot or airborne start; the card's SEAT – ARMED and SEAT – SAFE tick from it |
+| F-35I | LAND/TAXI LIGHTS (`LAND_TAXI`, OFF / TAXI / LAND) | the taxi or the landing light, as the F-16 panel's (`cockpit3d.gd` `ext_lights` with `land_only`: the F-16's other panel lights stay hidden on this jet): a light on the jet and its cone on the ground, with the gear down at night and on the generators |
+| F-35I | JETTISON (`JETT_SEL`, ALL / EXT / SEL) | what EMER JETT drops (`player_weapons.gd` `jett_select`; the knob starts at ALL, the EMER JETT of before): ALL every station but the A-A missiles, EXT the external stations (the bays' stay), SEL the selected store's stations, as the F-16's selective jettison |
+| F-35I | COM A (`COM_A`) | the radio calls' volume, none at its stop, the game's level where the model shows it (0.5; inferred, as the F-16's COMM 1) |
+| F-35I | AUTO RECOVERY (`AUTO_RECOVERY`) | OFF silences the "Pull up" call (`flight_sounds.gd` `gcas_off`; the call is the automatic recovery's lineage, inferred); partly: the automatic fly-up is not modelled |
+| F-35I | IPP EMER OFF (`IPP_EMER_OFF`, guard `IPP_EMER_OFF_GUARD`) | the first click lifts the guard; the press shuts the IPP down (command 211 off, as the IPP switch at OFF) |
+| F-35I | ENG FIRE push-light (`lamp_eng_fire_0`) | the push fires the extinguisher (command 73, the X key; inferred: no photo shows the light) |
+| F-35I | VIDEO BRT, VIDEO CONT (`VIDEO_BRT`, `VIDEO_CONT`) | each push a step of the helmet's picture, the night camera's and the DAS video's (`terrain_view.gd` `helmet_video_adjust`): brightness the level its gain aims at (0.55 ± 0.05 a step), contrast its curve (× 1.2 a step), five steps each way (inferred) |
+| F-35I | the guards of ALT GEAR, ENGINE and IPP EMER OFF | status works: a guard's real job is to gate its switch |
+| F-16 | ANTI SKID caution | lit with the brakes failed (damage 5, BRAKES FAIL): "a malfunction affecting braking performance"[^fm-antiskid] |
+| F-16 | STBY GAINS (the FLCS panel's four lights) | lit with the air data failed (damage 11): the FLCS on its standby gains, the fault list's STBY GAIN, "dual air data failure"[^fm-stbygain] |
+| F-16 | AR RDY | lit with AIR REFUEL at OPEN and hydraulic system B up: "the AR slipway door is open and the system is ready"[^fm-arrdy] (the door's hydraulics inferred) |
+
+The F-16's checklist card checks its speed brakes too: "Speedbrakes – cycle, then closed" ticks once they were seen
+open and are closed again, "Speedbrakes – closed" after landing once closed (`card.gd` `speedbrake`).
+
+These stay as they are, each with its reason in the status data:
+
+- F-35I, moves: COM B and C/BUR (the radio calls are on COM A), the SFD's knob, ALIGN and BRT (true altitude, no
+  drift, no brightness of its own), PEDAL ADJ, HOOK (no hook in the sim and no source for its cockpit indication),
+  ZEROIZE, FCS RESET (the sim's flight control faults are battle damage), VS BIT, the throttle's friction and THROTTLE
+  ACTIVE, STICK ACTIVE (the keys' and the joystick's), ICC1, ICC2, CABIN PRESSURE, DEFOG, MDC, SEAT HEIGHT (the eye's
+  height is the lean keys'), MFD NIGHT / DAY (the sim dims the display at night by itself). Partly: the HMD knob's
+  NIGHT / AUTO / DAY act alike, ENGINE's MOTOR and BATT's RESET move the switch only.
+- F-16, lamps lit in the lamp test only: RADAR ALT (the radar altimeter does not fail; the flight manual gives the
+  light no condition), NWS FAIL (the steering does not fail), SEAT NOT ARMED (the cockpit model has no ejection safety
+  lever; the seat is the outside model's one mesh, with no handle either: the E key ejects), IFF (no mode 4), the ECM
+  panel's eleven (its programs are not modelled, and the model lights them only all together), FLCS FAIL A-D (the
+  battery does not fail), the marker beacon (no beacons), HANDOFF, AR DISC (no tanker), AFT NOT ENGAGED, BUC, EEC,
+  SEC, FUEL/OIL HOT, INLET ICING, NUCLEAR and the blank legends.
+- The F-16's card: Oxygen, IFF, trim (the sim has the roll trim only) and the ejection safety lever stay read and
+  acknowledged.
+- The mouse (status.md, the notebook's open line): the throttle's OFF stays the keys' (Shift + 1, the user, 15 Nov:
+  "shouldn't be able to move the throttle or stick from the mouse"); the toe brakes are the keys' and the joystick's
+  as the stick, and PARKING BRAKE is a click on both jets.
+
+Test: `modern-iaf/tests/test_gap_controls.gd`.
+
 ### 5.4 The AoA probe (2026-11-11, from the user's Mac)
 
 On the ground the AoA gauge and the indexer jumped about: the 6-DoF's α is the angle of the body's velocity, which
@@ -1407,3 +1455,7 @@ openstreetmap.org/copyright" (also in [docs/credits.md](../../docs/credits.md)).
 [^fm-pfld]: T.O. GR1F-16CJ-1, pages 1-146 and 1-147 (the PFLD; F-ACK acknowledges a caution level fault, clearing it from the PFLD and putting out its caution light and MASTER CAUTION; later presses recall the faults still reported).
 [^fm-audio]: T.O. GR1F-16CJ-1, figure 1-79, pages 1-188 to 1-190 (COMM 1: "The OFF position removes power from the UHF radio"; ILS and TACAN: OFF removes power from the receiver, clockwise the identification's volume; INTERCOM: the volume of the AIM-9 tone and the threat warning tones).
 [^fm-maxpwr]: T.O. GR1F-16CJ-1, pages 1-39 (PW 229) and 1-53 (GE 129): "The MAX POWER switch … is inoperative".
+[^mb-seat]: Martin-Baker, "US16E" (https://martin-baker.com/ejection-seats/us16e/), and modern-iaf/docs/research/f35-cockpit.md §2.7 S1, S2 (the SAFE / ARM / MOH lever arms the seat).
+[^fm-antiskid]: T.O. GR1F-16CJ-1 (https://archive.org/details/haf-f-16), page 1-117 (ANTI SKID caution light).
+[^fm-stbygain]: T.O. GR1F-16CJ-1, the pilot fault list's table: "STBY GAIN – Dual air data failure".
+[^fm-arrdy]: T.O. GR1F-16CJ-1, page 1-78 (the AR status lights: "RDY – Illuminates blue when the AR slipway door is open and the system is ready").

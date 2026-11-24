@@ -626,6 +626,11 @@ func _panel_lights(e: Dictionary) -> void:
 		tree_exiting.connect(_land.queue_free)
 	if _panel.has("none"):
 		return
+	if e.get("land_only", false):  # the F-35I: its landing / taxi light alone, the F-16's panel lights hidden
+		for k in PANEL_GROUPS.keys() + ["inlet"]:
+			_shown_at(_panel[k], 0.0)
+		_landing_light(int(e.land))
+		return
 	var wing: float = 0.0 if e.flash and fposmod(_time, FLASH_PERIOD) >= FLASH_PERIOD * 0.5 else float(e.wing)
 	for n: Node3D in _lights:
 		if n.name == "NavLights":
@@ -633,7 +638,12 @@ func _panel_lights(e: Dictionary) -> void:
 	_shown_at(_panel.inlet, wing)
 	for k in PANEL_GROUPS:
 		_shown_at(_panel[k], float(e[PANEL_GROUPS[k]]))
-	var land: int = int(e.land) if _lit and ramps.gear < GEAR_MAX * 0.7 else 0
+	_landing_light(int(e.land))
+
+
+## The landing (1) or taxi (-1) light on, with the gear down at night; 0 off.
+func _landing_light(want: int) -> void:
+	var land: int = want if _lit and ramps.gear < GEAR_MAX * 0.7 else 0
 	_shown_at(_panel.land, 1.0 if land != 0 else 0.0)
 	_land.visible = land != 0
 	if land != 0:

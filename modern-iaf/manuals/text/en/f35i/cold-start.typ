@@ -37,7 +37,7 @@ These steps check that the cockpit is safe to power.
 #steps(
   "before_start",
   captions: caps,
-  notes: (land_taxi_off: [The switch moves only: the landing and taxi lights are not modelled; the navigation lights and the strobe are always on.]),
+  notes: (land_taxi_off: [At night, with the gear down and the generator on line, TAXI lights the taxi light and LAND the landing light: each lights the ground ahead. The navigation lights and the strobe are always on.]),
   figs: ("gear_panel", "front"),
 )
 
@@ -92,7 +92,7 @@ The integrated power pack (IPP) is a small turbine. It powers the jet on the gro
   figs: ("gear_panel",),
   notes: (
     canopy: [The CANOPY switch is on the left console behind the seat's edge, out of sight from the normal head position; its key is the easy way.],
-    taxi_light: [The switch moves only: the landing and taxi lights are not modelled; the navigation lights and the strobe are always on.],
+    taxi_light: [At night, with the gear down and the generator on line, TAXI lights the taxi light and LAND the landing light: each lights the ground ahead. The navigation lights and the strobe are always on.],
   ),
 )
 
@@ -116,7 +116,7 @@ Do these steps at the holding point or lined up, before the take-off clearance.
   captions: caps,
   notes: (
     fcs_reset: [The button moves only: the sim's flight controls have no fault to reset.],
-    landing_light: [The switch moves only: the landing and taxi lights are not modelled; the navigation lights and the strobe are always on.],
+    landing_light: [At night, with the gear down and the generator on line, TAXI lights the taxi light and LAND the landing light: each lights the ground ahead. The navigation lights and the strobe are always on.],
   ),
   figs: ("fcs_reset", "front", "gear_panel"),
 )
@@ -137,7 +137,7 @@ The take-off is flown from memory. It is not on the card.
 #steps(
   "after_takeoff",
   captions: caps,
-  notes: (landing_light_off: [The switch moves only: the landing and taxi lights are not modelled; the navigation lights and the strobe are always on.]),
+  notes: (landing_light_off: [At night, with the gear down and the generator on line, TAXI lights the taxi light and LAND the landing light: each lights the ground ahead. The navigation lights and the strobe are always on.]),
   figs: ("gear_panel",),
 )
 

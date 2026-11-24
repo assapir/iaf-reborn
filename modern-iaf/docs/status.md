@@ -3,6 +3,14 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **The controls and lamps that moved only, round two (2026-11-25, the user, 18 Nov: "How much of our controls
+  actually controls?"; [cockpit.md](cockpit.md) §5.12):** the F-35I's firing handle ejects with the seat at ARM (three pulls, as the E key; the
+  seat at SAFE on a cold jet; the card's two seat items tick from it), LAND/TAXI LIGHTS light the taxi or landing
+  light, JETTISON picks ALL / EXT / SEL for EMER JETT, COM A sets the radio's volume, AUTO RECOVERY off silences "Pull
+  up", IPP EMER OFF shuts the IPP down, the ENG FIRE push fires the extinguisher, VIDEO BRT / CONT step the helmet's
+  picture; the F-16's ANTI SKID, STBY GAINS and AR RDY lights read their systems; the F-16's card checks its speed
+  brakes. The status data now count the F-35I 28 works, 4 partly, 20 moves; the F-16 273 works, 13 partly, 29 moves,
+  37 lamps lit in the lamp test only, each with the reason it stays so. `test_gap_controls.gd`.
 - **Close up / spread out (2026-11-24, the user, 20 Nov: "we should allow ask for "get closer", which will even lead
   to 10m apart"; [ai-plan.md](ai-plan.md) F4, F5; [../../docs/ai.md](../../docs/ai.md) §8.7):** the radio menu's
   Formation page has a Spacing page: Close up takes the close shapes from 60 m between the slots to 30 m, then to 12 m
@@ -664,8 +672,8 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   six positions both ways, by the mouse and its key: STOR HDG 90 s, NORM 8 min, NAV keeps the alignment, ATT loses
   it; cockpit.md §5.2), the canopy opens; the JFS switch springs back to OFF at 52 %. The flight model holds the
   positions (`start.rs` `Start::on`); the checklist, the card and the debrief read them, so a switch back off undoes its step ([cockpit.md](cockpit.md) §5.2 "Both ways";
-  `test_switches_both_ways.gd`). Open: the in-between positions (MAIN PWR BATT, JFS START 1, RDR ALT STBY), the
-  lamps and cues (M3).
+  `test_switches_both_ways.gd`). The in-between positions (MAIN PWR BATT, JFS START 1, RDR ALT STBY) work since
+  2026-11-16 ([cockpit.md](cockpit.md) §5.2 "The in-between positions").
 - **Each power switch its own system (2026-11-13, the switches audit's M2b):** on the Sufa and the Barak the
   generators give the displays' power, and each AVIONIC POWER and SNSR PWR switch powers its own system after a 3 s
   warm-up: MMC the HUD, ST STA store release, MFD the MFDs, UFC the DED, FCR the radar, RDR ALT the HUD's radar
@@ -677,16 +685,17 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   Open: the real consequences beyond the switches' names (sources). Since 2026-11-25 the CARA ALOW and GAAF voices
   stay silent with RDR ALT off, as the HUD's R row and break X (`gaaf::alow` / `advisory` take the CARA's height).
 - **The jet's checklist card (2026-11-17):** one real checklist per jet in every mission, the notebook's CHECKLIST tab:
-  the F-16s' after the real F-16C/D normal procedures (67 items, 49 checked by the sim, 18 read and acknowledged), the
-  F-35I's from the public start flow and inferred (38 items, 26 and 12); each checked item ticks from the cockpit's
+  the F-16s' after the real F-16C/D normal procedures (68 items, 53 checked by the sim, 15 read and acknowledged since
+  2026-11-25), the F-35I's from the public start flow and inferred (38 items, 28 and 10); each checked item ticks from the cockpit's
   state, the current one ringed in a lesson; the start-up lessons ask for its items through BEFORE TAXI; LEFT HDPT and
   RIGHT HDPT power the chin pods ([training.md](training.md) §12; `test_checklist_card.gd`). Since 2026-11-18: the
   F-35I's card holds the items a public US Air Force instruction requires (the survival kit switch, loose items, the
   helmet display's preflight, the ops check, the "gear down" report, the post-flight walk-around, the taxi speeds and
   the fuel calls); both cards name each control as its panel does and state the reaction the cockpit shows; BEFORE
   LANDING opens on the approach (it never did: the rule read a height above the ground the flight's state does not
-  hold); `test_card_landing.gd` flies the card home to a cold jet. Open: the systems behind the read-and-acknowledge
-  items (oxygen, IFF, trim, the ejection seat's lever, the speedbrakes' check). The autopilot's landing circuit
+  hold); `test_card_landing.gd` flies the card home to a cold jet. Since 2026-11-25 the F-16's speed brake items and the F-35I's seat items are checked
+  ([cockpit.md](cockpit.md) §5.12); read and acknowledged stay the oxygen, the IFF, the trim (the sim has the roll trim
+  only) and the F-16's ejection safety lever (none in its cockpit model). The autopilot's landing circuit
   with the 6-DoF jets, which sank the Sufa into the ground here, lands since 2026-11-18 (the entry above on the
   autopilot's circuit).
 - **Every checklist switch by the mouse (2026-11-13, the switches audit's M1):** the throttle takes no mouse since
@@ -721,8 +730,9 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   mission an outline of the current step's switch's own shape (and of the F-16's RPM dial for the idle step), a pointer
   at the screen's edge for a part out of view, the board sliding off an outline it would cover. English and Hebrew (mirrored). RADIO's
   frequencies: OurAirports' where published, the rest invented ([training.md](training.md) §11). `test_notebook.gd`.
-  Open: the GUIDE tab and the front end's Guides screen (part 2); the throttle OFF, the brakes and the ejection handle
-  by the mouse.
+  Open: the GUIDE tab and the front end's Guides screen (part 2). By the mouse since 2026-11-25: the F-35I's
+  ejection handle; the throttle's OFF stays the keys' (the user, 15 Nov), the toe brakes the keys' and the joystick's,
+  PARKING BRAKE a click on both jets ([cockpit.md](cockpit.md) §5.12).
 - **The F-16's approach speed matches the manual (2026-11-11):** TP-1538's speed-brake tables gave the open speed
   brake lift (+0.25 CL at 13° α); the 6-DoF flies the JSBSim model's speed-brake drag instead, and its flaps' lift
   (+0.122). The 13° α approach is 136–139 kt at the manual's three weights (manual 139–141 kt, was 118–121 kt)

@@ -25,7 +25,7 @@ In a #term("lesson") the #term("notebook") tells you when a switch stands one cl
 
 - *The throttle and the stick.* Use the keyboard, a joystick or a throttle lever (@keys-joystick).
 - *The pilot's body.* A click goes through it to the control under it (@views-body).
-- *The ejection.* It stays on its key, so that a stray click never fires the seat (@time-pause-eject).
+- *The ejection.* It takes three presses of its key within a second each, so that a stray press never fires the seat (@time-pause-eject). In the Adir three clicks on the ejection handle the same way fire the seat too, with the seat's lever at ARMED: the #other("f35i", "canopy-seat").
 
 === Controls with no system behind them <clicking-moves>
 

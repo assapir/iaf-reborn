@@ -23,7 +23,7 @@ The cockpit has few lit panels: most of what the pilot reads is on the #term("PC
 )
 
 #in-sim[
-  - *Exterior.* The navigation lights and the strobe are always on; no switch controls them. The landing and taxi lights are not drawn.
-  - *Displays.* MFD BRT and HMD BRT change the brightness in steps of 2.5~%. #sym.arrow.r *HMD at OFF removes the helmet's symbols.*
-  - *#term("Not modelled").* LAND/TAXI LIGHTS, DAY / NIGHT, VIDEO BRT and VIDEO CONT move and do nothing; NIGHT, AUTO and DAY of the HMD knob act alike.
+  - *Exterior.* The navigation lights and the strobe are always on; no switch controls them. #row("LAND_TAXI") at TAXI or LAND #sym.arrow.r *the taxi light or the landing light lights the ground ahead*, at night, with the gear down and the generator on line.
+  - *Displays.* MFD BRT and HMD BRT change the brightness in steps of 2.5~%. #sym.arrow.r *HMD at OFF removes the helmet's symbols.* Each push of VIDEO BRT or VIDEO CONT #sym.arrow.r *steps the brightness or the contrast of the helmet's picture* (the night camera's and the DAS video), five steps each way (@hmd).
+  - *#term("Not modelled").* DAY / NIGHT moves and does nothing; NIGHT, AUTO and DAY of the HMD knob act alike.
 ]

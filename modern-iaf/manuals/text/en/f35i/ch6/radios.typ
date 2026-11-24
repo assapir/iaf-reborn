@@ -6,7 +6,7 @@ This section covers talking, telling friend from foe, and the picture that other
 
 The real jet has no radio panel. The radios are set on the CNI format of the #term("PCD")#codeone. The three knobs #row("COM_A"), #row("COM_B") and #row("COM_C") set the volumes only.
 
-#in-sim[The CNI format's layout is inferred. COM1 and COM2 take a preset or a frequency from its keypad, the up-front controls' keys work it too, and the function bar shows the presets and the UHF frequency. The transponder's modes, its code and IDENT are there as well. The volume knobs turn and change nothing. You speak through two lists of calls:
+#in-sim[The CNI format's layout is inferred. COM1 and COM2 take a preset or a frequency from its keypad, the up-front controls' keys work it too, and the function bar shows the presets and the UHF frequency. The transponder's modes, its code and IDENT are there as well. #row("COM_A") sets the volume of the radio calls: none at its stop, the game's normal level at the position it starts at. COM B and COM C turn and change nothing: the sim's radio calls are on COM A. You speak through two lists of calls:
   - the calls to air traffic control, in #other("game", "tower");
   - the calls of the airborne controller, the AWACS, in #other("game", "awacs").]
 

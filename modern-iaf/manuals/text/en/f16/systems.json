@@ -520,7 +520,8 @@
      "positions": [
       "Light"
      ],
-     "does": "A block of four status lights on the cockpit model's panel (inferred: the model draws them, the Block 50 flight manual's figure has none here)."
+     "does": "A block of four status lights on the cockpit model's panel (inferred: the model draws them, the Block 50 flight manual's figure has none here).",
+     "sim": "On when both air data sources have failed (STBY GAIN in the fault list)."
     },
     {
      "node": "lamp_ecm_panel_9",
@@ -1539,7 +1540,8 @@
      "positions": [
       "Light"
      ],
-     "does": "The refuelling door is open and the jet is ready for the boom."
+     "does": "The refuelling door is open and the jet is ready for the boom.",
+     "sim": "On with AIR REFUEL at OPEN and hydraulic system B up."
     },
     {
      "node": "lamp_ar_nws_0",
@@ -2575,7 +2577,8 @@
      "positions": [
       "Light"
      ],
-     "does": "The anti-skid has a fault that affects braking."
+     "does": "The anti-skid has a fault that affects braking.",
+     "sim": "On when battle damage has failed the brakes."
     },
     {
      "node": "lamp_caution_c_adc_0",

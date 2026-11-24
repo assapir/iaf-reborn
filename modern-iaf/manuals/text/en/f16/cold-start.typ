@@ -116,7 +116,7 @@ With the generator on line, test the warning systems, power the avionics and sta
     flcs_bit: [The self test behind the lamp is not modelled.],
     master_caution: [The step is ticked while the MASTER CAUTION light is out.],
     flight_controls: [Move the stick and the pedals and watch the surfaces from an outside view if you wish. The sim does not check it.],
-    speedbrakes: [Hold #key("Speedbrakes open (hold)"), then press #key("Speedbrakes close"). The sim does not check it.],
+    speedbrakes: [Hold #key("Speedbrakes open (hold)"), then press #key("Speedbrakes close"). The sim ticks the step once the speedbrakes have opened and closed again.],
   ),
 )
 

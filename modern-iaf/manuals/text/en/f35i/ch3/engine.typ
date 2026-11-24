@@ -7,7 +7,7 @@
 
 #in-sim[
   - A fire comes from a hit only. #sym.arrow.r *ENG FIRE lights, on the panel and on the ICAWS format with ENGINE FAIL, the voice says "Warning", and the engine gives no thrust.*
-  - #key("Extinguish engine fire") puts it out, once a flight. #sym.arrow.r *The light goes out and the thrust comes back.* The afterburner stays lost (*AB FAIL*). Pushing the light itself does nothing.
+  - #key("Extinguish engine fire") puts it out, once a flight. #sym.arrow.r *The light goes out and the thrust comes back.* The afterburner stays lost (*AB FAIL*). Pushing #row("lamp_eng_fire_0") does the same as the key.
 ]
 
 === Engine failure and fuel exhaustion <emergency-flameout>

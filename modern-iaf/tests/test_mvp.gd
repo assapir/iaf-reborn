@@ -469,7 +469,7 @@ func _fly_card(tv: Node, go: Callable, keys := false) -> void:
 
 ## One card item by the cockpit's controls, as its line says: the start-up steps (the JFS's 20 %% RPM and the INS's
 ## alignment waited for), each "test" control to its test position, each "set" control clicked round to its position (a
-## shut guard's first click lifts it), a lit lamp's reset, the gear handle.
+## shut guard's first click lifts it), a lit lamp's reset, the gear handle, the speed brakes by their keys.
 func _do_item(tv: Node, it: Dictionary, keys: bool) -> void:
 	var c: Dictionary = it.check
 	var card = tv.addon.card
@@ -538,6 +538,12 @@ func _do_item(tv: Node, it: Dictionary, keys: bool) -> void:
 		await _click_control(tv, String(ctl[0]), false)
 	if c.has("gear") and tv.cockpit.gear_handle_down != (String(c.gear) == "down"):
 		await _click_control(tv, String(ctl[0]))
+	if c.has("speedbrake"):  # the SPD BRK switch's keys: open (held), then closed
+		if String(c.speedbrake) == "cycled":
+			tv._command([206, 1, 0])
+			await fly(tv, 1.5)
+			tv._command([206, 0, 0])
+		tv._command([206, -1, 0])
 
 
 ## A click on control `node` shows a move that stays: not a push button, a spring or a shut guard's first click.

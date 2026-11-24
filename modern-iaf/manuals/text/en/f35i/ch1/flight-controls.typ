@@ -27,5 +27,5 @@ The F-35A has a system that takes the controls and pulls the jet up when it is a
   - *Speedbrake.* #key("Speedbrakes open (hold)") opens it while held, and it stays where the key is let go; #key("Speedbrakes close") closes it.
   - *Autopilot.* #key("Autopilot: level / nav / off") steps through level flight, steering along the route, and off.
   - *Trim.* The sim trims roll only.
-  - *#term("Not modelled").* Faults of the flight control system; FCS RESET, AUTO REC, #row("STICK_ACTIVE") and #row("THR_ACTIVE"), which move and do nothing; the automatic pull-up (the helmet shows a pull-up cue, @hmd).
+  - *#term("Not modelled").* Faults of the flight control system; FCS RESET, #row("STICK_ACTIVE") and #row("THR_ACTIVE"), which move and do nothing; the automatic pull-up (the helmet shows a pull-up cue, @hmd). AUTO REC at OFF only silences the "Pull up" call.
 ]

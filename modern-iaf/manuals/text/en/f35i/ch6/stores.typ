@@ -74,10 +74,10 @@ A release outside these is refused: the store stays on its station.
 
 A jettison drops stores unarmed to make the jet lighter or cleaner. On the real jet #row("JETT_SEL") chooses what goes and #row("EMER_JETT") drops it. The real procedure is not public: open.
 
-+ *Press* #row("EMER_JETT") or #key("Emergency jettison"). #sym.arrow.r *Every bomb and rack leaves the jet. The stores in the bays leave as soon as the doors are open. The air-to-air missiles stay. Nothing explodes.*
++ *Set* #row("JETT_SEL"): ALL, EXT or SEL. It starts at ALL.
++ *Press* #row("EMER_JETT") or #key("Emergency jettison"). #sym.arrow.r *The stores the knob selects leave the jet, unarmed. The stores in the bays leave as soon as the doors are open. The air-to-air missiles stay. Nothing explodes.*
 
 #in-sim[
   - The jettison is refused on the ground.
-  - #row("JETT_SEL") turns and changes nothing: the button always drops the same stores.
-  - A selective jettison, of one kind of store, is #nis on the #jet.short.
+  - #row("JETT_SEL") at ALL #sym.arrow.r *every station drops*, the air-to-air missiles excepted. At EXT #sym.arrow.r *the external stations only*: the bay stores stay. At SEL #sym.arrow.r *the selected store's stations.*
 ]

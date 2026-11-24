@@ -12,5 +12,14 @@
 "ALT_GEAR": {"system": "alt_gear"},
 "PARK_BRAKE": {"system": "parking_brake"},
 "lamp_master_caution_0": {"system": "master_caution"},
-"gear_handle": {"click": [14, 0, 0]}
+"gear_handle": {"click": [14, 0, 0]},
+"EJECT_HANDLE": {"system": "eject"},
+"SEAT_SAFE": {"cold": 0},
+"JETT_SEL": {"system": "jett_sel", "modelled": 0},
+"COM_A": {"system": "com_a"},
+"AUTO_RECOVERY": {"system": "auto_recovery"},
+"IPP_EMER_OFF": {"system": "ipp_off"},
+"lamp_eng_fire_0": {"system": "fire_push"},
+"VIDEO_BRT": {"system": "video_brt"},
+"VIDEO_CONT": {"system": "video_cont"}
 }

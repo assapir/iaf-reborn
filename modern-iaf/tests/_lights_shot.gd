@@ -9,7 +9,8 @@
 #   - then the engine started (the generators): ext_<light> seen from the left front quarter with that light alone on
 #     (none, wing, wing_dim, inlet... as ext_lights), ext_all, ext_main (the panel untouched: main's look), and
 #     land_cockpit / taxi_cockpit (the light on the ground from the seat) and land_outside.
-# SHOT_ONLY: a comma list of the groups (cockpit, lamps, ded, ext, bench). bench: the frame time (ms, vsync off) in the
+# SHOT_ONLY: a comma list of the groups (cockpit, lamps, ded, ext, bench; f35i alone: the F-35I's landing and taxi
+# light, with SHOT_MISSION 2032). bench: the frame time (ms, vsync off) in the
 # cockpit and outside at night, the panel at rest, then with every light on (printed "BENCH").
 # The same script runs on main (before pictures): what main lacks is skipped.
 #   flock -o ~/.cache/iaf-gpu-bench.lock tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 SHOT_OUT=<dir> \
@@ -86,6 +87,9 @@ func run() -> void:
 		await _save("indexer_dim")
 		_put("indv-lgt-cont", 0.0)
 		c3d.lamp_test = false
+	if _want("f35i"):
+		await _f35i()
+		return
 	if _want("ext") or _want("bench") or _want("ded"):
 		await _start()
 	if _want("ded"):  # the DED on the generators with the UFC up: DATA ENTRY DISPLAY low, rest, full
@@ -193,6 +197,25 @@ func _exterior() -> void:
 	await _save("taxi_cockpit")
 	_put("light-land-switch", 0.0)
 	_dark()
+
+
+## The F-35I's LAND/TAXI LIGHTS (SHOT_MISSION 2032, Nevatim; modern-iaf/docs/cockpit.md §5.12): the engine started by
+## its command, then f35i_<off|taxi|land>_<outside|cockpit>.
+func _f35i() -> void:
+	tv._command([200, 0, 0])  # Start engine
+	Engine.time_scale = 8.0
+	while tv.cockpit.power < 2 or String(tv.cockpit.state.get("start_phase", "")) != "running":
+		await process_frame
+	Engine.time_scale = 1.0
+	tv.aircraft.canopy_open = 0.0
+	for s in [["off", 0.0], ["taxi", 1.0], ["land", 2.0]]:
+		_put("LAND_TAXI", s[1])
+		_orbit(0.0, 6.0, 40.0)
+		await _save("f35i_%s_outside" % s[0])
+		tv.in_cockpit = true
+		tv.views.snap = Vector2(0.0, -0.12)
+		await create_timer(0.5).timeout
+		await _save("f35i_%s_cockpit" % s[0])
 
 
 ## Every exterior light off, MASTER on (the FORM knob at none).

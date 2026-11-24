@@ -17,6 +17,6 @@ Without a radio the pilot joins another jet, sets the transponder to 7600 (7700 
 
 #idx("Emergency jettison")#row("EMER_JETT") drops the stores in one press (inferred from its name; the real sequence is open).
 
-#in-sim[#key("Emergency jettison") or the button #sym.arrow.r *the bay doors open and the bombs and the wing stores fall, unarmed; the air-to-air missiles stay.* On the ground nothing is dropped. #row("JETT_SEL") moves only.]
+#in-sim[#key("Emergency jettison") or the button #sym.arrow.r *the stores #row("JETT_SEL") selects fall, unarmed: ALL every station, EXT the external stations only, SEL the selected store's stations; the bay doors open for a bay store; the air-to-air missiles stay.* On the ground nothing is dropped.]
 
 #in-sim[What damage does: *ELEC FAIL* takes the radar and the warning receiver, and when total the weapons and the displays' flight data too; *FCS DEGD* leaves the stick a quarter of its authority: fly gently and land straight in; *FCS FAIL* stops the surfaces: eject. #row("FCS_RESET") moves only.]

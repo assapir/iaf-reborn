@@ -4353,7 +4353,36 @@ func _helmet_video_step() -> void:
 		)
 		for k in look:
 			mat.set_shader_parameter(k, look[k])
+		_helmet_video_look()
 	_cockpit_note(["Helmet video off", "Helmet night camera", "Helmet DAS video"][_helmet_mode])
+
+
+## The F-35I's VIDEO BRT and VIDEO CONT rockers (its 3D cockpit's, cockpit3d_controls.gd "video_brt" / "video_cont"):
+## the helmet picture's level a step up or down, VIDEO_STEPS each way from the look's own: brightness the level the
+## picture's gain aims at (the shader's `target`, VIDEO_BRT_STEP a step), contrast its curve (× VIDEO_CONT_STEP a step;
+## the steps inferred). They hold for the night camera and the DAS video alike.
+const VIDEO_STEPS := 5
+const VIDEO_TARGET := 0.55
+const VIDEO_BRT_STEP := 0.05
+const VIDEO_CONT_STEP := 1.2
+var _video_steps := Vector2i.ZERO  # x brightness, y contrast
+
+
+func helmet_video_adjust(contrast: bool, way: int) -> void:
+	if contrast:
+		_video_steps.y = clampi(_video_steps.y + way, -VIDEO_STEPS, VIDEO_STEPS)
+	else:
+		_video_steps.x = clampi(_video_steps.x + way, -VIDEO_STEPS, VIDEO_STEPS)
+	_helmet_video_look()
+
+
+func _helmet_video_look() -> void:
+	if _goggles == null or not _goggles.visible or _helmet_mode == 0:
+		return
+	var mat: ShaderMaterial = _goggles.get_child(0).material
+	var curve: float = DAS_VIDEO.curve if _helmet_mode == 2 else NVC_LOOK.curve
+	mat.set_shader_parameter("target", VIDEO_TARGET + VIDEO_BRT_STEP * _video_steps.x)
+	mat.set_shader_parameter("curve", curve * pow(VIDEO_CONT_STEP, _video_steps.y))
 
 
 ## Ours (Modern IAF, the F-35I's DAS format; avionics-plan.md P9): the forward aperture's picture, a camera on the jet

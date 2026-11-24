@@ -7,5 +7,5 @@ Eject when the jet does not answer the controls, when a fire goes on, or when th
 #in-sim[
   - #key("Eject (press 3 times)"): three presses, each within a second of the one before. #sym.arrow.r *The canopy goes, the seat fires and the parachute opens.* The engine stops and the controls are dead.
   - The height at ejection makes no difference in the sim: the seat works from any height.
-  - The handle moves only: the key is the control.
+  - Three clicks on #row("EJECT_HANDLE") eject the same way, with #row("SEAT_SAFE") at ARMED. At SAFE or MOH the handle moves and nothing happens; the key ejects at any lever position.
 ]

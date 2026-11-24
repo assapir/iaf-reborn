@@ -118,6 +118,9 @@ var _pull_timer := -1.0  # ctl+0x908: next Betty "pull up" time, < 0 = off
 ## ALOW condition ends and comes again.
 var _alt_reset := false
 var _gaaf_on := false  # Real: the GAAF advisory holds (one "Pull up" per advisory)
+## The F-35I's AUTO RECOVERY switch off (cockpit3d_controls.gd "auto_recovery"): no "Pull up" (inferred: the call is
+## the automatic recovery's, the Auto-GCAS lineage of REAL_VOICE's "gaaf").
+var gcas_off := false
 var _real_voice := ""  # real_voice(type_code)
 var _betty_set := "original"  # Real Betty: betty_set(type_code) with Modern IAF's voices loaded
 var _fuel_flags := [true, true]  # engine object +0x40 / +0x44
@@ -544,6 +547,7 @@ func _real_warning(voice: String, h_ft: float, st: Dictionary, inp: Dictionary, 
 		_alt_reset = false
 	var g: bool = (
 		voice != ""
+		and not gcas_off
 		and ClassDB.class_call_static(
 			"IafRealHud",
 			"gaaf",
