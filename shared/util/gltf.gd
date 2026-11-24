@@ -334,14 +334,18 @@ const MIG29_DIR := "res://shared/extra/models/mig29/"
 const STORES_DIR := "res://shared/extra/models/stores/"
 ## The F-16's 3D cockpit (cockpit/cockpit3d.gd): its textures compressed (BC1 / BC3) at the parse too.
 const COCKPIT3D_DIR := "res://shared/extra/models/cockpit3d/"
-## Modern IAF's enemy units (CC BY 4.0, docs/credits.md; tools/enemy_models/convert.py: true size, nose along −Z, on
-## the ground at the footprint's middle): a site part's or drone's placed name -> its model (air_defence.gd, drones.gd;
-## a name without one keeps its stand-in shape). "T-72" is placed by no site: its unit record (target_t72, as the Ural's
-## target_ural) names the file as its "model" (modern-iaf/data/db/units); listed here so that every enemy model is
-## parsed with LODs and its textures compressed as the stores'.
+## Modern IAF's enemy units (CC BY 4.0, docs/credits.md; tools/enemy_models/convert.py; the S-300's truck radars
+## ours, tools/enemy_models/radars.py: true size, nose along −Z, on the ground at the footprint's middle): a site
+## part's or drone's placed name -> its model (air_defence.gd, drones.gd; a name without one keeps its stand-in shape).
+## "T-72" is placed by no site: its unit record (target_t72, as the Ural's target_ural) names the file as its "model"
+## (modern-iaf/data/db/units); listed here so that every enemy model is parsed with LODs and its textures compressed
+## as the stores'.
 const UNITS := {
 	"5P85TE2": "res://shared/extra/models/s300_5p85/s300_5p85.glb",
 	"30N6E2 RADAR MAST": "res://shared/extra/models/radar_30n6e/radar_30n6e.glb",
+	"96L6E RADAR": "res://shared/extra/models/radar_96l6e/radar_96l6e.glb",
+	"64N6E2 RADAR": "res://shared/extra/models/radar_64n6e2/radar_64n6e2.glb",
+	"30N6E2 RADAR": "res://shared/extra/models/radar_30n6e2/radar_30n6e2.glb",
 	"54K6E2": "res://shared/extra/models/ural4320/ural4320.glb",
 	"9A331 TOR RADAR": "res://shared/extra/models/tor_m1/tor_m1.glb",
 	"ZSU-23-4": "res://shared/extra/models/zsu23_4/zsu23_4.glb",

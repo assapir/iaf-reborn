@@ -36,6 +36,10 @@ const SEARCH_TURN := 120.0
 const LAY_RATE := 60.0
 const COVER_OPEN := -146.1
 const COVER_S := 4.0
+## The search radars' antennas (the node `antenna` of our models, tools/enemy_models/radars.py; docs/ai.md §15.4): one
+## turn in this many seconds while the radar radiates (the 30N6E2's, a track radar's, lays on its track at LAY_RATE).
+## The 64N6E2's 12 s: its sweep (iaf_ai::net SCAN); the 96L6E's 6 s: its update in the lowest beams (inferred).
+const ANTENNA_TURN := {"64N6E2 RADAR": 12.0, "96L6E RADAR": 6.0}
 ## The stand-ins' array faces and missile canisters.
 const FACE := Color(0.2, 0.22, 0.2)
 const CANISTER := Color(0.42, 0.45, 0.31)
@@ -165,6 +169,9 @@ func _part(p: Dictionary, at: Vector3, heading: float, side: int, look := "", te
 	if team:
 		ent.shoulder = true
 	ent.node = _shape(String(p.name) + look)
+	var antenna: Node3D = ent.node.find_child("antenna", true, false)
+	if antenna != null:
+		ent["antenna"] = [antenna, TAU / float(ANTENNA_TURN[p.name]) if ANTENNA_TURN.has(p.name) else 0.0]
 	host.add_child(ent.node)
 	rt.entities[ent.key] = ent
 	host.mission_entity_moved(ent)
@@ -230,12 +237,14 @@ func _step(delta: float) -> void:
 		if now >= n.next:
 			n.next = now + TICK
 			_net_tick(n, now)
+		_turn(n.ents, delta)
 	for s in sites:
 		_fire_gun(s, now)
 		if now >= s.next:
 			s.next = now + TICK
 			_tick(s, now)
 		_animate(s, delta, now)
+		_turn(s.ents, delta, s.aim)
 
 
 ## The network's decision: its sites' cues (their `cued`, read at their next tick). Its radar radiates while it
@@ -351,13 +360,11 @@ func _animate(s: Dictionary, delta: float, now: float) -> void:
 	var e: Dictionary = s.ents[a.part]
 	if s.searching:
 		a.search.rotation.y = wrapf(a.search.rotation.y - deg_to_rad(SEARCH_TURN) * delta, -PI, PI)
-	var yaw := 0.0
+	var yaw := _yaw(e, s.aim)
 	var elev := 0.0
 	var t: Dictionary = host.runtime.entities.get(s.aim, {})
 	if not t.is_empty():
 		var d: Vector3 = host.runtime._world_of(t) - host.runtime._world_of(e)
-		# Clockwise of the hull's nose is a negative turn about up (Godot's y).
-		yaw = -deg_to_rad(wrapf(rad_to_deg(atan2(d.x, d.y)) - float(e.heading), -180.0, 180.0))
 		elev = clampf(atan2(d.z, Vector2(d.x, d.y).length()), 0.0, deg_to_rad(80.0))
 	var step := deg_to_rad(LAY_RATE) * delta
 	a.turret.rotation.y = rotate_toward(a.turret.rotation.y, yaw, step)
@@ -365,6 +372,31 @@ func _animate(s: Dictionary, delta: float, now: float) -> void:
 	a.open = move_toward(a.open, 1.0 if now < s.open_until else 0.0, delta / 2.0)
 	for i in a.covers.size():
 		a.covers[i].basis = a.rest[i] * Basis(Vector3.RIGHT, deg_to_rad(COVER_OPEN) * a.open)
+
+
+## The radars' antennas: a search radar's turns while it radiates (the site's search, the network's radar standing);
+## a track radar's lays on the site's first track `aim`, back to the nose without one; one out of action stops where
+## it is.
+func _turn(ents: Array, delta: float, aim := "") -> void:
+	for e in ents:
+		if not e.has("antenna") or int(e.state) >= 3:
+			continue
+		var a: Node3D = e.antenna[0]
+		if float(e.antenna[1]) > 0.0:
+			if e.get("radiating", false):
+				a.rotation.y = wrapf(a.rotation.y - float(e.antenna[1]) * delta, -PI, PI)
+		else:
+			a.rotation.y = rotate_toward(a.rotation.y, _yaw(e, aim), deg_to_rad(LAY_RATE) * delta)
+
+
+## The turn about up from part `e`'s nose to the jet `key` (radians, anticlockwise; 0 for none).
+func _yaw(e: Dictionary, key: String) -> float:
+	var t: Dictionary = host.runtime.entities.get(key, {})
+	if t.is_empty():
+		return 0.0
+	var d: Vector3 = host.runtime._world_of(t) - host.runtime._world_of(e)
+	# Clockwise of the hull's nose is a negative turn about up (Godot's y).
+	return -deg_to_rad(wrapf(rad_to_deg(atan2(d.x, d.y)) - float(e.heading), -180.0, 180.0))
 
 
 ## The burst's rounds, one per combat.gd GUN_PERIOD, through the fire tick's aim (off by the crew's laying error) and

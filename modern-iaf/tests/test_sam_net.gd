@@ -56,6 +56,15 @@ func run() -> void:
 	check(await _until(search, 6.0), "the RWR lists the 64N6E2's search (%s)" % [w.rwr.display()])
 	check(net[0].radiating and not net[1].radiating, "the radar radiates, the post does not")
 	check(not own_search.call(), "the batteries' own search radars stay off")
+	# The search radars' antennas (docs/ai.md §15.4): the 64N6E2's turns while it radiates, the 96L6E's stays still
+	# while its battery is networked.
+	check(net[0].has("antenna") and a[0].has("antenna"), "the 64N6E2's and the 96L6E's antennas")
+	var turned := func(e: Dictionary, s0: float): return absf(wrapf(e.antenna[0].rotation.y - s0, -PI, PI)) > 0.3
+	var y_net: float = net[0].antenna[0].rotation.y
+	var y_96: float = a[0].antenna[0].rotation.y
+	await fly(tv, 1.0)
+	check(turned.call(net[0], y_net), "the 64N6E2's antenna turns")
+	check(not turned.call(a[0], y_96), "the networked 96L6E's antenna stays still")
 	var locked := func(): return not sa.locked.is_empty() or not sb.locked.is_empty()
 	var both := false
 	var t0: float = tv._sim_time
@@ -65,9 +74,23 @@ func run() -> void:
 	check(not sa.flying.is_empty() or not sb.flying.is_empty(), "a cued battery launches")
 	check(locked.call() and not both, "one battery locks the jet, not both")
 	check(sa.flying.is_empty() or sb.flying.is_empty(), "one battery fires, the other holds")
+	# The locking battery's 30N6E2 (our truck model) lays its antenna on the jet (docs/ai.md §15.4).
+	var ls: Dictionary = sa if not sa.locked.is_empty() else sb
+	var tr: Dictionary = ls.ents[ls.track]
+	var key: String = ls.locked.keys()[0] if not ls.locked.is_empty() else ""
+	var off := absf(wrapf(tr.antenna[0].rotation.y - ad._yaw(tr, key), -PI, PI)) if tr.has("antenna") else PI
+	check(key != "" and off < deg_to_rad(15.0), "the 30N6E2's antenna on the jet (%.1f° off)" % rad_to_deg(off))
 	check(w.rwr.any_launch(), "the RWR's launch flag")
 	check(not own_search.call(), "no battery's own search while networked")
 
 	net[1].state = 4  # the command post destroyed
 	check(await _until(own_search, 2.0), "without the post the batteries search for themselves")
+	var y0 := [a[0].antenna[0].rotation.y, b[0].antenna[0].rotation.y]
+	net[0].state = 4  # the search radar destroyed
+	await fly(tv, 1.0)
+	y_net = net[0].antenna[0].rotation.y
+	var spun := [turned.call(a[0], y0[0]), turned.call(b[0], y0[1])]
+	check(spun[0] or spun[1], "a searching 96L6E's antenna turns (%s)" % [spun])
+	await fly(tv, 1.0)
+	check(not turned.call(net[0], y_net), "the destroyed 64N6E2's antenna stops")
 	print("net: ", ad.sites.map(func(x): return x.site.state(tv.runtime.now)))

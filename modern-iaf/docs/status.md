@@ -151,9 +151,11 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   the S-300 launcher, the 30N6E on its 40V6M tower (a site spawned with `mast`), the Tor-M1, the ZSU-23-4, the
   Shahed-136, the T-72 and the Ural-4320. The sites and drones draw them by placed name (`Gltf.UNITS`); the Ural
   stands in for the network's 54K6E2 command post. Two ground-target records, `target_t72` and `target_ural`
-  (`modern-iaf/data/db/units`, no mission places them yet). About 13 MB together. Open: the 64N6E2 and 96L6E radars
-  and the 30N6E2 on its truck keep their stand-in shapes (no clean model); the models stand in their rest pose (the
-  S-300's canisters down).
+  (`modern-iaf/data/db/units`, no mission places them yet). About 13 MB together. The 64N6E2 and 96L6E search radars
+  and the 30N6E2 on its truck (2026-11-23, the user 22 Nov: "No, don't leave it open. Finish to the end") are our own
+  low-poly models (`tools/enemy_models/radars.py`): the search radars' antennas turn while they radiate, the 30N6E2's
+  lays on its track (`modern-iaf/tests/test_sam_net.gd`). The models stand in their rest pose (the S-300's canisters
+  down).
 - **Ground clutter for the radars (2026-11-21, the user: "Ok finish all enemies things you can";
   [ai-plan.md](ai-plan.md) K14, K5; [../../docs/radar.md](../../docs/radar.md) §9.8,
   [../../docs/ai.md](../../docs/ai.md) §15.3):** the Sufa's and the Adir's pulse-Doppler radars lose a target in

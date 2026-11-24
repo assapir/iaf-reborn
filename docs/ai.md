@@ -1524,9 +1524,34 @@ along −Z, by `tools/enemy_models/convert.py` (docs/credits.md § Model credits
 | ZSU-23-4 | `zsu23_4`: a low-poly ZSU-23-4 | 6.535 m long[^w-zsu]; its width and height come out about 8 % over the real ones |
 | 54K6E2 command post (§15.5) | `ural4320`: a Ural-4320 with its canvas cover, standing in for the post's container on a Ural-532361 (inferred) | 7.366 m long[^w-ural] |
 
-Stand-in shapes (boxes in vertex colours, as the bases' furniture, `base_furniture.gd`) remain for the 96L6E, the
-64N6E2 (no openly licensed model: the ones found are taken from War Thunder, excluded) and the 30N6E2 on its truck
-(the default site). The S-300's canisters stay down (rest pose).
+The two search radars and the 30N6E2 on its truck are our own low-poly models (no openly licensed model exists: the
+64N6E2 models found are taken from War Thunder, excluded): boxes and prisms in plain colours, the olive of the other enemy models, built by
+`tools/enemy_models/radars.py` (Blender, run once by hand, committed). Each was matched by eye to the reference
+photographs[^c-64n6e2-maks05][^c-64n6e2-maks03][^c-favorit-maks05][^c-96l6e-maks11][^c-30n6e2-maks09]; the sizes no
+source gives are read off them (inferred). The wheels have 16 sides, a flat side down; every model stands 0.08 m into
+the ground, so its tyres meet the drawn terrain (inferred).
+
+| part | model | sizes |
+|---|---|---|
+| 64N6E2 search radar (§15.5) | `radar_64n6e2`: the MAZ-7910 8×8 tractor with its split cabs[^w-maz7310] and the semi-trailer with the radar's cabin, the two-faced array on its turntable over the gooseneck, the IFF strip under it, the boom over it; 2,112 triangles | the tractor the MAZ-543's 11.66 m × 3.05 m[^ru-maz543]; the semi-trailer 13.2 m (the length Army Recognition gives[^ar-64n6], taken as the trailer's, inferred); the array 6.0 m wide and 4.0 m high, its top 8.6 m up (inferred) |
+| 96L6E search radar | `radar_96l6e`: the MZKT-7930 8×8 with its cab, the equipment box, the antenna on its post and the rear cabin with the levelling jacks; the array leaned back 10° over the lattice IFF array; 1,360 triangles | the chassis 12.7 m × 3.0 m, the cab 3.29 m high[^w-mzkt7930]; the array 3.4 m × 4.0 m, its top 8.0 m up (inferred) |
+| 30N6E2 track radar on its truck (the default site) | `radar_30n6e2`: the MAZ-7910 8×8 (the chassis[^apa-s300]) with the driver's cab on the left, an equipment box on the right, the antenna's turntable amidships and the control cabin behind; the flat array leaned back 20° with the mast beside it; 1,240 triangles | the MAZ-543's 11.66 m × 3.05 m[^ru-maz543]; the array 3.5 m × 3.8 m, its top 7.4 m up (inferred) |
+
+Each antenna (the array, its IFF array, the pedestal above the turntable) is the model's node `antenna`, its origin on
+the turning axis. It turns clockwise seen from above while its radar radiates (`air_defence.gd` `_turn`,
+`ANTENNA_TURN`): the 64N6E2's while the network's radar stands (§15.5), the 96L6E's while its site searches (so it
+stands still while the network cues the site, EMCON `cue`). The 30N6E2's lays on the site's first track at 60°/s
+(`LAY_RATE`, inferred, as the Tor's turret) and turns back to the nose without one. A radar out of action stops where
+it is.
+
+| radar | one turn | source |
+|---|---|---|
+| 64N6E2 | 12 s | "a scan once every twelve seconds"[^w-s300]; "full 360-degree mechanical rotation every 12 seconds"[^ar-64n6] (`iaf_ai::net::SCAN`) |
+| 96L6E | 6 s | its update every 6 s in the lowest beams (0–1.5°), 12 s above[^mis-96l6e]; one turn per 6 s update inferred |
+
+A stand-in shape (boxes in vertex colours, as the bases' furniture, `base_furniture.gd`) is drawn for any part whose
+model fails to load. The S-300's canisters stay down (rest
+pose).
 
 The Tor's moving parts follow the site's state (`air_defence.gd` `_rig`, `_animate`, each frame). The converter keeps
 five of the source's nodes as their own nodes with the source's pivots (`tools/enemy_models/convert.py` `PARTS`):
@@ -1558,7 +1583,7 @@ same 0.5 s tick; the dev hook is `AirDefence.spawn_net(radar_pos, post_pos, memb
 |---|---|---|
 | does | searches for the network: 300 km against 5 m²[^w-s300], a sweep every 12 s[^w-s300], the antenna 8 m up (inferred) | fuses the picture, assigns and cues |
 | on the RWR | a search radar of the S-300's type (310) while it stands | nothing (it does not radiate) |
-| drawn as | the 96L6E's stand-in truck and array | the Ural-4320 model (§15.4) |
+| drawn as | our model, its antenna turning while it radiates (§15.4) | the Ural-4320 model (§15.4) |
 
 - **The picture:** each sweep adds the jets the radar sees (the sites' rule: the jet's cross-section, the terrain and
   the earth's curvature); every site's radar track adds its jet at each tick. A jet no radar of the network has seen
@@ -2284,10 +2309,10 @@ Open questions in this document:
   (the root timer keeps running ParkInHangar).
 
 [^faa-acs]: FAA, "Private Pilot – Airplane Airman Certification Standards" (FAA-S-ACS-6), Area of Operation V, Task A, steep turns, https://www.faasafety.gov/files/events/GL/GL03/2016/GL0369764/private_airplane_acs.pdf (the entry altitude held within ±100 ft; read as quoted by a search engine on 2026-11-22, second-hand).
-[^apa-s300]: Carlo Kopp, Air Power Australia, "S-300PMU2 Favorit / SA-20 Gargoyle", updated to April 2012, https://www.ausairpower.net/APA-S-300PMU2-Favorit.html (the 83M6E2: the 54K6E2 command post and the 64N6E2 search radar, up to six batteries; the 40V6M "Semi-Mobile Mast System 24 Metre"; read 2026-11-19 and 2026-11-22).
+[^apa-s300]: Carlo Kopp, Air Power Australia, "S-300PMU2 Favorit / SA-20 Gargoyle", updated to April 2012, https://www.ausairpower.net/APA-S-300PMU2-Favorit.html (the 83M6E2: the 54K6E2 command post and the 64N6E2 search radar, up to six batteries; the 40V6M "Semi-Mobile Mast System 24 Metre"; the 30N6E2 on a MAZ-79100 chassis; read 2026-11-19, 2026-11-22 and 2026-11-23).
 [^w-s300]: Wikipedia, "S-300 missile system", https://en.wikipedia.org/wiki/S-300_missile_system (the 64N6 Big Bird: "a maximum detection range of 300 km", "a scan once every twelve seconds"; read 2026-11-21).
 [^tc7100]: US Army, TC 7-100.2 "Opposing Force Tactics", 9 December 2011, chapter 11, https://www.govinfo.gov/content/pkg/GOVPUB-D101-PURL-gpo122554/pdf/GOVPUB-D101-PURL-gpo122554.pdf (§11-35 the cue's data, §11-36 units fighting with their radars off on the higher radars' data; read 2026-11-19).
-[^mis-96l6e]: Missilery.info, "All Altitude Detector (VO) 96L6E", https://en.missilery.info/node/13476 (target detection range 5–300 km; read as quoted by a search engine on 2026-11-19, second-hand).
+[^mis-96l6e]: Missilery.info, "All Altitude Detector (VO) 96L6E", https://en.missilery.info/node/13476 (target detection range 5–300 km; read as quoted by a search engine on 2026-11-19, second-hand; the update in the all-altitude mode every 6 s at 0–1.5° and 12 s at 1.5–20°, read directly on 2026-11-23).
 [^aerospaceweb]: Jeff Scott, Aerospaceweb.org, "Radar Cross Section", 21 March 2004, https://aerospaceweb.org/question/electronics/q0168.shtml (the head-on view most important; the largest returns from the sides; read 2026-11-19).
 [^ni-f16]: The National Interest, on the F-16's Have Glass V paint, https://nationalinterest.org/node/112436 and https://nationalinterest.org/node/168141 ("the F-16 on average has a 1.2-square-meter radar cross-section, according to Globalsecurity"; second-hand: as quoted by a search engine on 2026-11-19; the site refuses automated reading).
 [^migflug]: Max Grünwald, MiGFlug Afterburner, "F-22 Marble, F-35 Golf Ball: Where RCS Figures Come From", 8 November 2026, https://migflug.com/afterburner/?p=31823215 (GlobalSecurity's table: the F-35 at 0.0015–0.005 m²; GlobalSecurity itself refuses automated reading; read 2026-11-19).
@@ -2308,6 +2333,14 @@ Open questions in this document:
 [^w-manpads]: Wikipedia, "Man-portable air-defense system", https://en.wikipedia.org/wiki/Man-portable_air-defense_system ("a target detection range of about 10 km (6 mi) and an engagement range of about 6 km (4 mi)"; read 2026-11-23).
 [^w-zsu]: Wikipedia, "ZSU-23-4 Shilka", https://en.wikipedia.org/wiki/ZSU-23-4_Shilka ("the radar picks up many false returns (ground clutter) under 60 m (200 ft) of altitude"; read 2026-11-21; 6.535 m long, 3.125 m wide, 2.576 m high, 3.572 m with the radar up, read 2026-11-22).
 [^ru-maz543]: Wikipedia (Russian), "МАЗ-543", https://ru.wikipedia.org/wiki/МАЗ-543 (the MAZ-543 / MAZ-7310: 11,657 mm long, 3,050 mm wide; read 2026-11-22).
+[^c-64n6e2-maks05]: Wikimedia Commons, "S-300PMU2 64N6E2.jpg", by .:Ajvol:., MAKS 2005, public domain, https://commons.wikimedia.org/wiki/File:S-300PMU2_64N6E2.jpg (the 64N6E2 from its front left; read 2026-11-23).
+[^c-64n6e2-maks03]: Wikimedia Commons, "S-300PMU2 64N6E2 radar, MAKS 2003.JPG", by Panther, CC BY-SA 3.0, https://commons.wikimedia.org/wiki/File:S-300PMU2_64N6E2_radar,_MAKS_2003.JPG (the MAZ-7910's front, its split cabs; read 2026-11-23).
+[^c-favorit-maks05]: Wikimedia Commons, "S-300PMU2 complex.jpg", by .:Ajvol:., MAKS 2005, public domain, https://commons.wikimedia.org/wiki/File:S-300PMU2_complex.jpg (the 64N6E2 from its side, its array face on; read 2026-11-23).
+[^c-96l6e-maks11]: Wikimedia Commons, "96L6E at the MAKS-2011 (01).jpg", by Doomych, public domain, https://commons.wikimedia.org/wiki/File:96L6E_at_the_MAKS-2011_(01).jpg (the 96L6E from its front right; read 2026-11-23).
+[^c-30n6e2-maks09]: Wikimedia Commons, "30N6E2 MAKS 2009 -01.jpg", by Vitaly V. Kuzmin, CC BY-SA 4.0, https://commons.wikimedia.org/wiki/File:30N6E2_MAKS_2009_-01.jpg (the 30N6E2 on its truck from its front right; read 2026-11-23).
+[^w-maz7310]: Wikipedia, "MAZ-7310", https://en.wikipedia.org/wiki/MAZ-7310 (the MAZ-7910 carries the S-300PMU-2; the MAZ-74106 the 64N6; read 2026-11-23).
+[^ar-64n6]: Army Recognition, "64N6 Tombstone 64N6E 64N6E2", https://armyrecognition.com/military-products/army/radars/air-defense-radars/64n6-tombstone-64n6e-64n6e2 (a double-sided phased array, hydraulically raised, on a semi-trailer; "full 360-degree mechanical rotation every 12 seconds"; length 13.2 m; read 2026-11-23).
+[^w-mzkt7930]: Wikipedia, "MZKT-7930", https://en.wikipedia.org/wiki/MZKT-7930 (12.7 m long, 3 m wide, 3.29 m high; read 2026-11-23).
 [^w-ural]: Wikipedia, "Ural-4320", https://en.wikipedia.org/wiki/Ural-4320 (7,366 mm long, 2,500 mm wide, 2,715 mm high; top speed 82 km/h with the V8, 75 km/h with the V6; read 2026-11-22 and 2026-11-23).
 [^shaw]: Robert L. Shaw, "Fighter Combat: Tactics and Maneuvering", Naval Institute Press, 1985, ISBN 0-87021-059-9 (pursuit: lead, pure, lag; the high and low yo-yo; the break and the guns jink; one-circle and two-circle fights; energy height; closure control; the terms only, no figure taken).
 [^w-mig29-jam]: Wikipedia, "Mikoyan MiG-29" (the 9.13: "the installation of the L-203BE Gardenyia-1 jammer that was

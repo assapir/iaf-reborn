@@ -1,7 +1,8 @@
 # Dev helper (not run by tools/test.sh): pictures of Modern IAF's enemy models (docs/ai.md §15.4, §16.4) on the
 # Sufa's range, each from a free camera: an S-300 launcher, the 30N6E on its tower, the Tor-M1, the ZSU-23-4, the
-# network's command post, the T-72 and Ural-4320 ground targets, and a Shahed-136 in flight. Runs on a tree without
-# the models too (the stand-in shapes: the before pictures). SHOT_DIR names the folder. A real render:
+# network's command post and search radar, the 96L6E, the 30N6E2 on its truck, the T-72 and Ural-4320 ground
+# targets, and a Shahed-136 in flight. Runs on a tree without the models too (the stand-in shapes: the before
+# pictures). SHOT_DIR names the folder. A real render:
 #   flock ~/.cache/iaf-gpu-bench.lock tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 SHOT_DIR=<dir> -- \
 #     --log-file <temp> --resolution 1600x900 --path modern-iaf -s ../modern-iaf/tests/_enemy_models_shot.gd
 extends "res://../tests/godot/base.gd"
@@ -51,6 +52,15 @@ func _shot(name: String) -> void:
 	await _save(name)
 
 
+## A radar's antenna turned `yaw` (radians, anticlockwise from the nose) where its model has one, and held there
+## (air_defence.gd no longer turns it).
+func _aim(ent: Dictionary, yaw: float) -> void:
+	ent.erase("antenna")
+	var a: Node3D = ent.node.find_child("antenna", true, false)
+	if a != null:
+		a.rotation.y = yaw
+
+
 ## A unit record's model (target_t72, target_ural) placed as the flight scene places a mission's units.
 func _put_model(path: String, at: Vector3, heading: float) -> void:
 	var model = Gltf.model(Gltf.objects_path(path))
@@ -83,6 +93,7 @@ func run() -> void:
 	if ad.get_method_argument_count("spawn") > 5:
 		args.append(true)
 	var s300: Array = ad.callv("spawn", args)
+	var truck: Array = ad.spawn("s300", at + Vector3(0, 1200, 0), 200.0)  # the 30N6E2 on its truck
 	var tor: Array = ad.spawn("tor", at + Vector3(-320, -420, 0), 160.0)
 	var zsu: Array = ad.spawn("zsu", at + Vector3(-200, -480, 0), 200.0)
 	var net: Array = ad.spawn_net(at + Vector3(700, 0, 0), at + Vector3(700, 150, 0), [ad.site_of(s300[0])], 90.0)
@@ -123,6 +134,17 @@ func run() -> void:
 	await _shot("model_command_post")
 	_look(t72 + Vector3(7, 3, 0), 220.0, 24.0, 7.0)
 	await _shot("model_t72_ural_targets")
+	# The search radars from the reference photographs' cameras (docs/ai.md §15.4): the 64N6E2 from its front left, its
+	# array side on; the 96L6E from its front right.
+	_aim(net[0], PI / 2)
+	_look(net[0].world, float(net[0].heading) - 35.0, 19.0, 1.6, 4.5)
+	await _shot("model_64n6e2")
+	_aim(s300[0], -0.5)
+	_look(s300[0].world, float(s300[0].heading) + 50.0, 15.0, 1.0, 3.6)
+	await _shot("model_96l6e")
+	_aim(truck[1], PI * 0.75)
+	_look(truck[1].world, float(truck[1].heading) + 35.0, 14.0, 1.7, 3.5)
+	await _shot("model_30n6e2")
 	print("RESULT PASS")
 	tv.queue_free()
 	await frames(3)
