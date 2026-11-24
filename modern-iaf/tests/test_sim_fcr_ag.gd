@@ -145,12 +145,13 @@ func _jet(unit: String, base: String) -> void:
 			lit += 1
 	check(lit > 1000, "GM: the radar picture shows the ground (%d px lit)" % lit)
 	check(_pic_at(hulks[0].world).x == 255, "GM: Target 1 a bright return in the picture")
-	# The picture's cost: one radar frame (a scan with its picture) in ms, on this machine.
+	# The frame's cost: one radar frame (a scan; its picture paints on its own thread) in ms, on this machine. Painted in
+	# the frame it took 11-23 ms on the Linux laptop (docs/radar.md §9.7).
 	var t0 := Time.get_ticks_usec()
 	w.radar.scan(w.now)
 	var ms := (Time.get_ticks_usec() - t0) / 1000.0
-	print("GM frame with its picture: %.1f ms" % ms)
-	check(ms < 40.0, "GM: a radar frame with its picture under 40 ms (%.1f ms)" % ms)
+	print("GM radar frame: %.1f ms" % ms)
+	check(ms < 5.0, "GM: a radar frame under 5 ms, its picture painted off the frame (%.1f ms)" % ms)
 	# EXP / DBS1 / DBS2 about the cursor on Target 1: Target 1 to Target 2 drawn 4, 8, 64 times farther apart.
 	w.radar_event(w.RADAR_GROUND, hulks[0].world)
 	await fly(tv, 0.1)

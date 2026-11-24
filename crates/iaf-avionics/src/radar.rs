@@ -279,6 +279,27 @@ pub struct Real {
     agr_at: Option<Vec3>,
     pub runways: Vec<Runway>,
     pub picture: Picture,
+    /// The next picture, painted on its own thread off the frame (`Input::bare`); `update` publishes it.
+    painting: Painting,
+}
+
+/// A GM picture being painted on its own thread: its frame and the thread. A copy of the radar paints nothing; a
+/// dropped one waits for its thread (no thread outlives the radar).
+#[derive(Debug, Default)]
+struct Painting(Option<(GroundFrame, std::thread::JoinHandle<Vec<u8>>)>);
+
+impl Clone for Painting {
+    fn clone(&self) -> Self {
+        Painting(None)
+    }
+}
+
+impl Drop for Painting {
+    fn drop(&mut self) {
+        if let Some((_, t)) = self.0.take() {
+            let _ = t.join();
+        }
+    }
 }
 
 impl Real {
@@ -310,6 +331,7 @@ impl Real {
             agr_at: None,
             runways: Vec::new(),
             picture: Picture::default(),
+            painting: Painting::default(),
         }
     }
 
@@ -545,8 +567,10 @@ pub struct Input<'a> {
     pub own: Own,
     pub units: &'a [Unit],
     pub terrain: &'a dyn Fn(Vec3) -> Option<f64>,
-    /// Ours: the bare ground's height (no roofs or trees; the A-G picture's cheaper lookup), None: `terrain`.
-    pub bare: Option<&'a dyn Fn(Vec3) -> Option<f64>>,
+    /// Ours: the bare ground's height (no roofs or trees; the A-G picture's cheaper lookup), None: `terrain`. A
+    /// plain function, so the GM picture paints on its own thread with it (`render`); with `terrain` it paints in the
+    /// call.
+    pub bare: Option<fn(Vec3) -> Option<f64>>,
 }
 
 impl Input<'_> {
@@ -1019,6 +1043,8 @@ impl Radar {
         self.wow = input.own.wow;
         self.own_z = input.own.pos.z;
         self.own = input.own;
+        // Ours: the GM picture painted since the last call shows.
+        self.publish(false);
         // Ours: airborne and powered in STBY, the radar goes to the last A-A mode by itself.
         if self.auto_on && !self.wow && !self.damaged && self.mode == Mode::Standby {
             self.toggle_aa_ag(now, input);
@@ -1859,7 +1885,8 @@ impl Radar {
         self.selection = None;
         if let Some(r) = &mut self.real {
             r.history.clear();
-            // The A-G picture goes too (a new serial, no bytes).
+            // The A-G picture goes too (a new serial, no bytes), and the one being painted.
+            r.painting = Painting::default();
             r.picture = Picture { frame: None, la8: Vec::new(), serial: r.picture.serial + 1 };
         }
         self.illumination_lost();
@@ -2089,103 +2116,40 @@ impl Radar {
         }
     }
 
-    /// The GM picture of this frame (radar.md §9.7): each px of `PIC_WINDOW` at its ground point. The ground returns
-    /// by the terrain's slope toward the radar with a fixed speckle (land), none from water (the sea level) and
-    /// runways, none in the terrain's shadow; NORM only inside the ±60° fan; the listed returns bright, as large as
-    /// their units; GMT's map dimmed under its movers; no data (unstreamed terrain): transparent. Inferred shading.
+    /// The GM picture of this frame (radar.md §9.7), painted by [`Sketch::paint`]: with `Input::bare` on its own
+    /// thread, published by a later `update` (a frame or two on), else in the call.
     fn render(&mut self, input: &Input) {
         let Some(f) = self.ground_frame() else { return };
         let Some(r) = &self.real else { return };
         if r.agr_at.is_some() {
             return;
         }
-        let ground = input.bare.unwrap_or(input.terrain);
-        let own = input.own.pos.raised(LOS_RAISE);
-        let (x0, y0, w, h) = PIC_WINDOW;
+        let blips = self
+            .contacts
+            .iter()
+            .map(|c| (f.to_px(c.pos), (input.unit(&c.key).map_or(5.0, |u| u.coll_radius) / f.k).max(0.8)))
+            .collect();
         let gain = if self.mode == Mode::Gmt { GMT_DIM } else { 1.0 };
-        let fan = f.sym == FAN_APEX;
-        let d = (f.k * 0.75).max(10.0);
-        let mut la8 = vec![0u8; w * h * 2];
-        // The terrain's shadow by azimuth: out along each bin's ray from the jet, the steepest rise seen so far (tan of
-        // its elevation) at each step; a point lower than that is in shadow. One march per 0.25° bin, not per px.
-        let corners = [(x0, y0), (x0 + w as f64, y0), (x0, y0 + h as f64), (x0 + w as f64, y0 + h as f64)];
-        let reach = corners.iter().map(|&q| f.from_px(q).distance(Vec3::new(own.x, own.y, 0.0))).fold(0.0, f64::max);
-        let step = (f.k * 0.75).max(20.0).max(reach / 2000.0);
-        let mut horizon: std::collections::HashMap<i64, Vec<f64>> = std::collections::HashMap::new();
-        let mut shadowed = |p: Vec3| -> bool {
-            let (dx, dy) = (p.x - own.x, p.y - own.y);
-            let dist = dx.hypot(dy);
-            let bin = (dx.atan2(dy).to_degrees() * 4.0).round() as i64;
-            let prof = horizon.entry(bin).or_insert_with(|| {
-                let a = (bin as f64 / 4.0).to_radians();
-                let (sa, ca) = a.sin_cos();
-                let mut best = f64::NEG_INFINITY;
-                (0..=(reach / step) as usize + 1)
-                    .map(|i| {
-                        let seen = best;
-                        let s = i as f64 * step;
-                        if let Some(g) = ground(Vec3::new(own.x + s * sa, own.y + s * ca, 0.0)).filter(|_| s > 0.0) {
-                            best = best.max((g - own.z) / s);
-                        }
-                        seen
-                    })
-                    .collect()
-            });
-            let i = ((dist / step) as usize).min(prof.len() - 1);
-            dist > step && (p.z - own.z) / dist < prof[i] - 1e-3
-        };
-        for j in 0..h {
-            for i in 0..w {
-                let (x, y) = (x0 + i as f64 + 0.5, y0 + j as f64 + 0.5);
-                let at = 2 * (j * w + i);
-                if fan {
-                    let (dx, dy) = (x - FAN_APEX.0, FAN_APEX.1 - y);
-                    if dy <= 0.0 || dx.abs() > dy * 3f64.sqrt() || dx.hypot(dy) > FAN_PX {
-                        la8[at + 1] = 255; // black outside the fan
-                        continue;
-                    }
-                }
-                let mut p = f.from_px((x, y));
-                let Some(z) = ground(p) else { continue };
-                p.z = z;
-                la8[at + 1] = 255;
-                let water = z.abs() < 0.5;
-                if water || r.runways.iter().any(|rw| rw.holds(p)) {
-                    continue;
-                }
-                let hx = ground(Vec3::new(p.x + d, p.y, 0.0)).unwrap_or(z) - z;
-                let hy = ground(Vec3::new(p.x, p.y + d, 0.0)).unwrap_or(z) - z;
-                let n = Vec3::new(-hx / d, -hy / d, 1.0);
-                let look = own - p;
-                let cos = (n.dot(look) / (n.length() * look.length()).max(1e-9)).max(0.0);
-                if shadowed(p) {
-                    continue;
-                }
-                let v = (0.12 + 0.88 * cos.powf(1.5)) * speckle(p) * gain;
-                la8[at] = (v * 255.0).clamp(0.0, 255.0) as u8;
+        let sketch = Sketch { f, own: input.own.pos.raised(LOS_RAISE), gain, runways: r.runways.clone(), blips };
+        self.publish(true);
+        let Some(r) = &mut self.real else { return };
+        match input.bare {
+            Some(ground) => r.painting = Painting(Some((f, std::thread::spawn(move || sketch.paint(&ground))))),
+            None => {
+                r.picture = Picture { frame: Some(f), la8: sketch.paint(input.terrain), serial: r.picture.serial + 1 }
             }
         }
-        for c in &self.contacts {
-            let (cx, cy) = f.to_px(c.pos);
-            let rad = (input.unit(&c.key).map_or(5.0, |u| u.coll_radius) / f.k).max(0.8);
-            let reach = rad.ceil() as i64;
-            for dj in -reach..=reach {
-                for di in -reach..=reach {
-                    let (x, y) = (cx + di as f64, cy + dj as f64);
-                    if (di as f64).hypot(dj as f64) > rad || x < x0 || y < y0 {
-                        continue;
-                    }
-                    let (i, j) = ((x - x0) as usize, (y - y0) as usize);
-                    if i < w && j < h {
-                        la8[2 * (j * w + i)] = 255;
-                        la8[2 * (j * w + i) + 1] = 255;
-                    }
-                }
-            }
+    }
+
+    /// The picture painted on its own thread becomes the shown one once done (`wait`: wait for it).
+    fn publish(&mut self, wait: bool) {
+        let Some(r) = &mut self.real else { return };
+        if r.painting.0.as_ref().is_none_or(|(_, t)| !wait && !t.is_finished()) {
+            return;
         }
-        let serial = r.picture.serial + 1;
-        if let Some(r) = &mut self.real {
-            r.picture = Picture { frame: Some(f), la8, serial };
+        let Some((f, t)) = r.painting.0.take() else { return };
+        if let Ok(la8) = t.join() {
+            r.picture = Picture { frame: Some(f), la8, serial: r.picture.serial + 1 };
         }
     }
 
@@ -2280,6 +2244,106 @@ fn body_angles(own: &Own, d: Vec3) -> (f64, f64) {
     let up = if own.up == Vec3::ZERO { Vec3::UP } else { own.up };
     let (x, y, z) = (d.dot(own.fwd.cross(up)), d.dot(own.fwd), d.dot(up));
     (x.atan2(y).to_degrees(), z.atan2(x.hypot(y)).to_degrees())
+}
+
+/// One GM picture's inputs (radar.md §9.7): its frame, the radar's place, GMT's dimming, the runways and the listed
+/// returns (MFD px, radius px).
+struct Sketch {
+    f: GroundFrame,
+    own: Vec3,
+    gain: f64,
+    runways: Vec<Runway>,
+    blips: Vec<((f64, f64), f64)>,
+}
+
+impl Sketch {
+    /// Each px of `PIC_WINDOW` at its ground point. The ground returns by the terrain's slope toward the radar with a
+    /// fixed speckle (land), none from water (the sea level) and runways, none in the terrain's shadow; NORM only
+    /// inside the ±60° fan; the listed returns bright, as large as their units; GMT's map dimmed under its movers; no
+    /// data (unstreamed terrain): transparent. Inferred shading. LA8 bytes.
+    fn paint(&self, ground: &dyn Fn(Vec3) -> Option<f64>) -> Vec<u8> {
+        let (f, own, gain) = (&self.f, self.own, self.gain);
+        let (x0, y0, w, h) = PIC_WINDOW;
+        let fan = f.sym == FAN_APEX;
+        let d = (f.k * 0.75).max(10.0);
+        let mut la8 = vec![0u8; w * h * 2];
+        // The terrain's shadow by azimuth: out along each bin's ray from the jet, the steepest rise seen so far (tan of
+        // its elevation) at each step; a point lower than that is in shadow. One march per 0.25° bin, not per px.
+        let corners = [(x0, y0), (x0 + w as f64, y0), (x0, y0 + h as f64), (x0 + w as f64, y0 + h as f64)];
+        let reach = corners.iter().map(|&q| f.from_px(q).distance(Vec3::new(own.x, own.y, 0.0))).fold(0.0, f64::max);
+        let step = (f.k * 0.75).max(20.0).max(reach / 2000.0);
+        let mut horizon: std::collections::HashMap<i64, Vec<f64>> = std::collections::HashMap::new();
+        let mut shadowed = |p: Vec3| -> bool {
+            let (dx, dy) = (p.x - own.x, p.y - own.y);
+            let dist = dx.hypot(dy);
+            let bin = (dx.atan2(dy).to_degrees() * 4.0).round() as i64;
+            let prof = horizon.entry(bin).or_insert_with(|| {
+                let a = (bin as f64 / 4.0).to_radians();
+                let (sa, ca) = a.sin_cos();
+                let mut best = f64::NEG_INFINITY;
+                (0..=(reach / step) as usize + 1)
+                    .map(|i| {
+                        let seen = best;
+                        let s = i as f64 * step;
+                        if let Some(g) = ground(Vec3::new(own.x + s * sa, own.y + s * ca, 0.0)).filter(|_| s > 0.0) {
+                            best = best.max((g - own.z) / s);
+                        }
+                        seen
+                    })
+                    .collect()
+            });
+            let i = ((dist / step) as usize).min(prof.len() - 1);
+            dist > step && (p.z - own.z) / dist < prof[i] - 1e-3
+        };
+        for j in 0..h {
+            for i in 0..w {
+                let (x, y) = (x0 + i as f64 + 0.5, y0 + j as f64 + 0.5);
+                let at = 2 * (j * w + i);
+                if fan {
+                    let (dx, dy) = (x - FAN_APEX.0, FAN_APEX.1 - y);
+                    if dy <= 0.0 || dx.abs() > dy * 3f64.sqrt() || dx.hypot(dy) > FAN_PX {
+                        la8[at + 1] = 255; // black outside the fan
+                        continue;
+                    }
+                }
+                let mut p = f.from_px((x, y));
+                let Some(z) = ground(p) else { continue };
+                p.z = z;
+                la8[at + 1] = 255;
+                let water = z.abs() < 0.5;
+                if water || self.runways.iter().any(|rw| rw.holds(p)) {
+                    continue;
+                }
+                let hx = ground(Vec3::new(p.x + d, p.y, 0.0)).unwrap_or(z) - z;
+                let hy = ground(Vec3::new(p.x, p.y + d, 0.0)).unwrap_or(z) - z;
+                let n = Vec3::new(-hx / d, -hy / d, 1.0);
+                let look = own - p;
+                let cos = (n.dot(look) / (n.length() * look.length()).max(1e-9)).max(0.0);
+                if shadowed(p) {
+                    continue;
+                }
+                let v = (0.12 + 0.88 * cos.powf(1.5)) * speckle(p) * gain;
+                la8[at] = (v * 255.0).clamp(0.0, 255.0) as u8;
+            }
+        }
+        for &((cx, cy), rad) in &self.blips {
+            let reach = rad.ceil() as i64;
+            for dj in -reach..=reach {
+                for di in -reach..=reach {
+                    let (x, y) = (cx + di as f64, cy + dj as f64);
+                    if (di as f64).hypot(dj as f64) > rad || x < x0 || y < y0 {
+                        continue;
+                    }
+                    let (i, j) = ((x - x0) as usize, (y - y0) as usize);
+                    if i < w && j < h {
+                        la8[2 * (j * w + i)] = 255;
+                        la8[2 * (j * w + i) + 1] = 255;
+                    }
+                }
+            }
+        }
+        la8
+    }
 }
 
 /// The GM picture's fixed speckle (0.85..1.15) on a 30 m grid: a hash of the ground cell, so the picture keeps it
@@ -3091,6 +3155,19 @@ mod tests {
         r.tms(Tms::Down, 0.5, &land(&units));
         assert!(!r.has_lock() && r.target_point().is_none(), "TMS down drops it");
         assert_eq!(r.real().unwrap().ground.map(|g| g.y), Some(15000.0), "back on the steerpoint");
+    }
+
+    #[test]
+    fn the_picture_paints_on_its_own_thread_alike() {
+        let units = [hulk("h", 0.0, 6.0, 0.0)];
+        let (mut a, mut b) = (gm(&units), gm(&units));
+        a.update(2.5, &land(&units));
+        b.update(2.5, &Input { bare: Some(hills), ..land(&units) });
+        let serial = b.real().unwrap().picture.serial;
+        b.publish(true);
+        let (pa, pb) = (&a.real().unwrap().picture, &b.real().unwrap().picture);
+        assert_eq!(pb.serial, serial + 1, "shown once painted");
+        assert_eq!((pa.frame, &pa.la8), (pb.frame, &pb.la8), "the same picture as painted in the call");
     }
 
     #[test]

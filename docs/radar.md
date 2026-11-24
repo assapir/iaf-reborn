@@ -341,8 +341,12 @@ modes"). Only the jets with `radar.fcr`; the original's MAP / GMT stay as §1–
   gain; inferred). GMT dims the map to 35 % under its movers (p. 1-150). Where the
   terrain's heights are not streamed the picture is clear and the theatre's land / water map (`isr.png`) shows under
   it. `mfd.gd` `_draw_ag_picture` draws the last picture through its own frame, so it stays on the ground as the jet
-  moves between frames. One frame with its picture costs about 11 ms on the Linux laptop (GM at 40 NM, every 2 s;
-  `test_sim_fcr_ag.gd` holds it under 40 ms).
+  moves between frames. The picture paints on its own thread (`Sketch::paint`, about 100,000 height lookups); a frame or
+  two after the scan shows it. The radar waits for the thread when it is freed, the game's quit included. Measured on
+  the Linux laptop's Iris Xe (GM at 40 NM, every 2 s; `modern-iaf/tests/_gm_bench.gd`, 1920 × 1080, vsync off), 25 Nov
+  2026: the radar frame with a new picture took 22–24 ms on the main thread before (the whole frame took 50–75 ms,
+  against 30–35 ms without a picture), 2.0–2.2 ms after, and GM's mean frame equals CRM's. `test_sim_fcr_ag.gd` holds
+  the radar frame under 5 ms.
 - **The ground cursor:** a world point, ground-stabilised: the X-Y cursor lines cross on it. It starts on the
   steerpoint (when within the range scale), else half the scale ahead; the cursor keys and the mouse move it; slewed
   beyond 95 % or inside 5 % of the scale in NORM it bumps the scale (p. 1-122). Bottom right: the time to it at the

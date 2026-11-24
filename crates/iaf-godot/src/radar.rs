@@ -20,10 +20,13 @@ impl IafRadar {
     /// Runs `f` on the radar with the last input; a no-op before `setup`.
     fn with<R: Default>(&mut self, f: impl FnOnce(&mut Radar, &Input) -> R) -> R {
         let terrain = terrain(self.terrain.clone());
-        // The bare height field for the A-G picture where the terrain is the mission's ground (no roofs or trees).
-        let field = |p: iaf_avionics::vec3::Vec3| crate::heights::FIELD.read().unwrap().height(p);
+        // The bare height field for the A-G picture where the terrain is the mission's ground (no roofs or trees): the
+        // picture paints on its own thread with it.
+        fn field(p: iaf_avionics::vec3::Vec3) -> Option<f64> {
+            crate::heights::FIELD.read().unwrap().height(p)
+        }
         let mg = self.terrain.as_ref().and_then(Callable::method_name).is_some_and(|m| m == "mission_ground");
-        let bare: Option<&dyn Fn(iaf_avionics::vec3::Vec3) -> Option<f64>> = if mg { Some(&field) } else { None };
+        let bare = if mg { Some(field as fn(_) -> _) } else { None };
         let input = Input { own: self.own, units: &self.units, terrain: &terrain, bare };
         self.radar.as_mut().map(|r| f(r, &input)).unwrap_or_default()
     }
