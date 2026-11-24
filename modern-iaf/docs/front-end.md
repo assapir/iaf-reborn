@@ -26,7 +26,7 @@ The window opens plain in the front end's background colour (#00163C, no Godot s
 | Briefing | the briefing, map first (§10): the map over the screen, opened on the base and the route with the pins; the mission card (the facts, the objectives, the Arming summary with Edit, Back to the section's list, Arming, Fly: Edit and Arming open the Loadout screen §10.1); what you will learn and how to fly it, the keys as bound; the map's chips | ![Briefing](pictures/front-end/mission_en.webp) | ![Briefing, Hebrew](pictures/front-end/mission_he.webp) |
 | Settings | the search; the sections Graphics, Language, Sound and Devices with their counts at the inline start; the picked one's settings beside them as segmented buttons, switches and sliders, Graphics with its Preset row and a cost chip per row; the pane at the inline end on the hovered setting (§14); Devices has the afterburner detent (§9.2); the footer's Defaults, Export settings file / Import settings file (below) and Back to the hangar | ![Settings](pictures/front-end/prefs_graphics_en.webp) | ![Settings, Hebrew](pictures/front-end/prefs_graphics_he.webp) |
 | Debrief | the sheet at the inline start (Plane flown, From, Time, Mission, Result; the goals with the target, the flown figure and ✓ / !; Remarks with "Next time:"), at the inline end the whole flight on the map and the flight's graphs (§13); Pilot log, Export flight data (below), Back to missions, Fly again, Next mission (§2) | ![Debrief](pictures/front-end/debrief_en.webp) | ![Debrief, Hebrew](pictures/front-end/debrief_he.webp) |
-| Pilot | the Hangar → the pilot: the name and the nickname, the enemy's skill (Low / Medium / High), under them the picture in a service ID photo's fixed 3:4 frame (a click on it, or Choose a picture…, opens the system's file dialog; without a picture the initials, or a head and shoulders before there is a name), and beside that column the logbook panel down to the bottom bar (§3) with its Pilot log button; the footer's Reset the log, Delete profile, Change pilot, Back and Save (§3) | ![Pilot](pictures/front-end/pilot_en.webp) | ![Pilot, Hebrew](pictures/front-end/pilot_he.webp) |
+| Pilot | the Hangar → the pilot: the name and the nickname, the enemy's skill (Low / Medium / High), under them the picture in a service ID photo's fixed 3:4 frame (a click on it, or Choose a picture…, opens the system's file dialog; without a picture the initials, or a head and shoulders before there is a name), and beside that column the logbook panel down to the bottom bar (§3) with its Pilot log button, and once the pilot has flown combat the four combat totals and More stats (§3); the footer's Reset the log, Delete profile, Change pilot, Back and Save (§3) | ![Pilot](pictures/front-end/pilot_en.webp) | ![Pilot, Hebrew](pictures/front-end/pilot_he.webp) |
 | Create your pilot | the first start, before the Hangar: the Pilot screen with Save only and no pilot in the top bar yet; the logbook panel says "No flights yet." (§3) | ![Create your pilot](pictures/front-end/pilot_first_en.webp) | ![Create your pilot, Hebrew](pictures/front-end/pilot_first_he.webp) |
 | Reset the log | the Pilot screen's Reset: a warning modal, then a second confirm (§3) | ![Reset the log](pictures/front-end/pilot_reset_en.webp) | ![Reset the log, Hebrew](pictures/front-end/pilot_reset_he.webp) |
 | Pilots | the Pilot screen's Change pilot: every pilot with a name, the active one marked Current; New pilot (§3) | ![Pilots](pictures/front-end/pilots_en.webp) | ![Pilots, Hebrew](pictures/front-end/pilots_he.webp) |
@@ -180,16 +180,37 @@ cropped to fill the frame.
   name's initials as they are typed, and a head and shoulders (`Look.person_icon`) before there is a name (F1,
   2026-11-14: the first start's frame was empty).
 - **The layout** (F6, 2026-11-16): one column holds the fields and the picture under them, and the logbook takes the
-  rest of the width. Before, the fields stood in a middle column with nothing under Nickname.
+  rest of the width. Before, the fields stood in a middle column with nothing under Nickname. Since 2026-11-24 (the
+  user: "you can make the left side (name, nick etc) a bit smaller, then choose pic button as the bottom of the pic")
+  the column is 520 px wide (it was 640), its titles 22 px (25), the picture 240 × 320 (255 × 340), and Choose a
+  picture… is the picture's bottom edge: as wide as the frame, right under it.
 - **The keys:** Up and Down move between Name and Nickname (a text field keeps the arrows otherwise), Down from Nickname
-  to the skill picked (a gamepad has no Tab). Tab goes the fields, the three skill segments, Choose a picture, the
-  Pilot log, the bottom bar's buttons, the Hangar crumb, and round.
+  to the skill picked (a gamepad has no Tab). Tab goes the fields, the three skill segments, Choose a picture, More
+  stats (when shown), the Pilot log, the bottom bar's buttons, the Hangar crumb, and round.
 - **The logbook** beside the profile, a panel in the card look running down to the bottom bar (F1, 2026-11-14: the
   screen's lower 40 % was empty), its list scrolling inside (`IafPilotLog.logbook`): per plane flown, most hours first, its flight time
   (`clock`) and its flights, passes and fails, then each mission flown on it with its passes and fails. A sortie
   stored before the records kept its plane counts for its mission's jet (the readable mission's `start.unit`).
   Its **Pilot log** button opens the Pilot log, every attempt with its debrief: the one way there since Home's
-  Pilot log entry went (the user, 2026-11-11).
+  Pilot log entry went (the user, 2026-11-11). A jet's line counts its flights, passes and fails in the singular for
+  one ("1 flight", "טיסה אחת", "כישלון אחד"; `counted`, a string's `_1` form).
+- **The combat logbook** (2026-11-24, `combat_page.gd`, the approved mock wt/logbook-mock c6c14055; the records'
+  `combat`, [storage.md](storage.md) §5): once the pilot has flown combat, the logbook's list starts with "Combat" /
+  "קרב" and four totals of every flight, each a tile with its figure, its name and a line under it: **Air kills** /
+  "הפלות" ("1 shared" / "משותפות: 1", "none shared"), **Ground targets** / "מטרות קרקע" ("destroyed" / "הושמדו"),
+  **Hits** / "פגיעות" ("of 7 fired" / "מתוך 7 חימושים": the missiles and bombs; the gun's rounds are left out, a burst
+  being hundreds), **Jets lost** / "מטוסים שאבדו" (the player's jet and the flight's other jets together: "1 shot down ·
+  1 crashed" / "1 הופלו · 1 התרסקו"). These four were picked as the ones that answer "how did my fights go" (the user,
+  24 Nov 2026: "too many stats. move the least relvant to some "more stats""). **More stats** / "סטטיסטיקה מפורטת"
+  (the user's word, 24 Nov 2026) stands beside Pilot log and opens the page below. A pilot without combat sees
+  neither.
+- **More stats** ("combat" page): from the Pilot screen every combat flight, from a debrief that flight. Three columns
+  in a panel: the air kills by type (a "N shared" chip) and the ground targets by type; the weapons in three groups,
+  each with its verb and the hits (missiles "Fired" / "שוגרו", bombs "Dropped" / "הוטלו", the gun "Rounds fired" /
+  "נורו": the user's words of 24 Nov 2026); the jets lost by cause (a SAM, AAA, a fighter, crashed), "Of them, the
+  flight's other jets" / "מהם, משאר מטוסי המבנה", then the ejections. From the Pilot screen also the combat flights,
+  newest first, each with its kills, targets and jets lost as chips. Back and Esc return where it was opened. A unit's
+  name is its string (`unit_<type>`), else its record's label; a weapon's its store name.
 - **Reset the log** (greyed with no flights) opens a modal, "Reset the pilot log?" / "לאפס את יומן הטיסות?", then a
   second one, "Reset for good?" / "לאפס סופית?"; each has Reset / לאפס and Cancel, Cancel focused and Esc closing it.
   Reset deletes the pilot's sorties and their debriefs; the name, nickname and picture stay.
@@ -1269,7 +1290,9 @@ built by `menu/debrief_page.gd`:
   (✓ met, ! off the mark with the mission passed, ✗ failed), the goal, its target ("25R", "max 22.6 m", "246° ±10")
   and the flown figure; REMARKS: the reason that failed it or that it passed, then "Next time:" with the scorer's
   tip. All of it is the Rust scorer's record ([training.md](training.md) §4); the sheet ends after Remarks. Its cells'
-  1 px rules are anti-aliased so they show at 1280 × 720.
+  1 px rules are anti-aliased so they show at 1280 × 720. A flight with combat (2026-11-24) has COMBAT / "קרב" between
+  GOALS and REMARKS: that flight's four totals as on the Pilot screen's logbook (the Pilot screen above), the jets lost
+  in red when any.
 - **The whole flight on the map** at the inline end: the briefing map (§10) of the mission with the recorded track
   over it (IafTraining.track, [training.md](training.md) §4.1), coloured by phase over a dark casing, the planned
   taxi and route, pins at the start (a disc), the lift-off (a ring) and the end (a square) with their mission-clock
@@ -1279,7 +1302,8 @@ built by `menu/debrief_page.gd`:
   (ft) and load (g), with the marked events (the rotation's load, the lift-off speed, the gear-up height, the highest
   load; a touchdown, crash, hit or ejection as a line across all three). The clock runs left to right in Hebrew too:
   clock times and numbers read left to right in Hebrew, and the approved Hebrew mock draws it so.
-- **The footer**: Pilot log and Export flight data at the inline start; Back to missions, Fly again and Next mission
+- **The footer**: Pilot log, Export flight data and (a flight with combat) More stats, that flight's page, at the
+  inline start; Back to missions, Fly again and Next mission
   at the inline end, the last the primary and focused. Tab and Shift + Tab go round the map and the buttons; Up from a
   button goes to the map; with the focus on the map the arrows scroll it and Tab leaves it.
 - A record without a recording (records from before it, a flight file deleted) shows the sheet, and both panels of

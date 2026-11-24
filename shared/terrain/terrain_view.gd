@@ -1599,6 +1599,17 @@ func mission_entity_smoke(ent: Dictionary, on: bool) -> void:
 	effects.set_smoke(rig if ent.player else ent.node, on)
 
 
+## How jet `ent` was lost (the combat logbook): "fighter" by an aircraft, "sam" by a ground unit's missile, "aaa" by its
+## gun or rockets, "crashed" with no enemy's hit (a friendly's included).
+func _loss_cause(ent: Dictionary) -> String:
+	var killer: Dictionary = ent.get("killer", {})
+	if killer.is_empty() or killer.get("player", false) or not enemy_of_player(killer):
+		return "crashed"
+	if killer.get("airborne_class", false):
+		return "fighter"
+	return "sam" if String(ent.get("hit_kind", "")) == "missile" else "aaa"
+
+
 ## A unit changed state (FUN_004a8100 at 3, FUN_004a86b0 at 4 / 5).
 func mission_entity_state(ent: Dictionary) -> void:
 	# Ours (Night lights = Detailed): a hit (falling), destroyed or exploded jet's lights go out.
@@ -1609,10 +1620,37 @@ func mission_entity_state(ent: Dictionary) -> void:
 	if int(ent.state) >= 3 and not _log_dead.has(ent.key):
 		_log_dead[ent.key] = true
 		var killer: Dictionary = ent.get("killer", {})
+		var air := bool(ent.get("airborne_class", false))
+		# The combat logbook (modern-iaf/docs/storage.md §5): a kill is shared when another side's unit hit it too; a
+		# friendly's kill of a unit the player hit is the player's shared kill.
+		var me := String(runtime.player_entity().get("key", "")) if runtime != null else ""
+		var others: bool = ent.get("hit_by", {}).keys().any(
+			func(k): return k != me and runtime.entities.has(k) and not enemy_of_player(runtime.entities[k])
+		)
 		if ent.player:
-			blackbox_event({"event": "shot_down", "key": String(killer.get("key", ""))})
-		elif not killer.is_empty() and killer.get("player", false):
-			blackbox_event({"event": "kill", "key": String(ent.key), "air": bool(ent.get("airborne_class", false))})
+			blackbox_event({"event": "shot_down", "key": String(killer.get("key", "")), "by": _loss_cause(ent)})
+		elif not killer.is_empty() and killer.get("player", false) and enemy_of_player(ent):
+			blackbox_event(
+				{"event": "kill", "key": String(ent.key), "air": air, "record": ent.get("unit", ""), "shared": others}
+			)
+		elif (
+			not killer.is_empty()
+			and ent.get("hit_by", {}).has(me)
+			and enemy_of_player(ent)
+			and not enemy_of_player(killer)
+		):
+			blackbox_event(
+				{
+					"event": "kill",
+					"key": String(ent.key),
+					"air": air,
+					"record": ent.get("unit", ""),
+					"shared": true,
+					"assist": true
+				}
+			)
+		elif ai != null and ai.has_method("wingman") and ai.wingman(ent):
+			blackbox_event({"event": "lost", "key": String(ent.key), "by": _loss_cause(ent)})
 	match ent.state:
 		3:
 			_fatal_hit_effect(ent)

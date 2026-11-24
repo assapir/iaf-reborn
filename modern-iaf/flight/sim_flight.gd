@@ -714,6 +714,8 @@ func _readable() -> String:
 ## The recording so far against the mission's rules (IafTraining, the readable mission and the airbases of
 ## modern-iaf/data).
 func score() -> Dictionary:
+	if host.get("weapons") != null:
+		host.weapons.flush_burst()  # a burst still firing: its rounds counted so far (the combat logbook)
 	host._log.flush()
 	var flight: String = ProjectSettings.globalize_path(host._log.get_path_absolute())
 	var d = JSON.parse_string(trainer.score(flight, _readable(), Settings.disk_path("res://data/airbases")))

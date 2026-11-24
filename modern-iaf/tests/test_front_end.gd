@@ -188,7 +188,7 @@ func pilot(fe: Control, lang: String) -> void:
 	check(
 		(
 			_has(book, "F-16I סופה" if he else "F-16I Sufa")
-			and _has(book, "3 טיסות · 2 הצלחות · 1 כישלונות" if he else "3 flights · 2 passed · 1 failed")
+			and _has(book, "3 טיסות · 2 הצלחות · כישלון אחד" if he else "3 flights · 2 passed · 1 failed")
 		),
 		"%s: the logbook's counts" % lang
 	)

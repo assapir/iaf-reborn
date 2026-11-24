@@ -82,7 +82,7 @@ crate of its own: it is one file, and `iaf-tools` already links `rusqlite`.
 | table | columns |
 |---|---|
 | `pilots` | `id` (14, the default pilot; a new pilot from the front end's pilot list takes the next free id); since version 2 the profile of the Pilot screen: `name`, `nickname` (the one every screen shows), `picture` (the picture file's path relative to the database's folder, `pictures/pilot-<id>.<ext>`; `''` = none); since version 7 `skill` (the enemy's skill the pilot picked: 0 low, 1 medium, 2 high; 1 for every pilot before, [../../docs/ai.md](../../docs/ai.md) §17) |
-| `sorties` | `id` (autoincrement: the debrief's number), `pilot`, `mission_id` (the menu id), `mission` (the readable name), `date`, `result` (1 pass, 0 fail), `elapsed_s`, `debrief` (the whole record as JSON text, NULL when it was lost); since version 3 `plane` (the jet's unit id, `f16i`; `''` for a sortie stored before) |
+| `sorties` | `id` (autoincrement: the debrief's number), `pilot`, `mission_id` (the menu id), `mission` (the readable name), `date`, `result` (1 pass, 0 fail), `elapsed_s`, `debrief` (the whole record as JSON text, NULL when it was lost); since version 3 `plane` (the jet's unit id, `f16i`; `''` for a sortie stored before); since version 8 `combat` (the flight's combat record as JSON text, below; NULL for a sortie without one) |
 | `loadouts` | since version 4: `pilot`, `plane` (the jet's unit id), `stations` (the loadout as JSON text, real station number → the store and how many, `{"3": {"id": "mk-82", "count": 3}}`; a plain id, the first build's form, reads as one; since 2026-11-19 also `pre`, the GPS stores' PRE targets picked on the briefing: `{"4": {"target": 2}, "4-3": {"lat": 31.04, "lon": 34.61, "mission": "nevatim_range"}, "8": {"steer": 1}}`, a station's key its number, a rack bomb's "station-bomb" 1-based, the aim a mission target's or steerpoint's number or a map point of one mission; a loadout without it has no picks ([front-end.md](front-end.md) §10.2); no schema change); one row per pilot and jet, none while the loadout is the record's default |
 | `saved_loadouts` | since version 6: `id`, `pilot`, `plane` (the jet's unit id), `name` (the pilot's, unique per pilot and jet), `stations` (as `loadouts`); the Loadout screen's Saved list ([front-end.md](front-end.md) §10.1) |
 
@@ -126,6 +126,29 @@ crate of its own: it is one file, and `iaf-tools` already links `rusqlite`.
 - **Version 7** (2026-11-21) adds `pilots.skill`, the enemy's skill from the Pilot screen ([front-end.md](front-end.md)
   §3): `pilot(db, pilot)` answers it with the profile (`skill`, 1 for a pilot never stored), `set_skill(db, pilot,
   skill)` stores it clamped to 0..2; `Settings.enemy_skill()` reads the active pilot's for the enemy.
+- **Version 8** (2026-11-24) adds `sorties.combat`, the combat logbook's record of the flight
+  (`crates/iaf-tools/src/combat_log.rs`), filled from the debrief's `combat` where it has one; a sortie from before
+  holds NULL and counts as a flight without combat. `combat(db, pilot, sortie)` answers the logbook: with a sortie id
+  that sortie's record, else the sum of the pilot's sorties; `totals` (`air_kills`, `shared`, `ground`, `fired`,
+  `hits`, `lost`, `shot_down`, `crashed`), the lists `kills` [[type, n, shared]], `ground` [[type, n]], `weapons`
+  [[name, fired, hits, gun]], `lost` [[cause, n]], `ejected`, `wingmen_lost`, and without a sortie `flights` (the
+  sorties with combat, newest first, each with its kills, ground targets and jets lost). Reset and Delete profile
+  delete it with the sorties.
+- **The combat record.** IafTraining's score counts it from the flight's recording (`combat_log::count`) into the
+  debrief's `combat`: `kills` and `shared` (air kills by the unit's record id, `mig29a`; an air-defence site's part
+  by its name, `5P85TE2`), `ground` (ground targets by type), `weapons` (per weapon name: `fired`, `hits`, `gun` for
+  the gun's rounds), `lost` (by cause: `sam`, `aaa`, `fighter`, `crashed`), `ejected`, `wingmen_lost`; `{}` without
+  combat. The recorder's events it reads ([../../docs/blackbox.schema.json](../../docs/blackbox.schema.json)):
+  - `kill` with `record` and `shared`: a unit the player destroyed; a kill is shared when a friendly unit hit it too.
+    A unit a friendly destroyed after the player hit it is also the player's shared kill (`assist`; the weapons range's
+    score counts the player's own kills only, as before). A jet of the player's flight the player shoots down is a jet lost (`crashed`: no enemy's hit), not a kill.
+    A jettisoned store is no release, and its burst no hit.
+  - `fire` (each missile or bomb the player released; a gun burst once at its end with its rounds) and `impact` (a
+    round or weapon of the player's that burst on an enemy unit: a hit).
+  - `shot_down` with `by`, `crash` and `eject`: the player's jet counts once: by the cause it was shot down by, else
+    crashed. An ejection counts apart.
+  - `lost` with `by`: a jet of the player's flight. The screens show the losses as counts by cause, never by jet (the
+    user, 24 Nov 2026: "no need to spell who was failing, just in general").
 - **The 1998 game** (iaf-reborn's Pilot Records, [front-end.md](../../docs/front-end.md) §13.13) uses this store
   in its own file, `user://iaf-reborn.sqlite`: its pilot list is `pilots` (the callsign is the `nickname`, `place` its place in the list, `photo`
   the original's photo index: 0..13 its pictures, the pilot's id for the pilot's own; `selected` 1 on the selected
@@ -143,6 +166,7 @@ crate of its own: it is one file, and `iaf-tools` already links `rusqlite`.
 - **Check.** `cargo test -p iaf-tools --lib pilot_log` (the schema at its version, a newer one refused, a sortie round
   trip with the summary, the JSON import run twice, the profile and its picture round trip, a version-1 file migrated, the logbook per plane and Reset, the pilot list and
   a new pilot, a version-2 file migrated, the loadouts per pilot per jet and a version-3 file migrated, reborn's JSON
-  records imported once from a sample, the photo index and selection, the saved loadouts named per pilot per jet); `modern-iaf/tests/test_front_end.gd` (imported records on the
+  records imported once from a sample, the photo index and selection, the saved loadouts named per pilot per jet, the combat records per sortie and summed
+with a version-7 file migrated); `cargo test -p iaf-tools --lib combat_log` (the counting rule); `modern-iaf/tests/test_front_end.gd` (imported records on the
   Debrief, Home, Training and Pilot log screens, then a flown sortie's debrief) and `test_mvp.gd` (each flight's
   sortie and its pass in the summary).

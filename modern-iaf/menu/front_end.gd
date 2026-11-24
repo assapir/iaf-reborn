@@ -20,6 +20,7 @@ const Img := preload("res://shared/util/img.gd")
 const KeyTable := preload("res://shared/controls/key_table.gd")
 const BriefingPage := preload("res://menu/briefing_page.gd")
 const DebriefPage := preload("res://menu/debrief_page.gd")
+const CombatPage := preload("res://menu/combat_page.gd")
 const LoadoutScreen := preload("res://menu/loadout_screen.gd")
 const MissionList := preload("res://shared/mission/mission_list.gd")
 const Turntable := preload("res://shared/aircraft/turntable.gd")
@@ -35,6 +36,8 @@ const SETTINGS_DATA := "res://data/settings"
 const NAV_W := 280
 const NAV_GAP := 52
 const LIST_W := 820
+## The Pilot screen's form column (the name and nickname fields, the skill, the picture), px.
+const FORM_W := 520
 ## The logo's height in the top bar (canvas px; the bar is 97 tall).
 const MARK_H := 64.0
 ## The Devices rows a joystick works (keyboard = 0): Keyboard with none connected (_pref_row).
@@ -155,6 +158,8 @@ var section := "training"
 var missions: Array = []
 var mission_i := 0
 var record := {}
+## The screen More stats (combat_page.gd) was opened from: "pilot" the logbook, "debrief" the sheet; its Back.
+var combat_from := "pilot"
 var record_sortie := 0
 ## The Settings section shown beside the list (_page_prefs), and the search typed over them ("" none).
 var pref_group := ""
@@ -249,6 +254,12 @@ func _fit_overlay() -> void:
 
 func s(key: String) -> String:
 	return str(strings.get(key, key))
+
+
+## Count `n` in string `key`'s form for it: `<key>_1` for one where the language has it ("1 flight", "כישלון אחד"),
+## else `<key>_n`.
+func counted(key: String, n: int) -> String:
+	return s(key + "_1") if n == 1 and strings.has(key + "_1") else s(key + "_n") % n
 
 
 func he() -> bool:
@@ -2080,12 +2091,14 @@ func _page_pilot() -> void:
 		_title(v, s("new_pilot") if creating else s("pilot"), "")
 	var h := _hbox(v, 72)
 	h.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	# The form in one column (the fields, the picture under them), the logbook beside it to the inline end.
-	var f := _vbox(h, 12)
-	f.custom_minimum_size.x = 640
-	var col := HBoxContainer.new()  # added under the fields below
-	col.add_theme_constant_override("separation", 24)
-	var fr := _picture_frame(col, Vector2(255, 340), draft_picture())
+	# The form in one column (the fields, the picture under them), the logbook beside it to the inline end. Narrower
+	# than the logbook's first look (the user, 24 Nov 2026: "make the left side (name, nick etc) a bit smaller").
+	var f := _vbox(h, 10)
+	f.custom_minimum_size.x = FORM_W
+	var col := VBoxContainer.new()  # added under the fields below: the picture, Choose picture as its bottom edge
+	col.add_theme_constant_override("separation", 0)
+	col.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	var fr := _picture_frame(col, Vector2(240, 320), draft_picture())
 	fr.name = "Picture"
 	# The picture (or its placeholder) opens the file picker as the button does.
 	fr.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -2107,26 +2120,34 @@ func _page_pilot() -> void:
 		ini.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		ini.add_theme_color_override("font_color", Look.MUTED)
 		_show_initials()
+	# Choose picture as the picture's bottom (the user, 24 Nov 2026: "choose pic button as the bottom of the pic").
 	var pick := _button(col, s("choose_picture"), "Secondary", choose_picture)
 	pick.name = "ChoosePicture"
-	pick.size_flags_vertical = Control.SIZE_SHRINK_END
+	pick.size_flags_horizontal = Control.SIZE_FILL
+	pick.custom_minimum_size.x = 0  # the picture's width, its text in the narrower padding below
+	pick.add_theme_font_size_override("font_size", 22)
+	for st in ["normal", "hover", "pressed", "focus", "disabled"]:
+		var box: StyleBox = _theme.get_stylebox(st, "Secondary").duplicate()
+		box.content_margin_left = 10
+		box.content_margin_right = 10
+		pick.add_theme_stylebox_override(st, box)
 	for field in ["name", "nickname"]:
-		_label(f, s("pilot_" + field), "Strong").add_theme_font_size_override("font_size", 25)
+		_label(f, s("pilot_" + field), "Strong").add_theme_font_size_override("font_size", 22)
 		var e := LineEdit.new()
 		e.name = "Field_" + field
 		e.text = str(draft.get(field, ""))
 		# A hint, never the name: the name in grey read as the field's own text, which no click could edit.
 		e.placeholder_text = s("pilot_%s_hint" % field)
 		e.max_length = 40
-		e.custom_minimum_size = Vector2(640, 58)
+		e.custom_minimum_size = Vector2(FORM_W, 52)
 		e.text_changed.connect(_edit.bind(field))
 		e.gui_input.connect(_field_keys.bind(e))
 		f.add_child(e)
 		if _focus == null:
 			_focus = e
-		_spacer_px(f, 12)
+		_spacer_px(f, 8)
 	# The enemy's skill (docs/ai.md §17): three segments, the medium for a pilot who never picked.
-	_label(f, s("enemy_skill"), "Strong").add_theme_font_size_override("font_size", 25)
+	_label(f, s("enemy_skill"), "Strong").add_theme_font_size_override("font_size", 22)
 	var seg := _hbox(f, -1)
 	seg.name = "Skill"
 	var g := ButtonGroup.new()
@@ -2156,10 +2177,9 @@ func _page_pilot() -> void:
 		other.name = "OtherPilots"
 		actions = [reset, del, other] + actions
 	_footer("", actions)
-	# Tab: the fields, the skill, the picture, the Pilot log, the bottom bar, the crumb.
-	var order := ["Field_name", "Field_nickname", "Skill_0", "Skill_1", "Skill_2", "ChoosePicture", "pilot_log"].map(
-		func(n): return find_child(n, true, false)
-	)
+	# Tab: the fields, the skill, the picture, the Pilot log, More stats, the bottom bar, the crumb.
+	var names := ["Field_name", "Field_nickname", "Skill_0", "Skill_1", "Skill_2", "ChoosePicture", "CombatMore"]
+	var order := (names + ["pilot_log"]).map(func(n): return find_child(n, true, false))
 	_chain((order + actions + [find_child("Crumb_hangar", true, false)]).filter(func(c): return c != null))
 
 
@@ -2203,8 +2223,13 @@ func _logbook(parent: Control, new := false) -> void:
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	book.add_child(scroll)
-	var rows := _vbox(scroll, 6)
+	var pad := MarginContainer.new()  # the figures clear of the scroll bar
+	pad.add_theme_constant_override("margin_left" if he() else "margin_right", 22)
+	pad.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.add_child(pad)
+	var rows := _vbox(pad, 6)
 	rows.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	CombatPage.logbook(self, top, rows)
 	for pl in planes:
 		_rule(rows, Look.LINE)
 		var j := _jet(str(pl.plane))
@@ -2216,7 +2241,12 @@ func _logbook(parent: Control, new := false) -> void:
 		var t := _label(head, clock(float(pl.time_s)), "Strong")
 		t.text_direction = Control.TEXT_DIRECTION_LTR
 		_label(head, s("flight_time"), "Muted")
-		_label(rows, s("logbook_flights") % [int(pl.flights), int(pl.passes), int(pl.fails)], "Muted")
+		var counts := [
+			counted("logbook_flights", int(pl.flights)),
+			counted("logbook_passed", int(pl.passes)),
+			counted("logbook_failed", int(pl.fails))
+		]
+		_label(rows, " · ".join(counts), "Muted")
 		for m in pl.missions:
 			var r := _hbox(rows, 12)
 			var mm := mission_by_id(int(m.mission_id))
@@ -2528,6 +2558,11 @@ func open_debrief(id: int) -> bool:
 	record_sortie = id
 	show_page("debrief")
 	return true
+
+
+## More stats (combat_page.gd): the combat logbook in full, of every flight or of the debrief's.
+func _page_combat() -> void:
+	CombatPage.page(self)
 
 
 ## The debrief (debrief_page.gd): the record's mission as flown, in the record's jet (its `plane`; a record from
@@ -2903,6 +2938,9 @@ func back() -> void:
 		return
 	if page == "hangar":
 		modal(s("quit_q"), "", s("quit"), func(): Settings.quit())
+		return
+	if page == "combat":
+		show_page(combat_from)
 		return
 	if page == "debrief":
 		var bm := find_child("BackMissions", true, false)

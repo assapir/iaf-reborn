@@ -107,6 +107,7 @@ func _entity(d: Dictionary, side: int) -> Dictionary:
 	e.merge({"0x2f8": d.pos.z, "0x2d0": side, "0x302": d.heading})
 	var ent := MissionRuntime.entity(e, "convoy:%d" % _n, -1, false)
 	var obj := {"0x5aa": VEHICLE, "0x56e": float(rec.get("strength", 600)), "0x564": float(rec.get("radius_m", 3.5))}
+	obj["0x514"] = String(d.id)  # the record's id: the combat logbook's type
 	obj["0x58c"] = 1
 	MissionRuntime._init_damage(ent, obj)
 	ent.convoy = true

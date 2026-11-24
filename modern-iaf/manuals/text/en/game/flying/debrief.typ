@@ -32,6 +32,8 @@ The sheet is the paper-coloured card. Its band gives the sortie's number in your
 
 A target written with "max" is an upper limit. A target with ± allows that much either way. The goals of each #term("lesson") are explained with the lesson: @lesson-startup, @lesson-takeoff and @lesson-range.
 
+*#scr("combat")* follows the goals in a flight with combat: that flight's #scr("combat_air_kills"), #scr("combat_ground"), #scr("combat_hits") and #scr("combat_lost"), as on the #scr("pilot") screen (@pilots-combat).
+
 *#scr("remarks")* gives the outcome in a sentence: that the mission passed, or the reason it failed. When several things went wrong, the reason that ended the flight comes first.
 
 *#scr("next_time")* follows with one tip: what to do differently in the next flight. It addresses the reason of a fail, or else the first goal that is not marked ✓. A flight with every goal met has no tip.
@@ -72,6 +74,7 @@ A touchdown, a crash, a hit or an ejection shows as a line down all three graphs
   [#scr("fly_again")], [#idx("Fly again")Opens the briefing of the mission you just flew, ready to fly.],
   [#scr("back_missions")], [Goes to the #scr("missions") screen (@mission-list).],
   [#scr("pilot_log")], [Opens your pilot log (@pilots).],
+  [#scr("combat_more")], [A flight with combat: opens that flight's combat statistics (@pilots-combat).],
   [#scr("export_flight")], [#idx("Export flight data")Saves the flight's recording as a file where you choose: every moment of the flight with its position, speed, height and events, as the game recorded them.],
 )
 

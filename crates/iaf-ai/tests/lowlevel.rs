@@ -225,9 +225,8 @@ fn low_run_in_pops_up_into_the_dive() {
             assert_eq!(flight.attack(t, 2, Some(Bogey { pos: at, vel: Vec3::ZERO })), Some(true));
         }
         calls.extend(flight.step(t).into_iter().map(|c| (t, c)));
-        for i in 1..4 {
+        for (i, (fm, ap)) in jets.iter_mut().enumerate().skip(1) {
             let order = flight.members[i].order;
-            let (fm, ap) = &mut jets[i];
             if i == 1 && order.release && release.is_none() {
                 let s = fm.state();
                 let v = Vec3::new(s.velocity[0] as f64, s.velocity[1] as f64, s.velocity[2] as f64);

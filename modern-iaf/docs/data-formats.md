@@ -740,16 +740,22 @@ template, "KCH2" when no tower answers>, "text": <its words>}`; in a training mi
 `{"t", "event": "surface", "paved": false}` when the jet on the ground leaves the base's pavement (training.md §3.0);
 the event `checklist`: `{"t", "event": "checklist", "step": <id>, "fault": <id, when refused>}` for each start-up
 checklist key, and `{"t", "event": "checklist", "item": <card item id>, "on": false when unticked}` for each item of the
-jet's checklist card ticked or unticked (training.md §12); and the event `eject`: `{"t", "event": "eject", "short": <below the seat's low limit>}` when the pilot ejects.
+jet's checklist card ticked or unticked (training.md §12); and the event `eject`: `{"t", "event": "eject", "short": <below the seat's low limit>}` when the pilot ejects. The
+combat logbook's events (2026-11-24, [storage.md](storage.md) §5): `kill` also carries `record` (the unit's record id
+or a site part's name), `shared` and `assist` (a friendly finished it after the player's hit); `shot_down` carries `by` (`sam`, `aaa`, `fighter`, `crashed`); `fire`
+`{"weapon", "n", "gun"}` for each store the player releases and each gun burst at its end; `impact` `{"weapon", "n",
+"gun"}` for a round or weapon of the player's that bursts on an enemy unit; `lost` `{"key", "by"}` for a jet of the
+player's flight.
 The original game keeps version 1 (no change).
 
 **The records database**, `user://modern-iaf.sqlite` ([storage.md](storage.md) §5, `iaf_tools::pilot_log`): the table
 `pilots` (`id`, the profile's `name`, `nickname` and `picture`) and one `sorties` row per scored flight (`id`, `pilot` (14 until the front end's pilot list), `mission_id`,
-`mission`, `date`, `result` 1 pass / 0 fail, `elapsed_s`, `debrief`), the schema version in `user_version`.
+`mission`, `date`, `result` 1 pass / 0 fail, `elapsed_s`, `debrief`, `plane`, `combat`), the schema version in `user_version`.
 
 **The debrief record**, a sortie's `debrief` column as JSON text: [training.md](training.md) §4's record (`mission`,
 `kind`, `pass`, `reasons`, `items` (each with an optional `text`), `goals`, `strings` in English and Hebrew) plus
-`flight` (the recording's absolute path), `date` (local, `YYYY-MM-DDTHH:MM:SS`) and `elapsed_s`.
+`flight` (the recording's absolute path), `date` (local, `YYYY-MM-DDTHH:MM:SS`) and `elapsed_s`; since 2026-11-24
+`combat`, the flight's combat record ([storage.md](storage.md) §5; `{}` without combat).
 
 **The JSON records from before the database** (until 2026-11-09), read once by the database's first open and left in
 place: `user://debriefs/debrief-<date>-<mission id>.json` (one debrief record each) and `user://pilots/<pilot id>.json`

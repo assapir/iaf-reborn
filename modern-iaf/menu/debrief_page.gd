@@ -11,6 +11,7 @@ extends RefCounted
 const Look := preload("look.gd")
 const BriefingMap := preload("briefing_map.gd")
 const FlightGraphs := preload("flight_graphs.gd")
+const CombatPage := preload("combat_page.gd")
 const FileExport := preload("res://shared/util/file_export.gd")
 ## The sheet's width, the screen's edge, the gap between the columns, the columns' top and their room above the
 ## footer (px on the 1920 × 1080 canvas, the mock's).
@@ -146,6 +147,7 @@ static func _sheet(fe: Control, m: Dictionary, j: Dictionary) -> void:
 	var inner: VBoxContainer = fe._vbox(fe._margin(v, 22, 18), 0)
 	_fields(fe, inner, m, j)
 	_goals(fe, inner)
+	CombatPage.sheet(fe, inner)
 	# Remarks: why it failed (the reason that ended it first) or that it passed, then the scorer's "Next time" line.
 	var lang := "he" if fe.he() else "en"
 	var names: Dictionary = rec.get("strings", {}).get(lang, {})
@@ -468,8 +470,10 @@ static func _footer(fe: Control, m: Dictionary, map: Control) -> void:
 		export.mouse_default_cursor_shape = Control.CURSOR_FORBIDDEN
 		# Its kind's plain box, the text greyed (as _soon: the theme gives the disabled state no box).
 		export.add_theme_stylebox_override("disabled", fe._theme.get_stylebox("normal", "Secondary"))
-	fe._footer("", acts, false, [log, export])
-	var ring: Array = [log] + ([export] if not export.disabled else []) + acts.filter(func(b): return not b.disabled)
+	var more: Button = CombatPage.more_button(fe)
+	fe._footer("", acts, false, [log, export] + ([more] if more != null else []))
+	var ring: Array = [log] + ([export] if not export.disabled else []) + ([more] if more != null else [])
+	ring += acts.filter(func(b): return not b.disabled)
 	if map != null:
 		for b in ring:
 			fe._nb(b, {"top": map})

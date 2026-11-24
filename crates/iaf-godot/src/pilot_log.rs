@@ -98,6 +98,13 @@ impl IafPilotLog {
         text(with(&db, |c| pilot_log::logbook(c, pilot, &units)))
     }
 
+    /// The combat logbook as JSON (`pilot_log::combat`): `sortie` > 0 that sortie's record (the debrief), else the sum
+    /// of the pilot's (the Pilot screen): {totals, kills, ground, weapons, lost, ejected, wingmen_lost[, flights]}.
+    #[func]
+    fn combat(db: GString, pilot: i64, sortie: i64) -> GString {
+        text(with(&db, |c| pilot_log::combat(c, pilot, (sortie > 0).then_some(sortie))))
+    }
+
     /// Deletes the pilot's sorties and debriefs (the profile stays); false when it could not.
     #[func]
     fn reset(db: GString, pilot: i64) -> bool {

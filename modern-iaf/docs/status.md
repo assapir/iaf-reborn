@@ -3,6 +3,19 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **The combat logbook (2026-11-24, the user, 23 Nov: "Is the pilot logs count kills/targets destroyed/lost?"; the
+  round-2 mock approved on A79 with his answers of 24 Nov; [storage.md](storage.md) §5, [front-end.md](front-end.md)
+  §3 and §13):** each scored flight counts its combat from its recording in Rust (`crates/iaf-tools/src/combat_log.rs`):
+  air kills by type with the shared ones, ground targets by type, each weapon's releases and hits (the gun's rounds
+  apart), the jets lost by cause (the player's and the flight's other jets together; ejections apart). The records
+  keep it per sortie (schema version 8, older sorties without one). The Pilot screen's logbook shows four totals of
+  every flight and More stats / "סטטיסטיקה מפורטת"; a combat flight's debrief shows its four totals and its More
+  stats. The weapons' verbs are the user's (missiles שוגרו, bombs הוטלו, the gun נורו). The same change makes the
+  Pilot screen's form narrower with Choose a picture… as the picture's bottom (the user, 24 Nov), and the logbook
+  counts "1 flight" / "טיסה אחת" in the singular. Tests: `cargo test -p iaf-tools --lib combat_log pilot_log`,
+  `modern-iaf/tests/test_combat_log.gd` (the events from a flight), `test_combat_screens.gd` (the screens, en + he).
+  The unit names in Hebrew (משגר S-300, מכ"ם גילוי S-300, גרוטת F-16 …) are ours: the system names as Israeli press
+  writes them with the Hebrew noun for the vehicle; open: an IAF source for each.
 - **The big fight (2026-11-23, the user, 22 Nov: "If possible create a video of your multiplabes multi sam etc
   dogfight?"; [ai-plan.md](ai-plan.md) K12, X5; [../../docs/ai.md](../../docs/ai.md) §22):** one dev-hook scenario
   with everything at once. Our four-ship flies low and gets the sort, weapons free and a ground attack. It faces a MiG-29A pair on

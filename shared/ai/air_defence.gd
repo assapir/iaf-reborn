@@ -161,7 +161,8 @@ func _part(p: Dictionary, at: Vector3, heading: float, side: int, look := "", te
 		"0x5b4": p.type_code,
 		"0x56e": TEAM_STRENGTH if team else STRENGTH,
 		"0x564": TEAM_RADIUS if team else RADIUS,
-		"0x58c": 1
+		"0x58c": 1,
+		"0x514": String(p.name),  # the combat logbook's type: the part's name
 	}
 	if float(p.reach_km) > 0.0:
 		obj.radar_km = p.reach_km  # the RWR hears the radar to its reach (player_weapons.gd _rwr_search)

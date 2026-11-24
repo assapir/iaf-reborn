@@ -357,6 +357,10 @@ static func entity(e: Dictionary, key: String, fi: int, is_player: bool) -> Dict
 		"known": int(e.get("0x35c", 0)) != 0,
 		# World scale Real: the scale its base took (move_with_bases; 1 elsewhere).
 		"base_scale": float(e.get("base_scale", 1.0)),
+		# The combat logbook's (_init_damage, _hit): its record's id, the keys of who hit it, the last hit's kind.
+		"unit": "",
+		"hit_by": {},
+		"hit_kind": "",
 	}
 
 
@@ -369,6 +373,8 @@ static func _brain_of(e: Dictionary) -> int:
 
 static func _init_damage(ent: Dictionary, obj: Dictionary) -> void:
 	ent.klass = int(obj.get("0x5aa", -1))
+	# Its record's id (bdb Objects 0x514: "mig29a", "target_t72"; a site part's name): the combat logbook's type.
+	ent.unit = String(obj.get("0x514", ""))
 	ent.type_code = int(obj.get("0x5b4", -1))
 	ent.strength = DamageModel.strength_of(obj)
 	ent.size = DamageModel.size_of(obj)
@@ -381,6 +387,8 @@ static func _init_damage(ent: Dictionary, obj: Dictionary) -> void:
 	ent.damage = 0.0
 	ent.requested = -1
 	ent.killer = {}
+	ent.hit_by = {}
+	ent.hit_kind = ""
 	ent.shield = false
 	ent.smoke = false
 	ent.smoke_timer = false
@@ -875,6 +883,9 @@ func _hit(ent: Dictionary, dmg: float, source: Dictionary, kind: String) -> bool
 	if not kill and new - old < DamageModel.MIN_STEP:
 		return false
 	ent.killer = source
+	# Ours (the combat logbook, modern-iaf/docs/storage.md §5): who hit it (shared kills) and how the last hit came.
+	ent.hit_by[String(source.get("key", ""))] = true
+	ent.hit_kind = kind
 	if ent.player and host.has_method("blackbox_event"):
 		host.blackbox_event(
 			{

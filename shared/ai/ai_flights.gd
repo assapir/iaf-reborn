@@ -446,6 +446,12 @@ func _formation_of(ent: Dictionary) -> Dictionary:
 	return {}
 
 
+## A jet of the player's formation other than the player's (the combat logbook's wingmen lost).
+func wingman(ent: Dictionary) -> bool:
+	var me: Dictionary = runtime.player_entity()
+	return ent != me and _formation_of(me).get("members", []).has(ent)
+
+
 ## Modern IAF: the player's formation flies under IafAi, the player its number by the formation's slot (Kidon 1-1 the
 ## first), its AI jets the rest; none without an AI member.
 func _setup_flight_ai() -> void:

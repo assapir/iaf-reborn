@@ -176,6 +176,10 @@ var _break_next := -1.0
 var releasing := false
 var firing := false
 var _gun_next := INF
+## The combat logbook (modern-iaf/docs/storage.md §5): the gun's rounds of the burst so far (one `fire` event at its
+## end, flush_burst) and the rounds one shot takes off the counter.
+var _burst := 0
+var _gun_k := 1
 var _gun_sound: Node
 var _seek_sound: Node
 var _lock_sound: Node
@@ -1325,7 +1329,13 @@ func _jettison_bombs() -> void:
 		if not t in [500, 510, 650]:
 			continue
 		while stores.displayed(i) > 0:
+			var n := [bombs.size(), guided.size(), gps_bombs.size()]
 			_drop_store(i, _jettison_aim(t))
+			# Jettisoned, not released: its burst is no hit in the combat logbook.
+			for bm in bombs.slice(n[0]) + gps_bombs.slice(n[2]):
+				bm.jettisoned = true
+			for g in guided.slice(n[1]):
+				g.set_meta("jettisoned", true)
 			stores.fired(i)
 	stores.set_unlimited(was)
 	bombs_jettisoned = true
@@ -1377,6 +1387,36 @@ func gun_stop() -> void:
 		host.sounds.stop(_gun_sound)
 		_gun_sound = null
 	firing = false
+	flush_burst()
+
+
+## The burst's rounds into the recording as one `fire` (the combat logbook), at the gun's stop and before a score.
+func flush_burst() -> void:
+	if _burst > 0:
+		_combat_event({"event": "fire", "weapon": stores.name_of(9), "n": _burst, "gun": true})
+	_burst = 0
+
+
+## A combat logbook event into the flight's recording (terrain_view.gd blackbox_event; docs/blackbox.schema.json).
+func _combat_event(e: Dictionary) -> void:
+	if host.has_method("blackbox_event"):
+		host.blackbox_event(e)
+
+
+## The player released one `w` (the combat logbook's weapons fired).
+func _log_fire(w: Dictionary) -> void:
+	_combat_event({"event": "fire", "weapon": String(w.get("name", "")), "n": 1})
+
+
+## The player's `w` burst on `hit` (the units its blast damaged): a hit when any is an enemy (the combat logbook).
+func _log_hit(w: Dictionary, hit: Array, n := 1, gun := false) -> void:
+	if not host.has_method("enemy_of_player"):
+		return
+	if hit.any(func(e): return host.enemy_of_player(e)):
+		var ev := {"event": "impact", "weapon": String(w.get("name", "")), "n": n}
+		if gun:
+			ev["gun"] = true
+		_combat_event(ev)
 
 
 ## FUN_00456d40: one round (out of rounds: the gun stops, silently).
@@ -1401,7 +1441,10 @@ func _gun_shot() -> bool:
 		String(me.get("key", "")),
 		easy_aiming
 	)
+	var before: int = stores.displayed(9)
 	stores.consume(9)
+	_gun_k = maxi(before - stores.displayed(9), 1)
+	_burst += _gun_k
 	return true
 
 
@@ -1418,7 +1461,7 @@ func _gun_detonate(_r: Dictionary, pos: Vector3, cands, hit: Dictionary) -> void
 	var w: Dictionary = stores.station(9).get("w", {"power": 100.0, "radius": 50.0})
 	var me := _me()
 	if host.runtime != null and not me.is_empty():
-		host.runtime.area_damage(pos, float(w.power), float(w.radius), me, "gun", cands)
+		_log_hit(w, host.runtime.area_damage(pos, float(w.power), float(w.radius), me, "gun", cands), _gun_k, true)
 	if not hit.is_empty():
 		gun_hit_effect(hit.pos if hit.has("pos") else pos)
 
@@ -1495,6 +1538,7 @@ func _release_missile() -> void:
 		radar.lock_stt()
 		semi_active.append(mis)
 	_place_sound(host.sounds.play("SFX_AIRCRAFT_FIRED_WEAPON", WEAPON_OST.get(int(w.type), "OST_RADARMISSILE")), mis.p0)
+	_log_fire(w)
 	stores.fired(i)
 	_push_stores()
 	_update_store_nodes()
@@ -1531,6 +1575,7 @@ func _release_tv() -> void:
 		for g: VisualInstance3D in node.find_children("*", "VisualInstance3D", true, false):
 			g.layers = 1 << (EoSensor.SELF_LAYER - 1)
 	_place_sound(host.sounds.play("SFX_AIRCRAFT_FIRED_WEAPON", WEAPON_OST.get(int(w.type), "OST_TVMISSILE")), pos)
+	_log_fire(w)
 	stores.fired(i)
 	_push_stores()
 	_update_store_nodes()
@@ -1573,7 +1618,8 @@ func _update_guided() -> void:
 		if gone:
 			guided.erase(g)
 			if _fuze_armed(g.get_meta("arm", {}), now):
-				_bomb_detonate({"w": g.weapon, "node": node, "sound": g.get_meta("sound")}, p)
+				var mine: bool = g.get_meta("owner", {}).get("player", false) and not g.get_meta("jettisoned", false)
+				_bomb_detonate({"w": g.weapon, "node": node, "sound": g.get_meta("sound"), "mine": mine}, p)
 			else:  # ours: a laser bomb that hit before its fuze armed (modern-iaf/docs/weapons.md §9)
 				duds += 1
 				if node != null:
@@ -1821,6 +1867,8 @@ func _missile_detonate(mis: RefCounted) -> void:
 		return
 	if host.runtime != null and not owner.is_empty() and flag != 0:
 		hit = host.runtime.area_damage(p, float(mis.weapon.power), float(mis.weapon.radius), owner, "missile")
+		if owner.get("player", false):
+			_log_hit(mis.weapon, hit)
 	if flag == 2 and host.runtime != null:
 		host.runtime.scripted_kill(host.runtime.entities.get(String(mis.target_key), {}), owner)
 	var sp := to_scene(p)
@@ -2045,6 +2093,7 @@ func _ripple_tick() -> void:
 		_drop_store(k, gps_aim(aim, k)[0] if gps else aim)
 		if delivery_on():
 			_arm_fuze(t)
+		_log_fire(stores.station(k).w)
 		stores.fired(k)
 		_released[k] = int(_released.get(k, 0)) + 1
 		if t == 650 and not gps:
@@ -2725,6 +2774,9 @@ func _bomb_detonate(bm: Dictionary, p: Vector3) -> void:
 	var hit := []
 	if host.runtime != null and not me.is_empty() and float(w.power) > 0.0:
 		hit = host.runtime.area_damage(p, float(w.power), float(w.radius), me, "bomb")
+		# The combat logbook's hits: the player's own release (a guided bomb's blast keeps the player as its source).
+		if bm.get("mine", me.get("player", false)) and not bm.get("jettisoned", false):
+			_log_hit(w, hit)
 	var type := int(w.type)
 	_explosion_effect(p, type)
 	_place_sound(host.sounds.play("SFX_WEAPON_EXPLODED", OST.get(type, "OST_BOMB")), p)
@@ -2771,7 +2823,9 @@ func _rocket_detonate(r: Dictionary, pos: Vector3, _cands, _hit: Dictionary) -> 
 	var w: Dictionary = e.get("w", {"power": 0.0, "radius": 0.0, "type": 560})
 	var me: Dictionary = e.get("owner", _me())  # the releasing unit (the player or an AI jet)
 	if host.runtime != null and not me.is_empty() and float(w.power) > 0.0:
-		host.runtime.area_damage(pos, float(w.power), float(w.radius), me, "rocket")
+		var hit: Array = host.runtime.area_damage(pos, float(w.power), float(w.radius), me, "rocket")
+		if me.get("player", false):
+			_log_hit(w, hit)
 	rocket_effect(pos)
 	if e.get("node") != null:
 		e.node.queue_free()

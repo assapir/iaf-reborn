@@ -20,6 +20,7 @@
 use anyhow::{Context, Result, bail, ensure};
 use serde_json::{Map, Value, json};
 
+use crate::combat_log;
 use crate::sim;
 use crate::sim_bases::{self, Base};
 
@@ -635,6 +636,8 @@ pub struct Debrief {
     pub goals: Vec<String>,
     /// The sheet's goals: what the mission asks against what was flown, marked.
     pub checks: Vec<Check>,
+    /// The flight's combat record (`combat_log::count`), `{}` without combat.
+    pub combat: Value,
 }
 
 /// A figure of a goal: a value with its unit, a name ("25R"), or neither (not reached).
@@ -755,6 +758,7 @@ impl Debrief {
             }).collect::<Vec<_>>(),
             "next": self.next().map(|(id, args)| json!({"en": fill(id, 0, &args), "he": fill(id, 1, &args)})),
             "strings": {"en": strings(0), "he": strings(1)},
+            "combat": self.combat,
         })
     }
 
@@ -874,6 +878,7 @@ pub fn score(flight: &Flight, mission: &Value, airbases: &[Value]) -> Result<Deb
         Kind::Range { air_kills, ground_kills } => range(flight, id, [*air_kills, *ground_kills], r.time_budget_s),
     };
     d.goals = r.goals;
+    d.combat = combat_log::count(&flight.events);
     if let Some(reason) = failed {
         d.fail_first(reason);
     }
@@ -1404,6 +1409,7 @@ fn startup(f: &Flight, mission: String, budget: f64) -> Debrief {
         ],
         goals: vec![],
         checks,
+        combat: json!({}),
     }
 }
 
@@ -1414,7 +1420,9 @@ fn range(f: &Flight, mission: String, need: [usize; 2], budget: f64) -> Debrief 
     let kills: Vec<(bool, f64)> = f
         .events
         .iter()
-        .filter(|e| e["event"] == "kill")
+        // A unit a friendly finished after the player hit it (`assist`) is a shared kill in the combat logbook, not the
+        // player's kill on the range.
+        .filter(|e| e["event"] == "kill" && e["assist"] != true)
         .map(|e| (e["air"].as_bool().unwrap_or(false), e["t"].as_f64().unwrap_or(0.0) - t0))
         .collect();
     let got = |air: bool| kills.iter().filter(|k| k.0 == air).count();
@@ -1477,6 +1485,7 @@ fn range(f: &Flight, mission: String, need: [usize; 2], budget: f64) -> Debrief 
         ],
         goals: vec![],
         checks,
+        combat: json!({}),
     }
 }
 
@@ -1579,7 +1588,16 @@ fn takeoff(f: &Flight, mission: String, t: &Takeoff, budget: f64, ended: bool) -
         reasons.push("no_liftoff");
         let mut checks = vec![runway_check(None), time_check(None), heading_check(None, false)];
         checks.extend(calls);
-        return Debrief { mission, kind: "takeoff", pass: false, reasons, items: vec![tower], goals: vec![], checks };
+        return Debrief {
+            mission,
+            kind: "takeoff",
+            pass: false,
+            reasons,
+            items: vec![tower],
+            goals: vec![],
+            checks,
+            combat: json!({}),
+        };
     };
     let (roll, k) = roll_start(s, lift, rw);
     // The lineup heading: at the stop, or (a rolling take-off) where the roll passes ROLL_START_KT.
@@ -1652,7 +1670,16 @@ fn takeoff(f: &Flight, mission: String, t: &Takeoff, budget: f64, ended: bool) -
         item("max_centreline_offset", Some(offset), "m"),
         tower,
     ];
-    Debrief { mission, kind: "takeoff", pass: reasons.is_empty(), reasons, items, goals: vec![], checks }
+    Debrief {
+        mission,
+        kind: "takeoff",
+        pass: reasons.is_empty(),
+        reasons,
+        items,
+        goals: vec![],
+        checks,
+        combat: json!({}),
+    }
 }
 
 #[cfg(test)]
@@ -2371,6 +2398,7 @@ mod tests {
             items: vec![],
             goals: vec![],
             checks: vec![],
+            combat: json!({}),
         };
         assert_eq!(d("no_liftoff").next().map(|n| n.0), Some("next_liftoff"));
         assert_eq!(d("no_start").next().map(|n| n.0), Some("next_start"));

@@ -16,7 +16,9 @@ Select the pilot in the #term("Hangar")'s top bar to open the #scr("pilot") scre
   [The picture], [A frame in the shape of an identity photo. Without a picture it shows the name's initials.],
   [#scr("choose_picture")], [Opens the system's file dialog to pick a picture file. A click on the frame does the same. The picture is cut to fill the frame.],
   [#scr("logbook")], [For each jet flown, the one with the most flight time first: its flight time, its flights, how many passed and failed, and the same for each mission flown on it. A pilot without flights reads #scr("no_flights")],
+  [#scr("combat")], [Once you have flown combat: four totals of every flight. #scr("combat_air_kills"), with how many were shared; #scr("combat_ground"); #scr("combat_hits") of your missiles and bombs out of those released; #scr("combat_lost"), yours and the flight's other jets together (@pilots-combat).],
   [#scr("pilot_log")], [Opens the #term("pilot log") (@pilots-log).],
+  [#scr("combat_more")], [Opens the combat statistics of every flight (@pilots-combat). Shown once you have flown combat.],
   [#scr("reset_log")], [Deletes the pilot's flights (@pilots-reset). Greyed while the pilot has no flights.],
   [#scr("delete_profile")], [Deletes the pilot (@pilots-delete).],
   [#scr("other_pilots")], [Opens the list of pilots (@pilots-change).],
@@ -99,6 +101,22 @@ Two filters stand over the list:
 - *The mission.* #scr("all_missions"), or one of the missions flown. With a jet picked, the list offers that jet's missions only.
 
 Select a row to open the flight's debrief (@debrief). #scr("back") or #keycap("Esc") goes back to the #scr("pilot") screen.
+
+=== Combat statistics <pilots-combat>
+
+#idx("Combat statistics")#idx("Kills")Every flight counts what you did in combat: the aircraft you shot down, the ground targets you destroyed, each weapon you released and how many hit, and the jets lost. #scr("combat_more") on the #scr("pilot") screen shows every flight's; the same button on a debrief shows that flight's (@debrief).
+
+#grid-table(
+  (auto, 1fr),
+  ([Part], [What it shows]),
+  [#scr("combat_kills_by_type")], [The aircraft shot down, by type. A kill is shared when another jet of your side hit it too, or when a jet of your side finished an aircraft you hit; the chip gives how many were shared.],
+  [#scr("combat_ground_by_type")], [The ground targets destroyed, by type.],
+  [#scr("combat_weapons")], [Each weapon you released and how many hit an enemy: #scr("combat_missiles") (#scr("combat_launched")), #scr("combat_bombs") (#scr("combat_dropped")) and the #scr("combat_gun")'s rounds (#scr("combat_rounds")).],
+  [#scr("combat_losses")], [The jets lost, yours and the flight's other jets together, by what brought them down; how many of them were the flight's other jets; and the ejections. No jet is named.],
+  [#scr("combat_flights")], [From the #scr("pilot") screen only: each flight with combat, the newest first, with its kills, targets and jets lost.],
+)
+
+#scr("back") or #keycap("Esc") goes back to the screen it was opened from. A flight from before this count has none.
 
 === Taking your data to another computer <pilots-export>
 

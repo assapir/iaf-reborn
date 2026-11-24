@@ -99,7 +99,7 @@ func _entity(s: Dictionary, d: Dictionary) -> Dictionary:
 	var e := {"0x1e": -_n, "0x2bc": "SHAHED-136", "0x2e4": d.pos.x, "0x2ee": d.pos.y, "0x2f8": d.pos.z}
 	e.merge({"0x2d0": s.side, "0x302": d.heading})
 	var ent := MissionRuntime.entity(e, "drone:%d" % _n, -1, false)
-	MissionRuntime._init_damage(ent, {"0x5aa": 3, "0x56e": STRENGTH, "0x564": SPAN, "0x58c": 1})
+	MissionRuntime._init_damage(ent, {"0x5aa": 3, "0x56e": STRENGTH, "0x564": SPAN, "0x58c": 1, "0x514": "shahed-136"})
 	ent.airborne_class = true  # mission_entity_moved keeps it off the ground
 	ent.half_span = SPAN / 2.0  # the gun's hit test (gun_rounds.gd half_span_of)
 	ent.rcs = IafSalvo.rcs()  # the player's radar (radar.gd _feed)

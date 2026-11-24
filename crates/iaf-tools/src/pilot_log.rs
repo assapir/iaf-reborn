@@ -10,6 +10,7 @@
 //! the original's photo index and selection, and each attempt as a sortie whose record is the attempt (`history`). Its
 //! JSON records from before (`pilots/pilots.json`, `pilots/<id>.json`, `pilots/<id>.png`) come in by the same import.
 
+use crate::combat_log;
 use anyhow::{Context, Result, bail};
 pub use rusqlite::Connection;
 use rusqlite::{OptionalExtension, Transaction, TransactionBehavior, params};
@@ -68,6 +69,11 @@ const MIGRATIONS: &[&str] = &[
     // 6 → 7: the enemy's skill the pilot picked (the Pilot screen; 0 low, 1 medium, 2 high; docs/ai.md §17), the
     // medium for every pilot before.
     "ALTER TABLE pilots ADD COLUMN skill INTEGER NOT NULL DEFAULT 1;",
+    // 7 → 8: the sortie's combat record (`combat_log`: kills, ground targets, weapons, losses) as JSON text, from its
+    // debrief's `combat` where it has one; NULL for the sorties before (they flew no counted combat).
+    "ALTER TABLE sorties ADD COLUMN combat TEXT;
+     UPDATE sorties SET combat = json_extract(debrief, '$.combat')
+       WHERE json_valid(debrief) AND json_type(debrief, '$.combat') = 'object';",
 ];
 
 /// The schema version this build writes.
@@ -190,10 +196,11 @@ fn insert(c: &Connection, pilot: i64, mission_id: i64, date: &str, result: i64, 
     let mission = d.and_then(|d| d["mission"].as_str()).unwrap_or("");
     let elapsed = d.and_then(|d| d["elapsed_s"].as_f64()).unwrap_or(0.0);
     let plane = d.and_then(|d| d["plane"].as_str()).unwrap_or("");
+    let combat = d.map(|d| &d["combat"]).filter(|c| c.is_object()).map(Value::to_string);
     c.execute(
-        "INSERT INTO sorties (pilot, mission_id, mission, date, result, elapsed_s, debrief, plane)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
-        params![pilot, mission_id, mission, date, result, elapsed, d.map(|d| d.to_string()), plane],
+        "INSERT INTO sorties (pilot, mission_id, mission, date, result, elapsed_s, debrief, plane, combat)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+        params![pilot, mission_id, mission, date, result, elapsed, d.map(|d| d.to_string()), plane, combat],
     )?;
     Ok(c.last_insert_rowid())
 }
@@ -316,6 +323,46 @@ pub fn logbook(c: &Connection, pilot: i64, units: &Map<String, Value>) -> Result
     }
     out.sort_by(|a, b| b["time_s"].as_f64().partial_cmp(&a["time_s"].as_f64()).unwrap_or(std::cmp::Ordering::Equal));
     Ok(Value::Array(out))
+}
+
+/// The combat logbook (`combat_log`): with `sortie` that sortie's record, else the sum of the pilot's sorties. Its
+/// `totals` (`combat_log::totals`) and lists (`combat_log::lists`); without `sortie` also `flights`, the sorties
+/// with combat newest first: `id`, `date`, `mission_id`, `mission`, `plane`, `air_kills`, `ground`, `lost`.
+pub fn combat(c: &Connection, pilot: i64, sortie: Option<i64>) -> Result<Value> {
+    let mut q = c.prepare(
+        "SELECT id, date, mission_id, mission, plane, combat FROM sorties
+         WHERE combat IS NOT NULL AND (?2 IS NULL AND pilot = ?1 OR id = ?2) ORDER BY date DESC, id DESC",
+    )?;
+    let rows = q.query_map(params![pilot, sortie], |r| {
+        Ok((
+            r.get::<_, i64>(0)?,
+            r.get::<_, String>(1)?,
+            r.get::<_, i64>(2)?,
+            r.get::<_, String>(3)?,
+            r.get::<_, String>(4)?,
+            r.get::<_, String>(5)?,
+        ))
+    })?;
+    let mut records = Vec::new();
+    let mut flights = Vec::new();
+    for row in rows {
+        let (id, date, mission_id, mission, plane, text) = row?;
+        let r: Value = serde_json::from_str(&text).unwrap_or_else(|_| json!({}));
+        if !combat_log::is_combat(&r) {
+            continue;
+        }
+        let t = combat_log::totals(&r);
+        flights.push(json!({"id": id, "date": date, "mission_id": mission_id, "mission": mission, "plane": plane,
+                            "air_kills": t["air_kills"], "ground": t["ground"], "lost": t["lost"]}));
+        records.push(r);
+    }
+    let all = combat_log::sum(&records);
+    let mut out = combat_log::lists(&all);
+    out["totals"] = combat_log::totals(&all);
+    if sortie.is_none() {
+        out["flights"] = Value::Array(flights);
+    }
+    Ok(out)
 }
 
 /// Deletes the pilot's sorties and their debriefs (the Pilot screen's Reset); the profile stays. How many went.
@@ -932,5 +979,54 @@ mod tests {
         let ids: Vec<i64> =
             pilots(&c, &db).unwrap().as_array().unwrap().iter().map(|p| p["id"].as_i64().unwrap()).collect();
         assert_eq!(ids, vec![b]);
+    }
+    #[test]
+    fn combat_per_sortie_summed_and_version_7_migrates() {
+        let d = temp("combat");
+        let db = d.join("modern-iaf.sqlite");
+        let c = Connection::open(&db).unwrap();
+        for m in &MIGRATIONS[..7] {
+            c.execute_batch(m).unwrap();
+        }
+        c.pragma_update(None, "user_version", 7).unwrap();
+        c.execute("INSERT INTO pilots (id) VALUES (14)", []).unwrap();
+        // Before version 8: a debrief with a combat record (a build that wrote it) and one without.
+        let old = json!({"mission": "ramon_range", "combat": {"ground": {"target_t72": 2},
+                         "weapons": {"MK-82": {"fired": 4, "hits": 2}}}});
+        for (date, d) in [("2026-11-01T10:00:00", old), ("2026-11-02T10:00:00", json!({"mission": "ramon_takeoff"}))] {
+            c.execute(
+                "INSERT INTO sorties (pilot, mission_id, mission, date, result, elapsed_s, debrief)
+                 VALUES (14, 2013, '', ?1, 1, 1.0, ?2)",
+                params![date, d.to_string()],
+            )
+            .unwrap();
+        }
+        drop(c);
+        let c = open(&db).unwrap();
+        let mut f = flown("ramon_four_ship", true, "2026-11-03T10:00:00", 900.0, "f16i");
+        f["combat"] = json!({"kills": {"mig29a": 2}, "shared": {"mig29a": 1},
+                             "weapons": {"AIM-120": {"fired": 2, "hits": 1}, "20 MM": {"fired": 200, "hits": 4, "gun": true}},
+                             "lost": {"sam": 1}, "ejected": 1, "wingmen_lost": 1});
+        let id = log_sortie(&c, DEFAULT_PILOT, 2014, &f).unwrap();
+        log_sortie(&c, DEFAULT_PILOT, 2011, &flown("ramon_startup", true, "2026-11-04T10:00:00", 60.0, "f16i"))
+            .unwrap();
+        log_sortie(&c, 15, 2014, &f).unwrap();
+        let all = combat(&c, DEFAULT_PILOT, None).unwrap();
+        assert_eq!(
+            all["totals"],
+            json!({"air_kills": 2, "shared": 1, "ground": 2, "fired": 6, "hits": 3, "lost": 1,
+                                         "shot_down": 1, "crashed": 0})
+        );
+        let flights: Vec<i64> =
+            all["flights"].as_array().unwrap().iter().map(|f| f["air_kills"].as_i64().unwrap()).collect();
+        assert_eq!(flights, [2, 0], "the combat flights newest first, the start-up and the take-off left out");
+        assert_eq!(all["weapons"][2], json!(["20 MM", 200, 4, true]));
+        assert_eq!((all["ejected"].as_i64(), all["wingmen_lost"].as_i64()), (Some(1), Some(1)));
+        let one = combat(&c, DEFAULT_PILOT, Some(id)).unwrap();
+        assert_eq!(one["totals"]["ground"], json!(0));
+        assert_eq!(one["kills"], json!([["mig29a", 2, 1]]));
+        assert!(one.get("flights").is_none());
+        reset(&c, DEFAULT_PILOT).unwrap();
+        assert_eq!(combat(&c, DEFAULT_PILOT, None).unwrap()["totals"]["air_kills"], json!(0));
     }
 }
