@@ -976,6 +976,13 @@ func _canopy(delta: float) -> void:
 			var g := f.get_node_or_null("CanopyGlass") as Node3D
 			if g != null:
 				g.visible = a.canopy_open > 0.0
+				var over := g.get_node_or_null("FrameOverGlass") as MeshInstance3D
+				if over != null and g.visible:  # the frame's lighting (cockpit3d.gd _night_mats' emission) followed
+					for i in over.mesh.get_surface_count():
+						var m := over.get_surface_override_material(i) as BaseMaterial3D
+						var src := (f as MeshInstance3D).get_active_material(i) as BaseMaterial3D
+						if m != null and src != null:
+							m.emission = src.emission
 			var tips := f.get_node_or_null("canopy_tips") as Node3D
 			if tips != null:
 				# The F-35I's 3D-cockpit rails end short of the front hinge, shut (tools/f35i/cockpit3d.py
@@ -988,10 +995,11 @@ func _canopy(delta: float) -> void:
 				mi.mesh = mi.get_meta("open_mesh") if a.canopy_open > 0.0 else mi.get_meta("shut_mesh")
 
 
-## The F-35I's 3D cockpit has the canopy's rails and bow only: with the canopy up, the lid (its glass, frame and aft
-## frame) shows from the seat as a copy of the outside model's canopy part (glass and canopy_frame.glb) in the 3D
-## cockpit's frame, the airframe's at the scale about the eye that puts the hinge where the frame node turns
-## (tools/f35i/cockpit3d.py PRESENT_SCALE), as `CanopyGlass` under the frame node, shown while the canopy is open.
+## The F-35I's 3D cockpit has the canopy's rails and bow only: with the canopy up, the lid (its glass and frame, the
+## outside bow left out) shows from the seat as a copy of the outside model's canopy part (glass and canopy_frame.glb)
+## in the 3D cockpit's frame, the airframe's at the scale about the eye that puts the hinge where the frame node turns
+## (tools/f35i/cockpit3d.py PRESENT_SCALE), as `CanopyGlass` under the frame node, shown while the canopy is open; with
+## it `FrameOverGlass`, the frame node's rails and bow drawn again after the glass.
 func _canopy_glass(f: Node3D, part: Dictionary, eye_a: Array) -> void:
 	if eye_a.size() < 3:
 		return
@@ -1002,10 +1010,33 @@ func _canopy_glass(f: Node3D, part: Dictionary, eye_a: Array) -> void:
 	var g := (part.node as Node3D).duplicate() as Node3D
 	g.name = "CanopyGlass"
 	g.visible = false
+	# The bow from the seat is the 3D cockpit's own (canopy_arch, on the frame node): the copy's (canopy_bow_ext) sat
+	# lower and drew a second arch coming down onto it as the canopy closed (docs/f35i.md §4.1 "Canopy", 2026-11-25).
+	var bow := g.find_child("canopy_bow_ext", true, false)
+	if bow != null:
+		bow.free()
 	# model -> 3D cockpit: p -> eye + (p - eye) k; then into the frame node (its origin `at`, unturned when shut).
 	var s := Transform3D(Basis.IDENTITY.scaled(Vector3.ONE * k), eye * (1.0 - k))
 	g.transform = Transform3D(Basis.IDENTITY, -at) * s * Transform3D(part.basis, part.origin)
 	f.add_child(g)
+	# The 3D cockpit's arch stands outside the copy's glass (its top 0.16 m over it, for the head clearance:
+	# tools/f35i/cockpit3d.py ARCH_TOP), so the glass tinted it as it rose. With the copy, the frame (rails, arch) is drawn
+	# once more after the glass, at its own depth: seen untinted, as a bow inside the glass. No shadow: the frame casts it.
+	var mi := f as MeshInstance3D
+	if mi != null and mi.mesh != null:
+		var over := MeshInstance3D.new()
+		over.name = "FrameOverGlass"
+		over.mesh = mi.mesh
+		over.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		for i in mi.mesh.get_surface_count():
+			var m := mi.get_active_material(i) as BaseMaterial3D
+			if m != null:
+				m = m.duplicate() as BaseMaterial3D
+				m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+				m.render_priority = 1
+				over.set_surface_override_material(i, m)
+		over.transform = g.transform.affine_inverse()
+		g.add_child(over)
 
 
 ## The throttle up from OFF (its keys or the axis) takes the checklist's engine step once the starter step (JFS / IPP)
