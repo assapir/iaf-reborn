@@ -1,10 +1,10 @@
 # Modern IAF's Preferences → Devices → Keys and Joystick (modern-iaf/docs/front-end.md §9), headless, with synthetic
 # input events and a fake joystick (Joystick.fake_devices): a key bound on the Keys screen is in the key table the
-# flight reads; a key another command has shows the conflict, Swap trades them; Default and Reset all; an axis given
-# the pitch role, inverted with a dead zone, drives the poller's stick y; a button bound by pressing it; the axes and
-# the hat against the 1998 game's poller; the Hotas X's device map. The keys and buttons are Settings.key_bindings
-# (both games' store; a devices.json from before 2026-11-14 and a reborn settings.cfg both load into it), the axes'
-# store a temporary file (Settings.devices_path).
+# flight reads; a key another command has shows the conflict, Swap trades them; Default and Reset all; an axis given the
+# pitch role, inverted with a dead zone, drives the poller's stick y; a button bound by pressing it; the axes and the
+# hat against the 1998 game's poller; rudder pedals as a second device; the Hotas X's device map. The keys and buttons
+# are Settings.key_bindings (both games' store; a devices.json from before 2026-11-14 and a reborn settings.cfg both
+# load into it), the axes' store a temporary file (Settings.devices_path).
 #   IAF_DEFAULT_SETTINGS=1 godot --headless --audio-driver Dummy --path modern-iaf \
 #     -s ../modern-iaf/tests/test_devices.gd --log-file <temp>
 extends "res://../tests/godot/base.gd"
@@ -240,6 +240,7 @@ func joystick(fe: Control) -> void:
 	check(s.joy_axes == [0, 1, 2, 3, 4] and js.tune[1] == [false, 0.25], "Reset all: default axes")
 	await mapping(scr, js)
 	await hat(js)
+	await second(fe, js)
 	# The Hotas X's map.
 	var map: String = IafDevices.find_map(s.joy_maps_dir(), "Thrustmaster T.Flight Hotas X")
 	check(map.ends_with("hotas_x.json"), "the Hotas X has its map (%s)" % map)
@@ -311,6 +312,36 @@ func hat(js: Node) -> void:
 		Input.flush_buffered_events()
 	var out: Array = js.poll()
 	check(out == [[22, -1, -9], [22, -1, 5]], "the hat centred: the view released, centred sent %s" % [out])
+	await frames(1)
+
+
+## A second device (rudder pedals) on the Joystick screen: its axes listed under its name after the stick's; the rudder
+## given to its third axis is stored with its name and read from it, the stick's axis 4 loses the rudder.
+func second(fe: Control, js: Node) -> void:
+	var s := settings()
+	js.fake_names = {0: "Stick", 1: "Pedals"}
+	js.fake_devices = [0, 1]
+	fe.show_page("joystick")
+	await frames(2)
+	var scr: Node = fe.get_node("Joystick")
+	check(scr._axis_rows.size() == 12 and scr._axis_rows[6].dev == 1, "two devices: 6 + 6 axis rows, the stick's first")
+	check(fe.find_child("Device_1_Axis_2", true, false) != null, "the pedals' axis 3 has its row")
+	var k: int = scr._axis_rows.find_custom(func(r): return r.dev == 1 and r.axis == 2)
+	scr._axis_rows[k].role.item_selected.emit(s.JOY_ROLES.find("rudder") + 1)
+	check(scr.role_of(k) == "rudder" and scr.role_of(3) == "", "the rudder on the pedals' axis 3, not the stick's 4")
+	var e: Dictionary = store().axes.rudder
+	check(int(e.axis) == 2 and e.device == "Pedals", "stored with the device's name: %s" % e)
+	check(js.role_names[3] == "Pedals" and js.role_device(3) == 1, "the flight reads it from device 1")
+	axis(2, 1.0, 1)
+	axis(3, -1.0)
+	scr._process(0.0)
+	check(scr._axis_rows[k].bar.value == 1.0 and js.role_value(3) == 1.0, "the pedals' bar and the rudder: full right")
+	axis(2, 0.0, 1)
+	axis(3, 0.0)
+	fe.find_child("ResetAll", true, false).pressed.emit()
+	check(js.role_names == ["", "", "", "", ""], "Reset all: every role on the main joystick")
+	js.fake_devices = [0]
+	js.fake_names = {}
 	await frames(1)
 
 

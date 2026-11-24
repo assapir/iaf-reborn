@@ -1,9 +1,9 @@
-# Modern IAF's Joystick screen (modern-iaf/docs/front-end.md §9.2): the detected devices (the first one flies), each of
-# its axes with a live bar, a role (roll, pitch, throttle, rudder, roll trim or none), an invert switch and a dead zone,
-# then the commands with their buttons (keys_screen.gd in its "button" column: press a button or a hat direction).
-# Reset all puts the buttons and axes back to the defaults: the device map's (data/devices) or the key table's. The
-# axes' store is Rust's (IafDevices), the buttons are Settings.key_bindings (keys_screen.gd); Settings.apply_devices
-# hands the axes to the Joystick autoload the flight reads.
+# Modern IAF's Joystick screen (modern-iaf/docs/front-end.md §9.2): the detected devices (the one with the roll flies),
+# each device's axes with a live bar, a role (roll, pitch, throttle, rudder, roll trim or none), an invert switch and a
+# dead zone, then the commands with their buttons (keys_screen.gd in its "button" column: press a button or a hat
+# direction). Reset all puts the buttons and axes back to the defaults: the device map's (data/devices) or the key
+# table's. The axes' store is Rust's (IafDevices), the buttons are Settings.key_bindings (keys_screen.gd);
+# Settings.apply_devices hands the axes to the Joystick autoload the flight reads.
 extends Control
 
 const KeysScreen := preload("res://menu/keys_screen.gd")
@@ -11,15 +11,13 @@ const Look := preload("res://menu/look.gd")
 ## The axes a Godot joypad reports (JOY_AXIS_SDL_MAX).
 const AXES := 6
 
-## Device names for fake joysticks (Joystick.fake_devices), which Godot leaves unnamed: the pictures' sample stick.
-static var fake_names := {}
-
 var fe: Control
 var scroll: ScrollContainer
 var buttons: Control  # the KeysScreen list of the buttons
-## The roles from the store (IafDevices.axes): {role: {axis, invert, dead}}.
+## The roles from the store (IafDevices.axes): {role: {axis, invert, dead, device}}.
 var roles := {}
-var _axis_rows: Array = []  # per axis: {bar, role, invert, dead, pct}
+## Per axis of each device, the main joystick's first: {dev, axis, bar, role, invert, dead, pct}.
+var _axis_rows: Array = []
 var _heads := {}
 var _quiet := false  # while refresh() sets the controls
 
@@ -57,7 +55,7 @@ static func page(front_end: Control) -> Node:
 func build(body: VBoxContainer, nav: VBoxContainer) -> void:
 	var group := ButtonGroup.new()
 	var tabs := []
-	var ids: Array = Joystick.fake_devices + ([] if Settings.isolated() else Input.get_connected_joypads())
+	var ids: Array = Joystick.connected()
 	# No joystick connected: no axis rows (their bars and roles have nothing to read), the devices' line says so.
 	var parts := ["joy_devices", "joy_axes", "joy_buttons"] if not ids.is_empty() else ["joy_devices", "joy_buttons"]
 	for part in parts:
@@ -77,7 +75,7 @@ func build(body: VBoxContainer, nav: VBoxContainer) -> void:
 	for d in ids:
 		var row: HBoxContainer = fe._hbox(fe._margin(body, 0, 14), 20)
 		row.name = "Device_%d" % d
-		var device_name: String = fake_names.get(d, Input.get_joy_name(d))
+		var device_name: String = Joystick.joy_name(d)
 		var name_l: Label = fe._label(row, device_name if device_name != "" else "#%d" % d, "Row")
 		name_l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		name_l.text_direction = Control.TEXT_DIRECTION_LTR
@@ -86,9 +84,16 @@ func build(body: VBoxContainer, nav: VBoxContainer) -> void:
 		fe._rule(body, Look.LINE)
 	if "joy_axes" in parts:
 		_head(body, "joy_axes", false)
-		var n := AXES if Joystick.axis_count < 0 else clampi(Joystick.axis_count, 1, AXES)
-		for i in n:
-			_axis_row(body, i)
+		# Every device's axes, the main joystick's first; with several devices each under its name.
+		var main: int = Joystick.device()
+		var order: Array = [main] + ids.filter(func(d): return d != main)
+		for d in order:
+			if ids.size() > 1:
+				var l: Label = fe._label(fe._margin(body, 0, 10), Joystick.joy_name(d), "Muted")
+				l.text_direction = Control.TEXT_DIRECTION_LTR
+			var c := _axis_count(d)
+			for i in AXES if c < 0 else clampi(c, 1, AXES):
+				_axis_row(body, d, i)
 	_head(body, "joy_buttons", false)
 	fe._label(fe._margin(body, 0, 8), fe.s("joy_buttons_note"), "Small")
 	buttons = KeysScreen.new(fe, "button")
@@ -110,10 +115,18 @@ func _head(body: VBoxContainer, part: String, first: bool) -> void:
 	fe._rule(hv, Look.LINE)
 
 
-## Axis i: its number, the live bar, the role, Invert, the dead zone.
-func _axis_row(body: VBoxContainer, i: int) -> void:
+## A device's input axes from its USB descriptor (Joystick.axis_count for the main one), −1 = unknown.
+func _axis_count(d: int) -> int:
+	if d == Joystick.device() or Settings.isolated():
+		return Joystick.axis_count
+	return IafHid.axis_count(Input.get_joy_guid(d))
+
+
+## Axis i of device d: its number, the live bar, the role, Invert, the dead zone.
+func _axis_row(body: VBoxContainer, d: int, i: int) -> void:
+	var k := _axis_rows.size()
 	var m: MarginContainer = fe._margin(body, 0, 12)
-	m.name = "Axis_%d" % i
+	m.name = "Axis_%d" % i if d == Joystick.device() else "Device_%d_Axis_%d" % [d, i]
 	var h: HBoxContainer = fe._hbox(m, 24)
 	var num: Label = fe._label(h, fe.s("axis_n") % (i + 1), "Strong")
 	num.custom_minimum_size.x = 96
@@ -134,14 +147,14 @@ func _axis_row(body: VBoxContainer, i: int) -> void:
 	role.add_item(fe.s("role_none"))
 	for r in Settings.JOY_ROLES:
 		role.add_item(fe.s("role_" + r))
-	role.item_selected.connect(func(k): _set_role(i, "" if k == 0 else Settings.JOY_ROLES[k - 1]))
+	role.item_selected.connect(func(n): _set_role(k, "" if n == 0 else Settings.JOY_ROLES[n - 1]))
 	h.add_child(role)
 	_spacer(h)
 	var inv := CheckButton.new()
 	inv.name = "Invert"
 	inv.text = fe.s("invert")
 	inv.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	inv.toggled.connect(func(_on): _tune(i))
+	inv.toggled.connect(func(_on): _tune(k))
 	h.add_child(inv)
 	var dz: Label = fe._label(h, fe.s("dead_zone"), "Muted")
 	dz.size_flags_vertical = Control.SIZE_SHRINK_CENTER
@@ -151,13 +164,13 @@ func _axis_row(body: VBoxContainer, i: int) -> void:
 	sl.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	sl.max_value = 0.5
 	sl.step = 0.01
-	sl.value_changed.connect(func(_x): _tune(i))
+	sl.value_changed.connect(func(_x): _tune(k))
 	h.add_child(sl)
 	var pct: Label = fe._label(h, "", "Row")
 	pct.text_direction = Control.TEXT_DIRECTION_LTR
 	pct.custom_minimum_size.x = 64
 	pct.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	_axis_rows.append({"bar": bar, "role": role, "invert": inv, "dead": sl, "pct": pct})
+	_axis_rows.append({"dev": d, "axis": i, "bar": bar, "role": role, "invert": inv, "dead": sl, "pct": pct})
 	fe._rule(body, Look.LINE)
 
 
@@ -168,10 +181,13 @@ func _spacer(parent: Control) -> void:
 	parent.add_child(c)
 
 
-## The role on axis i ("" none).
-func role_of(i: int) -> String:
+## The role on axis row k ("" none): the role whose axis and device are the row's.
+func role_of(k: int) -> String:
+	var row: Dictionary = _axis_rows[k]
 	for r in Settings.JOY_ROLES:
-		if int(roles.get(r, {}).get("axis", -1)) == i:
+		var e: Dictionary = roles.get(r, {})
+		var n := str(e.get("device", ""))
+		if int(e.get("axis", -1)) == row.axis and (Joystick.device() if n == "" else Joystick.by_name(n)) == row.dev:
 			return r
 	return ""
 
@@ -198,30 +214,39 @@ func _soft() -> bool:
 	return Settings.stick_response == "soft"
 
 
-func _set_role(i: int, r: String) -> void:
+func _set_role(k: int, r: String) -> void:
 	if _quiet:
 		return
-	var old := role_of(i)
+	var old := role_of(k)
+	var d: int = _axis_rows[k].dev
 	if old != "" and old != r:
-		_store(old, -1, bool(roles[old].invert), float(roles[old].dead))
+		_store(old, d, -1, bool(roles[old].invert), float(roles[old].dead))
 	if r != "":
-		_store(r, i, bool(roles[r].invert), float(roles[r].dead))
+		_store(r, d, _axis_rows[k].axis, bool(roles[r].invert), float(roles[r].dead))
 	refresh()
 
 
-func _tune(i: int) -> void:
+func _tune(k: int) -> void:
 	if _quiet:
 		return
-	var r := role_of(i)
+	var r := role_of(k)
 	if r == "":
 		return
-	var row: Dictionary = _axis_rows[i]
-	_store(r, i, row.invert.button_pressed, row.dead.value)
+	var row: Dictionary = _axis_rows[k]
+	_store(r, row.dev, row.axis, row.invert.button_pressed, row.dead.value)
 	refresh()
 
 
-func _store(r: String, axis: int, invert: bool, dead: float) -> void:
-	IafDevices.set_axis(Settings.devices_file(), Settings.devices_map(), r, axis, invert, dead, _soft())
+## Role r on axis `axis` (−1 none) of device d.
+func _store(r: String, d: int, axis: int, invert: bool, dead: float) -> void:
+	var choice := {
+		"axis": axis,
+		"invert": invert,
+		"dead": dead,
+		"device": Joystick.joy_name(d),
+		"main": Joystick.joy_name(Joystick.device()),
+	}
+	IafDevices.set_axis(Settings.devices_file(), Settings.devices_map(), r, choice, _soft())
 	Settings.apply_devices()
 
 
@@ -235,10 +260,8 @@ func reset_all() -> void:
 ## The live bars: an axis with a role as the flight reads it (Joystick.role_value: the role's invert, dead zone and
 ## sense, so the throttle lever forward is a full bar), the raw value without a role.
 func _process(_delta: float) -> void:
-	var d: int = Joystick.device()
-	for i in _axis_rows.size():
-		var v := 0.0
-		if d >= 0:
-			var r := role_of(i)
-			v = Joystick.role_value(d, Settings.JOY_ROLES.find(r)) if r != "" else Joystick.axis(d, i)
-		_axis_rows[i].bar.value = v
+	for k in _axis_rows.size():
+		var row: Dictionary = _axis_rows[k]
+		var r := role_of(k)
+		var v: float = Joystick.role_value(Settings.JOY_ROLES.find(r)) if r != "" else Joystick.axis(row.dev, row.axis)
+		row.bar.value = v

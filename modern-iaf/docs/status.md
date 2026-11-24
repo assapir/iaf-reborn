@@ -958,6 +958,11 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   on macOS the keys say ⌘ and Option; Home has Guides and Training has Missions and campaign, both greyed with
   "Coming in a later version"; Pick a plane picks on a click (no Next, no card picked on entry, the arrows move the
   focus, Enter picks).
+- **Devices: a second device and hot-plug (2026-11-25, the gaps list's row 16, [front-end.md](front-end.md) §9.2):** a
+  role's axis may sit on a second device (a throttle, rudder pedals), stored by the device's name; the Joystick screen
+  lists every device's axes; a device plugged in mid-flight works from the next frame, one pulled out centres its stick
+  and rudder axes and gives their keys back. The hat's diagonals were already one look direction (reborn's POV since
+  2026-11-11). `test_devices.gd` `second`, `test_joy_hotplug.gd`, the `devices` unit tests.
 - **The play test's polish (2026-11-09):** the Preferences back to the side layout (the sections listed, the picked
   one beside them, no line under an option); a Sound slider plays a sample of its class; Devices → Joystick greyed
   until a stick is plugged in; the Pilot screen (name, nickname shown on every screen, a 3:4 ID photo; records schema
@@ -1344,10 +1349,9 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   helmet in flight, the air-conditioning hiss, the engine and wind levels by ear.
 - **The afterburner's open points** ([sound.md](sound.md) §1.2): the light-off delay after the detent, the level in
   the cockpit, FlightGear's F-16 sounds not compared, the F-35I's own burner.
-- **Keys and Joystick's open points** ([front-end.md](front-end.md) §9): one joystick flies (the first; a separate
-  throttle or pedals as a second device is listed but not read); a joystick plugged in during a flight takes its map's
-  buttons at the next flight or when the Settings close; the hat's diagonals press two look commands, the last one
-  wins; maps for more sticks than the Hotas X; the Hotas X's button choice is ours, untried on the stick.
+- **Keys and Joystick's open points** ([front-end.md](front-end.md) §9): maps for more sticks than the Hotas X; the
+  Hotas X's button choice is ours, untried on the stick; a second device's buttons are not read (its axes are, since
+  2026-11-25); two devices with the same name cannot be told apart (the store keeps a role's device by name).
 - **[B3](plan.md#b3-scenery-roads-and-inland-water)'s open points** ([scenery.md](scenery.md) §9).
 - **The scenery over a dense town is over its budget (2026-11-11):** on the Iris Xe at 500 m it takes 14 % of the GPU
   time over Tel Aviv (3.1 ms) and 13 % over Beersheba (2.7 ms), against the 7 % budget; 17 % and 15 % before the

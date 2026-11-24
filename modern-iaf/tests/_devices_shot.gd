@@ -3,7 +3,8 @@
 #     -s ../modern-iaf/tests/_devices_shot.gd
 # Writes SHOT_DIR/<shot>_<lang>.png at 1920×1080: keys (Pitch up rebound to K), keys_wait (Pitch down waiting for its
 # key), keys_conflict (K pressed for Pitch down), joystick (a fake stick, its axes moved, the throttle lever forward:
-# a full bar), joystick_buttons, prefs_detent (the afterburner detent set), keys_mac (English, or
+# a full bar), joystick_buttons, joystick_two (rudder pedals as a second device, the rudder on their axis 3),
+# prefs_detent (the afterburner detent set), keys_mac (English, or
 # SHOT_LANG=he: the Views as on a Mac). The store is a temporary file.
 extends "res://../tests/godot/base.gd"
 
@@ -11,9 +12,9 @@ extends "res://../tests/godot/base.gd"
 var key_table: GDScript
 
 
-func axis(a: int, v: float) -> void:
+func axis(a: int, v: float, device := 0) -> void:
 	var e := InputEventJoypadMotion.new()
-	e.device = 0
+	e.device = device
 	e.axis = a
 	e.axis_value = v
 	Input.parse_input_event(e)
@@ -30,7 +31,7 @@ func run() -> void:
 	s.sim_jet = "f16i"
 	var js: Node = root.get_node("Joystick")
 	js.fake_devices = [0]
-	load("res://menu/joystick_screen.gd").fake_names = {0: "Thrustmaster T.Flight Hotas X"}
+	js.fake_names = {0: "Thrustmaster T.Flight Hotas X", 1: "Saitek Pro Flight Rudder Pedals"}
 	var vp := SubViewport.new()
 	vp.size = Vector2i(1920, 1080)
 	vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
@@ -70,6 +71,19 @@ func run() -> void:
 		tab.pressed.emit()
 		await frames(5)
 		await shot(vp, dir, "joystick_buttons", lang)
+		js.fake_devices = [0, 1]
+		fe.show_page("joystick")
+		await frames(5)
+		scr = fe.get_node("Joystick")
+		var pedal: int = scr._axis_rows.find_custom(func(r): return r.dev == 1 and r.axis == 2)
+		scr._axis_rows[pedal].role.item_selected.emit(s.JOY_ROLES.find("rudder") + 1)
+		axis(2, 0.5, 1)
+		var at: Control = fe.find_child("Device_1_Axis_0", true, false)
+		scr.scroll.scroll_vertical = int(at.position.y) - 140
+		await frames(10)
+		await shot(vp, dir, "joystick_two", lang)
+		scr.reset_all()
+		js.fake_devices = [0]
 		s.throttle_detent = 82
 		fe.pref_group = "devices"
 		fe.show_page("prefs")

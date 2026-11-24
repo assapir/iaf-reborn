@@ -702,15 +702,26 @@ With no joystick connected the Devices section's Joystick row is greyed, its Cha
 connected."; it comes alive when one is plugged in (`Input.joy_connection_changed` builds the section again). Tests see
 only their fake joysticks (`Joystick.device()`).
 
+**Plugged in or out (since 2026-11-25).** A device plugged in during a flight works from the next frame: the poller
+picks a new main joystick up with its device map's buttons and axes (`Joystick._process` → `Settings.joystick_connected`),
+and looks a role's second device up by name each poll. A device pulled out sends its stick and rudder axes to the
+centre once and gives their keys back (`Joystick._lost`); the 1998 game keeps the last values, as its poller does. The
+Joystick screen builds itself again when a device comes or goes.
+
 Back in the bottom bar and the breadcrumbs Hangar · Settings · Devices · Joystick work as on the Keys screen; the
 side list (Devices, Axes, Buttons) follows the scroll.
 
-- **Devices:** every connected joystick by name. The first one flies the jet ("Flies the jet"); the others are listed
-  only. Without one the screen says so.
-- **Axes:** the six axes Godot reports (fewer when the device's USB descriptor says so, `Joystick.axis_count`). Each
+- **Devices:** every connected device by name. The main joystick flies the jet ("Flies the jet"): its buttons, its hat
+  and every role without a device of its own. It is the device the Roll role names, else the first connected one
+  (`Joystick.device()`). Without a device the screen says so.
+- **Axes:** per device, the main joystick's first, the six axes Godot reports (fewer when the device's USB descriptor
+  says so, `IafHid.axis_count`); with several devices each device's rows are under its name. Each
   row has a live bar, the axis' role, Invert and a dead zone (0–50 %). The roles: Roll, Pitch, Throttle, Rudder, Roll
   trim (the throttle rocker, docs/controls.md §5.2), None. A role sits on one axis: giving it to another axis leaves
-  the old one with None. The bar shows the axis as the flight reads it (`Joystick.role_value`: the role's invert,
+  the old one with None. A role given to another device's axis is read from that device (a throttle or rudder
+  pedals beside the stick, since 2026-11-25): the store keeps the device's name (§9.4), `Joystick.role_names` carries
+  it to the poller, which looks the device up by name each poll (two devices with the same name resolve to the first one). Roll moved to another device makes that one the main
+  joystick; the roles still on the old one are pinned to it by name first (`iaf_tools::devices::set_axis`). The bar shows the axis as the flight reads it (`Joystick.role_value`: the role's invert,
   dead zone and sense), so the dead zone is visible as the bar's still centre and the bar fills the way the jet
   responds: the throttle lever forward is a full bar (full power), the stick pushed forward a full pitch bar. The
   throttle has no centre and no dead zone. Tested on the Mac 2026-11-11: the bars showed Godot's raw reading, where a
@@ -738,6 +749,7 @@ Pitch on an axis, the roll keys roll the jet while the stick pitches it (`Joysti
 | English | Hebrew |
 |---|---|
 | ![The Joystick screen: the Hotas X flies the jet, six axes with their bars, roles, Invert and dead zones](pictures/front-end/joystick_en.jpg) | ![The Joystick screen in Hebrew: mirrored, the bars still fill left to right](pictures/front-end/joystick_he.jpg) |
+| ![Rudder pedals as a second device: their axes under their name, the rudder on their axis 3](pictures/front-end/joystick_two_en.jpg) | ![The same in Hebrew](pictures/front-end/joystick_two_he.jpg) |
 
 In Hebrew the screens are mirrored; the key names and the device name run left to right, and the axis bars keep the
 stick's own direction (right is right). The dropdowns draw the same box both ways: right to left Godot draws an
@@ -769,10 +781,11 @@ both columns are the default again.
 The axes are in `user://devices.json`, written compact and only with what differs from the defaults:
 
 ```json
-{"axes":{"pitch":{"axis":3,"invert":true,"dead":0.1},"rudder":{"axis":-1}}}
+{"axes":{"pitch":{"axis":3,"invert":true,"dead":0.1},"rudder":{"axis":2,"device":"Saitek Pro Flight Rudder Pedals"}}}
 ```
 
-- `axes`: role (`roll`, `pitch`, `throttle`, `rudder`, `trim`) → `axis` (−1 = none), `invert`, `dead` (0–0.9). An
+- `axes`: role (`roll`, `pitch`, `throttle`, `rudder`, `trim`) → `axis` (−1 = none), `invert`, `dead` (0–0.9),
+  `device` (the name of the device the axis is on, as Godot reports it; absent = the main joystick). An
   absent field is the default: the device map's axis (else 0–4 in role order), no invert, and the dead zone of
   `joystick.gd` (25 % on the stick and the rudder, 5 % with Stick response Soft centre, 10 % on the rocker). A dead
   zone outside 0–0.9 in a hand-edited file reads as its nearest end.
@@ -791,7 +804,7 @@ The axes' logic is Rust's: `iaf_tools::devices` (unit tests in the same file) be
 |---|---|
 | `find_map(dir, name)` | the device map for a joystick's name, "" = none |
 | `axes(store, map, soft)` | every role's axis, invert and dead zone |
-| `set_axis(store, map, role, axis, invert, dead, soft)` | sets a role; a role on that axis gives it up |
+| `set_axis(store, map, role, choice, soft)` | sets a role to `choice` {axis, invert, dead, device, main}; a role on that axis of that device gives it up |
 | `reset_axes(store)` | every axis back |
 | `drop_bindings(store)` | drops the keys and buttons of a store from before 2026-11-14 |
 
@@ -801,7 +814,8 @@ How the flight reads it:
   `Settings.key_bindings`, as in the original game. When a joystick connects, the sim hands its device map's button
   column to `Joystick.default_buttons` (`sim_settings.gd _map_buttons`), where reborn's `.joy` files put theirs.
 - **Axes:** `Settings.apply_devices()` (at start, on every Settings save, when a joystick connects) sets
-  `Settings.joy_axes` to the roles' axes, `Joystick.tune` to their invert and dead zone, Roll trim on while the trim
+  `Settings.joy_axes` to the roles' axes, `Joystick.tune` to their invert and dead zone, `Joystick.role_names` to
+  their devices, Roll trim on while the trim
   role has an axis. The hat is the original's POV snap views in both games.
   `joystick.gd` reads them each poll. The original game leaves `tune` empty, so its joystick is
   unchanged (`tests/godot/test_joystick.gd`, `test_controls.gd`, `test_keyboard_stick.gd`).
@@ -822,6 +836,13 @@ How the flight reads it:
   numpad key, Ctrl + Q and Ctrl + M named with Ctrl on macOS, a stored key wins over it; a `devices.json` from before 2026-11-14 and a settings file with reborn's
   `[keys]` entries both load into `Settings.key_bindings`. `iaf-sim own`'s unit test checks the laptop table compiles
   the same way.
+- `modern-iaf/tests/test_devices.gd` `second`: rudder pedals as a second fake device: 6 + 6 axis rows, the rudder on the
+  pedals' axis 3 stored with their name and read from them (bar and role value), Reset all puts every role back on
+  the main joystick.
+- `modern-iaf/tests/test_joy_hotplug.gd` flies the Barak with fake devices plugged in and out mid-flight: a stick
+  plugged in rolls the jet from the next frames with its map's buttons (the Hotas X's gun on button 1); pedals plugged
+  in move the rudder while the stick's twist does not, the stick's lever still drives the throttle; the pedals pulled
+  out centre the rudder and give its keys back; the stick pulled out centres the stick.
 - `modern-iaf/tests/test_switch_keys.gd` flies the Barak: W (Wheel brakes (hold)) held in the air brakes and opens no
   speedbrake, and lets go with the key; the waypoints' keys are Shift + W and Shift + Q, and after Shift + W with Shift
   let go first W brakes nothing; B held opens them

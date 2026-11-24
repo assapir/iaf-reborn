@@ -1,7 +1,10 @@
 //! Modern IAF's joystick axes (modern-iaf/docs/front-end.md §9), kept in one compact JSON file, the store
 //! (`user://devices.json`):
 //!
-//! `{"axes": {"<role>": {"axis": n, "invert": b, "dead": x}}}`
+//! `{"axes": {"<role>": {"axis": n, "invert": b, "dead": x, "device": "<name>"}}}`
+//!
+//! `device` puts a role on another device than the main joystick (a throttle, pedals): the device's name as Godot
+//! reports it. Absent = the main joystick, the device of the roll role (`joystick.gd` `device()`).
 //!
 //! The store keeps only what differs from the defaults: `joystick.gd`'s axis numbers and dead zones, or a device map's.
 //! The keys and buttons are both games' one store, `Settings.key_bindings` (`key_table.gd`); a store from before
@@ -85,8 +88,8 @@ pub fn default_dead(role: usize, soft: bool) -> f64 {
     }
 }
 
-/// Every role with the store's choices: `{role: {"axis": n (−1 none), "invert": b, "dead": x}}`; `soft` = the Soft
-/// centre stick response (its dead zone is the default).
+/// Every role with the store's choices: `{role: {"axis": n (−1 none), "invert": b, "dead": x, "device": name ("" the
+/// main joystick)}}`; `soft` = the Soft centre stick response (its dead zone is the default).
 pub fn axes(store: &Value, map: &Value, soft: bool) -> Value {
     let mut out = Map::new();
     for (r, name) in ROLES.iter().enumerate() {
@@ -97,6 +100,7 @@ pub fn axes(store: &Value, map: &Value, soft: bool) -> Value {
                 "axis": s["axis"].as_i64().unwrap_or(default_axis(map, r)),
                 "invert": s["invert"].as_bool().unwrap_or(false),
                 "dead": s["dead"].as_f64().map_or(default_dead(r, soft), |d| d.clamp(0.0, 0.9)),
+                "device": s["device"].as_str().unwrap_or(""),
             }),
         );
     }
@@ -108,29 +112,57 @@ pub fn default_axis(map: &Value, r: usize) -> i64 {
     map["axes"][ROLES[r]].as_i64().unwrap_or(r as i64)
 }
 
-/// Sets role `role` to device axis `axis` (−1 none), inverted or not, with dead zone `dead` (0..0.9). A role already on
-/// that axis gives it up (none): one axis drives one role. Unknown roles change nothing (false).
-pub fn set_axis(store: &mut Value, map: &Value, role: &str, axis: i64, invert: bool, dead: f64, soft: bool) -> bool {
+/// One role's choice on the Joystick screen: `axis` (−1 none) of the device named `device`, inverted or not, with dead
+/// zone `dead` (0..0.9). `main` is the main joystick's name: a role on it keeps no `device` in the store.
+pub struct Choice<'a> {
+    pub device: &'a str,
+    pub main: &'a str,
+    pub axis: i64,
+    pub invert: bool,
+    pub dead: f64,
+}
+
+/// Sets role `role` to the choice `c`. A role already on that axis of that device gives it up (none): one axis drives
+/// one role. The roll role names the main joystick, so when it moves to another device every role still on the main
+/// joystick is pinned to it by name first. Unknown roles change nothing (false).
+pub fn set_axis(store: &mut Value, map: &Value, role: &str, c: &Choice, soft: bool) -> bool {
     let Some(r) = ROLES.iter().position(|n| *n == role) else { return false };
     let now = axes(store, map, soft);
-    if axis >= 0 {
-        for (o, other) in ROLES.iter().enumerate() {
-            if o != r && now[*other]["axis"].as_i64() == Some(axis) {
-                let m = section(store, "axes");
-                let e = m.entry(*other).or_insert_with(|| json!({}));
-                if !e.is_object() {
-                    *e = json!({}); // a hand-edited entry that is no object
-                }
-                e["axis"] = (-1).into();
-            }
+    fn on<'a>(name: &'a str, main: &'a str) -> &'a str {
+        if name.is_empty() { main } else { name }
+    }
+    let other_device = c.axis >= 0 && on(c.device, c.main) != c.main;
+    for (o, other) in ROLES.iter().enumerate() {
+        let n = &now[*other];
+        let same = n["axis"].as_i64() == Some(c.axis)
+            && on(n["device"].as_str().unwrap_or(""), c.main) == on(c.device, c.main);
+        let pin = r == 0 && other_device && n["device"] == "" && n["axis"].as_i64() >= Some(0) && !c.main.is_empty();
+        if o == r || !(c.axis >= 0 && same || pin) {
+            continue;
+        }
+        let m = section(store, "axes");
+        let e = m.entry(*other).or_insert_with(|| json!({}));
+        if !e.is_object() {
+            *e = json!({}); // a hand-edited entry that is no object
+        }
+        if c.axis >= 0 && same {
+            e["axis"] = (-1).into();
+        } else {
+            e["axis"] = n["axis"].clone();
+            e["device"] = c.main.into();
         }
     }
-    let dead = dead.clamp(0.0, 0.9);
+    // Roll once on a device by name keeps it: that device is the main joystick now, so `c.device == c.main` there.
+    let pinned_roll = r == 0 && now["roll"]["device"] != "" && c.axis >= 0 && !c.device.is_empty();
+    let dead = c.dead.clamp(0.0, 0.9);
     let mut e = Map::new();
-    if axis != default_axis(map, r) {
-        e.insert("axis".into(), axis.into());
+    if other_device || pinned_roll {
+        e.insert("axis".into(), c.axis.into());
+        e.insert("device".into(), c.device.into());
+    } else if c.axis != default_axis(map, r) {
+        e.insert("axis".into(), c.axis.into());
     }
-    if invert {
+    if c.invert {
         e.insert("invert".into(), true.into());
     }
     if (dead - default_dead(r, soft)).abs() > 1e-6 {
@@ -149,18 +181,23 @@ pub fn set_axis(store: &mut Value, map: &Value, role: &str, axis: i64, invert: b
 mod tests {
     use super::*;
 
+    /// A choice on the main joystick.
+    fn ch(axis: i64, invert: bool, dead: f64) -> Choice<'static> {
+        Choice { device: "", main: "", axis, invert, dead }
+    }
+
     #[test]
     fn axis_inverted_with_a_dead_zone() {
         let mut s = json!({});
-        assert!(set_axis(&mut s, &json!({}), "pitch", 3, true, 0.1, false));
+        assert!(set_axis(&mut s, &json!({}), "pitch", &ch(3, true, 0.1), false));
         let a = axes(&s, &json!({}), false);
-        assert_eq!(a["pitch"], json!({"axis": 3, "invert": true, "dead": 0.1}));
+        assert_eq!(a["pitch"], json!({"axis": 3, "invert": true, "dead": 0.1, "device": ""}));
         assert_eq!(a["rudder"]["axis"], -1, "the rudder gave axis 3 up");
-        assert_eq!(a["roll"], json!({"axis": 0, "invert": false, "dead": 0.25}));
+        assert_eq!(a["roll"], json!({"axis": 0, "invert": false, "dead": 0.25, "device": ""}));
         assert_eq!(axes(&s, &json!({}), true)["roll"]["dead"], 0.05, "Soft centre's dead zone is the default then");
-        assert!(!set_axis(&mut s, &json!({}), "view", 5, false, 0.0, false), "no such role");
+        assert!(!set_axis(&mut s, &json!({}), "view", &ch(5, false, 0.0), false), "no such role");
         // Back to the default: the entry goes.
-        assert!(set_axis(&mut s, &json!({}), "pitch", 1, false, 0.25, false));
+        assert!(set_axis(&mut s, &json!({}), "pitch", &ch(1, false, 0.25), false));
         assert!(s["axes"].get("pitch").is_none());
     }
 
@@ -169,7 +206,7 @@ mod tests {
         let map = json!({"match": "Hotas X", "axes": {"rudder": 5}, "buttons": {"2": 7}});
         assert_eq!(axes(&json!({}), &map, false)["rudder"]["axis"], 5);
         let mut s = json!({});
-        assert!(set_axis(&mut s, &map, "rudder", 5, false, 0.25, false));
+        assert!(set_axis(&mut s, &map, "rudder", &ch(5, false, 0.25), false));
         assert_eq!(s["axes"], json!({}), "the map's axis is the default");
         let dir = std::env::temp_dir().join(format!("iaf-maps-{}", std::process::id()));
         save(&dir.join("hotas_x.json"), &map).unwrap();
@@ -182,7 +219,7 @@ mod tests {
     #[test]
     fn store_round_trips_compact() {
         let mut s = json!({});
-        set_axis(&mut s, &json!({}), "throttle", 4, true, 0.0, false);
+        set_axis(&mut s, &json!({}), "throttle", &ch(4, true, 0.0), false);
         let dir = std::env::temp_dir().join(format!("iaf-devices-{}", std::process::id()));
         let path = dir.join("devices.json");
         save(&path, &s).unwrap();
@@ -194,7 +231,11 @@ mod tests {
         assert_eq!(load(&path), json!({}), "a missing file is an empty store");
         save(&path, &json!({"keys": [1], "axes": {"roll": {"dead": 7.0, "axis": "x"}}})).unwrap();
         let a = axes(&load(&path), &json!({}), false);
-        assert_eq!(a["roll"], json!({"axis": 0, "invert": false, "dead": 0.9}), "a hand-edited store stays in range");
+        assert_eq!(
+            a["roll"],
+            json!({"axis": 0, "invert": false, "dead": 0.9, "device": ""}),
+            "a hand-edited store stays in range"
+        );
         std::fs::write(&path, "{not json").unwrap();
         assert_eq!(load(&path), json!({}), "a corrupt file is an empty store");
         std::fs::remove_dir_all(&dir).unwrap();
@@ -204,7 +245,7 @@ mod tests {
     #[test]
     fn a_role_entry_that_is_no_object_is_replaced() {
         let mut s = json!({"axes": {"pitch": 7}});
-        assert!(set_axis(&mut s, &json!({}), "roll", 1, false, 0.25, false));
+        assert!(set_axis(&mut s, &json!({}), "roll", &ch(1, false, 0.25), false));
         assert_eq!(s["axes"]["pitch"], json!({"axis": -1}));
         assert_eq!(axes(&s, &json!({}), false)["roll"]["axis"], 1);
     }
@@ -212,11 +253,48 @@ mod tests {
     #[test]
     fn reset_axes_and_drop_old_bindings() {
         let mut s = json!({"keys": {"24": 0x25}, "buttons": {"64": 5}});
-        set_axis(&mut s, &json!({}), "roll", 2, false, 0.25, false);
+        set_axis(&mut s, &json!({}), "roll", &ch(2, false, 0.25), false);
         assert!(drop_bindings(&mut s), "a store from before 2026-11-14 had keys and buttons");
         assert_eq!(s, json!({"axes": {"roll": {"axis": 2}, "throttle": {"axis": -1}}}), "the axes stay");
         assert!(!drop_bindings(&mut s), "none left");
         reset_axes(&mut s);
         assert_eq!(axes(&s, &json!({}), false), axes(&json!({}), &json!({}), false));
+    }
+
+    /// A throttle quadrant as a second device: its axis 2 drives the throttle while the stick's axis 2 stays free; a
+    /// role on the same axis number of the other device keeps it.
+    #[test]
+    fn a_role_on_a_second_device() {
+        let (stick, quad) = ("Stick", "Throttle Quadrant");
+        let on = |device, axis| Choice { device, main: stick, axis, invert: false, dead: 0.0 };
+        let mut s = json!({});
+        assert!(set_axis(&mut s, &json!({}), "throttle", &on(quad, 0), false));
+        let a = axes(&s, &json!({}), false);
+        assert_eq!(a["throttle"], json!({"axis": 0, "invert": false, "dead": 0.0, "device": quad}));
+        assert_eq!(a["roll"]["axis"], 0, "the stick's axis 0 keeps roll: another device");
+        assert_eq!(a["roll"]["device"], "", "roll stays on the main joystick");
+        // The quadrant's axis 0 given to the rudder takes it from the throttle.
+        assert!(set_axis(&mut s, &json!({}), "rudder", &on(quad, 0), false));
+        assert_eq!(axes(&s, &json!({}), false)["throttle"]["axis"], -1);
+        // Back on the main joystick by name: no device kept, the default again.
+        assert!(set_axis(&mut s, &json!({}), "rudder", &Choice { dead: 0.25, ..on(stick, 3) }, false));
+        assert!(s["axes"].get("rudder").is_none());
+    }
+
+    /// Roll moved to another device makes that one the main joystick: the roles still on the old one are pinned to it.
+    #[test]
+    fn roll_moved_pins_the_others() {
+        let on = |device, axis| Choice { device, main: "Old", axis, invert: false, dead: 0.25 };
+        let mut s = json!({});
+        assert!(set_axis(&mut s, &json!({}), "roll", &on("New", 0), false));
+        let a = axes(&s, &json!({}), false);
+        assert_eq!(a["roll"]["device"], "New");
+        assert_eq!(a["pitch"]["device"], "Old", "pitch stays on the old stick");
+        assert_eq!(a["pitch"]["axis"], 1);
+        assert_eq!(a["throttle"]["device"], "Old");
+        // Roll tuned on its device, now the main joystick: it keeps the device's name.
+        let tune = Choice { main: "New", invert: true, ..on("New", 0) };
+        assert!(set_axis(&mut s, &json!({}), "roll", &tune, false));
+        assert_eq!(axes(&s, &json!({}), false)["roll"]["device"], "New");
     }
 }

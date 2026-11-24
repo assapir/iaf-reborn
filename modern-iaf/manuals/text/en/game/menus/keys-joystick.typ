@@ -84,8 +84,8 @@ On macOS the #scr("keys_screen") screen writes the modifier keys with the Mac's 
 #grid-table(
   (auto, 1fr),
   ([Part], [What it holds]),
-  [#scr("joy_devices")], [Every connected joystick by its name. The first one is marked #scr("joy_in_use"); the others are listed only.],
-  [#scr("joy_axes")], [One row for each axis of the joystick, up to six: a live bar, the axis' role, #scr("invert") and #scr("dead_zone").],
+  [#scr("joy_devices")], [Every connected device by its name. The one that flies the jet is marked #scr("joy_in_use"): its buttons and its hat work. It is the device with the #scr("role_roll") role, else the first one.],
+  [#scr("joy_axes")], [One row for each axis of each device, up to six a device: a live bar, the axis' role, #scr("invert") and #scr("dead_zone"). With more than one device, each device's axes are under its name, the joystick's first.],
   [#scr("joy_buttons")], [The list of commands, as on the #scr("keys_screen") screen, with the joystick's button of each.],
   [#scr("reset_all")], [Puts the buttons and the axes back to their defaults.],
 )
@@ -116,6 +116,8 @@ On macOS the #scr("keys_screen") screen writes the modifier keys with the Mac's 
 A role sits on one axis only. A role without an axis leaves its keys working: with #scr("role_roll") on no axis, the roll keys roll the jet while the stick pitches it.
 
 The #term("Dead zone") goes from 0 to 50 %. Its default is 25 % on the stick and the rudder, 5 % on them with #scr("stick_response") on #scr("soft"), and 10 % on the trim rocker.
+
+#idx("Joystick, second device")A separate throttle or rudder pedals work beside the joystick. Plug them in, and their axes are listed under their name: give one of them a role as above, and that role reads the device. A device plugged in during a flight works at once. A device pulled out during a flight lets its stick and rudder axes go to the centre, and their keys work again.
 
 An axis is read only when its setting says so: #scr("flight_controls") on #scr("joystick") for the stick, #scr("rudder") on #scr("pedals"), #scr("throttle") on #scr("lever") (@settings-devices).
 

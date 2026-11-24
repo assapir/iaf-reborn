@@ -6,7 +6,7 @@ use godot::prelude::*;
 use iaf_tools::devices;
 use serde_json::Value;
 
-use crate::world::text;
+use crate::world::{get, num, text};
 use std::path::Path;
 
 #[derive(GodotClass)]
@@ -59,10 +59,20 @@ impl IafDevices {
         text(&devices::axes(&read(&store), &read(&map), soft))
     }
 
-    /// Puts `role` on device axis `axis` (−1 none) with `invert` and dead zone `dead`; a role on that axis gives it up.
+    /// Puts `role` on `choice`: `{axis (−1 none), invert, dead, device (its name), main (the main joystick's name)}`;
+    /// a role on that axis of that device gives it up (`devices::set_axis`).
     #[func]
-    fn set_axis(store: GString, map: GString, role: GString, axis: i64, invert: bool, dead: f64, soft: bool) -> bool {
+    fn set_axis(store: GString, map: GString, role: GString, choice: VarDictionary, soft: bool) -> bool {
+        let text = |k: &str| get::<GString>(&choice, k).unwrap_or_default().to_string();
+        let (device, main) = (text("device"), text("main"));
+        let c = devices::Choice {
+            device: &device,
+            main: &main,
+            axis: num(&choice, "axis").map_or(-1, |a| a as i64),
+            invert: get::<bool>(&choice, "invert").unwrap_or(false),
+            dead: num(&choice, "dead").unwrap_or(0.0),
+        };
         let mut s = read(&store);
-        devices::set_axis(&mut s, &read(&map), &role.to_string(), axis, invert, dead, soft) && write(&store, &s)
+        devices::set_axis(&mut s, &read(&map), &role.to_string(), &c, soft) && write(&store, &s)
     }
 }

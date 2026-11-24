@@ -179,10 +179,10 @@ func set_key(k: Key, down: bool) -> void:
 	Input.flush_buffered_events()
 
 
-## A joystick axis move on device 0 through Input.
-func axis(a: int, v: float) -> void:
+## A joystick axis move on `device` (0 by default) through Input.
+func axis(a: int, v: float, device := 0) -> void:
 	var e := InputEventJoypadMotion.new()
-	e.device = 0
+	e.device = device
 	e.axis = a
 	e.axis_value = v
 	Input.parse_input_event(e)

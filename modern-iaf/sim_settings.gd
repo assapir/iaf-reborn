@@ -640,7 +640,7 @@ func devices_map() -> String:
 	var js := _joystick()
 	if js == null or not ClassDB.class_exists("IafDevices") or js.device() < 0:
 		return ""
-	return IafDevices.find_map(joy_maps_dir(), Input.get_joy_name(js.device()))
+	return IafDevices.find_map(joy_maps_dir(), js.joy_name(js.device()))
 
 
 ## The sim's own maps (JSON, DEVICE_MAPS): the shared reader finds no .joy there, so it reads no install.
@@ -687,7 +687,8 @@ func _take_old_bindings() -> void:
 		IafDevices.drop_bindings(devices_file())
 
 
-## The store's axes to the joystick: joy_axes, the invert and dead zone of each (Joystick.tune), the trim rocker on
+## The store's axes to the joystick: joy_axes, the invert and dead zone of each (Joystick.tune), the device of each
+## (Joystick.role_names: a throttle or pedals as a second device), the trim rocker on
 ## while the trim role has an axis. The hat is the 1998 game's: its eight directions are the snap views (Joystick.poll).
 func apply_devices() -> void:
 	var js := _joystick()
@@ -698,9 +699,11 @@ func apply_devices() -> void:
 		return
 	joy_axes = []
 	js.tune = []
+	js.role_names = []
 	for r in JOY_ROLES:
 		joy_axes.append(int(a[r].axis))
 		js.tune.append([bool(a[r].invert), float(a[r].dead)])
+		js.role_names.append(str(a[r].device))
 	rocker_trim = joy_axes[4] >= 0
 
 

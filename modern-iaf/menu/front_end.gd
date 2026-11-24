@@ -2064,6 +2064,8 @@ func pref_choices(row: Array) -> Array:
 func _on_joy_connection(_device: int, _connected: bool) -> void:
 	if page == "prefs" and pref_group == "devices":
 		show_page.call_deferred("prefs")
+	elif page == "joystick":
+		show_page.call_deferred("joystick")  # a second device plugged in or out: its axes come and go
 
 
 ## Preferences → Devices → Keys and Joystick (modern-iaf/docs/front-end.md §9).

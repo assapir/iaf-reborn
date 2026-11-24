@@ -1,9 +1,9 @@
-# The joystick (autoload "Joystick"; docs/controls.md §4): the original's DirectInput poller
-# FUN_004df560, run every idle frame (FUN_004e1df0), ported onto Godot's joypad API (SDL). One device: the
-# first connected joypad (the original used the first DirectInput joystick its EnumDevices callback
-# FUN_004e0f90 could open). Each poll turns the axes into the original's game events, sent only when the
-# integer value changes: GEV 1 stick (x, y ±100), GEV 9 throttle (0..100), GEV 10 rudder (±100) and GEV 22
-# from the POV hat (the snap views). Buttons reach the key table in the scenes (FUN_004e0dc0 → record +0x1c).
+# The joystick (autoload "Joystick"; docs/controls.md §4): the original's DirectInput poller FUN_004df560, run every
+# idle frame (FUN_004e1df0), ported onto Godot's joypad API (SDL). One device: the first connected joypad (the original
+# used the first DirectInput joystick its EnumDevices callback FUN_004e0f90 could open); in Modern IAF a role's axis may
+# sit on a second device (role_names). Each poll turns the axes into the original's game events, sent only when the
+# integer value changes: GEV 1 stick (x, y ±100), GEV 9 throttle (0..100), GEV 10 rudder (±100) and GEV 22 from the POV
+# hat (the snap views). Buttons reach the key table in the scenes (FUN_004e0dc0 → record +0x1c).
 extends Node
 
 ## The original's DirectInput axes lX, lY, lZ, lRz as Godot axis numbers: Settings.joy_axes
@@ -68,8 +68,14 @@ const REMAP_BUTTONS := [
 	"touchpad"
 ]
 
-## Tests: device ids to treat as connected (Godot has no script hook to plug a joypad in).
+## Tests: device ids to treat as connected (Godot has no script hook to plug a joypad in), and their names
+## (Godot leaves fake ones unnamed).
 var fake_devices: Array = []
+var fake_names := {}
+## Ours (Modern IAF's Joystick screen, a throttle or pedals as a second device): per role (x, y, throttle, rudder,
+## rocker) the name of the device its axis is on; "" or absent = the main joystick. The roll role's device is the main
+## joystick when connected (device()). The original game leaves it empty: one device, as its EnumDevices callback.
+var role_names: Array = []
 ## The flight scene while it takes the events; without one, poll() still runs and its events are
 ## dropped (the original's poller runs in the menus too).
 var consumer: Node = null
@@ -94,36 +100,75 @@ var axis_count := -1
 var remapped := false
 
 
-## The joystick in use: the first connected joypad, −1 = none. Tests (Settings.isolated()) see only
-## their fake devices, never a real stick that happens to be plugged in.
+## The joystick in use: the roll role's device when it names a connected one, else the first connected joypad, −1 =
+## none. It flies the jet: its buttons, its hat and every role without a device of its own.
 func device() -> int:
-	var ids: Array = fake_devices + ([] if Settings.isolated() else Input.get_connected_joypads())
+	var main := by_name(_role_name(0))
+	if main >= 0:
+		return main
+	var ids := connected()
 	return int(ids[0]) if not ids.is_empty() else -1
+
+
+## The connected joypads. Tests (Settings.isolated()) see only their fake devices, never a real stick that happens to
+## be plugged in.
+func connected() -> Array:
+	return fake_devices + ([] if Settings.isolated() else Input.get_connected_joypads())
+
+
+## A device's name as Godot reports it (a fake device's from fake_names).
+func joy_name(d: int) -> String:
+	return str(fake_names.get(d, Input.get_joy_name(d)))
+
+
+## The connected device named `n`, −1 = none ("" names none).
+func by_name(n: String) -> int:
+	if n != "":
+		for d in connected():
+			if joy_name(d) == n:
+				return int(d)
+	return -1
+
+
+func _role_name(r: int) -> String:
+	return str(role_names[r]) if role_names.size() > r else ""
+
+
+## The device role r (x, y, throttle, rudder, rocker) reads: its own by name, else the main joystick; −1 = not
+## connected. A device plugged in or pulled out mid-flight counts from the next poll.
+func role_device(r: int) -> int:
+	var n := _role_name(r)
+	return device() if n == "" else by_name(n)
+
+
+## Role r has an axis on a connected device.
+func _live(r: int) -> bool:
+	return _axis_no(r) >= 0 and role_device(r) >= 0
 
 
 ## The Devices page choices act only with a joystick (this+0x18..0x20 "device has the axis" &&
 ## this+0x24..0x2c the choice, FUN_004df4e0). Godot cannot tell a missing axis: a device has all four.
 func stick_used() -> bool:
-	return device() >= 0 and Settings.flight_controls == 1 and (_axis_no(0) >= 0 or _axis_no(1) >= 0)
+	return Settings.flight_controls == 1 and (_live(0) or _live(1))
 
 
 ## Stick axis k (0 x, 1 y) driven by the joystick; the original = stick_used().
 func stick_axis_used(k: int) -> bool:
-	return stick_used() and _axis_no(k) >= 0
+	return stick_used() and _live(k)
 
 
 ## Ours (Modern IAF's role None, modern-iaf/docs/front-end.md §9.2): one stick axis on the joystick, the other on its
 ## keys. Never in the original game (its joy_axes always name an axis).
 func stick_mixed() -> bool:
-	return stick_used() and (_axis_no(0) < 0 or _axis_no(1) < 0)
+	return stick_used() and not (_live(0) and _live(1))
 
 
 func throttle_used() -> bool:
-	return device() >= 0 and Settings.throttle == 1 and _axis_no(2) >= 0
+	return Settings.throttle == 1 and _live(2)
 
 
 func rudder_used() -> bool:
-	return device() >= 0 and Settings.rudder == 1 and _axis_no(3) >= 0
+	return Settings.rudder == 1 and _live(3)
 
 
 ## The Godot axis of Settings.joy_axes entry r (x, y, throttle, rudder, rocker), −1 = none.
@@ -133,10 +178,12 @@ func _axis_no(r: int) -> int:
 	return int(Settings.joy_axes[r]) if Settings.joy_axes.size() >= 4 else r
 
 
-## Axis r of device d (−1..1), inverted when `tune` says; the centre when r has no axis.
-func _read(d: int, r: int) -> float:
+## Role r's axis on its device (−1..1), inverted when `tune` says; the centre when r has no axis or its device is not
+## connected.
+func _read(r: int) -> float:
 	var i := _axis_no(r)
-	if i < 0:
+	var d := role_device(r)
+	if i < 0 or d < 0:
 		return 0.0
 	var v := axis(d, i)
 	return -v if tune.size() > r and tune[r][0] else v
@@ -153,10 +200,10 @@ func _dz(r: int, dz: float) -> float:
 const SENSE := [1.0, -1.0, -1.0, 1.0, 1.0]
 
 
-## Role r (x, y, throttle, rudder, rocker) of device d after `tune`'s invert and dead zone, in Godot's sense (−1..1):
+## Role r (x, y, throttle, rudder, rocker) on its device after `tune`'s invert and dead zone, in Godot's sense (−1..1):
 ## the one shaping poll(), raw_throttle() and rocker() read.
-func shaped(d: int, r: int) -> float:
-	var v := _read(d, r)
+func shaped(r: int) -> float:
+	var v := _read(r)
 	var soft: bool = Settings.stick_response == "soft"
 	match r:
 		0, 1:
@@ -170,8 +217,8 @@ func shaped(d: int, r: int) -> float:
 
 ## Role r as the game reads it (−1..1, SENSE applied): the lever forward fills the Joystick screen's throttle bar as
 ## it gives full power (the Mac finding of 2026-11-11: the bars showed Godot's raw sense, the throttle's reversed).
-func role_value(d: int, r: int) -> float:
-	return SENSE[r] * shaped(d, r)
+func role_value(r: int) -> float:
+	return SENSE[r] * shaped(r)
 
 
 ## FUN_004e0f40: the throttle axis (0..100) while used, else −1 (the autopilot's re-sync, docs/autopilot.md).
@@ -182,10 +229,10 @@ func throttle_axis() -> int:
 ## The rocker −1..1 (right +) while Settings.rocker_trim is on, else 0; squared, so a light push trims slowly
 ## (half rocker = a quarter of the rate) and full rocker at the full rate.
 func rocker() -> float:
-	var d := device()
-	if not has_fifth_axis() or _axis_no(4) < 0:
+	# On the main joystick only with a 5th axis (the Devices page's choice); on a device of its own, always.
+	if not _live(4) or (role_device(4) == device() and not has_fifth_axis()):
 		return 0.0
-	var v := _read(d, 4)
+	var v := _read(4)
 	if not Settings.rocker_trim:
 		return 0.0
 	if not rocker_moved:
@@ -194,7 +241,7 @@ func rocker() -> float:
 		if v == rocker_first:
 			return 0.0
 		rocker_moved = true
-	var r := shaped(d, 4)
+	var r := shaped(4)
 	return r * absf(r)
 
 
@@ -260,19 +307,19 @@ func physical_button(b: int) -> int:
 	return b
 
 
-## An axis −1..1; with our mapping axes 4 / 5 are gamepad triggers (0..1 in Godot): back to −1..1.
+## An axis −1..1; with our mapping (the main joystick's) axes 4 / 5 are gamepad triggers (0..1 in Godot): back to
+## −1..1.
 func axis(d: int, i: int) -> float:
 	var v := Input.get_joy_axis(d, i)
-	return v * 2.0 - 1.0 if remapped and i >= 4 else v
+	return v * 2.0 - 1.0 if remapped and d == _device and i >= 4 else v
 
 
 ## One FUN_004df560 pass: the events [id, p1, p2] of the axes and the hat that changed.
 ## The lever as the original reads it (0 idle .. 100 forward), before our detent mapping; −1 without a device.
 func raw_throttle() -> int:
-	var d := device()
-	if d < 0:
+	if role_device(2) < 0:
 		return -1
-	return 100 - _lin(shaped(d, 2), 100)
+	return 100 - _lin(shaped(2), 100)
 
 
 ## Ours (Extras "Throttle detent = MIL", off = −1): the lever's detent `d` maps to MIL (74, the "6" key) — the
@@ -300,16 +347,16 @@ static func detent_map(t: int, d: int) -> int:
 
 func poll() -> Array:
 	var d := device()
+	var out := _lost()
 	if d < 0:
-		return []
-	var out := []
+		return out
 	if Settings.flight_controls == 1:
 		# MulDiv(lX, 200, max − min) − 100 and MulDiv(lY, −200, max − min) + 100 (@4df6b8, 4df770).
-		var x := _lin(shaped(d, 0), 200) - 100
+		var x := _lin(shaped(0), 200) - 100
 		if x != last_x:
 			last_x = x
 			out.append([1, last_x, last_y])
-		var y := 100 - _lin(shaped(d, 1), 200)
+		var y := 100 - _lin(shaped(1), 200)
 		if y != last_y:
 			last_y = y
 			out.append([1, last_x, last_y])
@@ -321,7 +368,7 @@ func poll() -> Array:
 			out.append([9, last_throttle, 0])
 	if rudder_used():
 		# MulDiv(lRz, 200, max − min) − 100 (@4df8d7).
-		var r := _lin(shaped(d, 3), 200) - 100
+		var r := _lin(shaped(3), 200) - 100
 		if r != last_rudder:
 			last_rudder = r
 			out.append([10, last_rudder, 0])
@@ -336,6 +383,32 @@ func poll() -> Array:
 				out.append([22, v[0], v[1]])
 				_pov_release = [-1, -int(v[1])]
 			_pov_last = pov
+	return out
+
+
+## Ours (Modern IAF, role_names set): a stick or pedals pulled out mid-flight leave their axis centred, not held where
+## they were: one event to the centre as the device goes (the keys fly on then). The original game (role_names empty)
+## keeps the last values, as its poller does when a device is lost.
+var _had := [false, false, false, false]
+
+
+func _lost() -> Array:
+	var out := []
+	if role_names.is_empty():
+		return out
+	for r in [0, 1, 3]:
+		var has := role_device(r) >= 0
+		if _had[r] and not has and _axis_no(r) >= 0:
+			if r == 3 and Settings.rudder == 1 and last_rudder != 0:
+				last_rudder = 0
+				out.append([10, 0, 0])
+			elif r == 0 and Settings.flight_controls == 1 and last_x != 0:
+				last_x = 0
+				out.append([1, last_x, last_y])
+			elif r == 1 and Settings.flight_controls == 1 and last_y != 0:
+				last_y = 0
+				out.append([1, last_x, last_y])
+		_had[r] = has
 	return out
 
 
@@ -398,7 +471,7 @@ func _connected(d: int) -> void:
 	if d < 0:
 		print("joystick: none")
 		return
-	var name := Input.get_joy_name(d)
+	var name := joy_name(d)
 	if not Settings.isolated() and not Input.is_joy_known(d):
 		var m := "%s,%s," % [Input.get_joy_guid(d), name.replace(",", " ")]
 		for i in REMAP_BUTTONS.size():
