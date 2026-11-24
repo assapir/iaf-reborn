@@ -986,7 +986,8 @@ regulator's three levers, the KY-58's four knobs and PLAIN / CIPHER, the nuclear
 IDENT, the ICP's WX and FLIR rocker, EXT FUEL TRANS, and the CMDS's JMR, O1 and O2 (parked, or no system behind them);
 the HUD's TEST switch (ON the first of four test patterns, STEP the others, OFF the normal symbology[^d34-hudtest]: no
 picture of the patterns is public, so none is drawn) and GPS power (the GPS corrects the INS's errors[^fm-gps]; the
-sim's INS has none, and the GPS bombs take their own fix). Still to wire: the RF switch. The autopilot's PITCH and ROLL
+sim's INS has none, and the GPS bombs take their own fix). The RF switch works: QUIET keeps the TFR in LPI, SILENT
+stops it ([weapons.md](weapons.md) TFR). The autopilot's PITCH and ROLL
 switches work since 2026-11-19 (§5.10).
 
 Test: `modern-iaf/tests/test_move_only_wired.gd` (the Barak on the ground: OXY QTY, the EPU at ON, GND JETT, VOICE

@@ -477,7 +477,7 @@ Example, `modern-iaf/data/missions/ramon_takeoff.json`:
   },
   "lose": {
     "en": "Mission - failed. Better try again.",
-    "he": "המשימה נכשלה. נסה שוב."
+    "he": "המשימה נכשלה. כדאי לנסות שוב."
   },
   "runway": "25R",
   "route": [

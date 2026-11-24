@@ -125,11 +125,7 @@ func run() -> void:
 			var err: String = ClassDB.instantiate("IafFlight").start(
 				s.own_dir(), section, Vector3.ZERO, Vector3.ZERO, Vector3.ZERO, flags
 			)
-			# ponytail: an error is NEEDS DATA while C1 is filling bd.ibx; a FAIL once C1 has landed.
-			if err == "":
-				check(true, "%s: flight model %s starts from %s" % [jet, section, bd])
-			else:
-				need("%s: flight model %s: %s [C1]" % [jet, section, err])
+			check(err == "", "%s: flight model %s starts from %s %s" % [jet, section, bd, err])
 	var meta: Dictionary = s.load_json(a.path_join(TERRAIN).path_join("meta.json"))
 	if meta.is_empty():
 		need("terrain: %s/meta.json missing [B1]" % TERRAIN)

@@ -74,7 +74,7 @@ the systems on the draft list and the other Iranian candidates.
 3. **They meet at a real kind of target.** The researchers who mapped Natanz's defences from an Iranian video found one
    Tor among four radars there[^bd-natanz]; S-300 batteries sat at Esfahan, Bushehr and Khavar Shahr, and one based at
    Mehrabad deployed to Mashhad[^bc-mashhad]. A strike on a defended site in central Iran meets this pair (inferred;
-   the target is the user's choice, [../ai-plan.md](../ai-plan.md) §9 question 7).
+   the target is the user's choice, [../ai-plan.md](../ai-plan.md) §9 question 4).
 4. **Clean models exist for both** (§6): launcher and Tor models built from scratch under CC BY, and a radar the
    uploader drew himself.
 

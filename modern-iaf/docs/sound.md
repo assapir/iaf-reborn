@@ -654,8 +654,9 @@ The setup wizard's Attributions and the credits roll show these lines from `shar
 - Loops as Ogg Vorbis: a looped ogg may click at its seam where the WAV did not (listen to the engine, the gun and the
   air-brake wind).
 - The instructor's Hebrew lines (voice `tamar`, §3.1): no instructor line exists yet.
-- The wingman-command, waypoint and flight-report phrases (`radio.gd`'s other templates have no particles yet, so
-  they are silent). The AWACS's contact calls have theirs since 17 November ([ews.md](ews.md) §7).
+- The waypoint and flight-report phrases (`radio.gd`'s other templates have no particles yet, so they are silent).
+  The wingman commands and the flight's calls are voiced since 20 November ([ai-plan.md](ai-plan.md) F5), the
+  AWACS's contact calls since 17 November ([ews.md](ews.md) §7).
 - The pilot's calls as Kidon 2–4 play part by part (only Kidon 1 has whole-call clips), and the callsigns past Kidon 4
   have no particle (the tower's set stops there too).
 - The cockpit sound model (§1.9): the canopy's real transmission loss, the helmet in flight, the air-conditioning

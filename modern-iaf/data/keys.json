@@ -105,7 +105,7 @@
     {"index": 100, "label": {"en": "Wingman: tactical formation", "he": "מספר 2: מבנה טקטי"}, "key": "Alt + T", "joystick": -1, "press": [108, 5, 0], "release": [0, 0, 0], "shown": true},
     {"index": 101, "group": "sim", "label": {"en": "Wingman: cover me", "he": "מספר 2: חיפוי"}, "key": "Alt + P", "joystick": -1, "press": [108, 1, 0], "release": [0, 0, 0], "shown": true},
     {"index": 102, "label": {"en": "Wingman: close formation", "he": "מספר 2: מבנה צמוד"}, "key": "Alt + C", "joystick": -1, "press": [108, 6, 0], "release": [0, 0, 0], "shown": true},
-    {"index": 103, "label": {"en": "Wingman: return to base", "he": "מספר 2: חזור לבסיס"}, "key": "Alt + B", "joystick": -1, "press": [108, 2, 0], "release": [0, 0, 0], "shown": true},
+    {"index": 103, "label": {"en": "Wingman: return to base", "he": "מספר 2: חזרה לבסיס"}, "key": "Alt + B", "joystick": -1, "press": [108, 2, 0], "release": [0, 0, 0], "shown": true},
     {"index": 104, "label": {"en": "Chat to everyone", "he": "הודעה לכולם"}, "key": "~", "joystick": -1, "press": [137, 0, 0], "release": [0, 0, 0], "shown": true},
     {"index": 105, "label": {"en": "Chat to friendly players", "he": "הודעה לשחקנים ידידותיים"}, "key": "Alt + ~", "joystick": -1, "press": [137, 1, 0], "release": [0, 0, 0], "shown": true},
     {"index": 106, "label": {"en": "Chat to hostile players", "he": "הודעה לשחקנים עוינים"}, "key": "Shift + ~", "joystick": -1, "press": [137, 2, 0], "release": [0, 0, 0], "shown": true},

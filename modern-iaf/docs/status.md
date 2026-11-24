@@ -1258,15 +1258,15 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   the flights are Kidon 1..4 and the jets Kidon 1-1..1-4 on every screen, subtitle and voice, in English and Hebrew
   ([research/radio-terms.md](research/radio-terms.md)); in Hebrew a runway's side is ימין / שמאל ("25 ימין"), the
   AWACS's clearance "רשאי לתקוף", and "מייל" is read as the mile ([sound.md](sound.md) §3.1).
-  Open: the radio menu's flight pages (slice 3's screen, waiting for the user's approval).
+  Built (20 Nov, A72): the radio menu's Tower / Wingmen / AWACS pages, the wingman commands through the menu.
 - **Missiles (avionics-plan.md §7.2):** next step 5: the threat missiles once their records are approved; step 4
-  (the missile warning's type) awaits the user's approval.
+  (the missile warning's type) is built (19 Nov).
 - **The missile warning, not started (outside the user's words):** an active radar missile's own seeker as an "M" on
   the threat display (the F-15C's ALR-56C shows one, a simulator manual; the dash-34's F-16 list has none;
   [research/missile-warning.md](research/missile-warning.md) §2, §6).
 - **The manuals** ([manuals.md](manuals.md)): the Typst build, the page design, each manual's outline and one written
   section per jet (Cold start to take-off) wait for the user's approval (18 November 2026); every other section is
-  planned in the outlines. The main menu's Manuals entry is not built.
+  planned in the outlines. The Hangar's Manuals entry opens the PDFs.
 - **Avionics, missiles and bombs (2026-11-17):** the inventory per jet, the gap list and the build order are in
   [avionics-plan.md](avionics-plan.md); the 15 November bugs (radar standby, break X and the HUD against reborn,
   SPICE / GPS targets, the gun flash) are its first slice; the range is slice 1. The briefing's PRE target pick for the
@@ -1286,8 +1286,6 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   the main thread wherever it runs, so the wait would move from the loading screen to a frozen menu; it would not get
   shorter. What remains open: compiling shaders off the main thread, which needs Godot's export-time shader baking
   (Godot 4.5+, for exported builds only).
-- **CI for the sim (2026-11-09):** [ci.md](ci.md) recommends parse-checking `modern-iaf/` in the godot job and adding
-  `modern-iaf/tests/` to the sweep; the workflow is unchanged.
 - **[D3](plan.md#d3-f-15c-baz-at-tel-nof), the Baz is not flyable:** it has no 3D cockpit and no model of its own,
   so the front end does not offer it and no mission flies it; type 110 flies the F-15I's flight-model row. Tel Nof's
   apron is placed by eye ([airbases.md](airbases.md) §5).
@@ -1312,9 +1310,7 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 - **[E3b](plan.md#e3-the-training-missions)'s open points** ([training.md](training.md) §6): the Hebrew voice (the user), the
   pilot's request voice (sound.md §7).
 - **[E2](plan.md#e2-the-front-end)'s open points** ([front-end.md](front-end.md)): a pilot list (the name is the computer's user
-  name); the debrief sheet and the pilot log in the original game ([shared.md](shared.md)); the missions'
-  own Hebrew briefings in `modern-iaf/data/missions/` still use the masculine imperative (the front end shows its own
-  gender-neutral ones).
+  name); the debrief sheet and the pilot log in the original game ([shared.md](shared.md)).
 - **[Floating origin / camera-relative cockpit](plan.md#floating-origin--camera-relative-cockpit)**: open; the 3D
   cockpit's screens hold their depth out to 100 km from the flight's start (the F-35I's depth pull).
 - **The airbases' open points** ([airbases.md](airbases.md) §9): the towers of Ramon, Hatzerim and Ramat David (their

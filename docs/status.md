@@ -189,12 +189,8 @@ Checked against the code on 2026-10-21 (each doc's own "not built" notes have th
   roads, their lane markings at Israel's out-of-town sizes (the median's double white line on dual carriageways) and
   the railways (ballast, sleepers, rails) near the camera; town sizes not used.
 - **Imagery**: SPOT 5 outside Israel not started.
-- **Modern IAF data** (modern-iaf/docs/data-formats.md): no setup step runs `iaf-sim` yet (the sim's wizard, Modern IAF
-  items [A1](../modern-iaf/docs/plan.md#a1-the-project-skeleton), the project skeleton, and [A3](../modern-iaf/docs/plan.md#a3-the-setup-wizard), the setup wizard; `tools/test.sh` builds it for its test); the game reads the own `weapons.ibx` and sets the F-16
-  switch from a unit's `"airframe"` only from [A1](../modern-iaf/docs/plan.md#a1-the-project-skeleton); Nevatim is not one of the game's bases (iaf.ibx) until item [B2](../modern-iaf/docs/plan.md#b2-the-airbases), the airbases, so
-  its two missions have no tower, lineup or start rule (their files say so, `note`); the jets stand at OSM apron
-  centres until [B2b](../modern-iaf/docs/plan.md#b2-the-airbases), the airbase compiler, compiles the bases (the layouts and parking spots are in `modern-iaf/data/airbases/`, the spots
-  and Nevatim's tower await the user's approval; the other towers are open); red flights and the threat units wait for the user's yes on the set ([D2](../modern-iaf/docs/plan.md#d2-units-and-weapons), units and weapons).
+- **Modern IAF data** (modern-iaf/docs/data-formats.md): the enemy set's draft records (the S-300PMU-2 and the
+  Tor-M1) wait for the user's yes ([ai-plan.md](../modern-iaf/docs/ai-plan.md) §9).
 - **Multiplayer**: not started (missions 511–516, 777), with its RWR network messages. Research and discussion:
   [multiplayer.md](multiplayer.md).
 
