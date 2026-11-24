@@ -589,7 +589,7 @@ func _step_flight_ai(now: float) -> void:
 	for m in _ai_members:
 		if not m[1].player:
 			_weapons_of(flight_ai, m[0], m[1], _foe_of(flight_ai, m[0]))
-	for c in flight_ai.step(now):
+	for c in flight_ai.step(now, host.mission_ground, host.terrain.world_origin):
 		_flight_say(c, now)
 	# The wingmen's shots and bursts (the enemy fighters' host path, combat.gd), called "Fox" or "guns".
 	for m in _ai_members:
@@ -637,19 +637,26 @@ func _bandit_id(ent: Dictionary) -> int:
 	return _bandit_ids[k]
 
 
-## The hostile jets (AirDefence's jets not of `side`, alive) as IafAi bandits: [{id, pos, vel (scene), jam (its
-## jammer's share)}].
+## The hostile jets (AirDefence's jets not of `side`, alive) as IafAi bandits: [{id, pos, vel, nose (scene), jam (its
+## jammer's share), rcs, bays, stores (what a radar sees of it)}].
 func _bandits(side: int) -> Array:
 	var out := []
 	for j in AirDefence.of(host).jets(side):
 		if int(j.ent.state) < 3:
-			out.append(
-				{
-					"id": _bandit_id(j.ent),
-					"pos": host.world_to_scene(j.pos),
-					"vel": Terrain.dir_to_scene(j.vel),
-					"jam": j.jam
-				}
+			(
+				out
+				. append(
+					{
+						"id": _bandit_id(j.ent),
+						"pos": host.world_to_scene(j.pos),
+						"vel": Terrain.dir_to_scene(j.vel),
+						"nose": Terrain.dir_to_scene(j.nose),
+						"jam": j.jam,
+						"rcs": j.rcs,
+						"bays": j.bays,
+						"stores": j.stores,
+					}
+				)
 			)
 	return out
 
@@ -885,7 +892,7 @@ func _step_enemy(f: Dictionary, now: float) -> void:
 		f.ai.set_threat(m[0], th[0], th[1], th[2])
 		_weapons_of(f.ai, m[0], ent, _foe_of(f.ai, m[0]))
 	f.strike = _feed_strike(f.ai, f.members, f.strike)
-	f.ai.step(now)  # (the enemy's radio calls are not heard)
+	f.ai.step(now, host.mission_ground, host.terrain.world_origin)  # (the enemy's radio calls are not heard)
 	for m in f.members:
 		var ent: Dictionary = m[1]
 		var alive := int(ent.state) < 3

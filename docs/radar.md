@@ -392,8 +392,11 @@ Doppler shift, so the ground's return limits what they see in look-down (`radar.
     without a return.
   - A slow target is found only where its speed along the line of sight passes the gate. A drone at 180 km/h
     (97 kt) in look-down is found at MTR LO within about 50° of its nose or tail. At MTR HI it is not found at all.
-- **On the scope:** contacts appear or drop by these rules; no clutter is drawn. A ground-clutter picture on the
-  FCR page is not started.
+- **On the scope:** contacts appear or drop by these rules; the air-to-air format draws its contacts as symbols and no
+  clutter. No source found shows ground clutter on the APG-68's or the APG-81's air-to-air format (searched 25 Nov
+  2026), so none is drawn.
+- **The AI's radars:** the AI fighters' radar takes the same look-down rule with a 30 m/s gate (docs/ai.md §18.1);
+  the ground sites have their own (docs/ai.md §15.3).
 
 ## 10. Validation
 `tests/godot/test_radar.gd` checks:

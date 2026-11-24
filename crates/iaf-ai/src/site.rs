@@ -159,7 +159,7 @@ const S300: Spec = Spec {
     search_reach: 300_000.0, // the 96L6E's 5–300 km (missilery.info)
     track_reach: 200_000.0,  // the 30N6E2: open; the record's 200 km held (threat-records.md)
     optical: 0.0,
-    reject: 0.0, // the radars' processing: open
+    reject: 30.0, // the 96L6E's Doppler speeds ±30 to ±1,200 m/s (missilery.info); the 30N6E2's taken as its (inferred)
     floor: 0.0,
     channels: 6,  // six targets at once (FAS)
     salvo: 2,     // two missiles per target (FAS)
@@ -506,6 +506,20 @@ fn bulge(s: f64, l: f64) -> f64 {
     s * (l - s) / (2.0 * REFRACTION * EARTH_R)
 }
 
+/// A radar at `from` with `reach_m` against `radar::REF_RCS` sees a jet at `pos` of cross-section `sigma` (m²) jamming
+/// with share `jam`: inside its range for that σ (its burn-through when it jams) and in sight over the terrain and the
+/// earth's curvature. The sites' rule and the AI fighters' radar's (`flight.rs`, docs/ai.md §15.2, §18.1).
+pub fn in_reach(
+    from: Vec3,
+    reach_m: f64,
+    sigma: f64,
+    pos: Vec3,
+    jam: f64,
+    terrain: &dyn Fn(Vec3) -> Option<f64>,
+) -> bool {
+    pos.distance(from) <= jammed_reach(reach_m, sigma, jam) && visible(from, pos, terrain)
+}
+
 /// Terrain line of sight from `a` to `b` over the curved earth: the radar's `line_of_sight` with the ground lifted
 /// by the bulge at each sample, so the radar horizon of the two heights holds; sea level where the terrain has none.
 pub fn visible(a: Vec3, b: Vec3, terrain: &dyn Fn(Vec3) -> Option<f64>) -> bool {
@@ -610,7 +624,7 @@ impl Site {
     /// curvature.
     pub(crate) fn sees(from: Vec3, reach_m: f64, t: &Target, terrain: &dyn Fn(Vec3) -> Option<f64>) -> bool {
         let s = sigma(&t.rcs, t.nose, from - t.pos, t.bays_open, t.stores);
-        t.pos.distance(from) <= jammed_reach(reach_m, s, t.jam) && visible(from, t.pos, terrain)
+        in_reach(from, reach_m, s, t.pos, t.jam, terrain)
     }
 
     /// This site's radar at `from` sees `t` (`sees`) clear of the ground's clutter: fast enough along the line of

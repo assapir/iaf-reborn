@@ -193,8 +193,17 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   drops off the scope and an STT lock on it breaks; a drone at 180 km/h is found at MTR LO only within about 50° of
   its nose or tail, at MTR HI not at all. Look-up is unchanged; the 1998 game's radar has no such rule. The Tor's
   pulse-Doppler radars lose a jet slower than 30 m/s along the line of sight (the wingmen's beam now breaks its
-  track); the ZSU's radar loses a jet under 60 m and lays optically. No clutter is drawn on the FCR page (not
-  started). Open: the S-300's radars' processing; the AI fighters' sensor keeps the 1998 rule.
+  track); the ZSU's radar loses a jet under 60 m and lays optically. The FCR page draws its contacts as symbols and
+  no clutter: no source shows ground clutter on the air-to-air format (searched 25 Nov). Since 2026-11-25 the
+  S-300's radars lose a jet slower than 30 m/s along the line of sight (the 96L6E's published Doppler speeds; the
+  30N6E2's taken as its, inferred).
+- **The AI fighters' radar sees stealth, clutter and terrain (2026-11-25, the user, 19 Nov: "They should take into
+  consideration the stealth of the adir", "Also terrain shape"; [ai-plan.md](ai-plan.md) K3;
+  [../../docs/ai.md](../../docs/ai.md) §18.1):** every AI jet's radar, the enemy fighters' and the wingmen's, takes
+  the sites' rule: the reach for the target's cross-section seen from it (the clean Adir held head on inside 9.7 km,
+  50 km with its bays open; the clean Sufa 52 km; against 74 km before), terrain sight over the earth's curvature,
+  and in look-down the loss of a jet slower than 30 m/s along the line of sight (inferred). An enemy fighter shoots
+  only once its radar holds the jet.
 - **Enemy skill (2026-11-21, the user, 19 Nov: "wingman are always the same, it only effect enemeis, choosen from 3
   options per player"; 21 Nov: "Ok finish all enemies things you can"; [ai-plan.md](ai-plan.md) X4;
   [../../docs/ai.md](../../docs/ai.md) §17):** three levels, Low / Medium / High ("נמוכה / בינונית / גבוהה"), picked per

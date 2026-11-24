@@ -1531,7 +1531,7 @@ the player's bay doors are open (`player_weapons.gd bay_open`) and `store_m2` fo
 | F-35I Adir | 0.0015 | 0.05 | 0.01 | 1.0 | 0.5 | front: the low end of 0.0015–0.005[^migflug]; the rest inferred (external stores "drastically increase" it[^ni-beast]) |
 | any other (1998 types, drones) | 5 | 25 | 12.5 | — | 0.5 | inferred (`site::FIGHTER`) |
 
-Public figures are rough and disputed. Head on, the 96L6E's 300 km gives about 210 km against an F-16, 39 km against
+The AI fighters' radar takes the same σ (§18.1). Public figures are rough and disputed. Head on, the 96L6E's 300 km gives about 210 km against an F-16, 39 km against
 a clean Adir and 200 km against an Adir with its bays open.
 
 ### 15.3 Terrain and the radar horizon
@@ -1548,7 +1548,7 @@ Ground clutter (`site.rs` `Spec::reject`, `Spec::floor`):
 |---|---|---|
 | Tor-M1 | both radars are pulse-Doppler[^w-tor-pd]: they lose a jet slower than 30 m/s along the line of sight (one on the beam, a hovering one) | a pulse-Doppler radar detects nothing below its rejection speed, set from 20 to 160 km/h[^w-pd]; the Tor's 30 m/s inferred |
 | ZSU-23-4 | its radar loses a jet lower than 60 m above the ground; the optical sight still lays on it within 5 km | "many false returns (ground clutter) under 60 m (200 ft) of altitude"[^w-zsu] |
-| S-300PMU-2 | none: the 96L6E's and the 30N6E2's processing is open | open |
+| S-300PMU-2 | both radars lose a jet slower than 30 m/s along the line of sight (one on the beam) | the 96L6E's Doppler speeds in its all-altitude and low-altitude modes are "between ±30 and ±1200 m/s"[^mis-96l6e]; the 30N6E2's processing is not published: taken as the 96L6E's (inferred) |
 
 The wingmen's beam (§8.8, the reactions) turns the threat 90° off the nose: against the Tor it breaks the track.
 
@@ -1721,8 +1721,6 @@ from a hostile jet; a friendly's (a defending wingman's) jams the enemy, not the
 
 ### 15.7 Later
 
-- Ground clutter for the S-300's radars (their processing is open) and for the AI fighters' sensor (`combat.gd`, the
-  1998 game's rule): not started.
 - The network's other parts (§15.5): the 15Ya6ME relay's 90 km reach, several search radars per network, a
   hand-over delay for a siloed network ([enemies.md](../modern-iaf/docs/research/enemies.md) §5.2), the Tor battery's
   own command post.
@@ -1951,7 +1949,7 @@ hostile jet, which the pair knows only while its radar holds it.
 | CAP | the lead orbits its station clockwise at the station's height, steering at the point 30° ahead on the circle; the wingman keeps its slot | radius 15 km, 2 g, 220 m/s |
 | commit | a bogey inside the commit range of the station, with a missile left: the pair commits after the lead's reaction time | 90 km |
 | intercept | the collision course at the bogey (the point where the two meet flying straight; pure pursuit when it cannot be caught) | 4 g, 300 m/s, at most 120 s ahead |
-| shot | committed, its own radar holding the bogey, a missile left and none of its own flying at it, the bogey inside its share of the envelope (§17) for its reaction time (the launch's timing: Low 3 s, Medium 1 s, High 0.5 s): `Order::shoot`; the host fires through `combat.gd`'s launch (the envelope, the cone, the fire gate) | the radar: 74 km, ±60° (the wingmen's) |
+| shot | committed, its own radar holding the bogey, a missile left and none of its own flying at it, the bogey inside its share of the envelope (§17) for its reaction time (the launch's timing: Low 3 s, Medium 1 s, High 0.5 s): `Order::shoot`; the host fires through `combat.gd`'s launch (the envelope, the cone, the fire gate) | the radar: 74 km against 5 m², ±60° (the wingmen's; "The radar" below) |
 | crank | its missile flying, the radar holding the bogey: the bogey 50° off the nose on the side it is on (tactics 1 and up) | 250 m/s |
 | defence | a missile at it, after its reaction (a lock alone does not stop the attack): an infrared one the break into it; a radar one the beam at its height (tactics 0), the notch down into the look-down, the missile beamed (1), the drag, a 4 g turn away then full power going down, while the missile is farther than 20 km, inside that the notch (2); chaff or flares each decision while the missile is within 6 s, the 5 s clear (§8.8) | the descent: the steer point 500 m below, near 10°, down to 500 m above the ground; drag 400 m/s |
 | back | the bogey lost, past 150 km from the station, or nothing left to shoot with none flying: back to the CAP | 150 km |
@@ -1971,9 +1969,16 @@ hostile jet, which the pair knows only while its radar holds it.
   unchanged without the fighter's laws (§8.8);
   `modern-iaf/tests/test_intercept.gd` (headless: a pair on a CAP vectored onto a scripted jet, commits, locks, shoots,
   notches a radar missile).
-- **Open:** the fighters' own radar is the wingmen's reach and cone
-  (a jamming bogey inside its burn-through, §15.6), without the ground clutter or the target's cross-section; the pairing of several pairs to several raids (each pair
-  takes the track nearest its station).
+- **The radar** (`flight.rs` `radar_holds`, each decision for every AI jet in the air, the wingmen's too): the sites'
+  rule (`site::in_reach`, §15.2, §15.3): inside the cone (±60°) and the reach of 74 km against 5 m², scaled by the
+  bogey's cross-section seen from the radar (its definition's `rcs`, its bays, its stores; an untreated fighter's
+  without one), inside its burn-through when it jams (§15.6), and in sight over the terrain (the mission ground) and
+  the earth's curvature. In look-down (`radar::look_down`, docs/radar.md §9.8) it loses a bogey slower than 30 m/s
+  along the line of sight (the ground's Doppler band; the real FCR's MTR LO taken for every AI radar, inferred).
+  Head on, the clean Adir is held inside 9.7 km (its bays open 50 km), the clean Sufa inside 52 km, a MiG-29A inside
+  74 km; from the side a fighter's 25 m² is held to 110 km. A jammer's strobe shows only in sight. Tests:
+  `cargo test -p iaf-ai --test intercept its_radar_sees`.
+- **Open:** the pairing of several pairs to several raids (each pair takes the track nearest its station).
 
 ### 18.2 The dogfight (K4)
 
@@ -2437,7 +2442,7 @@ Open questions in this document:
 [^apa-s300]: Carlo Kopp, Air Power Australia, "S-300PMU2 Favorit / SA-20 Gargoyle", updated to April 2012, https://www.ausairpower.net/APA-S-300PMU2-Favorit.html (the 83M6E2: the 54K6E2 command post and the 64N6E2 search radar, up to six batteries; the 40V6M "Semi-Mobile Mast System 24 Metre"; the 30N6E2 on a MAZ-79100 chassis; read 2026-11-19, 2026-11-22 and 2026-11-23).
 [^w-s300]: Wikipedia, "S-300 missile system", https://en.wikipedia.org/wiki/S-300_missile_system (the 64N6 Big Bird: "a maximum detection range of 300 km", "a scan once every twelve seconds"; read 2026-11-21).
 [^tc7100]: US Army, TC 7-100.2 "Opposing Force Tactics", 9 December 2011, chapter 11, https://www.govinfo.gov/content/pkg/GOVPUB-D101-PURL-gpo122554/pdf/GOVPUB-D101-PURL-gpo122554.pdf (§11-35 the cue's data, §11-36 units fighting with their radars off on the higher radars' data; read 2026-11-19).
-[^mis-96l6e]: Missilery.info, "All Altitude Detector (VO) 96L6E", https://en.missilery.info/node/13476 (target detection range 5–300 km; read as quoted by a search engine on 2026-11-19, second-hand; the update in the all-altitude mode every 6 s at 0–1.5° and 12 s at 1.5–20°, read directly on 2026-11-23).
+[^mis-96l6e]: Missilery.info, "All Altitude Detector (VO) 96L6E", https://en.missilery.info/node/13476 (target detection range 5–300 km; read as quoted by a search engine on 2026-11-19, second-hand; the update in the all-altitude mode every 6 s at 0–1.5° and 12 s at 1.5–20°, read directly on 2026-11-23; the Doppler speeds "between ±30 and ±1200 m/s" in the all-altitude and low-altitude modes, read directly on 2026-11-25).
 [^aerospaceweb]: Jeff Scott, Aerospaceweb.org, "Radar Cross Section", 21 March 2004, https://aerospaceweb.org/question/electronics/q0168.shtml (the head-on view most important; the largest returns from the sides; read 2026-11-19).
 [^ni-f16]: The National Interest, on the F-16's Have Glass V paint, https://nationalinterest.org/node/112436 and https://nationalinterest.org/node/168141 ("the F-16 on average has a 1.2-square-meter radar cross-section, according to Globalsecurity"; second-hand: as quoted by a search engine on 2026-11-19; the site refuses automated reading).
 [^migflug]: Max Grünwald, MiGFlug Afterburner, "F-22 Marble, F-35 Golf Ball: Where RCS Figures Come From", 8 November 2026, https://migflug.com/afterburner/?p=31823215 (GlobalSecurity's table: the F-35 at 0.0015–0.005 m²; GlobalSecurity itself refuses automated reading; read 2026-11-19).

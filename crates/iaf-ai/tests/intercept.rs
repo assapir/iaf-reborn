@@ -6,7 +6,9 @@
 use std::path::PathBuf;
 
 use iaf_ai::fighter::{CAP_R, DRAG_M};
+use iaf_ai::site::FIGHTER;
 use iaf_ai::{Bandit, Bogey, Flight, Skill, Threat, apply};
+use iaf_flight::airframe::Rcs;
 use iaf_flight::autopilot::{Autopilot, Config};
 use iaf_flight::fm::Fm;
 use iaf_flight::{DataSet, Start, Vec3};
@@ -31,6 +33,9 @@ struct Pair {
     gci: bool,
     /// Its jammer's burn-through share (0 none).
     jam: f64,
+    /// Its cross-section; a ridge (8 km high, its sides 1 in 2) across the north at this y (m), None: sea level.
+    rcs: Rcs,
+    ridge: Option<f64>,
     armed: bool,
     in_air: [bool; 2],
     threat: [Option<Threat>; 2],
@@ -77,6 +82,8 @@ impl Pair {
             bogey: None,
             gci: true,
             jam: 0.0,
+            rcs: FIGHTER,
+            ridge: None,
             armed: true,
             in_air: [false; 2],
             threat: [None; 2],
@@ -92,13 +99,15 @@ impl Pair {
             self.flight.sense(i as u8 + 1, true, fm, ap);
         }
         let b = self.bogey;
-        self.flight.bandits(b.iter().map(|b| Bandit::new(1, *b, self.jam)).collect());
+        let rcs = self.rcs;
+        self.flight.bandits(b.iter().map(|b| Bandit { rcs, ..Bandit::new(1, *b, self.jam) }).collect());
         self.flight.gci(b.filter(|_| self.gci), 1);
         for n in 0..2 {
             self.flight.weapons(n as u8 + 1, DLZ, self.armed, self.in_air[n]);
             self.flight.threat(n as u8 + 1, self.threat[n]);
         }
-        self.flight.step(self.t);
+        let ridge = self.ridge;
+        self.flight.step_on(self.t, &|p: Vec3| ridge.map(|y| (8000.0 - 0.5 * (p.y - y).abs()).max(0.0)));
         for (i, (fm, ap)) in self.jets.iter_mut().enumerate() {
             apply(&self.flight.members[i].order, ap, fm);
             ap.step(fm, &|_, _| 0.0);
@@ -188,7 +197,7 @@ fn commit_after_the_reaction_and_intercept() {
     for (skill, react) in [(Skill::LOW, 3.0), (Skill::HIGH, 0.5)] {
         let p = Vec3::new(0.0, 0.0, ALT);
         let Some(mut w) = Pair::new(p, p, skill) else { return };
-        // A crossing bogey: 80 km north-east flying west.
+        // A crossing bogey: 80 km north-east flying west (seen from its side: 25 m², the radar's reach 110 km).
         w.bogey = Some(Bogey { pos: p + Vec3::new(40_000.0, 69_000.0, 0.0), vel: Vec3::new(-250.0, 0.0, 0.0) });
         let t = w.until(10.0, &|w| w.flight.members[0].enemy.committed).expect("commits");
         println!("committed after {t:.2} s (reaction {react} s)");
@@ -197,8 +206,9 @@ fn commit_after_the_reaction_and_intercept() {
         let start = w.bogey.unwrap().pos.distance(w.pos(0));
         w.until(120.0, &|w| w.flight.members[0].enemy.contact).expect("its radar finds the bogey");
         let now = w.bogey.unwrap().pos.distance(w.pos(0));
-        assert!(now < 74_000.0 && now < start, "closing: {start:.0} → {now:.0} m");
-        assert!(w.flight.members[1].enemy.committed, "the wingman commits with its lead");
+        assert!(now < 110_000.0 && now <= start, "closing: {start:.0} → {now:.0} m");
+        // (The wingman takes the lead's commit at its next decision.)
+        w.until(1.0, &|w| w.flight.members[1].enemy.committed).expect("the wingman commits with its lead");
     }
 }
 
@@ -391,4 +401,31 @@ fn a_jamming_bogey_is_held_inside_the_burn_through() {
         w.run(0.1);
         assert!(w.flight.jams(1), "locked: its jammer on");
     }
+}
+
+#[test]
+fn its_radar_sees_the_cross_section_the_clutter_and_the_terrain() {
+    // The radar's rule is the sites' (docs/ai.md §18.1): the reach for the bogey's cross-section seen from the radar,
+    // the ground's clutter in look-down, the terrain's sight. One decision each, no ground's vector.
+    let p = Vec3::new(0.0, 0.0, ALT);
+    let contact = |bogey: Bogey, rcs: Rcs, ridge: Option<f64>| {
+        let mut w = Pair::new(p, p, Skill::HIGH)?;
+        (w.gci, w.bogey, w.rcs, w.ridge) = (false, Some(bogey), rcs, ridge);
+        w.run(0.1);
+        Some(w.flight.members[0].enemy.contact)
+    };
+    // The Adir head on: 74 km · (0.0015 / 5)^¼ = 9.7 km against an untreated fighter's 74 km.
+    let adir = Rcs { front_m2: 0.0015, side_m2: 0.05, rear_m2: 0.01, bays_open_m2: 1.0, store_m2: 0.5 };
+    let Some(fighter_30) = contact(head_on(p, 30.0), FIGHTER, None) else { return };
+    assert!(fighter_30, "an untreated fighter at 30 km");
+    assert_eq!(contact(head_on(p, 30.0), adir, None), Some(false), "the Adir at 30 km");
+    assert_eq!(contact(head_on(p, 9.0), adir, None), Some(true), "the Adir at 9 km");
+    // A jet on the beam 3 km below: lost in look-down; the same one 3 km above, and one closing below, held.
+    let beam = |dz: f64, vel: Vec3| Bogey { pos: p + Vec3::new(0.0, 30_000.0, dz), vel };
+    let across = Vec3::new(250.0, 0.0, 0.0);
+    assert_eq!(contact(beam(-3000.0, across), FIGHTER, None), Some(false), "on the beam below");
+    assert_eq!(contact(beam(3000.0, across), FIGHTER, None), Some(true), "on the beam above");
+    assert_eq!(contact(beam(-3000.0, Vec3::new(0.0, -250.0, 0.0)), FIGHTER, None), Some(true), "closing below");
+    // A ridge between: masked.
+    assert_eq!(contact(head_on(p, 30.0), FIGHTER, Some(15_000.0)), Some(false), "behind a ridge");
 }

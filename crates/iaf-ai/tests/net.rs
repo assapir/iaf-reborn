@@ -184,9 +184,10 @@ fn the_target_is_handed_over_past_the_envelope() {
 #[test]
 fn the_sites_tracks_feed_the_picture() {
     // The jet is seen high, engaged, then drops below the 64N6E2's horizon: site 0's track keeps it in the picture
-    // and the cue holds. Jet b flies low from the start: nothing of the network sees it.
-    let a = jet("a", Vec3::new(0.0, 30_000.0, 8000.0), Vec3::ZERO);
-    let b = jet("b", Vec3::new(30_000.0, 0.0, 300.0), Vec3::ZERO);
+    // and the cue holds. Jet b flies low from the start: nothing of the network sees it. Both go out slowly (40 m/s:
+    // clear of the S-300's Doppler notch, docs/ai.md §15.3), their tails to the network's 64N6E2.
+    let a = jet("a", Vec3::new(0.0, 30_000.0, 8000.0), Vec3::new(0.0, 40.0, 0.0));
+    let b = jet("b", Vec3::new(30_000.0, 0.0, 300.0), Vec3::new(40.0, 0.0, 0.0));
     let mut sim = Sim::new(Vec3::new(0.0, -200_000.0, 0.0), &[Vec3::ZERO], vec![a, b]);
     sim.fly = 1e9;
     sim.run(30.0);
@@ -217,9 +218,10 @@ fn a_restored_network_keeps_the_site_on_its_jet() {
 
 #[test]
 fn a_gun_laying_on_a_jet_out_of_its_reach_leaves_it_to_the_s300() {
-    // The jet crosses 4.8 km from the ZSU: inside its sight, outside its gun; the S-300 beside it is cued and fires.
-    let sites =
-        vec![Site::new(Kind::Zsu, Vec3::ZERO, 0.0, &[]), Site::new(Kind::S300, Vec3::new(0.0, -1000.0, 0.0), 0.0, &[])];
+    // The jet crosses 4.8 km from the ZSU: inside its sight, outside its gun; the S-300 15 km east, the jet flying at
+    // it (clear of its Doppler notch), is cued and fires.
+    let s300 = Site::new(Kind::S300, Vec3::new(15_000.0, 4800.0, 0.0), 0.0, &[]);
+    let sites = vec![Site::new(Kind::Zsu, Vec3::ZERO, 0.0, &[]), s300];
     let a = jet("a", Vec3::new(-1250.0, 4800.0, 500.0), Vec3::new(100.0, 0.0, 0.0));
     let mut sim = Sim::of(Vec3::new(0.0, -20_000.0, 0.0), sites, vec![a]);
     sim.dlz = vec![Some((4500.0, 200.0)), None];

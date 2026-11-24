@@ -2234,7 +2234,7 @@ fn notched(c: &Contact, own: &Own, gate_kt: f64, reach: f64, terrain: &dyn Fn(Ve
 
 /// Ours: the ground lies behind `to` seen from `from`: the line of sight, carried on past it, meets the ground (taken
 /// level at the height under `to`, sea level where there is none) within `reach` (inferred; a flat earth).
-fn look_down(from: Vec3, to: Vec3, reach: f64, terrain: &dyn Fn(Vec3) -> Option<f64>) -> bool {
+pub fn look_down(from: Vec3, to: Vec3, reach: f64, terrain: &dyn Fn(Vec3) -> Option<f64>) -> bool {
     let (d, drop) = (to - from, from.z - to.z);
     drop > 0.0 && d.x.hypot(d.y) * (from.z - terrain(to).unwrap_or(0.0)) / drop <= reach
 }

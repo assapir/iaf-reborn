@@ -377,7 +377,8 @@ fn zsu_radar_and_optical_laying() {
 
 #[test]
 fn ground_clutter_tor_notch_and_zsu_floor() {
-    // The Tor's pulse-Doppler radars lose a jet on the beam (no speed along the line of sight); the S-300's keep it.
+    // The Tor's pulse-Doppler radars lose a jet on the beam (no speed along the line of sight); so do the S-300's (the
+    // 96L6E's Doppler speeds start at 30 m/s).
     let tor = Site::new(Kind::Tor, Vec3::ZERO, 0.0, &[]);
     let s300 = Site::new(Kind::S300, Vec3::ZERO, 0.0, &[]);
     let (a1, a6) = (vec![true; tor.spec().parts.len()], vec![true; s300.spec().parts.len()]);
@@ -385,7 +386,8 @@ fn ground_clutter_tor_notch_and_zsu_floor() {
     let (hot, beam) = (at(Vec3::new(0.0, -250.0, 0.0)), at(Vec3::new(250.0, 0.0, 0.0)));
     assert!(tor.detects(&a1, &hot, &flat) && tor.trackable(&a1, &hot, &flat), "coming: seen");
     assert!(!tor.detects(&a1, &beam, &flat) && !tor.trackable(&a1, &beam, &flat), "on the beam: in the notch");
-    assert!(s300.detects(&a6, &beam, &flat) && s300.trackable(&a6, &beam, &flat), "the S-300 has no notch");
+    assert!(s300.detects(&a6, &hot, &flat) && s300.trackable(&a6, &hot, &flat), "the S-300: coming, seen");
+    assert!(!s300.detects(&a6, &beam, &flat) && !s300.trackable(&a6, &beam, &flat), "the S-300: on the beam, lost");
     // The ZSU's radar loses a jet under 60 m in the ground's clutter; the optical sight lays on it.
     let zsu = Site::new(Kind::Zsu, Vec3::ZERO, 0.0, &[]);
     let low = |z| Target { dlz: (2_250.0, 0.0), ..jet("a", "f16", Vec3::new(0.0, 4000.0, z), INBOUND) };

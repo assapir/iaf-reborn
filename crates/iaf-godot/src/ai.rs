@@ -203,18 +203,28 @@ impl IafAi {
         self.flight.fired(number.clamp(0, 255) as u8);
     }
 
-    /// The hostile jets this frame: each {id (the host's, > 0, never reused), pos, vel (scene), jam (its jammer's
-    /// burn-through share, 0 none)}. A bandit an order named that is gone from the list is gone.
+    /// The hostile jets this frame: each {id (the host's, > 0, never reused), pos, vel, nose (scene), jam (its jammer's
+    /// burn-through share, 0 none), rcs (its definition's; none: an untreated fighter's), bays (open), stores (loaded
+    /// external stations)}. A bandit an order named that is gone from the list is gone.
     #[func]
     fn set_bandits(&mut self, list: VarArray) {
         let bandits = list
             .iter_shared()
             .filter_map(|v| v.try_to::<VarDictionary>().ok())
-            .map(|d| Bandit {
-                id: num(&d, "id").unwrap_or(0.0) as u32,
-                pos: to_enu(get(&d, "pos").unwrap_or_default()),
-                vel: to_enu(get(&d, "vel").unwrap_or_default()),
-                jam: num(&d, "jam").unwrap_or(0.0),
+            .map(|d| {
+                let id = num(&d, "id").unwrap_or(0.0) as u32;
+                let b = Bogey {
+                    pos: to_enu(get(&d, "pos").unwrap_or_default()),
+                    vel: to_enu(get(&d, "vel").unwrap_or_default()),
+                };
+                let mut b = Bandit::new(id, b, num(&d, "jam").unwrap_or(0.0));
+                if let Some(n) = get::<Vector3>(&d, "nose").map(to_enu).and_then(|n| n.try_normalize()) {
+                    b.nose = n;
+                }
+                b.rcs = rcs(&d, "rcs").unwrap_or(b.rcs);
+                b.bays_open = get(&d, "bays").unwrap_or(false);
+                b.stores = num(&d, "stores").unwrap_or(0.0).max(0.0) as u32;
+                b
             })
             .collect();
         self.flight.bandits(bandits);
@@ -305,15 +315,17 @@ impl IafAi {
     /// and its jets' orders for their next `ap_step`. Returns the calls due, each
     /// {from: number, id: ack, unable, joker, bingo, rtb, fuel_state, lead_change, in_position, spike, mud, defending,
     /// break_left, break_right, contact, engaged, targeted, splash, winchester, in, alpha, done; the tower's to it:
-    /// tower_land, tower_park}.
+    /// tower_land, tower_park}. `ground` (Callable(Vector3) -> float or null, at a world point) is the terrain the
+    /// radars see over; `origin` the terrain's world origin (the flight's frame is the scene's: world = scene + origin).
     #[func]
-    fn step(&mut self, now: f64) -> VarArray {
+    fn step(&mut self, now: f64, ground: Callable, origin: Vector2) -> VarArray {
         for (n, jet, alive) in &mut self.jets {
             if let Some((fm, ap)) = jet.bind_mut().parts() {
                 self.flight.sense(*n, *alive, fm, ap);
             }
         }
-        let calls = self.flight.step(now);
+        let (ground, o) = (terrain(Some(ground)), Vec3::new(f64::from(origin.x), f64::from(origin.y), 0.0));
+        let calls = self.flight.step_on(now, &|p| ground(p + o));
         for (n, jet, _) in &mut self.jets {
             let Some(m) = self.flight.member(*n).filter(|m| m.ai) else { continue };
             let order = m.order;

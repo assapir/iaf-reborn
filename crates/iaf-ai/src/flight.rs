@@ -8,16 +8,18 @@
 use crate::bfm;
 use crate::bt::{Node, Status};
 use crate::fighter::{self, Bogey, Enemy};
+use crate::site;
 use crate::skill::Skill;
 use crate::sort;
 use crate::strike::{self, Phase, Strike};
 use crate::wingman;
 use iaf_avionics::ecm::{self, Shot};
-use iaf_avionics::radar::REF_RCS;
+use iaf_avionics::radar::{look_down, sigma};
 use iaf_flight::Vec3;
 use iaf_flight::airbase::Airbase;
 use iaf_flight::aircraft::ApView;
 use iaf_flight::aircraft::MILITARY;
+use iaf_flight::airframe::Rcs;
 use iaf_flight::autopilot::{self, Autopilot, Host, Leader, MODE_SLOT, Steer};
 use iaf_flight::fm::Fm;
 
@@ -131,6 +133,9 @@ const REJOIN: (f32, f32, f32, f32) = (6_000.0, 3_000.0, 3.0, 60.0);
 /// An AI jet reports an AWACS contact inside its radar's reach, m, and this far off its nose, deg (a fighter radar's
 /// 40 NM and ±60°).
 const RADAR: (f64, f64) = (74_000.0, 60.0);
+/// The AI jets' pulse-Doppler radar in look-down loses a jet slower than this along the line of sight, m/s (the ground's
+/// Doppler band; the real FCR's MTR LO, 60 kt, docs/radar.md §9.8, taken for every AI fighter's radar: inferred).
+const RADAR_REJECT: f64 = 30.0;
 /// Taxiing in, a jet holds while another jet of the flight with its engine running is on the ground in its way:
 /// within `.0` m along its heading and `.1` m across, or nearer than `.2` m and not behind it (inferred: room to stop
 /// from the 30 kt taxi speed on the brakes, the width of a taxiway with a wing either side, and a pivot's turn toward
@@ -187,11 +192,19 @@ pub struct Bandit {
     pub pos: Vec3,
     pub vel: Vec3,
     pub jam: f64,
+    /// What a radar sees of it (the sites' `site::Target`): its nose, its definition's cross-section (an untreated
+    /// fighter's, `site::FIGHTER`, without one), its bays open, its loaded external stations.
+    pub nose: Vec3,
+    pub rcs: Rcs,
+    pub bays_open: bool,
+    pub stores: u32,
 }
 
 impl Bandit {
+    /// A bandit of an untreated fighter's cross-section, its nose along its velocity, clean.
     pub fn new(id: u32, b: Bogey, jam: f64) -> Bandit {
-        Bandit { id, pos: b.pos, vel: b.vel, jam }
+        let nose = b.vel.try_normalize().unwrap_or(Vec3::NORTH);
+        Bandit { id, pos: b.pos, vel: b.vel, jam, nose, rcs: site::FIGHTER, bays_open: false, stores: 0 }
     }
 
     fn bogey(&self) -> Bogey {
@@ -365,6 +378,10 @@ pub struct Member {
     pub strike: Strike,
     /// The flight's low-level height this decision ([`Flight::low`]).
     pub(crate) low: Option<f32>,
+    /// The bandits its radar holds this decision ([`radar_holds`]), and the jammers beyond their burn-through it sees
+    /// as strobes (in its cone and reach and in sight).
+    radar: Vec<u32>,
+    strobes: Vec<u32>,
 }
 
 /// The flight.
@@ -448,17 +465,29 @@ pub(crate) fn flat(a: Vec3, b: Vec3) -> f64 {
     (a[0] - b[0]).hypot(a[1] - b[1])
 }
 
-/// `at` inside `m`'s radar's reach and cone ([`RADAR`]).
-fn in_radar(m: &Member, at: Vec3) -> bool {
-    in_radar_jammed(m, at, 0.0)
+/// `at` inside `m`'s radar's cone ([`RADAR`]).
+fn in_cone(m: &Member, at: Vec3) -> bool {
+    let (d, v) = (at - m.v.pos, m.v.vel);
+    (v[0] * d[1] - v[1] * d[0]).atan2(v[0] * d[0] + v[1] * d[1]).abs().to_degrees() < RADAR.1
 }
 
-/// `at` inside `m`'s radar's cone and its reach, or the burn-through of a jammer of share `jam` (0 none; the radar
-/// has no cross-section model: the reference one, `ecm::jammed_reach`).
-fn in_radar_jammed(m: &Member, at: Vec3, jam: f64) -> bool {
-    let (d, v) = (at - m.v.pos, m.v.vel);
-    let off = (v[0] * d[1] - v[1] * d[0]).atan2(v[0] * d[0] + v[1] * d[1]).abs().to_degrees();
-    flat(at, m.v.pos) < ecm::jammed_reach(RADAR.0, REF_RCS, jam) && off < RADAR.1
+/// `at` inside `m`'s radar's reach against the reference cross-section and its cone ([`RADAR`]).
+fn in_radar(m: &Member, at: Vec3) -> bool {
+    flat(at, m.v.pos) < RADAR.0 && in_cone(m, at)
+}
+
+/// `m`'s radar holds `b` (docs/ai.md §18.1): in its cone, inside its reach for `b`'s cross-section seen from `m` (its
+/// burn-through when `b` jams) and in sight over the terrain and the earth's curvature (the sites' rule,
+/// [`site::in_reach`]), and clear of the ground's clutter: in look-down, not slower than [`RADAR_REJECT`] along the line
+/// of sight.
+fn radar_holds(m: &Member, b: &Bandit, terrain: &dyn Fn(Vec3) -> Option<f64>) -> bool {
+    let from = m.v.pos;
+    let d = b.pos - from;
+    let along = b.vel.dot(d.try_normalize().unwrap_or(Vec3::ZERO)).abs();
+    let s = sigma(&b.rcs, b.nose, -d, b.bays_open, b.stores);
+    in_cone(m, b.pos)
+        && !(along < RADAR_REJECT && look_down(from, b.pos, RADAR.0, terrain))
+        && site::in_reach(from, RADAR.0, s, b.pos, b.jam, terrain)
 }
 
 /// `at` in `m`'s pilot's sight: inside [`bfm::VISUAL_M`], not in the blind cone behind its tail ([`bfm::BLIND_DEG`]).
@@ -479,10 +508,10 @@ fn in_sight(m: &Member, at: Vec3) -> bool {
 fn know(m: &mut Member, station: Vec3, known: Option<Bogey>, truth: Option<&Bandit>, now: f64) {
     // On the ground its radar is off and its pilot looks for nothing.
     let up = !m.v.on_ground;
-    let jam = truth.map_or(0.0, |b| b.jam);
+    let id = truth.map(|b| b.id);
     let truth = truth.map(Bandit::bogey);
-    let contact = truth.filter(|b| up && in_radar_jammed(m, b.pos, jam));
-    let strobe = truth.filter(|b| up && jam > 0.0 && contact.is_none() && in_radar(m, b.pos));
+    let contact = truth.filter(|_| up && id.is_some_and(|id| m.radar.contains(&id)));
+    let strobe = truth.filter(|_| up && contact.is_none() && id.is_some_and(|id| m.strobes.contains(&id)));
     // (Once seen it stays seen inside the visual range: the pilot keeps sight, checking six.)
     let kept = |b: &Bogey| m.enemy.visual && b.pos.distance(m.v.pos) < bfm::VISUAL_M;
     let seen = truth.filter(|b| up && (in_sight(m, b.pos) || kept(b)));
@@ -515,9 +544,9 @@ fn attacks_lead(l: &Member, b: &Bandit) -> bool {
     l.alive && (lock || on_six(l, b))
 }
 
-/// `b` in `m`'s radar (through its jammer) or its pilot's sight: the flight's picture.
+/// `b` in `m`'s radar (this decision's, [`radar_holds`]) or its pilot's sight: the flight's picture.
 fn sees(m: &Member, b: &Bandit) -> bool {
-    m.alive && !m.v.on_ground && (in_radar_jammed(m, b.pos, b.jam) || in_sight(m, b.pos))
+    m.alive && !m.v.on_ground && (m.radar.contains(&b.id) || in_sight(m, b.pos))
 }
 
 /// Whether member `m` (AI, alive) can take a fight order: in the air with the gear up, not sent home, something to shoot.
@@ -599,6 +628,8 @@ impl Flight {
             last_shot: f64::MIN,
             winchester: false,
             enemy: Enemy::default(),
+            radar: Vec::new(),
+            strobes: Vec::new(),
             tower: [false; 2],
             lined_up: None,
             pair_free: None,
@@ -1006,8 +1037,9 @@ impl Flight {
     }
 
     /// An AWACS contact call (fctrl.rs) at `now`: the contact's compass bearing (deg) and range (NM) from the player's
-    /// jet (else the lead's); `enemy`: hostile or unidentified. The first AI jet by number holding it in its radar's
-    /// reach and cone ([`RADAR`]) reports "contact" after its reaction time. Returns its number, 0 for none.
+    /// jet (else the lead's); `enemy`: hostile or unidentified. The first AI jet by number holding it in its radar
+    /// reports "contact" after its reaction time: a bandit at the point as this decision's radar holds it
+    /// ([`radar_holds`]), else the point in its radar's reach and cone ([`RADAR`]). Returns its number, 0 for none.
     pub fn awacs(&mut self, now: f64, bearing_deg: f64, miles: f64, enemy: bool) -> u8 {
         let Some(from) = self.members.iter().find(|m| !m.ai).or(self.members.get(self.lead)) else { return 0 };
         if !enemy {
@@ -1015,14 +1047,15 @@ impl Flight {
         }
         let b = bearing_deg.to_radians();
         let at = from.v.pos + Vec3::new(b.sin(), b.cos(), 0.0) * (miles * 1852.0);
+        let near = self.bandits.iter().find(|b| flat(b.pos, at) < sort::GROUP_M).map(|b| b.id);
+        let holds = |m: &Member| near.map_or_else(|| in_radar(m, at), |id| m.radar.contains(&id));
         // (Answered by the first jet that holds it; the memory of the bandits called is the contact calls'.)
         let Some(m) =
-            self.members.iter().find(|m| m.ai && m.alive && m.airborne && !m.landed && !m.defending && in_radar(m, at))
+            self.members.iter().find(|m| m.ai && m.alive && m.airborne && !m.landed && !m.defending && holds(m))
         else {
             return 0;
         };
         // (A bandit at the called point that a jet already called is not called again; it is called now.)
-        let near = self.bandits.iter().find(|b| flat(b.pos, at) < sort::GROUP_M).map(|b| b.id);
         if let Some(id) = near {
             if self.reported.contains(&id) {
                 return 0;
@@ -1162,6 +1195,11 @@ impl Flight {
     /// One frame: the decisions every [`DECIDE_S`], each member's order (its leader and slot every frame); returns
     /// the calls now due.
     pub fn step(&mut self, now: f64) -> Vec<Call> {
+        self.step_on(now, &|_| None)
+    }
+
+    /// [`Flight::step`] over the terrain's height `terrain` (None: sea level): the radars' sight and look-down.
+    pub fn step_on(&mut self, now: f64, terrain: &dyn Fn(Vec3) -> Option<f64>) -> Vec<Call> {
         if self.members.is_empty() {
             return Vec::new();
         }
@@ -1172,6 +1210,7 @@ impl Flight {
         }
         if now >= self.next {
             self.next = now + DECIDE_S;
+            self.scan(terrain);
             self.decide(now);
         }
         self.watch_parade(now);
@@ -1179,6 +1218,21 @@ impl Flight {
         let (due, later) = std::mem::take(&mut self.calls).into_iter().partition(|(t, _)| *t <= now);
         self.calls = later;
         due.into_iter().map(|(_, c)| c).collect::<Vec<_>>()
+    }
+
+    /// Each jet's radar this decision: the bandits it holds and the jammers it sees as strobes (none on the ground).
+    fn scan(&mut self, terrain: &dyn Fn(Vec3) -> Option<f64>) {
+        for m in &mut self.members {
+            let up = m.alive && !m.v.on_ground;
+            let holds: Vec<u32> =
+                self.bandits.iter().filter(|b| up && radar_holds(m, b, terrain)).map(|b| b.id).collect();
+            let strobes = (self.bandits.iter())
+                .filter(|b| up && b.jam > 0.0 && !holds.contains(&b.id) && in_radar(m, b.pos))
+                .filter(|b| site::visible(m.v.pos, b.pos, terrain))
+                .map(|b| b.id)
+                .collect();
+            (m.radar, m.strobes) = (holds, strobes);
+        }
     }
 
     fn decide(&mut self, now: f64) {
@@ -1719,8 +1773,7 @@ impl Flight {
             if !m.ai || !m.alive || !wingman::flying(m) || m.defending {
                 continue;
             }
-            let found =
-                self.bandits.iter().find(|b| !self.reported.contains(&b.id) && in_radar_jammed(m, b.pos, b.jam));
+            let found = self.bandits.iter().find(|b| !self.reported.contains(&b.id) && m.radar.contains(&b.id));
             if let Some(b) = found {
                 self.reported.push(b.id);
                 self.calls.push((now + m.skill.reaction_s, Call { from: m.number, id: "contact" }));
