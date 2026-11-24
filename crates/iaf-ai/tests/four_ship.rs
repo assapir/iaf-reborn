@@ -59,8 +59,14 @@ impl World {
 
     /// [`World::new`] with four jets of flight-model type `ty` (`data_set::TYPES`).
     fn of_type(dir: &Path, ty: &str, starts: [(Vec3, f32); 4], speed: f64, airborne: bool, ground: f32) -> World {
-        let (p, e) = iaf_flight::load_with(dir, ty, DataSet::Original).unwrap();
         let bases = Airbase::load_all(&std::fs::read(dir.join("iaf.ibx")).unwrap());
+        World::at_bases(dir, ty, starts, (speed, airborne, ground), bases)
+    }
+
+    /// [`World::of_type`] over `bases` (`state`: the speed, airborne, the ground height).
+    fn at_bases(dir: &Path, ty: &str, starts: [(Vec3, f32); 4], state: (f64, bool, f32), bases: Vec<Airbase>) -> World {
+        let (speed, airborne, ground) = state;
+        let (p, e) = iaf_flight::load_with(dir, ty, DataSet::Original).unwrap();
         let mut flight = Flight::default();
         let mut jets = Vec::new();
         for (pos, hdg) in starts {
@@ -636,7 +642,15 @@ fn mig29_ground_run_at_nevatim() {
 #[test]
 fn taxi_in_behind_a_stopped_lead() {
     // The lead (the player) stops on its way in for minutes: the wingmen taxiing in behind it hold (docs/ai.md §8.7).
-    ground_run_with("F-16I", "Ramon", true);
+    ground_run_with("F-16I", "Ramon", true, false);
+}
+
+#[test]
+fn ground_run_at_ramon_into_the_wind() {
+    // The tower turned Ramon into the wind (docs/autopilot.md §2.4: a wind from behind 25R, so 07L; the game's
+    // IafBases.set_wind, which the autopilot reads through bases::map_airbases): the flight taxis to 25R's lineup,
+    // backtracks to the other end, takes off on 07L's heading and lands on it, each to its own shelter.
+    ground_run_with("F-16I", "Ramon", false, true);
 }
 
 fn ground_run(ty: &str) {
@@ -644,15 +658,21 @@ fn ground_run(ty: &str) {
 }
 
 fn ground_run_at(ty: &str, base: &str) {
-    ground_run_with(ty, base, false);
+    ground_run_with(ty, base, false, false);
 }
 
-fn ground_run_with(ty: &str, base: &str, lead_stops: bool) {
+/// `into_wind`: the base turned to its runway's other end (`Airbase::reversed`, 3000 m ahead without the measured
+/// ends; the game's own ends are test_own_sources.gd's).
+fn ground_run_with(ty: &str, base: &str, lead_stops: bool, into_wind: bool) {
     let Some(dir) = own() else { return println!("skipped: no assets/converted/own (iaf-sim fm, airbases)") };
     let _turn = HANGARS.lock().unwrap_or_else(|e| e.into_inner());
     autopilot::reset_hangars();
-    let bases = Airbase::load_all(&std::fs::read(dir.join("iaf.ibx")).unwrap());
-    let rb = bases.iter().find(|b| b.name == base).unwrap().clone();
+    let mut bases = Airbase::load_all(&std::fs::read(dir.join("iaf.ibx")).unwrap());
+    let i = bases.iter().position(|b| b.name == base).unwrap();
+    if into_wind {
+        bases[i] = bases[i].reversed(None);
+    }
+    let rb = bases[i].clone();
     let z = rb.lineup[2];
     let l = Vec3::new(rb.lineup[0] as f64, rb.lineup[1] as f64, z as f64);
     let (s, c) = (rb.runway_deg as f64).to_radians().sin_cos();
@@ -663,7 +683,7 @@ fn ground_run_with(ty: &str, base: &str, lead_stops: bool) {
         let p = rb.hangars[h];
         (Vec3::new(p.x as f64, p.y as f64, z as f64), p.hdg.to_degrees())
     };
-    let mut w = World::of_type(&dir, ty, [shelter(0), shelter(1), shelter(2), shelter(3)], 0.0, false, z);
+    let mut w = World::at_bases(&dir, ty, [shelter(0), shelter(1), shelter(2), shelter(3)], (0.0, false, z), bases);
     // Take-off point, a turn to the north-east, the landing waypoint 15 km out on the approach.
     let wp = |p: Vec3, action: i32| Waypoint { x: p[0], y: p[1], z: p[2], t: 0.0, action };
     let route = vec![
@@ -725,6 +745,9 @@ fn ground_run_with(ty: &str, base: &str, lead_stops: bool) {
             }
             if ap.airborne && airborne[i].is_none() {
                 airborne[i] = Some(w.t);
+                // Off the runway the tower named: on its heading.
+                let off = (st.heading.to_degrees() - rb.runway_deg + 540.0).rem_euclid(360.0) - 180.0;
+                assert!(off.abs() < 10.0, "#{} lifted off {off:.1}° off runway {:.0}°", i + 1, rb.runway_deg);
             }
             if ap.landed && landed[i].is_none() {
                 landed[i] = Some(w.t);
@@ -749,7 +772,9 @@ fn ground_run_with(ty: &str, base: &str, lead_stops: bool) {
     for n in 2..=4u8 {
         let said = w.calls.iter().find(|(_, c)| c.from == n && c.id == "in_position").map(|(t, _)| *t);
         println!("#{n}: join-up least slot error {:.1} m, in position at {said:?}", least[n as usize - 2]);
-        assert!(n == 4 || said.is_some_and(|t| t > airborne[n as usize - 1].unwrap()), "#{n} joined up, in position");
+        // (Into the wind each jet backtracks 3 km after the one ahead is airborne: only #2 joins up on this route.)
+        let late = n == 4 || into_wind && n == 3;
+        assert!(late || said.is_some_and(|t| t > airborne[n as usize - 1].unwrap()), "#{n} joined up, in position");
     }
     println!(
         "separation: ground {:.1} m (t {:.0} s, #{} and #{}), air {:.1} m (t {:.0} s, #{} and #{})",
@@ -781,7 +806,9 @@ fn ground_run_with(ty: &str, base: &str, lead_stops: bool) {
     assert!(order(landed), "landing in order");
     // The wingmen land some 15-60 s apart (SPACING's 30 s at the least on the way in; inferred), not a circuit apart.
     let gaps: Vec<f64> = landed[1..].windows(2).map(|p| p[1].unwrap() - p[0].unwrap()).collect();
-    assert!(gaps.iter().all(|g| (15.0..60.0).contains(g)), "the wingmen's landings {gaps:?} s apart");
+    // (Into the wind the jets left 3 km of backtrack apart, so they come home farther apart: up to 65 s at Ramon.)
+    let most = if into_wind { 90.0 } else { 60.0 };
+    assert!(gaps.iter().all(|g| (15.0..most).contains(g)), "the wingmen's landings {gaps:?} s apart");
     // Nevatim's four shelters share one taxi-in path, where #4, swinging 40 m wide into its turn, came within 1 m of
     // #2 parked before the taxi slowed for its pivots (docs/ai.md §18.4).
     println!("held for a jet ahead taxiing in: {held:.0} s");

@@ -30,23 +30,36 @@ The tower that answers is the base nearest to you, within about 18 km.
 
 === The calls on the ground, in order <tower-ground>
 
-#idx("Start-up clearance")#idx("Taxi clearance")#idx("Line-up clearance")#idx("Take-off clearance")Your callsign is Kidon 1 (kidon style: the first flight is Kidon 1, the next Kidon 2, and a flight's jets are Kidon 1-1, 1-2 and so on). The runway in the tower's answers is your mission's runway.
+#idx("Start-up clearance")#idx("Taxi clearance")#idx("Line-up clearance")#idx("Take-off clearance")Your callsign is Kidon 1 (kidon style: the first flight is Kidon 1, the next Kidon 2, and a flight's jets are Kidon 1-1, 1-2 and so on). The runway in the tower's answers is the runway in use: your mission's runway, or its other end when the wind blows from behind it (@tower-wind).
 
 #caution[A phase started before the tower's clearance fails a Training mission at once. Make each call, and wait for the answer in the right-hand column, before you do what it clears (@scoring-clearances).]
 
 + With the engine off, on your parking spot, press #key("Call the tower"), then #keycap("1").
-  #then[The tower answers "Kidon 1, cleared to start". You may start the engine.]
+  #then[The tower answers "Kidon 1, cleared to start", and your pilot reads it back: "Cleared to start, Kidon 1". You may start the engine.]
 + Start the jet by its checklist (@notebook-checklist). Wait for the engine at idle and the avionics up.
 + Press #key("Call the tower"), then #keycap("2").
-  #then[The tower answers with a greeting and "taxi to runway" with your runway's number. You may leave the parking spot.]
+  #then[The tower answers with a greeting and "taxi to runway" with your runway's number, and your pilot reads it back. You may leave the parking spot.]
 + Taxi to the runway and stop at the #term("holding point"), short of the runway (@ground-signs-hold).
 + Press #key("Call the tower"), then #keycap("3").
-  #then[The tower answers "line up runway" with the runway's number and the wind. You may enter the runway.]
+  #then[The tower answers "line up runway" with the runway's number and the wind ("wind 270 degrees, 10 knots", or "wind calm"), and your pilot reads it back. You may enter the runway.]
 + Taxi onto the runway and stop on its centreline, facing down the runway.
 + Press #key("Call the tower"), then #keycap("4").
-  #then[The tower answers "cleared for take-off". You may start the take-off roll.]
+  #then[The tower answers with the wind, the runway and "cleared for take-off" ("Kidon 1, wind calm, runway 25 right, cleared for take-off"), and your pilot reads it back. You may start the take-off roll.]
+
+#idx("Readback")Your pilot reads back every clearance in your pilot's voice: the clearance and its runway, then your callsign ("Taxi to runway 25 right, Kidon 1"). To "hold position" your pilot answers "Holding, Kidon 1", to a go-around "Going around, Kidon 1", and to the gear warning "Roger".
 
 Once you have a clearance, you keep it, also when you shut the engine down and start it again.
+
+=== The runway in use and the wind <tower-wind>
+
+#idx("Runway in use")#idx("Wind")The tower names the runway end that faces the wind. When the mission's wind is 10 knots or more and blows from more than 90° off your mission's runway, the tower turns the base round and names the other end of the same runway: at Ramon 07L in place of 25R. The briefing, the Missions screen and the #term("notebook") name that end too.
+
++ Taxi to the runway's usual #term("holding point") and ask for line-up there.
+  #then[The tower answers "line up runway" with the far end's number.]
++ Enter the runway and taxi down its centreline to its far end (a backtrack).
++ Turn round on the centreline at the far end, facing down the runway, and ask for take-off.
+
+In a four-ship lesson each wingman waits at the holding point until the jet ahead of it is in the air, then backtracks in its turn. A wind of exactly 90° off, or under 5 knots, keeps the mission's runway. The missions of this version are flown with the wind calm, so the tower names the mission's runway.
 
 === The tower's other answers <tower-answers>
 
@@ -56,7 +69,7 @@ Once you have a clearance, you keep it, also when you shut the engine down and s
   ["hold position"], [The tower cannot clear the call now. You have no clearance. Typical causes: a taxi request with the engine not running; a line-up request far from the runway or with the runway in use. Mend the cause and call again.],
   ["negative, hold position, request ... first"], [You skipped a call: take-off before line-up, line-up before taxi, or taxi before start-up. Make the call the tower names, then this one.],
   ["line up runway ..." in answer to a take-off request], [You asked for take-off before you were lined up. This clears the line-up only. Line up, then request take-off again.],
-  ["you are on runway ..., the assigned runway is ..."], [You lined up on a runway that is not your mission's. Taxi off it and go to the assigned runway. A take-off roll on the wrong runway fails the mission.],
+  ["you are on runway ..., the assigned runway is ..."], [You lined up on a runway end that is not the one the tower named. Taxi off it and go to the assigned runway. A take-off roll on the wrong runway fails the mission.],
   ["engine start without clearance", "taxi without clearance", "runway entry without clearance", "take-off without clearance"], [You did the thing before its clearance. In a Training mission the mission has failed.],
 )
 
@@ -98,7 +111,7 @@ The page puts the start-up and taxi calls on GND and the line-up, take-off and l
 
 === The radio's lines on the screen <tower-subtitles>
 
-#idx("Subtitles")Every call and answer is spoken, and shows as a line of text at the top middle of the screen as its voice starts. The strip holds the three newest lines, each for 8 seconds. Your own call comes first, then, after a short pause, the tower's answer, then your pilot's "Roger".
+#idx("Subtitles")Every call and answer is spoken, and shows as a line of text at the top middle of the screen as its voice starts. The strip holds the three newest lines, each for 8 seconds. Your own call comes first, then, after a short pause, the tower's answer, then your pilot's readback of it.
 
 The lines and the voices are in the game's language (@language).
 

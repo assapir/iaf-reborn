@@ -787,7 +787,10 @@ pub fn compile_mission(
     let (hh, mm) = time.split_once(':').with_context(|| format!("{}: time \"{time}\" is not HH:MM", f.name))?;
     misc[hex("mission", "title")] = f.v["title"]["en"].clone();
     misc[hex("mission", "time")] = json!(hh.parse::<f64>()? * 3600.0 + mm.parse::<f64>()? * 60.0);
-    misc[hex("mission", "wind_kt")] = json!(f.v["wind_kt"].as_i64().unwrap_or(0));
+    // The tower's winds (settings.gd pick_wind, FUN_00551320): any other speed would be a random one of these.
+    let wind_kt = f.v["wind_kt"].as_i64().unwrap_or(0);
+    ensure!([0, 10, 15, 20].contains(&wind_kt), "{}: wind_kt {wind_kt}: the tower says 0, 10, 15 or 20 kt", f.name);
+    misc[hex("mission", "wind_kt")] = json!(wind_kt);
     misc[hex("mission", "wind_from")] = json!(f.v["wind_from"].as_i64().unwrap_or(0));
     misc[hex("mission", "win")] = texts(f, "win")?["en"].clone();
     misc[hex("mission", "lose")] = texts(f, "lose")?["en"].clone();
@@ -2221,9 +2224,9 @@ mod tests {
             .filter(|l| !l.starts_with(';'))
             .map(|l| {
                 let c: Vec<&str> = l.split('\t').collect();
-                // A Hebrew-only joined particle (voices.json he_only): its clip is in the first cast's tower voice.
-                let he_only = sounds.join("he").join(he["casts"][0]["tower"].as_str().unwrap()).join(c[1]);
-                assert!(he_only.exists() || clip(c[1]) > 0.0, "{l}");
+                // A Hebrew-only joined particle (voices.json he_only): its clip is under its role's Hebrew voices.
+                let he_only = |r: &str| sounds.join("he").join(he["casts"][0][r].as_str().unwrap()).join(c[1]).exists();
+                assert!(he_only("tower") || he_only("pilot") || clip(c[1]) > 0.0, "{l}");
                 c[0]
             })
             .collect();

@@ -261,7 +261,7 @@ func _current() -> int:
 func _sections() -> Array:
 	var l := lang()
 	var secs := []
-	var runway := String(flight._sim.get("runway", "")) if flight._sim.get("runway") is String else ""
+	var runway: String = flight.runway_in_use()
 	var to := _mission_of("takeoff")
 	if runway == "":
 		runway = String(to.get("runway", ""))

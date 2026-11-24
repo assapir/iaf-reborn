@@ -33,6 +33,9 @@ pub struct Airbase {
     /// shared paths.
     pub from_hangar_path: Vec<Vec<TaxiPt>>,
     pub to_hangar_path: Vec<Vec<TaxiPt>>,
+    /// A base the tower turned into the wind (`reversed`): where the departure enters the runway to backtrack down it
+    /// to the other end (the original lineup); None on a base flown its own way.
+    pub backtrack: Option<[f32; 3]>,
 }
 
 /// The sections, in the TowersManager's record order; Modern IAF's own iaf.ibx adds Hatzerim and Nevatim after them
@@ -94,6 +97,7 @@ impl Airbase {
                 .map(|h| pts(s, &format!("FromHangar{h}Pt"), n(&format!("HangarPtsFrom{h}"))))
                 .collect(),
             to_hangar_path: (0..nh).map(|h| pts(s, &format!("ToHangar{h}Pt"), n(&format!("HangarPtsTo{h}")))).collect(),
+            backtrack: None,
         }
     }
 
@@ -236,6 +240,7 @@ impl Airbase {
             to_hangar_turn,
             from_hangar_path,
             to_hangar_path,
+            backtrack: Some(l),
             ..self.clone()
         }
     }

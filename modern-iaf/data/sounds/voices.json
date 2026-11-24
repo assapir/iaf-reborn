@@ -246,23 +246,23 @@
     {
       "file": "twr_wind10.ogg",
       "voice": "tower",
-      "say": "wind one zero knots",
+      "say": "one zero knots",
       "mode": "particle",
-      "say_he": "רוח עשרה קשר"
+      "say_he": "עשרה קשר"
     },
     {
       "file": "twr_wind15.ogg",
       "voice": "tower",
-      "say": "wind one five knots",
+      "say": "one five knots",
       "mode": "particle",
-      "say_he": "רוח חמישה עשר קשר"
+      "say_he": "חמישה עשר קשר"
     },
     {
       "file": "twr_wind20.ogg",
       "voice": "tower",
-      "say": "wind two zero knots",
+      "say": "two zero knots",
       "mode": "particle",
-      "say_he": "רוח עשרים קשר"
+      "say_he": "עשרים קשר"
     },
     {
       "file": "twr_start.ogg",
@@ -318,7 +318,7 @@
       "voice": "tower",
       "say": "go around, runway not clear",
       "mode": "particle",
-      "say_he": "סיבוב נוסף, המסלול אינו פנוי"
+      "say_he": "הליכה סביב, המסלול אינו פנוי"
     },
     {
       "file": "twr_taxi_park.ogg",
@@ -808,12 +808,6 @@
       "mode": "phrase"
     },
     {
-      "file": "twr_kidon1_takeoff.ogg",
-      "voice": "tower",
-      "say": "[Kidon](/kidˈOn/) one, cleared for take-off.",
-      "mode": "phrase"
-    },
-    {
       "file": "twr_kidon1_go_around.ogg",
       "voice": "tower",
       "say": "[Kidon](/kidˈOn/) one, go around, runway not clear.",
@@ -883,12 +877,6 @@
       "file": "twr_kidon2_hold_pos.ogg",
       "voice": "tower",
       "say": "[Kidon](/kidˈOn/) two, hold position.",
-      "mode": "phrase"
-    },
-    {
-      "file": "twr_kidon2_takeoff.ogg",
-      "voice": "tower",
-      "say": "[Kidon](/kidˈOn/) two, cleared for take-off.",
       "mode": "phrase"
     },
     {
@@ -964,12 +952,6 @@
       "mode": "phrase"
     },
     {
-      "file": "twr_kidon3_takeoff.ogg",
-      "voice": "tower",
-      "say": "[Kidon](/kidˈOn/) three, cleared for take-off.",
-      "mode": "phrase"
-    },
-    {
       "file": "twr_kidon3_go_around.ogg",
       "voice": "tower",
       "say": "[Kidon](/kidˈOn/) three, go around, runway not clear.",
@@ -1039,12 +1021,6 @@
       "file": "twr_kidon4_hold_pos.ogg",
       "voice": "tower",
       "say": "[Kidon](/kidˈOn/) four, hold position.",
-      "mode": "phrase"
-    },
-    {
-      "file": "twr_kidon4_takeoff.ogg",
-      "voice": "tower",
-      "say": "[Kidon](/kidˈOn/) four, cleared for take-off.",
       "mode": "phrase"
     },
     {
@@ -2944,6 +2920,980 @@
       "voice": "tower",
       "mode": "phrase",
       "say_he": "כניסה למסלול שתיים שבע, רוח שקטה."
+    },
+    {
+      "file": "plt_rb_taxi.ogg",
+      "voice": "pilot",
+      "say": "Taxi to runway; two seven.",
+      "cut": "head",
+      "mode": "helmet",
+      "say_he": "הסעה למסלול.",
+      "note": "the player's readback (ours: AMC-69 §2.10.4 form, the callsign last; the Hebrew the tower's own words)"
+    },
+    {
+      "file": "plt_rb_taxi_25r.ogg",
+      "voice": "pilot",
+      "mode": "helmet",
+      "say_he": "הסעה למסלול שתיים חמש ימין."
+    },
+    {
+      "file": "plt_rb_taxi_25r_kidon1.ogg",
+      "voice": "pilot",
+      "say": "Taxi to runway two five right, [Kidon](/kidˈOn/) one.",
+      "mode": "helmet"
+    },
+    {
+      "file": "plt_rb_taxi_07l.ogg",
+      "voice": "pilot",
+      "mode": "helmet",
+      "say_he": "הסעה למסלול אפס שבע שמאל."
+    },
+    {
+      "file": "plt_rb_taxi_07l_kidon1.ogg",
+      "voice": "pilot",
+      "say": "Taxi to runway zero seven left, [Kidon](/kidˈOn/) one.",
+      "mode": "helmet"
+    },
+    {
+      "file": "plt_rb_taxi_27.ogg",
+      "voice": "pilot",
+      "mode": "helmet",
+      "say_he": "הסעה למסלול שתיים שבע."
+    },
+    {
+      "file": "plt_rb_taxi_27_kidon1.ogg",
+      "voice": "pilot",
+      "say": "Taxi to runway two seven, [Kidon](/kidˈOn/) one.",
+      "mode": "helmet"
+    },
+    {
+      "file": "plt_rb_taxi_09.ogg",
+      "voice": "pilot",
+      "mode": "helmet",
+      "say_he": "הסעה למסלול אפס תשע."
+    },
+    {
+      "file": "plt_rb_taxi_09_kidon1.ogg",
+      "voice": "pilot",
+      "say": "Taxi to runway zero nine, [Kidon](/kidˈOn/) one.",
+      "mode": "helmet"
+    },
+    {
+      "file": "plt_rb_taxi_33l.ogg",
+      "voice": "pilot",
+      "mode": "helmet",
+      "say_he": "הסעה למסלול שלוש שלוש שמאל."
+    },
+    {
+      "file": "plt_rb_taxi_33l_kidon1.ogg",
+      "voice": "pilot",
+      "say": "Taxi to runway three three left, [Kidon](/kidˈOn/) one.",
+      "mode": "helmet"
+    },
+    {
+      "file": "plt_rb_taxi_15r.ogg",
+      "voice": "pilot",
+      "mode": "helmet",
+      "say_he": "הסעה למסלול אחת חמש ימין."
+    },
+    {
+      "file": "plt_rb_taxi_15r_kidon1.ogg",
+      "voice": "pilot",
+      "say": "Taxi to runway one five right, [Kidon](/kidˈOn/) one.",
+      "mode": "helmet"
+    },
+    {
+      "file": "plt_rb_taxi_28l.ogg",
+      "voice": "pilot",
+      "mode": "helmet",
+      "say_he": "הסעה למסלול שתיים שמונה שמאל."
+    },
+    {
+      "file": "plt_rb_taxi_28l_kidon1.ogg",
+      "voice": "pilot",
+      "say": "Taxi to runway two eight left, [Kidon](/kidˈOn/) one.",
+      "mode": "helmet"
+    },
+    {
+      "file": "plt_rb_taxi_10r.ogg",
+      "voice": "pilot",
+      "mode": "helmet",
+      "say_he": "הסעה למסלול אחת אפס ימין."
+    },
+    {
+      "file": "plt_rb_taxi_10r_kidon1.ogg",
+      "voice": "pilot",
+      "say": "Taxi to runway one zero right, [Kidon](/kidˈOn/) one.",
+      "mode": "helmet"
+    },
+    {
+      "file": "plt_rb_taxi_26l.ogg",
+      "voice": "pilot",
+      "mode": "helmet",
+      "say_he": "הסעה למסלול שתיים שש שמאל."
+    },
+    {
+      "file": "plt_rb_taxi_26l_kidon1.ogg",
+      "voice": "pilot",
+      "say": "Taxi to runway two six left, [Kidon](/kidˈOn/) one.",
+      "mode": "helmet"
+    },
+    {
+      "file": "plt_rb_taxi_08r.ogg",
+      "voice": "pilot",
+      "mode": "helmet",
+      "say_he": "הסעה למסלול אפס שמונה ימין."
+    },
+    {
+      "file": "plt_rb_taxi_08r_kidon1.ogg",
+      "voice": "pilot",
+      "say": "Taxi to runway zero eight right, [Kidon](/kidˈOn/) one.",
+      "mode": "helmet"
+    },
+    {
+      "file": "plt_rb_lineup.ogg",
+      "voice": "pilot",
+      "say": "Line up runway; two seven.",
+      "cut": "head",
+      "mode": "helmet",
+      "say_he": "כניסה למסלול.",
+      "note": "the player's readback (ours: AMC-69 §2.10.4 form, the callsign last; the Hebrew the tower's own words)"
+    },
+    {
+      "file": "plt_rb_lineup_25r.ogg",
+      "voice": "pilot",
+      "mode": "helmet",
+      "say_he": "כניסה למסלול שתיים חמש ימין."
+    },
+    {
+      "file": "plt_rb_lineup_25r_kidon1.ogg",
+      "voice": "pilot",
+      "say": "Line up runway two five right, [Kidon](/kidˈOn/) one.",
+      "mode": "helmet"
+    },
+    {
+      "file": "plt_rb_lineup_07l.ogg",
+      "voice": "pilot",
+      "mode": "helmet",
+      "say_he": "כניסה למסלול אפס שבע שמאל."
+    },
+    {
+      "file": "plt_rb_lineup_07l_kidon1.ogg",
+      "voice": "pilot",
+      "say": "Line up runway zero seven left, [Kidon](/kidˈOn/) one.",
+      "mode": "helmet"
+    },
+    {
+      "file": "plt_rb_lineup_27.ogg",
+      "voice": "pilot",
+      "mode": "helmet",
+      "say_he": "כניסה למסלול שתיים שבע."
+    },
+    {
+      "file": "plt_rb_lineup_27_kidon1.ogg",
+      "voice": "pilot",
+      "say": "Line up runway two seven, [Kidon](/kidˈOn/) one.",
+      "mode": "helmet"
+    },
+    {
+      "file": "plt_rb_lineup_09.ogg",
+      "voice": "pilot",
+      "mode": "helmet",
+      "say_he": "כניסה למסלול אפס תשע."
+    },
+    {
+      "file": "plt_rb_lineup_09_kidon1.ogg",
+      "voice": "pilot",
+      "say": "Line up runway zero nine, [Kidon](/kidˈOn/) one.",
+      "mode": "helmet"
+    },
+    {
+      "file": "plt_rb_lineup_33l.ogg",
+      "voice": "pilot",
+      "mode": "helmet",
+      "say_he": "כניסה למסלול שלוש שלוש שמאל."
+    },
+    {
+      "file": "plt_rb_lineup_33l_kidon1.ogg",
+      "voice": "pilot",
+      "say": "Line up runway three three left, [Kidon](/kidˈOn/) one.",
+      "mode": "helmet"
+    },
+    {
+      "file": "plt_rb_lineup_15r.ogg",
+      "voice": "pilot",
+      "mode": "helmet",
+      "say_he": "כניסה למסלול אחת חמש ימין."
+    },
+    {
+      "file": "plt_rb_lineup_15r_kidon1.ogg",
+      "voice": "pilot",
+      "say": "Line up runway one five right, [Kidon](/kidˈOn/) one.",
+      "mode": "helmet"
+    },
+    {
+      "file": "plt_rb_lineup_28l.ogg",
+      "voice": "pilot",
+      "mode": "helmet",
+      "say_he": "כניסה למסלול שתיים שמונה שמאל."
+    },
+    {
+      "file": "plt_rb_lineup_28l_kidon1.ogg",
+      "voice": "pilot",
+      "say": "Line up runway two eight left, [Kidon](/kidˈOn/) one.",
+      "mode": "helmet"
+    },
+    {
+      "file": "plt_rb_lineup_10r.ogg",
+      "voice": "pilot",
+      "mode": "helmet",
+      "say_he": "כניסה למסלול אחת אפס ימין."
+    },
+    {
+      "file": "plt_rb_lineup_10r_kidon1.ogg",
+      "voice": "pilot",
+      "say": "Line up runway one zero right, [Kidon](/kidˈOn/) one.",
+      "mode": "helmet"
+    },
+    {
+      "file": "plt_rb_lineup_26l.ogg",
+      "voice": "pilot",
+      "mode": "helmet",
+      "say_he": "כניסה למסלול שתיים שש שמאל."
+    },
+    {
+      "file": "plt_rb_lineup_26l_kidon1.ogg",
+      "voice": "pilot",
+      "say": "Line up runway two six left, [Kidon](/kidˈOn/) one.",
+      "mode": "helmet"
+    },
+    {
+      "file": "plt_rb_lineup_08r.ogg",
+      "voice": "pilot",
+      "mode": "helmet",
+      "say_he": "כניסה למסלול אפס שמונה ימין."
+    },
+    {
+      "file": "plt_rb_lineup_08r_kidon1.ogg",
+      "voice": "pilot",
+      "say": "Line up runway zero eight right, [Kidon](/kidˈOn/) one.",
+      "mode": "helmet"
+    },
+    {
+      "file": "plt_rb_takeoff.ogg",
+      "voice": "pilot",
+      "say": "Cleared for take-off runway; two seven.",
+      "cut": "head",
+      "mode": "helmet",
+      "say_he": "אישור המראה, מסלול.",
+      "note": "the player's readback (ours: AMC-69 §2.10.4 form, the callsign last; the Hebrew the tower's own words)"
+    },
+    {
+      "file": "plt_rb_takeoff_25r.ogg",
+      "voice": "pilot",
+      "mode": "helmet",
+      "say_he": "אישור המראה, מסלול שתיים חמש ימין."
+    },
+    {
+      "file": "plt_rb_takeoff_25r_kidon1.ogg",
+      "voice": "pilot",
+      "say": "Cleared for take-off runway two five right, [Kidon](/kidˈOn/) one.",
+      "mode": "helmet"
+    },
+    {
+      "file": "plt_rb_takeoff_07l.ogg",
+      "voice": "pilot",
+      "mode": "helmet",
+      "say_he": "אישור המראה, מסלול אפס שבע שמאל."
+    },
+    {
+      "file": "plt_rb_takeoff_07l_kidon1.ogg",
+      "voice": "pilot",
+      "say": "Cleared for take-off runway zero seven left, [Kidon](/kidˈOn/) one.",
+      "mode": "helmet"
+    },
+    {
+      "file": "plt_rb_takeoff_27.ogg",
+      "voice": "pilot",
+      "mode": "helmet",
+      "say_he": "אישור המראה, מסלול שתיים שבע."
+    },
+    {
+      "file": "plt_rb_takeoff_27_kidon1.ogg",
+      "voice": "pilot",
+      "say": "Cleared for take-off runway two seven, [Kidon](/kidˈOn/) one.",
+      "mode": "helmet"
+    },
+    {
+      "file": "plt_rb_takeoff_09.ogg",
+      "voice": "pilot",
+      "mode": "helmet",
+      "say_he": "אישור המראה, מסלול אפס תשע."
+    },
+    {
+      "file": "plt_rb_takeoff_09_kidon1.ogg",
+      "voice": "pilot",
+      "say": "Cleared for take-off runway zero nine, [Kidon](/kidˈOn/) one.",
+      "mode": "helmet"
+    },
+    {
+      "file": "plt_rb_takeoff_33l.ogg",
+      "voice": "pilot",
+      "mode": "helmet",
+      "say_he": "אישור המראה, מסלול שלוש שלוש שמאל."
+    },
+    {
+      "file": "plt_rb_takeoff_33l_kidon1.ogg",
+      "voice": "pilot",
+      "say": "Cleared for take-off runway three three left, [Kidon](/kidˈOn/) one.",
+      "mode": "helmet"
+    },
+    {
+      "file": "plt_rb_takeoff_15r.ogg",
+      "voice": "pilot",
+      "mode": "helmet",
+      "say_he": "אישור המראה, מסלול אחת חמש ימין."
+    },
+    {
+      "file": "plt_rb_takeoff_15r_kidon1.ogg",
+      "voice": "pilot",
+      "say": "Cleared for take-off runway one five right, [Kidon](/kidˈOn/) one.",
+      "mode": "helmet"
+    },
+    {
+      "file": "plt_rb_takeoff_28l.ogg",
+      "voice": "pilot",
+      "mode": "helmet",
+      "say_he": "אישור המראה, מסלול שתיים שמונה שמאל."
+    },
+    {
+      "file": "plt_rb_takeoff_28l_kidon1.ogg",
+      "voice": "pilot",
+      "say": "Cleared for take-off runway two eight left, [Kidon](/kidˈOn/) one.",
+      "mode": "helmet"
+    },
+    {
+      "file": "plt_rb_takeoff_10r.ogg",
+      "voice": "pilot",
+      "mode": "helmet",
+      "say_he": "אישור המראה, מסלול אחת אפס ימין."
+    },
+    {
+      "file": "plt_rb_takeoff_10r_kidon1.ogg",
+      "voice": "pilot",
+      "say": "Cleared for take-off runway one zero right, [Kidon](/kidˈOn/) one.",
+      "mode": "helmet"
+    },
+    {
+      "file": "plt_rb_takeoff_26l.ogg",
+      "voice": "pilot",
+      "mode": "helmet",
+      "say_he": "אישור המראה, מסלול שתיים שש שמאל."
+    },
+    {
+      "file": "plt_rb_takeoff_26l_kidon1.ogg",
+      "voice": "pilot",
+      "say": "Cleared for take-off runway two six left, [Kidon](/kidˈOn/) one.",
+      "mode": "helmet"
+    },
+    {
+      "file": "plt_rb_takeoff_08r.ogg",
+      "voice": "pilot",
+      "mode": "helmet",
+      "say_he": "אישור המראה, מסלול אפס שמונה ימין."
+    },
+    {
+      "file": "plt_rb_takeoff_08r_kidon1.ogg",
+      "voice": "pilot",
+      "say": "Cleared for take-off runway zero eight right, [Kidon](/kidˈOn/) one.",
+      "mode": "helmet"
+    },
+    {
+      "file": "plt_rb_proceed.ogg",
+      "voice": "pilot",
+      "say": "Proceed to runway; two seven.",
+      "cut": "head",
+      "mode": "helmet",
+      "say_he": "התקדמות למסלול.",
+      "note": "the player's readback (ours: AMC-69 §2.10.4 form, the callsign last; the Hebrew the tower's own words)"
+    },
+    {
+      "file": "plt_rb_proceed_25r.ogg",
+      "voice": "pilot",
+      "mode": "helmet",
+      "say_he": "התקדמות למסלול שתיים חמש ימין."
+    },
+    {
+      "file": "plt_rb_proceed_25r_kidon1.ogg",
+      "voice": "pilot",
+      "say": "Proceed to runway two five right, [Kidon](/kidˈOn/) one.",
+      "mode": "helmet"
+    },
+    {
+      "file": "plt_rb_proceed_07l.ogg",
+      "voice": "pilot",
+      "mode": "helmet",
+      "say_he": "התקדמות למסלול אפס שבע שמאל."
+    },
+    {
+      "file": "plt_rb_proceed_07l_kidon1.ogg",
+      "voice": "pilot",
+      "say": "Proceed to runway zero seven left, [Kidon](/kidˈOn/) one.",
+      "mode": "helmet"
+    },
+    {
+      "file": "plt_rb_proceed_27.ogg",
+      "voice": "pilot",
+      "mode": "helmet",
+      "say_he": "התקדמות למסלול שתיים שבע."
+    },
+    {
+      "file": "plt_rb_proceed_27_kidon1.ogg",
+      "voice": "pilot",
+      "say": "Proceed to runway two seven, [Kidon](/kidˈOn/) one.",
+      "mode": "helmet"
+    },
+    {
+      "file": "plt_rb_proceed_09.ogg",
+      "voice": "pilot",
+      "mode": "helmet",
+      "say_he": "התקדמות למסלול אפס תשע."
+    },
+    {
+      "file": "plt_rb_proceed_09_kidon1.ogg",
+      "voice": "pilot",
+      "say": "Proceed to runway zero nine, [Kidon](/kidˈOn/) one.",
+      "mode": "helmet"
+    },
+    {
+      "file": "plt_rb_proceed_33l.ogg",
+      "voice": "pilot",
+      "mode": "helmet",
+      "say_he": "התקדמות למסלול שלוש שלוש שמאל."
+    },
+    {
+      "file": "plt_rb_proceed_33l_kidon1.ogg",
+      "voice": "pilot",
+      "say": "Proceed to runway three three left, [Kidon](/kidˈOn/) one.",
+      "mode": "helmet"
+    },
+    {
+      "file": "plt_rb_proceed_15r.ogg",
+      "voice": "pilot",
+      "mode": "helmet",
+      "say_he": "התקדמות למסלול אחת חמש ימין."
+    },
+    {
+      "file": "plt_rb_proceed_15r_kidon1.ogg",
+      "voice": "pilot",
+      "say": "Proceed to runway one five right, [Kidon](/kidˈOn/) one.",
+      "mode": "helmet"
+    },
+    {
+      "file": "plt_rb_proceed_28l.ogg",
+      "voice": "pilot",
+      "mode": "helmet",
+      "say_he": "התקדמות למסלול שתיים שמונה שמאל."
+    },
+    {
+      "file": "plt_rb_proceed_28l_kidon1.ogg",
+      "voice": "pilot",
+      "say": "Proceed to runway two eight left, [Kidon](/kidˈOn/) one.",
+      "mode": "helmet"
+    },
+    {
+      "file": "plt_rb_proceed_10r.ogg",
+      "voice": "pilot",
+      "mode": "helmet",
+      "say_he": "התקדמות למסלול אחת אפס ימין."
+    },
+    {
+      "file": "plt_rb_proceed_10r_kidon1.ogg",
+      "voice": "pilot",
+      "say": "Proceed to runway one zero right, [Kidon](/kidˈOn/) one.",
+      "mode": "helmet"
+    },
+    {
+      "file": "plt_rb_proceed_26l.ogg",
+      "voice": "pilot",
+      "mode": "helmet",
+      "say_he": "התקדמות למסלול שתיים שש שמאל."
+    },
+    {
+      "file": "plt_rb_proceed_26l_kidon1.ogg",
+      "voice": "pilot",
+      "say": "Proceed to runway two six left, [Kidon](/kidˈOn/) one.",
+      "mode": "helmet"
+    },
+    {
+      "file": "plt_rb_proceed_08r.ogg",
+      "voice": "pilot",
+      "mode": "helmet",
+      "say_he": "התקדמות למסלול אפס שמונה ימין."
+    },
+    {
+      "file": "plt_rb_proceed_08r_kidon1.ogg",
+      "voice": "pilot",
+      "say": "Proceed to runway zero eight right, [Kidon](/kidˈOn/) one.",
+      "mode": "helmet"
+    },
+    {
+      "file": "plt_rb_land.ogg",
+      "voice": "pilot",
+      "say": "Cleared to land runway; two seven.",
+      "cut": "head",
+      "mode": "helmet",
+      "say_he": "אישור נחיתה במסלול.",
+      "note": "the player's readback (ours: AMC-69 §2.10.4 form, the callsign last; the Hebrew the tower's own words)"
+    },
+    {
+      "file": "plt_rb_land_25r.ogg",
+      "voice": "pilot",
+      "mode": "helmet",
+      "say_he": "אישור נחיתה במסלול שתיים חמש ימין."
+    },
+    {
+      "file": "plt_rb_land_25r_kidon1.ogg",
+      "voice": "pilot",
+      "say": "Cleared to land runway two five right, [Kidon](/kidˈOn/) one.",
+      "mode": "helmet"
+    },
+    {
+      "file": "plt_rb_land_07l.ogg",
+      "voice": "pilot",
+      "mode": "helmet",
+      "say_he": "אישור נחיתה במסלול אפס שבע שמאל."
+    },
+    {
+      "file": "plt_rb_land_07l_kidon1.ogg",
+      "voice": "pilot",
+      "say": "Cleared to land runway zero seven left, [Kidon](/kidˈOn/) one.",
+      "mode": "helmet"
+    },
+    {
+      "file": "plt_rb_land_27.ogg",
+      "voice": "pilot",
+      "mode": "helmet",
+      "say_he": "אישור נחיתה במסלול שתיים שבע."
+    },
+    {
+      "file": "plt_rb_land_27_kidon1.ogg",
+      "voice": "pilot",
+      "say": "Cleared to land runway two seven, [Kidon](/kidˈOn/) one.",
+      "mode": "helmet"
+    },
+    {
+      "file": "plt_rb_land_09.ogg",
+      "voice": "pilot",
+      "mode": "helmet",
+      "say_he": "אישור נחיתה במסלול אפס תשע."
+    },
+    {
+      "file": "plt_rb_land_09_kidon1.ogg",
+      "voice": "pilot",
+      "say": "Cleared to land runway zero nine, [Kidon](/kidˈOn/) one.",
+      "mode": "helmet"
+    },
+    {
+      "file": "plt_rb_land_33l.ogg",
+      "voice": "pilot",
+      "mode": "helmet",
+      "say_he": "אישור נחיתה במסלול שלוש שלוש שמאל."
+    },
+    {
+      "file": "plt_rb_land_33l_kidon1.ogg",
+      "voice": "pilot",
+      "say": "Cleared to land runway three three left, [Kidon](/kidˈOn/) one.",
+      "mode": "helmet"
+    },
+    {
+      "file": "plt_rb_land_15r.ogg",
+      "voice": "pilot",
+      "mode": "helmet",
+      "say_he": "אישור נחיתה במסלול אחת חמש ימין."
+    },
+    {
+      "file": "plt_rb_land_15r_kidon1.ogg",
+      "voice": "pilot",
+      "say": "Cleared to land runway one five right, [Kidon](/kidˈOn/) one.",
+      "mode": "helmet"
+    },
+    {
+      "file": "plt_rb_land_28l.ogg",
+      "voice": "pilot",
+      "mode": "helmet",
+      "say_he": "אישור נחיתה במסלול שתיים שמונה שמאל."
+    },
+    {
+      "file": "plt_rb_land_28l_kidon1.ogg",
+      "voice": "pilot",
+      "say": "Cleared to land runway two eight left, [Kidon](/kidˈOn/) one.",
+      "mode": "helmet"
+    },
+    {
+      "file": "plt_rb_land_10r.ogg",
+      "voice": "pilot",
+      "mode": "helmet",
+      "say_he": "אישור נחיתה במסלול אחת אפס ימין."
+    },
+    {
+      "file": "plt_rb_land_10r_kidon1.ogg",
+      "voice": "pilot",
+      "say": "Cleared to land runway one zero right, [Kidon](/kidˈOn/) one.",
+      "mode": "helmet"
+    },
+    {
+      "file": "plt_rb_land_26l.ogg",
+      "voice": "pilot",
+      "mode": "helmet",
+      "say_he": "אישור נחיתה במסלול שתיים שש שמאל."
+    },
+    {
+      "file": "plt_rb_land_26l_kidon1.ogg",
+      "voice": "pilot",
+      "say": "Cleared to land runway two six left, [Kidon](/kidˈOn/) one.",
+      "mode": "helmet"
+    },
+    {
+      "file": "plt_rb_land_08r.ogg",
+      "voice": "pilot",
+      "mode": "helmet",
+      "say_he": "אישור נחיתה במסלול אפס שמונה ימין."
+    },
+    {
+      "file": "plt_rb_land_08r_kidon1.ogg",
+      "voice": "pilot",
+      "say": "Cleared to land runway zero eight right, [Kidon](/kidˈOn/) one.",
+      "mode": "helmet"
+    },
+    {
+      "file": "plt_rb_start.ogg",
+      "voice": "pilot",
+      "say": "Cleared to start.",
+      "mode": "helmet",
+      "say_he": "אישור התנעה.",
+      "note": "the player's readback (ours: AMC-69 §2.10.4 form, the callsign last; the Hebrew the tower's own words)"
+    },
+    {
+      "file": "plt_rb_start_kidon1.ogg",
+      "voice": "pilot",
+      "say": "Cleared to start, [Kidon](/kidˈOn/) one.",
+      "mode": "helmet"
+    },
+    {
+      "file": "plt_rb_holding.ogg",
+      "voice": "pilot",
+      "say": "Holding.",
+      "mode": "helmet",
+      "say_he": "המתנה במקום.",
+      "note": "the player's readback (ours: AMC-69 §2.10.4 form, the callsign last; the Hebrew the tower's own words)"
+    },
+    {
+      "file": "plt_rb_holding_kidon1.ogg",
+      "voice": "pilot",
+      "say": "Holding, [Kidon](/kidˈOn/) one.",
+      "mode": "helmet"
+    },
+    {
+      "file": "plt_rb_go_around.ogg",
+      "voice": "pilot",
+      "say": "Going around.",
+      "mode": "helmet",
+      "say_he": "הליכה סביב.",
+      "note": "the player's readback (ours: AMC-69 §2.10.4 form, the callsign last; the Hebrew the tower's own words)"
+    },
+    {
+      "file": "plt_rb_go_around_kidon1.ogg",
+      "voice": "pilot",
+      "say": "Going around, [Kidon](/kidˈOn/) one.",
+      "mode": "helmet"
+    },
+    {
+      "file": "plt_rb_park.ogg",
+      "voice": "pilot",
+      "say": "Taxi to parking.",
+      "mode": "helmet",
+      "say_he": "הסעה לחנייה.",
+      "note": "the player's readback (ours: AMC-69 §2.10.4 form, the callsign last; the Hebrew the tower's own words)"
+    },
+    {
+      "file": "plt_rb_park_kidon1.ogg",
+      "voice": "pilot",
+      "say": "Taxi to parking, [Kidon](/kidˈOn/) one.",
+      "mode": "helmet"
+    },
+    {
+      "file": "twr_to_rwy.ogg",
+      "voice": "tower",
+      "say": "Runway; two seven.",
+      "cut": "head",
+      "mode": "phrase",
+      "say_he": "מסלול."
+    },
+    {
+      "file": "twr_to_kidon1_calm_rwy.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) one, wind calm, runway; two seven.",
+      "cut": "head",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_to_calm_rwy.ogg",
+      "voice": "tower",
+      "mode": "phrase",
+      "say_he": "רוח שקטה, מסלול."
+    },
+    {
+      "file": "twr_wdir010.ogg",
+      "voice": "tower",
+      "say": "wind zero one zero degrees",
+      "mode": "particle",
+      "say_he": "רוח אפס אחת אפס מעלות"
+    },
+    {
+      "file": "twr_wdir020.ogg",
+      "voice": "tower",
+      "say": "wind zero two zero degrees",
+      "mode": "particle",
+      "say_he": "רוח אפס שתיים אפס מעלות"
+    },
+    {
+      "file": "twr_wdir030.ogg",
+      "voice": "tower",
+      "say": "wind zero three zero degrees",
+      "mode": "particle",
+      "say_he": "רוח אפס שלוש אפס מעלות"
+    },
+    {
+      "file": "twr_wdir040.ogg",
+      "voice": "tower",
+      "say": "wind zero four zero degrees",
+      "mode": "particle",
+      "say_he": "רוח אפס ארבע אפס מעלות"
+    },
+    {
+      "file": "twr_wdir050.ogg",
+      "voice": "tower",
+      "say": "wind zero five zero degrees",
+      "mode": "particle",
+      "say_he": "רוח אפס חמש אפס מעלות"
+    },
+    {
+      "file": "twr_wdir060.ogg",
+      "voice": "tower",
+      "say": "wind zero six zero degrees",
+      "mode": "particle",
+      "say_he": "רוח אפס שש אפס מעלות"
+    },
+    {
+      "file": "twr_wdir070.ogg",
+      "voice": "tower",
+      "say": "wind zero seven zero degrees",
+      "mode": "particle",
+      "say_he": "רוח אפס שבע אפס מעלות"
+    },
+    {
+      "file": "twr_wdir080.ogg",
+      "voice": "tower",
+      "say": "wind zero eight zero degrees",
+      "mode": "particle",
+      "say_he": "רוח אפס שמונה אפס מעלות"
+    },
+    {
+      "file": "twr_wdir090.ogg",
+      "voice": "tower",
+      "say": "wind zero nine zero degrees",
+      "mode": "particle",
+      "say_he": "רוח אפס תשע אפס מעלות"
+    },
+    {
+      "file": "twr_wdir100.ogg",
+      "voice": "tower",
+      "say": "wind one zero zero degrees",
+      "mode": "particle",
+      "say_he": "רוח אחת אפס אפס מעלות"
+    },
+    {
+      "file": "twr_wdir110.ogg",
+      "voice": "tower",
+      "say": "wind one one zero degrees",
+      "mode": "particle",
+      "say_he": "רוח אחת אחת אפס מעלות"
+    },
+    {
+      "file": "twr_wdir120.ogg",
+      "voice": "tower",
+      "say": "wind one two zero degrees",
+      "mode": "particle",
+      "say_he": "רוח אחת שתיים אפס מעלות"
+    },
+    {
+      "file": "twr_wdir130.ogg",
+      "voice": "tower",
+      "say": "wind one three zero degrees",
+      "mode": "particle",
+      "say_he": "רוח אחת שלוש אפס מעלות"
+    },
+    {
+      "file": "twr_wdir140.ogg",
+      "voice": "tower",
+      "say": "wind one four zero degrees",
+      "mode": "particle",
+      "say_he": "רוח אחת ארבע אפס מעלות"
+    },
+    {
+      "file": "twr_wdir150.ogg",
+      "voice": "tower",
+      "say": "wind one five zero degrees",
+      "mode": "particle",
+      "say_he": "רוח אחת חמש אפס מעלות"
+    },
+    {
+      "file": "twr_wdir160.ogg",
+      "voice": "tower",
+      "say": "wind one six zero degrees",
+      "mode": "particle",
+      "say_he": "רוח אחת שש אפס מעלות"
+    },
+    {
+      "file": "twr_wdir170.ogg",
+      "voice": "tower",
+      "say": "wind one seven zero degrees",
+      "mode": "particle",
+      "say_he": "רוח אחת שבע אפס מעלות"
+    },
+    {
+      "file": "twr_wdir180.ogg",
+      "voice": "tower",
+      "say": "wind one eight zero degrees",
+      "mode": "particle",
+      "say_he": "רוח אחת שמונה אפס מעלות"
+    },
+    {
+      "file": "twr_wdir190.ogg",
+      "voice": "tower",
+      "say": "wind one nine zero degrees",
+      "mode": "particle",
+      "say_he": "רוח אחת תשע אפס מעלות"
+    },
+    {
+      "file": "twr_wdir200.ogg",
+      "voice": "tower",
+      "say": "wind two zero zero degrees",
+      "mode": "particle",
+      "say_he": "רוח שתיים אפס אפס מעלות"
+    },
+    {
+      "file": "twr_wdir210.ogg",
+      "voice": "tower",
+      "say": "wind two one zero degrees",
+      "mode": "particle",
+      "say_he": "רוח שתיים אחת אפס מעלות"
+    },
+    {
+      "file": "twr_wdir220.ogg",
+      "voice": "tower",
+      "say": "wind two two zero degrees",
+      "mode": "particle",
+      "say_he": "רוח שתיים שתיים אפס מעלות"
+    },
+    {
+      "file": "twr_wdir230.ogg",
+      "voice": "tower",
+      "say": "wind two three zero degrees",
+      "mode": "particle",
+      "say_he": "רוח שתיים שלוש אפס מעלות"
+    },
+    {
+      "file": "twr_wdir240.ogg",
+      "voice": "tower",
+      "say": "wind two four zero degrees",
+      "mode": "particle",
+      "say_he": "רוח שתיים ארבע אפס מעלות"
+    },
+    {
+      "file": "twr_wdir250.ogg",
+      "voice": "tower",
+      "say": "wind two five zero degrees",
+      "mode": "particle",
+      "say_he": "רוח שתיים חמש אפס מעלות"
+    },
+    {
+      "file": "twr_wdir260.ogg",
+      "voice": "tower",
+      "say": "wind two six zero degrees",
+      "mode": "particle",
+      "say_he": "רוח שתיים שש אפס מעלות"
+    },
+    {
+      "file": "twr_wdir270.ogg",
+      "voice": "tower",
+      "say": "wind two seven zero degrees",
+      "mode": "particle",
+      "say_he": "רוח שתיים שבע אפס מעלות"
+    },
+    {
+      "file": "twr_wdir280.ogg",
+      "voice": "tower",
+      "say": "wind two eight zero degrees",
+      "mode": "particle",
+      "say_he": "רוח שתיים שמונה אפס מעלות"
+    },
+    {
+      "file": "twr_wdir290.ogg",
+      "voice": "tower",
+      "say": "wind two nine zero degrees",
+      "mode": "particle",
+      "say_he": "רוח שתיים תשע אפס מעלות"
+    },
+    {
+      "file": "twr_wdir300.ogg",
+      "voice": "tower",
+      "say": "wind three zero zero degrees",
+      "mode": "particle",
+      "say_he": "רוח שלוש אפס אפס מעלות"
+    },
+    {
+      "file": "twr_wdir310.ogg",
+      "voice": "tower",
+      "say": "wind three one zero degrees",
+      "mode": "particle",
+      "say_he": "רוח שלוש אחת אפס מעלות"
+    },
+    {
+      "file": "twr_wdir320.ogg",
+      "voice": "tower",
+      "say": "wind three two zero degrees",
+      "mode": "particle",
+      "say_he": "רוח שלוש שתיים אפס מעלות"
+    },
+    {
+      "file": "twr_wdir330.ogg",
+      "voice": "tower",
+      "say": "wind three three zero degrees",
+      "mode": "particle",
+      "say_he": "רוח שלוש שלוש אפס מעלות"
+    },
+    {
+      "file": "twr_wdir340.ogg",
+      "voice": "tower",
+      "say": "wind three four zero degrees",
+      "mode": "particle",
+      "say_he": "רוח שלוש ארבע אפס מעלות"
+    },
+    {
+      "file": "twr_wdir350.ogg",
+      "voice": "tower",
+      "say": "wind three five zero degrees",
+      "mode": "particle",
+      "say_he": "רוח שלוש חמש אפס מעלות"
+    },
+    {
+      "file": "twr_wdir360.ogg",
+      "voice": "tower",
+      "say": "wind three six zero degrees",
+      "mode": "particle",
+      "say_he": "רוח שלוש שש אפס מעלות"
     }
   ],
   "particles": {
@@ -3004,18 +3954,18 @@
     },
     "WI_KNOTS10": {
       "file": "twr_wind10.ogg",
-      "text": "wind 10 knots",
-      "text_he": "רוח 10 קשר"
+      "text": "10 knots",
+      "text_he": "10 קשר"
     },
     "WI_KNOTS15": {
       "file": "twr_wind15.ogg",
-      "text": "wind 15 knots",
-      "text_he": "רוח 15 קשר"
+      "text": "15 knots",
+      "text_he": "15 קשר"
     },
     "WI_KNOTS20": {
       "file": "twr_wind20.ogg",
-      "text": "wind 20 knots",
-      "text_he": "רוח 20 קשר"
+      "text": "20 knots",
+      "text_he": "20 קשר"
     },
     "START": {
       "file": "twr_start.ogg",
@@ -3055,7 +4005,7 @@
     "GO_AROUND": {
       "file": "twr_go_around.ogg",
       "text": "go around, runway not clear",
-      "text_he": "סיבוב נוסף, המסלול אינו פנוי"
+      "text_he": "הליכה סביב, המסלול אינו פנוי"
     },
     "TAXI_PARK": {
       "file": "twr_taxi_park.ogg",
@@ -3422,15 +4372,10 @@
       "text": "Kidon 1, hold position",
       "text_he": "כידון 1, המתנה במקום"
     },
-    "ALPHA_T+,+TAKEOFF": {
-      "file": "twr_kidon1_takeoff.ogg",
-      "text": "Kidon 1, cleared for take-off",
-      "text_he": "כידון 1, אישור המראה"
-    },
     "ALPHA_T+,+GO_AROUND": {
       "file": "twr_kidon1_go_around.ogg",
       "text": "Kidon 1, go around, runway not clear",
-      "text_he": "כידון 1, סיבוב נוסף, המסלול אינו פנוי"
+      "text_he": "כידון 1, הליכה סביב, המסלול אינו פנוי"
     },
     "ALPHA_T+,+TAXI_PARK": {
       "file": "twr_kidon1_taxi_park.ogg",
@@ -3482,15 +4427,10 @@
       "text": "Kidon 2, hold position",
       "text_he": "כידון 2, המתנה במקום"
     },
-    "BRAVO_T+,+TAKEOFF": {
-      "file": "twr_kidon2_takeoff.ogg",
-      "text": "Kidon 2, cleared for take-off",
-      "text_he": "כידון 2, אישור המראה"
-    },
     "BRAVO_T+,+GO_AROUND": {
       "file": "twr_kidon2_go_around.ogg",
       "text": "Kidon 2, go around, runway not clear",
-      "text_he": "כידון 2, סיבוב נוסף, המסלול אינו פנוי"
+      "text_he": "כידון 2, הליכה סביב, המסלול אינו פנוי"
     },
     "BRAVO_T+,+TAXI_PARK": {
       "file": "twr_kidon2_taxi_park.ogg",
@@ -3542,15 +4482,10 @@
       "text": "Kidon 3, hold position",
       "text_he": "כידון 3, המתנה במקום"
     },
-    "CHARLIE_T+,+TAKEOFF": {
-      "file": "twr_kidon3_takeoff.ogg",
-      "text": "Kidon 3, cleared for take-off",
-      "text_he": "כידון 3, אישור המראה"
-    },
     "CHARLIE_T+,+GO_AROUND": {
       "file": "twr_kidon3_go_around.ogg",
       "text": "Kidon 3, go around, runway not clear",
-      "text_he": "כידון 3, סיבוב נוסף, המסלול אינו פנוי"
+      "text_he": "כידון 3, הליכה סביב, המסלול אינו פנוי"
     },
     "CHARLIE_T+,+TAXI_PARK": {
       "file": "twr_kidon3_taxi_park.ogg",
@@ -3602,15 +4537,10 @@
       "text": "Kidon 4, hold position",
       "text_he": "כידון 4, המתנה במקום"
     },
-    "DELTA_T+,+TAKEOFF": {
-      "file": "twr_kidon4_takeoff.ogg",
-      "text": "Kidon 4, cleared for take-off",
-      "text_he": "כידון 4, אישור המראה"
-    },
     "DELTA_T+,+GO_AROUND": {
       "file": "twr_kidon4_go_around.ogg",
       "text": "Kidon 4, go around, runway not clear",
-      "text_he": "כידון 4, סיבוב נוסף, המסלול אינו פנוי"
+      "text_he": "כידון 4, הליכה סביב, המסלול אינו פנוי"
     },
     "DELTA_T+,+TAXI_PARK": {
       "file": "twr_kidon4_taxi_park.ogg",
@@ -4944,17 +5874,828 @@
       "text": "line up runway two seven, wind calm",
       "text_he": "כניסה למסלול 27, רוח שקטה",
       "he_only": true
+    },
+    "RB_TAXI_RWY": {
+      "file": "plt_rb_taxi.ogg",
+      "text": "taxi to runway",
+      "text_he": "הסעה למסלול"
+    },
+    "RB_TAXI_RWY+25+RWY_R": {
+      "file": "plt_rb_taxi_25r.ogg",
+      "text": "taxi to runway 25 right",
+      "text_he": "הסעה למסלול 25 ימין",
+      "he_only": true
+    },
+    "RB_TAXI_RWY+25+RWY_R+,+ALPHA_P": {
+      "file": "plt_rb_taxi_25r_kidon1.ogg",
+      "text": "taxi to runway 25 right, Kidon 1",
+      "text_he": "הסעה למסלול 25 ימין, כידון 1"
+    },
+    "RB_TAXI_RWY+7+RWY_L": {
+      "file": "plt_rb_taxi_07l.ogg",
+      "text": "taxi to runway 7 left",
+      "text_he": "הסעה למסלול 7 שמאל",
+      "he_only": true
+    },
+    "RB_TAXI_RWY+7+RWY_L+,+ALPHA_P": {
+      "file": "plt_rb_taxi_07l_kidon1.ogg",
+      "text": "taxi to runway 7 left, Kidon 1",
+      "text_he": "הסעה למסלול 7 שמאל, כידון 1"
+    },
+    "RB_TAXI_RWY+27": {
+      "file": "plt_rb_taxi_27.ogg",
+      "text": "taxi to runway 27",
+      "text_he": "הסעה למסלול 27",
+      "he_only": true
+    },
+    "RB_TAXI_RWY+27+,+ALPHA_P": {
+      "file": "plt_rb_taxi_27_kidon1.ogg",
+      "text": "taxi to runway 27, Kidon 1",
+      "text_he": "הסעה למסלול 27, כידון 1"
+    },
+    "RB_TAXI_RWY+9": {
+      "file": "plt_rb_taxi_09.ogg",
+      "text": "taxi to runway 9",
+      "text_he": "הסעה למסלול 9",
+      "he_only": true
+    },
+    "RB_TAXI_RWY+9+,+ALPHA_P": {
+      "file": "plt_rb_taxi_09_kidon1.ogg",
+      "text": "taxi to runway 9, Kidon 1",
+      "text_he": "הסעה למסלול 9, כידון 1"
+    },
+    "RB_TAXI_RWY+33+RWY_L": {
+      "file": "plt_rb_taxi_33l.ogg",
+      "text": "taxi to runway 33 left",
+      "text_he": "הסעה למסלול 33 שמאל",
+      "he_only": true
+    },
+    "RB_TAXI_RWY+33+RWY_L+,+ALPHA_P": {
+      "file": "plt_rb_taxi_33l_kidon1.ogg",
+      "text": "taxi to runway 33 left, Kidon 1",
+      "text_he": "הסעה למסלול 33 שמאל, כידון 1"
+    },
+    "RB_TAXI_RWY+15+RWY_R": {
+      "file": "plt_rb_taxi_15r.ogg",
+      "text": "taxi to runway 15 right",
+      "text_he": "הסעה למסלול 15 ימין",
+      "he_only": true
+    },
+    "RB_TAXI_RWY+15+RWY_R+,+ALPHA_P": {
+      "file": "plt_rb_taxi_15r_kidon1.ogg",
+      "text": "taxi to runway 15 right, Kidon 1",
+      "text_he": "הסעה למסלול 15 ימין, כידון 1"
+    },
+    "RB_TAXI_RWY+28+RWY_L": {
+      "file": "plt_rb_taxi_28l.ogg",
+      "text": "taxi to runway 28 left",
+      "text_he": "הסעה למסלול 28 שמאל",
+      "he_only": true
+    },
+    "RB_TAXI_RWY+28+RWY_L+,+ALPHA_P": {
+      "file": "plt_rb_taxi_28l_kidon1.ogg",
+      "text": "taxi to runway 28 left, Kidon 1",
+      "text_he": "הסעה למסלול 28 שמאל, כידון 1"
+    },
+    "RB_TAXI_RWY+10+RWY_R": {
+      "file": "plt_rb_taxi_10r.ogg",
+      "text": "taxi to runway 10 right",
+      "text_he": "הסעה למסלול 10 ימין",
+      "he_only": true
+    },
+    "RB_TAXI_RWY+10+RWY_R+,+ALPHA_P": {
+      "file": "plt_rb_taxi_10r_kidon1.ogg",
+      "text": "taxi to runway 10 right, Kidon 1",
+      "text_he": "הסעה למסלול 10 ימין, כידון 1"
+    },
+    "RB_TAXI_RWY+26+RWY_L": {
+      "file": "plt_rb_taxi_26l.ogg",
+      "text": "taxi to runway 26 left",
+      "text_he": "הסעה למסלול 26 שמאל",
+      "he_only": true
+    },
+    "RB_TAXI_RWY+26+RWY_L+,+ALPHA_P": {
+      "file": "plt_rb_taxi_26l_kidon1.ogg",
+      "text": "taxi to runway 26 left, Kidon 1",
+      "text_he": "הסעה למסלול 26 שמאל, כידון 1"
+    },
+    "RB_TAXI_RWY+8+RWY_R": {
+      "file": "plt_rb_taxi_08r.ogg",
+      "text": "taxi to runway 8 right",
+      "text_he": "הסעה למסלול 8 ימין",
+      "he_only": true
+    },
+    "RB_TAXI_RWY+8+RWY_R+,+ALPHA_P": {
+      "file": "plt_rb_taxi_08r_kidon1.ogg",
+      "text": "taxi to runway 8 right, Kidon 1",
+      "text_he": "הסעה למסלול 8 ימין, כידון 1"
+    },
+    "RB_LINEUP_RWY": {
+      "file": "plt_rb_lineup.ogg",
+      "text": "line up runway",
+      "text_he": "כניסה למסלול"
+    },
+    "RB_LINEUP_RWY+25+RWY_R": {
+      "file": "plt_rb_lineup_25r.ogg",
+      "text": "line up runway 25 right",
+      "text_he": "כניסה למסלול 25 ימין",
+      "he_only": true
+    },
+    "RB_LINEUP_RWY+25+RWY_R+,+ALPHA_P": {
+      "file": "plt_rb_lineup_25r_kidon1.ogg",
+      "text": "line up runway 25 right, Kidon 1",
+      "text_he": "כניסה למסלול 25 ימין, כידון 1"
+    },
+    "RB_LINEUP_RWY+7+RWY_L": {
+      "file": "plt_rb_lineup_07l.ogg",
+      "text": "line up runway 7 left",
+      "text_he": "כניסה למסלול 7 שמאל",
+      "he_only": true
+    },
+    "RB_LINEUP_RWY+7+RWY_L+,+ALPHA_P": {
+      "file": "plt_rb_lineup_07l_kidon1.ogg",
+      "text": "line up runway 7 left, Kidon 1",
+      "text_he": "כניסה למסלול 7 שמאל, כידון 1"
+    },
+    "RB_LINEUP_RWY+27": {
+      "file": "plt_rb_lineup_27.ogg",
+      "text": "line up runway 27",
+      "text_he": "כניסה למסלול 27",
+      "he_only": true
+    },
+    "RB_LINEUP_RWY+27+,+ALPHA_P": {
+      "file": "plt_rb_lineup_27_kidon1.ogg",
+      "text": "line up runway 27, Kidon 1",
+      "text_he": "כניסה למסלול 27, כידון 1"
+    },
+    "RB_LINEUP_RWY+9": {
+      "file": "plt_rb_lineup_09.ogg",
+      "text": "line up runway 9",
+      "text_he": "כניסה למסלול 9",
+      "he_only": true
+    },
+    "RB_LINEUP_RWY+9+,+ALPHA_P": {
+      "file": "plt_rb_lineup_09_kidon1.ogg",
+      "text": "line up runway 9, Kidon 1",
+      "text_he": "כניסה למסלול 9, כידון 1"
+    },
+    "RB_LINEUP_RWY+33+RWY_L": {
+      "file": "plt_rb_lineup_33l.ogg",
+      "text": "line up runway 33 left",
+      "text_he": "כניסה למסלול 33 שמאל",
+      "he_only": true
+    },
+    "RB_LINEUP_RWY+33+RWY_L+,+ALPHA_P": {
+      "file": "plt_rb_lineup_33l_kidon1.ogg",
+      "text": "line up runway 33 left, Kidon 1",
+      "text_he": "כניסה למסלול 33 שמאל, כידון 1"
+    },
+    "RB_LINEUP_RWY+15+RWY_R": {
+      "file": "plt_rb_lineup_15r.ogg",
+      "text": "line up runway 15 right",
+      "text_he": "כניסה למסלול 15 ימין",
+      "he_only": true
+    },
+    "RB_LINEUP_RWY+15+RWY_R+,+ALPHA_P": {
+      "file": "plt_rb_lineup_15r_kidon1.ogg",
+      "text": "line up runway 15 right, Kidon 1",
+      "text_he": "כניסה למסלול 15 ימין, כידון 1"
+    },
+    "RB_LINEUP_RWY+28+RWY_L": {
+      "file": "plt_rb_lineup_28l.ogg",
+      "text": "line up runway 28 left",
+      "text_he": "כניסה למסלול 28 שמאל",
+      "he_only": true
+    },
+    "RB_LINEUP_RWY+28+RWY_L+,+ALPHA_P": {
+      "file": "plt_rb_lineup_28l_kidon1.ogg",
+      "text": "line up runway 28 left, Kidon 1",
+      "text_he": "כניסה למסלול 28 שמאל, כידון 1"
+    },
+    "RB_LINEUP_RWY+10+RWY_R": {
+      "file": "plt_rb_lineup_10r.ogg",
+      "text": "line up runway 10 right",
+      "text_he": "כניסה למסלול 10 ימין",
+      "he_only": true
+    },
+    "RB_LINEUP_RWY+10+RWY_R+,+ALPHA_P": {
+      "file": "plt_rb_lineup_10r_kidon1.ogg",
+      "text": "line up runway 10 right, Kidon 1",
+      "text_he": "כניסה למסלול 10 ימין, כידון 1"
+    },
+    "RB_LINEUP_RWY+26+RWY_L": {
+      "file": "plt_rb_lineup_26l.ogg",
+      "text": "line up runway 26 left",
+      "text_he": "כניסה למסלול 26 שמאל",
+      "he_only": true
+    },
+    "RB_LINEUP_RWY+26+RWY_L+,+ALPHA_P": {
+      "file": "plt_rb_lineup_26l_kidon1.ogg",
+      "text": "line up runway 26 left, Kidon 1",
+      "text_he": "כניסה למסלול 26 שמאל, כידון 1"
+    },
+    "RB_LINEUP_RWY+8+RWY_R": {
+      "file": "plt_rb_lineup_08r.ogg",
+      "text": "line up runway 8 right",
+      "text_he": "כניסה למסלול 8 ימין",
+      "he_only": true
+    },
+    "RB_LINEUP_RWY+8+RWY_R+,+ALPHA_P": {
+      "file": "plt_rb_lineup_08r_kidon1.ogg",
+      "text": "line up runway 8 right, Kidon 1",
+      "text_he": "כניסה למסלול 8 ימין, כידון 1"
+    },
+    "RB_TAKEOFF_RWY": {
+      "file": "plt_rb_takeoff.ogg",
+      "text": "cleared for take-off runway",
+      "text_he": "אישור המראה, מסלול"
+    },
+    "RB_TAKEOFF_RWY+25+RWY_R": {
+      "file": "plt_rb_takeoff_25r.ogg",
+      "text": "cleared for take-off runway 25 right",
+      "text_he": "אישור המראה, מסלול 25 ימין",
+      "he_only": true
+    },
+    "RB_TAKEOFF_RWY+25+RWY_R+,+ALPHA_P": {
+      "file": "plt_rb_takeoff_25r_kidon1.ogg",
+      "text": "cleared for take-off runway 25 right, Kidon 1",
+      "text_he": "אישור המראה, מסלול 25 ימין, כידון 1"
+    },
+    "RB_TAKEOFF_RWY+7+RWY_L": {
+      "file": "plt_rb_takeoff_07l.ogg",
+      "text": "cleared for take-off runway 7 left",
+      "text_he": "אישור המראה, מסלול 7 שמאל",
+      "he_only": true
+    },
+    "RB_TAKEOFF_RWY+7+RWY_L+,+ALPHA_P": {
+      "file": "plt_rb_takeoff_07l_kidon1.ogg",
+      "text": "cleared for take-off runway 7 left, Kidon 1",
+      "text_he": "אישור המראה, מסלול 7 שמאל, כידון 1"
+    },
+    "RB_TAKEOFF_RWY+27": {
+      "file": "plt_rb_takeoff_27.ogg",
+      "text": "cleared for take-off runway 27",
+      "text_he": "אישור המראה, מסלול 27",
+      "he_only": true
+    },
+    "RB_TAKEOFF_RWY+27+,+ALPHA_P": {
+      "file": "plt_rb_takeoff_27_kidon1.ogg",
+      "text": "cleared for take-off runway 27, Kidon 1",
+      "text_he": "אישור המראה, מסלול 27, כידון 1"
+    },
+    "RB_TAKEOFF_RWY+9": {
+      "file": "plt_rb_takeoff_09.ogg",
+      "text": "cleared for take-off runway 9",
+      "text_he": "אישור המראה, מסלול 9",
+      "he_only": true
+    },
+    "RB_TAKEOFF_RWY+9+,+ALPHA_P": {
+      "file": "plt_rb_takeoff_09_kidon1.ogg",
+      "text": "cleared for take-off runway 9, Kidon 1",
+      "text_he": "אישור המראה, מסלול 9, כידון 1"
+    },
+    "RB_TAKEOFF_RWY+33+RWY_L": {
+      "file": "plt_rb_takeoff_33l.ogg",
+      "text": "cleared for take-off runway 33 left",
+      "text_he": "אישור המראה, מסלול 33 שמאל",
+      "he_only": true
+    },
+    "RB_TAKEOFF_RWY+33+RWY_L+,+ALPHA_P": {
+      "file": "plt_rb_takeoff_33l_kidon1.ogg",
+      "text": "cleared for take-off runway 33 left, Kidon 1",
+      "text_he": "אישור המראה, מסלול 33 שמאל, כידון 1"
+    },
+    "RB_TAKEOFF_RWY+15+RWY_R": {
+      "file": "plt_rb_takeoff_15r.ogg",
+      "text": "cleared for take-off runway 15 right",
+      "text_he": "אישור המראה, מסלול 15 ימין",
+      "he_only": true
+    },
+    "RB_TAKEOFF_RWY+15+RWY_R+,+ALPHA_P": {
+      "file": "plt_rb_takeoff_15r_kidon1.ogg",
+      "text": "cleared for take-off runway 15 right, Kidon 1",
+      "text_he": "אישור המראה, מסלול 15 ימין, כידון 1"
+    },
+    "RB_TAKEOFF_RWY+28+RWY_L": {
+      "file": "plt_rb_takeoff_28l.ogg",
+      "text": "cleared for take-off runway 28 left",
+      "text_he": "אישור המראה, מסלול 28 שמאל",
+      "he_only": true
+    },
+    "RB_TAKEOFF_RWY+28+RWY_L+,+ALPHA_P": {
+      "file": "plt_rb_takeoff_28l_kidon1.ogg",
+      "text": "cleared for take-off runway 28 left, Kidon 1",
+      "text_he": "אישור המראה, מסלול 28 שמאל, כידון 1"
+    },
+    "RB_TAKEOFF_RWY+10+RWY_R": {
+      "file": "plt_rb_takeoff_10r.ogg",
+      "text": "cleared for take-off runway 10 right",
+      "text_he": "אישור המראה, מסלול 10 ימין",
+      "he_only": true
+    },
+    "RB_TAKEOFF_RWY+10+RWY_R+,+ALPHA_P": {
+      "file": "plt_rb_takeoff_10r_kidon1.ogg",
+      "text": "cleared for take-off runway 10 right, Kidon 1",
+      "text_he": "אישור המראה, מסלול 10 ימין, כידון 1"
+    },
+    "RB_TAKEOFF_RWY+26+RWY_L": {
+      "file": "plt_rb_takeoff_26l.ogg",
+      "text": "cleared for take-off runway 26 left",
+      "text_he": "אישור המראה, מסלול 26 שמאל",
+      "he_only": true
+    },
+    "RB_TAKEOFF_RWY+26+RWY_L+,+ALPHA_P": {
+      "file": "plt_rb_takeoff_26l_kidon1.ogg",
+      "text": "cleared for take-off runway 26 left, Kidon 1",
+      "text_he": "אישור המראה, מסלול 26 שמאל, כידון 1"
+    },
+    "RB_TAKEOFF_RWY+8+RWY_R": {
+      "file": "plt_rb_takeoff_08r.ogg",
+      "text": "cleared for take-off runway 8 right",
+      "text_he": "אישור המראה, מסלול 8 ימין",
+      "he_only": true
+    },
+    "RB_TAKEOFF_RWY+8+RWY_R+,+ALPHA_P": {
+      "file": "plt_rb_takeoff_08r_kidon1.ogg",
+      "text": "cleared for take-off runway 8 right, Kidon 1",
+      "text_he": "אישור המראה, מסלול 8 ימין, כידון 1"
+    },
+    "RB_PROCEED_RWY": {
+      "file": "plt_rb_proceed.ogg",
+      "text": "proceed to runway",
+      "text_he": "התקדמות למסלול"
+    },
+    "RB_PROCEED_RWY+25+RWY_R": {
+      "file": "plt_rb_proceed_25r.ogg",
+      "text": "proceed to runway 25 right",
+      "text_he": "התקדמות למסלול 25 ימין",
+      "he_only": true
+    },
+    "RB_PROCEED_RWY+25+RWY_R+,+ALPHA_P": {
+      "file": "plt_rb_proceed_25r_kidon1.ogg",
+      "text": "proceed to runway 25 right, Kidon 1",
+      "text_he": "התקדמות למסלול 25 ימין, כידון 1"
+    },
+    "RB_PROCEED_RWY+7+RWY_L": {
+      "file": "plt_rb_proceed_07l.ogg",
+      "text": "proceed to runway 7 left",
+      "text_he": "התקדמות למסלול 7 שמאל",
+      "he_only": true
+    },
+    "RB_PROCEED_RWY+7+RWY_L+,+ALPHA_P": {
+      "file": "plt_rb_proceed_07l_kidon1.ogg",
+      "text": "proceed to runway 7 left, Kidon 1",
+      "text_he": "התקדמות למסלול 7 שמאל, כידון 1"
+    },
+    "RB_PROCEED_RWY+27": {
+      "file": "plt_rb_proceed_27.ogg",
+      "text": "proceed to runway 27",
+      "text_he": "התקדמות למסלול 27",
+      "he_only": true
+    },
+    "RB_PROCEED_RWY+27+,+ALPHA_P": {
+      "file": "plt_rb_proceed_27_kidon1.ogg",
+      "text": "proceed to runway 27, Kidon 1",
+      "text_he": "התקדמות למסלול 27, כידון 1"
+    },
+    "RB_PROCEED_RWY+9": {
+      "file": "plt_rb_proceed_09.ogg",
+      "text": "proceed to runway 9",
+      "text_he": "התקדמות למסלול 9",
+      "he_only": true
+    },
+    "RB_PROCEED_RWY+9+,+ALPHA_P": {
+      "file": "plt_rb_proceed_09_kidon1.ogg",
+      "text": "proceed to runway 9, Kidon 1",
+      "text_he": "התקדמות למסלול 9, כידון 1"
+    },
+    "RB_PROCEED_RWY+33+RWY_L": {
+      "file": "plt_rb_proceed_33l.ogg",
+      "text": "proceed to runway 33 left",
+      "text_he": "התקדמות למסלול 33 שמאל",
+      "he_only": true
+    },
+    "RB_PROCEED_RWY+33+RWY_L+,+ALPHA_P": {
+      "file": "plt_rb_proceed_33l_kidon1.ogg",
+      "text": "proceed to runway 33 left, Kidon 1",
+      "text_he": "התקדמות למסלול 33 שמאל, כידון 1"
+    },
+    "RB_PROCEED_RWY+15+RWY_R": {
+      "file": "plt_rb_proceed_15r.ogg",
+      "text": "proceed to runway 15 right",
+      "text_he": "התקדמות למסלול 15 ימין",
+      "he_only": true
+    },
+    "RB_PROCEED_RWY+15+RWY_R+,+ALPHA_P": {
+      "file": "plt_rb_proceed_15r_kidon1.ogg",
+      "text": "proceed to runway 15 right, Kidon 1",
+      "text_he": "התקדמות למסלול 15 ימין, כידון 1"
+    },
+    "RB_PROCEED_RWY+28+RWY_L": {
+      "file": "plt_rb_proceed_28l.ogg",
+      "text": "proceed to runway 28 left",
+      "text_he": "התקדמות למסלול 28 שמאל",
+      "he_only": true
+    },
+    "RB_PROCEED_RWY+28+RWY_L+,+ALPHA_P": {
+      "file": "plt_rb_proceed_28l_kidon1.ogg",
+      "text": "proceed to runway 28 left, Kidon 1",
+      "text_he": "התקדמות למסלול 28 שמאל, כידון 1"
+    },
+    "RB_PROCEED_RWY+10+RWY_R": {
+      "file": "plt_rb_proceed_10r.ogg",
+      "text": "proceed to runway 10 right",
+      "text_he": "התקדמות למסלול 10 ימין",
+      "he_only": true
+    },
+    "RB_PROCEED_RWY+10+RWY_R+,+ALPHA_P": {
+      "file": "plt_rb_proceed_10r_kidon1.ogg",
+      "text": "proceed to runway 10 right, Kidon 1",
+      "text_he": "התקדמות למסלול 10 ימין, כידון 1"
+    },
+    "RB_PROCEED_RWY+26+RWY_L": {
+      "file": "plt_rb_proceed_26l.ogg",
+      "text": "proceed to runway 26 left",
+      "text_he": "התקדמות למסלול 26 שמאל",
+      "he_only": true
+    },
+    "RB_PROCEED_RWY+26+RWY_L+,+ALPHA_P": {
+      "file": "plt_rb_proceed_26l_kidon1.ogg",
+      "text": "proceed to runway 26 left, Kidon 1",
+      "text_he": "התקדמות למסלול 26 שמאל, כידון 1"
+    },
+    "RB_PROCEED_RWY+8+RWY_R": {
+      "file": "plt_rb_proceed_08r.ogg",
+      "text": "proceed to runway 8 right",
+      "text_he": "התקדמות למסלול 8 ימין",
+      "he_only": true
+    },
+    "RB_PROCEED_RWY+8+RWY_R+,+ALPHA_P": {
+      "file": "plt_rb_proceed_08r_kidon1.ogg",
+      "text": "proceed to runway 8 right, Kidon 1",
+      "text_he": "התקדמות למסלול 8 ימין, כידון 1"
+    },
+    "RB_LAND_RWY": {
+      "file": "plt_rb_land.ogg",
+      "text": "cleared to land runway",
+      "text_he": "אישור נחיתה במסלול"
+    },
+    "RB_LAND_RWY+25+RWY_R": {
+      "file": "plt_rb_land_25r.ogg",
+      "text": "cleared to land runway 25 right",
+      "text_he": "אישור נחיתה במסלול 25 ימין",
+      "he_only": true
+    },
+    "RB_LAND_RWY+25+RWY_R+,+ALPHA_P": {
+      "file": "plt_rb_land_25r_kidon1.ogg",
+      "text": "cleared to land runway 25 right, Kidon 1",
+      "text_he": "אישור נחיתה במסלול 25 ימין, כידון 1"
+    },
+    "RB_LAND_RWY+7+RWY_L": {
+      "file": "plt_rb_land_07l.ogg",
+      "text": "cleared to land runway 7 left",
+      "text_he": "אישור נחיתה במסלול 7 שמאל",
+      "he_only": true
+    },
+    "RB_LAND_RWY+7+RWY_L+,+ALPHA_P": {
+      "file": "plt_rb_land_07l_kidon1.ogg",
+      "text": "cleared to land runway 7 left, Kidon 1",
+      "text_he": "אישור נחיתה במסלול 7 שמאל, כידון 1"
+    },
+    "RB_LAND_RWY+27": {
+      "file": "plt_rb_land_27.ogg",
+      "text": "cleared to land runway 27",
+      "text_he": "אישור נחיתה במסלול 27",
+      "he_only": true
+    },
+    "RB_LAND_RWY+27+,+ALPHA_P": {
+      "file": "plt_rb_land_27_kidon1.ogg",
+      "text": "cleared to land runway 27, Kidon 1",
+      "text_he": "אישור נחיתה במסלול 27, כידון 1"
+    },
+    "RB_LAND_RWY+9": {
+      "file": "plt_rb_land_09.ogg",
+      "text": "cleared to land runway 9",
+      "text_he": "אישור נחיתה במסלול 9",
+      "he_only": true
+    },
+    "RB_LAND_RWY+9+,+ALPHA_P": {
+      "file": "plt_rb_land_09_kidon1.ogg",
+      "text": "cleared to land runway 9, Kidon 1",
+      "text_he": "אישור נחיתה במסלול 9, כידון 1"
+    },
+    "RB_LAND_RWY+33+RWY_L": {
+      "file": "plt_rb_land_33l.ogg",
+      "text": "cleared to land runway 33 left",
+      "text_he": "אישור נחיתה במסלול 33 שמאל",
+      "he_only": true
+    },
+    "RB_LAND_RWY+33+RWY_L+,+ALPHA_P": {
+      "file": "plt_rb_land_33l_kidon1.ogg",
+      "text": "cleared to land runway 33 left, Kidon 1",
+      "text_he": "אישור נחיתה במסלול 33 שמאל, כידון 1"
+    },
+    "RB_LAND_RWY+15+RWY_R": {
+      "file": "plt_rb_land_15r.ogg",
+      "text": "cleared to land runway 15 right",
+      "text_he": "אישור נחיתה במסלול 15 ימין",
+      "he_only": true
+    },
+    "RB_LAND_RWY+15+RWY_R+,+ALPHA_P": {
+      "file": "plt_rb_land_15r_kidon1.ogg",
+      "text": "cleared to land runway 15 right, Kidon 1",
+      "text_he": "אישור נחיתה במסלול 15 ימין, כידון 1"
+    },
+    "RB_LAND_RWY+28+RWY_L": {
+      "file": "plt_rb_land_28l.ogg",
+      "text": "cleared to land runway 28 left",
+      "text_he": "אישור נחיתה במסלול 28 שמאל",
+      "he_only": true
+    },
+    "RB_LAND_RWY+28+RWY_L+,+ALPHA_P": {
+      "file": "plt_rb_land_28l_kidon1.ogg",
+      "text": "cleared to land runway 28 left, Kidon 1",
+      "text_he": "אישור נחיתה במסלול 28 שמאל, כידון 1"
+    },
+    "RB_LAND_RWY+10+RWY_R": {
+      "file": "plt_rb_land_10r.ogg",
+      "text": "cleared to land runway 10 right",
+      "text_he": "אישור נחיתה במסלול 10 ימין",
+      "he_only": true
+    },
+    "RB_LAND_RWY+10+RWY_R+,+ALPHA_P": {
+      "file": "plt_rb_land_10r_kidon1.ogg",
+      "text": "cleared to land runway 10 right, Kidon 1",
+      "text_he": "אישור נחיתה במסלול 10 ימין, כידון 1"
+    },
+    "RB_LAND_RWY+26+RWY_L": {
+      "file": "plt_rb_land_26l.ogg",
+      "text": "cleared to land runway 26 left",
+      "text_he": "אישור נחיתה במסלול 26 שמאל",
+      "he_only": true
+    },
+    "RB_LAND_RWY+26+RWY_L+,+ALPHA_P": {
+      "file": "plt_rb_land_26l_kidon1.ogg",
+      "text": "cleared to land runway 26 left, Kidon 1",
+      "text_he": "אישור נחיתה במסלול 26 שמאל, כידון 1"
+    },
+    "RB_LAND_RWY+8+RWY_R": {
+      "file": "plt_rb_land_08r.ogg",
+      "text": "cleared to land runway 8 right",
+      "text_he": "אישור נחיתה במסלול 8 ימין",
+      "he_only": true
+    },
+    "RB_LAND_RWY+8+RWY_R+,+ALPHA_P": {
+      "file": "plt_rb_land_08r_kidon1.ogg",
+      "text": "cleared to land runway 8 right, Kidon 1",
+      "text_he": "אישור נחיתה במסלול 8 ימין, כידון 1"
+    },
+    "RB_START": {
+      "file": "plt_rb_start.ogg",
+      "text": "cleared to start",
+      "text_he": "אישור התנעה"
+    },
+    "RB_START+,+ALPHA_P": {
+      "file": "plt_rb_start_kidon1.ogg",
+      "text": "cleared to start, Kidon 1",
+      "text_he": "אישור התנעה, כידון 1"
+    },
+    "RB_HOLDING": {
+      "file": "plt_rb_holding.ogg",
+      "text": "holding",
+      "text_he": "המתנה במקום"
+    },
+    "RB_HOLDING+,+ALPHA_P": {
+      "file": "plt_rb_holding_kidon1.ogg",
+      "text": "holding, Kidon 1",
+      "text_he": "המתנה במקום, כידון 1"
+    },
+    "RB_GOING_AROUND": {
+      "file": "plt_rb_go_around.ogg",
+      "text": "going around",
+      "text_he": "הליכה סביב"
+    },
+    "RB_GOING_AROUND+,+ALPHA_P": {
+      "file": "plt_rb_go_around_kidon1.ogg",
+      "text": "going around, Kidon 1",
+      "text_he": "הליכה סביב, כידון 1"
+    },
+    "RB_TAXI_PARK": {
+      "file": "plt_rb_park.ogg",
+      "text": "taxi to parking",
+      "text_he": "הסעה לחנייה"
+    },
+    "RB_TAXI_PARK+,+ALPHA_P": {
+      "file": "plt_rb_park_kidon1.ogg",
+      "text": "taxi to parking, Kidon 1",
+      "text_he": "הסעה לחנייה, כידון 1"
+    },
+    "RWY": {
+      "file": "twr_to_rwy.ogg",
+      "text": "runway",
+      "text_he": "מסלול"
+    },
+    "ALPHA_T+,+WIND_CALM+,+RWY": {
+      "file": "twr_to_kidon1_calm_rwy.ogg",
+      "text": "Kidon 1, wind calm, runway",
+      "text_he": "כידון 1, רוח שקטה, מסלול"
+    },
+    "WIND_CALM+,+RWY": {
+      "file": "twr_to_calm_rwy.ogg",
+      "text": "wind calm, runway",
+      "text_he": "רוח שקטה, מסלול",
+      "he_only": true
+    },
+    "WDIR010": {
+      "file": "twr_wdir010.ogg",
+      "text": "wind 010 degrees,",
+      "text_he": "רוח 010 מעלות,"
+    },
+    "WDIR020": {
+      "file": "twr_wdir020.ogg",
+      "text": "wind 020 degrees,",
+      "text_he": "רוח 020 מעלות,"
+    },
+    "WDIR030": {
+      "file": "twr_wdir030.ogg",
+      "text": "wind 030 degrees,",
+      "text_he": "רוח 030 מעלות,"
+    },
+    "WDIR040": {
+      "file": "twr_wdir040.ogg",
+      "text": "wind 040 degrees,",
+      "text_he": "רוח 040 מעלות,"
+    },
+    "WDIR050": {
+      "file": "twr_wdir050.ogg",
+      "text": "wind 050 degrees,",
+      "text_he": "רוח 050 מעלות,"
+    },
+    "WDIR060": {
+      "file": "twr_wdir060.ogg",
+      "text": "wind 060 degrees,",
+      "text_he": "רוח 060 מעלות,"
+    },
+    "WDIR070": {
+      "file": "twr_wdir070.ogg",
+      "text": "wind 070 degrees,",
+      "text_he": "רוח 070 מעלות,"
+    },
+    "WDIR080": {
+      "file": "twr_wdir080.ogg",
+      "text": "wind 080 degrees,",
+      "text_he": "רוח 080 מעלות,"
+    },
+    "WDIR090": {
+      "file": "twr_wdir090.ogg",
+      "text": "wind 090 degrees,",
+      "text_he": "רוח 090 מעלות,"
+    },
+    "WDIR100": {
+      "file": "twr_wdir100.ogg",
+      "text": "wind 100 degrees,",
+      "text_he": "רוח 100 מעלות,"
+    },
+    "WDIR110": {
+      "file": "twr_wdir110.ogg",
+      "text": "wind 110 degrees,",
+      "text_he": "רוח 110 מעלות,"
+    },
+    "WDIR120": {
+      "file": "twr_wdir120.ogg",
+      "text": "wind 120 degrees,",
+      "text_he": "רוח 120 מעלות,"
+    },
+    "WDIR130": {
+      "file": "twr_wdir130.ogg",
+      "text": "wind 130 degrees,",
+      "text_he": "רוח 130 מעלות,"
+    },
+    "WDIR140": {
+      "file": "twr_wdir140.ogg",
+      "text": "wind 140 degrees,",
+      "text_he": "רוח 140 מעלות,"
+    },
+    "WDIR150": {
+      "file": "twr_wdir150.ogg",
+      "text": "wind 150 degrees,",
+      "text_he": "רוח 150 מעלות,"
+    },
+    "WDIR160": {
+      "file": "twr_wdir160.ogg",
+      "text": "wind 160 degrees,",
+      "text_he": "רוח 160 מעלות,"
+    },
+    "WDIR170": {
+      "file": "twr_wdir170.ogg",
+      "text": "wind 170 degrees,",
+      "text_he": "רוח 170 מעלות,"
+    },
+    "WDIR180": {
+      "file": "twr_wdir180.ogg",
+      "text": "wind 180 degrees,",
+      "text_he": "רוח 180 מעלות,"
+    },
+    "WDIR190": {
+      "file": "twr_wdir190.ogg",
+      "text": "wind 190 degrees,",
+      "text_he": "רוח 190 מעלות,"
+    },
+    "WDIR200": {
+      "file": "twr_wdir200.ogg",
+      "text": "wind 200 degrees,",
+      "text_he": "רוח 200 מעלות,"
+    },
+    "WDIR210": {
+      "file": "twr_wdir210.ogg",
+      "text": "wind 210 degrees,",
+      "text_he": "רוח 210 מעלות,"
+    },
+    "WDIR220": {
+      "file": "twr_wdir220.ogg",
+      "text": "wind 220 degrees,",
+      "text_he": "רוח 220 מעלות,"
+    },
+    "WDIR230": {
+      "file": "twr_wdir230.ogg",
+      "text": "wind 230 degrees,",
+      "text_he": "רוח 230 מעלות,"
+    },
+    "WDIR240": {
+      "file": "twr_wdir240.ogg",
+      "text": "wind 240 degrees,",
+      "text_he": "רוח 240 מעלות,"
+    },
+    "WDIR250": {
+      "file": "twr_wdir250.ogg",
+      "text": "wind 250 degrees,",
+      "text_he": "רוח 250 מעלות,"
+    },
+    "WDIR260": {
+      "file": "twr_wdir260.ogg",
+      "text": "wind 260 degrees,",
+      "text_he": "רוח 260 מעלות,"
+    },
+    "WDIR270": {
+      "file": "twr_wdir270.ogg",
+      "text": "wind 270 degrees,",
+      "text_he": "רוח 270 מעלות,"
+    },
+    "WDIR280": {
+      "file": "twr_wdir280.ogg",
+      "text": "wind 280 degrees,",
+      "text_he": "רוח 280 מעלות,"
+    },
+    "WDIR290": {
+      "file": "twr_wdir290.ogg",
+      "text": "wind 290 degrees,",
+      "text_he": "רוח 290 מעלות,"
+    },
+    "WDIR300": {
+      "file": "twr_wdir300.ogg",
+      "text": "wind 300 degrees,",
+      "text_he": "רוח 300 מעלות,"
+    },
+    "WDIR310": {
+      "file": "twr_wdir310.ogg",
+      "text": "wind 310 degrees,",
+      "text_he": "רוח 310 מעלות,"
+    },
+    "WDIR320": {
+      "file": "twr_wdir320.ogg",
+      "text": "wind 320 degrees,",
+      "text_he": "רוח 320 מעלות,"
+    },
+    "WDIR330": {
+      "file": "twr_wdir330.ogg",
+      "text": "wind 330 degrees,",
+      "text_he": "רוח 330 מעלות,"
+    },
+    "WDIR340": {
+      "file": "twr_wdir340.ogg",
+      "text": "wind 340 degrees,",
+      "text_he": "רוח 340 מעלות,"
+    },
+    "WDIR350": {
+      "file": "twr_wdir350.ogg",
+      "text": "wind 350 degrees,",
+      "text_he": "רוח 350 מעלות,"
+    },
+    "WDIR360": {
+      "file": "twr_wdir360.ogg",
+      "text": "wind 360 degrees,",
+      "text_he": "רוח 360 מעלות,"
     }
   },
   "templates": {
     "ACFT_CLEAR_TO_START": "%S1 , START",
     "ACFT_TAXI_TO_RUNWAY": "%S1 , %S2 , TAXI_RWY %D1",
-    "ACFT_CLEAR_TO_LINEUP": "%S1 , LINEUP_RWY %D1 , %S2",
+    "ACFT_CLEAR_TO_LINEUP": "%S1 , LINEUP_RWY %D1 , %S3 %S2",
     "ACFT_CLEAR_TO_LINEUP_NW": "%S1 , LINEUP_RWY %D1 , WIND_CALM",
     "ACFT_HOLD_POS": "%S1 , HOLD_POS",
-    "ACFT_CLEAR_TO_TAKEOFF": "%S1 , TAKEOFF",
+    "ACFT_CLEAR_TO_TAKEOFF": "%S1 , %S3 %S2 , RWY %D1 , TAKEOFF",
     "ACFT_PROCEED_TO_RUNWAY": "%S1 , PROCEED_RWY %D1",
-    "ACFT_CLEAR_TO_LAND": "%S1 , LAND_RWY %D1 , %S2",
+    "ACFT_CLEAR_TO_LAND": "%S1 , LAND_RWY %D1 , %S3 %S2",
     "ACFT_CLEAR_TO_LAND_NW": "%S1 , LAND_RWY %D1 , WIND_CALM",
     "ACFT_GO_AROUND_RUNWAY": "%S1 , GO_AROUND",
     "ACFT_TAXI_TO_PARK": "%S1 , TAXI_PARK",
@@ -4975,7 +6716,16 @@
     "WNG_CALL": "%S1 , %S2",
     "WNG_LEAD": "%S1 WNG_HAS_LEAD",
     "WNG_FUEL": "%S1 , %S2 WNG_POINT %S3",
-    "WNG_FUEL2": "%S1 , %S2 %S3 WNG_POINT %S4"
+    "WNG_FUEL2": "%S1 , %S2 %S3 WNG_POINT %S4",
+    "RB_ACFT_TAXI_TO_RUNWAY": "RB_TAXI_RWY %D1 , %S1",
+    "RB_ACFT_CLEAR_TO_LINEUP": "RB_LINEUP_RWY %D1 , %S1",
+    "RB_ACFT_CLEAR_TO_TAKEOFF": "RB_TAKEOFF_RWY %D1 , %S1",
+    "RB_ACFT_PROCEED_TO_RUNWAY": "RB_PROCEED_RWY %D1 , %S1",
+    "RB_ACFT_CLEAR_TO_LAND": "RB_LAND_RWY %D1 , %S1",
+    "RB_ACFT_CLEAR_TO_START": "RB_START , %S1",
+    "RB_ACFT_HOLD_POS": "RB_HOLDING , %S1",
+    "RB_ACFT_GO_AROUND_RUNWAY": "RB_GOING_AROUND , %S1",
+    "RB_ACFT_TAXI_TO_PARK": "RB_TAXI_PARK , %S1"
   },
   "he": {
     "engine": "BlueTTS BlueV3 (github.com/maxmelichov/BlueTTS, git 91b1789): code and weights MIT, the RenikudPlus G2P Apache-2.0, the voices CC BY 4.0 (LibriTTS-R speakers), the vocoder OpenRAIL-M (modern-iaf/docs/research/hebrew-voices.md §4)",

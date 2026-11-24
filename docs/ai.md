@@ -755,6 +755,14 @@ model, where none of the 6-DoF cases applies. Every figure here is inferred, tun
     (2026-11-24, inferred). On the heading alone each jet kept whatever error under a degree its lineup pivot left: at
     Nevatim Kidon 1-1 and 1-2 closed from 15 m to 10 m by the lift-off, 1-3 and 1-4 opened to 26 m with a line but no
     nudge; with both, all four lift off 15 m from their mates at Ramon and Nevatim.
+  - **A runway turned into the wind** (24 November 2026; [autopilot.md](autopilot.md) §2.4): the departure runs to
+    the main end's lineup and backtracks down the runway to the other end (`Airbase::reversed`). A jet ahead turns
+    round there and rolls back toward the jets behind it, so an AI jet taxiing out holds short within 150 m of the
+    runway's entry (`Airbase::backtrack`, `Flight::backtrack_hold`, `Autopilot::hold_short`; inferred: the holding
+    point is 86–101 m before it) while a jet ahead of it in order is still on the ground with its engine running; a
+    pairs wingman goes with its element lead. Measured at Ramon (F-16I, 2 t of stores, `ground_run_at_ramon_into_the_wind`):
+    each lifted off on 07L's heading, the least distance between two jets on the ground 43.8 m (17.2 m, #3 on the
+    runway as the lead rolled toward it, without the hold), the wingmen landing 65 and 41 s apart, all parked.
   - **Pairs** (`Flight::pairs`, `IafAi.pairs`, the dev hook `ai_flights.gd flight_pairs`; no mission sets it yet;
     the default is the stream): #2 lines up beside #1 and #4 beside #3, 15 m apart, on the side of its slot in the
     shape (#2 left and #4 right in fingertip); its runway entry and lineup points move with it, so its last leg runs

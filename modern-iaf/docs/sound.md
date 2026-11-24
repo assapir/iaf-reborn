@@ -399,6 +399,53 @@ the pilot's
 to runway 25 right". The particles cover the callsigns Kidon 1–4, the greetings, the winds 10 / 15 / 20 kt, every
 runway number 1–36 (spoken digit by digit, "two five") and the letters `RWY_L` / `RWY_R` / `RWY_C`.
 
+**The wind** (24 November 2026) is said as the standard says it, its direction in 10° steps (360 for north) and its
+speed: "wind 270 degrees, 10 knots"[^amc69]. Modern IAF's line-up, landing and take-off templates hold `%S3 %S2`:
+`%S3` the direction (`WDIR010` … `WDIR360`, "wind two seven zero degrees", `twr_wdir270.ogg`; Hebrew "רוח שתיים שבע
+אפס מעלות", ours) and `%S2` the speed (`WI_KNOTS10` / `15` / `20`, now "one zero knots" alone; "עשרה קשר"); a calm
+wind is `WIND_CALM` alone. `radio.gd` `_speak` rounds the mission's `wind_from` to the 10° step. The original's
+templates hold only `%S2`, its own "wind 10 knots", so its calls are unchanged.
+
+**The take-off clearance** carries the wind and the runway: `ACFT_CLEAR_TO_TAKEOFF` = `%S1 , %S3 %S2 , RWY %D1 ,
+TAKEOFF` → "Kidon 1, wind 270 degrees, 10 knots, runway 25 right, cleared for take-off" ("Kidon 1, wind calm, runway
+25 right, cleared for take-off"), the order of the UAE's radiotelephony standard, which follows ICAO's: the callsign,
+the surface wind, the runway, "cleared for take-off"[^amc69]. The original's template for code 4 uses only the
+callsign, so its call is unchanged. The clips: `RWY` ("runway", `twr_to_rwy.ogg`, cut before the number), Kidon 1's
+calm head in English (`ALPHA_T+,+WIND_CALM+,+RWY`, "Kidon 1, wind calm, runway", `twr_to_kidon1_calm_rwy.ogg`) and
+the same words without the callsign in Hebrew (`he_only`, `twr_to_calm_rwy.ogg`); then the tower's runway clip, the
+pause and `TAKEOFF`. The four whole "Kidon N, cleared for take-off" clips were removed: no call plays them now.
+
+**The readback** (24 November 2026; the user, 17 November 2026: "also "ramon tower, this is... request start" the
+readback and not only "roger""). The player reads each clearance back in the player's own voice, the callsign last,
+as the standard asks for every runway, taxi and hold clearance ("a full readback followed by the aircraft
+callsign"[^amc69]). `radio.gd` `readback(template)` says `RB_<template>` where the phrase table has one, else the
+original's "Roger" (the original game's table has none, so its answer stays "Roger"):
+
+| the tower | the player | template |
+|---|---|---|
+| "Kidon 1, cleared to start" | "Cleared to start, Kidon 1" | `RB_ACFT_CLEAR_TO_START` |
+| "Kidon 1, good morning, taxi to runway 25 right" | "Taxi to runway 25 right, Kidon 1" | `RB_ACFT_TAXI_TO_RUNWAY` |
+| "Kidon 1, line up runway 25 right, wind calm" | "Line up runway 25 right, Kidon 1" | `RB_ACFT_CLEAR_TO_LINEUP` |
+| "Kidon 1, hold position"; "negative, hold position, request … first" | "Holding, Kidon 1" | `RB_ACFT_HOLD_POS` |
+| "Kidon 1, wind calm, runway 25 right, cleared for take-off" | "Cleared for take-off runway 25 right, Kidon 1" | `RB_ACFT_CLEAR_TO_TAKEOFF` |
+| "Kidon 1, proceed to runway 25 right" | "Proceed to runway 25 right, Kidon 1" | `RB_ACFT_PROCEED_TO_RUNWAY` |
+| "Kidon 1, cleared to land runway 25 right, wind calm" | "Cleared to land runway 25 right, Kidon 1" | `RB_ACFT_CLEAR_TO_LAND` |
+| "Kidon 1, go around, runway not clear" | "Going around, Kidon 1" | `RB_ACFT_GO_AROUND_RUNWAY` |
+| "Kidon 1, welcome back, taxi to parking" | "Taxi to parking, Kidon 1" | `RB_ACFT_TAXI_TO_PARK` |
+| "Kidon 1, check gear down" | "Roger" | none: an advisory, not a clearance |
+
+A readback repeats the clearance and its runway, without the wind (the standard's list of readback items holds no
+surface wind)[^amc69]; "holding" and "going around" are the
+standard's replies to a hold and a go-around[^amc69]. The Hebrew lines repeat the tower's own words ("הסעה למסלול 25
+ימין, כידון 1", "המתנה במקום, כידון 1"): no Hebrew readback phraseology was found (ours, the form of
+[research/radio-terms.md](research/radio-terms.md)'s tower row). The wingmen keep answering the tower's landing calls
+with their callsign. The clips (`plt_rb_*`, the pilot's voice through the helmet chain, §5.2): each readback with the
+runway ends of the five towers' main runways (25R / 07L, 27 / 09, 33L / 15R, 28L / 10R, 26L / 08R) and Kidon 1 as one
+English clip ("Taxi to runway two five right, Kidon one."), the same without the callsign as one Hebrew clip
+(`he_only`), and each readback's head alone in both languages for another callsign or runway. The go-around is
+"הליכה סביב" in the tower's Hebrew line and the readback alike, the game manual's term (`text/he/terms.yaml`; the
+tower said "סיבוב נוסף" until 24 November 2026).
+
 **The callsigns** are kidon style (the user, 20 November 2026: "Use kidon style, where kidon 1 is the first formation
 the second is kidon 2 etc"; [research/radio-terms.md](research/radio-terms.md)): the flight is "Kidon 1" ("כידון 1"),
 its jets "Kidon 1-1" to "Kidon 1-4", spoken "Kidon one-two" ("כידון אחד-שתיים"). The particle keys stay the exe's
@@ -489,8 +536,8 @@ languages, and a joined particle plays only where its clip exists in the languag
 Hebrew-only joined particles (`he_only`, "MORNING+,+TAXI_RWY") hold a tower call's words after the callsign. So
 "כידון אחד" then "בוקר טוב, הסעה למסלול" plays, and a new callsign changes only the callsign particles. Another
 pilot's call that the English pilot voice says (the wingman's ejection, the friendly-fire calls) takes a wingman's voice
-in Hebrew (`role_he`), since `pilot` is the player's own there. 664 clips (tower 102 lines × 2 voices, AWACS 108 × 2,
-the player's calls 32 × 2, the wingmen 30 × 6), 6.7 MB in all as Ogg Vorbis,
+in Hebrew (`role_he`), since `pilot` is the player's own there. 944 clips (tower 143 lines × 2 voices, AWACS 108 × 2,
+the player's calls and readbacks 98 × 2, the wingmen 41 × 6), as Ogg Vorbis,
 committed: the setup only copies them.
 
 **In the game**: `iaf-sim own` copies them to `converted/own/resource/soundfiles/he/` with `voices_he.json` (the casts
@@ -568,7 +615,7 @@ only the tower response") use the same chain heard from an oxygen-mask microphon
 at 2600 Hz instead of 3000 Hz (less air), +4 dB at 500 Hz, Q 0.9 (more low-mid). `sim_flight.gd` `pick()` says the
 call (`PILOT_CALL` = `%S1 , %S2 , %S3`: the tower's address `<BASE>_TWR`, the callsign `<NAME>_P`, `REQ_<ID>`) framed
 by the key clicks, then `radio_gap.ogg` (0.6 s of silence, `RADIO_GAP`: the controller's reply, inferred), then the
-tower's answer. Each base × Kidon 1 × the four requests (start-up, taxi, take-off, landing) is one joined clip
+tower's answer, then the player's readback (§3). Each base × Kidon 1 × the four requests (start-up, taxi, take-off, landing) is one joined clip
 ("Ramon tower, Kidon 1, request start-up."); the parts (4 towers, Kidon 1–4, 4 requests) cover the other callsigns.
 
 A transmission plays like a receiver's squelch (9 November 2026; the user: "missing a bit of a quiet before / after
@@ -710,6 +757,11 @@ The setup wizard's Attributions and the credits roll show these lines from `shar
     https://en.wikipedia.org/wiki/Voice_warning_system
 [^kokoro]: Kokoro-82M, model card (licence, training data, the CC BY sets) and VOICES.md (the voices' grades): https://huggingface.co/hexgrad/Kokoro-82M
 [^boeing]: Boeing, "“Bitchin’ Betty” Says Farewell: Beloved Voice Behind Boeing’s F/A-18 Super Hornet Retires", YouTube, 7 March 2016 (reference only): https://www.youtube.com/watch?v=yx7-yvXf6f8
+[^amc69]: General Civil Aviation Authority of the UAE, "AMC-69 UAE Radiotelephony Standards", issue 03 (1 February
+    2021): §2.10.4 (the readback items, "a full readback followed by the aircraft callsign"), §3.6 (the take-off
+    clearance: "ETIHAD 115 SURFACE WIND 310 DEGREES 07 KNOTS RUNWAY 31 CLEARED FOR TAKE-OFF", read back "CLEARED FOR
+    TAKE-OFF RUNWAY 31"), §3.14 ("GOING AROUND"), the cancelled take-off's "HOLDING":
+    https://www.gcaa.gov.ae/en/epublication/EPublications/Standalone%20AMC/AMC%20-%2069%20-%20UAE%20RADIOTELEPHONY%20STANDARDS%20-%20ISSUE%2003.pdf
 [^mco]: The Radio Bunker, "Orlando International Airport Air Traffic Control (ATC) Recording 9/4/23", YouTube, 4 September 2023, an unedited scanner recording (reference only): https://www.youtube.com/watch?v=fN27WatToP8
 [^vms]: Recep Yünce, "F-16 Voice Warning System & Alarms", YouTube, 18 June 2021 (reference only; the source of the recording is not stated): https://www.youtube.com/watch?v=LtyxrdLwVsU
 [^saspeech]: OpenSLR, "SASPEECH" (SLR134), licence summary: https://www.openslr.org/134/

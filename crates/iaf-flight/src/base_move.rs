@@ -583,6 +583,7 @@ impl BaseMove {
         };
         b.tower = mp(b.tower);
         b.lineup = mp(b.lineup);
+        b.backtrack = b.backtrack.map(mp);
         let turn = (self.turn as f32).to_radians();
         let pi = std::f32::consts::PI;
         let tp = |t: &mut TaxiPt| {

@@ -863,8 +863,8 @@ pub fn score(flight: &Flight, mission: &Value, airbases: &[Value]) -> Result<Deb
         }
         Kind::Takeoff { heading_tolerance_deg, empty_kg, takeoff_kt } => {
             let airbase = airbase_of(mission, airbases)?;
-            let rw = runway(airbase, mission["runway"].as_str().unwrap_or(""))?;
             let base = sim_bases::base(airbase, &format!("{id}: start.base"))?;
+            let rw = runway(airbase, base.mission_runway(mission).unwrap_or(""))?;
             let t = Takeoff {
                 rw: &rw,
                 base: &base,
@@ -977,7 +977,7 @@ impl Watch {
         let bases: Vec<_> = sim_bases::files(airbases)?;
         let rules = rules(&m)?.with_context(|| format!("{}: no \"training\" rules", mission.display()))?;
         let base = sim_bases::base(airbase_of(&m, &bases)?, &mission.display().to_string())?;
-        let runway = match m["runway"].as_str() {
+        let runway = match base.mission_runway(&m) {
             Some(d) if !matches!(rules.kind, Kind::Startup) => {
                 Some(base.end(d).with_context(|| format!("{}: no runway {d}", mission.display()))?)
             }
@@ -1342,7 +1342,9 @@ pub fn track_files(flight: &std::path::Path, mission: &std::path::Path, airbases
     let rw = (|| -> Result<Runway> {
         let m: Value = serde_json::from_str(&read(mission)?)?;
         let bases: Vec<_> = sim_bases::files(airbases)?;
-        runway(airbase_of(&m, &bases)?, m["runway"].as_str().context("no runway")?)
+        let airbase = airbase_of(&m, &bases)?;
+        let base = sim_bases::base(airbase, &mission.display().to_string())?;
+        runway(airbase, base.mission_runway(&m).context("no runway")?)
     })()
     .ok();
     Ok(track(&f, rw.as_ref()))
@@ -2225,6 +2227,26 @@ mod tests {
         assert_eq!(w.check(&at07(10.0)), None, "lined up: a warning only");
         assert_eq!(w.check(&at07(35.0)), Some("wrong_runway"), "the roll fails");
         assert_eq!(w.wrong_runway(&Now { on_ground: false, ..at07(150.0) }), None, "airborne");
+    }
+
+    /// The mission's wind turns its runway (sim_bases::Base::mission_runway, the tower's rule): a wind from 066° makes
+    /// Ramon's 25R take-off a 07L one, so 07L is the assigned end and a line-up on 25R is the wrong one.
+    #[test]
+    fn the_assigned_runway_turns_into_the_wind() {
+        let data = data();
+        let mut m = mission("ramon_takeoff");
+        (m["wind_kt"], m["wind_from"]) = (json!(15), json!(66));
+        let dir = std::env::temp_dir().join(format!("iaf-train-wind-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("ramon_takeoff_wind.json");
+        std::fs::write(&path, m.to_string()).unwrap();
+        let w = Watch::open(&path, &data.join("airbases")).unwrap();
+        std::fs::remove_dir_all(&dir).unwrap();
+        assert_eq!(w.runway_designator(), "07L");
+        let rw = runway(airbase_of(&m, &airbases()).unwrap(), "25R").unwrap();
+        let p = [rw.from[0] + (rw.start_m + 100.0) * rw.dir[0], rw.from[1] + (rw.start_m + 100.0) * rw.dir[1]];
+        let now = Now { on_ground: true, x: p[0], y: p[1], heading: rw.heading, rpm: 80.0, ..Default::default() };
+        assert_eq!(w.wrong_runway(&now).as_deref(), Some("25R"), "lined up on 25R in a wind from 066°");
     }
 
     #[test]

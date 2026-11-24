@@ -456,7 +456,10 @@ func _load_bases(path: String) -> void:
 		}
 		# Better physics "Wind and turbulence": the other end of a runway the tower turned into the wind.
 		var iw := IafBases.into_wind(name) if ClassDB.class_exists("IafBases") else PackedFloat64Array()
-		if not iw.is_empty():
+		b.turned = not iw.is_empty()
+		if b.turned:
+			if Settings.new_ai():  # Modern IAF: the departure enters at the main end's lineup and backtracks
+				b.entry = b.lineup
 			b.lineup = Vector3(iw[0], iw[1], iw[2])
 			b.rwy = int(iw[3])
 			b.designator = String(s.get("RunwayDesignatorOpposite", ""))
@@ -467,7 +470,7 @@ func _load_bases(path: String) -> void:
 			b.hdg = wrapi(roundi(b.rwy + m[2]), 0, 360)
 			b.rwy = IafBases.designator(name, b.hdg) * 10
 			b.letter = IafBases.designator_letter(name, b.hdg)  # a parallel runway's L / R / C
-			for k in ["tower", "lineup"]:
+			for k in ["tower", "lineup", "entry"].filter(func(k): return b.has(k)):
 				var q := Settings.base_moved(b[k].x, b[k].y)
 				if not q.is_empty():
 					b[k] = Vector3(q[0], q[1], b[k].z + q[4])
@@ -681,8 +684,9 @@ func request(kind: String) -> Dictionary:
 		"taxi":
 			code = 0 if bool(_st().get("engine_on", false)) else 3
 		"lineup":
-			var b: Dictionary = bases[at]
-			var d := Vector2(_pos().x, _pos().y).distance_to(Vector2(b.lineup.x, b.lineup.y))
+			# On a base turned into the wind, also at the runway's entry, where the backtrack to the lineup starts.
+			var d := Vector2(_pos().x, _pos().y).distance_to(_flat(bases[at].lineup))
+			d = minf(d, Vector2(_pos().x, _pos().y).distance_to(_flat(entry_of(at))))
 			_zone_check(LINEUP_ZONE, true, at)  # sets runway_clear
 			if d < LINEUP_NEAR and runway_clear:
 				code = 1
@@ -710,16 +714,14 @@ func _say(code: int) -> void:
 ## (Modern IAF's flight AI): `cs` another callsign particle (a wingman's), answered by its own `answer` in place of the
 ## player's "Roger".
 func _speak(at: int, code: int, cs := "", answer := []) -> Dictionary:
-	var b: Dictionary = bases[at]
 	cs = cs if cs != "" else _tower_callsign()
-	var rwy: Variant = int(b.rwy) / 10
-	if b.letter != "":
-		rwy = "%d%s" % [rwy, b.letter]
-	if b.designator != "" and not b.has("hdg"):
-		rwy = b.designator
-	if runway != "" and b.name == runway_base:
-		rwy = runway
+	var rwy: Variant = runway_of(at)
 	var t: String = MSG_TEMPLATES[code]
+	# The wind: %S2 its speed (the original's particle), %S3 ours, its direction in ICAO's 10° steps, 360 for north
+	# ("wind 270 degrees, 10 knots": Modern IAF's templates, modern-iaf/docs/sound.md §3); the original's templates
+	# leave %S3 out.
+	var dir := "WDIR%03d" % (posmod(roundi(wind_from / 10.0) * 10 - 1, 360) + 1)
+	var w := ["WI_KNOTS%02d" % wind, dir] if wind != 0 else ["WIND_CALM", ""]
 	var p := {}
 	match code:
 		0:
@@ -727,18 +729,57 @@ func _speak(at: int, code: int, cs := "", answer := []) -> Dictionary:
 			p = say(t, [cs, Settings.tower_greeting(hour)], [rwy])
 		1, 6:
 			if wind != 0:
-				p = say(t, [cs, "WI_KNOTS%02d" % wind], [rwy])
+				p = say(t, [cs] + w, [rwy])
 			else:
 				p = say(t + "_NW", [cs], [rwy])
+		4:
+			# The wind and the runway are ours (Modern IAF's template); the original's template says the callsign only.
+			p = say(t, [cs] + w, [rwy])
 		5:
 			p = say(t, [cs], [rwy])
 		_:
 			p = say(t, [cs])
-	if answer.is_empty():
-		say("ACFT_ROGER", [], [], false)
-	else:
+	if not answer.is_empty():
 		say("WNG_ACK", answer)
+	else:
+		readback(t, rwy)
 	return p
+
+
+## Where a departure at base `at` enters the runway: the lineup point, on a base turned into the wind the main end's
+## lineup, where the backtrack down the runway starts (docs/autopilot.md §2.4).
+func entry_of(at: int) -> Vector3:
+	return bases[at].get("entry", bases[at].lineup)
+
+
+static func _flat(v: Vector3) -> Vector2:
+	return Vector2(v.x, v.y)
+
+
+## The runway end base `at`'s tower names: RunwayNumber / 10 (FUN_00551c20), World scale Real's letter, Modern IAF's
+## designator ("25R"), the mission's runway (`runway`) unless the tower turned the base into the wind (its other end's
+## designator then, docs/autopilot.md §2.4).
+func runway_of(at: int) -> Variant:
+	var b: Dictionary = bases[at]
+	var rwy: Variant = int(b.rwy) / 10
+	if b.letter != "":
+		rwy = "%d%s" % [rwy, b.letter]
+	if b.designator != "" and not b.has("hdg"):
+		rwy = b.designator
+	if runway != "" and b.name == runway_base and not b.get("turned", false):
+		rwy = runway
+	return rwy
+
+
+## The player's answer to the tower's `template` (FUN_00551c20: "Roger"). Ours (Modern IAF, the user, 17 Nov 2026:
+## "the readback and not only "roger""): where the phrase table has RB_<template>, the player reads the clearance
+## back in their own voice, the callsign last ("Taxi to runway 25 right, Kidon 1": modern-iaf/docs/sound.md §3).
+func readback(template: String, rwy: Variant = "") -> void:
+	var rb := "RB_" + template.trim_suffix("_NW")
+	if templates.has(rb) and Settings.new_ai():  # the 1998 game answers "Roger", also with the sim's phrases
+		say(rb, [formation_name(_player_ent()) + "_P"], [rwy])
+	else:
+		say("ACFT_ROGER", [], [], false)
 
 
 # --- wingman commands (§3) ----------------------------------------------------------------------

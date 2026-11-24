@@ -3015,9 +3015,19 @@ func section_missions(category: String, unit := "") -> Array:
 	for id in list:
 		var m := Settings.load_json("res://data/missions/%s.json" % str(list[id][0]))
 		if str(m.get("category", "")) == category and str(m.get("start", {}).get("unit", "")) == unit:
-			out.append(m)
+			out.append(into_wind(m))
 	out.sort_custom(func(a, b): return int(a.menu_id) < int(b.menu_id))
 	return out
+
+
+## Mission `m` with its `runway` the one the tower flies in its wind (IafBriefing.runway_in_use: the other end with
+## the wind behind it, docs/autopilot.md §2.4), so every screen names the runway the tower names.
+static func into_wind(m: Dictionary) -> Dictionary:
+	if m.get("runway") is String and float(m.get("wind_kt", 0)) > 0.0:
+		var base := str(m.get("start", {}).get("base", ""))
+		var a := Settings.disk_path("res://data/airbases")
+		m.runway = IafBriefing.runway_in_use(a, base, m.runway, float(m.wind_kt), float(m.get("wind_from", 0)))
+	return m
 
 
 ## How many of `list` the pilot passed (their last result).
@@ -3026,7 +3036,7 @@ func passed_count(list: Array) -> int:
 
 
 func mission_by_name(name: String) -> Dictionary:
-	return Settings.load_json("res://data/missions/%s.json" % name) if name.is_valid_filename() else {}
+	return into_wind(Settings.load_json("res://data/missions/%s.json" % name)) if name.is_valid_filename() else {}
 
 
 func mission_by_id(id: int) -> Dictionary:

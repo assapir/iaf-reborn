@@ -51,8 +51,49 @@ func run() -> void:
 		band.size() >= 2 and "request start-up" in band[-2] and "cleared to start" in band[-1].to_lower(),
 		"the band: the pilot's line, then the tower's as it speaks: %s" % [band]
 	)
+	# The readback (the user, 17 Nov 2026: "the readback and not only "roger""): the player's own voice reads the
+	# clearance back, the callsign last, in one clip for Kidon 1; no "Roger" (sound.md §3).
+	var rb: Array = said.filter(func(p): return p.template == "RB_ACFT_CLEAR_TO_START")
+	check(
+		rb.size() == 1 and rb[0].wavs == ["plt_rb_start_kidon1.ogg"] and rb[0].text == "Cleared to start, Kidon 1",
+		"the readback: %s" % [rb]
+	)
+	check(not said.any(func(p): return p.template == "ACFT_ROGER"), "no roger after a clearance")
+	t0 = Time.get_ticks_msec()
+	while Time.get_ticks_msec() - t0 < 10000 and band[-1] != "Cleared to start, Kidon 1":
+		await process_frame
+		band = tv.addon.ui.band_texts()
+	check(band[-1] == "Cleared to start, Kidon 1", "the band: the readback as the player says it: %s" % [band])
 	# The taxi greeting by the mission's clock.
 	var at: int = r.base_at(r._pos())
+	# Every clearance read back at Ramon's 25R; the take-off clearance with the wind and the runway (AMC-69 §3.6).
+	var backs := {
+		0: ["plt_rb_taxi_25r_kidon1.ogg", "Taxi to runway 25 right, Kidon 1"],
+		1: ["plt_rb_lineup_25r_kidon1.ogg", "Line up runway 25 right, Kidon 1"],
+		3: ["plt_rb_holding_kidon1.ogg", "Holding, Kidon 1"],
+		4: ["plt_rb_takeoff_25r_kidon1.ogg", "Cleared for take-off runway 25 right, Kidon 1"],
+		5: ["plt_rb_proceed_25r_kidon1.ogg", "Proceed to runway 25 right, Kidon 1"],
+		6: ["plt_rb_land_25r_kidon1.ogg", "Cleared to land runway 25 right, Kidon 1"],
+		8: ["plt_rb_go_around_kidon1.ogg", "Going around, Kidon 1"],
+		9: ["plt_rb_park_kidon1.ogg", "Taxi to parking, Kidon 1"],
+		10: ["acft_roger.ogg", ""],
+	}
+	for code in backs:
+		var n1: int = r.said.size()
+		var tw: Dictionary = r._speak(at, code)
+		var back: Dictionary = r.said[-1]
+		check(
+			r.said.size() == n1 + 2 and back.wavs == [backs[code][0]] and back.text.begins_with(backs[code][1]),
+			"%s read back: %s %s" % [tw.text, back.wavs, back.text]
+		)
+	var to: Dictionary = r._speak(at, 4)
+	check(
+		(
+			to.text == "Kidon 1, wind calm, runway 25 right, cleared for take-off"
+			and to.wavs == ["twr_to_kidon1_calm_rwy.ogg", "rwy25r.ogg", "twr_pause.ogg", "twr_takeoff.ogg"]
+		),
+		"the take-off clearance: %s %s" % [to.text, to.wavs]
+	)
 	# Every tower names its take-off end as painted and signed (iaf.ibx RunwayDesignator), not RunwayNumber / 10.
 	var ends := {"Ramon": "25R", "David": "27", "TelNof": "33L", "Hatzerim": "28L", "Nevatim": "26L"}
 	for b in r.bases:

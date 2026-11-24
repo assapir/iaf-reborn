@@ -11,6 +11,19 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   picture; the F-16's ANTI SKID, STBY GAINS and AR RDY lights read their systems; the F-16's card checks its speed
   brakes. The status data now count the F-35I 28 works, 4 partly, 20 moves; the F-16 273 works, 13 partly, 29 moves,
   37 lamps lit in the lamp test only, each with the reason it stays so. `test_gap_controls.gd`.
+- **The tower's readback and the runway for the wind (2026-11-24, the user, 17 Nov: "also "ramon tower, this is...
+  request start" the readback and not only "roger""; 21 Oct: "can we do that the tower will give us the right runway
+  for the wind?"; [sound.md](sound.md) §3, [training.md](training.md) §3.3, [../../docs/autopilot.md](../../docs/autopilot.md)
+  §2.4):** the player's request is said in full ("Ramon tower, Kidon 1, request start-up", since 12 Nov) and each
+  clearance is now read back in the player's voice, the callsign last ("Taxi to runway 25 right, Kidon 1",
+  "Holding, Kidon 1"); only the gear advisory keeps "Roger". The take-off clearance gives the wind and the runway
+  ("Kidon 1, wind 270 degrees, 10 knots, runway 25 right, cleared for take-off"). A mission's wind of 10–20 kt from more than 90° off
+  its runway turns the base to the runway's other end: the tower, the briefing, the Missions screen, the notebook and
+  the scoring name that end, the line-up is cleared at the main end's holding point and the jet backtracks; the AI
+  flight backtracks in order, each jet holding short while one ahead is on the runway. Every mission is calm now, so
+  the turn shows with a wind in a mission's file. Tests: `test_radio_calls.gd`, `test_tower_wind.gd`, `briefing.rs`,
+  `training.rs`, `four_ship.rs ground_run_at_ramon_into_the_wind`. The line-up, landing and take-off clearances say
+  the wind as "wind 270 degrees, 10 knots".
 - **Close up / spread out (2026-11-24, the user, 20 Nov: "we should allow ask for "get closer", which will even lead
   to 10m apart"; [ai-plan.md](ai-plan.md) F4, F5; [../../docs/ai.md](../../docs/ai.md) §8.7):** the radio menu's
   Formation page has a Spacing page: Close up takes the close shapes from 60 m between the slots to 30 m, then to 12 m

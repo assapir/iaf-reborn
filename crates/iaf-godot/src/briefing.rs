@@ -56,6 +56,17 @@ impl IafBriefing {
         b.end(&designator.to_string()).map_or(-1.0, |(ri, k)| b.runways[ri].heading(k).rem_euclid(360.0))
     }
 
+    /// The runway end the tower flies for runway end `designator` at base `base` (a mission's `start.base`) in a
+    /// `knots` wind from `from_deg` (`sim_bases::Base::in_use`, docs/autopilot.md §2.4: the other end with the wind
+    /// behind `designator`), from the airbase files in `airbases`; `designator` without the base or the end.
+    #[func]
+    fn runway_in_use(airbases: GString, base: GString, designator: GString, knots: f64, from_deg: f64) -> GString {
+        let d = designator.to_string();
+        let Ok(bases) = sim_bases::load(Path::new(&airbases.to_string())) else { return designator };
+        let in_use = sim_bases::by_name(&bases, &base.to_string()).and_then(|b| b.in_use(&d, knots, from_deg));
+        GString::from(in_use.unwrap_or(&d))
+    }
+
     /// The map's layers over its view `view` [x0, y0, x1, y1] (the map's metres from its north-west corner `origin`,
     /// UTM metres [easting, northing]; the map's `extent`) at `m_per_px` metres a pixel (`briefing::layers_files`) from
     /// the compiled TSD map `map` and the theatre's folder `theatre` (absolute paths), as JSON text {fills, roads,

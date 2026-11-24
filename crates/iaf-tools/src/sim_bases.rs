@@ -211,6 +211,24 @@ impl Base {
             .enumerate()
             .find_map(|(i, r)| r.designators.iter().position(|d| d == designator).map(|k| (i, k)))
     }
+    /// The end of `designator`'s runway the tower flies in a `knots` wind from `from_deg` (true or grid, as the
+    /// mission gives it): the other end when the wind blows from more than 90° off `designator`'s heading
+    /// (`iaf_flight::airbase::wind_reverses`, the tower's rule, docs/autopilot.md §2.4, on the heading iaf.ibx's
+    /// RunwayNumber rounds it to, so this agrees with the tower's turn), else `designator`; None without that end.
+    pub fn in_use(&self, designator: &str, knots: f64, from_deg: f64) -> Option<&str> {
+        let (ri, k) = self.end(designator)?;
+        let r = &self.runways[ri];
+        let deg = r.heading(k).round().rem_euclid(360.0) as f32;
+        let k = if iaf_flight::airbase::wind_reverses(deg, knots as f32, from_deg as f32) { 1 - k } else { k };
+        Some(&r.designators[k])
+    }
+    /// The runway end the readable mission `mission` takes off from: its `runway` ("25R") turned into its wind
+    /// (`wind_kt` from `wind_from`, `in_use`); None without a `runway`.
+    pub fn mission_runway<'a>(&'a self, mission: &'a Value) -> Option<&'a str> {
+        let d = mission["runway"].as_str()?;
+        let (kt, from) = (mission["wind_kt"].as_f64().unwrap_or(0.0), mission["wind_from"].as_f64().unwrap_or(0.0));
+        Some(self.in_use(d, kt, from).unwrap_or(d))
+    }
     /// The tower, else the reference point (most towers are open in OSM, airbases.md §5).
     pub fn tower_or_reference(&self) -> [f64; 2] {
         self.tower.unwrap_or(self.reference)
@@ -2661,7 +2679,7 @@ mod tests {
     }
 
     /// One designator per runway end for the paint, the signs, the tower and the missions: the tower's iaf.ibx
-    /// RunwayDesignator is the base's take-off end, and every mission's "runway" is an end of its own base (Nevatim's
+    /// RunwayDesignator is the base's take-off end, and every mission's "runway" is its base's main end (Nevatim's
     /// tower said "25" for the runway painted and signed "26L", 2026-11-13).
     #[test]
     fn one_designator_per_runway_end() {
@@ -2684,6 +2702,10 @@ mod tests {
             let b = bases.iter().find(|b| b.name_en.trim_end_matches(" Airbase") == base);
             let b = b.unwrap_or_else(|| panic!("{p:?}: no base {base}"));
             assert!(b.end(rwy).is_some(), "{p:?}: {base} has no runway end {rwy}");
+            // The tower turns a base into the wind from its main end (docs/autopilot.md §2.4), so a mission's runway
+            // is that end.
+            let (ri, k) = b.main;
+            assert_eq!(b.runways[ri].designators[k], rwy, "{p:?}: {base}'s runway is not its main end");
         }
     }
 

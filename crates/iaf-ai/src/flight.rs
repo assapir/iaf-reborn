@@ -142,6 +142,9 @@ const RADAR_REJECT: f64 = 30.0;
 /// a jet beside the way; at 80 m along a jet stopped 21 m behind the one ahead, and one turning toward a jet stopped
 /// beside its turn point came within 31 m).
 const TAXI_HOLD_M: (f64, f64, f64) = (150.0, 25.0, 60.0);
+/// Taxiing out on a base turned into the wind, a jet holds this near the runway entry while a jet ahead is still on
+/// the runway, m (inferred: the holding point is 86–101 m before the entry; room for the jet's turn onto it).
+const BACKTRACK_HOLD_M: f64 = 150.0;
 /// A pairs take-off ([`Flight::pairs`]): the wingman lines up this far beside its element lead, m (inferred: a 10 m
 /// span either side of a 45 m runway's centreline, 5 m between the tips); the lead waits on the runway for it at most
 /// this long, s.
@@ -263,6 +266,8 @@ pub struct Order {
     pub gun: bool,
     /// Stop on the ground (taxiing in behind a jet ahead; a pair's lead waiting on the runway for its wingman).
     pub hold: bool,
+    /// Taxiing out on a base turned into the wind: stop short of the runway (`Flight::backtrack_hold`).
+    pub hold_short: bool,
     /// A pairs take-off's wingman: its lineup this far right of the lineup point, m (0: the stream's).
     pub lineup_offset: f32,
     /// A pairs take-off's lead with its wingman beside it: the roll at military power.
@@ -399,6 +404,8 @@ pub struct Flight {
     now: f64,
     /// The home base's lineup (bingo's distance, the landing sequence).
     home: Option<Vec3>,
+    /// The home base's runway entry on a base turned into the wind (`Airbase::backtrack`).
+    entry: Option<Vec3>,
     cleared: Option<f64>,
     next: f64,
     lead_gear_up: bool,
@@ -435,6 +442,7 @@ impl Default for Flight {
             parade: Some(f64::NEG_INFINITY),
             now: 0.0,
             home: None,
+            entry: None,
             cleared: None,
             next: 0.0,
             lead_gear_up: false,
@@ -561,8 +569,11 @@ impl Flight {
     pub fn add(&mut self, number: u8, ai: bool, fm: &Fm, ap: &mut Autopilot) {
         let v = fm.ap_view();
         let p = ap.route.last().map_or(v.pos, |w| Vec3::new(w.x, w.y, w.z));
-        if let Some(b) = Airbase::nearest(&ap.bases, [p[0] as f32, p[1] as f32, p[2] as f32]) {
-            self.home.get_or_insert(Vec3::new(b.lineup[0] as f64, b.lineup[1] as f64, b.lineup[2] as f64));
+        if let Some(b) = Airbase::nearest(&ap.bases, [p[0] as f32, p[1] as f32, p[2] as f32])
+            && self.home.is_none()
+        {
+            let v = |p: [f32; 3]| Vec3::new(p[0] as f64, p[1] as f64, p[2] as f64);
+            (self.home, self.entry) = (Some(v(b.lineup)), b.backtrack.map(v));
         }
         if v.on_ground {
             let (x, y) = (v.pos[0] as f32, v.pos[1] as f32);
@@ -1548,6 +1559,7 @@ impl Flight {
         };
         for i in 0..self.members.len() {
             let hold = self.taxi_hold(i) || self.pair_hold(i, now);
+            self.members[i].order.hold_short = self.backtrack_hold(i);
             let n = self.members[i].number;
             let mate = self.index(n + 1).map(|j| &self.members[j]);
             // (Until the lead's own lift-off: a wingman off the ground a moment first leaves its stage on the runway.)
@@ -1612,6 +1624,23 @@ impl Flight {
             let holds_for_me = taxiing_in(o) && in_way(o, me) && o.number > me.number;
             o.number != me.number && o.alive && o.v.on_ground && o.engine_on && in_way(me, o) && !holds_for_me
         })
+    }
+
+    /// Member `i`, an AI jet taxiing out on a base the tower turned into the wind ([`Flight::entry`]): it holds within
+    /// [`BACKTRACK_HOLD_M`] of the runway entry while a jet ahead of it in order is still on the ground with its
+    /// engine running (backtracking, lined up or rolling back toward the entry), so no jet meets another head on on
+    /// the runway (docs/ai.md §8.7). A pairs wingman goes down the runway with its element lead.
+    fn backtrack_hold(&self, i: usize) -> bool {
+        let me = &self.members[i];
+        let Some(e) = self.entry else { return false };
+        let out = me.ai && me.alive && me.v.on_ground && !me.airborne && me.mode == 9 && me.lined_up.is_none();
+        if !out || (me.v.pos[0] - e[0]).hypot(me.v.pos[1] - e[1]) > BACKTRACK_HOLD_M {
+            return false;
+        }
+        let mate = |o: &Member| self.pairs && me.number.is_multiple_of(2) && o.number + 1 == me.number;
+        self.members
+            .iter()
+            .any(|o| o.number < me.number && o.alive && o.v.on_ground && o.engine_on && !o.airborne && !mate(o))
     }
 
     /// Member `i`, an AI element lead (#1, #3) lined up for a pairs take-off: it waits on the runway while its AI
@@ -1894,6 +1923,7 @@ pub fn apply(o: &Order, ap: &mut Autopilot, fm: &mut Fm) {
     ap.close = o.close;
     ap.avoid = o.avoid;
     ap.hold = o.hold;
+    ap.hold_short = o.hold_short;
     ap.lineup_offset = o.lineup_offset;
     ap.pair_lead = o.pair_lead;
     ap.floor = Some(FLOOR_M);

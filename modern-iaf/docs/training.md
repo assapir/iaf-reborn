@@ -135,8 +135,16 @@ answers so far (`Cleared::of`, the same state the radio menu lists its calls fro
 | `takeoff`: the roll | on that runway faster than 30 kt (`ROLL_START_KT`, the roll's start in §3.2) | "cleared for take-off" | `no_takeoff_clearance` | "Kidon 1, take-off without clearance" / "כידון 1, המראה ללא אישור" |
 
 A call asked and answered "hold position" clears nothing; the answer is decided at the pick, so no call is pending.
-A clearance stays valid afterwards (a restart needs no new start-up call). No readback is modelled. A flight that
-starts with the engine running holds the start, taxi and line-up clearances.
+A clearance stays valid afterwards (a restart needs no new start-up call). The player reads each clearance back in the
+player's voice ("Taxi to runway 25 right, Kidon 1": [sound.md](sound.md) §3); the readback is spoken only. A
+flight that starts with the engine running holds the start, taxi and line-up clearances.
+
+**The runway in use** is the mission's `runway`, or that runway's other end when the mission's wind blows from more
+than 90° off it at 5 kt or more (the tower's rule, [../../docs/autopilot.md](../../docs/autopilot.md) §2.4;
+`sim_bases::Base::mission_runway`). The tower, the scoring (`Watch`, the debrief's track), the briefing's map and
+facts, the Missions screen and the notebook all name that end. On a base turned into the wind the jet taxis to the
+main end's holding point, asks for line-up there and backtracks down the runway to the other end; the line-up call is
+marked and cleared at that holding point (`radio.gd` `entry_of`).
 
 **The wrong runway.** In a take-off mission the jet on the ground, on a runway of the base and lined up within 30°
 (`LINED_UP_DEG`, inferred: a jet crossing at 90° is not lined up) of an end other than the mission's
@@ -419,8 +427,8 @@ the game manual's "Commands to your wingmen").
 |---|---|---|---|---|
 | start-up | Request start-up | בקשת התנעה | on the ground with the engine off | "Kidon 1, cleared to start" (`ACFT_CLEAR_TO_START`) |
 | taxi | Request taxi | בקשת הסעה | on the ground with the engine running and the avionics up, taxi not yet (also after a start without start-up approval) | with the engine running: "Kidon 1, good morning, taxi to runway 25 right" (`ACFT_TAXI_TO_RUNWAY`); else "hold position" |
-| line-up | Request line-up | בקשת כניסה למסלול | on the ground at the holding point or past it (no farther from the lineup point than the holding point plus 50 m, inferred; the holding point is the base's taxi-out path's last point before the lineup, `iaf.ibx` `FromTaxiPt`) with taxi approved, line-up not yet (since 2026-11-13) | within 400 m of the lineup point with the runway clear: "line up runway 25 right, wind calm" (`ACFT_CLEAR_TO_LINEUP_NW`; ours: the original's band starts 200 m out, which leaves out the holding point); else "hold position" |
-| take-off | Request take-off | בקשת המראה | at the holding point or past it with line-up approved, take-off not yet | the original tower's rule on the ground (docs/radio.md §2 `ground()`): lined up in the lineup zone: "cleared for take-off"; 200–400 m from the lineup point with the runway clear: "line up runway 25 right, wind calm"; else "hold position" |
+| line-up | Request line-up | בקשת כניסה למסלול | on the ground at the holding point or past it (no farther from the lineup point than the holding point plus 50 m, inferred; the holding point is the base's taxi-out path's last point before the lineup, `iaf.ibx` `FromTaxiPt`; on a base turned into the wind the main end's lineup, where the backtrack starts) with taxi approved, line-up not yet (since 2026-11-13) | within 400 m of the lineup point (or, turned into the wind, of the runway's entry) with the runway clear: "line up runway 25 right, wind calm" (`ACFT_CLEAR_TO_LINEUP_NW`; ours: the original's band starts 200 m out, which leaves out the holding point); else "hold position" |
+| take-off | Request take-off | בקשת המראה | at the holding point or past it with line-up approved, take-off not yet | the original tower's rule on the ground (docs/radio.md §2 `ground()`): lined up in the lineup zone: "Kidon 1, wind calm, runway 25 right, cleared for take-off" (the wind and the runway ours, [sound.md](sound.md) §3); 200–400 m from the lineup point with the runway clear: "line up runway 25 right, wind calm"; else "hold position" |
 | landing | Contact tower (landing) | קריאה למגדל (נחיתה) | in the air | the original's Ctrl+T (docs/radio.md §2): "proceed to runway …" in the air |
 
 A call is approved by the tower's answer named in its row; "hold position" or "line up" leaves it unapproved, to ask

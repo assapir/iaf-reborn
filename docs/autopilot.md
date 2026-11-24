@@ -266,11 +266,27 @@ approach and the float before touchdown steer to the centreline with a damped la
   take-offs and landings and the ILS all fly the chosen end, in both world scales.
 - **Training missions keep their runway** (`Settings.TRAINING_MISSIONS`: 311–315, 321–326). Their instructor markers
   and circuits are laid out for it (§3). Every one of them has a calm wind (misc 0x46a = 0), so they also fly calm.
+- **Modern IAF** (24 November 2026; the user, 21 October 2026: "can we do that the tower will give us the right
+  runway for the wind?"). The switch is always on there (`sim_settings.gd`); the wind is the mission's `wind_kt` and
+  `wind_from`, which `iaf-sim missions` accepts only as 0, 10, 15 or 20 kt (the tower's winds; any other speed would
+  be a random one of them, `pick_wind`). A mission names its `runway` ("25R"): the runway in use is that end or its
+  other end by the same rule on the end's heading as iaf.ibx's `RunwayNumber` rounds it, so it agrees with the
+  tower's turn (`sim_bases::Base::in_use` / `mission_runway`). The tower names the turned end in place of the
+  mission's (`radio.gd` `runway_of`), and the briefing, the Missions screen (`front_end.gd` `into_wind`,
+  `IafBriefing.runway_in_use`), the notebook (`sim_flight.gd` `runway_in_use`) and the scoring (`training::Watch`,
+  the debrief's track) name it too. The line-up call is cleared at the main end's holding point, where the backtrack
+  starts (`radio.gd` `entry_of`; [../modern-iaf/docs/training.md](../modern-iaf/docs/training.md) §3.3). An AI
+  flight on a turned base (`Airbase::backtrack`, the runway's entry) taxis out in order and each jet holds short of
+  the runway while a jet ahead of it is still on it, so no two meet head on during the backtrack
+  ([ai.md](ai.md) §8.7). The missions are calm now; a wind in a mission's file turns its base.
 - Tests: `ramat_david_into_the_wind` (autopilot.rs: the rule, the turned lineup, an AI jet's backtrack and take-off on
   09, a landing on 09 and the taxi back to a hangar), base_move.rs `the_moved_lineup_is_on_runway_ground` (every
   moved base's other end on runway ground, on the real reciprocal heading), `…_into_the_wind_…_moved_ramon` (take-off
   and landing on Ramon's 07R), `tests/godot/test_wind_runway.gd` (the tower's calls, the signs, the starts, the
-  cases without a turn, World scale Real's letter).
+  cases without a turn, World scale Real's letter); briefing.rs `take_off_map_turns_into_the_wind` (the rule's
+  cases, the map), training.rs `the_assigned_runway_turns_into_the_wind`, four_ship.rs `ground_run_at_ramon_into_the_wind` (the four-ship's
+  backtrack, take-off on 07L's heading and landing), `modern-iaf/tests/test_tower_wind.gd` (the tower, the readback,
+  the line-up at the entry, the front end).
 
 ### 2.5 Unbalanced stores (ours, Better physics "Asymmetric stores")
 - The switch adds the stores' rolling moment to the roll command as a stick deflection

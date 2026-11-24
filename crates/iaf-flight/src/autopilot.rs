@@ -2030,6 +2030,9 @@ pub struct Autopilot {
     /// Ours (Modern IAF's flights): stop on the brakes at idle on the ground, set every frame: the taxi to park and
     /// ParkInHangar behind a jet ahead on the way, TakeoffCL's roll held for a pair's wingman to line up beside.
     pub hold: bool,
+    /// Ours (Modern IAF's flights): taxiing out on a base the tower turned into the wind, stop short of the runway
+    /// while a jet ahead is still on it (TaxiCL, set every frame; docs/ai.md §8.7).
+    pub hold_short: bool,
     /// Ours (Modern IAF's flights, a pairs take-off): this jet lines up this far right of the lineup point (m; 0 the
     /// original's lineup) beside its element lead, and rolls when the lead starts its roll.
     pub lineup_offset: f32,
@@ -2083,6 +2086,7 @@ impl Autopilot {
             avoid: None,
             steer: None,
             hold: false,
+            hold_short: false,
             lineup_offset: 0.0,
             pair_lead: false,
             floor: None,
@@ -3157,8 +3161,9 @@ impl Taxi {
                 occupy(b, h, false);
             }
         }
-        // Ours (Modern IAF's flights): to park, a jet ahead on the way holds it (the flight's word).
-        if self.park && ap.hold {
+        // Ours (Modern IAF's flights): to park, a jet ahead on the way holds it; taxiing out on a base turned into the
+        // wind, a jet still on the runway ahead holds it short (the flight's word).
+        if self.park && ap.hold || !self.park && ap.hold_short {
             l.brakes(true);
             l.throttle(0.0);
             return Leaf::Run;

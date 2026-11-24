@@ -300,7 +300,8 @@ func _radio_now() -> Dictionary:
 	var p: Vector3 = r._pos()
 	var at: int = r.base_at(p)
 	if at >= 0 and at < r.tower_count:
-		var l := Vector2(r.bases[at].lineup.x, r.bases[at].lineup.y)
+		var e: Vector3 = r.entry_of(at)  # the runway's entry: the line-up call is made at its holding point
+		var l := Vector2(e.x, e.y)
 		now["lineup_m"] = Vector2(p.x, p.y).distance_to(l)
 		var sec := String(r.bases[at].name)
 		if not _hold_m.has(sec):
@@ -588,6 +589,18 @@ func flight_command(to: int, id: String) -> void:
 	host._log_event(host._log_st, {"event": "radio", "call": "%s:%d" % [id, to], "answer": "ok" if ok else "none"})
 
 
+## The runway end the tower names for the mission's runway ("25R"; its other end when the tower turned the base into
+## the wind: radio.gd runway_of, docs/autopilot.md §2.4); "" when the mission names none.
+func runway_in_use() -> String:
+	var r: Node = host.radio
+	if r.runway == "":
+		return ""
+	for i in r.bases.size():
+		if r.bases[i].name == r.runway_base:
+			return str(r.runway_of(i))
+	return r.runway
+
+
 ## One menu pick: the pilot's call printed and said, the gap, the tower's answer (radio.gd request), a `radio` event
 ## recorded. A ground call whose earlier clearance is missing gets "negative, hold position, request … first"
 ## (ACFT_NEGATIVE, IafTraining.missing_before) and clears nothing. A call not in the menu now (calls()) is not made: "".
@@ -616,7 +629,7 @@ func pick(id: String) -> String:
 	var p: Dictionary
 	if need != "" and has_tower:
 		p = r.say("ACFT_NEGATIVE", [r._tower_callsign(), "FIRST_" + need.to_upper()])
-		r.say("ACFT_ROGER", [], [], false)
+		r.readback("ACFT_HOLD_POS")  # "Holding, Kidon 1"
 	else:
 		p = r.request(id)
 	answers.append(String(p.template))

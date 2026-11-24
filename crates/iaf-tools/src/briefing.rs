@@ -141,7 +141,10 @@ pub fn briefing(
     // The start as the compiler places it (sim.rs compile_mission).
     let at = match start["at"].as_str() {
         Some("runway") => {
+            // A lined-up start on a runway turned into the wind starts at its other end (docs/autopilot.md §2.4).
             let d = start["runway"].as_str().unwrap_or("");
+            let wind = (mission["wind_kt"].as_f64().unwrap_or(0.0), mission["wind_from"].as_f64().unwrap_or(0.0));
+            let d = base.in_use(d, wind.0, wind.1).unwrap_or(d);
             let (ri, k) = base.end(d).with_context(|| format!("{}: no runway end {d}", base.name_en))?;
             base.runways[ri].lineup(k)
         }
@@ -154,13 +157,16 @@ pub fn briefing(
     let [lon, lat] = utm36n_geo(base.reference[0], base.reference[1]);
     let north = (grid_heading(lon, lat, 0.0) + 180.0).rem_euclid(360.0) - 180.0;
     let (mut taxi, mut route, mut runway) = (vec![], vec![], None);
-    if let Some(d) = mission["runway"].as_str() {
+    // The runway in use: the mission's, turned into its wind (Base::mission_runway, the tower's rule).
+    if let Some(d) = base.mission_runway(mission) {
         let (ri, k) = base.end(d).with_context(|| format!("{}: no runway end {d}", base.name_en))?;
         let r = &base.runways[ri];
         runway = Some((d.to_string(), r.heading(k).rem_euclid(360.0)));
         let lineup = r.lineup(k);
-        // The departure route is the main runway end's (the AI's, airbases.md §9): the taxi only there.
-        if (ri, k) == base.main && at != lineup {
+        // The departure route is the main runway end's (the AI's, airbases.md §9): the taxi only on that runway. To
+        // its other end (turned into the wind) the taxi ends at the main end's lineup, where the backtrack down the
+        // runway starts (docs/autopilot.md §2.4).
+        if ri == base.main.0 && at != lineup && at != r.lineup(base.main.1) {
             // From the spot along its own way (a shelter's: airbases.md §5).
             taxi = sim_bases::routes(base)?.departure_from(base, at);
         }
@@ -925,6 +931,31 @@ mod tests {
         assert_eq!(v["route"].as_array().unwrap().len(), 4);
         assert_eq!(v["heading"].as_f64().unwrap(), hdg.round());
         assert!(b.flights.is_empty() && v["flights"] == json!([]), "one flight: the player's, drawn as the route");
+    }
+
+    /// The runway in use turned into the mission's wind (Base::in_use, the tower's rule): Ramon's 25R in a wind from
+    /// 066° is 07L, its taxi to 25R's lineup (the backtrack's start); at exactly 90° off and under 5 kt it stays.
+    #[test]
+    fn take_off_map_turns_into_the_wind() {
+        let bases = sim_bases::load(&data().join("airbases")).unwrap();
+        let ramon = sim_bases::by_name(&bases, "Ramon").unwrap();
+        assert_eq!(ramon.in_use("25R", 15.0, 66.0), Some("07L"));
+        assert_eq!(ramon.in_use("07L", 15.0, 66.0), Some("07L"));
+        assert_eq!(ramon.in_use("07L", 15.0, 246.0), Some("25R"));
+        assert_eq!(ramon.in_use("25R", 15.0, 336.0), Some("25R"), "90° off 246°: the base keeps its own");
+        assert_eq!(ramon.in_use("25R", 15.0, 156.0), Some("25R"), "90° off the other way");
+        assert_eq!(ramon.in_use("25R", 15.0, 155.0), Some("07L"));
+        assert_eq!(ramon.in_use("25R", 4.0, 66.0), Some("25R"), "under INTO_WIND_KT");
+        assert_eq!(ramon.in_use("99", 15.0, 66.0), None);
+        let mut m = mission("ramon_takeoff");
+        (m["wind_kt"], m["wind_from"]) = (json!(15), json!(66));
+        assert_eq!(ramon.mission_runway(&m), Some("07L"));
+        let b = briefing(&m, &bases, &map(), 0.6, None, &places()).unwrap();
+        let (ri, k) = ramon.end("07L").unwrap();
+        assert_eq!(b.runway.as_ref().unwrap().0, "07L");
+        assert_eq!(b.runway.as_ref().unwrap().1.round(), ramon.runways[ri].heading(k).round());
+        assert!(!b.taxi.is_empty(), "the taxi to 25R's lineup, where the backtrack starts");
+        assert_eq!(b.to_json()["runway"], "07L");
     }
 
     /// The two-flight sample (modern-iaf/tests/data, not a shipped mission): Kidon 2's route from its start, in the map,
