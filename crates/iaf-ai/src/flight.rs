@@ -1165,10 +1165,12 @@ impl Flight {
         if station.is_none() && m.refuelling {
             (m.refuelling, m.transit, m.report) = (false, true, true);
             // Refuelled: its fuel's RTB and joker / bingo calls are over (an RTB the lead ordered stays while the fuel
-            // is short of joker).
-            if m.rtb && !m.released && m.fuel_kg > m.bingo_kg + JOKER_KG {
-                (m.rtb, m.called) = (false, [false; 2]);
+            // is short of joker); each call is armed again once the fuel is above its mark, RTB or not.
+            let joker = m.fuel_kg > m.bingo_kg + JOKER_KG;
+            if m.rtb && !m.released && joker {
+                m.rtb = false;
             }
+            m.called = [m.called[0] && !joker, m.called[1] && m.fuel_kg <= m.bingo_kg];
         }
         m.refuel = station;
     }

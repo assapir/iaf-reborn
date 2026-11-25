@@ -240,6 +240,12 @@ impl Cmds {
         }
     }
 
+    /// No launch left at the jet (the RWR's and the MAW's lists empty): SEMI's request lapses, so a late CMS right
+    /// starts nothing for a threat that is gone.
+    pub fn threat_gone(&mut self) {
+        self.pending = false;
+    }
+
     /// Every frame with the counts left: the releases due now (a running program; JETT's flares), and the VMS calls:
     /// "Chaff flare, low" as a count falls to its BINGO quantity, "Chaff flare, out" as it reaches none (both with the
     /// BINGO option on). A release of an empty dispenser is dropped.
@@ -330,6 +336,17 @@ mod tests {
         c.cms(Cms::Forward, 10.0);
         c.set_mode(Mode::Off);
         assert!(!c.running() && run(&mut c, 10.0, 12.0, &mut ch, &mut fl).is_empty());
+    }
+
+    #[test]
+    fn semi_consent_lapses_with_the_threat() {
+        let mut c = Cmds::hot();
+        c.set_mode(Mode::Semi);
+        c.threat(true, 0.0);
+        assert!(c.pending);
+        c.threat_gone();
+        c.cms(Cms::Right, 60.0);
+        assert!(!c.pending && !c.running(), "consent for a threat that is gone starts nothing");
     }
 
     #[test]

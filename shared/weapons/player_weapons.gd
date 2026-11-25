@@ -136,9 +136,11 @@ var master_arm := true
 ## Ours, Modern IAF's F-16s: MASTER ARM at SIMULATE (the 3D cockpit's switch down): nothing is released or fired, the
 ## HUD shows SIM (modern-iaf/docs/weapons.md §3).
 var master_sim := false
-## Ours, Modern IAF's F-16s: the throttle's DGFT / MSL OVRD switch (IafModes.override_throw: 0 centred, 1 DGFT, 2 MSL
-## OVRD) and what it changed: {station, radar} before it was thrown.
-var override := 0
+## Ours, Modern IAF's F-16s: the throttle's DGFT / MSL OVRD switch (IafModes keeps it: 0 centred, 1 DGFT, 2 MSL OVRD)
+## and what it changed: {station, radar} before it was thrown.
+var override: int:
+	get:
+		return _modes.override_at()
 var _override_from := {}
 ## Ours, the modern MFDs (Settings.modern_mfds): the LASER ARM switch (the 3D cockpit's, key Shift + L); the laser fires
 ## only armed. The original has none: armed. The TGP slaved to the SPI (the radar's designated point, else the
@@ -1013,6 +1015,8 @@ func select_aa() -> void:
 
 ## '[' (event 0x3c): next AG store unless a non-AA store is already selected in NAV.
 func select_ag() -> void:
+	if not _modes.mode_keys_free():
+		return  # the DGFT / MSL OVRD switch holds the A-A mode (IafModes.mode_keys_free)
 	if _modes.ag_key_cycles(stores.current_type()):
 		_next(2)
 	_master_from_type(false)
@@ -1028,10 +1032,9 @@ func override_key(to: int) -> int:
 	var st := []
 	for i in 10:
 		st.append([stores.type_of(i), stores.displayed(i)])
-	var r: Dictionary = ClassDB.class_call_static("IafModes", "override_throw", override, to, st)
 	if override == 0:
 		_override_from = {"station": stores.cur, "radar": int(radar.mode)}
-	override = int(r.at)
+	var r: Dictionary = _modes.override_throw(to, st)
 	if override == 0:
 		if stores.select_station(int(_override_from.get("station", stores.cur))):
 			_master_from_type(Stores.category(stores.current_type()) == 1)
@@ -1060,7 +1063,7 @@ func _next(kind: int) -> void:
 ## M (event 0x63): NAV -> AA -> AG -> NAV; blocked while releasing. Then every MFD gets the cycle position's page
 ## (LAB_0044b9fb, IafModes.m_key_pages); a HARM page placed there keeps the page it replaced (ctl+0x92c).
 func master_key() -> void:
-	if releasing:
+	if releasing or not _modes.mode_keys_free():
 		return
 	match _modes.master_key():
 		"aa":
@@ -1089,6 +1092,8 @@ func master_key() -> void:
 
 ## N (event 0x62, p = 0): the master mode p (NAV).
 func nav_key(p: int) -> void:
+	if not _modes.mode_keys_free():
+		return
 	_modes.nav_key(p)
 	if p == 0:
 		_set_hud_mode(0)

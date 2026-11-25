@@ -85,10 +85,11 @@ impl IafTanker {
         event(self.t.request(id as u32))
     }
 
-    /// Receiver `id` leaves (gone, or flown away): the next one's clearance, or an empty array.
+    /// Receiver `id` leaves (gone, or flown away): its events ([`event`]): the disconnect of a contact, the next
+    /// one's clearance.
     #[func]
     fn leave(&mut self, id: i64) -> VarArray {
-        self.t.leave(id as u32).map_or_else(VarArray::new, event)
+        self.t.leave(id as u32).into_iter().map(|e| event(e).to_variant()).collect()
     }
 
     /// The receivers it knows: the queue (the first on the boom), then those done.

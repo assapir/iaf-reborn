@@ -27,7 +27,7 @@ The flying is the jet's procedure, with the positions, the lights and the limits
   (1fr, 1.3fr),
   ([The tanker says], [Meaning, and what to do]),
   ["cleared pre-contact"], [Fly to the pre-contact position, about 15 m behind the boom's contact position and a little below it, and hold it steady with your door open.],
-  ["stand by, observation left"], [Another jet is on the boom. Wait off the tanker's left wing. The tanker clears you to pre-contact when the boom is free.],
+  ["stand by, observation left"], [Another jet is on the boom. Wait off the tanker's left wing. The tanker clears you to pre-contact when the boom is free. A jet that does not come to pre-contact within 5 minutes of its turn goes to the back of the line.],
   ["cleared contact"], [Close slowly to the contact position. The boom's operator flies the boom into your receptacle.],
   ["contact"], [The boom is latched and the fuel flows: 3,000 lb a minute from Gideon, 2,000 lb a minute from Re'em. Hold your position.],
   ["disconnect"], [The boom has let go: you left its reach, or disconnected yourself. Go back to pre-contact; the tanker clears you to contact again.],

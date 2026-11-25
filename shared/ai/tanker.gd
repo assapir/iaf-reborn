@@ -224,7 +224,7 @@ func _receivers(ai, delta: float) -> Array:
 
 ## Receiver `id` now: {id, receptacle, velocity (scene), door, room_kg, disconnect}; {} when it is not in the air.
 func _receiver(id: int, ai, delta: float) -> Dictionary:
-	if id == _player_id() and host.get("flight") != null and not host.ejected:
+	if id == _player_id() and host.get("flight") != null and not (host.ejected or host.fatal_hit or host.crashed):
 		var rc: Vector3 = host.receptacle()
 		if rc == Vector3.INF:
 			return {}

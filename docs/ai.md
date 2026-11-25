@@ -250,7 +250,10 @@ Operators (`FUN_004b5e6a`): 0 `==` (bool measures compare as bools, floats exact
 ## 5. Actions
 
 Manoeuvres (type 0) call `mover.setMode(mode, arg, pose)`. The FM's `setMode` (`5a8410`, FM vtbl 0x611dc8 slot 11)
-returns at once when mode / arg / pose are unchanged (`5c8a70`), so **a running manoeuvre keeps running.**
+returns at once when mode / arg / pose are unchanged (`5c8a70`), so **a running manoeuvre keeps running.** The port
+compares the mode and the argument (the target, the leader or the unit itself; `ai_flights.gd` `Pilot.set_mode`): the
+same mode with a new argument starts the loop again (`Autopilot::start_mode`, its 0.5 s hold). The port passes no
+pose to the manoeuvres, so there is none to compare.
 
 | code | name | mode | arg | control loop (manager offset) |
 |---|---|---|---|---|

@@ -57,6 +57,8 @@ modern aircraft / weapons, the Pi 5 profile.
   gets its chute view and EjectReport; Eject is refused after the jet exploded in the air, as FUN_005485a0 refuses
   it; Fly gives the new jet its own panel lights and weapons controller state (views.md §1); the mission editor's
   Open ends the Place, Paste or Route mode with its button.
+- **AI manoeuvre on a new target (fixed 2026-11-25, the state machines audit):** an AI pilot given the same manoeuvre
+  with a new target or leader starts it again, as the exe's setMode (`5c8a70`) does (ai.md §5).
 - **Mission sweep 2026-10-14** (`tools/mission_sweep.sh`: all 60 playable missions headless, the player parked
   300 s, then the targets destroyed):
   - No script errors; every mission passes once its targets die.

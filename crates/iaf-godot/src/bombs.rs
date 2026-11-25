@@ -171,10 +171,11 @@ impl IafModes {
         self.modes.hud = Hud::from_index(h);
     }
 
-    /// The DGFT / MSL OVRD switch (`master::Override`): thrown from `from` (0 centred, 1 DGFT, 2 MSL OVRD) toward
-    /// `to`, over `stations` ([[type, count], ...]): {at (the new position), station (-1 none), radar (-1 none)}.
+    /// The DGFT / MSL OVRD switch (`master::Modes::throw_override`): thrown toward `to` (0 centred, 1 DGFT, 2 MSL
+    /// OVRD; toward where it is: centred), over `stations` ([[type, count], ...]): {at (the new position), station (-1
+    /// none), radar (-1 none)}.
     #[func]
-    fn override_throw(from: i64, to: i64, stations: VarArray) -> VarDictionary {
+    fn override_throw(&mut self, to: i64, stations: VarArray) -> VarDictionary {
         let st: Vec<(i64, i64)> = stations
             .iter_shared()
             .map(|v| {
@@ -183,12 +184,24 @@ impl IafModes {
                 (n(0), n(1))
             })
             .collect();
-        let at = Override::from_index(from).throw(Override::from_index(to));
+        let (at, station, radar) = self.modes.throw_override(Override::from_index(to), &st);
         vdict! {
             "at" => at as i64,
-            "station" => at.station(&st).map_or(-1, |i| i as i64),
-            "radar" => at.radar_mode().unwrap_or(-1),
+            "station" => station.map_or(-1, |i| i as i64),
+            "radar" => radar.unwrap_or(-1),
         }
+    }
+
+    /// The DGFT / MSL OVRD switch's position: 0 centred, 1 DGFT, 2 MSL OVRD.
+    #[func]
+    fn override_at(&self) -> i64 {
+        self.modes.over as i64
+    }
+
+    /// The master-mode keys (M, N, '[') act: the DGFT / MSL OVRD switch centred.
+    #[func]
+    fn mode_keys_free(&self) -> bool {
+        self.modes.mode_keys_free()
     }
 
     /// `FUN_0044ec80`: [master, hud] of a store type, [] when the mode stays.

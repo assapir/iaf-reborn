@@ -130,7 +130,9 @@ What `real_hud/f16.rs` draws from the panel ([../../docs/real-hud.md](../../docs
 The throttle's switch (dash-34 "Dogfight and missile override"): DGFT selects an IR missile (else any A-A missile),
 the radar's ACM and the HUD's EEGS funnel with the missile's symbols (`DGFT` in the mode window); the trigger fires the
 gun. MSL OVRD selects a radar missile (else any A-A missile) and CRM (`MSL`). Centred, the station and the radar's
-mode before come back; a lock (STT) is kept (inferred). `master.rs` `Override`, `player_weapons.gd` `override_key`.
+mode before come back; a lock (STT) is kept (inferred). While the switch is thrown the master-mode keys (M, N and
+`[`) do nothing: the switch holds the A-A mode until it is centred (inferred). `master.rs` `Override` and
+`Modes::throw_override` (the switch's position), `player_weapons.gd` `override_key`.
 
 ## 6. Tests
 

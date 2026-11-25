@@ -703,6 +703,14 @@ impl IafFlight {
         }
     }
 
+    /// The same mode with a new argument (`Autopilot::start_mode`): the loop starts again.
+    #[func]
+    fn ap_restart_mode(&mut self, mode: i64) {
+        if let (Some(ap), Some(ac)) = (&mut self.ap, &mut self.aircraft) {
+            ap.start_mode(ac, mode.clamp(0, 255) as u8);
+        }
+    }
+
     #[func]
     fn ap_mode(&self) -> i64 {
         self.ap.as_ref().map_or(0, |ap| ap.mode() as i64)

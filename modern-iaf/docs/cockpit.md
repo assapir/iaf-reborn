@@ -358,7 +358,9 @@ switches as FlightGear models them.
   went over the detent to OFF. The throttle now moves by its keys and the lever only; OFF is Throttle OFF (Shift + 1).
 
 - **The canopy** closes with its switch and locks with its yellow lever on both F-16s (§5.6, since 2026-11-18); its
-  key, Ctrl+K (key record 124), does the whole sequence. **Tried and dropped (2026-11-11 to 2026-11-18):** a canopy
+  key, Ctrl+K (key record 124), does the whole sequence. The Start engine command over an open canopy runs the same
+  sequence: the canopy comes down, then the lever locks it (the flight model's lever is never down over an open
+  canopy). **Tried and dropped (2026-11-11 to 2026-11-18):** a canopy
   handle of our own, a grey metal rod 3 cm
   thick and 14 cm long drawn along the left canopy sill's inner face 10 cm aft of the throttle and clicked as the
   step's control (`f16_controls.json` `CANOPY_HANDLE`, a `box` row with `grip`). Its place and shape were inferred

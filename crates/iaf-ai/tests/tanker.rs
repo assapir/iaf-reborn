@@ -175,3 +175,44 @@ fn the_door_closed_is_never_cleared_to_contact() {
     let (e, _) = run(&mut t, 5.0, |t| vec![Receiver { door: false, ..at(t, 1, pre, 1000.0) }]);
     assert!(e.is_empty(), "{e:?}");
 }
+
+#[test]
+fn a_receiver_leaving_in_contact_is_disconnected() {
+    // The receiver leaves while the boom is in its receptacle (the player ejects, a wingman is called back): the boom
+    // unlatches with a Disconnect (the AR lamp off, the DISC call), then the next is cleared (the statemachines audit,
+    // #28).
+    let mut t = tanker();
+    t.request(1);
+    t.request(2);
+    let (pre, c) = (t.precontact_body(), t.contact_body());
+    run(&mut t, 15.5, |t| vec![at(t, 1, pre, 1000.0)]);
+    let mut x = 0.0;
+    let (e, _) = run(&mut t, 30.0, |t| {
+        x = (x + DT).min(15.0);
+        vec![at(t, 1, [pre[0] + x, c[1], pre[2] + x * 3.0 / 15.0], 1000.0)]
+    });
+    assert!(e.contains(&Event::Contact(1)) && t.boom == Boom::Contact, "{e:?}");
+    assert_eq!(t.leave(1), vec![Event::Disconnect(1), Event::ClearedPrecontact(2)]);
+    assert_ne!(t.boom, Boom::Contact);
+}
+
+#[test]
+fn a_first_receiver_that_never_comes_loses_its_turn() {
+    // The first in the queue stays away (it turned to fight): after HEAD_WAIT_S the next one is cleared and the first
+    // waits at the back (the statemachines audit, #28); alone, it keeps its turn.
+    let mut t = tanker();
+    t.request(1);
+    let far = |t: &Tanker, id| at(t, id, [-3000.0, 0.0, 0.0], 1000.0);
+    // Alone past HEAD_WAIT_S: its turn stands when a second asks; the timeout counts from then.
+    let (e, _) = run(&mut t, iaf_ai::tanker::HEAD_WAIT_S + 10.0, |t| vec![far(t, 1)]);
+    assert!(e.is_empty(), "{e:?}");
+    t.request(2);
+    let (e, _) = run(&mut t, 1.0, |t| vec![far(t, 1), far(t, 2)]);
+    assert!(e.is_empty() && t.queue == vec![1, 2], "{e:?}");
+    let (e, _) = run(&mut t, iaf_ai::tanker::HEAD_WAIT_S + 1.0, |t| vec![far(t, 1), far(t, 2)]);
+    assert_eq!(e, vec![Event::StandBy(1), Event::ClearedPrecontact(2)]);
+    assert_eq!(t.queue, vec![2, 1]);
+    t.leave(1);
+    let (e, _) = run(&mut t, 2.0 * iaf_ai::tanker::HEAD_WAIT_S, |t| vec![far(t, 2)]);
+    assert!(e.is_empty() && t.queue == vec![2], "{e:?}");
+}

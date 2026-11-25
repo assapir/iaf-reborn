@@ -86,12 +86,19 @@ class Pilot:
 	var twin := false
 	var _state := {}
 	var _host
+	## The last set_mode's argument (its target, leader or own unit).
+	var _arg = null
 
 	func set_mode(m: int, arg = null) -> void:
-		if m == mode and m != 0:
-			return  # a running manoeuvre is kept (5c8a70)
+		var again := m == mode and m != 0
+		if again and is_same(arg, _arg):
+			return  # a running manoeuvre is kept (5c8a70: the mode and the argument unchanged)
 		mode = m
-		flight.ap_set_mode(m, _host.runtime.now)
+		_arg = arg
+		if again:
+			flight.ap_restart_mode(m)  # 5c8a70: a new target or leader starts the loop again
+		else:
+			flight.ap_set_mode(m, _host.runtime.now)
 		if m == 1 or m == 3:
 			_host.follow(self, arg)
 

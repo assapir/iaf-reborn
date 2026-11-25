@@ -406,10 +406,11 @@ impl SixDof {
     /// the electrical power unchanged. Modern IAF's start goes through [`SixDof::start_engine`] instead.
     pub fn set_engine_on(&mut self, on: bool) {
         // An empty tank starts nothing (the throttle keys would light it again every press).
-        let on = on && self.fuel_feeds();
-        self.engine_on = on;
-        if on {
+        if on && self.fuel_feeds() {
+            self.engine_on = true;
             self.start_seq = Sequence::running();
+        } else {
+            self.engine_off();
         }
     }
 
@@ -431,9 +432,6 @@ impl SixDof {
     /// throttle to OFF, the fuel cut ([`Sequence::cut_off`]): the engine stops giving thrust and winds down.
     pub fn start_step(&mut self, step: &str) -> Result<(), &'static str> {
         if step == "cutoff" {
-            if !self.engine_on && self.start_seq.phase == Phase::Running {
-                return Ok(()); // stopped already (the ejection, `engine_off`): nothing to cut
-            }
             let rpm = self.rpm() as f64;
             self.engine_on = false;
             return self.start_seq.cut_off(rpm);
@@ -638,8 +636,12 @@ impl SixDof {
         }
     }
 
+    /// The engine stopped (the ejection): a lit or running engine winds down as after a flame-out, so its phase
+    /// leaves "running" and the cockpit's ENGINE and HYD/OIL cautions light.
     pub fn engine_off(&mut self) {
+        let rpm = self.rpm() as f64;
         self.engine_on = false;
+        self.start_seq.flame_out(rpm);
     }
 
     /// Re-placed at rest on the ground at (x, y) ENU facing `heading` (the autopilot's taxi re-placement).

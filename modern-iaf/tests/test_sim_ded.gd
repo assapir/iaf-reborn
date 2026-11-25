@@ -214,6 +214,13 @@ func _dgft() -> void:
 	check(w.override == 1 and int(w.radar.mode) == 6, "V: DGFT, the radar's ACM (%d, %d)" % [w.override, w.radar.mode])
 	# The range's load has no A-A missile: DGFT gives the gun's EEGS (mode 3), else the SRM (1).
 	check(w.hud_mode in [1, 3] and hud_texts().has("DGFT"), "DGFT: the SRM / gun and the HUD's DGFT (%d)" % w.hud_mode)
+	# The master-mode keys wait while the switch is thrown (IafModes.mode_keys_free).
+	var held: Array = [w.hud_mode, w.stores.cur]
+	w.master_key()
+	w.master_key()
+	w.select_ag()
+	w.nav_key(0)
+	check([w.hud_mode, w.stores.cur] == held and w.override == 1, "DGFT: M, N and '[' wait (%d)" % w.hud_mode)
 	_key(KEY_V, "shift")
 	await frames(2)
 	check(w.override == 2 and int(w.radar.mode) == 4 and hud_texts().has("MSL"), "Shift + V: MSL OVRD, CRM")

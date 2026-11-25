@@ -115,7 +115,8 @@ A cockpit procedure; what each decoy then does to a missile is each seeker's own
 After the simulator manual the plan cites[^dcs]: MODE OFF / STBY / MAN / SEMI / AUTO / BYP; CMS forward runs the
 selected program in MAN, SEMI and AUTO (BYP one chaff and one flare); CMS aft stops it; CMS right gives consent in SEMI
 and enables AUTO. A missile launch heard by the RWR (RWR switch on; a radar-guided one, §2) or seen by the MAW (MWS switch on) makes SEMI ask
-for consent with the VMS's "Counter", and AUTO, enabled, run the program and say "Counter". The JMR switch's input
+for consent with the VMS's "Counter", and AUTO, enabled, run the program and say "Counter". SEMI's request lapses
+once no launch is left at the jet (the RWR's and the MAW's lists empty): a later CMS right starts nothing (inferred). The JMR switch's input
 starts nothing (the jammer runs on its own J key, [../../docs/ai.md](../../docs/ai.md) §15.6). CH and FL power each dispenser; O1 and O2 move only (the sim
 carries no other dispenser). JETT releases every flare, one each 0.1 s (inferred). Each release goes through the
 game's own dispense (`player_weapons.gd` `dispense`), so it is counted, refused with the gear down and limited by the

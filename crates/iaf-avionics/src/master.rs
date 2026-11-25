@@ -65,6 +65,8 @@ pub struct Modes {
     /// The M key's NAV → AA → AG cycle.
     cycle: u8,
     pub hud: Hud,
+    /// Ours, Modern IAF's F-16s: the DGFT / MSL OVRD switch's position ([`Modes::throw_override`]).
+    pub over: Override,
 }
 
 impl Modes {
@@ -109,6 +111,19 @@ impl Modes {
     pub fn ag_key_cycles(&self, type_code: i64) -> bool {
         let ag = !is_aa_missile(type_code) && !(type_code != 0 && self.prev == Master::AaGun);
         self.master != Master::Nav || !ag || type_code == SHELL
+    }
+
+    /// Ours: the DGFT / MSL OVRD switch thrown toward `to` over `stations` ([type, count] each): its new position, the
+    /// station and the radar mode it selects ([`Override`]).
+    pub fn throw_override(&mut self, to: Override, stations: &[(i64, i64)]) -> (Override, Option<usize>, Option<i64>) {
+        self.over = self.over.throw(to);
+        (self.over, self.over.station(stations), self.over.radar_mode())
+    }
+
+    /// The master-mode keys (M, N, '[') act: not while the DGFT / MSL OVRD switch is thrown, which holds the A-A mode
+    /// until it is centred (inferred from dash-34's "override": the switch, not the mode buttons, sets the mode).
+    pub fn mode_keys_free(&self) -> bool {
+        self.over == Override::Off
     }
 
     /// M (event 0x63): NAV → AA → AG → NAV; at NAV the master mode goes NAV here.
@@ -256,6 +271,13 @@ mod tests {
         assert_eq!(Override::Dgft.station(&[(600, 1)]), Some(0), "no SRM: an MRM");
         assert_eq!(Override::Msl.station(&[(500, 4)]), None);
         assert_eq!((Override::Dgft.radar_mode(), Override::Msl.radar_mode()), (Some(6), Some(4)));
+        // The switch's position is kept in Modes; the mode keys wait until it is centred (the statemachines audit,
+        // #18).
+        let mut m = Modes::default();
+        assert_eq!(m.throw_override(Override::Dgft, &st), (Override::Dgft, Some(3), Some(6)));
+        assert!(!m.mode_keys_free());
+        assert_eq!(m.throw_override(Override::Dgft, &st), (Override::Off, None, None));
+        assert!(m.mode_keys_free());
     }
 
     #[test]

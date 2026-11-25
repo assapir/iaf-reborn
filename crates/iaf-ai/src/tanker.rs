@@ -85,6 +85,9 @@ pub const CLOSURE: f64 = 2.5 * KT;
 /// A receiver with room for less than this is full, kg (its last refuel valve closed: the boom unlatches, research
 /// §5; the engine burns while it takes fuel, so the room never stays at zero).
 pub const FULL_KG: f32 = 5.0;
+/// The first in the queue not cleared to contact this long after its turn came (it turned away to fight, or is still
+/// far off), s, while others wait: it goes to the back of the queue and the next is cleared (inferred).
+pub const HEAD_WAIT_S: f64 = 300.0;
 
 /// The tanker's pose.
 #[derive(Debug, Clone, Copy, Default)]
@@ -264,6 +267,8 @@ pub struct Tanker {
     cleared: bool,
     /// When it was cleared (s).
     cleared_at: f64,
+    /// When the first in the queue got its turn.
+    head_at: f64,
     broke_away: bool,
     stable_since: Option<f64>,
     /// The fuel given to the first in the queue, kg.
@@ -293,6 +298,7 @@ impl Tanker {
             done: Vec::new(),
             cleared: false,
             cleared_at: 0.0,
+            head_at: 0.0,
             broke_away: false,
             stable_since: None,
             given: 0.0,
@@ -345,30 +351,39 @@ impl Tanker {
         self.done.retain(|&d| d != id);
         if !self.queue.contains(&id) {
             self.queue.push(id);
+            // The head's clock starts with its turn, and again once another waits behind it (the timeout counts only
+            // while others wait).
+            if self.queue.len() <= 2 {
+                self.head_at = self.t;
+            }
         }
         if self.queue[0] == id { Event::ClearedPrecontact(id) } else { Event::StandBy(id) }
     }
 
-    /// The receiver leaves (it flew away, or is lost): out of the queue and the done list; the next is cleared.
-    pub fn leave(&mut self, id: u32) -> Option<Event> {
+    /// The receiver leaves (it flew away, or is lost): out of the queue and the done list; a contact ends
+    /// (Disconnect) and the next is cleared.
+    pub fn leave(&mut self, id: u32) -> Vec<Event> {
         self.done.retain(|&d| d != id);
         if self.queue.first() == Some(&id) {
             return self.next();
         }
         self.queue.retain(|&q| q != id);
-        None
+        Vec::new()
     }
 
-    /// The first in the queue is through: the next one is cleared to pre-contact.
-    fn next(&mut self) -> Option<Event> {
-        if !self.queue.is_empty() {
-            self.queue.remove(0);
-        }
+    /// The first in the queue is through: a boom still in its receptacle unlatches (Disconnect), the next one is
+    /// cleared to pre-contact.
+    fn next(&mut self) -> Vec<Event> {
+        let mut ev = Vec::new();
+        let head = (!self.queue.is_empty()).then(|| self.queue.remove(0));
         (self.cleared, self.broke_away, self.stable_since, self.given) = (false, false, None, 0.0);
+        self.head_at = self.t;
         if self.boom == Boom::Contact {
             self.boom = Boom::Trail;
+            ev.extend(head.map(Event::Disconnect));
         }
-        self.queue.first().map(|&n| Event::ClearedPrecontact(n))
+        ev.extend(self.queue.first().map(|&n| Event::ClearedPrecontact(n)));
+        ev
     }
 
     /// Where receiver `id` is to fly now: its receptacle at contact once cleared (pre-contact after a breakaway), at
@@ -492,6 +507,14 @@ impl Tanker {
                 self.done.push(id);
                 ev.extend(self.next());
             }
+            self.move_boom(dt, None);
+            return (ev, None);
+        }
+        if !self.cleared && self.queue.len() > 1 && self.t - self.head_at > HEAD_WAIT_S {
+            // Its turn lapsed: to the back of the queue, the next one cleared.
+            self.queue.push(id);
+            ev.push(Event::StandBy(id));
+            ev.extend(self.next());
             self.move_boom(dt, None);
             return (ev, None);
         }

@@ -5,7 +5,8 @@
 use std::cmp::Ordering;
 use std::io::Read;
 use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::process::{Command, Stdio};
+use std::sync::atomic::{AtomicBool, Ordering as AtomicOrdering};
 
 use anyhow::{Context, Result, bail};
 use sha2::{Digest, Sha256};
@@ -77,8 +78,8 @@ pub fn pick(manifest: &str, project: &str, os: &str) -> Option<Offer> {
     })
 }
 
-/// Ok when `file` has `size` bytes and the SHA-256 `sha256` (hex).
-pub fn verify(file: &Path, size: u64, sha256: &str) -> Result<()> {
+/// Ok when `file` has `size` bytes and the SHA-256 `sha256` (hex); an error "cancelled" once `stop` is set.
+pub fn verify(file: &Path, size: u64, sha256: &str, stop: &AtomicBool) -> Result<()> {
     let len = std::fs::metadata(file).with_context(|| format!("{}", file.display()))?.len();
     if len != size {
         bail!("{}: {len} bytes, the release lists {size}", file.display());
@@ -87,6 +88,9 @@ pub fn verify(file: &Path, size: u64, sha256: &str) -> Result<()> {
     let mut h = Sha256::new();
     let mut buf = vec![0u8; 1 << 20];
     loop {
+        if stop.load(AtomicOrdering::Relaxed) {
+            bail!("cancelled");
+        }
         let n = f.read(&mut buf)?;
         if n == 0 {
             break;
@@ -124,13 +128,23 @@ pub fn old_dir(app: &Path) -> PathBuf {
 
 /// Unpacks the download `archive` into `stage` (emptied first) and returns the new game's folder in it (the folder
 /// or `.app` with the same name as `app`). Linux: tar; Windows: the zip; macOS: the disk image, attached read-only
-/// and the app copied out with ditto (it keeps the signature and the links).
-pub fn unpack(archive: &Path, stage: &Path, app: &Path, os: &str) -> Result<PathBuf> {
+/// and the app copied out with ditto (it keeps the signature and the links). Once `stop` is set the tool is stopped,
+/// the stage removed and the error is "cancelled".
+pub fn unpack(archive: &Path, stage: &Path, app: &Path, os: &str, stop: &AtomicBool) -> Result<PathBuf> {
+    let r = unpack_into(archive, stage, app, os, stop);
+    if stop.load(AtomicOrdering::Relaxed) {
+        let _ = std::fs::remove_dir_all(stage);
+        bail!("cancelled");
+    }
+    r
+}
+
+fn unpack_into(archive: &Path, stage: &Path, app: &Path, os: &str, stop: &AtomicBool) -> Result<PathBuf> {
     let _ = std::fs::remove_dir_all(stage);
     std::fs::create_dir_all(stage)?;
     let name = app.file_name().context("the game's folder has no name")?;
     match os {
-        "Linux" => run(Command::new("tar").arg("-xzf").arg(archive).arg("-C").arg(stage))?,
+        "Linux" => run_until(Command::new("tar").arg("-xzf").arg(archive).arg("-C").arg(stage), stop)?,
         "Windows" => zip::ZipArchive::new(std::fs::File::open(archive)?)?.extract(stage)?,
         "macOS" => {
             let mnt = stage.join(".mnt");
@@ -139,7 +153,7 @@ pub fn unpack(archive: &Path, stage: &Path, app: &Path, os: &str) -> Result<Path
                 .args(["attach", "-nobrowse", "-readonly", "-noautoopen", "-mountpoint"])
                 .arg(&mnt)
                 .arg(archive))?;
-            let copied = run(Command::new("ditto").arg(mnt.join(name)).arg(stage.join(name)));
+            let copied = run_until(Command::new("ditto").arg(mnt.join(name)).arg(stage.join(name)), stop);
             let _ = run(Command::new("hdiutil").arg("detach").arg(&mnt).arg("-force"));
             let _ = std::fs::remove_dir(&mnt);
             copied?;
@@ -151,6 +165,24 @@ pub fn unpack(archive: &Path, stage: &Path, app: &Path, os: &str) -> Result<Path
         bail!("the download holds no {}", name.to_string_lossy());
     }
     Ok(new)
+}
+
+/// [`run`], stopped (killed) once `stop` is set.
+fn run_until(c: &mut Command, stop: &AtomicBool) -> Result<()> {
+    let mut child = c.stdout(Stdio::null()).stderr(Stdio::piped()).spawn().with_context(|| format!("{c:?}"))?;
+    while child.try_wait()?.is_none() {
+        if stop.load(AtomicOrdering::Relaxed) {
+            let _ = child.kill();
+            let _ = child.wait();
+            bail!("cancelled");
+        }
+        std::thread::sleep(std::time::Duration::from_millis(100));
+    }
+    let out = child.wait_with_output()?;
+    if !out.status.success() {
+        bail!("{c:?}: {}", String::from_utf8_lossy(&out.stderr).trim());
+    }
+    Ok(())
 }
 
 fn run(c: &mut Command) -> Result<()> {
@@ -440,10 +472,14 @@ mod tests {
         let f = d.join("a");
         std::fs::write(&f, b"abc").unwrap();
         let abc = "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad";
-        assert!(verify(&f, 3, abc).is_ok());
-        assert!(verify(&f, 3, &abc.to_uppercase()).is_ok());
-        assert!(verify(&f, 4, abc).is_err());
-        assert!(verify(&f, 3, &abc.replace('b', "c")).is_err());
+        let go = AtomicBool::new(false);
+        assert!(verify(&f, 3, abc, &go).is_ok());
+        assert!(verify(&f, 3, &abc.to_uppercase(), &go).is_ok());
+        assert!(verify(&f, 4, abc, &go).is_err());
+        assert!(verify(&f, 3, &abc.replace('b', "c"), &go).is_err());
+        // Cancelled (the player's Later): the check stops (the statemachines audit, #4).
+        let e = verify(&f, 3, abc, &AtomicBool::new(true)).unwrap_err();
+        assert_eq!(format!("{e:#}"), "cancelled");
         std::fs::remove_dir_all(d).unwrap();
     }
 
@@ -519,9 +555,13 @@ mod tests {
         let tgz = d.join("g.tar.gz");
         run(Command::new("tar").arg("-czf").arg(&tgz).arg("-C").arg(d.join("src")).arg("Game")).unwrap();
         let app = d.join("Game");
-        let new = unpack(&tgz, &stage_dir(&app), &app, "Linux").unwrap();
+        let go = AtomicBool::new(false);
+        let new = unpack(&tgz, &stage_dir(&app), &app, "Linux", &go).unwrap();
         assert_eq!(std::fs::read_to_string(new.join("x")).unwrap(), "2");
-        assert!(unpack(&tgz, &stage_dir(&app), &d.join("Other"), "Linux").is_err());
+        assert!(unpack(&tgz, &stage_dir(&app), &d.join("Other"), "Linux", &go).is_err());
+        // Cancelled: no stage folder left behind (the statemachines audit, #4).
+        let e = unpack(&tgz, &stage_dir(&app), &app, "Linux", &AtomicBool::new(true)).unwrap_err();
+        assert!(format!("{e:#}") == "cancelled" && !stage_dir(&app).exists());
         std::fs::remove_dir_all(d).unwrap();
     }
 }

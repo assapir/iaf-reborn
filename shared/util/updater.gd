@@ -53,6 +53,8 @@ var update_button: Button
 var later_button: Button
 var http: HTTPRequest
 var _jobs := {}
+## The swap copy could not put the old version back (`_stuck`): Close quits it (the first screen is gone).
+var _stuck_shown := false
 
 
 ## Called once per game start by its first screen. True when this start is the update's swap (shows only its line).
@@ -296,8 +298,13 @@ func _on_later() -> void:
 	_keep("never")
 	if http != null and is_instance_valid(http):
 		http.cancel_request()
+	if state in ["verify", "unpack"]:
+		setup.cancel_jobs()  # the check or the unpack stops; the unpack's stage folder goes
 	if state in ["download", "verify", "unpack"]:
 		DirAccess.remove_absolute(archive)
+	if _stuck_shown:
+		Settings.quit()
+		return
 	if not offer.is_empty() and state in ["", "failed"] and Settings.update_mode != "never":
 		offer = {}
 		bar.visible = false
@@ -488,5 +495,6 @@ func _relaunch(exe: String, args: Array, to: String) -> void:
 ## The old version could not be put back into `to`: the line says where it is; this copy stays until Close.
 func _stuck(to: String) -> void:
 	state = "failed"
+	_stuck_shown = true
 	var old := to.get_base_dir().path_join(".%s.old" % to.get_file())
 	_show(s("stuck") % ["\u2066" + old + "\u2069", "\u2066" + to + "\u2069"], false)

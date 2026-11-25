@@ -402,6 +402,16 @@ fn fuel_calls_and_rtb() {
     println!("#2 bingo {bingo:.0} kg");
     w.jets[1].0.set_fuel(bingo + 1020.0);
     let joker = w.until(120.0, &|w| w.said(2, "joker").is_some());
+    // Refuelled after the joker call, not going home: the call is armed again (the statemachines audit, #27).
+    let t1 = w.t;
+    assert!(w.flight.command(w.t, 2, "refuel"));
+    w.jets[1].0.set_fuel(bingo + 3000.0);
+    w.run(1.0);
+    w.flight.set_refuel(2, None);
+    w.jets[1].0.set_fuel(bingo + 1020.0);
+    let again = w.until(120.0, &|w| w.said(2, "joker").is_some_and(|t| t > t1));
+    println!("#2: joker again after the refuel after {again:?} s");
+    assert!(again.is_some(), "joker called again after a refuel");
     w.jets[1].0.set_fuel(bingo + 5.0);
     let bingo_call = w.until(60.0, &|w| w.said(2, "bingo").is_some());
     w.jets[1].0.set_fuel(805.0);

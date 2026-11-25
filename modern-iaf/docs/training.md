@@ -291,7 +291,7 @@ since 2026-11-08: not in the key list), runs it all at once
 | avionics up (`avionics`) | with the displays | 90 s after the command | F-35: "after 90 seconds … ready"[^ayton] |
 | sum | idle and avionics at 35 s | displays 13 s, idle 45 s, avionics 90 s | |
 | throttle to OFF (§7.2) | the fuel cut: the engine winds down, the generators off at 52 %, stopped after about a minute | the same | §7.2 |
-| engine stopped (`set_engine_on(false)`, the ejection) | no RPM; the power as it was; a new command starts from the beginning | the same | inferred |
+| engine stopped (`set_engine_on(false)`, the ejection) | winds down as after a flame-out (phase "rundown", then "off"): the ENGINE and HYD/OIL cautions light; a new command starts from the beginning | the same | inferred |
 
 The F-15I's (no mission flies it yet) is the F-16's (inferred). The F-35I's engine steps are the F-16's: no public
 figure (inferred). The sound: the JFS's (the IPP's) whine, the engine clip of E1b (`SFX_START_ENGINE`) with its

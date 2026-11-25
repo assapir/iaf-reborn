@@ -7,6 +7,18 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   keeps failing ends, failed, with "could not be scored" in the debrief, and a fail's hold before the debrief runs on
   sim time ([training.md](training.md)); the frozen CCIP pipper tracks again after the last bomb and when the HUD
   leaves the bomb modes, and the pod leaving A-G ends the laser key's latch ([weapons.md](weapons.md)).
+- **Hidden state machines, bugs and risks, part 1 (2026-11-25, the user: "run a job to find all hidden state machines
+  and audit it", then "fix all that you found in your review"):** the ejection stops the engine by its phase, so the
+  ENGINE and HYD/OIL cautions light ([training.md](training.md) §7); Start engine over an open canopy lowers it, then
+  locks the lever ([cockpit.md](cockpit.md)); the DGFT / MSL OVRD switch's position is kept in Rust and the master-mode
+  keys wait while it is thrown ([ufc.md](ufc.md) §5); SEMI's consent request lapses when the threat is gone
+  ([ews.md](ews.md)); a receiver leaving the boom in contact (ejected, fatally hit, called back) is disconnected, and
+  the first in the tanker's queue loses its turn after 5 minutes while others wait
+  ([research/air-refuelling.md](research/air-refuelling.md) §8.3); a wingman's joker and bingo calls are armed again
+  after a refuel; the updater's Later stops the check and the unpack, and Close quits the copy that could not put the
+  old version back ([../../docs/release.md](../../docs/release.md) §7); setup refuses a second run until the first
+  one's thread is done; an AI pilot given the same manoeuvre on a new target starts it again, as the exe does
+  ([../../docs/ai.md](../../docs/ai.md) §5).
 - **The Givatayim fly-by's faults (2026-11-25, the user: "no loose corners";
   [../../docs/real-hud.md](../../docs/real-hud.md) "DASH helmet", [../../docs/rendering.md](../../docs/rendering.md) §6,
   [../../docs/scenery.md](../../docs/scenery.md)):** the Sufa's and the Barak's helmet display blanks while the head

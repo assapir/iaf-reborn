@@ -175,6 +175,10 @@ The tanker is an addressee on the radio menu's first page only while the flight 
 4. Unlatched: "Kidon 1, disconnect".
 5. Too close or too high: "Kidon 1, breakaway, breakaway, breakaway".
 6. Full: "Kidon 1, refuelling complete, cleared right wing"; the next receiver is cleared to pre-contact.
+7. A receiver that leaves in contact (ejected, fatally hit, or a wingman called back) is disconnected first:
+   "disconnect", then the next receiver is cleared (`tanker.rs` `leave`).
+8. The first in the queue not cleared to contact within 5 minutes of its turn while others wait (it turned away to
+   fight, or is still far off) is told "stand by" and goes to the back; the next is cleared (`HEAD_WAIT_S`, inferred).
 
 The player's wingmen: the wingmen's command **Refuel** sends the AI wingmen addressed to the tanker; each asks in
 turn, waits on the tanker's left wing (the observation position), refuels, then waits on the right wing until the

@@ -161,8 +161,18 @@ func _player(tv: Node, tk: Node) -> void:
 	var rate: float = (float(tv.flight.state().fuel_lbs) * 0.45359 - f0) / (tv._sim_time - t0)
 	print("player: %.1f kg/s taken (3,000 lb a minute: 22.7 less the burn)" % rate)
 	check(rate > 20.0 and rate < 23.5, "the fuel at 3,000 lb a minute")
+	# Fatally hit in contact: no longer a receiver, the boom unlatches (disconnect) and AR/NWS goes out.
+	tv.fatal_hit = true
+	check(await _while(tv, hold, func(): return not tk.in_contact(), 3.0), "fatally hit: off the boom (%s)" % [tk.said])
+	check(["disconnect", me] in tk.said, "fatally hit: disconnect")
+	tv.fatal_hit = false
+	var n0: int = tk.said.size()
+	tk.request(me)
+	var again := func(): return tk.said.slice(n0).any(func(c): return c[0] == "contact" and int(c[1]) == me)
+	check(await _while(tv, hold, again, 40.0), "asked again: contact (%s)" % [tk.said.slice(n0)])
+	var n1: int = tk.said.size()
 	tv._command([297, 0, 0])  # Shift + F2: A/R DISC
-	check(await _while(tv, hold, func(): return _said(tk, "disconnect", me), 2.0), "A/R DISC: disconnect")
+	check(await _while(tv, hold, func(): return ["disconnect", me] in tk.said.slice(n1), 2.0), "A/R DISC: disconnect")
 	await frames(2)
 	if c3 != null:
 		check(c3._lamp_on("ar_disc") and not c3._lamp_on("ar_nws"), "DISC lit after the disconnect")

@@ -198,6 +198,12 @@ impl IafEws {
         self.cmds.threat(rwr, now);
     }
 
+    /// No launch left at the jet: SEMI's consent request lapses.
+    #[func]
+    fn cmds_threat_gone(&mut self) {
+        self.cmds.threat_gone();
+    }
+
     /// Every frame with the counts left: {release: the weapon ids to dispense (540 chaff, 550 flare), voice: the
     /// Betty sub codes to say}.
     #[func]

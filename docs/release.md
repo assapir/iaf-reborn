@@ -255,7 +255,8 @@ Each game's first screen calls `Updater.start` (Modern IAF `menu/front_end.gd`, 
 4. `update::unpack` unpacks it beside the game's folder, into `.<folder>.update/` (Linux: `tar`; Windows: the zip,
    in Rust; macOS: the disk image attached read-only and the app copied with `ditto`, which keeps its signature).
    When the game's folder's parent is not writable (an app run from the disk image, or translocated by macOS), the
-   line says to move the game to a folder the player can write to.
+   line says to move the game to a folder the player can write to. Later during the check or the unpack stops them
+   (`IafSetup.cancel_jobs`): the check ends, `tar` or `ditto` is stopped and the unpack's folder is removed.
 5. The game starts the unpacked copy with `--update-apply <game folder> --update-pid <its pid>` and quits. Every
    program the update starts runs in the game's folder's parent (`update::launch`), never inside the game's folder:
    on Windows a program's working folder cannot be moved. The copy waits in Rust for the old game's process to end
@@ -271,7 +272,8 @@ Each game's first screen calls `Updater.start` (Modern IAF `menu/front_end.gd`, 
    10 minutes, then stopped. When the new version ends or is stopped without writing the file, `update::rollback`
    moves it aside to `.<folder>.failed/`, puts the old one back and starts it with `--update-failed`: its line says
    the update did not install. When the old one cannot be put back (also after a copy whose own rollback failed), the
-   copy stays open and its line says which folder to move back where. The swap and the wait run on threads, so the
+   copy stays open and its line says which folder to move back where; its Close quits
+   it. The swap and the wait run on threads, so the
    copy's window keeps drawing.
 7. The new version, once the copy has quit, removes `.<folder>.old/`, `.<folder>.update/` and
    `.<folder>.failed/` (`update::cleanup`, on its own thread; never the folder the program runs from). The data

@@ -1152,3 +1152,21 @@ fn run_away_opens_the_distance() {
     println!("run away: {d0:.0} m -> {d1:.0} m ({})", ap.stage());
     assert!(d1 > d0, "the distance grows ({d0:.0} -> {d1:.0})");
 }
+
+#[test]
+fn the_same_mode_with_a_new_argument_starts_again() {
+    // 5c8a70: setMode is ignored only when the mode, the argument and the pose are all unchanged; a new target or
+    // leader in the same mode starts the loop again (the statemachines audit, #30). The take-off loop in the air:
+    // stage 2 flies to wp0, stage 3 once within its 500 m.
+    let Some(inst) = install() else { return };
+    let mut ac = jet(&inst, "MIG29", Vec3::new(0.0, 0.0, 3000.0), 0.0, true);
+    let mut ap = Autopilot::new(Config::load(&inst));
+    ap.route = vec![Waypoint { x: 0.0, y: 200.0, z: 3000.0, t: 0.0, action: 3 }];
+    ap.set_mode(&mut ac, 9);
+    fly(&mut ac, &mut ap, 1.0, 0.0);
+    assert!(ap.stage().starts_with("take-off stage 3"), "{}", ap.stage());
+    ap.set_mode(&mut ac, 9);
+    assert!(ap.stage().starts_with("take-off stage 3"), "the same command: kept ({})", ap.stage());
+    ap.start_mode(&mut ac, 9);
+    assert!(ap.stage().starts_with("take-off stage 2"), "a new argument: started again ({})", ap.stage());
+}

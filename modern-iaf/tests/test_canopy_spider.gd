@@ -136,11 +136,13 @@ func _f16(tv: Node, id: String) -> void:
 	check(not f.start_on("canopy") and float(sw.get(SPIDER)) == 1.0, "%s: the key again: the lever up at once" % id)
 	check(await _until(tv, func(): return a.canopy_open >= 1.0, 12.0), "%s: the key again: the canopy up" % id)
 	check(tv.sounds.played.has("SFX_DOOR_OPEN/None"), "%s: the canopy's opening sound" % id)
-	# The Start engine command takes every step at once: the lever down, the canopy follows.
+	# The Start engine command takes every step at once: the canopy comes down, then the lever locks it (the flight
+	# model's lever is never down over an open canopy; the statemachines audit, #11).
 	tv._command([200, 0, 0])
 	await frames(2)
-	check(f.start_on("canopy"), "%s: Start engine: the canopy step taken" % id)
+	check(not f.start_on("canopy") and a.canopy_open > 0.0, "%s: Start engine: the lever waits for the canopy" % id)
 	check(await _until(tv, func(): return a.canopy_open <= 0.0, 12.0), "%s: Start engine: the canopy comes down" % id)
+	check(await _until(tv, func(): return f.start_on("canopy"), 1.0), "%s: Start engine: then locked" % id)
 	# In the air the lever stays down: by the key, by a click on it, by a click on the switch.
 	var st0: Dictionary = f.state()
 	var pos: Vector3 = st0.position + Vector3(0, 1500.0, 0)

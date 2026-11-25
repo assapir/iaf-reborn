@@ -635,6 +635,20 @@ fn fuel_tanks_and_a_dead_engine() {
 }
 
 #[test]
+fn the_ejection_stops_the_engine_by_its_phase() {
+    // The ejection (`set_engine_on(false)`, `engine_off`) stops a running engine: it winds down and its phase no
+    // longer reads "running", so the 3D cockpit's ENGINE and HYD/OIL cautions light (statemachines audit #12).
+    for stop in [SixDof::engine_off as fn(&mut SixDof), |f: &mut SixDof| f.set_engine_on(false)] {
+        let mut f = flight(jets::all()[1], 3048.0, 300.0 * KT, true);
+        assert_eq!(f.start_phase(), "running");
+        stop(&mut f);
+        let c = f.controls();
+        fly_for(&mut f, 2.0, |_| c);
+        assert!(!f.engine_on && f.start_phase() == "rundown", "{}", f.start_phase());
+    }
+}
+
+#[test]
 fn an_empty_tank_flames_the_engine_out() {
     // The last fuel burnt in flight: the engine flames out and winds down (no idle RPM), its generators leave the
     // buses (the displays' power 2 falls to the battery's 1), and it stays stopped.
@@ -737,8 +751,8 @@ fn a_cold_jet_starts_by_its_start_command() {
     let mut f = flight(jets::all()[1], 0.0, 0.0, false);
     f.engine_off();
     let c = f.controls();
-    fly_for(&mut f, 1.0, |_| c);
-    assert!(!f.engine_on && f.state().rpm == 0.0 && f.power() == 2 && f.start_phase() == "running");
+    fly_for(&mut f, 120.0, |_| c);
+    assert!(!f.engine_on && f.state().rpm == 0.0 && f.start_phase() == "off");
     f.start_engine();
     fly_for(&mut f, 20.0, |_| c);
     let s = f.state();
@@ -749,7 +763,7 @@ fn a_cold_jet_starts_by_its_start_command() {
     assert!(s.speed < 0.5, "braked: {} m/s", s.speed);
     f.set_engine_on(false);
     fly_for(&mut f, 1.0, |_| c);
-    assert!(!f.engine_on && f.power() == 2 && f.state().rpm == 0.0);
+    assert!(!f.engine_on && f.start_phase() == "rundown" && f.state().rpm > 0.0);
     f.set_engine_on(true);
     assert!(f.engine_on && f.power() == 2 && f.avionics());
 }

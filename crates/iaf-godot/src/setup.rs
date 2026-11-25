@@ -29,6 +29,15 @@ struct Shared {
     log: Vec<String>,
     done: bool,
     error: String,
+    /// A run was launched (its thread runs until `done`).
+    launched: bool,
+}
+
+impl Shared {
+    /// A run's thread is still at work: launched and not done (between two steps no row says "running").
+    fn running(&self) -> bool {
+        self.launched && !self.done
+    }
 }
 
 /// The run's events into `Shared`; log lines name files relative to the assets folder (`prefix`). The log file gets
@@ -94,6 +103,8 @@ pub struct IafSetup {
     cancel: Arc<AtomicBool>,
     /// The background jobs (`begin`): name → None while it runs, else its result as JSON text.
     jobs: Arc<Mutex<std::collections::HashMap<String, Option<String>>>>,
+    /// The update jobs' stop (`cancel_jobs`): each job keeps the one current at its start.
+    job_stop: Arc<AtomicBool>,
 }
 
 #[godot_api]
@@ -269,6 +280,7 @@ impl IafSetup {
         let (job, args): (String, Vec<String>) =
             (job.to_string(), args.as_slice().iter().map(|s| s.to_string()).collect());
         let jobs = self.jobs.clone();
+        let stop = self.job_stop.clone();
         jobs.lock().unwrap().insert(job.clone(), None);
         std::thread::spawn(move || {
             let r = std::panic::catch_unwind(|| -> serde_json::Value {
@@ -310,12 +322,12 @@ impl IafSetup {
                             .collect()
                     }
                     ("update_verify", [file, size, sha]) => {
-                        let r = iaf_setup::update::verify(file.as_ref(), size.parse().unwrap_or(0), sha);
+                        let r = iaf_setup::update::verify(file.as_ref(), size.parse().unwrap_or(0), sha, &stop);
                         r.map_or_else(|e| format!("{e:#}"), |()| String::new()).into()
                     }
                     ("update_unpack", [archive, app, os]) => {
                         let stage = iaf_setup::update::stage_dir(app.as_ref());
-                        match iaf_setup::update::unpack(archive.as_ref(), &stage, app.as_ref(), os) {
+                        match iaf_setup::update::unpack(archive.as_ref(), &stage, app.as_ref(), os, &stop) {
                             Ok(d) => serde_json::json!({"dir": d.display().to_string(), "error": ""}),
                             Err(e) => serde_json::json!({"dir": "", "error": format!("{e:#}")}),
                         }
@@ -545,6 +557,14 @@ impl IafSetup {
         }
     }
 
+    /// Stops the update jobs running now ("update_verify", "update_unpack": the unpack's stage removed); jobs begun
+    /// later run.
+    #[func]
+    fn cancel_jobs(&mut self) {
+        self.job_stop.store(true, Ordering::Relaxed);
+        self.job_stop = Arc::new(AtomicBool::new(false));
+    }
+
     /// Stops the run: the running steps end at their next item.
     #[func]
     fn cancel(&self) {
@@ -554,7 +574,7 @@ impl IafSetup {
 
 impl IafSetup {
     fn running(&self) -> bool {
-        self.shared.lock().unwrap().rows.iter().any(|r| r.state == "running")
+        self.shared.lock().unwrap().running()
     }
 
     /// Runs `body` on its own thread with fresh rows for `steps`, the log also to `log_file` (after `header`).
@@ -579,6 +599,7 @@ impl IafSetup {
                     expected: None,
                 })
                 .collect(),
+            launched: true,
             ..Default::default()
         };
         let log_file = PathBuf::from(log_file.to_string());
@@ -607,5 +628,30 @@ impl IafSetup {
             };
             sh.done = true;
         });
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_run_is_running_until_its_thread_is_done() {
+        // Between two steps every row is waiting or done, yet the run's thread is at work (the statemachines audit,
+        // #5): a second start is refused until `done`.
+        let row = |state| Row {
+            id: "x",
+            title: "",
+            required: true,
+            state,
+            detail: String::new(),
+            fraction: 0.0,
+            expected: None,
+        };
+        let mut sh = Shared { rows: vec![row("done"), row("waiting")], launched: true, ..Default::default() };
+        assert!(sh.running());
+        sh.done = true;
+        assert!(!sh.running());
+        assert!(!Shared::default().running(), "nothing launched");
     }
 }

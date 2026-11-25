@@ -1067,7 +1067,11 @@ func _canopy(delta: float) -> void:
 	var up := 0.0 if host.start_engine_on or "canopy" in done else 1.0
 	if _spider and _canopy_set and host.flight != null:
 		# The lever up: the key's sequence or the held switch runs the canopy. Down over an open canopy (the Start engine
-		# command takes every step at once): the canopy comes down.
+		# command takes every step at once): the lever up again and the key's sequence runs (the canopy down, then the
+		# lever down), so the flight model's lever is never down over an open canopy.
+		if host.flight.start_on("canopy") and a.canopy_open > 0.0:
+			_set_switch("canopy", -1, "canopy")
+			_canopy_run = 1
 		var dir := -1.0
 		if not host.flight.start_on("canopy"):
 			dir = float(-_canopy_run) if _canopy_run != 0 else _canopy_drive

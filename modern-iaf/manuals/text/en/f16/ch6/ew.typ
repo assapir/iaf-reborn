@@ -61,7 +61,7 @@ The #term("CMDS") releases chaff and flares. Its panel is on the left console.
 #table(columns: (auto, 1fr), table.header[*Mode*][*What the dispenser does*],
   [OFF, STBY], [Nothing.],
   [MAN], [CMS forward runs the selected program.],
-  [SEMI], [On a launch warning the voice says "Counter": give consent with #key("CMS right: consent (SEMI) / enable AUTO") and the program runs. CMS forward runs it at any time.],
+  [SEMI], [On a launch warning the voice says "Counter": give consent with #key("CMS right: consent (SEMI) / enable AUTO") and the program runs. The request ends when no missile is left in flight at you. CMS forward runs it at any time.],
   [AUTO], [Once enabled with CMS right, a launch warning runs the program by itself and the voice says "Counter".],
   [BYP], [CMS forward releases one chaff and one flare.],
 )

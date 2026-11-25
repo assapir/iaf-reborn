@@ -163,6 +163,8 @@ func update() -> void:
 		if wn.new:
 			_e.cmds_threat(false, w.now)
 	w.rwr.maw_warning = not warnings.is_empty()
+	if w.rwr.missiles.is_empty() and warnings.is_empty():
+		_e.cmds_threat_gone()
 	_cmds_step()
 	link_update(o)
 	state = {

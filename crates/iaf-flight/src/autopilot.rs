@@ -2194,6 +2194,13 @@ impl Autopilot {
         if mode == self.mode {
             return;
         }
+        self.start_mode(ac, mode);
+    }
+
+    /// `setMode` with the mode unchanged and a new argument (another target or leader): `5c8a70` compares the mode,
+    /// the argument and the pose, so the loop starts again (first tick after 0.5 s). The host keeps the argument
+    /// (ai_flights.gd `Pilot.set_mode`).
+    pub fn start_mode(&mut self, ac: &mut impl Host, mode: u8) {
         let now = ac.ap_view().t;
         let old = self.mode;
         if self.mode == 0 && mode != 0 {
