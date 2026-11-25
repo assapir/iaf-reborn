@@ -1392,12 +1392,18 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   effect, gusts, stores moment (a tank's with its fuel), the stores' drag difference, the roll trim, the systems damage and the landing limits (with Easy landing and the autopilot's landing) through the same
   functions and calls (`near_ground`, `set_stores_moment`, `trim_roll`, `landing_limits`; [flight-model.md](flight-model.md) §9.12). A release changes the 6-DoF's mass, drag and roll at once (`test_sim_release.gd`).
   Since 2026-11-14 (finish list F2) the Barak and the Sufa roll at the F-16's sourced 240 deg/s with 62 deg/s
-  flaperons, the figure reborn's Real F-16 rows read ([flight-model.md](flight-model.md) §9.11, §9.13); open: their
-  0 → 90° time, 0.78–0.88 s against ~0.55 s.
+  flaperons, the figure reborn's Real F-16 rows read ([flight-model.md](flight-model.md) §9.11, §9.13). Their 0 → 90°
+  time, 0.80 / 0.85 s at 350 kt and 0.65 / 0.68 s at 480 kt, meets MIL-STD-1797's Level 1 for air combat (1.0 s) and
+  the F-16XL's measured 0.84–1.0 s at 10,000 ft (§9.13). Open, waiting on the user's word: the validation table's
+  ~0.55 s reference is inferred (240 deg/s reached at 688 deg/s² from the first instant) and lies below what
+  TP-1538's roll power reaches with the sourced 62 deg/s flaperons (about 0.81 s at 350 kt, inferred); replacing it
+  with the sourced 1.0 s is his decision.
 - **The 6-DoF's control laws (2026-11-15, finish list F3, F7, F15):** 9 g in about 2 s below the α limiter, the
   STORES CONFIG switch (CAT III α limit and roll), the MANUAL PITCH override with deep
   stall recovery by rocking, `stalled` / `spinning` from the motion ([flight-model.md](flight-model.md) §9.11, §9.13).
-  Open: the autopilot's touchdown sinks 4.5–10 m/s, over the 4 m/s landing limit (§9.6).
+  The autopilot's touchdowns on the 6-DoF sink under the gear's 10 ft/s (3.05 m/s) at every jet and weight
+  `landing_circuit_on_the_sixdof` and `player_autopilot_flies_the_sims_three_jets` fly (§9.6; 1.2–2.6 m/s in a run on
+  2026-11-26).
 - **[C2](plan.md#c2-the-6-dof) stage (b), engines, gear, the jets' data (2026-11-03):** TP-1538's engine model scaled to the F110-GE-100,
   F100-PW-229 and F135; a three-strut gear with brakes, steering and a braked stand; the four jets' mass, inertia and
   geometry; tests against the ratings, the spool times, a take-off roll and a stop ([flight-model.md](flight-model.md)

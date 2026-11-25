@@ -1222,6 +1222,8 @@ var _voice: AudioStreamPlayer
 ## The console (docs/mission-runtime.md §3.3): 40 slots, every push moves the lines back one slot;
 ## an empty line is pushed every 3 s of sim time (also on the first frame), so a line lasts ~39-42 s.
 const CONSOLE_SLOTS := 40
+## The map edge's console line (the default of [Localization] EndWorld, FUN_005ba940).
+const END_WORLD_TEXT := "You are about to enter a storm. Strong winds and turbulence are ahead of you. Turn back now!"
 var _console: Array[String] = []
 var _console_tick := -1.0
 ## DAT_0062f064 (Shift+D): the console takes messages; off skips every one (the 3 s ticker still runs).
@@ -4708,10 +4710,12 @@ func _process(delta: float) -> void:
 		if int(st.get("landings", 0)) > _landings:
 			_landings = int(st.landings)
 			_on_landed()
-		# The inner map-edge frame (terrain flag 0x300, FUN_005bb9f0): EndWorld.wav on the phrase channel.
+		# The inner map-edge frame (terrain flag 0x300, FUN_005bb9f0): EndWorld.wav on the phrase channel and the
+		# console line (FUN_0044a060 of [Localization] EndWorld, FUN_005ba940; IAF.ibx has no such section).
 		if int(st.get("end_worlds", 0)) > _end_worlds:
 			_end_worlds = int(st.end_worlds)
 			sounds.play_phrase_wav("EndWorld.wav")
+			_cockpit_note(END_WORLD_TEXT)
 		if not fm_stopped:
 			rig.position = st.position
 			rig.basis = Basis(st.right, st.up, -st.forward)

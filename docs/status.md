@@ -139,7 +139,7 @@ modern aircraft / weapons, the Pi 5 profile.
 Checked against the code on 2026-10-21 (each doc's own "not built" notes have the details).
 - **Terrain**: the original data has no elevation west of Suez (flat −557 m, kept). A modern DEM (digital elevation
   model) is not built.
-- **Flight**: the OutRunway force feedback; the map-edge console line (`FUN_0044a060`, flight-model.md §15.5a).
+- **Flight**: the OutRunway force feedback.
 - **F-35I cockpit**: the 2D panel pans as one flat picture, like the originals' (Extras "Cockpit": 3D gives the
   3D one, f35i.md §4.5); its side-stick and throttle are fixed in the render and in the 3D model; the portals show the original MFD pages (pixel font) in the F-35 colours; looking 15–90° aside shows
   the panel strip's edge. The 3D cockpit's controls of avionics

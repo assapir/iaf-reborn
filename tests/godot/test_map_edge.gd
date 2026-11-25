@@ -1,6 +1,6 @@
 # The map edge (FUN_005bb9f0, docs/flight-model.md §15.5a): flying east at 3000 m, the inner frame (terrain flag
-# 0x100 / 0x200) plays EndWorld.wav once; the outer band (0x40 / 0x80) starts the "Tornado", which throws the jet
-# back into the map and ends 8 s later.
+# 0x100 / 0x200) plays EndWorld.wav once and prints the storm warning on the console; the outer band (0x40 / 0x80)
+# starts the "Tornado", which throws the jet back into the map and ends 8 s later.
 extends "res://../tests/godot/base.gd"
 
 
@@ -26,6 +26,7 @@ func run() -> void:
 	await fly(tv, 1.0)
 	check(int(tv.flight.state().end_worlds) == 1, "EndWorld counted once in the frame")
 	check("endworld.wav" in tv.sounds.played, "EndWorld.wav played")
+	check("Turn back now!" in tv.cockpit.subtitles, "the console line (%s)" % str(tv.cockpit.subtitles))
 	var t0: float = tv._sim_time
 	while not tv.flight.state().tornado and tv._sim_time - t0 < 30.0:
 		await process_frame

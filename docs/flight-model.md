@@ -774,7 +774,7 @@ Where our port differs from the original. Everything else follows §15 (status i
   * `--at` / free flight: always airborne (debug starts).
   * Terrain type flags: `terrain.gd` `surface_at` (terraintype.dat) passes the player's flags (`set_ground_surface`,
     `Aircraft::ground_flags`). They drive the water and rough-ground crashes, the `S+0x2c8` surface states (§15.6.2),
-    EndWorld.wav and the "Tornado" (§15.5a). The AI jets get no flags (no surface rules, as before). The OutRunway
+    EndWorld.wav with its console line and the "Tornado" (§15.5a). The AI jets get no flags (no surface rules, as before). The OutRunway
     force-feedback effect is not ported. The slope for the landing check comes from `height_at` samples ±3 m.
   * Force feedback: none. Touchdown / belly sounds: docs/sound.md.
   * Crash: the jet explodes, the flight model freezes and the mission runtime runs the player's death (destroy event,
@@ -1732,8 +1732,11 @@ What follows from the code (inferred; not checked in the running game):
 
 Port: `Mode::Tornado` (`tornado_entry`, `tornado_hook`, `tornado_exit`; the 8 s event is a step in
 `Aircraft::step`). The state's `tornado` flag and `end_worlds` count (the host plays EndWorld.wav when it grows).
-The console line is not ported (its text, `DAT_008454d0`, is set by an initialiser not traced). Tests:
-`map_edge_end_world_and_tornado`, `tests/godot/test_map_edge.gd`.
+The console line's text, `DAT_008454d0`, is the CString the initialiser `FUN_005ba940` builds from
+`FUN_004d3b00("Localization", "EndWorld", default)`. The shipped IAF.ibx has no such section, so the default shows:
+"You are about to enter a storm. Strong winds and turbulence are ahead of you. Turn back now!". The host prints it
+with EndWorld.wav (`terrain_view.gd` `END_WORLD_TEXT`, through `_cockpit_note`: in Modern IAF it goes to the
+recorded flight only). Tests: `map_edge_end_world_and_tornado`, `tests/godot/test_map_edge.gd`.
 
 ### 15.6 Touchdown, landing and crash (`5bb7d0`, `5bb9f0`), and the start rules
 
@@ -2059,7 +2062,7 @@ tests in `aircraft.rs` / `envelope.rs`; headless Godot test `tests/godot/test_cr
 | 13 | Roll / attitude | done: (0) v1.1 roll about the saved body nose (test `roll_about_the_body_nose`); (a) no `kroll` clamp; (b) roll re-based on the attitude roll and `5aa330` at 1 Hz and 5 Hz; (c) no re-orthogonalisation, roll from the raw left wing in the heading/pitch frame, force matrix from the Euler angles. (d) skipped: channels use their own base time (§10). BP: `kroll ≥ 0` (no reversed roll below Veff ≈ 9.5 m/s) |
 | 14 | Lift-ramp rate factor | done: no floor (0 at 17.98 m/s, negative below); BP: floor 1 %. The per-type slope globals: not reproduced in either mode (our slopes are per aircraft, i.e. the better behaviour; it differs from the original when several types fly, §10) |
 | 15 | Terrain types, map edge | done: water / rough-ground rules, the `S+0x2c8` states (§15.6.2) and the "Tornado" push-back (§15.5a) are in the FM; the host passes the player's terraintype.dat flags (`terrain.gd surface_at`, formats/ptt.md "Terrain types"). Skipped: OutRunway FF |
-| 16 | Minor | done: the 1 Hz V is not capped (5 Hz caps at 1200 m/s); airborne thrust unclamped; v1.1 rolling drag ×0.8 (test `ground_roll_drag_factor`; the AI wheel brake ×4, `AI_BRAKE`). `S+0x420` is `Aircraft::vortex` (the wingtip vortex trails). EndWorld.wav (host, from `end_worlds`). Skipped: FF effects, SFX 0x28/0x29, the map-edge console line |
+| 16 | Minor | done: the 1 Hz V is not capped (5 Hz caps at 1200 m/s); airborne thrust unclamped; v1.1 rolling drag ×0.8 (test `ground_roll_drag_factor`; the AI wheel brake ×4, `AI_BRAKE`). `S+0x420` is `Aircraft::vortex` (the wingtip vortex trails). EndWorld.wav (host, from `end_worlds`). The map-edge console line (host, §15.5a). Skipped: FF effects, SFX 0x28/0x29 |
 | 17 | Landed flag | done (v1.1): `State::landings` / Godot `landings` +1 at each gear-down touchdown that passes the check, re-armed at lift-off (test `landed_flag_rearmed_at_lift_off`); the mission runtime's landed trigger is the host's |
 | — | Other BP items (§10): the nose-wheel ×4 lift quirk off (§14.5) and ground effect (test `better_physics_minor_fixes`); ground idle, brake pitch, unbalanced stores, wind, engine spool (tests in §10) | done |
 

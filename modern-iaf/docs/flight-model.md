@@ -1094,7 +1094,16 @@ reborn's roll channel (`channels::Angle`, the original's `FUN_005adc70`, the rul
 688 deg/s² and slowed (Barak 0.87 / 0.78 s, Sufa 0.88 / 0.80 s, Adir 0.92 s at 350 kt). The jet lags the command: the
 flaperons move at 62 deg/s (Stepaniak, AFIT 1995) and reach the aileron that rolls 240 deg/s at 350 kt only after
 about 0.3 s, so the onset is 420–470 deg/s² at 350 kt and 730–800 at 480 kt: within the measured 8–12 rad/s²
-(460–690 deg/s², docs/real-aircraft.md §8.2) at 350 kt, above it at 480 kt. Tested and dropped (2026-11-16): an
+(460–690 deg/s², docs/real-aircraft.md §8.2) at 350 kt, above it at 480 kt. The public measure of the roll is the
+time to 90°: MIL-STD-1797's Level 1 for this class of jet is 1.0 s up to about 550 KCAS, as NASA's F-16XL report plots it
+(second-hand: the standard itself was not read), and the F-16XL (a modified F-16A with a digital flight control
+system, in CAT III) took 0.84–1.0 s at 10,000 ft between 330 and 515 KCAS (read from its figure 10)[^tp-f16xl]. The
+Barak and the Sufa meet that level with margin. No public figure for the production F-16's time to 90° was found.
+The 0.55 s of the command is not reachable on TP-1538's roll power (inferred): at 350 kt and 10,000 ft the full 21.5°
+aileron rolls the Barak at about 660 deg/s² from rest against a roll damping of about 2.2 /s, so with the flaperons
+at 62 deg/s the fastest 90° is about 0.81 s. With the flaperons' rate limit removed (a one-off run of
+`f16s_roll_at_the_shared_figure` on 2026-11-26; the committed test keeps 62 deg/s) the Barak reaches 90° in 0.75 s, the
+Sufa in 0.80 s and the Adir in 0.87 s. Tested and dropped (2026-11-16): an
 aileron for the ramp's roll acceleration (Ix·ṗ / (q̄·S·b·Cl_δa)) added to the feedforward, 0.78 s at 350 kt (−0.02 s):
 the loop already drives the flaperons at their rate. The test asserts the steady rate and the peak within 5 % of
 240 deg/s and 90° within 0.82 / 0.87 / 0.95 s at 350 kt and 0.67 / 0.70 / 0.75 s at 480 kt (Barak / Sufa / Adir). Before F2 the Barak rolled at 218 deg/s and banked 90° in 0.80 s at 350 kt (the
@@ -1572,3 +1581,7 @@ detrimental permanent deformation", https://www.ecfr.gov/current/title-14/sectio
 [^w-g550]: Wikipedia, "Gulfstream G550", specifications (span 28.50 m; empty 48,300 lb, gross 54,500 lb, maximum
     take-off 91,000 lb, fuel 41,300 lb; 2 × BR710 C4-11, 15,385 lbf; long-range cruise Mach 0.80 and high-speed cruise
     0.85 at 41,000 ft, Mmo 0.885; service ceiling 51,000 ft; read 2026-11-25): https://en.wikipedia.org/wiki/Gulfstream_G550
+[^tp-f16xl]: S. J. Stachowiak, J. T. Bosworth, *Flight Test Results for the F-16XL With a Digital Flight Control
+    System*, NASA/TP-2004-212046, March 2004, p. 11–12, figure 10 "Time to roll to 90° bank angle as a function of
+    velocity" (its reference 7: MIL-STD-1797, *Flying Qualities of Piloted Vehicles*, 1987):
+    https://ntrs.nasa.gov/citations/20040040334
