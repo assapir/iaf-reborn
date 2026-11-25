@@ -5,7 +5,8 @@
 #     holds its altitude within 100 ft;
 #   - STRG SEL: the jet turns onto the steerpoint's bearing;
 #   - TRIM/AP DISC and the gear handle drop the PITCH switch to A/P OFF (shown there) and refuse it;
-#   - autopilot damage: A/P FAIL, the FLCS FAULT caution and the fault list's line; FLCS RESET clears it.
+#   - autopilot damage: A/P FAIL, the FLCS FAULT caution and the fault list's line; FLCS RESET clears it;
+#   - none of it puts a line in the band (front-end.md §8).
 #   IAF_DEFAULT_SETTINGS=1 godot --headless --audio-driver Dummy --path modern-iaf \
 #     -s ../modern-iaf/tests/test_f16_autopilot.gd --log-file <temp>
 extends "res://tests/test_mvp.gd"
@@ -123,6 +124,11 @@ func run() -> void:
 	tv._command([292, 0, 1])
 	await frames(3)
 	check(not bool(f.ap_state().fail) and int(f.ap_state().pitch) == 1, "FLCS RESET: cleared, ALT HOLD engages")
+	# No line in the band for any of it: the switches and the caution show it (the user, 25 Nov: "why the fuck there is
+	# still notes on a/p, I thought we removed them all?"; modern-iaf/docs/front-end.md §8).
+	var band: Array = tv.addon.ui._lines.map(func(e): return str(e[0].get_child(0).text))
+	for t in ["A/P OFF", "TRIM/AP DISC", "FLCS RESET", "PITCH ", "ROLL "]:
+		check(not band.any(func(l): return l.contains(t)), 'no "%s" line in the band (%s)' % [t, band])
 
 
 func _row(c3d: Node, node: String) -> Dictionary:

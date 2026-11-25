@@ -999,7 +999,7 @@ BRT).
 The user, 18 November 2026: "yes but I guess the real autopilot will need an investigation and impl like real thing?".
 The F-16's own autopilot is modelled from its flight manual ([research/f16-autopilot.md](research/f16-autopilot.md)):
 the PITCH switch (ALT HOLD / A/P OFF / ATT HOLD) engages it, the ROLL switch (HDG SEL / ATT HOLD / STRG SEL) picks the
-roll mode, and the PITCH switch springs back to A/P OFF, with a line saying why, when a condition holds it off. The
+roll mode, and the PITCH switch springs back to A/P OFF, with no line over the flight, when a condition holds it off. The
 model's node `roll-hold-switch` is PITCH and `pitch-hold-switch` is ROLL (FlightGear's names, the other way round; its
 properties are right). Both are rows with a `system` (`f16_controls.json`: `ap_pitch`, `ap_roll`), so a key moves the
 switch too. The EHSI's heading marker is HDG SEL's heading; the EHSI's steerpoint is STRG SEL's; AIR REFUEL at OPEN

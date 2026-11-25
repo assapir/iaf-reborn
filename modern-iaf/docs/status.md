@@ -347,7 +347,8 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   blast radius, past a wider pass it self-destructs, and a hit before it arms is a dud (§2.5).
 - **No band line for a change the cockpit shows (2026-11-19, the user's "Do it"):** the master arm switch, the
   helmet's picture, the DGFT / MSL OVRD switch, LASER ARM, DL, ADV MODE, the fuel switches, IFF IDENT, the bay doors,
-  the bombs' submode, fuze and delay, PRE / VIS, SPOT / SCAN and the autopilot switches put no line in the top strip;
+  the bombs' submode, fuze and delay, PRE / VIS, SPOT / SCAN and the autopilot (its switches, a refused PITCH
+  switch, TRIM/AP DISC and FLCS RESET, since 2026-11-25) put no line in the top strip;
   the radio lines and the lines with no cockpit sign stay ([front-end.md](front-end.md) §8 lists each). The original
   game keeps its console lines. Tests `test_sim_adir_pcd.gd`, `tests/godot/test_cockpit_notes.gd`.
 - **The Adir's DAS picture and FLC (2026-11-19, avionics-plan.md slice 7 parts D and E, P9, P12, G35):** the DAS

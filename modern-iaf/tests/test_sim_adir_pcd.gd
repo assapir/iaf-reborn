@@ -248,7 +248,7 @@ func _das() -> void:
 	check(w.master_arm, "master arm: the switch moves")
 	for t in ["Helmet video off", "Helmet night camera", "Helmet DAS video", "Master arm"]:
 		check(not t in band, 'no "%s" in the band' % t)
-	tv._on_subtitle("FLCS RESET")  # a kept line still reaches the band
+	tv._on_subtitle("CMDS STBY")  # a kept line still reaches the band
 	await frames(1)
-	check(tv.addon.ui._lines.back()[0].get_child(0).text == "FLCS RESET", "a kept line shows in the band")
+	check(tv.addon.ui._lines.back()[0].get_child(0).text == "CMDS STBY", "a kept line shows in the band")
 	tv._command([202, 0, 0])

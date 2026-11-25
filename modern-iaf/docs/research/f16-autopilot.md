@@ -98,7 +98,8 @@ The flight manual gives no autopilot lamp or HUD symbol: the PITCH switch's posi
 `F16Autopilot` (`crates/iaf-flight/src/sixdof/autopilot.rs`) runs on the 6-DoF each frame. Its commands, a g increment
 and a roll rate, are added to the stick's in the control laws (`fcs::Pilot` `ap_g`, `ap_p`), so the jet flies them
 through the same α and g limiters as the stick's. The 3D cockpit's two switches and the keys move it (front-end.md §9);
-the PITCH switch springs back to A/P OFF, and a line says why, when a condition holds it off.
+the PITCH switch springs back to A/P OFF when a condition holds it off; no line over the flight says why (the user,
+2026-11-25, [front-end.md](../front-end.md) §8).
 
 What the sim models: the three pitch positions and three roll modes of §2 and §4 with their limits; the paddle (the
 references taken anew where it is let go); TRIM/AP DISC (a key; the model has no MANUAL TRIM panel); every condition of

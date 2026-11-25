@@ -3172,11 +3172,11 @@ func _command(cmd: Array) -> bool:
 		294:
 			if _ap_switches():  # TRIM/AP DISC (record 236)
 				ap_disc = not ap_disc
-				_on_subtitle("TRIM/AP DISC " + ("DISC" if ap_disc else "NORM"))
+				_cockpit_note("TRIM/AP DISC " + ("DISC" if ap_disc else "NORM"))  # the PITCH switch drops
 		295:
 			if _ap_switches():  # FLCS RESET (record 237)
 				flight.flcs_reset()
-				_on_subtitle("FLCS RESET")
+				_cockpit_note("FLCS RESET")  # the FLCS FAULT caution goes out
 		20, 21:
 			# Zoom (events 0x14 / 0x15, held): the orbit distance ±60 m/s in the external orbit views; in the
 			# cockpit our art zoom, one step per press (the original's z only sets the culling angle).
@@ -4906,7 +4906,8 @@ func _ap_switches() -> bool:
 
 
 ## The autopilot's PITCH (`axis` 0) or ROLL (1) switch moved to `pos` (IafFlight.set_ap_switch); a PITCH switch that
-## will not stay engaged drops back to A/P OFF, and the subtitle says why.
+## will not stay engaged drops back to A/P OFF (the 1998 game's console line says why; Modern IAF shows only
+## the switch, Settings.cockpit_notes).
 func set_ap_switch(axis: int, pos: int) -> void:
 	if not _ap_switches():
 		return
@@ -4915,7 +4916,7 @@ func set_ap_switch(axis: int, pos: int) -> void:
 	var at := int(flight.ap_state().get(["pitch", "roll"][clampi(axis, 0, 1)], 0))
 	var names: Array = [["ATT HOLD", "A/P OFF", "ALT HOLD"], ["STRG SEL", "ATT HOLD", "HDG SEL"]][clampi(axis, 0, 1)]
 	if why != "":
-		_on_subtitle("A/P OFF: " + why)
+		_cockpit_note("A/P OFF: " + why)  # the switch springs back
 	else:
 		_cockpit_note(["PITCH ", "ROLL "][clampi(axis, 0, 1)] + names[at + 1])
 

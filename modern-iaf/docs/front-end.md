@@ -551,7 +551,10 @@ stay the original's (`terrain_view.gd _on_subtitle` hands each line to the fligh
 - **No line for a change the cockpit shows** (the user, 2026-11-19: "Do it"): a switch, key or display whose new
   state the cockpit already shows (a lamp, a switch's position, a display, the view itself) puts no line in the
   strip (`Settings.cockpit_notes()` false, `terrain_view.gd _cockpit_note`). The strip keeps the radio lines and the
-  lines for actions with no sign in the cockpit. The original game keeps all its console lines.
+  lines for actions with no sign in the cockpit. The original game keeps all its console lines. The autopilot's lines
+  went on 2026-11-25 (the user: "why the fuck there is still notes on a/p, I thought we removed them all?"): until then
+  a refused PITCH switch said "A/P OFF: …" (twice in the Scramble dusk pictures, with the sim's own autopilot
+  flying).
 
   | Line | The strip | Why |
   |---|---|---|
@@ -568,8 +571,8 @@ stay the original's (`terrain_view.gd _on_subtitle` hands each line to the fligh
   | "VIS" / "PRE" (233) | removed | the SMS's A-G page |
   | "Seeker SPOT" / "Seeker SCAN" (280 p1 1) | removed | the SMS's OSB 2 |
   | "PITCH …" / "ROLL …" (the autopilot switches, 292) | removed | the switches' positions |
-  | "A/P OFF: …" (a PITCH switch that will not stay engaged) | kept | the reason shows nowhere else |
-  | "TRIM/AP DISC …" (294), "FLCS RESET" (295) | kept | the 3D cockpit has no TRIM/AP DISC switch; FLCS RESET is a momentary button |
+  | "A/P OFF: …" (a PITCH switch that will not stay engaged) | removed (2026-11-25) | the switch springs back; the manual lists the conditions |
+  | "TRIM/AP DISC …" (294), "FLCS RESET" (295) | removed (2026-11-25) | the user's word: no autopilot lines; an engaged PITCH switch drops to A/P OFF |
   | "Manual TF fly-up …" (242 p1 1) | kept | the switch is not modelled |
   | "CMDS …" mode (262), "CMDS program …" (263) | kept | the knob shows OFF / STBY / MAN only; no program knob |
   | "Seeker uncaged" / "caged" (280 p1 0) | kept | the HUD's diamond grows only with a track |
