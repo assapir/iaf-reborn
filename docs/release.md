@@ -190,7 +190,9 @@ tools/release/smoke.sh /some/out/modern-iaf-nightly-linux-x86_64.tar.gz
 wizard. It fails on a `SCRIPT ERROR`, the game's crash page (a `crash:` line), a missing version line or a non-zero exit.
 With `tools/`, it then runs the bundled programs in the environment that `Settings._use_bundled_tools` sets (the script
 sets the same variables): `ogr2ogr` has the OSM driver, PROJ knows
-EPSG:2039, curl fetches over https and `gdalinfo` reads a GLO-30 tile's header through `/vsicurl/`.
+EPSG:2039, curl fetches `https://github.com/` and `gdalinfo` reads a GLO-30 tile's header through `/vsicurl/`.
+These checks test the bundled programs and their CA file, so curl asks GitHub, the host the runner has just cloned
+from. curl retries four times, 15 s apart; GDAL retries its HTTP errors up to four times.
 Arguments after the bundle go to the game, and then the game runs until it quits. An exported game runs no test script (`-s` is the editor's), so the
 checks of a bundle go through the game's own arguments:
 

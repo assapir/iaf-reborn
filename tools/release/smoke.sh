@@ -54,9 +54,12 @@ if [[ -d $tools/bin ]]; then
 	out=$("$t/gdalsrsinfo" -o proj4 EPSG:2039)
 	grep -q tmerc <<<"$out" || { echo "smoke: PROJ has no EPSG:2039" >&2; exit 1; }
 	for p in gdalwarp gdal_translate gdalbuildvrt gdalinfo; do "$t/$p" --version >/dev/null; done
-	"$t/curl" -fsSI https://download.geofabrik.de/ >/dev/null || { echo "smoke: curl https failed" >&2; exit 1; }
+	# The https checks test the bundled curl, GDAL and CA file, not a data site's uptime: curl asks github.com (the
+	# runner has just cloned from it); curl retries four times, GDAL its HTTP errors up to four times.
+	"$t/curl" -fsSI --retry 4 --retry-all-errors --retry-delay 15 https://github.com/ >/dev/null ||
+		{ echo "smoke: curl https failed" >&2; exit 1; }
 	# MSYS2_ARG_CONV_EXCL: Git Bash on Windows would rewrite the /vsicurl/ path as a folder of its own.
-	out=$(MSYS2_ARG_CONV_EXCL=/vsicurl "$t/gdalinfo" /vsicurl/https://copernicus-dem-30m.s3.amazonaws.com/Copernicus_DSM_COG_10_N31_00_E034_00_DEM/Copernicus_DSM_COG_10_N31_00_E034_00_DEM.tif)
+	out=$(MSYS2_ARG_CONV_EXCL=/vsicurl GDAL_HTTP_MAX_RETRY=4 GDAL_HTTP_RETRY_DELAY=15 "$t/gdalinfo" /vsicurl/https://copernicus-dem-30m.s3.amazonaws.com/Copernicus_DSM_COG_10_N31_00_E034_00_DEM/Copernicus_DSM_COG_10_N31_00_E034_00_DEM.tif)
 	grep -q "Size is 3600" <<<"$out" || { echo "smoke: GDAL's /vsicurl failed" >&2; exit 1; }
 	echo "smoke: bundled GDAL and curl OK"
 fi
