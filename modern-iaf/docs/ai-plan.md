@@ -219,7 +219,9 @@ levels (the user, 19 Nov: "wingman are always the same, it only effect enemeis, 
 
 ## 10. Not started (outside his words)
 
-Listed, not built: tankers and refuelling; AI departures and arrivals at the bases beside the player's flight (the
+Listed, not built: AI departures and arrivals at the bases beside the player's flight (the
 tower's traffic); moving ground forces, convoys and launchers; ships manoeuvring; terrain masking and low-level
 routes for the AI.
+Air refuelling was picked by the user on 25 November 2026 ("Air refuelling"); the design (the tanker, its boom
+operator, the AI wingmen refuelling in turn) is in [research/air-refuelling.md](research/air-refuelling.md) §8.
 The instructor voice is its own item (decided 12 November; C5 uses it).
