@@ -183,7 +183,7 @@ called TFLIR on the cockpit displays"[^baseline]. The threat format is TWD. MENU
 | 4 damage | ICAWS (with PHM) | the damage flags (damage.md §5.2) → warning and caution lines |
 | 9 ADI | EFI | attitude, heading, ILS deviation |
 | 8 MENU | the MENU grid of the 21 formats | page selection |
-| 10 HARM | not offered: the F-35I carries no HARM | — |
+| 10 HARM | not offered: the F-35I carries no HARM ([anti-radiation research](../modern-iaf/docs/research/anti-radiation.md)) | — |
 | 0 NAV | not offered: the route is on the TSD, the steerpoint in the CNI / NAV pop-up (inferred) | — |
 | — (new) | FUEL, ENG, FCS, AP, CNI in the function bar and the sub-portals | fuel, RPM / throttle / afterburner, gear / flaps, autopilot mode, heading / speed |
 
