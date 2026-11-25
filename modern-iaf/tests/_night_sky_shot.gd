@@ -2,11 +2,15 @@
 # SHOT_MISSION (default the free flight) at SHOT_HOUR (h), posed by terrain_view's user args (`-- --at X Y ALT HDG
 # PITCH`): the cockpit and the chase view (SHOT_ORBIT "yaw,pitch,dist", default 150,8,40), saved to
 # SHOT_OUT/<SHOT_NAME>_{cockpit,external}.jpg, and the mean frame time of each view over 4 s (vsync off, "BENCH").
-# SHOT_SET=key=value,... sets settings first (all settings on: antialiasing=taa,upscaling=quality,clouds=volumetric).
+# SHOT_DATE=YYYY-MM-DD flies on that date (the moon's phase and place, the sun's day; default today's moon on the
+# equinox's sun, as a mission). SHOT_SET=key=value,... sets settings first (all settings on:
+# antialiasing=taa,upscaling=quality,clouds=volumetric).
 #   flock -o ~/.cache/iaf-gpu-bench.lock tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 SHOT_OUT=<dir> SHOT_NAME=h22 \
 #     SHOT_HOUR=22 -- --log-file <t> --resolution 1600x900 --path modern-iaf -s ../modern-iaf/tests/_night_sky_shot.gd \
 #     -- --at 670000 3440000 1500 0 0
 extends "res://../tests/godot/base.gd"
+
+const TimeOfDay := preload("res://shared/terrain/time_of_day.gd")
 
 
 func run() -> void:
@@ -19,13 +23,18 @@ func run() -> void:
 		settings().set(p[0], (p[1] == "true") if cur is bool else p[1])
 	var mission := OS.get_environment("SHOT_MISSION")
 	var tv: Node = await start_mission(int(mission) if mission != "" else -1)
+	var date := _env("SHOT_DATE", "").split("-")
+	if date.size() == 3:
+		TimeOfDay.year = int(date[0])
+		TimeOfDay.day = IafFreeCombat.day_of_year(TimeOfDay.year, int(date[1]), int(date[2]))
+		TimeOfDay.utc_offset = IafFreeCombat.utc_offset(TimeOfDay.year, int(date[1]), int(date[2]))
 	var hour := float(_env("SHOT_HOUR", "11"))
 	if tv.runtime != null:
 		tv.runtime.misc["0x460"] = hour * 3600.0 - tv.runtime.now
 	else:
 		tv._sim_time = hour * 3600.0 - 39600.0  # a free flight's clock (_effects_shot.gd)
 	tv._tod_t = -INF
-	tv.cockpit.night = preload("res://shared/terrain/time_of_day.gd").cockpit_night(tv.time_of_day())
+	tv.cockpit.night = TimeOfDay.cockpit_night(tv.time_of_day())
 	for c in tv.get_children():
 		if c is CanvasLayer:
 			c.visible = false

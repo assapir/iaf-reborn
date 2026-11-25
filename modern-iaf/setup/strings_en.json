@@ -60,6 +60,7 @@
 	"for_trucks": "the enemy trucks: convoy targets and the S-300 network's command post",
 	"for_fm": "the flight model",
 	"for_font": "the font",
+	"for_stars": "the night sky's stars",
 	"for_hud_font": "the HUD and display font",
 	"for_engine": "the game engine",
 	"for_bridge": "the link between the engine and the game's Rust code",

@@ -212,6 +212,11 @@ Mostafa's `futural.jhf`[^hershey] (`tools/iaf-2026/fonts/`). Its terms ask for t
 originally created by Dr. A. V. Hershey while working at the U. S. National Bureau of Standards" and "The format of
 the Font data in this distribution was originally created by James Hurt, Cognition, Inc."
 
+The sim's night sky (modern-iaf/docs/terrain.md §17.1) draws the 5,080 stars to magnitude 6.0 of the
+Yale Bright Star Catalogue, 5th revised edition (Hoffleit and Warren, 1991; public domain)[^bsc5], at their real places
+for the flight's date, time and place. `tools/stars/bsc5_stars.py` keeps their places, magnitudes and colours in
+`shared/terrain/stars_bsc5.json`. The wizard's Attributions page and the Credits page name it.
+
 ## Modern IAF's tools
 
 `shared/credits.json` `made_with` names the tools the game and its manuals are made with; the sim's setup
@@ -278,3 +283,4 @@ are Heebo (§ Modern IAF's font) set as paths; the roundel is a ring and a six-p
 [^hershey]: hershey-fonts, Kamal Mostafa (`hershey-fonts/futural.jhf` and the Hershey Fonts licence in `COPYING`): https://github.com/kamalmostafa/hershey-fonts
 [^heebo]: Google Fonts, Heebo (`ofl/heebo/Heebo[wght].ttf` and `OFL.txt`): https://github.com/google/fonts/tree/main/ofl/heebo
 [^cop-dem]: "Licence for the use of the Copernicus WorldDEM-30", Article 6: https://documentation.dataspace.copernicus.eu/APIs/SentinelHub/Data/DEM/resources/license/License-COPDEM-30.pdf
+[^bsc5]: The Bright Star Catalogue, 5th revised edition, ASCII file `ybsc5.gz` (the CDS catalogue V/50 layout), Harvard-Smithsonian Center for Astrophysics: http://tdc-www.harvard.edu/catalogs/bsc5.html

@@ -28,6 +28,8 @@ const NIGHT := Color(0.045, 0.055, 0.095)
 const NIGHT_MOON := 0.3
 const NIGHT_TOP := 0.4
 const NIGHT_BOTTOM := 0.15
+## Modern IAF: the night's light on the clouds against the full moon's (terrain_view.gd _real_night); 1 = as NIGHT.
+static var night_level := 1.0
 ## The towns' light on the clouds from below at night (light pollution; as cloud_layer.gd GLOW_GAIN).
 const GLOW_GAIN := 0.8
 
@@ -148,9 +150,9 @@ func update(env: Environment, sun: DirectionalLight3D, wind: Vector3, delta: flo
 	var bottom := env.ambient_light_color.srgb_to_linear() * e if atmo else top * 0.5
 	var sun_c := sun.light_color.srgb_to_linear() * sun.light_energy
 	if night:  # dim and blue-grey as the original's night layer, whatever the moon's light on the ground
-		sun_c = NIGHT * NIGHT_MOON
-		top = NIGHT * NIGHT_TOP
-		bottom = NIGHT * NIGHT_BOTTOM
+		sun_c = NIGHT * NIGHT_MOON * night_level
+		top = NIGHT * NIGHT_TOP * night_level
+		bottom = NIGHT * NIGHT_BOTTOM * night_level
 	var sd := sun.global_basis.z
 	# The Atmospheric sky's own values (null until RenderOptions first sets them).
 	var overcast = env.sky.sky_material.get_shader_parameter("overcast") if atmo else null

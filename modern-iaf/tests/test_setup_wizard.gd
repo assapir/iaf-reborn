@@ -92,7 +92,8 @@ func run() -> void:
 			"Heebo",
 			"ikbenraar",
 			"Godot Engine",
-			"Typst"
+			"Typst",
+			"Yale Bright Star Catalogue"
 		]:
 			check(name in credits, "%s: the attributions name %s" % [lang, name])
 		var esc := InputEventKey.new()

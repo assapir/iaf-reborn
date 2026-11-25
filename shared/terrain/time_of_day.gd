@@ -229,3 +229,138 @@ static func _real_sun(t: float) -> Dictionary:
 		"shadows": p.y > 5.0,
 		"sun_az": p.x
 	}
+
+
+## Modern IAF's night light (modern-iaf/docs/terrain.md §17.1): the horizontal illuminance (lux) on clear nights:
+## the full moon at the zenith, a moonless sky (stars and airglow), the dark limit of civil twilight (the sun 6°
+## down) and a clear sunset[^lux].
+const FULL_MOON_LUX := 0.3
+const STAR_LUX := 0.002
+const CIVIL_LUX := 3.4
+const SUNSET_LUX := 400.0
+## Direct sunlight with the sun at the zenith (the top of the source's 32,000–100,000 lux).
+const DAY_LUX := 100000.0
+## The twilight's sky light ends with astronomical twilight (the sun 18° down); between 6° and 18° down it falls on a
+## log scale from CIVIL_LUX to TWILIGHT_END_LUX, about a third of the starlight (inferred).
+const TWILIGHT_END_LUX := 0.0007
+
+
+## The days since J2000.0 (1 January 2000, 12:00 UT) `t` s after local midnight on the flight's date: `year` / `day`
+## on utc_offset's clock, today's date for a mission without one (`year` 0).
+static func j2000_days(t: float) -> float:
+	var d := {"year": year, "month": 1, "day": 1}
+	var days := float(day - 1)
+	if year <= 0:
+		var now := Time.get_date_dict_from_system()
+		d = {"year": now.year, "month": now.month, "day": now.day}
+		days = 0.0
+	var unix := float(Time.get_unix_time_from_datetime_dict(d)) + days * 86400.0 + t - utc_offset * 3600.0
+	return (unix - 946728000.0) / 86400.0
+
+
+## The unit vector (ENU) toward ecliptic longitude `lam` and latitude `bet` (°) at LAT / LON, the obliquity `eps` and
+## the local sidereal time `lst` (°).
+static func _horizon(lam: float, bet: float, eps: float, lst: float) -> Vector3:
+	var l := deg_to_rad(lam)
+	var b := deg_to_rad(bet)
+	var e := deg_to_rad(eps)
+	var x := cos(b) * cos(l)
+	var y := cos(b) * sin(l) * cos(e) - sin(b) * sin(e)
+	var z := cos(b) * sin(l) * sin(e) + sin(b) * cos(e)
+	return equatorial(atan2(y, x), asin(z), lst)
+
+
+## The unit vector (ENU) toward right ascension `ra` and declination `dec` (rad) at LAT for the local sidereal time
+## `lst` (°).
+static func equatorial(ra: float, dec: float, lst: float) -> Vector3:
+	var h := deg_to_rad(lst) - ra
+	var p := deg_to_rad(LAT)
+	return Vector3(
+		-cos(dec) * sin(h),
+		sin(dec) * cos(p) - cos(dec) * cos(h) * sin(p),
+		sin(dec) * sin(p) + cos(dec) * cos(h) * cos(p)
+	)
+
+
+## The local sidereal time (°) at LON, `n` days since J2000.0 (the USNO's GMST formula[^usno-gmst]).
+static func sidereal(n: float) -> float:
+	return fposmod(280.46061837 + 360.98564736629 * n + LON, 360.0)
+
+
+## Modern IAF: the moon at LAT / LON, `t` s after local midnight on the flight's date (j2000_days), by the
+## Astronomical Almanac's low-precision formulas (about 0.3°)[^aa-moon]: {dir (ENU, the unit vector toward it from
+## the ground: the parallax counted), sun (ENU toward the sun, the Almanac's low-precision sun), phase (the phase
+## angle, rad: 0 full, PI new), lit (the lit share of its disc, 0..1)}.
+static func real_moon_at(t: float) -> Dictionary:
+	var n := j2000_days(t)
+	var c := n / 36525.0
+	var s := func(a: float, b: float) -> float: return sin(deg_to_rad(a + b * c))
+	var k := func(a: float, b: float) -> float: return cos(deg_to_rad(a + b * c))
+	var lam: float = (
+		218.32
+		+ 481267.881 * c
+		+ 6.29 * s.call(135.0, 477198.87)
+		- 1.27 * s.call(259.3, -413335.36)
+		+ 0.66 * s.call(235.7, 890534.22)
+		+ 0.21 * s.call(269.9, 954397.74)
+		- 0.19 * s.call(357.5, 35999.05)
+		- 0.11 * s.call(186.5, 966404.03)
+	)
+	var bet: float = (
+		5.13 * s.call(93.3, 483202.02)
+		+ 0.28 * s.call(228.2, 960400.89)
+		- 0.28 * s.call(318.3, 6003.15)
+		- 0.17 * s.call(217.6, -407332.21)
+	)
+	var par: float = (
+		0.9508
+		+ 0.0518 * k.call(135.0, 477198.87)
+		+ 0.0095 * k.call(259.3, -413335.36)
+		+ 0.0078 * k.call(235.7, 890534.22)
+		+ 0.0028 * k.call(269.9, 954397.74)
+	)
+	var g := deg_to_rad(357.528 + 0.9856003 * n)
+	var sun_lam := 280.460 + 0.9856474 * n + 1.915 * sin(g) + 0.020 * sin(2.0 * g)
+	var eps := 23.439 - 0.0000004 * n
+	var lst := sidereal(n)
+	var geo := _horizon(lam, bet, eps, lst)
+	var sun := _horizon(sun_lam, 0.0, eps, lst)
+	# From the ground, not the Earth's centre: the moon is 1 / sin(parallax) Earth radii away.
+	var dir := (geo / sin(deg_to_rad(par)) - Vector3(0, 0, 1)).normalized()
+	var phase := PI - acos(clampf(geo.dot(sun), -1.0, 1.0))
+	return {"dir": dir, "sun": sun, "phase": phase, "lit": (1.0 + cos(phase)) / 2.0}
+
+
+## The moon's illuminance (lux) on level ground: FULL_MOON_LUX at the zenith, fainter by its phase (its magnitude
+## grows 0.026 |i| + 4·10⁻⁹ i⁴, i the phase angle in degrees) and by the air's extinction (0.172 magnitudes an air
+## mass, the air mass 1 / √(1 − 0.96 sin² z)), both Krisciunas and Schaefer's[^ks91]; none below the horizon.
+static func moon_lux(m: Dictionary) -> float:
+	var up: float = m.dir.z
+	if up <= 0.0:
+		return 0.0
+	var i := rad_to_deg(float(m.phase))
+	var x := 1.0 / sqrt(1.0 - 0.96 * (1.0 - up * up))
+	return FULL_MOON_LUX * up * pow(10.0, -0.4 * (0.026 * i + 4e-9 * pow(i, 4.0) + 0.172 * (x - 1.0)))
+
+
+## The sun's and the twilight's light (lux) on level ground with the sun `el` degrees high: by day SUNSET_LUX +
+## DAY_LUX · sin(el); SUNSET_LUX at the horizon, CIVIL_LUX 6° down, TWILIGHT_END_LUX 18° down (log-linear between
+## them), none below.
+static func sun_lux(el: float) -> float:
+	if el >= 0.0:
+		return SUNSET_LUX + DAY_LUX * sin(deg_to_rad(el))
+	if el >= -6.0:
+		return SUNSET_LUX * pow(CIVIL_LUX / SUNSET_LUX, -el / 6.0)
+	if el >= -18.0:
+		return CIVIL_LUX * pow(TWILIGHT_END_LUX / CIVIL_LUX, (-el - 6.0) / 12.0)
+	return 0.0
+
+
+## Modern IAF: the scene's light `t` s after local midnight, the one value the scene's light and the night-vision
+## goggles' gain and noise follow: {lux (all of it: the sun or the twilight, the moon and the stars), moon_lux, moon
+## (real_moon_at), sun_el (°)}.
+static func scene_light(t: float) -> Dictionary:
+	var m := real_moon_at(t)
+	var el := real_sun_at(t).y
+	var ml := moon_lux(m)
+	return {"lux": sun_lux(el) + ml + STAR_LUX, "moon_lux": ml, "moon": m, "sun_el": el}

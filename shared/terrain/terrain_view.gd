@@ -717,6 +717,11 @@ func _update_time_of_day(cam: Camera3D) -> void:
 	if absf(t - _tod_t) >= 1.0:
 		_tod_t = t
 		_tod_sun = TimeOfDay.sun(t)
+		if Settings.real_sun():
+			_light = TimeOfDay.scene_light(t)
+			scene_lux = _light.lux
+			if _goggles != null and _helmet_mode == 1:  # the goggles' or the night camera's tubes, not the DAS's infrared
+				_goggles.get_child(0).material.set_shader_parameter("lux", scene_lux)
 		cockpit.daylight = Hud.daylight(_tod_sun)
 		_tod_colors = TimeOfDay.colors(fposmod(t, 86400.0) / 60.0)
 		var sun := $Sun as DirectionalLight3D
@@ -783,7 +788,7 @@ func _night_detailed(sun: DirectionalLight3D, env: Environment, night: bool) -> 
 	NightLights.set_gain(night, env.fog_density, rows)
 	Scenery.night = night  # the scenery's lit windows
 	if _night_sky == null:
-		_night_sky = NightLights.sky()
+		_night_sky = NightLights.sky(Settings.real_sun())
 		add_child(_night_sky)
 	_night_sky.visible = night
 	if night and _airbase_lights == null:
@@ -801,10 +806,44 @@ func _night_detailed(sun: DirectionalLight3D, env: Environment, night: bool) -> 
 		_city_lights.set_view(env.fog_density, rows)
 	for m: MeshInstance3D in _night_sky.get_children():
 		m.material_override.set_shader_parameter("vp_h", rows)
-	if night:
+	if night and Settings.real_sun():
+		_real_night(sun, env)
+	elif night:
 		sun.basis = Basis.looking_at(-NightLights.moon_dir(), Vector3.UP)
 		sun.light_color = NightLights.MOON_LIGHT
 		env.ambient_light_energy = NightLights.MOON_AMBIENT / 0.6
+
+
+## Modern IAF's night (modern-iaf/docs/terrain.md §17.1) by its light, TimeOfDay.scene_light (lux), as the eye adapted
+## to the dark sees it: a level (lux / FULL_MOON_LUX)^NIGHT_CURVE (1 under a full moon at the zenith; inferred). The
+## ambient NIGHT_AMBIENT × the level (at most the sunset's, the original's 0.2), the moon's own light from its place
+## by its own level, with shadows once it lights the ground as a gibbous moon high up does (MOON_SHADOW_LUX), the moon
+## at its place and phase, the stars at theirs, fading in through the nautical twilight and under a bright moon; the
+## Volumetric clouds' night light by the level (dark on a moonless night).
+const NIGHT_CURVE := 0.4
+const NIGHT_AMBIENT := 0.12
+const MOON_SHADOW_LUX := 0.03
+## Modern IAF: the scene's light (TimeOfDay.scene_light, refreshed once a sim second), the one value the night's
+## look and the night-vision goggles' picture follow (lux; -1: the 1998 game, none).
+var scene_lux := -1.0
+var _light := {}
+
+
+func _real_night(sun: DirectionalLight3D, env: Environment) -> void:
+	var nl := _light
+	var m: Dictionary = nl.moon
+	var g := func(v: Vector3) -> Vector3: return Vector3(v.x, v.z, -v.y)  # ENU to Godot
+	var md: Vector3 = g.call(m.dir)
+	var level := pow(nl.lux / TimeOfDay.FULL_MOON_LUX, NIGHT_CURVE)
+	env.ambient_light_energy = minf(NIGHT_AMBIENT * level, 0.2 / 0.6)
+	sun.basis = Basis.looking_at(-md, Vector3.UP if absf(md.y) < 0.99 else Vector3.FORWARD)
+	sun.light_color = NightLights.MOON_LIGHT * pow(nl.moon_lux / TimeOfDay.FULL_MOON_LUX, NIGHT_CURVE)
+	sun.shadow_enabled = Settings.shadows and nl.moon_lux > MOON_SHADOW_LUX
+	var stars: float = smoothstep(-4.0, -12.0, float(nl.sun_el)) / (1.0 + float(nl.moon_lux) / 0.1)
+	NightLights.sky_at(
+		_night_sky, TimeOfDay.sidereal(TimeOfDay.j2000_days(time_of_day())), md, g.call(m.sun), float(m.phase), stars
+	)
+	VolumetricClouds.night_level = clampf(level, 0.05, 1.5)
 
 
 var _night_sky: Node3D
@@ -4387,6 +4426,7 @@ const DAS_VIDEO := {
 	"vignette": 0.0,
 	"glare": 0.0,
 	"curve": 1.0,
+	"lux": -1.0,
 }
 ## The tubes' own look (the shader's defaults) for the night camera after the DAS video.
 const NVC_LOOK := {"tint": Vector3(0.42, 1.0, 0.36), "protect": 0.9, "vignette": 0.7, "curve": 0.5}

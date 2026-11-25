@@ -761,9 +761,9 @@ game keeps its colour table (docs/rendering.md §4). `Settings.real_sun()` switc
   rises about 05:45, stands 58° up in the south at about 11:48 and sets about 17:48. A Scramble flies on its own date
   (this year's, set or drawn: front-end.md §2.1) with Israel's clock of that day, summer time included: on 21 December
   the sun rises about 06:40 and sets about 16:35 (UTC+2), on 21 June about 05:40 and 19:45 (UTC+3), so 0630 is dark in
-  December and day in June. The date moves only the sun (its path, the day's length, so when night falls); the moon
-  stands at one place (140°, 38° up) with one light every night, and the air (ISA, 15 °C at sea level), the haze, the
-  clouds and the rain (Preferences) are the same in every season.
+  December and day in June. The date moves the sun (its path, the day's length, so when night falls) and the moon
+  (§17.1); the air (ISA, 15 °C at sea level), the haze, the clouds and the rain (Preferences) are the same in every
+  season.
 - **Day** (the sun above the horizon): the Atmospheric sky, as before. The sun's light follows its height: white
   above 30°, warmer below (255, 228, 195 at 15°; 255, 185, 135 at 5°; 255, 135, 75 on the horizon; inferred from
   sunset photographs). Shadows above 5°.
@@ -795,6 +795,63 @@ draw: night costs what the night lights already cost.
 
 Check: `modern-iaf/tests/test_real_sun.gd` (sunrise and sunset, the sun's place at noon, night and day, the colours).
 
+### 17.1 The moon, the stars and the night's light (2026-11-25)
+
+The night is as dark as the moon makes it: a moonless night is near black with only the lights and the stars, a
+full moon high up gives a dim grey light with shadows. The user's words, 25 November 2026: "night should be much
+darker [...] real dark based on the moon phase based on date". The code is in `shared/terrain/time_of_day.gd`
+(`real_moon_at`, `scene_light`), `shared/terrain/night_lights.gd` (`sky_at`) and `shared/terrain/terrain_view.gd`
+(`_real_night`).
+
+- **The date**: a Scramble's own date; a mission without a date (training and the others) has today's moon, on the
+  sun of the equinox day (§17).
+- **The moon**: its place by the Astronomical Almanac's low-precision formulas (about 0.3°)[^aa-moon], seen from the
+  ground (its parallax, up to 1°, counted), at the flight's date, hour and place; the sun's place for its lit side by
+  the Almanac's low-precision sun; the sidereal time by the USNO's formula[^usno-gmst]. It is drawn at its place,
+  lit on the side toward the sun by its phase (a crescent, a half, a full disc; a new moon shows nothing).
+- **The light** (lux on level ground, clear sky)[^lux]: the moon's 0.3 lux at the zenith when full, fainter by its phase
+  (a half moon about a tenth of the full) and lower in the sky by the air it shines through (Krisciunas and
+  Schaefer's phase and extinction terms[^ks91]); the stars and the airglow 0.002 lux; the twilight by the sun's
+  height: 400 lux at sunset, 3.4 lux at the end of civil twilight (6° down), falling to 0.0007 lux at the end of
+  astronomical twilight (18° down; ours, inferred) and none after; the sun by day 400 + 100,000 · sin(height). This
+  one value (`scene_lux`) drives the night's look and the night-vision goggles' noise.
+- **What the eye sees**: the scene's light level is (lux / 0.3)^0.4, 1 under a full moon at the zenith (inferred: an
+  eye adapted to the dark sees a wide range of light as a narrower one). The ambient light is 0.12 × the level (at
+  most the sunset's), the moon's own light comes from its place by its own level, and it casts shadows above
+  0.03 lux (a gibbous moon high up). So the ambient light under a full moon at the zenith is about a quarter of the
+  old fixed night's, and on a moonless night about 3 %. The Volumetric clouds' night light follows the same level: grey under a full moon,
+  near black on a moonless night, so a clear night's thin cloud no longer veils the stars.
+- **The stars**: the 5,080 stars of the Yale Bright Star Catalogue to magnitude 6.0[^bsc5] (`shared/terrain/
+  stars_bsc5.json`, made by `tools/stars/bsc5_stars.py`; docs/credits.md), at their real places turned with the
+  sidereal time, their brightness and size by magnitude (full to magnitude 2, then 10^(−0.2 a magnitude); inferred) and their colour by the B−V
+  index. They come out through nautical twilight (the sun 4° to 12° down) and fade under a bright moon. Clouds hide
+  them by the light the clouds let through.
+- **What stays**: the towns', airbases' and jets' lights; the cockpit's own lighting, the HUD and the displays (their
+  own light, not the scene's). The 1998 game keeps its fixed moon and random stars.
+- **The goggles** (docs/rendering.md §8): their gain still aims the tubes' picture at one level, so it stays bright
+  while the scene is dark; their grain follows `scene_lux`: little under a full moon, heavy on a moonless night.
+
+The pictures (the chase view, 1600 × 900, `modern-iaf/tests/_night_sky_shot.gd` with `SHOT_DATE`; before: main at
+e7357c83b, the fixed moon). After: a moonless night over the Negev (12 August 2026, 23:00), the full moon high over
+Tel Aviv (24 November, 00:00; the moon behind the camera), a crescent after sunset over the coast (12 November,
+17:15; its glint on the sea), a half moon over Jerusalem (17 November, 19:00).
+
+| Night | Before | After |
+|---|---|---|
+| Moonless | ![before](pictures/night/moonless_before.jpg) | ![after](pictures/night/moonless_after.jpg) |
+| Full moon | ![before](pictures/night/full_before.jpg) | ![after](pictures/night/full_after.jpg) |
+| Dusk | ![before](pictures/night/dusk_before.jpg) | ![after](pictures/night/dusk_after.jpg) |
+| Half moon | | ![after](pictures/night/half_after.jpg) |
+
+Frame time (the root viewport's GPU time, the same views, this Iris Xe laptop, other jobs' renders between them): the
+moonless Negev 17.6 → 16.6 ms outside, 18.7 → 17.2 ms in the cockpit; the full moon over Tel Aviv 32.8 → 35.6 ms
+outside and 30.1 → 32.9 ms in the cockpit: the moon's shadows (with Shadows on, the day's own cost; the night had
+none before). The moon, the stars and the light are a few
+GDScript lines once a sim second and one point sprite: no measurable cost.
+
+Check: `modern-iaf/tests/test_night_moon.gd` (a full moon at the 3 March 2026 lunar eclipse, a new moon at the
+12 August 2026 solar eclipse, the full moon of 24 November high in the south at midnight, the light values).
+
 [^faa]: FAA, Advisory Circular 150/5300-13B "Airport Design" (2022), runway longitudinal grades: vertical curves of
     at least 1,000 ft for each 1 % of grade change (approach categories C and D), transverse grade 1.0–1.5 %,
     https://www.faa.gov/airports/resources/advisory_circulars/index.cfm/go/document.current/documentNumber/150_5300-13
@@ -814,3 +871,17 @@ Check: `modern-iaf/tests/test_real_sun.gd` (sunrise and sunset, the sun's place 
 [^ramon-photo]: Godot13, "Israel-2013-Aerial 00-Negev-Makhtesh Ramon", 2013-03-28, CC BY-SA 4.0, Wikimedia Commons,
     https://commons.wikimedia.org/wiki/File:Israel-2013-Aerial_00-Negev-Makhtesh_Ramon.jpg
 [^noaa]: NOAA Global Monitoring Laboratory, "General Solar Position Calculations", https://gml.noaa.gov/grad/solcalc/solareqns.PDF
+[^aa-moon]: The Astronomical Almanac (US Naval Observatory and HM Nautical Almanac Office), its low-precision
+    formulas for the Moon (section D: longitude, latitude and horizontal parallax, about 0.3°) and for the Sun
+    (section C). Written from the printed formulas (no web copy was reachable, 2026-11-25); the test checks them
+    against the 2026 eclipses' full and new moons.
+[^usno-gmst]: US Naval Observatory, "Computing Greenwich Apparent Sidereal Time" (GMST = 280.46061837 +
+    360.98564736629 · days since J2000.0), https://aa.usno.navy.mil/faq/GAST (written from the
+    formula as known; the site refused automated access on 2026-11-25).
+[^lux]: Wikipedia, "Lux", illuminance examples (read 2026-11-25: 0.002 lux a moonless clear night with airglow,
+    0.05–0.3 lux a full moon, 3.4 lux the dark limit of civil twilight, 400 lux sunrise or sunset, 32,000–100,000 lux
+    direct sunlight), https://en.wikipedia.org/wiki/Lux
+[^ks91]: K. Krisciunas and B. E. Schaefer, "A model of the brightness of moonlight", Publications of the Astronomical
+    Society of the Pacific 103 (1991) 1033–1039, https://doi.org/10.1086/132921
+[^bsc5]: D. Hoffleit and W. H. Warren Jr., The Bright Star Catalogue, 5th revised edition (1991), public domain;
+    the ASCII file from http://tdc-www.harvard.edu/catalogs/bsc5.html

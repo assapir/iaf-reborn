@@ -17,6 +17,11 @@ uniform float halo_k = 0.4;
 // The cockpit's own light in the tubes where its lighting does not suit goggles (terrain_view.gd goggles_lit): it
 // lowers the gain and veils the picture, most toward the panel below.
 uniform float glare = 0.0;
+// Modern IAF: the scene's light (lux; terrain_view.gd scene_lux). The tube's photon noise follows it: grain_k at
+// GRAIN_LUX, as 1 / √light (fewer photons, more scintillation), within the clamp's limits (inferred); < 0 (the 1998
+// game, the F-35I's DAS video): the noise by the gain alone.
+uniform float lux = -1.0;
+const float GRAIN_LUX = 0.01;
 
 // The picture's colour: the tubes' P43 phosphor green; the F-35I's DAS video grey (terrain_view.gd DAS_VIDEO).
 uniform vec3 tint = vec3(0.42, 1.0, 0.36);
@@ -71,7 +76,8 @@ void fragment() {
 		l += halo_k * halo;
 		// Scintillation: the more gain, the more grain (photon noise), changing every frame.
 		float grain = hash(floor(FRAGCOORD.xy) + fract(TIME * 61.0) * 917.0) - 0.5;
-		l += grain * grain_k * sqrt(gain / 2.0);
+		float noise = lux < 0.0 ? sqrt(gain / 2.0) : clamp(sqrt(GRAIN_LUX / max(lux, 1e-4)), 0.3, 3.0);
+		l += grain * grain_k * noise;
 		l += glare * gain * smoothstep(0.3, 1.0, down);
 		// The bright end saturates softly; the tube's edge darkens.
 		l = 1.0 - exp(-1.6 * max(l, 0.0));

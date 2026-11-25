@@ -2256,7 +2256,10 @@ own view only (`IafGoggles.drawn`). The shader:
    Gen II ones[^nvd], and the halo shrank over the 1990s contracts (1.47 mm → 0.70 mm on the tube)[^omni].
 5. **Grain.** Noise per pixel, new every frame, grows with the square root of the gain: the darker the scene, the
    more sparkle[^rash]. Its strength follows the tube's signal-to-noise ratio (§8.1): about 4:1 for a Gen II, 16 to
-   21 for a Gen III[^gen2][^omni].
+   21 for a Gen III[^gen2][^omni]. Modern IAF (since 25 Nov 2026) takes the grain from the night's real light
+   instead, the scene's lux (`terrain_view.gd scene_lux`, modern-iaf/docs/terrain.md §17.1; the shader's `lux`):
+   `grain_k` at 0.01 lux (a quarter moon), × √(0.01 / lux) within 0.3 to 3 (inferred: photon noise): clean under a
+   full moon, heavy on a moonless night. The F-35I's DAS video and the 1998 game keep the gain's rule.
 6. **Phosphor.** The brightness saturates softly (1 − e^(−1.6 l)), tinted P43 green (0.42, 1.0, 0.36). Night-vision
    images are green because green is easiest to watch in the dark for long[^nvd]; the US military made P43 its
    standard[^phosphor]. The edge of the view darkens (by up to 70 %), as the goggles' 40° round view[^rash].

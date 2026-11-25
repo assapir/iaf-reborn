@@ -92,20 +92,42 @@ uniform float size_px = 2.4;
 uniform bool moon = false;
 uniform float gain = 1.0;
 uniform float vp_h = 1080.0;
+// The moon (Modern IAF's real moon, sky_at): its direction, the sun's (world frame) and the phase angle (rad: 0 full,
+// PI new); the 1998 game's moon is full at its point's own place (moon_dir).
+uniform vec3 moon_dir = vec3(0.0);
+uniform vec3 sun_dir = vec3(0.0);
+uniform float phase = 0.0;
 #include "res://shared/terrain/clouds_behind.gdshaderinc"
 varying float fade;
+varying vec2 limb;
 void vertex() {
-	vec3 dir = normalize((VIEW_MATRIX * vec4(VERTEX, 0.0)).xyz);
+	vec3 v = moon && moon_dir != vec3(0.0) ? moon_dir : VERTEX;
+	vec3 world = normalize((MODEL_MATRIX * vec4(v, 0.0)).xyz);
+	vec3 dir = normalize((VIEW_MATRIX * vec4(world, 0.0)).xyz);
 	POSITION = PROJECTION_MATRIX * vec4(dir * 10.0, 1.0);
 	POSITION.z = POSITION.w * 1e-6;
 	float rows = vp_h / 1080.0;
 	POINT_SIZE = (moon ? size_px * abs(PROJECTION_MATRIX[1][1]) : size_px * (0.6 + COLOR.a)) * rows;
-	fade = smoothstep(-0.01, 0.12, normalize(VERTEX).y) * gain;
+	fade = smoothstep(-0.01, 0.12, world.y) * gain;
+	// The bright limb's way on the screen: the sun's direction across the line of sight (view frame: x right, y up).
+	vec3 s = (VIEW_MATRIX * vec4(sun_dir, 0.0)).xyz;
+	vec2 across = (s - dir * dot(s, dir)).xy;
+	limb = length(across) > 1e-6 ? normalize(across) : vec2(1.0, 0.0);
 }
 void fragment() {
 	vec2 c = POINT_COORD * 2.0 - 1.0;
 	float r = length(c);
-	float a = moon ? smoothstep(0.42, 0.36, r) + exp(-r * r * 6.0) * 0.12 : exp(-r * r * 5.0) * COLOR.a;
+	float a = exp(-r * r * 5.0) * COLOR.a;
+	if (moon) {
+		// The disc (radius 0.39 of the point) lit where its sphere faces the sun: x toward the bright limb, z toward
+		// the eye; z kept above 0.05 so a full moon (and the 1998 game's, phase 0) is lit out to its soft rim;
+		// the glow by the lit share.
+		vec2 q = vec2(c.x, -c.y) / 0.39;
+		q /= max(length(q), 1.0);
+		float z = max(sqrt(max(1.0 - dot(q, q), 0.0)), 0.05);
+		float lit = smoothstep(-0.04, 0.04, dot(q, limb) * sin(phase) + z * cos(phase));
+		a = smoothstep(0.42, 0.36, r) * lit + exp(-r * r * 6.0) * 0.12 * (1.0 + cos(phase)) * 0.5;
+	}
 	ALBEDO = COLOR.rgb * a * fade * clouds_through(SCREEN_UV, VIEWPORT_SIZE, 1e9);
 }
 """
@@ -113,6 +135,8 @@ void fragment() {
 ## Detailed: the light sets the home airbases get at night (the night base mission bmisrdvdn places lt_dvd_h on
 ## ul_rwdavid's spot, heading and scale; the other two sets fit their runway models the same way): runway model →
 ## [light set, the base's spot (world m)]. The runway models also stand in for foreign bases, so only these spots.
+const TimeOfDay := preload("res://shared/terrain/time_of_day.gd")
+
 const BASE_LIGHTS := {
 	"ul_rwramon.gltf": ["stationary/rw_ul_1/lt_rmn_h.gltf", Vector2(316188, 409580)],
 	"ul_rwtelnof.gltf": ["stationary/rw_ul_1/lt_tnf_h.gltf", Vector2(314977, 499700)],
@@ -278,15 +302,18 @@ static func dress(node: Node3D, viewport_rows: float) -> void:
 	to_points(node, glow() if detailed() else original_material(maxf(1.0, roundf(viewport_rows / ORIGINAL_ROWS))))
 
 
-## Detailed: the star field and the moon (child of the flight scene). Stars: a fixed random sky, brighter ones rarer.
-static func sky() -> Node3D:
+## Detailed: the star field and the moon (child of the flight scene). Stars: a fixed random sky, brighter ones rarer;
+## with `real` (Modern IAF) the Yale Bright Star Catalogue's (REAL_STARS), which sky_at turns with the sidereal time.
+static func sky(real := false) -> Node3D:
 	var root := Node3D.new()
 	root.name = "NightSky"
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 1998
 	var verts := PackedVector3Array()
 	var cols := PackedColorArray()
-	for i in STARS:
+	if real:
+		_real_stars(verts, cols)
+	for i in STARS if verts.is_empty() else 0:
 		var z := rng.randf_range(-0.1, 1.0)
 		var a := rng.randf() * TAU
 		var r := sqrt(1.0 - z * z)
@@ -312,6 +339,53 @@ static func sky() -> Node3D:
 		m.custom_aabb = AABB(Vector3.ONE * -1e7, Vector3.ONE * 2e7)  # drawn by direction: never culled
 		root.add_child(m)
 	return root
+
+
+## Modern IAF's stars: the catalogue's places, magnitudes and colours (tools/stars/bsc5_stars.py; docs/credits.md),
+## each a unit vector in the equatorial frame (x toward right ascension 0h, y 6h, z the celestial pole). The
+## brightness (the points' alpha, their size with it) STAR_STEP a magnitude from 1 at STAR_FULL_MAG; the colour from
+## the B−V index, blue-white to orange (inferred).
+const REAL_STARS := "res://shared/terrain/stars_bsc5.json"
+const STAR_FULL_MAG := 2.0
+const STAR_STEP := 0.2
+
+
+static func _real_stars(verts: PackedVector3Array, cols: PackedColorArray) -> void:
+	var f := FileAccess.open(REAL_STARS, FileAccess.READ)
+	var data = JSON.parse_string(f.get_as_text()) if f != null else null
+	if not data is Dictionary:
+		return
+	var a: Array = data.get("stars", [])
+	for i in range(0, a.size() - 3, 4):
+		var ra := float(a[i]) * PI / 12.0
+		var dec := deg_to_rad(float(a[i + 1]))
+		verts.append(Vector3(cos(dec) * cos(ra), cos(dec) * sin(ra), sin(dec)))
+		var bv := clampf(float(a[i + 3]), -0.3, 1.6)
+		var c := (
+			Color(0.72, 0.8, 1.0).lerp(Color(1.0, 0.97, 0.9), (bv + 0.3) / 0.9)
+			if bv < 0.6
+			else Color(1.0, 0.97, 0.9).lerp(Color(1.0, 0.72, 0.45), (bv - 0.6) / 1.0)
+		)
+		c.a = clampf(pow(10.0, -STAR_STEP * (float(a[i + 2]) - STAR_FULL_MAG)), 0.0, 1.0)
+		cols.append(c)
+
+
+## Modern IAF: the night sky at the moment (terrain_view.gd _real_night): the catalogue's stars turned to the local
+## sidereal time `lst` (°; TimeOfDay.equatorial) at `gain`, the moon toward `moon` with its bright side toward `sun`
+## (Godot frame) at the phase angle `phase` (rad).
+static func sky_at(root: Node3D, lst: float, moon: Vector3, sun: Vector3, phase: float, gain: float) -> void:
+	var g := func(v: Vector3) -> Vector3: return Vector3(v.x, v.z, -v.y)  # ENU to Godot
+	var stars: MeshInstance3D = root.get_node("Stars")
+	stars.basis = Basis(
+		g.call(TimeOfDay.equatorial(0.0, 0.0, lst)),
+		g.call(TimeOfDay.equatorial(PI / 2.0, 0.0, lst)),
+		g.call(TimeOfDay.equatorial(0.0, PI / 2.0, lst))
+	)
+	stars.material_override.set_shader_parameter("gain", gain)
+	var mm: ShaderMaterial = root.get_node("Moon").material_override
+	mm.set_shader_parameter("moon_dir", moon)
+	mm.set_shader_parameter("sun_dir", sun)
+	mm.set_shader_parameter("phase", phase)
 
 
 ## The direction toward the moon (Godot frame: X east, Y up, Z south).

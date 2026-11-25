@@ -661,7 +661,7 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   screen's enemy skill; Arming and Fly. The Time row (25 November): the start time in 24-hour military time (HHMM, an
   hour and five-minute steps) or Random (drawn at Fly from the seed, shown on the notebook's DATA page); the Date row
   (25 November): a day and month this year, or Random; the flight starts then, Israel time with summer time, so the
-  sun's path and the day's length follow the date (the moon, the temperature and the weather stay the same in every
+  sun's path, the day's length and the moon follow the date (the temperature and the weather stay the same in every
   season). Both start at 0800 today on each opening of the screen, never stored. Fly draws the fight's area (another
   base within 180 km of the home base, `iaf_ai::free_combat::area`) and the enemy round it (`roll`: the task, its target
   and one to three more threats by the skill, from MiG-29 pairs on CAP and on alert, the S-300 network, short-range air
@@ -1131,6 +1131,13 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   Settings has no "Town labels" row; the sim's profile fixes the switch off. The 1998 game keeps its own (Extras →
   "Town labels", [../../docs/scenery.md](../../docs/scenery.md) §3.5). [scenery.md](scenery.md) §7. `test_sim_look.gd`,
   `test_front_end.gd`.
+- **The moon, the stars and dark nights (2026-11-25, the user: "night should be much darker [...] real dark based on
+  the moon phase based on date"; [terrain.md](terrain.md) §17.1):** the moon at its real place and phase for the
+  flight's date, hour and place (a mission without a date: today's), drawn lit on its sun side; the night's light in
+  lux from the twilight, the moon and the stars drives the ambient and the moon's light (with shadows under a bright
+  moon), the Volumetric clouds' night light and the goggles' grain. A moonless night is near black; a full moon a dim
+  grey. The stars are the Yale Bright Star Catalogue's 5,080 (public domain, credited) at their real places. The
+  1998 game keeps its fixed moon and random stars. `test_night_moon.gd`.
 - **Wall shading and long shadows (2026-11-09, the look study's proposal 5):** the buildings' walls away from the sun
   take less sky light, and Settings → Graphics "Long shadows" (on by default) draws the sun's shadows to 2.5 km with
   the near buildings casting them; +0.5 ms on the Iris Xe ([scenery.md](scenery.md) §7). `test_scenery.gd`. Open: at
