@@ -493,9 +493,9 @@ fn make(x: &[f32], split: Option<[f32; 2]>, c: &Value, mode: Mode, noise: &mut N
     }
 }
 
-/// `iaf-sim voices`: every clip of `<data>/sounds/voices.json` (`only`: the clips whose file name contains it) into
-/// `<data>/sounds`, the computed `kch2.ogg`, `twr_pause.ogg`, `key_on.ogg`, `key_off.ogg` and `radio_gap.ogg`, then
-/// `sim::own_sounds` into `assets`.
+/// `iaf-sim voices`: every clip of `<data>/sounds/voices.json` (`only`: the clips whose file name contains one of its
+/// comma-separated parts) into `<data>/sounds`, the computed `kch2.ogg`, `twr_pause.ogg`, `key_on.ogg`, `key_off.ogg`
+/// and `radio_gap.ogg`, then [`deploy`].
 pub fn voices(
     data: &Path,
     repo: &Path,
@@ -523,7 +523,7 @@ pub fn voices(
         .context("voices.json: no \"clips\"")?
         .iter()
         // A clip without `say` is Hebrew only (voices --he).
-        .filter(|c| c["say"].is_string() && only.is_none_or(|o| c["file"].as_str().is_some_and(|f| f.contains(o))))
+        .filter(|c| c["say"].is_string() && c["file"].as_str().is_some_and(|f| picked(only, f)))
         .collect();
     let mut lines = vec![];
     for c in &clips {
@@ -541,15 +541,12 @@ pub fn voices(
         pr.fraction((i + 1) as f32 / clips.len() as f32);
     }
     log!(pr, "voices: {} clips -> {}", clips.len(), sounds.display());
-    let (rows, files) = crate::sim::own_sounds(data, assets, cancel)?;
-    log!(pr, "voices: {rows} sound rows, {files} clips -> {}", assets.join(crate::sim::SOUNDS_DIR).display());
-    Ok(())
+    deploy(data, assets, pr, cancel)
 }
 
 /// `iaf-sim voices --he`: every radio clip's Hebrew line (`say_he`) by BlueTTS (blue_tts.py) in each voice its role
 /// takes in voices.json's `he.casts`, through the English clip's chain (the head and tail cuts are whole lines: BlueTTS
-/// gives no word times), into `<data>/sounds/he/<voice>/<file>` (`only`: the clips whose file name contains it), then
-/// `sim::own_sounds` into `assets`.
+/// gives no word times), into `<data>/sounds/he/<voice>/<file>` (`only`: as `voices`'s), then [`deploy`].
 pub fn voices_he(
     data: &Path,
     repo: &Path,
@@ -565,7 +562,7 @@ pub fn voices_he(
     let (mut jobs, mut lines) = (vec![], vec![]);
     for c in v["clips"].as_array().context("voices.json: no \"clips\"")? {
         let (Some(file), Some(text)) = (c["file"].as_str(), c["say_he"].as_str()) else { continue };
-        if only.is_some_and(|o| !file.contains(o)) {
+        if !picked(only, file) {
             continue;
         }
         let ipa: serde_json::Map<String, Value> =
@@ -590,6 +587,42 @@ pub fn voices_he(
         pr.fraction((i + 1) as f32 / jobs.len() as f32);
     }
     log!(pr, "voices: {} Hebrew clips -> {}", jobs.len(), sounds.join("he").display());
+    deploy(data, assets, pr, cancel)
+}
+
+/// `only`'s pick: every file without it, else a file whose name contains one of its comma-separated parts.
+fn picked(only: Option<&str>, file: &str) -> bool {
+    only.is_none_or(|o| o.split(',').any(|p| !p.is_empty() && file.contains(p)))
+}
+
+/// The clips voices.json names that are not made yet: `<file>` of a line with `say`, `he/<voice>/<file>` of a line
+/// with `say_he` in each voice of its role.
+fn unmade(sounds: &Path, v: &Value) -> Result<Vec<String>> {
+    let he = crate::sim::compile_voices_he(v)?;
+    let mut out = vec![];
+    for c in v["clips"].as_array().context("voices.json: no \"clips\"")? {
+        let Some(file) = c["file"].as_str() else { continue };
+        if c["say"].is_string() {
+            out.push(file.to_string());
+        }
+        if c["say_he"].is_string() {
+            out.extend(he.voices_of(crate::sim::role_he(c)).map(|voice| format!("he/{voice}/{file}")));
+        }
+    }
+    out.retain(|f| !sounds.join(f).exists());
+    Ok(out)
+}
+
+/// `sim::own_sounds` into `assets` once every clip of both languages is made; a line new in both languages is said by
+/// two runs (`voices`, `voices --he`) in either order, and the first leaves the deploy to the second.
+fn deploy(data: &Path, assets: &Path, pr: &dyn Progress, cancel: &AtomicBool) -> Result<()> {
+    let sounds = data.join("sounds");
+    let v: Value = serde_json::from_str(&std::fs::read_to_string(sounds.join("voices.json"))?)?;
+    let left = unmade(&sounds, &v)?;
+    if let Some(first) = left.first() {
+        log!(pr, "voices: {} clips still to make ({first}…): the run for the other language deploys", left.len());
+        return Ok(());
+    }
     let (rows, files) = crate::sim::own_sounds(data, assets, cancel)?;
     log!(pr, "voices: {rows} sound rows, {files} clips -> {}", assets.join(crate::sim::SOUNDS_DIR).display());
     Ok(())
@@ -683,5 +716,27 @@ mod tests {
         b.extend(0.5f32.to_le_bytes());
         b.extend((-0.25f32).to_le_bytes());
         assert_eq!(read_wav(&b).unwrap(), vec![0.5, -0.25]);
+    }
+
+    /// `--only`'s comma-separated parts; the clips still to make in either language, whichever run came first.
+    #[test]
+    fn only_parts_and_unmade_clips() {
+        assert!(picked(None, "a.ogg") && picked(Some("x,kidon5"), "twr_kidon5.ogg") && !picked(Some("x,"), "a.ogg"));
+        let dir = Tmp(std::env::temp_dir().join(format!("iaf-sim-unmade-{}", std::process::id())));
+        let v = json!({
+            "he": {"voices": {"a": {"gender": "m"}, "b": {"gender": "f"}, "i": {"gender": "f"}}, "instructor": "i",
+                "casts": [{"tower": "a", "pilot": "b"}]},
+            "clips": [
+                {"file": "x.ogg", "voice": "tower", "say": "x", "say_he": "x"},
+                {"file": "y.ogg", "voice": "pilot", "say": "y"}
+            ]
+        });
+        assert_eq!(unmade(&dir.0, &v).unwrap(), ["x.ogg", "he/a/x.ogg", "y.ogg"]);
+        std::fs::create_dir_all(dir.0.join("he/a")).unwrap();
+        std::fs::write(dir.0.join("he/a/x.ogg"), b"").unwrap();
+        assert_eq!(unmade(&dir.0, &v).unwrap(), ["x.ogg", "y.ogg"], "the Hebrew run first");
+        std::fs::write(dir.0.join("x.ogg"), b"").unwrap();
+        std::fs::write(dir.0.join("y.ogg"), b"").unwrap();
+        assert!(unmade(&dir.0, &v).unwrap().is_empty());
     }
 }

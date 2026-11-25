@@ -71,6 +71,8 @@ const KIND_NAMES := {
 	9: "Hotel",
 	10: "India"
 }
+## The friendly formation names (FUN_005513c0's kinds 1–6, 9, 10) in callsign order: Kidon 1 to Kidon 8.
+const KIDONS := ["Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot", "Hotel", "India"]
 
 var host: Node
 var now := 0.0
@@ -392,12 +394,12 @@ func _formation_of(ent: Dictionary) -> Dictionary:
 
 
 ## Ours (Modern IAF; the user, 20 Nov 2026: "Use kidon style, where kidon 1 is the first formation the second is
-## kidon 2 etc"): formation `name`'s callsign "Kidon N", N its kind (FUN_005bd3c0: Alpha, the player's, is 1); its
-## jets are "Kidon N-M" (he.wikipedia טיסת מבנה, modern-iaf/docs/research/radio-terms.md). The particle keys stay
-## the exe's (ALPHA_T).
+## kidon 2 etc"): formation `name`'s callsign "Kidon N", N its place among the friendly formation names (KIDONS:
+## Alpha, the player's, is 1; Hotel and India, kinds 9 and 10, are 7 and 8); its jets are "Kidon N-M" (he.wikipedia
+## טיסת מבנה, modern-iaf/docs/research/radio-terms.md). The particle keys stay the exe's (ALPHA_T, HOTEL_T).
 static func kidon(name: String) -> String:
-	var k = KIND_NAMES.find_key(name)
-	return "Kidon %d" % k if k != null else name
+	var k := KIDONS.find(name)
+	return "Kidon %d" % (k + 1) if k >= 0 else name
 
 
 ## A callsign ("Kidon 1", "Kidon 1-2") on a screen in the game's language: "כידון 1" in Hebrew.

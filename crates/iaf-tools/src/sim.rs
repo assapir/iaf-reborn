@@ -2260,6 +2260,21 @@ mod tests {
         for k in ["ALPHA_T+,+START", "ALPHA_T+,+MORNING+,+TAXI_RWY", "ALPHA_T+,+LINEUP_RWY", "26+RWY_L", "25+RWY_R"] {
             assert!(keys_of.contains(k), "no joined particle {k}");
         }
+        // Every seat's calls whole (Kidon 1 to 8, radio.gd KIDONS): its callsign for the tower, pilot and AWACS;
+        // the pilot's call to each tower; each tower call and its head before a runway.
+        let towers = ["RAMON", "DAVID", "HATZERIM", "NEVATIM"];
+        let reqs = ["STARTUP", "TAXI", "LINEUP", "TAKEOFF", "LANDING"];
+        let calls = ["START", "HOLD_POS", "GO_AROUND", "TAXI_PARK", "GEAR_NOT_DOWN", "LINEUP_RWY", "LAND_RWY"];
+        let calls = calls.iter().chain(&["PROCEED_RWY", "ON_RWY", "NEGATIVE_HOLD", "NEGATIVE_HOLD+,+FIRST_LINEUP"]);
+        for cs in ["ALPHA", "BRAVO", "CHARLIE", "DELTA", "ECHO", "FOXTROT", "HOTEL", "INDIA"] {
+            let mut want: Vec<String> = ["T", "P", "R"].iter().map(|s| format!("{cs}_{s}")).collect();
+            want.extend(towers.iter().flat_map(|t| reqs.map(|r| format!("{t}_TWR+,+{cs}_P+,+REQ_{r}"))));
+            want.extend(calls.clone().map(|c| format!("{cs}_T+,+{c}")));
+            want.extend(["MORNING", "AFTERNOON", "EVENING"].map(|g| format!("{cs}_T+,+{g}+,+TAXI_RWY")));
+            for k in want {
+                assert!(keys_of.contains(k.as_str()), "no particle {k}");
+            }
+        }
         let keys: Value = serde_json::from_str(&std::fs::read_to_string(root.0.join(KEYS_FILE)).unwrap()).unwrap();
         let recs = keys["records"].as_array().unwrap();
         assert_eq!(recs.len(), 258);

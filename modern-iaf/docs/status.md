@@ -3,6 +3,13 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **Every seat's radio calls whole, Kidon 5–8 voiced (2026-11-25, the game gaps' row 15; [sound.md](sound.md) §3,
+  §5.2):** the player's call to a tower ("Hatzerim tower, Kidon 3, request taxi") is one clip as Kidon 1 to 8 (160
+  English clips; before, Kidon 2–4 played the address, the callsign and the request apart); the tower's "negative,
+  hold position, request … first" is whole in every seat; the callsigns Kidon 5–8 (the formation names Echo,
+  Foxtrot, Hotel, India) have their tower, pilot and AWACS particles and the tower's whole calls and heads, English
+  and Hebrew. `iaf-sim voices --only` takes several name parts, and a line new in both languages is made by the two
+  runs in either order. `test_radio_calls.gd`, `sim::tests` (every seat's particles), `sim_voices::tests`.
 - **The controls and lamps that moved only, round two (2026-11-25, the user, 18 Nov: "How much of our controls
   actually controls?"; [cockpit.md](cockpit.md) §5.12):** the F-35I's firing handle ejects with the seat at ARM (three pulls, as the E key; the
   seat at SAFE on a cold jet; the card's two seat items tick from it), LAND/TAXI LIGHTS light the taxi or landing

@@ -115,7 +115,32 @@ func run() -> void:
 		tv.runtime.misc["0x460"] = float(hg[0]) * 3600.0
 		var p: Dictionary = r._speak(at, 0)
 		check(String(hg[1]) in String(p.text).to_lower(), "%02d:00: %s" % [hg[0], p.text])
+	_every_seat(tv, r)
 	_hebrew(tv, r, at)
+
+
+## Every seat (sound.md §3, Kidon 1 to 8): the pilot's call to a tower and the tower's calls each one clip; the
+## callsign's particles for the tower, the pilot and the AWACS; in Hebrew each its own clip.
+func _every_seat(tv: Node, r: Node) -> void:
+	check(r.kidon("Hotel") == "Kidon 7" and r.kidon("India") == "Kidon 8", "Hotel and India are Kidon 7 and 8")
+	for i in r.KIDONS.size():
+		var cs: String = r.KIDONS[i]
+		var n: int = i + 1
+		var call: Dictionary = r.expand("PILOT_CALL", ["NEVATIM_TWR", cs + "_P", "REQ_TAKEOFF"])
+		check(call.wavs == ["plt_nevatim_kidon%d_takeoff.ogg" % n], "Kidon %d's call in one clip: %s" % [n, call.wavs])
+		for t in [["ACFT_HOLD_POS", []], ["ACFT_NEGATIVE", ["FIRST_TAXI"]], ["ACFT_NO_TAXI_CLEARANCE", []]]:
+			var p: Dictionary = r.expand(t[0], [cs + "_t"] + t[1])
+			check(p.wavs.size() == 1, "%s to Kidon %d in one clip: %s" % [t[0], n, p.wavs])
+		var head: Dictionary = r.expand("ACFT_PROCEED_TO_RUNWAY", [cs + "_t"], [12])
+		check(head.wavs == ["twr_kidon%d_proceed_rwy.ogg" % n, "num012.ogg"], "Kidon %d: head, runway" % n)
+		check(String(r.particles.get(cs.to_upper() + "_R", [""])[0]) == "awx_kidon%d.ogg" % n, "AWACS Kidon %d" % n)
+	if tv.sounds.table._he.is_empty():
+		return
+	settings().language = "he"
+	for n in range(1, r.KIDONS.size() + 1):
+		for f in ["twr_kidon%d.ogg", "plt_kidon%d.ogg", "awx_kidon%d.ogg"]:
+			check(tv.sounds.table.hebrew(f % n) != "", "a Hebrew clip %s" % (f % n))
+	settings().language = "en"
 
 
 ## Hebrew (sound.md §3.1): every tower call and every wingman call plays a Hebrew clip in the voice the mission's cast

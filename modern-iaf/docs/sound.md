@@ -396,7 +396,7 @@ NEGATIVE_HOLD , %S2`: "Kidon 1, negative, hold position, request line-up first",
 the pilot's
 `REQ_LINEUP` ("request line-up", whole per base for Kidon 1) for the menu's line-up call (item E3b, [training.md](training.md) §8: the menu's three requests use
 `ACFT_CLEAR_TO_START`, `ACFT_TAXI_TO_RUNWAY`, `ACFT_CLEAR_TO_LINEUP` / `_NW`, `ACFT_HOLD_POS`, `ACFT_CLEAR_TO_TAKEOFF`). Example: `ACFT_TAXI_TO_RUNWAY` = `%S1 , %S2 , TAXI_RWY %D1` → "Kidon 1, good morning, taxi
-to runway 25 right". The particles cover the callsigns Kidon 1–4, the greetings, the winds 10 / 15 / 20 kt, every
+to runway 25 right". The particles cover the callsigns Kidon 1–8, the greetings, the winds 10 / 15 / 20 kt, every
 runway number 1–36 (spoken digit by digit, "two five") and the letters `RWY_L` / `RWY_R` / `RWY_C`.
 
 **The wind** (24 November 2026) is said as the standard says it, its direction in 10° steps (360 for north) and its
@@ -449,7 +449,9 @@ tower said "סיבוב נוסף" until 24 November 2026).
 **The callsigns** are kidon style (the user, 20 November 2026: "Use kidon style, where kidon 1 is the first formation
 the second is kidon 2 etc"; [research/radio-terms.md](research/radio-terms.md)): the flight is "Kidon 1" ("כידון 1"),
 its jets "Kidon 1-1" to "Kidon 1-4", spoken "Kidon one-two" ("כידון אחד-שתיים"). The particle keys stay the exe's
-formation names (`ALPHA_T` is Kidon 1, `DELTA_T` Kidon 4: `radio.gd` `kidon`); the files are named `*_kidon<N>*`. The
+formation names in the order of `radio.gd` `KIDONS` (`ALPHA_T` is Kidon 1, `DELTA_T` Kidon 4, `ECHO_T` and
+`FOXTROT_T` Kidon 5 and 6, `HOTEL_T` and `INDIA_T`, the exe's kinds 9 and 10, Kidon 7 and 8: `radio.gd` `kidon`, two
+four-ships of flights); the files are named `*_kidon<N>*`. The
 wingmen's own calls say the jet's callsign ("Kidon 1-2, unable": `WNG_ONE`..`WNG_FOUR`); the tower's landing calls to
 a wingman say it in the tower's voice ("Kidon 1-2, cleared to land runway 25 right": `WNG_TWO_T`..`WNG_FOUR_T`,
 `twr_kidon1_2.ogg`..`twr_kidon1_4.ogg`; [../../docs/ai.md](../../docs/ai.md) §8.7). Kokoro reads a bare "Kidon"
@@ -460,16 +462,17 @@ as five to seven separate clips ("Kidon 1" "," "good morning" "," "taxi to runwa
 its own. Since E1c a run of particles can be one clip, said in one breath: a joined particle, its key the parts'
 keys joined by "+" (`ALPHA_T+,+MORNING+,+TAXI_RWY`). `radio.gd` `joined_wavs()` plays the longest run of a call's
 keys that has a joined clip (docs/radio.md §5); the original game's particle files have none. Every combination as
-one clip would be 4 callsigns × 24 spoken runways (the 22 real ends of the four bases plus Ramon's 24 and Ramat
+one clip would be 8 callsigns × 24 spoken runways (the 22 real ends of the four bases plus Ramon's 24 and Ramat
 David's 26, which RunwayNumber / 10 gives) × 12 runway calls (taxi × 3 greetings, line up and land × calm and 3 winds,
-proceed) + 24 calls without a runway = 1176 clips (about 150 MB as WAV). The set holds 108 joined or re-said clips
-instead (2.3 MB for every sim clip as ogg):
+proceed) + 104 calls without a runway = 2408 clips (about 300 MB as WAV). The set holds 220 joined or re-said
+tower clips instead (8.6 MB for every English sim clip as ogg):
 
 | clips | count | said as |
 |---|---|---|
 | whole calls the training missions make | 12 | "Kidon 1, good morning, taxi to runway two five right." and "Kidon 1, line up runway two five right, wind calm." for the runway each mission's tower says (24, 25, 25R, 26, 26L, 27) |
-| calls without a runway | 24 | "Kidon 1, hold position.": 4 callsigns × start, hold, take-off, go around, taxi to parking, gear |
-| the head of a runway call | 24 | "Kidon 1, good morning, taxi to runway": 4 callsigns × taxi × 3 greetings, line up, proceed, land |
+| calls without a runway | 40 | "Kidon 1, hold position.": 8 callsigns × start, hold, go around, taxi to parking, gear |
+| calls out of order and without clearance | 64 | "Kidon 2, negative, hold position, request taxi first.": 8 callsigns × negative, its three "request … first", four "… without clearance" |
+| the head of a runway call | 56 | "Kidon 1, good morning, taxi to runway": 8 callsigns × taxi × 3 greetings, line up, proceed, land, "you are on runway" |
 | a runway | 48 | "two five" / "two six left": numbers 1–36 and the 12 lettered ends |
 
 A head is cut from the sentence "Kidon 1, good morning, taxi to runway; two seven." before the number, so it ends with
@@ -534,10 +537,12 @@ languages, and a joined particle plays only where its clip exists in the languag
 `sound_table.gd` `has_clip`). In Hebrew the callsign is always its own clip: the joined particles that hold a callsign
 (the tower's "ALPHA_T+,+HOLD_POS", the player's "RAMON_TWR+,+ALPHA_P+,+REQ_STARTUP") have no `say_he`, and 18
 Hebrew-only joined particles (`he_only`, "MORNING+,+TAXI_RWY") hold a tower call's words after the callsign. So
-"כידון אחד" then "בוקר טוב, הסעה למסלול" plays, and a new callsign changes only the callsign particles. Another
+"כידון אחד" then "בוקר טוב, הסעה למסלול" plays, the same way in every seat, and a new callsign changes only the
+callsign particles (Kidon 5–8's, כידון חמש to כידון שמונה, for the tower, the player and the AWACS since 25 November
+2026). Another
 pilot's call that the English pilot voice says (the wingman's ejection, the friendly-fire calls) takes a wingman's voice
-in Hebrew (`role_he`), since `pilot` is the player's own there. 944 clips (tower 143 lines × 2 voices, AWACS 108 × 2,
-the player's calls and readbacks 98 × 2, the wingmen 41 × 6), as Ogg Vorbis,
+in Hebrew (`role_he`), since `pilot` is the player's own there. 968 clips (tower 147 lines × 2 voices, AWACS 112 × 2,
+the player's calls and readbacks 102 × 2, the wingmen 41 × 6), as Ogg Vorbis,
 committed: the setup only copies them.
 
 **In the game**: `iaf-sim own` copies them to `converted/own/resource/soundfiles/he/` with `voices_he.json` (the casts
@@ -570,7 +575,11 @@ their press command (the doc's names for them look swapped).
 4. `sim::own_sounds` compiles the sound folder into `assets/converted/own/resource/soundfiles/`, as `iaf-sim own`
    (the wizard's "sounds, voices, keys and effects art" step) does.
 The set is 374 clips (the AWACS's 97 `awx_*` since 17 November and Scramble's 11 `awx_task_*` since 24 November, `--only awx_task`; the four-ship's 45 `flt_*` since 19 November, `--only flt_`) plus four computed ones (`kch2`, `key_on`, `key_off`,
-`twr_pause`). `iaf-sim voices --only <name part>` remakes some clips (`--only awx` the AWACS's, about 1 minute); with
+`twr_pause`); every seat's whole calls and Kidon 5–8 since 25 November (`--only kidon5,kidon6,…`): 737 clips in all.
+`iaf-sim voices --only <name part>[,<name part>…]` remakes the clips whose file name holds one of the parts (`--only
+awx` the AWACS's, about 1 minute). A line new in both languages needs both runs (`voices` and `voices --he`, in either
+order): the first run leaves the deploy (`sim::own_sounds`) to the second and says how many clips are still to make;
+with
 the model and voice packs in the cache, `HF_HUB_OFFLINE=1` and `IAF_KOKORO_PYTHON` set to the venv's Python, the step
 runs without the network; `iaf-sim voices --say <role>
 <mode> <text> <out.ogg>` makes one line (the approval samples).
@@ -615,8 +624,10 @@ only the tower response") use the same chain heard from an oxygen-mask microphon
 at 2600 Hz instead of 3000 Hz (less air), +4 dB at 500 Hz, Q 0.9 (more low-mid). `sim_flight.gd` `pick()` says the
 call (`PILOT_CALL` = `%S1 , %S2 , %S3`: the tower's address `<BASE>_TWR`, the callsign `<NAME>_P`, `REQ_<ID>`) framed
 by the key clicks, then `radio_gap.ogg` (0.6 s of silence, `RADIO_GAP`: the controller's reply, inferred), then the
-tower's answer, then the player's readback (§3). Each base × Kidon 1 × the four requests (start-up, taxi, take-off, landing) is one joined clip
-("Ramon tower, Kidon 1, request start-up."); the parts (4 towers, Kidon 1–4, 4 requests) cover the other callsigns.
+tower's answer, then the player's readback (§3). Each base × callsign (Kidon 1–8, every seat the player can fly) × the
+five requests (start-up, taxi, line-up, take-off, landing) is one joined clip ("Ramon tower, Kidon 3, request
+start-up.": 160 clips, since 25 November 2026; before, only Kidon 1's were whole and Kidon 2–4 played the address, the
+callsign and the request apart). The parts (4 towers, Kidon 1–8, 5 requests) stay for a call to no tower.
 
 A transmission plays like a receiver's squelch (9 November 2026; the user: "missing a bit of a quiet before / after
 like a real radio"). Measured on a scanner recording of Orlando's tower frequency[^mco] (minutes 5–10, 77 openings,
@@ -704,8 +715,6 @@ The setup wizard's Attributions and the credits roll show these lines from `shar
 - The waypoint and flight-report phrases (`radio.gd`'s other templates have no particles yet, so they are silent).
   The wingman commands and the flight's calls are voiced since 20 November ([ai-plan.md](ai-plan.md) F5), the
   AWACS's contact calls since 17 November ([ews.md](ews.md) §7).
-- The pilot's calls as Kidon 2–4 play part by part (only Kidon 1 has whole-call clips), and the callsigns past Kidon 4
-  have no particle (the tower's set stops there too).
 - The cockpit sound model (§1.9): the canopy's real transmission loss, the helmet in flight, the air-conditioning
   hiss, and the user's listening.
 - The core sounds (§1.3–§1.8): the cockpit's idle-to-military step, the wind's real spectrum, the gun's spin-up, a

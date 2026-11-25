@@ -199,6 +199,34 @@
       "say_he": "כידון ארבע"
     },
     {
+      "file": "twr_kidon5.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) five",
+      "mode": "particle",
+      "say_he": "כידון חמש"
+    },
+    {
+      "file": "twr_kidon6.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) six",
+      "mode": "particle",
+      "say_he": "כידון שש"
+    },
+    {
+      "file": "twr_kidon7.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) seven",
+      "mode": "particle",
+      "say_he": "כידון שבע"
+    },
+    {
+      "file": "twr_kidon8.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) eight",
+      "mode": "particle",
+      "say_he": "כידון שמונה"
+    },
+    {
       "file": "twr_kidon1_2.ogg",
       "voice": "tower",
       "say": "[Kidon](/kidˈOn/) one-two",
@@ -833,9 +861,65 @@
       "mode": "phrase"
     },
     {
+      "file": "twr_kidon5_taxi_morning.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) five, good morning, taxi to runway; two seven.",
+      "cut": "head",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_kidon6_taxi_morning.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) six, good morning, taxi to runway; two seven.",
+      "cut": "head",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_kidon7_taxi_morning.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) seven, good morning, taxi to runway; two seven.",
+      "cut": "head",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_kidon8_taxi_morning.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) eight, good morning, taxi to runway; two seven.",
+      "cut": "head",
+      "mode": "phrase"
+    },
+    {
       "file": "twr_kidon2_taxi_afternoon.ogg",
       "voice": "tower",
       "say": "[Kidon](/kidˈOn/) two, good afternoon, taxi to runway; two seven.",
+      "cut": "head",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_kidon5_taxi_afternoon.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) five, good afternoon, taxi to runway; two seven.",
+      "cut": "head",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_kidon6_taxi_afternoon.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) six, good afternoon, taxi to runway; two seven.",
+      "cut": "head",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_kidon7_taxi_afternoon.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) seven, good afternoon, taxi to runway; two seven.",
+      "cut": "head",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_kidon8_taxi_afternoon.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) eight, good afternoon, taxi to runway; two seven.",
       "cut": "head",
       "mode": "phrase"
     },
@@ -847,9 +931,65 @@
       "mode": "phrase"
     },
     {
+      "file": "twr_kidon5_taxi_evening.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) five, good evening, taxi to runway; two seven.",
+      "cut": "head",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_kidon6_taxi_evening.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) six, good evening, taxi to runway; two seven.",
+      "cut": "head",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_kidon7_taxi_evening.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) seven, good evening, taxi to runway; two seven.",
+      "cut": "head",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_kidon8_taxi_evening.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) eight, good evening, taxi to runway; two seven.",
+      "cut": "head",
+      "mode": "phrase"
+    },
+    {
       "file": "twr_kidon2_lineup_rwy.ogg",
       "voice": "tower",
       "say": "[Kidon](/kidˈOn/) two, line up runway; two seven.",
+      "cut": "head",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_kidon5_lineup_rwy.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) five, line up runway; two seven.",
+      "cut": "head",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_kidon6_lineup_rwy.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) six, line up runway; two seven.",
+      "cut": "head",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_kidon7_lineup_rwy.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) seven, line up runway; two seven.",
+      "cut": "head",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_kidon8_lineup_rwy.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) eight, line up runway; two seven.",
       "cut": "head",
       "mode": "phrase"
     },
@@ -861,9 +1001,65 @@
       "mode": "phrase"
     },
     {
+      "file": "twr_kidon5_proceed_rwy.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) five, proceed to runway; two seven.",
+      "cut": "head",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_kidon6_proceed_rwy.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) six, proceed to runway; two seven.",
+      "cut": "head",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_kidon7_proceed_rwy.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) seven, proceed to runway; two seven.",
+      "cut": "head",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_kidon8_proceed_rwy.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) eight, proceed to runway; two seven.",
+      "cut": "head",
+      "mode": "phrase"
+    },
+    {
       "file": "twr_kidon2_land_rwy.ogg",
       "voice": "tower",
       "say": "[Kidon](/kidˈOn/) two, cleared to land runway; two seven.",
+      "cut": "head",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_kidon5_land_rwy.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) five, cleared to land runway; two seven.",
+      "cut": "head",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_kidon6_land_rwy.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) six, cleared to land runway; two seven.",
+      "cut": "head",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_kidon7_land_rwy.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) seven, cleared to land runway; two seven.",
+      "cut": "head",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_kidon8_land_rwy.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) eight, cleared to land runway; two seven.",
       "cut": "head",
       "mode": "phrase"
     },
@@ -874,9 +1070,57 @@
       "mode": "phrase"
     },
     {
+      "file": "twr_kidon5_start.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) five, cleared to start.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_kidon6_start.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) six, cleared to start.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_kidon7_start.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) seven, cleared to start.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_kidon8_start.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) eight, cleared to start.",
+      "mode": "phrase"
+    },
+    {
       "file": "twr_kidon2_hold_pos.ogg",
       "voice": "tower",
       "say": "[Kidon](/kidˈOn/) two, hold position.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_kidon5_hold_pos.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) five, hold position.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_kidon6_hold_pos.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) six, hold position.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_kidon7_hold_pos.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) seven, hold position.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_kidon8_hold_pos.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) eight, hold position.",
       "mode": "phrase"
     },
     {
@@ -886,15 +1130,87 @@
       "mode": "phrase"
     },
     {
+      "file": "twr_kidon5_go_around.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) five, go around, runway not clear.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_kidon6_go_around.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) six, go around, runway not clear.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_kidon7_go_around.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) seven, go around, runway not clear.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_kidon8_go_around.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) eight, go around, runway not clear.",
+      "mode": "phrase"
+    },
+    {
       "file": "twr_kidon2_taxi_park.ogg",
       "voice": "tower",
       "say": "[Kidon](/kidˈOn/) two, welcome back, taxi to parking.",
       "mode": "phrase"
     },
     {
+      "file": "twr_kidon5_taxi_park.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) five, welcome back, taxi to parking.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_kidon6_taxi_park.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) six, welcome back, taxi to parking.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_kidon7_taxi_park.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) seven, welcome back, taxi to parking.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_kidon8_taxi_park.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) eight, welcome back, taxi to parking.",
+      "mode": "phrase"
+    },
+    {
       "file": "twr_kidon2_gear_not_down.ogg",
       "voice": "tower",
       "say": "[Kidon](/kidˈOn/) two, check gear down.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_kidon5_gear_not_down.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) five, check gear down.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_kidon6_gear_not_down.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) six, check gear down.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_kidon7_gear_not_down.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) seven, check gear down.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_kidon8_gear_not_down.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) eight, check gear down.",
       "mode": "phrase"
     },
     {
@@ -1062,6 +1378,30 @@
       "mode": "phrase"
     },
     {
+      "file": "twr_kidon5_no_start_clr.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) five, engine start without clearance.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_kidon6_no_start_clr.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) six, engine start without clearance.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_kidon7_no_start_clr.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) seven, engine start without clearance.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_kidon8_no_start_clr.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) eight, engine start without clearance.",
+      "mode": "phrase"
+    },
+    {
       "file": "twr_kidon3_no_start_clr.ogg",
       "voice": "tower",
       "say": "[Kidon](/kidˈOn/) three, engine start without clearance.",
@@ -1091,6 +1431,30 @@
       "file": "twr_kidon2_no_taxi_clr.ogg",
       "voice": "tower",
       "say": "[Kidon](/kidˈOn/) two, taxi without clearance.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_kidon5_no_taxi_clr.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) five, taxi without clearance.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_kidon6_no_taxi_clr.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) six, taxi without clearance.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_kidon7_no_taxi_clr.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) seven, taxi without clearance.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_kidon8_no_taxi_clr.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) eight, taxi without clearance.",
       "mode": "phrase"
     },
     {
@@ -1126,6 +1490,30 @@
       "mode": "phrase"
     },
     {
+      "file": "twr_kidon5_no_runway_clr.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) five, runway entry without clearance.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_kidon6_no_runway_clr.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) six, runway entry without clearance.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_kidon7_no_runway_clr.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) seven, runway entry without clearance.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_kidon8_no_runway_clr.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) eight, runway entry without clearance.",
+      "mode": "phrase"
+    },
+    {
       "file": "twr_kidon3_no_runway_clr.ogg",
       "voice": "tower",
       "say": "[Kidon](/kidˈOn/) three, runway entry without clearance.",
@@ -1155,6 +1543,30 @@
       "file": "twr_kidon2_no_takeoff_clr.ogg",
       "voice": "tower",
       "say": "[Kidon](/kidˈOn/) two, take-off without clearance.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_kidon5_no_takeoff_clr.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) five, take-off without clearance.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_kidon6_no_takeoff_clr.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) six, take-off without clearance.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_kidon7_no_takeoff_clr.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) seven, take-off without clearance.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_kidon8_no_takeoff_clr.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) eight, take-off without clearance.",
       "mode": "phrase"
     },
     {
@@ -1195,6 +1607,34 @@
       "file": "twr_kidon2_on_rwy.ogg",
       "voice": "tower",
       "say": "[Kidon](/kidˈOn/) two, you are on runway; two seven.",
+      "cut": "head",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_kidon5_on_rwy.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) five, you are on runway; two seven.",
+      "cut": "head",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_kidon6_on_rwy.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) six, you are on runway; two seven.",
+      "cut": "head",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_kidon7_on_rwy.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) seven, you are on runway; two seven.",
+      "cut": "head",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_kidon8_on_rwy.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) eight, you are on runway; two seven.",
       "cut": "head",
       "mode": "phrase"
     },
@@ -1254,6 +1694,30 @@
       "mode": "phrase"
     },
     {
+      "file": "twr_kidon5_negative_hold.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) five, negative, hold position.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_kidon6_negative_hold.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) six, negative, hold position.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_kidon7_negative_hold.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) seven, negative, hold position.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_kidon8_negative_hold.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) eight, negative, hold position.",
+      "mode": "phrase"
+    },
+    {
       "file": "twr_kidon3_negative_hold.ogg",
       "voice": "tower",
       "say": "[Kidon](/kidˈOn/) three, negative, hold position.",
@@ -1273,6 +1737,48 @@
       "note": "a training mission's call, whole"
     },
     {
+      "file": "twr_kidon2_negative_startup.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) two, negative, hold position, request start-up first.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_kidon3_negative_startup.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) three, negative, hold position, request start-up first.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_kidon4_negative_startup.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) four, negative, hold position, request start-up first.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_kidon5_negative_startup.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) five, negative, hold position, request start-up first.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_kidon6_negative_startup.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) six, negative, hold position, request start-up first.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_kidon7_negative_startup.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) seven, negative, hold position, request start-up first.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_kidon8_negative_startup.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) eight, negative, hold position, request start-up first.",
+      "mode": "phrase"
+    },
+    {
       "file": "twr_kidon1_negative_taxi.ogg",
       "voice": "tower",
       "say": "[Kidon](/kidˈOn/) one, negative, hold position, request taxi first.",
@@ -1280,11 +1786,95 @@
       "note": "a training mission's call, whole"
     },
     {
+      "file": "twr_kidon2_negative_taxi.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) two, negative, hold position, request taxi first.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_kidon3_negative_taxi.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) three, negative, hold position, request taxi first.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_kidon4_negative_taxi.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) four, negative, hold position, request taxi first.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_kidon5_negative_taxi.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) five, negative, hold position, request taxi first.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_kidon6_negative_taxi.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) six, negative, hold position, request taxi first.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_kidon7_negative_taxi.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) seven, negative, hold position, request taxi first.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_kidon8_negative_taxi.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) eight, negative, hold position, request taxi first.",
+      "mode": "phrase"
+    },
+    {
       "file": "twr_kidon1_negative_lineup.ogg",
       "voice": "tower",
       "say": "[Kidon](/kidˈOn/) one, negative, hold position, request line-up first.",
       "mode": "phrase",
       "note": "a training mission's call, whole"
+    },
+    {
+      "file": "twr_kidon2_negative_lineup.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) two, negative, hold position, request line-up first.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_kidon3_negative_lineup.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) three, negative, hold position, request line-up first.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_kidon4_negative_lineup.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) four, negative, hold position, request line-up first.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_kidon5_negative_lineup.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) five, negative, hold position, request line-up first.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_kidon6_negative_lineup.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) six, negative, hold position, request line-up first.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_kidon7_negative_lineup.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) seven, negative, hold position, request line-up first.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_kidon8_negative_lineup.ogg",
+      "voice": "tower",
+      "say": "[Kidon](/kidˈOn/) eight, negative, hold position, request line-up first.",
+      "mode": "phrase"
     },
     {
       "file": "twr_kidon1_taxi_morning_24.ogg",
@@ -1427,6 +2017,34 @@
       "say_he": "כידון ארבע."
     },
     {
+      "file": "plt_kidon5.ogg",
+      "voice": "pilot",
+      "say": "[Kidon](/kidˈOn/) five.",
+      "mode": "helmet",
+      "say_he": "כידון חמש."
+    },
+    {
+      "file": "plt_kidon6.ogg",
+      "voice": "pilot",
+      "say": "[Kidon](/kidˈOn/) six.",
+      "mode": "helmet",
+      "say_he": "כידון שש."
+    },
+    {
+      "file": "plt_kidon7.ogg",
+      "voice": "pilot",
+      "say": "[Kidon](/kidˈOn/) seven.",
+      "mode": "helmet",
+      "say_he": "כידון שבע."
+    },
+    {
+      "file": "plt_kidon8.ogg",
+      "voice": "pilot",
+      "say": "[Kidon](/kidˈOn/) eight.",
+      "mode": "helmet",
+      "say_he": "כידון שמונה."
+    },
+    {
       "file": "plt_req_start.ogg",
       "voice": "pilot",
       "say": "Request start-up.",
@@ -1469,9 +2087,107 @@
       "note": "the player's call, whole"
     },
     {
+      "file": "plt_ramon_kidon2_start.ogg",
+      "voice": "pilot",
+      "say": "Ramon tower, [Kidon](/kidˈOn/) two, request start-up.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_ramon_kidon3_start.ogg",
+      "voice": "pilot",
+      "say": "Ramon tower, [Kidon](/kidˈOn/) three, request start-up.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_ramon_kidon4_start.ogg",
+      "voice": "pilot",
+      "say": "Ramon tower, [Kidon](/kidˈOn/) four, request start-up.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_ramon_kidon5_start.ogg",
+      "voice": "pilot",
+      "say": "Ramon tower, [Kidon](/kidˈOn/) five, request start-up.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_ramon_kidon6_start.ogg",
+      "voice": "pilot",
+      "say": "Ramon tower, [Kidon](/kidˈOn/) six, request start-up.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_ramon_kidon7_start.ogg",
+      "voice": "pilot",
+      "say": "Ramon tower, [Kidon](/kidˈOn/) seven, request start-up.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_ramon_kidon8_start.ogg",
+      "voice": "pilot",
+      "say": "Ramon tower, [Kidon](/kidˈOn/) eight, request start-up.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
       "file": "plt_ramon_kidon1_taxi.ogg",
       "voice": "pilot",
       "say": "Ramon tower, [Kidon](/kidˈOn/) one, request taxi.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_ramon_kidon2_taxi.ogg",
+      "voice": "pilot",
+      "say": "Ramon tower, [Kidon](/kidˈOn/) two, request taxi.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_ramon_kidon3_taxi.ogg",
+      "voice": "pilot",
+      "say": "Ramon tower, [Kidon](/kidˈOn/) three, request taxi.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_ramon_kidon4_taxi.ogg",
+      "voice": "pilot",
+      "say": "Ramon tower, [Kidon](/kidˈOn/) four, request taxi.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_ramon_kidon5_taxi.ogg",
+      "voice": "pilot",
+      "say": "Ramon tower, [Kidon](/kidˈOn/) five, request taxi.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_ramon_kidon6_taxi.ogg",
+      "voice": "pilot",
+      "say": "Ramon tower, [Kidon](/kidˈOn/) six, request taxi.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_ramon_kidon7_taxi.ogg",
+      "voice": "pilot",
+      "say": "Ramon tower, [Kidon](/kidˈOn/) seven, request taxi.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_ramon_kidon8_taxi.ogg",
+      "voice": "pilot",
+      "say": "Ramon tower, [Kidon](/kidˈOn/) eight, request taxi.",
       "mode": "helmet",
       "note": "the player's call, whole"
     },
@@ -1483,9 +2199,107 @@
       "note": "the player's call, whole"
     },
     {
+      "file": "plt_ramon_kidon2_lineup.ogg",
+      "voice": "pilot",
+      "say": "Ramon tower, [Kidon](/kidˈOn/) two, request line-up.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_ramon_kidon3_lineup.ogg",
+      "voice": "pilot",
+      "say": "Ramon tower, [Kidon](/kidˈOn/) three, request line-up.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_ramon_kidon4_lineup.ogg",
+      "voice": "pilot",
+      "say": "Ramon tower, [Kidon](/kidˈOn/) four, request line-up.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_ramon_kidon5_lineup.ogg",
+      "voice": "pilot",
+      "say": "Ramon tower, [Kidon](/kidˈOn/) five, request line-up.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_ramon_kidon6_lineup.ogg",
+      "voice": "pilot",
+      "say": "Ramon tower, [Kidon](/kidˈOn/) six, request line-up.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_ramon_kidon7_lineup.ogg",
+      "voice": "pilot",
+      "say": "Ramon tower, [Kidon](/kidˈOn/) seven, request line-up.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_ramon_kidon8_lineup.ogg",
+      "voice": "pilot",
+      "say": "Ramon tower, [Kidon](/kidˈOn/) eight, request line-up.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
       "file": "plt_ramon_kidon1_takeoff.ogg",
       "voice": "pilot",
       "say": "Ramon tower, [Kidon](/kidˈOn/) one, ready for take-off.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_ramon_kidon2_takeoff.ogg",
+      "voice": "pilot",
+      "say": "Ramon tower, [Kidon](/kidˈOn/) two, ready for take-off.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_ramon_kidon3_takeoff.ogg",
+      "voice": "pilot",
+      "say": "Ramon tower, [Kidon](/kidˈOn/) three, ready for take-off.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_ramon_kidon4_takeoff.ogg",
+      "voice": "pilot",
+      "say": "Ramon tower, [Kidon](/kidˈOn/) four, ready for take-off.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_ramon_kidon5_takeoff.ogg",
+      "voice": "pilot",
+      "say": "Ramon tower, [Kidon](/kidˈOn/) five, ready for take-off.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_ramon_kidon6_takeoff.ogg",
+      "voice": "pilot",
+      "say": "Ramon tower, [Kidon](/kidˈOn/) six, ready for take-off.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_ramon_kidon7_takeoff.ogg",
+      "voice": "pilot",
+      "say": "Ramon tower, [Kidon](/kidˈOn/) seven, ready for take-off.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_ramon_kidon8_takeoff.ogg",
+      "voice": "pilot",
+      "say": "Ramon tower, [Kidon](/kidˈOn/) eight, ready for take-off.",
       "mode": "helmet",
       "note": "the player's call, whole"
     },
@@ -1497,9 +2311,107 @@
       "note": "the player's call, whole"
     },
     {
+      "file": "plt_ramon_kidon2_landing.ogg",
+      "voice": "pilot",
+      "say": "Ramon tower, [Kidon](/kidˈOn/) two, request landing.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_ramon_kidon3_landing.ogg",
+      "voice": "pilot",
+      "say": "Ramon tower, [Kidon](/kidˈOn/) three, request landing.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_ramon_kidon4_landing.ogg",
+      "voice": "pilot",
+      "say": "Ramon tower, [Kidon](/kidˈOn/) four, request landing.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_ramon_kidon5_landing.ogg",
+      "voice": "pilot",
+      "say": "Ramon tower, [Kidon](/kidˈOn/) five, request landing.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_ramon_kidon6_landing.ogg",
+      "voice": "pilot",
+      "say": "Ramon tower, [Kidon](/kidˈOn/) six, request landing.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_ramon_kidon7_landing.ogg",
+      "voice": "pilot",
+      "say": "Ramon tower, [Kidon](/kidˈOn/) seven, request landing.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_ramon_kidon8_landing.ogg",
+      "voice": "pilot",
+      "say": "Ramon tower, [Kidon](/kidˈOn/) eight, request landing.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
       "file": "plt_david_kidon1_start.ogg",
       "voice": "pilot",
       "say": "Ramat David tower, [Kidon](/kidˈOn/) one, request start-up.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_david_kidon2_start.ogg",
+      "voice": "pilot",
+      "say": "Ramat David tower, [Kidon](/kidˈOn/) two, request start-up.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_david_kidon3_start.ogg",
+      "voice": "pilot",
+      "say": "Ramat David tower, [Kidon](/kidˈOn/) three, request start-up.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_david_kidon4_start.ogg",
+      "voice": "pilot",
+      "say": "Ramat David tower, [Kidon](/kidˈOn/) four, request start-up.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_david_kidon5_start.ogg",
+      "voice": "pilot",
+      "say": "Ramat David tower, [Kidon](/kidˈOn/) five, request start-up.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_david_kidon6_start.ogg",
+      "voice": "pilot",
+      "say": "Ramat David tower, [Kidon](/kidˈOn/) six, request start-up.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_david_kidon7_start.ogg",
+      "voice": "pilot",
+      "say": "Ramat David tower, [Kidon](/kidˈOn/) seven, request start-up.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_david_kidon8_start.ogg",
+      "voice": "pilot",
+      "say": "Ramat David tower, [Kidon](/kidˈOn/) eight, request start-up.",
       "mode": "helmet",
       "note": "the player's call, whole"
     },
@@ -1511,9 +2423,107 @@
       "note": "the player's call, whole"
     },
     {
+      "file": "plt_david_kidon2_taxi.ogg",
+      "voice": "pilot",
+      "say": "Ramat David tower, [Kidon](/kidˈOn/) two, request taxi.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_david_kidon3_taxi.ogg",
+      "voice": "pilot",
+      "say": "Ramat David tower, [Kidon](/kidˈOn/) three, request taxi.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_david_kidon4_taxi.ogg",
+      "voice": "pilot",
+      "say": "Ramat David tower, [Kidon](/kidˈOn/) four, request taxi.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_david_kidon5_taxi.ogg",
+      "voice": "pilot",
+      "say": "Ramat David tower, [Kidon](/kidˈOn/) five, request taxi.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_david_kidon6_taxi.ogg",
+      "voice": "pilot",
+      "say": "Ramat David tower, [Kidon](/kidˈOn/) six, request taxi.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_david_kidon7_taxi.ogg",
+      "voice": "pilot",
+      "say": "Ramat David tower, [Kidon](/kidˈOn/) seven, request taxi.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_david_kidon8_taxi.ogg",
+      "voice": "pilot",
+      "say": "Ramat David tower, [Kidon](/kidˈOn/) eight, request taxi.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
       "file": "plt_david_kidon1_lineup.ogg",
       "voice": "pilot",
       "say": "Ramat David tower, [Kidon](/kidˈOn/) one, request line-up.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_david_kidon2_lineup.ogg",
+      "voice": "pilot",
+      "say": "Ramat David tower, [Kidon](/kidˈOn/) two, request line-up.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_david_kidon3_lineup.ogg",
+      "voice": "pilot",
+      "say": "Ramat David tower, [Kidon](/kidˈOn/) three, request line-up.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_david_kidon4_lineup.ogg",
+      "voice": "pilot",
+      "say": "Ramat David tower, [Kidon](/kidˈOn/) four, request line-up.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_david_kidon5_lineup.ogg",
+      "voice": "pilot",
+      "say": "Ramat David tower, [Kidon](/kidˈOn/) five, request line-up.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_david_kidon6_lineup.ogg",
+      "voice": "pilot",
+      "say": "Ramat David tower, [Kidon](/kidˈOn/) six, request line-up.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_david_kidon7_lineup.ogg",
+      "voice": "pilot",
+      "say": "Ramat David tower, [Kidon](/kidˈOn/) seven, request line-up.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_david_kidon8_lineup.ogg",
+      "voice": "pilot",
+      "say": "Ramat David tower, [Kidon](/kidˈOn/) eight, request line-up.",
       "mode": "helmet",
       "note": "the player's call, whole"
     },
@@ -1525,9 +2535,107 @@
       "note": "the player's call, whole"
     },
     {
+      "file": "plt_david_kidon2_takeoff.ogg",
+      "voice": "pilot",
+      "say": "Ramat David tower, [Kidon](/kidˈOn/) two, ready for take-off.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_david_kidon3_takeoff.ogg",
+      "voice": "pilot",
+      "say": "Ramat David tower, [Kidon](/kidˈOn/) three, ready for take-off.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_david_kidon4_takeoff.ogg",
+      "voice": "pilot",
+      "say": "Ramat David tower, [Kidon](/kidˈOn/) four, ready for take-off.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_david_kidon5_takeoff.ogg",
+      "voice": "pilot",
+      "say": "Ramat David tower, [Kidon](/kidˈOn/) five, ready for take-off.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_david_kidon6_takeoff.ogg",
+      "voice": "pilot",
+      "say": "Ramat David tower, [Kidon](/kidˈOn/) six, ready for take-off.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_david_kidon7_takeoff.ogg",
+      "voice": "pilot",
+      "say": "Ramat David tower, [Kidon](/kidˈOn/) seven, ready for take-off.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_david_kidon8_takeoff.ogg",
+      "voice": "pilot",
+      "say": "Ramat David tower, [Kidon](/kidˈOn/) eight, ready for take-off.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
       "file": "plt_david_kidon1_landing.ogg",
       "voice": "pilot",
       "say": "Ramat David tower, [Kidon](/kidˈOn/) one, request landing.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_david_kidon2_landing.ogg",
+      "voice": "pilot",
+      "say": "Ramat David tower, [Kidon](/kidˈOn/) two, request landing.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_david_kidon3_landing.ogg",
+      "voice": "pilot",
+      "say": "Ramat David tower, [Kidon](/kidˈOn/) three, request landing.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_david_kidon4_landing.ogg",
+      "voice": "pilot",
+      "say": "Ramat David tower, [Kidon](/kidˈOn/) four, request landing.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_david_kidon5_landing.ogg",
+      "voice": "pilot",
+      "say": "Ramat David tower, [Kidon](/kidˈOn/) five, request landing.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_david_kidon6_landing.ogg",
+      "voice": "pilot",
+      "say": "Ramat David tower, [Kidon](/kidˈOn/) six, request landing.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_david_kidon7_landing.ogg",
+      "voice": "pilot",
+      "say": "Ramat David tower, [Kidon](/kidˈOn/) seven, request landing.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_david_kidon8_landing.ogg",
+      "voice": "pilot",
+      "say": "Ramat David tower, [Kidon](/kidˈOn/) eight, request landing.",
       "mode": "helmet",
       "note": "the player's call, whole"
     },
@@ -1539,9 +2647,107 @@
       "note": "the player's call, whole"
     },
     {
+      "file": "plt_hatzerim_kidon2_start.ogg",
+      "voice": "pilot",
+      "say": "Hatzerim tower, [Kidon](/kidˈOn/) two, request start-up.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_hatzerim_kidon3_start.ogg",
+      "voice": "pilot",
+      "say": "Hatzerim tower, [Kidon](/kidˈOn/) three, request start-up.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_hatzerim_kidon4_start.ogg",
+      "voice": "pilot",
+      "say": "Hatzerim tower, [Kidon](/kidˈOn/) four, request start-up.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_hatzerim_kidon5_start.ogg",
+      "voice": "pilot",
+      "say": "Hatzerim tower, [Kidon](/kidˈOn/) five, request start-up.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_hatzerim_kidon6_start.ogg",
+      "voice": "pilot",
+      "say": "Hatzerim tower, [Kidon](/kidˈOn/) six, request start-up.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_hatzerim_kidon7_start.ogg",
+      "voice": "pilot",
+      "say": "Hatzerim tower, [Kidon](/kidˈOn/) seven, request start-up.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_hatzerim_kidon8_start.ogg",
+      "voice": "pilot",
+      "say": "Hatzerim tower, [Kidon](/kidˈOn/) eight, request start-up.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
       "file": "plt_hatzerim_kidon1_taxi.ogg",
       "voice": "pilot",
       "say": "Hatzerim tower, [Kidon](/kidˈOn/) one, request taxi.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_hatzerim_kidon2_taxi.ogg",
+      "voice": "pilot",
+      "say": "Hatzerim tower, [Kidon](/kidˈOn/) two, request taxi.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_hatzerim_kidon3_taxi.ogg",
+      "voice": "pilot",
+      "say": "Hatzerim tower, [Kidon](/kidˈOn/) three, request taxi.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_hatzerim_kidon4_taxi.ogg",
+      "voice": "pilot",
+      "say": "Hatzerim tower, [Kidon](/kidˈOn/) four, request taxi.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_hatzerim_kidon5_taxi.ogg",
+      "voice": "pilot",
+      "say": "Hatzerim tower, [Kidon](/kidˈOn/) five, request taxi.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_hatzerim_kidon6_taxi.ogg",
+      "voice": "pilot",
+      "say": "Hatzerim tower, [Kidon](/kidˈOn/) six, request taxi.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_hatzerim_kidon7_taxi.ogg",
+      "voice": "pilot",
+      "say": "Hatzerim tower, [Kidon](/kidˈOn/) seven, request taxi.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_hatzerim_kidon8_taxi.ogg",
+      "voice": "pilot",
+      "say": "Hatzerim tower, [Kidon](/kidˈOn/) eight, request taxi.",
       "mode": "helmet",
       "note": "the player's call, whole"
     },
@@ -1553,9 +2759,107 @@
       "note": "the player's call, whole"
     },
     {
+      "file": "plt_hatzerim_kidon2_lineup.ogg",
+      "voice": "pilot",
+      "say": "Hatzerim tower, [Kidon](/kidˈOn/) two, request line-up.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_hatzerim_kidon3_lineup.ogg",
+      "voice": "pilot",
+      "say": "Hatzerim tower, [Kidon](/kidˈOn/) three, request line-up.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_hatzerim_kidon4_lineup.ogg",
+      "voice": "pilot",
+      "say": "Hatzerim tower, [Kidon](/kidˈOn/) four, request line-up.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_hatzerim_kidon5_lineup.ogg",
+      "voice": "pilot",
+      "say": "Hatzerim tower, [Kidon](/kidˈOn/) five, request line-up.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_hatzerim_kidon6_lineup.ogg",
+      "voice": "pilot",
+      "say": "Hatzerim tower, [Kidon](/kidˈOn/) six, request line-up.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_hatzerim_kidon7_lineup.ogg",
+      "voice": "pilot",
+      "say": "Hatzerim tower, [Kidon](/kidˈOn/) seven, request line-up.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_hatzerim_kidon8_lineup.ogg",
+      "voice": "pilot",
+      "say": "Hatzerim tower, [Kidon](/kidˈOn/) eight, request line-up.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
       "file": "plt_hatzerim_kidon1_takeoff.ogg",
       "voice": "pilot",
       "say": "Hatzerim tower, [Kidon](/kidˈOn/) one, ready for take-off.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_hatzerim_kidon2_takeoff.ogg",
+      "voice": "pilot",
+      "say": "Hatzerim tower, [Kidon](/kidˈOn/) two, ready for take-off.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_hatzerim_kidon3_takeoff.ogg",
+      "voice": "pilot",
+      "say": "Hatzerim tower, [Kidon](/kidˈOn/) three, ready for take-off.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_hatzerim_kidon4_takeoff.ogg",
+      "voice": "pilot",
+      "say": "Hatzerim tower, [Kidon](/kidˈOn/) four, ready for take-off.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_hatzerim_kidon5_takeoff.ogg",
+      "voice": "pilot",
+      "say": "Hatzerim tower, [Kidon](/kidˈOn/) five, ready for take-off.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_hatzerim_kidon6_takeoff.ogg",
+      "voice": "pilot",
+      "say": "Hatzerim tower, [Kidon](/kidˈOn/) six, ready for take-off.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_hatzerim_kidon7_takeoff.ogg",
+      "voice": "pilot",
+      "say": "Hatzerim tower, [Kidon](/kidˈOn/) seven, ready for take-off.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_hatzerim_kidon8_takeoff.ogg",
+      "voice": "pilot",
+      "say": "Hatzerim tower, [Kidon](/kidˈOn/) eight, ready for take-off.",
       "mode": "helmet",
       "note": "the player's call, whole"
     },
@@ -1567,9 +2871,107 @@
       "note": "the player's call, whole"
     },
     {
+      "file": "plt_hatzerim_kidon2_landing.ogg",
+      "voice": "pilot",
+      "say": "Hatzerim tower, [Kidon](/kidˈOn/) two, request landing.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_hatzerim_kidon3_landing.ogg",
+      "voice": "pilot",
+      "say": "Hatzerim tower, [Kidon](/kidˈOn/) three, request landing.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_hatzerim_kidon4_landing.ogg",
+      "voice": "pilot",
+      "say": "Hatzerim tower, [Kidon](/kidˈOn/) four, request landing.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_hatzerim_kidon5_landing.ogg",
+      "voice": "pilot",
+      "say": "Hatzerim tower, [Kidon](/kidˈOn/) five, request landing.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_hatzerim_kidon6_landing.ogg",
+      "voice": "pilot",
+      "say": "Hatzerim tower, [Kidon](/kidˈOn/) six, request landing.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_hatzerim_kidon7_landing.ogg",
+      "voice": "pilot",
+      "say": "Hatzerim tower, [Kidon](/kidˈOn/) seven, request landing.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_hatzerim_kidon8_landing.ogg",
+      "voice": "pilot",
+      "say": "Hatzerim tower, [Kidon](/kidˈOn/) eight, request landing.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
       "file": "plt_nevatim_kidon1_start.ogg",
       "voice": "pilot",
       "say": "Nevatim tower, [Kidon](/kidˈOn/) one, request start-up.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_nevatim_kidon2_start.ogg",
+      "voice": "pilot",
+      "say": "Nevatim tower, [Kidon](/kidˈOn/) two, request start-up.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_nevatim_kidon3_start.ogg",
+      "voice": "pilot",
+      "say": "Nevatim tower, [Kidon](/kidˈOn/) three, request start-up.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_nevatim_kidon4_start.ogg",
+      "voice": "pilot",
+      "say": "Nevatim tower, [Kidon](/kidˈOn/) four, request start-up.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_nevatim_kidon5_start.ogg",
+      "voice": "pilot",
+      "say": "Nevatim tower, [Kidon](/kidˈOn/) five, request start-up.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_nevatim_kidon6_start.ogg",
+      "voice": "pilot",
+      "say": "Nevatim tower, [Kidon](/kidˈOn/) six, request start-up.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_nevatim_kidon7_start.ogg",
+      "voice": "pilot",
+      "say": "Nevatim tower, [Kidon](/kidˈOn/) seven, request start-up.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_nevatim_kidon8_start.ogg",
+      "voice": "pilot",
+      "say": "Nevatim tower, [Kidon](/kidˈOn/) eight, request start-up.",
       "mode": "helmet",
       "note": "the player's call, whole"
     },
@@ -1581,9 +2983,107 @@
       "note": "the player's call, whole"
     },
     {
+      "file": "plt_nevatim_kidon2_taxi.ogg",
+      "voice": "pilot",
+      "say": "Nevatim tower, [Kidon](/kidˈOn/) two, request taxi.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_nevatim_kidon3_taxi.ogg",
+      "voice": "pilot",
+      "say": "Nevatim tower, [Kidon](/kidˈOn/) three, request taxi.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_nevatim_kidon4_taxi.ogg",
+      "voice": "pilot",
+      "say": "Nevatim tower, [Kidon](/kidˈOn/) four, request taxi.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_nevatim_kidon5_taxi.ogg",
+      "voice": "pilot",
+      "say": "Nevatim tower, [Kidon](/kidˈOn/) five, request taxi.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_nevatim_kidon6_taxi.ogg",
+      "voice": "pilot",
+      "say": "Nevatim tower, [Kidon](/kidˈOn/) six, request taxi.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_nevatim_kidon7_taxi.ogg",
+      "voice": "pilot",
+      "say": "Nevatim tower, [Kidon](/kidˈOn/) seven, request taxi.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_nevatim_kidon8_taxi.ogg",
+      "voice": "pilot",
+      "say": "Nevatim tower, [Kidon](/kidˈOn/) eight, request taxi.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
       "file": "plt_nevatim_kidon1_lineup.ogg",
       "voice": "pilot",
       "say": "Nevatim tower, [Kidon](/kidˈOn/) one, request line-up.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_nevatim_kidon2_lineup.ogg",
+      "voice": "pilot",
+      "say": "Nevatim tower, [Kidon](/kidˈOn/) two, request line-up.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_nevatim_kidon3_lineup.ogg",
+      "voice": "pilot",
+      "say": "Nevatim tower, [Kidon](/kidˈOn/) three, request line-up.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_nevatim_kidon4_lineup.ogg",
+      "voice": "pilot",
+      "say": "Nevatim tower, [Kidon](/kidˈOn/) four, request line-up.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_nevatim_kidon5_lineup.ogg",
+      "voice": "pilot",
+      "say": "Nevatim tower, [Kidon](/kidˈOn/) five, request line-up.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_nevatim_kidon6_lineup.ogg",
+      "voice": "pilot",
+      "say": "Nevatim tower, [Kidon](/kidˈOn/) six, request line-up.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_nevatim_kidon7_lineup.ogg",
+      "voice": "pilot",
+      "say": "Nevatim tower, [Kidon](/kidˈOn/) seven, request line-up.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_nevatim_kidon8_lineup.ogg",
+      "voice": "pilot",
+      "say": "Nevatim tower, [Kidon](/kidˈOn/) eight, request line-up.",
       "mode": "helmet",
       "note": "the player's call, whole"
     },
@@ -1595,9 +3095,107 @@
       "note": "the player's call, whole"
     },
     {
+      "file": "plt_nevatim_kidon2_takeoff.ogg",
+      "voice": "pilot",
+      "say": "Nevatim tower, [Kidon](/kidˈOn/) two, ready for take-off.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_nevatim_kidon3_takeoff.ogg",
+      "voice": "pilot",
+      "say": "Nevatim tower, [Kidon](/kidˈOn/) three, ready for take-off.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_nevatim_kidon4_takeoff.ogg",
+      "voice": "pilot",
+      "say": "Nevatim tower, [Kidon](/kidˈOn/) four, ready for take-off.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_nevatim_kidon5_takeoff.ogg",
+      "voice": "pilot",
+      "say": "Nevatim tower, [Kidon](/kidˈOn/) five, ready for take-off.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_nevatim_kidon6_takeoff.ogg",
+      "voice": "pilot",
+      "say": "Nevatim tower, [Kidon](/kidˈOn/) six, ready for take-off.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_nevatim_kidon7_takeoff.ogg",
+      "voice": "pilot",
+      "say": "Nevatim tower, [Kidon](/kidˈOn/) seven, ready for take-off.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_nevatim_kidon8_takeoff.ogg",
+      "voice": "pilot",
+      "say": "Nevatim tower, [Kidon](/kidˈOn/) eight, ready for take-off.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
       "file": "plt_nevatim_kidon1_landing.ogg",
       "voice": "pilot",
       "say": "Nevatim tower, [Kidon](/kidˈOn/) one, request landing.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_nevatim_kidon2_landing.ogg",
+      "voice": "pilot",
+      "say": "Nevatim tower, [Kidon](/kidˈOn/) two, request landing.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_nevatim_kidon3_landing.ogg",
+      "voice": "pilot",
+      "say": "Nevatim tower, [Kidon](/kidˈOn/) three, request landing.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_nevatim_kidon4_landing.ogg",
+      "voice": "pilot",
+      "say": "Nevatim tower, [Kidon](/kidˈOn/) four, request landing.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_nevatim_kidon5_landing.ogg",
+      "voice": "pilot",
+      "say": "Nevatim tower, [Kidon](/kidˈOn/) five, request landing.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_nevatim_kidon6_landing.ogg",
+      "voice": "pilot",
+      "say": "Nevatim tower, [Kidon](/kidˈOn/) six, request landing.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_nevatim_kidon7_landing.ogg",
+      "voice": "pilot",
+      "say": "Nevatim tower, [Kidon](/kidˈOn/) seven, request landing.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_nevatim_kidon8_landing.ogg",
+      "voice": "pilot",
+      "say": "Nevatim tower, [Kidon](/kidˈOn/) eight, request landing.",
       "mode": "helmet",
       "note": "the player's call, whole"
     },
@@ -1628,6 +3226,34 @@
       "say": "[Kidon](/kidˈOn/) four",
       "mode": "particle",
       "say_he": "כידון ארבע"
+    },
+    {
+      "file": "awx_kidon5.ogg",
+      "voice": "awacs",
+      "say": "[Kidon](/kidˈOn/) five",
+      "mode": "particle",
+      "say_he": "כידון חמש"
+    },
+    {
+      "file": "awx_kidon6.ogg",
+      "voice": "awacs",
+      "say": "[Kidon](/kidˈOn/) six",
+      "mode": "particle",
+      "say_he": "כידון שש"
+    },
+    {
+      "file": "awx_kidon7.ogg",
+      "voice": "awacs",
+      "say": "[Kidon](/kidˈOn/) seven",
+      "mode": "particle",
+      "say_he": "כידון שבע"
+    },
+    {
+      "file": "awx_kidon8.ogg",
+      "voice": "awacs",
+      "say": "[Kidon](/kidˈOn/) eight",
+      "mode": "particle",
+      "say_he": "כידון שמונה"
     },
     {
       "file": "awx_bearing_010.ogg",
@@ -3922,6 +5548,26 @@
       "text": "Kidon 4",
       "text_he": "כידון 4"
     },
+    "ECHO_T": {
+      "file": "twr_kidon5.ogg",
+      "text": "Kidon 5",
+      "text_he": "כידון 5"
+    },
+    "FOXTROT_T": {
+      "file": "twr_kidon6.ogg",
+      "text": "Kidon 6",
+      "text_he": "כידון 6"
+    },
+    "HOTEL_T": {
+      "file": "twr_kidon7.ogg",
+      "text": "Kidon 7",
+      "text_he": "כידון 7"
+    },
+    "INDIA_T": {
+      "file": "twr_kidon8.ogg",
+      "text": "Kidon 8",
+      "text_he": "כידון 8"
+    },
     "WNG_TWO_T": {
       "file": "twr_kidon1_2.ogg",
       "text": "Kidon 1-2",
@@ -4392,55 +6038,275 @@
       "text": "Kidon 2, good morning, taxi to runway",
       "text_he": "כידון 2, בוקר טוב, הסעה למסלול"
     },
+    "ECHO_T+,+MORNING+,+TAXI_RWY": {
+      "file": "twr_kidon5_taxi_morning.ogg",
+      "text": "Kidon 5, good morning, taxi to runway",
+      "text_he": "כידון 5, בוקר טוב, הסעה למסלול"
+    },
+    "FOXTROT_T+,+MORNING+,+TAXI_RWY": {
+      "file": "twr_kidon6_taxi_morning.ogg",
+      "text": "Kidon 6, good morning, taxi to runway",
+      "text_he": "כידון 6, בוקר טוב, הסעה למסלול"
+    },
+    "HOTEL_T+,+MORNING+,+TAXI_RWY": {
+      "file": "twr_kidon7_taxi_morning.ogg",
+      "text": "Kidon 7, good morning, taxi to runway",
+      "text_he": "כידון 7, בוקר טוב, הסעה למסלול"
+    },
+    "INDIA_T+,+MORNING+,+TAXI_RWY": {
+      "file": "twr_kidon8_taxi_morning.ogg",
+      "text": "Kidon 8, good morning, taxi to runway",
+      "text_he": "כידון 8, בוקר טוב, הסעה למסלול"
+    },
     "BRAVO_T+,+AFTERNOON+,+TAXI_RWY": {
       "file": "twr_kidon2_taxi_afternoon.ogg",
       "text": "Kidon 2, good afternoon, taxi to runway",
       "text_he": "כידון 2, צהריים טובים, הסעה למסלול"
+    },
+    "ECHO_T+,+AFTERNOON+,+TAXI_RWY": {
+      "file": "twr_kidon5_taxi_afternoon.ogg",
+      "text": "Kidon 5, good afternoon, taxi to runway",
+      "text_he": "כידון 5, צהריים טובים, הסעה למסלול"
+    },
+    "FOXTROT_T+,+AFTERNOON+,+TAXI_RWY": {
+      "file": "twr_kidon6_taxi_afternoon.ogg",
+      "text": "Kidon 6, good afternoon, taxi to runway",
+      "text_he": "כידון 6, צהריים טובים, הסעה למסלול"
+    },
+    "HOTEL_T+,+AFTERNOON+,+TAXI_RWY": {
+      "file": "twr_kidon7_taxi_afternoon.ogg",
+      "text": "Kidon 7, good afternoon, taxi to runway",
+      "text_he": "כידון 7, צהריים טובים, הסעה למסלול"
+    },
+    "INDIA_T+,+AFTERNOON+,+TAXI_RWY": {
+      "file": "twr_kidon8_taxi_afternoon.ogg",
+      "text": "Kidon 8, good afternoon, taxi to runway",
+      "text_he": "כידון 8, צהריים טובים, הסעה למסלול"
     },
     "BRAVO_T+,+EVENING+,+TAXI_RWY": {
       "file": "twr_kidon2_taxi_evening.ogg",
       "text": "Kidon 2, good evening, taxi to runway",
       "text_he": "כידון 2, ערב טוב, הסעה למסלול"
     },
+    "ECHO_T+,+EVENING+,+TAXI_RWY": {
+      "file": "twr_kidon5_taxi_evening.ogg",
+      "text": "Kidon 5, good evening, taxi to runway",
+      "text_he": "כידון 5, ערב טוב, הסעה למסלול"
+    },
+    "FOXTROT_T+,+EVENING+,+TAXI_RWY": {
+      "file": "twr_kidon6_taxi_evening.ogg",
+      "text": "Kidon 6, good evening, taxi to runway",
+      "text_he": "כידון 6, ערב טוב, הסעה למסלול"
+    },
+    "HOTEL_T+,+EVENING+,+TAXI_RWY": {
+      "file": "twr_kidon7_taxi_evening.ogg",
+      "text": "Kidon 7, good evening, taxi to runway",
+      "text_he": "כידון 7, ערב טוב, הסעה למסלול"
+    },
+    "INDIA_T+,+EVENING+,+TAXI_RWY": {
+      "file": "twr_kidon8_taxi_evening.ogg",
+      "text": "Kidon 8, good evening, taxi to runway",
+      "text_he": "כידון 8, ערב טוב, הסעה למסלול"
+    },
     "BRAVO_T+,+LINEUP_RWY": {
       "file": "twr_kidon2_lineup_rwy.ogg",
       "text": "Kidon 2, line up runway",
       "text_he": "כידון 2, כניסה למסלול"
+    },
+    "ECHO_T+,+LINEUP_RWY": {
+      "file": "twr_kidon5_lineup_rwy.ogg",
+      "text": "Kidon 5, line up runway",
+      "text_he": "כידון 5, כניסה למסלול"
+    },
+    "FOXTROT_T+,+LINEUP_RWY": {
+      "file": "twr_kidon6_lineup_rwy.ogg",
+      "text": "Kidon 6, line up runway",
+      "text_he": "כידון 6, כניסה למסלול"
+    },
+    "HOTEL_T+,+LINEUP_RWY": {
+      "file": "twr_kidon7_lineup_rwy.ogg",
+      "text": "Kidon 7, line up runway",
+      "text_he": "כידון 7, כניסה למסלול"
+    },
+    "INDIA_T+,+LINEUP_RWY": {
+      "file": "twr_kidon8_lineup_rwy.ogg",
+      "text": "Kidon 8, line up runway",
+      "text_he": "כידון 8, כניסה למסלול"
     },
     "BRAVO_T+,+PROCEED_RWY": {
       "file": "twr_kidon2_proceed_rwy.ogg",
       "text": "Kidon 2, proceed to runway",
       "text_he": "כידון 2, התקדמות למסלול"
     },
+    "ECHO_T+,+PROCEED_RWY": {
+      "file": "twr_kidon5_proceed_rwy.ogg",
+      "text": "Kidon 5, proceed to runway",
+      "text_he": "כידון 5, התקדמות למסלול"
+    },
+    "FOXTROT_T+,+PROCEED_RWY": {
+      "file": "twr_kidon6_proceed_rwy.ogg",
+      "text": "Kidon 6, proceed to runway",
+      "text_he": "כידון 6, התקדמות למסלול"
+    },
+    "HOTEL_T+,+PROCEED_RWY": {
+      "file": "twr_kidon7_proceed_rwy.ogg",
+      "text": "Kidon 7, proceed to runway",
+      "text_he": "כידון 7, התקדמות למסלול"
+    },
+    "INDIA_T+,+PROCEED_RWY": {
+      "file": "twr_kidon8_proceed_rwy.ogg",
+      "text": "Kidon 8, proceed to runway",
+      "text_he": "כידון 8, התקדמות למסלול"
+    },
     "BRAVO_T+,+LAND_RWY": {
       "file": "twr_kidon2_land_rwy.ogg",
       "text": "Kidon 2, cleared to land runway",
       "text_he": "כידון 2, אישור נחיתה במסלול"
+    },
+    "ECHO_T+,+LAND_RWY": {
+      "file": "twr_kidon5_land_rwy.ogg",
+      "text": "Kidon 5, cleared to land runway",
+      "text_he": "כידון 5, אישור נחיתה במסלול"
+    },
+    "FOXTROT_T+,+LAND_RWY": {
+      "file": "twr_kidon6_land_rwy.ogg",
+      "text": "Kidon 6, cleared to land runway",
+      "text_he": "כידון 6, אישור נחיתה במסלול"
+    },
+    "HOTEL_T+,+LAND_RWY": {
+      "file": "twr_kidon7_land_rwy.ogg",
+      "text": "Kidon 7, cleared to land runway",
+      "text_he": "כידון 7, אישור נחיתה במסלול"
+    },
+    "INDIA_T+,+LAND_RWY": {
+      "file": "twr_kidon8_land_rwy.ogg",
+      "text": "Kidon 8, cleared to land runway",
+      "text_he": "כידון 8, אישור נחיתה במסלול"
     },
     "BRAVO_T+,+START": {
       "file": "twr_kidon2_start.ogg",
       "text": "Kidon 2, cleared to start",
       "text_he": "כידון 2, אישור התנעה"
     },
+    "ECHO_T+,+START": {
+      "file": "twr_kidon5_start.ogg",
+      "text": "Kidon 5, cleared to start",
+      "text_he": "כידון 5, אישור התנעה"
+    },
+    "FOXTROT_T+,+START": {
+      "file": "twr_kidon6_start.ogg",
+      "text": "Kidon 6, cleared to start",
+      "text_he": "כידון 6, אישור התנעה"
+    },
+    "HOTEL_T+,+START": {
+      "file": "twr_kidon7_start.ogg",
+      "text": "Kidon 7, cleared to start",
+      "text_he": "כידון 7, אישור התנעה"
+    },
+    "INDIA_T+,+START": {
+      "file": "twr_kidon8_start.ogg",
+      "text": "Kidon 8, cleared to start",
+      "text_he": "כידון 8, אישור התנעה"
+    },
     "BRAVO_T+,+HOLD_POS": {
       "file": "twr_kidon2_hold_pos.ogg",
       "text": "Kidon 2, hold position",
       "text_he": "כידון 2, המתנה במקום"
+    },
+    "ECHO_T+,+HOLD_POS": {
+      "file": "twr_kidon5_hold_pos.ogg",
+      "text": "Kidon 5, hold position",
+      "text_he": "כידון 5, המתנה במקום"
+    },
+    "FOXTROT_T+,+HOLD_POS": {
+      "file": "twr_kidon6_hold_pos.ogg",
+      "text": "Kidon 6, hold position",
+      "text_he": "כידון 6, המתנה במקום"
+    },
+    "HOTEL_T+,+HOLD_POS": {
+      "file": "twr_kidon7_hold_pos.ogg",
+      "text": "Kidon 7, hold position",
+      "text_he": "כידון 7, המתנה במקום"
+    },
+    "INDIA_T+,+HOLD_POS": {
+      "file": "twr_kidon8_hold_pos.ogg",
+      "text": "Kidon 8, hold position",
+      "text_he": "כידון 8, המתנה במקום"
     },
     "BRAVO_T+,+GO_AROUND": {
       "file": "twr_kidon2_go_around.ogg",
       "text": "Kidon 2, go around, runway not clear",
       "text_he": "כידון 2, הליכה סביב, המסלול אינו פנוי"
     },
+    "ECHO_T+,+GO_AROUND": {
+      "file": "twr_kidon5_go_around.ogg",
+      "text": "Kidon 5, go around, runway not clear",
+      "text_he": "כידון 5, הליכה סביב, המסלול אינו פנוי"
+    },
+    "FOXTROT_T+,+GO_AROUND": {
+      "file": "twr_kidon6_go_around.ogg",
+      "text": "Kidon 6, go around, runway not clear",
+      "text_he": "כידון 6, הליכה סביב, המסלול אינו פנוי"
+    },
+    "HOTEL_T+,+GO_AROUND": {
+      "file": "twr_kidon7_go_around.ogg",
+      "text": "Kidon 7, go around, runway not clear",
+      "text_he": "כידון 7, הליכה סביב, המסלול אינו פנוי"
+    },
+    "INDIA_T+,+GO_AROUND": {
+      "file": "twr_kidon8_go_around.ogg",
+      "text": "Kidon 8, go around, runway not clear",
+      "text_he": "כידון 8, הליכה סביב, המסלול אינו פנוי"
+    },
     "BRAVO_T+,+TAXI_PARK": {
       "file": "twr_kidon2_taxi_park.ogg",
       "text": "Kidon 2, welcome back, taxi to parking",
       "text_he": "כידון 2, ברוכים השבים, הסעה לחנייה"
     },
+    "ECHO_T+,+TAXI_PARK": {
+      "file": "twr_kidon5_taxi_park.ogg",
+      "text": "Kidon 5, welcome back, taxi to parking",
+      "text_he": "כידון 5, ברוכים השבים, הסעה לחנייה"
+    },
+    "FOXTROT_T+,+TAXI_PARK": {
+      "file": "twr_kidon6_taxi_park.ogg",
+      "text": "Kidon 6, welcome back, taxi to parking",
+      "text_he": "כידון 6, ברוכים השבים, הסעה לחנייה"
+    },
+    "HOTEL_T+,+TAXI_PARK": {
+      "file": "twr_kidon7_taxi_park.ogg",
+      "text": "Kidon 7, welcome back, taxi to parking",
+      "text_he": "כידון 7, ברוכים השבים, הסעה לחנייה"
+    },
+    "INDIA_T+,+TAXI_PARK": {
+      "file": "twr_kidon8_taxi_park.ogg",
+      "text": "Kidon 8, welcome back, taxi to parking",
+      "text_he": "כידון 8, ברוכים השבים, הסעה לחנייה"
+    },
     "BRAVO_T+,+GEAR_NOT_DOWN": {
       "file": "twr_kidon2_gear_not_down.ogg",
       "text": "Kidon 2, check gear down",
       "text_he": "כידון 2, בדיקת כן נסע למטה"
+    },
+    "ECHO_T+,+GEAR_NOT_DOWN": {
+      "file": "twr_kidon5_gear_not_down.ogg",
+      "text": "Kidon 5, check gear down",
+      "text_he": "כידון 5, בדיקת כן נסע למטה"
+    },
+    "FOXTROT_T+,+GEAR_NOT_DOWN": {
+      "file": "twr_kidon6_gear_not_down.ogg",
+      "text": "Kidon 6, check gear down",
+      "text_he": "כידון 6, בדיקת כן נסע למטה"
+    },
+    "HOTEL_T+,+GEAR_NOT_DOWN": {
+      "file": "twr_kidon7_gear_not_down.ogg",
+      "text": "Kidon 7, check gear down",
+      "text_he": "כידון 7, בדיקת כן נסע למטה"
+    },
+    "INDIA_T+,+GEAR_NOT_DOWN": {
+      "file": "twr_kidon8_gear_not_down.ogg",
+      "text": "Kidon 8, check gear down",
+      "text_he": "כידון 8, בדיקת כן נסע למטה"
     },
     "CHARLIE_T+,+MORNING+,+TAXI_RWY": {
       "file": "twr_kidon3_taxi_morning.ogg",
@@ -4562,6 +6428,26 @@
       "text": "Kidon 2, engine start without clearance",
       "text_he": "כידון 2, התנעה ללא אישור"
     },
+    "ECHO_T+,+NO_START_CLR": {
+      "file": "twr_kidon5_no_start_clr.ogg",
+      "text": "Kidon 5, engine start without clearance",
+      "text_he": "כידון 5, התנעה ללא אישור"
+    },
+    "FOXTROT_T+,+NO_START_CLR": {
+      "file": "twr_kidon6_no_start_clr.ogg",
+      "text": "Kidon 6, engine start without clearance",
+      "text_he": "כידון 6, התנעה ללא אישור"
+    },
+    "HOTEL_T+,+NO_START_CLR": {
+      "file": "twr_kidon7_no_start_clr.ogg",
+      "text": "Kidon 7, engine start without clearance",
+      "text_he": "כידון 7, התנעה ללא אישור"
+    },
+    "INDIA_T+,+NO_START_CLR": {
+      "file": "twr_kidon8_no_start_clr.ogg",
+      "text": "Kidon 8, engine start without clearance",
+      "text_he": "כידון 8, התנעה ללא אישור"
+    },
     "CHARLIE_T+,+NO_START_CLR": {
       "file": "twr_kidon3_no_start_clr.ogg",
       "text": "Kidon 3, engine start without clearance",
@@ -4581,6 +6467,26 @@
       "file": "twr_kidon2_no_taxi_clr.ogg",
       "text": "Kidon 2, taxi without clearance",
       "text_he": "כידון 2, הסעה ללא אישור"
+    },
+    "ECHO_T+,+NO_TAXI_CLR": {
+      "file": "twr_kidon5_no_taxi_clr.ogg",
+      "text": "Kidon 5, taxi without clearance",
+      "text_he": "כידון 5, הסעה ללא אישור"
+    },
+    "FOXTROT_T+,+NO_TAXI_CLR": {
+      "file": "twr_kidon6_no_taxi_clr.ogg",
+      "text": "Kidon 6, taxi without clearance",
+      "text_he": "כידון 6, הסעה ללא אישור"
+    },
+    "HOTEL_T+,+NO_TAXI_CLR": {
+      "file": "twr_kidon7_no_taxi_clr.ogg",
+      "text": "Kidon 7, taxi without clearance",
+      "text_he": "כידון 7, הסעה ללא אישור"
+    },
+    "INDIA_T+,+NO_TAXI_CLR": {
+      "file": "twr_kidon8_no_taxi_clr.ogg",
+      "text": "Kidon 8, taxi without clearance",
+      "text_he": "כידון 8, הסעה ללא אישור"
     },
     "CHARLIE_T+,+NO_TAXI_CLR": {
       "file": "twr_kidon3_no_taxi_clr.ogg",
@@ -4602,6 +6508,26 @@
       "text": "Kidon 2, runway entry without clearance",
       "text_he": "כידון 2, כניסה למסלול ללא אישור"
     },
+    "ECHO_T+,+NO_RUNWAY_CLR": {
+      "file": "twr_kidon5_no_runway_clr.ogg",
+      "text": "Kidon 5, runway entry without clearance",
+      "text_he": "כידון 5, כניסה למסלול ללא אישור"
+    },
+    "FOXTROT_T+,+NO_RUNWAY_CLR": {
+      "file": "twr_kidon6_no_runway_clr.ogg",
+      "text": "Kidon 6, runway entry without clearance",
+      "text_he": "כידון 6, כניסה למסלול ללא אישור"
+    },
+    "HOTEL_T+,+NO_RUNWAY_CLR": {
+      "file": "twr_kidon7_no_runway_clr.ogg",
+      "text": "Kidon 7, runway entry without clearance",
+      "text_he": "כידון 7, כניסה למסלול ללא אישור"
+    },
+    "INDIA_T+,+NO_RUNWAY_CLR": {
+      "file": "twr_kidon8_no_runway_clr.ogg",
+      "text": "Kidon 8, runway entry without clearance",
+      "text_he": "כידון 8, כניסה למסלול ללא אישור"
+    },
     "CHARLIE_T+,+NO_RUNWAY_CLR": {
       "file": "twr_kidon3_no_runway_clr.ogg",
       "text": "Kidon 3, runway entry without clearance",
@@ -4621,6 +6547,26 @@
       "file": "twr_kidon2_no_takeoff_clr.ogg",
       "text": "Kidon 2, take-off without clearance",
       "text_he": "כידון 2, המראה ללא אישור"
+    },
+    "ECHO_T+,+NO_TAKEOFF_CLR": {
+      "file": "twr_kidon5_no_takeoff_clr.ogg",
+      "text": "Kidon 5, take-off without clearance",
+      "text_he": "כידון 5, המראה ללא אישור"
+    },
+    "FOXTROT_T+,+NO_TAKEOFF_CLR": {
+      "file": "twr_kidon6_no_takeoff_clr.ogg",
+      "text": "Kidon 6, take-off without clearance",
+      "text_he": "כידון 6, המראה ללא אישור"
+    },
+    "HOTEL_T+,+NO_TAKEOFF_CLR": {
+      "file": "twr_kidon7_no_takeoff_clr.ogg",
+      "text": "Kidon 7, take-off without clearance",
+      "text_he": "כידון 7, המראה ללא אישור"
+    },
+    "INDIA_T+,+NO_TAKEOFF_CLR": {
+      "file": "twr_kidon8_no_takeoff_clr.ogg",
+      "text": "Kidon 8, take-off without clearance",
+      "text_he": "כידון 8, המראה ללא אישור"
     },
     "CHARLIE_T+,+NO_TAKEOFF_CLR": {
       "file": "twr_kidon3_no_takeoff_clr.ogg",
@@ -4642,6 +6588,26 @@
       "text": "Kidon 2, you are on runway",
       "text_he": "כידון 2, על מסלול"
     },
+    "ECHO_T+,+ON_RWY": {
+      "file": "twr_kidon5_on_rwy.ogg",
+      "text": "Kidon 5, you are on runway",
+      "text_he": "כידון 5, על מסלול"
+    },
+    "FOXTROT_T+,+ON_RWY": {
+      "file": "twr_kidon6_on_rwy.ogg",
+      "text": "Kidon 6, you are on runway",
+      "text_he": "כידון 6, על מסלול"
+    },
+    "HOTEL_T+,+ON_RWY": {
+      "file": "twr_kidon7_on_rwy.ogg",
+      "text": "Kidon 7, you are on runway",
+      "text_he": "כידון 7, על מסלול"
+    },
+    "INDIA_T+,+ON_RWY": {
+      "file": "twr_kidon8_on_rwy.ogg",
+      "text": "Kidon 8, you are on runway",
+      "text_he": "כידון 8, על מסלול"
+    },
     "CHARLIE_T+,+ON_RWY": {
       "file": "twr_kidon3_on_rwy.ogg",
       "text": "Kidon 3, you are on runway",
@@ -4662,6 +6628,26 @@
       "text": "Kidon 2, negative, hold position",
       "text_he": "כידון 2, שלילי, המתנה במקום"
     },
+    "ECHO_T+,+NEGATIVE_HOLD": {
+      "file": "twr_kidon5_negative_hold.ogg",
+      "text": "Kidon 5, negative, hold position",
+      "text_he": "כידון 5, שלילי, המתנה במקום"
+    },
+    "FOXTROT_T+,+NEGATIVE_HOLD": {
+      "file": "twr_kidon6_negative_hold.ogg",
+      "text": "Kidon 6, negative, hold position",
+      "text_he": "כידון 6, שלילי, המתנה במקום"
+    },
+    "HOTEL_T+,+NEGATIVE_HOLD": {
+      "file": "twr_kidon7_negative_hold.ogg",
+      "text": "Kidon 7, negative, hold position",
+      "text_he": "כידון 7, שלילי, המתנה במקום"
+    },
+    "INDIA_T+,+NEGATIVE_HOLD": {
+      "file": "twr_kidon8_negative_hold.ogg",
+      "text": "Kidon 8, negative, hold position",
+      "text_he": "כידון 8, שלילי, המתנה במקום"
+    },
     "CHARLIE_T+,+NEGATIVE_HOLD": {
       "file": "twr_kidon3_negative_hold.ogg",
       "text": "Kidon 3, negative, hold position",
@@ -4677,15 +6663,120 @@
       "text": "Kidon 1, negative, hold position, request start-up first",
       "text_he": "כידון 1, שלילי, המתנה במקום, יש לבקש התנעה קודם"
     },
+    "BRAVO_T+,+NEGATIVE_HOLD+,+FIRST_STARTUP": {
+      "file": "twr_kidon2_negative_startup.ogg",
+      "text": "Kidon 2, negative, hold position, request start-up first",
+      "text_he": "כידון 2, שלילי, המתנה במקום, יש לבקש התנעה קודם"
+    },
+    "CHARLIE_T+,+NEGATIVE_HOLD+,+FIRST_STARTUP": {
+      "file": "twr_kidon3_negative_startup.ogg",
+      "text": "Kidon 3, negative, hold position, request start-up first",
+      "text_he": "כידון 3, שלילי, המתנה במקום, יש לבקש התנעה קודם"
+    },
+    "DELTA_T+,+NEGATIVE_HOLD+,+FIRST_STARTUP": {
+      "file": "twr_kidon4_negative_startup.ogg",
+      "text": "Kidon 4, negative, hold position, request start-up first",
+      "text_he": "כידון 4, שלילי, המתנה במקום, יש לבקש התנעה קודם"
+    },
+    "ECHO_T+,+NEGATIVE_HOLD+,+FIRST_STARTUP": {
+      "file": "twr_kidon5_negative_startup.ogg",
+      "text": "Kidon 5, negative, hold position, request start-up first",
+      "text_he": "כידון 5, שלילי, המתנה במקום, יש לבקש התנעה קודם"
+    },
+    "FOXTROT_T+,+NEGATIVE_HOLD+,+FIRST_STARTUP": {
+      "file": "twr_kidon6_negative_startup.ogg",
+      "text": "Kidon 6, negative, hold position, request start-up first",
+      "text_he": "כידון 6, שלילי, המתנה במקום, יש לבקש התנעה קודם"
+    },
+    "HOTEL_T+,+NEGATIVE_HOLD+,+FIRST_STARTUP": {
+      "file": "twr_kidon7_negative_startup.ogg",
+      "text": "Kidon 7, negative, hold position, request start-up first",
+      "text_he": "כידון 7, שלילי, המתנה במקום, יש לבקש התנעה קודם"
+    },
+    "INDIA_T+,+NEGATIVE_HOLD+,+FIRST_STARTUP": {
+      "file": "twr_kidon8_negative_startup.ogg",
+      "text": "Kidon 8, negative, hold position, request start-up first",
+      "text_he": "כידון 8, שלילי, המתנה במקום, יש לבקש התנעה קודם"
+    },
     "ALPHA_T+,+NEGATIVE_HOLD+,+FIRST_TAXI": {
       "file": "twr_kidon1_negative_taxi.ogg",
       "text": "Kidon 1, negative, hold position, request taxi first",
       "text_he": "כידון 1, שלילי, המתנה במקום, יש לבקש הסעה קודם"
     },
+    "BRAVO_T+,+NEGATIVE_HOLD+,+FIRST_TAXI": {
+      "file": "twr_kidon2_negative_taxi.ogg",
+      "text": "Kidon 2, negative, hold position, request taxi first",
+      "text_he": "כידון 2, שלילי, המתנה במקום, יש לבקש הסעה קודם"
+    },
+    "CHARLIE_T+,+NEGATIVE_HOLD+,+FIRST_TAXI": {
+      "file": "twr_kidon3_negative_taxi.ogg",
+      "text": "Kidon 3, negative, hold position, request taxi first",
+      "text_he": "כידון 3, שלילי, המתנה במקום, יש לבקש הסעה קודם"
+    },
+    "DELTA_T+,+NEGATIVE_HOLD+,+FIRST_TAXI": {
+      "file": "twr_kidon4_negative_taxi.ogg",
+      "text": "Kidon 4, negative, hold position, request taxi first",
+      "text_he": "כידון 4, שלילי, המתנה במקום, יש לבקש הסעה קודם"
+    },
+    "ECHO_T+,+NEGATIVE_HOLD+,+FIRST_TAXI": {
+      "file": "twr_kidon5_negative_taxi.ogg",
+      "text": "Kidon 5, negative, hold position, request taxi first",
+      "text_he": "כידון 5, שלילי, המתנה במקום, יש לבקש הסעה קודם"
+    },
+    "FOXTROT_T+,+NEGATIVE_HOLD+,+FIRST_TAXI": {
+      "file": "twr_kidon6_negative_taxi.ogg",
+      "text": "Kidon 6, negative, hold position, request taxi first",
+      "text_he": "כידון 6, שלילי, המתנה במקום, יש לבקש הסעה קודם"
+    },
+    "HOTEL_T+,+NEGATIVE_HOLD+,+FIRST_TAXI": {
+      "file": "twr_kidon7_negative_taxi.ogg",
+      "text": "Kidon 7, negative, hold position, request taxi first",
+      "text_he": "כידון 7, שלילי, המתנה במקום, יש לבקש הסעה קודם"
+    },
+    "INDIA_T+,+NEGATIVE_HOLD+,+FIRST_TAXI": {
+      "file": "twr_kidon8_negative_taxi.ogg",
+      "text": "Kidon 8, negative, hold position, request taxi first",
+      "text_he": "כידון 8, שלילי, המתנה במקום, יש לבקש הסעה קודם"
+    },
     "ALPHA_T+,+NEGATIVE_HOLD+,+FIRST_LINEUP": {
       "file": "twr_kidon1_negative_lineup.ogg",
       "text": "Kidon 1, negative, hold position, request line-up first",
       "text_he": "כידון 1, שלילי, המתנה במקום, יש לבקש כניסה למסלול קודם"
+    },
+    "BRAVO_T+,+NEGATIVE_HOLD+,+FIRST_LINEUP": {
+      "file": "twr_kidon2_negative_lineup.ogg",
+      "text": "Kidon 2, negative, hold position, request line-up first",
+      "text_he": "כידון 2, שלילי, המתנה במקום, יש לבקש כניסה למסלול קודם"
+    },
+    "CHARLIE_T+,+NEGATIVE_HOLD+,+FIRST_LINEUP": {
+      "file": "twr_kidon3_negative_lineup.ogg",
+      "text": "Kidon 3, negative, hold position, request line-up first",
+      "text_he": "כידון 3, שלילי, המתנה במקום, יש לבקש כניסה למסלול קודם"
+    },
+    "DELTA_T+,+NEGATIVE_HOLD+,+FIRST_LINEUP": {
+      "file": "twr_kidon4_negative_lineup.ogg",
+      "text": "Kidon 4, negative, hold position, request line-up first",
+      "text_he": "כידון 4, שלילי, המתנה במקום, יש לבקש כניסה למסלול קודם"
+    },
+    "ECHO_T+,+NEGATIVE_HOLD+,+FIRST_LINEUP": {
+      "file": "twr_kidon5_negative_lineup.ogg",
+      "text": "Kidon 5, negative, hold position, request line-up first",
+      "text_he": "כידון 5, שלילי, המתנה במקום, יש לבקש כניסה למסלול קודם"
+    },
+    "FOXTROT_T+,+NEGATIVE_HOLD+,+FIRST_LINEUP": {
+      "file": "twr_kidon6_negative_lineup.ogg",
+      "text": "Kidon 6, negative, hold position, request line-up first",
+      "text_he": "כידון 6, שלילי, המתנה במקום, יש לבקש כניסה למסלול קודם"
+    },
+    "HOTEL_T+,+NEGATIVE_HOLD+,+FIRST_LINEUP": {
+      "file": "twr_kidon7_negative_lineup.ogg",
+      "text": "Kidon 7, negative, hold position, request line-up first",
+      "text_he": "כידון 7, שלילי, המתנה במקום, יש לבקש כניסה למסלול קודם"
+    },
+    "INDIA_T+,+NEGATIVE_HOLD+,+FIRST_LINEUP": {
+      "file": "twr_kidon8_negative_lineup.ogg",
+      "text": "Kidon 8, negative, hold position, request line-up first",
+      "text_he": "כידון 8, שלילי, המתנה במקום, יש לבקש כניסה למסלול קודם"
     },
     "ALPHA_T+,+MORNING+,+TAXI_RWY+24": {
       "file": "twr_kidon1_taxi_morning_24.ogg",
@@ -4787,6 +6878,26 @@
       "text": "Kidon 4",
       "text_he": "כידון 4"
     },
+    "ECHO_P": {
+      "file": "plt_kidon5.ogg",
+      "text": "Kidon 5",
+      "text_he": "כידון 5"
+    },
+    "FOXTROT_P": {
+      "file": "plt_kidon6.ogg",
+      "text": "Kidon 6",
+      "text_he": "כידון 6"
+    },
+    "HOTEL_P": {
+      "file": "plt_kidon7.ogg",
+      "text": "Kidon 7",
+      "text_he": "כידון 7"
+    },
+    "INDIA_P": {
+      "file": "plt_kidon8.ogg",
+      "text": "Kidon 8",
+      "text_he": "כידון 8"
+    },
     "REQ_STARTUP": {
       "file": "plt_req_start.ogg",
       "text": "request start-up",
@@ -4817,100 +6928,800 @@
       "text": "Ramon tower, Kidon 1, request start-up",
       "text_he": "מגדל רמון, כידון 1, בקשת התנעה"
     },
+    "RAMON_TWR+,+BRAVO_P+,+REQ_STARTUP": {
+      "file": "plt_ramon_kidon2_start.ogg",
+      "text": "Ramon tower, Kidon 2, request start-up",
+      "text_he": "מגדל רמון, כידון 2, בקשת התנעה"
+    },
+    "RAMON_TWR+,+CHARLIE_P+,+REQ_STARTUP": {
+      "file": "plt_ramon_kidon3_start.ogg",
+      "text": "Ramon tower, Kidon 3, request start-up",
+      "text_he": "מגדל רמון, כידון 3, בקשת התנעה"
+    },
+    "RAMON_TWR+,+DELTA_P+,+REQ_STARTUP": {
+      "file": "plt_ramon_kidon4_start.ogg",
+      "text": "Ramon tower, Kidon 4, request start-up",
+      "text_he": "מגדל רמון, כידון 4, בקשת התנעה"
+    },
+    "RAMON_TWR+,+ECHO_P+,+REQ_STARTUP": {
+      "file": "plt_ramon_kidon5_start.ogg",
+      "text": "Ramon tower, Kidon 5, request start-up",
+      "text_he": "מגדל רמון, כידון 5, בקשת התנעה"
+    },
+    "RAMON_TWR+,+FOXTROT_P+,+REQ_STARTUP": {
+      "file": "plt_ramon_kidon6_start.ogg",
+      "text": "Ramon tower, Kidon 6, request start-up",
+      "text_he": "מגדל רמון, כידון 6, בקשת התנעה"
+    },
+    "RAMON_TWR+,+HOTEL_P+,+REQ_STARTUP": {
+      "file": "plt_ramon_kidon7_start.ogg",
+      "text": "Ramon tower, Kidon 7, request start-up",
+      "text_he": "מגדל רמון, כידון 7, בקשת התנעה"
+    },
+    "RAMON_TWR+,+INDIA_P+,+REQ_STARTUP": {
+      "file": "plt_ramon_kidon8_start.ogg",
+      "text": "Ramon tower, Kidon 8, request start-up",
+      "text_he": "מגדל רמון, כידון 8, בקשת התנעה"
+    },
     "RAMON_TWR+,+ALPHA_P+,+REQ_TAXI": {
       "file": "plt_ramon_kidon1_taxi.ogg",
       "text": "Ramon tower, Kidon 1, request taxi",
       "text_he": "מגדל רמון, כידון 1, בקשת הסעה"
+    },
+    "RAMON_TWR+,+BRAVO_P+,+REQ_TAXI": {
+      "file": "plt_ramon_kidon2_taxi.ogg",
+      "text": "Ramon tower, Kidon 2, request taxi",
+      "text_he": "מגדל רמון, כידון 2, בקשת הסעה"
+    },
+    "RAMON_TWR+,+CHARLIE_P+,+REQ_TAXI": {
+      "file": "plt_ramon_kidon3_taxi.ogg",
+      "text": "Ramon tower, Kidon 3, request taxi",
+      "text_he": "מגדל רמון, כידון 3, בקשת הסעה"
+    },
+    "RAMON_TWR+,+DELTA_P+,+REQ_TAXI": {
+      "file": "plt_ramon_kidon4_taxi.ogg",
+      "text": "Ramon tower, Kidon 4, request taxi",
+      "text_he": "מגדל רמון, כידון 4, בקשת הסעה"
+    },
+    "RAMON_TWR+,+ECHO_P+,+REQ_TAXI": {
+      "file": "plt_ramon_kidon5_taxi.ogg",
+      "text": "Ramon tower, Kidon 5, request taxi",
+      "text_he": "מגדל רמון, כידון 5, בקשת הסעה"
+    },
+    "RAMON_TWR+,+FOXTROT_P+,+REQ_TAXI": {
+      "file": "plt_ramon_kidon6_taxi.ogg",
+      "text": "Ramon tower, Kidon 6, request taxi",
+      "text_he": "מגדל רמון, כידון 6, בקשת הסעה"
+    },
+    "RAMON_TWR+,+HOTEL_P+,+REQ_TAXI": {
+      "file": "plt_ramon_kidon7_taxi.ogg",
+      "text": "Ramon tower, Kidon 7, request taxi",
+      "text_he": "מגדל רמון, כידון 7, בקשת הסעה"
+    },
+    "RAMON_TWR+,+INDIA_P+,+REQ_TAXI": {
+      "file": "plt_ramon_kidon8_taxi.ogg",
+      "text": "Ramon tower, Kidon 8, request taxi",
+      "text_he": "מגדל רמון, כידון 8, בקשת הסעה"
     },
     "RAMON_TWR+,+ALPHA_P+,+REQ_LINEUP": {
       "file": "plt_ramon_kidon1_lineup.ogg",
       "text": "Ramon tower, Kidon 1, request line-up",
       "text_he": "מגדל רמון, כידון 1, בקשת כניסה למסלול"
     },
+    "RAMON_TWR+,+BRAVO_P+,+REQ_LINEUP": {
+      "file": "plt_ramon_kidon2_lineup.ogg",
+      "text": "Ramon tower, Kidon 2, request line-up",
+      "text_he": "מגדל רמון, כידון 2, בקשת כניסה למסלול"
+    },
+    "RAMON_TWR+,+CHARLIE_P+,+REQ_LINEUP": {
+      "file": "plt_ramon_kidon3_lineup.ogg",
+      "text": "Ramon tower, Kidon 3, request line-up",
+      "text_he": "מגדל רמון, כידון 3, בקשת כניסה למסלול"
+    },
+    "RAMON_TWR+,+DELTA_P+,+REQ_LINEUP": {
+      "file": "plt_ramon_kidon4_lineup.ogg",
+      "text": "Ramon tower, Kidon 4, request line-up",
+      "text_he": "מגדל רמון, כידון 4, בקשת כניסה למסלול"
+    },
+    "RAMON_TWR+,+ECHO_P+,+REQ_LINEUP": {
+      "file": "plt_ramon_kidon5_lineup.ogg",
+      "text": "Ramon tower, Kidon 5, request line-up",
+      "text_he": "מגדל רמון, כידון 5, בקשת כניסה למסלול"
+    },
+    "RAMON_TWR+,+FOXTROT_P+,+REQ_LINEUP": {
+      "file": "plt_ramon_kidon6_lineup.ogg",
+      "text": "Ramon tower, Kidon 6, request line-up",
+      "text_he": "מגדל רמון, כידון 6, בקשת כניסה למסלול"
+    },
+    "RAMON_TWR+,+HOTEL_P+,+REQ_LINEUP": {
+      "file": "plt_ramon_kidon7_lineup.ogg",
+      "text": "Ramon tower, Kidon 7, request line-up",
+      "text_he": "מגדל רמון, כידון 7, בקשת כניסה למסלול"
+    },
+    "RAMON_TWR+,+INDIA_P+,+REQ_LINEUP": {
+      "file": "plt_ramon_kidon8_lineup.ogg",
+      "text": "Ramon tower, Kidon 8, request line-up",
+      "text_he": "מגדל רמון, כידון 8, בקשת כניסה למסלול"
+    },
     "RAMON_TWR+,+ALPHA_P+,+REQ_TAKEOFF": {
       "file": "plt_ramon_kidon1_takeoff.ogg",
       "text": "Ramon tower, Kidon 1, ready for take-off",
       "text_he": "מגדל רמון, כידון 1, בקשת המראה"
+    },
+    "RAMON_TWR+,+BRAVO_P+,+REQ_TAKEOFF": {
+      "file": "plt_ramon_kidon2_takeoff.ogg",
+      "text": "Ramon tower, Kidon 2, ready for take-off",
+      "text_he": "מגדל רמון, כידון 2, בקשת המראה"
+    },
+    "RAMON_TWR+,+CHARLIE_P+,+REQ_TAKEOFF": {
+      "file": "plt_ramon_kidon3_takeoff.ogg",
+      "text": "Ramon tower, Kidon 3, ready for take-off",
+      "text_he": "מגדל רמון, כידון 3, בקשת המראה"
+    },
+    "RAMON_TWR+,+DELTA_P+,+REQ_TAKEOFF": {
+      "file": "plt_ramon_kidon4_takeoff.ogg",
+      "text": "Ramon tower, Kidon 4, ready for take-off",
+      "text_he": "מגדל רמון, כידון 4, בקשת המראה"
+    },
+    "RAMON_TWR+,+ECHO_P+,+REQ_TAKEOFF": {
+      "file": "plt_ramon_kidon5_takeoff.ogg",
+      "text": "Ramon tower, Kidon 5, ready for take-off",
+      "text_he": "מגדל רמון, כידון 5, בקשת המראה"
+    },
+    "RAMON_TWR+,+FOXTROT_P+,+REQ_TAKEOFF": {
+      "file": "plt_ramon_kidon6_takeoff.ogg",
+      "text": "Ramon tower, Kidon 6, ready for take-off",
+      "text_he": "מגדל רמון, כידון 6, בקשת המראה"
+    },
+    "RAMON_TWR+,+HOTEL_P+,+REQ_TAKEOFF": {
+      "file": "plt_ramon_kidon7_takeoff.ogg",
+      "text": "Ramon tower, Kidon 7, ready for take-off",
+      "text_he": "מגדל רמון, כידון 7, בקשת המראה"
+    },
+    "RAMON_TWR+,+INDIA_P+,+REQ_TAKEOFF": {
+      "file": "plt_ramon_kidon8_takeoff.ogg",
+      "text": "Ramon tower, Kidon 8, ready for take-off",
+      "text_he": "מגדל רמון, כידון 8, בקשת המראה"
     },
     "RAMON_TWR+,+ALPHA_P+,+REQ_LANDING": {
       "file": "plt_ramon_kidon1_landing.ogg",
       "text": "Ramon tower, Kidon 1, request landing",
       "text_he": "מגדל רמון, כידון 1, בקשת נחיתה"
     },
+    "RAMON_TWR+,+BRAVO_P+,+REQ_LANDING": {
+      "file": "plt_ramon_kidon2_landing.ogg",
+      "text": "Ramon tower, Kidon 2, request landing",
+      "text_he": "מגדל רמון, כידון 2, בקשת נחיתה"
+    },
+    "RAMON_TWR+,+CHARLIE_P+,+REQ_LANDING": {
+      "file": "plt_ramon_kidon3_landing.ogg",
+      "text": "Ramon tower, Kidon 3, request landing",
+      "text_he": "מגדל רמון, כידון 3, בקשת נחיתה"
+    },
+    "RAMON_TWR+,+DELTA_P+,+REQ_LANDING": {
+      "file": "plt_ramon_kidon4_landing.ogg",
+      "text": "Ramon tower, Kidon 4, request landing",
+      "text_he": "מגדל רמון, כידון 4, בקשת נחיתה"
+    },
+    "RAMON_TWR+,+ECHO_P+,+REQ_LANDING": {
+      "file": "plt_ramon_kidon5_landing.ogg",
+      "text": "Ramon tower, Kidon 5, request landing",
+      "text_he": "מגדל רמון, כידון 5, בקשת נחיתה"
+    },
+    "RAMON_TWR+,+FOXTROT_P+,+REQ_LANDING": {
+      "file": "plt_ramon_kidon6_landing.ogg",
+      "text": "Ramon tower, Kidon 6, request landing",
+      "text_he": "מגדל רמון, כידון 6, בקשת נחיתה"
+    },
+    "RAMON_TWR+,+HOTEL_P+,+REQ_LANDING": {
+      "file": "plt_ramon_kidon7_landing.ogg",
+      "text": "Ramon tower, Kidon 7, request landing",
+      "text_he": "מגדל רמון, כידון 7, בקשת נחיתה"
+    },
+    "RAMON_TWR+,+INDIA_P+,+REQ_LANDING": {
+      "file": "plt_ramon_kidon8_landing.ogg",
+      "text": "Ramon tower, Kidon 8, request landing",
+      "text_he": "מגדל רמון, כידון 8, בקשת נחיתה"
+    },
     "DAVID_TWR+,+ALPHA_P+,+REQ_STARTUP": {
       "file": "plt_david_kidon1_start.ogg",
       "text": "Ramat David tower, Kidon 1, request start-up",
       "text_he": "מגדל רמת דוד, כידון 1, בקשת התנעה"
+    },
+    "DAVID_TWR+,+BRAVO_P+,+REQ_STARTUP": {
+      "file": "plt_david_kidon2_start.ogg",
+      "text": "Ramat David tower, Kidon 2, request start-up",
+      "text_he": "מגדל רמת דוד, כידון 2, בקשת התנעה"
+    },
+    "DAVID_TWR+,+CHARLIE_P+,+REQ_STARTUP": {
+      "file": "plt_david_kidon3_start.ogg",
+      "text": "Ramat David tower, Kidon 3, request start-up",
+      "text_he": "מגדל רמת דוד, כידון 3, בקשת התנעה"
+    },
+    "DAVID_TWR+,+DELTA_P+,+REQ_STARTUP": {
+      "file": "plt_david_kidon4_start.ogg",
+      "text": "Ramat David tower, Kidon 4, request start-up",
+      "text_he": "מגדל רמת דוד, כידון 4, בקשת התנעה"
+    },
+    "DAVID_TWR+,+ECHO_P+,+REQ_STARTUP": {
+      "file": "plt_david_kidon5_start.ogg",
+      "text": "Ramat David tower, Kidon 5, request start-up",
+      "text_he": "מגדל רמת דוד, כידון 5, בקשת התנעה"
+    },
+    "DAVID_TWR+,+FOXTROT_P+,+REQ_STARTUP": {
+      "file": "plt_david_kidon6_start.ogg",
+      "text": "Ramat David tower, Kidon 6, request start-up",
+      "text_he": "מגדל רמת דוד, כידון 6, בקשת התנעה"
+    },
+    "DAVID_TWR+,+HOTEL_P+,+REQ_STARTUP": {
+      "file": "plt_david_kidon7_start.ogg",
+      "text": "Ramat David tower, Kidon 7, request start-up",
+      "text_he": "מגדל רמת דוד, כידון 7, בקשת התנעה"
+    },
+    "DAVID_TWR+,+INDIA_P+,+REQ_STARTUP": {
+      "file": "plt_david_kidon8_start.ogg",
+      "text": "Ramat David tower, Kidon 8, request start-up",
+      "text_he": "מגדל רמת דוד, כידון 8, בקשת התנעה"
     },
     "DAVID_TWR+,+ALPHA_P+,+REQ_TAXI": {
       "file": "plt_david_kidon1_taxi.ogg",
       "text": "Ramat David tower, Kidon 1, request taxi",
       "text_he": "מגדל רמת דוד, כידון 1, בקשת הסעה"
     },
+    "DAVID_TWR+,+BRAVO_P+,+REQ_TAXI": {
+      "file": "plt_david_kidon2_taxi.ogg",
+      "text": "Ramat David tower, Kidon 2, request taxi",
+      "text_he": "מגדל רמת דוד, כידון 2, בקשת הסעה"
+    },
+    "DAVID_TWR+,+CHARLIE_P+,+REQ_TAXI": {
+      "file": "plt_david_kidon3_taxi.ogg",
+      "text": "Ramat David tower, Kidon 3, request taxi",
+      "text_he": "מגדל רמת דוד, כידון 3, בקשת הסעה"
+    },
+    "DAVID_TWR+,+DELTA_P+,+REQ_TAXI": {
+      "file": "plt_david_kidon4_taxi.ogg",
+      "text": "Ramat David tower, Kidon 4, request taxi",
+      "text_he": "מגדל רמת דוד, כידון 4, בקשת הסעה"
+    },
+    "DAVID_TWR+,+ECHO_P+,+REQ_TAXI": {
+      "file": "plt_david_kidon5_taxi.ogg",
+      "text": "Ramat David tower, Kidon 5, request taxi",
+      "text_he": "מגדל רמת דוד, כידון 5, בקשת הסעה"
+    },
+    "DAVID_TWR+,+FOXTROT_P+,+REQ_TAXI": {
+      "file": "plt_david_kidon6_taxi.ogg",
+      "text": "Ramat David tower, Kidon 6, request taxi",
+      "text_he": "מגדל רמת דוד, כידון 6, בקשת הסעה"
+    },
+    "DAVID_TWR+,+HOTEL_P+,+REQ_TAXI": {
+      "file": "plt_david_kidon7_taxi.ogg",
+      "text": "Ramat David tower, Kidon 7, request taxi",
+      "text_he": "מגדל רמת דוד, כידון 7, בקשת הסעה"
+    },
+    "DAVID_TWR+,+INDIA_P+,+REQ_TAXI": {
+      "file": "plt_david_kidon8_taxi.ogg",
+      "text": "Ramat David tower, Kidon 8, request taxi",
+      "text_he": "מגדל רמת דוד, כידון 8, בקשת הסעה"
+    },
     "DAVID_TWR+,+ALPHA_P+,+REQ_LINEUP": {
       "file": "plt_david_kidon1_lineup.ogg",
       "text": "Ramat David tower, Kidon 1, request line-up",
       "text_he": "מגדל רמת דוד, כידון 1, בקשת כניסה למסלול"
+    },
+    "DAVID_TWR+,+BRAVO_P+,+REQ_LINEUP": {
+      "file": "plt_david_kidon2_lineup.ogg",
+      "text": "Ramat David tower, Kidon 2, request line-up",
+      "text_he": "מגדל רמת דוד, כידון 2, בקשת כניסה למסלול"
+    },
+    "DAVID_TWR+,+CHARLIE_P+,+REQ_LINEUP": {
+      "file": "plt_david_kidon3_lineup.ogg",
+      "text": "Ramat David tower, Kidon 3, request line-up",
+      "text_he": "מגדל רמת דוד, כידון 3, בקשת כניסה למסלול"
+    },
+    "DAVID_TWR+,+DELTA_P+,+REQ_LINEUP": {
+      "file": "plt_david_kidon4_lineup.ogg",
+      "text": "Ramat David tower, Kidon 4, request line-up",
+      "text_he": "מגדל רמת דוד, כידון 4, בקשת כניסה למסלול"
+    },
+    "DAVID_TWR+,+ECHO_P+,+REQ_LINEUP": {
+      "file": "plt_david_kidon5_lineup.ogg",
+      "text": "Ramat David tower, Kidon 5, request line-up",
+      "text_he": "מגדל רמת דוד, כידון 5, בקשת כניסה למסלול"
+    },
+    "DAVID_TWR+,+FOXTROT_P+,+REQ_LINEUP": {
+      "file": "plt_david_kidon6_lineup.ogg",
+      "text": "Ramat David tower, Kidon 6, request line-up",
+      "text_he": "מגדל רמת דוד, כידון 6, בקשת כניסה למסלול"
+    },
+    "DAVID_TWR+,+HOTEL_P+,+REQ_LINEUP": {
+      "file": "plt_david_kidon7_lineup.ogg",
+      "text": "Ramat David tower, Kidon 7, request line-up",
+      "text_he": "מגדל רמת דוד, כידון 7, בקשת כניסה למסלול"
+    },
+    "DAVID_TWR+,+INDIA_P+,+REQ_LINEUP": {
+      "file": "plt_david_kidon8_lineup.ogg",
+      "text": "Ramat David tower, Kidon 8, request line-up",
+      "text_he": "מגדל רמת דוד, כידון 8, בקשת כניסה למסלול"
     },
     "DAVID_TWR+,+ALPHA_P+,+REQ_TAKEOFF": {
       "file": "plt_david_kidon1_takeoff.ogg",
       "text": "Ramat David tower, Kidon 1, ready for take-off",
       "text_he": "מגדל רמת דוד, כידון 1, בקשת המראה"
     },
+    "DAVID_TWR+,+BRAVO_P+,+REQ_TAKEOFF": {
+      "file": "plt_david_kidon2_takeoff.ogg",
+      "text": "Ramat David tower, Kidon 2, ready for take-off",
+      "text_he": "מגדל רמת דוד, כידון 2, בקשת המראה"
+    },
+    "DAVID_TWR+,+CHARLIE_P+,+REQ_TAKEOFF": {
+      "file": "plt_david_kidon3_takeoff.ogg",
+      "text": "Ramat David tower, Kidon 3, ready for take-off",
+      "text_he": "מגדל רמת דוד, כידון 3, בקשת המראה"
+    },
+    "DAVID_TWR+,+DELTA_P+,+REQ_TAKEOFF": {
+      "file": "plt_david_kidon4_takeoff.ogg",
+      "text": "Ramat David tower, Kidon 4, ready for take-off",
+      "text_he": "מגדל רמת דוד, כידון 4, בקשת המראה"
+    },
+    "DAVID_TWR+,+ECHO_P+,+REQ_TAKEOFF": {
+      "file": "plt_david_kidon5_takeoff.ogg",
+      "text": "Ramat David tower, Kidon 5, ready for take-off",
+      "text_he": "מגדל רמת דוד, כידון 5, בקשת המראה"
+    },
+    "DAVID_TWR+,+FOXTROT_P+,+REQ_TAKEOFF": {
+      "file": "plt_david_kidon6_takeoff.ogg",
+      "text": "Ramat David tower, Kidon 6, ready for take-off",
+      "text_he": "מגדל רמת דוד, כידון 6, בקשת המראה"
+    },
+    "DAVID_TWR+,+HOTEL_P+,+REQ_TAKEOFF": {
+      "file": "plt_david_kidon7_takeoff.ogg",
+      "text": "Ramat David tower, Kidon 7, ready for take-off",
+      "text_he": "מגדל רמת דוד, כידון 7, בקשת המראה"
+    },
+    "DAVID_TWR+,+INDIA_P+,+REQ_TAKEOFF": {
+      "file": "plt_david_kidon8_takeoff.ogg",
+      "text": "Ramat David tower, Kidon 8, ready for take-off",
+      "text_he": "מגדל רמת דוד, כידון 8, בקשת המראה"
+    },
     "DAVID_TWR+,+ALPHA_P+,+REQ_LANDING": {
       "file": "plt_david_kidon1_landing.ogg",
       "text": "Ramat David tower, Kidon 1, request landing",
       "text_he": "מגדל רמת דוד, כידון 1, בקשת נחיתה"
+    },
+    "DAVID_TWR+,+BRAVO_P+,+REQ_LANDING": {
+      "file": "plt_david_kidon2_landing.ogg",
+      "text": "Ramat David tower, Kidon 2, request landing",
+      "text_he": "מגדל רמת דוד, כידון 2, בקשת נחיתה"
+    },
+    "DAVID_TWR+,+CHARLIE_P+,+REQ_LANDING": {
+      "file": "plt_david_kidon3_landing.ogg",
+      "text": "Ramat David tower, Kidon 3, request landing",
+      "text_he": "מגדל רמת דוד, כידון 3, בקשת נחיתה"
+    },
+    "DAVID_TWR+,+DELTA_P+,+REQ_LANDING": {
+      "file": "plt_david_kidon4_landing.ogg",
+      "text": "Ramat David tower, Kidon 4, request landing",
+      "text_he": "מגדל רמת דוד, כידון 4, בקשת נחיתה"
+    },
+    "DAVID_TWR+,+ECHO_P+,+REQ_LANDING": {
+      "file": "plt_david_kidon5_landing.ogg",
+      "text": "Ramat David tower, Kidon 5, request landing",
+      "text_he": "מגדל רמת דוד, כידון 5, בקשת נחיתה"
+    },
+    "DAVID_TWR+,+FOXTROT_P+,+REQ_LANDING": {
+      "file": "plt_david_kidon6_landing.ogg",
+      "text": "Ramat David tower, Kidon 6, request landing",
+      "text_he": "מגדל רמת דוד, כידון 6, בקשת נחיתה"
+    },
+    "DAVID_TWR+,+HOTEL_P+,+REQ_LANDING": {
+      "file": "plt_david_kidon7_landing.ogg",
+      "text": "Ramat David tower, Kidon 7, request landing",
+      "text_he": "מגדל רמת דוד, כידון 7, בקשת נחיתה"
+    },
+    "DAVID_TWR+,+INDIA_P+,+REQ_LANDING": {
+      "file": "plt_david_kidon8_landing.ogg",
+      "text": "Ramat David tower, Kidon 8, request landing",
+      "text_he": "מגדל רמת דוד, כידון 8, בקשת נחיתה"
     },
     "HATZERIM_TWR+,+ALPHA_P+,+REQ_STARTUP": {
       "file": "plt_hatzerim_kidon1_start.ogg",
       "text": "Hatzerim tower, Kidon 1, request start-up",
       "text_he": "מגדל חצרים, כידון 1, בקשת התנעה"
     },
+    "HATZERIM_TWR+,+BRAVO_P+,+REQ_STARTUP": {
+      "file": "plt_hatzerim_kidon2_start.ogg",
+      "text": "Hatzerim tower, Kidon 2, request start-up",
+      "text_he": "מגדל חצרים, כידון 2, בקשת התנעה"
+    },
+    "HATZERIM_TWR+,+CHARLIE_P+,+REQ_STARTUP": {
+      "file": "plt_hatzerim_kidon3_start.ogg",
+      "text": "Hatzerim tower, Kidon 3, request start-up",
+      "text_he": "מגדל חצרים, כידון 3, בקשת התנעה"
+    },
+    "HATZERIM_TWR+,+DELTA_P+,+REQ_STARTUP": {
+      "file": "plt_hatzerim_kidon4_start.ogg",
+      "text": "Hatzerim tower, Kidon 4, request start-up",
+      "text_he": "מגדל חצרים, כידון 4, בקשת התנעה"
+    },
+    "HATZERIM_TWR+,+ECHO_P+,+REQ_STARTUP": {
+      "file": "plt_hatzerim_kidon5_start.ogg",
+      "text": "Hatzerim tower, Kidon 5, request start-up",
+      "text_he": "מגדל חצרים, כידון 5, בקשת התנעה"
+    },
+    "HATZERIM_TWR+,+FOXTROT_P+,+REQ_STARTUP": {
+      "file": "plt_hatzerim_kidon6_start.ogg",
+      "text": "Hatzerim tower, Kidon 6, request start-up",
+      "text_he": "מגדל חצרים, כידון 6, בקשת התנעה"
+    },
+    "HATZERIM_TWR+,+HOTEL_P+,+REQ_STARTUP": {
+      "file": "plt_hatzerim_kidon7_start.ogg",
+      "text": "Hatzerim tower, Kidon 7, request start-up",
+      "text_he": "מגדל חצרים, כידון 7, בקשת התנעה"
+    },
+    "HATZERIM_TWR+,+INDIA_P+,+REQ_STARTUP": {
+      "file": "plt_hatzerim_kidon8_start.ogg",
+      "text": "Hatzerim tower, Kidon 8, request start-up",
+      "text_he": "מגדל חצרים, כידון 8, בקשת התנעה"
+    },
     "HATZERIM_TWR+,+ALPHA_P+,+REQ_TAXI": {
       "file": "plt_hatzerim_kidon1_taxi.ogg",
       "text": "Hatzerim tower, Kidon 1, request taxi",
       "text_he": "מגדל חצרים, כידון 1, בקשת הסעה"
+    },
+    "HATZERIM_TWR+,+BRAVO_P+,+REQ_TAXI": {
+      "file": "plt_hatzerim_kidon2_taxi.ogg",
+      "text": "Hatzerim tower, Kidon 2, request taxi",
+      "text_he": "מגדל חצרים, כידון 2, בקשת הסעה"
+    },
+    "HATZERIM_TWR+,+CHARLIE_P+,+REQ_TAXI": {
+      "file": "plt_hatzerim_kidon3_taxi.ogg",
+      "text": "Hatzerim tower, Kidon 3, request taxi",
+      "text_he": "מגדל חצרים, כידון 3, בקשת הסעה"
+    },
+    "HATZERIM_TWR+,+DELTA_P+,+REQ_TAXI": {
+      "file": "plt_hatzerim_kidon4_taxi.ogg",
+      "text": "Hatzerim tower, Kidon 4, request taxi",
+      "text_he": "מגדל חצרים, כידון 4, בקשת הסעה"
+    },
+    "HATZERIM_TWR+,+ECHO_P+,+REQ_TAXI": {
+      "file": "plt_hatzerim_kidon5_taxi.ogg",
+      "text": "Hatzerim tower, Kidon 5, request taxi",
+      "text_he": "מגדל חצרים, כידון 5, בקשת הסעה"
+    },
+    "HATZERIM_TWR+,+FOXTROT_P+,+REQ_TAXI": {
+      "file": "plt_hatzerim_kidon6_taxi.ogg",
+      "text": "Hatzerim tower, Kidon 6, request taxi",
+      "text_he": "מגדל חצרים, כידון 6, בקשת הסעה"
+    },
+    "HATZERIM_TWR+,+HOTEL_P+,+REQ_TAXI": {
+      "file": "plt_hatzerim_kidon7_taxi.ogg",
+      "text": "Hatzerim tower, Kidon 7, request taxi",
+      "text_he": "מגדל חצרים, כידון 7, בקשת הסעה"
+    },
+    "HATZERIM_TWR+,+INDIA_P+,+REQ_TAXI": {
+      "file": "plt_hatzerim_kidon8_taxi.ogg",
+      "text": "Hatzerim tower, Kidon 8, request taxi",
+      "text_he": "מגדל חצרים, כידון 8, בקשת הסעה"
     },
     "HATZERIM_TWR+,+ALPHA_P+,+REQ_LINEUP": {
       "file": "plt_hatzerim_kidon1_lineup.ogg",
       "text": "Hatzerim tower, Kidon 1, request line-up",
       "text_he": "מגדל חצרים, כידון 1, בקשת כניסה למסלול"
     },
+    "HATZERIM_TWR+,+BRAVO_P+,+REQ_LINEUP": {
+      "file": "plt_hatzerim_kidon2_lineup.ogg",
+      "text": "Hatzerim tower, Kidon 2, request line-up",
+      "text_he": "מגדל חצרים, כידון 2, בקשת כניסה למסלול"
+    },
+    "HATZERIM_TWR+,+CHARLIE_P+,+REQ_LINEUP": {
+      "file": "plt_hatzerim_kidon3_lineup.ogg",
+      "text": "Hatzerim tower, Kidon 3, request line-up",
+      "text_he": "מגדל חצרים, כידון 3, בקשת כניסה למסלול"
+    },
+    "HATZERIM_TWR+,+DELTA_P+,+REQ_LINEUP": {
+      "file": "plt_hatzerim_kidon4_lineup.ogg",
+      "text": "Hatzerim tower, Kidon 4, request line-up",
+      "text_he": "מגדל חצרים, כידון 4, בקשת כניסה למסלול"
+    },
+    "HATZERIM_TWR+,+ECHO_P+,+REQ_LINEUP": {
+      "file": "plt_hatzerim_kidon5_lineup.ogg",
+      "text": "Hatzerim tower, Kidon 5, request line-up",
+      "text_he": "מגדל חצרים, כידון 5, בקשת כניסה למסלול"
+    },
+    "HATZERIM_TWR+,+FOXTROT_P+,+REQ_LINEUP": {
+      "file": "plt_hatzerim_kidon6_lineup.ogg",
+      "text": "Hatzerim tower, Kidon 6, request line-up",
+      "text_he": "מגדל חצרים, כידון 6, בקשת כניסה למסלול"
+    },
+    "HATZERIM_TWR+,+HOTEL_P+,+REQ_LINEUP": {
+      "file": "plt_hatzerim_kidon7_lineup.ogg",
+      "text": "Hatzerim tower, Kidon 7, request line-up",
+      "text_he": "מגדל חצרים, כידון 7, בקשת כניסה למסלול"
+    },
+    "HATZERIM_TWR+,+INDIA_P+,+REQ_LINEUP": {
+      "file": "plt_hatzerim_kidon8_lineup.ogg",
+      "text": "Hatzerim tower, Kidon 8, request line-up",
+      "text_he": "מגדל חצרים, כידון 8, בקשת כניסה למסלול"
+    },
     "HATZERIM_TWR+,+ALPHA_P+,+REQ_TAKEOFF": {
       "file": "plt_hatzerim_kidon1_takeoff.ogg",
       "text": "Hatzerim tower, Kidon 1, ready for take-off",
       "text_he": "מגדל חצרים, כידון 1, בקשת המראה"
+    },
+    "HATZERIM_TWR+,+BRAVO_P+,+REQ_TAKEOFF": {
+      "file": "plt_hatzerim_kidon2_takeoff.ogg",
+      "text": "Hatzerim tower, Kidon 2, ready for take-off",
+      "text_he": "מגדל חצרים, כידון 2, בקשת המראה"
+    },
+    "HATZERIM_TWR+,+CHARLIE_P+,+REQ_TAKEOFF": {
+      "file": "plt_hatzerim_kidon3_takeoff.ogg",
+      "text": "Hatzerim tower, Kidon 3, ready for take-off",
+      "text_he": "מגדל חצרים, כידון 3, בקשת המראה"
+    },
+    "HATZERIM_TWR+,+DELTA_P+,+REQ_TAKEOFF": {
+      "file": "plt_hatzerim_kidon4_takeoff.ogg",
+      "text": "Hatzerim tower, Kidon 4, ready for take-off",
+      "text_he": "מגדל חצרים, כידון 4, בקשת המראה"
+    },
+    "HATZERIM_TWR+,+ECHO_P+,+REQ_TAKEOFF": {
+      "file": "plt_hatzerim_kidon5_takeoff.ogg",
+      "text": "Hatzerim tower, Kidon 5, ready for take-off",
+      "text_he": "מגדל חצרים, כידון 5, בקשת המראה"
+    },
+    "HATZERIM_TWR+,+FOXTROT_P+,+REQ_TAKEOFF": {
+      "file": "plt_hatzerim_kidon6_takeoff.ogg",
+      "text": "Hatzerim tower, Kidon 6, ready for take-off",
+      "text_he": "מגדל חצרים, כידון 6, בקשת המראה"
+    },
+    "HATZERIM_TWR+,+HOTEL_P+,+REQ_TAKEOFF": {
+      "file": "plt_hatzerim_kidon7_takeoff.ogg",
+      "text": "Hatzerim tower, Kidon 7, ready for take-off",
+      "text_he": "מגדל חצרים, כידון 7, בקשת המראה"
+    },
+    "HATZERIM_TWR+,+INDIA_P+,+REQ_TAKEOFF": {
+      "file": "plt_hatzerim_kidon8_takeoff.ogg",
+      "text": "Hatzerim tower, Kidon 8, ready for take-off",
+      "text_he": "מגדל חצרים, כידון 8, בקשת המראה"
     },
     "HATZERIM_TWR+,+ALPHA_P+,+REQ_LANDING": {
       "file": "plt_hatzerim_kidon1_landing.ogg",
       "text": "Hatzerim tower, Kidon 1, request landing",
       "text_he": "מגדל חצרים, כידון 1, בקשת נחיתה"
     },
+    "HATZERIM_TWR+,+BRAVO_P+,+REQ_LANDING": {
+      "file": "plt_hatzerim_kidon2_landing.ogg",
+      "text": "Hatzerim tower, Kidon 2, request landing",
+      "text_he": "מגדל חצרים, כידון 2, בקשת נחיתה"
+    },
+    "HATZERIM_TWR+,+CHARLIE_P+,+REQ_LANDING": {
+      "file": "plt_hatzerim_kidon3_landing.ogg",
+      "text": "Hatzerim tower, Kidon 3, request landing",
+      "text_he": "מגדל חצרים, כידון 3, בקשת נחיתה"
+    },
+    "HATZERIM_TWR+,+DELTA_P+,+REQ_LANDING": {
+      "file": "plt_hatzerim_kidon4_landing.ogg",
+      "text": "Hatzerim tower, Kidon 4, request landing",
+      "text_he": "מגדל חצרים, כידון 4, בקשת נחיתה"
+    },
+    "HATZERIM_TWR+,+ECHO_P+,+REQ_LANDING": {
+      "file": "plt_hatzerim_kidon5_landing.ogg",
+      "text": "Hatzerim tower, Kidon 5, request landing",
+      "text_he": "מגדל חצרים, כידון 5, בקשת נחיתה"
+    },
+    "HATZERIM_TWR+,+FOXTROT_P+,+REQ_LANDING": {
+      "file": "plt_hatzerim_kidon6_landing.ogg",
+      "text": "Hatzerim tower, Kidon 6, request landing",
+      "text_he": "מגדל חצרים, כידון 6, בקשת נחיתה"
+    },
+    "HATZERIM_TWR+,+HOTEL_P+,+REQ_LANDING": {
+      "file": "plt_hatzerim_kidon7_landing.ogg",
+      "text": "Hatzerim tower, Kidon 7, request landing",
+      "text_he": "מגדל חצרים, כידון 7, בקשת נחיתה"
+    },
+    "HATZERIM_TWR+,+INDIA_P+,+REQ_LANDING": {
+      "file": "plt_hatzerim_kidon8_landing.ogg",
+      "text": "Hatzerim tower, Kidon 8, request landing",
+      "text_he": "מגדל חצרים, כידון 8, בקשת נחיתה"
+    },
     "NEVATIM_TWR+,+ALPHA_P+,+REQ_STARTUP": {
       "file": "plt_nevatim_kidon1_start.ogg",
       "text": "Nevatim tower, Kidon 1, request start-up",
       "text_he": "מגדל נבטים, כידון 1, בקשת התנעה"
+    },
+    "NEVATIM_TWR+,+BRAVO_P+,+REQ_STARTUP": {
+      "file": "plt_nevatim_kidon2_start.ogg",
+      "text": "Nevatim tower, Kidon 2, request start-up",
+      "text_he": "מגדל נבטים, כידון 2, בקשת התנעה"
+    },
+    "NEVATIM_TWR+,+CHARLIE_P+,+REQ_STARTUP": {
+      "file": "plt_nevatim_kidon3_start.ogg",
+      "text": "Nevatim tower, Kidon 3, request start-up",
+      "text_he": "מגדל נבטים, כידון 3, בקשת התנעה"
+    },
+    "NEVATIM_TWR+,+DELTA_P+,+REQ_STARTUP": {
+      "file": "plt_nevatim_kidon4_start.ogg",
+      "text": "Nevatim tower, Kidon 4, request start-up",
+      "text_he": "מגדל נבטים, כידון 4, בקשת התנעה"
+    },
+    "NEVATIM_TWR+,+ECHO_P+,+REQ_STARTUP": {
+      "file": "plt_nevatim_kidon5_start.ogg",
+      "text": "Nevatim tower, Kidon 5, request start-up",
+      "text_he": "מגדל נבטים, כידון 5, בקשת התנעה"
+    },
+    "NEVATIM_TWR+,+FOXTROT_P+,+REQ_STARTUP": {
+      "file": "plt_nevatim_kidon6_start.ogg",
+      "text": "Nevatim tower, Kidon 6, request start-up",
+      "text_he": "מגדל נבטים, כידון 6, בקשת התנעה"
+    },
+    "NEVATIM_TWR+,+HOTEL_P+,+REQ_STARTUP": {
+      "file": "plt_nevatim_kidon7_start.ogg",
+      "text": "Nevatim tower, Kidon 7, request start-up",
+      "text_he": "מגדל נבטים, כידון 7, בקשת התנעה"
+    },
+    "NEVATIM_TWR+,+INDIA_P+,+REQ_STARTUP": {
+      "file": "plt_nevatim_kidon8_start.ogg",
+      "text": "Nevatim tower, Kidon 8, request start-up",
+      "text_he": "מגדל נבטים, כידון 8, בקשת התנעה"
     },
     "NEVATIM_TWR+,+ALPHA_P+,+REQ_TAXI": {
       "file": "plt_nevatim_kidon1_taxi.ogg",
       "text": "Nevatim tower, Kidon 1, request taxi",
       "text_he": "מגדל נבטים, כידון 1, בקשת הסעה"
     },
+    "NEVATIM_TWR+,+BRAVO_P+,+REQ_TAXI": {
+      "file": "plt_nevatim_kidon2_taxi.ogg",
+      "text": "Nevatim tower, Kidon 2, request taxi",
+      "text_he": "מגדל נבטים, כידון 2, בקשת הסעה"
+    },
+    "NEVATIM_TWR+,+CHARLIE_P+,+REQ_TAXI": {
+      "file": "plt_nevatim_kidon3_taxi.ogg",
+      "text": "Nevatim tower, Kidon 3, request taxi",
+      "text_he": "מגדל נבטים, כידון 3, בקשת הסעה"
+    },
+    "NEVATIM_TWR+,+DELTA_P+,+REQ_TAXI": {
+      "file": "plt_nevatim_kidon4_taxi.ogg",
+      "text": "Nevatim tower, Kidon 4, request taxi",
+      "text_he": "מגדל נבטים, כידון 4, בקשת הסעה"
+    },
+    "NEVATIM_TWR+,+ECHO_P+,+REQ_TAXI": {
+      "file": "plt_nevatim_kidon5_taxi.ogg",
+      "text": "Nevatim tower, Kidon 5, request taxi",
+      "text_he": "מגדל נבטים, כידון 5, בקשת הסעה"
+    },
+    "NEVATIM_TWR+,+FOXTROT_P+,+REQ_TAXI": {
+      "file": "plt_nevatim_kidon6_taxi.ogg",
+      "text": "Nevatim tower, Kidon 6, request taxi",
+      "text_he": "מגדל נבטים, כידון 6, בקשת הסעה"
+    },
+    "NEVATIM_TWR+,+HOTEL_P+,+REQ_TAXI": {
+      "file": "plt_nevatim_kidon7_taxi.ogg",
+      "text": "Nevatim tower, Kidon 7, request taxi",
+      "text_he": "מגדל נבטים, כידון 7, בקשת הסעה"
+    },
+    "NEVATIM_TWR+,+INDIA_P+,+REQ_TAXI": {
+      "file": "plt_nevatim_kidon8_taxi.ogg",
+      "text": "Nevatim tower, Kidon 8, request taxi",
+      "text_he": "מגדל נבטים, כידון 8, בקשת הסעה"
+    },
     "NEVATIM_TWR+,+ALPHA_P+,+REQ_LINEUP": {
       "file": "plt_nevatim_kidon1_lineup.ogg",
       "text": "Nevatim tower, Kidon 1, request line-up",
       "text_he": "מגדל נבטים, כידון 1, בקשת כניסה למסלול"
+    },
+    "NEVATIM_TWR+,+BRAVO_P+,+REQ_LINEUP": {
+      "file": "plt_nevatim_kidon2_lineup.ogg",
+      "text": "Nevatim tower, Kidon 2, request line-up",
+      "text_he": "מגדל נבטים, כידון 2, בקשת כניסה למסלול"
+    },
+    "NEVATIM_TWR+,+CHARLIE_P+,+REQ_LINEUP": {
+      "file": "plt_nevatim_kidon3_lineup.ogg",
+      "text": "Nevatim tower, Kidon 3, request line-up",
+      "text_he": "מגדל נבטים, כידון 3, בקשת כניסה למסלול"
+    },
+    "NEVATIM_TWR+,+DELTA_P+,+REQ_LINEUP": {
+      "file": "plt_nevatim_kidon4_lineup.ogg",
+      "text": "Nevatim tower, Kidon 4, request line-up",
+      "text_he": "מגדל נבטים, כידון 4, בקשת כניסה למסלול"
+    },
+    "NEVATIM_TWR+,+ECHO_P+,+REQ_LINEUP": {
+      "file": "plt_nevatim_kidon5_lineup.ogg",
+      "text": "Nevatim tower, Kidon 5, request line-up",
+      "text_he": "מגדל נבטים, כידון 5, בקשת כניסה למסלול"
+    },
+    "NEVATIM_TWR+,+FOXTROT_P+,+REQ_LINEUP": {
+      "file": "plt_nevatim_kidon6_lineup.ogg",
+      "text": "Nevatim tower, Kidon 6, request line-up",
+      "text_he": "מגדל נבטים, כידון 6, בקשת כניסה למסלול"
+    },
+    "NEVATIM_TWR+,+HOTEL_P+,+REQ_LINEUP": {
+      "file": "plt_nevatim_kidon7_lineup.ogg",
+      "text": "Nevatim tower, Kidon 7, request line-up",
+      "text_he": "מגדל נבטים, כידון 7, בקשת כניסה למסלול"
+    },
+    "NEVATIM_TWR+,+INDIA_P+,+REQ_LINEUP": {
+      "file": "plt_nevatim_kidon8_lineup.ogg",
+      "text": "Nevatim tower, Kidon 8, request line-up",
+      "text_he": "מגדל נבטים, כידון 8, בקשת כניסה למסלול"
     },
     "NEVATIM_TWR+,+ALPHA_P+,+REQ_TAKEOFF": {
       "file": "plt_nevatim_kidon1_takeoff.ogg",
       "text": "Nevatim tower, Kidon 1, ready for take-off",
       "text_he": "מגדל נבטים, כידון 1, בקשת המראה"
     },
+    "NEVATIM_TWR+,+BRAVO_P+,+REQ_TAKEOFF": {
+      "file": "plt_nevatim_kidon2_takeoff.ogg",
+      "text": "Nevatim tower, Kidon 2, ready for take-off",
+      "text_he": "מגדל נבטים, כידון 2, בקשת המראה"
+    },
+    "NEVATIM_TWR+,+CHARLIE_P+,+REQ_TAKEOFF": {
+      "file": "plt_nevatim_kidon3_takeoff.ogg",
+      "text": "Nevatim tower, Kidon 3, ready for take-off",
+      "text_he": "מגדל נבטים, כידון 3, בקשת המראה"
+    },
+    "NEVATIM_TWR+,+DELTA_P+,+REQ_TAKEOFF": {
+      "file": "plt_nevatim_kidon4_takeoff.ogg",
+      "text": "Nevatim tower, Kidon 4, ready for take-off",
+      "text_he": "מגדל נבטים, כידון 4, בקשת המראה"
+    },
+    "NEVATIM_TWR+,+ECHO_P+,+REQ_TAKEOFF": {
+      "file": "plt_nevatim_kidon5_takeoff.ogg",
+      "text": "Nevatim tower, Kidon 5, ready for take-off",
+      "text_he": "מגדל נבטים, כידון 5, בקשת המראה"
+    },
+    "NEVATIM_TWR+,+FOXTROT_P+,+REQ_TAKEOFF": {
+      "file": "plt_nevatim_kidon6_takeoff.ogg",
+      "text": "Nevatim tower, Kidon 6, ready for take-off",
+      "text_he": "מגדל נבטים, כידון 6, בקשת המראה"
+    },
+    "NEVATIM_TWR+,+HOTEL_P+,+REQ_TAKEOFF": {
+      "file": "plt_nevatim_kidon7_takeoff.ogg",
+      "text": "Nevatim tower, Kidon 7, ready for take-off",
+      "text_he": "מגדל נבטים, כידון 7, בקשת המראה"
+    },
+    "NEVATIM_TWR+,+INDIA_P+,+REQ_TAKEOFF": {
+      "file": "plt_nevatim_kidon8_takeoff.ogg",
+      "text": "Nevatim tower, Kidon 8, ready for take-off",
+      "text_he": "מגדל נבטים, כידון 8, בקשת המראה"
+    },
     "NEVATIM_TWR+,+ALPHA_P+,+REQ_LANDING": {
       "file": "plt_nevatim_kidon1_landing.ogg",
       "text": "Nevatim tower, Kidon 1, request landing",
       "text_he": "מגדל נבטים, כידון 1, בקשת נחיתה"
+    },
+    "NEVATIM_TWR+,+BRAVO_P+,+REQ_LANDING": {
+      "file": "plt_nevatim_kidon2_landing.ogg",
+      "text": "Nevatim tower, Kidon 2, request landing",
+      "text_he": "מגדל נבטים, כידון 2, בקשת נחיתה"
+    },
+    "NEVATIM_TWR+,+CHARLIE_P+,+REQ_LANDING": {
+      "file": "plt_nevatim_kidon3_landing.ogg",
+      "text": "Nevatim tower, Kidon 3, request landing",
+      "text_he": "מגדל נבטים, כידון 3, בקשת נחיתה"
+    },
+    "NEVATIM_TWR+,+DELTA_P+,+REQ_LANDING": {
+      "file": "plt_nevatim_kidon4_landing.ogg",
+      "text": "Nevatim tower, Kidon 4, request landing",
+      "text_he": "מגדל נבטים, כידון 4, בקשת נחיתה"
+    },
+    "NEVATIM_TWR+,+ECHO_P+,+REQ_LANDING": {
+      "file": "plt_nevatim_kidon5_landing.ogg",
+      "text": "Nevatim tower, Kidon 5, request landing",
+      "text_he": "מגדל נבטים, כידון 5, בקשת נחיתה"
+    },
+    "NEVATIM_TWR+,+FOXTROT_P+,+REQ_LANDING": {
+      "file": "plt_nevatim_kidon6_landing.ogg",
+      "text": "Nevatim tower, Kidon 6, request landing",
+      "text_he": "מגדל נבטים, כידון 6, בקשת נחיתה"
+    },
+    "NEVATIM_TWR+,+HOTEL_P+,+REQ_LANDING": {
+      "file": "plt_nevatim_kidon7_landing.ogg",
+      "text": "Nevatim tower, Kidon 7, request landing",
+      "text_he": "מגדל נבטים, כידון 7, בקשת נחיתה"
+    },
+    "NEVATIM_TWR+,+INDIA_P+,+REQ_LANDING": {
+      "file": "plt_nevatim_kidon8_landing.ogg",
+      "text": "Nevatim tower, Kidon 8, request landing",
+      "text_he": "מגדל נבטים, כידון 8, בקשת נחיתה"
     },
     "ALPHA_R": {
       "file": "awx_kidon1.ogg",
@@ -4931,6 +7742,26 @@
       "file": "awx_kidon4.ogg",
       "text": "Kidon 4",
       "text_he": "כידון 4"
+    },
+    "ECHO_R": {
+      "file": "awx_kidon5.ogg",
+      "text": "Kidon 5",
+      "text_he": "כידון 5"
+    },
+    "FOXTROT_R": {
+      "file": "awx_kidon6.ogg",
+      "text": "Kidon 6",
+      "text_he": "כידון 6"
+    },
+    "HOTEL_R": {
+      "file": "awx_kidon7.ogg",
+      "text": "Kidon 7",
+      "text_he": "כידון 7"
+    },
+    "INDIA_R": {
+      "file": "awx_kidon8.ogg",
+      "text": "Kidon 8",
+      "text_he": "כידון 8"
     },
     "BEARING010": {
       "file": "awx_bearing_010.ogg",
