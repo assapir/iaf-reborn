@@ -329,7 +329,8 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   the view's upper part; below it the pilot sees the panel in its own night lighting with the naked eye (the user's
   "fix", 19 Nov: the picture had covered the whole screen, the 3D cockpit too). The lighting panel's NVIS / NORMAL
   switch keeps the cockpit's own light out of the tubes at NVIS and lights the cockpit NVIS Green A (MIL-STD-3009); at
-  NORMAL it glares and washes out the field's lower part. While they are down the helmet display shows no symbols. The F-35I has none (a notice): its helmet keeps the
+  NORMAL it glares and washes out the field's lower part. By day the field washes out bright, soft and pale (since 25
+  Nov, the user on Approvals A87: "it should be bright, not dark"; rendering.md §8.3). While they are down the helmet display shows no symbols. The F-35I has none (a notice): its helmet keeps the
   night camera (Alt + F7). Also fixed: the HMCS SYM INT knob at OFF now darkens the helmet display with the Real HUD
   (its symbols drew on). Not started (the user's pick): the exterior lights' covert mode (with the AI wingmen), white
   phosphor, ejection with goggles. Tests: `nvg.rs`, `real_hud::tests::the_helmet_display_is_dark_with_the_hmcs_off_or_the_goggles_down`,

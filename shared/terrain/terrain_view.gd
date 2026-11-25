@@ -4348,6 +4348,7 @@ func _toggle_goggles() -> void:
 	if _goggles.visible:  # the tubes' look, after the F-35I's DAS video (_helmet_video_step)
 		for k in NVC_LOOK:
 			_goggles.get_child(0).material.set_shader_parameter(k, NVC_LOOK[k])
+		_goggles.get_child(0).material.set_shader_parameter("lux", scene_lux)  # now, not at the next second's tick
 		_helmet_mode = 1
 	# The HUD's light is far stronger than the night outside: through the tubes it shows as the brightest green (index 7
 	# of the H key's levels; inferred), the player's level back when the goggles come off.
@@ -4412,7 +4413,7 @@ static func _video_rect(params: Dictionary) -> ColorRect:
 
 
 ## Ours (Modern IAF, the F-35I; modern-iaf/docs/avionics-plan.md P9, G35): the DAS's infrared video as the
-## night-vision shader draws it, grey (white-hot), without the tubes' bright-source protection, edge or grain: a
+## night-vision shader draws it, grey (white-hot), without the tubes' daylight wash-out, edge or grain: a
 ## simple stand-in, the scene's light amplified (inferred; no heat in the scene).
 const DAS_VIDEO := {
 	"cathode": Vector3(0.3, 0.45, 0.25),
@@ -4428,7 +4429,7 @@ const DAS_VIDEO := {
 	"lux": -1.0,
 }
 ## The tubes' own look (the shader's defaults) for the night camera after the DAS video.
-const NVC_LOOK := {"tint": Vector3(0.42, 1.0, 0.36), "protect": 0.9, "vignette": 0.7, "curve": 0.5}
+const NVC_LOOK := {"tint": Vector3(0.42, 1.0, 0.36), "protect": 0.6, "vignette": 0.7, "curve": 0.5}
 ## The helmet's picture (command 302, p1 3): 0 none, 1 the night camera (the goggles, goggles_tube), 2 the DAS video.
 var _helmet_mode := 0
 
@@ -4444,7 +4445,9 @@ func _helmet_video_step() -> void:
 		var mat: ShaderMaterial = _goggles.get_child(0).material
 		var lit := goggles_lit(player.get("type", 0), Settings.mission_year())
 		var look: Dictionary = (
-			DAS_VIDEO if _helmet_mode == 2 else goggles_tube().merged(NVC_LOOK).merged({"glare": 0.0 if lit else 0.15})
+			DAS_VIDEO
+			if _helmet_mode == 2
+			else goggles_tube().merged(NVC_LOOK).merged({"glare": 0.0 if lit else 0.15, "lux": scene_lux})
 		)
 		for k in look:
 			mat.set_shader_parameter(k, look[k])

@@ -58,6 +58,7 @@ At night the pilot can wear night-vision goggles on the helmet: two image tubes 
 
 #in-sim[
   - #key("Night-vision goggles: down / up (F-16)") flips the goggles down before the eyes. #then[A round field about 40° across, in the upper part of the view, shows the goggles' green picture. It moves with the head. Below it the panel shows as the naked eye sees it.] The same key flips them up again. A flight starts with them up; they work at any height.
+  - By day the goggles' picture washes out: #then[the round field shows a bright, pale green with soft, faint detail.] A tube holds its picture's brightness as the light grows and loses its sharpness in bright light#footnote[US patent 5,949,063, "Night vision device having improved automatic brightness control and bright-source protection": #link("https://patents.google.com/patent/US5949063A/en"). Checked 25 November 2026.].
   - With the goggles down the helmet display shows no symbols, as the US helmet's (inferred). The HUD stays.
   - #row("mms-switch") at NVIS keeps the cockpit's own light out of the goggles' picture. At NORMAL the cockpit glares in them and washes out the lower part of the round field (@lighting).
   - The goggles hold their picture at one brightness, but its grain follows the night's light: #then[under a full moon the picture is clean; on a moonless night it sparkles with noise.] An image tube's noise grows as the light falls (inferred from the photon noise).

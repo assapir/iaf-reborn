@@ -25,8 +25,8 @@ const float GRAIN_LUX = 0.01;
 
 // The picture's colour: the tubes' P43 phosphor green; the F-35I's DAS video grey (terrain_view.gd DAS_VIDEO).
 uniform vec3 tint = vec3(0.42, 1.0, 0.36);
-// The tube's bright-source protection and its dark edge (0 for the DAS's camera, which has neither; inferred).
-uniform float protect = 0.9;
+// The tube's brightness control in bright light (0 for the DAS's camera, which has none; inferred), and its dark edge.
+uniform float protect = 0.6;
 uniform float vignette = 0.7;
 // The brightness curve's exponent: 0.5 (the square root) keeps the dim ground's detail beside the sky; the DAS's 1.0
 // keeps the picture's contrast by day (inferred).
@@ -38,6 +38,13 @@ uniform float field = 0.0;
 uniform vec3 field_axis = vec3(0.0, 0.0, -1.0);
 uniform vec2 field_centre = vec2(0.5);
 uniform float field_focal = 1.0;
+
+
+// The view's light as the tubes see it (linear, through the photocathode's weights): the gain's mean, and the
+// daylight wash-out where no scene lux is set.
+float scene_light(vec3 avg) {
+	return dot(avg, cathode);
+}
 
 
 float hash(vec2 p) {
@@ -65,7 +72,8 @@ void fragment() {
 	} else {
 		// On the square root of the brightness: the dim ground keeps its detail beside the sky (inferred).
 		vec3 avg = textureLod(screen, mean_at, mean_lod).rgb;
-		float mean = pow(dot(avg, cathode), curve) + glare;
+		float light = scene_light(avg);
+		float mean = pow(light, curve) + glare;
 		float gain = clamp(target / max(mean, 1e-3), 1.0, max_gain);
 		float l = pow(dot(textureLod(screen, SCREEN_UV, blur).rgb, cathode), curve) * gain;
 		// Halos: a light far brighter than the scene blooms into a disc around itself.
@@ -81,10 +89,16 @@ void fragment() {
 		l += glare * gain * smoothstep(0.3, 1.0, down);
 		// The bright end saturates softly; the tube's edge darkens.
 		l = 1.0 - exp(-1.6 * max(l, 0.0));
-		// Bright-source protection: a view full of light (a close blast, daylight) darkens the tube (inferred limits).
-		// ponytail: no hold time, the picture comes back as soon as the light goes; a CPU-side timer if it should
-		// linger.
-		l *= 1.0 - protect * smoothstep(0.35, 0.6, dot(avg, cathode));
+		// Bright light (daylight, a close blast): the brightness control holds the screen at its top brightness and the
+		// picture loses detail, so it washes out to a bright, soft, low-contrast green (rendering.md §8.3; limits
+		// inferred). ponytail: no hold time, the picture comes back as soon as the light goes; a CPU-side timer if it
+		// should linger.
+		// Modern IAF reads the scene's lux (none from 10 lux, deep in civil twilight, all from 400 lux, sunset); the 1998
+		// game and lux < 0 the view's light through the tube (0.35 to 0.6).
+		float bright = lux < 0.0 ? smoothstep(0.35, 0.6, light) : smoothstep(1.0, 2.6, log(max(lux, 1e-4)) / log(10.0));
+		float wash = protect * bright;
+		float soft = 1.0 - exp(-1.6 * pow(scene_light(textureLod(screen, SCREEN_UV, 3.0).rgb), curve));
+		l = mix(l, 0.8 + 0.2 * soft, wash);
 		if (field > 0.0) {
 			// The field's rim darkens, then the naked eye's view around it (inferred).
 			l *= 1.0 - vignette * smoothstep(0.8, 1.0, edge);

@@ -2247,7 +2247,7 @@ own view only (`IafGoggles.drawn`). The shader:
 2. **Automatic gain control.** The shader works on the square root of the brightness, so the moonlit ground keeps
    its detail beside the brighter sky (inferred). The gain is set so the screen's mean (the screen texture's last
    mip) reaches 0.55, from ×1 up to the tube's top gain. A real tube raises its gain as the light falls[^rash].
-   By day the gain stays at ×1, and the bright-source protection darkens the picture (§8.3).
+   By day the gain stays at ×1, and the brightness control washes the picture out bright (§8.3).
 3. **Sharpness.** The image is read from a blurred screen mip: none for the late Gen III, 0.7 for the early Gen III,
    1.2 for the Gen II. These follow the tubes' resolution against the late Gen III's 64 lp/mm: 36–51 lp/mm
    (×1.6 blur) and 28 lp/mm (×2.3)[^omni][^gen2].
@@ -2294,7 +2294,7 @@ original's by its id (`mission_year.rs default_year`: 111–117 1967, 121–127 
   acuity comes close to the 20/20 of goggles), and the alternative goggle helmet was dropped in 2013[^f35][^f35alt].
   Here it is drawn as the late Gen III (inferred); its camera's own look (latency, colour) is open. In Modern IAF its
   helmet also shows the DAS's video (Alt + F7 steps the night camera, the DAS and off; the DAS format's picture on the
-  panoramic display is the same look): the shader with grey `tint`, no `protect` or `vignette`
+  panoramic display is the same look): the shader with grey `tint`, no `protect` (the daylight wash-out) or `vignette`
   (`terrain_view.gd` `DAS_VIDEO`, docs/f35i.md §4.3). The DAS format's camera costs 1.83 ms of GPU time a frame
   while the format is drawn (320 px wide, every graphics option on, the Linux laptop's Iris Xe, 19 Nov 2026,
   `modern-iaf/tests/_adir_s7d_shot.gd`); it does not render otherwise.
@@ -2322,9 +2322,17 @@ original's by its id (`mission_year.rs default_year`: 111–117 1967, 121–127 
   goggles are down); at NVIS their cockpit is also lit NVIS Green A, the standard's colour for goggle-compatible
   primary and secondary lighting (u' 0.088, v' 0.543)[^ms3009] (modern-iaf/docs/cockpit.md §5.5). The original itself
   lights the F-4E's night cockpit red, the colour a Gen III tube sees best.
-- **Bright-source protection.** When the view's mean (linear, through the tube's weights) passes 0.35, the picture
-  darkens, down to 10 % at 0.6: a close blast filling the view, or daylight. The picture comes back as soon as the
-  light goes (no hold time). Gray Zone Warfare shuts its goggles down the same way[^gzw]; the limits are inferred.
+- **Bright light.** A tube's automatic brightness control holds the screen's brightness about constant as the scene
+  grows brighter, and in a bright field the picture loses much of its resolution[^abc]. So by day the goggles show
+  a bright, soft, low-contrast green, not a dark one: the picture blends toward 0.8 + 0.2 × a blurred copy of itself
+  (screen mip 3), by up to 60 % (`protect`). In Modern IAF the scene's lux sets how much (`scene_lux`, the same value
+  as the grain's): none at 10 lux (deep in civil twilight), all at 400 lux (sunset) and above, smooth on the log of
+  the lux. The 1998 game, which has no scene lux, uses the view's light (linear, through the tube's weights): none at
+  0.35, all at 0.6, so a close blast filling the view washes it out too. The picture comes back as soon as the light
+  goes (no hold time). The limits are inferred.
+  Until 25 Nov 2026 the picture darkened here instead, down to 10 %, after Gray Zone Warfare's goggles that shut
+  down in bright light[^gzw]; the user found the dark day picture wrong (Approvals A87: "if you use googles on day
+  it should be bright, not dark") and the real tube keeps its brightness, so it was dropped.
 
 **Shots**: `tests/godot/_night_shot.gd` with `NIGHT_VISION=1`; the pilot guides' `night` / `night_nvg` pictures
 (their "Night vision" section). In mission 214 (01:00, Detailed night lights) the goggles show the hills, the
@@ -2682,6 +2690,9 @@ The original game keeps its look and behaviour: only the precision of the drawin
     https://www.airandspaceforces.com/article/0602bekaa/
 [^dtic]: DTIC ADA517298 (one incompatible cockpit light degrades the goggles' picture):
     https://apps.dtic.mil/sti/pdfs/ADA517298.pdf
+[^abc]: US patent 5,949,063, "Night vision device having improved automatic brightness control and bright-source
+    protection" (ABC keeps the image's brightness substantially constant; in bright-field conditions the device may
+    drastically lose resolution): https://patents.google.com/patent/US5949063A/en
 [^gzw]: Gray Zone Warfare devlog 7 (grain in dark areas, halos, auto-shutdown in bright light):
     https://www.grayzonewarfare.com/news/devlog-7-daylight-to-darkness
 [^ambientcg]: ambientCG, https://ambientcg.com/. Licence: "All ambientCG assets are provided under the Creative Commons CC0 1.0 Universal License", https://docs.ambientcg.com/license/ (read 2026-10-22).
