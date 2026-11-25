@@ -59,7 +59,9 @@ func run() -> void:
 		s.language = lang
 		s.pilot_name = "נועה גולן" if lang == "he" else "Noa Golan"
 		s.sim_jet = OS.get_environment("SHOT_JET") if OS.has_environment("SHOT_JET") else "f16i"
-		for g in ["graphics", "sound", "devices", "language", "updates"] if only == "" or "prefs" in only.split(",") else []:
+		for g in (
+			["graphics", "sound", "devices", "language", "updates"] if only == "" or "prefs" in only.split(",") else []
+		):
 			fe.pref_group = g
 			fe.pref_search = ""
 			fe.show_page("prefs")
