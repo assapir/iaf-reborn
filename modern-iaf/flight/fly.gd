@@ -1,18 +1,12 @@
-# Starts a Modern IAF mission: the front end's Fly (menu/front_end.gd), and `./start-modern-iaf -- --mission <id>` with
-# the menu id (2011 Ramon start-up, 2012 Ramon take-off, 2021 / 2022 Ramat David, 2031 / 2032 Nevatim; terrain_view.gd
-# reads the same argument as the mission id). The mission comes from converted/modern-iaf/missions (iaf-sim missions),
-# the jet from its player unit (Settings.set_jet), then the flight scene.
+# Starts a Modern IAF mission: the front end's Fly and `./start-modern-iaf -- --mission <id>` (menu/front_end.gd
+# start_args) with the menu id (2011 Ramon start-up, 2012 Ramon take-off, 2021 / 2022 Ramat David, 2031 / 2032
+# Nevatim; terrain_view.gd reads the same argument as the mission id). The mission comes from
+# converted/modern-iaf/missions (iaf-sim missions), the jet from its player unit (Settings.set_jet), then the flight
+# scene.
 extends Node
 
 const MissionRuntime := preload("res://shared/mission/mission_runtime.gd")
 const TimeOfDay := preload("res://shared/terrain/time_of_day.gd")
-
-
-func _ready() -> void:
-	var args := OS.get_cmdline_user_args()
-	var at := args.find("--mission")
-	var want := args[at + 1] if at >= 0 and at + 1 < args.size() else "2011"
-	start(int(want) if want.is_valid_int() else -1)  # a failure opens the crash page
 
 
 ## Loads mission `id` (its menu id) and changes to the flight scene; false when the compiled missions lack it.

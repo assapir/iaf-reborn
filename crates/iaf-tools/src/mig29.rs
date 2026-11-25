@@ -26,7 +26,9 @@ use iaf_formats::ac3d;
 use image::{Rgba, RgbaImage};
 use serde_json::Value;
 
-use crate::f15::{Hinge, Node, Piece, Tri, V, ac, add, axis_y, dot, fg, norm, pieces, rotate, scale, sub, write_glb};
+use crate::f15::{
+    Hinge, Node, Piece, Tri, V, ac, add, axis_y, dot, engine_helpers, fg, norm, pieces, rotate, scale, sub, write_glb,
+};
 use crate::progress::Progress;
 use crate::thirdparty::Download;
 
@@ -340,24 +342,7 @@ pub fn build(src: &Path, orig: &Path, out: &Path) -> Result<Stats> {
     helpers.push(("Parach1".into(), add(pa, [-0.49, 0.0, 0.0])));
     helpers.push(("Parach2".into(), add(pa, [0.49, 0.0, 0.0])));
 
-    // The afterburners: EngineL/R at each nozzle's exit, EngineL1/R1 up by its radius.
-    for (side, x_sign) in [("L", -1.0f32), ("R", 1.0)] {
-        let ring: Vec<V> = all
-            .iter()
-            .filter(|p| p.top == "nozzle")
-            .flat_map(|p| p.tris.iter().flat_map(|t| t.1))
-            .filter(|v| v[0] * x_sign > 0.0)
-            .collect();
-        let zmax = ring.iter().map(|v| v[2]).fold(f32::MIN, f32::max);
-        let exit: Vec<&V> = ring.iter().filter(|v| v[2] > zmax - 0.05).collect();
-        ensure!(!exit.is_empty(), "no nozzle {side}");
-        let (xa, xb) = exit.iter().fold((f32::MAX, f32::MIN), |m, v| (m.0.min(v[0]), m.1.max(v[0])));
-        let (ya, yb) = exit.iter().fold((f32::MAX, f32::MIN), |m, v| (m.0.min(v[1]), m.1.max(v[1])));
-        let c = [(xa + xb) / 2.0, (ya + yb) / 2.0, zmax];
-        helpers.retain(|h| h.0 != format!("Engine{side}") && h.0 != format!("Engine{side}1"));
-        helpers.push((format!("Engine{side}"), c));
-        helpers.push((format!("Engine{side}1"), add(c, [0.0, (yb - ya) / 2.0, 0.0])));
-    }
+    engine_helpers(&all, &mut helpers)?;
 
     let mut body =
         Node { name: "mig29".into(), at: [0.0; 3], tris: all.into_iter().flat_map(|p| p.tris).collect::<Vec<Tri>>() };

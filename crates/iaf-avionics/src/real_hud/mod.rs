@@ -1118,40 +1118,50 @@ mod tests {
         }
     }
 
-    /// The F-16's frames for fixed inputs in every mode, hashed: other jets' displays must leave them unchanged.
     /// A frame as the snapshot hashes it: what it draws (mrm_inside, a value for the shoot cue, left out; a text at
     /// the HUD's own size without its size).
-    pub(super) fn snapshot(fr: &Frame) -> String {
+    fn snapshot(fr: &Frame) -> String {
         format!("{:?}", Frame { mrm_inside: None, ..fr.clone() })
             .replace(", mrm_inside: None", "")
             .replace(", size: 1.0", "")
     }
 
-    fn f16_fingerprint() -> u64 {
-        use std::hash::{Hash, Hasher};
-        let mut h = std::collections::hash_map::DefaultHasher::new();
+    /// FNV-1a of the F-16's frames in every mode, gear up / down, with a target and a pipper: the Kfir / Lavi /
+    /// Kurnass 2000 displays must leave it byte-identical.
+    fn f16_frames_hash() -> u64 {
+        let mut h: u64 = 0xcbf2_9ce4_8422_2325;
         for mode in 0..=8 {
             for gear in [false, true] {
                 let mut i = input(Jet::F16);
                 i.gear_down = gear;
                 i.weapons.hud_mode = mode;
-                i.weapons.lcos = Some((5.0, 15.0));
-                i.weapons.pipper = Some((-5.0, 30.0));
-                i.weapons.seeker = Some((8.0, -4.0));
-                i.weapons.steering = Some((3.0, 3.0));
-                i.weapons.circle = 4.0;
+                i.weapons.seeker = Some((5.0, -4.0));
+                i.weapons.lcos = Some((2.0, 18.0));
+                i.weapons.pipper = Some((-3.0, 30.0));
                 i.target = Some(Target {
-                    range_m: 5000.0,
-                    closure: 150.0,
-                    at: Some((10.0, -5.0)),
-                    aspect: Some(1.0),
+                    range_m: 3000.0,
+                    closure: 120.0,
+                    at: Some((10.0, -8.0)),
+                    aspect: Some(0.5),
                     ident: None,
                 });
-                i.dlz = Some(Dlz { max: 9000.0, min: 1500.0 });
-                snapshot(&RealHud::default().frame(FIELD, &i)).hash(&mut h);
+                i.dlz = Some(Dlz { max: 9000.0, min: 900.0 });
+                for b in snapshot(&RealHud::default().frame(FIELD, &i)).bytes() {
+                    h = (h ^ u64::from(b)).wrapping_mul(0x0100_0000_01b3);
+                }
             }
         }
-        h.finish()
+        // The delayed CCIP before and after designation.
+        for designated in [false, true] {
+            let mut i = input(Jet::F16);
+            i.weapons.hud_mode = 5;
+            i.weapons.pipper = Some((-3.0, 130.0));
+            i.weapons.delay = Some(Delay { ttg: 6.0, target: Some((-2.0, 60.0)), designated });
+            for b in snapshot(&RealHud::default().frame(FIELD, &i)).bytes() {
+                h = (h ^ u64::from(b)).wrapping_mul(0x0100_0000_01b3);
+            }
+        }
+        h
     }
 
     #[test]
@@ -1181,7 +1191,7 @@ mod tests {
 
     #[test]
     fn the_f16_display_is_unchanged() {
-        assert_eq!(f16_fingerprint(), 17_852_158_275_609_010_620, "the F-16 Real HUD changed");
+        assert_eq!(f16_frames_hash(), 14_087_280_463_823_746_070, "the F-16 Real HUD changed");
     }
 
     #[test]
@@ -1249,79 +1259,5 @@ mod tests {
     fn edge_clamp() {
         let (p, lim) = FIELD.clamp_from((0.0, 0.0), (160.0, 0.0));
         assert!(lim && p == (80.0, 0.0));
-    }
-}
-
-#[cfg(test)]
-mod f16_snapshot {
-    use super::tests::{FIELD, input, snapshot};
-    use super::*;
-
-    /// FNV-1a of the F-16's frames in every mode, gear up / down, with a target and a pipper: the Kfir / Lavi /
-    /// Kurnass 2000 displays must leave it byte-identical.
-    fn f16_frames_hash() -> u64 {
-        let mut h: u64 = 0xcbf2_9ce4_8422_2325;
-        for mode in 0..=8 {
-            for gear in [false, true] {
-                let mut i = input(Jet::F16);
-                i.gear_down = gear;
-                i.weapons.hud_mode = mode;
-                i.weapons.seeker = Some((5.0, -4.0));
-                i.weapons.lcos = Some((2.0, 18.0));
-                i.weapons.pipper = Some((-3.0, 30.0));
-                i.target = Some(Target {
-                    range_m: 3000.0,
-                    closure: 120.0,
-                    at: Some((10.0, -8.0)),
-                    aspect: Some(0.5),
-                    ident: None,
-                });
-                i.dlz = Some(Dlz { max: 9000.0, min: 900.0 });
-                for b in snapshot(&RealHud::default().frame(FIELD, &i)).bytes() {
-                    h = (h ^ u64::from(b)).wrapping_mul(0x0100_0000_01b3);
-                }
-            }
-        }
-        // The delayed CCIP before and after designation.
-        for designated in [false, true] {
-            let mut i = input(Jet::F16);
-            i.weapons.hud_mode = 5;
-            i.weapons.pipper = Some((-3.0, 130.0));
-            i.weapons.delay = Some(Delay { ttg: 6.0, target: Some((-2.0, 60.0)), designated });
-            for b in snapshot(&RealHud::default().frame(FIELD, &i)).bytes() {
-                h = (h ^ u64::from(b)).wrapping_mul(0x0100_0000_01b3);
-            }
-        }
-        h
-    }
-
-    #[test]
-    fn mrm_inside_is_the_drawn_circle() {
-        for jet in [Jet::F16, Jet::F15, Jet::F35, Jet::Lavi, Jet::Kurnass2000] {
-            let mut i = input(jet);
-            i.weapons.hud_mode = 2;
-            i.weapons.circle = 5.0;
-            let (c, r) = mrm_circle(&i).unwrap();
-            i.weapons.steering = Some(c);
-            assert_eq!(RealHud::default().frame(FIELD, &i).mrm_inside, Some(true), "{jet:?}: the dot on the centre");
-            // The original's circle is on the HUD centre: a dot there is outside the F-16's ASEC (6° lower).
-            i.weapons.steering = Some((c.0, c.1 - r * 1.2));
-            assert_eq!(
-                RealHud::default().frame(FIELD, &i).mrm_inside,
-                Some(false),
-                "{jet:?}: the dot above the circle"
-            );
-            i.weapons.steering = None;
-            assert_eq!(RealHud::default().frame(FIELD, &i).mrm_inside, None, "{jet:?}: no dot");
-        }
-        let mut i = input(Jet::MiG29);
-        i.weapons.hud_mode = 2;
-        i.weapons.steering = Some((0.0, 0.0));
-        assert_eq!(RealHud::default().frame(FIELD, &i).mrm_inside, None, "no fixed circle: the original's test");
-    }
-
-    #[test]
-    fn the_f16_display_is_unchanged() {
-        assert_eq!(f16_frames_hash(), 14_087_280_463_823_746_070, "F-16 frames hash");
     }
 }

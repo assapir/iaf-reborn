@@ -201,12 +201,9 @@ const AVIONIC_POWER := ["mmc", "st_sta", "mfd", "ufc"]
 const INS_STOR_HDG := 1
 const INS_NORM := 2
 const INS_NAV := 3
-## The checklist's first key record (modern-iaf/data/keys.json, records 119–124: STEP_IDS in order; commands 210–215).
-const CHECK_KEY := 119
 ## The engine step has no key: the throttle moved up from OFF is it, as the real idle-cutoff detent (training.md
 ## §7.1). The briefing names the Throttle idle key (record 7, the 1 key); OFF is the throttle's bottom, a lever's noise
 ## allowed.
-const THROTTLE_IDLE_KEY := 7
 const THROTTLE_OFF := 0.02
 ## The throttle last frame (-1 before the first: a lever already up at the start is no step).
 var _throttle_was := -1.0

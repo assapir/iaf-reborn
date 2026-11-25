@@ -1885,7 +1885,6 @@ const GND_JETT := "f16/avionics/gnd-jett"
 ## The F-16's own autopilot (modern-iaf/docs/research/f16-autopilot.md): the PITCH and ROLL switches (FlightGear's
 ## properties; its model names the two nodes the other way round: `roll-hold-switch` is PITCH), AIR REFUEL.
 const AP_PITCH := "f16/fcs/switch-pitch-block20"
-const AP_ROLL := "f16/fcs/switch-roll-block20"
 const AIR_REFUEL := "systems/refuel/switch"
 ## The AUDIO panels' knobs with OFF at their stop (COMM 1, ILS, TACAN) and INTERCOM, and the position the model shows
 ## each at (f16.json `modelled`): there the sound keeps the game's own level (inferred), louder clockwise.

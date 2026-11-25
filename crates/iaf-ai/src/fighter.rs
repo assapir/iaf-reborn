@@ -12,6 +12,7 @@
 
 use iaf_flight::Vec3;
 use iaf_flight::autopilot::{MODE_STEER, Steer};
+use iaf_flight::vec3::wrap_pi;
 
 use crate::bt::Node::{self, *};
 use crate::bt::Status;
@@ -115,11 +116,6 @@ fn bearing(from: Vec3, to: Vec3) -> f64 {
     (to[0] - from[0]).atan2(to[1] - from[1])
 }
 
-fn wrap(a: f64) -> f64 {
-    use std::f64::consts::{PI, TAU};
-    (a + PI).rem_euclid(TAU) - PI
-}
-
 /// The point where a jet at `p` flying `speed` m/s meets `b` flying on straight (the collision course): `b` itself when
 /// it cannot be caught, never more than [`LEAD_MAX_S`] ahead.
 pub fn collision(p: Vec3, speed: f64, b: &Bogey) -> Vec3 {
@@ -153,7 +149,7 @@ pub fn cap_point(p: Vec3, station: Vec3) -> Vec3 {
 /// off the nose on the side it is already on.
 pub fn crank_heading(p: Vec3, track: f64, b: Vec3) -> f64 {
     let brg = bearing(p, b);
-    let side = if wrap(brg - track) >= 0.0 { 1.0 } else { -1.0 };
+    let side = if wrap_pi(brg - track) >= 0.0 { 1.0 } else { -1.0 };
     brg - side * CRANK_DEG.to_radians()
 }
 

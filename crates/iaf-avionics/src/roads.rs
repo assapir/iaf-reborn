@@ -418,13 +418,10 @@ pub const RAIL_WIDTH: f32 = 4.5;
 /// Two tracks closer than this (m between their centres) share one bed: the ground between them is ballast too
 /// (inferred: a double line's tracks lie 4–5 m apart on one bed).
 const RAIL_PAIR: f32 = 6.0;
-/// The marking mask's G holds the metres along a way modulo this (m): a whole number of both dash periods
-/// (`DASH_DUAL`, `DASH_SINGLE`).
+/// The marking mask's G holds the metres along a way modulo this (m): a whole number of both dash periods. The broken
+/// lane line, dash / period: 3 / 15 m on a dual carriageway (motorway, trunk: 3 m of paint, 12 m gap), 2 / 6 m on a
+/// single one: Israel's sign 801 out of town (docs/rendering.md §1.8).
 pub const MARK_PERIOD: f32 = 30.0;
-/// The broken lane line, dash and period (m), on a dual carriageway (motorway, trunk: 3 m of paint, 12 m gap) and a
-/// single one (2 m, 4 m): Israel's sign 801 out of town (docs/rendering.md §1.8).
-pub const DASH_DUAL: [f32; 2] = [3.0, 15.0];
-pub const DASH_SINGLE: [f32; 2] = [2.0, 6.0];
 /// A railway texel's A holds the metres along the nearer track modulo this (m): its sleepers, one every 0.6 m.
 pub const RAIL_PERIOD: f32 = 12.0;
 /// The marking mask's B: bits 0–3 the lanes (their boundaries inside get dashed lines), bit 4 one way (its left edge

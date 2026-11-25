@@ -11,6 +11,7 @@ signal quit
 signal install
 signal uninstall
 
+const Img := preload("res://shared/util/img.gd")
 const W := 640.0
 const H := 480.0
 ## Button order = control ids 0x3e8.. = slots B1..B8 = cells 1..8.
@@ -45,8 +46,8 @@ var sound: AudioStreamPlayer
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var dir := Settings.install_dir().path_join("autorun")
-	poster = _texture(dir.path_join("poster.bmp"))
-	buttons = _texture(dir.path_join("buttons.bmp"))
+	poster = Img.load_texture(dir.path_join("poster.bmp"))
+	buttons = Img.load_texture(dir.path_join("buttons.bmp"))
 	slots = IafAutorun.rects(dir.path_join("poster.rgn"))
 	cells = IafAutorun.rects(dir.path_join("buttons.rgn"))
 	var wav := IafAutorun.wave(dir.path_join("jauto.exe"), WAVE_ID)
@@ -64,11 +65,6 @@ func _ready() -> void:
 ## False when the CD files are missing (setup-cli.sh / iaf-extract --autorun not run): the start-up then goes on.
 func available() -> bool:
 	return poster != null and buttons != null and slots.size() == 8
-
-
-static func _texture(path: String) -> Texture2D:
-	var img := Image.load_from_file(path) if FileAccess.file_exists(path) else null
-	return ImageTexture.create_from_image(img) if img != null else null
 
 
 func _scale() -> float:

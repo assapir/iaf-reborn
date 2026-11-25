@@ -937,15 +937,6 @@ func _set_jam(ent: Dictionary, on: bool) -> void:
 	ent["jam"] = share if on and Settings.modern_ew() else 0.0
 
 
-## The jammer share of a jet `t` ({} none): the player's from its jammer switch, an AI jet's from its entity.
-func _jam_of(t: Dictionary) -> float:
-	if t.is_empty():
-		return 0.0
-	return (
-		host.weapons.jam_share() if t.get("player", false) and host.get("weapons") != null else float(t.get("jam", 0.0))
-	)
-
-
 ## The air-to-air missile an enemy jet `u` shoots at `t` (combat.gd's stations and DLZ): of those it has left, the one
 ## with the shortest reach whose envelope holds the target (the infrared one close in), else the farthest reaching;
 ## selected. [max, min, a missile left, it homes on infrared (the helmet sight cues it, docs/ai.md §18.2)].

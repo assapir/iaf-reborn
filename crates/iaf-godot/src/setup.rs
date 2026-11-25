@@ -469,13 +469,6 @@ impl IafSetup {
         iaf_tools::sim_terrain::s2_cached_bytes(&cache) as i64
     }
 
-    /// The Survey choice of a check without the wizard (`iaf_setup::sim_survey`): the built theatre's, else whether the
-    /// sheets are there.
-    #[func]
-    fn sim_survey(assets: GString, repo: GString) -> bool {
-        iaf_setup::sim_survey(&PathBuf::from(assets.to_string()), &PathBuf::from(repo.to_string()))
-    }
-
     /// The Survey of Israel sheet ZIPs already under `assets` (Modern IAF's Survey choice needs them).
     #[func]
     fn survey_sheets(assets: GString) -> i64 {

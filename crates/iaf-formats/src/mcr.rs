@@ -16,7 +16,7 @@ pub struct Formation {
     pub count: i32,
     /// Combo TYPE index (`TYPES`).
     pub kind: i32,
-    /// Combo AI TYPE index (`AI_TYPES`).
+    /// Combo AI TYPE index: Aggressors, Defenders, Bombers, Kamikaze, Aces.
     pub ai: i32,
     /// The base index, a copy of `Mission::base` (`FUN_004fb180` copies it on every BASE change).
     pub base: i32,
@@ -79,7 +79,6 @@ pub const TYPES: [&str; 16] = [
     "F-15", "F-16", "F-4 E", "F-42000", "Lavi", "Kfir", "Mirage", "MiG-23", "MiG-29", "A-4 N", "MiG-17", "MiG-21",
     "MiG-25", "Su-22", "Su-24", "Tu-22",
 ];
-pub const AI_TYPES: [&str; 5] = ["Aggressors", "Defenders", "Bombers", "Kamikaze", "Aces"];
 
 fn cstr(b: &[u8]) -> Vec<u8> {
     b[..b.iter().position(|&c| c == 0).unwrap_or(b.len())].to_vec()

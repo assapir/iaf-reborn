@@ -414,11 +414,6 @@ impl Default for Hsd {
 
 /// The CNTL page's options by OSB: the FCR's scan, the preplanned threats, the route, the range rings, the bullseye.
 pub const HSD_OPTIONS: [(i32, &str); 5] = [(20, "FCR"), (19, "PRE"), (6, "NAV1"), (7, "RINGS"), (8, "BULL")];
-pub const HSD_FCR: usize = 0;
-pub const HSD_PRE: usize = 1;
-pub const HSD_NAV: usize = 2;
-pub const HSD_RINGS: usize = 3;
-pub const HSD_BULL: usize = 4;
 /// The ownship's place and the outer ring's radius (MFD px): depressed a quarter up from the bottom (fig. 1-45), or
 /// centred (inferred).
 const HSD_DEP: (f64, f64) = (66.0, 99.0);
@@ -745,7 +740,7 @@ mod tests {
         assert!(h.press(4, [1.0, 2.0, 0.5]));
         assert_eq!(h.frozen, Some([1.0, 2.0, 0.5]));
         assert!(h.press(5, [0.0; 3]) && h.cntl);
-        assert!(h.press(20, [0.0; 3]) && !h.show[HSD_FCR]);
+        assert!(h.press(20, [0.0; 3]) && !h.show[0]);
         assert!(!h.press(1, [0.0; 3]), "OSB 1 is not a CNTL option");
         assert_eq!(h.labels()[0], (20, "FCR".to_string(), false));
         h.press(5, [0.0; 3]);

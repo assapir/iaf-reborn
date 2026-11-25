@@ -3936,9 +3936,7 @@ func _tracer() -> Node3D:
 
 ## An effect image of the resource layout's 3dobjects folder as a texture; null when missing.
 static func _effect_art(file: String) -> Texture2D:
-	var path := Settings.own_dir().path_join("resource/3dobjects").path_join(file)
-	var img := Image.load_from_file(path) if FileAccess.file_exists(path) else null
-	return ImageTexture.create_from_image(img) if img != null else null
+	return Img.load_texture(Settings.own_dir().path_join("resource/3dobjects").path_join(file))
 
 
 ## Two quads `size` (width, length) crossed along −z (the length points forward: horizontal, then turned 90° about z),

@@ -976,12 +976,6 @@ impl IafFreeCombat {
             .collect()
     }
 
-    /// The start time `min` (minutes after local midnight) on the five-minute grid, in the day.
-    #[func]
-    fn time_valid(min: i64) -> i64 {
-        free_combat::time_valid(min)
-    }
-
     /// `min` stepped by `hours` hours and `steps` five-minute steps, round the clock.
     #[func]
     fn time_step(min: i64, hours: i64, steps: i64) -> i64 {
