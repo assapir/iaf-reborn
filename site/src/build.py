@@ -10,13 +10,13 @@ import struct
 import subprocess
 import sys
 
-from content import HERO, SECTIONS, CREDITS, TITLE, MANUALS, PUBLISH_MANUALS
+from content import HERO, SECTIONS, CREDITS, TITLE, MANUALS, PUBLISH_MANUALS, RADIO, DOWNLOADS
 
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 REPO = os.path.dirname(HERE)
 OUT = os.path.join(HERE, "_site")
 RAW = sys.argv[1] if len(sys.argv) > 1 else ""
-MAX_KB = {"full": 1024, "thumb": 320}  # a picture over this is re-encoded smaller before it is committed
+MAX_KB = {"full": 1024, "thumb": 320, "audio": 400}  # a file over this is re-encoded smaller before it is committed
 # Served path -> the repo file it is copied from (the game's own logo and font, not a second copy).
 COPIES = {
     "logo/icon_small.svg": "modern-iaf/branding/icon_small.svg",
@@ -102,9 +102,38 @@ def section(s):
             for u, en, he, ne, nh, c in s["links"]) + "</div>"
     if s.get("note"):
         out += both(s["note"][0], s["note"][1], "p", "notyet")
+    if s.get("radio"):
+        out += radio()
+    if s.get("games"):
+        out += downloads(s)
     if s.get("figs"):
         out += '<div class="grid">' + "".join(figure(f) for f in s["figs"]) + "</div>"
     return out + "</section>"
+
+
+def radio():
+    """RADIO: a player per language (radio.py made the files) and the lines it says, speaker first."""
+    out = f'<div class="radio"><h3>{both(RADIO["en"], RADIO["he"])}</h3>{both(RADIO["intro_en"], RADIO["intro_he"], "p")}'
+    for lang, i in (("en", 0), ("he", 1)):
+        name = f"audio/radio_{lang}.mp3"
+        if os.path.getsize(os.path.join(HERE, name)) > MAX_KB["audio"] * 1024:
+            sys.exit(f"{name} is over {MAX_KB['audio']} KB")
+        USED.add(name)
+        d = ' dir="rtl"' if lang == "he" else ""
+        out += (f'<div lang="{lang}"{d}><audio controls preload="none" src="{name}"></audio><ol>'
+                + "".join(f"<li><b>{ln[3 + i]}:</b> {ln[5 + i]}</li>" for ln in RADIO["lines"]) + "</ol></div>")
+    return out + "</div>"
+
+
+def downloads(s):
+    """DOWNLOADS: a card per game with a direct link per system and its size."""
+    out = '<div class="links dl">'
+    for en, he, stem, sizes in s["games"]:
+        out += f'<div class="doc"><b>{both(en, he)}</b>' + "".join(
+            f'<a href="{s["url"]}{stem}-nightly-{suffix}">{system}</a> <span>{size}</span><br>'
+            for (system, suffix), size in zip(s["systems"], sizes)) + "</div>"
+    url, en, he = s["all"]
+    return out + f'</div><p><a href="{url}" target="_blank" rel="noopener">{both(en, he)}</a></p>'
 
 
 CSS = """
@@ -124,7 +153,7 @@ nav a{color:var(--dim);text-decoration:none}nav a:hover{color:var(--text)}
 .switch button.on{background:var(--accent);color:#fff}
 main{max-width:1240px;margin:auto;padding:0 24px 60px}
 .hero{padding:44px 0 12px}
-.hero h1{font-size:54px;line-height:1.1;margin:0 0 6px}.hero h1 img{display:block;width:auto;height:auto;max-height:176px;max-width:100%;margin-inline-start:-6px;margin-bottom:8px}
+.hero h1{font-size:54px;line-height:1.1;margin:0 0 6px}.hero h1 img{display:block;width:auto;height:auto;max-height:176px;max-width:100%;margin:0 auto 8px}
 .hero .sub{font-size:22px;color:var(--dim);margin:0 0 18px}
 .hero p{max-width:860px;font-size:18px}
 .asof{color:var(--dim);font-size:14px}
@@ -150,12 +179,15 @@ figcaption{color:var(--dim);font-size:14.5px;margin-top:6px}
 footer{border-top:1px solid var(--line);color:var(--dim);font-size:13.5px;padding:22px 0 0;margin-top:40px}
 footer p{max-width:none}
 .links{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:18px 0}
+.links.dl{grid-template-columns:repeat(2,1fr)}.dl .doc a{color:var(--accent);font-size:17px;line-height:1.9}
+.radio{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:6px 18px 10px;margin:18px 0}
+.radio h3{margin:10px 0 0}.radio audio{width:100%;max-width:560px}.radio ol{padding-inline-start:22px}.radio li b{color:var(--accent)}
 .doc{display:block;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;color:var(--text);text-decoration:none}
 .cov{display:block;width:100px;height:auto;margin-bottom:8px;border:1px solid var(--line)}
 .doc:hover,.doc:focus-visible{border-color:var(--accent)}
 .doc b{display:block;font-size:18px;color:var(--accent)}.doc span{color:var(--dim);font-size:14px}.doc b span{color:inherit;font-size:inherit}
 html[dir=rtl] .hero h1{font-size:58px}
-@media (max-width:800px){.grid{grid-template-columns:1fr}.facts{grid-template-columns:repeat(2,1fr)}.links{grid-template-columns:1fr 1fr}nav{display:none}.hero h1{font-size:40px}}
+@media (max-width:800px){.grid{grid-template-columns:1fr}.facts{grid-template-columns:repeat(2,1fr)}.links,.links.dl{grid-template-columns:1fr 1fr}nav{display:none}.hero h1{font-size:40px}}
 """
 
 JS = """
@@ -185,9 +217,7 @@ def page():
             + "".join(both(en, he, "p") for en, he in HERO["text"])
             + f'<p class="asof">{both(HERO["asof_en"], HERO["asof_he"])}</p>'
             f'<div class="grid">{figure(HERO["fig"])}</div></div>')
-    secs = list(SECTIONS)
-    if PUBLISH_MANUALS:
-        secs.insert([x["id"] for x in secs].index("avionics") + 1, MANUALS)
+    secs = list(SECTIONS) + [DOWNLOADS] + ([MANUALS] if PUBLISH_MANUALS else [])
     nav = "".join(f'<a href="#{s["id"]}">{both(s["nav_en"], s["nav_he"])}</a>' for s in secs)
     body = "\n".join(section(s) for s in secs)
     foot = f'<footer>{both(CREDITS[0], CREDITS[1], "p")}</footer>'
