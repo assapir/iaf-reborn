@@ -32,6 +32,8 @@
 "FQS_sel-knob": {"system": "fuel_qty_sel"},
 "SW_STORES_CONFIG": {"system": "stores_config"},
 "SW_MPO": {"system": "mpo"},
+"SW_TRIM_DISC_50": {"system": "ap_disc"},
+"SW_FLCS-RESET": {"system": "flcs_reset"},
 "roll-hold-switch": {"system": "ap_pitch"},
 "pitch-hold-switch": {"system": "ap_roll"},
 "HMCS_SYM_INT_KNOB": {"system": "hmcs"},

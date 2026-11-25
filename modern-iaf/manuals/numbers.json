@@ -1,6 +1,6 @@
 {
 "f16": {"test":{"MAL_IND_LTS":1,"FIRE_OHEAT_DETECT":2,"SW_TEST_OXY":3,"SW_TEST_EPU":4,"SW_PROBE_HEAT":5,"SW_FLCS_TEST":6,"lamp_flcs_pwr_0":7,"HF-PBG_TEST":8},
- "flt_control":{"SW_DBU":1,"SW_LE_FLAPS_50":2,"SW_ALT_FLAPS_50":3,"SW_FLCS_BIT":4,"lamp_flcs_bit_run_0":5,"lamp_flcs_bit_fail_0":6,"lamp_stby_gains_0":7,"lamp_ecm_panel_9":8},
+ "flt_control":{"SW_DBU":1,"SW_LE_FLAPS_50":2,"SW_ALT_FLAPS_50":3,"SW_FLCS_BIT":4,"lamp_flcs_bit_run_0":5,"lamp_flcs_bit_fail_0":6,"lamp_stby_gains_0":7,"lamp_ecm_panel_9":8,"SW_FLCS-RESET":9},
  "fuel":{"SW_MASTER_FUEL":1,"SW_TANK_INERTING":2,"SW_KNOB_ENG_FEED":3,"SW_AIR_REFUEL":4},
  "ext_lights":{"SW_MASTER_50":1,"SW_ANTI_COLLISION_50":2,"SW_POS_LIGHTS_50":3,"SW_WING-TAIL_50":4,"SW_FUSELAGE_50":5,"SW_KNOB_EXT_FORM_LIGHT_50":6,"SW_KNOB_REFUEL_50":7},
  "elec":{"MAIN_PWR":1,"CAUTION_RESET":2,"lamp_main_gen_0":3,"lamp_stby_gen_0":4,"lamp_flcs_pmg_0":5,"lamp_epu_gen_0":6,"lamp_epu_pmg_0":7,"lamp_to_flcs_0":8,"lamp_flcs_rly_0":9,"lamp_flcs_fail_0":10},
@@ -34,7 +34,8 @@
  "avionic_power":{"AVIONICS_MMC":1,"AVIONICS_ST_STA":2,"AVIONICS_MFD":3,"AVIONICS_UFC":4,"gps-switch":5,"dl-switch":6,"INS":7},
  "ant_sel":{"ant-sel-iff-switch":1,"ant-sel-uhf-switch":2,"anti-ice-switch":3},
  "oxygen":{"PBG":1,"O2":2,"EM-NO-TE":3,"anim149":4},
- "canopy":{"CANOPY_SWITCH":1,"CANOPY_SPIDER":2}},
+ "canopy":{"CANOPY_SWITCH":1,"CANOPY_SPIDER":2},
+ "manual_trim":{"SW_TRIM_DISC_50":1}},
 "f35i": {"start_panel":{"BATT":1,"IPP":2,"START":3,"ICC1":4,"ICC2":5,"CABIN_PRESS":6,"IPP_EMER_OFF_GUARD":7,"IPP_EMER_OFF":8},
  "throttle":{"ENG_GUARD":1,"ENG":2,"VS_BIT":3,"THR_FRICTION":4,"THR_ACTIVE":5,"throttle":6,"FCS_RESET":7,"CANOPY":8,"DEFOG":9},
  "gear_panel":{"gear_handle":1,"lamp_gear_transit_0":2,"ALT_GEAR_GUARD":3,"ALT_GEAR":4,"PARK_BRAKE":5,"LAND_TAXI":6,"JETT_SEL":7,"EMER_JETT":8,"HOOK":9},

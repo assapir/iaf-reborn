@@ -4155,6 +4155,40 @@
      -0.0
     ]
    }
+  ],
+  "SW_TRIM_DISC_50": [
+   {
+    "prop": "f16/fcs/trim-ap-disc-switch",
+    "factor": 40.0,
+    "offset": -20.0,
+    "centre": [
+     -0.40687,
+     0.11748,
+     -2.8622
+    ],
+    "axis": [
+     0.0,
+     0.0,
+     -1.0
+    ]
+   }
+  ],
+  "SW_FLCS-RESET": [
+   {
+    "prop": "f16/fcs/flcs-reset",
+    "factor": 40.0,
+    "offset": -20.0,
+    "centre": [
+     -0.44936,
+     0.12497,
+     -2.837
+    ],
+    "axis": [
+     0.0,
+     0.0,
+     1.0
+    ]
+   }
   ]
  },
  "buttons": {
@@ -6916,6 +6950,25 @@
    "prop": "f16/canopy/switch",
    "mode": "cycle",
    "min": -1.0,
+   "max": 1.0,
+   "step": 1.0,
+   "wrap": true,
+   "rest": 0.0,
+   "modelled": 0.0
+  },
+  "SW_TRIM_DISC_50": {
+   "prop": "f16/fcs/trim-ap-disc-switch",
+   "mode": "cycle",
+   "min": 0.0,
+   "max": 1.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 0.0
+  },
+  "SW_FLCS-RESET": {
+   "prop": "f16/fcs/flcs-reset",
+   "mode": "cycle",
+   "min": 0.0,
    "max": 1.0,
    "step": 1.0,
    "wrap": true,

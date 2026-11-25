@@ -23,7 +23,7 @@ stick commands, use of ALT HOLD in conjunction with high g maneuvering may resul
 | ROLL switch | MISC panel, left of PITCH | HDG SEL: turns to the heading set by the HSI's heading marker and holds it. ATT HOLD: holds the bank from the INS. STRG SEL: steers to the selected steerpoint. Works only while PITCH is out of A/P OFF[^fm-134] |
 | paddle switch | the stick | interrupts the autopilot while it is held[^fm-129] |
 | TRIM/AP DISC | MANUAL TRIM panel | DISC: the stick's TRIM button off, autopilot engagement prevented, the trim motors off (the trim wheels still work)[^fm-131] |
-| FLCS RESET | FLCS panel | clears an A/P FAIL or A/P DEGR fault whose cause has gone[^fm-3112] |
+| FLCS RESET | FLT CONTROL panel | spring-loaded to OFF; RESET puts out the FLCS warning, FLCS FAULT and MASTER CAUTION lights and clears the fault list if the fault has gone[^fm-134]; it clears an A/P FAIL or A/P DEGR fault whose cause has gone[^fm-3112] |
 
 The two switches' places come from the cockpit figure: item 30 (ROLL) is drawn left of item 29 (PITCH)[^fm-14]. The
 3D cockpit's model (FlightGear's) names its two switch nodes the other way round (`roll-hold-switch` is PITCH); its
@@ -102,11 +102,12 @@ the PITCH switch springs back to A/P OFF when a condition holds it off; no line 
 2026-11-25, [front-end.md](../front-end.md) §8).
 
 What the sim models: the three pitch positions and three roll modes of §2 and §4 with their limits; the paddle (the
-references taken anew where it is let go); TRIM/AP DISC (a key; the model has no MANUAL TRIM panel); every condition of
+references taken anew where it is let go); TRIM/AP DISC (a key and the MANUAL TRIM panel's switch); every condition of
 §3 the sim has (DBU and STBY GAIN have no control law of their own in the sim, and the original game's autopilot
 flying holds it off too); A/P FAIL above 15° of α or without its data (no power, the INS not aligned, the autopilot
-damaged, damage flag 6), its FLCS FAULT light and fault list line; A/P DEGR on §5's three timers; FLCS RESET (a key; the
-model has no FLCS panel switch).
+damaged, damage flag 6), its FLCS FAULT light and fault list line; A/P DEGR on §5's three timers; FLCS RESET (a key
+and the FLT CONTROL panel's switch, spring-loaded to OFF). The cues the pilot sees are in
+[cockpit.md](../cockpit.md) §5.10.
 
 Inferred, with no public source:
 
@@ -136,7 +137,7 @@ by its keys and the 3D switch, TRIM/AP DISC, the gear, A/P FAIL's caution and fa
 [^fm-130]: T.O. GR1F-16CJ-1, page 1-130 (the low speed warning tone's conditions).
 [^fm-131]: T.O. GR1F-16CJ-1, figure 1-47, page 1-131 (TRIM/AP DISC: NORM "Permits autopilot engagement"; DISC "prevents autopilot engagement and ATF/autopilot blending").
 [^fm-132]: T.O. GR1F-16CJ-1, page 1-132 (the FLCS FAULT caution light; figure 1-50, the low speed warning tone schedule).
-[^fm-134]: T.O. GR1F-16CJ-1, figure 1-51, sheet 2, page 1-134 (the PITCH and ROLL switches' positions).
+[^fm-134]: T.O. GR1F-16CJ-1, figure 1-51, sheet 2, page 1-134 (the PITCH and ROLL switches' positions; the FLCS RESET switch, "spring-loaded to OFF", and what RESET resets).
 [^fm-135]: T.O. GR1F-16CJ-1, page 1-135 ("AUTOPILOT": the modes, TRIM/AP DISC, the paddle, the solenoid and its conditions).
 [^fm-136]: T.O. GR1F-16CJ-1, page 1-136 ("AUTOPILOT OPERATION": the modes' limits, A/P FAIL and A/P DEGR, stick steering).
 [^fm-3112]: T.O. GR1F-16CJ-1, section III, "Autopilot Malfunctions", pages 3-112 and 3-113.

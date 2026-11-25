@@ -573,7 +573,7 @@ stay the original's (`terrain_view.gd _on_subtitle` hands each line to the fligh
   | "Seeker SPOT" / "Seeker SCAN" (280 p1 1) | removed | the SMS's OSB 2 |
   | "PITCH …" / "ROLL …" (the autopilot switches, 292) | removed | the switches' positions |
   | "A/P OFF: …" (a PITCH switch that will not stay engaged) | removed (2026-11-25) | the switch springs back; the manual lists the conditions |
-  | "TRIM/AP DISC …" (294), "FLCS RESET" (295) | removed (2026-11-25) | the user's word: no autopilot lines; an engaged PITCH switch drops to A/P OFF |
+  | "TRIM/AP DISC …" (294), "FLCS RESET" (295) | removed (2026-11-25) | the MANUAL TRIM panel's TRIM/AP DISC switch; the FLT CONTROL panel's FLCS RESET switch and the fault list ([cockpit.md](cockpit.md) §5.10) |
   | "Manual TF fly-up …" (242 p1 1) | kept | the switch is not modelled |
   | "CMDS …" mode (262), "CMDS program …" (263) | kept | the knob shows OFF / STBY / MAN only; no program knob |
   | "Seeker uncaged" / "caged" (280 p1 0) | kept | the HUD's diamond grows only with a track |

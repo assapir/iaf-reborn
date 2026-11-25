@@ -4,8 +4,9 @@
 #   - ALT HOLD with HDG SEL, the EHSI's heading marker at 090: the jet turns onto 090 at no more than 30° of bank and
 #     holds its altitude within 100 ft;
 #   - STRG SEL: the jet turns onto the steerpoint's bearing;
-#   - TRIM/AP DISC and the gear handle drop the PITCH switch to A/P OFF (shown there) and refuse it;
-#   - autopilot damage: A/P FAIL, the FLCS FAULT caution and the fault list's line; FLCS RESET clears it;
+#   - TRIM/AP DISC (its key and its 3D switch) and the gear handle drop the PITCH switch to A/P OFF and refuse it;
+#   - autopilot damage: A/P FAIL, the FLCS FAULT caution and the fault list's line; FLCS RESET (its 3D switch)
+#     clears it;
 #   - none of it puts a line in the band (front-end.md §8).
 #   IAF_DEFAULT_SETTINGS=1 godot --headless --audio-driver Dummy --path modern-iaf \
 #     -s ../modern-iaf/tests/test_f16_autopilot.gd --log-file <temp>
@@ -98,7 +99,10 @@ func run() -> void:
 		int(f.ap_state().pitch) == 0 and c3d.clickable.value(_row(c3d, "roll-hold-switch")) == 0.0,
 		"at DISC the PITCH switch springs back to A/P OFF"
 	)
-	tv._command([294, 0, 0])
+	check(c3d.clickable.value(_row(c3d, "SW_TRIM_DISC_50")) == 1.0, "the key moves the 3D TRIM/AP DISC switch to DISC")
+	ctl.put(_row(c3d, "SW_TRIM_DISC_50"), 0.0)  # clicked back to NORM
+	await frames(2)
+	check(not tv.ap_disc, "TRIM/AP DISC clicked to NORM")
 	tv._command([292, 0, 1])
 	await frames(2)
 	check(int(f.ap_state().pitch) == 1, "TRIM/AP DISC at NORM: ALT HOLD engages")
@@ -120,7 +124,14 @@ func run() -> void:
 	check(lines.any(func(l): return str(l).contains("A/P  FAIL")), "the fault list: FLCS A/P FAIL")
 	tv.player_damage.flags[6] = false
 	await frames(3)
-	tv._command([295, 0, 0])
+	ctl.put(_row(c3d, "SW_FLCS-RESET"), 1.0)  # the 3D FLCS RESET switch clicked to RESET and let go
+	ctl.put(_row(c3d, "SW_FLCS-RESET"), 0.0)
+	await frames(2)
+	lines = c3d.Display.pfl_lines(cp.pfl_flags(), cp.pfl_acked)
+	check(
+		not lines.any(func(l): return str(l).contains("A/P  FAIL")),
+		"FLCS RESET clicked: A/P FAIL off the list (%s)" % [lines]
+	)
 	tv._command([292, 0, 1])
 	await frames(3)
 	check(not bool(f.ap_state().fail) and int(f.ap_state().pitch) == 1, "FLCS RESET: cleared, ALT HOLD engages")

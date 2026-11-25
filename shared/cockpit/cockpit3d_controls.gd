@@ -475,6 +475,8 @@ static func _system_state(tv: Object, name: String, now: float) -> float:
 			return 1.0 if float(tv.flaps) > 0.0 else 0.0
 		"stores_config":
 			return 1.0 if tv.cat3 else 0.0
+		"ap_disc":  # the MANUAL TRIM panel's TRIM/AP DISC: 1 DISC (terrain_view.gd ap_disc)
+			return 1.0 if tv.get("ap_disc") else 0.0
 		"mpo":
 			return 1.0 if tv.mpo or tv.mpo_on else 0.0
 		"ap_pitch", "ap_roll":  # the F-16's autopilot switches (IafFlight.ap_state; none on the original model)
@@ -564,6 +566,12 @@ func _system_put(name: String, v: float, was := NAN) -> void:
 		"laser_arm":  # command 241 flips it
 			if on != tv.weapons.laser_arm:
 				tv._press([241, 0, 0])
+		"ap_disc":  # command 294 flips it
+			if on != bool(tv.get("ap_disc")):
+				tv._press([294, 0, 0])
+		"flcs_reset":  # the FLT CONTROL panel's FLCS RESET, spring-loaded to OFF: command 295 at RESET
+			if on:
+				tv._press([295, 0, 0])
 		"emer_jett":  # the push: command 72
 			if on:
 				tv._press([72, 0, 0])

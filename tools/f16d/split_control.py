@@ -12,7 +12,15 @@
 #       0.4200,0.1444,-3.3667,0.4298,0.1635,-3.3598 f16/avionics/hud-ded -35 35
 #   python3 -I tools/f16d/split_control.py shared/extra/models/cockpit3d/f16.glb depr-ret-switch \
 #       0.4469,0.1492,-3.3666,0.4576,0.1701,-3.3580 f16/avionics/hud-depr -35 35
-# (cockpit3d.py writes no `controls` record for these two: add theirs to <model>.json `controls` again after a build,
+# The left console's MANUAL TRIM panel's TRIM/AP DISC switch (cockpit3d.py PICK_SKIP leaves it in the body) and the FLT
+# CONTROL panel's FLCS RESET switch (FlightGear has no animation for it); both swing across the console, as FlightGear
+# turns its neighbours (its axis -x, the body's -z); their boxes FlightGear's objects mapped into the body's frame
+# (the console's offsets, fitted on four of its split switches within 0.05 mm), 0.5 mm out:
+#   python3 -I tools/f16d/split_control.py shared/extra/models/cockpit3d/f16.glb SW_TRIM_DISC_50 \
+#       -0.4099,0.1163,-2.8655,-0.4002,0.1352,-2.8586 f16/fcs/trim-ap-disc-switch 40 -20 0,0,-1
+#   python3 -I tools/f16d/split_control.py shared/extra/models/cockpit3d/f16.glb SW_FLCS-RESET \
+#       -0.4523,0.1238,-2.8403,-0.4427,0.1427,-2.8334 f16/fcs/flcs-reset 40 -20 0,0,1
+# (cockpit3d.py writes no `controls` record for these: add theirs to <model>.json `controls` again after a build,
 # as w_vah-switch's with "modelled": 1.0, so the original game, which loads no control table, shows them at the middle.)
 # Needs numpy.
 import json
@@ -22,6 +30,7 @@ import sys
 import numpy as np
 
 GLB, NAME, BOX, PROP, FACTOR, OFFSET = sys.argv[1:7]
+AXIS = sys.argv[7] if len(sys.argv) > 7 else ""  # x,y,z: FlightGear's own axis in the body's frame, if it has one
 lo, hi = np.array(BOX.split(","), float).reshape(2, 3)
 data = open(GLB, "rb").read()
 jn = struct.unpack("<I", data[12:16])[0]
@@ -87,7 +96,7 @@ gl["buffers"][0]["byteLength"] = len(binc)
 lever = lever.astype(float)
 base = lever[lever[:, 1] <= lever[:, 1].min() + 0.1 * np.ptp(lever[:, 1])].mean(0)
 shaft = lever.mean(0) - base
-axis = np.cross(shaft, [0.0, 0.0, 1.0])
+axis = np.array(AXIS.split(","), float) if AXIS else np.cross(shaft, [0.0, 0.0, 1.0])
 axis /= np.linalg.norm(axis)
 meta_path = GLB[:-4] + ".json"
 meta = json.load(open(meta_path))

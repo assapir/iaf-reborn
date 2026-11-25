@@ -508,6 +508,17 @@
      "does": "The self test found a fault."
     },
     {
+     "node": "SW_FLCS-RESET",
+     "label": "FLCS RESET",
+     "name": "Flight control system reset",
+     "positions": [
+      "OFF",
+      "RESET"
+     ],
+     "does": "Spring-loaded to OFF. RESET resets the flight control system's failures: the FLCS warning, FLCS FAULT and MASTER CAUTION lights go out and the fault list clears, if the fault has gone.",
+     "sim": "Clears an autopilot fault (A/P FAIL, A/P DEGR) whose cause has gone: FLCS FAULT and the fault list's line go out."
+    },
+    {
      "node": "lamp_stby_gains_0",
      "nodes": [
       "lamp_stby_gains_0",
@@ -536,6 +547,25 @@
       "Light"
      ],
      "does": "Three legend lights of the cockpit model beside the LE FLAPS switch (inferred)."
+    }
+   ]
+  },
+  {
+   "id": "manual_trim",
+   "area": "left",
+   "title": "MANUAL TRIM panel",
+   "where": "left console",
+   "controls": [
+    {
+     "node": "SW_TRIM_DISC_50",
+     "label": "TRIM/AP DISC",
+     "name": "Trim and autopilot disconnect",
+     "positions": [
+      "NORM",
+      "DISC"
+     ],
+     "does": "NORM powers the stick's TRIM button and lets the autopilot engage. DISC powers the button off, keeps the autopilot from engaging and stops the trim motors; the trim wheels still work.",
+     "sim": "At DISC the autopilot's PITCH switch springs back to A/P OFF and does not stay engaged. The trim keys keep working."
     }
    ]
   },

@@ -27,6 +27,8 @@
 "SW_LE_FLAPS_50": {"status": "partly", "note": "LOCK lights the LE FLAPS caution only."},
 "JFS": {"status": "works"},
 "SW_MPO": {"status": "works"},
+"SW_TRIM_DISC_50": {"status": "works", "note": "TRIM/AP DISC: at DISC the autopilot cannot engage."},
+"SW_FLCS-RESET": {"status": "works", "note": "Spring-loaded to OFF; RESET clears an autopilot fault whose cause has gone."},
 "MAIN_PWR": {"status": "works"},
 "SW_MAX_POWER": {"status": "works", "note": "Inoperative on the real jet too (T.O. GR1F-16CJ-1 pp. 1-39, 1-53)."},
 "SW_STARTING_FUEL": {"status": "moves", "note": "AB RESET clears engine control faults and ENG DATA records engine data; the sim has neither."},

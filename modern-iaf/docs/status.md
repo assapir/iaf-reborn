@@ -433,9 +433,9 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   §5.10):** the PITCH switch engages ALT HOLD or pitch ATT HOLD, the ROLL switch HDG SEL (the EHSI's heading marker),
   roll ATT HOLD or STRG SEL (the steerpoint), as the flight manual gives them: +0.5 to +2 g, 30° of bank, 20°/s, ±60°
   of attitude, stick steering in the attitude modes, the paddle (Shift + I, held), and the PITCH switch dropping to
-  A/P OFF with AIR REFUEL open, ALT FLAPS below 400 kt, the gear handle down, MPO, TRIM/AP DISC (Shift + 6), the low
+  A/P OFF with AIR REFUEL open, ALT FLAPS below 400 kt, the gear handle down, MPO, TRIM/AP DISC (Shift + 6 or its switch), the low
   speed tone or the sim's own autopilot flying. Above 15° of α or without its data, FLCS A/P FAIL (FLCS FAULT, the fault
-  list) until FLCS RESET (Ctrl + L); A/P DEGR on the manual's three timers. Its commands add to the stick's in the
+  list) until FLCS RESET (Ctrl + L or its switch); A/P DEGR on the manual's three timers. Its commands add to the stick's in the
   control laws. Keys Shift + 2 / 3 (PITCH), Shift + 4 / 5 (ROLL). The A key's autopilot is unchanged. Tests: the
   autopilot's Rust unit tests, `f16_autopilot_flies_each_mode_through_the_control_laws`, `test_f16_autopilot.gd`.
 - **The key faults the manuals exposed (2026-11-18; the user plays on a Mac laptop's keyboard, no HOTAS;

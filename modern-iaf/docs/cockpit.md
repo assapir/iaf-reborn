@@ -1020,8 +1020,23 @@ holds the autopilot off.
 | Shift + 2 / Shift + 3 | PITCH a step up (toward ALT HOLD) / down (toward ATT HOLD) |
 | Shift + 4 / Shift + 5 | ROLL a step up (toward HDG SEL) / down (toward STRG SEL) |
 | Shift + I (held) | the stick's paddle switch: the autopilot interrupted, a TF fly-up held off |
-| Shift + 6 | TRIM/AP DISC, NORM / DISC (the model has no MANUAL TRIM panel) |
-| Ctrl + L | FLCS RESET (the model has no FLCS RESET switch) |
+| Shift + 6 | TRIM/AP DISC, NORM / DISC; the MANUAL TRIM panel's switch moves with it |
+| Ctrl + L | FLCS RESET; the FLT CONTROL panel's switch |
+
+**What the pilot sees** (the user, 2026-11-25: no line over the flight for the autopilot, [front-end.md](front-end.md)
+§8). Each change shows on the jet's own cue, as the flight manual gives it:
+
+| event | the real jet's cue | in the sim |
+|---|---|---|
+| the autopilot drops out or will not engage | the PITCH switch springs to A/P OFF; the manual gives no light or tone for it (inferred from its silence[^fm-135]) | the switch springs back |
+| TRIM/AP DISC at DISC | the switch's own position on the MANUAL TRIM panel; no light (inferred from its silence[^fm-131]) | `SW_TRIM_DISC_50`, clickable, follows the key |
+| A/P FAIL | FLCS FAULT and MASTER CAUTION, FLCS A/P FAIL on the fault list[^fm-3112] | as the real jet |
+| FLCS RESET acted | spring-loaded to OFF; RESET puts the FLCS warning, FLCS FAULT and MASTER CAUTION lights out and clears the fault list if the fault has gone[^fm-134] | `SW_FLCS-RESET`, clickable, springs back; the fault list's A/P line goes |
+
+The two switches were part of the console's body (FlightGear leaves TRIM/AP DISC to its trim script and FLCS RESET
+unanimated): `tools/f16d/split_control.py` cuts them out (its header has the commands), turning across the console as
+their FlightGear neighbours do. The F-35I has no autopilot of its own in the sim (the A key's only), so none of these
+apply to it.
 
 FLCS A/P FAIL and FLCS A/P DEGR are lines of the pilot fault list (`cockpit3d_display.gd` FAULTS, flags 32 and 33 after
 the damage flags: `cockpit.gd` `pfl_flags`), so they light FLCS FAULT and MASTER CAUTION and F-ACK acknowledges them.
@@ -1466,3 +1481,7 @@ openstreetmap.org/copyright" (also in [docs/credits.md](../../docs/credits.md)).
 [^fm-antiskid]: T.O. GR1F-16CJ-1 (https://archive.org/details/haf-f-16), page 1-117 (ANTI SKID caution light).
 [^fm-stbygain]: T.O. GR1F-16CJ-1, the pilot fault list's table: "STBY GAIN – Dual air data failure".
 [^fm-arrdy]: T.O. GR1F-16CJ-1, page 1-78 (the AR status lights: "RDY – Illuminates blue when the AR slipway door is open and the system is ready").
+[^fm-131]: T.O. GR1F-16CJ-1 (the HAF F-16C/D flight manual, public copy https://archive.org/details/haf-f-16), figure 1-47, page 1-131 (the MANUAL TRIM panel: TRIM/AP DISC, NORM and DISC).
+[^fm-134]: T.O. GR1F-16CJ-1, figure 1-51, sheet 2, page 1-134 (the FLT CONTROL panel's FLCS RESET switch: "spring-loaded to OFF"; RESET "Resets FLCS warning light, CADC, FLCS FAULT, and MASTER CAUTION lights and clears PFL's if fault is cleared").
+[^fm-135]: T.O. GR1F-16CJ-1, page 1-135 ("AUTOPILOT": the PITCH switch's solenoid and the conditions that release it; no light or tone named).
+[^fm-3112]: T.O. GR1F-16CJ-1, section III, "Autopilot Malfunctions", pages 3-112 and 3-113 (FLCS A/P FAIL: FLCS FAULT and the fault list).
