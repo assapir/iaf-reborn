@@ -730,11 +730,12 @@ screen. Two things move that work out of the way (2026-11-25, gaps row 18):
 
 - **The front end warms the flight's materials** (`shared/util/shader_warmup.gd`). The list is
   `shared/util/flight_materials.tres`: every distinct material a flight drew, without its textures (a texture never
-  changes the shader). The front ends' per-frame driver (`TerrainPreload.follow`) loads it on a loader thread from
-  the first menu on, then puts one 1 mm quad per material 100 km below the ground (shader materials, built-in
-  materials, particle process materials). No camera sees them; Godot compiles their shaders and pipelines when they
-  enter the world and keeps them in its caches, where the flight's own materials find them. The quads go when the
-  flight's loading is done. Nothing runs headless.
+  changes the shader). The front ends' per-frame driver (`TerrainPreload.follow`) loads it on a loader thread once
+  the menus have drawn 120 quick frames (under 50 ms each) in a row, then puts one 1 mm quad per material 100 km
+  below the ground (shader materials, built-in materials, particle process materials), one material at a time, each
+  after three quick menu frames. No camera sees them; Godot compiles their shaders and pipelines when they enter the
+  world and keeps them in its caches, where the flight's own materials find them. The quads go when the flight's
+  loading is done. Nothing runs headless.
 - **The bundles bake the shaders** at export ([release.md](release.md) "Baked shaders"): Godot's own, the
   `.gdshader` files and the list's materials. The warm-up still runs there: it compiles the pipelines, which are
   the driver's.
@@ -749,16 +750,10 @@ moved aside), Modern IAF's mission 2012 with the defaults. Through the front end
 Fly (`fe_probe`, a scratch script like `_preload_bench.gd`); the first world frame's time since launch is in the game
 log ("loading: first world frame drawn at … (… s after launch)").
 
-| the checkout, cold | no warm-up | warm-up |
+| the checkout, cold | no warm-up | warm-up (all materials at once, 2026-11-25) |
 |---|---|---|
 | Fly to the first world frame | 19.1 s | 7.0 s |
 | launch to the first world frame | 44.5 s | 32.9 s |
-| the menus' worst frame in the 20 s | 0.36 s | 2.3 s (once: the built-in materials' shaders are made on the main thread) |
-
-The one long menu frame is the price: Godot makes a built-in material's shader on the main thread when it is first
-used (up to 0.75 s each on the Mac). Tried 2026-11-25 and dropped: making those shaders on a worker task, one at a
-time. The main thread waited on the renderer's lock instead: 32 menu frames over 50 ms, the worst 2.9 s, and no
-faster start. Warming only the shader materials kept the menus at 1.3 s worst but left Fly at 11.8 s.
 
 The bundle started straight into the mission (`--mission 2012`, no front end; a second start, warm, for comparison):
 
@@ -767,11 +762,45 @@ The bundle started straight into the mission (`--mission 2012`, no front end; a 
 | launch to the first world frame, cold | 41.5 s | 34.8–39.6 s (two builds) |
 
 Baking saves the launch's share (Godot's own shaders); the flight's materials are the rest, and the warm-up takes
-those (above). A bundle runs no test script, so its front-end start was not timed.
+those (above). The bundle runs the same probe (`-s <path to fe_probe.gd>`, with its own `HOME` for `user://` and
+`IAF_ASSETS_DIR` for the data). Open on the Mac: the bundle's front-end start and the checkout's numbers with one
+material at a time. With the Mac's screen locked, a bundle started by `open -g -j` waits in `CAMetalLayer
+nextDrawable` and draws no frame (2026-11-26).
 
-The Linux laptop (Iris Xe) has no numbers yet: its desktop was locked, so no real window drew, and a headless
-mutter compositor stopped delivering frames during the flight's build. Owed: the same runs there, with
-`MESA_SHADER_CACHE_DISABLE=true` for a cold driver cache.
+Measured on the Linux laptop (Intel Iris Xe, Vulkan through Mesa, `tools/godot_window.sh` under Xvfb, 1920 × 1080;
+cold: fresh `XDG_DATA_HOME`, `XDG_CACHE_HOME`, `XDG_CONFIG_HOME` and `MESA_SHADER_CACHE_DIR` folders; warm: the
+same folders again), the same mission and probe:
+
+| the laptop's checkout | Fly to the first world frame | launch to the first world frame |
+|---|---|---|
+| cold, no warm-up | 22.1–23.9 s | 46.1–48.3 s |
+| cold, warm-up, 20 s on the mission page | 16.0–23.1 s (nine runs) | 40.0–48.0 s |
+| cold, warm-up, Fly at once | 21.1 s | 25.0 s |
+| warm, second start | 4.6–4.9 s | 26.7–27.0 s |
+
+The laptop's cold start drifts by several seconds from run to run (the same build: 16.0 s, then 22.9 s later the
+same night); a pair run one after the other differs by under 0.3 s. Fly at once leaves the warm-up no time, so it starts
+like a checkout without one.
+
+**The menus' frames while the warm-up runs.** Godot makes a built-in material's shader when the material is first
+used, on the main thread, and the frame waits for it. Put in all at once, the materials made one menu frame of
+1.3–1.5 s on the laptop (2.3 s on the Mac). Put in one per frame from the first menu on, the first built-in
+material (`StandardMaterial3D_ynv8n` in the list, the plainest; inferred: it pays for the built-in shader's first
+compile) made the longest frame, 0.1–0.15 s, and the next few 0.1–0.13 s each. When the mission page's own first
+frames ran beside them, that material's frame grew to 0.5–0.9 s and the load's frame to 0.6 s. Waiting for 120 quick
+menu frames, and three between materials, moves both past them. The laptop's worst menu frame in the 20 s, cold:
+
+| | no warm-up | all at once | one at a time, after 120 quick frames |
+|---|---|---|---|
+| worst menu frame | 0.14–0.39 s | 1.33–1.55 s | 0.13–0.40 s |
+| the warm-up's own worst frame | — | 1.33–1.55 s | under 0.1 s |
+
+The worst frames left are the menus' own (the mission page's first draw), the same with the warm-up off.
+
+Tried 2026-11-25 and dropped: making the built-in materials' shaders on a worker task, one at a time. The main
+thread waited on the renderer's lock instead: 32 menu frames over 50 ms, the worst 2.9 s, and no faster start.
+Warming only the shader materials kept the menus at 1.3 s worst on the Mac but left Fly at 11.8 s. Tried 2026-11-26
+and dropped: loading the list with one loader thread (`use_sub_threads` off): the load's frame stayed at 0.6 s.
 
 ### 1.7 Temporal upscaler (Anti-aliasing FSR 2)
 

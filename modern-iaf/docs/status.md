@@ -1498,15 +1498,17 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   the frames' colours and sizes are estimated from photos. Since 2026-11-25 the F-16s' lid opens 34°, matched to a
   side photo from the same camera (`airframe.json` `canopy_deg`), and the briefing shows the F-35I's canopy lever in
   a picture like every other step.
-- **A first start's shader compilation** (2026-11-10; 2026-11-25): the front end now warms the flight's materials while
-  the menus show (`shared/util/shader_warmup.gd`), and the release bundles bake Godot's own shaders, the `.gdshader`
-  files and the warm-up's materials ([../../docs/rendering.md](../../docs/rendering.md) §1.6 "The first start"). On the
-  Mac, cold, mission 2012 after 20 s on the mission page: Fly to the first world frame 19.1 s before, 7.0 s after; one
-  menu frame of 2.3 s while the warm-up's built-in materials are made. The macOS bundles need macOS 13 (the baker's
-  Metal profile; with Godot's default 11 a baked material's shader failed on the Mac,
-  [../../docs/release.md](../../docs/release.md) "Baked shaders"). Open: the Linux laptop's numbers (its desktop was
-  locked during the work), the 2.3 s menu frame, and a timed start of the baked macOS bundle (the Mac's hidden window
-  drew nothing on 25 Nov).
+- **A first start's shader compilation** (2026-11-10; 2026-11-25; 2026-11-26): the front end warms the flight's
+  materials while the menus show (`shared/util/shader_warmup.gd`), one material at a time once the menus have settled,
+  and the release bundles bake Godot's own shaders, the `.gdshader` files and the warm-up's materials
+  ([../../docs/rendering.md](../../docs/rendering.md) §1.6 "The first start"). Cold, mission 2012 after 20 s on the
+  mission page, Fly to the first world frame: on the Mac 19.1 s without the warm-up, 7.0 s with it (all its materials
+  at once); on the Linux laptop 22.1–23.9 s without, 16.0–23.1 s with (warm: 4.6–4.9 s). The laptop's worst menu frame
+  meanwhile is 0.13–0.40 s, the menus' own (the warm-up's frames stay under 0.1 s). The macOS bundles need macOS 13
+  (the baker's Metal profile; with Godot's default 11 a baked material's shader failed on the Mac,
+  [../../docs/release.md](../../docs/release.md) "Baked shaders"). Open: the Mac's numbers with one material at a time
+  and a timed front-end start of the baked macOS bundle; both need the Mac's screen unlocked (locked, a hidden Godot
+  window draws no frame).
 - **[D3](plan.md#d3-f-15c-baz-at-tel-nof), the Baz is not flyable:** it has no 3D cockpit and no model of its own,
   so the front end does not offer it and no mission flies it; type 110 flies the F-15I's flight-model row. Tel Nof's
   apron is placed by eye ([airbases.md](airbases.md) §5).
