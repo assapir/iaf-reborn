@@ -228,8 +228,8 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   חימוש שוחרר, shack / אלפא on the target destroyed (the jet that released last, also after its done), done / ביצעתי. A new order from the lead (engage my target again, cover me, split, rejoin, RTB) ends the
   attack at once and is obeyed. An enemy pair attacks on its lead's own order (the dev hook `ai_flights.gd enemy_strike`, a
   target unit or a base's point; a MiG-29A with MK-83s standing in for its FAB-500s by `spawn`'s `arm`). Tests:
-  `crates/iaf-ai/tests/strike.rs`, `modern-iaf/tests/test_ground_attack.gd`. No mission orders one; the pop-up
-  attack waits for the AI's low-level flight.
+  `crates/iaf-ai/tests/strike.rs`, `modern-iaf/tests/test_ground_attack.gd`. No mission orders one; the low
+  pop-up attack is built on the AI's low-level flight (b9a71eb33).
 - **Our wingmen in a fight (2026-11-22, the user: "Finish wingman in battle"; [ai-plan.md](ai-plan.md) F5, K4;
   [../../docs/ai.md](../../docs/ai.md) §8.9):** a wingman told "engage my target" fights it with the enemy fighters'
   leaves: the collision course, a missile inside its share of the envelope, the crank, the BFM leaf and the gun, the
@@ -259,7 +259,8 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   `modern-iaf/tests/test_threat_missiles.gd`). Built 25 Nov (the user: "Is the F-35I's jammer real?" "IDK, check
   it"): the Adir's jammer, as the real jet's AN/ASQ-239 and Elbit EW jam ([../../docs/f35i.md](../../docs/f35i.md)
   §7.1): its definition's `jammer` (the Sufa's 0.3, inferred) on J, ECM ON on the ICAWS (`test_sim_pcd.gd`); before,
-  J did nothing on the Adir. Not started: the Barak's jammer (open), the Adir's radar EA mode (open).
+  J did nothing on the Adir. The
+  Barak's jammer is not built. The Adir's radar EA mode is out of the plan (25 November, the user: "don't do it").
 - **Shoulder-fired SAMs (2026-11-23, the user, 22 Nov: "Ok follow your suggested order"; [ai-plan.md](ai-plan.md) K16;
   [../../docs/ai.md](../../docs/ai.md) §15.8):** a Strela-2M or an Igla team (`air_defence.gd spawn("strela" |
   "igla", …)`) sees a low jet by eye to 10 km, launches after its crew's reaction and drill once the jet is inside
@@ -370,7 +371,7 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   the terrain hides it; the data link lists it as hostile; the gun and the missiles bring it down through the existing
   damage path; it does not shoot. The shape is our own stand-in. No mission launches one: a dev hook
   (`shared/ai/drones.gd`) and the tests (`crates/iaf-ai/tests/drones.rs`, `modern-iaf/tests/test_enemy_drones.gd`).
-  Later: enemy-fighter BFM (K4), listed only.
+  Enemy-fighter BFM (K4) is built: the BFM leaf and loop, the gun, scissors, reversal, extension and the R-73.
 - **Enemy AI step 1: the air-defence sites (2026-11-19, the user: "we need to have the code for ai enemies. Just isn't
   reachable by mission yet", "They should take into consideration the stealth of the adir", "Also terrain shape etc.";
   [ai-plan.md](ai-plan.md) K5, K7; [../../docs/ai.md](../../docs/ai.md) §15):** the S-300PMU-2 battery (96L6E search,
@@ -466,7 +467,7 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   says). The throttle's FLC turned (Alt + F9 / F10) steps the cursor portal's format, pushed (Alt + F8) steps the
   TSD's layers (all, without the map and route, the tracks only; inferred from the switch's name). Keys records
   251–254 ([../../docs/f35i.md](../../docs/f35i.md) §4.3). Rust test `pcd::tests::flc_turns_formats_and_steps_the_tsd_layers`.
-  Open: the per-bomb PRE pick on the briefing map (part F, G4) waits for the user's yes.
+  The per-bomb PRE pick on the briefing map (part F, G4) is built (4bdaa96ee).
 - **The Adir's panoramic display and stores (2026-11-19, avionics-plan.md slice 7 part C, P1, P3, P4, P6–P11, S13,
   S15, N8; G16, G29, G34):** the pilot lays out the display ([../../docs/f35i.md](../../docs/f35i.md) §4.3): the MENU
   grid's 20 formats, widening a portal over its half, enlarging it over its windows, a window or tab into its portal,
@@ -477,7 +478,7 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   HUD repeat and the DAS format's frame. The SMS draws the bays and their doors with DOORS (Ctrl + Delete); the TFLIR
   has the TGP's track modes, zoom, WIDE / NARO, laser and CZ; the TMS keys act on the cursor's portal. The SPICE 1000
   goes in the bays on 4 / 8 ([weapons.md](weapons.md) §5). Tests: `modern-iaf/tests/test_sim_pcd.gd`,
-  `test_sim_adir_pcd.gd`. Open: the per-bomb PRE pick in the sim (G4: waits for the user's yes); the DAS picture and
+  `test_sim_adir_pcd.gd`. The per-bomb PRE pick (G4) is on the briefing map (4bdaa96ee); the DAS picture and
   the FLC came with parts D and E (above).
 - **A lesson's load needs its bombs (2026-11-19, fixed, [weapons.md](weapons.md) §7.1):** a load with fewer
   air-to-ground stores than the mission's ground kills is refused on the Loadout screen and the briefing ("The mission
@@ -751,10 +752,8 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   go in a pair, as in reality: [research/enemies.md](research/enemies.md) §2.7); the air start puts the flight 60 km from the area at 6,000 m. The Area and
   Enemy skill rows went on the user's round-3 word (24 November). The AWACS gives the task by radio once the jet is in
   the air, in English and Hebrew ("Kidon 1, attack the convoy, bearing 040, 25 miles, free to engage"), and every minute
-  while the target lives. Not scored. The first version (A81, 23 November: "Fly now", the enemy picked row by row, a
-  ground start only) was renamed and cut down on the user's word of 24 November; its picture of a "cold start at home
-  base" showed the jet in the air because the picture's script had put it there, not the start. Waiting on the user's
-  approval (a new screen). Not started: the full AWACS (picture, bogey dope, the Eitam in the sky). The combat logbook
+  while the target lives. Not scored. Scramble is a front-end screen. The AWACS has its radio
+  menu page, the controller's requests and the Eitam in the sky. The combat logbook
   is its own job.
 - **The Loadout screen (2026-11-14, the front-end finish list's F3, [front-end.md](front-end.md) §10.1):** Arming on
   the briefing opens a screen of its own: the jet seen from beneath (the Hangar's live model, the camera under it, the
@@ -910,7 +909,7 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   Ctrl+K does the whole sequence ([cockpit.md](cockpit.md) §5.6). The grey rod drawn on the sill from 2026-11-11 was
   removed the same day (the user: "remove the f16 cockpit handle. It isn't right for sure"). Open: no marking, the
   jettison T-handle and a two-seater's own wall, for want of a picture.
-- **The F-16s' DED DATA and DEPR RET switches (2026-11-19, waiting for the user's yes, A62):** the HUD remote control
+- **The F-16s' DED DATA and DEPR RET switches (2026-11-19, A62):** the HUD remote control
   panel's third and fourth switch move and are clicked as its other four; each a click or its key (Alt + D, Alt + R)
   ([cockpit.md](cockpit.md) §5.11).
 - **The hands on the stick and the throttle (2026-11-11, the Mac play test's finding 12):** the left glove holds the
@@ -956,8 +955,7 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   `sim_bases::tests::the_departure_is_paved`.
 - **Compact JSON (2026-11-09, [plan.md](plan.md#rules-the-user-3-november-2026) rules):** every JSON file the
   sim writes is on one line ([data-formats.md](data-formats.md) §7).
-- **The cockpit sound model (2026-11-09, Approvals A13, branch `wt/iaf-2026-cockpit-sound`, waits for the user's
-  listening):** from the cockpit the outside sounds (engine, airframe, weapons, the world) come through the canopy and
+- **The cockpit sound model (2026-11-09, Approvals A13):** from the cockpit the outside sounds (engine, airframe, weapons, the world) come through the canopy and
   the HGU-55/P's ear cups: a 166 Hz low-pass and a level per class; the radio, Betty and the tones are unchanged; the
   external views hear everything unmuffled. The gun comes through the structure (a 700 Hz low-pass) and sits 5 dB
   over the engine and the wind, as in a cockpit recording (it was 6 dB, unfiltered). The wind stops at its row's level from 450 kt ([sound.md](sound.md) §1.9). The original
@@ -1246,8 +1244,8 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   HUD glass ([real-hud.md](../../docs/real-hud.md#what-ours-draws-status)). `test_mvp.gd` checks all three jets.
 - **The F-16s' loadout (2026-11-08, the Mac play test):** the Sufa and the Barak fly with an AIM-9M on the wingtip
   rails and on stations 2 / 8 and 3 / 7 and a 370 US gal tank on each inboard pylon, so the look back shows the stores
-  instead of a bare rail and pylons ([data-formats.md](data-formats.md) §3). The Python and AIM-120 records (the
-  AIM-9M stands in) and the tank's drag are open.
+  instead of a bare rail and pylons ([data-formats.md](data-formats.md) §3). The Python and AIM-120 records and the tank's drag are in the weapon
+  records (`python-5.json`, `aim-120.json`, `tank-370.json`).
 - **The sim's own look (2026-11-08, the Mac run):** the look switches whose 1998 value draws art the sim does not
   have are fixed to ours in `PROFILE`: Detailed airbases (the runways, taxiways and aprons were missing), the
   atmospheric sky, water, night lights, effects, the conformal ladder; the CC0 ground and model textures when setup
@@ -1486,8 +1484,7 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   the threat display (the F-15C's ALR-56C shows one, a simulator manual; the dash-34's F-16 list has none;
   [research/missile-warning.md](research/missile-warning.md) §2, §6).
 - **The manuals** ([manuals.md](manuals.md)): the Typst build, the page design, each manual's outline and one written
-  section per jet (Cold start to take-off) wait for the user's approval (18 November 2026); every other section is
-  planned in the outlines. The Hangar's Manuals entry opens the PDFs.
+  section per jet (Cold start to take-off) are built and match what the player sees (manuals audit 2, 54f0bc538); every other section is planned in the outlines. The Hangar's Manuals entry opens the PDFs.
 - **Avionics, missiles and bombs (2026-11-17):** the inventory per jet, the gap list and the build order are in
   [avionics-plan.md](avionics-plan.md); the 15 November bugs (radar standby, break X and the HUD against reborn,
   SPICE / GPS targets, the gun flash) are its first slice; the range is slice 1. The briefing's PRE target pick for the

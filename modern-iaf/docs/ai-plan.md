@@ -207,10 +207,11 @@ The rows still Planned are open issues: the user, 20 Nov: "Leave it as open issu
 
 1. **The enemy set's systems:** which long-range SAM (S-300PMU-2, Bavar-373, 3rd Khordad) and which short-range one
    (Tor-M1, others) fill milestone 3. Answered 19 November: "Let the agent pick by sources"; picked: the S-300PMU-2
-   and the Tor-M1 ([research/enemies.md](research/enemies.md) §2.2). The draft records still wait for his approval.
-2. **BFM's milestone:** the BFM in milestone 3 for the MiG-29 (as planned here), or the MiG-29 BVR-only first and the
-   BFM after.
-3. **The Barak's jammer:** whether today's Barak carries the EL/L-8240 or another set (no source found).
+   and the Tor-M1 ([research/enemies.md](research/enemies.md) §2.2). The sites are built and approved (A80, 24 November; A91, 25 November) and fly from the AI's own code
+   (`shared/ai/air_defence.gd`); their records stay in `data/db/drafts/`, outside the compile (data-formats.md §11).
+2. **BFM's milestone:** the MiG-29's BFM is built with milestone 3 (9bc342c0a, b364144e8, c5a39fa70).
+3. **The Barak's jammer:** not built; no source found for the set today's Barak carries. The Adir's radar EA mode is out of the
+   plan (25 November 2026, the user: "don't do it").
 4. **The strike itself:** the target, the base and the package's flights for the first Epic Fury mission.
 
 Answered: the voices (Hebrew voices, BlueTTS, both genders, merged f50a4910); the callsigns and the radio words
@@ -220,8 +221,9 @@ levels (the user, 19 Nov: "wingman are always the same, it only effect enemeis, 
 ## 10. Not started (outside his words)
 
 Listed, not built: AI departures and arrivals at the bases beside the player's flight (the
-tower's traffic); moving ground forces, convoys and launchers; ships manoeuvring; terrain masking and low-level
-routes for the AI.
+tower's traffic); moving ground forces, convoys and launchers; ships manoeuvring; terrain masking.
+The AI's low-level flight (ground collision avoidance, the lead's low-level order, the low pop-up attack) is built
+(b9a71eb33); low-level routes beyond that order are not started.
 Air refuelling was picked by the user on 25 November 2026 ("Air refuelling"); the design (the tanker, its boom
 operator, the AI wingmen refuelling in turn) is in [research/air-refuelling.md](research/air-refuelling.md) §8.
 The instructor voice is its own item (decided 12 November; C5 uses it).

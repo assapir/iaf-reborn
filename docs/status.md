@@ -37,7 +37,7 @@ STBY / STT / BORE / LRS / TWS / ACM / GMT / MAP are the radar modes (radar.md).
 - Everything comes from the player's own ISO; the repo (github.com/assapir/iaf-reborn, GPL-3.0) holds no game data.
 - **Download (2026-11-23, [release.md](release.md)):** the nightly pre-release has the game for Linux, macOS (Apple
   silicon, unsigned) and Windows, version `1.1.0-nightly.<date>+<hash>`; the game opens its setup wizard and keeps
-  its data in a per-user folder; the bundle carries curl and GDAL for setup, and its wizards neither check nor list them. Open: Intel Macs are not built for. The pilot guides are made in every bundle: the game renders the pictures (on Linux out of sight under `xvfb-run`, which it then needs), Rust draws the PDFs in Heebo (guides/README.md); the wizard's redo of the step renders them again. Open: Windows opens the render windows on the desktop, and Windows / macOS renders are not tested here (no Windows machine, the Mac off-limits).
+  its data in a per-user folder; the bundle carries curl and GDAL for setup, and its wizards neither check nor list them. The macOS bundle needs macOS 13 or later on Apple silicon (the baked shaders, release.md); Intel Macs are not built for. The pilot guides are made in every bundle: the game renders the pictures (on Linux out of sight under `xvfb-run`, which it then needs), Rust draws the PDFs in Heebo (guides/README.md); the wizard's redo of the step renders them again. Open: Windows opens the render windows on the desktop.
 - **Updates on start (2026-11-24, the user: "auto update on startup for released assests", "same for setup";
   [release.md](release.md) §7):** a bundle offers a newer nightly (download, size and SHA-256 check, swap with the old
   version kept until the new one starts, rollback); bundle and checkout offer the setup steps whose stamps no longer
@@ -149,13 +149,6 @@ Checked against the code on 2026-10-21 (each doc's own "not built" notes have th
 - **Pilot guide PDFs** (not urgent): some pictures land at the top of the next page above the following heading; one
   nearly empty page (F-16 "Not drawn"); the MFD pictures are the ~128 px original art scaled (blocky; Better cockpit's
   crisp MFD pages draw them sharp, mfd.md §8).
-- **Pilot guide pictures**: the stamps' rule changed on 2026-10-20 (inputs only, no game code), so the next
-  guides step renders all of them once. That render brings in 2026-10-19's changes: the F-16 / F-15 / Lavi
-  Real HUD scales moved in (real-hud.md "What ours draws") and the Real AIM-9L's 10 NM range scale (real-weapons.md;
-  the guides' text already says 16.1 km). New pictures since: the F-16's delayed CCIP, `hud_ccip_delay` /
-  `hud_ccip_designated` (guides/f16.md §11). Changed since: the F-15's and Lavi's Real HUD ILS (the flight director /
-  the needles in place of the original's lines) and the Lavi's NAV bank scale: their `landing_final` and NAV pictures
-  (guides/f15.md §11, guides/lavi.md §3 / §11).
 - **F-15I Ra'am** (Extras "F-15 version", f15i.md §11): built: the flight row (F-15E figures where the F-15I has
   none), the APG-70I's 104 km and the AI's 30.8 NM, the F-15E's 500 rounds, the Python 5, seven GBU-31 (Mk 84) or GBU-31(V)3 (named
   BLU109), the GBU-28 (our record and model; laser-guided by the Ra'am's built-in targeting pod, 2026-11-08) and the GBU-39, the SPICE 1000,
@@ -197,8 +190,9 @@ Checked against the code on 2026-10-21 (each doc's own "not built" notes have th
   roads, their lane markings at Israel's out-of-town sizes (the median's double white line on dual carriageways) and
   the railways (ballast, sleepers, rails) near the camera; town sizes not used.
 - **Imagery**: SPOT 5 outside Israel not started.
-- **Modern IAF data** (modern-iaf/docs/data-formats.md): the enemy set's draft records (the S-300PMU-2 and the
-  Tor-M1) wait for the user's yes ([ai-plan.md](../modern-iaf/docs/ai-plan.md) §9).
+- **Modern IAF data** (modern-iaf/docs/data-formats.md): the enemy set's records (the S-300PMU-2 and the
+  Tor-M1 among them) are drafts outside the compile; the sites themselves are built and approved (A80, A91;
+  [ai-plan.md](../modern-iaf/docs/ai-plan.md) §9).
 - **Multiplayer**: not started (missions 511–516, 777), with its RWR network messages. Research and discussion:
   [multiplayer.md](multiplayer.md).
 
