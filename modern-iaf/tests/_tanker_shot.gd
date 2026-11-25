@@ -1,18 +1,18 @@
 # Dev helper (not run by tools/test.sh): pictures of the tanker (modern-iaf/docs/research/air-refuelling.md §8) with an
 # AI wingman on its boom. Mission ramon_four_ship, a tanker of SHOT_TANKER (kc46, reem; default kc46) placed by the
 # hook shared/ai/tanker.gd `place`, the flight in the air beside it (ai_flights.gd `flight_in_air`), "Refuel" to Kidon
-# 1-2 from the radio menu; once the boom is latched, a free camera at each SHOT_VIEWS point; then the notebook raised
-# at its AIR REFUEL tab in the cockpit, English and Hebrew. SHOT_DIR names the folder. A real render:
+# 1-2 from the radio menu, every setting on (pref_choices "everything"); once the boom is latched, a free camera at
+# each VIEWS point; then the notebook raised at its AIR REFUEL tab in the cockpit, English and Hebrew. SHOT_DIR names
+# the folder. A real render:
 #   flock ~/.cache/iaf-gpu-bench.lock tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 SHOT_DIR=<dir> -- \
 #     --log-file <temp> --resolution 1600x900 --path modern-iaf -s ../modern-iaf/tests/_tanker_shot.gd
 extends "res://../tests/godot/base.gd"
 
 ## Each view: name, the camera's place from the tanker (forward, right, up m in its frame), what it looks at (the
-## nozzle, or the tanker's centre).
+## nozzle, or the tanker's centre). The receiver's own view of the tanker: _refuel_shot.gd (tanker_from_cockpit).
 const VIEWS := [
 	["tanker_contact_side", Vector3(-38.0, 30.0, 2.0), "nozzle"],
 	["tanker_contact_above", Vector3(-70.0, -25.0, 25.0), "nozzle"],
-	["tanker_pdl_receiver", Vector3(-38.0, 0.0, -10.0), "pdl"],
 	["tanker_whole", Vector3(40.0, -90.0, -15.0), "centre"],
 ]
 
@@ -32,8 +32,6 @@ func _pre_draw() -> void:
 	var at: Vector3 = p.position
 	if v[2] == "nozzle":
 		at = tk.tk.boom().nozzle
-	elif v[2] == "pdl":
-		at = p.position + p.forward * 15.0 - p.up * 3.0
 	var xf := Transform3D(Basis.looking_at(at - eye, p.up), eye)
 	_cam.global_transform = tv.global_transform * xf
 	RenderingServer.camera_set_transform(_cam.get_camera_rid(), _cam.global_transform)
@@ -45,6 +43,9 @@ func run() -> void:
 	DirAccess.make_dir_recursive_absolute(dir)
 	await require_data()
 	var s := settings()
+	var pc: Dictionary = load("res://shared/util/pref_choices.gd").preset("everything")  # every setting on
+	for k in pc:
+		s.set(k, pc[k])
 	s.show_info = false
 	s.language = "en"
 	var id := sim_mission("ramon_four_ship")
@@ -55,8 +56,10 @@ func run() -> void:
 	s.invulnerable = true
 	var kind := OS.get_environment("SHOT_TANKER")
 	var w: Vector3 = tv.player_world()
+	# Its track northbound from 20 km north of the base, clear of the darker Survey sheet south-west of Ramon
+	# (modern-iaf/docs/terrain.md "colour match").
 	tk = load("res://shared/ai/tanker.gd").place(
-		tv, kind if kind != "" else "kc46", Vector3(w.x, w.y - 20000.0, 0), 0.0
+		tv, kind if kind != "" else "kc46", Vector3(w.x, w.y + 20000.0, 0), 0.0
 	)
 	var p: Dictionary = tk.tk.pose()
 	var pos: Vector3 = p.position - p.forward * 600.0 - p.right * 300.0
