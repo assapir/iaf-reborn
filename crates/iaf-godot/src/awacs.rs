@@ -78,18 +78,29 @@ impl IafAwacs {
 #[godot_api]
 impl IafAwacs {
     /// The Eitam on its station for a fight at `area` flown from `home` (the flight's base) and `start` (its start
-    /// point), all world points: behind the flight's way to the fight and to its side, at 41,000 ft.
+    /// point), all world points: behind the flight's way to the fight and to its side, at 41,000 ft; its 6-DoF and
+    /// autopilot from the sim's own data `own` (Settings.own_dir()). False, and none placed: that data has no G550.
     #[func]
-    fn place_eitam(&mut self, area: Vector3, home: Vector3, start: Vector3) {
-        self.eitam = Some(Eitam::new(eitam::station(vec3(area), vec3(home), vec3(start))));
+    fn place_eitam(&mut self, area: Vector3, home: Vector3, start: Vector3, own: GString) -> bool {
+        let orbit = eitam::station(vec3(area), vec3(home), vec3(start));
+        match Eitam::new(orbit, std::path::Path::new(&own.to_string())) {
+            Ok(e) => self.eitam = Some(e),
+            Err(e) => {
+                self.eitam = None;
+                godot_error!("IafAwacs.place_eitam: {e}");
+            }
+        }
+        self.eitam.is_some()
     }
 
-    /// The Eitam {pos (world), heading (deg), speed (m/s), alive, retreating}; empty when the flight has none.
+    /// The Eitam {pos (world), heading, pitch, roll (deg, + right wing down), speed (m/s), alive, retreating}; empty
+    /// when the flight has none.
     #[func]
     fn eitam(&self) -> VarDictionary {
         self.eitam.as_ref().map_or_else(VarDictionary::new, |e| {
             vdict! {
-                "pos" => vector3(e.pos), "heading" => e.heading, "speed" => e.speed, "alive" => e.alive,
+                "pos" => vector3(e.pos), "heading" => e.heading, "pitch" => e.pitch, "roll" => e.roll,
+                "speed" => e.speed, "alive" => e.alive,
                 "retreating" => e.threat.is_some(),
             }
         })
@@ -131,7 +142,7 @@ impl IafAwacs {
     /// The Eitam's radar cross-section, as an airframe's `rcs` (the radars read it from the entity).
     #[func]
     fn eitam_rcs() -> VarDictionary {
-        let r = eitam::RCS;
+        let r = eitam::rcs();
         vdict! {
             "front_m2" => r.front_m2, "side_m2" => r.side_m2, "rear_m2" => r.rear_m2, "bays_open_m2" => r.bays_open_m2,
             "store_m2" => r.store_m2,

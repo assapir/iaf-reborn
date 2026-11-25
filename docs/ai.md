@@ -2559,17 +2559,21 @@ writing on the subject uses):
 
 ### 24.3 The Eitam in the sky
 
-The IAF's Eitam is the Gulfstream G550 with the EL/W-2085 (the CAEW)[^w-elw2085][^w-g550]. In the sim it is a point
-mass, as the one-way drones are (§16): the G550 has no public aerodynamic data, and the 6-DoF's only tables are a
-fighter's (open, modern-iaf/docs/ai-plan.md X2).
+The IAF's Eitam is the Gulfstream G550 with the EL/W-2085 (the CAEW)[^w-elw2085][^w-g550]. It flies as the other AI
+aircraft do (since 25 November 2026, the coordinator's "close that too: build its flight from the public G550
+figures"): its 6-DoF (`sixdof::jets::g550`, modern-iaf/docs/flight-model.md §9.22: TP-1538's tables on the G550's
+wing, its weights, two BR710s and its limits; type 1021, the aircraft definition `shared/extra/planes/eitam`) under the
+autopilot's steer loop (`MODE_STEER`), to a point 20 km along the heading it wants at 41,000 ft. Its turns, climbs and
+speed changes are the G550's; before, it was a point mass turned and sped up at fixed rates.
 
 | figure | value | source |
 |---|---|---|
 | height | 41,000 ft | the G550's cruise altitude: "Long Range Cruise: M0.80 at 41,000 ft"[^w-g550] |
 | speed on station; retreating | Mach 0.80 (236 m/s); Mach 0.85 (251 m/s) | the long-range and the high-speed cruise[^w-g550] |
 | span, length | 28.50 m, 29.39 m | [^w-g550] |
-| turns | 25° of bank: 1.1°/s at Mach 0.80 | inferred |
-| speed change | 1 m/s² | inferred (no thrust or drag modelled) |
+| turns | 25° of bank (the steer loop's load factor 1 / cos 25°): 1.1°/s at Mach 0.80 | inferred |
+| speed | the steer loop's speed law at military power at most, its error summed into the asked speed (0.15 /s, while the lever is inside its travel): the loop's own law alone held it 12–15 m/s fast | inferred |
+| fuel on station | 12,000 kg | inferred |
 
 - **The station** (`eitam::station`): the user's "not directly in the middle of the flight". Along the line from the
   fight's area to the flight's home base, the rearmost of the base and the flight's start (an air start beyond the
@@ -2601,10 +2605,17 @@ fighter's (open, modern-iaf/docs/ai-plan.md X2).
   help is said by the radio, and the group it names goes to the flight AI as a contact call does. Its entity
   destroyed, `IafAwacs.eitam_down` ends the service.
 - **Model** (`Gltf.UNITS` "EITAM", `shared/extra/models/eitam/eitam.glb`): our own low-poly model
-  (`tools/eitam/eitam.py`, Blender, 1,178 triangles), true length and span (29.39 m, 28.50 m[^w-g550]); the rest read
-  off public photographs of the CAEW (inferred): the swept wing with winglets, the T-tail, the two engines on the rear
-  fuselage, the longer nose radome, the tail radome and the long side fairings of the L-band arrays. Light grey, no
-  markings; drawn without its gear (it never lands in the sim).
+  (`tools/eitam/eitam.py`, Blender, 2,092 triangles), true length and span (29.39 m, 28.50 m[^w-g550]); the rest matched
+  side by side to public photographs of the IAF's CAEW from the same angles (inferred; 25 November 2026, the user:
+  "The eitam looks strange, only white. look online for pics, look for a better model"): 537 at Le Bourget
+  2008[^c-537], 569 at Aero India 2009[^c-569] and 537 in flight in 2015[^c-537-2015]. The CAEW's long drooped nose
+  radome, the bulbous tail radome under the fin, the flat side cheeks of the L-band arrays from behind the cockpit to
+  over the wing, the belly blister; the G550's swept wing with winglets, its T-tail with the satcom bullet on top and
+  the two engines high on the rear fuselage. The photographs show it white, not grey: white with the radomes a shade
+  greyer, the blue cheatline from the cheek's lower aft corner up to the fin, the IAF roundel on the fin, the nacelles
+  and the wings, the serial 537 on the fin and ISRAEL AIR FORCE on the cheeks (`tools/eitam/markings.png`, ours).
+  Drawn without its gear (it never lands in the sim). No free G550 CAEW model was found (Sketchfab, FlightGear,
+  CGTrader, 25 November 2026): only plain Gulfstreams, which would need the same radomes.
 
 ### 24.4 The data link and the contact calls
 
@@ -2635,10 +2646,12 @@ voice, a man or a woman by the flight's cast (Kokoro `am_fenrir` or `af_bella`; 
 
 ### 24.6 Tests and status
 
-`cargo test -p iaf-ai --lib -- awacs eitam` (the words: miles, thousands, aspect; the picture and the bogey dope from
+`cargo test -p iaf-ai --lib -- awacs` (the words: miles, thousands, aspect; the picture and the bogey dope from
 the virtual sphere and from the Eitam; the Eitam's reach and horizon; declare with and without a lock, the vectors,
-the refusals, a lost Eitam; the station off the flight's way with the fight in reach for an hour; the threat, the
-call for help, the retreat at Mach 0.85, the call again after a minute, the return; a downed Eitam silent);
+the refusals, a lost Eitam); `cargo test -p iaf-ai --test eitam` (on its 6-DoF, with the sim's own data: the station
+off the flight's way with the fight in reach for an hour, its 25° turns, its height within 5 m and its speed within
+1 m/s; the threat, the call for help, the retreat at Mach 0.85, the call again after a minute, the return to the
+long-range cruise; a downed Eitam silent);
 `modern-iaf/tests/test_awacs.gd` (Ramon's Scramble start in the air with a known MiG-29A 20 km ahead: the AWACS page en
 + he, Declare and the tanker off with their reasons; picture, bogey dope, the vectors to the target and home said
 after the pilot's call; the wingman's "contact"; the Eitam at 41,000 ft and Mach 0.80 off the flight's way with the
@@ -2647,9 +2660,9 @@ the MiGs on the data link; shot down: every request off, no answer, no AWACS tra
 contact call); `cargo test -p iaf-avionics --lib -- datalink` (the controller's word over the link's own query).
 
 Status (25 November 2026): built whole: the controller and its page with the voices, the Eitam in Scramble with its
-model, as the enemy's target, the data link and the contact calls on its radar. Open: the G550's 6-DoF (no public
-data); a vector to the tanker waits for air refuelling's tanker (its line off till one flies); an AI-led flight's
-commit on the call for help (no friendly AI-led flight flies: an AI lead never fights, §8.8).
+model, as the enemy's target, the data link and the contact calls on its radar; its G550's 6-DoF (25 November 2026,
+modern-iaf/docs/flight-model.md §9.22). Open: a vector to the tanker waits for air refuelling's tanker (its line off
+till one flies); an AI-led flight's commit on the call for help (no friendly AI-led flight flies: an AI lead never fights, §8.8).
 
 ## UNCERTAIN
 Open questions in this document:
@@ -2709,6 +2722,12 @@ Open questions in this document:
 [^p1213-cruise]: CNATRA P-1213 (draft), Cruise Position: the cruise position gives the section more maneuverability than parade, the lead not held to 30° of bank (second-hand: a search engine's quote, read 2026-11-25): https://navyflightmanuals.tpub.com/Draft_P-1213/Cruise-Position-Draft_P-12130050-50.htm
 [^w-f16-span]: Wikipedia, "General Dynamics F-16 Fighting Falcon", specifications (span 32 ft 8 in, 9.96 m): https://en.wikipedia.org/wiki/General_Dynamics_F-16_Fighting_Falcon
 [^w-elw2085]: Wikipedia, "IAI EL/W-2085" ("Up to 1000 targets can be tracked simultaneously to a range of 243 nmi (450 km)"; Israel's G550-based "Eitam"; read 2026-11-25): https://en.wikipedia.org/wiki/IAI_EL/W-2085
+[^c-537]: Aeroprints.com, "537 Gulfstream G.550 CAEW Israel Airforce", Paris Le Bourget, 15 June 2008, Wikimedia
+    Commons, CC BY-SA 3.0: https://commons.wikimedia.org/wiki/File:537_Gulfstream_G.550_CAEW_Israel_Airforce_(7337159024).jpg
+[^c-569]: Sean D'Silva, "Gulfstream G550 Nachshon, Israel - Air Force", Aero India, 10 February 2009, Wikimedia
+    Commons, GFDL 1.2: https://commons.wikimedia.org/wiki/File:Gulfstream_G550_Nachshon,_Israel_-_Air_Force_JP7469108.jpg
+[^c-537-2015]: Zigi, "2015-04-23 IAF Israel Independence Day flyover - G550 AEW Aitam", Wikimedia Commons, CC BY-SA
+    4.0: https://commons.wikimedia.org/wiki/File:2015-04-23_IAF_Israel_Independence_Day_flyover_-_G550_AEW_Aitam.jpg
 [^w-g550]: Wikipedia, "Gulfstream G550", specifications (length 29.39 m, span 28.50 m; "Long Range Cruise: M0.80 at 41,000 ft"; "High Speed Cruise: M0.85 at 41,000 ft"; Israel's G550s "fitted with the EL/W-2085 sensor package"; read 2026-11-25): https://en.wikipedia.org/wiki/Gulfstream_G550
 [^jdn-eitam]: JDN (from IAF material), "הכירו: האנשים שמזהים ומתריעים מפני איומים אוויריים הרחק מגבולות המדינה", 16 January 2024 (read 2026-11-25): https://www.jdn.co.il/news/2121657/
 [^jdn-uav]: JDN, "חרבות ברזל: כיצד מיירטים כטב"ם אויב", 17 October 2023 (read 2026-11-25): https://www.jdn.co.il/news/2056122/

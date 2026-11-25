@@ -1416,6 +1416,45 @@ pointing below 200 kt and worse energy above it ([research/enemies.md](research/
 data. At the F-16's 13° final α the flare carried it past the 15° tail strike (tried 2026-11-22, dropped: the
 second-hand 10° is used); the Sufa lands at 14.8–14.9° on the same law, close to that limit.
 
+### 9.22 The G550, the Eitam's flight (2026-11-25)
+
+The Eitam ([../../docs/ai.md](../../docs/ai.md) §24.3) flies on the 6-DoF as the MiG-29A does (§9.21; [ai-plan.md](ai-plan.md)
+X2): TP-1538's tables on the Gulfstream G550's wing, its weights, its engines and its limits. It is an AI aircraft:
+type 1021 (ours), the aircraft definition `shared/extra/planes/eitam/airframe.json` (`fm` "G550", `sixdof`),
+`data_set.rs`'s G550 row on the `[F-16]` section and `sixdof::jets::g550`. It is placed in the air and never lands.
+
+| part | the G550 | source |
+|---|---|---|
+| wing | 1,137 ft² (105.6 m²), span 28.50 m, aspect ratio 7.69 (span² / area; lissys.uk gives 7.36 for its trapezoidal reference wing) (TP-1538's tables on it; inertia and chord scaled as §9.9) | span sourced[^w-g550]; area second-hand (lissys.uk's G550 geometry)[^lissys-g550]; inferred: the scaling |
+| induced drag | the tables' (the F-16's aspect ratio 3) re-referenced to 7.69: ΔCD = CL² / (π · 0.8) · (1/7.69 − 1/3) (`aero::aspect_drag`, `Jet::high_aspect`; the fighters keep the tables') | inferred: Oswald's e 0.8 |
+| masses | operating 54,500 lb ("gross weight"), fuel 36,500 lb to the maximum take-off 91,000 lb (capacity 41,300 lb); 12,000 kg of fuel on station | sourced[^w-g550]; inferred: the fuel on station; open: the CAEW's mission system, taken inside the operating weight |
+| engines | two BR710 C4-11: 15,385 lbf each × 0.65 (`jets::BR710_FIT`); no afterburner; TSFC 0.6414 lb/(lbf·h); idle → military 5 s | sourced: the rating[^w-g550]; second-hand: the TSFC[^lissys-g550]; fit: 0.65 to the ceiling (below); inferred: the spool; open: the lapse, TP-1538's F100 shape (§9.7) |
+| g limits | +2.5 / −1 | a transport category aeroplane's limit load factors for its weight[^cfr-25-337] |
+| α limit | 14° | inferred: a swept transport wing's stall |
+| limits | Mmo 0.885, 340 KCAS (`limits::G550`) | Mmo sourced[^w-g550]; inferred: the 340 KCAS (no public Vmo found) |
+| wave drag | (w, k) = (0.05, 0): from Mach 0.9 | inferred: above its Mmo, so its cruise has none |
+| gear, roll, speed brake, nose-wheel steering, start | wheelbase 45 ft, track 14 ft, the c.g. 2.4 m up; TP-1538's control system A; the F-16's | inferred: unused in the air |
+
+The BR710 on the F100's lapse at its full rating climbed at 12.5 m/s at 41,000 ft and Mach 0.80 and held 0.5 m/s above
+64,000 ft: the F100's lapse keeps a low-bypass engine's thrust high up, a high-bypass fan's falls faster (inferred).
+The thrust × 0.65 meets the published 51,000 ft ceiling; 0.60 gave 48,000 ft, 0.70 55,000 ft (2026-11-25). Its
+sea-level thrust is then low, which no flight of it uses.
+
+**Results** (`the_g550_meets_its_published_figures` in `crates/iaf-flight/tests/sixdof.rs`, `crates/iaf-ai/tests/eitam.rs`;
+2026-11-25; mission weight, military power):
+
+| figure | the 6-DoF | published |
+|---|---|---|
+| excess power at 41,000 ft, Mach 0.80 / 0.85 | 4.1 / 5.8 m/s (810 / 1,140 ft/min) | cruises at both[^w-g550] |
+| service ceiling (0.5 m/s of excess power) | 51,000 ft | 51,000 ft[^w-g550] |
+| on station for an hour (the steer loop, 25° of bank) | height within 5 m, speed within 1 m/s, bank at most 25.3° | |
+| the retreat | from Mach 0.80 to 0.85 (250.5 m/s at most) while it turns away | Mach 0.85 the high-speed cruise[^w-g550] |
+| CPU | 0.10 ms a frame with its autopilot (release, this laptop under load) | |
+
+The steer loop's speed law is proportional only (a lever of 0.7 at no error): it held the G550 12–15 m/s fast, so the
+Eitam sums its speed error into the asked speed while the lever is inside its travel (`eitam::SPEED_I`; inferred).
+Open: the CAEW's own weight and drag (its radomes), the BR710's real lapse.
+
 [^dote-2012]: Director, Operational Test and Evaluation, FY2012 Annual Report, "F-35 Joint Strike Fighter" (the F-35A's
     sustained turn specification from 5.3 to 4.6 g, the 0.8 to 1.2 Mach acceleration 8 s longer; no Mach or altitude
     given), read through GlobalSecurity's copy,
@@ -1525,3 +1564,11 @@ detrimental permanent deformation", https://www.ecfr.gov/current/title-14/sectio
 [^dcs-mig29-flare]: A DCS World forum post quoting the MiG-29's manuals ("по книгам – начало на 280 км/ч, конец на
     260 км/ч, или начало с УА = 10, заканчивается с УА = 12"), as a web search quoted it on 2026-11-22; the forum
     refuses automated access, so the post was not read (second-hand): https://forum.dcs.world
+[^lissys-g550]: Lissys Ltd., "Gulfstream G550" (Piano-X sample aircraft: reference wing area 1,137 ft², aspect ratio
+    7.36, specific fuel consumption 0.6414 lb/hr/lbf), as a web search quoted it (second-hand, 2026-11-25):
+    https://lissys.uk/samp2/g550.html
+[^cfr-25-337]: 14 CFR 25.337, "Limit maneuvering load factors": positive n = 2.1 + 24,000 / (W + 10,000) (W in lb),
+    "may not be less than 2.5"; negative −1.0 at speeds up to VC (cited from memory, not re-read for this change): https://www.ecfr.gov/current/title-14/chapter-I/subchapter-C/part-25/subpart-C/subject-group-ECFR4fb0d4c8f3a3a03/section-25.337
+[^w-g550]: Wikipedia, "Gulfstream G550", specifications (span 28.50 m; empty 48,300 lb, gross 54,500 lb, maximum
+    take-off 91,000 lb, fuel 41,300 lb; 2 × BR710 C4-11, 15,385 lbf; long-range cruise Mach 0.80 and high-speed cruise
+    0.85 at 41,000 ft, Mmo 0.885; service ceiling 51,000 ft; read 2026-11-25): https://en.wikipedia.org/wiki/Gulfstream_G550

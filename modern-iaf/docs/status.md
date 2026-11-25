@@ -28,9 +28,14 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   player), voiced in English and Hebrew, and a request it cannot take is dimmed (since 2026-11-25 without a reason line: the game manual says when). In Scramble the Eitam
   (our own G550 CAEW model) flies a standoff racetrack behind the flight's way at 41,000 ft; a hostile group near it
   sends it away at Mach 0.85 with a call for help ("threat ... Eitam retrograding, commit"). Its radar feeds the
-  picture, the contact calls and the data link; the enemy can shoot it down, which ends the service. Open: the G550's
-  6-DoF (no public data); the tanker's vector waits for a tanker. `test_awacs.gd`, `cargo test -p iaf-ai --lib --
-  awacs eitam`.
+  picture, the contact calls and the data link; the enemy can shoot it down, which ends the service. Open: the tanker's
+  vector waits for a tanker. `test_awacs.gd`, `cargo test -p iaf-ai --lib -- awacs`, `--test eitam`.
+- **The Eitam's look and flight (2026-11-25, the user: "The eitam looks strange, only white. look online for pics, look
+  for a better model"; [../../docs/ai.md](../../docs/ai.md) §24.3, [flight-model.md](flight-model.md) §9.22):** its
+  model matched to photographs of the IAF's CAEW (the drooped nose radome, the tail radome, the side cheeks, the
+  satcom bullet; white with the blue cheatline, the roundels, 537 and ISRAEL AIR FORCE); it flies on its own 6-DoF
+  (the G550's wing, weights, BR710s and limits; its ceiling fit to 51,000 ft) under the autopilot's steer loop, banking
+  25° in its turns. No free G550 CAEW model was found (Sketchfab, FlightGear, CGTrader: only plain Gulfstreams).
 - **Every seat's radio calls whole, Kidon 5–8 voiced (2026-11-25, the game gaps' row 15; [sound.md](sound.md) §3,
   §5.2):** the player's call to a tower ("Hatzerim tower, Kidon 3, request taxi") is one clip as Kidon 1 to 8 (160
   English clips; before, Kidon 2–4 played the address, the callsign and the request apart); the tower's "negative,

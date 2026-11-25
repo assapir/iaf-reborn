@@ -6,8 +6,8 @@
 # - the wingman holding the MiG in its radar reports "contact" after the answer named it;
 # - the Eitam (docs/ai.md §24.3) on its station: 41,000 ft, Mach 0.80, off the flight's way to the fight, the fight
 #   inside its radar; a known MiG 40 km from it: its call for help ("threat ... Eitam retrograding, commit") and its
-#   retreat at Mach 0.85; shot down: the AWACS page all off, no contact call, no AWACS track on
-#   the data link.
+#   retreat towards Mach 0.85 on its 6-DoF, its model at the flight's attitude; shot down: the AWACS page all off, no
+#   contact call, no AWACS track on the data link.
 #   IAF_DEFAULT_SETTINGS=1 godot --headless --audio-driver Dummy --path modern-iaf \
 #     -s ../modern-iaf/tests/test_awacs.gd --log-file <temp>
 extends "res://../tests/godot/base.gd"
@@ -107,7 +107,7 @@ func _station(tv: Node, start: Vector3) -> void:
 	var home: Vector3 = fly_gd._lineup(fly_gd._ibx(), "Ramon")
 	var flat := func(a: Vector3, b: Vector3) -> float: return Vector2(a.x - b.x, a.y - b.y).length()
 	check(not e.retreating, "Eitam: on station (%s)" % e)
-	check(absf(e.pos.z - 12496.8) < 5.0 and absf(e.speed - 236.06) < 1.0, "Eitam: 41,000 ft at Mach 0.80 (%s)" % e)
+	check(absf(e.pos.z - 12496.8) < 50.0 and absf(e.speed - 236.06) < 3.0, "Eitam: 41,000 ft at Mach 0.80 (%s)" % e)
 	check(flat.call(e.pos, area) < 300000.0, "Eitam: the fight inside its radar (%.0f m)" % flat.call(e.pos, area))
 	for way in [[start, area], [home, area]]:
 		var a: Vector2 = Vector2(way[0].x, way[0].y)
@@ -141,8 +141,16 @@ func _eitam(tv: Node) -> void:
 		var t: String = help[0].text
 		check(t.begins_with("Kidon 1, threat, group bearing") and t.ends_with("Eitam retrograding, commit"), t)
 	check(bool(r.awacs.eitam().retreating), "Eitam: retreating")
+	var v0: float = r.awacs.eitam().speed
 	await fly(tv, 20.0)
-	check(r.awacs.eitam().speed > 245.0, "Eitam: at Mach 0.85 (%.0f m/s)" % r.awacs.eitam().speed)
+	# On its 6-DoF: speeding up towards Mach 0.85 (251 m/s) on the G550's thrust while it turns away (slowly up there).
+	var e2: Dictionary = r.awacs.eitam()
+	check(
+		e2.speed > v0 + 1.0 and e2.speed < 262.0, "Eitam: speeding up to Mach 0.85 (%.0f → %.0f m/s)" % [v0, e2.speed]
+	)
+	check(absf(e2.pos.z - 12496.8) < 150.0, "Eitam: at its height (%.0f m)" % e2.pos.z)
+	var node: Node3D = tv.runtime.entities.eitam.node
+	check(is_equal_approx(node.rotation.x, deg_to_rad(float(e2.pitch))), "Eitam: its model at the flight's attitude")
 	# The data link's AWACS tracks from its radar; shot down, the service ends.
 	var ews = tv.weapons.get("ews")
 	var hostiles := func() -> Array: return ews.state.get("link", []).filter(func(k): return k.kind == "hostile")

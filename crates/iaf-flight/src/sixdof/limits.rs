@@ -69,6 +69,9 @@ pub const F15: Limits = Limits { kcas: 800.0, mach: 2.5, categories: false, ..F1
 /// The MiG-29A: its published top speeds as its limits, 1,500 km/h (810 kt) low down and Mach 2.3 (Wikipedia; as
 /// placards inferred); the gear, the tyres and the brakes the F-16's (inferred); no load categories.
 pub const MIG29: Limits = Limits { kcas: 810.0, mach: 2.3, categories: false, ..F16 };
+/// The G550: Mmo 0.885 (Wikipedia, "Gulfstream G550") and 340 KCAS (inferred: no public Vmo found, a business jet's);
+/// the gear, the tyres and the brakes the F-16's (inferred: it flies in the air only); no load categories.
+pub const G550: Limits = Limits { kcas: 340.0, mach: 0.885, categories: false, ..F16 };
 
 /// How hard a load or a speed has used the structure.
 #[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd)]

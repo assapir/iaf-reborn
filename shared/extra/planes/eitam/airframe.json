@@ -1,0 +1,19 @@
+{
+  "name": "Eitam (G550 CAEW)",
+  "doc": "docs/ai.md",
+  "flyable": false,
+  "fm": "G550",
+  "sixdof": true,
+  "engines": 2,
+  "model": "res://shared/extra/models/eitam/eitam.glb",
+  "rcs": { "front_m2": 10.0, "side_m2": 40.0, "rear_m2": 15.0, "store_m2": 0.0 },
+  "notes": {
+    "": "Modern IAF's Eitam, the IAF's Gulfstream G550 CAEW (122 Squadron), an AI aircraft (docs/ai.md 24.3): type 1021 (ours), flown by iaf_ai::eitam on the 6-DoF",
+    "flyable": "an AI aircraft: the player does not fly it",
+    "fm": "data_set.rs G550 row on the F-16 section; the 6-DoF's sixdof::jets::g550 (modern-iaf/docs/flight-model.md 9.22)",
+    "sixdof": "always on the 6-DoF: it has no original-model data",
+    "engines": "two Rolls-Royce BR710 C4-11 (Wikipedia, \"Gulfstream G550\")",
+    "model": "our own low-poly model, tools/eitam/eitam.py",
+    "rcs": "a business jet's, larger than a fighter's from every side (inferred, no public figure)"
+  }
+}

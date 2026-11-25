@@ -76,6 +76,10 @@ pub const TYPES: &[Type] = &[
     // sim's own `mig29a` (iaf-sim own). No 1998 data: it always flies its Real row, on the F-16's section, and the 6-DoF
     // (`sixdof::jets::mig29a`). The 1998 MiG-29 (180) below is another type and is unchanged.
     ty("MiG-29A", "mig29a", "F-16", 1020),
+    // Ours: Modern IAF's Eitam, the IAF's Gulfstream G550 CAEW, an AI aircraft (docs/ai.md §24.3), type 1021; its model
+    // folder the sim's `eitam` (shared/extra/models/eitam). No 1998 data: its Real row on the F-16's section, and the
+    // 6-DoF (`sixdof::jets::g550`).
+    ty("G550", "eitam", "F-16", 1021),
     ty("MIRAGE", "mirage", "MIRAGE", 190),
     ty("MIG21", "mig21", "MIG21", 150),
     ty("MIG23", "mig23", "MIG23", 160),
@@ -92,7 +96,7 @@ pub const TYPES: &[Type] = &[
 ];
 
 /// Types the original never had: no Original data, so they always fly their Real row.
-const NO_ORIGINAL: &[&str] = &["F-35I", "F-16I", "F-15I", "MiG-29A"];
+const NO_ORIGINAL: &[&str] = &["F-35I", "F-16I", "F-15I", "MiG-29A", "G550"];
 
 /// The data set a type flies with: `set`, except that a type without original data always takes Real.
 pub fn effective(set: DataSet, name: &str) -> DataSet {
@@ -565,6 +569,30 @@ const REAL: &[Real] = &[
         g: Some((9.0, -3.0)),
         // 18,000 m.
         ceiling_ft: Some(59_055.0),
+        ..NONE
+    },
+    // G550 (the Eitam, 2 x BR710 C4-11): Wikipedia, "Gulfstream G550" (modern-iaf/docs/flight-model.md §9.22). The
+    // 6-DoF flies it (`sixdof::jets::g550`); this row gives the loaded section its weights, thrust and limits.
+    Real {
+        aircraft: "G550",
+        base: Some("F-16"),
+        // The operating weight 54,500 lb ("gross weight"); 36,500 lb of fuel to its 91,000 lb maximum take-off.
+        empty_lb: 54_500.0,
+        fuel_lb: Some(36_500.0),
+        max_lb: Some(91_000.0),
+        // 2 x 15,385 lbf, no afterburner.
+        thrust: Thrust::StaticAb(30_770.0),
+        afterburner: Some(false),
+        // 1,137 ft² (second-hand: lissys.uk's G550 geometry).
+        wing_ft2: Some(1137.0),
+        wave_drag: 0.0,
+        // TSFC 0.6414 (second-hand, `sixdof::jets::br710`).
+        ff_ab_lb_s: Some(0.6414 * 30_770.0 / 3600.0),
+        ff_mil_lb_h: Some(0.6414 * 30_770.0),
+        // +2.5 / −1 g: 14 CFR 25.337.
+        g: Some((2.5, -1.0)),
+        // 51,000 ft.
+        ceiling_ft: Some(51_000.0),
         ..NONE
     },
     // F-15I Ra'am (two-seat F-15E derivative, 2 x F100-PW-229, conformal fuel tanks), docs/f15i.md §1. The F-15I's own

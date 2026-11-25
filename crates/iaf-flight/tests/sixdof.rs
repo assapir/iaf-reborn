@@ -1265,6 +1265,31 @@ fn mig29_flies_its_figures() {
 }
 
 #[test]
+fn the_g550_meets_its_published_figures() {
+    // The Eitam's G550 (modern-iaf/docs/flight-model.md §9.22) at a mission weight (its operating 54,500 lb and
+    // 12,000 kg of fuel, as iaf_ai::eitam places it), at military power (the BR710 has no afterburner): it cruises at
+    // Mach 0.80 and 0.85 at 41,000 ft with power to spare (Wikipedia, "Gulfstream G550"), and its ceiling is near its
+    // published 51,000 ft, the BR710's fit (`jets::br710`).
+    let g550 = jets::g550().at_weight(jets::G550_OPERATING_LB + 12_000.0 / 0.453_592_37);
+    let mil = |f: &SixDof| iaf_flight::Controls { throttle: 0.77, ..f.controls() };
+    let ps_at = |alt: f64, mach: f64| {
+        let mut f = flight(g550, alt, mach * air(alt as f32).sound as f64, true);
+        fly_for(&mut f, 4.0, mil);
+        let a = f.state();
+        fly_for(&mut f, 6.0, mil);
+        let b = f.state();
+        ((b.speed * b.speed - a.speed * a.speed) / (2.0 * 9.806) + (b.position[2] - a.position[2]) as f32) / 6.0
+    };
+    let cruise = 41_000.0 * FT;
+    let (p80, p85) = (ps_at(cruise, 0.80), ps_at(cruise, 0.85));
+    let holds = |alt: f64| (12..=17).any(|m| ps_at(alt, m as f64 * 0.05) > 0.5);
+    let ceiling = (40..=64).map(|k| k as f64 * 1000.0 * FT).take_while(|&h| holds(h)).last().unwrap_or(0.0) / FT;
+    println!("G550: Ps {p80:.1} m/s at Mach 0.80, {p85:.1} at 0.85, 41,000 ft; ceiling about {ceiling:.0} ft (51,000)");
+    assert!(p80 > 1.0 && p85 > 0.5, "{p80} {p85}");
+    assert!((49_000.0..=53_000.0).contains(&ceiling), "{ceiling}");
+}
+
+#[test]
 fn the_parking_brake_holds_the_jet() {
     // Set: the wheels stay braked with no brake key held, above idle on the ground; released: the jet rolls.
     let mut f = flight(jets::tp1538().at_weight(29_253.0), 0.0, 0.0, false);

@@ -194,6 +194,7 @@ const FILES: &[(&str, &str)] = &[
     ("f16i", include_str!("../../../shared/extra/planes/f16i/airframe.json")),
     ("f35i", include_str!("../../../shared/extra/planes/f35i/airframe.json")),
     ("mig29a", include_str!("../../../shared/extra/planes/mig29a/airframe.json")),
+    ("eitam", include_str!("../../../shared/extra/planes/eitam/airframe.json")),
 ];
 
 /// The Extras switches that pick a 1998 jet's variant (Settings `f16_variant`, `f15_variant`).
@@ -205,7 +206,8 @@ pub struct Switches<'a> {
 
 /// The adapter: the definition a jet of bdb type `type_code` flies as with the Extras switches `s`, None for a 1998
 /// jet without one (its tables decide). The F-16 (100): its base `f16` (the Barak), the F-16I `f16i` on Sufa; the F-15
-/// (110): its base `f15` (the Baz), the F-15I `f15i` on Ra'am; 1000 the F-35I, 1020 Modern IAF's MiG-29A.
+/// (110): its base `f15` (the Baz), the F-15I `f15i` on Ra'am; 1000 the F-35I, 1020 Modern IAF's MiG-29A, 1021
+/// its Eitam.
 pub fn id_for(type_code: i64, s: Switches) -> Option<&'static str> {
     match type_code {
         100 => Some(if s.f16 == "sufa" { "f16i" } else { "f16" }),
@@ -213,6 +215,8 @@ pub fn id_for(type_code: i64, s: Switches) -> Option<&'static str> {
         1000 => Some("f35i"),
         // Ours: Modern IAF's MiG-29A, an AI jet (the 1998 MiG-29, 180, keeps its tables).
         1020 => Some("mig29a"),
+        // Ours: Modern IAF's Eitam (the G550 CAEW), an AI aircraft.
+        1021 => Some("eitam"),
         _ => None,
     }
 }

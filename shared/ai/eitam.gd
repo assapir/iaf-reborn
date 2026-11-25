@@ -1,9 +1,9 @@
 ## Modern IAF's Eitam in the sky (docs/ai.md §24.3): the IAF's G550 CAEW flown by the Rust Eitam (IafAwacs,
-## crates/iaf-ai/src/eitam.rs) on its standoff orbit, as a mission entity ("eitam", class 3: a fixed-wing mover) of
-## the player's side with its model and radar cross-section, so the enemy's radars, sites and fighters see and attack
-## it as any of ours and the existing damage path brings it down. Its call for help is said by the radio, and the
-## group it names goes to the flight AI as a contact call does. Shot down, the controller's service ends
-## (IafAwacs.eitam_down). Placed by Scramble (modern-iaf/flight/free_combat.gd) and the tests.
+## crates/iaf-ai/src/eitam.rs: its 6-DoF under the autopilot's steer loop) on its standoff orbit, as a mission entity
+## ("eitam", class 3: a fixed-wing mover) of the player's side with its model and radar cross-section, so the enemy's
+## radars, sites and fighters see and attack it as any of ours and the existing damage path brings it down. Its call
+## for help is said by the radio, and the group it names goes to the flight AI as a contact call does. Shot down, the
+## controller's service ends (IafAwacs.eitam_down). Placed by Scramble (modern-iaf/flight/free_combat.gd) and the tests.
 extends Node
 
 const MissionRuntime := preload("res://shared/mission/mission_runtime.gd")
@@ -39,7 +39,8 @@ func place(area: Vector3, home: Vector3, start: Vector3) -> Dictionary:
 	var aw = host.radio.awacs
 	if aw == null:
 		return {}
-	aw.place_eitam(area, home, start)
+	if not aw.place_eitam(area, home, start, Settings.own_dir()):
+		return {}
 	var d: Dictionary = aw.eitam()
 	var side := int(host.runtime.player_entity().get("side", 2))
 	var e := {"0x1e": -9000, "0x2bc": "EITAM", "0x2e4": d.pos.x, "0x2ee": d.pos.y, "0x2f8": d.pos.z}
@@ -88,4 +89,5 @@ func _move(d: Dictionary) -> void:
 	ent.vel = Vector3(sin(h), cos(h), 0.0) * float(d.speed)
 	ent.heading = float(d.heading)
 	host.mission_entity_moved(ent)
-	ent.node.rotation = Vector3(0.0, -h, 0.0)
+	# Its attitude from the flight model (the model's nose along -Z: + pitch nose up about X, + bank right wing down).
+	ent.node.rotation = Vector3(deg_to_rad(float(d.pitch)), -h, -deg_to_rad(float(d.roll)))

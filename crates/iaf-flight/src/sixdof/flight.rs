@@ -2,7 +2,7 @@
 //! and read back as the original model's [`State`] and [`ApView`] in the game's ENU frame (modern-iaf/docs/
 //! flight-model.md §9.12). The original game never builds one ([`crate::fm::Fm`]).
 
-use super::aero::{Flow, Surfaces, add_drag, coefficients, compressibility, lef_schedule};
+use super::aero::{Flow, Surfaces, add_drag, aspect_drag, coefficients, compressibility, lef_schedule};
 use super::autopilot::{F16Autopilot, Panel as ApPanel, Sensed};
 use super::body::{Body, MAX_FRAME, MAX_STEP, Quat};
 use super::engine::Engine;
@@ -1247,6 +1247,9 @@ pub fn level_trim(jet: &Jet, af: &super::body::Airframe, alt_m: f64, v: f64, sto
         let s = Surfaces { dh, dlef: lef_schedule(a, qbar, ps), ..Surfaces::default() };
         let mut c = coefficients(&Flow { alpha: a, v, ..Flow::default() }, &s, af);
         compressibility(&mut c, mach, a, jet.aspect_ratio(), jet.wave_drag);
+        if jet.high_aspect {
+            aspect_drag(&mut c, a, jet.aspect_ratio());
+        }
         add_drag(&mut c, jet.stores_dcd(stores_cd), a);
         c
     };

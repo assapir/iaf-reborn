@@ -237,6 +237,15 @@ pub fn compressibility(c: &mut Coeffs, mach: f64, alpha: f64, ar: f64, (w, kw): 
     add_drag(c, wave, alpha);
 }
 
+/// The tables' induced drag (TP-1538's F-16 wing: 30 ft over 300 ft², aspect ratio 3) re-referenced to a wing of
+/// aspect ratio `ar`: ΔCD = CL² / (π e) × (1 / `ar` − 1 / 3), Oswald's e 0.8 (inferred, a swept transport wing's);
+/// CL the lift coefficient across the flow at α `alpha` (deg). A longer wing drags less at the same lift.
+pub fn aspect_drag(c: &mut Coeffs, alpha: f64, ar: f64) {
+    let (sa, ca) = alpha.to_radians().sin_cos();
+    let cl = -c.cz * ca + c.cx * sa;
+    add_drag(c, cl * cl / (std::f64::consts::PI * 0.8) * (1.0 / ar - 1.0 / 3.0), alpha);
+}
+
 /// Adds a drag coefficient `cd` (along the air flow, α in deg) to the body-axis coefficients.
 pub fn add_drag(c: &mut Coeffs, cd: f64, alpha: f64) {
     let (sa, ca) = alpha.to_radians().sin_cos();

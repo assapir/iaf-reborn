@@ -2,7 +2,7 @@
 //! aerodynamics are TP-1538's F-16 tables for every jet, on each jet's own wing area, span and chord (as FM-0 does,
 //! labelled). Sources and the inferred figures: modern-iaf/docs/flight-model.md §9.9.
 
-use super::aero::{Flow, Surfaces, add_drag, coefficients, compressibility, force_moment, ground_effect};
+use super::aero::{Flow, Surfaces, add_drag, aspect_drag, coefficients, compressibility, force_moment, ground_effect};
 use super::body::{Airframe, Body};
 use super::engine::{Engine, EngineSpec, FIG66_IDLE_MAX, FIG66_IDLE_MIL, TSFC_F100};
 use super::fcs::F16_ALPHA_MAX;
@@ -58,6 +58,9 @@ pub struct Jet {
     pub nose_down: Option<crate::data_set::HighAlphaCm>,
     /// The airframe's, the gear's, the tyres' and the brakes' limits ([`super::limits`]).
     pub limits: Limits,
+    /// The tables' induced drag re-referenced to this jet's aspect ratio ([`aspect_drag`]): the G550's long wing;
+    /// false: the tables' own F-16 wing (the fighters, aspect ratio 2.7 to 3.4: inferred near enough).
+    pub high_aspect: bool,
 }
 
 /// A jet's speed brake: its opening in flight and with the main gear down and locked, deg of the F-16's split
@@ -196,6 +199,63 @@ pub fn mig29a() -> Jet {
         final_alpha: MIG29_FINAL_ALPHA,
         nose_down: None,
         limits: limits::MIG29,
+        high_aspect: false,
+    }
+}
+
+/// The Rolls-Royce BR710 C4-11 (the G550, two): 15,385 lbf at take-off (Wikipedia, "Gulfstream G550"), on TP-1538's
+/// F100 table's lapse with Mach and altitude (no public BR710 table), × [`BR710_FIT`]; no afterburner, so its maximum
+/// is its military; TSFC 0.6414 lb/(lbf·h) (second-hand: the G550 model of lissys.uk's Piano-X; no published BR710
+/// figure was found); idle → military 5 s (inferred: a high-bypass fan spools slower than the F100).
+/// modern-iaf/docs/flight-model.md §9.22.
+pub fn br710() -> EngineSpec {
+    let lbf = 15_385.0 * BR710_FIT;
+    EngineSpec::rated("BR710 C4-11", lbf, lbf, 5.0, (0.6414, 0.6414))
+}
+
+/// The BR710's fit: the F100's lapse keeps a low-bypass engine's thrust high up, a high-bypass fan's falls faster
+/// (inferred); at the full rating the G550 climbed at 12 m/s at 41,000 ft and topped out above 64,000 ft. × 0.65 meets
+/// its published 51,000 ft ceiling at a mission weight (`the_g550_meets_its_published_figures` in tests/sixdof.rs,
+/// 2026-11-25; 0.60 gave 48,000 ft, 0.70 55,000 ft). Its sea-level thrust is then low, which no flight of it uses:
+/// it is placed in the air.
+pub const BR710_FIT: f64 = 0.65;
+
+/// The G550's operating weight, lb: Wikipedia's "gross weight" 54,500 (the empty 48,300 with crew and the operating
+/// items); the CAEW's mission system is open (no public figure): taken inside it (inferred).
+pub const G550_OPERATING_LB: f64 = 54_500.0;
+/// Its fuel at the reference weight, lb: the 91,000 lb maximum take-off less [`G550_OPERATING_LB`] (36,500 of the
+/// 41,300 lb capacity; Wikipedia).
+pub const G550_FUEL_LB: f64 = 91_000.0 - G550_OPERATING_LB;
+
+/// The Gulfstream G550 (the IAF's Eitam, an AI aircraft: docs/ai.md §24.3; modern-iaf/docs/flight-model.md §9.22):
+/// TP-1538's tables on its wing, 1,137 ft² (second-hand: lissys.uk's G550 geometry) and 93.5 ft (aspect ratio 7.69)
+/// (Wikipedia), their induced drag re-referenced to that wing ([`Jet::high_aspect`]); 91,000 lb at its reference
+/// weight; two BR710s ([`br710`]); +2.5 / −1 g, a transport category jet's limit load factors (14 CFR 25.337 for its
+/// weight); Mmo 0.885 (Wikipedia) and 340 KCAS ([`limits::G550`]); an α limit of 14° (inferred, a swept transport
+/// wing's stall). The gear (wheelbase 45 ft, track 14 ft, the c.g. 2.4 m up: inferred; it is placed in the air only),
+/// the start sequence, the speed brake (its spoilers) and nose-wheel steering the F-16's (inferred). The wave drag
+/// is fit to its cruise Mach at 41,000 ft (`fit_g550_cruise` in tests/sixdof.rs).
+pub fn g550() -> Jet {
+    let weight_lb = G550_OPERATING_LB + G550_FUEL_LB;
+    Jet {
+        name: "G550",
+        airframe: scaled(weight_lb, 93.5, 1137.0),
+        engine: br710(),
+        engines: 2,
+        gear: gear(45.0, 14.0, 2.4, weight_lb),
+        nws_deg: 32.0,
+        fuel_lb: G550_FUEL_LB,
+        wave_drag: (0.05, 0.0),
+        g_limits: (2.5, -1.0),
+        roll: None,
+        tef_deg: 20.0,
+        start: JFS,
+        speed_brake: F16_SPEED_BRAKE,
+        alpha_max: 14.0,
+        final_alpha: 8.0,
+        nose_down: None,
+        limits: limits::G550,
+        high_aspect: true,
     }
 }
 
@@ -220,6 +280,7 @@ pub fn tp1538() -> Jet {
         final_alpha: crate::autopilot::REAL_FINAL.0 as f64,
         nose_down: None,
         limits: limits::F16,
+        high_aspect: false,
     }
 }
 
@@ -249,6 +310,7 @@ pub fn all() -> [Jet; 4] {
             final_alpha: crate::autopilot::REAL_FINAL.0 as f64,
             nose_down: None,
             limits: limits::F16,
+            high_aspect: false,
         },
         // F-16I Sufa: 20,500 lb + 8,850 lb (the F-16I REAL row).
         Jet {
@@ -271,6 +333,7 @@ pub fn all() -> [Jet; 4] {
             final_alpha: crate::autopilot::REAL_FINAL.0 as f64,
             nose_down: None,
             limits: limits::F16,
+            high_aspect: false,
         },
         // F-35I Adir: 29,300 lb + 18,250 lb, wing 460 ft² (the F-35I REAL row), span 35 ft (Lockheed Martin);
         // wheelbase 19.75 ft, track 14.24 ft (Mason, Virginia Tech, F-35A data).
@@ -296,6 +359,7 @@ pub fn all() -> [Jet; 4] {
             final_alpha: crate::autopilot::REAL_FINAL.0 as f64,
             nose_down: Some(crate::data_set::F35I.nose_down),
             limits: limits::F35,
+            high_aspect: false,
         },
         // F-15I Ra'am: 37,000 lb + 22,665 lb, wing 608 ft², span 42.8 ft (the F-15I REAL row, TO 1F-15E-1, USAF);
         // wheelbase 17.78 ft (the F-15 row, SAC), track 9 ft (TO 1F-15E-1, docs/f15i.md).
@@ -319,6 +383,7 @@ pub fn all() -> [Jet; 4] {
             final_alpha: crate::autopilot::REAL_FINAL.0 as f64,
             nose_down: None,
             limits: limits::F15,
+            high_aspect: false,
         },
     ]
 }
@@ -334,6 +399,7 @@ pub fn by_type(name: &str) -> Option<Jet> {
         "F-35I" => Some(adir),
         "F-15I" | "F-15" => Some(raam),
         "MIG-29A" => Some(mig29a()),
+        "G550" => Some(g550()),
         _ => None,
     }
 }
@@ -440,6 +506,9 @@ impl Jet {
         let mach = flow.v / a.sound as f64;
         let mut coeffs = coefficients(&flow, &c.surfaces, &self.airframe);
         compressibility(&mut coeffs, mach, flow.alpha, self.aspect_ratio(), self.wave_drag);
+        if self.high_aspect {
+            aspect_drag(&mut coeffs, flow.alpha, self.aspect_ratio());
+        }
         if let Some(n) = self.nose_down {
             coeffs.cm += n.at(flow.alpha);
         }
