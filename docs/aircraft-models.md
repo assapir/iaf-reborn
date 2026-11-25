@@ -415,9 +415,9 @@ dome on the root's aft half, over the livery's panel lines. Every Barak shows th
 The pale sand is the colour of the photos' eagle and scorpion against the fin's sand in the same light (027: the
 same; 034 and 682: a little lighter and greyer), sRGB (0.88, 0.81, 0.72).
 
-The Adir's is low-visibility dark grey, the whole number on each side of the
-nose and its last two digits on each fin's outer face (quads: the fins are one surface), where `tools/f35i/rig.py`
-drew it until 2026-11-19.
+The Adir's is low-visibility pale grey, the whole number on each side of the nose (where `tools/f35i/rig.py` drew
+it until 2026-11-19) and again low on each fin's outer face, just above the root and ahead of the rudder hinge
+(quads: the fins are one surface; docs/f35i.md §5.2).
 
 Check: `tests/godot/test_sufa_model.gd` (the player's jet 846, the AI's other numbers, none twice; the FlyTSD's Fly;
 every listed number drawn once, then the first again, no ranges; Hatzerim's parked jets take its list; the Barak and

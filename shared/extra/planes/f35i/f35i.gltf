@@ -733,13 +733,13 @@
 			"name":"canopy_glass",
 			"pbrMetallicRoughness":{
 				"baseColorFactor":[
-					0.3499999940395355,
-					0.30000001192092896,
-					0.18000000715255737,
-					0.4000000059604645
+					0.36,
+					0.22,
+					0.07,
+					0.6
 				],
-				"metallicFactor":0,
-				"roughnessFactor":0.10000000149011612
+				"metallicFactor":1.0,
+				"roughnessFactor":0.06
 			}
 		},
 		{
@@ -4806,35 +4806,35 @@
 		{
 			"bufferView":288,
 			"componentType":5126,
-			"count":954,
+			"count":486,
 			"max":[
-				4.400114059448242,
-				0.5343152284622192,
-				2.200225353240967
+				4.50011682510376,
+				0.44637951254844666,
+				2.000047445297241
 			],
 			"min":[
-				-4.4001336097717285,
-				-0.2885608673095703,
-				-3.7000513076782227
+				-4.50014591217041,
+				-0.22775258123874664,
+				-6.279570579528809
 			],
 			"type":"VEC3"
 		},
 		{
 			"bufferView":289,
 			"componentType":5126,
-			"count":954,
+			"count":486,
 			"type":"VEC3"
 		},
 		{
 			"bufferView":290,
 			"componentType":5126,
-			"count":954,
+			"count":486,
 			"type":"VEC2"
 		},
 		{
-			"bufferView":291,
+			"bufferView":300,
 			"componentType":5123,
-			"count":1920,
+			"count":2304,
 			"type":"SCALAR"
 		},
 		{
@@ -6637,19 +6637,19 @@
 		},
 		{
 			"buffer":0,
-			"byteLength":11448,
+			"byteLength":5832,
 			"byteOffset":2167196,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":11448,
+			"byteLength":5832,
 			"byteOffset":2178644,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":7632,
+			"byteLength":3888,
 			"byteOffset":2190092,
 			"target":34962
 		},
@@ -6706,6 +6706,12 @@
 			"byteLength":5916,
 			"byteOffset":2297072,
 			"target":34963
+		},
+		{
+			"buffer":0,
+			"byteLength":4608,
+			"byteOffset":2302988,
+			"target":34963
 		}
 	],
 	"samplers":[
@@ -6716,7 +6722,7 @@
 	],
 	"buffers":[
 		{
-			"byteLength":2302988,
+			"byteLength":2307596,
 			"uri":"f35i.bin"
 		}
 	]

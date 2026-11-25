@@ -44,16 +44,18 @@ def markings():
     art = kit.low_vis(os.path.join(ASSETS, "sqn116.png"), MARK_GREY[0], 0.0, clear_below=0.12)
     badge = kit.material("sqn116", (1, 1, 1), metallic=0.0, roughness=0.6, image=kit.image("sqn116_lowvis", art),
                          clip=True)
-    # One roundel on each upper wing, outboard near the tip and ahead of the flaperon (the USAF tanker-boom photo
-    # of an F-35I from above, 2 Aug 2020); one under the right wing.
+    # Roundels 0.40 m across (measured on F-35I photos from the same camera angles as the game's, docs/f35i.md §5.2):
+    # one on each upper wing, outboard ahead of the flaperon (901 from above, 2016); one under each wing, a little
+    # further inboard (930's pair from below).
     for s in (1, -1):
-        kit.decal(f"roundel_wing_upper_{'right' if s > 0 else 'left'}", rnd, (4.0 * s, -2.8, 10), (0, 0, -1), 0.8,
-                  0.8, (0, 1, 0))
-    kit.decal("roundel_wing_lower_right", rnd, (3.6, -2.7, -10), (0, 0, 1), 0.8, 0.8, (0, -1, 0))
+        kit.decal(f"roundel_wing_upper_{'right' if s > 0 else 'left'}", rnd, (4.3 * s, -2.8, 10), (0, 0, -1), 0.4,
+                  0.4, (0, 1, 0))
+        kit.decal(f"roundel_wing_lower_{'right' if s > 0 else 'left'}", rnd, (3.95 * s, -2.7, -10), (0, 0, 1), 0.4,
+                  0.4, (0, -1, 0))
     for s in (1, -1):
-        # The big roundel on the intake flank behind the lip, the badge on the fin (outer faces, forward of the
-        # rudder hinge).
-        kit.decal(f"roundel_side_{s}", rnd, (8 * s, 2.3, 1.95), (-s, 0, 0), 0.8, 0.8, (0, s, 0))
+        # The nose roundel on each side under the canopy's front half, below the chine and the nose number, well ahead
+        # of the intake lip (930, 951, 905); the badge on the fin (outer faces, forward of the rudder hinge).
+        kit.decal(f"roundel_side_{s}", rnd, (8 * s, 5.08, 1.82), (-s, 0, 0), 0.4, 0.4, (0, s, 0))
         kit.decal(f"badge_{s}", badge, (8 * s, -5.5, 3.4), (-s, 0, 0), 0.7, 0.7, (0, s, 0))
 
 
@@ -270,9 +272,10 @@ def main():
     # F-35 has no HUD (its canopy bow is behind the pilot): drop them.
     for k in ("34", "54", "39", "27"):
         kit.bpy.data.objects.remove(m[k])
-    # Canopy: the bubble; tinted blended glass.
+    # Canopy: the bubble; its gold coating as a dark amber metallic film over blended glass: the sky's reflections
+    # turn gold and the cockpit shows through darkened (docs/f35i.md §5.2).
     parts["canopy"] = kit.join([m["33"]], "canopy")
-    glass = kit.material("canopy_glass", (0.35, 0.30, 0.18), roughness=0.1, alpha=0.4)
+    glass = kit.material("canopy_glass", (0.36, 0.22, 0.07), metallic=1.0, roughness=0.06, alpha=0.6)
     for i, mat in enumerate(parts["canopy"].data.materials):
         if mat and mat.name.startswith("Whitish_grey"):
             parts["canopy"].data.materials[i] = glass
