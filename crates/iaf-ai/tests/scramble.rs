@@ -127,7 +127,7 @@ fn scramble_intercept_and_land() {
     let c = committed.expect("the lead commits in the air");
     assert!(c - a0 < 30.0, "the intercept after the take-off ({:.0} s)", c - a0);
     // (Its phase now: the intercept, or the crank, the dogfight by the geometry.)
-    println!("the lead: {}", flight.members[0].enemy.phase);
+    println!("the lead: {}", flight.members[0].enemy.phase.name());
     // The bogey gone (shot down): the sortie is over, home.
     bogey = None;
     let parked = |jets: &[(Fm, Autopilot)]| jets.iter().all(|(fm, ap)| ap.landed && !fm.engine_on());
@@ -140,7 +140,7 @@ fn scramble_intercept_and_land() {
         }
     }
     println!("home after {home:?} s; parked after {:.0} s", t - t0);
-    assert!(home.is_some_and(|h| h < 2.0) && flight.members[0].enemy.phase == "home", "the lead goes home");
+    assert!(home.is_some_and(|h| h < 2.0) && flight.members[0].enemy.phase.name() == "home", "the lead goes home");
     for (i, (fm, ap)) in jets.iter().enumerate() {
         let p = fm.state().position;
         let h = rb.hangars[i];

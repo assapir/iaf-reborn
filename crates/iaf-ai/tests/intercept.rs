@@ -149,7 +149,7 @@ impl Pair {
     }
 
     fn phase(&self, n: usize) -> &'static str {
-        self.flight.members[n].enemy.phase
+        self.flight.members[n].enemy.phase.name()
     }
 
     /// The bogey's angle off jet `n`'s track (deg).

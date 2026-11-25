@@ -121,7 +121,7 @@ impl Duel {
     }
 
     fn phase(&self, n: usize) -> &'static str {
-        self.jets[n].flight.as_ref().map_or("scripted", |f| f.members[0].enemy.phase)
+        self.jets[n].flight.as_ref().map_or("scripted", |f| f.members[0].enemy.phase.name())
     }
 
     /// Jet `n`'s geometry against the other: the range, its nose's angle to it, its angle off the other's tail (deg).

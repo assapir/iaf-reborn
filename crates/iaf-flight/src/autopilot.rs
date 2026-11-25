@@ -228,6 +228,12 @@ const PATH_TAU: f32 = 5.0;
 /// `FLARE_TAU`, s (the 6-DoF's g lags: its flare starts at 6 × (sink − 1.5) ≈ 15 m).
 const REAL_FINAL_LAWS: (f32, f32, f32) = (0.1, 1.0, 6.0);
 
+/// GoHomeCL: to the route's landing waypoint and the landing (the original's mode 8).
+pub const MODE_GO_HOME: u8 = 8;
+/// TakeoffCL: the taxi, the take-off and the climb to the first waypoint (mode 9).
+pub const MODE_TAKE_OFF: u8 = 9;
+/// HoldCL: the orbit where it is, at least 300 m above the ground (mode 10).
+pub const MODE_HOLD: u8 = 10;
 /// Ours, the slot loop (Modern IAF's flights, docs/ai.md §8.7): the mode number (the original's modes end at 0x18).
 pub const MODE_SLOT: u8 = 0x20;
 /// The slot loop's laws, all inferred (tuned on the 6-DoF, test `crates/iaf-ai/tests/four_ship.rs`): the position
@@ -2066,6 +2072,8 @@ pub struct Autopilot {
     fly_up: bool,
     fly_up_next: f64,
     mode: u8,
+    /// The last [`Autopilot::set_mode_arg`]'s argument: the host's unit id of its target, leader or own unit (-1 none).
+    arg: i64,
     lp: Loop,
     next_tick: f64,
     period: f64,
@@ -2105,6 +2113,7 @@ impl Autopilot {
             fly_up: false,
             fly_up_next: 0.0,
             mode: 0,
+            arg: -1,
             lp: Loop::None,
             next_tick: 0.0,
             period: 0.5,
@@ -2197,6 +2206,23 @@ impl Autopilot {
         self.start_mode(ac, mode);
     }
 
+    /// `setMode` with its argument (`5c8a70`; `arg` the host's unit id, -1 none): the same mode and argument are ignored
+    /// (false), the same mode with a new argument starts the loop again ([`Autopilot::start_mode`]), another mode starts
+    /// its loop ([`Autopilot::set_mode`]). True when the command was taken (the host then follows a leader).
+    pub fn set_mode_arg(&mut self, ac: &mut impl Host, mode: u8, arg: i64) -> bool {
+        let again = mode == self.mode && mode != 0;
+        if again && arg == self.arg {
+            return false;
+        }
+        self.arg = arg;
+        if again {
+            self.start_mode(ac, mode);
+        } else {
+            self.set_mode(ac, mode);
+        }
+        true
+    }
+
     /// `setMode` with the mode unchanged and a new argument (another target or leader): `5c8a70` compares the mode,
     /// the argument and the pose, so the loop starts again (first tick after 0.5 s). The host keeps the argument
     /// (ai_flights.gd `Pilot.set_mode`).
@@ -2218,8 +2244,8 @@ impl Autopilot {
         let v = ac.ap_view();
         self.lp = match mode {
             7 => Loop::Nav { f: None, idx: self.wp_index },
-            8 => self.go_home(&v, now),
-            9 => {
+            MODE_GO_HOME => self.go_home(&v, now),
+            MODE_TAKE_OFF => {
                 let (ka_target, ka_speed, ka_radius) = match self.route.first() {
                     Some(w) => (Vec3::new(w.x, w.y, w.z), 205.889, Some(500.0)),
                     None => (v.pos, 180.153, None),
@@ -2246,7 +2272,7 @@ impl Autopilot {
             1 | 3 => {
                 Loop::Formation { recover: false, lateral: if mode == 1 { 100.0 } else { 200.0 }, longitudinal: -20.0 }
             }
-            10 => {
+            MODE_HOLD => {
                 let g = v.ground_height;
                 Loop::Hold { t: Vec3::new(v.pos[0], v.pos[1], v.pos[2].max(g as f64 + 300.0)) }
             }

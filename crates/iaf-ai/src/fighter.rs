@@ -11,7 +11,7 @@
 //! here is inferred: no open source gives the opposing force's numbers (modern-iaf/docs/research/enemies.md §5.1).
 
 use iaf_flight::Vec3;
-use iaf_flight::autopilot::{MODE_STEER, Steer};
+use iaf_flight::autopilot::{MODE_GO_HOME, MODE_HOLD, MODE_STEER, MODE_TAKE_OFF, Steer};
 use iaf_flight::vec3::wrap_pi;
 
 use crate::bt::Node::{self, *};
@@ -99,8 +99,46 @@ pub struct Enemy {
     /// The bogey's turn rate as seen this decision (rad/s; from `last`).
     pub(crate) rate: f64,
     pub(crate) bursts: u64,
-    /// What it flies: cap, intercept, crank, slot, beam, notch, drag, break, or a dogfight's move (for tests and logs).
-    pub phase: &'static str,
+    /// What it flies ([`DefPhase`]).
+    pub phase: DefPhase,
+}
+
+/// What an enemy fighter flies: on station, the intercept, a defence after a shot at it, home, or a dogfight's move.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum DefPhase {
+    #[default]
+    None,
+    Cap,
+    Intercept,
+    Crank,
+    Slot,
+    /// The defences ([`evade`]).
+    Beam,
+    Notch,
+    Drag,
+    Break,
+    Home,
+    /// A dogfight's move ([`crate::bfm`]'s `Move::name`).
+    Bfm(&'static str),
+}
+
+impl DefPhase {
+    /// For tests and logs: cap, intercept, crank, slot, beam, notch, drag, break, home, or the move's name ("" none).
+    pub fn name(self) -> &'static str {
+        match self {
+            DefPhase::None => "",
+            DefPhase::Cap => "cap",
+            DefPhase::Intercept => "intercept",
+            DefPhase::Crank => "crank",
+            DefPhase::Slot => "slot",
+            DefPhase::Beam => "beam",
+            DefPhase::Notch => "notch",
+            DefPhase::Drag => "drag",
+            DefPhase::Break => "break",
+            DefPhase::Home => "home",
+            DefPhase::Bfm(n) => n,
+        }
+    }
 }
 
 fn flat(a: Vec3, b: Vec3) -> f64 {
@@ -169,7 +207,7 @@ fn down(m: &Member) -> f64 {
 /// The order `s` flown by the steer loop with the fighter's turn laws ([`Steer::fighter`]: rolled in at once, the
 /// height held in a level turn), as `phase`; at its own heights, never the low level's terrain following (docs/ai.md
 /// §20).
-fn steer(m: &mut Member, s: Steer, phase: &'static str) -> Status {
+fn steer(m: &mut Member, s: Steer, phase: DefPhase) -> Status {
     m.order.steer = Some(Steer { fighter: true, ..s });
     m.order.follow = None;
     m.order.mode = Some(MODE_STEER);
@@ -196,7 +234,9 @@ pub(crate) fn evade(m: &mut Member) -> Status {
     }
     // A level defence (the break, the beam) holds the height it began at: its point's while it flies one (the steer
     // loop's; the dogfight's break flies the BFM loop).
-    let level = m.defending && m.mode == MODE_STEER && ["beam", "break"].contains(&m.enemy.phase);
+    let level = m.defending
+        && m.mode == MODE_STEER
+        && matches!(m.enemy.phase, DefPhase::Beam | DefPhase::Break | DefPhase::Bfm("break"));
     let held = m.order.steer.filter(|_| level).map(|s| s.to[2]);
     let s = defend(m);
     // (Running without a threat: the turn held after the missile is gone.)
@@ -207,21 +247,21 @@ pub(crate) fn evade(m: &mut Member) -> Status {
         if let Some(st) = m.order.steer.as_mut() {
             (st.fighter, st.to[2]) = (true, h);
         }
-        m.enemy.phase = "break";
+        m.enemy.phase = DefPhase::Break;
         return s;
     }
     let (mut st, _) = defence(m, &t);
     let p = m.v.pos;
     let phase = if m.skill.tactics == 0 {
-        "beam"
+        DefPhase::Beam
     } else if m.skill.tactics >= 2 && t.pos.distance(p) > DRAG_M {
         st.to = p + dir(bearing(t.pos, p)) * FAR;
         (st.g, st.speed) = (DRAG_G, DRAG_SPEED);
-        "drag"
+        DefPhase::Drag
     } else {
-        "notch"
+        DefPhase::Notch
     };
-    st.to[2] = if phase == "beam" { h } else { down(m) };
+    st.to[2] = if phase == DefPhase::Beam { h } else { down(m) };
     steer(m, st, phase)
 }
 
@@ -259,10 +299,10 @@ pub(crate) fn intercept(m: &mut Member) -> Status {
             thr_max: 1.0,
             fighter: true,
         };
-        return steer(m, s, "crank");
+        return steer(m, s, DefPhase::Crank);
     }
     let to = collision(p, INTERCEPT.1 as f64, &b);
-    steer(m, Steer { to, g: INTERCEPT.0, speed: INTERCEPT.1, thr_max: 1.0, fighter: true }, "intercept")
+    steer(m, Steer { to, g: INTERCEPT.0, speed: INTERCEPT.1, thr_max: 1.0, fighter: true }, DefPhase::Intercept)
 }
 
 /// The commit: armed, a bogey inside [`COMMIT_M`] of the station for the lead's reaction time.
@@ -302,18 +342,18 @@ fn going_home(m: &Member) -> bool {
 /// wingmen after it.
 fn home(m: &mut Member) -> Status {
     m.rtb = true;
-    m.enemy.phase = "home";
-    set_mode(m, 8)
+    m.enemy.phase = DefPhase::Home;
+    set_mode(m, MODE_GO_HOME)
 }
 
 /// On station: the CAP orbit ([`cap_point`]).
 fn cap(m: &mut Member) -> Status {
     let to = cap_point(m.v.pos, m.enemy.station);
-    steer(m, Steer { to, g: CAP.0, speed: CAP.1, thr_max: 1.0, fighter: true }, "cap")
+    steer(m, Steer { to, g: CAP.0, speed: CAP.1, thr_max: 1.0, fighter: true }, DefPhase::Cap)
 }
 
 fn slot(m: &mut Member) -> Status {
-    m.enemy.phase = "slot";
+    m.enemy.phase = DefPhase::Slot;
     keep_slot(m)
 }
 
@@ -324,12 +364,12 @@ pub fn lead() -> Node<Member> {
         Seq(vec![Cond(|m| m.landed && !m.engine_on), Act(idle)]),
         Seq(vec![
             Cond(|m| m.v.on_ground && !m.airborne),
-            Sel(vec![Seq(vec![Cond(|m| !m.engine_on), Act(scramble)]), Act(|m| set_mode(m, 9))]),
+            Sel(vec![Seq(vec![Cond(|m| !m.engine_on), Act(scramble)]), Act(|m| set_mode(m, MODE_TAKE_OFF))]),
         ]),
-        Seq(vec![Cond(|m| m.mode == 9 && !m.airborne), Act(idle)]),
+        Seq(vec![Cond(|m| m.mode == MODE_TAKE_OFF && !m.airborne), Act(idle)]),
         Seq(vec![Cond(flying), Act(evade)]),
         Seq(vec![Cond(going_home), Act(home)]),
-        Seq(vec![Cond(|m| m.mode == 8), Act(idle)]),
+        Seq(vec![Cond(|m| m.mode == MODE_GO_HOME), Act(idle)]),
         Act(shoot),
         Seq(vec![Cond(bfm::fighting), Act(bfm::fight)]),
         Seq(vec![Cond(|m| m.enemy.committed), Act(intercept)]),
@@ -347,10 +387,10 @@ pub fn wingman() -> Node<Member> {
         Seq(vec![Cond(|m| !m.alive), Act(idle)]),
         Seq(vec![Cond(|m| m.landed && !m.engine_on), Act(idle)]),
         Seq(vec![Cond(flying), Act(evade)]),
-        Seq(vec![Cond(|m| m.mode == 8 && m.released), Act(idle)]),
+        Seq(vec![Cond(|m| m.mode == MODE_GO_HOME && m.released), Act(idle)]),
         before_takeoff(),
-        Seq(vec![Cond(|m| m.released), Act(|m| set_mode(m, 8))]),
-        Seq(vec![Cond(|m| m.rtb && m.lead_low), Act(|m| set_mode(m, 10))]),
+        Seq(vec![Cond(|m| m.released), Act(|m| set_mode(m, MODE_GO_HOME))]),
+        Seq(vec![Cond(|m| m.rtb && m.lead_low), Act(|m| set_mode(m, MODE_HOLD))]),
         Act(shoot),
         Seq(vec![Cond(bfm::fighting), Act(bfm::fight)]),
         Seq(vec![Cond(strike::striking), Act(strike::fly)]),

@@ -173,7 +173,7 @@ impl Battle {
             if m.order.gun {
                 self.guns[n] += 1;
             }
-            let ph = if m.enemy.committed { m.enemy.phase } else { "slot" };
+            let ph = if m.enemy.committed { m.enemy.phase.name() } else { "slot" };
             if self.phases[n].last() != Some(&ph) {
                 self.phases[n].push(ph);
             }
@@ -298,7 +298,7 @@ fn engage_a_mig29_pair() {
     assert!([2, 3, 4].iter().all(|&n| w.said(n, "ack").is_some()), "{:?}", w.calls);
     assert_eq!((w.foe(2), w.foe(3), w.foe(4)), (Some(1), Some(1), None), "#4 on #3");
     assert_eq!(w.flight.leader(4), 3);
-    assert_eq!(w.m(2).enemy.phase, "intercept");
+    assert_eq!(w.m(2).enemy.phase.name(), "intercept");
     // The shot inside the wingmen's (Medium) share of the envelope: 2 + 0.9 · 38 = 36.2 km, deeper by the reaction.
     let shot = w.until(60.0, &|w| w.shot[1].is_some() && w.shot[2].is_some());
     println!("engage: shots {:?} after {shot:?} s", w.shot);
@@ -492,7 +492,11 @@ fn lock_called_winchester_and_rejoin() {
     w.threat[1] = Some(Threat { pos: at, vel: Vec3::ZERO, launch: false, ir: false, ground: false });
     w.run(3.0);
     let m = w.m(2);
-    assert!(w.said(2, "spike").is_some() && !m.defending && m.enemy.phase == "intercept", "{}", m.enemy.phase);
+    assert!(
+        w.said(2, "spike").is_some() && !m.defending && m.enemy.phase.name() == "intercept",
+        "{}",
+        m.enemy.phase.name()
+    );
     w.threat[1] = None;
     w.armed[1] = false;
     w.flying[1] = f64::MIN;

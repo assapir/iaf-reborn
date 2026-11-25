@@ -126,7 +126,7 @@ func _outcomes(tv: Node) -> void:
 	check(enemy.values().reduce(func(a, b): return a + b, 0) > 0, "kills happen")
 	check(_ground_hits.is_empty(), "no AI jet flew into the ground (%s)" % [_ground_hits])
 	check(_stuck.is_empty(), "no AI jet stuck (%s)" % [_stuck])
-	check(sc.based.all(func(e): return e.pilot.airborne or int(e.state) >= 3), "the based pair took off")
+	check(sc.based.all(func(e): return e.pilot.airborne_reported or int(e.state) >= 3), "the based pair took off")
 
 
 ## Every frame: the missiles in flight by side, a jet's crash into the ground, a jet stuck.
@@ -152,7 +152,7 @@ func _watch() -> void:
 			if st.get("crashed", false) and not _ground_hits.has(e.name):
 				_ground_hits.append(e.name)
 			continue
-		var slow: bool = p.airborne and not st.get("on_ground", false) and Vector3(e.vel).length() < STUCK_MPS
+		var slow: bool = p.airborne_reported and not st.get("on_ground", false) and Vector3(e.vel).length() < STUCK_MPS
 		if not slow:
 			_slow.erase(e.name)
 		elif now - float(_slow.get(e.name, now)) > STUCK_S:

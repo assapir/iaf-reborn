@@ -703,11 +703,13 @@ impl IafFlight {
         }
     }
 
-    /// The same mode with a new argument (`Autopilot::start_mode`): the loop starts again.
+    /// An AI pilot's setMode with its argument (`Autopilot::set_mode_arg`; `arg` the unit id of its target, leader or
+    /// own unit, -1 none): false when it was ignored (the same mode and argument; true without an autopilot).
     #[func]
-    fn ap_restart_mode(&mut self, mode: i64) {
-        if let (Some(ap), Some(ac)) = (&mut self.ap, &mut self.aircraft) {
-            ap.start_mode(ac, mode.clamp(0, 255) as u8);
+    fn ap_set_mode_arg(&mut self, mode: i64, arg: i64) -> bool {
+        match (&mut self.ap, &mut self.aircraft) {
+            (Some(ap), Some(ac)) => ap.set_mode_arg(ac, mode.clamp(0, 255) as u8, arg),
+            _ => true,
         }
     }
 

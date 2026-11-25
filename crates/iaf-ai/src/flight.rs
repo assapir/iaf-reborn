@@ -20,7 +20,7 @@ use iaf_flight::airbase::Airbase;
 use iaf_flight::aircraft::ApView;
 use iaf_flight::aircraft::MILITARY;
 use iaf_flight::airframe::Rcs;
-use iaf_flight::autopilot::{self, Autopilot, Host, Leader, MODE_SLOT, Steer};
+use iaf_flight::autopilot::{self, Autopilot, Host, Leader, MODE_GO_HOME, MODE_SLOT, MODE_TAKE_OFF, Steer};
 use iaf_flight::fm::Fm;
 
 /// The decision tick, s (the slot loop runs at 0.1 s on its own).
@@ -1583,7 +1583,7 @@ impl Flight {
             let n = self.members[i].number;
             let lead_pos = self.index(n.wrapping_sub(1)).map(|j| self.members[j].v.pos).filter(|_| n.is_multiple_of(2));
             let m = &mut self.members[i];
-            let on_runway = m.mode == 9 && m.phase == Some(1);
+            let on_runway = m.mode == MODE_TAKE_OFF && m.phase == Some(1);
             m.lined_up = if on_runway { Some(m.lined_up.unwrap_or(now)) } else { None };
             if self.pairs && on_runway && m.v.on_ground && m.order.lineup_offset != 0.0 && m.pair_free.is_none() {
                 m.pair_free = Some(None);
@@ -1604,7 +1604,7 @@ impl Flight {
             return;
         }
         for m in self.members.iter_mut().filter(|m| m.ai && m.alive) {
-            if m.mode == 8 && m.phase.is_some_and(|p| p >= TURN_FINAL) && !m.landed && !m.tower[0] {
+            if m.mode == MODE_GO_HOME && m.phase.is_some_and(|p| p >= TURN_FINAL) && !m.landed && !m.tower[0] {
                 m.tower[0] = true;
                 self.calls.push((now, Call { from: m.number, id: "tower_land" }));
             }
@@ -1654,7 +1654,7 @@ impl Flight {
             m.order.avoid = a.filter(|_| m.avoiding).map(|(_, away, _)| away);
             let ahead = (0..i).rev().map(|j| &self.members[j]).find(|a| a.alive).map(leader_of);
             let m = &mut self.members[i];
-            let ground = m.v.on_ground && !m.airborne || m.mode == 9 && !m.airborne;
+            let ground = m.v.on_ground && !m.airborne || m.mode == MODE_TAKE_OFF && !m.airborne;
             m.order.leader = if ground { ahead } else { Some(ld) };
             m.order.slot = m.slot;
             (m.order.close, m.order.precise) = (k < 1.0, false);
@@ -1684,7 +1684,7 @@ impl Flight {
     /// on its way ([`TAXI_HOLD_M`]). Two jets taxiing in that each have the other ahead (head on): the higher number
     /// holds.
     fn taxi_hold(&self, i: usize) -> bool {
-        let taxiing_in = |m: &Member| m.ai && m.alive && m.airborne && m.v.on_ground && m.mode == 8;
+        let taxiing_in = |m: &Member| m.ai && m.alive && m.airborne && m.v.on_ground && m.mode == MODE_GO_HOME;
         let me = &self.members[i];
         if !taxiing_in(me) {
             return false;
@@ -1710,7 +1710,8 @@ impl Flight {
     fn backtrack_hold(&self, i: usize) -> bool {
         let me = &self.members[i];
         let Some(e) = self.entry else { return false };
-        let out = me.ai && me.alive && me.v.on_ground && !me.airborne && me.mode == 9 && me.lined_up.is_none();
+        let out =
+            me.ai && me.alive && me.v.on_ground && !me.airborne && me.mode == MODE_TAKE_OFF && me.lined_up.is_none();
         if !out || (me.v.pos[0] - e[0]).hypot(me.v.pos[1] - e[1]) > BACKTRACK_HOLD_M {
             return false;
         }

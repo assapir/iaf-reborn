@@ -239,7 +239,7 @@ fn mig29_pair_strikes_on_its_leads_order() {
     assert!(w.said(2, "in").unwrap() - w.said(1, "in").unwrap() >= STAGGER_S - 0.6);
     assert!(w.modes[1].contains(&10), "the wingman held while the lead ran: {:x?}", w.modes[1]);
     w.until(5.0, &|_| false);
-    assert_eq!(w.flight.member(1).unwrap().enemy.phase, "cap", "back on station");
+    assert_eq!(w.flight.member(1).unwrap().enemy.phase.name(), "cap", "back on station");
 }
 
 #[test]

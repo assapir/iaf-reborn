@@ -6,7 +6,7 @@ use crate::bt::Node::{self, *};
 use crate::bt::Status;
 use crate::flight::{Member, RESERVE_KG, Tactic, defend};
 use crate::{bfm, fighter, strike};
-use iaf_flight::autopilot::{MODE_SLOT, MODE_STEER};
+use iaf_flight::autopilot::{MODE_GO_HOME, MODE_HOLD, MODE_SLOT, MODE_STEER, MODE_TAKE_OFF};
 
 /// Inferred: each wingman starts its engine this long after the one before it (#2 this long after the clearance).
 pub const START_STEP_S: f64 = 3.0;
@@ -35,7 +35,7 @@ fn start_engine(m: &mut Member) -> Status {
 /// Mode 9: TaxiCL behind the jet ahead (its leader), TakeoffCL's stream take-off.
 fn taxi(m: &mut Member) -> Status {
     m.taxi_go = true;
-    set_mode(m, 9)
+    set_mode(m, MODE_TAKE_OFF)
 }
 
 /// Joker and bingo, once each (a side effect: the tree goes on).
@@ -91,7 +91,7 @@ pub(crate) fn before_takeoff() -> Node<Member> {
                 Act(idle),
             ]),
         ]),
-        Seq(vec![Cond(|m| m.mode == 9 && !m.airborne), Act(idle)]),
+        Seq(vec![Cond(|m| m.mode == MODE_TAKE_OFF && !m.airborne), Act(idle)]),
     ])
 }
 
@@ -126,13 +126,13 @@ pub fn wingman() -> Node<Member> {
         // Parked: ParkInHangar has stopped the engine.
         Seq(vec![Cond(|m| m.landed && !m.engine_on), Act(idle)]),
         Seq(vec![Cond(flying), Act(guard)]),
-        Seq(vec![Cond(|m| m.mode == 8 && m.released), Act(idle)]),
+        Seq(vec![Cond(|m| m.mode == MODE_GO_HOME && m.released), Act(idle)]),
         before_takeoff(),
         Act(fuel_calls),
         Seq(vec![Cond(|m| m.fuel_kg <= RESERVE_KG), Act(rtb_own)]),
-        Seq(vec![Cond(|m| m.released), Act(|m| set_mode(m, 8))]),
+        Seq(vec![Cond(|m| m.released), Act(|m| set_mode(m, MODE_GO_HOME))]),
         // Its turn to go home not come yet, with no lead in the air to keep a slot on: the Hold (mode 10) where it is.
-        Seq(vec![Cond(|m| m.rtb && m.lead_low), Act(|m| set_mode(m, 10))]),
+        Seq(vec![Cond(|m| m.rtb && m.lead_low), Act(|m| set_mode(m, MODE_HOLD))]),
         // In the fight (a foe, Flight::decide): the enemy fighters' shot, dogfight and intercept.
         Seq(vec![
             Cond(|m| m.enemy.committed),
@@ -154,10 +154,10 @@ pub fn lead() -> Node<Member> {
         Seq(vec![Cond(|m| !m.alive), Act(idle)]),
         Seq(vec![Cond(|m| m.landed && !m.engine_on), Act(idle)]),
         Seq(vec![Cond(flying), Act(defend)]),
-        Seq(vec![Cond(|m| m.mode == 8), Act(idle)]),
+        Seq(vec![Cond(|m| m.mode == MODE_GO_HOME), Act(idle)]),
         Seq(vec![Cond(|m| m.v.on_ground && !m.airborne), Act(idle)]),
         Act(fuel_calls),
-        Seq(vec![Cond(|m| m.rtb || m.fuel_kg <= RESERVE_KG || m.wp_action == 7), Act(|m| set_mode(m, 8))]),
+        Seq(vec![Cond(|m| m.rtb || m.fuel_kg <= RESERVE_KG || m.wp_action == 7), Act(|m| set_mode(m, MODE_GO_HOME))]),
         Seq(vec![Cond(strike::striking), Act(strike::fly)]),
         Act(|m| set_mode(m, 7)),
     ])

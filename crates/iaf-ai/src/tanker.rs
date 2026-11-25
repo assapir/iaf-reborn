@@ -240,6 +240,20 @@ fn echelon(first: [f64; 3], k: usize) -> [f64; 3] {
     [first[0] + WING_STEP[0] * k, first[1] + side * WING_STEP[1] * k, first[2] + WING_STEP[2] * k]
 }
 
+/// The first receiver in the queue: in pre-contact (held there with the door open since), cleared to contact (at),
+/// broken away (cleared again once [`CLEAR_AFT`] behind the contact point). Contact itself is the boom's
+/// ([`Boom::Contact`]).
+#[derive(Debug, Clone, Copy, PartialEq)]
+enum RxState {
+    Precontact { stable_since: Option<f64> },
+    Cleared { at: f64 },
+    BrokeAway,
+}
+
+impl RxState {
+    const PRECONTACT: RxState = RxState::Precontact { stable_since: None };
+}
+
 /// Where a receiver in the queue is to fly ([`Tanker::station`]).
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Station {
@@ -263,14 +277,10 @@ pub struct Tanker {
     pub queue: Vec<u32>,
     /// The receivers done (on the right wing until they leave).
     pub done: Vec<u32>,
-    /// The first in the queue: cleared to contact; broken away (cleared again once back).
-    cleared: bool,
-    /// When it was cleared (s).
-    cleared_at: f64,
+    /// The first in the queue's state ([`RxState`]).
+    head: RxState,
     /// When the first in the queue got its turn.
     head_at: f64,
-    broke_away: bool,
-    stable_since: Option<f64>,
     /// The fuel given to the first in the queue, kg.
     pub given: f32,
     /// Why the last disconnect came (for the logs): "limits" with the boom's angles there, "button", "door", "full".
@@ -296,11 +306,8 @@ impl Tanker {
             angles: [0.0, 0.0, spec.ext.0],
             queue: Vec::new(),
             done: Vec::new(),
-            cleared: false,
-            cleared_at: 0.0,
+            head: RxState::PRECONTACT,
             head_at: 0.0,
-            broke_away: false,
-            stable_since: None,
             given: 0.0,
             why: String::new(),
             pdl: None,
@@ -376,7 +383,7 @@ impl Tanker {
     fn next(&mut self) -> Vec<Event> {
         let mut ev = Vec::new();
         let head = (!self.queue.is_empty()).then(|| self.queue.remove(0));
-        (self.cleared, self.broke_away, self.stable_since, self.given) = (false, false, None, 0.0);
+        (self.head, self.given) = (RxState::PRECONTACT, 0.0);
         self.head_at = self.t;
         if self.boom == Boom::Contact {
             self.boom = Boom::Trail;
@@ -394,14 +401,14 @@ impl Tanker {
             return Some(Station::Wing(echelon(REFORM, k)));
         }
         let (pre, c) = (self.precontact_body(), self.contact_body());
-        match self.queue.iter().position(|&q| q == id)? {
-            0 if self.broke_away => Some(Station::Receptacle([c[0] - CLEAR_AFT - 5.0, pre[1], pre[2] - 3.0])),
-            0 if self.cleared => {
-                let k = ((self.t - self.cleared_at) * CLOSURE / gap(pre, c)).min(1.0);
+        match (self.queue.iter().position(|&q| q == id)?, self.head) {
+            (0, RxState::BrokeAway) => Some(Station::Receptacle([c[0] - CLEAR_AFT - 5.0, pre[1], pre[2] - 3.0])),
+            (0, RxState::Cleared { at }) => {
+                let k = ((self.t - at) * CLOSURE / gap(pre, c)).min(1.0);
                 Some(Station::Receptacle([0, 1, 2].map(|i| pre[i] + (c[i] - pre[i]) * k)))
             }
-            0 => Some(Station::Receptacle(pre)),
-            k => Some(Station::Wing(echelon(OBSERVATION, k - 1))),
+            (0, RxState::Precontact { .. }) => Some(Station::Receptacle(pre)),
+            (k, _) => Some(Station::Wing(echelon(OBSERVATION, k - 1))),
         }
     }
 
@@ -458,9 +465,9 @@ impl Tanker {
             let step = |x: f64, s: f64| (x / s).round().clamp(-2.0, 2.0) as i8;
             self.pdl = Some((step(ce - target[0], 2.5 * DEG), step(cx - target[2], 0.9)));
         }
-        if self.broke_away {
+        if self.head == RxState::BrokeAway {
             if c[0] - b[0] > CLEAR_AFT {
-                (self.broke_away, self.cleared, self.stable_since) = (false, false, None);
+                self.head = RxState::PRECONTACT;
                 ev.push(Event::ClearedPrecontact(id));
             }
             self.move_boom(dt, None);
@@ -468,11 +475,11 @@ impl Tanker {
         }
         let near = (b[0] - c[0]).abs() < 10.0 && b[1].abs() < 10.0;
         let too_close = target[2] < self.spec.ext.0 - BREAKAWAY.0 || target[0] < self.spec.elev.0 - BREAKAWAY.1;
-        if self.cleared && near && too_close {
+        if matches!(self.head, RxState::Cleared { .. }) && near && too_close {
             if self.boom == Boom::Contact {
                 ev.push(Event::Disconnect(id));
             }
-            self.broke_away = true;
+            self.head = RxState::BrokeAway;
             ev.push(Event::Breakaway(id));
             self.move_boom(dt, None);
             return (ev, None);
@@ -500,7 +507,7 @@ impl Tanker {
                 )
             };
             // Unlatched: back to pre-contact, to be cleared again (research §4).
-            (self.boom, self.cleared, self.stable_since) = (Boom::Trail, false, None);
+            (self.boom, self.head) = (Boom::Trail, RxState::PRECONTACT);
             ev.push(Event::Disconnect(id));
             if rx.room_kg <= FULL_KG {
                 ev.push(Event::Complete(id, self.given));
@@ -510,7 +517,8 @@ impl Tanker {
             self.move_boom(dt, None);
             return (ev, None);
         }
-        if !self.cleared && self.queue.len() > 1 && self.t - self.head_at > HEAD_WAIT_S {
+        let precontact = matches!(self.head, RxState::Precontact { .. });
+        if precontact && self.queue.len() > 1 && self.t - self.head_at > HEAD_WAIT_S {
             // Its turn lapsed: to the back of the queue, the next one cleared.
             self.queue.push(id);
             ev.push(Event::StandBy(id));
@@ -518,19 +526,19 @@ impl Tanker {
             self.move_boom(dt, None);
             return (ev, None);
         }
-        if !self.cleared {
+        if let RxState::Precontact { stable_since } = self.head {
             let p = self.precontact_body();
             let held =
                 (0..3).all(|i| (b[i] - p[i]).abs() < PRECONTACT.2) && (rx.vel - pose.vel).length() < PRECONTACT.4;
-            if held && rx.door {
-                let since = *self.stable_since.get_or_insert(self.t);
-                if self.t - since >= PRECONTACT.3 {
-                    (self.cleared, self.cleared_at) = (true, self.t);
-                    ev.push(Event::ClearedContact(id));
-                }
+            let since = stable_since.unwrap_or(self.t);
+            self.head = if !held || !rx.door {
+                RxState::PRECONTACT
+            } else if self.t - since >= PRECONTACT.3 {
+                ev.push(Event::ClearedContact(id));
+                RxState::Cleared { at: self.t }
             } else {
-                self.stable_since = None;
-            }
+                RxState::Precontact { stable_since: Some(since) }
+            };
             self.move_boom(dt, None);
             return (ev, None);
         }

@@ -1169,4 +1169,14 @@ fn the_same_mode_with_a_new_argument_starts_again() {
     assert!(ap.stage().starts_with("take-off stage 3"), "the same command: kept ({})", ap.stage());
     ap.start_mode(&mut ac, 9);
     assert!(ap.stage().starts_with("take-off stage 2"), "a new argument: started again ({})", ap.stage());
+    // The host's setMode with its argument (ai_flights.gd `Pilot.set_mode`): the same unit kept, another restarts.
+    fly(&mut ac, &mut ap, 1.0, 0.0);
+    assert!(ap.stage().starts_with("take-off stage 3"), "{}", ap.stage());
+    assert!(ap.set_mode_arg(&mut ac, 9, 5), "a new argument is taken");
+    assert!(ap.stage().starts_with("take-off stage 2"), "a new argument: started again ({})", ap.stage());
+    fly(&mut ac, &mut ap, 1.0, 0.0);
+    let before = ap.stage();
+    assert!(!ap.set_mode_arg(&mut ac, 9, 5), "the same argument is ignored");
+    assert_eq!(ap.stage(), before, "the same argument: kept");
+    assert!(ap.set_mode_arg(&mut ac, 7, 5) && ap.mode() == 7, "another mode starts its loop");
 }

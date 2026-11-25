@@ -299,7 +299,7 @@ pub fn fight(m: &mut Member) -> Status {
     m.order.mode = Some(if mv.aim.level.is_some() { MODE_STEER } else { MODE_BFM });
     // An air fight flies its own heights, never the low level's terrain following (docs/ai.md §20).
     m.order.follow = None;
-    m.enemy.phase = mv.name;
+    m.enemy.phase = crate::fighter::DefPhase::Bfm(mv.name);
     Status::Running
 }
 

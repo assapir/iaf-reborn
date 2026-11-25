@@ -70,9 +70,10 @@ class Pilot:
 	var node: Node3D
 	var brain  # brain.gd
 	var formation: Dictionary = {}
-	var landed := false
-	var airborne := false  # TakeoffCL done: the AirborneReport was posted
-	var mode := 0
+	## The one-shot report latches: the LandedReport and the AirborneReport were posted (the Rust flight's `airborne` is
+	## recomputed each frame).
+	var landed_reported := false
+	var airborne_reported := false
 	var plane := ""  # the converted plane folder (its flight model start)
 	var airborne_start := true  # the jet's start was airborne (its controller's autopilot starts on, @4483d7)
 	var by_ai := false  # flown by IafAi (flight_ai), not by its brain
@@ -86,21 +87,21 @@ class Pilot:
 	var twin := false
 	var _state := {}
 	var _host
-	## The last set_mode's argument (its target, leader or own unit).
-	var _arg = null
 
+	## setMode (5c8a70, the autopilot's IafFlight.ap_set_mode_arg): the same mode and argument keep the running
+	## manoeuvre; a new target or leader starts it again. `arg`: its target, leader or own unit.
 	func set_mode(m: int, arg = null) -> void:
-		var again := m == mode and m != 0
-		if again and is_same(arg, _arg):
-			return  # a running manoeuvre is kept (5c8a70: the mode and the argument unchanged)
-		mode = m
-		_arg = arg
-		if again:
-			flight.ap_restart_mode(m)  # 5c8a70: a new target or leader starts the loop again
-		else:
-			flight.ap_set_mode(m, _host.runtime.now)
-		if m == 1 or m == 3:
+		# The unit's key: its mission file and its id in it (ids repeat across files); -2 a record without an id.
+		var key := -1
+		if arg is Dictionary:
+			key = (int(arg.get("file", 0)) << 32) | int(arg.id) if arg.has("id") else -2
+		if flight.ap_set_mode_arg(m, key) and (m == 1 or m == 3):
 			_host.follow(self, arg)
+
+	## The autopilot's mode (the last set_mode's).
+	var mode: int:
+		get:
+			return flight.ap_mode() if flight != null else 0
 
 	func state() -> Dictionary:
 		return _state
@@ -537,8 +538,8 @@ func flight_in_air(heading: float) -> bool:
 		ent.heading = heading
 		if not _start(p, Settings.own_dir(), p.plane):
 			return false
-		p.airborne = true
-		p.landed = false
+		p.airborne_reported = true
+		p.landed_reported = false
 	_ai_members = []
 	flight_ai = null
 	_setup_flight_ai()
@@ -1070,13 +1071,13 @@ func _fly(delta: float) -> void:
 		if p._state.crashed:
 			runtime.set_damage_level(ent, 5)
 			continue
-		if p.flight.ap_landed() and not p.landed:
-			p.landed = true
+		if p.flight.ap_landed() and not p.landed_reported:
+			p.landed_reported = true
 			landed_handler(ent)
 			if host.get("radio") != null:
 				host.radio.report_landed(ent)  # StopPlaneCL's LandedReport (5d44d0, docs/radio.md §4)
-		if p.flight.ap_airborne() and not p.airborne:
-			p.airborne = true
+		if p.flight.ap_airborne() and not p.airborne_reported:
+			p.airborne_reported = true
 			if host.get("radio") != null:
 				host.radio.report_airborne(ent)  # TakeoffCL's AirborneReport (5cdb5d)
 		_place(p)

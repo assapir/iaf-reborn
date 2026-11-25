@@ -97,12 +97,12 @@ func _direct() -> void:
 	for e in sc.based:
 		var st: Dictionary = e.pilot.flight.state()
 		var key := "takeoff%d" % int(st.get("on_ground", false) and float(st.get("speed_kt", 0.0)) > 40.0)
-		if int(e.state) < 3 and st.engine_on and not e.pilot.airborne and not _shown.has(key):
+		if int(e.state) < 3 and st.engine_on and not e.pilot.airborne_reported and not _shown.has(key):
 			_shown[key] = true
 			_begin("side", e, {}, "scramble " + key)
 			return
 	_turn += 1
-	var air: Array = sc.jets().filter(func(e): return int(e.state) < 3 and e.pilot.airborne)
+	var air: Array = sc.jets().filter(func(e): return int(e.state) < 3 and e.pilot.airborne_reported)
 	match _turn % 4:
 		0:
 			var g: Array = sc.convoy.ents.filter(func(e): return int(e.state) < 3)

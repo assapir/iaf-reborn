@@ -71,7 +71,7 @@ class GroundPilot:
 	## The brain's pilot for a unit without an autopilot: no manoeuvres, no route.
 	var ent: Dictionary
 	var rt: Node
-	var landed := false
+	var landed_reported := false
 
 	func set_mode(_m: int, _arg = null) -> void:
 		pass

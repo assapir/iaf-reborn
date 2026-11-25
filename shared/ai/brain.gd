@@ -296,7 +296,7 @@ func _exec(code: int) -> Variant:
 	if MANOEUVRES.has(code):
 		if code in NEEDS_TARGET and target.is_empty():
 			return null  # a combat manoeuvre without a target
-		if (code == 250 or code == 280) and pilot.landed:
+		if (code == 250 or code == 280) and pilot.landed_reported:
 			return null  # 443c90 / 443f60 refuse after a landing (ctl+0xe0)
 		var mode: int = MANOEUVRES[code]
 		var arg = leader if code in [190, 200] else (target if code in NEEDS_TARGET else ent)

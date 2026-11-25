@@ -417,7 +417,7 @@ impl IafAi {
         d.set("bingo_kg", m.bingo_kg);
         d.set("released", m.released);
         d.set("hold", m.order.hold);
-        d.set("phase", m.enemy.phase);
+        d.set("phase", m.enemy.phase.name());
         d.set("committed", m.enemy.committed);
         d.set("contact", m.enemy.contact);
         d.set("strobe", m.enemy.strobe);
