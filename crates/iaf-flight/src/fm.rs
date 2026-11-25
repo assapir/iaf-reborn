@@ -38,6 +38,21 @@ impl Fm {
         }
     }
 
+    /// The 6-DoF's start sequence and its switches (the canopy, `sixdof::start::Start`); None on the original model.
+    pub fn sequence(&self) -> Option<&crate::sixdof::start::Start> {
+        match self {
+            Fm::SixDof(s) => Some(s.sequence()),
+            Fm::Original(_) => None,
+        }
+    }
+
+    pub fn sequence_mut(&mut self) -> Option<&mut crate::sixdof::start::Start> {
+        match self {
+            Fm::SixDof(s) => Some(s.sequence_mut()),
+            Fm::Original(_) => None,
+        }
+    }
+
     pub fn step(&mut self, dt: f64) {
         match self {
             Fm::Original(a) => a.step(dt),

@@ -26,6 +26,13 @@
 //! MAIN PWR ("main_power_batt": the battery alone, the generators kept off the buses, so the displays stay dark;
 //! inferred), JFS START 1 / OFF / START 2 ("starter_1": the JFS from one accumulator; it starts the engine as START 2
 //! does, inferred) and RDR ALT OFF / STBY / RDR ALT ("rdr_alt_stby": warmed up, no radar altitude until RDR ALT).
+//! Each is one enum (`MainPwr`, `Jfs`, `Sys`), so a position that does not exist (BATT with the switch off)
+//! cannot be held.
+//!
+//! The canopy ([`Canopy`], modern-iaf/docs/cockpit.md §5.6): its travel over `CANOPY_S` and the F-16's lock lever. The
+//! switch runs it while held (`Start::canopy_switch`), the lever goes down over a shut canopy only, the Canopy key and
+//! the Start engine command run the whole sequence (down, then the lever). A jet without the lever (the F-35I) has one
+//! CANOPY switch: closed and locked at once, the canopy following.
 
 /// The 6-DoF's idle RPM, % (its gauge's line, modern-iaf/docs/flight-model.md §9.7).
 pub const IDLE_RPM: f64 = 60.0;
@@ -63,6 +70,76 @@ const INS_NAV: u8 = 3;
 const INS_ATT: u8 = 5;
 /// The NORM (gyrocompass) alignment, s: about 8 minutes (the user's training decisions, 2026-11-12; inferred figure).
 pub const NORM_ALIGN_S: f64 = 480.0;
+/// RDR ALT's index in `SYSTEMS` (the switch with a STBY position).
+const RDR_ALT: usize = 5;
+
+/// The canopy's travel, open to shut (s): FlightGear's F-16 (Systems/jsb-controls.xml fcs/canopy-control-1, 10 s); the
+/// F-35I's inferred the same.
+pub const CANOPY_S: f64 = 10.0;
+
+/// The MAIN PWR switch (the F-35I's BATT): OFF, BATT (the battery alone, the generators kept off the buses), MAIN PWR.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+enum MainPwr {
+    #[default]
+    Off,
+    Batt,
+    Main,
+}
+
+/// The JFS switch (the F-35I's IPP: START 2 is on): OFF, START 1 (one accumulator), START 2. It springs back to OFF
+/// once the engine sustains itself.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+enum Jfs {
+    #[default]
+    Off,
+    Start1,
+    Start2,
+}
+
+/// `!jfs`: the switch at OFF.
+impl std::ops::Not for Jfs {
+    type Output = bool;
+    fn not(self) -> bool {
+        self == Jfs::Off
+    }
+}
+
+/// One of the F-16's `SYSTEMS` switches: OFF, or on since a time (s since the command); RDR ALT also at STBY (warmed up
+/// with its time, no radar altitude).
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+enum Sys {
+    #[default]
+    Off,
+    Stby(f64),
+    On(f64),
+}
+
+impl Sys {
+    /// When it went on (at STBY or on), None at OFF.
+    fn since(self) -> Option<f64> {
+        match self {
+            Sys::Off => None,
+            Sys::Stby(at) | Sys::On(at) => Some(at),
+        }
+    }
+}
+
+/// The canopy and its lock lever (modern-iaf/docs/cockpit.md §5.6).
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum Canopy {
+    /// Stopped off its seat (a cold jet's: fully up), the lever up.
+    #[default]
+    Up,
+    /// Running down: the switch held at CLOSE, or with `lock` the whole sequence (the Canopy key, the Start engine
+    /// command, the F-35I's CANOPY switch), the lever going down at the bottom.
+    Closing { lock: bool },
+    /// Shut, the lever up.
+    Down,
+    /// Shut, the lever down: the checklist's canopy step.
+    Locked,
+    /// Running up: the switch held at OPEN, or the Canopy key's sequence.
+    Opening,
+}
 
 /// One jet's start sequence.
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -175,8 +252,8 @@ pub struct Start {
     pub rpm: f64,
     /// When the displays got their power (s since the command).
     displays_at: Option<f64>,
-    /// The command was given: the MAIN PWR switch (the F-35I's BATT) on.
-    commanded: bool,
+    /// The MAIN PWR switch (the F-35I's BATT): on at BATT or MAIN PWR is the command given.
+    main: MainPwr,
     /// Flown by keys (`press`): the steps wait for their keys.
     manual: bool,
     /// By keys: the fuel on (the F-16's throttle to idle; the F-35's engine start).
@@ -186,17 +263,21 @@ pub struct Start {
     ins_at: Option<f64>,
     ins_need: f64,
     ins_aligned: bool,
-    /// The F-16's `SYSTEMS` switches: when each went on (s since the command), None off.
-    systems: [Option<f64>; SYSTEMS.len()],
-    /// The switches without a timing of their own: the starter (the JFS switch, the IPP; springs back to OFF once the
-    /// engine sustains itself), the INS knob's position (`INS_KNOB`), the canopy closed.
-    starter_on: bool,
+    /// The F-16's `SYSTEMS` switches.
+    systems: [Sys; SYSTEMS.len()],
+    /// The starter's switch (the JFS, the IPP), the INS knob's position (`INS_KNOB`).
+    starter_on: Jfs,
     ins_knob: u8,
-    canopy_closed: bool,
-    /// The in-between positions (`Start::position`): MAIN PWR at BATT, JFS at START 1, RDR ALT at STBY.
-    batt_only: bool,
-    start_1: bool,
-    rdr_alt_stby: bool,
+    /// The canopy, how far down it is (0 up .. 1 shut), and whether the jet has the F-16's lock lever (set by its
+    /// cockpit; without it the one CANOPY switch). `canopy_hot`: a hot start's jet without the lever keeps its canopy
+    /// shut, its switch's OPEN included (as the game drew it before the canopy moved here; set by the game).
+    canopy: Canopy,
+    canopy_shut: f64,
+    pub canopy_lever: bool,
+    pub canopy_hot: bool,
+    /// The whole sequence lifted the F-16's lever over an open canopy (the Start engine command, a hand putting a
+    /// locked canopy open) since the game last took it ([`Start::canopy_tick`]): recorded as the lever up.
+    canopy_lifted: bool,
     /// In the air: (KCAS, altitude ft), set by the flight before each step; None on the ground.
     pub air: Option<(f64, f64)>,
     /// The RPM the acceleration to idle started from, %.
@@ -216,15 +297,32 @@ impl Start {
     /// Every switch on, the INS aligned and at NAV (the "start engine" command flies the whole checklist).
     fn switched_on() -> Start {
         Start {
-            commanded: true,
+            main: MainPwr::Main,
             fuel_on: true,
             ins_at: Some(-1.0e6),
             ins_aligned: true,
-            systems: [Some(0.0); SYSTEMS.len()],
+            systems: [Sys::On(0.0); SYSTEMS.len()],
             ins_knob: INS_NAV,
-            canopy_closed: true,
+            canopy: Canopy::Locked,
+            canopy_shut: 1.0,
             ..Start::default()
         }
+    }
+
+    /// An engine already running with `old`'s canopy (the engine on at once, [`Start::running`]): the canopy comes down
+    /// and locks, as the "start engine" command's.
+    pub fn running_from(old: &Start) -> Start {
+        Start::running().canopy_of(old)
+    }
+
+    /// `self` with `old`'s canopy, which then runs the whole sequence (the start flies every checklist step): an open
+    /// canopy comes down and the lever locks it at the bottom; a shut one locks at once.
+    fn canopy_of(mut self, old: &Start) -> Start {
+        (self.canopy_shut, self.canopy_lever, self.canopy_hot) = (old.canopy_shut, old.canopy_lever, old.canopy_hot);
+        self.canopy_lifted = old.canopy_lifted || (self.canopy_lever && self.canopy_shut < 1.0);
+        self.canopy = Canopy::Closing { lock: true };
+        self.settle();
+        self
     }
 
     /// The "start engine" command: a stopped engine begins its sequence (one winding down once below the starter's
@@ -235,9 +333,10 @@ impl Start {
                 phase: Phase::Starter,
                 rpm: self.rpm,
                 fuel_on: false,
-                starter_on: true,
+                starter_on: Jfs::Start2,
                 ..Start::switched_on()
-            };
+            }
+            .canopy_of(self);
         }
     }
 
@@ -279,14 +378,14 @@ impl Start {
         self.next(Phase::Off);
         self.rpm = 0.0;
         self.fuel_on = false;
-        self.starter_on = false;
+        self.starter_on = Jfs::Off;
         self.displays_at = None;
     }
 
     /// Advances `dt` s; true on the step the sequence reaches idle.
     pub fn step(&mut self, s: &StartSpec, dt: f64) -> bool {
         // On main power the clock runs for the INS alignment (a jet with one), the engine stopped or not.
-        let aligning = self.commanded && s.ins_align_s > 0.0;
+        let aligning = self.main_on() && s.ins_align_s > 0.0;
         if dt.is_nan() || dt <= 0.0 || (self.phase == Phase::Off && !aligning) {
             return false;
         }
@@ -340,9 +439,9 @@ impl Start {
         }
         // The starter's switch springs back to OFF once the engine sustains itself (the JFS cuts out at 50–54 %).
         if self.rpm >= s.generator_rpm {
-            self.starter_on = false;
+            self.starter_on = Jfs::Off;
         }
-        let main = self.commanded && !self.batt_only; // MAIN PWR at MAIN PWR: the generators on the buses
+        let main = self.main == MainPwr::Main; // MAIN PWR at MAIN PWR: the generators on the buses
         let powered = main
             && self.phase != Phase::Rundown
             && self.phase != Phase::Off
@@ -354,7 +453,7 @@ impl Start {
             self.displays_at = Some(self.t);
         }
         // The INS knob left on through a main power loss aligns again once main power is back (inferred).
-        if self.ins_aligning() && self.ins_at.is_none() && self.commanded {
+        if self.ins_aligning() && self.ins_at.is_none() && self.main_on() {
             self.ins_start(s);
         }
         self.ins_aligned = self.ins_aligned || self.ins_done(s);
@@ -386,8 +485,8 @@ impl Start {
     /// generators, or the F-35's IPP, and the warm-up).
     pub fn power(&self, s: &StartSpec) -> u8 {
         match self.displays_at {
-            _ if !self.commanded => 0,
-            _ if self.batt_only => 1,
+            _ if self.main == MainPwr::Off => 0,
+            _ if self.main == MainPwr::Batt => 1,
             Some(at) if self.t >= at + s.warmup_s => 2,
             _ => 1,
         }
@@ -396,8 +495,7 @@ impl Start {
     /// System `name` of `SYSTEMS` up: the displays' power, and the F-16's own switch on for the warm-up (inferred: the
     /// displays' 3 s). The F-35I's systems come with the power (no per-system switches are sourced).
     pub fn system(&self, s: &StartSpec, name: &str) -> bool {
-        let stby = |i: usize| self.rdr_alt_stby && SYSTEMS[i] == "rdr_alt";
-        let on = |i: usize| !stby(i) && self.systems[i].is_some_and(|at| self.t >= at + s.warmup_s);
+        let on = |i: usize| matches!(self.systems[i], Sys::On(at) if self.t >= at + s.warmup_s);
         self.power(s) == 2 && (s.fadec || SYSTEMS.iter().position(|n| *n == name).is_some_and(on))
     }
 
@@ -414,21 +512,20 @@ impl Start {
     pub fn press(&mut self, s: &StartSpec, step: &str) -> Result<(), &'static str> {
         match step {
             "main_power" | "main_power_batt" => {
-                if !self.commanded && self.phase == Phase::Off {
+                if !self.main_on() && self.phase == Phase::Off {
                     self.manual = true;
                 }
-                self.commanded = true;
-                let batt = step == "main_power_batt";
-                if batt && !self.batt_only {
+                let to = if step == "main_power_batt" { MainPwr::Batt } else { MainPwr::Main };
+                if to == MainPwr::Batt && self.main != MainPwr::Batt {
                     self.displays_at = None; // the generators off the buses: the displays dark, a warm-up again
                 }
-                self.batt_only = batt;
+                self.main = to;
             }
             "starter_1" => {
                 self.press(s, "starter")?;
-                self.start_1 = true;
+                self.starter_on = Jfs::Start1;
             }
-            "starter" if !self.commanded => return Err("no_power"),
+            "starter" if !self.main_on() => return Err("no_power"),
             // In the air the JFS runs only inside its envelope.
             "starter"
                 if !s.fadec
@@ -439,12 +536,11 @@ impl Start {
             // Winding down above the light-off RPM: the starter waits, the key does nothing.
             "starter" if self.phase == Phase::Rundown && !self.starter_engages(s) => return Err("starter_high"),
             "starter" => {
-                self.start_1 = false;
                 if self.starter_engages(s) {
                     self.next(Phase::Starter);
                 }
                 // Turned with the engine sustaining itself it springs back at once (`step`).
-                self.starter_on = true;
+                self.starter_on = Jfs::Start2;
             }
             // A windmilling engine lights from the throttle alone (`airstart`): fuel, the light-off, idle.
             "engine" if self.airstart() => {
@@ -473,23 +569,18 @@ impl Start {
             // them on with the avionics; until 2026-11-17 they stayed off, the radar held dead and the GAAF without a
             // radar altitude after a keyed start). Its release leaves them on: they have switches of their own.
             "avionics" => {
-                for at in &mut self.systems {
-                    *at = at.or(Some(self.t));
+                for sw in self.systems.iter_mut().filter(|sw| **sw == Sys::Off) {
+                    *sw = Sys::On(self.t);
                 }
             }
             "ins" if self.ins_knob == INS_OFF => return self.turn_ins(s, 1),
             "ins" => {}
-            "canopy" => self.canopy_closed = true,
-            "rdr_alt_stby" => {
-                self.press(s, "rdr_alt")?;
-                self.rdr_alt_stby = true;
-            }
+            "canopy" => self.canopy_set(1),
+            // STBY keeps the time it went on (warmed up there, RDR ALT gives the altitude at once).
+            "rdr_alt_stby" => self.systems[RDR_ALT] = Sys::Stby(self.systems[RDR_ALT].since().unwrap_or(self.t)),
             _ => {
                 if let Some(i) = SYSTEMS.iter().position(|n| *n == step) {
-                    self.systems[i] = self.systems[i].or(Some(self.t));
-                }
-                if step == "rdr_alt" {
-                    self.rdr_alt_stby = false;
+                    self.systems[i] = Sys::On(self.systems[i].since().unwrap_or(self.t));
                 }
             }
         }
@@ -504,29 +595,25 @@ impl Start {
     pub fn release(&mut self, step: &str) {
         match step {
             "main_power" => {
-                self.commanded = false;
-                self.batt_only = false;
+                self.main = MainPwr::Off;
                 self.displays_at = None;
                 self.ins_lost();
-                self.starter_on = false; // held on by its power only (inferred), as the JFS switch's spring-back
+                self.starter_on = Jfs::Off; // held on by its power only (inferred), as the JFS switch's spring-back
                 self.stop_crank();
             }
             "starter" => {
-                self.starter_on = false;
+                self.starter_on = Jfs::Off;
                 self.stop_crank();
             }
-            "avionics" => self.systems[..AVIONICS].fill(None),
+            "avionics" => self.systems[..AVIONICS].fill(Sys::Off),
             "ins" => {
                 self.ins_knob = INS_OFF;
                 self.ins_lost();
             }
-            "canopy" => self.canopy_closed = false,
+            "canopy" => self.canopy_set(-1),
             _ => {
                 if let Some(i) = SYSTEMS.iter().position(|n| *n == step) {
-                    self.systems[i] = None;
-                }
-                if step == "rdr_alt" {
-                    self.rdr_alt_stby = false;
+                    self.systems[i] = Sys::Off;
                 }
             }
         }
@@ -544,7 +631,7 @@ impl Start {
             w if w > 0 => (self.ins_knob + 1).min(last),
             _ => self.ins_knob.saturating_sub(1),
         };
-        if self.ins_knob == INS_OFF && to != INS_OFF && !self.commanded {
+        if self.ins_knob == INS_OFF && to != INS_OFF && !self.main_on() {
             return Err("ins_no_power");
         }
         self.ins_aligned = self.ins_aligned || self.ins_done(s);
@@ -552,7 +639,7 @@ impl Start {
         self.ins_knob = to;
         if !self.ins_aligning() {
             self.ins_lost();
-        } else if self.commanded && (self.ins_at.is_none() || (mode_changed && !self.ins_aligned)) {
+        } else if self.main_on() && (self.ins_at.is_none() || (mode_changed && !self.ins_aligned)) {
             self.ins_start(s);
         }
         Ok(())
@@ -605,15 +692,18 @@ impl Start {
     pub fn on(&self, step: &str) -> bool {
         let lit = matches!(self.phase, Phase::LightOff | Phase::Accel | Phase::Running);
         match step {
-            "main_power" => self.commanded,
-            "starter" => self.starter_on || lit,
+            "main_power" => self.main_on(),
+            "starter" => self.starter_on != Jfs::Off || lit,
             "engine" => self.fuel_on || lit,
             // Not a switch: the windmill turns the engine fast enough for an airstart (the throttle's idle step).
             "airstart" => self.airstart(),
-            "avionics" => self.systems[..AVIONICS].iter().all(Option::is_some),
+            "avionics" => self.systems[..AVIONICS].iter().all(|sw| *sw != Sys::Off),
             "ins" => self.ins_aligning(),
-            "canopy" => self.canopy_closed,
-            _ => SYSTEMS.iter().position(|n| *n == step).is_some_and(|i| self.systems[i].is_some()),
+            // The lever down; the F-35I's one switch at CLOSE, the canopy following.
+            "canopy" => {
+                self.canopy == Canopy::Locked || (!self.canopy_lever && self.canopy == Canopy::Closing { lock: true })
+            }
+            _ => SYSTEMS.iter().position(|n| *n == step).is_some_and(|i| self.systems[i] != Sys::Off),
         }
     }
 
@@ -622,13 +712,137 @@ impl Start {
     /// "rdr_alt" 0 OFF, 1 STBY, 2 RDR ALT. Any other step: 1 on, 0 off.
     pub fn position(&self, step: &str) -> i8 {
         match step {
-            "main_power" if !self.commanded => 0,
-            "main_power" => 2 - i8::from(self.batt_only),
-            "starter" if !self.starter_on => 0,
-            "starter" => 1 - 2 * i8::from(self.start_1),
-            "rdr_alt" if self.on(step) => 2 - i8::from(self.rdr_alt_stby),
+            "main_power" => self.main as i8, // OFF 0, BATT 1, MAIN PWR 2
+            "starter" => match self.starter_on {
+                Jfs::Start1 => -1,
+                Jfs::Off => 0,
+                Jfs::Start2 => 1,
+            },
+            "rdr_alt" => match self.systems[RDR_ALT] {
+                Sys::Off => 0,
+                Sys::Stby(_) => 1,
+                Sys::On(_) => 2,
+            },
             _ => i8::from(self.on(step)),
         }
+    }
+
+    /// MAIN PWR at BATT or MAIN PWR (the command given).
+    fn main_on(&self) -> bool {
+        self.main != MainPwr::Off
+    }
+
+    /// The canopy's lever or switch (commands 215's p1, modern-iaf/docs/cockpit.md §5.6). With the F-16's lock lever:
+    /// `want` 0 (the Canopy key) the whole sequence the other way from now (locked or closing to lock: the lever up,
+    /// then the canopy up; else the canopy down, then the lever down); 1 the lever down over a shut canopy only; -1 the
+    /// lever up. A click on the lever ends the key's sequence (the canopy stops); in the air the lever stays down. The
+    /// one CANOPY switch (the F-35I): 1 closed and locked, the canopy following; -1 open; 0 the other way.
+    pub fn canopy_set(&mut self, want: i8) {
+        use Canopy::*;
+        let c = self.canopy;
+        self.canopy = if !self.canopy_lever {
+            match (if want == 0 { !self.on("canopy") } else { want > 0 }, c) {
+                (true, Locked) => Locked,
+                (true, _) => Closing { lock: true },
+                (false, _) => self.opening(),
+            }
+        } else if c == Locked && want <= 0 && self.air.is_some() {
+            Locked // airborne: the lever stays down
+        } else {
+            match (want, c) {
+                (0, Locked | Closing { lock: true }) => Opening,
+                (0, _) => Closing { lock: true },
+                (w, _) if w > 0 && self.canopy_shut >= 1.0 => Locked,
+                (w, Locked) if w < 0 => Down,
+                (_, Closing { lock: true } | Opening) => self.stopped(),
+                _ => c,
+            }
+        };
+        self.settle();
+    }
+
+    /// The F-16's canopy switch held at `v` (1 OPEN, -1 CLOSE) or let go (0): the canopy runs while it is held, a key's
+    /// sequence ends. The lever down guards it (its click lifts the lever first, the cockpit's guard).
+    pub fn canopy_switch(&mut self, v: i8) {
+        if self.canopy != Canopy::Locked {
+            self.canopy = match v.signum() {
+                1 => Canopy::Opening,
+                -1 => Canopy::Closing { lock: false },
+                _ => self.stopped(),
+            };
+            self.settle();
+        }
+    }
+
+    /// The canopy's state.
+    pub fn canopy(&self) -> Canopy {
+        self.canopy
+    }
+
+    /// The canopy's opening, 0 shut .. 1 fully up (the outside model's and the cockpit frame's turn).
+    pub fn canopy_open(&self) -> f64 {
+        1.0 - self.canopy_shut
+    }
+
+    /// The canopy's run: -1 coming down, 1 going up, 0 stopped (one door sound per run).
+    pub fn canopy_run(&self) -> i8 {
+        match self.canopy {
+            Canopy::Closing { .. } => -1,
+            Canopy::Opening => 1,
+            _ => 0,
+        }
+    }
+
+    /// The canopy put at `open` (0 shut .. 1 up) by a hand other than its own controls (a test, a picture's helper):
+    /// with the lever stopped there, or running on; a locked lever over an open canopy runs the whole sequence (down,
+    /// then locked). Without the lever the canopy runs back to where its switch puts it (open: up, unless pinned).
+    pub fn set_canopy_open(&mut self, open: f64) {
+        self.canopy_shut = (1.0 - open).clamp(0.0, 1.0);
+        self.canopy_lifted |= self.canopy == Canopy::Locked && self.canopy_lever && self.canopy_shut < 1.0;
+        self.canopy = match self.canopy {
+            Canopy::Locked => Canopy::Closing { lock: true },
+            Canopy::Up | Canopy::Down if !self.canopy_lever => self.opening(),
+            Canopy::Up | Canopy::Down => self.stopped(),
+            c => c,
+        };
+        self.settle();
+    }
+
+    /// A hot start's jet without the lever (`canopy_hot`): its canopy kept shut.
+    fn pinned(&self) -> bool {
+        self.canopy_hot && !self.canopy_lever
+    }
+
+    /// The one CANOPY switch at open: the canopy up, or, pinned, down to shut with the switch open.
+    fn opening(&self) -> Canopy {
+        if self.pinned() { Canopy::Closing { lock: false } } else { Canopy::Opening }
+    }
+
+    /// The canopy stopped where it is: down when shut, else up.
+    fn stopped(&self) -> Canopy {
+        if self.canopy_shut >= 1.0 { Canopy::Down } else { Canopy::Up }
+    }
+
+    /// A run at its stop ends: up, down, or locked at the end of the whole sequence.
+    fn settle(&mut self) {
+        self.canopy = match self.canopy {
+            Canopy::Opening if self.canopy_shut <= 0.0 => Canopy::Up,
+            Canopy::Closing { lock: true } if self.canopy_shut >= 1.0 => Canopy::Locked,
+            Canopy::Closing { lock: false } if self.canopy_shut >= 1.0 => Canopy::Down,
+            c => c,
+        };
+    }
+
+    /// The canopy runs `dt` s, the whole travel in `CANOPY_S`: the game's frame time, frozen, stopped or crashed
+    /// included (as the canopy ran before it moved here). True when the whole sequence lifted the lever since the last
+    /// call (`canopy_lifted`).
+    pub fn canopy_tick(&mut self, dt: f64) -> bool {
+        if dt > 0.0 {
+            let d = f64::from(self.canopy_run()) * dt / CANOPY_S;
+            self.canopy_shut = (self.canopy_shut - d).clamp(0.0, 1.0);
+            self.settle();
+        }
+        std::mem::take(&mut self.canopy_lifted)
     }
 }
 
@@ -1078,5 +1292,234 @@ mod tests {
             st.step(&IPP, 1.0 / 30.0);
         }
         assert_eq!(st.power(&IPP), 2);
+    }
+
+    /// The switches of three positions are one value each (the statemachines audit, #10): the JFS back at OFF has no
+    /// START 1 left over (its next turn is START 2), RDR ALT's STBY stays through the avionics key and goes with its
+    /// own OFF, MAIN PWR's BATT goes with OFF.
+    #[test]
+    fn a_switch_of_three_positions_holds_one_position() {
+        let tick = |st: &mut Start, s: f64| {
+            for _ in 0..(s * 30.0) as usize {
+                st.step(&JFS, 1.0 / 30.0);
+            }
+        };
+        let mut st = Start::default();
+        assert_eq!([st.position("main_power"), st.position("starter"), st.position("rdr_alt")], [0, 0, 0]);
+        st.press(&JFS, "main_power_batt").unwrap();
+        st.press(&JFS, "starter_1").unwrap();
+        assert_eq!((st.main, st.starter_on), (MainPwr::Batt, Jfs::Start1));
+        tick(&mut st, 30.0);
+        st.press(&JFS, "engine").unwrap();
+        tick(&mut st, 60.0);
+        assert_eq!((st.starter_on, st.position("starter")), (Jfs::Off, 0), "sprung back: nothing of START 1 kept");
+        st.press(&JFS, "starter").unwrap();
+        assert_eq!(st.position("starter"), 1, "the next turn: START 2");
+        st.release("main_power");
+        assert_eq!((st.main, st.position("main_power"), st.power(&JFS)), (MainPwr::Off, 0, 0));
+        st.press(&JFS, "main_power").unwrap();
+        st.press(&JFS, "main_power_batt").unwrap();
+        st.press(&JFS, "main_power").unwrap();
+        assert_eq!(st.position("main_power"), 2);
+        // RDR ALT: the avionics key leaves STBY at STBY, OFF clears it, the key then puts it on.
+        assert_eq!(SYSTEMS[RDR_ALT], "rdr_alt");
+        let mut st = Start::running();
+        st.press(&JFS, "rdr_alt_stby").unwrap();
+        st.press(&JFS, "avionics").unwrap();
+        assert_eq!(st.position("rdr_alt"), 1);
+        st.release("rdr_alt");
+        assert_eq!((st.systems[RDR_ALT], st.on("rdr_alt")), (Sys::Off, false));
+        st.press(&JFS, "avionics").unwrap();
+        assert_eq!(st.position("rdr_alt"), 2);
+    }
+
+    /// Runs the canopy `s` s at 30 Hz.
+    fn canopy_tick(st: &mut Start, s: f64) {
+        for _ in 0..(s * 30.0).round() as usize {
+            st.canopy_tick(1.0 / 30.0);
+        }
+    }
+
+    /// The F-16's canopy (modern-iaf/docs/cockpit.md §5.6; the statemachines audit, #11): the switch runs it while
+    /// held, the lever goes down over a shut canopy only and guards the switch, all with no power.
+    #[test]
+    fn the_f16_canopy_switch_and_lever() {
+        let mut st = Start { canopy_lever: true, ..Start::default() };
+        assert_eq!((st.canopy(), st.canopy_open(), st.on("canopy")), (Canopy::Up, 1.0, false), "cold: up");
+        st.canopy_set(1);
+        assert_eq!((st.canopy(), st.on("canopy")), (Canopy::Up, false), "the lever over an open canopy stays up");
+        st.canopy_switch(-1);
+        canopy_tick(&mut st, 3.0);
+        assert_eq!(st.canopy_run(), -1);
+        assert!((st.canopy_open() - 0.7).abs() < 1e-6, "held 3 s: {}", st.canopy_open());
+        st.canopy_switch(0);
+        let part = st.canopy_open();
+        canopy_tick(&mut st, 1.0);
+        assert_eq!((st.canopy(), st.canopy_run(), st.canopy_open()), (Canopy::Up, 0, part), "let go: it stops");
+        st.canopy_switch(-1);
+        canopy_tick(&mut st, 8.0);
+        assert_eq!((st.canopy(), st.canopy_open(), st.on("canopy")), (Canopy::Down, 0.0, false), "down, unlocked");
+        st.canopy_switch(0);
+        st.canopy_set(1);
+        assert_eq!((st.canopy(), st.on("canopy")), (Canopy::Locked, true), "the lever down: the step done");
+        st.canopy_switch(1);
+        canopy_tick(&mut st, 1.0);
+        assert_eq!((st.canopy(), st.canopy_open()), (Canopy::Locked, 0.0), "the lever guards the switch");
+        st.canopy_set(-1);
+        assert_eq!((st.canopy(), st.on("canopy")), (Canopy::Down, false), "the lever up");
+        st.canopy_switch(1);
+        canopy_tick(&mut st, 2.0);
+        assert_eq!((st.canopy(), st.canopy_run()), (Canopy::Opening, 1));
+        assert!((st.canopy_open() - 0.2).abs() < 1e-6);
+        st.canopy_switch(0);
+        assert_eq!(st.canopy(), Canopy::Up);
+    }
+
+    /// The Canopy key's whole sequence each way, reversed mid-run and ended by a hand on the lever; in the air the
+    /// lever stays down.
+    #[test]
+    fn the_f16_canopy_key_runs_the_whole_sequence() {
+        let mut st = Start { canopy_lever: true, ..Start::default() };
+        st.canopy_set(0);
+        assert_eq!((st.canopy(), st.on("canopy")), (Canopy::Closing { lock: true }, false), "the lever waits");
+        canopy_tick(&mut st, CANOPY_S + 0.1);
+        assert_eq!((st.canopy(), st.canopy_open(), st.on("canopy")), (Canopy::Locked, 0.0, true), "down, locked");
+        st.canopy_set(0);
+        assert_eq!((st.canopy(), st.on("canopy")), (Canopy::Opening, false), "the lever up at once");
+        canopy_tick(&mut st, CANOPY_S + 0.1);
+        assert_eq!((st.canopy(), st.canopy_open()), (Canopy::Up, 1.0));
+        // Reversed mid-run; the switch held at CLOSE and the key: the key's sequence.
+        st.canopy_set(0);
+        canopy_tick(&mut st, 4.0);
+        st.canopy_set(0);
+        assert_eq!(st.canopy(), Canopy::Opening);
+        st.canopy_switch(-1);
+        st.canopy_set(0);
+        assert_eq!(st.canopy(), Canopy::Closing { lock: true });
+        // A click on the lever ends it where it is; the key over a shut, unlocked canopy locks it.
+        st.canopy_set(-1);
+        assert_eq!((st.canopy(), st.canopy_run()), (Canopy::Up, 0));
+        st.set_canopy_open(0.0);
+        assert_eq!(st.canopy(), Canopy::Down, "put shut by another hand");
+        st.canopy_set(0);
+        assert_eq!(st.canopy(), Canopy::Locked);
+        // In the air the lever stays down: the key, the lever up.
+        st.air = Some((300.0, 5000.0));
+        st.canopy_set(0);
+        st.canopy_set(-1);
+        assert_eq!((st.canopy(), st.on("canopy")), (Canopy::Locked, true));
+        // Locked over an open canopy put by another hand: the whole sequence, the lever up until it is down.
+        st.air = None;
+        st.set_canopy_open(0.5);
+        assert_eq!((st.canopy(), st.on("canopy")), (Canopy::Closing { lock: true }, false));
+    }
+
+    /// The Start engine command over an open canopy (part 1's fix, now the flight model's own): the lever waits, the
+    /// canopy comes down over `CANOPY_S`, then the lever locks it; over a shut canopy it locks at once. The engine on at
+    /// once (`running_from`) does the same.
+    #[test]
+    fn start_engine_over_an_open_canopy_lowers_then_locks() {
+        let mut st = Start { canopy_lever: true, ..Start::default() };
+        st.begin(&JFS);
+        assert_eq!((st.canopy(), st.on("canopy"), st.canopy_open()), (Canopy::Closing { lock: true }, false, 1.0));
+        canopy_tick(&mut st, CANOPY_S - 0.5);
+        assert!(!st.on("canopy") && st.canopy_open() > 0.0);
+        canopy_tick(&mut st, 0.6);
+        assert_eq!((st.canopy(), st.on("canopy"), st.canopy_open()), (Canopy::Locked, true, 0.0));
+        assert!(st.canopy_lever, "the lever kept through the start");
+        let mut st = Start { canopy_lever: true, ..Start::default() };
+        st.canopy_switch(-1);
+        canopy_tick(&mut st, CANOPY_S + 0.1);
+        st.canopy_switch(0);
+        st.begin(&JFS);
+        assert_eq!(st.canopy(), Canopy::Locked, "shut: locked at once");
+        let old = Start { canopy_lever: true, ..Start::default() };
+        let st = Start::running_from(&old);
+        assert_eq!((st.phase, st.canopy(), st.canopy_open()), (Phase::Running, Canopy::Closing { lock: true }, 1.0));
+    }
+
+    /// The F-35I's one CANOPY switch: closed and locked at once, the canopy following; open the other way.
+    #[test]
+    fn the_f35_canopy_switch_locks_at_once() {
+        let mut st = Start::default();
+        st.canopy_set(0);
+        assert_eq!((st.on("canopy"), st.canopy_open(), st.canopy_run()), (true, 1.0, -1));
+        canopy_tick(&mut st, CANOPY_S + 0.1);
+        assert_eq!((st.canopy(), st.canopy_open()), (Canopy::Locked, 0.0));
+        st.canopy_set(0);
+        assert_eq!((st.on("canopy"), st.canopy_run()), (false, 1));
+        st.canopy_set(1);
+        assert_eq!((st.on("canopy"), st.canopy()), (true, Canopy::Locked), "still shut: locked at once");
+        st.canopy_set(0);
+        canopy_tick(&mut st, 1.0);
+        st.canopy_set(1);
+        assert_eq!((st.on("canopy"), st.canopy()), (true, Canopy::Closing { lock: true }), "part up: comes down");
+    }
+
+    /// A hot start's F-35I (no lever, `canopy_hot`): the switch opens, the checklist's step undone, the canopy stays
+    /// shut (as the game drew it before #11); closed again, locked at once.
+    #[test]
+    fn a_hot_f35_canopy_stays_shut() {
+        let mut st = Start { canopy_hot: true, ..Start::running() };
+        st.canopy_set(0);
+        assert_eq!((st.on("canopy"), st.canopy(), st.canopy_open()), (false, Canopy::Down, 0.0));
+        st.set_canopy_open(0.5);
+        canopy_tick(&mut st, 6.0);
+        assert_eq!((st.on("canopy"), st.canopy(), st.canopy_open()), (false, Canopy::Down, 0.0), "back down");
+        st.canopy_set(0);
+        assert_eq!((st.on("canopy"), st.canopy()), (true, Canopy::Locked));
+        // The F-16's lever is not pinned: it opens.
+        let mut st = Start { canopy_hot: true, canopy_lever: true, ..Start::running() };
+        st.canopy_set(0);
+        assert_eq!(st.canopy(), Canopy::Opening);
+    }
+
+    /// The canopy runs on the game's frame time (`canopy_tick`), not in the flight model's step: a parked, frozen or
+    /// stopped flight model still moves it, and a long frame is not cut short.
+    #[test]
+    fn the_canopy_runs_on_the_frame_time() {
+        let mut st = Start { canopy_lever: true, ..Start::default() };
+        st.canopy_switch(-1);
+        st.step(&JFS, 1.0);
+        assert_eq!(st.canopy_open(), 1.0, "the flight model's step leaves it");
+        st.canopy_tick(0.5);
+        assert!((st.canopy_open() - 0.95).abs() < 1e-9, "{}", st.canopy_open());
+        st.canopy_tick(f64::NAN);
+        assert!((st.canopy_open() - 0.95).abs() < 1e-9);
+    }
+
+    /// A cold F-35I's canopy put shut by another hand runs back up over `CANOPY_S` (its switch at open).
+    #[test]
+    fn a_cold_f35_canopy_put_shut_rises_back() {
+        let mut st = Start::default();
+        st.set_canopy_open(0.0);
+        assert_eq!((st.canopy(), st.canopy_open()), (Canopy::Opening, 0.0));
+        canopy_tick(&mut st, CANOPY_S + 0.1);
+        assert_eq!((st.canopy(), st.canopy_open()), (Canopy::Up, 1.0));
+    }
+
+    /// The whole sequence over an open canopy lifts the F-16's lever, taken once by the game (recorded as the lever
+    /// up): the Start engine command, the switch held at CLOSE too, and a locked canopy put open; never over a shut one
+    /// or without the lever.
+    #[test]
+    fn the_sequence_over_an_open_canopy_lifts_the_lever() {
+        let mut st = Start { canopy_lever: true, ..Start::default() };
+        st.canopy_switch(-1);
+        canopy_tick(&mut st, 2.0);
+        st.begin(&JFS);
+        assert!(st.canopy_tick(0.0), "Start engine with the switch held at CLOSE");
+        assert!(!st.canopy_tick(0.0), "taken once");
+        canopy_tick(&mut st, CANOPY_S);
+        assert_eq!(st.canopy(), Canopy::Locked);
+        st.set_canopy_open(0.5);
+        assert!(st.canopy_tick(0.0), "a locked canopy put open");
+        let mut st = Start { canopy_lever: true, canopy_shut: 1.0, canopy: Canopy::Down, ..Start::default() };
+        st.begin(&JFS);
+        assert!(!st.canopy_tick(0.0) && st.canopy() == Canopy::Locked, "shut: locked at once");
+        let mut st = Start::default();
+        st.begin(&IPP);
+        assert!(!st.canopy_tick(0.0), "no lever");
+        let st = Start::running_from(&Start { canopy_lever: true, ..Start::default() });
+        assert!(st.canopy_lifted);
     }
 }

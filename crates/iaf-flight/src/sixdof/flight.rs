@@ -408,7 +408,7 @@ impl SixDof {
         // An empty tank starts nothing (the throttle keys would light it again every press).
         if on && self.fuel_feeds() {
             self.engine_on = true;
-            self.start_seq = Sequence::running();
+            self.start_seq = Sequence::running_from(&self.start_seq);
         } else {
             self.engine_off();
         }
@@ -448,6 +448,10 @@ impl SixDof {
     pub fn start_switch(&mut self, step: &str, want: i8) -> Result<(), &'static str> {
         if step == "ins" {
             return self.start_seq.turn_ins(&self.jet.start, want); // the knob's six positions
+        }
+        if step == "canopy" {
+            self.start_seq.canopy_set(want); // the lever, the key's whole sequence (`want` 0)
+            return Ok(());
         }
         if want > 0 || (want == 0 && !self.start_seq.on(step)) {
             return self.start_step(step);
@@ -498,6 +502,15 @@ impl SixDof {
     /// The avionics up ([`Sequence::avionics`]).
     pub fn avionics(&self) -> bool {
         self.start_seq.avionics(&self.jet.start)
+    }
+
+    /// The start sequence and its switches ([`Sequence`]: the canopy's controls and travel).
+    pub fn sequence(&self) -> &Sequence {
+        &self.start_seq
+    }
+
+    pub fn sequence_mut(&mut self) -> &mut Sequence {
+        &mut self.start_seq
     }
 
     /// The start sequence's step ("off", "starter", "crank", "light-off", "accel", "running").

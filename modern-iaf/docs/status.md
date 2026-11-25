@@ -3,6 +3,10 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **Hidden state machines, clarity: the start-up switches and the canopy (2026-11-25, the audit's #10 and #11):**
+  MAIN PWR, the JFS and RDR ALT are each one position in the flight model, and the canopy's travel, its switch, the
+  lock lever and the Canopy key's sequence moved into the flight model ([cockpit.md](cockpit.md) §5.2, §5.6); the
+  game draws it. No change in play.
 - **Hidden state machines, bugs and risks, part 2 (2026-11-25, the audit of 25 Nov):** a training run whose scorer
   keeps failing ends, failed, with "could not be scored" in the debrief, and a fail's hold before the debrief runs on
   sim time ([training.md](training.md)); the frozen CCIP pipper tracks again after the last bomb and when the HUD

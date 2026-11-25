@@ -451,7 +451,9 @@ on (`iaf-tools` `training.rs`).
   RDR ALT at STBY: powered and warmed up, no radar altitude until RDR ALT. A click takes a switch to its next
   position, round from the last to the first; a drag a position either way. The commands 210, 211 and 219 take p1 2
   for the in-between position (`sim_flight.gd` `IN_BETWEEN`); the keys still go OFF / on. The recording's checklist
-  event carries the switch's `position` when it changes.
+  event carries the switch's `position` when it changes. Each switch is one value in the flight model (`start.rs`
+  `MainPwr`, `Jfs`, and RDR ALT's `Sys::Stby` beside its time on; since 2026-11-25, the state machines audit's #10), so
+  no switch can stand at two positions, such as BATT with MAIN PWR off.
 
 #### One by one (2026-11-13, the switches audit's M2b)
 
@@ -861,8 +863,9 @@ here: its wall falls away outboard under the sill's lip, out of the seat's sight
 than the real wall. So the lever hangs from under the lip, 15° off the vertical toward the wall, where the seat's eye
 sees it, and is 9 cm long with a bar and foot of 8 cm (the replicas suggest about 14 cm; inferred, ±2 cm).
 
-**How it works** (`modern-iaf/flight/sim_flight.gd` `_canopy`, `_canopy_step`; `cockpit3d_controls.gd` systems
-`canopy_switch`, `canopy_lock`):
+**How it works** (`crates/iaf-flight` `start.rs` `Canopy`: `Up`, `Closing`, `Down`, `Locked`, `Opening`, with the
+travel; `cockpit3d_controls.gd` systems `canopy_switch`, `canopy_lock`; `modern-iaf/flight/sim_flight.gd` `_canopy`
+draws the travel and plays the door sounds):
 
 | control | by the mouse | what happens |
 |---|---|---|
@@ -877,13 +880,19 @@ included (the after-landing card opens the canopy). The door sounds play each ti
 card call the lever the canopy handle, the real jet's name for it.
 
 The CANOPY light (`cockpit3d.gd` lamp `canopy`) is on while the canopy is off its seat or the lever is up. The Start
-engine command takes every step at once: the lever goes down and the canopy follows. The F-35I keeps its one CANOPY
-switch. The 1998 game's optional 3D F-16 cockpit (Extras "Cockpit": 3D) shares the model and shows the lever down and
-the switch; it loads no controls, and its CANOPY light is as before.
+engine command takes every step at once: the canopy comes down, then the lever locks it. The F-35I keeps its one CANOPY
+switch: closed and locked at once, the canopy coming down after it. The 1998 game's optional 3D F-16 cockpit (Extras
+"Cockpit": 3D) shares the model and shows the lever down and the switch; it loads no controls, and its CANOPY light is
+as before.
 
-Open, for the next Rust slot: the canopy's position, the switch's drive and the lever's interlock live in
-`sim_flight.gd` beside the canopy's motion, which was there before; they belong in `crates/iaf-flight` `start.rs`,
-which still takes its canopy step over an open canopy when asked directly.
+Since 2026-11-25 (the state machines audit's #11) the flight model (`start.rs`) holds the canopy's travel, the switch,
+the lever's interlock and the key's sequence. Before, `sim_flight.gd` held them: when the Start engine command put the
+lever down over an open canopy, the game put the lever back up the next frame and ran the key's sequence itself. The
+game still times the travel by its own frames (`IafFlight.canopy_tick`), so the canopy moves while the flight is
+frozen, stopped or crashed, as before. A hand other than the canopy's controls that puts the drawn canopy somewhere (a
+test, a picture's helper) hands that travel to the flight model (`IafFlight.set_canopy_open`). As before, a hot
+start's F-35I keeps its canopy shut when its switch goes to open (`canopy_hot`), a cold F-35I's canopy runs back up
+when put shut, and the Start engine command over an open canopy records the lever up, then the lock.
 
 Test: `modern-iaf/tests/test_canopy_spider.gd` (both F-16s by the mouse and the key; the F-35I unchanged). Pictures:
 `_canopy_spider_shot.gd` (the photo's camera, the seat's view, lever up and down).

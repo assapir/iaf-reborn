@@ -566,6 +566,48 @@ impl IafFlight {
         self.aircraft.as_ref().map_or(3, |ac| i64::from(ac.ins_knob()))
     }
 
+    /// The canopy (iaf-flight start.rs `Canopy`, modern-iaf/docs/cockpit.md §5.6): [its opening 0 shut .. 1 up, its run
+    /// -1 down / 0 stopped / 1 up]. The original model's is shut.
+    #[func]
+    fn canopy(&self) -> VarArray {
+        let q = self.aircraft.as_ref().and_then(Fm::sequence);
+        varray![q.map_or(0.0, |q| q.canopy_open()), i64::from(q.map_or(0, |q| q.canopy_run()))]
+    }
+
+    /// The canopy runs `dt` s of the game's frame (sim_flight.gd `_canopy`, each frame: frozen, stopped or crashed too);
+    /// true when the whole sequence lifted the F-16's lever over an open canopy since the last call (start.rs
+    /// `canopy_tick`), recorded as the lever up.
+    #[func]
+    fn canopy_tick(&mut self, dt: f64) -> bool {
+        self.aircraft.as_mut().and_then(Fm::sequence_mut).is_some_and(|q| q.canopy_tick(dt))
+    }
+
+    /// The jet has the F-16's canopy lock lever (its 3D cockpit's `canopy_lock` control; sim_flight.gd, each frame):
+    /// the canopy step is the lever, else the one CANOPY switch; `hot`: the flight started hot (a jet without the
+    /// lever keeps its canopy shut). Flags only: the canopy's travel stays the flight model's.
+    #[func]
+    fn set_canopy_lever(&mut self, lever: bool, hot: bool) {
+        if let Some(q) = self.aircraft.as_mut().and_then(Fm::sequence_mut) {
+            (q.canopy_lever, q.canopy_hot) = (lever, hot);
+        }
+    }
+
+    /// The F-16's canopy switch held at `v` (1 OPEN, -1 CLOSE) or let go (0): the canopy runs while it is held.
+    #[func]
+    fn canopy_switch(&mut self, v: i64) {
+        if let Some(q) = self.aircraft.as_mut().and_then(Fm::sequence_mut) {
+            q.canopy_switch(v.signum() as i8);
+        }
+    }
+
+    /// The canopy put at `open` (0 shut .. 1 up) by another hand than its controls (a test, a picture's helper).
+    #[func]
+    fn set_canopy_open(&mut self, open: f64) {
+        if let Some(q) = self.aircraft.as_mut().and_then(Fm::sequence_mut) {
+            q.set_canopy_open(open);
+        }
+    }
+
     /// A 6-DoF jet's fuel or brake switch set (command 270, modern-iaf/docs/cockpit.md §5.7): "parking_brake",
     /// "master_fuel", "eng_feed", "fuel_qty_sel"; `pos` its position, -1 the next one round. False when the jet has none.
     #[func]
