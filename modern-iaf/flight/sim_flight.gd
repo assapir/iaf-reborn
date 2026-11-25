@@ -1025,9 +1025,26 @@ func _canopy_glass(f: Node3D, part: Dictionary, eye_a: Array) -> void:
 	g.visible = false
 	# The bow from the seat is the 3D cockpit's own (canopy_arch, on the frame node): the copy's (canopy_bow_ext) sat
 	# lower and drew a second arch coming down onto it as the canopy closed (docs/f35i.md §4.1 "Canopy", 2026-11-25).
-	var bow := g.find_child("canopy_bow_ext", true, false)
-	if bow != null:
+	# It covers the slot between the glass's two sheets, so it stays, as glass: left out, the slot showed the sky
+	# untinted, a bright arch under the dark one (the user, Approvals A88, 2026-11-25). From the seat the slot shows
+	# wider than the bar (it lies 1 cm under the glass's face), so the bar is widened (_slot_bar); a stencil keeps the
+	# tint single: the glass marks its pixels and the bar tints only the others.
+	var bow := g.find_child("canopy_bow_ext", true, false) as MeshInstance3D
+	if bow != null and not _glass_marks(g):
 		bow.free()
+	elif bow != null:
+		var m := _glass_material(g).duplicate() as BaseMaterial3D
+		m.cull_mode = BaseMaterial3D.CULL_BACK
+		# The glass is a shell (its inner and outer faces: two layers of tint); the bar is one, so it tints as two.
+		m.albedo_color.a = 1.0 - pow(1.0 - m.albedo_color.a, 2.0)
+		m.render_priority = 1  # after the glass
+		m.stencil_mode = BaseMaterial3D.STENCIL_MODE_CUSTOM
+		m.stencil_flags = BaseMaterial3D.STENCIL_FLAG_READ | BaseMaterial3D.STENCIL_FLAG_WRITE
+		m.stencil_compare = BaseMaterial3D.STENCIL_COMPARE_NOT_EQUAL
+		m.stencil_reference = 1
+		bow.mesh = _slot_bar(bow.mesh)
+		for i in bow.mesh.get_surface_count():
+			bow.set_surface_override_material(i, m)
 	# model -> 3D cockpit: p -> eye + (p - eye) k; then into the frame node (its origin `at`, unturned when shut).
 	var s := Transform3D(Basis.IDENTITY.scaled(Vector3.ONE * k), eye * (1.0 - k))
 	g.transform = Transform3D(Basis.IDENTITY, -at) * s * Transform3D(part.basis, part.origin)
@@ -1050,6 +1067,59 @@ func _canopy_glass(f: Node3D, part: Dictionary, eye_a: Array) -> void:
 				over.set_surface_override_material(i, m)
 		over.transform = g.transform.affine_inverse()
 		g.add_child(over)
+
+
+## The bow's arch in the canopy's frame (tools/f35i/canopy_frame.py: SEAM_FOOT, SEAM_TOP, AXIS_Z; Blender's +y nose is
+## the glTF's -z): at the angle a from the top about the axis, its middle stands SEAM_FOOT + (SEAM_TOP - SEAM_FOOT)
+## cos a ahead. SLOT_BAR: the slot bar's width as a share of the bow's 7 cm (21 cm: the slot from the seat, inferred
+## from the pictures).
+const SEAM_FOOT := 0.13
+const SEAM_TOP := 0.29
+const SEAM_AXIS := -0.15
+const SLOT_BAR := 3.0
+
+
+## The bow's mesh widened fore and aft about its middle line by SLOT_BAR: one bar, so no two layers meet in it.
+static func _slot_bar(mesh: Mesh) -> ArrayMesh:
+	var out := ArrayMesh.new()
+	for i in mesh.get_surface_count():
+		var a := mesh.surface_get_arrays(i)
+		var v: PackedVector3Array = a[Mesh.ARRAY_VERTEX]
+		for j in v.size():
+			var mid := -(SEAM_FOOT + (SEAM_TOP - SEAM_FOOT) * cos(atan2(v[j].x, v[j].y - SEAM_AXIS)))
+			v[j].z = mid + (v[j].z - mid) * SLOT_BAR
+		a[Mesh.ARRAY_VERTEX] = v
+		out.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, a)
+	return out
+
+
+## The canopy glass's material in `n` (the surface named canopy_glass), null without one.
+static func _glass_material(n: Node) -> BaseMaterial3D:
+	for mi: MeshInstance3D in n.find_children("*", "MeshInstance3D", true, false):
+		for i in mi.mesh.get_surface_count():
+			var m := mi.get_active_material(i)
+			if m is BaseMaterial3D and m.resource_name == "canopy_glass":
+				return m
+	return null
+
+
+## The copy's glass marks its pixels in the stencil (reference 1) for the slot's bars; false without glass.
+static func _glass_marks(n: Node) -> bool:
+	var found := false
+	for mi: MeshInstance3D in n.find_children("*", "MeshInstance3D", true, false):
+		if mi.name == "canopy_bow_ext":
+			continue
+		for i in mi.mesh.get_surface_count():
+			var m := mi.get_active_material(i)
+			if m is BaseMaterial3D and m.resource_name == "canopy_glass":
+				m = m.duplicate()
+				m.stencil_mode = BaseMaterial3D.STENCIL_MODE_CUSTOM
+				m.stencil_flags = BaseMaterial3D.STENCIL_FLAG_WRITE
+				m.stencil_compare = BaseMaterial3D.STENCIL_COMPARE_ALWAYS
+				m.stencil_reference = 1
+				mi.set_surface_override_material(i, m)
+				found = true
+	return found
 
 
 ## The throttle up from OFF (its keys or the axis) takes the checklist's engine step once the starter step (JFS / IPP)

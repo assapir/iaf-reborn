@@ -19,7 +19,7 @@ Leave the runway to its cold side#afi[paragraph 3.21.3]: the side that the jets 
 #steps(
   "after_landing",
   captions: caps,
-  notes: (taxi_light_in: [At night, with the gear down and the generator on line, TAXI lights the taxi light and LAND the landing light: each lights the ground ahead. The navigation lights and the strobe are always on.]),
+  notes: (taxi_light_in: [At night, with the gear down and the generator on line, TAXI lights the taxi light and LAND the landing light: each lights the ground ahead. #key("Lights Master: navigation lights and strobe on / off (F-35I)") turns the navigation lights and the strobe on or off, on the generator.]),
   figs: ("gear_panel", "front"),
 )
 

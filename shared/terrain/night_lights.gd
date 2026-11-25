@@ -31,6 +31,12 @@ uniform float fog_k = 0.00003;
 uniform float vp_h = 1080.0;
 uniform float lift = 1.5;
 uniform float pull = -1.0;
+// A jet's lamp (lamp_cd > 0, its intensity in candela): a point whose brightness follows the illuminance cd / d² as a
+// star's magnitude does (14.2 magnitudes above 1 lux): full at Sirius's (-1.46) and brighter, below it the square
+// root of its share (as the night sky's stars are drawn compressed; inferred), its size growing slowly with it
+// (LAMP_PX at Sirius's: a star's point; the night sky's brightest star is 3.8 px with a fainter falloff).
+uniform float lamp_cd = 0.0;
+const float LAMP_PX = 2.2;
 #include "res://shared/terrain/clouds_behind.gdshaderinc"
 varying float fade;
 varying vec3 col;
@@ -43,6 +49,12 @@ void vertex() {
 	float px = size_m * abs(PROJECTION_MATRIX[1][1]) * 0.5 * vp_h / d;
 	// A lamp outshines the haze: half the scene's fog, and a far point keeps 60 % of its light.
 	fade = clamp(px / (min_px * rows), 0.6, 1.0) * exp(-0.5 * fog_k * d) * gain;
+	if (lamp_cd > 0.0) {
+		float mag = -14.2 - 2.5 * log(lamp_cd / (d * d)) / log(10.0);
+		float b = pow(10.0, -0.4 * (mag + 1.46));
+		fade = min(sqrt(b), 1.0) * exp(-0.5 * fog_k * d) * gain;
+		px = LAMP_PX * pow(b, 0.2) * rows;
+	}
 	col = COLOR.rgb;
 	if (COLOR.a < 0.995) {
 		// A one-way fixture (airbase_lights.gd): COLOR.a = the way it shines (angle from Godot +X toward +Z / 360°).
@@ -142,15 +154,32 @@ static func glow() -> ShaderMaterial:
 	return _glow
 
 
-## The jets' lights: smaller glows that stay visible farther.
+## The jets' lights: points as bright as their lamps at the distance (the shader's `lamp_cd`): the navigation lights
+## NAV_CD, the strobe STROBE_CD. The F-16 panel's lights (panel_glow) keep the glow sized in metres (`lamp_cd` 0).
+## FAA minimums (14 CFR 25.1391, 25.1401): 40 cd ahead for the red and green, 5 cd beside, 20 cd aft for the white;
+## 400 cd for the anti-collision light. NAV_CD is between ahead and beside (inferred).
+const NAV_CD := 20.0
+const STROBE_CD := 400.0
+static var _strobe: ShaderMaterial
+
+
 static func nav_glow() -> ShaderMaterial:
 	if _nav == null:
 		_nav = _shader_material(GLOW_SHADER)
 		_nav.set_shader_parameter("size_m", 2.0)
-		_nav.set_shader_parameter("min_px", 3.0)
-		_nav.set_shader_parameter("max_px", 20.0)
+		_nav.set_shader_parameter("min_px", 1.5)
+		_nav.set_shader_parameter("max_px", 14.0)
 		_nav.set_shader_parameter("lift", 0.0)
+		_nav.set_shader_parameter("lamp_cd", NAV_CD)
 	return _nav
+
+
+## The strobe's point: the navigation lights' at STROBE_CD.
+static func strobe_glow() -> ShaderMaterial:
+	if _strobe == null:
+		_strobe = nav_glow().duplicate()
+		_strobe.set_shader_parameter("lamp_cd", STROBE_CD)
+	return _strobe
 
 
 static func _shader_material(code: String) -> ShaderMaterial:
@@ -166,7 +195,7 @@ static func _shader_material(code: String) -> ShaderMaterial:
 ## The viewport's rows: a shader's VIEWPORT_SIZE reads 0 in vertex() on Metal, so the glows get it as `vp_h`.
 ## (The projection is Y-flipped there: the shaders take the focal length as abs(PROJECTION_MATRIX[1][1]).)
 static func set_gain(night: bool, fog_density: float, rows: float) -> void:
-	for m in [glow(), nav_glow()]:
+	for m in [glow(), nav_glow(), strobe_glow()]:
 		# By day a jet's position lights are small dim dots next to a runway light (its glow is 2 m, not 4 m).
 		m.set_shader_parameter("gain", 1.0 if night else (0.35 if m == glow() else 0.12))
 		m.set_shader_parameter("fog_k", fog_density)
@@ -187,6 +216,9 @@ static func panel_glow(level: float) -> ShaderMaterial:
 	if not _navs.has(k):
 		_navs[k] = nav_glow().duplicate()
 		_navs[k].set_shader_parameter("pull", PANEL_PULL)
+		_navs[k].set_shader_parameter("lamp_cd", 0.0)
+		_navs[k].set_shader_parameter("min_px", 3.0)
+		_navs[k].set_shader_parameter("max_px", 20.0)
 		_dimmed(k)
 	return _navs[k]
 
@@ -336,7 +368,7 @@ static func add_lights_on(frame: Node3D, key: String, ew) -> Node3D:
 	strobe.mesh = point_mesh(PackedVector3Array([s[3]]), PackedColorArray([Color.WHITE]))
 	strobe.visible = false
 	for m in [nav, strobe]:
-		m.material_override = nav_glow()
+		m.material_override = nav_glow() if m == nav else strobe_glow()
 		m.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		frame.add_child(m)
 	return strobe

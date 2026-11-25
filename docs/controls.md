@@ -145,7 +145,8 @@ Terms used on this page:
   enlarge, Shift + `\` SWAP, Ctrl + F5 the bay doors. Records 251–254 (command 302): Alt + F9 / Alt + F10 the throttle's FLC
   turned (the cursor portal's previous / next format), Alt + F8 the FLC pushed (the TSD's next layers), Alt + F7 the
   helmet's picture (night camera, DAS, off). Record 255 (command 303), Shift + N: the F-16s' night-vision goggles
-  flipped down / up; the F-35I has none (a notice). DMS left / right (records 149 / 150, Ctrl + `[` / `]`) move the cursor between its
+  flipped down / up; the F-35I has none (a notice). Record 258 (command 302 p1 4), Alt + F6: the throttle's Lights
+  Master, the F-35I's navigation lights and strobe on / off (modern-iaf/docs/cockpit.md §5.5). DMS left / right (records 149 / 150, Ctrl + `[` / `]`) move the cursor between its
   portals; DMS up / down give the sensor of interest to the helmet and back. The F-16's ICP keys (records 152–174)
   work the CNI.
 * **Modern IAF's four-ship orders** (the formations, rejoin, RTB, the split into pairs and the regroup, engage my

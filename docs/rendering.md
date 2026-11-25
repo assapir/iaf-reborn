@@ -1610,8 +1610,18 @@ a small cost. The parts:
    strobe's fin, at its trailing edge. A helicopter (CH-53, Mi-8, Mi-24, UH-60) leaves its rotors out (their blade
    tips turn): its red and green lights are a mirrored pair on the cabin's widest point in its front 60 %, above the
    gear's lowest quarter (the CH-53's sponsons, the Mi-24's stub wings). Cached per file drawn (the Detailed model and
-   the Sufa have their own). By day the jets' lights glow at 12 %, dimmer than the
-   ground lights' 35 %. The cockpit-view model (`<plane>_bc`) carries its own set
+   the Sufa have their own). Each light is a point as bright as its lamp at that distance (2026-11-25, the user on the
+   Scramble dusk pictures: "isn't the wing light too bright from a bit of distance?"; until then a 2 m glow, kept at
+   3–20 px and at least 60 % of its light however far). The minimums the FAA sets are 40 cd ahead for the red and
+   green, 5 cd beside, 20 cd aft for the white[^cfr1391] and 400 cd for the anti-collision light[^cfr1401]; the game
+   draws the navigation lights at 20 cd (between ahead and beside, inferred) and the strobe at 400 cd. A lamp's
+   illuminance at the eye, I / d², read as a star's magnitude (1 lux is magnitude −14.2[^mag]), sets the point: as
+   bright as Sirius (−1.46) and brighter it is drawn at full light, dimmer at the square root of its share (inferred:
+   the night sky's stars are drawn compressed too); its size is 2.2 px at Sirius's and grows with the fifth root of
+   the brightness, at most 14 px. So the navigation lights read as a bright point at 300 m (Venus-bright: magnitude
+   −5), brighter than Sirius at 1 km (−2.5) and as bright as Vega at 3 km (0); the strobe is 20 times as bright. By day the jets' lights
+   glow at 12 %, dimmer than the ground lights' 35 %. The F-16 panel's other lights (the formation strips, the
+   fuselage, the landing light) keep the glow sized in metres. The cockpit-view model (`<plane>_bc`) carries its own set
    at its own wingtips, tail and fin top, so you see your wingtip lights when you look aside from the cockpit. The
    lights go out when the jet is hit, falls or is destroyed (damage state 3 and above), and when the player crashes.
 4. **Night sky.** 2600 stars (a fixed random sky, brighter ones rarer, 2.4 px base size) and a moon disc drawn at the far plane. The
@@ -2731,3 +2741,12 @@ The original game keeps its look and behaviour: only the precision of the drawin
     https://www.hrw.org/news/2015/03/12/syria-83-lights-extinguished-after-4-years-crisis
 [^lamp-height]: Matamata-Piako District Council, Development Manual, Part 3 (street lighting: preferred mounting heights 6 m
     residential, 7 m industrial): https://www.mpdc.govt.nz/wmmp/120-district-plan/mpdc-development-manual/1887-part-3-3142
+
+[^cfr1391]: 14 CFR § 25.1391, "Minimum intensities in the horizontal plane of forward and rear position lights" (40 cd
+    from 0° to 10°, 30 cd to 20°, 5 cd to 110° for the red and green; 20 cd from 110° to 180° for the white), via
+    Cornell LII, https://www.law.cornell.edu/cfr/text/14/25.1391 (checked 2026-11-25). A civil transport rule; the
+    military jets' own figures are open.
+[^cfr1401]: 14 CFR § 25.1401, "Anti-collision light system" (400 cd effective intensity), via Cornell LII,
+    https://www.law.cornell.edu/cfr/text/14/25.1401 (checked 2026-11-25).
+[^mag]: Wikipedia, "Apparent magnitude", its list of magnitudes: −14.2, "an illumination level of 1 lux"; Sirius −1.46,
+    https://en.wikipedia.org/wiki/Apparent_magnitude (checked 2026-11-25).

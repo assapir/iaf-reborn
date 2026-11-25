@@ -625,11 +625,15 @@ func _panel_lights(e: Dictionary) -> void:
 		_land.add_to_group("scenery_lit")  # lights the buildings per pixel (scenery.gd LIT_GROUP)
 		get_parent().add_child(_land)
 		tree_exiting.connect(_land.queue_free)
+		_land_on_part()
 	if _panel.has("none"):
 		return
-	if e.get("land_only", false):  # the F-35I: its landing / taxi light alone, the F-16's panel lights hidden
+	if e.get("land_only", false):  # the F-35I: the F-16's panel lights hidden, its own lights by their controls
 		for k in PANEL_GROUPS.keys() + ["inlet"]:
 			_shown_at(_panel[k], 0.0)
+		for n: Node3D in _lights:
+			if n.name == "NavLights":
+				n.visible = _lit and float(e.wing) > 0.0
 		_landing_light(int(e.land))
 		return
 	var wing: float = 0.0 if e.flash and fposmod(_time, FLASH_PERIOD) >= FLASH_PERIOD * 0.5 else float(e.wing)
@@ -653,9 +657,29 @@ func _landing_light(want: int) -> void:
 		_land.spot_range = s[2]
 		_land.light_energy = s[3]
 		var g := root_frame.global_transform
-		_land.global_transform = Transform3D(
-			g.basis.orthonormalized() * Basis(Vector3.RIGHT, -deg_to_rad(s[1])), g * Vector3(_panel.land_at)
-		)
+		var at: Vector3 = _land_part.global_transform * _land_at if _land_part != null else g * Vector3(_panel.land_at)
+		_land.global_transform = Transform3D(g.basis.orthonormalized() * Basis(Vector3.RIGHT, -deg_to_rad(s[1])), at)
+
+
+## The descriptor's `landing_light` ({"part", "at"}: a point in that part's frame, hand-set; docs/adding-a-plane.md
+## §2.3): the lamp and its beam ride on that part (the F-35I's on its nose gear's strut) instead of the F-16's spot
+## moved by the fin top. The beam keeps the jet's axis: the lamp does not steer with the wheel.
+var _land_part: Node3D
+var _land_at := Vector3.ZERO
+
+
+func _land_on_part() -> void:
+	var l: Dictionary = desc.get("landing_light", {}) if desc.get("landing_light") is Dictionary else {}
+	var part: Node3D = part_node(str(l.get("part", ""))) if not l.is_empty() else null
+	if part == null:
+		return
+	_land_part = part
+	_land_at = Vector3(l.at[0], l.at[1], l.at[2])
+	var glow := _panel.land as MeshInstance3D
+	glow.reparent(part, false)
+	glow.transform = Transform3D.IDENTITY
+	var lamp: Color = NightLights.PANEL_LIGHTS.land[0][1]
+	glow.mesh = NightLights.point_mesh(PackedVector3Array([_land_at]), PackedColorArray([lamp]))
 
 
 ## A light group shown at `level` of its brightness (none: hidden).

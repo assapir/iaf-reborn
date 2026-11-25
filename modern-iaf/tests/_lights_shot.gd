@@ -9,8 +9,8 @@
 #   - then the engine started (the generators): ext_<light> seen from the left front quarter with that light alone on
 #     (none, wing, wing_dim, inlet... as ext_lights), ext_all, ext_main (the panel untouched: main's look), and
 #     land_cockpit / taxi_cockpit (the light on the ground from the seat) and land_outside.
-# SHOT_ONLY: a comma list of the groups (cockpit, lamps, ded, ext, bench; f35i alone: the F-35I's landing and taxi
-# light, with SHOT_MISSION 2032). bench: the frame time (ms, vsync off) in the
+# SHOT_ONLY: a comma list of the groups (cockpit, lamps, ded, ext, bench; f35i alone: the F-35I's lights, with
+# SHOT_MISSION 2032). bench: the frame time (ms, vsync off) in the
 # cockpit and outside at night, the panel at rest, then with every light on (printed "BENCH").
 # The same script runs on main (before pictures): what main lacks is skipped.
 #   flock -o ~/.cache/iaf-gpu-bench.lock tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 SHOT_OUT=<dir> \
@@ -208,10 +208,15 @@ func _f35i() -> void:
 		await process_frame
 	Engine.time_scale = 1.0
 	tv.aircraft.canopy_open = 0.0
-	for s in [["off", 0.0], ["taxi", 1.0], ["land", 2.0]]:
+	for s in [["off", 0.0], ["master", 0.0], ["taxi", 1.0], ["land", 2.0]]:
+		if s[0] == "master":
+			tv._command([302, 4, 0])  # the Lights Master (Alt + F6): the navigation lights and the strobe on
 		_put("LAND_TAXI", s[1])
 		_orbit(0.0, 6.0, 40.0)
-		await _save("f35i_%s_outside" % s[0])
+		await _save("f35i_%s_outside" % s[0], s[0] == "master")
+		if s[0] == "taxi":  # the lamp on the nose gear's strut, from the left front quarter
+			_orbit(-35.0, 1.0, 6.0)
+			await _save("f35i_taxi_nose")
 		tv.in_cockpit = true
 		tv.views.snap = Vector2(0.0, -0.12)
 		await create_timer(0.5).timeout

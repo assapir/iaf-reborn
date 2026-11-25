@@ -723,17 +723,31 @@ func _dimmer(prop: String) -> float:
 ## DIM 0.2), steady or flashing (FLASH); with WING / TAIL off the wingtips glow as formation lights. ANTI-COLL the
 ## fin's strobe; FUSELAGE the white lights on the aft fuselage (BRT 1, DIM 0.4); FORM (a knob) the formation lights;
 ## AR (a knob) the air refuelling receptacle's light with its door open. LANDING / TAXI: 1 LANDING, -1 TAXI.
-## The F-35I's LAND/TAXI LIGHTS switch (LAND_TAXI: 0 OFF, 1 TAXI, 2 LAND) its landing and taxi light only, as the
-## F-16's ("land_only": its other lights stay as before; modern-iaf/docs/cockpit.md §5.12).
+## The F-35I's LAND/TAXI LIGHTS switch (LAND_TAXI: 0 OFF, 1 TAXI, 2 LAND) its landing and taxi light, as the
+## F-16's, and the throttle's Lights Master (LIGHTS_MASTER, its key: command 302 p1 4) the navigation lights and the
+## strobe, on the generators as the F-16's MASTER; it rests off ("land_only": the F-16's other panel lights hidden;
+## modern-iaf/docs/cockpit.md §5.5).
 const EXT := "controls/lighting/ext-lighting-panel/"
 const LAND_TAXI := "f35i/lights/land-taxi"
+const LIGHTS_MASTER := "f35i/lights/master"
 var _ext := {}
+
+
+## The F-35I's Lights Master pressed: the navigation lights and the strobe on (1) or off (0); -1 on another jet.
+func lights_master() -> int:
+	if not _rest.has(LAND_TAXI):
+		return -1
+	switches[LIGHTS_MASTER] = 0.0 if _knob(LIGHTS_MASTER) > 0.5 else 1.0
+	return roundi(switches[LIGHTS_MASTER])
 
 
 func ext_lights() -> Dictionary:
 	if clickable != null and Settings.cockpit_controls() and _rest.has(LAND_TAXI):
+		var on: bool = cockpit.power >= 2 and _knob(LIGHTS_MASTER) > 0.5
 		_ext.land_only = true
 		_ext.land = [0, -1, 1][clampi(roundi(_knob(LAND_TAXI)), 0, 2)] if cockpit.power >= 2 else 0
+		_ext.wing = 1.0 if on else 0.0
+		_ext.strobe = on
 		return _ext
 	if clickable == null or not Settings.cockpit_controls() or not _rest.has(EXT + "master"):
 		return {}  # the 1998 game (its switches not clickable): the lights stay on as before

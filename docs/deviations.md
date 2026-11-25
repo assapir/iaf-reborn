@@ -493,7 +493,7 @@ Each entry names the switch and where it lives, then the difference: "Original: 
     floodlights whose pools light its aprons and the jets on them (rendering.md §5 item 6). The towns have street
     lamps, lit windows and red obstruction lights on their towers, placed from setup's scenery buildings (rendering.md
     §5.1; the original lights only Damascus, by its `LT_` sets). Every jet carries red / green / white navigation lights and a white strobe (off once it is hit;
-    on the cockpit-view model too). The night sky has
+    on the cockpit-view model too), each a point as bright as its lamp at the distance (rendering.md §5 item 3). The night sky has
     stars and a moon.
   - The towns light the clouds from below (light pollution: the 7000 m layer and Clouds Volumetric glow dim orange
     over them), and seen from above the 7000 m layer opens into broken cloud (alpha range 0.6–1) so the lit towns

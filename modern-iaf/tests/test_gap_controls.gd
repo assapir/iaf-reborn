@@ -64,6 +64,27 @@ func _f35i() -> void:
 		ctl.put(lt, v)
 		got.append(int(c3d.ext_lights().get("land", 9)))
 	check(got == [1, -1, 0] and c3d.ext_lights().get("land_only", false), "LAND/TAXI: LAND, TAXI, OFF (%s)" % [got])
+	# The Lights Master (Alt + F6, command 302 p1 4): the navigation lights and the strobe, off at the start.
+	var nav := tv.aircraft.root_frame.get_node_or_null("NavLights") as Node3D
+	await frames(2)
+	check(c3d.ext_lights().wing == 0.0 and not c3d.ext_lights().strobe, "Lights Master off at the start")
+	check(nav == null or not nav.visible, "the navigation lights off with the Lights Master off")
+	tv._command([302, 4, 0])
+	await frames(2)
+	check(c3d.ext_lights().wing == 1.0 and c3d.ext_lights().strobe, "Lights Master: the lights on")
+	check(nav == null or nav.visible, "the navigation lights on with the Lights Master")
+	tv._command([302, 4, 0])
+	await frames(2)
+	check(c3d.ext_lights().wing == 0.0, "Lights Master again: off")
+	# The landing light on the nose gear's strut (aircraft.json landing_light), its cone from there.
+	ctl.put(lt, 1.0)
+	await frames(2)
+	var strut: Node3D = tv.aircraft.part_node("LdgF")
+	var lamp: SpotLight3D = tv.aircraft._land
+	var off: Vector3 = strut.global_transform.affine_inverse() * lamp.global_position
+	var on_strut := off.distance_to(Vector3(0.0, -0.15, -0.13)) < 0.01
+	check(lamp.visible and on_strut, "the taxi light on the nose strut (%s)" % off)
+	ctl.put(lt, 0.0)
 	# COM A, AUTO RECOVERY, JETTISON: their systems read each frame.
 	ctl.put(_rec(c3d, "COM_A"), 0.0)
 	ctl.put(_rec(c3d, "AUTO_RECOVERY"), 0.0)

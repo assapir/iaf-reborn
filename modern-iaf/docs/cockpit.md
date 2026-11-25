@@ -774,6 +774,16 @@ jet's own skin hides those on its far side. Only the player's jet with the 3D co
 other jet, the AI's F-16s too, keeps its navigation lights and strobe always on. The panel's rest is MASTER off: a jet
 starts dark until the pilot sets the lights.
 
+**The F-35I's exterior lights** (2026-11-25, the user on Approvals A90: "with everything off, why there are wings
+lights?"). The real jet has no exterior lights panel: its light modes are set on the PCD and the throttle carries a
+Lights Master button ([research/f35-cockpit.md](research/f35-cockpit.md) §2.8, §2.9 T11). The sim has the button as a
+key: **Lights Master** (Alt + F6, record 258, command 302 p1 4; `cockpit3d.gd` `lights_master`) turns the wingtips'
+red and green, the tail's white and the strobe on or off together, on the generators as the F-16's MASTER; it rests
+off, so the jet starts dark. The PCD's light modes are not modelled. LAND/TAXI LIGHTS lights the lamp at the top of the
+nose gear's strut, facing ahead ([docs/f35i.md](../../docs/f35i.md) §4 row 2; the descriptor's `landing_light`):
+until 2026-11-25 the lamp stood at the F-16's spot moved by the fin top, beside the nose, and its cone fell off to one
+side.
+
 The LE FLAPS switch rests at AUTO (it rested at LOCK, while the jet flies AUTO); at LOCK its caution lights.
 
 **The night-vision goggles** (2026-11-19, the user on Approvals A66: "night googles: as suggested"; the options O1–O4
@@ -1053,7 +1063,7 @@ the 3D control (no new keys); the F-35I's are rows of `f35i_controls.json` with 
 |---|---|---|
 | F-35I | firing handle (`EJECT_HANDLE`) | with the seat at ARM each pull is one of the E key's three presses (within a second of the one before: a stray click never fires the seat); at SAFE or MOH it moves only[^mb-seat] (the key ejects at any position) |
 | F-35I | SAFE / ARM / MOH (`SEAT_SAFE`) | ARM lets the handle fire the seat; SAFE on a cold jet (parked, engine off: the table row's `cold`), ARM on a hot or airborne start; the card's SEAT – ARMED and SEAT – SAFE tick from it |
-| F-35I | LAND/TAXI LIGHTS (`LAND_TAXI`, OFF / TAXI / LAND) | the taxi or the landing light, as the F-16 panel's (`cockpit3d.gd` `ext_lights` with `land_only`: the F-16's other panel lights stay hidden on this jet): a light on the jet and its cone on the ground, with the gear down at night and on the generators |
+| F-35I | LAND/TAXI LIGHTS (`LAND_TAXI`, OFF / TAXI / LAND) | the taxi or the landing light, as the F-16 panel's (`cockpit3d.gd` `ext_lights` with `land_only`: the F-16's other panel lights stay hidden on this jet): the lamp on the nose gear's strut and its cone on the ground, with the gear down at night and on the generators; the navigation lights and the strobe follow the Lights Master key (§5.5 "The F-35I's exterior lights") |
 | F-35I | JETTISON (`JETT_SEL`, ALL / EXT / SEL) | what EMER JETT drops (`player_weapons.gd` `jett_select`; the knob starts at ALL, the EMER JETT of before): ALL every station but the A-A missiles, EXT the external stations (the bays' stay), SEL the selected store's stations, as the F-16's selective jettison |
 | F-35I | COM A (`COM_A`) | the radio calls' volume, none at its stop, the game's level where the model shows it (0.5; inferred, as the F-16's COMM 1) |
 | F-35I | AUTO RECOVERY (`AUTO_RECOVERY`) | OFF silences the "Pull up" call (`flight_sounds.gd` `gcas_off`; the call is the automatic recovery's lineage, inferred); partly: the automatic fly-up is not modelled |

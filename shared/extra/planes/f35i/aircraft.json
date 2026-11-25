@@ -337,5 +337,13 @@
       ]
     }
   },
-  "internal_stations": "CDFG"
+  "internal_stations": "CDFG",
+  "landing_light": {
+    "part": "LdgF",
+    "at": [
+      0.0,
+      -0.15,
+      -0.13
+    ]
+  }
 }

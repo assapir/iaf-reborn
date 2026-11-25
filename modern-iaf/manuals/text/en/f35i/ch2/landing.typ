@@ -17,7 +17,7 @@ This section takes the #jet.name from the pattern to the end of the landing roll
     gear_down_ldg: [Three green lights in about 3 seconds],
   ),
   figs: ("gear_panel",),
-  notes: (landing_light_on: [At night, with the gear down and the generator on line, TAXI lights the taxi light and LAND the landing light: each lights the ground ahead. The navigation lights and the strobe are always on.]),
+  notes: (landing_light_on: [At night, with the gear down and the generator on line, TAXI lights the taxi light and LAND the landing light: each lights the ground ahead. #key("Lights Master: navigation lights and strobe on / off (F-35I)") turns the navigation lights and the strobe on or off, on the generator.]),
 )
 
 The real pilot reports "gear down" to the controller before the jet crosses the runway's threshold#afi[paragraph 3.15.4.2]: the call makes the pilot look at the lights once more. #term("Not modelled").

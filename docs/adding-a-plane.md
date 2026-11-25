@@ -225,6 +225,9 @@ Hand-set after the run:
 - `"borrow"` (optional): `{"<part>": {"plane": "f16", "part": "pilot", "offset": [x, y, z]}}` replaces our part's
   mesh with an original plane's part at run time (`aircraft_model.gd` `_borrow_parts`). The part is placed by the
   source's eye-to-part offset applied to our `eye`, plus `offset` (m). Use it for the pilot rather than modelling one.
+- `"landing_light"` (optional): `{"part": "LdgF", "at": [x, y, z]}`, the landing / taxi lamp at a point in that
+  part's frame (`aircraft_model.gd` `_land_on_part`): the lamp and its beam ride on the part (the F-35I's on its nose
+  gear's strut) and the beam keeps the jet's axis. Without it the F-16's spot is used, moved by the fin top.
 - `"internal_stations"` (optional, letters A..I, e.g. `"CDFG"`): bay stations. Their stores are drawn only while
   the `Bay*` doors are half open; a release from one first opens the doors (0.5 s), then keeps them open 2 s (`player_weapons.gd` `_bay_wait`).
 

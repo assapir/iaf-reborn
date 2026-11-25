@@ -17,6 +17,11 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   Foxtrot, Hotel, India) have their tower, pilot and AWACS particles and the tower's whole calls and heads, English
   and Hebrew. `iaf-sim voices --only` takes several name parts, and a line new in both languages is made by the two
   runs in either order. `test_radio_calls.gd`, `sim::tests` (every seat's particles), `sim_voices::tests`.
+- **The F-35I's canopy bow and exterior lights (2026-11-25, the user on Approvals A88 and A90; [cockpit.md](cockpit.md)
+  §5.5, [docs/f35i.md](../../docs/f35i.md) §4.1 "Canopy"):** from the seat the raised canopy shows one dark arch, the
+  slot between its two transparencies filled with glass (it showed as a bright arch); the Lights Master key (Alt + F6)
+  turns the navigation lights and the strobe on and off, and the jet starts with them off; the landing / taxi lamp sits
+  on the nose gear's strut. Pictures: `_canopy_shot.gd`, `_lights_shot.gd` (f35i).
 - **The controls and lamps that moved only, round two (2026-11-25, the user, 18 Nov: "How much of our controls
   actually controls?"; [cockpit.md](cockpit.md) §5.12):** the F-35I's firing handle ejects with the seat at ARM (three pulls, as the E key; the
   seat at SAFE on a cold jet; the card's two seat items tick from it), LAND/TAXI LIGHTS light the taxi or landing

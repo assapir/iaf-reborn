@@ -3418,8 +3418,11 @@ func _command(cmd: Array) -> bool:
 				_cockpit_note("Bay doors open" if weapons.bay_doors_manual else "Bay doors closed")
 		302:
 			# Ours, the F-35I's FLC on the throttle (Modern IAF's keys.json; pcd.gd flc): p1 0 / 1 turned on / back, 2
-			# pushed; 3 the helmet's picture (_helmet_video_step).
-			if Settings.modern_mfds() and cockpit.pcd != null:
+			# pushed; 3 the helmet's picture (_helmet_video_step); 4 the throttle's Lights Master (cockpit3d.gd).
+			if p1 == 4:
+				if cockpit_3d != null:
+					cockpit_3d.lights_master()
+			elif Settings.modern_mfds() and cockpit.pcd != null:
 				if p1 == 3:
 					_helmet_video_step()
 				elif not cockpit.pcd.flc(p1):

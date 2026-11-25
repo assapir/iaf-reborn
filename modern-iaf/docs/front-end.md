@@ -560,6 +560,7 @@ stay the original's (`terrain_view.gd _on_subtitle` hands each line to the fligh
   |---|---|---|
   | "Master arm" / "Master safe" (command 202) | removed | the MASTER ARM switch's position; ARM in the stores page and the HUD or helmet |
   | "Helmet night camera" / "Helmet DAS video" / "Helmet video off" (302 p1 3) | removed | the view itself |
+  | the Lights Master (302 p1 4, the F-35I) | none | the navigation lights and the strobe on the jet's model |
   | "Dogfight" / "Missile override" / "… off" (251) | removed | the HUD's and the MFDs' master mode |
   | "IFF IDENT" (255) | removed | the DED's CNI page shows `I` while IDENT replies |
   | "Bay doors open" / "closed" (301) | removed | the SMS's DOORS legend, the doors on the model |
