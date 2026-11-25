@@ -498,3 +498,4 @@ func _stuck(to: String) -> void:
 	_stuck_shown = true
 	var old := to.get_base_dir().path_join(".%s.old" % to.get_file())
 	_show(s("stuck") % ["\u2066" + old + "\u2069", "\u2066" + to + "\u2069"], false)
+	later_button.visible = true  # apply() hid it; its Close quits this copy

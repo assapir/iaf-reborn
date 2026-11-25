@@ -27,7 +27,7 @@ Setup turns your own copy of Jane's IAF into everything the game reads under `as
 | The Hebrew CD image | no | every translated briefing and menu file, the Hebrew startup splash and Graphics page |
 | `Brief.zip`, `Menu.zip` | no, only without the Hebrew CD | the Hebrew briefings and menus (docs/packs.md) |
 | Imagery sources | no | modern terrain imagery (docs/imagery.md) |
-| Pilot guides | no | the guides' pictures and PDFs (nothing to install, also in a release bundle; the renders open game windows briefly) |
+| Pilot guides | no | the guides' pictures and PDFs (nothing to install, also in a release bundle; the renders run out of sight: on macOS as a hidden app, on Linux under `xvfb-run` when it is installed, else in game windows that open briefly) |
 
 The English CD is always the base: the Hebrew CD's `iafjets.exe` is the copy-protected build, and the English v1.1
 patch does not apply to it (packs.md). The Hebrew CD adds the translations.
@@ -209,8 +209,8 @@ game then quits; `./setup` installs again. The launcher's INSTALL button opens t
   `-Remove`).
 - The guides: nothing outside the game. The pictures are real renders by the game's own executable
   (`iaf-reborn/setup/guide_shots.gd` through `crates/iaf-setup/src/guides.rs`: a release bundle's executable, the
-  checkout's Godot from the wizard or the PATH from the CLI), so the step needs a display; the PDFs are drawn in Rust
-  (`crates/iaf-tools/src/guide_pdf.rs`, its fonts built in). It works the same in the checkout and in every release
+  checkout's Godot from the wizard or the PATH from the CLI), so the step needs a display (on Linux `xvfb-run` gives it
+  one out of sight); the PDFs are drawn in Rust (`crates/iaf-tools/src/guide_pdf.rs`, its fonts built in). It works the same in the checkout and in every release
   bundle, on Linux, Windows and macOS ([guides/README.md](guides/README.md#pictures-and-pdfs)).
 
 Their output goes to the step's log.

@@ -4,7 +4,7 @@
 
 === Where the tanker is <tanker-track>
 
-The tanker is a KC-46A, called Gideon, or a Boeing 707, called Re'em. Its name is its callsign on the radio. It flies a left-hand racetrack at 30,000 ft and 310 knots indicated (480 knots true): two legs 50 nautical miles long and 20 nautical miles apart. It shows on your radar as a friendly aircraft. Find it there and fly to it.
+The tanker is a KC-46A, called Gideon, or a Boeing 707, called Re'em. Its name is its callsign on the radio. It flies a left-hand racetrack at 30,000 ft and 310 knots indicated (480 knots true): two legs 50 nautical miles long and 20 nautical miles apart. It shows on your radar as a friendly aircraft. Find it there and fly to it, or ask the #term("AWACS") for its heading and distance (Vector to #term("tanker"), @awacs-requests).
 
 === Asking for fuel <tanker-request>
 
@@ -39,4 +39,4 @@ The calls show as lines at the top of the screen, like the tower's (@tower-subti
 
 === Refuelling the wingmen <tanker-wingmen>
 
-#idx("Refuel")With a tanker on the flight, the wingmen's command list (@radio-flight) has Refuel, to the flight, the element 3–4 or one wingman. Each wingman answers with its callsign and flies to the tanker. It waits on the tanker's left wing, asks for fuel in its turn and refuels. Then it waits on the right wing. Once the last one is done, they rejoin you.
+#idx("Refuel")With a tanker on the flight, the wingmen's command list (@radio-flight) has Refuel, to the flight, the element 3–4 or one wingman. Each wingman answers with its callsign and flies to the tanker. It waits on the tanker's left wing, asks for fuel in its turn and refuels. Then it waits on the right wing. Once the last one is done, they rejoin you. With full tanks each wingman calls "joker" and "bingo" again when its fuel comes down to them (@radio-flight).

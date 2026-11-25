@@ -75,7 +75,7 @@ To fly the mission again, select #scr("fly_again") in the debrief.
 
 === Ejecting <time-pause-eject>
 
-#idx("Ejection, in the game")#warning[An ejection ends the flight and fails a Training mission. The key works at any moment, on the ground too. It needs three presses so that one stray press does nothing.]
+#idx("Ejection, in the game")#warning[An ejection ends the flight and fails a Training mission. The key works at any moment, on the ground too, as long as the jet is in one piece: once it has blown up in the air, the key does nothing and the flight ends 5 seconds later. It needs three presses so that one stray press does nothing.]
 
 + Press #key("Eject (press 3 times)") three times.
   #then[The seat leaves the jet. Every sound and the radio stop. The view stays outside, on the seat and the jet.]

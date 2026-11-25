@@ -107,6 +107,14 @@ func run() -> void:
 	u.queue_free()
 	OS.unset_environment("IAF_ASSETS_DIR")
 
+	# The old version could not be put back: its line, and Close (apply() hid the button) to quit the copy.
+	u = _updater(updater, app, release, tmp)
+	await frames(2)
+	u.later_button.visible = false
+	u._stuck(app)
+	check(u.later_button.visible and u.later_button.text == u.s("close"), "stuck: its line with Close: " + u.line.text)
+	u.queue_free()
+
 	# The same version or none newer: no line; setup's check on a data folder whose steps never ran: its line.
 	var assets := tmp.path_join("assets")
 	DirAccess.make_dir_recursive_absolute(assets.path_join("converted/modern-iaf/missions"))

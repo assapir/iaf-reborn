@@ -111,7 +111,7 @@ The page puts the start-up and taxi calls on GND and the line-up, take-off and l
 
 === The radio's lines on the screen <tower-subtitles>
 
-#idx("Subtitles")Every call and answer is spoken, and shows as a line of text at the top middle of the screen as its voice starts. The strip holds the three newest lines, each for 8 seconds. Your own call comes first, then, after a short pause, the tower's answer, then your pilot's readback of it.
+#idx("Subtitles")Every call and answer is spoken, and shows as a line of text at the top middle of the screen as its voice starts. The strip holds the three newest lines, each for 8 seconds. Your own call comes first, then, after a short pause, the tower's answer, then your pilot's readback of it. Each call ends with about a second of quiet on the radio before the next one starts.
 
 The lines and the voices are in the game's language (@language).
 

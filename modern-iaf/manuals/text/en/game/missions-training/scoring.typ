@@ -91,3 +91,5 @@ When the flight ends, the game scores it from its own recording of the flight an
 - your #term("pilot log"), which keeps every flight with its debrief (@pilots). The #scr("missions") screen shows each mission's last result from it (@mission-list).
 
 A flight you end yourself before the goals are reached is scored as it stands (@time-pause-leave).
+
+When the game's scoring of the flight fails three times in a row, the flight ends as a #scr("fail") with the reason "#scr-text("no_score")"
