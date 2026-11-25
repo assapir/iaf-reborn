@@ -342,6 +342,10 @@ every building. IAF 2026 picks Light (modern-iaf/docs/scenery.md §6 measures bo
 there the same 2,000 buildings mean a sparser town (310 a km² against 477) and Light thins a little more of a town's
 edge (inferred).
 
+Light also ends the trees at 1.2 km (`scenery.gd` `TREES_LIGHT`) instead of 2 km, everywhere: their crowns 1.2–2 km
+away stay as the photo's colour under them. It keeps the sim's scenery inside its 7 % GPU budget over Tel Aviv
+(modern-iaf/docs/scenery.md §6, 2026-11-25).
+
 Intel Iris Xe (TigerLake GT2) laptop, 2560 × 1440, 2026-10-23, the machine idle: `tests/godot/_flight_bench.gd`
 with `BENCH_BEST=1` (mission 311, Ramat David), the Survey 2 m layer on, two runs each, Scenery Off then On; the
 scenery as built by generator 7 (2.08 M buildings, 28.6 M trees over the layer), in 500 m tiles:

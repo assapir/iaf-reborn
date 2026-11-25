@@ -608,8 +608,9 @@ Each entry names the switch and where it lives, then the difference: "Original: 
     models, the facades (wall colours, windows, shutters, loggias, AC units) and the roof clutter (solar water
     heaters, tanks, stair heads) are our own.
   - Far towns (Graphics → MORE, under Scenery; default Full, every building to the scenery's 4.5 km): Light draws a
-    dense town's buildings beyond the near model's 2.5 km only when they are 15 m tall or 1000 m² and up, for less
-    GPU time over large towns (scenery.md §3.1). An IAF 2026 enhancement (modern-iaf/docs/shared.md).
+    dense town's buildings beyond the near model's 2.5 km only when they are 15 m tall or 1000 m² and up, and
+    ends the trees at 1.2 km instead of 2 km, for less GPU time over large towns (scenery.md §3.1). An IAF 2026
+    enhancement (modern-iaf/docs/shared.md).
   - Building colours (Graphics → MORE, under Far towns; default Photo, 2026-11-09, the look study's proposal 2;
     Modern IAF's profile picks Palette): Palette keeps every wall in its own palette colour (Jerusalem stone, white
     and beige plaster, grey concrete) at any distance, where Photo gives On's walls the photo's colour and fades

@@ -18,6 +18,9 @@ const AHEAD := 1500.0
 const KEEP := 2500.0
 const NEAR := 2500.0
 const TREES := 2000.0
+## Far towns Light (Settings.scenery_far, the sim's default): the trees end here (m) instead of TREES, inside the
+## scenery's GPU budget on the Iris Xe (modern-iaf/docs/scenery.md §6: 7 %); the photo under them shows their crowns.
+const TREES_LIGHT := 1200.0
 ## Trees draw their full model to this distance (m), the far one beyond; they grow in over the last TREES_GROW m
 ## before TREES. Buildings: the near model to NEAR, the far one to RANGE, rising from the ground over the last GROW m.
 ## Each tree and building by its own distance (scenery_tree.gdshader, scenery.gdshader); a 500 m tile's trees are
@@ -30,6 +33,11 @@ const GROW := 400.0
 ## ROOF_GROW m (scenery_roof.gdshader, each item by its own distance).
 const ROOF_ITEMS := 700.0
 const ROOF_GROW := 150.0
+## The near model's flat roofs drop their parapet's inner faces where the 0.8 m parapet is under PARAPET_PX pixels
+## tall (scenery.gdshader parapet_m, from the camera's field of view and the window's height, in 50 m steps): about
+## 0.1 ms over Tel Aviv (modern-iaf/docs/scenery.md §6).
+const PARAPET := 0.8
+const PARAPET_PX := 1.5
 ## The cells re-chosen when the focus moved this far (m) or after this long (ms).
 const RESELECT_M := 200.0
 const RESELECT_MS := 1000
@@ -88,6 +96,8 @@ static var _tree_meshes: Array = []
 static var _roof_meshes: Array = []
 static var _foliage: Texture2DArray
 static var _foliage_read := false
+static var _trees_m := 0.0
+static var _parapet_m := NEAR
 
 var terrain: Node3D
 ## The Survey 2 m layer shown in Israel (mapi2015 = 1998 colours, mapi2015_modern = the photo's): the roofs' colours.
@@ -335,8 +345,11 @@ static func _set_damage(m: ShaderMaterial, damage: PackedByteArray) -> void:
 
 ## A 10 m tree of `kind` (KINDS), our own mesh, scaled per tree: with the foliage textures (foliage()) leaf cards
 ## round a solid core on a barked trunk (_foliage_tree); without them a six-sided trunk and a low-poly canopy in one
-## colour. A tree kind's model: the full one, or `far` the light one for TREES_NEAR..TREES.
+## colour. A tree kind's model: the full one, or `far` the light one for TREES_NEAR..trees_m().
 static func tree_mesh(kind: int, far := false) -> ArrayMesh:
+	if not _tree_meshes.is_empty() and _trees_m != trees_m():
+		reset_trees()  # Far towns changed since they were made: their materials' reach
+	_trees_m = trees_m()
 	if _tree_meshes.is_empty():
 		var tex := foliage()
 		for f in [false, true]:
@@ -369,6 +382,11 @@ static func foliage() -> Texture2DArray:
 	if t.create_from_images(imgs) == OK:
 		_foliage = t
 	return _foliage
+
+
+## The trees' reach (m): TREES, or TREES_LIGHT with Far towns Light.
+static func trees_m() -> float:
+	return TREES_LIGHT if Settings.scenery_far == "light" else TREES
 
 
 ## Forgets the read textures and the made models (tests switch the folders).
@@ -419,7 +437,7 @@ static func _far_foliage_material(kind: int) -> ShaderMaterial:
 	m.set_shader_parameter("albedo", _linear(FOLIAGE[kind][1]))
 	m.set_shader_parameter("near_m", FOLIAGE_NEAR)
 	m.set_shader_parameter("band_m", TREES_BAND)
-	m.set_shader_parameter("far_m", TREES)
+	m.set_shader_parameter("far_m", trees_m())
 	m.set_shader_parameter("grow_m", TREES_GROW)
 	return m
 
@@ -587,7 +605,7 @@ static func _tree_material(colour: Color, far: bool) -> ShaderMaterial:
 	m.set_shader_parameter("albedo", _linear(colour))
 	m.set_shader_parameter("far_model", far)
 	m.set_shader_parameter("near_m", TREES_NEAR)
-	m.set_shader_parameter("far_m", TREES)
+	m.set_shader_parameter("far_m", trees_m())
 	m.set_shader_parameter("grow_m", TREES_GROW)
 	return m
 
@@ -875,6 +893,14 @@ func _process(_delta: float) -> void:
 			_night_shown = night
 			for m in _materials:
 				m.set_shader_parameter("night", night)
+		var cam := get_viewport().get_camera_3d()
+		if cam != null:
+			var px_m: float = get_viewport().get_visible_rect().size.y * cam.get_camera_projection().y.y / 2.0
+			var pm := snappedf(PARAPET / PARAPET_PX * px_m, 50.0)
+			if pm != _parapet_m:
+				_parapet_m = pm
+				for m in _materials:
+					m.set_shader_parameter("parapet_m", pm)
 
 
 func _reselect(fp: Vector3) -> void:
@@ -997,6 +1023,7 @@ func _start_cell(k: Vector2i) -> void:
 	add_child(root)
 	c.node = root
 	var mat := _building_material(IafScenery.damage_index(k.x, k.y))
+	mat.set_shader_parameter("parapet_m", _parapet_m)
 	_materials.append(mat)
 	c.mat = mat
 
@@ -1029,13 +1056,18 @@ func _upload(k: Vector2i) -> int:
 		mi.set_instance_shader_parameter("far_model", not near)
 		mi.visibility_range_begin = 0.0 if near else NEAR - reach
 		mi.visibility_range_end = (NEAR if near else RANGE) + reach
-		# The photo under it already holds the buildings' shadows; Shadow reach Far: the near model casts them (the
-		# shaders pick the model by the main camera's distance, so the shadow pass draws the same buildings).
-		var cast := near and Settings.shadow_reach == "far"
-		mi.cast_shadow = (
-			GeometryInstance3D.SHADOW_CASTING_SETTING_ON if cast else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		)
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		c.node.add_child(mi)
+		# The photo under it already holds the buildings' shadows; Shadow reach Far: the near model casts them, from a
+		# copy with no material: Godot draws it in the shadow pass with its depth-only material, positions only (the
+		# buildings' shader moves vertices, so its own pass ran it whole: 0.15–0.3 ms over Tel Aviv). The copy's buildings
+		# are the near model's to the tile's range: the shadows reach 2.5 km (terrain_view.gd _shadow_reach).
+		if near and Settings.shadow_reach == "far":
+			var sh := MeshInstance3D.new()
+			sh.mesh = mesh
+			sh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY
+			sh.visibility_range_end = mi.visibility_range_end
+			c.node.add_child(sh)
 		return mesh.surface_get_array_len(0)
 	if piece.has("roofs"):
 		for tile in piece.roofs:
@@ -1065,7 +1097,7 @@ func _upload(k: Vector2i) -> int:
 				# The ranges only cull whole tiles; the shader cuts each tree at its own distance.
 				var near_m := FOLIAGE_NEAR if foliage() != null else TREES_NEAR
 				mmi.visibility_range_begin = maxf(0.0, near_m - TILE_REACH) if far else 0.0
-				mmi.visibility_range_end = (TREES if far else near_m) + TILE_REACH
+				mmi.visibility_range_end = (trees_m() if far else near_m) + TILE_REACH
 				mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 				c.node.add_child(mmi)
 	return UPLOAD_VERTICES

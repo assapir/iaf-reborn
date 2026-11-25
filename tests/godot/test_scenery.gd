@@ -152,10 +152,23 @@ func _stream(sc: GDScript, meta: Dictionary, c: Vector2i, mode: String) -> void:
 	# Building colours (docs/scenery.md §3.4): Photo by default.
 	check(mat.get_shader_parameter("palette_colours") == settings().building_palette, "%s: building colours" % mode)
 	var far_reach: bool = settings().shadow_reach == "far"
-	for mi in node.get_children().filter(func(n): return n is MeshInstance3D):
-		var near: bool = not mi.get_instance_shader_parameter("far_model")
-		var casts: bool = mi.cast_shadow != GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		check(casts == (near and far_reach), "%s: near %s mesh casts a shadow: %s" % [mode, near, casts])
+	# The drawn meshes cast none; Shadow reach Far: a shadow-only copy of each near one, with no material (scenery.gd
+	# _upload: Godot's depth-only path).
+	var meshes := node.get_children().filter(func(n): return n is MeshInstance3D)
+	var drawn := meshes.filter(func(n): return n.material_override != null)
+	var copies := meshes.filter(func(n): return n.material_override == null)
+	var near_n := drawn.filter(func(n): return not n.get_instance_shader_parameter("far_model")).size()
+	check(
+		drawn.all(func(n): return n.cast_shadow == GeometryInstance3D.SHADOW_CASTING_SETTING_OFF),
+		"%s: the drawn meshes cast no shadow themselves" % mode
+	)
+	check(
+		(
+			copies.size() == (near_n if far_reach else 0)
+			and copies.all(func(n): return n.cast_shadow == GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY)
+		),
+		"%s: a shadow copy per near mesh with Shadow reach Far (%d copies, %d near)" % [mode, copies.size(), near_n]
+	)
 	var roofs := node.get_children().filter(
 		func(n): return n is MultiMeshInstance3D and n.multimesh.mesh in sc._roof_meshes
 	)

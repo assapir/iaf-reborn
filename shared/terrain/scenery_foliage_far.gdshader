@@ -3,7 +3,8 @@
 // each tree's own shade (the same hash as scenery_foliage.gdshader), darker below. Drawn by each tree's own distance
 // from `near_m` - `band_m` (under the full model fading out) to `far_m`, shrinking to nothing over the last `grow_m`.
 shader_type spatial;
-render_mode cull_back;
+// Lit per vertex: a crown a few pixels wide; the shadows stay per pixel (modern-iaf/docs/scenery.md §6).
+render_mode cull_back, vertex_lighting;
 
 uniform vec3 albedo = vec3(0.1, 0.13, 0.06);
 uniform float near_m = 450.0;

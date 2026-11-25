@@ -62,11 +62,13 @@ func run() -> void:
 	var on: bool = load("res://shared/terrain/ground_roads.gd").on()
 	var roads: float = (2.0 if settings().scenery_ortho() else 1.0) if on else 0.0  # the global ground_roads.gd sets
 	print("ROADS %s" % roads)
+	print("PARAPETS to %.0f m" % sc._parapet_m)
 	var vp := root.get_viewport().get_viewport_rid()
 	RenderingServer.viewport_set_measure_render_time(vp, true)
 	var mats := {}
 	for n in parts["buildings near"] + parts["buildings far"]:
-		mats[n.material_override] = true
+		if n.material_override != null:  # not the near tiles' shadow copies (scenery.gd _upload)
+			mats[n.material_override] = true
 	var near_m: float = scenery_gd.NEAR
 	var cast := {}
 	var reach := {}  # each building mesh's reach past its model's range (scenery.gd _upload)
@@ -102,6 +104,8 @@ func run() -> void:
 			for n in parts["buildings near"]:
 				n.visibility_range_end = near + reach[n]
 				n.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF if case == "no near shadows" else cast[n]
+				if cast[n] == GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY and case == "no near shadows":
+					n.visible = false  # a shadow copy (scenery.gd _upload): with no shadow it would draw plain
 			for n in parts["buildings far"]:
 				n.visibility_range_begin = near - reach[n]
 			for m in mats:

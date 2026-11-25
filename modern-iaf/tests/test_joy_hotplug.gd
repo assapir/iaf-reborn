@@ -4,6 +4,7 @@
 # - rudder pedals as a second device: the rudder role on their axis 3 moves the rudder, the stick's twist does not;
 #   the stick's throttle lever still drives the throttle;
 # - a button on the pedals bound to the gear lever raises the gear; the stick's button of the same number stays its own;
+#   the same on pedals with no SDL mapping (ours: their buttons 12+ off the hat's indices);
 # - the pedals pulled out: the rudder centres and its keys work again; the stick pulled out: the stick centres.
 #   IAF_DEFAULT_SETTINGS=1 godot --headless --audio-driver Dummy --path modern-iaf \
 #     -s ../modern-iaf/tests/test_joy_hotplug.gd --log-file <temp>
@@ -77,6 +78,25 @@ func run() -> void:
 	root.push_input(button(2, 1, false))
 	await frames(2)
 	check(not tv.gear_down and tv._held_buttons.is_empty(), "the pedals' button 3 raised the gear")
+	# The pedals with no SDL mapping, given ours (Joystick._map_unknown, by GUID; a fake device gets it here): their
+	# button 12 comes as Godot's MISC1 and is bound as 1011; their D-pad indices are the hat, no button.
+	var guid := Input.get_joy_guid(1)
+	var had: bool = js._mapped.has(guid)
+	js._mapped[guid] = true
+	tv.keys.set_column(s.key_bindings, GEAR, "button", s.button_slot(PEDALS) * 1000 + 11)
+	check(
+		js.button_of(button(JOY_BUTTON_MISC1, 1)) == 1011 and js.button_of(button(JOY_BUTTON_DPAD_UP, 1)) == -1,
+		"the unmapped pedals' button 12 is 1011, their hat no button"
+	)
+	tv.gear_down = true
+	root.push_input(button(JOY_BUTTON_MISC1, 1))
+	root.push_input(button(JOY_BUTTON_MISC1, 1, false))
+	await frames(2)
+	check(not tv.gear_down and tv._held_buttons.is_empty(), "the unmapped pedals' button 12 raised the gear")
+	js._mapped.erase(guid)  # the same index without our mapping
+	check(js.button_of(button(JOY_BUTTON_MISC1, 1)) == 1015, "with an SDL mapping the same index is their button 16")
+	if had:
+		js._mapped[guid] = true
 	tv.keys.set_column(s.key_bindings, GEAR, "button", tv.keys.default_joystick(GEAR))
 	# Pulled out again.
 	js.fake_devices = [0]

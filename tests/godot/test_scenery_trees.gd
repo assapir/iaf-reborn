@@ -54,6 +54,17 @@ func run() -> void:
 				far.surface_get_material(0).shader.resource_path == Scenery.FOLIAGE_FAR_SHADER,
 				"kind %d: solid far model" % kind
 			)
+	# Far towns Light ends the trees at TREES_LIGHT, Full at TREES (the far model's reach; scenery.gd trees_m()).
+	var was: String = settings().scenery_far
+	for far_mode in ["light", "full"]:
+		settings().scenery_far = far_mode
+		var want: float = Scenery.TREES_LIGHT if far_mode == "light" else Scenery.TREES
+		var fm: ShaderMaterial = Scenery.tree_mesh(0, true).surface_get_material(0)
+		check(
+			Scenery.trees_m() == want and fm.get_shader_parameter("far_m") == want,
+			"Far towns %s: the trees end at %.0f m (%s)" % [far_mode, want, fm.get_shader_parameter("far_m")]
+		)
+	settings().scenery_far = was
 	Scenery.reset_trees()
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(TMP.path_join("thirdparty/ambientcg")))
 

@@ -218,6 +218,52 @@ far model (0.56 ms over Tel Aviv).
   through a shadow-only copy of each tile. It saved 0.27 ms (24.13 against 24.40 ms, four rounds), and to 1,500 m
   nothing measurable. The buildings 0.7–1 km away lost their shadows on the street in the picture.
 
+**Inside the 7 % budget (2026-11-25, the gaps list's row 17).** The same probe, 1920 × 994, the sim's defaults, eight
+rounds, the median of rounds 2–8; main (743d16db) and this change run back to back under the shared GPU lock, the
+laptop otherwise quiet (load 0.8–1.1):
+
+| | Tel Aviv: main | now | Beersheba: main | now |
+|---|---|---|---|---|
+| the frame without the scenery | 22.47 ms | 22.52 ms | 22.29 ms | 22.10 ms |
+| the scenery | 3.32 ms | 1.26 ms | 2.90 ms | 1.53 ms |
+| share of the frame without it | 14.8 % | 5.6 % | 13.0 % | 6.9 % |
+
+Where the time went, found by swapping the buildings' shader in the probe (`SCENERY_SHADER_B`, Tel Aviv): their
+pixels' lighting, not their vertices. Drawn unshaded they cost 2.6 of 3.1 ms; the shadows they receive took 0.9 ms,
+the sky's ambient light 0.85, the fog 0.45 and the shader's own fragment code 0.6. Far away a building is a few
+pixels of small triangles, and the GPU shades each triangle in whole 2 × 2 pixel blocks, so this cost hardly falls
+with the window's size. Collapsing the near buildings beyond 1 km to no triangles saved about 1 ms, collapsing only their
+parapets' inner faces there almost nothing.
+
+The cuts, each with the picture kept:
+
+- **Lit per vertex** (`render_mode vertex_lighting`, the buildings and the far trees): a building's face is flat, one
+  normal, so the sun's light at its corners is its light everywhere on it; the shadows stay per pixel. A point or
+  spot light near a wall (an explosion's flash, a landing light, a base's mast) is worked out at the wall's corners
+  and spread over it, and the windows' sun glint is lost: the accepted cost. About 0.6 ms
+  over Tel Aviv. Pictures: 3 pixels of 1.9 million differ by more than 2 % low over Tel Aviv's towers (110 m), none in
+  the town from 500 m.
+- **The shadows from a copy with no material** (`scenery.gd` `_upload`): the buildings' shader moves vertices (the
+  near and far models' swap), so the shadow pass ran it whole. A shadow-only copy of each near tile with no material
+  goes through Godot's depth-only path (positions only). 0.15–0.3 ms. The copy holds the near model to its tile's end
+  (2.5 km and half a tile); the shadows end at 2.5 km.
+- **Far walls and roofs without their pattern's work** (`scenery.gdshader`): where the windows, the solar heaters and
+  their spacing are under half a period a pixel, their faded means are set directly. The same values.
+- **The face's values in three varyings** (`v_face`, `v_kind`, `v_ortho`) instead of ten: 0.06 ms.
+- **The parapets' inner faces left out where the parapet is under 1.5 pixels** (`scenery.gd` `PARAPET_PX`, from the
+  camera's field of view and the window's height: 550 m in the cockpit's view at 994 pixels, about 800 m at 1,440):
+  their feet lifted to their tops, no triangle left. 0.1–0.2 ms; the pictures at 0.5, 1 and 1.5 pixels match at 3 ×
+  zoom (35 pixels differ between 1 and 1.5, the frame-rate readout).
+- **Far towns Light ends the trees at 1.2 km** (`TREES_LIGHT`, 2 km before; the sim's profile has Light; the 1998
+  game's default, Full, keeps 2 km): about 0.35 ms over Tel Aviv, none over Beersheba (few trees). The one visible
+  change: the trees 1.2–2 km away are gone and the photo under them shows their crowns as its colour. Pictures before
+  and after from the probe's camera: `~/.claude/iaf-2026-pages/towngpu/`.
+
+Tried and dropped (2026-11-25), each the same picture: the far trees drawn with three segments round their axis
+beyond 3 pixels (no gain: their cost is not their triangles); the far trees' models indexed (no gain); the buildings'
+specular off (no gain once lit per vertex); Lambert diffuse light (no gain). Tried and dropped, each a visible change:
+no shadows received (0.9 ms; a building in its neighbour's shade lit); no fog (0.45 ms).
+
 ## 7. Pictures
 
 Real-render pictures (`tests/godot/_imagery_shot.gd` in the sim: `SHOT_LAYERS=sim`, `SHOT_SET`, `SHOT_HOUR`,
@@ -421,9 +467,6 @@ Fixed on 2026-11-08 (the "before" pictures above):
 
 ## 9. Open
 
-- **The scenery over a dense town costs twice its budget** (measured 2026-11-09 and 2026-11-11, §6): 14 % of the GPU
-  time over Tel Aviv at 500 m and 13 % over Beersheba after the two cuts that keep the picture (the budget: 7 %). The
-  near buildings' geometry takes 2.0 ms of the 3.1 ms; each further cut changes the look.
 - **Unit clearances**: when the sim has ground units (§4).
 - **The rest of the theatre in the byte check**: `build_theatre` with `--near` stopped on PROJ's "moll: Invalid
   latitude" on main and on the branch alike (§8).
