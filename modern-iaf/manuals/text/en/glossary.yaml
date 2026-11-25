@@ -48,3 +48,4 @@
 - {term: Loadout, means: "The stores a jet carries on a mission, station by station.", in: [game]}
 - {term: Station, means: "A place under the jet's wing or body, or in a weapon bay, where one store or one rack hangs.", in: [game]}
 - {term: Time allowed, means: "The time from the start of a flight within which a mission's goals must be reached.", in: [game]}
+- {term: Tanker, means: "An aircraft that gives fuel to other aircraft in the air, through a boom that its operator flies into the receiving jet's receptacle.", in: [game]}

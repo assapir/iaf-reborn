@@ -31,7 +31,7 @@ chapters:
   - {id: climb-cruise, title: "Climb, cruise and descent", sim: full, file: f16/ch2/climb-cruise.typ}
   - {id: landing, title: Approach and landing, sim: part, file: f16/ch2/landing.typ}
   - {id: shutdown, title: After landing and engine shutdown, sim: full, file: f16/ch2/shutdown.typ}
-  - {id: air-refuelling, title: Air refuelling, sim: none, file: f16/ch2/air-refuelling.typ}
+  - {id: air-refuelling, title: Air refuelling, sim: part, file: f16/ch2/air-refuelling.typ}
 - id: emergency
   title: Emergency procedures
   intro: The real jet's emergencies by phase of flight. Each item says whether the sim can produce it.

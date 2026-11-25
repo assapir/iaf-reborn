@@ -16,6 +16,7 @@ const Drones := preload("res://shared/ai/drones.gd")
 const Eitam := preload("res://shared/ai/eitam.gd")
 const GroundRoads := preload("res://shared/terrain/ground_roads.gd")
 const Fly := preload("fly.gd")
+const Tanker := preload("res://shared/ai/tanker.gd")
 const MIG := "mig29a"
 const CONVOY := ["target_t72", "target_ural", "target_ural", "target_t72"]
 
@@ -23,8 +24,8 @@ var host: Node  # terrain_view.gd
 ## The player's base: the Scramble start's (its iaf.ibx section).
 var home := ""
 ## What was placed (tests): {sites [site records], net {} or the network, flights [the enemy pairs' IafAi], convoy {},
-## salvo {}, setup (the roll), task (its name), targets [the task's entities; a drone's null before its launch]}; {}
-## before.
+## salvo {}, setup (the roll), task (its name), targets [the task's entities; a drone's null before its launch],
+## tanker (its node, on the flights that have one)}; {} before.
 var placed := {}
 ## The task call's clock (the runtime's): when the player's jet first left the ground, the last call (-INF: none).
 var _airborne_at := -1.0
@@ -52,7 +53,15 @@ func place(fc: Dictionary, setup: Dictionary) -> Dictionary:
 	var ibx: Dictionary = Fly._ibx()
 	var area := String(fc.get("area", ""))
 	placed = {
-		"sites": [], "net": {}, "flights": [], "convoy": {}, "salvo": {}, "setup": setup, "task": "", "targets": []
+		"sites": [],
+		"net": {},
+		"flights": [],
+		"convoy": {},
+		"salvo": {},
+		"setup": setup,
+		"task": "",
+		"targets": [],
+		"tanker": null
 	}
 	if area == home or not ibx.has(home) or not ibx.has(area):
 		push_warning("scramble: nothing placed (%s -> %s)" % [home, area])
@@ -98,10 +107,14 @@ func place(fc: Dictionary, setup: Dictionary) -> Dictionary:
 				placed.salvo = Drones.of(host).spawn(s.route, int(s.count), 0.0, float(s.interval))
 				if placed.task == "drones":
 					placed.targets = placed.salvo.get("ents", [])  # the salvo's own list: filled at each launch
+	# The tanker on half the flights (IafFreeCombat.tanker; modern-iaf/docs/research/air-refuelling.md §8.1).
+	var tk: Dictionary = IafFreeCombat.tanker(int(fc.get("seed", 0)), Fly._lineup(ibx, home), Fly._lineup(ibx, area))
+	if not tk.is_empty() and host.get("tanker") == null:
+		placed.tanker = Tanker.place(host, String(tk.kind), tk.anchor, float(tk.course))
 	print(
 		(
-			"scramble: %d sites, %d enemy pairs at %s, task %s"
-			% [placed.sites.size(), placed.flights.size(), area, placed.task]
+			"scramble: %d sites, %d enemy pairs at %s, task %s, tanker %s"
+			% [placed.sites.size(), placed.flights.size(), area, placed.task, String(tk.get("kind", "none"))]
 		)
 	)
 	return placed

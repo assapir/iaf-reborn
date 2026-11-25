@@ -1,6 +1,7 @@
 # The AWACS controller (docs/ai.md §24), headless, on the Sufa, from Ramon's Scramble start in the air:
 # - the radio menu's AWACS page in English and Hebrew: its six requests, Declare off without a radar lock and Vector
-#   to tanker off with no tanker in the air, dimmed without a reason line (the game manual says when);
+#   to tanker off with no tanker in the air, dimmed without a reason line (the game manual says when); with a tanker
+#   in the air (docs/ai.md §25) Vector to tanker on and answered ("... tanker");
 # - Picture, Bogey dope, Vector to target and Vector home with a known MiG-29A 20 km ahead: the pilot's call ("Eitam,
 #   Kidon 1, picture") then the controller's answer in brevity (two groups or one, BRAA, "home plate", "target");
 # - the wingman holding the MiG in its radar reports "contact" after the answer named it;
@@ -75,6 +76,7 @@ func run() -> void:
 	await fly(tv, 3.0)
 	var contact: Array = tv.ai.flight_calls.filter(func(c): return c.id == "contact")
 	check(not contact.is_empty(), "the wingman's contact call (%s)" % [tv.ai.flight_calls.map(func(c): return c.id)])
+	await _tanker(tv, sim)
 	_voice(tv)
 	await _eitam(tv)
 
@@ -176,6 +178,22 @@ func _eitam(tv: Node) -> void:
 	await fly(tv, 13.0)
 	var calls: Array = r.said.slice(n2).filter(func(p): return p.template.begins_with("ACFT_FCTRL"))
 	check(calls.is_empty(), "Eitam down: no contact call (%d)" % calls.size())
+
+
+## A tanker placed 30 km south (tanker.gd `place`): the AWACS page's Vector to tanker on (only Declare off), and its
+## answer "Kidon 1, vector ..., tanker".
+func _tanker(tv: Node, sim: Node) -> void:
+	var w: Vector3 = tv.player_world()
+	var tk: Node = load("res://shared/ai/tanker.gd").place(tv, "kc46", Vector3(w.x, w.y - 30000.0, 0.0), 0.0)
+	check(tk != null, "the tanker placed")
+	await fly(tv, 1.0)
+	sim.set_open(true)
+	sim.choose(3)
+	check(sim._off().keys() == [2], "with a tanker: only Declare off (%s)" % sim._off())
+	sim.set_open(false)
+	var out: Array = sim.awacs_pick("vector_tanker")
+	var t: String = " ".join(out.map(func(p): return String(p.text)))
+	check(t.begins_with("Kidon 1, vector ") and t.ends_with("tanker"), "vector to tanker (%s)" % t)
 
 
 ## The AWACS page in `lang`: the six requests, Declare and the tanker off (dimmed, no reason line).

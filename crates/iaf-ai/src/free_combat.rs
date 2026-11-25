@@ -82,6 +82,29 @@ pub fn area(seed: u64, home: Vec3, bases: &[Vec3]) -> Option<usize> {
     Some(near[(mix(seed ^ mix(0)) % near.len() as u64) as usize])
 }
 
+/// The tanker's track ([`tanker`]): its inbound leg's middle this far from the player's base towards the fight's (m;
+/// inferred: over our own side, short of the enemy's fighters' CAP).
+const TANKER_FROM_HOME: f64 = 40_000.0;
+
+/// A Scramble's tanker (modern-iaf/docs/research/air-refuelling.md §8.1), drawn from `seed`: on half the flights (the
+/// user, 25 Nov 2026: "if available (not for every mission)"), a KC-46A Gideon or a 707 Re'em alike. Its track runs
+/// across the line from the player's base `home` to the fight's `area` (world), its inbound leg's middle
+/// [`TANKER_FROM_HOME`] out on that line, its left-hand turns towards home: (kind, the inbound leg's start, its
+/// course in degrees). None: no tanker, or the two bases are one point.
+pub fn tanker(seed: u64, home: Vec3, area: Vec3) -> Option<(&'static str, Vec3, f64)> {
+    let r = mix(seed ^ mix(0x7a4c));
+    let d = Vec3::new(area.x - home.x, area.y - home.y, 0.0);
+    if r.is_multiple_of(2) || d.length() < 1.0 {
+        return None;
+    }
+    let u = d / d.length();
+    // The course: home's direction to the left of it (the turns are left), so the far leg is nearer home.
+    let dir = Vec3::new(-u.y, u.x, 0.0);
+    let start = home + u * TANKER_FROM_HOME - dir * (crate::tanker::TRACK_LEG / 2.0);
+    let kind = if (r / 2).is_multiple_of(2) { "kc46" } else { "reem" };
+    Some((kind, Vec3::new(start.x, start.y, 0.0), dir.x.atan2(dir.y).to_degrees().rem_euclid(360.0)))
+}
+
 /// What the AWACS sends the player's flight to do: intercept the MiG-29 pair on CAP or the drones, attack the convoy
 /// or the S-300 battery. The roll is built round it, so its target is always there.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -461,6 +484,24 @@ mod tests {
         assert!(near(s[0], 1_000.0, 2_000.0) && near(s[1], 1_000.0, 2_015.0), "{s:?}");
         assert!(near(s[2], 940.0, 2_000.0) && near(s[3], 940.0, 1_985.0), "{s:?}");
         assert_eq!(runway_start(l, 0.0, 1).len(), 1);
+    }
+
+    #[test]
+    fn a_tanker_on_half_the_flights_across_the_way_to_the_fight() {
+        use crate::tanker::{TRACK_LEG, Track};
+        let (home, area) = (Vec3::new(1000.0, 2000.0, 0.0), Vec3::new(101_000.0, 2000.0, 0.0));
+        let drawn: Vec<_> = (0..400u64).filter_map(|s| tanker(s, home, area)).collect();
+        assert!((150..250).contains(&drawn.len()), "about half: {}", drawn.len());
+        let kc46 = drawn.iter().filter(|t| t.0 == "kc46").count();
+        assert!(kc46 > 50 && drawn.len() - kc46 > 50, "both kinds");
+        let (_, start, course) = drawn[0];
+        assert!((course - 0.0).abs() < 1e-6, "across the line east: north: {course}");
+        let track = Track::new(start, course.to_radians());
+        let mid = track.at(TRACK_LEG / 2.0).pos;
+        assert!((mid.x - 41_000.0).abs() < 1.0 && (mid.y - 2000.0).abs() < 1.0, "40 km out: {mid:?}");
+        // The far leg is nearer home (west).
+        assert!(track.at(TRACK_LEG * 1.5 + track.radius * std::f64::consts::PI).pos.x < mid.x - 30_000.0);
+        assert_eq!(tanker(7, home, home), None);
     }
 
     #[test]

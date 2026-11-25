@@ -47,7 +47,7 @@ pub struct Contact {
     /// Compass heading, degrees.
     pub heading: f64,
     pub ident: Ident,
-    /// A friendly tanker (air refuelling's; none flies yet).
+    /// A friendly tanker (air refuelling's, docs/ai.md §25).
     pub tanker: bool,
 }
 
@@ -436,7 +436,7 @@ mod tests {
             answer(Sensor::Virtual, Request::VectorTarget, &q, &cs).lines[0].1[1..3],
             ["AWX_VECTOR090", "MILES40"]
         );
-        // Home: refused without a base; the tanker: refused with none in the air (none flies yet).
+        // Home: refused without a base; the tanker: refused with none in the air.
         assert_eq!(check(Sensor::Virtual, Request::VectorHome, &q, &cs), Err(Refusal::NoHome));
         q.home = Some(Vec3::new(0.0, -80.0 * NM, 0.0));
         let h = answer(Sensor::Virtual, Request::VectorHome, &q, &cs);

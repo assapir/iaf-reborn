@@ -2615,6 +2615,12 @@ impl Aircraft {
         }
     }
 
+    /// Ours (Modern IAF's air refuelling): `kg` more fuel, at most the fuel maximum (kept).
+    pub fn add_fuel(&mut self, kg: f32) {
+        let now = self.fuel.sample(self.t);
+        self.fuel.reset(self.t, (now + kg.max(0.0)).min(self.fuel.max));
+    }
+
     /// Internal fuel capacity (FuelWeight, kg).
     pub fn internal_fuel_kg(&self) -> f32 {
         self.params.fuel_mass

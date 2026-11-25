@@ -15,6 +15,7 @@ extends Node
 const MissionRuntime := preload("res://shared/mission/mission_runtime.gd")
 const Kneeboard := preload("kneeboard.gd")
 const FreeCombat := preload("free_combat.gd")
+const Tanker := preload("res://shared/ai/tanker.gd")
 const Card := preload("card.gd")
 const FlightUi := preload("flight_ui.gd")
 const FrameMeter := preload("frame_meter.gd")
@@ -34,6 +35,7 @@ const TOP := [
 	["m:tower", "Tower", "מגדל"],
 	["m:wingmen", "Wingmen", "המבנה"],
 	["m:awacs", "AWACS", "AWACS"],
+	["m:tanker", "Tanker", "מטוס תדלוק"],
 ]
 ## The AWACS page's requests: id (radio.gd awacs_request), English, Hebrew; the pilot's words after the address
 ## ("Eitam, Kidon 1, picture"), English and Hebrew (docs/ai.md §24.2).
@@ -51,11 +53,18 @@ const AWACS_ITEMS := [
 		"בקשת הכוונה למטוס התדלוק"
 	],
 ]
+## The tanker's page (only while the flight has a tanker, shared/ai/tanker.gd; the user, 25 Nov 2026: "it should be in
+## coms, if available (not for every mission) and ask and get approval to start"): the one call, its words in
+## modern-iaf/docs/research/air-refuelling.md §8.4. The address the pilot says by the tanker's kind.
+const TANKER_ITEMS := [["tanker:request", "Request refuelling", "בקשת תדלוק"]]
+const TANKER_NAMES := {"kc46": ["Gideon", "גדעון", "GIDEON_P"], "reem": ["Re'em", "ראם", "REEM_P"]}
 ## A page of more lines than the number keys reach shows its first eight and this ninth line, which shows the rest
 ## (every line has a number key; 0 goes back to the first eight).
 const MORE := ["m:more", "More ›", "עוד ‹"]
 ## The page a `0` goes back to.
-const PARENT := {"tower": "", "wingmen": "", "awacs": "", "to": "wingmen", "formation": "to", "spacing": "formation"}
+const PARENT := {
+	"tower": "", "wingmen": "", "awacs": "", "tanker": "", "to": "wingmen", "formation": "to", "spacing": "formation"
+}
 ## The flight's pages (ours, modern-iaf/docs/ai-plan.md F5; the user, 19 Nov: "radion menu instead of hotkeys"): after
 ## the tower's calls, one line per addressee of the four-ship (IafAi's `to`: 0 the flight, 5 the element, 2..4 one
 ## wingman), its English and Hebrew label and the address the pilot says (voices.json). The callsigns are kidon style
@@ -79,6 +88,7 @@ const COMMANDS := [
 	["low", "Low level", "גובה נמוך", "CMD_LOW", "f"],
 	["high", "Back to altitude", "חזרה לגובה", "CMD_HIGH", "f"],
 	["cover", "Cover me", "חיפוי", "CMD_COVER", "few"],
+	["refuel", "Refuel", "תדלוק", "CMD_REFUEL", "few"],
 	["rtb", "RTB", "חזרה לבסיס", "CMD_RTB", "few"],
 	["check", "Check in", "בדיקת קשר", "CMD_CHECK", "few"],
 	["ops_check", "Ops check", "בדיקת מערכות ודלק", "CMD_OPS_CHECK", "few"],
@@ -145,6 +155,11 @@ var _hold_m := {}  # iaf.ibx section -> its holding point's distance to the line
 ## The text over the flight: the band of radio lines, the panel, the key hint (flight_ui.gd).
 var ui: Control
 var _sim := {}
+## The flight's tanker from its mission ({kind: kc46 / reem, anchor: [x, y] world m, the inbound leg's start, course:
+## deg}; modern-iaf/docs/research/air-refuelling.md §8.1), or `--tanker kc46|reem` (a developer's hook: its track
+## starts 5 km ahead of the jet on its heading); placed once the ground is in. {} none.
+var _tanker_spec := {}
+var _tanker_tried := false
 ## The training mission: its readable file's name (res://data/missions/<name>.json) and rules; {} for a flight without.
 var mission_name := ""
 var rules := {}
@@ -170,6 +185,10 @@ var _end_ms := INF
 ## the pilot's notebook (kneeboard.gd: its CHECKLIST page shows the card; training.md §11).
 var checklist: Array = []
 var card: Node
+## The air refuelling checklist (card.gd on the card file's "refuel" sections): run and shown on the notebook's
+## AIR REFUEL tab only while the flight has a tanker (training.md §11).
+var refuel_card: Node
+var _had_tanker := false
 var done: Array = []
 var _fault := ""
 var _fault_shown := ""
@@ -246,6 +265,7 @@ func _ready() -> void:
 		rules = readable.get("training", {}) if sim.has("training") else {}
 		mission_name = String(files[0].name) if not rules.is_empty() else ""
 		checklist = readable.get("training", {}).get("checklist", [])
+		_tanker_spec = readable.get("tanker", {})
 		if String(readable.get("category", "")) == "fly_now":
 			add_child(FreeCombat.new(host, host.radio.runway_base))  # Scramble's enemy and task (front-end.md §2.1)
 	if not rules.is_empty():
@@ -267,6 +287,8 @@ func _ready() -> void:
 	ui.language_changed.connect(_language_changed)
 	card = Card.new(self, plane)
 	add_child(card)
+	refuel_card = Card.new(self, plane, "refuel")
+	add_child(refuel_card)
 	# A mission with the start-up checklist starts with the notebook raised at its START-UP page (training.md §11).
 	add_child(FrameMeter.new())  # the frame time the Settings screen shows (front-end.md §4.2)
 	kneeboard = Kneeboard.new(self)
@@ -348,6 +370,8 @@ func _title() -> String:
 		return _bi(ui.s("fl_radio_to") % TOP[1][2 if he else 1])
 	if page == "awacs":
 		return _bi(ui.s("fl_radio_to") % TOP[2][2 if he else 1])
+	if page == "tanker":
+		return _bi(ui.s("fl_radio_to") % _tanker_name(1 if he else 0))
 	var a: Array = ADDRESSEES.filter(func(x): return x[0] == _to)[0]
 	var who: String = a[2 if he else 1]
 	if page == "to":
@@ -376,6 +400,7 @@ func _lines() -> Array:
 	for i in shown.size():
 		for it in (
 			TOP
+			+ TANKER_ITEMS
 			+ ITEMS
 			+ AWACS_ITEMS
 			+ ADDRESSEES.map(func(a): return ["to:%d" % a[0], a[1] + " ›", a[2] + " ‹"])
@@ -409,7 +434,9 @@ func _off() -> Dictionary:
 ## alive (the four-ship, IafAi); an addressee's commands; the shapes.
 func _entries() -> Array:
 	if page == "":
-		return TOP.map(func(x): return x[0])
+		return TOP.map(func(x): return x[0]).filter(func(id): return id != "m:tanker" or _tanker() != null)
+	if page == "tanker":
+		return TANKER_ITEMS.map(func(x): return x[0])
 	if page == "formation":
 		return SHAPES.map(func(x): return x[0]) + [SPACING_PAGE[0]]
 	if page == "spacing":
@@ -418,7 +445,12 @@ func _entries() -> Array:
 		return AWACS_ITEMS.map(func(x): return x[0])
 	if page == "to":
 		var kind := "f" if _to == 0 else ("e" if _to == 5 else "w")
-		return COMMANDS.filter(func(c): return kind in c[4]).map(func(c): return c[0])
+		var with_tanker := _tanker() != null  # "refuel" only while the flight has a tanker
+		return (
+			COMMANDS
+			. filter(func(c): return kind in c[4] and (c[0] != "refuel" or with_tanker))
+			. map(func(c): return c[0])
+		)
 	if page == "tower":
 		return calls()
 	var ai = host.get("ai")
@@ -515,6 +547,10 @@ func choose(n: int) -> void:
 		if host.radio.awacs_refusal(id) == "":  # off: dimmed, no pick
 			set_open(false)
 			awacs_pick(id)
+	elif page == "tanker":
+		set_open(false)
+		if id == "tanker:request":
+			request_refuelling()
 	elif page == "":
 		set_open(false)
 	else:
@@ -621,6 +657,59 @@ func awacs_pick(id: String) -> Array:
 	return out
 
 
+## The mission's tanker (or the `--tanker` hook's) placed once the jet flies over loaded ground.
+func _place_tanker() -> void:
+	var args := OS.get_cmdline_user_args()
+	var at := args.find("--tanker")
+	if _tanker_spec.is_empty() and not _tanker_tried and at >= 0 and at + 1 < args.size():
+		var w: Vector3 = host.player_world() if host.get("flight") != null else Vector3.ZERO
+		var h := deg_to_rad(float(host.flight.state().get("heading", 0.0))) if host.get("flight") != null else 0.0
+		_tanker_spec = {
+			"kind": args[at + 1], "anchor": [w.x + 5000.0 * sin(h), w.y + 5000.0 * cos(h)], "course": rad_to_deg(h)
+		}
+	if _tanker_tried or _tanker_spec.is_empty() or host.get("flight") == null or host.waiting_for_ground:
+		return
+	_tanker_tried = true
+	if _tanker() != null:
+		return  # Scramble's draw placed one
+	var a: Array = _tanker_spec.get("anchor", [0.0, 0.0])
+	var kind := String(_tanker_spec.get("kind", "kc46"))
+	if Tanker.place(host, kind, Vector3(a[0], a[1], 0.0), float(_tanker_spec.get("course", 0))) == null:
+		push_warning("tanker: no tanker of kind %s" % kind)
+
+
+## The flight's tanker (shared/ai/tanker.gd), null when it has none.
+func _tanker() -> Node:
+	return host.get("tanker")
+
+
+## The tanker's callsign in `lang` (0 English, 1 Hebrew).
+func _tanker_name(lang: int) -> String:
+	var t := _tanker()
+	return TANKER_NAMES.get(String(t.kind) if t != null else "kc46", TANKER_NAMES.kc46)[lang]
+
+
+## The Tanker page's call (research §8.3): "Gideon, Kidon 1, request refuelling", the gap, and the tanker's answer
+## (cleared pre-contact, or stand by with another jet on the boom); recorded as a `radio` event.
+func request_refuelling() -> void:
+	var t := _tanker()
+	if t == null:
+		return
+	var r: Node = host.radio
+	var cs: String = r.formation_name(r._player_ent())
+	var said_cs: String = r.kidon(cs)
+	var lines := [
+		"%s, %s, %s" % [_tanker_name(0), said_cs, TANKER_ITEMS[0][1].to_lower()],
+		"%s, %s, %s" % [_tanker_name(1), said_cs.replace("Kidon", "כידון"), TANKER_ITEMS[0][2]]
+	]
+	r.bilingual(lines[0], lines[1])
+	var addr: String = TANKER_NAMES.get(String(t.kind), TANKER_NAMES.kc46)[2]
+	r.say("PILOT_CALL", [addr, cs + "_P", "REQ_REFUEL"], [], false, lines[1 if _he() else 0])
+	r.play_wav("radio_gap.ogg")
+	t.request(t._player_id())
+	host._log_event(host._log_st, {"event": "radio", "call": "tanker", "answer": "request"})
+
+
 ## The runway end the tower names for the mission's runway ("25R"; its other end when the tower turned the base into
 ## the wind: radio.gd runway_of, docs/autopilot.md §2.4); "" when the mission names none.
 func runway_in_use() -> String:
@@ -684,7 +773,12 @@ func _process(delta: float) -> void:
 		set_open(false)  # not in use
 	_throttle_step()
 	_sync_switches()
-	if card.update() and kneeboard != null:
+	_place_tanker()
+	var changed: bool = card.update()
+	var tanker: bool = host.tanker != null
+	changed = (tanker and refuel_card.update()) or changed or tanker != _had_tanker
+	_had_tanker = tanker
+	if changed and kneeboard != null:
 		kneeboard.refresh()
 	_canopy(delta)
 	if rules.is_empty() or not result.is_empty() or host.flight == null or host.get("_log") == null:

@@ -517,6 +517,12 @@ impl SixDof {
         }
     }
 
+    /// Ours (Modern IAF's air refuelling): `kg` more fuel, the tanks filled from the engine out up to their capacity
+    /// (the capacity kept, unlike [`Self::set_fuel`]).
+    pub fn add_fuel(&mut self, kg: f32) {
+        self.tanks.fill(self.tanks.total() + kg.max(0.0) as f64 / LB);
+    }
+
     /// External tanks at the start, as `Aircraft::set_fuel_capacity` (FUN_005a8980 then the start's fill): the
     /// maximum = the internal fuel + `extra_kg`, filled; `centre_kg` of it in the centreline tank (ours, the EXT CTR
     /// gauge's), the rest in the wing tanks.
@@ -906,6 +912,7 @@ impl SixDof {
         let ff = ff * jc.thrust_k + if bits & 0x40 != 0 { 0.25 * self.params.fuel_flow_max as f64 } else { 0.0 };
         self.fuel_flow = ff as f32;
         if !self.unlimited_fuel {
+            self.tanks.ext_hold = self.ap_panel.air_refuel;
             self.tanks.feed(ff * dt / LB, dt / 3600.0, self.eng_feed, self.fuel_qty_sel == 1);
         }
         self.check_ground(was_on_ground, gear_down, ground_z);

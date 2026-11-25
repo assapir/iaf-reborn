@@ -60,5 +60,18 @@
   {"id": "batt_off", "en": "BATT – OFF", "he": "BATT – ‏OFF", "how": {"en": "the lamps and the display go dark", "he": "הנוריות והתצוגה כבות"}, "check": {"set": {"BATT": 0}}, "control": ["BATT"]},
   {"id": "walkaround", "en": "Post-flight walk-around – bird strikes, missing panels, over-G damage", "he": "בדיקה חיצונית אחרי הטיסה – פגיעות ציפורים, פנלים חסרים, נזקי עומס יתר"}
 ]}
+],
+"refuel": [
+{"id": "ar_before", "en": "BEFORE CONTACT", "he": "לפני מגע", "when": "air", "items": [
+  {"id": "ar_arm_off", "en": "MASTER ARM – SAFE", "he": "MASTER ARM – ‏SAFE", "check": {"set": {"MASTER_ARM": 0}}, "control": ["MASTER_ARM"]},
+  {"id": "ar_door_open", "en": "Refuelling door – OPEN, AR DOOR OPEN on the FUEL window", "he": "דלת התדלוק – ‏OPEN, ‏AR DOOR OPEN בחלון FUEL", "how": {"en": "the Air refuelling door key", "he": "מקש דלת התדלוק"}, "where": {"en": "the display's FUEL window", "he": "חלון FUEL בתצוגה"}, "check": {"ar": "open"}, "key": 259}
+]},
+{"id": "ar_contact", "en": "CONTACT", "he": "מגע", "when": "air", "items": [
+  {"id": "ar_contact", "en": "Contact – AR CONTACT on the FUEL window, the fuel rising", "he": "מגע – ‏AR CONTACT בחלון FUEL, הדלק עולה", "how": {"en": "hold the contact position; the boom operator flies the boom in", "he": "להחזיק בעמדת המגע; הבומר מכניס את הבום"}, "where": {"en": "the display's FUEL window", "he": "חלון FUEL בתצוגה"}, "check": {"ar": "contact"}}
+]},
+{"id": "ar_after", "en": "AFTER REFUELLING", "he": "אחרי תדלוק", "when": "air", "items": [
+  {"id": "ar_door_closed", "en": "Refuelling door – CLOSE", "he": "דלת התדלוק – ‏CLOSE", "how": {"en": "the Air refuelling door key", "he": "מקש דלת התדלוק"}, "where": {"en": "the display's FUEL window", "he": "חלון FUEL בתצוגה"}, "check": {"ar": "closed"}, "key": 259},
+  {"id": "ar_checks", "en": "Cautions and fuel – check (the cruise checks again)", "he": "אזהרות ודלק – בדיקה (בדיקות השיוט שוב)"}
+]}
 ]
 }

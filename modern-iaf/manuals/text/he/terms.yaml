@@ -137,3 +137,8 @@
 - {en: seeker head, he: ראש ביות, from: field}
 - {en: release mode (CCIP, CCRP, DTOS), he: מצב הטלה, from: plain, not: [אופן הטלה]}
 - {en: structural damage, he: נזק מבני, from: plain}
+- {en: air refuelling, he: תדלוק אווירי, from: field}
+- {en: tanker, he: מטוס תדלוק, from: field, not: [מכלית]}
+- {en: boom, he: בום, from: field}
+- {en: boom operator, he: בומר, from: field}
+- {en: receptacle, he: פתח התדלוק, from: field}

@@ -253,6 +253,11 @@ const SLOT_ROLL: (f32, f32) = (4.0, 0.3);
 /// the standard gain a wingman 30 m off the lead still swung 7.6 m along its slot half a minute after the close-up,
 /// with this one 3.5 m).
 const SLOT_CLOSE_KP: f32 = 3.0;
+/// On a tanker's station ([`Autopilot::precise`]): the along-track gain (m/s per m), the throttle's gain, this many
+/// times [`SLOT_THR`]'s, and the spring's [`SLOT_W`] (inferred: with the formation's 0.08 a receiver lagged its
+/// station 5 m and crept 2 m past the contact position as it took fuel, and with its 0.3 it slid 2.4 m sideways in the
+/// tanker's roll into a turn: out of the boom's envelope; test iaf-ai refuel).
+const SLOT_PRECISE: (f64, f32, f64) = (0.3, 6.0, 0.4);
 /// Close up ([`Autopilot::close`]), the slot loop rolls the leader's lift on by the leader's roll rate over this, s (the
 /// wingman's roll lag; inferred: without it, a wingman 12 m off the lead in its roll into a 45° bank turn fell 98 m
 /// out of its slot, with it 10 m).
@@ -2019,6 +2024,9 @@ pub struct Autopilot {
     /// loop rolls with the leader ([`SLOT_ROLL_LEAD_S`]) by its own roll law ([`SLOT_ROLL`]), its throttle quicker
     /// ([`SLOT_CLOSE_KP`]).
     pub close: bool,
+    /// Ours (Modern IAF's air refuelling, iaf-ai tanker.rs): the slot is a station on the tanker, held to the boom's
+    /// envelope: the along-track gain and the throttle's quicker ([`SLOT_PRECISE`]).
+    pub precise: bool,
     /// Ours (Modern IAF's flights): the hangar (base index in `bases`, hangar) the landing's taxi parks in when it is
     /// free; None: the original's first free hangar.
     pub home_hangar: Option<(usize, usize)>,
@@ -2082,6 +2090,7 @@ impl Autopilot {
             player_flare: false,
             slot: [0.0; 3],
             close: false,
+            precise: false,
             home_hangar: None,
             avoid: None,
             steer: None,
@@ -2838,12 +2847,14 @@ impl Autopilot {
         // transit's step down before paths cross).
         let eh = Vec3::new(e[0], e[1], 0.0);
         let ec = eh * (SLOT_E_MAX / eh.length().max(SLOT_E_MAX)) + Vec3::UP * e[2].clamp(-SLOT_E_MAX, SLOT_E_MAX);
-        let kd = 2.0 * SLOT_ZETA * SLOT_W;
-        let lift = across(a_s + ec * (SLOT_W * SLOT_W) + de * kd + Vec3::UP * g);
+        let w = if self.precise { SLOT_PRECISE.2 } else { SLOT_W };
+        let kd = 2.0 * SLOT_ZETA * w;
+        let lift = across(a_s + ec * (w * w) + de * kd + Vec3::UP * g);
         let (mut y, mut x) = lift_stick(l, lift, None, self.close);
         // Along the path: the slot's speed and the overtake; the PI throttle.
         let (lo, hi) = SLOT_OVERTAKE;
-        let vt = (vs.dot(t) + (SLOT_K_ALONG * e.dot(t)).clamp(lo, hi) + a_s.dot(t) * SLOT_ANTICIPATE_S) as f32;
+        let k_along = if self.precise { SLOT_PRECISE.0 } else { SLOT_K_ALONG };
+        let vt = (vs.dot(t) + (k_along * e.dot(t)).clamp(lo, hi) + a_s.dot(t) * SLOT_ANTICIPATE_S) as f32;
         // Never slower than the jet flies level at the circuit's α (a slow leader, a big-angle rejoin); toward a far
         // slot never slower than the slot's speed less the overtake's closing back while the slot flies more than 60°
         // off the jet's path (one flying the other way had its speed along the path below zero: idle and the speed
@@ -2852,7 +2863,13 @@ impl Autopilot {
         let vt = vt.max(v.circuit.map_or(0.0, |c| c.1)).max(far as f32);
         let err = vt - v.speed;
         let (kp, ki) = SLOT_THR;
-        let kp = if self.close { kp * SLOT_CLOSE_KP } else { kp };
+        let kp = if self.precise {
+            kp * SLOT_PRECISE.1
+        } else if self.close {
+            kp * SLOT_CLOSE_KP
+        } else {
+            kp
+        };
         let mut thr = (*thr_i + kp * err).clamp(0.0, 1.0);
         if thr > 0.0 && thr < 1.0 {
             *thr_i = (*thr_i + ki * err * 0.1).clamp(0.0, 1.0);

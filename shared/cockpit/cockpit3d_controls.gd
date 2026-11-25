@@ -473,6 +473,8 @@ static func _system_state(tv: Object, name: String, now: float) -> float:
 			return float(tv.cockpit.depr_mr) / DEPR_MAX_MR
 		"alt_flaps":
 			return 1.0 if float(tv.flaps) > 0.0 else 0.0
+		"air_refuel":  # the AIR REFUEL switch: the door (terrain_view.gd refuel_door, command 296)
+			return 1.0 if tv.refuel_door else 0.0
 		"stores_config":
 			return 1.0 if tv.cat3 else 0.0
 		"ap_disc":  # the MANUAL TRIM panel's TRIM/AP DISC: 1 DISC (terrain_view.gd ap_disc)
@@ -614,6 +616,9 @@ func _system_put(name: String, v: float, was := NAN) -> void:
 		"alt_flaps":  # command 12 flips the flaps lever
 			if on != (float(tv.flaps) > 0.0):
 				tv._press([12, 0, 0])
+		"air_refuel":  # command 296: p1 1 open, -1 close (modern-iaf/docs/research/air-refuelling.md §8.2)
+			if on != bool(tv.refuel_door):
+				tv._press([296, 1 if on else -1, 0])
 		"twd_open":
 			if tv.weapons.ews != null:
 				tv.weapons.ews.set_open(on)

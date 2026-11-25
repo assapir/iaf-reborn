@@ -20,6 +20,7 @@ pub mod site;
 pub mod skill;
 pub mod sort;
 pub mod strike;
+pub mod tanker;
 pub mod target;
 pub mod wingman;
 

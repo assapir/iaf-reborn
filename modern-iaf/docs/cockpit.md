@@ -1022,6 +1022,8 @@ holds the autopilot off.
 | Shift + I (held) | the stick's paddle switch: the autopilot interrupted, a TF fly-up held off |
 | Shift + 6 | TRIM/AP DISC, NORM / DISC; the MANUAL TRIM panel's switch moves with it |
 | Ctrl + L | FLCS RESET; the FLT CONTROL panel's switch |
+| Shift + F1 | AIR REFUEL, OPEN / CLOSE (the F-35I: its refuelling door, shown on the PCD's FUEL portal) |
+| Shift + F2 | the stick's NWS A/R DISC MSL STEP button as A/R DISC: the boom disconnects |
 
 **What the pilot sees** (the user, 2026-11-25: no line over the flight for the autopilot, [front-end.md](front-end.md)
 §8). Each change shows on the jet's own cue, as the flight manual gives it:
@@ -1088,7 +1090,10 @@ the 3D control (no new keys); the F-35I's are rows of `f35i_controls.json` with 
 | F-35I | the guards of ALT GEAR, ENGINE and IPP EMER OFF | status works: a guard's real job is to gate its switch |
 | F-16 | ANTI SKID caution | lit with the brakes failed (damage 5, BRAKES FAIL): "a malfunction affecting braking performance"[^fm-antiskid] |
 | F-16 | STBY GAINS (the FLCS panel's four lights) | lit with the air data failed (damage 11): the FLCS on its standby gains, the fault list's STBY GAIN, "dual air data failure"[^fm-stbygain] |
-| F-16 | AR RDY | lit with AIR REFUEL at OPEN and hydraulic system B up: "the AR slipway door is open and the system is ready"[^fm-arrdy] (the door's hydraulics inferred) |
+| F-16 | AR RDY | lit with AIR REFUEL at OPEN and hydraulic system B up: "the AR slipway door is open and the system is ready"[^fm-arrdy] (the door's hydraulics inferred); out while the tanker's boom is latched and while DISC is lit (since 2026-11-25) |
+| F-16 | AR/NWS | lit on the ground (the nose wheel steering) and while the tanker's boom is latched in the receptacle (2026-11-25; [research/air-refuelling.md](research/air-refuelling.md) §5) |
+| F-16 | AR DISC | lit for 3 s after the boom's disconnect, then RDY again (2026-11-25; research/air-refuelling.md §5) |
+| F-16 | AIR REFUEL switch | a row with a `system` (`air_refuel`): OPEN opens the door (`terrain_view.gd` `refuel_door`, command 296 on Shift + F1), and the external tanks hold their fuel while it is open (the 6-DoF's `Tanks::ext_hold`) |
 
 The F-16's checklist card checks its speed brakes too: "Speedbrakes – cycle, then closed" ticks once they were seen
 open and are closed again, "Speedbrakes – closed" after landing once closed (`card.gd` `speedbrake`).
@@ -1105,7 +1110,7 @@ These stay as they are, each with its reason in the status data:
   light no condition), NWS FAIL (the steering does not fail), SEAT NOT ARMED (the cockpit model has no ejection safety
   lever; the seat is the outside model's one mesh, with no handle either: the E key ejects), IFF (no mode 4), the ECM
   panel's eleven (its programs are not modelled, and the model lights them only all together), FLCS FAIL A-D (the
-  battery does not fail), the marker beacon (no beacons), HANDOFF, AR DISC (no tanker), AFT NOT ENGAGED, BUC, EEC,
+  battery does not fail), the marker beacon (no beacons), HANDOFF, AFT NOT ENGAGED, BUC, EEC,
   SEC, FUEL/OIL HOT, INLET ICING, NUCLEAR and the blank legends.
 - The F-16's card: Oxygen, IFF, trim (the sim has the roll trim only) and the ejection safety lever stay read and
   acknowledged.

@@ -20,6 +20,7 @@ use iaf_ai::strike::{self, Pylon};
 use iaf_ai::target::{Drone, Kind as DroneKind};
 use iaf_ai::{Bandit, Bogey, Decoy, Flight, Skill, Tactic, Threat};
 use iaf_flight::Vec3;
+use iaf_flight::autopilot::Leader;
 
 use crate::flight::{IafFlight, to_enu};
 use crate::world::{get, num, rcs, terrain, vec3, vector3};
@@ -133,6 +134,26 @@ impl IafAi {
     #[func]
     fn set_low(&mut self, agl: f64) {
         self.flight.low((agl > 0.0).then_some(agl as f32));
+    }
+
+    /// Jet `number`'s station on the tanker this frame (`IafTanker.slot`'s {position, velocity, attitude, slot}: the
+    /// tanker as its leader, its slot on it), while it is refuelling (the lead's "refuel", `state` refuelling); an
+    /// empty dictionary: the tanker is through with it, it rejoins the flight.
+    #[func]
+    fn set_refuel(&mut self, number: i64, station: VarDictionary) {
+        let n = number.clamp(0, 255) as u8;
+        let leader = |d: &VarDictionary| {
+            let att: Vector3 = get(d, "attitude")?;
+            let slot: Vector3 = get(d, "slot")?;
+            let ld = Leader {
+                pos: to_enu(get(d, "position")?),
+                vel: to_enu(get(d, "velocity")?),
+                att: [att.x, att.y, att.z],
+                active: true,
+            };
+            Some((ld, [slot.x, slot.y, slot.z]))
+        };
+        self.flight.set_refuel(n, leader(&station));
     }
 
     /// The flight flies low ([`Self::set_low`], the lead's "low" order).
@@ -356,12 +377,13 @@ impl IafAi {
     /// sort, free), engaging, covering, holding (a sorted wingman holding its fire), foe (the bandit it fights, 0 none),
     /// fuel_kg, bingo_kg, released (sent home), hold (it waits on the ground: taxiing in behind a jet, a pair's lead for
     /// its wingman), strike (its attack's phase: "", wait, run, egress), profile (its run: level, dive, pop), low (the
-    /// flight flies low, docs/ai.md §20); empty for an unknown number.
+    /// flight flies low, docs/ai.md §20), refuelling (sent to the tanker); empty for an unknown number.
     #[func]
     fn state(&self, number: i64) -> VarDictionary {
         let mut d = VarDictionary::new();
         let Some(m) = self.flight.member(number.clamp(0, 255) as u8) else { return d };
         d.set("role", if m.number == self.flight.lead() { "lead" } else { "wingman" });
+        d.set("refuelling", m.refuelling);
         if let Some((_, jet, _)) = self.jets.iter().find(|j| j.0 == m.number) {
             d.set("stage", &jet.bind().ap_stage());
         }
@@ -902,6 +924,15 @@ impl IafFreeCombat {
     fn area(seed: i64, home: Vector3, bases: PackedVector3Array) -> i64 {
         let bases: Vec<Vec3> = bases.as_slice().iter().map(|&b| vec3(b)).collect();
         free_combat::area(seed as u64, vec3(home), &bases).map_or(-1, |i| i as i64)
+    }
+
+    /// Scramble's tanker drawn from `seed` between the player's base `home` and the fight's `area` (world): {kind (kc46,
+    /// reem), anchor (world, the inbound leg's start), course (deg)}; empty: no tanker on this flight.
+    #[func]
+    fn tanker(seed: i64, home: Vector3, area: Vector3) -> VarDictionary {
+        free_combat::tanker(seed as u64, vec3(home), vec3(area)).map_or_else(VarDictionary::new, |(k, at, course)| {
+            vdict! {"kind" => k, "anchor" => vector3(at), "course" => course}
+        })
     }
 
     /// The runway start of a flight of `count` at the lineup point `lineup` (world) facing `heading` (deg): one {pos

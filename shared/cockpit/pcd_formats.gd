@@ -1068,6 +1068,14 @@ func fuel(r: Rect2) -> void:
 		var my := bar.end.y - bar.size.y * float(m[0]) / INTERNAL_LB
 		line(Vector2(bar.position.x - 3.0, my), Vector2(bar.end.x + 3.0, my), WHITE, THIN)
 		text(Vector2(bar.end.x + 4.0, my + 1.6), m[1], 4.0, YELLOW if internal < float(m[0]) else WHITE)
+	# Ours: the air refuelling door (Shift + F1, terrain_view.gd command 296) and the boom's contact; the real
+	# format's indication is open (modern-iaf/docs/research/air-refuelling.md §6, §8.2; inferred).
+	var ar: Dictionary = st.get("ar", {})
+	if ar.get("door", false):
+		var said := (
+			"AR CONTACT" if ar.get("contact", false) else ("AR DISC" if ar.get("disc", false) else "AR DOOR OPEN")
+		)
+		text(Vector2(r.position.x, r.end.y - 4.0), said, 4.6, GREEN, HORIZONTAL_ALIGNMENT_CENTER, r.size.x)
 
 
 func engine(r: Rect2) -> void:

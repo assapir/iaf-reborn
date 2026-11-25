@@ -49,6 +49,20 @@
       "url": "https://huggingface.co/hexgrad/Kokoro-82M",
       "licence": "Kokoro-82M v1.0 model and voice packs, Apache-2.0",
       "use": "the player's wingmen Kidon 1-2 to 1-4 (radio chain): their answers and calls WNG_* (modern-iaf/docs/research/radio-terms.md)"
+    },
+    "boom": {
+      "model": "am_onyx",
+      "speed": 1.1,
+      "url": "https://huggingface.co/hexgrad/Kokoro-82M",
+      "licence": "Kokoro-82M v1.0 model and voice packs, Apache-2.0",
+      "use": "the tanker's boom operator (radio chain): the calls TNK_* (radio.gd tanker_call, modern-iaf/docs/research/air-refuelling.md §8.4)",
+      "other": {
+        "model": "af_kore",
+        "speed": 1.1,
+        "gender": "f",
+        "use": "the boom operator's English voice in a flight whose cast gives the boom operator a woman (he.casts' boom: lily); af_kore, VOICES.md's C+ (sound.md §3.2)"
+      },
+      "gender": "m"
     }
   },
   "clips": [
@@ -6309,6 +6323,142 @@
       "say": "Eitam, [Kidon](/kidˈOn/) one, request vector to tanker.",
       "mode": "helmet",
       "note": "the player's call to the AWACS, whole (docs/ai.md §24)"
+    },
+    {
+      "file": "tnk_kidon1.ogg",
+      "voice": "boom",
+      "say": "[Kidon](/kidˈOn/) one",
+      "mode": "particle",
+      "say_he": "כידון אחד",
+      "note": "air refuelling (modern-iaf/docs/research/air-refuelling.md §8.4): the Hebrew ours around Hamichlol's terms"
+    },
+    {
+      "file": "tnk_kidon1_2.ogg",
+      "voice": "boom",
+      "say": "[Kidon](/kidˈOn/) one-two",
+      "mode": "particle",
+      "say_he": "כידון אחד שתיים",
+      "note": "air refuelling (modern-iaf/docs/research/air-refuelling.md §8.4): the Hebrew ours around Hamichlol's terms"
+    },
+    {
+      "file": "tnk_kidon1_3.ogg",
+      "voice": "boom",
+      "say": "[Kidon](/kidˈOn/) one-three",
+      "mode": "particle",
+      "say_he": "כידון אחד שלוש",
+      "note": "air refuelling (modern-iaf/docs/research/air-refuelling.md §8.4): the Hebrew ours around Hamichlol's terms"
+    },
+    {
+      "file": "tnk_kidon1_4.ogg",
+      "voice": "boom",
+      "say": "[Kidon](/kidˈOn/) one-four",
+      "mode": "particle",
+      "say_he": "כידון אחד ארבע",
+      "note": "air refuelling (modern-iaf/docs/research/air-refuelling.md §8.4): the Hebrew ours around Hamichlol's terms"
+    },
+    {
+      "file": "tnk_gideon.ogg",
+      "voice": "boom",
+      "say": "Gideon",
+      "mode": "particle",
+      "say_he": "גדעון",
+      "note": "air refuelling (modern-iaf/docs/research/air-refuelling.md §8.4): the Hebrew ours around Hamichlol's terms"
+    },
+    {
+      "file": "tnk_reem.ogg",
+      "voice": "boom",
+      "say": "[Re'em](/ʁəˈEm/)",
+      "mode": "particle",
+      "say_he": "ראם",
+      "note": "air refuelling (modern-iaf/docs/research/air-refuelling.md §8.4): the Hebrew ours around Hamichlol's terms"
+    },
+    {
+      "file": "tnk_precontact.ogg",
+      "voice": "boom",
+      "say": "cleared pre-contact.",
+      "mode": "particle",
+      "say_he": "אישור לעמדת טרום מגע.",
+      "note": "air refuelling (modern-iaf/docs/research/air-refuelling.md §8.4): the Hebrew ours around Hamichlol's terms"
+    },
+    {
+      "file": "tnk_stand_by.ogg",
+      "voice": "boom",
+      "say": "stand by, observation left.",
+      "mode": "particle",
+      "say_he": "המתנה בעמדת תצפית משמאל.",
+      "note": "air refuelling (modern-iaf/docs/research/air-refuelling.md §8.4): the Hebrew ours around Hamichlol's terms"
+    },
+    {
+      "file": "tnk_cleared_contact.ogg",
+      "voice": "boom",
+      "say": "cleared contact.",
+      "mode": "particle",
+      "say_he": "אישור למגע.",
+      "note": "air refuelling (modern-iaf/docs/research/air-refuelling.md §8.4): the Hebrew ours around Hamichlol's terms"
+    },
+    {
+      "file": "tnk_contact.ogg",
+      "voice": "boom",
+      "say": "contact.",
+      "mode": "particle",
+      "say_he": "מגע.",
+      "note": "air refuelling (modern-iaf/docs/research/air-refuelling.md §8.4): the Hebrew ours around Hamichlol's terms"
+    },
+    {
+      "file": "tnk_disconnect.ogg",
+      "voice": "boom",
+      "say": "disconnect.",
+      "mode": "particle",
+      "say_he": "ניתוק.",
+      "note": "air refuelling (modern-iaf/docs/research/air-refuelling.md §8.4): the Hebrew ours around Hamichlol's terms"
+    },
+    {
+      "file": "tnk_breakaway.ogg",
+      "voice": "boom",
+      "say": "breakaway, breakaway, breakaway!",
+      "mode": "particle",
+      "say_he": "ניתוק חירום, ניתוק חירום, ניתוק חירום!",
+      "note": "air refuelling (modern-iaf/docs/research/air-refuelling.md §8.4): the Hebrew ours around Hamichlol's terms"
+    },
+    {
+      "file": "tnk_complete.ogg",
+      "voice": "boom",
+      "say": "refuelling complete, cleared right wing.",
+      "mode": "particle",
+      "say_he": "התדלוק הושלם, אישור לכנף ימין.",
+      "note": "air refuelling (modern-iaf/docs/research/air-refuelling.md §8.4): the Hebrew ours around Hamichlol's terms"
+    },
+    {
+      "file": "plt_gideon.ogg",
+      "voice": "pilot",
+      "say": "Gideon.",
+      "mode": "helmet",
+      "say_he": "גדעון.",
+      "note": "air refuelling (modern-iaf/docs/research/air-refuelling.md §8.4): the Hebrew ours around Hamichlol's terms"
+    },
+    {
+      "file": "plt_reem.ogg",
+      "voice": "pilot",
+      "say": "[Re'em](/ʁəˈEm/).",
+      "mode": "helmet",
+      "say_he": "ראם.",
+      "note": "air refuelling (modern-iaf/docs/research/air-refuelling.md §8.4): the Hebrew ours around Hamichlol's terms"
+    },
+    {
+      "file": "plt_req_refuel.ogg",
+      "voice": "pilot",
+      "say": "Request refuelling.",
+      "mode": "helmet",
+      "say_he": "בקשת תדלוק.",
+      "note": "air refuelling (modern-iaf/docs/research/air-refuelling.md §8.4): the Hebrew ours around Hamichlol's terms"
+    },
+    {
+      "file": "flt_cmd_refuel.ogg",
+      "voice": "pilot",
+      "say": "Refuel.",
+      "mode": "helmet",
+      "say_he": "תדלוק.",
+      "note": "air refuelling (modern-iaf/docs/research/air-refuelling.md §8.4): the Hebrew ours around Hamichlol's terms"
     }
   ],
   "particles": {
@@ -10795,6 +10945,91 @@
       "file": "plt_eitam_kidon1_vector_tanker.ogg",
       "text": "Eitam, Kidon 1, request vector to tanker",
       "text_he": "עיטם, כידון 1, בקשת הכוונה למטוס התדלוק"
+    },
+    "TNK_KIDON1": {
+      "file": "tnk_kidon1.ogg",
+      "text": "Kidon 1",
+      "text_he": "כידון 1"
+    },
+    "TNK_KIDON1_2": {
+      "file": "tnk_kidon1_2.ogg",
+      "text": "Kidon 1-2",
+      "text_he": "כידון 1-2"
+    },
+    "TNK_KIDON1_3": {
+      "file": "tnk_kidon1_3.ogg",
+      "text": "Kidon 1-3",
+      "text_he": "כידון 1-3"
+    },
+    "TNK_KIDON1_4": {
+      "file": "tnk_kidon1_4.ogg",
+      "text": "Kidon 1-4",
+      "text_he": "כידון 1-4"
+    },
+    "TNK_GIDEON": {
+      "file": "tnk_gideon.ogg",
+      "text": "Gideon",
+      "text_he": "גדעון"
+    },
+    "TNK_REEM": {
+      "file": "tnk_reem.ogg",
+      "text": "Re'em",
+      "text_he": "ראם"
+    },
+    "TNK_PRECONTACT": {
+      "file": "tnk_precontact.ogg",
+      "text": "cleared pre-contact",
+      "text_he": "אישור לעמדת טרום מגע"
+    },
+    "TNK_STAND_BY": {
+      "file": "tnk_stand_by.ogg",
+      "text": "stand by, observation left",
+      "text_he": "המתנה בעמדת תצפית משמאל"
+    },
+    "TNK_CLEARED_CONTACT": {
+      "file": "tnk_cleared_contact.ogg",
+      "text": "cleared contact",
+      "text_he": "אישור למגע"
+    },
+    "TNK_CONTACT": {
+      "file": "tnk_contact.ogg",
+      "text": "contact",
+      "text_he": "מגע"
+    },
+    "TNK_DISCONNECT": {
+      "file": "tnk_disconnect.ogg",
+      "text": "disconnect",
+      "text_he": "ניתוק"
+    },
+    "TNK_BREAKAWAY": {
+      "file": "tnk_breakaway.ogg",
+      "text": "breakaway, breakaway, breakaway",
+      "text_he": "ניתוק חירום, ניתוק חירום, ניתוק חירום"
+    },
+    "TNK_COMPLETE": {
+      "file": "tnk_complete.ogg",
+      "text": "refuelling complete, cleared right wing",
+      "text_he": "התדלוק הושלם, אישור לכנף ימין"
+    },
+    "GIDEON_P": {
+      "file": "plt_gideon.ogg",
+      "text": "Gideon",
+      "text_he": "גדעון"
+    },
+    "REEM_P": {
+      "file": "plt_reem.ogg",
+      "text": "Re'em",
+      "text_he": "ראם"
+    },
+    "REQ_REFUEL": {
+      "file": "plt_req_refuel.ogg",
+      "text": "request refuelling",
+      "text_he": "בקשת תדלוק"
+    },
+    "CMD_REFUEL": {
+      "file": "flt_cmd_refuel.ogg",
+      "text": "refuel",
+      "text_he": "תדלוק"
     }
   },
   "templates": {
@@ -10842,7 +11077,9 @@
     "AWX_CLEAN": "%S1 , AWX_CLEAN",
     "AWX_DECLARE": "%S1 , %S2",
     "AWX_VECTOR": "%S1 , %S2 , %S3 , %S4",
-    "AWX_HELP": "%S1 , AWX_THREAT , AWX_GROUP_W %S2 , %S3 , %S4 , AWX_RETROGRADE , AWX_COMMIT"
+    "AWX_HELP": "%S1 , AWX_THREAT , AWX_GROUP_W %S2 , %S3 , %S4 , AWX_RETROGRADE , AWX_COMMIT",
+    "TNK_CALL": "%S1 , %S2",
+    "TNK_CALL3": "%S1 , %S2 , %S3"
   },
   "he": {
     "engine": "BlueTTS BlueV3 (github.com/maxmelichov/BlueTTS, git 91b1789): code and weights MIT, the RenikudPlus G2P Apache-2.0, the voices CC BY 4.0 (LibriTTS-R speakers), the vocoder OpenRAIL-M (modern-iaf/docs/research/hebrew-voices.md §4)",
@@ -10887,7 +11124,8 @@
           "lily",
           "jonathan",
           "shira"
-        ]
+        ],
+        "boom": "david"
       },
       {
         "tower": "lily",
@@ -10897,7 +11135,8 @@
           "ariel",
           "yael",
           "david"
-        ]
+        ],
+        "boom": "lily"
       },
       {
         "tower": "david",
@@ -10907,7 +11146,8 @@
           "yael",
           "ariel",
           "lily"
-        ]
+        ],
+        "boom": "david"
       },
       {
         "tower": "lily",
@@ -10917,7 +11157,8 @@
           "jonathan",
           "shira",
           "david"
-        ]
+        ],
+        "boom": "lily"
       },
       {
         "tower": "david",
@@ -10927,7 +11168,8 @@
           "jonathan",
           "lily",
           "ariel"
-        ]
+        ],
+        "boom": "david"
       },
       {
         "tower": "lily",
@@ -10937,7 +11179,8 @@
           "shira",
           "david",
           "yael"
-        ]
+        ],
+        "boom": "lily"
       },
       {
         "tower": "david",
@@ -10947,7 +11190,8 @@
           "shira",
           "yael",
           "lily"
-        ]
+        ],
+        "boom": "david"
       },
       {
         "tower": "lily",
@@ -10957,7 +11201,8 @@
           "david",
           "ariel",
           "jonathan"
-        ]
+        ],
+        "boom": "lily"
       }
     ],
     "ipa": {

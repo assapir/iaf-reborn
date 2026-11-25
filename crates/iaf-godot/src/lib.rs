@@ -44,6 +44,7 @@ mod setup;
 mod sight;
 mod stores;
 mod surface;
+mod tanker;
 mod training;
 mod ufc;
 mod world;

@@ -62,6 +62,8 @@ const ACC_S: f64 = 0.3;
 /// at the join-up, pulled on and scattered the flight 500 m, test_four_ship, 2026-11-22).
 const AVOID_CLEAR_M: f64 = 100.0;
 const AVOID_SLOT_CLEAR_M: f64 = 70.0;
+/// On a tanker's station ([`Flight::set_refuel`]) the slot loop takes the station's gains within this, m (inferred).
+const PRECISE_M: f64 = 100.0;
 /// A slot is reached (the transit's end; "in position") within this, m.
 const IN_POSITION_M: f32 = 50.0;
 /// The lead's "close up" / "spread out" ([`Flight::command`]): the close shapes' spacing by step, a share of
@@ -250,6 +252,8 @@ pub struct Order {
     pub slot: [f32; 3],
     /// The slot is a close-up step ([`CLOSE_STEPS`], `Autopilot::close`).
     pub close: bool,
+    /// The slot is a station on the tanker (`Autopilot::precise`).
+    pub precise: bool,
     /// Start the engine (once).
     pub start_engine: bool,
     /// The route's waypoint to go on from (once: a promoted lead takes the lost lead's).
@@ -381,6 +385,10 @@ pub struct Member {
     pair_free: Option<Option<f64>>,
     /// Its air-to-ground attack ([`Flight::attack`], [`Flight::strike`]).
     pub strike: Strike,
+    /// Sent to the tanker by the lead's "refuel" ([`Flight::command`]); the tanker's station for it this frame
+    /// ([`Flight::set_refuel`]: the tanker as its leader and its slot on it; tanker.rs).
+    pub refuelling: bool,
+    pub refuel: Option<(Leader, [f32; 3])>,
     /// The flight's low-level height this decision ([`Flight::low`]).
     pub(crate) low: Option<f32>,
     /// The bandits its radar holds this decision ([`radar_holds`]), and the jammers beyond their burn-through it sees
@@ -645,6 +653,8 @@ impl Flight {
             lined_up: None,
             pair_free: None,
             strike: Strike::default(),
+            refuelling: false,
+            refuel: None,
             low: None,
         });
         self.members.sort_by_key(|m| m.number);
@@ -1126,6 +1136,22 @@ impl Flight {
         self.pairs = on;
     }
 
+    /// Jet `n`'s station on the tanker this frame (the tanker as its leader, its slot on it; tanker.rs `slot`), set
+    /// by the host each frame while the jet is [`Member::refuelling`]; None: the tanker is through with it (done, or
+    /// gone): the jet rejoins its slot in the flight.
+    pub fn set_refuel(&mut self, n: u8, station: Option<(Leader, [f32; 3])>) {
+        let Some(m) = self.members.iter_mut().find(|m| m.number == n) else { return };
+        if station.is_none() && m.refuelling {
+            (m.refuelling, m.transit, m.report) = (false, true, true);
+            // Refuelled: its fuel's RTB and joker / bingo calls are over (an RTB the lead ordered stays while the fuel
+            // is short of joker).
+            if m.rtb && !m.released && m.fuel_kg > m.bingo_kg + JOKER_KG {
+                (m.rtb, m.called) = (false, [false; 2]);
+            }
+        }
+        m.refuel = station;
+    }
+
     /// A radio command (design §4) to `to`: 0 the flight, 5 the element (#3, #4), 2..4 one wingman. Returns false for
     /// an unknown command or nobody to take it; the answers come as calls. "close_up" / "spread_out" to the flight
     /// take the close shapes one step of [`CLOSE_STEPS`] in or out; "unable" at the last step, in line abreast or
@@ -1163,6 +1189,7 @@ impl Flight {
                 // Once in its landing pattern (the gear down), a jet sent home lands.
                 "rejoin" if flying && !(m.released && m.v.gear_down) => {
                     (m.rtb, m.released, m.transit, m.report) = (false, false, true, true);
+                    (m.refuelling, m.refuel) = (false, None);
                     (m.tactic, m.assigned, m.holding, m.area, m.bandit) = (Tactic::None, None, false, None, None);
                     m.strike.clear();
                     if m.number == 3 {
@@ -1172,6 +1199,8 @@ impl Flight {
                 }
                 "rtb" if flying => {
                     (m.rtb, m.tactic, m.assigned, m.bandit) = (true, Tactic::None, None, None);
+                    // Sent home from the tanker: it leaves the tanker's queue (tanker.gd) and goes.
+                    (m.refuelling, m.refuel) = (false, None);
                     "ack"
                 }
                 // Cover (defend the lead): it keeps its slot and fights a bandit that attacks the lead (decide); with
@@ -1182,8 +1211,15 @@ impl Flight {
                     "ack"
                 }
                 "low" | "high" if to == 0 && flying => "ack",
+                // To the tanker (the host asks for each in turn, tanker.rs): it flies the tanker's stations once the
+                // host gives them (set_refuel).
+                // (A jet going home for its fuel may refuel: the end of its refuelling ends that RTB, set_refuel.)
+                "refuel" if flying && !m.released => {
+                    m.refuelling = true;
+                    "ack"
+                }
                 "close_up" | "spread_out" if step.is_some() && flying => "ack",
-                "rejoin" | "rtb" | "cover" | "low" | "high" | "close_up" | "spread_out" => "unable",
+                "rejoin" | "rtb" | "cover" | "low" | "high" | "close_up" | "spread_out" | "refuel" => "unable",
                 _ => return false,
             };
             acked |= answer == "ack";
@@ -1307,7 +1343,8 @@ impl Flight {
         }
         // Send home the first that wants to go, one per RELEASE_S.
         if now >= self.last_release + RELEASE_S
-            && let Some(m) = self.members.iter_mut().find(|m| m.alive && m.rtb && !m.released && m.number != lead_n)
+            && let Some(m) =
+                self.members.iter_mut().find(|m| m.alive && m.rtb && !m.released && !m.refuelling && m.number != lead_n)
         {
             (m.released, m.released_at) = (true, now);
             self.last_release = now;
@@ -1587,13 +1624,17 @@ impl Flight {
                     miss < AVOID_CLEAR_M * kg && (closing || miss < AVOID_SLOT_CLEAR_M * kg || !in_slot)
                 }
             });
+            // On the tanker the stations keep the jets apart (tanker.rs): no pull-away from one another there.
+            if m.refuelling && m.refuel.is_some() {
+                m.avoiding = false;
+            }
             m.order.avoid = a.filter(|_| m.avoiding).map(|(_, away, _)| away);
             let ahead = (0..i).rev().map(|j| &self.members[j]).find(|a| a.alive).map(leader_of);
             let m = &mut self.members[i];
             let ground = m.v.on_ground && !m.airborne || m.mode == 9 && !m.airborne;
             m.order.leader = if ground { ahead } else { Some(ld) };
             m.order.slot = m.slot;
-            m.order.close = k < 1.0;
+            (m.order.close, m.order.precise) = (k < 1.0, false);
             // The dogfight's point follows the bogey every frame while it is in sight.
             let b = m.bandit.and_then(|id| self.bandits.iter().find(|b| b.id == id)).map(Bandit::bogey);
             if let (Some((aim, lay)), Some(b)) = (m.enemy.aim, b.filter(|_| m.enemy.visual)) {
@@ -1602,7 +1643,13 @@ impl Flight {
                     s.to = to;
                 }
             }
-            if m.transit {
+            if let Some((ld, slot)) = m.refuel.filter(|_| m.refuelling) {
+                // On the tanker's station: its leader and slot, flown close; no step down; the station's gains once
+                // near it (far off they overshoot: a jet 700 m behind swung ±500 m round its station at full throttle).
+                (m.order.leader, m.order.slot, m.order.close, m.transit, m.report) =
+                    (Some(ld), slot, true, false, false);
+                m.order.precise = autopilot::slot_point(&ld, slot).distance(m.v.pos) < PRECISE_M;
+            } else if m.transit {
                 m.order.slot[2] -= TRANSIT_STEP * (m.number as f32 - 1.0);
             }
         }
@@ -1928,6 +1975,7 @@ pub fn apply(o: &Order, ap: &mut Autopilot, fm: &mut Fm) {
     ap.leader = o.leader;
     ap.slot = o.slot;
     ap.close = o.close;
+    ap.precise = o.precise;
     ap.avoid = o.avoid;
     ap.hold = o.hold;
     ap.hold_short = o.hold_short;

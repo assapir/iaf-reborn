@@ -1,6 +1,8 @@
 # The jet's checklist card (modern-iaf/docs/training.md §12): one real checklist per jet, the same card in every
 # mission, read from data/checklists/<file>.json (the file whose "jets" holds the flight's jet). A child of
 # sim_flight.gd; the notebook's CHECKLIST page (kneeboard.gd) shows it.
+# - A card file's "refuel" sections are the air refuelling checklist (training.md §11): a second card of the same
+#   file (`key` "refuel"), run the same way, shown on the notebook's AIR REFUEL tab only with a tanker on the flight.
 # - Each item with a "check" is ticked from the cockpit's state every frame; an item without one is read and
 #   acknowledged (its system is not modelled): shown, never the current item.
 # - The sections run in order. The first with an item still open is the current section; the sections before it stay
@@ -16,7 +18,8 @@ extends Node
 const DIR := "res://data/checklists"
 
 var flight: Node  # sim_flight.gd
-## The card: {jets, sections: [{id, en, he, when?, starts?, items: [{id, en, he, where?, how?, check?, control?}]}]}.
+## The card: {jets, sections: [{id, en, he, when?, starts?, items: [{id, en, he, where?, how?, check?, control?}]}],
+## refuel: [the air refuelling sections, the same form]}.
 var data := {}
 var sections: Array = []
 ## Every item in card order, each with its section's index ("section").
@@ -37,14 +40,15 @@ var _nodes := {}  # a control's node name -> its record (cockpit3d_controls.gd),
 var _c3d: Node
 
 
-func _init(f: Node, plane: String) -> void:
+## `key`: the file's list of sections this card runs ("sections", or "refuel": the air refuelling checklist).
+func _init(f: Node, plane: String, key := "sections") -> void:
 	flight = f
-	name = "Card"
+	name = "Card" if key == "sections" else "RefuelCard"
 	for file in DirAccess.get_files_at(Settings.readable(DIR)):
 		var d := Settings.load_json(DIR.path_join(file))
 		if plane in d.get("jets", []):
 			data = d
-	sections = data.get("sections", [])
+	sections = data.get(key, [])
 	for i in sections.size():
 		for it: Dictionary in sections[i].items:
 			it["section"] = i
@@ -149,7 +153,8 @@ func _phase(when: String, st: Dictionary) -> bool:
 ## control node at its value, or within [lo, hi]; "test": each control seen at its value since the flight began (a
 ## test switch's moment); "lamp_off": that cockpit lamp dark; "state": the flight state's values; "gear": the gear
 ## handle "up" or "down"; "throttle_off": the throttle at OFF; "speedbrake": the speed brakes "closed", or "cycled":
-## seen open since the flight began and closed now).
+## seen open since the flight began and closed now; "ar": the air refuelling door "open" or "closed", or the boom
+## latched, "contact"; terrain_view.gd refuel_door, tanker).
 func holds(c: Dictionary, st: Dictionary) -> bool:
 	for k in c:
 		var ok := true
@@ -169,6 +174,15 @@ func holds(c: Dictionary, st: Dictionary) -> bool:
 				ok = flight.host.cockpit != null and flight.host.cockpit.gear_handle_down == (String(c.gear) == "down")
 			"throttle_off":
 				ok = float(flight.host.throttle) <= flight.THROTTLE_OFF
+			"ar":
+				var h: Node = flight.host
+				match String(c.ar):
+					"open":
+						ok = h.refuel_door
+					"closed":
+						ok = not h.refuel_door
+					_:
+						ok = h.tanker != null and h.tanker.in_contact()
 			"speedbrake":
 				ok = _speed_brake_deg() <= SPEED_BRAKE_OPEN_DEG and (String(c.speedbrake) == "closed" or _brakes_out)
 		if not ok:

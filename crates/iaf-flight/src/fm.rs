@@ -312,6 +312,14 @@ impl Fm {
         }
     }
 
+    /// Ours (air refuelling): `kg` more fuel, up to the tanks' capacity (kept).
+    pub fn add_fuel(&mut self, kg: f32) {
+        match self {
+            Fm::Original(a) => a.add_fuel(kg),
+            Fm::SixDof(s) => s.add_fuel(kg),
+        }
+    }
+
     /// The external tanks' fuel at the start, `centre_kg` of it the centreline tank's (the 6-DoF's EXT CTR gauge; the
     /// original model has one fuel figure).
     pub fn set_fuel_capacity(&mut self, extra_kg: f32, centre_kg: f32) {

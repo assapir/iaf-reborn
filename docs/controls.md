@@ -146,13 +146,17 @@ Terms used on this page:
   turned (the cursor portal's previous / next format), Alt + F8 the FLC pushed (the TSD's next layers), Alt + F7 the
   helmet's picture (night camera, DAS, off). Record 255 (command 303), Shift + N: the F-16s' night-vision goggles
   flipped down / up; the F-35I has none (a notice). Record 258 (command 302 p1 4), Alt + F6: the throttle's Lights
-  Master, the F-35I's navigation lights and strobe on / off (modern-iaf/docs/cockpit.md §5.5). DMS left / right (records 149 / 150, Ctrl + `[` / `]`) move the cursor between its
+  Master, the F-35I's navigation lights and strobe on / off (modern-iaf/docs/cockpit.md §5.5). Records 259 / 260
+  (commands 296 / 297), Shift + F1 / Shift + F2: air refuelling's door, open / close (the F-16's AIR REFUEL switch,
+  the F-35I's door), and the stick's A/R disconnect (modern-iaf/docs/research/air-refuelling.md §8.2). DMS left / right (records 149 / 150, Ctrl + `[` / `]`) move the cursor between its
   portals; DMS up / down give the sensor of interest to the helmet and back. The F-16's ICP keys (records 152–174)
   work the CNI.
 * **Modern IAF's four-ship orders** (the formations, rejoin, RTB, the split into pairs and the regroup, engage my
   target, sort, weapons free, cover me, low level and back to altitude: `IafAi.command` / `IafAi.split` /
   `IafAi.engage` / `IafAi.attack` / `IafAi.sort` / `IafAi.weapons_free`, [ai.md](ai.md) §8.8–§8.11, §20): the radio
-  menu's flight pages carry them (record 47, modern-iaf/docs/ai-plan.md F5, F12, F15, K17). Five have keys (command
+  menu's flight pages carry them (record 47, modern-iaf/docs/ai-plan.md F5, F12, F15, K17); with a tanker on the
+  flight also "Refuel" (ai.md §25), and the first page a Tanker line whose one call is "Request refuelling"
+  (modern-iaf/docs/research/air-refuelling.md §8.3). Five have keys (command
   108, `radio.gd FLIGHT_KEYS`): record 99 (Alt + E, "Wingman: attack my target") engage my target to Kidon 1-2, record
   98 (Alt + W) sort, record 101 (Alt + P) cover me to Kidon 1-2, and Modern IAF's own record 256 (`Alt + \`, p1 7)
   weapons free to the flight round the SPI and record 257 (`Ctrl + \`, p1 8) the flight low level (300 ft) or back to

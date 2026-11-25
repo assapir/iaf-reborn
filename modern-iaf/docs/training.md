@@ -549,6 +549,7 @@ edge, the text right to left.
 | RADIO / קשר | the callsign, the base's frequencies (name, MHz, VHF / UHF), the four calls with the frequency to call on and the tower's answer | `data/notebook.json` `radio` and `calls`; the call names are the radio menu's (`sim_flight.gd` `ITEMS`) |
 | LANDING / נחיתה | the call, the gear, the final's AOA, the touchdown, the throttle to OFF on the spot | `data/notebook.json` `pages.<f16 / f35i>.landing` |
 | WEAPONS / חימוש | arming (ST STA on the F-16s, MASTER ARM, the gear up), air-to-ground (the stores from the Arming page, the master mode and the CCIP cue, the release, the jettison) and air-to-air (the master mode, the radar lock, the release, the gun); each step with its switch, its place and its key as bound: the one page with keys, as the weapons' controls have no switch to click (2026-11-14, [weapons.md](weapons.md) §5) | `pages.<family>.weapons` (`key`: a record of `data/keys.json`) |
+| AIR REFUEL / תדלוק אווירי (only with a tanker on the flight; since 2026-11-25) | the jet's air refuelling checklist: BEFORE CONTACT, CONTACT, AFTER REFUELLING, ticked as the CHECKLIST's items are (the item to do now on the yellow band), its read-and-acknowledge items with ○. F-16s: the real -1's normal air refuelling procedure in outline (the -1's air refuelling section, p. 8-34)[^haf]; F-35I: inferred from the F-16's and the two public rules of research/air-refuelling.md. With eight tabs each tab is shorter (68 px in place of 78) to stay on the board | the card file's `refuel` sections, a second `card.gd` (`sim_flight.gd` `refuel_card`); the user, 2026-11-25: "the notebook should have air-refuling part for checklitst of it" |
 | EMERGENCY / חירום (a red tab, a red strip down the page) | the hot start, an engine fire on the ground, the ejection | `pages.<family>.emergency` |
 | DATA / נתונים | the mission, the base and its ICAO code, the time, the wind, the jet, the runway, the route's first point | the mission's readable file; the airbase file |
 
@@ -716,6 +717,7 @@ it:
 | `gear` | the gear handle up or down |
 | `throttle_off` | the throttle at OFF |
 | `speedbrake` | the speed brakes `closed` (also when never opened), or `cycled`: seen open since the flight began and closed now |
+| `ar` | the air refuelling door `open` or `closed`, or `contact`: the tanker's boom latched (the AIR REFUEL tab, §11) |
 
 An item with no `check` is read and acknowledged: its system is not modelled (the oxygen, the IFF, the trim, the
 F-16's ejection safety lever). The notebook shows it with ○ and "Read and acknowledge: not modelled in the sim"; it is never

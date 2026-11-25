@@ -183,7 +183,9 @@ func tab_rect(i: int) -> Rect2:
 	var x := W - TAB_W - 2.0 - (8.0 if on else 0.0)
 	if rtl:
 		x = W - x - w
-	return Rect2(x, TAB_TOP + i * (TAB_H + TAB_GAP), w, TAB_H)
+	# Eight tabs (the AIR REFUEL tab with a tanker on the flight) are shorter, to stay on the board.
+	var h := minf(TAB_H, (H - TAB_TOP) / maxf(sections.size(), 1.0) - TAB_GAP)
+	return Rect2(x, TAB_TOP + i * (h + TAB_GAP), w, h)
 
 
 ## The footer's ‹ and › (previous, next) hit rects, in reading order's sides.

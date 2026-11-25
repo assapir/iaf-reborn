@@ -1086,7 +1086,11 @@ func _fly(delta: float) -> void:
 			p.brain.update(now)
 	if Settings.new_ai() and host.get("terrain") != null:
 		host.terrain.extra_heights = want
-	# After every jet's step (the player's came first, TerrainView's frame): the flight reads them all at one instant.
+	# After every jet's step (the player's came first, TerrainView's frame): the tanker works its receivers as they are
+	# now (shared/ai/tanker.gd) and gives the AI wingmen on it their stations, then the flight reads them all at one
+	# instant.
+	if host.get("tanker") != null:
+		host.tanker.frame(delta)
 	if flight_ai != null:
 		_step_flight_ai(now)
 	for f in enemy_flights:

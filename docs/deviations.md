@@ -159,6 +159,9 @@ Each entry names the switch and where it lives, then the difference: "Original: 
   it; the F-16's running EPU keeps the displays up (2026-11-25, modern-iaf/docs/training.md §7.2).
   On the 6-DoF the rudder keys ramp the pedals to full over 1 s instead of jumping and spring back over 0.25 s
   (docs/controls.md §2); the original model keeps the jump.
+  On the 6-DoF with the F-16's 3D cockpit, the AIR REFUEL switch (Shift + F1) at OPEN keeps the external tanks from
+  feeding, as on the real jet (2026-11-25, modern-iaf/docs/research/air-refuelling.md §8.2); the 1998 game has no
+  tanker, so the switch has no other effect there.
 
 **Flight data = Real**
 - **F-16 roll** (finish list F2). Original: the 1998 F-16 rolls at MaxRollRate 200 deg/s, RollAccel 270 deg/s².

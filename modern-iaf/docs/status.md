@@ -28,14 +28,28 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   player), voiced in English and Hebrew, and a request it cannot take is dimmed (since 2026-11-25 without a reason line: the game manual says when). In Scramble the Eitam
   (our own G550 CAEW model) flies a standoff racetrack behind the flight's way at 41,000 ft; a hostile group near it
   sends it away at Mach 0.85 with a call for help ("threat ... Eitam retrograding, commit"). Its radar feeds the
-  picture, the contact calls and the data link; the enemy can shoot it down, which ends the service. Open: the tanker's
-  vector waits for a tanker. `test_awacs.gd`, `cargo test -p iaf-ai --lib -- awacs`, `--test eitam`.
+  picture, the contact calls and the data link; the enemy can shoot it down, which ends the service. `test_awacs.gd`, `cargo test -p iaf-ai --lib -- awacs`, `--test eitam`.
 - **The Eitam's look and flight (2026-11-25, the user: "The eitam looks strange, only white. look online for pics, look
   for a better model"; [../../docs/ai.md](../../docs/ai.md) §24.3, [flight-model.md](flight-model.md) §9.22):** its
   model matched to photographs of the IAF's CAEW (the drooped nose radome, the tail radome, the side cheeks, the
   satcom bullet; white with the blue cheatline, the roundels, 537 and ISRAEL AIR FORCE); it flies on its own 6-DoF
   (the G550's wing, weights, BR710s and limits; its ceiling fit to 51,000 ft) under the autopilot's steer loop, banking
   25° in its turns. No free G550 CAEW model was found (Sketchfab, FlightGear, CGTrader: only plain Gulfstreams).
+- **Air refuelling (2026-11-25, the user: "Air refuelling", "it should be in coms, if available (not for every
+  mission) and ask and get approval to start"; [research/air-refuelling.md](research/air-refuelling.md) §8,
+  [../../docs/ai.md](../../docs/ai.md) §25):** a KC-46A Gideon or a 707 Re'em (our own models, `tools/tanker/`) on a
+  left-hand racetrack at 30,000 ft, on half of Scramble's flights, a mission's `tanker`, or `--tanker kc46|reem`; a
+  friendly contact on the radar. The radio menu's Tanker page (only with a tanker): "Request refuelling", then the
+  boom operator's clearances; the door (Shift + F1: the F-16's AIR REFUEL switch, the F-35I's door on the PCD's FUEL
+  portal), the boom flown into a receptacle held at the contact position, the pilot director lights, the fuel at
+  3,000 lb a minute (Re'em 2,000), disconnects on the envelope's limits, A/R DISC (Shift + F2) or full, breakaway;
+  the F-16's RDY, AR/NWS and DISC lamps; the external tanks hold their fuel with the door open. The wingmen's
+  command "Refuel": each refuels in turn and they rejoin. The AWACS's "Vector to tanker" answers with a tanker in
+  the air. The notebook's AIR REFUEL tab (only with a tanker; the user: "the notebook should have air-refuling part
+  for checklitst of it"): the jet's refuelling checklist, ticked in flight, the same steps in the jets' manuals
+  ([training.md](training.md) §11). `crates/iaf-ai/tests/tanker.rs`, `refuel.rs`, `test_air_refuel.gd`,
+  `test_awacs.gd`. Open: the flight controls' gains with the door open, the hose and drogue, the radio-silent
+  procedure (research §8.5).
 - **Every seat's radio calls whole, Kidon 5–8 voiced (2026-11-25, the game gaps' row 15; [sound.md](sound.md) §3,
   §5.2):** the player's call to a tower ("Hatzerim tower, Kidon 3, request taxi") is one clip as Kidon 1 to 8 (160
   English clips; before, Kidon 2–4 played the address, the callsign and the request apart); the tower's "negative,

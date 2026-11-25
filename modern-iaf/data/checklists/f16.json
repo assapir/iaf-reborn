@@ -92,5 +92,21 @@
   {"id": "main_power_off", "en": "MAIN PWR – OFF, below 20 % RPM", "he": "MAIN PWR – ‏OFF, מתחת ל־20% סל\"ד", "how": {"en": "click round to OFF; the lamps go dark", "he": "ללחוץ עד OFF; הנוריות כבות"}, "check": {"set": {"MAIN_PWR": 0}}, "control": ["MAIN_PWR"]},
   {"id": "canopy_open", "en": "Canopy – open", "he": "חופה – פתיחה", "how": {"en": "one click on the yellow handle: up; then press the canopy switch, drag up and hold until the canopy is up; the Canopy key does both", "he": "לחיצה אחת על הידית הצהובה: למעלה; ואז ללחוץ על מתג החופה, לגרור למעלה ולהחזיק עד שהחופה למעלה; מקש החופה עושה את שניהם"}, "where": {"en": "canopy switch and yellow canopy handle: left side wall under the canopy sill, ahead of the throttle", "he": "מתג החופה וידית החופה הצהובה: הדופן השמאלית מתחת לשפת החופה, לפני המצערת"}, "control": ["CANOPY_SPIDER", "CANOPY_SWITCH"]}
 ]}
+],
+"refuel": [
+{"id": "ar_before", "en": "BEFORE CONTACT", "he": "לפני מגע", "when": "air", "items": [
+  {"id": "ar_arm_off", "en": "MASTER ARM – OFF", "he": "MASTER ARM – ‏OFF", "where": {"en": "MISC panel, under the glareshield", "he": "לוח MISC, מתחת למגן הסנוור"}, "check": {"set": {"master-arm-switch": 0}}, "control": ["master-arm-switch"]},
+  {"id": "ar_emitters", "en": "Radar, laser and other emitters – as the tanker's rules ask", "he": "מכ\"ם, לייזר ומשדרים אחרים – לפי כללי מטוס התדלוק"},
+  {"id": "ar_lights", "en": "At night: exterior lights – dim and steady, ANTI COLLISION – OFF", "he": "בלילה: אורות חיצוניים – מעומעמים וקבועים, ANTI COLLISION – ‏OFF"},
+  {"id": "ar_door_open", "en": "AIR REFUEL – OPEN, RDY on", "he": "AIR REFUEL – ‏OPEN, ‏RDY דולקת", "how": {"en": "a click on the switch, or the Air refuelling door key", "he": "לחיצה על המתג, או מקש דלת התדלוק"}, "where": {"en": "FUEL panel, left console", "he": "לוח FUEL, הקונסולה השמאלית"}, "check": {"ar": "open"}, "control": ["SW_AIR_REFUEL"], "key": 259}
+]},
+{"id": "ar_contact", "en": "CONTACT", "he": "מגע", "when": "air", "items": [
+  {"id": "ar_contact", "en": "AR/NWS – on: contact, the fuel rising", "he": "AR/NWS – דולקת: מגע, הדלק עולה", "how": {"en": "hold the contact position; the boom operator flies the boom in", "he": "להחזיק בעמדת המגע; הבומר מכניס את הבום"}, "check": {"ar": "contact"}, "control": ["lamp_ar_nws_0"]}
+]},
+{"id": "ar_after", "en": "AFTER REFUELLING", "he": "אחרי תדלוק", "when": "air", "items": [
+  {"id": "ar_door_closed", "en": "AIR REFUEL – CLOSE, the three lights out", "he": "AIR REFUEL – ‏CLOSE, שלוש הנוריות כבות", "where": {"en": "FUEL panel, left console", "he": "לוח FUEL, הקונסולה השמאלית"}, "check": {"ar": "closed"}, "control": ["SW_AIR_REFUEL"], "key": 259},
+  {"id": "ar_fuel", "en": "Fuel quantity – check", "he": "כמות דלק – בדיקה"},
+  {"id": "ar_restore", "en": "MASTER ARM, radar, lights – as required", "he": "MASTER ARM, מכ\"ם, אורות – לפי הצורך"}
+]}
 ]
 }

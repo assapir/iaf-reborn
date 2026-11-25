@@ -351,7 +351,7 @@ result, and why it was dropped:
   each word's time, so §5.2 cuts there.
 
 ## 3. The voices
-Four Kokoro voices[^kokoro], all American English (Kokoro's `a` language); §5 gives the model, the chains and the
+Six Kokoro voices[^kokoro], all American English (Kokoro's `a` language); §5 gives the model, the chains and the
 licence:
 
 | role | Kokoro voice, speed | speaks |
@@ -361,6 +361,7 @@ licence:
 | pilot | `am_puck`, 1.1 | the player's radio-menu calls (helmet chain, §5.2; the requests to the AWACS, "Eitam, Kidon 1, picture"), "Roger", the ejection; a woman's voice `af_sarah` for a pilot who picked it (§3.2) |
 | AWACS | `am_fenrir`, 1.1 | the contact calls `ACFT_FCTRL_LONG` / `_SHORT` ([ews.md](ews.md) §7); Scramble's task call `AWX_TASK` ([../../docs/ai.md](../../docs/ai.md) §23); the controller's answers to the radio menu's requests and the Eitam's call for help (`AWX_*`, [../../docs/ai.md](../../docs/ai.md) §24) |
 | wingman | `am_eric`, 1.1 | the four-ship's wingmen Kidon 1-2 to 1-4: their answers and calls (`WNG_*`, `radio.gd flight_call`; the words in [research/radio-terms.md](research/radio-terms.md)); the friendly-fire calls of the unit hit and of the shooter's wingman; the player's commands to them (`CMD_*`) are the pilot's |
+| boom (the tanker's boom operator) | `am_onyx`, 1.1 | the tanker's boom operator: its clearances and calls (`TNK_*`, `radio.gd tanker_call`; the words in [research/air-refuelling.md](research/air-refuelling.md) §8.4); the player's request (`REQ_REFUEL`, its address `GIDEON_P` / `REEM_P`) and the command "Refuel" (`CMD_REFUEL`) are the pilot's. Its Hebrew voice in each cast is the tower's (the tower is far below at the tanker's height; 25 November 2026); in English a woman's voice `af_kore` (VOICES.md's C+, on disk) when the cast gives it a woman (§3.2) |
 
 **Choice** (9 November 2026; the user on 3 November: "less British", American or neutral voices). Kokoro's
 American voices graded best by its own VOICES.md[^kokoro]: `af_heart` (A) and `af_bella` (A−) among the women,
@@ -583,9 +584,9 @@ voice of `role` said by member `who` in this flight's cast (`cast()`):
   `am_eric`.
 - **The tower and the AWACS** are the cast's, a man or a woman (§3, §3.1): one voice each for the mission. The rule
   lets them change between calls (several operators); they keep one, which also holds it.
-- **A new role** that speaks (the tanker's boom operator) is one more key in every cast (`he.casts`) and one more
-  role of `voices.json`'s clips; its calls resolve through `cast_voice` like the others, and a woman's English voice
-  for it is `voices.<role>.other`.
+- **The tanker's boom operator** is the key `boom` in every cast (`he.casts`, the tower's voice) and the role of the
+  `TNK_*` clips; its calls resolve through `cast_voice` like the others, so it keeps one voice for the mission. Its
+  English woman's voice is `voices.boom.other` (`af_kore`). A new role that speaks is added the same way.
 
 `modern-iaf/tests/test_voice_cast.gd` plays a mission's calls interleaved (the tower, the player, the wingmen, the
 AWACS, another flight's friendly-fire call, the ejection) in both languages for both picks and checks that each

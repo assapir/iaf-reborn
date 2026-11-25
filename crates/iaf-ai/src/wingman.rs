@@ -138,6 +138,8 @@ pub fn wingman() -> Node<Member> {
             Cond(|m| m.enemy.committed),
             Sel(vec![Act(fighter::shoot), Seq(vec![Cond(bfm::fighting), Act(bfm::fight)]), Act(press)]),
         ]),
+        // On the tanker's station (tanker.rs): the slot loop on the tanker.
+        Seq(vec![Cond(|m| m.refuelling && m.refuel.is_some() && flying(m)), Act(|m| set_mode(m, MODE_SLOT))]),
         // Its air-to-ground attack (strike.rs): the slot until its turn, then the run, the egress and the rejoin.
         Seq(vec![Cond(strike::striking), Act(strike::fly)]),
         Seq(vec![Cond(|m| m.task.is_some()), Act(fly_task)]),

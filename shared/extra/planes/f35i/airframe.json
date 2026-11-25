@@ -29,7 +29,9 @@
   "drag_chute": false,
   "gear_limit": { "kcas": 300, "mach": 0.65 },
   "rcs": { "front_m2": 0.0015, "side_m2": 0.05, "rear_m2": 0.01, "bays_open_m2": 1.0, "store_m2": 0.5 },
+  "receptacle": [2.5, 0.0, 1.15],
   "notes": {
+    "receptacle": "on the spine behind the cockpit (modern-iaf/docs/research/air-refuelling.md §6): read off the model, 1.4 m behind the canopy's aft end on the spine's top (inferred)",
     "rcs": "front 0.0015 m2: the low end of GlobalSecurity's 0.0015-0.005 for the F-35 (quoted by MiGFlug, second-hand; disputed); side, rear, the open bays (1 m2) and 0.5 m2 per loaded external station inferred (external stores 'drastically increase' it, National Interest); docs/ai.md 15.2",
     "gear_limit": "Flight data Real: the F-35A's gear limit is open (no public figure); the F-16's 300 KCAS / Mach 0.65 (inferred), docs/damage.md 5.2",
     "drag_chute": "no F-16 or F-35 has a drag chute: the flight never asks the flight model for one",

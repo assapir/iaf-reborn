@@ -71,7 +71,7 @@ Once you are in the air, the #term("AWACS") gives your task by radio: what to in
 - attack a convoy of two T-72 tanks and two trucks on the roads near the fight's base;
 - attack the S-300 battery beyond the fight's base.
 
-Other threats may wait there too: more MiG-29 pairs in the air or in that base's shelters, the S-300 network that sends them up, short-range air defence, the drones or the convoy. A higher #scr("enemy_skill") brings more of them. The flight is not scored; end it from the pause menu.
+Other threats may wait there too: more MiG-29 pairs in the air or in that base's shelters, the S-300 network that sends them up, short-range air defence, the drones or the convoy. A higher #scr("enemy_skill") brings more of them. Half the flights also have a #term("tanker") on a track between your base and the fight; ask it for fuel on the radio (@tanker). The flight is not scored; end it from the pause menu.
 
 The enemy fights as real crews do. Close in, its fighters dogfight: they turn for your tail, slow down beside you so that you fly past them, run off to gain speed and come back, and fire their heat-seeking missile at a jet their pilot can see, with no radar needed. The S-300 network shares what its radars and its fighters see: a battery with its own radars off can lock and fire on that picture, so your radar warning receiver may hear no search before the lock. At a higher #scr("enemy_skill") the fighters fly more of these moves, the batteries turn their search radar on only in short bursts, and they move to a new place sooner after they fire.
 

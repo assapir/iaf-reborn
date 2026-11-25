@@ -627,7 +627,8 @@
 
 // ---- The checklist as steps ----
 #let card-section(sid) = {
-  let found = card.sections.filter(s => s.id == sid)
+  // The card's sections, then its air refuelling checklist (the notebook's AIR REFUEL tab).
+  let found = (card.sections + card.at("refuel", default: ())).filter(s => s.id == sid)
   assert(found.len() == 1, message: "checklist section " + sid + ": the card has no such section")
   found.first()
 }

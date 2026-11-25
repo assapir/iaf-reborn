@@ -46,6 +46,8 @@ pub struct Tanks {
     pub ctr: f64,
     /// The automatic forward transfer running.
     auto_fwd: bool,
+    /// The external tanks depressurised (the F-16's AIR REFUEL at OPEN, page 1-79): none of their fuel feeds.
+    pub ext_hold: bool,
 }
 
 impl Tanks {
@@ -55,7 +57,7 @@ impl Tanks {
         let wing = ((internal_lb - k * (FUSELAGE_LB[0] + FUSELAGE_LB[1])) / 2.0).max(0.0);
         let cap =
             [[RSVR_LB * k; 2], [(FUSELAGE_LB[0] - RSVR_LB) * k, (FUSELAGE_LB[1] - RSVR_LB) * k], [wing; 2], [0.0; 2]];
-        Tanks { cap, lb: cap, ctr_cap: 0.0, ctr: 0.0, auto_fwd: false }
+        Tanks { cap, lb: cap, ctr_cap: 0.0, ctr: 0.0, auto_fwd: false, ext_hold: false }
     }
 
     pub fn total(&self) -> f64 {
@@ -95,10 +97,11 @@ impl Tanks {
 
     /// Up to `lb` taken from `sys`, the centreline tank first, then the system's far end; what it lacked.
     fn draw(&mut self, sys: usize, mut lb: f64) -> f64 {
-        let take = lb.min(self.ctr);
+        let take = if self.ext_hold { 0.0 } else { lb.min(self.ctr) };
         self.ctr -= take;
         lb -= take;
-        for level in (RSVR..=EXT).rev() {
+        let far = if self.ext_hold { WING } else { EXT };
+        for level in (RSVR..=far).rev() {
             let take = lb.min(self.lb[level][sys]);
             self.lb[level][sys] -= take;
             lb -= take;
@@ -219,6 +222,20 @@ mod tests {
         assert_eq!((t.gauge(5), t.gauge(4)), ([502.0, 0.0, 11_242.0], [2_470.0, 2_470.0, 11_242.0]));
         t.feed(1_000.0, 0.0, 1, true);
         assert_eq!((t.gauge(5)[0], t.gauge(4)), (0.0, [1_972.0, 2_470.0, 10_242.0]));
+    }
+
+    #[test]
+    fn air_refuel_open_holds_the_external_fuel() {
+        // AIR REFUEL at OPEN (ext_hold): the external tanks are depressurised; the engine takes internal fuel only.
+        let mut t = Tanks::new(5_800.0);
+        t.set(2.0 * 2_470.0 + 2_002.0, 2_002.0, 12_742.0);
+        t.ext_hold = true;
+        t.feed(1_000.0, 0.0, 1, true);
+        assert_eq!((t.gauge(5)[0], t.gauge(4)[0], t.gauge(4)[1]), (2_002.0, 2_470.0, 2_470.0));
+        assert_eq!(t.total(), 11_742.0);
+        t.ext_hold = false;
+        t.feed(1_000.0, 0.0, 1, true);
+        assert_eq!(t.gauge(5)[0], 1_002.0, "CLOSE: the centreline tank feeds again");
     }
 
     #[test]

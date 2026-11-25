@@ -122,7 +122,7 @@ The lines and the voices are in the game's language (@language).
 #idx("Wingmen")#idx("Radio menu")In a four-ship lesson you fly as Kidon 1-1 and lead Kidon 1-2, 1-3 and 1-4. Kidon 1-2 flies on you; Kidon 1-4 flies on Kidon 1-3, who leads the second pair. You command them from the same menu; four commands also have a key of their own (below the table).
 
 + Press #key("Call the tower").
-  #then[The list shows 1 Tower, 2 Wingmen and 3 #term("AWACS"). The tower's calls are under 1, the AWACS's requests under 3 (@awacs-requests).]
+  #then[The list shows 1 Tower, 2 Wingmen and 3 #term("AWACS"). The tower's calls are under 1, the AWACS's requests under 3 (@awacs-requests). With a #term("tanker") on the flight, 4 Tanker follows (@tanker).]
 + Press 2.
   #then[The list shows "Kidon 1" (the flight), "Kidon 1, element 3–4", "Kidon 1-2", "Kidon 1-3" and "Kidon 1-4".]
 + Press the number of whom you call.
@@ -146,6 +146,7 @@ You can also click a line of the list.
   [Low level], [the flight], [When they fly on their own (a split, a rejoin, a turn away from a threat, a ground attack) they fly 300 ft above the ground ahead. In an air fight they fly at the fight's own heights. In their slot they keep your height, so you fly low too. A bomb run comes in low, climbs 4 NM from the target into a dive on it and leaves low.],
   [Back to altitude], [the flight], [They fly on their own at their normal heights again.],
   [Cover me], [anyone], [They keep their slot and fight an enemy aircraft that attacks you: its radar locked on you, or behind you and pointing at you. Rejoin or RTB ends the cover.],
+  [Refuel], [anyone], [Offered only with a tanker on the flight. They fly to the tanker, refuel one after the other and rejoin you (@tanker-wingmen).],
   [RTB], [anyone], [They return to base and land.],
   [Check in], [anyone], [Each answers with its number.],
   [Ops check], [anyone], [Each answers with its fuel, in thousands of pounds ("Two, six point two").],

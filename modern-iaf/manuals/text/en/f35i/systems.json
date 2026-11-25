@@ -50,6 +50,8 @@
   "SP": "Snowplow",
   "GMT": "Ground moving target",
   "KCAS": "Knots of calibrated airspeed",
+  "KC": "Tanker-cargo: the designation of a tanker aircraft (KC-46A)",
+  "AR": "Air refuelling",
   "NM": "Nautical mile",
   "PHM": "Prognostics and health management",
   "RWS": "Range while search",
@@ -105,6 +107,7 @@
   "PROF": "Profile"
  },
  "words": [
+  "CONTACT", "DISC", "DOOR", "OPEN",
   "BRAKES", "DEGD", "ELEC", "FAIL", "FLAPS", "GUN", "LEAK", "RADAR", "RECOVERY", "WPN",
   "DOORS", "DOWN", "IDENT", "LEFT", "LOAD", "NEXT", "PAIR", "RIGHT", "SPICE",
   "ACTIVE",

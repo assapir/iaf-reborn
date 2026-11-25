@@ -89,9 +89,8 @@ From the F-16A/B flight manual's section VIII[^to1f16a] unless marked.
 
 ## 6. The F-35I's receptacle
 
-- The receptacle is on the spine behind the cockpit; its doors open upward (second-hand: a search engine's quote; no
-  page could be read). The F-35A's first boom contacts were in 2008, its first night refuelling from a KC-135 in
-  2012[^af-night].
+- The receptacle is on the spine behind the cockpit; its doors open upward (second-hand: a search engine's quote; no page could be read). The F-35A's first boom
+  contacts were in 2008, its first night refuelling from a KC-135 in 2012[^af-night].
 - Its door's control: Lockheed Martin moved the air refuelling functions to the panoramic display (PCD), not a
   switch ([research/f35-cockpit.md](f35-cockpit.md) §3). The door's indications and the jet's acceptance rate: open.
 
@@ -120,7 +119,7 @@ No iaf.org.il page came up for these (open). The radio calls' Hebrew (§8.4) is 
   the user, 25 November 2026). It flies a left-hand racetrack, legs 50 NM long and 20 NM apart (§4), at 30,000 ft and
   310 KCAS: 480 kt true (ISA; inferred conversion), so its turns are flown at 18.6° of bank. The track is a path, not
   the flight model: a tanker on the track flies its autopilot, a steady platform (inferred).
-- **On the radar and the data link:** the tanker is a friendly aircraft contact, as the AI jets are.
+- **On the radar:** the tanker is a friendly aircraft contact, as the AI jets are.
 - **The boom:** a hinge under the tail, a fixed tube and a telescope. Its envelope (inferred from §3 where the KC-46's
   own figures are open):
 
@@ -151,11 +150,11 @@ No iaf.org.il page came up for these (open). The radio calls' Hebrew (§8.4) is 
   (no feed from the external tanks while it is open, §5). The stick's NWS A/R DISC button (a key) disconnects. The AR
   status lamps work: AR/NWS on in contact, DISC for 3 s after a disconnect. The flight controls' take-off and landing
   gains are not modelled: the 6-DoF flight controls have no gains schedule by configuration.
-- **The F-35I:** its door is opened and closed from the PCD's fuel portal, and by the same key as the F-16's AIR
-  REFUEL switch; the portal shows the door's state (inferred: no source shows the real indication, §6). The same
-  disconnect key.
-- **The receptacle's place:** each jet's aircraft definition (`airframe.json` `receptacle`, metres in the model's
-  frame), read off the models (inferred).
+- **The F-35I:** its door is opened and closed by the same key as the F-16's AIR REFUEL switch (the real one is a
+  PCD function, §6, whose page is open); the PCD's FUEL portal shows the door's state: AR DOOR OPEN, AR CONTACT, AR
+  DISC (inferred: no source shows the real indication). The same disconnect key.
+- **The receptacle's place:** each jet's aircraft definition (`airframe.json` `receptacle`: forward, right, up metres
+  from the model's centre), read off the models (inferred).
 - **Fuel:** the offload fills the jet's tanks from the engine out, at most to their capacity.
 
 ### 8.3 The radio (the user's words: "in coms, if available … ask and get approval to start")
@@ -192,9 +191,16 @@ last one is done, and rejoins the lead.
 The tanker's callsign is its type's name, Gideon or Re'em (ours: the IAF tankers' callsigns are open). The boom
 operator's voice is a role of its own.
 
-### 8.5 Not modelled
+### 8.5 Built
 
-The rendezvous's geometry (the tanker flies its track; the player finds it on the radar and the data link and flies
+Built 25 November 2026: the tanker and its boom operator `crates/iaf-ai/src/tanker.rs` (`IafTanker`), the scene
+`shared/ai/tanker.gd`, the models `tools/tanker/build.py`, the radio `modern-iaf/flight/sim_flight.gd` and
+`shared/audio/radio.gd`, the AI wingmen [../../../docs/ai.md](../../../docs/ai.md) §25. The figures this section calls
+inferred are those constants.
+
+### 8.6 Not modelled
+
+The rendezvous's geometry (the tanker flies its track; the player finds it on the radar and flies
 to it), the hose and drogue, the boom operator's directions by distance ("Forward 50"), the radio-silent (EMCON 3)
 procedure, the tanker's speed-up on a breakaway, the lights at night, the brute-force disconnect, and the flight
 controls' gains with the door open (§8.2).

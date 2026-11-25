@@ -8,8 +8,10 @@
   "gear_limit": { "kcas": 300, "mach": 0.65 },
   "canopy_deg": 34,
   "rcs": { "front_m2": 1.2, "side_m2": 6.0, "rear_m2": 3.0, "store_m2": 0.5 },
+  "receptacle": [-0.4, 0.0, 0.9],
   "notes": {
     "canopy_deg": "Modern IAF's cold start: the canopy's full opening about its aft hinge, measured on a side photo of an F-16AM with its canopy up (the frame's lower edge 32.7 deg over the sill's 2.5 deg, seen a little from ahead; Wikimedia Commons, F-16 Vipers NL Air Force Days 9320352297), matched on the Barak from the same camera (modern-iaf/tests/_canopy_shot.gd SHOT_FOV)",
+    "receptacle": "on the spine's centreline behind the canopy (T.O. 1F-16A-1 p. 1-79): read off the model, 0.9 m behind the canopy's aft end on the spine's top (inferred)",
     "rcs": "front 1.2 m2: the F-16's average with Have Glass (National Interest quoting GlobalSecurity; public figures rough and disputed); side 5x and rear 2.5x the front (inferred: an aircraft's largest returns are from the side, Aerospaceweb); 0.5 m2 per loaded external station (inferred); docs/ai.md 15.2",
     "gear_limit": "Flight data Real: gear damage above 300 KIAS / Mach 0.65 with the gear extended (T.O. 1F-16A-1 fig. 5-7; KIAS taken as KCAS), docs/damage.md 5.2",
     "drag_chute": "no F-16 or F-35 has a drag chute: the flight never asks the flight model for one",

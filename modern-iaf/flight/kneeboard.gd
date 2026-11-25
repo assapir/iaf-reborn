@@ -362,6 +362,28 @@ func _sections() -> Array:
 				lines.append("%s: [b]%s[/b]" % [s("nb_key"), _esc("\u202d%s\u202c" % k if he() else k)])
 			blocks.append(step(i, String(st[l]), lines, "", ""))
 	secs.append(_sec("weapons", "nb_weapons", "%s · %s" % [s("nb_weapons"), _jet()], blocks))
+	# AIR REFUEL: the jet's air refuelling checklist (card.gd "refuel"), only with a tanker on the flight; its items
+	# tick as the CHECKLIST's do.
+	var rc: Node = flight.refuel_card
+	if flight.host.tanker != null and not rc.sections.is_empty():
+		blocks = []
+		var now: Dictionary = rc.current()
+		var k := 0
+		for sec: Dictionary in rc.sections:
+			blocks.append("[font_size=16][b]%s[/b][/font_size]" % _esc(String(sec[l])))
+			for it: Dictionary in sec.items:
+				var state := "ack" if not it.has("check") else ("done" if rc.done.has(it.id) else "")
+				if state == "" and it == now:
+					state = "cur"
+				var lines := []
+				for key in ["how", "where"]:
+					if it.has(key):
+						lines.append(("[i]%s[/i]" if key == "how" else "%s") % _esc(String(it[key][l])))
+				if state == "ack":
+					lines.append("[i]%s[/i]" % s("nb_ack"))
+				blocks.append(step(k, String(it[l]), lines, state, ""))
+				k += 1
+		secs.append(_sec("refuel", "nb_refuel", "%s · %s" % [s("nb_refuel"), _jet()], blocks))
 	blocks = []
 	for e in pages.get("emergency", []):
 		blocks.append("[font_size=16][color=#a31515][b]%s[/b][/color][/font_size]" % _esc(String(e.title[l])))

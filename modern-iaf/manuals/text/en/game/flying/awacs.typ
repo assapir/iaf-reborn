@@ -68,7 +68,7 @@ The calls are spoken in the AWACS's own voice, in the game's language, and show 
   [Declare], [What the aircraft your radar has locked is: "hostile", "bogey" (unknown) or "friendly"; "clean" when the AWACS does not see it. Dimmed without a lock.],
   [Vector to target], [The heading and distance to your target: "Kidon 1, vector 040, 25 miles, target". In a #scr("sec_fly_now") flight the target is your task's; else the nearest hostile group.],
   [Vector home], [The heading and distance to your home base: "... home plate". Dimmed in a flight without a home base.],
-  [Vector to tanker], [The heading and distance to the nearest tanker. No tanker flies yet, so this line is dimmed.],
+  [Vector to #term("tanker")], [The heading and distance to the nearest tanker. With no tanker on the flight the line is dimmed (@tanker).],
 )
 
 Read a group part by part:

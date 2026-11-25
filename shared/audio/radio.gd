@@ -1184,6 +1184,34 @@ func flight_call(from: int, id: String, fuel_kg := 0.0, at := Vector3.INF) -> vo
 				say("WNG_CALL", [n, WING_WORDS[id]])
 
 
+## Ours, Modern IAF's tanker (shared/ai/tanker.gd; modern-iaf/docs/research/air-refuelling.md §8.3): its callsign by
+## kind, the receiver's callsign in its voice by the flight's number (the player's own as the flight's, "Kidon 1"), and
+## each event's words (voices.json TNK_*).
+const TANKER_CALLSIGNS := {"kc46": "TNK_GIDEON", "reem": "TNK_REEM"}
+const TANKER_TO := ["TNK_KIDON1", "TNK_KIDON1", "TNK_KIDON1_2", "TNK_KIDON1_3", "TNK_KIDON1_4"]
+const TANKER_WORDS := {
+	"cleared_precontact": "TNK_PRECONTACT",
+	"stand_by": "TNK_STAND_BY",
+	"cleared_contact": "TNK_CLEARED_CONTACT",
+	"contact": "TNK_CONTACT",
+	"disconnect": "TNK_DISCONNECT",
+	"breakaway": "TNK_BREAKAWAY",
+	"complete": "TNK_COMPLETE",
+}
+
+
+## The tanker of `kind` says `event` to receiver `n` (the flight's number, the player's own jet's included): "Kidon 1,
+## Gideon, cleared pre-contact" with its own callsign, the others "Kidon 1-2, contact".
+func tanker_call(kind: String, event: String, n: int) -> void:
+	if not TANKER_WORDS.has(event):
+		return
+	var to: String = TANKER_TO[clampi(n, 0, 4)]
+	if event == "cleared_precontact":
+		say("TNK_CALL3", [to, TANKER_CALLSIGNS.get(kind, "TNK_GIDEON"), TANKER_WORDS[event]])
+	else:
+		say("TNK_CALL", [to, TANKER_WORDS[event]])
+
+
 ## A report of a unit on the player's side (FUN_004a4cf0) with a callsign.
 func _report(ent: Dictionary, template: String, more: Array, ok: bool) -> void:
 	if not ok or ent.is_empty() or host.enemy_of_player(ent):

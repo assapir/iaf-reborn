@@ -17,5 +17,6 @@ Neither is a fault. A pilot may set them higher for a short flight or a far alte
   - *Quantity.* The jet starts with 18,250 lb. It carries no external tanks.
   - *Joker and bingo* are fixed: 5,500 lb and 3,600 lb. The FUEL format marks them, and the bar at the top of the display shows the joker quantity (JKR), in yellow below joker. The voice says "Bingo" below 1,000 lb and again below 500 lb.
   - With no fuel left the engine gives no thrust.
-  - *#term("Not modelled").* Separate tanks and their order of emptying, fuel dump, air refuelling, and setting joker and bingo.
+  - *Air refuelling.* #key("Air refuelling door (open / close)") opens the receptacle's door; a tanker's boom then fills the tanks up to 18,250 lb (@air-refuelling).
+  - *#term("Not modelled").* Separate tanks and their order of emptying, fuel dump, and setting joker and bingo.
 ]

@@ -56,6 +56,8 @@
   "ALOW": "Altitude low (warning)",
   "AOA": "Angle of attack",
   "AR": "Air refuelling",
+  "KC": "Tanker-cargo: the designation of a tanker aircraft (KC-46A)",
+  "KCAS": "Knots of calibrated airspeed",
   "ATF": "Automatic terrain following",
   "AVTR": "Airborne video tape recorder",
   "BMS": "Falcon BMS, a flight simulator whose forum is a source",
@@ -613,7 +615,7 @@
       "OPEN"
      ],
      "does": "Opens the refuelling receptacle's door and lowers the tanks' pressure; the flight control system changes to its take-off and landing gains.",
-     "sim": "OPEN lets the AR status light work; the door, the tanks and the gains do not change."
+     "sim": "OPEN opens the door for a tanker's boom and the external tanks hold their fuel; the gains do not change."
     }
    ]
   },
@@ -1571,7 +1573,7 @@
       "Light"
      ],
      "does": "The refuelling door is open and the jet is ready for the boom.",
-     "sim": "On with AIR REFUEL at OPEN and hydraulic system B up."
+     "sim": "On with AIR REFUEL at OPEN and hydraulic system B up; out while the boom is latched and for 3 s after a disconnect."
     },
     {
      "node": "lamp_ar_nws_0",
@@ -1581,7 +1583,7 @@
       "Light"
      ],
      "does": "In the air: the boom is latched. On the ground: the nosewheel steering is on.",
-     "sim": "On with the jet on its wheels."
+     "sim": "On with the jet on its wheels, and with the tanker's boom latched."
     },
     {
      "node": "lamp_ar_disc_0",
@@ -1590,7 +1592,8 @@
      "positions": [
       "Light"
      ],
-     "does": "The boom has let go."
+     "does": "The boom has let go.",
+     "sim": "On for 3 s after the tanker's boom lets go."
     }
    ]
   },

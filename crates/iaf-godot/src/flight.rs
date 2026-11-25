@@ -44,7 +44,7 @@ pub(crate) fn to_enu(v: Vector3) -> Vec3 {
 }
 
 /// ENU (east, north, up) → Godot (x, y, z) = (east, up, −north).
-fn to_godot(v: Vec3) -> Vector3 {
+pub(crate) fn to_godot(v: Vec3) -> Vector3 {
     Vector3::new(v[0] as f32, v[2] as f32, -v[1] as f32)
 }
 
@@ -491,6 +491,20 @@ impl IafFlight {
         if let Some(ac) = &mut self.aircraft {
             ac.set_fuel(kg as f32);
         }
+    }
+
+    /// Ours (Modern IAF's air refuelling, shared/ai/tanker.gd): `kg` more fuel, up to the tanks' capacity.
+    #[func]
+    fn add_fuel(&mut self, kg: f64) {
+        if let Some(ac) = &mut self.aircraft {
+            ac.add_fuel(kg as f32);
+        }
+    }
+
+    /// The fuel the tanks have room for, kg (their capacity less the fuel aboard).
+    #[func]
+    fn fuel_room(&self) -> f64 {
+        self.aircraft.as_ref().map_or(0.0, |ac| (ac.fuel_capacity_kg() - ac.state().fuel_kg).max(0.0) as f64)
     }
 
     /// Engine running or off (a ground start begins with the engine off).

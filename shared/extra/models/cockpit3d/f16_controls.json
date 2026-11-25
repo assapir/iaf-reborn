@@ -26,6 +26,7 @@
 "MFD1_MFDButtonBrightness": {"system": "mfd_brt"},
 "MFD2_MFDButtonBrightness": {"system": "mfd_brt"},
 "SW_ALT_FLAPS_50": {"system": "alt_flaps"},
+"SW_AIR_REFUEL": {"system": "air_refuel"},
 "SW_PARKING_BRAKE": {"system": "parking_brake"},
 "SW_MASTER_FUEL": {"system": "master_fuel", "mode": "cycle", "min": 0, "max": 1, "step": 1, "wrap": true},
 "SW_KNOB_ENG_FEED": {"system": "eng_feed"},

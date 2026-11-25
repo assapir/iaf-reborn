@@ -1574,8 +1574,12 @@ func _lamp_on(key: String) -> bool:
 				or bool(cockpit.indicators[2])
 				or _sw("controls/test/test-panel/fire-ovht-test")
 			)
-		"flcs", "to_ldg_config", "ar_nws":
+		"flcs", "to_ldg_config":
 			return bool(better.get(key, false))
+		"ar_nws":  # on the ground (nose wheel steering), or the boom latched in the receptacle (p. 1-80)
+			return bool(better.get(key, false)) or bool(cockpit.state.get("ar", {}).get("contact", false))
+		"ar_disc":  # 3 s after the boom's disconnect (p. 1-80; shared/ai/tanker.gd)
+			return bool(cockpit.state.get("ar", {}).get("disc", false))
 		"engine":  # the engine not running (FlightGear's), or failed
 			return flag.call(2) or flag.call(22) or _phase() != "running"
 		"hyd_oil_press":  # failed, or, the engine not running, a system below 1000 psi (FlightGear's): its pumps slow
@@ -1681,10 +1685,17 @@ func _lamp_on(key: String) -> bool:
 			return flag.call(5)
 		"stby_gains":  # the FLCS on its standby gains: the dual air data failure (damage 11, the fault list's STBY GAIN)
 			return flag.call(11)
-		"ar_rdy":  # AIR REFUEL at OPEN, the slipway door open, the system ready (p. 1-78): on hydraulic system B (inferred)
-			var ab: PackedFloat32Array = cockpit.state.get("hyd_ab", PackedFloat32Array([0.0, 0.0]))
-			return _sw(AIR_REFUEL) and ab.size() > 1 and HYD_PSI * ab[1] > 1000.0
+		"ar_rdy":  # AIR REFUEL at OPEN, the slipway door open, the system ready (p. 1-78): on hydraulic system B (inferred);
+			# out while the boom is latched and while DISC is lit (RDY again after DISC's 3 s, p. 1-80)
+			var ar: Dictionary = cockpit.state.get("ar", {})
+			return _sw(AIR_REFUEL) and ar_hydraulics() and not ar.get("contact", false) and not ar.get("disc", false)
 	return false
+
+
+## The air refuelling door's hydraulics: system B up (the slipway door, T.O. 1F-16A-1 p. 1-79; shared/ai/tanker.gd).
+func ar_hydraulics() -> bool:
+	var ab: PackedFloat32Array = cockpit.state.get("hyd_ab", PackedFloat32Array([0.0, 0.0]))
+	return ab.size() > 1 and HYD_PSI * ab[1] > 1000.0
 
 
 ## The cabin's altitude, ft: the pressure schedule's with AIR SOURCE at NORM (1); the jet's own at OFF, DUMP and RAM,

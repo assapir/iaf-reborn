@@ -709,6 +709,10 @@ On 2026-11-19 the F-16's own autopilot got its keys (records 231–237; [cockpit
 a step up / down (Shift + 2 / 3), its ROLL switch a step up / down (Shift + 4 / 5), the paddle switch (Shift + I,
 held), TRIM/AP DISC (Shift + 6) and FLCS RESET (Ctrl + L).
 
+On 2026-11-25 air refuelling got its two keys (records 259 / 260; [research/air-refuelling.md](research/air-refuelling.md)
+§8.2): the refuelling door, open / close, on Shift + F1 (command 296; the F-16's AIR REFUEL switch, the F-35I's door)
+and the stick's A/R disconnect on Shift + F2 (command 297), both in the Flight group.
+
 **The missile seeker's keys (2026-11-18).** Two records in the Weapons group work the seeker head of the air-to-air
 missiles on every Modern IAF jet ([weapons.md](weapons.md) §8.1): Missile seeker: UNCAGE / CAGE on Shift + M (record
 224) and Missile seeker: SPOT / SCAN on Ctrl + S (record 225; on the F-16s also OSB 2 of the SMS's AAM page). Both

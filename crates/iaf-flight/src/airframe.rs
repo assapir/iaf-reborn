@@ -69,6 +69,9 @@ pub struct Airframe {
     /// Modern IAF's self-protection jammer: its burn-through on the enemy's radars (`iaf_avionics::ecm`, docs/ai.md
     /// §15.6); a jet without one jams no radar.
     pub jammer: Option<Jammer>,
+    /// The air refuelling receptacle, (forward, right, up) m from the model's centre: a jet with one refuels from a
+    /// tanker's boom (shared/ai/tanker.gd, modern-iaf/docs/research/air-refuelling.md §8.2).
+    pub receptacle: Option<[f32; 3]>,
     pub guide: Option<String>,
     /// Each value's source, by field (`"radar.km"`); read by no code.
     pub notes: Option<BTreeMap<String, String>>,
@@ -371,7 +374,8 @@ mod tests {
     /// exactly the 1998 values; only what the original has no table for (the model file it is, the 3D cockpit and
     /// its HUD) and `drag_chute: false`, as the 1998 F-16 (its model has no `Parach` part, docs/part-animation.md),
     /// and `gear_limit`, which only Flight data Real and the 6-DoF read, `rcs`, which only Modern IAF's enemy radars
-    /// read (`iaf_ai::site`), and `canopy_deg`, which only Modern IAF's cold start reads.
+    /// read (`iaf_ai::site`), `canopy_deg`, which only Modern IAF's cold start reads, and `receptacle`, which only Modern
+    /// IAF's tanker reads (shared/ai/tanker.gd: the 1998 game has none).
     #[test]
     fn switches_off_give_the_1998_values() {
         let off = Switches { f16: "barak", f15: "baz" };
@@ -393,6 +397,7 @@ mod tests {
                         "gear_limit",
                         "rcs",
                         "canopy_deg",
+                        "receptacle",
                     ]
                     .contains(k)
                 }),

@@ -2525,7 +2525,7 @@ BRAA relative to the specified FRIENDLY aircraft"[^brevity]), since the sim has 
 | Declare | "Inquiry as to the ID of specified track(s)"; CLEAN among its answers | the player's radar's locked track: "Kidon 1, hostile." / "bogey." / "friendly."; a track the sensor does not see: "Kidon 1, clean." Off without a lock: "Lock a target to ask for its identity" |
 | Vector to target | VECTOR: "Alter heading to indicated" | "Kidon 1, vector 040, 25 miles, target.": Scramble's task target (its nearest, as the task call), else the nearest hostile group; none: clean |
 | Vector home | HOME PLATE: "Home airfield or ship" | "Kidon 1, vector 220, 60 miles, home plate.": the flight's home base |
-| Vector to tanker | | "Kidon 1, vector 130, 40 miles, tanker.": the nearest friendly tanker. No tanker flies yet (air refuelling is its own job), so the line is off: "No tanker in the air" |
+| Vector to tanker | | "Kidon 1, vector 130, 40 miles, tanker.": the nearest friendly tanker (§25: an entity marked `tanker`); with none on the flight the line is off: "No tanker in the air" |
 
 - **The words.** A group is any contacts within 3 NM of each other ("Any number of air CONTACTS within 3 nautical
   miles in azimuth and range of each other"[^brevity]; `sort::groups`, as the sort's); hostile when any of its
@@ -2661,8 +2661,33 @@ contact call); `cargo test -p iaf-avionics --lib -- datalink` (the controller's 
 
 Status (25 November 2026): built whole: the controller and its page with the voices, the Eitam in Scramble with its
 model, as the enemy's target, the data link and the contact calls on its radar; its G550's 6-DoF (25 November 2026,
-modern-iaf/docs/flight-model.md §9.22). Open: a vector to the tanker waits for air refuelling's tanker (its line off
-till one flies); an AI-led flight's commit on the call for help (no friendly AI-led flight flies: an AI lead never fights, §8.8).
+modern-iaf/docs/flight-model.md §9.22). Open: an AI-led flight's commit on the call for help (no friendly AI-led flight flies: an AI lead never fights, §8.8).
+
+## 25. Modern IAF's tanker and the wingmen's air refuelling (ours)
+
+The tanker, its boom operator and the receivers are designed in
+[modern-iaf/docs/research/air-refuelling.md](../modern-iaf/docs/research/air-refuelling.md) §8 (sources there). The AI's
+part (`crates/iaf-ai/src/tanker.rs`, `flight.rs`; `shared/ai/tanker.gd`):
+
+- **The tanker** flies its racetrack as a path (`Track::at`: 480 kt true at 30,000 ft, 50 NM legs 20 NM apart, left
+  turns at 18.6° of bank eased in and out at 5° a second). It is a friendly entity of the mission runtime (key
+  `tanker`): the radar's units see it.
+- **The boom operator** (`Tanker::work`) serves the first receiver of its queue: cleared to contact after 2 s held at
+  pre-contact with its receptacle ready; the boom flies to a receptacle within 1.5 m of the contact position closing at
+  under 0.5 m/s, at 6° a second and 1.5 m a second, and latches within 0.15 m; disconnect on the envelope's limits,
+  the receiver's button or door, or the receiver full (under 5 kg of room: its last valve closed); breakaway inside the
+  telescope's inner limit by 1.5 m or 5° above the upper elevation. After a disconnect the receiver goes back to
+  pre-contact to be cleared again. The PDLs: one lamp a row, a step each 2.5° of elevation and 0.9 m of telescope.
+- **The wingmen:** the lead's "refuel" (`Flight::command`) marks each AI jet addressed; the host asks the tanker for
+  each in its number's order and hands it its station every frame (`Flight::set_refuel`, `Tanker::slot`): the left
+  wing while it waits (observation), pre-contact, the contact position (moving there from pre-contact at 2.5 kt, research §4), the right
+  wing once done. The jet flies the slot loop on the tanker as its leader, close, with the station's gains
+  (`Autopilot::precise`: the along-track gain 0.3 in place of 0.08, the throttle's gain ×6, the spring 0.4 in place
+  of 0.3; inferred: the formation's let a receiver lag 5 m and slide 2.4 m in the tanker's roll, out of the envelope).
+  Once every wingman sent is done, all are let go together and rejoin the flight. A jet that has come within 20 NM of the
+  tanker and flies 20 NM away again leaves its queue. Test: `crates/iaf-ai/tests/refuel.rs` (a 6-DoF Sufa from 2 km
+  behind to full, the contact
+  held into the tanker's turn), `modern-iaf/tests/test_air_refuel.gd` (the four-ship).
 
 ## UNCERTAIN
 Open questions in this document:

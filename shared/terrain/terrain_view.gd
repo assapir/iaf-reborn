@@ -3472,6 +3472,17 @@ func _command(cmd: Array) -> bool:
 		303:
 			# Ours, Modern IAF's F-16s: the night-vision goggles flipped down / up (Shift + N; _goggles_key).
 			_goggles_key()
+		296:
+			# Ours, Modern IAF's jets: the air refuelling door (keys.json record 259; the F-16's AIR REFUEL switch, the
+			# F-35I's door on the PCD's fuel portal; modern-iaf/docs/research/air-refuelling.md §8.2): p1 1 open, -1
+			# close, 0 the other way.
+			if receptacle() != Vector3.INF:
+				refuel_door = p1 > 0 or (p1 == 0 and not refuel_door)
+				_cockpit_note("Air refuel door " + ("open" if refuel_door else "closed"))
+		297:
+			# Ours, Modern IAF's jets: the stick's A/R disconnect (the F-16's NWS A/R DISC MSL STEP button; record 260):
+			# the tanker's boom unlatched at its next frame (shared/ai/tanker.gd).
+			ar_disconnect = true
 		241:
 			# Ours, the modern MFDs' LASER ARM switch (key Shift + L, the 3D cockpit's switch): the laser fires only
 			# armed; disarming stops it (player_weapons.gd laser_arm).
@@ -4723,6 +4734,12 @@ func _process(delta: float) -> void:
 		for k in ins:
 			cockpit.state[k] = ins[k]
 		cockpit.state["better"] = flight.better_instruments(player_damage.flags if player_damage != null else [])
+		# The air refuelling door and the boom (the F-16's AR status lamps, the F-35I's PCD; shared/ai/tanker.gd).
+		cockpit.state["ar"] = {
+			"door": refuel_door,
+			"contact": tanker != null and tanker.in_contact(),
+			"disc": tanker != null and tanker.disc_lit(),
+		}
 		if cockpit.ufc != null:
 			# Ours, the DED's CRUS and INS pages (cockpit.gd ufc_nav): the fuel flow (kg/s to lb/h), the INS alignment
 			# ([knob, seconds run, its length, done]), the mission's wind (from, kt).
@@ -4946,6 +4963,20 @@ func _switch_key(cmd: Array) -> void:
 ## DISC (keys.json records 235 / 236; the 3D cockpit's _systems hands them to the flight model each frame).
 var ap_paddle := false
 var ap_disc := false
+
+## Ours, Modern IAF's air refuelling (modern-iaf/docs/research/air-refuelling.md §8): the player's refuelling door
+## open (command 296: the F-16's AIR REFUEL switch, the F-35I's door), the A/R disconnect pressed since the tanker's
+## last frame (command 297), and the flight's tanker (shared/ai/tanker.gd; null: none on this flight).
+var refuel_door := false
+var ar_disconnect := false
+var tanker: Node = null
+
+
+## The player's jet's receptacle (forward, right, up m from its centre: its aircraft definition's `receptacle`), INF
+## for a jet without one.
+func receptacle() -> Vector3:
+	var r: Array = Settings.airframe(player.get("type", 0)).get("receptacle", []) if not player.is_empty() else []
+	return Vector3(float(r[0]), float(r[1]), float(r[2])) if r.size() == 3 else Vector3.INF
 
 
 ## The jet has the F-16's autopilot switches: the 6-DoF and the F-16's 3D cockpit (the original model's F-16 cockpit
