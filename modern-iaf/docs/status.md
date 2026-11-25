@@ -1097,6 +1097,10 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   cockpit jumped against the eye (32-bit floats: 3.1 mm steps 30 km out, 4.4 mm at 60 km). The sim draws the cockpit
   in its own world about the origin and lays it over the flight's view ([cockpit.md](cockpit.md) §6.2): it no longer
   moves against the eye at any distance; about +4 to +5 ms GPU a frame on the Iris Xe. `test_sim_look.gd`.
+- **The world holds still far from the start (2026-11-25):** the floating origin keeps what is drawn near the camera
+  within 4 km of Godot's origin (the jets near the camera, the effects, the outside views), so 300 km from the start
+  nothing rounds to centimetres; the sim's positions, hits and the picture are as before
+  ([../../docs/rendering.md](../../docs/rendering.md) §11, `test_floating_origin.gd`).
 - **The ILS bars glide (2026-11-09, the Mac play test's finding 24):** the HUD's ILS lines sit at the exact
   deviation instead of the original's whole-pixel steps, which jumped about 5.5 screen pixels at a time on the 3D
   HUD glass ([real-hud.md](../../docs/real-hud.md#what-ours-draws-status)). `test_mvp.gd` checks all three jets.
@@ -1369,8 +1373,6 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   pilot's request voice (sound.md §7).
 - **[E2](plan.md#e2-the-front-end)'s open points** ([front-end.md](front-end.md)): a pilot list (the name is the computer's user
   name); the debrief sheet and the pilot log in the original game ([shared.md](shared.md)).
-- **[Floating origin / camera-relative cockpit](plan.md#floating-origin--camera-relative-cockpit)**: open; the 3D
-  cockpit's screens hold their depth out to 100 km from the flight's start (the F-35I's depth pull).
 - **The airbases' open points** ([airbases.md](airbases.md) §9): the towers of Ramon, Hatzerim and Ramat David (their
   reference points stand in), one taxi hub per base. The temp-root run of item F finds any read of the
   original's data still left.

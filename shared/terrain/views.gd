@@ -46,6 +46,9 @@ const SNAPS := {
 
 ## Host (terrain_view.gd): terrain heights (`ground_at(scene pos)`), the clock.
 var ground_at: Callable
+## The scene (terrain_view.gd): its frame is the one every position here is in (its floating origin moves the global
+## one); null (a test's own views): the global frame.
+var frame: Node3D
 var now := 0.0
 
 var type := COCKPIT
@@ -194,7 +197,7 @@ func set_orbit(ent: Node3D, offs: Array, scale: float, id: int, random: bool) ->
 	dist = 3.0 * dmin
 	dmax = 20.0 * dmin
 	# FUN_00586670: the trail is pre-filled with the current position.
-	_trail = [[ent.global_position, now]]
+	_trail = [[_at(ent), now]]
 	_swoop = {}
 	if id == FLYBY:
 		var o := Vector3(offs[0], offs[1], offs[2])
@@ -206,7 +209,7 @@ func set_orbit(ent: Node3D, offs: Array, scale: float, id: int, random: bool) ->
 				o[a] *= 0.5 + float(randi() % 32768) / 32767.0
 		# The offset in the target's body axes (x right, y forward, z up; UNCERTAIN), ≥ ground + 15 m.
 		var b := ent.global_basis.orthonormalized()
-		var e := ent.global_position + b.x * o.x - b.z * o.y + b.y * o.z
+		var e := _at(ent) + b.x * o.x - b.z * o.y + b.y * o.z
 		e.y = maxf(e.y, _ground(e) + 15.0)
 		var p0 := _path_point(ent)
 		if (e - p0).length() > 0.01:
@@ -240,7 +243,7 @@ func set_padlock(ent: Node3D) -> void:
 ## radius 600 m, height `h`.
 func set_circle(ent: Node3D, h: float, t: int) -> void:
 	target = ent
-	_circle_centre = ent.global_position if ent != null else _circle_centre
+	_circle_centre = _at(ent) if ent != null else _circle_centre
 	_circle_h = h
 	_circle_t0 = now
 	_circle_wall = t == WRECK
@@ -362,9 +365,9 @@ func update(dt: float) -> void:
 	elif type in [COCKPIT, HUD_ONLY, FREE_LOOK]:
 		head_now()
 	if pos_mode in [Pos.ORBIT, Pos.TWO] and is_instance_valid(target):
-		_circle_centre = target.global_position  # where a destroyed followed object was last
+		_circle_centre = _at(target)  # where a destroyed followed object was last
 	if pos_mode == Pos.ORBIT and is_instance_valid(target):
-		_trail.append([target.global_position, now])
+		_trail.append([_at(target), now])
 		if _trail.size() > TRAIL_SAMPLES:
 			_trail.pop_front()
 
@@ -378,7 +381,7 @@ var padlock_raise := 0.0
 ## nose; the head moves there with 0.9^(10·dt) of the error left (FUN_005858e0).
 func _padlock_step(dt: float) -> void:
 	var b := player.global_basis.orthonormalized()
-	var d := b.inverse() * (target.global_position - player.global_position)
+	var d := b.inverse() * (_at(target) - _at(player))
 	var yaw := atan2(d.x, -d.z)
 	var el := atan2(d.y, Vector2(d.x, d.z).length())
 	var pitch := maxf(el, HEAD_PITCH_MIN)
@@ -400,7 +403,7 @@ func external_pose(dt: float) -> Array:
 			orbit_pitch += _rates.x * dt
 			orbit_heading += _rates.y * dt
 			dist = clampf(dist + _rates.z * dt, dmin, dmax)
-			var t := target.global_position
+			var t := _at(target)
 			var p := _path_point(target)
 			if type in [CHASE, FOLLOW] and not _swoop.is_empty():
 				p += _swoop.dir * _swoop.len * pow(SWOOP_BASE, now - _swoop.t0)
@@ -411,17 +414,17 @@ func external_pose(dt: float) -> Array:
 			if not is_instance_valid(target) or not is_instance_valid(eye_obj):
 				return []
 			# Case 8 @583547 in world axes (z up): W = unit(A − B), N = (−W.y, W.x, 0), U = W × N.
-			var a := Terrain.dir_to_world(eye_obj.global_position)
-			var w := (a - Terrain.dir_to_world(target.global_position)).normalized()
+			var a := Terrain.dir_to_world(_at(eye_obj))
+			var w := (a - Terrain.dir_to_world(_at(target))).normalized()
 			var n := Vector3(-w.y, w.x, 0.0)
 			var u := w.cross(n)
 			var eye := Terrain.dir_to_scene(a + TWO_BACK * w + TWO_SIDE * n + TWO_UP * u)
 			eye.y = maxf(eye.y, _ground(eye) + 2.0)
-			return [eye, target.global_position]
+			return [eye, _at(target)]
 		Pos.CIRCLE:
 			var c := _circle_centre
 			if is_instance_valid(target):
-				c = target.global_position
+				c = _at(target)
 				_circle_centre = c
 			var t := (Time.get_ticks_msec() * 0.001) if _circle_wall else (now - _circle_t0)
 			var a := CIRCLE_RATE * t
@@ -436,7 +439,7 @@ func external_pose(dt: float) -> Array:
 ## The trail point L = dist back along the recorded path (FUN_005867f0); a path shorter than L goes on
 ## from the oldest sample along the target's −forward axis (UNCERTAIN axis).
 func _path_point(ent: Node3D) -> Vector3:
-	var t := ent.global_position
+	var t := _at(ent)
 	var acc := 0.0
 	var prev := t
 	for i in range(_trail.size() - 1, -1, -1):
@@ -470,6 +473,11 @@ static func size_of(n: Node3D) -> float:
 	var s := n.global_basis.get_scale()
 	var sz := box.size * s
 	return maxf(sz.x, maxf(sz.y, sz.z))
+
+
+## A node's position in the scene frame.
+func _at(n: Node3D) -> Vector3:
+	return frame.to_local(n.global_position) if frame != null else n.global_position
 
 
 func _ground(p: Vector3) -> float:

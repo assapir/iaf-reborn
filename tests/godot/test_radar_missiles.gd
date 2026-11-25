@@ -130,7 +130,7 @@ func _shot_case(tv, name: String, wid: int, shots: bool) -> void:
 	var bdb: Dictionary = tv.mission_bdb
 	w2.setup(tv, {"armament": {"hardpoints": hp}}, tv._player_object(bdb), bdb, w.descriptor)
 	tv.weapons = w2
-	tv.cockpit.hud.host_world_to_scene = w2.to_scene
+	tv.cockpit.hud.host_world_to_scene = tv.world_to_global
 	w.queue_free()
 	w = w2
 	var t := 1.0

@@ -176,7 +176,8 @@ Checked against the code on 2026-10-21 (each doc's own "not built" notes have th
   cockpit's vertices round to 2 mm steps 17 km out and to centimetres past 130 km. The F-35I's standby display drew
   black by day there (World scale Real, mission 231): its screen lost the depth test to its case 0.25 mm behind.
   Fixed 2026-11-03: the F-35I's screens draw 2.5 % of their distance nearer the eye, enough to 100 km (cockpit.md "3D
-  cockpit", the F-35I's). Open: a floating world origin for the rest.
+  cockpit", the F-35I's). Fixed at any distance 2026-11-25: the floating origin keeps what is drawn near the camera
+  within 4 km of Godot's origin, in both games (rendering.md §11, `test_floating_origin.gd`: 0.07 mm 300 km out).
 - **3D cockpit look-down in the original game**: with the head at its lowest the F-16's 3D cockpit shows the seat's
   well and, in it, the rear cockpit's footwell as a black slab (cockpit.md "Looking down at the pilot"). Modern IAF
   shows the pilot's body there; the original's fix is open. The body's hands stay still while the stick and throttle

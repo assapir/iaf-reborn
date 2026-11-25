@@ -43,6 +43,10 @@ display_server/driver.linuxbsd="wayland"
 
 [shader_globals]
 
+world_shift={
+"type": "vec3",
+"value": Vector3(0, 0, 0)
+}
 terrain_detail={
 "type": "float",
 "value": 0.0

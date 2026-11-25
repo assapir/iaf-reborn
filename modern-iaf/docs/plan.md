@@ -332,7 +332,8 @@ Size: M. Blocks on: A1.
 
 ### Floating origin / camera-relative cockpit
 
-**Open (listed 2026-11-08).** The world's coordinates are 32-bit floats about the flight's start (`terrain_view.gd`
+**Built (2026-11-25): the floating origin, [../../docs/rendering.md](../../docs/rendering.md) §11.** Listed
+2026-11-08: the world's coordinates are 32-bit floats about the flight's start (`terrain_view.gd`
 `world_origin`), so the 3D cockpit, which flies with the jet, loses precision as the jet goes away from that point:
 its vertices round to 2 mm steps 17 km out and 7.8 mm steps 100 km out (docs/cockpit.md "3D cockpit", the F-35I's
 screens). The sim's flights cross the whole theatre (347 × 511 km, [terrain.md](terrain.md) §2). The item: keep the
@@ -379,9 +380,11 @@ about the origin and laid over the flight's 3D view before its tonemap ([cockpit
 `shared/cockpit/cockpit_origin.gd`, `Settings.cockpit_at_origin()`). The probe after: the camera ↔ cockpit transform
 does not move (0 at every distance), the panel's pixel change per frame 0.004 at 30 km and 0.011 at 60 km (from 10.5
 and 15.5). Cost on the Iris Xe: about +4 to +5 ms GPU a frame (the second viewport). The original game is unchanged
-(its jet stays within the 1998 theatre). **Open:** a floating origin for the rest of the world (nothing else measured
-shakes: the terrain and far objects' step is tiny against their distance), the F-35I's screen pull
-(`cockpit3d_screen.gdshader`) which the sim no longer needs. FXAA in place of MSAA in the cockpit's viewport was tried and dropped (2026-11-11, [cockpit.md](cockpit.md) §6.2: 2.5 ms saved, the panel's labels 3–6 grey levels off). With TAA or a temporal upscaler the cockpit's picture gives the flight's view no motion vectors: its edges may smear in a turn (not yet seen in a real render).
+(its jet stays within the 1998 theatre). The rest of the world got its floating origin on 2026-11-25 (both games,
+[../../docs/rendering.md](../../docs/rendering.md) §11): what is drawn near the camera stays within 4 km of Godot's
+origin, so the jets near the camera and the 1998 game's 3D cockpit hold still at any distance
+(`modern-iaf/tests/test_floating_origin.gd`, 300 km out). The F-35I's screen pull (`cockpit3d_screen.gdshader`) stays:
+with the floating origin it is no longer needed, and taking it away would change the screens' look (their shadow). FXAA in place of MSAA in the cockpit's viewport was tried and dropped (2026-11-11, [cockpit.md](cockpit.md) §6.2: 2.5 ms saved, the panel's labels 3–6 grey levels off). With TAA or a temporal upscaler the cockpit's picture gives the flight's view no motion vectors: its edges may smear in a turn (not yet seen in a real render).
 
 Size: M.
 

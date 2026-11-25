@@ -5,6 +5,8 @@
 // distance from the camera)): the haze is smooth and a texture read per pixel cost 0.6 ms; a surface adds
 // city_glow_emission(ALBEDO) to its EMISSION. city_glow_fog: the part of the scene's fog density the haze undoes (a
 // light seen through clear night air dims less than a surface fogs).
+// The floating origin (terrain_view.gd render_shift): a global position + world_shift = the scene position.
+global uniform vec3 world_shift;
 global uniform float city_glow_k;
 global uniform sampler2D city_glow : filter_linear_mipmap, repeat_disable;
 global uniform vec4 city_glow_rect;
@@ -12,14 +14,14 @@ global uniform float city_glow_fog;
 
 varying float v_city_glow;
 
-// Brightness g² to the power 1.5: a full square glows, a suburb's sparse lamps hardly. Far vertices are sparse: they
+// xz: a global position. Brightness g² to the power 1.5: a full square glows, a suburb's sparse lamps hardly. Far vertices are sparse: they
 // read a coarser mip (a texel about a hundredth of the distance).
 float city_glow_at(vec2 xz, float dist) {
 	if (city_glow_k <= 0.0) {
 		return 0.0;
 	}
 	float lod = max(log2(max(dist, 1.0) / 12500.0), 0.0);
-	float g = textureLod(city_glow, (xz - city_glow_rect.xy) * city_glow_rect.zw, lod).r;
+	float g = textureLod(city_glow, (xz + world_shift.xz - city_glow_rect.xy) * city_glow_rect.zw, lod).r;
 	// The exponent capped: exp overflows to inf, and 0 · inf is NaN.
 	return g * g * g * city_glow_k * exp(min(city_glow_fog * dist, 60.0));
 }

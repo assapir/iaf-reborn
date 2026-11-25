@@ -246,7 +246,7 @@ func update(cam: Camera3D, cockpit_view: bool, wind: Vector3, fog: Color, delta:
 	if cam == null or delta <= 0.0:
 		return
 	_now += delta
-	var p := cam.global_position
+	var p: Vector3 = get_parent().to_local(cam.global_position)  # the scene frame (the floating origin)
 	var d := deck()
 	into = smoothstep(d.x - EDGE, d.x + EDGE, p.y)
 	out = smoothstep(d.y - EDGE_TOP, d.y + EDGE_TOP, p.y)

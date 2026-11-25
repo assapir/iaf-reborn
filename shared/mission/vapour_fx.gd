@@ -305,13 +305,14 @@ func update(model: Node3D, state: Dictionary) -> void:
 	j.k_wing = _ease(j.k_wing, humid * smoothstep(5.0, 8.0, g) * smoothstep(0.55, 0.8, mach), dt, 0.3)
 	var at: Transform3D = state.get("frame_xf", frame.global_transform)  # own_bc in its own world: terrain_view.gd
 	var b := at.basis.orthonormalized()
+	var sat := global_transform.affine_inverse() * at  # the ribbons' frame: the scene's (the floating origin)
 	for i in j.tips.size():
 		var tr: Array = j.trails[i]
 		if j.k_tip > 0.01 or (not tr.is_empty() and tr[-1][2] > 0.01):
 			# The core spirals around the trail (opposite ways on the two tips) and sinks with the downwash.
 			var a := _now * 11.0 * (1.0 if i == 0 else -1.0)
 			var drift := (b.x * cos(a) + b.y * sin(a)) * SPIRAL - b.y * DOWNWASH
-			tr.append([at * j.tips[i], _now, j.k_tip, drift])
+			tr.append([sat * j.tips[i], _now, j.k_tip, drift])
 	for v in [[j.shell, j.k_cone + j.k_wing], [j.plume, j.k_lex]]:
 		var mi: MeshInstance3D = v[0]
 		if mi != null:
@@ -491,7 +492,7 @@ func _rebuild() -> void:
 		_ribbons.surface_add_vertex(Vector3.ZERO)
 	var cam := get_viewport().get_camera_3d()
 	if cam != null:
-		var eye := cam.global_position
+		var eye := to_local(cam.global_position)
 		# Metres a pixel spans per metre from the eye.
 		var px := 2.0 * tan(deg_to_rad(cam.fov) * 0.5) / get_viewport().get_visible_rect().size.y
 		for j: Jet in _jets.values():

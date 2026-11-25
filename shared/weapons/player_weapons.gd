@@ -424,7 +424,7 @@ func own() -> Dictionary:
 		vel = scripted_vel
 	var fwd := Terrain.dir_to_world(-b.z)
 	var o := {
-		"pos": to_world(host.rig.global_position),
+		"pos": to_world(host.rig.position),
 		"vel": vel,
 		"fwd": fwd,
 		"up": Terrain.dir_to_world(b.y),
@@ -462,7 +462,7 @@ func seeker_view() -> Dictionary:
 
 ## A body point of the jet (descriptor glTF metres) in the world.
 func body_to_world(p: Vector3) -> Vector3:
-	return to_world(host.rig.global_transform * p)
+	return to_world(host.rig.transform * p)
 
 
 ## The mission's units the weapons see: every placed unit with a model other than the player, not
@@ -709,7 +709,10 @@ func _unit_at(p: Vector3) -> String:
 	for u in _units():
 		var n = u.ent.node
 		if n is Node3D and n.has_meta("eo_box"):
-			var b: AABB = (n as Node3D).global_transform * (n.get_meta("eo_box") as AABB)
+			var b: AABB = (
+				(host.global_transform.affine_inverse() * (n as Node3D).global_transform)
+				* (n.get_meta("eo_box") as AABB)
+			)
 			if b.grow(2.0).has_point(to_scene(p)):
 				return String(u.key)
 	return ""
@@ -868,7 +871,7 @@ func _eo_update() -> void:
 			n.set_meta("eo_box", Gltf.model_aabb(n))
 		var lb: AABB = n.get_meta("eo_box")
 		if lb.size != Vector3.ZERO:
-			var sb: AABB = n.global_transform * lb
+			var sb: AABB = (host.global_transform.affine_inverse() * n.global_transform) * lb  # the scene frame
 			var c0 := to_world(sb.position)
 			var c1 := to_world(sb.end)
 			centres.append((c0 + c1) * 0.5)
@@ -2673,7 +2676,7 @@ func _update_ag() -> void:
 		ag.off = bool(c.get("off", false))
 		ag.pipper = ag.impact
 		if ag.off:
-			var t = _ray_ground(c.origin, c.dir)
+			var t = _ray_ground(host.to_local(c.origin), c.dir)  # the camera's ray: global
 			if t != null:
 				ag.target = t
 			ag.ttg = _hdist(ag.impact, ag.target) / maxf(gs, 1.0)
@@ -2788,7 +2791,7 @@ func _trail(key, node: Node3D, burning := true) -> void:
 	var back := node.global_basis.z.normalized()  # looking_at: the nose is −Z
 	host.trails.emit(
 		key,
-		node.global_position + back * (MISSILE_FLARE_DISTANCE + float(node.get_meta("half_length"))),
+		host.to_local(node.global_position) + back * (MISSILE_FLARE_DISTANCE + float(node.get_meta("half_length"))),
 		host.trails.MISSILE
 	)
 
@@ -3980,4 +3983,5 @@ func _update_visuals() -> void:
 func _place_sound(p, w: Vector3) -> void:
 	if p is Node3D and is_instance_valid(p):
 		p.top_level = true
-		p.global_position = to_scene(w)
+		p.add_to_group(host.TOP_LEVEL)
+		p.global_position = host.to_global(to_scene(w))

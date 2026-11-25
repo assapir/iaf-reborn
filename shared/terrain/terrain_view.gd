@@ -14,6 +14,9 @@
 # The aircraft is the original IAF F-16 flight model (Rust, crates/iaf-flight) via the IafFlight class.
 extends Node3D
 
+## The floating origin moved the scene by −delta (_rebase): parts that keep global positions move theirs.
+signal rebased(delta: Vector3)
+
 ## Screenshot runs give up waiting for terrain after this long.
 const Bombs := preload("res://shared/weapons/bombs.gd")
 const GpuFx := preload("res://shared/mission/gpu_fx.gd")
@@ -26,6 +29,17 @@ const SCREENSHOT_TIMEOUT_MS := 20000
 @onready var hud_label: Label = $InfoLayer/HUD
 @onready var cockpit: Control = $CockpitLayer/Cockpit
 @onready var chase: Camera3D = $Chase
+
+## Ours, the floating origin (docs/rendering.md §11): Godot draws in 32-bit floats, so far from the flight's start a
+## model's vertices round to centimetres. The scene frame (every position the sim keeps, `position` of this node's
+## children) stays about the flight's start; this node itself is moved by −render_shift, a multiple of REBASE_M on X
+## and Z kept within REBASE_M of the camera, so what is drawn near the camera is drawn near Godot's origin. A global
+## position is the scene position − render_shift: to_local() / to_global() convert. The shaders that anchor a pattern
+## to the ground read the global shader parameter `world_shift` (= render_shift).
+const REBASE_M := 4096.0
+## The group of top-level nodes in the scene frame (their parent's move does not move them): _rebase moves them.
+const TOP_LEVEL := &"scene_top_level"
+var render_shift := Vector3.ZERO
 
 ## The right button held: the view turns with the mouse, the pointer captured (hidden); _look.
 var looking := false
@@ -339,6 +353,7 @@ var time_factor := 1
 
 
 func _ready() -> void:
+	RenderingServer.global_shader_parameter_set("world_shift", Vector3.ZERO)
 	Bombs.wind = Vector3.ZERO  # apply_wind sets it for this mission
 	AircraftModel.TailNumber.reset()  # the other jets' tail numbers start again (docs/aircraft-models.md §1.6)
 	Scenery.night = false  # _night_detailed sets it at night
@@ -803,6 +818,7 @@ var weather: Node3D
 func _setup_views(args: PackedStringArray) -> void:
 	views.player = rig
 	views.ground_at = scene_ground
+	views.frame = self
 	chase.keep_aspect = Camera3D.KEEP_HEIGHT
 	# One 50° horizontal field across the original 640×480 for every view (docs/views.md §4): the
 	# cockpit's 686.2 px focal length over 480 rows.
@@ -831,7 +847,7 @@ func _setup_weapons() -> void:
 	weapons.lock_threat_fix = _all_better or Settings.better.get("fix_lock_threat", false)
 	add_child(weapons)
 	weapons.setup(self, ent, obj, bdb, AircraftModel.load_descriptor(player.plane))
-	cockpit.hud.host_world_to_scene = world_to_scene
+	cockpit.hud.host_world_to_scene = world_to_global  # projected through the camera: the global frame
 	cockpit.hud.host_ground = func(x: float, y: float):
 		var g = terrain.height_at(world_to_scene(Vector3(x, y, 0.0)))
 		return g
@@ -916,7 +932,7 @@ func _update_full_screen() -> void:
 		if eo_camera != null and cockpit.current_waypoint < route.size():
 			var w: Vector2 = route[cockpit.current_waypoint].world
 			var g = terrain.height_at(world_to_scene(Vector3(w.x, w.y, 0.0)))
-			var sp := world_to_scene(Vector3(w.x, w.y, g if g != null else 0.0))
+			var sp := to_global(world_to_scene(Vector3(w.x, w.y, g if g != null else 0.0)))
 			if not eo_camera.is_position_behind(sp):
 				var px: Vector2 = eo_camera.unproject_position(sp) / fs_mfd._s()
 				fs_mfd.waypoint_at = fs_mfd.render_rect.position + px
@@ -964,11 +980,11 @@ func _update_eo_view() -> void:
 	eo_camera.near = camera.near
 	eo_camera.far = camera.far
 	eo_camera.fov = weapons.eo.FOV_DEG / weapons.eo.zoom
-	var eye: Vector3 = rig.global_position if weapons.eo_eye == null else world_to_scene(weapons.eo_eye)
+	var eye: Vector3 = rig.position if weapons.eo_eye == null else world_to_scene(weapons.eo_eye)
 	var w: Vector3 = scene_to_world(eye)
 	var ahead: Vector3 = world_to_scene(w + weapons.eo_dir * 1000.0)
 	eo_camera.current = true
-	eo_camera.look_at_from_position(eye, ahead, Vector3.UP)
+	eo_camera.look_at_from_position(to_global(eye), to_global(ahead), Vector3.UP)  # its own viewport: global
 
 
 ## The views the terrain refines for besides the jet (terrain.gd `looks`): the active camera when its field of view is
@@ -987,10 +1003,10 @@ func _update_looks() -> void:
 			and (eo_viewport == null or eo_viewport.render_target_update_mode == SubViewport.UPDATE_DISABLED)
 		):
 			continue
-		var at: Vector3 = cam.global_position
+		var at: Vector3 = to_local(cam.global_position)
 		var g = terrain.height_at(at)
 		var above := maxf(0.0, at.y - (g if g != null else 0.0))
-		if cam != eo_camera and at.distance_to(rig.global_position) > LOOK_AWAY_M:
+		if cam != eo_camera and at.distance_to(rig.position) > LOOK_AWAY_M:
 			looks.append([at, Vector3.FORWARD, -1.0, 1.0, above])
 		var px := float(eo_viewport.size.y) if cam == eo_camera else h
 		var zoom := ref / (deg_to_rad(cam.fov) / px)
@@ -1504,9 +1520,40 @@ func _entity_scene_pos(ent: Dictionary) -> Vector3:
 	return world_to_scene(ent.world)
 
 
+## The floating origin's step (REBASE_M): when the camera's scene position is more than REBASE_M from render_shift on
+## X or Z, the shift moves to the multiple of REBASE_M nearest it. The scene moves by the step and the camera with it,
+## so the picture does not change; `rebased` tells the parts that keep global positions.
+func _rebase() -> void:
+	var cam := get_viewport().get_camera_3d()
+	if cam == null:
+		return
+	var p := to_local(cam.global_position)
+	if maxf(absf(p.x - render_shift.x), absf(p.z - render_shift.z)) <= REBASE_M:
+		return
+	var s := Vector3(roundf(p.x / REBASE_M) * REBASE_M, 0.0, roundf(p.z / REBASE_M) * REBASE_M)
+	var d := s - render_shift
+	render_shift = s
+	position = -s
+	RenderingServer.global_shader_parameter_set("world_shift", s)
+	for n in get_tree().get_nodes_in_group(TOP_LEVEL):
+		(n as Node3D).global_position -= d
+	# The EO and DAS cameras, in viewports of their own, were placed this frame before the step.
+	for c in [eo_camera, das_camera]:
+		if c != null:
+			c.global_position -= d
+	if vclouds != null:
+		vclouds.rebase(s, d)
+	rebased.emit(d)
+
+
 ## World (X east, Y north, alt) ↔ scene position.
 func world_to_scene(w: Vector3) -> Vector3:
 	return Vector3(w.x - terrain.world_origin.x, w.z, -(w.y - terrain.world_origin.y))
+
+
+## World → the global frame (the scene frame moved by the floating origin, _rebase): for the cameras' projections.
+func world_to_global(w: Vector3) -> Vector3:
+	return to_global(world_to_scene(w))
 
 
 func scene_to_world(p: Vector3) -> Vector3:
@@ -1728,7 +1775,7 @@ func _entity_final(ent: Dictionary) -> void:
 		and views.type in [Views.CHASE, Views.FOLLOW]
 		and views.target == ent.node
 	):
-		views._circle_centre = ent.node.global_position
+		views._circle_centre = to_local(ent.node.global_position)
 		_followed_destroyed()
 	if ent.player:
 		_player_final()
@@ -1758,7 +1805,8 @@ func _class_explosion(ent: Dictionary) -> Vector3:
 			var p = sounds.play("SFX_AIRCRAFT_EXPLODED")
 			if p is Node3D:
 				p.top_level = true
-				p.global_position = pos
+				p.add_to_group(TOP_LEVEL)
+				p.global_position = to_global(pos)
 	return pos
 
 
@@ -2004,6 +2052,7 @@ func _end_flight(debrief: bool, auto := "") -> void:
 
 
 func _exit_tree() -> void:
+	RenderingServer.global_shader_parameter_set("world_shift", Vector3.ZERO)
 	Settings.loading_step = ""
 	if get_tree() != null and get_tree().process_frame.is_connected(_first_frames):
 		get_tree().process_frame.disconnect(_first_frames)
@@ -2468,9 +2517,9 @@ func _apply_view() -> void:
 		pitch = h.y - views.padlock_raise
 	camera.rotation = Vector3(pitch, -h.x, 0)
 	# Cockpit eye ≥ 1 m above the terrain (0x610e14).
-	var g = scene_ground(rig.global_position)
+	var g = scene_ground(rig.position)
 	camera.position = Vector3.ZERO
-	if g != null and rig.global_position.y < g + 1.0:
+	if g != null and rig.position.y < g + 1.0:
 		camera.global_position.y = g + 1.0
 	# A hit shakes the view (FM motion 0xd, amplitude 0..1; our rendering: up to 2° decaying in 0.5 s).
 	if _shake > 0.0:
@@ -2478,10 +2527,10 @@ func _apply_view() -> void:
 		camera.rotation += Vector3(randf_range(-1, 1), randf_range(-1, 1), 0) * deg_to_rad(2.0) * _shake
 	# External views look at their target with roll 0.
 	if not pose.is_empty():
-		chase.global_position = pose[0]
+		chase.position = pose[0]  # the pose is in the scene frame (views.gd), look_at takes a global point
 		if (pose[1] - pose[0]).length() > 0.01:
 			var up := Vector3.UP if absf((pose[1] - pose[0]).normalized().y) < 0.999 else Vector3.FORWARD
-			chase.look_at(pose[1], up)
+			chase.look_at(to_global(pose[1]), up)
 	_shadow_fit(inside, pose)
 
 
@@ -4694,15 +4743,16 @@ func _process(delta: float) -> void:
 		):
 			var tips: Array = aircraft.wingtips()
 			for i in tips.size():
-				trails.emit(["wingtip", i], tips[i], trails.WINGTIP)
+				trails.emit(["wingtip", i], to_local(tips[i]), trails.WINGTIP)
 		if effects.gpu != null and not fm_stopped:
 			effects.gpu.contrail(aircraft, vapour_state(flight.state() if flight != null else {}))
 	_apply_view()
+	_rebase()
 	_imode_update()
 	if clouds != null and get_viewport().get_camera_3d() != null:
-		clouds.update_view(get_viewport().get_camera_3d().global_position, delta)
+		clouds.update_view(to_local(get_viewport().get_camera_3d().global_position), delta)
 	if get_viewport().get_camera_3d() != null:
-		var cp := get_viewport().get_camera_3d().global_position
+		var cp := to_local(get_viewport().get_camera_3d().global_position)
 		Weather.track_ground(terrain.height_at(cp), delta)
 	_update_time_of_day(get_viewport().get_camera_3d())
 	if weather != null:
@@ -4720,11 +4770,10 @@ func _process(delta: float) -> void:
 		if not vclouds.update(($WorldEnvironment as WorldEnvironment).environment, $Sun, GpuFx.wind, delta, night):
 			apply_render_options()  # this GPU cannot make the cloud textures: the original layer instead
 	if get_viewport().get_camera_3d() != null:
-		RenderOptions.update_view(
-			($WorldEnvironment as WorldEnvironment).environment, get_viewport().get_camera_3d().global_position, terrain
-		)
-		Airbases.update_view(get_viewport().get_camera_3d().global_position, terrain)
-		GroundRoads.update_view(get_viewport().get_camera_3d().global_position, terrain)
+		var cam_at := to_local(get_viewport().get_camera_3d().global_position)
+		RenderOptions.update_view(($WorldEnvironment as WorldEnvironment).environment, cam_at, terrain)
+		Airbases.update_view(cam_at, terrain)
+		GroundRoads.update_view(cam_at, terrain)
 	hud_label.visible = Settings.show_info
 	if not Settings.info_line_full():  # Modern IAF: the mission and the FPS
 		hud_label.text = "mission: %s   %d fps" % [mission_name, Engine.get_frames_per_second()]
@@ -5111,7 +5160,7 @@ func _eject_update(delta: float) -> void:
 		for seat in _seats.duplicate():
 			seat.offset += EJECT_STEP
 			if seat.offset.y > EJECT_TOP:
-				_spawn_parachuter(seat.node.global_position)
+				_spawn_parachuter(to_local(seat.node.global_position))
 				seat.node.queue_free()
 				_seats.erase(seat)
 	if t >= EJECT_SEAT_DELAY and not _seats_thrown:

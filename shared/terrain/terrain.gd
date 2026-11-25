@@ -114,6 +114,11 @@ var looks: Array = []
 
 
 ## The camera away from the focus (an F-key view on a far unit: the all-around entry of `looks`), or null.
+## The focus in this node's frame, the scene's (the floating origin moves the global one, terrain_view.gd _rebase).
+func focus_at() -> Vector3:
+	return to_local(focus.global_position)
+
+
 func away_view() -> Variant:
 	for l in looks:
 		if float(l[2]) <= -1.0:
@@ -429,7 +434,7 @@ func _process(_delta: float) -> void:
 	_loaded = _finish_jobs() or _loaded
 	# The tree is re-chosen when data arrived (at most every LOADED_RESELECT_MS: a choice takes ~12 ms with imagery
 	# layers), the focus moved or every RESELECT_MS.
-	var fp := focus.global_position
+	var fp := focus_at()
 	var since := Time.get_ticks_msec() - _last_select
 	if (_loaded and since >= LOADED_RESELECT_MS) or fp.distance_to(_last_focus) > RESELECT_M or since > RESELECT_MS:
 		_reselect(fp)
@@ -842,7 +847,7 @@ func ground_ready() -> bool:
 		not meta.is_empty()
 		and focus != null
 		and _blocked_near == 0
-		and height_at(focus.global_position) != null
+		and height_at(focus_at()) != null
 		and (scenery == null or scenery.ground_ready())
 	)
 

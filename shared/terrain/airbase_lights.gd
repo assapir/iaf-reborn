@@ -96,7 +96,8 @@ func _process(delta: float) -> void:
 		if e.state != 0:
 			continue
 		var c := _scene(Airbases.centre(e.b), o)
-		if Vector2(c.x, c.z).distance_to(Vector2(cam.global_position.x, cam.global_position.z)) > BUILD_RANGE:
+		var eye: Vector3 = _tv.to_local(cam.global_position)
+		if Vector2(c.x, c.z).distance_to(Vector2(eye.x, eye.z)) > BUILD_RANGE:
 			continue
 		if _tv.terrain.height_at(c) == null:
 			continue

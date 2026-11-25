@@ -441,7 +441,7 @@ func airborne_case(tv, hardpoints: Array):
 	var bdb: Dictionary = tv.mission_bdb
 	w2.setup(tv, {"armament": {"hardpoints": hardpoints}}, tv._player_object(bdb), bdb, w.descriptor)
 	tv.weapons = w2
-	tv.cockpit.hud.host_world_to_scene = w2.to_scene
+	tv.cockpit.hud.host_world_to_scene = tv.world_to_global
 	w.queue_free()
 	return w2
 

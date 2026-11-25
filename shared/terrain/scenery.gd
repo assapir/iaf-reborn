@@ -855,7 +855,7 @@ func _process(_delta: float) -> void:
 	if terrain.focus == null:
 		return
 	_finish_jobs()
-	var fp: Vector3 = terrain.focus.global_position
+	var fp: Vector3 = terrain.focus_at()
 	# An F-key view on a far unit: the cells around that camera too (the jet's stay: its roofs and trees are solid).
 	var away = terrain.away_view()
 	_view = away if away != null else fp
@@ -1097,7 +1097,7 @@ func _drop(k: Vector2i) -> void:
 func ground_ready() -> bool:
 	if terrain.focus == null:
 		return false
-	var fp: Vector3 = terrain.focus.global_position
+	var fp: Vector3 = terrain.focus_at()
 	for k in _cells:
 		if _dist(k, fp) <= NEAR:
 			var c: Dictionary = _cells[k]

@@ -101,7 +101,7 @@ func _process(_delta: float) -> void:
 	var panel_y: float = INF
 	if not c3d and host.in_cockpit and host.cockpit.visible and host.cockpit.view_mode == 0:
 		panel_y = host.cockpit.panel_top() + host.cockpit.position.y  # the panel moves with the head pan
-	var eye := cam.global_position
+	var eye: Vector3 = host.to_local(cam.global_position)  # the scene frame (the floating origin)
 	# The places in range with their scene positions, chosen again every RESELECT_MS (the jet flies a few hundred
 	# metres meanwhile; the world origin stays put for the flight).
 	var now := Time.get_ticks_msec()
@@ -123,9 +123,10 @@ func _process(_delta: float) -> void:
 	for p in _near:
 		var at: Vector3 = p.at
 		var d := Vector2(at.x - eye.x, at.z - eye.z).length()
-		if d > RANGE_M or cam.is_position_behind(at):
+		var g: Vector3 = host.to_global(at)
+		if d > RANGE_M or cam.is_position_behind(g):
 			continue
-		var s := cam.unproject_position(at)
+		var s := cam.unproject_position(g)
 		if not view.has_point(s) or s.y >= panel_y:
 			continue
 		cand.append([p.rank, d, p, s])

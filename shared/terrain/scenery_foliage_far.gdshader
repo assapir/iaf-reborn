@@ -17,6 +17,9 @@ const float UP = 0.5;
 
 varying vec3 v_colour;
 
+// The floating origin (terrain_view.gd render_shift): each tree's own shade by its scene position.
+global uniform vec3 world_shift;
+
 float hash(vec2 p) {
 	return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
 }
@@ -24,9 +27,9 @@ float hash(vec2 p) {
 void vertex() {
 	vec3 foot = MODEL_MATRIX[3].xyz;
 	float d = distance(foot, INV_VIEW_MATRIX[3].xyz);
-	float seed = hash(foot.xz);
+	float seed = hash(foot.xz + world_shift.xz);
 	float b = 0.82 + 0.36 * seed;
-	float h = hash(foot.zx + 17.0) - 0.5;
+	float h = hash(foot.zx + world_shift.zx + 17.0) - 0.5;
 	// Darker toward the underside, as the full model's occlusion.
 	float ao = mix(0.55, 1.0, smoothstep(-0.8, 0.8, NORMAL.y));
 	v_colour = albedo * GAIN * b * vec3(1.0 + 0.25 * h, 1.0, 1.0 - 0.3 * h) * ao;

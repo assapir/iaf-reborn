@@ -11,6 +11,8 @@ render_mode cull_back, specular_disabled, shadows_disabled;
 uniform sampler2D tex : source_color, filter_linear_mipmap, repeat_enable;
 // The deck's drift with the wind (m, scene x / z).
 uniform vec2 drift = vec2(0.0);
+// The floating origin (terrain_view.gd render_shift): the lumps stay put in the scene frame.
+global uniform vec3 world_shift;
 // The three scales (m per texture), their weights in the height, and the slopes' strength.
 const vec3 SCALE = vec3(9000.0, 2200.0, 600.0);
 const vec3 WEIGHT = vec3(0.3, 0.45, 0.25);
@@ -58,7 +60,7 @@ void vertex() {
 }
 
 void fragment() {
-	vec2 p = wp.xz - drift;
+	vec2 p = wp.xz + world_shift.xz - drift;
 	// The slope from two more taps a step apart (m); the step grows with the distance, so far away the floor is smooth.
 	float e = max(40.0, 0.01 * length(wp - CAMERA_POSITION_WORLD));
 	vec2 h = height(p, LOD.x);

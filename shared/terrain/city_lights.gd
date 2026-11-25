@@ -168,7 +168,7 @@ func _process(delta: float) -> void:
 	_poll = POLL
 	if _glow_asked and _glow == null:
 		_take_glow()
-	var w: Vector3 = _tv.scene_to_world(cam.global_position)
+	var w: Vector3 = _tv.scene_to_world(_tv.to_local(cam.global_position))
 	var near: PackedInt32Array = IafCityLights.blocks_near(w.x, w.y, FAR_RANGE + KEEP)
 	var seen := {}
 	for k in range(0, near.size(), 3):

@@ -1701,7 +1701,7 @@ func target_box(s: float) -> Dictionary:
 	return {"p": p, "h": h, "edge": edge, "hostile": bool(lk.get("hostile", true))}
 
 
-## World point -> scene (set by the flight scene for the AG pipper).
+## World point -> the camera's global frame (set by the flight scene: terrain_view.gd world_to_global).
 var host_world_to_scene: Callable
 
 

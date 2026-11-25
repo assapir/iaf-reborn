@@ -241,7 +241,7 @@ func _pool(amount: int, draw: String, gravity: float, sorted: bool) -> GPUPartic
 	p.lifetime = MAX_LIFE
 	# Not emitting: free slots take the emit_particle requests at once (the sub-emitter path).
 	p.emitting = false
-	p.local_coords = false
+	p.local_coords = true  # the scene frame (this node's): the floating origin moves the particles with it
 	p.visibility_aabb = AABB(Vector3.ONE * -1e6, Vector3.ONE * 2e6)
 	p.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	if sorted:
@@ -406,7 +406,7 @@ func contrail(model: Node3D, state := {}) -> void:
 	vapour.update(model, state)
 	var flames: Array = model.get("flames") if model.get("flames") != null else []
 	for i in flames.size():
-		var pos: Vector3 = flames[i].global_transform * flames[i].nozzle
+		var pos: Vector3 = to_local(flames[i].global_transform * flames[i].nozzle)
 		var owner = model
 		var key = [owner, i]
 		if pos.y < CONTRAIL_ALT:

@@ -1117,7 +1117,7 @@ func _place(p: Pilot) -> void:
 	if host != null and host.get("trails") != null and not detailed and bool(st.get("vortex", false)):
 		var tips: Array = p.node.wingtips()
 		for i in tips.size():
-			host.trails.emit([p, i], tips[i], host.trails.WINGTIP)
+			host.trails.emit([p, i], host.to_local(tips[i]), host.trails.WINGTIP)
 	# Contrails (ours, Detailed effects).
 	if host != null and host.get("effects") != null and host.effects.gpu != null:
 		host.effects.gpu.contrail(p.node, st)

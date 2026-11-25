@@ -2544,6 +2544,42 @@ slopes from the same reads: the alpha's 16-level terraces turned into flat grey 
 camouflage; the slopes at 0.2× relief with a 0.35 wrap and troughs at 0.58 albedo: dark grey patches over half the
 floor.
 
+## 11. Floating origin (built: shared/terrain/terrain_view.gd `_rebase`, both games)
+
+Godot draws in 32-bit floats. The scene's coordinates are metres about the flight's start (`terrain.world_origin`), so
+far from the start a position rounds to a coarse step: 2 mm 17 km out, 7.8 mm 100 km out, 31 mm 300 km out. The jet's
+parts drawn there rounded each on its own step, so the 3D cockpit shook against the eye and its screens lost the depth
+test to their cases (status.md "3D cockpit far from the start"). Modern IAF drew its cockpit in a world of its own
+about the origin for that (modern-iaf/docs/cockpit.md §6.2); the rest of the world, its own jet in the outside views
+and the other jets near the camera included, kept the rounding.
+
+The floating origin keeps what is drawn near the camera near Godot's origin:
+- The scene frame stays as it is: every position the sim keeps (the rig, the units, the missiles, the routes, the
+  terrain's and the scenery's nodes: `position` of the scene node's children) is still about the flight's start.
+- The scene node itself (`TerrainView`) is moved by −`render_shift`. The shift is a multiple of `REBASE_M` (4096 m)
+  on X and Z, never on Y (the fog's height and the sky's altitude read the global Y). When the camera is more than
+  4096 m from it on X or Z, it moves to the multiple nearest the camera: about every 12 s at Mach 1. The camera moves with the
+  scene, so the picture does not change.
+- A global position is the scene position − `render_shift`. `TerrainView.to_local()` / `to_global()` convert; the HUD
+  projects through `world_to_global`. The rule for scripts: a camera's projection (`unproject_position`,
+  `is_position_behind`, `look_at`) and a node's `global_*` are global; everything kept or compared with the sim's
+  positions is the scene frame.
+- The shaders that anchor a pattern to the ground (the terrain's textures, water and roads, the towns' glow, the cloud
+  deck's floor, the rain's drops, the trees' own shades, the volumetric clouds) add the global shader parameter
+  `world_shift` (= `render_shift`). The EO and DAS cameras, in viewports of their own, move with the step too.
+- The nodes with `top_level` in the scene frame (sounds placed at a world point) are in the group
+  `TerrainView.TOP_LEVEL`, moved at each step. The particles of the Detailed effects (§6) are kept in the scene frame
+  (`local_coords`); the missiles' smoke ribbons are drawn in it; the volumetric clouds' history moves with the step.
+  Every other effect keeps its points in the scene frame.
+
+Measured by `modern-iaf/tests/test_floating_origin.gd` (mission `ramon_range`, the jet put 300 km from the start):
+a part of the jet 1.3 m from the eye holds its place against the camera to 0.07 mm while the rig moves 0.5 mm a frame
+(without the shift: centimetres); a step in flight moves the camera on by its 4 m a frame; the HUD's projection of a
+world point lands on the node drawn there; a gun pass brings down a drone there. The F-35I's screen pull
+(`cockpit3d.gd` `SCREEN_PULL`, 9.6 mm at the standby display) now holds at any distance.
+
+The original game keeps its look and behaviour: only the precision of the drawing changes.
+
 [^wtp]: Godot docs, ProjectSettings `threading/worker_pool/low_priority_thread_ratio` (default 0.3):
     https://docs.godotengine.org/en/stable/classes/class_projectsettings.html#class-projectsettings-property-threading-worker-pool-low-priority-thread-ratio
 [^nvd]: Wikipedia, "Night-vision device" (Gen III 500–900 nm, the ion barrier's halo effect, green images):

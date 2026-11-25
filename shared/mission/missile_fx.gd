@@ -42,7 +42,8 @@ const PUFF_CORNERS: Array[Vector2] = [
 ]
 
 ## Per vertex: VERTEX = the point where it was laid, CUSTOM0 = (unit tangent toward the head, birth time on `now`),
-## UV = (side −1 / +1, metres along the trail). The mesh sits at the origin, so model space is world space.
+## UV = (side −1 / +1, metres along the trail). The mesh sits at the scene's origin, so model space is the scene
+## frame: the global frame moved by the floating origin (terrain_view.gd render_shift), a translation.
 ## A second surface holds a round puff per point (UV.x = 0, UV2 = its corner −1..1): seen along the trail the flat
 ## ribbon would show as a hard-edged wedge, so there the puffs take over and the smoke reads as a round plume.
 const SMOKE_SHADER := """
@@ -72,12 +73,13 @@ void vertex() {
 	float v_f, v_w, v_x, v_along, v_align, v_cover, v_px, v_near, v_y, v_disc, v_end;
 	float age = max(now - CUSTOM0.w, 0.0);
 	v_f = clamp(age / life, 0.0, 1.0);
+	vec3 cam = INV_VIEW_MATRIX[3].xyz - MODEL_MATRIX[3].xyz;  // the camera in model space
 	// 0.6 m at the nozzle, ≈ 10 m after 2 s, ≈ 14 m after 5 s, then spreading on (≈ 18 m at 10 s, ≈ 23 m at 20 s).
 	float s = UV.y;
 	// The width swells and narrows every ~60 m (points are 8–30 m apart), more as the smoke spreads; the fragment
 	// noise draws the smaller puffs.
 	float puff = textureLod(noise, vec2(s * 0.005, 0.37), 0.0).r;
-	vec3 to_cam0 = normalize(INV_VIEW_MATRIX[3].xyz - VERTEX);
+	vec3 to_cam0 = normalize(cam - VERTEX);
 	// Seen along its length the ribbon is a stack of cross-sections: there no swelling (it shows as rings), and the
 	// smoke is softer and fainter.
 	float cos_view = abs(dot(CUSTOM0.xyz, to_cam0));
@@ -89,7 +91,7 @@ void vertex() {
 	// Up close (within ≈ 250 m of the camera) the smoke takes a real motor's width: 0.35 m at the nozzle, ≈ 2 m
 	// after 1 s, ≈ 4 m after 3 s, ≈ 8 m at 20 s; farther off, the wide trail for spotting.
 	float w_real = 0.35 + 3.0 * (1.0 - exp(-age / 0.8)) + 0.22 * age;
-	v_near = 1.0 - smoothstep(40.0, 250.0, length(INV_VIEW_MATRIX[3].xyz - VERTEX));
+	v_near = 1.0 - smoothstep(40.0, 250.0, length(cam - VERTEX));
 	float w = mix(w_far, w_real, v_near)
 		* (1.0 + (puff - 0.5) * 1.2 * smoothstep(0.0, 4.0, age) * (1.0 - v_align));
 	// The old trail meanders: slow, smooth drift along the length, growing with the age; warm smoke rises a little.
@@ -97,7 +99,7 @@ void vertex() {
 		0.6 * sin(s * 0.009 + 2.1) + 0.4,
 		sin(s * 0.013 + 0.4) + 0.5 * sin(s * 0.027 + 5.0)) * min(age, 15.0) * 0.3;
 	vec3 p = VERTEX + wind * age + drift;
-	vec3 to_cam = INV_VIEW_MATRIX[3].xyz - p;
+	vec3 to_cam = cam - p;
 	vec3 side = cross(CUSTOM0.xyz, to_cam);
 	side = length(side) > 1e-4 ? normalize(side) : INV_VIEW_MATRIX[0].xyz;
 	v_w = w;
@@ -121,7 +123,7 @@ void vertex() {
 		v_y = UV2.y;
 		VERTEX = p + (v_side * UV2.x + v_up * UV2.y) * 0.5 * wd * step(1e-3, v_end);
 	}
-	v_pos = VERTEX;
+	v_pos = VERTEX + MODEL_MATRIX[3].xyz;  // global
 	v_a = vec4(v_f, v_w, v_x, v_along);
 	v_b = vec4(v_align, v_cover, v_px, v_near);
 	v_c = vec4(v_y, v_disc, v_end, 0.0);
@@ -368,7 +370,6 @@ func _new_trail() -> Dictionary:
 	var mi := MeshInstance3D.new()
 	mi.mesh = mesh
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	mi.top_level = true
 	# The shader moves the points (wind, drift, width): up to ≈ 100 m from where they were laid.
 	mi.extra_cull_margin = 200.0
 	add_child(mi)
@@ -513,7 +514,8 @@ func _place_flame(f: Dictionary, tr: Dictionary) -> void:
 	var back: Vector3 = -_tangent(tr, n - 1)
 	var nozzle: Vector3 = tr.pts[n - 1] - back * NOZZLE
 	f.root.visible = true
-	f.root.global_transform = Transform3D(
+	# In this node's frame, the scene's (the points').
+	f.root.transform = Transform3D(
 		Basis.looking_at(-back, Vector3.UP if absf(back.y) < 0.99 else Vector3.RIGHT), nozzle
 	)
 

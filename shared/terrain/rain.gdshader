@@ -7,6 +7,8 @@ shader_type spatial;
 render_mode unshaded, blend_mix, depth_draw_never, cull_disabled, shadows_disabled, fog_disabled;
 
 uniform float box = 40.0;
+// The floating origin (terrain_view.gd render_shift): the drops stay put in the scene frame.
+global uniform vec3 world_shift;
 // The rain's world velocity (m/s: its fall plus the wind) and its travel so far, wrapped by `box` (weather.gd).
 uniform vec3 fall = vec3(0.0, -9.0, 0.0);
 uniform vec3 drift = vec3(0.0);
@@ -34,7 +36,7 @@ void vertex() {
 	vec3 cam = INV_VIEW_MATRIX[3].xyz;
 	vec3 centre = cam - INV_VIEW_MATRIX[2].xyz * box * 0.35;
 	vec3 corner = centre - vec3(0.5 * box);
-	vec3 p = corner + mod(seed * box + drift - corner, box);
+	vec3 p = corner + mod(seed * box + drift - corner - world_shift, box);
 	vec3 rel = fall - cam_vel;
 	vec3 a = (VIEW_MATRIX * vec4(p, 1.0)).xyz;
 	// At most `max_len` m long: a near drop's streak at speed would cross the screen (and cost its fill).

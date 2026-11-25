@@ -1049,7 +1049,8 @@ func _release(u: Unit, t: Dictionary, aim: Vector3, now: float, truce: bool, fla
 			u.fire_sound = host.sounds.play("SFX_ENTITY_FIRED_WEAPON", "OST_GUNBULLET")
 			if u.fire_sound is Node3D:
 				u.fire_sound.top_level = true
-				u.fire_sound.global_position = host.world_to_scene(at)
+				u.fire_sound.add_to_group(host.TOP_LEVEL)
+				u.fire_sound.global_position = host.to_global(host.world_to_scene(at))
 		return
 	u.missile = host.weapons.launch_homing(
 		u.w,

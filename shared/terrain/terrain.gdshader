@@ -165,8 +165,8 @@ void vertex() {
 	VERTEX.y -= UV2.x * skirt;
 	UV = cuv;
 	vec3 wv = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
-	world_xz = wv.xz;
-	v_city_glow = city_glow_at(world_xz, distance(wv, INV_VIEW_MATRIX[3].xyz));
+	world_xz = wv.xz + world_shift.xz;
+	v_city_glow = city_glow_at(wv.xz, distance(wv, INV_VIEW_MATRIX[3].xyz));
 	sea = open_sea ? 1.0 : 0.0;
 }
 
@@ -748,7 +748,7 @@ void fragment() {
 	// roads, one more reads the road's width, two more at the next pixels' ground (wdx, wdy) give the edge's
 	// anti-aliasing width.
 	float fpx = max(length(wdx), length(wdy));
-	float rdist = length(world_xz - INV_VIEW_MATRIX[3].xz);
+	float rdist = length(world_xz - world_shift.xz - INV_VIEW_MATRIX[3].xz);  // world_xz: the scene frame
 	bool far_roads = ground_roads > 1.5;
 	float reach = far_roads ? FAR_ROADS : 1500.0;
 	float widen = far_roads ? ROAD_WIDEN : 0.0;

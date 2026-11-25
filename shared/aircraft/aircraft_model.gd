@@ -668,7 +668,7 @@ func _shown_at(n: MeshInstance3D, level: float) -> void:
 var _tef := false
 
 
-## The EndWingL / R helpers in the world (obj+0x38 / +0x44, set when the model has EndWingR: obj+0x50), the heads
+## The EndWingL / R helpers, global (obj+0x38 / +0x44, set when the model has EndWingR: obj+0x50), the heads
 ## of the wingtip vortex trails; empty without them.
 func wingtips() -> Array:
 	var ew: Dictionary = desc.get("end_wing", {}) if desc.get("end_wing") is Dictionary else {}

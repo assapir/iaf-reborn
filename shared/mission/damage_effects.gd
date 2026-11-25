@@ -529,7 +529,8 @@ func _shatter(pos: Vector3, flags: int, scale: float, duration: float, ground_y:
 ## each piece reaches the terrain (rest there with 0x1000, else vanish) and runs the large pieces'
 ## smoke and fire. Returns false when the model has no triangles.
 func _shatter_model(model: Node3D, pos: Vector3, flags: int, scale: float, duration: float, ground_y: float) -> bool:
-	var root_inv := model.global_transform.affine_inverse()
+	var to_scene := global_transform.affine_inverse()  # this node's frame: the scene's (the floating origin)
+	var root_inv := (to_scene * model.global_transform).affine_inverse()
 	var basis := model.global_transform.basis.orthonormalized()
 	var base := Vector3(0, 5.0, 0) if flags & F_KICK else Vector3.ZERO
 	var groups := {}  # material -> {v, n, uv, c0, c1, c2}
@@ -552,7 +553,7 @@ func _shatter_model(model: Node3D, pos: Vector3, flags: int, scale: float, durat
 	for mi in meshes:
 		if mi.mesh == null or not _shown_in(mi, model):
 			continue
-		var xf: Transform3D = mi.global_transform
+		var xf: Transform3D = to_scene * mi.global_transform
 		for si in mi.mesh.get_surface_count():
 			if mi.mesh.surface_get_primitive_type(si) != Mesh.PRIMITIVE_TRIANGLES:
 				continue
@@ -749,7 +750,7 @@ func _process(delta: float) -> void:
 		_smokers[node] += delta
 		while _smokers[node] >= step:
 			_smokers[node] -= step
-			smoke_puff(node.global_position)
+			smoke_puff(to_local(node.global_position))
 	_update_pieces(delta, step)
 	_update_shards(delta, step)
 	_update_streamers(delta, step)

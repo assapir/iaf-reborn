@@ -39,6 +39,8 @@ const CityLights := preload("res://shared/terrain/city_lights.gd")
 ## wrong clouds.
 var views: Array[Dictionary] = []
 var _wind := Vector3.ZERO
+## The floating origin (terrain_view.gd render_shift): the clouds and the towns' glow stay put in the scene frame.
+var shift := Vector3.ZERO
 ## Set once this GPU could not make the cloud textures (Effect.failed): the original layer for the rest of the run.
 static var unavailable := false
 
@@ -47,6 +49,13 @@ static var unavailable := false
 ## made their textures.
 static func supported() -> bool:
 	return RenderingServer.get_rendering_device() != null and not unavailable
+
+
+## The floating origin moved to `to` by `d` (terrain_view.gd _rebase): the march's history keeps its clouds.
+func rebase(to: Vector3, d: Vector3) -> void:
+	shift = to
+	for w in views:
+		w.effect.rebase(d)
 
 
 ## The cameras of one viewport that draw the clouds (the flight's: the cockpit's and the chase camera; a screenshot
@@ -160,8 +169,8 @@ func update(env: Environment, sun: DirectionalLight3D, wind: Vector3, delta: flo
 		[bottom.r, bottom.g, bottom.b, alt],
 		[fog.r, fog.g, fog.b, env.fog_density],
 		[deck.x, deck.y, float(row.cover), float(row.ext)],
-		[_wind.x, _wind.z, 0.0 if l.is_empty() else 1.0, FAR_CUMULUS if l.is_empty() else FAR_DECK],
-		[gr.x, gr.y, gr.z, gr.w],
+		[_wind.x + shift.x, _wind.z + shift.z, 0.0 if l.is_empty() else 1.0, FAR_CUMULUS if l.is_empty() else FAR_DECK],
+		[gr.x - shift.x, gr.y - shift.z, gr.z, gr.w],
 		[CityLights.glow_strength if CityLights.glow_texture != null else 0.0, GLOW_GAIN, 0.0, 0.0],
 	]
 	for i in v.size():
@@ -330,6 +339,11 @@ class Effect:
 			if r.is_valid():
 				rd.free_rid(r)
 		retired.clear()
+
+	## The global frame moved by −d (the floating origin): the last frame's camera and projection in the new frame.
+	func rebase(d: Vector3) -> void:
+		_prev_vp = _prev_vp * Projection(Transform3D(Basis.IDENTITY, d))
+		_prev_cam -= d
 
 	## Whether the history shows other clouds or another light than this frame's: the camera moved more than 500 m
 	## since the last march (another jet's view, a mission's start; a jet at Mach 2 flies 35 m in a 20 fps frame), the

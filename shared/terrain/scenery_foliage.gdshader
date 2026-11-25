@@ -24,6 +24,9 @@ const float UP = 0.5;
 varying vec3 v_tint;
 varying float v_fade;
 
+// The floating origin (terrain_view.gd render_shift): each tree's own shade by its scene position.
+global uniform vec3 world_shift;
+
 float hash(vec2 p) {
 	return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
 }
@@ -32,10 +35,10 @@ void vertex() {
 	// MODEL_MATRIX holds the instance's transform: its origin is the tree's foot.
 	vec3 foot = MODEL_MATRIX[3].xyz;
 	float d = distance(foot, INV_VIEW_MATRIX[3].xyz);
-	float seed = hash(foot.xz);
+	float seed = hash(foot.xz + world_shift.xz);
 	// Each tree its own shade and hue: ±18 % brightness, a little yellower or bluer (scenery_foliage_far.gdshader too).
 	float b = 0.82 + 0.36 * seed;
-	float h = hash(foot.zx + 17.0) - 0.5;
+	float h = hash(foot.zx + world_shift.zx + 17.0) - 0.5;
 	v_tint = b * vec3(1.0 + 0.25 * h, 1.0, 1.0 - 0.3 * h);
 	v_fade = clamp((d - (near_m - band_m)) / (2.0 * band_m), 0.0, 1.0);
 	if (d > near_m + band_m) {

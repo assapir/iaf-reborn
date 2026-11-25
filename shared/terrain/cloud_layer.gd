@@ -49,6 +49,7 @@ uniform float fade = 1.0;
 global uniform float city_glow_k;
 global uniform sampler2D city_glow : filter_linear_mipmap, repeat_disable;
 global uniform vec4 city_glow_rect;
+global uniform vec3 world_shift;  // the floating origin (terrain_view.gd render_shift)
 uniform float glow_gain = 0.0;
 // Lit by the sun (the atmospheric sky by day): sun_dir points to the sun (scene axes).
 uniform bool lit = false;
@@ -111,7 +112,7 @@ void fragment() {
 	}
 	if (glow_gain > 0.0 && city_glow_k > 0.0) {
 		vec3 wp = (INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz;
-		vec2 g_uv = (wp.xz - city_glow_rect.xy) * city_glow_rect.zw;
+		vec2 g_uv = (wp.xz + world_shift.xz - city_glow_rect.xy) * city_glow_rect.zw;  // the scene frame
 		if (all(greaterThanEqual(g_uv, vec2(0.0))) && all(lessThanEqual(g_uv, vec2(1.0)))) {
 			// The map at the level whose texels are 2 km wide, four taps half a texel apart: a soft ~4 km blur.
 			vec2 n = vec2(textureSize(city_glow, 0));
