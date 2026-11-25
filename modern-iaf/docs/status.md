@@ -1364,9 +1364,11 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   (resumes a `.part`); every download logs its MB every 15 s ([terrain.md](terrain.md) §1, §2, §4).
   The Survey sheets' white fill shows Sentinel-2 instead, also where it lies far from the sheets' no-data (since
   2026-11-25: no grey-white blocks west of Ramon; [terrain.md](terrain.md) §4).
-  Since 2026-11-25 ("sheets1") the Survey sheets are toned to each other: one gain per sheet and band, from a
-  least-squares fit of the steps in brightness along their borders. The darker and lighter rectangles 10 to 25 km
-  wide no longer show from the air, among them the dark grey block south-west of Ramon. The terrain step redoes
+  Since 2026-11-25 ("sheets2") the Survey sheets are toned to each other: one gain per sheet and band, from a
+  least-squares fit of the steps in brightness along their borders, and a seam at each border that takes the step
+  the gains leave back over 2 km. Each pixel takes its own sheet's correction, so a sheet much darker in the photo
+  than its neighbour (HSV_S at Eilat beside BOR) meets it within 4 %. From the air the sheets meet without rectangles of
+  other tones 10 to 25 km wide, also south-west of Ramon. The terrain step redoes
   the theatre's 8 m and 2 m nodes, about 1 h 40. It downloads nothing while the cache holds every 10 m tile
   under them whole ([terrain.md](terrain.md) §4).
 - **The jets' limits have consequences (2026-11-19):** on the 6-DoF an over-g or an overspeed is counted, past

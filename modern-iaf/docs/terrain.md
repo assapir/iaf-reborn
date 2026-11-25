@@ -143,12 +143,12 @@ left" over the tiles still to fetch, a DEM tile's MB so far.
    `.work/soi.vrt` and reused while its stamp (`soi.vrt.stamp`: gdalbuildvrt's options, each sheet's full GDAL path,
    its ZIP's size and modification time) is the same. A ZIP replaced by one of the same size and modification time
    keeps the old VRT, as it keeps its line in `sheets.tsv`; delete `.work/soi.vrt` then. Work units: level-4 nodes
-   (16.4 km, 8192² px at 2 m). Per pixel: the sheet's levels (`imagery::sheet_levels`, haze and exposure, blended
-   across sheet borders: `imagery::photo_levels`, the same pixel as the original game's `mapi2015_modern`,
+   (16.4 km, 8192² px at 2 m). Per pixel: its own sheet's levels (`imagery::sheet_levels`, haze and exposure:
+   `imagery::photo_levels`, the same pixel as the original game's `mapi2015_modern`,
    docs/imagery.md §4), laid over the 8 m node upsampled. Until 2026-11-13 the sheet's colours were then matched to
    Sentinel-2 (a scale and offset per band from both images' mean and spread at 40 m, `.work/gains.tsv`): dropped
    with the user's order to copy the original game's ground (§15).
-   - **The sheets toned to each other** (2026-11-25, `sheet_tone`, "sheets1"): the sheets were flown on different days,
+   - **The sheets toned to each other** (2026-11-25, `sheet_tone`, "sheets2"): the sheets were flown on different days,
      and their levels leave them darker or lighter than the ground around. From the air they showed as rectangles 10
      to 25 km wide. The worst was a dark grey block 20 by 40 km south-west of Ramon (the tanker shots, 2026-11-25).
      Each sheet now gets a gain per band that brings it to its neighbours:
@@ -160,12 +160,18 @@ left" over the tiles still to fetch, a DEM tile's MB so far.
        its cells. The gains are held to 1 on average, so the photo keeps its overall brightness. Ten rounds of
        Huber weighting (0.1 in log) lower the weight of a border where the step stays large. There the ground
        really changes, as at a crater's rim or a field's edge, and that border should not shade a whole sheet.
-     - **Apply**: the gains run from × 0.64 to × 1.97. Before the fit, half the borders stepped by 10 % or more;
-       after it, half step by 2.5 % or less. The gains blend across sheet borders over 4 km, as the levels do
-       (`imagery::levels_at`). The gain applies everywhere the sim reads the photo: the 2 m nodes, the bases' tone
-       and the border's tone.
-     The gains are kept in `.work/sheet_tone.tsv` while the Survey VRT's stamp and the sheets' levels stay the
-     same. A theatre built before redoes every 8 m and Survey unit (their marks end in `_sheets1`) from the files
+     - **Seams**: one gain per sheet leaves a step at some borders. With the gains applied, each sheet's cells
+       200 m from the other sheet (at least 50 on each side) give that border's remaining step, its seam. Each side
+       takes half of it back, fading to nothing 2 km from the border.
+     - **Apply**: the gains run from × 0.64 to × 1.97. Each pixel takes its own sheet's levels, gain and seams
+       (`photo_px`), the sheet the Survey VRT takes it from (the last sheet whose extent holds it). The correction
+       steps at a sheet border with the photo itself: HSV_S at Eilat is three times darker than BOR beside it in the
+       photo, and a correction blended across the border leaves that step standing in the 2 km beside it. On the
+       100 m cells, right at the borders (one cell apart), half the borders step by 1.3 % or less, nine in ten by
+       4 % or less, the largest by 8 %; HSV_S and BOR meet within 4 %. The correction applies everywhere the sim
+       reads the photo: the 2 m nodes, the bases' tone and the border's tone.
+     The gains are kept in `.work/sheet_tone.tsv` (a line per sheet: its gains; a line per seam: the two sheets, the step) while the Survey VRT's stamp and the sheets' levels stay the
+     same. A theatre built before redoes every 8 m and Survey unit (their marks end in `_sheets2`) from the files
      on disk only: a unit an earlier run built, under any older mark, never fetches a tile (`s2_rest_left`). Where a
      10 m tile under it is not in the cache whole, the unit keeps its earlier build. On 2026-11-25 the first build
      of this change, before that rule, downloaded 3 tiles east of 36° E (N31–N33 E036, 1.94 GB) that the theatre
@@ -205,7 +211,7 @@ left" over the tiles still to fetch, a DEM tile's MB so far.
      both ends); a gain and offset per band, black-red.
      Every 2 m node on a base's mask is written, so the toned colour reaches every level. The units on a base (the
      Survey's level-4 units with the mask, the 8 m Sentinel-2 level-5 units within 3.6 km of an outline) have their
-     own done marks (`survey_2m_median_sheets1`, `s2_8m_median_sheets1`) and run again when the fill changes (`stamp`'s `base_fill`),
+     own done marks (`survey_2m_median_sheets2`, `s2_8m_median_sheets2`) and run again when the fill changes (`stamp`'s `base_fill`),
      Sentinel-2's from the local tiles first, as its level-3 nodes hold the photo after a run. A theatre built before
      redoes those units only: 8 Sentinel-2 units and 12 Survey units, then the coarser levels, 2 min 30 s on the Mac
      (M4 Pro), nothing downloaded (run with the network blocked; `would_fetch` lists nothing while the cache holds
@@ -263,7 +269,7 @@ left" over the tiles still to fetch, a DEM tile's MB so far.
      over the network and the stamp holds; once the disk has room, the next setup finishes it (2026-11-25: the run of
      2026-11-24 kept three tiles and read N31E035 over the network, under 7 GB free).
      The 8 m Sentinel-2 units (level 5) and Survey units (level 4) with a toned pixel are listed in
-     `.work/border_tone7.json` and have their own done marks (`s2_8m_border_tone7_sheets1`, `survey_2m_border_tone7_sheets1`; "tone1"
+     `.work/border_tone7.json` and have their own done marks (`s2_8m_border_tone7_sheets2`, `survey_2m_border_tone7_sheets2`; "tone1"
      before the white fill, "tone2" to "tone6" its earlier rules): a
      theatre built before redoes those (`stamp`'s `border_fill`), Sentinel-2's from the local tiles, nothing
      downloaded. A base within reach of the toned ground has all its 8 m units redone too: its own tone reads

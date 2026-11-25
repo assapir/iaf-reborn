@@ -61,15 +61,35 @@ pub const ATTRIBUTION: [&str; 3] = [
 /// Copernicus WorldDEM-30 licence, Article 6 (c): this sentence goes with every distribution.
 pub const DEM_LIABILITY: &str = "The organisations in charge of the Copernicus programme by law or by delegation do not incur any liability for any use of the Copernicus WorldDEM-30";
 
-/// A Survey sheet's extent (ITM), its levels (`imagery::sheet_levels`: per-band dark, white) and its tone to its
-/// neighbours (`sheet_tone`: a log gain per band), blended across sheet borders by `imagery::levels_at`.
-type SheetLevels = ([f64; 4], [f32; 7]);
+/// A Survey sheet as its pixels are coloured (`sheet_tone`): its extent (ITM), its levels (`imagery::sheet_levels`:
+/// per-band dark, white), its tone to its neighbours (a log gain per band) and its seams.
+struct SheetLevels {
+    bbox: [f64; 4],
+    levels: [f32; 4],
+    gain: [f32; 3],
+    /// Per neighbour (its extent): this sheet's half of the log step the gains leave at their border, fading to 0
+    /// over SEAM_FADE_M from the neighbour.
+    seams: Vec<([f64; 4], [f32; 3])>,
+}
 
-/// A Survey pixel at ITM `itm` through its sheets' levels (the original game's `mapi2015_modern`) and tone.
-fn photo_px(levels: &[SheetLevels], itm: [f64; 2], rgb: [f32; 3]) -> [f32; 3] {
-    let Some(l) = imagery::levels_at(levels, itm[0], itm[1]) else { return rgb };
-    let v = imagery::photo_levels(rgb, [l[0], l[1], l[2], l[3]]);
-    [0, 1, 2].map(|c| (v[c] * l[4 + c].exp()).min(255.0))
+/// Whether the extent `b` (ITM) holds (x, y). A pixel of the VRT comes from the last sheet that holds it.
+fn holds(b: &[f64; 4], x: f64, y: f64) -> bool {
+    (b[0]..b[2]).contains(&x) && (b[1]..b[3]).contains(&y)
+}
+
+/// A Survey pixel at ITM `itm` through its own sheet's levels (the original game's `mapi2015_modern`), gain and
+/// seams. The sheet's own, not a blend of the sheets around it: two sheets meet with a step in the photo itself (HSV_S
+/// at Eilat three times darker than BOR beside it), and only a correction that steps with the photo cancels it.
+fn photo_px(sheets: &[SheetLevels], itm: [f64; 2], rgb: [f32; 3]) -> [f32; 3] {
+    let Some(s) = sheets.iter().rev().find(|s| holds(&s.bbox, itm[0], itm[1])) else { return rgb };
+    let v = imagery::photo_levels(rgb, s.levels);
+    let mut g = s.gain;
+    for (b, half) in &s.seams {
+        let d = (b[0] - itm[0]).max(itm[0] - b[2]).max(0.0).hypot((b[1] - itm[1]).max(itm[1] - b[3]).max(0.0));
+        let k = (1.0 - d / SEAM_FADE_M).max(0.0) as f32;
+        (0..3).for_each(|c| g[c] += k * half[c]);
+    }
+    [0, 1, 2].map(|c| (v[c] * g[c].exp()).min(255.0))
 }
 
 /// A node: level, i (east), j (south); it covers units [i, i+1) × [j, j+1) · (1024 << level).
@@ -518,7 +538,7 @@ fn near_empty(n: usize, r: usize, empty: impl Fn(usize) -> bool) -> Vec<bool> {
         .collect()
 }
 
-/// What the Survey units share: the sheets' levels (per sheet extent, blended by `levels_at`) and the airbases'
+/// What the Survey units share: the sheets' levels, gains and seams (`photo_px`) and the airbases'
 /// outlines (UTM).
 struct Survey<'a> {
     vrt: &'a str,
@@ -1352,7 +1372,7 @@ fn survey_unit(sv: &Survey, f: &Frame, unit: Key, itm: [[f64; 2]; 4], work: &Pat
     }
     let bases = BaseMask::new(sv.bases, rect);
     // The Israeli TM position of unit pixel (u, v) (0..1): bilinear between the corners (NW, NE, SW, SE); the
-    // grids differ by ≈ 1° of rotation and < 0.1 % of scale, so the levels' 4 km blend sees no error.
+    // grids differ by ≈ 1° of rotation and < 0.1 % of scale, so the sheet a pixel falls in is right.
     let at = |u: f64, v: f64| -> [f64; 2] {
         let l = |a: usize| itm[0][a] + (itm[1][a] - itm[0][a]) * u;
         let r = |a: usize| itm[2][a] + (itm[3][a] - itm[2][a]) * u;
@@ -1521,8 +1541,8 @@ pub fn stamp(r: &Run) -> serde_json::Value {
     };
     // With the Survey, its rule at the shore: 2 = the sea beyond the coastline's reach is Sentinel-2's too. "sea": the
     // open sea's fill. "survey": the photo's colours, "levels" = by its sheets' levels alone, the original game's
-    // (2026-11-13; before: matched to Sentinel-2, no key); "levels sheets1" with the sheets toned to their
-    // neighbours (SHEET_TONE, 2026-11-25).
+    // (2026-11-13; before: matched to Sentinel-2, no key); "levels sheets1", "levels sheets2" with the sheets
+    // toned to their neighbours (SHEET_TONE, 2026-11-25).
     let shore = if zips.is_empty() { 0 } else { 2 };
     let survey = if zips.is_empty() { String::new() } else { format!("levels {SHEET_TONE}") };
     // "base_fill": the bases' Sentinel-2 toned to the photo around them (BASE_FILL, 2026-11-14; before: no key).
@@ -1681,18 +1701,28 @@ const SHEET_MIN_CELLS: usize = 100;
 const SHEET_HOLD: f64 = 0.02;
 /// A border whose difference stays more than this (log) after the fit counts less (real ground changing there).
 const SHEET_ROBUST: f64 = 0.1;
+/// The seams' strips (`sheet_tone`): a sheet's cells this many cells from the neighbour's, right at the border.
+const SEAM_STRIP: usize = 2;
+/// The least land cells on each side of a border for its seam to count.
+const SEAM_MIN_CELLS: usize = 50;
+/// How far from a border its seam's correction reaches into each sheet, metres.
+const SEAM_FADE_M: f64 = 2000.0;
 /// The tone's rule, in its work file's stamp (`sheet_tone.stamp`), the stamp's "survey" and the 8 m and Survey units'
-/// marks: a new rule makes them again. "sheets1" (2026-11-25): the first.
-const SHEET_TONE: &str = "sheets1";
+/// marks: a new rule makes them again. "sheets1" (2026-11-25): the gains; "sheets2" (2026-11-25): each pixel by its
+/// own sheet, with the seams.
+const SHEET_TONE: &str = "sheets2";
 
 /// Per sheet a log gain per band that brings it to its neighbours: the Survey's sheets were flown on different days,
 /// and their levels (`imagery::sheet_levels`) leave them darker or lighter than the ground around, rectangles 10 to
 /// 25 km wide from the air (a dark block 20 by 40 km south-west of Ramon, 2026-11-25). On 100 m cells (ITM) with each
 /// sheet's own levels, the land along every border between two sheets: each sheet's strip (SHEET_STRIP) against the
 /// other's, the difference of their medians per band (`border_diffs`). The gains are the least-squares fit that
-/// cancels those differences, held to 1 on average (`balance`). Kept in `sheet_tone.tsv` while the VRT's stamp is
+/// cancels those differences, held to 1 on average (`balance`). One gain per sheet leaves a step at some borders (a
+/// few per cent); with the gains, each sheet's cells right at a border (SEAM_STRIP) against the other's give that
+/// step, the seam, and each side takes half of it back, fading over SEAM_FADE_M (`photo_px`). Kept in
+/// `sheet_tone.tsv` (a sheet's line: its name, its gains; a seam's: the two sheets, the step) while the VRT's stamp is
 /// the same (the 100 m warp reads every sheet whole: about 10 minutes).
-fn sheet_tone(sheets: &[Sheet], vrt: &Path, work: &Path, pr: &dyn Progress) -> Result<Vec<[f32; 3]>> {
+fn sheet_tone(sheets: &[Sheet], vrt: &Path, work: &Path, pr: &dyn Progress) -> Result<Vec<SheetLevels>> {
     let (file, stamp_file) = (work.join("sheet_tone.tsv"), work.join("sheet_tone.stamp"));
     // The rule, the VRT's stamp (the sheets' files) and each sheet's levels (the cells are levelled by them).
     let mut stamp =
@@ -1702,17 +1732,29 @@ fn sheet_tone(sheets: &[Sheet], vrt: &Path, work: &Path, pr: &dyn Progress) -> R
     }
     if std::fs::read_to_string(&stamp_file).is_ok_and(|s| s == stamp) {
         let text = std::fs::read_to_string(&file)?;
-        let kept: BTreeMap<&str, [f32; 3]> = text
-            .lines()
-            .filter_map(|l| {
-                let (n, g) = l.split_once('\t')?;
-                let g: Vec<f32> = g.split(' ').filter_map(|v| v.parse().ok()).collect();
-                Some((n, g.try_into().ok()?))
-            })
-            .collect();
-        if let Some(g) = sheets.iter().map(|s| kept.get(s.name.as_str()).copied()).collect::<Option<Vec<_>>>() {
+        let index: BTreeMap<&str, usize> = sheets.iter().enumerate().map(|(k, s)| (s.name.as_str(), k)).collect();
+        let bands = |t: &str| -> Option<[f32; 3]> {
+            t.split(' ').map(|v| v.parse().ok()).collect::<Option<Vec<f32>>>()?.try_into().ok()
+        };
+        let (mut gain, mut seams) = (vec![None; sheets.len()], Vec::new());
+        for l in text.lines() {
+            match l.split('\t').collect::<Vec<_>>()[..] {
+                [n, g] => {
+                    if let (Some(&k), Some(g)) = (index.get(n), bands(g)) {
+                        gain[k] = Some(g);
+                    }
+                }
+                [a, b, d] => {
+                    if let (Some(&a), Some(&b), Some(d)) = (index.get(a), index.get(b), bands(d)) {
+                        seams.push((a, b, d));
+                    }
+                }
+                _ => {}
+            }
+        }
+        if let Some(gain) = gain.into_iter().collect::<Option<Vec<_>>>() {
             log!(pr, "survey: the sheets' tone reused");
-            return Ok(g);
+            return Ok(toned_sheets(sheets, &gain, &seams));
         }
     }
     let _ = std::fs::remove_file(&stamp_file);
@@ -1736,33 +1778,63 @@ fn sheet_tone(sheets: &[Sheet], vrt: &Path, work: &Path, pr: &dyn Progress) -> R
             continue;
         }
         let (x, y) = (r[0] + ((i % w) as f64 + 0.5) * c, r[3] - ((i / w) as f64 + 0.5) * c);
-        let Some(k) =
-            sheets.iter().rposition(|s| (s.bbox[0]..s.bbox[2]).contains(&x) && (s.bbox[1]..s.bbox[3]).contains(&y))
-        else {
-            continue;
-        };
+        let Some(k) = sheets.iter().rposition(|s| holds(&s.bbox, x, y)) else { continue };
         let v = imagery::photo_levels([0, 1, 2].map(|j| f32::from(p[j])), sheets[k].levels);
         if !imagery::is_photo_water(v) {
             own[i] = Some(k);
             lg[i] = v.map(|v| (v.min(255.0) + 4.0).ln());
         }
     }
-    let borders = border_diffs(&own, &lg, w, h);
+    let borders = border_diffs(&own, &lg, w, h, SHEET_STRIP, SHEET_MIN_CELLS);
     let gain = balance(sheets.len(), &borders);
+    // Each land cell's log colour with its sheet's gain, as `photo_px` makes it.
+    let toned: Vec<[f32; 3]> = own
+        .iter()
+        .zip(&lg)
+        .map(|(k, v)| match k {
+            Some(k) => [0, 1, 2].map(|j| (((v[j].exp() - 4.0) * gain[*k][j].exp()).min(255.0) + 4.0).ln()),
+            None => *v,
+        })
+        .collect();
+    let seams: Vec<_> = border_diffs(&own, &toned, w, h, SEAM_STRIP, SEAM_MIN_CELLS)
+        .into_iter()
+        .map(|(a, b, d, _)| (a, b, d))
+        .collect();
     let mut text = String::new();
     for (s, g) in sheets.iter().zip(&gain) {
         text += &format!("{}\t{} {} {}\n", s.name, g[0], g[1], g[2]);
     }
+    for (a, b, d) in &seams {
+        text += &format!("{}\t{}\t{} {} {}\n", sheets[*a].name, sheets[*b].name, d[0], d[1], d[2]);
+    }
     std::fs::write(&file, text)?;
     std::fs::write(&stamp_file, stamp)?;
-    let most = gain.iter().map(|g| ((g[0] + g[1] + g[2]) / 3.0).abs()).fold(0f32, f32::max).exp();
+    let grey = |g: &[f32; 3]| ((g[0] + g[1] + g[2]) / 3.0).abs();
+    let most = gain.iter().map(grey).fold(0f32, f32::max).exp();
+    let step = seams.iter().map(|s| grey(&s.2)).fold(0f32, f32::max).exp();
     log!(
         pr,
-        "survey: the sheets toned to their neighbours over {} borders, up to × {most:.2} ({})",
+        "survey: the sheets toned over {} borders (up to × {most:.2}), {} seams (up to × {step:.2}) ({})",
         borders.len(),
+        seams.len(),
         crate::progress::duration(t0.elapsed())
     );
-    Ok(gain)
+    Ok(toned_sheets(sheets, &gain, &seams))
+}
+
+/// The sheets with their gains and seams (`sheet_tone`; a seam: the sheets a and b, a's step over b, log): a takes
+/// half the step back, b gives half.
+fn toned_sheets(sheets: &[Sheet], gain: &[[f32; 3]], seams: &[(usize, usize, [f32; 3])]) -> Vec<SheetLevels> {
+    let mut out: Vec<SheetLevels> = sheets
+        .iter()
+        .zip(gain)
+        .map(|(s, g)| SheetLevels { bbox: s.bbox, levels: s.levels, gain: *g, seams: Vec::new() })
+        .collect();
+    for &(a, b, d) in seams {
+        out[a].seams.push((sheets[b].bbox, d.map(|v| -v / 2.0)));
+        out[b].seams.push((sheets[a].bbox, d.map(|v| v / 2.0)));
+    }
+    out
 }
 
 /// One border between two sheets (`border_diffs`): the sheets, sheet a's strip's median minus sheet b's per band
@@ -1770,10 +1842,10 @@ fn sheet_tone(sheets: &[Sheet], vrt: &Path, work: &Path, pr: &dyn Progress) -> R
 type Border = (usize, usize, [f32; 3], usize);
 
 /// The borders between the sheets (`own` each cell's, `lg` its log colour): per pair, each sheet's cells whose cell
-/// SHEET_STRIP away across or along the grid is the other's, with SHEET_MIN_CELLS on both sides.
-fn border_diffs(own: &[Option<usize>], lg: &[[f32; 3]], w: usize, h: usize) -> Vec<Border> {
+/// `strip` cells away across or along the grid is the other's, with `min` cells on both sides.
+fn border_diffs(own: &[Option<usize>], lg: &[[f32; 3]], w: usize, h: usize, strip: usize, min: usize) -> Vec<Border> {
     let mut strips: BTreeMap<(usize, usize), Vec<[f32; 3]>> = BTreeMap::new();
-    let d = SHEET_STRIP as isize;
+    let d = strip as isize;
     for (i, a) in own.iter().enumerate() {
         let Some(a) = *a else { continue };
         let (x, y) = ((i % w) as isize, (i / w) as isize);
@@ -1794,9 +1866,9 @@ fn border_diffs(own: &[Option<usize>], lg: &[[f32; 3]], w: usize, h: usize) -> V
     };
     strips
         .iter()
-        .filter(|((a, b), s)| a < b && s.len() >= SHEET_MIN_CELLS)
+        .filter(|((a, b), s)| a < b && s.len() >= min)
         .filter_map(|(&(a, b), s)| {
-            let o = strips.get(&(b, a)).filter(|o| o.len() >= SHEET_MIN_CELLS)?;
+            let o = strips.get(&(b, a)).filter(|o| o.len() >= min)?;
             Some((a, b, [0, 1, 2].map(|j| median(s.as_slice(), j) - median(o.as_slice(), j)), s.len().min(o.len())))
         })
         .collect()
@@ -2025,10 +2097,10 @@ fn s2_units(
 /// (BaseTone; "tone" on 2026-11-14 morning: local means, then "median"). S2_8M_BASE changes with it: those units put
 /// Sentinel-2 back into the level-3 nodes the tone reads.
 const BASE_FILL: &str = "median";
-const S2_8M_BASE: &str = "s2_8m_median_sheets1";
-/// The other 8 m units' marks. Every 8 m and Survey mark ends in SHEET_TONE ("_sheets1", 2026-11-25): a new sheet tone
+const S2_8M_BASE: &str = "s2_8m_median_sheets2";
+/// The other 8 m units' marks. Every 8 m and Survey mark ends in SHEET_TONE ("_sheets2", 2026-11-25): a new sheet tone
 /// writes the photo everywhere again, over Sentinel-2 put back into the level-3 nodes first.
-const S2_8M: &str = "s2_8m_sheets1";
+const S2_8M: &str = "s2_8m_sheets2";
 /// The border's fill (`stamp`'s "border_fill", the done marks of the units at the border and the work file of their
 /// list): the neighbours' Sentinel-2 toned to the photo (BorderTone, 2026-11-15). S2_8M_BORDER changes with it. A
 /// border unit has only this mark, also when it lies on a base or the shore: renaming BASE_FILL, S2_8M or the
@@ -2038,7 +2110,7 @@ const S2_8M: &str = "s2_8m_sheets1";
 /// (FILL_EDGE_PX); "tone6" (2026-11-25): the local match (LOCAL_SAMPLE_M) and the photo's fade toward the fill
 /// (FILL_FEATHER_M); "tone7" the same, the fade toward a large fill only (`large_only`).
 const BORDER_FILL: &str = "tone7";
-const S2_8M_BORDER: &str = "s2_8m_border_tone7_sheets1";
+const S2_8M_BORDER: &str = "s2_8m_border_tone7_sheets2";
 
 /// Whether `dir` holds a Survey sheet ZIP: only then does the colour branch make the 2 m nodes (and read the shore).
 fn has_zips(dir: &Path) -> bool {
@@ -2301,16 +2373,11 @@ fn colour(r: &Run, f: &Frame, geo: [f64; 4], work: &Path, pr: &dyn Progress, can
             }
         }
         let keys: Vec<Key> = list.iter().map(|u| u.0).collect();
-        // The sheets whose levels reach a unit (their blend spans DARK_BLEND / 2 = 2 km beyond a sheet).
+        // The sheets in a unit and those within 2 km (the sheets' tone and its seams are fitted over them).
         let sheets = near(&sheets, &list.iter().map(|u| u.2).collect::<Vec<_>>(), 2000.0);
         let vrt = soi_vrt(&sheets, &r.sheets, &work, pr)?;
         log!(pr, "survey: {} sheets ({})", sheets.len(), crate::progress::duration(t0.elapsed()));
-        let tone = sheet_tone(&sheets, &vrt, &work, pr)?;
-        let levels: Vec<SheetLevels> = sheets
-            .iter()
-            .zip(&tone)
-            .map(|(s, g)| (s.bbox, [s.levels[0], s.levels[1], s.levels[2], s.levels[3], g[0], g[1], g[2]]))
-            .collect();
+        let levels = sheet_tone(&sheets, &vrt, &work, pr)?;
         Some((list, keys, levels, vrt))
     } else {
         None
@@ -2384,8 +2451,9 @@ fn colour(r: &Run, f: &Frame, geo: [f64; 4], work: &Path, pr: &dyn Progress, can
             let (_, c, _) = list.iter().find(|u| u.0 == k).context("unit")?;
             survey_unit(&sv, &f, k, *c, &work, out)
         };
-        // "_lv" (2026-11-13): the photo by its sheets' levels alone (before, matched to Sentinel-2); "_sheets1"
-        // (2026-11-25): and the sheets' tone (`sheet_tone`). So a theatre built before writes its 2 m nodes again.
+        // "_lv" (2026-11-13): the photo by its sheets' levels alone (before, matched to Sentinel-2); "_sheets1",
+        // "_sheets2" (2026-11-25): and the sheets' tone (`sheet_tone`). So a theatre built before writes its 2 m nodes
+        // again.
         // Their base (`ancestor_crop(.., 3)`) is Sentinel-2 only until the first `parents(out, 3, ..)` below writes
         // the photo into level 3: renaming these marks again, rename S2_8M with them, or the units run over the old
         // photo at 8 m (the airbases' made-up ground, the sea's no-data).
@@ -3178,6 +3246,23 @@ mod tests {
         Sheet { name: name.into(), gdal: String::new(), bbox, levels: [0.0; 4] }
     }
 
+    #[test]
+    fn a_pixel_takes_its_own_sheets_tone_and_seam() {
+        // A darker sheet a (× 2) beside b (× 0.5), with a step of × 1.2 left at their border (a over b).
+        let sheets = [sheet("a", [0.0, 0.0, 10_000.0, 10_000.0]), sheet("b", [10_000.0, 0.0, 20_000.0, 10_000.0])]
+            .map(|s| Sheet { levels: [0.0, 0.0, 0.0, 255.0], ..s });
+        let (ga, gb, d) = (2f32.ln(), 0.5f32.ln(), 1.2f32.ln());
+        let t = toned_sheets(&sheets, &[[ga; 3], [gb; 3]], &[(0, 1, [d; 3])]);
+        let px = |e: f64| {
+            photo_px(&t, [e, 5_000.0], [100.0; 3])[0] / imagery::photo_levels([100.0; 3], [0.0, 0.0, 0.0, 255.0])[0]
+        };
+        assert!((px(9_999.0) - 2.0 / 1.2f32.sqrt()).abs() < 0.01, "a at the border: its gain, half the step back");
+        assert!((px(10_001.0) - 0.5 * 1.2f32.sqrt()).abs() < 0.01, "b at the border: its gain, half the step given");
+        assert!((px(10_000.0 - SEAM_FADE_M) - 2.0).abs() < 1e-3, "a beyond the seam's fade: its gain alone");
+        assert!((px(10_000.0 + SEAM_FADE_M) - 0.5).abs() < 1e-3, "b beyond the seam's fade: its gain alone");
+        assert_eq!(photo_px(&t, [25_000.0, 5_000.0], [100.0; 3]), [100.0; 3], "no sheet: the pixel as it is");
+    }
+
     /// A sheet beyond the pad is left out; one that crosses the padded box's edge is kept.
     #[test]
     fn sheets_near_the_box() {
@@ -3227,7 +3312,7 @@ mod tests {
         let (w, h) = (120, 120);
         let own: Vec<Option<usize>> = (0..w * h).map(|i| Some((i / w) / 40 * 3 + (i % w) / 40)).collect();
         let lg: Vec<[f32; 3]> = own.iter().map(|k| [if *k == Some(4) { 70f32.ln() } else { 100f32.ln() }; 3]).collect();
-        let borders = border_diffs(&own, &lg, w, h);
+        let borders = border_diffs(&own, &lg, w, h, SHEET_STRIP, SHEET_MIN_CELLS);
         assert_eq!(borders.len(), 12, "the 3 × 3 grid's inner borders");
         let g = balance(10, &borders);
         let lift = (g[4][1] - g[0][1]).exp();
