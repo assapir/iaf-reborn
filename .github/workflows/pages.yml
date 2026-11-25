@@ -21,7 +21,6 @@ concurrency:
 
 permissions:
   contents: read
-  actions: read # deploy-pages finds the uploaded site among the run's artifacts
   pages: write
   id-token: write
 
@@ -36,7 +35,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: python3 site/src/build.py
       - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
-      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+      - uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3.0.1 (v5 writes an artifact deploy-pages v5 lists as none)
         with:
           path: site/_site
       - id: deploy
