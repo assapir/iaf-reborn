@@ -32,7 +32,12 @@ PAINT = {
     "frame": ((0.62, 0.64, 0.66), 0.4),
     "metal": ((0.40, 0.41, 0.42), 0.35),
     "decal": ((1.0, 1.0, 1.0), 0.45),
+    "paint": ((1.0, 1.0, 1.0), 0.5),
 }
+# The skin's paints, drawn as one material ("paint") coloured per face corner: Godot stores each surface's positions
+# relative to its own bounds (compressed glTF meshes), so two materials meeting on one edge would open a hairline
+# crack between them (the radome's seam under the windshield, 25 Nov 2026).
+SKIN = ("white", "radome")
 # The markings' boxes in markings.png (1024 x 512 px): u0, v0 (top left), u1, v1.
 ROUNDEL = (0, 0, 256, 256)
 SERIAL = (290, 0, 680, 170)
@@ -51,6 +56,10 @@ def material(name):
     bsdf = nt.nodes["Principled BSDF"]
     bsdf.inputs["Base Color"].default_value = (*lin(rgb), 1.0)
     bsdf.inputs["Roughness"].default_value = rough
+    if name == "paint":
+        col = nt.nodes.new("ShaderNodeVertexColor")
+        col.layer_name = "paint"
+        nt.links.new(col.outputs["Color"], bsdf.inputs["Base Color"])
     if name == "decal":
         # The markings over the paint, cut out by their alpha (glTF MASK: the exporter reads the Round node).
         tex = nt.nodes.new("ShaderNodeTexImage")
@@ -152,6 +161,15 @@ class Part:
         bmesh.ops.remove_doubles(self.bm, verts=self.bm.verts, dist=1e-4)
         bmesh.ops.recalc_face_normals(self.bm, faces=self.bm.faces)
         self._add_decals()
+        col = self.bm.loops.layers.float_color.new("paint")
+        mats = [m for m in self.mats if m not in SKIN] + ["paint"]
+        for f in self.bm.faces:
+            m = self.mats[f.material_index]
+            rgb = lin(PAINT[m][0]) if m in SKIN else (1.0, 1.0, 1.0)
+            for loop in f.loops:
+                loop[col] = (*rgb, 1.0)
+            f.material_index = mats.index("paint" if m in SKIN else m)
+        self.mats = mats
         me = bpy.data.meshes.new(name)
         self.bm.to_mesh(me)
         self.bm.free()

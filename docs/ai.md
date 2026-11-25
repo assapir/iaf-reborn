@@ -2621,8 +2621,10 @@ speed changes are the G550's; before, it was a point mass turned and sped up at 
   the photograph's profile shows. No cabin windows: the cheeks cover them on the CAEW. The cheeks start 2 m behind
   the flight deck and ISRAEL AIR FORCE sits forward on them (the user, the same day: "in the real jet the things added
   to the fuselage go further forward"), matched to the Le Bourget photograph through a camera fitted to it.
-  Drawn without its gear (it never lands in the sim). No free G550 CAEW model was found (Sketchfab, FlightGear,
-  CGTrader, 25 November 2026): only plain Gulfstreams, which would need the same radomes.
+  The skin's white and radome grey are one material coloured per face corner (a colour attribute): Godot stores each
+  surface's vertex positions compressed to that surface's own bounds, so two materials meeting on one edge opened a
+  hairline crack where the radome met the white under the windshield (fixed 25 November 2026). Drawn without its gear
+  (it never lands in the sim). No free G550 CAEW model was found (Sketchfab, FlightGear, CGTrader, 25 November 2026): only plain Gulfstreams, which would need the same radomes.
 
 ### 24.4 The data link and the contact calls
 
