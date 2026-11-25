@@ -2,10 +2,11 @@
 # arming on a screen of its own, opened from its briefing. In the middle the jet seen from beneath, where the stores
 # hang (shared/aircraft/turntable.gd's model with the stores as the flight hangs them, the camera under it, the bays
 # open), each station a callout (number, its place on the wing, the store, its weight; an empty station a dashed
-# "Empty") with a line to the station on the model. At the inline start the LOADOUTS: the mission's own and the
-# pilot's saved ones (named, per jet: IafPilotLog.saved_loadouts), "+ Save this loadout"; at the inline end the
-# TAKE-OFF WEIGHT (IafBriefing.arming: the figure, a bar with the share of the maximum, the wings' balance, fuel, gun
-# rounds, chaff / flares) and the STORES the jet may carry. The footer: Reset to the mission's, Briefing, Fly.
+# "Empty") with a line to the station on the model. At the inline start the LOADOUTS: the mission's own, the unit
+# record's real ones (`real_loadouts`) and the pilot's saved ones (named, per jet: IafPilotLog.saved_loadouts),
+# "+ Save this loadout"; at the inline end the TAKE-OFF WEIGHT (IafBriefing.arming: the figure, a bar with the share
+# of the maximum, the wings' balance, fuel, gun rounds, chaff / flares) and the STORES the jet may carry. The footer:
+# Reset to the mission's, Briefing, Fly.
 #
 # The editor's rules are arming_drawing.gd's and loadout.rs's: a store drags from STORES onto a callout, between
 # callouts and back; an edit changes that station only, and its mirror station too while "Mirror to the other wing" is
@@ -255,9 +256,9 @@ func _draw_lines() -> void:
 # --- the loadouts -----------------------------------------------------------------------------------------------------
 
 
-## The LOADOUTS column: the mission's own (badge Mission), the pilot's saved ones (badge Saved, each with Delete), the
-## one on the jet now in the accent's tint (no bar at its side: the user, A25 round 3); "+ Save this loadout" opens a
-## name field.
+## The LOADOUTS column: the mission's own (badge Mission), the record's real ones (badge Operational), the pilot's
+## saved ones (badge Saved, each with Delete), the one on the jet now in the accent's tint (no bar at its side: the
+## user, A25 round 3); "+ Save this loadout" opens a name field.
 func _loadouts() -> void:
 	var col: VBoxContainer = fe._vbox(self, 10)
 	col.name = "Loadouts"
@@ -270,6 +271,13 @@ func _loadouts() -> void:
 	var mine := _slots_of(now)
 	_row(col, group, "Mission", fe.title_of(m), s("lo_mission"), "", mine == _slots_of(""), func(): set_loadout(""))
 	if not fixed:
+		# The record's named loadouts a real jet was seen carrying (`real_loadouts`, data-formats.md), badge Operational.
+		var rec = JSON.parse_string(FileAccess.get_file_as_string(fe._unit_file(m)))
+		for e in rec.get("real_loadouts", []) if rec is Dictionary else []:
+			var lo := JSON.stringify(e.stations)
+			var title := str(e.name.get("he" if fe.he() else "en", e.name.en))
+			var on := mine == _slots_of(lo)
+			_row(col, group, "Real_" + str(e.id), title, s("lo_real"), lo, on, func(): set_loadout(lo))
 		var saved = JSON.parse_string(IafPilotLog.saved_loadouts(Settings.records_db(), Settings.pilot(), unit))
 		for e in saved if saved is Array else []:
 			var lo := JSON.stringify(e.stations)
@@ -349,7 +357,7 @@ func _row(
 	for c in b.find_children("*", "Control", true, false):
 		c.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	b.pressed.connect(pick_it)
-	if id == "Mission" and not fixed:
+	if not id.begins_with("Saved") and not fixed:
 		fe._spacer_px(row, 0).custom_minimum_size.x = DELETE_W  # the saved rows' Delete column: every row one width
 	return row
 

@@ -72,6 +72,8 @@ The switch is off when the game starts. It keeps its position until you quit.
 #idx("Saved loadouts")The list #scr("lo_loadouts") holds:
 
 - the mission's own loadout, marked #scr("lo_mission"): what the mission gives the jet;
+- the loadouts a real jet of this type was seen carrying, each marked #scr("lo_real") (the Sufa has one: air-to-air,
+  long range);
 - your saved loadouts for this jet, each marked #scr("lo_saved").
 
 Each row lists its stores in short. The row that matches what is on the jet now is highlighted.

@@ -155,6 +155,7 @@
 	"lo_loadouts": "Loadouts",
 	"lo_mission": "Mission",
 	"lo_saved": "Saved",
+	"lo_real": "Operational",
 	"lo_save": "+ Save this loadout",
 	"lo_name": "The loadout's name",
 	"lo_default_name": "My loadout, %s",

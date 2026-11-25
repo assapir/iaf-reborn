@@ -1602,6 +1602,25 @@ func _loadout_checks(fe: Control, lang: String) -> void:
 		row != null and row.button_pressed and _has(row, "Strike") and _has(row, "שמורה" if he else "Saved"),
 		"%s: loadout: saved, listed, on" % lang
 	)
+	# The record's real loadout (data-formats.md `real_loadouts`): listed with its badge, every station hung whole.
+	var real: Button = fe.find_child("LoadoutReal_a2a-long", true, false)
+	check(
+		real != null and _has(real, "מבצעית" if he else "Operational") and not real.button_pressed,
+		"%s: loadout: the Sufa's real loadout listed, off" % lang
+	)
+	if real != null:
+		real.pressed.emit()
+		await frames(3)
+		var real_want := {
+			"1": "aim-120", "3": "python-5", "4": "tank-600", "7": "python-5", "9": "aim-120", "11": "tank-300"
+		}
+		var real_got := {}
+		for k in real_want:
+			real_got[k] = held.call(k)
+		check(
+			real_got == real_want and fe.find_child("LoadoutReal_a2a-long", true, false).button_pressed,
+			"%s: loadout: the real one hung whole and on (%s)" % [lang, real_got]
+		)
 	fe.find_child("LoadoutMission", true, false).pressed.emit()
 	await frames(3)
 	check(stored.call() == "" and held.call("3") == "aim-9m", "%s: loadout: the mission's own picked back" % lang)

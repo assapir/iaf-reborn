@@ -1030,7 +1030,7 @@ mod tests {
         assert!(inv.iter().any(|e| e["id"] == "tank-600" && e["ready"] == true), "{inv:?}");
         assert!(inv.iter().all(|e| e["ready"] == true), "{inv:?}");
         assert!(!c.to_string().contains("delilah"), "the Delilah is not offered");
-        assert_eq!(c["allowed"]["3"][2], json!({"id": "mk-82", "count": 3}));
+        assert_eq!(c["allowed"]["3"][3], json!({"id": "mk-82", "count": 3}));
         let groups: Vec<_> = a["inventory"].as_array().unwrap().iter().map(|e| e["group"].clone()).collect();
         let want = ["air", "air", "air", "ground", "ground", "ground", "ground", "ground", "ground", "ground"];
         assert_eq!(groups[..10], want.map(|g| json!(g)));

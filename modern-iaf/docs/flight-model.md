@@ -1306,7 +1306,7 @@ keeps TP-1538's tables on the F-35A's wing (460 ft², 35 ft) and takes what diff
 | roll | 240 deg/s at 688 deg/s², flaperons 62 deg/s | inferred: the F-16's; open: no public F-35 figure | `Jet::roll`: the F-16's production command with its feedforward (§9.11); `f16s_roll_at_the_shared_figure` now flies the Adir too (steady and peak within 5 %, 90° within 1.1 s at 350 kt, 1.0 s at 480 kt: inferred bounds for its inertia) |
 | speed brake | the F-16's drag at 60°, no gear-down limit | sourced: the function (docs/f35i.md §2.1); inferred: the drag | finish list F12's `F35_SPEED_BRAKE` (`jets.rs`) |
 | top speeds | Mach 1.6 at 40,000 ft | sourced (docs/f35i.md §2.1) | unchanged: the wave-drag fit (§9.15) |
-| sustained turn 4.6 g, climb | — | open: the turn's Mach and altitude; no climb figure | not asserted |
+| sustained turn 4.6 g, climb | — | sourced: 4.6 g, the F-35A's specification since 2012 (lowered from 5.3), and its 0.8 → 1.2 Mach acceleration 8 s longer than specified[^dote-2012]; open: the turn's Mach and altitude and the acceleration's time (not public; searched again 2026-11-25), no climb figure | not asserted: without its condition the 4.6 g cannot be flown |
 
 Checks the test makes beyond the figures: full pulls at 150, 200, 300 and 400 kt, 10,000 ft, peak, and after 8 s
 hold, within 3° of 50°, with |β| under 5° (no departure: TP-1538's Cnβ,dyn stays positive to 55°, worked out
@@ -1388,7 +1388,7 @@ and is unchanged.
 | g limits | +9 / −3 | sourced: +9[^w-mig29]; inferred: −3 (the F-16's) |
 | α limit | 26° | second-hand: 24–28° by variant and the limiter's setting, a lift coefficient of 1.5 at 26° (forum posts quoting manuals, [research/enemies.md](research/enemies.md) §4.2); open until a manual gives it |
 | final approach α | 10° (`Jet::final_alpha`; the F-16s' and the Adir's 13°) | second-hand: the flare "begins at α 10 and ends at α 12", 280 → 260 km/h (a DCS forum post quoting the manuals)[^dcs-mig29-flare] |
-| roll | TP-1538's control system A (as the Ra'am) | open: no public MiG-29 roll rate |
+| roll | TP-1538's control system A (as the Ra'am) | open: no public MiG-29 roll rate (searched 2026-11-25: a forum quotes 160 deg/s naming no source, and recalls a manual chart, unseen; not used) |
 | gear | wheelbase 4.25 m, track 2.65 m, the wheels 1.61 m below the model's origin | inferred: measured from our model's gear hinges (FlightGear's `MiG-29.xml`); no public figure |
 | limits | 810 KCAS (1,500 km/h), Mach 2.3; the F-16's gear, tyres and brakes | inferred: its published top speeds as placards (`limits::MIG29`) |
 | wave drag | (w, k) = (0.0434, −0.427): Mach 1.225 at sea level, 2.3 at 40,000 ft | fit (`fit_wave_drag`, §9.15) to its published 1,500 km/h low down and Mach 2.3 at altitude[^w-mig29]; the altitude inferred (40,000 ft, as the other jets') |
@@ -1416,6 +1416,10 @@ pointing below 200 kt and worse energy above it ([research/enemies.md](research/
 data. At the F-16's 13° final α the flare carried it past the 15° tail strike (tried 2026-11-22, dropped: the
 second-hand 10° is used); the Sufa lands at 14.8–14.9° on the same law, close to that limit.
 
+[^dote-2012]: Director, Operational Test and Evaluation, FY2012 Annual Report, "F-35 Joint Strike Fighter" (the F-35A's
+    sustained turn specification from 5.3 to 4.6 g, the 0.8 to 1.2 Mach acceleration 8 s longer; no Mach or altitude
+    given), read through GlobalSecurity's copy,
+    https://www.globalsecurity.org/military/library/budget/fy2012/dot-e/dod/2012f35jsf.pdf
 [^lm-aoa]: Lockheed Martin press release, 19 November 2012, quoted by SLDInfo, "The F-35 and High Angle of Attack
     Flight Testing" ("rapidly expanded its high angle of attack (AOA) test envelope to its 50 degree limit in only four
     flights"), https://sldinfo.com/2012/11/the-f-35-and-high-angle-of-attack-flight-testing/

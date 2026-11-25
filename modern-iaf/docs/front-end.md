@@ -1078,9 +1078,10 @@ editing pieces (the callout, the store, the stores' column).
   tint; no bar at its side (the user, 2026-11-13: "remove the left bold border on loadouts"). A changed loadout that
   matches none leaves every row plain. A click puts that loadout on the jet. "+ Save this loadout" opens a name field
   in its place with a name offered ("My loadout, 14 Nov 2026"), selected; Enter or Save stores it (the same name
-  again replaces that one; an empty name keeps the field open), Esc closes it. Named type loadouts ("Air-to-air, long
-  range", the mock's) come only where a sourced real loadout exists; none does yet, so the list holds Mission and the
-  pilot's own.
+  again replaces that one; an empty name keeps the field open), Esc closes it. Between Mission and the saved ones the record's real loadouts
+  (`real_loadouts`, [data-formats.md](data-formats.md) "Real loadouts"), each with the badge "Operational" /
+  "מבצעית": the Sufa's "Air-to-air, long range" / "אוויר-אוויר, טווח ארוך" since 2026-11-25; the other jets have
+  none yet (no sourced loadout of our stores).
 - **TAKE-OFF WEIGHT** at the inline end: the figure, a bar with its share of the maximum ("70 % of the maximum, 23,582
   kg"), the wings' balance (a track from Left to Right as the pilot sits, in both languages, its middle marked, the
   marker where the stores lean: `balance`, the moment over the record's `lateral_limit_kgm`, else the wings'

@@ -335,9 +335,10 @@ mod tests {
         assert_eq!(at(&lo, 4), ("tank-370", 1));
         assert_eq!(mirror(&u, 3), Some(7));
         assert_eq!(mirror(&u, 9), Some(1));
-        // A tank on a missile station is refused; a bomb on 3 fills 7 too, or 3 alone with the modifier.
+        // A tank on a missile station and a missile on a tank station are refused; a bomb on 3 fills 7 too, or 3 alone
+        // with the modifier.
         assert!(!put(&u, &mut lo, 2, "tank-370", true));
-        assert!(!put(&u, &mut lo, 3, "python-5", true));
+        assert!(!put(&u, &mut lo, 4, "python-5", true));
         assert!(put(&u, &mut lo, 3, "mk-84", true));
         assert_eq!((at(&lo, 3), at(&lo, 7)), (("mk-84", 1), ("mk-84", 1)));
         assert!(put(&u, &mut lo, 3, "aim-120", false));

@@ -231,7 +231,7 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   approved; it is drawn with our MiG-29 model. A four-ship of them starts up, takes off, flies the route, lands and
   parks at Ramon in the Rust test, about 4.2 µs per jet per frame on the build Mac (0.149 ms with its model and sound on the laptop); one takes off, flies its route and
   lands in the headless game (`modern-iaf/tests/test_mig29.gd`, the dev hook `ai_flights.gd` `spawn`). No mission
-  places one. Open: its ceiling runs high (every 6-DoF jet's does), its roll rate and gear geometry (no public figure).
+  places one. Open: its ceiling runs high (every 6-DoF jet's does: no thrust lapse figure for the engines aloft), its roll rate (a forum's 160 deg/s with no source named, not used; searched 2026-11-25) and gear geometry (no public figure).
 - **Enemy models (2026-11-22, the user's downloads of 22 Nov; [../../docs/ai.md](../../docs/ai.md) §15.4, §16.4;
   [../../docs/credits.md](../../docs/credits.md) § Model credits):** seven CC BY 4.0 Sketchfab models, made once by
   `tools/enemy_models/convert.py` and committed under `shared/extra/models/<id>/` (setup needs no login), true size:
@@ -682,8 +682,9 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   The editor's rules stay (racks, refusal, drag and drop, keyboard). Since 2026-11-15 (finish list L, the user's
   notes): an edit changes its own station only, "Mirror to the other wing" (off by default) fills the pair; Fly the
   size of its neighbours; every store of a rack drawn in its place on the Loadout screen's, the Hangar's and the
-  flown jet (a TER-9/A's three Mk 82, a BRU-57/A's two GBU-38; our own rack models). Open: named type loadouts wait for a
-  sourced real loadout. `test_front_end.gd`, `cargo test -p iaf-tools --lib loadout pilot_log`.
+  flown jet (a TER-9/A's three Mk 82, a BRU-57/A's two GBU-38; our own rack models). Real loadouts (2026-11-25): the Sufa's "Air-to-air,
+  long range" from an IAF picture, badge Operational ([data-formats.md](data-formats.md) "Real loadouts"); open: the
+  Barak's, the Adir's and every strike / SEAD one (listed there). `test_front_end.gd`, `cargo test -p iaf-tools --lib loadout pilot_log`.
 - **Weapon physics (2026-11-14, the physics finish list W rows):** the gun's rounds fly a ballistic path (muzzle
   velocity plus the jet's, the M56's drag by air density, gravity) and the EEGS funnel predicts it (W2,
   [weapons.md](weapons.md) §1); the unguided bombs fall by gravity and their own drag through the wind, nothing
@@ -800,8 +801,8 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   peaks at 51–52° and holds 50°, a full push recovers in under 6 s), +9 g, the F-16's roll (inferred), a nose-down
   moment at high α and an α-rate lead in the limiter (both inferred), the approach at 152 KCAS and 13° α (USAF
   accident report) and a 134 kt 1 g stall (inferred; 128 kt measured) asserted ([flight-model.md](flight-model.md)
-  §9.19, [../../docs/f35i.md](../../docs/f35i.md) §2.1). Open: the F-35's roll rate, sustained turn condition and
-  climb.
+  §9.19, [../../docs/f35i.md](../../docs/f35i.md) §2.1). Open: the F-35's roll rate and climb (no public figure),
+  the sustained turn's Mach and altitude (DOT&E gives 4.6 g without them; searched 2026-11-25).
 - **The trailing-edge flaps droop with the gear handle (2026-11-11):** on the 6-DoF the F-16s' and the Adir's
   flaperons go 20° down with the gear handle below 240 kt, less to 370 kt, and up with the handle, in the gear's 3.1 s
   (the F-16 flight manual); their lift, drag and nose-down moment are inferred (DATCOM, FM-0's drag); the models'

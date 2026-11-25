@@ -118,7 +118,7 @@ rules are the generic F-16's, the same for both jets (no source shows them diffe
 | store | the Sufa and the Barak | the Adir |
 |---|---|---|
 | AIM-9M | 1 / 9, 2 / 8, 3 / 7[^f16net-aim9] | — |
-| Python 5 | 1 / 9, 2 / 8 (inferred: the AIM-9 rails, a modified LAU-129[^f16net-python]) | — (not integrated on the F-35I as far as public sources show; inferred) |
+| Python 5 | 1 / 9, 2 / 8 (inferred: the AIM-9 rails, a modified LAU-129[^f16net-python]); the Sufa also 3 / 7 (the IAF's picture of Sufa 816 shows one on each mid pylon[^twz-sufa-816]; the missile told by its canards, inferred) | — (not integrated on the F-35I as far as public sources show; inferred) |
 | AIM-120 | 1 / 9, 2 / 8, 3 / 7[^f16net-aim120] | 5 / 7 in the bays[^w-f35]; 3 / 9 (inferred[^afm-f35]) |
 | AIM-9X | — | 1 / 11 only, not in the bays[^w-f35] |
 | Mk 82 | three on a TER-9/A (47.6 kg[^ter-9a]) on 3 / 7 and 4 / 6 (a forum[^f16net-mk82]: inferred; with tanks on 4 / 6 the real jet takes two on 3 / 7, not modelled) | — |
@@ -131,6 +131,24 @@ rules are the generic F-16's, the same for both jets (no source shows them diffe
 | Delilah | none since 2026-11-14 (dropped for now: no cruise-missile flight class; its record stays) | — |
 | 370 US gal tank | 4 / 6[^f16net-tanks] | — |
 | 600 US gal tank | 4 / 6[^usaf-600] | — |
+
+**Real loadouts (`real_loadouts`, 2026-11-25).** A unit record may list named loadouts a real jet of its type was
+seen carrying: `{"id", "name": {"en", "he"}, "stations": {"3": "python-5", …}}`, the stations in the `loadout`
+format (`loadout.rs` `parse`), sourced by `sources.real_loadouts`. The Loadout screen lists them under the mission's
+own with the badge Operational ([front-end.md](front-end.md) §10.1). One exists: the Sufa's "Air-to-air, long range"
+from the IAF's picture of Sufa 816[^twz-sufa-816]: an AIM-120 on 1, a Python 5 on 3 and 7, a large tank on 4 and
+6 (600 US gal inferred from their size), a tank on the centreline, 11 (300 US gal inferred: our only centreline
+tank), no chin pods; the right wing's outer part is out of the picture (9's AIM-120 inferred as 1's mirror, 8 left
+empty), 2 is hidden behind the tank (left empty; inferred). Open, searched 2026-11-25:
+
+- the Sufa's strike: the IAF's pictures show four Rampage missiles on 3 / 4 / 6 / 7 with the 300 gal tank (not a
+  store of ours; its record and flight class are open), or a pair of GBU-31s with the other stations out of view;
+- the Barak's: a pair of "GBU-31 series" JDAMs of an unusual marking under the wings[^twz-jdam], the rest out of view;
+- the Adir's: the test F-35I with four external GBU-31s and an AIM-120 in a bay[^twz-beast] (the engine holds no
+  stations 2 / 10, so four external bombs cannot hang; its combat loads are not shown);
+- SEAD for any jet: no picture or text names one;
+- the Sufa / Barak station chart (none public) and the 300 US gal tank's size (the parts listings name the tank,
+  16VP037, with no size): unchanged.
 
 What changed against the first table (2026-11-10): the F-16s gain the Python 5, the Mk 82 (racked), Mk 83, GBU-31,
 GBU-38 (racked), SPICE 1000 / 2000, Delilah and the 600 US gal tank; the MK-84 goes from 3 / 7 only to 3 / 7 and
@@ -833,6 +851,9 @@ it ([front-end.md](front-end.md) §10).
 [^f16net-aim120]: F-16.net, "AIM-120 AMRAAM" (stations 1 and 9, 2 and 8, 3 and 7; one missile each), https://www.f-16.net/f-16_armament_article3.html
 [^f16net-jdam]: F-16.net, "GBU-31 and GBU-38 JDAM" (stations 3 and 7 have been wired to carry a single JDAM), https://www.f-16.net/f-16_armament_article9.html
 [^f16net-mk82]: F-16.net forum, "Mk 82 loadouts" (TER-9A on stations 3 and 7, two with 370 gal tanks on 4 and 6; TERs on 4 / 6; four Mk 84s), https://www.f-16.net/forum/viewtopic.php?p=123057
+[^twz-sufa-816]: The War Zone, "Israeli F-16I Navigator Opens Up About Striking Iran" (Howard Altman, 24 July 2025), its lead picture, credit IAF: Sufa 816 armed in its shelter, https://www.twz.com/air/flying-and-fighting-in-the-israeli-air-forces-f-16i-sufa
+[^twz-beast]: The War Zone, "Israeli F-35s First To Use 'Beast Mode' In Combat" (Thomas Newdick, 17 March 2025: the IAF's picture of the test F-35I with four external GBU-31s, an AIM-120 in a bay), https://www.twz.com/air/israeli-f-35s-first-to-use-beast-mode-in-combat
+[^twz-jdam]: The War Zone, "Israeli F-16 Appears Carrying A Mysterious Precision Bomb" (Thomas Newdick, 6 March 2026: two "GBU-31 series" JDAMs under an F-16C/D Barak's wings, the IAF's post), https://www.twz.com/uncategorized/israeli-f-16-appears-with-mysterious-jdam-precision-bomb
 [^f16net-python]: F-16.net forum, "Python on a LAU-129?" (the Python 5 needs a modified LAU-129), https://www.f-16.net/forum/viewtopic.php?p=111724
 [^usaf-600]: USAF, "600 Gallon External Fuel Tank Assembly", solicitation FA8232-26-R-B014 (600 gal tanks on wing stations four and six), https://samsearch.co/gov-explore/federal/600-gallon-external-fuel-tank-assembly/FA8232-26-R-B014
 [^l3h-bru57]: L3Harris, "BRU-57" sell sheet (weight 265 lbs; two stores of 500 or 1,000 lb), https://www.l3harris.com/sites/default/files/2026-09/l3harris-ae-sell-sheet-bru-57.pdf
