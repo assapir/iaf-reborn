@@ -209,6 +209,12 @@ left" over the tiles still to fetch, a DEM tile's MB so far.
      no-data test and took the levels' white: grey-white blocks 2–10 km wide along the Egyptian border west of Ramon
      (L1 nodes 64–66 / 184 among them; the "lighter outlined patch" of 2026-11-17), the Arava and the northern
      border, seen from every air start in the south (Scramble, docs/ai.md §23).
+     A near-white patch of 0.1 km² or more is the fill too, joined to no-data or not ("tone4", 2026-11-25): west of
+     Ramon a 37 km² patch of fill (grey 249, alpha 255; L1 nodes 64–65 / 181–183) stayed white under "tone3", its
+     no-data lying in the next unit, out of the unit's reach. White ground comes in patches of 0.004 km² at most (the
+     salt pans at Sedom, the Arava's greenhouses, measured 2026-11-25). The fill reaches 2 pixels past its near-white
+     ("tone5"): the warp blends the photo's edge pixels with it, and "tone4" left them as a grey-white line along the
+     photo (west of Ramon the first pixel 185 grey, the second 99, the photo 90).
      A 10 m tile whose download began and stopped short (its `.part` in the cache, or a `.lock` with no tile beside
      it) is finished by the next terrain run, and setup's stamp of the terrain does not hold until it is whole, then the border's units over it are toned (the user, 2026-11-24: "lmk what you need me to downaload and
      download the missing tiles, ofcourse!"): on this laptop the Arava and the Dead Sea's south (N30E035, 653 MB,
@@ -218,8 +224,8 @@ left" over the tiles still to fetch, a DEM tile's MB so far.
      over the network and the stamp holds; once the disk has room, the next setup finishes it (2026-11-25: the run of
      2026-11-24 kept three tiles and read N31E035 over the network, under 7 GB free).
      The 8 m Sentinel-2 units (level 5) and Survey units (level 4) with a toned pixel are listed in
-     `.work/border_tone3.json` and have their own done marks (`s2_8m_border_tone3`, `survey_2m_border_tone3`; "tone1"
-     before the white fill): a
+     `.work/border_tone5.json` and have their own done marks (`s2_8m_border_tone5`, `survey_2m_border_tone5`; "tone1"
+     before the white fill, "tone2" to "tone4" its earlier rules): a
      theatre built before redoes those (`stamp`'s `border_fill`), Sentinel-2's from the local tiles, nothing
      downloaded. A base within reach of the toned ground has all its 8 m units redone too: its own tone reads
      Sentinel-2 from them, which would otherwise mix the photo into its fit; the 100 m warps of the photo and Sentinel-2 run once per run that writes an 8 m unit.

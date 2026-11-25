@@ -971,27 +971,70 @@ const BASE_CELL_M: f64 = 10.0;
 /// the Egyptian border west of Ramon the fill took the levels' white, 235 grey-white, before 2026-11-24).
 const NEAR_WHITE: u8 = 235;
 
+/// A near-white patch (NEAR_WHITE in every band) this large is the sheets' fill, joined to their no-data or not: 0.1
+/// km² at 2 m. Ground that white comes in patches of 0.004 km² at most (the salt pans at Sedom, the greenhouses in the
+/// Arava, measured 2026-11-25); west of Ramon a patch of fill 37 km² (249 grey, alpha 255) lies in a unit whose
+/// no-data is in the next unit.
+const FILL_MIN_PX: usize = 25_000;
+/// How far (pixels) the fill reaches past its near-white pixels (`white_fill`).
+const FILL_EDGE_PX: usize = 2;
+
 /// The unit's near-white pixels (NEAR_WHITE in every band) joined, through near-white pixels, to one the warp left
-/// without the photo (alpha below 255) or to a pure white one (the sheets' fill: west of Ramon a whole unit of it came
-/// through the warp with alpha 255, 2026-11-24): the sheets' white fill with its JPEG noise. White ground inside the
-/// photo (a roof, a salt pan) touches no fill and stays, but for a clipped pure-white roof. `raw`: RGBA, `n` × `n`.
+/// without the photo (alpha below 255), to a pure white one (the sheets' fill: west of Ramon a whole unit of it came
+/// through the warp with alpha 255, 2026-11-24), or to FILL_MIN_PX of them: the sheets' white fill with its JPEG noise.
+/// White ground inside the photo (a roof, a salt pan) touches no fill and stays, but for a clipped pure-white roof.
+/// `raw`: RGBA, `n` × `n`.
 fn white_fill(raw: &[u8], n: usize) -> Vec<bool> {
     let white = |i: usize| raw[i * 4..i * 4 + 3].iter().all(|&c| c >= NEAR_WHITE);
+    // Marks the near-white pixels joined to `stack`'s (marked already); the count marked, `stack`'s included.
+    let flood = |mark: &mut [bool], mut stack: Vec<usize>| {
+        let mut count = stack.len();
+        while let Some(i) = stack.pop() {
+            let (x, y) = (i % n, i / n);
+            let near = [
+                (x > 0).then(|| i - 1),
+                (x + 1 < n).then(|| i + 1),
+                (y > 0).then(|| i - n),
+                (y + 1 < n).then(|| i + n),
+            ];
+            for j in near.into_iter().flatten() {
+                if !mark[j] && white(j) {
+                    mark[j] = true;
+                    stack.push(j);
+                    count += 1;
+                }
+            }
+        }
+        count
+    };
     let mut fill = vec![false; n * n];
-    let mut stack: Vec<usize> =
-        (0..n * n).filter(|&i| raw[i * 4 + 3] < 255 || raw[i * 4..i * 4 + 3] == [255; 3]).collect();
-    for &i in &stack {
+    let seeds: Vec<usize> = (0..n * n).filter(|&i| raw[i * 4 + 3] < 255 || raw[i * 4..i * 4 + 3] == [255; 3]).collect();
+    for &i in &seeds {
         fill[i] = true;
     }
-    while let Some(i) = stack.pop() {
-        let (x, y) = (i % n, i / n);
-        let near =
-            [(x > 0).then(|| i - 1), (x + 1 < n).then(|| i + 1), (y > 0).then(|| i - n), (y + 1 < n).then(|| i + n)];
-        for j in near.into_iter().flatten() {
-            if !fill[j] && white(j) {
-                fill[j] = true;
-                stack.push(j);
+    flood(&mut fill, seeds);
+    // The patches joined to no seed: each counted once, marked again in `fill` when large enough.
+    let mut seen = fill.clone();
+    for i in 0..n * n {
+        if !seen[i] && white(i) {
+            seen[i] = true;
+            if flood(&mut seen, vec![i]) >= FILL_MIN_PX {
+                fill[i] = true;
+                flood(&mut fill, vec![i]);
             }
+        }
+    }
+    drop(seen);
+    // The fill's edge, FILL_EDGE_PX wide: the photo's pixels the warp blended with it, a grey-white seam along the
+    // photo otherwise (west of Ramon the first pixel out 185 grey, the second 99, the photo 90; 2026-11-25).
+    for _ in 0..FILL_EDGE_PX {
+        let was = fill.clone();
+        for i in (0..n * n).filter(|&i| !was[i]) {
+            let (x, y) = (i % n, i / n);
+            fill[i] = (x > 0 && was[i - 1])
+                || (x + 1 < n && was[i + 1])
+                || (y > 0 && was[i - n])
+                || (y + 1 < n && was[i + n]);
         }
     }
     fill
@@ -1643,9 +1686,10 @@ const S2_8M_BASE: &str = "s2_8m_median";
 /// border unit has only this mark, also when it lies on a base or the shore: renaming BASE_FILL, "s2_8m" or the
 /// Survey's "_lv" marks, rename BORDER_FILL with them, or the border units keep the old build.
 /// "tone2", "tone3" (2026-11-24): the sheets' white fill joined to their no-data, then to pure white, left out inland
-/// too (`white_fill`).
-const BORDER_FILL: &str = "tone3";
-const S2_8M_BORDER: &str = "s2_8m_border_tone3";
+/// too (`white_fill`); "tone4" (2026-11-25): a large near-white patch too (FILL_MIN_PX); "tone5" with its edge
+/// (FILL_EDGE_PX).
+const BORDER_FILL: &str = "tone5";
+const S2_8M_BORDER: &str = "s2_8m_border_tone5";
 
 /// Whether `dir` holds a Survey sheet ZIP: only then does the colour branch make the 2 m nodes (and read the shore).
 fn has_zips(dir: &Path) -> bool {
@@ -2095,7 +2139,25 @@ mod tests {
         let fill = white_fill(&raw, n);
         assert!(fill[0] && fill[n + 1], "the fill seeded by pure white");
         assert!(!fill[5 * n + 5] && !fill[6 * n + 6], "the roof");
-        assert!(!fill[3 * n + 4], "the ground");
+        assert!(fill[n + 4] && !fill[n + 7], "the fill's edge, the ground");
+    }
+
+    /// A near-white patch of FILL_MIN_PX joined to no seed is fill (its no-data in the next unit); a small one stays.
+    #[test]
+    fn a_large_white_patch_is_fill() {
+        let n = 256;
+        let mut raw = vec![0u8; n * n * 4];
+        for (i, p) in raw.chunks_mut(4).enumerate() {
+            let (x, y) = (i % n, i / n);
+            p.copy_from_slice(&match (x, y) {
+                (0..=99, _) => [249, 249, 248, 255],            // the fill: 25,600 pixels, no seed
+                (200..=209, 200..=209) => [250, 250, 250, 255], // a white roof
+                _ => [120, 110, 90, 255],
+            });
+        }
+        let fill = white_fill(&raw, n);
+        assert!(fill[0] && fill[n * n - n + 99], "the fill");
+        assert!(!fill[200 * n + 200] && fill[101] && !fill[102], "the roof, the fill's edge, the ground");
     }
 
     /// The 32 m nodes' rim: a pixel within RIM of an empty one counts as empty, one farther out keeps its own colour.
