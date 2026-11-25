@@ -239,7 +239,7 @@ func _air() -> void:
 	var p: Dictionary = node.placed
 	var roll: Dictionary = IafFreeCombat.roll(SEED, int(settings().enemy_skill()))
 	check(p.setup == roll and p.task == roll.task, "air: the roll placed (%s)" % [roll])
-	var sites := (1 if roll.sam_net else 0) + (3 if roll.shorad else 0)
+	var sites := (2 if roll.sam_net else 0) + (4 if roll.shorad else 0)  # the S-300 with its Tor; Tor, two ZSUs, Igla
 	check(p.sites.size() == sites, "air: %d sites (%d)" % [sites, p.sites.size()])
 	check(p.net.is_empty() != bool(roll.sam_net), "air: the network as rolled")
 	var pairs := int(roll.cap_pairs) + int(roll.based_pairs)

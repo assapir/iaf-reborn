@@ -156,6 +156,30 @@ Around it:
 shots 4 s apart → second channel free for a second target → back to search; the duty limits as a cap on how long it
 can radiate.
 
+### 2.7 How a long-range battery is guarded
+
+Checked 25 November 2026 on the user's answer to "ZSU + S-300 at one site?": "as in reality".
+
+| who | what the sources say | sources |
+|---|---|---|
+| Soviet and Russian doctrine | the air-defence troops "required a point defence weapon system to protect its S-300P / SA-10A/B Grumble" batteries from defence-suppression aircraft, after HARM and ALARM took Iraq's batteries in 1991; "operational 96K6 / SA-22 batteries were being assigned to protect S-400 / SA-21 strategic SAM system batteries", "consistent with previously published and planned air defence doctrine"; a Pantsir-S1 battery is four to six combat vehicles (missiles and 30 mm guns) with a command post | [^apa-pantsir] |
+| Russia on the ground | "A common feature of the S-400 battalions in Crimea is the addition of a Pantsir S-1 to provide short-range air defense (SHORAD) protection for the facility"; at Kerch one Pantsir beside the battery's radars | [^dfr-crimea] |
+| the tandem | the S-400 the outer layer, the Pantsir "the second layer, tasked with dealing with objects/targets operating at a relatively low altitude", drones first | [^jt-tandem] |
+| Iran | no Pantsir (§2.1); its short-range tier is the Tor-M1[^dia]. Around Natanz in 2025: a Khordad-15 battery to the south, perhaps a Tor battery to the west, two early-warning radars; the S-300's radars were elsewhere (Isfahan) | [^acw-natanz] |
+| Iran, second-hand | "mixed anti-aircraft missile brigades" of the Tor-M1 and the S-300PMU-2 deployed "around nuclear facilities" (www1.ru, 26 February 2025, relaying "Islamic world news"; AI-translated) | [^w1-mixed] |
+| guns | Iran's guns fired at Israeli jets in June 2025 while its SAMs were absent (§3.2); no source puts a gun at an S-300 pad. The Soviet ZSU-23-4 platoon guards the ground forces: two guns about 200 m apart behind each first-echelon battalion (§3.1) | [^fpri][^fas-zsu] |
+
+**So, as in reality (inferred from the rows above):** a long-range battery has a short-range missile system at its
+own site, against defence-suppression jets, cruise missiles and drones that come in under its own minimum. Russia's
+is a Pantsir-S1, which Iran does not have; Iran's short-range missile is the Tor-M1, deployed with the S-300PMU-2. The
+guns stay with the ground forces and at the defended targets, not on the battery's pad. No source gives the distance
+from the launchers: the sim puts one Tor-M1 1 km from the battery's centre towards the threat, so its 1.5–12 km zone
+covers the way in and the launchers above a low height: a jet right over the battery's centre is inside its 1.5 km
+minimum (inferred; one vehicle of the Tor's battery of four, the Iris Xe's budget).
+
+**In the sim** (`iaf_ai::free_combat::plan`, docs/ai.md §23): Scramble's S-300 battery comes with that Tor-M1, both
+in the network; the short-range group by the convoy is a Tor-M1, a pair of ZSU-23-4s 200 m apart and an Igla team.
+
 ## 3. AAA
 
 ### 3.1 ZSU-23-4 Shilka
@@ -352,7 +376,7 @@ November ([models-catalogue.md](models-catalogue.md) §7). Each download waits f
   the RAND flight report unread (§4.2).
 - **S-300:** the crew's timings from designation to launch; the launch spacing (sources conflict); whether Iran's
   batteries have the 54K6E2 / 64N6E2; distances between the parts on a site.
-- **Tor-M1, ZSU-23-4:** how Iran deploys them around a site (battery layout, spacing).
+- **Tor-M1, ZSU-23-4:** how Iran lays them out round a site: the distances (open); who guards a battery is §2.7.
 - **Fighters:** no open source on Iranian fighter tactics; the GCI reliance is the opposing-force manual's, applied to
   Iran by inference.
 - **Models:** the 96L6E and 64N6E2 radars are our own models, on the MAZ-543 chassis of pick 4a (the user's download of 24 November 2026) (the 64N6E2 models found are War Thunder rips, excluded). Picks 2, 3, 5 and 6 were downloaded by the user on 22 November 2026 and are in the game ([../../../docs/ai.md](../../../docs/ai.md) §15.4); the Tor model's "four missiles on a rack" are a display rack beside the vehicle (left out); its turret's cell covers are shut, so its own count does not show.
@@ -364,6 +388,11 @@ November ([models-catalogue.md](models-catalogue.md) §7). Each download waits f
 [^acw-s300]: Sam Lair, Arms Control Wonk, "Whither the Iranian S-300?", 20 February 2026, https://www.armscontrolwonk.com/archive/1221458/whither-the-iranian-s-300/ (one S-300 launcher at each of two sites near Tehran, about 15–16 m long, "Notably absent from both sites are the radars"; a domestic launcher, perhaps a Bavar-373, beside one; possibly decoys; read 2026-11-19).
 [^fpri]: Sam Lair, Foreign Policy Research Institute, "Shallow Ramparts: Air and Missile Defenses in the June 2025 Israel-Iran War", 17 October 2025, https://www.fpri.org/article/2025/10/shallow-ramparts-air-and-missile-defenses-in-the-june-2025-israel-iran-war/ (gap between early warning and SAMs, "introducing delays and uncertainty"; AAA seen firing, "SAMs were notably absent"; early-warning radars hit in the opening strikes; S-300 sites reported empty after October 2024; read 2026-11-19).
 [^bd-natanz]: Aaron Mehta, Breaking Defense, "Iran's air defenses around nuclear site more brittle than expected: Exclusive analysis", 15 May 2025, https://breakingdefense.com/2025/05/irans-air-defenses-around-nuclear-site-more-brittle-than-expected-exclusive-analysis/ (James Martin CNS, Sam Lair: a Najm-804, two P-12 derivatives and a Tor around Natanz, on separate screens; "siloed and fragmented"; read 2026-11-19).
+[^apa-pantsir]: Carlo Kopp, Air Power Australia, "KBP 2K22/2K22M/M1 Tunguska SA-19 Grison / 96K6 Pantsir S1 / SA-22 Greyhound SPAAGM", APA-TR-2009-0703, July 2009, updated April 2012, https://ausairpower.net/APA-96K6-Pantsir-2K22-Tunguska.html (point defence of the S-300P; Pantsir assigned to protect S-400 batteries; the battery's make-up; read 2026-11-25).
+[^dfr-crimea]: DFRLab, "#PutinAtWar: Recent Military Developments on Fortress Crimea", 9 January 2019, https://dfrlab.org/2019/01/09/putinatwar-recent-military-developments-on-fortress-crimea/ (a Pantsir-S1 added to the S-400 battalions in Crimea; Kerch; read 2026-11-25).
+[^jt-tandem]: Sergey Sukhankin, Jamestown Foundation, Eurasia Daily Monitor 15/14, "The S-400–Pantsir 'Tandem': The New-Old Feature of Russian A2/AD Capabilities", 30 January 2018, https://jamestown.org/program/s-400-pantsir-tandem-new-old-feature-russian-a2-ad-capabilities/ (read 2026-11-25).
+[^acw-natanz]: Sam Lair, Arms Control Wonk, "Iran's (Not So) Integrated Air Defenses at Natanz", 19 May 2025, https://www.armscontrolwonk.com/archive/1220441/irans-not-so-integrated-air-defenses-at-natanz/ (read 2026-11-25).
+[^w1-mixed]: Yuliya Shelkovenko, www1.ru, "Iran Deploys Russian Tor-M1 and S-300PMU-2 Favorit SAM Systems as Part of Mixed Anti-Aircraft Missile Brigades", 26 February 2025, https://www1.ru/en/news/2025/02/26/iran-razvernul-rossiiskie-zrk-tor-m1-i-c-300pmu-2-favorit-v-sostave-smesannyx-zenitno-raketnyx-b.html (second-hand: it relays another outlet; read 2026-11-25).
 [^dia]: Defense Intelligence Agency, "Iran Military Power: Ensuring Regime Survival and Securing Regional Dominance", 2019, appendix D pp. 63–71, https://www.govinfo.gov/content/pkg/GOVPUB-D5_200-PURL-gpo128931/pdf/GOVPUB-D5_200-PURL-gpo128931.pdf (KADHQ; centralised national ADOC, decentralised to fixed and mobile SOCs; the layers table; SA-20c for nuclear sites and Tehran; IRIAF missions; read 2026-11-19).
 [^tc7100]: US Army, TC 7-100.2 "Opposing Force Tactics", 9 December 2011, approved for public release, chapters 10 (aviation, §10-32–§10-35, §10-72) and 11 (air defence), https://www.govinfo.gov/content/pkg/GOVPUB-D101-PURL-gpo122554/pdf/GOVPUB-D101-PURL-gpo122554.pdf (read 2026-11-19).
 [^w-bavar]: Wikipedia, "Bavar-373", https://en.wikipedia.org/wiki/Bavar-373 (two canisters on a Zoljanah 10×10; phased-array radar on a ZAFAR truck; 200 targets tracked, claim; read 2026-11-19).

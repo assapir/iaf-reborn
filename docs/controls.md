@@ -229,7 +229,7 @@ How to read the table:
 | 40 | Previous waypoint | Shift + W |  | (102, 0, 0) |  | yes | previous waypoint (NAV re-targets it) |
 | 41 | FLIR on/off | I |  | (90, 6, 0) |  | yes | MFD: FLIR page + FLIR on, with a FLIR pod (not a toggle; mfd.md) |
 | 42 | Damage report | D |  | (90, 4, 0) |  | yes | MFD: damage |
-| 43 | ECM Jammer on/off | J |  | (70, 0, 0) |  | yes | ECM on / off, light 6 (weapons.md §10). Modern IAF: the jet's jammer from its definition (the Sufa's) holds the enemy radars to its burn-through, the threat display's chevrons; no break-lock of the missiles in flight (ai.md §15.6); the Barak and the Adir light the lamp only |
+| 43 | ECM Jammer on/off | J |  | (70, 0, 0) |  | yes | ECM on / off, light 6 (weapons.md §10). Modern IAF: the jet's jammer from its definition (the Sufa's, the Adir's) holds the enemy radars to its burn-through, the threat display's chevrons; no break-lock of the missiles in flight (ai.md §15.6); the Barak lights the lamp only |
 | 44 | Laser on/off | L |  | (106, 0, 0) |  | yes | laser flag (FLIR pod only); with it on the laser bombs fly to the FLIR camera's centre point (weapons.md §9.8) |
 | 45 | NAV mode on | N |  | (98, 0, 0) |  | yes | master mode NAV (weapons.md §4) |
 | 46 | Change HUD color | H |  | (123, 0, 0) |  | yes | HUD colour |

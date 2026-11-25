@@ -69,7 +69,7 @@ Once you are in the air, the #term("AWACS") gives your task by radio: what to in
 - intercept a MiG-29 pair on patrol between the fight's base and yours;
 - intercept four one-way attack drones flying over the fight's base towards yours;
 - attack a convoy of two T-72 tanks and two trucks on the roads near the fight's base;
-- attack the S-300 battery beyond the fight's base.
+- attack the S-300 battery beyond the fight's base. As a real battery, it has a Tor-M1 short-range missile system beside it, against jets that come in low.
 
 Other threats may wait there too: more MiG-29 pairs in the air or in that base's shelters, the S-300 network that sends them up, short-range air defence, the drones or the convoy. A higher #scr("enemy_skill") brings more of them. Half the flights also have a #term("tanker") on a track between your base and the fight; ask it for fuel on the radio (@tanker). The flight is not scored; end it from the pause menu.
 

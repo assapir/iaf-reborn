@@ -1701,6 +1701,7 @@ sensors' beacon (docs/weapons.md §10, §13 here). The rules are `crates/iaf-avi
 |---|---|---|
 | the Sufa's internal SPS-3000 / ASPS (dorsal spine; the J key, the CMDS's JMR switch; docs/f16i.md §8) | 0.3 | the sites' search and track radars (§15.1), the network's 64N6E2 (§15.5, so the GCI's picture too), the enemy fighters' radar (§18.1) |
 | an AI jet whose definition has one (our Sufa wingmen; on the enemy's side none today: the MiG-29A (9.12) has none, its jammer came with the 9.13[^w-mig29-jam]), on while its RWR shows a threat or it defends (`Flight::jams`) | its own | an enemy's: the player's radar; a wingman's: the sites, the network and the enemy fighters' radar |
+| the Adir's (the AN/ASQ-239's jamming with Israel's Elbit EW; the J key; docs/f35i.md §7.1) | 0.3 (the Sufa's; its power is open) | as the Sufa's; against its small cross-section a short burn-through (the 30N6E2 about 1 km head on) |
 | the Barak's | open ([../modern-iaf/docs/ai-plan.md](../modern-iaf/docs/ai-plan.md) §1 item 10) | — |
 
 In Modern IAF the J key's jammer works through the burn-through only; the 0.6 chance of breaking each radar
@@ -1734,7 +1735,7 @@ from a hostile jet; a friendly's (a defending wingman's) jams the enemy, not the
   on the commit alone and on under a lock), `--test four_ship reactions` (no chaff against a lock, one at a radar
   missile's cue, flares against a near missile); `modern-iaf/tests/test_countermeasures.gd` (headless: decoys against an
   AIM-9M and an AIM-9X, a beaming and a fleeing jet against chaff; the Sufa's jammer against an S-300's track radar,
-  the chevrons and the FCR's strobe).
+  the chevrons and the FCR's strobe); `modern-iaf/tests/test_sim_pcd.gd` (the Adir's J: its share, ECM ON, off).
 - **The seeker** (2026-11-25, docs/real-weapons.md §2.6): the jammer also acts on each radar-guided missile flying at
   the jet, whoever fired it: outside the seeker's burn-through the missile rolls once on 0.6 · (1 − its rejection),
   and taken, its guidance goes off. The AI jets' jammer is on under a missile, so it works for them too.
@@ -2423,14 +2424,15 @@ start; the area is drawn, the skill is the Pilot screen's. Every distance and ti
   - `area(seed, home, bases)`: the fight's base A, drawn at Fly from the same seed, alike among the theatre's bases
     other than the home base within 180 km of it (a short sortie; every base has at least two in reach), the nearest
     other base when none is.
-  - `plan`, round the area's base A, the player's base H, u the direction from A towards H: the S-300PMU-2 battery
-    12 km beyond A, its 83M6E2 network's 64N6E2 8 km beyond and 3 km aside, the 54K6E2 beside it; the short-range
-    sites (a Tor-M1, a ZSU-23-4, an Igla team) at the convoy's middle, else 4 km aside of A, all in the network when
-    there is one; each MiG-29A pair on CAP 25 km from A towards H, 12 km to either side, 6,000 m above A (the second
-    pair 1,000 m higher), facing H; each pair on alert in A's shelters (the first pair in the first two, the second in
-    the next two: `enemy_base`'s `first`), its station 15 km from A towards H; a convoy of two T-72s and two
-    Ural-4320s 12 to 4 km from A towards H, 6 km aside, on the roads nearest its ends; a salvo of four Shahed-136s
-    from 80 km beyond A over A to H, 10 s apart.
+  - `plan`, round the area's base A, the player's base H, u the direction from A towards H: the S-300PMU-2 battery 12 km
+    beyond A with its own point defence, a Tor-M1 1 km from its centre towards H (a long-range battery has a short-range
+    missile system at its site: modern-iaf/docs/research/enemies.md §2.7), its 83M6E2 network's 64N6E2 8 km beyond and 3
+    km aside, the 54K6E2 beside it; the short-range sites (a Tor-M1, a pair of ZSU-23-4s 200 m apart, an Igla team) at
+    the convoy's middle, else 4 km aside of A, all in the network when there is one; each MiG-29A pair on CAP 25 km from
+    A towards H, 12 km to either side, 6,000 m above A (the second pair 1,000 m higher), facing H; each pair on alert in
+    A's shelters (the first pair in the first two, the second in the next two: `enemy_base`'s `first`), its station 15
+    km from A towards H; a convoy of two T-72s and two Ural-4320s 12 to 4 km from A towards H, 6 km aside, on the roads
+    nearest its ends; a salvo of four Shahed-136s from 80 km beyond A over A to H, 10 s apart.
   - `air_start(home, area, bases, count)`: the lead 60 km from A on the line towards H (beyond H when H is nearer),
     moved out in 2 km steps until 8 km clear of every base (the start rule takes a start within 5 km of a base for a
     ground start), 6,000 m up, heading for A; each wingman 150 m further back per place and 150 m to alternate sides
@@ -2469,17 +2471,17 @@ start; the area is drawn, the skill is the Pilot screen's. Every distance and ti
   Nothing is scored; the flight ends from the pause menu.
 - **Not started** (outside the user's words of 24 November): a call when the task is done, the task's choice by the
   player. The full AWACS (the requests, the Eitam in the sky) is §24.
-- **Tests:** `cargo test -p iaf-ai --lib free_combat` (the area: never home, in reach, every base in reach drawn;
-  the runway start's places; the start time: HHMM, the steps round the clock, Random by seed over every hour, the day
-  of the year, Israel's summer time; the date: month and day, the steps round the year, the month's last day, Random
-  by seed over every month; the roll: a seed draws the same enemy, the task's
-  target always there, alert pairs with the network, the threats by skill, every task drawn; the air start clear of
-  the bases, the wingmen's places; the call's words and timing; the layout faces the player, the order, the second
-  alert pair's shelters); `modern-iaf/tests/test_free_combat.gd` (the screen en + he; Ramon's start in the air round
-  Hatzerim with the roll placed and the task call said before the flight's calls; the area drawn from Ramon; the
-  runway start lined up with both engines running; the same start on the ground, cold at Ramon; the Time and Date
-  rows en + he: 0800 today first, the steps, Random, 0800 today again on the next opening, nothing stored; a 2200
-  start at night on 21 December, the notebook's time and date; 0630 dark in December, day in June).
+- **Tests:** `cargo test -p iaf-ai --lib free_combat` (the area: never home, in reach, every base in reach drawn; the
+  runway start's places; the start time: HHMM, the steps round the clock, Random by seed over every hour, the day of the
+  year, Israel's summer time; the date: month and day, the steps round the year, the month's last day, Random by seed
+  over every month; the roll: a seed draws the same enemy, the task's target always there, alert pairs with the network,
+  the threats by skill, every task drawn; the air start clear of the bases, the wingmen's places; the call's words and
+  timing; the layout faces the player, the order, the battery's Tor at its site, the ZSU pair, the second alert pair's
+  shelters); `modern-iaf/tests/test_free_combat.gd` (the screen en + he; Ramon's start in the air round Hatzerim with
+  the roll placed and the task call said before the flight's calls; the area drawn from Ramon; the runway start lined up
+  with both engines running; the same start on the ground, cold at Ramon; the Time and Date rows en + he: 0800 today
+  first, the steps, Random, 0800 today again on the next opening, nothing stored; a 2200 start at night on 21 December,
+  the notebook's time and date; 0630 dark in December, day in June).
 
 ## 24. Modern IAF's AWACS: the controller and the Eitam (ours)
 

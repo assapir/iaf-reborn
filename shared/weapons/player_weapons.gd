@@ -80,7 +80,8 @@ var eo: RefCounted
 var harm: RefCounted
 ## ctl+0x93c: a store named "...FLIR..." on stations 0..8 (FUN_004586b0 at the flight start).
 var flir_pod := false
-## An ECM fitted (FUN_004581d0: a station named "ECM", or the F-16 / Lavi, types 100 / 140, built in).
+## An ECM fitted (FUN_004581d0: a station named "ECM", or the F-16 / Lavi, types 100 / 140, built in; Modern IAF: a
+## definition's `jammer`).
 var ecm_fitted := false
 ## The EO camera this frame: (az, el), line of sight (world), the EO centre point (FUN_00450480).
 var eo_ae := Vector2.ZERO
@@ -289,6 +290,8 @@ func setup(host_node: Node, entity: Dictionary, object: Dictionary, bdb: Diction
 		if "ECM" in stores.name_of(i):
 			ecm_fitted = true
 	ecm_fitted = ecm_fitted or jet_type in [100, 140]
+	# Ours (Modern IAF): a jet whose definition has a jammer (the Adir's, docs/ai.md §15.6).
+	ecm_fitted = ecm_fitted or (Settings.modern_ew() and Settings.airframe(jet_type).has("jammer"))
 	flir_pod = flir_pod or bool(Settings.airframe(jet_type).get("flir", false))  # ours: a built-in one (the F-35I's EOTS)
 	var pit = host.get("cockpit")  # the F-16's real MFDs (Settings.real_mfd: its definition's mfd) in this cockpit
 	modern_f16 = (

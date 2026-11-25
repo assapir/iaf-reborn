@@ -1,6 +1,6 @@
 #import "src.typ": *
 
-This section covers what warns you of a threat, how you release chaff and flares, and what they do to a missile.
+This section covers what warns you of a threat, how you release chaff and flares, what they do to a missile, and the jammer.
 
 === The TWD format <ew-twd>
 
@@ -60,5 +60,23 @@ A flare burns hotter than the engine and draws the seeker of a heat-seeking miss
 #in-sim[
   - *A decoy.* At each release every missile that flies at the jet may follow it: a flare a heat-seeking missile, chaff a radar-guided one. A missile that follows a decoy does not come back to the jet. The chance is each seeker's own (inferred). Within the missile's last 6 seconds a flare draws an R-73 about one time in three, an AIM-9M one in four, an AIM-9X or a Python 5 fewer than one in ten; of the shoulder-fired missiles a Strela-2M one time in two, an Igla one in five. Chaff draws a radar-guided missile about two times in five with the jet on the missile's beam. With the jet flying straight away from it, chaff draws an R-27R one time in five, and an AIM-120 or a surface-to-air missile one in twelve. A decoy has its full chance within the missile's last 6 seconds; one released earlier has less, and it burns out after 4 seconds. Above 4 g every decoy has one and a half times its chance; a flare beside a lit afterburner, a quarter.
   - *Enemy radars*, on the ground and in fighters, find the jet by its echo seen from where they are: smallest head on, larger from the side, much larger with the bays open or a loaded external station. Head on and clean, an enemy fighter finds the #jet.short at about 10 km, an S-300's search radar at 39 km; with the bays open, 50 km and 200 km. They see the jet only over the terrain. Most of them lose a jet that flies across their line of sight: the Tor and the S-300 always, an enemy fighter when it looks down at you (inferred: 30 m/s along the line of sight).
-  - #key("ECM jammer") lights the advisory ECM ON (@warnings). #term("Not modelled"): the jet's electronic attack.
+]
+
+=== The jammer <ew-jammer>
+
+The real jet jams. Its electronic warfare suite gives the pilot "evasion, engagement, countermeasure, and jamming options"#footnote[BAE Systems, "AN/ASQ-239 F-35 EW countermeasure system", #link("https://www.baesystems.com/en/product/an-asq-239-f-35-ew-countermeasure-system"). Checked 25 November 2026.], and its radar is also an electronic warfare aperture with electronic attack#footnote[Wikipedia, "AN/APG-81", citing Northrop Grumman: "electronic protection (EP), electronic attack (EA) and electronic support measures (ESM)", #link("https://en.wikipedia.org/wiki/AN/APG-81"). Checked 25 November 2026.]. The #jet.short carries Israeli electronic warfare equipment made by Elbit Systems#footnote[Wikipedia, "Lockheed Martin F-35 Lightning II Israeli procurement", citing Flight International, 29 August 2012 (second-hand), #link("https://en.wikipedia.org/wiki/Lockheed_Martin_F-35_Lightning_II_Israeli_procurement"). Checked 25 November 2026.]. What it does and how the pilot runs it are not public: open.
+
+A jammer sends noise on an enemy radar's frequency, so that the radar cannot pick the jet's echo out of the noise. Close to the radar the echo is stronger than the noise: inside its #term("burn-through range") the radar sees the jet again. A smaller echo has a shorter burn-through range, so the #jet.short's small echo head on leaves a radar very little of it.
+
+#caution[The jammer shows the enemy where you are. An enemy fighter's radar sees your bearing beyond the burn-through range and the fighter flies toward it. Turn the jammer on when a radar locks on you or a missile flies at you, and off when the threat is gone.]
+
++ Press #key("ECM jammer"). #then[The advisory ECM ON shows (@warnings).]
++ Press #key("ECM jammer") again. #then[The jammer is off; ECM ON goes out.]
+
+The real jet's controls for it are open; in the sim the key stands in.
+
+#in-sim[
+  - *The jammer's burn-through range* is 0.3 of the radar's range against an echo of 5 m², times the square root of the jet's echo over 5 m², as the Sufa's (inferred: the jammer's power is not public). Head on and clean, an S-300 site's search radar finds the jet inside 1.6 km, its tracking radar holds it inside 1 km, and an enemy fighter's radar inside 0.4 km. With the bays open: 40 km, 27 km and 10 km.
+  - *The jammer against a missile* acts as the Sufa's: farther than the seeker's own burn-through range, the jammer may break a radar-guided missile's track once (inferred).
+  - #term("Not modelled"): the radar's own electronic attack.
 ]

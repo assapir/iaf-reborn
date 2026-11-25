@@ -229,8 +229,10 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   `modern-iaf/tests/test_countermeasures.gd`. Built 25 Nov: the jammer against a radar missile's own seeker: outside
   the seeker's burn-through each missile at the jamming jet rolls once on 0.6 · (1 − its rejection) and loses its
   guidance when taken ([../../docs/real-weapons.md](../../docs/real-weapons.md) §2.6;
-  `modern-iaf/tests/test_threat_missiles.gd`). Not started: the Barak's jammer
-  (open).
+  `modern-iaf/tests/test_threat_missiles.gd`). Built 25 Nov (the user: "Is the F-35I's jammer real?" "IDK, check
+  it"): the Adir's jammer, as the real jet's AN/ASQ-239 and Elbit EW jam ([../../docs/f35i.md](../../docs/f35i.md)
+  §7.1): its definition's `jammer` (the Sufa's 0.3, inferred) on J, ECM ON on the ICAWS (`test_sim_pcd.gd`); before,
+  J did nothing on the Adir. Not started: the Barak's jammer (open), the Adir's radar EA mode (open).
 - **Shoulder-fired SAMs (2026-11-23, the user, 22 Nov: "Ok follow your suggested order"; [ai-plan.md](ai-plan.md) K16;
   [../../docs/ai.md](../../docs/ai.md) §15.8):** a Strela-2M or an Igla team (`air_defence.gd spawn("strela" |
   "igla", …)`) sees a low jet by eye to 10 km, launches after its crew's reaction and drill once the jet is inside
@@ -718,7 +720,8 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   fight's area (another base within 180 km of the home base, `iaf_ai::free_combat::area`) and the enemy round it
   (`roll`: the task, its target and one to three more threats by the skill, from MiG-29 pairs on CAP and on alert,
   the S-300 network, short-range air
-  defence, Shahed-136 drones and a convoy); the air start puts the flight 60 km from the area at 6,000 m. The Area and
+  defence, Shahed-136 drones and a convoy; since 25 November the battery has its own Tor-M1 beside it and the ZSU-23-4s
+  go in a pair, as in reality: [research/enemies.md](research/enemies.md) §2.7); the air start puts the flight 60 km from the area at 6,000 m. The Area and
   Enemy skill rows went on the user's round-3 word (24 November). The AWACS gives the task by radio once the jet is in
   the air, in English and Hebrew ("Kidon 1, attack the convoy, bearing 040, 25 miles, free to engage"), and every minute
   while the target lives. Not scored. The first version (A81, 23 November: "Fly now", the enemy picked row by row, a

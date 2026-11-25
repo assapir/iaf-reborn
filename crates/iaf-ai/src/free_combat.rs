@@ -22,6 +22,10 @@ const WING: f64 = 700.0;
 const BASED_AHEAD: f64 = 15_000.0;
 /// The S-300 battery beyond the base (m); the network's search radar and command post beside it (m).
 const S300_BEYOND: f64 = 12_000.0;
+/// The battery's own point defence, a Tor-M1 this far from its centre towards the player (m): a long-range battery
+/// has a short-range missile system at its site (Russia's S-400 sites a Pantsir-S1, Iran's short-range tier the Tor;
+/// modern-iaf/docs/research/enemies.md §2.7); the distance inferred: its 12 km zone over the launchers and the approach.
+const S300_GUARD: f64 = 1_000.0;
 const NET_BEYOND: f64 = 8_000.0;
 const NET_SIDE: f64 = 3_000.0;
 /// The convoy's tail and head towards the player's base (m), off to a side (m).
@@ -30,15 +34,17 @@ const CONVOY_TO: f64 = 4_000.0;
 const CONVOY_SIDE: f64 = 6_000.0;
 /// The short-range sites round their centre (the convoy's middle, else beside the base) (m).
 const SHORAD_SIDE: f64 = 4_000.0;
+/// The ZSU-23-4s go in pairs about 200 m apart (FAS; enemies.md §3.1).
+const ZSU_PAIR: f64 = 200.0;
 /// The drones' launch point beyond the base (m) and to a side (m); they fly over the fight's base at the player's.
 const DRONES_BEYOND: f64 = 80_000.0;
 const DRONES_SIDE: f64 = 10_000.0;
 pub const DRONES: u8 = 4;
 const DRONES_INTERVAL: f64 = 10.0;
 
-/// A Scramble's enemy ([`roll`]): the MiG-29 pairs on CAP and parked at the fight's base (each
-/// up to [`MAX_PAIRS`]), the S-300 network, the short-range sites (a Tor-M1, a ZSU-23-4 and an Igla team), a salvo of
-/// Shahed-136s, a convoy.
+/// A Scramble's enemy ([`roll`]): the MiG-29 pairs on CAP and parked at the fight's base (each up to [`MAX_PAIRS`]),
+/// the S-300 network (the battery with its Tor-M1), the short-range sites (a Tor-M1, a pair of ZSU-23-4s and an Igla
+/// team), a salvo of Shahed-136s, a convoy.
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct Setup {
     pub cap_pairs: u8,
@@ -421,10 +427,12 @@ pub fn plan(s: &Setup, home: Vec3, area: Vec3) -> Vec<Spawn> {
     let convoy = (at(CONVOY_FROM, CONVOY_SIDE), at(CONVOY_TO, CONVOY_SIDE));
     if s.sam_net {
         out.push(Spawn::Site { kind: "s300", pos: at(-S300_BEYOND, 0.0), heading: facing });
+        out.push(Spawn::Site { kind: "tor", pos: at(S300_GUARD - S300_BEYOND, 0.0), heading: facing });
     }
     if s.shorad {
         let c = if s.convoy { (convoy.0 + convoy.1) / 2.0 } else { at(0.0, -SHORAD_SIDE) };
-        for (kind, side, ahead) in [("tor", 1_500.0, 1_000.0), ("zsu", -800.0, -500.0), ("igla", 300.0, 1_500.0)] {
+        let zsu = [("zsu", -800.0, -500.0), ("zsu", -800.0 - ZSU_PAIR, -500.0)];
+        for (kind, side, ahead) in [("tor", 1_500.0, 1_000.0), zsu[0], zsu[1], ("igla", 300.0, 1_500.0)] {
             out.push(Spawn::Site { kind, pos: c + p * side + u * ahead, heading: facing });
         }
     }
@@ -637,7 +645,14 @@ mod tests {
                 Spawn::Drones { .. } => "drones",
             })
             .collect();
-        assert_eq!(kinds, ["s300", "tor", "zsu", "igla", "net", "cap", "cap", "based", "based", "convoy", "drones"]);
+        assert_eq!(
+            kinds,
+            ["s300", "tor", "tor", "zsu", "zsu", "igla", "net", "cap", "cap", "based", "based", "convoy", "drones"]
+        );
+        let sites: Vec<Vec3> =
+            p.iter().filter_map(|s| if let Spawn::Site { pos, .. } = s { Some(*pos) } else { None }).collect();
+        assert!(flat_dist(sites[0], sites[1]) <= 1_500.0, "the battery's Tor at its site");
+        assert!((flat_dist(sites[3], sites[4]) - ZSU_PAIR).abs() < 1e-6, "the ZSUs a pair");
         for s in &p {
             match s {
                 Spawn::Site { kind: "s300", pos, heading } => {

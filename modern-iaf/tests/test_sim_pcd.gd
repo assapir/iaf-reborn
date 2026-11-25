@@ -270,3 +270,12 @@ func stores() -> void:
 		rows.size() == 2 and rows.filter(func(b): return b.gone).size() == before - left,
 		"the WPN-S greys each bomb gone (%d of 2 left: %s)" % [left, rows]
 	)
+
+	# The Adir's jammer (J; docs/ai.md §15.6): its definition's burn-through on, ECM ON on the ICAWS; off again.
+	if tv.cockpit.indicators[6]:
+		w.ecm_key()
+	w.ecm_key()
+	check(is_equal_approx(w.jam_share(), 0.3), "J: the Adir's jammer on (%.2f)" % w.jam_share())
+	check(p.cautions().any(func(c): return c[0] == "ECM ON"), "the advisory ECM ON")
+	w.ecm_key()
+	check(w.jam_share() == 0.0 and not tv.cockpit.indicators[6], "J again: off")
