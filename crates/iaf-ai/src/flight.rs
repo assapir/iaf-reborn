@@ -436,6 +436,9 @@ pub struct Flight {
     pairs: bool,
     /// The ground target the attacking jets attack ([`Flight::attack`], [`Flight::ground_target`]).
     ground: Option<Bogey>,
+    /// The jet that released last on it ([`Flight::released`]): its "alpha" when it is destroyed, also after its
+    /// "done" ([`Flight::ground_hit`]).
+    hit_by: Option<u8>,
     /// The flight's low-level height ([`Flight::low`]).
     low: Option<f32>,
 }
@@ -466,6 +469,7 @@ impl Default for Flight {
             gci: None,
             pairs: false,
             ground: None,
+            hit_by: None,
             low: None,
         }
     }
@@ -981,6 +985,11 @@ impl Flight {
             }
         }
         if took {
+            // A new target (not the one attacked again): no release on it yet.
+            let same = |a: &Bogey, b: &Bogey| (a.pos[0] - b.pos[0]).hypot(a.pos[1] - b.pos[1]) <= strike::SNAP_M;
+            if !matches!((&self.ground, &at), (Some(a), Some(b)) if same(a, b)) {
+                self.hit_by = None;
+            }
             self.ground = at;
         }
         took
@@ -1020,20 +1029,19 @@ impl Flight {
             if m.strike.phase == Phase::Run && !m.strike.released {
                 (m.strike.released, m.strike.released_at) = (true, now);
                 self.calls.push((now, Call { from: m.number, id: "release" }));
+                self.hit_by = Some(number);
             }
         }
     }
 
     /// The attacked ground target destroyed at `now` (the host's, before [`Flight::ground_target`] says it is gone):
-    /// the jet still in its attack that released last calls "alpha", the hit (the user, 25 Nov 2026: "Alpha is for
-    /// exact hit"). Inferred: the last release is the one that hit; a kill by another (the player's bomb) is said too.
+    /// the live jet that released last on it calls "alpha", the hit (the user, 25 Nov 2026: "Alpha is for exact hit"),
+    /// also when it already called "done"; once per target. Inferred: the last release is the one that hit; a kill by
+    /// another (the player's bomb) is said too.
     pub fn ground_hit(&mut self, now: f64) {
-        if self.ground.is_none() {
-            return;
-        }
-        let hit = self.members.iter().filter(|m| m.strike.phase != Phase::None && m.strike.released);
-        if let Some(m) = hit.max_by(|a, b| a.strike.released_at.total_cmp(&b.strike.released_at)) {
-            self.calls.push((now, Call { from: m.number, id: "alpha" }));
+        let Some(n) = self.hit_by.take() else { return };
+        if self.ground.is_some() && self.index(n).is_some_and(|i| self.members[i].alive) {
+            self.calls.push((now, Call { from: n, id: "alpha" }));
         }
     }
 

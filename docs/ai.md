@@ -1004,10 +1004,10 @@ wingman" (modern-iaf/docs/ai-plan.md F15, K15). Our wingmen and the enemy fighte
   its slot ("in position"), an enemy pair to its CAP, a based one home. The target destroyed or gone ends every attack.
 - **The calls** (IAF Hebrew from the radio-terms research; voices.json): "in" / "נכנס" at the run-in, "release" /
   "חימוש שוחרר" ("bombs away" in English) at the release, "alpha" / "אלפא" ("shack", NATO's hit) when the target is
-  destroyed, by the jet still in its attack that released last (`Flight::ground_hit`, the host's; inferred: that
-  release is the one that hit), "done" / "ביצעתי" once 8 km clear, "unable" / "שלילי" for a run given up. The user,
-  25 Nov 2026 (A113): "Alpha is for exact hit, not for bomb release. bomb release, if can't find it, is "חימוש
-  שוחרר"" (no IAF release call was found).
+  destroyed, by the live jet that released last on it, also after its "done", once per target (`Flight::ground_hit`,
+  the host's; inferred: that release is the one that hit), "done" / "ביצעתי" once 8 km clear, "unable" / "שלילי"
+  for a run given up. The user, 25 Nov 2026 (A113): "Alpha is for exact hit, not for bomb release. bomb release, if
+  can't find it, is "חימוש שוחרר"" (no IAF release call was found).
   The enemy's calls are not heard.
 - **The MiG-29A's strike load:** the MiG-29 (9.12) carries "4 × FAB-500-M62 500kg general purpose bomb" (Wikipedia,
   "Mikoyan MiG-29", Specifications, read 23 Nov 2026); the sim has no FAB record, so the generic MK-83 (447 kg)

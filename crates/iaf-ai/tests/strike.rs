@@ -296,6 +296,27 @@ fn alpha_on_the_hit() {
 }
 
 #[test]
+fn alpha_after_done() {
+    // #2 releases, egresses and calls "done" with the target still standing; its bomb's hit comes later: "alpha" then
+    // (the user, 25 Nov 2026: "Alpha is for exact hit"), once, however often the host reports the hit.
+    let Some(dir) = own() else { return println!("skipped: no assets/converted/own (iaf-sim fm)") };
+    let mut w = Strike::new(&dir, "F-16I", 2, true, 4000.0);
+    w.flight.ground_weapon(2, Some(false));
+    w.until(1.0, &|_| false);
+    let at = Vec3::new(0.0, 30_000.0, 0.0);
+    w.target = Some(at);
+    assert_eq!(w.flight.attack(w.t, 2, Some(Bogey { pos: at, vel: Vec3::ZERO })), Some(true));
+    assert!(w.until(600.0, &|w| w.said(2, "done").is_some()).is_some(), "#2 done: {:?}", w.calls);
+    w.flight.ground_hit(w.t);
+    w.flight.ground_hit(w.t);
+    w.target = None;
+    w.until(2.0, &|_| false);
+    let alpha = w.said(2, "alpha").expect("#2 alpha after its done");
+    assert!(alpha >= w.said(2, "done").unwrap());
+    assert_eq!(w.calls.iter().filter(|(_, c)| c.id == "alpha").count(), 1, "one alpha: {:?}", w.calls);
+}
+
+#[test]
 fn a_new_order_ends_the_run() {
     // The lead's new order wins (docs/ai.md §8.10): #2 in its dive, "attack my target" again: "ack", the run broken off
     // and flown again; in that dive "cover me": "ack", the attack over, back in its slot. Safe all through: the
