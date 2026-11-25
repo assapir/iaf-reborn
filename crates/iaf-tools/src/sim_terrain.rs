@@ -698,6 +698,8 @@ struct BorderTone {
     bw: usize,
     bh: usize,
     tones: Vec<Option<BaseTone>>,
+    /// Per cell, the photo's own colour along its edge over the blocks' tone: each band's log ratio (`local`).
+    local: Vec<[f32; 3]>,
     /// The 8 m Sentinel-2 units (level 5) and the Survey units (level 4) holding a pixel it tones.
     s2_units: BTreeSet<Key>,
     survey_units: BTreeSet<Key>,
@@ -712,6 +714,41 @@ const BORDER_BLOCK_M: f64 = 16_400.0;
 const BORDER_SAMPLE_M: f32 = 4_000.0;
 /// The fewest photo cells near the edge a block's tone is fitted from.
 const BORDER_MIN_CELLS: usize = 200;
+/// The local match (2026-11-25, the user: "the shim between tiles can look better"): the photo's cells this far in
+/// from its edge (m) give its own colour there, over the blocks' tone of Sentinel-2 (a darker sheet beside a lighter
+/// one left a step at the edge); their log ratios averaged by three box blurs of LOCAL_BLUR cells (σ ≈ 850 m) and
+/// applied out of the photo fully at its edge, none from LOCAL_REACH_M; each band within × LOCAL_MAX.
+const LOCAL_SAMPLE_M: [f32; 2] = [150.0, 800.0];
+const LOCAL_BLUR: usize = 8;
+const LOCAL_REACH_M: f32 = 2_000.0;
+const LOCAL_MAX: f32 = 1.6;
+
+/// Three box blurs of radius `r` (rows, then columns) over a w × h grid of `N` values: about a Gaussian, σ ≈ r.
+fn box_blur3<const N: usize>(v: &mut [[f32; N]], w: usize, h: usize, r: usize) {
+    let mut tmp = vec![[0f32; N]; v.len()];
+    let pass =
+        |src: &[[f32; N]], dst: &mut [[f32; N]], len: usize, lines: usize, at: &dyn Fn(usize, usize) -> usize| {
+            for l in 0..lines {
+                let mut sum = [0f32; N];
+                for k in 0..r.min(len) {
+                    (0..N).for_each(|j| sum[j] += src[at(l, k)][j]);
+                }
+                for k in 0..len {
+                    if k + r < len {
+                        (0..N).for_each(|j| sum[j] += src[at(l, k + r)][j]);
+                    }
+                    if k > r {
+                        (0..N).for_each(|j| sum[j] -= src[at(l, k - r - 1)][j]);
+                    }
+                    dst[at(l, k)] = sum.map(|s| s / (2 * r + 1) as f32);
+                }
+            }
+        };
+    for _ in 0..3 {
+        pass(v, &mut tmp, w, h, &|y, x| y * w + x);
+        pass(&tmp, v, h, w, &|x, y| y * w + x);
+    }
+}
 
 fn smoothstep(a: f32, b: f32, x: f32) -> f32 {
     let t = ((x - a) / (b - a)).clamp(0.0, 1.0);
@@ -808,6 +845,15 @@ impl BorderTone {
         let (out, inside) = (chamfer(&covered, w, h), chamfer(&uncovered_land, w, h));
         let cf = c as f32;
         let dist: Vec<f32> = (0..w * h).map(|i| if covered[i] { -inside[i] * cf } else { out[i] * cf }).collect();
+        let centre = |i: usize| [r[0] + ((i % w) as f64 + 0.5) * c, r[3] - ((i / w) as f64 + 0.5) * c];
+        // The photo's colour of cell i with its sheets' levels.
+        let photo_at = |i: usize| {
+            let g = centre(i);
+            let g = utm36n_geo(g[0], g[1]);
+            let itm = crate::itm::from_wgs84(g[0], g[1]);
+            let rgb = [0, 1, 2].map(|k| f32::from(photo.raw[i * 4 + k]));
+            imagery::levels_at(levels, itm[0], itm[1]).map_or(rgb, |lv| imagery::photo_levels(rgb, lv))
+        };
         // The blocks' tones from the photo's cells near its edge.
         let b = BORDER_BLOCK_M;
         let (bw, bh) = (((r[2] - r[0]) / b).ceil() as usize, ((r[3] - r[1]) / b).ceil() as usize);
@@ -823,13 +869,7 @@ impl BorderTone {
                         if !covered[i] || dist[i] < -BORDER_SAMPLE_M || !land(i) {
                             continue;
                         }
-                        let q = [r[0] + (x as f64 + 0.5) * c, r[3] - (y as f64 + 0.5) * c];
-                        let g = utm36n_geo(q[0], q[1]);
-                        let itm = crate::itm::from_wgs84(g[0], g[1]);
-                        let rgb = [0, 1, 2].map(|k| f32::from(photo.raw[i * 4 + k]));
-                        ph.push(
-                            imagery::levels_at(levels, itm[0], itm[1]).map_or(rgb, |lv| imagery::photo_levels(rgb, lv)),
-                        );
+                        ph.push(photo_at(i));
                         sa.push(s);
                     }
                 }
@@ -838,10 +878,39 @@ impl BorderTone {
                 tones.push(t.map(|t| BaseTone { knee: 255.0, ..t }));
             }
         }
-        let mut bt =
-            Self { rect: r, w, h, dist, bw, bh, tones, s2_units: BTreeSet::new(), survey_units: BTreeSet::new() };
+        let mut bt = Self {
+            rect: r,
+            w,
+            h,
+            dist,
+            bw,
+            bh,
+            tones,
+            local: Vec::new(),
+            s2_units: BTreeSet::new(),
+            survey_units: BTreeSet::new(),
+        };
+        // The local match (LOCAL_SAMPLE_M): per band the log ratio of the photo to the blocks' tone of Sentinel-2 on
+        // the photo's cells near its edge, averaged around (the sum of ratios and of cells blurred alike).
+        let mut acc = vec![[0f32; 4]; w * h];
+        let near = -LOCAL_SAMPLE_M[1]..=-LOCAL_SAMPLE_M[0];
+        for (i, a) in acc.iter_mut().enumerate() {
+            let Some(s) = sat[i].filter(|_| covered[i] && land(i) && near.contains(&bt.dist[i])) else { continue };
+            let q = centre(i);
+            let Some(t) = bt.blocks(q[0], q[1], s) else { continue };
+            let p = photo_at(i);
+            let l = [0, 1, 2].map(|k| ((p[k] + 4.0) / (t[k] + 4.0)).ln());
+            *a = [l[0], l[1], l[2], 1.0];
+        }
+        box_blur3(&mut acc, w, h, LOCAL_BLUR);
+        let lim = LOCAL_MAX.ln();
+        bt.local = acc
+            .iter()
+            .map(|a| if a[3] > 1e-4 { [0, 1, 2].map(|k| (a[k] / a[3]).clamp(-lim, lim)) } else { [0.0; 3] })
+            .collect();
+        drop(acc);
         for i in (0..w * h).filter(|&i| land(i)) {
-            let q = [r[0] + ((i % w) as f64 + 0.5) * c, r[3] - ((i / w) as f64 + 0.5) * c];
+            let q = centre(i);
             if bt.weight(q[0], q[1]) <= 0.0 {
                 continue;
             }
@@ -878,15 +947,7 @@ impl BorderTone {
 
     /// How much of the tone UTM (e, n) takes: the distance to the photo's edge bilinear between the cells' centres.
     fn weight(&self, e: f64, n: f64) -> f32 {
-        let c = BORDER_CELL_M;
-        let x = ((e - self.rect[0]) / c - 0.5).clamp(0.0, (self.w - 1) as f64);
-        let y = ((self.rect[3] - n) / c - 0.5).clamp(0.0, (self.h - 1) as f64);
-        let (x0, y0) = (x as usize, y as usize);
-        let (x1, y1) = ((x0 + 1).min(self.w - 1), (y0 + 1).min(self.h - 1));
-        let (fx, fy) = ((x - x0 as f64) as f32, (y - y0 as f64) as f32);
-        let v = |x: usize, y: usize| self.dist[y * self.w + x];
-        let top = v(x0, y0) + (v(x1, y0) - v(x0, y0)) * fx;
-        let d = top + (v(x0, y1) + (v(x1, y1) - v(x0, y1)) * fx - top) * fy;
+        let d = self.cell(e, n, |i| [self.dist[i]; 3])[0];
         if d >= 0.0 {
             1.0 - smoothstep(0.0, BORDER_FEATHER_M, d)
         } else {
@@ -894,8 +955,8 @@ impl BorderTone {
         }
     }
 
-    /// Sentinel-2's colour `v` at UTM (e, n): toned by its weight, the blocks' tones blended between their centres;
-    /// outside the cells' rect, on water or far from the photo as it is.
+    /// Sentinel-2's colour `v` at UTM (e, n): toned by its weight, the blocks' tones blended between their centres,
+    /// then the local match (LOCAL_SAMPLE_M); outside the cells' rect, on water or far from the photo as it is.
     fn tone(&self, e: f64, n: f64, v: [f32; 3]) -> [f32; 3] {
         let r = self.rect;
         if e < r[0] || e > r[2] || n < r[1] || n > r[3] || imagery::is_photo_water(v) {
@@ -905,6 +966,32 @@ impl BorderTone {
         if k <= 0.0 {
             return v;
         }
+        let Some(t) = self.blocks(e, n, v) else { return v };
+        let (l, d) = (self.cell(e, n, |i| self.local[i]), self.cell(e, n, |i| [self.dist[i]; 3])[0]);
+        let kl = if d >= 0.0 { 1.0 - smoothstep(0.0, LOCAL_REACH_M, d) } else { 1.0 };
+        [0, 1, 2].map(|j| v[j] + ((t[j] * (l[j] * kl).exp()).clamp(0.0, 255.0) - v[j]) * k)
+    }
+
+    /// The cells' values at UTM (e, n), bilinear between the cells' centres (`at` cell i's).
+    fn cell(&self, e: f64, n: f64, at: impl Fn(usize) -> [f32; 3]) -> [f32; 3] {
+        let c = BORDER_CELL_M;
+        let x = ((e - self.rect[0]) / c - 0.5).clamp(0.0, (self.w - 1) as f64);
+        let y = ((self.rect[3] - n) / c - 0.5).clamp(0.0, (self.h - 1) as f64);
+        let (x0, y0) = (x as usize, y as usize);
+        let (x1, y1) = ((x0 + 1).min(self.w - 1), (y0 + 1).min(self.h - 1));
+        let (fx, fy) = ((x - x0 as f64) as f32, (y - y0 as f64) as f32);
+        let v = |x: usize, y: usize| at(y * self.w + x);
+        let (a, b, cc, d) = (v(x0, y0), v(x1, y0), v(x0, y1), v(x1, y1));
+        [0, 1, 2].map(|j| {
+            let top = a[j] + (b[j] - a[j]) * fx;
+            top + (cc[j] + (d[j] - cc[j]) * fx - top) * fy
+        })
+    }
+
+    /// Sentinel-2's colour `v` at UTM (e, n) by the blocks' tones blended between their centres; None where no block
+    /// near is fitted.
+    fn blocks(&self, e: f64, n: f64, v: [f32; 3]) -> Option<[f32; 3]> {
+        let r = self.rect;
         let b = BORDER_BLOCK_M;
         let x = ((e - r[0]) / b - 0.5).clamp(0.0, (self.bw - 1) as f64);
         let y = ((r[3] - n) / b - 0.5).clamp(0.0, (self.bh - 1) as f64);
@@ -929,10 +1016,7 @@ impl BorderTone {
             }
             sum += wt;
         }
-        if sum <= 0.0 {
-            return v;
-        }
-        [0, 1, 2].map(|j| v[j] + (acc[j] / sum - v[j]) * k)
+        (sum > 0.0).then(|| acc.map(|a| a / sum))
     }
 }
 
@@ -978,6 +1062,64 @@ const NEAR_WHITE: u8 = 235;
 const FILL_MIN_PX: usize = 25_000;
 /// How far (pixels) the fill reaches past its near-white pixels (`white_fill`).
 const FILL_EDGE_PX: usize = 2;
+/// The photo fades out over this far (m) toward the sheets' fill and no-data (`white_fill`; not toward the sea), onto
+/// Sentinel-2 toned to it there (BorderTone's local match): its edge was a line (2026-11-25, the user: "the shim
+/// between tiles can look better"). The Survey unit's warp reaches this far past the unit, so the fade sees the fill
+/// across a unit's border.
+const FILL_FEATHER_M: f64 = 200.0;
+/// The fade's distance is measured on cells of this many pixels (8 m at 2 m; a 2 m distance field would take 280 MB
+/// per worker).
+const FEATHER_CELL: usize = 4;
+
+/// Clears the patches (4-connected) of `m` (`w` wide) smaller than `min` cells.
+fn large_only(m: &mut [bool], w: usize, min: usize) {
+    let mut seen = vec![false; m.len()];
+    for i in 0..m.len() {
+        if !m[i] || seen[i] {
+            continue;
+        }
+        seen[i] = true;
+        let (mut stack, mut patch) = (vec![i], Vec::new());
+        while let Some(j) = stack.pop() {
+            patch.push(j);
+            let (x, y) = (j % w, j / w);
+            let near = [
+                (x > 0).then(|| j - 1),
+                (x + 1 < w).then(|| j + 1),
+                (y > 0).then(|| j - w),
+                (j + w < m.len()).then(|| j + w),
+            ];
+            for k in near.into_iter().flatten() {
+                if m[k] && !seen[k] {
+                    seen[k] = true;
+                    stack.push(k);
+                }
+            }
+        }
+        if patch.len() < min {
+            patch.into_iter().for_each(|j| m[j] = false);
+        }
+    }
+}
+
+/// Per pixel of an `n` × `n` raster (UTM `rect`, its margin included), 0 at the fill (`seed` per FEATHER_CELL cell) to
+/// 1 from FILL_FEATHER_M: the distance between the cells' centres bilinear, smoothstep.
+fn feather(seed: &[bool], n: usize, px: f64) -> impl Fn(usize, usize) -> f32 + use<> {
+    let cw = n / FEATHER_CELL;
+    let d = chamfer(seed, cw, cw);
+    let cm = (FEATHER_CELL as f64 * px) as f32;
+    move |x: usize, y: usize| {
+        let at = |v: usize| ((v as f32 + 0.5) / FEATHER_CELL as f32 - 0.5).clamp(0.0, (cw - 1) as f32);
+        let (fx, fy) = (at(x), at(y));
+        let (x0, y0) = (fx as usize, fy as usize);
+        let (x1, y1) = ((x0 + 1).min(cw - 1), (y0 + 1).min(cw - 1));
+        let (tx, ty) = (fx - x0 as f32, fy - y0 as f32);
+        let v = |x: usize, y: usize| d[y * cw + x].min(1e5);
+        let top = v(x0, y0) + (v(x1, y0) - v(x0, y0)) * tx;
+        let c = top + (v(x0, y1) + (v(x1, y1) - v(x0, y1)) * tx - top) * ty;
+        smoothstep(0.0, FILL_FEATHER_M as f32, c * cm)
+    }
+}
 
 /// The unit's near-white pixels (NEAR_WHITE in every band) joined, through near-white pixels, to one the warp left
 /// without the photo (alpha below 255), to a pure white one (the sheets' fill: west of Ramon a whole unit of it came
@@ -1183,15 +1325,19 @@ fn dilate(m: &mut [f32], w: usize, h: usize, r: usize) {
 fn survey_unit(sv: &Survey, f: &Frame, unit: Key, itm: [[f64; 2]; 4], work: &Path, out: &Path) -> Result<()> {
     let d = unit.0 - 1;
     let n = (NODE_PIXELS << d) as usize;
+    let rect = f.utm(unit);
+    let px = (rect[2] - rect[0]) / n as f64;
+    // The warp with a margin of FILL_FEATHER_M (whole FEATHER_CELLs): unit pixel i is raw pixel ri(i).
+    let mg = ((FILL_FEATHER_M / px).ceil() as usize).next_multiple_of(FEATHER_CELL);
+    let (nn, o) = (n + 2 * mg, mg as f64 * px);
+    let ri = |i: usize| (i / n + mg) * nn + i % n + mg;
     let bin = work.join(format!("soi_{}_{}_{}.bin", unit.0, unit.1, unit.2));
     let extra = ["-r", "bilinear", "-srcnodata", "255 255 255", "-wo", "UNIFIED_SRC_NODATA=YES", "-dstalpha"];
-    let e = warp(sv.vrt, f.utm(unit), [n, n], &extra, &bin)?;
-    if e.bands != 4 || e.dtype != "1" || e.raw.len() != n * n * 4 {
+    let e = warp(sv.vrt, [rect[0] - o, rect[1] - o, rect[2] + o, rect[3] + o], [nn, nn], &extra, &bin)?;
+    if e.bands != 4 || e.dtype != "1" || e.raw.len() != nn * nn * 4 {
         bail!("Survey unit {unit:?}: want RGBA bytes, got {} / type {}", e.bands, e.dtype);
     }
-    let rect = f.utm(unit);
     let bases = BaseMask::new(sv.bases, rect);
-    let px = (rect[2] - rect[0]) / n as f64;
     // The Israeli TM position of unit pixel (u, v) (0..1): bilinear between the corners (NW, NE, SW, SE); the
     // grids differ by ≈ 1° of rotation and < 0.1 % of scale, so the levels' 4 km blend sees no error.
     let at = |u: f64, v: f64| -> [f64; 2] {
@@ -1200,22 +1346,39 @@ fn survey_unit(sv: &Survey, f: &Frame, unit: Key, itm: [[f64; 2]; 4], work: &Pat
         [l(0) + (r(0) - l(0)) * v, l(1) + (r(1) - l(1)) * v]
     };
     let shore = if sv.coast.touches(rect) { Some(ShoreSea::new(sv.coast, f, unit, out)?) } else { None };
-    let fill = white_fill(&e.raw, n);
+    let fill = white_fill(&e.raw, nn);
+    // The fade toward the fill (FILL_FEATHER_M), its cells on the sea left out: the beach stays the photo's.
+    let cw = nn / FEATHER_CELL;
+    let cm = FEATHER_CELL as f64 * px;
+    let mut seed: Vec<bool> = (0..cw * cw)
+        .map(|c| {
+            let (x, y) = (c % cw * FEATHER_CELL, c / cw * FEATHER_CELL);
+            let any = (y..y + FEATHER_CELL).any(|y| fill[y * nn + x..y * nn + x + FEATHER_CELL].contains(&true));
+            let p = [rect[0] - o + ((c % cw) as f64 + 0.5) * cm, rect[3] + o - ((c / cw) as f64 + 0.5) * cm];
+            any && sv.coast.sea(p) != Some(true) && !shore.as_ref().is_some_and(|s| s.at(p[0], p[1]))
+        })
+        .collect();
+    // Only toward a fill of FILL_MIN_PX or more: a clipped white roof's few pixels show Sentinel-2 untoned (deep in
+    // the photo), and a fade toward them made tan discs 400 m wide (first build of "tone6", 2026-11-25).
+    large_only(&mut seed, cw, FILL_MIN_PX / (FEATHER_CELL * FEATHER_CELL));
+    let fade = feather(&seed, nn, px);
+    drop(seed);
     let centre = |i: usize| [rect[0] + ((i % n) as f64 + 0.5) * px, rect[3] - ((i / n) as f64 + 0.5) * px];
     // The photo's weight and the base cover's (BaseMask) at unit pixel i.
     let weight = |i: usize| {
         let p = centre(i);
         let base = bases.as_ref().map_or(0.0, |b| b.at(p[0], p[1]));
-        if fill[i] {
+        let j = ri(i);
+        if fill[j] {
             return (0.0, base); // the sheets' white fill (white_fill)
         }
-        let a = f32::from(e.raw[i * 4 + 3]) / 255.0 * (1.0 - base);
+        let a = f32::from(e.raw[j * 4 + 3]) / 255.0 * (1.0 - base) * fade(i % n + mg, i / n + mg);
         // At the shore: none of the photo on the sea (the coastline's water side, beyond its reach Sentinel-2's water
         // joined to it), nor its near-white (the sheets' no-data with JPEG noise) beyond the coastline's reach.
         if let Some(sea) = shore.as_ref().filter(|_| a > 0.0) {
             match sv.coast.sea(p) {
                 Some(true) => return (0.0, base),
-                None if sea.at(p[0], p[1]) || e.raw[i * 4..i * 4 + 3].iter().all(|&c| c >= NEAR_WHITE) => {
+                None if sea.at(p[0], p[1]) || e.raw[j * 4..j * 4 + 3].iter().all(|&c| c >= NEAR_WHITE) => {
                     return (0.0, base);
                 }
                 _ => {}
@@ -1253,7 +1416,8 @@ fn survey_unit(sv: &Survey, f: &Frame, unit: Key, itm: [[f64; 2]; 4], work: &Pat
                         continue;
                     }
                     let [ie, inn] = at((ox + x) as f64 / n as f64, (oy + y) as f64 / n as f64);
-                    let mut rgb = [0, 1, 2].map(|c| f32::from(e.raw[i * 4 + c]));
+                    let j = ri(i);
+                    let mut rgb = [0, 1, 2].map(|c| f32::from(e.raw[j * 4 + c]));
                     if let Some(lv) = imagery::levels_at(&sv.levels, ie, inn) {
                         rgb = imagery::photo_levels(rgb, lv);
                     }
@@ -1687,9 +1851,10 @@ const S2_8M_BASE: &str = "s2_8m_median";
 /// Survey's "_lv" marks, rename BORDER_FILL with them, or the border units keep the old build.
 /// "tone2", "tone3" (2026-11-24): the sheets' white fill joined to their no-data, then to pure white, left out inland
 /// too (`white_fill`); "tone4" (2026-11-25): a large near-white patch too (FILL_MIN_PX); "tone5" with its edge
-/// (FILL_EDGE_PX).
-const BORDER_FILL: &str = "tone5";
-const S2_8M_BORDER: &str = "s2_8m_border_tone5";
+/// (FILL_EDGE_PX); "tone6" (2026-11-25): the local match (LOCAL_SAMPLE_M) and the photo's fade toward the fill
+/// (FILL_FEATHER_M); "tone7" the same, the fade toward a large fill only (`large_only`).
+const BORDER_FILL: &str = "tone7";
+const S2_8M_BORDER: &str = "s2_8m_border_tone7";
 
 /// Whether `dir` holds a Survey sheet ZIP: only then does the colour branch make the 2 m nodes (and read the shore).
 fn has_zips(dir: &Path) -> bool {
@@ -2433,6 +2598,7 @@ mod tests {
             bw: 2,
             bh: 1,
             tones: vec![Some(darker); 2],
+            local: vec![[0.0; 3]; w * h],
             s2_units: BTreeSet::new(),
             survey_units: BTreeSet::new(),
         };
@@ -2447,6 +2613,61 @@ mod tests {
         let water = [40.0, 70.0, 90.0];
         assert_eq!(bt.tone(5_000.0, 100.0, water), water, "water");
         assert_eq!(bt.tone(-10.0, 100.0, sand), sand, "outside the cells");
+    }
+
+    /// The local match: at the photo's edge Sentinel-2 takes the photo's own colour over the blocks' tone, half of it
+    /// part way, none from LOCAL_REACH_M; a blurred field of equal ratios keeps them.
+    #[test]
+    fn the_local_match_meets_the_photo() {
+        let (w, h) = (300, 2);
+        let dist: Vec<f32> = (0..w * h).map(|i| ((i % w) as f32 + 0.5) * 100.0 - 5000.0).collect();
+        let same = BaseTone { rect: [0.0; 4], grey: [1.0, 0.0], chroma: 1.0, tint: [0.0; 3], knee: 255.0 };
+        let mut acc = vec![[0.8f32.ln(), 0.8f32.ln(), 0.8f32.ln(), 1.0]; w * h];
+        box_blur3(&mut acc, w, h, LOCAL_BLUR);
+        let bt = BorderTone {
+            rect: [0.0, 0.0, 30_000.0, 200.0],
+            w,
+            h,
+            dist,
+            bw: 2,
+            bh: 1,
+            tones: vec![Some(same); 2],
+            local: acc.iter().map(|a| [0, 1, 2].map(|k| a[k] / a[3])).collect(),
+            s2_units: BTreeSet::new(),
+            survey_units: BTreeSet::new(),
+        };
+        let sand = [190.0, 180.0, 160.0];
+        let at = |e: f64| bt.tone(e, 100.0, sand)[0];
+        assert!((at(5_000.0) - 152.0).abs() < 1.0, "the edge: {}", at(5_000.0));
+        let mid = at(6_000.0);
+        assert!(mid > 160.0 && mid < 185.0, "1 km out: {mid}");
+        assert!((at(7_500.0) - 190.0).abs() < 0.5, "past the reach: {}", at(7_500.0));
+    }
+
+    /// The photo's fade toward the fill: none at the fill, full from FILL_FEATHER_M, rising between.
+    #[test]
+    fn the_photo_fades_toward_the_fill() {
+        let n = 400;
+        let cw = n / FEATHER_CELL;
+        let seed: Vec<bool> = (0..cw * cw).map(|c| c % cw == 0).collect();
+        let fade = feather(&seed, n, 2.0);
+        assert!(fade(0, 50) < 0.01, "at the fill: {}", fade(0, 50));
+        let v: Vec<f32> = (0..n).step_by(10).map(|x| fade(x, 50)).collect();
+        assert!(v.windows(2).all(|p| p[1] >= p[0]), "rising: {v:?}");
+        assert!((fade(50, 50) - 0.5).abs() < 0.1, "about half at 100 m: {}", fade(50, 50));
+        assert_eq!(fade(120, 50), 1.0, "past the fade");
+        assert_eq!(feather(&vec![false; cw * cw], n, 2.0)(10, 10), 1.0, "no fill");
+    }
+
+    /// The fade's seeds: a small patch is dropped, a large one kept.
+    #[test]
+    fn a_small_fill_has_no_fade() {
+        let w = 50;
+        let mut m: Vec<bool> = (0..w * w).map(|i| (i % w < 20 && i / w < 20) || (i % w > 45 && i / w > 45)).collect();
+        large_only(&mut m, w, 100);
+        assert!(m[0] && m[19 * w + 19], "the large patch stays");
+        assert!(!m[w * w - 1], "the small one goes");
+        assert_eq!(m.iter().filter(|&&v| v).count(), 400);
     }
 
     /// A finished run is stamped in meta.json; the same inputs again return before any work (no network).

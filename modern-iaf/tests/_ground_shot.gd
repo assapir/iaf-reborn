@@ -8,14 +8,18 @@
 extends "res://../tests/godot/base.gd"
 
 var _cam: Camera3D
-var _xf := Transform3D.IDENTITY
+var _tv: Node
+var _world := Vector3.ZERO  # the camera's UTM position and height
+var _basis := Basis.IDENTITY
 var _fov := 60.0
 
 
+# The camera's place in the global frame each frame: the floating origin (docs/rendering.md §11) moves the scene.
 func _pre_draw() -> void:
-	if is_instance_valid(_cam):
-		_cam.global_transform = _xf
-		RenderingServer.camera_set_transform(_cam.get_camera_rid(), _xf)
+	if is_instance_valid(_cam) and is_instance_valid(_tv):
+		var xf := Transform3D(_basis, _tv.world_to_global(_world))
+		_cam.global_transform = xf
+		RenderingServer.camera_set_transform(_cam.get_camera_rid(), xf)
 		_cam.set_perspective(_fov, 0.05, 30000.0)
 
 
@@ -34,9 +38,9 @@ func run() -> void:
 	# SHOT_POSE: x y (UTM m), the camera's height above the ground (m), heading and pitch (degrees), the view (degrees).
 	var at := OS.get_environment("SHOT_POSE").split(" ", false)
 	var g = tv.mission_ground(Vector3(float(at[0]), float(at[1]), 0.0))
-	var pos: Vector3 = tv.world_to_scene(
-		Vector3(float(at[0]), float(at[1]), float(g if g != null else 0.0) + float(at[2]))
-	)
+	_world = Vector3(float(at[0]), float(at[1]), float(g if g != null else 0.0) + float(at[2]))
+	_tv = tv
+	var pos: Vector3 = tv.world_to_scene(_world)
 	tv.frozen = true
 	var h := deg_to_rad(float(at[3]))
 	tv.rig.position = pos
@@ -56,7 +60,7 @@ func run() -> void:
 	var dir_v := Vector3(
 		sin(h) * cos(deg_to_rad(float(at[4]))), sin(deg_to_rad(float(at[4]))), -cos(h) * cos(deg_to_rad(float(at[4])))
 	)
-	_xf = Transform3D(Basis.looking_at(dir_v, Vector3.UP), pos)
+	_basis = Basis.looking_at(dir_v, Vector3.UP)
 	RenderingServer.frame_pre_draw.connect(_pre_draw)
 	await ground_streamed(tv, 30000, 20)
 	await frames(90)

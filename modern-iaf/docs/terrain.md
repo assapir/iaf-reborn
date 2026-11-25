@@ -215,6 +215,22 @@ left" over the tiles still to fetch, a DEM tile's MB so far.
      salt pans at Sedom, the Arava's greenhouses, measured 2026-11-25). The fill reaches 2 pixels past its near-white
      ("tone5"): the warp blends the photo's edge pixels with it, and "tone4" left them as a grey-white line along the
      photo (west of Ramon the first pixel 185 grey, the second 99, the photo 90).
+     The seam at the photo's edge ("tone6" and "tone7", 2026-11-25, the user: "the shim between tiles can look better"): the
+     blocks' tone matched a 16 km block, so a darker or lighter sheet still met Sentinel-2 with a step in brightness,
+     and the photo stopped at its fill and no-data in one pixel, a sharp stepped line from the air (west of Ramon,
+     Dimona's censored block). Two changes:
+     - **Local match**: on the 100 m cells, per band the log ratio of the levelled photo to the blocks' tone of
+       Sentinel-2, on the photo's land cells 150–800 m in from its edge, averaged around (three box blurs of 8 cells,
+       about a Gaussian of 850 m; each band within × 1.6). Out of the photo Sentinel-2 takes that ratio over the
+       blocks' tone, fully at the edge and none from 2 km out (smoothstep); on the photo's side with the blocks' tone's
+       weight (full to 200 m in, none from 400 m).
+     - **Fade**: in the 2 m nodes the photo fades out over 200 m toward the fill and no-data (smoothstep of the
+       distance, measured on 8 m cells), onto that matched Sentinel-2; the fill's cells on the sea (the shore's
+       `ShoreSea`, and the coastline's water side within its reach) are left out, so the beach stays sharp. Only a
+       fill of 0.1 km² or more counts ("tone7"): the first build ("tone6") also faded toward a clipped white roof's
+       few pixels, whose Sentinel-2 deep in the photo is untoned, and left tan discs 400 m wide. The Survey unit's warp reaches 200 m past the unit, so the
+       fade and the fill see across a unit's border (a fill joined to no-data only beyond those 200 m can still differ across it: rare).
+     The cost is the build's only (a few seconds for the field; nothing at run time).
      A 10 m tile whose download began and stopped short (its `.part` in the cache, or a `.lock` with no tile beside
      it) is finished by the next terrain run, and setup's stamp of the terrain does not hold until it is whole, then the border's units over it are toned (the user, 2026-11-24: "lmk what you need me to downaload and
      download the missing tiles, ofcourse!"): on this laptop the Arava and the Dead Sea's south (N30E035, 653 MB,
@@ -224,8 +240,8 @@ left" over the tiles still to fetch, a DEM tile's MB so far.
      over the network and the stamp holds; once the disk has room, the next setup finishes it (2026-11-25: the run of
      2026-11-24 kept three tiles and read N31E035 over the network, under 7 GB free).
      The 8 m Sentinel-2 units (level 5) and Survey units (level 4) with a toned pixel are listed in
-     `.work/border_tone5.json` and have their own done marks (`s2_8m_border_tone5`, `survey_2m_border_tone5`; "tone1"
-     before the white fill, "tone2" to "tone4" its earlier rules): a
+     `.work/border_tone7.json` and have their own done marks (`s2_8m_border_tone7`, `survey_2m_border_tone7`; "tone1"
+     before the white fill, "tone2" to "tone6" its earlier rules): a
      theatre built before redoes those (`stamp`'s `border_fill`), Sentinel-2's from the local tiles, nothing
      downloaded. A base within reach of the toned ground has all its 8 m units redone too: its own tone reads
      Sentinel-2 from them, which would otherwise mix the photo into its fit; the 100 m warps of the photo and Sentinel-2 run once per run that writes an 8 m unit.

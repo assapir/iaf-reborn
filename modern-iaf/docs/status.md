@@ -916,8 +916,9 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   country looks bad"):** Sentinel-2 beyond the photo's edge (Lebanon, Syria, Jordan, Egypt, Gaza) toned to the
   photo's colour and brightness along the border, fading out over 10 km, with the bases' colour map per 16 km block
   ([terrain.md](terrain.md) §4). A rebuild of the theatre's border units (setup's terrain step, then the scenery:
-  nothing to download). Open: Sentinel-2 stays softer (10 m) than the photo (2 m) beside it; along the Egyptian border
-  stepped block edges and a lighter outlined patch; on a theatre built before, the border units over 10 m tiles not kept on disk
+  nothing to download). Since 2026-11-25 ("tone7") Sentinel-2 at the photo's edge takes the photo's own colour there
+  (a local match over 2 km) and the photo fades onto it over 200 m, at the border and at the sheets' fill inland (the
+  user: "the shim between tiles can look better"). Open: Sentinel-2 stays softer (10 m) than the photo (2 m) beside it, and in the 200 m fade its own ground shows where it differs from the 2015 photo (a tan patch beside the road west of Ramon); on a theatre built before, the border units over 10 m tiles not kept on disk
   stay untoned (nothing is fetched for them).
 - **Ramon filled (2026-11-19, approved by the user the same day):** 40 hardened shelters (12 with a parked
   Sufa), 10 hangars, 14 buildings, the tower, a sunshade, the fence and ramp vehicles beside the player's spot, placed
