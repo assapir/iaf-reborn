@@ -1942,8 +1942,9 @@ func _systems(delta: float) -> void:
 
 ## The autopilot's inputs each frame (IafFlight.set_ap_panel): the paddle and TRIM/AP DISC (the keys, terrain_view.gd),
 ## AIR REFUEL, the EHSI's heading marker and the steerpoint's bearing (the EHSI's NAV pointer, none until the INS
-## navigates); and its FLCS A/P FAIL / DEGR for the fault list (cockpit.gd pfl_flags).
-func ap_inputs(tv: Node) -> void:
+## navigates); and its FLCS A/P FAIL / DEGR for the fault list (cockpit.gd pfl_flags). `tv` is the command's target
+## (_tv): the flight scene, or a test's stand-in without a flight, which leaves the autopilot alone.
+func ap_inputs(tv: Object) -> void:
 	if tv.get("flight") == null or not tv.has_method("set_ap_switch") or not tv._ap_switches():
 		return
 	var steer := -1.0
