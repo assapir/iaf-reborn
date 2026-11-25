@@ -21,6 +21,7 @@ concurrency:
 
 permissions:
   contents: read
+  actions: read # deploy-pages finds the uploaded site among the run's artifacts
   pages: write
   id-token: write
 
